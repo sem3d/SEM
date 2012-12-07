@@ -1,57 +1,34 @@
-subroutine get_Displ_Vertex2Elem (Tdomain,n)
+!>
+!! \file get_Displ_Vertex2Elem.f90
+!! \brief Recopie les Forces des vertex sur les elements
+!!
+!<
 
-use sdomain
+subroutine get_Displ_Vertex2Elem(Tdomain,n)
 
-implicit none
+    use sdomain
+    implicit none
 
-type (Domain), intent (INOUT) :: Tdomain
-integer, intent (IN) :: n
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in) :: n
+    integer :: nv, ngllx,nglly,ngllz,nnv
 
-integer :: nv, ngllx,nglly,ngllz
- 
+    ngllx = Tdomain%specel(n)%ngllx
+    nglly = Tdomain%specel(n)%nglly
+    ngllz = Tdomain%specel(n)%ngllz
 
-ngllx = Tdomain%specel(n)%ngllx; nglly = Tdomain%specel(n)%nglly; ngllz = Tdomain%specel(n)%ngllz
+    do nv = 0,7
+        nnv = Tdomain%specel(n)%Near_Vertices(nv)
+        ! now we call the general deassemblage routine
+        call get_VectProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,  &
+            Tdomain%sVertex(nnv)%Forces(0:2),Tdomain%specel(n)%Forces(:,:,:,0:2))
+    enddo
 
-nv = Tdomain%specel(n)%near_vertices(0)
-Tdomain%specel(n)%Forces(0,0,0,0) = Tdomain%sVertex(nv)%Forces(0) 
-Tdomain%specel(n)%Forces(0,0,0,1) = Tdomain%sVertex(nv)%Forces(1)
-Tdomain%specel(n)%Forces(0,0,0,2) = Tdomain%sVertex(nv)%Forces(2)
-
-nv = Tdomain%specel(n)%near_vertices(1)
-Tdomain%specel(n)%Forces(ngllx-1,0,0,0) = Tdomain%sVertex(nv)%Forces(0)
-Tdomain%specel(n)%Forces(ngllx-1,0,0,1) = Tdomain%sVertex(nv)%Forces(1)
-Tdomain%specel(n)%Forces(ngllx-1,0,0,2) = Tdomain%sVertex(nv)%Forces(2)
-
-nv = Tdomain%specel(n)%near_vertices(2)
-Tdomain%specel(n)%Forces(ngllx-1,nglly-1,0,0) = Tdomain%sVertex(nv)%Forces(0)
-Tdomain%specel(n)%Forces(ngllx-1,nglly-1,0,1) = Tdomain%sVertex(nv)%Forces(1)
-Tdomain%specel(n)%Forces(ngllx-1,nglly-1,0,2) = Tdomain%sVertex(nv)%Forces(2) 
-
-nv = Tdomain%specel(n)%near_vertices(3)
-Tdomain%specel(n)%Forces(0,nglly-1,0,0) = Tdomain%sVertex(nv)%Forces(0)
-Tdomain%specel(n)%Forces(0,nglly-1,0,1) = Tdomain%sVertex(nv)%Forces(1)
-Tdomain%specel(n)%Forces(0,nglly-1,0,2) = Tdomain%sVertex(nv)%Forces(2)
-
-nv = Tdomain%specel(n)%near_vertices(4)
-Tdomain%specel(n)%Forces(0,0,ngllz-1,0) = Tdomain%sVertex(nv)%Forces(0)
-Tdomain%specel(n)%Forces(0,0,ngllz-1,1) = Tdomain%sVertex(nv)%Forces(1)
-Tdomain%specel(n)%Forces(0,0,ngllz-1,2) = Tdomain%sVertex(nv)%Forces(2)
-
-nv = Tdomain%specel(n)%near_vertices(5)
-Tdomain%specel(n)%Forces(ngllx-1,0,ngllz-1,0) = Tdomain%sVertex(nv)%Forces(0)
-Tdomain%specel(n)%Forces(ngllx-1,0,ngllz-1,1) = Tdomain%sVertex(nv)%Forces(1)
-Tdomain%specel(n)%Forces(ngllx-1,0,ngllz-1,2) = Tdomain%sVertex(nv)%Forces(2)
-
-nv = Tdomain%specel(n)%near_vertices(6)
-Tdomain%specel(n)%Forces(ngllx-1,nglly-1,ngllz-1,0) = Tdomain%sVertex(nv)%Forces(0)
-Tdomain%specel(n)%Forces(ngllx-1,nglly-1,ngllz-1,1) = Tdomain%sVertex(nv)%Forces(1)
-Tdomain%specel(n)%Forces(ngllx-1,nglly-1,ngllz-1,2) = Tdomain%sVertex(nv)%Forces(2)
-
-nv = Tdomain%specel(n)%near_vertices(7)
-Tdomain%specel(n)%Forces(0,nglly-1,ngllz-1,0) = Tdomain%sVertex(nv)%Forces(0)
-Tdomain%specel(n)%Forces(0,nglly-1,ngllz-1,1) = Tdomain%sVertex(nv)%Forces(1)
-Tdomain%specel(n)%Forces(0,nglly-1,ngllz-1,2) = Tdomain%sVertex(nv)%Forces(2)
-
-
-return
+    return
 end subroutine get_Displ_Vertex2Elem
+
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
