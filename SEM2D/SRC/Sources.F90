@@ -1,0 +1,121 @@
+!>
+!!\file Sources.F90
+!!\brief Assure la gestion des sources.
+!!\author
+!!\version 1.0
+!!\date 10/03/2009
+!!
+!<
+
+module ssources
+
+    ! Modified by Gaetano 13/9/04
+
+    type :: elem_source
+       integer :: nr
+       real :: eta,xi
+       real, dimension (0:1,0:1) :: Scoeff
+       real, dimension (:,:), pointer :: ExtForce
+       real, dimension (:,:,:), pointer :: explosion
+    end type elem_source
+
+    type :: Source
+       integer :: i_dir, i_type_source, i_time_function,ine
+       real :: Xsource,Zsource, tau_b,cutoff_freq,amplitude
+       type(elem_source), dimension(:), pointer :: Elem
+    end type Source
+
+contains
+
+    !>
+    !! \fn function CompSource (Sour,time,np)
+    !! \brief
+    !!
+    !! \param type (source) Sour
+    !! \param integer np
+    !! \param real time
+    !<
+    real function CompSource (Sour,time,np)
+
+        type (source) :: Sour
+        integer ::np
+        real :: time
+
+        CompSource = 0.
+        select case (Sour%i_type_source)
+        case (1)   ! Impulse
+            if (np /= Sour%i_dir) then
+                CompSource = 0.
+            else
+                select case (Sour%i_time_function)
+                case (1)
+                    CompSource = Gaussian (time,Sour%tau_b)
+                case (2)
+                    CompSource = Ricker (time,Sour%tau_b,Sour%cutoff_freq)
+                case (3)
+                    CompSource = 1
+                end select
+            end if
+        case (2) ! Explosion
+            select case (Sour%i_time_function)
+            case (1)
+                CompSource = Gaussian (time,Sour%tau_b)
+            case (2)
+                CompSource = Ricker (time,Sour%tau_b,Sour%cutoff_freq)
+
+            end select
+        end select
+
+        CompSource = Sour%amplitude*CompSource
+
+        return
+    end function CompSource
+
+    !>
+    !! \fn function Gaussian (time, tau)
+    !! \brief
+    !!
+    !! \param real time
+    !! \param real tau
+    !<
+    real function Gaussian (time, tau)
+
+        real :: tau,time
+
+        Gaussian = -(time-tau) * exp (-(time-tau)**2/tau**2)
+
+        return
+    end function Gaussian
+
+    !>
+    !! \fn function Ricker (time,tau,f0)
+    !! \brief
+    !!
+    !! \param real time
+    !! \param real tau
+    !! \param real f0
+    !<
+    real function Ricker (time,tau,f0)
+
+        real :: time, tau, f0
+        real :: sigma,pi
+
+        pi = Acos(-1.)
+        sigma = pi * f0 * (time - tau )
+        sigma = sigma **2
+
+        Ricker = (1-2 * sigma) *exp (-sigma)
+        if(sigma>50.) then   !Ajout Gsa 0508
+            Ricker = 0.
+        endif
+        return
+    end function Ricker
+
+
+
+end module ssources
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent : !!

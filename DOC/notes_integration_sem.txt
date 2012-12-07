@@ -1,0 +1,215 @@
+.. -*- mode:rst; coding:utf-8 -*-
+
+Notes sur l'integration des differentes version de SEM 2D et 3D
+===============================================================
+
+
+
+* Pour le couplage avec MKA3D on introduit Tdomain%communicateur qui vaut MPI_COMMWORLD
+  dans le cas non couple.
+
+
+
+``SEM2D/Capteur.F90``
+
+``SEM3D/Capteur.F90``
+
+- Les sources ont la meme structure, et quasi identique a l'exception du traitement
+  de la troisieme dimension pour SEM3D
+
+
+``calcul_xi_eta_psi`` : calcul des coordonnees locales d'une maille duplique
+pour les capteur, le couplage, la source ?
+
+* bugge pour les capteurs.
+
+
+``SourcePosition.f90`` : calcul des coordonnees locales duplique (dans SEM3D Mka),
+dans ReceiverPosition sur RegSEM.U
+
+
+``Courant.f90`` : dans Mka on calcule le pas de temps en fonction du pb
+
+``allocate_domain.f90`` : on traite amortissement et anisotropie -> pas besoin des Acoef.
+ils sont encore alloues pour PML oubli ?
+
+- ForcesMka : allouee meme sans couplage ??
+
+
+invert_3d.f90 : librarie ?
+
+RegSEM.U -- SEM3D-mka
+---------------------
+
+Dans les deux versions on ajoute ::
+
+  !! Local Variables:
+  !! mode: f90
+  !! show-trailing-whitespace: t
+  !! End:
+
+et un entete ::
+
+  !> 
+  !! \file get_Mass_Elem2Face.f90 
+  !! \brief 
+  !! \author 
+  !! \version 1.0 
+  !! \date 
+  !! 
+  !<
+
+
+
+Files ``RegSEM.U/CODE/Newmark.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/Newmark.f90`` differ :
+
+- communicateur, couplages, arguments de CALL xxx et save_trace
+
+Files ``RegSEM.U/CODE/SourcePosition.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/SourcePosition.f90`` differ :
+
+- output (mpi) et calcul xi,eta,zeta de la source
+
+Files ``RegSEM.U/CODE/VALEPO.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/VALEPO.f90`` differ
+
+Files ``RegSEM.U/CODE/WELEGL.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/WELEGL.f90`` differ
+
+Files ``RegSEM.U/CODE/ZELEGL.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/ZELEGL.f90`` differ :
+
+- passage en module f90
+
+Files ``RegSEM.U/CODE/allocate_domain.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/allocate_domain.f90`` differ :
+
+- anisotropie, couplage
+
+Files ``RegSEM.U/CODE/compute_GLL.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/compute_GLL.f90`` differ :
+
+- use module f90
+
+Files ``RegSEM.U/CODE/courant.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/courant.f90`` differ :
+
+- calcul du dt en fonction de courant
+
+Files ``RegSEM.U/CODE/deallocate_domain.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/deallocate_domain.f90`` differ :
+
+- cf allocate
+
+Files ``RegSEM.U/CODE/define_arrays.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/define_arrays.f90`` differ :
+
+- aniso, communicateur, et depuis peu MPML
+
+Files ``RegSEM.U/CODE/define_neu_properties.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/define_neu_properties.f90`` differ :
+
+- bidouilles pour ngll = 6, 8
+
+Files ``RegSEM.U/CODE/define_planew_properties.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/define_planew_properties.f90`` differ :
+
+- DKappa, semfiles
+
+Files ``RegSEM.U/CODE/drive_sem.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/drive_sem.f90`` differ :
+
+- couplage, force_int
+
+Files ``RegSEM.U/CODE/global_numbering.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/global_numbering.f90`` differ :
+
+- un gros bout a ete supprime dans RegSEM.U
+
+Files ``RegSEM.U/CODE/read_input.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/read_input.f90`` differ :
+
+- aniso, print mpi, et petites diff du format de fichier
+
+Files ``RegSEM.U/CODE/read_restart.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/read_restart.f90`` differ
+
+Files ``RegSEM.U/CODE/save_checkpoint.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/save_checkpoint.f90`` differ
+
+- aniso, format hdf5, semfiles
+
+Files ``RegSEM.U/CODE/savefield.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/savefield.f90`` differ :
+
+- sorties specifiques mka3d ?
+
+Files ``RegSEM.U/CODE/savetrace.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/savetrace.f90`` differ :
+
+- il y a un dt2/nt2 dans version RegSem.U, semfiles
+
+Files ``RegSEM.U/CODE/shape8.f90`` and ``mka3d/mka3d-src/SEM3D/SRC/shape8.f90`` differ :
+
+- creation fichier PostG, connect, 
+- deallocate Iglobnum_Face, Iglobnum_Edge, verification orientation faces
+
+
+Diff recursif ::
+
+  diff -wqs RegSEM.U/CODE/ ~/work/mka3d/mka3d-src/SEM3D/SRC/
+  Common subdirectories: RegSEM.U/CODE/BLAS and mka3d/mka3d-src/SEM3D/SRC/BLAS
+  Only in mka3d/mka3d-src/SEM3D/SRC/: Capteur.f90
+  Files RegSEM.U/CODE/Comm_Forces_Edge.f90 and mka3d/mka3d-src/SEM3D/SRC/Comm_Forces_Edge.f90 are identical
+  Files RegSEM.U/CODE/Comm_Forces_Face.f90 and mka3d/mka3d-src/SEM3D/SRC/Comm_Forces_Face.f90 are identical
+  Files RegSEM.U/CODE/Comm_Forces_Vertex.f90 and mka3d/mka3d-src/SEM3D/SRC/Comm_Forces_Vertex.f90 are identical
+  Files RegSEM.U/CODE/Comm_Mass_Edge.f90 and mka3d/mka3d-src/SEM3D/SRC/Comm_Mass_Edge.f90 are identical
+  Files RegSEM.U/CODE/Comm_Mass_Face.f90 and mka3d/mka3d-src/SEM3D/SRC/Comm_Mass_Face.f90 are identical
+  Files RegSEM.U/CODE/Comm_Mass_Vertex.f90 and mka3d/mka3d-src/SEM3D/SRC/Comm_Mass_Vertex.f90 are identical
+  Files RegSEM.U/CODE/DMLEGL.f90 and mka3d/mka3d-src/SEM3D/SRC/DMLEGL.f90 are identical
+  Only in RegSEM.U/CODE/: Makefile
+  Common subdirectories: RegSEM.U/CODE/Modules and mka3d/mka3d-src/SEM3D/SRC/Modules
+  Files RegSEM.U/CODE/Newmark.f90 and mka3d/mka3d-src/SEM3D/SRC/Newmark.f90 differ
+  Files RegSEM.U/CODE/PML_def.f90 and mka3d/mka3d-src/SEM3D/SRC/PML_def.f90 are identical
+  Only in mka3d/mka3d-src/SEM3D/SRC/: README_SEM3D
+  Only in RegSEM.U/CODE/: ReceiverExactPosition.f90
+  Only in mka3d/mka3d-src/SEM3D/SRC/: ReceiverPosition.f90
+  Files RegSEM.U/CODE/SourcePosition.f90 and mka3d/mka3d-src/SEM3D/SRC/SourcePosition.f90 differ
+  Files RegSEM.U/CODE/VALEPO.f90 and mka3d/mka3d-src/SEM3D/SRC/VALEPO.f90 differ
+  Files RegSEM.U/CODE/WELEGL.f90 and mka3d/mka3d-src/SEM3D/SRC/WELEGL.f90 differ
+  Files RegSEM.U/CODE/ZELEGL.f90 and mka3d/mka3d-src/SEM3D/SRC/ZELEGL.f90 differ
+  Files RegSEM.U/CODE/allocate_domain.f90 and mka3d/mka3d-src/SEM3D/SRC/allocate_domain.f90 differ
+  Only in mka3d/mka3d-src/SEM3D/SRC/: attenuation_aniso_update.f90
+  Only in mka3d/mka3d-src/SEM3D/SRC/: attenuation_update.f90
+  Only in mka3d/mka3d-src/SEM3D/SRC/: calcul_forces.f90
+  Only in mka3d/mka3d-src/SEM3D/SRC/: calcul_forces_aniso.f90
+  Only in mka3d/mka3d-src/SEM3D/SRC/: calcul_forces_aniso_att.f90
+  Only in mka3d/mka3d-src/SEM3D/SRC/: calcul_forces_att.f90
+  Files RegSEM.U/CODE/compute_GLL.f90 and mka3d/mka3d-src/SEM3D/SRC/compute_GLL.f90 differ
+  Only in mka3d/mka3d-src/SEM3D/SRC/: compute_constant_Q.c
+  Only in mka3d/mka3d-src/SEM3D/SRC/: compute_iso_Q.c
+  Only in mka3d/mka3d-src/SEM3D/SRC/: constant_Q2_sub.c
+  Only in mka3d/mka3d-src/SEM3D/SRC/: convertirUnv.f90
+  Files RegSEM.U/CODE/courant.f90 and mka3d/mka3d-src/SEM3D/SRC/courant.f90 differ
+  Files RegSEM.U/CODE/deallocate_domain.f90 and mka3d/mka3d-src/SEM3D/SRC/deallocate_domain.f90 differ
+  Files RegSEM.U/CODE/define_arrays.f90 and mka3d/mka3d-src/SEM3D/SRC/define_arrays.f90 differ
+  Files RegSEM.U/CODE/define_neu_properties.f90 and mka3d/mka3d-src/SEM3D/SRC/define_neu_properties.f90 differ
+  Files RegSEM.U/CODE/define_planew_properties.f90 and mka3d/mka3d-src/SEM3D/SRC/define_planew_properties.f90 differ
+  Only in mka3d/mka3d-src/SEM3D/SRC/: double_couple.f90
+  Files RegSEM.U/CODE/drive_sem.f90 and mka3d/mka3d-src/SEM3D/SRC/drive_sem.f90 differ
+  Only in mka3d/mka3d-src/SEM3D/SRC/: forces_int.f90
+  Files RegSEM.U/CODE/getPMLpred_e2el.f90 and mka3d/mka3d-src/SEM3D/SRC/getPMLpred_e2el.f90 are identical
+  Files RegSEM.U/CODE/getPMLpred_f2el.f90 and mka3d/mka3d-src/SEM3D/SRC/getPMLpred_f2el.f90 are identical
+  Files RegSEM.U/CODE/getPMLpred_v2el.f90 and mka3d/mka3d-src/SEM3D/SRC/getPMLpred_v2el.f90 are identical
+  Files RegSEM.U/CODE/get_Displ_Edge2Elem.f90 and mka3d/mka3d-src/SEM3D/SRC/get_Displ_Edge2Elem.f90 are identical
+  Files RegSEM.U/CODE/get_Displ_Face2Elem.f90 and mka3d/mka3d-src/SEM3D/SRC/get_Displ_Face2Elem.f90 are identical
+  Files RegSEM.U/CODE/get_Displ_Vertex2Elem.f90 and mka3d/mka3d-src/SEM3D/SRC/get_Displ_Vertex2Elem.f90 are identical
+  Files RegSEM.U/CODE/get_Forces_Elem2Edge.f90 and mka3d/mka3d-src/SEM3D/SRC/get_Forces_Elem2Edge.f90 are identical
+  Files RegSEM.U/CODE/get_Forces_Elem2Face.f90 and mka3d/mka3d-src/SEM3D/SRC/get_Forces_Elem2Face.f90 are identical
+  Files RegSEM.U/CODE/get_Forces_Elem2Vertex.f90 and mka3d/mka3d-src/SEM3D/SRC/get_Forces_Elem2Vertex.f90 are identical
+  Files RegSEM.U/CODE/get_Mass_Elem2Edge.f90 and mka3d/mka3d-src/SEM3D/SRC/get_Mass_Elem2Edge.f90 are identical
+  Files RegSEM.U/CODE/get_Mass_Elem2Face.f90 and mka3d/mka3d-src/SEM3D/SRC/get_Mass_Elem2Face.f90 are identical
+  Files RegSEM.U/CODE/get_Mass_Elem2Vertex.f90 and mka3d/mka3d-src/SEM3D/SRC/get_Mass_Elem2Vertex.f90 are identical
+  Files RegSEM.U/CODE/global_numbering.f90 and mka3d/mka3d-src/SEM3D/SRC/global_numbering.f90 differ
+  Only in mka3d/mka3d-src/SEM3D/SRC/: input.spec
+  Files RegSEM.U/CODE/invert2.f90 and mka3d/mka3d-src/SEM3D/SRC/invert2.f90 are identical
+  Files RegSEM.U/CODE/invert_3d.f90 and mka3d/mka3d-src/SEM3D/SRC/invert_3d.f90 are identical
+  Only in mka3d/mka3d-src/SEM3D/SRC/: iso_Q2_sub.c
+  Only in mka3d/mka3d-src/SEM3D/SRC/: nrutil.c
+  Only in mka3d/mka3d-src/SEM3D/SRC/: ondelette.f90
+  Only in RegSEM.U/CODE/: openfield.f90
+  Only in mka3d/mka3d-src/SEM3D/SRC/: pol_force.f90
+  Only in mka3d/mka3d-src/SEM3D/SRC/: pol_lagrange.f90
+  Files RegSEM.U/CODE/pow.f90 and mka3d/mka3d-src/SEM3D/SRC/pow.f90 are identical
+  Files RegSEM.U/CODE/read_input.f90 and mka3d/mka3d-src/SEM3D/SRC/read_input.f90 differ
+  Files RegSEM.U/CODE/read_restart.f90 and mka3d/mka3d-src/SEM3D/SRC/read_restart.f90 differ
+  Files RegSEM.U/CODE/save_checkpoint.f90 and mka3d/mka3d-src/SEM3D/SRC/save_checkpoint.f90 differ
+  Files RegSEM.U/CODE/savefield.f90 and mka3d/mka3d-src/SEM3D/SRC/savefield.f90 differ
+  Only in mka3d/mka3d-src/SEM3D/SRC/: savefield_disp.f90
+  Files RegSEM.U/CODE/savetrace.f90 and mka3d/mka3d-src/SEM3D/SRC/savetrace.f90 differ
+  Only in mka3d/mka3d-src/SEM3D/SRC/: set_attenuation_aniso_param.f90
+  Only in mka3d/mka3d-src/SEM3D/SRC/: set_attenuation_param.f90
+  Only in mka3d/mka3d-src/SEM3D/SRC/: shape27.f90
+  Files RegSEM.U/CODE/shape8.f90 and mka3d/mka3d-src/SEM3D/SRC/shape8.f90 differ
