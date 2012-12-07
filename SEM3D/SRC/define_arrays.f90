@@ -7,7 +7,7 @@ subroutine define_arrays(Tdomain,rg)
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: rg
     integer :: n,mat,ngllx,nglly,ngllz,ngll1,ngll2,ngll,ngllPML,ngll_tot,   &
-            ngllPML_tot,ngllSO,ngllNeu,i,j,k,n_elem,nf,ne,nv,nv_aus,idef,code
+        ngllPML_tot,ngllSO,ngllNeu,i,j,k,n_elem,nf,ne,nv,nv_aus,idef,code
     integer :: shift, I_give_to, I_take_from, n_rings
     integer  :: which_elem,which_face,orient_e
     integer, parameter :: etiquette = 100
@@ -15,380 +15,380 @@ subroutine define_arrays(Tdomain,rg)
     real :: vp, ri,rj,rk, dx
     real, external :: pow
     real, dimension(:,:,:), allocatable :: xix,xiy,xiz, etax,etay,etaz,      &
-                                           zetax,zetay,zetaz,Jac,temp_PMLx,temp_PMLy
+        zetax,zetay,zetaz,Jac,temp_PMLx,temp_PMLy
     real, dimension(:,:,:), allocatable :: Rlam,Rmu,RKmod, Whei, LocMassMat, &
-                                            wx,wy,wz, Id, Store_Btn
+        wx,wy,wz, Id, Store_Btn
     logical :: sortie
 
 
-do n = 0,Tdomain%n_elem-1
-  
-   mat = Tdomain%specel(n)%mat_index
-   ngllx = Tdomain%specel(n)%ngllx
-   nglly = Tdomain%specel(n)%nglly
-   ngllz = Tdomain%specel(n)%ngllz
+    do n = 0,Tdomain%n_elem-1
 
-   Tdomain%specel(n)%Density = Tdomain%sSubDomain(mat)%Ddensity
-   Tdomain%specel(n)%Lambda = Tdomain%sSubDomain(mat)%DLambda
-   Tdomain%specel(n)%Mu = Tdomain%sSubDomain(mat)%DMu
+        mat = Tdomain%specel(n)%mat_index
+        ngllx = Tdomain%specel(n)%ngllx
+        nglly = Tdomain%specel(n)%nglly
+        ngllz = Tdomain%specel(n)%ngllz
 
-   allocate(Jac(0:ngllx-1,0:nglly-1,0:ngllz-1))
-   allocate(xix(0:ngllx-1,0:nglly-1,0:ngllz-1)) 
-   allocate(xiy(0:ngllx-1,0:nglly-1,0:ngllz-1))
-   allocate(xiz(0:ngllx-1,0:nglly-1,0:ngllz-1))    
-   allocate(etax(0:ngllx-1,0:nglly-1,0:ngllz-1))
-   allocate(etay(0:ngllx-1,0:nglly-1,0:ngllz-1))
-   allocate(etaz(0:ngllx-1,0:nglly-1,0:ngllz-1))
-   allocate(zetax(0:ngllx-1,0:nglly-1,0:ngllz-1))
-   allocate(zetay(0:ngllx-1,0:nglly-1,0:ngllz-1))
-   allocate(zetaz(0:ngllx-1,0:nglly-1,0:ngllz-1))
-   allocate(Whei(0:ngllx-1,0:nglly-1,0:ngllz-1))
-   allocate(RKmod(0:ngllx-1,0:nglly-1,0:ngllz-1))
-   allocate(Rlam(0:ngllx-1,0:nglly-1,0:ngllz-1))
-   allocate(Rmu(0:ngllx-1,0:nglly-1,0:ngllz-1))
-   
-  !- general (element) weighting: tensorial property
-   do k = 0,ngllz-1 
-       do j = 0,nglly-1 
-           do i = 0,ngllx-1
-                Whei(i,j,k) = Tdomain%sSubdomain(mat)%GLLwx(i) *       &
-                    Tdomain%sSubdomain(mat)%GLLwy(j)*Tdomain%sSubdomain(mat)%GLLwz(k)
-           enddo
-       enddo
-   enddo
-      
-   xix = Tdomain%specel(n)%InvGrad(:,:,:,0,0)
-   xiy = Tdomain%specel(n)%InvGrad(:,:,:,1,0)
-   xiz = Tdomain%specel(n)%InvGrad(:,:,:,2,0)
-      
-   etax = Tdomain%specel(n)%InvGrad(:,:,:,0,1)
-   etay = Tdomain%specel(n)%InvGrad(:,:,:,1,1)
-   etaz = Tdomain%specel(n)%InvGrad(:,:,:,2,1)
+        Tdomain%specel(n)%Density = Tdomain%sSubDomain(mat)%Ddensity
+        Tdomain%specel(n)%Lambda = Tdomain%sSubDomain(mat)%DLambda
+        Tdomain%specel(n)%Mu = Tdomain%sSubDomain(mat)%DMu
 
-   zetax = Tdomain%specel(n)%InvGrad(:,:,:,0,2)
-   zetay = Tdomain%specel(n)%InvGrad(:,:,:,1,2)
-   zetaz = Tdomain%specel(n)%InvGrad(:,:,:,2,2)
-   
-   Jac  = Tdomain%specel(n)%Jacob
-   Rlam = Tdomain%specel(n)%Lambda
-   Rmu  = Tdomain%specel(n)%Mu
-   RKmod = Rlam + 2. * Rmu
+        allocate(Jac(0:ngllx-1,0:nglly-1,0:ngllz-1))
+        allocate(xix(0:ngllx-1,0:nglly-1,0:ngllz-1))
+        allocate(xiy(0:ngllx-1,0:nglly-1,0:ngllz-1))
+        allocate(xiz(0:ngllx-1,0:nglly-1,0:ngllz-1))
+        allocate(etax(0:ngllx-1,0:nglly-1,0:ngllz-1))
+        allocate(etay(0:ngllx-1,0:nglly-1,0:ngllz-1))
+        allocate(etaz(0:ngllx-1,0:nglly-1,0:ngllz-1))
+        allocate(zetax(0:ngllx-1,0:nglly-1,0:ngllz-1))
+        allocate(zetay(0:ngllx-1,0:nglly-1,0:ngllz-1))
+        allocate(zetaz(0:ngllx-1,0:nglly-1,0:ngllz-1))
+        allocate(Whei(0:ngllx-1,0:nglly-1,0:ngllz-1))
+        allocate(RKmod(0:ngllx-1,0:nglly-1,0:ngllz-1))
+        allocate(Rlam(0:ngllx-1,0:nglly-1,0:ngllz-1))
+        allocate(Rmu(0:ngllx-1,0:nglly-1,0:ngllz-1))
 
-  !- mass matrix elements
-   if(Tdomain%specel(n)%solid)then
-       Tdomain%specel(n)%MassMat = Whei*Tdomain%specel(n)%Density*Jac
-   else   ! fluid case: inertial term ponderation by the inverse of the squared velocity
-       Tdomain%specel(n)%MassMat = Whei*Jac*Tdomain%specel(n)%Density/Rlam
-   end if
- 
-  !- parts of the internal forces terms: Acoeff; to be compared to
-    !  general expressions = products of material properties and nabla operators 
-
-   if(.not. Tdomain%specel(n)%PML)then
-       if(Tdomain%specel(n)%solid)then
-           call define_Acoeff_iso(ngllx,nglly,ngllz,Rkmod,Rmu,Rlam,xix,xiy,xiz,    &
-                etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Tdomain%specel(n)%Acoeff)
-       else   ! fluid case
-           if(maxval(RMu) > 1.d-5) stop "Fluid element with a non null shear modulus."
-           call define_Acoeff_fluid(ngllx,nglly,ngllz,Tdomain%specel(n)%Density,xix,xiy,xiz,    &
-                etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Tdomain%specel(n)%Acoeff)
-       end if
-
-   else   ! PML case: valid for solid and fluid parts
-       if(Tdomain%specel(n)%solid)then
-           call define_Acoeff_PML_iso(ngllx,nglly,ngllz,Rkmod,Rmu,Rlam,xix,xiy,xiz,    &
-                     etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Tdomain%specel(n)%Acoeff)
-       else  ! fluid case
-           call define_Acoeff_PML_fluid(ngllx,nglly,ngllz,Rkmod,Rmu,Rlam,xix,xiy,xiz,    &
-                     etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Tdomain%specel(n)%Acoeff)
-       end if
-
-    !- definition of the attenuation coefficient in PMLs (alpha in the literature)
-     allocate(wx(0:ngllx-1,0:nglly-1,0:ngllz-1))
-     allocate(wy(0:ngllx-1,0:nglly-1,0:ngllz-1))
-     allocate(wz(0:ngllx-1,0:nglly-1,0:ngllz-1))
-
-     call define_alpha_PML(Tdomain%sSubDomain(mat)%Px,0,Tdomain%sSubDomain(mat)%Left, &
-               ngllx,nglly,ngllz,ngllx,Tdomain%n_glob_points,Tdomain%GlobCoord,       &
-               Tdomain%sSubDomain(mat)%GLLcx,RKmod(:,0,0),                            &
-               Tdomain%specel(n)%Density(:,0,0),Tdomain%specel(n)%Iglobnum(0,0,0),    &
-               Tdomain%specel(n)%Iglobnum(ngllx-1,0,0),Tdomain%sSubdomain(mat)%Apow,  &
-               Tdomain%sSubdomain(mat)%npow,wx)
-     call define_alpha_PML(Tdomain%sSubDomain(mat)%Py,1,Tdomain%sSubDomain(mat)%Forward, &
-               ngllx,nglly,ngllz,nglly,Tdomain%n_glob_points,Tdomain%GlobCoord,          &
-               Tdomain%sSubDomain(mat)%GLLcy,RKmod(0,:,0),                               &
-               Tdomain%specel(n)%Density(0,:,0),Tdomain%specel(n)%Iglobnum(0,0,0),       &
-               Tdomain%specel(n)%Iglobnum(0,nglly-1,0),Tdomain%sSubdomain(mat)%Apow,     &
-               Tdomain%sSubdomain(mat)%npow,wy)
-     call define_alpha_PML(Tdomain%sSubDomain(mat)%Pz,2,Tdomain%sSubDomain(mat)%Down, &
-               ngllx,nglly,ngllz,ngllz,Tdomain%n_glob_points,Tdomain%GlobCoord,       &
-               Tdomain%sSubDomain(mat)%GLLcz,RKmod(0,0,:),                            &
-               Tdomain%specel(n)%Density(0,0,:),Tdomain%specel(n)%Iglobnum(0,0,0),    &
-               Tdomain%specel(n)%Iglobnum(0,0,ngllz-1),Tdomain%sSubdomain(mat)%Apow,  &
-               Tdomain%sSubdomain(mat)%npow,wz)
-
-
-    !- M-PMLs
-     if(Tdomain%logicD%MPML)then
-         allocate(temp_PMLx(0:ngllx-1,0:nglly-1,0:ngllz-1))
-         allocate(temp_PMLy(0:ngllx-1,0:nglly-1,0:ngllz-1))
-         temp_PMLx(:,:,:) = wx(:,:,:)
-         temp_PMLy(:,:,:) = wy(:,:,:)
-         wx(:,:,:) = wx(:,:,:)+Tdomain%MPML_coeff*(wy(:,:,:)+wz(:,:,:))
-         wy(:,:,:) = wy(:,:,:)+Tdomain%MPML_coeff*(temp_PMLx(:,:,:)+wz(:,:,:))
-         wz(:,:,:) = wz(:,:,:)+Tdomain%MPML_coeff*(temp_PMLx(:,:,:)+temp_PMLy(:,:,:))
-         deallocate(temp_PMLx,temp_PMLy)
-     end if
-
-    !- strong formulation for stresses. Dumped mass elements, convolutional terms.
-     if(Tdomain%specel(n)%FPML)then
-         call define_FPML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,        &
-                 Tdomain%sSubdomain(mat)%freq,wx,Tdomain%specel(n)%Density,             &
-                 whei,Jac,Tdomain%specel(n)%DumpSx,Tdomain%specel(n)%DumpMass(:,:,:,0), &
-                 Tdomain%specel(n)%Isx,Tdomain%specel(n)%Ivx)
-         call define_FPML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,        &
-                 Tdomain%sSubdomain(mat)%freq,wy,Tdomain%specel(n)%Density,             &
-                 whei,Jac,Tdomain%specel(n)%DumpSy,Tdomain%specel(n)%DumpMass(:,:,:,1), &
-                 Tdomain%specel(n)%Isy,Tdomain%specel(n)%Ivy)
-         call define_FPML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,        &
-                 Tdomain%sSubdomain(mat)%freq,wz,Tdomain%specel(n)%Density,             &
-                 whei,Jac,Tdomain%specel(n)%DumpSz,Tdomain%specel(n)%DumpMass(:,:,:,2), &
-                 Tdomain%specel(n)%Isz,Tdomain%specel(n)%Ivz)
-       else
-         call define_PML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,   &
-                 wx,Tdomain%specel(n)%Density,whei,Jac,                           &
-                 Tdomain%specel(n)%DumpSx,Tdomain%specel(n)%DumpMass(:,:,:,0))
-         call define_PML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,   &
-                 wy,Tdomain%specel(n)%Density,whei,Jac,                           &
-                 Tdomain%specel(n)%DumpSy,Tdomain%specel(n)%DumpMass(:,:,:,1))
-         call define_PML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,   &
-                 wz,Tdomain%specel(n)%Density,whei,Jac,                           &
-                 Tdomain%specel(n)%DumpSz,Tdomain%specel(n)%DumpMass(:,:,:,2))
-      endif
-      deallocate(wx,wy,wz)
-
-   endif
-
-   deallocate(Jac,xix,xiy,xiz,etax,etay,etaz,zetax,zetay,zetaz,Whei,RKmod,Rmu,Rlam)  
-
-   ! end of the loop upon elements
-enddo
-
-!- Mass and DumpMass Communications (assemblage) inside Processors
-do n = 0,Tdomain%n_elem-1
-    call get_Mass_Elem2Face(Tdomain,n,rg)
-    call get_Mass_Elem2Edge(Tdomain,n,rg)
-    call get_Mass_Elem2Vertex(Tdomain,n,rg)
-enddo
-
-
-!- Inverting Mass Matrix expression
-do n = 0,Tdomain%n_elem-1
-   ngllx = Tdomain%specel(n)%ngllx
-   nglly = Tdomain%specel(n)%nglly
-   ngllz = Tdomain%specel(n)%ngllz
-
-   if(Tdomain%specel(n)%PML)then   ! dumped masses in PML
-     if(Tdomain%specel(n)%FPML)then
-       call define_FPML_DumpEnd(0,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-            Tdomain%specel(n)%DumpMass,Tdomain%specel(n)%DumpVx,Tdomain%specel(n)%Ivx)
-       call define_FPML_DumpEnd(1,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-            Tdomain%specel(n)%DumpMass,Tdomain%specel(n)%DumpVy,Tdomain%specel(n)%Ivy)
-       call define_FPML_DumpEnd(2,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-            Tdomain%specel(n)%DumpMass,Tdomain%specel(n)%DumpVz,Tdomain%specel(n)%Ivz)
-     else
-       call define_PML_DumpEnd(n,rg,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-            Tdomain%specel(n)%DumpMass(:,:,:,0),Tdomain%specel(n)%DumpVx)
-       call define_PML_DumpEnd(n,rg,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-            Tdomain%specel(n)%DumpMass(:,:,:,1),Tdomain%specel(n)%DumpVy)
-       call define_PML_DumpEnd(n,rg,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-            Tdomain%specel(n)%DumpMass(:,:,:,2),Tdomain%specel(n)%DumpVz)
-     end if
-     deallocate(Tdomain%specel(n)%DumpMass)
-   end if
-  ! all elements
-   allocate(LocMassMat(1:ngllx-2,1:nglly-2,1:ngllz-2))
-   LocMassMat(:,:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:nglly-2,1:ngllz-2)
-   LocMassmat(:,:,:) = 1d0/LocMassMat(:,:,:)  ! inversion
-   deallocate(Tdomain%specel(n)%MassMat) 
-   allocate(Tdomain%specel(n)%MassMat(1:ngllx-2,1:nglly-2,1:ngllz-2))
-   Tdomain%specel(n)%MassMat(:,:,:) = LocMassMat(:,:,:)
-
-   deallocate(LocMassMat)
-
-   deallocate(Tdomain%specel(n)%Lambda)
-   deallocate(Tdomain%specel(n)%Mu)  
-   deallocate(Tdomain%specel(n)%InvGrad)
-
-enddo
-
-
-!- defining Neumann properties (Btn: the complete normal term, ponderated
-!      by Gaussian weights)
-if(Tdomain%logicD%neumann_local_present)then
-    call define_FEV_Neumann(Tdomain)
-endif
-
-
-!----------------------------------------------------------
-!- MPI communications: assemblage between procs
-!----------------------------------------------------------
-if(Tdomain%n_proc > 1)then
-!-------------------------------------------------
-!- from external faces, edges and vertices to Communication global arrays
-do n = 0,Tdomain%n_proc-1
-    call Comm_Mass_Complete(n,Tdomain)
-    call Comm_Mass_Complete_PML(n,Tdomain)
-    call Comm_Normal_Neumann(n,Tdomain)
-enddo
-
-!- now we can exchange (communication global arrays)
-n = Tdomain%n_proc
-do shift = 1,n-1
-    call shift_to_parameters(rg,n,shift,I_give_to,I_take_from,n_rings)
-  ! physical mass comm. (solid + fluid)
-    call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngll_tot,                  &
-                   Tdomain%sComm(I_take_from)%ngll_tot,I_give_to,I_take_from,1,     &
-                   Tdomain%sComm(I_give_to)%Give,Tdomain%sComm(I_take_from)%Take)
-    call MPI_BARRIER(MPI_COMM_WORLD,code)
-  ! PML mass comm. (solid + fluid)
-    if(Tdomain%any_PML)then
-      if(Tdomain%any_FPML)then
-        call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngllPML_tot,           &
-              Tdomain%sComm(I_take_from)%ngllPML_tot,I_give_to,I_take_from,6,       &
-              Tdomain%sComm(I_give_to)%GivePML,Tdomain%sComm(I_take_from)%TakePML)
-      else
-        call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngllPML_tot,           &
-              Tdomain%sComm(I_take_from)%ngllPML_tot,I_give_to,I_take_from,3,       &
-              Tdomain%sComm(I_give_to)%GivePML,Tdomain%sComm(I_take_from)%TakePML)
-      end if
-    end if
-    call MPI_BARRIER(MPI_COMM_WORLD,code)
-  ! normal Neumann comm.
-    if(Tdomain%logicD%Neumann_local_present)then
-        call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngllNeu,           &
-              Tdomain%sComm(I_take_from)%ngllNeu,I_give_to,I_take_from,3,       &
-              Tdomain%sComm(I_give_to)%GiveNeu,Tdomain%sComm(I_take_from)%TakeNeu)
-    end if
-    call MPI_BARRIER(MPI_COMM_WORLD,code)
-
-enddo
-
-! now: assemblage on external faces, edges and vertices
-do n = 0,Tdomain%n_proc-1
-  ngll_tot = 0
-  ngllPML_tot = 0
-  ngllNeu = 0
-
-  call Comm_Mass_Face(Tdomain,n,ngll_tot,ngllPML_tot)
-  call Comm_Mass_Edge(Tdomain,n,ngll_tot,ngllPML_tot)
-  call Comm_Mass_Vertex(Tdomain,n,ngll_tot,ngllPML_tot)
-
-  ! Neumann
-  do i = 0,Tdomain%sComm(n)%Neu_ne_shared-1
-    ne = Tdomain%sComm(n)%Neu_edges_shared(i) 
-    ngll1 = Tdomain%Neumann%Neu_Edge(ne)%ngll
-    if(Tdomain%sComm(n)%Neu_mapping_edges_shared(i) == 0)then 
-        do j = 1,Tdomain%Neumann%Neu_Edge(ne)%ngll-2
-            Tdomain%Neumann%Neu_Edge(ne)%BtN(j,0:2) = Tdomain%Neumann%Neu_Edge(ne)%Btn(j,0:2) +  &
-                                                       Tdomain%sComm(n)%TakeNeu(ngllNeu,0:2)
-            ngllNeu = ngllNeu + 1
+        !- general (element) weighting: tensorial property
+        do k = 0,ngllz-1
+            do j = 0,nglly-1
+                do i = 0,ngllx-1
+                    Whei(i,j,k) = Tdomain%sSubdomain(mat)%GLLwx(i) *       &
+                        Tdomain%sSubdomain(mat)%GLLwy(j)*Tdomain%sSubdomain(mat)%GLLwz(k)
+                enddo
+            enddo
         enddo
-    else if(Tdomain%sComm(n)%Neu_mapping_edges_shared(i) == 1)then 
-        do j = 1,Tdomain%Neumann%Neu_Edge(ne)%ngll-2
-            Tdomain%Neumann%Neu_Edge(ne)%Btn(ngll1-1-j,0:2) = Tdomain%Neumann%Neu_Edge(ne)%Btn(ngll1-1-j,0:2) + &
-                                                               Tdomain%sComm(n)%TakeNeu(ngllNeu,0:2)
-            ngllNeu = ngllNeu + 1
+
+        xix = Tdomain%specel(n)%InvGrad(:,:,:,0,0)
+        xiy = Tdomain%specel(n)%InvGrad(:,:,:,1,0)
+        xiz = Tdomain%specel(n)%InvGrad(:,:,:,2,0)
+
+        etax = Tdomain%specel(n)%InvGrad(:,:,:,0,1)
+        etay = Tdomain%specel(n)%InvGrad(:,:,:,1,1)
+        etaz = Tdomain%specel(n)%InvGrad(:,:,:,2,1)
+
+        zetax = Tdomain%specel(n)%InvGrad(:,:,:,0,2)
+        zetay = Tdomain%specel(n)%InvGrad(:,:,:,1,2)
+        zetaz = Tdomain%specel(n)%InvGrad(:,:,:,2,2)
+
+        Jac  = Tdomain%specel(n)%Jacob
+        Rlam = Tdomain%specel(n)%Lambda
+        Rmu  = Tdomain%specel(n)%Mu
+        RKmod = Rlam + 2. * Rmu
+
+        !- mass matrix elements
+        if(Tdomain%specel(n)%solid)then
+            Tdomain%specel(n)%MassMat = Whei*Tdomain%specel(n)%Density*Jac
+        else   ! fluid case: inertial term ponderation by the inverse of the squared velocity
+            Tdomain%specel(n)%MassMat = Whei*Jac*Tdomain%specel(n)%Density/Rlam
+        end if
+
+        !- parts of the internal forces terms: Acoeff; to be compared to
+        !  general expressions = products of material properties and nabla operators
+
+        if(.not. Tdomain%specel(n)%PML)then
+            if(Tdomain%specel(n)%solid)then
+                call define_Acoeff_iso(ngllx,nglly,ngllz,Rkmod,Rmu,Rlam,xix,xiy,xiz,    &
+                    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Tdomain%specel(n)%Acoeff)
+            else   ! fluid case
+                if(maxval(RMu) > 1.d-5) stop "Fluid element with a non null shear modulus."
+                call define_Acoeff_fluid(ngllx,nglly,ngllz,Tdomain%specel(n)%Density,xix,xiy,xiz,    &
+                    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Tdomain%specel(n)%Acoeff)
+            end if
+
+        else   ! PML case: valid for solid and fluid parts
+            if(Tdomain%specel(n)%solid)then
+                call define_Acoeff_PML_iso(ngllx,nglly,ngllz,Rkmod,Rmu,Rlam,xix,xiy,xiz,    &
+                    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Tdomain%specel(n)%Acoeff)
+            else  ! fluid case
+                call define_Acoeff_PML_fluid(ngllx,nglly,ngllz,Rkmod,Rmu,Rlam,xix,xiy,xiz,    &
+                    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Tdomain%specel(n)%Acoeff)
+            end if
+
+            !- definition of the attenuation coefficient in PMLs (alpha in the literature)
+            allocate(wx(0:ngllx-1,0:nglly-1,0:ngllz-1))
+            allocate(wy(0:ngllx-1,0:nglly-1,0:ngllz-1))
+            allocate(wz(0:ngllx-1,0:nglly-1,0:ngllz-1))
+
+            call define_alpha_PML(Tdomain%sSubDomain(mat)%Px,0,Tdomain%sSubDomain(mat)%Left, &
+                ngllx,nglly,ngllz,ngllx,Tdomain%n_glob_points,Tdomain%GlobCoord,       &
+                Tdomain%sSubDomain(mat)%GLLcx,RKmod(:,0,0),                            &
+                Tdomain%specel(n)%Density(:,0,0),Tdomain%specel(n)%Iglobnum(0,0,0),    &
+                Tdomain%specel(n)%Iglobnum(ngllx-1,0,0),Tdomain%sSubdomain(mat)%Apow,  &
+                Tdomain%sSubdomain(mat)%npow,wx)
+            call define_alpha_PML(Tdomain%sSubDomain(mat)%Py,1,Tdomain%sSubDomain(mat)%Forward, &
+                ngllx,nglly,ngllz,nglly,Tdomain%n_glob_points,Tdomain%GlobCoord,          &
+                Tdomain%sSubDomain(mat)%GLLcy,RKmod(0,:,0),                               &
+                Tdomain%specel(n)%Density(0,:,0),Tdomain%specel(n)%Iglobnum(0,0,0),       &
+                Tdomain%specel(n)%Iglobnum(0,nglly-1,0),Tdomain%sSubdomain(mat)%Apow,     &
+                Tdomain%sSubdomain(mat)%npow,wy)
+            call define_alpha_PML(Tdomain%sSubDomain(mat)%Pz,2,Tdomain%sSubDomain(mat)%Down, &
+                ngllx,nglly,ngllz,ngllz,Tdomain%n_glob_points,Tdomain%GlobCoord,       &
+                Tdomain%sSubDomain(mat)%GLLcz,RKmod(0,0,:),                            &
+                Tdomain%specel(n)%Density(0,0,:),Tdomain%specel(n)%Iglobnum(0,0,0),    &
+                Tdomain%specel(n)%Iglobnum(0,0,ngllz-1),Tdomain%sSubdomain(mat)%Apow,  &
+                Tdomain%sSubdomain(mat)%npow,wz)
+
+
+            !- M-PMLs
+            if(Tdomain%logicD%MPML)then
+                allocate(temp_PMLx(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(temp_PMLy(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                temp_PMLx(:,:,:) = wx(:,:,:)
+                temp_PMLy(:,:,:) = wy(:,:,:)
+                wx(:,:,:) = wx(:,:,:)+Tdomain%MPML_coeff*(wy(:,:,:)+wz(:,:,:))
+                wy(:,:,:) = wy(:,:,:)+Tdomain%MPML_coeff*(temp_PMLx(:,:,:)+wz(:,:,:))
+                wz(:,:,:) = wz(:,:,:)+Tdomain%MPML_coeff*(temp_PMLx(:,:,:)+temp_PMLy(:,:,:))
+                deallocate(temp_PMLx,temp_PMLy)
+            end if
+
+            !- strong formulation for stresses. Dumped mass elements, convolutional terms.
+            if(Tdomain%specel(n)%FPML)then
+                call define_FPML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,        &
+                    Tdomain%sSubdomain(mat)%freq,wx,Tdomain%specel(n)%Density,             &
+                    whei,Jac,Tdomain%specel(n)%DumpSx,Tdomain%specel(n)%DumpMass(:,:,:,0), &
+                    Tdomain%specel(n)%Isx,Tdomain%specel(n)%Ivx)
+                call define_FPML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,        &
+                    Tdomain%sSubdomain(mat)%freq,wy,Tdomain%specel(n)%Density,             &
+                    whei,Jac,Tdomain%specel(n)%DumpSy,Tdomain%specel(n)%DumpMass(:,:,:,1), &
+                    Tdomain%specel(n)%Isy,Tdomain%specel(n)%Ivy)
+                call define_FPML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,        &
+                    Tdomain%sSubdomain(mat)%freq,wz,Tdomain%specel(n)%Density,             &
+                    whei,Jac,Tdomain%specel(n)%DumpSz,Tdomain%specel(n)%DumpMass(:,:,:,2), &
+                    Tdomain%specel(n)%Isz,Tdomain%specel(n)%Ivz)
+            else
+                call define_PML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,   &
+                    wx,Tdomain%specel(n)%Density,whei,Jac,                           &
+                    Tdomain%specel(n)%DumpSx,Tdomain%specel(n)%DumpMass(:,:,:,0))
+                call define_PML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,   &
+                    wy,Tdomain%specel(n)%Density,whei,Jac,                           &
+                    Tdomain%specel(n)%DumpSy,Tdomain%specel(n)%DumpMass(:,:,:,1))
+                call define_PML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,   &
+                    wz,Tdomain%specel(n)%Density,whei,Jac,                           &
+                    Tdomain%specel(n)%DumpSz,Tdomain%specel(n)%DumpMass(:,:,:,2))
+            endif
+            deallocate(wx,wy,wz)
+
+        endif
+
+        deallocate(Jac,xix,xiy,xiz,etax,etay,etaz,zetax,zetay,zetaz,Whei,RKmod,Rmu,Rlam)
+
+        ! end of the loop upon elements
+    enddo
+
+    !- Mass and DumpMass Communications (assemblage) inside Processors
+    do n = 0,Tdomain%n_elem-1
+        call get_Mass_Elem2Face(Tdomain,n,rg)
+        call get_Mass_Elem2Edge(Tdomain,n,rg)
+        call get_Mass_Elem2Vertex(Tdomain,n,rg)
+    enddo
+
+
+    !- Inverting Mass Matrix expression
+    do n = 0,Tdomain%n_elem-1
+        ngllx = Tdomain%specel(n)%ngllx
+        nglly = Tdomain%specel(n)%nglly
+        ngllz = Tdomain%specel(n)%ngllz
+
+        if(Tdomain%specel(n)%PML)then   ! dumped masses in PML
+            if(Tdomain%specel(n)%FPML)then
+                call define_FPML_DumpEnd(0,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
+                    Tdomain%specel(n)%DumpMass,Tdomain%specel(n)%DumpVx,Tdomain%specel(n)%Ivx)
+                call define_FPML_DumpEnd(1,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
+                    Tdomain%specel(n)%DumpMass,Tdomain%specel(n)%DumpVy,Tdomain%specel(n)%Ivy)
+                call define_FPML_DumpEnd(2,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
+                    Tdomain%specel(n)%DumpMass,Tdomain%specel(n)%DumpVz,Tdomain%specel(n)%Ivz)
+            else
+                call define_PML_DumpEnd(n,rg,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
+                    Tdomain%specel(n)%DumpMass(:,:,:,0),Tdomain%specel(n)%DumpVx)
+                call define_PML_DumpEnd(n,rg,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
+                    Tdomain%specel(n)%DumpMass(:,:,:,1),Tdomain%specel(n)%DumpVy)
+                call define_PML_DumpEnd(n,rg,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
+                    Tdomain%specel(n)%DumpMass(:,:,:,2),Tdomain%specel(n)%DumpVz)
+            end if
+            deallocate(Tdomain%specel(n)%DumpMass)
+        end if
+        ! all elements
+        allocate(LocMassMat(1:ngllx-2,1:nglly-2,1:ngllz-2))
+        LocMassMat(:,:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:nglly-2,1:ngllz-2)
+        LocMassmat(:,:,:) = 1d0/LocMassMat(:,:,:)  ! inversion
+        deallocate(Tdomain%specel(n)%MassMat)
+        allocate(Tdomain%specel(n)%MassMat(1:ngllx-2,1:nglly-2,1:ngllz-2))
+        Tdomain%specel(n)%MassMat(:,:,:) = LocMassMat(:,:,:)
+
+        deallocate(LocMassMat)
+
+        deallocate(Tdomain%specel(n)%Lambda)
+        deallocate(Tdomain%specel(n)%Mu)
+        deallocate(Tdomain%specel(n)%InvGrad)
+
+    enddo
+
+
+    !- defining Neumann properties (Btn: the complete normal term, ponderated
+    !      by Gaussian weights)
+    if(Tdomain%logicD%neumann_local_present)then
+        call define_FEV_Neumann(Tdomain)
+    endif
+
+
+    !----------------------------------------------------------
+    !- MPI communications: assemblage between procs
+    !----------------------------------------------------------
+    if(Tdomain%n_proc > 1)then
+        !-------------------------------------------------
+        !- from external faces, edges and vertices to Communication global arrays
+        do n = 0,Tdomain%n_proc-1
+            call Comm_Mass_Complete(n,Tdomain)
+            call Comm_Mass_Complete_PML(n,Tdomain)
+            call Comm_Normal_Neumann(n,Tdomain)
         enddo
-    else 
-        print*,'Pb with coherency number for edge' 
-    endif 
-  enddo
-  do i = 0,Tdomain%sComm(n)%Neu_nv_shared-1
-      nv = Tdomain%sComm(n)%Neu_vertices_shared(i) 
-      Tdomain%Neumann%Neu_Vertex(nv)%Btn(0:2) = Tdomain%Neumann%Neu_Vertex(nv)%Btn(0:2) + &
-                                                Tdomain%sComm(n)%TakeNeu(ngllNeu,0:2)
-      ngllNeu = ngllNeu + 1
-  enddo
+
+        !- now we can exchange (communication global arrays)
+        n = Tdomain%n_proc
+        do shift = 1,n-1
+            call shift_to_parameters(rg,n,shift,I_give_to,I_take_from,n_rings)
+            ! physical mass comm. (solid + fluid)
+            call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngll_tot,                  &
+                Tdomain%sComm(I_take_from)%ngll_tot,I_give_to,I_take_from,1,     &
+                Tdomain%sComm(I_give_to)%Give,Tdomain%sComm(I_take_from)%Take)
+            call MPI_BARRIER(MPI_COMM_WORLD,code)
+            ! PML mass comm. (solid + fluid)
+            if(Tdomain%any_PML)then
+                if(Tdomain%any_FPML)then
+                    call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngllPML_tot,           &
+                        Tdomain%sComm(I_take_from)%ngllPML_tot,I_give_to,I_take_from,6,       &
+                        Tdomain%sComm(I_give_to)%GivePML,Tdomain%sComm(I_take_from)%TakePML)
+                else
+                    call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngllPML_tot,           &
+                        Tdomain%sComm(I_take_from)%ngllPML_tot,I_give_to,I_take_from,3,       &
+                        Tdomain%sComm(I_give_to)%GivePML,Tdomain%sComm(I_take_from)%TakePML)
+                end if
+            end if
+            call MPI_BARRIER(MPI_COMM_WORLD,code)
+            ! normal Neumann comm.
+            if(Tdomain%logicD%Neumann_local_present)then
+                call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngllNeu,           &
+                    Tdomain%sComm(I_take_from)%ngllNeu,I_give_to,I_take_from,3,       &
+                    Tdomain%sComm(I_give_to)%GiveNeu,Tdomain%sComm(I_take_from)%TakeNeu)
+            end if
+            call MPI_BARRIER(MPI_COMM_WORLD,code)
+
+        enddo
+
+        ! now: assemblage on external faces, edges and vertices
+        do n = 0,Tdomain%n_proc-1
+            ngll_tot = 0
+            ngllPML_tot = 0
+            ngllNeu = 0
+
+            call Comm_Mass_Face(Tdomain,n,ngll_tot,ngllPML_tot)
+            call Comm_Mass_Edge(Tdomain,n,ngll_tot,ngllPML_tot)
+            call Comm_Mass_Vertex(Tdomain,n,ngll_tot,ngllPML_tot)
+
+            ! Neumann
+            do i = 0,Tdomain%sComm(n)%Neu_ne_shared-1
+                ne = Tdomain%sComm(n)%Neu_edges_shared(i)
+                ngll1 = Tdomain%Neumann%Neu_Edge(ne)%ngll
+                if(Tdomain%sComm(n)%Neu_mapping_edges_shared(i) == 0)then
+                    do j = 1,Tdomain%Neumann%Neu_Edge(ne)%ngll-2
+                        Tdomain%Neumann%Neu_Edge(ne)%BtN(j,0:2) = Tdomain%Neumann%Neu_Edge(ne)%Btn(j,0:2) +  &
+                            Tdomain%sComm(n)%TakeNeu(ngllNeu,0:2)
+                        ngllNeu = ngllNeu + 1
+                    enddo
+                else if(Tdomain%sComm(n)%Neu_mapping_edges_shared(i) == 1)then
+                    do j = 1,Tdomain%Neumann%Neu_Edge(ne)%ngll-2
+                        Tdomain%Neumann%Neu_Edge(ne)%Btn(ngll1-1-j,0:2) = Tdomain%Neumann%Neu_Edge(ne)%Btn(ngll1-1-j,0:2) + &
+                            Tdomain%sComm(n)%TakeNeu(ngllNeu,0:2)
+                        ngllNeu = ngllNeu + 1
+                    enddo
+                else
+                    print*,'Pb with coherency number for edge'
+                endif
+            enddo
+            do i = 0,Tdomain%sComm(n)%Neu_nv_shared-1
+                nv = Tdomain%sComm(n)%Neu_vertices_shared(i)
+                Tdomain%Neumann%Neu_Vertex(nv)%Btn(0:2) = Tdomain%Neumann%Neu_Vertex(nv)%Btn(0:2) + &
+                    Tdomain%sComm(n)%TakeNeu(ngllNeu,0:2)
+                ngllNeu = ngllNeu + 1
+            enddo
 
 
-  if(Tdomain%sComm(n)%ngll_tot > 0)then
-      deallocate(Tdomain%sComm(n)%Give)
-      deallocate(Tdomain%sComm(n)%Take)
-  endif
-  if(Tdomain%sComm(n)%ngllPML_tot > 0)then
-      deallocate(Tdomain%sComm(n)%GivePML)
-      deallocate(Tdomain%sComm(n)%TakePML)
-  endif
-  if(Tdomain%sComm(n)%ngllNeu > 0)then
-      deallocate(Tdomain%sComm(n)%GiveNeu)
-      deallocate(Tdomain%sComm(n)%TakeNeu)
-  endif
-  ! end of the loop upon processors
-enddo
-!--------------------------------------------------------------
-endif
-
-!- back to local properties: now we can calculate PML properties 
-!     at nodes of faces, edges and vertices.
-do nf = 0,Tdomain%n_face-1
-    if(Tdomain%sFace(nf)%PML)then
-        ngll1 = Tdomain%sFace(nf)%ngll1 ; ngll2 = Tdomain%sFace(nf)%ngll2
-        call define_PML_Face_DumpEnd(ngll1,ngll2,Tdomain%sFace(nf)%Massmat,  &
-             Tdomain%sFace(nf)%DumpMass(:,:,0),Tdomain%sFace(nf)%DumpVx) 
-        call define_PML_Face_DumpEnd(ngll1,ngll2,Tdomain%sFace(nf)%Massmat,  &
-             Tdomain%sFace(nf)%DumpMass(:,:,1),Tdomain%sFace(nf)%DumpVy) 
-        call define_PML_Face_DumpEnd(ngll1,ngll2,Tdomain%sFace(nf)%Massmat,  &
-             Tdomain%sFace(nf)%DumpMass(:,:,2),Tdomain%sFace(nf)%DumpVz) 
-        deallocate(Tdomain%sFace(nf)%DumpMass)
+            if(Tdomain%sComm(n)%ngll_tot > 0)then
+                deallocate(Tdomain%sComm(n)%Give)
+                deallocate(Tdomain%sComm(n)%Take)
+            endif
+            if(Tdomain%sComm(n)%ngllPML_tot > 0)then
+                deallocate(Tdomain%sComm(n)%GivePML)
+                deallocate(Tdomain%sComm(n)%TakePML)
+            endif
+            if(Tdomain%sComm(n)%ngllNeu > 0)then
+                deallocate(Tdomain%sComm(n)%GiveNeu)
+                deallocate(Tdomain%sComm(n)%TakeNeu)
+            endif
+            ! end of the loop upon processors
+        enddo
+        !--------------------------------------------------------------
     endif
-    Tdomain%sFace(nf)%MassMat = 1./ Tdomain%sFace(nf)%MassMat
-enddo
 
-do ne = 0,Tdomain%n_edge-1
-    if(Tdomain%sEdge(ne)%PML)then
-        ngll = Tdomain%sEdge(ne)%ngll
-        call define_PML_Edge_DumpEnd(ngll,Tdomain%sEdge(ne)%Massmat,    &
-             Tdomain%sEdge(ne)%DumpMass(:,0),Tdomain%sEdge(ne)%DumpVx) 
-        call define_PML_Edge_DumpEnd(ngll,Tdomain%sEdge(ne)%Massmat,    &
-             Tdomain%sEdge(ne)%DumpMass(:,1),Tdomain%sEdge(ne)%DumpVy) 
-        call define_PML_Edge_DumpEnd(ngll,Tdomain%sEdge(ne)%Massmat,    &
-             Tdomain%sEdge(ne)%DumpMass(:,2),Tdomain%sEdge(ne)%DumpVz) 
-        deallocate(Tdomain%sEdge(ne)%DumpMass) 
-    endif
-    Tdomain%sEdge(ne)%MassMat = 1./ Tdomain%sEdge(ne)%MassMat
-enddo
+    !- back to local properties: now we can calculate PML properties
+    !     at nodes of faces, edges and vertices.
+    do nf = 0,Tdomain%n_face-1
+        if(Tdomain%sFace(nf)%PML)then
+            ngll1 = Tdomain%sFace(nf)%ngll1 ; ngll2 = Tdomain%sFace(nf)%ngll2
+            call define_PML_Face_DumpEnd(ngll1,ngll2,Tdomain%sFace(nf)%Massmat,  &
+                Tdomain%sFace(nf)%DumpMass(:,:,0),Tdomain%sFace(nf)%DumpVx)
+            call define_PML_Face_DumpEnd(ngll1,ngll2,Tdomain%sFace(nf)%Massmat,  &
+                Tdomain%sFace(nf)%DumpMass(:,:,1),Tdomain%sFace(nf)%DumpVy)
+            call define_PML_Face_DumpEnd(ngll1,ngll2,Tdomain%sFace(nf)%Massmat,  &
+                Tdomain%sFace(nf)%DumpMass(:,:,2),Tdomain%sFace(nf)%DumpVz)
+            deallocate(Tdomain%sFace(nf)%DumpMass)
+        endif
+        Tdomain%sFace(nf)%MassMat = 1./ Tdomain%sFace(nf)%MassMat
+    enddo
 
-do nv = 0,Tdomain%n_vertex-1
-    if(Tdomain%sVertex(nv)%PML)then
-        call define_PML_Vertex_DumpEnd(Tdomain%sVertex(nv)%Massmat,    &
-             Tdomain%sVertex(nv)%DumpMass(0),Tdomain%sVertex(nv)%DumpVx) 
-        call define_PML_Vertex_DumpEnd(Tdomain%sVertex(nv)%Massmat,    &
-             Tdomain%sVertex(nv)%DumpMass(1),Tdomain%sVertex(nv)%DumpVy) 
-        call define_PML_Vertex_DumpEnd(Tdomain%sVertex(nv)%Massmat,    &
-             Tdomain%sVertex(nv)%DumpMass(2),Tdomain%sVertex(nv)%DumpVz) 
-    endif
-    Tdomain%sVertex(nv)%MassMat = 1./ Tdomain%sVertex(nv)%MassMat
-enddo
+    do ne = 0,Tdomain%n_edge-1
+        if(Tdomain%sEdge(ne)%PML)then
+            ngll = Tdomain%sEdge(ne)%ngll
+            call define_PML_Edge_DumpEnd(ngll,Tdomain%sEdge(ne)%Massmat,    &
+                Tdomain%sEdge(ne)%DumpMass(:,0),Tdomain%sEdge(ne)%DumpVx)
+            call define_PML_Edge_DumpEnd(ngll,Tdomain%sEdge(ne)%Massmat,    &
+                Tdomain%sEdge(ne)%DumpMass(:,1),Tdomain%sEdge(ne)%DumpVy)
+            call define_PML_Edge_DumpEnd(ngll,Tdomain%sEdge(ne)%Massmat,    &
+                Tdomain%sEdge(ne)%DumpMass(:,2),Tdomain%sEdge(ne)%DumpVz)
+            deallocate(Tdomain%sEdge(ne)%DumpMass)
+        endif
+        Tdomain%sEdge(ne)%MassMat = 1./ Tdomain%sEdge(ne)%MassMat
+    enddo
 
-return
+    do nv = 0,Tdomain%n_vertex-1
+        if(Tdomain%sVertex(nv)%PML)then
+            call define_PML_Vertex_DumpEnd(Tdomain%sVertex(nv)%Massmat,    &
+                Tdomain%sVertex(nv)%DumpMass(0),Tdomain%sVertex(nv)%DumpVx)
+            call define_PML_Vertex_DumpEnd(Tdomain%sVertex(nv)%Massmat,    &
+                Tdomain%sVertex(nv)%DumpMass(1),Tdomain%sVertex(nv)%DumpVy)
+            call define_PML_Vertex_DumpEnd(Tdomain%sVertex(nv)%Massmat,    &
+                Tdomain%sVertex(nv)%DumpMass(2),Tdomain%sVertex(nv)%DumpVz)
+        endif
+        Tdomain%sVertex(nv)%MassMat = 1./ Tdomain%sVertex(nv)%MassMat
+    enddo
+
+    return
 end subroutine define_arrays
 !---------------------------------------------------------------------------------------
 !---------------------------------------------------------------------------------------
 subroutine define_Acoeff_iso(ngllx,nglly,ngllz,Rkmod,Rmu,Rlam,xix,xiy,xiz,    &
-                             etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Acoeff)
+    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Acoeff)
     implicit none
 
     integer, intent(in)  :: ngllx,nglly,ngllz
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Rkmod,Rmu,Rlam,  &
-                    xix,xiy,xiz,etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac
+        xix,xiy,xiz,etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:44), intent(out) :: Acoeff
 
     Acoeff(:,:,:,0) = -Whei*(RKmod*xix**2+Rmu*(xiy**2+xiz**2))*Jac
     Acoeff(:,:,:,1) = -Whei*(RKmod*xix*etax+Rmu*(xiy*etay+xiz*etaz))*Jac
-    Acoeff(:,:,:,2) = -Whei*(RKmod*xix*zetax+Rmu*(xiy*zetay+xiz*zetaz))*Jac 
+    Acoeff(:,:,:,2) = -Whei*(RKmod*xix*zetax+Rmu*(xiy*zetay+xiz*zetaz))*Jac
     Acoeff(:,:,:,3) = -Whei*(Rlam+Rmu)*xix*xiy*Jac
-    Acoeff(:,:,:,4) = -Whei*(Rlam*xix*etay+Rmu*xiy*etax)*Jac  
+    Acoeff(:,:,:,4) = -Whei*(Rlam*xix*etay+Rmu*xiy*etax)*Jac
     Acoeff(:,:,:,5) = -Whei*(Rlam*xix*zetay+Rmu*xiy*zetax)*Jac
     Acoeff(:,:,:,6) = -Whei*(Rlam+Rmu)*xix*xiz*Jac
     Acoeff(:,:,:,7) = -Whei*(Rlam*xix*etaz+Rmu*xiz*etax)*Jac
@@ -423,26 +423,26 @@ subroutine define_Acoeff_iso(ngllx,nglly,ngllz,Rkmod,Rmu,Rlam,xix,xiy,xiz,    &
     Acoeff(:,:,:,36) = -Whei*(Rlam*xiz*zetay+Rmu*xiy*zetaz)*Jac
     Acoeff(:,:,:,37) = -Whei*(Rlam*zetay*etaz+Rmu*zetaz*etay)*Jac
     Acoeff(:,:,:,38) = -Whei*(Rlam+Rmu)*zetay*zetaz*Jac
-    Acoeff(:,:,:,39) = -Whei*(RKmod*xiz**2+Rmu*(xix**2+xiy**2))*Jac 
+    Acoeff(:,:,:,39) = -Whei*(RKmod*xiz**2+Rmu*(xix**2+xiy**2))*Jac
     Acoeff(:,:,:,40) = -Whei*(RKmod*xiz*etaz+Rmu*(xix*etax+xiy*etay))*Jac
     Acoeff(:,:,:,41) = -Whei*(RKmod*xiz*zetaz+Rmu*(xix*zetax+xiy*zetay))*Jac
     Acoeff(:,:,:,42) = -Whei*(RKmod*etaz**2+Rmu*(etax**2+etay**2))*Jac
     Acoeff(:,:,:,43) = -Whei*(RKmod*zetaz*etaz+Rmu*(zetax*etax+zetay*etay))*Jac
     Acoeff(:,:,:,44) = -Whei*(RKmod*zetaz**2+Rmu*(zetax**2+zetay**2))*Jac
 
-return
+    return
 
 end subroutine define_Acoeff_iso
 !---------------------------------------------------------------------------------------
 !---------------------------------------------------------------------------------------
 subroutine define_Acoeff_fluid(ngllx,nglly,ngllz,Density,xix,xiy,xiz,    &
-                etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Acoeff)
+    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Acoeff)
 
     implicit none
 
     integer, intent(in)  :: ngllx,nglly,ngllz
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Density,  &
-                    xix,xiy,xiz,etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac
+        xix,xiy,xiz,etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:5), intent(out) :: Acoeff
 
     Acoeff(:,:,:,0) = -Whei*(xix**2+xiy**2+xiz**2)*Jac/density
@@ -457,13 +457,13 @@ end subroutine define_Acoeff_fluid
 !---------------------------------------------------------------------------------------
 !---------------------------------------------------------------------------------------
 subroutine define_Acoeff_PML_iso(ngllx,nglly,ngllz,Rkmod,Rmu,Rlam,xix,xiy,xiz,    &
-                             etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Acoeff)
+    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Acoeff)
 
     implicit none
 
     integer, intent(in)  :: ngllx,nglly,ngllz
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Rkmod,Rmu,Rlam,  &
-                    xix,xiy,xiz,etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac
+        xix,xiy,xiz,etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:35), intent(out) :: Acoeff
 
 
@@ -504,19 +504,19 @@ subroutine define_Acoeff_PML_iso(ngllx,nglly,ngllz,Rkmod,Rmu,Rlam,xix,xiy,xiz,  
     Acoeff(:,:,:,34) = -Whei * zetay * Jac
     Acoeff(:,:,:,35) = -Whei * zetaz * Jac
 
-return
+    return
 
 end subroutine define_Acoeff_PML_iso
 !------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 subroutine define_Acoeff_PML_fluid(ngllx,nglly,ngllz,density,xix,xiy,xiz,    &
-                             etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Acoeff)
+    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Acoeff)
 
     implicit none
 
     integer, intent(in)  :: ngllx,nglly,ngllz
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: density,  &
-                    xix,xiy,xiz,etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac
+        xix,xiy,xiz,etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:17), intent(out) :: Acoeff
 
 
@@ -539,16 +539,16 @@ subroutine define_Acoeff_PML_fluid(ngllx,nglly,ngllz,density,xix,xiy,xiz,    &
     Acoeff(:,:,:,16) = -whei(:,:,:)*etaz(:,:,:)*Jac(:,:,:)
     Acoeff(:,:,:,17) = -whei(:,:,:)*zetaz(:,:,:)*Jac(:,:,:)
 
-return
+    return
 
 end subroutine define_Acoeff_PML_fluid
 !-------------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------------
 subroutine define_alpha_PML(lattenu,dir,ldir_attenu,ngllx,nglly,ngllz,ngll,n_pts,   &
-                            Coord,GLLc,Rkmod,Density,ind_min,ind_max,Apow,npow,alpha)
-  !- routine determines attenuation profile in an PML layer (see Festa & Vilotte)
-  !   dir = attenuation's direction, ldir_attenu = the logical giving the orientation
- 
+    Coord,GLLc,Rkmod,Density,ind_min,ind_max,Apow,npow,alpha)
+    !- routine determines attenuation profile in an PML layer (see Festa & Vilotte)
+    !   dir = attenuation's direction, ldir_attenu = the logical giving the orientation
+
     implicit none
 
     logical, intent(in)   :: lattenu,ldir_attenu
@@ -567,92 +567,92 @@ subroutine define_alpha_PML(lattenu,dir,ldir_attenu,ngllx,nglly,ngllz,ngll,n_pts
     else  ! yes, attenuation in this dir-direction
         dh = Coord(dir,ind_min)
         dh = abs(Coord(dir,ind_max)-dh)
-        if(ldir_attenu)then  ! Left in x, Forward in y, Down in z 
+        if(ldir_attenu)then  ! Left in x, Forward in y, Down in z
             ri(:) = 0.5d0*(1d0+GLLc(ngll-1:0:-1))*float(ngll-1)
-        else  ! Right in x, Backward in y, Up in z 
+        else  ! Right in x, Backward in y, Up in z
             ri(:) = 0.5d0*(1d0+GLLc(0:ngll-1))*float(ngll-1)
         end if
         vp(:) = sqrt(Rkmod(:)/Density(:))
         select case(dir)
-            case(0)  ! dir = x
-                do i = 0,ngll-1
-                    alpha(i,0:,0:) = pow(ri(i),vp(i),ngll-1,dh,Apow,npow)
-                end do
-            case(1)  ! dir = y
-                do i = 0,ngll-1
-                    alpha(0:,i,0:) = pow(ri(i),vp(i),ngll-1,dh,Apow,npow)
-                end do
-            case(2)  ! dir = z
-                do i = 0,ngll-1
-                    alpha(0:,0:,i) = pow(ri(i),vp(i),ngll-1,dh,Apow,npow)
-                end do
+        case(0)  ! dir = x
+            do i = 0,ngll-1
+                alpha(i,0:,0:) = pow(ri(i),vp(i),ngll-1,dh,Apow,npow)
+            end do
+        case(1)  ! dir = y
+            do i = 0,ngll-1
+                alpha(0:,i,0:) = pow(ri(i),vp(i),ngll-1,dh,Apow,npow)
+            end do
+        case(2)  ! dir = z
+            do i = 0,ngll-1
+                alpha(0:,0:,i) = pow(ri(i),vp(i),ngll-1,dh,Apow,npow)
+            end do
         end select
     end if
 
-return
+    return
 
 end subroutine define_alpha_PML
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
 subroutine define_FPML_DumpInit(ngllx,nglly,ngllz,dt,freq,alpha,density,whei,jac,  &
-                                DumpS,DumpMass,Is,Iv)
-  !- defining parameters related to stresses and mass matrix elements, in the case of
-  !    a FPML, along a given splitted direction: 
+    DumpS,DumpMass,Is,Iv)
+    !- defining parameters related to stresses and mass matrix elements, in the case of
+    !    a FPML, along a given splitted direction:
     implicit none
 
     integer, intent(in)  :: ngllx,nglly,ngllz
     real, intent(in) :: dt,freq
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: alpha
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: density,whei,Jac 
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1), intent(out) :: DumpS 
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: density,whei,Jac
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1), intent(out) :: DumpS
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: DumpMass,Is,Iv
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1)  :: Id
 
     Id = 1d0
 
-    DumpS(:,:,:,1) = Id + 0.5d0*dt*alpha*freq 
+    DumpS(:,:,:,1) = Id + 0.5d0*dt*alpha*freq
     DumpS(:,:,:,1) = 1d0/DumpS(:,:,:,1)
     DumpS(:,:,:,0) = (Id - 0.5d0*dt*alpha*freq)*DumpS(:,:,:,1)
 
     DumpMass(:,:,:) = 0.5d0*Density(:,:,:)*Whei(:,:,:)*Jac(:,:,:)*alpha(:,:,:)*dt*freq
-    
-    Is(:,:,:) = dt*alpha(:,:,:)*freq*DumpS(:,:,:,1)     
-     
-    Iv(:,:,:)= Density(:,:,:)*Whei(:,:,:)*Dt*alpha(:,:,:)*Jac(:,:,:)*freq 
 
-return
+    Is(:,:,:) = dt*alpha(:,:,:)*freq*DumpS(:,:,:,1)
+
+    Iv(:,:,:)= Density(:,:,:)*Whei(:,:,:)*Dt*alpha(:,:,:)*Jac(:,:,:)*freq
+
+    return
 
 end subroutine define_FPML_DumpInit
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
 subroutine define_PML_DumpInit(ngllx,nglly,ngllz,dt,alpha,density,whei,jac,  &
-                                DumpS,DumpMass)
-  !- defining parameters related to stresses and mass matrix elements, in the case of
-  !    a PML, along a given splitted direction: 
+    DumpS,DumpMass)
+    !- defining parameters related to stresses and mass matrix elements, in the case of
+    !    a PML, along a given splitted direction:
     implicit none
 
     integer, intent(in)  :: ngllx,nglly,ngllz
     real, intent(in) :: dt
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: alpha
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: density,whei,Jac 
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1), intent(out) :: DumpS 
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: density,whei,Jac
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1), intent(out) :: DumpS
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: DumpMass
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1)  :: Id
 
     Id = 1d0
 
-    DumpS(:,:,:,1) = Id + 0.5d0*dt*alpha 
+    DumpS(:,:,:,1) = Id + 0.5d0*dt*alpha
     DumpS(:,:,:,1) = 1d0/DumpS(:,:,:,1)
     DumpS(:,:,:,0) = (Id - 0.5d0*dt*alpha)*DumpS(:,:,:,1)
 
     DumpMass(:,:,:) = 0.5d0*Density(:,:,:)*Whei(:,:,:)*Jac(:,:,:)*alpha(:,:,:)*dt
 
-return
+    return
 
 end subroutine define_PML_DumpInit
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
-subroutine define_PML_DumpEnd(n,rg,ngllx,nglly,ngllz,Massmat,DumpMass,DumpV) 
+subroutine define_PML_DumpEnd(n,rg,ngllx,nglly,ngllz,Massmat,DumpMass,DumpV)
 
     implicit none
     integer, intent(in)   :: ngllx,nglly,ngllz,n,rg
@@ -663,16 +663,16 @@ subroutine define_PML_DumpEnd(n,rg,ngllx,nglly,ngllz,Massmat,DumpMass,DumpV)
 
     LocMassMat(:,:,:) = MassMat(1:ngllx-2,1:nglly-2,1:ngllz-2)
     DumpV(:,:,:,1) = LocMassMat + DumpMass(1:ngllx-2,1:nglly-2,1:ngllz-2)
-    DumpV(:,:,:,1) = 1d0/DumpV(:,:,:,1) 
+    DumpV(:,:,:,1) = 1d0/DumpV(:,:,:,1)
     DumpV(:,:,:,0) = LocMassMat - DumpMass(1:ngllx-2,1:nglly-2,1:ngllz-2)
     DumpV(:,:,:,0) = DumpV(:,:,:,0) * DumpV(:,:,:,1)
 
-return
+    return
 
 end subroutine define_PML_DumpEnd
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
-subroutine define_FPML_DumpEnd(dir,ngllx,nglly,ngllz,Massmat,DumpMass,DumpV,Iv) 
+subroutine define_FPML_DumpEnd(dir,ngllx,nglly,ngllz,Massmat,DumpMass,DumpV,Iv)
 
     implicit none
     integer, intent(in)   :: dir,ngllx,nglly,ngllz
@@ -685,7 +685,7 @@ subroutine define_FPML_DumpEnd(dir,ngllx,nglly,ngllz,Massmat,DumpMass,DumpV,Iv)
     LocMassMat(:,:,:) = MassMat(1:ngllx-2,1:nglly-2,1:ngllz-2)
 
     DumpV(:,:,:,1) = LocMassMat + DumpMass(1:ngllx-2,1:nglly-2,1:ngllz-2,dir)
-    DumpV(:,:,:,1) = 1d0/DumpV(:,:,:,1) 
+    DumpV(:,:,:,1) = 1d0/DumpV(:,:,:,1)
     DumpV(:,:,:,0) = LocMassMat - DumpMass(1:ngllx-2,1:nglly-2,1:ngllz-2,dir)
     DumpV(:,:,:,0) = DumpV(:,:,:,0) * DumpV(:,:,:,1)
 
@@ -694,7 +694,7 @@ subroutine define_FPML_DumpEnd(dir,ngllx,nglly,ngllz,Massmat,DumpMass,DumpV,Iv)
     allocate(Iv(1:ngllx-2,1:nglly-2,1:ngllz-2))
     Iv = LocMassMat*DumpV(:,:,:,1)
 
-return
+    return
 
 end subroutine define_FPML_DumpEnd
 !----------------------------------------------------------------------------------
@@ -708,7 +708,7 @@ subroutine Comm_Mass_Complete(n,Tdomain)
     integer  :: i,j,k,ngll,nf,ne,nv
 
     ngll = 0
- ! faces
+    ! faces
     do i = 0,Tdomain%sComm(n)%nb_faces-1
         nf = Tdomain%sComm(n)%faces(i)
         do j = 1,Tdomain%sFace(nf)%ngll2-2
@@ -718,7 +718,7 @@ subroutine Comm_Mass_Complete(n,Tdomain)
             enddo
         enddo
     enddo
- ! edges
+    ! edges
     do i = 0,Tdomain%sComm(n)%nb_edges-1
         ne = Tdomain%sComm(n)%edges(i)
         do j = 1,Tdomain%sEdge(ne)%ngll-2
@@ -726,7 +726,7 @@ subroutine Comm_Mass_Complete(n,Tdomain)
             ngll = ngll + 1
         enddo
     enddo
- ! vertices
+    ! vertices
     do i = 0,Tdomain%sComm(n)%nb_vertices-1
         nv =  Tdomain%sComm(n)%vertices(i)
         Tdomain%sComm(n)%Give(ngll) = Tdomain%svertex(nv)%MassMat
@@ -748,7 +748,7 @@ subroutine Comm_Mass_Complete_PML(n,Tdomain)
     integer  :: i,j,k,ngllPML,nf,ne,nv
 
     ngllPML = 0
- ! faces
+    ! faces
     do i = 0,Tdomain%sComm(n)%nb_faces-1
         nf = Tdomain%sComm(n)%faces(i)
         if(Tdomain%sFace(nf)%PML)then
@@ -765,16 +765,16 @@ subroutine Comm_Mass_Complete_PML(n,Tdomain)
             enddo
         endif
     enddo
- ! edges
+    ! edges
     do i = 0,Tdomain%sComm(n)%nb_edges-1
         ne = Tdomain%sComm(n)%edges(i)
         if(Tdomain%sEdge(ne)%PML)then
             do j = 1,Tdomain%sEdge(ne)%ngll-2
                 Tdomain%sComm(n)%GivePML(ngllPML,0:2) = Tdomain%sEdge(ne)%DumpMass(j,0:2)
                 if(Tdomain%any_FPML)then
-                     Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%sEdge(ne)%Ivx(j)
-                     Tdomain%sComm(n)%GivePML(ngllPML,4) = Tdomain%sEdge(ne)%Ivy(j)
-                     Tdomain%sComm(n)%GivePML(ngllPML,5) = Tdomain%sEdge(ne)%Ivz(j)
+                    Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%sEdge(ne)%Ivx(j)
+                    Tdomain%sComm(n)%GivePML(ngllPML,4) = Tdomain%sEdge(ne)%Ivy(j)
+                    Tdomain%sComm(n)%GivePML(ngllPML,5) = Tdomain%sEdge(ne)%Ivz(j)
                 endif
                 ngllPML = ngllPML + 1
             enddo
@@ -784,11 +784,11 @@ subroutine Comm_Mass_Complete_PML(n,Tdomain)
         nv = Tdomain%sComm(n)%vertices(i)
         if(Tdomain%sVertex(nv)%PML)then
             Tdomain%sComm(n)%GivePML(ngllPML,0:2) = Tdomain%sVertex(nv)%DumpMass(0:2)
-                if(Tdomain%any_FPML)then
-                    Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%sVertex(nv)%Ivx(0)
-                    Tdomain%sComm(n)%GivePML(ngllPML,4) = Tdomain%sVertex(nv)%Ivy(0)
-                    Tdomain%sComm(n)%GivePML(ngllPML,5) = Tdomain%sVertex(nv)%Ivz(0)
-                endif
+            if(Tdomain%any_FPML)then
+                Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%sVertex(nv)%Ivx(0)
+                Tdomain%sComm(n)%GivePML(ngllPML,4) = Tdomain%sVertex(nv)%Ivy(0)
+                Tdomain%sComm(n)%GivePML(ngllPML,5) = Tdomain%sVertex(nv)%Ivz(0)
+            endif
             ngllPML = ngllPML + 1
         endif
     enddo
@@ -817,9 +817,9 @@ subroutine Comm_Normal_Neumann(n,Tdomain)
         enddo
     enddo
     do i = 0,Tdomain%sComm(n)%Neu_nv_shared-1
-       nv = Tdomain%sComm(n)%Neu_vertices_shared(i)
-       Tdomain%sComm(n)%GiveNeu(ngllNeu,0:2) = Tdomain%Neumann%Neu_Vertex(nv)%BtN(0:2)
-       ngllNeu = ngllNeu + 1    
+        nv = Tdomain%sComm(n)%Neu_vertices_shared(i)
+        Tdomain%sComm(n)%GiveNeu(ngllNeu,0:2) = Tdomain%Neumann%Neu_Vertex(nv)%BtN(0:2)
+        ngllNeu = ngllNeu + 1
     enddo
 
     if(ngllNeu /= Tdomain%sComm(n)%ngllNeu) &
@@ -828,7 +828,7 @@ subroutine Comm_Normal_Neumann(n,Tdomain)
 end subroutine Comm_Normal_Neumann
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
-subroutine define_PML_Face_DumpEnd(ngll1,ngll2,Massmat,DumpMass,DumpV) 
+subroutine define_PML_Face_DumpEnd(ngll1,ngll2,Massmat,DumpMass,DumpV)
 
     implicit none
     integer, intent(in)   :: ngll1,ngll2
@@ -837,16 +837,16 @@ subroutine define_PML_Face_DumpEnd(ngll1,ngll2,Massmat,DumpMass,DumpV)
     real, dimension(1:ngll1-2,1:ngll2-2), intent(in) :: DumpMass
 
     DumpV(:,:,1) = MassMat + DumpMass
-    DumpV(:,:,1) = 1d0/DumpV(:,:,1) 
+    DumpV(:,:,1) = 1d0/DumpV(:,:,1)
     DumpV(:,:,0) = MassMat - DumpMass
     DumpV(:,:,0) = DumpV(:,:,0) * DumpV(:,:,1)
 
-return
+    return
 
 end subroutine define_PML_Face_DumpEnd
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
-subroutine define_PML_Edge_DumpEnd(ngll,Massmat,DumpMass,DumpV) 
+subroutine define_PML_Edge_DumpEnd(ngll,Massmat,DumpMass,DumpV)
 
     implicit none
     integer, intent(in)   :: ngll
@@ -855,16 +855,16 @@ subroutine define_PML_Edge_DumpEnd(ngll,Massmat,DumpMass,DumpV)
     real, dimension(1:ngll-2), intent(in) :: DumpMass
 
     DumpV(:,1) = MassMat + DumpMass
-    DumpV(:,1) = 1d0/DumpV(:,1) 
+    DumpV(:,1) = 1d0/DumpV(:,1)
     DumpV(:,0) = MassMat - DumpMass
     DumpV(:,0) = DumpV(:,0) * DumpV(:,1)
 
-return
+    return
 
 end subroutine define_PML_Edge_DumpEnd
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
-subroutine define_PML_Vertex_DumpEnd(Massmat,DumpMass,DumpV) 
+subroutine define_PML_Vertex_DumpEnd(Massmat,DumpMass,DumpV)
 
     implicit none
     real, intent(in) :: MassMat
@@ -872,12 +872,17 @@ subroutine define_PML_Vertex_DumpEnd(Massmat,DumpMass,DumpV)
     real, intent(in) :: DumpMass
 
     DumpV(1) = MassMat + DumpMass
-    DumpV(1) = 1d0/DumpV(1) 
+    DumpV(1) = 1d0/DumpV(1)
     DumpV(0) = MassMat - DumpMass
     DumpV(0) = DumpV(0) * DumpV(1)
 
-return
+    return
 
 end subroutine define_PML_Vertex_DumpEnd
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent : !!

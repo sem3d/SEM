@@ -1,6 +1,6 @@
 subroutine normal_face_weighting(dir,ngllx,nglly,ngllz,ngll1,ngll2,normal,   &
-                                 GLLwx,GLLwy,GLLwz,BtN)
-  !- determination of the weighted normal term for a given (inter)face
+    GLLwx,GLLwy,GLLwz,BtN)
+    !- determination of the weighted normal term for a given (inter)face
     implicit none
 
     integer, intent(in)  :: dir,ngll1,ngll2,ngllx,nglly,ngllz
@@ -37,7 +37,7 @@ end subroutine normal_face_weighting
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 subroutine BtN_Face2Edge(ne,ngll1,ngll2,ngll,orient_e,BtNf,BtNe)
-  !- distributes BtN (ponderated normal) values, from face to edges.
+    !- distributes BtN (ponderated normal) values, from face to edges.
     implicit none
 
     integer, intent(in)   :: ne,ngll1,ngll2,ngll,orient_e
@@ -47,33 +47,33 @@ subroutine BtN_Face2Edge(ne,ngll1,ngll2,ngll,orient_e,BtNf,BtNe)
 
     if(orient_e == 0)then
         select case(ne)
-            case(0)          
-                BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(1:ngll1-2,0,0:2)
-            case(1)          
-                BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(ngll1-1,1:ngll2-2,0:2)
-            case(2)          
-                BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(1:ngll1-2,ngll2-1,0:2)
-            case(3)          
-                BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(0,1:ngll2-2,0:2)
+        case(0)
+            BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(1:ngll1-2,0,0:2)
+        case(1)
+            BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(ngll1-1,1:ngll2-2,0:2)
+        case(2)
+            BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(1:ngll1-2,ngll2-1,0:2)
+        case(3)
+            BtNe(1:ngll-2,0:2) = BtNe(1:ngll-2,0:2)+BtNf(0,1:ngll2-2,0:2)
         end select
-    else  
+    else
         select case(ne)
-            case(0)         
-                do j=1,ngll-2
-                    BtNe(j,0:2) = BtNe(j,0:2)+BtNf(ngll1-1-j,0,0:2)
-                enddo
-            case(1) 
-                do j=1,ngll-2
-                    BtNe(j,0:2) = BtNe(j,0:2)+BtNf(ngll1-1,ngll2-1-j,0:2)
-                enddo
-            case(2)
-                do j=1,ngll-2          
-                    BtNe(j,0:2) = BtNe(j,0:2)+BtNf(ngll1-1-j,ngll2-1,0:2)
-                enddo
-            case(3)
-                do j=1,ngll-2          
-                    BtNe(j,0:2) = BtNe(j,0:2)+BtNf(0,ngll2-1-j,0:2)
-                enddo
+        case(0)
+            do j=1,ngll-2
+                BtNe(j,0:2) = BtNe(j,0:2)+BtNf(ngll1-1-j,0,0:2)
+            enddo
+        case(1)
+            do j=1,ngll-2
+                BtNe(j,0:2) = BtNe(j,0:2)+BtNf(ngll1-1,ngll2-1-j,0:2)
+            enddo
+        case(2)
+            do j=1,ngll-2
+                BtNe(j,0:2) = BtNe(j,0:2)+BtNf(ngll1-1-j,ngll2-1,0:2)
+            enddo
+        case(3)
+            do j=1,ngll-2
+                BtNe(j,0:2) = BtNe(j,0:2)+BtNf(0,ngll2-1-j,0:2)
+            enddo
         end select
     endif
 
@@ -81,7 +81,7 @@ end subroutine BtN_Face2Edge
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 subroutine BtN_Face2Vertex(nv,ngll1,ngll2,BtNf,BtNv)
-  !- distributes BtN (ponderated normal) values, from face to vertices.
+    !- distributes BtN (ponderated normal) values, from face to vertices.
     implicit none
 
     integer, intent(in)   :: nv,ngll1,ngll2
@@ -89,14 +89,14 @@ subroutine BtN_Face2Vertex(nv,ngll1,ngll2,BtNf,BtNv)
     real, dimension(0:2), intent(inout)  :: BtNv
 
     select case(nv)
-        case(0)          
-            BtNv(0:2) = BtNv(0:2)+BtNf(0,0,0:2)
-        case(1)          
-            BtNv(0:2) = BtNv(0:2)+BtNf(ngll1-1,0,0:2)
-        case(2)          
-            BtNv(0:2) = BtNv(0:2)+BtNf(ngll1-1,ngll2-1,0:2)
-        case(3)          
-            BtNv(0:2) = BtNv(0:2)+BtNf(0,ngll2-1,0:2)
+    case(0)
+        BtNv(0:2) = BtNv(0:2)+BtNf(0,0,0:2)
+    case(1)
+        BtNv(0:2) = BtNv(0:2)+BtNf(ngll1-1,0,0:2)
+    case(2)
+        BtNv(0:2) = BtNv(0:2)+BtNf(ngll1-1,ngll2-1,0:2)
+    case(3)
+        BtNv(0:2) = BtNv(0:2)+BtNf(0,ngll2-1,0:2)
     end select
 
 
@@ -110,7 +110,7 @@ subroutine define_FEV_Neumann(Tdomain)
     type(domain), intent(inout)  :: Tdomain
     integer :: nf,ne,nv,ngllx,nglly,ngllz,ngll1,ngll2,ngll,mat,i,orient_e
     real, dimension(:,:,:), allocatable :: Store_Btn
- 
+
     do nf = 0,Tdomain%Neumann%Neu_n_faces-1
         ngll1 = Tdomain%Neumann%Neu_Face(nf)%ngll1 ; ngll2 = Tdomain%Neumann%neu_Face(nf)%ngll2
         mat = Tdomain%Neumann%Neu_Face(nf)%mat_index
@@ -119,21 +119,21 @@ subroutine define_FEV_Neumann(Tdomain)
         ngllz = Tdomain%sSubdomain(mat)%ngllz
         call normal_face_weighting(Tdomain%Neumann%Neu_face(nf)%dir,ngllx,nglly,ngllz,     &
             ngll1,ngll2,Tdomain%Neumann%Neu_face(nf)%normal,Tdomain%sSubdomain(mat)%GLLwx, &
-            Tdomain%sSubdomain(mat)%GLLwy,Tdomain%sSubdomain(mat)%GLLwz,                   & 
+            Tdomain%sSubdomain(mat)%GLLwy,Tdomain%sSubdomain(mat)%GLLwz,                   &
             Tdomain%Neumann%Neu_Face(nf)%Btn)
-    !- internal communication of Btn: from Neumann faces to Neu edges and vertices
-        do i = 0,3   
+        !- internal communication of Btn: from Neumann faces to Neu edges and vertices
+        do i = 0,3
             ne = Tdomain%Neumann%Neu_Face(nf)%Near_Edges(i)
             ngll = Tdomain%Neumann%Neu_Edge(ne)%ngll
             orient_e = Tdomain%Neumann%Neu_face(nf)%Near_Edges_Orient(i)
             call BtN_Face2Edge(i,ngll1,ngll2,ngll,orient_e,         &
-                    Tdomain%Neumann%Neu_Face(nf)%BtN,Tdomain%Neumann%Neu_Edge(ne)%BtN)
+                Tdomain%Neumann%Neu_Face(nf)%BtN,Tdomain%Neumann%Neu_Edge(ne)%BtN)
             nv = Tdomain%Neumann%Neu_Face(nf)%Near_Vertices(i)
             call BtN_Face2Vertex(i,ngll1,ngll2,    &
-                    Tdomain%Neumann%Neu_Face(nf)%BtN,Tdomain%Neumann%Neu_Vertex(nv)%BtN)
+                Tdomain%Neumann%Neu_Face(nf)%BtN,Tdomain%Neumann%Neu_Vertex(nv)%BtN)
         end do
 
-     !- changing size of face arrays.
+        !- changing size of face arrays.
         allocate(Store_Btn(1:ngll1-2,1:ngll2-2,0:2))
         Store_Btn(1:ngll1-2,1:ngll2-2,0:2) = Tdomain%Neumann%Neu_Face(nf)%Btn(1:ngll1-2,1:ngll2-2,0:2)
         deallocate(Tdomain%Neumann%Neu_Face(nf)%Btn)
@@ -142,7 +142,7 @@ subroutine define_FEV_Neumann(Tdomain)
         deallocate(Store_Btn)
         deallocate(Tdomain%Neumann%Neu_Face(nf)%normal)
 
-  !- end on the loop on a Neumann face
+        !- end on the loop on a Neumann face
     enddo
 
 end subroutine define_FEV_Neumann
@@ -155,7 +155,7 @@ subroutine define_FEV_SF(Tdomain)
     type(domain), intent(inout)  :: Tdomain
     integer :: nf,ne,nv,ngllx,nglly,ngllz,ngll1,ngll2,ngll,mat,i,orient_e,w_elem
     real, dimension(:,:,:), allocatable :: Store_Btn
- 
+
     do nf = 0,Tdomain%SF%SF_n_faces-1
         if(Tdomain%SF%SF_face(nf)%Face(0) < 0) cycle
         ngll1 = Tdomain%SF%SF_Face(nf)%ngll1 ; ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
@@ -166,21 +166,21 @@ subroutine define_FEV_SF(Tdomain)
         ngllz = Tdomain%sSubdomain(mat)%ngllz
         call normal_face_weighting(Tdomain%SF%SF_face(nf)%dir,ngllx,nglly,ngllz,     &
             ngll1,ngll2,Tdomain%SF%SF_face(nf)%normal,Tdomain%sSubdomain(mat)%GLLwx, &
-            Tdomain%sSubdomain(mat)%GLLwy,Tdomain%sSubdomain(mat)%GLLwz,             & 
+            Tdomain%sSubdomain(mat)%GLLwy,Tdomain%sSubdomain(mat)%GLLwz,             &
             Tdomain%SF%SF_Face(nf)%Btn)
-    !- internal communication of Btn: from SF faces to SF edges and vertices
-        do i = 0,3   
+        !- internal communication of Btn: from SF faces to SF edges and vertices
+        do i = 0,3
             ne = Tdomain%SF%SF_Face(nf)%Near_Edges(i)
             ngll = Tdomain%SF%SF_Edge(ne)%ngll
             orient_e = Tdomain%SF%SF_face(nf)%Near_Edges_Orient(i)
             call BtN_Face2Edge(i,ngll1,ngll2,ngll,orient_e,         &
-                    Tdomain%SF%SF_Face(nf)%BtN,Tdomain%SF%SF_Edge(ne)%BtN)
+                Tdomain%SF%SF_Face(nf)%BtN,Tdomain%SF%SF_Edge(ne)%BtN)
             nv = Tdomain%SF%SF_Face(nf)%Near_Vertices(i)
             call BtN_Face2Vertex(i,ngll1,ngll2,    &
-                    Tdomain%SF%SF_Face(nf)%BtN,Tdomain%SF%SF_Vertex(nv)%BtN)
+                Tdomain%SF%SF_Face(nf)%BtN,Tdomain%SF%SF_Vertex(nv)%BtN)
         end do
 
-     !- changing size of face arrays.
+        !- changing size of face arrays.
         allocate(Store_Btn(1:ngll1-2,1:ngll2-2,0:2))
         Store_Btn(1:ngll1-2,1:ngll2-2,0:2) = Tdomain%SF%SF_Face(nf)%Btn(1:ngll1-2,1:ngll2-2,0:2)
         deallocate(Tdomain%SF%SF_Face(nf)%Btn)
@@ -189,7 +189,12 @@ subroutine define_FEV_SF(Tdomain)
         deallocate(Store_Btn)
         deallocate(Tdomain%SF%SF_Face(nf)%normal)
 
-  !- end on the loop on a SF face
+        !- end on the loop on a SF face
     enddo
 
 end subroutine define_FEV_SF
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent : !!

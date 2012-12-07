@@ -1,12 +1,17 @@
 module sfilter
 
-! Defining filter parameter
+    ! Defining filter parameter
 
-type filter
+    type filter
 
-real, dimension  (0:2) :: nc
-real, dimension (0:1) :: dc
+       real, dimension  (0:2) :: nc
+       real, dimension (0:1) :: dc
 
-end type filter
+    end type filter
 
-end module sfilter  
+end module sfilter
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
