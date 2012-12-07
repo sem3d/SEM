@@ -2,26 +2,30 @@ module sfaces
 
 
 type :: face
-
-logical :: PML, Abs, FPML
-
-integer :: ngll1, ngll2, dir, Which_Elem
-integer, dimension (:), pointer :: FaceNum
-integer, dimension (:,:), pointer :: Iglobnum_Face
-
-real, dimension (:,:), pointer  :: MassMat
-real, dimension (:,:,:), pointer :: Forces, Displ, Veloc, Accel, V0
-real, dimension (:,:,:), pointer :: Forces1, Forces2, Forces3, Veloc1, Veloc2, Veloc3
-real, dimension (:,:,:), pointer :: DumpVx, DumpVy, DumpVz, DumpMass
-real, dimension (:,:,:), pointer :: IVeloc1, IVeloc2, IVeloc3
-real, dimension (:,:), pointer :: Ivx, Ivy, Ivz
-
+    logical :: PML, Abs, FPML
+    integer :: ngll1, ngll2, dir, Which_Elem, mat_index
+    integer, dimension(:), pointer :: FaceNum
+    integer, dimension(:,:), pointer :: Iglobnum_Face
+    real, dimension(:,:), pointer  :: MassMat
+    real, dimension(:,:,:), pointer :: Forces, Displ, Veloc, Accel, V0
+    real, dimension(:,:,:), pointer :: Forces1, Forces2, Forces3, Veloc1, Veloc2, Veloc3
+    real, dimension(:,:,:), pointer :: DumpVx, DumpVy, DumpVz, DumpMass
+    real, dimension(:,:,:), pointer :: IVeloc1, IVeloc2, IVeloc3
+    real, dimension(:,:), pointer :: Ivx, Ivy, Ivz
+    logical :: solid
+   ! solid-fluid
+    real, dimension(:,:), pointer :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
+    real, dimension(:,:), pointer :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
 end type
  
-contains
 
-! ############################################################
-subroutine Prediction_Face_Veloc (F, alpha, bega, gam1, dt)
+     contains
+
+
+
+!--------------------------------------------------------------
+!--------------------------------------------------------------
+subroutine Prediction_Face_Veloc(F, alpha, bega, gam1, dt)
 
 implicit none
 
@@ -39,8 +43,28 @@ F%Forces(:,:,:) = alpha * F%Forces(:,:,:) + (1-alpha) * F%Displ(:,:,:)
 
 return
 end subroutine Prediction_Face_Veloc
+!--------------------------------------------------------------
+!--------------------------------------------------------------
+subroutine Prediction_Face_VelPhi(F,alpha,bega,gam1,dt)
 
-! ###########################################################
+    implicit none
+
+    type(Face), intent(inout) :: F
+    real, intent(in) :: alpha, bega, gam1, dt
+    integer :: ngll1, ngll2
+
+
+ngll1 = F%ngll1 ; ngll2 = F%ngll2
+ 
+F%ForcesFl(:,:) = F%Phi(:,:) + dt * F%VelPhi(:,:) +     &
+                  dt**2*(0.5d0-bega) * F%AccelPhi(:,:)
+F%VelPhi0(:,:) = F%VelPhi(:,:)
+F%ForcesFl(:,:) = alpha * F%ForcesFl(:,:) + (1d0-alpha) * F%Phi(:,:) 
+
+return
+end subroutine Prediction_Face_VelPhi
+!--------------------------------------------------------------
+!--------------------------------------------------------------
 subroutine Correction_Face_Veloc (F, bega, gam1, dt)
 
 implicit none
@@ -62,8 +86,28 @@ F%Displ(:,:,:) = F%Displ(:,:,:) + bega * dt * (F%Veloc(:,:,:)+F%V0(:,:,:))
 
 return
 end subroutine Correction_Face_Veloc
+!--------------------------------------------------------------
+!--------------------------------------------------------------
+subroutine Correction_Face_VelPhi(F,bega,gam1,dt)
 
-! ##########################################################
+    implicit none
+
+    type(Face), intent(inout) :: F
+    real, intent(in) :: bega, gam1, dt
+    integer :: i, ngll1, ngll2
+
+ngll1 = F%ngll1 ; ngll2 = F%ngll2
+
+F%ForcesFl(:,:) = F%MassMat(:,:) * F%ForcesFl(:,:)
+
+F%VelPhi(:,:) = F%VelPhi0(:,:) + dt * F%ForcesFl(:,:)
+F%AccelPhi(:,:) = F%AccelPhi(:,:) + gam1 / dt * (F%VelPhi(:,:)-F%VelPhi0(:,:))
+F%Phi(:,:) = F%Phi(:,:) + bega * dt * (F%VelPhi(:,:)+F%VelPhi0(:,:))
+
+return
+end subroutine Correction_Face_VelPhi
+!--------------------------------------------------------------
+!--------------------------------------------------------------
 subroutine Correction_Face_PML_Veloc (F, dt)
 
 implicit none
@@ -88,8 +132,33 @@ endif
 
 return
 end subroutine Correction_Face_PML_Veloc
+!--------------------------------------------------------------
+!--------------------------------------------------------------
+subroutine Correction_Face_PML_VelPhi(F,dt)
 
-! ############################################################
+    implicit none
+
+    type(Face), intent(inout) :: F
+    real, intent(in) :: dt
+
+
+F%VelPhi1(:,:) = F%DumpVx(:,:,0) * F%VelPhi1(:,:) +     &
+                 dt * F%DumpVx(:,:,1) * F%ForcesFl1(:,:)
+F%VelPhi2(:,:) = F%DumpVy(:,:,0) * F%VelPhi2(:,:) +     &
+                 dt * F%DumpVy(:,:,1) * F%ForcesFl2(:,:)
+F%VelPhi3(:,:) = F%DumpVz(:,:,0) * F%VelPhi3(:,:) +     &
+                 dt * F%DumpVz(:,:,1) * F%ForcesFl3(:,:)
+
+F%VelPhi = F%VelPhi1 + F%VelPhi2 + F%VelPhi3
+
+if(F%Abs)then
+    F%VelPhi = 0
+endif
+
+return
+end subroutine Correction_Face_PML_VelPhi
+!--------------------------------------------------------------
+!--------------------------------------------------------------
 subroutine Correction_Face_FPML_Veloc (F, dt, fil)
 
 implicit none
@@ -124,9 +193,8 @@ endif
 
 return
 end subroutine Correction_Face_FPML_Veloc
-
-! ############################################################
-
+!--------------------------------------------------------------
+!--------------------------------------------------------------
 
 
 subroutine get_vel_face (F, Vfree, ngll1, ngll2, dt, logic, orient, nf)

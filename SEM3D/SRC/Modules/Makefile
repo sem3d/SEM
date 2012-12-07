@@ -20,6 +20,6 @@ clean :
 %.o: %.f90
 	$(F90) $(F90FLAGS) $(OPT) -c $<
 
-Domain.o : Element.o Face.o Sources.o Receivers.o logical_input.o Vertex.o TimeP.o Subdomains.o Edge.o Comm.o PlaneW.o Neumann.o Surface.o
+Domain.o : Element.o Face.o Sources.o Receivers.o logical_input.o Vertex.o TimeP.o Subdomains.o Edge.o Comm.o PlaneW.o Neumann.o Surface.o solid_fluid.o
 
 Sources.o : pi.o

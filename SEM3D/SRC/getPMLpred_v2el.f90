@@ -1,42 +1,51 @@
-subroutine get_PMLprediction_v2el (Tdomain, n, bega, dt)
-
-use sdomain
-
-implicit none
-
-type (Domain), intent (INOUT) :: Tdomain
-integer, intent (IN) :: n
-real, intent(IN) :: dt, bega
-
-integer :: nv, ngllx, nglly, ngllz
+subroutine get_PMLprediction_v2el(Tdomain,n,bega,dt,rank)
 
 
-ngllx = Tdomain%specel(n)%ngllx;  nglly = Tdomain%specel(n)%nglly;  ngllz = Tdomain%specel(n)%ngllz
+    use sdomain
+    implicit none
 
-nv = Tdomain%specel(n)%near_vertices(0)
-Tdomain%specel(n)%Forces(0,0,0,:) = Tdomain%sVertex(nv)%Veloc(:) + dt * (0.5 - bega) *  Tdomain%sVertex(nv)%Accel(:)
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in) :: n,rank
+    real, intent(in)   :: bega,dt
+    integer :: nv, ngllx,nglly,ngllz,nnv
+ 
+ngllx = Tdomain%specel(n)%ngllx
+nglly = Tdomain%specel(n)%nglly
+ngllz = Tdomain%specel(n)%ngllz
 
-nv = Tdomain%specel(n)%near_vertices(1)
-Tdomain%specel(n)%Forces(ngllx-1,0,0,:) = Tdomain%sVertex(nv)%Veloc(:) + dt * (0.5 - bega) *  Tdomain%sVertex(nv)%Accel(:)
-
-nv = Tdomain%specel(n)%near_vertices(2)
-Tdomain%specel(n)%Forces(ngllx-1,nglly-1,0,:) = Tdomain%sVertex(nv)%Veloc(:) + dt * (0.5 - bega) *  Tdomain%sVertex(nv)%Accel(:)
-
-nv = Tdomain%specel(n)%near_vertices(3)
-Tdomain%specel(n)%Forces(0,nglly-1,0,:) = Tdomain%sVertex(nv)%Veloc(:) + dt * (0.5 - bega) *  Tdomain%sVertex(nv)%Accel(:)
-
-nv = Tdomain%specel(n)%near_vertices(4)
-Tdomain%specel(n)%Forces(0,0,ngllz-1,:) = Tdomain%sVertex(nv)%Veloc(:) + dt * (0.5 - bega) *  Tdomain%sVertex(nv)%Accel(:)
-
-nv = Tdomain%specel(n)%near_vertices(5)
-Tdomain%specel(n)%Forces(ngllx-1,0,ngllz-1,:) = Tdomain%sVertex(nv)%Veloc(:) + dt * (0.5 - bega) *  Tdomain%sVertex(nv)%Accel(:)
-
-nv = Tdomain%specel(n)%near_vertices(6)
-Tdomain%specel(n)%Forces(ngllx-1,nglly-1,ngllz-1,:) = Tdomain%sVertex(nv)%Veloc(:) + dt * (0.5 - bega) *  Tdomain%sVertex(nv)%Accel(:)
-
-nv = Tdomain%specel(n)%near_vertices(7)
-Tdomain%specel(n)%Forces(0,nglly-1,ngllz-1,:) = Tdomain%sVertex(nv)%Veloc(:) + dt * (0.5 - bega) *  Tdomain%sVertex(nv)%Accel(:)
-
+do nv = 0,7
+    nnv = Tdomain%specel(n)%Near_Vertices(nv)
+ ! now we call the general deassemblage routine
+    call get_VectProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,rank,                          &
+          Tdomain%sVertex(nnv)%Veloc(0:2)+dt*(0.5-bega)*Tdomain%sVertex(nnv)%Accel(0:2),  &   
+          Tdomain%specel(n)%Forces(:,:,:,0:2)) 
+enddo
 
 return
 end subroutine get_PMLprediction_v2el
+!----------------------------------------------------------
+!----------------------------------------------------------
+subroutine get_PMLprediction_v2el_fl(Tdomain,n,bega,dt,rank)
+
+    use sdomain
+    implicit none
+
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in) :: n,rank
+    real, intent(in)   :: bega,dt
+    integer :: nv, ngllx,nglly,ngllz,nnv
+ 
+ngllx = Tdomain%specel(n)%ngllx
+nglly = Tdomain%specel(n)%nglly
+ngllz = Tdomain%specel(n)%ngllz
+
+do nv = 0,7
+    nnv = Tdomain%specel(n)%Near_Vertices(nv)
+ ! now we call the general deassemblage routine
+    call get_ScalarProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,rank,                  &
+          Tdomain%sVertex(nnv)%VelPhi+dt*(0.5-bega)*Tdomain%sVertex(nnv)%AccelPhi,  &   
+          Tdomain%specel(n)%ForcesFl(:,:,:)) 
+enddo
+
+return
+end subroutine get_PMLprediction_v2el_fl

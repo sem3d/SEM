@@ -1,12 +1,19 @@
-subroutine global_numbering (Tdomain)
+subroutine global_numbering(Tdomain,rank)
 
-use sdomain
+! routine different from the 2D case. Everything is independently numbered, here (inner
+!      points in elements, on faces, edges and vertices). And then associated in
+!      the "Iglobnum" field = global number of each GLL point. 
 
-implicit none
 
-type(domain), target, intent (INOUT) :: Tdomain
-
-integer :: n, icount, i,j,k, ngllx,nglly,ngllz, nf,ne,nv, ngll1,ngll2
+    use sdomain
+    implicit none
+    integer, intent(in)  :: rank
+    type(domain), intent (inout) :: Tdomain
+    integer :: n,icount,i,j,k,ngllx,nglly,ngllz,nf,nnf,ne,nne,nv,ngll1,ngll2,   &
+               orient_f,orient_e,ngll,nnv
+    integer, dimension(0:6)  :: index_elem_f
+    integer, dimension(0:4)  :: index_elem_e
+    integer, dimension(0:2)  :: index_elem_v
 
 
 icount = 0
@@ -15,7 +22,7 @@ do n = 0,Tdomain%n_elem-1
    ngllx = Tdomain%specel(n)%ngllx
    nglly = Tdomain%specel(n)%nglly
    ngllz = Tdomain%specel(n)%ngllz
-   allocate (Tdomain%specel(n)%Iglobnum(0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+   allocate(Tdomain%specel(n)%Iglobnum(0:ngllx-1,0:nglly-1,0:ngllz-1))
    Tdomain%specel(n)%Iglobnum = -1
    do k = 1,ngllz-2
        do j = 1,nglly-2
@@ -27,10 +34,11 @@ do n = 0,Tdomain%n_elem-1
    enddo
 enddo
 
+
 do n = 0,Tdomain%n_face-1
    ngllx = Tdomain%sFace(n)%ngll1
    nglly = Tdomain%sFace(n)%ngll2
-   allocate (Tdomain%sFace(n)%Iglobnum_Face(1:ngllx-2,1:nglly-2))
+   allocate(Tdomain%sFace(n)%Iglobnum_Face(1:ngllx-2,1:nglly-2))
    Tdomain%sFace(n)%Iglobnum_Face = -1
    do j = 1,nglly-2
        do i = 1,ngllx-2
@@ -42,7 +50,7 @@ enddo
 
 do n = 0,Tdomain%n_edge-1
     ngllx = Tdomain%sEdge(n)%ngll
-    allocate (Tdomain%sEdge(n)%Iglobnum_Edge(1:ngllx-2))
+    allocate(Tdomain%sEdge(n)%Iglobnum_Edge(1:ngllx-2))
     Tdomain%sEdge(n)%Iglobnum_Edge = -1
     do i = 1,ngllx-2
         Tdomain%sEdge(n)%Iglobnum_Edge(i) = icount
@@ -55,426 +63,96 @@ do n = 0,Tdomain%n_vertex-1
     icount = icount + 1
 enddo
 
-Tdomain%n_glob_points = icount 
-do n = 0,Tdomain%n_elem - 1
+! total number of GLL points (= degrees of freedom)
+Tdomain%n_glob_points = icount
+
+ 
+! recollecting at the element level, from faces, edges and vertices.
+
+do n = 0,Tdomain%n_elem-1
     ngllx = Tdomain%specel(n)%ngllx
     nglly = Tdomain%specel(n)%nglly
     ngllz = Tdomain%specel(n)%ngllz
+  ! taking information from faces
+    do nf = 0,5
+        orient_f = Tdomain%specel(n)%Orient_Faces(nf)
+        nnf = Tdomain%specel(n)%Near_Faces(nf)
+        ngll1 = Tdomain%sFace(nnf)%ngll1
+        ngll2 = Tdomain%sFace(nnf)%ngll2
+        call ind_elem_face(nf,orient_f,ngllx,nglly,ngllz,index_elem_f,rank)
+        select case(orient_f)
+            case(0,1,2,3)
+              if(nf == 2 .or. nf == 4)then
+                Tdomain%specel(n)%Iglobnum(index_elem_f(0),                       &
+                              index_elem_f(1):index_elem_f(2):index_elem_f(3),    &
+                              index_elem_f(4):index_elem_f(5):index_elem_f(6)) =  &
+                              Tdomain%sFace(nnf)%Iglobnum_Face(1:ngll1-2,1:ngll2-2)
+              else if(nf == 1 .or. nf == 3)then
+                Tdomain%specel(n)%Iglobnum(index_elem_f(1):index_elem_f(2):index_elem_f(3), &
+                              index_elem_f(0),                                              &
+                              index_elem_f(4):index_elem_f(5):index_elem_f(6)) =            &
+                              Tdomain%sFace(nnf)%Iglobnum_Face(1:ngll1-2,1:ngll2-2)
+              else if(nf == 0 .or. nf == 5)then
+                Tdomain%specel(n)%Iglobnum(index_elem_f(1):index_elem_f(2):index_elem_f(3), &
+                                        index_elem_f(4):index_elem_f(5):index_elem_f(6),    &
+                                        index_elem_f(0)) =                                  &
+                                        Tdomain%sFace(nnf)%Iglobnum_Face(1:ngll1-2,1:ngll2-2)
 
-    ! Taking information from faces
-nf = Tdomain%specel(n)%near_faces(0)
-ngll1 = Tdomain%sFace(nf)%ngll1
-ngll2 = Tdomain%sFace(nf)%ngll2
-if ( Tdomain%specel(n)%Orient_Faces(0) == 0 ) then
-  Tdomain%specel(n)%Iglobnum (1:ngll1-2, 1:ngll2-2, 0) = Tdomain%sFace(nf)%Iglobnum_Face(1:ngll1-2, 1:ngll2-2)
-else if ( Tdomain%specel(n)%Orient_Faces(0) == 1 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngll1-1-i, j, 0) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(0) == 2 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (i, ngll2-1-j, 0) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(0) == 3 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngll1-1-i, ngll2-1-j, 0) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(0) == 4 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (j, i, 0) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(0) == 5 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngll2-1-j, i, 0) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(0) == 6 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (j, ngll1-1-i, 0) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(0) == 7 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngll2-1-j, ngll1-1-i, 0) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-endif
+              end if
+            case(4,5,6,7)
+              if(nf == 2 .or. nf == 4)then
+                Tdomain%specel(n)%Iglobnum(index_elem_f(0),                                 &
+                             index_elem_f(1):index_elem_f(2):index_elem_f(3),               &
+                             index_elem_f(4):index_elem_f(5):index_elem_f(6)) =             &
+                             TRANSPOSE(Tdomain%sFace(nnf)%Iglobnum_Face(1:ngll1-2,1:ngll2-2))
+              else if(nf == 1 .or. nf == 3)then
+                Tdomain%specel(n)%Iglobnum(index_elem_f(1):index_elem_f(2):index_elem_f(3), &
+                             index_elem_f(0),                                               &
+                             index_elem_f(4):index_elem_f(5):index_elem_f(6)) =             &
+                             TRANSPOSE(Tdomain%sFace(nnf)%Iglobnum_Face(1:ngll1-2,1:ngll2-2))
+              else if(nf == 0 .or. nf == 5)then
+                Tdomain%specel(n)%Iglobnum(index_elem_f(1):index_elem_f(2):index_elem_f(3), &
+                             index_elem_f(4):index_elem_f(5):index_elem_f(6),               &
+                             index_elem_f(0)) =                                             &
+                             TRANSPOSE(Tdomain%sFace(nnf)%Iglobnum_Face(1:ngll1-2,1:ngll2-2))
 
-nf = Tdomain%specel(n)%near_faces(1)
-ngll1 = Tdomain%sFace(nf)%ngll1
-ngll2 = Tdomain%sFace(nf)%ngll2
-if ( Tdomain%specel(n)%Orient_Faces(1) == 0 ) then
-    Tdomain%specel(n)%Iglobnum (1:ngll1-2, 0, 1:ngll2-2) = Tdomain%sFace(nf)%Iglobnum_Face(1:ngll1-2, 1:ngll2-2)
-else if ( Tdomain%specel(n)%Orient_Faces(1) == 1 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-    Tdomain%specel(n)%Iglobnum (ngll1-1-i, 0, j) = Tdomain%sFace(nf)%Iglobnum_Face(i, j) 
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(1) == 2 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-    Tdomain%specel(n)%Iglobnum (i, 0, ngll2-1-j) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(1) == 3 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-    Tdomain%specel(n)%Iglobnum (ngll1-1-i, 0, ngll2-1-j) = Tdomain%sFace(nf)%Iglobnum_Face(i, j) 
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(1) == 4 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-    Tdomain%specel(n)%Iglobnum (j, 0, i) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(1) == 5 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-    Tdomain%specel(n)%Iglobnum (ngll2-1-j, 0, i) = Tdomain%sFace(nf)%Iglobnum_Face(i, j) 
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(1) == 6 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-    Tdomain%specel(n)%Iglobnum (j, 0, ngll1-1-i) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(1) == 7 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-    Tdomain%specel(n)%Iglobnum (ngll2-1-j, 0, ngll1-1-i) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-endif
+              end if
 
-nf = Tdomain%specel(n)%near_faces(2)
-ngll1 = Tdomain%sFace(nf)%ngll1
-ngll2 = Tdomain%sFace(nf)%ngll2
-if ( Tdomain%specel(n)%Orient_Faces(2) == 0 ) then
-  Tdomain%specel(n)%Iglobnum (ngllx-1, 1:ngll1-2, 1:ngll2-2) = Tdomain%sFace(nf)%Iglobnum_Face(1:ngll1-2, 1:ngll2-2) 
-else if ( Tdomain%specel(n)%Orient_Faces(2) == 1 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngllx-1, ngll1-1-i, j) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(2) == 2 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngllx-1, i, ngll2-1-j) = Tdomain%sFace(nf)%Iglobnum_Face(i, j) 
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(2) == 3 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngllx-1, ngll1-1-i, ngll2-1-j) = Tdomain%sFace(nf)%Iglobnum_Face(i, j) 
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(2) == 4 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngllx-1, j, i) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(2) == 5 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngllx-1, ngll2-1-j, i) = Tdomain%sFace(nf)%Iglobnum_Face(i, j) 
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(2) == 6 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngllx-1, j, ngll1-1-i) = Tdomain%sFace(nf)%Iglobnum_Face(i, j) 
-    enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(2) == 7 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngllx-1, ngll2-1-j, ngll1-1-i) = Tdomain%sFace(nf)%Iglobnum_Face(i, j) 
-   enddo
- enddo
-endif
-
-nf = Tdomain%specel(n)%near_faces(3)
-ngll1 = Tdomain%sFace(nf)%ngll1
-ngll2 = Tdomain%sFace(nf)%ngll2
-if ( Tdomain%specel(n)%Orient_Faces(3) == 0 ) then
-  Tdomain%specel(n)%Iglobnum (1:ngll1-2, nglly-1, 1:ngll2-2) = Tdomain%sFace(nf)%Iglobnum_Face(1:ngll1-2, 1:ngll2-2)
-else if ( Tdomain%specel(n)%Orient_Faces(3) == 1 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngll1-1-i, nglly-1, j) = Tdomain%sFace(nf)%Iglobnum_Face(i, j) 
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(3) == 2 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (i, nglly-1, ngll2-1-j) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(3) == 3 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngll1-1-i, nglly-1, ngll2-1-j) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(3) == 4 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (j, nglly-1, i) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(3) == 5 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngll2-1-j,nglly-1,i) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(3) == 6 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (j, nglly-1, ngll1-1-i) = Tdomain%sFace(nf)%Iglobnum_Face(i, j) 
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(3) == 7 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngll2-1-j, nglly-1, ngll1-1-i) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-endif
-
-nf = Tdomain%specel(n)%near_faces(4)
-ngll1 = Tdomain%sFace(nf)%ngll1
-ngll2 = Tdomain%sFace(nf)%ngll2
-if ( Tdomain%specel(n)%Orient_Faces(4) == 0 ) then
-  Tdomain%specel(n)%Iglobnum (0, 1:ngll1-2, 1:ngll2-2) = Tdomain%sFace(nf)%Iglobnum_Face(1:ngll1-2, 1:ngll2-2)
-else if ( Tdomain%specel(n)%Orient_Faces(4) == 1 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (0, ngll1-1-i, j) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(4) == 2 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (0, i, ngll2-1-j) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(4) == 3 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (0, ngll1-1-i, ngll2-1-j) = Tdomain%sFace(nf)%Iglobnum_Face(i, j) 
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(4) == 4 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (0, j, i) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(4) == 5 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (0, ngll2-1-j, i) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(4) == 6 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (0, j, ngll1-1-i) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(4) == 7 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (0, ngll2-1-j, ngll1-1-i) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-endif
-
-nf = Tdomain%specel(n)%near_faces(5)
-ngll1 = Tdomain%sFace(nf)%ngll1
-ngll2 = Tdomain%sFace(nf)%ngll2
-if ( Tdomain%specel(n)%Orient_Faces(5) == 0 ) then
-  Tdomain%specel(n)%Iglobnum (1:ngll1-2, 1:ngll2-2, ngllz-1) = Tdomain%sFace(nf)%Iglobnum_Face(1:ngll1-2, 1:ngll2-2)
-else if ( Tdomain%specel(n)%Orient_Faces(5) == 1 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngll1-1-i, j, ngllz-1) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(5) == 2 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (i, ngll2-1-j, ngllz-1) = Tdomain%sFace(nf)%Iglobnum_Face(i, j) 
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(5) == 3 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngll1-1-i, ngll2-1-j, ngllz-1) = Tdomain%sFace(nf)%Iglobnum_Face(i, j) 
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(5) == 4 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (j, i, ngllz-1) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(5) == 5 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngll2-1-j, i, ngllz-1) = Tdomain%sFace(nf)%Iglobnum_Face(i, j)
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(5) == 6 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (j, ngll1-1-i, ngllz-1) = Tdomain%sFace(nf)%Iglobnum_Face(i, j) 
-   enddo
- enddo
-else if ( Tdomain%specel(n)%Orient_Faces(5) == 7 ) then
- do i=1,ngll1-2
-   do j=1,ngll2-2
-     Tdomain%specel(n)%Iglobnum (ngll2-1-j, ngll1-1-i, ngllz-1) = Tdomain%sFace(nf)%Iglobnum_Face(i, j) 
-   enddo
- enddo
-endif
+        end select
+    end do
 
 
-    ! Taking information from edges
-    ne = Tdomain%specel(n)%Near_Edges(0)
-    if ( Tdomain%specel(n)%Orient_Edges(0) == 0 ) then 
-      Tdomain%specel(n)%Iglobnum(1:ngllx-2,0,0) = Tdomain%sEdge(ne)%Iglobnum_Edge(1:ngllx-2)
-    else
-      do i=1,ngllx-2 
-        Tdomain%specel(n)%Iglobnum(i,0,0) = Tdomain%sEdge(ne)%Iglobnum_Edge(ngllx-1-i)
-      enddo
-    endif
-    ne = Tdomain%specel(n)%Near_Edges(1)
-    if ( Tdomain%specel(n)%Orient_Edges(1) == 0 ) then 
-      Tdomain%specel(n)%Iglobnum(ngllx-1,1:nglly-2,0) = Tdomain%sEdge(ne)%Iglobnum_Edge(1:nglly-2)
-    else
-      do j=1,nglly-2
-        Tdomain%specel(n)%Iglobnum(ngllx-1,j,0) = Tdomain%sEdge(ne)%Iglobnum_Edge(nglly-1-j)
-      enddo
-    endif
-    ne = Tdomain%specel(n)%Near_Edges(2)
-    if ( Tdomain%specel(n)%Orient_Edges(2) == 0 ) then 
-      Tdomain%specel(n)%Iglobnum(1:ngllx-2,nglly-1,0) = Tdomain%sEdge(ne)%Iglobnum_Edge(1:ngllx-2)
-    else
-      do i=1,ngllx-2
-        Tdomain%specel(n)%Iglobnum(i,nglly-1,0) = Tdomain%sEdge(ne)%Iglobnum_Edge(ngllx-1-i)
-      enddo
-    endif
-    ne = Tdomain%specel(n)%Near_Edges(3)
-    if ( Tdomain%specel(n)%Orient_Edges(3) == 0 ) then 
-      Tdomain%specel(n)%Iglobnum(0,1:nglly-2,0) = Tdomain%sEdge(ne)%Iglobnum_Edge(1:nglly-2)
-    else
-      do j=1,nglly-2
-        Tdomain%specel(n)%Iglobnum(0,j,0) = Tdomain%sEdge(ne)%Iglobnum_Edge(nglly-1-j)
-      enddo
-    endif
-    ne = Tdomain%specel(n)%Near_Edges(4)
-    if ( Tdomain%specel(n)%Orient_Edges(4) == 0 ) then 
-      Tdomain%specel(n)%Iglobnum(ngllx-1,0,1:ngllz-2) = Tdomain%sEdge(ne)%Iglobnum_Edge(1:ngllz-2)
-    else
-      do k=1,ngllz-2
-        Tdomain%specel(n)%Iglobnum(ngllx-1,0,k) = Tdomain%sEdge(ne)%Iglobnum_Edge(ngllz-1-k)
-      enddo
-    endif
-    ne = Tdomain%specel(n)%Near_Edges(5)
-    if ( Tdomain%specel(n)%Orient_Edges(5) == 0 ) then 
-      Tdomain%specel(n)%Iglobnum(1:ngllx-2,0,ngllz-1) = Tdomain%sEdge(ne)%Iglobnum_Edge(1:ngllx-2)
-    else
-      do i=1,ngllx-2
-        Tdomain%specel(n)%Iglobnum(i,0,ngllz-1) = Tdomain%sEdge(ne)%Iglobnum_Edge(ngllx-1-i)
-      enddo
-    endif
-    ne = Tdomain%specel(n)%Near_Edges(6)
-    if ( Tdomain%specel(n)%Orient_Edges(6) == 0 ) then 
-      Tdomain%specel(n)%Iglobnum(0,0,1:ngllz-2) = Tdomain%sEdge(ne)%Iglobnum_Edge(1:ngllz-2)
-    else
-      do k=1,ngllz-2
-        Tdomain%specel(n)%Iglobnum(0,0,k) = Tdomain%sEdge(ne)%Iglobnum_Edge(ngllz-1-k)
-      enddo
-    endif
-    ne = Tdomain%specel(n)%Near_Edges(7)
-    if ( Tdomain%specel(n)%Orient_Edges(7) == 0 ) then 
-      Tdomain%specel(n)%Iglobnum(ngllx-1,nglly-1,1:ngllz-2) = Tdomain%sEdge(ne)%Iglobnum_Edge(1:ngllz-2)
-    else
-      do k=1,ngllz-2
-        Tdomain%specel(n)%Iglobnum(ngllx-1,nglly-1,k) = Tdomain%sEdge(ne)%Iglobnum_Edge(ngllz-1-k)
-      enddo
-    endif
-    ne = Tdomain%specel(n)%Near_Edges(8)
-    if ( Tdomain%specel(n)%Orient_Edges(8) == 0 ) then 
-      Tdomain%specel(n)%Iglobnum(ngllx-1,1:nglly-2,ngllz-1) = Tdomain%sEdge(ne)%Iglobnum_Edge(1:nglly-2)
-    else
-      do j=1,nglly-2
-        Tdomain%specel(n)%Iglobnum(ngllx-1,j,ngllz-1) = Tdomain%sEdge(ne)%Iglobnum_Edge(nglly-1-j)
-      enddo
-    endif
-    ne = Tdomain%specel(n)%Near_Edges(9)
-    if ( Tdomain%specel(n)%Orient_Edges(9) == 0 ) then 
-      Tdomain%specel(n)%Iglobnum(1:ngllx-2,nglly-1,ngllz-1) = Tdomain%sEdge(ne)%Iglobnum_Edge(1:ngllx-2)
-    else
-      do i=1,ngllx-2
-        Tdomain%specel(n)%Iglobnum(i,nglly-1,ngllz-1) = Tdomain%sEdge(ne)%Iglobnum_Edge(ngllx-1-i)
-      enddo
-    endif
-    ne = Tdomain%specel(n)%Near_Edges(10)
-    if ( Tdomain%specel(n)%Orient_Edges(10) == 0 ) then 
-      Tdomain%specel(n)%Iglobnum(0,nglly-1,1:ngllz-2) = Tdomain%sEdge(ne)%Iglobnum_Edge(1:ngllz-2)
-    else
-      do k=1,ngllz-2
-        Tdomain%specel(n)%Iglobnum(0,nglly-1,k) = Tdomain%sEdge(ne)%Iglobnum_Edge(ngllz-1-k)
-      enddo
-    endif
-    ne = Tdomain%specel(n)%Near_Edges(11)
-    if ( Tdomain%specel(n)%Orient_Edges(11) == 0 ) then 
-      Tdomain%specel(n)%Iglobnum(0,1:nglly-2,ngllz-1) = Tdomain%sEdge(ne)%Iglobnum_Edge(1:nglly-2)
-    else
-      do j=1,nglly-2
-        Tdomain%specel(n)%Iglobnum(0,j,ngllz-1) = Tdomain%sEdge(ne)%Iglobnum_Edge(nglly-1-j)
-      enddo
-    endif
+  ! taking information from edges
+    do ne = 0,11
+        orient_e = Tdomain%specel(n)%Orient_Edges(ne)
+        nne = Tdomain%specel(n)%Near_Edges(ne)
+        ngll = Tdomain%sEdge(nne)%ngll
+        call ind_elem_edge(ne,orient_e,ngllx,nglly,ngllz,index_elem_e,rank)
+        select case(ne)
+            case(1,3,8,11)  ! only y-coordinate does vary
+              Tdomain%specel(n)%Iglobnum(index_elem_e(0),                                 &
+                          index_elem_e(2):index_elem_e(3):index_elem_e(4),                &
+                          index_elem_e(1)) = Tdomain%sEdge(nne)%Iglobnum_Edge(1:ngll-2)
+            case(0,2,5,9)   ! only x-coordinate does vary
+              Tdomain%specel(n)%Iglobnum(index_elem_e(2):index_elem_e(3):index_elem_e(4), &
+                          index_elem_e(0),index_elem_e(1)) =                              &
+                          Tdomain%sEdge(nne)%Iglobnum_Edge(1:ngll-2)
+            case(4,6,7,10)   ! only z-coordinate does vary
+              Tdomain%specel(n)%Iglobnum(index_elem_e(0),index_elem_e(1),                 &
+                          index_elem_e(2):index_elem_e(3):index_elem_e(4)) =              &
+                          Tdomain%sEdge(nne)%Iglobnum_Edge(1:ngll-2)
+        end select
+    end do
 
+   ! taking information from vertices
+    do nv = 0,7 
+        nnv = Tdomain%specel(n)%Near_Vertices(nv)
+        call ind_elem_vertex(nv,ngllx,nglly,ngllz,index_elem_v,rank)
+        Tdomain%specel(n)%Iglobnum(index_elem_v(0),index_elem_v(1),index_elem_v(2)) =   &
+                                   Tdomain%sVertex(nnv)%Iglobnum_Vertex
+    end do
 
-    ! Taking information from vertices
-    nv = Tdomain%specel(n)%Near_Vertices(0)
-    Tdomain%specel(n)%Iglobnum(0,0,0) = Tdomain%sVertex(nv)%Iglobnum_Vertex
-    nv = Tdomain%specel(n)%Near_Vertices(1)
-    Tdomain%specel(n)%Iglobnum(ngllx-1,0,0) = Tdomain%sVertex(nv)%Iglobnum_Vertex
-    nv = Tdomain%specel(n)%Near_Vertices(2)
-    Tdomain%specel(n)%Iglobnum(ngllx-1,nglly-1,0) = Tdomain%sVertex(nv)%Iglobnum_Vertex
-    nv = Tdomain%specel(n)%Near_Vertices(3)
-    Tdomain%specel(n)%Iglobnum(0,nglly-1,0) = Tdomain%sVertex(nv)%Iglobnum_Vertex
-    nv = Tdomain%specel(n)%Near_Vertices(4)
-    Tdomain%specel(n)%Iglobnum(0,0,ngllz-1) = Tdomain%sVertex(nv)%Iglobnum_Vertex
-    nv = Tdomain%specel(n)%Near_Vertices(5)
-    Tdomain%specel(n)%Iglobnum(ngllx-1,0,ngllz-1) = Tdomain%sVertex(nv)%Iglobnum_Vertex
-    nv = Tdomain%specel(n)%Near_Vertices(6)
-    Tdomain%specel(n)%Iglobnum(ngllx-1,nglly-1,ngllz-1) = Tdomain%sVertex(nv)%Iglobnum_Vertex
-    nv = Tdomain%specel(n)%Near_Vertices(7)
-    Tdomain%specel(n)%Iglobnum(0,nglly-1,ngllz-1) = Tdomain%sVertex(nv)%Iglobnum_Vertex
-enddo
-
+enddo    ! end of the loop onto elements
 
 return
 end subroutine global_numbering

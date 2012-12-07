@@ -1,184 +1,54 @@
-subroutine get_Displ_Edge2Elem (Tdomain,n)
+subroutine get_Displ_Edge2Elem(Tdomain,n,rank)
 
-use sdomain
+    use sdomain
+    implicit none
 
-implicit none
-
-type (Domain), intent (INOUT) :: Tdomain
-integer, intent (IN) :: n
-
-integer :: i, ne, ngllx,nglly,ngllz,ngll
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in) :: n,rank
+    integer :: i,ne,ngllx,nglly,ngllz,ngll,nne,orient_e
  
 
-ngllx = Tdomain%specel(n)%ngllx; nglly = Tdomain%specel(n)%nglly; ngllz = Tdomain%specel(n)%ngllz
+ngllx = Tdomain%specel(n)%ngllx
+nglly = Tdomain%specel(n)%nglly
+ngllz = Tdomain%specel(n)%ngllz
 
-ne = Tdomain%specel(n)%near_edges(0)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(0) == 0 ) then
-  Tdomain%specel(n)%Forces(1:ngllx-2,0,0,0) = Tdomain%sEdge(ne)%Forces(1:ngll-2,0) 
-  Tdomain%specel(n)%Forces(1:ngllx-2,0,0,1) = Tdomain%sEdge(ne)%Forces(1:ngll-2,1)
-  Tdomain%specel(n)%Forces(1:ngllx-2,0,0,2) = Tdomain%sEdge(ne)%Forces(1:ngll-2,2)
-else
-  do i=1,ngll-2
-     Tdomain%specel(n)%Forces(ngllx-1-i,0,0,0) = Tdomain%sEdge(ne)%Forces(i,0) 
-     Tdomain%specel(n)%Forces(ngllx-1-i,0,0,1) = Tdomain%sEdge(ne)%Forces(i,1) 
-     Tdomain%specel(n)%Forces(ngllx-1-i,0,0,2) = Tdomain%sEdge(ne)%Forces(i,2) 
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(1)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(1) == 0 ) then
-  Tdomain%specel(n)%Forces(ngllx-1,1:nglly-2,0,0) = Tdomain%sEdge(ne)%Forces(1:ngll-2,0)
-  Tdomain%specel(n)%Forces(ngllx-1,1:nglly-2,0,1) = Tdomain%sEdge(ne)%Forces(1:ngll-2,1)
-  Tdomain%specel(n)%Forces(ngllx-1,1:nglly-2,0,2) = Tdomain%sEdge(ne)%Forces(1:ngll-2,2)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(ngllx-1,nglly-1-i,0,0) = Tdomain%sEdge(ne)%Forces(i,0)
-    Tdomain%specel(n)%Forces(ngllx-1,nglly-1-i,0,1) = Tdomain%sEdge(ne)%Forces(i,1)
-    Tdomain%specel(n)%Forces(ngllx-1,nglly-1-i,0,2) = Tdomain%sEdge(ne)%Forces(i,2)
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(2)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(2) == 0 ) then
-  Tdomain%specel(n)%Forces(1:ngllx-2,nglly-1,0,0) = Tdomain%sEdge(ne)%Forces(1:ngll-2,0)
-  Tdomain%specel(n)%Forces(1:ngllx-2,nglly-1,0,1) = Tdomain%sEdge(ne)%Forces(1:ngll-2,1)
-  Tdomain%specel(n)%Forces(1:ngllx-2,nglly-1,0,2) = Tdomain%sEdge(ne)%Forces(1:ngll-2,2) 
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(ngllx-1-i,nglly-1,0,0) = Tdomain%sEdge(ne)%Forces(i,0)
-    Tdomain%specel(n)%Forces(ngllx-1-i,nglly-1,0,1) = Tdomain%sEdge(ne)%Forces(i,1)
-    Tdomain%specel(n)%Forces(ngllx-1-i,nglly-1,0,2) = Tdomain%sEdge(ne)%Forces(i,2)
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(3)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(3) == 0 ) then
-  Tdomain%specel(n)%Forces(0,1:nglly-2,0,0) = Tdomain%sEdge(ne)%Forces(1:ngll-2,0)
-  Tdomain%specel(n)%Forces(0,1:nglly-2,0,1) = Tdomain%sEdge(ne)%Forces(1:ngll-2,1)
-  Tdomain%specel(n)%Forces(0,1:nglly-2,0,2) = Tdomain%sEdge(ne)%Forces(1:ngll-2,2)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(0,nglly-1-i,0,0) = Tdomain%sEdge(ne)%Forces(i,0)
-    Tdomain%specel(n)%Forces(0,nglly-1-i,0,1) = Tdomain%sEdge(ne)%Forces(i,1)
-    Tdomain%specel(n)%Forces(0,nglly-1-i,0,2) = Tdomain%sEdge(ne)%Forces(i,2)
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(4)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(4) == 0 ) then
-  Tdomain%specel(n)%Forces(ngllx-1,0,1:ngllz-2,0) = Tdomain%sEdge(ne)%Forces(1:ngll-2,0)
-  Tdomain%specel(n)%Forces(ngllx-1,0,1:ngllz-2,1) = Tdomain%sEdge(ne)%Forces(1:ngll-2,1)
-  Tdomain%specel(n)%Forces(ngllx-1,0,1:ngllz-2,2) = Tdomain%sEdge(ne)%Forces(1:ngll-2,2)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(ngllx-1,0,ngllz-1-i,0) = Tdomain%sEdge(ne)%Forces(i,0)
-    Tdomain%specel(n)%Forces(ngllx-1,0,ngllz-1-i,1) = Tdomain%sEdge(ne)%Forces(i,1)
-    Tdomain%specel(n)%Forces(ngllx-1,0,ngllz-1-i,2) = Tdomain%sEdge(ne)%Forces(i,2)
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(5)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(5) == 0 ) then
-  Tdomain%specel(n)%Forces(1:ngllx-2,0,ngllz-1,0) = Tdomain%sEdge(ne)%Forces(1:ngll-2,0)
-  Tdomain%specel(n)%Forces(1:ngllx-2,0,ngllz-1,1) = Tdomain%sEdge(ne)%Forces(1:ngll-2,1)
-  Tdomain%specel(n)%Forces(1:ngllx-2,0,ngllz-1,2) = Tdomain%sEdge(ne)%Forces(1:ngll-2,2)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(ngllx-1-i,0,ngllz-1,0) = Tdomain%sEdge(ne)%Forces(i,0)
-    Tdomain%specel(n)%Forces(ngllx-1-i,0,ngllz-1,1) = Tdomain%sEdge(ne)%Forces(i,1)
-    Tdomain%specel(n)%Forces(ngllx-1-i,0,ngllz-1,2) = Tdomain%sEdge(ne)%Forces(i,2)
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(6)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(6) == 0 ) then
-  Tdomain%specel(n)%Forces(0,0,1:ngllz-2,0) = Tdomain%sEdge(ne)%Forces(1:ngll-2,0)
-  Tdomain%specel(n)%Forces(0,0,1:ngllz-2,1) = Tdomain%sEdge(ne)%Forces(1:ngll-2,1)
-  Tdomain%specel(n)%Forces(0,0,1:ngllz-2,2) = Tdomain%sEdge(ne)%Forces(1:ngll-2,2)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(0,0,ngllz-1-i,0) = Tdomain%sEdge(ne)%Forces(i,0)
-    Tdomain%specel(n)%Forces(0,0,ngllz-1-i,1) = Tdomain%sEdge(ne)%Forces(i,1)
-    Tdomain%specel(n)%Forces(0,0,ngllz-1-i,2) = Tdomain%sEdge(ne)%Forces(i,2)
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(7)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(7) == 0 ) then
-  Tdomain%specel(n)%Forces(ngllx-1,nglly-1,1:ngllz-2,0) = Tdomain%sEdge(ne)%Forces(1:ngll-2,0)
-  Tdomain%specel(n)%Forces(ngllx-1,nglly-1,1:ngllz-2,1) = Tdomain%sEdge(ne)%Forces(1:ngll-2,1)
-  Tdomain%specel(n)%Forces(ngllx-1,nglly-1,1:ngllz-2,2) = Tdomain%sEdge(ne)%Forces(1:ngll-2,2)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(ngllx-1,nglly-1,ngllz-1-i,0) = Tdomain%sEdge(ne)%Forces(i,0)
-    Tdomain%specel(n)%Forces(ngllx-1,nglly-1,ngllz-1-i,1) = Tdomain%sEdge(ne)%Forces(i,1)
-    Tdomain%specel(n)%Forces(ngllx-1,nglly-1,ngllz-1-i,2) = Tdomain%sEdge(ne)%Forces(i,2)
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(8)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(8) == 0 ) then
-  Tdomain%specel(n)%Forces(ngllx-1,1:nglly-2,ngllz-1,0) = Tdomain%sEdge(ne)%Forces(1:ngll-2,0)
-  Tdomain%specel(n)%Forces(ngllx-1,1:nglly-2,ngllz-1,1) = Tdomain%sEdge(ne)%Forces(1:ngll-2,1)
-  Tdomain%specel(n)%Forces(ngllx-1,1:nglly-2,ngllz-1,2) = Tdomain%sEdge(ne)%Forces(1:ngll-2,2)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(ngllx-1,nglly-1-i,ngllz-1,0) = Tdomain%sEdge(ne)%Forces(i,0) 
-    Tdomain%specel(n)%Forces(ngllx-1,nglly-1-i,ngllz-1,1) = Tdomain%sEdge(ne)%Forces(i,1) 
-    Tdomain%specel(n)%Forces(ngllx-1,nglly-1-i,ngllz-1,2) = Tdomain%sEdge(ne)%Forces(i,2) 
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(9)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(9) == 0 ) then
-  Tdomain%specel(n)%Forces(1:ngllx-2,nglly-1,ngllz-1,0) = Tdomain%sEdge(ne)%Forces(1:ngll-2,0)
-  Tdomain%specel(n)%Forces(1:ngllx-2,nglly-1,ngllz-1,1) = Tdomain%sEdge(ne)%Forces(1:ngll-2,1)
-  Tdomain%specel(n)%Forces(1:ngllx-2,nglly-1,ngllz-1,2) = Tdomain%sEdge(ne)%Forces(1:ngll-2,2)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(ngllx-1-i,nglly-1,ngllz-1,0) = Tdomain%sEdge(ne)%Forces(i,0)
-    Tdomain%specel(n)%Forces(ngllx-1-i,nglly-1,ngllz-1,1) = Tdomain%sEdge(ne)%Forces(i,1)
-    Tdomain%specel(n)%Forces(ngllx-1-i,nglly-1,ngllz-1,2) = Tdomain%sEdge(ne)%Forces(i,2)
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(10)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(10) == 0 ) then
-  Tdomain%specel(n)%Forces(0,nglly-1,1:ngllz-2,0) = Tdomain%sEdge(ne)%Forces(1:ngll-2,0)
-  Tdomain%specel(n)%Forces(0,nglly-1,1:ngllz-2,1) = Tdomain%sEdge(ne)%Forces(1:ngll-2,1)
-  Tdomain%specel(n)%Forces(0,nglly-1,1:ngllz-2,2) = Tdomain%sEdge(ne)%Forces(1:ngll-2,2)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(0,nglly-1,ngllz-1-i,0) = Tdomain%sEdge(ne)%Forces(i,0)
-    Tdomain%specel(n)%Forces(0,nglly-1,ngllz-1-i,1) = Tdomain%sEdge(ne)%Forces(i,1)
-    Tdomain%specel(n)%Forces(0,nglly-1,ngllz-1-i,2) = Tdomain%sEdge(ne)%Forces(i,2)
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(11)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(11) == 0 ) then
-  Tdomain%specel(n)%Forces(0,1:nglly-2,ngllz-1,0) = Tdomain%sEdge(ne)%Forces(1:ngll-2,0)
-  Tdomain%specel(n)%Forces(0,1:nglly-2,ngllz-1,1) = Tdomain%sEdge(ne)%Forces(1:ngll-2,1)
-  Tdomain%specel(n)%Forces(0,1:nglly-2,ngllz-1,2) = Tdomain%sEdge(ne)%Forces(1:ngll-2,2)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(0,nglly-1-i,ngllz-1,0) = Tdomain%sEdge(ne)%Forces(i,0)
-    Tdomain%specel(n)%Forces(0,nglly-1-i,ngllz-1,1) = Tdomain%sEdge(ne)%Forces(i,1)
-    Tdomain%specel(n)%Forces(0,nglly-1-i,ngllz-1,2) = Tdomain%sEdge(ne)%Forces(i,2)
-  enddo
-endif
+do ne = 0,11
+    nne = Tdomain%specel(n)%Near_Edges(ne)
+    orient_e = Tdomain%specel(n)%Orient_Edges(ne)
+    ngll = Tdomain%sEdge(nne)%ngll
+ ! now we call the general deassemblage routine
+    call get_VectProperty_Edge2Elem(ne,orient_e,ngllx,nglly,ngllz,ngll,rank,  &
+               Tdomain%sEdge(nne)%Forces(:,0:2),Tdomain%specel(n)%Forces(:,:,:,0:2))
+end do
 
 return
+
 end subroutine get_Displ_Edge2Elem
+!-------------------------------------------------------------------------
+!-------------------------------------------------------------------------
+subroutine get_Phi_Edge2Elem(Tdomain,n,rank)
+
+    use sdomain
+    implicit none
+
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in) :: n,rank
+    integer :: i,ne,ngllx,nglly,ngllz,ngll,nne,orient_e
+ 
+
+ngllx = Tdomain%specel(n)%ngllx
+nglly = Tdomain%specel(n)%nglly
+ngllz = Tdomain%specel(n)%ngllz
+
+do ne = 0,11
+    nne = Tdomain%specel(n)%Near_Edges(ne)
+    orient_e = Tdomain%specel(n)%Orient_Edges(ne)
+    ngll = Tdomain%sEdge(nne)%ngll
+ ! now we call the general deassemblage routine
+    call get_ScalarProperty_Edge2Elem(ne,orient_e,ngllx,nglly,ngllz,ngll,rank,  &
+               Tdomain%sEdge(nne)%ForcesFl(:),Tdomain%specel(n)%ForcesFl(:,:,:))
+end do
+
+return
+
+end subroutine get_Phi_Edge2Elem

@@ -2,26 +2,28 @@ module sedges
 
 
 type :: edge
-
-logical :: PML, Abs, FPML
-
-integer :: ngll
-integer, dimension (:), pointer :: Iglobnum_Edge,EdgeNum,Which_Elem,Which_EdgeinElem
-
-real, dimension (:), pointer  :: MassMat
-real, dimension (:,:), pointer :: Forces, Displ, Veloc, Accel, V0
-real, dimension (:,:), pointer :: DumpMass, DumpVx, DumpVy, DumpVz
-real, dimension (:,:), pointer :: Veloc1, Veloc2, Veloc3
-real, dimension (:,:), pointer :: Forces1, Forces2, Forces3
-real, dimension (:,:), pointer :: IVeloc1, Iveloc2, Iveloc3
-real, dimension (:), pointer :: Ivx, Ivy, Ivz
-
+    logical :: PML, Abs, FPML
+    integer :: ngll,mat_index
+    integer, dimension (:), pointer :: Iglobnum_Edge,EdgeNum,Which_Elem,Which_EdgeinElem
+    real, dimension (:), pointer  :: MassMat
+    real, dimension (:,:), pointer :: Forces, Displ, Veloc, Accel, V0
+    real, dimension (:,:), pointer :: DumpMass, DumpVx, DumpVy, DumpVz
+    real, dimension (:,:), pointer :: Veloc1, Veloc2, Veloc3
+    real, dimension (:,:), pointer :: Forces1, Forces2, Forces3
+    real, dimension (:,:), pointer :: IVeloc1, Iveloc2, Iveloc3
+    real, dimension (:), pointer :: Ivx, Ivy, Ivz
+    logical  :: solid
+   ! solid-fluid
+    real, dimension(:), pointer :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
+    real, dimension(:), pointer :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
 end type
 
-contains
 
-! ############################################################
-subroutine Prediction_Edge_Veloc (E, alpha, bega, gam1, dt)
+    contains
+
+!------------------------------------------------------------------
+!------------------------------------------------------------------
+subroutine Prediction_Edge_Veloc(E,alpha,bega,gam1,dt)
 implicit none
 
 type (Edge), intent (INOUT) :: E
@@ -37,8 +39,25 @@ E%Forces(:,:) = alpha * E%Forces(:,:) + (1-alpha) * E%Displ(:,:)
 
 return
 end subroutine Prediction_Edge_Veloc
+!------------------------------------------------------------------
+!------------------------------------------------------------------
+subroutine Prediction_Edge_VelPhi(E,alpha,bega,gam1,dt)
+    implicit none
 
-! ###########################################################
+    type(Edge), intent(inout) :: E
+    real, intent(in) :: alpha, bega, gam1, dt
+    integer :: ngll
+
+ngll = E%ngll
+
+E%ForcesFl(:) = E%Phi(:)+dt*E%VelPhi(:)+dt**2*(0.5d0-bega)*E%AccelPhi(:)
+E%VelPhi0(:) = E%VelPhi(:)
+E%ForcesFl(:) = alpha * E%ForcesFl(:) + (1d0-alpha) * E%Phi(:)
+
+return
+end subroutine Prediction_Edge_VelPhi
+!------------------------------------------------------------------
+!------------------------------------------------------------------
 subroutine Correction_Edge_Veloc (E, bega, gam1, dt,ne)
 implicit none
 
@@ -62,8 +81,28 @@ E%Displ(:,:) = E%Displ(:,:) + bega * dt * (E%Veloc(:,:)+E%V0(:,:))
 
 return
 end subroutine Correction_Edge_Veloc
+!------------------------------------------------------------------
+!------------------------------------------------------------------
+subroutine Correction_Edge_VelPhi(E,bega,gam1,dt)
+    implicit none
 
-! ############################################################
+    type(Edge), intent(inout) :: E
+    real, intent(in) :: bega, gam1, dt
+    integer :: i, ngll, j
+
+ngll = E%ngll
+
+E%ForcesFl(:) = E%MassMat(:) * E%ForcesFl(:)
+
+E%VelPhi(:) = E%VelPhi0(:) + dt * E%ForcesFl(:)
+E%AccelPhi(:) = E%AccelPhi(:) + gam1 / dt * (E%VelPhi(:)-E%VelPhi0(:))
+E%Phi(:) = E%Phi(:) + bega * dt * (E%VelPhi(:)+E%VelPhi0(:))
+
+
+return
+end subroutine Correction_Edge_VelPhi
+!------------------------------------------------------------------
+!------------------------------------------------------------------
 subroutine Correction_Edge_PML_Veloc (E, dt)
 
 implicit none
@@ -87,8 +126,29 @@ endif
 
 return
 end subroutine Correction_Edge_PML_Veloc
+!------------------------------------------------------------------
+!------------------------------------------------------------------
+subroutine Correction_Edge_PML_VelPhi(E,dt)
 
-! ############################################
+    implicit none
+
+    type(Edge), intent(inout) :: E
+    real, intent(in) :: dt
+
+E%VelPhi1(:) = E%DumpVx(:,0) * E%VelPhi1(:) + dt * E%DumpVx(:,1) * E%ForcesFl1(:)
+E%VelPhi2(:) = E%DumpVy(:,0) * E%VelPhi2(:) + dt * E%DumpVy(:,1) * E%ForcesFl2(:)
+E%VelPhi3(:) = E%DumpVz(:,0) * E%VelPhi3(:) + dt * E%DumpVz(:,1) * E%ForcesFl3(:)
+
+E%VelPhi = E%VelPhi1 + E%VelPhi2 + E%VelPhi3
+
+if(E%Abs)then
+    E%VelPhi = 0
+endif
+
+return
+end subroutine Correction_Edge_PML_VelPhi
+!------------------------------------------------------------------
+!------------------------------------------------------------------
 subroutine Correction_Edge_FPML_Veloc (E, dt,fil)
 
 implicit none
@@ -122,8 +182,8 @@ endif
 
 return
 end subroutine Correction_Edge_FPML_Veloc
-
-! ############################################
+!------------------------------------------------------------------
+!------------------------------------------------------------------
 
 subroutine get_vel_edge (E, Vfree, ngll, dt, logic, orient)
 implicit none

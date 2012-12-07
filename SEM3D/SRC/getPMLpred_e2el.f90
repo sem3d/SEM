@@ -1,140 +1,56 @@
-subroutine get_PMLprediction_e2el (Tdomain, n, bega, dt)
+subroutine get_PMLprediction_e2el(Tdomain,n,bega,dt,rank)
 
-use sdomain
+    use sdomain
+    implicit none
 
-implicit none
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in) :: n,rank
+    real, intent(in)  :: bega,dt
+    integer :: i,ne,ngllx,nglly,ngllz,ngll,nne,orient_e
+ 
+ngllx = Tdomain%specel(n)%ngllx
+nglly = Tdomain%specel(n)%nglly
+ngllz = Tdomain%specel(n)%ngllz
 
-type (Domain), intent (INOUT) :: Tdomain
-integer, intent (IN) :: n
-real, intent(IN) :: dt, bega
-
-integer :: ne, ngllx, nglly, ngllz, i, ngll
-
-
-ngllx = Tdomain%specel(n)%ngllx;  nglly = Tdomain%specel(n)%nglly;  ngllz = Tdomain%specel(n)%ngllz
-
-ne = Tdomain%specel(n)%near_edges(0)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(0) == 0 ) then
-  Tdomain%specel(n)%Forces(1:ngllx-2,0,0,:) = Tdomain%sEdge(ne)%Veloc(:,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(:,:)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(ngllx-1-i,0,0,:) = Tdomain%sEdge(ne)%Veloc(i,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(i,:)
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(1)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(1) == 0 ) then
-  Tdomain%specel(n)%Forces(ngllx-1,1:nglly-2,0,:) = Tdomain%sEdge(ne)%Veloc(:,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(:,:)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(ngllx-1,nglly-1-i,0,:) = Tdomain%sEdge(ne)%Veloc(i,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(i,:)
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(2)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(2) == 0 ) then
-  Tdomain%specel(n)%Forces(1:ngllx-2,nglly-1,0,:) = Tdomain%sEdge(ne)%Veloc(:,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(:,:)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(ngllx-1-i,nglly-1,0,:) = Tdomain%sEdge(ne)%Veloc(i,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(i,:)
-  enddo
-endif
-
-
-ne = Tdomain%specel(n)%near_edges(3)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(3) == 0 ) then
-  Tdomain%specel(n)%Forces(0,1:nglly-2,0,:) = Tdomain%sEdge(ne)%Veloc(:,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(:,:)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(0,nglly-1-i,0,:) = Tdomain%sEdge(ne)%Veloc(i,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(i,:)
-  enddo
-endif
-
-
-ne = Tdomain%specel(n)%near_edges(4)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(4) == 0 ) then
-  Tdomain%specel(n)%Forces(ngllx-1,0,1:ngllz-2,:) = Tdomain%sEdge(ne)%Veloc(:,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(:,:)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(ngllx-1,0,ngllz-1-i,:) = Tdomain%sEdge(ne)%Veloc(i,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(i,:)
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(5)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(5) == 0 ) then
-  Tdomain%specel(n)%Forces(1:ngllx-2,0,ngllz-1,:) = Tdomain%sEdge(ne)%Veloc(:,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(:,:)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(ngllx-1-i,0,ngllz-1,:) = Tdomain%sEdge(ne)%Veloc(i,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(i,:)
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(6)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(6) == 0 ) then
-  Tdomain%specel(n)%Forces(0,0,1:ngllz-2,:) = Tdomain%sEdge(ne)%Veloc(:,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(:,:)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(0,0,ngllz-1-i,:) = Tdomain%sEdge(ne)%Veloc(i,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(i,:)
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(7)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(7) == 0 ) then
-  Tdomain%specel(n)%Forces(ngllx-1,nglly-1,1:ngllz-2,:) = Tdomain%sEdge(ne)%Veloc(:,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(:,:)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(ngllx-1,nglly-1,ngllz-1-i,:) = Tdomain%sEdge(ne)%Veloc(i,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(i,:)
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(8)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(8) == 0 ) then
-  Tdomain%specel(n)%Forces(ngllx-1,1:nglly-2,ngllz-1,:) = Tdomain%sEdge(ne)%Veloc(:,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(:,:)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(ngllx-1,nglly-1-i,ngllz-1,:) = Tdomain%sEdge(ne)%Veloc(i,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(i,:)
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(9)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(9) == 0 ) then
-  Tdomain%specel(n)%Forces(1:ngllx-2,nglly-1,ngllz-1,:) = Tdomain%sEdge(ne)%Veloc(:,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(:,:)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(ngllx-1-i,nglly-1,ngllz-1,:) = Tdomain%sEdge(ne)%Veloc(i,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(i,:)
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(10)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(10) == 0 ) then
-  Tdomain%specel(n)%Forces(0,nglly-1,1:ngllz-2,:) = Tdomain%sEdge(ne)%Veloc(:,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(:,:)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(0,nglly-1,ngllz-1-i,:) = Tdomain%sEdge(ne)%Veloc(i,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(i,:)
-  enddo
-endif
-
-ne = Tdomain%specel(n)%near_edges(11)
-ngll = Tdomain%sEdge(ne)%ngll
-if ( Tdomain%specel(n)%Orient_Edges(11) == 0 ) then
-  Tdomain%specel(n)%Forces(0,1:nglly-2,ngllz-1,:) = Tdomain%sEdge(ne)%Veloc(:,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(:,:)
-else
-  do i=1,ngll-2
-    Tdomain%specel(n)%Forces(0,nglly-1-i,ngllz-1,:) = Tdomain%sEdge(ne)%Veloc(i,:) + dt * (0.5 - bega) *  Tdomain%sEdge(ne)%Accel(i,:)
-  enddo
-endif
-
+do ne = 0,11
+    nne = Tdomain%specel(n)%Near_Edges(ne)
+    orient_e = Tdomain%specel(n)%Orient_Edges(ne)
+    ngll = Tdomain%sEdge(nne)%ngll
+ ! now we call the general deassemblage routine
+    call get_VectProperty_Edge2Elem(ne,orient_e,ngllx,nglly,ngllz,ngll,rank,            &
+         Tdomain%sEdge(nne)%Veloc(:,0:2)+dt*(0.5-bega)*Tdomain%sEdge(nne)%Accel(:,0:2), &
+         Tdomain%specel(n)%Forces(:,:,:,0:2))
+end do
 
 return
+
 end subroutine get_PMLprediction_e2el
+!-----------------------------------------------------------------
+!-----------------------------------------------------------------
+subroutine get_PMLprediction_e2el_fl(Tdomain,n,bega,dt,rank)
+
+    use sdomain
+    implicit none
+
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in) :: n,rank
+    real, intent(in)  :: bega,dt
+    integer :: i,ne,ngllx,nglly,ngllz,ngll,nne,orient_e
+ 
+ngllx = Tdomain%specel(n)%ngllx
+nglly = Tdomain%specel(n)%nglly
+ngllz = Tdomain%specel(n)%ngllz
+
+do ne = 0,11
+    nne = Tdomain%specel(n)%Near_Edges(ne)
+    orient_e = Tdomain%specel(n)%Orient_Edges(ne)
+    ngll = Tdomain%sEdge(nne)%ngll
+ ! now we call the general deassemblage routine
+    call get_ScalarProperty_Edge2Elem(ne,orient_e,ngllx,nglly,ngllz,ngll,rank,          &
+         Tdomain%sEdge(nne)%VelPhi(:)+dt*(0.5-bega)*Tdomain%sEdge(nne)%AccelPhi(:), &
+         Tdomain%specel(n)%ForcesFl(:,:,:))
+end do
+
+return
+
+end subroutine get_PMLprediction_e2el_fl

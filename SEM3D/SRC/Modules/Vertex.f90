@@ -2,25 +2,27 @@ module svertices
 
 
 type :: vertex
+    logical :: PML, Abs, FPML
+    integer :: Iglobnum_Vertex, global_numbering,mat_index
+    real :: MassMat
+    real, dimension(0:2) :: Forces, Displ, Veloc, Accel, V0
+    real, dimension(0:2) :: Forces1, Forces2, Forces3
+    real, dimension(:), pointer :: DumpMass
+    real, dimension(:), pointer :: Veloc1, Veloc2, Veloc3
+    real, dimension(:), pointer :: DumpVx, DumpVy, DumpVz
+    real, dimension(:), pointer :: Iveloc1, Iveloc2,Iveloc3
+    real, dimension(:), pointer :: Ivx, Ivy, Ivz
+    logical :: solid
+   ! solid-fluid
+    real :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
+    real :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
 
-logical :: PML, Abs, FPML
-
-integer :: Iglobnum_Vertex
-
-real :: MassMat
-real, dimension(0:2) :: Forces, Displ, Veloc, Accel, V0
-real, dimension(0:2) :: Forces1, Forces2, Forces3
-real, dimension(:), pointer :: DumpMass
-real, dimension(:), pointer :: Veloc1, Veloc2, Veloc3
-real, dimension(:), pointer :: DumpVx, DumpVy, DumpVz
-real, dimension (:), pointer :: Iveloc1, Iveloc2,Iveloc3
-real, dimension (:), pointer :: Ivx, Ivy, Ivz
-
-end type
+end type vertex
 
 contains
 
-! ############################################################
+!------------------------------------------------------------------------
+!------------------------------------------------------------------------
 subroutine Prediction_Vertex_Veloc (V, alpha, bega, gam1, dt)
 
 implicit none
@@ -35,8 +37,24 @@ real, intent (IN) :: alpha, bega, gam1, dt
 
 return
 end subroutine Prediction_Vertex_Veloc
+!------------------------------------------------------------------------
+!------------------------------------------------------------------------
+subroutine Prediction_Vertex_VelPhi(V,alpha,bega,gam1,dt)
 
-! ###########################################################
+    implicit none
+
+    type(Vertex), intent(inout) :: V
+    real, intent(in) :: alpha, bega, gam1, dt
+
+
+     V%ForcesFl = V%Phi + dt * V%VelPhi + dt**2 * (0.5d0 - bega) * V%AccelPhi
+     V%VelPhi0 = V%VelPhi
+     V%ForcesFl = alpha * V%ForcesFl + (1d0-alpha) * V%Phi
+
+return
+end subroutine Prediction_Vertex_VelPhi
+!------------------------------------------------------------------------
+!------------------------------------------------------------------------
 subroutine Correction_Vertex_Veloc (V, bega, gam1, dt)
 
 implicit none
@@ -56,8 +74,25 @@ V%Displ = V%Displ + bega * dt * (V%Veloc+V%V0)
 
 return
 end subroutine Correction_Vertex_Veloc
+!------------------------------------------------------------------------
+!------------------------------------------------------------------------
+subroutine Correction_Vertex_VelPhi(V,bega,gam1,dt)
+    implicit none
 
-! ############################################################
+    type(Vertex), intent(inout) :: V
+    real, intent(in) :: bega, gam1, dt
+
+
+V%ForcesFl = V%MassMat * V%ForcesFl
+
+V%VelPhi = V%VelPhi0 + dt * V%ForcesFl
+V%AccelPhi = V%AccelPhi + gam1 / dt * (V%VelPhi-V%VelPhi0)
+V%Phi = V%Phi + bega * dt * (V%VelPhi+V%VelPhi0)
+
+return
+end subroutine Correction_Vertex_VelPhi
+!------------------------------------------------------------------------
+!------------------------------------------------------------------------
 subroutine Correction_Vertex_PML_Veloc (V, dt)
 
 implicit none
@@ -82,8 +117,28 @@ endif
 
 return
 end subroutine Correction_Vertex_PML_Veloc
+!------------------------------------------------------------------------
+!------------------------------------------------------------------------
+subroutine Correction_Vertex_PML_VelPhi(V,dt)
+    implicit none
 
-! ###########################################################
+    type(Vertex), intent(inout) :: V
+    real, intent(in) :: dt
+
+V%VelPhi1 = V%DumpVx(0) * V%VelPhi1 + dt * V%DumpVx(1) * V%ForcesFl1
+V%VelPhi2 = V%DumpVy(0) * V%VelPhi2 + dt * V%DumpVy(1) * V%ForcesFl2
+V%VelPhi3 = V%DumpVz(0) * V%VelPhi3 + dt * V%DumpVz(1) * V%ForcesFl3
+
+V%VelPhi = V%VelPhi1 + V%VelPhi2 + V%VelPhi3
+
+if (V%Abs) then
+    V%VelPhi = 0
+endif
+
+return
+end subroutine Correction_Vertex_PML_VelPhi
+!------------------------------------------------------------------------
+!------------------------------------------------------------------------
 subroutine Correction_Vertex_fPML_Veloc (V, dt,fil)
 
 implicit none
@@ -119,8 +174,8 @@ endif
 
 return
 end subroutine Correction_Vertex_FPML_Veloc
-! ###########################################################
-
+!------------------------------------------------------------------------
+!------------------------------------------------------------------------
 subroutine get_vel_vertex(V,Vfree,dt,logic)
 implicit none
 

@@ -1,57 +1,46 @@
-subroutine get_Displ_Vertex2Elem (Tdomain,n)
+subroutine get_Displ_Vertex2Elem(Tdomain,n,rank)
 
-use sdomain
+    use sdomain
+    implicit none
 
-implicit none
-
-type (Domain), intent (INOUT) :: Tdomain
-integer, intent (IN) :: n
-
-integer :: nv, ngllx,nglly,ngllz
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in) :: n,rank
+    integer :: nv, ngllx,nglly,ngllz,nnv
  
+ngllx = Tdomain%specel(n)%ngllx
+nglly = Tdomain%specel(n)%nglly
+ngllz = Tdomain%specel(n)%ngllz
 
-ngllx = Tdomain%specel(n)%ngllx; nglly = Tdomain%specel(n)%nglly; ngllz = Tdomain%specel(n)%ngllz
-
-nv = Tdomain%specel(n)%near_vertices(0)
-Tdomain%specel(n)%Forces(0,0,0,0) = Tdomain%sVertex(nv)%Forces(0) 
-Tdomain%specel(n)%Forces(0,0,0,1) = Tdomain%sVertex(nv)%Forces(1)
-Tdomain%specel(n)%Forces(0,0,0,2) = Tdomain%sVertex(nv)%Forces(2)
-
-nv = Tdomain%specel(n)%near_vertices(1)
-Tdomain%specel(n)%Forces(ngllx-1,0,0,0) = Tdomain%sVertex(nv)%Forces(0)
-Tdomain%specel(n)%Forces(ngllx-1,0,0,1) = Tdomain%sVertex(nv)%Forces(1)
-Tdomain%specel(n)%Forces(ngllx-1,0,0,2) = Tdomain%sVertex(nv)%Forces(2)
-
-nv = Tdomain%specel(n)%near_vertices(2)
-Tdomain%specel(n)%Forces(ngllx-1,nglly-1,0,0) = Tdomain%sVertex(nv)%Forces(0)
-Tdomain%specel(n)%Forces(ngllx-1,nglly-1,0,1) = Tdomain%sVertex(nv)%Forces(1)
-Tdomain%specel(n)%Forces(ngllx-1,nglly-1,0,2) = Tdomain%sVertex(nv)%Forces(2) 
-
-nv = Tdomain%specel(n)%near_vertices(3)
-Tdomain%specel(n)%Forces(0,nglly-1,0,0) = Tdomain%sVertex(nv)%Forces(0)
-Tdomain%specel(n)%Forces(0,nglly-1,0,1) = Tdomain%sVertex(nv)%Forces(1)
-Tdomain%specel(n)%Forces(0,nglly-1,0,2) = Tdomain%sVertex(nv)%Forces(2)
-
-nv = Tdomain%specel(n)%near_vertices(4)
-Tdomain%specel(n)%Forces(0,0,ngllz-1,0) = Tdomain%sVertex(nv)%Forces(0)
-Tdomain%specel(n)%Forces(0,0,ngllz-1,1) = Tdomain%sVertex(nv)%Forces(1)
-Tdomain%specel(n)%Forces(0,0,ngllz-1,2) = Tdomain%sVertex(nv)%Forces(2)
-
-nv = Tdomain%specel(n)%near_vertices(5)
-Tdomain%specel(n)%Forces(ngllx-1,0,ngllz-1,0) = Tdomain%sVertex(nv)%Forces(0)
-Tdomain%specel(n)%Forces(ngllx-1,0,ngllz-1,1) = Tdomain%sVertex(nv)%Forces(1)
-Tdomain%specel(n)%Forces(ngllx-1,0,ngllz-1,2) = Tdomain%sVertex(nv)%Forces(2)
-
-nv = Tdomain%specel(n)%near_vertices(6)
-Tdomain%specel(n)%Forces(ngllx-1,nglly-1,ngllz-1,0) = Tdomain%sVertex(nv)%Forces(0)
-Tdomain%specel(n)%Forces(ngllx-1,nglly-1,ngllz-1,1) = Tdomain%sVertex(nv)%Forces(1)
-Tdomain%specel(n)%Forces(ngllx-1,nglly-1,ngllz-1,2) = Tdomain%sVertex(nv)%Forces(2)
-
-nv = Tdomain%specel(n)%near_vertices(7)
-Tdomain%specel(n)%Forces(0,nglly-1,ngllz-1,0) = Tdomain%sVertex(nv)%Forces(0)
-Tdomain%specel(n)%Forces(0,nglly-1,ngllz-1,1) = Tdomain%sVertex(nv)%Forces(1)
-Tdomain%specel(n)%Forces(0,nglly-1,ngllz-1,2) = Tdomain%sVertex(nv)%Forces(2)
-
+do nv = 0,7
+    nnv = Tdomain%specel(n)%Near_Vertices(nv)
+ ! now we call the general deassemblage routine
+    call get_VectProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,rank,  &
+             Tdomain%sVertex(nnv)%Forces(0:2),Tdomain%specel(n)%Forces(:,:,:,0:2)) 
+enddo
 
 return
 end subroutine get_Displ_Vertex2Elem
+!----------------------------------------------------------------------------
+!----------------------------------------------------------------------------
+subroutine get_Phi_Vertex2Elem(Tdomain,n,rank)
+
+    use sdomain
+    implicit none
+
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in) :: n,rank
+    integer :: nv, ngllx,nglly,ngllz,nnv
+ 
+ngllx = Tdomain%specel(n)%ngllx
+nglly = Tdomain%specel(n)%nglly
+ngllz = Tdomain%specel(n)%ngllz
+
+do nv = 0,7
+    nnv = Tdomain%specel(n)%Near_Vertices(nv)
+ ! now we call the general deassemblage routine
+    call get_ScalarProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,rank,  &
+             Tdomain%sVertex(nnv)%ForcesFl,Tdomain%specel(n)%ForcesFl(:,:,:)) 
+enddo
+
+return
+end subroutine get_Phi_Vertex2Elem

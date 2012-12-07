@@ -14,35 +14,33 @@ use sreceivers
 use splanew
 use sneu
 use ssurf
+use solid_fluid
 
 type :: domain
-
-type(time) :: TimeD
-type(logical_array) :: logicD
-type(source), dimension (:), pointer :: sSource
-type(element), dimension(:), pointer :: specel
-type(face), dimension (:), pointer :: sFace
-type(comm), dimension (:), pointer :: sComm
-type(edge), dimension (:), pointer :: sEdge
-type(vertex), dimension (:), pointer :: sVertex
-type(subdomain), dimension (:), pointer :: sSubDomain
-type(receiver), dimension (:), pointer :: sReceiver
-type (planew) :: sPlaneW
-type (neu) :: sNeu
-type (surf) :: sSurf
-
-logical :: any_PML, curve, any_FPML
-
-integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers, n_proc
-integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points
-
-real, dimension (:,:), pointer :: Coord_nodes, GlobCoord
-
-character (len=30) :: Title_simulation, mesh_file,station_file,material_file,Super_object_file,neumann_file
-character (len=1)  :: Super_object_type
-
-real, dimension (0:2000) :: Store_Trace
-
+    type(time) :: TimeD
+    type(logical_array) :: logicD
+    type(source), dimension (:), pointer :: sSource
+    type(element), dimension(:), pointer :: specel
+    type(face), dimension (:), pointer :: sFace
+    type(comm), dimension (:), pointer :: sComm
+    type(edge), dimension (:), pointer :: sEdge
+    type(vertex), dimension (:), pointer :: sVertex
+    type(subdomain), dimension (:), pointer :: sSubDomain
+    type(receiver), dimension (:), pointer :: sReceiver
+    type(planew) :: sPlaneW
+    type(neu) :: sNeu
+    type(Neu_object) :: Neumann
+    type(surf) :: sSurf
+    type(SF_object) :: SF
+    logical :: any_PML, curve, any_FPML
+    integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers, n_proc
+    integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points
+    real, dimension (:,:), pointer :: Coord_nodes, GlobCoord
+    character (len=30) :: Title_simulation, mesh_file,station_file,material_file,   &
+                          Super_object_file,neumann_file,neumann_dat,check_mesh_file
+    character (len=1)  :: Super_object_type
+    real, dimension (0:2000) :: Store_Trace
+    real  :: MPML_coeff
 end type
 
 contains

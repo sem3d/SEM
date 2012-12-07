@@ -1,135 +1,151 @@
-program  drive_sem
+program drive_sem
+
+    use sdomain
+    use mpi
+    implicit none
+
+    type(domain) :: Tdomain
+    integer :: code, rg, n_proc, ntime, i_snap, n,i,j, icount, icountc
+    character(len=100) :: fnamef
 
 
-use sdomain
+!- Communicators (MPI) initialization 
+call MPI_INIT(code)
+call MPI_COMM_RANK(MPI_COMM_WORLD,rg,code)
+call MPI_COMM_SIZE(MPI_COMM_WORLD,n_proc,code)
 
-implicit none
+!------------  Starting the code --------------------
+if(rg == 0)then
+    write(*,*) "-----------------------------------------"
+    write(*,*) "----         SEM - 3d version      ------"
+    write(*,*) "-----------------------------------------"
+    write(*,*)
+end if
+call MPI_BARRIER(MPI_COMM_WORLD,code)
 
-include 'mpif.h'
+write(*,*) "  --> Reading run properties, proc. # ",rg
+call read_input(Tdomain,rg)
+call MPI_BARRIER(MPI_COMM_WORLD, code)
 
-type(domain), target :: Tdomain
-
-integer :: code, rg, nb_procs, ntime, i_snap, n,i,j, icount, icountc
-character (len=100) :: fnamef
-
-
-call mpi_init(code)
-call mpi_comm_rank(mpi_comm_world, rg, code)
-call mpi_comm_size(mpi_comm_world, nb_procs, code)
-
-! ##############  Begin of the program  #######################
-write (*,*) "Define mesh properties ",rg
-call read_input (Tdomain,rg)
-
-if (Tdomain%logicD%super_object_local_present) then
- if (Tdomain%super_object_type == "P") then
-   write(*,*) "Define Plane Wave properties",rg
-   call define_planew_properties (Tdomain)
- endif
+if(Tdomain%logicD%neumann_local_present)then
+  write(*,*) "  --> Defining Neumann properties, proc. # ",rg
+  call define_Neumann_properties(Tdomain,rg)
 endif
-if (Tdomain%logicD%neumann_local_present) then
-  write(*,*) "Define Neumann properties",rg
-  call define_neu_properties (Tdomain)
-endif
+call MPI_BARRIER(MPI_COMM_WORLD, code)
 
-write (*,*) "Compute Gauss-Lobatto-Legendre weights and zeroes ",rg
-call compute_GLL (Tdomain)
+write(*,*) "  --> Computing Gauss-Lobatto-Legendre weights and zeroes, proc. # ",rg
+call compute_GLL(Tdomain)
+call MPI_BARRIER(MPI_COMM_WORLD, code)
 
-write (*,*) "Define a global numbering for the collocation points ",rg
-call global_numbering (Tdomain)
+write(*,*) "  --> Defining global numbering for collocation points, proc. # ",rg
+call global_numbering(Tdomain,rg)
+call MPI_BARRIER(MPI_COMM_WORLD, code)
 
-write (*,*) "Computing shape functions within their derivatives ",rg
-if (Tdomain%n_nodes == 8) then
-      call shape8(TDomain)   ! Linear interpolation
-else if (Tdomain%n_nodes == 27) then
-      write (*,*) "Sorry, 27 control points not yet implemented in the code... Wait for an upgrade ",rg
-      stop
+write(*,*) "  --> Computing shape functions within their derivatives, proc. # ",rg
+if(Tdomain%n_nodes == 8) then
+    call shape8(Tdomain,rg)   ! Linear interpolation
+else if(Tdomain%n_nodes == 27) then
+    write(*,*) "    Sorry, 27 control points not yet implemented in the code... Wait for an upgrade ",rg
+    stop
 else
-      write (*,*) "Bad number of nodes for hexaedral shape ",rg
-      stop
+    write(*,*) "    Bad number of nodes for hexaedral shape ",rg
+    stop
 endif
+call MPI_BARRIER(MPI_COMM_WORLD,code)
 
-write (*,*) "Compute Courant parameter ",rg
-call compute_Courant (Tdomain)
 
-if (Tdomain%any_PML)   then
-    write (*,*) "Attribute PML properties ",rg
-    call PML_definition (Tdomain) 
+write(*,*) "  --> Computing Courant parameter, proc. #",rg
+call compute_Courant(Tdomain,rg)
+call MPI_BARRIER(MPI_COMM_WORLD,code)
+
+if(Tdomain%any_PML)then
+    write(*,*) "  --> Attribute PML properties, proc. # ",rg
+    call PML_definition(Tdomain) 
 endif
+call MPI_BARRIER(MPI_COMM_WORLD,code)
 
-if (Tdomain%logicD%any_source) then
-    write (*,*) "Computing point-source parameters ",rg
-    call SourcePosition(Tdomain,nb_procs,rg)
+if(Tdomain%logicD%any_source)then
+    write(*,*) "  --> Computing point-source parameters",rg
+    call SourcePosition(Tdomain,n_proc,rg)
+    call source_excit(Tdomain,rg)
 endif
-if (Tdomain%logicD%save_trace) then
-    write (*,*) "Computing receiver locations ",rg
+if(Tdomain%logicD%save_trace)then
+    write(*,*) "  --> Computing receivers'locations, proc. # ",rg
     call ReceiverExactPosition(Tdomain,rg)
 endif
+call MPI_BARRIER(MPI_COMM_WORLD,code)
 
-write (*,*) "Allocate fields ",rg
-call allocate_domain (Tdomain)
+write(*,*) "  --> Allocating fields, proc. # ",rg
+call allocate_domain(Tdomain,rg)
+call MPI_BARRIER(MPI_COMM_WORLD,code)
 
-write (*,*) "Compute mass matrix and internal forces coefficients ",rg
-call define_arrays (Tdomain,rg)
+write(*,*) "  --> Computing mass matrix and internal forces coefficients, proc. # ",rg
+call define_arrays(Tdomain,rg)
+call MPI_BARRIER(MPI_COMM_WORLD,code)
 
-if ( Tdomain%logicD%run_exec ) then
-write (*,*) "Entering the time evolution ",rg
-Tdomain%TimeD%rtime = 0
-Tdomain%TimeD%NtimeMin = 0
+if(Tdomain%logicD%run_exec)then
+    write(*,*) "  --> Entering the time evolution, proc. # ",rg
+    Tdomain%TimeD%rtime = 0
+    Tdomain%TimeD%NtimeMin = 0
+    call MPI_BARRIER(MPI_COMM_WORLD,code)
 
-if (Tdomain%logicD%run_restart) then
-  call read_restart(Tdomain,rg)
-  write (*,*) "Restart done",rg
-endif
+    if(Tdomain%logicD%run_restart)then
+        call read_restart(Tdomain,rg)
+        write(*,*) "  --> Restarting : OK.",rg
+    endif
  
-if (Tdomain%logicD%save_snapshots) then
-    Tdomain%timeD%nsnap = Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin
-    icount = 0
-endif
+    if(Tdomain%logicD%save_snapshots)then
+        Tdomain%timeD%nsnap = Tdomain%TimeD%time_snapshots/Tdomain%TimeD%dtmin
+        icount = 0
+    endif
 
-icountc = 0
+    icountc = 0
 
-do ntime = Tdomain%TimeD%NtimeMin, Tdomain%TimeD%NtimeMax-1
-    call Newmark (Tdomain, rg, ntime)
+    do ntime = Tdomain%TimeD%NtimeMin, Tdomain%TimeD%NtimeMax-1
+        call Newmark(Tdomain,rg,ntime)
 
-    Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
+        Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
 
-    if (Tdomain%logicD%save_snapshots) then
-        i_snap = mod (ntime+1, Tdomain%TimeD%nsnap) 
-        if (i_snap == 0) then
-            icount = icount+1
-            call savefield (Tdomain,ntime,rg,icount)
-            write (*,*) "A new snapshot is recorded ",rg
+        if(Tdomain%logicD%save_snapshots)then
+            i_snap = mod(ntime+1,Tdomain%TimeD%nsnap) 
+            if(i_snap == 0)then
+                icount = icount+1
+                call savefield(Tdomain,ntime,rg,icount)
+                write (*,*) "    --> New snapshot recorded ",rg
+            endif
         endif
-    endif
 
-    if (Tdomain%logicD%save_trace) then
-      if (mod (ntime+1,Tdomain%TimeD%ntrace) == 0) then
-        call savetrace (Tdomain,rg,int(ntime/Tdomain%TimeD%ntrace))
-        do n = 0, Tdomain%n_receivers-1
-          if (rg == Tdomain%sReceiver(n)%proc) deallocate (Tdomain%sReceiver(n)%StoreTrace)
-        enddo
-      endif
-    endif
+        if(Tdomain%logicD%save_trace) then
+            if(mod(ntime+1,Tdomain%TimeD%ntrace) == 0)then
+                call savetrace(Tdomain,rg,int(ntime/Tdomain%TimeD%ntrace))
+                do n = 0, Tdomain%n_receivers-1
+                    if(rg == Tdomain%sReceiver(n)%proc)  &
+                          deallocate(Tdomain%sReceiver(n)%StoreTrace)
+                enddo
+            endif
+        endif
 
     ! Checkpoint restart
-    if (Tdomain%logicD%save_restart)  then
-      if ( mod (ntime+1,Tdomain%TimeD%ncheck) == 0 ) then
-         icountc = icountc + 1
-         call save_checkpoint(Tdomain,Tdomain%TimeD%rtime,ntime+1,rg,icountc)
-      endif
-    endif
-enddo
+        if(Tdomain%logicD%save_restart)then
+            if(mod(ntime+1,Tdomain%TimeD%ncheck) == 0)then
+                icountc = icountc + 1
+                call save_checkpoint(Tdomain,Tdomain%TimeD%rtime,ntime+1,rg,icountc)
+            endif
+        endif
+    enddo
 
-write (*,*) "Simulation is finished ",rg
-
+    write(*,*) "  --> Simulation is over.",rg
 endif
 
-write (*,*) "Deallocate fields ",rg
+write(*,*) "  --> Deallocating fields, ",rg
 call deallocate_domain(Tdomain)
 
-write (*,*) "END ",rg
+write(*,*) "  --> Ok for proc. #",rg
 
-call mpi_finalize(code)
+call MPI_FINALIZE(code)
+
+write(*,*) "------------------------------------------"
+write(*,*) "---------------    END  ------------------"
+write(*,*) "------------------------------------------"
 
 end program drive_sem

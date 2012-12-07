@@ -4,7 +4,8 @@ FC = mpif90     # Fortran 90 compiler
 F90 = ifort     # Fortran 90 compiler (for blas)
 
 #OPT = -O0 -r8
-OPT = -O3 -CB -r8
+# OPT = -O3 -CB -r8
+OPT = -O3 -r8
 
 MMOD = -module
 

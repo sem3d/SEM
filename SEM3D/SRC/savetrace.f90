@@ -22,21 +22,21 @@ do n = 0, Tdomain%n_receivers-1
 
       if (rg == Tdomain%sReceiver(n)%proc) then
          if ( mod(k,2) == 1 ) then 
-            write (fnamef,"(a,I4.4,a,I3.3)") "STraceX1/trace",n,"X",k
+            write (fnamef,"(a,I4.4,a,I3.3)") "trace",n,"X",k
          else
-            write (fnamef,"(a,I4.4,a,I3.3)") "STraceX2/trace",n,"X",k 
+            write (fnamef,"(a,I4.4,a,I3.3)") "trace",n,"X",k 
          endif
          open (61,file=fnamef,status="unknown",form="formatted")
          if ( mod(k,2) == 1 ) then 
-            write (fnamef,"(a,I4.4,a,I3.3)") "STraceY1/trace",n,"Y",k
+            write (fnamef,"(a,I4.4,a,I3.3)") "trace",n,"Y",k
          else
-            write (fnamef,"(a,I4.4,a,I3.3)") "STraceY2/trace",n,"Y",k
+            write (fnamef,"(a,I4.4,a,I3.3)") "trace",n,"Y",k
          endif
          open (62,file=fnamef,status="unknown",form="formatted")
          if ( mod(k,2) == 1 ) then 
-            write (fnamef,"(a,I4.4,a,I3.3)") "STraceZ1/trace",n,"Z",k
+            write (fnamef,"(a,I4.4,a,I3.3)") "trace",n,"Z",k
          else
-            write (fnamef,"(a,I4.4,a,I3.3)") "STraceZ2/trace",n,"Z",k
+            write (fnamef,"(a,I4.4,a,I3.3)") "trace",n,"Z",k
          endif
          open (63,file=fnamef,status="unknown",form="formatted")
          if ( Tdomain%sReceiver(n)%flag == 1 ) then

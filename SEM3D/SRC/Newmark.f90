@@ -1,447 +1,148 @@
-subroutine Newmark (Tdomain,rg,ntime)
+subroutine Newmark(Tdomain,rg,ntime)
+ ! Predictor-MultiCorrector Newmark Velocity Scheme within a 
+ ! Time staggered Stress-Velocity formulation inside PML
+    use sdomain
+    use mpi
+    implicit none
 
-use sdomain
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in) :: rg,ntime
 
-implicit none
-
-include 'mpif.h'
-
-type (domain), intent (INOUT) :: Tdomain
-integer, intent (IN) :: rg,ntime
-
-logical, dimension(:), allocatable :: L_Face, L_Edge, L_Vertex
-integer ::  n, mat, nelem, ngll1,ngll2,ngll3, ngllx,nglly,ngllz, nf,ne,nv, nf_aus,ne_aus,nv_aus,ipoint,ndt2
-integer ::  ngll, code, i,j,k, x,y,z, ngllPML
-integer :: shift, I_give_to, I_take_from, n_rings, ntimetrace
-integer, parameter :: etiquette=100
-integer, dimension(mpi_status_size) :: statut
-integer :: flag, nummax
-real :: alpha, bega, gam1, Dt, max, maximum
-real, dimension (0:2) :: V_free_vertex
-real, dimension(:,:), allocatable :: VE_free
-real, dimension(:,:,:), allocatable :: VF_free
-logical :: sortie
-
-! Predictor-MultiCorrector Newmark Velocity Scheme within a 
-! Time staggered Stress-Velocity formulation inside PML
-! PML needs to be implemented
+    logical, dimension(:), allocatable :: L_Face, L_Edge, L_Vertex
+    integer ::  n, mat, nelem, ngll1,ngll2,ngll3, ngllx,nglly,ngllz,    &
+                nf,ne,nv, nf_aus,ne_aus,nv_aus,ipoint,ndt2, ngll, code, &
+                i,j,k, x,y,z,ngllPML,shift, I_give_to, I_take_from,     &
+                n_rings, ntimetrace,flag,nummax,ngll_F,ngllPML_F
+    integer, parameter :: etiquette = 100
+    integer, dimension(mpi_status_size) :: statut
+    real :: alpha, bega, gam1, Dt, max, maximum,t1,t2,time_dep
+    real, dimension(0:2) :: V_free_vertex
+    real, dimension(:,:), allocatable :: VE_free
+    real, dimension(:,:,:), allocatable :: VF_free
+    logical :: sortie
 
 
-if (Tdomain%TimeD%velocity_scheme) then
 
+if(.not. Tdomain%TimeD%velocity_scheme)   &
+         stop "Newmark scheme implemented only in velocity form."
 
-! Predictor Phase   
+!- Prediction Phase   
+call Newmark_Predictor(Tdomain,rg)
 
-alpha = Tdomain%TimeD%alpha
-bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
-gam1 = 1. / Tdomain%TimeD%gamma
-
-
-do n = 0,Tdomain%n_elem-1 
-    mat = Tdomain%specel(n)%mat_index 
-    Dt = Tdomain%sSubDomain(mat)%dt
-
-    if (.not. Tdomain%specel(n)%PML) then
-        call Prediction_Elem_Veloc (Tdomain%specel(n), alpha, bega, gam1, Dt)
-    else
-        call get_PMLprediction_v2el (Tdomain, n, bega, dt) 
-        call get_PMLprediction_e2el (Tdomain, n, bega, dt)
-        call get_PMLprediction_f2el (Tdomain, n, bega, dt)
-
-	   if (Tdomain%specel(n)%FPML) then
-              call Prediction_Elem_FPML_Veloc (Tdomain%specel(n),bega, dt, Tdomain%sSubDomain(mat)%hTPrimex, &
-                                        Tdomain%sSubDomain(mat)%hPrimey, Tdomain%sSubDomain(mat)%hprimez, rg, n, & 
-                                              Tdomain%sSubDomain(mat)%freq)
-          else
-                call Prediction_Elem_PML_Veloc (Tdomain%specel(n),bega, dt, Tdomain%sSubDomain(mat)%hTPrimex, &
-                                        Tdomain%sSubDomain(mat)%hPrimey, Tdomain%sSubDomain(mat)%hprimez, rg, n)
-          endif
-    endif
-enddo
-
-allocate (L_Face(0:Tdomain%n_face-1))
-L_Face = .true.
-allocate (L_Edge(0:Tdomain%n_edge-1))
-L_Edge = .true.
-allocate (L_Vertex(0:Tdomain%n_vertex-1))
-L_Vertex = .true.
-do n = 0,Tdomain%n_elem-1
-    mat = Tdomain%specel(n)%mat_index
-    Dt = Tdomain%sSubDomain(mat)%dt
-    do i = 0,5
-        nf = Tdomain%specel(n)%Near_Faces(i)
-        if (L_Face(nf)) then
-            L_Face(nf) = .false.
-            if (.not.Tdomain%sface(nf)%PML)  call Prediction_Face_Veloc (Tdomain%sface(nf), alpha, bega, gam1, dt)
-        endif
-    enddo
-    do i = 0,11
-        ne = Tdomain%specel(n)%Near_Edges(i)
-        if (L_Edge(ne)) then
-            L_Edge(ne) = .false.
-            if (.not.Tdomain%sedge(ne)%PML)  call Prediction_Edge_Veloc (Tdomain%sedge(ne), alpha, bega, gam1, dt)
-        endif
-    enddo
-    do i = 0,7
-        nv = Tdomain%specel(n)%Near_Vertices(i)
-        if (L_Vertex(nv)) then
-            L_Vertex(nv) = .false.
-            if (.not.Tdomain%svertex(nv)%PML)  call Prediction_Vertex_Veloc (Tdomain%svertex(nv), alpha, bega, gam1, dt)
-        endif
-    enddo
-enddo
-deallocate (L_Face,L_Edge,L_Vertex)
-
-
-! Solution phase
-
-do n = 0,Tdomain%n_elem-1
-  mat = Tdomain%specel(n)%mat_index
-  if (.not. Tdomain%specel(n)%PML ) then
-     call get_Displ_Face2Elem (Tdomain,n)
-     call get_Displ_Edge2Elem (Tdomain,n)
-     call get_Displ_Vertex2Elem (Tdomain,n)
-
-     call compute_InternalForces_Elem (Tdomain%specel(n), Tdomain%sSubDomain(mat)%hprimex, &
-                                       Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
-                                       Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
-                                       Tdomain%sSubDomain(mat)%hTprimez)
-  else
-     call compute_InternalForces_PML_Elem (Tdomain%specel(n), Tdomain%sSubDomain(mat)%hprimex, &
-                                           Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hTprimez)
-  endif
-enddo
-
+!- Solution phase
+call internal_forces(Tdomain,rg)
 
 ! External Forces
-if (Tdomain%logicD%any_source) then
-do n = 0, Tdomain%n_source-1
-   if (rg == Tdomain%sSource(n)%proc) then
-      i = Tdomain%Ssource(n)%elem
-      x = Tdomain%Ssource(n)%gll(0)
-      y = Tdomain%Ssource(n)%gll(1)
-      z = Tdomain%Ssource(n)%gll(2)
-      nf = Tdomain%Ssource(n)%i_dir
-      Tdomain%specel(i)%Forces(x,y,z,nf) = Tdomain%specel(i)%Forces(x,y,z,nf) + &
-      CompSource(Tdomain%sSource(n),Tdomain%TimeD%rtime,nf)
-   endif
-enddo
-endif
+if(Tdomain%logicD%any_source)then
+    call external_forces(Tdomain,Tdomain%TimeD%rtime,rg)
+end if
 
-
-! Communication of Forces
-do nf = 0,Tdomain%n_face-1
-    Tdomain%sFace(nf)%Forces = 0
-    if (Tdomain%sFace(nf)%PML) then
-       Tdomain%sFace(nf)%Forces1 = 0
-       Tdomain%sFace(nf)%Forces2 = 0
-       Tdomain%sFace(nf)%Forces3 = 0
-    endif
-enddo
-do ne = 0,Tdomain%n_edge-1
-    Tdomain%sEdge(ne)%Forces = 0
-    if (Tdomain%sEdge(ne)%PML) then
-        Tdomain%sEdge(ne)%Forces1 = 0
-        Tdomain%sEdge(ne)%Forces2 = 0
-        Tdomain%sEdge(ne)%Forces3 = 0
-    endif
-enddo
-do nv = 0,Tdomain%n_vertex-1
-    Tdomain%sVertex(nv)%Forces = 0
-    if (Tdomain%sVertex(nv)%PML) then
-        Tdomain%sVertex(nv)%Forces1 = 0
-        Tdomain%sVertex(nv)%Forces2 = 0
-        Tdomain%sVertex(nv)%Forces3 = 0
-    endif
-enddo
-
-
-do n = 0,Tdomain%n_elem-1
-  call get_Forces_Elem2Face(Tdomain,n)
-  call get_Forces_Elem2Edge(Tdomain,n)
-  call get_Forces_Elem2Vertex(Tdomain,n)
-enddo
-
+! Communication of Forces within a single process
+call inside_proc_forces(Tdomain)
 
 ! MPI communications
-if ( Tdomain%n_proc > 1 ) then
-do n = 0,Tdomain%n_proc-1
-    ngll = 0
-    ngllPML = 0
-    do i = 0,Tdomain%sComm(n)%nb_faces-1
-        nf = Tdomain%sComm(n)%faces(i)
-        do j = 1,Tdomain%sFace(nf)%ngll2-2
-            do k = 1,Tdomain%sFace(nf)%ngll1-2
-                Tdomain%sComm(n)%GiveForces(ngll,0:2) = Tdomain%sFace(nf)%Forces(k,j,0:2)
-                ngll = ngll + 1
-            enddo
-        enddo
-        if (Tdomain%sFace(nf)%PML) then
-            do j = 1,Tdomain%sFace(nf)%ngll2-2
-                do k = 1,Tdomain%sFace(nf)%ngll1-2
-                    Tdomain%sComm(n)%GiveForcesPML(ngllPML,1,0:2) = Tdomain%sFace(nf)%Forces1(k,j,0:2)
-                    Tdomain%sComm(n)%GiveForcesPML(ngllPML,2,0:2) = Tdomain%sFace(nf)%Forces2(k,j,0:2)
-                    Tdomain%sComm(n)%GiveForcesPML(ngllPML,3,0:2) = Tdomain%sFace(nf)%Forces3(k,j,0:2)
-                    ngllPML = ngllPML + 1
-                enddo
-            enddo
-        endif
+if(Tdomain%n_proc > 1)then
+  ! from external faces, edges and vertices to Communication global arrays
+    do n = 0,Tdomain%n_proc-1
+        call Comm_Forces_Complete(n,Tdomain)
+        call Comm_Forces_PML_Complete(n,Tdomain)
+    end do
+
+  ! now we can exchange force values with proc n
+    n = Tdomain%n_proc
+    do shift = 1,n-1
+        call shift_to_parameters(rg,n,shift,I_give_to,I_take_from,n_rings)
+    ! solid forces exchange
+        call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngll,        &
+               Tdomain%sComm(I_take_from)%ngll,I_give_to,I_take_from,3,   &
+               Tdomain%sComm(I_give_to)%GiveForces,Tdomain%sComm(I_take_from)%TakeForces)
+        call MPI_BARRIER(MPI_COMM_WORLD,code)
+    ! fluid forces exchange
+        call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngll_F,        &
+               Tdomain%sComm(I_take_from)%ngll_F,I_give_to,I_take_from,1,   &
+               Tdomain%sComm(I_give_to)%GiveForcesFl,Tdomain%sComm(I_take_from)%TakeForcesFl)
+        call MPI_BARRIER(MPI_COMM_WORLD,code)
+    ! solid PML forces exchange
+        call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngllPML,        &
+               Tdomain%sComm(I_take_from)%ngllPML,I_give_to,I_take_from,9,   &
+               Tdomain%sComm(I_give_to)%GiveForcesPML,Tdomain%sComm(I_take_from)%TakeForcesPML)
+        call MPI_BARRIER(MPI_COMM_WORLD,code)
+    ! fluid PML forces exchange
+        call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngllPML_F,        &
+               Tdomain%sComm(I_take_from)%ngllPML_F,I_give_to,I_take_from,3,   &
+               Tdomain%sComm(I_give_to)%GiveForcesPMLFl,Tdomain%sComm(I_take_from)%TakeForcesPMLFl)
+        call MPI_BARRIER(MPI_COMM_WORLD,code)
+
+    end do  ! do shift
+
+  ! now: assemblage on external faces, edges and vertices
+    do n = 0,Tdomain%n_proc-1
+        ngll = 0
+        ngll_F = 0
+        ngllPML = 0
+        ngllPML_F = 0
+        call Comm_Forces_Face(Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
+        call Comm_Forces_Edge(Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
+        call Comm_Forces_Vertex(Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
     enddo
-    do i = 0,Tdomain%sComm(n)%nb_edges-1
-        ne = Tdomain%sComm(n)%edges(i)
-        do j = 1,Tdomain%sEdge(ne)%ngll-2
-            Tdomain%sComm(n)%GiveForces(ngll,0:2) = Tdomain%sEdge(ne)%Forces(j,0:2)
-            ngll = ngll + 1
-        enddo
-        if (Tdomain%sEdge(ne)%PML) then
-            do j = 1,Tdomain%sEdge(ne)%ngll-2
-                Tdomain%sComm(n)%GiveForcesPML(ngllPML,1,0:2) = Tdomain%sEdge(ne)%Forces1(j,0:2)
-                Tdomain%sComm(n)%GiveForcesPML(ngllPML,2,0:2) = Tdomain%sEdge(ne)%Forces2(j,0:2)
-                Tdomain%sComm(n)%GiveForcesPML(ngllPML,3,0:2) = Tdomain%sEdge(ne)%Forces3(j,0:2)
-                ngllPML = ngllPML + 1
-            enddo
-        endif
-    enddo
-    do i = 0,Tdomain%sComm(n)%nb_vertices-1
-        nv =  Tdomain%sComm(n)%vertices(i)
-        Tdomain%sComm(n)%GiveForces(ngll,0:2) = Tdomain%sVertex(nv)%Forces(0:2)
-        ngll = ngll + 1
-        if (Tdomain%sVertex(nv)%PML) then
-            Tdomain%sComm(n)%GiveForcesPML(ngllPML,1,0:2) = Tdomain%sVertex(nv)%Forces1(0:2)
-            Tdomain%sComm(n)%GiveForcesPML(ngllPML,2,0:2) = Tdomain%sVertex(nv)%Forces2(0:2)
-            Tdomain%sComm(n)%GiveForcesPML(ngllPML,3,0:2) = Tdomain%sVertex(nv)%Forces3(0:2)
-            ngllPML = ngllPML + 1
-        endif
-    enddo
-enddo
 
-n = Tdomain%n_proc
-do shift = 1,n-1
-    I_give_to = rg + shift
-    if (I_give_to > n-1)   I_give_to = I_give_to - n
-    I_take_from = rg - shift
-    if (I_take_from < 0)   I_take_from = I_take_from + n
-    if (mod(n,shift)==0 .and. shift/=1) then
-        n_rings = shift
-    else if (mod(n,n-shift)==0 .and. shift/=n-1) then
-        n_rings = n-shift
-    else if (mod(n,2)==0 .and. mod(shift,2)==0) then
-        n_rings = 2
-    else
-        n_rings = 1
-    endif
-    do i = 0,n_rings-1
-        if (rg==i) then
-            if (Tdomain%sComm(I_give_to)%ngll>0) then
-             call MPI_SEND (Tdomain%sComm(I_give_to)%GiveForces, 3*Tdomain%sComm(I_give_to)%ngll, &
-                            MPI_DOUBLE_PRECISION, I_give_to, etiquette, MPI_COMM_WORLD, code)
-            endif
-            if (Tdomain%sComm(I_take_from)%ngll>0) then
-             call MPI_RECV (Tdomain%sComm(I_take_from)%TakeForces, 3*Tdomain%sComm(I_take_from)%ngll, &
-                            MPI_DOUBLE_PRECISION, I_take_from, etiquette, MPI_COMM_WORLD, statut, code)
-            endif
-        else
-            do j = 0,n/n_rings-1
-                if (rg == i + j*n_rings) then
-                    if (Tdomain%sComm(I_take_from)%ngll>0) then
-                     call MPI_RECV (Tdomain%sComm(I_take_from)%TakeForces, 3*Tdomain%sComm(I_take_from)%ngll, &
-                                    MPI_DOUBLE_PRECISION, I_take_from, etiquette, MPI_COMM_WORLD, statut, code)
-                    endif
-                    if (Tdomain%sComm(I_give_to)%ngll>0) then
-                     call MPI_SEND (Tdomain%sComm(I_give_to)%GiveForces, 3*Tdomain%sComm(I_give_to)%ngll, &
-                                    MPI_DOUBLE_PRECISION, I_give_to, etiquette, MPI_COMM_WORLD, code)
-                    endif
-                endif
-            enddo
-        endif
-    enddo
-    call MPI_BARRIER (MPI_COMM_WORLD, code)
-    do i = 0,n_rings-1
-        if (rg==i) then
-            if (Tdomain%sComm(I_give_to)%ngllPML>0) then
-             call MPI_SEND (Tdomain%sComm(I_give_to)%GiveForcesPML, 9*Tdomain%sComm(I_give_to)%ngllPML, &
-                            MPI_DOUBLE_PRECISION, I_give_to, etiquette, MPI_COMM_WORLD, code)
-            endif
-            if (Tdomain%sComm(I_take_from)%ngllPML>0) then
-             call MPI_RECV (Tdomain%sComm(I_take_from)%TakeForcesPML, 9*Tdomain%sComm(I_take_from)%ngllPML, &
-                            MPI_DOUBLE_PRECISION, I_take_from, etiquette, MPI_COMM_WORLD, statut, code)
-            endif
-        else
-            do j = 0,n/n_rings-1
-                if (rg == i + j*n_rings) then
-                    if (Tdomain%sComm(I_take_from)%ngllPML>0) then
-                     call MPI_RECV (Tdomain%sComm(I_take_from)%TakeForcesPML, 9*Tdomain%sComm(I_take_from)%ngllPML, &
-                                    MPI_DOUBLE_PRECISION, I_take_from, etiquette, MPI_COMM_WORLD, statut, code)
-                    endif
-                    if (Tdomain%sComm(I_give_to)%ngllPML>0) then
-                     call MPI_SEND (Tdomain%sComm(I_give_to)%GiveForcesPML, 9*Tdomain%sComm(I_give_to)%ngllPML, &
-                                    MPI_DOUBLE_PRECISION, I_give_to, etiquette, MPI_COMM_WORLD, code)
-                    endif
-                endif
-            enddo
-        endif
-    enddo
-    call MPI_BARRIER (MPI_COMM_WORLD, code)
-enddo
-
-do n = 0,Tdomain%n_proc-1
-    ngll = 0
-    ngllPML = 0
-    call Comm_Forces_Face(Tdomain,n,ngll,ngllPML)
-    call Comm_Forces_Edge(Tdomain,n,ngll,ngllPML)
-    call Comm_Forces_Vertex(Tdomain,n,ngll,ngllPML)
-enddo
-endif
+endif  ! if nproc > 1
 
 
-! Forces from the Neumann condition
-if (Tdomain%logicD%neumann_local_present) then
-
-   do nf = 0, Tdomain%sNeu%n_faces-1
-      ngll1 = Tdomain%sNeu%nFace(nf)%ngll1
-      ngll2 = Tdomain%sNeu%nFace(nf)%ngll2
-      mat = Tdomain%sNeu%nFace(nf)%mat_index
-      call compute_nforces_on_face (Tdomain%sNeu%nFace(nf),Tdomain%sNeu%nParam, & 
-                                            Tdomain%sSubdomain(mat)%dt,Tdomain%TimeD%rtime,nf)
-   enddo   
-
-   do ne = 0, Tdomain%sNeu%n_edges-1
-      ngll = Tdomain%sNeu%nEdge(ne)%ngll
-      mat = Tdomain%sNeu%nEdge(ne)%mat_index
-      call compute_nforces_on_edge (Tdomain%sNeu%nEdge(ne),Tdomain%sNeu%nParam, & 
-                                            Tdomain%sSubdomain(mat)%dt,Tdomain%TimeD%rtime,ne)
-   enddo 
-
-   do nv = 0, Tdomain%sNeu%n_vertices-1   
-      call compute_nforces_on_vertex (Tdomain%sNeu%nVertex(nv),Tdomain%sNeu%nParam, &
-                                              Tdomain%sSubdomain(mat)%dt,Tdomain%TimeD%rtime,nv,rg)
+! Neumann B.C.: associated forces
+if(Tdomain%logicD%neumann_local_present)then
+   do nf = 0,Tdomain%Neumann%Neu_n_faces-1
+      ngll1 = Tdomain%Neumann%Neu_Face(nf)%ngll1
+      ngll2 = Tdomain%Neumann%Neu_Face(nf)%ngll2
+      mat = Tdomain%Neumann%Neu_Face(nf)%mat_index
+      call compute_Neu_forces_on_face(Tdomain%Neumann%Neu_Face(nf),     &
+             Tdomain%Neumann%Neu_Param,Tdomain%sSubdomain(mat)%dt,Tdomain%TimeD%rtime)
    enddo
-
-   do nf = 0, Tdomain%sNeu%n_faces-1
-      ngll1 = Tdomain%sNeu%nFace(nf)%ngll1
-      ngll2 = Tdomain%sNeu%nFace(nf)%ngll2
-      nf_aus = Tdomain%sNeu%nFace(nf)%Face
-      if (.not.Tdomain%sface(nf_aus)%PML) then
-        do i = 0,2
-           Tdomain%sFace(nf_aus)%Forces(1:ngll1-2,1:ngll2-2,i) = Tdomain%sFace(nf_aus)%Forces(1:ngll1-2,1:ngll2-2,i) - & 
-                                                                 Tdomain%sNeu%nFace(nf)%Forces(1:ngll1-2,1:ngll2-2,i)
-        enddo
+   do ne = 0,Tdomain%Neumann%Neu_n_edges-1
+      ngll = Tdomain%Neumann%Neu_Edge(ne)%ngll
+      ne_aus = Tdomain%Neumann%Neu_Edge(ne)%Edge
+      mat = Tdomain%sEdge(ne_aus)%mat_index
+      call compute_Neu_forces_on_edge(Tdomain%Neumann%Neu_Edge(ne),     &
+             Tdomain%Neumann%Neu_Param,Tdomain%sSubdomain(mat)%dt,Tdomain%TimeD%rtime)
+   enddo
+   do nv = 0,Tdomain%Neumann%Neu_n_vertices-1   
+      nv_aus = Tdomain%Neumann%Neu_Vertex(nv)%Vertex
+      mat = Tdomain%sVertex(nv_aus)%mat_index
+      n = merge(0,1,nv == 4)
+      call compute_Neu_forces_on_vertex(Tdomain%Neumann%Neu_Vertex(nv),n,  &
+             Tdomain%Neumann%Neu_Param,Tdomain%sSubdomain(mat)%dt,Tdomain%TimeD%rtime)
+   enddo
+  ! addition of Neumann forces
+   do nf = 0, Tdomain%Neumann%Neu_n_faces-1
+      nf_aus = Tdomain%Neumann%Neu_Face(nf)%Face
+      if(.not.Tdomain%sface(nf_aus)%PML)then
+        Tdomain%sFace(nf_aus)%Forces(:,:,0:2) = Tdomain%sFace(nf_aus)%Forces(:,:,0:2) - & 
+                                             Tdomain%Neumann%Neu_Face(nf)%Forces(:,:,0:2)
       else
-        do i = 0,2
-           Tdomain%sFace(nf_aus)%Forces3(1:ngll1-2,1:ngll2-2,i) = Tdomain%sFace(nf_aus)%Forces3(1:ngll1-2,1:ngll2-2,i) - & 
-                                                                  Tdomain%sNeu%nFace(nf)%Forces(1:ngll1-2,1:ngll2-2,i)
-        enddo
+        Tdomain%sFace(nf_aus)%Forces3(:,:,0:2) = Tdomain%sFace(nf_aus)%Forces3(:,:,0:2) - & 
+                                             Tdomain%Neumann%Neu_Face(nf)%Forces(:,:,0:2)
      endif
    enddo
-
-   do ne = 0, Tdomain%sNeu%n_edges-1
-      ngll = Tdomain%sNeu%nEdge(ne)%ngll
-      ne_aus = Tdomain%sNeu%nEdge(ne)%Edge
-      if (.not.Tdomain%sedge(ne_aus)%PML) then
-        do i = 0,2
-           Tdomain%sEdge(ne_aus)%Forces(1:ngll-2,i) = Tdomain%sEdge(ne_aus)%Forces(1:ngll-2,i) - & 
-                                                      Tdomain%sNeu%nEdge(ne)%Forces(1:ngll-2,i)
-        enddo
+   do ne = 0, Tdomain%Neumann%Neu_n_edges-1
+      ne_aus = Tdomain%Neumann%Neu_Edge(ne)%Edge
+      if(.not.Tdomain%sedge(ne_aus)%PML)then
+        Tdomain%sEdge(ne_aus)%Forces(:,0:2) = Tdomain%sEdge(ne_aus)%Forces(:,0:2) - & 
+                                            Tdomain%Neumann%Neu_Edge(ne)%Forces(:,0:2)
       else
-        do i = 0,2
-           Tdomain%sEdge(ne_aus)%Forces3(1:ngll-2,i) = Tdomain%sEdge(ne_aus)%Forces3(1:ngll-2,i) - & 
-                                                       Tdomain%sNeu%nEdge(ne)%Forces(1:ngll-2,i)
-        enddo   
+        Tdomain%sEdge(ne_aus)%Forces3(:,0:2) = Tdomain%sEdge(ne_aus)%Forces3(:,0:2) - & 
+                                            Tdomain%Neumann%Neu_Edge(ne)%Forces(:,0:2)
       endif
    enddo
-
-   do nv = 0, Tdomain%sNeu%n_vertices-1
-      nv_aus = Tdomain%sNeu%nVertex(nv)%Vertex
-      if (.not.Tdomain%svertex(nv_aus)%PML) then
-        Tdomain%sVertex(nv_aus)%Forces(0:2) = Tdomain%sVertex(nv_aus)%Forces(0:2) - Tdomain%sNeu%nVertex(nv)%Forces(0:2)
+   do nv = 0, Tdomain%Neumann%Neu_n_vertices-1
+      nv_aus = Tdomain%Neumann%Neu_Vertex(nv)%Vertex
+      if(.not.Tdomain%svertex(nv_aus)%PML)then
+        Tdomain%sVertex(nv_aus)%Forces(0:2) = Tdomain%sVertex(nv_aus)%Forces(0:2) -  &
+                                              Tdomain%Neumann%Neu_Vertex(nv)%Forces(0:2)
       else
-        Tdomain%sVertex(nv_aus)%Forces3(0:2) = Tdomain%sVertex(nv_aus)%Forces3(0:2) - Tdomain%sNeu%nVertex(nv)%Forces(0:2)
+        Tdomain%sVertex(nv_aus)%Forces3(0:2) = Tdomain%sVertex(nv_aus)%Forces3(0:2) - &
+                                               Tdomain%Neumann%Neu_Vertex(nv)%Forces(0:2)
       endif
    enddo
-endif
-
-
-! Forces from the super object
-if (Tdomain%logicD%super_object_local_present) then
-  if (Tdomain%super_object_type == "P") then  ! Plane Wave
-
-   do nf = 0, Tdomain%sPlaneW%n_faces-1
-      ngll1 = Tdomain%sPlaneW%pFace(nf)%ngll1
-      ngll2 = Tdomain%sPlaneW%pFace(nf)%ngll2
-      mat = Tdomain%sPlaneW%pFace(nf)%mat_index
-      allocate (VF_free(1:ngll1-2,1:ngll2-2,0:2))
-      VF_free = 0
-      nf_aus = Tdomain%sPlaneW%pFace(nf)%Face_UP
-      call get_vel_face(Tdomain%sFace(nf_aus),VF_free,ngll1,ngll2,Tdomain%sSubdomain(mat)%dt,.false.,0,nf)
-      nf_aus = Tdomain%sPlaneW%pFace(nf)%Face_DOWN
-      call get_vel_face(Tdomain%sFace(nf_aus),VF_free,ngll1,ngll2,Tdomain%sSubdomain(mat)%dt,.true.,Tdomain%sPlaneW%pFace(nf)%Orient,nf)
-      call compute_pforces_on_face (Tdomain%sPlaneW%pFace(nf),Tdomain%sPlaneW%pParam,VF_free, & 
-                                            Tdomain%sSubdomain(mat)%dt,Tdomain%TimeD%rtime,nf,rg)
-      deallocate (VF_free)
-   enddo   
-
-   do ne = 0, Tdomain%sPlaneW%n_edges-1
-      ngll = Tdomain%sPlaneW%pEdge(ne)%ngll
-      mat = Tdomain%sPlaneW%pEdge(ne)%mat_index
-      allocate (VE_free(1:ngll-2,0:2))
-      VE_free = 0
-      ne_aus = Tdomain%sPlaneW%pEdge(ne)%Edge_UP
-      call get_vel_edge(Tdomain%sEdge(ne_aus),VE_free,ngll,Tdomain%sSubdomain(mat)%dt,.false.,0)
-      ne_aus = Tdomain%sPlaneW%pEdge(ne)%Edge_DOWN
-      call get_vel_edge(Tdomain%sEdge(ne_aus),VE_free,ngll,Tdomain%sSubdomain(mat)%dt,.true.,Tdomain%sPlaneW%pEdge(ne)%Orient)
-      call compute_pforces_on_edge (Tdomain%sPlaneW%pEdge(ne),Tdomain%sPlaneW%pParam,VE_free, & 
-                                            Tdomain%sSubdomain(mat)%dt,Tdomain%TimeD%rtime,ne,rg)
-      deallocate (VE_free)
-   enddo   
-
-   do nv = 0, Tdomain%sPlaneW%n_vertices-1
-      nv_aus = Tdomain%sPlaneW%pVertex(nv)%Vertex_UP
-      V_free_Vertex = 0
-      call get_vel_vertex (Tdomain%sVertex(nv_aus), V_free_Vertex, Tdomain%sSubdomain(mat)%dt, .false.)
-      nv_aus = Tdomain%sPlaneW%pVertex(nv)%Vertex_DOWN
-      call get_vel_vertex (Tdomain%sVertex(nv_aus), V_free_Vertex, Tdomain%sSubdomain(mat)%dt, .true.)	      
-      call compute_pforces_on_vertex (Tdomain%sPlaneW%pVertex(nv),Tdomain%sPlaneW%pParam,V_free_vertex, &
-                                              Tdomain%sSubdomain(mat)%dt,Tdomain%TimeD%rtime,nv,rg)
-   enddo
-
-
-   do nf = 0, Tdomain%sPlaneW%n_faces-1
-      ngll1 = Tdomain%sPlaneW%pFace(nf)%ngll1
-      ngll2 = Tdomain%sPlaneW%pFace(nf)%ngll2
-      nf_aus = Tdomain%sPlaneW%pFace(nf)%Face_UP
-       do i = 0,2
-         Tdomain%sFace(nf_aus)%Forces(1:ngll1-2,1:ngll2-2,i) = Tdomain%sFace(nf_aus)%Forces(1:ngll1-2,1:ngll2-2,i) - & 
-                                                               Tdomain%sPlaneW%pFace(nf)%Forces_Up(1:ngll1-2,1:ngll2-2,i)
-       enddo
-      nf_aus = Tdomain%sPlaneW%pFace(nf)%Face_DOWN
-       do i = 0,2
-         Tdomain%sFace(nf_aus)%Forces(1:ngll1-2,1:ngll2-2,i) = Tdomain%sFace(nf_aus)%Forces(1:ngll1-2,1:ngll2-2,i) + & 
-                                                               Tdomain%sPlaneW%pFace(nf)%Forces_Down(1:ngll1-2,1:ngll2-2,i)
-       enddo
-   enddo
-
-   do ne = 0, Tdomain%sPlaneW%n_edges-1
-      ngll = Tdomain%sPlaneW%pEdge(ne)%ngll
-      ne_aus = Tdomain%sPlaneW%pEdge(ne)%Edge_UP
-       do i = 0,2
-         Tdomain%sEdge(ne_aus)%Forces(1:ngll-2,i) = Tdomain%sEdge(ne_aus)%Forces(1:ngll-2,i) - & 
-                                                    Tdomain%sPlaneW%pEdge(ne)%Forces_Up(1:ngll-2,i)
-       enddo
-      ne_aus = Tdomain%sPlaneW%pEdge(ne)%Edge_DOWN
-       do i = 0,2
-         Tdomain%sEdge(ne_aus)%Forces(1:ngll-2,i) = Tdomain%sEdge(ne_aus)%Forces(1:ngll-2,i) + & 
-                                                    Tdomain%sPlaneW%pEdge(ne)%Forces_Down(1:ngll-2,i)
-       enddo
-   enddo
-
-   do nv = 0, Tdomain%sPlaneW%n_vertices-1
-      nv_aus = Tdomain%sPlaneW%pVertex(nv)%Vertex_UP
-       Tdomain%sVertex(nv_aus)%Forces(0:2) = Tdomain%sVertex(nv_aus)%Forces(0:2) - Tdomain%sPlaneW%pVertex(nv)%Forces_Up(0:2)
-      nv_aus = Tdomain%sPlaneW%pVertex(nv)%Vertex_DOWN
-       Tdomain%sVertex(nv_aus)%Forces(0:2) = Tdomain%sVertex(nv_aus)%Forces(0:2) + Tdomain%sPlaneW%pVertex(nv)%Forces_Down(0:2)
-   enddo
-
-  endif
 endif
 
 
@@ -495,15 +196,15 @@ do n = 0,Tdomain%n_elem-1
     enddo
     do i = 0,7
         nv = Tdomain%specel(n)%Near_Vertices(i)
-        if (L_Vertex(nv)) then
+        if(L_Vertex(nv))then
             L_Vertex(nv) = .false.
-            if (.not. Tdomain%svertex(nv)%PML) then
+            if(.not. Tdomain%svertex(nv)%PML)then
                 call Correction_Vertex_Veloc (Tdomain%svertex(nv), bega, gam1, dt)
             else
-              if (Tdomain%svertex(nv)%FPML) then
-                  call Correction_Vertex_FPML_Veloc (Tdomain%svertex(nv), dt, Tdomain%sSubdomain(mat)%freq)
+              if(Tdomain%svertex(nv)%FPML)then
+                  call Correction_Vertex_FPML_Veloc(Tdomain%svertex(nv),dt,Tdomain%sSubdomain(mat)%freq)
               else
-                  call Correction_Vertex_PML_Veloc (Tdomain%svertex(nv), dt)
+                  call Correction_Vertex_PML_Veloc(Tdomain%svertex(nv),dt)
              endif
             endif
         endif
@@ -657,15 +358,418 @@ if (Tdomain%logicD%save_trace) then
    enddo
 endif
 
-else
 
- write(*,*) "Sorry, Acceleration Scheme not implemented yet"
-
-endif   ! if Scheme
-
-
-if (rg==0) print *,'Num iteration - Time',ntime,Tdomain%TimeD%rtime
+if(rg == 0) print *,'Num iteration - Time',ntime,Tdomain%TimeD%rtime
 
 return
 
 end subroutine Newmark
+!---------------------------------------------------------------------------------------
+!---------------------------------------------------------------------------------------
+subroutine Newmark_Predictor(Tdomain,rg)
+
+    use sdomain
+    implicit none
+    
+    type(domain), intent(inout)   :: Tdomain
+    integer, intent(in)  :: rg
+    real  :: alpha,bega,gam1,dt
+    integer  :: i,n,mat,nf,ne,nv
+    logical, dimension(:), allocatable  :: L_Face,L_Edge,L_Vertex
+
+alpha = Tdomain%TimeD%alpha
+bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
+gam1 = 1. / Tdomain%TimeD%gamma
+
+
+do n = 0,Tdomain%n_elem-1 
+    mat = Tdomain%specel(n)%mat_index 
+    dt = Tdomain%sSubDomain(mat)%dt
+   ! SOLID PART
+    if(Tdomain%specel(n)%solid)then
+        if(.not. Tdomain%specel(n)%PML)then  ! physical part
+            call Prediction_Elem_Veloc(Tdomain%specel(n),alpha,bega,gam1,Dt)
+        else    ! PML part
+            call get_PMLprediction_v2el(Tdomain,n,bega,dt,rg) 
+            call get_PMLprediction_e2el(Tdomain,n,bega,dt,rg)
+            call get_PMLprediction_f2el(Tdomain,n,bega,dt,rg)
+            if(Tdomain%specel(n)%FPML)then
+                call Prediction_Elem_FPML_Veloc(Tdomain%specel(n),bega,dt,               &
+                      Tdomain%sSubDomain(mat)%hTPrimex,Tdomain%sSubDomain(mat)%hPrimey,  &
+                      Tdomain%sSubDomain(mat)%hprimez,rg,n,Tdomain%sSubDomain(mat)%freq)
+            else
+                call Prediction_Elem_PML_Veloc(Tdomain%specel(n),bega,dt,                &
+                      Tdomain%sSubDomain(mat)%hTPrimex,Tdomain%sSubDomain(mat)%hPrimey,  &
+                      Tdomain%sSubDomain(mat)%hprimez,rg,n)
+            endif
+        endif
+   ! FLUID PART
+    else   
+        if(.not. Tdomain%specel(n)%PML)then  ! physical part
+            call Prediction_Elem_VelPhi(Tdomain%specel(n),alpha,bega,gam1,Dt)
+        else    ! PML part
+            call get_PMLprediction_v2el_fl(Tdomain,n,bega,dt,rg) 
+            call get_PMLprediction_e2el_fl(Tdomain,n,bega,dt,rg)
+            call get_PMLprediction_f2el_fl(Tdomain,n,bega,dt,rg)
+            call Prediction_Elem_PML_VelPhi(Tdomain%specel(n),bega,dt,             &
+                 Tdomain%sSubDomain(mat)%hTPrimex,Tdomain%sSubDomain(mat)%hPrimey, &
+                 Tdomain%sSubDomain(mat)%hprimez)
+        endif
+    end if
+enddo
+
+allocate(L_Face(0:Tdomain%n_face-1))
+L_Face = .true.
+allocate(L_Edge(0:Tdomain%n_edge-1))
+L_Edge = .true.
+allocate(L_Vertex(0:Tdomain%n_vertex-1))
+L_Vertex = .true.
+do n = 0,Tdomain%n_elem-1
+    mat = Tdomain%specel(n)%mat_index
+    dt = Tdomain%sSubDomain(mat)%dt
+    do i = 0,5
+        nf = Tdomain%specel(n)%Near_Faces(i)
+        if(L_Face(nf))then
+            L_Face(nf) = .false.
+            if(.not.Tdomain%sface(nf)%PML)then
+                if(Tdomain%sFace(nf)%solid)then
+                    call Prediction_Face_Veloc(Tdomain%sface(nf),alpha,bega,gam1,dt)
+                else
+                    call Prediction_Face_VelPhi(Tdomain%sface(nf),alpha,bega,gam1,dt)
+                end if
+            end if
+        endif
+    enddo
+    do i = 0,11
+        ne = Tdomain%specel(n)%Near_Edges(i)
+        if(L_Edge(ne))then
+            L_Edge(ne) = .false.
+            if(.not.Tdomain%sedge(ne)%PML)then
+                if(Tdomain%sEdge(ne)%solid)then
+                    call Prediction_Edge_Veloc(Tdomain%sedge(ne),alpha,bega,gam1,dt)
+                else
+                    call Prediction_Edge_VelPhi(Tdomain%sedge(ne),alpha,bega,gam1,dt)
+                end if
+            end if
+        endif
+    enddo
+    do i = 0,7
+        nv = Tdomain%specel(n)%Near_Vertices(i)
+        if(L_Vertex(nv))then
+            L_Vertex(nv) = .false.
+            if(.not.Tdomain%svertex(nv)%PML)then
+                if(Tdomain%sVertex(nv)%solid)then
+                    call Prediction_Vertex_Veloc(Tdomain%svertex(nv),alpha,bega,gam1,dt)
+                else
+                    call Prediction_Vertex_VelPhi(Tdomain%svertex(nv),alpha,bega,gam1,dt)
+                end if
+            end if
+        endif
+    enddo
+enddo
+deallocate(L_Face,L_Edge,L_Vertex)
+
+return
+
+end subroutine Newmark_Predictor 
+!-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+subroutine internal_forces(Tdomain,rank)
+ ! volume forces - depending on rheology
+    use sdomain
+    implicit none
+
+    type(domain), intent(inout)  :: Tdomain
+    integer, intent(in)   :: rank
+    integer  :: n,mat
+
+
+do n = 0,Tdomain%n_elem-1
+    mat = Tdomain%specel(n)%mat_index
+    if(Tdomain%specel(n)%solid)then  ! solid part
+        if(.not.Tdomain%specel(n)%PML)then
+            call get_Displ_Face2Elem(Tdomain,n)
+            call get_Displ_Edge2Elem(Tdomain,n)
+            call get_Displ_Vertex2Elem(Tdomain,n)
+            call compute_InternalForces_Elem(Tdomain%specel(n),                    &
+                 Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimex, &
+                 Tdomain%sSubDomain(mat)%hprimey,Tdomain%sSubDomain(mat)%hTprimey, &
+                 Tdomain%sSubDomain(mat)%hprimez,Tdomain%sSubDomain(mat)%hTprimez)
+        else
+            call compute_InternalForces_PML_Elem(Tdomain%specel(n),                &
+                 Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimey, &
+                 Tdomain%sSubDomain(mat)%hTprimez)
+        end if
+    else   ! fluid part
+        if(.not.Tdomain%specel(n)%PML)then
+            call get_Phi_Face2Elem(Tdomain,n)
+            call get_Phi_Edge2Elem(Tdomain,n)
+            call get_Phi_Vertex2Elem(Tdomain,n)
+            call compute_InternalForces_Elem_Fluid(Tdomain%specel(n),              &
+                 Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimex, &
+                 Tdomain%sSubDomain(mat)%hprimey,Tdomain%sSubDomain(mat)%hTprimey, &
+                 Tdomain%sSubDomain(mat)%hprimez,Tdomain%sSubDomain(mat)%hTprimez)
+        else
+            call compute_InternalForces_PML_Elem_Fl(Tdomain%specel(n),             &
+                 Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimey, &
+                 Tdomain%sSubDomain(mat)%hTprimez)
+        end if
+
+    end if
+end do
+
+return
+end subroutine internal_forces
+!-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+subroutine external_forces(Tdomain,timer,rank)
+    use sdomain
+    implicit none
+
+    type(domain), intent(inout)  :: Tdomain
+    integer, intent(in)  :: rank
+    real, intent(in)  :: timer
+    integer  :: ns,nel,ngllx,nglly,ngllz,i_dir
+    real :: t
+
+do ns = 0, Tdomain%n_source-1
+   if(rank == Tdomain%sSource(ns)%proc)then
+       nel = Tdomain%Ssource(ns)%elem
+       ngllx = Tdomain%specel(nel)%ngllx
+       nglly = Tdomain%specel(nel)%nglly
+       ngllz = Tdomain%specel(nel)%ngllz
+     ! time : t_(n+1/2) for solid ; t_n for fluid 
+       t = merge(timer+Tdomain%TimeD%dtmin/2d0,timer,Tdomain%specel(nel)%solid)
+     !
+       if(Tdomain%sSource(ns)%i_type_source == 1)then  ! collocated force in solid
+           i_dir = Tdomain%Ssource(ns)%i_dir
+           Tdomain%specel(nel)%Forces(:,:,:,i_dir) = Tdomain%specel(nel)%Forces(:,:,:,i_dir)+ &
+                 CompSource(Tdomain%sSource(ns),t,i_dir)*Tdomain%sSource(ns)%ExtForce(:,:,:)
+       else if(Tdomain%sSource(ns)%i_type_source == 2)then  ! moment tensor source
+         do i_dir = 0,2
+           Tdomain%specel(nel)%Forces(:,:,:,i_dir) = Tdomain%specel(nel)%Forces(:,:,:,i_dir)+ &
+                 CompSource(Tdomain%sSource(ns),t,i_dir)*Tdomain%sSource(ns)%MomForce(:,:,:,i_dir)
+         end do
+       else if(Tdomain%sSource(ns)%i_type_source == 3)then    ! pressure pulse in fluid
+           Tdomain%specel(nel)%ForcesFl(:,:,:) = Tdomain%specel(nel)%ForcesFl(:,:,:)+    &
+                 CompSource_Fl(Tdomain%sSource(ns),t)*Tdomain%sSource(ns)%ExtForce(:,:,:)
+       end if
+   endif
+enddo
+
+return
+end subroutine external_forces
+!-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+subroutine inside_proc_forces(Tdomain)
+    use sdomain
+    implicit none
+
+    type(domain), intent(inout)  :: Tdomain
+    integer  :: n,nf,ne,nv
+
+! init.
+do nf = 0,Tdomain%n_face-1
+    if(Tdomain%sFace(nf)%solid)then
+        Tdomain%sFace(nf)%Forces = 0
+        if(Tdomain%sFace(nf)%PML)then
+            Tdomain%sFace(nf)%Forces1 = 0
+            Tdomain%sFace(nf)%Forces2 = 0
+            Tdomain%sFace(nf)%Forces3 = 0
+        endif
+    else
+        Tdomain%sFace(nf)%ForcesFl = 0
+        if(Tdomain%sFace(nf)%PML)then
+            Tdomain%sFace(nf)%ForcesFl1 = 0
+            Tdomain%sFace(nf)%ForcesFl2 = 0
+            Tdomain%sFace(nf)%ForcesFl3 = 0
+        endif
+    end if
+enddo
+do ne = 0,Tdomain%n_edge-1
+    if(Tdomain%sEdge(ne)%solid)then
+        Tdomain%sEdge(ne)%Forces = 0
+        if(Tdomain%sEdge(ne)%PML)then
+            Tdomain%sEdge(ne)%Forces1 = 0
+            Tdomain%sEdge(ne)%Forces2 = 0
+            Tdomain%sEdge(ne)%Forces3 = 0
+        endif
+    else
+        Tdomain%sEdge(ne)%ForcesFl = 0
+        if(Tdomain%sEdge(ne)%PML)then
+            Tdomain%sEdge(ne)%ForcesFl1 = 0
+            Tdomain%sEdge(ne)%ForcesFl2 = 0
+            Tdomain%sEdge(ne)%ForcesFl3 = 0
+        end if
+    end if
+enddo
+do nv = 0,Tdomain%n_vertex-1
+    if(Tdomain%sVertex(nv)%solid)then
+        Tdomain%sVertex(nv)%Forces = 0
+        if(Tdomain%sVertex(nv)%PML)then
+            Tdomain%sVertex(nv)%Forces1 = 0
+            Tdomain%sVertex(nv)%Forces2 = 0
+            Tdomain%sVertex(nv)%Forces3 = 0
+        endif
+    else
+        Tdomain%sVertex(nv)%ForcesFl = 0
+        if(Tdomain%sVertex(nv)%PML)then
+            Tdomain%sVertex(nv)%ForcesFl1 = 0
+            Tdomain%sVertex(nv)%ForcesFl2 = 0
+            Tdomain%sVertex(nv)%ForcesFl3 = 0
+        endif
+
+    end if
+enddo
+
+do n = 0,Tdomain%n_elem-1
+    if(Tdomain%specel(n)%solid)then
+        call get_Forces_Elem2Face(Tdomain,n)
+        call get_Forces_Elem2Edge(Tdomain,n)
+        call get_Forces_Elem2Vertex(Tdomain,n)
+    else
+        call get_ForcesFl_Elem2Face(Tdomain,n)
+        call get_ForcesFl_Elem2Edge(Tdomain,n)
+        call get_ForcesFl_Elem2Vertex(Tdomain,n)
+    end if
+enddo
+
+return
+end subroutine inside_proc_forces
+!-----------------------------------------------------------------------------
+!-----------------------------------------------------------------------------
+subroutine Comm_Forces_Complete(n,Tdomain)
+    use sdomain
+    implicit none
+
+    type(domain), intent(inout)  :: Tdomain
+    integer, intent(in)   :: n
+    integer  :: ngll,ngll_F,i,j,k,nf,ne,nv
+
+    ngll = 0 ; ngll_F = 0
+  ! faces
+    do i = 0,Tdomain%sComm(n)%nb_faces-1
+        nf = Tdomain%sComm(n)%faces(i)
+        if(Tdomain%sFace(nf)%solid)then
+            do j = 1,Tdomain%sFace(nf)%ngll2-2
+                do k = 1,Tdomain%sFace(nf)%ngll1-2
+                    Tdomain%sComm(n)%GiveForces(ngll,0:2) = Tdomain%sFace(nf)%Forces(k,j,0:2)
+                    ngll = ngll + 1
+                enddo
+            enddo
+        else
+            do j = 1,Tdomain%sFace(nf)%ngll2-2
+                do k = 1,Tdomain%sFace(nf)%ngll1-2
+                    Tdomain%sComm(n)%GiveForcesFl(ngll_F) = Tdomain%sFace(nf)%ForcesFl(k,j)
+                    ngll_F = ngll_F + 1
+                enddo
+            enddo
+        end if
+    enddo
+  ! edges
+    do i = 0,Tdomain%sComm(n)%nb_edges-1
+        ne = Tdomain%sComm(n)%edges(i)
+        if(Tdomain%sEdge(ne)%solid)then
+            do j = 1,Tdomain%sEdge(ne)%ngll-2
+                Tdomain%sComm(n)%GiveForces(ngll,0:2) = Tdomain%sEdge(ne)%Forces(j,0:2)
+                ngll = ngll + 1
+            enddo
+        else
+            do j = 1,Tdomain%sEdge(ne)%ngll-2
+                Tdomain%sComm(n)%GiveForcesFl(ngll_F) = Tdomain%sEdge(ne)%ForcesFl(j)
+                ngll_F = ngll_F + 1
+            enddo
+        end if
+    enddo
+  ! vertices
+    do i = 0,Tdomain%sComm(n)%nb_vertices-1
+        nv =  Tdomain%sComm(n)%vertices(i)
+        if(Tdomain%sVertex(nv)%solid)then
+            Tdomain%sComm(n)%GiveForces(ngll,0:2) = Tdomain%sVertex(nv)%Forces(0:2)
+            ngll = ngll + 1
+        else
+            Tdomain%sComm(n)%GiveForcesFl(ngll_F) = Tdomain%sVertex(nv)%ForcesFl
+            ngll_F = ngll_F + 1
+        end if
+    enddo
+
+return
+end subroutine Comm_Forces_Complete
+!-----------------------------------------------------------------------------
+!-----------------------------------------------------------------------------
+subroutine Comm_Forces_PML_Complete(n,Tdomain)
+    use sdomain
+    implicit none
+
+    type(domain), intent(inout)  :: Tdomain
+    integer, intent(in)   :: n
+    integer  :: ngllPML,ngllPML_F,i,j,k,nf,ne,nv
+
+    ngllPML = 0 ; ngllPML_F = 0
+
+  ! faces
+    do i = 0,Tdomain%sComm(n)%nb_faces-1
+        nf = Tdomain%sComm(n)%faces(i)
+        if(Tdomain%sFace(nf)%PML)then
+          if(Tdomain%sFace(nf)%solid)then
+            do j = 1,Tdomain%sFace(nf)%ngll2-2
+                do k = 1,Tdomain%sFace(nf)%ngll1-2
+                    Tdomain%sComm(n)%GiveForcesPML(ngllPML,1,0:2) = Tdomain%sFace(nf)%Forces1(k,j,0:2)
+                    Tdomain%sComm(n)%GiveForcesPML(ngllPML,2,0:2) = Tdomain%sFace(nf)%Forces2(k,j,0:2)
+                    Tdomain%sComm(n)%GiveForcesPML(ngllPML,3,0:2) = Tdomain%sFace(nf)%Forces3(k,j,0:2)
+                    ngllPML = ngllPML + 1
+                enddo
+            enddo
+          else
+            do j = 1,Tdomain%sFace(nf)%ngll2-2
+                do k = 1,Tdomain%sFace(nf)%ngll1-2
+                    Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,1) = Tdomain%sFace(nf)%ForcesFl1(k,j)
+                    Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,2) = Tdomain%sFace(nf)%ForcesFl2(k,j)
+                    Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,3) = Tdomain%sFace(nf)%ForcesFl3(k,j)
+                    ngllPML_F = ngllPML_F + 1
+                enddo
+            enddo
+          end if
+        endif
+    enddo
+  ! edges
+    do i = 0,Tdomain%sComm(n)%nb_edges-1
+        ne = Tdomain%sComm(n)%edges(i)
+        if(Tdomain%sEdge(ne)%PML)then
+          if(Tdomain%sEdge(ne)%solid)then
+            do j = 1,Tdomain%sEdge(ne)%ngll-2
+                Tdomain%sComm(n)%GiveForcesPML(ngllPML,1,0:2) = Tdomain%sEdge(ne)%Forces1(j,0:2)
+                Tdomain%sComm(n)%GiveForcesPML(ngllPML,2,0:2) = Tdomain%sEdge(ne)%Forces2(j,0:2)
+                Tdomain%sComm(n)%GiveForcesPML(ngllPML,3,0:2) = Tdomain%sEdge(ne)%Forces3(j,0:2)
+                ngllPML = ngllPML + 1
+            enddo
+          else
+            do j = 1,Tdomain%sEdge(ne)%ngll-2
+                Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,1) = Tdomain%sEdge(ne)%ForcesFl1(j)
+                Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,2) = Tdomain%sEdge(ne)%ForcesFl2(j)
+                Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,3) = Tdomain%sEdge(ne)%ForcesFl3(j)
+                ngllPML_F = ngllPML_F + 1
+            enddo
+          end if
+        endif
+    enddo
+  ! vertices
+    do i = 0,Tdomain%sComm(n)%nb_vertices-1
+        nv =  Tdomain%sComm(n)%vertices(i)
+        if(Tdomain%sVertex(nv)%PML)then
+          if(Tdomain%sVertex(nv)%solid)then
+            Tdomain%sComm(n)%GiveForcesPML(ngllPML,1,0:2) = Tdomain%sVertex(nv)%Forces1(0:2)
+            Tdomain%sComm(n)%GiveForcesPML(ngllPML,2,0:2) = Tdomain%sVertex(nv)%Forces2(0:2)
+            Tdomain%sComm(n)%GiveForcesPML(ngllPML,3,0:2) = Tdomain%sVertex(nv)%Forces3(0:2)
+            ngllPML = ngllPML + 1
+          else
+            Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,1) = Tdomain%sVertex(nv)%ForcesFl1
+            Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,2) = Tdomain%sVertex(nv)%ForcesFl2
+            Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,3) = Tdomain%sVertex(nv)%ForcesFl3
+            ngllPML_F = ngllPML_F + 1
+          end if
+        endif
+    enddo
+
+return
+end subroutine Comm_Forces_PML_Complete
