@@ -1,16 +1,10 @@
 !>
 !! \file Edge.f90
 !! \brief
-!! \author
-!! \version 1.0
-!! \date
 !!
 !<
 
 module sedges
-
-    ! Modified by Gaetano Festa 23/02/2005
-    ! Modified by Paul Cupillard 06/11/2005
 
     type :: edge
 
@@ -26,6 +20,10 @@ module sedges
        real, dimension (:,:), pointer :: Forces1, Forces2, Forces3
        real, dimension (:,:), pointer :: IVeloc1, Iveloc2, Iveloc3
        real, dimension (:), pointer :: Ivx, Ivy, Ivz
+       logical  :: solid
+       ! solid-fluid
+       real, dimension(:), pointer :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
+       real, dimension(:), pointer :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
 
 #ifdef MKA3D
        real, dimension (:,:), pointer :: ForcesMka
@@ -40,21 +38,31 @@ contains
 
     ! ############################################################
     !subroutine Prediction_Edge_Veloc (E, alpha, bega, dt)
-    subroutine Prediction_Edge_Veloc (E)
+    subroutine Prediction_Edge_Veloc (E,dt)
         implicit none
 
         type (Edge), intent (INOUT) :: E
-        !real, intent (IN) :: alpha, bega, dt
+        real, intent(in) :: dt
 
-        !  modification schema en temps mariotti pour couplage
-        !E%Forces(:,:) = E%Displ(:,:) + dt * E%Veloc(:,:) + dt**2 * (0.5 - bega) * E%Accel(:,:)
-        !E%V0(:,:) = E%Veloc(:,:)
-        !E%Forces(:,:) = alpha * E%Forces(:,:) + (1-alpha) * E%Displ(:,:)
         E%Forces(:,:) = E%Displ(:,:)
         E%V0(:,:) = E%Veloc(:,:)
 
         return
     end subroutine Prediction_Edge_Veloc
+
+    !------------------------------------------------------------------
+    !------------------------------------------------------------------
+    subroutine Prediction_Edge_VelPhi(E,dt)
+        implicit none
+
+        type(Edge), intent(inout) :: E
+        real, intent(in) :: dt
+
+        E%VelPhi0(:) = E%VelPhi(:)
+        E%ForcesFl(:) = E%Phi(:)
+
+        return
+    end subroutine Prediction_Edge_VelPhi
 
     ! ###########################################################
     !subroutine Correction_Edge_Veloc (E, bega, gam1, dt)
@@ -71,6 +79,7 @@ contains
         xmas = 0.
         if (  E%tsurfsem(1) > 0. ) then
             xmas = 1.
+            ! ??? Masse forfaitaire = 1/2 pour faces de couplage ?
             !    test volI2b
             !              xmas = 0.
         endif
@@ -101,6 +110,27 @@ contains
         return
     end subroutine Correction_Edge_Veloc
 
+    !------------------------------------------------------------------
+    !------------------------------------------------------------------
+    subroutine Correction_Edge_VelPhi(E,dt)
+        implicit none
+
+        type(Edge), intent(inout) :: E
+        real, intent(in) :: dt
+        integer :: i, ngll, j
+
+        ngll = E%ngll
+
+        E%ForcesFl(:) = E%MassMat(:) * E%ForcesFl(:)
+
+        E%VelPhi(:) = E%VelPhi0(:) + dt * E%ForcesFl(:)
+        E%AccelPhi(:) = (E%VelPhi(:)-E%VelPhi0(:))/dt
+        E%Phi(:) = E%Phi(:) + dt * E%VelPhi(:)
+
+
+        return
+    end subroutine Correction_Edge_VelPhi
+
     ! ############################################################
     subroutine Correction_Edge_PML_Veloc (E, dt)
 
@@ -125,6 +155,28 @@ contains
 
         return
     end subroutine Correction_Edge_PML_Veloc
+
+    !------------------------------------------------------------------
+    !------------------------------------------------------------------
+    subroutine Correction_Edge_PML_VelPhi(E,dt)
+
+        implicit none
+
+        type(Edge), intent(inout) :: E
+        real, intent(in) :: dt
+
+        E%VelPhi1(:) = E%DumpVx(:,0) * E%VelPhi1(:) + dt * E%DumpVx(:,1) * E%ForcesFl1(:)
+        E%VelPhi2(:) = E%DumpVy(:,0) * E%VelPhi2(:) + dt * E%DumpVy(:,1) * E%ForcesFl2(:)
+        E%VelPhi3(:) = E%DumpVz(:,0) * E%VelPhi3(:) + dt * E%DumpVz(:,1) * E%ForcesFl3(:)
+
+        E%VelPhi = E%VelPhi1 + E%VelPhi2 + E%VelPhi3
+
+        if(E%Abs)then
+            E%VelPhi = 0
+        endif
+
+        return
+    end subroutine Correction_Edge_PML_VelPhi
 
     ! ############################################
     subroutine Correction_Edge_FPML_Veloc (E, dt)

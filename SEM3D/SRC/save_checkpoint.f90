@@ -888,10 +888,11 @@ subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, isort)
 
     call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
 
-    call h5gcreate_f(fid, 'Elements', elem_id, hdferr, 0)
-    call h5gcreate_f(fid, 'Faces', face_id, hdferr, 0)
-    call h5gcreate_f(fid, 'Edges', edge_id, hdferr, 0)
-    call h5gcreate_f(fid, 'Vertices', vertex_id, hdferr, 0)
+    ! ifort doesn't care, but gfortran complains that the last integer should be 8 bytes
+    call h5gcreate_f(fid, 'Elements', elem_id, hdferr, 0_SIZE_T)
+    call h5gcreate_f(fid, 'Faces', face_id, hdferr, 0_SIZE_T)
+    call h5gcreate_f(fid, 'Edges', edge_id, hdferr, 0_SIZE_T)
+    call h5gcreate_f(fid, 'Vertices', vertex_id, hdferr, 0_SIZE_T)
 
     !  call create_dset_2d(fid, "Offsets", H5T_STD_I32LE, nelem+1, 8, dset_id)
     !  call h5dwrite_f(dset_id, H5T_STD_I32LE, offset, off_dims, hdferr)

@@ -13,115 +13,87 @@ module sfaces
     ! Modified by Paul Cupillard 06/11/2005
 
     type :: face
-
        logical :: PML, Abs, FPML
-
        integer :: ngll1, ngll2, dir, Which_Elem
        integer, dimension (:), pointer :: FaceNum
        integer, dimension (:,:), pointer :: Iglobnum_Face
-
        real, dimension (:,:), pointer  :: MassMat
        real, dimension (:,:,:), pointer :: Forces, Displ, Veloc, Accel, V0
        real, dimension (:,:,:), pointer :: Forces1, Forces2, Forces3, Veloc1, Veloc2, Veloc3
        real, dimension (:,:,:), pointer :: DumpVx, DumpVy, DumpVz, DumpMass
        real, dimension (:,:,:), pointer :: IVeloc1, IVeloc2, IVeloc3
        real, dimension (:,:), pointer :: Ivx, Ivy, Ivz
-
+       logical :: solid
+       ! solid-fluid
+       real, dimension(:,:), pointer :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
+       real, dimension(:,:), pointer :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
 #ifdef MKA3D
        real, dimension (:,:,:), pointer :: ForcesMka
-       !     integer, dimension (:,:,:), pointer :: FlagMka
        real, dimension (:,:), pointer :: tsurfsem
 #endif
-
     end type face
 
 contains
 
     ! ############################################################
     !>
-    !! \fn subroutine Prediction_Face_Veloc (F,alpha,bega, dt)
     !! \brief
     !!
     !! \param type (Face), intent (INOUT) F
-    !! \param real, intent (IN) bega
-    !! \param real, intent (IN) dt
-    !! \param real, intent (IN) alpha
     !<
-
-
-    !subroutine Prediction_Face_Veloc (F, alpha, bega, dt)
-    subroutine Prediction_Face_Veloc (F)
-
+    subroutine Prediction_Face_Veloc (F, dt)
         implicit none
-
         type (Face), intent (INOUT) :: F
-        !real, intent (IN) :: alpha, bega, dt
+        real, intent(in) :: dt
 
-        integer :: ngll1, ngll2
-
-
-        ngll1 = F%ngll1 ; ngll2 =F%ngll2
-
-        !  modification schema en temps mariotti pour couplage
-        !F%Forces(:,:,:) = F%Displ(:,:,:) + dt * F%Veloc(:,:,:) + dt**2 * (0.5 - bega) * F%Accel(:,:,:)
-        !F%V0(:,:,:) = F%Veloc(:,:,:)
-        !F%Forces(:,:,:) = alpha * F%Forces(:,:,:) + (1-alpha) * F%Displ(:,:,:)
         F%Forces(:,:,:) = F%Displ(:,:,:)
         F%V0(:,:,:) = F%Veloc(:,:,:)
-
         return
     end subroutine Prediction_Face_Veloc
 
+    !--------------------------------------------------------------
+    !--------------------------------------------------------------
+    subroutine Prediction_Face_VelPhi(F,dt)
+        implicit none
+        type(Face), intent(inout) :: F
+        real, intent(in) :: dt
+
+        F%VelPhi0(:,:) = F%VelPhi(:,:)
+        F%ForcesFl(:,:) = F%Phi(:,:)
+        return
+    end subroutine Prediction_Face_VelPhi
+
     ! ###########################################################
     !>
-    !! \fn subroutine Correction_Face_Veloc (F, ngll, bega, gam1,dt)
     !! \brief
     !!
-    !! \param integer, intent (IN) ngll
     !! \param type (Face), intent (INOUT) F
-    !! \param real, intent (IN) bega
-    !! \param real, intent (IN) gam1
     !! \param real, intent (IN) dt
     !<
-
-
-    !subroutine Correction_Face_Veloc (F, bega, gam1, dt)
     subroutine Correction_Face_Veloc (F, dt)
         implicit none
 
         type (Face), intent (INOUT) :: F
         !real, intent (IN) :: bega, gam1
         real, intent (IN) :: dt
-        integer :: i, j, ngll1, ngll2
-
-
+        integer :: i, j
         real :: xmas
 
 #ifdef MKA3D
         xmas = 0.
         if (  F%tsurfsem(1,1) > 0. ) then
             xmas = 1.
-            !    test volI2b
-            !              xmas = 0.
         endif
 #endif
-        !passage modifie /origine GSa Ipsis
-        ngll1 = F%ngll1 ; ngll2 = F%ngll2
 
         do i = 0,2
 #ifdef MKA3D
-            !   cas inter1
-            !       F%Forces(:,:,i) = F%MassMat(:,:) * F%Forces(:,:,i)/(1.+F%FlagMka(:,:,i))
             F%Forces(:,:,i) = F%MassMat(:,:) * F%Forces(:,:,i)/(1.+xmas)
 #else
             F%Forces(:,:,i) = F%MassMat(:,:) * F%Forces(:,:,i)
 #endif
         enddo
 
-        !  modification schema en temps mariotti pour couplage
-        !F%Veloc(:,:,:) = F%v0(:,:,:) + dt * F%Forces(:,:,:)
-        !F%Accel(:,:,:) = F%Accel(:,:,:) + gam1 / dt * (F%Veloc(:,:,:)-F%V0(:,:,:))
-        !F%Displ(:,:,:) = F%Displ(:,:,:) + bega * dt * (F%Veloc(:,:,:)+F%V0(:,:,:))
         F%Veloc(:,:,:) = F%v0(:,:,:) + dt * F%Forces(:,:,:)
         F%Accel(:,:,:) = (F%Veloc(:,:,:)-F%V0(:,:,:))/dt
         F%Displ(:,:,:) = F%Displ(:,:,:) +  dt * F%Veloc(:,:,:)
@@ -129,16 +101,28 @@ contains
         return
     end subroutine Correction_Face_Veloc
 
+    subroutine Correction_Face_VelPhi(F,dt)
+        implicit none
+
+        type(Face), intent(inout) :: F
+        real, intent(in) :: dt
+        integer :: i
+
+        F%ForcesFl(:,:) = F%MassMat(:,:) * F%ForcesFl(:,:)
+        F%VelPhi(:,:) = F%VelPhi0(:,:) + dt * F%ForcesFl(:,:)
+        F%AccelPhi(:,:) = (F%VelPhi(:,:)-F%VelPhi0(:,:))/dt
+        F%Phi(:,:) = F%Phi(:,:) + dt * F%VelPhi(:,:)
+        return
+    end subroutine Correction_Face_VelPhi
+
+
     ! ##########################################################
     !>
-    !! \fn subroutine Correction_Face_PML_Veloc (F, dt)
     !! \brief
     !!
     !! \param type (Face), intent (INOUT) F
     !! \param real, intent (IN) dt
     !<
-
-
     subroutine Correction_Face_PML_Veloc (F, dt)
 
         implicit none
@@ -164,6 +148,32 @@ contains
         return
     end subroutine Correction_Face_PML_Veloc
 
+    !--------------------------------------------------------------
+    !--------------------------------------------------------------
+    subroutine Correction_Face_PML_VelPhi(F,dt)
+
+        implicit none
+
+        type(Face), intent(inout) :: F
+        real, intent(in) :: dt
+
+
+        F%VelPhi1(:,:) = F%DumpVx(:,:,0) * F%VelPhi1(:,:) +     &
+            dt * F%DumpVx(:,:,1) * F%ForcesFl1(:,:)
+        F%VelPhi2(:,:) = F%DumpVy(:,:,0) * F%VelPhi2(:,:) +     &
+            dt * F%DumpVy(:,:,1) * F%ForcesFl2(:,:)
+        F%VelPhi3(:,:) = F%DumpVz(:,:,0) * F%VelPhi3(:,:) +     &
+            dt * F%DumpVz(:,:,1) * F%ForcesFl3(:,:)
+
+        F%VelPhi = F%VelPhi1 + F%VelPhi2 + F%VelPhi3
+
+        if(F%Abs)then
+            F%VelPhi = 0
+        endif
+
+        return
+    end subroutine Correction_Face_PML_VelPhi
+
     ! ############################################################
     !>
     !! \fn subroutine Correction_Face_FPML_Veloc (F, dt, fil)
@@ -175,8 +185,9 @@ contains
     !<
 
 
+    !--------------------------------------------------------------
+    !--------------------------------------------------------------
     subroutine Correction_Face_FPML_Veloc (F, dt)
-
         implicit none
 
         type (Face), intent (INOUT) :: F
@@ -210,10 +221,8 @@ contains
         return
     end subroutine Correction_Face_FPML_Veloc
 
+
     ! ############################################################
-
-
-
     subroutine get_vel_face (F, Vfree, ngll1, ngll2, dt, logic, orient)
         implicit none
 

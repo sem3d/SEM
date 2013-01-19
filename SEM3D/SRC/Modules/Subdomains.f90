@@ -8,7 +8,6 @@
 !<
 
 module ssubdomains
-    ! Gaetano Festa 01/02/2005
 
     type Subdomain
 
@@ -39,8 +38,6 @@ contains
     !!
     !! \param type (Subdomain) S
     !<
-
-
     subroutine Lame_coefficients (S)
 
         type (Subdomain) :: S
@@ -49,7 +46,6 @@ contains
         S%DLambda = (S%Pspeed**2 - 2 * S%Sspeed **2 ) * S%Ddensity
         S%DKappa = S%DLambda + 2.*S%DMu /3.
 
-        !!print*,' lame ',S%DMu,S%DLambda ,S%DKappa
     end subroutine Lame_coefficients
 
 end module ssubdomains

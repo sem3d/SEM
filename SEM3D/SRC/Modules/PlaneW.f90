@@ -1,15 +1,11 @@
 !>
 !! \file PlaneW.f90
 !! \brief
-!! \author
-!! \version 1.0
-!! \date
 !!
 !<
 
 module splanew
 
-    ! Modified by Elise Delavaud 13/02/06
     ! #####################################################################################
     ! #####################################################################################
 
@@ -43,7 +39,7 @@ module splanew
 
     type Param_PlaneW
 
-       real :: Mu, Lambda,Kappa, speed, lx, ly, lz, xs, ys, zs, f0
+       real :: Mu, Lambda, Kappa, speed, lx, ly, lz, xs, ys, zs, f0
        character (len=1) :: wtype
 
     end type Param_PlaneW
@@ -107,10 +103,6 @@ contains
                 Traction_i(i,j,0) = -( Sigma11*Face%Btn(i,j,0) + Sigma12*Face%Btn(i,j,1) + Sigma13*Face%Btn(i,j,2) ) / Param%speed
                 Traction_i(i,j,1) = -( Sigma12*Face%Btn(i,j,0) + Sigma22*Face%Btn(i,j,1) + Sigma23*Face%Btn(i,j,2) ) / Param%speed
                 Traction_i(i,j,2) = -( Sigma13*Face%Btn(i,j,0) + Sigma23*Face%Btn(i,j,1) + Sigma33*Face%Btn(i,j,2) ) / Param%speed
-                !if (.not. (Traction_i(i,j,0)==0 .and. Traction_i(i,j,1)==0 .and. Traction_i(i,j,2)==0 .and. &
-                !           vel_i(i,j,0)==0 .and. vel_i(i,j,1)==0 .and. vel_i(i,j,2)==0 ) ) then
-                !     print*,'HELLOF',Traction_i(i,j,0),Traction_i(i,j,1),Traction_i(i,j,2),vel_i(i,j,0),vel_i(i,j,1),vel_i(i,j,2)
-                !endif
 
                 if ( Face%Orient == 0 ) then
                     Face%Forces_Up(i,j,0:2) = ( Vfree(i,j,0:2) -  vel_i(i,j,0:2) + dt*Face%MassMat_Down(i,j)*Traction_i(i,j,0:2) ) / &
@@ -131,7 +123,6 @@ contains
                 else if ( Face%Orient == 4 ) then
                     Face%Forces_Up(i,j,0:2) = ( Vfree(i,j,0:2) -  vel_i(i,j,0:2) + dt*Face%MassMat_Down(j,i)*Traction_i(i,j,0:2) ) / &
                         ( dt * (Face%MassMat_Up(i,j)+Face%MassMat_Down(j,i)) )
-                    !Face%Forces_Up(i,j,0:2) = Traction_i(i,j,0:2)
                     Face%Forces_Down(j,i,0:2) = Face%Forces_Up(i,j,0:2) - Traction_i(i,j,0:2)
                 else if ( Face%Orient == 5 ) then
                     Face%Forces_Up(i,j,0:2) = ( Vfree(i,j,0:2) -  vel_i(i,j,0:2) + dt*Face%MassMat_Down(ngll1-1-j,i)*Traction_i(i,j,0:2) ) / &
@@ -167,7 +158,6 @@ contains
 
 
         ngll = Edge%ngll
-        !print*,'Vertex',ngll
         allocate ( Traction_i(1:ngll-2,0:2) )
         allocate ( vel_i(1:ngll-2,0:2) )
         vel_i = 0.
@@ -196,15 +186,9 @@ contains
             Traction_i(i,1) = -( Sigma12*Edge%Btn(i,0) + Sigma22*Edge%Btn(i,1) + Sigma23*Edge%Btn(i,2) ) / Param%speed
             Traction_i(i,2) = -( Sigma13*Edge%Btn(i,0) + Sigma23*Edge%Btn(i,1) + Sigma33*Edge%Btn(i,2) ) / Param%speed
 
-            !if (.not. (Traction_i(i,0)==0 .and. Traction_i(i,1)==0 .and. Traction_i(i,2)==0 .and. &
-            !           vel_i(i,0)==0 .and. vel_i(i,1)==0 .and. vel_i(i,2)==0 ) ) then
-            !     print*,'HELLOE',Traction_i(i,0),Traction_i(i,1),Traction_i(i,2),vel_i(i,0),vel_i(i,1),vel_i(i,2)
-            !endif
-
             if ( Edge%Orient == 0 ) then
                 Edge%Forces_Up(i,0:2) = ( Vfree(i,0:2) -  vel_i(i,0:2) + dt*Edge%MassMat_Down(i)*Traction_i(i,0:2) ) / &
                     ( dt * (Edge%MassMat_Up(i)+Edge%MassMat_Down(i)) )
-                !Edge%Forces_Up(i,0:2) = Traction_i(i,0:2)
                 Edge%Forces_Down(i,0:2) = Edge%Forces_Up(i,0:2) - Traction_i(i,0:2)
             else
                 Edge%Forces_Up(i,0:2) = ( Vfree(i,0:2) -  vel_i(i,0:2) + dt*Edge%MassMat_Down(ngll-1-i)*Traction_i(i,0:2) ) / &

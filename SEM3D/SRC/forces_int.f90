@@ -37,23 +37,23 @@ subroutine forces_int(Elem, htprimex, hprimey, htprimey, hprimez, htprimez, n_so
 
     m1 = Elem%ngllx;   m2 = Elem%nglly;   m3 = Elem%ngllz
 
-    call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1, Elem%Forces(0,0,0,0), m1, 0., dUx_dxi, m1)
+    call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1, Elem%Forces(:,:,:,0), m1, 0., dUx_dxi, m1)
     do n_z = 0,Elem%ngllz-1
-        call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(0,0,n_z,0), m1, hprimey, m2, 0., dUx_deta(0,0,n_z), m1)
+        call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,0), m1, hprimey, m2, 0., dUx_deta(:,:,n_z), m1)
     enddo
-    call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(0,0,0,0), m1*m2, hprimez, m3, 0., dUx_dzeta, m1*m2)
+    call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,0), m1*m2, hprimez, m3, 0., dUx_dzeta, m1*m2)
 
-    call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1, Elem%Forces(0,0,0,1), m1, 0., dUy_dxi, m1)
+    call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1, Elem%Forces(:,:,:,1), m1, 0., dUy_dxi, m1)
     do n_z = 0,Elem%ngllz-1
-        call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(0,0,n_z,1), m1, hprimey, m2, 0., dUy_deta(0,0,n_z), m1)
+        call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,1), m1, hprimey, m2, 0., dUy_deta(:,:,n_z), m1)
     enddo
-    call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(0,0,0,1), m1*m2, hprimez, m3, 0., dUy_dzeta, m1*m2)
+    call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,1), m1*m2, hprimez, m3, 0., dUy_dzeta, m1*m2)
 
-    call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1, Elem%Forces(0,0,0,2), m1, 0., dUz_dxi, m1)
+    call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1, Elem%Forces(:,:,:,2), m1, 0., dUz_dxi, m1)
     do n_z = 0,Elem%ngllz-1
-        call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(0,0,n_z,2), m1, hprimey, m2, 0., dUz_deta(0,0,n_z), m1)
+        call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,2), m1, hprimey, m2, 0., dUz_deta(:,:,n_z), m1)
     enddo
-    call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(0,0,0,2), m1*m2, hprimez, m3, 0., dUz_dzeta, m1*m2)
+    call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,2), m1*m2, hprimez, m3, 0., dUz_dzeta, m1*m2)
 
     do i = 0,m1-1
         do j = 0,m2-1

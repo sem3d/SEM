@@ -1,3 +1,21 @@
+!>
+!!\file geometrical_prop.f90
+!!\brief Proprietes geometriques des elements (fonctions de forme, jacobienne)
+!!
+!<
+
+real function f_p(t,xi,eta,zeta)
+    !- gives the t-coordinate of a GLL node.
+    implicit none
+    real, dimension(0:7), intent(in)  :: t
+    real, intent(in) :: xi,eta,zeta
+
+    f_p = 0.125 * (t(0)*(1-xi)*(1-eta)*(1-zeta) + t(1)*(1+xi)*(1-eta)*(1-zeta) + t(2)*(1+xi)*(1+eta)*(1-zeta) + &
+        t(3)*(1-xi)*(1+eta)*(1-zeta) + t(4)*(1-xi)*(1-eta)*(1+zeta) + t(5)*(1+xi)*(1-eta)*(1+zeta) + &
+        t(6)*(1+xi)*(1+eta)*(1+zeta) + t(7)*(1-xi)*(1+eta)*(1+zeta))
+end function f_p
+!-------------------------------------------------------------------------
+!-------------------------------------------------------------------------
 real function f_xp(x,xi,eta,zeta)
     !- gives the x-coordinate of a GLL node.
     implicit none

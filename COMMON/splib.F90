@@ -66,18 +66,18 @@ CONTAINS
         XX  = X
         GX  = 1.0D0
 
-        IF (DABS(XX-1.D0) .LT. EPS) RETURN
+        IF (ABS(XX-1.D0) .LT. EPS) RETURN
 
         DO WHILE (XX .GE. 1.D0)
             XX = XX-1.D0
             GX = GX*XX
-            IF (DABS(XX-1.D0) .LT. EPS) RETURN
+            IF (ABS(XX-1.D0) .LT. EPS) RETURN
         ENDDO
 
         IND = 0
         IF (XX .LT. .5D0) THEN
             IND = 1
-            GX  = GX*M_PI/DSIN(M_PI*XX)
+            GX  = GX*M_PI/SIN(M_PI*XX)
             XX  = 1.D0-XX
         ENDIF
 
@@ -461,13 +461,13 @@ CONTAINS
         C  = M_PI_2/(2.D0*DFLOAT(N)+AB+1.D0)
         DO I=1,N
             DI  = DFLOAT(I)
-            CSX = -DCOS(C*(4.D0*DI+AB-1.D0))
+            CSX = -COS(C*(4.D0*DI+AB-1.D0))
             DO IT=1,8
                 CALL VAJAPO(N,A,B,CSX,Y,DY,D2Y)
-                IF(DABS(Y) .LT. EPS) EXIT
+                IF(ABS(Y) .LT. EPS) EXIT
                 CSX = CSX-Y/DY
             END DO
-            IF(DABS(CSX) .LT. EPS) CSX=0.D0
+            IF(ABS(CSX) .LT. EPS) CSX=0.D0
             CS(I) = CSX
             DZ(I) = DY
         END DO
@@ -501,7 +501,7 @@ CONTAINS
         C  = M_PI_2/(2.D0*DFLOAT(N)+1.D0)
         DO I=1,N2
             DI  = DFLOAT(I)
-            CSX = DCOS(C*(4.D0*DI-1.D0))
+            CSX = COS(C*(4.D0*DI-1.D0))
             DO IT=1,8
                 CALL VALEPO(N,CSX,Y,DY,D2Y)
                 CSX = CSX-Y/DY
@@ -547,10 +547,10 @@ CONTAINS
         SI = -1.D0
         DO I=1,N2
             DI = DFLOAT(I)
-            CSX = DCOS(C*(2.D0*DI-1.D0))
+            CSX = COS(C*(2.D0*DI-1.D0))
             CS(I) = -CSX
             CS(N-I+1) = CSX
-            QX = DN/DSQRT(1.D0-CSX*CSX)
+            QX = DN/SQRT(1.D0-CSX*CSX)
             DZ(I) = QX*SI*DFLOAT(IN)
             DZ(N-I+1) = -QX*SI
             SI = -SI
@@ -596,9 +596,9 @@ CONTAINS
             XN = (C2+M_PI)/2.D0
             DO IT=1,8
                 XP = XN
-                XN = (DSIN(XP)-XP*DCOS(XP)+C2)/(1.D0-DCOS(XP))
+                XN = (SIN(XP)-XP*COS(XP)+C2)/(1.D0-COS(XP))
             END DO
-            Z  = (DCOS(XN/2.D0))**2
+            Z  = (COS(XN/2.D0))**2
             ZD = 1.D0/(Z-1.D0)
             CSX= 2.D0*C1*Z-((1.25D0*ZD+1.D0)*ZD-1.D0+3.D0*A*A)/(6.D0*C1)
             DO IT=1,6
@@ -657,7 +657,7 @@ CONTAINS
         ENDIF
 
         DO I=1,M
-            CSX = DSQRT(CS(M-I+1))
+            CSX = SQRT(CS(M-I+1))
             CS(N-I+1) = CSX
             IF(IN .EQ. -1) THEN
                 DZ(N-I+1) = 2.D0*CSX*DZ(M-I+1)
@@ -713,13 +713,13 @@ CONTAINS
         B1 = B+1.D0
         DO I=1,N1
             DI  = DFLOAT(I)
-            ETX = -DCOS(C*(4.D0*DI+AB+1.D0))
+            ETX = -COS(C*(4.D0*DI+AB+1.D0))
             DO IT=1,8
                 CALL VAJAPO(N1,A1,B1,ETX,Y,DY,D2Y)
-                IF(DABS(Y) .LE. EPS) EXIT
+                IF(ABS(Y) .LE. EPS) EXIT
                 ETX = ETX-Y/DY
             END DO
-            IF(DABS(ETX) .LE. EPS) ETX=0.D0
+            IF(ABS(ETX) .LE. EPS) ETX=0.D0
             ET(I) = ETX
             VN(I) = -.5D0*DY*(1.D0-ETX*ETX)/DN
         END DO
@@ -759,7 +759,7 @@ CONTAINS
 
         C  = M_PI/DFLOAT(N)
         DO I=1,N2
-            ETX = DCOS(C*DFLOAT(I))
+            ETX = COS(C*DFLOAT(I))
             DO IT=1,8
                 CALL VALEPO(N,ETX,Y,DY,D2Y)
                 ETX = ETX-DY/D2Y
@@ -798,7 +798,7 @@ CONTAINS
 
         C  = M_PI/DFLOAT(N)
         DO I=1,N2
-            ETX = DCOS(C*DFLOAT(I))
+            ETX = COS(C*DFLOAT(I))
             ET(I) = -ETX
             ET(N-I) = ETX
         END DO
@@ -837,9 +837,9 @@ CONTAINS
             XN = (C2+M_PI)/2.D0
             DO IT=1,8
                 XP = XN
-                XN = (DSIN(XP)-XP*DCOS(XP)+C2)/(1.D0-DCOS(XP))
+                XN = (SIN(XP)-XP*COS(XP)+C2)/(1.D0-COS(XP))
             END DO
-            Z  = (DCOS(XN/2.D0))**2
+            Z  = (COS(XN/2.D0))**2
             ZD = 1.D0/(Z-1.D0)
             ETX= 2.D0*C1*Z-((1.25D0*ZD+1.D0)*ZD-1.D0+3.D0*A1*A1)/(6.D0*C1)
             DO IT=1,6
@@ -1031,8 +1031,8 @@ CONTAINS
             Y  = R2*X
             DO  K=2,N-1
                 DK = DFLOAT(K)
-                RK = DSQRT(DK)
-                QK = DSQRT(DK-1.D0)
+                RK = SQRT(DK)
+                QK = SQRT(DK-1.D0)
                 YM = Y
                 Y  = (R2*X*Y-QK*YP)/RK
                 YP = YM
@@ -1046,7 +1046,7 @@ CONTAINS
         Y = 1.D0
         DO K=2,N-1,2
             DK = DFLOAT(K)
-            Y  = Y*DSQRT((DK-1.D0)/DK)
+            Y  = Y*SQRT((DK-1.D0)/DK)
         END DO
         WE(N2+1) = C/(Y*Y)
 
@@ -1250,7 +1250,7 @@ CONTAINS
             SU = 1.D0-((-1.D0)**J)*C
             DO K=1,N-1
                 DK = 2.D0*DFLOAT(K)
-                SU = SU+2.D0*DCOS(DJ*DK*M_PI/DM)/(1.D0-DK*DK)
+                SU = SU+2.D0*COS(DJ*DK*M_PI/DM)/(1.D0-DK*DK)
             END DO
             WK(J) = SU/DN
             WK(M-J) = SU/DN
@@ -1294,7 +1294,7 @@ CONTAINS
         QX = 0.D0
         DO  J=1,N
             ED = X-CS(J)
-            IF(DABS(ED) .LT. EPS) THEN
+            IF(ABS(ED) .LT. EPS) THEN
                 QX = QZ(J)
                 RETURN
             ELSE
@@ -1331,7 +1331,7 @@ CONTAINS
         QX = 0.D0
         DO J=1,N
             ED = X-CS(J)
-            IF(DABS(ED) .LT. EPS) THEN
+            IF(ABS(ED) .LT. EPS) THEN
                 QX = QZ(J)
                 RETURN
             ELSE
@@ -1368,8 +1368,8 @@ CONTAINS
         CALL VACHPO(N,X,Y,DY,D2Y)
         QX = 0.D0
         DO J=1,N
-            ED = X+DCOS(C*(2.D0*DFLOAT(J)-1.D0))
-            IF(DABS(ED) .LT. EPS) THEN
+            ED = X+COS(C*(2.D0*DFLOAT(J)-1.D0))
+            IF(ABS(ED) .LT. EPS) THEN
                 QX = QZ(J)
                 RETURN
             ELSE
@@ -1407,7 +1407,7 @@ CONTAINS
         QX = 0.D0
         DO J=1,N
             ED = X-CS(J)
-            IF(DABS(ED) .LT. EPS) THEN
+            IF(ABS(ED) .LT. EPS) THEN
                 QX = QZ(J)
                 RETURN
             ELSE
@@ -1453,7 +1453,7 @@ CONTAINS
         QX = 0.D0
         DO J=1,N
             ED = X-CS(J)
-            IF(DABS(ED) .LT. EPS) THEN
+            IF(ABS(ED) .LT. EPS) THEN
                 QX = QZ(J)
                 RETURN
             ELSE
@@ -1502,7 +1502,7 @@ CONTAINS
 
         DO J=1,N-1
             ED = X-ET(J)
-            IF(DABS(ED) .LT. EPS) THEN
+            IF(ABS(ED) .LT. EPS) THEN
                 QX = QN(J)
                 RETURN
             ELSE
@@ -1544,7 +1544,7 @@ CONTAINS
 
         DO J=1,N-1
             ED = X-ET(J)
-            IF(DABS(ED) .LT. EPS) THEN
+            IF(ABS(ED) .LT. EPS) THEN
                 QX = QN(J)
                 RETURN
             ELSE
@@ -1586,8 +1586,8 @@ CONTAINS
 
         SJ = -1.D0
         DO J=1,N-1
-            ED = X+DCOS(PN*DFLOAT(J))
-            IF(DABS(ED) .LT. EPS) THEN
+            ED = X+COS(PN*DFLOAT(J))
+            IF(ABS(ED) .LT. EPS) THEN
                 QX = QN(J)
                 RETURN
             ELSE
@@ -1638,7 +1638,7 @@ CONTAINS
         QX = QN(0)*C*(A+1.D0)*PR*(DY+SU*Y)/VN(0)
         DO J=1,N-1
             ED = X-ET(J)
-            IF(DABS(ED) .LT. EPS) THEN
+            IF(ABS(ED) .LT. EPS) THEN
                 QX = QN(J)
                 RETURN
             ELSE
@@ -1676,12 +1676,12 @@ CONTAINS
         SU  = 0.D0
         QM  = 0.D0
         DO J=1,N
-            Y  = DABS(QZ(J))
+            Y  = ABS(QZ(J))
             IF(Y .GT. QM) QM=Y
             IF(Y .LT. EPS) CYCLE
             SU = SU+Y*Y*WE(J)
         END DO
-        QI = DSQRT(SU)
+        QI = SQRT(SU)
 
         RETURN
     END SUBROUTINE NOLEGA
@@ -1717,15 +1717,15 @@ CONTAINS
         DO J=1,N
             DJ = DFLOAT(J)
             J2 = 2*J
-            X  = -DCOS(M_PI*DJ/DN)
-            Y  = DABS(QZ(J))
+            X  = -COS(M_PI*DJ/DN)
+            Y  = ABS(QZ(J))
             IF(Y .GT. QM) QM=Y
             CALL INCHGA(N,DZ,QZ,X,QX)
             S1 = S1+Y*Y
             S2 = S2+Y*Y*WK(J2-1)+QX*QX*WK(J2)
         END DO
-        QW = DSQRT(S1*M_PI/DN)
-        QI = DSQRT(S2)
+        QW = SQRT(S1*M_PI/DN)
+        QI = SQRT(S2)
 
         RETURN
     END SUBROUTINE NOCHGA
@@ -1777,7 +1777,7 @@ CONTAINS
         QM = 0.D0
         DO J=0,N
             Y1 = QN(J)
-            YM = DABS(Y1)
+            YM = ABS(Y1)
             IF(YM .GT. QM) QM=YM
             Y2 = VN(J)
             S2 = S2+Y1*Y2*WT(J)
@@ -1785,8 +1785,8 @@ CONTAINS
             IF(YM .LT. EPS) CYCLE
             S1 = S1+Y1*Y1*WT(J)
         END DO
-        QS = DSQRT(S1)
-        QW = DSQRT(S1-(S3-C)*S2*S2/(S3*S3))
+        QS = SQRT(S1)
+        QW = SQRT(S1-(S3-C)*S2*S2/(S3*S3))
 
         RETURN
     END SUBROUTINE NOJAGL
@@ -1821,15 +1821,15 @@ CONTAINS
         QM = 0.D0
         DO J=0,N
             Y1 = QN(J)
-            YM = DABS(Y1)
+            YM = ABS(Y1)
             IF(YM .GT. QM) QM=YM
             Y2 = VN(J)
             S2 = S2+Y1*Y2*WT(J)
             IF(YM .LT. EPS) CYCLE
             S1 = S1+Y1*Y1*WT(J)
         END DO
-        QS = DSQRT(S1)
-        QI = DSQRT(DABS(S1-C*S2*S2))
+        QS = SQRT(S1)
+        QI = SQRT(ABS(S1-C*S2*S2))
 
         RETURN
     END SUBROUTINE NOLEGL
@@ -1862,15 +1862,15 @@ CONTAINS
         S1 = .5D0*Y*Y
         S2 = .5D0*Y*SN
         S3 = Y*Y*WK(0)
-        QM = DABS(Y)
+        QM = ABS(Y)
 
         SJ = -1.D0
         DO J=1,N-1
             J2 = 2*J
             DJ = DFLOAT(J2-1)
-            X  = -DCOS(M_PI_2*DJ/DN)
+            X  = -COS(M_PI_2*DJ/DN)
             Y  = QN(J)
-            YM = DABS(Y)
+            YM = ABS(Y)
             IF(YM .GT. QM) QM=YM
             CALL INCHGL(N,QN,X,QX)
             S1 = S1+Y*Y
@@ -1880,18 +1880,18 @@ CONTAINS
         END DO
         N2 = 2*N
         DD = DFLOAT(N2-1)
-        X  = -DCOS(M_PI_2*DD/DN)
+        X  = -COS(M_PI_2*DD/DN)
         Y  = QN(N)
-        YM = DABS(Y)
+        YM = ABS(Y)
         IF(YM .GT. QM) QM=YM
         CALL INCHGL(N,QN,X,QX)
         S1 = S1+.5D0*Y*Y
         S2 = S2+.5D0*Y
         S3 = S3+QX*QX*WK(N2-1)+Y*Y*WK(N2)
 
-        QW = DSQRT(DABS(M_PI*S1/DN-M_PI_2*S2*S2/(DN*DN)))
-        QI = DSQRT(S3)
-        QS = DSQRT(M_PI*S1/DN)
+        QW = SQRT(ABS(M_PI*S1/DN-M_PI_2*S2*S2/(DN*DN)))
+        QI = SQRT(S3)
+        QS = SQRT(M_PI*S1/DN)
 
         RETURN
     END SUBROUTINE NOCHGL
@@ -2044,7 +2044,7 @@ CONTAINS
             SU = 0.D0
             DO J=1,N
                 DJ = 2.D0*DFLOAT(J)-1.D0
-                SU = SU+QZ(J)*DCOS(DK*DJ*M_PI_2/DN)
+                SU = SU+QZ(J)*COS(DK*DJ*M_PI_2/DN)
             END DO
             CO(K) = SK*SU/DN
             SK = -SK
@@ -2323,7 +2323,7 @@ CONTAINS
             SU = .5D0*(QN(0)+QN(N)*SK)
             DO  J=1,N-1
                 DJ = DFLOAT(J)
-                SU = SU+QN(J)*DCOS(DK*DJ*M_PI/DN)
+                SU = SU+QN(J)*COS(DK*DJ*M_PI/DN)
             END DO
             CO(K) = 2.D0*SK*SU/DN
             SK = -SK
@@ -2691,8 +2691,8 @@ CONTAINS
         CALL GAMMAF(B1,GB1)
         CALL GAMMAF(AB2,GAB2)
         C  = ((2.D0)**(AB+1.D0))*GA1*GB1/GAB2
-        V  = DABS(CO(0))
-        QW = V*DSQRT(C)
+        V  = ABS(CO(0))
+        QW = V*SQRT(C)
         IF (N .EQ. 0) RETURN
 
         SU = 0.D0
@@ -2701,12 +2701,12 @@ CONTAINS
 1       DO K=1,N
             DK = DFLOAT(K)
             C  = C*(DK+A)*(DK+B)/DK
-            V  = DABS(CO(K))
+            V  = ABS(CO(K))
             IF (V .LT. EPS) GOTO 3
             SU = SU+C*V*V/(2.D0*DK+AB+1.D0)
 3           C  = C/(DK+AB+1.D0)
         END DO
-        QW = DSQRT(SU)
+        QW = SQRT(SU)
 
         RETURN
     END SUBROUTINE NOJAEX
@@ -2730,11 +2730,11 @@ CONTAINS
         SU = 0.D0
         DO 1 K=0,N
             DK = DFLOAT(K)
-            V  = DABS(CO(K))
+            V  = ABS(CO(K))
             IF (V .LT. EPS) GOTO 1
             SU = SU+V*V/(2.D0*DK+1.D0)
 1       END DO
-        QI = DSQRT(2.D0*SU)
+        QI = SQRT(2.D0*SU)
 
         RETURN
     END SUBROUTINE NOLEEX
@@ -2758,7 +2758,7 @@ CONTAINS
 
         PR = 1.77245385090551588D0
         R2 = 1.41421356237309515D0
-        V  = DABS(CO(0))
+        V  = ABS(CO(0))
         QW = PR*V
         QI = R2*V
         IF (N .EQ. 0) RETURN
@@ -2768,11 +2768,11 @@ CONTAINS
             SU = 2.D0*V*V
         END IF
         DO K=1,N
-            V  = DABS(CO(K))
+            V  = ABS(CO(K))
             IF (V .LT. EPS) CYCLE
             SU = SU+V*V
         END DO
-        QW = PR*DSQRT(.5D0*SU)
+        QW = PR*SQRT(.5D0*SU)
 
         SU = 0.D0
         DO K=0,N,2
@@ -2793,7 +2793,7 @@ CONTAINS
                 SU = SU+C*V*CO(M)
             END DO
         END DO
-        QI = DSQRT(SU)
+        QI = SQRT(SU)
 
         RETURN
     END SUBROUTINE NOCHEX
@@ -2818,8 +2818,8 @@ CONTAINS
 
         A1  = A+1.D0
         CALL GAMMAF(A1,C)
-        V  = DABS(CO(0))
-        QW = V*DSQRT(C)
+        V  = ABS(CO(0))
+        QW = V*SQRT(C)
         IF (N .EQ. 0) RETURN
 
         SU = 0.D0
@@ -2829,11 +2829,11 @@ CONTAINS
         DO K=1,N
             DK = DFLOAT(K)
             C  = C*(DK+A)/DK
-            V  = DABS(CO(K))
+            V  = ABS(CO(K))
             IF (V .LT. EPS) CYCLE
             SU = SU+C*V*V
         END DO
-        QW = DSQRT(SU)
+        QW = SQRT(SU)
 
         RETURN
     END SUBROUTINE NOLAEX
@@ -2856,7 +2856,7 @@ CONTAINS
 
         PR = 1.33133536380038953D0
         R2 = 1.41421356237309515D0
-        V  = DABS(CO(0))
+        V  = ABS(CO(0))
         QW = V*PR
         IF (N .EQ. 0) RETURN
 
@@ -2867,12 +2867,12 @@ CONTAINS
         C  = 1.D0
         DO K=1,N
             DK = DFLOAT(K)
-            C  = C*R2*DSQRT(DK)
-            V  = DABS(CO(K))
+            C  = C*R2*SQRT(DK)
+            V  = ABS(CO(K))
             IF (V .LT. EPS) CYCLE
             SU = SU+(C*V)*(C*V)
         END DO
-        QW = PR*DSQRT(SU)
+        QW = PR*SQRT(SU)
 
         RETURN
     END SUBROUTINE NOHEEX
@@ -3678,7 +3678,7 @@ CONTAINS
         IF(N .EQ. 1) RETURN
 
         N2 = N/2
-        C  = 2.D0/DSQRT(DN)
+        C  = 2.D0/SQRT(DN)
         SN = DFLOAT(1+4*N2-2*N)
         CO(N-N2-1) = QZ(N)
         DO I=1,N2
@@ -3699,8 +3699,8 @@ CONTAINS
         SM = -1.D0
         DO M=1,N-N2-1
             AR = M_PI_2*DFLOAT(M)/DN
-            CS = DCOS(AR)
-            SI = DSIN(AR)
+            CS = COS(AR)
+            SI = SIN(AR)
             V1 = C*SM*(CO(M)*CS+CO(N-M)*SI)
             V2 = C*SM*SN*(CO(M)*SI-CO(N-M)*CS)
             CO(M) = V1
@@ -3762,7 +3762,7 @@ CONTAINS
         END DO
         CO(0) = S1/DN
         CO(N) = S2/DN
-        C  = .5D0/DSQRT(DN)
+        C  = .5D0/SQRT(DN)
         IF (2*N2 .EQ. N) THEN
             CO(N2) = 2.D0*C*((-1.D0)**N2)*CO(N2)
         ENDIF
@@ -3771,7 +3771,7 @@ CONTAINS
         SM = -1.D0
         DO M=1,N-N2-1
             AR = M_PI*DFLOAT(M)/DN
-            SI = .5D0/DSIN(AR)
+            SI = .5D0/SIN(AR)
             V1 = CO(M)*(1.D0+SI)+CO(N-M)*(1.D0-SI)
             V2 = CO(M)*(1.D0-SI)+CO(N-M)*(1.D0+SI)
             CO(M) = C*SM*V1
@@ -3836,7 +3836,7 @@ CONTAINS
         END DO
         QN(0) = S1
         QN(N) = S2
-        C  = .25D0*DSQRT(DN)
+        C  = .25D0*SQRT(DN)
         IF (2*N2 .EQ. N) THEN
             QN(N2) = 2.D0*C*QN(N2)
         ENDIF
@@ -3844,7 +3844,7 @@ CONTAINS
 
         DO M=1,N-N2-1
             AR = M_PI*DFLOAT(M)/DN
-            SI = .5D0/DSIN(AR)
+            SI = .5D0/SIN(AR)
             V1 = QN(M)*(1.D0+SI)+QN(N-M)*(1.D0-SI)
             V2 = QN(M)*(1.D0-SI)+QN(N-M)*(1.D0+SI)
             QN(M) = C*V1

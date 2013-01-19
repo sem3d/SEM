@@ -9,61 +9,45 @@
 
 module ssources
 
-    ! Modified by Gaetano Festa 31/01/2005
-    ! Modified by Paul Cupillard 05/06/2005
+    use constants
 
     type :: Source
-
-       !   modif pour benchmark can2
+       ! xxx
        character(len = 30)  :: time_file
-       !   modif pour benchmark can2
        integer :: i_dir, i_type_source, i_time_function, elem, proc
        integer, dimension(0:2) :: gll
-       real :: tau_b,cutoff_freq, radius,realcolat,reallong,refcolat,reflong
+       real :: tau_b,cutoff_freq
+       real :: radius,realcolat,reallong,refcolat,reflong
+
        !   ajout de parametres pour definir Gabor signal source de type 4
        !   ajout de gama et ts
        real ::  gama, ts
-       !  modif mariotti fevrier 2007 cea
+
        real :: Xsource,YSource,Zsource
 
        real, dimension(0:3) :: fh
        real, dimension(0:2) :: refcoord
-       !!real, dimension(:), allocatable :: timefunc !!gfortran rale
        real, dimension(:), pointer :: timefunc
        real, dimension(0:2,0:2) :: Moment, InvGrad
        real, dimension (:,:,:,:), pointer :: coeff
-       !   modif pour benchmark can2
        real, dimension(:), pointer :: ampli, time
-       !   modif pour benchmark can2
-
+       real, allocatable, dimension(:,:,:) :: ExtForce
+       real, allocatable, dimension(:,:,:,:) :: MomForce
     end type Source
 
 contains
 
-    ! ###############################################
     !>
-    !! \fn function CompSource (Sour,time,np)
     !! \brief
     !!
     !! \param type (source) Sour
-    !! \param integer np
     !! \param real time
     !<
+    real function CompSource (Sour,time,ntime)
 
-    !>
-    !! \fn function CompSource (Sour,time,np)
-    !! \brief
-    !!
-    !! \param type (source) Sour
-    !! \param integer np
-    !! \param real time
-    !<
-
-
-    real function CompSource (Sour,time)
-
-        type (source) :: Sour
-        real :: time
+        type (source), intent(in) :: Sour
+        integer, intent(in) :: ntime
+        real, intent(in) :: time
 
         select case (Sour%i_time_function)
         case (1)
@@ -71,8 +55,7 @@ contains
         case (2)
             CompSource = Ricker (time,Sour%tau_b,Sour%cutoff_freq)
         case (3)
-            !    deja pris par ancienne fonction
-            CompSource = 0.
+            CompSource = Sour%timefunc(ntime)
         case (4)
             !   developpement de la source du benchmark can1
             CompSource = Gabor (time,Sour%tau_b,Sour%cutoff_freq,Sour%gama,Sour%ts)
@@ -166,7 +149,6 @@ contains
     real function Gaussian (time,tau)
 
         real :: tau,time
-        real, parameter :: pi = 3.141592653
 
         if ( time < 2.5*tau ) then
             Gaussian = -(time-tau) * exp (-(time-tau)**2/tau**2)
@@ -186,21 +168,14 @@ contains
     !! \param real tau
     !! \param real f0
     !<
-
-
     real function Ricker (time,tau,f0)
-
-
         real :: time, tau, f0
         real :: sigma
-        real, parameter :: pi = 3.141592653
 
         if ( time < 2.5*tau ) then
-            sigma = pi * f0 * (time-tau)
+            sigma = M_PI * f0 * (time-tau)
             sigma = sigma**2
-!!!! Ricker = (1 - 2*sigma) * exp(-sigma) !version origine
-            Ricker = 1e5* (1 - 2*sigma) * exp(-sigma) !version Gsa Ipsis (amplitude)
-            !print*,' ricker ',pi, time, tau, f0,sigma,exp(-sigma), Ricker
+            Ricker = (1 - 2*sigma) * exp(-sigma) !version Gsa Ipsis (amplitude)
         else
             Ricker = 0.
         endif
@@ -237,6 +212,34 @@ contains
         !       print*,' Gabor ',time, Gabor
         return
     end function Gabor
+
+    !----------------------------------------------------
+    !----------------------------------------------------
+    real function Ricker_Fl(time,tau,f0)
+        ! Ricker function for pressure wave: the same as the previous one, but with
+        !    one time derivative to be coherent
+        real  :: time, tau, f0
+        real  :: sigma,pi,sigma2,sigma3
+
+        sigma = M_PI*f0*(time-tau)
+        sigma2 = sigma**2
+        sigma3 = M_PI*f0
+
+        Ricker_Fl = -4d0*sigma*sigma3*exp(-sigma2)-2d0*sigma*sigma3*Ricker(time,tau,f0)
+
+        return
+    end function Ricker_Fl
+    !----------------------------------------------------
+    !----------------------------------------------------
+    real function CompSource_Fl(Sour,time)
+        ! only a Ricker for the time being.
+        type(source) :: Sour
+        real :: time
+
+        CompSource_Fl = Ricker_fl(time,Sour%tau_b,Sour%cutoff_freq)
+
+        return
+    end function CompSource_Fl
 
 end module ssources
 !! Local Variables:

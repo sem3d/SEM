@@ -3,6 +3,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 ENABLE_LANGUAGE(Fortran)
 set(PRJ ${PROJECT_SOURCE_DIR})
 
+
 set(SEM3D_SOURCES_F
     ${SEM_SRC}
     ${PRJ}/SRC/Modules/Element.f90
@@ -16,6 +17,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/Fault.f90
     ${PRJ}/SRC/Modules/Domain.f90
     ${PRJ}/SRC/Modules/Couplage.f90
+    ${PRJ}/SRC/Modules/solid_fluid.f90
     ${PRJ}/SRC/Capteur.f90
     ${PRJ}/SRC/Comm_Forces_Edge.f90
     ${PRJ}/SRC/Comm_Forces_Face.f90
@@ -44,7 +46,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/courant.f90
     ${PRJ}/SRC/deallocate_domain.f90
     ${PRJ}/SRC/define_arrays.f90
-    ${PRJ}/SRC/define_neu_properties.f90
+#    ${PRJ}/SRC/define_neu_properties.f90
+    ${PRJ}/SRC/define_Neumann_properties.f90
     ${PRJ}/SRC/define_planew_properties.f90
     ${PRJ}/SRC/double_couple.f90
     ${PRJ}/SRC/forces_int.f90
@@ -97,6 +100,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/indexation.f90
     ${PRJ}/SRC/geometrical_prop.f90
     ${PRJ}/SRC/algo_comm.f90
+    ${PRJ}/SRC/source_excit.f90
+    ${PRJ}/SRC/boundary_conditions_init.f90
 )
 
 set(SEM3D_SOURCES ${SEM3D_SOURCES_F}
@@ -126,9 +131,7 @@ set(SEM3D_SOURCES ${SEM3D_SOURCES}
   ${FTM_SOURCES})
 endif(OPT_MPI)
 
-if(OPT_HDF5)
-add_definitions(-DUSE_HDF5)
-include_directories(${HDF5_INCLUDE_DIR_FORTRAN})
+if (OPT_HDF5)
 set(SEM_EXTRA_LIBS ${MPI_EXTRA_LIBRARY} hdf5_fortran)
 set(SEM3D_SOURCES ${SEM3D_SOURCES} ${SEMCOMMON}/sem_hdf5.f90)
 endif(OPT_HDF5)
@@ -142,7 +145,7 @@ endif (OPT_COUPLAGE)
 # NB: on peut compiler sem3d.exe avec OPT_COUPLAGE mais on va compiler
 # les sources 2 fois (une fois avec -DCOUPLAGE, une fois sans)
 if(NOT OPT_COUPLAGE)
-add_executable(sem3d.exe  ${SEM3D_SOURCES})
+add_executable(sem3d.exe  ${PRJ}/SRC/main.F90 ${SEM3D_SOURCES})
 target_link_libraries(sem3d.exe ${CEAUSER} ${SEM_EXTRA_LIBS})
 install(TARGETS sem3d.exe RUNTIME DESTINATION bin)
 endif(NOT OPT_COUPLAGE)

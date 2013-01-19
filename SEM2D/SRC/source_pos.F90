@@ -193,10 +193,10 @@ subroutine SourcePosition(Tdomain)
                         allocate  (Tdomain%sSource(nsour)%Elem(n)%Explosion(0:ngllx-1,0:ngllz-1,0:1))
                         do j = 0,ngllz-1
                             call pol_lagrange (ngllz, Tdomain%sSubdomain(mat)%GLLcz, j, eta,weta)
-                            call DERIVAL (Tdomain%sSubdomain(mat)%GLLcz, ngllz, j, eta, dwdeta)
+                            call DERIVLAG (Tdomain%sSubdomain(mat)%GLLcz, ngllz, j, eta, dwdeta)
                             do i = 0,ngllx-1
                                 call pol_lagrange (ngllx, Tdomain%sSubdomain(mat)%GLLcx, i, xi, wxi )
-                                call DERIVAL ( Tdomain%sSubdomain(mat)%GLLcx, ngllx, i, xi, dwdxi)
+                                call DERIVLAG ( Tdomain%sSubdomain(mat)%GLLcx, ngllx, i, xi, dwdxi)
                                 Tdomain%sSource(nsour)%Elem(n)%Explosion (i,j,0) = Tdomain%sSource(nsour)%Elem(n)%Scoeff(0,0) * dwdxi * weta + &
                                     Tdomain%sSource(nsour)%Elem(n)%Scoeff(0,1) * dwdeta * wxi
                                 Tdomain%sSource(nsour)%Elem(n)%Explosion (i,j,1) =Tdomain%sSource(nsour)%Elem(n)%Scoeff(1,0) * dwdxi * weta + &
@@ -339,10 +339,10 @@ subroutine SourcePosition(Tdomain)
                         allocate  (Tdomain%sSource(nsour)%Elem(n)%Explosion(0:ngllx-1,0:ngllz-1,0:1))
                         do j = 0,ngllz-1
                             call pol_lagrange (ngllz, Tdomain%sSubdomain(mat)%GLLcz, j, eta,weta)
-                            call DERIVAL (Tdomain%sSubdomain(mat)%GLLcz, ngllz, j, eta, dwdeta)
+                            call DERIVLAG (Tdomain%sSubdomain(mat)%GLLcz, ngllz, j, eta, dwdeta)
                             do i = 0,ngllx-1
                                 call pol_lagrange (ngllx, Tdomain%sSubdomain(mat)%GLLcx, i, xi, wxi )
-                                call DERIVAL ( Tdomain%sSubdomain(mat)%GLLcx, ngllx, i, xi, dwdxi)
+                                call DERIVLAG ( Tdomain%sSubdomain(mat)%GLLcx, ngllx, i, xi, dwdxi)
                                 Tdomain%sSource(nsour)%Elem(n)%Explosion (i,j,0) = Tdomain%sSource(nsour)%Elem(n)%Scoeff(0,0) * dwdxi * weta + &
                                     Tdomain%sSource(nsour)%Elem(n)%Scoeff(0,1) * dwdeta * wxi
                                 Tdomain%sSource(nsour)%Elem(n)%Explosion (i,j,1) =Tdomain%sSource(nsour)%Elem(n)%Scoeff(1,0) * dwdxi * weta + &

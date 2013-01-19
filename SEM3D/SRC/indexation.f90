@@ -1,3 +1,9 @@
+!>
+!!\file indexation.f90
+!!\brief calcul de la numerotation des ddl
+!!
+!<
+
 subroutine ind_elem_face(ind_face,orient_face,ngllx,nglly,ngllz,index_elem)
     !- routine giving info about index array for Iglobnum, depending on the index of
     !     the face and its orientation:

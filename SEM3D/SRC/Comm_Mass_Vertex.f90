@@ -1,9 +1,6 @@
 !>
 !! \file Comm_Mass_Vertex.f90
 !! \brief
-!! \author
-!! \version 1.0
-!! \date
 !!
 !<
 

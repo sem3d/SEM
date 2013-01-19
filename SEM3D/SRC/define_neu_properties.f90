@@ -18,7 +18,7 @@ subroutine define_neu_properties (Tdomain)
 
     type(Domain), intent (INOUT) :: Tdomain
 
-    integer :: ngll,ngll1,ngll2,mat_index,nf,ne,nv
+    integer :: ngll,ngll1,ngll2,mat_index,nf,ne,nv,nf_aus
     character(Len=MAX_FILE_SIZE) :: fnamef
 
     call semname_define_neu_properties_file(Tdomain%neumann_file,fnamef)
@@ -38,23 +38,8 @@ subroutine define_neu_properties (Tdomain)
     do nf = 0, Tdomain%sNeu%n_faces-1
         ngll1 = Tdomain%sNeu%nFace(nf)%ngll1
         ngll2 = Tdomain%sNeu%nFace(nf)%ngll2
-        !  if (ngll1 == 9 .and. ngll2==9)  Tdomain%sNeu%nFace(nf)%mat_index = 12
-        !  if (ngll1 == 6 .and. ngll2==6)  Tdomain%sNeu%nFace(nf)%mat_index = mat_index
-        !  if (ngll1 == 6 .and. ngll2==9)  Tdomain%sNeu%nFace(nf)%mat_index = 3
-        !  if (ngll1 == 9 .and. ngll2==6)  Tdomain%sNeu%nFace(nf)%mat_index = 4
-        !  if (ngll1 == 9 .and. ngll2==9)  Tdomain%sNeu%nFace(nf)%mat_index = 12
-        !  if (ngll1 == 7 .and. ngll2==7)  Tdomain%sNeu%nFace(nf)%mat_index = mat_index
-        !  if (ngll1 == 7 .and. ngll2==9)  Tdomain%sNeu%nFace(nf)%mat_index = 3
-        !  if (ngll1 == 9 .and. ngll2==7)  Tdomain%sNeu%nFace(nf)%mat_index = 4
-        !  if (ngll1 == 7 .and. ngll2==7)  Tdomain%sNeu%nFace(nf)%mat_index = 12
-        !  if (ngll1 == 6 .and. ngll2==6)  Tdomain%sNeu%nFace(nf)%mat_index = mat_index
-        !  if (ngll1 == 6 .and. ngll2==7)  Tdomain%sNeu%nFace(nf)%mat_index = 3
-        !  if (ngll1 == 7 .and. ngll2==6)  Tdomain%sNeu%nFace(nf)%mat_index = 4
-        if (ngll1 == 8 .and. ngll2==8)  Tdomain%sNeu%nFace(nf)%mat_index = 12
-        if (ngll1 == 6 .and. ngll2==6)  Tdomain%sNeu%nFace(nf)%mat_index = mat_index
-        if (ngll1 == 6 .and. ngll2==8)  Tdomain%sNeu%nFace(nf)%mat_index = 3
-        if (ngll1 == 8 .and. ngll2==6)  Tdomain%sNeu%nFace(nf)%mat_index = 4
-        !  Tdomain%sNeu%nFace(nf)%mat_index = mat_index
+        nf_aus = Tdomain%sNeu%nFace(nf)%Face
+        Tdomain%sNeu%nFace(nf)%mat_index = Tdomain%specel(Tdomain%sFace(nf_aus)%Which_Elem)%mat_index
         allocate (Tdomain%sNeu%nFace(nf)%Btn(0:ngll1-1,0:ngll2-1,0:2))
         allocate (Tdomain%sNeu%nFace(nf)%Forces(1:ngll1-2,1:ngll2-2,0:2))
     enddo

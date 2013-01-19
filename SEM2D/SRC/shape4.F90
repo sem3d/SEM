@@ -124,6 +124,9 @@ end subroutine write_result_mesh
 #endif
 #else
 subroutine write_result_mesh(Tdomain)
+    use sdomain
+    type(domain),target, intent (INOUT) :: Tdomain
+
 end subroutine write_result_mesh
 #endif
 
@@ -134,6 +137,12 @@ subroutine shape4(Tdomain)
 
     implicit none
 
+    interface
+       subroutine write_result_mesh(Tdomain)
+           use sdomain
+           type(domain),target, intent (INOUT) :: Tdomain
+       end subroutine write_result_mesh
+    end interface
     type(domain),target, intent (INOUT) :: Tdomain
 
 

@@ -27,6 +27,31 @@ subroutine get_Displ_Vertex2Elem(Tdomain,n)
     return
 end subroutine get_Displ_Vertex2Elem
 
+!----------------------------------------------------------------------------
+
+!----------------------------------------------------------------------------
+subroutine get_Phi_Vertex2Elem(Tdomain,n)
+
+    use sdomain
+    implicit none
+
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in) :: n
+    integer :: nv, ngllx,nglly,ngllz,nnv
+
+    ngllx = Tdomain%specel(n)%ngllx
+    nglly = Tdomain%specel(n)%nglly
+    ngllz = Tdomain%specel(n)%ngllz
+
+    do nv = 0,7
+        nnv = Tdomain%specel(n)%Near_Vertices(nv)
+        ! now we call the general deassemblage routine
+        call get_ScalarProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,  &
+            Tdomain%sVertex(nnv)%ForcesFl,Tdomain%specel(n)%ForcesFl(:,:,:))
+    enddo
+
+    return
+end subroutine get_Phi_Vertex2Elem
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

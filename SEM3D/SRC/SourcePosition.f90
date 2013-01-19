@@ -9,8 +9,6 @@
 
 subroutine SourcePosition (Tdomain,rg)
 
-    ! Written by Paul Cupillard 06/06/2005
-
     use sdomain
     use constants, only : M_PI
     use mpi
@@ -84,7 +82,7 @@ subroutine SourcePosition (Tdomain,rg)
         ! On trouve le noeud le plus proche de la src
         dmin = 1000000
         do i = 0,Tdomain%n_glob_nodes-1
-            d = sqrt ((Tdomain%Coord_nodes(0,i)-xs)**2 + (Tdomain%Coord_nodes(1,i)-ys)**2 + (Tdomain%Coord_nodes(2,i)-zs)**2)
+            d = sqrt((Tdomain%Coord_nodes(0,i)-xs)**2 + (Tdomain%Coord_nodes(1,i)-ys)**2 + (Tdomain%Coord_nodes(2,i)-zs)**2)
             if (d <= dmin) then
                 dmin = d
                 near_node = i
@@ -95,7 +93,7 @@ subroutine SourcePosition (Tdomain,rg)
         n_around_elem = 0
         do i = 0,Tdomain%n_elem-1
             do j = 0,Tdomain%n_nodes-1
-                if (Tdomain%specel(i)%Control_nodes(j)==near_node) then
+                if(Tdomain%specel(i)%Control_nodes(j) == near_node) then
                     el_around_node(n_around_elem) = i
                     n_around_elem = n_around_elem + 1
                 endif
@@ -112,7 +110,7 @@ subroutine SourcePosition (Tdomain,rg)
                     do y = 0,nglly-1
                         do z = 0,ngllz-1
                             j = Tdomain%specel(el_around_node(i))%Iglobnum(x,y,z)
-                            d = sqrt ((Tdomain%Globcoord(0,j)-xs)**2 + (Tdomain%Globcoord(1,j)-ys)**2 + (Tdomain%Globcoord(2,j)-zs)**2)
+                            d = sqrt((Tdomain%Globcoord(0,j)-xs)**2+(Tdomain%Globcoord(1,j)-ys)**2 + (Tdomain%Globcoord(2,j)-zs)**2)
                             if (d <= dmin) then
                                 dmin = d
                                 Tdomain%Ssource(n_src)%elem = el_around_node(i)
@@ -170,18 +168,18 @@ subroutine SourcePosition (Tdomain,rg)
                 eta_search(i) = Tdomain%sSubdomain(mat)%GLLcy(y-1) + (i+1)*dist_eta/4
                 zeta_search(i) = Tdomain%sSubdomain(mat)%GLLcz(z-1) + (i+1)*dist_zeta/4
             enddo
-            allocate (coord(0:Tdomain%n_nodes-1,0:2))
+            allocate(coord(0:Tdomain%n_nodes-1,0:2))
             do i = 0,Tdomain%n_nodes-1
                 j = Tdomain%specel(n)%Control_Nodes(i)
                 coord(i,0:2) = Tdomain%Coord_Nodes(0:2,j)
             enddo
-            dmin = max (sqrt((coord(0,0)-coord(6,0))**2 + (coord(0,1)-coord(6,1))**2 + (coord(0,2)-coord(6,2))**2), &
+            dmin = max(sqrt((coord(0,0)-coord(6,0))**2 + (coord(0,1)-coord(6,1))**2 + (coord(0,2)-coord(6,2))**2), &
                 sqrt((coord(1,0)-coord(7,0))**2 + (coord(1,1)-coord(7,1))**2 + (coord(1,2)-coord(7,2))**2), &
                 sqrt((coord(2,0)-coord(4,0))**2 + (coord(2,1)-coord(4,1))**2 + (coord(2,2)-coord(4,2))**2), &
                 sqrt((coord(3,0)-coord(5,0))**2 + (coord(3,1)-coord(5,1))**2 + (coord(3,2)-coord(5,2))**2))
             epsil = dmin/10000.
             num = 0
-            dicho : do while (dmin > epsil)
+            dicho : do while(dmin > epsil)
                 do i = 0,2
                     do j = 0,2
                         do k = 0,2
@@ -210,10 +208,10 @@ subroutine SourcePosition (Tdomain,rg)
                                     coord(6,2)*(1+xi)*(1+eta)*(1+zeta) + coord(7,2)*(1-xi)*(1+eta)*(1+zeta))
                             endif
                             ! calcul de la distance a la source
-                            d = sqrt ((xa-xs)**2 + (ya-ys)**2 + (za-zs)**2)
-                            if (d < dmin) then
+                            d = sqrt((xa-xs)**2+(ya-ys)**2+(za-zs)**2)
+                            if(d < dmin)then
                                 dmin = d
-                                centre(0) = xi;   centre(1) = eta;   centre(2) = zeta
+                                centre(0) = xi ; centre(1) = eta ; centre(2) = zeta
                             endif
                         enddo
                     enddo

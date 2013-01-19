@@ -9,7 +9,7 @@
 
 !>
 !! \fn subroutine Compute_Courant (Tdomain)
-!! \brief Vérifie que le pas de temps est adapté aux déplacements évalués
+!! \brief Vï¿½rifie que le pas de temps est adaptï¿½ aux dï¿½placements ï¿½valuï¿½s
 !!
 !! \param type (Domain), intent (IN) Tdomain
 !<
@@ -17,13 +17,12 @@ subroutine Compute_Courant (Tdomain,rg)
 
     use sdomain
     use mpi
-
     implicit none
     type (Domain), intent (INOUT) :: Tdomain
     integer, intent(IN) :: rg
 
     integer :: i,j,k, n, ngllx,nglly,ngllz, idef0,idef1, mat, ierr
-    real :: dx,dxmin, courant,courant_max
+    real :: dx,dxmin,courant,courant_max
     real :: dt_min, dt, dt_loc
 
     !  courant = 0.05 !0.1 !0.4 !0.2 !0.5       !! 0.4 semblait ok mais uniformisation avec Sem2d
@@ -49,49 +48,49 @@ subroutine Compute_Courant (Tdomain,rg)
             do j = 0, nglly - 2
                 do i = 0, ngllx -2
 
-                    idef0 = Tdomain%specel(n)%Iglobnum (i,j,k)
-                    idef1 = Tdomain%specel(n)%Iglobnum (i+1,j,k)
+                    idef0 = Tdomain%specel(n)%Iglobnum(i,j,k)
+                    idef1 = Tdomain%specel(n)%Iglobnum(i+1,j,k)
                     dx = (Tdomain%Globcoord(0,idef0) - Tdomain%Globcoord(0,idef1))**2 + &
                         (Tdomain%Globcoord(1,idef0) - Tdomain%Globcoord(1,idef1))**2 + &
                         (Tdomain%Globcoord(2,idef0) - Tdomain%Globcoord(2,idef1))**2
-                    if (dx < dxmin ) dxmin = dx
-                    idef1 = Tdomain%specel(n)%Iglobnum (i,j+1,k)
+                    if(dx < dxmin) dxmin = dx
+                    idef1 = Tdomain%specel(n)%Iglobnum(i,j+1,k)
                     dx = (Tdomain%Globcoord(0,idef0) - Tdomain%Globcoord(0,idef1))**2 + &
                         (Tdomain%Globcoord(1,idef0) - Tdomain%Globcoord(1,idef1))**2 + &
                         (Tdomain%Globcoord(2,idef0) - Tdomain%Globcoord(2,idef1))**2
-                    if (dx < dxmin ) dxmin = dx
-                    idef1 = Tdomain%specel(n)%Iglobnum (i,j,k+1)
+                    if(dx < dxmin) dxmin = dx
+                    idef1 = Tdomain%specel(n)%Iglobnum(i,j,k+1)
                     dx = (Tdomain%Globcoord(0,idef0) - Tdomain%Globcoord(0,idef1))**2 + &
                         (Tdomain%Globcoord(1,idef0) - Tdomain%Globcoord(1,idef1))**2 + &
                         (Tdomain%Globcoord(2,idef0) - Tdomain%Globcoord(2,idef1))**2
-                    if (dx < dxmin ) dxmin = dx
+                    if(dx < dxmin) dxmin = dx
 
-                    idef1 = Tdomain%specel(n)%Iglobnum (i+1,j+1,k)
+                    idef1 = Tdomain%specel(n)%Iglobnum(i+1,j+1,k)
                     dx = (Tdomain%Globcoord(0,idef0) - Tdomain%Globcoord(0,idef1))**2 + &
                         (Tdomain%Globcoord(1,idef0) - Tdomain%Globcoord(1,idef1))**2 + &
                         (Tdomain%Globcoord(2,idef0) - Tdomain%Globcoord(2,idef1))**2
-                    if (dx < dxmin ) dxmin = dx
-                    idef1 = Tdomain%specel(n)%Iglobnum (i+1,j,k+1)
+                    if(dx < dxmin) dxmin = dx
+                    idef1 = Tdomain%specel(n)%Iglobnum(i+1,j,k+1)
                     dx = (Tdomain%Globcoord(0,idef0) - Tdomain%Globcoord(0,idef1))**2 + &
                         (Tdomain%Globcoord(1,idef0) - Tdomain%Globcoord(1,idef1))**2 + &
                         (Tdomain%Globcoord(2,idef0) - Tdomain%Globcoord(2,idef1))**2
-                    if (dx < dxmin ) dxmin = dx
-                    idef1 = Tdomain%specel(n)%Iglobnum (i,j+1,k+1)
+                    if(dx < dxmin) dxmin = dx
+                    idef1 = Tdomain%specel(n)%Iglobnum(i,j+1,k+1)
                     dx = (Tdomain%Globcoord(0,idef0) - Tdomain%Globcoord(0,idef1))**2 + &
                         (Tdomain%Globcoord(1,idef0) - Tdomain%Globcoord(1,idef1))**2 + &
                         (Tdomain%Globcoord(2,idef0) - Tdomain%Globcoord(2,idef1))**2
-                    if (dx < dxmin ) dxmin = dx
+                    if(dx < dxmin) dxmin = dx
 
-                    idef1 = Tdomain%specel(n)%Iglobnum (i+1,j+1,k+1)
+                    idef1 = Tdomain%specel(n)%Iglobnum(i+1,j+1,k+1)
                     dx = (Tdomain%Globcoord(0,idef0) - Tdomain%Globcoord(0,idef1))**2 + &
                         (Tdomain%Globcoord(1,idef0) - Tdomain%Globcoord(1,idef1))**2 + &
                         (Tdomain%Globcoord(2,idef0) - Tdomain%Globcoord(2,idef1))**2
-                    if (dx < dxmin ) dxmin = dx
+                    if(dx < dxmin) dxmin = dx
                 enddo
             enddo
         enddo
 
-        dxmin = sqrt (dxmin)
+        dxmin = sqrt(dxmin)
         mat = Tdomain%specel(n)%mat_index
         dt_loc = min(dt_loc, dxmin/Tdomain%sSubdomain(mat)%Pspeed)
         !!    courant = (Tdomain%sSubdomain(mat)%Pspeed * Tdomain%sSubdomain(mat)%Dt)/ dxmin

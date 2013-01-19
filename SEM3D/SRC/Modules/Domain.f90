@@ -1,15 +1,10 @@
 !>
 !!\file Domain.f90
 !!\brief Contient le définition du type domain
-!!\author
-!!\version 1.0
-!!\date 10/03/2009
 !!
 !<
 
 module sdomain
-
-    ! Modified by Gaetano 31/1/2005
 
     use selement
     use sfaces
@@ -25,14 +20,17 @@ module sdomain
     use sneu
     use ssurf
     use sbassin
+    use solid_fluid
 
     type :: domain
 
+       ! Communicateur incluant les processeurs SEM uniquement
        integer :: communicateur
-#ifdef MKA3D
+       ! Hors couplage : communicateur=communicateur_global
+       ! mode couplage : communicateur incluant tous les codes
        integer :: communicateur_global
+       ! En mode couplage : Rg du superviseur dans le communicateur global
        integer :: master_superviseur
-#endif
 
        type(time) :: TimeD
        type(logical_array) :: logicD
@@ -45,9 +43,10 @@ module sdomain
        type(subdomain), dimension (:), pointer :: sSubDomain
        type(receiver), dimension (:), pointer :: sReceiver
        type (planew) :: sPlaneW
-       type (neu) :: sNeu
+       type(Neu_object) :: Neumann
        type (surf) :: sSurf
        type (bassin) :: sBassin
+       type(SF_object) :: SF
 
        logical :: any_PML, curve, any_FPML, aniso, bMailUnv, bCapteur
 
@@ -62,7 +61,8 @@ module sdomain
        real, dimension (0:2,0:2) :: rot
        real, dimension (:,:), pointer :: Coord_nodes, GlobCoord
 
-       character (len=30) :: Title_simulation, mesh_file,station_file,material_file,Super_object_file,neumann_file
+       character (len=30) :: Title_simulation, mesh_file,station_file,material_file,   &
+           Super_object_file,neumann_file,neumann_dat,check_mesh_file
        character (len=30) :: file_bassin
        character (len=1)  :: Super_object_type
 
@@ -71,7 +71,6 @@ module sdomain
        real :: MPML_coeff
 
     end type domain
-
 
 contains
 
@@ -264,7 +263,6 @@ contains
 
         return
     end function Comp_derivshapefunc
-
 
     subroutine dist_max_elem(Tdomain)
         implicit none

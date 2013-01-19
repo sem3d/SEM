@@ -1,3 +1,9 @@
+!>
+!! \file get_VectProperty_Vertex2Elem.f90
+!! \brief
+!!
+!<
+
 subroutine get_VectProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,   &
     prop_vertex,prop_elem)
     ! general routine for the assemblage procedure: Element -> vertex

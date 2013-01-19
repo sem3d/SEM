@@ -13,22 +13,20 @@ subroutine compute_GLL(Tdomain)
 
     implicit none
 
-    type (Domain), intent (INOUT) :: Tdomain
+    type(domain), intent(inout) :: Tdomain
 
     integer ::  ngll, i, ndomains
-
 
     ndomains = Tdomain%n_mat
 
     do i = 0, ndomains-1
-
+        !- x-part
         ngll = Tdomain%sSubdomain(i)%NGLLx
-
-        allocate (Tdomain%sSubdomain(i)%GLLcx (0:ngll-1))
-        allocate (Tdomain%sSubdomain(i)%GLLpolx (0:ngll-1))
-        allocate (Tdomain%sSubdomain(i)%GLLwx (0:ngll-1))
-        allocate (Tdomain%sSubdomain(i)%hprimex (0:ngll-1,0:ngll-1))
-        allocate (Tdomain%sSubdomain(i)%hTprimex (0:ngll-1,0:ngll-1))
+        allocate(Tdomain%sSubdomain(i)%GLLcx(0:ngll-1))
+        allocate(Tdomain%sSubdomain(i)%GLLpolx(0:ngll-1))
+        allocate(Tdomain%sSubdomain(i)%GLLwx(0:ngll-1))
+        allocate(Tdomain%sSubdomain(i)%hprimex(0:ngll-1,0:ngll-1))
+        allocate(Tdomain%sSubdomain(i)%hTprimex(0:ngll-1,0:ngll-1))
 
         ! USING FUNARO SUBROUTINES
         ! ZELEGL computes the coordinates of GLL points

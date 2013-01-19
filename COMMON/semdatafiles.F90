@@ -18,17 +18,26 @@ module semdatafiles
     !character(Len=20) :: datadir
 contains
 
+
+    subroutine semname_dir_capteurs(dirname)
+        implicit none
+        character(Len=MAX_FILE_SIZE), intent(out) :: dirname
+
+        write(dirname,"(a)") "./Capteurs/sem"
+    end subroutine semname_dir_capteurs
+
     !!fichier capteur 2d 3d
     subroutine semname_capteur_pos (name,fnamef)
         !SEMFILE 98 RW ./Capteurs/sem/capteurs_XXX.position (MKA) & "capteur_XXX.position (NOMKA)
         implicit none
         character(Len=*),intent(in) :: name
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,a,a9)")"./Capteurs/sem/capteurs_",trim(adjustl(name)),".position"
-#else
-        write(fnamef,"(a,a,a9)")"capteur_",trim(adjustl(name)),".position"
-#endif
+        character(Len=MAX_FILE_SIZE) :: dirname
+
+        call semname_dir_capteurs(dirname)
+
+        write(fnamef,"(a,a,a,a9)") trim(adjustl(dirname)), "/capteurs_",trim(adjustl(name)),".position"
+
         DEBUG(fnamef)
     end subroutine semname_capteur_pos
 
@@ -38,11 +47,12 @@ contains
         character(Len=*), intent(in) :: name
         character(Len=*),intent(in) :: type
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,a,a)")"./Capteurs/sem/",trim(adjustl(name)),trim(adjustl(type))
-#else
-        write(fnamef,"(a,a)")trim(adjustl(name)),trim(adjustl(type))
-#endif
+        character(Len=MAX_FILE_SIZE) :: dirname
+
+        call semname_dir_capteurs(dirname)
+
+        write(fnamef,"(a,a,a,a)") trim(adjustl(dirname)),"/",trim(adjustl(name)),trim(adjustl(type))
+
         DEBUG(fnamef)
     end subroutine semname_capteur_type
 
