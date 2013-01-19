@@ -16,14 +16,53 @@
 module semdatafiles
     integer, parameter :: MAX_FILE_SIZE=1024
     !character(Len=20) :: datadir
+    character(Len=MAX_FILE_SIZE) :: path_param
+    character(Len=MAX_FILE_SIZE) :: path_traces
+    character(Len=MAX_FILE_SIZE) :: path_results
+    character(Len=MAX_FILE_SIZE) :: path_data
+    character(Len=MAX_FILE_SIZE) :: path_prot
 contains
+
+    function pjoin(s1, s2)
+        implicit none
+        character(Len=*) :: s1, s2
+        character(Len=MAX_FILE_SIZE) :: pjoin
+        integer :: l1
+        l1 = len_trim(s1)
+        if (s1(l1:l1)=="/") then
+            pjoin = trim(adjustl(s1))//trim(adjustl(s2))
+        else
+            pjoin = trim(adjustl(s1))//"/"//trim(adjustl(s2))
+        end if
+    end function pjoin
+
+    subroutine init_mka3d_path()
+        path_param = "./Parametrage/sem"
+        path_traces = "./Capteurs/sem"
+        path_results = "./Resultats"
+        path_data = "./data"
+        path_prot = "./ProRep/sem"
+    end subroutine init_mka3d_path
+
+    subroutine init_sem_path(param, traces, results, data, prorep)
+        character(Len=MAX_FILE_SIZE), intent(in) :: param
+        character(Len=MAX_FILE_SIZE), intent(in) :: traces
+        character(Len=MAX_FILE_SIZE), intent(in) :: results
+        character(Len=MAX_FILE_SIZE), intent(in) :: data
+        character(Len=MAX_FILE_SIZE), intent(in) :: prorep
+
+        path_param = param
+        path_traces = traces
+        path_results = results
+        path_data = data
+        path_prot = prorep
+    end subroutine init_sem_path
 
 
     subroutine semname_dir_capteurs(dirname)
         implicit none
         character(Len=MAX_FILE_SIZE), intent(out) :: dirname
-
-        write(dirname,"(a)") "./Capteurs/sem"
+        dirname = path_traces
     end subroutine semname_dir_capteurs
 
     !!fichier capteur 2d 3d
@@ -32,13 +71,8 @@ contains
         implicit none
         character(Len=*),intent(in) :: name
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE) :: dirname
 
-        call semname_dir_capteurs(dirname)
-
-        write(fnamef,"(a,a,a,a9)") trim(adjustl(dirname)), "/capteurs_",trim(adjustl(name)),".position"
-
-        DEBUG(fnamef)
+        fnamef = pjoin(path_traces, "capteurs_"//trim(adjustl(name))//".position")
     end subroutine semname_capteur_pos
 
     subroutine semname_capteur_type (name,type,fnamef)
@@ -61,9 +95,7 @@ contains
         implicit none
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
 
-        write(fnamef,"(a)")"./Parametrage/sem/capteurs.dat"
-
-        DEBUG(fnamef)
+        fnamef = pjoin(path_param,"capteurs.dat")
     end subroutine semname_capteur_fichiercapteur
     !!end fichier capteur 2d 3d
 
@@ -185,13 +217,8 @@ contains
         implicit none
         character(Len=*),intent(in) :: domain
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,a)")"./data/sem/",trim(adjustl(domain))
-#else
-        write(fnamef,"(a)")trim(adjustl(domain))
-#endif
 
-        DEBUG(fnamef)
+        fnamef = pjoin(path_data, trim(adjustl(domain)))
     end subroutine semname_define_fault_data
 
     subroutine semname_define_fault_rankl (rank,fnamef)
@@ -199,13 +226,10 @@ contains
         implicit none
         integer,intent(in) :: rank
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I4.4)")"./Resultats/initial.",rank
-#else
-        write(fnamef,"(a,I4.4)") "initial.",rank
-#endif
+        character(Len=20) :: temp
 
-        DEBUG(fnamef)
+        write(temp,"(a,I4.4)") "initial.",rank
+        fnamef = pjoin(path_results, temp)
     end subroutine semname_define_fault_rankl
 
     subroutine semname_define_fault_rankn (rank,fnamef)
@@ -230,9 +254,7 @@ contains
         character(Len=*),intent(in) :: file
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
 
-        write(fnamef,"(a)")trim(adjustl(file))
-
-        DEBUG(fnamef)
+        fnamef = pjoin(path_param, file)
     end subroutine semname_define_neu_properties_file
     !!end fichier define_neu_properties
 
@@ -243,9 +265,7 @@ contains
         character(Len=*),intent(in) :: file
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
 
-        write(fnamef,"(a)")trim(adjustl(file))
-
-        DEBUG(fnamef)
+        fnamef = pjoin(path_param, file)
     end subroutine semname_define_planew_properties_file
     !!end fichier define_planew_properties
 
@@ -255,13 +275,11 @@ contains
         implicit none
         integer,intent(in) :: i
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I3.3)")"./Capteurs/sem/tracex",i
-#else
-        write(fnamef,"(a,I3.3)") "tracex",i
-#endif
+        character(Len=20) :: temp
 
+        write(temp,"(a,I3.3)") "tracex",i
         DEBUG(fnamef)
+        fnamef = pjoin(path_traces, temp)
     end subroutine semname_dumptrace_tracex
 
     subroutine semname_dumptrace_tracez (i,fnamef)
@@ -269,13 +287,11 @@ contains
         implicit none
         integer,intent(in) :: i
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I3.3)")"./Capteurs/sem/tracez",i
-#else
-        write(fnamef,"(a,I3.3)") "tracez",i
-#endif
+        character(Len=20) :: temp
 
+        write(temp,"(a,I3.3)") "tracez",i
         DEBUG(fnamef)
+        fnamef = pjoin(path_traces, temp)
     end subroutine semname_dumptrace_tracez
     !!end fichier dumptrace 2d
 
@@ -377,13 +393,7 @@ contains
         !SEMFILE 11 R ./Parametrage/sem/input.spec (MKA) & input.spec (NOMKA)
         implicit none
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a)")"./Parametrage/sem/input.spec"
-#else
-        write(fnamef,"(a)")"input.spec"
-#endif
-
-        DEBUG(fnamef)
+        fnamef = pjoin(path_param, "input.spec")
     end subroutine semname_read_input_input
 
     subroutine semname_read_input_source (fnamef)
@@ -391,9 +401,7 @@ contains
         implicit none
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
 
-        write(fnamef,"(a)")"./Parametrage/sem/source.dat"
-
-        DEBUG(fnamef)
+        fnamef = pjoin(path_param, "source.dat")
     end subroutine semname_read_input_source
 
     subroutine semname_read_input_amortissement (fnamef) !3d
@@ -401,9 +409,7 @@ contains
         implicit none
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
 
-        write(fnamef,"(a)")"./Parametrage/sem/amortissement.dat"
-
-        DEBUG(fnamef)
+        fnamef = pjoin(path_param, "amortissement.dat")
     end subroutine semname_read_input_amortissement
 
     subroutine semname_read_input_spec (fnamef)
@@ -425,10 +431,9 @@ contains
         integer,intent(in) :: rg
         character(Len=*),intent(in) :: meshfile
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-
-        write(fnamef,"(a11,a,a1,I4.4)")"./data/sem/",trim(adjustl(meshfile)),".",rg
-
-        DEBUG(fnamef)
+        character(Len=MAX_FILE_SIZE) :: temp
+        write(temp,"(a,a1,I4.4)") trim(adjustl(meshfile)),".",rg
+        fnamef = pjoin(path_data, temp)
     end subroutine semname_read_input_meshfile
 
     subroutine semname_read_inputmesh_parametrage (file,fnamef) !!valable egalement pour le fichier read_mesh
@@ -436,13 +441,8 @@ contains
         implicit none
         character(Len=*),intent(in) :: file
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,a)")"./Parametrage/sem/",trim(adjustl(file))
-#else
-        write(fnamef,"(a)")trim(adjustl(file))
-#endif
 
-        DEBUG(fnamef)
+        fnamef = pjoin( path_param, file)
     end subroutine semname_read_inputmesh_parametrage
 
     !!end fichier read_input 2d 3d

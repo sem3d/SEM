@@ -14,8 +14,7 @@
 !<
 
 
-subroutine read_input (Tdomain, rg, code)
-
+subroutine read_attn_desc(Tdomain, rg)
     use sdomain
     use semdatafiles
     use mpi
@@ -23,373 +22,278 @@ subroutine read_input (Tdomain, rg, code)
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in)         :: rg
-
-    logical :: logic_scheme, sortie, neumann_log
-    logical, dimension(:), allocatable :: L_Face, L_Edge
-    integer :: length,i,j,npml,n_aus,mat,ok,nf,ne,nv,k,icount,n,i_aus,  &
-        ipoint,code,nnf,nne,nnv
-    real :: dtmin, x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4,x5,y5,z5,x6,y6,z6,x7,y7,z7
     character(Len=MAX_FILE_SIZE) :: fnamef
-    integer :: unit_src, unit_att
+    integer :: unit_att
     logical :: trouve
 
-    call semname_read_input_input(fnamef)
-
-    open (11,file=fnamef,form="formatted",status="old")
-    read(11,*) Tdomain%Title_simulation
-    read(11,*) Tdomain%TimeD%acceleration_scheme
-    read(11,*) Tdomain%TimeD%velocity_scheme
-    read(11,*) Tdomain%TimeD%duration
-    read(11,*) Tdomain%TimeD%alpha
-    read(11,*) Tdomain%TimeD%beta
-    read(11,*) Tdomain%TimeD%gamma
-    read(11,*) Tdomain%mesh_file
-    if(rg==0) print*,'MESH_FILE ', Tdomain%mesh_file
-    print*,'MESH_FILE processeur sem  ',rg, Tdomain%mesh_file
-#ifndef MKA3D
-    length = len_trim(Tdomain%mesh_file)+1
-    write (Tdomain%mesh_file(length:length+3),'(i4.4)') rg
-#endif
-    Tdomain%aniso = .FALSE.
-
-    read(11,*) Tdomain%material_file
-    read(11,*) Tdomain%logicD%save_trace
-    read(11,*) Tdomain%logicD%save_snapshots
-    ! MODIF ICI: energie? deformation?..
-    read(11,*) Tdomain%logicD%save_energy
-    read(11,*) Tdomain%logicD%save_restart
-    read(11,*) Tdomain%logicD%plot_grid
-    read(11,*) Tdomain%logicD%run_exec
-    read(11,*) Tdomain%logicD%run_debug
-    read(11,*) Tdomain%logicD%run_echo
-    read(11,*) Tdomain%logicD%run_restart
-    if(rg==0) &
-        write (6,*) 'run_restart',Tdomain%logicD%run_restart
-    ! numero de l iteration de reprise
-    read (11,*) Tdomain%TimeD%iter_reprise
-
-    ! creation de fichiers de reprise
-    if(Tdomain%logicD%save_restart) then
-        read (11,*) Tdomain%TimeD%ncheck ! frequence de sauvegarde
-    else
-        read(11,*)
-        if(rg == 0)then
-            write(*,*) "Sure that you wish a run without any backup? (Press enter)" ; read*
-        end if
-        call MPI_BARRIER(MPI_COMM_WORLD,code)
-    endif
-
-    if(Tdomain%logicD%save_trace)then
-        read(11,*) Tdomain%station_file
-        read(11,*) Tdomain%TimeD%ntrace
-        if(rg==0) &
-            write (*,*) "Sauvegarde demandee sur processeur ",rg
-    else
-        read(11,*)
-        read(11,*)
-    endif
-
-    if(Tdomain%logicD%save_snapshots)then
-        read(11,*) Tdomain%TimeD%time_snapshots
-    else
-        read(11,*)
-    endif
-
-    logic_scheme = Tdomain%TimeD%acceleration_scheme .neqv. Tdomain%TimeD%velocity_scheme
-    if(.not. logic_scheme) then
-        stop "Both acceleration and velocity schemes: no compatibility, chose only one."
-    end if
-
-    read (11,*) Tdomain%logicD%super_object
-    if (Tdomain%logicD%super_object) then
-        read (11,*) Tdomain%Super_object_type, Tdomain%super_object_file
-    else
-        read (11,*)
-    endif
-    ! Neumann boundary conditions? If yes: geometrical properties read in the mesh files.
-    read(11,*) Tdomain%logicD%Neumann
-    if(Tdomain%logicD%Neumann)then
-        read(11,*) Tdomain%neumann_file
-    else
-        read(11,*)
-    end if
-
-
-#ifdef MKA3D
-    unit_src=21
     unit_att=22
+    call semname_read_input_amortissement(fnamef)
+    inquire(file=fnamef, exist=trouve)
+    if( .not. trouve) then
+        Tdomain%n_sls=0
+        if(rg==0) write(*,*) 'No attenuation model: file not found: ', trim(adjustl(fnamef))
+        return
+    endif
+
+    Tdomain%n_sls=1
+    open (unit=unit_att,file=fnamef,form="formatted",status="old")
+
+    !  modif mariotti fevrier 2007 cea
+    !   n_sls est le nombre de sous decoupage en pas de frequence pour avoir un
+    !   facteur de qualite a peu pres constant dans l intervalle
+    !   voir article de Liu Kanamori du GJRA de 1976
+    read (unit_att,*) Tdomain%n_sls
+
+    if (Tdomain%n_sls>0) then
+        read (unit_att,*) Tdomain%T1_att, Tdomain%T2_att
+        read (unit_att,*) Tdomain%T0_modele
+        if(rg==0) &
+            write(*,*) ' modele attenuation sur temps ', Tdomain%T1_att, Tdomain%T2_att,Tdomain%T0_modele
+    else
+        if(rg==0) &
+            write(*,*) 'pas de  modele attenuation sur temps '
+    endif
+
+    close(unit_att)
+end subroutine read_attn_desc
+
+subroutine read_source_desc(Tdomain, rg)
+    use sdomain
+    use semdatafiles
+    use mpi
+    implicit none
+
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in)         :: rg
+    character(Len=MAX_FILE_SIZE) :: fnamef
+    integer :: unit_src, i
+    logical :: trouve
+
+    unit_src=21
     Tdomain%logicD%any_source=.true.
     call semname_read_input_source(fnamef)
     inquire(file=fnamef, exist=trouve)
     if( .not. trouve) then
         Tdomain%logicD%any_source=.false.
         if(rg==0) &
-            write(*,*) 'No source for Sem'
-    else
-        open (unit=unit_src,file=fnamef,form="formatted",status="old")
+            write(*,*) 'No source for Sem: could not find file:', trim(adjustl(fnamef))
+        return
     endif
 
-    call semname_read_input_amortissement(fnamef)
-    inquire(file=fnamef, exist=trouve)
-    if( .not. trouve) then
-        Tdomain%n_sls=0
-        if(rg==0) &
-            write(*,*) 'No attenuation model'
-    else
-        Tdomain%n_sls=1
-        open (unit=unit_att,file=fnamef,form="formatted",status="old")
-    endif
-#else
-    unit_src=11
-    unit_att=11
-    read(unit_src,*) Tdomain%logicD%any_source
-#endif
+    open (unit=unit_src,file=fnamef,form="formatted",status="old")
 
-    if (Tdomain%logicD%any_source) then
-        read (unit_src,*) Tdomain%n_source
+    read (unit_src,*) Tdomain%n_source
 
-        if(rg==0) &
-            write (*,*) 'nombre de sources ', Tdomain%n_source
-        allocate (Tdomain%Ssource(0:Tdomain%n_source-1))
-        do i = 0, Tdomain%n_source - 1
-            read (unit_src,*) Tdomain%Ssource(i)%Xsource, Tdomain%Ssource(i)%Ysource, Tdomain%Ssource(i)%Zsource
-            read (unit_src,*) Tdomain%Ssource(i)%i_type_source
+    if(rg==0) write (*,*) 'nombre de sources ', Tdomain%n_source
+    allocate (Tdomain%Ssource(0:Tdomain%n_source-1))
+
+    do i = 0, Tdomain%n_source - 1
+        read (unit_src,*) Tdomain%Ssource(i)%Xsource, Tdomain%Ssource(i)%Ysource, Tdomain%Ssource(i)%Zsource
+        read (unit_src,*) Tdomain%Ssource(i)%i_type_source
+        if (rg==0) then
+            write (*,*) 'SOURCE:', i
+            write (*,*) '  type spatial :',Tdomain%Ssource(i)%i_type_source
+        end if
+
+        select case (Tdomain%Ssource(i)%i_type_source)
+        case (1)
+
+            read (unit_src,*) Tdomain%Ssource(i)%i_dir
             if (rg==0) then
-                write (*,*) 'SOURCE:', i
-                write (*,*) '  type spatial :',Tdomain%Ssource(i)%i_type_source
+                write (*,*) '  direction ',Tdomain%Ssource(i)%i_dir
             end if
+        case (2)
+            read (unit_src,*) Tdomain%Ssource(i)%Moment(0,0), Tdomain%Ssource(i)%Moment(1,1), Tdomain%Ssource(i)%Moment(2,2)
+            read (unit_src,*) Tdomain%Ssource(i)%Moment(0,1), Tdomain%Ssource(i)%Moment(0,2), Tdomain%Ssource(i)%Moment(1,2)
+            Tdomain%Ssource(i)%Moment(1,0) = Tdomain%Ssource(i)%Moment(0,1)
+            Tdomain%Ssource(i)%Moment(2,0) = Tdomain%Ssource(i)%Moment(0,2)
+            Tdomain%Ssource(i)%Moment(2,1) = Tdomain%Ssource(i)%Moment(1,2)
 
-            select case (Tdomain%Ssource(i)%i_type_source)
-            case (1)
+        end select
 
-                read (unit_src,*) Tdomain%Ssource(i)%i_dir
-                if (rg==0) then
-                    write (*,*) '  direction ',Tdomain%Ssource(i)%i_dir
-                end if
-            case (2)
-                read (unit_src,*) Tdomain%Ssource(i)%Moment(0,0), Tdomain%Ssource(i)%Moment(1,1), Tdomain%Ssource(i)%Moment(2,2)
-                read (unit_src,*) Tdomain%Ssource(i)%Moment(0,1), Tdomain%Ssource(i)%Moment(0,2), Tdomain%Ssource(i)%Moment(1,2)
-                Tdomain%Ssource(i)%Moment(1,0) = Tdomain%Ssource(i)%Moment(0,1)
-                Tdomain%Ssource(i)%Moment(2,0) = Tdomain%Ssource(i)%Moment(0,2)
-                Tdomain%Ssource(i)%Moment(2,1) = Tdomain%Ssource(i)%Moment(1,2)
+        read (unit_src,*) Tdomain%Ssource(i)%i_time_function
+        read (unit_src,*) Tdomain%Ssource(i)%tau_b
+        if(rg==0) then
+            write (*,*) '  type temporel :', Tdomain%Ssource(i)%i_time_function,  Tdomain%Ssource(i)%tau_b
+        endif
 
-            end select
+        ! Les parametres suivants dependent du type de source
+        select case (Tdomain%Ssource(i)%i_time_function)
+        case (2)
+            read (unit_src,*) Tdomain%Ssource(i)%cutoff_freq
+            if (rg==0) then
+                write (*,*) '  Cutoff:', Tdomain%Ssource(i)%cutoff_freq
+            end if
+        case (3)
+            read (unit_src,*) Tdomain%Ssource(i)%fh(0:3)
+        case (4)
+            !   Gabor signal
+            read (unit_src,*) Tdomain%Ssource(i)%cutoff_freq
+            read (unit_src,*) Tdomain%Ssource(i)%gama
+            read (unit_src,*) Tdomain%Ssource(i)%ts
+            if (rg==0) then
+                write(*,*)  '   Gabor signal '
+                write (*,*) '  frequencep:', Tdomain%Ssource(i)%cutoff_freq
+                write (*,*) '  gamma:', Tdomain%Ssource(i)%gama
+                write (*,*) '  ts:', Tdomain%Ssource(i)%ts
+            end if
+        case (5)
+            read (unit_src,*) Tdomain%Ssource(i)%time_file
+        end select
+    enddo
 
-            read (unit_src,*) Tdomain%Ssource(i)%i_time_function
-            read (unit_src,*) Tdomain%Ssource(i)%tau_b
-            if(rg==0) then
-                write (*,*) '  type temporel :', Tdomain%Ssource(i)%i_time_function,  Tdomain%Ssource(i)%tau_b
-            endif
-
-            ! Les parametres suivants dependent du type de source
-            select case (Tdomain%Ssource(i)%i_time_function)
-            case (2)
-                read (unit_src,*) Tdomain%Ssource(i)%cutoff_freq
-                if (rg==0) then
-                    write (*,*) '  Cutoff:', Tdomain%Ssource(i)%cutoff_freq
-                end if
-            case (3)
-                read (unit_src,*) Tdomain%Ssource(i)%fh(0:3)
-            case (4)
-                !   Gabor signal
-                read (unit_src,*) Tdomain%Ssource(i)%cutoff_freq
-                read (unit_src,*) Tdomain%Ssource(i)%gama
-                read (unit_src,*) Tdomain%Ssource(i)%ts
-                if (rg==0) then
-                    write(*,*)  '   Gabor signal '
-                    write (*,*) '  frequencep:', Tdomain%Ssource(i)%cutoff_freq
-                    write (*,*) '  gamma:', Tdomain%Ssource(i)%gama
-                    write (*,*) '  ts:', Tdomain%Ssource(i)%ts
-                end if
-            case (5)
-                read (unit_src,*) Tdomain%Ssource(i)%time_file
-            end select
-        enddo
-    endif
-
-#ifdef MKA3D
     close(unit_src)
-#endif
+
+end subroutine read_source_desc
 
 
-    !  modif mariotti fevrier 2007 cea
-    !   n_sls est le nombre de sous decoupage en pas de frequence pour avoir un
-    !   facteur de qualite a peu pres constant dans l intervalle
-    !   voir article de Liu Kanamori du GJRA de 1976
-#ifdef MKA3D
-    if (Tdomain%n_sls>0) then
-        read (unit_att,*) Tdomain%n_sls
-#else
-        read (unit_att,*) Tdomain%n_sls
-#endif
+subroutine read_gradient_desc(Tdomain, rg)
+    use sdomain
+    use semdatafiles
+    use mpi
+    implicit none
 
-        if (Tdomain%n_sls>0) then
-            read (unit_att,*) Tdomain%T1_att, Tdomain%T2_att
-            read (unit_att,*) Tdomain%T0_modele
-            if(rg==0) &
-                write(*,*) ' modele attenuation sur temps ', Tdomain%T1_att, Tdomain%T2_att,Tdomain%T0_modele
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in)         :: rg
+    character(Len=MAX_FILE_SIZE) :: fnamef
+    integer :: i,j
+
+    open(12,file=Tdomain%file_bassin,action="read",status="old")
+    !   x_type 0 : on impose un materiau homogene dans chaque sous domaine
+    !   x_type 1 : on impose un gradient de proprietes en fonction de z et ceci pour chaque colonne
+    read(12,*) Tdomain%sBassin%x_type
+    if ( Tdomain%sBassin%x_type == 2 ) then
+        read(12,*) Tdomain%sBassin%zmin
+        read(12,*) Tdomain%sBassin%zmax
+        if ( rg==0) then
+            write(*,*) ' gradient uniquement pour z entre ', Tdomain%sBassin%zmin,'  et ', Tdomain%sBassin%zmax
+        endif
+    endif
+    !   nombre de colonnes
+    read(12,*) Tdomain%sBassin%n_colonne
+    allocate(Tdomain%sBassin%x_coord(0:Tdomain%sBassin%n_colonne))
+    !  lecture des coordonnees en x des colonnes
+    do i = 0,Tdomain%sBassin%n_colonne
+        read(12,*) Tdomain%sBassin%x_coord(i)
+        if ( rg==0) then
+            write(*,*) ' colonne ',Tdomain%sBassin%x_coord(i)
+        endif
+    enddo
+    !   nombre de couches
+    read(12,*) Tdomain%sBassin%n_layer
+    if ( rg==0) then
+        write(*,*) ' n_layer ', Tdomain%sBassin%n_layer
+    endif
+    allocate(Tdomain%sBassin%z_layer(0:Tdomain%sBassin%n_colonne,0:Tdomain%sBassin%n_layer))
+    allocate(  Tdomain%sBassin%z_rho(0:Tdomain%sBassin%n_colonne,0:Tdomain%sBassin%n_layer))
+    allocate(   Tdomain%sBassin%z_Cp(0:Tdomain%sBassin%n_colonne,0:Tdomain%sBassin%n_layer))
+    allocate(   Tdomain%sBassin%z_Cs(0:Tdomain%sBassin%n_colonne,0:Tdomain%sBassin%n_layer))
+    ! on lit pour chaque colonne
+    !  on lit chaque profondeur et les proprietes mecaniques associees
+    do i = 0,Tdomain%sBassin%n_colonne
+        do j = 0,Tdomain%sBassin%n_layer
+            read(12,*) Tdomain%sBassin%z_layer(i,j),Tdomain%sBassin%z_rho(i,j),Tdomain%sBassin%z_Cp(i,j),Tdomain%sBassin%z_Cs(i,j)
+            if ( rg==0) then
+                write(*,*) ' gradient ',i,j
+                write(*,*) Tdomain%sBassin%z_layer(i,j),Tdomain%sBassin%z_rho(i,j),Tdomain%sBassin%z_Cp(i,j),Tdomain%sBassin%z_Cs(i,j)
+            endif
+        enddo
+    enddo
+    if ( rg==0) then
+        write(*,*) ' fin lecture gradient '
+    endif
+    close(12)
+end subroutine read_gradient_desc
+
+
+subroutine echo_input_params(Tdomain, rg)
+    use sdomain
+    use semdatafiles
+    use mpi
+    implicit none
+
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in)         :: rg
+    character(Len=MAX_FILE_SIZE) :: fnamef
+    integer :: i
+
+    call semname_read_input_spec(fnamef)
+
+    !    debut ajout ecriture par un seul proc
+    if ( rg == 0 ) then
+        open(91,file=fnamef, form="formatted", status="unknown")
+
+        write (91,*) Tdomain%Title_simulation
+        write (91,*) Tdomain%TimeD%acceleration_scheme
+        write (91,*) Tdomain%TimeD%velocity_scheme
+        write (91,*) Tdomain%TimeD%duration
+        write (91,*) Tdomain%TimeD%alpha
+        write (91,*) Tdomain%TimeD%beta
+        write (91,*) Tdomain%TimeD%gamma
+        write (91,*) Tdomain%mesh_file
+        write (91,*) Tdomain%material_file
+        write (91,*) Tdomain%logicD%save_trace
+        write (91,*) Tdomain%logicD%save_snapshots
+        write (91,*) Tdomain%logicD%save_energy
+        write (91,*) Tdomain%logicD%plot_grid
+        write (91,*) Tdomain%logicD%run_exec
+        write (91,*) Tdomain%logicD%run_debug
+        write (91,*) Tdomain%logicD%run_echo
+
+        if (Tdomain%logicD%save_trace) then
+            write (91,*) Tdomain%station_file
         else
-            if(rg==0) &
-                write(*,*) 'pas de  modele attenuation sur temps '
+            write (91,*) " No parameter ned here"
         endif
 
-#ifdef MKA3D
-    endif
-    close(unit_att)
-#endif
-
-
-    ! conversion d'un maillage unv en maillage sem
-    read(11,*,ERR=101) Tdomain%bMailUnv
-
-    ! prise en compte du fichier des capteurs
-    read (11,*,ERR=102) Tdomain%bCapteur
-    !   ajout lecture du flag pour les MPML
-    !   (Guillot et Mariotti fevrier 2012)
-    read (11,*) Tdomain%logicD%MPML
-    if ( Tdomain%logicD%MPML ) then
-        read(11,*) Tdomain%MPML_coeff
-        if (rg==0) print*,' prise en compte des MPML avec coefficient de ',Tdomain%MPML_coeff
-    endif
-
-    !  debut ajout Gradient sur proprietes
-    read (11,*) Tdomain%logicD%grad_bassin
-    if ( Tdomain%logicD%grad_bassin ) then
-        read(11,*) Tdomain%file_bassin
-        open(12,file=Tdomain%file_bassin,action="read",status="old")
-        !   x_type 0 : on impose un materiau homogene dans chaque sous domaine
-        !   x_type 1 : on impose un gradient de proprietes en fonction de z et ceci pour chaque colonne
-        read(12,*) Tdomain%sBassin%x_type
-        if ( Tdomain%sBassin%x_type == 2 ) then
-            read(12,*) Tdomain%sBassin%zmin
-            read(12,*) Tdomain%sBassin%zmax
-            if ( rg==0) then
-                write(*,*) ' gradient uniquement pour z entre ', Tdomain%sBassin%zmin,'  et ', Tdomain%sBassin%zmax
-            endif
+        if (Tdomain%logicD%save_snapshots) then
+            write (91,*) Tdomain%TimeD%time_snapshots
+        else
+            write (91,*) " No parameter ned here"
         endif
-        !   nombre de colonnes
-        read(12,*) Tdomain%sBassin%n_colonne
-        allocate(Tdomain%sBassin%x_coord(0:Tdomain%sBassin%n_colonne))
-        !  lecture des coordonnees en x des colonnes
-        do i = 0,Tdomain%sBassin%n_colonne
-            read(12,*) Tdomain%sBassin%x_coord(i)
-            if ( rg==0) then
-                write(*,*) ' colonne ',Tdomain%sBassin%x_coord(i)
-            endif
-        enddo
-        !   nombre de couches
-        read(12,*) Tdomain%sBassin%n_layer
-        if ( rg==0) then
-            write(*,*) ' n_layer ', Tdomain%sBassin%n_layer
-        endif
-        allocate(Tdomain%sBassin%z_layer(0:Tdomain%sBassin%n_colonne,0:Tdomain%sBassin%n_layer))
-        allocate(  Tdomain%sBassin%z_rho(0:Tdomain%sBassin%n_colonne,0:Tdomain%sBassin%n_layer))
-        allocate(   Tdomain%sBassin%z_Cp(0:Tdomain%sBassin%n_colonne,0:Tdomain%sBassin%n_layer))
-        allocate(   Tdomain%sBassin%z_Cs(0:Tdomain%sBassin%n_colonne,0:Tdomain%sBassin%n_layer))
-        ! on lit pour chaque colonne
-        !  on lit chaque profondeur et les proprietes mecaniques associees
-        do i = 0,Tdomain%sBassin%n_colonne
-            do j = 0,Tdomain%sBassin%n_layer
-                read(12,*) Tdomain%sBassin%z_layer(i,j),Tdomain%sBassin%z_rho(i,j),Tdomain%sBassin%z_Cp(i,j),Tdomain%sBassin%z_Cs(i,j)
-                if ( rg==0) then
-                    write(*,*) ' gradient ',i,j
-                    write(*,*) Tdomain%sBassin%z_layer(i,j),Tdomain%sBassin%z_rho(i,j),Tdomain%sBassin%z_Cp(i,j),Tdomain%sBassin%z_Cs(i,j)
-                endif
-            enddo
-        enddo
-        if ( rg==0) then
-            write(*,*) ' fin lecture gradient '
-        endif
-        close(12)
-    endif
-    !  fin ajout Gradient sur proprietes
-
-    close (11)
-
-    ! If echo modality write the read parameter in a file
-    if (Tdomain%logicD%run_echo) then
-
-        call semname_read_input_spec(fnamef)
-
-        !    debut ajout ecriture par un seul proc
-        if ( rg == 0 ) then
-            open(91,file=fnamef, form="formatted", status="unknown")
-
-            write (91,*) Tdomain%Title_simulation
-            write (91,*) Tdomain%TimeD%acceleration_scheme
-            write (91,*) Tdomain%TimeD%velocity_scheme
-            write (91,*) Tdomain%TimeD%duration
-            write (91,*) Tdomain%TimeD%alpha
-            write (91,*) Tdomain%TimeD%beta
-            write (91,*) Tdomain%TimeD%gamma
-            write (91,*) Tdomain%mesh_file
-            write (91,*) Tdomain%material_file
-            write (91,*) Tdomain%logicD%save_trace
-            write (91,*) Tdomain%logicD%save_snapshots
-            write (91,*) Tdomain%logicD%save_energy
-            write (91,*) Tdomain%logicD%plot_grid
-            write (91,*) Tdomain%logicD%run_exec
-            write (91,*) Tdomain%logicD%run_debug
-            write (91,*) Tdomain%logicD%run_echo
-
-            if (Tdomain%logicD%save_trace) then
-                write (91,*) Tdomain%station_file
-            else
-                write (91,*) " No parameter ned here"
-            endif
-
-            if (Tdomain%logicD%save_snapshots) then
-                write (91,*) Tdomain%TimeD%time_snapshots
-            else
-                write (91,*) " No parameter ned here"
-            endif
 
         write(11,*) Tdomain%logicD%Neumann, "  Neumann B.C.?"
 
-            if (Tdomain%logicD%any_source) then
-                write (91,*) Tdomain%n_source
-                do i = 0, Tdomain%n_source - 1
-                    write (91,*) Tdomain%Ssource(i)%Xsource, Tdomain%Ssource(i)%Ysource, Tdomain%Ssource(i)%Zsource
-                    write (91,*) Tdomain%Ssource(i)%i_type_source
-                    if (Tdomain%Ssource(i)%i_type_source == 1 ) then
-                        write (91,*) Tdomain%Ssource(i)%i_dir
-                    else
-                        write (91,*) "No parameter need here"
-                    endif
-                    write (91,*) Tdomain%Ssource(i)%i_time_function
-                    write (91,*) Tdomain%Ssource(i)%tau_b
-                    write (91,*) Tdomain%Ssource(i)%cutoff_freq
-                enddo
-            else
-                write (91,*)  "No available sources "
-            endif
-            write (91,*) "All right, runner ?"
-            close (91)
+        if (Tdomain%logicD%any_source) then
+            write (91,*) Tdomain%n_source
+            do i = 0, Tdomain%n_source - 1
+                write (91,*) Tdomain%Ssource(i)%Xsource, Tdomain%Ssource(i)%Ysource, Tdomain%Ssource(i)%Zsource
+                write (91,*) Tdomain%Ssource(i)%i_type_source
+                if (Tdomain%Ssource(i)%i_type_source == 1 ) then
+                    write (91,*) Tdomain%Ssource(i)%i_dir
+                else
+                    write (91,*) "No parameter need here"
+                endif
+                write (91,*) Tdomain%Ssource(i)%i_time_function
+                write (91,*) Tdomain%Ssource(i)%tau_b
+                write (91,*) Tdomain%Ssource(i)%cutoff_freq
+            enddo
+        else
+            write (91,*)  "No available sources "
         endif
-        !   fin  ajout ecriture par un seul proc
+        write (91,*) "All right, runner ?"
+        close (91)
     endif
+    !   fin  ajout ecriture par un seul proc
+end subroutine echo_input_params
 
-    !print *,'ap echo',tDomain%bMailUnv  !Gsa ipsis
-    ! si le format du maillage initial est UNV,il faut le convertir en maillage sem2D
-    if (tDomain%bMailUnv) call convertirUnv(tDomain, rg)
-    if (tDomain%bMailUnv) then
-        write(6,*) 'End of the conversion unv -> SEM'
-        write(6,'(A,1X,A)') 'The name of the mesh file is now:', Tdomain%mesh_file
-    endif
+subroutine read_mesh_file(Tdomain, rg)
+    use sdomain
+    use semdatafiles
+    use mpi
+    implicit none
+
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in)         :: rg
+    character(Len=MAX_FILE_SIZE) :: fnamef
+    integer :: i,j, code, ok
+    logical :: neumann_log
 
     !-- Reading mesh properties
-#ifdef MKA3D
-    call semname_read_input_meshfile(rg,Tdomain%mesh_file,fnamef)
-    Tdomain%mesh_file = fnamef
-    if(rg==0) print*,'MESH_FILE', Tdomain%mesh_file
-    print*,'rg  MESH_FILE',rg, Tdomain%mesh_file
-#endif
     open(12, file=Tdomain%mesh_file, iostat=ok, status="old", form="formatted")
-    print*,'ok rg  MESH_FILE',ok, rg, Tdomain%mesh_file
     if (ok/=0) then
         write (*,*) "Process ",rg, " can't open his mesh_file ", Tdomain%mesh_file
         stop
-        call mpi_finalize(code)
     endif
     read (12,*) Tdomain%n_dime
     if(Tdomain%n_dime /=3)   &
@@ -405,13 +309,13 @@ subroutine read_input (Tdomain, rg, code)
             write(*,*) "  --> Propagation in solid media."
         end if
     end if
-    call MPI_BARRIER(MPI_COMM_WORLD, code)
+    call MPI_BARRIER(Tdomain%communicateur, code)
     read(12,*) neumann_log
     if(neumann_log .neqv. Tdomain%logicD%Neumann)  &
         stop "Introduction of Neumann B.C.: mesh and input files not in coincidence."
     read(12,*)   ! Global nodes for each proc.
     read (12,*) Tdomain%n_glob_nodes
-    write(6,*) 'nb noeuds',Tdomain%n_glob_nodes,'proc ',rg
+    write(6,*) rg, ': nb noeuds',Tdomain%n_glob_nodes
     read (12,*) Tdomain%curve
     allocate (Tdomain%Coord_nodes(0:Tdomain%n_dime-1,0:Tdomain%n_glob_nodes-1))
     do i = 0,Tdomain%n_glob_nodes-1
@@ -419,11 +323,12 @@ subroutine read_input (Tdomain, rg, code)
     enddo
     read(12,*)  ! Elements
     read(12,*) Tdomain%n_elem
-    write(6,*) 'nb elts',Tdomain%n_elem,'proc ',rg
+    write(6,*) rg, ': nb elts  ',Tdomain%n_elem
     allocate(Tdomain%specel(0:Tdomain%n_elem-1))
     do i=0,Tdomain%n_elem-1
         Tdomain%specel(i)%PML = .FALSE.
     enddo
+    read(12,*)  ! Materials
     read (12,*) Tdomain%n_mat
     do i = 0, Tdomain%n_elem-1
         read(12,*) Tdomain%specel(i)%mat_index, Tdomain%specel(i)%solid
@@ -617,6 +522,228 @@ subroutine read_input (Tdomain, rg, code)
     close(12)
 
     write(*,*) "Mesh read correctly for proc #", rg
+end subroutine read_mesh_file
+
+subroutine read_material_file(Tdomain, rg)
+    use sdomain
+    use semdatafiles
+    use mpi
+    implicit none
+
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in)         :: rg
+    character(Len=MAX_FILE_SIZE) :: fnamef
+    integer :: i, n_aus, npml
+
+    npml = 0
+    allocate(Tdomain%sSubdomain(0:Tdomain%n_mat-1))
+
+    call semname_read_inputmesh_parametrage(Tdomain%material_file,fnamef)
+    open (13, file=fnamef, status="old", form="formatted")
+
+    read(13,*) n_aus
+
+    if(n_aus /= Tdomain%n_mat)   &
+        stop "Incompatibility between the mesh file and the material file for n_mat"
+
+
+
+    if (Tdomain%aniso) then
+        print *,"The code can't put anisotropy in a homogeneous media"
+        stop
+    endif
+    do i = 0,Tdomain%n_mat-1
+        read(13,*) Tdomain%sSubDomain(i)%material_type, Tdomain%sSubDomain(i)%Pspeed, &
+            Tdomain%sSubDomain(i)%Sspeed, Tdomain%sSubDomain(i)%dDensity,      &
+            Tdomain%sSubDomain(i)%NGLLx, Tdomain%sSubDomain(i)%NGLLy, Tdomain%sSubDomain(i)%NGLLz, &
+            Tdomain%sSubDomain(i)%Dt, Tdomain%sSubDomain(i)%Qpression,  Tdomain%sSubDomain(i)%Qmu
+
+        if(rg==0) then
+            write (*,*) 'Material :', i
+            write (*,*) 'type:', Tdomain%sSubDomain(i)%material_type
+            write (*,*) 'Pspeed:', Tdomain%sSubDomain(i)%Pspeed
+            write (*,*) 'Sspeed:', Tdomain%sSubDomain(i)%Sspeed
+            write (*,*) 'Density:', Tdomain%sSubDomain(i)%dDensity
+            write (*,*) 'NGLL:', Tdomain%sSubDomain(i)%NGLLx, Tdomain%sSubDomain(i)%NGLLy, Tdomain%sSubDomain(i)%NGLLz
+            write (*,*) 'Dt:', Tdomain%sSubDomain(i)%Dt
+            write (*,*) 'Qp:', Tdomain%sSubDomain(i)%Qpression
+            write (*,*) 'Qmu:', Tdomain%sSubDomain(i)%Qmu
+        endif
+
+        call Lame_coefficients (Tdomain%sSubDomain(i))
+        if(rg==0) &
+            print*,' lame ',Tdomain%sSubDomain(i)%DMu,Tdomain%sSubDomain(i)%DLambda ,Tdomain%sSubDomain(i)%DKappa
+        if (Tdomain%sSubDomain(i)%material_type == "P" .or. Tdomain%sSubDomain(i)%material_type == "L")  then
+            Tdomain%sSubDomain(i)%wpml = npml
+            npml = npml + 1
+        endif
+    enddo
+
+    Tdomain%any_PML = .false.
+    Tdomain%any_FPML = .false.
+    if(npml > 0) then
+        Tdomain%any_PML = .true.
+        read(13,*); read(13,*)
+        do i = 0,Tdomain%n_mat-1
+            if(Tdomain%sSubdomain(i)%material_type == "P" .or.     &
+                Tdomain%sSubDomain(i)%material_type == "L") then
+                read(13,*) Tdomain%sSubdomain(i)%Filtering, Tdomain%sSubdomain(i)%npow,    &
+                    Tdomain%sSubdomain(i)%Apow, Tdomain%sSubdomain(i)%Px,                  &
+                    Tdomain%sSubdomain(i)%Left, Tdomain%sSubdomain(i)%Py,                  &
+                    Tdomain%sSubdomain(i)%Forward, Tdomain%sSubdomain(i)%Pz,               &
+                    Tdomain%sSubdomain(i)%Down, Tdomain%sSubdomain(i)%freq
+                if(Tdomain%sSubdomain(i)%Filtering) Tdomain%any_FPML = .true.
+            endif
+        enddo
+    endif
+    close(13)
+end subroutine read_material_file
+
+
+subroutine read_input (Tdomain, rg, code)
+
+    use sdomain
+    use semdatafiles
+    use mpi
+    implicit none
+
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in)         :: rg
+
+    logical :: logic_scheme, sortie, neumann_log
+    logical, dimension(:), allocatable :: L_Face, L_Edge
+    integer :: length,i,j,n_aus,mat,ok,nf,ne,nv,k,icount,n,i_aus,  &
+        ipoint,code,nnf,nne,nnv
+    real :: dtmin, x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4,x5,y5,z5,x6,y6,z6,x7,y7,z7
+    character(Len=MAX_FILE_SIZE) :: fnamef
+
+    call semname_read_input_input(fnamef)
+
+    open (11,file=fnamef,form="formatted",status="old")
+    read(11,*) Tdomain%Title_simulation
+    if (rg==0) write (*,*) 'title:', Tdomain%Title_simulation
+    read(11,*) Tdomain%TimeD%acceleration_scheme
+    if (rg==0) write (*,*) 'accel:', Tdomain%TimeD%acceleration_scheme
+    read(11,*) Tdomain%TimeD%velocity_scheme
+    if (rg==0) write (*,*) 'veloc:', Tdomain%TimeD%velocity_scheme
+    read(11,*) Tdomain%TimeD%duration
+    if (rg==0) write (*,*) 'duration:', Tdomain%TimeD%duration
+    read(11,*) Tdomain%TimeD%alpha
+    if (rg==0) write (*,*) 'alpha:', Tdomain%TimeD%alpha
+    read(11,*) Tdomain%TimeD%beta
+    if (rg==0) write (*,*) 'beta:', Tdomain%TimeD%beta
+    read(11,*) Tdomain%TimeD%gamma
+    if (rg==0) write (*,*) 'gamma:', Tdomain%TimeD%gamma
+    read(11,*) Tdomain%mesh_file
+    if (rg==0) write (*,*) 'mesh_file:', Tdomain%mesh_file
+    call semname_read_input_meshfile(rg,Tdomain%mesh_file,fnamef)
+    Tdomain%mesh_file = fnamef
+    write (*,*)  rg,':',' file=', Tdomain%mesh_file
+    call MPI_BARRIER(Tdomain%communicateur, code)
+
+    Tdomain%aniso = .FALSE.
+
+    read(11,*) Tdomain%material_file
+    if (rg==0) write (*,*) 'material_file:', Tdomain%material_file
+    read(11,*) Tdomain%logicD%save_trace
+    if (rg==0) write (*,*) 'save_trace:', Tdomain%logicD%save_trace
+    read(11,*) Tdomain%logicD%save_snapshots
+    if (rg==0) write (*,*) 'save_snapshots:', Tdomain%logicD%save_snapshots
+    ! MODIF ICI: energie? deformation?..
+    read(11,*) Tdomain%logicD%save_energy
+    if (rg==0) write (*,*) 'save_energy:', Tdomain%logicD%save_energy
+    read(11,*) Tdomain%logicD%save_restart
+    if (rg==0) write (*,*) 'save_restart:', Tdomain%logicD%save_restart
+    read(11,*) Tdomain%logicD%plot_grid
+    if (rg==0) write (*,*) 'plot_grid:', Tdomain%logicD%plot_grid
+    read(11,*) Tdomain%logicD%run_exec
+    if (rg==0) write (*,*) 'run_exec:', Tdomain%logicD%run_exec
+    read(11,*) Tdomain%logicD%run_debug
+    if (rg==0) write (*,*) 'run_debug:', Tdomain%logicD%run_debug
+    read(11,*) Tdomain%logicD%run_echo
+    if (rg==0) write (*,*) 'run_echo:', Tdomain%logicD%run_echo
+    read(11,*) Tdomain%logicD%run_restart
+    if (rg==0) write (*,*) 'run_restart:', Tdomain%logicD%run_restart
+    if(rg==0) &
+        write (6,*) 'run_restart',Tdomain%logicD%run_restart
+    ! numero de l iteration de reprise
+    read (11,*) Tdomain%TimeD%iter_reprise
+    if (rg==0) write (*,*) 'restart from iter:', Tdomain%TimeD%iter_reprise
+
+    ! creation de fichiers de reprise
+    read (11,*) Tdomain%TimeD%ncheck ! frequence de sauvegarde
+    if (rg==0) write (*,*) 'restart snap freq:', Tdomain%TimeD%ncheck
+
+    read(11,*) Tdomain%station_file
+    if (rg==0) write (*,*) 'Fichier capteurs:', Tdomain%station_file
+    read(11,*) Tdomain%TimeD%ntrace
+    if (rg==0) write (*,*) 'Freq capteurs:', Tdomain%TimeD%ntrace
+    read(11,*) Tdomain%TimeD%time_snapshots
+    if (rg==0) write (*,*) 'Freq snapshots:', Tdomain%TimeD%time_snapshots
+
+    logic_scheme = Tdomain%TimeD%acceleration_scheme .neqv. Tdomain%TimeD%velocity_scheme
+    if(.not. logic_scheme) then
+        stop "Both acceleration and velocity schemes: no compatibility, chose only one."
+    end if
+
+    ! Neumann boundary conditions? If yes: geometrical properties read in the mesh files.
+    read(11,*) Tdomain%logicD%Neumann
+    if (rg==0) write (*,*) 'Neumann BC:', Tdomain%logicD%Neumann
+    read(11,*) Tdomain%neumann_file
+    if (rg==0) write (*,*) 'Neumann file:', Tdomain%neumann_file
+
+
+    call read_source_desc(Tdomain, rg)
+
+
+    call read_attn_desc(Tdomain, rg)
+
+    ! conversion d'un maillage unv en maillage sem
+    read(11,*,ERR=101) Tdomain%bMailUnv
+    if (rg==0) write (*,*) 'Maillage au format unv:', Tdomain%bMailUnv
+
+    ! prise en compte du fichier des capteurs
+    read (11,*,ERR=102) Tdomain%bCapteur
+    if (rg==0) write (*,*) 'Utilisation des capteurs:', Tdomain%bCapteur
+
+    !   ajout lecture du flag pour les MPML
+    !   (Guillot et Mariotti fevrier 2012)
+    read(11,*) Tdomain%logicD%MPML
+    if (rg==0) write(*,*) 'Prise en compte MPML:', Tdomain%logicD%MPML
+    read(11,*) Tdomain%MPML_coeff
+    if (rg==0) write(*,*) 'Coefficient MPML:', Tdomain%MPML_coeff
+
+    !  debut ajout Gradient sur proprietes
+    read (11,*) Tdomain%logicD%grad_bassin
+    if (rg==0) write(*,*) 'Prise en compte Gradient:', Tdomain%logicD%grad_bassin
+    read(11,*) Tdomain%file_bassin
+    if (rg==0) write(*,*) 'Fichier desc Gradient:', Tdomain%file_bassin
+
+    if ( Tdomain%logicD%grad_bassin ) then
+        call read_gradient_desc(Tdomain, rg)
+    endif
+    !  fin ajout Gradient sur proprietes
+
+    close (11)
+
+    ! If echo modality write the read parameter in a file
+    if (Tdomain%logicD%run_echo) then
+
+        call echo_input_params(Tdomain, rg)
+
+    endif
+
+    !print *,'ap echo',tDomain%bMailUnv  !Gsa ipsis
+    ! si le format du maillage initial est UNV,il faut le convertir en maillage sem2D
+    if (tDomain%bMailUnv) call convertirUnv(tDomain, rg)
+    if (tDomain%bMailUnv) then
+        write(6,*) 'End of the conversion unv -> SEM'
+        write(6,'(A,1X,A)') 'The name of the mesh file is now:', Tdomain%mesh_file
+    endif
+
+
+    call read_mesh_file(Tdomain, rg)
+
 
 
     !-- Checking mesh properties
@@ -801,62 +928,7 @@ subroutine read_input (Tdomain, rg, code)
 
 
     !---   Properties of materials.
-    npml = 0
-    allocate(Tdomain%sSubdomain(0:Tdomain%n_mat-1))
-
-    call semname_read_inputmesh_parametrage(Tdomain%material_file,fnamef)
-    open (13, file=fnamef, status="old", form="formatted")
-
-    read(13,*) n_aus
-
-    if(n_aus /= Tdomain%n_mat)   &
-        stop "Incompatibility between the mesh file and the material file for n_mat"
-
-
-
-    if (Tdomain%aniso) then
-        print *,"The code can't put anisotropy in a homogeneous media"
-        stop
-    endif
-    do i = 0,Tdomain%n_mat-1
-        read(13,*) Tdomain%sSubDomain(i)%material_type, Tdomain%sSubDomain(i)%Pspeed, &
-            Tdomain%sSubDomain(i)%Sspeed, Tdomain%sSubDomain(i)%dDensity,      &
-            Tdomain%sSubDomain(i)%NGLLx, Tdomain%sSubDomain(i)%NGLLy, Tdomain%sSubDomain(i)%NGLLz, &
-            Tdomain%sSubDomain(i)%Dt, Tdomain%sSubDomain(i)%Qpression,  Tdomain%sSubDomain(i)%Qmu
-
-        if(rg==0) &
-            write (*,*) Tdomain%sSubDomain(i)%material_type, Tdomain%sSubDomain(i)%Pspeed, &
-            Tdomain%sSubDomain(i)%Sspeed, Tdomain%sSubDomain(i)%dDensity, &
-            Tdomain%sSubDomain(i)%NGLLx, Tdomain%sSubDomain(i)%NGLLy, Tdomain%sSubDomain(i)%NGLLz, &
-            Tdomain%sSubDomain(i)%Dt, Tdomain%sSubDomain(i)%Qpression,  Tdomain%sSubDomain(i)%Qmu
-
-        call Lame_coefficients (Tdomain%sSubDomain(i))
-        if(rg==0) &
-            print*,' lame ',Tdomain%sSubDomain(i)%DMu,Tdomain%sSubDomain(i)%DLambda ,Tdomain%sSubDomain(i)%DKappa
-        if (Tdomain%sSubDomain(i)%material_type == "P" .or. Tdomain%sSubDomain(i)%material_type == "L")  then
-            Tdomain%sSubDomain(i)%wpml = npml
-            npml = npml + 1
-        endif
-    enddo
-
-    Tdomain%any_PML = .false.
-    Tdomain%any_FPML = .false.
-    if(npml > 0) then
-        Tdomain%any_PML = .true.
-        read(13,*); read(13,*)
-        do i = 0,Tdomain%n_mat-1
-            if(Tdomain%sSubdomain(i)%material_type == "P" .or.     &
-                Tdomain%sSubDomain(i)%material_type == "L") then
-                read(13,*) Tdomain%sSubdomain(i)%Filtering, Tdomain%sSubdomain(i)%npow,    &
-                    Tdomain%sSubdomain(i)%Apow, Tdomain%sSubdomain(i)%Px,                  &
-                    Tdomain%sSubdomain(i)%Left, Tdomain%sSubdomain(i)%Py,                  &
-                    Tdomain%sSubdomain(i)%Forward, Tdomain%sSubdomain(i)%Pz,               &
-                    Tdomain%sSubdomain(i)%Down, Tdomain%sSubdomain(i)%freq
-                if(Tdomain%sSubdomain(i)%Filtering) Tdomain%any_FPML = .true.
-            endif
-        enddo
-    endif
-    close(13)
+    call read_material_file(Tdomain, rg)
 
     !- GLL properties in elements, on faces, edges.
     allocate(L_Face(0:Tdomain%n_face-1))

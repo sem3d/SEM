@@ -54,7 +54,6 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     call MPI_Group_Rank(groupe, rg, code)
 #else
     ! initialisations MPI
-    call MPI_Init (code)
     call MPI_Comm_Rank (MPI_COMM_WORLD, rg, code)
     call MPI_Comm_Size (MPI_COMM_WORLD, nb_procs,  code)
 #endif
@@ -69,7 +68,7 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
 #endif
 
     ! ##############  Begin of the program  #######################
-    write (*,*) "Define mesh properties ",rg
+    if (rg==0) write (*,*) "Define mesh properties ",rg
     call read_input (Tdomain, rg, code)
 
     write(*,*) "----         SEM - 3d version      ------"
