@@ -15,7 +15,7 @@ module mCapteur
 
     implicit none
 
-    public :: read_capteur, save_capteur, evalueSortieCapteur
+    public :: read_capteur, save_capteur, evalueSortieCapteur, save_traces
     private :: lireCapteur, capterPointDeGauss, sortirGrandeurSousCapteur
 
     type :: tPtgauss
@@ -270,13 +270,13 @@ contains
             allocate(capteur)
             capteur%nom = ""         ! ses caracteristiques par defaut
             capteur%numero = dimCapteur ! numero du capteur
-            capteur%frequence = 0
+            capteur%frequence = 10
             capteur%rayon = 0
             capteur%operation = ""
             capteur%grandeur = ""
             capteur%coord(:) = -1.
-            capteur%n_el = -1.
-            capteur%numproc = -1.
+            capteur%n_el = -1
+            capteur%numproc = -1
             capteur%type_calcul = 1 !mode de calcul du capteur
             nullify(capteur%listePtGauss)
             capteur%distanceMin = huge(1.)
@@ -329,7 +329,12 @@ contains
             enddo ! fin de lecture du capteur courant
 
 
-50          if (rg==0) write(*,'(A7,I4,A6)') "capteur",dimCapteur,"OK"
+50          if (rg==0) then
+                write(*,*) "capteur : ",dimCapteur," ", capteur%nom
+                write(*,*) "- freq = ", capteur%frequence
+                write(*,*) "- pos = ", capteur%Coord
+            end if
+
             capteur%suivant=>listeCapteur
             listeCapteur=>capteur
             ! si c'est un nouveau run, suppression de l'eventuel fichier de sortie des capteurs
@@ -1300,6 +1305,182 @@ contains
         return
     end function test_contour_capteur
 
+
+    subroutine save_traces(Tdomain, ntime, rg)
+        use sdomain
+        implicit none
+        type(domain), intent(inout)   :: Tdomain
+        integer, intent(in) :: rg, ntime
+        integer :: ngll1, ngll2, ngll3
+        integer :: x,y,z,i,j,n,ntimetrace
+        integer :: ne,nf,nv
+        real, dimension(0:2) :: tmp
+
+        do n = 0, Tdomain%n_receivers-1
+            if (rg == Tdomain%sReceiver(n)%proc) then
+                i = Tdomain%sReceiver(n)%elem
+                ngll1 = Tdomain%specel(i)%ngllx
+                ngll2 = Tdomain%specel(i)%nglly
+                ngll3 = Tdomain%specel(i)%ngllz
+                do x = 0,ngll1-1
+                    do y = 0,ngll2-1
+                        do z = 0,ngll3-1
+                            if (x==0) then
+                                if (y==0) then
+                                    if (z==0) then
+                                        nv = Tdomain%specel(i)%Near_Vertices(0)
+                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Veloc(:)
+                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Displ(:)
+                                    else if (z==ngll3-1) then
+                                        nv = Tdomain%specel(i)%Near_Vertices(4)
+                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Veloc(:)
+                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Displ(:)
+                                    else
+                                        ne = Tdomain%specel(i)%Near_Edges(6)
+                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(z,:)
+                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(z,:)
+                                    endif
+                                else if (y==ngll2-1) then
+                                    if (z==0) then
+                                        nv = Tdomain%specel(i)%Near_Vertices(3)
+                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Veloc(:)
+                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Displ(:)
+                                    else if (z==ngll3-1) then
+                                        nv = Tdomain%specel(i)%Near_Vertices(7)
+                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Veloc(:)
+                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Displ(:)
+                                    else
+                                        ne = Tdomain%specel(i)%Near_Edges(10)
+                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(z,:)
+                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(z,:)
+                                    endif
+                                else if (z==0) then
+                                    ne = Tdomain%specel(i)%Near_Edges(3)
+                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(y,:)
+                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(y,:)
+                                else if (z==ngll3-1) then
+                                    ne = Tdomain%specel(i)%Near_Edges(11)
+                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(y,:)
+                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(y,:)
+                                else
+                                    nf = Tdomain%specel(i)%Near_Faces(4)
+                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Veloc(y,z,:)
+                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Displ(y,z,:)
+                                endif
+                            else if (x==ngll1-1) then
+                                if (y==0) then
+                                    if (z==0) then
+                                        nv = Tdomain%specel(i)%Near_Vertices(1)
+                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Veloc(:)
+                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Displ(:)
+                                    else if (z==ngll3-1) then
+                                        nv = Tdomain%specel(i)%Near_Vertices(5)
+                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Veloc(:)
+                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Displ(:)
+                                    else
+                                        ne = Tdomain%specel(i)%Near_Edges(4)
+                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(z,:)
+                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(z,:)
+                                    endif
+                                else if (y==ngll2-1) then
+                                    if (z==0) then
+                                        nv = Tdomain%specel(i)%Near_Vertices(2)
+                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Veloc(:)
+                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Displ(:)
+                                    else if (z==ngll3-1) then
+                                        nv = Tdomain%specel(i)%Near_Vertices(6)
+                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Veloc(:)
+                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Displ(:)
+                                    else
+                                        ne = Tdomain%specel(i)%Near_Edges(7)
+                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(z,:)
+                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(z,:)
+                                    endif
+                                else if (z==0) then
+                                    ne = Tdomain%specel(i)%Near_Edges(1)
+                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(y,:)
+                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(y,:)
+                                else if (z==ngll3-1) then
+                                    ne = Tdomain%specel(i)%Near_Edges(8)
+                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(y,:)
+                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(y,:)
+                                else
+                                    nf = Tdomain%specel(i)%Near_Faces(2)
+                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Veloc(y,z,:)
+                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Displ(y,z,:)
+                                endif
+                            else if (y==0) then
+                                if (z==0) then
+                                    ne = Tdomain%specel(i)%Near_Edges(0)
+                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(x,:)
+                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(x,:)
+                                else if (z==ngll3-1) then
+                                    ne = Tdomain%specel(i)%Near_Edges(5)
+                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(x,:)
+                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(x,:)
+                                else
+                                    nf = Tdomain%specel(i)%Near_Faces(1)
+                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Veloc(x,z,:)
+                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Displ(x,z,:)
+                                endif
+                            else if (y==ngll2-1) then
+                                if (z==0) then
+                                    ne = Tdomain%specel(i)%Near_Edges(2)
+                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(x,:)
+                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(x,:)
+                                else if (z==ngll3-1) then
+                                    ne = Tdomain%specel(i)%Near_Edges(9)
+                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(x,:)
+                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(x,:)
+                                else
+                                    nf = Tdomain%specel(i)%Near_Faces(3)
+                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Veloc(x,z,:)
+                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Displ(x,z,:)
+                                endif
+                            else if (z==0) then
+                                nf = Tdomain%specel(i)%Near_Faces(0)
+                                Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Veloc(x,y,:)
+                                !                 Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Displ(x,y,:)
+                            else if (z==ngll3-1) then
+                                nf = Tdomain%specel(i)%Near_Faces(5)
+                                Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Veloc(x,y,:)
+                                !                 Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Displ(x,y,:)
+                            else
+                                Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%specel(i)%Veloc(x,y,z,:)
+                                !                 Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%specel(i)%Displ(x,y,z,:)
+                            endif
+                        enddo
+                    enddo
+                enddo
+
+                ntimetrace = mod (ntime,Tdomain%TimeD%ntrace)
+
+                do x = 0,ngll1-1
+                    do y = 0,ngll2-1
+                        do z = 0,ngll3-1
+                            if ( x == 0 .and. y == 0 .and. z == 0 ) then
+                                Tdomain%sReceiver(n)%StoreTrace(ntimetrace,:) = Tdomain%sReceiver(n)%coeff(x,y,z,:) * Tdomain%sReceiver(n)%pol(x,y,z)
+                            else
+                                Tdomain%sReceiver(n)%StoreTrace(ntimetrace,:) = Tdomain%sReceiver(n)%StoreTrace(ntimetrace,:) + &
+                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) * Tdomain%sReceiver(n)%pol(x,y,z)
+                            endif
+                        enddo
+                    enddo
+                enddo
+                if (Tdomain%curve) then
+                    do i = 0,2
+                        tmp(i) = 0
+                        do j = 0,2
+                            tmp(i) = tmp(i) + Tdomain%sReceiver(n)%Passage(i,j) * Tdomain%sReceiver(n)%StoreTrace(ntimetrace,j)
+                        end do
+                    enddo
+                    do i = 0,2
+                        Tdomain%sReceiver(n)%StoreTrace(ntimetrace,i) = tmp(i)
+                    enddo
+                end if
+            end if
+        enddo
+    end subroutine save_traces
 
 end module Mcapteur
 !! Local Variables:
