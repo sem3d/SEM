@@ -269,7 +269,57 @@ contains
         return
     end subroutine get_vel_edge
 
-    ! ############################################################
+    ! ###########################################################
+    subroutine init_edge(ed)
+        type(Edge), intent(inout) :: ed
+
+        ed%PML = .false.
+        ed%Abs = .false.
+        ed%FPML = .false.
+        ed%ngll = 0
+        ed%solid = .true.
+        nullify(ed%Which_Elem)
+        nullify(ed%Which_EdgeinElem)
+        nullify(ed%EdgeNum)
+        nullify(ed%Iglobnum_Edge)
+        nullify(ed%MassMat)
+        nullify(ed%Forces)
+        nullify(ed%Displ)
+        nullify(ed%Veloc)
+        nullify(ed%Accel)
+        nullify(ed%V0)
+        nullify(ed%Forces1)
+        nullify(ed%Forces2)
+        nullify(ed%Forces3)
+        nullify(ed%Veloc1)
+        nullify(ed%Veloc2)
+        nullify(ed%Veloc3)
+        nullify(ed%DumpVx)
+        nullify(ed%DumpVy)
+        nullify(ed%DumpVz)
+        nullify(ed%DumpMass)
+        nullify(ed%IVeloc1)
+        nullify(ed%IVeloc2)
+        nullify(ed%IVeloc3)
+        nullify(ed%Ivx)
+        nullify(ed%Ivy)
+        nullify(ed%Ivz)
+        nullify(ed%ForcesFl)
+        nullify(ed%Phi)
+        nullify(ed%VelPhi)
+        nullify(ed%AccelPhi)
+        nullify(ed%VelPhi0)
+        nullify(ed%ForcesFl1)
+        nullify(ed%ForcesFl2)
+        nullify(ed%ForcesFl3)
+        nullify(ed%VelPhi1)
+        nullify(ed%VelPhi2)
+        nullify(ed%VelPhi3)
+#ifdef MKA3D
+        nullify(ed%ForcesMka)
+        nullify(ed%tsurfsem)
+#endif
+    end subroutine init_edge
 
 end module sedges
 !! Local Variables:

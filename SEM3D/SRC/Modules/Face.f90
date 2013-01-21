@@ -364,6 +364,57 @@ contains
 
     ! ############################################################
 
+    subroutine init_face(fc)
+        type(Face), intent(inout) :: fc
+
+        fc%PML = .false.
+        fc%Abs = .false.
+        fc%FPML = .false.
+        fc%ngll1 = 0
+        fc%ngll2 = 0
+        fc%dir = -1
+        fc%Which_Elem = -1
+        fc%solid = .true.
+        nullify(fc%FaceNum)
+        nullify(fc%Iglobnum_Face)
+        nullify(fc%MassMat)
+        nullify(fc%Forces)
+        nullify(fc%Displ)
+        nullify(fc%Veloc)
+        nullify(fc%Accel)
+        nullify(fc%V0)
+        nullify(fc%Forces1)
+        nullify(fc%Forces2)
+        nullify(fc%Forces3)
+        nullify(fc%Veloc1)
+        nullify(fc%Veloc2)
+        nullify(fc%Veloc3)
+        nullify(fc%DumpVx)
+        nullify(fc%DumpVy)
+        nullify(fc%DumpVz)
+        nullify(fc%DumpMass)
+        nullify(fc%IVeloc1)
+        nullify(fc%IVeloc2)
+        nullify(fc%IVeloc3)
+        nullify(fc%Ivx)
+        nullify(fc%Ivy)
+        nullify(fc%Ivz)
+        nullify(fc%ForcesFl)
+        nullify(fc%Phi)
+        nullify(fc%VelPhi)
+        nullify(fc%AccelPhi)
+        nullify(fc%VelPhi0)
+        nullify(fc%ForcesFl1)
+        nullify(fc%ForcesFl2)
+        nullify(fc%ForcesFl3)
+        nullify(fc%VelPhi1)
+        nullify(fc%VelPhi2)
+        nullify(fc%VelPhi3)
+#ifdef MKA3D
+        nullify(fc%ForcesMka)
+        nullify(fc%tsurfsem)
+#endif
+    end subroutine init_face
 
 end module sfaces
 !! Local Variables:

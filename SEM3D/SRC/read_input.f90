@@ -326,7 +326,7 @@ subroutine read_mesh_file(Tdomain, rg)
     write(6,*) rg, ': nb elts  ',Tdomain%n_elem
     allocate(Tdomain%specel(0:Tdomain%n_elem-1))
     do i=0,Tdomain%n_elem-1
-        Tdomain%specel(i)%PML = .FALSE.
+        call init_element(Tdomain%specel(i))
     enddo
     read(12,*)  ! Materials
     read (12,*) Tdomain%n_mat
@@ -342,9 +342,9 @@ subroutine read_mesh_file(Tdomain, rg)
     read(12,*)  ! Faces and elements properties related to faces
     read(12,*) Tdomain%n_face
     allocate(Tdomain%sFace(0:Tdomain%n_face-1))
-        do i=0,Tdomain%n_face-1
-            Tdomain%sFace(i)%PML = .FALSE.
-        enddo
+    do i=0,Tdomain%n_face-1
+        call init_face(Tdomain%sFace(i))
+    enddo
     do i = 0, Tdomain%n_elem-1
         read(12,*) Tdomain%specel(i)%Near_Faces(0:5)
         read(12,*) Tdomain%specel(i)%Orient_Faces(0:5)
@@ -352,9 +352,9 @@ subroutine read_mesh_file(Tdomain, rg)
     read(12,*)  ! Edges
     read(12,*) Tdomain%n_edge
     allocate(Tdomain%sEdge(0:Tdomain%n_edge-1))
-        do i=0,Tdomain%n_edge-1
-            Tdomain%sEdge(i)%PML = .FALSE.
-        enddo
+    do i=0,Tdomain%n_edge-1
+        call init_edge(Tdomain%sEdge(i))
+    enddo
     do i = 0, Tdomain%n_elem-1
         read(12,*) Tdomain%specel(i)%Near_Edges(0:11)
         read(12,*) Tdomain%specel(i)%Orient_Edges(0:11)
@@ -362,9 +362,9 @@ subroutine read_mesh_file(Tdomain, rg)
     read(12,*)  ! Vertices
     read(12,*) Tdomain%n_vertex
     allocate(Tdomain%sVertex(0:Tdomain%n_vertex-1))
-        do i=0,Tdomain%n_vertex-1
-            Tdomain%sVertex(i)%PML = .FALSE.
-        enddo
+    do i=0,Tdomain%n_vertex-1
+        call init_vertex(Tdomain%sVertex(i))
+    enddo
     do i = 0,Tdomain%n_elem-1
         read(12,*) Tdomain%specel(i)%Near_Vertices(0:7)
     enddo

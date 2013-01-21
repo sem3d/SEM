@@ -1063,6 +1063,78 @@ contains
     end subroutine Prediction_Elem_PML_Veloc_curve
 
 
+subroutine init_element(el)
+    type(element), intent(inout) :: el
+
+    el%mat_index=-1
+    el%ngllx=0
+    el%nglly=0
+    el%ngllz=0
+    nullify(el%Control_nodes)
+    nullify(el%Iglobnum)
+    nullify(el%num)
+    nullify(el%Jacob)
+    nullify(el%Density)
+    nullify(el%Lambda)
+    nullify(el%Mu)
+    nullify(el%MassMat)
+    nullify(el%ACoeff)
+    nullify(el%Forces)
+    nullify(el%Veloc)
+    nullify(el%Displ)
+    nullify(el%Accel)
+    nullify(el%V0)
+    nullify(el%Diagonal_Stress)
+    nullify(el%Residual_Stress)
+    nullify(el%InvGrad)
+    nullify(el%Phi)
+    nullify(el%VelPhi0)
+    nullify(el%VelPhi)
+    nullify(el%AccelPhi)
+    nullify(el%Diagonal_Stress1)
+    nullify(el%Diagonal_Stress2)
+    nullify(el%Diagonal_Stress3)
+    nullify(el%Residual_Stress1)
+    nullify(el%Residual_Stress2)
+    nullify(el%DumpSx)
+    nullify(el%DumpSy)
+    nullify(el%DumpSz)
+    nullify(el%Forces1)
+    nullify(el%Forces2)
+    nullify(el%Forces3)
+    nullify(el%Veloc1)
+    nullify(el%Veloc2)
+    nullify(el%Veloc3)
+    nullify(el%DumpVx)
+    nullify(el%DumpVy)
+    nullify(el%DumpVz)
+    nullify(el%DumpMass)
+    nullify(el%I_Diagonal_Stress1)
+    nullify(el%I_Diagonal_Stress2)
+    nullify(el%I_Diagonal_Stress3)
+    nullify(el%I_Residual_Stress1)
+    nullify(el%I_Residual_Stress2)
+    nullify(el%Iveloc1)
+    nullify(el%Iveloc2)
+    nullify(el%Iveloc3)
+    nullify(el%Isx)
+    nullify(el%Isy)
+    nullify(el%Isz)
+    nullify(el%Ivx)
+    nullify(el%Ivy)
+    nullify(el%Ivz)
+    nullify(el%ForcesFl)
+    nullify(el%ForcesFl1)
+    nullify(el%ForcesFl2)
+    nullify(el%ForcesFl3)
+    nullify(el%VelPhi1)
+    nullify(el%VelPhi2)
+    nullify(el%VelPhi3)
+    el%PML = .false.
+    el%solid = .true.
+
+end subroutine init_element
+
 
 end module selement
 

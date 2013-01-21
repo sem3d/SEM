@@ -242,6 +242,54 @@ contains
     end subroutine get_vel_vertex
     ! ###########################################################
 
+    subroutine init_vertex(ve)
+        type(Vertex), intent(inout) :: ve
+
+        ve%PML = .false.
+        ve%Abs = .false.
+        ve%FPML = .false.
+        ve%solid = .true.
+        ve%global_numbering = -1
+        ve%Iglobnum_Vertex = -1
+        ve%MassMat = 0
+        ve%Forces = 0.
+        ve%Displ = 0.
+        ve%Veloc = 0.
+        ve%Accel = 0.
+        ve%V0 = 0.
+        ve%Forces1 = 0.
+        ve%Forces2 = 0.
+        ve%Forces3 = 0.
+        nullify(ve%Veloc1)
+        nullify(ve%Veloc2)
+        nullify(ve%Veloc3)
+        nullify(ve%DumpVx)
+        nullify(ve%DumpVy)
+        nullify(ve%DumpVz)
+        nullify(ve%DumpMass)
+        nullify(ve%IVeloc1)
+        nullify(ve%IVeloc2)
+        nullify(ve%IVeloc3)
+        nullify(ve%Ivx)
+        nullify(ve%Ivy)
+        nullify(ve%Ivz)
+        ve%ForcesFl = 0.
+        ve%Phi = 0.
+        ve%VelPhi = 0.
+        ve%AccelPhi = 0.
+        ve%VelPhi0 = 0.
+        ve%ForcesFl1 = 0.
+        ve%ForcesFl2 = 0.
+        ve%ForcesFl3 = 0.
+        ve%VelPhi1 = 0.
+        ve%VelPhi2 = 0.
+        ve%VelPhi3 = 0.
+#ifdef MKA3D
+        nullify(ve%ForcesMka)
+        nullify(ve%tsurfsem)
+#endif
+    end subroutine init_vertex
+
 end module svertices
 !! Local Variables:
 !! mode: f90
