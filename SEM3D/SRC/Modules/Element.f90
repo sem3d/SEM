@@ -147,7 +147,7 @@ contains
         implicit none
         type(Element), intent(inout) :: Elem
         real, intent(in) :: bega, gam1, dt
-        integer :: ngllx, nglly, ngllz, i
+        integer :: ngllx, nglly, ngllz
 
 
         ngllx = Elem%ngllx ;  nglly = Elem%nglly ; ngllz = Elem%ngllz
@@ -447,7 +447,7 @@ contains
         real, dimension(0:Elem%ngllz-1,0:Elem%ngllz-1), intent(in) :: hprimez
 
         real, dimension(0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVelPhi_dxi,dVelPhi_deta,dVelPhi_dzeta
-        integer :: m1,m2,m3,n_z,n_x,i,j,k
+        integer :: m1,m2,m3,n_z,n_x
 
 
         m1 = Elem%ngllx ; m2 = Elem%nglly ; m3 = Elem%ngllz
@@ -693,7 +693,7 @@ contains
 
         type(Element), intent(inout) :: Elem
         real, intent(in) :: dt
-        integer :: ngllx, nglly, ngllz, i
+        integer :: ngllx, nglly, ngllz
 
 
         ngllx = Elem%ngllx ; nglly = Elem%nglly ; ngllz = Elem%ngllz

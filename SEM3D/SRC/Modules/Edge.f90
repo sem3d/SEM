@@ -117,9 +117,6 @@ contains
 
         type(Edge), intent(inout) :: E
         real, intent(in) :: dt
-        integer :: i, ngll, j
-
-        ngll = E%ngll
 
         E%ForcesFl(:) = E%MassMat(:) * E%ForcesFl(:)
 
