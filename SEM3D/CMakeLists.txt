@@ -121,6 +121,7 @@ else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 
 
+set(SEM_EXTRA_LIBS "")
 if(OPT_MPI)
 #set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
 # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
@@ -132,7 +133,7 @@ set(SEM3D_SOURCES ${SEM3D_SOURCES}
 endif(OPT_MPI)
 
 if (OPT_HDF5)
-set(SEM_EXTRA_LIBS ${MPI_EXTRA_LIBRARY} hdf5_fortran)
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} hdf5_fortran)
 set(SEM3D_SOURCES ${SEM3D_SOURCES} ${SEMCOMMON}/sem_hdf5.f90)
 endif(OPT_HDF5)
 
