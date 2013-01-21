@@ -191,11 +191,10 @@ contains
         real :: time, tau2, fp,gama,ts
         real :: sigma
         real ::  xomega,  xval1, xval2
-        real, parameter :: pi = 3.141592653
-        xomega  = pi*0.5
+        xomega  = M_PI*0.5
 
         if ( time < 32. ) then
-            sigma = 2. * pi * fp * (time-ts)
+            sigma = 2. * M_PI * fp * (time-ts)
             xval1 = cos(sigma + xomega)
             sigma = sigma/gama
             sigma = sigma**2
@@ -219,7 +218,7 @@ contains
         ! Ricker function for pressure wave: the same as the previous one, but with
         !    one time derivative to be coherent
         real  :: time, tau, f0
-        real  :: sigma,pi,sigma2,sigma3
+        real  :: sigma,sigma2,sigma3
 
         sigma = M_PI*f0*(time-tau)
         sigma2 = sigma**2

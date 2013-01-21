@@ -19,7 +19,7 @@ subroutine allocate_domain (Tdomain, rg)
 
     type(domain), intent (INOUT) :: Tdomain
     integer, intent (IN) :: rg
-    integer :: n,nf,ne,nv,i,j,k,ngllx,nglly,ngllz,ngll1,ngll2,   &
+    integer :: n,nf,ne,nv,i,ngllx,nglly,ngllz,ngll1,ngll2,   &
         ngll,ngllPML,ngllSO,ngllNeu,ngllSF,ngll_F,ngllPML_F
     integer :: n_solid
 
@@ -650,10 +650,10 @@ subroutine allocate_domain (Tdomain, rg)
 
         enddo
     else
-        Tdomain%sComm(n)%ngll = 0
-        Tdomain%sComm(n)%ngllPML = 0
-        Tdomain%sComm(n)%ngllSO = 0
-        Tdomain%sComm(n)%ngllPML_F = 0
+        Tdomain%sComm(0)%ngll = 0
+        Tdomain%sComm(0)%ngllPML = 0
+        Tdomain%sComm(0)%ngllSO = 0
+        Tdomain%sComm(0)%ngllPML_F = 0
     endif
 
     do n = 0, Tdomain%n_receivers-1

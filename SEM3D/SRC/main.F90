@@ -1,5 +1,5 @@
 program drive_sem
-
+    use mpi
     use semdatafiles
 
     character(Len=MAX_FILE_SIZE),parameter :: p_param = "."
@@ -7,7 +7,6 @@ program drive_sem
     character(Len=MAX_FILE_SIZE),parameter :: p_results = "./res"
     character(Len=MAX_FILE_SIZE),parameter :: p_data = "."
     character(Len=MAX_FILE_SIZE),parameter :: p_prot = "./prot"
-    character(Len=MAX_FILE_SIZE) :: fnamef
 
     integer :: code, rg
 

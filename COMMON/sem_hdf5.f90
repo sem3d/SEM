@@ -117,7 +117,7 @@ contains
         real*8, dimension(:), allocatable, intent(out) :: data
         integer(HID_T) :: dset_id, space_id
         integer(HSIZE_T), dimension(1) :: dims, maxdims
-        integer :: hdferr, ndims
+        integer :: hdferr
 
         call h5dopen_f(parent, name, dset_id, hdferr)
         !write(*,*) "Reading attr: ", name, dset_id, hdferr

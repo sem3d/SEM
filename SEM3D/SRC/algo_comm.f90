@@ -30,7 +30,8 @@ subroutine ALGO_COMM(rank,n,rings,ngll_give,ngll_take,give_to,take_from,fact_mul
     integer, intent(in) :: rings,rank,n,ngll_give,ngll_take,give_to,take_from,fact_mult
     real, dimension(0:fact_mult*ngll_give-1), intent(in) :: TabGiven
     real, dimension(0:fact_mult*ngll_take-1), intent(out) :: TabTaken
-    integer  :: i,j,code,etiquette,statut
+    integer  :: i,j,code,etiquette
+    integer, dimension(MPI_STATUS_SIZE) :: statut
 
     etiquette = 100
 

@@ -76,7 +76,7 @@ contains
         type (Face), intent (INOUT) :: F
         !real, intent (IN) :: bega, gam1
         real, intent (IN) :: dt
-        integer :: i, j
+        integer :: i
         real :: xmas
 
 #ifdef MKA3D
@@ -106,7 +106,6 @@ contains
 
         type(Face), intent(inout) :: F
         real, intent(in) :: dt
-        integer :: i
 
         F%ForcesFl(:,:) = F%MassMat(:,:) * F%ForcesFl(:,:)
         F%VelPhi(:,:) = F%VelPhi0(:,:) + dt * F%ForcesFl(:,:)

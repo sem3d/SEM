@@ -128,20 +128,15 @@ subroutine shape8(Tdomain,rank)
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: rank
-    integer :: n, i_aus, ngll,ngllx,nglly,ngllz,ngll1,ngll2, mat, i,j,k ,ipoint,   &
-        n_face, nf,ne,nv,n_aus,nf_up,nf_down,Orient,n_up,n_down,               &
-        mat_index,which_elem,which_face,which_edge,which_vertex,f_dir,code,indv
+    integer :: n,  ngll,ngllx,nglly,ngllz,ngll1,ngll2, mat, i,j,k ,ipoint,   &
+        nf,ne,nv,               &
+        mat_index,which_elem,which_face,which_edge,which_vertex,f_dir,indv
     integer, dimension(0:3)  :: loc_vertices,loc_nodes
-    real :: x0,y0,z0,x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4,x5,y5,z5,x6,y6,z6,x7,y7,z7
-    real :: xi,eta,zeta, xp,yp,zp, Jac,norm, fact_norm
-    real, dimension(0:2,0:1) :: LocInvGradS
+    real :: xi,eta,zeta, Jac, fact_norm
     real, dimension(0:2,0:2) :: LocInvGrad
-    real, dimension(0:1,0:1) :: LocInvGrad2
     real, dimension(0:7) :: xco,yco,zco  ! coordinates of nodes
     real, external  :: f_p,f_xp,f_yp,f_zp,der_dx_dxi,der_dx_deta,der_dx_dzeta,     &
         der_dy_dxi,der_dy_deta,der_dy_dzeta,der_dz_dxi,der_dz_deta,der_dz_dzeta
-    character(len=100) :: fnamef
-
 
 
     allocate(Tdomain%GlobCoord(0:2,0:Tdomain%n_glob_points-1))
@@ -348,7 +343,6 @@ subroutine coord_nodes_face(dir,x,y,z,local_nod,n_glob_nodes,coord_nodes)
     integer, dimension(0:3), intent(in)  :: local_nod
     integer, intent(in)  :: n_glob_nodes
     real, dimension(0:2,0:n_glob_nodes-1), intent(in)  :: coord_nodes
-    integer   :: i
 
     x(:) = 0d0 ; y(:) = 0d0 ; z(:) = 0d0
 

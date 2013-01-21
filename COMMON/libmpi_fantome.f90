@@ -227,7 +227,7 @@ contains
     !! ----------------------- MPI_Recv ---------------------------
     subroutine MPI_RECV_r1 (val, long, type, src, tag, comm, status, ierr)
         implicit none
-        real, intent(in) :: val
+        real, intent(out) :: val
         integer, intent(in) :: long, type, src, tag, comm
         integer, intent(out), dimension(MPI_STATUS_SIZE) :: status
         integer, intent(inout) :: ierr
@@ -237,7 +237,7 @@ contains
 
     subroutine MPI_RECV_rv (val, long, type, src, tag, comm, status, ierr)
         implicit none
-        real, intent(in) :: val(long)
+        real, intent(out) :: val(long)
         integer, intent(in) :: long, type, src, tag, comm
         integer, intent(out), dimension(MPI_STATUS_SIZE) :: status
         integer, intent(inout) :: ierr
@@ -247,7 +247,7 @@ contains
 
     subroutine MPI_RECV_rm (val, long, type, src, tag, comm, status, ierr)
         implicit none
-        real, intent(in), dimension(:,:) :: val
+        real, intent(out), dimension(:,:) :: val
         integer, intent(in) :: long, type, src, tag, comm
         integer, intent(out), dimension(MPI_STATUS_SIZE) :: status
         integer, intent(inout) :: ierr
@@ -257,7 +257,7 @@ contains
 
     subroutine MPI_RECV_rm3 (val, long, type, src, tag, comm, status, ierr)
         implicit none
-        real, intent(in), dimension(:,:,:) :: val
+        real, intent(out), dimension(:,:,:) :: val
         integer, intent(in) :: long, type, src, tag, comm
         integer, intent(out), dimension(MPI_STATUS_SIZE) :: status
         integer, intent(inout) :: ierr
@@ -267,7 +267,7 @@ contains
 
     subroutine MPI_RECV_i1 (val, long, type, src, tag, comm, status, ierr)
         implicit none
-        integer, intent(in) :: val
+        integer, intent(out) :: val
         integer, intent(in) :: long, type, src, tag, comm
         integer, intent(out), dimension(MPI_STATUS_SIZE) :: status
         integer, intent(inout) :: ierr
@@ -277,7 +277,7 @@ contains
 
     subroutine MPI_RECV_iv (val, long, type, src, tag, comm, status, ierr)
         implicit none
-        integer, intent(in) :: val(long)
+        integer, intent(out) :: val(long)
         integer, intent(in) :: long, type, src, tag, comm
         integer, intent(out), dimension(MPI_STATUS_SIZE) :: status
         integer, intent(inout) :: ierr

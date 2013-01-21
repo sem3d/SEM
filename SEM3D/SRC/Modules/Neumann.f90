@@ -200,7 +200,6 @@ contains
         type(Param_Neu), intent(in) :: Param
         real, intent(in) :: dt, ctime
         integer, intent(in)  :: ind
-        integer :: i,j
         real :: xpt,ypt,zpt,velixn,veliyn,velizn,   &
             Sigma11,Sigma22,Sigma33,Sigma12,Sigma13,Sigma23
         real, dimension(0:2) :: vel_i

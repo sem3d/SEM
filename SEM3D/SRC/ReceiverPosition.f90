@@ -8,9 +8,6 @@
 !<
 
 subroutine ReceiverPosition (Tdomain,rg)
-
-    ! Written by Paul Cupillard 06/06/2005
-
     use sdomain
     use constants, only : M_PI
     use mpi
@@ -20,7 +17,9 @@ subroutine ReceiverPosition (Tdomain,rg)
     type (domain), intent (inout) :: Tdomain
     integer, intent(in) :: rg
 
-    integer :: n_rcp, near_node, n_around_elem, i,j,k, x,y,z, ngllx,nglly,ngllz, code, mat, num, n, a, i_count
+    integer :: n_rcp, near_node, n_around_elem
+    integer :: i,j,k, x,y,z, ngllx,nglly,ngllz
+    integer :: code, mat, num, n, a, i_count
     integer , dimension (0:20) :: el_around_node
     real :: xs,ys,zs, d,dmin, R,epsil,xa,ya,za, &
         dist_xi,dist_eta,dist_zeta, xi,eta,zeta, f
@@ -203,6 +202,9 @@ subroutine ReceiverPosition (Tdomain,rg)
                                     coord(2,2)*(1+xi)*(1+eta)*(1-zeta) + coord(3,2)*(1-xi)*(1+eta)*(1-zeta) + &
                                     coord(4,2)*(1-xi)*(1-eta)*(1+zeta) + coord(5,2)*(1+xi)*(1-eta)*(1+zeta) + &
                                     coord(6,2)*(1+xi)*(1+eta)*(1+zeta) + coord(7,2)*(1-xi)*(1+eta)*(1+zeta))
+                            else
+                                write (*,*) rg, ": AAARG n_nodes=", Tdomain%n_nodes
+                                !stop
                             endif
                             ! calcul de la distance a la source
                             d = sqrt ((xa-xs)**2 + (ya-ys)**2 + (za-zs)**2)
@@ -267,7 +269,7 @@ subroutine ReceiverPosition (Tdomain,rg)
     enddo
 
     deallocate (distance,coord)
-
+    write(*,*) "End Receiver Position"
     return
 end subroutine ReceiverPosition
 !! Local Variables:

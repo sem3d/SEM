@@ -8,7 +8,7 @@ MODULE constants
     IMPLICIT none
     ! Constantes mathematique
     ! Les valeurs suivantes et leurs noms sont tirees de math.h
-    real(KIND=8), parameter :: M_E = 2.7182818284590452354D0	     ! e 
+    real(KIND=8), parameter :: M_E = 2.7182818284590452354D0         ! e
     real(KIND=8), parameter :: M_LOG2E = 1.4426950408889634074D0     ! log_2 e
     real(KIND=8), parameter :: M_LOG10E = 0.43429448190325182765D0   ! log_10 e
     real(KIND=8), parameter :: M_LN2 = 0.69314718055994530942D0      ! log_e 2
