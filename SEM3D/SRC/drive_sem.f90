@@ -54,8 +54,8 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     call MPI_Group_Rank(groupe, rg, code)
 #else
     ! initialisations MPI
-    call MPI_Comm_Rank (MPI_COMM_WORLD, rg, code)
-    call MPI_Comm_Size (MPI_COMM_WORLD, nb_procs,  code)
+    call MPI_Comm_Rank (Tdomain%communicateur, rg, code)
+    call MPI_Comm_Size (Tdomain%communicateur, nb_procs,  code)
 #endif
 
 
@@ -76,7 +76,7 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     write(*,*)
 
     write(*,*) "  --> Reading run properties, proc. # ",rg
-    call MPI_BARRIER(MPI_COMM_WORLD, code)
+    call MPI_BARRIER(Tdomain%communicateur, code)
 
     !  modif mariotti fevrier 2007 cea
     if (Tdomain%logicD%super_object_local_present) then
@@ -89,15 +89,15 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
         if (rg == 0) write(*,*) "Define Neumann properties",rg
         call define_Neumann_properties(Tdomain,rg)
     endif
-    call MPI_BARRIER(MPI_COMM_WORLD, code)
+    call MPI_BARRIER(Tdomain%communicateur, code)
 
     if (rg == 0) write (*,*) "Compute Gauss-Lobatto-Legendre weights and zeroes ",rg
     call compute_GLL (Tdomain)
-    call MPI_BARRIER(MPI_COMM_WORLD, code)
+    call MPI_BARRIER(Tdomain%communicateur, code)
 
     if (rg == 0) write (*,*) "Define a global numbering for the collocation points ",rg
     call global_numbering (Tdomain,rg)
-    call MPI_BARRIER(MPI_COMM_WORLD, code)
+    call MPI_BARRIER(Tdomain%communicateur, code)
 
     if (rg == 0) write (*,*) "Compute shape functions within their derivatives ",rg
     if (Tdomain%n_nodes == 8) then
@@ -108,15 +108,15 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     else
         call shape27(TDomain)   ! Quadratic interpolation
     endif
-    call MPI_BARRIER(MPI_COMM_WORLD,code)
+    call MPI_BARRIER(Tdomain%communicateur,code)
 
     call compute_Courant(Tdomain,rg)
-    call MPI_BARRIER(MPI_COMM_WORLD,code)
+    call MPI_BARRIER(Tdomain%communicateur,code)
     if (Tdomain%any_PML)   then
         if (rg == 0) write (*,*) "Attribute PML properties ",rg
         call PML_definition (Tdomain)
     endif
-    call MPI_BARRIER(MPI_COMM_WORLD,code)
+    call MPI_BARRIER(Tdomain%communicateur,code)
 
     if (Tdomain%logicD%any_source) then
         if (rg == 0) write (*,*) , "Compute source parameters ",rg
@@ -137,18 +137,18 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
         if (rg == 0) write (*,*) "Compute receiver locations ",rg
         call ReceiverPosition (Tdomain, rg)
     endif
-    call MPI_BARRIER(MPI_COMM_WORLD,code)
+    call MPI_BARRIER(Tdomain%communicateur,code)
 
     if (rg == 0) write (*,*) "Allocate fields ",rg
     call allocate_domain (Tdomain, rg)
-    call MPI_BARRIER(MPI_COMM_WORLD,code)
+    call MPI_BARRIER(Tdomain%communicateur,code)
 
     if (rg == 0) write (*,*) "Compute Courant parameter ",rg
     call compute_Courant (Tdomain,rg)
 
     if (rg == 0) write (*,*) "Compute mass matrix and internal forces coefficients ",rg
     call define_arrays (Tdomain, rg)
-    call MPI_BARRIER(MPI_COMM_WORLD,code)
+    call MPI_BARRIER(Tdomain%communicateur,code)
 
     if (Tdomain%n_sls>0) then
         if (Tdomain%aniso) then
@@ -169,7 +169,7 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     ! initialisation des temps
     Tdomain%TimeD%rtime = 0
     Tdomain%TimeD%NtimeMin = 0
-    call MPI_BARRIER(MPI_COMM_WORLD,code)
+    call MPI_BARRIER(Tdomain%communicateur,code)
 
     isort = 1
 #ifdef COUPLAGE
@@ -280,7 +280,7 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
         endif
 #ifdef MKA3D
         call tremain( remaining_time )
-        if (rg==0) write(*,*) "remain:", remaining_time
+        !if (rg==0) write(*,*) "remain:", remaining_time
         if (remaining_time<max_time_left) then
             interrupt = 1
         end if
