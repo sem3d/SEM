@@ -128,7 +128,7 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
         ! ->  lecture d'un fichier-entree pour la source; valable pour une seule source
         do i = 0,Tdomain%n_source-1
             if(Tdomain%sSource(i)%i_time_function == 5)then
-                call read_source(Tdomain%sSource(i))
+                call read_source_file(Tdomain%sSource(i))
             endif
         end do
     endif

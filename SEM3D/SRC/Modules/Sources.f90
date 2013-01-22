@@ -117,7 +117,7 @@ contains
         end do
     end function Source_File
 
-    subroutine read_source(Sour)
+    subroutine read_source_file(Sour)
         !- lecture directe d'un fichier temps-amplitude pour la source
         type(Source), intent(inout)   :: Sour
         integer                       :: nb_time_step
@@ -142,7 +142,7 @@ contains
         end do
 101     close(10)
 
-    end subroutine read_source
+    end subroutine read_source_file
     !   modif pour benchmark can2
     !-------------------------------------------------
 
