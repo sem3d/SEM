@@ -1,9 +1,10 @@
 subroutine get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,   &
-    rank,prop_face,prop_elem)
+    prop_face,prop_elem)
     ! general routine for the assemblage procedure: Element -> face
+    use mindex, only : ind_elem_face
     implicit none
 
-    integer, intent(in)  :: nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,rank
+    integer, intent(in)  :: nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: prop_elem
     real, dimension(1:ngll1-2,1:ngll2-2), intent(out) :: prop_face
     integer, dimension(0:6)  :: index_elem_f
@@ -11,7 +12,7 @@ subroutine get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll
 
 
     ! search for the relevant indices
-    call ind_elem_face(nf,orient_f,ngllx,nglly,ngllz,index_elem_f,rank)
+    call ind_elem_face(nf,orient_f,ngllx,nglly,ngllz,index_elem_f)
 
     ! assemblage
     select case(orient_f)
@@ -34,6 +35,8 @@ subroutine get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll
                 prop_elem(index_elem_f(1):index_elem_f(2):index_elem_f(3),   &
                 index_elem_f(4):index_elem_f(5):index_elem_f(6),   &
                 index_elem_f(0))
+        else
+            stop
         end if
     case(4,5,6,7)
         if(nf == 2 .or. nf == 4)then
@@ -54,6 +57,8 @@ subroutine get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll
                 TRANSPOSE(prop_elem(index_elem_f(1):index_elem_f(2):index_elem_f(3),   &
                 index_elem_f(4):index_elem_f(5):index_elem_f(6),   &
                 index_elem_f(0)))
+        else
+            stop
         end if
     end select
 

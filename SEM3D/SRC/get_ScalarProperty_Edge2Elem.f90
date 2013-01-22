@@ -1,15 +1,16 @@
-subroutine get_ScalarProperty_Edge2Elem(ne,orient_e,ngllx,nglly,ngllz,ngll,rank,   &
+subroutine get_ScalarProperty_Edge2Elem(ne,orient_e,ngllx,nglly,ngllz,ngll,   &
     prop_edge,prop_elem)
     ! general routine for the deassemblage procedure: Edge -> element
+    use mindex, only : ind_elem_edge
     implicit none
 
-    integer, intent(in) :: ne,orient_e,ngllx,nglly,ngllz,ngll,rank
+    integer, intent(in) :: ne,orient_e,ngllx,nglly,ngllz,ngll
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(inout) :: prop_elem
     real, dimension(1:ngll-2), intent(in)  :: prop_edge
     integer, dimension(0:4)  :: index_elem_e
 
     ! search for the relevant indices
-    call ind_elem_edge(ne,orient_e,ngllx,nglly,ngllz,index_elem_e,rank)
+    call ind_elem_edge(ne,orient_e,ngllx,nglly,ngllz,index_elem_e)
     ! deassemblage
     select case(ne)
     case(1,3,8,11)  ! only y-coordinate does vary

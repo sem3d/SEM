@@ -1,6 +1,7 @@
 subroutine get_VectProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,   &
     prop_face,prop_elem)
     ! general routine for the assemblage procedure: Element -> face
+    use mindex, only : ind_elem_face
     implicit none
 
     integer, intent(in)  :: nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2

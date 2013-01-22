@@ -26,7 +26,7 @@ subroutine get_Mass_Elem2Edge(Tdomain,n)
         ngll = Tdomain%sEdge(nne)%ngll
         ! now we call the general assemblage routine
         call get_ScalarProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-            Tdomain%sEdge(nne)%MassMat(:),Tdomain%specel(n)%MassMat(:,:,:))
+            Tdomain%sEdge(nne)%MassMat,Tdomain%specel(n)%MassMat)
         if(Tdomain%sEdge(nne)%PML)then
             call get_VectProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
                 Tdomain%sEdge(nne)%DumpMass(:,0:2),Tdomain%specel(n)%DumpMass(:,:,:,0:2))

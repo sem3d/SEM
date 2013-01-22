@@ -7,6 +7,7 @@
 subroutine get_VectProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,   &
     prop_vertex,prop_elem)
     ! general routine for the assemblage procedure: Element -> vertex
+    use mindex, only : ind_elem_vertex
     implicit none
 
     integer, intent(in) :: nv,ngllx,nglly,ngllz

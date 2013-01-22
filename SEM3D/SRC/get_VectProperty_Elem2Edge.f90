@@ -1,6 +1,7 @@
 subroutine get_VectProperty_Elem2Edge(ne,orient_e,ngllx,nglly,ngllz,ngll,   &
     prop_edge,prop_elem)
     ! general routine for the assemblage procedure: Element -> edge
+    use mindex, only : ind_elem_edge
     implicit none
 
     integer, intent(in) :: ne,orient_e,ngllx,nglly,ngllz,ngll

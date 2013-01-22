@@ -17,6 +17,7 @@ subroutine global_numbering(Tdomain,rank)
 
 
     use sdomain
+    use mindex
     implicit none
     integer, intent(in)  :: rank
     type(domain), intent (inout) :: Tdomain
@@ -90,7 +91,7 @@ subroutine global_numbering(Tdomain,rank)
             nnf = Tdomain%specel(n)%Near_Faces(nf)
             ngll1 = Tdomain%sFace(nnf)%ngll1
             ngll2 = Tdomain%sFace(nnf)%ngll2
-            call ind_elem_face(nf,orient_f,ngllx,nglly,ngllz,index_elem_f,rank)
+            call ind_elem_face(nf,orient_f,ngllx,nglly,ngllz,index_elem_f)
             select case(orient_f)
             case(0,1,2,3)
                 if(nf == 2 .or. nf == 4)then
@@ -138,7 +139,7 @@ subroutine global_numbering(Tdomain,rank)
             orient_e = Tdomain%specel(n)%Orient_Edges(ne)
             nne = Tdomain%specel(n)%Near_Edges(ne)
             ngll = Tdomain%sEdge(nne)%ngll
-            call ind_elem_edge(ne,orient_e,ngllx,nglly,ngllz,index_elem_e,rank)
+            call ind_elem_edge(ne,orient_e,ngllx,nglly,ngllz,index_elem_e)
             select case(ne)
             case(1,3,8,11)  ! only y-coordinate does vary
                 Tdomain%specel(n)%Iglobnum(index_elem_e(0),                                 &
@@ -158,7 +159,7 @@ subroutine global_numbering(Tdomain,rank)
         ! taking information from vertices
         do nv = 0,7
             nnv = Tdomain%specel(n)%Near_Vertices(nv)
-            call ind_elem_vertex(nv,ngllx,nglly,ngllz,index_elem_v,rank)
+            call ind_elem_vertex(nv,ngllx,nglly,ngllz,index_elem_v)
             Tdomain%specel(n)%Iglobnum(index_elem_v(0),index_elem_v(1),index_elem_v(2)) =   &
                 Tdomain%sVertex(nnv)%Iglobnum_Vertex
         end do

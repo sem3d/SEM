@@ -1,6 +1,7 @@
 subroutine get_VectProperty_Edge2Elem(ne,orient_e,ngllx,nglly,ngllz,ngll,   &
     prop_edge,prop_elem)
     ! general routine for the deassemblage procedure: Edge -> element
+    use mindex, only : ind_elem_edge
     implicit none
 
     integer, intent(in) :: ne,orient_e,ngllx,nglly,ngllz,ngll

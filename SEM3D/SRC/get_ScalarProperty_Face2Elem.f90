@@ -1,16 +1,19 @@
 subroutine get_ScalarProperty_Face2Elem(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,   &
-    rank,prop_face,prop_elem)
+    prop_face,prop_elem)
     ! general routine for the deassemblage procedure: Face -> element
+    use mindex, only : ind_elem_face
     implicit none
 
-    integer, intent(in)  :: nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,rank
+    integer, intent(in)  :: nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(inout) :: prop_elem
     real, dimension(1:ngll1-2,1:ngll2-2), intent(in) :: prop_face
     integer, dimension(0:6)  :: index_elem_f
     integer  :: i
 
+
     ! search for the relevant indices
-    call ind_elem_face(nf,orient_f,ngllx,nglly,ngllz,index_elem_f,rank)
+    call ind_elem_face(nf,orient_f,ngllx,nglly,ngllz,index_elem_f)
+
     ! deassemblage
     select case(orient_f)
     case(0,1,2,3)
