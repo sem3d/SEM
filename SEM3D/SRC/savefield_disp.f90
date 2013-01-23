@@ -1,4 +1,4 @@
-subroutine savefield_disp(Tdomain, it, sortie_capteur_depla, rg, i_snap, nom_dir_sorties)
+subroutine savefield_disp(Tdomain, it, sortie_capteur_depla, rg, i_snap)
 
     ! Modified by Elise Delavaud (26/02/06)
 
@@ -509,7 +509,7 @@ subroutine savefield_disp(Tdomain, it, sortie_capteur_depla, rg, i_snap, nom_dir
 
     if (Tdomain%logicD%save_snapshots .and. i_snap == 0) then
         !! fnamef de la forme fnamef="./Resultats/sem/vel_0530.dat.0002"
-        call semname_savefield_disp_datsorties(rg,nom_dir_sorties,it,fnamef)
+        call semname_savefield_disp_datsorties(rg,it,fnamef)
         open (61,file=fnamef,status="unknown",form="formatted")
 
         do ipoint=0,Tdomain%n_glob_points-1

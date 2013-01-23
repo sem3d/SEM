@@ -152,7 +152,7 @@ subroutine SourcePosition (Tdomain,rg)
         enddo
 
 
-        if (rg==Tdomain%sSource(n_src)%proc .and. Tdomain%Ssource(n_src)%i_type_source==2) then
+        if (rg==Tdomain%sSource(n_src)%proc) then
 
             ! Dichotomie pour passer de S(x,y,z) a S(xi,eta,zeta)
             n = Tdomain%sSource(n_src)%elem
@@ -243,8 +243,10 @@ subroutine SourcePosition (Tdomain,rg)
                     enddo
                 enddo
             else if (Tdomain%n_nodes==8) then
-                LocInvGrad(0,0) = 0.125 * ((coord(1,0)-coord(0,0))*(1-eta)*(1-zeta) + (coord(2,0)-coord(3,0))*(1+eta)*(1-zeta) + &
-                    (coord(5,0)-coord(4,0))*(1-eta)*(1+zeta) + (coord(6,0)-coord(7,0))*(1+eta)*(1+zeta))
+                LocInvGrad(0,0) = 0.125 * ((coord(1,0)-coord(0,0))*(1-eta)*(1-zeta) + &
+                                           (coord(2,0)-coord(3,0))*(1+eta)*(1-zeta) + &
+                                           (coord(5,0)-coord(4,0))*(1-eta)*(1+zeta) + &
+                                           (coord(6,0)-coord(7,0))*(1+eta)*(1+zeta))
                 LocInvGrad(1,0) = 0.125 * ((coord(3,0)-coord(0,0))*(1-xi)*(1-zeta) + (coord(2,0)-coord(1,0))*(1+xi)*(1-zeta) + &
                     (coord(7,0)-coord(4,0))*(1-xi)*(1+zeta) + (coord(6,0)-coord(5,0))*(1+xi)*(1+zeta))
                 LocInvGrad(2,0) = 0.125 * ((coord(4,0)-coord(0,0))*(1-xi)*(1-eta) + (coord(5,0)-coord(1,0))*(1+xi)*(1-eta) + &
@@ -271,9 +273,7 @@ subroutine SourcePosition (Tdomain,rg)
 
     enddo
 
-
     deallocate (distance)
-
 
     return
 end subroutine SourcePosition

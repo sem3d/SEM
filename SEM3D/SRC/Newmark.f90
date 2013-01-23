@@ -15,6 +15,7 @@ subroutine Newmark(Tdomain,rg,ntime)
 #ifdef COUPLAGE
     use sCouplage
 #endif
+    use mcapteur
     use mpi
 
     implicit none
@@ -23,18 +24,13 @@ subroutine Newmark(Tdomain,rg,ntime)
     integer, intent(in) :: rg,ntime
 
     logical, dimension(:), allocatable :: L_Face, L_Edge, L_Vertex
-    integer ::  n, mat, nelem, ngll1,ngll2,ngll3, ngllx,nglly,ngllz,    &
-        nf,ne,nv, nf_aus,ne_aus,nv_aus,ipoint,ndt2, ngll, code, &
-        i,j,k, x,y,z,ngllPML,shift, I_give_to, I_take_from,     &
-        n_rings, ntimetrace,flag,nummax,ngll_F,ngllPML_F
+    integer ::  n, mat,  ngll1,ngll2,ngll3,    &
+        nf,ne,nv, nf_aus,ne_aus,nv_aus, ngll, code, &
+        i,j, x,y,z,ngllPML,shift, I_give_to, I_take_from,     &
+        n_rings, ntimetrace,ngll_F,ngllPML_F
     integer, parameter :: etiquette = 100
     integer, dimension(mpi_status_size) :: statut
-    real :: alpha, bega, gam1, Dt, max, maximum,t1,t2,time_dep
-    real, dimension(0:2) :: V_free_vertex
-    real, dimension(:,:), allocatable :: VE_free
-    real, dimension(:,:,:), allocatable :: VF_free
-
-    real, dimension(0:2) :: tmp
+    real :: Dt
 
 
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a
@@ -212,13 +208,14 @@ subroutine Newmark(Tdomain,rg,ntime)
     L_Vertex = .true.
     do n = 0,Tdomain%n_elem-1
         mat = Tdomain%specel(n)%mat_index
+        dt = Tdomain%sSubdomain(mat)%dt
         if (.not. Tdomain%specel(n)%PML) then
-            call Correction_Elem_Veloc (Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt)
+            call Correction_Elem_Veloc (Tdomain%specel(n), Dt)
         else
             if (Tdomain%specel(n)%FPML) then
-                call Correction_Elem_FPML_Veloc (Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt, Tdomain%sSubdomain(mat)%freq)
+                call Correction_Elem_FPML_Veloc (Tdomain%specel(n),Dt, Tdomain%sSubdomain(mat)%freq)
             else
-                call Correction_Elem_PML_Veloc (Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt)
+                call Correction_Elem_PML_Veloc (Tdomain%specel(n),Dt)
             endif
         endif
         do i = 0,5
@@ -281,7 +278,7 @@ subroutine Newmark(Tdomain,rg,ntime)
     end if
 
 
-    if (rg==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
+    if (rg==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
 
     return
 
@@ -408,6 +405,7 @@ end subroutine Newmark_Predictor
 subroutine internal_forces(Tdomain,rank)
     ! volume forces - depending on rheology
     use sdomain
+    use forces_aniso
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
@@ -471,7 +469,7 @@ subroutine external_forces(Tdomain,timer,ntime,rank)
     type(domain), intent(inout)  :: Tdomain
     integer, intent(in)  :: rank, ntime
     real, intent(in)  :: timer
-    integer  :: ns,nel,ngllx,nglly,ngllz,i_dir
+    integer  :: ns,nel,i_dir
     real :: t, ft
 
     do ns = 0, Tdomain%n_source-1

@@ -7,7 +7,7 @@
 !! \bug Vérifier l'ordre des boucles dans la définition du tableau Field
 !<
 #ifdef MKA3D
-subroutine savefield (Tdomain, it, sortie_capteur_vitesse, rg, i_snap, nom_dir_sorties)
+subroutine savefield (Tdomain, it, sortie_capteur_vitesse, rg, i_snap)
 #else
 subroutine savefield (Tdomain, it, sortie_capteur_vitesse, rg, icount, i_snap)
 #endif
@@ -20,13 +20,7 @@ subroutine savefield (Tdomain, it, sortie_capteur_vitesse, rg, icount, i_snap)
     type (domain), intent(INOUT) :: Tdomain
     integer, intent (IN) :: it, rg, i_snap
     logical :: sortie_capteur_vitesse
-
-#ifdef MKA3D
-    character(len=24), intent(OUT) :: nom_dir_sorties
-    character(len=30) :: creer_dir
-#else
     integer icount, nbvert, nv
-#endif
     ! local variables
     integer :: i, j, k, n, ipoint
     character (len=MAX_FILE_SIZE) :: fnamef
@@ -39,23 +33,6 @@ subroutine savefield (Tdomain, it, sortie_capteur_vitesse, rg, icount, i_snap)
 
 #ifdef MKA3D
     allocate(Field(0:2,0:Tdomain%n_glob_points-1))
-
-    if(it .LT. 10) then
-        write(cit,'(i1)') it
-    elseif (it .LT. 100) then
-        write(cit,'(i2)') it
-    elseif (it .LT. 1000) then
-        write(cit,'(i3)') it
-    elseif (it .LT. 10000) then
-        write(cit,'(i4)') it
-    elseif (it .LT. 100000) then
-        write(cit,'(i5)') it
-    elseif (it .LT. 1000000) then
-        write(cit,'(i6)') it
-    endif
-    nom_dir_sorties = "./Resultats/Rsem"//cit
-    creer_dir = "mkdir -p "//nom_dir_sorties
-    call system(creer_dir)
 
     ! interieur du domaine
 
@@ -357,7 +334,7 @@ subroutine savefield (Tdomain, it, sortie_capteur_vitesse, rg, icount, i_snap)
     if (Tdomain%logicD%save_snapshots .and. i_snap == 0) then
         !! fnamef de la forme fnamef="./Resultats/sem/vel_0530.dat.0002"
 
-        call semname_savefield_results(nom_dir_sorties,it,rg,fnamef)
+        call semname_savefield_results(it,rg,fnamef)
         open (61,file=fnamef,status="unknown",form="formatted")
 
         do ipoint=0,Tdomain%n_glob_points-1

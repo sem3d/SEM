@@ -275,8 +275,8 @@ subroutine Define_Arrays(Tdomain, rg)
 
         if(.not. Tdomain%specel(n)%PML)then
             if(Tdomain%specel(n)%solid)then
-                call define_Acoeff_iso(ngllx,nglly,ngllz,Rkmod,Rmu,Rlam,xix,xiy,xiz,    &
-                    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Tdomain%specel(n)%Acoeff)
+                !call define_Acoeff_iso(ngllx,nglly,ngllz,Rkmod,Rmu,Rlam,xix,xiy,xiz,    &
+                !    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Tdomain%specel(n)%Acoeff)
             else   ! fluid case
                 if(maxval(RMu) > 1.d-5) stop "Fluid element with a non null shear modulus."
                 call define_Acoeff_fluid(ngllx,nglly,ngllz,Tdomain%specel(n)%Density,xix,xiy,xiz,    &
@@ -405,9 +405,9 @@ subroutine Define_Arrays(Tdomain, rg)
 
         deallocate(LocMassMat)
 
-        deallocate(Tdomain%specel(n)%Lambda)
-        deallocate(Tdomain%specel(n)%Mu)
-        deallocate(Tdomain%specel(n)%InvGrad)
+        !deallocate(Tdomain%specel(n)%Lambda)
+        !deallocate(Tdomain%specel(n)%Mu)
+        !deallocate(Tdomain%specel(n)%InvGrad)
 
     enddo
 

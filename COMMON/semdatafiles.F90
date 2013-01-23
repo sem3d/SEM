@@ -322,9 +322,9 @@ contains
         implicit none
         character(Len=*),intent(in) :: cit
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a,a)")"./Resultats/Rsem",trim(adjustl(cit))
-
-        DEBUG(fnamef)
+        character(Len=MAX_FILE_SIZE) :: temp
+        write(temp,"(a,a)") "Rsem",trim(adjustl(cit))
+        fnamef = pjoin(path_results, temp)
     end subroutine semname_main_result
     !!end fichier main 2d
 
@@ -334,13 +334,10 @@ contains
         implicit none
         integer,intent(in) :: crank
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I4.4)")"./Resultats/grid.gnu.",crank
-#else
-        write(fnamef,"(a,I4.4)")"grid.gnu.",crank
-#endif
+        character(Len=MAX_FILE_SIZE) :: temp
 
-        DEBUG(fnamef)
+        write(temp,"(a,I4.4)") "grid.gnu.",crank
+        fnamef = pjoin(path_results, temp)
     end subroutine semname_plot_grid_grid
 
     subroutine semname_plot_grid_surface (crank,fnamef)
@@ -358,33 +355,61 @@ contains
     end subroutine semname_plot_grid_surface
     !!end fichier plot_grid 2d
 
+    subroutine semname_snap_geom_file (srank,fnamef)
+        implicit none
+        integer,intent(in) :: srank
+        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
+        character(Len=MAX_FILE_SIZE) :: temp
+
+        write(temp,"(a,I4.4,a)") "geometry",srank,".h5"
+        fnamef = pjoin(path_results, temp)
+    end subroutine semname_snap_geom_file
+
+    subroutine semname_snap_result_file (srank,isort,fnamef)
+        implicit none
+        integer,intent(in) :: srank, isort
+        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
+        character(Len=MAX_FILE_SIZE) :: temp
+
+        write(temp,"(a,I4.4,a,I4.4,a)") "Rsem",isort,"/sem_field.",srank,".h5"
+        fnamef = pjoin(path_results, temp)
+    end subroutine semname_snap_result_file
+
+
+    !! Nom du repertoire de sortie d'un pas de temps
+    subroutine semname_snap_result_dir(isort,fnamef)
+        implicit none
+        integer,intent(in) :: isort
+        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
+        character(Len=MAX_FILE_SIZE) :: temp
+
+        write(temp,"(a,I4.4)") "Rsem",isort
+        fnamef = pjoin(path_results, temp)
+    end subroutine semname_snap_result_dir
+
     !!fichier posttraitement 2d 3d
     subroutine semname_posttraitement_geo (srank,fnamef)
         !SEMFILE 200+i W ./Resultats/ensightIII.geo (MKA) & ensightIII.geo (NOMKA)
         implicit none
         integer,intent(in) :: srank
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I4.4,a)")"./Resultats/ensight",srank,".geo"
-#else
-        write(fnamef,"(a,I4.4,a)")"ensight",srank,".geo"
-#endif
+        character(Len=MAX_FILE_SIZE) :: temp
 
-        DEBUG(fnamef)
+        write(temp,"(a,I4.4,a)")"ensight",srank,".geo"
+        fnamef = pjoin(path_results, temp)
     end subroutine semname_posttraitement_geo
+
+
 
     subroutine semname_posttraitement_case (srank,fnamef)
         !SEMFILE 100 W ./Resultats/ensightIII.case (MKA) & ensightIII.case (NOMKA)
         implicit none
         integer,intent(in) :: srank
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I4.4,a)")"./Resultats/ensight",srank,".case"
-#else
-        write(fnamef,"(a,I4.4,a)")"ensight",srank,".case"
-#endif
+        character(Len=MAX_FILE_SIZE) :: temp
 
-        DEBUG(fnamef)
+        write(fnamef,"(a,I4.4,a)")"ensight",srank,".case"
+        fnamef = pjoin(path_results, temp)
     end subroutine semname_posttraitement_case
     !!end fichier postraitement 2d 3d
 
@@ -733,20 +758,17 @@ contains
         DEBUG(fnamef)
     end subroutine semname_savefield_fieldt
 
-    subroutine semname_savefield_results (sorties,it,rank,fnamef) !3d
-        !SEMFILE 61 W XXX/vel_III.dat.JJJ (MKA)
+    subroutine semname_savefield_results (it,rank,fnamef)
         implicit none
         integer ,intent(in) :: rank
         integer ,intent(in) :: it
-        character(Len=20) :: cit
-        !character(Len=20) :: crank
-        character(Len=*),intent(in) :: sorties
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(cit,"(I4)") it
-        !write(crank,"(I20)") rank
-        write(fnamef,"(a,a,a,a,a,I4.4)")trim(adjustl(sorties)),"/","vel_",trim(adjustl(cit)),".dat.",rank
+        character(Len=MAX_FILE_SIZE) :: temp1, temp2
 
-        DEBUG(fnamef)
+        call semname_snap_result_dir(it, temp1)
+        write(temp2,"(a,I4.4,a,I4.4)") "vel_",it,".dat.",rank
+
+        fnamef = pjoin(temp1,temp2)
     end subroutine semname_savefield_results
 
     subroutine semname_savefield_datfields (rank,field,count,fnamef) !3d savefield_disp aussi
@@ -763,19 +785,17 @@ contains
     !!end fichier savefield 2d 3d
 
     !!fichier savefield_disp 3d
-    subroutine semname_savefield_disp_datsorties (rank,sorties,it,fnamef) !3d
-        !SEMFILE 61 W XXX/displ_III.dat.JJJ (MKA)
+    subroutine semname_savefield_disp_datsorties (rank,it,fnamef) !3d
         implicit none
-        integer, intent(in) :: rank, it
-        character(Len=*),intent(in) :: sorties
+        integer ,intent(in) :: rank
+        integer ,intent(in) :: it
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(len=20) :: Ait
-        !character(len=20) :: crank
-        write(Ait,"(I4)") it
-        !write(crank,"(I20)") rank
-        write(fnamef,"(a,a,a,a,I4.4)") trim(adjustl(sorties)),"/displ_",trim(adjustl(Ait)),".dat.",rank
+        character(Len=MAX_FILE_SIZE) :: temp1, temp2
 
-        DEBUG(fnamef)
+        call semname_snap_result_dir(it, temp1)
+        write(temp2,"(a,I4.4,a,I4.4)") "displ_",it,".dat.",rank
+
+        fnamef = pjoin(temp1,temp2)
     end subroutine semname_savefield_disp_datsorties
 
     !!end fichier savefield_disp 3d
@@ -908,25 +928,29 @@ contains
     end subroutine semname_drive_sem_listing
 
     subroutine semname_drive_sem_resulttemp (fnamef)
-        !SEMFILE 78 W ./Resultats/temps_sem.dat (MKA)
         implicit none
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a)")"./Resultats/temps_sem.dat"
 
-        DEBUG(fnamef)
+        fnamef = pjoin(path_results, "temps_sem.dat")
     end subroutine semname_drive_sem_resulttemp
-    !!end fichier drive_sem 3d
 
-    !! drive_sem (3d) et main.F90 (2D)
-    subroutine semname_nb_proc(sorties,fnamef)
-        !SEMFILE 79 W XXX/Nb_proc (MKA)
+    subroutine semname_xdmf(isort, fnamef)
         implicit none
-        character(Len=*),intent(in) :: sorties
+        integer, intent(in) :: isort
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
+        character(Len=MAX_FILE_SIZE) :: temp
+        write(temp,"(a,I4.4,a)") "mesh.",isort,".xmf"
+        fnamef = pjoin(path_results, temp)
+    end subroutine semname_xdmf
 
-        write(fnamef,"(a,a)")trim(adjustl(sorties)),"/Nb_proc"
-
-        DEBUG(fnamef)
+    !! Nom du fichier contenant le nombre de processeurs ayant genere une sortie
+    subroutine semname_nb_proc(isort,fnamef)
+        implicit none
+        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
+        integer, intent(in) :: isort
+        character(Len=MAX_FILE_SIZE) :: temp
+        call semname_snap_result_dir(isort, temp)
+        fnamef = pjoin(temp, "Nb_proc")
     end subroutine semname_nb_proc
 
 

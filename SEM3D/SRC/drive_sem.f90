@@ -12,6 +12,7 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     use mCapteur
     use semdatafiles
     use mpi
+    use msnapshots
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -219,7 +220,9 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
 
     if (Tdomain%logicD%save_snapshots) then
         Tdomain%timeD%nsnap = Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin
+        Tdomain%timeD%nsnap = max(1, Tdomain%timeD%nsnap)
         icount = 0
+        if (rg==0) write(*,*) "Snapshot every ", Tdomain%timeD%nsnap, " iterations"
     endif
 
     i_snap = 1
@@ -229,6 +232,9 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     call reception_nouveau_pdt_sem(Tdomain, rg)
 #endif
 
+    if (Tdomain%logicD%save_snapshots)  then
+        call write_snapshot_geom(Tdomain, rg)
+    end if
 
     ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! BOUCLE DE CALCUL EN TEMPS
@@ -298,50 +304,55 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
         end if
 
 
-        if (Tdomain%bCapteur) call evalueSortieCapteur(ntime)
+!        ! Determine si une sortie capteur doit etre effectuee cette iteration
+!       if (Tdomain%bCapteur) call evalueSortieCapteur(ntime)
 
         if (i_snap == 0 .or. sortie_capteur) then
             if (rg == 0.and.i_snap == 0) then
                 write(*,'(a35,i6.6,a8,f10.5)') "SEM : sortie resultats iteration : ", ntime, " temps : ", Tdomain%TimeD%rtime
             endif
 
-            if ( (Tdomain%logicD%save_snapshots.and.i_snap==0).or.sortie_capteur_vitesse ) then
-#ifdef MKA3D
-                call savefield (Tdomain, isort, sortie_capteur_vitesse, rg, i_snap, nom_dir_sorties)
-#else
-                if(i_snap == 0) then
-                    icount = icount+1
-                    call savefield (Tdomain, ntime, sortie_capteur_vitesse, rg, icount, i_snap)
-                endif
-#endif
+            call create_dir_sorties(Tdomain, rg, isort)
 
+!            if ( (Tdomain%logicD%save_snapshots.and.i_snap==0).or.sortie_capteur_vitesse ) then
+            if (Tdomain%logicD%save_snapshots .and. i_snap==0) then
+                call save_field_h5(Tdomain, rg, isort)
+!#ifdef MKA3D
+!                call savefield (Tdomain, isort, sortie_capteur_vitesse, rg, i_snap)
+!#else
+!                if(i_snap == 0) then
+!                    icount = icount+1
+!                    call savefield (Tdomain, ntime, sortie_capteur_vitesse, rg, icount, i_snap)
+!                endif
+!#endif
             endif
 
-
-#ifdef MKA3D
-            if ( (Tdomain%logicD%save_snapshots.and.i_snap==0).or.sortie_capteur_depla ) then
-                call savefield_disp (Tdomain, isort, sortie_capteur_depla, rg, i_snap, nom_dir_sorties)
-            endif
-#endif
+!
+!#ifdef MKA3D
+!            if ( (Tdomain%logicD%save_snapshots.and.i_snap==0).or.sortie_capteur_depla ) then
+!                call savefield_disp (Tdomain, isort, sortie_capteur_depla, rg, i_snap)
+!            endif
+!#endif
 
         endif
 
-#ifndef MKA3D
-        if (Tdomain%logicD%save_trace) then
-            if (mod (ntime+1,Tdomain%TimeD%ntrace) == 0) then
-                call savetrace (Tdomain,rg,int(ntime/Tdomain%TimeD%ntrace))
-                do n = 0, Tdomain%n_receivers-1
-                endif
-            endif
-        endif
-#endif
+!#ifndef MKA3D
+!        if (Tdomain%logicD%save_trace) then
+!            if (mod (ntime+1,Tdomain%TimeD%ntrace) == 0) then
+!                call savetrace (Tdomain,rg,int(ntime/Tdomain%TimeD%ntrace))
+!                do n = 0, Tdomain%n_receivers-1
+!                endif
+!            endif
+!        endif
+!#endif
 
 #ifdef MKA3D
         if(Tdomain%logicD%save_snapshots .and. i_snap == 0) then
             write (*,*) "A new snapshot is recorded for processor",rg
             if(rg==0) then
                 write(78,*) isort, Tdomain%TimeD%rtime
-                call semname_nb_proc(nom_dir_sorties,fnamef)
+                call semname_nb_proc(isort,fnamef)
+                write(*,*) "Open:",trim(adjustl(fnamef))
                 open (79,file = fnamef,status="UNKNOWN")
                 write(79,*) nb_procs
                 close(79)
@@ -367,7 +378,7 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
 #endif
 
         ! sortie des quantites demandees par les capteur
-        if (sortie_capteur) call save_capteur(Tdomain, ntime, rg)
+!XXX        if (sortie_capteur) call save_capteur(Tdomain, ntime, rg)
 
 
         if (protection/=0) then

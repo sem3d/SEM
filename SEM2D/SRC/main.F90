@@ -367,8 +367,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
             if (i_snap==0) then
                 if (Tdomain%MPI_var%my_rank == 0) then
                     write(78,*)isort,Tdomain%TimeD%rtime
-                    write(ctime,'(I4)')isort
-                    call semname_nb_proc(nom_dir_sorties,fnamef)
+                    call semname_nb_proc(isort,fnamef)
                     open (79,file = fnamef,status="replace",form="formatted")
                     write(79,*) Tdomain%Mpi_var%n_proc
                     close(79)
