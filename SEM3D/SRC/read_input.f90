@@ -277,6 +277,7 @@ subroutine echo_input_params(Tdomain, rg)
     !   fin  ajout ecriture par un seul proc
 end subroutine echo_input_params
 
+
 subroutine read_mesh_file(Tdomain, rg)
     use sdomain
     use semdatafiles
@@ -341,6 +342,7 @@ subroutine read_mesh_file(Tdomain, rg)
     enddo
     read(12,*)  ! Faces and elements properties related to faces
     read(12,*) Tdomain%n_face
+    write(*,*) "***** NFACES=", Tdomain%n_face
     allocate(Tdomain%sFace(0:Tdomain%n_face-1))
     do i=0,Tdomain%n_face-1
         call init_face(Tdomain%sFace(i))
@@ -374,6 +376,7 @@ subroutine read_mesh_file(Tdomain, rg)
     end do
     ! Solid-fluid properties, eventually
     !   AJOUTER Une routine de verif dans le fichier materiaux
+    Tdomain%logicD%SF_local_present = .false.
     if(Tdomain%logicD%solid_fluid)then
         read(12,*)
         read(12,*) Tdomain%logicD%SF_local_present
@@ -413,6 +416,7 @@ subroutine read_mesh_file(Tdomain, rg)
     end if
 
     ! Neumann B.C. properties, eventually
+    Tdomain%logicD%Neumann_local_present = .false.
     if(Tdomain%logicD%Neumann)then
         read(12,*)
         read(12,*) Tdomain%logicD%Neumann_local_present
@@ -741,6 +745,8 @@ subroutine read_input (Tdomain, rg, code)
         write(6,'(A,1X,A)') 'The name of the mesh file is now:', Tdomain%mesh_file
     endif
 
+    !- PArametrage super object desactive
+    Tdomain%logicD%super_object_local_present = .false.
 
     call read_mesh_file(Tdomain, rg)
 
