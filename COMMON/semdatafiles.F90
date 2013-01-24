@@ -21,6 +21,7 @@ module semdatafiles
     character(Len=MAX_FILE_SIZE) :: path_results
     character(Len=MAX_FILE_SIZE) :: path_data
     character(Len=MAX_FILE_SIZE) :: path_prot
+    character(Len=MAX_FILE_SIZE) :: path_logs
 contains
 
     function pjoin(s1, s2)
@@ -42,6 +43,7 @@ contains
         path_results = "./Resultats"
         path_data = "./data"
         path_prot = "./ProRep/sem"
+        path_logs = "./listings"
     end subroutine init_mka3d_path
 
     subroutine init_sem_path(param, traces, results, data, prorep)
@@ -56,6 +58,7 @@ contains
         path_results = results
         path_data = data
         path_prot = prorep
+        path_logs = "."
     end subroutine init_sem_path
 
 
@@ -913,18 +916,11 @@ contains
         implicit none
         integer, intent(in) :: rg
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=2) :: sit
-        !! fichier d'ecriture de la sortie
-        if(rg.LE.9) then
-            write(sit,'(I1)') rg
-            sit='0'//sit
-        elseif(rg.LE.99) then
-            write(sit,'(I2)') rg
-        endif
+        character(Len=MAX_FILE_SIZE) :: temp
 
-        write(fnamef,"(a,a)")"./listings/sem.listing.",sit
+        write(temp,"(a,I4.4)")"sem.listing.",rg
 
-        DEBUG(fnamef)
+        fnamef = pjoin(path_logs, temp)
     end subroutine semname_drive_sem_listing
 
     subroutine semname_drive_sem_resulttemp (fnamef)
