@@ -58,13 +58,11 @@ contains
     end subroutine Prediction_Edge_VelPhi
     !------------------------------------------------------------------
     !------------------------------------------------------------------
-    subroutine Correction_Edge_Veloc (E, bega, gam1, dt,ne)
+    subroutine Correction_Edge_Veloc(E,bega,gam1,dt)
         implicit none
 
-        type (Edge), intent (INOUT) :: E
-        real, intent (IN) :: bega, gam1, dt
-        integer, intent (IN) :: ne
-
+        type(Edge), intent(inout) :: E
+        real, intent(in) :: bega, gam1, dt
         integer :: i, ngll, j
 
         ngll = E%ngll

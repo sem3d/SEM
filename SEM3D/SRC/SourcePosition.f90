@@ -10,7 +10,8 @@ subroutine SourcePosition(Tdomain,nb_procs,rg)
     integer :: n_src,i,j,k,n_around_elem,x,y,z,ngllx,nglly,ngllz,code,  &
         mat,num,n,i_count,near_node
     integer, dimension(0:20) :: el_around_node
-    real :: xs,ys,zs,d,dmin,trash,epsil,xa,ya,za,dist_xi,dist_eta,dist_zeta,xi,eta,zeta,f
+    real :: xs,ys,zs,d,dmin,trash,epsil,xa,ya,za,dist_xi,dist_eta,      &
+        dist_zeta,xi,eta,zeta,f,ximin,ximax,etamin,etamax,zetamin,zetamax
     real, dimension(0:nb_procs-1) :: distance
     real, dimension(0:2,0:2) :: LocInvGrad
     real, dimension(0:2) :: xi_search,eta_search,zeta_search, centre
@@ -70,6 +71,7 @@ subroutine SourcePosition(Tdomain,nb_procs,rg)
             endif
         enddo
 
+
         ! from the closest GLL to coordinates in the source element (dichotomy: to be changed?)
         if(rg == Tdomain%sSource(n_src)%proc)then
             n = Tdomain%sSource(n_src)%elem
@@ -77,13 +79,22 @@ subroutine SourcePosition(Tdomain,nb_procs,rg)
             x = Tdomain%sSource(n_src)%gll(0)
             y = Tdomain%sSource(n_src)%gll(1)
             z = Tdomain%sSource(n_src)%gll(2)
-            dist_xi = Tdomain%sSubdomain(mat)%GLLcx(x+1) - Tdomain%sSubdomain(mat)%GLLcx(x-1)
-            dist_eta = Tdomain%sSubdomain(mat)%GLLcy(y+1) - Tdomain%sSubdomain(mat)%GLLcy(y-1)
-            dist_zeta = Tdomain%sSubdomain(mat)%GLLcz(z+1) - Tdomain%sSubdomain(mat)%GLLcz(z-1)
+            ximin = merge(Tdomain%sSubdomain(mat)%GLLcx(x),Tdomain%sSubdomain(mat)%GLLcx(x-1),x == 0)
+            etamin = merge(Tdomain%sSubdomain(mat)%GLLcy(y),Tdomain%sSubdomain(mat)%GLLcy(y-1),y == 0)
+            zetamin = merge(Tdomain%sSubdomain(mat)%GLLcz(z),Tdomain%sSubdomain(mat)%GLLcz(z-1),z == 0)
+            ximax = merge(Tdomain%sSubdomain(mat)%GLLcx(x),Tdomain%sSubdomain(mat)%GLLcx(x+1),   &
+                x == Tdomain%sSubdomain(mat)%ngllx-1)
+            etamax = merge(Tdomain%sSubdomain(mat)%GLLcy(y),Tdomain%sSubdomain(mat)%GLLcy(y+1),   &
+                y == Tdomain%sSubdomain(mat)%nglly-1)
+            zetamax = merge(Tdomain%sSubdomain(mat)%GLLcz(z),Tdomain%sSubdomain(mat)%GLLcz(z+1),   &
+                z == Tdomain%sSubdomain(mat)%ngllz-1)
+            dist_xi = ximax-ximin
+            dist_eta = etamax-etamin
+            dist_zeta = zetamax-zetamin
             do i = 0,2
-                xi_search(i) = Tdomain%sSubdomain(mat)%GLLcx(x-1) + (i+1)*dist_xi/4
-                eta_search(i) = Tdomain%sSubdomain(mat)%GLLcy(y-1) + (i+1)*dist_eta/4
-                zeta_search(i) = Tdomain%sSubdomain(mat)%GLLcz(z-1) + (i+1)*dist_zeta/4
+                xi_search(i) = ximin + (i+1)*dist_xi/4
+                eta_search(i) = etamin + (i+1)*dist_eta/4
+                zeta_search(i) = zetamin + (i+1)*dist_zeta/4
             enddo
             allocate(coord(0:Tdomain%n_nodes-1,0:2))
             do i = 0,Tdomain%n_nodes-1

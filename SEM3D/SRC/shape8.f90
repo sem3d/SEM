@@ -280,32 +280,32 @@ subroutine inversion_normal(dir,elem,ngll1,ngll2,normal)
     case(0)
         do i = 0,2
             where(elem%Jacob(:,:,0) > 0) normal(:,:,i) = -normal(:,:,i)
-            end do
-        case(1)
-            do i = 0,2
-                where(elem%Jacob(:,0,:) < 0) normal(:,:,i) = -normal(:,:,i)
-                end do
-            case(2)
-                do i = 0,2
-                    where(elem%Jacob(ngllx-1,:,:) < 0) normal(:,:,i) = -normal(:,:,i)
-                    end do
-                case(3)
-                    do i = 0,2
-                        where(elem%Jacob(:,nglly-1,:) > 0) normal(:,:,i) = -normal(:,:,i)
-                        end do
-                    case(4)
-                        do i = 0,2
-                            where(elem%Jacob(0,:,:) > 0) normal(:,:,i) = -normal(:,:,i)
-                            end do
-                        case(5)
-                            do i = 0,2
-                                where(elem%Jacob(:,:,ngllz-1) < 0) normal(:,:,i) = -normal(:,:,i)
-                                end do
-                            end select
+        end do
+    case(1)
+        do i = 0,2
+            where(elem%Jacob(:,0,:) < 0) normal(:,:,i) = -normal(:,:,i)
+        end do
+    case(2)
+        do i = 0,2
+            where(elem%Jacob(ngllx-1,:,:) < 0) normal(:,:,i) = -normal(:,:,i)
+        end do
+    case(3)
+        do i = 0,2
+            where(elem%Jacob(:,nglly-1,:) > 0) normal(:,:,i) = -normal(:,:,i)
+        end do
+    case(4)
+        do i = 0,2
+            where(elem%Jacob(0,:,:) > 0) normal(:,:,i) = -normal(:,:,i)
+        end do
+    case(5)
+        do i = 0,2
+            where(elem%Jacob(:,:,ngllz-1) < 0) normal(:,:,i) = -normal(:,:,i)
+        end do
+    end select
 
-                        end subroutine inversion_normal
-                        !------------------------------------------------------------------
-                        !------------------------------------------------------------------
+end subroutine inversion_normal
+!------------------------------------------------------------------
+!------------------------------------------------------------------
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
