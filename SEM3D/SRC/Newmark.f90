@@ -4,8 +4,8 @@
 !!\author
 !!\version 1.0
 !!\date 10/03/2009
-!! La routine Newmark assure la résolution des équations via un algorithme de predicteur-multi-correcteur
-!! des vitesses avec une formulation contrainte-vitesse décalée en temps dans les PML.
+!! La routine Newmark assure la rï¿½solution des ï¿½quations via un algorithme de predicteur-multi-correcteur
+!! des vitesses avec une formulation contrainte-vitesse dï¿½calï¿½e en temps dans les PML.
 !<
 
 subroutine Newmark(Tdomain,rg,ntime)
@@ -104,6 +104,39 @@ subroutine Newmark(Tdomain,rg,ntime)
             call Comm_Forces_PML_Complete(n,Tdomain)
         end do
 
+                n_rings = shift
+            else if (mod(n,n-shift)==0 .and. shift/=n-1) then
+                n_rings = n-shift
+            else if (mod(n,2)==0 .and. mod(shift,2)==0) then
+                n_rings = 2
+            else
+                n_rings = 1
+            endif
+            do i = 0,n_rings-1
+                if (rg==i) then
+                    if (Tdomain%sComm(I_give_to)%ngll>0) then
+                        call MPI_SEND (Tdomain%sComm(I_give_to)%GiveForces, 3*Tdomain%sComm(I_give_to)%ngll, &
+                            MPI_DOUBLE_PRECISION, I_give_to, etiquette, MPI_COMM_WORLD, code)
+                    endif
+                    if (Tdomain%sComm(I_take_from)%ngll>0) then
+                        call MPI_RECV (Tdomain%sComm(I_take_from)%TakeForces, 3*Tdomain%sComm(I_take_from)%ngll, &
+                            MPI_DOUBLE_PRECISION, I_take_from, etiquette, MPI_COMM_WORLD, statut, code)
+                    endif
+                else
+                    do j = 0,n/n_rings-1
+                        if (rg == i + j*n_rings) then
+                            if (Tdomain%sComm(I_take_from)%ngll>0) then
+                                call MPI_RECV (Tdomain%sComm(I_take_from)%TakeForces, 3*Tdomain%sComm(I_take_from)%ngll, &
+                                    MPI_DOUBLE_PRECISION, I_take_from, etiquette, MPI_COMM_WORLD, statut, code)
+                            endif
+                            if (Tdomain%sComm(I_give_to)%ngll>0) then
+                                call MPI_SEND (Tdomain%sComm(I_give_to)%GiveForces, 3*Tdomain%sComm(I_give_to)%ngll, &
+                                    MPI_DOUBLE_PRECISION, I_give_to, etiquette, MPI_COMM_WORLD, code)
+                            endif
+                        endif
+                    enddo
+                endif
+            enddo
 
         call exchange_sem_forces(Tdomain, rg)
 
@@ -175,77 +208,19 @@ subroutine Newmark(Tdomain,rg,ntime)
         enddo
     endif
 
-
-    ! Correction phase
-    allocate (L_Face(0:Tdomain%n_face-1))
-    L_Face = .true.
-    allocate (L_Edge(0:Tdomain%n_edge-1))
-    L_Edge = .true.
-    allocate (L_Vertex(0:Tdomain%n_vertex-1))
-    L_Vertex = .true.
-    do n = 0,Tdomain%n_elem-1
-        mat = Tdomain%specel(n)%mat_index
+    !- solid -> fluid coupling (normal dot velocity)
+    if(Tdomain%logicD%SF_local_present)then
+        call SF_solid_values_saving(Tdomain)
+        call StoF_coupling(Tdomain,rg)
         dt = Tdomain%sSubdomain(mat)%dt
-        if (.not. Tdomain%specel(n)%PML) then
-            call Correction_Elem_Veloc (Tdomain%specel(n), Dt)
-        else
-            if (Tdomain%specel(n)%FPML) then
-                call Correction_Elem_FPML_Veloc (Tdomain%specel(n),Dt, Tdomain%sSubdomain(mat)%freq)
-            else
-                call Correction_Elem_PML_Veloc (Tdomain%specel(n),Dt)
-            endif
-        endif
-        do i = 0,5
-            nf = Tdomain%specel(n)%Near_Faces(i)
-            if (L_Face(nf)) then
-                L_Face(nf) = .false.
-                if (.not.Tdomain%sface(nf)%PML) then
-                    call Correction_Face_Veloc (Tdomain%sface(nf), dt)
-                else
-                    if (Tdomain%sface(nf)%FPML) then
-                        call Correction_Face_FPML_Veloc (Tdomain%sface(nf), dt)
-                    else
-                        call Correction_Face_PML_Veloc (Tdomain%sface(nf), dt)
-                    endif
-                endif
-            endif
-        enddo
-        do i = 0,11
-            ne = Tdomain%specel(n)%Near_Edges(i)
-            if (L_Edge(ne)) then
-                L_Edge(ne) = .false.
-                if (.not.Tdomain%sedge(ne)%PML) then
-                    call Correction_Edge_Veloc (Tdomain%sedge(ne), dt)
-                else
-                    if (Tdomain%sedge(ne)%FPML) then
-                        call Correction_Edge_FPML_Veloc (Tdomain%sedge(ne), dt)
-                    else
-                        call Correction_Edge_PML_Veloc (Tdomain%sedge(ne), dt)
-                    endif
-                endif
-            endif
-        enddo
-        do i = 0,7
-            nv = Tdomain%specel(n)%Near_Vertices(i)
-            if(L_Vertex(nv))then
-                L_Vertex(nv) = .false.
-                if(.not. Tdomain%svertex(nv)%PML)then
-                    call Correction_Vertex_Veloc (Tdomain%svertex(nv), dt)
-                else
-                    if(Tdomain%svertex(nv)%FPML)then
-                        call Correction_Vertex_FPML_Veloc(Tdomain%svertex(nv),dt,Tdomain%sSubdomain(mat)%freq)
-                    else
-                        call Correction_Vertex_PML_Veloc(Tdomain%svertex(nv),dt)
-                    endif
-                endif
-            endif
-        enddo
-    enddo
-    deallocate (L_Face,L_Edge,L_Vertex)
 
-
-    ! Save Trace
-
+    call Newmark_Corrector(Tdomain,rg)
+    if(Tdomain%logicD%SF_local_present)then
+        !- fluid -> solid coupling (pressure times velocity)
+        call FtoS_coupling(Tdomain,rg)
+        !- recorrecting on solid faces, edges and vertices
+        call Newmark_recorrect_solid(Tdomain)
+    end if
     !  modif mariotti fevrier 2007 cea capteur displ
     ! si on veut soritr la vitesse mettre Veloc a la place de Displ
     ! il faut en fait stocker les deux et pouvoir sortir l un ou l autre au choix
@@ -254,6 +229,9 @@ subroutine Newmark(Tdomain,rg,ntime)
         call save_traces(Tdomain, ntime, rg)
     end if
 
+
+    ! Save Trace
+    if(Tdomain%logicD%save_trace) call dumptrace(Tdomain,rg,ntime)
 
     if (rg==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
 
@@ -379,6 +357,143 @@ subroutine Newmark_Predictor(Tdomain,rg)
 end subroutine Newmark_Predictor
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
+subroutine Newmark_Corrector(Tdomain,rg)
+
+    use sdomain
+    implicit none
+
+    type(domain), intent(inout)   :: Tdomain
+    integer, intent(in)  :: rg
+    real  :: alpha,bega,gam1,dt
+    integer  :: i,n,mat,nf,ne,nv
+    logical, dimension(:), allocatable  :: L_Face,L_Edge,L_Vertex
+
+    alpha = Tdomain%TimeD%alpha
+    bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
+    gam1 = 1. / Tdomain%TimeD%gamma
+
+    allocate(L_Face(0:Tdomain%n_face-1))
+    L_Face = .true.
+    allocate(L_Edge(0:Tdomain%n_edge-1))
+    L_Edge = .true.
+    allocate(L_Vertex(0:Tdomain%n_vertex-1))
+    L_Vertex = .true.
+
+
+    do n = 0,Tdomain%n_elem-1
+        mat = Tdomain%specel(n)%mat_index
+        dt = Tdomain%sSubDomain(mat)%Dt
+        if(Tdomain%specel(n)%solid)then   ! solid part
+            ! inside element
+            if(.not. Tdomain%specel(n)%PML)then
+                call Correction_Elem_Veloc(Tdomain%specel(n),bega,gam1,Tdomain%sSubDomain(mat)%Dt)
+            else
+                if(Tdomain%specel(n)%FPML)then
+                    call Correction_Elem_FPML_Veloc(Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt,Tdomain%sSubdomain(mat)%freq)
+                else
+                    call Correction_Elem_PML_Veloc(Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt)
+                endif
+            endif
+            ! faces
+            do i = 0,5
+                nf = Tdomain%specel(n)%Near_Faces(i)
+                if (L_Face(nf)) then
+                    L_Face(nf) = .false.
+                    if (.not.Tdomain%sface(nf)%PML) then
+                        call Correction_Face_Veloc (Tdomain%sface(nf), bega, gam1, dt)
+                    else
+                        if (Tdomain%sface(nf)%FPML) then
+                            call Correction_Face_FPML_Veloc (Tdomain%sface(nf), dt, Tdomain%sSubdomain(mat)%freq)
+                        else
+                            call Correction_Face_PML_Veloc (Tdomain%sface(nf), dt)
+                        endif
+                    endif
+                endif
+            enddo
+            ! edges
+            do i = 0,11
+                ne = Tdomain%specel(n)%Near_Edges(i)
+                if (L_Edge(ne)) then
+                    L_Edge(ne) = .false.
+                    if (.not.Tdomain%sedge(ne)%PML) then
+                        call Correction_Edge_Veloc(Tdomain%sedge(ne),bega,gam1,dt)
+                    else
+                        if (Tdomain%sedge(ne)%FPML) then
+                            call Correction_Edge_FPML_Veloc(Tdomain%sedge(ne),dt,Tdomain%sSubdomain(mat)%freq)
+                        else
+                            call Correction_Edge_PML_Veloc(Tdomain%sedge(ne),dt)
+                        endif
+                    endif
+                endif
+            enddo
+            ! vertices
+            do i = 0,7
+                nv = Tdomain%specel(n)%Near_Vertices(i)
+                if(L_Vertex(nv))then
+                    L_Vertex(nv) = .false.
+                    if(.not. Tdomain%svertex(nv)%PML)then
+                        call Correction_Vertex_Veloc (Tdomain%svertex(nv), bega, gam1, dt)
+                    else
+                        if(Tdomain%svertex(nv)%FPML)then
+                            call Correction_Vertex_FPML_Veloc(Tdomain%svertex(nv),dt,Tdomain%sSubdomain(mat)%freq)
+                        else
+                            call Correction_Vertex_PML_Veloc(Tdomain%svertex(nv),dt)
+                        endif
+                    endif
+                endif
+            enddo
+        else    ! fluid part
+            ! inside element
+            if(.not. Tdomain%specel(n)%PML)then
+                call Correction_Elem_VelPhi(Tdomain%specel(n),bega,gam1,Tdomain%sSubDomain(mat)%Dt)
+            else
+                call Correction_Elem_PML_VelPhi(Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt)
+            endif
+            ! faces
+            do i = 0,5
+                nf = Tdomain%specel(n)%Near_Faces(i)
+                if(L_Face(nf))then
+                    L_Face(nf) = .false.
+                    if(.not.Tdomain%sface(nf)%PML)then
+                        call Correction_Face_VelPhi(Tdomain%sface(nf),bega,gam1,dt)
+                    else
+                        call Correction_Face_PML_VelPhi(Tdomain%sface(nf),dt)
+                    endif
+                endif
+            enddo
+            ! edges
+            do i = 0,11
+                ne = Tdomain%specel(n)%Near_Edges(i)
+                if (L_Edge(ne)) then
+                    L_Edge(ne) = .false.
+                    if (.not.Tdomain%sedge(ne)%PML) then
+                        call Correction_Edge_VelPhi(Tdomain%sedge(ne),bega,gam1,dt)
+                    else
+                        call Correction_Edge_PML_VelPhi(Tdomain%sedge(ne),dt)
+                    endif
+                endif
+            enddo
+            ! vertices
+            do i = 0,7
+                nv = Tdomain%specel(n)%Near_Vertices(i)
+                if(L_Vertex(nv))then
+                    L_Vertex(nv) = .false.
+                    if(.not. Tdomain%svertex(nv)%PML)then
+                        call Correction_Vertex_VelPhi(Tdomain%svertex(nv),bega,gam1,dt)
+                    else
+                        call Correction_Vertex_PML_VelPhi(Tdomain%svertex(nv),dt)
+                    endif
+                endif
+            enddo
+
+        end if
+    enddo
+    deallocate(L_Face,L_Edge,L_Vertex)
+
+    return
+end subroutine Newmark_Corrector
+!-----------------------------------------------------------------------------
+!-----------------------------------------------------------------------------
 subroutine internal_forces(Tdomain,rank)
     ! volume forces - depending on rheology
     use sdomain
@@ -694,7 +809,151 @@ subroutine Comm_Forces_PML_Complete(n,Tdomain)
 
     return
 end subroutine Comm_Forces_PML_Complete
+!--------------------------------------------------------------------------------------------
+!--------------------------------------------------------------------------------------------
+subroutine dumptrace(Tdomain,rank,ntime)
+    use sdomain
+    implicit none
 
+    type(domain), intent(inout)  :: Tdomain
+    integer, intent(in)   :: rank,ntime
+    integer  :: n,nr,ndt2,ngllx,nglly,ngllz,ntimetrace,i,j,k
+
+    do nr = 0, Tdomain%n_receivers-1
+        ndt2 = Tdomain%sReceiver(nr)%ndt
+        n = Tdomain%sReceiver(nr)%elem
+        ngllx = Tdomain%specel(n)%ngllx
+        nglly = Tdomain%specel(n)%nglly
+        ngllz = Tdomain%specel(n)%ngllz
+        if(rank == Tdomain%sReceiver(nr)%proc)then
+            if(mod(ntime,Tdomain%TimeD%ntrace) == 0)then
+                if(Tdomain%sReceiver(nr)%flag == 1)then
+                    if(Tdomain%specel(n)%solid)then
+                        allocate(Tdomain%sReceiver(nr)%StoreTrace(0:Tdomain%TimeD%ntrace-1,0:2))
+                    else
+                        allocate(Tdomain%sReceiver(nr)%StoreTrace_Fl(0:Tdomain%TimeD%ntrace-1))
+                    end if
+                end if
+                if(Tdomain%sReceiver(nr)%flag == 2)then
+                    if(Tdomain%specel(n)%solid)then
+                        allocate(Tdomain%sReceiver(nr)%StoreTrace(0:(Tdomain%TimeD%ntrace-1)/ndt2,0:2))
+                    else
+                        allocate(Tdomain%sReceiver(nr)%StoreTrace_Fl(0:(Tdomain%TimeD%ntrace-1)/ndt2))
+                    end if
+                end if
+                if(Tdomain%specel(n)%solid) Tdomain%sReceiver(nr)%StoreTrace = 0.
+                if(.not. Tdomain%specel(n)%solid) Tdomain%sReceiver(nr)%StoreTrace_Fl = 0.
+            endif
+
+            if(Tdomain%sReceiver(nr)%flag == 1 .or. ((Tdomain%sReceiver(nr)%flag == 2) .and.   &
+                (mod(ntime+1,ndt2) == 0)))then
+                if(Tdomain%sReceiver(nr)%flag == 1)      &
+                    ntimetrace = mod(ntime,Tdomain%TimeD%ntrace)
+                if(Tdomain%sReceiver(nr)%flag == 2)      &
+                    ntimetrace = mod((ntime+1)/ndt2-1,Tdomain%TimeD%ntrace/ndt2)
+
+                call getProp_Elem(Tdomain,n,nr,rank)
+
+                if(Tdomain%specel(n)%solid)then
+                    do k = 0,ngllz-1
+                        do j = 0,nglly-1
+                            do i = 0,ngllx-1
+                                Tdomain%sReceiver(nr)%StoreTrace(ntimetrace,:) = Tdomain%sReceiver(nr)%StoreTrace(ntimetrace,:) + &
+                                    Tdomain%sReceiver(nr)%coeff(i,j,k,:) * Tdomain%sReceiver(nr)%pol(i,j,k)
+                            enddo
+                        enddo
+                    enddo
+                else
+                    do k = 0,ngllz-1
+                        do j = 0,nglly-1
+                            do i = 0,ngllx-1
+                                Tdomain%sReceiver(nr)%StoreTrace_Fl(ntimetrace) = Tdomain%sReceiver(nr)%StoreTrace_Fl(ntimetrace) + &
+                                    Tdomain%sReceiver(nr)%coeff_fl(i,j,k) * Tdomain%sReceiver(nr)%pol(i,j,k)
+                            enddo
+                        enddo
+                    enddo
+
+                end if
+            end if
+
+        endif
+    end do
+
+    return
+
+end subroutine dumptrace
+!---------------------------------------------------------------------------------------
+!---------------------------------------------------------------------------------------
+subroutine GetProp_Elem(Tdomain,n,nr,rank)
+    use sdomain
+    implicit none
+
+    type(domain), intent(inout)  :: Tdomain
+    integer, intent(in)  :: n,nr,rank
+    integer  :: nf,ne,nv,orient_f,orient_e,ngllx,nglly,ngllz,   &
+        ngll1,ngll2,ngll,nnf,nne,nnv,i,j,k
+
+    ngllx = Tdomain%specel(n)%ngllx
+    nglly = Tdomain%specel(n)%nglly
+    ngllz = Tdomain%specel(n)%ngllz
+
+    if(Tdomain%specel(n)%solid)then
+        do k =1,ngllz-2
+            do j =1,nglly-2
+                do i =1,ngllx-2
+                    Tdomain%sReceiver(nr)%coeff(i,j,k,:) = Tdomain%specel(n)%Veloc(i,j,k,:)
+                end do
+            end do
+        end do
+        do nf = 0,5
+            nnf = Tdomain%specel(n)%Near_Faces(nf)
+            orient_f = Tdomain%specel(n)%Orient_Faces(nf)
+            ngll1 = Tdomain%sFace(nnf)%ngll1
+            ngll2 = Tdomain%sFace(nnf)%ngll2
+            call get_VectProperty_Face2Elem(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,rank,  &
+                Tdomain%sFace(nnf)%Veloc(:,:,:),Tdomain%sReceiver(nr)%coeff(:,:,:,:))
+        enddo
+        do ne = 0,11
+            nne = Tdomain%specel(n)%Near_Edges(ne)
+            orient_e = Tdomain%specel(n)%Orient_Edges(ne)
+            ngll = Tdomain%sEdge(nne)%ngll
+            call get_VectProperty_Edge2Elem(ne,orient_e,ngllx,nglly,ngllz,ngll,rank,  &
+                Tdomain%sEdge(nne)%Veloc(:,:),Tdomain%sReceiver(nr)%coeff(:,:,:,:))
+        end do
+        do nv = 0,7
+            nnv = Tdomain%specel(n)%Near_Vertices(nv)
+            call get_VectProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,rank,  &
+                Tdomain%sVertex(nnv)%Veloc(:),Tdomain%sReceiver(nr)%coeff(:,:,:,:))
+        enddo
+
+    else  ! liquid
+        Tdomain%sReceiver(nr)%coeff_fl(1:ngllx-2,1:nglly-2,1:ngllz-2) =    &
+            Tdomain%specel(n)%VelPhi(:,:,:)
+        do nf = 0,5
+            nnf = Tdomain%specel(n)%Near_Faces(nf)
+            orient_f = Tdomain%specel(n)%Orient_Faces(nf)
+            ngll1 = Tdomain%sFace(nnf)%ngll1
+            ngll2 = Tdomain%sFace(nnf)%ngll2
+            call get_ScalarProperty_Face2Elem(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,rank,  &
+                Tdomain%sFace(nnf)%VelPhi(:,:),Tdomain%sReceiver(nr)%coeff_fl(:,:,:))
+        enddo
+        do ne = 0,11
+            nne = Tdomain%specel(n)%Near_Edges(ne)
+            orient_e = Tdomain%specel(n)%Orient_Edges(ne)
+            ngll = Tdomain%sEdge(nne)%ngll
+            call get_ScalarProperty_Edge2Elem(ne,orient_e,ngllx,nglly,ngllz,ngll,rank,  &
+                Tdomain%sEdge(nne)%VelPhi(:),Tdomain%sReceiver(nr)%coeff_fl(:,:,:))
+        end do
+        do nv = 0,7
+            nnv = Tdomain%specel(n)%Near_Vertices(nv)
+            call get_ScalarProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,rank,  &
+                Tdomain%sVertex(nnv)%VelPhi,Tdomain%sReceiver(nr)%coeff_fl(:,:,:))
+        enddo
+
+    end if
+
+    return
+end subroutine GetProp_Elem
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

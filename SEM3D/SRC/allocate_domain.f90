@@ -499,17 +499,41 @@ subroutine allocate_domain (Tdomain, rg)
             ngll1 = Tdomain%SF%SF_Face(nf)%ngll1
             ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
             allocate(Tdomain%SF%SF_Face(nf)%BtN(0:ngll1-1,0:ngll2-1,0:2))
+            allocate(Tdomain%SF%SF_Face(nf)%pn(0:ngll1-1,0:ngll2-1,0:2))
+            allocate(Tdomain%SF%SF_Face(nf)%vn(0:ngll1-1,0:ngll2-1))
+            allocate(Tdomain%SF%SF_Face(nf)%density(0:ngll1-1,0:ngll2-1))
+            allocate(Tdomain%SF%SF_Face(nf)%save_forces(1:ngll1-2,1:ngll2-2,0:2))
+            allocate(Tdomain%SF%SF_Face(nf)%save_displ(1:ngll1-2,1:ngll2-2,0:2))
+            allocate(Tdomain%SF%SF_Face(nf)%save_accel(1:ngll1-2,1:ngll2-2,0:2))
             Tdomain%SF%SF_Face(nf)%BtN = 0d0
+            Tdomain%SF%SF_Face(nf)%pn = 0d0
+            Tdomain%SF%SF_Face(nf)%Vn = 0d0
+            Tdomain%SF%SF_Face(nf)%density = 0d0
+            Tdomain%SF%SF_Face(nf)%save_forces = 0d0
+            Tdomain%SF%SF_Face(nf)%save_displ = 0d0
+            Tdomain%SF%SF_Face(nf)%save_accel = 0d0
         enddo
 
         do ne = 0,Tdomain%SF%SF_n_edges-1
             ngll = Tdomain%SF%SF_Edge(ne)%ngll
-            allocate(Tdomain%SF%SF_Edge(ne)%BtN(1:ngll-2,0:2))
-            Tdomain%SF%SF_Edge(ne)%BtN = 0d0
+            allocate(Tdomain%SF%SF_Edge(ne)%pn(1:ngll-2,0:2))
+            allocate(Tdomain%SF%SF_Edge(ne)%save_forces(1:ngll-2,0:2))
+            allocate(Tdomain%SF%SF_Edge(ne)%save_accel(1:ngll-2,0:2))
+            allocate(Tdomain%SF%SF_Edge(ne)%save_displ(1:ngll-2,0:2))
+            allocate(Tdomain%SF%SF_Edge(ne)%Vn(1:ngll-2))
+            Tdomain%SF%SF_Edge(ne)%pn = 0d0
+            Tdomain%SF%SF_Edge(ne)%save_forces = 0d0
+            Tdomain%SF%SF_Edge(ne)%save_accel = 0d0
+            Tdomain%SF%SF_Edge(ne)%save_displ = 0d0
+            Tdomain%SF%SF_Edge(ne)%Vn = 0d0
         enddo
 
         do nv = 0,Tdomain%SF%SF_n_vertices-1
-            Tdomain%SF%SF_Vertex(nv)%BtN = 0d0
+            Tdomain%SF%SF_Vertex(nv)%pn = 0d0
+            Tdomain%SF%SF_Vertex(nv)%Vn = 0d0
+            Tdomain%SF%SF_Vertex(nv)%save_forces = 0d0
+            Tdomain%SF%SF_Vertex(nv)%save_displ = 0d0
+            Tdomain%SF%SF_Vertex(nv)%save_accel = 0d0
         enddo
 
     end if

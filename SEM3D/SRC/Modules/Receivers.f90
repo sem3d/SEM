@@ -10,14 +10,13 @@ module sreceivers
        integer :: elem, proc, flag, ndt
        real :: refcolat,reflong,radius,realcolat,reallong
        real :: xRec,yRec,zRec, xi,eta,zeta
-
+       real, dimension(:), pointer:: StoreTrace_Fl
        real, dimension(0:2) :: gll
        real, dimension(0:2,0:2) :: Passage
        real, dimension(:), pointer :: cosgamma,singamma
        real, dimension(:,:), pointer :: StoreTrace
-       real, dimension(:,:,:), pointer :: pol
+       real, dimension(:,:,:), pointer:: pol,coeff_fl
        real, dimension(:,:,:,:), pointer :: coeff
-
     end type receiver
 end module sreceivers
 !! Local Variables:

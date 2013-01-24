@@ -7,13 +7,11 @@
 subroutine Comm_Forces_Vertex (Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
 
     use sdomain
-
     implicit none
 
-    type (Domain), intent (INOUT) :: Tdomain
-    integer, intent (IN) :: n
-    integer, intent (INOUT) :: ngll,ngllPML,ngll_F,ngllPML_F
-
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in) :: n
+    integer, intent(inout) :: ngll,ngllPML,ngll_F,ngllPML_F
     integer :: i,nv
 
 
