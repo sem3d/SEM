@@ -33,8 +33,10 @@ subroutine calcul_forces(Fox,Foy,Foz, xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3, &
     real :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
     real, parameter :: zero = 0.
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: xmu,xla,xla2mu
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t1,t5,t8,t2,t6,t9
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t3,t7,t10
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t1,t5,t8
+    ! Les indices sont reordonnes, probablement pour la localite memoire
+    real, dimension(0:nglly-1,0:ngllx-1,0:ngllz-1) :: t2,t6,t9
+    real, dimension(0:ngllz-1,0:ngllx-1,0:nglly-1) :: t3,t7,t10
 
 
     xmu(:,:,:) = mu_(:,:,:)
