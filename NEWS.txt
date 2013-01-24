@@ -1,0 +1,36 @@
+
+
+Evolutions de cette version (vs RegSEM.U)
+
+format de fichier (input.spec)
+- separation sources, gradients, etc...
+
+
+modele de source
+
+description gradient
+
+description condition Neumann
+
+format des backups en HDF5 (protection/reprise)
+
+format des snapshot en HDF5
+
+description des capteurs (mot-clefs)
+
+elements fluides
+
+anisotropie
+
+amortissement (correction mechanisme)
+
+MPML
+
+optimisation communications
+
+optimisation consomation memoire
+
+simplification (pour l'instant) du schema temps
+
+couplage optionnel avec code externe (Mka3D)
+
