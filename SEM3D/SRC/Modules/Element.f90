@@ -11,6 +11,10 @@ module selement
 
     implicit none
 
+    type :: element_pml
+       ! TODO move pml related data here
+    end type element_pml
+
     type :: element
 
        integer :: mat_index, moho_position, ngllx, nglly, ngllz
