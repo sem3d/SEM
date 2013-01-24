@@ -5,6 +5,7 @@ module msnapshots
     use sem_hdf5
     use semdatafiles
     use mpi
+    implicit none
 contains
 
     subroutine create_dir_sorties(Tdomain, rg, isort)
@@ -52,6 +53,8 @@ contains
         call write_elem_connectivity(Tdomain, fid)
 
         call h5fclose_f(fid, hdferr)
+
+        if (rg==0) call write_master_xdmf(Tdomain%n_proc)
     end subroutine write_snapshot_geom
 
 
@@ -186,7 +189,33 @@ contains
         call write_xdmf(Tdomain, rg, isort)
     end subroutine save_field_h5
 
+    subroutine write_master_xdmf(n_procs)
+        implicit none
+        integer, intent(in) :: n_procs
+        character (len=MAX_FILE_SIZE) :: fnamef
+        integer :: n
+
+        call semname_xdmf_master(fnamef)
+
+        open (61,file=fnamef,status="unknown",form="formatted")
+        write(61,"(a)") '<?xml version="1.0" ?>'
+        write(61,"(a)") '<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd">'
+        write(61,"(a)") '<Xdmf Version="2.0" xmlns:xi="http://www.w3.org/2001/XInclude">'
+        write(61,"(a)") '<Domain>'
+        write(61,"(a)") '<Grid CollectionType="Spatial" GridType="Collection">'
+        !!! XXX: recuperer le nom par semname_*
+        do n=0,n_procs-1
+            write(61,"(a,I4.4,a)") '<xi:include href="mesh.',n,'.xmf"/>'
+        end do
+        write(61,"(a)") '</Grid>'
+        write(61,"(a)") '</Domain>'
+        write(61,"(a)") '</Xdmf>'
+        close(61)
+
+    end subroutine write_master_xdmf
+
     subroutine write_xdmf(Tdomain, rg, isort)
+        implicit none
         type (domain), intent (IN):: Tdomain
         integer, intent(in) :: rg, isort
         character (len=MAX_FILE_SIZE) :: fnamef
@@ -198,43 +227,40 @@ contains
         ne = Tdomain%n_hexa
         open (61,file=fnamef,status="unknown",form="formatted")
         write(61,"(a)") '<?xml version="1.0" ?>'
-        write(61,"(a)") '<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd">'
-        write(61,"(a)") '<Xdmf Version="2.0">'
-
-        write(61,"(a)") '<Domain>'
         write(61,"(a)") '<Grid CollectionType="Temporal" GridType="Collection">'
 
         time = 0
         do i=1,isort
-        write(61,"(a,I4.4,a)") '<Grid Name="mesh.',rg,'">'
-        write(61,"(a,F20.10,a)") '<Time Value="', time,'"/>'
-        write(61,"(a,I8,a)") '<Topology Type="Hexahedron" NumberOfElements="',ne,'">'
-        write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Int" Dimensions="',ne,' 8">'
-        write(61,"(a,I4.4,a)") 'geometry',rg,'.h5:/Elements'
-        write(61,"(a)") '</DataItem>'
-        write(61,"(a)") '</Topology>'
-        write(61,"(a)") '<Geometry Type="XYZ">'
-        write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
-        write(61,"(a,I4.4,a)") 'geometry',rg,'.h5:/Nodes'
-        write(61,"(a)") '</DataItem>'
-        write(61,"(a)") '</Geometry>'
-        write(61,"(a)") '<Attribute Name="Displ" Center="Node" AttributeType="Vector">'
-        write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
-        write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/displ'
-        write(61,"(a)") '</DataItem>'
-        write(61,"(a)") '</Attribute>'
-        write(61,"(a)") '<Attribute Name="Veloc" Center="Node" AttributeType="Vector">'
-        write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
-        write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/veloc'
-        write(61,"(a)") '</DataItem>'
-        write(61,"(a)") '</Attribute>'
-        write(61,"(a)") '</Grid>'
-        ! XXX inexact pour l'instant
-        time = time+Tdomain%TimeD%time_snapshots
+            write(61,"(a,I4.4,a)") '<Grid Name="mesh.',rg,'">'
+            write(61,"(a,F20.10,a)") '<Time Value="', time,'"/>'
+            write(61,"(a,I8,a)") '<Topology Type="Hexahedron" NumberOfElements="',ne,'">'
+            write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Int" Dimensions="',ne,' 8">'
+            write(61,"(a,I4.4,a)") 'geometry',rg,'.h5:/Elements'
+            write(61,"(a)") '</DataItem>'
+            write(61,"(a)") '</Topology>'
+            write(61,"(a)") '<Geometry Type="XYZ">'
+            write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
+            write(61,"(a,I4.4,a)") 'geometry',rg,'.h5:/Nodes'
+            write(61,"(a)") '</DataItem>'
+            write(61,"(a)") '</Geometry>'
+            write(61,"(a)") '<Attribute Name="Displ" Center="Node" AttributeType="Vector">'
+            write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
+            write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/displ'
+            write(61,"(a)") '</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            write(61,"(a)") '<Attribute Name="Veloc" Center="Node" AttributeType="Vector">'
+            write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
+            write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/veloc'
+            write(61,"(a)") '</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar">'
+            write(61,"(a,I4,a)") '<DataItem Format="XML" Datatype="Int"  Dimensions="1">',rg,'</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            write(61,"(a)") '</Grid>'
+            ! XXX inexact pour l'instant
+            time = time+Tdomain%TimeD%time_snapshots
         end do
         write(61,"(a)") '</Grid>'
-        write(61,"(a)") '</Domain>'
-        write(61,"(a)") '</Xdmf>'
         close(61)
     end subroutine write_xdmf
 end module msnapshots

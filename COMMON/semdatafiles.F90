@@ -943,6 +943,12 @@ contains
         fnamef = pjoin(path_results, temp)
     end subroutine semname_xdmf
 
+    subroutine semname_xdmf_master(fnamef)
+        implicit none
+        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
+        fnamef = pjoin(path_results, "results.xmf")
+    end subroutine semname_xdmf_master
+
     !! Nom du fichier contenant le nombre de processeurs ayant genere une sortie
     subroutine semname_nb_proc(isort,fnamef)
         implicit none

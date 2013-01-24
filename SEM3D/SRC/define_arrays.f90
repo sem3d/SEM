@@ -11,6 +11,8 @@ subroutine Define_Arrays(Tdomain, rg)
 
     use sdomain
     use mpi
+    use scomm
+
     implicit none
 
     interface
@@ -27,7 +29,6 @@ subroutine Define_Arrays(Tdomain, rg)
     integer, intent(IN) :: rg
     integer :: n, mat, ngllx,nglly,ngllz, ngll1,ngll2, ngll,ngllPML, i,j,k, nf,ne,nv,nv_aus, idef, code
     integer :: ngll_tot, ngllPML_tot, ngllNeu
-    integer :: shift, I_give_to, I_take_from, n_rings
     integer  :: which_elem,which_face,orient_e
     integer, parameter :: etiquette = 100
     integer, dimension(mpi_status_size) :: statut
@@ -431,37 +432,7 @@ subroutine Define_Arrays(Tdomain, rg)
             call Comm_Normal_Neumann(n,Tdomain)
         enddo
 
-        !- now we can exchange (communication global arrays)
-        n = Tdomain%n_proc
-        do shift = 1,n-1
-            call shift_to_parameters(rg,n,shift,I_give_to,I_take_from,n_rings)
-            ! physical mass comm. (solid + fluid)
-            call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngll_tot,                  &
-                Tdomain%sComm(I_take_from)%ngll_tot,I_give_to,I_take_from,1,     &
-                Tdomain%sComm(I_give_to)%Give,Tdomain%sComm(I_take_from)%Take)
-            call MPI_BARRIER(MPI_COMM_WORLD,code)
-            ! PML mass comm. (solid + fluid)
-            if(Tdomain%any_PML)then
-                if(Tdomain%any_FPML)then
-                    call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngllPML_tot,           &
-                        Tdomain%sComm(I_take_from)%ngllPML_tot,I_give_to,I_take_from,6,       &
-                        Tdomain%sComm(I_give_to)%GivePML,Tdomain%sComm(I_take_from)%TakePML)
-                else
-                    call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngllPML_tot,           &
-                        Tdomain%sComm(I_take_from)%ngllPML_tot,I_give_to,I_take_from,3,       &
-                        Tdomain%sComm(I_give_to)%GivePML,Tdomain%sComm(I_take_from)%TakePML)
-                end if
-            end if
-            call MPI_BARRIER(MPI_COMM_WORLD,code)
-            ! normal Neumann comm.
-            if(Tdomain%logicD%Neumann_local_present)then
-                call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngllNeu,           &
-                    Tdomain%sComm(I_take_from)%ngllNeu,I_give_to,I_take_from,3,       &
-                    Tdomain%sComm(I_give_to)%GiveNeu,Tdomain%sComm(I_take_from)%TakeNeu)
-            end if
-            call MPI_BARRIER(MPI_COMM_WORLD,code)
-
-        enddo
+        call exchange_sem(Tdomain, rg)
 
         ! now: assemblage on external faces, edges and vertices
         do n = 0,Tdomain%n_proc-1

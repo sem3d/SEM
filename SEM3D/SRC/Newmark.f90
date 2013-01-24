@@ -17,6 +17,7 @@ subroutine Newmark(Tdomain,rg,ntime)
 #endif
     use mcapteur
     use mpi
+    use scomm
 
     implicit none
 
@@ -103,32 +104,8 @@ subroutine Newmark(Tdomain,rg,ntime)
             call Comm_Forces_PML_Complete(n,Tdomain)
         end do
 
-        ! now we can exchange force values with proc n
-        n = Tdomain%n_proc
-        do shift = 1,n-1
-            call shift_to_parameters(rg,n,shift,I_give_to,I_take_from,n_rings)
-            ! solid forces exchange
-            call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngll,        &
-                Tdomain%sComm(I_take_from)%ngll,I_give_to,I_take_from,3,   &
-                Tdomain%sComm(I_give_to)%GiveForces,Tdomain%sComm(I_take_from)%TakeForces)
-            call MPI_BARRIER(MPI_COMM_WORLD,code)
-            ! fluid forces exchange
-            call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngll_F,        &
-                Tdomain%sComm(I_take_from)%ngll_F,I_give_to,I_take_from,1,   &
-                Tdomain%sComm(I_give_to)%GiveForcesFl,Tdomain%sComm(I_take_from)%TakeForcesFl)
-            call MPI_BARRIER(MPI_COMM_WORLD,code)
-            ! solid PML forces exchange
-            call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngllPML,        &
-                Tdomain%sComm(I_take_from)%ngllPML,I_give_to,I_take_from,9,   &
-                Tdomain%sComm(I_give_to)%GiveForcesPML,Tdomain%sComm(I_take_from)%TakeForcesPML)
-            call MPI_BARRIER(MPI_COMM_WORLD,code)
-            ! fluid PML forces exchange
-            call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngllPML_F,        &
-                Tdomain%sComm(I_take_from)%ngllPML_F,I_give_to,I_take_from,3,   &
-                Tdomain%sComm(I_give_to)%GiveForcesPMLFl,Tdomain%sComm(I_take_from)%TakeForcesPMLFl)
-            call MPI_BARRIER(MPI_COMM_WORLD,code)
 
-        end do  ! do shift
+        call exchange_sem_forces(Tdomain, rg)
 
         ! now: assemblage on external faces, edges and vertices
         do n = 0,Tdomain%n_proc-1
