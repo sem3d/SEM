@@ -1035,8 +1035,8 @@ contains
 
         implicit none
         type(Tcapteur) :: capteur
-        real xi_min, xi_max, xi0, eta0, eta_min, eta_max, zeta0, zeta_min, zeta_max, xitrouve, etatrouve, zetatrouve
-        real P(8,0:2), xtrouve, ytrouve, ztrouve, dxi, deta, dzeta, coord(0:7,0:2)
+        real xi_min, xi_max, xi0, eta0, eta_min, eta_max, zeta0, zeta_min, zeta_max
+        real P(8,0:2), dxi, deta, dzeta, coord(0:7,0:2)
         real xfact
         real xtrouve_def, ytrouve_def, ztrouve_def, xitrouve_def, etatrouve_def, zetatrouve_def
         real dist_def, dist, dist_P
@@ -1139,26 +1139,6 @@ contains
                                             xitrouve_def,etatrouve_def,zetatrouve_def,' iteration ',n_it,' distance ',dist_P
                                         return
                                     endif
-
-                                    !! on teste si P(npts) realise le min de la distance au capteur
-
-                                    !                                    if(abs(dist - dist_P) < eps) then
-                                    !    modif complementaire a xfact
-                                    !                                          if ( xi < -1. ) xi = -1.
-                                    !                                          if ( xi > 1. )  xi = 1.
-                                    !                                          if ( eta < -1. ) eta = -1.
-                                    !                                          if ( eta > 1. )  eta = 1.
-                                    !                                          if ( zeta < -1. ) zeta = -1.
-                                    !                                          if ( zeta > 1. )  zeta = 1.
-                                    !   fin modif
-                                    !                                        xitrouve = xi
-                                    !                                        etatrouve = eta
-                                    !                                        zetatrouve = zeta
-                                    !                                        xtrouve = P(npts,0)
-                                    !                                        ytrouve =  P(npts,1)
-                                    !                                        ztrouve =  P(npts,2)
-                                    !                                    endif
-
                                 enddo
                             enddo
                         enddo
@@ -1172,16 +1152,7 @@ contains
                             eta_max = eta0 + deta
                             zeta_min = zeta0
                             zeta_max = zeta0 + dzeta
-                            !                            xitrouve_def = xitrouve
-                            !                            etatrouve_def = etatrouve
-                            !                            zetatrouve_def = zetatrouve
-                            !                            xtrouve_def = xtrouve
-                            !                            ytrouve_def = ytrouve
-                            !                            ztrouve_def = ztrouve
-                            !                             dist_def = dist
                             dist_def = dist_P
-                            !                   print *,'evolution POINTS et coord ref ',P(npts,0),P(npts,1),P(npts,2), &
-                            !                          xi, eta, zeta,' iteration ', n_it,' distance ',dist_def
                         endif
                     enddo
                 enddo

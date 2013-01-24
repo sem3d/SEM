@@ -140,11 +140,11 @@ contains
 
     !------------------------------------------------------------------------
     !------------------------------------------------------------------------
-    subroutine Correction_Vertex_VelPhi(V,bega,gam1,dt)
+    subroutine Correction_Vertex_VelPhi(V,dt)
         implicit none
 
         type(Vertex), intent(inout) :: V
-        real, intent(in) :: bega, gam1, dt
+        real, intent(in) :: dt
 
 
         V%ForcesFl = V%MassMat * V%ForcesFl

@@ -638,20 +638,18 @@ contains
 
         integer :: i,j, numElem,numFace, mat
         integer :: ngll, ngllx, nglly, ngllz
-        integer :: iface, idim
+        integer :: iface
         integer :: tag,ierr
         integer, dimension (MPI_STATUS_SIZE) :: status
 
-        real :: contrib !, out
         real,dimension(0:2) :: force
-        real,dimension(:,:),pointer :: vecB
         integer numlocal, numEdge, numloc_edge
         integer,dimension(0:3) :: node
         integer :: ngll1, ngll2, nglltot
         !real :: outx, outz
         real :: tsurf
         integer :: iarete, ind1, ind2
-        integer :: ik, jk, ip, position
+        integer :: position
         real, dimension(comm_couplage%m_dim, comm_couplage%m_local_ngauss) :: force_impose
 
         !   flag pour sauvegarder la surface tsurf
@@ -1583,7 +1581,7 @@ contains
         integer, intent(in) :: iface, mat
         integer :: ik, jk, nb_Pk
         integer :: ngll1, ngll2, numlocal
-        integer :: i, j, ip
+        integer :: ip
         real :: outx, outy, outz
         type(type_interp_pk_data), pointer :: pkdata
 

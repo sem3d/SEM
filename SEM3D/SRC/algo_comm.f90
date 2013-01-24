@@ -200,7 +200,7 @@ contains
         implicit none
         type(domain), intent(inout) :: Tdomain
         integer, intent(in) :: rg
-        integer :: n, shift, I_give_to, I_take_from, n_rings, code
+        integer :: n
         integer :: other, ierr
         integer, dimension(0:Tdomain%n_proc) :: send_req, recv_req, send_pml_req, recv_pml_req
         integer, parameter :: tag=101, tag_pml=102
@@ -248,7 +248,7 @@ contains
         implicit none
         type(domain), intent(inout) :: Tdomain
         integer, intent(in) :: rg
-        integer :: n, shift, I_give_to, I_take_from, n_rings, code
+        integer :: n
         integer :: other, ierr
         integer, dimension(0:Tdomain%n_proc) :: req_s_f, req_r_f, req_s_pml, req_r_pml
         integer, dimension(0:Tdomain%n_proc) :: req_s_fl, req_r_fl, req_s_fpml, req_r_fpml

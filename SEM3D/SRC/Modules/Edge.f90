@@ -175,17 +175,18 @@ contains
     end subroutine Correction_Edge_PML_VelPhi
 
     ! ############################################
-    subroutine Correction_Edge_FPML_Veloc (E, dt)
+    subroutine Correction_Edge_FPML_Veloc (E, dt, fil)
 
         implicit none
 
         type (Edge), intent (INOUT) :: E
-        real, intent (IN) :: dt
+        real, intent (IN) :: dt, fil
 
         integer :: i
         real :: fil2
         real, dimension (1:E%ngll-1) :: Ausiliar_velocity
 
+        fil2 = fil**2
         do i = 0,2
             Ausiliar_velocity = E%Veloc1(:,i)
             E%Veloc1(:,i) = E%DumpVx(:,0) * E%Veloc1(:,i) + dt * E%DumpVx(:,1) * E%Forces1(:,i) + E%Ivx * E%Iveloc1(:,i)

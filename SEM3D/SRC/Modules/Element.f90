@@ -97,21 +97,15 @@ contains
     end subroutine Prediction_Elem_Veloc
     !--------------------------------------------------------------------------------
     !--------------------------------------------------------------------------------
-    subroutine Prediction_Elem_VelPhi(Elem,alpha,bega,gam1,dt)
-
+    subroutine Prediction_Elem_VelPhi(Elem,dt)
         implicit none
         type(Element), intent(inout) :: Elem
-        real, intent(in) :: alpha,bega,gam1,dt
+        real, intent(in) :: dt
         integer :: ngllx, nglly, ngllz
 
-
-        ngllx = Elem%ngllx ; nglly = Elem%nglly ; ngllz = Elem%ngllz
-
-        Elem%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2) = Elem%Phi+dt*Elem%VelPhi+dt**2*(0.5d0-bega)*Elem%AccelPhi
-        Elem%VelPhi0 = Elem%VelPhi
-        Elem%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2) = alpha*Elem%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2) +   &
-            (1d0-alpha) * Elem%Phi
-
+        ngllx = Elem%ngllx ;  nglly = Elem%nglly ; ngllz = Elem%ngllz
+        Elem%VelPhi0(:,:,:) = Elem%VelPhi(:,:,:)
+        Elem%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2) = Elem%Phi(:,:,:)
         return
     end subroutine Prediction_Elem_VelPhi
     !--------------------------------------------------------------------------------
@@ -121,12 +115,9 @@ contains
     !! \brief
     !!
     !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (IN) bega
-    !! \param real, intent (IN) gam1
     !! \param real, intent (IN) dt
     !<
     subroutine Correction_Elem_Veloc(Elem,dt)
-
         implicit none
         type(Element), intent(inout) :: Elem
         real, intent(in) :: dt
@@ -146,21 +137,19 @@ contains
     end subroutine Correction_Elem_Veloc
     !--------------------------------------------------------------------------------
     !--------------------------------------------------------------------------------
-    subroutine Correction_Elem_VelPhi(Elem,bega,gam1,dt)
-
+    subroutine Correction_Elem_VelPhi(Elem,dt)
         implicit none
         type(Element), intent(inout) :: Elem
-        real, intent(in) :: bega, gam1, dt
+        real, intent(in) :: dt
         integer :: ngllx, nglly, ngllz
-
 
         ngllx = Elem%ngllx ;  nglly = Elem%nglly ; ngllz = Elem%ngllz
 
         Elem%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2) = Elem%MassMat(:,:,:)*    &
             Elem%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2)
         Elem%VelPhi(:,:,:) = Elem%VelPhi0(:,:,:)+ dt * Elem%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2)
-        Elem%AccelPhi  = Elem%AccelPhi + gam1/dt*(Elem%VelPhi-Elem%VelPhi0)
-        Elem%Phi = Elem%Phi + bega*dt*(Elem%VelPhi+Elem%VelPhi0)
+        Elem%AccelPhi  = (Elem%VelPhi-Elem%VelPhi0)/dt
+        Elem%Phi = Elem%Phi + dt*Elem%VelPhi
 
         return
     end subroutine Correction_Elem_VelPhi
@@ -451,7 +440,7 @@ contains
         real, dimension(0:Elem%ngllz-1,0:Elem%ngllz-1), intent(in) :: hprimez
 
         real, dimension(0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVelPhi_dxi,dVelPhi_deta,dVelPhi_dzeta
-        integer :: m1,m2,m3,n_z,n_x
+        integer :: m1,m2,m3,n_z
 
 
         m1 = Elem%ngllx ; m2 = Elem%nglly ; m3 = Elem%ngllz

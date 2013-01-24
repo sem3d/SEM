@@ -6,7 +6,7 @@ subroutine StoF_coupling(Tdomain,rg)
 
     type(domain), intent(inout)   :: Tdomain
     integer, intent(in)   :: rg
-    integer  :: n,nf,ne,nv,nfs,ngll1,ngll2,ngll,i,j,k,nnf,nne,nnv,orient_e,    &
+    integer  :: n,nf,ne,nv,nfs,ngll1,ngll2,ngll,i,j,nnf,nne,nnv,orient_e,    &
         n_rings,shift,I_give_to,I_take_from,code,ngllSF
     integer, dimension(MPI_STATUS_SIZE)   :: statut
     integer, parameter   :: etiquette = 100
@@ -747,19 +747,18 @@ subroutine Newmark_recorrect_solid(Tdomain)
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
-    integer  :: nf,ne,nv,nnf,nne,nnv,mat
-    real  :: bega,gam1,dt
+    integer  :: nf,ne,nv,nnf,nne,nnv
+    real  :: dt
+    integer :: mat
 
-    bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
-    gam1 = 1. / Tdomain%TimeD%gamma
-
+    ! XXX: il faut recuperer mat correctement
+    mat = 0
+    dt = Tdomain%sSubdomain(0)%dt
     do nf = 0,Tdomain%SF%SF_n_faces-1
         nnf = Tdomain%SF%SF_Face(nf)%Face(1)
         if(nnf >= 0)then
-            mat = Tdomain%sFace(nnf)%mat_index
-            dt = Tdomain%sSubdomain(mat)%dt
             if(.not.Tdomain%sface(nnf)%PML)then
-                call Correction_Face_Veloc(Tdomain%sface(nnf),bega,gam1,dt)
+                call Correction_Face_Veloc(Tdomain%sface(nnf),dt)
             else
                 if(Tdomain%sface(nnf)%FPML)then
                     call Correction_Face_FPML_Veloc(Tdomain%sface(nnf),dt,Tdomain%sSubdomain(mat)%freq)
@@ -773,10 +772,8 @@ subroutine Newmark_recorrect_solid(Tdomain)
     do ne = 0,Tdomain%SF%SF_n_edges-1
         nne = Tdomain%SF%SF_Edge(ne)%Edge(1)
         if(nne >= 0)then
-            mat = Tdomain%sEdge(nne)%mat_index
-            dt = Tdomain%sSubdomain(mat)%dt
             if(.not.Tdomain%sEdge(nne)%PML)then
-                call Correction_Edge_Veloc(Tdomain%sEdge(nne),bega,gam1,dt)
+                call Correction_Edge_Veloc(Tdomain%sEdge(nne),dt)
             else
                 if(Tdomain%sEdge(nne)%FPML)then
                     call Correction_Edge_FPML_Veloc(Tdomain%sEdge(nne),dt,Tdomain%sSubdomain(mat)%freq)
@@ -790,10 +787,8 @@ subroutine Newmark_recorrect_solid(Tdomain)
     do nv = 0,Tdomain%SF%SF_n_vertices-1
         nnv = Tdomain%SF%SF_Vertex(nv)%Vertex(1)
         if(nnv >= 0)then
-            mat = Tdomain%sVertex(nnv)%mat_index
-            dt = Tdomain%sSubdomain(mat)%dt
             if(.not.Tdomain%sVertex(nnv)%PML)then
-                call Correction_Vertex_Veloc(Tdomain%sVertex(nnv),bega,gam1,dt)
+                call Correction_Vertex_Veloc(Tdomain%sVertex(nnv),dt)
             else
                 if(Tdomain%sVertex(nnv)%FPML)then
                     call Correction_Vertex_FPML_Veloc(Tdomain%sVertex(nnv),dt,Tdomain%sSubdomain(mat)%freq)

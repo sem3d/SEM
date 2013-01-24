@@ -186,16 +186,17 @@ contains
 
     !--------------------------------------------------------------
     !--------------------------------------------------------------
-    subroutine Correction_Face_FPML_Veloc (F, dt)
+    subroutine Correction_Face_FPML_Veloc (F, dt, fil)
         implicit none
 
         type (Face), intent (INOUT) :: F
-        real, intent (IN) :: dt
+        real, intent (IN) :: dt, fil
 
         integer :: i
         real :: fil2
         real, dimension (1:F%ngll1-2,1:F%ngll2-2) :: Ausiliar_velocity
 
+        fil2 = fil**2
 
         do i = 0,2
             Ausiliar_Velocity = F%Veloc1(:,:,i)

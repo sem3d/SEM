@@ -25,7 +25,14 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Comm_Mass_Edge.f90
     ${PRJ}/SRC/Comm_Mass_Face.f90
     ${PRJ}/SRC/Comm_Mass_Vertex.f90
+    ${PRJ}/SRC/Comm_Vertex_ScalarProperty.f90
+    ${PRJ}/SRC/Comm_Vertex_VectorProperty.f90
+    ${PRJ}/SRC/Comm_Edge_ScalarProperty.f90
+    ${PRJ}/SRC/Comm_Edge_VectorProperty.f90
+    ${PRJ}/SRC/Comm_Face_ScalarProperty.f90
+    ${PRJ}/SRC/Comm_Face_VectorProperty.f90
     ${PRJ}/SRC/Newmark.f90
+    ${PRJ}/SRC/solid_fluid_coupling.f90
     ${PRJ}/SRC/PML_def.f90
     ${PRJ}/SRC/ReceiverPosition.f90
     ${PRJ}/SRC/SourcePosition.f90

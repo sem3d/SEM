@@ -38,9 +38,9 @@ module Postraitement
     integer :: CodeErreur
 
     type tPART
-       integer	:: NbNodeId, PremNodeId
+       integer :: NbNodeId, PremNodeId
        integer :: NbElemId, PremElemId
-       integer	:: NbConnec
+       integer :: NbConnec
        integer :: Number
 
        character(GLO_MAXSTRING) :: Titre

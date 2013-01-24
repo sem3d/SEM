@@ -20,14 +20,13 @@ subroutine SourcePosition (Tdomain,rg)
 
     integer :: n_src, near_node, i,j,k, n_around_elem, x,y,z, ngllx,nglly,ngllz, code, mat, num, n, i_count
     integer , dimension (0:20) :: el_around_node
-    real :: xs,ys,zs,d,dmin,trash,epsil,xa,ya,za,dist_xi,dist_eta,      &
+    real :: xs,ys,zs,d,dmin,epsil,xa,ya,za,dist_xi,dist_eta,      &
         dist_zeta,xi,eta,zeta,f,ximin,ximax,etamin,etamax,zetamin,zetamax
     !  modif mariotti fevrier 2007 cea
-    real :: Xtemp,Ytemp
+    real :: Xtemp,Ytemp,R
     real, dimension(0:2) :: xi_search,eta_search,zeta_search, centre
     real, dimension(:), allocatable :: distance
     real, dimension(0:2,0:2) :: LocInvGrad
-    !  real, dimension(0:2,0:2) :: tRot
     real, dimension(:,:), allocatable :: coord
 
 
@@ -262,7 +261,7 @@ subroutine SourcePosition (Tdomain,rg)
                     (coord(7,0)-coord(3,0))*(1-xi)*(1+eta) + (coord(6,0)-coord(2,0))*(1+xi)*(1+eta))
                 LocInvGrad(0,1) = 0.125 * ((coord(1,1)-coord(0,1))*(1-eta)*(1-zeta) + (coord(2,1)-coord(3,1))*(1+eta)*(1-zeta) + &
                     (coord(5,1)-coord(4,1))*(1-eta)*(1+zeta) + (coord(6,1)-coord(7,1))*(1+eta)*(1+zeta))
-q                LocInvGrad(1,1) = 0.125 * ((coord(3,1)-coord(0,1))*(1-xi)*(1-zeta) + (coord(2,1)-coord(1,1))*(1+xi)*(1-zeta) + &
+                LocInvGrad(1,1) = 0.125 * ((coord(3,1)-coord(0,1))*(1-xi)*(1-zeta) + (coord(2,1)-coord(1,1))*(1+xi)*(1-zeta) + &
                     (coord(7,1)-coord(4,1))*(1-xi)*(1+zeta) + (coord(6,1)-coord(5,1))*(1+xi)*(1+zeta))
                 LocInvGrad(2,1) = 0.125 * ((coord(4,1)-coord(0,1))*(1-xi)*(1-eta) + (coord(5,1)-coord(1,1))*(1+xi)*(1-eta) + &
                     (coord(7,1)-coord(3,1))*(1-xi)*(1+eta) + (coord(6,1)-coord(2,1))*(1+xi)*(1+eta))

@@ -63,7 +63,7 @@ contains
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: fid
         integer(HID_T) :: elem_id
-        integer :: ngllx, nglly, ngllz, idx
+        integer :: ngllx, nglly, ngllz
         integer(HSIZE_T), dimension(2) :: dims
         integer, dimension(:,:), allocatable :: data
         integer :: count, i, j, k, n
@@ -220,7 +220,7 @@ contains
         integer, intent(in) :: rg, isort
         character (len=MAX_FILE_SIZE) :: fnamef
         integer :: i, nn, ne
-        real :: time, dt
+        real :: time
         call semname_xdmf(rg, fnamef)
 
         nn = Tdomain%n_glob_points

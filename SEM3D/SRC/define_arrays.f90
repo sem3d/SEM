@@ -27,25 +27,22 @@ subroutine Define_Arrays(Tdomain, rg)
     end interface
     type (domain), intent (INOUT), target :: Tdomain
     integer, intent(IN) :: rg
-    integer :: n, mat, ngllx,nglly,ngllz, ngll1,ngll2, ngll,ngllPML, i,j,k, nf,ne,nv,nv_aus, idef, code
+    integer :: n, mat, ngllx,nglly,ngllz, ngll1,ngll2, ngll, i,j,k, nf,ne,nv
     integer :: ngll_tot, ngllPML_tot, ngllNeu
-    integer  :: which_elem,which_face,orient_e
+    integer  :: which_face
     integer, parameter :: etiquette = 100
-    integer, dimension(mpi_status_size) :: statut
-    real :: vp, ri,rj,rk, dx
     real, external :: pow
     real, dimension(:,:,:), allocatable :: xix,xiy,xiz, etax,etay,etaz,      &
         zetax,zetay,zetaz,Jac,temp_PMLx,temp_PMLy
     real, dimension(:,:,:), allocatable :: Rlam,Rmu,RKmod, Whei, LocMassMat, &
-        wx,wy,wz, Id, Store_Btn
-    logical :: sortie
+        wx,wy,wz
     integer :: ipoint, icolonne,jlayer
     real :: xp,yp,zp,xfact
     real :: zg1,zd1,zg2,zd2,zz1,zz2,zfact
     real :: xd1,xg1
     real :: zrho,zrho1,zrho2,zCp,zCp1,zCp2,zCs,zCs1,zCs2
     real :: Mu,Kappa,Lambda
-    integer :: imx,imy,imz,iflag
+    integer :: imx,imy,imz,iflag,nnf,dir
 
 
 !!! Attribute elastic properties from material !!!
@@ -1002,7 +999,7 @@ subroutine Comm_Normal_Neumann(n,Tdomain)
 
     integer, intent(in)  :: n
     type(domain), intent(inout) :: Tdomain
-    integer  :: i,j,k,ngllneu,ne,nv
+    integer  :: i,j,ngllneu,ne,nv
 
     ngllNeu = 0
 

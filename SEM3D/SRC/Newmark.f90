@@ -104,40 +104,6 @@ subroutine Newmark(Tdomain,rg,ntime)
             call Comm_Forces_PML_Complete(n,Tdomain)
         end do
 
-                n_rings = shift
-            else if (mod(n,n-shift)==0 .and. shift/=n-1) then
-                n_rings = n-shift
-            else if (mod(n,2)==0 .and. mod(shift,2)==0) then
-                n_rings = 2
-            else
-                n_rings = 1
-            endif
-            do i = 0,n_rings-1
-                if (rg==i) then
-                    if (Tdomain%sComm(I_give_to)%ngll>0) then
-                        call MPI_SEND (Tdomain%sComm(I_give_to)%GiveForces, 3*Tdomain%sComm(I_give_to)%ngll, &
-                            MPI_DOUBLE_PRECISION, I_give_to, etiquette, MPI_COMM_WORLD, code)
-                    endif
-                    if (Tdomain%sComm(I_take_from)%ngll>0) then
-                        call MPI_RECV (Tdomain%sComm(I_take_from)%TakeForces, 3*Tdomain%sComm(I_take_from)%ngll, &
-                            MPI_DOUBLE_PRECISION, I_take_from, etiquette, MPI_COMM_WORLD, statut, code)
-                    endif
-                else
-                    do j = 0,n/n_rings-1
-                        if (rg == i + j*n_rings) then
-                            if (Tdomain%sComm(I_take_from)%ngll>0) then
-                                call MPI_RECV (Tdomain%sComm(I_take_from)%TakeForces, 3*Tdomain%sComm(I_take_from)%ngll, &
-                                    MPI_DOUBLE_PRECISION, I_take_from, etiquette, MPI_COMM_WORLD, statut, code)
-                            endif
-                            if (Tdomain%sComm(I_give_to)%ngll>0) then
-                                call MPI_SEND (Tdomain%sComm(I_give_to)%GiveForces, 3*Tdomain%sComm(I_give_to)%ngll, &
-                                    MPI_DOUBLE_PRECISION, I_give_to, etiquette, MPI_COMM_WORLD, code)
-                            endif
-                        endif
-                    enddo
-                endif
-            enddo
-
         call exchange_sem_forces(Tdomain, rg)
 
         ! now: assemblage on external faces, edges and vertices
@@ -213,6 +179,7 @@ subroutine Newmark(Tdomain,rg,ntime)
         call SF_solid_values_saving(Tdomain)
         call StoF_coupling(Tdomain,rg)
         dt = Tdomain%sSubdomain(mat)%dt
+    end if
 
     call Newmark_Corrector(Tdomain,rg)
     if(Tdomain%logicD%SF_local_present)then
@@ -289,7 +256,7 @@ subroutine Newmark_Predictor(Tdomain,rg)
             ! FLUID PART
         else
             if(.not. Tdomain%specel(n)%PML)then  ! physical part
-                call Prediction_Elem_VelPhi(Tdomain%specel(n),alpha,bega,gam1,Dt)
+                call Prediction_Elem_VelPhi(Tdomain%specel(n),Dt)
             else    ! PML part
                 call get_PMLprediction_v2el_fl(Tdomain,n,bega,dt,rg)
                 call get_PMLprediction_e2el_fl(Tdomain,n,bega,dt,rg)
@@ -358,19 +325,14 @@ end subroutine Newmark_Predictor
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
 subroutine Newmark_Corrector(Tdomain,rg)
-
     use sdomain
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
     integer, intent(in)  :: rg
-    real  :: alpha,bega,gam1,dt
+    real  :: dt
     integer  :: i,n,mat,nf,ne,nv
     logical, dimension(:), allocatable  :: L_Face,L_Edge,L_Vertex
-
-    alpha = Tdomain%TimeD%alpha
-    bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
-    gam1 = 1. / Tdomain%TimeD%gamma
 
     allocate(L_Face(0:Tdomain%n_face-1))
     L_Face = .true.
@@ -386,7 +348,7 @@ subroutine Newmark_Corrector(Tdomain,rg)
         if(Tdomain%specel(n)%solid)then   ! solid part
             ! inside element
             if(.not. Tdomain%specel(n)%PML)then
-                call Correction_Elem_Veloc(Tdomain%specel(n),bega,gam1,Tdomain%sSubDomain(mat)%Dt)
+                call Correction_Elem_Veloc(Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt)
             else
                 if(Tdomain%specel(n)%FPML)then
                     call Correction_Elem_FPML_Veloc(Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt,Tdomain%sSubdomain(mat)%freq)
@@ -400,7 +362,7 @@ subroutine Newmark_Corrector(Tdomain,rg)
                 if (L_Face(nf)) then
                     L_Face(nf) = .false.
                     if (.not.Tdomain%sface(nf)%PML) then
-                        call Correction_Face_Veloc (Tdomain%sface(nf), bega, gam1, dt)
+                        call Correction_Face_Veloc (Tdomain%sface(nf), dt)
                     else
                         if (Tdomain%sface(nf)%FPML) then
                             call Correction_Face_FPML_Veloc (Tdomain%sface(nf), dt, Tdomain%sSubdomain(mat)%freq)
@@ -416,7 +378,7 @@ subroutine Newmark_Corrector(Tdomain,rg)
                 if (L_Edge(ne)) then
                     L_Edge(ne) = .false.
                     if (.not.Tdomain%sedge(ne)%PML) then
-                        call Correction_Edge_Veloc(Tdomain%sedge(ne),bega,gam1,dt)
+                        call Correction_Edge_Veloc(Tdomain%sedge(ne),dt)
                     else
                         if (Tdomain%sedge(ne)%FPML) then
                             call Correction_Edge_FPML_Veloc(Tdomain%sedge(ne),dt,Tdomain%sSubdomain(mat)%freq)
@@ -432,7 +394,7 @@ subroutine Newmark_Corrector(Tdomain,rg)
                 if(L_Vertex(nv))then
                     L_Vertex(nv) = .false.
                     if(.not. Tdomain%svertex(nv)%PML)then
-                        call Correction_Vertex_Veloc (Tdomain%svertex(nv), bega, gam1, dt)
+                        call Correction_Vertex_Veloc (Tdomain%svertex(nv), dt)
                     else
                         if(Tdomain%svertex(nv)%FPML)then
                             call Correction_Vertex_FPML_Veloc(Tdomain%svertex(nv),dt,Tdomain%sSubdomain(mat)%freq)
@@ -445,7 +407,7 @@ subroutine Newmark_Corrector(Tdomain,rg)
         else    ! fluid part
             ! inside element
             if(.not. Tdomain%specel(n)%PML)then
-                call Correction_Elem_VelPhi(Tdomain%specel(n),bega,gam1,Tdomain%sSubDomain(mat)%Dt)
+                call Correction_Elem_VelPhi(Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt)
             else
                 call Correction_Elem_PML_VelPhi(Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt)
             endif
@@ -455,7 +417,7 @@ subroutine Newmark_Corrector(Tdomain,rg)
                 if(L_Face(nf))then
                     L_Face(nf) = .false.
                     if(.not.Tdomain%sface(nf)%PML)then
-                        call Correction_Face_VelPhi(Tdomain%sface(nf),bega,gam1,dt)
+                        call Correction_Face_VelPhi(Tdomain%sface(nf),dt)
                     else
                         call Correction_Face_PML_VelPhi(Tdomain%sface(nf),dt)
                     endif
@@ -467,7 +429,7 @@ subroutine Newmark_Corrector(Tdomain,rg)
                 if (L_Edge(ne)) then
                     L_Edge(ne) = .false.
                     if (.not.Tdomain%sedge(ne)%PML) then
-                        call Correction_Edge_VelPhi(Tdomain%sedge(ne),bega,gam1,dt)
+                        call Correction_Edge_VelPhi(Tdomain%sedge(ne),dt)
                     else
                         call Correction_Edge_PML_VelPhi(Tdomain%sedge(ne),dt)
                     endif
@@ -479,7 +441,7 @@ subroutine Newmark_Corrector(Tdomain,rg)
                 if(L_Vertex(nv))then
                     L_Vertex(nv) = .false.
                     if(.not. Tdomain%svertex(nv)%PML)then
-                        call Correction_Vertex_VelPhi(Tdomain%svertex(nv),bega,gam1,dt)
+                        call Correction_Vertex_VelPhi(Tdomain%svertex(nv),dt)
                     else
                         call Correction_Vertex_PML_VelPhi(Tdomain%svertex(nv),dt)
                     endif
