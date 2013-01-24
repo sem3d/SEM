@@ -12,7 +12,7 @@ subroutine Define_Arrays(Tdomain, rg)
     use sdomain
     use mpi
     use scomm
-
+    use scommutils
     implicit none
 
     interface

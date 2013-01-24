@@ -824,9 +824,9 @@ contains
 
                 if ( sauvetsurf == 1 ) then
                     tsurf = surface_gll(Tdomain, mat, numElem, numlocal, ind1, ind2)
-                    Tdomain%sVertex(node(i))%tsurfsem(0) = tsurf
+                    Tdomain%sVertex(node(i))%tsurfsem = tsurf
                 else
-                    tsurf = Tdomain%sVertex(node(i))%tsurfsem(0)
+                    tsurf = Tdomain%sVertex(node(i))%tsurfsem
                 endif
                 !                tsurf = surface_gll(Tdomain, mat, numElem, numlocal, ind1, ind2)
 

@@ -30,8 +30,7 @@ module svertices
 
 #ifdef MKA3D
        real, dimension (:), pointer :: ForcesMka
-       !     integer, dimension (:), pointer :: FlagMka
-       real, dimension (:), pointer :: tsurfsem
+       real :: tsurfsem
 #endif
 
     end type vertex
@@ -74,7 +73,7 @@ contains
 
 #ifdef MKA3D
         xmas = 0.
-        if (  V%tsurfsem(0) > 0. ) then
+        if (  V%tsurfsem > 0. ) then
             xmas = 1.
         endif
 #endif
@@ -286,7 +285,6 @@ contains
         ve%VelPhi3 = 0.
 #ifdef MKA3D
         nullify(ve%ForcesMka)
-        nullify(ve%tsurfsem)
 #endif
     end subroutine init_vertex
 

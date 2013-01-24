@@ -437,9 +437,6 @@ subroutine allocate_domain (Tdomain, rg)
 #ifdef MKA3D
             allocate (Tdomain%sVertex(n)%ForcesMka(0:2) )
             Tdomain%sVertex(n)%ForcesMka = 0
-            !        allocate (Tdomain%sVertex(n)%FlagMka(0:2) )
-            !        Tdomain%sVertex(n)%FlagMka = 0
-            allocate (Tdomain%sVertex(n)%tsurfsem(0:0) )
             Tdomain%sVertex(n)%tsurfsem = 0.
 #endif
 

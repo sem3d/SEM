@@ -250,18 +250,14 @@ subroutine deallocate_domain (Tdomain, rg)
     !purge - fuites memoire
     do n = 0, Tdomain%n_face-1
         deallocate (Tdomain%sFace(n)%ForcesMka)
-        !     deallocate (Tdomain%sFace(n)%FlagMka)
         deallocate (Tdomain%sFace(n)%tsurfsem)
     enddo
     do n = 0, Tdomain%n_edge-1
         deallocate (Tdomain%sEdge(n)%ForcesMka)
-        !     deallocate (Tdomain%sEdge(n)%FlagMka)
         deallocate (Tdomain%sEdge(n)%tsurfsem)
     enddo
     do n = 0, Tdomain%n_vertex-1
         deallocate (Tdomain%sVertex(n)%ForcesMka)
-        !     deallocate (Tdomain%sVertex(n)%FlagMka)
-        deallocate (Tdomain%sVertex(n)%tsurfsem)
     enddo
 
     deallocate (Tdomain%specel)

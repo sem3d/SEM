@@ -18,6 +18,7 @@ subroutine Newmark(Tdomain,rg,ntime)
     use mcapteur
     use mpi
     use scomm
+    use scommutils
 
     implicit none
 
@@ -198,7 +199,7 @@ subroutine Newmark(Tdomain,rg,ntime)
 
 
     ! Save Trace
-    if(Tdomain%logicD%save_trace) call dumptrace(Tdomain,rg,ntime)
+    !if(Tdomain%logicD%save_trace) call dumptrace(Tdomain,rg,ntime)
 
     if (rg==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
 

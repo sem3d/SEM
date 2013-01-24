@@ -159,15 +159,40 @@ subroutine SourcePosition (Tdomain,rg)
             x = Tdomain%sSource(n_src)%gll(0)
             y = Tdomain%sSource(n_src)%gll(1)
             z = Tdomain%sSource(n_src)%gll(2)
-            ximin = merge(Tdomain%sSubdomain(mat)%GLLcx(x),Tdomain%sSubdomain(mat)%GLLcx(x-1),x == 0)
-            etamin = merge(Tdomain%sSubdomain(mat)%GLLcy(y),Tdomain%sSubdomain(mat)%GLLcy(y-1),y == 0)
-            zetamin = merge(Tdomain%sSubdomain(mat)%GLLcz(z),Tdomain%sSubdomain(mat)%GLLcz(z-1),z == 0)
-            ximax = merge(Tdomain%sSubdomain(mat)%GLLcx(x),Tdomain%sSubdomain(mat)%GLLcx(x+1),   &
-                x == Tdomain%sSubdomain(mat)%ngllx-1)
-            etamax = merge(Tdomain%sSubdomain(mat)%GLLcy(y),Tdomain%sSubdomain(mat)%GLLcy(y+1),   &
-                y == Tdomain%sSubdomain(mat)%nglly-1)
-            zetamax = merge(Tdomain%sSubdomain(mat)%GLLcz(z),Tdomain%sSubdomain(mat)%GLLcz(z+1),   &
-                z == Tdomain%sSubdomain(mat)%ngllz-1)
+            ngllx = Tdomain%sSubdomain(mat)%ngllx
+            nglly = Tdomain%sSubdomain(mat)%nglly
+            ngllz = Tdomain%sSubdomain(mat)%ngllz
+            if (x==0) then
+                ximin = Tdomain%sSubdomain(mat)%GLLcx(x)
+                ximax = Tdomain%sSubdomain(mat)%GLLcx(x+1)
+            else if (x==ngllx-1) then
+                ximin = Tdomain%sSubdomain(mat)%GLLcx(x-1)
+                ximax = Tdomain%sSubdomain(mat)%GLLcx(x)
+            else
+                ximin = Tdomain%sSubdomain(mat)%GLLcx(x-1)
+                ximax = Tdomain%sSubdomain(mat)%GLLcx(x+1)
+            end if
+            if (y==0) then
+                etamin = Tdomain%sSubdomain(mat)%GLLcy(y)
+                etamax = Tdomain%sSubdomain(mat)%GLLcy(y+1)
+            else if (y==nglly-1) then
+                etamin = Tdomain%sSubdomain(mat)%GLLcy(y-1)
+                etamax = Tdomain%sSubdomain(mat)%GLLcy(y)
+            else
+                etamin = Tdomain%sSubdomain(mat)%GLLcy(y-1)
+                etamax = Tdomain%sSubdomain(mat)%GLLcy(y+1)
+            end if
+            if (z==0) then
+                zetamin = Tdomain%sSubdomain(mat)%GLLcz(z)
+                zetamax = Tdomain%sSubdomain(mat)%GLLcz(z+1)
+            else if (z==ngllz-1) then
+                zetamin = Tdomain%sSubdomain(mat)%GLLcz(z-1)
+                zetamax = Tdomain%sSubdomain(mat)%GLLcz(z)
+            else
+                zetamin = Tdomain%sSubdomain(mat)%GLLcz(z-1)
+                zetamax = Tdomain%sSubdomain(mat)%GLLcz(z+1)
+            end if
+
             dist_xi = ximax-ximin
             dist_eta = etamax-etamin
             dist_zeta = zetamax-zetamin
