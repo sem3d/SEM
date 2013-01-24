@@ -128,7 +128,7 @@ if(OPT_MPI)
 #set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
 # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
 # c++ et ne link pas semx.exe
-set(SEM_EXTRA_LIBS ${MPI_EXTRA_LIBRARY})
+set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
 else(OPT_MPI)
 set(SEM3D_SOURCES ${SEM3D_SOURCES}
   ${FTM_SOURCES})
