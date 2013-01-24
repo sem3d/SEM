@@ -27,7 +27,6 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     integer :: code, rg, nb_procs, ntime, i_snap, n, icount
 #ifdef MKA3D
     integer :: i, isort
-    character(len=24) :: nom_dir_sorties
     integer :: info_capteur
     real(kind=8) :: remaining_time
     real(kind=8), parameter :: max_time_left=900
@@ -42,8 +41,8 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     integer, dimension (MPI_STATUS_SIZE) :: status
     character*2 :: sit
     integer :: MaxNgParDir
-#endif
     integer, dimension(3) :: flags_synchro ! fin/protection/sortie
+#endif
     integer :: interrupt
 
     Tdomain%communicateur = communicateur

@@ -1,12 +1,12 @@
 !------------------------------------------------------------------------
-real function interp_lag(Tdomain,nel,ngllx,nglly,ngllz,mat,xi,eta,zeta,func)
+real function interp_lag(Tdomain,ngllx,nglly,ngllz,mat,xi,eta,zeta,func)
     ! gives the Lagrange interpolation at (xi,eta,zeta) for a function func
     !    whose values are known at GLL points
     use sdomain
     implicit none
 
     type(domain), intent(in)   :: Tdomain
-    integer, intent(in)   :: nel,mat,ngllx,nglly,ngllz
+    integer, intent(in)   :: mat,ngllx,nglly,ngllz
     real, intent(in)  :: xi,eta,zeta
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: func
     integer :: i,j,k
@@ -38,14 +38,14 @@ subroutine source_excit(Tdomain,rank)
     implicit none
 
     interface
-       real function interp_lag(Tdomain,nel,ngllx,nglly,ngllz,mat,xi,eta,zeta,func)
+       real function interp_lag(Tdomain,ngllx,nglly,ngllz,mat,xi,eta,zeta,func)
            ! gives the Lagrange interpolation at (xi,eta,zeta) for a function func
            !    whose values are known at GLL points
            use sdomain
            implicit none
 
            type(domain), intent(in)   :: Tdomain
-           integer, intent(in)   :: nel,mat,ngllx,nglly,ngllz
+           integer, intent(in)   :: mat,ngllx,nglly,ngllz
            real, intent(in)  :: xi,eta,zeta
            real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: func
        end function interp_lag
@@ -53,7 +53,7 @@ subroutine source_excit(Tdomain,rank)
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in)  :: rank
-    integer :: nsour,n,nels,mat,ngllx,nglly,ngllz,i,j,k
+    integer :: nsour,nels,mat,ngllx,nglly,ngllz,i,j,k
     real :: xi,eta,zeta,wxi,weta,wzeta,rho,dwdxi,dwdeta,dwdzeta
     real, dimension(0:2,0:2) :: M,InvGrad
 
@@ -85,7 +85,7 @@ subroutine source_excit(Tdomain,rank)
                 end do
                 ! fluid case
                 if(.not. Tdomain%specel(nels)%solid)then
-                    rho = interp_lag(Tdomain,nels,ngllx,nglly,ngllz,mat,xi,eta,zeta,   &
+                    rho = interp_lag(Tdomain,ngllx,nglly,ngllz,mat,xi,eta,zeta,   &
                         Tdomain%specel(nels)%density)
                     Tdomain%sSource(nsour)%ExtForce(:,:,:) = -Tdomain%sSource(nsour)%ExtForce(:,:,:)/rho
                 endif

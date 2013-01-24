@@ -461,9 +461,16 @@ subroutine read_mesh_file(Tdomain, rg)
         read(12,*) Tdomain%sComm(i)%nb_faces, Tdomain%sComm(i)%nb_edges, Tdomain%sComm(i)%nb_vertices
         if(Tdomain%logicD%SF_local_present)then
             read(12,*) Tdomain%sComm(i)%SF_nf_shared, Tdomain%sComm(i)%SF_ne_shared, Tdomain%sComm(i)%SF_nv_shared
+        else
+            Tdomain%sComm(i)%SF_nf_shared = 0
+            Tdomain%sComm(i)%SF_ne_shared = 0
+            Tdomain%sComm(i)%SF_nv_shared = 0
         end if
         if(Tdomain%logicD%Neumann_local_present)then
             read(12,*) Tdomain%sComm(i)%Neu_ne_shared, Tdomain%sComm(i)%Neu_nv_shared
+        else
+            Tdomain%sComm(i)%Neu_ne_shared = 0
+            Tdomain%sComm(i)%Neu_nv_shared = 0
         end if
         if(Tdomain%sComm(i)%nb_faces > 0)then
             allocate(Tdomain%sComm(i)%faces(0:Tdomain%sComm(i)%nb_faces-1))
@@ -471,6 +478,9 @@ subroutine read_mesh_file(Tdomain, rg)
             do j = 0,Tdomain%sComm(i)%nb_faces-1
                 read(12,*) Tdomain%sComm(i)%faces(j),Tdomain%sComm(i)%orient_faces(j)
             enddo
+        else
+            nullify(Tdomain%sComm(i)%faces)
+            nullify(Tdomain%sComm(i)%orient_faces)
         endif
         if(Tdomain%sComm(i)%nb_edges > 0)then
             allocate(Tdomain%sComm(i)%edges(0:Tdomain%sComm(i)%nb_edges-1))
@@ -478,6 +488,9 @@ subroutine read_mesh_file(Tdomain, rg)
             do j = 0,Tdomain%sComm(i)%nb_edges-1
                 read(12,*) Tdomain%sComm(i)%edges(j),Tdomain%sComm(i)%orient_edges(j)
             enddo
+        else
+            nullify(Tdomain%sComm(i)%edges)
+            nullify(Tdomain%sComm(i)%orient_edges)
         endif
         if(Tdomain%sComm(i)%nb_vertices > 0)then
             allocate(Tdomain%sComm(i)%vertices(0:Tdomain%sComm(i)%nb_vertices-1))
@@ -491,6 +504,8 @@ subroutine read_mesh_file(Tdomain, rg)
                 do j = 0,Tdomain%sComm(i)%SF_nf_shared-1
                     read(12,*) Tdomain%sComm(i)%SF_faces_shared(j)
                 enddo
+            else
+                nullify(Tdomain%sComm(i)%SF_faces_shared)
             endif
             if(Tdomain%sComm(i)%SF_ne_shared > 0)then
                 allocate(Tdomain%sComm(i)%SF_edges_shared(0:Tdomain%sComm(i)%SF_ne_shared-1))
@@ -498,12 +513,17 @@ subroutine read_mesh_file(Tdomain, rg)
                 do j = 0,Tdomain%sComm(i)%SF_ne_shared-1
                     read(12,*) Tdomain%sComm(i)%SF_edges_shared(j),Tdomain%sComm(i)%SF_mapping_edges_shared(j)
                 enddo
+            else
+                nullify(Tdomain%sComm(i)%SF_edges_shared)
+                nullify(Tdomain%sComm(i)%SF_mapping_edges_shared)
             endif
             if(Tdomain%sComm(i)%SF_nv_shared > 0)then
                 allocate(Tdomain%sComm(i)%SF_vertices_shared(0:Tdomain%sComm(i)%SF_nv_shared-1))
                 do j = 0,Tdomain%sComm(i)%SF_nv_shared-1
                     read(12,*) Tdomain%sComm(i)%SF_vertices_shared(j)
                 enddo
+            else
+                nullify(Tdomain%sComm(i)%SF_vertices_shared)
             endif
         end if
         if(Tdomain%logicD%Neumann_local_present)then
@@ -513,13 +533,22 @@ subroutine read_mesh_file(Tdomain, rg)
                 do j = 0,Tdomain%sComm(i)%Neu_ne_shared-1
                     read(12,*) Tdomain%sComm(i)%Neu_edges_shared(j),Tdomain%sComm(i)%Neu_mapping_edges_shared(j)
                 enddo
+            else
+                nullify(Tdomain%sComm(i)%Neu_edges_shared)
+                nullify(Tdomain%sComm(i)%Neu_mapping_edges_shared)
             endif
             if(Tdomain%sComm(i)%Neu_nv_shared > 0)then
                 allocate(Tdomain%sComm(i)%Neu_vertices_shared(0:Tdomain%sComm(i)%Neu_nv_shared-1))
                 do j = 0,Tdomain%sComm(i)%Neu_nv_shared-1
                     read(12,*) Tdomain%sComm(i)%Neu_vertices_shared(j)
                 enddo
+            else
+                nullify(Tdomain%sComm(i)%Neu_vertices_shared)
             endif
+        else
+            nullify(Tdomain%sComm(i)%Neu_edges_shared)
+            nullify(Tdomain%sComm(i)%Neu_mapping_edges_shared)
+            nullify(Tdomain%sComm(i)%Neu_vertices_shared)
         end if
 
     end do
