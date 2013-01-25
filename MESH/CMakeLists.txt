@@ -21,3 +21,4 @@ set(MESH_SRC
 
 
 add_executable(mesher ${MESH_SRC})
+target_link_libraries(mesher metis)

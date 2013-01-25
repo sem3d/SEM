@@ -87,7 +87,8 @@ contains
         integer, dimension(:,:), allocatable :: Faces_PW
         !- partitioning - see Metis user doc for parameter value
         integer, intent(in)  :: nproc
-        integer, allocatable :: dxadj(:), dxadjncy(:), part(:)
+        integer, pointer :: dxadj(:), dxadjncy(:)
+        integer, allocatable :: part(:)
         !- local meshes
         type(souvenir), dimension(:), allocatable :: memory
         type(process_obj), dimension(:), allocatable :: MemorySF
