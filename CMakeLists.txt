@@ -65,6 +65,7 @@ set(FTM_SOURCES ${SEMCOMMON}/libmpi_fantome.f90)
 
 add_subdirectory(SEM2D)
 add_subdirectory(SEM3D)
+add_subdirectory(MESH)
 
 
 add_executable(test_sem_path ${SEMCOMMON}/test_sem_path.f90 ${SEMCOMMON}/semdatafiles.F90)
