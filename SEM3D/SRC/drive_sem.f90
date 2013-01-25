@@ -347,8 +347,8 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
 
 #ifdef MKA3D
         if(Tdomain%logicD%save_snapshots .and. i_snap == 0) then
-            write (*,*) "A new snapshot is recorded for processor",rg
             if(rg==0) then
+                write (*,*) "Snapshot saved"
                 write(78,*) isort, Tdomain%TimeD%rtime
                 call semname_nb_proc(isort,fnamef)
                 write(*,*) "Open:",trim(adjustl(fnamef))
