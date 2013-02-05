@@ -67,6 +67,7 @@ subroutine allocate_domain (Tdomain, rg)
                     allocate(Tdomain%specel(n)%Residual_Stress(0:ngllx-1, 0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%Residual_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%Residual_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%Residual_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%Veloc1(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
                     allocate(Tdomain%specel(n)%Veloc2(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
                     allocate(Tdomain%specel(n)%Veloc3(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
@@ -87,6 +88,7 @@ subroutine allocate_domain (Tdomain, rg)
                     Tdomain%specel(n)%Residual_Stress = 0d0
                     Tdomain%specel(n)%Residual_Stress1 = 0d0
                     Tdomain%specel(n)%Residual_Stress2 = 0d0
+                    Tdomain%specel(n)%Residual_Stress3 = 0d0
                     Tdomain%specel(n)%Veloc1 = 0d0
                     Tdomain%specel(n)%Veloc2 = 0d0
                     Tdomain%specel(n)%Veloc3 = 0d0
@@ -120,8 +122,6 @@ subroutine allocate_domain (Tdomain, rg)
                     if (Tdomain%curve) then
                         allocate (Tdomain%specel(n)%Normales (0:2, 0:2))
                         allocate (Tdomain%specel(n)%Inv_Normales (0:2, 0:2))
-                        allocate (Tdomain%specel(n)%Residual_Stress3 (0:ngllx-1, 0:nglly-1, 0:ngllz-1, 0:2))
-                        Tdomain%specel(n)%Residual_Stress3 = 0
                     endif
                 else
                     allocate (Tdomain%specel(n)%wgtx (0:ngllx-1))
