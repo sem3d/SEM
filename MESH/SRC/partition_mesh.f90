@@ -58,8 +58,8 @@ contains
         !allocate(dxadj(0:n_elem),dxadjncy(0:8*n_elem-1))
         call METIS_SetDefaultOptions(options)
         call METIS_MeshToDual(n_elem,n_points,c_loc(eptr),c_loc(eind),1,numflag,dxadj_p,dxadjncy_p)
-        call c_f_pointer(dxadj_p, dxadj, [n_elem])
-        call c_f_pointer(dxadjncy_p, dxadjncy, [dxadj(n_elem)])
+        call c_f_pointer(dxadj_p, dxadj, [n_elem+1])
+        call c_f_pointer(dxadjncy_p, dxadjncy, [dxadj(n_elem+1)])
         allocate(procs(0:n_elem-1))
         if(nproc == 1)then
             do n = 0, n_elem-1
