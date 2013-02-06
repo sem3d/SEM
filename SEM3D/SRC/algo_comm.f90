@@ -200,7 +200,7 @@ contains
         implicit none
         type(domain), intent(inout) :: Tdomain
         integer, intent(in) :: rg
-        integer :: n
+        integer :: n, k
         integer :: other, ierr
         integer, dimension(0:Tdomain%n_proc) :: send_req, recv_req, send_pml_req, recv_pml_req
         integer, parameter :: tag=101, tag_pml=102
@@ -222,12 +222,17 @@ contains
                 call MPI_Irecv(Tdomain%sComm(other)%Take, Tdomain%sComm(other)%ngll_tot, &
                     MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur, recv_req(other), ierr)
             endif
-            if(Tdomain%any_PML)then
+            if(Tdomain%any_PML.or.Tdomain%any_FPML)then
+                if (Tdomain%any_FPML) then
+                    k = 6
+                else
+                    k = 3
+                end if
                 if (Tdomain%sComm(other)%ngllPML_tot/=0) then
-                    call MPI_Isend(Tdomain%sComm(other)%GivePML, Tdomain%sComm(other)%ngllPML_tot, &
+                    call MPI_Isend(Tdomain%sComm(other)%GivePML, k*Tdomain%sComm(other)%ngllPML_tot, &
                         MPI_DOUBLE_PRECISION, other, tag_pml, Tdomain%communicateur, &
                         send_pml_req(other), ierr)
-                    call MPI_Irecv(Tdomain%sComm(other)%TakePML, Tdomain%sComm(other)%ngllPML_tot, &
+                    call MPI_Irecv(Tdomain%sComm(other)%TakePML, k*Tdomain%sComm(other)%ngllPML_tot, &
                         MPI_DOUBLE_PRECISION, other, tag_pml, Tdomain%communicateur, &
                         recv_pml_req(other), ierr)
                 endif
@@ -276,15 +281,15 @@ contains
                     MPI_DOUBLE_PRECISION, other, tag_sl, Tdomain%communicateur, req_r_f(other), ierr)
             endif
             if (Tdomain%sComm(other)%ngll_F/=0) then
-                call MPI_Isend(Tdomain%sComm(other)%GiveForcesFl, 3*Tdomain%sComm(other)%ngll_F, &
+                call MPI_Isend(Tdomain%sComm(other)%GiveForcesFl, 1*Tdomain%sComm(other)%ngll_F, &
                     MPI_DOUBLE_PRECISION, other, tag_fl, Tdomain%communicateur, req_s_fl(other), ierr)
-                call MPI_Irecv(Tdomain%sComm(other)%TakeForces, 3*Tdomain%sComm(other)%ngll, &
+                call MPI_Irecv(Tdomain%sComm(other)%TakeForces, 1*Tdomain%sComm(other)%ngll, &
                     MPI_DOUBLE_PRECISION, other, tag_fl, Tdomain%communicateur, req_r_f(other), ierr)
             endif
             if (Tdomain%sComm(other)%ngllPML/=0) then
-                call MPI_Isend(Tdomain%sComm(other)%GiveForcesPML, 3*Tdomain%sComm(other)%ngllPML, &
+                call MPI_Isend(Tdomain%sComm(other)%GiveForcesPML, 9*Tdomain%sComm(other)%ngllPML, &
                     MPI_DOUBLE_PRECISION, other, tag_pml, Tdomain%communicateur, req_s_pml(other), ierr)
-                call MPI_Irecv(Tdomain%sComm(other)%TakeForcesPML, 3*Tdomain%sComm(other)%ngllPML, &
+                call MPI_Irecv(Tdomain%sComm(other)%TakeForcesPML, 9*Tdomain%sComm(other)%ngllPML, &
                     MPI_DOUBLE_PRECISION, other, tag_pml, Tdomain%communicateur, req_r_pml(other), ierr)
             endif
             if (Tdomain%sComm(other)%ngllPML_F/=0) then
