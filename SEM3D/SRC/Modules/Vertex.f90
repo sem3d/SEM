@@ -116,6 +116,7 @@ contains
         enddo
 
         V%Veloc = V%Veloc1 + V%Veloc2 + V%Veloc3
+        V%Displ = V%Displ +  dt * V%Veloc
 
         if (V%Abs) then
             V%Veloc = 0

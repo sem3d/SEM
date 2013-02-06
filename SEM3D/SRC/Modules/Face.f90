@@ -140,6 +140,8 @@ contains
 
         F%Veloc = F%Veloc1 + F%Veloc2 + F%Veloc3
 
+        F%Displ(:,:,:) = F%Displ(:,:,:) +  dt * F%Veloc(:,:,:)
+
         if (F%Abs) then
             F%Veloc = 0
         endif

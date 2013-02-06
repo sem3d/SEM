@@ -674,6 +674,8 @@ contains
         enddo
 
         Elem%Veloc = Elem%Veloc1 + Elem%Veloc2 + Elem%Veloc3
+        ! Usefull only for traces and debug
+        Elem%Displ = Elem%Displ + dt * Elem%Veloc
 
         return
     end subroutine Correction_Elem_PML_Veloc

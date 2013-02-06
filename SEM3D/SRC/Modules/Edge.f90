@@ -144,6 +144,7 @@ contains
         enddo
 
         E%Veloc = E%Veloc1 + E%Veloc2 + E%Veloc3
+        E%Displ(:,:) = E%Displ(:,:) + dt * E%Veloc(:,:)
 
         if (E%Abs) then
             E%Veloc = 0
