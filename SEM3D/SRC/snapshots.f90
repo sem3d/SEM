@@ -52,9 +52,11 @@ contains
 
         call write_elem_connectivity(Tdomain, fid)
 
+        call write_constant_fields(Tdomain, fid)
+
         call h5fclose_f(fid, hdferr)
 
-        if (rg==0) call write_master_xdmf(Tdomain%n_proc)
+        if (rg==0) call write_master_xdmf(Tdomain)
     end subroutine write_snapshot_geom
 
 
@@ -62,10 +64,11 @@ contains
         implicit none
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: fid
-        integer(HID_T) :: elem_id
+        integer(HID_T) :: elem_id, mat_id
         integer :: ngllx, nglly, ngllz
         integer(HSIZE_T), dimension(2) :: dims
         integer, dimension(:,:), allocatable :: data
+        integer, dimension(:), allocatable :: mat
         integer :: count, i, j, k, n
         integer :: hdferr
 
@@ -81,8 +84,10 @@ contains
 
         Tdomain%n_hexa = count
         allocate( data(1:8,0:count-1))
+        allocate( mat(0:count-1))
 
         call create_dset_2d(fid, "Elements", H5T_STD_I32LE, 8, count, elem_id)
+        call create_dset(fid, "Material", H5T_STD_I32LE, count, mat_id)
 
         dims(1) = 8
         dims(2) = count
@@ -102,6 +107,7 @@ contains
                         data(6,count) = Tdomain%specel(n)%Iglobnum(i+1,j+0,k+1)
                         data(7,count) = Tdomain%specel(n)%Iglobnum(i+1,j+1,k+1)
                         data(8,count) = Tdomain%specel(n)%Iglobnum(i+0,j+1,k+1)
+                        mat(count) = Tdomain%specel(n)%mat_index
                         count=count+1
                     end do
                 end do
@@ -109,6 +115,10 @@ contains
         end do
         call h5dwrite_f(elem_id, H5T_NATIVE_INTEGER, data, dims, hdferr)
         call h5dclose_f(elem_id, hdferr)
+        dims(1)=count
+        dims(2)=1
+        call h5dwrite_f(mat_id, H5T_NATIVE_INTEGER, mat, dims, hdferr)
+        call h5dclose_f(mat_id, hdferr)
         deallocate(data)
     end subroutine write_elem_connectivity
 
@@ -189,12 +199,14 @@ contains
         call write_xdmf(Tdomain, rg, isort)
     end subroutine save_field_h5
 
-    subroutine write_master_xdmf(n_procs)
+    subroutine write_master_xdmf(Tdomain)
         implicit none
-        integer, intent(in) :: n_procs
+        type(domain), intent(in) :: Tdomain
+        integer :: n_procs, nelem,rg
         character (len=MAX_FILE_SIZE) :: fnamef
         integer :: n
-
+        n_procs = Tdomain%n_proc
+        nelem = Tdomain%n_elem
         call semname_xdmf_master(fnamef)
 
         open (61,file=fnamef,status="unknown",form="formatted")
@@ -228,7 +240,13 @@ contains
         open (61,file=fnamef,status="unknown",form="formatted")
         write(61,"(a)") '<?xml version="1.0" ?>'
         write(61,"(a)") '<Grid CollectionType="Temporal" GridType="Collection">'
+        write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Mat" Format="HDF" Datatype="Int"  Dimensions="',ne, &
+            '">geometry',rg,'.h5:/Material</DataItem>'
 
+        write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Mass" Format="HDF" Datatype="Int"  Dimensions="',nn, &
+            '">geometry',rg,'.h5:/Mass</DataItem>'
+        write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Jac" Format="HDF" Datatype="Int"  Dimensions="',nn, &
+            '">geometry',rg,'.h5:/Jac</DataItem>'
         time = 0
         do i=1,isort
             write(61,"(a,I4.4,a)") '<Grid Name="mesh.',rg,'">'
@@ -256,6 +274,24 @@ contains
             write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar">'
             write(61,"(a,I4,a)") '<DataItem Format="XML" Datatype="Int"  Dimensions="1">',rg,'</DataItem>'
             write(61,"(a)") '</Attribute>'
+            write(61,"(a)") '<Attribute Name="Mat" Center="Cell" AttributeType="Scalar">'
+            !write(61,"(a,I8,a,I4.4,a)") '<DataItem Format="HDF" Datatype="Int"  Dimensions="',ne, &
+            !    '">geometry',rg,'.h5:/Material</DataItem>'
+            write(61,"(a,I4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[',rg+1, &
+                ']/DataItem[@Name="Mat"]</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            write(61,"(a)") '<Attribute Name="Mass" Center="Node" AttributeType="Scalar">'
+            write(61,"(a,I4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[',rg+1, &
+                ']/DataItem[@Name="Mass"]</DataItem>'
+!            write(61,"(a,I8,a,I4.4,a)") '<DataItem Format="HDF" Datatype="Int"  Dimensions="',nn, &
+!                '">geometry',rg,'.h5:/Mass</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            write(61,"(a)") '<Attribute Name="Jac" Center="Node" AttributeType="Scalar">'
+            write(61,"(a,I4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[',rg+1, &
+                ']/DataItem[@Name="Jac"]</DataItem>'
+!            write(61,"(a,I8,a,I4.4,a)") '<DataItem Format="HDF" Datatype="Int"  Dimensions="',nn, &
+!                '">geometry',rg,'.h5:/Jac</DataItem>'
+            write(61,"(a)") '</Attribute>'
             write(61,"(a)") '</Grid>'
             ! XXX inexact pour l'instant
             time = time+Tdomain%TimeD%time_snapshots
@@ -263,4 +299,84 @@ contains
         write(61,"(a)") '</Grid>'
         close(61)
     end subroutine write_xdmf
+
+    subroutine write_constant_fields(Tdomain, fid)
+        implicit none
+        type (domain), intent (INOUT):: Tdomain
+        integer(HID_T), intent(in) :: fid
+        integer(HID_T) :: mass_id, jac_id
+        integer(HSIZE_T), dimension(1) :: dims
+        real, dimension(:),allocatable :: mass, jac
+        integer :: hdferr
+        integer :: ngllx, nglly, ngllz, idx
+        integer :: i, j, k, n
+        
+        call create_dset(fid, "Mass", H5T_IEEE_F64LE, Tdomain%n_glob_points, mass_id)
+        call create_dset(fid, "Jac",  H5T_IEEE_F64LE, Tdomain%n_glob_points, jac_id)
+
+        dims(1) = Tdomain%n_glob_points
+        allocate(mass(0:Tdomain%n_glob_points-1))
+        allocate(jac(0:Tdomain%n_glob_points-1))
+        ! mass
+        do n = 0,Tdomain%n_elem-1
+            ngllx = Tdomain%specel(n)%ngllx
+            nglly = Tdomain%specel(n)%nglly
+            ngllz = Tdomain%specel(n)%ngllz
+            do k = 1,ngllz-2
+                do j = 1,nglly-2
+                    do i = 1,ngllx-2
+                        idx = Tdomain%specel(n)%Iglobnum(i,j,k)
+                        mass(idx) = Tdomain%specel(n)%MassMat(i,j,k)
+                    end do
+                end do
+            end do
+        end do
+        ! jac
+        do n = 0,Tdomain%n_elem-1
+            ngllx = Tdomain%specel(n)%ngllx
+            nglly = Tdomain%specel(n)%nglly
+            ngllz = Tdomain%specel(n)%ngllz
+            do k = 0,ngllz-1
+                do j = 0,nglly-1
+                    do i = 0,ngllx-1
+                        idx = Tdomain%specel(n)%Iglobnum(i,j,k)
+                        jac(idx) = Tdomain%specel(n)%Jacob(i,j,k)
+                    end do
+                end do
+            end do
+        end do
+
+
+        do n = 0,Tdomain%n_face-1
+            ngllx = Tdomain%sface(n)%ngll1
+            nglly = Tdomain%sface(n)%ngll2
+            do j = 1,nglly-2
+                do i = 1,ngllx-2
+                    idx = Tdomain%sface(n)%Iglobnum_Face(i,j)
+                    mass(idx) = Tdomain%sface(n)%MassMat(i,j)
+                end do
+            end do
+        end do
+
+        do n = 0,Tdomain%n_edge-1
+            ngllx = Tdomain%sedge(n)%ngll
+            do i = 1,ngllx-2
+                idx = Tdomain%sedge(n)%Iglobnum_Edge(i)
+                mass(idx) = Tdomain%sedge(n)%MassMat(i)
+            end do
+        end do
+
+        do n = 0,Tdomain%n_vertex-1
+            idx = Tdomain%svertex(n)%Iglobnum_Vertex
+            mass(idx) = Tdomain%svertex(n)%MassMat
+        end do
+
+        call h5dwrite_f(mass_id, H5T_NATIVE_DOUBLE, mass, dims, hdferr)
+        call h5dclose_f(mass_id, hdferr)
+        call h5dwrite_f(jac_id, H5T_NATIVE_DOUBLE, jac, dims, hdferr)
+        call h5dclose_f(jac_id, hdferr)
+        deallocate(mass,jac)
+
+    end subroutine write_constant_fields
+
 end module msnapshots
