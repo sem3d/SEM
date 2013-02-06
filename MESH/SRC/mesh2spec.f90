@@ -18,7 +18,7 @@ contains
         integer   :: iunit,choice,i_ex, n,nn,nnn,i,j,k,l,idummy,icount,ok,num, &
             nel,nf,ns,ne,nv,np,i_count,nx,ny,nz,nnf,ind_f,nelf,nels,  &
             nns,kf,ks,ii,jj,ind_e,nv0,nv1,nvl,n0,n1,nes,nfile,nface
-        character(len=13) :: meshfilename
+        character(len=14) :: meshfilename
 
         !- mesh --
         integer   :: n_nods, n_elem, n_blocks, n_points ! n_blocks corresponds
@@ -723,7 +723,7 @@ contains
 
 
             !- writing the meshfile
-            write(meshfilename(11:13), '(i3.3)') proc
+            write(meshfilename(11:14), '(i4.4)') proc
             open(11, file = trim(meshfilename))
             n_dim = 3 ; curve = .false.
             write(11,"(1i6,a)") n_dim
