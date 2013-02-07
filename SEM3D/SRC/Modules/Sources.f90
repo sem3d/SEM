@@ -20,8 +20,8 @@ module ssources
        real :: radius,realcolat,reallong,refcolat,reflong
 
        !   ajout de parametres pour definir Gabor signal source de type 4
-       !   ajout de gama et ts
-       real ::  gama, ts
+       !   ajout de gamma et ts
+       real ::  gamma, ts
 
        real :: Xsource,YSource,Zsource
 
@@ -58,7 +58,7 @@ contains
             CompSource = Sour%timefunc(ntime)
         case (4)
             !   developpement de la source du benchmark can1
-            CompSource = Gabor (time,Sour%tau_b,Sour%cutoff_freq,Sour%gama,Sour%ts)
+            CompSource = Gabor (time,Sour%tau_b,Sour%cutoff_freq,Sour%gamma,Sour%ts)
         case (5)
             !   modif pour benchmark can2
             CompSource = Source_File (time,Sour%tau_b,Sour)
@@ -185,10 +185,10 @@ contains
 
     ! #################################################
 
-    real function Gabor (time,tau,fp,gama,ts)
+    real function Gabor (time,tau,fp,gamma,ts)
 
 
-        real :: time, tau2, fp,gama,ts
+        real :: time, fp, gamma, ts
         real :: sigma
         real ::  xomega,  xval1, xval2
         xomega  = M_PI*0.5
@@ -196,7 +196,7 @@ contains
         if ( time < 32. ) then
             sigma = 2. * M_PI * fp * (time-ts)
             xval1 = cos(sigma + xomega)
-            sigma = sigma/gama
+            sigma = sigma/gamma
             sigma = sigma**2
             if ( sigma < 100. ) then
                 xval2 = exp(-sigma)

@@ -129,12 +129,12 @@ subroutine read_source_desc(Tdomain, rg)
         case (4)
             !   Gabor signal
             read (unit_src,*) Tdomain%Ssource(i)%cutoff_freq
-            read (unit_src,*) Tdomain%Ssource(i)%gama
+            read (unit_src,*) Tdomain%Ssource(i)%gamma
             read (unit_src,*) Tdomain%Ssource(i)%ts
             if (rg==0) then
                 write(*,*)  '   Gabor signal '
                 write (*,*) '  frequencep:', Tdomain%Ssource(i)%cutoff_freq
-                write (*,*) '  gamma:', Tdomain%Ssource(i)%gama
+                write (*,*) '  gamma:', Tdomain%Ssource(i)%gamma
                 write (*,*) '  ts:', Tdomain%Ssource(i)%ts
             end if
         case (5)
