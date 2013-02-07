@@ -21,6 +21,7 @@ module sdomain
     use ssurf
     use sbassin
     use solid_fluid
+    use semdatafiles
 
     type :: domain
 
@@ -62,7 +63,7 @@ module sdomain
        real, dimension (0:2,0:2) :: rot
        real, dimension (:,:), pointer :: Coord_nodes, GlobCoord
 
-       character (len=30) :: Title_simulation, mesh_file,station_file,material_file,   &
+       character (len=MAX_FILE_SIZE) :: Title_simulation, mesh_file,station_file,material_file,   &
            Super_object_file,neumann_file,neumann_dat,check_mesh_file
        character (len=30) :: file_bassin
        character (len=1)  :: Super_object_type

@@ -202,9 +202,9 @@ contains
     subroutine write_master_xdmf(Tdomain)
         implicit none
         type(domain), intent(in) :: Tdomain
-        integer :: n_procs, nelem,rg
+        integer :: n_procs, nelem
         character (len=MAX_FILE_SIZE) :: fnamef
-        integer :: n
+        integer :: rg
         n_procs = Tdomain%n_proc
         nelem = Tdomain%n_elem
         call semname_xdmf_master(fnamef)
@@ -216,8 +216,8 @@ contains
         write(61,"(a)") '<Domain>'
         write(61,"(a)") '<Grid CollectionType="Spatial" GridType="Collection">'
         !!! XXX: recuperer le nom par semname_*
-        do n=0,n_procs-1
-            write(61,"(a,I4.4,a)") '<xi:include href="mesh.',n,'.xmf"/>'
+        do rg=0,n_procs-1
+            write(61,"(a,I4.4,a)") '<xi:include href="mesh.',rg,'.xmf"/>'
         end do
         write(61,"(a)") '</Grid>'
         write(61,"(a)") '</Domain>'

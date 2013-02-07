@@ -113,8 +113,8 @@ subroutine Newmark(Tdomain,rg,ntime)
             ngll_F = 0
             ngllPML = 0
             ngllPML_F = 0
-            call Comm_Forces_Face(Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
-            call Comm_Forces_Edge(Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
+            call Comm_Forces_Face  (Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
+            call Comm_Forces_Edge  (Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
             call Comm_Forces_Vertex(Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
         enddo
 

@@ -250,7 +250,7 @@ subroutine Comm_Forces_Edge (Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: n
     integer, intent(inout) :: ngll,ngllPML,ngll_F,ngllPML_F
-    integer :: ngll1,i,ne,nne,orient_e
+    integer :: ngll1,ne,nne,orient_e
 
 
     do ne = 0,Tdomain%sComm(n)%nb_edges-1
@@ -306,7 +306,7 @@ subroutine Comm_Forces_Face(Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: n
     integer, intent(inout) :: ngll,ngllPML,ngll_F,ngllPML_F
-    integer :: ngll1,ngll2,nf,nnf,i,j,k,orient_f
+    integer :: ngll1,ngll2,nf,nnf,orient_f
 
 
     do nf = 0,Tdomain%sComm(n)%nb_faces-1
