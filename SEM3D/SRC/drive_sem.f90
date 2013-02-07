@@ -316,23 +316,7 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
 !            if ( (Tdomain%logicD%save_snapshots.and.i_snap==0).or.sortie_capteur_vitesse ) then
             if (Tdomain%logicD%save_snapshots .and. i_snap==0) then
                 call save_field_h5(Tdomain, rg, isort)
-!#ifdef MKA3D
-!                call savefield (Tdomain, isort, sortie_capteur_vitesse, rg, i_snap)
-!#else
-!                if(i_snap == 0) then
-!                    icount = icount+1
-!                    call savefield (Tdomain, ntime, sortie_capteur_vitesse, rg, icount, i_snap)
-!                endif
-!#endif
             endif
-
-!
-!#ifdef MKA3D
-!            if ( (Tdomain%logicD%save_snapshots.and.i_snap==0).or.sortie_capteur_depla ) then
-!                call savefield_disp (Tdomain, isort, sortie_capteur_depla, rg, i_snap)
-!            endif
-!#endif
-
         endif
 
 !#ifndef MKA3D
