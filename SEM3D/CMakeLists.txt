@@ -50,7 +50,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/calcul_forces_aniso_att.f90
     ${PRJ}/SRC/calcul_forces_att.f90
     ${PRJ}/SRC/compute_GLL.f90
-    ${PRJ}/SRC/convertirUnv.f90
     ${PRJ}/SRC/courant.f90
     ${PRJ}/SRC/deallocate_domain.f90
     ${PRJ}/SRC/define_arrays.f90

@@ -731,10 +731,6 @@ subroutine read_input (Tdomain, rg, code)
 
     call read_attn_desc(Tdomain, rg)
 
-    ! conversion d'un maillage unv en maillage sem
-    read(11,*,ERR=101) Tdomain%bMailUnv
-    if (rg==0) write (*,*) 'Maillage au format unv:', Tdomain%bMailUnv
-
     ! prise en compte du fichier des capteurs
     read (11,*,ERR=102) Tdomain%bCapteur
     if (rg==0) write (*,*) 'Utilisation des capteurs:', Tdomain%bCapteur
@@ -764,14 +760,6 @@ subroutine read_input (Tdomain, rg, code)
 
         call echo_input_params(Tdomain, rg)
 
-    endif
-
-    !print *,'ap echo',tDomain%bMailUnv  !Gsa ipsis
-    ! si le format du maillage initial est UNV,il faut le convertir en maillage sem2D
-    if (tDomain%bMailUnv) call convertirUnv(tDomain, rg)
-    if (tDomain%bMailUnv) then
-        write(6,*) 'End of the conversion unv -> SEM'
-        write(6,'(A,1X,A)') 'The name of the mesh file is now:', Tdomain%mesh_file
     endif
 
     !- PArametrage super object desactive
@@ -1143,8 +1131,6 @@ subroutine read_input (Tdomain, rg, code)
     endif
 
     return
-101 write(*,*) 'Mauvaise lecture de bmailunv (conversion unv->sem). Arret'
-    stop
 
 102 write(*,*) 'Mauvaise lecture de bCapteur (gestion des capteurs). Arret'
     stop

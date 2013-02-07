@@ -49,7 +49,7 @@ module sdomain
        type (bassin) :: sBassin
        type(SF_object) :: SF
 
-       logical :: any_PML, curve, any_FPML, aniso, bMailUnv, bCapteur
+       logical :: any_PML, curve, any_FPML, aniso, bCapteur
 
        real, dimension(:,:), pointer :: GrandeurVitesse     ! tableaux utiles pour les sorties des grandeurs
        real, dimension(:,:), pointer :: GrandeurDepla     ! tableaux utiles pour les sorties des grandeurs
