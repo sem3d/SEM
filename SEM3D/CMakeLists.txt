@@ -53,7 +53,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/courant.f90
     ${PRJ}/SRC/deallocate_domain.f90
     ${PRJ}/SRC/define_arrays.f90
-#    ${PRJ}/SRC/define_neu_properties.f90
     ${PRJ}/SRC/define_Neumann_properties.f90
     ${PRJ}/SRC/define_planew_properties.f90
     ${PRJ}/SRC/double_couple.f90
