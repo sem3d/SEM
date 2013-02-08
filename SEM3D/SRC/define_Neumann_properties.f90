@@ -7,25 +7,6 @@ subroutine define_Neumann_properties(Tdomain,rank)
     integer, intent(in)  :: rank
     integer :: ngll,ngll1,ngll2,mat_index,nf,ne,nv,nf_aus
 
-    ! reading Neumann properties in a file
-    open(10,file=Tdomain%neumann_file,status="old",action="read")
-    read(10,*)  ! comment
-    read(10,*) Tdomain%Neumann%Neu_Param%what_bc
-    if(Tdomain%Neumann%Neu_Param%what_bc == 'F')then
-        read(10,*) Tdomain%neumann_dat
-    else
-        read(10,*) Tdomain%Neumann%Neu_Param%mat_index
-        read(10,*) Tdomain%Neumann%Neu_Param%wtype
-        read(10,*) Tdomain%Neumann%Neu_Param%lx
-        read(10,*) Tdomain%Neumann%Neu_Param%ly
-        read(10,*) Tdomain%Neumann%Neu_Param%lz
-        read(10,*) Tdomain%Neumann%Neu_Param%xs
-        read(10,*) Tdomain%Neumann%Neu_Param%ys
-        read(10,*) Tdomain%Neumann%Neu_Param%zs
-        read(10,*) Tdomain%Neumann%Neu_Param%f0
-    end if
-    close(10)
-
     ! allocations for faces, edges and vertices
     do nf = 0,Tdomain%Neumann%Neu_n_faces-1
         ngll1 = Tdomain%Neumann%Neu_Face(nf)%ngll1

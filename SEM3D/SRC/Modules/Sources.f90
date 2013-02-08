@@ -67,6 +67,9 @@ contains
         case (6)
             ! Source benchmark spice M0*(1-(1+t/T)exp(-t/T)) avec T=1/freq
             CompSource = Source_Spice_Bench(time, Sour)
+        case (7)
+            ! Sinus, pour test. param : tau, cutoff_freq
+            CompSource = Source_sinewave(time, Sour)
         end select
 
         return
@@ -86,6 +89,21 @@ contains
         Source_Spice_Bench = (1-(1+time/T)*exp(-time/T))
         return
     end function Source_Spice_Bench
+
+    real function Source_sinewave(time, Sour)
+        implicit none
+        ! only a Ricker for the time being.
+        type(source), intent(in) :: Sour
+        real, intent(in) :: time
+        !
+        real :: f0, t0
+
+        f0 = Sour%cutoff_freq
+        t0 = Sour%tau_b
+
+        Source_sinewave = sin(2*M_PI*f0*(time-t0))
+        return
+    end function Source_sinewave
 
     !>
     !! \fn function Gaussian (time, tau)

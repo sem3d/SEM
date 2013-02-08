@@ -2,7 +2,7 @@
 # en standalone (hors mka3d)
 PROJECT(SEM)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
-ENABLE_LANGUAGE(Fortran)
+ENABLE_LANGUAGE(C Fortran)
 ENABLE_TESTING()
 
 
@@ -52,6 +52,11 @@ set(SEM_SRC
   ${SEMCOMMON}/pol_force.F90
   ${SEMCOMMON}/lagrange_prop.f90
   ${SEMCOMMON}/pow.F90
+)
+
+set(SEM_SRC_C
+  ${SEMCOMMON}/read_input.c
+  ${SEMCOMMON}/file_scan.c
 )
 
 if(NOT BUILD_WITH_MKA)

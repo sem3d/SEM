@@ -111,6 +111,7 @@ set(SEM3D_SOURCES_F
 )
 
 set(SEM3D_SOURCES ${SEM3D_SOURCES_F}
+    ${SEM_SRC_C}
     ${PRJ}/SRC/compute_constant_Q.c
     ${PRJ}/SRC/compute_iso_Q.c
     ${PRJ}/SRC/constant_Q2_sub.c

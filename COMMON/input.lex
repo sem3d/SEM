@@ -8,7 +8,7 @@
 
 %option reentrant stack noyywrap
 %option yylineno
-%option   outfile="file_scan.c" header-file="file_scan.h"
+%option outfile="file_scan.c" header-file="file_scan.h"
 %option extra-type="struct scan_info *"
 
 %top{

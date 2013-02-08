@@ -13,6 +13,7 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     use semdatafiles
     use mpi
     use msnapshots
+    use semconfig !< pour config C
 #ifdef COUPLAGE
     use scouplage
 #endif
