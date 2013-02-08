@@ -10,6 +10,7 @@
 module ssources
 
     use constants
+    implicit none
 
     type :: Source
        ! xxx
@@ -44,7 +45,7 @@ contains
     !! \param real time
     !<
     real function CompSource (Sour,time,ntime)
-
+        implicit none
         type (source), intent(in) :: Sour
         integer, intent(in) :: ntime
         real, intent(in) :: time
@@ -63,20 +64,28 @@ contains
             !   modif pour benchmark can2
             CompSource = Source_File (time,Sour%tau_b,Sour)
             !   modif pour benchmark can2
+        case (6)
+            ! Source benchmark spice M0*(1-(1+t/T)exp(-t/T)) avec T=1/freq
+            CompSource = Source_Spice_Bench(time, Sour)
         end select
 
         return
     end function CompSource
 
-    ! ################################################
-    !>
-    !! \fn function CompSource (Sour,time,np)
-    !! \brief
-    !!
-    !! \param type (source) Sour
-    !! \param integer np
-    !! \param real time
-    !<
+
+    real function Source_Spice_Bench(time, Sour)
+        implicit none
+        ! only a Ricker for the time being.
+        type(source), intent(in) :: Sour
+        real, intent(in) :: time
+        !
+        real :: T
+
+        T = 1./Sour%cutoff_freq
+
+        Source_Spice_Bench = (1-(1+time/T)*exp(-time/T))
+        return
+    end function Source_Spice_Bench
 
     !>
     !! \fn function Gaussian (time, tau)
@@ -85,14 +94,14 @@ contains
     !! \param real time
     !! \param real tau
     !<
-
     !-------------------------------------------------
     !   modif pour benchmark can2
     real function Source_File(tt,tau,Sour)
+        implicit none
         type(source), intent(in)  :: Sour
         real, intent(in)          :: tt
         real :: tau
-        integer :: iflag
+        integer :: iflag, i
 
         if(tt < Sour%time(0) .or. tt > Sour%time(size(Sour%time)-1))then
             Source_File = 0d0
@@ -118,6 +127,7 @@ contains
     end function Source_File
 
     subroutine read_source_file(Sour)
+        implicit none
         !- lecture directe d'un fichier temps-amplitude pour la source
         type(Source), intent(inout)   :: Sour
         integer                       :: nb_time_step
@@ -147,8 +157,8 @@ contains
     !-------------------------------------------------
 
     real function Gaussian (time,tau)
-
-        real :: tau,time
+        implicit none
+        real, intent(in) :: tau,time
 
         if ( time < 2.5*tau ) then
             Gaussian = -(time-tau) * exp (-(time-tau)**2/tau**2)
@@ -169,7 +179,9 @@ contains
     !! \param real f0
     !<
     real function Ricker (time,tau,f0)
-        real :: time, tau, f0
+        implicit none
+        !
+        real, intent(in) :: time, tau, f0
         real :: sigma
 
         if ( time < 2.5*tau ) then
@@ -186,9 +198,10 @@ contains
     ! #################################################
 
     real function Gabor (time,tau,fp,gamma,ts)
-
-
-        real :: time, fp, gamma, ts
+        implicit none
+        !
+        real, intent(in) :: time, tau, fp, gamma, ts
+        !
         real :: sigma
         real ::  xomega,  xval1, xval2
         xomega  = M_PI*0.5
@@ -215,9 +228,11 @@ contains
     !----------------------------------------------------
     !----------------------------------------------------
     real function Ricker_Fl(time,tau,f0)
+        implicit none
         ! Ricker function for pressure wave: the same as the previous one, but with
         !    one time derivative to be coherent
-        real  :: time, tau, f0
+        real,intent(in)  :: time, tau, f0
+        !
         real  :: sigma,sigma2,sigma3
 
         sigma = M_PI*f0*(time-tau)
