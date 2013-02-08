@@ -118,7 +118,7 @@ contains
 
         if (aniso) then
             if (n_solid>0) then
-                !       print*,'  lcul_forces_aniso_att '
+                !print*,'calcul_forces_aniso_att '
                 call calcul_forces_aniso_att(Fox,Foy,Foz, &
                     Elem%Invgrad(:,:,:,0,0), &
                     Elem%Invgrad(:,:,:,1,0), &
@@ -169,8 +169,7 @@ contains
             endif
         else
             if (n_solid>0) then
-
-                !       print*,'  lcul_forces_att '
+                !print*,'calcul_forces_att '
                 call calcul_forces_att(Fox,Foy,Foz, &
                     Elem%Invgrad(:,:,:,0,0), &
                     Elem%Invgrad(:,:,:,1,0), &
@@ -211,7 +210,7 @@ contains
                 deallocate(epsilondev_xx_loc,epsilondev_yy_loc,epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc)
                 deallocate(epsilonvol_loc)
             else
-                !   print*,' calcul standard '
+                !print*,' calcul standard ', n_solid
                 call calcul_forces(Fox,Foy,Foz,  &
                     Elem%Invgrad(:,:,:,0,0), &
                     Elem%Invgrad(:,:,:,1,0), &

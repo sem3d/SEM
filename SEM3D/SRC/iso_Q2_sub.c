@@ -11,8 +11,8 @@
 
 /* useful constants */
 
-#define PI 3.14159265358979
-#define PI2 6.28318530717958
+#define PI M_PI
+#define PI2 2*M_PI
 
 void iso_Q2_sub(f1, f2, n, Q, tau_s, tau_e)
     int             n;
