@@ -8,9 +8,7 @@ program mesher_mat
     character, dimension(:), allocatable  ::  matarray
     real, allocatable, dimension(:)       :: rho, Pspeed, Sspeed, Qpression, Qmu
     integer                   :: n_parts, pml_top, pml_bool, pml_bottom, n_mat, n_mat_tot, i_err,   &
-        nn_mat, NGLLx, NGLLy, NGLLz, NGLLxP, NGLLyP, NGLLzP, npow, mat_b, i
-    real                      :: freq, Apow, dt
-    logical                   :: filter
+         mat_b, i
     logical, parameter        :: VRAI = .true., FAUX = .false.
     integer, parameter        :: NMAX_PROCS = 1024
 
