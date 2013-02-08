@@ -31,14 +31,14 @@ subroutine get_Mass_Elem2Face(Tdomain,n)
             Tdomain%sFace(nnf)%MassMat(:,:),Tdomain%specel(n)%MassMat(:,:,:))
         if(Tdomain%sFace(nnf)%PML)then
             call get_VectProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                Tdomain%sFace(nnf)%DumpMass(:,:,0:2),Tdomain%specel(n)%DumpMass(:,:,:,0:2))
+                Tdomain%sFace(nnf)%spml%DumpMass(:,:,0:2),Tdomain%specel(n)%spml%DumpMass(:,:,:,0:2))
             if(Tdomain%sFace(nnf)%FPML)then
                 call get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                    Tdomain%sFace(nnf)%Ivx(:,:),Tdomain%specel(n)%Ivx(:,:,:))
+                    Tdomain%sFace(nnf)%spml%Ivx(:,:),Tdomain%specel(n)%spml%Ivx(:,:,:))
                 call get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                    Tdomain%sFace(nnf)%Ivy(:,:),Tdomain%specel(n)%Ivy(:,:,:))
+                    Tdomain%sFace(nnf)%spml%Ivy(:,:),Tdomain%specel(n)%spml%Ivy(:,:,:))
                 call get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                    Tdomain%sFace(nnf)%Ivz(:,:),Tdomain%specel(n)%Ivz(:,:,:))
+                    Tdomain%sFace(nnf)%spml%Ivz(:,:),Tdomain%specel(n)%spml%Ivz(:,:,:))
             end if
         end if
 

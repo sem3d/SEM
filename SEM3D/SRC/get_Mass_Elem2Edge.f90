@@ -14,7 +14,7 @@ subroutine get_Mass_Elem2Edge(Tdomain,n)
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: n
-    integer :: ngllx,nglly,ngllz,ngll,i,j,ne,nne,orient_e
+    integer :: ngllx,nglly,ngllz,ngll,ne,nne,orient_e
 
     ngllx = Tdomain%specel(n)%ngllx
     nglly = Tdomain%specel(n)%nglly
@@ -29,14 +29,14 @@ subroutine get_Mass_Elem2Edge(Tdomain,n)
             Tdomain%sEdge(nne)%MassMat,Tdomain%specel(n)%MassMat)
         if(Tdomain%sEdge(nne)%PML)then
             call get_VectProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                Tdomain%sEdge(nne)%DumpMass(:,0:2),Tdomain%specel(n)%DumpMass(:,:,:,0:2))
+                Tdomain%sEdge(nne)%spml%DumpMass(:,0:2),Tdomain%specel(n)%spml%DumpMass(:,:,:,0:2))
             if(Tdomain%sEdge(nne)%FPML)then
                 call get_ScalarProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                    Tdomain%sEdge(nne)%Ivx(:),Tdomain%specel(n)%Ivx(:,:,:))
+                    Tdomain%sEdge(nne)%spml%Ivx(:),Tdomain%specel(n)%spml%Ivx(:,:,:))
                 call get_ScalarProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                    Tdomain%sEdge(nne)%Ivy(:),Tdomain%specel(n)%Ivy(:,:,:))
+                    Tdomain%sEdge(nne)%spml%Ivy(:),Tdomain%specel(n)%spml%Ivy(:,:,:))
                 call get_ScalarProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                    Tdomain%sEdge(nne)%Ivz(:),Tdomain%specel(n)%Ivz(:,:,:))
+                    Tdomain%sEdge(nne)%spml%Ivz(:),Tdomain%specel(n)%spml%Ivz(:,:,:))
             end if
         end if
 

@@ -10,7 +10,7 @@ subroutine get_Forces_Elem2Edge(Tdomain,n)
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: n
-    integer :: ngllx,nglly,ngllz,ngll,i,j,ne,nne,orient_e
+    integer :: ngllx,nglly,ngllz,ngll,ne,nne,orient_e
 
     ngllx = Tdomain%specel(n)%ngllx
     nglly = Tdomain%specel(n)%nglly
@@ -25,11 +25,11 @@ subroutine get_Forces_Elem2Edge(Tdomain,n)
             Tdomain%sEdge(nne)%Forces(:,0:2),Tdomain%specel(n)%Forces(:,:,:,0:2))
         if(Tdomain%sEdge(nne)%PML)then
             call get_VectProperty_Elem2Edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                Tdomain%sEdge(nne)%Forces1(:,0:2),Tdomain%specel(n)%Forces1(:,:,:,0:2))
+                Tdomain%sEdge(nne)%spml%Forces1(:,0:2),Tdomain%specel(n)%spml%Forces1(:,:,:,0:2))
             call get_VectProperty_Elem2Edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                Tdomain%sEdge(nne)%Forces2(:,0:2),Tdomain%specel(n)%Forces2(:,:,:,0:2))
+                Tdomain%sEdge(nne)%spml%Forces2(:,0:2),Tdomain%specel(n)%spml%Forces2(:,:,:,0:2))
             call get_VectProperty_Elem2Edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                Tdomain%sEdge(nne)%Forces3(:,0:2),Tdomain%specel(n)%Forces3(:,:,:,0:2))
+                Tdomain%sEdge(nne)%spml%Forces3(:,0:2),Tdomain%specel(n)%spml%Forces3(:,:,:,0:2))
         end if
     end do
 
@@ -46,7 +46,7 @@ subroutine get_ForcesFl_Elem2Edge(Tdomain,n)
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: n
-    integer :: ngllx,nglly,ngllz,ngll,i,j,ne,nne,orient_e
+    integer :: ngllx,nglly,ngllz,ngll,ne,nne,orient_e
 
     ngllx = Tdomain%specel(n)%ngllx
     nglly = Tdomain%specel(n)%nglly
@@ -61,11 +61,11 @@ subroutine get_ForcesFl_Elem2Edge(Tdomain,n)
             Tdomain%sEdge(nne)%ForcesFl(:),Tdomain%specel(n)%ForcesFl(:,:,:))
         if(Tdomain%sEdge(nne)%PML)then
             call get_ScalarProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                Tdomain%sEdge(nne)%ForcesFl1(:),Tdomain%specel(n)%ForcesFl1(:,:,:))
+                Tdomain%sEdge(nne)%spml%ForcesFl1(:),Tdomain%specel(n)%spml%ForcesFl1(:,:,:))
             call get_ScalarProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                Tdomain%sEdge(nne)%ForcesFl2(:),Tdomain%specel(n)%ForcesFl2(:,:,:))
+                Tdomain%sEdge(nne)%spml%ForcesFl2(:),Tdomain%specel(n)%spml%ForcesFl2(:,:,:))
             call get_ScalarProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                Tdomain%sEdge(nne)%ForcesFl3(:),Tdomain%specel(n)%ForcesFl3(:,:,:))
+                Tdomain%sEdge(nne)%spml%ForcesFl3(:),Tdomain%specel(n)%spml%ForcesFl3(:,:,:))
         end if
     end do
 

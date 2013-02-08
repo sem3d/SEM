@@ -113,15 +113,15 @@ subroutine read_Veloc(Tdomain, elem_id)
                         Tdomain%specel(n)%Displ(i,j,k,2) = displ(idx2+2)
                         idx2 = idx2 + 3
                     else
-                        Tdomain%specel(n)%Veloc1(i,j,k,0) = veloc1(idx3+0)
-                        Tdomain%specel(n)%Veloc1(i,j,k,1) = veloc1(idx3+1)
-                        Tdomain%specel(n)%Veloc1(i,j,k,2) = veloc1(idx3+2)
-                        Tdomain%specel(n)%Veloc2(i,j,k,0) = veloc2(idx3+0)
-                        Tdomain%specel(n)%Veloc2(i,j,k,1) = veloc2(idx3+1)
-                        Tdomain%specel(n)%Veloc2(i,j,k,2) = veloc2(idx3+2)
-                        Tdomain%specel(n)%Veloc3(i,j,k,0) = veloc3(idx3+0)
-                        Tdomain%specel(n)%Veloc3(i,j,k,1) = veloc3(idx3+1)
-                        Tdomain%specel(n)%Veloc3(i,j,k,2) = veloc3(idx3+2)
+                        Tdomain%specel(n)%spml%Veloc1(i,j,k,0) = veloc1(idx3+0)
+                        Tdomain%specel(n)%spml%Veloc1(i,j,k,1) = veloc1(idx3+1)
+                        Tdomain%specel(n)%spml%Veloc1(i,j,k,2) = veloc1(idx3+2)
+                        Tdomain%specel(n)%spml%Veloc2(i,j,k,0) = veloc2(idx3+0)
+                        Tdomain%specel(n)%spml%Veloc2(i,j,k,1) = veloc2(idx3+1)
+                        Tdomain%specel(n)%spml%Veloc2(i,j,k,2) = veloc2(idx3+2)
+                        Tdomain%specel(n)%spml%Veloc3(i,j,k,0) = veloc3(idx3+0)
+                        Tdomain%specel(n)%spml%Veloc3(i,j,k,1) = veloc3(idx3+1)
+                        Tdomain%specel(n)%spml%Veloc3(i,j,k,2) = veloc3(idx3+2)
                         idx3 = idx3 + 3
                     end if
                 end do
@@ -209,7 +209,7 @@ subroutine read_EpsilonDev(Tdomain, elem_id)
     integer(HID_T), intent(IN) :: elem_id
     real*8, allocatable, dimension(:) :: eps_dev_xx, eps_dev_yy, eps_dev_xy, eps_dev_xz, eps_dev_yz
     integer :: idx, ngllx, nglly, ngllz
-    integer :: n, i, j, k, i_sls
+    integer :: n, i, j, k
     integer :: n_solid
 
     call read_dset_1d_real(elem_id, "EpsilonDev_xx", eps_dev_xx)
@@ -257,7 +257,7 @@ subroutine read_Stress(Tdomain, elem_id)
     integer(HID_T), intent(IN) :: elem_id
     real*8, allocatable, dimension(:) :: stress
     integer :: idx, ngllx, nglly, ngllz
-    integer :: n, i, j, k, i_sls
+    integer :: n, i, j, k
     integer :: n_solid
 
     call read_dset_1d_real(elem_id, "Stress", stress)
@@ -272,25 +272,25 @@ subroutine read_Stress(Tdomain, elem_id)
             do k = 0,ngllz-1
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
-                        Tdomain%specel(n)%Diagonal_Stress1(i,j,k,0) = stress(idx+0)
-                        Tdomain%specel(n)%Diagonal_Stress1(i,j,k,1) = stress(idx+1)
-                        Tdomain%specel(n)%Diagonal_Stress1(i,j,k,2) = stress(idx+2)
+                        Tdomain%specel(n)%spml%Diagonal_Stress1(i,j,k,0) = stress(idx+0)
+                        Tdomain%specel(n)%spml%Diagonal_Stress1(i,j,k,1) = stress(idx+1)
+                        Tdomain%specel(n)%spml%Diagonal_Stress1(i,j,k,2) = stress(idx+2)
                         idx = idx + 3
-                        Tdomain%specel(n)%Diagonal_Stress2(i,j,k,0) = stress(idx+0)
-                        Tdomain%specel(n)%Diagonal_Stress2(i,j,k,1) = stress(idx+1)
-                        Tdomain%specel(n)%Diagonal_Stress2(i,j,k,2) = stress(idx+2)
+                        Tdomain%specel(n)%spml%Diagonal_Stress2(i,j,k,0) = stress(idx+0)
+                        Tdomain%specel(n)%spml%Diagonal_Stress2(i,j,k,1) = stress(idx+1)
+                        Tdomain%specel(n)%spml%Diagonal_Stress2(i,j,k,2) = stress(idx+2)
                         idx = idx + 3
-                        Tdomain%specel(n)%Diagonal_Stress3(i,j,k,0) = stress(idx+0)
-                        Tdomain%specel(n)%Diagonal_Stress3(i,j,k,1) = stress(idx+1)
-                        Tdomain%specel(n)%Diagonal_Stress3(i,j,k,2) = stress(idx+2)
+                        Tdomain%specel(n)%spml%Diagonal_Stress3(i,j,k,0) = stress(idx+0)
+                        Tdomain%specel(n)%spml%Diagonal_Stress3(i,j,k,1) = stress(idx+1)
+                        Tdomain%specel(n)%spml%Diagonal_Stress3(i,j,k,2) = stress(idx+2)
                         idx = idx + 3
-                        Tdomain%specel(n)%Residual_Stress1(i,j,k,0) = stress(idx+0)
-                        Tdomain%specel(n)%Residual_Stress1(i,j,k,1) = stress(idx+1)
-                        Tdomain%specel(n)%Residual_Stress1(i,j,k,2) = stress(idx+2)
+                        Tdomain%specel(n)%spml%Residual_Stress1(i,j,k,0) = stress(idx+0)
+                        Tdomain%specel(n)%spml%Residual_Stress1(i,j,k,1) = stress(idx+1)
+                        Tdomain%specel(n)%spml%Residual_Stress1(i,j,k,2) = stress(idx+2)
                         idx = idx + 3
-                        Tdomain%specel(n)%Residual_Stress2(i,j,k,0) = stress(idx+0)
-                        Tdomain%specel(n)%Residual_Stress2(i,j,k,1) = stress(idx+1)
-                        Tdomain%specel(n)%Residual_Stress2(i,j,k,2) = stress(idx+2)
+                        Tdomain%specel(n)%spml%Residual_Stress2(i,j,k,0) = stress(idx+0)
+                        Tdomain%specel(n)%spml%Residual_Stress2(i,j,k,1) = stress(idx+1)
+                        Tdomain%specel(n)%spml%Residual_Stress2(i,j,k,2) = stress(idx+2)
                         idx = idx + 3
                     end do
                 end do
@@ -336,15 +336,15 @@ subroutine read_Faces(Tdomain, face_id)
                     Tdomain%sFace(n)%Displ(i,j,2) = displ(idx2+2)
                     idx2 = idx2 + 3
                 else
-                    Tdomain%sFace(n)%Veloc1(i,j,0) = veloc1(idx3+0)
-                    Tdomain%sFace(n)%Veloc1(i,j,1) = veloc1(idx3+1)
-                    Tdomain%sFace(n)%Veloc1(i,j,2) = veloc1(idx3+2)
-                    Tdomain%sFace(n)%Veloc2(i,j,0) = veloc2(idx3+0)
-                    Tdomain%sFace(n)%Veloc2(i,j,1) = veloc2(idx3+1)
-                    Tdomain%sFace(n)%Veloc2(i,j,2) = veloc2(idx3+2)
-                    Tdomain%sFace(n)%Veloc3(i,j,0) = veloc3(idx3+0)
-                    Tdomain%sFace(n)%Veloc3(i,j,1) = veloc3(idx3+1)
-                    Tdomain%sFace(n)%Veloc3(i,j,2) = veloc3(idx3+2)
+                    Tdomain%sFace(n)%spml%Veloc1(i,j,0) = veloc1(idx3+0)
+                    Tdomain%sFace(n)%spml%Veloc1(i,j,1) = veloc1(idx3+1)
+                    Tdomain%sFace(n)%spml%Veloc1(i,j,2) = veloc1(idx3+2)
+                    Tdomain%sFace(n)%spml%Veloc2(i,j,0) = veloc2(idx3+0)
+                    Tdomain%sFace(n)%spml%Veloc2(i,j,1) = veloc2(idx3+1)
+                    Tdomain%sFace(n)%spml%Veloc2(i,j,2) = veloc2(idx3+2)
+                    Tdomain%sFace(n)%spml%Veloc3(i,j,0) = veloc3(idx3+0)
+                    Tdomain%sFace(n)%spml%Veloc3(i,j,1) = veloc3(idx3+1)
+                    Tdomain%sFace(n)%spml%Veloc3(i,j,2) = veloc3(idx3+2)
                     idx3 = idx3 + 3
                 end if
             end do
@@ -391,15 +391,15 @@ subroutine read_Edges(Tdomain, edge_id)
                 Tdomain%sEdge(n)%Displ(i,2) = displ(idx2+2)
                 idx2 = idx2 + 3
             else
-                Tdomain%sEdge(n)%Veloc1(i,0) = veloc1(idx3+0)
-                Tdomain%sEdge(n)%Veloc1(i,1) = veloc1(idx3+1)
-                Tdomain%sEdge(n)%Veloc1(i,2) = veloc1(idx3+2)
-                Tdomain%sEdge(n)%Veloc2(i,0) = veloc2(idx3+0)
-                Tdomain%sEdge(n)%Veloc2(i,1) = veloc2(idx3+1)
-                Tdomain%sEdge(n)%Veloc2(i,2) = veloc2(idx3+2)
-                Tdomain%sEdge(n)%Veloc3(i,0) = veloc3(idx3+0)
-                Tdomain%sEdge(n)%Veloc3(i,1) = veloc3(idx3+1)
-                Tdomain%sEdge(n)%Veloc3(i,2) = veloc3(idx3+2)
+                Tdomain%sEdge(n)%spml%Veloc1(i,0) = veloc1(idx3+0)
+                Tdomain%sEdge(n)%spml%Veloc1(i,1) = veloc1(idx3+1)
+                Tdomain%sEdge(n)%spml%Veloc1(i,2) = veloc1(idx3+2)
+                Tdomain%sEdge(n)%spml%Veloc2(i,0) = veloc2(idx3+0)
+                Tdomain%sEdge(n)%spml%Veloc2(i,1) = veloc2(idx3+1)
+                Tdomain%sEdge(n)%spml%Veloc2(i,2) = veloc2(idx3+2)
+                Tdomain%sEdge(n)%spml%Veloc3(i,0) = veloc3(idx3+0)
+                Tdomain%sEdge(n)%spml%Veloc3(i,1) = veloc3(idx3+1)
+                Tdomain%sEdge(n)%spml%Veloc3(i,2) = veloc3(idx3+2)
                 idx3 = idx3 + 3
             end if
         end do
@@ -442,15 +442,15 @@ subroutine read_Vertices(Tdomain, vertex_id)
             Tdomain%sVertex(n)%Displ(2) = displ(idx2+2)
             idx2 = idx2 + 3
         else
-            Tdomain%sVertex(n)%Veloc1(0) = veloc1(idx3+0)
-            Tdomain%sVertex(n)%Veloc1(1) = veloc1(idx3+1)
-            Tdomain%sVertex(n)%Veloc1(2) = veloc1(idx3+2)
-            Tdomain%sVertex(n)%Veloc2(0) = veloc2(idx3+0)
-            Tdomain%sVertex(n)%Veloc2(1) = veloc2(idx3+1)
-            Tdomain%sVertex(n)%Veloc2(2) = veloc2(idx3+2)
-            Tdomain%sVertex(n)%Veloc3(0) = veloc3(idx3+0)
-            Tdomain%sVertex(n)%Veloc3(1) = veloc3(idx3+1)
-            Tdomain%sVertex(n)%Veloc3(2) = veloc3(idx3+2)
+            Tdomain%sVertex(n)%spml%Veloc1(0) = veloc1(idx3+0)
+            Tdomain%sVertex(n)%spml%Veloc1(1) = veloc1(idx3+1)
+            Tdomain%sVertex(n)%spml%Veloc1(2) = veloc1(idx3+2)
+            Tdomain%sVertex(n)%spml%Veloc2(0) = veloc2(idx3+0)
+            Tdomain%sVertex(n)%spml%Veloc2(1) = veloc2(idx3+1)
+            Tdomain%sVertex(n)%spml%Veloc2(2) = veloc2(idx3+2)
+            Tdomain%sVertex(n)%spml%Veloc3(0) = veloc3(idx3+0)
+            Tdomain%sVertex(n)%spml%Veloc3(1) = veloc3(idx3+1)
+            Tdomain%sVertex(n)%spml%Veloc3(2) = veloc3(idx3+2)
             idx3 = idx3 + 3
         end if
     end do
@@ -477,7 +477,7 @@ subroutine read_restart (Tdomain,rg, isort)
     integer :: it
 
     ! HDF5 Variables
-    integer(HID_T) :: fid, dset_id, elem_id, face_id, edge_id, vertex_id
+    integer(HID_T) :: fid, elem_id, face_id, edge_id, vertex_id
     integer :: hdferr
 
     call init_hdf5()

@@ -12,22 +12,26 @@ module svertices
     ! Modified by Gaetano 31/01/2005
     ! Modified by Paul 06/11/2005
 
-    type :: vertex
-       logical :: PML, Abs, FPML
-       integer :: Iglobnum_Vertex, global_numbering
-       real :: MassMat
-       real, dimension(0:2) :: Forces, Displ, Veloc, Accel, V0
+    type :: vertex_pml
        real, dimension(0:2) :: Forces1, Forces2, Forces3
        real, dimension(:), pointer :: DumpMass
        real, dimension(:), pointer :: Veloc1, Veloc2, Veloc3
        real, dimension(:), pointer :: DumpVx, DumpVy, DumpVz
        real, dimension (:), pointer :: Iveloc1, Iveloc2, Iveloc3
        real, dimension (:), pointer :: Ivx, Ivy, Ivz
+       real :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
+    end type vertex_pml
+
+    type :: vertex
+       logical :: PML, Abs, FPML
+       integer :: Iglobnum_Vertex, global_numbering
+       real :: MassMat
+       real, dimension(0:2) :: Forces, Displ, Veloc, Accel, V0
        logical :: solid
        ! solid-fluid
        real :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
-       real :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
 
+       type(vertex_pml), pointer :: spml
 #ifdef MKA3D
        real, dimension (:), pointer :: ForcesMka
        real :: tsurfsem
@@ -110,12 +114,12 @@ contains
 
 
         do i = 0,2
-            V%Veloc1(i) = V%DumpVx(0) * V%Veloc1(i) + dt * V%DumpVx(1) * V%Forces1(i)
-            V%Veloc2(i) = V%DumpVy(0) * V%Veloc2(i) + dt * V%DumpVy(1) * V%Forces2(i)
-            V%Veloc3(i) = V%DumpVz(0) * V%Veloc3(i) + dt * V%DumpVz(1) * V%Forces3(i)
+            V%spml%Veloc1(i) = V%spml%DumpVx(0) * V%spml%Veloc1(i) + dt * V%spml%DumpVx(1) * V%spml%Forces1(i)
+            V%spml%Veloc2(i) = V%spml%DumpVy(0) * V%spml%Veloc2(i) + dt * V%spml%DumpVy(1) * V%spml%Forces2(i)
+            V%spml%Veloc3(i) = V%spml%DumpVz(0) * V%spml%Veloc3(i) + dt * V%spml%DumpVz(1) * V%spml%Forces3(i)
         enddo
 
-        V%Veloc = V%Veloc1 + V%Veloc2 + V%Veloc3
+        V%Veloc = V%spml%Veloc1 + V%spml%Veloc2 + V%spml%Veloc3
         V%Displ = V%Displ +  dt * V%Veloc
 
         if (V%Abs) then
@@ -162,11 +166,11 @@ contains
         type(Vertex), intent(inout) :: V
         real, intent(in) :: dt
 
-        V%VelPhi1 = V%DumpVx(0) * V%VelPhi1 + dt * V%DumpVx(1) * V%ForcesFl1
-        V%VelPhi2 = V%DumpVy(0) * V%VelPhi2 + dt * V%DumpVy(1) * V%ForcesFl2
-        V%VelPhi3 = V%DumpVz(0) * V%VelPhi3 + dt * V%DumpVz(1) * V%ForcesFl3
+        V%spml%VelPhi1 = V%spml%DumpVx(0) * V%spml%VelPhi1 + dt * V%spml%DumpVx(1) * V%spml%ForcesFl1
+        V%spml%VelPhi2 = V%spml%DumpVy(0) * V%spml%VelPhi2 + dt * V%spml%DumpVy(1) * V%spml%ForcesFl2
+        V%spml%VelPhi3 = V%spml%DumpVz(0) * V%spml%VelPhi3 + dt * V%spml%DumpVz(1) * V%spml%ForcesFl3
 
-        V%VelPhi = V%VelPhi1 + V%VelPhi2 + V%VelPhi3
+        V%VelPhi = V%spml%VelPhi1 + V%spml%VelPhi2 + V%spml%VelPhi3
 
         if (V%Abs) then
             V%VelPhi = 0
@@ -189,20 +193,20 @@ contains
         fil2 = fil**2
 
         do i = 0,2
-            Aus_V = V%Veloc1(i)
-            V%Veloc1(i) = V%DumpVx(0) * V%Veloc1(i) + dt * V%DumpVx(1) * V%Forces1(i) + V%Ivx(0) * V%Iveloc1(i)
-            V%Iveloc1(i) = Fil2 * V%Iveloc1(i) + 0.5 * (1-Fil2) *  (Aus_V + V%Veloc1(i))
+            Aus_V = V%spml%Veloc1(i)
+            V%spml%Veloc1(i) = V%spml%DumpVx(0) * V%spml%Veloc1(i) + dt * V%spml%DumpVx(1) * V%spml%Forces1(i) + V%spml%Ivx(0) * V%spml%Iveloc1(i)
+            V%spml%Iveloc1(i) = Fil2 * V%spml%Iveloc1(i) + 0.5 * (1-Fil2) *  (Aus_V + V%spml%Veloc1(i))
 
-            Aus_V = V%Veloc2(i)
-            V%Veloc2(i) = V%DumpVy(0) * V%Veloc2(i) + dt * V%DumpVy(1) * V%Forces2(i) + V%Ivy(0) * V%Iveloc2(i)
-            V%Iveloc2(i) = Fil2 * V%Iveloc2(i) + 0.5 * (1-Fil2) *  (Aus_V + V%Veloc2(i))
+            Aus_V = V%spml%Veloc2(i)
+            V%spml%Veloc2(i) = V%spml%DumpVy(0) * V%spml%Veloc2(i) + dt * V%spml%DumpVy(1) * V%spml%Forces2(i) + V%spml%Ivy(0) * V%spml%Iveloc2(i)
+            V%spml%Iveloc2(i) = Fil2 * V%spml%Iveloc2(i) + 0.5 * (1-Fil2) *  (Aus_V + V%spml%Veloc2(i))
 
-            Aus_V = V%Veloc3(i)
-            V%Veloc3(i) = V%DumpVz(0) * V%Veloc3(i) + dt * V%DumpVz(1) * V%Forces3(i) + V%Ivz(0) * V%Iveloc3(i)
-            V%Iveloc3(i) = Fil2 * V%Iveloc3(i) + 0.5 * (1-Fil2) *  (Aus_V + V%Veloc3(i))
+            Aus_V = V%spml%Veloc3(i)
+            V%spml%Veloc3(i) = V%spml%DumpVz(0) * V%spml%Veloc3(i) + dt * V%spml%DumpVz(1) * V%spml%Forces3(i) + V%spml%Ivz(0) * V%spml%Iveloc3(i)
+            V%spml%Iveloc3(i) = Fil2 * V%spml%Iveloc3(i) + 0.5 * (1-Fil2) *  (Aus_V + V%spml%Veloc3(i))
         enddo
 
-        V%Veloc = V%Veloc1 + V%Veloc2 + V%Veloc3
+        V%Veloc = V%spml%Veloc1 + V%spml%Veloc2 + V%spml%Veloc3
 
         if (V%Abs) then
             V%Veloc = 0
@@ -231,9 +235,9 @@ contains
         else
 
             if (logic) then
-                Vfree(0:2) = Vfree(0:2) - (V%DumpVz(0) * V%Veloc3(0:2) + dt * V%DumpVz(1) * V%Forces3(0:2) )
+                Vfree(0:2) = Vfree(0:2) - (V%spml%DumpVz(0) * V%spml%Veloc3(0:2) + dt * V%spml%DumpVz(1) * V%spml%Forces3(0:2) )
             else
-                Vfree(0:2) =  V%DumpVz(0) * V%Veloc3(0:2) + dt * V%DumpVz(1) * V%Forces3(0:2)
+                Vfree(0:2) =  V%spml%DumpVz(0) * V%spml%Veloc3(0:2) + dt * V%spml%DumpVz(1) * V%spml%Forces3(0:2)
             endif
 
         endif
@@ -257,33 +261,35 @@ contains
         ve%Veloc = 0.
         ve%Accel = 0.
         ve%V0 = 0.
-        ve%Forces1 = 0.
-        ve%Forces2 = 0.
-        ve%Forces3 = 0.
-        nullify(ve%Veloc1)
-        nullify(ve%Veloc2)
-        nullify(ve%Veloc3)
-        nullify(ve%DumpVx)
-        nullify(ve%DumpVy)
-        nullify(ve%DumpVz)
-        nullify(ve%DumpMass)
-        nullify(ve%IVeloc1)
-        nullify(ve%IVeloc2)
-        nullify(ve%IVeloc3)
-        nullify(ve%Ivx)
-        nullify(ve%Ivy)
-        nullify(ve%Ivz)
         ve%ForcesFl = 0.
         ve%Phi = 0.
         ve%VelPhi = 0.
         ve%AccelPhi = 0.
         ve%VelPhi0 = 0.
-        ve%ForcesFl1 = 0.
-        ve%ForcesFl2 = 0.
-        ve%ForcesFl3 = 0.
-        ve%VelPhi1 = 0.
-        ve%VelPhi2 = 0.
-        ve%VelPhi3 = 0.
+        nullify(ve%spml)
+!        nullify(ve%spml%Veloc1)
+!        nullify(ve%spml%Veloc2)
+!        nullify(ve%spml%Veloc3)
+!        nullify(ve%spml%DumpVx)
+!        nullify(ve%spml%DumpVy)
+!        nullify(ve%spml%DumpVz)
+!        nullify(ve%spml%DumpMass)
+!        nullify(ve%spml%IVeloc1)
+!        nullify(ve%spml%IVeloc2)
+!        nullify(ve%spml%IVeloc3)
+!        nullify(ve%spml%Ivx)
+!        nullify(ve%spml%Ivy)
+!        nullify(ve%spml%Ivz)
+!        ve%spml%ForcesFl1 = 0.
+!        ve%spml%ForcesFl2 = 0.
+!        ve%spml%ForcesFl3 = 0.
+!        ve%spml%VelPhi1 = 0.
+!        ve%spml%VelPhi2 = 0.
+!        ve%spml%VelPhi3 = 0.
+!        ve%spml%Forces1 = 0.
+!        ve%spml%Forces2 = 0.
+!        ve%spml%Forces3 = 0.
+
 #ifdef MKA3D
         nullify(ve%ForcesMka)
 #endif

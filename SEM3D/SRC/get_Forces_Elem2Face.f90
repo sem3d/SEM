@@ -11,7 +11,7 @@ subroutine get_Forces_Elem2Face(Tdomain,n)
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: n
-    integer :: ngllx,nglly,ngllz,ngll1,ngll2,i,j,k,nf,nnf,orient_f
+    integer :: ngllx,nglly,ngllz,ngll1,ngll2,nf,nnf,orient_f
 
     ngllx = Tdomain%specel(n)%ngllx
     nglly = Tdomain%specel(n)%nglly
@@ -27,11 +27,11 @@ subroutine get_Forces_Elem2Face(Tdomain,n)
             Tdomain%sFace(nnf)%Forces(:,:,0:2),Tdomain%specel(n)%Forces(:,:,:,0:2))
         if(Tdomain%sFace(nnf)%PML)then
             call get_VectProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                Tdomain%sFace(nnf)%Forces1(:,:,0:2),Tdomain%specel(n)%Forces1(:,:,:,0:2))
+                Tdomain%sFace(nnf)%spml%Forces1(:,:,0:2),Tdomain%specel(n)%spml%Forces1(:,:,:,0:2))
             call get_VectProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                Tdomain%sFace(nnf)%Forces2(:,:,0:2),Tdomain%specel(n)%Forces2(:,:,:,0:2))
+                Tdomain%sFace(nnf)%spml%Forces2(:,:,0:2),Tdomain%specel(n)%spml%Forces2(:,:,:,0:2))
             call get_VectProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                Tdomain%sFace(nnf)%Forces3(:,:,0:2),Tdomain%specel(n)%Forces3(:,:,:,0:2))
+                Tdomain%sFace(nnf)%spml%Forces3(:,:,0:2),Tdomain%specel(n)%spml%Forces3(:,:,:,0:2))
         end if
     enddo
 
@@ -48,7 +48,7 @@ subroutine get_ForcesFl_Elem2Face(Tdomain,n)
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: n
-    integer :: ngllx,nglly,ngllz,ngll1,ngll2,i,j,k,nf,nnf,orient_f
+    integer :: ngllx,nglly,ngllz,ngll1,ngll2,nf,nnf,orient_f
 
     ngllx = Tdomain%specel(n)%ngllx
     nglly = Tdomain%specel(n)%nglly
@@ -64,11 +64,11 @@ subroutine get_ForcesFl_Elem2Face(Tdomain,n)
             Tdomain%sFace(nnf)%ForcesFl(:,:),Tdomain%specel(n)%ForcesFl(:,:,:))
         if(Tdomain%sFace(nnf)%PML)then
             call get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                Tdomain%sFace(nnf)%ForcesFl1(:,:),Tdomain%specel(n)%ForcesFl1(:,:,:))
+                Tdomain%sFace(nnf)%spml%ForcesFl1(:,:),Tdomain%specel(n)%spml%ForcesFl1(:,:,:))
             call get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                Tdomain%sFace(nnf)%ForcesFl2(:,:),Tdomain%specel(n)%ForcesFl2(:,:,:))
+                Tdomain%sFace(nnf)%spml%ForcesFl2(:,:),Tdomain%specel(n)%spml%ForcesFl2(:,:,:))
             call get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                Tdomain%sFace(nnf)%ForcesFl3(:,:),Tdomain%specel(n)%ForcesFl3(:,:,:))
+                Tdomain%sFace(nnf)%spml%ForcesFl3(:,:),Tdomain%specel(n)%spml%ForcesFl3(:,:,:))
         end if
     enddo
 

@@ -331,26 +331,26 @@ subroutine Define_Arrays(Tdomain, rg)
             if(Tdomain%specel(n)%FPML)then
                 call define_FPML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,        &
                     Tdomain%sSubdomain(mat)%freq,wx,Tdomain%specel(n)%Density,             &
-                    whei,Jac,Tdomain%specel(n)%DumpSx,Tdomain%specel(n)%DumpMass(:,:,:,0), &
-                    Tdomain%specel(n)%Isx,Tdomain%specel(n)%Ivx)
+                    whei,Jac,Tdomain%specel(n)%spml%DumpSx,Tdomain%specel(n)%spml%DumpMass(:,:,:,0), &
+                    Tdomain%specel(n)%spml%Isx,Tdomain%specel(n)%spml%Ivx)
                 call define_FPML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,        &
                     Tdomain%sSubdomain(mat)%freq,wy,Tdomain%specel(n)%Density,             &
-                    whei,Jac,Tdomain%specel(n)%DumpSy,Tdomain%specel(n)%DumpMass(:,:,:,1), &
-                    Tdomain%specel(n)%Isy,Tdomain%specel(n)%Ivy)
+                    whei,Jac,Tdomain%specel(n)%spml%DumpSy,Tdomain%specel(n)%spml%DumpMass(:,:,:,1), &
+                    Tdomain%specel(n)%spml%Isy,Tdomain%specel(n)%spml%Ivy)
                 call define_FPML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,        &
                     Tdomain%sSubdomain(mat)%freq,wz,Tdomain%specel(n)%Density,             &
-                    whei,Jac,Tdomain%specel(n)%DumpSz,Tdomain%specel(n)%DumpMass(:,:,:,2), &
-                    Tdomain%specel(n)%Isz,Tdomain%specel(n)%Ivz)
+                    whei,Jac,Tdomain%specel(n)%spml%DumpSz,Tdomain%specel(n)%spml%DumpMass(:,:,:,2), &
+                    Tdomain%specel(n)%spml%Isz,Tdomain%specel(n)%spml%Ivz)
             else
                 call define_PML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,   &
                     wx,Tdomain%specel(n)%Density,whei,Jac,                           &
-                    Tdomain%specel(n)%DumpSx,Tdomain%specel(n)%DumpMass(:,:,:,0))
+                    Tdomain%specel(n)%spml%DumpSx,Tdomain%specel(n)%spml%DumpMass(:,:,:,0))
                 call define_PML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,   &
                     wy,Tdomain%specel(n)%Density,whei,Jac,                           &
-                    Tdomain%specel(n)%DumpSy,Tdomain%specel(n)%DumpMass(:,:,:,1))
+                    Tdomain%specel(n)%spml%DumpSy,Tdomain%specel(n)%spml%DumpMass(:,:,:,1))
                 call define_PML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,   &
                     wz,Tdomain%specel(n)%Density,whei,Jac,                           &
-                    Tdomain%specel(n)%DumpSz,Tdomain%specel(n)%DumpMass(:,:,:,2))
+                    Tdomain%specel(n)%spml%DumpSz,Tdomain%specel(n)%spml%DumpMass(:,:,:,2))
             endif
             deallocate(wx,wy,wz)
 
@@ -378,20 +378,20 @@ subroutine Define_Arrays(Tdomain, rg)
         if(Tdomain%specel(n)%PML)then   ! dumped masses in PML
             if(Tdomain%specel(n)%FPML)then
                 call define_FPML_DumpEnd(0,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-                    Tdomain%specel(n)%DumpMass,Tdomain%specel(n)%DumpVx,Tdomain%specel(n)%Ivx)
+                    Tdomain%specel(n)%spml%DumpMass,Tdomain%specel(n)%spml%DumpVx,Tdomain%specel(n)%spml%Ivx)
                 call define_FPML_DumpEnd(1,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-                    Tdomain%specel(n)%DumpMass,Tdomain%specel(n)%DumpVy,Tdomain%specel(n)%Ivy)
+                    Tdomain%specel(n)%spml%DumpMass,Tdomain%specel(n)%spml%DumpVy,Tdomain%specel(n)%spml%Ivy)
                 call define_FPML_DumpEnd(2,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-                    Tdomain%specel(n)%DumpMass,Tdomain%specel(n)%DumpVz,Tdomain%specel(n)%Ivz)
+                    Tdomain%specel(n)%spml%DumpMass,Tdomain%specel(n)%spml%DumpVz,Tdomain%specel(n)%spml%Ivz)
             else
                 call define_PML_DumpEnd(n,rg,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-                    Tdomain%specel(n)%DumpMass(:,:,:,0),Tdomain%specel(n)%DumpVx)
+                    Tdomain%specel(n)%spml%DumpMass(:,:,:,0),Tdomain%specel(n)%spml%DumpVx)
                 call define_PML_DumpEnd(n,rg,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-                    Tdomain%specel(n)%DumpMass(:,:,:,1),Tdomain%specel(n)%DumpVy)
+                    Tdomain%specel(n)%spml%DumpMass(:,:,:,1),Tdomain%specel(n)%spml%DumpVy)
                 call define_PML_DumpEnd(n,rg,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-                    Tdomain%specel(n)%DumpMass(:,:,:,2),Tdomain%specel(n)%DumpVz)
+                    Tdomain%specel(n)%spml%DumpMass(:,:,:,2),Tdomain%specel(n)%spml%DumpVz)
             end if
-            deallocate(Tdomain%specel(n)%DumpMass)
+            deallocate(Tdomain%specel(n)%spml%DumpMass)
         end if
         ! all elements
         allocate(LocMassMat(1:ngllx-2,1:nglly-2,1:ngllz-2))
@@ -529,12 +529,12 @@ subroutine Define_Arrays(Tdomain, rg)
         if(Tdomain%sFace(nf)%PML)then
             ngll1 = Tdomain%sFace(nf)%ngll1 ; ngll2 = Tdomain%sFace(nf)%ngll2
             call define_PML_Face_DumpEnd(ngll1,ngll2,Tdomain%sFace(nf)%Massmat,  &
-                Tdomain%sFace(nf)%DumpMass(:,:,0),Tdomain%sFace(nf)%DumpVx)
+                Tdomain%sFace(nf)%spml%DumpMass(:,:,0),Tdomain%sFace(nf)%spml%DumpVx)
             call define_PML_Face_DumpEnd(ngll1,ngll2,Tdomain%sFace(nf)%Massmat,  &
-                Tdomain%sFace(nf)%DumpMass(:,:,1),Tdomain%sFace(nf)%DumpVy)
+                Tdomain%sFace(nf)%spml%DumpMass(:,:,1),Tdomain%sFace(nf)%spml%DumpVy)
             call define_PML_Face_DumpEnd(ngll1,ngll2,Tdomain%sFace(nf)%Massmat,  &
-                Tdomain%sFace(nf)%DumpMass(:,:,2),Tdomain%sFace(nf)%DumpVz)
-            deallocate(Tdomain%sFace(nf)%DumpMass)
+                Tdomain%sFace(nf)%spml%DumpMass(:,:,2),Tdomain%sFace(nf)%spml%DumpVz)
+            deallocate(Tdomain%sFace(nf)%spml%DumpMass)
         endif
         Tdomain%sFace(nf)%MassMat = 1./ Tdomain%sFace(nf)%MassMat
     enddo
@@ -543,12 +543,12 @@ subroutine Define_Arrays(Tdomain, rg)
         if(Tdomain%sEdge(ne)%PML)then
             ngll = Tdomain%sEdge(ne)%ngll
             call define_PML_Edge_DumpEnd(ngll,Tdomain%sEdge(ne)%Massmat,    &
-                Tdomain%sEdge(ne)%DumpMass(:,0),Tdomain%sEdge(ne)%DumpVx)
+                Tdomain%sEdge(ne)%spml%DumpMass(:,0),Tdomain%sEdge(ne)%spml%DumpVx)
             call define_PML_Edge_DumpEnd(ngll,Tdomain%sEdge(ne)%Massmat,    &
-                Tdomain%sEdge(ne)%DumpMass(:,1),Tdomain%sEdge(ne)%DumpVy)
+                Tdomain%sEdge(ne)%spml%DumpMass(:,1),Tdomain%sEdge(ne)%spml%DumpVy)
             call define_PML_Edge_DumpEnd(ngll,Tdomain%sEdge(ne)%Massmat,    &
-                Tdomain%sEdge(ne)%DumpMass(:,2),Tdomain%sEdge(ne)%DumpVz)
-            deallocate(Tdomain%sEdge(ne)%DumpMass)
+                Tdomain%sEdge(ne)%spml%DumpMass(:,2),Tdomain%sEdge(ne)%spml%DumpVz)
+            deallocate(Tdomain%sEdge(ne)%spml%DumpMass)
         endif
         Tdomain%sEdge(ne)%MassMat = 1./ Tdomain%sEdge(ne)%MassMat
     enddo
@@ -556,11 +556,11 @@ subroutine Define_Arrays(Tdomain, rg)
     do nv = 0,Tdomain%n_vertex-1
         if(Tdomain%sVertex(nv)%PML)then
             call define_PML_Vertex_DumpEnd(Tdomain%sVertex(nv)%Massmat,    &
-                Tdomain%sVertex(nv)%DumpMass(0),Tdomain%sVertex(nv)%DumpVx)
+                Tdomain%sVertex(nv)%spml%DumpMass(0),Tdomain%sVertex(nv)%spml%DumpVx)
             call define_PML_Vertex_DumpEnd(Tdomain%sVertex(nv)%Massmat,    &
-                Tdomain%sVertex(nv)%DumpMass(1),Tdomain%sVertex(nv)%DumpVy)
+                Tdomain%sVertex(nv)%spml%DumpMass(1),Tdomain%sVertex(nv)%spml%DumpVy)
             call define_PML_Vertex_DumpEnd(Tdomain%sVertex(nv)%Massmat,    &
-                Tdomain%sVertex(nv)%DumpMass(2),Tdomain%sVertex(nv)%DumpVz)
+                Tdomain%sVertex(nv)%spml%DumpMass(2),Tdomain%sVertex(nv)%spml%DumpVz)
         endif
         Tdomain%sVertex(nv)%MassMat = 1./ Tdomain%sVertex(nv)%MassMat
     enddo
@@ -948,11 +948,11 @@ subroutine Comm_Mass_Complete_PML(n,Tdomain)
         if(Tdomain%sFace(nf)%PML)then
             do j = 1,Tdomain%sFace(nf)%ngll2-2
                 do k = 1,Tdomain%sFace(nf)%ngll1-2
-                    Tdomain%sComm(n)%GivePML(ngllPML,0:2) = Tdomain%sFace(nf)%DumpMass(k,j,0:2)
+                    Tdomain%sComm(n)%GivePML(ngllPML,0:2) = Tdomain%sFace(nf)%spml%DumpMass(k,j,0:2)
                     if(Tdomain%any_FPML)then
-                        Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%sFace(nf)%Ivx(k,j)
-                        Tdomain%sComm(n)%GivePML(ngllPML,4) = Tdomain%sFace(nf)%Ivy(k,j)
-                        Tdomain%sComm(n)%GivePML(ngllPML,5) = Tdomain%sFace(nf)%Ivz(k,j)
+                        Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%sFace(nf)%spml%Ivx(k,j)
+                        Tdomain%sComm(n)%GivePML(ngllPML,4) = Tdomain%sFace(nf)%spml%Ivy(k,j)
+                        Tdomain%sComm(n)%GivePML(ngllPML,5) = Tdomain%sFace(nf)%spml%Ivz(k,j)
                     endif
                     ngllPML = ngllPML + 1
                 enddo
@@ -964,11 +964,11 @@ subroutine Comm_Mass_Complete_PML(n,Tdomain)
         ne = Tdomain%sComm(n)%edges(i)
         if(Tdomain%sEdge(ne)%PML)then
             do j = 1,Tdomain%sEdge(ne)%ngll-2
-                Tdomain%sComm(n)%GivePML(ngllPML,0:2) = Tdomain%sEdge(ne)%DumpMass(j,0:2)
+                Tdomain%sComm(n)%GivePML(ngllPML,0:2) = Tdomain%sEdge(ne)%spml%DumpMass(j,0:2)
                 if(Tdomain%any_FPML)then
-                    Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%sEdge(ne)%Ivx(j)
-                    Tdomain%sComm(n)%GivePML(ngllPML,4) = Tdomain%sEdge(ne)%Ivy(j)
-                    Tdomain%sComm(n)%GivePML(ngllPML,5) = Tdomain%sEdge(ne)%Ivz(j)
+                    Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%sEdge(ne)%spml%Ivx(j)
+                    Tdomain%sComm(n)%GivePML(ngllPML,4) = Tdomain%sEdge(ne)%spml%Ivy(j)
+                    Tdomain%sComm(n)%GivePML(ngllPML,5) = Tdomain%sEdge(ne)%spml%Ivz(j)
                 endif
                 ngllPML = ngllPML + 1
             enddo
@@ -977,11 +977,11 @@ subroutine Comm_Mass_Complete_PML(n,Tdomain)
     do i = 0,Tdomain%sComm(n)%nb_vertices-1
         nv = Tdomain%sComm(n)%vertices(i)
         if(Tdomain%sVertex(nv)%PML)then
-            Tdomain%sComm(n)%GivePML(ngllPML,0:2) = Tdomain%sVertex(nv)%DumpMass(0:2)
+            Tdomain%sComm(n)%GivePML(ngllPML,0:2) = Tdomain%sVertex(nv)%spml%DumpMass(0:2)
             if(Tdomain%any_FPML)then
-                Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%sVertex(nv)%Ivx(0)
-                Tdomain%sComm(n)%GivePML(ngllPML,4) = Tdomain%sVertex(nv)%Ivy(0)
-                Tdomain%sComm(n)%GivePML(ngllPML,5) = Tdomain%sVertex(nv)%Ivz(0)
+                Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%sVertex(nv)%spml%Ivx(0)
+                Tdomain%sComm(n)%GivePML(ngllPML,4) = Tdomain%sVertex(nv)%spml%Ivy(0)
+                Tdomain%sComm(n)%GivePML(ngllPML,5) = Tdomain%sVertex(nv)%spml%Ivz(0)
             endif
             ngllPML = ngllPML + 1
         endif

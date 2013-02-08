@@ -14,7 +14,7 @@ subroutine get_Forces_Elem2Vertex(Tdomain,n)
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: n
-    integer :: ngllx,nglly,ngllz,i,nv,nnv
+    integer :: ngllx,nglly,ngllz,nv,nnv
 
 
     ngllx = Tdomain%specel(n)%ngllx
@@ -28,11 +28,11 @@ subroutine get_Forces_Elem2Vertex(Tdomain,n)
             Tdomain%sVertex(nnv)%Forces(0:2),Tdomain%specel(n)%Forces(:,:,:,0:2))
         if(Tdomain%sVertex(nnv)%PML)then
             call get_VectProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                Tdomain%sVertex(nnv)%Forces1(0:2),Tdomain%specel(n)%Forces1(:,:,:,0:2))
+                Tdomain%sVertex(nnv)%spml%Forces1(0:2),Tdomain%specel(n)%spml%Forces1(:,:,:,0:2))
             call get_VectProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                Tdomain%sVertex(nnv)%Forces2(0:2),Tdomain%specel(n)%Forces2(:,:,:,0:2))
+                Tdomain%sVertex(nnv)%spml%Forces2(0:2),Tdomain%specel(n)%spml%Forces2(:,:,:,0:2))
             call get_VectProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                Tdomain%sVertex(nnv)%Forces3(0:2),Tdomain%specel(n)%Forces3(:,:,:,0:2))
+                Tdomain%sVertex(nnv)%spml%Forces3(0:2),Tdomain%specel(n)%spml%Forces3(:,:,:,0:2))
         end if
     enddo
 
@@ -49,7 +49,7 @@ subroutine get_ForcesFl_Elem2Vertex(Tdomain,n)
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: n
-    integer :: ngllx,nglly,ngllz,i,nv,nnv
+    integer :: ngllx,nglly,ngllz,nv,nnv
 
 
     ngllx = Tdomain%specel(n)%ngllx
@@ -63,11 +63,11 @@ subroutine get_ForcesFl_Elem2Vertex(Tdomain,n)
             Tdomain%sVertex(nnv)%ForcesFl,Tdomain%specel(n)%ForcesFl(:,:,:))
         if(Tdomain%sVertex(nnv)%PML)then
             call get_ScalarProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                Tdomain%sVertex(nnv)%ForcesFl1,Tdomain%specel(n)%ForcesFl1(:,:,:))
+                Tdomain%sVertex(nnv)%spml%ForcesFl1,Tdomain%specel(n)%spml%ForcesFl1(:,:,:))
             call get_ScalarProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                Tdomain%sVertex(nnv)%ForcesFl2,Tdomain%specel(n)%ForcesFl2(:,:,:))
+                Tdomain%sVertex(nnv)%spml%ForcesFl2,Tdomain%specel(n)%spml%ForcesFl2(:,:,:))
             call get_ScalarProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                Tdomain%sVertex(nnv)%ForcesFl3,Tdomain%specel(n)%ForcesFl3(:,:,:))
+                Tdomain%sVertex(nnv)%spml%ForcesFl3,Tdomain%specel(n)%spml%ForcesFl3(:,:,:))
         end if
     enddo
 

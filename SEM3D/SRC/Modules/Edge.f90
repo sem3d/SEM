@@ -6,6 +6,14 @@
 
 module sedges
 
+    type :: edge_pml
+       real, dimension (:,:), pointer :: DumpMass, DumpVx, DumpVy, DumpVz
+       real, dimension (:,:), pointer :: Veloc1, Veloc2, Veloc3
+       real, dimension (:,:), pointer :: Forces1, Forces2, Forces3
+       real, dimension (:,:), pointer :: IVeloc1, Iveloc2, Iveloc3
+       real, dimension (:), pointer :: Ivx, Ivy, Ivz
+       real, dimension(:), pointer :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
+    end type edge_pml
     type :: edge
 
        logical :: PML, Abs, FPML
@@ -15,16 +23,11 @@ module sedges
 
        real, dimension (:), pointer  :: MassMat
        real, dimension (:,:), pointer :: Forces, Displ, Veloc, Accel, V0
-       real, dimension (:,:), pointer :: DumpMass, DumpVx, DumpVy, DumpVz
-       real, dimension (:,:), pointer :: Veloc1, Veloc2, Veloc3
-       real, dimension (:,:), pointer :: Forces1, Forces2, Forces3
-       real, dimension (:,:), pointer :: IVeloc1, Iveloc2, Iveloc3
-       real, dimension (:), pointer :: Ivx, Ivy, Ivz
        logical  :: solid
        ! solid-fluid
        real, dimension(:), pointer :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
-       real, dimension(:), pointer :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
 
+       type(edge_pml), pointer :: spml
 #ifdef MKA3D
        real, dimension (:,:), pointer :: ForcesMka
        !     integer, dimension (:,:), pointer :: FlagMka
@@ -138,12 +141,12 @@ contains
         integer :: i
 
         do i = 0,2
-            E%Veloc1(:,i) = E%DumpVx(:,0) * E%Veloc1(:,i) + dt * E%DumpVx(:,1) * E%Forces1(:,i)
-            E%Veloc2(:,i) = E%DumpVy(:,0) * E%Veloc2(:,i) + dt * E%DumpVy(:,1) * E%Forces2(:,i)
-            E%Veloc3(:,i) = E%DumpVz(:,0) * E%Veloc3(:,i) + dt * E%DumpVz(:,1) * E%Forces3(:,i)
+            E%spml%Veloc1(:,i) = E%spml%DumpVx(:,0) * E%spml%Veloc1(:,i) + dt * E%spml%DumpVx(:,1) * E%spml%Forces1(:,i)
+            E%spml%Veloc2(:,i) = E%spml%DumpVy(:,0) * E%spml%Veloc2(:,i) + dt * E%spml%DumpVy(:,1) * E%spml%Forces2(:,i)
+            E%spml%Veloc3(:,i) = E%spml%DumpVz(:,0) * E%spml%Veloc3(:,i) + dt * E%spml%DumpVz(:,1) * E%spml%Forces3(:,i)
         enddo
 
-        E%Veloc = E%Veloc1 + E%Veloc2 + E%Veloc3
+        E%Veloc = E%spml%Veloc1 + E%spml%Veloc2 + E%spml%Veloc3
         E%Displ(:,:) = E%Displ(:,:) + dt * E%Veloc(:,:)
 
         if (E%Abs) then
@@ -162,11 +165,11 @@ contains
         type(Edge), intent(inout) :: E
         real, intent(in) :: dt
 
-        E%VelPhi1(:) = E%DumpVx(:,0) * E%VelPhi1(:) + dt * E%DumpVx(:,1) * E%ForcesFl1(:)
-        E%VelPhi2(:) = E%DumpVy(:,0) * E%VelPhi2(:) + dt * E%DumpVy(:,1) * E%ForcesFl2(:)
-        E%VelPhi3(:) = E%DumpVz(:,0) * E%VelPhi3(:) + dt * E%DumpVz(:,1) * E%ForcesFl3(:)
+        E%spml%VelPhi1(:) = E%spml%DumpVx(:,0) * E%spml%VelPhi1(:) + dt * E%spml%DumpVx(:,1) * E%spml%ForcesFl1(:)
+        E%spml%VelPhi2(:) = E%spml%DumpVy(:,0) * E%spml%VelPhi2(:) + dt * E%spml%DumpVy(:,1) * E%spml%ForcesFl2(:)
+        E%spml%VelPhi3(:) = E%spml%DumpVz(:,0) * E%spml%VelPhi3(:) + dt * E%spml%DumpVz(:,1) * E%spml%ForcesFl3(:)
 
-        E%VelPhi = E%VelPhi1 + E%VelPhi2 + E%VelPhi3
+        E%VelPhi = E%spml%VelPhi1 + E%spml%VelPhi2 + E%spml%VelPhi3
 
         if(E%Abs)then
             E%VelPhi = 0
@@ -189,20 +192,20 @@ contains
 
         fil2 = fil**2
         do i = 0,2
-            Ausiliar_velocity = E%Veloc1(:,i)
-            E%Veloc1(:,i) = E%DumpVx(:,0) * E%Veloc1(:,i) + dt * E%DumpVx(:,1) * E%Forces1(:,i) + E%Ivx * E%Iveloc1(:,i)
-            E%Iveloc1(:,i) = Fil2 * E%Iveloc1(:,i) + 0.5 * (1-Fil2) *  (Ausiliar_velocity + E%Veloc1(:,i))
+            Ausiliar_velocity = E%spml%Veloc1(:,i)
+            E%spml%Veloc1(:,i) = E%spml%DumpVx(:,0) * E%spml%Veloc1(:,i) + dt * E%spml%DumpVx(:,1) * E%spml%Forces1(:,i) + E%spml%Ivx * E%spml%Iveloc1(:,i)
+            E%spml%Iveloc1(:,i) = Fil2 * E%spml%Iveloc1(:,i) + 0.5 * (1-Fil2) *  (Ausiliar_velocity + E%spml%Veloc1(:,i))
 
-            Ausiliar_velocity = E%Veloc2(:,i)
-            E%Veloc2(:,i) = E%DumpVy(:,0) * E%Veloc2(:,i) + dt * E%DumpVy(:,1) * E%Forces2(:,i) + E%Ivy * E%Iveloc2(:,i)
-            E%Iveloc2(:,i) = Fil2 * E%Iveloc2(:,i) + 0.5 * (1-Fil2) *  (Ausiliar_velocity + E%Veloc2(:,i))
+            Ausiliar_velocity = E%spml%Veloc2(:,i)
+            E%spml%Veloc2(:,i) = E%spml%DumpVy(:,0) * E%spml%Veloc2(:,i) + dt * E%spml%DumpVy(:,1) * E%spml%Forces2(:,i) + E%spml%Ivy * E%spml%Iveloc2(:,i)
+            E%spml%Iveloc2(:,i) = Fil2 * E%spml%Iveloc2(:,i) + 0.5 * (1-Fil2) *  (Ausiliar_velocity + E%spml%Veloc2(:,i))
 
-            Ausiliar_velocity = E%Veloc3(:,i)
-            E%Veloc3(:,i) = E%DumpVz(:,0) * E%Veloc3(:,i) + dt * E%DumpVz(:,1) * E%Forces3(:,i) + E%Ivz * E%Iveloc3(:,i)
-            E%Iveloc3(:,i) = Fil2 * E%Iveloc3(:,i) + 0.5 * (1-Fil2) *  (Ausiliar_velocity + E%Veloc3(:,i))
+            Ausiliar_velocity = E%spml%Veloc3(:,i)
+            E%spml%Veloc3(:,i) = E%spml%DumpVz(:,0) * E%spml%Veloc3(:,i) + dt * E%spml%DumpVz(:,1) * E%spml%Forces3(:,i) + E%spml%Ivz * E%spml%Iveloc3(:,i)
+            E%spml%Iveloc3(:,i) = Fil2 * E%spml%Iveloc3(:,i) + 0.5 * (1-Fil2) *  (Ausiliar_velocity + E%spml%Veloc3(:,i))
         enddo
 
-        E%Veloc = E%Veloc1 + E%Veloc2 + E%Veloc3
+        E%Veloc = E%spml%Veloc1 + E%spml%Veloc2 + E%spml%Veloc3
 
         if (E%Abs) then
             E%Veloc = 0
@@ -249,19 +252,19 @@ contains
             if (logic) then
                 if ( orient ==0 ) then
                     do i = 0,2
-                        Vfree(1:ngll-2,i) = Vfree(1:ngll-2,i) - ( E%DumpVz(1:ngll-2,0) * E%Veloc3(1:ngll-2,i) &
-                            + dt * E%DumpVz(1:ngll-2,1) * E%Forces3(1:ngll-2,i) )
+                        Vfree(1:ngll-2,i) = Vfree(1:ngll-2,i) - ( E%spml%DumpVz(1:ngll-2,0) * E%spml%Veloc3(1:ngll-2,i) &
+                            + dt * E%spml%DumpVz(1:ngll-2,1) * E%spml%Forces3(1:ngll-2,i) )
                     enddo
                 else
                     do i = 0,2
                         do j = 1, ngll-2
-                            Vfree(j,i) = Vfree(j,i) - ( E%DumpVz(ngll-1-j,0) * E%Veloc3(ngll-1-j,i) + dt * E%DumpVz(ngll-1-j,1) * E%Forces3(ngll-1-j,i) )
+                            Vfree(j,i) = Vfree(j,i) - ( E%spml%DumpVz(ngll-1-j,0) * E%spml%Veloc3(ngll-1-j,i) + dt * E%spml%DumpVz(ngll-1-j,1) * E%spml%Forces3(ngll-1-j,i) )
                         enddo
                     enddo
                 endif
             else
                 do i = 0,2
-                    Vfree(1:ngll-2,i) =  E%DumpVz(1:ngll-2,0) * E%Veloc3(1:ngll-2,i) + dt * E%DumpVz(1:ngll-2,1) * E%Forces3(1:ngll-2,i)
+                    Vfree(1:ngll-2,i) =  E%spml%DumpVz(1:ngll-2,0) * E%spml%Veloc3(1:ngll-2,i) + dt * E%spml%DumpVz(1:ngll-2,1) * E%spml%Forces3(1:ngll-2,i)
                 enddo
             endif
 
@@ -289,33 +292,34 @@ contains
         nullify(ed%Veloc)
         nullify(ed%Accel)
         nullify(ed%V0)
-        nullify(ed%Forces1)
-        nullify(ed%Forces2)
-        nullify(ed%Forces3)
-        nullify(ed%Veloc1)
-        nullify(ed%Veloc2)
-        nullify(ed%Veloc3)
-        nullify(ed%DumpVx)
-        nullify(ed%DumpVy)
-        nullify(ed%DumpVz)
-        nullify(ed%DumpMass)
-        nullify(ed%IVeloc1)
-        nullify(ed%IVeloc2)
-        nullify(ed%IVeloc3)
-        nullify(ed%Ivx)
-        nullify(ed%Ivy)
-        nullify(ed%Ivz)
         nullify(ed%ForcesFl)
         nullify(ed%Phi)
         nullify(ed%VelPhi)
         nullify(ed%AccelPhi)
         nullify(ed%VelPhi0)
-        nullify(ed%ForcesFl1)
-        nullify(ed%ForcesFl2)
-        nullify(ed%ForcesFl3)
-        nullify(ed%VelPhi1)
-        nullify(ed%VelPhi2)
-        nullify(ed%VelPhi3)
+        nullify(ed%spml)
+!        nullify(ed%spml%ForcesFl1)
+!        nullify(ed%spml%ForcesFl2)
+!        nullify(ed%spml%ForcesFl3)
+!        nullify(ed%spml%VelPhi1)
+!        nullify(ed%spml%VelPhi2)
+!        nullify(ed%spml%VelPhi3)
+!        nullify(ed%spml%Forces1)
+!        nullify(ed%spml%Forces2)
+!        nullify(ed%spml%Forces3)
+!        nullify(ed%spml%Veloc1)
+!        nullify(ed%spml%Veloc2)
+!        nullify(ed%spml%Veloc3)
+!        nullify(ed%spml%DumpVx)
+!        nullify(ed%spml%DumpVy)
+!        nullify(ed%spml%DumpVz)
+!        nullify(ed%spml%DumpMass)
+!        nullify(ed%spml%IVeloc1)
+!        nullify(ed%spml%IVeloc2)
+!        nullify(ed%spml%IVeloc3)
+!        nullify(ed%spml%Ivx)
+!        nullify(ed%spml%Ivy)
+!        nullify(ed%spml%Ivz)
 #ifdef MKA3D
         nullify(ed%ForcesMka)
         nullify(ed%tsurfsem)

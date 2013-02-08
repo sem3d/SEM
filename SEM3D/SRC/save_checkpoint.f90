@@ -273,15 +273,15 @@ subroutine write_Veloc123(Tdomain, nmax, elem_id)
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
-                        data1(idx+0) = Tdomain%specel(n)%Veloc1(i,j,k,0)
-                        data1(idx+1) = Tdomain%specel(n)%Veloc1(i,j,k,1)
-                        data1(idx+2) = Tdomain%specel(n)%Veloc1(i,j,k,2)
-                        data2(idx+0) = Tdomain%specel(n)%Veloc2(i,j,k,0)
-                        data2(idx+1) = Tdomain%specel(n)%Veloc2(i,j,k,1)
-                        data2(idx+2) = Tdomain%specel(n)%Veloc2(i,j,k,2)
-                        data3(idx+0) = Tdomain%specel(n)%Veloc3(i,j,k,0)
-                        data3(idx+1) = Tdomain%specel(n)%Veloc3(i,j,k,1)
-                        data3(idx+2) = Tdomain%specel(n)%Veloc3(i,j,k,2)
+                        data1(idx+0) = Tdomain%specel(n)%spml%Veloc1(i,j,k,0)
+                        data1(idx+1) = Tdomain%specel(n)%spml%Veloc1(i,j,k,1)
+                        data1(idx+2) = Tdomain%specel(n)%spml%Veloc1(i,j,k,2)
+                        data2(idx+0) = Tdomain%specel(n)%spml%Veloc2(i,j,k,0)
+                        data2(idx+1) = Tdomain%specel(n)%spml%Veloc2(i,j,k,1)
+                        data2(idx+2) = Tdomain%specel(n)%spml%Veloc2(i,j,k,2)
+                        data3(idx+0) = Tdomain%specel(n)%spml%Veloc3(i,j,k,0)
+                        data3(idx+1) = Tdomain%specel(n)%spml%Veloc3(i,j,k,1)
+                        data3(idx+2) = Tdomain%specel(n)%spml%Veloc3(i,j,k,2)
                         idx = idx + 3
                     enddo
                 enddo
@@ -591,25 +591,25 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
-                        data(idx+ 0) = Tdomain%specel(n)%Diagonal_Stress1(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%Diagonal_Stress1(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%Diagonal_Stress1(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%spml%Diagonal_Stress1(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%spml%Diagonal_Stress1(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%spml%Diagonal_Stress1(i,j,k,2)
                         idx = idx + 3
-                        data(idx+ 0) = Tdomain%specel(n)%Diagonal_Stress2(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%Diagonal_Stress2(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%Diagonal_Stress2(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%spml%Diagonal_Stress2(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%spml%Diagonal_Stress2(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%spml%Diagonal_Stress2(i,j,k,2)
                         idx = idx + 3
-                        data(idx+ 0) = Tdomain%specel(n)%Diagonal_Stress3(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%Diagonal_Stress3(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%Diagonal_Stress3(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%spml%Diagonal_Stress3(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%spml%Diagonal_Stress3(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%spml%Diagonal_Stress3(i,j,k,2)
                         idx = idx + 3
-                        data(idx+ 0) = Tdomain%specel(n)%Residual_Stress1(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%Residual_Stress1(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%Residual_Stress1(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%spml%Residual_Stress1(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%spml%Residual_Stress1(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%spml%Residual_Stress1(i,j,k,2)
                         idx = idx + 3
-                        data(idx+ 0) = Tdomain%specel(n)%Residual_Stress2(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%Residual_Stress2(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%Residual_Stress2(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%spml%Residual_Stress2(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%spml%Residual_Stress2(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%spml%Residual_Stress2(i,j,k,2)
                         idx = idx + 3
                     enddo
                 enddo
@@ -666,15 +666,15 @@ subroutine write_Faces(Tdomain, offset_f, face_id)
                     displ(idx2+2) = Tdomain%sFace(n)%Displ(i,j,2)
                     idx2 = idx2 + 3
                 else
-                    veloc1(idx3+0) = Tdomain%sFace(n)%Veloc1(i,j,0)
-                    veloc1(idx3+1) = Tdomain%sFace(n)%Veloc1(i,j,1)
-                    veloc1(idx3+2) = Tdomain%sFace(n)%Veloc1(i,j,2)
-                    veloc2(idx3+0) = Tdomain%sFace(n)%Veloc2(i,j,0)
-                    veloc2(idx3+1) = Tdomain%sFace(n)%Veloc2(i,j,1)
-                    veloc2(idx3+2) = Tdomain%sFace(n)%Veloc2(i,j,2)
-                    veloc3(idx3+0) = Tdomain%sFace(n)%Veloc3(i,j,0)
-                    veloc3(idx3+1) = Tdomain%sFace(n)%Veloc3(i,j,1)
-                    veloc3(idx3+2) = Tdomain%sFace(n)%Veloc3(i,j,2)
+                    veloc1(idx3+0) = Tdomain%sFace(n)%spml%Veloc1(i,j,0)
+                    veloc1(idx3+1) = Tdomain%sFace(n)%spml%Veloc1(i,j,1)
+                    veloc1(idx3+2) = Tdomain%sFace(n)%spml%Veloc1(i,j,2)
+                    veloc2(idx3+0) = Tdomain%sFace(n)%spml%Veloc2(i,j,0)
+                    veloc2(idx3+1) = Tdomain%sFace(n)%spml%Veloc2(i,j,1)
+                    veloc2(idx3+2) = Tdomain%sFace(n)%spml%Veloc2(i,j,2)
+                    veloc3(idx3+0) = Tdomain%sFace(n)%spml%Veloc3(i,j,0)
+                    veloc3(idx3+1) = Tdomain%sFace(n)%spml%Veloc3(i,j,1)
+                    veloc3(idx3+2) = Tdomain%sFace(n)%spml%Veloc3(i,j,2)
                     idx3 = idx3 + 3
                 end if
             enddo
@@ -744,15 +744,15 @@ subroutine write_Edges(Tdomain, offset_e, edge_id)
                 veloc(idx1+1) = Tdomain%sEdge(n)%Veloc(i,1)
                 veloc(idx1+2) = Tdomain%sEdge(n)%Veloc(i,2)
                 idx1 = idx1 + 3
-                veloc1(idx3+0) = Tdomain%sEdge(n)%Veloc1(i,0)
-                veloc1(idx3+1) = Tdomain%sEdge(n)%Veloc1(i,1)
-                veloc1(idx3+2) = Tdomain%sEdge(n)%Veloc1(i,2)
-                veloc2(idx3+0) = Tdomain%sEdge(n)%Veloc2(i,0)
-                veloc2(idx3+1) = Tdomain%sEdge(n)%Veloc2(i,1)
-                veloc2(idx3+2) = Tdomain%sEdge(n)%Veloc2(i,2)
-                veloc3(idx3+0) = Tdomain%sEdge(n)%Veloc3(i,0)
-                veloc3(idx3+1) = Tdomain%sEdge(n)%Veloc3(i,1)
-                veloc3(idx3+2) = Tdomain%sEdge(n)%Veloc3(i,2)
+                veloc1(idx3+0) = Tdomain%sEdge(n)%spml%Veloc1(i,0)
+                veloc1(idx3+1) = Tdomain%sEdge(n)%spml%Veloc1(i,1)
+                veloc1(idx3+2) = Tdomain%sEdge(n)%spml%Veloc1(i,2)
+                veloc2(idx3+0) = Tdomain%sEdge(n)%spml%Veloc2(i,0)
+                veloc2(idx3+1) = Tdomain%sEdge(n)%spml%Veloc2(i,1)
+                veloc2(idx3+2) = Tdomain%sEdge(n)%spml%Veloc2(i,2)
+                veloc3(idx3+0) = Tdomain%sEdge(n)%spml%Veloc3(i,0)
+                veloc3(idx3+1) = Tdomain%sEdge(n)%spml%Veloc3(i,1)
+                veloc3(idx3+2) = Tdomain%sEdge(n)%spml%Veloc3(i,2)
                 idx3 = idx3 + 3
             end if
         enddo
@@ -818,15 +818,15 @@ subroutine write_Vertices(Tdomain, offset_v, vertex_id)
             veloc(idx1+1) = Tdomain%sVertex(n)%Veloc(1)
             veloc(idx1+2) = Tdomain%sVertex(n)%Veloc(2)
             idx1 = idx1 + 3
-            veloc1(idx3+0) = Tdomain%sVertex(n)%Veloc1(0)
-            veloc1(idx3+1) = Tdomain%sVertex(n)%Veloc1(1)
-            veloc1(idx3+2) = Tdomain%sVertex(n)%Veloc1(2)
-            veloc2(idx3+0) = Tdomain%sVertex(n)%Veloc2(0)
-            veloc2(idx3+1) = Tdomain%sVertex(n)%Veloc2(1)
-            veloc2(idx3+2) = Tdomain%sVertex(n)%Veloc2(2)
-            veloc3(idx3+0) = Tdomain%sVertex(n)%Veloc3(0)
-            veloc3(idx3+1) = Tdomain%sVertex(n)%Veloc3(1)
-            veloc3(idx3+2) = Tdomain%sVertex(n)%Veloc3(2)
+            veloc1(idx3+0) = Tdomain%sVertex(n)%spml%Veloc1(0)
+            veloc1(idx3+1) = Tdomain%sVertex(n)%spml%Veloc1(1)
+            veloc1(idx3+2) = Tdomain%sVertex(n)%spml%Veloc1(2)
+            veloc2(idx3+0) = Tdomain%sVertex(n)%spml%Veloc2(0)
+            veloc2(idx3+1) = Tdomain%sVertex(n)%spml%Veloc2(1)
+            veloc2(idx3+2) = Tdomain%sVertex(n)%spml%Veloc2(2)
+            veloc3(idx3+0) = Tdomain%sVertex(n)%spml%Veloc3(0)
+            veloc3(idx3+1) = Tdomain%sVertex(n)%spml%Veloc3(1)
+            veloc3(idx3+2) = Tdomain%sVertex(n)%spml%Veloc3(2)
             idx3 = idx3 + 3
         end if
     enddo

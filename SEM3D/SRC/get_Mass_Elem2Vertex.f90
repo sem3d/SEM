@@ -25,14 +25,14 @@ subroutine get_Mass_Elem2Vertex(Tdomain,n)
             Tdomain%sVertex(nnv)%MassMat,Tdomain%specel(n)%MassMat(:,:,:))
         if(Tdomain%sVertex(nnv)%PML)then
             call get_VectProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                Tdomain%sVertex(nnv)%DumpMass(0:2),Tdomain%specel(n)%DumpMass(:,:,:,0:2))
+                Tdomain%sVertex(nnv)%spml%DumpMass(0:2),Tdomain%specel(n)%spml%DumpMass(:,:,:,0:2))
             if(Tdomain%sVertex(nnv)%FPML)then
                 call get_ScalarProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                    Tdomain%sVertex(nnv)%Ivx,Tdomain%specel(n)%Ivx(:,:,:))
+                    Tdomain%sVertex(nnv)%spml%Ivx,Tdomain%specel(n)%spml%Ivx(:,:,:))
                 call get_ScalarProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                    Tdomain%sVertex(nnv)%Ivy,Tdomain%specel(n)%Ivy(:,:,:))
+                    Tdomain%sVertex(nnv)%spml%Ivy,Tdomain%specel(n)%spml%Ivy(:,:,:))
                 call get_ScalarProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                    Tdomain%sVertex(nnv)%Ivz,Tdomain%specel(n)%Ivz(:,:,:))
+                    Tdomain%sVertex(nnv)%spml%Ivz,Tdomain%specel(n)%spml%Ivz(:,:,:))
             end if
         end if
 
