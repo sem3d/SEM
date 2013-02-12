@@ -34,6 +34,7 @@ typedef struct {
 	double alpha;
 	double beta;
 	double gamma;
+	double courant;
 
 	// Modele, maillage
 	char*  mesh_file;
@@ -99,7 +100,7 @@ int skip_blank(yyscan_t scanner)
 	int tok;
 	do {
 		tok = yylex(scanner);
-		printf("%d : %s\n", tok, yyget_text(scanner) );
+		//printf("%d : %s\n", tok, yyget_text(scanner) );
 		if (tok==K_COMMENT||tok==K_BLANK) continue;
 		break;
 	} while(1);
@@ -307,7 +308,7 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
 int expect_time_scheme(yyscan_t scanner, sem_config_t* config)
 {
 	int tok, err;
-
+	
 	tok = skip_blank(scanner);
 	if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
 	do {
@@ -319,6 +320,7 @@ int expect_time_scheme(yyscan_t scanner, sem_config_t* config)
 		else if (cmp(scanner,"alpha")) err=expect_eq_float(scanner, &config->alpha,1);
 		else if (cmp(scanner,"beta")) err=expect_eq_float(scanner, &config->beta,1);
 		else if (cmp(scanner,"gamma")) err=expect_eq_float(scanner, &config->gamma,1);
+		else if (cmp(scanner,"courant")) err=expect_eq_float(scanner, &config->courant,1);
 
 		if (!expect_eos(scanner)) { return 0; }
 	} while(1);
@@ -433,6 +435,9 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 void init_sem_config(sem_config_t* cfg)
 {
 	memset(cfg, 0, sizeof(sem_config_t));
+	// Valeurs par defaut
+	cfg->courant = 0.2;
+
 }
 
 

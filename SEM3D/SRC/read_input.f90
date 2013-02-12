@@ -28,6 +28,7 @@ module semconfig
        real(C_DOUBLE) :: alpha
        real(C_DOUBLE) :: beta
        real(C_DOUBLE) :: gamma
+       real(C_DOUBLE) :: courant
 
        !! Modele, maillage
        type(C_PTR)    :: mesh_file
@@ -841,6 +842,8 @@ subroutine read_input (Tdomain, rg, code)
     Tdomain%TimeD%alpha = config%alpha
     Tdomain%TimeD%beta = config%beta
     Tdomain%TimeD%gamma = config%gamma
+    Tdomain%TimeD%courant = config%courant
+
     Tdomain%mesh_file = fromcstr(config%mesh_file)
     call semname_read_input_meshfile(rg,Tdomain%mesh_file,fnamef)
     Tdomain%mesh_file = fnamef

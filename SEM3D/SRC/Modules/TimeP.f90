@@ -11,6 +11,7 @@ module stimeparam
        real :: alpha, beta, gamma, duration, Time_snapshots, dtmin, rtime
        integer :: iter_reprise
        integer :: prot_m0, prot_m1, prot_m2
+       real :: courant
     end type time
 
 end module stimeparam

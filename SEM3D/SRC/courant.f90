@@ -25,16 +25,7 @@ subroutine Compute_Courant (Tdomain,rg)
     real :: dx,dxmin,courant,courant_max
     real :: dt_min, dt, dt_loc
 
-    !  courant = 0.05 !0.1 !0.4 !0.2 !0.5       !! 0.4 semblait ok mais uniformisation avec Sem2d
-    courant = 0.2
-    !    courant = 0.1
-    !    test pour can1mka
-    ! si le pas de temps de mka est trop petit par rapport a celui de sem
-    ! il peut se produire une divergence lors d un calcul couple
-    ! cas deja produit pour un rapport de 50 entre les deux pas de temps
-    !           courant = 0.005
-    ! pour volvi2b et volvi2c
-    !       courant = 0.05
+    courant = Tdomain%TimeD%courant
     courant_max = 0
     dt_loc = huge(1.)
     do n = 0, Tdomain%n_elem -1
