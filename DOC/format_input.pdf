@@ -1,0 +1,1305 @@
+%PDF-1.4
+%“Œ‹ž ReportLab Generated PDF document http://www.reportlab.com
+% 'BasicFonts': class PDFDictionary 
+1 0 obj
+% The standard fonts dictionary
+<< /F1 2 0 R
+ /F2 3 0 R
+ /F3 4 0 R >>
+endobj
+% 'F1': class PDFType1Font 
+2 0 obj
+% Font Helvetica
+<< /BaseFont /Helvetica
+ /Encoding /WinAnsiEncoding
+ /Name /F1
+ /Subtype /Type1
+ /Type /Font >>
+endobj
+% 'F2': class PDFType1Font 
+3 0 obj
+% Font Helvetica-Bold
+<< /BaseFont /Helvetica-Bold
+ /Encoding /WinAnsiEncoding
+ /Name /F2
+ /Subtype /Type1
+ /Type /Font >>
+endobj
+% 'F3': class PDFType1Font 
+4 0 obj
+% Font Courier
+<< /BaseFont /Courier
+ /Encoding /WinAnsiEncoding
+ /Name /F3
+ /Subtype /Type1
+ /Type /Font >>
+endobj
+% 'Page1': class PDFPage 
+5 0 obj
+% Page dictionary
+<< /Contents 13 0 R
+ /MediaBox [ 0
+ 0
+ 595.2756
+ 841.8898 ]
+ /Parent 12 0 R
+ /Resources << /Font 1 0 R
+ /ProcSet [ /PDF
+ /Text
+ /ImageB
+ /ImageC
+ /ImageI ] >>
+ /Rotate 0
+ /Trans <<  >>
+ /Type /Page >>
+endobj
+% 'Page2': class PDFPage 
+6 0 obj
+% Page dictionary
+<< /Contents 14 0 R
+ /MediaBox [ 0
+ 0
+ 595.2756
+ 841.8898 ]
+ /Parent 12 0 R
+ /Resources << /Font 1 0 R
+ /ProcSet [ /PDF
+ /Text
+ /ImageB
+ /ImageC
+ /ImageI ] >>
+ /Rotate 0
+ /Trans <<  >>
+ /Type /Page >>
+endobj
+% 'R7': class PDFCatalog 
+7 0 obj
+% Document Root
+<< /Outlines 9 0 R
+ /PageLabels 15 0 R
+ /PageMode /UseNone
+ /Pages 12 0 R
+ /Type /Catalog >>
+endobj
+% 'R8': class PDFInfo 
+8 0 obj
+<< /Author ()
+ /CreationDate (D:20130207164441-01'00')
+ /Creator (\(unspecified\))
+ /Keywords ()
+ /Producer (ReportLab PDF Library - www.reportlab.com)
+ /Subject (\(unspecified\))
+ /Title () >>
+endobj
+% 'R9': class PDFOutlines 
+9 0 obj
+<< /Count 2
+ /First 10 0 R
+ /Last 11 0 R
+ /Type /Outlines >>
+endobj
+% 'Outline.0': class OutlineEntryObject 
+10 0 obj
+<< /Dest [ 5 0 R
+ /XYZ
+ 34.34646
+ 793.3701
+ 0 ]
+ /Next 11 0 R
+ /Parent 9 0 R
+ /Title (Description des parametres de SEM3D) >>
+endobj
+% 'Outline.1': class OutlineEntryObject 
+11 0 obj
+<< /Dest [ 6 0 R
+ /XYZ
+ 34.34646
+ 541.3701
+ 0 ]
+ /Parent 9 0 R
+ /Prev 10 0 R
+ /Title (Exemple) >>
+endobj
+% 'R12': class PDFPages 
+12 0 obj
+% page tree
+<< /Count 2
+ /Kids [ 5 0 R
+ 6 0 R ]
+ /Type /Pages >>
+endobj
+% 'R13': class PDFStream 
+13 0 obj
+% page stream
+<< /Length 12179 >>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 34.34646 772.3701 cm
+q
+BT 1 0 0 1 0 3.5 Tm 21 TL /F2 17.5 Tf 0 0 0 rg (Description des parametres de SEM3D) Tj T* ET
+Q
+Q
+q
+1 0 0 1 34.34646 754.3701 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Le format de fichier SEM3D a \351t\351 chang\351 pour plus de souplesse et pour \351viter des erreurs de saisie.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 34.34646 736.3701 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Le nouveau format de fichier est de la forme suivante \(exemple\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 34.34646 643.1701 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 525.3827 84 re B*
+Q
+q
+0 0 0 rg
+BT 1 0 0 1 0 62 Tm /F3 10 Tf 12 TL (mot_clef = valeur;  # commentaire) Tj T* (# commentaire) Tj T* (section {) Tj T* (   mot_clef2 = "chaine";) Tj T* (};) Tj T* (mot_clef3 = v1 v2 v3; # un vecteur de valeurs) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+q
+1 0 0 1 34.34646 623.1701 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Les valeurs sont des entiers, des flottants, des bool\351ens, des chaines ou des mot-clefs.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 34.34646 593.1701 cm
+q
+BT 1 0 0 1 0 14 Tm .420704 Tw 12 TL /F1 10 Tf 0 0 0 rg (Une chaine est une suite de caract\350res entre guillemets \() Tj /F3 10 Tf (") Tj /F1 10 Tf (\), un mot clef est une suite de caract\350res alphanumeriques) Tj T* 0 Tw (commen\347ant par une lettre, et comportant des lettres, des chiffres ou le caract\350re soulign\351 \() Tj /F3 10 Tf (_) Tj /F1 10 Tf (\).) Tj T* ET
+Q
+Q
+q
+1 0 0 1 34.34646 575.1701 cm
+q
+BT 1 0 0 1 0 2 Tm 12 TL /F1 10 Tf 0 0 0 rg (Les sections peuvent appara\356tre plusieurs fois \(par exemple la section ) Tj /F3 10 Tf (source) Tj /F1 10 Tf (\).) Tj T* ET
+Q
+Q
+q
+1 0 0 1 34.34646 533.1701 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 26 Tm /F1 10 Tf 12 TL 2.186417 Tw (Les param\350tres peuvent appara\356tre dans un ordre quelconque au sein d'une section \(ou du corps principal\). Un) Tj T* 0 Tw 1.140667 Tw (param\350tre valide peut-\352tre ignor\351 si il n'est pas activ\351 par un autre param\350tre : par exemple on peut d\351sactiver les) Tj T* 0 Tw (snapshots, tout en laissant le param\350tre nombre d'it\351ration entre snapshot.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 34.34646 515.1701 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Les mots-clef pouvant \352tre utilis\351s dans le fichier \(niveau 0, hors toute section\) sont d\351crits ici :) Tj T* ET
+Q
+Q
+q
+1 0 0 1 34.34646 509.1701 cm
+Q
+q
+1 0 0 1 34.34646 167.1701 cm
+1 1 1 rg
+n 0 342 526.5827 -18 re f*
+.878431 .878431 .878431 rg
+n 0 324 526.5827 -18 re f*
+1 1 1 rg
+n 0 306 526.5827 -18 re f*
+.878431 .878431 .878431 rg
+n 0 288 526.5827 -18 re f*
+1 1 1 rg
+n 0 270 526.5827 -18 re f*
+.878431 .878431 .878431 rg
+n 0 252 526.5827 -18 re f*
+1 1 1 rg
+n 0 234 526.5827 -18 re f*
+.878431 .878431 .878431 rg
+n 0 216 526.5827 -18 re f*
+1 1 1 rg
+n 0 198 526.5827 -18 re f*
+.878431 .878431 .878431 rg
+n 0 180 526.5827 -18 re f*
+1 1 1 rg
+n 0 162 526.5827 -18 re f*
+.878431 .878431 .878431 rg
+n 0 144 526.5827 -18 re f*
+1 1 1 rg
+n 0 126 526.5827 -18 re f*
+.878431 .878431 .878431 rg
+n 0 108 526.5827 -18 re f*
+1 1 1 rg
+n 0 90 526.5827 -18 re f*
+.878431 .878431 .878431 rg
+n 0 72 526.5827 -18 re f*
+1 1 1 rg
+n 0 54 526.5827 -18 re f*
+.878431 .878431 .878431 rg
+n 0 36 526.5827 -18 re f*
+1 1 1 rg
+n 0 18 526.5827 -18 re f*
+.960784 .960784 .862745 rg
+n 0 342 526.5827 -18 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 327 cm
+q
+.960784 .960784 .862745 rg
+n 0 0 73.10427 12 re f*
+Q
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 18.77214 0 Td (Mot-clef) Tj T* -18.77214 0 Td ET
+Q
+Q
+q
+1 0 0 1 91.10427 327 cm
+q
+.960784 .960784 .862745 rg
+n 0 0 25.23312 12 re f*
+Q
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 3.166559 0 Td (type) Tj T* -3.166559 0 Td ET
+Q
+Q
+q
+1 0 0 1 128.3374 327 cm
+q
+.960784 .960784 .862745 rg
+n 0 0 78.42329 12 re f*
+Q
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 1.691644 0 Td (valeur par d\351faut) Tj T* -1.691644 0 Td ET
+Q
+Q
+q
+1 0 0 1 218.7607 327 cm
+q
+.960784 .960784 .862745 rg
+n 0 0 301.822 12 re f*
+Q
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 125.906 0 Td (Description) Tj T* -125.906 0 Td ET
+Q
+Q
+0 0 0 rg
+q
+1 0 0 1 6 309 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (run_name) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 309 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (cha\356ne) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 309 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL ("") Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 309 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Titre de la simulation) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 291 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (time_scheme) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 291 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (section) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 291 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (n/a) Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 291 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Section de description du sch\351ma d'int\351gration en temps) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 273 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (sim_time) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 273 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (r\351el) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 273 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (aucune) Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 273 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Dur\351e \(temps physique\) de la simulation) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 255 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (mesh_file) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 255 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (cha\356ne) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 255 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL ("mesh4spec") Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 255 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Nom de base des fichiers maillage) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 237 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (mat_file) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 237 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (cha\356ne) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 237 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL ("material.input") Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 237 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Nom du fichier de description des mat\351riaux) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 219 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (anisotropy) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 219 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (section) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 219 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (n/a) Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 219 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Description de l'anisotropie) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 201 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (amort) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 201 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (section) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 201 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (n/a) Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 201 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Description de l'amortissement) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 183 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (source) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 183 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (section) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 183 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (n/a) Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 183 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Description d'une source \(peut appara\356tre plusieurs fois\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 165 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (save_snap) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 165 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (bool) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 165 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (false) Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 165 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Sauvegarde des snapshots) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 147 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (save_interval) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 147 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (r\351el) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 147 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (--) Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 147 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Interval \(temps physique\) de sauvegarde des snapshots) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 129 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (model) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 111 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (save_traces) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 93 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (traces_interval) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 75 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (station_file) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 57 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (prorep) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 39 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (prorep_iter) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 21 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (verbose_level) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (neumann_cond) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+0 0 0 RG
+.25 w
+n 0 324 m 526.5827 324 l S
+n 0 306 m 526.5827 306 l S
+n 0 288 m 526.5827 288 l S
+n 0 270 m 526.5827 270 l S
+n 0 252 m 526.5827 252 l S
+n 0 234 m 526.5827 234 l S
+n 0 216 m 526.5827 216 l S
+n 0 198 m 526.5827 198 l S
+n 0 180 m 526.5827 180 l S
+n 0 162 m 526.5827 162 l S
+n 0 144 m 526.5827 144 l S
+n 0 126 m 526.5827 126 l S
+n 0 108 m 526.5827 108 l S
+n 0 90 m 526.5827 90 l S
+n 0 72 m 526.5827 72 l S
+n 0 54 m 526.5827 54 l S
+n 0 36 m 526.5827 36 l S
+n 0 18 m 526.5827 18 l S
+n 85.10427 0 m 85.10427 342 l S
+n 122.3374 0 m 122.3374 342 l S
+n 212.7607 0 m 212.7607 342 l S
+n 0 342 m 526.5827 342 l S
+n 0 0 m 526.5827 0 l S
+n 0 0 m 0 342 l S
+n 526.5827 0 m 526.5827 342 l S
+Q
+Q
+q
+1 0 0 1 34.34646 167.1701 cm
+Q
+q
+1 0 0 1 34.34646 149.1701 cm
+q
+BT 1 0 0 1 0 2 Tm 12 TL /F1 10 Tf 0 0 0 rg (Description de la section ) Tj /F3 10 Tf (time_scheme ) Tj /F1 10 Tf (:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 34.34646 143.1701 cm
+Q
+q
+1 0 0 1 34.34646 53.17008 cm
+1 1 1 rg
+n 0 90 526.5827 -18 re f*
+.878431 .878431 .878431 rg
+n 0 72 526.5827 -18 re f*
+1 1 1 rg
+n 0 54 526.5827 -18 re f*
+.878431 .878431 .878431 rg
+n 0 36 526.5827 -18 re f*
+1 1 1 rg
+n 0 18 526.5827 -18 re f*
+.960784 .960784 .862745 rg
+n 0 90 526.5827 -18 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 75 cm
+q
+.960784 .960784 .862745 rg
+n 0 0 73.10427 12 re f*
+Q
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 18.77214 0 Td (Mot-clef) Tj T* -18.77214 0 Td ET
+Q
+Q
+q
+1 0 0 1 91.10427 75 cm
+q
+.960784 .960784 .862745 rg
+n 0 0 25.23312 12 re f*
+Q
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 3.166559 0 Td (type) Tj T* -3.166559 0 Td ET
+Q
+Q
+q
+1 0 0 1 128.3374 75 cm
+q
+.960784 .960784 .862745 rg
+n 0 0 78.42329 12 re f*
+Q
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 1.691644 0 Td (valeur par d\351faut) Tj T* -1.691644 0 Td ET
+Q
+Q
+q
+1 0 0 1 218.7607 75 cm
+q
+.960784 .960784 .862745 rg
+n 0 0 301.822 12 re f*
+Q
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 125.906 0 Td (Description) Tj T* -125.906 0 Td ET
+Q
+Q
+0 0 0 rg
+q
+1 0 0 1 6 57 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (accel_scheme) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 39 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (veloc_scheme) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 21 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (alpha) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (beta) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+0 0 0 RG
+.25 w
+n 0 0 m 526.5827 0 l S
+n 0 72 m 526.5827 72 l S
+n 0 54 m 526.5827 54 l S
+n 0 36 m 526.5827 36 l S
+n 0 18 m 526.5827 18 l S
+n 85.10427 0 m 85.10427 90 l S
+n 122.3374 0 m 122.3374 90 l S
+n 212.7607 0 m 212.7607 90 l S
+n 0 90 m 526.5827 90 l S
+n 0 0 m 0 90 l S
+n 526.5827 0 m 526.5827 90 l S
+Q
+Q
+ 
+endstream
+endobj
+% 'R14': class PDFStream 
+14 0 obj
+% page stream
+<< /Length 8701 >>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 34.34646 775.3701 cm
+1 1 1 rg
+n 0 18 526.5827 -18 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (gamma) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+0 0 0 RG
+.25 w
+n 0 18 m 526.5827 18 l S
+n 85.10427 0 m 85.10427 18 l S
+n 122.3374 0 m 122.3374 18 l S
+n 212.7607 0 m 212.7607 18 l S
+n 0 0 m 0 18 l S
+n 526.5827 0 m 526.5827 18 l S
+n 0 0 m 526.5827 0 l S
+Q
+Q
+q
+1 0 0 1 34.34646 775.3701 cm
+Q
+q
+1 0 0 1 34.34646 757.3701 cm
+q
+BT 1 0 0 1 0 2 Tm 12 TL /F1 10 Tf 0 0 0 rg (Description de la section ) Tj /F3 10 Tf (source ) Tj /F1 10 Tf (:) Tj T* ET
+Q
+Q
+q
+1 0 0 1 34.34646 751.3701 cm
+Q
+q
+1 0 0 1 34.34646 553.3701 cm
+1 1 1 rg
+n 0 198 526.5827 -18 re f*
+.878431 .878431 .878431 rg
+n 0 180 526.5827 -18 re f*
+1 1 1 rg
+n 0 162 526.5827 -18 re f*
+.878431 .878431 .878431 rg
+n 0 144 526.5827 -18 re f*
+1 1 1 rg
+n 0 126 526.5827 -18 re f*
+.878431 .878431 .878431 rg
+n 0 108 526.5827 -18 re f*
+1 1 1 rg
+n 0 90 526.5827 -18 re f*
+.878431 .878431 .878431 rg
+n 0 72 526.5827 -18 re f*
+1 1 1 rg
+n 0 54 526.5827 -18 re f*
+.878431 .878431 .878431 rg
+n 0 36 526.5827 -18 re f*
+1 1 1 rg
+n 0 18 526.5827 -18 re f*
+.960784 .960784 .862745 rg
+n 0 198 526.5827 -18 re f*
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 183 cm
+q
+.960784 .960784 .862745 rg
+n 0 0 73.10427 12 re f*
+Q
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 18.77214 0 Td (Mot-clef) Tj T* -18.77214 0 Td ET
+Q
+Q
+q
+1 0 0 1 91.10427 183 cm
+q
+.960784 .960784 .862745 rg
+n 0 0 25.23312 12 re f*
+Q
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 3.166559 0 Td (type) Tj T* -3.166559 0 Td ET
+Q
+Q
+q
+1 0 0 1 128.3374 183 cm
+q
+.960784 .960784 .862745 rg
+n 0 0 78.42329 12 re f*
+Q
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 1.691644 0 Td (valeur par d\351faut) Tj T* -1.691644 0 Td ET
+Q
+Q
+q
+1 0 0 1 218.7607 183 cm
+q
+.960784 .960784 .862745 rg
+n 0 0 301.822 12 re f*
+Q
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 125.906 0 Td (Description) Tj T* -125.906 0 Td ET
+Q
+Q
+0 0 0 rg
+q
+1 0 0 1 6 165 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (coords) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 165 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (r\351el\(3\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 165 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (0 0 0) Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 165 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Position de la source) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 147 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (type) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 147 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (kw) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 147 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (--) Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 147 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Type spatial: impulse|moment|fluidpulse) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 129 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (dir) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 129 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (kw) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 129 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (--) Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 129 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Direction pour le type impulse ou fluidpulse \(val: x|y|z\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 111 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (func) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 111 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (kw) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 111 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (--) Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 111 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Type temporel: gaussian|ricker|tf_heaviside|gabor|file) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 93 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (moment) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 93 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (r\351el\(6\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 93 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (--) Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 93 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Moment xx yy zz xy yx xz pour le type moment) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 75 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (tau) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 75 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (r\351el) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 75 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (--) Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 75 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (offset de temps de d\351marrage de la source) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 57 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (freq) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 57 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (r\351el) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 57 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (--) Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 57 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Fr\351quence de coupure de la fct temporelle) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 39 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (band) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 39 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (r\351el\(4\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 39 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (--) Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 39 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Description des bornes pour tf_heaviside) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 21 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (ts) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 21 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (r\351el) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 21 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (--) Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 21 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Pour gabor ?) Tj T* ET
+Q
+Q
+q
+1 0 0 1 6 3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (time_file) Tj T* ET
+Q
+Q
+q
+1 0 0 1 91.10427 3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (cha\356ne) Tj T* ET
+Q
+Q
+q
+1 0 0 1 128.3374 3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (--) Tj T* ET
+Q
+Q
+q
+1 0 0 1 218.7607 3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Fichier contenant la source) Tj T* ET
+Q
+Q
+q
+1 J
+1 j
+0 0 0 RG
+.25 w
+n 0 180 m 526.5827 180 l S
+n 0 162 m 526.5827 162 l S
+n 0 144 m 526.5827 144 l S
+n 0 126 m 526.5827 126 l S
+n 0 108 m 526.5827 108 l S
+n 0 90 m 526.5827 90 l S
+n 0 72 m 526.5827 72 l S
+n 0 54 m 526.5827 54 l S
+n 0 36 m 526.5827 36 l S
+n 0 18 m 526.5827 18 l S
+n 85.10427 0 m 85.10427 198 l S
+n 122.3374 0 m 122.3374 198 l S
+n 212.7607 0 m 212.7607 198 l S
+n 0 198 m 526.5827 198 l S
+n 0 0 m 526.5827 0 l S
+n 0 0 m 0 198 l S
+n 526.5827 0 m 526.5827 198 l S
+Q
+Q
+q
+1 0 0 1 34.34646 553.3701 cm
+Q
+q
+1 0 0 1 34.34646 520.3701 cm
+q
+BT 1 0 0 1 0 3.5 Tm 21 TL /F2 17.5 Tf 0 0 0 rg (Exemple) Tj T* ET
+Q
+Q
+q
+1 0 0 1 34.34646 502.3701 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Le fichier ci-dessus correspond \340 celui d'un cas test) Tj T* ET
+Q
+Q
+q
+1 0 0 1 34.34646 49.17008 cm
+q
+q
+1 0 0 1 0 0 cm
+q
+1 0 0 1 6.6 6.6 cm
+q
+.662745 .662745 .662745 RG
+.5 w
+.960784 .960784 .862745 rg
+n -6 -6 525.3827 444 re B*
+Q
+q
+0 0 0 rg
+BT 1 0 0 1 0 422 Tm /F3 10 Tf 12 TL (# -*- mode: perl -*-) Tj T* (run_name = "Run_3D_trial";) Tj T*  T* (# duration of the run) Tj T* (sim_time = 1.0;) Tj T* (mesh_file = "mesh4spec"; # input mesh file) Tj T* (mat_file = "material.input";) Tj T*  T* (save_snap = true;) Tj T* (snap_interval = 0.01;) Tj T*  T* (save_traces = true;) Tj T* (# Fichier de description des capteurs) Tj T* (station_file = "file_station";) Tj T*  T*  T* (source {                 # introduce a source) Tj T* (# coordinates of the sources \(\(x,y,z\) or \(lat,long,R\) if rotundity is considered\)) Tj T* (coords = 0. 0. 0.;) Tj T* (type = impulse; # Type \(1 Impulse, 2 Moment Tensor, fluidpulse\)) Tj T* (dir = x;                      # Direction x,y ou z \(only for Impulse\)) Tj T* (func = ricker;          # Function gaussian,ricker,tf_heaviside,gabor,file) Tj T* (tau = 0.2;              # tau) Tj T* (freq = 5.;           # source main frequency \(only for Ricker\)) Tj T* (};) Tj T*  T*  T* (#gradient_file="gradients.dat"  # fichier gradient) Tj T*  T* (time_scheme {) Tj T* (    accel_scheme = false;  # Acceleration scheme for Newmark) Tj T* (    veloc_scheme = true;   # Velocity scheme for Newmark) Tj T* (    alpha = 0.5;           # alpha \(Newmark parameter\)) Tj T* (    beta = -0.5;           # beta \(Newmark parameter\)) Tj T* (    gamma = 1;             # gamma \(Newmark parameter\)) Tj T* (};) Tj T* ET
+Q
+Q
+Q
+Q
+Q
+ 
+endstream
+endobj
+% 'R15': class PDFPageLabels 
+15 0 obj
+% Document Root
+<< /Nums [ 0
+ 16 0 R
+ 1
+ 17 0 R ] >>
+endobj
+% 'R16': class PDFPageLabel 
+16 0 obj
+% None
+<< /S /D
+ /St 1 >>
+endobj
+% 'R17': class PDFPageLabel 
+17 0 obj
+% None
+<< /S /D
+ /St 2 >>
+endobj
+xref
+0 18
+0000000000 65535 f
+0000000113 00000 n
+0000000233 00000 n
+0000000398 00000 n
+0000000573 00000 n
+0000000732 00000 n
+0000001011 00000 n
+0000001290 00000 n
+0000001446 00000 n
+0000001692 00000 n
+0000001816 00000 n
+0000002010 00000 n
+0000002160 00000 n
+0000002275 00000 n
+0000014554 00000 n
+0000023358 00000 n
+0000023464 00000 n
+0000023541 00000 n
+trailer
+<< /ID 
+ % ReportLab generated PDF document -- digest (http://www.reportlab.com) 
+ [(\003\323j\276\303sf/\356w\303\356c\254\253\274) (\003\323j\276\303sf/\356w\303\356c\254\253\274)] 
+
+ /Info 8 0 R
+ /Root 7 0 R
+ /Size 18 >>
+startxref
+23588
+%%EOF
