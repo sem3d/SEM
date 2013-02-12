@@ -5,7 +5,7 @@ subroutine define_Neumann_properties(Tdomain,rank)
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in)  :: rank
-    integer :: ngll,ngll1,ngll2,mat_index,nf,ne,nv,nf_aus
+    integer :: ngll,ngll1,ngll2,nf,ne,nv,nf_aus
 
     ! allocations for faces, edges and vertices
     do nf = 0,Tdomain%Neumann%Neu_n_faces-1
