@@ -82,11 +82,8 @@ subroutine set_attenuation_param (Tdomain)
                             Q_P_old = Q_P
                         end if
 
-                        betaS(:) = 1.d0 - tau_sigma(:) / tau_mu(:)
-                        betaP(:) = 1.d0 - P_sigma(:) / P_mu(:)
-                        !          betaS(:) = 1.d0 - tau_mu(:) / tau_sigma(:)
-                        !          betaP(:) = 1.d0 - P_mu(:) / P_sigma(:)
-
+                        betaS(:) = 1.d0 - tau_mu(:) / tau_sigma(:)
+                        betaP(:) = 1.d0 - P_mu(:) / P_sigma(:)
 
                         factor_scale_mu0 = 1.d0
                         factor_scale_P0 = 1.d0
