@@ -72,6 +72,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/global_numbering.f90
     ${PRJ}/SRC/Modules/postraitement.f90
     ${PRJ}/SRC/read_input.f90
+    ${PRJ}/SRC/mesh3d.f90
     ${PRJ}/SRC/read_restart.f90
     ${PRJ}/SRC/save_checkpoint.f90
     ${PRJ}/SRC/savetrace.f90

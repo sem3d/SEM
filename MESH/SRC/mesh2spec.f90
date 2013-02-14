@@ -8,29 +8,29 @@ module mesh2spec
     use neumann
 
     type :: local_sf_info
-       logical :: present_local
-       integer :: n_faces
-       integer :: n_edges
-       integer :: n_vertices
+        logical :: present_local
+        integer :: n_faces
+        integer :: n_edges
+        integer :: n_vertices
 
-       integer, allocatable, dimension(:)   :: ne_shared
-       integer, allocatable, dimension(:)   :: nv_shared
-       integer, allocatable, dimension(:)   :: nf_shared
-       integer, allocatable, dimension(:)   :: face_orient
-       integer, allocatable, dimension(:)   :: mapping_edges
+        integer, allocatable, dimension(:)   :: ne_shared
+        integer, allocatable, dimension(:)   :: nv_shared
+        integer, allocatable, dimension(:)   :: nf_shared
+        integer, allocatable, dimension(:)   :: face_orient
+        integer, allocatable, dimension(:)   :: mapping_edges
 
-       integer, allocatable, dimension(:,:) :: Faces
-       integer, allocatable, dimension(:,:) :: Edges
-       integer, allocatable, dimension(:,:) :: Vertices
-       integer, allocatable, dimension(:,:) :: Face_Near_Edges
-       integer, allocatable, dimension(:,:) :: Face_Near_Edges_Orient
-       integer, allocatable, dimension(:,:) :: Face_Near_Vertices
-       integer, allocatable, dimension(:,:) :: faces_shared
-       integer, allocatable, dimension(:,:) :: edges_shared
-       integer, allocatable, dimension(:,:) :: vertices_shared
-       integer, allocatable, dimension(:,:) :: mapping_edges_shared
+        integer, allocatable, dimension(:,:) :: Faces
+        integer, allocatable, dimension(:,:) :: Edges
+        integer, allocatable, dimension(:,:) :: Vertices
+        integer, allocatable, dimension(:,:) :: Face_Near_Edges
+        integer, allocatable, dimension(:,:) :: Face_Near_Edges_Orient
+        integer, allocatable, dimension(:,:) :: Face_Near_Vertices
+        integer, allocatable, dimension(:,:) :: faces_shared
+        integer, allocatable, dimension(:,:) :: edges_shared
+        integer, allocatable, dimension(:,:) :: vertices_shared
+        integer, allocatable, dimension(:,:) :: mapping_edges_shared
 
-       integer, allocatable, dimension(:)   :: local_to_global_faces
+        integer, allocatable, dimension(:)   :: local_to_global_faces
 
     end type local_sf_info
 
@@ -55,7 +55,18 @@ module mesh2spec
 
         integer, allocatable, dimension(:)   :: local_to_global_faces
 
-     end type local_neu_info
+    end type local_neu_info
+
+    type :: shared_info
+        integer, dimension(:), allocatable :: nf
+        integer, dimension(:), allocatable :: ne
+        integer, dimension(:), allocatable :: nv
+        integer, dimension(:,:), allocatable :: vertices
+        integer, dimension(:,:), allocatable :: faces
+        integer, dimension(:,:), allocatable :: edges
+        integer, dimension(:,:), allocatable :: mapping_edges
+        integer, dimension(:,:), allocatable :: mapping_faces
+     end type shared_info
 contains
 
     !---------------------
@@ -65,7 +76,7 @@ contains
 
         !- general --
         integer   :: n,i,j,num, &
-            nel,nf,ne,nv,i_count,  &
+            nel,nf,  &
             nv0,nv1,n0,n1
         character(len=14) :: meshfilename
 
@@ -75,7 +86,6 @@ contains
         integer, allocatable :: material(:), Ipointer(:,:)
         real, allocatable  :: xco(:),yco(:),zco(:), Gcoord(:,:)
         integer  :: n_old_points
-        logical  :: curve
 
         !- nearest elements
         type(near_node), dimension(:), allocatable  :: initnode,prevnode,currnode
@@ -134,21 +144,19 @@ contains
         integer  :: proc, n_vertices, n_faces, n_edges, n_points_local
         integer, dimension(:), allocatable :: counter, elem_glob2loc, glob2loc,   &
             N_valid_Vertex, vertex_to_glob,        &
-            nelem_in_proc,  nf_shared, &
-            ne_shared, nv_shared, node_loc2glob
+            nelem_in_proc,  node_loc2glob
         integer, dimension(:,:), allocatable :: which_elem_in_proc,  &
-            Ipointer_local, vertices_shared, &
-            vertices
-        integer, dimension(:,:), allocatable :: faces, faces_shared, mapping_faces, &
-            mapping_faces_shared
-        integer, dimension(:,:), allocatable :: edges, edges_shared, mapping_edges, &
-            mapping_edges_shared
+            Ipointer_local, vertices
+        integer, dimension(:,:), allocatable :: faces,  mapping_faces
+        integer, dimension(:,:), allocatable :: edges, mapping_edges
+
+        ! Stuff shared between procs
+        type(shared_info) :: shared
         ! local Neumann objects
         type(local_neu_info) :: Neu
 
         !- local solid-fluid objects
         type(local_sf_info) :: SF
-        integer :: n_dim
 
         !--------------------------------------------------------------
         !- INITIALIZATIONS OF DIFFERENT MESH AND MATERIAL PROPERTIES
@@ -556,12 +564,12 @@ contains
             !  Are also determined: the faces shared between different procs
             allocate(faces(0:nelem_in_proc(proc)-1,0:5))
             allocate(mapping_faces(0:nelem_in_proc(proc)-1,0:5))
-            allocate(faces_shared(0:nproc-1,0:6*nelem_in_proc(proc)-1))
-            allocate(mapping_faces_shared(0:nproc-1,0:6*nelem_in_proc(proc)-1))
-            allocate(nf_shared(0:nproc-1))
+            allocate(shared%faces(0:nproc-1,0:6*nelem_in_proc(proc)-1))
+            allocate(shared%mapping_faces(0:nproc-1,0:6*nelem_in_proc(proc)-1))
+            allocate(shared%nf(0:nproc-1))
             call local_faces_construct(proc,part,nelem_in_proc,which_elem_in_proc,   &
                 Ipointer,dxadj,dxadjncy,n_faces,faces,mapping_faces,   &
-                faces_shared,mapping_faces_shared,nf_shared,memory)
+                shared%faces,shared%mapping_faces,shared%nf,memory)
 
 
             !- associating to each element: 12 edges
@@ -569,20 +577,20 @@ contains
             allocate(edges(0:nelem_in_proc(proc)-1,0:11))
             allocate(mapping_edges(0:nelem_in_proc(proc)-1,0:11))
             allocate(Elem_Edge_Ref(0:12*nelem_in_proc(proc)-1))
-            allocate(edges_shared(0:nproc-1,0:12*nelem_in_proc(proc)-1))
-            allocate(mapping_edges_shared(0:nproc-1,0:12*nelem_in_proc(proc)-1))
-            allocate(ne_shared(0:nproc-1))
+            allocate(shared%edges(0:nproc-1,0:12*nelem_in_proc(proc)-1))
+            allocate(shared%mapping_edges(0:nproc-1,0:12*nelem_in_proc(proc)-1))
+            allocate(shared%ne(0:nproc-1))
             call local_edges_construct(nproc,proc,part,nelem_in_proc,Elem_glob2loc,   &
                 which_elem_in_proc,Ipointer,near_elem_set,n_edges,           &
-                edges,mapping_edges,edges_shared,mapping_edges_shared,       &
-                ne_shared,Elem_edge_ref,memory)
+                edges,mapping_edges,shared%edges,shared%mapping_edges,       &
+                shared%ne,Elem_edge_ref,memory)
 
             !- defining vertices shared with other processors
-            allocate(vertices_shared(0:nproc-1,0:7*nelem_in_proc(proc)-1))
-            allocate(nv_shared(0:nproc-1))
+            allocate(shared%vertices(0:nproc-1,0:7*nelem_in_proc(proc)-1))
+            allocate(shared%nv(0:nproc-1))
             call local_vertices_comm(n_vertices,proc,nproc,nelem_in_proc,part,   &
                 vertex_to_glob,node_loc2glob,which_elem_in_proc,Ipointer,  &
-                vertices,near_elem_set,vertices_shared,nv_shared,memory)
+                vertices,near_elem_set,shared%vertices,shared%nv,memory)
 
 
             !- now we include eventual Neumann objects
@@ -741,161 +749,22 @@ contains
 
             !- writing the meshfile
             write(meshfilename(11:14), '(i4.4)') proc
-            open(11, file = trim(meshfilename))
-            n_dim = 3 ; curve = .false.
-            write(11,"(1i6,a)") n_dim
-            write(11,*) solid_fluid
-            write(11,*) all_fluid
-            write(11,*) Neumann_present
-            write(11,*) "Local nodes"
-            write(11,"(1i6,a)") n_points_local
-            write(11,*) curve
-            do n = 0,n_points_local-1
-                i_count = node_loc2glob(n)
-                write (11,*) Gcoord(i_count,0:2)
-            enddo
-            write(11,*) "Nb elements"
-            write(11,"(1i6,a)") nelem_in_proc(proc)
-            write(11,*) "Materials"
-            write(11,"(1i6,a)") n_blocks
-            do n = 0,nelem_in_proc(proc)-1
-                nel = which_elem_in_proc(proc,n)
-                write(11,"(i6,1x,l7)") Material(nel),elem_solid(nel)
-            enddo
-            write(11,*) "Global nodes for elements"
-            write(11,"(1i6,a)") n_nods
-            do n = 0,nelem_in_proc(proc)-1
-                write(11,"(8i6)") (Ipointer_local(i,n),i=0,n_nods-1)
-            enddo
-            write(11,*) "Faces"
-            write(11,"(1i6,a)") n_faces
-            do n = 0,nelem_in_proc(proc)-1
-                write(11,"(6i6)") (faces(n,i),i=0,5)
-                write(11,"(6i6)") (mapping_faces(n,i),i=0,5)
-            enddo
-            write(11,*) "Edges"
-            write(11,"(1i6,a)") n_edges
-            do n = 0,nelem_in_proc(proc)-1
-                write(11,"(12i6)") (edges(n,i),i=0,11)
-                write(11,"(12i6)") (mapping_edges(n,i),i=0,11)
-            enddo
-            write(11,*) "Vertices"
-            write(11,"(1i6,a)") n_vertices
-            do n = 0,nelem_in_proc(proc)-1
-                write(11,"(8i6)") (vertices(n,i),i=0,7)
-            enddo
-            write(11,*) "Vertex <-> global nodes"
-            do n = 0,n_vertices-1
-                write(11,*) vertex_to_glob(n)
-            end do
-            if(solid_fluid) then
-                write(11,*)
-                write(11,*) SF%present_local
-                if(SF%present_local)then
-                    write(11,*) "Solid Fluid properties"
-                    write(11,*) "Solid-Fluid Faces"
-                    write(11,*) SF%n_faces
-                    write(11,*) "4 Edges for each face"
-                    do n = 0,SF%n_faces-1
-                        write(11,"(4i6)") (SF%Face_Near_Edges(n,i),i=0,3)
-                        write(11,"(4i6)") (SF%Face_Near_Edges_Orient(n,i),i=0,3)
-                    enddo
-                    write(11,*) "4 Vertices for each face"
-                    do n = 0,SF%n_faces-1
-                        write(11,"(4i6)") (SF%Face_Near_Vertices(n,i),i=0,3)
-                    enddo
-                    write(11,*) "Glob number of fluid and solid faces and orientation of solid compared to fluid"
-                    do n = 0,SF%n_faces-1
-                        write(11,"(3i6)") SF%Faces(n,0),SF%Faces(n,1),SF%Face_Orient(n)
-                    enddo
-                    write(11,*) "Glob number of fluid and solid edges and orientation of solid compared to fluid"
-                    write(11,*) SF%n_edges
-                    do n = 0,SF%n_edges-1
-                        write(11,"(3i6)") SF%Edges(n,0),SF%Edges(n,1),SF%mapping_edges(n)
-                    enddo
-                    write(11,*) "Glob number SF vertices"
-                    write(11,*) SF%n_vertices
-                    do n = 0,SF%n_vertices-1
-                        write(11,"(2i6)") SF%Vertices(n,0),SF%Vertices(n,1)
-                    enddo
-                end if
-            endif
-            if(Neumann_present) then
-                write(11,*)
-                write(11,*) Neu%present_local
-                if(Neu%present_local)then
-                    write(11,*) "Neumann interface properties"
-                    write(11,*) "Neumann Faces"
-                    write(11,*) Neu%n_faces
-                    write(11,*) "4 Edges for each face"
-                    do n = 0,Neu%n_faces-1
-                        write(11,"(4i6)") (Neu%Face_Near_Edges(n,i),i=0,3)
-                        write(11,"(4i6)") (Neu%Face_Near_Edges_Orient(n,i),i=0,3)
-                    enddo
-                    write(11,*) "4 Vertices for each face"
-                    do n = 0,Neu%n_faces-1
-                        write(11,"(4i6)") (Neu%Face_Near_Vertices(n,i),i=0,3)
-                    enddo
-                    write(11,*) "Glob number Neumann faces"
-                    do n = 0,Neu%n_faces-1
-                        write(11,"(i6)") Neu%Faces(n)
-                    enddo
-                    write(11,*) "Glob number Neumann edges"
-                    write(11,*) Neu%n_edges
-                    do n = 0,Neu%n_edges-1
-                        write(11,"(i6)") Neu%Edges(n)
-                    enddo
-                    write(11,*) "Glob number Neumann vertices"
-                    write(11,*) Neu%n_vertices
-                    do n = 0,Neu%n_vertices-1
-                        write(11,"(i6)") Neu%Vertices(n)
-                    enddo
-                end if
-            endif
-            write(11,*)
 
-            write(11,*) "Communications between procs."
-            write(11,"(1i6,a)") nproc, "  #  Nb of procs"
-            do n = 0,nproc-1
-                write(11,"(3i6)") nf_shared(n),ne_shared(n),nv_shared(n)
-                if(SF%present_local)then
-                    write(11,"(3i6)") SF%nf_shared(n), SF%ne_shared(n),SF%nv_shared(n)
-                end if
-                if(Neu%present_local)then
-                    write(11,"(3i6)")  Neu%ne_shared(n),Neu%nv_shared(n)
-                end if
-                do nf = 0,nf_shared(n)-1
-                    write(11,"(2i6)") faces_shared(n,nf),mapping_faces_shared(n,nf)
-                enddo
-                do ne = 0,ne_shared(n)-1
-                    write(11,"(2i6)") edges_shared(n,ne),mapping_edges_shared(n,ne)
-                enddo
-                do nv = 0,nv_shared(n)-1
-                    write(11,"(2i6)") vertices_shared(n,nv)
-                enddo
-                if(SF%present_local)then
-                    do nf = 0,SF%nf_shared(n)-1
-                        write(11,"(1i6)") SF%faces_shared(n,nf)
-                    enddo
-                    do ne = 0,SF%ne_shared(n)-1
-                        write(11,"(2i6)") SF%edges_shared(n,ne),SF%mapping_edges_shared(n,ne)
-                    enddo
-                    do nv = 0,SF%nv_shared(n)-1
-                        write(11,"(2i6)") SF%vertices_shared(n,nv)
-                    enddo
-                end if
-                if(Neu%present_local)then
-                    do ne = 0,Neu%ne_shared(n)-1
-                        write(11,"(2i6)") Neu%edges_shared(n,ne),Neu%mapping_edges_shared(n,ne)
-                    enddo
-                    do nv = 0,Neu%nv_shared(n)-1
-                        write(11,"(i6)") Neu%vertices_shared(n,nv)
-                    enddo
-                end if
+            call write_mesh_file_txt(meshfilename,solid_fluid,all_fluid,Neumann_present, &
+                n_elem,n_points,n_points_local,n_blocks,n_edges,n_faces,n_nods,n_vertices, &
+                SF, Neu, shared, &
+                material, elem_solid, Ipointer_local, &
+                faces, mapping_faces, edges, mapping_edges, vertices, &
+                node_loc2glob,Gcoord,vertex_to_glob, &
+                which_elem_in_proc,nelem_in_proc,proc,nproc)
 
-            enddo
-            close(11)
-
+            call write_mesh_file_h5(meshfilename//".h5",solid_fluid,all_fluid,Neumann_present, &
+                n_elem,n_points,n_points_local,n_blocks,n_edges,n_faces,n_nods,n_vertices, &
+                SF, Neu, shared, &
+                material, elem_solid, Ipointer_local, &
+                faces, mapping_faces, edges, mapping_edges, vertices, &
+                node_loc2glob,Gcoord,vertex_to_glob, &
+                which_elem_in_proc,nelem_in_proc,proc,nproc)
 
 
             ! - deallocations on each proc
@@ -906,17 +775,17 @@ contains
             deallocate(vertex_to_glob)
             deallocate(faces)
             deallocate(mapping_faces)
-            deallocate(faces_shared)
-            deallocate(mapping_faces_shared)
-            deallocate(nf_shared)
+            deallocate(shared%faces)
+            deallocate(shared%mapping_faces)
+            deallocate(shared%nf)
             deallocate(edges)
             deallocate(mapping_edges)
             deallocate(Elem_Edge_ref)
-            deallocate(edges_shared)
-            deallocate(mapping_edges_shared)
-            deallocate(ne_shared)
-            deallocate(vertices_shared)
-            deallocate(nv_shared)
+            deallocate(shared%edges)
+            deallocate(shared%mapping_edges)
+            deallocate(shared%ne)
+            deallocate(shared%vertices)
+            deallocate(shared%nv)
 
             ! deallocations if SF objects present locally
             if(SF%present_local)then
@@ -955,7 +824,6 @@ contains
 
             !- end of the loop on processors -!
         end do
-
         deallocate(which_points_inside)
         !---------------------------------------
         deallocate(elem_solid)
@@ -1013,6 +881,377 @@ contains
     end subroutine gen_mesh
 
     !-------------------------------------------------
+
+    subroutine write_mesh_file_txt(meshfilename,solid_fluid,all_fluid,Neumann_present, &
+        n_elem,n_points,n_points_local,n_blocks,n_edges,n_faces,n_nods,n_vertices, &
+        SF, Neu, shared, &
+        material, elem_solid, Ipointer_local, &
+        faces, mapping_faces, edges, mapping_edges, vertices, &
+        node_loc2glob,Gcoord,vertex_to_glob, &
+        which_elem_in_proc,nelem_in_proc,proc,nproc)
+        implicit none
+        character(len=14),intent(in) :: meshfilename
+        real, intent(in), dimension(0:n_points-1,0:2)      :: Gcoord
+        integer, intent(in)          :: proc, nproc
+        logical, intent(in)          :: all_fluid, solid_fluid
+        logical, intent(in)          :: Neumann_present
+        integer, intent(in)          :: n_elem,n_points, n_points_local, n_blocks
+        integer, intent(in)          :: n_edges, n_faces, n_nods, n_vertices
+        integer, intent(in), dimension(0:n_points_local-1) :: node_loc2glob
+        integer, intent(in), dimension(0:nproc-1)          :: nelem_in_proc
+        integer, intent(in), dimension(0:nproc-1,0:maxval(nelem_in_proc)-1) :: which_elem_in_proc
+        integer, intent(in), dimension(0:n_elem-1) :: material
+        logical, intent(in), dimension(0:n_elem-1) :: elem_solid
+        integer, intent(in), dimension(0:n_nods-1,0:nelem_in_proc(proc)-1) :: Ipointer_local
+        integer, intent(in), dimension(0:nelem_in_proc(proc)-1,0:5)  :: faces
+        integer, intent(in), dimension(0:nelem_in_proc(proc)-1,0:5)  :: mapping_faces
+        integer, intent(in), dimension(0:nelem_in_proc(proc)-1,0:11) :: edges
+        integer, intent(in), dimension(0:nelem_in_proc(proc)-1,0:11) :: mapping_edges
+        integer, intent(in), dimension(0:nelem_in_proc(proc)-1,0:7)  :: vertices
+        integer, intent(in), dimension(0:8*nelem_in_proc(proc)-1)    :: vertex_to_glob
+        type(local_sf_info), intent(in) :: SF
+        type(local_neu_info), intent(in) :: Neu
+        type(shared_info), intent(in) :: shared
+        !
+        logical :: curve
+        integer :: n_dim, i, i_count, n, ne, nv, nf, nel
+        !
+        open(11, file = trim(meshfilename))
+        n_dim = 3 ; curve = .false.
+        write(11,"(1i6,a)") n_dim
+        write(11,*) solid_fluid
+        write(11,*) all_fluid
+        write(11,*) Neumann_present
+        write(11,*) "Local nodes"
+        write(11,"(1i6,a)") n_points_local
+        write(11,*) curve
+        do n = 0,n_points_local-1
+            i_count = node_loc2glob(n)
+            write (11,*) Gcoord(i_count,0:2)
+        enddo
+        write(11,*) "Nb elements"
+        write(11,"(1i6,a)") nelem_in_proc(proc)
+        write(11,*) "Materials"
+        write(11,"(1i6,a)") n_blocks
+        do n = 0,nelem_in_proc(proc)-1
+            nel = which_elem_in_proc(proc,n)
+            write(11,"(i6,1x,l7)") Material(nel),elem_solid(nel)
+        enddo
+        write(11,*) "Global nodes for elements"
+        write(11,"(1i6,a)") n_nods
+        do n = 0,nelem_in_proc(proc)-1
+            write(11,"(8i6)") (Ipointer_local(i,n),i=0,n_nods-1)
+        enddo
+        write(11,*) "Faces"
+        write(11,"(1i6,a)") n_faces
+        do n = 0,nelem_in_proc(proc)-1
+            write(11,"(6i6)") (faces(n,i),i=0,5)
+            write(11,"(6i6)") (mapping_faces(n,i),i=0,5)
+        enddo
+        write(11,*) "Edges"
+        write(11,"(1i6,a)") n_edges
+        do n = 0,nelem_in_proc(proc)-1
+            write(11,"(12i6)") (edges(n,i),i=0,11)
+            write(11,"(12i6)") (mapping_edges(n,i),i=0,11)
+        enddo
+        write(11,*) "Vertices"
+        write(11,"(1i6,a)") n_vertices
+        do n = 0,nelem_in_proc(proc)-1
+            write(11,"(8i6)") (vertices(n,i),i=0,7)
+        enddo
+        write(11,*) "Vertex <-> global nodes"
+        do n = 0,n_vertices-1
+            write(11,*) vertex_to_glob(n)
+        end do
+        if(solid_fluid) then
+            write(11,*)
+            write(11,*) SF%present_local
+            if(SF%present_local)then
+                write(11,*) "Solid Fluid properties"
+                write(11,*) "Solid-Fluid Faces"
+                write(11,*) SF%n_faces
+                write(11,*) "4 Edges for each face"
+                do n = 0,SF%n_faces-1
+                    write(11,"(4i6)") (SF%Face_Near_Edges(n,i),i=0,3)
+                    write(11,"(4i6)") (SF%Face_Near_Edges_Orient(n,i),i=0,3)
+                enddo
+                write(11,*) "4 Vertices for each face"
+                do n = 0,SF%n_faces-1
+                    write(11,"(4i6)") (SF%Face_Near_Vertices(n,i),i=0,3)
+                enddo
+                write(11,*) "Glob number of fluid and solid faces and orientation of solid compared to fluid"
+                do n = 0,SF%n_faces-1
+                    write(11,"(3i6)") SF%Faces(n,0),SF%Faces(n,1),SF%Face_Orient(n)
+                enddo
+                write(11,*) "Glob number of fluid and solid edges and orientation of solid compared to fluid"
+                write(11,*) SF%n_edges
+                do n = 0,SF%n_edges-1
+                    write(11,"(3i6)") SF%Edges(n,0),SF%Edges(n,1),SF%mapping_edges(n)
+                enddo
+                write(11,*) "Glob number SF vertices"
+                write(11,*) SF%n_vertices
+                do n = 0,SF%n_vertices-1
+                    write(11,"(2i6)") SF%Vertices(n,0),SF%Vertices(n,1)
+                enddo
+            end if
+        endif
+        if(Neumann_present) then
+            write(11,*)
+            write(11,*) Neu%present_local
+            if(Neu%present_local)then
+                write(11,*) "Neumann interface properties"
+                write(11,*) "Neumann Faces"
+                write(11,*) Neu%n_faces
+                write(11,*) "4 Edges for each face"
+                do n = 0,Neu%n_faces-1
+                    write(11,"(4i6)") (Neu%Face_Near_Edges(n,i),i=0,3)
+                    write(11,"(4i6)") (Neu%Face_Near_Edges_Orient(n,i),i=0,3)
+                enddo
+                write(11,*) "4 Vertices for each face"
+                do n = 0,Neu%n_faces-1
+                    write(11,"(4i6)") (Neu%Face_Near_Vertices(n,i),i=0,3)
+                enddo
+                write(11,*) "Glob number Neumann faces"
+                do n = 0,Neu%n_faces-1
+                    write(11,"(i6)") Neu%Faces(n)
+                enddo
+                write(11,*) "Glob number Neumann edges"
+                write(11,*) Neu%n_edges
+                do n = 0,Neu%n_edges-1
+                    write(11,"(i6)") Neu%Edges(n)
+                enddo
+                write(11,*) "Glob number Neumann vertices"
+                write(11,*) Neu%n_vertices
+                do n = 0,Neu%n_vertices-1
+                    write(11,"(i6)") Neu%Vertices(n)
+                enddo
+            end if
+        endif
+        write(11,*)
+
+        write(11,*) "Communications between procs."
+        write(11,"(1i6,a)") nproc, "  #  Nb of procs"
+        do n = 0,nproc-1
+            write(11,"(3i6)") shared%nf(n),shared%ne(n),shared%nv(n)
+            if(SF%present_local)then
+                write(11,"(3i6)") SF%nf_shared(n), SF%ne_shared(n),SF%nv_shared(n)
+            end if
+            if(Neu%present_local)then
+                write(11,"(3i6)")  Neu%ne_shared(n),Neu%nv_shared(n)
+            end if
+            do nf = 0,shared%nf(n)-1
+                write(11,"(2i6)") shared%faces(n,nf),shared%mapping_faces(n,nf)
+            enddo
+            do ne = 0,shared%ne(n)-1
+                write(11,"(2i6)") shared%edges(n,ne),shared%mapping_edges(n,ne)
+            enddo
+            do nv = 0,shared%nv(n)-1
+                write(11,"(2i6)") shared%vertices(n,nv)
+            enddo
+            if(SF%present_local)then
+                do nf = 0,SF%nf_shared(n)-1
+                    write(11,"(1i6)") SF%faces_shared(n,nf)
+                enddo
+                do ne = 0,SF%ne_shared(n)-1
+                    write(11,"(2i6)") SF%edges_shared(n,ne),SF%mapping_edges_shared(n,ne)
+                enddo
+                do nv = 0,SF%nv_shared(n)-1
+                    write(11,"(2i6)") SF%vertices_shared(n,nv)
+                enddo
+            end if
+            if(Neu%present_local)then
+                do ne = 0,Neu%ne_shared(n)-1
+                    write(11,"(2i6)") Neu%edges_shared(n,ne),Neu%mapping_edges_shared(n,ne)
+                enddo
+                do nv = 0,Neu%nv_shared(n)-1
+                    write(11,"(i6)") Neu%vertices_shared(n,nv)
+                enddo
+            end if
+
+        enddo
+        close(11)
+    end subroutine write_mesh_file_txt
+
+    subroutine write_mesh_file_h5(meshfilename,solid_fluid,all_fluid,Neumann_present, &
+        n_elem,n_points,n_points_local,n_blocks,n_edges,n_faces,n_nods,n_vertices, &
+        SF, Neu, shared, &
+        material, elem_solid, Ipointer_local, &
+        faces, mapping_faces, edges, mapping_edges, vertices, &
+        node_loc2glob,Gcoord,vertex_to_glob, &
+        which_elem_in_proc,nelem_in_proc,proc,nproc)
+        use hdf5
+        use sem_hdf5
+        implicit none
+        character(len=17),intent(in) :: meshfilename
+        real, intent(in), dimension(0:n_points-1,0:2)      :: Gcoord
+        integer, intent(in)          :: proc, nproc
+        logical, intent(in)          :: all_fluid, solid_fluid
+        logical, intent(in)          :: Neumann_present
+        integer, intent(in)          :: n_elem,n_points, n_points_local, n_blocks
+        integer, intent(in)          :: n_edges, n_faces, n_nods, n_vertices
+        integer, intent(in), dimension(0:n_points_local-1) :: node_loc2glob
+        integer, intent(in), dimension(0:nproc-1)          :: nelem_in_proc
+        integer, intent(in), dimension(0:nproc-1,0:maxval(nelem_in_proc)-1) :: which_elem_in_proc
+        integer, intent(in), dimension(0:n_elem-1) :: material
+        logical, intent(in), dimension(0:n_elem-1) :: elem_solid
+        integer, intent(in), dimension(0:n_nods-1,0:nelem_in_proc(proc)-1) :: Ipointer_local
+        integer, intent(in), dimension(0:nelem_in_proc(proc)-1,0:5)  :: faces
+        integer, intent(in), dimension(0:nelem_in_proc(proc)-1,0:5)  :: mapping_faces
+        integer, intent(in), dimension(0:nelem_in_proc(proc)-1,0:11) :: edges
+        integer, intent(in), dimension(0:nelem_in_proc(proc)-1,0:11) :: mapping_edges
+        integer, intent(in), dimension(0:nelem_in_proc(proc)-1,0:7)  :: vertices
+        integer, intent(in), dimension(0:8*nelem_in_proc(proc)-1)    :: vertex_to_glob
+        type(local_sf_info), intent(in) :: SF
+        type(local_neu_info), intent(in) :: Neu
+        type(shared_info), intent(in) :: shared
+        !
+        logical :: curve
+        integer :: n_dim, i, i_count, n, ne, nv, nf, nel
+        integer(HSIZE_T), dimension(2) :: dims
+        real, allocatable, dimension(:,:) :: rtemp2
+        integer, allocatable, dimension(:,:) :: itemp2
+        integer(HID_T) :: dset_id, fid, proc_id
+        integer :: hdferr
+        character(Len=20) :: proc_grp
+        !
+        curve = .false.
+        !
+        call init_hdf5()
+        !
+        call h5fcreate_f(meshfilename, H5F_ACC_TRUNC_F, fid, hdferr)
+        !
+        !! Attributes
+        call write_attr_int(fid, "ndim", 3)
+        call write_attr_int(fid, "n_processors", nproc)
+        call write_attr_int(fid, "n_materials", n_blocks)
+        call write_attr_int(fid, "n_elements", nelem_in_proc(proc))
+        call write_attr_int(fid, "n_faces", n_faces)
+        call write_attr_int(fid, "n_edges", n_edges)
+        call write_attr_int(fid, "n_vertices", n_vertices)
+        call write_attr_bool(fid, "solid_fluid", solid_fluid)
+        call write_attr_bool(fid, "solid_fluid_loc", SF%present_local)
+        call write_attr_bool(fid, "all_fluid", all_fluid)
+        call write_attr_bool(fid, "neumann_present", neumann_present)
+        call write_attr_bool(fid, "neumann_present_loc", Neu%present_local)
+        call write_attr_bool(fid, "curve", curve)
+
+
+
+        dims(1) = 3
+        dims(2) = n_points_local
+
+        ! Local nodes
+
+        allocate(rtemp2(0:2,0:n_points_local-1))
+        do n = 0,n_points_local-1
+            i_count = node_loc2glob(n)
+            rtemp2(0:2,n) = Gcoord(i_count,0:2)
+        enddo
+        call write_dataset(fid, "local_nodes", rtemp2, hdferr)
+        deallocate(rtemp2)
+
+        ! Material table and solid fluid flag
+        dims(1) = 2
+        dims(2) = nelem_in_proc(proc)
+
+        allocate(itemp2(0:1,0:dims(2)-1))
+        do i=0,nelem_in_proc(proc)-1
+            nel = which_elem_in_proc(proc,i)
+            itemp2(0,i) = Material(nel)
+            if (elem_solid(nel)) then
+                itemp2(1,i) = 1
+            else
+                itemp2(1,i) = 0
+            end if
+        end do
+        call write_dataset(fid, "material", itemp2, hdferr)
+        deallocate(itemp2)
+
+        ! Global node indexes per element
+        call write_dataset(fid, "elements", Ipointer_local, hdferr)
+
+        !Faces
+        call write_dataset(fid, "faces", transpose(faces), hdferr)
+        call write_dataset(fid, "faces_map", transpose(mapping_faces), hdferr)
+
+        !Edges
+        call write_dataset(fid, "edges", transpose(edges), hdferr)
+        call write_dataset(fid, "edges_map", transpose(mapping_edges), hdferr)
+
+        ! Vertices
+        call write_dataset(fid, "vertices", transpose(vertices), hdferr)
+        call write_dataset(fid, "vertices_to_global", vertex_to_glob(0:n_vertices-1), hdferr)
+
+        if (solid_fluid .and. SF%present_local) then
+            call write_dataset(fid, "sf_face_near_edges", transpose(SF%Face_Near_Edges), hdferr)
+            call write_dataset(fid, "sf_face_near_edges_orient", transpose(SF%Face_Near_Edges_Orient), hdferr)
+            call write_dataset(fid, "sf_face_near_vertices", transpose(SF%Face_Near_Vertices), hdferr)
+            call write_dataset(fid, "sf_face_glob_interface", transpose(SF%faces), hdferr)
+            call write_dataset(fid, "sf_face_orient", SF%face_orient, hdferr)
+            call write_dataset(fid, "sf_edge_glob_interface", transpose(SF%edges), hdferr)
+            call write_dataset(fid, "sf_edge_orient", SF%mapping_edges, hdferr)
+            call write_dataset(fid, "sf_vertex_glob_interface", transpose(SF%vertices), hdferr)
+        end if
+
+        if (Neumann_present .and. Neu%present_local) then
+            call write_dataset(fid, "neu_face_near_edges", transpose(Neu%Face_Near_Edges), hdferr)
+            call write_dataset(fid, "neu_face_near_edges_orient", transpose(Neu%Face_Near_Edges_Orient), hdferr)
+            call write_dataset(fid, "neu_face_near_vertices", transpose(Neu%Face_Near_Vertices), hdferr)
+            call write_dataset(fid, "neu_face_glob_interface", Neu%faces, hdferr)
+            call write_dataset(fid, "neu_edge_glob_interface", Neu%edges, hdferr)
+            call write_dataset(fid, "neu_vertex_glob_interface", Neu%vertices, hdferr)
+
+        end if
+
+        ! Communications
+        do n=0,nproc-1
+            write(proc_grp,"(a,I4.4)") "Proc", n
+            call h5gcreate_f(fid, trim(adjustl(proc_grp)), proc_id, hdferr, 0_SIZE_T)
+
+            call write_attr_int(proc_id, "n_faces", shared%nf(n))
+            call write_attr_int(proc_id, "n_edges", shared%ne(n))
+            call write_attr_int(proc_id, "n_vertices", shared%nv(n))
+            if (SF%present_local) then
+                call write_attr_int(proc_id, "n_sf_faces", SF%nf_shared(n))
+                call write_attr_int(proc_id, "n_sf_edges", SF%ne_shared(n))
+                call write_attr_int(proc_id, "n_sf_vertices", SF%nv_shared(n))
+            else
+                call write_attr_int(proc_id, "n_sf_faces", 0)
+                call write_attr_int(proc_id, "n_sf_edges", 0)
+                call write_attr_int(proc_id, "n_sf_vertices", 0)
+            endif
+            if (Neu%present_local) then
+                call write_attr_int(proc_id, "n_neu_edges", Neu%ne_shared(n))
+                call write_attr_int(proc_id, "n_neu_vertices", Neu%nv_shared(n))
+            else
+                call write_attr_int(proc_id, "n_neu_edges", 0)
+                call write_attr_int(proc_id, "n_neu_vertices", 0)
+            endif
+
+
+            call write_dataset(proc_id, "faces", shared%faces(n,0:shared%nf(n)-1), hdferr)
+            call write_dataset(proc_id, "faces_map", shared%mapping_faces(n,0:shared%nf(n)-1), hdferr)
+            call write_dataset(proc_id, "edges", shared%edges(n,0:shared%ne(n)-1), hdferr)
+            call write_dataset(proc_id, "edges_map", shared%mapping_edges(n,0:shared%ne(n)-1), hdferr)
+            call write_dataset(proc_id, "vertices", shared%vertices(n,0:shared%nv(n)-1), hdferr)
+
+            if (SF%present_local) then
+                call write_dataset(proc_id, "sf_faces", SF%faces_shared(n,0:SF%nf_shared(n)-1), hdferr)
+                call write_dataset(proc_id, "sf_edges", SF%edges_shared(n,0:SF%ne_shared(n)-1), hdferr)
+                call write_dataset(proc_id, "sf_edges_map", SF%mapping_edges_shared(n,0:SF%ne_shared(n)-1), hdferr)
+                call write_dataset(proc_id, "sf_vertices", SF%vertices_shared(n,0:SF%nv_shared(n)-1), hdferr)
+            end if
+            if(Neu%present_local)then
+                call write_dataset(proc_id, "neu_edges", Neu%edges_shared(n,0:Neu%ne_shared(n)-1), hdferr)
+                call write_dataset(proc_id, "neu_edges_map", Neu%mapping_edges_shared(n,0:Neu%ne_shared(n)-1), hdferr)
+                call write_dataset(proc_id, "neu_vertices", Neu%vertices_shared(n,0:Neu%nv_shared(n)-1), hdferr)
+            end if
+        end do
+
+
+        call h5fclose_f(fid, hdferr)
+
+    end subroutine write_mesh_file_h5
 
 end module mesh2spec
 !! Local Variables:
