@@ -46,7 +46,7 @@ contains
 
         dims(1) = 3
         dims(2) = Tdomain%n_glob_points
-        call create_dset_2d(fid, "Nodes", H5T_IEEE_F64LE, 3, Tdomain%n_glob_points, nodes_id)
+        call create_dset_2d(fid, "Nodes", H5T_IEEE_F64LE, dims(1), dims(2), nodes_id)
         call h5dwrite_f(nodes_id, H5T_NATIVE_DOUBLE, Tdomain%GlobCoord, dims, hdferr)
         call h5dclose_f(nodes_id, hdferr)
 
@@ -69,7 +69,8 @@ contains
         integer(HSIZE_T), dimension(2) :: dims
         integer, dimension(:,:), allocatable :: data
         integer, dimension(:), allocatable :: mat
-        integer :: count, i, j, k, n
+        integer :: count
+        integer :: i, j, k, n
         integer :: hdferr
 
         ! First we count the number of hexaedrons

@@ -2,9 +2,6 @@
   See Liu, Anderson & Kanamori (GJRAS, 47, 41-58, 1976) for details
 */
 
-/*
-  #include "../../cpp_define"
-*/
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdio.h>

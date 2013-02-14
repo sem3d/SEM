@@ -6,33 +6,16 @@
 !! \date
 !!
 !<
-
-!! initial
-!!subroutine calcul_forces_att(Fox,Foy,Foz, xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3, &
-!!     dx,dy,dz, jac, poidsx,poidsy,poidsz, DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
-!!     mu_,ka_, ngllx,nglly,ngllz, n_solid, onemSbeta_, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_, &
-!!     onemPbeta_, R_vol_)
 subroutine calcul_forces_att(Fox,Foy,Foz, xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3, &
     dx,dy,dz, jac, poidsx,poidsy,poidsz, DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
     mu_,ka_, ngllx,nglly,ngllz, n_solid, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_,R_vol_)
-    !                             mu_,la_, ngllx,nglly,ngllz, n_solid, onemSbeta_, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_)
-
-    !                             Elem%Mu, Elem%Kappa, &
-    !                             m1,m2,m3, n_solid, &
-    !                             Elem%onemSbeta, Elem%R_xx_, Elem%R_yy_, &
-    !                             Elem%R_xy_, Elem%R_xz_, Elem%R_yz_, &
-    !                             Elem%onemPbeta, Elem%R_vol_)
-
-    !                             Elem%Mu, Elem%Lambda, &
-    !                             m1,m2,m3, n_solid, &
-    !                             Elem%onemSbeta, Elem%R_xx_, Elem%R_yy_, &
-    !                             Elem%R_xy_, Elem%R_xz_, Elem%R_yz_)
     use sdomain
 
     implicit none
 
     integer, intent(in) :: ngllx,nglly,ngllz, n_solid
-    real, dimension(0:n_solid-1,0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: R_vol_,R_xx_,R_yy_,R_xy_,R_xz_,R_yz_
+    real, dimension(0:n_solid-1,0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: R_vol_,R_xx_,R_yy_
+    real, dimension(0:n_solid-1,0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: R_xy_,R_xz_,R_yz_
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: xi1,xi2,xi3, et1,et2,et3, &
         ga1,ga2,ga3, jac, mu_,ka_, &
         DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
@@ -49,11 +32,7 @@ subroutine calcul_forces_att(Fox,Foy,Foz, xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3, &
     real :: xpression , stt
     real :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
-    real, parameter :: deuxtiers = 0.666666666666667, &
-        quatretiers = 1.333333333333337, &
-        s2 = 1.414213562373095, &
-        s2o2 = 0.707106781186547, &
-        zero = 0., two = 2.
+    real, parameter :: zero = 0.
     integer :: i,j,k,l, i_sls
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: xmu,x2mu,xkappa
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t1,t5,t8,t2,t6,t9
@@ -66,28 +45,11 @@ subroutine calcul_forces_att(Fox,Foy,Foz, xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3, &
     xkappa(:,:,:) = ka_(:,:,:)
     !  modif mariotti fevrier 2007 cea
     !xkappa(:,:,:) = xkappa(:,:,:) * onemPbeta_(:,:,:)
-    x2mu(:,:,:) = two * xmu(:,:,:)
+    x2mu(:,:,:) = 2. * xmu(:,:,:)
 
     do k = 0,ngllz-1
         do j = 0,nglly-1
             do i = 0,ngllx-1
-
-
-                !if ( i== 0 .and. j == 0 .and. k == 0 ) then
-                !print*,' xkappa ', xkappa(i,j,k)
-                !print*,' xmu ', xmu(i,j,k)
-                !print*,' x2mu ', x2mu(i,j,k)
-                !print*,' onemSbeta ', onemSbeta_(i,j,k)
-                !print*,' xlambda ', xkappa(i,j,k)-(x2mu(i,j,k)/3.)
-                !print*,' R_vol ', R_vol_(0,i,j,k)
-                !if ( R_xx_(0,i,j,k)*R_xx_(0,i,j,k) > 0. ) then
-                !print*,' R_xx ', R_xx_(0,i,j,k)
-                !endif
-                !print*,' R_yy ', R_yy_(0,i,j,k)
-                !print*,' R_xy ', R_xy_(0,i,j,k)
-                !print*,' R_xz ', R_xz_(0,i,j,k)
-                !print*,' R_yz ', R_yz_(0,i,j,k)
-                !endif
                 xpression = xkappa(i,j,k) * ( DXX(i,j,k) + &
                     DYY(i,j,k) + DZZ(i,j,k) )
 
@@ -124,9 +86,6 @@ subroutine calcul_forces_att(Fox,Foy,Foz, xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3, &
                 sxx = sxx - stt + xpression
                 syy = syy - stt + xpression
                 szz = szz - stt + xpression
-                !if ( i== 0 .and. j == 0 .and. k == 0 ) then
-                !print*,' stt xpression ',3.*stt/x2mu(i,j,k),xpression/xkappa(i,j,k)
-                !endif
                 !
                 !=====================
                 !       FX

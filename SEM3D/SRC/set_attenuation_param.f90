@@ -106,8 +106,6 @@ subroutine set_attenuation_param (Tdomain)
                             b_val = b_val + w_c_source * (tau_mu(i_count) - tau_sigma(i_count)) / &
                                 (1.d0 + w_c_source*w_c_source*tau_mu(i_count)*tau_mu(i_count))
                             one_minus_sum_betaS = one_minus_sum_betaS - betaS(i_count)
-                            !     print*,' a_val ',a_val,tau_mu(i_count),tau_sigma(i_count),tau_mu(i_count)-tau_sigma(i_count)
-                            !     print*,' one_minus_sum_betaS ',one_minus_sum_betaS
                             !   partie isotrope
                             aP_val = aP_val + w_c_source * w_c_source * P_mu(i_count) * &
                                 (P_mu(i_count) - P_sigma(i_count)) / &

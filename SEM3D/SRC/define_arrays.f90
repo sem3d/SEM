@@ -495,7 +495,8 @@ subroutine Define_Arrays(Tdomain, rg)
                         ngllNeu = ngllNeu + 1
                     enddo
                 else
-                    print*,'Pb with coherency number for edge'
+                    print*,'Pb with coherency number for edge in define arrays'
+                    STOP 1
                 endif
             enddo
             do i = 0,Tdomain%sComm(n)%Neu_nv_shared-1

@@ -447,8 +447,8 @@ subroutine Comm_Mass_Edge (Tdomain,n,ngll,ngllPML)
             endif
 
         else
-            print*,'Pb with coherency number for edge'
-
+            print*,'Pb with coherency number for edges in Comm_Mass_Edge', i, Tdomain%sComm(n)%orient_edges(i)
+            STOP 1
         endif
 
     enddo
