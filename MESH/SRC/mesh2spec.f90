@@ -750,13 +750,13 @@ contains
             !- writing the meshfile
             write(meshfilename(11:14), '(i4.4)') proc
 
-            call write_mesh_file_txt(meshfilename,solid_fluid,all_fluid,Neumann_present, &
-                n_elem,n_points,n_points_local,n_blocks,n_edges,n_faces,n_nods,n_vertices, &
-                SF, Neu, shared, &
-                material, elem_solid, Ipointer_local, &
-                faces, mapping_faces, edges, mapping_edges, vertices, &
-                node_loc2glob,Gcoord,vertex_to_glob, &
-                which_elem_in_proc,nelem_in_proc,proc,nproc)
+            !call write_mesh_file_txt(meshfilename,solid_fluid,all_fluid,Neumann_present, &
+            !    n_elem,n_points,n_points_local,n_blocks,n_edges,n_faces,n_nods,n_vertices, &
+            !    SF, Neu, shared, &
+            !    material, elem_solid, Ipointer_local, &
+            !    faces, mapping_faces, edges, mapping_edges, vertices, &
+            !    node_loc2glob,Gcoord,vertex_to_glob, &
+            !    which_elem_in_proc,nelem_in_proc,proc,nproc)
 
             call write_mesh_file_h5(meshfilename//".h5",solid_fluid,all_fluid,Neumann_present, &
                 n_elem,n_points,n_points_local,n_blocks,n_edges,n_faces,n_nods,n_vertices, &
