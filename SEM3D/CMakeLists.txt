@@ -58,18 +58,15 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/getPMLpred_f2el.f90
     ${PRJ}/SRC/getPMLpred_v2el.f90
     ${PRJ}/SRC/global_numbering.f90
-    ${PRJ}/SRC/Modules/postraitement.f90
     ${PRJ}/SRC/read_input.f90
     ${PRJ}/SRC/mesh3d.f90
     ${PRJ}/SRC/read_restart.f90
     ${PRJ}/SRC/save_checkpoint.f90
     ${PRJ}/SRC/savetrace.f90
-    ${PRJ}/SRC/Modules/sem.f90
     ${PRJ}/SRC/set_attenuation_aniso_param.f90
     ${PRJ}/SRC/set_attenuation_param.f90
     ${PRJ}/SRC/shape8.f90
     ${PRJ}/SRC/shape27.f90
-    ${PRJ}/SRC/Modules/unv.f90
     ${PRJ}/SRC/drive_sem.f90
     ${PRJ}/SRC/BLAS/dgemm.f90
     ${PRJ}/SRC/BLAS/lsame.f90
