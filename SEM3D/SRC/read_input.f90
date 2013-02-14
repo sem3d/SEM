@@ -268,32 +268,38 @@ subroutine finalize_mesh_connectivity(Tdomain, rg)
 
 
     ! faces and edges => which element?
-    do i = 0,Tdomain%n_face-1
-        do j = 0, Tdomain%n_elem-1
-            do k = 0,5
-                if(Tdomain%specel(j)%Near_Faces(k) == i)then
-                    Tdomain%sFace(i)%Which_Elem = j
-                endif
-            enddo
+    !do i = 0,Tdomain%n_face-1
+    !    do j = 0, Tdomain%n_elem-1
+    !        do k = 0,5
+    !            if(Tdomain%specel(j)%Near_Faces(k) == i)then
+    !                Tdomain%sFace(i)%Which_Elem = j
+    !            endif
+    !        enddo
+    !    enddo
+    !enddo
+    do j = 0, Tdomain%n_elem-1
+        do k = 0,5
+            i = Tdomain%specel(j)%Near_Faces(k)
+            Tdomain%sFace(i)%Which_Elem = j
         enddo
     enddo
 
-    do i = 0,Tdomain%n_edge-1
-        allocate(Tdomain%sEdge(i)%Which_Elem(0:11))
-        allocate(Tdomain%sEdge(i)%Which_EdgeinElem(0:11))
-        Tdomain%sEdge(i)%Which_Elem = -1
-        Tdomain%sEdge(i)%Which_EdgeinElem = -1
-        icount = 0
-        do j = 0, Tdomain%n_elem - 1
-            do k=0,11
-                if ( Tdomain%specel(j)%Near_Edges(k) == i )  then
-                    Tdomain%sEdge(i)%Which_Elem(icount) = j
-                    Tdomain%sEdge(i)%Which_EdgeinElem(icount) = k
-                    icount = icount+1
-                endif
-            enddo
-        enddo
-    enddo
+    !do i = 0,Tdomain%n_edge-1
+    !    allocate(Tdomain%sEdge(i)%Which_Elem(0:11))
+    !    allocate(Tdomain%sEdge(i)%Which_EdgeinElem(0:11))
+    !    Tdomain%sEdge(i)%Which_Elem = -1
+    !    Tdomain%sEdge(i)%Which_EdgeinElem = -1
+    !    icount = 0
+    !    do j = 0, Tdomain%n_elem - 1
+    !        do k=0,11
+    !            if ( Tdomain%specel(j)%Near_Edges(k) == i )  then
+    !                Tdomain%sEdge(i)%Which_Elem(icount) = j
+    !                Tdomain%sEdge(i)%Which_EdgeinElem(icount) = k
+    !                icount = icount+1
+    !            endif
+    !        enddo
+    !    enddo
+    !enddo
 
     ! material => time steps ; solid/liquid attribution
     do n = 0,Tdomain%n_elem-1

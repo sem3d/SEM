@@ -19,7 +19,8 @@ module sedges
        logical :: PML, Abs, FPML
 
        integer :: ngll
-       integer, dimension (:), pointer :: Iglobnum_Edge,EdgeNum,Which_Elem,Which_EdgeinElem
+       integer, dimension (:), pointer :: Iglobnum_Edge,EdgeNum
+       !integer, dimension (:), pointer :: Which_Elem,Which_EdgeinElem
 
        real, dimension (:), pointer  :: MassMat
        real, dimension (:,:), pointer :: Forces, Displ, Veloc, Accel, V0
@@ -282,8 +283,8 @@ contains
         ed%FPML = .false.
         ed%ngll = 0
         ed%solid = .true.
-        nullify(ed%Which_Elem)
-        nullify(ed%Which_EdgeinElem)
+        !nullify(ed%Which_Elem)
+        !nullify(ed%Which_EdgeinElem)
         nullify(ed%EdgeNum)
         nullify(ed%Iglobnum_Edge)
         nullify(ed%MassMat)
