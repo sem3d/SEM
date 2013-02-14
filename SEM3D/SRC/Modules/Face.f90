@@ -13,28 +13,28 @@ module sfaces
     ! Modified by Paul Cupillard 06/11/2005
 
     type :: face_pml
-       real, dimension (:,:,:), pointer :: Forces1, Forces2, Forces3, Veloc1, Veloc2, Veloc3
-       real, dimension (:,:,:), pointer :: DumpVx, DumpVy, DumpVz, DumpMass
-       real, dimension (:,:,:), pointer :: IVeloc1, IVeloc2, IVeloc3
-       real, dimension (:,:), pointer :: Ivx, Ivy, Ivz
-       real, dimension(:,:), pointer :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
+       real, dimension (:,:,:), allocatable :: Forces1, Forces2, Forces3, Veloc1, Veloc2, Veloc3
+       real, dimension (:,:,:), allocatable :: DumpVx, DumpVy, DumpVz, DumpMass
+       real, dimension (:,:,:), allocatable :: IVeloc1, IVeloc2, IVeloc3
+       real, dimension (:,:), allocatable :: Ivx, Ivy, Ivz
+       real, dimension(:,:), allocatable :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
     end type face_pml
 
     type :: face
        logical :: PML, Abs, FPML
        integer :: ngll1, ngll2, dir, Which_Elem
-       integer, dimension (:), pointer :: FaceNum
-       integer, dimension (:,:), pointer :: Iglobnum_Face
-       real, dimension (:,:), pointer  :: MassMat
-       real, dimension (:,:,:), pointer :: Forces, Displ, Veloc, Accel, V0
+       integer, dimension (:), allocatable :: FaceNum
+       integer, dimension (:,:), allocatable :: Iglobnum_Face
+       real, dimension (:,:), allocatable  :: MassMat
+       real, dimension (:,:,:), allocatable :: Forces, Displ, Veloc, Accel, V0
        logical :: solid
        ! solid-fluid
-       real, dimension(:,:), pointer :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
+       real, dimension(:,:), allocatable :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
        ! pml
-       type(face_pml), pointer :: spml
+       type(face_pml), allocatable :: spml
 #ifdef MKA3D
-       real, dimension (:,:,:), pointer :: ForcesMka
-       real, dimension (:,:), pointer :: tsurfsem
+       real, dimension (:,:,:), allocatable :: ForcesMka
+       real, dimension (:,:), allocatable :: tsurfsem
 #endif
     end type face
 
@@ -383,46 +383,6 @@ contains
         fc%dir = -1
         fc%Which_Elem = -1
         fc%solid = .true.
-        nullify(fc%FaceNum)
-        nullify(fc%Iglobnum_Face)
-        nullify(fc%MassMat)
-        nullify(fc%Forces)
-        nullify(fc%Displ)
-        nullify(fc%Veloc)
-        nullify(fc%Accel)
-        nullify(fc%V0)
-        nullify(fc%ForcesFl)
-        nullify(fc%Phi)
-        nullify(fc%VelPhi)
-        nullify(fc%AccelPhi)
-        nullify(fc%VelPhi0)
-        nullify(fc%spml)
-!        nullify(fc%spml%Forces1)
-!        nullify(fc%spml%Forces2)
-!        nullify(fc%spml%Forces3)
-!        nullify(fc%spml%Veloc1)
-!        nullify(fc%spml%Veloc2)
-!        nullify(fc%spml%Veloc3)
-!        nullify(fc%spml%DumpVx)
-!        nullify(fc%spml%DumpVy)
-!        nullify(fc%spml%DumpVz)
-!        nullify(fc%spml%DumpMass)
-!        nullify(fc%spml%IVeloc1)
-!        nullify(fc%spml%IVeloc2)
-!        nullify(fc%spml%IVeloc3)
-!        nullify(fc%spml%Ivx)
-!        nullify(fc%spml%Ivy)
-!        nullify(fc%spml%Ivz)
-!        nullify(fc%spml%ForcesFl1)
-!        nullify(fc%spml%ForcesFl2)
-!        nullify(fc%spml%ForcesFl3)
-!        nullify(fc%spml%VelPhi1)
-!        nullify(fc%spml%VelPhi2)
-!        nullify(fc%spml%VelPhi3)
-#ifdef MKA3D
-        nullify(fc%ForcesMka)
-        nullify(fc%tsurfsem)
-#endif
     end subroutine init_face
 
 end module sfaces

@@ -14,11 +14,11 @@ module svertices
 
     type :: vertex_pml
        real, dimension(0:2) :: Forces1, Forces2, Forces3
-       real, dimension(:), pointer :: DumpMass
-       real, dimension(:), pointer :: Veloc1, Veloc2, Veloc3
-       real, dimension(:), pointer :: DumpVx, DumpVy, DumpVz
-       real, dimension (:), pointer :: Iveloc1, Iveloc2, Iveloc3
-       real, dimension (:), pointer :: Ivx, Ivy, Ivz
+       real, dimension(:), allocatable :: DumpMass
+       real, dimension(:), allocatable :: Veloc1, Veloc2, Veloc3
+       real, dimension(:), allocatable :: DumpVx, DumpVy, DumpVz
+       real, dimension (:), allocatable :: Iveloc1, Iveloc2, Iveloc3
+       real, dimension (:), allocatable :: Ivx, Ivy, Ivz
        real :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
     end type vertex_pml
 
@@ -31,9 +31,9 @@ module svertices
        ! solid-fluid
        real :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
 
-       type(vertex_pml), pointer :: spml
+       type(vertex_pml), allocatable :: spml
 #ifdef MKA3D
-       real, dimension (:), pointer :: ForcesMka
+       real, dimension (:), allocatable :: ForcesMka
        real :: tsurfsem
 #endif
 
@@ -266,33 +266,6 @@ contains
         ve%VelPhi = 0.
         ve%AccelPhi = 0.
         ve%VelPhi0 = 0.
-        nullify(ve%spml)
-!        nullify(ve%spml%Veloc1)
-!        nullify(ve%spml%Veloc2)
-!        nullify(ve%spml%Veloc3)
-!        nullify(ve%spml%DumpVx)
-!        nullify(ve%spml%DumpVy)
-!        nullify(ve%spml%DumpVz)
-!        nullify(ve%spml%DumpMass)
-!        nullify(ve%spml%IVeloc1)
-!        nullify(ve%spml%IVeloc2)
-!        nullify(ve%spml%IVeloc3)
-!        nullify(ve%spml%Ivx)
-!        nullify(ve%spml%Ivy)
-!        nullify(ve%spml%Ivz)
-!        ve%spml%ForcesFl1 = 0.
-!        ve%spml%ForcesFl2 = 0.
-!        ve%spml%ForcesFl3 = 0.
-!        ve%spml%VelPhi1 = 0.
-!        ve%spml%VelPhi2 = 0.
-!        ve%spml%VelPhi3 = 0.
-!        ve%spml%Forces1 = 0.
-!        ve%spml%Forces2 = 0.
-!        ve%spml%Forces3 = 0.
-
-#ifdef MKA3D
-        nullify(ve%ForcesMka)
-#endif
     end subroutine init_vertex
 
 end module svertices

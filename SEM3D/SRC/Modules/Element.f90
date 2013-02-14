@@ -13,49 +13,49 @@ module selement
 
     type :: element_pml
        ! TODO move pml related data here
-       real, dimension(:,:,:,:), pointer :: Diagonal_Stress1, Diagonal_Stress2, Diagonal_Stress3
-       real, dimension(:,:,:,:), pointer :: Residual_Stress1, Residual_Stress2, Residual_Stress3
-       real, dimension(:,:,:,:), pointer :: DumpSx,DumpSy,DumpSz
-       real, dimension(:,:,:,:), pointer :: Forces1,Forces2,Forces3
-       real, dimension(:,:,:,:), pointer :: Veloc1,Veloc2,Veloc3
+       real, dimension(:,:,:,:), allocatable :: Diagonal_Stress1, Diagonal_Stress2, Diagonal_Stress3
+       real, dimension(:,:,:,:), allocatable :: Residual_Stress1, Residual_Stress2, Residual_Stress3
+       real, dimension(:,:,:,:), allocatable :: DumpSx,DumpSy,DumpSz
+       real, dimension(:,:,:,:), allocatable :: Forces1,Forces2,Forces3
+       real, dimension(:,:,:,:), allocatable :: Veloc1,Veloc2,Veloc3
        ! FPML
-       real, dimension(:,:,:), pointer :: Isx, Isy, Isz, Ivx, Ivy, Ivz
-       real, dimension(:,:,:,:), pointer :: Iveloc1, Iveloc2, Iveloc3
-       real, dimension(:,:,:,:), pointer :: I_Diagonal_Stress1, I_Diagonal_Stress2, I_Diagonal_Stress3
-       real, dimension(:,:,:,:), pointer :: I_Residual_Stress1, I_Residual_Stress2
-       real, dimension(:,:,:,:), pointer :: DumpVx,DumpVy,DumpVz, DumpMass
-       real, dimension(:,:,:,:), pointer :: Diagonal_Stress, Residual_Stress
-       real, dimension(:,:), pointer :: Normales, Inv_Normales
-       real, dimension(:,:,:), pointer :: ForcesFl1,ForcesFl2,ForcesFl3,VelPhi1,VelPhi2,VelPhi3
+       real, dimension(:,:,:), allocatable :: Isx, Isy, Isz, Ivx, Ivy, Ivz
+       real, dimension(:,:,:,:), allocatable :: Iveloc1, Iveloc2, Iveloc3
+       real, dimension(:,:,:,:), allocatable :: I_Diagonal_Stress1, I_Diagonal_Stress2, I_Diagonal_Stress3
+       real, dimension(:,:,:,:), allocatable :: I_Residual_Stress1, I_Residual_Stress2
+       real, dimension(:,:,:,:), allocatable :: DumpVx,DumpVy,DumpVz, DumpMass
+       real, dimension(:,:,:,:), allocatable :: Diagonal_Stress, Residual_Stress
+       real, dimension(:,:), allocatable :: Normales, Inv_Normales
+       real, dimension(:,:,:), allocatable :: ForcesFl1,ForcesFl2,ForcesFl3,VelPhi1,VelPhi2,VelPhi3
     end type element_pml
 
     type :: element
 
        integer :: mat_index, moho_position, ngllx, nglly, ngllz
-       integer, dimension (:), pointer :: Control_nodes
+       integer, dimension (:), allocatable :: Control_nodes
 
        integer, dimension (0:5) :: Near_Faces, Orient_Faces
        integer, dimension (0:11) :: Near_Edges, Orient_Edges
 
        integer, dimension (0:7) :: Near_Vertices
-       integer, dimension (:,:,:), pointer :: Iglobnum,Num
-       real, dimension (:,:,:), pointer :: Jacob, Density, Lambda, Mu, MassMat
-       real, dimension (:,:,:), pointer :: Kappa,Q, Qs, Qp, onemSbeta, onemPbeta, &
+       integer, dimension (:,:,:), allocatable :: Iglobnum,Num
+       real, dimension (:,:,:), allocatable :: Jacob, Density, Lambda, Mu, MassMat
+       real, dimension (:,:,:), allocatable :: Kappa,Q, Qs, Qp, onemSbeta, onemPbeta, &
            epsilonvol_, &
            epsilondev_xx_,epsilondev_yy_,epsilondev_xy_,epsilondev_xz_,epsilondev_yz_
-       real, dimension (:), pointer :: wgtx, wgty, wgtz
-       real, dimension(:,:,:,:), pointer :: ACoeff, Forces,Veloc,Displ,Accel,V0
-       real, dimension(:,:,:,:), pointer :: Cij, &
+       real, dimension (:), allocatable :: wgtx, wgty, wgtz
+       real, dimension(:,:,:,:), allocatable :: ACoeff, Forces,Veloc,Displ,Accel,V0
+       real, dimension(:,:,:,:), allocatable :: Cij, &
            factor_common_3, alphaval_3,betaval_3,gammaval_3, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_, &
            factor_common_P, alphaval_P,betaval_P,gammaval_P, R_vol_
-       real, dimension(:,:,:,:,:), pointer :: InvGrad
+       real, dimension(:,:,:,:,:), allocatable :: InvGrad
        ! fluid part
-       real, dimension(:,:,:), pointer:: Phi,VelPhi0,VelPhi,AccelPhi
+       real, dimension(:,:,:), allocatable:: Phi,VelPhi0,VelPhi,AccelPhi
        ! PML allocation
        logical :: PML, FPML
-       type(element_pml), pointer :: spml
+       type(element_pml), allocatable :: spml
        ! fluid part
-       real, dimension(:,:,:), pointer:: ForcesFl
+       real, dimension(:,:,:), allocatable:: ForcesFl
 
        ! solid-fluid
        logical  :: solid
@@ -1070,67 +1070,6 @@ subroutine init_element(el)
     el%ngllx=0
     el%nglly=0
     el%ngllz=0
-    nullify(el%Control_nodes)
-    nullify(el%Iglobnum)
-    nullify(el%num)
-    nullify(el%Jacob)
-    nullify(el%Density)
-    nullify(el%Lambda)
-    nullify(el%Mu)
-    nullify(el%MassMat)
-    nullify(el%ACoeff)
-    nullify(el%Forces)
-    nullify(el%Veloc)
-    nullify(el%Displ)
-    nullify(el%Accel)
-    nullify(el%V0)
-    nullify(el%InvGrad)
-    nullify(el%Phi)
-    nullify(el%VelPhi0)
-    nullify(el%VelPhi)
-    nullify(el%AccelPhi)
-    nullify(el%ForcesFl)
-    nullify(el%spml)
-!    nullify(el%spml%Diagonal_Stress)
-!    nullify(el%spml%residual_Stress)
-!    nullify(el%spml%Diagonal_Stress1)
-!    nullify(el%spml%Diagonal_Stress2)
-!    nullify(el%spml%Diagonal_Stress3)
-!    nullify(el%spml%residual_Stress1)
-!    nullify(el%spml%residual_Stress2)
-!    nullify(el%spml%dumpSx)
-!    nullify(el%spml%dumpSy)
-!    nullify(el%spml%dumpSz)
-!    nullify(el%spml%Forces1)
-!    nullify(el%spml%Forces2)
-!    nullify(el%spml%Forces3)
-!    nullify(el%spml%Veloc1)
-!    nullify(el%spml%Veloc2)
-!    nullify(el%spml%Veloc3)
-!    nullify(el%spml%dumpVx)
-!    nullify(el%spml%dumpVy)
-!    nullify(el%spml%dumpVz)
-!    nullify(el%spml%dumpMass)
-!    nullify(el%spml%I_Diagonal_Stress1)
-!    nullify(el%spml%I_Diagonal_Stress2)
-!    nullify(el%spml%I_Diagonal_Stress3)
-!    nullify(el%spml%I_Residual_Stress1)
-!    nullify(el%spml%I_Residual_Stress2)
-!    nullify(el%spml%Iveloc1)
-!    nullify(el%spml%Iveloc2)
-!    nullify(el%spml%Iveloc3)
-!    nullify(el%spml%Isx)
-!    nullify(el%spml%Isy)
-!    nullify(el%spml%Isz)
-!    nullify(el%spml%Ivx)
-!    nullify(el%spml%Ivy)
-!    nullify(el%spml%Ivz)
-!    nullify(el%spml%ForcesFl1)
-!    nullify(el%spml%ForcesFl2)
-!    nullify(el%spml%ForcesFl3)
-!    nullify(el%spml%VelPhi1)
-!    nullify(el%spml%VelPhi2)
-!    nullify(el%spml%VelPhi3)
     el%PML = .false.
     el%solid = .true.
 

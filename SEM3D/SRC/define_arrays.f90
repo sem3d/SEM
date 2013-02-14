@@ -22,7 +22,7 @@ subroutine Define_Arrays(Tdomain, rg)
            real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: MassMat
            real, dimension(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1), intent(out) :: DumpV
            real, dimension(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1),intent(in) :: DumpMass
-           real, dimension(:,:,:), pointer, intent(inout) :: Iv
+           real, dimension(:,:,:), allocatable, intent(inout) :: Iv
        end subroutine define_FPML_DumpEnd
     end interface
     type (domain), intent (INOUT), target :: Tdomain
@@ -874,7 +874,7 @@ subroutine define_FPML_DumpEnd(dir,ngllx,nglly,ngllz,Massmat,DumpMass,DumpV,Iv)
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: MassMat
     real, dimension(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1), intent(out) :: DumpV
     real, dimension(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1),intent(in) :: DumpMass
-    real, dimension(:,:,:), pointer, intent(inout) :: Iv
+    real, dimension(:,:,:), allocatable, intent(inout) :: Iv
     real, dimension(1:ngllx-2,1:nglly-2,1:ngllz-2)  :: LocMassMat
 
     LocMassMat(:,:,:) = MassMat(1:ngllx-2,1:nglly-2,1:ngllz-2)

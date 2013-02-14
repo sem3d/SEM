@@ -7,32 +7,32 @@
 module sedges
 
     type :: edge_pml
-       real, dimension (:,:), pointer :: DumpMass, DumpVx, DumpVy, DumpVz
-       real, dimension (:,:), pointer :: Veloc1, Veloc2, Veloc3
-       real, dimension (:,:), pointer :: Forces1, Forces2, Forces3
-       real, dimension (:,:), pointer :: IVeloc1, Iveloc2, Iveloc3
-       real, dimension (:), pointer :: Ivx, Ivy, Ivz
-       real, dimension(:), pointer :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
+       real, dimension (:,:), allocatable :: DumpMass, DumpVx, DumpVy, DumpVz
+       real, dimension (:,:), allocatable :: Veloc1, Veloc2, Veloc3
+       real, dimension (:,:), allocatable :: Forces1, Forces2, Forces3
+       real, dimension (:,:), allocatable :: IVeloc1, Iveloc2, Iveloc3
+       real, dimension (:), allocatable :: Ivx, Ivy, Ivz
+       real, dimension(:), allocatable :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
     end type edge_pml
     type :: edge
 
        logical :: PML, Abs, FPML
 
        integer :: ngll
-       integer, dimension (:), pointer :: Iglobnum_Edge,EdgeNum
-       !integer, dimension (:), pointer :: Which_Elem,Which_EdgeinElem
+       integer, dimension (:), allocatable :: Iglobnum_Edge,EdgeNum
+       !integer, dimension (:), allocatable :: Which_Elem,Which_EdgeinElem
 
-       real, dimension (:), pointer  :: MassMat
-       real, dimension (:,:), pointer :: Forces, Displ, Veloc, Accel, V0
+       real, dimension (:), allocatable  :: MassMat
+       real, dimension (:,:), allocatable :: Forces, Displ, Veloc, Accel, V0
        logical  :: solid
        ! solid-fluid
-       real, dimension(:), pointer :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
+       real, dimension(:), allocatable :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
 
-       type(edge_pml), pointer :: spml
+       type(edge_pml), allocatable :: spml
 #ifdef MKA3D
-       real, dimension (:,:), pointer :: ForcesMka
-       !     integer, dimension (:,:), pointer :: FlagMka
-       real, dimension (:), pointer :: tsurfsem
+       real, dimension (:,:), allocatable :: ForcesMka
+       !     integer, dimension (:,:), allocatable :: FlagMka
+       real, dimension (:), allocatable :: tsurfsem
 #endif
 
 
@@ -283,48 +283,6 @@ contains
         ed%FPML = .false.
         ed%ngll = 0
         ed%solid = .true.
-        !nullify(ed%Which_Elem)
-        !nullify(ed%Which_EdgeinElem)
-        nullify(ed%EdgeNum)
-        nullify(ed%Iglobnum_Edge)
-        nullify(ed%MassMat)
-        nullify(ed%Forces)
-        nullify(ed%Displ)
-        nullify(ed%Veloc)
-        nullify(ed%Accel)
-        nullify(ed%V0)
-        nullify(ed%ForcesFl)
-        nullify(ed%Phi)
-        nullify(ed%VelPhi)
-        nullify(ed%AccelPhi)
-        nullify(ed%VelPhi0)
-        nullify(ed%spml)
-!        nullify(ed%spml%ForcesFl1)
-!        nullify(ed%spml%ForcesFl2)
-!        nullify(ed%spml%ForcesFl3)
-!        nullify(ed%spml%VelPhi1)
-!        nullify(ed%spml%VelPhi2)
-!        nullify(ed%spml%VelPhi3)
-!        nullify(ed%spml%Forces1)
-!        nullify(ed%spml%Forces2)
-!        nullify(ed%spml%Forces3)
-!        nullify(ed%spml%Veloc1)
-!        nullify(ed%spml%Veloc2)
-!        nullify(ed%spml%Veloc3)
-!        nullify(ed%spml%DumpVx)
-!        nullify(ed%spml%DumpVy)
-!        nullify(ed%spml%DumpVz)
-!        nullify(ed%spml%DumpMass)
-!        nullify(ed%spml%IVeloc1)
-!        nullify(ed%spml%IVeloc2)
-!        nullify(ed%spml%IVeloc3)
-!        nullify(ed%spml%Ivx)
-!        nullify(ed%spml%Ivy)
-!        nullify(ed%spml%Ivz)
-#ifdef MKA3D
-        nullify(ed%ForcesMka)
-        nullify(ed%tsurfsem)
-#endif
     end subroutine init_edge
 
 end module sedges
