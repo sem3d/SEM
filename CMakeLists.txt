@@ -45,6 +45,7 @@ set(SEMCOMMON ${SEMDIR}/COMMON)
 
 set(SEM_SRC
   ${SEMCOMMON}/semdatafiles.F90
+  ${SEMCOMMON}/sem_c_config.F90
   ${SEMCOMMON}/constants.F90
   ${SEMCOMMON}/splib.F90
   ${SEMCOMMON}/invert2.F90

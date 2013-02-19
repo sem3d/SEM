@@ -22,6 +22,7 @@ typedef struct source {
 	double band[4];
 	double ts;
 	double gamma;
+	double amplitude;
 	char* time_file;
 } source_t;
 
@@ -200,12 +201,12 @@ int expect_eq_model(yyscan_t scanner, int* model)
 
 	if (!expect_eq(scanner)) return 0;
 	tok = skip_blank(scanner);
-	if (tok!=K_ID) { msg_err(scanner, "Expected CUB|homo|prem|3D_berkeley"); return 0;}
+	if (tok!=K_ID) goto error;
 	if (cmp(scanner,"CUB"))         { *model = 0; return 1; }
 	if (cmp(scanner,"homo"))        { *model = 1; return 1; }
 	if (cmp(scanner,"prem"))        { *model = 2; return 1; }
 	if (cmp(scanner,"3D_berkeley")) { *model = 3; return 1; }
-
+error:
 	msg_err(scanner, "Expected CUB|homo|prem|3D_berkeley");
 	return 0;
 }
@@ -224,12 +225,13 @@ int expect_source_type(yyscan_t scanner, int* type)
 
 	if (!expect_eq(scanner)) return 0;
 	tok = skip_blank(scanner);
-	if (tok!=K_ID) { msg_err(scanner, "Expected collocated|moment|pulse"); return 0;}
+	if (tok!=K_ID) goto error;
+	if (cmp(scanner,"pulse"))      { *type = 1; return 1; }
 	if (cmp(scanner,"impulse"))    { *type = 1; return 1; }
 	if (cmp(scanner,"moment"))     { *type = 2; return 1; }
 	if (cmp(scanner,"fluidpulse")) { *type = 3; return 1; }
-
-	msg_err(scanner, "Expected collocated|moment|pulse");
+error:
+	msg_err(scanner, "Expected pulse|impulse|moment|pulse");
 	return 0;
 }
 
@@ -240,11 +242,11 @@ int expect_source_dir(yyscan_t scanner, int* dir)
 
 	if (!expect_eq(scanner)) return 0;
 	tok = skip_blank(scanner);
-	if (tok!=K_ID) { msg_err(scanner, "Expected x|y|z|X|Y|Z"); return 0;}
+	if (tok!=K_ID) goto error;
 	if (cmp(scanner,"x")||cmp(scanner,"X")) { *dir = 0; return 1; }
 	if (cmp(scanner,"y")||cmp(scanner,"Y")) { *dir = 1; return 1; }
 	if (cmp(scanner,"z")||cmp(scanner,"Z")) { *dir = 2; return 1; }
-
+error:
 	msg_err(scanner, "Expected x|y|z|X|Y|Z");
 	return 0;
 }
@@ -256,7 +258,7 @@ int expect_source_func(yyscan_t scanner, int* type)
 
 	if (!expect_eq(scanner)) return 0;
 	tok = skip_blank(scanner);
-	if (tok!=K_ID) { msg_err(scanner, "Expected gaussian|ricker|tf_heaviside|gabor|file"); return 0;}
+	if (tok!=K_ID) goto error;
 	if (cmp(scanner,"gaussian"))     { *type = 1; return 1; }
 	if (cmp(scanner,"ricker"))       { *type = 2; return 1; }
 	if (cmp(scanner,"tf_heaviside")) { *type = 3; return 1; }
@@ -264,9 +266,15 @@ int expect_source_func(yyscan_t scanner, int* type)
 	if (cmp(scanner,"file"))         { *type = 5; return 1; }
 	if (cmp(scanner,"spice_bench"))  { *type = 6; return 1; }
 	if (cmp(scanner,"sinus"))        { *type = 7; return 1; }
-
-	msg_err(scanner, "Expected gaussian|ricker|tf_heaviside|gabor|file");
+error:
+	msg_err(scanner, "Expected gaussian|ricker|tf_heaviside|gabor|file|spice_bench|sinus");
 	return 0;
+}
+
+void init_source(source_t* source)
+{
+	memset(source, 0, sizeof(source_t));
+	source->amplitude = 1.;
 }
 
 int expect_source(yyscan_t scanner, sem_config_t* config)
@@ -275,7 +283,7 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
 	int tok, err;
 
 	source = (source_t*)malloc(sizeof(source_t));
-	memset(source, 0, sizeof(source_t));
+	init_source(source);
 
 	source->next = config->source;
 	config->source = source;
@@ -297,6 +305,7 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
 		else if (cmp(scanner,"ts")) err=expect_eq_float(scanner, &source->ts, 1);
 		else if (cmp(scanner,"gamma")) err=expect_eq_float(scanner, &source->gamma, 1);
 		else if (cmp(scanner,"time_file")) err=expect_eq_string(scanner, &source->time_file,1);
+		else if (cmp(scanner,"amplitude")) err=expect_eq_float(scanner, &source->amplitude, 1);
 
 		if (err<=0) return 0;
 		if (!expect_eos(scanner)) { return 0; }
@@ -473,6 +482,7 @@ void dump_config(sem_config_t* cfg)
 		src = src->next;
 		++ksrc;
 	}
+	printf("\n------------\n\n");
 }
 
 
@@ -488,8 +498,6 @@ void read_sem_config(sem_config_t* config, const char* input_spec, int* err)
 
 	input = fopen(input_spec, "r");
 
-	printf("Reading SEM configuration file '%s' f=%p\n", input_spec, input);
-	
 	clear_scan(&info);
 
 	yylex_init_extra( &info, &scanner );
