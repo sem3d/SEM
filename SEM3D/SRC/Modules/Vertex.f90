@@ -32,7 +32,7 @@ module svertices
        real :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
 
        type(vertex_pml), allocatable :: spml
-#ifdef MKA3D
+#ifdef COUPLAGE
        real, dimension (:), allocatable :: ForcesMka
        real :: tsurfsem
 #endif
@@ -75,7 +75,7 @@ contains
 
         real :: xmas
 
-#ifdef MKA3D
+#ifdef COUPLAGE
         xmas = 0.
         if (  V%tsurfsem > 0. ) then
             xmas = 1.
@@ -83,7 +83,7 @@ contains
 #endif
 
         do i = 0,2
-#ifdef MKA3D
+#ifdef COUPLAGE
             V%Forces(i) =  V%MassMat  * V%Forces(i)/(1. + xmas )
 #else
             V%Forces(i) = V%MassMat  * V%Forces(i)

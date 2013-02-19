@@ -32,7 +32,7 @@ module sfaces
        real, dimension(:,:), allocatable :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
        ! pml
        type(face_pml), allocatable :: spml
-#ifdef MKA3D
+#ifdef COUPLAGE
        real, dimension (:,:,:), allocatable :: ForcesMka
        real, dimension (:,:), allocatable :: tsurfsem
 #endif
@@ -84,7 +84,7 @@ contains
         integer :: i
         real :: xmas
 
-#ifdef MKA3D
+#ifdef COUPLAGE
         xmas = 0.
         if (  F%tsurfsem(1,1) > 0. ) then
             xmas = 1.
@@ -92,7 +92,7 @@ contains
 #endif
 
         do i = 0,2
-#ifdef MKA3D
+#ifdef COUPLAGE
             F%Forces(:,:,i) = F%MassMat(:,:) * F%Forces(:,:,i)/(1.+xmas)
 #else
             F%Forces(:,:,i) = F%MassMat(:,:) * F%Forces(:,:,i)

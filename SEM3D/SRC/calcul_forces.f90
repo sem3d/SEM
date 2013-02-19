@@ -48,25 +48,25 @@ subroutine calcul_forces(Fox,Foy,Foz, xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3, &
         do j = 0,nglly-1
             do i = 0,ngllx-1
 
-                sxx = xla2mu(i,j,k) * DXX(i,j,k) +		&
-                    xla(i,j,k)  * ( DYY(i,j,k) +		&
+                sxx = xla2mu(i,j,k) * DXX(i,j,k) +      &
+                    xla(i,j,k)  * ( DYY(i,j,k) +        &
                     DZZ(i,j,k) )
                 !---
-                sxy = xmu(i,j,k)  *( DXY(i,j,k)  +		&
+                sxy = xmu(i,j,k)  *( DXY(i,j,k)  +      &
                     DYX(i,j,k)  )
                 !---
-                sxz = xmu(i,j,k) * ( DXZ(i,j,k)  +		&
+                sxz = xmu(i,j,k) * ( DXZ(i,j,k)  +      &
                     DZX(i,j,k)  )
                 !---
-                syy = xla2mu(i,j,k) * DYY(i,j,k) +		&
-                    xla(i,j,k)  * ( DXX(i,j,k) +		&
+                syy = xla2mu(i,j,k) * DYY(i,j,k) +      &
+                    xla(i,j,k)  * ( DXX(i,j,k) +        &
                     DZZ(i,j,k) )
                 !---
-                syz = xmu(i,j,k) * ( DYZ(i,j,k)  +		&
+                syz = xmu(i,j,k) * ( DYZ(i,j,k)  +      &
                     DZY(i,j,k)  )
                 !---
-                szz = xla2mu(i,j,k) * DZZ(i,j,k) +		&
-                    xla(i,j,k)  * ( DXX(i,j,k) +		&
+                szz = xla2mu(i,j,k) * DZZ(i,j,k) +      &
+                    xla(i,j,k)  * ( DXX(i,j,k) +        &
                     DYY(i,j,k) )
 
                 !

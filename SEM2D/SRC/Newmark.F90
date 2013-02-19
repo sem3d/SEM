@@ -1,7 +1,6 @@
 !>
 !!\file Newmark.F90
 !!\brief Algorithme de Newmark
-!!\author
 !!\version 1.0
 !!\date 10/03/2009
 !! La routine Newmark assure la résolution des équations via un algorithme de predicteur-multi-correcteur
@@ -9,9 +8,6 @@
 !<
 
 subroutine Newmark (Tdomain, ntime)
-
-    ! Gaetano Festa, modified 01/06/2005
-
     use sdomain
     use scouplage
     use mpi
@@ -29,9 +25,6 @@ subroutine Newmark (Tdomain, ntime)
     real, dimension (0:1) :: V_free_vertex
     real, dimension (:,:), allocatable :: Vxloc, Vzloc, V_free
     real, dimension (:,:), allocatable :: Smooth
-
-
-
 
 
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a

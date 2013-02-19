@@ -26,13 +26,11 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     type(domain), target :: Tdomain
 
     integer :: code, rg, nb_procs, ntime, i_snap, n, icount
-#ifdef MKA3D
     integer :: i, isort
     integer :: info_capteur
     real(kind=8) :: remaining_time
     real(kind=8), parameter :: max_time_left=900
     integer :: protection
-#endif
     character(Len=MAX_FILE_SIZE) :: fnamef
 #ifdef COUPLAGE
     integer :: groupe
@@ -59,48 +57,43 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     call MPI_Comm_Size (Tdomain%communicateur, nb_procs,  code)
 #endif
 
+    if (rg==0) then
+        write(*,*)
+        write(*,*) "-----------------------------------------"
+        write(*,*) "----         SEM - 3d version      ------"
+        write(*,*) "-----------------------------------------"
+        write(*,*)
+    end if
 
-#ifdef MKA3D
-    if (rg == 0) then
-        write(*,*)  "execution avec DIRECTIVE=MKA3D"
-    endif
-    call system('mkdir -p Resultats')
-    call system('mkdir -p Capteurs/sem')
-#endif
-
-    ! ##############  Begin of the program  #######################
-    if (rg==0) write (*,*) "Define mesh properties ",rg
-    call read_input (Tdomain, rg, code)
-
-    write(*,*) "----         SEM - 3d version      ------"
-    write(*,*) "-----------------------------------------"
-    write(*,*)
-
-    write(*,*) "  --> Reading run properties, proc. # ",rg
+    if (rg==0) call create_sem_output_directories()
+    ! Read_input peut avoir besoin du repertoire de logs
     call MPI_BARRIER(Tdomain%communicateur, code)
 
-    !  modif mariotti fevrier 2007 cea
+    ! ##############  Begin of the program  #######################
+    call read_input (Tdomain, rg, code)
+    call MPI_BARRIER(Tdomain%communicateur, code)
+
     if (Tdomain%logicD%super_object_local_present) then
         if (Tdomain%super_object_type == "P") then
-            if (rg == 0) write(*,*) "Define Plane Wave properties",rg
+            if (rg == 0) write(*,*) "Define Plane Wave properties"
             call define_planew_properties (Tdomain)
         endif
     endif
     if (Tdomain%logicD%neumann_local_present) then
-        if (rg == 0) write(*,*) "Define Neumann properties",rg
+        if (rg == 0) write(*,*) "Define Neumann properties"
         call define_Neumann_properties(Tdomain,rg)
     endif
     call MPI_BARRIER(Tdomain%communicateur, code)
 
-    if (rg == 0) write (*,*) "Compute Gauss-Lobatto-Legendre weights and zeroes ",rg
+    if (rg == 0) write (*,*) "Compute Gauss-Lobatto-Legendre weights and zeroes "
     call compute_GLL (Tdomain)
     call MPI_BARRIER(Tdomain%communicateur, code)
 
-    if (rg == 0) write (*,*) "Define a global numbering for the collocation points ",rg
+    if (rg == 0) write (*,*) "Define a global numbering for the collocation points "
     call global_numbering (Tdomain,rg)
     call MPI_BARRIER(Tdomain%communicateur, code)
 
-    if (rg == 0) write (*,*) "Compute shape functions within their derivatives ",rg
+    if (rg == 0) write (*,*) "Compute shape functions within their derivatives "
     if (Tdomain%n_nodes == 8) then
         call shape8(Tdomain,rg)   ! Linear interpolation
     else if (Tdomain%n_nodes == 20) then
@@ -114,13 +107,13 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     call compute_Courant(Tdomain,rg)
     call MPI_BARRIER(Tdomain%communicateur,code)
     if (Tdomain%any_PML)   then
-        if (rg == 0) write (*,*) "Attribute PML properties ",rg
+        if (rg == 0) write (*,*) "Attribute PML properties "
         call PML_definition (Tdomain)
     endif
     call MPI_BARRIER(Tdomain%communicateur,code)
 
     if (Tdomain%logicD%any_source) then
-        if (rg == 0) write (*,*) , "Compute source parameters ",rg
+        if (rg == 0) write (*,*) , "Compute source parameters "
         call SourcePosition (Tdomain, rg)
         call double_couple (Tdomain, rg)
         call source_excit(Tdomain,rg)
@@ -134,13 +127,13 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
         end do
     endif
 
-    if (Tdomain%logicD%save_trace) then
-        if (rg == 0) write (*,*) "Compute receiver locations ",rg
-        call ReceiverPosition (Tdomain, rg)
-    endif
-    call MPI_BARRIER(Tdomain%communicateur,code)
+    !if (Tdomain%logicD%save_trace) then
+    !    if (rg == 0) write (*,*) "Compute receiver locations "
+    !    call ReceiverPosition (Tdomain, rg)
+    !endif
+    !call MPI_BARRIER(Tdomain%communicateur,code)
 
-    if (rg == 0) write (*,*) "Allocate fields ",rg
+    if (rg == 0) write (*,*) "Allocate fields "
     call allocate_domain (Tdomain, rg)
     call MPI_BARRIER(Tdomain%communicateur,code)
 
@@ -161,11 +154,6 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
         endif
     endif
 
-#ifndef MKA3D
-    !ajout post-ensight
-    if (rg == 0) write (*,*) " Create an Ensight gold geometry file"
-    call POST_Ensight(Tdomain, rg)
-#endif
     if (rg == 0) write (*,*) "Entering the time evolution ",rg
     ! initialisation des temps
     Tdomain%TimeD%rtime = 0
@@ -284,15 +272,12 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
                 protection=1
             endif
         endif
-#ifdef MKA3D
+
         call tremain( remaining_time )
-        !if (rg==0) write(*,*) "remain:", remaining_time
         if (remaining_time<max_time_left) then
             interrupt = 1
         end if
         call mpi_allreduce(MPI_IN_PLACE, interrupt, 1, MPI_INTEGER, MPI_SUM, Tdomain%communicateur_global, code)
-#endif
-
         if (Tdomain%logicD%save_snapshots)  then
             i_snap = mod (ntime, Tdomain%TimeD%nsnap)
         end if
