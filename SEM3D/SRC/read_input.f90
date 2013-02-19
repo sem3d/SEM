@@ -424,7 +424,7 @@ subroutine create_sem_sources(Tdomain, config)
         ! i_type_source==2
         Tdomain%Ssource(nsrc)%Moment(0,0) = src%moments(1)
         Tdomain%Ssource(nsrc)%Moment(1,1) = src%moments(2)
-        Tdomain%Ssource(nsrc)%Moment(2,1) = src%moments(3)
+        Tdomain%Ssource(nsrc)%Moment(2,2) = src%moments(3)
         Tdomain%Ssource(nsrc)%Moment(0,1) = src%moments(4)
         Tdomain%Ssource(nsrc)%Moment(1,0) = src%moments(4)
         Tdomain%Ssource(nsrc)%Moment(0,2) = src%moments(5)
