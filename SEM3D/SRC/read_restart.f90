@@ -4,77 +4,8 @@
 !!
 !! Gère la reprise de Sem3d
 
-!>
-!! \brief Assure la reprise par la lecture des fichiers de protection.
-!!
-!! \param type (domain), intent (inout) Tdomain
-!! \param integer,intent (inout) isort
-!<
-
-#ifdef MKA3D
-subroutine init_restart(Tdomain, rg, isort, fnamef)
-    use sdomain
-    use semdatafiles
-    implicit none
-    type (domain), intent (IN)       :: Tdomain
-    integer, intent (in)             :: isort
-    integer, intent (IN)             :: rg
-    character (len=MAX_FILE_SIZE), intent(out) :: fnamef
-    character (len=MAX_FILE_SIZE)    :: fnamer, fnamec
-    character (len=MAX_FILE_SIZE)    :: commande
 
 
-    call semname_couplage_iter(Tdomain%TimeD%iter_reprise,rg,fnamef)
-    call semname_couplage_iterr(Tdomain%TimeD%iter_reprise,fnamer)
-    if (rg == 0) then
-        ! copie du fichier temps.dat dans le rep de Resultat
-        call semname_couplage_commandecpt(fnamer, fnamec)
-        commande="cp "//trim(adjustl(fnamec)) !!modif 09/11
-        call system(commande)
-
-        ! copie du repertoire des sorties capteurs sem dans le rep de resultats
-        call semname_couplage_commanderm(fnamec)
-        commande="rm -Rf "//trim(adjustl(fnamec))
-        call system(commande)
-        call semname_couplage_commandecp(fnamer,fnamec)
-        commande="cp -r "//trim(adjustl(fnamec))
-        call system(commande)
-    endif
-end subroutine init_restart
-
-#else
-subroutine init_restart(Tdomain, rg, isort, fnamef)
-    use sdomain
-    use semdatafiles
-    implicit none
-    type (domain), intent (IN)       :: Tdomain
-    integer, intent (in)             :: isort
-    integer, intent (IN)             :: rg
-    character (len=MAX_FILE_SIZE), intent(out) :: fnamef
-
-    call semname_read_restart_save_checkpoint_rank(rg,fnamef)
-end subroutine init_restart
-#endif
-
-subroutine clean_prot(Tdomain, rg)
-    use sdomain
-    use semdatafiles
-    implicit none
-    type (domain), intent (IN)       :: Tdomain
-    integer, intent (IN)             :: rg
-    character (len=MAX_FILE_SIZE)    :: commande
-    character (len=6) :: sit
-
-    if (rg == 0) then
-        write(sit,'(I6)') Tdomain%TimeD%prot_m0
-        commande='find ./ProRep/sem -name "Prot*" ! -name "Prot*'//trim(adjustl(sit))//'*" -exec rm -fr  {} \; '
-        ! on supprime les fichiers et repertoire de protection autres que celui contenant prot_m0
-        !write(6,*) 'commande',commande
-        call system(commande)
-    endif
-end subroutine clean_prot
-
-#ifdef USE_HDF5
 subroutine read_Veloc(Tdomain, elem_id)
     use sdomain
     use HDF5
@@ -466,6 +397,7 @@ subroutine read_restart (Tdomain,rg, isort)
     use sem_hdf5
     use sdomain
     use semdatafiles
+    use protrep
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer,intent (inout)::isort
@@ -481,8 +413,7 @@ subroutine read_restart (Tdomain,rg, isort)
     integer :: hdferr
 
     call init_hdf5()
-    call init_restart(Tdomain, rg, isort, fnamef)
-
+    call init_restart(Tdomain%communicateur, rg, isort, fnamef)
 
     write(*,*) "OPENING RESTART FILE:", trim(fnamef)
     call h5fopen_f(fnamef, H5F_ACC_RDONLY_F, fid, hdferr)
@@ -525,209 +456,10 @@ subroutine read_restart (Tdomain,rg, isort)
     call h5gclose_f(vertex_id, hdferr)
     call h5fclose_f(fid, hdferr)
 
-    call clean_prot(Tdomain, rg)
+    call clean_prot(Tdomain%TimeD%prot_m0, rg)
     return
 end subroutine read_restart
 
-#else
-
-subroutine read_restart (Tdomain,rg, isort)
-    use sdomain
-    use semdatafiles
-    implicit none
-    type (domain), intent (INOUT):: Tdomain
-    integer,intent (inout)::isort
-    integer, intent (IN) :: rg
-    character (len=MAX_FILE_SIZE) :: fnamef
-
-    !  complement de sauvegarde pour le partie facteur de qualite Qp et Qs
-    integer :: n_solid, i_sls
-
-    ! local variables
-    integer :: n, ngllx, nglly, ngllz, i, j, k, ngll, ngll1, ngll2
-    call init_restart(Tdomain, rg, isort, fnamef)
-
-    open (61, file=fnamef, status="unknown", form="formatted")
-    read(61,*) Tdomain%TimeD%rtime, Tdomain%TimeD%dtmin
-    read(61,*) Tdomain%TimeD%NtimeMin,isort !la version initiale de Sem3d comportait slt rtime, Ntimemin
-
-    Tdomain%TimeD%prot_m0 = Tdomain%TimeD%NtimeMin !!GSa 11/2009 !!init des iterations de protection
-    Tdomain%TimeD%prot_m1 = Tdomain%TimeD%NtimeMin !!GSa 11/2009
-
-    !preparation pour le pas de temps suivant (absent de la version initiale de Sem3d)
-    Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
-    Tdomain%TimeD%NtimeMin=Tdomain%TimeD%NtimeMin+1
-
-    ! Save Fields for Elements
-    do n = 0,Tdomain%n_elem-1
-        ngllx = Tdomain%specel(n)%ngllx;  nglly = Tdomain%specel(n)%nglly; ngllz = Tdomain%specel(n)%ngllz
-
-        n_solid = Tdomain%n_sls
-
-        if ( .not. Tdomain%specel(n)%PML ) then
-            do k = 1,ngllz-2
-                do j = 1,nglly-2
-                    do i = 1,ngllx-2
-                        read(61,*) Tdomain%specel(n)%Veloc(i,j,k,0)
-                        read(61,*) Tdomain%specel(n)%Veloc(i,j,k,1)
-                        read(61,*) Tdomain%specel(n)%Veloc(i,j,k,2)
-                        read(61,*) Tdomain%specel(n)%Displ(i,j,k,0)
-                        read(61,*) Tdomain%specel(n)%Displ(i,j,k,1)
-                        read(61,*) Tdomain%specel(n)%Displ(i,j,k,2)
-                        if ( n_solid > 0 ) then
-                            if (Tdomain%aniso) then
-                            else
-                                read(61,*)  Tdomain%specel(n)%epsilonvol_ (i,j,k)
-                                do i_sls = 0,n_solid-1
-                                    read(61,*)  Tdomain%specel(n)%R_vol_ (i_sls,i,j,k)
-                                enddo
-                            endif
-                            do i_sls = 0,n_solid-1
-                                read(61,*)  Tdomain%specel(n)%R_xx_ (i_sls,i,j,k)
-                                read(61,*)  Tdomain%specel(n)%R_yy_ (i_sls,i,j,k)
-                                read(61,*)  Tdomain%specel(n)%R_xy_ (i_sls,i,j,k)
-                                read(61,*)  Tdomain%specel(n)%R_xz_ (i_sls,i,j,k)
-                                read(61,*)  Tdomain%specel(n)%R_yz_ (i_sls,i,j,k)
-                            enddo
-                            read(61,*) Tdomain%specel(n)%epsilondev_xx_ (i,j,k)
-                            read(61,*) Tdomain%specel(n)%epsilondev_yy_ (i,j,k)
-                            read(61,*) Tdomain%specel(n)%epsilondev_xy_ (i,j,k)
-                            read(61,*) Tdomain%specel(n)%epsilondev_xz_ (i,j,k)
-                            read(61,*) Tdomain%specel(n)%epsilondev_yz_ (i,j,k)
-                        endif
-                    enddo
-                enddo
-            enddo
-        else
-            do k = 1,ngllz-2
-                do j = 1,nglly-2
-                    do i = 1,ngllx-2
-                        read(61,*) Tdomain%specel(n)%Veloc(i,j,k,0)
-                        read(61,*) Tdomain%specel(n)%Veloc(i,j,k,1)
-                        read(61,*) Tdomain%specel(n)%Veloc(i,j,k,2)
-                        read(61,*) Tdomain%specel(n)%Veloc1(i,j,k,0)
-                        read(61,*) Tdomain%specel(n)%Veloc1(i,j,k,1)
-                        read(61,*) Tdomain%specel(n)%Veloc1(i,j,k,2)
-                        read(61,*) Tdomain%specel(n)%Veloc2(i,j,k,0)
-                        read(61,*) Tdomain%specel(n)%Veloc2(i,j,k,1)
-                        read(61,*) Tdomain%specel(n)%Veloc2(i,j,k,2)
-                        read(61,*) Tdomain%specel(n)%Veloc3(i,j,k,0)
-                        read(61,*) Tdomain%specel(n)%Veloc3(i,j,k,1)
-                        read(61,*) Tdomain%specel(n)%Veloc3(i,j,k,2)
-                    enddo
-                enddo
-            enddo
-            do k = 0,ngllz-1
-                do j = 0,nglly-1
-                    do i = 0,ngllx-1
-                        read(61,*) Tdomain%specel(n)%Diagonal_Stress1(i,j,k,0)
-                        read(61,*) Tdomain%specel(n)%Diagonal_Stress1(i,j,k,1)
-                        read(61,*) Tdomain%specel(n)%Diagonal_Stress1(i,j,k,2)
-                        read(61,*) Tdomain%specel(n)%Diagonal_Stress2(i,j,k,0)
-                        read(61,*) Tdomain%specel(n)%Diagonal_Stress2(i,j,k,1)
-                        read(61,*) Tdomain%specel(n)%Diagonal_Stress2(i,j,k,2)
-                        read(61,*) Tdomain%specel(n)%Diagonal_Stress3(i,j,k,0)
-                        read(61,*) Tdomain%specel(n)%Diagonal_Stress3(i,j,k,1)
-                        read(61,*) Tdomain%specel(n)%Diagonal_Stress3(i,j,k,2)
-                        read(61,*) Tdomain%specel(n)%Residual_Stress1(i,j,k,0)
-                        read(61,*) Tdomain%specel(n)%Residual_Stress1(i,j,k,1)
-                        read(61,*) Tdomain%specel(n)%Residual_Stress1(i,j,k,2)
-                        read(61,*) Tdomain%specel(n)%Residual_Stress2(i,j,k,0)
-                        read(61,*) Tdomain%specel(n)%Residual_Stress2(i,j,k,1)
-                        read(61,*) Tdomain%specel(n)%Residual_Stress2(i,j,k,2)
-                    enddo
-                enddo
-            enddo
-        endif
-    enddo
-
-    ! Save Fields for Faces
-    do n = 0,Tdomain%n_face-1
-        ngll1 = Tdomain%sFace(n)%ngll1; ngll2 = Tdomain%sFace(n)%ngll2
-        if (.not. Tdomain%sFace(n)%PML ) then
-            do j = 1,ngll2-2
-                do i = 1,ngll1-2
-                    read(61,*) Tdomain%sFace(n)%Veloc(i,j,0)
-                    read(61,*) Tdomain%sFace(n)%Veloc(i,j,1)
-                    read(61,*) Tdomain%sFace(n)%Veloc(i,j,2)
-                    read(61,*) Tdomain%sFace(n)%Displ(i,j,0)
-                    read(61,*) Tdomain%sFace(n)%Displ(i,j,1)
-                    read(61,*) Tdomain%sFace(n)%Displ(i,j,2)
-                enddo
-            enddo
-        else
-            do j = 1,ngll2-2
-                do i = 1,ngll1-2
-                    read(61,*) Tdomain%sFace(n)%Veloc(i,j,0)
-                    read(61,*) Tdomain%sFace(n)%Veloc(i,j,1)
-                    read(61,*) Tdomain%sFace(n)%Veloc(i,j,2)
-                    read(61,*) Tdomain%sFace(n)%Veloc1(i,j,0)
-                    read(61,*) Tdomain%sFace(n)%Veloc1(i,j,1)
-                    read(61,*) Tdomain%sFace(n)%Veloc1(i,j,2)
-                    read(61,*) Tdomain%sFace(n)%Veloc2(i,j,0)
-                    read(61,*) Tdomain%sFace(n)%Veloc2(i,j,1)
-                    read(61,*) Tdomain%sFace(n)%Veloc2(i,j,2)
-                    read(61,*) Tdomain%sFace(n)%Veloc3(i,j,0)
-                    read(61,*) Tdomain%sFace(n)%Veloc3(i,j,1)
-                    read(61,*) Tdomain%sFace(n)%Veloc3(i,j,2)
-                enddo
-            enddo
-        endif
-    enddo
-
-    ! Save Fields for Edges
-    do n = 0,Tdomain%n_edge-1
-        ngll = Tdomain%sEdge(n)%ngll
-        if (.not. Tdomain%sEdge(n)%PML ) then
-            do i = 1,ngll-2
-                read(61,*) Tdomain%sEdge(n)%Veloc(i,0)
-                read(61,*) Tdomain%sEdge(n)%Veloc(i,1)
-                read(61,*) Tdomain%sEdge(n)%Veloc(i,2)
-                read(61,*) Tdomain%sEdge(n)%Displ(i,0)
-                read(61,*) Tdomain%sEdge(n)%Displ(i,1)
-                read(61,*) Tdomain%sEdge(n)%Displ(i,2)
-            enddo
-        else
-            do i = 1,ngll-2
-                read(61,*) Tdomain%sEdge(n)%Veloc(i,0)
-                read(61,*) Tdomain%sEdge(n)%Veloc(i,1)
-                read(61,*) Tdomain%sEdge(n)%Veloc(i,2)
-                read(61,*) Tdomain%sEdge(n)%Veloc1(i,0)
-                read(61,*) Tdomain%sEdge(n)%Veloc1(i,1)
-                read(61,*) Tdomain%sEdge(n)%Veloc1(i,2)
-                read(61,*) Tdomain%sEdge(n)%Veloc2(i,0)
-                read(61,*) Tdomain%sEdge(n)%Veloc2(i,1)
-                read(61,*) Tdomain%sEdge(n)%Veloc2(i,2)
-                read(61,*) Tdomain%sEdge(n)%Veloc3(i,0)
-                read(61,*) Tdomain%sEdge(n)%Veloc3(i,1)
-                read(61,*) Tdomain%sEdge(n)%Veloc3(i,2)
-            enddo
-        endif
-    enddo
-
-    ! Save Fields for Vertices
-    do n = 0,Tdomain%n_vertex-1
-        if (.not. Tdomain%sVertex(n)%PML ) then
-            do i = 0,2
-                read(61,*) Tdomain%sVertex(n)%Veloc(i)
-                read(61,*) Tdomain%sVertex(n)%Displ(i)
-            enddo
-        else
-            do i = 0,2
-                read(61,*) Tdomain%sVertex(n)%Veloc(i)
-                read(61,*) Tdomain%sVertex(n)%Veloc1(i)
-                read(61,*) Tdomain%sVertex(n)%Veloc2(i)
-                read(61,*) Tdomain%sVertex(n)%Veloc3(i)
-            enddo
-        endif
-    enddo
-    close(61)
-
-    call clean_prot(Tdomain, rg)
-
-    return
-end subroutine read_restart
-#endif
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

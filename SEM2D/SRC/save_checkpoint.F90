@@ -16,15 +16,9 @@
 !! \param real, intent (IN) rtime
 !! \param real, intent (IN) dtmin
 !<
-
-
 subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
-
     ! rtime : checkpoint time
     ! it    : iteration
-
-
-
     use sdomain
     use semdatafiles
     use mpi
@@ -36,13 +30,15 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
 
     ! local variables
     integer :: n,ngllx,ngllz,i,j,ngll,ierr
-    character (len=MAX_FILE_SIZE) :: fnamef,fnamer,fnamec
-
-#ifdef MKA3D
+    character (len=MAX_FILE_SIZE) :: prot_file
+    character (len=MAX_FILE_SIZE) :: dir_prot, dir_prot_prev, times_file, dir_traces
     character (len=100) :: commande
-#endif
 
-    if (Tdomain%MPI_var%my_rank == 0) then
+    integer :: rg
+
+    rg = Tdomain%MPI_var%my_rank
+
+    if (rg == 0) then
         write (*,'(A40,I8,A1,f10.6)') "SEM : protection a iteration et tps:",it," ",rtime
     endif
 
@@ -50,47 +46,40 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
     call MPI_Barrier (Tdomain%communicateur, ierr)
 
 
-#ifdef MKA3D
-
-    call semname_couplage_iter(it,Tdomain%Mpi_var%my_rank,fnamef)
-    call semname_couplage_iterr(it,fnamer)
-    ! creation du repertoire data/sem/Protection_<it> (par le proc le plus rapide)
-    commande="mkdir -p "//trim(fnamer)
-    call system(commande)
+    call semname_protection_iter_rank_file(it,rg,prot_file)
 
 
     ! recherche et destruction au fur et a mesure des anciennes prots
-    if (Tdomain%MPI_var%my_rank == 0) then
+    if (rg == 0) then
+
+        call semname_protection_iter_dir(it,dir_prot)
+        ! creation du repertoire data/sem/Protection_<it> (par le proc le plus rapide)
+        commande="mkdir -p "//trim(dir_prot)
+        call system(commande)
 
         Tdomain%TimeD%prot_m2 = Tdomain%TimeD%prot_m1
         Tdomain%TimeD%prot_m1 = Tdomain%TimeD%prot_m0
         Tdomain%TimeD%prot_m0 = it
 
         if (Tdomain%TimeD%prot_m2>0) then
-            call semname_couplage_iterr(Tdomain%TimeD%prot_m2,fnamec)
-            commande="rm -Rf "//trim(adjustl(fnamec))
+            call semname_protection_iter_dir(Tdomain%TimeD%prot_m2,dir_prot_prev)
+            commande="rm -Rf "//trim(adjustl(dir_prot_prev))
             call system(commande)        ! suppression de l avant avant derniere protection
         endif
 
-
         ! copie du fichier temps.dat dans le rep de protection
-        call semname_save_checkpoint_cpt(fnamer,fnamec)
-        commande="cp "//trim(adjustl(fnamec)) !!modif 09/11
-        call system(commande)
+        call semname_results_temps_sem(times_file)
+        commande="cp "//trim(adjustl(times_file))//" "//trim(adjustl(dir_prot))
+        call system(trim(commande))
 
         ! copie du repertoire des sorties capteurs sem dans le rep de protection
-        call semname_save_checkpoint_cp(fnamer,fnamec)
-        commande="cp -r "//trim(adjustl(fnamec))
-        call system(commande)
+        call semname_dir_capteurs(dir_traces)
+        commande="cp -R "//trim(adjustl(dir_traces))//" "//dir_prot
+        call system(trim(commande))
     endif
 
-#else
-    call semname_read_restart_save_checkpoint_rank(Tdomain%Mpi_var%my_rank,fnamef)
-#endif
 
-
-
-    open (61,file=fnamef,status="unknown",form="formatted")
+    open (61,file=prot_file,status="unknown",form="formatted")
     write(61,*) rtime,dtmin
     write(61,*) it,isort
 
@@ -142,12 +131,8 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
                 write(61,*) Tdomain%sFace(n)%Veloc(i,1)
                 write(61,*) Tdomain%sFace(n)%Displ(i,0)
                 write(61,*) Tdomain%sFace(n)%Displ(i,1)
-#ifdef MKA3D
                 write(61,*) Tdomain%sFace(n)%Forces(i,0)
                 write(61,*) Tdomain%sFace(n)%Forces(i,1)
-#endif
-
-
             enddo
         else
             do i = 1,ngll-2
@@ -160,9 +145,6 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
             enddo
         endif
     enddo
-
-
-
 
 
     ! Save Fields for Vertices

@@ -29,7 +29,7 @@ end module ref_orient
 
 module scouplage
 
-#ifdef MKA3D
+#ifdef COUPLAGE
 
     use sdomain
     use semdatafiles
@@ -267,9 +267,6 @@ contains
         allocate (Ypdc(nb_point_de_couplage))
         allocate (Zpdc(nb_point_de_couplage))
 
-#if 0
-        open(unit=122,file="debug-couplage.txt")
-#endif
         do np=1,comm_couplage%m_nb_point_de_couplage
             ! recuperation de la face et de l element du point de couplage courant et de ses coordonnees, du numero de materiau et du nombre de pdg en x et z
             numFace = comm_couplage%m_numFace(np)
@@ -286,42 +283,6 @@ contains
             YpdC(np) = comm_couplage%m_pos_proj(3*(np-1)+2)
             ZpdC(np) = comm_couplage%m_pos_proj(3*np)
 
-#if 0
-            ! recuperation des coor des 8 sommets de l'element
-            do i=0,7
-                ipoint = Tdomain%specel(numElem)%Control_Nodes(i)
-                x(i)= Tdomain%Coord_nodes(0,ipoint)
-                y(i)= Tdomain%Coord_nodes(1,ipoint)
-                z(i)= Tdomain%Coord_nodes(2,ipoint)
-            enddo
-
-
-
-            ! calcul des coordonnees (xi,eta,psi) du point de couplage
-            !determination du numero local de la face de couplage
-            do i=0,5 !3D Gsa
-                if(Tdomain%specel(numElem)%Near_Faces(i) == numFace) then
-                    numlocal = i
-                    exit
-                endif
-            enddo
-
-            !Attention a l'orientation
-            !il faut bien identifier les points x,y et z correspondant a la face - utiliser le tableau de correspondance sem
-            !    tmp=calcul_xi_eta_psi(Xpdc, Ypdc, Zpdc, x(0), y(0), z(0), x(1), y(1), z(1), x(2), y(2), z(2), x(3), y(3), z(3))
-            tmp = calcul_xi_eta_psi(Xpdc(np), Ypdc(np), Zpdc(np), x, y, z, numlocal)
-
-            write(122,*) numElem, numlocal
-            write(122,*) Xpdc(np), Ypdc(np), Zpdc(np)
-            write(122,*) ( x(i), y(i), z(i), i=0,7 )
-            write(122,*) tmp
-            write(122,*) "x"
-
-            xi = tmp(1)
-            eta = tmp(2)
-            psi = tmp(3)
-
-#endif
             dejaPresent=.false.
             do i=1,Nbface
                 if (comm_couplage%m_tabFaceCouplage(i).eq.numFace) then

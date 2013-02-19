@@ -7,15 +7,63 @@
 !!
 !<
 
+
+subroutine create_sem2d_sources(Tdomain, config)
+    use sem_c_config
+    use sdomain
+    implicit none
+    type(domain), intent(inout)  :: Tdomain
+    type(sem_config), intent(in) :: config
+    type(sem_source), pointer :: src
+    integer :: nsrc
+
+    Tdomain%n_source = config%nsources
+    allocate (Tdomain%Ssource(0:Tdomain%n_source-1))
+
+    call c_f_pointer(config%source, src)
+    nsrc = 0
+    do while(associated(src))
+        Tdomain%Ssource(nsrc)%Xsource = src%coords(1)
+        !Tdomain%Ssource(nsrc)%Ysource = src%coords(2)
+        Tdomain%Ssource(nsrc)%Zsource = src%coords(3)
+        Tdomain%Ssource(nsrc)%i_type_source = src%type
+        ! Comportement temporel
+        Tdomain%Ssource(nsrc)%i_time_function = src%func
+        Tdomain%Ssource(nsrc)%cutoff_freq = src%freq ! func=2,4
+        Tdomain%Ssource(nsrc)%tau_b = src%tau ! func=1,2,3,4,5
+        !Tdomain%Ssource(nsrc)%fh = src%band  ! func=3
+        !Tdomain%Ssource(nsrc)%gamma = src%gamma ! func=4
+        !Tdomain%Ssource(nsrc)%ts = src%ts   ! func=4
+        Tdomain%Ssource(nsrc)%amplitude = src%amplitude
+        ! Comportement Spacial
+        ! i_type_source==1
+        Tdomain%Ssource(nsrc)%i_dir = src%dir
+        ! i_type_source==2
+        !Tdomain%Ssource(nsrc)%Moment(0,0) = src%moments(1)
+        !Tdomain%Ssource(nsrc)%Moment(1,1) = src%moments(2)
+        !Tdomain%Ssource(nsrc)%Moment(2,1) = src%moments(3)
+        !Tdomain%Ssource(nsrc)%Moment(0,1) = src%moments(4)
+        !Tdomain%Ssource(nsrc)%Moment(1,0) = src%moments(4)
+        !Tdomain%Ssource(nsrc)%Moment(0,2) = src%moments(5)
+        !Tdomain%Ssource(nsrc)%Moment(2,0) = src%moments(5)
+        !Tdomain%Ssource(nsrc)%Moment(1,2) = src%moments(6)
+        !Tdomain%Ssource(nsrc)%Moment(2,1) = src%moments(6)
+
+        nsrc = nsrc + 1
+        Tdomain%logicD%any_source = .true.
+        call c_f_pointer(src%next, src)
+    end do
+
+end subroutine create_sem2d_sources
+
 !>
 !! \brief Assure la lecture des fichiers de données en entrée à partir du fichier Parametrage/sem/input.spec
 !!
 !! \param type (domain), intent (INOUT) Tdomain
 !<
 
-
 subroutine read_input (Tdomain)
-
+    use sem_c_config
     use sdomain
     use semdatafiles
     ! Modified by Gaetano Festa 01/06/05
@@ -31,107 +79,91 @@ subroutine read_input (Tdomain)
     integer :: unit_src
     logical :: trouve_src
     character(Len=MAX_FILE_SIZE) :: fnamef
+    type(sem_config) :: config
+    integer :: code
     ! #######################################
 
     ! It is done by any processor
-    call semname_read_input_input(fnamef)
+    call semname_file_input_spec(fnamef)
 
-    open (11,file=fnamef,form="formatted",status="old")
+    call read_sem_config(config, trim(fnamef)//C_NULL_CHAR, code)
 
-    read (11,*) Tdomain%Title_simulation
-    read (11,*) Tdomain%TimeD%acceleration_scheme
-    read (11,*) Tdomain%TimeD%velocity_scheme
-    read (11,*) Tdomain%TimeD%duration
-    read (11,*) Tdomain%TimeD%alpha
-    read (11,*) Tdomain%TimeD%beta
-    read (11,*) Tdomain%TimeD%gamma
-    read (11,*) Tdomain%mesh_file
-    read (11,*) Tdomain%material_file
-    read (11,*) Tdomain%logicD%save_trace
-    read (11,*) Tdomain%logicD%save_snapshots
-    read (11,*) Tdomain%logicD%save_deformation
-    read (11,*) Tdomain%logicD%save_energy
+    Tdomain%Title_simulation = fromcstr(config%run_name)
+    Tdomain%TimeD%acceleration_scheme = config%accel_scheme .ne. 0
+    Tdomain%TimeD%velocity_scheme = config%veloc_scheme .ne. 0
+    Tdomain%TimeD%duration = config%sim_time
+    Tdomain%TimeD%alpha = config%alpha
+    Tdomain%TimeD%beta = config%beta
+    Tdomain%TimeD%gamma = config%gamma
+    !Tdomain%TimeD%courant = config%courant
+    Tdomain%mesh_file = fromcstr(config%mesh_file)
+    Tdomain%material_file = fromcstr(config%mat_file)
+    Tdomain%logicD%save_trace = config%save_traces .ne. 0
+    Tdomain%logicD%save_snapshots = config%save_snap .ne. 0
+    Tdomain%logicD%run_restart = config%prorep .ne. 0
+    Tdomain%TimeD%iter_reprise = config%prorep_iter
+    Tdomain%TimeD%ncheck = config%prorep_iter ! frequence de sauvegarde
+    Tdomain%station_file = fromcstr(config%station_file)
+    !Tdomain%TimeD%ntrace = config%traces_interval ! XXX
+    Tdomain%TimeD%time_snapshots = config%snap_interval
+    logic_scheme = Tdomain%TimeD%acceleration_scheme .neqv. Tdomain%TimeD%velocity_scheme
+    if(.not. logic_scheme) then
+        stop "Both acceleration and velocity schemes: no compatibility, chose only one."
+    end if
 
-    read (11,*) Tdomain%logicD%plot_grid
-    read (11,*) Tdomain%logicD%run_exec
-    read (11,*) Tdomain%logicD%run_debug
-    read (11,*) Tdomain%logicD%run_echo
-    if (Tdomain%logicD%save_trace) then
-        read (11,*) Tdomain%station_file
-    else
-        read( 11,*)
-    endif
 
-    if (Tdomain%logicD%save_snapshots .or.Tdomain%logicD%save_deformation) then
-        read (11,*) Tdomain%TimeD%time_snapshots
-    else
-        read( 11,*)
-    endif
+    call create_sem2d_sources(Tdomain, config)
 
-    logic_scheme = (Tdomain%TimeD%acceleration_scheme .or. Tdomain%TimeD%velocity_scheme) .and. &
-        ((.not. Tdomain%TimeD%acceleration_scheme) .or. ( .not. Tdomain%TimeD%velocity_scheme))
+    !open (11,file=fnamef,form="formatted",status="old")
+    !read (11,*) Tdomain%Title_simulation
+    !read (11,*) Tdomain%TimeD%acceleration_scheme
+    !read (11,*) Tdomain%TimeD%velocity_scheme
+    !read (11,*) Tdomain%TimeD%duration
+    !read (11,*) Tdomain%TimeD%alpha
+    !read (11,*) Tdomain%TimeD%beta
+    !read (11,*) Tdomain%TimeD%gamma
+    !read (11,*) Tdomain%mesh_file
+    !read (11,*) Tdomain%material_file
+    !read (11,*) Tdomain%logicD%save_trace
+    !read (11,*) Tdomain%logicD%save_snapshots
+    !read (11,*) Tdomain%logicD%save_deformation
+    !read (11,*) Tdomain%logicD%save_energy
 
-    if (.not. logic_scheme) then
-        write (*,*) "No compatible acceleration and velocity schemes"
-        stop
-    endif
-    read (11,*) Tdomain%logicD%super_object
-    if (Tdomain%logicD%super_object) then
-        read (11,*) Tdomain%n_super_object
-        allocate (Tdomain%Super_object_Type(0:Tdomain%n_super_object-1))
-        allocate (Tdomain%Super_object_File(0:Tdomain%n_super_object-1))
-        do i = 0, Tdomain%n_super_object-1
-            read (11,*) Tdomain%Super_object_type(i), Tdomain%super_object_file(i)
-        enddo
-    endif
+    !read (11,*) Tdomain%logicD%plot_grid
+    !read (11,*) Tdomain%logicD%run_exec
+    !read (11,*) Tdomain%logicD%run_debug
+    !read (11,*) Tdomain%logicD%run_echo
+    !if (Tdomain%logicD%save_trace) then
+    !    read (11,*) Tdomain%station_file
+    !else
+    !    read( 11,*)
+    !endif
 
-#ifdef MKA3D
-    unit_src = 21
-    Tdomain%logicD%any_source = .true.
-    inquire(file="./Parametrage/sem/source.dat",exist=trouve_src)
-    if( .not. trouve_src) then
-        Tdomain%logicD%any_source=.false.
-        write(*,*) 'No source for Sem'
-    else
-        call semname_read_input_source(fnamef)
-        open (unit=unit_src,file=fnamef,form="formatted",status="old")
-    endif
-#else
-    unit_src = 11
-    read(unit_src,*) Tdomain%logicD%any_source
-#endif
+    !if (Tdomain%logicD%save_snapshots .or.Tdomain%logicD%save_deformation) then
+    !    read (11,*) Tdomain%TimeD%time_snapshots
+    !else
+    !    read( 11,*)
+    !endif
 
-    !! read(11,*) Tdomain%logicD%any_source   !! version initiale
-    if (Tdomain%logicD%any_source) then
-        read (unit_src,*) Tdomain%n_source
-        !! read (11,*) Tdomain%n_source !! version initiale
-        allocate (Tdomain%Ssource(0:Tdomain%n_source-1))
-        do i = 0, Tdomain%n_source - 1
-            read (unit_src,*) Tdomain%Ssource(i)%Xsource, Tdomain%Ssource(i)%Zsource
-            read (unit_src,*) Tdomain%Ssource(i)%i_type_source
-            !!     read (11,*) Tdomain%Ssource(i)%Xsource, Tdomain%Ssource(i)%Zsource      !! version initiale
-            !!     read (11,*) Tdomain%Ssource(i)%i_type_source                            !! version initiale
-            if (Tdomain%Ssource(i)%i_type_source == 1 ) then
-                !!        read (11,*) Tdomain%Ssource(i)%i_dir
-                read (unit_src,*) Tdomain%Ssource(i)%i_dir
-            else
-                !!        read (11,*)
-                read (unit_src,*)
-            endif
-            !!     read (11,*) Tdomain%Ssource(i)%i_time_function
-            !!     read (11,*) Tdomain%Ssource(i)%tau_b
-            !!     read (11,*) Tdomain%Ssource(i)%cutoff_freq
-            !!     read (11,*) Tdomain%Ssource(i)%amplitude
-            read (unit_src,*) Tdomain%Ssource(i)%i_time_function
-            read (unit_src,*) Tdomain%Ssource(i)%tau_b
-            read (unit_src,*) Tdomain%Ssource(i)%cutoff_freq
-            read (unit_src,*) Tdomain%Ssource(i)%amplitude
-        enddo
-    endif
+    !logic_scheme = (Tdomain%TimeD%acceleration_scheme .or. Tdomain%TimeD%velocity_scheme) .and. &
+    !    ((.not. Tdomain%TimeD%acceleration_scheme) .or. ( .not. Tdomain%TimeD%velocity_scheme))
+    !
+    !if (.not. logic_scheme) then
+    !    write (*,*) "No compatible acceleration and velocity schemes"
+    !    stop
+    !endif
 
-#ifdef MKA3D
-    close(unit_src)
-#endif
+!! TODO
+    !read (11,*) Tdomain%logicD%super_object
+    !if (Tdomain%logicD%super_object) then
+    !    read (11,*) Tdomain%n_super_object
+    !    allocate (Tdomain%Super_object_Type(0:Tdomain%n_super_object-1))
+    !    allocate (Tdomain%Super_object_File(0:Tdomain%n_super_object-1))
+    !    do i = 0, Tdomain%n_super_object-1
+    !        read (11,*) Tdomain%Super_object_type(i), Tdomain%super_object_file(i)
+    !    enddo
+    !endif
+
 
 
     ! conversion dun maillage unv en maillage sem

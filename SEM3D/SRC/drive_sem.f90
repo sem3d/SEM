@@ -43,6 +43,7 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     integer, dimension(3) :: flags_synchro ! fin/protection/sortie
 #endif
     integer :: interrupt
+    logical :: sortie_capteur
 
     Tdomain%communicateur = communicateur
     Tdomain%communicateur_global = communicateur_global
@@ -174,40 +175,38 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
 #endif
     if (rg == 0) print *,'Tdomain%TimeD%ntimeMax', Tdomain%TimeD%ntimeMax,Tdomain%TimeD%dtmin,Tdomain%TimeD%Duration
 
-#ifdef MKA3D
     ! traitement de la reprise
     !  modif mariotti fevrier 2007 cea
-    call semname_drive_sem_resulttemp(fnamef)
+    call semname_results_temps_sem(fnamef)
     if (Tdomain%logicD%run_restart) then
         !! Il faudra ajouter la gravite ici #ifdef COUPLAGE
         call read_restart(Tdomain, rg, isort)
         write (*,*) "Reprise effectuee sur processeur ",rg
         open (78,file=fnamef,status="unknown",position="append")
     else
+        if (Tdomain%logicD%save_snapshots)  then
+            call write_snapshot_geom(Tdomain, rg)
+        end if
         ! Sauvegarde des donnees de post-traitement
-        call save_post_data(Tdomain, rg)
         open (78,file=fnamef,status="unknown",position="rewind")
         ! on supprime tous les fichiers et repertoire de protection
-        if(rg == 0) call system('rm -Rf ./ProRep/sem/Prot*')
+        if(rg == 0) call system('rm -Rf '//path_prot)
     endif
-#endif
-    !stop
 
     ! preparation des eventuelles sorties capteur
     info_capteur = 0
-    if (Tdomain%bCapteur) call read_capteur(Tdomain, rg, info_capteur)
+    if (Tdomain%logicD%save_trace) call read_capteur(Tdomain, rg, info_capteur)
 
     if(info_capteur /= 0) then
-        Tdomain%bCapteur = .FALSE.
+        Tdomain%logicD%save_trace = .FALSE.
         sortie_capteur = .FALSE.
-        sortie_capteur_vitesse = .FALSE.
-        sortie_capteur_depla = .FALSE.
-        sortie_capteur_deformation = .FALSE.
+    else
+        sortie_capteur = .TRUE.
     endif
 
 
     if (Tdomain%logicD%save_snapshots) then
-        Tdomain%timeD%nsnap = Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin
+        Tdomain%timeD%nsnap = int(Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin)
         Tdomain%timeD%nsnap = max(1, Tdomain%timeD%nsnap)
         icount = 0
         if (rg==0) write(*,*) "Snapshot every ", Tdomain%timeD%nsnap, " iterations"
@@ -219,10 +218,6 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     call reception_surface_part_mka(Tdomain, rg)
     call reception_nouveau_pdt_sem(Tdomain, rg)
 #endif
-
-    if (Tdomain%logicD%save_snapshots)  then
-        call write_snapshot_geom(Tdomain, rg)
-    end if
 
     ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! BOUCLE DE CALCUL EN TEMPS
@@ -290,38 +285,15 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
 
 
 !        ! Determine si une sortie capteur doit etre effectuee cette iteration
-!       if (Tdomain%bCapteur) call evalueSortieCapteur(ntime)
-
-        if (i_snap == 0 .or. sortie_capteur) then
-            if (rg == 0.and.i_snap == 0) then
+        if (i_snap == 0 .and. Tdomain%logicD%save_snapshots) then
+            if (rg == 0) then
                 write(*,'(a35,i6.6,a8,f10.5)') "SEM : sortie resultats iteration : ", ntime, " temps : ", Tdomain%TimeD%rtime
             endif
+            call save_field_h5(Tdomain, rg, isort)
 
-            call create_dir_sorties(Tdomain, rg, isort)
-
-!            if ( (Tdomain%logicD%save_snapshots.and.i_snap==0).or.sortie_capteur_vitesse ) then
-            if (Tdomain%logicD%save_snapshots .and. i_snap==0) then
-                call save_field_h5(Tdomain, rg, isort)
-            endif
-        endif
-
-!#ifndef MKA3D
-!        if (Tdomain%logicD%save_trace) then
-!            if (mod (ntime+1,Tdomain%TimeD%ntrace) == 0) then
-!                call savetrace (Tdomain,rg,int(ntime/Tdomain%TimeD%ntrace))
-!                do n = 0, Tdomain%n_receivers-1
-!                endif
-!            endif
-!        endif
-!#endif
-
-#ifdef MKA3D
-        if(Tdomain%logicD%save_snapshots .and. i_snap == 0) then
             if(rg==0) then
-                write (*,*) "Snapshot saved"
                 write(78,*) isort, Tdomain%TimeD%rtime
                 call semname_nb_proc(isort,fnamef)
-                write(*,*) "Open:",trim(adjustl(fnamef))
                 open (79,file = fnamef,status="UNKNOWN")
                 write(79,*) nb_procs
                 close(79)
@@ -332,6 +304,7 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
             isort = isort + 1  ! a faire avant le save_checkpoint
         endif
 
+#ifdef COUPLAGE
         ! remise a zero dans tous les cas des forces Mka sur les faces
         do n = 0, Tdomain%n_face-1
             Tdomain%sFace(n)%ForcesMka = 0.
@@ -346,8 +319,9 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
         enddo
 #endif
 
+        call evalueSortieCapteur(ntime, Tdomain%TimeD%rtime, sortie_capteur)
         ! sortie des quantites demandees par les capteur
-!XXX        if (sortie_capteur) call save_capteur(Tdomain, ntime, rg)
+        if (sortie_capteur) call save_capteur(Tdomain, ntime, rg)
 
 
         if (protection/=0) then
@@ -367,12 +341,6 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! FIN BOUCLE EN TEMPS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    write (*,*) "Deallocate fields ",rg
-
-    if (Tdomain%bCapteur) then
-        deallocate(Tdomain%GrandeurVitesse)
-    endif
 
     if (rg == 0) write (*,*) "Deallocate domain ",rg
     call deallocate_domain (Tdomain, rg)

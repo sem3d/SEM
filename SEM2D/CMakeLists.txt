@@ -3,7 +3,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 ENABLE_LANGUAGE(Fortran)
 set(PRJ ${PROJECT_SOURCE_DIR})
 
-set(SEM2D_SOURCES
+set(SEM2D_SOURCES_F
     ${SEM_SRC}
     ${PRJ}/SRC/Element.F90
     ${PRJ}/SRC/Face.F90
@@ -37,8 +37,8 @@ set(SEM2D_SOURCES
     ${PRJ}/SRC/getmass_e2f.F90
     ${PRJ}/SRC/global_numbering.F90
 #    ${PRJ}/SRC/lister_faces_sem.f90
-    ${PRJ}/SRC/plot_grid.F90
-    ${PRJ}/SRC/postraitement.F90
+#    ${PRJ}/SRC/plot_grid.F90
+#    ${PRJ}/SRC/postraitement.F90
     ${PRJ}/SRC/read_input.F90
     ${PRJ}/SRC/read_mesh.F90
     ${PRJ}/SRC/read_restart.F90
@@ -62,11 +62,14 @@ set(SEM2D_SOURCES
 
 # On veut compiler les .f90 avec le preprocesseur cpp
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-  set_source_files_properties(${SEM3D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-fpp")
+  set_source_files_properties(${SEM2D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-fpp")
 else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-  set_source_files_properties(${SEM3D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-x f95-cpp-input")
+  set_source_files_properties(${SEM2D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-x f95-cpp-input")
 endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 
+set(SEM2D_SOURCES ${SEM2D_SOURCES_F}
+  ${SEM_SRC_C}
+)
 
 if(OPT_MPI)
 #set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})

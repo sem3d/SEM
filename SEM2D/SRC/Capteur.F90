@@ -53,8 +53,7 @@ module mCapteur
 
     type(Tcapteur), pointer :: listeCapteur
 
-    character(LEN=MAX_FILE_SIZE) :: fichierCapteur ! nom du fichier capteur
-    integer            :: fileIdCapteur  ! id fichier capteur
+    integer,parameter  :: fileIdCapteur=200  ! id fichier capteur
     logical            :: sortie_capteur
     logical            :: sortie_capteur_deformation, sortie_capteur_vitesse, sortie_capteur_depla
 
@@ -86,8 +85,6 @@ contains
         real xi, eta
         integer n_el
         ! lecture des parametres des capteurs
-        call semname_capteur_fichiercapteur(fichierCapteur)
-        fileIdCapteur=200
         sortie_capteur = .FALSE.
 
 
@@ -245,16 +242,16 @@ contains
         nullify(listeCapteur)
 
         !controle d'existence du fichier
-        INQUIRE(File=trim(fichierCapteur),Exist=status)
+        INQUIRE(File=trim(Tdomain%station_file),Exist=status)
         info_capteur=0 !!Gsa
         if ( .not.status ) then
-            write (*,*)"fichier introuvable :",trim(fichierCapteur)
+            write (*,*)"fichier introuvable :",trim(Tdomain%station_file)
             !!      stop
             info_capteur=1
             return
         endif
 
-        open(UNIT=fileIdCapteur,IOSTAT=CodeErreur,FILE=trim(fichierCapteur),FORM='formatted',STATUS='old',ACTION='read')
+        open(UNIT=fileIdCapteur,IOSTAT=CodeErreur,FILE=trim(Tdomain%station_file),FORM='formatted',STATUS='old',ACTION='read')
         if (CodeErreur .ne.0 ) print*,'Ouverture du fichier Capteur  :CodeErreur=',CodeErreur
 
 

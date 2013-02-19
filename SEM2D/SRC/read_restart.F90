@@ -1,6 +1,5 @@
 subroutine read_restart (Tdomain,isort)
-
-
+    use protrep
     use sdomain
     use semdatafiles
     use mpi
@@ -11,42 +10,15 @@ subroutine read_restart (Tdomain,isort)
     integer,intent (inout)::isort
 
     ! local variables
+    character (len=MAX_FILE_SIZE) :: file_prot
     integer :: n,ngllx,ngllz,i,j,ngll,ierr
-    character (len=MAX_FILE_SIZE) :: fnamef,fnamer,fnamec
     character (len=100) :: commande
     character (len=6) :: sit !Gsa
+    integer :: rg
+    integer :: iter
 
-#ifdef MKA3D
-
-    call semname_couplage_iter(Tdomain%TimeD%iter_reprise,Tdomain%Mpi_var%my_rank,fnamef)
-    call semname_couplage_iterr(Tdomain%TimeD%iter_reprise,fnamer)
-
-    if (Tdomain%MPI_var%my_rank == 0) then
-
-        ! copie du fichier temps.dat dans le rep de Resultat
-        call semname_couplage_commandecpt(fnamer,fnamec)
-        commande="cp "//trim(adjustl(fnamec)) !!modif 09/11
-        call system(commande)
-
-        ! copie du repertoire des sorties capteurs sem dans le rep de resultats
-        call semname_couplage_commanderm(fnamec)
-        commande="rm -Rf "//trim(adjustl(fnamec))
-        call system(commande)
-        call semname_couplage_commandecp(fnamer,fnamec)
-        commande="cp -r "//trim(adjustl(fnamec))
-        call system(commande)
-
-    endif
-
-#else
-    call semname_read_restart_save_checkpoint_rank(Tdomain%Mpi_var%my_rank,fnamef)
-#endif
-
-    ! pour s'assurer que le proc 0 a bien eu le temps de remettre en place tous les fichiers proteges
-    call MPI_Barrier(Tdomain%communicateur, ierr)
-
-    open (61,file=fnamef,status="unknown",form="formatted")
-
+    call init_restart(Tdomain%communicateur,Tdomain%Mpi_var%my_rank,Tdomain%TimeD%iter_reprise,file_prot)
+    open (61,file=file_prot,status="unknown",form="formatted")
     read(61,*) Tdomain%TimeD%rtime,Tdomain%TimeD%dtmin
     read(61,*) Tdomain%TimeD%NtimeMin,isort
 
@@ -56,10 +28,6 @@ subroutine read_restart (Tdomain,isort)
     !preparation pour le pas de temps suivant
     Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
     Tdomain%TimeD%NtimeMin=Tdomain%TimeD%NtimeMin+1
-
-
-
-
 
     ! Save Fields for Elements
     do n = 0,Tdomain%n_elem-1

@@ -29,7 +29,7 @@ module sedges
        real, dimension(:), allocatable :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
 
        type(edge_pml), allocatable :: spml
-#ifdef MKA3D
+#ifdef COUPLAGE
        real, dimension (:,:), allocatable :: ForcesMka
        !     integer, dimension (:,:), allocatable :: FlagMka
        real, dimension (:), allocatable :: tsurfsem
@@ -78,7 +78,7 @@ contains
 
         real :: xmas
 
-#ifdef MKA3D
+#ifdef COUPLAGE
         xmas = 0.
         if (  E%tsurfsem(1) > 0. ) then
             xmas = 1.
@@ -92,7 +92,7 @@ contains
 
         do i = 0,2
             do j=1,ngll-2
-#ifdef MKA3D
+#ifdef COUPLAGE
                 !   cas inter1
                 !          E%Forces(j,i) = E%MassMat(j) * E%Forces(j,i)/(1.+ E%FlagMka(j,i))
                 E%Forces(j,i) = E%MassMat(j) * E%Forces(j,i)/(1.+ xmas)

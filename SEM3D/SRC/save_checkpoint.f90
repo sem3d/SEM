@@ -7,8 +7,7 @@
 !!
 !<
 
-#ifdef MKA3D
-subroutine init_protection(Tdomain, it, rg, fnamef)
+subroutine init_protection(Tdomain, it, rg, prot_file)
     use sdomain
     use semdatafiles
     use mpi
@@ -16,21 +15,20 @@ subroutine init_protection(Tdomain, it, rg, fnamef)
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer, intent (IN) :: it, rg
-    character (len=MAX_FILE_SIZE), INTENT(OUT) :: fnamef
-    character (len=MAX_FILE_SIZE) :: fnamer, fnamec
+    character (len=MAX_FILE_SIZE), INTENT(OUT) :: prot_file
+    character (len=MAX_FILE_SIZE) :: dir_prot, dir_prot_prev, times_file, dir_traces
     character (len=MAX_FILE_SIZE) :: commande
-    character (len=MAX_FILE_SIZE) :: commande_lg
     integer :: ierr
 
-    call semname_couplage_iter(it,rg,fnamef)
-    call semname_couplage_iterr(it,fnamer)
+    call semname_protection_iter_rank_file(it,rg,prot_file)
 
-    ! creation du repertoire data/sem/Protection_<it> (par tous les procs)
-    commande="mkdir -p "//trim(fnamer)
 
     ! recherche et destruction au fur et a mesure des anciennes prots
     if (rg == 0) then
 
+        call semname_protection_iter_dir(it,dir_prot)
+        ! creation du repertoire data/sem/Protection_<it> (par tous les procs)
+        commande="mkdir -p "//trim(dir_prot)
         call system(trim(commande))
 
         Tdomain%TimeD%prot_m2 = Tdomain%TimeD%prot_m1
@@ -38,44 +36,24 @@ subroutine init_protection(Tdomain, it, rg, fnamef)
         Tdomain%TimeD%prot_m0 = it
 
         if (Tdomain%TimeD%prot_m2>0) then
-            call semname_couplage_iterr(Tdomain%TimeD%prot_m2, fnamec)
-            commande="rm -Rf "//trim(adjustl(fnamec))
-            !print *,'commande suppression ',commande
+            call semname_protection_iter_dir(Tdomain%TimeD%prot_m2, dir_prot_prev)
+            commande="rm -Rf "//trim(adjustl(dir_prot_prev))
             call system(trim(commande))        ! suppression de l avant avant derniere protection
         endif
 
-
         ! copie du fichier temps.dat dans le rep de protection
-        !!  commande="cp ./Resultats/sem/temps.dat "//trim(fnamer) !!initial
-        call semname_save_checkpoint_cp3(fnamer,fnamec)
-        commande_lg="mkdir -p "//trim(adjustl(fnamec))
-        !print *,'commande cp ',commande_lg
-        call system(trim(commande_lg))
+        call semname_results_temps_sem(times_file)
+        commande="cp "//trim(adjustl(times_file))//" "//trim(adjustl(dir_prot))
+        call system(trim(commande))
 
         ! copie du repertoire des sorties capteurs sem dans le rep de protection
-        call semname_save_checkpoint_cp2(fnamer,fnamec)
-        commande_lg="mkdir -p "//trim(adjustl(fnamec))
-        !print *,'commande cp2 ',commande_lg
-        call system(trim(commande_lg))
+        call semname_dir_capteurs(dir_traces)
+        commande="cp -R "//trim(adjustl(dir_traces))//" "//dir_prot
+        call system(trim(commande))
     endif
     call MPI_Barrier(Tdomain%communicateur, ierr)
 
 end subroutine init_protection
-#else
-subroutine init_protection(Tdomain, it, rg, fnamef)
-    use sdomain
-    use semdatafiles
-
-    implicit none
-    type (domain), intent (INOUT):: Tdomain
-    integer, intent (IN) :: it, rg
-    character (len=MAX_FILE_SIZE), INTENT(OUT) :: fnamef
-
-    call semname_save_checkpoint_rank(rg,fnamef)
-end subroutine init_protection
-#endif
-
-#ifdef USE_HDF5
 
 subroutine compute_save_offsets(Tdomain, offset, offset_f, offset_e, offset_v)
     use sdomain
@@ -888,6 +866,11 @@ subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, isort)
 
     call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
 
+    if (hdferr/=0) then
+        write(*,*) "Detected HDF error at open:", fnamef, hdferr
+        stop "Error writing HDF file"
+    end if
+
     ! ifort doesn't care, but gfortran complains that the last integer should be 8 bytes
     call h5gcreate_f(fid, 'Elements', elem_id, hdferr, 0_SIZE_T)
     call h5gcreate_f(fid, 'Faces', face_id, hdferr, 0_SIZE_T)
@@ -921,204 +904,6 @@ subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, isort)
     call h5gclose_f(vertex_id, hdferr)
     call h5fclose_f(fid, hdferr)
 end subroutine save_checkpoint
-
-#else
-subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, icountc)
-    use sdomain
-    use semdatafiles
-    implicit none
-
-    type (domain), intent (INOUT):: Tdomain
-    integer, intent (IN) :: it, rg, icountc
-    real, intent (IN) :: rtime, dtmin
-    ! local variables
-    integer :: n,ngllx,nglly,ngllz,i,j,k,ngll,ngll1,ngll2
-    character (len=MAX_FILE_SIZE) :: fnamef, fnamer
-
-    !  complement de sauvegarde pour le partie facteur de qualite Qp et Qs
-    integer :: n_solid , i_sls
-
-    if (rg == 0) then
-        write (*,'(A40,I8,A1,f10.6)') "SEM : protection a iteration et tps:",it," ",rtime
-        !write(6,*) 'save_checkpoint isort vaut ',icountc !!verif Gsa
-    endif
-
-    call init_protection(Tdomain, it, rg, fnamef)
-
-    open (61, file=fnamef, status="unknown", form="formatted",err=101)
-    write(61,*) rtime, dtmin !initialement Sem3d ecrivait ici uniquement rtime et i
-    write(61,*) it, icountc !initialement Sem3d ecrivait ici uniquement rtime et it
-101 continue
-    ! Save Fields for Elements
-    do n = 0,Tdomain%n_elem-1
-        ngllx = Tdomain%specel(n)%ngllx;  nglly = Tdomain%specel(n)%nglly; ngllz = Tdomain%specel(n)%ngllz
-
-        n_solid = Tdomain%n_sls
-
-        if ( .not. Tdomain%specel(n)%PML ) then
-            do k = 1,ngllz-2
-                do j = 1,nglly-2
-                    do i = 1,ngllx-2
-                        write(61,*) Tdomain%specel(n)%Veloc(i,j,k,0)
-                        write(61,*) Tdomain%specel(n)%Veloc(i,j,k,1)
-                        write(61,*) Tdomain%specel(n)%Veloc(i,j,k,2)
-                        write(61,*) Tdomain%specel(n)%Displ(i,j,k,0)
-                        write(61,*) Tdomain%specel(n)%Displ(i,j,k,1)
-                        write(61,*) Tdomain%specel(n)%Displ(i,j,k,2)
-                        if ( n_solid > 0 ) then
-                            if (Tdomain%aniso) then
-                            else
-                                write(61,*)  Tdomain%specel(n)%epsilonvol_ (i,j,k)
-                                do i_sls = 0,n_solid-1
-                                    write(61,*)  Tdomain%specel(n)%R_vol_ (i_sls,i,j,k)
-                                enddo
-                            endif
-                            do i_sls = 0,n_solid-1
-                                write(61,*)  Tdomain%specel(n)%R_xx_ (i_sls,i,j,k)
-                                write(61,*)  Tdomain%specel(n)%R_yy_ (i_sls,i,j,k)
-                                write(61,*)  Tdomain%specel(n)%R_xy_ (i_sls,i,j,k)
-                                write(61,*)  Tdomain%specel(n)%R_xz_ (i_sls,i,j,k)
-                                write(61,*)  Tdomain%specel(n)%R_yz_ (i_sls,i,j,k)
-                            enddo
-                            write(61,*) Tdomain%specel(n)%epsilondev_xx_ (i,j,k)
-                            write(61,*) Tdomain%specel(n)%epsilondev_yy_ (i,j,k)
-                            write(61,*) Tdomain%specel(n)%epsilondev_xy_ (i,j,k)
-                            write(61,*) Tdomain%specel(n)%epsilondev_xz_ (i,j,k)
-                            write(61,*) Tdomain%specel(n)%epsilondev_yz_ (i,j,k)
-                        endif
-                    enddo
-                enddo
-            enddo
-        else
-            do k = 1,ngllz-2
-                do j = 1,nglly-2
-                    do i = 1,ngllx-2
-                        write(61,*) Tdomain%specel(n)%Veloc(i,j,k,0)
-                        write(61,*) Tdomain%specel(n)%Veloc(i,j,k,1)
-                        write(61,*) Tdomain%specel(n)%Veloc(i,j,k,2)
-                        write(61,*) Tdomain%specel(n)%Veloc1(i,j,k,0)
-                        write(61,*) Tdomain%specel(n)%Veloc1(i,j,k,1)
-                        write(61,*) Tdomain%specel(n)%Veloc1(i,j,k,2)
-                        write(61,*) Tdomain%specel(n)%Veloc2(i,j,k,0)
-                        write(61,*) Tdomain%specel(n)%Veloc2(i,j,k,1)
-                        write(61,*) Tdomain%specel(n)%Veloc2(i,j,k,2)
-                        write(61,*) Tdomain%specel(n)%Veloc3(i,j,k,0)
-                        write(61,*) Tdomain%specel(n)%Veloc3(i,j,k,1)
-                        write(61,*) Tdomain%specel(n)%Veloc3(i,j,k,2)
-                    enddo
-                enddo
-            enddo
-            do k = 0,ngllz-1
-                do j = 0,nglly-1
-                    do i = 0,ngllx-1
-                        write(61,*) Tdomain%specel(n)%Diagonal_Stress1(i,j,k,0)
-                        write(61,*) Tdomain%specel(n)%Diagonal_Stress1(i,j,k,1)
-                        write(61,*) Tdomain%specel(n)%Diagonal_Stress1(i,j,k,2)
-                        write(61,*) Tdomain%specel(n)%Diagonal_Stress2(i,j,k,0)
-                        write(61,*) Tdomain%specel(n)%Diagonal_Stress2(i,j,k,1)
-                        write(61,*) Tdomain%specel(n)%Diagonal_Stress2(i,j,k,2)
-                        write(61,*) Tdomain%specel(n)%Diagonal_Stress3(i,j,k,0)
-                        write(61,*) Tdomain%specel(n)%Diagonal_Stress3(i,j,k,1)
-                        write(61,*) Tdomain%specel(n)%Diagonal_Stress3(i,j,k,2)
-                        write(61,*) Tdomain%specel(n)%Residual_Stress1(i,j,k,0)
-                        write(61,*) Tdomain%specel(n)%Residual_Stress1(i,j,k,1)
-                        write(61,*) Tdomain%specel(n)%Residual_Stress1(i,j,k,2)
-                        write(61,*) Tdomain%specel(n)%Residual_Stress2(i,j,k,0)
-                        write(61,*) Tdomain%specel(n)%Residual_Stress2(i,j,k,1)
-                        write(61,*) Tdomain%specel(n)%Residual_Stress2(i,j,k,2)
-                    enddo
-                enddo
-            enddo
-        endif
-    enddo
-
-    ! Save Fields for Faces
-    do n = 0,Tdomain%n_face-1
-        ngll1 = Tdomain%sFace(n)%ngll1; ngll2 = Tdomain%sFace(n)%ngll2
-        if (.not. Tdomain%sFace(n)%PML ) then
-            do j = 1,ngll2-2
-                do i = 1,ngll1-2
-                    write(61,*) Tdomain%sFace(n)%Veloc(i,j,0)
-                    write(61,*) Tdomain%sFace(n)%Veloc(i,j,1)
-                    write(61,*) Tdomain%sFace(n)%Veloc(i,j,2)
-                    write(61,*) Tdomain%sFace(n)%Displ(i,j,0)
-                    write(61,*) Tdomain%sFace(n)%Displ(i,j,1)
-                    write(61,*) Tdomain%sFace(n)%Displ(i,j,2)
-                enddo
-            enddo
-        else
-            do j = 1,ngll2-2
-                do i = 1,ngll1-2
-                    write(61,*) Tdomain%sFace(n)%Veloc(i,j,0)
-                    write(61,*) Tdomain%sFace(n)%Veloc(i,j,1)
-                    write(61,*) Tdomain%sFace(n)%Veloc(i,j,2)
-                    write(61,*) Tdomain%sFace(n)%Veloc1(i,j,0)
-                    write(61,*) Tdomain%sFace(n)%Veloc1(i,j,1)
-                    write(61,*) Tdomain%sFace(n)%Veloc1(i,j,2)
-                    write(61,*) Tdomain%sFace(n)%Veloc2(i,j,0)
-                    write(61,*) Tdomain%sFace(n)%Veloc2(i,j,1)
-                    write(61,*) Tdomain%sFace(n)%Veloc2(i,j,2)
-                    write(61,*) Tdomain%sFace(n)%Veloc3(i,j,0)
-                    write(61,*) Tdomain%sFace(n)%Veloc3(i,j,1)
-                    write(61,*) Tdomain%sFace(n)%Veloc3(i,j,2)
-                enddo
-            enddo
-        endif
-    enddo
-
-    ! Save Fields for Edges
-    do n = 0,Tdomain%n_edge-1
-        ngll = Tdomain%sEdge(n)%ngll
-        if (.not. Tdomain%sEdge(n)%PML ) then
-            do i = 1,ngll-2
-                write(61,*) Tdomain%sEdge(n)%Veloc(i,0)
-                write(61,*) Tdomain%sEdge(n)%Veloc(i,1)
-                write(61,*) Tdomain%sEdge(n)%Veloc(i,2)
-                write(61,*) Tdomain%sEdge(n)%Displ(i,0)
-                write(61,*) Tdomain%sEdge(n)%Displ(i,1)
-                write(61,*) Tdomain%sEdge(n)%Displ(i,2)
-            enddo
-        else
-            do i = 1,ngll-2
-                write(61,*) Tdomain%sEdge(n)%Veloc(i,0)
-                write(61,*) Tdomain%sEdge(n)%Veloc(i,1)
-                write(61,*) Tdomain%sEdge(n)%Veloc(i,2)
-                write(61,*) Tdomain%sEdge(n)%Veloc1(i,0)
-                write(61,*) Tdomain%sEdge(n)%Veloc1(i,1)
-                write(61,*) Tdomain%sEdge(n)%Veloc1(i,2)
-                write(61,*) Tdomain%sEdge(n)%Veloc2(i,0)
-                write(61,*) Tdomain%sEdge(n)%Veloc2(i,1)
-                write(61,*) Tdomain%sEdge(n)%Veloc2(i,2)
-                write(61,*) Tdomain%sEdge(n)%Veloc3(i,0)
-                write(61,*) Tdomain%sEdge(n)%Veloc3(i,1)
-                write(61,*) Tdomain%sEdge(n)%Veloc3(i,2)
-            enddo
-        endif
-    enddo
-
-    ! Save Fields for Vertices
-    do n = 0,Tdomain%n_vertex-1
-        if (.not. Tdomain%sVertex(n)%PML ) then
-            do i = 0,2
-                write(61,*) Tdomain%sVertex(n)%Veloc(i)
-                write(61,*) Tdomain%sVertex(n)%Displ(i)
-            enddo
-        else
-            do i = 0,2
-                write(61,*) Tdomain%sVertex(n)%Veloc(i)
-                write(61,*) Tdomain%sVertex(n)%Veloc1(i)
-                write(61,*) Tdomain%sVertex(n)%Veloc2(i)
-                write(61,*) Tdomain%sVertex(n)%Veloc3(i)
-            enddo
-        endif
-    enddo
-    close(61)
-
-
-
-    return
-end subroutine save_checkpoint
-#endif
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

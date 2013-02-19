@@ -453,7 +453,7 @@ subroutine read_input (Tdomain, rg, code)
     type(sem_config)             :: config
     logical                      :: logic_scheme
 
-    call semname_read_input_input(fnamef)
+    call semname_file_input_spec(fnamef)
 
     call read_sem_config(config, trim(fnamef)//C_NULL_CHAR, code)
 

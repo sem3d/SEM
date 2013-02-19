@@ -112,10 +112,10 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
             stop
         endif
 
-        if (Tdomain%logicD%plot_grid) then
-            if (Tdomain%MPI_var%my_rank == 0) write (*,*) "Plotting the element mesh"
-            call plot_grid (Tdomain)
-        endif
+!        if (Tdomain%logicD%plot_grid) then
+!            if (Tdomain%MPI_var%my_rank == 0) write (*,*) "Plotting the element mesh"
+!            call plot_grid (Tdomain)
+!        endif
 
         if (Tdomain%MPI_var%my_rank == 0) write (*,*) " Compute Courant parameter"
         call compute_Courant (Tdomain)
@@ -185,9 +185,8 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
 
 
 
-#ifdef MKA3D
         ! traitement de la reprise
-        call semname_main_temp(fnamef)
+        call semname_results_temps_sem(fnamef)
         if (Tdomain%logicD%run_restart ) then
             call read_restart(Tdomain,isort)
             open (78,file = fnamef,status="unknown",form="formatted",position="append")
@@ -198,11 +197,6 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
                 call system('rm -Rf ./ProRep/sem/Prot*')
             endif
         endif
-#endif
-
-
-
-
 
         ! preparation des eventuelles sorties capteur
         info_capteur = 0

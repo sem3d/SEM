@@ -20,6 +20,7 @@ module mCapteur
 
     type :: tPtgauss
        integer :: num      ! numero du point de Gauss
+       integer :: nel, i,j,k ! Numero de l'element, et numerotation interne du pt de gauss
        real    :: Coord(3) ! coordonnees du point de gauss
        real    :: Poids    ! poids du point de Gauss
        type(tPtGauss),pointer :: suivant  ! point de Gauss suivant
@@ -39,13 +40,13 @@ module mCapteur
        integer :: nPtGauss           ! nombre de points de Gauss
        type(tPtgauss),pointer :: listePtGauss ! liste des points de Gauss associe au capteur
        type(Tcapteur),pointer :: suivant ! pour passer au capteur suivant
-       integer type_calcul           ! 0 => pas d'interpolation, recherche du point de Gauss le plus proche,
+       integer :: type_calcul        ! 0 => pas d'interpolation, recherche du point de Gauss le plus proche,
        ! 1 => interpolation aux positions du capteur
        !   (necessite le calcul des abscisses curvilignes dans l'element de reference
        !     = processus de dichotomie pour trouver (xi,eta,zeta))
-       integer n_el ! numero de la maille dans laquelle se trouve le capteur
+       integer :: n_el ! numero de la maille dans laquelle se trouve le capteur
        ! si le capteur est partage entre plusieurs mailles, une seule suffit (type_calcul=1)
-       real xi, eta, zeta ! abscisses curvilignes pour le capteur en cas d'interpolation (type_calcul=1)
+       real :: xi, eta, zeta ! abscisses curvilignes pour le capteur en cas d'interpolation (type_calcul=1)
        integer numproc               ! numero du proc localisant le capteur
     end type tCapteur
 
@@ -53,12 +54,88 @@ module mCapteur
 
     type(Tcapteur), pointer :: listeCapteur
 
-    character(LEN=MAX_FILE_SIZE) :: fichierCapteur ! nom du fichier capteur
-    integer            :: fileIdCapteur  ! id fichier capteur
-    logical            :: sortie_capteur
-    logical            :: sortie_capteur_deformation, sortie_capteur_vitesse, sortie_capteur_depla
+    integer,parameter :: fileIdCapteur=200  ! id fichier capteur
 
 contains
+
+    !! Recopie dans field le champs de deplacement reparti sur les Elem, Face, Edge, Vertex
+    subroutine build_elem_displ(Tdomain, nel, field)
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: nel
+        real, dimension(0:,0:,0:,0:), intent(out) :: field
+        type(element), pointer :: el
+        type(face), pointer :: fc
+        type(edge), pointer :: ed
+        type(vertex), pointer :: vx
+        integer :: nx, ny, nz, i
+        nx = Tdomain%specel(nel)%ngllx
+        ny = Tdomain%specel(nel)%nglly
+        nz = Tdomain%specel(nel)%ngllz
+        el => Tdomain%specel(nel)
+        field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%Displ(:,:,:,:)
+        do i=0,5
+            fc => Tdomain%sFace(el%Near_Faces(i))
+            call get_VectProperty_Face2Elem(i,el%Orient_Faces, nx, ny, nz, fc%ngll1, fc%ngll2, &
+                fc%Displ, field)
+        end do
+
+        do i=0,11
+            ed => Tdomain%sEdge(el%Near_Edges(i))
+            call get_VectProperty_Edge2Elem(i,el%Orient_Faces, nx, ny, nz, ed%ngll, &
+                ed%Displ, field)
+        end do
+        do i=0,7
+            vx => Tdomain%sVertex(el%Near_Vertices(i))
+            call get_VectProperty_Vertex2Elem(i, nx, ny, nz, vx%Displ, field)
+        end do
+
+    end subroutine build_elem_displ
+
+    subroutine build_elem_veloc(Tdomain, nel, field)
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: nel
+        real, dimension(0:,0:,0:,0:), intent(out) :: field
+        type(element), pointer :: el
+        type(face), pointer :: fc
+        type(edge), pointer :: ed
+        type(vertex), pointer :: vx
+        integer :: nx, ny, nz, i
+        nx = Tdomain%specel(nel)%ngllx
+        ny = Tdomain%specel(nel)%nglly
+        nz = Tdomain%specel(nel)%ngllz
+        el => Tdomain%specel(nel)
+        field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%Veloc(:,:,:,:)
+        do i=0,5
+            fc => Tdomain%sFace(el%Near_Faces(i))
+            call get_VectProperty_Face2Elem(i,el%Orient_Faces, nx, ny, nz, fc%ngll1, fc%ngll2, &
+                fc%Veloc, field)
+        end do
+
+        do i=0,11
+            ed => Tdomain%sEdge(el%Near_Edges(i))
+            call get_VectProperty_Edge2Elem(i,el%Orient_Faces, nx, ny, nz, ed%ngll, &
+                ed%Veloc, field)
+        end do
+        do i=0,7
+            vx => Tdomain%sVertex(el%Near_Vertices(i))
+            call get_VectProperty_Vertex2Elem(i, nx, ny, nz, vx%Veloc, field)
+        end do
+
+    end subroutine build_elem_veloc
+
+    function grandeur_depla(Tdomain, PtGauss)
+        type(domain), intent(in) :: Tdomain
+        type(tPtgauss), intent(in) :: PtGauss
+        real, dimension(3) :: grandeur_depla
+
+    end function grandeur_depla
+
+    function grandeur_vitesse(Tdomain, PtGauss)
+        type(domain), intent(in) :: Tdomain
+        type(tPtgauss), intent(in) :: PtGauss
+        real, dimension(3) :: grandeur_vitesse
+
+    end function grandeur_vitesse
 
     !--------------------------------------------------------------
 
@@ -89,12 +166,8 @@ contains
         integer n_el
 
         ! lecture des parametres des capteurs
-        call semname_capteur_fichiercapteur(fichierCapteur)
-        fileIdCapteur = 200
-        sortie_capteur = .FALSE.
 
         !lecture du fichier des capteurs capteurs.dat
-        !!  call lireCapteur(tDomain, rg)  !!initial
         call lireCapteur(tDomain, rg, info_capteur)
         if(info_capteur /= 0) return
 
@@ -207,12 +280,6 @@ contains
         deallocate(sendbuf)
         deallocate(recvbuf)
 
-        ! creation des tableaux de grandeur associees aux capteurs
-        !  allocate(Tdomain%GrandeurDeformation(0:max(Tdomain%n_glob_points-1,0)))
-        allocate(Tdomain%GrandeurVitesse(0:2,0:max(Tdomain%n_glob_points-1,0)))
-        allocate(Tdomain%GrandeurDepla(0:2,0:max(Tdomain%n_glob_points-1,0)))
-
-
     end subroutine read_capteur
 
 
@@ -248,18 +315,21 @@ contains
         nullify(listeCapteur)
 
         !controle d'existence du fichier
-        INQUIRE(File=trim(fichierCapteur),Exist=status)
-        info_capteur=0 !!Gsa
+        INQUIRE(File=trim(Tdomain%station_file),Exist=status)
+        info_capteur=0
         if ( .not.status ) then
             if(rg==0) &
-                write (*,*)"fichier des capteurs introuvable :",trim(fichierCapteur)
+                write (*,*)"fichier des capteurs introuvable :",trim(Tdomain%station_file)
             !!      stop
             info_capteur=1
             return
-        endif
+        else
+            if(rg==0) then
+                write(*,*) "Reading file:", trim(adjustl(Tdomain%station_file))
+            end if
+        end if
 
-
-        open(UNIT=fileIdCapteur,IOSTAT=CodeErreur,FILE=trim(fichierCapteur),FORM='formatted',STATUS='old',ACTION='read')
+        open(UNIT=fileIdCapteur,IOSTAT=CodeErreur,FILE=trim(Tdomain%station_file),FORM='formatted',STATUS='old',ACTION='read')
         if (CodeErreur .ne.0 ) print*,'Pb a l''ouverture du fichier Capteur  :CodeErreur=',CodeErreur
 
         do ! while (.not.eof(fileIdCapteur))
@@ -478,9 +548,7 @@ contains
 
                     if (dist.LE.capteur%rayon) then  ! le Pt Gauss est a prendre
                         allocate(PtGauss)
-                        PtGauss%coord(1) = coord(1,i)
-                        PtGauss%coord(2) = coord(2,i)
-                        PtGauss%coord(3) = coord(3,i)
+                        PtGauss%coord(:) = coord(:,i)
                         PtGauss%num = i-1
                         capteur%nPtGauss = capteur%nPtGauss +1
                         PtGauss%suivant=>capteur%listePtGauss
@@ -492,9 +560,7 @@ contains
                     if (dist.lt.capteur%distanceMin) then ! le pt Gauss devient le pt le plus proche
                         capteur%distanceMin = dist
                         allocate(PtGauss)
-                        PtGauss%coord(1) = coord(1,i)
-                        PtGauss%coord(2) = coord(2,i)
-                        PtGauss%coord(3) = coord(3,i)
+                        PtGauss%coord(:) = coord(:,i)
                         PtGauss%num = i-1
                         capteur%nPtGauss = 1
                         nullify(PtGauss%suivant)
@@ -527,37 +593,24 @@ contains
     !<
 
 
-    subroutine evalueSortieCapteur(it)
-
-
+    subroutine evalueSortieCapteur(it, time, sortie_capteur)
         implicit none
-        integer :: it
+        integer, intent(in) :: it
+        real*8, intent(in) :: time
+        logical, intent(out) :: sortie_capteur
         type(tCapteur),pointer :: capteur
-
-        sortie_capteur_deformation = .FALSE.
-        sortie_capteur_vitesse     = .FALSE.
-        sortie_capteur_depla     = .FALSE.
-        sortie_capteur             = .FALSE.
 
         ! boucle sur les capteurs
         allocate (capteur)
         capteur=>listeCapteur
 
         do while (associated(capteur))
-
             if (mod(it,capteur%frequence)==0) then ! on fait la sortie
                 sortie_capteur = .TRUE.
-
-                if (capteur%grandeur.eq."DEFORMATION") sortie_capteur_deformation = .TRUE.
-                if (capteur%grandeur.eq."VITESSE")     sortie_capteur_vitesse     = .TRUE.
-                if (capteur%grandeur.eq."DEPLA")     sortie_capteur_depla     = .TRUE.
-
             endif
 
             capteur=>capteur%suivant
-
         enddo
-
     end subroutine evalueSortieCapteur
 
     !---------------------------------------------------------------------
@@ -583,7 +636,6 @@ contains
 
 
         ! boucle sur les capteurs
-        allocate (capteur)
         capteur=>listeCapteur
 
         do while (associated(capteur))
@@ -656,20 +708,13 @@ contains
         do while (associated(PtGauss))
 
             i=i+1
-            !      if (trim(capteur%grandeur).eq."DEFORMATION") then
-            !        grandeur(1,i) = Tdomain%GrandeurDeformation(PtGauss%num)
-            !      endif
 
             if (trim(capteur%grandeur).eq."VITESSE") then
-                do idim=0,2
-                    grandeur(idim+1,i) = Tdomain%GrandeurVitesse(idim,PtGauss%num)
-                enddo
+                grandeur(:,i) = grandeur_vitesse(Tdomain, PtGauss)
             endif
 
             if (trim(capteur%grandeur).eq."DEPLA") then
-                do idim=0,2
-                    grandeur(idim+1,i) = Tdomain%GrandeurDepla(idim,PtGauss%num)
-                enddo
+                grandeur(:,i) = grandeur_depla(Tdomain, PtGauss)
             endif
 
             PtGauss=>PtGauss%suivant ! passage au point de Gauss suivant
@@ -829,10 +874,11 @@ contains
         integer request
 
         real, dimension(3) :: val0
-        real, dimension(:), allocatable :: grandeur
 
-        real,dimension(3) :: recvbuf
-        real,dimension(3) :: sendbuf
+        real, dimension(3) :: recvbuf
+        real, dimension(3) :: sendbuf
+        real, dimension(3) :: grandeur
+        real, dimension(:,:,:,:), allocatable :: field
         integer n_el, ipoint, ngllx, nglly, ngllz, mat
         real xi, eta, zeta
         real outx, outy, outz
@@ -846,7 +892,6 @@ contains
 
         ! ETAPE 0 : initialisations
         fileId=99 ! id du fichier des sorties capteur
-        allocate (grandeur(3)) ! allocation du tableau de la grandeur restreinte aux pts de Gauss captes
         grandeur(:)=0.                               ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
 
 
@@ -864,7 +909,12 @@ contains
             nglly = Tdomain%specel(n_el)%nglly
             ngllz = Tdomain%specel(n_el)%ngllz
             mat = Tdomain%specel(n_el)%mat_index
-
+            allocate(field(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+            if (trim(capteur%grandeur).eq."VITESSE") then
+                call build_elem_veloc(Tdomain, n_el, field)
+            else if (trim(capteur%grandeur).eq."DEPLA") then
+                call build_elem_displ(Tdomain, n_el, field)
+            end if
             do i = 0,ngllx - 1
                 do j = 0,nglly - 1
                     do k = 0,ngllz - 1
@@ -872,18 +922,7 @@ contains
                         call  pol_lagrange (nglly,Tdomain%sSubdomain(mat)%GLLcy,j,eta,outy)
                         call  pol_lagrange (ngllz,Tdomain%sSubdomain(mat)%GLLcz,k,zeta,outz)
 
-                        ipoint = Tdomain%specel(n_el)%Iglobnum(i,j,k)
-
-                        if (trim(capteur%grandeur).eq."VITESSE") then
-                            do idim=0,2
-                                grandeur(idim+1) = grandeur(idim+1) + outx*outy*outz*Tdomain%GrandeurVitesse(idim,ipoint)
-                            enddo
-                        elseif (trim(capteur%grandeur).eq."DEPLA") then
-                            do idim=0,2
-                                grandeur(idim+1) = grandeur(idim+1) + outx*outy*outz*Tdomain%GrandeurDepla(idim,ipoint)
-                            enddo
-                        endif
-
+                        grandeur(:) = grandeur(:) + outx*outy*outz*field(i,j,k,:)
                     enddo
                 enddo
             enddo
@@ -894,9 +933,6 @@ contains
 
             call mpi_Isend(sendbuf,3,MPI_DOUBLE_PRECISION,0,tag, Tdomain%communicateur,request, ierr)
             numproc = rg !!numero du proc courant
-
-            !call mpi_wait(request,status,ierr)
-
 
         endif
 
@@ -954,12 +990,10 @@ contains
 
         endif
 
-        deallocate(grandeur)
-
-
     end subroutine sortieGrandeurCapteur_interp
 
-    !!on identifie la maille dans laquelle se trouve le capteur. Il peut y en avoir plusieurs, alors le capteur est sur un face ou sur un sommet
+    !!on identifie la maille dans laquelle se trouve le capteur. Il peut y en avoir plusieurs,
+    !! alors le capteur est sur une face, arete ou sur un sommet
     !!
     subroutine trouve_capteur(Tdomain, rg, capteur, n_el, xi, eta, zeta)
 
@@ -1211,14 +1245,6 @@ contains
         enddo
         pg = pg/n_nodes
 
-        !!  print*,'test_contour_capteur', P(0,:)
-        !!  print*,'test_contour_capteur', P(1,:)
-        !!  print*,'test_contour_capteur', P(2,:)
-        !!  print*,'test_contour_capteur', P(3,:)
-        !!  print*,'test_contour_capteur', P(4,:)
-        !!  print*,'test_contour_capteur', P(5,:)
-        !!  print*,'test_contour_capteur', P(6,:)
-        !!  print*,'test_contour_capteur', P(7,:)
 !!!!  write(6,*) 'Barycentre' ,pg
         do iface=0,n_faces-1
             do i=0,3

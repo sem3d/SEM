@@ -49,11 +49,7 @@ module sdomain
        type (bassin) :: sBassin
        type(SF_object) :: SF
 
-       logical :: any_PML, curve, any_FPML, aniso, bCapteur
-
-       real, dimension(:,:), pointer :: GrandeurVitesse     ! tableaux utiles pour les sorties des grandeurs
-       real, dimension(:,:), pointer :: GrandeurDepla     ! tableaux utiles pour les sorties des grandeurs
-       real, dimension(:), pointer :: GrandeurDeformation ! pour tous les points de gauss a une iteration donnee
+       logical :: any_PML, curve, any_FPML, aniso
 
        integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers, n_proc
        integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls
@@ -67,8 +63,6 @@ module sdomain
            Super_object_file,neumann_file,neumann_dat,check_mesh_file
        character (len=30) :: file_bassin
        character (len=1)  :: Super_object_type
-
-       real, dimension (0:2000) :: Store_Trace
 
        real :: MPML_coeff
 

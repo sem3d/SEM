@@ -8,8 +8,6 @@ subroutine test_path()
     write(*,*) "dir capteurs='", trim(adjustl(fnamef)),"'"
     call semname_capteur_pos("cap00", fnamef)
     write(*,*) "capteur_pos:", trim(adjustl(fnamef))
-    call semname_capteur_fichiercapteur(fnamef)
-    write(*,*) "capteur.dat:", trim(adjustl(fnamef))
         
 end subroutine test_path
 

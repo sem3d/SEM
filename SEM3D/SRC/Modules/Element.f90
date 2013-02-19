@@ -31,7 +31,7 @@ module selement
 
     type :: element
 
-       integer :: mat_index, moho_position, ngllx, nglly, ngllz
+       integer :: mat_index, ngllx, nglly, ngllz
        integer, dimension (:), allocatable :: Control_nodes
 
        integer, dimension (0:5) :: Near_Faces, Orient_Faces
@@ -1076,18 +1076,80 @@ contains
     end subroutine Prediction_Elem_PML_Veloc_curve
 
 
-subroutine init_element(el)
-    type(element), intent(inout) :: el
+    subroutine init_element(el)
+        type(element), intent(inout) :: el
 
-    el%mat_index=-1
-    el%ngllx=0
-    el%nglly=0
-    el%ngllz=0
-    el%PML = .false.
-    el%solid = .true.
+        el%mat_index=-1
+        el%ngllx=0
+        el%nglly=0
+        el%ngllz=0
+        el%PML = .false.
+        el%solid = .true.
 
-end subroutine init_element
+    end subroutine init_element
 
+
+    subroutine compute_local_coordinates(el, coord, mat, xs,ys,zs, xi, eta, zeta)
+        use ssubdomains
+        use shape_geom_3d
+        type(element), intent(in) :: el
+        type(Subdomain), intent(in) :: mat
+        real, intent(in) :: xs,ys,zs
+        real, dimension(:,:), intent(in) :: coord
+        real, intent(out) :: xi, eta, zeta
+        real :: x,y,z
+        integer :: i,j,k, ipt
+        integer :: ic,jc,kc
+        real :: dmin, d, derr
+        real, dimension(0:2,0:2) :: LocInvGrad, Jac
+        real, dimension(0:7) :: xco, yco, zco
+        real, dimension(0:2) :: vx,dx
+
+        !
+        ! On cherche le pt de gauss le plus proche
+        !
+        dmin = 1e30
+        do i = 0,mat%ngllx-1
+            do j = 0,mat%nglly-1
+                do k = 0,mat%ngllz-1
+                    ipt = el%Iglobnum(i,j,k)
+                    d = sqrt ((coord(0,ipt)-xs)**2 + (coord(1,ipt)-ys)**2 + (coord(2,ipt)-zs)**2)
+                    if (d <= dmin) then
+                        dmin = d
+                        ic = i
+                        jc = j
+                        kc = k
+                    endif
+                enddo
+            enddo
+        enddo
+        do i=0,7
+            xco(i) = coord(0, el%Control_Nodes(i))
+            yco(i) = coord(1, el%Control_Nodes(i))
+            zco(i) = coord(2, el%Control_Nodes(i))
+        end do
+        do
+            x = f_p(xco, xi, eta, zeta)
+            y = f_p(yco, xi, eta, zeta)
+            z = f_p(zco, xi, eta, zeta)
+
+            LocInvGrad(0,0) = der_dx_dxi(xco,eta,zeta)
+            LocInvGrad(1,0) = der_dx_deta(xco,xi,zeta)
+            LocInvGrad(2,0) = der_dx_dzeta(xco,xi,eta)
+            LocInvGrad(0,1) = der_dy_dxi(yco,eta,zeta)
+            LocInvGrad(1,1) = der_dy_deta(yco,xi,zeta)
+            LocInvGrad(2,1) = der_dy_dzeta(yco,xi,eta)
+            LocInvGrad(0,2) = der_dz_dxi(zco,eta,zeta)
+            LocInvGrad(1,2) = der_dz_deta(zco,xi,zeta)
+            LocInvGrad(2,2) = der_dz_dzeta(zco,xi,eta)
+
+            call invert_3d(LocInvGrad,Jac)
+
+            derr = (x-xs)**2+(y-ys)**2+(z-zs)**2
+            if (derr<1e-14) exit
+        end do
+
+    end subroutine compute_local_coordinates
 
 end module selement
 

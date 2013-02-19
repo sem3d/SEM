@@ -16,10 +16,11 @@ contains
         character(len=MAX_FILE_SIZE+10) :: creer_dir
         integer :: code
 
-        call semname_snap_result_dir(isort, temp)
-        creer_dir = "mkdir -p "//temp
-
-        if (rg==0) call system(creer_dir)
+        if (rg==0) then
+            call semname_snap_result_dir(isort, temp)
+            creer_dir = "mkdir -p "//temp
+            call system(creer_dir)
+        end if
         call mpi_barrier(Tdomain%communicateur, code)
     end subroutine create_dir_sorties
 
@@ -36,6 +37,7 @@ contains
         integer(HSIZE_T), dimension(2) :: dims
         integer :: hdferr, code
 
+        call init_hdf5()
         if (rg==0) then
             call system("mkdir -p " // path_results)
         end if
@@ -64,24 +66,32 @@ contains
         implicit none
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: fid
-        integer(HID_T) :: elem_id, mat_id
+        integer(HID_T) :: elem_id, mat_id, ngll_id, globnum_id
         integer :: ngllx, nglly, ngllz
         integer(HSIZE_T), dimension(2) :: dims
         integer, dimension(:,:), allocatable :: data
-        integer, dimension(:), allocatable :: mat
-        integer :: count
+        integer, dimension(:), allocatable :: mat, iglobnum
+        integer, dimension(3,0:Tdomain%n_elem-1) :: ngll
+        integer :: count, ig, nglobnum
         integer :: i, j, k, n
         integer :: hdferr
 
         ! First we count the number of hexaedrons
         count = 0
+        nglobnum = 0
         do n = 0,Tdomain%n_elem-1
-            ngllx = Tdomain%specel(n)%ngllx
-            nglly = Tdomain%specel(n)%nglly
-            ngllz = Tdomain%specel(n)%ngllz
-
-            count = count+(ngllx-1)*(nglly-1)*(ngllz-1)
+            ngll(1,n) = Tdomain%specel(n)%ngllx
+            ngll(2,n) = Tdomain%specel(n)%nglly
+            ngll(3,n) = Tdomain%specel(n)%ngllz
+            nglobnum = nglobnum + ngll(1,n)*ngll(2,n)*ngll(3,n)
+            count = count+(ngll(1,n)-1)*(ngll(2,n)-1)*(ngll(3,n)-1)
         enddo
+        !! Nombre de points de gauss par element
+        call create_dset_2d(fid, "NGLL", H5T_STD_I16LE, 3, Tdomain%n_elem, ngll_id)
+        dims(1) = 3
+        dims(2) = Tdomain%n_elem
+        call h5dwrite_f(ngll_id, H5T_NATIVE_INTEGER, ngll, dims, hdferr)
+        call h5dclose_f(ngll_id, hdferr)
 
         Tdomain%n_hexa = count
         allocate( data(1:8,0:count-1))
@@ -89,10 +99,13 @@ contains
 
         call create_dset_2d(fid, "Elements", H5T_STD_I32LE, 8, count, elem_id)
         call create_dset(fid, "Material", H5T_STD_I32LE, count, mat_id)
+        call create_dset(fid, "Iglobnum", H5T_STD_I32LE, nglobnum, globnum_id)
 
+        allocate (iglobnum(nglobnum))
         dims(1) = 8
         dims(2) = count
         count = 0
+        ig = 1
         do n = 0,Tdomain%n_elem-1
             ngllx = Tdomain%specel(n)%ngllx
             nglly = Tdomain%specel(n)%nglly
@@ -113,7 +126,20 @@ contains
                     end do
                 end do
             end do
+            do k = 0,ngllz - 1
+                do j = 0,nglly - 1
+                    do i = 0,ngllx - 1
+                        iglobnum(ig) = Tdomain%specel(n)%Iglobnum(i,j,k)
+                        ig = ig + 1
+                    end do
+                end do
+            end do
         end do
+        dims(1) = nglobnum
+        dims(2) = 0
+        call h5dwrite_f(globnum_id, H5T_NATIVE_INTEGER, iglobnum, dims, hdferr)
+        deallocate(iglobnum)
+        call h5dclose_f(globnum_id, hdferr)
         call h5dwrite_f(elem_id, H5T_NATIVE_INTEGER, data, dims, hdferr)
         call h5dclose_f(elem_id, hdferr)
         dims(1)=count
@@ -135,6 +161,8 @@ contains
         integer :: ngllx, nglly, ngllz, idx
         integer :: i, j, k, n
         
+
+        call create_dir_sorties(Tdomain, rg, isort)
         call semname_snap_result_file(rg, isort, fnamef)
 
         call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)

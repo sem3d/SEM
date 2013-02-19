@@ -124,14 +124,13 @@ contains
     subroutine initialisation_couplage(Tdomain, MaxNgparFace)
         type (domain), intent(INOUT)  :: Tdomain
 
-        integer :: i,j,k,ipoint
+        integer :: i,ipoint
         integer :: tag,ierr
         integer :: wf,ngll,np
         integer :: numFace,numElem,mat
         integer :: iface,bufsize,decal,nbchamps
         integer :: Ngauss,MaxNgParFace,gl_MaxNgParFace
         real :: xi,eta
-        real :: duration_mka3d
         logical :: dejaPresent
 
         integer, dimension (MPI_STATUS_SIZE) :: status
@@ -145,8 +144,7 @@ contains
 
         real,dimension (:), pointer :: dmin_couplage
         logical,dimension(:), pointer :: face_deja_traitee
-        integer ik
-        character(Len=MAX_FILE_SIZE) fnamef !Gsa
+        character(Len=MAX_FILE_SIZE) fnamef
 
         allocate(displs(Tdomain%Mpi_var%n_proc),count(Tdomain%Mpi_var%n_proc))
 
@@ -549,17 +547,15 @@ contains
         integer, intent(IN) :: ntime
 
 
-        integer :: i,j,ipoint,np,numElem,numFace,mat
+        integer :: i,j,ipoint,numElem,numFace,mat
         integer :: ngll, wf
-        integer :: iface,idim,n0,n1,position
+        integer :: iface,n0,n1,position
         integer :: tag,ierr
         integer, dimension (MPI_STATUS_SIZE) :: status
 
-        real :: out,dist,contrib
+        real :: out,dist
         real :: forcex,forcey
-        real,dimension(:,:),pointer :: vecB
         real,dimension(0:3) :: x,z
-        integer ik, ip
         real, dimension(comm_couplage%m_dim, comm_couplage%m_gl_Ngauss) :: force_impose
 
         ! RECEPTION DES FORCES DU SUPERVISEUR

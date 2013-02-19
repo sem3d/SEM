@@ -71,7 +71,7 @@ subroutine def_timefunc (Tdomain,rg)
                 call wtcoef(i*dt,t1,t2,tmax,tmax,wt)
                 Tdomain%sSource(isrc)%timefunc(i+1) = Tdomain%sSource(isrc)%timefunc(i+1) * wt
             enddo
-            call semname_ondelette_sgn(fnamef)
+            fnamef = pjoin(path_logs, "ondelette.txt")
             open (60,file=fnamef,status="unknown",form="formatted")
             do i = 0, Tdomain%TimeD%NtimeMax
                 t1 = i*dt

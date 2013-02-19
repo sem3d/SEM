@@ -61,6 +61,12 @@ contains
         path_logs = "."
     end subroutine init_sem_path
 
+    subroutine create_sem_output_directories()
+        call system("mkdir -p " // trim(adjustl(path_traces)))
+        call system("mkdir -p " // trim(adjustl(path_results)))
+        call system("mkdir -p " // trim(adjustl(path_prot)))
+        call system("mkdir -p " // trim(adjustl(path_logs)))
+    end subroutine create_sem_output_directories
 
     subroutine semname_dir_capteurs(dirname)
         implicit none
@@ -93,35 +99,41 @@ contains
         DEBUG(fnamef)
     end subroutine semname_capteur_type
 
-    subroutine semname_capteur_fichiercapteur (fnamef)
-        !SEMFILE 200 R ./Parametrage/sem/capteurs.dat
-        implicit none
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-
-        fnamef = pjoin(path_param,"capteurs.dat")
-    end subroutine semname_capteur_fichiercapteur
-    !!end fichier capteur 2d 3d
-
-    !!fichier couplage 2d 3d
-    subroutine semname_couplage_iter (iter,rank,fnamef) !! egalement read restart et save checkpoint
-        !SEMFILE 61 R ./ProRep/sem/Protection_III/Protection_III.JJJ
+    !! Nom du fichier de protection pour une iteration et un rank
+    subroutine semname_protection_iter_rank_file(iter,rank,fnamef)
         implicit none
         integer,intent(in) :: iter
         integer,intent(in) :: rank
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a24,I8.8,a12,I8.8,a1,I4.4)")"./ProRep/sem/Protection_",iter,"/Protection_",iter,".",rank
+        character(Len=MAX_FILE_SIZE)             :: temp1, temp2
 
+        call semname_protection_iter_dir(iter,temp1)
+        write(temp2,"(a11,I8.8,a1,I4.4)") "Protection_",iter,".",rank
+        fnamef = pjoin(temp1, temp2)
         DEBUG(fnamef)
-    end subroutine semname_couplage_iter
-    subroutine semname_couplage_iterr (iter,fnamef)
-        !SEMFILE 61 R ./ProRep/sem/Protection_III
+    end subroutine semname_protection_iter_rank_file
+
+    !!! Renvoie le nom du repertoire des protections pour une iteration donnee
+    subroutine semname_protection_iter_dir(iter,fnamef)
         implicit none
         integer,intent(in) :: iter
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a24,I8.8)")"./ProRep/sem/Protection_",iter
-
+        character(Len=MAX_FILE_SIZE)             :: temp
+        write(temp,"(a11,I8.8)")"Protection_",iter
+        fnamef = pjoin(path_prot, temp)
         DEBUG(fnamef)
-    end subroutine semname_couplage_iterr
+    end subroutine semname_protection_iter_dir
+
+    subroutine semname_protection_iter_dir_capteurs(iter,fnamef)
+        implicit none
+        integer,intent(in) :: iter
+        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
+        character(Len=MAX_FILE_SIZE)             :: temp
+        call semname_protection_iter_dir(iter,temp)
+        fnamef = pjoin(temp, "Capteurs")
+        DEBUG(fnamef)
+    end subroutine semname_protection_iter_dir_capteurs
+
     subroutine semname_couplage_commandecpt(fnamer,fnamef)
         !SEMFILE * C XXX/temps_sem.dat ./Resultats/temps_sem.dat
         implicit none
@@ -131,23 +143,7 @@ contains
 
         DEBUG(fnamef)
     end subroutine semname_couplage_commandecpt
-    subroutine semname_couplage_commanderm(fnamef)
-        !SEMFILE * C ./Capteurs/sem
-        implicit none
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a)")"./Capteurs/sem"
 
-        DEBUG(fnamef)
-    end subroutine semname_couplage_commanderm
-    subroutine semname_couplage_commandecp(fnamer,fnamef)
-        !SEMFILE * C XXX/Capteurs ./Capteurs/sem
-        implicit none
-        character(Len=*),intent(in) :: fnamer
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a,a)") trim(adjustl(fnamer)),"/Capteurs ./Capteurs/sem"
-
-        DEBUG(fnamef)
-    end subroutine semname_couplage_commandecp
     subroutine semname_couplage_listepts (rank,fnamef)
         !SEMFILE 75 W liste_pts_interp.dat.III
         implicit none
@@ -310,15 +306,23 @@ contains
         DEBUG(fnamef)
     end subroutine semname_couplage_dat
 
-    subroutine semname_main_temp (fnamef)
-        !SEMFILE 78 W ./Resultats/temps_sem.dat (MKA)
+    subroutine semname_results_temps_sem(fnamef)
         implicit none
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
 
-        write(fnamef,"(a)")"./Resultats/temps_sem.dat"
-
+        fnamef = pjoin(path_results, "temps_sem.dat")
         DEBUG(fnamef)
-    end subroutine semname_main_temp
+    end subroutine semname_results_temps_sem
+
+    subroutine semname_protection_temps_sem(iter,fnamef)
+        implicit none
+        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
+        integer, intent(in) :: iter
+        character(Len=MAX_FILE_SIZE) :: temp
+        call semname_protection_iter_dir(iter,temp)
+        fnamef = pjoin(temp, "temps_sem.dat")
+        DEBUG(fnamef)
+    end subroutine semname_protection_temps_sem
 
     subroutine semname_main_result(cit,fnamef)
         !SEMFILE * C ./Resultats/RsemIII
@@ -330,33 +334,6 @@ contains
         fnamef = pjoin(path_results, temp)
     end subroutine semname_main_result
     !!end fichier main 2d
-
-    !!fichier plot_grid 2d
-    subroutine semname_plot_grid_grid (crank,fnamef)
-        !SEMFILE 22 W ./Resultats/grid.gnu.III (MKA) & "grid.gnu.III (NOMKA)
-        implicit none
-        integer,intent(in) :: crank
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE) :: temp
-
-        write(temp,"(a,I4.4)") "grid.gnu.",crank
-        fnamef = pjoin(path_results, temp)
-    end subroutine semname_plot_grid_grid
-
-    subroutine semname_plot_grid_surface (crank,fnamef)
-        !SEMFILE 23 W ./data/sem/surface.gnu.III (MKA) & surface.gnu.III (NOMKA)
-        implicit none
-        integer,intent(in) :: crank
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I4.4)")"./data/sem/surface.gnu.",crank
-#else
-        write(fnamef,"(a,I4.4)")"surface.gnu.",crank
-#endif
-
-        DEBUG(fnamef)
-    end subroutine semname_plot_grid_surface
-    !!end fichier plot_grid 2d
 
     subroutine semname_snap_geom_file (srank,fnamef)
         implicit none
@@ -390,67 +367,18 @@ contains
         fnamef = pjoin(path_results, temp)
     end subroutine semname_snap_result_dir
 
-    !!fichier posttraitement 2d 3d
-    subroutine semname_posttraitement_geo (srank,fnamef)
-        !SEMFILE 200+i W ./Resultats/ensightIII.geo (MKA) & ensightIII.geo (NOMKA)
-        implicit none
-        integer,intent(in) :: srank
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE) :: temp
-
-        write(temp,"(a,I4.4,a)")"ensight",srank,".geo"
-        fnamef = pjoin(path_results, temp)
-    end subroutine semname_posttraitement_geo
-
-
-
-    subroutine semname_posttraitement_case (srank,fnamef)
-        !SEMFILE 100 W ./Resultats/ensightIII.case (MKA) & ensightIII.case (NOMKA)
-        implicit none
-        integer,intent(in) :: srank
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE) :: temp
-
-        write(fnamef,"(a,I4.4,a)")"ensight",srank,".case"
-        fnamef = pjoin(path_results, temp)
-    end subroutine semname_posttraitement_case
-    !!end fichier postraitement 2d 3d
-
-    !!fichier read_input 2d 3d
-    subroutine semname_read_input_input (fnamef)
+    subroutine semname_file_input_spec(fnamef)
         !SEMFILE 11 R ./Parametrage/sem/input.spec (MKA) & input.spec (NOMKA)
         implicit none
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
         fnamef = pjoin(path_param, "input.spec")
-    end subroutine semname_read_input_input
-
-    subroutine semname_read_input_source (fnamef)
-        !SEMFILE 21 R ./Parametrage/sem/source.dat
-        implicit none
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-
-        fnamef = pjoin(path_param, "source.dat")
-    end subroutine semname_read_input_source
-
-    subroutine semname_read_input_amortissement (fnamef) !3d
-        !SEMFILE 22 R ./Parametrage/sem/amortissement.dat (MKA)
-        implicit none
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-
-        fnamef = pjoin(path_param, "amortissement.dat")
-    end subroutine semname_read_input_amortissement
+    end subroutine semname_file_input_spec
 
     subroutine semname_read_input_spec (fnamef)
-        !SEMFILE 91 W ./data/sem/input_spec_echo (MKA) & input_spec_echo (NOMKA)
         implicit none
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a)")"./data/sem/input_spec_echo"
-#else
-        write(fnamef,"(a)")"input_spec_echo"
-#endif
 
-        DEBUG(fnamef)
+        fnamef = pjoin(path_logs, "input_spec_echo")
     end subroutine semname_read_input_spec
 
     subroutine semname_read_input_meshfile (rg,meshfile,fnamef)
@@ -473,22 +401,15 @@ contains
         fnamef = pjoin( path_param, file)
     end subroutine semname_read_inputmesh_parametrage
 
-    !!end fichier read_input 2d 3d
-
-    !!fichier read_mesh 2d
     subroutine semname_read_mesh_rank (mesh,rank,fnamef)
-        !SEMFILE 12 R ./data/sem/XXX.III (MKA) & XXX.III (NOMKA)
         implicit none
         integer,intent(in) :: rank
         character(Len=*),intent(in) :: mesh
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a11,a,a1,I4.4)")"./data/sem/",trim(adjustl(mesh)),".",rank
-#else
-        write(fnamef,"(a,a1,I4.4)")trim(adjustl(mesh)),".",rank
-#endif
+        character(Len=MAX_FILE_SIZE)             :: temp
 
-        DEBUG(fnamef)
+        write(temp,"(a,a1,I4.4)") trim(adjustl(mesh)),".",rank
+        fnamef = pjoin(path_data, temp)
     end subroutine semname_read_mesh_rank
 
     subroutine semname_read_mesh_echo (rank,fnamef)
@@ -530,54 +451,7 @@ contains
 
         DEBUG(fnamef)
     end subroutine semname_read_mesh_station_echo
-    !!end fichier read_mesh 2d
 
-    !!fichier read_restart 2d 3d & save_checkpoint 2d 3d
-    subroutine semname_read_restart_save_checkpoint_protectionf (iter,rank,fnamef)
-        !SEMFILE: 61  R W  ./ProRep/sem/Protection_III/Protection_III.JJJ (MKA) : donnee protections
-        implicit none
-        integer,intent(in) :: rank
-        integer,intent(in) :: iter
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a24,I8.8,a12,I8.8,a1,I4.4)") "./ProRep/sem/Protection_",iter,"/Protection_",iter,".",rank
-
-        DEBUG(fnamef)
-    end subroutine semname_read_restart_save_checkpoint_protectionf
-    subroutine semname_read_restart_save_checkpoint_protectionr (iter,fnamef)
-        !SEMFILE: 61  R W  ./ProRep/sem/Protection_III (MKA) : donnee protections
-        implicit none
-        integer,intent(in) :: iter
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a24,I8.8)") "./ProRep/sem/Protection_",iter
-
-        DEBUG(fnamef)
-    end subroutine semname_read_restart_save_checkpoint_protectionr
-    subroutine semname_read_restart_save_checkpoint_rank (rank,fnamef)
-        !SEMFILE 61 R W backupIII (NOMKA)
-        implicit none
-        integer,intent(in) :: rank
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a6,I4.4)") "backup",rank
-
-        DEBUG(fnamef)
-    end subroutine semname_read_restart_save_checkpoint_rank
-
-    subroutine semname_save_checkpoint_rank (rank,fnamef) !seulement pour save_checkpoint 3d
-        !SEMFILE 61 W ./data/SBackup/backupIII (NOMKA)
-        implicit none
-        integer,intent(in) :: rank
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write (fnamef,"(a,I4.4)") "./data/SBackup/backup",rank
-
-        DEBUG(fnamef)
-    end subroutine semname_save_checkpoint_rank
-    subroutine semname_save_checkpoint_cpt(fnamer,fnamef)
-        character,intent(in) :: fnamer
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a,a)") "./Resultats/temps_sem.dat ",trim(adjustl(fnamer))
-
-        DEBUG(fnamef)
-    end subroutine semname_save_checkpoint_cpt
     subroutine semname_save_checkpoint_cp(fnamer,fnamef)
         character(Len=*),intent(in) :: fnamer
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
@@ -585,13 +459,7 @@ contains
 
         DEBUG(fnamef)
     end subroutine semname_save_checkpoint_cp
-    subroutine semname_save_checkpoint_cp3(fnamer,fnamef)
-        character(Len=*),intent(in) :: fnamer
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a,a,a)")trim(adjustl(fnamer)),";cp ./Resultats/temps_sem.dat ",trim(adjustl(fnamer))
 
-        DEBUG(fnamef)
-    end subroutine semname_save_checkpoint_cp3
     subroutine semname_save_checkpoint_cp2(fnamer,fnamef)
         character(Len=*),intent(in) :: fnamer
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
@@ -811,8 +679,9 @@ contains
         integer ,intent(in) :: k
         character(Len=*),intent(in) :: coord
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a,a,a,I4.4,a,I3.3)")"./data/Trace",trim(adjustl(coord)),"/trace",n,trim(adjustl(coord)),k
-
+        character(Len=MAX_FILE_SIZE) :: temp
+        write(fnamef,"(a,I4.4,a,I3.3)") "trace",n,trim(adjustl(coord)),k
+        fnamef = pjoin(path_traces, temp)
         DEBUG(fnamef)
     end subroutine semname_savetrace_trace
 
@@ -840,95 +709,44 @@ contains
     end subroutine semname_sem_fichier
     !!end fichier sem 2d 3d
 
-    !!fichier shape4 2d shape8 2d 3d
+
+!------ Fichiers pour posttraitement -------------
     subroutine semname_posptg (rank,fnamef)
-        !SEMFILE 88 W ./Resultats/posPTG.III (MKA)
         implicit none
         integer,intent(in) :: rank
-        !character(Len=20) :: crank
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        !write(crank,"(I20)") rank
-        write(fnamef,"(a,I4.4)")"./Resultats/posPtG.",rank
-
+        character(Len=MAX_FILE_SIZE)  :: temp
+        write(temp,"(a,I4.4)")"posPtG.",rank
+        fnamef = pjoin(path_results, temp)
         DEBUG(fnamef)
     end subroutine semname_posptg
 
     subroutine semname_post_data (rank,fnamef)
-        !SEMFILE 88 W ./Resultats/posPTG.III (MKA)
         implicit none
         integer,intent(in) :: rank
-        !character(Len=20) :: crank
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        !write(crank,"(I20)") rank
-        write(fnamef,"(a,I4.4,a)")"./Resultats/post_data.",rank,".h5"
-
+        character(Len=MAX_FILE_SIZE)  :: temp
+        write(temp,"(a,I4.4,a)")"post_data.",rank,".h5"
+        fnamef = pjoin(path_results,temp)
         DEBUG(fnamef)
     end subroutine semname_post_data
 
     subroutine semname_connecptg (rank,fnamef)
-        !SEMFILE 89 W ./Resultats/connecPTG.III (MKA)
         implicit none
         integer,intent(in) :: rank
-        !character(Len=20) :: crank
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        !write(crank,"(I20)") rank
-        write(fnamef,"(a,I4.4)")"./Resultats/connecPtG.",rank
-
+        character(Len=MAX_FILE_SIZE)  :: temp
+        write(temp,"(a,I4.4)")"connecPtG.",rank
+        fnamef = pjoin(path_results, temp)
         DEBUG(fnamef)
     end subroutine semname_connecptg
 
-    subroutine semname_shape8_norm (rank,fnamef) !3d
-        !SEMFILE 60 W PWNormalIII
-        implicit none
-        integer,intent(in) :: rank
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a,I2.2)")"PWNormale",rank
-
-        DEBUG(fnamef)
-    end subroutine semname_shape8_norm
-
-    subroutine semname_shape8_coord (rank,fnamef) !3d
-        !SEMFILE 62 W CoordPWIII
-        implicit none
-        integer,intent(in) :: rank
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a,I2.2)")"CoordPW",rank
-
-        DEBUG(fnamef)
-    end subroutine semname_shape8_coord
-
-    subroutine semname_shape8_neu (rank,fnamef) !3d
-        !SEMFILE 60 W NeuNormaleIII
-        implicit none
-        integer,intent(in) :: rank
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a,I2.2)")"NeuNormale",rank
-
-        DEBUG(fnamef)
-    end subroutine semname_shape8_neu
-    !!end fichier shape4 2d shape8 2d 3d
-
-    !!fichier drive_sem 3d
-    ! semname_couplage_dat
-
-    subroutine semname_drive_sem_listing (rg, fnamef)
-        !SEMFILE 50 ? sem.listingIII (COUPLAGE)
-        implicit none
-        integer, intent(in) :: rg
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE) :: temp
-
-        write(temp,"(a,I4.4)")"sem.listing.",rg
-
-        fnamef = pjoin(path_logs, temp)
-    end subroutine semname_drive_sem_listing
-
-    subroutine semname_drive_sem_resulttemp (fnamef)
+    subroutine semname_file_temps_sem(fnamef)
         implicit none
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
 
         fnamef = pjoin(path_results, "temps_sem.dat")
-    end subroutine semname_drive_sem_resulttemp
+    end subroutine semname_file_temps_sem
 
     subroutine semname_xdmf(isort, fnamef)
         implicit none
@@ -945,6 +763,19 @@ contains
         fnamef = pjoin(path_results, "results.xmf")
     end subroutine semname_xdmf_master
 
+
+!--------- Fichiers log/debug ---------------------
+    subroutine semname_drive_sem_listing (rg, fnamef)
+        implicit none
+        integer, intent(in) :: rg
+        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
+        character(Len=MAX_FILE_SIZE) :: temp
+
+        write(temp,"(a,I4.4)")"sem.listing.",rg
+
+        fnamef = pjoin(path_logs, temp)
+    end subroutine semname_drive_sem_listing
+
     !! Nom du fichier contenant le nombre de processeurs ayant genere une sortie
     subroutine semname_nb_proc(isort,fnamef)
         implicit none
@@ -955,17 +786,6 @@ contains
         fnamef = pjoin(temp, "Nb_proc")
     end subroutine semname_nb_proc
 
-
-    !!fichier ondelette 3d
-    subroutine semname_ondelette_sgn (fnamef)
-        !SEMFILE 60 W sgn_src
-        implicit none
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        write(fnamef,"(a)")"sgn_src"
-
-        DEBUG(fnamef)
-    end subroutine semname_ondelette_sgn
-    !!end fichier ondelette 3d
 
     !!fichier unv 2d 3d
     subroutine semname_unv_fichier (fichier,fnamef)
