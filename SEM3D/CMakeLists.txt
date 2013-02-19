@@ -6,6 +6,7 @@ set(PRJ ${PROJECT_SOURCE_DIR})
 
 set(SEM3D_SOURCES_F
     ${SEM_SRC}
+    ${PRJ}/SRC/geometrical_prop.f90
     ${PRJ}/SRC/Modules/Element.f90
     ${PRJ}/SRC/Modules/Face.f90
     ${PRJ}/SRC/Modules/Vertex.f90
@@ -88,7 +89,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/get_ScalarProperty_Vertex2Elem.f90
 
     ${PRJ}/SRC/indexation.f90
-    ${PRJ}/SRC/geometrical_prop.f90
     ${PRJ}/SRC/algo_comm.f90
     ${PRJ}/SRC/source_excit.f90
     ${PRJ}/SRC/boundary_conditions_init.f90
