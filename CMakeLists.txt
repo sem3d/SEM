@@ -58,6 +58,7 @@ set(SEM_SRC
 set(SEM_SRC_C
   ${SEMCOMMON}/read_input.c
   ${SEMCOMMON}/file_scan.c
+  ${SEMCOMMON}/tremain_c.c
 )
 
 if(NOT BUILD_WITH_MKA)

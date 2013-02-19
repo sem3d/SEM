@@ -2,9 +2,16 @@
 
 
 subroutine tremain( remtime )
+    interface
+       subroutine tremain_c(remtime) bind(c)
+           use iso_c_binding
+           real(C_DOUBLE), intent(out) :: remtime
+       end subroutine tremain_c
+    end interface
     real(kind=8), intent(out) :: remtime
 
-    remtime=1e8
+    remtime = 1e12
+    call tremain_c(remtime)
 
 end subroutine tremain
 !! Local Variables:
