@@ -52,7 +52,7 @@ contains
 
         select case (Sour%i_time_function)
         case (1)
-            CompSource = Gaussian (time,Sour%tau_b)
+            CompSource = Gaussian (time, Sour%ts, Sour%tau_b)
         case (2)
             CompSource = Ricker (time,Sour%tau_b,Sour%cutoff_freq)
         case (3)
@@ -71,7 +71,6 @@ contains
             ! Sinus, pour test. param : tau, cutoff_freq
             CompSource = Source_sinewave(time, Sour)
         end select
-
         return
     end function CompSource
 
@@ -105,15 +104,7 @@ contains
         return
     end function Source_sinewave
 
-    !>
-    !! \fn function Gaussian (time, tau)
-    !! \brief
-    !!
-    !! \param real time
-    !! \param real tau
-    !<
-    !-------------------------------------------------
-    !   modif pour benchmark can2
+    
     real function Source_File(tt,tau,Sour)
         implicit none
         type(source), intent(in)  :: Sour
@@ -174,12 +165,12 @@ contains
     !   modif pour benchmark can2
     !-------------------------------------------------
 
-    real function Gaussian (time,tau)
+    real function Gaussian (time,ts,tau)
         implicit none
-        real, intent(in) :: tau,time
+        real, intent(in) :: tau, time, ts
 
-        if ( time < 2.5*tau ) then
-            Gaussian = -(time-tau) * exp (-(time-tau)**2/tau**2)
+        if ( (time-ts) < 8*tau ) then
+            Gaussian = -2*(time-ts) * exp (-(time-ts)**2/tau**2)
         else
             Gaussian = 0.
         endif
