@@ -121,7 +121,7 @@ end subroutine save_post_data
 #endif
 
 subroutine shape8(Tdomain,rank)
-
+    use shape_geom_3d
     use sdomain
     use mpi
     implicit none
@@ -135,8 +135,8 @@ subroutine shape8(Tdomain,rank)
     real :: xi,eta,zeta, Jac, fact_norm
     real, dimension(0:2,0:2) :: LocInvGrad
     real, dimension(0:7) :: xco,yco,zco  ! coordinates of nodes
-    real, external  :: f_p,f_xp,f_yp,f_zp,der_dx_dxi,der_dx_deta,der_dx_dzeta,     &
-        der_dy_dxi,der_dy_deta,der_dy_dzeta,der_dz_dxi,der_dz_deta,der_dz_dzeta
+    !real, external  :: f_p,der_dx_dxi,der_dx_deta,der_dx_dzeta,     &
+    !    der_dy_dxi,der_dy_deta,der_dy_dzeta,der_dz_dxi,der_dz_deta,der_dz_dzeta
 
 
     allocate(Tdomain%GlobCoord(0:2,0:Tdomain%n_glob_points-1))
