@@ -1,0 +1,976 @@
+%PDF-1.4
+%“Œ‹ž ReportLab Generated PDF document http://www.reportlab.com
+% 'BasicFonts': class PDFDictionary 
+1 0 obj
+% The standard fonts dictionary
+<< /F1 2 0 R
+ /F2 3 0 R
+ /F3 5 0 R >>
+endobj
+% 'F1': class PDFType1Font 
+2 0 obj
+% Font Helvetica
+<< /BaseFont /Helvetica
+ /Encoding /WinAnsiEncoding
+ /Name /F1
+ /Subtype /Type1
+ /Type /Font >>
+endobj
+% 'F2': class PDFType1Font 
+3 0 obj
+% Font Helvetica-Bold
+<< /BaseFont /Helvetica-Bold
+ /Encoding /WinAnsiEncoding
+ /Name /F2
+ /Subtype /Type1
+ /Type /Font >>
+endobj
+% 'Page1': class PDFPage 
+4 0 obj
+% Page dictionary
+<< /Contents 15 0 R
+ /MediaBox [ 0
+ 0
+ 595.2756
+ 841.8898 ]
+ /Parent 14 0 R
+ /Resources << /Font 1 0 R
+ /ProcSet [ /PDF
+ /Text
+ /ImageB
+ /ImageC
+ /ImageI ] >>
+ /Rotate 0
+ /Trans <<  >>
+ /Type /Page >>
+endobj
+% 'F3': class PDFType1Font 
+5 0 obj
+% Font Courier
+<< /BaseFont /Courier
+ /Encoding /WinAnsiEncoding
+ /Name /F3
+ /Subtype /Type1
+ /Type /Font >>
+endobj
+% 'Page2': class PDFPage 
+6 0 obj
+% Page dictionary
+<< /Contents 16 0 R
+ /MediaBox [ 0
+ 0
+ 595.2756
+ 841.8898 ]
+ /Parent 14 0 R
+ /Resources << /Font 1 0 R
+ /ProcSet [ /PDF
+ /Text
+ /ImageB
+ /ImageC
+ /ImageI ] >>
+ /Rotate 0
+ /Trans <<  >>
+ /Type /Page >>
+endobj
+% 'R7': class PDFCatalog 
+7 0 obj
+% Document Root
+<< /Outlines 9 0 R
+ /PageLabels 17 0 R
+ /PageMode /UseNone
+ /Pages 14 0 R
+ /Type /Catalog >>
+endobj
+% 'R8': class PDFInfo 
+8 0 obj
+<< /Author ()
+ /CreationDate (D:20130219154734-01'00')
+ /Creator (\(unspecified\))
+ /Keywords ()
+ /Producer (ReportLab PDF Library - www.reportlab.com)
+ /Subject (\(unspecified\))
+ /Title (NEWS) >>
+endobj
+% 'R9': class PDFOutlines 
+9 0 obj
+<< /Count 4
+ /First 10 0 R
+ /Last 13 0 R
+ /Type /Outlines >>
+endobj
+% 'Outline.0': class OutlineEntryObject 
+10 0 obj
+<< /Dest [ 4 0 R
+ /XYZ
+ 62.69291
+ 677.0236
+ 0 ]
+ /Next 11 0 R
+ /Parent 9 0 R
+ /Title (Les nouveaut\351s par rapport \340 toutes les versions) >>
+endobj
+% 'Outline.1': class OutlineEntryObject 
+11 0 obj
+<< /Dest [ 6 0 R
+ /XYZ
+ 62.69291
+ 765.0236
+ 0 ]
+ /Next 12 0 R
+ /Parent 9 0 R
+ /Prev 10 0 R
+ /Title (Les nouveaut\351s de cette version par rapport \340 RegSEM.U) >>
+endobj
+% 'Outline.2': class OutlineEntryObject 
+12 0 obj
+<< /Dest [ 6 0 R
+ /XYZ
+ 62.69291
+ 471.0236
+ 0 ]
+ /Next 13 0 R
+ /Parent 9 0 R
+ /Prev 11 0 R
+ /Title (TODO) >>
+endobj
+% 'Outline.3': class OutlineEntryObject 
+13 0 obj
+<< /Dest [ 6 0 R
+ /XYZ
+ 62.69291
+ 348.0236
+ 0 ]
+ /Parent 9 0 R
+ /Prev 12 0 R
+ /Title (Notes importantes) >>
+endobj
+% 'R14': class PDFPages 
+14 0 obj
+% page tree
+<< /Count 2
+ /Kids [ 4 0 R
+ 6 0 R ]
+ /Type /Pages >>
+endobj
+% 'R15': class PDFStream 
+15 0 obj
+% page stream
+<< /Length 7279 >>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 62.69291 741.0236 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 4 Tm /F2 20 Tf 24 TL 204.9449 0 Td (NEWS) Tj T* -204.9449 0 Td ET
+Q
+Q
+q
+1 0 0 1 62.69291 711.0236 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 3 Tm /F2 15 Tf 18 TL 178.2449 0 Td (Version 2013.02) Tj T* -178.2449 0 Td ET
+Q
+Q
+q
+1 0 0 1 62.69291 689.0236 cm
+q
+BT 1 0 0 1 0 2 Tm 12 TL /F1 10 Tf 0 0 0 rg (Cette version r\351sulte de l'int\351gration de plusieurs version de SEM3D, RegSEM.U, SEM-CEA.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 656.0236 cm
+q
+BT 1 0 0 1 0 3.5 Tm 21 TL /F2 17.5 Tf 0 0 0 rg (Les nouveaut\351s par rapport \340 toutes les versions) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 644.0236 cm
+Q
+q
+1 0 0 1 62.69291 644.0236 cm
+Q
+q
+1 0 0 1 62.69291 542.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 87 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 87 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Un nouveau format de fichier d'entr\351e \(input.spec\) :) Tj T* ET
+Q
+Q
+q
+1 0 0 1 23 45 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 26 Tm /F1 10 Tf 12 TL .084104 Tw (L'ancien format \351tait tr\350s confu : une liste de valeurs lues de mani\350re aveugle par les codes. Chaque) Tj T* 0 Tw 1.855984 Tw (code lisait ses param\350tres dans un ordre pr\351-\351tabli. Il \351tait impossible de r\351utiliser un fichier de) Tj T* 0 Tw (config d'une version \340 l'autre.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 23 15 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 14 Tm /F1 10 Tf 12 TL 1.543828 Tw (D\351sormais les param\350tres sont identifi\351s par des mots-clefs. Ainsi un param\350tre inconnu est soit) Tj T* 0 Tw (ignor\351 soit g\351n\350re une erreur.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Les sources sont d\351crites dans ce format.) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 536.0236 cm
+Q
+q
+1 0 0 1 62.69291 494.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 27 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 27 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Les snapshots sont au format HDF5 :) Tj T* ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 14 Tm /F1 10 Tf 12 TL 2.433984 Tw (Le code g\351n\350re en plus des fichiers HDF5, un fichier XML \(format XDMF\) qui permet d'ouvrir) Tj T* 0 Tw (directement les sorties dans Paraview ou Ensight \(v10\).) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 488.0236 cm
+Q
+q
+1 0 0 1 62.69291 404.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 69 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 69 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Les maillages en entr\351e sont \351galement au format HDF5 :) Tj T* ET
+Q
+Q
+q
+1 0 0 1 23 27 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 26 Tm /F1 10 Tf 12 TL .259982 Tw (Des probl\350mes de num\351rotation apparaissaient avec des gros maillage \(utilisation format I6 pour les) Tj T* 0 Tw .150651 Tw (entiers\). De plus, chacune des versions utilisait une variante subtile du m\352me format texte \(une ligne) Tj T* 0 Tw (d'espacement pour l'un, un champ suppl\351mentaire pour une autre...\).) Tj T* ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 14 Tm /F1 10 Tf 12 TL 1.946412 Tw (Les identifiants sont maintenant des entiers 32 bits permettant de d\351crire 2 milliards de noeuds) Tj T* 0 Tw (uniques, et le format utilise par d\351faut la compression gzip.) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 398.0236 cm
+Q
+q
+1 0 0 1 62.69291 356.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 27 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 27 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Optimisation des communications :) Tj T* ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 14 Tm /F1 10 Tf 12 TL 1.789976 Tw (L'algorithme d'\351change inter-processeur \340 \351t\351 enti\350rement revu pour utiliser des communications) Tj T* 0 Tw (asynchrones. Plus de risque d'interblocage et des performances accrues.) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 350.0236 cm
+Q
+q
+1 0 0 1 62.69291 278.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 57 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 57 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Optimisation de la consomation m\351moire :) Tj T* ET
+Q
+Q
+q
+1 0 0 1 23 27 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 14 Tm /F1 10 Tf 12 TL 4.703615 Tw (Les mailles non-PML consommaient inutilement de la m\351moire en stockant des pointeurs) Tj T* 0 Tw (\(non-allou\351s\) vers des tableaux concernant uniquement les mailles PML.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 14 Tm /F1 10 Tf 12 TL 2.058443 Tw (Une structure sp\351cifique PML a \351t\351 introduite qui n'est allou\351e qu'au besoin, consommant ainsi) Tj T* 0 Tw (l'espace d'un seul pointeur au lieu d'une dizaine.) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 272.0236 cm
+Q
+q
+1 0 0 1 62.69291 260.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Introduction d'\351l\351ments de type fluide, avec couplage fluide solide.) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 254.0236 cm
+Q
+q
+1 0 0 1 62.69291 224.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 15 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 15 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Corrections de bugs :) Tj T* ET
+Q
+Q
+q
+1 0 0 1 23 9 cm
+Q
+q
+1 0 0 1 23 9 cm
+Q
+q
+1 0 0 1 23 -3 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Il manquait une \351quation dans le calcul des PML classiques.) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 218.0236 cm
+Q
+q
+1 0 0 1 62.69291 128.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 75 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 75 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Am\351liorations du mailleur int\351gr\351 :) Tj T* ET
+Q
+Q
+q
+1 0 0 1 23 33 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 26 Tm /F1 10 Tf 12 TL .753828 Tw (On utilise metis 5.x comme partitionneur. Ceci permet d'utiliser une topologie connectant toutes les) Tj T* 0 Tw .122126 Tw (mailles adjacentes \(ayant au moins un vertex commun\) contrairement \340 la version pr\351c\351dente qui ne) Tj T* 0 Tw (consid\351rait que les faces.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 23 15 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Le mailleur g\351n\350re ses maillages au format HDF5 attendu par SEM.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (De nombreuses optimisations on \351t\351 eff\351ctu\351es acc\351l\351rant le traitement.) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 128.0236 cm
+Q
+ 
+endstream
+endobj
+% 'R16': class PDFStream 
+16 0 obj
+% page stream
+<< /Length 7258 >>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+q
+1 0 0 1 62.69291 723.0236 cm
+q
+BT 1 0 0 1 0 24.5 Tm 21 TL /F2 17.5 Tf 0 0 0 rg (Les nouveaut\351s de cette version par rapport \340) Tj T* (RegSEM.U) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 711.0236 cm
+Q
+q
+1 0 0 1 62.69291 711.0236 cm
+Q
+q
+1 0 0 1 62.69291 669.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 27 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 27 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Nouveau format pour le fichier des capteurs/traces :) Tj T* ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+BT 1 0 0 1 0 14 Tm 1.53061 Tw 12 TL /F1 10 Tf 0 0 0 rg (On a conserv\351 le format de la version CEA, plus g\351n\351ral. Dans une prochaine version ce fichier) Tj T* 0 Tw (migrera vers un format semblable \340 celui de ) Tj /F3 10 Tf (input.spec) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 663.0236 cm
+Q
+q
+1 0 0 1 62.69291 651.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Nouvelles formes d'onde pour les sources. \(Benchmark E2VP, Benchmark SPICE, sinus\)) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 645.0236 cm
+Q
+q
+1 0 0 1 62.69291 633.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (gradient) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 627.0236 cm
+Q
+q
+1 0 0 1 62.69291 615.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (separation sources, gradients, etc...) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 609.0236 cm
+Q
+q
+1 0 0 1 62.69291 549.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 45 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 45 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Format des backups en HDF5 \(protection/reprise\)) Tj T* ET
+Q
+Q
+q
+1 0 0 1 23 27 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Les fichiers de backup \(ou protection/reprise\) sont \351galement en HDF5.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 14 Tm /F1 10 Tf 12 TL .64436 Tw (Ce d\351veloppement \340 \351t\351 effectu\351 pour faire passer un cas HPC. Le temps de cr\351ation d'un backup) Tj T* 0 Tw (pour ce cas est pass\351e de 2H \340 5min.) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 543.0236 cm
+Q
+q
+1 0 0 1 62.69291 531.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Correction du calcul des m\351canisme d'amortissement.) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 525.0236 cm
+Q
+q
+1 0 0 1 62.69291 513.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (Un mode couplage optionnel avec un code externe \(pour l'instant Mka3D\).) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 507.0236 cm
+Q
+q
+1 0 0 1 62.69291 483.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 9 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 14 Tm /F1 10 Tf 12 TL .45436 Tw (Une variante des PML \(MPML\) avec son param\350tre associ\351 a \351t\351 introduite. Ceci afin de r\351gler des) Tj T* 0 Tw (probl\350mes d'instabilit\351s constat\351s sur certains cas.) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 483.0236 cm
+Q
+q
+1 0 0 1 62.69291 450.0236 cm
+q
+BT 1 0 0 1 0 3.5 Tm 21 TL /F2 17.5 Tf 0 0 0 rg (TODO) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 432.0236 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (XXX: A d\351crire) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 426.0236 cm
+Q
+q
+1 0 0 1 62.69291 426.0236 cm
+Q
+q
+1 0 0 1 62.69291 414.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (modele de source) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 408.0236 cm
+Q
+q
+1 0 0 1 62.69291 396.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (description condition Neumann) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 390.0236 cm
+Q
+q
+1 0 0 1 62.69291 378.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (description des capteurs \(mot-clefs\)) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 372.0236 cm
+Q
+q
+1 0 0 1 62.69291 360.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (anisotropie) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 360.0236 cm
+Q
+q
+1 0 0 1 62.69291 327.0236 cm
+q
+BT 1 0 0 1 0 3.5 Tm 21 TL /F2 17.5 Tf 0 0 0 rg (Notes importantes) Tj T* ET
+Q
+Q
+q
+1 0 0 1 62.69291 315.0236 cm
+Q
+q
+1 0 0 1 62.69291 315.0236 cm
+Q
+q
+1 0 0 1 62.69291 261.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 39 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 27 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 14 Tm /F1 10 Tf 12 TL 1.13784 Tw (Le sch\351ma en temps \340 \351t\351 simplifi\351 \(Les param\350tres beta/gamma de l'algorithme de Newmark ne) Tj T* 0 Tw (sont plus modifiables.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 14 Tm /F1 10 Tf 12 TL 3.019269 Tw (Ils pourront \352tre r\351introduit une fois r\351gl\351 le probl\350me de synchronisation avec les forces de) Tj T* 0 Tw (couplage externes.) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 255.0236 cm
+Q
+q
+1 0 0 1 62.69291 213.0236 cm
+0 0 0 rg
+BT /F1 10 Tf 12 TL ET
+q
+1 0 0 1 6 27 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL 10.5 0 Td (\177) Tj T* -10.5 0 Td ET
+Q
+Q
+q
+1 0 0 1 23 15 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 14 Tm /F1 10 Tf 12 TL .138735 Tw (Bien que les deux m\351thodes continuent de co\351xister, le calcul des forces utilisant le tableau Acoeff a) Tj T* 0 Tw (\351t\351 d\351sactiv\351 dans cette version. Le code est plus lisible mais moins rapide.) Tj T* ET
+Q
+Q
+q
+1 0 0 1 23 -3 cm
+q
+0 0 0 rg
+BT 1 0 0 1 0 2 Tm /F1 10 Tf 12 TL (On \351tudiera comment obtenir le meilleur des deux mondes dans une prochaine version.) Tj T* ET
+Q
+Q
+q
+Q
+Q
+q
+1 0 0 1 62.69291 213.0236 cm
+Q
+ 
+endstream
+endobj
+% 'R17': class PDFPageLabels 
+17 0 obj
+% Document Root
+<< /Nums [ 0
+ 18 0 R
+ 1
+ 19 0 R ] >>
+endobj
+% 'R18': class PDFPageLabel 
+18 0 obj
+% None
+<< /S /D
+ /St 1 >>
+endobj
+% 'R19': class PDFPageLabel 
+19 0 obj
+% None
+<< /S /D
+ /St 2 >>
+endobj
+xref
+0 20
+0000000000 65535 f
+0000000113 00000 n
+0000000233 00000 n
+0000000398 00000 n
+0000000571 00000 n
+0000000852 00000 n
+0000001011 00000 n
+0000001290 00000 n
+0000001446 00000 n
+0000001696 00000 n
+0000001820 00000 n
+0000002033 00000 n
+0000002267 00000 n
+0000002445 00000 n
+0000002605 00000 n
+0000002720 00000 n
+0000010098 00000 n
+0000017459 00000 n
+0000017565 00000 n
+0000017642 00000 n
+trailer
+<< /ID 
+ % ReportLab generated PDF document -- digest (http://www.reportlab.com) 
+ [(\012\363m0x\216\276\334>\002Z\351M\251\200\207) (\012\363m0x\216\276\334>\002Z\351M\251\200\207)] 
+
+ /Info 8 0 R
+ /Root 7 0 R
+ /Size 20 >>
+startxref
+17689
+%%EOF

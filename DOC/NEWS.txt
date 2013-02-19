@@ -9,7 +9,8 @@ Version 2013.02
 Cette version résulte de l'intégration de plusieurs version de SEM3D,
 RegSEM.U, SEM-CEA.
 
-Les nouveautés par rapport à toutes les versions :
+Les nouveautés par rapport à toutes les versions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Un nouveau format de fichier d'entrée (input.spec) :
 
@@ -63,8 +64,21 @@ Les nouveautés par rapport à toutes les versions :
 
   - Il manquait une équation dans le calcul des PML classiques.
 
+- Améliorations du mailleur intégré :
 
-Les nouveautés de cette version par rapport à RegSEM.U sont :
+  On utilise metis 5.x comme partitionneur. Ceci permet d'utiliser une
+  topologie connectant toutes les mailles adjacentes (ayant au moins
+  un vertex commun) contrairement à la version précédente qui ne
+  considérait que les faces.
+
+  Le mailleur génère ses maillages au format HDF5 attendu par SEM.
+
+  De nombreuses optimisations on été efféctuées accélérant le
+  traitement.
+
+
+Les nouveautés de cette version par rapport à RegSEM.U
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Nouveau format pour le fichier des capteurs/traces :
 
@@ -96,7 +110,11 @@ Les nouveautés de cette version par rapport à RegSEM.U sont :
   constatés sur certains cas.
 
 
-TODO:
+
+TODO
+~~~~
+
+XXX: A décrire
 
 - modele de source
 
@@ -107,7 +125,8 @@ TODO:
 - anisotropie
 
 
-A noter (disparition) :
+Notes importantes
+~~~~~~~~~~~~~~~~~
 
 - Le schéma en temps à été simplifié (Les paramètres beta/gamma de
   l'algorithme de Newmark ne sont plus modifiables.
