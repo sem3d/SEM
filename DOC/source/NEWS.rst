@@ -76,6 +76,15 @@ Les nouveautés par rapport à toutes les versions
   De nombreuses optimisations on été efféctuées accélérant le
   traitement.
 
+- Introduction d'un répertoire de cas tests de non-regression et de
+  benchmarks.
+
+  Les tests SEM3D se trouvent dans ``SEM3D/TESTS``
+
+- Compilation des sources avec CMake :
+
+  CMake est un outil (comme autotools) permettant de générer des Makefiles.
+  (voir `DOC/INSTALLATION.pdf`_ )
 
 Les nouveautés de cette version par rapport à RegSEM.U
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

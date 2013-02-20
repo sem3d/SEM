@@ -1,8 +1,11 @@
 .. -*- coding: utf-8 -*-
 
+===================================
 Description des parametres de SEM3D
 ===================================
 
+Format
+======
 
 Le format de fichier SEM3D a été changé pour plus de souplesse et pour
 éviter des erreurs de saisie.
@@ -126,3 +129,21 @@ Le fichier ci-dessus correspond à celui d'un cas test ::
       beta = -0.5;           # beta (Newmark parameter)
       gamma = 1;             # gamma (Newmark parameter)
   };
+
+
+Les sources
+===========
+
+On commence par décrire les paramètres liés aux formes d'onde temporelles des sources :
+
+
+*gaussian* :
+
+- *ts* : 
+
+- *tau* :
+
+*ricker* :
+
+- *tau* :
+
