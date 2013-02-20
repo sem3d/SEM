@@ -470,47 +470,33 @@ subroutine internal_forces(Tdomain,rank)
 
     do n = 0,Tdomain%n_elem-1
         mat = Tdomain%specel(n)%mat_index
-        if(Tdomain%specel(n)%solid)then  ! solid part
-            if(.not.Tdomain%specel(n)%PML)then
+        if(.not. Tdomain%specel(n)%PML)then
+            if(Tdomain%specel(n)%solid)then
                 call get_Displ_Face2Elem(Tdomain,n)
                 call get_Displ_Edge2Elem(Tdomain,n)
                 call get_Displ_Vertex2Elem(Tdomain,n)
-                if (.true.) then
-                    call forces_int (Tdomain%specel(n),&
-                        Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
-                        Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
-                        Tdomain%sSubDomain(mat)%hTprimez, Tdomain%n_sls, Tdomain%aniso)
-                else
-                    ! !! Si on veut utiliser ce qui suit a la place de la routine forces_int, alors il faut
-                    ! !! decommenter l'allocation de Acoeff dans "allocate_domain.f90" et la definition de
-                    ! !! Acoeff dans "define_arrays.f90".
-                    ! !! ATTENTION: la routine ci-dessous ne prend en compte ni l'attenuation ni l'anisotropie.
-                    call compute_InternalForces_Elem(Tdomain%specel(n), &
-                        Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimex, &
-                        Tdomain%sSubDomain(mat)%hprimey,Tdomain%sSubDomain(mat)%hTprimey, &
-                        Tdomain%sSubDomain(mat)%hprimez,Tdomain%sSubDomain(mat)%hTprimez)
-                endif
             else
-                call compute_InternalForces_PML_Elem(Tdomain%specel(n),                &
-                    Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimey, &
-                    Tdomain%sSubDomain(mat)%hTprimez)
-            endif
-        else   ! fluid part
-            if(.not.Tdomain%specel(n)%PML)then
                 call get_Phi_Face2Elem(Tdomain,n)
                 call get_Phi_Edge2Elem(Tdomain,n)
                 call get_Phi_Vertex2Elem(Tdomain,n)
-                call compute_InternalForces_Elem_Fluid(Tdomain%specel(n),             &
-                    Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimex, &
-                    Tdomain%sSubDomain(mat)%hprimey,Tdomain%sSubDomain(mat)%hTprimey, &
-                    Tdomain%sSubDomain(mat)%hprimez,Tdomain%sSubDomain(mat)%hTprimez)
+            end if
+            call forces_int(Tdomain%specel(n),                                     &
+                Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
+                Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
+                Tdomain%sSubDomain(mat)%hTprimez, Tdomain%n_sls,Tdomain%aniso,     &
+                Tdomain%specel(n)%solid)
+           
+        else   ! PML part
+            if(Tdomain%specel(n)%solid)then
+                call compute_InternalForces_PML_Elem(Tdomain%specel(n),                &
+                    Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimey, &
+                    Tdomain%sSubDomain(mat)%hTprimez)
             else
                 call compute_InternalForces_PML_Elem_Fl(Tdomain%specel(n),            &
                     Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimey, &
                     Tdomain%sSubDomain(mat)%hTprimez)
             end if
-
-        end if
+        end if    
     enddo
 
     return
