@@ -17,7 +17,7 @@ module selement
        real, dimension(:,:,:,:), pointer :: Residual_Stress1, Residual_Stress2, Residual_Stress3
        real, dimension(:,:,:,:), pointer :: DumpSx,DumpSy,DumpSz
        real, dimension(:,:,:,:), pointer :: Forces1,Forces2,Forces3
-       real, dimension(:,:,:,:), pointer :: Veloc1,Veloc2,Veloc3
+       real, dimension(:,:,:,:), pointer :: Veloc,Veloc1,Veloc2,Veloc3
        ! FPML
        real, dimension(:,:,:), pointer :: Isx, Isy, Isz, Ivx, Ivy, Ivz
        real, dimension(:,:,:,:), pointer :: Iveloc1, Iveloc2, Iveloc3
@@ -466,7 +466,7 @@ contains
         ! prediction in the element
         Elem%ForcesFl(1:m1-2,1:m2-2,1:m3-2) = Elem%VelPhi(:,:,:) +dt*(0.5-bega)*Elem%AccelPhi(:,:,:)
         ! potential -> -pressure
-        Elem%ForcesFl(:,:,:) = Elem%Density(:,:,:)*Elem%VelPhi(:,:,:)
+        Elem%ForcesFl(:,:,:) = Elem%Density(:,:,:)*Elem%ForcesFl(:,:,:)
 
         ! d(rho*Phi)_d(xi,eta,zeta)
         call DGEMM('N','N',m1,m2*m3,m1,1.,htprimex,m1,Elem%ForcesFl(:,:,:),m1,0.,dVelPhi_dxi,m1)
@@ -865,6 +865,12 @@ contains
 
 
         m1 = Elem%ngllx ; m2 = Elem%nglly ; m3 = Elem%ngllz
+
+        Elem%spml%ForcesFl1(:,:,:) = 0d0
+        Elem%spml%ForcesFl2(:,:,:) = 0d0
+        Elem%spml%ForcesFl3(:,:,:) = 0d0
+        s0 = 0d0 ; s1 = 0d0
+
 
         ! forces associated to V_x
         s0 = Elem%Acoeff(:,:,:,9) * Elem%Veloc(:,:,:,0)
