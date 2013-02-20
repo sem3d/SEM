@@ -19,9 +19,8 @@ module forces_aniso
 
 contains
 
-    subroutine forces_int(Elem, htprimex, hprimey, htprimey, hprimez, htprimez, n_solid, aniso)
-
-        ! Written by Paul Cupillard 05/07/2006
+    subroutine forces_int(Elem, htprimex, hprimey, htprimey, hprimez, htprimez,  &
+               n_solid, aniso, solid)
 
 
         use sdomain
@@ -34,6 +33,7 @@ contains
         real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
         integer, intent(IN) :: n_solid
         logical, intent(IN) :: aniso
+        logical, intent(IN) :: solid   ! flag : solid or fluid element?
 
         integer :: n_z, m1,m2,m3, i,j,k
         real :: epsilon_trace_over_3
@@ -41,13 +41,17 @@ contains
             dUy_dxi, dUy_deta, dUy_dzeta, &
             dUz_dxi, dUz_deta, dUz_dzeta, &
             DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
-            Fox,Foy,Foz
+            Fox,Foy,Foz,                         &
+            dPhi_dxi, dPhi_deta, dPhi_dzeta, dPhiX,dPhiY,dPhiZ,Fo_Fl
+
         real, dimension(:,:,:), allocatable :: epsilondev_xx_loc, epsilondev_yy_loc, &
             epsilondev_xy_loc, epsilondev_xz_loc, epsilondev_yz_loc
         real, dimension(:,:,:), allocatable :: epsilonvol_loc
 
 
         m1 = Elem%ngllx;   m2 = Elem%nglly;   m3 = Elem%ngllz
+
+        if(solid)then   ! SOLID PART OF THE DOMAIN 
 
         call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1, Elem%Forces(:,:,:,0), m1, 0., dUx_dxi, m1)
         do n_z = 0,Elem%ngllz-1
@@ -118,7 +122,6 @@ contains
 
         if (aniso) then
             if (n_solid>0) then
-                !print*,'calcul_forces_aniso_att '
                 call calcul_forces_aniso_att(Fox,Foy,Foz, &
                     Elem%Invgrad(:,:,:,0,0), &
                     Elem%Invgrad(:,:,:,1,0), &
@@ -169,7 +172,6 @@ contains
             endif
         else
             if (n_solid>0) then
-                !print*,'calcul_forces_att '
                 call calcul_forces_att(Fox,Foy,Foz, &
                     Elem%Invgrad(:,:,:,0,0), &
                     Elem%Invgrad(:,:,:,1,0), &
@@ -210,7 +212,6 @@ contains
                 deallocate(epsilondev_xx_loc,epsilondev_yy_loc,epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc)
                 deallocate(epsilonvol_loc)
             else
-                !print*,' calcul standard ', n_solid
                 call calcul_forces(Fox,Foy,Foz,  &
                     Elem%Invgrad(:,:,:,0,0), &
                     Elem%Invgrad(:,:,:,1,0), &
@@ -235,7 +236,52 @@ contains
         Elem%Forces(:,:,:,1) = -Foy
         Elem%Forces(:,:,:,2) = -Foz
 
+   !---------------------------------
+        else      ! FLUID PART OF THE DOMAIN
+        ! potential -> -pressure
+            Elem%ForcesFl(:,:,:) = Elem%Density(:,:,:)*Elem%ForcesFl(:,:,:)
 
+        !- gradients at GLLs points
+        ! d(rho*Phi)_dxi
+            call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1, Elem%ForcesFl(:,:,:), m1, 0., dPhi_dxi, m1)
+        ! d(rho*Phi)_deta
+            do n_z = 0,Elem%ngllz-1
+                call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%ForcesFl(:,:,n_z), m1, hprimey, m2, 0., dPhi_deta(:,:,n_z), m1)
+            enddo
+        ! d(rho*Phi)_dzeta
+            call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%ForcesFl(:,:,:), m1*m2, hprimez, m3, 0., dPhi_dzeta, m1*m2)
+
+        ! d(rho*Phi)_dX 
+            dPhiX(:,:,:) = dPhi_dxi(:,:,:)*Elem%InvGrad(:,:,:,0,0) + dPhi_deta(:,:,:)*Elem%InvGrad(:,:,:,0,1) +   &
+                           dPhi_dzeta(:,:,:)*Elem%InvGrad(:,:,:,0,2)
+        ! d(rho*Phi)_dY 
+            dPhiY(:,:,:) = dPhi_dxi(:,:,:)*Elem%InvGrad(:,:,:,1,0) + dPhi_deta(:,:,:)*Elem%InvGrad(:,:,:,1,1) +   &
+                           dPhi_dzeta(:,:,:)*Elem%InvGrad(:,:,:,1,2)
+        ! d(rho*Phi)_dZ 
+            dPhiZ(:,:,:) = dPhi_dxi(:,:,:)*Elem%InvGrad(:,:,:,2,0) + dPhi_deta(:,:,:)*Elem%InvGrad(:,:,:,2,1) +   &
+                           dPhi_dzeta(:,:,:)*Elem%InvGrad(:,:,:,2,2)
+
+        ! internal forces
+            call calcul_forces_fluid(Fo_Fl,                &
+                         Elem%Invgrad(:,:,:,0,0), &
+                         Elem%Invgrad(:,:,:,1,0), &
+                         Elem%Invgrad(:,:,:,2,0), &
+                         Elem%Invgrad(:,:,:,0,1), &
+                         Elem%Invgrad(:,:,:,1,1), &
+                         Elem%Invgrad(:,:,:,2,1), &
+                         Elem%Invgrad(:,:,:,0,2), &
+                         Elem%Invgrad(:,:,:,1,2), &
+                         Elem%Invgrad(:,:,:,2,2), &
+                         htprimex,htprimey,htprimez, &
+                         Elem%Jacob,Elem%wgtx,Elem%wgty,Elem%wgtz, &
+                         dPhiX,dPhiY,dPhiZ,       &
+                         Elem%Density,            &
+                         m1,m2,m3)
+
+            Elem%ForcesFl(:,:,:) = -Fo_Fl(:,:,:)
+
+           
+        end if
 
         return
     end subroutine forces_int
