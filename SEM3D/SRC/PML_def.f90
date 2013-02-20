@@ -20,8 +20,9 @@ subroutine PML_definition (Tdomain)
         mat = Tdomain%specel(n)%mat_index
         Tdomain%specel(n)%PML = .false.
         Tdomain%specel(n)%FPML = .false.
-        if (Tdomain%sSubDomain(mat)%material_type == "P") Tdomain%specel(n)%PML = .true.
-        if (Tdomain%specel(n)%PML .and. Tdomain%sSubDomain(mat)%Filtering ) Tdomain%specel(n)%FPML =.true.
+        if(Tdomain%sSubDomain(mat)%material_type == "P" .or.    &
+            Tdomain%sSubDomain(mat)%material_type == "L") Tdomain%specel(n)%PML = .true.
+        if(Tdomain%specel(n)%PML .and. Tdomain%sSubDomain(mat)%Filtering ) Tdomain%specel(n)%FPML =.true.
 
     enddo
 

@@ -47,7 +47,7 @@ subroutine allocate_domain (Tdomain, rg)
 
             if(Tdomain%TimeD%velocity_scheme)then
                 !  modif mariotti fevrier 2007 cea capteur displ
-                allocate (Tdomain%specel(n)%Displ (1:ngllx-2, 1:nglly-2, 1:ngllz-2, 0:2))
+                allocate(Tdomain%specel(n)%Displ (1:ngllx-2, 1:nglly-2, 1:ngllz-2, 0:2))
                 Tdomain%specel(n)%Displ = 0
 
                 allocate(Tdomain%specel(n)%Veloc(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
@@ -195,9 +195,10 @@ subroutine allocate_domain (Tdomain, rg)
                 Tdomain%specel(n)%ForcesFl = 0d0
                 if(Tdomain%specel(n)%PML)then
                     allocate(Tdomain%specel(n)%Acoeff(0:ngllx-1,0:nglly-1,0:ngllz-1,0:17))
-                    allocate(Tdomain%specel(n)%spml%Veloc1(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                    allocate(Tdomain%specel(n)%spml%Veloc2(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                    allocate(Tdomain%specel(n)%spml%Veloc3(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+                    allocate(Tdomain%specel(n)%spml%Veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%spml%Veloc1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%spml%Veloc2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%spml%Veloc3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%spml%VelPhi1(1:ngllx-2,1:nglly-2,1:ngllz-2))
                     allocate(Tdomain%specel(n)%spml%VelPhi2(1:ngllx-2,1:nglly-2,1:ngllz-2))
                     allocate(Tdomain%specel(n)%spml%VelPhi3(1:ngllx-2,1:nglly-2,1:ngllz-2))
@@ -211,6 +212,7 @@ subroutine allocate_domain (Tdomain, rg)
                     allocate(Tdomain%specel(n)%spml%DumpVx(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
                     allocate(Tdomain%specel(n)%spml%DumpVy(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
                     allocate(Tdomain%specel(n)%spml%DumpVz(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
+                    Tdomain%specel(n)%spml%Veloc = 0d0
                     Tdomain%specel(n)%spml%Veloc1 = 0d0
                     Tdomain%specel(n)%spml%Veloc2 = 0d0
                     Tdomain%specel(n)%spml%Veloc3 = 0d0
