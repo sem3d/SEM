@@ -473,7 +473,7 @@ void dump_config(sem_config_t* cfg)
 	printf("Sauv. Traces : %d\n", cfg->save_traces);
 	printf("Sauv. Snap   : %d\n", cfg->save_snap);
 	printf("Fichier stations: '%s'\n", cfg->station_file);
-	printf("Snap interval : %d\n", cfg->snap_interval);
+	printf("Snap interval : %lf\n", cfg->snap_interval);
 
 	src = cfg->source;
 	while(src) {
