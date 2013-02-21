@@ -76,6 +76,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/read_restart.f90
     ${PRJ}/SRC/save_checkpoint.f90
     ${PRJ}/SRC/savetrace.f90
+    ${PRJ}/SRC/second_fields.f90
     ${PRJ}/SRC/Modules/sem.f90
     ${PRJ}/SRC/set_attenuation_aniso_param.f90
     ${PRJ}/SRC/set_attenuation_param.f90
@@ -107,6 +108,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/algo_comm.f90
     ${PRJ}/SRC/source_excit.f90
     ${PRJ}/SRC/boundary_conditions_init.f90
+    ${PRJ}/SRC/partial_deriv.f90
 
     ${PRJ}/SRC/snapshots.f90
 )
