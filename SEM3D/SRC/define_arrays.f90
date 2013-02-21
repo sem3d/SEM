@@ -226,20 +226,18 @@ subroutine Define_Arrays(Tdomain, rg)
         allocate(Rlam(0:ngllx-1,0:nglly-1,0:ngllz-1))
         allocate(Rmu(0:ngllx-1,0:nglly-1,0:ngllz-1))
 
-        !- general (element) weighting: tensorial property
+        !- general (element) weighting: tensorial property..
         do k = 0,ngllz-1
             do j = 0,nglly-1
                 do i = 0,ngllx-1
                     Whei(i,j,k) = Tdomain%sSubdomain(mat)%GLLwx(i) *       &
                         Tdomain%sSubdomain(mat)%GLLwy(j)*Tdomain%sSubdomain(mat)%GLLwz(k)
-                    !  modif mariotti fevrier 2007 cea
-                    !!              if (Tdomain%specel(n)%PML==.false.) then !!gfortran rale
+        ! .. and individual ones.
                     if (.NOT.Tdomain%specel(n)%PML) then
                         Tdomain%specel(n)%wgtx(i) = Tdomain%sSubdomain(mat)%GLLwx(i)
                         Tdomain%specel(n)%wgty(j) = Tdomain%sSubdomain(mat)%GLLwy(j)
                         Tdomain%specel(n)%wgtz(k) = Tdomain%sSubdomain(mat)%GLLwz(k)
                     endif
-
                 enddo
             enddo
         enddo
@@ -261,6 +259,9 @@ subroutine Define_Arrays(Tdomain, rg)
         Rmu  = Tdomain%specel(n)%Mu
         RKmod = Rlam + 2. * Rmu
 
+       !- verif. for fluid part
+        if(maxval(RMu) > 1.d-5) stop "Fluid element with a non null shear modulus."
+
         !- mass matrix elements
         if(Tdomain%specel(n)%solid)then
             Tdomain%specel(n)%MassMat = Whei*Tdomain%specel(n)%Density*Jac
@@ -271,17 +272,16 @@ subroutine Define_Arrays(Tdomain, rg)
         !- parts of the internal forces terms: Acoeff; to be compared to
         !  general expressions = products of material properties and nabla operators
 
-        if(.not. Tdomain%specel(n)%PML)then
-            if(Tdomain%specel(n)%solid)then
+!        if(.not. Tdomain%specel(n)%PML)then
+!            if(Tdomain%specel(n)%solid)then
                 !call define_Acoeff_iso(ngllx,nglly,ngllz,Rkmod,Rmu,Rlam,xix,xiy,xiz,    &
                 !    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Tdomain%specel(n)%Acoeff)
-            else   ! fluid case
-                if(maxval(RMu) > 1.d-5) stop "Fluid element with a non null shear modulus."
-                call define_Acoeff_fluid(ngllx,nglly,ngllz,Tdomain%specel(n)%Density,xix,xiy,xiz,    &
-                    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Tdomain%specel(n)%Acoeff)
-            end if
+!            else   ! fluid case
+!                call define_Acoeff_fluid(ngllx,nglly,ngllz,Tdomain%specel(n)%Density,xix,xiy,xiz,    &
+!                    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Tdomain%specel(n)%Acoeff)
+!            end if
 
-        else   ! PML case: valid for solid and fluid parts
+        if(Tdomain%specel(n)%PML)then   ! PML case: valid for solid and fluid parts
             if(Tdomain%specel(n)%solid)then
                 call define_Acoeff_PML_iso(ngllx,nglly,ngllz,Rkmod,Rmu,Rlam,xix,xiy,xiz,    &
                     etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Tdomain%specel(n)%Acoeff)
@@ -343,14 +343,17 @@ subroutine Define_Arrays(Tdomain, rg)
                     Tdomain%specel(n)%spml%Isz,Tdomain%specel(n)%spml%Ivz)
             else
                 call define_PML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,   &
-                    wx,Tdomain%specel(n)%Density,whei,Jac,                           &
-                    Tdomain%specel(n)%spml%DumpSx,Tdomain%specel(n)%spml%DumpMass(:,:,:,0))
+                    wx,Tdomain%specel(n)%Density,RKmod,whei,Jac,                         &
+                    Tdomain%specel(n)%spml%DumpSx,Tdomain%specel(n)%spml%DumpMass(:,:,:,0), &
+                    Tdomain%specel(n)%solid)
                 call define_PML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,   &
-                    wy,Tdomain%specel(n)%Density,whei,Jac,                           &
-                    Tdomain%specel(n)%spml%DumpSy,Tdomain%specel(n)%spml%DumpMass(:,:,:,1))
+                    wy,Tdomain%specel(n)%Density,RKmod,whei,Jac,                         &
+                    Tdomain%specel(n)%spml%DumpSy,Tdomain%specel(n)%spml%DumpMass(:,:,:,1), &
+                    Tdomain%specel(n)%solid)
                 call define_PML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,   &
-                    wz,Tdomain%specel(n)%Density,whei,Jac,                           &
-                    Tdomain%specel(n)%spml%DumpSz,Tdomain%specel(n)%spml%DumpMass(:,:,:,2))
+                    wz,Tdomain%specel(n)%Density,RKmod,whei,Jac,                         &
+                    Tdomain%specel(n)%spml%DumpSz,Tdomain%specel(n)%spml%DumpMass(:,:,:,2), &
+                    Tdomain%specel(n)%solid)
             endif
             deallocate(wx,wy,wz)
 
@@ -820,8 +823,8 @@ subroutine define_FPML_DumpInit(ngllx,nglly,ngllz,dt,freq,alpha,density,whei,jac
 end subroutine define_FPML_DumpInit
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
-subroutine define_PML_DumpInit(ngllx,nglly,ngllz,dt,alpha,density,whei,jac,  &
-    DumpS,DumpMass)
+subroutine define_PML_DumpInit(ngllx,nglly,ngllz,dt,alpha,density,RKmod,whei,jac,  &
+    DumpS,DumpMass,solid)
     !- defining parameters related to stresses and mass matrix elements, in the case of
     !    a PML, along a given splitted direction:
     implicit none
@@ -829,9 +832,10 @@ subroutine define_PML_DumpInit(ngllx,nglly,ngllz,dt,alpha,density,whei,jac,  &
     integer, intent(in)  :: ngllx,nglly,ngllz
     real, intent(in) :: dt
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: alpha
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: density,whei,Jac
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: density,RKmod,whei,Jac
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1), intent(out) :: DumpS
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: DumpMass
+    logical, intent(in)   :: solid
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1)  :: Id
 
     Id = 1d0
@@ -841,6 +845,7 @@ subroutine define_PML_DumpInit(ngllx,nglly,ngllz,dt,alpha,density,whei,jac,  &
     DumpS(:,:,:,0) = (Id - 0.5d0*dt*alpha)*DumpS(:,:,:,1)
 
     DumpMass(:,:,:) = 0.5d0*Density(:,:,:)*Whei(:,:,:)*Jac(:,:,:)*alpha(:,:,:)*dt
+    if(.not. solid) DumpMass(:,:,:) = DumpMass(:,:,:)/RKmod(:,:,:)
 
     return
 

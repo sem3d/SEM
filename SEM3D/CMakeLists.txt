@@ -38,6 +38,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/calcul_forces_aniso.f90
     ${PRJ}/SRC/calcul_forces_aniso_att.f90
     ${PRJ}/SRC/calcul_forces_att.f90
+    ${PRJ}/SRC/calcul_forces_fluid.f90
     ${PRJ}/SRC/compute_GLL.f90
     ${PRJ}/SRC/courant.f90
     ${PRJ}/SRC/deallocate_domain.f90
@@ -64,6 +65,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/read_restart.f90
     ${PRJ}/SRC/save_checkpoint.f90
     ${PRJ}/SRC/savetrace.f90
+    ${PRJ}/SRC/second_fields.f90
     ${PRJ}/SRC/set_attenuation_aniso_param.f90
     ${PRJ}/SRC/set_attenuation_param.f90
     ${PRJ}/SRC/shape8.f90
@@ -92,6 +94,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/algo_comm.f90
     ${PRJ}/SRC/source_excit.f90
     ${PRJ}/SRC/boundary_conditions_init.f90
+    ${PRJ}/SRC/partial_deriv.f90
 
     ${PRJ}/SRC/snapshots.f90
 )
@@ -154,3 +157,4 @@ add_executable(test_Q_coeffs ${PRJ}/TESTS/UNITS/test_Q_coeffs.c
 )
 
 target_link_libraries(test_Q_coeffs m)
+
