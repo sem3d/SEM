@@ -227,7 +227,7 @@ contains
 
                     if (rg .eq.0 ) then
                         rewind(fid)
-                        write(fid,'(4(A6,1X,E10.4,1X))') "X=", val0(1), " Y=", val0(2), " Z=", val0(3), " dist=", distanceMinMin
+                        write(fid,'(4(A6,1X,E12.4,1X))') "X=", val0(1), " Y=", val0(2), " Z=", val0(3), " dist=", distanceMinMin
                         close(fid)
                     endif
                 else ! les proc ecrivent tour a tour les pt de gauss
