@@ -364,20 +364,13 @@ contains
 
 
                 if (ligne(1:11).eq."NOM_CAPTEUR") capteur%nom = trim(ligne(12:100))
-
-                if (ligne(1:4).eq."FREQ") read(ligne(5:100),'(I4)',ERR=201)capteur%frequence
-
-                if (ligne(1:5).eq."RAYON") read(ligne(6:100),'(E10.5)',ERR=202)capteur%rayon
-
+                if (ligne(1:4).eq."FREQ") read(ligne(5:100),*,ERR=201)capteur%frequence
+                if (ligne(1:5).eq."RAYON") read(ligne(6:100),*,ERR=202)capteur%rayon
                 if (ligne(1:9).eq."OPERATION") capteur%operation=trim(adjustl(ligne(10:100)))
-
                 if (ligne(1:8).eq."GRANDEUR") capteur%grandeur=trim(adjustl(ligne(9:100)))
-
-                if (ligne(1:6).eq."COORDX") read(ligne(7:100),'(E10.5)',ERR=203) capteur%Coord(1)
-
-                if (ligne(1:6).eq."COORDY") read(ligne(7:100),'(E10.5)',ERR=204) capteur%Coord(2)
-
-                if (ligne(1:6).eq."COORDZ") read(ligne(7:100),'(E10.5)',ERR=205) capteur%Coord(3)
+                if (ligne(1:6).eq."COORDX") read(ligne(7:100),*,ERR=203) capteur%Coord(1)
+                if (ligne(1:6).eq."COORDY") read(ligne(7:100),*,ERR=204) capteur%Coord(2)
+                if (ligne(1:6).eq."COORDZ") read(ligne(7:100),*,ERR=205) capteur%Coord(3)
 
                 if (ligne(1:11).eq."TYPE_CALCUL") then
 
