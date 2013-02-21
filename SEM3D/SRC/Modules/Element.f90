@@ -1095,7 +1095,7 @@ contains
         type(element), intent(in) :: el
         type(Subdomain), intent(in) :: mat
         real, intent(in) :: xs,ys,zs
-        real, dimension(:,:), intent(in) :: coord
+        real, dimension(0:,0:), intent(in) :: coord
         real, intent(out) :: xi, eta, zeta
         real :: x,y,z
         integer :: i,j,k, ipt
