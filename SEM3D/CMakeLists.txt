@@ -71,9 +71,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/shape8.f90
     ${PRJ}/SRC/shape27.f90
     ${PRJ}/SRC/drive_sem.f90
-    ${PRJ}/SRC/BLAS/dgemm.f90
-    ${PRJ}/SRC/BLAS/lsame.f90
-    ${PRJ}/SRC/BLAS/xerbla.f90
     ${PRJ}/SRC/ondelette.f90
 
     ${PRJ}/SRC/get_VectProperty_Edge2Elem.f90
@@ -98,6 +95,15 @@ set(SEM3D_SOURCES_F
 
     ${PRJ}/SRC/snapshots.f90
 )
+
+if(NOT USE_MKL)
+set(SEM3D_SOURCES_F
+    ${SEM3D_SOURCES_F}
+    ${PRJ}/SRC/BLAS/dgemm.f90
+    ${PRJ}/SRC/BLAS/lsame.f90
+    ${PRJ}/SRC/BLAS/xerbla.f90
+)
+endif(NOT USE_MKL)
 
 set(SEM3D_SOURCES ${SEM3D_SOURCES_F}
     ${SEM_SRC_C}
@@ -128,11 +134,10 @@ set(SEM3D_SOURCES ${SEM3D_SOURCES}
   ${FTM_SOURCES})
 endif(OPT_MPI)
 
-if (OPT_HDF5)
-set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} hdf5_fortran)
+# HDF5
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
 set(SEM3D_SOURCES ${SEM3D_SOURCES} ${SEMCOMMON}/sem_hdf5.f90)
-endif(OPT_HDF5)
-
+message("SEMLIBS: '${SEM_EXTRA_LIBS}'")
 if (OPT_COUPLAGE)
 add_library(sem3d STATIC ${SEM3D_SOURCES})
 set_target_properties(sem3d PROPERTIES COMPILE_DEFINITIONS COUPLAGE)

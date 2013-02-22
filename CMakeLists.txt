@@ -9,14 +9,11 @@ ENABLE_TESTING()
 if (NOT BUILD_WITH_MKA)
 # Hors mka il faut chercher MPI et HDF5 ici
 option(OPT_MPI "Compilation en mode MPI")
-option(OPT_HDF5 "Utilisation d'HDF5")
 
-if (OPT_HDF5)
-  # Obligatoire mais le flag n'est pas supprime partout
-  find_package(HDF5 REQUIRED)
-  add_definitions(-DUSE_HDF5)
-  include_directories(${HDF5_Fortran_INCLUDE_PATH} ${HDF5_C_INCLUDE_DIR})
-endif (OPT_HDF5)
+# Obligatoire mais le flag n'est pas supprime partout
+find_package(HDF5 REQUIRED C Fortran)
+add_definitions(-DUSE_HDF5)
+include_directories(${HDF5_Fortran_INCLUDE_PATH} ${HDF5_C_INCLUDE_DIR})
 
 if (OPT_MPI)
     set(MPI_COMPILER mpif90)
@@ -27,10 +24,12 @@ if (OPT_MPI)
 endif (OPT_MPI)
 
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -r8 -fpp")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -r8 -fpp -mkl=sequential")
+  set(USE_MKL TRUE)
 else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   # Assume gfortran
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fdefault-real-8 -fdefault-double-8 -ffree-line-length-0")
+  set(USE_MKL FALSE)
 endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 endif (NOT BUILD_WITH_MKA)
 

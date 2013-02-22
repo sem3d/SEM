@@ -19,7 +19,8 @@ module selement
        real, dimension(:,:,:,:), allocatable :: Forces1,Forces2,Forces3
        real, dimension(:,:,:,:), allocatable :: Veloc,Veloc1,Veloc2,Veloc3
        ! FPML
-       real, dimension(:,:,:), allocatable :: Isx, Isy, Isz, Ivx, Ivy, Ivz
+       real, dimension(:,:,:), allocatable :: Isx, Isy, Isz
+       real, dimension(:,:,:), allocatable :: Ivx, Ivy, Ivz
        real, dimension(:,:,:,:), allocatable :: Iveloc1, Iveloc2, Iveloc3
        real, dimension(:,:,:,:), allocatable :: I_Diagonal_Stress1, I_Diagonal_Stress2, I_Diagonal_Stress3
        real, dimension(:,:,:,:), allocatable :: I_Residual_Stress1, I_Residual_Stress2
@@ -39,8 +40,9 @@ module selement
 
        integer, dimension (0:7) :: Near_Vertices
        integer, dimension (:,:,:), allocatable :: Iglobnum,Num
-       real, dimension (:,:,:), allocatable :: Jacob, Density, Lambda, Mu, MassMat
-       real, dimension (:,:,:), allocatable :: Kappa,Q, Qs, Qp, onemSbeta, onemPbeta, &
+       real, dimension (:,:,:), allocatable :: Jacob
+       real, dimension (:,:,:), allocatable :: Density, Lambda, Mu, MassMat, Kappa
+       real, dimension (:,:,:), allocatable :: Q, Qs, Qp, onemSbeta, onemPbeta, &
            epsilonvol_, &
            epsilondev_xx_,epsilondev_yy_,epsilondev_xy_,epsilondev_xz_,epsilondev_yz_
        real, dimension (:), allocatable :: wgtx, wgty, wgtz

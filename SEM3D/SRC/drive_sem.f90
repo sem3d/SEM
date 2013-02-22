@@ -8,7 +8,6 @@
 !<
 subroutine  sem(master_superviseur, communicateur, communicateur_global)
     use sdomain
-    use Postraitement
     use mCapteur
     use semdatafiles
     use mpi
@@ -94,7 +93,7 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     call global_numbering (Tdomain,rg)
     call MPI_BARRIER(Tdomain%communicateur, code)
 
-    if (rg == 0) write (*,*) "Compute shape functions within their derivatives "
+    if (rg == 0) write (*,*) "Computing shape functions and their derivatives"
     if (Tdomain%n_nodes == 8) then
         call shape8(Tdomain,rg)   ! Linear interpolation
     else if (Tdomain%n_nodes == 20) then

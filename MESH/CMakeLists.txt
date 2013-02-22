@@ -22,6 +22,6 @@ set(MESH_SRC
 
 
 add_executable(mesher ${MESH_SRC})
-target_link_libraries(mesher metis hdf5_fortran)
+target_link_libraries(mesher metis ${HDF5_LIBRARIES})
 
 
