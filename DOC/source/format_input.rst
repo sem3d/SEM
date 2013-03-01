@@ -35,27 +35,46 @@ entre snapshot.
 
 Les mots-clef pouvant être utilisés dans le fichier (niveau 0, hors toute section) sont décrits ici :
 
+================  =======  =================  ================================================================
+Mot-clef          type     valeur par défaut  Description
+================  =======  =================  ================================================================
+amortissement     section  n/a                Description de l'amortissement
+mat_file          chaîne   "material.input"   Nom du fichier de description des matériaux
+mesh_file         chaîne   "mesh4spec"        Nom de base des fichiers maillage
+mpml_atn_param    réel     0.0                Coéfficient d'amortissement MPML (et activation MPML si non nul)
+prorep            bool     false              Reprise d'un calcul précédent
+prorep_iter       entier   n/a                Numéro de la protection pour reprendre le calcul
+run_name          chaîne   ""                 Titre de la simulation
+save_snap         bool     false              Sauvegarde des snapshots
+save_interval     réel     --                 Interval (temps physique) de sauvegarde des snapshots
+save_traces       bool     false              Activation des capteurs
+sim_time          réel     aucune             Durée (temps physique) de la simulation
+source            section  n/a                Description d'une source (peut apparaître plusieurs fois)
+station_file      chaîne   "capteurs.dat"     Fichier de description des capteurs
+time_scheme       section  n/a                Section de description du schéma d'intégration en temps
+verbose_level     entier
+================  =======  =================  ================================================================
+
+Les paramètres suivants sont reconnus mais non utilisés dans cette version :
+
+================  ========  =================  ===========================================================
+Mot-clef          type      valeur par défaut  Description
+================  ========  =================  ===========================================================
+anisotropy        bool      n/a                Description de l'anisotropie
+gradient          section   n/a                Description des gradients
+model             kw        --                 CUB|homo|prem|3D_berkeley
+neumann           bool                         .
+traces_interval   entier                       .
+================  ========  =================  ===========================================================
+
+Description de la section ``amortissement`` :
+
 ================  =======  =================  ===========================================================
 Mot-clef          type     valeur par défaut  Description
 ================  =======  =================  ===========================================================
-run_name          chaîne   ""                 Titre de la simulation
-time_scheme       section  n/a                Section de description du schéma d'intégration en temps
-sim_time          réel     aucune             Durée (temps physique) de la simulation
-mesh_file         chaîne   "mesh4spec"        Nom de base des fichiers maillage
-mat_file          chaîne   "material.input"   Nom du fichier de description des matériaux
-anisotropy        section  n/a                Description de l'anisotropie
-amort             section  n/a                Description de l'amortissement
-source            section  n/a                Description d'une source (peut apparaître plusieurs fois)
-save_snap         bool     false              Sauvegarde des snapshots
-save_interval     réel     --                 Interval (temps physique) de sauvegarde des snapshots
-model
-save_traces
-traces_interval
-station_file
-prorep
-prorep_iter
-verbose_level
-neumann_cond
+nsolids           entier   0                  Nombre de mécanisme. 0 signifie désactivation.
+atn_band          réel(2)  n/a                Période max et min à atténuer
+atn_period        réel     n/a                Période centrale (un mécanisme aura cette valeur centrale)
 ================  =======  =================  ===========================================================
 
 Description de la section ``time_scheme`` :
@@ -63,35 +82,39 @@ Description de la section ``time_scheme`` :
 ================  =======  =================  ===========================================================
 Mot-clef          type     valeur par défaut  Description
 ================  =======  =================  ===========================================================
-accel_scheme
-veloc_scheme
-alpha
-beta
-gamma
+accel_scheme      bool                        Schéma en temps
+veloc_scheme      bool                        Schéma en vitesse
+alpha             réel                        Paramètre :math:`\alpha` d'intégration de Newmark
+beta              réel                        Paramètre :math:`\beta` d'intégration de Newmark
+gamma             réel                        Paramètre :math:`\gamma` d'intégration de Newmark
+courant           réel     0.2                Nombre de courant. Le calcul du pas de temps en dépend.
 ================  =======  =================  ===========================================================
 
 Description de la section ``source`` :
 
-================  =======  =================  ===========================================================
+================  =======  =================  =================================================================
 Mot-clef          type     valeur par défaut  Description
-================  =======  =================  ===========================================================
+================  =======  =================  =================================================================
 coords            réel(3)  0 0 0              Position de la source
 type              kw       --                 Type spatial: impulse|moment|fluidpulse
 dir               kw       --                 Direction pour le type impulse ou fluidpulse (val: x|y|z)
-func              kw       --                 Type temporel: gaussian|ricker|tf_heaviside|gabor|file
+func              kw       --                 Type temporel (voir ci-dessous)
 moment            réel(6)  --                 Moment xx yy zz xy yx xz pour le type moment
-tau               réel     --                 offset de temps de démarrage de la source
-freq              réel     --                 Fréquence de coupure de la fct temporelle
-band              réel(4)  --                 Description des bornes pour tf_heaviside
-ts                réel     --                 Pour gabor ?
+tau               réel     --                 Un temps caractéristique :math:`\tau`
+freq              réel     --                 Une fréquence :math:`f_c`
+band              réel(4)  --                 Description des bornes :math:`f_1,f_2,f_3,f_4` pour tf_heaviside
+ts                réel     --                 Un offset de temps :math:`t_0`
+gamma             réel     --
 time_file         chaîne   --                 Fichier contenant la source
-================  =======  =================  ===========================================================
+amplitude         réel     --
+================  =======  =================  =================================================================
+
 
 
 Exemple
 =======
 
-Le fichier ci-dessus correspond à celui d'un cas test ::
+Le fichier suivant correspond à celui d'un cas test ::
 
   # -*- mode: perl -*-
   run_name = "Run_3D_trial";
@@ -110,7 +133,7 @@ Le fichier ci-dessus correspond à celui d'un cas test ::
   
   
   source {                 # introduce a source
-  # coordinates of the sources ((x,y,z) or (lat,long,R) if rotundity is considered)
+  # coordinates of the sources
   coords = 0. 0. 0.;
   type = impulse; # Type (1 Impulse, 2 Moment Tensor, fluidpulse)
   dir = x;                      # Direction x,y ou z (only for Impulse)
@@ -134,16 +157,69 @@ Le fichier ci-dessus correspond à celui d'un cas test ::
 Les sources
 ===========
 
-On commence par décrire les paramètres liés aux formes d'onde temporelles des sources :
+Les formes d'ondes temporelles des sources sont décrites ci-dessous. Les
+paramètres sont décrits dans la section ``source``. Certains sont calculés :
+
+  - :math:`f_c` : paramètre ``freq``
+  
+  - :math:`T_c = \frac{1}{f_c}`
+  
+  - :math:`\tau` : paramètre ``tau``
+  
+  - :math:`t_0` : paramètre ``ts``
+  
+  - :math:`f_1,f_2,f_3,f_4` : décrit par le paramètre (4 composantes) ``band``
+  
+  - :math:`\gamma` : paramètre ``gamma``
 
 
-*gaussian* :
+Les fonctions temporelles sont:
 
-- *ts* : 
+- ``gaussian`` :  
 
-- *tau* :
+  .. math::
 
-*ricker* :
+     f(t) = -2 (t-t_0) \exp\left(-\frac{(t-t_0)^2}{\tau^2}\right)
 
-- *tau* :
+- ``ricker`` :
+
+  .. math::
+
+     f(t) = \left(1 - 2 \left(\pi \frac{t-\tau}{T_c}\right)^2\right) \exp\left(-\left(\pi \frac{t-\tau}{T_c}\right)^2\right)
+
+- ``tf_heaviside`` :
+
+  .. math::
+     :nowrap:
+
+     \begin{eqnarray}
+     f(t) & = & \mathcal{TF}^{-1}(\phi(\omega)) \\
+     \phi(\omega) & = & \exp(-i\omega\tau).\chi_{f_1,f_2,f_3,f_4}(\frac{\omega}{2\pi}) \\
+     \chi(f) & = & 1 \text{ if } f_2 < f < f_3 \\
+             &   & 0 \text{ if } f  < f_1 \text{ or } f > f_4 \\
+             &   & \frac{1}{2}\left(1+\cos\left(\pi\frac{f-f_3}{f_4-f_3}\right)\right) \text{ if } f_3 < f < f_4 \\
+             &   & \frac{1}{2}\left(1+\cos\left(\pi\frac{f-f_2}{f_2-f_1}\right)\right) \text{ if } f_1 < f < f_2
+     \end{eqnarray}
+
+- ``gabor`` :
+
+  .. math::
+
+     \sigma(t) = 2\pi f_c (t-t_0)
+
+     f(t) = \exp(-\left(\frac{\sigma(t)}{\gamma}\right)^2) \cos(\sigma(t)+\omega) \tau
+
+- ``file`` : Les données sont lues dans un fichier indiqué par le paramètre ``time_file``
+
+- ``spice_bench`` :
+
+  .. math::
+
+     f(t) = 1 - (1+\frac{t}{T_c})\exp(-\frac{t}{T_c})
+
+- ``sinus`` :
+
+  .. math::
+
+     f(t) = sin(2\pi f_c (t-t_0))
 
