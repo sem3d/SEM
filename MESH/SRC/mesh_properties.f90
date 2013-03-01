@@ -62,7 +62,7 @@ contains
             n_blocks = size(tabmat)
 
             !- just for Solid/Fluid trials..
-            Material(0:) = 0
+            !     Material(0:) = 0
             !     Material(5) = 1
             !     Material(6) = 1
             !     Material(4) = 1

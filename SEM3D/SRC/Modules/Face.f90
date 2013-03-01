@@ -22,7 +22,7 @@ module sfaces
 
     type :: face
        logical :: PML, Abs, FPML
-       integer :: ngll1, ngll2, dir, Which_Elem
+       integer :: ngll1, ngll2, dir, Which_Elem, mat_index
        integer, dimension (:), allocatable :: FaceNum
        integer, dimension (:,:), allocatable :: Iglobnum_Face
        real, dimension (:,:), allocatable  :: MassMat

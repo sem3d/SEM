@@ -203,17 +203,17 @@ subroutine finalize_mesh_connectivity(Tdomain, rg)
         mat = Tdomain%specel(n)%mat_index
         do nf = 0,5
             nnf = Tdomain%specel(n)%Near_Faces(nf)
-            !Tdomain%sFace(nnf)%mat_index = mat
+            Tdomain%sFace(nnf)%mat_index = mat
             Tdomain%sFace(nnf)%solid = Tdomain%specel(n)%solid
         end do
         do ne = 0,11
             nne = Tdomain%specel(n)%Near_edges(ne)
-            !Tdomain%sEdge(nne)%mat_index = mat
+            Tdomain%sEdge(nne)%mat_index = mat
             Tdomain%sEdge(nne)%solid = Tdomain%specel(n)%solid
         end do
         do nv = 0,7
             nnv = Tdomain%specel(n)%Near_Vertices(nv)
-            !Tdomain%sVertex(nnv)%mat_index = mat
+            Tdomain%sVertex(nnv)%mat_index = mat
             Tdomain%sVertex(nnv)%solid = Tdomain%specel(n)%solid
         end do
     end do

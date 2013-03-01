@@ -744,7 +744,8 @@ contains
         integer, dimension(0:SF_n_edges-1), intent(out) :: SF_mapping_edges
         type(process_obj), dimension(0:), intent(inout)  :: MemorySF
         integer :: i,j,k,nf,nel,nnf,num,n,ns,nes,ne,n0,n1,nns,nv0,nels
-        logical   ::  orient_fluid,orient_solid
+        logical   ::  orient_fluid,orient_solid,orient_fluid_loc,orient_solid_loc,  &
+            orient_o_proc_fluid,orient_o_proc_solid
 
 
         SF_edges(0:,0:) = -1
@@ -755,82 +756,80 @@ contains
         j = 0   ! local SF edges counting
         do i = 0,SF_n_global_edges-1
             if((.not. SF_global_edges(i)%local_fluid(proc)) .and.    &
-                (.not. SF_global_edges(i)%local_solid(proc))) cycle
-            orient_fluid = .false. ; orient_solid = .false.
-            !- yes, SF edge:
-            SF_global_to_local_edges(i) = j
-            !- solid side
-            if(SF_global_edges(i)%local_solid(proc))then
-                ns = SF_global_edges(i)%elem_ref_solid(proc,0)
-                nes = SF_global_edges(i)%elem_ref_solid(proc,1)
-                SF_edges(j,1) = edges(ns,nes)
-            end if
-
-            !- fluid side, and orientation for the SF edges (intra-proc)
+                      (.not. SF_global_edges(i)%local_solid(proc))) cycle
+            orient_fluid_loc = .false. ; orient_solid_loc = .false.
+           !- yes, SF edge:
+            SF_global_to_local_edges(i) = j   
+           !- fluid side
             if(SF_global_edges(i)%local_fluid(proc))then
                 n = SF_global_edges(i)%elem_ref_fluid(proc,0)
                 ne = SF_global_edges(i)%elem_ref_fluid(proc,1)
                 SF_edges(j,0) = edges(n,ne)
-                ! reference global vertex:
                 nv0 = SF_global_edges(i)%vertex(0)
                 nnf = SF_global_vertices(nv0)%node(0)
                 n0 = glob2loc(nnf)
-                if(n0 == Ipointer_local(edge2vertex(ne),n)) orient_fluid = .true.
-                ! intraproc orientation:
-                if(SF_global_edges(i)%local_solid(proc))then
-                    nv0 = SF_global_edges(i)%vertex(0)
-                    nns = SF_global_vertices(nv0)%node(1)
-                    n1 = glob2loc(nns)
-                    if(n1 == Ipointer_local(edge2vertex(nes),ns)) orient_solid = .true.
-                    SF_mapping_edges(j) = merge(0,1,orient_fluid .eqv. orient_solid)
-                end if
+                if(n0 == Ipointer_local(edge2vertex(ne),n)) orient_fluid_loc = .true.
             end if
+           !- solid side
+            if(SF_global_edges(i)%local_solid(proc))then
+                ns = SF_global_edges(i)%elem_ref_solid(proc,0)
+                nes = SF_global_edges(i)%elem_ref_solid(proc,1)
+                SF_edges(j,1) = edges(ns,nes)
+                nv0 = SF_global_edges(i)%vertex(0)
+                nns = SF_global_vertices(nv0)%node(1)
+                n1 = glob2loc(nns)
+                if(n1 == Ipointer_local(edge2vertex(nes),ns)) orient_solid_loc = .true.
+            end if  
 
-            !- now we look for SF edges shared with other procs
+           ! intraproc orientation:
+            SF_mapping_edges(j) = merge(0,1,orient_fluid_loc .eqv. orient_solid_loc)
+
+           !- now we look for SF edges shared with other procs
             do num = 0,nproc-1
                 if(num == proc) cycle
                 if((.not. SF_global_edges(i)%local_fluid(num)) .and.    &
-                    (.not. SF_global_edges(i)%local_solid(num))) cycle
+                           (.not. SF_global_edges(i)%local_solid(num))) cycle
                 if(((.not. SF_global_edges(i)%local_fluid(proc)) .and.    &
-                    (.not. SF_global_edges(i)%local_fluid(num))).or.    &
-                    ((.not. SF_global_edges(i)%local_solid(proc)) .and. &
-                    (.not. SF_global_edges(i)%local_solid(num)))) cycle
-                ! elimination of edges which do not exchange Solid/Fluid information (only S/S or F/F)
-                orient_solid = .false.
-                ! now we have found a proc on which we have the same global SF edge
+                   (.not. SF_global_edges(i)%local_fluid(num))).or.    &
+                   ((.not. SF_global_edges(i)%local_solid(proc)) .and. &
+                   (.not. SF_global_edges(i)%local_solid(num)))) cycle
+              ! elimination of edges which do not exchange Solid/Fluid information (only S/S or F/F)
+              ! now we have found another proc on which we have the same global SF edge
+                orient_solid = .false. ; orient_fluid = .false.
+                orient_o_proc_solid = .true. ; orient_o_proc_fluid = .true.
+              ! interproc orientation
+                if(SF_global_edges(i)%local_fluid(proc) .and. SF_global_edges(i)%local_solid(num))then
+                    ns = SF_global_edges(i)%elem_ref_solid(num,0)
+                    nels = which_elem_in_proc(num,ns)
+                    nes = SF_global_edges(i)%elem_ref_solid(num,1)
+                    nv0 = SF_global_edges(i)%vertex(0)
+                    nns = SF_global_vertices(nv0)%node(1)
+                    if(nns == Ipointer(edge2vertex(nes),nels)) orient_solid = .true.
+                    orient_o_proc_fluid = merge(.true.,.false.,orient_fluid_loc .eqv. orient_solid)
+                end if 
+                if(SF_global_edges(i)%local_solid(proc) .and. SF_global_edges(i)%local_fluid(num))then
+                    ns = SF_global_edges(i)%elem_ref_fluid(num,0)
+                    nels = which_elem_in_proc(num,ns)
+                    nes = SF_global_edges(i)%elem_ref_fluid(num,1)
+                    nv0 = SF_global_edges(i)%vertex(0)
+                    nns = SF_global_vertices(nv0)%node(0)
+                    if(nns == Ipointer(edge2vertex(nes),nels)) orient_fluid = .true.
+                    orient_o_proc_solid = merge(.true.,.false.,orient_fluid .eqv. orient_solid_loc)
+                end if 
+                if(orient_o_proc_solid .neqv. orient_o_proc_fluid) stop "Problem in SF edge orientation"
                 if(num < proc)then   ! proc already seen
                     SF_edges_shared(num,MemorySF(proc)%E(num,i)) = j
-                    ! interproc orientation
-                    if(SF_global_edges(i)%local_fluid(proc) .and. SF_global_edges(i)%local_solid(num))then
-                        ns = SF_global_edges(i)%elem_ref_solid(num,0)
-                        nels = which_elem_in_proc(num,ns)
-                        nes = SF_global_edges(i)%elem_ref_solid(num,1)
-                        nv0 = SF_global_edges(i)%vertex(0)
-                        nns = SF_global_vertices(nv0)%node(1)
-                        if(nns == Ipointer(edge2vertex(nes),nels)) orient_solid = .true.
-                        SF_mapping_edges_shared(num,MemorySF(proc)%E(num,i)) = merge(0,1,orient_fluid .eqv. orient_solid)
-                    end if
                 else   ! proc not seen yet
                     SF_edges_shared(num,SF_ne_shared(num)) = j
                     MemorySF(num)%E(proc,i) = SF_ne_shared(num)
-                    ! interproc orientation
-                    if(SF_global_edges(i)%local_fluid(proc) .and. SF_global_edges(i)%local_solid(num))then
-                        ns = SF_global_edges(i)%elem_ref_solid(num,0)
-                        nels = which_elem_in_proc(num,ns)
-                        nes = SF_global_edges(i)%elem_ref_solid(num,1)
-                        nv0 = SF_global_edges(i)%vertex(0)
-                        nns = SF_global_vertices(nv0)%node(1)
-                        if(nns == Ipointer(edge2vertex(nes),nels)) orient_solid = .true.
-                        SF_mapping_edges_shared(num,SF_ne_shared(num)) =    &
-                            merge(0,1,orient_fluid .eqv. orient_solid)
-                    end if
-
                 end if
+                SF_mapping_edges_shared(num,SF_ne_shared(num)) = merge(0,1,orient_o_proc_fluid)
                 SF_ne_shared(num) = SF_ne_shared(num)+1
-            end do
-            !--
+            end do 
+ !--  
             j = j+1   ! one more local SF edge
         end do
+
 
     end subroutine SF_local_edges_construct
     !--------------------------------------------------------------

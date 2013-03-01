@@ -518,7 +518,11 @@ subroutine external_forces(Tdomain,timer,ntime,rank)
             nel = Tdomain%Ssource(ns)%elem
 
             ! time : t_(n+1/2) for solid ; t_n for fluid
-            t = merge(timer+Tdomain%TimeD%dtmin/2d0,timer,Tdomain%specel(nel)%solid)
+             ! t = merge(timer+Tdomain%TimeD%dtmin/2d0,timer,Tdomain%specel(nel)%solid)
+            ! le temps n'est plus decale pour les sources, pour un saute-mouton
+            !   on rajoute le 1/2 pas de temps qui correspond au fait que la
+            !    exterieure doive etre prise a t+1/2
+            t = timer+Tdomain%TimeD%dtmin/2d0
             !
             if(Tdomain%sSource(ns)%i_type_source == 1)then  ! collocated force in solid
                 ft = CompSource(Tdomain%sSource(ns), t, ntime)

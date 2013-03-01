@@ -289,13 +289,7 @@ contains
             force = (1.-2.*arg**2)*exp(-arg**2)     ! Plane Wave in Velocity
         else if(Param%wtype == 'P')then  ! sine in time
             arg = phasex+phasey+phasez
-            force = 2d0*pi*arg
-        else if(Param%wtype == 'F')then  ! read in a file
-            arg = pi*f0*(ctime-0.1)
-            force = (1.-2.*arg**2)*exp(-arg**2)     ! Plane Wave in Velocity
-            velx = force
-            vely = force
-            velz = force
+            force = sin(2d0*pi*arg)
         end if
 
         if(Param%wtype == 'R')then ! SH
