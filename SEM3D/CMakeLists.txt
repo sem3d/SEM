@@ -163,3 +163,7 @@ add_executable(test_Q_coeffs ${PRJ}/TESTS/UNITS/test_Q_coeffs.c
 
 target_link_libraries(test_Q_coeffs m)
 
+add_executable(test_pointlist ${PRJ}/TESTS/UNITS/test_pointlist.f90
+  ${SEMCOMMON}/pointlist.f90
+)
+
