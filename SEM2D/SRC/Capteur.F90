@@ -269,8 +269,8 @@ contains
             capteur%operation=""
             capteur%grandeur=""
             capteur%Coord(:)=-1
-            capteur%n_el = -1.
-            capteur%numproc = -1.
+            capteur%n_el = -1
+            capteur%numproc = -1
             capteur%type_calcul = 1 !mode de calcul du capteur
             nullify(capteur%listePtGauss)
             capteur%distanceMin = huge(1.)
