@@ -98,7 +98,7 @@ contains
         real :: f0, t0
 
         f0 = Sour%cutoff_freq
-        t0 = Sour%tau_b
+        t0 = Sour%ts
 
         Source_sinewave = sin(2*M_PI*f0*(time-t0))
         return
