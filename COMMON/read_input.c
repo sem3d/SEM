@@ -348,11 +348,11 @@ int expect_gradient_desc(yyscan_t scanner, sem_config_t* config)
 		if (tok!=K_ID) break;
 
 		// TODO
-		if (cmp(scanner,"materials")) err=expect_eq_int(scanner, &config->accel_scheme, 1);
-		if (cmp(scanner,"xx")) err=expect_eq_bool(scanner, &config->veloc_scheme, 1);
-		if (cmp(scanner,"yy")) err=expect_eq_float(scanner, &config->alpha,1);
-		if (cmp(scanner,"zz")) err=expect_eq_float(scanner, &config->beta,1);
-		if (cmp(scanner,"ww")) err=expect_eq_float(scanner, &config->gamma,1);
+		//if (cmp(scanner,"materials")) err=expect_eq_int(scanner, &config->accel_scheme, 1);
+		//if (cmp(scanner,"xx")) err=expect_eq_bool(scanner, &config->veloc_scheme, 1);
+		//if (cmp(scanner,"yy")) err=expect_eq_float(scanner, &config->alpha,1);
+		//if (cmp(scanner,"zz")) err=expect_eq_float(scanner, &config->beta,1);
+		//if (cmp(scanner,"ww")) err=expect_eq_float(scanner, &config->gamma,1);
 
 		if (!expect_eos(scanner)) { return 0; }
 	} while(1);
@@ -414,26 +414,28 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 			msg_err(scanner, "Expected identifier");
 			return 0;
 		}
-		if (cmp(scanner,"run_name")) err=expect_eq_string(scanner, &config->run_name,1);
-		if (cmp(scanner,"time_scheme")) err=expect_time_scheme(scanner, config);
-		if (cmp(scanner,"gradient")) err=expect_gradient_desc(scanner, config);
-		if (cmp(scanner,"sim_time")) err=expect_eq_float(scanner, &config->sim_time,1);
-		if (cmp(scanner,"mesh_file")) err=expect_eq_string(scanner, &config->mesh_file,1);
-		if (cmp(scanner,"model")) err=expect_eq_model(scanner, &config->model);
-		if (cmp(scanner,"anisotropy")) err=expect_eq_bool(scanner, &config->anisotropy, 1);
+		if (cmp(scanner,"amortissement")) err=expect_amortissement(scanner, config);
 		if (cmp(scanner,"mat_file")) err=expect_eq_string(scanner, &config->mat_file,1);
-		if (cmp(scanner,"save_traces")) err=expect_eq_bool(scanner, &config->save_traces,1);
-		if (cmp(scanner,"traces_interval")) err=expect_eq_int(scanner, &config->traces_interval,1);
-		if (cmp(scanner,"save_snap")) err=expect_eq_bool(scanner, &config->save_snap,1);
-		if (cmp(scanner,"snap_interval")) err=expect_eq_float(scanner, &config->snap_interval,1);
-		if (cmp(scanner,"station_file")) err=expect_eq_string(scanner, &config->station_file,1);
-		if (cmp(scanner,"source")) err=expect_source(scanner, config);
+		if (cmp(scanner,"mesh_file")) err=expect_eq_string(scanner, &config->mesh_file,1);
+		if (cmp(scanner,"mpml_atn_param")) err=expect_eq_float(scanner, &config->mpml,1);
 		if (cmp(scanner,"prorep")) err=expect_eq_bool(scanner, &config->prorep,1);
 		if (cmp(scanner,"prorep_iter")) err=expect_eq_int(scanner, &config->prorep_iter,1);
+		if (cmp(scanner,"run_name")) err=expect_eq_string(scanner, &config->run_name,1);
+		if (cmp(scanner,"save_snap")) err=expect_eq_bool(scanner, &config->save_snap,1);
+		if (cmp(scanner,"save_traces")) err=expect_eq_bool(scanner, &config->save_traces,1);
+		if (cmp(scanner,"sim_time")) err=expect_eq_float(scanner, &config->sim_time,1);
+		if (cmp(scanner,"snap_interval")) err=expect_eq_float(scanner, &config->snap_interval,1);
+		if (cmp(scanner,"source")) err=expect_source(scanner, config);
+		if (cmp(scanner,"station_file")) err=expect_eq_string(scanner, &config->station_file,1);
+		if (cmp(scanner,"time_scheme")) err=expect_time_scheme(scanner, config);
+		if (cmp(scanner,"traces_interval")) err=expect_eq_int(scanner, &config->traces_interval,1);
 		if (cmp(scanner,"verbose_level")) err=expect_eq_int(scanner, &config->verbose_level,1);
+		// useless (yet or ever)
+		if (cmp(scanner,"anisotropy")) err=expect_eq_bool(scanner, &config->anisotropy, 1);
+		if (cmp(scanner,"gradient")) err=expect_gradient_desc(scanner, config);
+		if (cmp(scanner,"model")) err=expect_eq_model(scanner, &config->model);
 		if (cmp(scanner,"neumann")) err=expect_neumann(scanner, config);
-		if (cmp(scanner,"mpml_atn_param")) err=expect_eq_float(scanner, &config->mpml,1);
-		if (cmp(scanner,"amortissement")) err=expect_amortissement(scanner, config);
+
 
 		if (err==0) { printf("ERR01\n"); return 0;}
 		if (!expect_eos(scanner)) { return 0; }
