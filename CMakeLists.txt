@@ -53,6 +53,7 @@ set(SEM_SRC
   ${SEMCOMMON}/pol_force.F90
   ${SEMCOMMON}/lagrange_prop.f90
   ${SEMCOMMON}/pow.F90
+  ${SEMCOMMON}/pointlist.f90
 )
 
 set(SEM_SRC_C
