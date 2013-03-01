@@ -175,6 +175,9 @@ subroutine FtoS_coupling(Tdomain,rg)
     real, dimension(:,:), allocatable  :: PressFace
 
     ! init.
+    do nf = 0,Tdomain%SF%SF_n_faces-1
+        Tdomain%SF%SF_face(nf)%pn = 0d0
+    end do
     do ne = 0,Tdomain%SF%SF_n_edges-1
         Tdomain%SF%SF_edge(ne)%pn = 0d0
     end do
@@ -248,22 +251,22 @@ subroutine FtoS_coupling(Tdomain,rg)
             do i = 0,n_rings-1
                 if(rg == i)then
                     if (Tdomain%sComm(I_give_to)%ngllSF>0) then
-                        call MPI_SEND (Tdomain%sComm(I_give_to)%GiveForcesSF_FtoS,Tdomain%sComm(I_give_to)%ngllSF, &
+                        call MPI_SEND(Tdomain%sComm(I_give_to)%GiveForcesSF_FtoS,3*Tdomain%sComm(I_give_to)%ngllSF, &
                             MPI_DOUBLE_PRECISION, I_give_to, etiquette, MPI_COMM_WORLD, code)
                     endif
                     if (Tdomain%sComm(I_take_from)%ngllSF > 0) then
-                        call MPI_RECV (Tdomain%sComm(I_take_from)%TakeForcesSF_FtoS, Tdomain%sComm(I_take_from)%ngllSF, &
+                        call MPI_RECV(Tdomain%sComm(I_take_from)%TakeForcesSF_FtoS,3*Tdomain%sComm(I_take_from)%ngllSF, &
                             MPI_DOUBLE_PRECISION, I_take_from, etiquette, MPI_COMM_WORLD, statut, code)
                     endif
                 else
                     do j = 0,n/n_rings-1
                         if (rg == i + j*n_rings) then
                             if (Tdomain%sComm(I_take_from)%ngllSF>0) then
-                                call MPI_RECV (Tdomain%sComm(I_take_from)%TakeForcesSF_FtoS,Tdomain%sComm(I_take_from)%ngllSF, &
+                                call MPI_RECV(Tdomain%sComm(I_take_from)%TakeForcesSF_FtoS,3*Tdomain%sComm(I_take_from)%ngllSF, &
                                     MPI_DOUBLE_PRECISION, I_take_from, etiquette, MPI_COMM_WORLD, statut, code)
                             endif
                             if (Tdomain%sComm(I_give_to)%ngllSF>0) then
-                                call MPI_SEND (Tdomain%sComm(I_give_to)%GiveForcesSF_FtoS,Tdomain%sComm(I_give_to)%ngllSF, &
+                                call MPI_SEND(Tdomain%sComm(I_give_to)%GiveForcesSF_FtoS,3*Tdomain%sComm(I_give_to)%ngllSF, &
                                     MPI_DOUBLE_PRECISION, I_give_to, etiquette, MPI_COMM_WORLD, code)
                             endif
                         end if
@@ -330,8 +333,6 @@ subroutine Comm_Forces_Complete_StoF(n,Tdomain)
     integer  :: ngllSF,i,j,k,nf,ne,nv
 
 
-    print*,"YAALLLAH"
-
     ngllSF = 0
     ! faces
     do i = 0,Tdomain%sComm(n)%SF_nf_shared-1
@@ -360,7 +361,6 @@ subroutine Comm_Forces_Complete_StoF(n,Tdomain)
 
     if(ngllSF /= Tdomain%sComm(n)%ngllSF) stop "Bad counting of SF nodes."
 
-    print*,"YAALLLAH222"
     return
 end subroutine Comm_Forces_Complete_StoF
 !----------------------------------------------------------------
@@ -606,7 +606,7 @@ subroutine Comm_Forces_EdgeSF_StoF(Tdomain,n,ngllSF)
         ne = Tdomain%sComm(n)%SF_edges_shared(i)
         ngll = Tdomain%SF%SF_Edge(ne)%ngll
 
-        if(Tdomain%SF%SF_Edge(ne)%orient_edge == 0)then
+        if(Tdomain%sComm(n)%SF_mapping_edges_shared(i) == 0)then 
             do j = 1,ngll-2
                 Tdomain%SF%SF_Edge(ne)%Vn(j) = Tdomain%SF%SF_Edge(ne)%Vn(j) + Tdomain%sComm(n)%TakeForcesSF_StoF(ngllSF)
                 ngllSF = ngllSF + 1
@@ -642,7 +642,7 @@ subroutine Comm_Forces_EdgeSF_FtoS(Tdomain,n,ngllSF)
         ne = Tdomain%sComm(n)%SF_edges_shared(i)
         ngll = Tdomain%SF%SF_Edge(ne)%ngll
 
-        if(Tdomain%SF%SF_Edge(ne)%orient_edge == 0)then
+        if(Tdomain%sComm(n)%SF_mapping_edges_shared(i) == 0)then 
             do j = 1,ngll-2
                 Tdomain%SF%SF_Edge(ne)%pn(j,0:2) = Tdomain%SF%SF_Edge(ne)%pn(j,0:2) + Tdomain%sComm(n)%TakeForcesSF_FtoS(ngllSF,0:2)
                 ngllSF = ngllSF + 1
@@ -751,12 +751,11 @@ subroutine Newmark_recorrect_solid(Tdomain)
     real  :: dt
     integer :: mat
 
-    ! XXX: il faut recuperer mat correctement
-    mat = 0
-    dt = Tdomain%sSubdomain(0)%dt
     do nf = 0,Tdomain%SF%SF_n_faces-1
         nnf = Tdomain%SF%SF_Face(nf)%Face(1)
         if(nnf >= 0)then
+            mat = Tdomain%sFace(nnf)%mat_index
+            dt = Tdomain%sSubdomain(mat)%dt
             if(.not.Tdomain%sface(nnf)%PML)then
                 call Correction_Face_Veloc(Tdomain%sface(nnf),dt)
             else
@@ -772,6 +771,8 @@ subroutine Newmark_recorrect_solid(Tdomain)
     do ne = 0,Tdomain%SF%SF_n_edges-1
         nne = Tdomain%SF%SF_Edge(ne)%Edge(1)
         if(nne >= 0)then
+            mat = Tdomain%sEdge(nne)%mat_index
+            dt = Tdomain%sSubdomain(mat)%dt
             if(.not.Tdomain%sEdge(nne)%PML)then
                 call Correction_Edge_Veloc(Tdomain%sEdge(nne),dt)
             else
@@ -787,6 +788,8 @@ subroutine Newmark_recorrect_solid(Tdomain)
     do nv = 0,Tdomain%SF%SF_n_vertices-1
         nnv = Tdomain%SF%SF_Vertex(nv)%Vertex(1)
         if(nnv >= 0)then
+            mat = Tdomain%sVertex(nnv)%mat_index
+            dt = Tdomain%sSubdomain(mat)%dt
             if(.not.Tdomain%sVertex(nnv)%PML)then
                 call Correction_Vertex_Veloc(Tdomain%sVertex(nnv),dt)
             else
@@ -798,6 +801,7 @@ subroutine Newmark_recorrect_solid(Tdomain)
             endif
         end if
     end do
+
 
 end subroutine Newmark_recorrect_solid
 !! Local Variables:
