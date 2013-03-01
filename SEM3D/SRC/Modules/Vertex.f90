@@ -23,6 +23,7 @@ module svertices
     end type vertex_pml
 
     type :: vertex
+       integer  :: mat_index
        logical :: PML, Abs, FPML
        integer :: Iglobnum_Vertex, global_numbering
        real :: MassMat
