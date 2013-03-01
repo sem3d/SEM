@@ -3934,7 +3934,7 @@ CONTAINS
         END DO
 
         TH = .58D0
-        IM = 42+DLOG(1.D0+PA)
+        IM = int(42.D0+DLOG(1.D0+PA))
         DO IT=1,IM
             CALL DELEGL(N,ET,VN,SO,DSO)
             CALL DELEGL(N,ET,VN,DSO,D2SO)
