@@ -148,32 +148,39 @@ contains
             read*, nfile
             n_blocks = nfile   ! number of materials
             allocate(unv_files(0:nfile-1))
-            allocate(n_elem_mat(0:n_blocks-1))
             call lec_init_unv(unv_files)
-            call lec_unv_struct(unv_files,n_points,n_elem_mat,n_elem)
-            write(*,*) " Number of control points, elements, materials: ",      &
-                n_points, n_elem, n_blocks
-            !- co-ordinates of control points
-            allocate(xco(0:n_points-1),yco(0:n_points-1),zco(0:n_points-1))
-            n_nods = 8
-            !- general index for each control point of an element
-            allocate(Ipointer(0:n_nods-1,0:n_elem-1))
-            allocate(Material(0:n_elem-1))
-            icount = 0
-            do i = 0,n_blocks-1
-                do n = 0,n_elem_mat(i)-1
-                    Material(icount) = i
-                    icount = icount+1
-                end do
-            end do
 
-            call lec_unv_final(unv_files,n_elem_mat,xco,yco,zco,Ipointer)
+            n_nods = 8
+            if (.true.) then
+                call lec_unv_v2(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco)
+                !stop 1
+            else
+                allocate(n_elem_mat(0:n_blocks-1))
+                call lec_unv_struct(unv_files,n_points,n_elem_mat,n_elem)
+                write(*,*) " Number of control points, elements, materials: ",      &
+                    n_points, n_elem, n_blocks
+                !- co-ordinates of control points
+                allocate(xco(0:n_points-1),yco(0:n_points-1),zco(0:n_points-1))
+                !- general index for each control point of an element
+                allocate(Ipointer(0:n_nods-1,0:n_elem-1))
+                allocate(Material(0:n_elem-1))
+                icount = 0
+                do i = 0,n_blocks-1
+                    do n = 0,n_elem_mat(i)-1
+                        Material(icount) = i
+                        icount = icount+1
+                    end do
+                end do
+
+                call lec_unv_final(unv_files,n_elem_mat,xco,yco,zco,Ipointer)
+                deallocate(n_elem_mat)
+            end if
 
             write(*,*) "****************************************"
             write(*,*) "  - END of .unv files READING -"
             write(*,*) "****************************************"
+            deallocate(unv_files)
 
-            deallocate(unv_files,n_elem_mat)
 
         case default
             stop " Please make a choice for the initial meshing."
