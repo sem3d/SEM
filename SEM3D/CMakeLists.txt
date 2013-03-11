@@ -14,7 +14,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/TimeP.f90
     ${PRJ}/SRC/Modules/logical_input.f90
     ${PRJ}/SRC/Modules/Subdomains.f90
-    ${PRJ}/SRC/Modules/Receivers.f90
     ${PRJ}/SRC/Modules/Fault.f90
     ${PRJ}/SRC/Modules/Domain.f90
     ${PRJ}/SRC/Modules/Couplage.f90
@@ -24,7 +23,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Newmark.f90
     ${PRJ}/SRC/solid_fluid_coupling.f90
     ${PRJ}/SRC/PML_def.f90
-    ${PRJ}/SRC/ReceiverPosition.f90
     ${PRJ}/SRC/SourcePosition.f90
     ${PRJ}/SRC/Modules/Edge.f90
     ${PRJ}/SRC/Modules/Comm.f90
@@ -64,7 +62,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/mesh3d.f90
     ${PRJ}/SRC/read_restart.f90
     ${PRJ}/SRC/save_checkpoint.f90
-    ${PRJ}/SRC/savetrace.f90
     ${PRJ}/SRC/second_fields.f90
     ${PRJ}/SRC/set_attenuation_aniso_param.f90
     ${PRJ}/SRC/set_attenuation_param.f90
