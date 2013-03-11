@@ -15,8 +15,11 @@ module mCapteur
 
     implicit none
 
-    public :: read_capteur, save_capteur, evalueSortieCapteur, save_traces
+    public :: read_capteur, save_capteur, evalueSortieCapteur, flushAllCapteurs
     private :: lireCapteur, capterPointDeGauss, sortirGrandeurSousCapteur
+
+    ! Les fichiers capteurs sont ecrits toutes les NCAPT_CACHE sorties
+    integer, parameter :: NCAPT_CACHE=100
 
     type :: tPtgauss
        integer :: num      ! numero du point de Gauss
@@ -47,7 +50,9 @@ module mCapteur
        integer :: n_el ! numero de la maille dans laquelle se trouve le capteur
        ! si le capteur est partage entre plusieurs mailles, une seule suffit (type_calcul=1)
        real :: xi, eta, zeta ! abscisses curvilignes pour le capteur en cas d'interpolation (type_calcul=1)
-       integer numproc               ! numero du proc localisant le capteur
+       integer :: numproc               ! numero du proc localisant le capteur
+       integer :: icache
+       real, dimension(4,NCAPT_CACHE) :: valuecache
     end type tCapteur
 
     integer           :: dimCapteur        ! nombre total de capteurs
@@ -72,22 +77,27 @@ contains
         ny = Tdomain%specel(nel)%nglly
         nz = Tdomain%specel(nel)%ngllz
         el => Tdomain%specel(nel)
-        field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%Displ(:,:,:,:)
-        do i=0,5
-            fc => Tdomain%sFace(el%Near_Faces(i))
-            call get_VectProperty_Face2Elem(i,el%Orient_Faces, nx, ny, nz, fc%ngll1, fc%ngll2, &
-                fc%Displ, field)
-        end do
 
-        do i=0,11
-            ed => Tdomain%sEdge(el%Near_Edges(i))
-            call get_VectProperty_Edge2Elem(i,el%Orient_Faces, nx, ny, nz, ed%ngll, &
-                ed%Displ, field)
-        end do
-        do i=0,7
-            vx => Tdomain%sVertex(el%Near_Vertices(i))
-            call get_VectProperty_Vertex2Elem(i, nx, ny, nz, vx%Displ, field)
-        end do
+        if (el%solid) then
+            field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%Displ(:,:,:,:)
+            do i=0,5
+                fc => Tdomain%sFace(el%Near_Faces(i))
+                call get_VectProperty_Face2Elem(i,el%Orient_Faces, nx, ny, nz, fc%ngll1, fc%ngll2, &
+                    fc%Displ, field)
+            end do
+
+            do i=0,11
+                ed => Tdomain%sEdge(el%Near_Edges(i))
+                call get_VectProperty_Edge2Elem(i,el%Orient_Faces, nx, ny, nz, ed%ngll, &
+                    ed%Displ, field)
+            end do
+            do i=0,7
+                vx => Tdomain%sVertex(el%Near_Vertices(i))
+                call get_VectProperty_Vertex2Elem(i, nx, ny, nz, vx%Displ, field)
+            end do
+        else ! liquid
+
+        end if
 
     end subroutine build_elem_displ
 
@@ -104,23 +114,25 @@ contains
         ny = Tdomain%specel(nel)%nglly
         nz = Tdomain%specel(nel)%ngllz
         el => Tdomain%specel(nel)
-        field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%Veloc(:,:,:,:)
-        do i=0,5
-            fc => Tdomain%sFace(el%Near_Faces(i))
-            call get_VectProperty_Face2Elem(i,el%Orient_Faces, nx, ny, nz, fc%ngll1, fc%ngll2, &
-                fc%Veloc, field)
-        end do
+        if (el%solid) then
+            field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%Veloc(:,:,:,:)
+            do i=0,5
+                fc => Tdomain%sFace(el%Near_Faces(i))
+                call get_VectProperty_Face2Elem(i,el%Orient_Faces, nx, ny, nz, fc%ngll1, fc%ngll2, &
+                    fc%Veloc, field)
+            end do
 
-        do i=0,11
-            ed => Tdomain%sEdge(el%Near_Edges(i))
-            call get_VectProperty_Edge2Elem(i,el%Orient_Faces, nx, ny, nz, ed%ngll, &
-                ed%Veloc, field)
-        end do
-        do i=0,7
-            vx => Tdomain%sVertex(el%Near_Vertices(i))
-            call get_VectProperty_Vertex2Elem(i, nx, ny, nz, vx%Veloc, field)
-        end do
-
+            do i=0,11
+                ed => Tdomain%sEdge(el%Near_Edges(i))
+                call get_VectProperty_Edge2Elem(i,el%Orient_Faces, nx, ny, nz, ed%ngll, &
+                    ed%Veloc, field)
+            end do
+            do i=0,7
+                vx => Tdomain%sVertex(el%Near_Vertices(i))
+                call get_VectProperty_Vertex2Elem(i, nx, ny, nz, vx%Veloc, field)
+            end do
+        else ! liquid
+        end if
     end subroutine build_elem_veloc
 
     function grandeur_depla(Tdomain, PtGauss)
@@ -351,7 +363,7 @@ contains
             nullify(capteur%listePtGauss)
             capteur%distanceMin = huge(1.)
             capteur%nPtGauss = 0  ! initialisation du nombre de points de Gauss a prendre en compte
-
+            capteur%icache = 0
             read(fileIdCapteur,'(A)',end=100) ligne ! titre 1
             read(fileIdCapteur,'(A)',end=100) ligne ! titre 2
 
@@ -639,12 +651,68 @@ contains
                 call sortieGrandeurCapteur_interp(capteur,Tdomain, ntime, rg)
             endif
 
-            capteur=>capteur%suivant
+            if (capteur%icache==NCAPT_CACHE) call flushCapteur(capteur,Tdomain,rg)
 
+            capteur=>capteur%suivant
         enddo
 
 
     end subroutine save_capteur
+
+    subroutine flushAllCapteurs(Tdomain, rg)
+        implicit none
+        integer :: rg
+        type (domain) :: TDomain
+        type(tCapteur),pointer :: capteur
+
+
+        ! boucle sur les capteurs
+        capteur=>listeCapteur
+
+        do while (associated(capteur))
+            call flushCapteur(capteur,Tdomain,rg)
+            capteur=>capteur%suivant
+        enddo
+    end subroutine flushAllCapteurs
+
+    subroutine flushCapteur(capteur, Tdomain, rg)
+        implicit none
+        integer :: rg
+        type (domain) :: TDomain
+        type(tCapteur),pointer :: capteur
+        integer :: fileId, i, j, imax
+        character(len=MAX_FILE_SIZE) :: fnamef
+
+        if (rg/=0) return
+
+        if (capteur%icache==0) return
+
+        if (trim(capteur%grandeur).eq."DEFORMATION") then
+            call semname_capteur_type(capteur%nom,"_deformation",fnamef)
+            imax = 1
+        endif
+
+        if (trim(capteur%grandeur).eq."VITESSE") then
+            call semname_capteur_type(capteur%nom,"_vitesse",fnamef)
+            imax = 3
+        endif
+
+        if (trim(capteur%grandeur).eq."DEPLA") then
+            call semname_capteur_type(capteur%nom,"_depla",fnamef)
+            imax = 3
+        endif
+
+        open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
+        do j=1,capteur%icache
+            if (imax==1) then
+                write(fileId,'(2(1X,E16.8E3))') capteur%valuecache(1,j), capteur%valuecache(2,j)
+            else
+                write(fileId,'(4(1X,E16.8E3))') capteur%valuecache(1,j), capteur%valuecache(2:4,j)
+            endif
+        end do
+        close(fileId)
+        capteur%icache = 0
+    end subroutine flushCapteur
 
 
     !---------------------------------------------------------------------
@@ -670,7 +738,6 @@ contains
         integer :: rg
         integer :: fileId, i, ierr, nPtGaussTotal, tag, borneInf, iproc
 
-        character(len=MAX_FILE_SIZE) :: fnamef
         type(tPtGauss),pointer :: PtGauss
 
         integer , dimension  (MPI_STATUS_SIZE) :: status
@@ -808,36 +875,10 @@ contains
 
         ! ETAPE 4 : Impression du resultat dans le fichier de sortie par le proc 0
         if(rg==0)then
-
-            if (trim(capteur%grandeur).eq."DEFORMATION") then
-
-                call semname_capteur_type(capteur%nom,"_deformation",fnamef)
-                open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
-                write(fileId,'(2(1X,E16.8E3))') Tdomain%TimeD%rtime,val0(1)
-            endif
-
-
-            if (trim(capteur%grandeur).eq."VITESSE") then
-
-                call semname_capteur_type(capteur%nom,"_vitesse",fnamef)
-                open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
-                write(fileId,'(4(1X,E16.8E3))') Tdomain%TimeD%rtime, val0(1:3)
-            endif
-
-            close(fileId)
-
-            if (trim(capteur%grandeur).eq."DEPLA") then
-
-                call semname_capteur_type(capteur%nom,"_depla",fnamef)
-                open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
-                write(fileId,'(4(1X,E16.8E3))') Tdomain%TimeD%rtime,val0(1:3)
-            endif
-
-            close(fileId)
-
-
-
-
+            i = capteur%icache+1
+            capteur%valuecache(1,i) = Tdomain%TimeD%rtime
+            capteur%valuecache(2:4,i) = val0(1:3)
+            capteur%icache = i
         endif
 
         deallocate(grandeur)
@@ -861,7 +902,6 @@ contains
         integer :: rg
 
         integer :: fileId, i, j, k, idim, ierr, tag
-        character(len=MAX_FILE_SIZE) :: fnamef
 
         integer , dimension  (MPI_STATUS_SIZE) :: status
         integer request
@@ -961,26 +1001,10 @@ contains
 
         ! ETAPE 4 : Impression du resultat dans le fichier de sortie par le proc 0
         if((rg==0) .AND. (capteur%numproc>-1)) then
-
-            if (trim(capteur%grandeur).eq."VITESSE") then
-
-                call semname_capteur_type(capteur%nom,"_vitesse",fnamef)
-                open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
-                write(fileId,'(4(1X,E16.8E3))') Tdomain%TimeD%rtime,val0(1:3)
-            endif
-
-            close(fileId)
-
-            if (trim(capteur%grandeur).eq."DEPLA") then
-
-                call semname_capteur_type(capteur%nom,"_depla",fnamef)
-                open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
-                write(fileId,'(4(1X,E16.8E3))') Tdomain%TimeD%rtime,val0(1:3)
-            endif
-
-            close(fileId)
-
-
+            i = capteur%icache+1
+            capteur%valuecache(1,i) = Tdomain%TimeD%rtime
+            capteur%valuecache(2:4,i) = val0(1:3)
+            capteur%icache = i
         endif
 
     end subroutine sortieGrandeurCapteur_interp

@@ -325,6 +325,7 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
 
         if (protection/=0) then
             write (*,*) " sauvegarde  ",ntime," sur processeur ",rg
+            call flushAllCapteurs(Tdomain, rg)
             call save_checkpoint(Tdomain, Tdomain%TimeD%rtime, ntime, rg, Tdomain%TimeD%dtmin, isort)
         endif
 
@@ -337,6 +338,9 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
         ! incrementation du pas de temps !on copie Sem2d
         Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
     enddo
+
+    call flushAllCapteurs(Tdomain, rg)
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! FIN BOUCLE EN TEMPS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
