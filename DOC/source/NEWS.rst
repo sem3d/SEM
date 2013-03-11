@@ -6,11 +6,17 @@ NEWS
 Version 2013.02
 ---------------
 
-Cette version résulte de l'intégration de plusieurs version de SEM3D,
-RegSEM.U, SEM-CEA.
+Cette version résulte de l'intégration de plusieurs versions du même code :
+
+- RegSEM.U
+- SEM-CEA.
+
+A cette intégration s'ajoute de nouveaux développements.
 
 Les nouveautés par rapport à toutes les versions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Lecture des maillages au format unv
 
 - Introduction d'éléments de type fluide, avec couplage fluide solide.
 
