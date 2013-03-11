@@ -66,7 +66,7 @@ contains
                 procs(n) = 0
             end do
         else
-            allocate(adjwgt(0:dxadj(n_elem)-1)) ; adjwgt = 1
+            allocate(adjwgt(0:dxadj(n_elem+1)-1)) ; adjwgt = 1
             vwgt = 1
             vsize = 1
             tpwgts = 1./nproc

@@ -134,8 +134,8 @@ contains
         integer, dimension(:,:), allocatable :: Faces_PW
         !- partitioning - see Metis user doc for parameter value
         integer, intent(in)  :: nproc
-        integer, pointer :: dxadj(:), dxadjncy(:)
-        integer, allocatable :: part(:)
+        integer, pointer, dimension(:) :: dxadj, dxadjncy
+        integer, allocatable, dimension(:) :: part
         !- local meshes
         type(souvenir), dimension(:), allocatable :: memory
         type(process_obj), dimension(:), allocatable :: MemorySF
@@ -387,7 +387,7 @@ contains
 
 
             !- which procs do SF vertices belong to?
-            call SF_vertices_proc_belong(nproc,SF_n_global_vertices,part,    &
+            call SF_vertices_proc_belong(nproc,n_elem,SF_n_global_vertices,part,    &
                 elem_solid,initnode,SF_global_vertices)
 
             !- which procs do SF edges belong to?
