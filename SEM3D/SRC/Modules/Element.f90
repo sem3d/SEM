@@ -53,8 +53,10 @@ module selement
        real, dimension(:,:,:,:,:), allocatable :: InvGrad
        ! fluid part
        real, dimension(:,:,:), allocatable:: Phi,VelPhi0,VelPhi,AccelPhi
-       ! PML allocation
+       ! flag for PML allocation
        logical :: PML, FPML
+       ! Whether this element will be part of snapshot outputs
+       logical :: OUTPUT
        type(element_pml), allocatable :: spml
        ! fluid part
        real, dimension(:,:,:), allocatable:: ForcesFl
