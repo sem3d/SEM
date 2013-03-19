@@ -63,8 +63,7 @@ contains
         recv_pml_req = MPI_REQUEST_NULL
 
         do other = 0,n-1
-            if (other==rg) continue
-
+            if (other==rg) cycle
             if (Tdomain%sComm(other)%ngll_tot/=0) then
                 call MPI_Isend(Tdomain%sComm(other)%Give, Tdomain%sComm(other)%ngll_tot, &
                     MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur, send_req(other), ierr)
@@ -121,7 +120,7 @@ contains
         req_r_fpml = MPI_REQUEST_NULL
 
         do other = 0,n-1
-            if (other==rg) continue
+            if (other==rg) cycle
 
             if (Tdomain%sComm(other)%ngll_tot/=0) then
                 call MPI_Isend(Tdomain%sComm(other)%GiveForces, 3*Tdomain%sComm(other)%ngll, &
