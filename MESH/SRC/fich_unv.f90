@@ -97,10 +97,11 @@ contains
 100     return
     end subroutine unv_2411_read
 
-    subroutine unv_2412_read(unit, eidx, index_map, Ipointer)
+    subroutine unv_2412_read(unit, eidx, index_map, Ipointer, Material)
         integer, intent(in) :: unit
         integer, intent(inout) :: eidx
         integer, intent(in), dimension(:) :: index_map
+        integer, intent(inout), dimension(0:) :: Material
         integer, dimension(0:,0:), intent(inout) :: Ipointer
         integer :: ielem, etype, phys_prop, mat_prop, color, nnodes
         integer, dimension(0:7) :: nodes
@@ -116,6 +117,7 @@ contains
             do i=0,7
                 Ipointer(i, eidx) = index_map(nodes(i))
             end do
+            Material(eidx) = mat_prop
             eidx = eidx + 1
         end do
 100     return
@@ -269,12 +271,13 @@ contains
     end subroutine lec_unv_final
 
 
-    subroutine lec_unv_v2(unv_files, n_points, n_elem, Material, Ipointer, xco, yco, zco)
+    subroutine lec_unv_v2(unv_files, n_points, n_elem, Material, Ipointer, xco, yco, zco, n_blocks)
         character(len=*), dimension(0:), intent(in)  :: unv_files
         integer, intent(out) :: n_points, n_elem
         integer, intent(out), allocatable, dimension(:) :: Material
         real, dimension(:), allocatable, intent(out) :: xco,yco,zco
         integer, dimension(:,:), intent(out), allocatable :: Ipointer
+        integer, intent(out) :: n_blocks
         !
         integer :: i, nfile, loc_count, matmax, count, eidx, npts, eidx0
         integer :: min_label, max_label, loc_min_label, loc_max_label
@@ -290,6 +293,7 @@ contains
 
         n_elem = 0
         npts = 0
+        n_blocks=0
         do i = 0, nfile-1
             open(10,file=unv_files(i),status="old",position="rewind",action="read",iostat=ios)
             call unv_find_bloc(10, 2411, found)
@@ -306,10 +310,12 @@ contains
                 stop "Datablock 2412 not found"
             end if
             call unv_2412_info(10, elcount(i), matmax)
+            n_blocks = max(matmax, n_blocks)
             write(*,*) "NELEM=", elcount(i)
             n_elem = n_elem + elcount(i)
             close(10)
         end do
+        n_blocks = n_blocks+1
         call init_point_table(points, npts)
         allocate(Ipointer(0:7,0:n_elem-1))
         allocate(Material(0:n_elem-1))
@@ -323,8 +329,8 @@ contains
             ncount(i) = loc_max_label
             call unv_find_bloc(10, 2412, found)
             eidx0 = eidx
-            call unv_2412_read(10, eidx, loc_index, Ipointer)
-            Material(eidx0:eidx-1) = i
+            call unv_2412_read(10, eidx, loc_index, Ipointer, Material)
+!            Material(eidx0:eidx-1) = i
             deallocate(loc_index)
             close(10)
         end do

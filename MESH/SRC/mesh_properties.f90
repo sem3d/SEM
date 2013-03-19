@@ -152,7 +152,7 @@ contains
 
             n_nods = 8
             if (.true.) then
-                call lec_unv_v2(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco)
+                call lec_unv_v2(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks)
                 !stop 1
             else
                 allocate(n_elem_mat(0:n_blocks-1))
