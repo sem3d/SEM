@@ -12,6 +12,7 @@ module mCapteur
     use sdomain
     use semdatafiles
     use mpi
+    use mfields
 
     implicit none
 
@@ -63,77 +64,6 @@ module mCapteur
 
 contains
 
-    !! Recopie dans field le champs de deplacement reparti sur les Elem, Face, Edge, Vertex
-    subroutine build_elem_displ(Tdomain, nel, field)
-        type(domain), intent(in) :: Tdomain
-        integer, intent(in) :: nel
-        real, dimension(0:,0:,0:,0:), intent(out) :: field
-        type(element), pointer :: el
-        type(face), pointer :: fc
-        type(edge), pointer :: ed
-        type(vertex), pointer :: vx
-        integer :: nx, ny, nz, i
-        nx = Tdomain%specel(nel)%ngllx
-        ny = Tdomain%specel(nel)%nglly
-        nz = Tdomain%specel(nel)%ngllz
-        el => Tdomain%specel(nel)
-
-        if (el%solid) then
-            field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%Displ(:,:,:,:)
-            do i=0,5
-                fc => Tdomain%sFace(el%Near_Faces(i))
-                call get_VectProperty_Face2Elem(i,el%Orient_Faces, nx, ny, nz, fc%ngll1, fc%ngll2, &
-                    fc%Displ, field)
-            end do
-
-            do i=0,11
-                ed => Tdomain%sEdge(el%Near_Edges(i))
-                call get_VectProperty_Edge2Elem(i,el%Orient_Faces, nx, ny, nz, ed%ngll, &
-                    ed%Displ, field)
-            end do
-            do i=0,7
-                vx => Tdomain%sVertex(el%Near_Vertices(i))
-                call get_VectProperty_Vertex2Elem(i, nx, ny, nz, vx%Displ, field)
-            end do
-        else ! liquid
-
-        end if
-
-    end subroutine build_elem_displ
-
-    subroutine build_elem_veloc(Tdomain, nel, field)
-        type(domain), intent(in) :: Tdomain
-        integer, intent(in) :: nel
-        real, dimension(0:,0:,0:,0:), intent(out) :: field
-        type(element), pointer :: el
-        type(face), pointer :: fc
-        type(edge), pointer :: ed
-        type(vertex), pointer :: vx
-        integer :: nx, ny, nz, i
-        nx = Tdomain%specel(nel)%ngllx
-        ny = Tdomain%specel(nel)%nglly
-        nz = Tdomain%specel(nel)%ngllz
-        el => Tdomain%specel(nel)
-        if (el%solid) then
-            field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%Veloc(:,:,:,:)
-            do i=0,5
-                fc => Tdomain%sFace(el%Near_Faces(i))
-                call get_VectProperty_Face2Elem(i,el%Orient_Faces, nx, ny, nz, fc%ngll1, fc%ngll2, &
-                    fc%Veloc, field)
-            end do
-
-            do i=0,11
-                ed => Tdomain%sEdge(el%Near_Edges(i))
-                call get_VectProperty_Edge2Elem(i,el%Orient_Faces, nx, ny, nz, ed%ngll, &
-                    ed%Veloc, field)
-            end do
-            do i=0,7
-                vx => Tdomain%sVertex(el%Near_Vertices(i))
-                call get_VectProperty_Vertex2Elem(i, nx, ny, nz, vx%Veloc, field)
-            end do
-        else ! liquid
-        end if
-    end subroutine build_elem_veloc
 
     function grandeur_depla(Tdomain, PtGauss)
         type(domain), intent(in) :: Tdomain
@@ -944,9 +874,9 @@ contains
             mat = Tdomain%specel(n_el)%mat_index
             allocate(field(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
             if (trim(capteur%grandeur).eq."VITESSE") then
-                call build_elem_veloc(Tdomain, n_el, field)
+                call gather_elem_veloc(Tdomain, n_el, field)
             else if (trim(capteur%grandeur).eq."DEPLA") then
-                call build_elem_displ(Tdomain, n_el, field)
+                call gather_elem_displ(Tdomain, n_el, field)
             end if
             do i = 0,ngllx - 1
                 do j = 0,nglly - 1
