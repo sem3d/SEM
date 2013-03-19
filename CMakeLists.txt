@@ -59,6 +59,8 @@ set(SEM_SRC
 set(SEM_SRC_C
   ${SEMCOMMON}/read_input.c
   ${SEMCOMMON}/file_scan.c
+  ${SEMCOMMON}/sem_input.c
+  ${SEMCOMMON}/read_mat.c
   ${SEMCOMMON}/tremain_c.c
 )
 
