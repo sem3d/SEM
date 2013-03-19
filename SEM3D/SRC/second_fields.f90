@@ -54,6 +54,7 @@ end subroutine grad_displ_solid
 subroutine pressure_solid(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,InvGrad,displ,    &
            lambda,mu,pressure)
   ! gives the isotropic term of the stress tensor = pressure = -1/3 trace(stress tensor)
+  !                         = -kappa * div(u)
     implicit none
     integer, intent(in)  :: ngllx,nglly,ngllz
     real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: hTprimex
@@ -70,6 +71,6 @@ subroutine pressure_solid(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,InvGrad,dis
     call grad_displ_solid(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,InvGrad,displ,    &
            dUx_dx,dUx_dy,dUx_dz,dUy_dx,dUy_dy,dUy_dz,dUz_dx,dUz_dy,dUz_dz)
 
-    pressure(:,:,:) = -(3d0*lambda(:,:,:)+2d0*mu(:,:,:))*(dUx_dx(:,:,:)+dUy_dy(:,:,:)+dUz_dz(:,:,:))
+    pressure(:,:,:) = -(lambda(:,:,:)+2d0/3d0*mu(:,:,:))*(dUx_dx(:,:,:)+dUy_dy(:,:,:)+dUz_dz(:,:,:))
 
 end subroutine pressure_solid
