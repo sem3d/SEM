@@ -1,197 +1,46 @@
 module scomm
 
 contains
-    subroutine shift_to_parameters(rank,n,shift,give_to,take_from,rings)
 
-        implicit none
-
-        integer, intent(in)  :: rank,n,shift
-        integer, intent(out) :: give_to,take_from,rings
-
-        give_to = rank+shift
-        if(give_to > n-1) give_to = give_to-n
-        take_from = rank-shift
-        if(take_from < 0) take_from = take_from+n
-        if(mod(n,shift) == 0 .and. shift /= 1)then
-            rings = shift
-        else if(mod(n,n-shift) == 0 .and. shift /= n-1)then
-            rings = n-shift
-        else if(mod(n,2) == 0 .and. mod(shift,2) == 0)then
-            rings = 2
-        else
-            rings = 1
-        endif
-
-    end subroutine shift_to_parameters
-    !------------------------------------------------------------------------
-    !------------------------------------------------------------------------
-    subroutine ALGO_COMM(rank,n,rings,ngll_give,ngll_take,give_to,take_from,fact_mult,  &
-        TabGiven,TabTaken)
-        ! old algo to exchange properties between processors
-        use mpi
-        implicit none
-        integer, intent(in) :: rings,rank,n,ngll_give,ngll_take,give_to,take_from,fact_mult
-        real, dimension(0:fact_mult*ngll_give-1), intent(in) :: TabGiven
-        real, dimension(0:fact_mult*ngll_take-1), intent(out) :: TabTaken
-        integer  :: i,j,code,etiquette
-        integer, dimension(MPI_STATUS_SIZE) :: statut
-
-        etiquette = 100
-
-        do i = 0,rings-1
-            if(rank == i)then
-                if(ngll_give > 0)then
-                    call MPI_SEND(TabGiven,fact_mult*ngll_give,MPI_DOUBLE_PRECISION,  &
-                        give_to,etiquette,MPI_COMM_WORLD,code)
-                endif
-                if(ngll_take > 0)then
-                    call MPI_RECV(TabTaken,fact_mult*ngll_take,MPI_DOUBLE_PRECISION,  &
-                        take_from,etiquette,MPI_COMM_WORLD,statut,code)
-                endif
-            else
-                do j = 0,n/rings-1
-                    if(rank == i + j*rings)then
-                        if(ngll_take > 0)then
-                            call MPI_RECV(TabTaken,fact_mult*ngll_take,MPI_DOUBLE_PRECISION, &
-                                take_from,etiquette,MPI_COMM_WORLD,statut,code)
-                        endif
-                        if(ngll_give > 0)then
-                            call MPI_SEND(TabGiven,fact_mult*ngll_give,MPI_DOUBLE_PRECISION, &
-                                give_to,etiquette,MPI_COMM_WORLD,code)
-                        endif
-                    endif
-                enddo
-            endif
-        enddo
-
-        return
-
-    end subroutine ALGO_COMM
-
-
-    subroutine exchange_sem_1(Tdomain, rg)
-        use sdomain
-        use mpi
-        implicit none
-        type(domain), intent(inout) :: Tdomain
-        integer, intent(in) :: rg
-        integer :: n, shift, I_give_to, I_take_from, n_rings, code
-
-        write(*,*) "COMM 1"
-        !- now we can exchange (communication global arrays)
-        n = Tdomain%n_proc
-        do shift = 1,n-1
-            call shift_to_parameters(rg,n,shift,I_give_to,I_take_from,n_rings)
-            ! physical mass comm. (solid + fluid)
-            call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngll_tot,                  &
-                Tdomain%sComm(I_take_from)%ngll_tot,I_give_to,I_take_from,1,     &
-                Tdomain%sComm(I_give_to)%Give,Tdomain%sComm(I_take_from)%Take)
-            call MPI_BARRIER(MPI_COMM_WORLD,code)
-            ! PML mass comm. (solid + fluid)
-            if(Tdomain%any_PML)then
-                if(Tdomain%any_FPML)then
-                    call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngllPML_tot,           &
-                        Tdomain%sComm(I_take_from)%ngllPML_tot,I_give_to,I_take_from,6,       &
-                        Tdomain%sComm(I_give_to)%GivePML,Tdomain%sComm(I_take_from)%TakePML)
-                else
-                    call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngllPML_tot,           &
-                        Tdomain%sComm(I_take_from)%ngllPML_tot,I_give_to,I_take_from,3,       &
-                        Tdomain%sComm(I_give_to)%GivePML,Tdomain%sComm(I_take_from)%TakePML)
-                end if
-            end if
-            call MPI_BARRIER(MPI_COMM_WORLD,code)
-            ! normal Neumann comm.
-            if(Tdomain%logicD%Neumann_local_present)then
-                call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngllNeu,           &
-                    Tdomain%sComm(I_take_from)%ngllNeu,I_give_to,I_take_from,3,       &
-                    Tdomain%sComm(I_give_to)%GiveNeu,Tdomain%sComm(I_take_from)%TakeNeu)
-            end if
-            call MPI_BARRIER(MPI_COMM_WORLD,code)
-
-        enddo
-        write(*,*) "COMM 2"
-
-    end subroutine exchange_sem_1
-
-    subroutine exchange_sem_forces_1(Tdomain, rg)
-        use sdomain
-        use mpi
-        implicit none
-        type(domain), intent(inout) :: Tdomain
-        integer, intent(in) :: rg
-        integer :: n, shift, I_give_to, I_take_from, n_rings, code
-
-        write(*,*) "FCOMM 1"
-        ! now we can exchange force values with proc n
-        n = Tdomain%n_proc
-        do shift = 1,n-1
-            call shift_to_parameters(rg,n,shift,I_give_to,I_take_from,n_rings)
-            ! solid forces exchange
-            call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngll,        &
-                Tdomain%sComm(I_take_from)%ngll,I_give_to,I_take_from,3,   &
-                Tdomain%sComm(I_give_to)%GiveForces,Tdomain%sComm(I_take_from)%TakeForces)
-            call MPI_BARRIER(MPI_COMM_WORLD,code)
-            ! fluid forces exchange
-            call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngll_F,        &
-                Tdomain%sComm(I_take_from)%ngll_F,I_give_to,I_take_from,1,   &
-                Tdomain%sComm(I_give_to)%GiveForcesFl,Tdomain%sComm(I_take_from)%TakeForcesFl)
-            call MPI_BARRIER(MPI_COMM_WORLD,code)
-            ! solid PML forces exchange
-            call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngllPML,        &
-                Tdomain%sComm(I_take_from)%ngllPML,I_give_to,I_take_from,9,   &
-                Tdomain%sComm(I_give_to)%GiveForcesPML,Tdomain%sComm(I_take_from)%TakeForcesPML)
-            call MPI_BARRIER(MPI_COMM_WORLD,code)
-            ! fluid PML forces exchange
-            call ALGO_COMM(rg,n,n_rings,Tdomain%sComm(I_give_to)%ngllPML_F,        &
-                Tdomain%sComm(I_take_from)%ngllPML_F,I_give_to,I_take_from,3,   &
-                Tdomain%sComm(I_give_to)%GiveForcesPMLFl,Tdomain%sComm(I_take_from)%TakeForcesPMLFl)
-            call MPI_BARRIER(MPI_COMM_WORLD,code)
-
-        end do  ! do shift
-        write(*,*) "FCOMM 2"
-
-    end subroutine exchange_sem_forces_1
-
-
-    subroutine exchange_sem_1d(Tdomain, rg, tag, vector)
-        use sdomain
-        use mpi
-        implicit none
-        type(domain), intent(inout) :: Tdomain
-        integer, intent(in) :: rg
-        integer, intent(in) :: tag
-        type(comm_vector_1d), intent(inout) :: vector
-        integer :: other, ierr, n
-
-        !- now we can exchange (communication global arrays)
-        n = Tdomain%n_proc
-        vector%send_reqs = MPI_REQUEST_NULL
-        vector%recv_reqs = MPI_REQUEST_NULL
-
-        do other = 0,n-1
-            if (other==rg) continue
-
-            if (vector%n(other)/=0) then
-                call MPI_Isend(vector%Give(:,other), vector%n(other), &
-                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur, vector%send_reqs(other), ierr)
-                call MPI_Irecv(vector%Take(:,other), vector%n(other), &
-                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur, vector%recv_reqs(other), ierr)
-            endif
-        enddo
-    end subroutine exchange_sem_1d
-
-    subroutine  exchange_sem_wait_1d(Tdomain, vector)
-        use sdomain
-        use mpi
-        implicit none
-        type(domain), intent(inout) :: Tdomain
-        type(comm_vector_1d), intent(inout) :: vector
-        integer, dimension(MPI_STATUS_SIZE, Tdomain%n_proc) :: statuses
-        integer :: ierr
-
-        call MPI_Waitall(Tdomain%n_proc, vector%recv_reqs, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, vector%send_reqs, statuses, ierr)
-    end subroutine exchange_sem_wait_1d
+!    subroutine exchange_sem_1d(Tdomain, rg, tag, vector)
+!        use sdomain
+!        use mpi
+!        implicit none
+!        type(domain), intent(inout) :: Tdomain
+!        integer, intent(in) :: rg
+!        integer, intent(in) :: tag
+!        type(comm_vector_1d), intent(inout) :: vector
+!        integer :: other, ierr, n
+!
+!        !- now we can exchange (communication global arrays)
+!        n = Tdomain%n_proc
+!        vector%send_reqs = MPI_REQUEST_NULL
+!        vector%recv_reqs = MPI_REQUEST_NULL
+!
+!        do other = 0,n-1
+!            if (other==rg) cycle
+!
+!            if (vector%n(other)/=0) then
+!                call MPI_Isend(vector%Give(:,other), vector%n(other), &
+!                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur, vector%send_reqs(other), ierr)
+!                call MPI_Irecv(vector%Take(:,other), vector%n(other), &
+!                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur, vector%recv_reqs(other), ierr)
+!            endif
+!        enddo
+!    end subroutine exchange_sem_1d
+!
+!    subroutine  exchange_sem_wait_1d(Tdomain, vector)
+!        use sdomain
+!        use mpi
+!        implicit none
+!        type(domain), intent(inout) :: Tdomain
+!        type(comm_vector_1d), intent(inout) :: vector
+!        integer, dimension(MPI_STATUS_SIZE, Tdomain%n_proc) :: statuses
+!        integer :: ierr
+!
+!        call MPI_Waitall(Tdomain%n_proc, vector%recv_reqs, statuses, ierr)
+!        call MPI_Waitall(Tdomain%n_proc, vector%send_reqs, statuses, ierr)
+!    end subroutine exchange_sem_wait_1d
 
 
     subroutine exchange_sem(Tdomain, rg)
