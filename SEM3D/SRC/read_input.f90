@@ -286,7 +286,7 @@ subroutine read_material_file(Tdomain, rg)
             Tdomain%sSubDomain(i)%NGLLx, Tdomain%sSubDomain(i)%NGLLy, Tdomain%sSubDomain(i)%NGLLz, &
             Tdomain%sSubDomain(i)%Dt, Tdomain%sSubDomain(i)%Qpression,  Tdomain%sSubDomain(i)%Qmu
 
-        if(rg==0) then
+        if(rg==0 .and. .false.) then
             write (*,*) 'Material :', i
             write (*,*) 'type:', Tdomain%sSubDomain(i)%material_type
             write (*,*) 'Pspeed:', Tdomain%sSubDomain(i)%Pspeed
@@ -440,6 +440,67 @@ subroutine create_sem_sources(Tdomain, config)
 
 end subroutine create_sem_sources
 
+
+function is_in_box(pos, box)
+    real, dimension(3), intent(in) :: pos
+    real, dimension(6), intent(in) :: box
+    logical :: is_in_box
+    !
+    integer :: i
+
+    is_in_box = .true.
+    do i=1,3
+        if (pos(i)<box(i)) is_in_box = .false.
+        if (pos(i)>box(3+i)) is_in_box = .false.
+    end do
+end function is_in_box
+!>
+! Selectionne les elements pour les inclure ou non dans les snapshots
+!<
+subroutine select_output_elements(Tdomain, rg, config)
+    use sdomain
+    implicit none
+    type(domain), intent(inout)  :: Tdomain
+    type(sem_config), intent(in) :: config
+    integer, intent(in) :: rg
+
+    type(sem_snapshot_cond), pointer :: selection
+    integer :: n, i, ipoint
+    real, dimension(3) :: pos
+    logical :: sel
+
+    do n = 0, Tdomain%n_elem
+        call c_f_pointer(config%snapshot_selection, selection)
+        do while(associated(selection))
+            if (selection%include==1) then
+                sel = .true.
+            else
+                sel = .false.
+            end if
+            pos = 0.
+            do i=0,7
+                ipoint = Tdomain%specel(n)%Control_Nodes(i)
+                pos = pos + Tdomain%Coord_Nodes(:,ipoint)
+            end do
+            pos = pos/8
+            select case (selection%type)
+            case (1)
+                ! All
+                Tdomain%specel(n)%output = sel
+            case (2)
+                ! Material
+                if (Tdomain%specel(n)%mat_index == selection%material) Tdomain%specel(n)%output = sel
+            case (3)
+                ! Box
+                if (is_in_box(pos, selection%box)) Tdomain%specel(n)%output = sel
+            end select
+
+            call c_f_pointer(selection%next, selection)
+        end do
+    end do
+
+end subroutine select_output_elements
+
 subroutine read_input (Tdomain, rg, code)
     use sdomain
     use semdatafiles
@@ -533,10 +594,16 @@ subroutine read_input (Tdomain, rg, code)
 
     call read_mesh_file_h5(Tdomain, rg)
 
+    write(*,*) rg, "Reading materials"
     !---   Properties of materials.
     call read_material_file(Tdomain, rg)
+    write(*,*) rg, "Reading materials done"
 
     call finalize_mesh_connectivity(Tdomain, rg)
+
+    write(*,*) rg, "Finalize done"
+
+    call select_output_elements(Tdomain, rg, config)
 
 end subroutine read_input
 
