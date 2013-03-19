@@ -75,13 +75,13 @@ contains
         field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%Displ(:,:,:,:)
         do i=0,5
             fc => Tdomain%sFace(el%Near_Faces(i))
-            call get_VectProperty_Face2Elem(i,el%Orient_Faces, nx, ny, nz, fc%ngll1, fc%ngll2, &
+            call get_VectProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
                 fc%Displ, field)
         end do
 
         do i=0,11
             ed => Tdomain%sEdge(el%Near_Edges(i))
-            call get_VectProperty_Edge2Elem(i,el%Orient_Faces, nx, ny, nz, ed%ngll, &
+            call get_VectProperty_Edge2Elem(i,el%Orient_Edges(i), nx, ny, nz, ed%ngll, &
                 ed%Displ, field)
         end do
         do i=0,7
@@ -107,13 +107,13 @@ contains
         field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%Veloc(:,:,:,:)
         do i=0,5
             fc => Tdomain%sFace(el%Near_Faces(i))
-            call get_VectProperty_Face2Elem(i,el%Orient_Faces, nx, ny, nz, fc%ngll1, fc%ngll2, &
+            call get_VectProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
                 fc%Veloc, field)
         end do
 
         do i=0,11
             ed => Tdomain%sEdge(el%Near_Edges(i))
-            call get_VectProperty_Edge2Elem(i,el%Orient_Faces, nx, ny, nz, ed%ngll, &
+            call get_VectProperty_Edge2Elem(i,el%Orient_Edges(i), nx, ny, nz, ed%ngll, &
                 ed%Veloc, field)
         end do
         do i=0,7
