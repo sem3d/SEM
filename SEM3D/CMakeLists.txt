@@ -14,7 +14,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/TimeP.f90
     ${PRJ}/SRC/Modules/logical_input.f90
     ${PRJ}/SRC/Modules/Subdomains.f90
-    ${PRJ}/SRC/Modules/Receivers.f90
     ${PRJ}/SRC/Modules/Fault.f90
     ${PRJ}/SRC/Modules/Domain.f90
     ${PRJ}/SRC/Modules/Couplage.f90
@@ -24,7 +23,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Newmark.f90
     ${PRJ}/SRC/solid_fluid_coupling.f90
     ${PRJ}/SRC/PML_def.f90
-    ${PRJ}/SRC/ReceiverPosition.f90
     ${PRJ}/SRC/SourcePosition.f90
     ${PRJ}/SRC/Modules/Edge.f90
     ${PRJ}/SRC/Modules/Comm.f90
@@ -64,16 +62,12 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/mesh3d.f90
     ${PRJ}/SRC/read_restart.f90
     ${PRJ}/SRC/save_checkpoint.f90
-    ${PRJ}/SRC/savetrace.f90
     ${PRJ}/SRC/second_fields.f90
     ${PRJ}/SRC/set_attenuation_aniso_param.f90
     ${PRJ}/SRC/set_attenuation_param.f90
     ${PRJ}/SRC/shape8.f90
     ${PRJ}/SRC/shape27.f90
     ${PRJ}/SRC/drive_sem.f90
-    ${PRJ}/SRC/BLAS/dgemm.f90
-    ${PRJ}/SRC/BLAS/lsame.f90
-    ${PRJ}/SRC/BLAS/xerbla.f90
     ${PRJ}/SRC/ondelette.f90
 
     ${PRJ}/SRC/get_VectProperty_Edge2Elem.f90
@@ -98,6 +92,15 @@ set(SEM3D_SOURCES_F
 
     ${PRJ}/SRC/snapshots.f90
 )
+
+if(NOT USE_MKL)
+set(SEM3D_SOURCES_F
+    ${SEM3D_SOURCES_F}
+    ${PRJ}/SRC/BLAS/dgemm.f90
+    ${PRJ}/SRC/BLAS/lsame.f90
+    ${PRJ}/SRC/BLAS/xerbla.f90
+)
+endif(NOT USE_MKL)
 
 set(SEM3D_SOURCES ${SEM3D_SOURCES_F}
     ${SEM_SRC_C}
@@ -128,11 +131,10 @@ set(SEM3D_SOURCES ${SEM3D_SOURCES}
   ${FTM_SOURCES})
 endif(OPT_MPI)
 
-if (OPT_HDF5)
-set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} hdf5_fortran)
+# HDF5
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
 set(SEM3D_SOURCES ${SEM3D_SOURCES} ${SEMCOMMON}/sem_hdf5.f90)
-endif(OPT_HDF5)
-
+message("SEMLIBS: '${SEM_EXTRA_LIBS}'")
 if (OPT_COUPLAGE)
 add_library(sem3d STATIC ${SEM3D_SOURCES})
 set_target_properties(sem3d PROPERTIES COMPILE_DEFINITIONS COUPLAGE)
@@ -157,4 +159,8 @@ add_executable(test_Q_coeffs ${PRJ}/TESTS/UNITS/test_Q_coeffs.c
 )
 
 target_link_libraries(test_Q_coeffs m)
+
+add_executable(test_pointlist ${PRJ}/TESTS/UNITS/test_pointlist.f90
+  ${SEMCOMMON}/pointlist.f90
+)
 

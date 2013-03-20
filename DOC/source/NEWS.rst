@@ -6,11 +6,23 @@ NEWS
 Version 2013.02
 ---------------
 
-Cette version résulte de l'intégration de plusieurs version de SEM3D,
-RegSEM.U, SEM-CEA.
+Cette version résulte de l'intégration de plusieurs versions du même code :
+
+- RegSEM.U
+- SEM-CEA.
+
+A cette intégration s'ajoute de nouveaux développements.
 
 Les nouveautés par rapport à toutes les versions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Lecture des maillages au format unv
+
+- Introduction d'éléments de type fluide, avec couplage fluide solide.
+
+- Introduction d'un mécanisme d'amortissement sismique. On spécifie Qp
+  et Qs dans le fichier matériau. Le nombre de mécanismes est
+  déterminé par le fichier de configuration.
 
 - Un nouveau format de fichier d'entrée (input.spec) :
 
@@ -33,7 +45,7 @@ Les nouveautés par rapport à toutes les versions
 - Les maillages en entrée sont également au format HDF5 :
 
   Des problèmes de numérotation apparaissaient avec des gros maillage
-  (utilisation format I6 pour les entiers). De plus, chacune des
+  (utilisation du format ``I6`` pour les entiers). De plus, chacune des
   versions utilisait une variante subtile du même format texte (une
   ligne d'espacement pour l'un, un champ supplémentaire pour une
   autre...).
@@ -44,9 +56,9 @@ Les nouveautés par rapport à toutes les versions
 
 - Optimisation des communications :
 
-  L'algorithme d'échange inter-processeur à été entièrement revu pour
-  utiliser des communications asynchrones. Plus de risque
-  d'interblocage et des performances accrues.
+  L'algorithme d'échange inter-processeur a été entièrement revu pour
+  utiliser des communications asynchrones. Il n'y a plus de risque
+  d'interblocage occasionnel et les performances sont accrues.
 
 - Optimisation de la consomation mémoire :
 
@@ -54,11 +66,10 @@ Les nouveautés par rapport à toutes les versions
   stockant des pointeurs (non-alloués) vers des tableaux concernant
   uniquement les mailles PML.
 
-  Une structure spécifique PML a été introduite qui n'est allouée
-  qu'au besoin, consommant ainsi l'espace d'un seul pointeur au lieu
-  d'une dizaine.
-
-- Introduction d'éléments de type fluide, avec couplage fluide solide.
+  Une structure spécifique PML a été introduite. Celle-ci n'est
+  allouée qu'au besoin uniquement pour les éléments contenant des PML.
+  La mémoire utilisée est réduite à l'espace d'un seul pointeur par
+  élément au lieu d'une dizaine.
 
 - Corrections de bugs :
 
@@ -73,10 +84,10 @@ Les nouveautés par rapport à toutes les versions
 
   Le mailleur génère ses maillages au format HDF5 attendu par SEM.
 
-  De nombreuses optimisations on été efféctuées accélérant le
+  De nombreuses optimisations ont été effectuées accélérant le
   traitement.
 
-- Introduction d'un répertoire de cas tests de non-regression et de
+- Introduction d'un répertoire de cas tests de non-régression et de
   benchmarks.
 
   Les tests SEM3D se trouvent dans ``SEM3D/TESTS``
@@ -84,7 +95,7 @@ Les nouveautés par rapport à toutes les versions
 - Compilation des sources avec CMake :
 
   CMake est un outil (comme autotools) permettant de générer des Makefiles.
-  (voir `DOC/INSTALLATION.pdf`_ )
+  (voir `Compilation`_ )
 
 Les nouveautés de cette version par rapport à RegSEM.U
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -108,8 +119,6 @@ Les nouveautés de cette version par rapport à RegSEM.U
 
   Ce développement à été effectué pour faire passer un cas HPC. Le
   temps de création d'un backup pour ce cas est passée de 2H à 5min.
-
-- Correction du calcul des mécanisme d'amortissement.
 
 - Un mode couplage optionnel avec un code externe (pour l'instant
   Mka3D).
@@ -137,14 +146,14 @@ XXX: A décrire
 Notes importantes
 ~~~~~~~~~~~~~~~~~
 
-- Le schéma en temps à été simplifié (Les paramètres beta/gamma de
-  l'algorithme de Newmark ne sont plus modifiables.
+- Le schéma en temps a été simplifié (Les paramètres beta/gamma de
+  l'algorithme de Newmark ne sont plus modifiables).
 
   Ils pourront être réintroduit une fois réglé le problème de
   synchronisation avec les forces de couplage externes.
 
 - Bien que les deux méthodes continuent de coéxister, le calcul des
-  forces utilisant le tableau Acoeff a été désactivé dans cette
+  forces utilisant le tableau ``Acoeff`` a été désactivé dans cette
   version. Le code est plus lisible mais moins rapide.
 
   On étudiera comment obtenir le meilleur des deux mondes dans une

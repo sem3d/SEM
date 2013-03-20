@@ -220,21 +220,8 @@ subroutine deallocate_domain (Tdomain, rg)
         deallocate (Tdomain%sSubdomain(n)%hprimex)
         deallocate (Tdomain%sSubdomain(n)%hTprimex)
     enddo
-    !purge - fuites memoire
+
     deallocate (Tdomain%sSubdomain)
-
-    do n = 0, Tdomain%n_receivers-1
-        if (rg == Tdomain%sReceiver(n)%proc) then
-            deallocate (Tdomain%sReceiver(n)%StoreTrace)
-            deallocate (Tdomain%sReceiver(n)%pol)
-            deallocate (Tdomain%sReceiver(n)%coeff)
-        endif
-
-    enddo
-    !purge - fuites memoire
-    if (Tdomain%logicD%save_trace) then
-        deallocate (Tdomain%sReceiver)
-    endif
 
     do n = 0, Tdomain%n_source-1
         if (rg==Tdomain%sSource(n)%proc) then
@@ -242,7 +229,7 @@ subroutine deallocate_domain (Tdomain, rg)
             if (Tdomain%sSource(n)%i_time_function==3) deallocate (Tdomain%sSource(n)%timefunc)
         endif
     enddo
-    !purge - fuites memoire
+
     if (Tdomain%logicD%any_source) then
         deallocate (Tdomain%sSource)
     endif

@@ -682,17 +682,6 @@ subroutine allocate_domain (Tdomain, rg)
         Tdomain%sComm(0)%ngllPML_F = 0
     endif
 
-    do n = 0, Tdomain%n_receivers-1
-        if (rg == Tdomain%sReceiver(n)%proc) then
-            allocate (Tdomain%sReceiver(n)%StoreTrace (0:Tdomain%TimeD%NtimeMax-1, 0:2), stat=i)
-            if (i/=0) then
-                print *,"ALLOCATION ERROR"
-                stop
-            endif
-            Tdomain%sReceiver(n)%StoreTrace = 0
-        endif
-    enddo
-
     return
 end subroutine allocate_domain
 !! Local Variables:

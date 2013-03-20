@@ -168,8 +168,11 @@ contains
         ! solid-fluid nodes counting
         nn = 0
         do n = 0, size(nods)-1
-            if(nods(n) == -1)   &
+            if(nods(n) == -1)  then
+                write(*,*) nods
+                write(*,*) "Nod:",n
                 stop "Pb in solid-fluid nodes attribution: one node is unknown"
+            end if
             if(nods(n) == 2) nn = nn+1
         end do
         nbSF = nn
@@ -485,12 +488,12 @@ contains
     end subroutine SF_global_edges_construct
     !--------------------------------------------------------------
     !--------------------------------------------------------------
-    subroutine SF_vertices_proc_belong(n_proc,SF_n_global_vertices,part,    &
+    subroutine SF_vertices_proc_belong(n_proc,n_elem,SF_n_global_vertices,part,    &
         elem_solid,initnode,SF_global_vertices)
 
         implicit none
-        integer, intent(in)     :: n_proc,SF_n_global_vertices
-        integer, dimension(0:n_proc-1), intent(in)  :: part
+        integer, intent(in)     :: n_proc,SF_n_global_vertices,n_elem
+        integer, dimension(0:n_elem-1), intent(in)  :: part
         logical, dimension(0:), intent(in)    :: elem_solid
         type(near_node), dimension(0:), intent(in)  ::  initnode
         type(SF_vertex), dimension(0:SF_n_global_vertices-1), intent(inout) ::  &

@@ -350,6 +350,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
         call init_element(Tdomain%specel(i))
         Tdomain%specel(i)%mat_index = itemp2(1,i+1)
         Tdomain%specel(i)%solid = itemp2(2,i+1) .ne. 0
+        Tdomain%specel(i)%OUTPUT = .true.
     enddo
     deallocate(itemp2)
     ! Index of nodes for elements

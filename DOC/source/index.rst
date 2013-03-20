@@ -3,25 +3,25 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-===============================
-Welcome to SEM's documentation!
-===============================
-
-Contents:
+=========================
+Documentation SEM IPG-CEA
+=========================
 
 .. toctree::
    :maxdepth: 2
 
    intro.rst
    NEWS.rst
+   installation.rst
    format_input.rst
+   git.rst
 
 
-==================
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+..  ==================
+..  Indices and tables
+..  ==================
+..  
+..  * :ref:`genindex`
+..  * :ref:`modindex`
+..  * :ref:`search`
 

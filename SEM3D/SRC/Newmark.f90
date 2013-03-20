@@ -189,17 +189,6 @@ subroutine Newmark(Tdomain,rg,ntime)
         !- recorrecting on solid faces, edges and vertices
         call Newmark_recorrect_solid(Tdomain)
     end if
-    !  modif mariotti fevrier 2007 cea capteur displ
-    ! si on veut soritr la vitesse mettre Veloc a la place de Displ
-    ! il faut en fait stocker les deux et pouvoir sortir l un ou l autre au choix
-    ! dans le fichier de data
-    if (Tdomain%logicD%save_trace) then
-        call save_traces(Tdomain, ntime, rg)
-    end if
-
-
-    ! Save Trace
-    !if(Tdomain%logicD%save_trace) call dumptrace(Tdomain,rg,ntime)
 
     if (rg==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
 
@@ -762,151 +751,78 @@ subroutine Comm_Forces_PML_Complete(n,Tdomain)
 
     return
 end subroutine Comm_Forces_PML_Complete
-!--------------------------------------------------------------------------------------------
-!--------------------------------------------------------------------------------------------
-subroutine dumptrace(Tdomain,rank,ntime)
-    use sdomain
-    implicit none
-
-    type(domain), intent(inout)  :: Tdomain
-    integer, intent(in)   :: rank,ntime
-    integer  :: n,nr,ndt2,ngllx,nglly,ngllz,ntimetrace,i,j,k
-
-    do nr = 0, Tdomain%n_receivers-1
-        ndt2 = Tdomain%sReceiver(nr)%ndt
-        n = Tdomain%sReceiver(nr)%elem
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
-        if(rank == Tdomain%sReceiver(nr)%proc)then
-            if(mod(ntime,Tdomain%TimeD%ntrace) == 0)then
-                if(Tdomain%sReceiver(nr)%flag == 1)then
-                    if(Tdomain%specel(n)%solid)then
-                        allocate(Tdomain%sReceiver(nr)%StoreTrace(0:Tdomain%TimeD%ntrace-1,0:2))
-                    else
-                        allocate(Tdomain%sReceiver(nr)%StoreTrace_Fl(0:Tdomain%TimeD%ntrace-1))
-                    end if
-                end if
-                if(Tdomain%sReceiver(nr)%flag == 2)then
-                    if(Tdomain%specel(n)%solid)then
-                        allocate(Tdomain%sReceiver(nr)%StoreTrace(0:(Tdomain%TimeD%ntrace-1)/ndt2,0:2))
-                    else
-                        allocate(Tdomain%sReceiver(nr)%StoreTrace_Fl(0:(Tdomain%TimeD%ntrace-1)/ndt2))
-                    end if
-                end if
-                if(Tdomain%specel(n)%solid) Tdomain%sReceiver(nr)%StoreTrace = 0.
-                if(.not. Tdomain%specel(n)%solid) Tdomain%sReceiver(nr)%StoreTrace_Fl = 0.
-            endif
-
-            if(Tdomain%sReceiver(nr)%flag == 1 .or. ((Tdomain%sReceiver(nr)%flag == 2) .and.   &
-                (mod(ntime+1,ndt2) == 0)))then
-                if(Tdomain%sReceiver(nr)%flag == 1)      &
-                    ntimetrace = mod(ntime,Tdomain%TimeD%ntrace)
-                if(Tdomain%sReceiver(nr)%flag == 2)      &
-                    ntimetrace = mod((ntime+1)/ndt2-1,Tdomain%TimeD%ntrace/ndt2)
-
-                call getProp_Elem(Tdomain,n,nr,rank)
-
-                if(Tdomain%specel(n)%solid)then
-                    do k = 0,ngllz-1
-                        do j = 0,nglly-1
-                            do i = 0,ngllx-1
-                                Tdomain%sReceiver(nr)%StoreTrace(ntimetrace,:) = Tdomain%sReceiver(nr)%StoreTrace(ntimetrace,:) + &
-                                    Tdomain%sReceiver(nr)%coeff(i,j,k,:) * Tdomain%sReceiver(nr)%pol(i,j,k)
-                            enddo
-                        enddo
-                    enddo
-                else
-                    do k = 0,ngllz-1
-                        do j = 0,nglly-1
-                            do i = 0,ngllx-1
-                                Tdomain%sReceiver(nr)%StoreTrace_Fl(ntimetrace) = Tdomain%sReceiver(nr)%StoreTrace_Fl(ntimetrace) + &
-                                    Tdomain%sReceiver(nr)%coeff_fl(i,j,k) * Tdomain%sReceiver(nr)%pol(i,j,k)
-                            enddo
-                        enddo
-                    enddo
-
-                end if
-            end if
-
-        endif
-    end do
-
-    return
-
-end subroutine dumptrace
 !---------------------------------------------------------------------------------------
 !---------------------------------------------------------------------------------------
-subroutine GetProp_Elem(Tdomain,n,nr,rank)
-    use sdomain
-    implicit none
-
-    type(domain), intent(inout)  :: Tdomain
-    integer, intent(in)  :: n,nr,rank
-    integer  :: nf,ne,nv,orient_f,orient_e,ngllx,nglly,ngllz,   &
-        ngll1,ngll2,ngll,nnf,nne,nnv,i,j,k
-
-    ngllx = Tdomain%specel(n)%ngllx
-    nglly = Tdomain%specel(n)%nglly
-    ngllz = Tdomain%specel(n)%ngllz
-
-    if(Tdomain%specel(n)%solid)then
-        do k =1,ngllz-2
-            do j =1,nglly-2
-                do i =1,ngllx-2
-                    Tdomain%sReceiver(nr)%coeff(i,j,k,:) = Tdomain%specel(n)%Veloc(i,j,k,:)
-                end do
-            end do
-        end do
-        do nf = 0,5
-            nnf = Tdomain%specel(n)%Near_Faces(nf)
-            orient_f = Tdomain%specel(n)%Orient_Faces(nf)
-            ngll1 = Tdomain%sFace(nnf)%ngll1
-            ngll2 = Tdomain%sFace(nnf)%ngll2
-            call get_VectProperty_Face2Elem(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,rank,  &
-                Tdomain%sFace(nnf)%Veloc(:,:,:),Tdomain%sReceiver(nr)%coeff(:,:,:,:))
-        enddo
-        do ne = 0,11
-            nne = Tdomain%specel(n)%Near_Edges(ne)
-            orient_e = Tdomain%specel(n)%Orient_Edges(ne)
-            ngll = Tdomain%sEdge(nne)%ngll
-            call get_VectProperty_Edge2Elem(ne,orient_e,ngllx,nglly,ngllz,ngll,rank,  &
-                Tdomain%sEdge(nne)%Veloc(:,:),Tdomain%sReceiver(nr)%coeff(:,:,:,:))
-        end do
-        do nv = 0,7
-            nnv = Tdomain%specel(n)%Near_Vertices(nv)
-            call get_VectProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,rank,  &
-                Tdomain%sVertex(nnv)%Veloc(:),Tdomain%sReceiver(nr)%coeff(:,:,:,:))
-        enddo
-
-    else  ! liquid
-        Tdomain%sReceiver(nr)%coeff_fl(1:ngllx-2,1:nglly-2,1:ngllz-2) =    &
-            Tdomain%specel(n)%VelPhi(:,:,:)
-        do nf = 0,5
-            nnf = Tdomain%specel(n)%Near_Faces(nf)
-            orient_f = Tdomain%specel(n)%Orient_Faces(nf)
-            ngll1 = Tdomain%sFace(nnf)%ngll1
-            ngll2 = Tdomain%sFace(nnf)%ngll2
-            call get_ScalarProperty_Face2Elem(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,rank,  &
-                Tdomain%sFace(nnf)%VelPhi(:,:),Tdomain%sReceiver(nr)%coeff_fl(:,:,:))
-        enddo
-        do ne = 0,11
-            nne = Tdomain%specel(n)%Near_Edges(ne)
-            orient_e = Tdomain%specel(n)%Orient_Edges(ne)
-            ngll = Tdomain%sEdge(nne)%ngll
-            call get_ScalarProperty_Edge2Elem(ne,orient_e,ngllx,nglly,ngllz,ngll,rank,  &
-                Tdomain%sEdge(nne)%VelPhi(:),Tdomain%sReceiver(nr)%coeff_fl(:,:,:))
-        end do
-        do nv = 0,7
-            nnv = Tdomain%specel(n)%Near_Vertices(nv)
-            call get_ScalarProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,rank,  &
-                Tdomain%sVertex(nnv)%VelPhi,Tdomain%sReceiver(nr)%coeff_fl(:,:,:))
-        enddo
-
-    end if
-
-    return
-end subroutine GetProp_Elem
+!! subroutine GetProp_Elem(Tdomain,n,nr,rank)
+!!     use sdomain
+!!     implicit none
+!! 
+!!     type(domain), intent(inout)  :: Tdomain
+!!     integer, intent(in)  :: n,nr,rank
+!!     integer  :: nf,ne,nv,orient_f,orient_e,ngllx,nglly,ngllz,   &
+!!         ngll1,ngll2,ngll,nnf,nne,nnv,i,j,k
+!! 
+!!     ngllx = Tdomain%specel(n)%ngllx
+!!     nglly = Tdomain%specel(n)%nglly
+!!     ngllz = Tdomain%specel(n)%ngllz
+!! 
+!!     if(Tdomain%specel(n)%solid)then
+!!         do k =1,ngllz-2
+!!             do j =1,nglly-2
+!!                 do i =1,ngllx-2
+!!                     Tdomain%sReceiver(nr)%coeff(i,j,k,:) = Tdomain%specel(n)%Veloc(i,j,k,:)
+!!                 end do
+!!             end do
+!!         end do
+!!         do nf = 0,5
+!!             nnf = Tdomain%specel(n)%Near_Faces(nf)
+!!             orient_f = Tdomain%specel(n)%Orient_Faces(nf)
+!!             ngll1 = Tdomain%sFace(nnf)%ngll1
+!!             ngll2 = Tdomain%sFace(nnf)%ngll2
+!!             call get_VectProperty_Face2Elem(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,rank,  &
+!!                 Tdomain%sFace(nnf)%Veloc(:,:,:),Tdomain%sReceiver(nr)%coeff(:,:,:,:))
+!!         enddo
+!!         do ne = 0,11
+!!             nne = Tdomain%specel(n)%Near_Edges(ne)
+!!             orient_e = Tdomain%specel(n)%Orient_Edges(ne)
+!!             ngll = Tdomain%sEdge(nne)%ngll
+!!             call get_VectProperty_Edge2Elem(ne,orient_e,ngllx,nglly,ngllz,ngll,rank,  &
+!!                 Tdomain%sEdge(nne)%Veloc(:,:),Tdomain%sReceiver(nr)%coeff(:,:,:,:))
+!!         end do
+!!         do nv = 0,7
+!!             nnv = Tdomain%specel(n)%Near_Vertices(nv)
+!!             call get_VectProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,rank,  &
+!!                 Tdomain%sVertex(nnv)%Veloc(:),Tdomain%sReceiver(nr)%coeff(:,:,:,:))
+!!         enddo
+!! 
+!!     else  ! liquid
+!!         Tdomain%sReceiver(nr)%coeff_fl(1:ngllx-2,1:nglly-2,1:ngllz-2) =    &
+!!             Tdomain%specel(n)%VelPhi(:,:,:)
+!!         do nf = 0,5
+!!             nnf = Tdomain%specel(n)%Near_Faces(nf)
+!!             orient_f = Tdomain%specel(n)%Orient_Faces(nf)
+!!             ngll1 = Tdomain%sFace(nnf)%ngll1
+!!             ngll2 = Tdomain%sFace(nnf)%ngll2
+!!             call get_ScalarProperty_Face2Elem(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,rank,  &
+!!                 Tdomain%sFace(nnf)%VelPhi(:,:),Tdomain%sReceiver(nr)%coeff_fl(:,:,:))
+!!         enddo
+!!         do ne = 0,11
+!!             nne = Tdomain%specel(n)%Near_Edges(ne)
+!!             orient_e = Tdomain%specel(n)%Orient_Edges(ne)
+!!             ngll = Tdomain%sEdge(nne)%ngll
+!!             call get_ScalarProperty_Edge2Elem(ne,orient_e,ngllx,nglly,ngllz,ngll,rank,  &
+!!                 Tdomain%sEdge(nne)%VelPhi(:),Tdomain%sReceiver(nr)%coeff_fl(:,:,:))
+!!         end do
+!!         do nv = 0,7
+!!             nnv = Tdomain%specel(n)%Near_Vertices(nv)
+!!             call get_ScalarProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,rank,  &
+!!                 Tdomain%sVertex(nnv)%VelPhi,Tdomain%sReceiver(nr)%coeff_fl(:,:,:))
+!!         enddo
+!! 
+!!     end if
+!! 
+!!     return
+!! end subroutine GetProp_Elem
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

@@ -33,6 +33,8 @@ module sem_c_config
        !! Snapshots
        integer(C_INT) :: save_snap
        real(C_DOUBLE) :: snap_interval
+       integer(C_INT) :: n_snap_cond
+       type(C_PTR)    :: snapshot_selection;
 
        !! Protection reprise
        integer(C_INT) :: prorep
@@ -73,6 +75,14 @@ module sem_c_config
        real(C_DOUBLE) :: amplitude
        type(C_PTR) :: time_file
     end type sem_source
+
+    type, bind(c) :: sem_snapshot_cond
+       type(C_PTR) :: next
+       integer(C_INT) :: type
+       integer(C_INT) :: include
+       real(C_DOUBLE), dimension(6) :: box
+       integer(C_INT) :: material
+    end type sem_snapshot_cond
 
     interface
        subroutine read_sem_config(config, spec, err) bind(c)

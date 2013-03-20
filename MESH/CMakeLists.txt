@@ -8,6 +8,7 @@ add_subdirectory(metis)
 
 set(MESH_SRC
   ${ROOT}/COMMON/sem_hdf5.f90
+  ${ROOT}/COMMON/pointlist.f90
   ${PRJ}/SRC/fich_cubit.f90
   ${PRJ}/SRC/fich_unv.f90
   ${PRJ}/SRC/local_mesh_properties.f90
@@ -22,6 +23,6 @@ set(MESH_SRC
 
 
 add_executable(mesher ${MESH_SRC})
-target_link_libraries(mesher metis hdf5_fortran)
+target_link_libraries(mesher metis ${HDF5_LIBRARIES})
 
 

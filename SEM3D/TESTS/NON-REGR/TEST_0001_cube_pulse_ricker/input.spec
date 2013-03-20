@@ -6,12 +6,18 @@ sim_time = 5.0;
 mesh_file = "mesh4spec"; # input mesh file
 mat_file = "material.input";
 
-save_snap = true;
-snap_interval = 0.02;
+snapshots {
+    save_snap = true;
+    snap_interval = 0.02;
+    deselect all;
+    select box = -100 -100 100 500 500 200;
+    select material = 3;
+};
 
 # Description des capteurs
 save_traces = true;
 station_file = "capteurs.dat";
+
 
 # Fichier protection reprise
 prorep=false;
@@ -21,7 +27,7 @@ prorep_iter=1000;
 # introduce a source
 source {
     # coordinates of the sources ((x,y,z) or (lat,long,R) if rotundity is considered)
-    coords = 0. 0. 0.;
+    coords = 25. 25. 25.;
     # the numbers before the labels are here to help convert from previous input.spec format
     # Type (1.Impulse, 2.moment Tensor, 3.fluidpulse)
     type = impulse;
@@ -29,8 +35,8 @@ source {
     dir = x;
     # Function 1.gaussian,2.ricker,3.tf_heaviside,4.gabor,5.file,6.spice_bench,7.sinus
     func = ricker;
-    tau = 0.2;
-    freq = 5.;   # source main frequency / cutoff frequency
+    tau = 0.4;
+    freq = 3.;   # source main frequency / cutoff frequency
 };
 
 time_scheme {

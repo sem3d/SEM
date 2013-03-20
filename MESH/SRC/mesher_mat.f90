@@ -35,7 +35,6 @@ program mesher_mat
         write(*,*) "      --> construction of the array for material nature (fluid, solid, PML,..)."
         open(10,file="material.input",action="read",status="old",iostat=i_err)
         if(i_err > 0) stop "File 'material.input' not found in the working directory"
-        read(10,*) ; read(10,*)
         read(10,*) n_mat
         close(10)
         allocate(matarray(0:n_mat-1))
@@ -105,7 +104,7 @@ contains
         integer                 :: i
 
         open(10,file="material.input",action="read",status="old")
-        read(10,*) ; read(10,*) ; read(10,*)
+        read(10,*)
         do i = 0,size(mattab)-1
             read(10,"(a1)") mattab(i)
         end do

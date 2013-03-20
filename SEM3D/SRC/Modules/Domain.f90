@@ -42,7 +42,6 @@ module sdomain
        type(edge), dimension (:), pointer :: sEdge
        type(vertex), dimension (:), pointer :: sVertex
        type(subdomain), dimension (:), pointer :: sSubDomain
-       type(receiver), dimension (:), pointer :: sReceiver
        type (planew) :: sPlaneW
        type(Neu_object) :: Neumann
        type (surf) :: sSurf

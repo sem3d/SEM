@@ -5,8 +5,42 @@ module msnapshots
     use sem_hdf5
     use semdatafiles
     use mpi
+    use mfields
     implicit none
 contains
+
+    subroutine compute_saved_elements(Tdomain, rg, irenum, nnodes)
+        type (domain), intent (INOUT):: Tdomain
+        integer, intent(in) :: rg
+        integer, allocatable, dimension(:), intent(out) :: irenum ! maps Iglobnum to file node number
+        integer, intent(out) :: nnodes
+        integer :: n, i, j, k, ngllx, nglly, ngllz, ig, gn, ne
+
+        allocate(irenum(Tdomain%n_glob_points))
+
+        irenum = -1
+        ig = 0
+        ne = 0
+        do n = 0,Tdomain%n_elem-1
+            if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            ngllx = Tdomain%specel(n)%ngllx
+            nglly = Tdomain%specel(n)%nglly
+            ngllz = Tdomain%specel(n)%ngllz
+            ne = ne + 1
+            do k = 0,ngllz - 1
+                do j = 0,nglly - 1
+                    do i = 0,ngllx - 1
+                        gn = Tdomain%specel(n)%Iglobnum(i,j,k)
+                        if (irenum(gn) == -1) then
+                            irenum(gn) = ig
+                            ig = ig + 1
+                        end if
+                    end do
+                end do
+            end do
+        end do
+        nnodes = ig
+    end subroutine compute_saved_elements
 
     subroutine create_dir_sorties(Tdomain, rg, isort)
         implicit none
@@ -33,9 +67,10 @@ contains
         type (domain), intent (INOUT):: Tdomain
         integer, intent(in) :: rg
         character (len=MAX_FILE_SIZE) :: fnamef
-        integer(HID_T) :: fid, nodes_id
-        integer(HSIZE_T), dimension(2) :: dims
+        integer(HID_T) :: fid
         integer :: hdferr, code
+        integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
+        integer :: nnodes
 
         call init_hdf5()
         if (rg==0) then
@@ -46,15 +81,13 @@ contains
 
         call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
 
-        dims(1) = 3
-        dims(2) = Tdomain%n_glob_points
-        call create_dset_2d(fid, "Nodes", H5T_IEEE_F64LE, dims(1), dims(2), nodes_id)
-        call h5dwrite_f(nodes_id, H5T_NATIVE_DOUBLE, Tdomain%GlobCoord, dims, hdferr)
-        call h5dclose_f(nodes_id, hdferr)
+        call compute_saved_elements(Tdomain, rg, irenum, nnodes)
 
-        call write_elem_connectivity(Tdomain, fid)
+        call write_global_nodes(Tdomain, rg, fid, irenum, nnodes)
+        
+        call write_elem_connectivity(Tdomain, fid, irenum)
 
-        call write_constant_fields(Tdomain, fid)
+        call write_constant_fields(Tdomain, fid, irenum, nnodes)
 
         call h5fclose_f(fid, hdferr)
 
@@ -62,10 +95,40 @@ contains
     end subroutine write_snapshot_geom
 
 
-    subroutine write_elem_connectivity(Tdomain, fid)
+    subroutine write_global_nodes(Tdomain, rg, fid, irenum, nnodes)
         implicit none
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: fid
+        integer, intent(in) :: rg, nnodes
+        integer, dimension(:), intent(in), allocatable :: irenum
+        !
+        real, dimension(:,:), allocatable :: nodes
+        integer(HSIZE_T), dimension(2) :: dims
+        integer :: n
+        integer(HID_T) :: nodes_id
+        integer :: hdferr
+        
+        allocate(nodes(3,0:nnodes-1))
+        do n = 0, Tdomain%n_glob_points-1
+            if (irenum(n)>=0) then
+                nodes(:,irenum(n)) = Tdomain%GlobCoord(:,n)
+            end if
+        end do
+
+        dims(1) = 3
+        dims(2) = nnodes
+        call create_dset_2d(fid, "Nodes", H5T_IEEE_F64LE, dims(1), dims(2), nodes_id)
+        call h5dwrite_f(nodes_id, H5T_NATIVE_DOUBLE, nodes, dims, hdferr)
+        call h5dclose_f(nodes_id, hdferr)
+        deallocate(nodes)
+    end subroutine write_global_nodes
+
+    subroutine write_elem_connectivity(Tdomain, fid, irenum)
+        implicit none
+        type (domain), intent (INOUT):: Tdomain
+        integer(HID_T), intent(in) :: fid
+        integer, dimension(:), intent(in), allocatable :: irenum
+        !
         integer(HID_T) :: elem_id, mat_id, ngll_id, globnum_id
         integer :: ngllx, nglly, ngllz
         integer(HSIZE_T), dimension(2) :: dims
@@ -73,23 +136,29 @@ contains
         integer, dimension(:), allocatable :: mat, iglobnum
         integer, dimension(3,0:Tdomain%n_elem-1) :: ngll
         integer :: count, ig, nglobnum
-        integer :: i, j, k, n
+        integer :: i, j, k, n, nb_elem
         integer :: hdferr
 
         ! First we count the number of hexaedrons
         count = 0
         nglobnum = 0
+        k = 0
         do n = 0,Tdomain%n_elem-1
-            ngll(1,n) = Tdomain%specel(n)%ngllx
-            ngll(2,n) = Tdomain%specel(n)%nglly
-            ngll(3,n) = Tdomain%specel(n)%ngllz
-            nglobnum = nglobnum + ngll(1,n)*ngll(2,n)*ngll(3,n)
-            count = count+(ngll(1,n)-1)*(ngll(2,n)-1)*(ngll(3,n)-1)
+            if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            ngll(1,k) = Tdomain%specel(n)%ngllx
+            ngll(2,k) = Tdomain%specel(n)%nglly
+            ngll(3,k) = Tdomain%specel(n)%ngllz
+            ! Max number of global points (can count elem vertices twice)
+            nglobnum = nglobnum + ngll(1,k)*ngll(2,k)*ngll(3,k)
+            ! Number of subelements
+            count = count+(ngll(1,k)-1)*(ngll(2,k)-1)*(ngll(3,k)-1)
+            k = k + 1
         enddo
+        nb_elem = k
         !! Nombre de points de gauss par element
-        call create_dset_2d(fid, "NGLL", H5T_STD_I16LE, 3, Tdomain%n_elem, ngll_id)
+        call create_dset_2d(fid, "NGLL", H5T_STD_I16LE, 3, nb_elem, ngll_id)
         dims(1) = 3
-        dims(2) = Tdomain%n_elem
+        dims(2) = nb_elem
         call h5dwrite_f(ngll_id, H5T_NATIVE_INTEGER, ngll, dims, hdferr)
         call h5dclose_f(ngll_id, hdferr)
 
@@ -107,20 +176,21 @@ contains
         count = 0
         ig = 1
         do n = 0,Tdomain%n_elem-1
+            if (.not. Tdomain%specel(n)%OUTPUT) cycle
             ngllx = Tdomain%specel(n)%ngllx
             nglly = Tdomain%specel(n)%nglly
             ngllz = Tdomain%specel(n)%ngllz
             do k = 0,ngllz-2
                 do j = 0,nglly-2
                     do i = 0,ngllx-2
-                        data(1,count) = Tdomain%specel(n)%Iglobnum(i+0,j+0,k+0)
-                        data(2,count) = Tdomain%specel(n)%Iglobnum(i+1,j+0,k+0)
-                        data(3,count) = Tdomain%specel(n)%Iglobnum(i+1,j+1,k+0)
-                        data(4,count) = Tdomain%specel(n)%Iglobnum(i+0,j+1,k+0)
-                        data(5,count) = Tdomain%specel(n)%Iglobnum(i+0,j+0,k+1)
-                        data(6,count) = Tdomain%specel(n)%Iglobnum(i+1,j+0,k+1)
-                        data(7,count) = Tdomain%specel(n)%Iglobnum(i+1,j+1,k+1)
-                        data(8,count) = Tdomain%specel(n)%Iglobnum(i+0,j+1,k+1)
+                        data(1,count) = irenum(Tdomain%specel(n)%Iglobnum(i+0,j+0,k+0))
+                        data(2,count) = irenum(Tdomain%specel(n)%Iglobnum(i+1,j+0,k+0))
+                        data(3,count) = irenum(Tdomain%specel(n)%Iglobnum(i+1,j+1,k+0))
+                        data(4,count) = irenum(Tdomain%specel(n)%Iglobnum(i+0,j+1,k+0))
+                        data(5,count) = irenum(Tdomain%specel(n)%Iglobnum(i+0,j+0,k+1))
+                        data(6,count) = irenum(Tdomain%specel(n)%Iglobnum(i+1,j+0,k+1))
+                        data(7,count) = irenum(Tdomain%specel(n)%Iglobnum(i+1,j+1,k+1))
+                        data(8,count) = irenum(Tdomain%specel(n)%Iglobnum(i+0,j+1,k+1))
                         mat(count) = Tdomain%specel(n)%mat_index
                         count=count+1
                     end do
@@ -153,68 +223,63 @@ contains
         implicit none
         type (domain), intent (INOUT):: Tdomain
         integer, intent(in) :: rg, isort
+        !
         character (len=MAX_FILE_SIZE) :: fnamef
         integer(HID_T) :: fid, displ_id, veloc_id
         integer(HSIZE_T), dimension(2) :: dims
         real, dimension(:,:),allocatable :: displ, veloc
+        real, dimension(:,:,:,:),allocatable :: field_displ, field_veloc
         integer :: hdferr
         integer :: ngllx, nglly, ngllz, idx
         integer :: i, j, k, n
+        integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
+        integer :: nnodes
         
 
         call create_dir_sorties(Tdomain, rg, isort)
         call semname_snap_result_file(rg, isort, fnamef)
 
+        call compute_saved_elements(Tdomain, rg, irenum, nnodes)
+
+
         call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
 
         dims(1) = 3
-        dims(2) = Tdomain%n_glob_points
-        call create_dset_2d(fid, "displ", H5T_IEEE_F64LE, 3, Tdomain%n_glob_points, displ_id)
-        call create_dset_2d(fid, "veloc", H5T_IEEE_F64LE, 3, Tdomain%n_glob_points, veloc_id)
+        dims(2) = nnodes
+        call create_dset_2d(fid, "displ", H5T_IEEE_F64LE, 3, nnodes, displ_id)
+        call create_dset_2d(fid, "veloc", H5T_IEEE_F64LE, 3, nnodes, veloc_id)
 
-        allocate(displ(0:2,0:Tdomain%n_glob_points-1))
-        allocate(veloc(0:2,0:Tdomain%n_glob_points-1))
+        allocate(displ(0:2,0:nnodes-1))
+        allocate(veloc(0:2,0:nnodes-1))
 
+        ngllx = 0
+        nglly = 0
+        ngllz = 0
         do n = 0,Tdomain%n_elem-1
-            ngllx = Tdomain%specel(n)%ngllx
-            nglly = Tdomain%specel(n)%nglly
-            ngllz = Tdomain%specel(n)%ngllz
-            do k = 1,ngllz-2
-                do j = 1,nglly-2
-                    do i = 1,ngllx-2
-                        idx = Tdomain%specel(n)%Iglobnum(i,j,k)
-                        displ(:,idx) = Tdomain%specel(n)%Displ(i,j,k,:)
-                        veloc(:,idx) = Tdomain%specel(n)%Veloc(i,j,k,:)
+            if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            if (ngllx /= Tdomain%specel(n)%ngllx .or. &
+                nglly /= Tdomain%specel(n)%nglly .or. &
+                ngllz /= Tdomain%specel(n)%ngllz) then
+                ngllx = Tdomain%specel(n)%ngllx
+                nglly = Tdomain%specel(n)%nglly
+                ngllz = Tdomain%specel(n)%ngllz
+                if (allocated(field_displ)) deallocate(field_displ)
+                if (allocated(field_veloc)) deallocate(field_veloc)
+                allocate(field_displ(0:ngllx-1,0:nglly-1,0:ngllz-1,3))
+                allocate(field_veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,3))
+            endif
+            call gather_elem_displ(Tdomain, n, field_displ)
+            call gather_elem_veloc(Tdomain, n, field_veloc)
+
+            do k = 0,ngllz-1
+                do j = 0,nglly-1
+                    do i = 0,ngllx-1
+                        idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                        displ(:,idx) = field_displ(i,j,k,:)
+                        veloc(:,idx) = field_veloc(i,j,k,:)
                     end do
                 end do
             end do
-        end do
-
-        do n = 0,Tdomain%n_face-1
-            ngllx = Tdomain%sface(n)%ngll1
-            nglly = Tdomain%sface(n)%ngll2
-            do j = 1,nglly-2
-                do i = 1,ngllx-2
-                    idx = Tdomain%sface(n)%Iglobnum_Face(i,j)
-                    displ(:,idx) = Tdomain%sface(n)%Displ(i,j,:)
-                    veloc(:,idx) = Tdomain%sface(n)%Veloc(i,j,:)
-                end do
-            end do
-        end do
-
-        do n = 0,Tdomain%n_edge-1
-            ngllx = Tdomain%sedge(n)%ngll
-            do i = 1,ngllx-2
-                idx = Tdomain%sedge(n)%Iglobnum_Edge(i)
-                displ(:,idx) = Tdomain%sedge(n)%Displ(i,:)
-                veloc(:,idx) = Tdomain%sedge(n)%Veloc(i,:)
-            end do
-        end do
-
-        do n = 0,Tdomain%n_vertex-1
-            idx = Tdomain%svertex(n)%Iglobnum_Vertex
-            displ(:,idx) = Tdomain%svertex(n)%Displ(:)
-            veloc(:,idx) = Tdomain%svertex(n)%Veloc(:)
         end do
 
         call h5dwrite_f(displ_id, H5T_NATIVE_DOUBLE, displ, dims, hdferr)
@@ -225,7 +290,7 @@ contains
         call h5fclose_f(fid, hdferr)
         deallocate(displ,veloc)
 
-        call write_xdmf(Tdomain, rg, isort)
+        call write_xdmf(Tdomain, rg, isort, nnodes)
     end subroutine save_field_h5
 
     subroutine write_master_xdmf(Tdomain)
@@ -255,16 +320,17 @@ contains
 
     end subroutine write_master_xdmf
 
-    subroutine write_xdmf(Tdomain, rg, isort)
+    subroutine write_xdmf(Tdomain, rg, isort, nnodes)
         implicit none
         type (domain), intent (IN):: Tdomain
-        integer, intent(in) :: rg, isort
+        integer, intent(in) :: rg, isort, nnodes
+        !
         character (len=MAX_FILE_SIZE) :: fnamef
         integer :: i, nn, ne
         real :: time
         call semname_xdmf(rg, fnamef)
 
-        nn = Tdomain%n_glob_points
+        nn = nnodes
         ne = Tdomain%n_hexa
         open (61,file=fnamef,status="unknown",form="formatted")
         write(61,"(a)") '<?xml version="1.0" ?>'
@@ -329,10 +395,13 @@ contains
         close(61)
     end subroutine write_xdmf
 
-    subroutine write_constant_fields(Tdomain, fid)
+    subroutine write_constant_fields(Tdomain, fid, irenum, nnodes)
         implicit none
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: fid
+        integer, dimension(:), intent(in), allocatable :: irenum
+        integer, intent(in) :: nnodes
+        !
         integer(HID_T) :: mass_id, jac_id
         integer(HSIZE_T), dimension(1) :: dims
         real, dimension(:),allocatable :: mass, jac
@@ -340,21 +409,22 @@ contains
         integer :: ngllx, nglly, ngllz, idx
         integer :: i, j, k, n
         
-        call create_dset(fid, "Mass", H5T_IEEE_F64LE, Tdomain%n_glob_points, mass_id)
-        call create_dset(fid, "Jac",  H5T_IEEE_F64LE, Tdomain%n_glob_points, jac_id)
+        call create_dset(fid, "Mass", H5T_IEEE_F64LE, nnodes, mass_id)
+        call create_dset(fid, "Jac",  H5T_IEEE_F64LE, nnodes, jac_id)
 
         dims(1) = Tdomain%n_glob_points
-        allocate(mass(0:Tdomain%n_glob_points-1))
-        allocate(jac(0:Tdomain%n_glob_points-1))
+        allocate(mass(0:nnodes-1))
+        allocate(jac(0:nnodes-1))
         ! mass
         do n = 0,Tdomain%n_elem-1
+            if (.not. Tdomain%specel(n)%OUTPUT) cycle
             ngllx = Tdomain%specel(n)%ngllx
             nglly = Tdomain%specel(n)%nglly
             ngllz = Tdomain%specel(n)%ngllz
             do k = 1,ngllz-2
                 do j = 1,nglly-2
                     do i = 1,ngllx-2
-                        idx = Tdomain%specel(n)%Iglobnum(i,j,k)
+                        idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                         mass(idx) = Tdomain%specel(n)%MassMat(i,j,k)
                     end do
                 end do
@@ -362,13 +432,14 @@ contains
         end do
         ! jac
         do n = 0,Tdomain%n_elem-1
+            if (.not. Tdomain%specel(n)%OUTPUT) cycle
             ngllx = Tdomain%specel(n)%ngllx
             nglly = Tdomain%specel(n)%nglly
             ngllz = Tdomain%specel(n)%ngllz
             do k = 0,ngllz-1
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
-                        idx = Tdomain%specel(n)%Iglobnum(i,j,k)
+                        idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                         jac(idx) = Tdomain%specel(n)%Jacob(i,j,k)
                     end do
                 end do
@@ -381,8 +452,8 @@ contains
             nglly = Tdomain%sface(n)%ngll2
             do j = 1,nglly-2
                 do i = 1,ngllx-2
-                    idx = Tdomain%sface(n)%Iglobnum_Face(i,j)
-                    mass(idx) = Tdomain%sface(n)%MassMat(i,j)
+                    idx = irenum(Tdomain%sface(n)%Iglobnum_Face(i,j))
+                    if (idx>=0) mass(idx) = Tdomain%sface(n)%MassMat(i,j)
                 end do
             end do
         end do
@@ -390,14 +461,14 @@ contains
         do n = 0,Tdomain%n_edge-1
             ngllx = Tdomain%sedge(n)%ngll
             do i = 1,ngllx-2
-                idx = Tdomain%sedge(n)%Iglobnum_Edge(i)
-                mass(idx) = Tdomain%sedge(n)%MassMat(i)
+                idx = irenum(Tdomain%sedge(n)%Iglobnum_Edge(i))
+                if (idx>=0) mass(idx) = Tdomain%sedge(n)%MassMat(i)
             end do
         end do
 
         do n = 0,Tdomain%n_vertex-1
-            idx = Tdomain%svertex(n)%Iglobnum_Vertex
-            mass(idx) = Tdomain%svertex(n)%MassMat
+            idx = irenum(Tdomain%svertex(n)%Iglobnum_Vertex)
+            if (idx>=0) mass(idx) = Tdomain%svertex(n)%MassMat
         end do
 
         call h5dwrite_f(mass_id, H5T_NATIVE_DOUBLE, mass, dims, hdferr)

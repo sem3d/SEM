@@ -3,11 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "file_scan.h"
+#include "sem_input.h"
 
-void clear_scan( struct scan_info *info)
-{
-	info->msgerr = "";
-}
 
 
 typedef struct source {
@@ -25,6 +22,20 @@ typedef struct source {
 	double amplitude;
 	char* time_file;
 } source_t;
+
+// Structure decrivant les condition de selection des elements a inclure
+// dans les snapshots
+typedef struct snapshot_cond {
+	struct snapshot_cond* next;
+	/// Type de condition (1 all, 2 material, 3 box)
+	int type;
+	/// Inclusion (1) ou exclusion (0)
+	int include;
+	/// Dimension de la boite pour le type box
+	double box[6];
+	/// Type de materiau pour le type material
+	int material;
+} snapshot_cond_t;
 
 typedef struct {
 	char* run_name;
@@ -53,6 +64,8 @@ typedef struct {
 	// Snapshots
 	int save_snap;
 	double snap_interval;
+	int n_snap_cond;
+	snapshot_cond_t* snapshot_selection;
 
 	// Protection reprise
 	int prorep;
@@ -76,123 +89,7 @@ typedef struct {
 	double neu_f0;
 } sem_config_t;
 
-int cmp(yyscan_t scanner, const char* str)
-{
-	return strcmp(yyget_text(scanner), str)==0;
-}
 
-int eval_bool(yyscan_t scanner, int* val)
-{
-	int res;
-	if (cmp(scanner,"true")||cmp(scanner,"TRUE")) { *val=1; return 1; }
-	if (cmp(scanner,"false")||cmp(scanner,"FALSE")) { *val=0; return 1; }
-	return 0;
-}
-
-void msg_err(yyscan_t scanner, const char* msgerr)
-{
-	struct scan_info *info = yyget_extra(scanner);
-	info->msgerr = msgerr;
-	printf("Err: %s\n", msgerr);
-}
-
-int skip_blank(yyscan_t scanner)
-{
-	int tok;
-	do {
-		tok = yylex(scanner);
-		//printf("%d : %s\n", tok, yyget_text(scanner) );
-		if (tok==K_COMMENT||tok==K_BLANK) continue;
-		break;
-	} while(1);
-	return tok;
-}
-int expect_eq(yyscan_t scanner)
-{
-	int tok = skip_blank(scanner);
-	if (tok!=K_EQ) { msg_err(scanner, "Expected '='"); return 0; }
-	return 1;
-}
-
-int expect_eq_bool(yyscan_t scanner, int* bools, int nexpected)
-{
-	int k = 0;
-	int tok;
-
-	if (!expect_eq(scanner)) return 0;
-	while(k<nexpected) {
-		tok = skip_blank(scanner);
-		if (tok!=K_BOOL) { msg_err(scanner, "Expected boolean"); return 0; }
-		if (!eval_bool(scanner, &bools[k])) return 0;
-		++k;
-	}
-	return k;
-}
-
-int expect_eq_float(yyscan_t scanner, double* vals, int nexpected)
-{
-	int k = 0;
-	int tok, neg=0;
-	double value;
-
-	if (!expect_eq(scanner)) return 0;
-	while(k<nexpected) {
-		tok = skip_blank(scanner);
-		if (tok==K_MINUS) {
-			neg = 1;
-			tok = skip_blank(scanner);
-		}
-		if (tok!=K_FLOAT&&tok!=K_INT) { msg_err(scanner, "Expected float or int"); return 0;}
-		value = atof(yyget_text(scanner));
-		if (neg)
-			value = -value;
-		vals[k] = value;
-		++k;
-	}
-	return k;
-}
-
-int expect_eq_int(yyscan_t scanner, int* vals, int nexpected)
-{
-	int k = 0;
-	int tok, neg=0;
-	int value;
-
-	if (!expect_eq(scanner)) return 0;
-	while(k<nexpected) {
-		tok = skip_blank(scanner);
-		if (tok==K_MINUS) {
-			neg = 1;
-			tok = skip_blank(scanner);
-		}
-		if (tok!=K_INT) { msg_err(scanner, "Expected integer"); return 0;}
-		value = atoi(yyget_text(scanner));
-		if (neg)
-			value = -value;
-		vals[k] = value;
-		++k;
-	}
-	return k;
-}
-
-int expect_eq_string(yyscan_t scanner, char** str, int nexpected)
-{
-	int k = 0;
-	int tok;
-	int len;
-
-	if (!expect_eq(scanner)) return 0;
-	while(k<nexpected) {
-		tok = skip_blank(scanner);
-		if (tok!=K_STRING) { msg_err(scanner, "Expected float or int"); return 0;}
-		len = yyget_leng(scanner);
-		str[k] = (char*)malloc( len+1 );
-		strcpy(str[k], yyget_text(scanner)+1);
-		str[k][len-2] = 0;
-		++k;
-	}
-	return k;
-}
 
 int expect_eq_model(yyscan_t scanner, int* model)
 {
@@ -211,12 +108,6 @@ error:
 	return 0;
 }
 
-int expect_eos(yyscan_t scanner)
-{
-	int tok = skip_blank(scanner);
-	if (tok!=K_SEMI) { msg_err(scanner, "Expected ';'");return 0;}
-	return 1;
-}
 
 int expect_source_type(yyscan_t scanner, int* type)
 {
@@ -348,11 +239,11 @@ int expect_gradient_desc(yyscan_t scanner, sem_config_t* config)
 		if (tok!=K_ID) break;
 
 		// TODO
-		if (cmp(scanner,"materials")) err=expect_eq_int(scanner, &config->accel_scheme, 1);
-		if (cmp(scanner,"xx")) err=expect_eq_bool(scanner, &config->veloc_scheme, 1);
-		if (cmp(scanner,"yy")) err=expect_eq_float(scanner, &config->alpha,1);
-		if (cmp(scanner,"zz")) err=expect_eq_float(scanner, &config->beta,1);
-		if (cmp(scanner,"ww")) err=expect_eq_float(scanner, &config->gamma,1);
+		//if (cmp(scanner,"materials")) err=expect_eq_int(scanner, &config->accel_scheme, 1);
+		//if (cmp(scanner,"xx")) err=expect_eq_bool(scanner, &config->veloc_scheme, 1);
+		//if (cmp(scanner,"yy")) err=expect_eq_float(scanner, &config->alpha,1);
+		//if (cmp(scanner,"zz")) err=expect_eq_float(scanner, &config->beta,1);
+		//if (cmp(scanner,"ww")) err=expect_eq_float(scanner, &config->gamma,1);
 
 		if (!expect_eos(scanner)) { return 0; }
 	} while(1);
@@ -404,6 +295,69 @@ int expect_neumann(yyscan_t scanner, sem_config_t* config)
 	return 1;
 }
 
+int expect_select_snap(yyscan_t scanner, sem_config_t* config, int include)
+{
+	int tok, err=1;
+	double box[6];
+	int material, type, i;
+	snapshot_cond_t* cond;
+
+	type = -1;
+	tok = skip_blank(scanner);
+	if (tok!=K_ID) { msg_err(scanner, "Expected all|box|material"); return 0; }
+	if (cmp(scanner,"all")) { type = 1; err=1; }
+	if (cmp(scanner,"material")) { type = 2; err=expect_eq_int(scanner, &material, 1); }
+	if (cmp(scanner,"box")) { type = 3; err=expect_eq_float(scanner, box, 6); }
+	printf("Found type=%d\n", type);
+	if (err<=0) return err;
+
+	cond = (snapshot_cond_t*)malloc(sizeof(snapshot_cond_t));
+	memset(cond, 0, sizeof(snapshot_cond_t));
+	cond->next = config->snapshot_selection;
+	cond->type = type;
+	cond->include = include;
+	config->snapshot_selection = cond;
+	if (type==3) for(i=0;i<6;++i) cond->box[i] = box[i];
+	if (type==2) cond->material = material;
+	return 1;
+}
+
+int expect_snapshots(yyscan_t scanner, sem_config_t* config)
+{
+	int tok, err;
+
+	tok = skip_blank(scanner);
+	if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
+	do {
+		tok = skip_blank(scanner);
+		if (tok!=K_ID) break;
+		if (cmp(scanner,"save_snap")) err=expect_eq_bool(scanner, &config->save_snap,1);
+		if (cmp(scanner,"snap_interval")) err=expect_eq_float(scanner, &config->snap_interval,1);
+		if (cmp(scanner,"select")) err=expect_select_snap(scanner, config, 1);
+		if (cmp(scanner,"deselect")) err=expect_select_snap(scanner, config, 0);
+
+		if (err<=0) return err;
+
+		if (!expect_eos(scanner)) { return 0; }
+	} while(1);
+	if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
+
+	/// Reverse snapshot conditions so that they are applied in order
+	snapshot_cond_t *snap, *first, *temp;
+	first = NULL;
+	snap = config->snapshot_selection;
+	while(snap) {
+		temp = snap->next;
+		snap->next = first;
+		first = snap;
+		snap = temp;
+	}
+	config->snapshot_selection = first;
+	return 1;
+}
+
+
+
 int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 {
 	int tok, err;
@@ -414,26 +368,27 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 			msg_err(scanner, "Expected identifier");
 			return 0;
 		}
-		if (cmp(scanner,"run_name")) err=expect_eq_string(scanner, &config->run_name,1);
-		if (cmp(scanner,"time_scheme")) err=expect_time_scheme(scanner, config);
-		if (cmp(scanner,"gradient")) err=expect_gradient_desc(scanner, config);
-		if (cmp(scanner,"sim_time")) err=expect_eq_float(scanner, &config->sim_time,1);
-		if (cmp(scanner,"mesh_file")) err=expect_eq_string(scanner, &config->mesh_file,1);
-		if (cmp(scanner,"model")) err=expect_eq_model(scanner, &config->model);
-		if (cmp(scanner,"anisotropy")) err=expect_eq_bool(scanner, &config->anisotropy, 1);
+		if (cmp(scanner,"amortissement")) err=expect_amortissement(scanner, config);
 		if (cmp(scanner,"mat_file")) err=expect_eq_string(scanner, &config->mat_file,1);
-		if (cmp(scanner,"save_traces")) err=expect_eq_bool(scanner, &config->save_traces,1);
-		if (cmp(scanner,"traces_interval")) err=expect_eq_int(scanner, &config->traces_interval,1);
-		if (cmp(scanner,"save_snap")) err=expect_eq_bool(scanner, &config->save_snap,1);
-		if (cmp(scanner,"snap_interval")) err=expect_eq_float(scanner, &config->snap_interval,1);
-		if (cmp(scanner,"station_file")) err=expect_eq_string(scanner, &config->station_file,1);
-		if (cmp(scanner,"source")) err=expect_source(scanner, config);
+		if (cmp(scanner,"mesh_file")) err=expect_eq_string(scanner, &config->mesh_file,1);
+		if (cmp(scanner,"mpml_atn_param")) err=expect_eq_float(scanner, &config->mpml,1);
 		if (cmp(scanner,"prorep")) err=expect_eq_bool(scanner, &config->prorep,1);
 		if (cmp(scanner,"prorep_iter")) err=expect_eq_int(scanner, &config->prorep_iter,1);
+		if (cmp(scanner,"run_name")) err=expect_eq_string(scanner, &config->run_name,1);
+		if (cmp(scanner,"snapshots")) err=expect_snapshots(scanner, config);		
+		if (cmp(scanner,"save_traces")) err=expect_eq_bool(scanner, &config->save_traces,1);
+		if (cmp(scanner,"sim_time")) err=expect_eq_float(scanner, &config->sim_time,1);
+		if (cmp(scanner,"source")) err=expect_source(scanner, config);
+		if (cmp(scanner,"station_file")) err=expect_eq_string(scanner, &config->station_file,1);
+		if (cmp(scanner,"time_scheme")) err=expect_time_scheme(scanner, config);
+		if (cmp(scanner,"traces_interval")) err=expect_eq_int(scanner, &config->traces_interval,1);
 		if (cmp(scanner,"verbose_level")) err=expect_eq_int(scanner, &config->verbose_level,1);
+		// useless (yet or ever)
+		if (cmp(scanner,"anisotropy")) err=expect_eq_bool(scanner, &config->anisotropy, 1);
+		if (cmp(scanner,"gradient")) err=expect_gradient_desc(scanner, config);
+		if (cmp(scanner,"model")) err=expect_eq_model(scanner, &config->model);
 		if (cmp(scanner,"neumann")) err=expect_neumann(scanner, config);
-		if (cmp(scanner,"mpml_atn_param")) err=expect_eq_float(scanner, &config->mpml,1);
-		if (cmp(scanner,"amortissement")) err=expect_amortissement(scanner, config);
+
 
 		if (err==0) { printf("ERR01\n"); return 0;}
 		if (!expect_eos(scanner)) { return 0; }
@@ -474,6 +429,11 @@ void dump_config(sem_config_t* cfg)
 	printf("Sauv. Snap   : %d\n", cfg->save_snap);
 	printf("Fichier stations: '%s'\n", cfg->station_file);
 	printf("Snap interval : %lf\n", cfg->snap_interval);
+	printf("Snap selection : %p\n", cfg->snapshot_selection);
+
+	printf("Neu present : %d\n", cfg->neu_present);
+	printf("Neu type    : %d\n", cfg->neu_type);
+	printf("Neu mat     : %d\n", cfg->neu_mat);
 
 	src = cfg->source;
 	while(src) {
@@ -483,6 +443,7 @@ void dump_config(sem_config_t* cfg)
 		++ksrc;
 	}
 	printf("\n------------\n\n");
+
 }
 
 
@@ -527,3 +488,10 @@ int main ( int argc, char * argv[] )
 	return 0;
 }
 #endif
+// Local Variables:
+// mode: c++
+// coding: utf-8
+// c-file-style: "stroustrup"
+// show-trailing-whitespace: t
+// End:
+/* vim: set sw=4 ts=8 tw=80 smartindent */

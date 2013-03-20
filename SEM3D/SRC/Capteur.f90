@@ -12,11 +12,15 @@ module mCapteur
     use sdomain
     use semdatafiles
     use mpi
+    use mfields
 
     implicit none
 
-    public :: read_capteur, save_capteur, evalueSortieCapteur, save_traces
+    public :: read_capteur, save_capteur, evalueSortieCapteur, flushAllCapteurs
     private :: lireCapteur, capterPointDeGauss, sortirGrandeurSousCapteur
+
+    ! Les fichiers capteurs sont ecrits toutes les NCAPT_CACHE sorties
+    integer, parameter :: NCAPT_CACHE=100
 
     type :: tPtgauss
        integer :: num      ! numero du point de Gauss
@@ -47,7 +51,9 @@ module mCapteur
        integer :: n_el ! numero de la maille dans laquelle se trouve le capteur
        ! si le capteur est partage entre plusieurs mailles, une seule suffit (type_calcul=1)
        real :: xi, eta, zeta ! abscisses curvilignes pour le capteur en cas d'interpolation (type_calcul=1)
-       integer numproc               ! numero du proc localisant le capteur
+       integer :: numproc               ! numero du proc localisant le capteur
+       integer :: icache
+       real, dimension(4,NCAPT_CACHE) :: valuecache
     end type tCapteur
 
     integer           :: dimCapteur        ! nombre total de capteurs
@@ -57,71 +63,6 @@ module mCapteur
     integer,parameter :: fileIdCapteur=200  ! id fichier capteur
 
 contains
-
-    !! Recopie dans field le champs de deplacement reparti sur les Elem, Face, Edge, Vertex
-    subroutine build_elem_displ(Tdomain, nel, field)
-        type(domain), intent(in) :: Tdomain
-        integer, intent(in) :: nel
-        real, dimension(0:,0:,0:,0:), intent(out) :: field
-        type(element), pointer :: el
-        type(face), pointer :: fc
-        type(edge), pointer :: ed
-        type(vertex), pointer :: vx
-        integer :: nx, ny, nz, i
-        nx = Tdomain%specel(nel)%ngllx
-        ny = Tdomain%specel(nel)%nglly
-        nz = Tdomain%specel(nel)%ngllz
-        el => Tdomain%specel(nel)
-        field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%Displ(:,:,:,:)
-        do i=0,5
-            fc => Tdomain%sFace(el%Near_Faces(i))
-            call get_VectProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
-                fc%Displ, field)
-        end do
-
-        do i=0,11
-            ed => Tdomain%sEdge(el%Near_Edges(i))
-            call get_VectProperty_Edge2Elem(i,el%Orient_Edges(i), nx, ny, nz, ed%ngll, &
-                ed%Displ, field)
-        end do
-        do i=0,7
-            vx => Tdomain%sVertex(el%Near_Vertices(i))
-            call get_VectProperty_Vertex2Elem(i, nx, ny, nz, vx%Displ, field)
-        end do
-
-    end subroutine build_elem_displ
-
-    subroutine build_elem_veloc(Tdomain, nel, field)
-        type(domain), intent(in) :: Tdomain
-        integer, intent(in) :: nel
-        real, dimension(0:,0:,0:,0:), intent(out) :: field
-        type(element), pointer :: el
-        type(face), pointer :: fc
-        type(edge), pointer :: ed
-        type(vertex), pointer :: vx
-        integer :: nx, ny, nz, i
-        nx = Tdomain%specel(nel)%ngllx
-        ny = Tdomain%specel(nel)%nglly
-        nz = Tdomain%specel(nel)%ngllz
-        el => Tdomain%specel(nel)
-        field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%Veloc(:,:,:,:)
-        do i=0,5
-            fc => Tdomain%sFace(el%Near_Faces(i))
-            call get_VectProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
-                fc%Veloc, field)
-        end do
-
-        do i=0,11
-            ed => Tdomain%sEdge(el%Near_Edges(i))
-            call get_VectProperty_Edge2Elem(i,el%Orient_Edges(i), nx, ny, nz, ed%ngll, &
-                ed%Veloc, field)
-        end do
-        do i=0,7
-            vx => Tdomain%sVertex(el%Near_Vertices(i))
-            call get_VectProperty_Vertex2Elem(i, nx, ny, nz, vx%Veloc, field)
-        end do
-
-    end subroutine build_elem_veloc
 
     function grandeur_depla(Tdomain, PtGauss)
         type(domain), intent(in) :: Tdomain
@@ -351,7 +292,7 @@ contains
             nullify(capteur%listePtGauss)
             capteur%distanceMin = huge(1.)
             capteur%nPtGauss = 0  ! initialisation du nombre de points de Gauss a prendre en compte
-
+            capteur%icache = 0
             read(fileIdCapteur,'(A)',end=100) ligne ! titre 1
             read(fileIdCapteur,'(A)',end=100) ligne ! titre 2
 
@@ -639,12 +580,68 @@ contains
                 call sortieGrandeurCapteur_interp(capteur,Tdomain, ntime, rg)
             endif
 
-            capteur=>capteur%suivant
+            if (capteur%icache==NCAPT_CACHE) call flushCapteur(capteur,Tdomain,rg)
 
+            capteur=>capteur%suivant
         enddo
 
 
     end subroutine save_capteur
+
+    subroutine flushAllCapteurs(Tdomain, rg)
+        implicit none
+        integer :: rg
+        type (domain) :: TDomain
+        type(tCapteur),pointer :: capteur
+
+
+        ! boucle sur les capteurs
+        capteur=>listeCapteur
+
+        do while (associated(capteur))
+            call flushCapteur(capteur,Tdomain,rg)
+            capteur=>capteur%suivant
+        enddo
+    end subroutine flushAllCapteurs
+
+    subroutine flushCapteur(capteur, Tdomain, rg)
+        implicit none
+        integer :: rg
+        type (domain) :: TDomain
+        type(tCapteur),pointer :: capteur
+        integer :: fileId, i, j, imax
+        character(len=MAX_FILE_SIZE) :: fnamef
+
+        if (rg/=0) return
+
+        if (capteur%icache==0) return
+
+        if (trim(capteur%grandeur).eq."DEFORMATION") then
+            call semname_capteur_type(capteur%nom,"_deformation",fnamef)
+            imax = 1
+        endif
+
+        if (trim(capteur%grandeur).eq."VITESSE") then
+            call semname_capteur_type(capteur%nom,"_vitesse",fnamef)
+            imax = 3
+        endif
+
+        if (trim(capteur%grandeur).eq."DEPLA") then
+            call semname_capteur_type(capteur%nom,"_depla",fnamef)
+            imax = 3
+        endif
+
+        open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
+        do j=1,capteur%icache
+            if (imax==1) then
+                write(fileId,'(2(1X,E16.8E3))') capteur%valuecache(1,j), capteur%valuecache(2,j)
+            else
+                write(fileId,'(4(1X,E16.8E3))') capteur%valuecache(1,j), capteur%valuecache(2:4,j)
+            endif
+        end do
+        close(fileId)
+        capteur%icache = 0
+    end subroutine flushCapteur
 
 
     !---------------------------------------------------------------------
@@ -670,7 +667,6 @@ contains
         integer :: rg
         integer :: fileId, i, ierr, nPtGaussTotal, tag, borneInf, iproc
 
-        character(len=MAX_FILE_SIZE) :: fnamef
         type(tPtGauss),pointer :: PtGauss
 
         integer , dimension  (MPI_STATUS_SIZE) :: status
@@ -808,36 +804,10 @@ contains
 
         ! ETAPE 4 : Impression du resultat dans le fichier de sortie par le proc 0
         if(rg==0)then
-
-            if (trim(capteur%grandeur).eq."DEFORMATION") then
-
-                call semname_capteur_type(capteur%nom,"_deformation",fnamef)
-                open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
-                write(fileId,'(2(1X,E16.8E3))') Tdomain%TimeD%rtime,val0(1)
-            endif
-
-
-            if (trim(capteur%grandeur).eq."VITESSE") then
-
-                call semname_capteur_type(capteur%nom,"_vitesse",fnamef)
-                open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
-                write(fileId,'(4(1X,E16.8E3))') Tdomain%TimeD%rtime, val0(1:3)
-            endif
-
-            close(fileId)
-
-            if (trim(capteur%grandeur).eq."DEPLA") then
-
-                call semname_capteur_type(capteur%nom,"_depla",fnamef)
-                open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
-                write(fileId,'(4(1X,E16.8E3))') Tdomain%TimeD%rtime,val0(1:3)
-            endif
-
-            close(fileId)
-
-
-
-
+            i = capteur%icache+1
+            capteur%valuecache(1,i) = Tdomain%TimeD%rtime
+            capteur%valuecache(2:4,i) = val0(1:3)
+            capteur%icache = i
         endif
 
         deallocate(grandeur)
@@ -861,7 +831,6 @@ contains
         integer :: rg
 
         integer :: fileId, i, j, k, idim, ierr, tag
-        character(len=MAX_FILE_SIZE) :: fnamef
 
         integer , dimension  (MPI_STATUS_SIZE) :: status
         integer request
@@ -904,9 +873,9 @@ contains
             mat = Tdomain%specel(n_el)%mat_index
             allocate(field(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
             if (trim(capteur%grandeur).eq."VITESSE") then
-                call build_elem_veloc(Tdomain, n_el, field)
+                call gather_elem_veloc(Tdomain, n_el, field)
             else if (trim(capteur%grandeur).eq."DEPLA") then
-                call build_elem_displ(Tdomain, n_el, field)
+                call gather_elem_displ(Tdomain, n_el, field)
             end if
             do i = 0,ngllx - 1
                 do j = 0,nglly - 1
@@ -961,26 +930,10 @@ contains
 
         ! ETAPE 4 : Impression du resultat dans le fichier de sortie par le proc 0
         if((rg==0) .AND. (capteur%numproc>-1)) then
-
-            if (trim(capteur%grandeur).eq."VITESSE") then
-
-                call semname_capteur_type(capteur%nom,"_vitesse",fnamef)
-                open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
-                write(fileId,'(4(1X,E16.8E3))') Tdomain%TimeD%rtime,val0(1:3)
-            endif
-
-            close(fileId)
-
-            if (trim(capteur%grandeur).eq."DEPLA") then
-
-                call semname_capteur_type(capteur%nom,"_depla",fnamef)
-                open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
-                write(fileId,'(4(1X,E16.8E3))') Tdomain%TimeD%rtime,val0(1:3)
-            endif
-
-            close(fileId)
-
-
+            i = capteur%icache+1
+            capteur%valuecache(1,i) = Tdomain%TimeD%rtime
+            capteur%valuecache(2:4,i) = val0(1:3)
+            capteur%icache = i
         endif
 
     end subroutine sortieGrandeurCapteur_interp
@@ -1296,181 +1249,6 @@ contains
     end function test_contour_capteur
 
 
-    subroutine save_traces(Tdomain, ntime, rg)
-        use sdomain
-        implicit none
-        type(domain), intent(inout)   :: Tdomain
-        integer, intent(in) :: rg, ntime
-        integer :: ngll1, ngll2, ngll3
-        integer :: x,y,z,i,j,n,ntimetrace
-        integer :: ne,nf,nv
-        real, dimension(0:2) :: tmp
-
-        do n = 0, Tdomain%n_receivers-1
-            if (rg == Tdomain%sReceiver(n)%proc) then
-                i = Tdomain%sReceiver(n)%elem
-                ngll1 = Tdomain%specel(i)%ngllx
-                ngll2 = Tdomain%specel(i)%nglly
-                ngll3 = Tdomain%specel(i)%ngllz
-                do x = 0,ngll1-1
-                    do y = 0,ngll2-1
-                        do z = 0,ngll3-1
-                            if (x==0) then
-                                if (y==0) then
-                                    if (z==0) then
-                                        nv = Tdomain%specel(i)%Near_Vertices(0)
-                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Veloc(:)
-                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Displ(:)
-                                    else if (z==ngll3-1) then
-                                        nv = Tdomain%specel(i)%Near_Vertices(4)
-                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Veloc(:)
-                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Displ(:)
-                                    else
-                                        ne = Tdomain%specel(i)%Near_Edges(6)
-                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(z,:)
-                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(z,:)
-                                    endif
-                                else if (y==ngll2-1) then
-                                    if (z==0) then
-                                        nv = Tdomain%specel(i)%Near_Vertices(3)
-                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Veloc(:)
-                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Displ(:)
-                                    else if (z==ngll3-1) then
-                                        nv = Tdomain%specel(i)%Near_Vertices(7)
-                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Veloc(:)
-                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Displ(:)
-                                    else
-                                        ne = Tdomain%specel(i)%Near_Edges(10)
-                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(z,:)
-                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(z,:)
-                                    endif
-                                else if (z==0) then
-                                    ne = Tdomain%specel(i)%Near_Edges(3)
-                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(y,:)
-                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(y,:)
-                                else if (z==ngll3-1) then
-                                    ne = Tdomain%specel(i)%Near_Edges(11)
-                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(y,:)
-                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(y,:)
-                                else
-                                    nf = Tdomain%specel(i)%Near_Faces(4)
-                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Veloc(y,z,:)
-                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Displ(y,z,:)
-                                endif
-                            else if (x==ngll1-1) then
-                                if (y==0) then
-                                    if (z==0) then
-                                        nv = Tdomain%specel(i)%Near_Vertices(1)
-                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Veloc(:)
-                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Displ(:)
-                                    else if (z==ngll3-1) then
-                                        nv = Tdomain%specel(i)%Near_Vertices(5)
-                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Veloc(:)
-                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Displ(:)
-                                    else
-                                        ne = Tdomain%specel(i)%Near_Edges(4)
-                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(z,:)
-                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(z,:)
-                                    endif
-                                else if (y==ngll2-1) then
-                                    if (z==0) then
-                                        nv = Tdomain%specel(i)%Near_Vertices(2)
-                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Veloc(:)
-                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Displ(:)
-                                    else if (z==ngll3-1) then
-                                        nv = Tdomain%specel(i)%Near_Vertices(6)
-                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Veloc(:)
-                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%svertex(nv)%Displ(:)
-                                    else
-                                        ne = Tdomain%specel(i)%Near_Edges(7)
-                                        Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(z,:)
-                                        !                       Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(z,:)
-                                    endif
-                                else if (z==0) then
-                                    ne = Tdomain%specel(i)%Near_Edges(1)
-                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(y,:)
-                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(y,:)
-                                else if (z==ngll3-1) then
-                                    ne = Tdomain%specel(i)%Near_Edges(8)
-                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(y,:)
-                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(y,:)
-                                else
-                                    nf = Tdomain%specel(i)%Near_Faces(2)
-                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Veloc(y,z,:)
-                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Displ(y,z,:)
-                                endif
-                            else if (y==0) then
-                                if (z==0) then
-                                    ne = Tdomain%specel(i)%Near_Edges(0)
-                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(x,:)
-                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(x,:)
-                                else if (z==ngll3-1) then
-                                    ne = Tdomain%specel(i)%Near_Edges(5)
-                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(x,:)
-                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(x,:)
-                                else
-                                    nf = Tdomain%specel(i)%Near_Faces(1)
-                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Veloc(x,z,:)
-                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Displ(x,z,:)
-                                endif
-                            else if (y==ngll2-1) then
-                                if (z==0) then
-                                    ne = Tdomain%specel(i)%Near_Edges(2)
-                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(x,:)
-                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(x,:)
-                                else if (z==ngll3-1) then
-                                    ne = Tdomain%specel(i)%Near_Edges(9)
-                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Veloc(x,:)
-                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sedge(ne)%Displ(x,:)
-                                else
-                                    nf = Tdomain%specel(i)%Near_Faces(3)
-                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Veloc(x,z,:)
-                                    !                    Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Displ(x,z,:)
-                                endif
-                            else if (z==0) then
-                                nf = Tdomain%specel(i)%Near_Faces(0)
-                                Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Veloc(x,y,:)
-                                !                 Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Displ(x,y,:)
-                            else if (z==ngll3-1) then
-                                nf = Tdomain%specel(i)%Near_Faces(5)
-                                Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Veloc(x,y,:)
-                                !                 Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%sface(nf)%Displ(x,y,:)
-                            else
-                                Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%specel(i)%Veloc(x,y,z,:)
-                                !                 Tdomain%sReceiver(n)%coeff(x,y,z,:) = Tdomain%specel(i)%Displ(x,y,z,:)
-                            endif
-                        enddo
-                    enddo
-                enddo
-
-                ntimetrace = mod (ntime,Tdomain%TimeD%ntrace)
-
-                do x = 0,ngll1-1
-                    do y = 0,ngll2-1
-                        do z = 0,ngll3-1
-                            if ( x == 0 .and. y == 0 .and. z == 0 ) then
-                                Tdomain%sReceiver(n)%StoreTrace(ntimetrace,:) = Tdomain%sReceiver(n)%coeff(x,y,z,:) * Tdomain%sReceiver(n)%pol(x,y,z)
-                            else
-                                Tdomain%sReceiver(n)%StoreTrace(ntimetrace,:) = Tdomain%sReceiver(n)%StoreTrace(ntimetrace,:) + &
-                                    Tdomain%sReceiver(n)%coeff(x,y,z,:) * Tdomain%sReceiver(n)%pol(x,y,z)
-                            endif
-                        enddo
-                    enddo
-                enddo
-                if (Tdomain%curve) then
-                    do i = 0,2
-                        tmp(i) = 0
-                        do j = 0,2
-                            tmp(i) = tmp(i) + Tdomain%sReceiver(n)%Passage(i,j) * Tdomain%sReceiver(n)%StoreTrace(ntimetrace,j)
-                        end do
-                    enddo
-                    do i = 0,2
-                        Tdomain%sReceiver(n)%StoreTrace(ntimetrace,i) = tmp(i)
-                    enddo
-                end if
-            end if
-        enddo
-    end subroutine save_traces
 
 end module Mcapteur
 !! Local Variables:

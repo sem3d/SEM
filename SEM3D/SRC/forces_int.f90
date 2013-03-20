@@ -51,7 +51,7 @@ contains
 
         m1 = Elem%ngllx;   m2 = Elem%nglly;   m3 = Elem%ngllz
 
-        if(solid)then   ! SOLID PART OF THE DOMAIN 
+        if(solid)then   ! SOLID PART OF THE DOMAIN
 
         call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1, Elem%Forces(:,:,:,0), m1, 0., dUx_dxi, m1)
         do n_z = 0,Elem%ngllz-1

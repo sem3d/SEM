@@ -15,7 +15,6 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
 
 
         use sdomain
-        use Postraitement
         use mCapteur
         use semdatafiles
         use mpi
@@ -146,12 +145,6 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
 
         if (Tdomain%MPI_var%my_rank == 0) write (*,*) " Compute mass matrix and internal forces coefficients"
         call define_arrays (Tdomain)
-
-
-#ifndef MKA3D
-        if (Tdomain%MPI_var%my_rank == 0) write (*,*) " Create an Ensight gold geometry file"
-        call POST_Ensight(Tdomain)
-#endif
 
 
         ! initialisation des temps

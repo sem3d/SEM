@@ -260,7 +260,7 @@ subroutine Define_Arrays(Tdomain, rg)
         RKmod = Rlam + 2. * Rmu
 
        !- verif. for fluid part
-        if(maxval(RMu) > 1.d-5) stop "Fluid element with a non null shear modulus."
+        if(.not. Tdomain%specel(n)%solid .and. maxval(RMu) > 1.d-5) stop "Fluid element with a non null shear modulus."
 
         !- mass matrix elements
         if(Tdomain%specel(n)%solid)then
