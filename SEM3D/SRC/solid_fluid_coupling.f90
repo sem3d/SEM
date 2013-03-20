@@ -13,6 +13,9 @@ subroutine StoF_coupling(Tdomain,rg)
     real, dimension(:,:,:), allocatable  :: VelocFace
 
     ! init.
+    do nf = 0,Tdomain%SF%SF_n_faces-1
+        Tdomain%SF%SF_face(nf)%vn = 0d0
+    end do
     do ne = 0,Tdomain%SF%SF_n_edges-1
         Tdomain%SF%SF_edge(ne)%vn = 0d0
     end do
@@ -42,7 +45,6 @@ subroutine StoF_coupling(Tdomain,rg)
                 VelocFace,Tdomain%sVertex(nnv)%V0)
         end do
         ! dot product on faces: normal.velocity
-        Tdomain%SF%SF_Face(nf)%vn(0:ngll1-1,0:ngll2-1) = 0d0
         do i = 0,2
             Tdomain%SF%SF_Face(nf)%vn(0:ngll1-1,0:ngll2-1) = Tdomain%SF%SF_Face(nf)%vn(0:ngll1-1,0:ngll2-1)+   &
                 Tdomain%SF%SF_Face(nf)%BtN(0:ngll1-1,0:ngll2-1,i)*VelocFace(0:ngll1-1,0:ngll2-1,i)
@@ -70,21 +72,16 @@ subroutine StoF_coupling(Tdomain,rg)
         ! now we can exchange force values with proc n
         n = Tdomain%n_proc
         do shift = 1,n-1
-            if(rg == 1) print*,"SHIFTV",shift
             I_give_to = rg + shift
             if(I_give_to > n-1) I_give_to = I_give_to-n
-            if(rg == 1) print*,"GIVEV",I_give_to
         end do
 
 
         do shift = 1,n-1
-            if(rg == 1) print*,"SHIFT",shift
             I_give_to = rg + shift
             if (I_give_to > n-1)   I_give_to = I_give_to - n
-            if(rg == 1) print*,"GIVE",I_give_to
             I_take_from = rg - shift
             if (I_take_from < 0)   I_take_from = I_take_from + n
-            if(rg == 1) print*,"TAKE",I_take_from
             if (mod(n,shift)==0 .and. shift/=1) then
                 n_rings = shift
             else if (mod(n,n-shift)==0 .and. shift/=n-1) then
@@ -95,9 +92,7 @@ subroutine StoF_coupling(Tdomain,rg)
                 n_rings = 1
             endif
 
-            if(rg == 1) print*,"RINGS",n_rings
             do i = 0,n_rings-1
-                if(rg == 1) print*,"VERIF",rg,shift,i,I_give_to,I_take_from
                 if(rg == i)then
                     if (Tdomain%sComm(I_give_to)%ngllSF>0) then
                         call MPI_SEND (Tdomain%sComm(I_give_to)%GiveForcesSF_StoF,Tdomain%sComm(I_give_to)%ngllSF, &
