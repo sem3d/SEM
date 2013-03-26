@@ -29,8 +29,8 @@ source {
     dir = x;
     # Function 1.gaussian,2.ricker,3.tf_heaviside,4.gabor,5.file,6.spice_bench,7.sinus
     func = ricker;
-    tau = 0.2;
-    freq = 5.;   # source main frequency / cutoff frequency
+    tau = 0.5;
+    freq = 3.;   # source main frequency / cutoff frequency
 };
 
 time_scheme {

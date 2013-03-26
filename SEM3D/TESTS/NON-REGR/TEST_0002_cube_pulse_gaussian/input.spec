@@ -6,8 +6,11 @@ sim_time = 5.0;
 mesh_file = "mesh4spec"; # input mesh file
 mat_file = "material.input";
 
-save_snap = true;
-snap_interval = 0.02;
+snapshots {
+    save_snap = true;
+    snap_interval = 0.02;
+    select all;
+};
 
 # Description des capteurs
 save_traces = true;

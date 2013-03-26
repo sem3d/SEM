@@ -8,10 +8,11 @@ mat_file = "material.input";
 
 snapshots {
     save_snap = true;
-    snap_interval = 0.02;
+    snap_interval = 0.01;
     deselect all;
-    select box = -100 -100 100 500 500 200;
-    select material = 3;
+    select box = -100 -100  100 500 500 150;
+    select box = -100  100 -100 500 150 500;
+    select box =  100 -100 -100 150 500 500;
 };
 
 # Description des capteurs
