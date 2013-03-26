@@ -469,7 +469,7 @@ subroutine select_output_elements(Tdomain, rg, config)
     real, dimension(3) :: pos
     logical :: sel
 
-    do n = 0, Tdomain%n_elem
+    do n = 0, Tdomain%n_elem-1
         call c_f_pointer(config%snapshot_selection, selection)
         do while(associated(selection))
             if (selection%include==1) then
