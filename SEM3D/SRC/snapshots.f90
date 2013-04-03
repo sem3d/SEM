@@ -229,6 +229,7 @@ contains
         integer(HSIZE_T), dimension(2) :: dims
         real, dimension(:,:),allocatable :: displ, veloc
         real, dimension(:,:,:,:),allocatable :: field_displ, field_veloc
+        integer, dimension(:), allocatable :: valence
         integer :: hdferr
         integer :: ngllx, nglly, ngllz, idx
         integer :: i, j, k, n
@@ -251,10 +252,12 @@ contains
 
         allocate(displ(0:2,0:nnodes-1))
         allocate(veloc(0:2,0:nnodes-1))
+        allocate(valence(0:nnodes-1))
 
         ngllx = 0
         nglly = 0
         ngllz = 0
+        valence(:) = 0
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             if (ngllx /= Tdomain%specel(n)%ngllx .or. &
@@ -275,11 +278,16 @@ contains
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
                         idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                        valence(idx) = valence(idx)+1
                         displ(:,idx) = field_displ(i,j,k,:)
-                        veloc(:,idx) = field_veloc(i,j,k,:)
+                        veloc(:,idx) = veloc(:,idx)+field_veloc(i,j,k,:)
                     end do
                 end do
             end do
+        end do
+      ! normalization
+        do i = 0,nnodes-1
+            veloc(0:2,i) = veloc(0:2,i)/valence(i)
         end do
 
         call h5dwrite_f(displ_id, H5T_NATIVE_DOUBLE, displ, dims, hdferr)
@@ -288,7 +296,7 @@ contains
         call h5dclose_f(displ_id, hdferr)
         call h5dclose_f(veloc_id, hdferr)
         call h5fclose_f(fid, hdferr)
-        deallocate(displ,veloc)
+        deallocate(displ,veloc,valence)
 
         call write_xdmf(Tdomain, rg, isort, nnodes)
     end subroutine save_field_h5
