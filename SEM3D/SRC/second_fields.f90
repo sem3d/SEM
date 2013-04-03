@@ -112,7 +112,7 @@ contains
                 call get_VectProperty_Vertex2Elem(i, nx, ny, nz, vx%Displ, field)
             end do
         else ! liquid
-
+            field = 0d0
         end if
 
     end subroutine gather_elem_displ
@@ -121,11 +121,12 @@ contains
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: nel
         real, dimension(0:,0:,0:,0:), intent(out) :: field
+        real, dimension(:,:,:), allocatable :: phi
         type(element), pointer :: el
         type(face), pointer :: fc
         type(edge), pointer :: ed
         type(vertex), pointer :: vx
-        integer :: nx, ny, nz, i
+        integer :: nx, ny, nz, i, mat
         nx = Tdomain%specel(nel)%ngllx
         ny = Tdomain%specel(nel)%nglly
         nz = Tdomain%specel(nel)%ngllz
@@ -148,6 +149,28 @@ contains
                 call get_VectProperty_Vertex2Elem(i, nx, ny, nz, vx%Veloc, field)
             end do
         else ! liquid
+            allocate(phi(0:nx-1,0:ny-1,0:nz-1))
+            phi(1:nx-2,1:ny-2,1:nz-2) = el%Phi(:,:,:)
+            do i=0,5
+                fc => Tdomain%sFace(el%Near_Faces(i))
+                call get_ScalarProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
+                    fc%Phi, phi)
+            end do
+
+            do i=0,11
+                ed => Tdomain%sEdge(el%Near_Edges(i))
+                call get_ScalarProperty_Edge2Elem(i,el%Orient_Edges(i), nx, ny, nz, ed%ngll, &
+                    ed%Phi, phi)
+            end do
+            do i=0,7
+                vx => Tdomain%sVertex(el%Near_Vertices(i))
+                call get_ScalarProperty_Vertex2Elem(i, nx, ny, nz, vx%Phi, phi)
+            end do
+            mat = el%mat_index
+            call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
+                          Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
+                          el%InvGrad,el%density,phi,field)
+            deallocate(phi)
         end if
     end subroutine gather_elem_veloc
 
