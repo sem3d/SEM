@@ -179,10 +179,12 @@ subroutine Newmark(Tdomain,rg,ntime)
     if(Tdomain%logicD%SF_local_present)then
         call SF_solid_values_saving(Tdomain)
         call StoF_coupling(Tdomain,rg)
-        dt = Tdomain%sSubdomain(mat)%dt
     end if
 
+
+    !- correction phase
     call Newmark_Corrector(Tdomain,rg)
+
     if(Tdomain%logicD%SF_local_present)then
         !- fluid -> solid coupling (pressure times velocity)
         call FtoS_coupling(Tdomain,rg)
@@ -506,11 +508,13 @@ subroutine external_forces(Tdomain,timer,ntime,rank)
         if(rank == Tdomain%sSource(ns)%proc)then
             nel = Tdomain%Ssource(ns)%elem
 
+            !  vieille version:
             ! time : t_(n+1/2) for solid ; t_n for fluid
              ! t = merge(timer+Tdomain%TimeD%dtmin/2d0,timer,Tdomain%specel(nel)%solid)
+            ! nouvelle version:
             ! le temps n'est plus decale pour les sources, pour un saute-mouton
             !   on rajoute le 1/2 pas de temps qui correspond au fait que la
-            !    exterieure doive etre prise a t+1/2
+            !    exterieure doive etre prise a t_(n+1/2)
             t = timer+Tdomain%TimeD%dtmin/2d0
             !
             if(Tdomain%sSource(ns)%i_type_source == 1)then  ! collocated force in solid
