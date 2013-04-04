@@ -59,23 +59,23 @@ subroutine compute_save_offsets(Tdomain, offset, offset_f, offset_e, offset_v)
     use sdomain
     implicit none
     type (domain), intent (IN):: Tdomain
-    integer(kind=4), intent(out), dimension (8) :: offset
-    integer(kind=4), intent(out), dimension (3) :: offset_f
-    integer(kind=4), intent(out), dimension (3) :: offset_e
-    integer(kind=4), intent(out), dimension (3) :: offset_v
+    integer(kind=4), intent(out), dimension (12) :: offset
+    integer(kind=4), intent(out), dimension (6) :: offset_f
+    integer(kind=4), intent(out), dimension (6) :: offset_e
+    integer(kind=4), intent(out), dimension (6) :: offset_v
     integer :: n,ngllx,nglly,ngllz,ngll,ngll1,ngll2,n_solid
 
     ! Calcul des offsets de positions dans les tableaux
     n_solid = Tdomain%n_sls
-    offset(1:8)=0
-    offset_f(1:3)=0
-    offset_e(1:3)=0
-    offset_v(1:3)=0
+    offset(1:12)=0
+    offset_f(1:6)=0
+    offset_e(1:6)=0
+    offset_v(1:6)=0
     do n = 0,Tdomain%n_elem-1
         ngllx = Tdomain%specel(n)%ngllx;  nglly = Tdomain%specel(n)%nglly; ngllz = Tdomain%specel(n)%ngllz
         ngll = (ngllx-2)*(nglly-2)*(ngllz-2)
         ngll2 = ngllx*nglly*ngllz
-
+        if(Tdomain%specel(n)%solid)then  ! solid part
         ! pour Veloc : 1
         offset(1) = offset(1) + ngll*3
         if ( .not. Tdomain%specel(n)%PML ) then
@@ -126,13 +126,34 @@ subroutine compute_save_offsets(Tdomain, offset, offset_f, offset_e, offset_v)
             ! pour epsilondev_xx, yy, xy, xz, yz : 7
             offset(7) = offset(7) + 0
             ! pour Stress : 8
-            offset(8) = offset(8) + ngll2*15
+            offset(8) = offset(8) + ngll2*18
+        end if
+        else   ! fluid part
+        ! pour VelPhi : 9
+        offset(9) = offset(9) + ngll
+        if ( .not. Tdomain%specel(n)%PML ) then
+            ! VelPhi1, VelPhi2, VelPhi3 : 10
+            offset(10) = offset(10) + 0
+            ! pour Phi : 11
+            offset(11) = offset(11) + ngll
+            ! pour Veloc : 12
+            offset(12) = offset(12) + 0
+        else  ! PML
+            ! VelPhi1, VelPhi2, VelPhi3 : 10
+            offset(10) = offset(10) + ngll
+            ! pour Phi : 11
+            offset(11) = offset(11) + 0
+            ! pour Veloc : 12
+            offset(12) = offset(12) + ngll2*9
+        end if
+
         end if
     end do
     ! Save Fields for Faces
     do n = 0,Tdomain%n_face-1
         ngll1 = Tdomain%sFace(n)%ngll1; ngll2 = Tdomain%sFace(n)%ngll2
         ngll = (ngll1-2)*(ngll2-2)
+        if(Tdomain%sFace(n)%solid)then
         if (.not. Tdomain%sFace(n)%PML ) then
             offset_f(1) = offset_f(1) + 3*ngll
             offset_f(2) = offset_f(2) + 3*ngll
@@ -142,10 +163,22 @@ subroutine compute_save_offsets(Tdomain, offset, offset_f, offset_e, offset_v)
             offset_f(2) = offset_f(2) + 0
             offset_f(3) = offset_f(3) + 3*ngll
         end if
+        else   ! fluid case
+        if (.not. Tdomain%sFace(n)%PML ) then
+            offset_f(4) = offset_f(4) + ngll
+            offset_f(5) = offset_f(5) + ngll
+            offset_f(6) = offset_f(6) + 0
+        else
+            offset_f(4) = offset_f(4) + ngll
+            offset_f(5) = offset_f(5) + 0
+            offset_f(6) = offset_f(6) + ngll
+        end if
+        end if
     end do
     ! Save Fields for Edges
     do n = 0,Tdomain%n_edge-1
         ngll = Tdomain%sEdge(n)%ngll-2
+        if(Tdomain%sEdge(n)%solid)then
         if (.not. Tdomain%sEdge(n)%PML ) then
             offset_e(1) = offset_e(1) + 3*ngll
             offset_e(2) = offset_e(2) + 3*ngll
@@ -155,10 +188,22 @@ subroutine compute_save_offsets(Tdomain, offset, offset_f, offset_e, offset_v)
             offset_e(2) = offset_e(2) + 0
             offset_e(3) = offset_e(3) + 3*ngll
         end if
+        else
+        if (.not. Tdomain%sEdge(n)%PML ) then
+            offset_e(4) = offset_e(4) + ngll
+            offset_e(5) = offset_e(5) + ngll
+            offset_e(6) = offset_e(6) + 0
+        else
+            offset_e(4) = offset_e(4) + ngll
+            offset_e(5) = offset_e(5) + 0
+            offset_e(6) = offset_e(6) + ngll
+        end if
+        end if
     enddo
 
     ! Save Fields for Vertices
     do n = 0,Tdomain%n_vertex-1
+        if(Tdomain%sVertex(n)%solid)then
         if (.not. Tdomain%sVertex(n)%PML ) then
             offset_v(1) = offset_v(1) + 3
             offset_v(2) = offset_v(2) + 3
@@ -167,6 +212,18 @@ subroutine compute_save_offsets(Tdomain, offset, offset_f, offset_e, offset_v)
             offset_v(1) = offset_v(1) + 3
             offset_v(2) = offset_v(2) + 0
             offset_v(3) = offset_v(3) + 3
+        end if
+        else
+        if (.not. Tdomain%sVertex(n)%PML ) then
+            offset_v(4) = offset_v(4) + 1
+            offset_v(5) = offset_v(5) + 1
+            offset_v(6) = offset_v(6) + 0
+        else
+            offset_v(4) = offset_v(4) + 1
+            offset_v(5) = offset_v(5) + 0
+            offset_v(6) = offset_v(6) + 1
+        end if
+
         end if
     enddo
 
@@ -191,10 +248,16 @@ subroutine write_Veloc(Tdomain, nmax, elem_id)
     real(kind=8), dimension(1:nmax) :: data
     integer(HSIZE_T), dimension(1) :: dims
 
+
     call create_dset(elem_id, "Veloc", H5T_IEEE_F64LE, nmax, dset_id)
+    if(nmax <= 0)then  ! all fluid simulation
+        call h5dclose_f(dset_id, hdferr)
+        return
+    end if
     dims(1) = nmax
     idx = 1
     do n = 0,Tdomain%n_elem-1
+        if(.not. Tdomain%specel(n)%solid) cycle
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
@@ -218,6 +281,53 @@ subroutine write_Veloc(Tdomain, nmax, elem_id)
     call h5dclose_f(dset_id, hdferr)
 end subroutine write_Veloc
 
+subroutine write_VelPhi(Tdomain, nmax, elem_id)
+    use sdomain, only : domain
+    use sem_hdf5, only : create_dset
+    use HDF5
+    implicit none
+    type (domain), intent (IN):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+    integer(HID_T) :: dset_id
+    integer(kind=4), intent(IN) :: nmax
+
+    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
+    real(kind=8), dimension(1:nmax) :: data
+    integer(HSIZE_T), dimension(1) :: dims
+
+
+    call create_dset(elem_id, "VelPhi", H5T_IEEE_F64LE, nmax, dset_id)
+    if(nmax <= 0)then   ! all solid simulation
+        call h5dclose_f(dset_id, hdferr)
+        return
+    end if
+    dims(1) = nmax
+    idx = 1
+    do n = 0,Tdomain%n_elem-1
+        if(Tdomain%specel(n)%solid) cycle
+        ngllx = Tdomain%specel(n)%ngllx
+        nglly = Tdomain%specel(n)%nglly
+        ngllz = Tdomain%specel(n)%ngllz
+
+        do k = 1,ngllz-2
+            do j = 1,nglly-2
+                do i = 1,ngllx-2
+                    if (idx.gt.nmax) then
+                        write(*,*) "Erreur fatale sauvegarde des protections"
+                        stop 1
+                    end if
+                    data(idx) = Tdomain%specel(n)%VelPhi(i,j,k)
+                    idx = idx + 1
+                enddo
+            enddo
+        enddo
+    enddo
+    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+    call h5dclose_f(dset_id, hdferr)
+end subroutine write_VelPhi
+
+
+
 subroutine write_Veloc123(Tdomain, nmax, elem_id)
     use sdomain, only : domain
     use sem_hdf5, only : create_dset
@@ -232,13 +342,22 @@ subroutine write_Veloc123(Tdomain, nmax, elem_id)
     real(kind=8), dimension(1:nmax) :: data1, data2, data3
     integer(HSIZE_T), dimension(1) :: dims
 
+
+
     call create_dset(elem_id, "Veloc1", H5T_IEEE_F64LE, nmax, dset_id1)
     call create_dset(elem_id, "Veloc2", H5T_IEEE_F64LE, nmax, dset_id2)
     call create_dset(elem_id, "Veloc3", H5T_IEEE_F64LE, nmax, dset_id3)
+    if(nmax <= 0)then
+        call h5dclose_f(dset_id1, hdferr)
+        call h5dclose_f(dset_id2, hdferr)
+        call h5dclose_f(dset_id3, hdferr)
+        return
+    end if
 
     dims(1) = nmax
     idx = 1
     do n = 0,Tdomain%n_elem-1
+        if(.not. Tdomain%specel(n)%solid) cycle
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
@@ -274,6 +393,64 @@ subroutine write_Veloc123(Tdomain, nmax, elem_id)
     call h5dclose_f(dset_id3, hdferr)
 end subroutine write_Veloc123
 
+subroutine write_VelPhi123(Tdomain, nmax, elem_id)
+    use sdomain, only : domain
+    use sem_hdf5, only : create_dset
+    use HDF5
+    implicit none
+    type (domain), intent (IN):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+    integer(HID_T) :: dset_id1, dset_id2, dset_id3
+    integer(kind=4), intent(IN) :: nmax
+
+    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
+    real(kind=8), dimension(1:nmax) :: data1, data2, data3
+    integer(HSIZE_T), dimension(1) :: dims
+
+    call create_dset(elem_id, "VelPhi1", H5T_IEEE_F64LE, nmax, dset_id1)
+    call create_dset(elem_id, "VelPhi2", H5T_IEEE_F64LE, nmax, dset_id2)
+    call create_dset(elem_id, "VelPhi3", H5T_IEEE_F64LE, nmax, dset_id3)
+    if(nmax <= 0)then
+        call h5dclose_f(dset_id1, hdferr)
+        call h5dclose_f(dset_id2, hdferr)
+        call h5dclose_f(dset_id3, hdferr)
+        return
+    end if
+    dims(1) = nmax
+    idx = 1
+    do n = 0,Tdomain%n_elem-1
+        if(Tdomain%specel(n)%solid) cycle
+        ngllx = Tdomain%specel(n)%ngllx
+        nglly = Tdomain%specel(n)%nglly
+        ngllz = Tdomain%specel(n)%ngllz
+
+        if (Tdomain%specel(n)%PML ) then
+            do k = 1,ngllz-2
+                do j = 1,nglly-2
+                    do i = 1,ngllx-2
+                        if (idx.gt.nmax) then
+                            write(*,*) "Erreur fatale sauvegarde des protections"
+                            stop 1
+                        end if
+                        data1(idx) = Tdomain%specel(n)%spml%VelPhi1(i,j,k)
+                        data2(idx) = Tdomain%specel(n)%spml%VelPhi2(i,j,k)
+                        data3(idx) = Tdomain%specel(n)%spml%VelPhi3(i,j,k)
+                        idx = idx + 1
+                    enddo
+                enddo
+            enddo
+        end if
+    enddo
+    call h5dwrite_f(dset_id1, H5T_NATIVE_DOUBLE, data1, dims, hdferr)
+    call h5dwrite_f(dset_id2, H5T_NATIVE_DOUBLE, data2, dims, hdferr)
+    call h5dwrite_f(dset_id3, H5T_NATIVE_DOUBLE, data3, dims, hdferr)
+    call h5dclose_f(dset_id1, hdferr)
+    call h5dclose_f(dset_id2, hdferr)
+    call h5dclose_f(dset_id3, hdferr)
+end subroutine write_VelPhi123
+
+
+
 subroutine write_Disp(Tdomain, nmax, elem_id)
     use sdomain, only : domain
     use sem_hdf5, only : create_dset
@@ -288,9 +465,14 @@ subroutine write_Disp(Tdomain, nmax, elem_id)
     integer(HSIZE_T), dimension(1) :: dims
 
     call create_dset(elem_id, "Displ", H5T_IEEE_F64LE, nmax, dset_id)
+    if(nmax <= 0)then
+        call h5dclose_f(dset_id, hdferr)
+        return
+    end if
     dims(1) = nmax
     idx = 1
     do n = 0,Tdomain%n_elem-1
+        if(.not. Tdomain%specel(n)%solid) cycle
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
@@ -316,6 +498,53 @@ subroutine write_Disp(Tdomain, nmax, elem_id)
     call h5dclose_f(dset_id, hdferr)
 end subroutine write_Disp
 
+
+subroutine write_Phi(Tdomain, nmax, elem_id)
+    use sdomain, only : domain
+    use sem_hdf5, only : create_dset
+    use HDF5
+    implicit none
+    type (domain), intent (IN):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+    integer(HID_T) :: dset_id
+    integer(kind=4), intent(IN) :: nmax
+    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
+    real(kind=8), dimension(1:nmax) :: data
+    integer(HSIZE_T), dimension(1) :: dims
+
+    call create_dset(elem_id, "Phi", H5T_IEEE_F64LE, nmax, dset_id)
+    if(nmax <= 0)then
+        call h5dclose_f(dset_id, hdferr)
+        return
+    end if
+    dims(1) = nmax
+    idx = 1
+    do n = 0,Tdomain%n_elem-1
+        if(Tdomain%specel(n)%solid) cycle
+        ngllx = Tdomain%specel(n)%ngllx
+        nglly = Tdomain%specel(n)%nglly
+        ngllz = Tdomain%specel(n)%ngllz
+
+        if ( .not. Tdomain%specel(n)%PML ) then
+            do k = 1,ngllz-2
+                do j = 1,nglly-2
+                    do i = 1,ngllx-2
+                        if (idx.gt.nmax) then
+                            write(*,*) "Erreur fatale sauvegarde des protections"
+                            stop 1
+                        end if
+                        data(idx) = Tdomain%specel(n)%Phi(i,j,k)
+                        idx = idx + 1
+                    enddo
+                enddo
+            enddo
+        end if
+    enddo
+    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+    call h5dclose_f(dset_id, hdferr)
+end subroutine write_Phi
+
+
 subroutine write_EpsilonVol(Tdomain, nmax, elem_id)
     use sdomain, only : domain
     use sem_hdf5, only : create_dset
@@ -331,11 +560,16 @@ subroutine write_EpsilonVol(Tdomain, nmax, elem_id)
     integer :: n_solid
 
     call create_dset(elem_id, "EpsilonVol", H5T_IEEE_F64LE, nmax, dset_id)
+    if(nmax <= 0)then
+        call h5dclose_f(dset_id, hdferr)
+        return
+    end if
     dims(1) = nmax
     idx = 1
     n_solid = Tdomain%n_sls
 
     do n = 0,Tdomain%n_elem-1
+        if(.not. Tdomain%specel(n)%solid) cycle
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
@@ -379,11 +613,18 @@ subroutine write_Rvol(Tdomain, nmax, elem_id)
     integer :: n_solid
 
     call create_dset(elem_id, "Rvol", H5T_IEEE_F64LE, nmax, dset_id)
+    if(nmax <= 0)then
+        call h5dclose_f(dset_id, hdferr)
+        return
+    end if
+
+
     dims(1) = nmax
     idx = 1
     n_solid = Tdomain%n_sls
 
     do n = 0,Tdomain%n_elem-1
+        if(.not. Tdomain%specel(n)%solid) cycle
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
@@ -433,11 +674,22 @@ subroutine write_Rxyz(Tdomain, nmax, elem_id)
     call create_dset(elem_id, "R_xy", H5T_IEEE_F64LE, nmax, dset_id_xy)
     call create_dset(elem_id, "R_xz", H5T_IEEE_F64LE, nmax, dset_id_xz)
     call create_dset(elem_id, "R_yz", H5T_IEEE_F64LE, nmax, dset_id_yz)
+    if(nmax <= 0)then
+        call h5dclose_f(dset_id_xx, hdferr)
+        call h5dclose_f(dset_id_yy, hdferr)
+        call h5dclose_f(dset_id_xy, hdferr)
+        call h5dclose_f(dset_id_xz, hdferr)
+        call h5dclose_f(dset_id_yz, hdferr)
+        return
+    end if
+
+
     dims(1) = nmax
     idx = 1
     n_solid = Tdomain%n_sls
 
     do n = 0,Tdomain%n_elem-1
+        if(.not. Tdomain%specel(n)%solid) cycle
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
@@ -496,11 +748,20 @@ subroutine write_EpsilonDev(Tdomain, nmax, elem_id)
     call create_dset(elem_id, "EpsilonDev_xy", H5T_IEEE_F64LE, nmax, dset_id_xy)
     call create_dset(elem_id, "EpsilonDev_xz", H5T_IEEE_F64LE, nmax, dset_id_xz)
     call create_dset(elem_id, "EpsilonDev_yz", H5T_IEEE_F64LE, nmax, dset_id_yz)
+    if(nmax <= 0)then
+        call h5dclose_f(dset_id_xx, hdferr)
+        call h5dclose_f(dset_id_yy, hdferr)
+        call h5dclose_f(dset_id_xy, hdferr)
+        call h5dclose_f(dset_id_xz, hdferr)
+        call h5dclose_f(dset_id_yz, hdferr)
+        return
+    end if
     dims(1) = nmax
     idx = 1
     n_solid = Tdomain%n_sls
 
     do n = 0,Tdomain%n_elem-1
+        if(.not. Tdomain%specel(n)%solid) cycle
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
@@ -553,10 +814,15 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
     integer(HSIZE_T), dimension(1) :: dims
 
     call create_dset(elem_id, "Stress", H5T_IEEE_F64LE, nmax, dset_id)
+    if(nmax <= 0)then
+        call h5dclose_f(dset_id, hdferr)
+        return
+    end if
 
     dims(1) = nmax
     idx = 1
     do n = 0,Tdomain%n_elem-1
+        if(.not. Tdomain%specel(n)%solid) cycle
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
@@ -589,6 +855,10 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
                         data(idx+ 1) = Tdomain%specel(n)%spml%Residual_Stress2(i,j,k,1)
                         data(idx+ 2) = Tdomain%specel(n)%spml%Residual_Stress2(i,j,k,2)
                         idx = idx + 3
+                        data(idx+ 0) = Tdomain%specel(n)%spml%Residual_Stress3(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%spml%Residual_Stress3(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%spml%Residual_Stress3(i,j,k,2)
+                        idx = idx + 3
                     enddo
                 enddo
             enddo
@@ -598,6 +868,65 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
     call h5dclose_f(dset_id, hdferr)
 end subroutine write_Stress
 
+subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
+    use sdomain, only : domain
+    use sem_hdf5, only : create_dset
+    use HDF5
+    implicit none
+    type (domain), intent (IN):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+    integer(HID_T) :: dset_id
+    integer(kind=4), intent(IN) :: nmax
+
+    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
+    real(kind=8), dimension(1:nmax) :: data
+    integer(HSIZE_T), dimension(1) :: dims
+
+    call create_dset(elem_id, "Stress", H5T_IEEE_F64LE, nmax, dset_id)
+    if(nmax <= 0)then
+        call h5dclose_f(dset_id, hdferr)
+        return
+    end if
+
+    dims(1) = nmax
+    idx = 1
+    do n = 0,Tdomain%n_elem-1
+        if(Tdomain%specel(n)%solid) cycle
+        ngllx = Tdomain%specel(n)%ngllx
+        nglly = Tdomain%specel(n)%nglly
+        ngllz = Tdomain%specel(n)%ngllz
+
+        if (Tdomain%specel(n)%PML ) then
+            do k = 0,ngllz-1
+                do j = 0,nglly-1
+                    do i = 0,ngllx-1
+                        if (idx.gt.nmax) then
+                            write(*,*) "Erreur fatale sauvegarde des protections"
+                            stop 1
+                        end if
+                        data(idx+ 0) = Tdomain%specel(n)%spml%Veloc1(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%spml%Veloc1(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%spml%Veloc1(i,j,k,2)
+                        idx = idx + 3
+                        data(idx+ 0) = Tdomain%specel(n)%spml%Veloc2(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%spml%Veloc2(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%spml%Veloc2(i,j,k,2)
+                        idx = idx + 3
+                        data(idx+ 0) = Tdomain%specel(n)%spml%Veloc3(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%spml%Veloc3(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%spml%Veloc3(i,j,k,2)
+                        idx = idx + 3
+                    enddo
+                enddo
+            enddo
+        end if
+    enddo
+    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+    call h5dclose_f(dset_id, hdferr)
+end subroutine write_Veloc_Fluid_PML
+
+
+
 subroutine write_Faces(Tdomain, offset_f, face_id)
     use sdomain, only : domain
     use sem_hdf5, only : create_dset
@@ -605,15 +934,22 @@ subroutine write_Faces(Tdomain, offset_f, face_id)
     implicit none
     type (domain), intent (IN):: Tdomain
     integer(HID_T), intent(IN) :: face_id
-    integer(kind=4), dimension(3), intent(IN) :: offset_f
+    integer(kind=4), dimension(6), intent(IN) :: offset_f
 
-    integer(HID_T) :: veloc_id, displ_id, veloc1_id, veloc2_id, veloc3_id
-    integer :: n,ngll1,ngll2,idx1,idx2,idx3,i,j,hdferr
+    integer(HID_T) :: veloc_id, displ_id, veloc1_id, veloc2_id, veloc3_id,  &
+                      velphi_id, phi_id, velphi1_id, velphi2_id, velphi3_id
+    integer :: n,ngll1,ngll2,idx1,idx2,idx3,idx4,idx5,idx6,i,j,hdferr
     real(kind=8), dimension(1:offset_f(1)) :: veloc
     real(kind=8), dimension(1:offset_f(2)) :: displ
     real(kind=8), dimension(1:offset_f(3)) :: veloc1
     real(kind=8), dimension(1:offset_f(3)) :: veloc2
     real(kind=8), dimension(1:offset_f(3)) :: veloc3
+    real(kind=8), dimension(1:offset_f(4)) :: velphi
+    real(kind=8), dimension(1:offset_f(5)) :: phi
+    real(kind=8), dimension(1:offset_f(6)) :: velphi1
+    real(kind=8), dimension(1:offset_f(6)) :: velphi2
+    real(kind=8), dimension(1:offset_f(6)) :: velphi3
+
     integer(HSIZE_T), dimension(1) :: dims
 
     call create_dset(face_id, "Veloc", H5T_IEEE_F64LE, offset_f(1), veloc_id)
@@ -621,13 +957,21 @@ subroutine write_Faces(Tdomain, offset_f, face_id)
     call create_dset(face_id, "Veloc1", H5T_IEEE_F64LE, offset_f(3), veloc1_id)
     call create_dset(face_id, "Veloc2", H5T_IEEE_F64LE, offset_f(3), veloc2_id)
     call create_dset(face_id, "Veloc3", H5T_IEEE_F64LE, offset_f(3), veloc3_id)
+    call create_dset(face_id, "VelPhi", H5T_IEEE_F64LE, offset_f(4), velphi_id)
+    call create_dset(face_id, "Phi", H5T_IEEE_F64LE, offset_f(5), phi_id)
+    call create_dset(face_id, "VelPhi1", H5T_IEEE_F64LE, offset_f(6), velphi1_id)
+    call create_dset(face_id, "VelPhi2", H5T_IEEE_F64LE, offset_f(6), velphi2_id)
+    call create_dset(face_id, "VelPhi3", H5T_IEEE_F64LE, offset_f(6), velphi3_id)
     idx1 = 1
     idx2 = 1
     idx3 = 1
+    idx4 = 1
+    idx5 = 1
+    idx6 = 1
     do n = 0,Tdomain%n_face-1
         ngll1 = Tdomain%sFace(n)%ngll1
         ngll2 = Tdomain%sFace(n)%ngll2
-
+        if(Tdomain%sFace(n)%solid)then   ! solid face
         do j = 1,ngll2-2
             do i = 1,ngll1-2
                 if (idx1.gt.offset_f(1)) then
@@ -657,21 +1001,61 @@ subroutine write_Faces(Tdomain, offset_f, face_id)
                 end if
             enddo
         enddo
+        else    ! fluid face
+        do j = 1,ngll2-2
+            do i = 1,ngll1-2
+                if (idx4.gt.offset_f(1)) then
+                    write(*,*) "Erreur fatale sauvegarde des protections"
+                    stop 1
+                end if
+                velphi(idx4) = Tdomain%sFace(n)%VelPhi(i,j)
+                idx4 = idx4 + 1
+                if (.not. Tdomain%sFace(n)%PML ) then
+                    phi(idx5) = Tdomain%sFace(n)%Phi(i,j)
+                    idx5 = idx5 + 1
+                else
+                    velphi1(idx6) = Tdomain%sFace(n)%spml%VelPhi1(i,j)
+                    velphi2(idx6) = Tdomain%sFace(n)%spml%VelPhi2(i,j)
+                    velphi3(idx6) = Tdomain%sFace(n)%spml%VelPhi3(i,j)
+                    idx6 = idx6 + 1
+                end if
+            enddo
+        enddo
+
+        end if
     enddo
     dims(1) = offset_f(1)
-    call h5dwrite_f(veloc_id, H5T_NATIVE_DOUBLE, veloc, dims, hdferr)
+    if(dims(1) > 0) call h5dwrite_f(veloc_id, H5T_NATIVE_DOUBLE, veloc, dims, hdferr)
     dims(1) = offset_f(2)
-    call h5dwrite_f(displ_id, H5T_NATIVE_DOUBLE, displ, dims, hdferr)
+    if(dims(1) > 0) call h5dwrite_f(displ_id, H5T_NATIVE_DOUBLE, displ, dims, hdferr)
     dims(1) = offset_f(3)
-    call h5dwrite_f(veloc1_id, H5T_NATIVE_DOUBLE, veloc1, dims, hdferr)
-    call h5dwrite_f(veloc2_id, H5T_NATIVE_DOUBLE, veloc2, dims, hdferr)
-    call h5dwrite_f(veloc3_id, H5T_NATIVE_DOUBLE, veloc3, dims, hdferr)
+    if(dims(1) > 0)then
+        call h5dwrite_f(veloc1_id, H5T_NATIVE_DOUBLE, veloc1, dims, hdferr)
+        call h5dwrite_f(veloc2_id, H5T_NATIVE_DOUBLE, veloc2, dims, hdferr)
+        call h5dwrite_f(veloc3_id, H5T_NATIVE_DOUBLE, veloc3, dims, hdferr)
+    end if
+    dims(1) = offset_f(4)
+    if(dims(1) > 0) call h5dwrite_f(velphi_id, H5T_NATIVE_DOUBLE, velphi, dims, hdferr)
+    dims(1) = offset_f(5)
+    if(dims(1) > 0) call h5dwrite_f(phi_id, H5T_NATIVE_DOUBLE, phi, dims, hdferr)
+    dims(1) = offset_f(6)
+    if(dims(1) > 0)then
+        call h5dwrite_f(velphi1_id, H5T_NATIVE_DOUBLE, velphi1, dims, hdferr)
+        call h5dwrite_f(velphi2_id, H5T_NATIVE_DOUBLE, velphi2, dims, hdferr)
+        call h5dwrite_f(velphi3_id, H5T_NATIVE_DOUBLE, velphi3, dims, hdferr)
+    end if
+
 
     call h5dclose_f(veloc_id, hdferr)
     call h5dclose_f(displ_id, hdferr)
     call h5dclose_f(veloc1_id, hdferr)
     call h5dclose_f(veloc2_id, hdferr)
     call h5dclose_f(veloc3_id, hdferr)
+    call h5dclose_f(velphi_id, hdferr)
+    call h5dclose_f(phi_id, hdferr)
+    call h5dclose_f(velphi1_id, hdferr)
+    call h5dclose_f(velphi2_id, hdferr)
+    call h5dclose_f(velphi3_id, hdferr)
 
 end subroutine write_Faces
 
@@ -682,15 +1066,21 @@ subroutine write_Edges(Tdomain, offset_e, edge_id)
     implicit none
     type (domain), intent (IN):: Tdomain
     integer(HID_T), intent(IN) :: edge_id
-    integer(kind=4), dimension(3), intent(IN) :: offset_e
+    integer(kind=4), dimension(6), intent(IN) :: offset_e
 
-    integer(HID_T) :: veloc_id, displ_id, veloc1_id, veloc2_id, veloc3_id
-    integer :: n,ngll,idx1,idx2,idx3,i,j,hdferr
+    integer(HID_T) :: veloc_id, displ_id, veloc1_id, veloc2_id, veloc3_id,   &
+                      velphi_id, phi_id, velphi1_id, velphi2_id, velphi3_id
+    integer :: n,ngll,idx1,idx2,idx3,idx4,idx5,idx6,i,j,hdferr
     real(kind=8), dimension(1:offset_e(1)) :: veloc
     real(kind=8), dimension(1:offset_e(2)) :: displ
     real(kind=8), dimension(1:offset_e(3)) :: veloc1
     real(kind=8), dimension(1:offset_e(3)) :: veloc2
     real(kind=8), dimension(1:offset_e(3)) :: veloc3
+    real(kind=8), dimension(1:offset_e(4)) :: velphi
+    real(kind=8), dimension(1:offset_e(5)) :: phi
+    real(kind=8), dimension(1:offset_e(6)) :: velphi1
+    real(kind=8), dimension(1:offset_e(6)) :: velphi2
+    real(kind=8), dimension(1:offset_e(6)) :: velphi3
     integer(HSIZE_T), dimension(1) :: dims
 
     call create_dset(edge_id, "Veloc", H5T_IEEE_F64LE, offset_e(1), veloc_id)
