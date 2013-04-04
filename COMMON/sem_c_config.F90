@@ -28,6 +28,7 @@ module sem_c_config
        !! Capteurs
        integer(C_INT) :: save_traces
        integer(C_INT) :: traces_interval
+       integer(C_INT) :: traces_format
        type(C_PTR)    :: station_file
 
        !! Snapshots

@@ -552,6 +552,7 @@ subroutine read_input (Tdomain, rg, code)
     Tdomain%TimeD%ncheck = config%prorep_iter ! frequence de sauvegarde
     Tdomain%station_file = fromcstr(config%station_file)
     Tdomain%TimeD%ntrace = config%traces_interval ! XXX
+    Tdomain%traces_format = config%traces_format
     Tdomain%TimeD%time_snapshots = config%snap_interval
     logic_scheme = Tdomain%TimeD%acceleration_scheme .neqv. Tdomain%TimeD%velocity_scheme
     if(.not. logic_scheme) then
