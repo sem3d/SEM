@@ -1,0 +1,7 @@
+
+capteur uA {
+titre="hello";
+freq = 1;
+pos = 100. 100. -10.;
+type=interp;
+};
