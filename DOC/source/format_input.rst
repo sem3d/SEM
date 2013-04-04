@@ -45,9 +45,9 @@ mpml_atn_param    réel     0.0                Coéfficient d'amortissement MPML
 prorep            bool     false              Reprise d'un calcul précédent
 prorep_iter       entier   n/a                Numéro de la protection pour reprendre le calcul
 run_name          chaîne   ""                 Titre de la simulation
-save_snap         bool     false              Sauvegarde des snapshots
-save_interval     réel     --                 Interval (temps physique) de sauvegarde des snapshots
+snapshots         section  n/a                Description des paramètres de sauvegarde des snapshots
 save_traces       bool     false              Activation des capteurs
+traces_format     kw       text               Format des sorties capteurs ``text`` ou ``hdf5``
 sim_time          réel     aucune             Durée (temps physique) de la simulation
 source            section  n/a                Description d'une source (peut apparaître plusieurs fois)
 station_file      chaîne   "capteurs.dat"     Fichier de description des capteurs
@@ -65,6 +65,7 @@ gradient          section   n/a                Description des gradients
 model             kw        --                 CUB|homo|prem|3D_berkeley
 neumann           bool                         .
 traces_interval   entier                       .
+traces_format     kw
 ================  ========  =================  ===========================================================
 
 Description de la section ``amortissement`` :
@@ -98,7 +99,7 @@ Mot-clef          type     valeur par défaut  Description
 coords            réel(3)  0 0 0              Position de la source
 type              kw       --                 Type spatial: impulse|moment|fluidpulse
 dir               kw       --                 Direction pour le type impulse ou fluidpulse (val: x|y|z)
-func              kw       --                 Type temporel (voir ci-dessous)
+func              kw       --                 Type temporel (voir `Les sources`_ ci-dessous)
 moment            réel(6)  --                 Moment xx yy zz xy yx xz pour le type moment
 tau               réel     --                 Un temps caractéristique :math:`\tau`
 freq              réel     --                 Une fréquence :math:`f_c`
@@ -109,7 +110,47 @@ time_file         chaîne   --                 Fichier contenant la source
 amplitude         réel     --
 ================  =======  =================  =================================================================
 
+Description de la section ``snapshots`` :
 
+================  ========  =================  ================================================================
+Mot-clef          type      valeur par défaut  Description
+================  ========  =================  ================================================================
+save_snap         bool      false              Sauvegarde des snapshots
+save_interval     réel      --                 Interval (temps physique) de sauvegarde des snapshots
+select            note (1)  --                 Sélection des éléments à inclure dans les snapshots
+deselect          note (1)  --                 Désélection des éléments à inclure dans les snapshots
+================  ========  =================  ================================================================
+
+(1) Par défaut, les snapshots incluent toutes les mailles. Le format de la commande select/deselect
+    est décrit ci-dessous :
+
+On peut choisir de sélectionner ou déselectionner des mailles pour les inclure ou les exclure des sorties.
+
+Il y a pour l'instant deux critères de sélection : Le numéro matériau ou la localisation absolue.
+
+Les commandes de sélection/déselection sont appliquées dans l'ordre du fichier ``input.spec``.
+
+La syntaxe de la commande est ::
+
+  [de]select (all|material = NN|box = x0 y0 z0 x1 y1 z1) ;
+
+Ainsi ::
+
+  deselect all;
+  select material = 1;
+  selec box = -500 -10 -10 500 10 10;
+
+Va déselectionner tous les éléments, puis resélectionner tous les éléments ayant le matériau 1,
+ainsi que tous les éléments dont le centre se situe dans la boite spécifiée.
+
+Autre exemple ::
+
+  select all;  # Inutile car par défaut
+  deselect material  = 5;
+  deselect material  = 6;
+  deselect material  = 7;
+
+Cette description va simplement exclure les matériaux 5, 6 et 7 des sorties.
 
 Exemple
 =======
@@ -124,33 +165,37 @@ Le fichier suivant correspond à celui d'un cas test ::
   mesh_file = "mesh4spec"; # input mesh file
   mat_file = "material.input";
   
-  save_snap = true;
-  snap_interval = 0.01;
-  
+  snapshots {
+    save_snap = true;
+    snap_interval = 0.01;
+    deselect all;
+    select material = 1;
+    select box = -10 -10 -10 10 10 10;
+  };
   save_traces = true;
   # Fichier de description des capteurs
   station_file = "file_station";
   
   
   source {                 # introduce a source
-  # coordinates of the sources
-  coords = 0. 0. 0.;
-  type = impulse; # Type (1 Impulse, 2 Moment Tensor, fluidpulse)
-  dir = x;                      # Direction x,y ou z (only for Impulse)
-  func = ricker;          # Function gaussian,ricker,tf_heaviside,gabor,file
-  tau = 0.2;              # tau
-  freq = 5.;           # source main frequency (only for Ricker)
+    # coordinates of the sources
+    coords = 0. 0. 0.;
+    type = impulse; # Type (1 Impulse, 2 Moment Tensor, fluidpulse)
+    dir = x;                      # Direction x,y ou z (only for Impulse)
+    func = ricker;          # Function gaussian,ricker,tf_heaviside,gabor,file
+    tau = 0.2;              # tau
+    freq = 5.;           # source main frequency (only for Ricker)
   };
   
   
   #gradient_file="gradients.dat"  # fichier gradient
   
   time_scheme {
-      accel_scheme = false;  # Acceleration scheme for Newmark
-      veloc_scheme = true;   # Velocity scheme for Newmark
-      alpha = 0.5;           # alpha (Newmark parameter)
-      beta = -0.5;           # beta (Newmark parameter)
-      gamma = 1;             # gamma (Newmark parameter)
+    accel_scheme = false;  # Acceleration scheme for Newmark
+    veloc_scheme = true;   # Velocity scheme for Newmark
+    alpha = 0.5;           # alpha (Newmark parameter)
+    beta = -0.5;           # beta (Newmark parameter)
+    gamma = 1;             # gamma (Newmark parameter)
   };
 
 

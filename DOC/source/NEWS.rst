@@ -3,28 +3,51 @@
 NEWS
 ====
 
-Version 2013.02
+Version 2013.04
 ---------------
 
-Cette version résulte de l'intégration de plusieurs versions du même code :
+Cette version résulte de l'intégration dans RegSEM.U de :
 
-- RegSEM.U
-- SEM-CEA.
+- des modifications apportées par la version interne CEA,
 
-A cette intégration s'ajoute de nouveaux développements.
+- des éléments fluides développés dans une autre version issue de RegSEM.U,
 
-Les nouveautés par rapport à toutes les versions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- de nouveaux développements destinés à simplifier l'utilisation et la
+  maintenance du code
 
-- Lecture des maillages au format unv
 
-- Introduction d'éléments de type fluide, avec couplage fluide solide.
+Les nouveautés
+~~~~~~~~~~~~~~
+
+On liste ici les nouvelles fonctionnalités par rapport à RegSEM.U.
+
+Fonctionnalités du code :
+
+- (SEM3D) Introduction d'éléments de type fluide, avec couplage fluide solide.
 
 - Introduction d'un mécanisme d'amortissement sismique. On spécifie Qp
   et Qs dans le fichier matériau. Le nombre de mécanismes est
   déterminé par le fichier de configuration.
 
-- Un nouveau format de fichier d'entrée (input.spec) :
+- Nouvelles formes d'onde pour les sources. (Benchmark E2VP, Benchmark
+  SPICE, sinus)
+
+- Une variante des PML (MPML) avec son paramètre associé a été
+  introduite. Ceci afin de régler des problèmes d'instabilités
+  constatés sur certains cas.
+
+- Un mode couplage optionnel avec un code externe (pour l'instant
+  Mka3D).
+
+- On peut maintenant faire des sorties snapshots partielles. Le fichier
+  ``input.spec`` permet de décrire simplement une sélection de mailles
+  à inclure dans les sorties.
+
+Entrées/sorties :
+
+- (MESH) Lecture des maillages au format unv
+
+- (SEM3D, SEM2D) Un nouveau format de fichier d'entrée (input.spec) :
 
   L'ancien format était très confu : une liste de valeurs lues de
   manière aveugle par les codes. Chaque code lisait ses paramètres
@@ -54,6 +77,21 @@ Les nouveautés par rapport à toutes les versions
   décrire 2 milliards de noeuds uniques, et le format utilise par
   défaut la compression gzip.
 
+- Nouveau format pour le fichier des capteurs/traces :
+
+  On a conservé le format de la version CEA, plus général. Dans une
+  prochaine version ce fichier migrera vers un format semblable à
+  celui de ``input.spec``
+
+- Format des backups en HDF5 (protection/reprise)
+
+  Les fichiers de backup (ou protection/reprise) sont également en HDF5.
+
+  Ce développement à été effectué pour faire passer un cas HPC. Le
+  temps de création d'un backup pour ce cas est passée de 2H à 5min.
+
+Optimisations :
+
 - Optimisation des communications :
 
   L'algorithme d'échange inter-processeur a été entièrement revu pour
@@ -71,9 +109,11 @@ Les nouveautés par rapport à toutes les versions
   La mémoire utilisée est réduite à l'espace d'un seul pointeur par
   élément au lieu d'une dizaine.
 
-- Corrections de bugs :
+- L'utilisation de la librairie HDF5 permet d'optimiser grandement les
+  Entrées/Sorties pour les gros cas de calcul.
 
-  - Il manquait une équation dans le calcul des PML classiques.
+
+Autres :
 
 - Améliorations du mailleur intégré :
 
@@ -84,8 +124,8 @@ Les nouveautés par rapport à toutes les versions
 
   Le mailleur génère ses maillages au format HDF5 attendu par SEM.
 
-  De nombreuses optimisations ont été effectuées accélérant le
-  traitement.
+  De nombreuses optimisations et restructurations du code ont été
+  effectuées accélérant le traitement.
 
 - Introduction d'un répertoire de cas tests de non-régression et de
   benchmarks.
@@ -95,56 +135,56 @@ Les nouveautés par rapport à toutes les versions
 - Compilation des sources avec CMake :
 
   CMake est un outil (comme autotools) permettant de générer des Makefiles.
-  (voir `Compilation`_ )
+  (voir :ref:`installation` )
 
-Les nouveautés de cette version par rapport à RegSEM.U
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Correction des FPML.
 
-- Nouveau format pour le fichier des capteurs/traces :
+- (SEM3D) : le code a été factorisé en plusieurs endroits.
 
-  On a conservé le format de la version CEA, plus général. Dans une
-  prochaine version ce fichier migrera vers un format semblable à
-  celui de ``input.spec``
+Evolutions futures
+~~~~~~~~~~~~~~~~~~
 
-- Nouvelles formes d'onde pour les sources. (Benchmark E2VP, Benchmark
-  SPICE, sinus)
+Certaines fonctionnalités sont prévues (voire déjà disponibles dans le code) mais
+n'ont pas encore été finalisées, intégrées ou correctement testées :
 
-- gradient
+- Description de gradient de propriétés dans les matériaux. Le code de la version CEA
+  a été intégré, mais la description des matériaux dans le fichier de configuration
+  n'a pas encore été effectué. Elle sera intégrée avec la refonte de la description des matériaux
+  prévue.
 
-- separation sources, gradients, etc...
+- Description des conditions de Neumann. Le code existe, il n'a pas été testé. Il sera intégré
+  dans le fichier de configuration au nouveau format dans une prochaine version.
 
-- Format des backups en HDF5 (protection/reprise)
+- Description des capteurs : la prochaine version utilisera une syntaxe semblable à celle du
+  fichier input.spec pour la description des capteurs.
 
-  Les fichiers de backup (ou protection/reprise) sont également en HDF5.
+- anisotropie : le code pour gérer des materiaux anisotrope existe,
+  mais il n'y a rien dans la syntaxe actuelle du fichier de
+  description des matériaux qui permette de définir un milieu
+  anisotrope. Là encore, cela sera intégré dans la prochaine version
+  lors de la refonte de fichier de description des matériaux.
 
-  Ce développement à été effectué pour faire passer un cas HPC. Le
-  temps de création d'un backup pour ce cas est passée de 2H à 5min.
-
-- Un mode couplage optionnel avec un code externe (pour l'instant
-  Mka3D).
-
-- Une variante des PML (MPML) avec son paramètre associé a été
-  introduite. Ceci afin de régler des problèmes d'instabilités
-  constatés sur certains cas.
-
-
-
-TODO
-~~~~
-
-XXX: A décrire
-
-- modele de source
-
-- description condition Neumann
-
-- description des capteurs (mot-clefs)
-
-- anisotropie
 
 
 Notes importantes
 ~~~~~~~~~~~~~~~~~
+
+Le code source est versionné avec git et livré dans une archive contenant :
+
+- SEM version 3D
+
+- SEM version 2D
+
+- MESH : un outil de préparation de maillages 3D pour SEM3D (l'équivalent
+  2D sera intégré dans une prochaine version).
+
+- La librairie HDF5 est devenue une dépendance obligatoire (
+  `www.hdfgroup.org <http://www.hdfgroup.org>`_ ).
+
+  Cette librairie permet le stockage efficace de gros volume de
+  données. Son utilisation permet le posttraitement immédiat des
+  snapshot avec Paraview ou Ensight. Les données produite sont
+  également lisibles facilement avec Matlab et Python.
 
 - Le schéma en temps a été simplifié (Les paramètres beta/gamma de
   l'algorithme de Newmark ne sont plus modifiables).

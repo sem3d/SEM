@@ -7,10 +7,14 @@ Utilisation du gestionnaire de configuration git
 Introduction
 ============
 
-- git est disponible sur unix (linux, MacOS) et Windows.
+- git est disponible sur unix (linux, MacOS) (`gitscm.org <http://gitscm.org>`_) 
+  et Windows (`code.google.com/p/tortoisegit/ <http://code.google.com/p/tortoisegit/>`_)
+
+Les commandes de ce tutoriel concerne la version unix, mais sont
+également valables si vous utilisez le *shell git* depuis Windows.
 
 - La commande ``gitk`` ouvre une fenêtre permettant de visualiser les
-  derniers commits, la branche courante, les fichiers modifiés, … On
+  derniers *commits*, la branche courante, les fichiers modifiés, … On
   l’exécute en faisant ::
 
     gitk --all &
@@ -23,7 +27,12 @@ Introduction
 
 - Pour configurer ses paramètres (ce qui modifie le fichier ~/.gitconfig) ::
 
-    git config --global user.name "toto" 
+    git config --global user.name "toto"
+    git config --global user.email "toto@example.com"
+
+- Sur un terminal couleur, on peut activer les sorties git en couleur :
+
+    git config --global color.ui auto
 
 
 Démarrage rapide

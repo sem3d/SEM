@@ -1,8 +1,11 @@
 .. -*- coding: utf-8 -*-
 
+.. _installation:
+
 ==========================
 Installation du code SEM3D
 ==========================
+
 
 Prérequis
 =========
