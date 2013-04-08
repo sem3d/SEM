@@ -27,6 +27,7 @@ subroutine read_Veloc(Tdomain, elem_id)
     idx2 = 1
     idx3 = 1
     do n = 0,Tdomain%n_elem-1
+        if(.not. Tdomain%specel(n)%solid) cycle
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
@@ -65,6 +66,59 @@ subroutine read_Veloc(Tdomain, elem_id)
     deallocate(veloc3)
     deallocate(displ)
 end subroutine read_Veloc
+
+subroutine read_VelPhi(Tdomain, elem_id)
+    use sdomain
+    use HDF5
+    use sem_hdf5, only : read_dset_1d_real
+    implicit none
+    type (domain), intent (INOUT):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+    real*8, allocatable, dimension(:) :: velphi, velphi1, velphi2, velphi3, phi
+    integer :: idx1, idx2, idx3, ngllx, nglly, ngllz
+    integer :: n, i, j, k
+
+
+    call read_dset_1d_real(elem_id, "VelPhi", velphi)
+    call read_dset_1d_real(elem_id, "VelPhi1", velphi1)
+    call read_dset_1d_real(elem_id, "VelPhi2", velphi2)
+    call read_dset_1d_real(elem_id, "VelPhi3", velphi3)
+    call read_dset_1d_real(elem_id, "Phi", phi)
+    idx1 = 1
+    idx2 = 1
+    idx3 = 1
+    do n = 0,Tdomain%n_elem-1
+        if(Tdomain%specel(n)%solid) cycle
+        ngllx = Tdomain%specel(n)%ngllx
+        nglly = Tdomain%specel(n)%nglly
+        ngllz = Tdomain%specel(n)%ngllz
+
+        do k = 1,ngllz-2
+            do j = 1,nglly-2
+                do i = 1,ngllx-2
+                    Tdomain%specel(n)%VelPhi(i,j,k) = velphi(idx1)
+                    idx1 = idx1 + 1
+                    if ( .not. Tdomain%specel(n)%PML ) then
+                        Tdomain%specel(n)%Phi(i,j,k) = phi(idx2)
+                        idx2 = idx2 + 1
+                    else
+                        Tdomain%specel(n)%spml%VelPhi1(i,j,k) = velphi1(idx3)
+                        Tdomain%specel(n)%spml%VelPhi2(i,j,k) = velphi2(idx3)
+                        Tdomain%specel(n)%spml%VelPhi3(i,j,k) = velphi3(idx3)
+                        idx3 = idx3 + 1
+                    end if
+                end do
+            end do
+        end do
+    end do
+    deallocate(velphi)
+    deallocate(velphi1)
+    deallocate(velphi2)
+    deallocate(velphi3)
+    deallocate(phi)
+end subroutine read_VelPhi
+
+
 
 subroutine read_EpsilonVol(Tdomain, elem_id)
     use sdomain
@@ -195,6 +249,7 @@ subroutine read_Stress(Tdomain, elem_id)
     idx = 1
     n_solid = Tdomain%n_sls
     do n = 0,Tdomain%n_elem-1
+        if(.not. Tdomain%specel(n)%solid) cycle
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
@@ -223,6 +278,10 @@ subroutine read_Stress(Tdomain, elem_id)
                         Tdomain%specel(n)%spml%Residual_Stress2(i,j,k,1) = stress(idx+1)
                         Tdomain%specel(n)%spml%Residual_Stress2(i,j,k,2) = stress(idx+2)
                         idx = idx + 3
+                        Tdomain%specel(n)%spml%Residual_Stress3(i,j,k,0) = stress(idx+0)
+                        Tdomain%specel(n)%spml%Residual_Stress3(i,j,k,1) = stress(idx+1)
+                        Tdomain%specel(n)%spml%Residual_Stress3(i,j,k,2) = stress(idx+2)
+                        idx = idx + 3
                     end do
                 end do
             end do
@@ -231,6 +290,51 @@ subroutine read_Stress(Tdomain, elem_id)
     deallocate(stress)
 end subroutine read_Stress
 
+subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
+    use sdomain
+    use HDF5
+    use sem_hdf5, only : read_dset_1d_real
+    implicit none
+    type (domain), intent (INOUT):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+    real*8, allocatable, dimension(:) :: Veloc
+    integer :: idx, ngllx, nglly, ngllz
+    integer :: n, i, j, k
+
+    call read_dset_1d_real(elem_id, "Veloc_Fl", veloc)
+    idx = 1
+    do n = 0,Tdomain%n_elem-1
+        if(Tdomain%specel(n)%solid) cycle
+        ngllx = Tdomain%specel(n)%ngllx
+        nglly = Tdomain%specel(n)%nglly
+        ngllz = Tdomain%specel(n)%ngllz
+
+        if (Tdomain%specel(n)%PML ) then
+            do k = 0,ngllz-1
+                do j = 0,nglly-1
+                    do i = 0,ngllx-1
+                        Tdomain%specel(n)%spml%Veloc1(i,j,k,0) = veloc(idx+0)
+                        Tdomain%specel(n)%spml%Veloc1(i,j,k,1) = veloc(idx+1)
+                        Tdomain%specel(n)%spml%Veloc1(i,j,k,2) = veloc(idx+2)
+                        idx = idx + 3
+                        Tdomain%specel(n)%spml%Veloc2(i,j,k,0) = veloc(idx+0)
+                        Tdomain%specel(n)%spml%Veloc2(i,j,k,1) = veloc(idx+1)
+                        Tdomain%specel(n)%spml%Veloc2(i,j,k,2) = veloc(idx+2)
+                        idx = idx + 3
+                        Tdomain%specel(n)%spml%Veloc3(i,j,k,0) = veloc(idx+0)
+                        Tdomain%specel(n)%spml%Veloc3(i,j,k,1) = veloc(idx+1)
+                        Tdomain%specel(n)%spml%Veloc3(i,j,k,2) = veloc(idx+2)
+                        idx = idx + 3
+                    end do
+                end do
+            end do
+        end if
+    end do
+    deallocate(veloc)
+end subroutine read_Veloc_Fluid_PML
+
+
+
 subroutine read_Faces(Tdomain, face_id)
     use sdomain
     use HDF5
@@ -238,8 +342,9 @@ subroutine read_Faces(Tdomain, face_id)
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: face_id
-    real*8, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ
-    integer :: idx1, idx2, idx3, ngll1, ngll2
+    real*8, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ, &
+                                         velphi, velphi1, velphi2, velphi3, phi
+    integer :: idx1, idx2, idx3,idx4,idx5,idx6, ngll1, ngll2
     integer :: n, i, j
 
 
@@ -248,13 +353,21 @@ subroutine read_Faces(Tdomain, face_id)
     call read_dset_1d_real(face_id, "Veloc2", veloc2)
     call read_dset_1d_real(face_id, "Veloc3", veloc3)
     call read_dset_1d_real(face_id, "Displ", displ)
+    call read_dset_1d_real(face_id, "VelPhi", velphi)
+    call read_dset_1d_real(face_id, "VelPhi1", velphi1)
+    call read_dset_1d_real(face_id, "VelPhi2", velphi2)
+    call read_dset_1d_real(face_id, "VelPhi3", velphi3)
+    call read_dset_1d_real(face_id, "Phi", phi)
     idx1 = 1
     idx2 = 1
     idx3 = 1
+    idx4 = 1
+    idx5 = 1
+    idx6 = 1
     do n = 0,Tdomain%n_face-1
         ngll1 = Tdomain%sFace(n)%ngll1
         ngll2 = Tdomain%sFace(n)%ngll2
-
+        if(Tdomain%sFace(n)%solid)then
         do j = 1,ngll2-2
             do i = 1,ngll1-2
                 Tdomain%sFace(n)%Veloc(i,j,0) = veloc(idx1+0)
@@ -280,12 +393,35 @@ subroutine read_Faces(Tdomain, face_id)
                 end if
             end do
         end do
+        else    ! fluid part
+        do j = 1,ngll2-2
+            do i = 1,ngll1-2
+                Tdomain%sFace(n)%VelPhi(i,j) = velphi(idx4)
+                idx4 = idx4 + 1
+                if ( .not. Tdomain%sFace(n)%PML ) then
+                    Tdomain%sFace(n)%Phi(i,j) = phi(idx5)
+                    idx5 = idx5 + 1
+                else
+                    Tdomain%sFace(n)%spml%VelPhi1(i,j) = velphi1(idx6)
+                    Tdomain%sFace(n)%spml%VelPhi2(i,j) = velphi2(idx6)
+                    Tdomain%sFace(n)%spml%VelPhi3(i,j) = velphi3(idx6)
+                    idx6 = idx6 + 1
+                end if
+            end do
+        end do
+
+        end if
     end do
     deallocate(veloc)
     deallocate(veloc1)
     deallocate(veloc2)
     deallocate(veloc3)
     deallocate(displ)
+    deallocate(velphi)
+    deallocate(velphi1)
+    deallocate(velphi2)
+    deallocate(velphi3)
+    deallocate(phi)
 end subroutine read_Faces
 
 subroutine read_Edges(Tdomain, edge_id)
@@ -295,8 +431,9 @@ subroutine read_Edges(Tdomain, edge_id)
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: edge_id
-    real*8, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ
-    integer :: idx1, idx2, idx3, ngll
+    real*8, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ, &
+                                         velphi, velphi1, velphi2, velphi3, phi
+    integer :: idx1, idx2, idx3, idx4,idx5,idx6,ngll
     integer :: n, i
 
 
@@ -305,12 +442,20 @@ subroutine read_Edges(Tdomain, edge_id)
     call read_dset_1d_real(edge_id, "Veloc2", veloc2)
     call read_dset_1d_real(edge_id, "Veloc3", veloc3)
     call read_dset_1d_real(edge_id, "Displ", displ)
+    call read_dset_1d_real(edge_id, "VelPhi", velphi)
+    call read_dset_1d_real(edge_id, "VelPhi1", velphi1)
+    call read_dset_1d_real(edge_id, "VelPhi2", velphi2)
+    call read_dset_1d_real(edge_id, "VelPhi3", velphi3)
+    call read_dset_1d_real(edge_id, "Phi", phi)
     idx1 = 1
     idx2 = 1
     idx3 = 1
+    idx4 = 1
+    idx5 = 1
+    idx6 = 1
     do n = 0,Tdomain%n_edge-1
         ngll = Tdomain%sEdge(n)%ngll
-
+        if(Tdomain%sEdge(n)%solid)then
         do i = 1,ngll-2
             Tdomain%sEdge(n)%Veloc(i,0) = veloc(idx1+0)
             Tdomain%sEdge(n)%Veloc(i,1) = veloc(idx1+1)
@@ -334,12 +479,33 @@ subroutine read_Edges(Tdomain, edge_id)
                 idx3 = idx3 + 3
             end if
         end do
+        else   ! fluid part
+        do i = 1,ngll-2
+            Tdomain%sEdge(n)%VelPhi(i) = velphi(idx4)
+            idx4 = idx4 + 1
+            if ( .not. Tdomain%sEdge(n)%PML ) then
+                Tdomain%sEdge(n)%Phi(i) = phi(idx5)
+                idx5 = idx5 + 1
+            else
+                Tdomain%sEdge(n)%spml%VelPhi1(i) = velphi1(idx6)
+                Tdomain%sEdge(n)%spml%VelPhi2(i) = velphi2(idx6)
+                Tdomain%sEdge(n)%spml%VelPhi3(i) = velphi3(idx6)
+                idx6 = idx6 + 1
+            end if
+        end do
+
+        end if
     end do
     deallocate(veloc)
     deallocate(veloc1)
     deallocate(veloc2)
     deallocate(veloc3)
     deallocate(displ)
+    deallocate(velphi)
+    deallocate(velphi1)
+    deallocate(velphi2)
+    deallocate(velphi3)
+    deallocate(phi)
 end subroutine read_Edges
 
 subroutine read_Vertices(Tdomain, vertex_id)
@@ -349,8 +515,9 @@ subroutine read_Vertices(Tdomain, vertex_id)
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: vertex_id
-    real*8, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ
-    integer :: idx1, idx2, idx3
+    real*8, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ, &
+                                         velphi, velphi1, velphi2, velphi3, phi
+    integer :: idx1, idx2, idx3,idx4,idx5,idx6
     integer :: n
 
 
@@ -359,10 +526,19 @@ subroutine read_Vertices(Tdomain, vertex_id)
     call read_dset_1d_real(vertex_id, "Veloc2", veloc2)
     call read_dset_1d_real(vertex_id, "Veloc3", veloc3)
     call read_dset_1d_real(vertex_id, "Displ", displ)
+    call read_dset_1d_real(vertex_id, "VelPhi", velphi)
+    call read_dset_1d_real(vertex_id, "VelPhi1", velphi1)
+    call read_dset_1d_real(vertex_id, "VelPhi2", velphi2)
+    call read_dset_1d_real(vertex_id, "VelPhi3", velphi3)
+    call read_dset_1d_real(vertex_id, "Phi", phi)
     idx1 = 1
     idx2 = 1
     idx3 = 1
+    idx4 = 1
+    idx5 = 1
+    idx6 = 1
     do n = 0,Tdomain%n_vertex-1
+        if(Tdomain%sVertex(n)%solid)then
         Tdomain%sVertex(n)%Veloc(0) = veloc(idx1+0)
         Tdomain%sVertex(n)%Veloc(1) = veloc(idx1+1)
         Tdomain%sVertex(n)%Veloc(2) = veloc(idx1+2)
@@ -384,12 +560,31 @@ subroutine read_Vertices(Tdomain, vertex_id)
             Tdomain%sVertex(n)%spml%Veloc3(2) = veloc3(idx3+2)
             idx3 = idx3 + 3
         end if
+        else   ! fluid part
+        Tdomain%sVertex(n)%VelPhi = velphi(idx4)
+        idx4 = idx4 + 1
+        if ( .not. Tdomain%sVertex(n)%PML ) then
+            Tdomain%sVertex(n)%Phi = phi(idx5)
+            idx5 = idx5 + 1
+        else
+            Tdomain%sVertex(n)%spml%VelPhi1 = velphi1(idx6)
+            Tdomain%sVertex(n)%spml%VelPhi2 = velphi2(idx6)
+            Tdomain%sVertex(n)%spml%VelPhi3 = velphi3(idx6)
+            idx6 = idx6 + 1
+        end if
+
+        end if
     end do
     deallocate(veloc)
     deallocate(veloc1)
     deallocate(veloc2)
     deallocate(veloc3)
     deallocate(displ)
+    deallocate(velphi)
+    deallocate(velphi1)
+    deallocate(velphi2)
+    deallocate(velphi3)
+    deallocate(phi)
 end subroutine read_Vertices
 
 subroutine read_restart (Tdomain,rg, isort)
@@ -443,9 +638,11 @@ subroutine read_restart (Tdomain,rg, isort)
     endif
 
     call read_Veloc(Tdomain, elem_id)
+    call read_VelPhi(Tdomain, elem_id)
     call read_EpsilonVol(Tdomain, elem_id)
     call read_EpsilonDev(Tdomain, elem_id)
     call read_Stress(Tdomain, elem_id)
+    call read_Veloc_Fluid_PML(Tdomain, elem_id)
     call read_Faces(Tdomain, face_id)
     call read_Edges(Tdomain, edge_id)
     call read_Vertices(Tdomain, vertex_id)
