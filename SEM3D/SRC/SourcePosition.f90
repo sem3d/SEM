@@ -91,6 +91,10 @@ subroutine SourcePosition (Tdomain,rg)
         ! On trouve l'element dans lequel est la src ainsi que le GLL interne le plus proche
         n_around_elem = 0
         do i = 0,Tdomain%n_elem-1
+            if(Tdomain%sSource(n_src)%i_type_source == 3 .and.    &
+                  Tdomain%specel(i)%solid)   cycle
+            if(Tdomain%sSource(n_src)%i_type_source /= 3 .and.    &
+                  .not. Tdomain%specel(i)%solid)   cycle
             do j = 0,Tdomain%n_nodes-1
                 if(Tdomain%specel(i)%Control_nodes(j) == near_node) then
                     el_around_node(n_around_elem) = i
