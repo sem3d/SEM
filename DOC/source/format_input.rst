@@ -112,21 +112,21 @@ amplitude         réel     --
 
 Description de la section ``snapshots`` :
 
-================  ========  =================  ================================================================
-Mot-clef          type      valeur par défaut  Description
-================  ========  =================  ================================================================
-save_snap         bool      false              Sauvegarde des snapshots
-save_interval     réel      --                 Interval (temps physique) de sauvegarde des snapshots
-select            note (1)  --                 Sélection des éléments à inclure dans les snapshots
-deselect          note (1)  --                 Désélection des éléments à inclure dans les snapshots
-================  ========  =================  ================================================================
+=============  ===========  =================  ================================================================
+Mot-clef       type         valeur par défaut  Description
+=============  ===========  =================  ================================================================
+save_snap      bool         false              Sauvegarde des snapshots
+save_interval  réel         --                 Interval (temps physique) de sauvegarde des snapshots
+select         note [#f1]_  --                 Sélection des éléments à inclure dans les snapshots
+deselect       note [#f1]_  --                 Désélection des éléments à inclure dans les snapshots
+=============  ===========  =================  ================================================================
 
-(1) Par défaut, les snapshots incluent toutes les mailles. Le format de la commande select/deselect
-    est décrit ci-dessous :
+.. [#f1] Par défaut, les snapshots incluent toutes les mailles. Le format de la commande select/deselect
+         est décrit ci-dessous.
 
 On peut choisir de sélectionner ou déselectionner des mailles pour les inclure ou les exclure des sorties.
 
-Il y a pour l'instant deux critères de sélection : Le numéro matériau ou la localisation absolue.
+Il y a pour l'instant deux critères de sélection : le numéro du matériau ou la localisation absolue.
 
 Les commandes de sélection/déselection sont appliquées dans l'ordre du fichier ``input.spec``.
 

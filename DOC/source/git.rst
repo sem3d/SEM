@@ -55,7 +55,8 @@ Pour aller plus loin il faut regarder les commandes interactives :
 - ``gitk`` : permet de naviguer dans l'historique, faire des recherches, etc...
 - ``git help`` et ``git xxx --help`` : permet d'obtenir la documentation d'une commande ``xxx``
 
-Pour partager des sources avec d'autres développeurs, il faut commencer par faire un clone d'un répertoire git ::
+
+Pour partager des sources avec d'autres développeurs, il faut commencer par faire un clone d'un répertoire git : ::
 
   git clone /chemin/du/repertoire_source
 
@@ -138,7 +139,7 @@ Commandes utiles pour les commit
 Commandes pour modifier un commit
 ---------------------------------
 
-On peut avoir besoin de modifier un commit, à savoirm soit le
+On peut avoir besoin de modifier un commit, à savoir soit le
 fusionner avec un autre ou modifier son message.
 
 - Pour modifier un commit, à savoir changer son message ou le
@@ -181,82 +182,82 @@ La version courante contient un bug, on connaît une autre version qui
 ne contient pas ce bug. On peut alors trouver la version qui a
 introduit ce bug en utilisant ``git bisect``
 
-- Pour démarrer la recherche ::
+- Pour démarrer la recherche : ::
 
     git bisect
 
-- La version courante est propre et ne rencontre pas le bug. ::
+- La version courante est propre et ne rencontre pas le bug : ::
 
     git bisect good
 
-- La version courante est buggée. ::
+- La version courante est buggée : ::
 
     git bisect bad
 
   git propose alors une version intermédiaire à tester.
 
-- Pour sauter la version courante dans un tel procédé ::
+- Pour sauter la version courante dans un tel procédé : ::
 
     git bisect skip
 
 Gestion des branches
 --------------------
 
-- Pour lister les branches existantes, ::
+- Pour lister les branches existantes : ::
 
     git branch –a
 
-- Pour aller sur une branche, ::
+- Pour aller sur une branche : ::
 
     git checkout <branche>
 
-- Pour créer une nouvelle branche ::
+- Pour créer une nouvelle branche : ::
 
     git branch new_branch
 
-- Pour fusionner la version courante avec la version de la branche distante ::
+- Pour fusionner la version courante avec la version de la branche distante : ::
 
     git merge
 
 Récupération des données committées par les autres utilisateurs
 ---------------------------------------------------------------
 
-- Pour récupérer les modifications distantes sans fusionner ::
+- Pour récupérer les modifications distantes sans fusionner : ::
 
     git fetch
 
 - Pour recaler la branche courante au niveau de la branche distante
   (permet la mise à jour des fichiers source en tenant compte des
-  modifications distantes) ::
+  modifications distantes) ; ::
 
     git rebase origin/master
 
 - Pour recaler la branche courante au niveau d’une branche distante
-  qui n’est pas origin/master ::
+  qui n’est pas origin/master : ::
 
     git rebase origin/Version_1101
 
 - Pour récupérer les commits distants et faire la fusion avec la
-  version courante ::
+  version courante : ::
 
     git pull
 
 Transmission de ses commits aux autres utilisateurs
 ---------------------------------------------------
 
-- Pour transmettre (pousser) les modifications aux autres utilisateurs ::
+- Pour transmettre (pousser) les modifications aux autres utilisateurs : ::
 
     git push
 
-- Pour pousser la branche branche_locale sur origin ::
+- Pour pousser la branche branche_locale sur origin : ::
 
     git push origin branche_locale
 
-- Pour  transmettre les tags ::
+- Pour  transmettre les tags : ::
 
     git push --tags
 
-- Pour mettre une étiquette sur la version courante ::
+- Pour mettre une étiquette sur la version courante : ::
 
     git tag nom
 

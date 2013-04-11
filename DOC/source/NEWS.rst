@@ -3,6 +3,7 @@
 NEWS
 ====
 
+
 Version 2013.04
 ---------------
 
@@ -29,8 +30,8 @@ Fonctionnalités du code :
   et Qs dans le fichier matériau. Le nombre de mécanismes est
   déterminé par le fichier de configuration.
 
-- Nouvelles formes d'onde pour les sources. (Benchmark E2VP, Benchmark
-  SPICE, sinus)
+- Nouvelles formes d'onde pour les sources (Benchmark E2VP, Benchmark
+  SPICE, sinus).
 
 - Une variante des PML (MPML) avec son paramètre associé a été
   introduite. Ceci afin de régler des problèmes d'instabilités
@@ -45,7 +46,7 @@ Fonctionnalités du code :
 
 Entrées/sorties :
 
-- (MESH) Lecture des maillages au format unv
+- (MESH) Lecture des maillages au format unv.
 
 - (SEM3D, SEM2D) Un nouveau format de fichier d'entrée (input.spec) :
 
@@ -81,11 +82,9 @@ Entrées/sorties :
 
   On a conservé le format de la version CEA, plus général. Dans une
   prochaine version ce fichier migrera vers un format semblable à
-  celui de ``input.spec``
+  celui de ``input.spec``.
 
-- Format des backups en HDF5 (protection/reprise)
-
-  Les fichiers de backup (ou protection/reprise) sont également en HDF5.
+- Le format des backups est désormais HDF5 (protection/reprise).
 
   Ce développement à été effectué pour faire passer un cas HPC. Le
   temps de création d'un backup pour ce cas est passée de 2H à 5min.
@@ -130,12 +129,12 @@ Autres :
 - Introduction d'un répertoire de cas tests de non-régression et de
   benchmarks.
 
-  Les tests SEM3D se trouvent dans ``SEM3D/TESTS``
+  Les tests SEM3D se trouvent dans ``SEM3D/TESTS``.
 
 - Compilation des sources avec CMake :
 
   CMake est un outil (comme autotools) permettant de générer des Makefiles.
-  (voir :ref:`installation` )
+  (voir :ref:`installation` ).
 
 - Correction des FPML.
 
@@ -149,8 +148,10 @@ n'ont pas encore été finalisées, intégrées ou correctement testées :
 
 - Description de gradient de propriétés dans les matériaux. Le code de la version CEA
   a été intégré, mais la description des matériaux dans le fichier de configuration
-  n'a pas encore été effectué. Elle sera intégrée avec la refonte de la description des matériaux
-  prévue.
+  n'a pas encore été effectuée.
+
+  La nouvelle description des gradients et le nouveau format du fichier matériaux
+  seront développés dans une future version.
 
 - Description des conditions de Neumann. Le code existe, il n'a pas été testé. Il sera intégré
   dans le fichier de configuration au nouveau format dans une prochaine version.
@@ -158,11 +159,11 @@ n'ont pas encore été finalisées, intégrées ou correctement testées :
 - Description des capteurs : la prochaine version utilisera une syntaxe semblable à celle du
   fichier input.spec pour la description des capteurs.
 
-- anisotropie : le code pour gérer des materiaux anisotrope existe,
+- Anisotropie : le code pour gérer des materiaux anisotrope existe,
   mais il n'y a rien dans la syntaxe actuelle du fichier de
   description des matériaux qui permette de définir un milieu
   anisotrope. Là encore, cela sera intégré dans la prochaine version
-  lors de la refonte de fichier de description des matériaux.
+  lors de la refonte du fichier de description des matériaux.
 
 
 
@@ -183,7 +184,7 @@ Le code source est versionné avec git et livré dans une archive contenant :
 
   Cette librairie permet le stockage efficace de gros volume de
   données. Son utilisation permet le posttraitement immédiat des
-  snapshot avec Paraview ou Ensight. Les données produite sont
+  snapshot avec Paraview ou Ensight. Les données produites sont
   également lisibles facilement avec Matlab et Python.
 
 - Le schéma en temps a été simplifié (Les paramètres beta/gamma de

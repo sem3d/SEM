@@ -20,7 +20,7 @@ Le code SEM3D nécessite deux (ou trois) outils externes pour sa compilation :
 
   Si HDF5 est installé dans un chemin non-standard, utilisez la variable d'environnement
   ``HDF5_ROOT`` pour indiquer aux scripts *CMake* de SEM où elle se trouve. ``HDF5_ROOT`` doit pointer
-  sur le préfixe d'installation, c'est à dir le chemin contenant ``bin/``, ``include/``, etc...
+  sur le préfixe d'installation, c'est à dire le chemin contenant ``bin/``, ``include/``, etc...
 
   Les scripts de configurations *CMake* de SEM utilise la commande
   ``h5cc -show`` pour détecter le paramètrage de la librairie HDF5.
@@ -39,11 +39,11 @@ Organisation des répertoires
 
 Nous recommandons l'organisation suivante (les noms des répertoires sont à titre indicatif) :
 
-- ``sem_src`` : répertoire contenant les sources
+- ``sem_src`` : répertoire contenant les sources,
 
-- ``sem_build`` : répertoire contenant les binaires (en dehors du répertoire source)
+- ``sem_build`` : répertoire contenant les binaires (en dehors du répertoire source),
 
-- ``sem_debug`` : (facultatif) un second répertoire pour une compilation en mode debuggage de SEM
+- ``sem_debug`` : (facultatif) un second répertoire pour une compilation en mode debuggage de SEM.
 
 Préparation de la compilation
 -----------------------------
@@ -64,7 +64,7 @@ en deux étapes :
 
   **Important** : C'est à cet endroit qu'il faut préciser le mode de
   compilation par la variable : ``CMAKE_BUILD_TYPE``. On peut saisir :
-  ``DEBUG``, ``RELEASE``, ou ``RELWITHDEBINFO`` . Si on ne saisit
+  ``DEBUG``, ``RELEASE``, ou ``RELWITHDEBINFO``. Si on ne saisit
   rien, SEM sera compilé avec les options par défaut du compilateur
   (sans optimisation et sans debuggage avec gcc, optimisé sans
   debuggage avec ifort).
@@ -90,10 +90,10 @@ Une fois la génération terminée, la compilation se fait simplement par la com
 
 Quelques variantes :
 
-- ``make help`` : affiche toutes les cibles possible
+- ``make help`` : affiche toutes les cibles possibles.
 
 - ``make -j N`` : compile en parallèle avec N processus (on peut en
-  général utiliser N=nombre de processeurs + 1 ou 2)
+  général utiliser N=nombre de processeurs + 1 ou 2).
 
 - ``make -j N -k`` : compile le plus possible sur N processeur. Ne
   s'arrête pas à la première erreur de compilation.
@@ -103,32 +103,32 @@ Quelques variantes :
 
 La compilation produit plusieurs exécutables :
 
-- ``build_src/SEM2D/sem2d.exe`` : Code SEM2D
+- ``build_src/SEM2D/sem2d.exe`` : Code SEM2D.
 
-- ``build_src/SEM3D/sem3d.exe`` : Code SEM3D
+- ``build_src/SEM3D/sem3d.exe`` : Code SEM3D.
 
-- ``build_src/MESH/mesher`` : Outil pour le partitionnement des maillages et la génération au format *hdf5*
+- ``build_src/MESH/mesher`` : Outil pour le partitionnement des maillages et la génération au format *hdf5*.
 
 
 Exécution
 ---------
 
-Exécution de SEM3D monoprocesseur ::
+Exécution de SEM3D monoprocesseur : ::
 
   $ cd rep_du_cas
   $ ${chemin_build}/SEM3D/sem3d.exe
 
-Exécution de SEM3D en MPI ::
+Exécution de SEM3D en MPI : ::
 
   $ cd rep_du_cas
   $ mpirun -n 4 ${chemin_build}/SEM3D/sem3d.exe
 
-Lancement du générateur de maillage ::
+Lancement du générateur de maillage : ::
 
   $ cd rep_du_cas
   $ ${chemin_build}/MESH/mesher
 
-Ou en mode automatique avec les saisies clavier enregistrées dans le fichier ``mesh.input`` (c'est le cas des cas tests présent avec les sources de SEM) ::
+Ou en mode automatique avec les saisies clavier enregistrées dans le fichier ``mesh.input`` (c'est le cas des cas tests présent avec les sources de SEM) : ::
 
   $ cd rep_du_cas
   $ ${chemin_build}/MESH/mesher < mesh.input
