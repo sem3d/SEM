@@ -13,6 +13,7 @@ module mCapteur
     use semdatafiles
     use mpi
     use mfields
+    use sem_hdf5
 
     implicit none
 
@@ -62,6 +63,7 @@ module mCapteur
 
     integer,parameter :: fileIdCapteur=200  ! id fichier capteur
 
+    logical :: traces_h5_created
 contains
 
 
@@ -111,6 +113,14 @@ contains
 
         !lecture du fichier des capteurs capteurs.dat
         call lireCapteur(tDomain, rg, info_capteur)
+
+        ! En reprise on ne recree pas le fichier capteur
+        if (Tdomain%TimeD%NtimeMin==0) then
+            traces_h5_created = .false.
+        else
+            traces_h5_created = .true.
+        endif
+
         if(info_capteur /= 0) return
 
         ! creer pour chaque capteur la liste du ou des points de gauss a prendre en compte
@@ -568,11 +578,11 @@ contains
         type (domain) :: TDomain
 
         type(tCapteur),pointer :: capteur
+        logical :: do_flush
 
-
+        do_flush = .false.
         ! boucle sur les capteurs
         capteur=>listeCapteur
-
         do while (associated(capteur))
 
             if(capteur%type_calcul==0) then
@@ -581,13 +591,77 @@ contains
                 call sortieGrandeurCapteur_interp(capteur,Tdomain, ntime, rg)
             endif
 
-            if (capteur%icache==NCAPT_CACHE) call flushCapteur(capteur,Tdomain,rg)
+            if (capteur%icache==NCAPT_CACHE) do_flush = .true.
 
             capteur=>capteur%suivant
         enddo
 
+        if (do_flush) call flushAllCapteurs(Tdomain,rg)
 
     end subroutine save_capteur
+
+    function dset_capteur_name(capteur)
+        implicit none
+        type(tCapteur),pointer :: capteur
+        character(len=40) :: dset_capteur_name
+        dset_capteur_name = trim(adjustl(capteur%nom))//"_"//trim(adjustl(capteur%grandeur))
+    end function dset_capteur_name
+
+    subroutine create_traces_h5_skel(Tdomain)
+        implicit none
+        type (domain) :: TDomain
+        type(tCapteur),pointer :: capteur
+        character (len=MAX_FILE_SIZE) :: fnamef
+        character (len=40) :: dname
+        integer(HID_T) :: fid, dset_id
+        integer :: hdferr
+
+        call init_hdf5()
+        call semname_tracefile_h5(fnamef)
+
+        call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
+
+        capteur=>listeCapteur
+        do while (associated(capteur))
+            dname = dset_capteur_name(capteur)
+            write(*,*) "Create dset:", trim(adjustl(dname))
+            call create_dset_2d(fid, trim(adjustl(dname)), H5T_IEEE_F64LE, 4, H5S_UNLIMITED_F, dset_id)
+            call h5dclose_f(dset_id, hdferr)
+            capteur=>capteur%suivant
+        enddo
+
+        call h5fclose_f(fid, hdferr)
+    end subroutine create_traces_h5_skel
+
+    subroutine append_traces_h5(Tdomain)
+        implicit none
+        type (domain) :: TDomain
+        type(tCapteur),pointer :: capteur
+        character (len=40) :: dname
+        character (len=MAX_FILE_SIZE) :: fnamef
+        integer(HID_T) :: dset_id, fid
+        integer :: hdferr
+
+        call semname_tracefile_h5(fnamef)
+
+        call h5fopen_f(fnamef, H5F_ACC_RDWR_F, fid, hdferr)
+
+        capteur=>listeCapteur
+        do while (associated(capteur))
+            dname = dset_capteur_name(capteur)
+            if (capteur%icache==0) then
+                capteur=>capteur%suivant
+                cycle
+            endif
+            call h5dopen_f(fid, trim(dname), dset_id, hdferr)
+            call append_dataset_2d(dset_id, capteur%valuecache(:,1:capteur%icache), hdferr)
+            call h5dclose_f(dset_id, hdferr)
+            capteur%icache=0
+            capteur=>capteur%suivant
+        enddo
+
+        call h5fclose_f(fid, hdferr)
+    end subroutine append_traces_h5
 
     subroutine flushAllCapteurs(Tdomain, rg)
         implicit none
@@ -595,14 +669,26 @@ contains
         type (domain) :: TDomain
         type(tCapteur),pointer :: capteur
 
+        write(*,*) "::::::::::::: TRACES FORMAT ::::", Tdomain%traces_format
+        ! Default unspecified value is 'text'
+        if (Tdomain%traces_format == 0) Tdomain%traces_format = 1
 
-        ! boucle sur les capteurs
-        capteur=>listeCapteur
-
-        do while (associated(capteur))
-            call flushCapteur(capteur,Tdomain,rg)
-            capteur=>capteur%suivant
-        enddo
+        if (Tdomain%traces_format == 1) then
+            ! boucle sur les capteurs
+            capteur=>listeCapteur
+            do while (associated(capteur))
+                call flushCapteur(capteur,Tdomain,rg)
+                capteur=>capteur%suivant
+            enddo
+        else
+            if (rg/=0) return
+            ! Sauvegarde au format hdf5
+            if (.not. traces_h5_created) then
+                call create_traces_h5_skel(Tdomain)
+                traces_h5_created = .true.
+            end if
+            call append_traces_h5(Tdomain)
+        end if
     end subroutine flushAllCapteurs
 
     subroutine flushCapteur(capteur, Tdomain, rg)

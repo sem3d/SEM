@@ -74,6 +74,12 @@ contains
         dirname = path_traces
     end subroutine semname_dir_capteurs
 
+    subroutine semname_tracefile_h5(fname)
+        implicit none
+        character(Len=MAX_FILE_SIZE), intent(out) :: fname
+        fname = pjoin(path_traces,"capteurs.h5")
+    end subroutine semname_tracefile_h5
+
     !!fichier capteur 2d 3d
     subroutine semname_capteur_pos (name,fnamef)
         !SEMFILE 98 RW ./Capteurs/sem/capteurs_XXX.position (MKA) & "capteur_XXX.position (NOMKA)

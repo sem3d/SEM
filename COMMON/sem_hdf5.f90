@@ -37,6 +37,9 @@ module sem_hdf5
        module procedure read_dset_1d_int, read_dset_2d_int, read_dset_1d_real, read_dset_2d_real
     end interface read_dataset
 
+    interface append_dataset_2d
+       module procedure append_dataset_2d_r, append_dataset_2d_i
+    end interface append_dataset_2d
 contains
 
     !> Structure des fichiers HDF5 utilises :
@@ -82,15 +85,21 @@ contains
         integer(HID_T), INTENT(IN) :: parent, dtype
         integer(HID_T), INTENT(OUT) :: dset_id
         integer(HSIZE_T), INTENT(IN) :: nmax
-        integer(HSIZE_T), dimension(1) :: dims, chunk
+        integer(HSIZE_T), dimension(1) :: dims, chunk, maxdims
         integer(HID_T) :: space_id, prop_id
         integer :: hdferr
 
         dims(1) = nmax
-        chunk(1) = min(nmax, 256*1024)
+        maxdims(1) = nmax
+        if (nmax==H5S_UNLIMITED_F) then
+            chunk(1) = 256
+            dims(1) = 0
+        else
+            chunk(1) = min(nmax, 256*1024)
+        end if
         call h5screate_simple_f(1, dims, space_id, hdferr, dims)
         call h5pcreate_f(H5P_DATASET_CREATE_F, prop_id, hdferr)
-        if (nmax.gt.128) then
+        if (nmax.gt.128 .or. nmax==H5S_UNLIMITED_F) then
             call h5pset_deflate_f(prop_id, 5, hdferr)
             call h5pset_chunk_f(prop_id, 1, chunk, hdferr)
             call h5pset_shuffle_f(prop_id, hdferr)
@@ -117,17 +126,24 @@ contains
         integer(HID_T), INTENT(IN) :: parent, dtype
         integer(HID_T), INTENT(OUT) :: dset_id
         integer(HSIZE_T), INTENT(IN) :: d1, d2
-        integer(HSIZE_T), dimension(2) :: dims, chunk
+        integer(HSIZE_T), dimension(2) :: dims, chunk, maxdims
         integer(HID_T) :: space_id, prop_id
         integer :: hdferr
 
         dims(1) = d1
         dims(2) = d2
+        maxdims(1) = d1
+        maxdims(2) = d2
         chunk(1) = min(d1, 256*1024)
-        chunk(2) = max(1, min(d2, 256*1024/chunk(1)))
-        call h5screate_simple_f(2, dims, space_id, hdferr, dims)
+        if (d2==H5S_UNLIMITED_F) then
+            chunk(2) = 64
+            dims(2) = 0
+        else
+            chunk(2) = max(1, min(d2, 256*1024/chunk(1)))
+        endif
+        call h5screate_simple_f(2, dims, space_id, hdferr, maxdims)
         call h5pcreate_f(H5P_DATASET_CREATE_F, prop_id, hdferr)
-        if ((d1*d2).gt.128) then
+        if ((d1*d2).gt.128 .or. d2==H5S_UNLIMITED_F) then
             call h5pset_deflate_f(prop_id, 5, hdferr)
             call h5pset_chunk_f(prop_id, 2, chunk, hdferr)
         end if
@@ -404,6 +420,70 @@ contains
         call h5dwrite_f(dset_id, H5T_NATIVE_INTEGER, arr, dims, hdferr)
         call h5dclose_f(dset_id, hdferr)
     end subroutine write_dataset_i2
+
+    subroutine append_dataset_2d_r(dset_id, arr, hdferr)
+        use HDF5
+        implicit none
+        integer(HID_T), intent(in) :: dset_id
+        real*8, dimension(:,:), intent(in) :: arr
+        integer, intent(out) :: hdferr
+        !
+        integer(HSIZE_T), dimension(2) ::  dims, maxdims, offset, dsize
+         integer(HID_T) :: memspace, filespace
+        !
+        dims(1) = size(arr, 1)
+        dims(2) = size(arr, 2)
+        call H5Screate_simple_f(2, dims, memspace, hdferr)
+        call H5Dget_space_f(dset_id, filespace, hdferr)
+        call H5Sget_simple_extent_dims_f(filespace, dims, maxdims, hdferr)
+        call H5Sclose_f(filespace, hdferr)
+
+        dsize(1) = size(arr,1)
+        dsize(2) = dims(2) + size(arr, 2)
+        call H5Dextend_f(dset_id, dsize, hdferr)
+
+        call H5Dget_space_f(dset_id, filespace, hdferr)
+        offset(1) = 0
+        offset(2) = dims(2)
+        dims(1) = size(arr, 1)
+        dims(2) = size(arr, 2)
+        call H5Sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, offset, dims, hdferr)
+
+        call H5Dwrite_f(dset_id, H5T_NATIVE_DOUBLE, arr, dims, hdferr, memspace, filespace)
+        call H5Sclose_f(filespace, hdferr)
+        call H5Sclose_f(memspace, hdferr)
+    end subroutine append_dataset_2d_r
+
+    subroutine append_dataset_2d_i(dset_id, arr, hdferr)
+        use HDF5
+        implicit none
+        integer(HID_T), intent(in) :: dset_id
+        integer, dimension(:,:), intent(in) :: arr
+        integer, intent(out) :: hdferr
+        !
+        integer(HSIZE_T), dimension(2) ::  dims, maxdims, offset, dsize
+         integer(HID_T) :: memspace, filespace
+        !
+        dims(1) = size(arr, 1)
+        dims(2) = size(arr, 2)
+        call H5Screate_simple_f(2, dims, memspace, hdferr)
+        call H5Sget_simple_extent_dims_f(dset_id, dims, maxdims, hdferr)
+
+        dsize(1) = size(arr,1)
+        dsize(2) = dims(2) + size(arr, 2)
+        call H5Dextend_f(dset_id, dsize, hdferr)
+
+        call H5Dget_space_f(dset_id, filespace, hdferr)
+        offset(1) = 0
+        offset(2) = dims(2)
+        dims(1) = size(arr, 1)
+        dims(2) = size(arr, 2)
+        call H5Sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, offset, dims, hdferr)
+
+        call H5Dwrite_f(dset_id, H5T_NATIVE_INTEGER, arr, dims, hdferr, memspace, filespace)
+
+    end subroutine append_dataset_2d_i
+
 
 
 end module sem_hdf5
