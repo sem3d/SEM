@@ -66,7 +66,6 @@ module mCapteur
     logical :: traces_h5_created
 contains
 
-
     function grandeur_depla(Tdomain, PtGauss)
         type(domain), intent(in) :: Tdomain
         type(tPtgauss), intent(in) :: PtGauss

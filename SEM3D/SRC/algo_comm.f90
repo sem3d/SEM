@@ -160,6 +160,69 @@ contains
         !write(*,*) "END Exchange sem forces", rg
     end subroutine exchange_sem_forces
 
+    subroutine exchange_sem_forces_StoF(Tdomain, rg)
+        use sdomain
+        use mpi
+        implicit none
+        type(domain), intent(inout) :: Tdomain
+        integer, intent(in) :: rg
+        integer :: n
+        integer :: other, ierr
+        integer, dimension(0:Tdomain%n_proc) :: send_req, recv_req
+        integer, parameter :: tag = 101
+        integer, dimension(MPI_STATUS_SIZE,Tdomain%n_proc) :: statuses
+        !- now we can exchange (communication global arrays)
+        n = Tdomain%n_proc
+        send_req = MPI_REQUEST_NULL
+        recv_req = MPI_REQUEST_NULL
+
+        do other = 0,n-1
+            if (other == rg) cycle
+            if (Tdomain%sComm(other)%ngllSF > 0) then
+                call MPI_Isend(Tdomain%sComm(other)%GiveForcesSF_StoF,Tdomain%sComm(other)%ngllSF, &
+                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur, send_req(other), ierr)
+                call MPI_Irecv(Tdomain%sComm(other)%TakeForcesSF_StoF,Tdomain%sComm(other)%ngllSF, &
+                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur, recv_req(other), ierr)
+            endif
+        enddo
+
+        call MPI_Waitall(Tdomain%n_proc, recv_req, statuses, ierr)
+        call MPI_Waitall(Tdomain%n_proc, send_req, statuses, ierr)
+
+    end subroutine exchange_sem_forces_StoF
+
+    subroutine exchange_sem_forces_FtoS(Tdomain, rg)
+        use sdomain
+        use mpi
+        implicit none
+        type(domain), intent(inout) :: Tdomain
+        integer, intent(in) :: rg
+        integer :: n
+        integer :: other, ierr
+        integer, dimension(0:Tdomain%n_proc) :: send_req, recv_req
+        integer, parameter :: tag = 101
+        integer, dimension(MPI_STATUS_SIZE,Tdomain%n_proc) :: statuses
+        !- now we can exchange (communication global arrays)
+        n = Tdomain%n_proc
+        send_req = MPI_REQUEST_NULL
+        recv_req = MPI_REQUEST_NULL
+
+        do other = 0,n-1
+            if (other == rg) cycle
+            if (Tdomain%sComm(other)%ngllSF > 0) then
+                call MPI_Isend(Tdomain%sComm(other)%GiveForcesSF_FtoS,3*Tdomain%sComm(other)%ngllSF, &
+                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur, send_req(other), ierr)
+                call MPI_Irecv(Tdomain%sComm(other)%TakeForcesSF_FtoS,3*Tdomain%sComm(other)%ngllSF, &
+                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur, recv_req(other), ierr)
+            endif
+        enddo
+
+        call MPI_Waitall(Tdomain%n_proc, recv_req, statuses, ierr)
+        call MPI_Waitall(Tdomain%n_proc, send_req, statuses, ierr)
+
+    end subroutine exchange_sem_forces_FtoS
+
+
 end module scomm
 !! Local Variables:
 !! mode: f90

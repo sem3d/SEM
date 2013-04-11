@@ -2,17 +2,19 @@ subroutine StoF_coupling(Tdomain,rg)
     ! from solid to fluid: velocity (dot) normal
     use sdomain
     use mpi
+    use scomm
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
     integer, intent(in)   :: rg
     integer  :: n,nf,ne,nv,nfs,ngll1,ngll2,ngll,i,j,nnf,nne,nnv,orient_e,    &
-        n_rings,shift,I_give_to,I_take_from,code,ngllSF
-    integer, dimension(MPI_STATUS_SIZE)   :: statut
-    integer, parameter   :: etiquette = 100
+                code,ngllSF
     real, dimension(:,:,:), allocatable  :: VelocFace
 
     ! init.
+    do nf = 0,Tdomain%SF%SF_n_faces-1
+        Tdomain%SF%SF_face(nf)%vn = 0d0
+    end do
     do ne = 0,Tdomain%SF%SF_n_edges-1
         Tdomain%SF%SF_edge(ne)%vn = 0d0
     end do
@@ -42,7 +44,6 @@ subroutine StoF_coupling(Tdomain,rg)
                 VelocFace,Tdomain%sVertex(nnv)%V0)
         end do
         ! dot product on faces: normal.velocity
-        Tdomain%SF%SF_Face(nf)%vn(0:ngll1-1,0:ngll2-1) = 0d0
         do i = 0,2
             Tdomain%SF%SF_Face(nf)%vn(0:ngll1-1,0:ngll2-1) = Tdomain%SF%SF_Face(nf)%vn(0:ngll1-1,0:ngll2-1)+   &
                 Tdomain%SF%SF_Face(nf)%BtN(0:ngll1-1,0:ngll2-1,i)*VelocFace(0:ngll1-1,0:ngll2-1,i)
@@ -67,63 +68,8 @@ subroutine StoF_coupling(Tdomain,rg)
         do n = 0,Tdomain%n_proc-1
             call Comm_Forces_Complete_StoF(n,Tdomain)
         end do
-        ! now we can exchange force values with proc n
-        n = Tdomain%n_proc
-        do shift = 1,n-1
-            if(rg == 1) print*,"SHIFTV",shift
-            I_give_to = rg + shift
-            if(I_give_to > n-1) I_give_to = I_give_to-n
-            if(rg == 1) print*,"GIVEV",I_give_to
-        end do
-
-
-        do shift = 1,n-1
-            if(rg == 1) print*,"SHIFT",shift
-            I_give_to = rg + shift
-            if (I_give_to > n-1)   I_give_to = I_give_to - n
-            if(rg == 1) print*,"GIVE",I_give_to
-            I_take_from = rg - shift
-            if (I_take_from < 0)   I_take_from = I_take_from + n
-            if(rg == 1) print*,"TAKE",I_take_from
-            if (mod(n,shift)==0 .and. shift/=1) then
-                n_rings = shift
-            else if (mod(n,n-shift)==0 .and. shift/=n-1) then
-                n_rings = n-shift
-            else if (mod(n,2)==0 .and. mod(shift,2)==0) then
-                n_rings = 2
-            else
-                n_rings = 1
-            endif
-
-            if(rg == 1) print*,"RINGS",n_rings
-            do i = 0,n_rings-1
-                if(rg == 1) print*,"VERIF",rg,shift,i,I_give_to,I_take_from
-                if(rg == i)then
-                    if (Tdomain%sComm(I_give_to)%ngllSF>0) then
-                        call MPI_SEND (Tdomain%sComm(I_give_to)%GiveForcesSF_StoF,Tdomain%sComm(I_give_to)%ngllSF, &
-                            MPI_DOUBLE_PRECISION, I_give_to, etiquette, MPI_COMM_WORLD, code)
-                    endif
-                    if (Tdomain%sComm(I_take_from)%ngllSF > 0) then
-                        call MPI_RECV (Tdomain%sComm(I_take_from)%TakeForcesSF_StoF, Tdomain%sComm(I_take_from)%ngllSF, &
-                            MPI_DOUBLE_PRECISION, I_take_from, etiquette, MPI_COMM_WORLD, statut, code)
-                    endif
-                else
-                    do j = 0,n/n_rings-1
-                        if (rg == i + j*n_rings) then
-                            if (Tdomain%sComm(I_take_from)%ngllSF>0) then
-                                call MPI_RECV (Tdomain%sComm(I_take_from)%TakeForcesSF_StoF,Tdomain%sComm(I_take_from)%ngllSF, &
-                                    MPI_DOUBLE_PRECISION, I_take_from, etiquette, MPI_COMM_WORLD, statut, code)
-                            endif
-                            if (Tdomain%sComm(I_give_to)%ngllSF>0) then
-                                call MPI_SEND (Tdomain%sComm(I_give_to)%GiveForcesSF_StoF,Tdomain%sComm(I_give_to)%ngllSF, &
-                                    MPI_DOUBLE_PRECISION, I_give_to, etiquette, MPI_COMM_WORLD, code)
-                            endif
-                        end if
-                    enddo
-                endif
-            enddo
-            call MPI_BARRIER (MPI_COMM_WORLD, code)
-        end do
+        ! now we can exchange force values with other procs
+        call exchange_sem_forces_StoF(Tdomain,rg)
 
         ! assemblage on external GLLs
         do n = 0,Tdomain%n_proc-1
@@ -164,14 +110,13 @@ subroutine FtoS_coupling(Tdomain,rg)
     ! from fluid to solid: normal times pressure (= -rho . VelPhi)
     use sdomain
     use mpi
+    use scomm
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
     integer, intent(in)   :: rg
     integer  :: n,nf,ne,nv,nff,ngll1,ngll2,ngll,i,j,k,nnf,nne,nnv,orient_e,    &
-        n_rings,shift,I_give_to,I_take_from,code,which_elem,ngllSF
-    integer, dimension(MPI_STATUS_SIZE)   :: statut
-    integer, parameter   :: etiquette = 100
+                code,which_elem,ngllSF
     real, dimension(:,:), allocatable  :: PressFace
 
     ! init.
@@ -232,50 +177,8 @@ subroutine FtoS_coupling(Tdomain,rg)
         do n = 0,Tdomain%n_proc-1
             call Comm_Forces_Complete_FtoS(n,Tdomain)
         end do
-        ! now we can exchange force values with proc n
-        n = Tdomain%n_proc
-        do shift = 1,n-1
-            I_give_to = rg + shift
-            if (I_give_to > n-1)   I_give_to = I_give_to - n
-            I_take_from = rg - shift
-            if (I_take_from < 0)   I_take_from = I_take_from + n
-            if (mod(n,shift)==0 .and. shift/=1) then
-                n_rings = shift
-            else if (mod(n,n-shift)==0 .and. shift/=n-1) then
-                n_rings = n-shift
-            else if (mod(n,2)==0 .and. mod(shift,2)==0) then
-                n_rings = 2
-            else
-                n_rings = 1
-            endif
-            do i = 0,n_rings-1
-                if(rg == i)then
-                    if (Tdomain%sComm(I_give_to)%ngllSF>0) then
-                        call MPI_SEND(Tdomain%sComm(I_give_to)%GiveForcesSF_FtoS,3*Tdomain%sComm(I_give_to)%ngllSF, &
-                            MPI_DOUBLE_PRECISION, I_give_to, etiquette, MPI_COMM_WORLD, code)
-                    endif
-                    if (Tdomain%sComm(I_take_from)%ngllSF > 0) then
-                        call MPI_RECV(Tdomain%sComm(I_take_from)%TakeForcesSF_FtoS,3*Tdomain%sComm(I_take_from)%ngllSF, &
-                            MPI_DOUBLE_PRECISION, I_take_from, etiquette, MPI_COMM_WORLD, statut, code)
-                    endif
-                else
-                    do j = 0,n/n_rings-1
-                        if (rg == i + j*n_rings) then
-                            if (Tdomain%sComm(I_take_from)%ngllSF>0) then
-                                call MPI_RECV(Tdomain%sComm(I_take_from)%TakeForcesSF_FtoS,3*Tdomain%sComm(I_take_from)%ngllSF, &
-                                    MPI_DOUBLE_PRECISION, I_take_from, etiquette, MPI_COMM_WORLD, statut, code)
-                            endif
-                            if (Tdomain%sComm(I_give_to)%ngllSF>0) then
-                                call MPI_SEND(Tdomain%sComm(I_give_to)%GiveForcesSF_FtoS,3*Tdomain%sComm(I_give_to)%ngllSF, &
-                                    MPI_DOUBLE_PRECISION, I_give_to, etiquette, MPI_COMM_WORLD, code)
-                            endif
-                        end if
-                    enddo
-                endif
-            enddo
-            call MPI_BARRIER (MPI_COMM_WORLD, code)
-        end do
-
+        ! now we can exchange force values with other procs
+        call exchange_sem_forces_FtoS(Tdomain,rg)
         ! assemblage on external GLLs
         do n = 0,Tdomain%n_proc-1
             ngllSF = 0
