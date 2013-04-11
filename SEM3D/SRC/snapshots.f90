@@ -16,7 +16,7 @@ contains
         integer, intent(out) :: nnodes
         integer :: n, i, j, k, ngllx, nglly, ngllz, ig, gn, ne
 
-        allocate(irenum(Tdomain%n_glob_points))
+        allocate(irenum(0:Tdomain%n_glob_points-1))
 
         irenum = -1
         ig = 0
