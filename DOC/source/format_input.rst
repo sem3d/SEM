@@ -36,7 +36,7 @@ entre snapshot.
 Les mots-clef pouvant être utilisés dans le fichier (niveau 0, hors toute section) sont décrits ici :
 
 ================  =======  =================  ================================================================
-Mot-clef          type     valeur par défaut  Description
+Mot-clef          Type     Valeur par défaut  Description
 ================  =======  =================  ================================================================
 amortissement     section  n/a                Description de l'amortissement
 mat_file          chaîne   "material.input"   Nom du fichier de description des matériaux
@@ -58,7 +58,7 @@ verbose_level     entier
 Les paramètres suivants sont reconnus mais non utilisés dans cette version :
 
 ================  ========  =================  ===========================================================
-Mot-clef          type      valeur par défaut  Description
+Mot-clef          Type      Valeur par défaut  Description
 ================  ========  =================  ===========================================================
 anisotropy        bool      n/a                Description de l'anisotropie
 gradient          section   n/a                Description des gradients
@@ -71,7 +71,7 @@ traces_format     kw
 Description de la section ``amortissement`` :
 
 ================  =======  =================  ===========================================================
-Mot-clef          type     valeur par défaut  Description
+Mot-clef          Type     Valeur par défaut  Description
 ================  =======  =================  ===========================================================
 nsolids           entier   0                  Nombre de mécanisme. 0 signifie désactivation.
 atn_band          réel(2)  n/a                Période max et min à atténuer
@@ -81,7 +81,7 @@ atn_period        réel     n/a                Période centrale (un mécanisme 
 Description de la section ``time_scheme`` :
 
 ================  =======  =================  ===========================================================
-Mot-clef          type     valeur par défaut  Description
+Mot-clef          Type     Valeur par défaut  Description
 ================  =======  =================  ===========================================================
 accel_scheme      bool                        Schéma en temps
 veloc_scheme      bool                        Schéma en vitesse
@@ -94,7 +94,7 @@ courant           réel     0.2                Nombre de courant. Le calcul du p
 Description de la section ``source`` :
 
 ================  =======  =================  =================================================================
-Mot-clef          type     valeur par défaut  Description
+Mot-clef          Type     Valeur par défaut  Description
 ================  =======  =================  =================================================================
 coords            réel(3)  0 0 0              Position de la source
 type              kw       --                 Type spatial: impulse|moment|fluidpulse
@@ -112,17 +112,18 @@ amplitude         réel     --
 
 Description de la section ``snapshots`` :
 
-=============  ===========  =================  ================================================================
-Mot-clef       type         valeur par défaut  Description
-=============  ===========  =================  ================================================================
-save_snap      bool         false              Sauvegarde des snapshots
-save_interval  réel         --                 Interval (temps physique) de sauvegarde des snapshots
-select         note [#f1]_  --                 Sélection des éléments à inclure dans les snapshots
-deselect       note [#f1]_  --                 Désélection des éléments à inclure dans les snapshots
-=============  ===========  =================  ================================================================
+===============  ============  =================  ============================================================
+Mot-clef         Type          Valeur par défaut  Description
+===============  ============  =================  ============================================================
+save_snap        bool          false              Sauvegarde des snapshots
+save_interval    réel          --                 Interval (temps physique) de sauvegarde des snapshots
+select           voir note     --                 Sélection des éléments à inclure dans les snapshots
+deselect         voir note     --                 Désélection des éléments à inclure dans les snapshots
+===============  ============  =================  ============================================================
 
-.. [#f1] Par défaut, les snapshots incluent toutes les mailles. Le format de la commande select/deselect
-         est décrit ci-dessous.
+Note:
+  Par défaut, les snapshots incluent toutes les mailles. Le format de la commande select/deselect
+  est décrit ci-dessous.
 
 On peut choisir de sélectionner ou déselectionner des mailles pour les inclure ou les exclure des sorties.
 
@@ -130,11 +131,11 @@ Il y a pour l'instant deux critères de sélection : le numéro du matériau ou 
 
 Les commandes de sélection/déselection sont appliquées dans l'ordre du fichier ``input.spec``.
 
-La syntaxe de la commande est ::
+La syntaxe de la commande est : ::
 
   [de]select (all|material = NN|box = x0 y0 z0 x1 y1 z1) ;
 
-Ainsi ::
+Ainsi : ::
 
   deselect all;
   select material = 1;
@@ -143,7 +144,7 @@ Ainsi ::
 Va déselectionner tous les éléments, puis resélectionner tous les éléments ayant le matériau 1,
 ainsi que tous les éléments dont le centre se situe dans la boite spécifiée.
 
-Autre exemple ::
+Autre exemple : ::
 
   select all;  # Inutile car par défaut
   deselect material  = 5;
@@ -155,7 +156,7 @@ Cette description va simplement exclure les matériaux 5, 6 et 7 des sorties.
 Exemple
 =======
 
-Le fichier suivant correspond à celui d'un cas test ::
+Le fichier suivant correspond à celui d'un cas test : ::
 
   # -*- mode: perl -*-
   run_name = "Run_3D_trial";

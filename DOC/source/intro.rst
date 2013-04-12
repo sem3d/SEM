@@ -6,7 +6,7 @@ Introduction
 
 
 SEM est un code de propagation d'onde sismique, en 2D et 3D, fondé sur la méthode
-des éléments spectraux ([PRI94]_, [FAC97]_, [KOM98]_, [SER98]_, [KOM99]_.
+des éléments spectraux ([PRI94]_, [FAC97]_, [KOM98]_, [SER98]_, [KOM99]_).
 
 Cette version prend en compte la propagation dans des milieux hétérogènes, à géométrie complexe (topographie
 de surface, interfaces).
