@@ -258,6 +258,7 @@ contains
         nglly = 0
         ngllz = 0
         valence(:) = 0
+        veloc(:,:) = 0
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             if (ngllx /= Tdomain%specel(n)%ngllx .or. &

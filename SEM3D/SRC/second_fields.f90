@@ -117,6 +117,22 @@ contains
 
     end subroutine gather_elem_displ
 
+    subroutine check_field(nel, field, nx, ny, nz)
+        integer, intent(in) :: nel, nx, ny, nz
+        real, dimension(0:nx-1,0:ny-1,0:nz-1), intent(in) :: field
+        !
+        integer :: i,j,k
+        do i=0,nx-1
+            do j=0,ny-1
+                do k=0,nz-1
+                    if (field(i,j,k)>1e2) then
+                        write(*,*) "Elem:",nel, "(",i,j,k,")"
+                    end if
+                end do
+            end do
+        end do
+    end subroutine check_field
+
     subroutine gather_elem_veloc(Tdomain, nel, field)
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: nel
@@ -172,6 +188,7 @@ contains
                           el%InvGrad,el%density,phi,field)
             deallocate(phi)
         end if
+
     end subroutine gather_elem_veloc
 
 
