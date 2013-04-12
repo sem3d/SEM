@@ -18,6 +18,7 @@ snapshots {
 # Description des capteurs
 save_traces = true;
 station_file = "capteurs.dat";
+traces_format=hdf5;
 
 
 # Fichier protection reprise

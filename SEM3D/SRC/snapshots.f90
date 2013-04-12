@@ -225,9 +225,10 @@ contains
         integer, intent(in) :: rg, isort
         !
         character (len=MAX_FILE_SIZE) :: fnamef
-        integer(HID_T) :: fid, displ_id, veloc_id
+        integer(HID_T) :: fid, displ_id, veloc_id, press_id
         integer(HSIZE_T), dimension(2) :: dims
         real, dimension(:,:),allocatable :: displ, veloc
+        real, dimension(:), allocatable :: press
         real, dimension(:,:,:,:),allocatable :: field_displ, field_veloc
         integer, dimension(:), allocatable :: valence
         integer :: hdferr
@@ -249,9 +250,11 @@ contains
         dims(2) = nnodes
         call create_dset_2d(fid, "displ", H5T_IEEE_F64LE, 3, nnodes, displ_id)
         call create_dset_2d(fid, "veloc", H5T_IEEE_F64LE, 3, nnodes, veloc_id)
+        call create_dset(fid, "pressure", H5T_IEEE_F64LE, nnodes, press_id)
 
         allocate(displ(0:2,0:nnodes-1))
         allocate(veloc(0:2,0:nnodes-1))
+        allocate(press(0:nnodes-1))
         allocate(valence(0:nnodes-1))
 
         ngllx = 0
@@ -286,9 +289,13 @@ contains
                 end do
             end do
         end do
-      ! normalization
+        ! normalization
         do i = 0,nnodes-1
-            veloc(0:2,i) = veloc(0:2,i)/valence(i)
+            if (valence(i)/=0) then
+                veloc(0:2,i) = veloc(0:2,i)/valence(i)
+            else
+                write(*,*) "Elem",i," non traite"
+            end if
         end do
 
         call h5dwrite_f(displ_id, H5T_NATIVE_DOUBLE, displ, dims, hdferr)
@@ -296,6 +303,7 @@ contains
 
         call h5dclose_f(displ_id, hdferr)
         call h5dclose_f(veloc_id, hdferr)
+        call h5dclose_f(press_id, hdferr)
         call h5fclose_f(fid, hdferr)
         deallocate(displ,veloc,valence)
 

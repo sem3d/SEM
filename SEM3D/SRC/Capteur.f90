@@ -647,6 +647,7 @@ contains
 
         capteur=>listeCapteur
         do while (associated(capteur))
+            !write(*,*) "Capteur:", capteur%nom
             dname = dset_capteur_name(capteur)
             if (capteur%icache==0) then
                 capteur=>capteur%suivant
@@ -668,7 +669,7 @@ contains
         type (domain) :: TDomain
         type(tCapteur),pointer :: capteur
 
-        write(*,*) "::::::::::::: TRACES FORMAT ::::", Tdomain%traces_format
+        !write(*,*) "::::::::::::: TRACES FORMAT ::::", Tdomain%traces_format
         ! Default unspecified value is 'text'
         if (Tdomain%traces_format == 0) Tdomain%traces_format = 1
 
