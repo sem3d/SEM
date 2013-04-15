@@ -608,7 +608,7 @@ subroutine read_restart (Tdomain,rg, isort)
     integer :: hdferr
 
     call init_hdf5()
-    call init_restart(Tdomain%communicateur, rg, isort, fnamef)
+    call init_restart(Tdomain%communicateur, rg, Tdomain%TimeD%iter_reprise, fnamef)
 
     write(*,*) "OPENING RESTART FILE:", trim(fnamef)
     call h5fopen_f(fnamef, H5F_ACC_RDONLY_F, fid, hdferr)

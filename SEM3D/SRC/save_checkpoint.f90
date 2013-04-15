@@ -16,7 +16,8 @@ subroutine init_protection(Tdomain, it, rg, prot_file)
     type (domain), intent (INOUT):: Tdomain
     integer, intent (IN) :: it, rg
     character (len=MAX_FILE_SIZE), INTENT(OUT) :: prot_file
-    character (len=MAX_FILE_SIZE) :: dir_prot, dir_prot_prev, times_file, dir_traces
+    character (len=MAX_FILE_SIZE) :: dir_prot, dir_prot_prev, times_file
+    character (len=MAX_FILE_SIZE) :: dir_traces, dir_prot_traces
     character (len=MAX_FILE_SIZE) :: commande
     integer :: ierr
 
@@ -48,7 +49,8 @@ subroutine init_protection(Tdomain, it, rg, prot_file)
 
         ! copie du repertoire des sorties capteurs sem dans le rep de protection
         call semname_dir_capteurs(dir_traces)
-        commande="cp -R "//trim(adjustl(dir_traces))//" "//dir_prot
+        call semname_protection_iter_dir_capteurs(it,dir_prot_traces)
+        commande="cp -R "//trim(adjustl(dir_traces))//" "//dir_prot_traces
         call system(trim(commande))
     endif
     call MPI_Barrier(Tdomain%communicateur, ierr)
@@ -227,10 +229,10 @@ subroutine compute_save_offsets(Tdomain, offset, offset_f, offset_e, offset_v)
         end if
     enddo
 
-    write(*,*) "Offsets (C):", offset
-    write(*,*) "Offsets (F):", offset_f
-    write(*,*) "Offsets (E):", offset_e
-    write(*,*) "Offsets (V):", offset_v
+    !write(*,*) "Offsets (C):", offset
+    !write(*,*) "Offsets (F):", offset_f
+    !write(*,*) "Offsets (E):", offset_e
+    !write(*,*) "Offsets (V):", offset_v
 end subroutine compute_save_offsets
 
 
@@ -1088,11 +1090,11 @@ subroutine write_Edges(Tdomain, offset_e, edge_id)
     call create_dset(edge_id, "Veloc1", H5T_IEEE_F64LE, offset_e(3), veloc1_id)
     call create_dset(edge_id, "Veloc2", H5T_IEEE_F64LE, offset_e(3), veloc2_id)
     call create_dset(edge_id, "Veloc3", H5T_IEEE_F64LE, offset_e(3), veloc3_id)
-    call create_dset(edge_id, "VelPhi", H5T_IEEE_F64LE, offset_e(4), veloc_id)
-    call create_dset(edge_id, "Phi", H5T_IEEE_F64LE, offset_e(5), displ_id)
-    call create_dset(edge_id, "VelPhi1", H5T_IEEE_F64LE, offset_e(6), veloc1_id)
-    call create_dset(edge_id, "VelPhi2", H5T_IEEE_F64LE, offset_e(6), veloc2_id)
-    call create_dset(edge_id, "VelPhi3", H5T_IEEE_F64LE, offset_e(6), veloc3_id)
+    call create_dset(edge_id, "VelPhi", H5T_IEEE_F64LE, offset_e(4), velphi_id)
+    call create_dset(edge_id, "Phi", H5T_IEEE_F64LE, offset_e(5), phi_id)
+    call create_dset(edge_id, "VelPhi1", H5T_IEEE_F64LE, offset_e(6), velphi1_id)
+    call create_dset(edge_id, "VelPhi2", H5T_IEEE_F64LE, offset_e(6), velphi2_id)
+    call create_dset(edge_id, "VelPhi3", H5T_IEEE_F64LE, offset_e(6), velphi3_id)
     idx1 = 1
     idx2 = 1
     idx3 = 1
@@ -1197,7 +1199,7 @@ subroutine write_Vertices(Tdomain, offset_v, vertex_id)
     implicit none
     type (domain), intent (IN):: Tdomain
     integer(HID_T), intent(IN) :: vertex_id
-    integer(kind=4), dimension(3), intent(IN) :: offset_v
+    integer(kind=4), dimension(6), intent(IN) :: offset_v
 
     integer(HID_T) :: veloc_id, displ_id, veloc1_id, veloc2_id, veloc3_id,  &
                       velphi_id, phi_id, velphi1_id, velphi2_id, velphi3_id
@@ -1362,6 +1364,7 @@ subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, isort)
         stop "Error writing HDF file"
     end if
 
+    !write(*,*) "DBG: Create groups"
     ! ifort doesn't care, but gfortran complains that the last integer should be 8 bytes
     call h5gcreate_f(fid, 'Elements', elem_id, hdferr, 0_SIZE_T)
     call h5gcreate_f(fid, 'Faces', face_id, hdferr, 0_SIZE_T)
@@ -1372,25 +1375,38 @@ subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, isort)
     !  call h5dwrite_f(dset_id, H5T_STD_I32LE, offset, off_dims, hdferr)
     !  call h5dclose_f(dset_id, hdferr)
 
+    !write(*,*) "DBG: Create attrs"
     call write_attr_real(fid, "rtime", rtime)
     call write_attr_real(fid, "dtmin", dtmin)
     call write_attr_int(fid, "iteration", it)
     call write_attr_int(fid, "isort", isort)
+    !write(*,*) "DBG: Write veloc"
     call write_Veloc(Tdomain, offset(1), elem_id)
+    !write(*,*) "DBG: Write veloc PML"
     call write_Veloc123(Tdomain, offset(2), elem_id)
+    !write(*,*) "DBG: Write disp"
     call write_Disp(Tdomain, offset(3), elem_id)
+    !write(*,*) "DBG: Write espvol"
     call write_EpsilonVol(Tdomain, offset(4), elem_id)
+    !write(*,*) "DBG: Write rvol"
     call write_Rvol(Tdomain, offset(5), elem_id)
     call write_Rxyz(Tdomain, offset(6), elem_id)
     call write_EpsilonDev(Tdomain, offset(7), elem_id)
     call write_Stress(Tdomain, offset(8), elem_id)
+    !write(*,*) "DBG: Write velphi"
     call write_VelPhi(Tdomain, offset(9), elem_id)
+    !write(*,*) "DBG: Write velphi123"
     call write_VelPhi123(Tdomain, offset(10), elem_id)
+    !write(*,*) "DBG: Write phi"
     call write_Phi(Tdomain, offset(11), elem_id)
+    !write(*,*) "DBG: Write fluid pml"
     call write_Veloc_Fluid_PML(Tdomain, offset(12), elem_id)
 
+    !write(*,*) "DBG: Write faces"
     call write_Faces(Tdomain, offset_f, face_id)
+    !write(*,*) "DBG: Write edges"
     call write_Edges(Tdomain, offset_e, edge_id)
+    !write(*,*) "DBG: Write vertices"
     call write_Vertices(Tdomain, offset_v, vertex_id)
 
     call h5gclose_f(elem_id, hdferr)

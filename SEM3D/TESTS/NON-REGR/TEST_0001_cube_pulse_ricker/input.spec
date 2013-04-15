@@ -24,6 +24,7 @@ traces_format=hdf5;
 # Fichier protection reprise
 prorep=false;
 prorep_iter=1000;
+restart_iter=370;
 
 
 # introduce a source

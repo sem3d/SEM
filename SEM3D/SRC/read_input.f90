@@ -542,13 +542,13 @@ subroutine read_input (Tdomain, rg, code)
     Tdomain%logicD%save_snapshots = config%save_snap .ne. 0
     ! MODIF ICI: energie? deformation?..
     !Tdomain%logicD%save_energy = !?
-    Tdomain%logicD%save_restart = config%prorep .ne. 0
+    Tdomain%logicD%save_restart = config%prorep_iter .ne. 0
     !Tdomain%logicD%plot_grid
     !Tdomain%logicD%run_exec
     !Tdomain%logicD%run_debug
     !Tdomain%logicD%run_echo
     Tdomain%logicD%run_restart = config%prorep .ne. 0
-    Tdomain%TimeD%iter_reprise = config%prorep_iter
+    Tdomain%TimeD%iter_reprise = config%prorep_restart_iter
     Tdomain%TimeD%ncheck = config%prorep_iter ! frequence de sauvegarde
     Tdomain%station_file = fromcstr(config%station_file)
     Tdomain%TimeD%ntrace = config%traces_interval ! XXX

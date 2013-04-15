@@ -391,6 +391,7 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	if (cmp(scanner,"mpml_atn_param")) err=expect_eq_float(scanner, &config->mpml,1);
 	if (cmp(scanner,"prorep")) err=expect_eq_bool(scanner, &config->prorep,1);
 	if (cmp(scanner,"prorep_iter")) err=expect_eq_int(scanner, &config->prorep_iter,1);
+	if (cmp(scanner,"restart_iter")) err=expect_eq_int(scanner, &config->prorep_restart_iter,1);
 	if (cmp(scanner,"run_name")) err=expect_eq_string(scanner, &config->run_name,1);
 	if (cmp(scanner,"snapshots")) err=expect_snapshots(scanner, config);
 	if (cmp(scanner,"save_traces")) err=expect_eq_bool(scanner, &config->save_traces,1);

@@ -177,15 +177,15 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     ! traitement de la reprise
     !  modif mariotti fevrier 2007 cea
     call semname_results_temps_sem(fnamef)
+    if (Tdomain%logicD%save_snapshots)  then
+        call write_snapshot_geom(Tdomain, rg)
+    end if
     if (Tdomain%logicD%run_restart) then
         !! Il faudra ajouter la gravite ici #ifdef COUPLAGE
         call read_restart(Tdomain, rg, isort)
         write (*,*) "Reprise effectuee sur processeur ",rg
         open (78,file=fnamef,status="unknown",position="append")
     else
-        if (Tdomain%logicD%save_snapshots)  then
-            call write_snapshot_geom(Tdomain, rg)
-        end if
         ! Sauvegarde des donnees de post-traitement
         open (78,file=fnamef,status="unknown",position="rewind")
         ! on supprime tous les fichiers et repertoire de protection

@@ -24,7 +24,7 @@ subroutine init_restart(comm, rg, iter, file_prot)
         ! copie du fichier temps.dat dans le rep de Resultat
         call semname_results_temps_sem(file_temps_sem)
         call semname_protection_temps_sem(iter,file_prot_temps_sem)
-        commande="cp "//trim(adjustl(file_temps_sem))//" "//trim(adjustl(file_temps_sem))
+        commande="cp "//trim(adjustl(file_prot_temps_sem))//" "//trim(adjustl(file_temps_sem))
         call system(commande)
 
         ! copie du repertoire des sorties capteurs sem dans le rep de resultats
