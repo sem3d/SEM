@@ -22,7 +22,7 @@ module sdomain
     use sfaults
     use mpi_list
     use communication_object
-
+    use semdatafiles
 
 
     type :: domain
@@ -46,9 +46,9 @@ module sdomain
        real, dimension(:), pointer :: GrandeurDeformation ! pour tous les points de gauss a une iteration donnee (utilise pour les sorties capteurs)
 
 
-       character (len=30) :: Title_simulation, mesh_file, station_file, material_file
+       character (len=MAX_FILE_SIZE) :: Title_simulation, mesh_file, station_file, material_file
        character (len=1), dimension (:), pointer ::  Name_Line, Super_object_type
-       character (len=30), dimension (:), pointer :: Super_object_file
+       character (len=MAX_FILE_SIZE), dimension (:), pointer :: Super_object_file
 
        logical :: any_PML,bMailUnv,bCapteur
 

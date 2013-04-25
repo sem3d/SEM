@@ -242,13 +242,10 @@ contains
         implicit none
         integer,intent(in) :: rank
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I4.4)")"./Resultats/initian.",rank
-#else
-        write(fnamef,"(a,I4.4)") "initian.",rank
-#endif
+        character(Len=20) :: temp
 
-        DEBUG(fnamef)
+        write(temp,"(a,I4.4)") "initian.",rank
+        fnamef = pjoin(path_results, temp)
     end subroutine semname_define_fault_rankn
     !!end fichier define_fault_properties 2d
 
@@ -423,39 +420,25 @@ contains
         implicit none
         integer,intent(in) :: rank
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I4.4)")"./data/sem/mesh_echo",rank
-#else
-        write(fnamef,"(a,I4.4)")"mesh_echo",rank
-#endif
-
-        DEBUG(fnamef)
+        character(Len=MAX_FILE_SIZE) :: temp
+        write(temp,*) "mesh_echo.",rank
+        fnamef = pjoin(path_data, temp)
     end subroutine semname_read_mesh_echo
 
     subroutine semname_read_mesh_material_echo (fnamef)
         !SEMFILE 93 W ./data/sem/material_echo (MKA) & material_echo (NOMKA)
         implicit none
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I4.4)")"./data/sem/material_echo"
-#else
-        write(fnamef,"(a,I4.4)")"material_echo"
-#endif
 
-        DEBUG(fnamef)
+        fnamef = pjoin(path_data, "material_echo")
     end subroutine semname_read_mesh_material_echo
 
     subroutine semname_read_mesh_station_echo (fnamef)
         !SEMFILE 94 W ./data/sem/station_file_echo (MKA) & station_file_echo (NOMKA)
         implicit none
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I4.4)")"./data/sem/station_file_echo"
-#else
-        write(fnamef,"(a,I4.4)")"station_file_echo"
-#endif
 
-        DEBUG(fnamef)
+        fnamef = pjoin(path_data, "station_file_echo")
     end subroutine semname_read_mesh_station_echo
 
     subroutine semname_save_checkpoint_cp(fnamer,fnamef)

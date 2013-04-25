@@ -696,7 +696,7 @@ contains
         integer :: rg
         type (domain) :: TDomain
         type(tCapteur),pointer :: capteur
-        integer :: fileId, i, j, imax
+        integer :: fileId, j, imax
         character(len=MAX_FILE_SIZE) :: fnamef
 
         if (rg/=0) return
@@ -763,8 +763,6 @@ contains
 
         real,dimension(:),allocatable :: recvbuf
         real,dimension(4) :: sendbuf
-
-        integer :: idim
 
         ! tableau de correspondance
         allocate(recvbuf(4*Tdomain%n_proc))
@@ -928,7 +926,7 @@ contains
         real, dimension(3) :: sendbuf
         real, dimension(3) :: grandeur
         real, dimension(:,:,:,:), allocatable :: field
-        integer n_el, ipoint, ngllx, nglly, ngllz, mat
+        integer n_el, ngllx, nglly, ngllz, mat
         real xi, eta, zeta
         real outx, outy, outz
 

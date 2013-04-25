@@ -287,15 +287,15 @@ subroutine read_mesh_file_h5(Tdomain, rg)
     !
     type(domain), intent(inout) :: Tdomain
     integer, intent(in)         :: rg
-    integer :: i,j,  ok
+    integer :: i,j
     logical :: neumann_log
     !
     integer(HID_T) :: fid, proc_id
-    integer :: nprocs, hdferr
+    integer :: hdferr
     integer, allocatable, dimension(:,:) :: itemp2, itemp2b
     integer, allocatable, dimension(:)   :: itemp, itempb
     real,    allocatable, dimension(:,:) :: rtemp2
-    real,    allocatable, dimension(:)   :: rtemp
+    !real,    allocatable, dimension(:)   :: rtemp
     character(len=10) :: proc_grp
     !
     call init_hdf5()

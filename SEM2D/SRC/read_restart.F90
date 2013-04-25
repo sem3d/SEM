@@ -11,11 +11,9 @@ subroutine read_restart (Tdomain,isort)
 
     ! local variables
     character (len=MAX_FILE_SIZE) :: file_prot
-    integer :: n,ngllx,ngllz,i,j,ngll,ierr
+    integer :: n,ngllx,ngllz,i,j,ngll
     character (len=100) :: commande
     character (len=6) :: sit !Gsa
-    integer :: rg
-    integer :: iter
 
     call init_restart(Tdomain%communicateur,Tdomain%Mpi_var%my_rank,Tdomain%TimeD%iter_reprise,file_prot)
     open (61,file=file_prot,status="unknown",form="formatted")

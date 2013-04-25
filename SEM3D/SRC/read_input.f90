@@ -19,6 +19,10 @@ module semconfig
     use iso_c_binding
     use sem_c_config
 
+    implicit none
+
+    public :: read_input
+
 contains
 
 
@@ -161,7 +165,7 @@ subroutine finalize_mesh_connectivity(Tdomain, rg)
     type(domain), intent(inout) :: Tdomain
     integer, intent(in)         :: rg
     integer :: i, j, k, n, nf, nnf, mat, ne, nv, nne, nnv
-    integer :: icount, n_aus
+    integer :: n_aus
 
 
     ! faces and edges => which element?

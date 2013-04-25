@@ -76,8 +76,6 @@ subroutine read_input (Tdomain)
     integer :: i, n_aus
     logical :: logic_scheme
 
-    integer :: unit_src
-    logical :: trouve_src
     character(Len=MAX_FILE_SIZE) :: fnamef
     type(sem_config) :: config
     integer :: code
