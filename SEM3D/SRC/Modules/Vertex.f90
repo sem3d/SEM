@@ -73,22 +73,8 @@ contains
         real, intent (IN) :: dt
         integer :: i
 
-
-        real :: xmas
-
-#ifdef COUPLAGE
-        xmas = 0.
-        if (  V%tsurfsem > 0. ) then
-            xmas = 1.
-        endif
-#endif
-
         do i = 0,2
-#ifdef COUPLAGE
-            V%Forces(i) =  V%MassMat  * V%Forces(i)/(1. + xmas )
-#else
             V%Forces(i) = V%MassMat  * V%Forces(i)
-#endif
         enddo
         V%Veloc = V%V0 + dt * V%Forces
         V%Accel =  (V%Veloc-V%V0)/dt

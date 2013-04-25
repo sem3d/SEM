@@ -82,21 +82,9 @@ contains
         !real, intent (IN) :: bega, gam1
         real, intent (IN) :: dt
         integer :: i
-        real :: xmas
-
-#ifdef COUPLAGE
-        xmas = 0.
-        if (  F%tsurfsem(1,1) > 0. ) then
-            xmas = 1.
-        endif
-#endif
 
         do i = 0,2
-#ifdef COUPLAGE
-            F%Forces(:,:,i) = F%MassMat(:,:) * F%Forces(:,:,i)/(1.+xmas)
-#else
             F%Forces(:,:,i) = F%MassMat(:,:) * F%Forces(:,:,i)
-#endif
         enddo
 
         F%Veloc(:,:,:) = F%v0(:,:,:) + dt * F%Forces(:,:,:)
