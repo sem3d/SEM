@@ -19,20 +19,19 @@ subroutine Newmark(Tdomain,rg,ntime)
     use mpi
     use scomm
     use scommutils
+    use orientation
+    use assembly
 
     implicit none
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: rg,ntime
 
-    logical, dimension(:), allocatable :: L_Face, L_Edge, L_Vertex
-    integer ::  n, mat,  ngll1,ngll2,ngll3,    &
-        nf,ne,nv, nf_aus,ne_aus,nv_aus, ngll, code, &
-        i,j, x,y,z,ngllPML,shift, I_give_to, I_take_from,     &
-        n_rings, ntimetrace,ngll_F,ngllPML_F
+    integer :: n, mat
+    integer :: nf, ne, nv
+    integer :: nf_aus, ne_aus, nv_aus
+    integer :: ngll, ngll1, ngll2, ngllPML, ngll_F, ngllPML_F
     integer, parameter :: etiquette = 100
-    integer, dimension(mpi_status_size) :: statut
-    real :: Dt
 
 
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a
@@ -64,13 +63,15 @@ subroutine Newmark(Tdomain,rg,ntime)
     endif
 
     !Gsa Ipsis (tout le passage)
-    ! AJOUT DES FORCES MKA3D
+    ! AJOUT DES FORCES de couplage
 
-    ! la ForcesMka corespond a la contrainte multiplie par la surface du point de gauss correspondant
-    ! sur un meme proc la somme est deja faite
-    ! par contre lorsqu un vertex est partage sur plusieurs proc alors chaque proc n a qu une partie de la somme
-    ! il faut donc lui ajouter les contributions des autres proc
-    ! pour prendre en compte les forces imposee lors du couplage avec mka sur les points de gauss internes aux faces
+    ! Les forces de couplage correspondent a la contrainte multiplie par la surface
+    ! du point de gauss correspondant sur un meme proc la somme est
+    ! deja faite par contre lorsqu un vertex est partage sur plusieurs
+    ! proc alors chaque proc n a qu une partie de la somme il faut
+    ! donc lui ajouter les contributions des autres proc pour prendre
+    ! en compte les forces imposee lors du couplage avec mka sur les
+    ! points de gauss internes aux faces
     do nf = 0, Tdomain%n_face-1
         ngll1 = Tdomain%sFace(nf)%ngll1
         ngll2 = Tdomain%sFace(nf)%ngll2
@@ -202,6 +203,7 @@ end subroutine Newmark
 subroutine Newmark_Predictor(Tdomain,rg)
 
     use sdomain
+    use assembly
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
@@ -226,9 +228,9 @@ subroutine Newmark_Predictor(Tdomain,rg)
             if (.not. Tdomain%specel(n)%PML) then  ! physical part
                 call Prediction_Elem_Veloc(Tdomain%specel(n))
             else    ! PML part
-                call get_PMLprediction_v2el(Tdomain,n,bega,dt,rg)
-                call get_PMLprediction_e2el(Tdomain,n,bega,dt,rg)
-                call get_PMLprediction_f2el(Tdomain,n,bega,dt,rg)
+                call get_PMLprediction_v2el(Tdomain,n,bega,dt)
+                call get_PMLprediction_e2el(Tdomain,n,bega,dt)
+                call get_PMLprediction_f2el(Tdomain,n,bega,dt)
                 if (Tdomain%curve) then
                     call Prediction_Elem_PML_Veloc_curve (Tdomain%specel(n),bega, dt, Tdomain%sSubDomain(mat)%hTPrimex, &
                         Tdomain%sSubDomain(mat)%hPrimey, Tdomain%sSubDomain(mat)%hprimez)
@@ -250,9 +252,9 @@ subroutine Newmark_Predictor(Tdomain,rg)
             if(.not. Tdomain%specel(n)%PML)then  ! physical part
                 call Prediction_Elem_VelPhi(Tdomain%specel(n),Dt)
             else    ! PML part
-                call get_PMLprediction_v2el_fl(Tdomain,n,bega,dt,rg)
-                call get_PMLprediction_e2el_fl(Tdomain,n,bega,dt,rg)
-                call get_PMLprediction_f2el_fl(Tdomain,n,bega,dt,rg)
+                call get_PMLprediction_v2el_fl(Tdomain,n,bega,dt)
+                call get_PMLprediction_e2el_fl(Tdomain,n,bega,dt)
+                call get_PMLprediction_f2el_fl(Tdomain,n,bega,dt)
                 call Prediction_Elem_PML_VelPhi(Tdomain%specel(n),bega,dt,             &
                     Tdomain%sSubDomain(mat)%hTPrimex,Tdomain%sSubDomain(mat)%hPrimey, &
                     Tdomain%sSubDomain(mat)%hprimez)
@@ -452,6 +454,7 @@ subroutine internal_forces(Tdomain,rank)
     ! volume forces - depending on rheology
     use sdomain
     use forces_aniso
+    use assembly
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
@@ -543,6 +546,7 @@ end subroutine external_forces
 !-------------------------------------------------------------------------------
 subroutine inside_proc_forces(Tdomain)
     use sdomain
+    use assembly
     implicit none
 
     type(domain), intent(inout)  :: Tdomain

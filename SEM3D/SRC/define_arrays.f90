@@ -13,6 +13,7 @@ subroutine Define_Arrays(Tdomain, rg)
     use mpi
     use scomm
     use scommutils
+    use assembly
     implicit none
 
     interface
@@ -366,9 +367,9 @@ subroutine Define_Arrays(Tdomain, rg)
 
     !- Mass and DumpMass Communications (assemblage) inside Processors
     do n = 0,Tdomain%n_elem-1
-        call get_Mass_Elem2Face(Tdomain,n,rg)
-        call get_Mass_Elem2Edge(Tdomain,n,rg)
-        call get_Mass_Elem2Vertex(Tdomain,n,rg)
+        call get_Mass_Elem2Face(Tdomain,n)
+        call get_Mass_Elem2Edge(Tdomain,n)
+        call get_Mass_Elem2Vertex(Tdomain,n)
     enddo
 
 

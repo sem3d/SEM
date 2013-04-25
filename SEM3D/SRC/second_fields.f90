@@ -1,5 +1,6 @@
 module mfields
     use sdomain
+    use orientation
 
 contains
 

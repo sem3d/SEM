@@ -18,6 +18,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/Domain.f90
     ${PRJ}/SRC/Modules/Couplage.f90
     ${PRJ}/SRC/Modules/solid_fluid.f90
+    ${PRJ}/SRC/orientation.f90
+    ${PRJ}/SRC/assembly.f90
     ${PRJ}/SRC/Capteur.f90
     ${PRJ}/SRC/comm_utils.f90
     ${PRJ}/SRC/Newmark.f90
@@ -45,18 +47,18 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/define_planew_properties.f90
     ${PRJ}/SRC/double_couple.f90
     ${PRJ}/SRC/forces_int.f90
-    ${PRJ}/SRC/get_Displ_Edge2Elem.f90
-    ${PRJ}/SRC/get_Displ_Face2Elem.f90
-    ${PRJ}/SRC/get_Displ_Vertex2Elem.f90
-    ${PRJ}/SRC/get_Forces_Elem2Edge.f90
-    ${PRJ}/SRC/get_Forces_Elem2Face.f90
-    ${PRJ}/SRC/get_Forces_Elem2Vertex.f90
-    ${PRJ}/SRC/get_Mass_Elem2Edge.f90
-    ${PRJ}/SRC/get_Mass_Elem2Face.f90
-    ${PRJ}/SRC/get_Mass_Elem2Vertex.f90
-    ${PRJ}/SRC/getPMLpred_e2el.f90
-    ${PRJ}/SRC/getPMLpred_f2el.f90
-    ${PRJ}/SRC/getPMLpred_v2el.f90
+#    ${PRJ}/SRC/get_Displ_Edge2Elem.f90
+#    ${PRJ}/SRC/get_Displ_Face2Elem.f90
+#    ${PRJ}/SRC/get_Displ_Vertex2Elem.f90
+#    ${PRJ}/SRC/get_Forces_Elem2Edge.f90
+#    ${PRJ}/SRC/get_Forces_Elem2Face.f90
+#    ${PRJ}/SRC/get_Forces_Elem2Vertex.f90
+#    ${PRJ}/SRC/get_Mass_Elem2Edge.f90
+#    ${PRJ}/SRC/get_Mass_Elem2Face.f90
+#    ${PRJ}/SRC/get_Mass_Elem2Vertex.f90
+#    ${PRJ}/SRC/getPMLpred_e2el.f90
+#    ${PRJ}/SRC/getPMLpred_f2el.f90
+#    ${PRJ}/SRC/getPMLpred_v2el.f90
     ${PRJ}/SRC/global_numbering.f90
     ${PRJ}/SRC/read_input.f90
     ${PRJ}/SRC/mesh3d.f90
@@ -70,12 +72,12 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/drive_sem.f90
     ${PRJ}/SRC/ondelette.f90
 
-    ${PRJ}/SRC/get_VectProperty_Edge2Elem.f90
-    ${PRJ}/SRC/get_VectProperty_Elem2Edge.f90
-    ${PRJ}/SRC/get_VectProperty_Elem2Face.f90
-    ${PRJ}/SRC/get_VectProperty_Elem2Vertex.f90
-    ${PRJ}/SRC/get_VectProperty_Face2Elem.f90
-    ${PRJ}/SRC/get_VectProperty_Vertex2Elem.f90
+#    ${PRJ}/SRC/get_VectProperty_Edge2Elem.f90
+#    ${PRJ}/SRC/get_VectProperty_Elem2Edge.f90
+#    ${PRJ}/SRC/get_VectProperty_Elem2Face.f90
+#    ${PRJ}/SRC/get_VectProperty_Elem2Vertex.f90
+#    ${PRJ}/SRC/get_VectProperty_Face2Elem.f90
+#    ${PRJ}/SRC/get_VectProperty_Vertex2Elem.f90
 
     ${PRJ}/SRC/get_ScalarProperty_Edge2Elem.f90
     ${PRJ}/SRC/get_ScalarProperty_Elem2Edge.f90
