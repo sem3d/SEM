@@ -577,6 +577,8 @@ contains
                 wf = Tdomain%sface(numFace)%Which_face(0)
             elseif ( Tdomain%sface(numFace)%Near_Element(1) == numElem ) then
                 wf = Tdomain%sface(numFace)%Which_face(1)
+            else
+                stop "Internal Error, incorrect mesh information"
             endif
 
             mat = Tdomain%specel(numElem)%mat_index
@@ -603,6 +605,8 @@ contains
                 dist = sqrt((x(3)-x(2))**2+(z(3)-z(2))**2)
             else if  (wf == 3) then
                 dist = sqrt((x(0)-x(3))**2+(z(0)-z(3))**2)
+            else
+                stop "Internal Error, incorrect mesh information"
             endif
 
             do i=1,ngll-2
@@ -615,6 +619,8 @@ contains
                     out = Tdomain%sSubdomain(mat)%GLLwx(i)
                 else if  (wf == 3) then
                     out = Tdomain%sSubdomain(mat)%GLLwz(i)
+                else
+                    stop "Internal Error, incorrect mesh information"
                 endif
 
                 if ( wf == 2 .or. wf == 3 ) then
@@ -771,6 +777,8 @@ contains
             wf = Tdomain%sface(numFace)%Which_face(0)
         elseif ( Tdomain%sface(numFace)%Near_Element(1) == numElem ) then
             wf = Tdomain%sface(numFace)%Which_face(1)
+        else
+            stop "Internal Error, incorrect mesh information"
         endif
 
         ! calcul des coordonnees (xi,eta) du point de couplage
@@ -869,9 +877,6 @@ contains
     !! \brief Retourne  l'indice de la particule de couplage Mka se projetant sur la face iface
     !! la plus proche du point d'interpolation d'abscisses (xi,eta)
     !<
-
-
-    !  integer function proj_plus_proche(Tdomain, n, iface, ik, Xpdc, Zpdc)
     subroutine proj_plus_proche(Tdomain, n, iface, xi, eta, Xpdc, Zpdc, ip)
         type (domain), intent(IN)  :: Tdomain
         integer, intent(in) :: iface, n
@@ -886,8 +891,12 @@ contains
 
         dmin = huge(1.)
 
+        pos_Pk(:) = 0.
+
         do np=1,n
-            ! recuperation de la face et de l element du point de couplage courant et de ses coordonnees, du numero de materiau et du nombre de pdg en x et z
+            ! recuperation de la face et de l element du point de
+            ! couplage courant et de ses coordonnees, du numero de
+            ! materiau et du nombre de pdg en x et z
             numFace = comm_couplage%m_numFace(np)
 
             if(face_couplage(iface)%face == numFace) then
@@ -909,6 +918,8 @@ contains
                     wf = Tdomain%sface(numFace)%Which_face(0)
                 elseif ( Tdomain%sface(numFace)%Near_Element(1) == numElem ) then
                     wf = Tdomain%sface(numFace)%Which_face(1)
+                else
+                    stop "Internal Error, incorrect mesh information"
                 endif
 
                 if((wf==0) .OR. (wf==1)) then
@@ -931,7 +942,8 @@ contains
 
                     pos_Pk(1) = 1./4.*( (1.-xi)*(1.-eta)*z(3) + (1.+xi)*(1.-eta)*z(2) &
                         + (1.+xi)*(1.+eta)*z(1) + (1.-xi)*(1.+eta)*z(0) )
-
+                else
+                    stop "Internal Error, incorrect mesh information"
                 endif
 
 
@@ -989,6 +1001,8 @@ contains
             wf = Tdomain%sface(numFace)%Which_face(0)
         elseif ( Tdomain%sface(numFace)%Near_Element(1) == numElem ) then
             wf = Tdomain%sface(numFace)%Which_face(1)
+        else
+            stop "Internal Error, incorrect mesh information"
         endif
 
         do ik=1,nb_Pk
@@ -1019,7 +1033,8 @@ contains
 
                 pos_Pk(1) = 1./4.*( (1.-xi)*(1.-eta)*z(3) + (1.+xi)*(1.-eta)*z(2) &
                     + (1.+xi)*(1.+eta)*z(1) + (1.-xi)*(1.+eta)*z(0) )
-
+            else
+                stop "Error incorrect wf flag"
             endif
             dist = sqrt( (pos_Pk(0)- Xpdc(ip))**2 + (pos_Pk(1)- Zpdc(ip))**2)
             if(dist< dmin) then
@@ -1191,7 +1206,8 @@ contains
             x(inod) = Tdomain%Coord_nodes(0,ipoint)
             z(inod) = Tdomain%Coord_nodes(1,ipoint)
         enddo
-
+        dist = 1.0
+        out = 1.0 ! Suppression warning
         ! calcul des poids au point de gauss
         select case (wf)
         case(0)

@@ -18,7 +18,7 @@ module mCapteur
     implicit none
 
     public :: read_capteur, save_capteur, evalueSortieCapteur, flushAllCapteurs
-    private :: lireCapteur, capterPointDeGauss, sortirGrandeurSousCapteur
+    private :: lireCapteur, capterPointDeGauss, sortirGrandeurSousCapteur, flushCapteur
 
     ! Les fichiers capteurs sont ecrits toutes les NCAPT_CACHE sorties
     integer, parameter :: NCAPT_CACHE=100
@@ -606,9 +606,9 @@ contains
         dset_capteur_name = trim(adjustl(capteur%nom))//"_"//trim(adjustl(capteur%grandeur))
     end function dset_capteur_name
 
-    subroutine create_traces_h5_skel(Tdomain)
+    subroutine create_traces_h5_skel()
         implicit none
-        type (domain) :: TDomain
+        !type (domain) :: TDomain
         type(tCapteur),pointer :: capteur
         character (len=MAX_FILE_SIZE) :: fnamef
         character (len=40) :: dname
@@ -632,9 +632,9 @@ contains
         call h5fclose_f(fid, hdferr)
     end subroutine create_traces_h5_skel
 
-    subroutine append_traces_h5(Tdomain)
+    subroutine append_traces_h5()
         implicit none
-        type (domain) :: TDomain
+        !type (domain) :: TDomain
         type(tCapteur),pointer :: capteur
         character (len=40) :: dname
         character (len=MAX_FILE_SIZE) :: fnamef
@@ -677,24 +677,23 @@ contains
             ! boucle sur les capteurs
             capteur=>listeCapteur
             do while (associated(capteur))
-                call flushCapteur(capteur,Tdomain,rg)
+                call flushCapteur(capteur,rg)
                 capteur=>capteur%suivant
             enddo
         else
             if (rg/=0) return
             ! Sauvegarde au format hdf5
             if (.not. traces_h5_created) then
-                call create_traces_h5_skel(Tdomain)
+                call create_traces_h5_skel()
                 traces_h5_created = .true.
             end if
-            call append_traces_h5(Tdomain)
+            call append_traces_h5()
         end if
     end subroutine flushAllCapteurs
 
-    subroutine flushCapteur(capteur, Tdomain, rg)
+    subroutine flushCapteur(capteur, rg)
         implicit none
         integer :: rg
-        type (domain) :: TDomain
         type(tCapteur),pointer :: capteur
         integer :: fileId, j, imax
         character(len=MAX_FILE_SIZE) :: fnamef
@@ -920,8 +919,6 @@ contains
         integer , dimension  (MPI_STATUS_SIZE) :: status
         integer request
 
-        real, dimension(3) :: val0
-
         real, dimension(3) :: recvbuf
         real, dimension(3) :: sendbuf
         real, dimension(3) :: grandeur
@@ -1004,21 +1001,19 @@ contains
                 tag = 100*(capteur%numproc+1) + capteur%numero
 
                 call mpi_recv(recvbuf(1),3,MPI_DOUBLE_PRECISION,capteur%numproc,tag, Tdomain%communicateur,status,ierr)
-                do idim=1,3
-                    val0(idim)=recvbuf(idim)
-                enddo
+
+                ! ETAPE 4 : Impression du resultat dans le fichier de sortie par le proc 0
+                i = capteur%icache+1
+                capteur%valuecache(1,i) = Tdomain%TimeD%rtime
+                capteur%valuecache(2:4,i) = recvbuf(1:3)
+                capteur%icache = i
             else
-                if(ntime<= 1) write(6,'(A,A,A,1X,I3)') 'Le capteur ',capteur%nom,' n''est pas pris en compte car sur aucun proc',capteur%numproc
+                if(ntime<= 1) then
+                    write(6,'(A,A,A,1X,I3)') 'Le capteur ',capteur%nom, &
+                        ' n''est pas pris en compte car sur aucun proc',capteur%numproc
+                endif
             endif
-        endif
 
-
-        ! ETAPE 4 : Impression du resultat dans le fichier de sortie par le proc 0
-        if((rg==0) .AND. (capteur%numproc>-1)) then
-            i = capteur%icache+1
-            capteur%valuecache(1,i) = Tdomain%TimeD%rtime
-            capteur%valuecache(2:4,i) = val0(1:3)
-            capteur%icache = i
         endif
 
     end subroutine sortieGrandeurCapteur_interp
@@ -1266,6 +1261,8 @@ contains
             NOEUD_FACE(3,:) = (/ 2, 3, 7, 6 /) !face 3 - j=n-1
             NOEUD_FACE(4,:) = (/ 3, 1, 5, 7 /) !face 4 - i=0
             NOEUD_FACE(5,:) = (/ 4, 5, 7, 6 /) !face 5 - k=n-1
+        else
+            stop "Internal Error in test_contour_capteur"
         endif
 
         pg = 0.  ! centre de gravite de la maille

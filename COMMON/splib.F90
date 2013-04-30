@@ -14,7 +14,7 @@ CONTAINS
         INTEGER, INTENT(IN) :: N
         INTEGER, INTENT(OUT) :: IFAIL
         REAL(kind=8), DIMENSION(N), INTENT(INOUT) :: X
-
+        X=N+1
         IFAIL=1
     END SUBROUTINE C06EBF
 
@@ -25,7 +25,7 @@ CONTAINS
         INTEGER, INTENT(IN) :: N
         INTEGER, INTENT(OUT) :: IFAIL
         REAL(kind=8), DIMENSION(N), INTENT(INOUT) :: X
-
+        X=N+1
         IFAIL=1
     END SUBROUTINE C06EAF
 
@@ -319,7 +319,7 @@ CONTAINS
         Y   = 1.D0
         DY  = 0.D0
         D2Y = 0.D0
-        IF (N .EQ. 0) RETURN
+        IF (N .LE. 0) RETURN
 
         Y   = 2.D0*X
         DY  = 2.D0
