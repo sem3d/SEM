@@ -361,7 +361,7 @@ contains
             '">geometry',rg,'.h5:/Jac</DataItem>'
         time = 0
         do i=1,isort
-            write(61,"(a,I4.4,a)") '<Grid Name="mesh.',rg,'">'
+            write(61,"(a,I4.4,a,I4.4,a)") '<Grid Name="mesh.',i,'.',rg,'">'
             write(61,"(a,F20.10,a)") '<Time Value="', time,'"/>'
             write(61,"(a,I8,a)") '<Topology Type="Hexahedron" NumberOfElements="',ne,'">'
             write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Int" Dimensions="',ne,' 8">'
@@ -373,32 +373,32 @@ contains
             write(61,"(a,I4.4,a)") 'geometry',rg,'.h5:/Nodes'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Geometry>'
-            write(61,"(a)") '<Attribute Name="Displ" Center="Node" AttributeType="Vector">'
+            write(61,"(a,I4.4,a)") '<Attribute Name="Displ" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
             write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
             write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/displ'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Attribute>'
-            write(61,"(a)") '<Attribute Name="Veloc" Center="Node" AttributeType="Vector">'
+            write(61,"(a,I4.4,a)") '<Attribute Name="Veloc" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
             write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
             write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/veloc'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Attribute>'
-            write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar">'
+            write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar" Dimensions="1">'
             write(61,"(a,I4,a)") '<DataItem Format="XML" Datatype="Int"  Dimensions="1">',rg,'</DataItem>'
             write(61,"(a)") '</Attribute>'
-            write(61,"(a)") '<Attribute Name="Mat" Center="Cell" AttributeType="Scalar">'
+            write(61,"(a,I4.4,a)") '<Attribute Name="Mat" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
             !write(61,"(a,I8,a,I4.4,a)") '<DataItem Format="HDF" Datatype="Int"  Dimensions="',ne, &
             !    '">geometry',rg,'.h5:/Material</DataItem>'
             write(61,"(a,I4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[',rg+1, &
                 ']/DataItem[@Name="Mat"]</DataItem>'
             write(61,"(a)") '</Attribute>'
-            write(61,"(a)") '<Attribute Name="Mass" Center="Node" AttributeType="Scalar">'
+            write(61,"(a,I4.4,a)") '<Attribute Name="Mass" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
             write(61,"(a,I4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[',rg+1, &
                 ']/DataItem[@Name="Mass"]</DataItem>'
 !            write(61,"(a,I8,a,I4.4,a)") '<DataItem Format="HDF" Datatype="Int"  Dimensions="',nn, &
 !                '">geometry',rg,'.h5:/Mass</DataItem>'
             write(61,"(a)") '</Attribute>'
-            write(61,"(a)") '<Attribute Name="Jac" Center="Node" AttributeType="Scalar">'
+            write(61,"(a,I4.4,a)") '<Attribute Name="Jac" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
             write(61,"(a,I4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[',rg+1, &
                 ']/DataItem[@Name="Jac"]</DataItem>'
 !            write(61,"(a,I8,a,I4.4,a)") '<DataItem Format="HDF" Datatype="Int"  Dimensions="',nn, &
