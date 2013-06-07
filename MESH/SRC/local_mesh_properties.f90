@@ -119,19 +119,20 @@ contains
     !------------------------------------------------------------
     !------------------------------------------------------------
     subroutine local_faces_construct(proc,part,nelem_in_proc,which_elem_in_proc,   &
-        Ipointer,dxadj,dxadjncy,n_faces,faces,mapping_faces,     &
+        Ipointer,dxadj,dxadjncy,elem_near_proc,n_faces,faces,mapping_faces,     &
         faces_shared,mapping_faces_shared,nf_shared,memory)
 
         implicit none
         integer, intent(in)   :: proc
         integer, dimension(0:), intent(in)   :: part,nelem_in_proc,dxadj,dxadjncy
         integer, dimension(0:,0:), intent(in) :: which_elem_in_proc,Ipointer
+        type(near_proc), dimension(0:), intent(in) :: elem_near_proc 
         integer, intent(out)    :: n_faces
         integer, dimension(0:,0:), intent(out)  :: faces,mapping_faces
         integer, dimension(0:,0:), intent(out)  :: faces_shared,mapping_faces_shared
         integer, dimension(0:), intent(out)     :: nf_shared
         type(souvenir), dimension(0:), intent(inout)  :: memory
-        integer    ::  i,j,k,n,nel,nf,neighbor,num,ok,neighbor_face,i_count
+        integer    :: i,j,k,n,nel,nf,neighbor,num,ok,neighbor_face,i_count,procrank
         integer, dimension(0:3)  ::  corner,neighbor_corner,orient_corner
 
         mapping_faces = -1
@@ -186,12 +187,16 @@ contains
                                     orient_corner(0:3) = neighbor_corner(0:3)
                                     call sort(neighbor_corner,4)
                                     neighbor_face = neighb_face(neighbor_corner)
-                                    faces_shared(num,memory(neighbor)%rank(proc)%E(neighbor_face)) = n_faces
+                                    procrank = already_in(proc,elem_near_proc(neighbor)%list,elem_near_proc(neighbor)%nb)
+                                    if(procrank < 0) stop "Gros probleme avec les procs"
+                                    faces_shared(num,memory(neighbor)%rank(procrank)%E(neighbor_face))= n_faces
                                     call face_orientation(orient_corner,4,neighbor_face,    &
-                                        mapping_faces_shared(num,memory(neighbor)%rank(proc)%E(neighbor_face)))
+                                        mapping_faces_shared(num,memory(neighbor)%rank(procrank)%E(neighbor_face)))
                                 else   ! We've never seen the processor of the neighbor
+                                    procrank = already_in(num,elem_near_proc(nel)%list,elem_near_proc(nel)%nb)
+                                    if(procrank < 0) stop "Gros probleme avec les procs"
                                     faces_shared(num,nf_shared(num)) = n_faces
-                                    memory(nel)%rank(num)%E(nf) = nf_shared(num)
+                                    memory(nel)%rank(procrank)%E(nf) = nf_shared(num)
                                     !! Coherency
                                     orient_corner(0:3) = neighbor_corner(0:3)
                                     call sort(neighbor_corner,4)
@@ -218,7 +223,7 @@ contains
     !------------------------------------------------------------
     !------------------------------------------------------------
     subroutine local_edges_construct(nproc,proc,part,nelem_in_proc,Elem_glob2loc, &
-        which_elem_in_proc,Ipointer,near_elem_set,n_edges,           &
+        which_elem_in_proc,Ipointer,near_elem_set,elem_near_proc,n_edges,         &
         edges,mapping_edges,edges_shared,mapping_edges_shared,       &
         ne_shared,Elem_edge_ref,memory)
 
@@ -227,12 +232,13 @@ contains
         integer, dimension(0:), intent(in) :: part,nelem_in_proc,Elem_glob2loc
         integer, dimension(0:,0:), intent(in)    :: which_elem_in_proc,Ipointer
         type(near_elem), dimension(0:), intent(in)   :: near_elem_set
+        type(near_proc), dimension(0:), intent(in)   :: elem_near_proc
         integer, intent(out)  :: n_edges
         integer, dimension(0:,0:), intent(out) :: edges,mapping_edges
         integer, dimension(0:,0:), intent(out) :: edges_shared,mapping_edges_shared
         integer, dimension(0:), intent(out)  :: ne_shared,Elem_Edge_Ref
         type(souvenir), dimension(0:), intent(inout)  :: memory
-        integer   :: i,j,k,n,ne,nel,ok,num,neighbor,neighbor_edge
+        integer   :: i,j,k,n,ne,nel,ok,num,neighbor,neighbor_edge,procrank
         integer, dimension(0:1)  :: e_corner,e_neighbor_corner,e_orient_corner
         logical, dimension(0:nproc-1)  :: L_Proc
         type(near_entity), pointer  :: near_neighb => NULL(),   &
@@ -275,7 +281,7 @@ contains
                             exit findbis0
                         endif
                     enddo findbis1
-                    near_neighb => near_neighb%pt   ! next element in the linked chain
+                    near_neighb => near_neighb%pt   ! next element in the linked list
                 enddo findbis0
                 if(ok == 0 .or. n == 0) then   ! no: edge never seen on the same proc before
                     edges(n,ne) = n_edges
@@ -308,13 +314,17 @@ contains
                                         e_orient_corner(0:1) = e_neighbor_corner(0:1)
                                         call sort(e_neighbor_corner,2)
                                         neighbor_edge = neighb_edge(e_neighbor_corner)
-                                        edges_shared(num,memory(i)%rank(proc)%E(neighbor_edge+6)) = edges(n,ne)
+                                        procrank = already_in(proc,elem_near_proc(i)%list,elem_near_proc(i)%nb)
+                                        if(procrank < 0) stop "Gros probleme avec les procs"
+                                        edges_shared(num,memory(i)%rank(procrank)%E(neighbor_edge+6)) = edges(n,ne)
                                         !! Coherency
                                         call edge_orientation(e_orient_corner,2,neighbor_edge,&
-                                            mapping_edges_shared(num,memory(i)%rank(proc)%E(neighbor_edge+6)))
+                                            mapping_edges_shared(num,memory(i)%rank(procrank)%E(neighbor_edge+6)))
                                     else   ! It deals with a processor we've never seen
+                                        procrank = already_in(num,elem_near_proc(nel)%list,elem_near_proc(nel)%nb)
+                                        if(procrank < 0) stop "Gros probleme avec les procs"
                                         edges_shared(num,ne_shared(num)) = edges(n,ne)
-                                        memory(nel)%rank(num)%E(ne+6) = ne_shared(num)
+                                        memory(nel)%rank(procrank)%E(ne+6) = ne_shared(num)
                                         ! Coherency
                                         e_orient_corner(0:1) = e_neighbor_corner(0:1)
                                         call sort(e_neighbor_corner,2)
@@ -339,7 +349,7 @@ contains
     !------------------------------------------------------------
     subroutine local_vertices_comm(n_vertices,proc,n_proc,nelem_in_proc,part,  &
         vertex_to_glob,node_loc2glob,which_elem_in_proc,Ipointer,    &
-        vertices,near_elem_set,vertices_shared,nv_shared,memory)
+        vertices,near_elem_set,elem_near_proc,vertices_shared,nv_shared,memory)
 
         implicit none
         integer, intent(in)  :: n_vertices,proc,n_proc
@@ -348,10 +358,11 @@ contains
         integer, dimension(0:,0:), intent(in)  :: which_elem_in_proc, Ipointer,  &
             vertices
         type(near_elem), dimension(0:), intent(in)   :: near_elem_set
+        type(near_proc), dimension(0:), intent(in)   :: elem_near_proc
         integer, dimension(0:,0:), intent(out) :: vertices_shared
         integer, dimension(0:), intent(out)   :: nv_shared
         type(souvenir), dimension(0:), intent(inout)  :: memory
-        integer   :: n,nv,vert,local_n,icount,nel,i,k,num
+        integer   :: n,nv,vert,local_n,icount,nel,i,k,num,procrank
         logical, dimension(0:n_vertices-1)  :: L_vertex
         logical, dimension(0:n_proc-1)  :: L_Proc
         type(near_entity), pointer  :: near_neighb => NULL(),   &
@@ -378,10 +389,14 @@ contains
                             if(Ipointer(k,i) == icount)then
                                 num = part(i)
                                 if(num < proc)then   ! it deals with a processor we've already seen
-                                    vertices_shared(num,memory(i)%rank(proc)%E(18+k)) = vert
+                                    procrank = already_in(proc,elem_near_proc(i)%list,elem_near_proc(i)%nb)
+                                    if(procrank < 0) stop "Gros probleme avec les procs"
+                                    vertices_shared(num,memory(i)%rank(procrank)%E(18+k)) = vert
                                 else   ! it deals with a processor we've never seen
+                                    procrank = already_in(proc,elem_near_proc(i)%list,elem_near_proc(i)%nb)
+                                    if(procrank < 0) stop "Gros probleme avec les procs"
                                     vertices_shared(num,nv_shared(num)) = vert
-                                    memory(nel)%rank(num)%E(18+nv) = nv_shared(num)
+                                    memory(nel)%rank(procrank)%E(18+nv) = nv_shared(num)
                                 end if
                                 nv_shared(num) = nv_shared(num)+1
                                 L_proc(num) = .false.
