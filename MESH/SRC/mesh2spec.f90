@@ -91,6 +91,7 @@ contains
         type(near_node), dimension(:), allocatable  :: initnode,prevnode,currnode
         type(near_elem), dimension(:), allocatable  :: near_elem_set,     &
             SF_edges_near_elem, Neu_edges_near_elem
+        type(near_proc), dimension(:), allocatable  :: elem_near_proc
 
         !- materials --
         integer      :: n_SF_nodes
@@ -223,6 +224,8 @@ contains
         call part_mesh_3D(n_elem,n_points,Ipointer,nproc,dxadj,dxadjncy,part)
         write(*,*) "  --> Partition done."
 
+        allocate(elem_near_proc(0:n_elem-1))
+        call find_near_proc(n_elem,near_elem_set,part,elem_near_proc)
 
         !-----------------------------------------------------
         !-   NEUMANN INTERFACE : GLOBAL PROPERTIES
@@ -238,13 +241,6 @@ contains
                 Faces_Neumann,initnode,Neu_object,            &
                 Neu_object_Face,Neu_object_n_faces)
 
-            !do n = 0,n_elem-1
-            !   if(Neu_object(n))then
-            !    print*,n,(Neu_object_face(n,j)%ind_face,j=0,Neu_object_n_faces(n)-1)
-            !   end if
-            !end do
-            !read*
-
             !- now we construct GLOBAL Neumann faces; it shall be
             !-   of great help when constructing local Neumann faces
             allocate(Neu_global_faces(0:Neu_n_global_faces-1))
@@ -253,26 +249,12 @@ contains
                 Neu_object,Neu_object_face,Neu_object_n_faces,  &
                 Neu_global_faces)
 
-            !do n = 0,Neu_n_global_faces-1
-            !    print*,"NEU",n,Neu_global_faces(n)%elem,Neu_global_faces(n)%face,Neu_global_faces(n)%num
-            !end do
-            !read*
 
             !- now we construct GLOBAL Neumann vertices
             allocate(Neu_global_node_to_vertex(0:n_points-1))
             call Neu_global_vertices_construct(Neu_n_global_faces,         &
                 Ipointer,Neu_global_faces,Neu_global_node_to_vertex,    &
                 Neu_n_global_vertices,Neu_global_vertices)
-            !do n = 0,Neu_n_global_vertices-1
-            !    print*,"NEU",n,Neu_global_vertices(n)%node
-            !    print*,"NEU2",Neu_global_vertices(n)%faces(0:)
-            !end do
-            !read*
-            !do n = 0,n_points-1
-            !    if(Neu_global_node_to_vertex(n) < 0) cycle
-            !    print*,"NEU3",n,Neu_global_node_to_vertex(n)
-            !end do
-            !read*
 
             !- now we construct GLOBAL Neumann edges
             call Neu_global_edges_construct(Neu_n_global_faces,Ipointer,  &
@@ -280,11 +262,6 @@ contains
                 Neu_n_global_edges,Neu_global_edges)
 
             allocate(Neu_global_edge_present(0:Neu_n_global_edges-1))
-            !do n = 0,Neu_n_global_edges-1
-            !    print*,"NEU",n,Neu_global_edges(n)%vertex
-            !    print*,"NEU2",Neu_global_edges(n)%faces(0:)
-            !end do
-            !read*
 
 
             !- search for elements sharing the same Neumann edge:
@@ -297,25 +274,16 @@ contains
                 n1 = Neu_global_vertices(nv1)%node
                 call entity_intersect(initnode(n0)%ptr,initnode(n1)%ptr,Neu_edges_near_elem(i)%ptr)
                 call entity_sort(Neu_edges_near_elem(i)%ptr)
-                ! call list_entity(Neu_edges_near_elem(i)%ptr)
             end do
 
             !- which procs do Neumann vertices belong to?
             call Neu_vertices_proc_belong(nproc,Neu_n_global_vertices,part,    &
                 initnode,Neu_global_vertices)
-            !do n = 0,Neu_n_global_vertices-1
-            !   print*,"GANCEL",n,Neu_global_vertices(n)%local
-            !end do
-            !read*
 
             !- which procs do Neumann edges belong to?
             call Neu_edges_proc_belong(nproc,Neu_n_global_edges,     &
                 Neu_global_vertices,Neu_global_edges)
 
-            !do n = 0,Neu_n_global_edges-1
-            !   print*,"GANCEL2",n,Neu_global_edges(n)%local
-            !end do
-            !read*
 
         end if     !- temporary end of Neumann case
 
@@ -442,8 +410,9 @@ contains
         allocate(memory(0:n_elem-1))
         do nel = 0,n_elem-1
             if(part(nel) /= nproc-1)then
-                allocate(memory(nel)%rank(part(nel)+1:nproc-1))
-                do proc = part(nel)+1,nproc-1
+                if(elem_near_proc(nel)%nb > 0)  &
+                    allocate(memory(nel)%rank(0:elem_near_proc(nel)%nb-1))
+                do proc = 0,elem_near_proc(nel)%nb-1
                     allocate(memory(nel)%rank(proc)%E(0:25))
                 enddo
             endif
@@ -454,14 +423,6 @@ contains
             call Neu_edges_reference_elem(nproc,Neu_n_global_edges,       &
                 Elem_glob2loc,part,Ipointer,Neu_global_vertices,   &
                 Neu_edges_near_elem,Neu_global_edges)
-
-            !do n = 0, Neu_n_global_edges-1
-            !    print*,"REF. EDGE: ",n
-            !    print*,Neu_global_edges(n)%elem_ref(0:,0)
-            !    print*,Neu_global_edges(n)%elem_ref(0:,1)
-            !    print*
-            !end do
-            !read*
 
 
             !- local <-> global correspondence
@@ -568,7 +529,7 @@ contains
             allocate(shared%mapping_faces(0:nproc-1,0:6*nelem_in_proc(proc)-1))
             allocate(shared%nf(0:nproc-1))
             call local_faces_construct(proc,part,nelem_in_proc,which_elem_in_proc,   &
-                Ipointer,dxadj,dxadjncy,n_faces,faces,mapping_faces,   &
+                Ipointer,dxadj,dxadjncy,elem_near_proc,n_faces,faces,mapping_faces,  &
                 shared%faces,shared%mapping_faces,shared%nf,memory)
 
 
@@ -581,7 +542,7 @@ contains
             allocate(shared%mapping_edges(0:nproc-1,0:12*nelem_in_proc(proc)-1))
             allocate(shared%ne(0:nproc-1))
             call local_edges_construct(nproc,proc,part,nelem_in_proc,Elem_glob2loc,   &
-                which_elem_in_proc,Ipointer,near_elem_set,n_edges,           &
+                which_elem_in_proc,Ipointer,near_elem_set,elem_near_proc,n_edges,     &
                 edges,mapping_edges,shared%edges,shared%mapping_edges,       &
                 shared%ne,Elem_edge_ref,memory)
 
@@ -590,7 +551,7 @@ contains
             allocate(shared%nv(0:nproc-1))
             call local_vertices_comm(n_vertices,proc,nproc,nelem_in_proc,part,   &
                 vertex_to_glob,node_loc2glob,which_elem_in_proc,Ipointer,  &
-                vertices,near_elem_set,shared%vertices,shared%nv,memory)
+                vertices,near_elem_set,elem_near_proc,shared%vertices,shared%nv,memory)
 
 
             !- now we include eventual Neumann objects

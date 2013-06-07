@@ -2,13 +2,12 @@ PROJECT(mesher)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 ENABLE_LANGUAGE(Fortran)
 set(PRJ ${PROJECT_SOURCE_DIR})
-set(ROOT ${CMAKE_SOURCE_DIR})
 
 add_subdirectory(metis)
 
 set(MESH_SRC
-  ${ROOT}/COMMON/sem_hdf5.f90
-  ${ROOT}/COMMON/pointlist.f90
+  ${SEMCOMMON}/sem_hdf5.f90
+  ${SEMCOMMON}/pointlist.f90
   ${PRJ}/SRC/fich_cubit.f90
   ${PRJ}/SRC/fich_unv.f90
   ${PRJ}/SRC/local_mesh_properties.f90

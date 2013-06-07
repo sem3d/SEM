@@ -85,7 +85,7 @@ CONTAINS
         S  = 0.426401432711220868D0
 
         DO K=1,11
-            PR = PR*(XX-DFLOAT(K))/(XX+DFLOAT(K-1))
+            PR = PR*(XX-real(K,kind=8))/(XX+real(K-1,kind=8))
             S  = S+C(K)*PR
         END DO
 
@@ -134,7 +134,7 @@ CONTAINS
         DYP  = 0.D0
         D2YP = 0.D0
         DO I=2,N
-            DI = DFLOAT(I)
+            DI = real(I,kind=8)
             C0 = 2.D0*DI+AB
             C1 = 2.D0*DI*(DI+AB)*(C0-2.D0)
             C2 = (C0-1.D0)*(C0-2.D0)*C0
@@ -185,7 +185,7 @@ CONTAINS
         DYP  = 0.D0
         D2YP = 0.D0
         DO I=2,N
-            C1 = DFLOAT(I)
+            C1 = real(I,kind=8)
             C2 = 2.D0*C1-1.D0
             C4 = C1-1.D0
             YM = Y
@@ -281,7 +281,7 @@ CONTAINS
         DYP = 0.D0
         D2YP= 0.D0
         DO K=2,N
-            DK = DFLOAT(K)
+            DK = real(K,kind=8)
             B1 = (2.D0*DK+A-1.D0-X)/DK
             B2 = (DK+A-1.D0)/DK
             YM = Y
@@ -328,15 +328,15 @@ CONTAINS
 
         YP=1.D0
         DO K=2,N
-            DK = DFLOAT(K-1)
+            DK = real(K-1,kind=8)
             YM  = Y
             Y   = 2.D0*X*Y-2.D0*DK*YP
             YPM = YP
             YP  = YM
         END DO
 
-        DN  = 2.D0*DFLOAT(N)
-        DNN = 2.D0*DFLOAT(N-1)
+        DN  = 2.D0*real(N,kind=8)
+        DNN = 2.D0*real(N-1,kind=8)
         DY  = DN*YP
         D2Y = DN*DNN*YPM
 
@@ -375,7 +375,7 @@ CONTAINS
         YP  = 1.D0
         DYP = 0.D0
         DO K=2,N
-            DK  = DFLOAT(K)
+            DK  = real(K,kind=8)
             DK4 = 4.D0*DK
             C0  = 1.D0/(DK4+X)
             C1  = DK4+X-2.D0
@@ -384,7 +384,7 @@ CONTAINS
             C4  = 2.D0*DK+A-1.D0
             C5  = C4-X
             C6  = C4+DK4
-            C7  = C2*DFLOAT(4*(K-1)**2)
+            C7  = C2*real(4*(K-1)**2,kind=8)
             DYM = DY
             DY  = C3*(C5*DY-C0*C6*Y+C7*(2.D0*C0*C1*C2*YP-DYP))
             DYP = DYM
@@ -458,9 +458,9 @@ CONTAINS
         DZ(1) = .5D0*AB+1.D0
         IF(N .EQ. 1) RETURN
 
-        C  = M_PI_2/(2.D0*DFLOAT(N)+AB+1.D0)
+        C  = M_PI_2/(2.D0*real(N,kind=8)+AB+1.D0)
         DO I=1,N
-            DI  = DFLOAT(I)
+            DI  = real(I,kind=8)
             CSX = -COS(C*(4.D0*DI+AB-1.D0))
             DO IT=1,8
                 CALL VAJAPO(N,A,B,CSX,Y,DY,D2Y)
@@ -498,9 +498,9 @@ CONTAINS
         N2 = N/2
         IN = 2*N-4*N2-1
 
-        C  = M_PI_2/(2.D0*DFLOAT(N)+1.D0)
+        C  = M_PI_2/(2.D0*real(N,kind=8)+1.D0)
         DO I=1,N2
-            DI  = DFLOAT(I)
+            DI  = real(I,kind=8)
             CSX = COS(C*(4.D0*DI-1.D0))
             DO IT=1,8
                 CALL VALEPO(N,CSX,Y,DY,D2Y)
@@ -508,7 +508,7 @@ CONTAINS
             END DO
             CS(I) = -CSX
             CS(N-I+1) = CSX
-            DZ(I) = DY*DFLOAT(IN)
+            DZ(I) = DY*real(IN,kind=8)
             DZ(N-I+1) = DY
         END DO
 
@@ -542,16 +542,16 @@ CONTAINS
 
         N2 = N/2
         IN = 1+4*N2-2*N
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         C  = M_PI_2/DN
         SI = -1.D0
         DO I=1,N2
-            DI = DFLOAT(I)
+            DI = real(I,kind=8)
             CSX = COS(C*(2.D0*DI-1.D0))
             CS(I) = -CSX
             CS(N-I+1) = CSX
             QX = DN/SQRT(1.D0-CSX*CSX)
-            DZ(I) = QX*SI*DFLOAT(IN)
+            DZ(I) = QX*SI*real(IN,kind=8)
             DZ(N-I+1) = -QX*SI
             SI = -SI
         END DO
@@ -560,7 +560,7 @@ CONTAINS
         CS(N2+1) = 0.D0
         N4  = N2/2
         IN2 = 1+4*N4-2*N2
-        DZ(N2+1) = DN*DFLOAT(IN2)
+        DZ(N2+1) = DN*real(IN2,kind=8)
 
         RETURN
     END SUBROUTINE ZECHGA
@@ -588,10 +588,10 @@ CONTAINS
         DZ(1) = -4.D0/(A1*(A+5.D0))
         IF (N .EQ. 1) RETURN
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         C1 = 2.D0*DN+A1
         DO M=1,N
-            DM = DFLOAT(M)
+            DM = real(M,kind=8)
             C2 = 2.D0*(DN+.75D0-DM)*M_PI/C1
             XN = (C2+M_PI)/2.D0
             DO IT=1,8
@@ -668,7 +668,7 @@ CONTAINS
 
         DO I=1,M
             CS(I) = -CS(N-I+1)
-            DZ(I) = DZ(N-I+1)*DFLOAT(IN)
+            DZ(I) = DZ(N-I+1)*real(IN,kind=8)
         END DO
 
         RETURN
@@ -706,13 +706,13 @@ CONTAINS
         IF (N .EQ. 1) RETURN
 
         AB = A+B
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         C  = M_PI_2/(2.D0*DN+AB+1.D0)
         N1 = N-1
         A1 = A+1.D0
         B1 = B+1.D0
         DO I=1,N1
-            DI  = DFLOAT(I)
+            DI  = real(I,kind=8)
             ETX = -COS(C*(4.D0*DI+AB+1.D0))
             DO IT=1,8
                 CALL VAJAPO(N1,A1,B1,ETX,Y,DY,D2Y)
@@ -744,7 +744,7 @@ CONTAINS
         IF (N .EQ. 0) RETURN
 
         N2 = (N-1)/2
-        SN = DFLOAT(2*N-4*N2-3)
+        SN = real(2*N-4*N2-3,kind=8)
         ET(0) = -1.D0
         ET(N) = 1.D0
         VN(0) = SN
@@ -757,9 +757,9 @@ CONTAINS
         VN(N2+1) = Y
         IF(N .EQ. 2) RETURN
 
-        C  = M_PI/DFLOAT(N)
+        C  = M_PI/real(N,kind=8)
         DO I=1,N2
-            ETX = COS(C*DFLOAT(I))
+            ETX = COS(C*real(I,kind=8))
             DO IT=1,8
                 CALL VALEPO(N,ETX,Y,DY,D2Y)
                 ETX = ETX-DY/D2Y
@@ -796,9 +796,9 @@ CONTAINS
         ET(N2+1) = 0.D0
         IF(N .EQ. 2) RETURN
 
-        C  = M_PI/DFLOAT(N)
+        C  = M_PI/real(N,kind=8)
         DO I=1,N2
-            ETX = COS(C*DFLOAT(I))
+            ETX = COS(C*real(I,kind=8))
             ET(I) = -ETX
             ET(N-I) = ETX
         END DO
@@ -829,10 +829,10 @@ CONTAINS
 
         A1 = A+1.D0
         N1 = N-1
-        DN = DFLOAT(N1)
+        DN = real(N1,kind=8)
         C1 = 2.D0*DN+A1+1.D0
         DO M=1,N1
-            DM = DFLOAT(M)
+            DM = real(M,kind=8)
             C2 = 2.D0*(DN+.75D0-DM)*M_PI/C1
             XN = (C2+M_PI)/2.D0
             DO IT=1,8
@@ -897,7 +897,7 @@ CONTAINS
         CALL GAMMAF(AB,GAB)
         C  = .5D0*(2.D0**AB)*GA2*GB2/GAB
         DO M=2,N
-            DM = DFLOAT(M)
+            DM = real(M,kind=8)
             C  = C*(DM+A)*(DM+B)/(DM*(DM+A+B))
         END DO
 
@@ -959,7 +959,7 @@ CONTAINS
 
         IF (N .EQ. 0) RETURN
 
-        C  = M_PI/DFLOAT(N)
+        C  = M_PI/real(N,kind=8)
         DO  I=1,N
             WE(I) = C
         END DO
@@ -989,10 +989,10 @@ CONTAINS
         A1 = A+1.D0
         CALL GAMMAF(A1,GA1)
         N1 = N+1
-        DN = DFLOAT(N1)
+        DN = real(N1,kind=8)
         C = GA1/DN
         DO M=1,N
-            DM = DFLOAT(M)
+            DM = real(M,kind=8)
             C = C*(DM+A)/(DM+1.D0)
         END DO
 
@@ -1023,14 +1023,14 @@ CONTAINS
 
         PR = 1.77245385090551588D0
         R2 = 1.41421356237309515D0
-        C  = PR/DFLOAT(N)
+        C  = PR/real(N,kind=8)
         N2 = N/2
         DO I=1,N2
             X  = CS(I)
             YP = 1.D0
             Y  = R2*X
             DO  K=2,N-1
-                DK = DFLOAT(K)
+                DK = real(K,kind=8)
                 RK = SQRT(DK)
                 QK = SQRT(DK-1.D0)
                 YM = Y
@@ -1045,7 +1045,7 @@ CONTAINS
         IF(N .EQ. 2*N2) RETURN
         Y = 1.D0
         DO K=2,N-1,2
-            DK = DFLOAT(K)
+            DK = real(K,kind=8)
             Y  = Y*SQRT((DK-1.D0)/DK)
         END DO
         WE(N2+1) = C/(Y*Y)
@@ -1087,13 +1087,13 @@ CONTAINS
         IF (N .EQ. 1) RETURN
 
         N1 = N-1
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         C  = C*(2.D0*DN+AB)/(DN+AB+1.D0)
         C1 = C*A1/((B+2.D0)*AB2)
         C2 = C*B1/((A+2.D0)*AB2)
         C3 = .5D0*C*A1*B1
         DO K=1,N-2
-            DK = DFLOAT(K)
+            DK = real(K,kind=8)
             C1 = C1*(DK+A1)*DK/((DK+AB2)*(DK+B+2.D0))
             C2 = C2*(DK+B1)*DK/((DK+AB2)*(DK+A+2.D0))
             C3 = C3*(DK+A1)*(DK+B1)/((DK+2.D0)*(DK+AB+1.D0))
@@ -1134,7 +1134,7 @@ CONTAINS
         IF (N .EQ. 0) RETURN
 
         N2 = (N-1)/2
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         C  = 2.D0/(DN*(DN+1.D0))
         DO I=0,N2
             X = ET(I)
@@ -1166,7 +1166,7 @@ CONTAINS
 
         IF (N .EQ. 0) RETURN
 
-        C  = M_PI/DFLOAT(N)
+        C  = M_PI/real(N,kind=8)
         C2 = .5D0*C
         WT(0) =C2
         WT(N) =C2
@@ -1206,7 +1206,7 @@ CONTAINS
         N1 = N-1
         C2 = GA1
         DO K=1,N1
-            DK = DFLOAT(K)
+            DK = real(K,kind=8)
             C1 = C1*DK/(DK+A1)
             C2 = C2*(DK+A)/(DK+1.D0)
         END DO
@@ -1237,8 +1237,8 @@ CONTAINS
         IF (N .EQ. 0) RETURN
 
         M  = 2*N
-        DN = DFLOAT(N)
-        DM = DFLOAT(M)
+        DN = real(N,kind=8)
+        DM = real(M,kind=8)
         C  = 1.D0/(DM*DM-1.D0)
         WK(0) = C
         WK(M) = C
@@ -1246,10 +1246,10 @@ CONTAINS
         IF (N .EQ. 1) RETURN
 
         DO J=1,N-1
-            DJ = DFLOAT(J)
+            DJ = real(J,kind=8)
             SU = 1.D0-((-1.D0)**J)*C
             DO K=1,N-1
-                DK = 2.D0*DFLOAT(K)
+                DK = 2.D0*real(K,kind=8)
                 SU = SU+2.D0*COS(DJ*DK*M_PI/DM)/(1.D0-DK*DK)
             END DO
             WK(J) = SU/DN
@@ -1258,7 +1258,7 @@ CONTAINS
 
         SU = 1.D0-((-1.D0)**N)*C
         DO  K=1,N-1
-            DK = 2.D0*DFLOAT(K)
+            DK = 2.D0*real(K,kind=8)
             SU = SU+2.D0*((-1.D0)**K)/(1.D0-DK*DK)
         END DO
         WK(N) = SU/DN
@@ -1363,12 +1363,12 @@ CONTAINS
 
         IF (N .EQ. 0) RETURN
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         C  = M_PI_2/DN
         CALL VACHPO(N,X,Y,DY,D2Y)
         QX = 0.D0
         DO J=1,N
-            ED = X+COS(C*(2.D0*DFLOAT(J)-1.D0))
+            ED = X+COS(C*(2.D0*real(J,kind=8)-1.D0))
             IF(ABS(ED) .LT. EPS) THEN
                 QX = QZ(J)
                 RETURN
@@ -1413,7 +1413,7 @@ CONTAINS
             ELSE
                 PR = 1.D0
                 DO  K=1,N
-                    DK = 4.D0*DFLOAT(K)
+                    DK = 4.D0*real(K,kind=8)
                     PR = PR*(DK+X)/(DK+CS(J))
                 END DO
                 QX = QX+QZ(J)*Y*PR/(DZ(J)*ED)
@@ -1459,7 +1459,7 @@ CONTAINS
             ELSE
                 PR = 1.D0
                 DO K=1,N/2
-                    DK = 4.D0*DFLOAT(K)
+                    DK = 4.D0*real(K,kind=8)
                     PR = PR*(DK+X*X)/(DK+CS(J)**2)
                 END DO
                 QX = QX+QZ(J)*Y*PR/(DZ(J)*ED)
@@ -1494,7 +1494,7 @@ CONTAINS
         IF (N .EQ. 0) RETURN
 
         CALL VAJAPO(N,A,B,X,Y,DY,D2Y)
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         C  = 1.D0/(DN*(DN+A+B+1.D0))
         QX = QN(0)*C*DY*(B+1.D0)*(X-1.D0)/VN(0)
         QX = QX+QN(N)*C*DY*(A+1.D0)*(X+1.D0)/VN(N)
@@ -1536,7 +1536,7 @@ CONTAINS
         IF (N .EQ. 0) RETURN
 
         CALL VALEPO(N,X,Y,DY,D2Y)
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         C  = 1.D0/(DN*(DN+1.D0))
         QX = QN(0)*C*DY*(X-1.D0)/VN(0)
         QX = QX+QN(N)*C*DY*(X+1.D0)/VN(N)
@@ -1576,8 +1576,8 @@ CONTAINS
         IF (N .EQ. 0) RETURN
 
         CALL VACHPO(N,X,Y,DY,D2Y)
-        DN = DFLOAT(N)
-        SN = DFLOAT(1+4*(N/2)-2*N)
+        DN = real(N,kind=8)
+        SN = real(1+4*(N/2)-2*N,kind=8)
         PN = M_PI/DN
         C  = 1.D0/(DN*DN)
         QX = .5D0*SN*QN(0)*C*DY*(X-1.D0)
@@ -1586,7 +1586,7 @@ CONTAINS
 
         SJ = -1.D0
         DO J=1,N-1
-            ED = X+COS(PN*DFLOAT(J))
+            ED = X+COS(PN*real(J,kind=8))
             IF(ABS(ED) .LT. EPS) THEN
                 QX = QN(J)
                 RETURN
@@ -1625,12 +1625,12 @@ CONTAINS
         QX = QN(0)
         IF (N .EQ. 1) RETURN
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         C  = -1.D0/DN
         PR = 1.D0
         SU = 0.D0
         DO M=1,N
-            DM = 4.D0*DFLOAT(M)
+            DM = 4.D0*real(M,kind=8)
             PR = PR*(DM+X)/DM
             SU = SU+1.D0/(DM+X)
         END DO
@@ -1644,7 +1644,7 @@ CONTAINS
             ELSE
                 PR = 1.D0
                 DO K=1,N
-                    DK = 4.D0*DFLOAT(K)
+                    DK = 4.D0*real(K,kind=8)
                     PR = PR*(DK+X)/(DK+ET(J))
                 END DO
                 QX = QX+QN(J)*C*PR*(DY+SU*Y)*X/(VN(J)*ED)
@@ -1708,14 +1708,14 @@ CONTAINS
 
         IF (N .EQ. 0) RETURN
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         X  = -1.D0
         CALL INCHGA(N,DZ,QZ,X,QX)
         S1 = 0.D0
         S2 = QX*QX*WK(0)
         QM = 0.D0
         DO J=1,N
-            DJ = DFLOAT(J)
+            DJ = real(J,kind=8)
             J2 = 2*J
             X  = -COS(M_PI*DJ/DN)
             Y  = ABS(QZ(J))
@@ -1760,14 +1760,14 @@ CONTAINS
         B1  = B+1.D0
         AB  = A+B
         AB2 = AB+2.D0
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         C  = ((2.D0)**(AB+1.D0))*(DN+AB+1.D0)/(2.D0*DN+AB+1.D0)
         CALL GAMMAF(A1,GA1)
         CALL GAMMAF(B1,GB1)
         CALL GAMMAF(AB2,GAB2)
         C  = C*GA1*GB1/GAB2
         DO K=1,N
-            DK = DFLOAT(K)
+            DK = real(K,kind=8)
             C  = C*(DK+A)*(DK+B)/(DK*(DK+AB+1.D0))
         END DO
 
@@ -1813,7 +1813,7 @@ CONTAINS
 
         IF (N .EQ. 0) RETURN
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         C  = .5D0*DN*(DN+1.D0)/(2.D0*DN+1.D0)
 
         S1 = 0.D0
@@ -1856,8 +1856,8 @@ CONTAINS
 
         IF (N .EQ. 0) RETURN
 
-        DN = DFLOAT(N)
-        SN = DFLOAT(1+4*(N/2)-2*N)
+        DN = real(N,kind=8)
+        SN = real(1+4*(N/2)-2*N,kind=8)
         Y  = QN(0)
         S1 = .5D0*Y*Y
         S2 = .5D0*Y*SN
@@ -1867,7 +1867,7 @@ CONTAINS
         SJ = -1.D0
         DO J=1,N-1
             J2 = 2*J
-            DJ = DFLOAT(J2-1)
+            DJ = real(J2-1,kind=8)
             X  = -COS(M_PI_2*DJ/DN)
             Y  = QN(J)
             YM = ABS(Y)
@@ -1879,7 +1879,7 @@ CONTAINS
             SJ = -SJ
         END DO
         N2 = 2*N
-        DD = DFLOAT(N2-1)
+        DD = real(N2-1,kind=8)
         X  = -COS(M_PI_2*DD/DN)
         Y  = QN(N)
         YM = ABS(Y)
@@ -1942,7 +1942,7 @@ CONTAINS
             Y  = .5D0*YP*(AB2*X+A-B)
             DO K=1,N-1
                 CO(K) = CO(K)+Y
-                DK = DFLOAT(K+1)
+                DK = real(K+1,kind=8)
                 CC = 2.D0*DK+AB
                 C1 = 2.D0*DK*(DK+AB)*(CC-2.D0)
                 C2 = (CC-1.D0)*(CC-2.D0)*CC
@@ -1955,7 +1955,7 @@ CONTAINS
         END DO
 
         DO K=1,N-1
-            DK = DFLOAT(K)
+            DK = real(K,kind=8)
             C  = C*(DK+A)*(DK+B)/DK
             CO(K) = CO(K)*(2.D0*DK+AB+1.D0)/C
             C  = C/(DK+AB+1.D0)
@@ -1997,7 +1997,7 @@ CONTAINS
             Y  = X*YP
             DO K=1,N-1
                 CO(K) = CO(K)+Y
-                DK = DFLOAT(K+1)
+                DK = real(K+1,kind=8)
                 C1 = 2.D0*DK-1.D0
                 C2 = DK-1.D0
                 YM = Y
@@ -2007,7 +2007,7 @@ CONTAINS
         END DO
 
         DO K=1,N-1
-            CO(K) = .5D0*CO(K)*(2.D0*DFLOAT(K)+1.D0)
+            CO(K) = .5D0*CO(K)*(2.D0*real(K,kind=8)+1.D0)
         END DO
 
         RETURN
@@ -2030,7 +2030,7 @@ CONTAINS
 
         IF (N .EQ. 0) RETURN
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         SU = 0.D0
         DO J=1,N
             SU = SU+QZ(J)
@@ -2040,10 +2040,10 @@ CONTAINS
 
         SK = -2.D0
         DO K=1,N-1
-            DK = DFLOAT(K)
+            DK = real(K,kind=8)
             SU = 0.D0
             DO J=1,N
-                DJ = 2.D0*DFLOAT(J)-1.D0
+                DJ = 2.D0*real(J,kind=8)-1.D0
                 SU = SU+QZ(J)*COS(DK*DJ*M_PI_2/DN)
             END DO
             CO(K) = SK*SU/DN
@@ -2090,7 +2090,7 @@ CONTAINS
             Y  = (A1-X)*YP
             DO K=1,N-1
                 CO(K) = CO(K)+Y
-                DK = DFLOAT(K+1)
+                DK = real(K+1,kind=8)
                 B1 = (2.D0*DK+A-1.D0-X)/DK
                 B2 = (DK+A-1.D0)/DK
                 YM = Y
@@ -2100,7 +2100,7 @@ CONTAINS
         END DO
 
         DO K=1,N-1
-            DK = DFLOAT(K)
+            DK = real(K,kind=8)
             C  = C*(DK+A)/DK
             CO(K) = CO(K)/C
         END DO
@@ -2142,7 +2142,7 @@ CONTAINS
             Y  = X*YP
             DO K=1,N-1
                 CO(K) = CO(K)+Y
-                DK = DFLOAT(K+1)
+                DK = real(K+1,kind=8)
                 YM = Y
                 Y  = (X*Y-.5D0*YP)/DK
                 YP = YM
@@ -2203,7 +2203,7 @@ CONTAINS
             CN = CN+VN(J)*VN(J)*WT(J)
             DO K=1,N
                 CO(K) = CO(K)+Y
-                DK = DFLOAT(K+1)
+                DK = real(K+1,kind=8)
                 CC = 2.D0*DK+AB
                 C1 = 2.D0*DK*(DK+AB)*(CC-2.D0)
                 C2 = (CC-1.D0)*(CC-2.D0)*CC
@@ -2215,7 +2215,7 @@ CONTAINS
             END DO
         END DO
         DO K=1,N-1
-            DK = DFLOAT(K)
+            DK = real(K,kind=8)
             C  = C*(DK+A)*(DK+B)/DK
             CO(K) = CO(K)*(2.D0*DK+AB+1.D0)/C
             C  = C/(DK+AB+1.D0)
@@ -2262,7 +2262,7 @@ CONTAINS
             Y  = X*YP
             DO K=1,N
                 CO(K) = CO(K)+Y
-                DK = DFLOAT(K+1)
+                DK = real(K+1,kind=8)
                 C1 = 2.D0*DK-1.D0
                 C2 = DK-1.D0
                 YM = Y
@@ -2271,12 +2271,12 @@ CONTAINS
             END DO
         END DO
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         CO(N) = .5D0*DN*CO(N)
         IF (N .EQ. 1) RETURN
 
         DO K=1,N-1
-            CO(K) = .5D0*CO(K)*(2.D0*DFLOAT(K)+1.D0)
+            CO(K) = .5D0*CO(K)*(2.D0*real(K,kind=8)+1.D0)
         END DO
 
         RETURN
@@ -2300,8 +2300,8 @@ CONTAINS
         CO(0) = QN(0)
         IF (N .EQ. 0) RETURN
 
-        DN = DFLOAT(N)
-        DD = DFLOAT(1+4*(N/2)-2*N)
+        DN = real(N,kind=8)
+        DD = real(1+4*(N/2)-2*N,kind=8)
         CO(0) = .5D0*(QN(0)+QN(N))
         CO(N) = .5D0*(QN(0)+DD*QN(N))
         IF (N .EQ. 1) RETURN
@@ -2319,10 +2319,10 @@ CONTAINS
 
         SK = -1.D0
         DO  K=1,N-1
-            DK = DFLOAT(K)
+            DK = real(K,kind=8)
             SU = .5D0*(QN(0)+QN(N)*SK)
             DO  J=1,N-1
-                DJ = DFLOAT(J)
+                DJ = real(J,kind=8)
                 SU = SU+QN(J)*COS(DK*DJ*M_PI/DN)
             END DO
             CO(K) = 2.D0*SK*SU/DN
@@ -2369,7 +2369,7 @@ CONTAINS
             Y  = (A1-X)*YP
             DO K=1,N-1
                 CO(K) = CO(K)+Y
-                DK = DFLOAT(K+1)
+                DK = real(K+1,kind=8)
                 B1 = (2.D0*DK+A-1.D0-X)/DK
                 B2 = (DK+A-1.D0)/DK
                 YM = Y
@@ -2378,7 +2378,7 @@ CONTAINS
             END DO
         END DO
         DO K=1,N-1
-            DK = DFLOAT(K)
+            DK = real(K,kind=8)
             C  = C*(DK+A)/DK
             CO(K) = CO(K)/C
         END DO
@@ -2426,7 +2426,7 @@ CONTAINS
         DPP = 0.D0
         D2PP = 0.D0
         DO K=2,N
-            DK = DFLOAT(K)
+            DK = real(K,kind=8)
             CC = 2.D0*DK+AB
             C1 = 2.D0*DK*(DK+AB)*(CC-2.D0)
             C2 = (CC-1.D0)*(CC-2.D0)*CC
@@ -2485,7 +2485,7 @@ CONTAINS
         DPP = 0.D0
         D2PP = 0.D0
         DO K=2,N
-            DK = DFLOAT(K)
+            DK = real(K,kind=8)
             C2 = 2.D0*DK-1.D0
             C4 = DK-1.D0
             PM = P
@@ -2595,7 +2595,7 @@ CONTAINS
         DPP = 0.D0
         D2PP = 0.D0
         DO K=2,N
-            DK = DFLOAT(K)
+            DK = real(K,kind=8)
             B1 = (2.D0*DK+A-1.D0-X)/DK
             B2 = (DK+A-1.D0)/DK
             PM = P
@@ -2651,7 +2651,7 @@ CONTAINS
         DPP = 0.D0
         D2PP = 0.D0
         DO K=2,N
-            DK = DFLOAT(K)
+            DK = real(K,kind=8)
             PM = P
             P  = 2.D0*X*P-2.D0*PP*(DK-1.D0)
             Y  = Y+P*CO(K)
@@ -2686,7 +2686,7 @@ CONTAINS
         B1  = B+1.D0
         AB  = A+B
         AB2 = AB+2.D0
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         CALL GAMMAF(A1,GA1)
         CALL GAMMAF(B1,GB1)
         CALL GAMMAF(AB2,GAB2)
@@ -2699,7 +2699,7 @@ CONTAINS
         IF (V .LT. EPS) GOTO 1
         SU = C*V*V
 1       DO K=1,N
-            DK = DFLOAT(K)
+            DK = real(K,kind=8)
             C  = C*(DK+A)*(DK+B)/DK
             V  = ABS(CO(K))
             IF (V .LT. EPS) GOTO 3
@@ -2728,12 +2728,12 @@ CONTAINS
         REAL(kind=8), PARAMETER :: EPS = 1.D-14
 
         SU = 0.D0
-        DO 1 K=0,N
-            DK = DFLOAT(K)
+        DO K=0,N
+            DK = real(K,kind=8)
             V  = ABS(CO(K))
-            IF (V .LT. EPS) GOTO 1
+            IF (V .LT. EPS) CYCLE
             SU = SU+V*V/(2.D0*DK+1.D0)
-1       END DO
+        END DO
         QI = SQRT(2.D0*SU)
 
         RETURN
@@ -2778,8 +2778,8 @@ CONTAINS
         DO K=0,N,2
             V  = CO(K)
             DO M=0,N,2
-                D1 = 1.D0-DFLOAT((K+M)*(K+M))
-                D2 = 1.D0-DFLOAT((K-M)*(K-M))
+                D1 = 1.D0-real((K+M)*(K+M),kind=8)
+                D2 = 1.D0-real((K-M)*(K-M),kind=8)
                 C  =1.D0/D1+1.D0/D2
                 SU = SU+C*V*CO(M)
             END DO
@@ -2787,8 +2787,8 @@ CONTAINS
         DO K=1,N,2
             V  = CO(K)
             DO M=1,N,2
-                D1 = 1.D0-DFLOAT((K+M)*(K+M))
-                D2 = 1.D0-DFLOAT((K-M)*(K-M))
+                D1 = 1.D0-real((K+M)*(K+M),kind=8)
+                D2 = 1.D0-real((K-M)*(K-M),kind=8)
                 C  =1.D0/D1+1.D0/D2
                 SU = SU+C*V*CO(M)
             END DO
@@ -2827,7 +2827,7 @@ CONTAINS
             SU = C*V*V
         END IF
         DO K=1,N
-            DK = DFLOAT(K)
+            DK = real(K,kind=8)
             C  = C*(DK+A)/DK
             V  = ABS(CO(K))
             IF (V .LT. EPS) CYCLE
@@ -2866,7 +2866,7 @@ CONTAINS
         END IF
         C  = 1.D0
         DO K=1,N
-            DK = DFLOAT(K)
+            DK = real(K,kind=8)
             C  = C*R2*SQRT(DK)
             V  = ABS(CO(K))
             IF (V .LT. EPS) CYCLE
@@ -2903,13 +2903,13 @@ CONTAINS
         CD2(N-1) = 0.D0
         IF (N .EQ. 1) RETURN
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         G2 = 2.D0*G
         CD(N-1) = (2.D0*DN+G2-1.D0)*(DN+G)*CO(N)/(DN+G2)
         DO K=0,N-2
             KR = N-K-2
             IF (KR .NE. 0) THEN
-                DK = DFLOAT(KR)
+                DK = real(KR,kind=8)
                 C1 = (2.D0*DK+G2+1.D0)*(DK+G+1.D0)/(DK+G2+1.D0)
                 C2 = (DK+G+2.D0)/((2.D0*DK+G2+5.D0)*(DK+G2+2.D0))
                 CD(KR)  = C1*(C2*CD(KR+2)+CO(KR+1))
@@ -2943,14 +2943,14 @@ CONTAINS
         CD2(N) = 0.D0
         IF (N .EQ. 0) RETURN
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         CD(N-1)  = (2.D0*DN-1.D0)*CO(N)
         CD2(N-1) = 0.D0
         IF (N .EQ. 1) RETURN
 
         DO K=0,N-2
             KR = N-K-2
-            DK = 2.D0*DFLOAT(KR)+1.D0
+            DK = 2.D0*real(KR,kind=8)+1.D0
             CD(KR)  = DK*(CD(KR+2)/(DK+4.D0)+CO(KR+1))
             CD2(KR) = DK*(CD2(KR+2)/(DK+4.D0)+CD(KR+1))
         END DO
@@ -2982,12 +2982,12 @@ CONTAINS
         CD2(N-1) = 0.D0
         IF (N .EQ. 1) RETURN
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         CD(N-1) = 2.D0*DN*CO(N)
         DO K=0,N-2
             KR = N-K-2
             IF (KR .NE. 0) THEN
-                DK = 2.D0*(DFLOAT(KR)+1.D0)
+                DK = 2.D0*(real(KR,kind=8)+1.D0)
                 CD(KR)  = CD(KR+2)+DK*CO(KR+1)
                 CD2(KR) = CD2(KR+2)+DK*CD(KR+1)
             ELSE
@@ -3051,14 +3051,14 @@ CONTAINS
         CD2(N) = 0.D0
         IF (N .EQ. 0) RETURN
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         CD(N-1)  = 2.D0*DN*CO(N)
         CD2(N-1) = 0.D0
         IF (N .EQ. 1) RETURN
 
         DO K=0,N-2
             KR = N-K-2
-            DK = 2.D0*DFLOAT(KR)+2.D0
+            DK = 2.D0*real(KR,kind=8)+2.D0
             CD(KR)  = DK*CO(KR+1)
             CD2(KR) = DK*CD(KR+1)
         END DO
@@ -3234,7 +3234,7 @@ CONTAINS
         A1 = A+1.D0
         B1 = B+1.D0
         AB = A+B
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         C1 = DN*(DN+AB+1.D0)
         C2 = A1*VN(0)/(B1*VN(N))
         DQN(0) = .5D0*((A-C1)*QN(0)/(B+2.D0)-C2*QN(N))
@@ -3306,7 +3306,7 @@ CONTAINS
             DQN(I) = VI*SU
         END DO
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         C  = .25D0*DN*(DN+1.D0)
         DQN(0) = DQN(0)-C*QN(0)
         DQN(N) = DQN(N)+C*QN(N)
@@ -3333,9 +3333,9 @@ CONTAINS
         DQN(0) = 0.D0
         IF (N .EQ. 0) RETURN
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         CN = (2.D0*DN*DN+1.D0)/6.D0
-        SN = DFLOAT(1+4*(N/2)-2*N)
+        SN = real(1+4*(N/2)-2*N,kind=8)
         DQN(0) = -CN*QN(0)-.5D0*SN*QN(N)
         DQN(N) = .5D0*SN*QN(0)+CN*QN(N)
         IF (N .EQ. 1) RETURN
@@ -3393,7 +3393,7 @@ CONTAINS
         INTEGER :: I, J
         REAL(kind=8) :: DN, A1, SU, X, C, Y, DY, D2Y, EI, EJ
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         DQN(0) = (1.D0-DN)*QN(0)/(A+2.D0)
         IF (N .EQ. 1) RETURN
 
@@ -3461,7 +3461,7 @@ CONTAINS
         A1 = A+1.D0
         B1 = B+1.D0
         AB = A+B
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         C1 = DN*(DN+AB+1.D0)
         C2 = A1*VN(0)/(B1*VN(N))
         DMA(0,0) = .5D0*(A-C1)/(B+2.D0)
@@ -3532,7 +3532,7 @@ CONTAINS
             END DO
         END DO
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         C  = .25D0*DN*(DN+1.D0)
         DMA(0,0) = -C
         DMA(N,N) = C
@@ -3559,9 +3559,9 @@ CONTAINS
         DMA(0,0) = 0.D0
         IF (N .EQ. 0) RETURN
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         CN = (2.D0*DN*DN+1.D0)/6.D0
-        SN = DFLOAT(1+4*(N/2)-2*N)
+        SN = real(1+4*(N/2)-2*N,kind=8)
         DMA(0,0) = -CN
         DMA(N,N) = CN
         DMA(0,N) = -.5D0*SN
@@ -3615,7 +3615,7 @@ CONTAINS
         INTEGER :: I, J
         REAL(kind=8) :: DN, X, A1, Y, DY, D2Y, C, EI, EJ
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         DMA(0,0) = (1.D0-DN)/(A+2.D0)
         IF (N .EQ. 1) RETURN
 
@@ -3673,13 +3673,13 @@ CONTAINS
         IF(N .EQ. 0) RETURN
 
         R2 = 1.41421356237309515D0
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         CO(0) = QZ(1)/DN
         IF(N .EQ. 1) RETURN
 
         N2 = N/2
         C  = 2.D0/SQRT(DN)
-        SN = DFLOAT(1+4*N2-2*N)
+        SN = real(1+4*N2-2*N,kind=8)
         CO(N-N2-1) = QZ(N)
         DO I=1,N2
             CO(I-1) = QZ(2*I-1)
@@ -3698,7 +3698,7 @@ CONTAINS
         IF (N .EQ. 2) RETURN
         SM = -1.D0
         DO M=1,N-N2-1
-            AR = M_PI_2*DFLOAT(M)/DN
+            AR = M_PI_2*real(M,kind=8)/DN
             CS = COS(AR)
             SI = SIN(AR)
             V1 = C*SM*(CO(M)*CS+CO(N-M)*SI)
@@ -3728,9 +3728,9 @@ CONTAINS
 
         IF(N .EQ. 0) RETURN
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         N2 = N/2
-        SN = DFLOAT(1+4*N2-2*N)
+        SN = real(1+4*N2-2*N,kind=8)
         S1 = .5D0*(QN(0)+QN(N))
         S2 = .5D0*(SN*QN(0)+QN(N))
         CO(0) = S1
@@ -3770,7 +3770,7 @@ CONTAINS
 
         SM = -1.D0
         DO M=1,N-N2-1
-            AR = M_PI*DFLOAT(M)/DN
+            AR = M_PI*real(M,kind=8)/DN
             SI = .5D0/SIN(AR)
             V1 = CO(M)*(1.D0+SI)+CO(N-M)*(1.D0-SI)
             V2 = CO(M)*(1.D0-SI)+CO(N-M)*(1.D0+SI)
@@ -3799,9 +3799,9 @@ CONTAINS
 
         IF(N .EQ. 0) RETURN
 
-        DN = DFLOAT(N)
+        DN = real(N,kind=8)
         N2 = N/2
-        SN = DFLOAT(1+4*N2-2*N)
+        SN = real(1+4*N2-2*N,kind=8)
         S1 = CO(0)+SN*CO(N)
         S2 = CO(0)+CO(N)
         QN(0) = S1
@@ -3843,7 +3843,7 @@ CONTAINS
         IF(N .EQ. 2) RETURN
 
         DO M=1,N-N2-1
-            AR = M_PI*DFLOAT(M)/DN
+            AR = M_PI*real(M,kind=8)/DN
             SI = .5D0/SIN(AR)
             V1 = QN(M)*(1.D0+SI)+QN(N-M)*(1.D0-SI)
             V2 = QN(M)*(1.D0-SI)+QN(N-M)*(1.D0+SI)
@@ -3877,12 +3877,12 @@ CONTAINS
         CD(N) = 0.D0
         CD(0) = DQN(1)
         IF(N .NE. 1) THEN
-            DN = DFLOAT(N)
+            DN = real(N,kind=8)
             CD(N-1) = 2.D0*DN*DQN(N)
             DO K=0,N-2
                 KR = N-K-2
                 IF(KR .NE. 0) THEN
-                    DK = 2.D0*(DFLOAT(KR)+1.D0)
+                    DK = 2.D0*(real(KR,kind=8)+1.D0)
                     CD(KR) = CD(KR+2)+DK*DQN(KR+1)
                 ELSE
                     CD(0) = .5D0*CD(2)+DQN(1)

@@ -7,11 +7,11 @@ NEWS
 Version 2013.04
 ---------------
 
-Cette version résulte de l'intégration dans RegSEM.U de :
+Cette version résulte de l'intégration dans :program:`RegSEM.U` de :
 
 - des modifications apportées par la version interne CEA,
 
-- des éléments fluides développés dans une autre version issue de RegSEM.U,
+- des éléments fluides développés dans une autre version issue de :program:`RegSEM.U`,
 
 - de nouveaux développements destinés à simplifier l'utilisation et la
   maintenance du code
@@ -20,15 +20,15 @@ Cette version résulte de l'intégration dans RegSEM.U de :
 Les nouveautés
 ~~~~~~~~~~~~~~
 
-On liste ici les nouvelles fonctionnalités par rapport à RegSEM.U.
+On liste ici les nouvelles fonctionnalités par rapport à :program:`RegSEM.U`.
 
 Fonctionnalités du code :
 
-- (SEM3D) Introduction d'éléments de type fluide, avec couplage fluide solide.
+- (:program:`SEM3D`) Introduction d'éléments de type fluide, avec couplage fluide solide.
 
 - Introduction d'un mécanisme d'amortissement sismique. On spécifie Qp
-  et Qs dans le fichier matériau. Le nombre de mécanismes est
-  déterminé par le fichier de configuration.
+  et Qs dans le fichier matériau. La bande de fréquence et le
+  paramétrage du filtre est déterminé par le fichier de configuration.
 
 - Nouvelles formes d'onde pour les sources (Benchmark E2VP, Benchmark
   SPICE, sinus).
@@ -48,7 +48,7 @@ Entrées/sorties :
 
 - (MESH) Lecture des maillages au format unv.
 
-- (SEM3D, SEM2D) Un nouveau format de fichier d'entrée (input.spec) :
+- (:program:`SEM3D`, :program:`SEM2D`) Un nouveau format de fichier d'entrée (input.spec) :
 
   L'ancien format était très confu : une liste de valeurs lues de
   manière aveugle par les codes. Chaque code lisait ses paramètres
@@ -63,12 +63,12 @@ Entrées/sorties :
 - Les snapshots sont au format HDF5 :
 
   Le code génère en plus des fichiers HDF5, un fichier XML (format
-  XDMF) qui permet d'ouvrir directement les sorties dans Paraview ou
-  Ensight (v10).
+  XDMF) qui permet d'ouvrir directement les sorties dans :program:`Paraview` ou
+  :program:`Ensight` (v10).
 
 - Les maillages en entrée sont également au format HDF5 :
 
-  Des problèmes de numérotation apparaissaient avec des gros maillage
+  Des problèmes de numérotation apparaissaient avec des gros maillages
   (utilisation du format ``I6`` pour les entiers). De plus, chacune des
   versions utilisait une variante subtile du même format texte (une
   ligne d'espacement pour l'un, un champ supplémentaire pour une
@@ -87,7 +87,7 @@ Entrées/sorties :
 - Le format des backups est désormais HDF5 (protection/reprise).
 
   Ce développement à été effectué pour faire passer un cas HPC. Le
-  temps de création d'un backup pour ce cas est passée de 2H à 5min.
+  temps de création d'un backup pour ce cas est passé de 2H à 5min.
 
 Optimisations :
 
@@ -116,7 +116,7 @@ Autres :
 
 - Améliorations du mailleur intégré :
 
-  On utilise metis 5.x comme partitionneur. Ceci permet d'utiliser une
+  On utilise :program:`Metis` 5.x comme partitionneur. Ceci permet d'utiliser une
   topologie connectant toutes les mailles adjacentes (ayant au moins
   un vertex commun) contrairement à la version précédente qui ne
   considérait que les faces.
@@ -129,7 +129,7 @@ Autres :
 - Introduction d'un répertoire de cas tests de non-régression et de
   benchmarks.
 
-  Les tests SEM3D se trouvent dans ``SEM3D/TESTS``.
+  Les tests :program:`SEM3D` se trouvent dans ``SEM3D/TESTS``.
 
 - Compilation des sources avec CMake :
 
@@ -138,7 +138,8 @@ Autres :
 
 - Correction des FPML.
 
-- (SEM3D) : le code a été factorisé en plusieurs endroits.
+- (:program:`SEM3D`) : le code a été factorisé (suppression des duplications,
+  réorganisations, simplifications) en plusieurs endroits.
 
 Evolutions futures
 ~~~~~~~~~~~~~~~~~~
@@ -159,7 +160,7 @@ n'ont pas encore été finalisées, intégrées ou correctement testées :
 - Description des capteurs : la prochaine version utilisera une syntaxe semblable à celle du
   fichier input.spec pour la description des capteurs.
 
-- Anisotropie : le code pour gérer des materiaux anisotrope existe,
+- Anisotropie : le code pour gérer des matériaux anisotropes existe,
   mais il n'y a rien dans la syntaxe actuelle du fichier de
   description des matériaux qui permette de définir un milieu
   anisotrope. Là encore, cela sera intégré dans la prochaine version
@@ -170,13 +171,13 @@ n'ont pas encore été finalisées, intégrées ou correctement testées :
 Notes importantes
 ~~~~~~~~~~~~~~~~~
 
-Le code source est versionné avec git et livré dans une archive contenant :
+Le code source est versionné avec :program:`Git` et livré dans une archive contenant :
 
 - SEM version 3D
 
 - SEM version 2D
 
-- MESH : un outil de préparation de maillages 3D pour SEM3D (l'équivalent
+- MESH : un outil de préparation de maillages 3D pour :program:`SEM3D` (l'équivalent
   2D sera intégré dans une prochaine version).
 
 - La librairie HDF5 est devenue une dépendance obligatoire (
@@ -190,13 +191,13 @@ Le code source est versionné avec git et livré dans une archive contenant :
 - Le schéma en temps a été simplifié (Les paramètres beta/gamma de
   l'algorithme de Newmark ne sont plus modifiables).
 
-  Ils pourront être réintroduit une fois réglé le problème de
+  Ils pourront être réintroduits une fois réglé le problème de
   synchronisation avec les forces de couplage externes.
 
 - Bien que les deux méthodes continuent de coéxister, le calcul des
   forces utilisant le tableau ``Acoeff`` a été désactivé dans cette
   version. Le code est plus lisible mais moins rapide.
 
-  On étudiera comment obtenir le meilleur des deux mondes dans une
+  On étudiera comment obtenir le meilleur des deux méthodes dans une
   prochaine version.
 

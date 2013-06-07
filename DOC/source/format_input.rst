@@ -73,7 +73,7 @@ Description de la section ``amortissement`` :
 ================  =======  =================  ===========================================================
 Mot-clef          Type     Valeur par défaut  Description
 ================  =======  =================  ===========================================================
-nsolids           entier   0                  Nombre de mécanisme. 0 signifie désactivation.
+nsolids           entier   0                  Nombre de mécanismes. 0 signifie désactivation.
 atn_band          réel(2)  n/a                Période max et min à atténuer
 atn_period        réel     n/a                Période centrale (un mécanisme aura cette valeur centrale)
 ================  =======  =================  ===========================================================
