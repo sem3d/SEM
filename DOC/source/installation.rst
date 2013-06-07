@@ -10,17 +10,20 @@ Installation du code SEM3D
 Prérequis
 =========
 
-Le code SEM3D nécessite deux (ou trois) outils externes pour sa compilation :
+Le code :program:`SEM3D` nécessite deux (ou trois) outils externes pour sa compilation :
 
-- cmake : `www.cmake.org <http://www.cmake.org>`_ est un générateur de Makefile (comme
+- :program:`CMake` : `www.cmake.org <http://www.cmake.org>`_ est un générateur de Makefile (comme
   autoconf/autotools).
 
 - hdf5 : `www.hdfgroup.org <http://www.hdfgroup.org>`_ est une librairie permettant la
   gestion de fichier de données de grande taille.
 
-  Si HDF5 est installé dans un chemin non-standard, utilisez la variable d'environnement
-  ``HDF5_ROOT`` pour indiquer aux scripts *CMake* de SEM où elle se trouve. ``HDF5_ROOT`` doit pointer
-  sur le préfixe d'installation, c'est à dire le chemin contenant ``bin/``, ``include/``, etc...
+  Si HDF5 est installé dans un chemin non-standard, utilisez la
+  variable d'environnement :envvar:`HDF5_ROOT` pour indiquer aux scripts
+  :program:`CMake` de :program:`SEM` où elle se
+  trouve. :envvar:`HDF5_ROOT` doit pointer sur le préfixe
+  d'installation, c'est à dire le chemin contenant :file:`bin/`,
+  :file:`include/`, etc...
 
   Les scripts de configurations *CMake* de SEM utilise la commande
   ``h5cc -show`` pour détecter le paramètrage de la librairie HDF5.
@@ -31,19 +34,19 @@ Le code SEM3D nécessite deux (ou trois) outils externes pour sa compilation :
 Compilation
 ===========
 
-La préparation de la compilation s'effectue avec ``cmake``, ensuite la compilation
-elle-même s'effectue avec ``make``.
+La préparation de la compilation s'effectue avec :program:`CMake`, ensuite la compilation
+elle-même s'effectue avec la commande ``make``.
 
 Organisation des répertoires
 ----------------------------
 
 Nous recommandons l'organisation suivante (les noms des répertoires sont à titre indicatif) :
 
-- ``sem_src`` : répertoire contenant les sources,
+- :file:`sem_src` : répertoire contenant les sources,
 
-- ``sem_build`` : répertoire contenant les binaires (en dehors du répertoire source),
+- :file:`sem_build` : répertoire contenant les binaires (en dehors du répertoire source),
 
-- ``sem_debug`` : (facultatif) un second répertoire pour une compilation en mode debuggage de SEM.
+- :file:`sem_debug` : (facultatif) un second répertoire pour une compilation en mode debuggage de SEM.
 
 Préparation de la compilation
 -----------------------------
@@ -53,10 +56,10 @@ La préparation se fait à l'aide de la commande suivante ::
   $ cd sem_build
   $ ccmake ../sem_src
 
-``ccmake`` est une commande interactive permettant de paramétrer la compilation. Le paramétrage s'effectue
-en deux étapes :
+``ccmake`` est une commande interactive de :program:`CMake` permettant de
+paramétrer la compilation. Le paramétrage s'effectue en deux étapes :
 
-- La première étape (configuration) ``cmake`` va rechercher les librairies nécessaires (HDF5 et OpenMPI)
+- La première étape (configuration) :program:`CMake` va rechercher les librairies nécessaires (HDF5 et OpenMPI)
 
   Lors de cette étape on peut changer le contenu des variables
   affichées (chemin des librairies, nom du compilateur, options de
@@ -105,7 +108,7 @@ La compilation produit plusieurs exécutables :
 
 - ``build_src/SEM2D/sem2d.exe`` : Code SEM2D.
 
-- ``build_src/SEM3D/sem3d.exe`` : Code SEM3D.
+- ``build_src/SEM3D/sem3d.exe`` : Code :program:`SEM3D`.
 
 - ``build_src/MESH/mesher`` : Outil pour le partitionnement des maillages et la génération au format *hdf5*.
 
@@ -113,12 +116,12 @@ La compilation produit plusieurs exécutables :
 Exécution
 ---------
 
-Exécution de SEM3D monoprocesseur : ::
+Exécution de :program:`SEM3D` monoprocesseur : ::
 
   $ cd rep_du_cas
   $ ${chemin_build}/SEM3D/sem3d.exe
 
-Exécution de SEM3D en MPI : ::
+Exécution de :program:`SEM3D` en MPI : ::
 
   $ cd rep_du_cas
   $ mpirun -n 4 ${chemin_build}/SEM3D/sem3d.exe
