@@ -214,7 +214,7 @@ paramètres sont décrits dans la section ``source``. Certains sont calculés :
   
   - :math:`t_0` : paramètre ``ts``
   
-  - :math:`f_1,f_2,f_3,f_4` : décrit par le paramètre (4 composantes) ``band``
+  - :math:`f_1,f_2,f_3,f_4` : décrits par le paramètre (4 composantes) ``band``
   
   - :math:`\gamma` : paramètre ``gamma``
 

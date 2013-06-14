@@ -41,8 +41,12 @@ Exemple des notations utilisées dans ce document :
 
 - Un programme ou logiciel : :program:`CMake`
 
-- Une commande Unix : ``cmake``
+- Une commande Unix (``cmake``), un nom de fichier (``/usr/bin/python``) ou un texte à saisir ("saisissez le mot-clef ``false``").
 
 - Un terme en anglais : *remote control*
 
 - Une variable d'environnement : :envvar:`HDF5_ROOT`
+
+Parfois le programme et sa commande Unix ont le même nom, on essaira de faire la distinction, par exemple :
+
+"Pour configurer un programme utilisant :program:`CMake` il faut taper la commande ``cmake``."
