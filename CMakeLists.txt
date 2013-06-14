@@ -11,9 +11,14 @@ if (NOT BUILD_WITH_MKA)
 option(OPT_MPI "Compilation en mode MPI")
 
 # Obligatoire mais le flag n'est pas supprime partout
+if(HDF5_DIR)
+set(CMAKE_MODULE_PATH ${HDF5_DIR} ${CMAKE_MODULE_PATH})
+endif(HDF5_DIR)
+
 find_package(HDF5 REQUIRED C Fortran)
 add_definitions(-DUSE_HDF5)
-include_directories(${HDF5_Fortran_INCLUDE_PATH} ${HDF5_C_INCLUDE_DIR})
+include_directories(${HDF5_FORTRAN_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} ${HDF5_INCLUDE_DIR})
+include_directories(${HDF5_INCLUDE_DIR} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP})
 
 if (OPT_MPI)
     set(MPI_COMPILER mpif90)
@@ -43,10 +48,11 @@ set(SEMDIR ${PROJECT_SOURCE_DIR})
 set(SEMCOMMON ${SEMDIR}/COMMON)
 
 set(SEM_SRC
+  ${SEMCOMMON}/sem_c_bindings.F90
   ${SEMCOMMON}/semdatafiles.F90
   ${SEMCOMMON}/protrep.f90
-  ${SEMCOMMON}/sem_c_config.F90
   ${SEMCOMMON}/constants.F90
+  ${SEMCOMMON}/sem_c_config.F90
   ${SEMCOMMON}/splib.F90
   ${SEMCOMMON}/invert2.F90
   ${SEMCOMMON}/invert_3d.F90
@@ -61,6 +67,7 @@ set(SEM_SRC_C
   ${SEMCOMMON}/file_scan.c
   ${SEMCOMMON}/sem_input.c
   ${SEMCOMMON}/tremain_c.c
+  ${SEMCOMMON}/fileutils.c
 )
 
 if(NOT BUILD_WITH_MKA)
@@ -77,4 +84,4 @@ add_subdirectory(SEM3D)
 add_subdirectory(MESH)
 
 
-add_executable(test_sem_path ${SEMCOMMON}/test_sem_path.f90 ${SEMCOMMON}/semdatafiles.F90)
+add_executable(test_sem_path ${SEMCOMMON}/test_sem_path.f90   ${SEMCOMMON}/fileutils.c ${SEMCOMMON}/sem_c_bindings.F90 ${SEMCOMMON}/semdatafiles.F90)

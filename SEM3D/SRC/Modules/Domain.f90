@@ -15,7 +15,6 @@ module sdomain
     use stimeparam
     use logical_input
     use ssubdomains
-    use sreceivers
     use splanew
     use sneu
     use ssurf

@@ -92,5 +92,6 @@ endif (OPT_COUPLAGE)
 if(NOT OPT_COUPLAGE)
 add_executable(sem2d.exe  ${SEM2D_SOURCES})
 target_link_libraries(sem2d.exe ${CEAUSER} ${SEM_EXTRA_LIBS})
-install(TARGETS sem2d.exe RUNTIME DESTINATION lib)
+install(TARGETS sem2d.exe DESTINATION bin)
 endif(NOT OPT_COUPLAGE)
+

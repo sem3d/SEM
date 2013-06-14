@@ -25,3 +25,4 @@ add_executable(mesher ${MESH_SRC})
 target_link_libraries(mesher metis ${HDF5_LIBRARIES})
 
 
+install(TARGETS mesher DESTINATION bin)
