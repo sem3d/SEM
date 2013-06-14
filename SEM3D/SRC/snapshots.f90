@@ -6,6 +6,7 @@ module msnapshots
     use semdatafiles
     use mpi
     use mfields
+    use sem_c_config, only : sem_mkdir
     implicit none
 contains
 
@@ -48,12 +49,15 @@ contains
         integer,intent(in) :: isort, rg
         character(Len=MAX_FILE_SIZE) :: temp
         character(len=MAX_FILE_SIZE+10) :: creer_dir
-        integer :: code
+        integer :: code, ierr
 
         if (rg==0) then
             call semname_snap_result_dir(isort, temp)
-            creer_dir = "mkdir -p "//temp
-            call system(creer_dir)
+            write(*,*) rg,' Creation dir(C):', temp
+            ierr = sem_mkdir(trim(adjustl(temp)))
+            write(*,*) 'code:', ierr
+!            creer_dir = "mkdir -p "//temp
+!            call system(creer_dir)
         end if
         call mpi_barrier(Tdomain%communicateur, code)
     end subroutine create_dir_sorties
@@ -68,13 +72,14 @@ contains
         integer, intent(in) :: rg
         character (len=MAX_FILE_SIZE) :: fnamef
         integer(HID_T) :: fid
-        integer :: hdferr, code
+        integer :: hdferr, code, ierr
         integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
         integer :: nnodes
+        integer, dimension(0:Tdomain%n_proc-1) :: nodes_per_proc
 
         call init_hdf5()
         if (rg==0) then
-            call system("mkdir -p " // path_results)
+            ierr = sem_mkdir(trim(adjustl(path_results)))
         end if
         call mpi_barrier(Tdomain%communicateur, code)
         call semname_snap_geom_file(rg, fnamef)
@@ -91,7 +96,8 @@ contains
 
         call h5fclose_f(fid, hdferr)
 
-        if (rg==0) call write_master_xdmf(Tdomain)
+        call mpi_gather(nnodes, 1, MPI_INTEGER, nodes_per_proc, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        if (rg==0) call write_master_xdmf(Tdomain, nodes_per_proc)
     end subroutine write_snapshot_geom
 
 
@@ -243,6 +249,7 @@ contains
 
         call compute_saved_elements(Tdomain, rg, irenum, nnodes)
 
+        if (nnodes==0) return
 
         call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
 
@@ -310,11 +317,12 @@ contains
         call write_xdmf(Tdomain, rg, isort, nnodes)
     end subroutine save_field_h5
 
-    subroutine write_master_xdmf(Tdomain)
+    subroutine write_master_xdmf(Tdomain, nodes_per_proc)
         implicit none
         type(domain), intent(in) :: Tdomain
         integer :: n_procs, nelem
         character (len=MAX_FILE_SIZE) :: fnamef
+        integer, dimension(0:Tdomain%n_proc-1), intent(in) :: nodes_per_proc
         integer :: rg
         n_procs = Tdomain%n_proc
         nelem = Tdomain%n_elem
@@ -328,7 +336,9 @@ contains
         write(61,"(a)") '<Grid CollectionType="Spatial" GridType="Collection">'
         !!! XXX: recuperer le nom par semname_*
         do rg=0,n_procs-1
-            write(61,"(a,I4.4,a)") '<xi:include href="mesh.',rg,'.xmf"/>'
+            if (nodes_per_proc(rg).gt.0) then
+                write(61,"(a,I4.4,a)") '<xi:include href="mesh.',rg,'.xmf"/>'
+            endif
         end do
         write(61,"(a)") '</Grid>'
         write(61,"(a)") '</Domain>'
@@ -349,9 +359,12 @@ contains
 
         nn = nnodes
         ne = Tdomain%n_hexa
+        if (ne==0) then
+            return
+        end if
         open (61,file=fnamef,status="unknown",form="formatted")
         write(61,"(a)") '<?xml version="1.0" ?>'
-        write(61,"(a)") '<Grid CollectionType="Temporal" GridType="Collection">'
+        write(61,"(a,I4.4,a)") '<Grid CollectionType="Temporal" GridType="Collection" Name="space.',rg,'">'
         write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Mat" Format="HDF" Datatype="Int"  Dimensions="',ne, &
             '">geometry',rg,'.h5:/Material</DataItem>'
 
@@ -387,22 +400,16 @@ contains
             write(61,"(a,I4,a)") '<DataItem Format="XML" Datatype="Int"  Dimensions="1">',rg,'</DataItem>'
             write(61,"(a)") '</Attribute>'
             write(61,"(a)") '<Attribute Name="Mat" Center="Cell" AttributeType="Scalar">'
-            !write(61,"(a,I8,a,I4.4,a)") '<DataItem Format="HDF" Datatype="Int"  Dimensions="',ne, &
-            !    '">geometry',rg,'.h5:/Material</DataItem>'
-            write(61,"(a,I4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[',rg+1, &
-                ']/DataItem[@Name="Mat"]</DataItem>'
+            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',rg, &
+                '"]/DataItem[@Name="Mat"]</DataItem>'
             write(61,"(a)") '</Attribute>'
             write(61,"(a)") '<Attribute Name="Mass" Center="Node" AttributeType="Scalar">'
-            write(61,"(a,I4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[',rg+1, &
-                ']/DataItem[@Name="Mass"]</DataItem>'
-!            write(61,"(a,I8,a,I4.4,a)") '<DataItem Format="HDF" Datatype="Int"  Dimensions="',nn, &
-!                '">geometry',rg,'.h5:/Mass</DataItem>'
+            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',rg, &
+                '"]/DataItem[@Name="Mass"]</DataItem>'
             write(61,"(a)") '</Attribute>'
             write(61,"(a)") '<Attribute Name="Jac" Center="Node" AttributeType="Scalar">'
-            write(61,"(a,I4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[',rg+1, &
-                ']/DataItem[@Name="Jac"]</DataItem>'
-!            write(61,"(a,I8,a,I4.4,a)") '<DataItem Format="HDF" Datatype="Int"  Dimensions="',nn, &
-!                '">geometry',rg,'.h5:/Jac</DataItem>'
+            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',rg, &
+                '"]/DataItem[@Name="Jac"]</DataItem>'
             write(61,"(a)") '</Attribute>'
             write(61,"(a)") '</Grid>'
             ! XXX inexact pour l'instant

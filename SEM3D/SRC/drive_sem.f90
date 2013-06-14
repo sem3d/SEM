@@ -13,6 +13,7 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     use mpi
     use msnapshots
     use semconfig !< pour config C
+    use sem_c_bindings
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -41,7 +42,7 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     integer :: MaxNgParDir
     integer, dimension(3) :: flags_synchro ! fin/protection/sortie
 #endif
-    integer :: interrupt
+    integer :: interrupt, ierr
     logical :: sortie_capteur
 
     Tdomain%communicateur = communicateur
@@ -189,8 +190,12 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
         ! Sauvegarde des donnees de post-traitement
         open (78,file=fnamef,status="unknown",position="rewind")
         ! on supprime tous les fichiers et repertoire de protection
-        if(rg == 0) call system('rm -Rf '//path_prot)
+        if(rg == 0) then
+            call system('rm -Rf '//path_prot)
+            ierr=sem_mkdir(path_prot)
+        end if
     endif
+    call MPI_BARRIER(Tdomain%communicateur,code)
 
     ! preparation des eventuelles sorties capteur
     info_capteur = 0

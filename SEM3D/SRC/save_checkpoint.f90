@@ -11,7 +11,7 @@ subroutine init_protection(Tdomain, it, rg, prot_file)
     use sdomain
     use semdatafiles
     use mpi
-
+    use sem_c_config, only : sem_mkdir
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer, intent (IN) :: it, rg
@@ -29,8 +29,7 @@ subroutine init_protection(Tdomain, it, rg, prot_file)
 
         call semname_protection_iter_dir(it,dir_prot)
         ! creation du repertoire data/sem/Protection_<it> (par tous les procs)
-        commande="mkdir -p "//trim(dir_prot)
-        call system(trim(commande))
+        ierr = sem_mkdir(trim(adjustl(dir_prot)))
 
         Tdomain%TimeD%prot_m2 = Tdomain%TimeD%prot_m1
         Tdomain%TimeD%prot_m1 = Tdomain%TimeD%prot_m0

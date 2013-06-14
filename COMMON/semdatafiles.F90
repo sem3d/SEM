@@ -14,6 +14,7 @@
 #endif
 
 module semdatafiles
+    use sem_c_bindings, only : sem_mkdir
     integer, parameter :: MAX_FILE_SIZE=1024
     !character(Len=20) :: datadir
     character(Len=MAX_FILE_SIZE) :: path_param
@@ -62,10 +63,15 @@ contains
     end subroutine init_sem_path
 
     subroutine create_sem_output_directories()
-        call system("mkdir -p " // trim(adjustl(path_traces)))
-        call system("mkdir -p " // trim(adjustl(path_results)))
-        call system("mkdir -p " // trim(adjustl(path_prot)))
-        call system("mkdir -p " // trim(adjustl(path_logs)))
+        integer :: ierr
+        ierr = sem_mkdir(trim(adjustl(path_traces)))
+        if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_traces))
+        ierr = sem_mkdir(trim(adjustl(path_results)))
+        if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_results))
+        ierr = sem_mkdir(trim(adjustl(path_prot)))
+        if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_prot))
+        ierr = sem_mkdir(trim(adjustl(path_logs)))
+        if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_logs))
     end subroutine create_sem_output_directories
 
     subroutine semname_dir_capteurs(dirname)
