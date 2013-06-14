@@ -840,11 +840,25 @@ contains
             deallocate(Neu_global_to_local_vertices)
         end if
 
+        do nel = 0,n_elem-1
+            if(part(nel) /= nproc-1)then
+                do proc = part(nel)+1,nproc-1
+                    deallocate(memory(nel)%rank(proc)%E)
+                enddo
+                deallocate(memory(nel)%rank)
+            endif
+        enddo
+        deallocate(memory)
+
+
 
         write(*,*)
         write(*,*) "****************************************"
         write(*,*) "      --- NOW SEM CAN BE USED.. ---"
         write(*,*) "****************************************"
+        write(*,*) "Waiting 60sec for system to settle"
+        call system("sleep 60")
+        write(*,*) "Done..."
 
 
     contains
@@ -1246,6 +1260,7 @@ contains
                 call write_dataset(proc_id, "neu_edges_map", Neu%mapping_edges_shared(n,0:Neu%ne_shared(n)-1), hdferr)
                 call write_dataset(proc_id, "neu_vertices", Neu%vertices_shared(n,0:Neu%nv_shared(n)-1), hdferr)
             end if
+            call h5gclose_f(proc_id, hdferr)
         end do
 
 
