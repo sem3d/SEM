@@ -393,7 +393,7 @@ contains
                                     if(procrank < 0) stop "Gros probleme avec les procs"
                                     vertices_shared(num,memory(i)%rank(procrank)%E(18+k)) = vert
                                 else   ! it deals with a processor we've never seen
-                                    procrank = already_in(proc,elem_near_proc(i)%list,elem_near_proc(i)%nb)
+                                    procrank = already_in(num,elem_near_proc(nel)%list,elem_near_proc(nel)%nb)
                                     if(procrank < 0) stop "Gros probleme avec les procs"
                                     vertices_shared(num,nv_shared(num)) = vert
                                     memory(nel)%rank(procrank)%E(18+nv) = nv_shared(num)
