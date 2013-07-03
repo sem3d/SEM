@@ -40,9 +40,9 @@ endif (NOT BUILD_WITH_MKA)
 
 
 add_definitions(-DMKA3D)
-if(OPT_COUPLAGE)
-add_definitions(-DCOUPLAGE)
-endif(OPT_COUPLAGE)
+#if(OPT_COUPLAGE)
+#add_definitions(-DCOUPLAGE)
+#endif(OPT_COUPLAGE)
 
 set(SEMDIR ${PROJECT_SOURCE_DIR})
 set(SEMCOMMON ${SEMDIR}/COMMON)

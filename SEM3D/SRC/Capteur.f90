@@ -607,6 +607,8 @@ contains
     end function dset_capteur_name
 
     subroutine create_traces_h5_skel(Tdomain)
+        use sem_hdf5
+        use HDF5
         implicit none
         type (domain) :: TDomain
         type(tCapteur),pointer :: capteur
@@ -624,7 +626,7 @@ contains
         do while (associated(capteur))
             dname = dset_capteur_name(capteur)
             write(*,*) "Create dset:", trim(adjustl(dname))
-            call create_dset_2d(fid, trim(adjustl(dname)), H5T_IEEE_F64LE, 4_HSIZE_T, H5S_UNLIMITED_F, dset_id)
+            call create_dset_2d(fid, trim(adjustl(dname)), H5T_IEEE_F64LE, 4, H5S_UNLIMITED_F, dset_id)
             call h5dclose_f(dset_id, hdferr)
             capteur=>capteur%suivant
         enddo

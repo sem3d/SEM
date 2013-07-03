@@ -13,7 +13,7 @@ module sem_c_bindings
        function sem_mkdir_c(dirname) bind(c)
            use iso_c_binding
            character(C_CHAR), dimension(*) :: dirname
-           integer(C_INT) :: sem_mkdir
+           integer(C_INT) :: sem_mkdir_c
        end function sem_mkdir_c
 
     end interface

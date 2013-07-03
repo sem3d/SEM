@@ -93,14 +93,14 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/snapshots.f90
 )
 
-if(NOT USE_MKL)
+#if(NOT USE_MKL)
 set(SEM3D_SOURCES_F
     ${SEM3D_SOURCES_F}
     ${PRJ}/SRC/BLAS/dgemm.f90
     ${PRJ}/SRC/BLAS/lsame.f90
     ${PRJ}/SRC/BLAS/xerbla.f90
 )
-endif(NOT USE_MKL)
+#endif(NOT USE_MKL)
 
 set(SEM3D_SOURCES ${SEM3D_SOURCES_F}
     ${SEM_SRC_C}
@@ -132,9 +132,10 @@ set(SEM3D_SOURCES ${SEM3D_SOURCES}
 endif(OPT_MPI)
 
 # HDF5
-set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} hdf5_fortran)
 set(SEM3D_SOURCES ${SEM3D_SOURCES} ${SEMCOMMON}/sem_hdf5.f90)
 message("SEMLIBS: '${SEM_EXTRA_LIBS}'")
+
 if (OPT_COUPLAGE)
 add_library(sem3d STATIC ${SEM3D_SOURCES})
 set_target_properties(sem3d PROPERTIES COMPILE_DEFINITIONS COUPLAGE)
