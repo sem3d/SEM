@@ -411,6 +411,7 @@ subroutine create_sem_sources(Tdomain, config)
         Tdomain%Ssource(nsrc)%Ysource = src%coords(2)
         Tdomain%Ssource(nsrc)%Zsource = src%coords(3)
         Tdomain%Ssource(nsrc)%i_type_source = src%type
+        Tdomain%Ssource(nsrc)%amplitude_factor = src%amplitude
         ! Comportement temporel
         Tdomain%Ssource(nsrc)%i_time_function = src%func
         Tdomain%Ssource(nsrc)%cutoff_freq = src%freq ! func=2,4
