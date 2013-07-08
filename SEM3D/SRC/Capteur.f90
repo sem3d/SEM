@@ -607,6 +607,8 @@ contains
     end function dset_capteur_name
 
     subroutine create_traces_h5_skel(Tdomain)
+        use sem_hdf5
+        use HDF5
         implicit none
         type (domain) :: TDomain
         type(tCapteur),pointer :: capteur

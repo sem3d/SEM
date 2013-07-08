@@ -35,7 +35,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
         character(len=10) :: nom_grandeur
         character(len=MAX_FILE_SIZE) :: nom_dir_sorties
         character(len=30) :: creer_dir
-        character(len=10) :: cit
+        !character(len=10) :: cit
         integer :: info_capteur
         real(kind=8) :: remaining_time
         real(kind=8), parameter :: max_time_left=900
@@ -84,6 +84,9 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
         call system('mkdir -p Capteurs/sem')
 #endif
 
+#ifdef COUPLAGE
+    call init_mka3d_path()
+#endif
 
         !lecture du fichier de donnee
         if (Tdomain%MPI_var%my_rank == 0) write (*,*) "Read input.spec"
@@ -304,15 +307,11 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
 
             if (i_snap == 0 .or. sortie_capteur) then
 
-#ifdef MKA3D
                 if (i_snap==0) then
-                    write(cit,'(i10)') isort
-                    call semname_main_result(cit,nom_dir_sorties)
+                    call semname_snap_result_dir(isort,nom_dir_sorties)
                     creer_dir = "mkdir -p "//nom_dir_sorties
                     call system(creer_dir)
                 endif
-#endif
-                !!fin modif Gsa Rsem 02/10
 
 #ifdef COUPLAGE
                 if (Tdomain%MPI_var%my_rank == 0.and.i_snap == 0 .and. display_iter==1) then
@@ -323,34 +322,20 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
 
                 ! calcul des champs de vitesse et eventuellement sortie
                 if ( (Tdomain%logicD%save_snapshots.and.i_snap==0).or.sortie_capteur_vitesse ) then
-#ifdef MKA3D
                     nom_grandeur = "vel"
-                    call savefield (Tdomain,isort,sortie_capteur_vitesse,i_snap, nom_grandeur, nom_dir_sorties, cit)
+                    call savefield (Tdomain,isort,sortie_capteur_vitesse,i_snap, nom_grandeur, nom_dir_sorties)
                     nom_grandeur = "depla"
-                    call savefield (Tdomain,isort,sortie_capteur_depla,i_snap, nom_grandeur, nom_dir_sorties, cit)
-#else
-                    call savefield (Tdomain,ntime,sortie_capteur_vitesse,i_snap,"vel")
-#endif
+                    call savefield (Tdomain,isort,sortie_capteur_depla,i_snap, nom_grandeur, nom_dir_sorties)
                 endif
                 ! calcul et sortie de ....
-#ifdef MKA3D
                 if (Tdomain%logicD%save_deformation.and.i_snap==0) call save_vorticity (Tdomain,isort,nom_dir_sorties)
-#else
-                if (Tdomain%logicD%save_deformation.and.i_snap==0) call save_vorticity (Tdomain,ntime)
-#endif
                 ! calcul des champs de contrainte et eventuellement sortie
                 if ((Tdomain%logicD%save_deformation.and.i_snap==0).or.sortie_capteur_deformation) then
-#ifdef MKA3D
                     call save_deformation (Tdomain,isort,i_snap,sortie_capteur_deformation,nom_dir_sorties)
-#else
-                    call save_deformation (Tdomain,ntime,i_snap,sortie_capteur_deformation)
-#endif
                 endif
 
             endif
 
-            !!modif Gsa Rsem 02/10
-#ifdef MKA3D
             if (i_snap==0) then
                 if (Tdomain%MPI_var%my_rank == 0) then
                     write(78,*)isort,Tdomain%TimeD%rtime
@@ -360,7 +345,6 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
                     close(79)
                 endif
             endif
-#endif
 
 
 

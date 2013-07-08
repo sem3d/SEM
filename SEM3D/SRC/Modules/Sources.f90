@@ -19,6 +19,7 @@ module ssources
        integer, dimension(0:2) :: gll
        real :: tau_b,cutoff_freq
        real :: radius,realcolat,reallong,refcolat,reflong
+       real :: amplitude_factor
 
        !   ajout de parametres pour definir Gabor signal source de type 4
        !   ajout de gamma et ts
@@ -71,6 +72,7 @@ contains
             ! Sinus, pour test. param : tau, cutoff_freq
             CompSource = Source_sinewave(time, Sour)
         end select
+        CompSource = CompSource*Sour%amplitude_factor
         return
     end function CompSource
 

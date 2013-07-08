@@ -205,7 +205,7 @@ contains
             do k = 0,ngllz - 1
                 do j = 0,nglly - 1
                     do i = 0,ngllx - 1
-                        iglobnum(ig) = Tdomain%specel(n)%Iglobnum(i,j,k)
+                        iglobnum(ig) = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                         ig = ig + 1
                     end do
                 end do

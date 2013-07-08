@@ -66,11 +66,16 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
         write(*,*)
     end if
 
+#ifdef COUPLAGE
+    call init_mka3d_path()
+#endif
+
     if (rg==0) call create_sem_output_directories()
     ! Read_input peut avoir besoin du repertoire de logs
     call MPI_BARRIER(Tdomain%communicateur, code)
 
     ! ##############  Begin of the program  #######################
+
     call read_input (Tdomain, rg, code)
     call MPI_BARRIER(Tdomain%communicateur, code)
 
