@@ -51,7 +51,7 @@ contains
         integer, intent(in) :: rg
         integer :: n, k
         integer :: other, ierr
-        integer, dimension(0:Tdomain%n_proc) :: send_req, recv_req, send_pml_req, recv_pml_req
+        integer, dimension(0:Tdomain%n_proc-1) :: send_req, recv_req, send_pml_req, recv_pml_req
         integer, parameter :: tag=101, tag_pml=102
         integer, dimension(MPI_STATUS_SIZE,Tdomain%n_proc) :: statuses
         !write(*,*) "COMM 1"
