@@ -336,16 +336,7 @@ contains
         DEBUG(fnamef)
     end subroutine semname_protection_temps_sem
 
-    subroutine semname_main_result(cit,fnamef)
-        !SEMFILE * C ./Resultats/RsemIII
-        implicit none
-        character(Len=*),intent(in) :: cit
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE) :: temp
-        write(temp,"(a,a)") "Rsem",trim(adjustl(cit))
-        fnamef = pjoin(path_results, temp)
-    end subroutine semname_main_result
-    !!end fichier main 2d
+   !!end fichier main 2d
 
     subroutine semname_snap_geom_file (srank,fnamef)
         implicit none
@@ -419,10 +410,15 @@ contains
         integer,intent(in) :: rank
         character(Len=*),intent(in) :: mesh
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE)             :: temp
+        character(Len=MAX_FILE_SIZE)             :: temp, sem_dir
 
         write(temp,"(a,a1,I4.4)") trim(adjustl(mesh)),".",rank
+#ifdef MKA3D
+        sem_dir = pjoin(path_data, "sem")
+        fnamef = pjoin(sem_dir, temp)
+#else
         fnamef = pjoin(path_data, temp)
+#endif
     end subroutine semname_read_mesh_rank
 
     subroutine semname_read_mesh_echo (rank,fnamef)
