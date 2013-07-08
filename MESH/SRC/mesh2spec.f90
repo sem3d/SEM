@@ -857,7 +857,7 @@ contains
         write(*,*) "      --- NOW SEM CAN BE USED.. ---"
         write(*,*) "****************************************"
         write(*,*) "Waiting 60sec for system to settle"
-        call system("sleep 60")
+        !call system("sleep 60")
         write(*,*) "Done..."
 
 
