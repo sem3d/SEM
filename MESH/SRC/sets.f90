@@ -19,6 +19,10 @@ module sets
        type(near_entity), pointer  :: ptr => NULL()
     end type near_elem
 
+    type :: near_proc
+       integer, pointer, dimension(:)  :: list
+       integer  :: nb
+    end type near_proc
 contains
 
     subroutine list_union(L1,L2,L)
@@ -254,8 +258,44 @@ contains
         end do
 
     end subroutine union_sets_elem
+    !---------------------------------------
     !----------------------------
+    subroutine find_near_proc(n_elem,near_elem_set,part,elem_near_proc)
+        implicit none
+        integer, intent(in)   ::  n_elem
+        integer, intent(in), dimension(0:n_elem-1)  :: part
+        type(near_elem), dimension(0:n_elem-1), intent(in) :: near_elem_set
+        type(near_proc), dimension(0:n_elem-1), intent(out) :: elem_near_proc
+        integer   :: nel,n,proc,i,j,k,this_proc
+        integer, dimension(0:49)  :: tr_elem
+        type(near_entity), pointer  :: near_neighb => NULL()
 
+        do n = 0,n_elem-1
+            i = 0 ; tr_elem = 0 ; this_proc = part(n)
+            near_neighb => near_elem_set(n)%ptr  ! pointer on the linked list of nearest elements
+            do while(associated(near_neighb))
+                proc = part(near_neighb%elem)
+                if(proc <= this_proc)then
+                    near_neighb => near_neighb%pt
+                    cycle
+                end if
+                k = already_in(proc,tr_elem,i)
+                if(k < 0)then
+                    tr_elem(i) = proc
+                    i = i+1
+                end if
+                near_neighb => near_neighb%pt
+            end do
+            elem_near_proc(n)%nb = i
+            allocate(elem_near_proc(n)%list(0:i-1))
+            do j = 0,i-1
+                elem_near_proc(n)%list(j) = tr_elem(j)
+            end do
+        end do
+
+    end subroutine find_near_proc
+    !----------------------------
+                                                                       
 
 end module sets
 !! Local Variables:

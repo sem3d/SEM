@@ -11,7 +11,8 @@ des éléments spectraux ([PRI94]_, [FAC97]_, [KOM98]_, [SER98]_, [KOM99]_).
 Cette version prend en compte la propagation dans des milieux hétérogènes, à géométrie complexe (topographie
 de surface, interfaces).
 
-Un outil de prétraitement, permet de convertir et partitionner (avec METIS) des maillages au format Abaqus ou UNV.
+Un outil de prétraitement, permet de convertir et partitionner (avec :program:`Metis`) des maillages au format :program:`Abaqus`
+ou :program:`Ideas` (UNV).
 
 Des sources ponctuelles ou planaires peuvent être introduites. Les conditions d'absorption en bord de domaine
 utilisent la méthode *Perfectly Matched Layer (PML)* décrite dans [FES05]_.
@@ -31,3 +32,21 @@ Le code est écrit majoritairement en Fortran 90. Il utilise les librairies `BLA
 .. [SER98] Seriani, G. (1998). 3D large-scale wave propagation modeling by a spectral element method on a Cray T3E multiprocessor. *Computer Methods in Applied Mechanics and Engineering 164(1)*, 235-247.
 
 
+
+
+Notations
+---------
+
+Exemple des notations utilisées dans ce document :
+
+- Un programme ou logiciel : :program:`CMake`
+
+- Une commande Unix (``cmake``), un nom de fichier (``/usr/bin/python``) ou un texte à saisir ("saisissez le mot-clef ``false``").
+
+- Un terme en anglais : *remote control*
+
+- Une variable d'environnement : :envvar:`HDF5_ROOT`
+
+Parfois le programme et sa commande Unix ont le même nom, on essaira de faire la distinction, par exemple :
+
+"Pour configurer un programme utilisant :program:`CMake` il faut taper la commande ``cmake``."

@@ -7,11 +7,11 @@ Utilisation du gestionnaire de configuration git
 Introduction
 ============
 
-- git est disponible sur unix (linux, MacOS) (`gitscm.org <http://gitscm.org>`_) 
+- :program:`git` est disponible sur Unix (Linux, MacOS) (`gitscm.org <http://gitscm.org>`_) 
   et Windows (`code.google.com/p/tortoisegit/ <http://code.google.com/p/tortoisegit/>`_)
 
 Les commandes de ce tutoriel concerne la version unix, mais sont
-également valables si vous utilisez le *shell git* depuis Windows.
+également valables si vous utilisez le *shell* :program:`git` depuis Windows.
 
 - La commande ``gitk`` ouvre une fenêtre permettant de visualiser les
   derniers *commits*, la branche courante, les fichiers modifiés, … On
@@ -30,7 +30,7 @@ Les commandes de ce tutoriel concerne la version unix, mais sont
     git config --global user.name "toto"
     git config --global user.email "toto@example.com"
 
-- Sur un terminal couleur, on peut activer les sorties git en couleur :
+- Sur un terminal couleur, on peut activer les sorties git en couleur ::
 
     git config --global color.ui auto
 
@@ -38,7 +38,7 @@ Les commandes de ce tutoriel concerne la version unix, mais sont
 Démarrage rapide
 ================
 
-Un exemple minimal d'utilisation de ``git`` tient en quelques lignes ::
+Un exemple minimal d'utilisation de :program:`git` tient en quelques lignes ::
 
    mkdir exemple
    cd exemple
@@ -56,14 +56,14 @@ Pour aller plus loin il faut regarder les commandes interactives :
 - ``git help`` et ``git xxx --help`` : permet d'obtenir la documentation d'une commande ``xxx``
 
 
-Pour partager des sources avec d'autres développeurs, il faut commencer par faire un clone d'un répertoire git : ::
+Pour partager des sources avec d'autres développeurs, il faut commencer par faire un clone d'un répertoire :program:`git` : ::
 
   git clone /chemin/du/repertoire_source
 
 Ensuite entre deux répertoires on utilise les commandes ``git push/pull/fetch``
 
-Si on veut une utilisation qui "ressemble" à l'utilisation de ``subversion`` il faut créer un *repository* central
-avec ``git clone --bare``
+Si on veut une utilisation qui "ressemble" à l'utilisation de :program:`subversion` il faut créer un *repository* central (*ie* un dépot
+de sources) avec ``git clone --bare``
 
 Donc si on part de l'exemple ci-dessus en supposant que le *repository* initial se trouve dans ::
 
@@ -84,9 +84,18 @@ L'utilisateur ``userA`` peut supprimer le répertoire exemple et le remplacer av
 
   git clone /home/appli/exemple.git
 
-Ce qui a pour effet d'enregistrer ``/home/appli/exemple.git`` comme repository "remote" ayant pour
-nom "origin" ; il est possible de faire la même chose avec la commande ``git remote add xxx`` mais
-il faut bien lire la doc avant, et comprendre les subtilités des *refspec*.
+Ce qui a pour effet d'enregistrer ``/home/appli/exemple.git`` comme *repository* "*remote*" sous le
+nom "``origin``".
+
+:program:`git` permet de gérer plusieurs *repository* distants
+communiquant avec votre *repository* local.  Chaque *repository*
+distant se voit attribuer un mot-clef. Le premier *repository* distant
+est celui depuis lequel on fait un clonage initial, et par défaut,
+:program:`git` le nomme ``origin``.
+
+Il est possible de gérer les *repository* distants (par exemple en
+ajouter) avec la commande ``git remote add xxx`` mais il faut bien
+lire la doc avant, et comprendre les subtilités des *refspec*.
 
 Commandes utiles
 ================
@@ -119,6 +128,11 @@ Commandes utiles pour les commit
 
     git add –p <fichier>
 
+- Pour annuler une modification non validée par git add et revenir à
+  la version du dernier commit du fichier,::
+
+    git checkout <fichier>
+
 - Pour supprimer un fichier et le supprimer du dépôt, ::
 
     git rm <fichier>
@@ -131,16 +145,13 @@ Commandes utiles pour les commit
 
     git commit --amend –m " Message "
 
-- Pour annuler une modification non validée par git add et revenir à
-  la version du dernier commit du fichier,::
-
-    git checkout <fichier>
 
 Commandes pour modifier un commit
 ---------------------------------
 
-On peut avoir besoin de modifier un commit, à savoir soit le
-fusionner avec un autre ou modifier son message.
+On peut avoir besoin de modifier un commit : par exemple pour le
+fusionner avec un autre, pour modifier son message ou pour le découper
+en plusieur parties.
 
 - Pour modifier un commit, à savoir changer son message ou le
   fusionner avec un autre, il faut remonter dans l’historique (ici on
@@ -148,11 +159,30 @@ fusionner avec un autre ou modifier son message.
 
     git rebase –i HEAD~2
 
-Faire ensuite edit ou squash et la modification voulue. Au final, pour valider l’opération, ::
+  Cette commande va présenter dans un éditeur de texte (variable :envvar:`EDITOR`) la liste des *commits*
+  sélectionnés avec en regard une action à effecturer (par défaut : ``apply``, c'est à dire appliquer le *commit*).
 
-    git rebase –continue
+  Si on sauvegarde le fichier sans le modifier, la commande va
+  simplement réappliquer les *commits* dans le même ordre.
 
-- Pour annuler complètement un commit ::
+  On peut déplacer des lignes, dans ce cas l'ordre d'application
+  change.
+
+  Pour modifier un *commit*, on remplace dans le fichier la commande ``apply`` par la commande ``edit``.
+
+  Pour fusionner un *commit* avec le précédant, on utilise la commande ``squash``.
+
+  Pour supprimer un *commit* il suffit de supprimer la ligne qui lui correspond dans le fichier.
+
+  Lorsqu'on sauvegarde et quitte l'éditeur, l'outil va éxecuter les commandes du fichier dans l'ordre.
+
+  Si des *commits* ont la commande ``edit``, ou s'ils ne s'appliquent
+  pas correctement à cause d'une édition précédante ou d'un changement
+  d'ordre, l'outil s'arrête et rend la main à l'utilisateur qui peut
+  modifier les fichiers concernés, valider et/ou ajouter des *commits*
+  avec les commandes ``git add ...; git commit``.
+
+- Pour annuler complètement le dernier commit ::
 
     git reset --hard HEAD^
 
@@ -194,7 +224,7 @@ introduit ce bug en utilisant ``git bisect``
 
     git bisect bad
 
-  git propose alors une version intermédiaire à tester.
+  :command:`git` propose alors une version intermédiaire à tester.
 
 - Pour sauter la version courante dans un tel procédé : ::
 
@@ -233,7 +263,7 @@ Récupération des données committées par les autres utilisateurs
     git rebase origin/master
 
 - Pour recaler la branche courante au niveau d’une branche distante
-  qui n’est pas origin/master : ::
+  qui n’est pas ``origin/master`` : ::
 
     git rebase origin/Version_1101
 
@@ -265,5 +295,5 @@ Précautions
 -----------
 
 Après les avoir poussés, il est compliqué de modifier des commits. Il
-faut donc utiliser la commande push avec précaution.
+faut donc utiliser la commande ``git push`` avec précaution.
 
