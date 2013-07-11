@@ -20,8 +20,15 @@ set(MESH_SRC
   ${PRJ}/SRC/solid_fluid.f90
 )
 
+if(OPT_MPI)
+#set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
+# TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
+# c++ et ne link pas semx.exe
+set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
+else(OPT_MPI)
+endif(OPT_MPI)
 
 add_executable(mesher ${MESH_SRC})
-target_link_libraries(mesher metis ${HDF5_LIBRARIES})
+target_link_libraries(mesher metis ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
 
 
