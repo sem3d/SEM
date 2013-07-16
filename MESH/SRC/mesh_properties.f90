@@ -40,6 +40,7 @@ contains
         write(*,*) "     1- On the fly"
         write(*,*) "     2- Abaqus from Cubit"
         write(*,*) "     3- Ideas (.unv) files"
+        write(*,*) "     4- HDF5 Hex8 files"
         read(*,*) choice
         write(*,*)
         write(*,*) "****************************************"
@@ -141,7 +142,7 @@ contains
             write(*,*)
 
             ! UNV files
-        case(3)
+        case(3,4)
             write(*,*) "****************************************"
             write(*,*) "  --> Ideas files to be read (.unv)"
             write(*,*) "    --> How many .unv files ? "
@@ -152,7 +153,11 @@ contains
 
             n_nods = 8
             if (.true.) then
-                call lec_unv_v2(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks)
+                if (choice==3) then
+                    call lec_unv_v2(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks)
+                else
+                    call lec_hdf5(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks)
+                endif
                 !stop 1
             else
                 allocate(n_elem_mat(0:n_blocks-1))
