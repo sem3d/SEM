@@ -286,6 +286,8 @@ subroutine read_material_file(Tdomain, rg)
             Tdomain%sSubDomain(i)%NGLLx, Tdomain%sSubDomain(i)%NGLLy, Tdomain%sSubDomain(i)%NGLLz, &
             Tdomain%sSubDomain(i)%Dt, Tdomain%sSubDomain(i)%Qpression,  Tdomain%sSubDomain(i)%Qmu
 
+        Tdomain%sSubdomain(i)%Filtering = .false.
+
         if(rg==0 .and. .false.) then
             write (*,*) 'Material :', i
             write (*,*) 'type:', Tdomain%sSubDomain(i)%material_type
