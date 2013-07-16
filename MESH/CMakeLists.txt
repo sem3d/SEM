@@ -22,11 +22,11 @@ set(MESH_SRC
 
 set(MESH_EXTRA_LIBS "")
 
-if (OPT_HDF5)
+#if (OPT_HDF5)
     add_definitions(-DUSE_HDF5)
     include_directories(${HDF5_INCLUDE_DIR_FORTRAN})
     set(MESH_EXTRA_LIBS ${MESH_EXTRA_LIBS} hdf5_fortran)
-endif (OPT_HDF5)
+#endif (OPT_HDF5)
 
 add_executable(mesher ${MESH_SRC})
 target_link_libraries(mesher metis ${MESH_EXTRA_LIBS})
