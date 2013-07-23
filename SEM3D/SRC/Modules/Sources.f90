@@ -71,6 +71,9 @@ contains
         case (7)
             ! Sinus, pour test. param : tau, cutoff_freq
             CompSource = Source_sinewave(time, Sour)
+        case (8)
+            ! Square. Param : tau, ts, gamma
+            CompSource = Source_square(time, Sour)
         end select
         CompSource = CompSource*Sour%amplitude_factor
         return
@@ -88,6 +91,22 @@ contains
         T = 1./Sour%cutoff_freq
 
         Source_Spice_Bench = (1-(1+time/T)*exp(-time/T))
+        return
+    end function Source_Spice_Bench
+
+    real function Source_square(t, Sour)
+        implicit none
+        ! A smoothed square
+        type(source), intent(in) :: Sour
+        real, intent(in) :: t
+        !
+        real :: dt,t0,k
+
+        dt = Sour%tau
+        t0 = Sour%ts
+        k = Sour%gamma
+
+        Source_square =(exp(2.*k*(t-t0))-1.)/(exp(2.*k*(t-t0))+1)+(exp(2.*k*(t0+dt-t))-1.)/(exp(2.*k*(t0+dt-t))+1)
         return
     end function Source_Spice_Bench
 

@@ -174,8 +174,9 @@ int expect_source_func(yyscan_t scanner, int* type)
     if (cmp(scanner,"file"))         { *type = 5; return 1; }
     if (cmp(scanner,"spice_bench"))  { *type = 6; return 1; }
     if (cmp(scanner,"sinus"))        { *type = 7; return 1; }
+    if (cmp(scanner,"square"))       { *type = 8; return 1; }
 error:
-    msg_err(scanner, "Expected gaussian|ricker|tf_heaviside|gabor|file|spice_bench|sinus");
+    msg_err(scanner, "Expected gaussian|ricker|tf_heaviside|gabor|file|spice_bench|sinus|square");
     return 0;
 }
 
