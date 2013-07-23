@@ -349,6 +349,15 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
         Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
     enddo
 
+    open (111,file = "fin_sem")
+    if (ntime>=Tdomain%TimeD%NtimeMax-1) then
+        write(111,*) 1
+    else
+        write(111,*) 0
+    end if
+    close(111)
+
+
     call flushAllCapteurs(Tdomain, rg)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
