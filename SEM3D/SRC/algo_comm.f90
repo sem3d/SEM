@@ -51,7 +51,7 @@ contains
         integer, intent(in) :: rg
         integer :: n, k
         integer :: other, ierr
-        integer, dimension(0:Tdomain%n_proc-1) :: send_req, recv_req, send_pml_req, recv_pml_req
+        integer, dimension(Tdomain%n_proc) :: send_req, recv_req, send_pml_req, recv_pml_req
         integer, parameter :: tag=101, tag_pml=102
         integer, dimension(MPI_STATUS_SIZE,Tdomain%n_proc) :: statuses
         !write(*,*) "COMM 1"
@@ -66,9 +66,9 @@ contains
             if (other==rg) cycle
             if (Tdomain%sComm(other)%ngll_tot/=0) then
                 call MPI_Isend(Tdomain%sComm(other)%Give, Tdomain%sComm(other)%ngll_tot, &
-                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur, send_req(other), ierr)
+                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur, send_req(other+1), ierr)
                 call MPI_Irecv(Tdomain%sComm(other)%Take, Tdomain%sComm(other)%ngll_tot, &
-                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur, recv_req(other), ierr)
+                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur, recv_req(other+1), ierr)
             endif
             if(Tdomain%any_PML.or.Tdomain%any_FPML)then
                 if (Tdomain%any_FPML) then
@@ -79,19 +79,19 @@ contains
                 if (Tdomain%sComm(other)%ngllPML_tot/=0) then
                     call MPI_Isend(Tdomain%sComm(other)%GivePML, k*Tdomain%sComm(other)%ngllPML_tot, &
                         MPI_DOUBLE_PRECISION, other, tag_pml, Tdomain%communicateur, &
-                        send_pml_req(other), ierr)
+                        send_pml_req(other+1), ierr)
                     call MPI_Irecv(Tdomain%sComm(other)%TakePML, k*Tdomain%sComm(other)%ngllPML_tot, &
                         MPI_DOUBLE_PRECISION, other, tag_pml, Tdomain%communicateur, &
-                        recv_pml_req(other), ierr)
+                        recv_pml_req(other+1), ierr)
                 endif
             endif
         enddo
 
         !write(*,*) "COMM done 1"
         call MPI_Waitall(Tdomain%n_proc, recv_req, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, recv_pml_req, statuses, ierr)
         call MPI_Waitall(Tdomain%n_proc, send_req, statuses, ierr)
         call MPI_Waitall(Tdomain%n_proc, send_pml_req, statuses, ierr)
+        call MPI_Waitall(Tdomain%n_proc, recv_pml_req, statuses, ierr)
 
     end subroutine exchange_sem
 
