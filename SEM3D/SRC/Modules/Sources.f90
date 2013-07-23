@@ -100,15 +100,19 @@ contains
         type(source), intent(in) :: Sour
         real, intent(in) :: t
         !
-        real :: dt,t0,k
+        real :: dt,t0,k,w0,winf
 
-        dt = Sour%tau
+        dt = Sour%tau_b
         t0 = Sour%ts
         k = Sour%gamma
 
-        Source_square =(exp(2.*k*(t-t0))-1.)/(exp(2.*k*(t-t0))+1)+(exp(2.*k*(t0+dt-t))-1.)/(exp(2.*k*(t0+dt-t))+1)
+        ! Primitive : (log(cosh(k*(t-t0)))-log(cosh(k*(t0+dt-t))))/k
+        w0 = (log(cosh(k*(-t0)))-log(cosh(k*(t0+dt))))/k
+        winf = dt
+
+        Source_square = (tanh(k*(t-t0))+tanh(k*(t0+dt-t)))/(winf-w0)
         return
-    end function Source_Spice_Bench
+    end function Source_square
 
     real function Source_sinewave(time, Sour)
         implicit none
