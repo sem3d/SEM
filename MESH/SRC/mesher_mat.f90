@@ -10,7 +10,7 @@ program mesher_mat
     integer                   :: n_parts, pml_top, pml_bool, pml_bottom, n_mat, n_mat_tot, i_err,   &
          mat_b, i
     logical, parameter        :: VRAI = .true., FAUX = .false.
-    integer, parameter        :: NMAX_PROCS = 1024
+    integer, parameter        :: NMAX_PROCS = 8192
 
     !- PML present or not?
     pml_bool = 0 ; pml_top = 0 ; pml_bottom = 0
