@@ -70,14 +70,47 @@ set(SEM_SRC_C
   ${SEMCOMMON}/fileutils.c
 )
 
-if(NOT BUILD_WITH_MKA)
+find_library(CEAUSER cea_user PATHS /usr/local/sr/lib)
+
+
+
+if(NOT BUILD_WITH_MKA AND CEAUSER=="CEAUSER-NOTFOUND")
 set(SEM_SRC ${SEM_SRC}
   ${SEMCOMMON}/stub_tremain.F90
 )
-endif(NOT BUILD_WITH_MKA)
+endif(NOT BUILD_WITH_MKA AND CEAUSER=="CEAUSER-NOTFOUND")
 
 
 set(FTM_SOURCES ${SEMCOMMON}/libmpi_fantome.f90)
+
+# On veut compiler les .f90 avec le preprocesseur cpp
+if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+  set_source_files_properties(${SEM3D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-fpp")
+else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+  set_source_files_properties(${SEM3D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-x f95-cpp-input")
+endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+
+
+set(SEM_EXTRA_LIBS)
+if(OPT_MPI)
+#set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
+# TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
+# c++ et ne link pas semx.exe
+set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
+else(OPT_MPI)
+set(SEM_SRC ${SEM_SRC}
+  ${FTM_SOURCES})
+endif(OPT_MPI)
+
+# HDF5
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} hdf5_fortran)
+
+
+if (NOT CEAUSER=="CEAUSER-NOTFOUND")
+add_definitions(-DHAVE_TREMAIN)
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${CEAUSER})
+endif(NOT CEAUSER=="CEAUSER-NOTFOUND")
+
 
 add_subdirectory(SEM2D)
 add_subdirectory(SEM3D)

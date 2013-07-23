@@ -112,27 +112,9 @@ set(SEM3D_SOURCES ${SEM3D_SOURCES_F}
 )
 
 
-# On veut compiler les .f90 avec le preprocesseur cpp
-if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-  set_source_files_properties(${SEM3D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-fpp")
-else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-  set_source_files_properties(${SEM3D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-x f95-cpp-input")
-endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 
-
-set(SEM_EXTRA_LIBS "")
-if(OPT_MPI)
-#set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
-# TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
-# c++ et ne link pas semx.exe
-set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
-else(OPT_MPI)
-set(SEM3D_SOURCES ${SEM3D_SOURCES}
-  ${FTM_SOURCES})
-endif(OPT_MPI)
 
 # HDF5
-set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} hdf5_fortran)
 set(SEM3D_SOURCES ${SEM3D_SOURCES} ${SEMCOMMON}/sem_hdf5.f90)
 message("SEMLIBS: '${SEM_EXTRA_LIBS}'")
 
