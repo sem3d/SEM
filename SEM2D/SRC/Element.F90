@@ -14,7 +14,7 @@ module selement
 
     type :: element
 
-       integer :: mat_index,ngllx,ngllz
+       integer :: mat_index,ngllx,ngllz,type_DG
        integer, dimension (:), pointer :: Control_nodes
        integer, dimension (0:3) :: Near_Face, Near_Vertex
        integer, dimension (:,:), pointer :: Iglobnum
@@ -22,6 +22,7 @@ module selement
        real, dimension (:,:), pointer :: Jacob,Density, Lambda, Mu,MassMat
        real, dimension(:,:,:), pointer :: Forces,Stress,Veloc,Displ,Accel,V0
        real, dimension(:,:,:), pointer :: ACoeff
+       real, dimension(:,:,:), pointer :: F_Veloc, F_Strain
        real, dimension(:,:,:,:), pointer :: InvGrad
 
        ! PML allocation

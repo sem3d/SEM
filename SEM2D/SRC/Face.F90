@@ -15,10 +15,13 @@ module sfaces
        integer :: ngll, mat_index
        integer, dimension (0:1) :: Near_Element, Which_face, Near_Vertex
 
+       real, dimension (:), pointer :: Normal_Face
+       real, dimension (:), pointer :: k0_1,k0_2,k1_1,k1_2
        real, dimension (:), pointer :: massMat
        real, dimension (:,:), pointer :: Veloc, Displ, Accel, V0, Forces
        real, dimension (:,:), pointer :: Veloc1, Veloc2, Forces1, Forces2
        real, dimension (:,:), pointer :: DumpMass, DumpVx, DumpVz
+       real, dimension (:,:), pointer :: Normal_Nodes
 
 #ifdef MKA3D
        real, dimension (:,:), pointer :: ForcesMka
@@ -30,6 +33,22 @@ module sfaces
     end type face
 
 contains
+
+
+    ! ############################################################
+    !>
+    !! \brief
+    !!
+    !! \param type (Face), intent (INOUT) F
+    !! \param real, in
+    !! \param real, intent (IN) gam1
+    !! \param real, intent (IN) dt
+    !! \param real, intent (IN) alpha
+    !<
+
+  subroutine Compute_Flux_Veloc (F,)
+
+  end subroutine Compute_Flux_Veloc
 
     ! ############################################################
     !>
