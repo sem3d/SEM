@@ -189,7 +189,10 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     if (Tdomain%logicD%run_restart) then
         !! Il faudra ajouter la gravite ici #ifdef COUPLAGE
         call read_restart(Tdomain, rg, isort)
-        write (*,*) "Reprise effectuee sur processeur ",rg
+        call MPI_BARRIER(Tdomain%communicateur,code)
+        if (rg==0) then
+            write (*,*) "Reprise effectuee sur tous les processeurs"
+        end if
         open (78,file=fnamef,status="unknown",position="append")
     else
         ! Sauvegarde des donnees de post-traitement
@@ -334,7 +337,9 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
 
 
         if (protection/=0) then
-            write (*,*) " sauvegarde  ",ntime," sur processeur ",rg
+            if (rg==0) then
+                write (*,*) "Creation protection  ",ntime
+            end if
             call flushAllCapteurs(Tdomain, rg)
             call save_checkpoint(Tdomain, Tdomain%TimeD%rtime, ntime, rg, Tdomain%TimeD%dtmin, isort)
         endif

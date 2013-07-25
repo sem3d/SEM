@@ -631,8 +631,8 @@ subroutine read_mesh_file_h5(Tdomain, rg)
             write(*,*) "  --> Propagation in solid media."
         end if
     end if
-    write(6,*) rg, ': nb elts  ',Tdomain%n_elem
-    write(*,*) rg, "NFACES=", Tdomain%n_face
+    write(6,*) rg, 'Nb elems=',Tdomain%n_elem
+    !write(*,*) rg, "NFACES=", Tdomain%n_face
 
 end subroutine read_mesh_file_h5
 

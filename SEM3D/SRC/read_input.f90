@@ -567,7 +567,11 @@ subroutine read_input (Tdomain, rg, code)
     Tdomain%T1_att = config%atn_band(1)
     Tdomain%T2_att = config%atn_band(2)
     Tdomain%T0_modele = config%atn_period
-    write(*,*) "SLS=", Tdomain%n_sls
+    if (rg==0) then
+        write(*,*) "Attenuation SLS=", Tdomain%n_sls
+        write(*,*) "         period=", Tdomain%T0_modele
+        write(*,*) "           band=", Tdomain%T1_att, Tdomain%T2_att
+    end if
 
 
     ! Neumann boundary conditions? If yes: geometrical properties read in the mesh files.
@@ -598,14 +602,14 @@ subroutine read_input (Tdomain, rg, code)
 
     call read_mesh_file_h5(Tdomain, rg)
 
-    write(*,*) rg, "Reading materials"
+    !write(*,*) rg, "Reading materials"
     !---   Properties of materials.
     call read_material_file(Tdomain, rg)
-    write(*,*) rg, "Reading materials done"
+    !write(*,*) rg, "Reading materials done"
 
     call finalize_mesh_connectivity(Tdomain, rg)
 
-    write(*,*) rg, "Finalize done"
+    !write(*,*) rg, "Finalize done"
 
     call select_output_elements(Tdomain, rg, config)
 

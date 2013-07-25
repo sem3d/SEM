@@ -53,7 +53,7 @@ contains
 
         if (rg==0) then
             call semname_snap_result_dir(isort, temp)
-            write(*,*) rg,' Creation dir(C):', temp
+            write(*,*) rg,' Creation dir(C):', trim(adjustl(temp))
             ierr = sem_mkdir(trim(adjustl(temp)))
             write(*,*) 'code:', ierr
 !            creer_dir = "mkdir -p "//temp
