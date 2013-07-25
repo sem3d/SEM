@@ -546,6 +546,12 @@ subroutine read_input (Tdomain, rg, code)
     ! MODIF ICI: energie? deformation?..
     !Tdomain%logicD%save_energy = !?
     Tdomain%logicD%save_restart = config%prorep_iter .ne. 0
+    ! MPML
+    Tdomain%logicD%MPML = .false.
+    Tdomain%MPML_coeff = config%mpml
+    if (config%mpml/=0) then
+        Tdomain%logicD%MPML = .true.
+    end if
     !Tdomain%logicD%plot_grid
     !Tdomain%logicD%run_exec
     !Tdomain%logicD%run_debug
