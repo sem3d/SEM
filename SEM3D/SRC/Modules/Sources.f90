@@ -66,7 +66,7 @@ contains
             CompSource = Source_File (time,Sour%tau_b,Sour)
             !   modif pour benchmark can2
         case (6)
-            ! Source benchmark spice M0*(1-(1+t/T)exp(-t/T)) avec T=1/freq
+            ! Source benchmark spice M0*(1-(1+(t/T)**gamma)exp(-(t/T)**gamma)) avec T=1/freq
             CompSource = Source_Spice_Bench(time, Sour)
         case (7)
             ! Sinus, pour test. param : tau, cutoff_freq
@@ -74,6 +74,9 @@ contains
         case (8)
             ! Square. Param : tau, ts, gamma
             CompSource = Source_square(time, Sour)
+        case (9)
+            ! Square. Param : ts, gamma
+            CompSource = Source_tanh(time, Sour)
         end select
         CompSource = CompSource*Sour%amplitude_factor
         return
@@ -86,13 +89,37 @@ contains
         type(source), intent(in) :: Sour
         real, intent(in) :: time
         !
-        real :: T
+        real :: T, k, s
+
+        if (time<Sour%ts) then
+            Source_Spice_Bench = 0d0
+            return
+        end if
 
         T = 1./Sour%cutoff_freq
+        k = Sour%gamma
+        if (k<1d0) k=1d0
 
-        Source_Spice_Bench = (1-(1+time/T)*exp(-time/T))
+        s = ((time-Sour%ts)/T)**k
+
+        Source_Spice_Bench = (1-(1+s)*exp(-s))
         return
     end function Source_Spice_Bench
+
+    real function Source_tanh(time, Sour)
+        implicit none
+        ! only a Ricker for the time being.
+        type(source), intent(in) :: Sour
+        real, intent(in) :: time
+        !
+        real :: k,t0
+
+        t0 = Sour%ts
+        k = Sour%gamma
+
+        Source_tanh = 0.5*(tanh(k*(time-t0))+1d0)
+        return
+    end function Source_tanh
 
     real function Source_square(t, Sour)
         implicit none
