@@ -346,7 +346,7 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
 
         ! arret des calculs sur tous les procs
         if (interrupt/=0) then
-            print*,"Arret de SEM, iteration=", ntime
+            if (rg==0) print*,"Arret de SEM, iteration=", ntime
             exit
         endif
 

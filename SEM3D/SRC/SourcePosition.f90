@@ -264,9 +264,9 @@ subroutine SourcePosition (Tdomain,rg)
             enddo dicho
             Tdomain%sSource(n_src)%refcoord = centre
 
-            print*,'P=',rg,'S=', n_src, 'Position de la source xs,ys,zs',xs,ys,zs !Gsa
-            print*,'P=',rg,'S=', n_src, 'GLL le plus proche de la source ', Tdomain%Ssource(n_src)%elem, Tdomain%Ssource(n_src)%gll(0:2) !Gsa
-            print*,'P=',rg,'S=', n_src, 'Finalement la position dans l''elt de ref est',centre(0:2) !Gsa
+!            print*,'P=',rg,'S=', n_src, 'Position de la source xs,ys,zs',xs,ys,zs !Gsa
+!            print*,'P=',rg,'S=', n_src, 'GLL le plus proche de la source ', Tdomain%Ssource(n_src)%elem, Tdomain%Ssource(n_src)%gll(0:2) !Gsa
+!            print*,'P=',rg,'S=', n_src, 'Finalement la position dans l''elt de ref est',centre(0:2) !Gsa
             ! Calcul de InvGrad en S(xi,eta,zeta)
             xi = centre(0);   eta = centre(1);   zeta = centre(2)
             if (Tdomain%n_nodes==27) then
