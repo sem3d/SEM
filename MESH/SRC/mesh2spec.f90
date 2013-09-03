@@ -803,10 +803,12 @@ contains
 
         do nel = 0,n_elem-1
             if(part(nel) /= nproc-1)then
-                do proc = part(nel)+1,nproc-1
-                    deallocate(memory(nel)%rank(proc)%E)
-                enddo
-                deallocate(memory(nel)%rank)
+                if (associated(memory(nel)%rank)) then
+                    do proc = part(nel)+1,nproc-1
+                        deallocate(memory(nel)%rank(proc)%E)
+                    enddo
+                    deallocate(memory(nel)%rank)
+                endif
             endif
         enddo
         deallocate(memory)
