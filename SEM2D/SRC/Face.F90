@@ -12,11 +12,11 @@ module sfaces
     ! Modified by Gaetano 01/06/05
     type :: face
 
-       integer :: ngll, mat_index
+       integer :: ngll, mat_indexn, type_Flux
        integer, dimension (0:1) :: Near_Element, Which_face, Near_Vertex
 
        real, dimension (:), pointer :: Normal_Face
-       real, dimension (:), pointer :: k0_1,k0_2,k1_1,k1_2
+       real, dimension (:), pointer :: k0,k1,Zp_p,Zp_m,Zs_p,Zs_m
        real, dimension (:), pointer :: massMat
        real, dimension (:,:), pointer :: Veloc, Displ, Accel, V0, Forces
        real, dimension (:,:), pointer :: Veloc1, Veloc2, Forces1, Forces2

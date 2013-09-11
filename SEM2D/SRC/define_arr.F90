@@ -203,6 +203,19 @@ subroutine define_arrays(Tdomain)
 
     enddo
 
+    !Sebaddition sept 2013
+    ! Calcul des coefficients pour les Fluxs Godunov
+    do nf = 0, Tdomain%n_face-1
+        n_elem = Tdomain%sFace(nf)%Near_element(0)
+        w_face = Tdomain%sFace(nf)%Which_face(0)
+        if ((Tdomain%sFace(nf)%type_Flux .EQ. 2) .AND.(n_elem > -1)) then
+           ngll = Tdomain%sFace(nf)%ngll
+           do i=0,ngll-1
+              Tdomain%sFace(nf)%k0(i)  = 1./()
+           enddo
+        endif
+    enddo
+
     ! Communication inside the processor
 
     do nf = 0, Tdomain%n_face-1

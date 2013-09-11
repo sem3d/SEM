@@ -336,6 +336,9 @@ subroutine read_mesh(tDomain)
             Tdomain%sSubDomain(i)%wpml = npml
             npml = npml + 1
         endif
+        ! Sebaddition Sept 2013 
+        Tdomain%sSubDomain(i)%type_Elem = 0 
+        Tdomain%sSubDomain(i)%type_Flux = 0
     enddo
     Tdomain%any_PML  = .false.
     if (npml > 0 ) then
@@ -356,6 +359,7 @@ subroutine read_mesh(tDomain)
         mat = Tdomain%specel(i)%mat_index
         Tdomain%specel(i)%ngllx = Tdomain%sSubDomain(mat)%NGLLx
         Tdomain%specel(i)%ngllz = Tdomain%sSubDomain(mat)%NGLLz
+        Tdomain%specel(i)%type_Elem = Tdomain%sSubDomain(mat)%type_Elem ! Sebaddition Sept 2013 
     enddo
 
     do i = 0, Tdomain%n_face-1
@@ -372,6 +376,7 @@ subroutine read_mesh(tDomain)
         Tdomain%sVertex(n_aus)%mat_index = mat
         n_aus = Tdomain%sFace(i)%Near_Vertex(1)
         Tdomain%sVertex(n_aus)%mat_index = mat
+        Tdomain%sFace(i)%type_Flux = Tdomain%sSubDomain(mat)%type_Flux ! Sebaddition Sept 2013 
     enddo
 
     if (Tdomain%logicD%super_object_local_present) then

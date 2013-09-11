@@ -106,6 +106,21 @@ subroutine allocate_domain (Tdomain)
         Tdomain%sFace(n)%Accel = 0
         Tdomain%sFace(n)%V0 = 0
         Tdomain%sFace(n)%Forces = 0
+        if (Tdomain%sFace(n)%type_Flux .EQ. 2 ) then ! Sebaddition sept 2013 
+            ! Allocation coefficients for Godunov Fluxes
+            allocate (Tdomain%sFace(n)%k0(0:ngll-1))
+            allocate (Tdomain%sFace(n)%k1(0:ngll-1))
+            allocate (Tdomain%sFace(n)%Zp_m(0:ngll-1))
+            allocate (Tdomain%sFace(n)%Zp_p(0:ngll-1))
+            allocate (Tdomain%sFace(n)%Zs_m(0:ngll-1))
+            allocate (Tdomain%sFace(n)%Zs_p(0:ngll-1))
+            Tdomain%sFace(n)%k0 = 0
+            Tdomain%sFace(n)%k1 = 0
+            Tdomain%sFace(n)%Zp_m = 0
+            Tdomain%sFace(n)%Zp_p = 0
+            Tdomain%sFace(n)%Zs_m = 0
+            Tdomain%sFace(n)%Zs_p = 0
+        endif
 
         if (Tdomain%sFace(n)%PML ) then
             allocate (Tdomain%sFace(n)%Forces1 (1:ngll-2,0:1) )
