@@ -409,6 +409,7 @@ contains
         !   -> establishes correspondence between objects shared by different processors
         allocate(memory(0:n_elem-1))
         do nel = 0,n_elem-1
+            nullify(memory(nel)%rank)
             if(part(nel) /= nproc-1)then
                 if(elem_near_proc(nel)%nb > 0)  &
                     allocate(memory(nel)%rank(0:elem_near_proc(nel)%nb-1))
@@ -804,7 +805,7 @@ contains
         do nel = 0,n_elem-1
             if(part(nel) /= nproc-1)then
                 if (associated(memory(nel)%rank)) then
-                    do proc = part(nel)+1,nproc-1
+                    do proc = 0,elem_near_proc(nel)%nb-1
                         deallocate(memory(nel)%rank(proc)%E)
                     enddo
                     deallocate(memory(nel)%rank)
@@ -819,9 +820,6 @@ contains
         write(*,*) "****************************************"
         write(*,*) "      --- NOW SEM CAN BE USED.. ---"
         write(*,*) "****************************************"
-        write(*,*) "Waiting 60sec for system to settle"
-        !call system("sleep 60")
-        write(*,*) "Done..."
 
 
     contains
