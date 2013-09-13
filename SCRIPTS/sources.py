@@ -6,8 +6,8 @@ from matplotlib.colors import Normalize
 
 NFFT1=1024
 NOVER1=1023
-NFFT2=2048
-NOVER2=1024
+NFFT2=4096
+NOVER2=3072
 
 SAVE=True
 
@@ -31,8 +31,8 @@ def Spice_Bench(time, f, k=1):
     t = (time*f)**k
     return (1-(1+t)*exp(-t))
 
-def Spice_tanh(time, k):
-    return 0.5*(tanh(k*time) + 1.)
+def Spice_tanh(time, k, t0):
+    return 0.5*(tanh(k*(time-t0)) + 1.)
 
 def plot_specgram(ax, Pxx, f, t, vmin, vmax, tmax, fmax):
     lpxx = 10*log10(Pxx/Pxx.max())
@@ -111,7 +111,16 @@ def test_spice(t, f0, gamma):
     s = Spice_Bench(t, f0, gamma)
     plot_src(t, s, 5., 30., TEST)
     stat_sig(t, s, TEST)
-    if SAVE: savefig("src_spice.png")
+    if SAVE: savefig("src_spice%02d.png" %COUNT)
+    COUNT += 1
+
+def test_tanh(t, k, t0):
+    global COUNT
+    TEST = "TEST%02d : Spice_tanh(k=%f,t0=%f)" % (COUNT, k, t0)
+    s = Spice_tanh(t, k, t0)
+    plot_src(t, s, t0+5., 30., TEST)
+    stat_sig(t, s, TEST)
+    if SAVE: savefig("src_tanh%02d.png" % COUNT)
     COUNT += 1
 
 def test_gabor(t, ts, fp, gamma, tau):
@@ -126,13 +135,15 @@ def test_gabor(t, ts, fp, gamma, tau):
 
 def main():
     t = linspace(0,20.,2**15)
-    test_ricker(t, 0.4, 3.)
-    test_gaussian(t, 0.1, 0.03)
-    test_spice(t, 2.5, 1.)
-    test_spice(t, 0.75, 1.)
-    test_ricker(t, 0.2, 4.)
-    test_gabor(t, ts=1., fp=3., gamma=2., tau=1.)
-    test_gabor(t, ts=2., fp=3., gamma=10., tau=1.)
+    #test_ricker(t, 0.4, 3.)
+    #test_gaussian(t, 0.1, 0.03)
+    #test_spice(t, 2.5, 1.)
+    #test_spice(t, 0.75, 1.)
+    #test_ricker(t, 0.2, 4.)
+    #test_gabor(t, ts=1., fp=3., gamma=2., tau=1.)
+    #test_gabor(t, ts=2., fp=3., gamma=10., tau=1.)
+    test_spice(t, 0.75, 2.)
+    test_tanh(t, 4, 5.)
 
     show()
 
