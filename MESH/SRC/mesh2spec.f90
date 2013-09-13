@@ -464,7 +464,7 @@ contains
         allocate(which_points_inside(0:n_points-1))
 
         !- we consider each processor, and create all structures for the meshfiles
-        call system("rm -f mesh4spec.???")
+        call system("rm -f mesh4spec.????.h5")
         meshfilename(1:10) = "mesh4spec."
 
 
