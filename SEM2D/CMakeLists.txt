@@ -24,7 +24,7 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/ajout.F90
     ${PRJ}/SRC/allocate_domain.F90
     ${PRJ}/SRC/compute_GLL.F90
-    ${PRJ}/SRC/convertirUnv.F90
+#    ${PRJ}/SRC/convertirUnv.F90
     ${PRJ}/SRC/courant.F90
     ${PRJ}/SRC/define_arr.F90
     ${PRJ}/SRC/define_fault_properties.F90
@@ -49,7 +49,7 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/save_trace.F90
     ${PRJ}/SRC/save_vorticity.F90
     ${PRJ}/SRC/savefield.F90
-    ${PRJ}/SRC/sem.F90
+#    ${PRJ}/SRC/sem.F90
     ${PRJ}/SRC/shape4.F90
     ${PRJ}/SRC/shape8.F90
     ${PRJ}/SRC/smoothing_exp.F90
@@ -75,7 +75,7 @@ endif (OPT_COUPLAGE)
 # les sources 2 fois (une fois avec -DCOUPLAGE, une fois sans)
 if(NOT OPT_COUPLAGE)
 add_executable(sem2d.exe  ${SEM2D_SOURCES})
-target_link_libraries(sem2d.exe ${CEAUSER} ${SEM_EXTRA_LIBS})
+target_link_libraries(sem2d.exe ${SEM_EXTRA_LIBS})
 install(TARGETS sem2d.exe DESTINATION bin)
 endif(NOT OPT_COUPLAGE)
 

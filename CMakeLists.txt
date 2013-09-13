@@ -33,7 +33,7 @@ if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   set(USE_MKL TRUE)
 else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   # Assume gfortran
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fdefault-real-8 -fdefault-double-8 -ffree-line-length-0")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -cpp -Wall -fdefault-real-8 -fdefault-double-8 -ffree-line-length-0")
   set(USE_MKL FALSE)
 endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 endif (NOT BUILD_WITH_MKA)
@@ -74,11 +74,11 @@ find_library(CEAUSER cea_user PATHS /usr/local/sr/lib)
 
 
 
-if(NOT BUILD_WITH_MKA AND CEAUSER=="CEAUSER-NOTFOUND")
+if( (NOT BUILD_WITH_MKA) AND (CEAUSER STREQUAL "CEAUSER-NOTFOUND"))
 set(SEM_SRC ${SEM_SRC}
   ${SEMCOMMON}/stub_tremain.F90
 )
-endif(NOT BUILD_WITH_MKA AND CEAUSER=="CEAUSER-NOTFOUND")
+endif( (NOT BUILD_WITH_MKA) AND (CEAUSER STREQUAL "CEAUSER-NOTFOUND"))
 
 
 set(FTM_SOURCES ${SEMCOMMON}/libmpi_fantome.f90)
@@ -106,10 +106,10 @@ endif(OPT_MPI)
 set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} hdf5_fortran)
 
 
-if (NOT CEAUSER=="CEAUSER-NOTFOUND")
+if (CEAUSER)
 add_definitions(-DHAVE_TREMAIN)
 set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${CEAUSER})
-endif(NOT CEAUSER=="CEAUSER-NOTFOUND")
+endif(CEAUSER)
 
 
 add_subdirectory(SEM2D)

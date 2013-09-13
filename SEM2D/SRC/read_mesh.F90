@@ -36,9 +36,6 @@ subroutine read_mesh(tDomain)
     real :: dtmin
 
 
-    ! si le format du maillage initial est UNV,il faut le convertir en maillage sem2D
-    if (tDomain%bMailUnv) call convertirUnv(tDomain)
-
     ! Read Mesh properties
     ! The reading is local to the grid
 

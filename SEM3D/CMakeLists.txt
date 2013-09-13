@@ -130,7 +130,7 @@ endif (OPT_COUPLAGE)
 # les sources 2 fois (une fois avec -DCOUPLAGE, une fois sans)
 if(NOT OPT_COUPLAGE)
 add_executable(sem3d.exe  ${PRJ}/SRC/main.F90 ${SEM3D_SOURCES})
-target_link_libraries(sem3d.exe ${CEAUSER} ${SEM_EXTRA_LIBS})
+target_link_libraries(sem3d.exe ${SEM_EXTRA_LIBS})
 install(TARGETS sem3d.exe RUNTIME DESTINATION bin)
 endif(NOT OPT_COUPLAGE)
 
