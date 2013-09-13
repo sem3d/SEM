@@ -25,7 +25,7 @@ subroutine define_arrays(Tdomain)
 
     ! local variables
 
-    integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf
+    integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf,nelem1
     integer :: i_send, n_face_pointed, i_proc, nv, i_stock, tag_send, tag_receive, ierr
     integer ,  dimension (MPI_STATUS_SIZE) :: status
     real :: vp,ri,rj,dx, LocMassmat_Vertex
@@ -206,14 +206,8 @@ subroutine define_arrays(Tdomain)
     !Sebaddition sept 2013
     ! Calcul des coefficients pour les Fluxs Godunov
     do nf = 0, Tdomain%n_face-1
-        n_elem = Tdomain%sFace(nf)%Near_element(0)
-        w_face = Tdomain%sFace(nf)%Which_face(0)
-        if ((Tdomain%sFace(nf)%type_Flux .EQ. 2) .AND.(n_elem > -1)) then
-           ngll = Tdomain%sFace(nf)%ngll
-           do i=0,ngll-1
-              Tdomain%sFace(nf)%k0(i)  = 1./()
-           enddo
-        endif
+       if(Tdomain%sFace(nf)%type_Flux .EQ. 2) &
+         call compute_coeff_flux(Tdomain,nf)
     enddo
 
     ! Communication inside the processor

@@ -130,6 +130,31 @@ subroutine write_result_mesh(Tdomain)
 end subroutine write_result_mesh
 #endif
 
+! #########################################
+
+subroutine compute_normals(Tdomains)
+
+    use sdomain
+
+    implicit none
+
+    type(domain),target, intent (INOUT) :: Tdomain
+
+    ! local variables
+    integer :: nf, i, m_elem, ngll
+    real    :: nx, ny
+
+    n_elem = Tdomain%sFace(nf)%Near_Element(0)
+    ngll   = Tdomain%sFace(nf)%ngll
+    allocate(Tdomain%sFace(nf)%Normal_Face(0:1))
+    allocate(Tdomain%sFace(nf)%Normal_Nodes(0:ngll-1,0:1))
+
+    
+
+end subroutine compute_normals
+
+! #########################################
+
 subroutine shape4(Tdomain)
 
     use sdomain
