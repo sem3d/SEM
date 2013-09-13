@@ -139,15 +139,12 @@ contains
 
             tag=capteur%numero ! une com par capteur
 
-            call semname_capteur_pos(capteur%nom,fnamef)
 
             if(capteur%type_calcul==0) then
 
                 PtGauss=>capteur%listePtGauss
 
                 if (capteur%rayon==0) then ! un seul point de Gauss a ecrire, mais le plus proche de tous
-
-                    if (rg.eq.0) open(UNIT=fid,FILE=trim(fnamef),STATUS='replace')  !!modif seul proc 0
                     ! tous les proc recupere la distance min du pdg le + proche
                     call MPI_AllReduce(capteur%distanceMin, distanceMinMin, 1, MPI_DOUBLE_PRECISION, MPI_MIN, Tdomain%communicateur, ierr)
                     if (ABS(distanceMinMin - capteur%distanceMin) < 1e-5) then ! on est sur le proc qui a le pt de gauss le + proche
@@ -176,20 +173,23 @@ contains
                         endif
                     endif
 
-                    if (rg .eq.0 ) then
-                        rewind(fid)
-                        write(fid,'(4(A6,1X,E12.4,1X))') "X=", val0(1), " Y=", val0(2), " Z=", val0(3), " dist=", distanceMinMin
-                        close(fid)
-                    endif
+                    !if (rg .eq.0 ) then
+                    !    call semname_capteur_pos(capteur%nom,fnamef)
+                    !    open(UNIT=fid,FILE=trim(fnamef),STATUS='replace')  !!modif seul proc 0
+                    !    rewind(fid)
+                    !    write(fid,'(4(A6,1X,E12.4,1X))') "X=", val0(1), " Y=", val0(2), " Z=", val0(3), " dist=", distanceMinMin
+                    !    close(fid)
+                    !endif
                 else ! les proc ecrivent tour a tour les pt de gauss
 
-                    open(UNIT=fid,FILE=trim(fnamef),STATUS='replace')  !!modif // version initiale Capteur Sem2d
-                    ! on parcourt les pdg
-                    do while (associated(PtGauss))
-                        write(fid,*) PtGauss%coord(1), PtGauss%coord(2), PtGauss%coord(3)
-                        PtGauss=>PtGauss%suivant
-                    enddo
-                    close(fid) !!modif // version initiale Capteur Sem2d
+                    !call semname_capteur_pos(capteur%nom,fnamef)
+                    !open(UNIT=fid,FILE=trim(fnamef),STATUS='replace')  !!modif // version initiale Capteur Sem2d
+                    !! on parcourt les pdg
+                    !do while (associated(PtGauss))
+                    !    write(fid,*) PtGauss%coord(1), PtGauss%coord(2), PtGauss%coord(3)
+                    !    PtGauss=>PtGauss%suivant
+                    !enddo
+                    !close(fid) !!modif // version initiale Capteur Sem2d
                 endif
 
                 !deallocate(PtGauss)
@@ -216,11 +216,11 @@ contains
                     capteur%eta = eta !val0(2)
                     capteur%zeta = zeta !val0(3)
 
-                    open(UNIT=fid,FILE=trim(fnamef),STATUS='replace')
-                    rewind(fid)
-                    write(fid,'(3(A6,1X,1pe15.8,1X),A22,1X,I6)') "xi=", capteur%xi, " eta=", capteur%eta, &
-                        " zeta=", capteur%zeta, " numero element Sem", capteur%n_el
-                    close(fid)
+                    !open(UNIT=fid,FILE=trim(fnamef),STATUS='replace')
+                    !rewind(fid)
+                    !write(fid,'(3(A6,1X,1pe15.8,1X),A22,1X,I6)') "xi=", capteur%xi, " eta=", capteur%eta, &
+                    !    " zeta=", capteur%zeta, " numero element Sem", capteur%n_el
+                    !close(fid)
                 end if
                 !! on reattribue au proc son numero d'element initial
             endif
@@ -352,67 +352,69 @@ contains
             capteur%suivant=>listeCapteur
             listeCapteur=>capteur
             ! si c'est un nouveau run, suppression de l'eventuel fichier de sortie des capteurs
-            if ( .not.Tdomain%logicD%run_restart .and. rg==0) then
-
-                call semname_capteur_type(capteur%nom,"_deformation",fnamef)
-
-                open(fileId,file=trim(fnamef),status="replace",form="formatted")
-                close(fileId)
-
-                call semname_capteur_type(capteur%nom,"_vitesse",fnamef)
-
-                open(fileId,file=trim(fnamef),status="replace",form="formatted")
-                close(fileId)
-
-                call semname_capteur_type(capteur%nom,"_depla",fnamef)
-
-                open(fileId,file=trim(fnamef),status="replace",form="formatted")
-                close(fileId)
-
-            elseif (Tdomain%logicD%run_restart.and. rg==0) then ! c'est une reprise, il faut se repositionner
-                ! au bon endroit dans le fichier de capteur pour le completer ensuite a chaque iteration
-
-                if (capteur%grandeur.eq."DEFORMATION") then ! lecture du fichier de deformation
+            if (Tdomain%traces_format == 1) then
+                if ( .not.Tdomain%logicD%run_restart .and. rg==0) then
 
                     call semname_capteur_type(capteur%nom,"_deformation",fnamef)
-                    open(fileId,file=trim(fnamef),status="old",form="formatted")
-                    do i=1,Tdomain%TimeD%NtimeMin
-                        read(fileId,*,END=998)
-                    enddo
-                    endfile(fileId)
-998                 continue ! on a atteint la fin de fichier prematurement
-                    close(fileId)
-                endif
 
-                if (capteur%grandeur.eq."VITESSE") then ! lecture du fichier de vitesse
+                    open(fileId,file=trim(fnamef),status="replace",form="formatted")
+                    close(fileId)
 
                     call semname_capteur_type(capteur%nom,"_vitesse",fnamef)
-                    !     print*,"capteur.f90, pt 2 - vitesse"    ,Tdomain%TimeD%NtimeMin, trim(fnamef)
-                    !     print*,"capteur.f90, pt 2 - vitesse 2",fileId,fnamef,rg
-                    open(fileId,file=trim(fnamef),status="old",form="formatted")
-                    do i=1,Tdomain%TimeD%NtimeMin
-                        read(fileId,*,END=999)
-                    enddo
-                    endfile(fileId)
-999                 continue ! on a atteint la fin de fichier prematurement
-                    close(fileId)
-                endif
 
-                if (capteur%grandeur.eq."DEPLA") then ! lecture du fichier de deplacements
+                    open(fileId,file=trim(fnamef),status="replace",form="formatted")
+                    close(fileId)
 
                     call semname_capteur_type(capteur%nom,"_depla",fnamef)
-                    !     print*,"capteur.f90, pt 2 - vitesse"    ,Tdomain%TimeD%NtimeMin, trim(fnamef)
-                    !     print*,"capteur.f90, pt 2 - vitesse 2",fileId,fnamef,rg
-                    open(fileId,file=trim(fnamef),status="old",form="formatted")
-                    do i=1,Tdomain%TimeD%NtimeMin
-                        read(fileId,*,END=997)
-                    enddo
-                    endfile(fileId)
-997                 continue ! on a atteint la fin de fichier prematurement
-                    close(fileId)
-                endif
 
-            endif ! fin du test run vs reprise
+                    open(fileId,file=trim(fnamef),status="replace",form="formatted")
+                    close(fileId)
+
+                elseif (Tdomain%logicD%run_restart.and. rg==0) then ! c'est une reprise, il faut se repositionner
+                    ! au bon endroit dans le fichier de capteur pour le completer ensuite a chaque iteration
+                    ! INUTILE ?
+                    !                if (capteur%grandeur.eq."DEFORMATION") then ! lecture du fichier de deformation
+                    !
+                    !                    call semname_capteur_type(capteur%nom,"_deformation",fnamef)
+                    !                    open(fileId,file=trim(fnamef),status="old",form="formatted")
+                    !                    do i=1,Tdomain%TimeD%NtimeMin
+                    !                        read(fileId,*,END=998)
+                    !                    enddo
+                    !                    endfile(fileId)
+                    !998                 continue ! on a atteint la fin de fichier prematurement
+                    !                    close(fileId)
+                    !                endif
+                    !
+                    !                if (capteur%grandeur.eq."VITESSE") then ! lecture du fichier de vitesse
+                    !
+                    !                    call semname_capteur_type(capteur%nom,"_vitesse",fnamef)
+                    !                    !     print*,"capteur.f90, pt 2 - vitesse"    ,Tdomain%TimeD%NtimeMin, trim(fnamef)
+                    !                    !     print*,"capteur.f90, pt 2 - vitesse 2",fileId,fnamef,rg
+                    !                    open(fileId,file=trim(fnamef),status="old",form="formatted")
+                    !                    do i=1,Tdomain%TimeD%NtimeMin
+                    !                        read(fileId,*,END=999)
+                    !                    enddo
+                    !                    endfile(fileId)
+                    !999                 continue ! on a atteint la fin de fichier prematurement
+                    !                    close(fileId)
+                    !                endif
+                    !
+                    !                if (capteur%grandeur.eq."DEPLA") then ! lecture du fichier de deplacements
+                    !
+                    !                    call semname_capteur_type(capteur%nom,"_depla",fnamef)
+                    !                    !     print*,"capteur.f90, pt 2 - vitesse"    ,Tdomain%TimeD%NtimeMin, trim(fnamef)
+                    !                    !     print*,"capteur.f90, pt 2 - vitesse 2",fileId,fnamef,rg
+                    !                    open(fileId,file=trim(fnamef),status="old",form="formatted")
+                    !                    do i=1,Tdomain%TimeD%NtimeMin
+                    !                        read(fileId,*,END=997)
+                    !                    enddo
+                    !                    endfile(fileId)
+                    !997                 continue ! on a atteint la fin de fichier prematurement
+                    !                    close(fileId)
+                    !                endif
+
+                endif ! fin du test run vs reprise
+            endif
 
             cycle
 
@@ -607,6 +609,7 @@ contains
     end function dset_capteur_name
 
     subroutine create_traces_h5_skel()
+        use HDF5
         implicit none
         !type (domain) :: TDomain
         type(tCapteur),pointer :: capteur

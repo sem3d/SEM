@@ -291,12 +291,13 @@ subroutine read_mesh_file_h5(Tdomain, rg)
     logical :: neumann_log
     !
     integer(HID_T) :: fid, proc_id
-    integer :: hdferr
+    integer :: hdferr, ierr
     integer, allocatable, dimension(:,:) :: itemp2, itemp2b
     integer, allocatable, dimension(:)   :: itemp, itempb
     real,    allocatable, dimension(:,:) :: rtemp2
     !real,    allocatable, dimension(:)   :: rtemp
     character(len=10) :: proc_grp
+    integer, allocatable, dimension(:)   :: nb_elems_per_proc
     !
     call init_hdf5()
     !
@@ -621,7 +622,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
 
     end do
 
-    write(*,*) "Mesh read correctly for proc #", rg
+    !write(*,*) "Mesh read correctly for proc #", rg
     if(rg == 0)then
         if(Tdomain%logicD%solid_fluid)then
             write(*,*) "  --> Propagation in solid-fluid media."
@@ -631,8 +632,17 @@ subroutine read_mesh_file_h5(Tdomain, rg)
             write(*,*) "  --> Propagation in solid media."
         end if
     end if
-    write(6,*) rg, ': nb elts  ',Tdomain%n_elem
-    write(*,*) rg, "NFACES=", Tdomain%n_face
+    allocate(nb_elems_per_proc(0:8*((Tdomain%n_proc-1)/8+1)))
+    nb_elems_per_proc = 0
+    call MPI_Gather(Tdomain%n_elem, 1, MPI_INTEGER, nb_elems_per_proc, 1, MPI_INTEGER, 0, Tdomain%communicateur, ierr)
+    if (rg==0) then
+        write(*,*) "Mesh read correctly, elements per proc:"
+        do i=0,Tdomain%n_proc-1,8
+            write(*,'(I5.5,a,8I6)') i, ":", nb_elems_per_proc(i:i+7)
+        end do
+    end if
+    deallocate(nb_elems_per_proc)
+    !write(*,*) rg, "NFACES=", Tdomain%n_face
 
 end subroutine read_mesh_file_h5
 

@@ -14,7 +14,7 @@ Cette version résulte de l'intégration dans :program:`RegSEM.U` de :
 - des éléments fluides développés dans une autre version issue de :program:`RegSEM.U`,
 
 - de nouveaux développements destinés à simplifier l'utilisation et la
-  maintenance du code
+  maintenance du code.
 
 
 Les nouveautés
@@ -60,13 +60,13 @@ Entrées/sorties :
 
   Les sources sont décrites dans ce format.
 
-- Les snapshots sont au format HDF5 :
+- Les snapshots sont au format :program:`HDF5` :
 
-  Le code génère en plus des fichiers HDF5, un fichier XML (format
+  Le code génère en plus des fichiers :program:`HDF5`, un fichier XML (format
   XDMF) qui permet d'ouvrir directement les sorties dans :program:`Paraview` ou
   :program:`Ensight` (v10).
 
-- Les maillages en entrée sont également au format HDF5 :
+- Les maillages en entrée sont également au format :program:`HDF5` :
 
   Des problèmes de numérotation apparaissaient avec des gros maillages
   (utilisation du format ``I6`` pour les entiers). De plus, chacune des
@@ -84,7 +84,7 @@ Entrées/sorties :
   prochaine version ce fichier migrera vers un format semblable à
   celui de ``input.spec``.
 
-- Le format des backups est désormais HDF5 (protection/reprise).
+- Le format des backups est désormais :program:`HDF5` (protection/reprise).
 
   Ce développement à été effectué pour faire passer un cas HPC. Le
   temps de création d'un backup pour ce cas est passé de 2H à 5min.
@@ -108,7 +108,7 @@ Optimisations :
   La mémoire utilisée est réduite à l'espace d'un seul pointeur par
   élément au lieu d'une dizaine.
 
-- L'utilisation de la librairie HDF5 permet d'optimiser grandement les
+- L'utilisation de la librairie :program:`HDF5` permet d'optimiser grandement les
   Entrées/Sorties pour les gros cas de calcul.
 
 
@@ -121,7 +121,7 @@ Autres :
   un vertex commun) contrairement à la version précédente qui ne
   considérait que les faces.
 
-  Le mailleur génère ses maillages au format HDF5 attendu par SEM.
+  Le mailleur génère ses maillages au format :program:`HDF5` attendu par SEM.
 
   De nombreuses optimisations et restructurations du code ont été
   effectuées accélérant le traitement.
@@ -131,9 +131,9 @@ Autres :
 
   Les tests :program:`SEM3D` se trouvent dans ``SEM3D/TESTS``.
 
-- Compilation des sources avec CMake :
+- Compilation des sources avec :program:`CMake` :
 
-  CMake est un outil (comme autotools) permettant de générer des Makefiles.
+  :program:`CMake` est un outil (comme autotools) permettant de générer des Makefiles.
   (voir :ref:`installation` ).
 
 - Correction des FPML.
@@ -158,7 +158,7 @@ n'ont pas encore été finalisées, intégrées ou correctement testées :
   dans le fichier de configuration au nouveau format dans une prochaine version.
 
 - Description des capteurs : la prochaine version utilisera une syntaxe semblable à celle du
-  fichier input.spec pour la description des capteurs.
+  fichier ``input.spec`` pour la description des capteurs.
 
 - Anisotropie : le code pour gérer des matériaux anisotropes existe,
   mais il n'y a rien dans la syntaxe actuelle du fichier de
@@ -180,7 +180,7 @@ Le code source est versionné avec :program:`Git` et livré dans une archive con
 - MESH : un outil de préparation de maillages 3D pour :program:`SEM3D` (l'équivalent
   2D sera intégré dans une prochaine version).
 
-- La librairie HDF5 est devenue une dépendance obligatoire (
+- La librairie :program:`HDF5` est devenue une dépendance obligatoire (
   `www.hdfgroup.org <http://www.hdfgroup.org>`_ ).
 
   Cette librairie permet le stockage efficace de gros volume de

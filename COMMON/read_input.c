@@ -174,8 +174,10 @@ int expect_source_func(yyscan_t scanner, int* type)
     if (cmp(scanner,"file"))         { *type = 5; return 1; }
     if (cmp(scanner,"spice_bench"))  { *type = 6; return 1; }
     if (cmp(scanner,"sinus"))        { *type = 7; return 1; }
+    if (cmp(scanner,"square"))       { *type = 8; return 1; }
+    if (cmp(scanner,"tanh"))         { *type = 9; return 1; }
 error:
-    msg_err(scanner, "Expected gaussian|ricker|tf_heaviside|gabor|file|spice_bench|sinus");
+    msg_err(scanner, "Expected gaussian|ricker|tf_heaviside|gabor|file|spice_bench|sinus|square|tanh");
     return 0;
 }
 
@@ -325,7 +327,7 @@ int expect_select_snap(yyscan_t scanner, sem_config_t* config, int include)
     if (cmp(scanner,"all")) { type = 1; err=1; }
     if (cmp(scanner,"material")) { type = 2; err=expect_eq_int(scanner, &material, 1); }
     if (cmp(scanner,"box")) { type = 3; err=expect_eq_float(scanner, box, 6); }
-    printf("Found type=%d\n", type);
+    //printf("Found type=%d\n", type);
     if (err<=0) return err;
 
     cond = (snapshot_cond_t*)malloc(sizeof(snapshot_cond_t));
@@ -454,14 +456,14 @@ void dump_config(sem_config_t* cfg)
     printf("Neu type    : %d\n", cfg->neu_type);
     printf("Neu mat     : %d\n", cfg->neu_mat);
 
-    src = cfg->source;
-    while(src) {
-	printf("\nSource %d\n--------\n", ksrc);
-	dump_source(src);
-	src = src->next;
-	++ksrc;
-    }
-    printf("\n------------\n\n");
+//    src = cfg->source;
+//    while(src) {
+//	printf("\nSource %d\n--------\n", ksrc);
+//	dump_source(src);
+//	src = src->next;
+//	++ksrc;
+//    }
+//    printf("\n------------\n\n");
 
 }
 

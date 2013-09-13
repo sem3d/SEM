@@ -107,7 +107,7 @@ band              réel(4)  --                 Description des bornes :math:`f_1
 ts                réel     --                 Un offset de temps :math:`t_0`
 gamma             réel     --
 time_file         chaîne   --                 Fichier contenant la source
-amplitude         réel     --
+amplitude         réel     --                 Facteur multiplicatif appliqué à la source temporelle
 ================  =======  =================  =================================================================
 
 Description de la section ``snapshots`` :
@@ -214,7 +214,7 @@ paramètres sont décrits dans la section ``source``. Certains sont calculés :
   
   - :math:`t_0` : paramètre ``ts``
   
-  - :math:`f_1,f_2,f_3,f_4` : décrit par le paramètre (4 composantes) ``band``
+  - :math:`f_1,f_2,f_3,f_4` : décrits par le paramètre (4 composantes) ``band``
   
   - :math:`\gamma` : paramètre ``gamma``
 
@@ -267,5 +267,12 @@ Les fonctions temporelles sont:
 
   .. math::
 
-     f(t) = sin(2\pi f_c (t-t_0))
+     f(t) = \sin(2\pi f_c (t-t_0))
+
+
+- ``square`` : Un carré *arrondi*
+ 
+  .. math::
+
+     f(t) = \frac{\exp(2.*\gamma*(x-t_0))-1.}{\exp(2.*\gamma*(x-t_0))+1}+\frac{\exp(2.*\gamma*(t_0+\tau-x))-1.}{\exp(2.*\gamma*(t_0+\tau-x))+1}
 

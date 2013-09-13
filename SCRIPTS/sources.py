@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 from numpy import *
 from pylab import *
 from matplotlib import mlab
@@ -6,8 +6,8 @@ from matplotlib.colors import Normalize
 
 NFFT1=1024
 NOVER1=1023
-NFFT2=2048
-NOVER2=1024
+NFFT2=4096
+NOVER2=3072
 
 SAVE=True
 
@@ -27,8 +27,12 @@ def Gaussian(time, ts, tau):
     res = -2*(time-ts)*exp( -(time-ts)**2/tau**2 )
     return res
 
-def Spice_Bench(time, f):
-    return (1-(1+time*f)*exp(-time*f))
+def Spice_Bench(time, f, k=1):
+    t = (time*f)**k
+    return (1-(1+t)*exp(-t))
+
+def Spice_tanh(time, k, t0):
+    return 0.5*(tanh(k*(time-t0)) + 1.)
 
 def plot_specgram(ax, Pxx, f, t, vmin, vmax, tmax, fmax):
     lpxx = 10*log10(Pxx/Pxx.max())
@@ -63,7 +67,7 @@ def plot_src(t, s, tmax, fmax, figtitle):
     fs = 1./diff(t[:10])[0]
     Pxx, freqs, t = mlab.specgram(s,Fs=fs,NFFT=NFFT1,noverlap=NOVER1)
     plot_specgram(gca(), Pxx, freqs, t, -100., 0. , tmax, fmax)
-    colorbar()
+    #colorbar()
     #yscale('log')
     if fmax: ylim(0,fmax)
     #specgram(s,Fs=fs,NFFT=NFFT1,noverlap=NOVER1)
@@ -81,47 +85,66 @@ def stat_sig(t,s,name):
     print name, " DS[0]=", ds[0], " DT[0]=", dt[0]
     print name, " min/max ds = ", ds.min(), "/", ds.max()
 
-def main():
-    t = linspace(0,20.,2**15)
-    
-    TEST = "TEST0001 : Ricker(0.4,3.)"
-    s = Ricker(t, 0.4, 3.)
+COUNT=0
+
+def test_ricker(t, tau, f0):
+    global COUNT
+    TEST = "TEST%02d : Ricker(tau=%f,f0=%f)" % (COUNT, tau, f0)
+    s = Ricker(t, tau, f0)
     plot_src(t, s, 1., 30., TEST)
     stat_sig(t, s, TEST)
-    if SAVE: savefig("src_ricker_1.png")
+    if SAVE: savefig("src_ricker_%02d.png" % COUNT)
+    COUNT += 1
 
-    TEST = "TEST0002 : Gaussian(0.1, 0.03)"
-    s = Gaussian(t, 0.1, 0.03)
+def test_gaussian(t, ts, tau):
+    global COUNT
+    TEST = "TEST%02d : Gaussian(ts=%f, tau=%f)" % (COUNT, ts,tau)
+    s = Gaussian(t, ts, tau)
     plot_src(t, s, 0.5, 60., TEST)
     stat_sig(t, s, TEST)
-    if SAVE: savefig("src_gaussian.png")
-    
-    TEST = "TEST0003 : Spice_bench(5.)"
-    s = Spice_Bench(t, 2.5)
+    if SAVE: savefig("src_gaussiani_%02d.png" % COUNT)
+    COUNT += 1
+
+def test_spice(t, f0, gamma):
+    global COUNT
+    TEST = "TEST%02d : Spice_bench(f0=%f,gamma=%f)" % (COUNT, f0,gamma)
+    s = Spice_Bench(t, f0, gamma)
     plot_src(t, s, 5., 30., TEST)
     stat_sig(t, s, TEST)
-    if SAVE: savefig("src_spice.png")
-    figure()
-    plot(t[:-1], diff(s))
+    if SAVE: savefig("src_spice%02d.png" %COUNT)
+    COUNT += 1
 
-    s = Ricker(t, 0.2, 4.)
-    TEST = "TEST0004 : Ricker(0.2,5.)"
-    plot_src(t, s, 1., 30., TEST)
+def test_tanh(t, k, t0):
+    global COUNT
+    TEST = "TEST%02d : Spice_tanh(k=%f,t0=%f)" % (COUNT, k, t0)
+    s = Spice_tanh(t, k, t0)
+    plot_src(t, s, t0+5., 30., TEST)
     stat_sig(t, s, TEST)
-    if SAVE: savefig("src_ricker_2.png")
-    
-    s = Gabor(t, ts=1., fp=3, gamma=2., tau=1.)
-    TEST = "Gabor(ts=1,fp=3,g=2,tau=1)"
+    if SAVE: savefig("src_tanh%02d.png" % COUNT)
+    COUNT += 1
+
+def test_gabor(t, ts, fp, gamma, tau):
+    global COUNT
+    s = Gabor(t, ts=ts, fp=fp, gamma=gamma, tau=tau)
+    TEST = "TEST%02d : Gabor(ts=%f,fp=%f,g=%f,tau=%f)" % (COUNT,ts,fp,gamma,tau)
     plot_src(t, s, 2., 30., TEST)
     stat_sig(t, s, TEST)
-    if SAVE: savefig("src_gabor_1.png")
-    
-    s = Gabor(t, ts=2., fp=3, gamma=10., tau=1.)
-    TEST = "Gabor(ts=4,fp=3,g=10.,tau=1)"
-    plot_src(t, s, 4., 30., TEST)
-    stat_sig(t, s, TEST)
-    if SAVE: savefig("src_gabor_2.png")
-    
+    if SAVE: savefig("src_gabor_%02d.png" % COUNT)
+    COUNT += 1
+
+
+def main():
+    t = linspace(0,20.,2**15)
+    #test_ricker(t, 0.4, 3.)
+    #test_gaussian(t, 0.1, 0.03)
+    #test_spice(t, 2.5, 1.)
+    #test_spice(t, 0.75, 1.)
+    #test_ricker(t, 0.2, 4.)
+    #test_gabor(t, ts=1., fp=3., gamma=2., tau=1.)
+    #test_gabor(t, ts=2., fp=3., gamma=10., tau=1.)
+    test_spice(t, 0.75, 2.)
+    test_tanh(t, 4, 5.)
+
     show()
 
 if __name__=="__main__":

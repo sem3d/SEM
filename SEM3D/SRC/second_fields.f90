@@ -192,6 +192,42 @@ contains
 
     end subroutine gather_elem_veloc
 
+    subroutine gather_elem_accel(Tdomain, nel, field)
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: nel
+        real, dimension(0:,0:,0:,0:), intent(out) :: field
+        real, dimension(:,:,:), allocatable :: phi
+        type(element), pointer :: el
+        type(face), pointer :: fc
+        type(edge), pointer :: ed
+        type(vertex), pointer :: vx
+        integer :: nx, ny, nz, i, mat
+        nx = Tdomain%specel(nel)%ngllx
+        ny = Tdomain%specel(nel)%nglly
+        nz = Tdomain%specel(nel)%ngllz
+        el => Tdomain%specel(nel)
+        if (el%solid) then
+            field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%Accel(:,:,:,:)
+            do i=0,5
+                fc => Tdomain%sFace(el%Near_Faces(i))
+                call get_VectProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
+                    fc%Accel, field)
+            end do
+
+            do i=0,11
+                ed => Tdomain%sEdge(el%Near_Edges(i))
+                call get_VectProperty_Edge2Elem(i,el%Orient_Edges(i), nx, ny, nz, ed%ngll, &
+                    ed%Accel, field)
+            end do
+            do i=0,7
+                vx => Tdomain%sVertex(el%Near_Vertices(i))
+                call get_VectProperty_Vertex2Elem(i, nx, ny, nz, vx%Accel, field)
+            end do
+        else ! liquid
+            field = 0d0
+        end if
+    end subroutine gather_elem_accel
+
 
 
 end module mfields

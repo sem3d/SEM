@@ -14,6 +14,7 @@
 #endif
 
 module semdatafiles
+    use sem_c_bindings, only : sem_mkdir
     integer, parameter :: MAX_FILE_SIZE=1024
     !character(Len=20) :: datadir
     character(Len=MAX_FILE_SIZE) :: path_param
@@ -62,10 +63,15 @@ contains
     end subroutine init_sem_path
 
     subroutine create_sem_output_directories()
-        call system("mkdir -p " // trim(adjustl(path_traces)))
-        call system("mkdir -p " // trim(adjustl(path_results)))
-        call system("mkdir -p " // trim(adjustl(path_prot)))
-        call system("mkdir -p " // trim(adjustl(path_logs)))
+        integer :: ierr
+        ierr = sem_mkdir(trim(adjustl(path_traces)))
+        if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_traces))
+        ierr = sem_mkdir(trim(adjustl(path_results)))
+        if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_results))
+        ierr = sem_mkdir(trim(adjustl(path_prot)))
+        if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_prot))
+        ierr = sem_mkdir(trim(adjustl(path_logs)))
+        if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_logs))
     end subroutine create_sem_output_directories
 
     subroutine semname_dir_capteurs(dirname)
@@ -327,16 +333,7 @@ contains
         DEBUG(fnamef)
     end subroutine semname_protection_temps_sem
 
-    subroutine semname_main_result(cit,fnamef)
-        !SEMFILE * C ./Resultats/RsemIII
-        implicit none
-        character(Len=*),intent(in) :: cit
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE) :: temp
-        write(temp,"(a,a)") "Rsem",trim(adjustl(cit))
-        fnamef = pjoin(path_results, temp)
-    end subroutine semname_main_result
-    !!end fichier main 2d
+   !!end fichier main 2d
 
     subroutine semname_snap_geom_file (srank,fnamef)
         implicit none
@@ -390,9 +387,10 @@ contains
         integer,intent(in) :: rg
         character(Len=*),intent(in) :: meshfile
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE) :: temp
+        character(Len=MAX_FILE_SIZE) :: temp, sem_dir
         write(temp,"(a,a1,I4.4)") trim(adjustl(meshfile)),".",rg
-        fnamef = pjoin(path_data, temp)
+        sem_dir = pjoin(path_data, "sem")
+        fnamef = pjoin(sem_dir, temp)
     end subroutine semname_read_input_meshfile
 
     subroutine semname_read_inputmesh_parametrage (file,fnamef) !!valable egalement pour le fichier read_mesh
@@ -409,10 +407,15 @@ contains
         integer,intent(in) :: rank
         character(Len=*),intent(in) :: mesh
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE)             :: temp
+        character(Len=MAX_FILE_SIZE)             :: temp, sem_dir
 
         write(temp,"(a,a1,I4.4)") trim(adjustl(mesh)),".",rank
+#ifdef MKA3D
+        sem_dir = pjoin(path_data, "sem")
+        fnamef = pjoin(sem_dir, temp)
+#else
         fnamef = pjoin(path_data, temp)
+#endif
     end subroutine semname_read_mesh_rank
 
     subroutine semname_read_mesh_echo (rank,fnamef)

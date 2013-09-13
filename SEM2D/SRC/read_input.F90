@@ -37,6 +37,8 @@ subroutine create_sem2d_sources(Tdomain, config)
         Tdomain%Ssource(nsrc)%amplitude = src%amplitude
         ! Comportement Spacial
         ! i_type_source==1
+        ! DIR = Z OR y -> y
+        if (src%dir==2) src%dir = 1
         Tdomain%Ssource(nsrc)%i_dir = src%dir
         ! i_type_source==2
         !Tdomain%Ssource(nsrc)%Moment(0,0) = src%moments(1)
@@ -152,6 +154,7 @@ subroutine read_input (Tdomain)
     !endif
 
 !! TODO
+    Tdomain%logicD%super_object = .false.
     !read (11,*) Tdomain%logicD%super_object
     !if (Tdomain%logicD%super_object) then
     !    read (11,*) Tdomain%n_super_object
@@ -165,25 +168,25 @@ subroutine read_input (Tdomain)
 
 
     ! conversion dun maillage unv en maillage sem
-    read (11,*) Tdomain%bMailUnv
+    !read (11,*) Tdomain%bMailUnv
 
     ! prise en compte du fichier des capteurs
-    read (11,*) Tdomain%bCapteur
+    !read (11,*) Tdomain%bCapteur
 
     ! demarrage d un cas de reprise
-    read (11,*) Tdomain%logicD%run_restart
+    !read (11,*) Tdomain%logicD%run_restart
 
     ! numero de l iteration de reprise
-    read (11,*) Tdomain%TimeD%iter_reprise
+    !read (11,*) Tdomain%TimeD%iter_reprise
     !read (11,*)
 
     ! creation de fichiers de reprise
-    read (11,*) Tdomain%logicD%save_restart
-    if (Tdomain%logicD%save_restart) then
-        read (11,*) Tdomain%TimeD%ncheck ! frequence de sauvegarde
-    endif
+    !read (11,*) Tdomain%logicD%save_restart
+    !if (Tdomain%logicD%save_restart) then
+    !    read (11,*) Tdomain%TimeD%ncheck ! frequence de sauvegarde
+    !endif
 
-    close (11)
+    !close (11)
 
     ! If echo modality write the read parameter in a file
 
