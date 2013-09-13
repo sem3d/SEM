@@ -44,10 +44,14 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
 #endif
     integer :: interrupt, ierr
     logical :: sortie_capteur
+    integer :: group, subgroup
+    integer, parameter :: ngroup=32
+
 
     Tdomain%communicateur = communicateur
     Tdomain%communicateur_global = communicateur_global
     Tdomain%master_superviseur = master_superviseur
+
 #ifdef COUPLAGE
     call MPI_Comm_Group(Tdomain%communicateur, groupe, code)
     call MPI_Group_Size(groupe, nb_procs, code)
@@ -57,6 +61,14 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     call MPI_Comm_Rank (Tdomain%communicateur, rg, code)
     call MPI_Comm_Size (Tdomain%communicateur, nb_procs,  code)
 #endif
+
+    Tdomain%ngroup = ngroup
+    group = rg/ngroup
+    subgroup = mod(rg,ngroup)
+    ! Create subdomains communicators
+    call MPI_Comm_split(MPI_COMM_WORLD, group, subgroup, Tdomain%comm_output, ierr)
+    call MPI_Comm_Size (Tdomain%comm_output, Tdomain%nb_output_procs,  code)
+    call MPI_Comm_Rank (Tdomain%comm_output, Tdomain%output_rank, code)
 
     if (rg==0) then
         write(*,*)

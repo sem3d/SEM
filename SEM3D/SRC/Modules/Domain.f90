@@ -29,6 +29,14 @@ module sdomain
        ! Hors couplage : communicateur=communicateur_global
        ! mode couplage : communicateur incluant tous les codes
        integer :: communicateur_global
+       ! Communicateur pour le reassemblage des sorties
+       integer :: comm_output
+       ! Nombre de processeur dans le groupe de communication associe a comm_output
+       integer :: nb_output_procs
+       integer :: output_rank
+       integer, dimension(:), allocatable :: output_nodes, output_nodes_offset, output_elems
+       ! Nombre de process par sorties pour le reassemblage
+       integer :: ngroup
        ! En mode couplage : Rg du superviseur dans le communicateur global
        integer :: master_superviseur
 
