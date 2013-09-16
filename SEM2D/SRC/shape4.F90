@@ -132,24 +132,43 @@ end subroutine write_result_mesh
 
 ! #########################################
 
-subroutine compute_normals(Tdomains)
+subroutine compute_normals(Tdomains,nf)
 
     use sdomain
 
     implicit none
 
     type(domain),target, intent (INOUT) :: Tdomain
+    integer, intent (IN) :: nf
 
     ! local variables
-    integer :: nf, i, m_elem, ngll
-    real    :: nx, ny
+    integer :: nf, i, m_elem, ngll, nv0, nv1
+    real    :: n1, n2, nx, ny, norm
 
     n_elem = Tdomain%sFace(nf)%Near_Element(0)
     ngll   = Tdomain%sFace(nf)%ngll
+    nv0    = Tdomain%sFace(nf)%Near_Vertex(0)
+    nv1    = Tdomain%sFace(nf)%Near_Vertex(1)
     allocate(Tdomain%sFace(nf)%Normal_Face(0:1))
     allocate(Tdomain%sFace(nf)%Normal_Nodes(0:ngll-1,0:1))
 
-    
+    ! Computation of an unique Face normal
+    nv0 = Tdomain%sVertex(nv0)%Glob_numbering
+    nv1 = Tdomain%sVertex(nv1)%Glob_numbering
+    n1  = Tdomain%coord_nodes(nv1,0) - Tdomain%coord_nodes(nv0,0)
+    n2  = Tdomain%coord_nodes(nv1,1) - Tdomain%coord_nodes(nv0,1)
+    nx  = n2 ; ny = -n1
+    norm = sqrt(nx*nx + ny*ny)
+    Tdomain%sFace(nf)%Normal_Face(0) = nx / norm
+    Tdomain%sFace(nf)%Normal_Face(1) = ny / norm
+
+    ! Computation of a field of normals for each Gauss points
+    ! For shape4, elements are linears, and the normal for the
+    ! Gauss points are the same than the Face Normal
+    do i = 0,ngll-1
+       Tdomain%sFace(nf)%Normal_Nodes(i,0) = Tdomain%sFace(nf)%Normal_Face(0)
+       Tdomain%sFace(nf)%Normal_Nodes(i,1) = Tdomain%sFace(nf)%Normal_Face(1)
+    end do
 
 end subroutine compute_normals
 
@@ -235,6 +254,13 @@ subroutine shape4(Tdomain)
         enddo
 
     enddo
+
+    ! Compute Normals for Faces with DG :
+    do nf=0,Tdomain%n_face-1
+       if (Tdomain%sFace(nf)%Type_flux .NE. 0) then
+          call compute_normals(Tdomain,nf)
+       end if
+    end do
 
     call write_result_mesh(Tdomain)
 
