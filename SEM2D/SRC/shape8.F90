@@ -107,7 +107,9 @@ subroutine shape8(Tdomain)
                 write(88,*) ipoint
 #endif
 
-                !         Computation of the derivative matrix, dx_(jj)/dxi_(ii)
+                !     Computation of the derivative matrix, dx_(jj)/dxi_(ii) : more precisely we have :
+                !  LocInvGrad(0,0) = dx/dxi  ;  LocInvGrad(1,0) = dx/deta
+                !  LocInvGrad(0,1) = dz/dxi  ;  LocInvGrad(1,1) = dz/deta
 
                 LocInvGrad(0,0) = 0.25 * (x0 *(1-eta)*(2*xi+eta) + x1 *(1-eta)*(2*xi-eta) + x2 *(1+eta)*(2*xi+eta)+  &
                     x3 *(1+eta)*(2*xi-eta)) - x4 * xi*(1-eta) - x6 *xi *(1+eta) + 0.5* (x5-x7)* (1-eta**2)
@@ -118,8 +120,15 @@ subroutine shape8(Tdomain)
                 LocInvGrad(1,1) = 0.25 * (z0 *(1-xi)*(2*eta+xi) - z1 *(1+xi)*(xi-2*eta) + z2 *(1+xi)*(2*eta+xi)-   &
                     z3 *(1-xi)*(xi-2*eta)) -  z5 *eta*(1+xi) - z7 *eta *(1-xi) + 0.5* (z6-z4)* (1-xi**2)
 
+                !  Creation of the normal if the node is on an element side
+
+                if ((i.EQ.0) .OR. (j.EQ.0) .OR. (i.EQ.ngllx-1) .OR. (j.EQ.ngllz-1)) then
+                   call buildNormal(Tdomain,LocInvGrad,n,i,j)
+                end if
+
                 call invert2 (LocInvGrad, Jac )
 
+                !  Computation of the local Jacobian ans inversion of the Jacobian Matrix
                 Tdomain%specel(n)%InvGrad (i,j,0:1,0:1)  = LocInvGrad (0:1,0:1)
 
                 Tdomain%specel(n)%Jacob (i,j) = Jac
@@ -263,7 +272,14 @@ subroutine shape8(Tdomain)
         enddo
     endif
 
-
+    ! Testing if the normals are defined for all the faces
+    do n=0,Tdomain%n_face-1
+       ngllx =  Tdomain%sFace(n)%ngll
+       do i=0,ngllx-1
+          if((Tdomain%sFace(n)%Normal_Nodes(i,0).EQ.0.) .AND. (Tdomain%sFace(n)%Normal_Nodes(i,1).EQ.0.)) then
+             STOP "The Normal of the faces are not Computed Properly"
+       end do
+    end do
 
     return
 end subroutine shape8
@@ -272,3 +288,74 @@ end subroutine shape8
 !! show-trailing-whitespace: t
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+
+
+!##########################################
+
+subroutine buildNormal(Tdomain,LocInvGrad,n_elem,i,j)
+
+  use sdomain
+
+  implicit none
+
+  type(domain),target, intent (INOUT) :: Tdomain
+  real, dimension (0:1,0:1), intent (IN) :: LocInvGrad
+  integer, intent (IN) :: n_elem, i, j
+  
+  ! local variables
+  integer :: ngllx, ngllz, nf
+  real    :: tx, tz, nx, nz, norm_n
+  
+  ngllx = Tdomain%specel(n_elem)%ngllx
+  ngllz = Tdomain%specel(n_elem)%ngllz
+
+  if(i.EQ.0) then ! local face 3
+     nf = Tdomain%specel(n_elem)%Near_Face(3)
+     if(Tdomain%sface(nf)%Near_Element(0) .EQ. n_elem) then
+        ! Tangent from derivatives along eta
+        tx = LocInvGrad(1,0) ; tz = LocInvGrad(1,1)
+        ! Normal build from tangent
+        nx = -tz ; nz = tx
+        norm_n = sqrt(nx^2 + nz^2)
+        Tdomain%sFace(nf)%Normal_Nodes(j,0) = nx / norm_n
+        Tdomain%sFace(nf)%Normal_Nodes(j,1) = nz / norm_n
+     end if
+  else if (i.EQ.ngllx-1) then ! local face 1
+     nf = Tdomain%specel(n_elem)%Near_Face(1)
+     if(Tdomain%sface(nf)%Near_Element(0) .EQ. n_elem) then
+        ! Tangent from derivatives along eta
+        tx = LocInvGrad(1,0) ; tz = LocInvGrad(1,1)
+        ! Normal build from tangent
+        nx = tz ; nz = -tx
+        norm_n = sqrt(nx^2 + nz^2)
+        Tdomain%sFace(nf)%Normal_Nodes(j,0) = nx / norm_n
+        Tdomain%sFace(nf)%Normal_Nodes(j,1) = nz / norm_n
+     end if
+  end if
+
+  if(j.EQ.0) then ! local face 0
+     nf = Tdomain%specel(n_elem)%Near_Face(0)
+     if(Tdomain%sface(nf)%Near_Element(0) .EQ. n_elem) then
+        ! Tangent from derivatives along eta
+        tx = LocInvGrad(0,0) ; tz = LocInvGrad(0,1)
+        ! Normal build from tangent
+        nx = tz ; nz = -tx
+        norm_n = sqrt(nx^2 + nz^2)
+        Tdomain%sFace(nf)%Normal_Nodes(i,0) = nx / norm_n
+        Tdomain%sFace(nf)%Normal_Nodes(i,1) = nz / norm_n
+     end if
+  else if (j.EQ.ngllz-1) then ! local face 2
+     nf = Tdomain%specel(n_elem)%Near_Face(2)
+     if(Tdomain%sface(nf)%Near_Element(0) .EQ. n_elem) then
+        ! Tangent from derivatives along eta
+        tx = LocInvGrad(0,0) ; tz = LocInvGrad(0,1)
+        ! Normal build from tangent
+        nx = -tz ; nz = tx
+        norm_n = sqrt(nx^2 + nz^2)
+        Tdomain%sFace(nf)%Normal_Nodes(i,0) = nx / norm_n
+        Tdomain%sFace(nf)%Normal_Nodes(i,1) = nz / norm_n
+     end if
+  end if
+
+  return
+end subroutine buildNormal

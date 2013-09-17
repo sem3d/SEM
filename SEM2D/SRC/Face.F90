@@ -253,6 +253,32 @@ contains
         endif
         return
     end subroutine get_vfree_face
+
+    ! ############################################################
+
+    function cross2d(a,b)
+
+      real, dimension(0:1) :: cross2d
+      real, dimension(0:1), intent(IN) :: a, b
+
+      cross(1) = a(2) * b(3) - a(3) * b(2)
+      cross(2) = a(3) * b(1) - a(1) * b(3)
+
+    end function cross2d
+
+    ! ############################################################
+
+    function cross3d(a,b)
+
+      real, dimension(0:2) :: cross3d
+      real, dimension(0:2), intent(IN) :: a, b
+
+      cross(1) = a(2) * b(3) - a(3) * b(2)
+      cross(2) = a(3) * b(1) - a(1) * b(3)
+      cross(3) = a(1) * b(2) - a(2) * b(1)
+
+    end function cross3d
+
     ! ############################################################
 
 end module sfaces
