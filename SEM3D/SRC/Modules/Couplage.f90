@@ -248,14 +248,6 @@ contains
         do np=1,comm_couplage%m_nb_point_de_couplage
             ! recuperation de la face et de l element du point de couplage courant et de ses coordonnees, du numero de materiau et du nombre de pdg en x et z
             numFace = comm_couplage%m_numFace(np)
-            numElem = comm_couplage%m_numMaille(np)
-
-            mat = Tdomain%specel(numElem)%mat_index
-
-            !ngllx = Tdomain%specel(numElem)%ngllx;  ngllz = Tdomain%specel(numElem)%ngllz
-
-            ngll1 = Tdomain%sFace(numFace)%ngll1 !!Gsa 3D
-            ngll2 = Tdomain%sFace(numFace)%ngll2 !!Gsa 3D
 
             XpdC(np) = comm_couplage%m_pos_proj(3*(np-1)+1)
             YpdC(np) = comm_couplage%m_pos_proj(3*(np-1)+2)
