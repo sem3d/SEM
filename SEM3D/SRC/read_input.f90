@@ -286,6 +286,8 @@ subroutine read_material_file(Tdomain, rg)
             Tdomain%sSubDomain(i)%NGLLx, Tdomain%sSubDomain(i)%NGLLy, Tdomain%sSubDomain(i)%NGLLz, &
             Tdomain%sSubDomain(i)%Dt, Tdomain%sSubDomain(i)%Qpression,  Tdomain%sSubDomain(i)%Qmu
 
+        Tdomain%sSubdomain(i)%Filtering = .false.
+
         if(rg==0 .and. .false.) then
             write (*,*) 'Material :', i
             write (*,*) 'type:', Tdomain%sSubDomain(i)%material_type
@@ -411,6 +413,7 @@ subroutine create_sem_sources(Tdomain, config)
         Tdomain%Ssource(nsrc)%Ysource = src%coords(2)
         Tdomain%Ssource(nsrc)%Zsource = src%coords(3)
         Tdomain%Ssource(nsrc)%i_type_source = src%type
+        Tdomain%Ssource(nsrc)%amplitude_factor = src%amplitude
         ! Comportement temporel
         Tdomain%Ssource(nsrc)%i_time_function = src%func
         Tdomain%Ssource(nsrc)%cutoff_freq = src%freq ! func=2,4
@@ -543,6 +546,12 @@ subroutine read_input (Tdomain, rg, code)
     ! MODIF ICI: energie? deformation?..
     !Tdomain%logicD%save_energy = !?
     Tdomain%logicD%save_restart = config%prorep_iter .ne. 0
+    ! MPML
+    Tdomain%logicD%MPML = .false.
+    Tdomain%MPML_coeff = config%mpml
+    if (config%mpml/=0) then
+        Tdomain%logicD%MPML = .true.
+    end if
     !Tdomain%logicD%plot_grid
     !Tdomain%logicD%run_exec
     !Tdomain%logicD%run_debug
@@ -564,7 +573,11 @@ subroutine read_input (Tdomain, rg, code)
     Tdomain%T1_att = config%atn_band(1)
     Tdomain%T2_att = config%atn_band(2)
     Tdomain%T0_modele = config%atn_period
-    write(*,*) "SLS=", Tdomain%n_sls
+    if (rg==0) then
+        write(*,*) "Attenuation SLS=", Tdomain%n_sls
+        write(*,*) "         period=", Tdomain%T0_modele
+        write(*,*) "           band=", Tdomain%T1_att, Tdomain%T2_att
+    end if
 
 
     ! Neumann boundary conditions? If yes: geometrical properties read in the mesh files.
@@ -595,14 +608,14 @@ subroutine read_input (Tdomain, rg, code)
 
     call read_mesh_file_h5(Tdomain, rg)
 
-    write(*,*) rg, "Reading materials"
+    !write(*,*) rg, "Reading materials"
     !---   Properties of materials.
     call read_material_file(Tdomain, rg)
-    write(*,*) rg, "Reading materials done"
+    !write(*,*) rg, "Reading materials done"
 
     call finalize_mesh_connectivity(Tdomain, rg)
 
-    write(*,*) rg, "Finalize done"
+    !write(*,*) rg, "Finalize done"
 
     call select_output_elements(Tdomain, rg, config)
 

@@ -487,7 +487,7 @@ subroutine internal_forces(Tdomain,rank)
                     Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimey, &
                     Tdomain%sSubDomain(mat)%hTprimez)
             end if
-        end if    
+        end if
     enddo
 
     return

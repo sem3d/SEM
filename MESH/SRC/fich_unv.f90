@@ -346,6 +346,55 @@ contains
         n_points = points%count
     end subroutine lec_unv_v2
 
+
+    subroutine lec_hdf5(unv_files, n_points, n_elem, Material, Ipointer, xco, yco, zco, n_blocks)
+        use sem_hdf5
+        character(len=*), dimension(0:), intent(in)  :: unv_files
+        integer, intent(out) :: n_points, n_elem
+        integer, intent(out), allocatable, dimension(:) :: Material
+        real, dimension(:), allocatable, intent(out) :: xco,yco,zco
+        integer, dimension(:,:), intent(out), allocatable :: Ipointer
+        integer, intent(out) :: n_blocks
+        !
+        integer(HID_T) :: fid
+        integer :: hdferr
+        real, allocatable, dimension(:,:) :: coords
+        integer, allocatable, dimension(:,:) :: elems
+        integer, allocatable, dimension(:) :: mat
+
+        call init_hdf5()
+        ! Supporte un seul fichier
+        call h5fopen_f(unv_files(0), H5F_ACC_RDONLY_F, fid, hdferr)
+        !open(10,file=unv_files(i),status="old",position="rewind",action="read",iostat=ios)
+        call read_dataset(fid, "Nodes", coords)
+        n_points = size(coords,2)
+        write(*,*) "Coords", n_points, " x ", size(coords,1)
+        call read_dataset(fid, "Mat", mat)
+        call read_dataset(fid, "Elements", elems)
+        n_elem = size(elems,2)
+        write(*,*) "Elem", n_elem, " x ", size(elems,1)
+        write(*,*) "Indexes:", minval(elems), " -> ", maxval(elems)
+        n_blocks = maxval(mat)+1
+
+        allocate(xco(0:n_points-1))
+        allocate(yco(0:n_points-1))
+        allocate(zco(0:n_points-1))
+        allocate(Ipointer(0:7,0:n_elem-1))
+        Ipointer(0:3,:) = elems(5:8,:)
+        Ipointer(4:7,:) = elems(1:4,:)
+        deallocate(elems)
+        allocate(Material(0:n_elem-1))
+        Material(:) = mat(:)
+        deallocate(mat)
+        xco(:) = coords(1,:)
+        yco(:) = coords(2,:)
+        zco(:) = coords(3,:)
+        write(*,*) "Xrange:", minval(xco), " to ", maxval(xco)
+        write(*,*) "Yrange:", minval(yco), " to ", maxval(yco)
+        write(*,*) "Zrange:", minval(zco), " to ", maxval(zco)
+        deallocate(coords)
+    end subroutine lec_hdf5
+
 end module fich_unv
 !! Local Variables:
 !! mode: f90

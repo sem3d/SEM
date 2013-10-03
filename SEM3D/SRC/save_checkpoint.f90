@@ -11,7 +11,7 @@ subroutine init_protection(Tdomain, it, rg, prot_file)
     use sdomain
     use semdatafiles
     use mpi
-
+    use sem_c_config, only : sem_mkdir
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer, intent (IN) :: it, rg
@@ -29,8 +29,7 @@ subroutine init_protection(Tdomain, it, rg, prot_file)
 
         call semname_protection_iter_dir(it,dir_prot)
         ! creation du repertoire data/sem/Protection_<it> (par tous les procs)
-        commande="mkdir -p "//trim(dir_prot)
-        call system(trim(commande))
+        ierr = sem_mkdir(trim(adjustl(dir_prot)))
 
         Tdomain%TimeD%prot_m2 = Tdomain%TimeD%prot_m1
         Tdomain%TimeD%prot_m1 = Tdomain%TimeD%prot_m0
@@ -94,14 +93,14 @@ subroutine compute_save_offsets(Tdomain, offset, offset_f, offset_e, offset_v)
                     offset(5) = offset(5) + 0
                 else
                     ! pour EpsilonVol : 4
-                    offset(4) = offset(4) + ngll
+                    offset(4) = offset(4) + ngll2
                     ! pour R_vol : 5
-                    offset(5) = offset(5) + ngll*n_solid
+                    offset(5) = offset(5) + ngll2*n_solid
                 endif
                 ! pour R_xx, R_yy, R_xy, R_xz, R_yz : 6
-                offset(6) = offset(6) + ngll*n_solid
+                offset(6) = offset(6) + ngll2*n_solid
                 ! pour epsilondev_xx, yy, xy, xz, yz : 7
-                offset(7) = offset(7) + ngll
+                offset(7) = offset(7) + ngll2
             else
                 ! pour EpsilonVol : 4
                 offset(4) = offset(4) + 0
@@ -577,9 +576,9 @@ subroutine write_EpsilonVol(Tdomain, nmax, elem_id)
         ngllz = Tdomain%specel(n)%ngllz
 
         if ( .not. Tdomain%specel(n)%PML ) then
-            do k = 1,ngllz-2
-                do j = 1,nglly-2
-                    do i = 1,ngllx-2
+            do k = 0,ngllz-1
+                do j = 0,nglly-1
+                    do i = 0,ngllx-1
                         if (n_solid>0) then
                             if (Tdomain%aniso) then
                             else
@@ -632,9 +631,9 @@ subroutine write_Rvol(Tdomain, nmax, elem_id)
         ngllz = Tdomain%specel(n)%ngllz
 
         if ( .not. Tdomain%specel(n)%PML ) then
-            do k = 1,ngllz-2
-                do j = 1,nglly-2
-                    do i = 1,ngllx-2
+            do k = 0,ngllz-1
+                do j = 0,nglly-1
+                    do i = 0,ngllx-1
                         if (n_solid>0) then
                             if (Tdomain%aniso) then
                             else
@@ -697,9 +696,9 @@ subroutine write_Rxyz(Tdomain, nmax, elem_id)
         ngllz = Tdomain%specel(n)%ngllz
 
         if ( .not. Tdomain%specel(n)%PML ) then
-            do k = 1,ngllz-2
-                do j = 1,nglly-2
-                    do i = 1,ngllx-2
+            do k = 0,ngllz-1
+                do j = 0,nglly-1
+                    do i = 0,ngllx-1
                         if (n_solid>0) then
                             if (idx.gt.nmax) then
                                 write(*,*) "Erreur fatale sauvegarde des protections"
@@ -769,9 +768,9 @@ subroutine write_EpsilonDev(Tdomain, nmax, elem_id)
         ngllz = Tdomain%specel(n)%ngllz
 
         if ( .not. Tdomain%specel(n)%PML ) then
-            do k = 1,ngllz-2
-                do j = 1,nglly-2
-                    do i = 1,ngllx-2
+            do k = 0,ngllz-1
+                do j = 0,nglly-1
+                    do i = 0,ngllx-1
                         if (n_solid>0) then
                             if (idx.gt.nmax) then
                                 write(*,*) "Erreur fatale sauvegarde des protections"

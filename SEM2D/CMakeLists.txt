@@ -60,26 +60,10 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/main.F90
 )
 
-# On veut compiler les .f90 avec le preprocesseur cpp
-if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-  set_source_files_properties(${SEM2D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-fpp")
-else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-  set_source_files_properties(${SEM2D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-x f95-cpp-input")
-endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-
 set(SEM2D_SOURCES ${SEM2D_SOURCES_F}
   ${SEM_SRC_C}
 )
 
-if(OPT_MPI)
-#set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
-# TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
-# c++ et ne link pas semx.exe
-set(SEM_EXTRA_LIBS ${MPI_EXTRA_LIBRARY})
-else(OPT_MPI)
-set(SEM2D_SOURCES ${SEM2D_SOURCES}
-  ${FTM_SOURCES})
-endif(OPT_MPI)
 
 if (OPT_COUPLAGE)
 add_library(sem2d STATIC ${SEM2D_SOURCES})
@@ -92,5 +76,6 @@ endif (OPT_COUPLAGE)
 if(NOT OPT_COUPLAGE)
 add_executable(sem2d.exe  ${SEM2D_SOURCES})
 target_link_libraries(sem2d.exe ${CEAUSER} ${SEM_EXTRA_LIBS})
-install(TARGETS sem2d.exe RUNTIME DESTINATION lib)
+install(TARGETS sem2d.exe DESTINATION bin)
 endif(NOT OPT_COUPLAGE)
+

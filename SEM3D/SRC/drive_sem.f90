@@ -13,6 +13,7 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     use mpi
     use msnapshots
     use semconfig !< pour config C
+    use sem_c_bindings
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -41,12 +42,16 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     integer :: MaxNgParDir
     integer, dimension(3) :: flags_synchro ! fin/protection/sortie
 #endif
-    integer :: interrupt
+    integer :: interrupt, ierr
     logical :: sortie_capteur
+    integer :: group, subgroup
+    integer, parameter :: ngroup=32
+
 
     Tdomain%communicateur = communicateur
     Tdomain%communicateur_global = communicateur_global
     Tdomain%master_superviseur = master_superviseur
+
 #ifdef COUPLAGE
     call MPI_Comm_Group(Tdomain%communicateur, groupe, code)
     call MPI_Group_Size(groupe, nb_procs, code)
@@ -57,6 +62,14 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     call MPI_Comm_Size (Tdomain%communicateur, nb_procs,  code)
 #endif
 
+    Tdomain%ngroup = ngroup
+    group = rg/ngroup
+    subgroup = mod(rg,ngroup)
+    ! Create subdomains communicators
+    call MPI_Comm_split(MPI_COMM_WORLD, group, subgroup, Tdomain%comm_output, ierr)
+    call MPI_Comm_Size (Tdomain%comm_output, Tdomain%nb_output_procs,  code)
+    call MPI_Comm_Rank (Tdomain%comm_output, Tdomain%output_rank, code)
+
     if (rg==0) then
         write(*,*)
         write(*,*) "-----------------------------------------"
@@ -65,11 +78,16 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
         write(*,*)
     end if
 
+#ifdef COUPLAGE
+    call init_mka3d_path()
+#endif
+
     if (rg==0) call create_sem_output_directories()
     ! Read_input peut avoir besoin du repertoire de logs
     call MPI_BARRIER(Tdomain%communicateur, code)
 
     ! ##############  Begin of the program  #######################
+
     call read_input (Tdomain, rg, code)
     call MPI_BARRIER(Tdomain%communicateur, code)
 
@@ -183,14 +201,21 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     if (Tdomain%logicD%run_restart) then
         !! Il faudra ajouter la gravite ici #ifdef COUPLAGE
         call read_restart(Tdomain, rg, isort)
-        write (*,*) "Reprise effectuee sur processeur ",rg
+        call MPI_BARRIER(Tdomain%communicateur,code)
+        if (rg==0) then
+            write (*,*) "Reprise effectuee sur tous les processeurs"
+        end if
         open (78,file=fnamef,status="unknown",position="append")
     else
         ! Sauvegarde des donnees de post-traitement
         open (78,file=fnamef,status="unknown",position="rewind")
         ! on supprime tous les fichiers et repertoire de protection
-        if(rg == 0) call system('rm -Rf '//path_prot)
+        if(rg == 0) then
+            call system('rm -Rf '//path_prot)
+            ierr=sem_mkdir(path_prot)
+        end if
     endif
+    call MPI_BARRIER(Tdomain%communicateur,code)
 
     ! preparation des eventuelles sorties capteur
     info_capteur = 0
@@ -324,20 +349,31 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
 
 
         if (protection/=0) then
-            write (*,*) " sauvegarde  ",ntime," sur processeur ",rg
+            if (rg==0) then
+                write (*,*) "Creation protection  ",ntime
+            end if
             call flushAllCapteurs(Tdomain, rg)
             call save_checkpoint(Tdomain, Tdomain%TimeD%rtime, ntime, rg, Tdomain%TimeD%dtmin, isort)
         endif
 
         ! arret des calculs sur tous les procs
         if (interrupt/=0) then
-            print*,"Arret de SEM, iteration=", ntime
+            if (rg==0) print*,"Arret de SEM, iteration=", ntime
             exit
         endif
 
         ! incrementation du pas de temps !on copie Sem2d
         Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
     enddo
+
+    open (111,file = "fin_sem")
+    if (ntime>=Tdomain%TimeD%NtimeMax-1) then
+        write(111,*) 1
+    else
+        write(111,*) 0
+    end if
+    close(111)
+
 
     call flushAllCapteurs(Tdomain, rg)
 

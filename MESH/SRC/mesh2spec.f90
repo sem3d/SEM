@@ -409,6 +409,7 @@ contains
         !   -> establishes correspondence between objects shared by different processors
         allocate(memory(0:n_elem-1))
         do nel = 0,n_elem-1
+            nullify(memory(nel)%rank)
             if(part(nel) /= nproc-1)then
                 if(elem_near_proc(nel)%nb > 0)  &
                     allocate(memory(nel)%rank(0:elem_near_proc(nel)%nb-1))
@@ -463,7 +464,7 @@ contains
         allocate(which_points_inside(0:n_points-1))
 
         !- we consider each processor, and create all structures for the meshfiles
-        call system("rm -f mesh4spec.???")
+        call system("rm -f mesh4spec.????.h5")
         meshfilename(1:10) = "mesh4spec."
 
 
@@ -800,6 +801,19 @@ contains
             deallocate(Neu_global_to_local_edges)
             deallocate(Neu_global_to_local_vertices)
         end if
+
+        do nel = 0,n_elem-1
+            if(part(nel) /= nproc-1)then
+                if (associated(memory(nel)%rank)) then
+                    do proc = 0,elem_near_proc(nel)%nb-1
+                        deallocate(memory(nel)%rank(proc)%E)
+                    enddo
+                    deallocate(memory(nel)%rank)
+                endif
+            endif
+        enddo
+        deallocate(memory)
+
 
 
         write(*,*)
@@ -1207,6 +1221,7 @@ contains
                 call write_dataset(proc_id, "neu_edges_map", Neu%mapping_edges_shared(n,0:Neu%ne_shared(n)-1), hdferr)
                 call write_dataset(proc_id, "neu_vertices", Neu%vertices_shared(n,0:Neu%nv_shared(n)-1), hdferr)
             end if
+            call h5gclose_f(proc_id, hdferr)
         end do
 
 
