@@ -303,8 +303,6 @@ contains
 
         m1 = Elem%ngllx ; m2 = Elem%nglly ; m3 = Elem%ngllz
 
-        !- Modification: potential -> density*potentiel
-        Elem%ForcesFl(:,:,:) = Elem%density(:,:,:)*Elem%ForcesFl(:,:,:)
 
         !- gradients at GLLs points
         ! d(rho*Phi)_dxi
@@ -469,8 +467,6 @@ contains
 
         ! prediction in the element
         Elem%ForcesFl(1:m1-2,1:m2-2,1:m3-2) = Elem%VelPhi(:,:,:) +dt*(0.5-bega)*Elem%AccelPhi(:,:,:)
-        ! potential -> -pressure
-        Elem%ForcesFl(:,:,:) = Elem%Density(:,:,:)*Elem%ForcesFl(:,:,:)
 
         ! d(rho*Phi)_d(xi,eta,zeta)
         call DGEMM('N','N',m1,m2*m3,m1,1.,htprimex,m1,Elem%ForcesFl(:,:,:),m1,0.,dVelPhi_dxi,m1)
