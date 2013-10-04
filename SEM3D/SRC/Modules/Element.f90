@@ -57,7 +57,7 @@ module selement
        logical :: PML, FPML
        ! Whether this element will be part of snapshot outputs
        logical :: OUTPUT
-       type(element_pml), allocatable :: spml
+       type(element_pml), pointer :: spml
        ! fluid part
        real, dimension(:,:,:), allocatable:: ForcesFl
 

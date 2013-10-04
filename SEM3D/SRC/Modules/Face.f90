@@ -31,7 +31,7 @@ module sfaces
        ! solid-fluid
        real, dimension(:,:), allocatable :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
        ! pml
-       type(face_pml), allocatable :: spml
+       type(face_pml), pointer :: spml
 #ifdef COUPLAGE
        real, dimension (:,:,:), allocatable :: ForcesMka
        real, dimension (:,:), allocatable :: tsurfsem

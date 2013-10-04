@@ -32,7 +32,7 @@ module svertices
        ! solid-fluid
        real :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
 
-       type(vertex_pml), allocatable :: spml
+       type(vertex_pml), pointer :: spml
 #ifdef COUPLAGE
        real, dimension (:), allocatable :: ForcesMka
        real :: tsurfsem

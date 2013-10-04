@@ -28,7 +28,7 @@ module sedges
        ! solid-fluid
        real, dimension(:), allocatable :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
 
-       type(edge_pml), allocatable :: spml
+       type(edge_pml), pointer :: spml
 #ifdef COUPLAGE
        real, dimension (:,:), allocatable :: ForcesMka
        !     integer, dimension (:,:), allocatable :: FlagMka
