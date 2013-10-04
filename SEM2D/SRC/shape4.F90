@@ -211,7 +211,7 @@ subroutine shape4(Tdomain)
 
     enddo
 
-    call write_result_mesh(Tdomain)
+    !call write_result_mesh(Tdomain)
 
     if (Tdomain%logicD%super_object_local_present) then
         do n = 0, Tdomain%n_fault-1

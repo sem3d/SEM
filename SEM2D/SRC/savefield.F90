@@ -17,7 +17,6 @@
 !<
 
 subroutine savefield (Tdomain,it,sortie_capteur,i_snap,nom_grandeur,nom_dir_sorties)
-    
     use sdomain
     use semdatafiles
 

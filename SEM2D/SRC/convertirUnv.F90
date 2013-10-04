@@ -81,8 +81,6 @@ subroutine convertir
     integer, dimension(:), allocatable :: global2local
 
 
-    ! dimension du pb : 2D en dur, a voir
-    sem%n_dime = 2
 
     ! type element : 4 pour quad4 ou 8 pour quad8
     sem%typeElem = sunv%typeElem

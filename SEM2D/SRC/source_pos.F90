@@ -43,7 +43,7 @@ subroutine SourcePosition(Tdomain)
 
     do nsour = 0, Tdomain%n_source -1
         Dmin = 1e10
-
+        ! Find the nearest point (gauss node) to the source
         do n = 0,Tdomain%n_glob_points-1
 
             Dist = (Tdomain%GlobCoord(0,n)-Tdomain%Ssource(nsour)%Xsource)**2  +   &
@@ -55,7 +55,7 @@ subroutine SourcePosition(Tdomain)
             endif
         enddo
 
-        ! Search for the element
+        ! Search for the elements containing this point (allow a maximum of 6)
         nind = 0
         do n = 0,nel-1
             ngllx = Tdomain%specel(n)%ngllx
@@ -68,8 +68,6 @@ subroutine SourcePosition(Tdomain)
                         nind = nind + 1
                         if (nind > 6 ) then
                             write (*,*) "Maximum allowed connection is 6! Some elements have a larger connection"
-                            write (*,*) " Return to continue, and Ctrl C to quit"
-                            read  (*,*)
                         endif
                     endif
                 enddo

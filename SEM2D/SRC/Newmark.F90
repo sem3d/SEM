@@ -43,10 +43,10 @@ subroutine Newmark (Tdomain, ntime)
             Dt = Tdomain%sSubDomain(mat)%dt
 
             if (.not. Tdomain%specel(n)%PML) then
-                !           call Prediction_Elem_Veloc (Tdomain%specel(n),alpha, bega, dt)
                 call Prediction_Elem_Veloc (Tdomain%specel(n))
             else
-                ngllx = Tdomain%specel(n)%ngllx; ngllz = Tdomain%specel(n)%ngllz
+                ngllx = Tdomain%specel(n)%ngllx
+                ngllz = Tdomain%specel(n)%ngllz
                 allocate (Vxloc(0:ngllx-1, 0:ngllz-1))
                 allocate (Vzloc(0:ngllx-1, 0:ngllz-1))
                 call get_PMLprediction_fv2el (Tdomain,n,Vxloc,vzloc,ngllx,ngllz,alpha, bega,dt)
@@ -65,14 +65,12 @@ subroutine Newmark (Tdomain, ntime)
         do n = 0, Tdomain%n_face-1
             mat = Tdomain%sFace(n)%mat_index
             dt = Tdomain%sSubdomain(mat)%dt
-            !       if (.not. Tdomain%sFace(n)%PML)  call Prediction_Face_Veloc (Tdomain%sFace(n),alpha, bega, dt)
             if (.not. Tdomain%sFace(n)%PML)  call Prediction_Face_Veloc (Tdomain%sFace(n))
         enddo
 
         do n= 0, Tdomain%n_vertex-1
             mat = Tdomain%sVertex(n)%mat_index
             dt = Tdomain%sSubdomain(mat)%dt
-            !       if (.not. Tdomain%sVertex(n)%PML)  call Prediction_Vertex_Veloc (Tdomain%sVertex(n),alpha, bega, dt)
             if (.not. Tdomain%sVertex(n)%PML)  call Prediction_Vertex_Veloc (Tdomain%sVertex(n))
         enddo
 

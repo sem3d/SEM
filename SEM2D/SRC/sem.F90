@@ -14,7 +14,6 @@ module ipg2
     type :: Tsem
 
        integer :: fileId       ! Id du fichier sem a generer
-       integer :: n_dime       ! dimension de l'espace , en principe on est en 2D
        integer :: n_glob_nodes ! nombre de noeuds du maillage
        integer :: n_elem       ! nombre d'elements du maillage
        integer :: n_nodes      ! nombre de noeuds par element
@@ -278,9 +277,6 @@ contains
         if (CodeErreur .ne.0 ) print*,'Ouverture du fichier SEM  :CodeErreur=',CodeErreur
 
 
-
-        ! dimension du pb (2D)
-        write(sem%fileId,*) sem%n_dime
 
         ! nombre de noeuds
         write(sem%fileId,*) sem%n_glob_nodes
