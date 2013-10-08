@@ -17,19 +17,21 @@ module solid_fluid
        integer  :: orient  ! orientation of the 1 face / in ref to the 0 one
     end type SF_face
     type  :: SF_edge
-       integer  :: valence, coherency
+       integer  :: valence, coherency 
        integer  :: vertex(0:1)
        integer, pointer  :: orient(:), faces(:), elem_ref_fluid(:,:),   &
            elem_ref_solid(:,:)
        logical, pointer  :: local_fluid(:), local_solid(:)
+       type(setlist)  :: local_proc_fluid,local_proc_solid,local_proc
     end type SF_edge
     type  :: SF_vertex
-       integer  :: node(0:1), valence
-       integer, pointer  :: faces(:)
+       integer  :: node(0:1), valence,nb_proc_fluid,nb_proc_solid
+       integer, pointer  :: faces(:),list_proc_fluid(:),list_proc_solid(:)
        logical, pointer  :: local_fluid(:), local_solid(:)
+       type(setlist)  :: local_proc_fluid,local_proc_solid,local_proc
     end type SF_vertex
     type :: process_obj
-       integer, dimension(:,:), pointer  :: F,E,V
+       integer, dimension(:,:), pointer  :: procs
     end type process_obj
 
 
@@ -48,7 +50,7 @@ contains
         integer, dimension(0:n_nods-1,0:n_elem-1), intent(in) :: Ipointer
         logical, intent(out)  :: any_fluid, all_fluid, solid_fluid
         integer, intent(out)  :: n_SF_nodes
-        integer, dimension(:), allocatable, intent(out) :: nodes_nature
+        integer, dimension(:), allocatable, intent(out) :: nodes_nature 
         logical, dimension(:), allocatable, intent(out) :: elem_solid, elem_contact
 
         write(*,*)
@@ -85,8 +87,8 @@ contains
         ! init.
         any_f = .false. ; all_f = .true. ; s_f = .false.
         do i = 0, nmat-1
-            if(mattab(i) == 'F' .or. mattab(i) == 'L') any_f = .true.
-            if(mattab(i) == 'S' .or. mattab(i) == 'P') all_f = .false.
+            if(mattab(i) == 'F' .or. mattab(i) == 'L') any_f = .true. 
+            if(mattab(i) == 'S' .or. mattab(i) == 'P') all_f = .false. 
         end do
 
         !-
@@ -114,6 +116,7 @@ contains
         logical, intent(in)   :: all_f,any_f,s_f
         integer, intent(out)  :: nods(0:), nbSF
         logical, intent(out)  :: elems(0:),elemc(0:)
+
 
         !- code for a node: 0 if fluid, 1 if solid, 2 if both
         if(.not. any_f) then  ! pure solid
@@ -156,7 +159,7 @@ contains
                     end if
                 end do
             end do
-            ! elements in SF contact (or not)
+            ! elements in SF contact (or not) 
             do n = 0, size(elems)-1
                 do i = 0, n_nodes-1
                     j = Ipointer(i,n)
@@ -168,11 +171,8 @@ contains
         ! solid-fluid nodes counting
         nn = 0
         do n = 0, size(nods)-1
-            if(nods(n) == -1)  then
-                write(*,*) nods
-                write(*,*) "Nod:",n
+            if(nods(n) == -1)   &
                 stop "Pb in solid-fluid nodes attribution: one node is unknown"
-            end if
             if(nods(n) == 2) nn = nn+1
         end do
         nbSF = nn
@@ -182,7 +182,7 @@ contains
     end subroutine nature_node_elem
     !-----------------------------------------------------
     !----------------------------------------
-    subroutine SF_nodes_doubling(Nodes_SF,nods,npts)
+    subroutine SF_nodes_doubling(Nodes_SF,nods,npts) 
         implicit none
         integer, intent(out)   :: Nodes_SF(0:,0:)
         integer, intent(in)    :: nods(0:),npts
@@ -211,10 +211,10 @@ contains
         !- construction of SF objects: properties of solid-fluid interfaces
         implicit none
         integer, intent(in)   :: n_elem
-        integer, dimension(0:,0:), intent(in)  :: Ipointer
+        integer, dimension(0:,0:), intent(in)  :: Ipointer 
         logical, dimension(0:n_elem-1), intent(in)  :: elem_contact,elem_solid
         integer, dimension(0:), intent(in)  :: nodes_nature, dxadj, dxadjncy
-        logical, dimension(:,:), allocatable, intent(out)   ::  SF_object
+        logical, dimension(:,:), allocatable, intent(out)   ::  SF_object      
         type(Face_type), dimension(:,:), allocatable, intent(out)   ::  SF_object_Face
         integer, dimension(:), allocatable, intent(out)   ::  SF_object_n_faces
         integer, intent(out)   :: SF_n_global_faces
@@ -233,18 +233,18 @@ contains
         SF_object_face(0:,0:)%orient = -1
 
         do n = 0, n_elem-1
-            if(elem_contact(n) .and. elem_solid(n)) then   ! a solid element,
+            if(elem_contact(n) .and. elem_solid(n)) then   ! a solid element, 
                 ! we look for fluid neighbours
                 do nf = 0,5
                     call face2corner(Ipointer(0:,n),nf,corner)
                     !--  fluid neighbours????
                     if(nodes_nature(corner(0)) == 2 .and. nodes_nature(corner(1)) == 2 .and. &
-                        nodes_nature(corner(2)) == 2 .and. nodes_nature(corner(3)) == 2)then
+                        nodes_nature(corner(2)) == 2 .and. nodes_nature(corner(3)) == 2)then    
                         ! Yes: SF face. Now we define it.
                         search0 : do nnn = dxadj(n),dxadj(n+1)-1
                             nn = dxadjncy(nnn)
                             if(elem_contact(nn) .and. .not.elem_solid(nn)) then
-                                search1 : do j = 0,3   ! Does the face belong to this element?
+                                search1 : do j = 0,3   ! Does the face belong to this element? 
                                     num = corner(j)
                                     ok = 0
                                     search2 : do k = 0,7
@@ -297,7 +297,7 @@ contains
         !- construction of GLOBAL solid-fluid faces
         implicit none
         integer, intent(in)       :: n_elem, SF_n_global_faces
-        logical, dimension(0:,0:), intent(in)   ::  SF_object
+        logical, dimension(0:,0:), intent(in)   ::  SF_object      
         type(Face_type), dimension(0:,0:), intent(in)   ::  SF_object_Face
         integer, dimension(0:), intent(in)   ::  SF_object_n_faces
         type(SF_face), dimension(0:), intent(out) :: SF_global_faces
@@ -308,17 +308,17 @@ contains
         write(*,*) "    --> Nb of global solid/fluid faces: ", SF_n_global_faces
         nnf = 0
         do n = 0,n_elem-1
-            if(SF_object(0,n))then   ! look only at fluid elements:
+            if(SF_object(0,n))then   ! look only at fluid elements: 
                 ! as we are in the global frame, it's ok
                 SF_global_faces(nnf)%elem(:) = -1
                 do nf = 0, SF_object_n_faces(n)-1
                     SF_global_faces(nnf)%elem(0) = n
-                    SF_global_faces(nnf)%face(0) = SF_object_Face(n,nf)%ind_face
+                    SF_global_faces(nnf)%face(0) = SF_object_Face(n,nf)%ind_face   
                     ! absolute index in the element
-                    SF_global_faces(nnf)%num(0) = nf
+                    SF_global_faces(nnf)%num(0) = nf    
                     ! number of the SF face in the fluid element
                     nels = SF_object_Face(n,nf)%neighbor_elem
-                    SF_global_faces(nnf)%elem(1) = nels
+                    SF_global_faces(nnf)%elem(1) = nels 
                     SF_global_faces(nnf)%face(1) = SF_object_face(n,nf)%face_neighbor
                     do i = 0,SF_object_n_faces(nels)-1
                         if(SF_object_face(nels,i)%ind_face == SF_global_faces(nnf)%face(1)) exit
@@ -329,7 +329,6 @@ contains
                 end do
             end if
         end do
-
     end subroutine SF_global_faces_construct
     !------------------------------------------------------
     !------------------------------------------------------
@@ -380,9 +379,9 @@ contains
         write(*,*) "    --> Nb of global solid/fluid vertices: ", SF_n_global_vertices
         allocate(SF_global_vertices(0:SF_n_global_vertices-1))
         do i = 0,SF_n_global_vertices-1
-            SF_global_vertices(i)%valence = node_valence(i)
+            SF_global_vertices(i)%valence = node_valence(i) 
             ! nb of faces seen by a global SF vertex
-            SF_global_vertices(i)%node(1) = node_list(i)
+            SF_global_vertices(i)%node(1) = node_list(i)    
             ! old node is a solid one
             do j = 0,n_SF_nodes-1
                 if(node_list(i) == Nodes_on_SF(j,0)) SF_global_vertices(i)%node(0) =   &
@@ -395,6 +394,7 @@ contains
             SF_global_vertices(i)%faces(0:SF_global_vertices(i)%valence-1) =    &
                 SF_vert_to_face(0:SF_global_vertices(i)%valence-1,i)
         end do
+
 
     end subroutine SF_global_vertices_construct
     !------------------------------------------------------
@@ -448,7 +448,7 @@ contains
                     nv0 = SF_vertex_to_edge(ne,0)
                     nv1 = SF_vertex_to_edge(ne,1)
                     if((nv0 == e_vertex(0) .and. nv1 == e_vertex(1)) .or. &
-                        (nv0 == e_vertex(1) .and. nv1 == e_vertex(0)))then
+                        (nv0 == e_vertex(1) .and. nv1 == e_vertex(0)))then  
                         ! yes, SF edge seen before
                         ok = 1
                         SF_edge_to_face(edge_valence(ne),ne) = i
@@ -458,7 +458,7 @@ contains
                         else
                             SF_edge_orient_tmp(edge_valence(ne),ne) = 1
                         end if
-                        edge_valence(ne) = edge_valence(ne)+1
+                        edge_valence(ne) = edge_valence(ne)+1 
                         exit findSFedge
                     end if
                 end do findSFedge
@@ -483,76 +483,128 @@ contains
                 SF_edge_to_face(0:edge_valence(i)-1,i)
             SF_global_edges(i)%orient(0:edge_valence(i)-1) =              &
                 SF_edge_orient_tmp(0:edge_valence(i)-1,i)
+
         end do
+
 
     end subroutine SF_global_edges_construct
     !--------------------------------------------------------------
     !--------------------------------------------------------------
-    subroutine SF_vertices_proc_belong(n_proc,n_elem,SF_n_global_vertices,part,    &
+    subroutine SF_vertices_proc_belong(n_proc,SF_n_global_vertices,part,    &
         elem_solid,initnode,SF_global_vertices)
 
         implicit none
-        integer, intent(in)     :: n_proc,SF_n_global_vertices,n_elem
-        integer, dimension(0:n_elem-1), intent(in)  :: part
+        integer, intent(in)     :: n_proc,SF_n_global_vertices
+        integer, dimension(0:n_proc-1), intent(in)  :: part
         logical, dimension(0:), intent(in)    :: elem_solid
         type(near_node), dimension(0:), intent(in)  ::  initnode
         type(SF_vertex), dimension(0:SF_n_global_vertices-1), intent(inout) ::  &
             SF_global_vertices
 
-        integer   :: i,nf,ns
+        integer   :: i,nf,ns,js,jf,k,proc,nel
+        integer, dimension(0:15)  :: tr_procf,tr_procs
         type(near_entity), pointer  :: near_neighb => NULL()
 
         do i = 0, SF_n_global_vertices-1
-            allocate(SF_global_vertices(i)%local_fluid(0:n_proc-1))
-            SF_global_vertices(i)%local_fluid(0:) = .false.
-            allocate(SF_global_vertices(i)%local_solid(0:n_proc-1))
-            SF_global_vertices(i)%local_solid(0:) = .false.
-            nf = SF_global_vertices(i)%node(0)
+            jf = 0 ; tr_procf = -1
+            js = 0 ; tr_procs = -1
             ns = SF_global_vertices(i)%node(1)
             near_neighb => initnode(ns)%ptr
             do while(associated(near_neighb))
-                if(elem_solid(near_neighb%elem))then
-                    SF_global_vertices(i)%local_solid(part(near_neighb%elem)) = .true.
+                nel = near_neighb%elem
+                if(elem_solid(nel))then
+                    k = already_in(part(nel),tr_procs,js)
+                    if(k < 0)then
+                        tr_procs(js) = part(nel)
+                        js = js+1
+                    end if
                 else
-                    SF_global_vertices(i)%local_fluid(part(near_neighb%elem)) = .true.
+                    k = already_in(part(nel),tr_procf,jf)
+                    if(k < 0)then
+                        tr_procf(jf) = part(nel)
+                        jf = jf+1
+                    end if
                 end if
                 near_neighb => near_neighb%pt
             end do
+            SF_global_vertices(i)%local_proc_fluid%nr = jf
+            SF_global_vertices(i)%local_proc_solid%nr = js
+            allocate(SF_global_vertices(i)%local_proc_fluid%elem(0:jf-1))
+            allocate(SF_global_vertices(i)%local_proc_solid%elem(0:js-1))
+            SF_global_vertices(i)%local_proc_fluid%elem(0:jf-1) = tr_procf(0:jf-1)
+            SF_global_vertices(i)%local_proc_solid%elem(0:js-1) = tr_procs(0:js-1)
+            call sort(SF_global_vertices(i)%local_proc_fluid%elem,    &
+                SF_global_vertices(i)%local_proc_fluid%nr)
+            call sort(SF_global_vertices(i)%local_proc_solid%elem,    &
+                SF_global_vertices(i)%local_proc_solid%nr)
+            allocate(SF_global_vertices(i)%local_proc%elem(0:jf+js-1))
+            call list_union(SF_global_vertices(i)%local_proc_fluid,   &
+                SF_global_vertices(i)%local_proc_solid,   &
+                SF_global_vertices(i)%local_proc)
         end do
 
 
     end subroutine SF_vertices_proc_belong
     !--------------------------------------------------------------
     !--------------------------------------------------------------
-    subroutine SF_edges_proc_belong(n_proc,SF_n_global_edges,     &
-        SF_global_vertices,SF_global_edges)
+    subroutine SF_edges_proc_belong(n_proc,part,elem_solid,SF_n_global_edges,     &
+        SF_global_vertices,SF_edges_near_elem,SF_global_edges)
 
         implicit none
         integer, intent(in)     :: n_proc,SF_n_global_edges
+        integer, dimension(0:n_proc-1), intent(in)  :: part
+        logical, dimension(0:), intent(in)     :: elem_solid
         type(SF_vertex), dimension(0:), intent(in)   :: SF_global_vertices
         type(SF_edge), dimension(0:SF_n_global_edges-1), intent(inout) ::   &
             SF_global_edges
+        type(near_elem), dimension(0:SF_n_global_edges-1), intent(in)   ::   &
+            SF_edges_near_elem
+        type(near_entity), pointer   :: near_neighb => NULL()
 
-        integer   :: i,n,nv0,nv1
+        integer   :: i,j,n,nv0,nv1,jf,js,nf,nel
+        integer, dimension(0:15)   :: tr_procs,tr_procf
 
         do i = 0,SF_n_global_edges-1
-            allocate(SF_global_edges(i)%local_fluid(0:n_proc-1))
-            SF_global_edges(i)%local_fluid(0:) = .false.
-            allocate(SF_global_edges(i)%local_solid(0:n_proc-1))
-            SF_global_edges(i)%local_solid(0:) = .false.
-            nv0 = SF_global_edges(i)%vertex(0)
-            nv1 = SF_global_edges(i)%vertex(1)
-            do n = 0,n_proc-1
-                if(SF_global_vertices(nv0)%local_fluid(n) .and.   &
-                    SF_global_vertices(nv1)%local_fluid(n))       &
-                    SF_global_edges(i)%local_fluid(n) = .true.
-                if(SF_global_vertices(nv0)%local_solid(n) .and.   &
-                    SF_global_vertices(nv1)%local_solid(n))       &
-                    SF_global_edges(i)%local_solid(n) = .true.
+            jf = 0 ; tr_procf(0:) = -1
+            js = 0 ; tr_procs(0:) = -1
+
+            near_neighb => SF_edges_near_elem(i)%ptr 
+            do while(associated(near_neighb))
+                nel = near_neighb%elem
+                n = part(nel)
+                ! fluid side
+                if(.not. elem_solid(nel))then
+                    if(already_in(n,tr_procf,jf) < 0)then
+                        tr_procf(jf) = n
+                        jf = jf+1
+                    end if
+                    ! solid side
+                else
+                    if(already_in(n,tr_procs,js) < 0)then
+                        tr_procs(js) = n
+                        js = js+1
+                    end if
+                end if
+                near_neighb => near_neighb%pt
             end do
+            SF_global_edges(i)%local_proc_fluid%nr = jf
+            SF_global_edges(i)%local_proc_solid%nr = js
+            allocate(SF_global_edges(i)%local_proc_fluid%elem(0:jf-1))
+            allocate(SF_global_edges(i)%local_proc_solid%elem(0:js-1))
+            SF_global_edges(i)%local_proc_fluid%elem(0:jf-1) = tr_procf(0:jf-1)
+            SF_global_edges(i)%local_proc_solid%elem(0:js-1) = tr_procs(0:js-1)
+
+            ! solid+fluid
+            call sort(SF_global_edges(i)%local_proc_fluid%elem,    &
+                SF_global_edges(i)%local_proc_fluid%nr)
+            call sort(SF_global_edges(i)%local_proc_solid%elem,    &
+                SF_global_edges(i)%local_proc_solid%nr)
+            allocate(SF_global_edges(i)%local_proc%elem(0:jf+js-1))
+            call list_union(SF_global_edges(i)%local_proc_fluid,   &
+                SF_global_edges(i)%local_proc_solid,   &
+                SF_global_edges(i)%local_proc)
         end do
-
-
+        return
     end subroutine SF_edges_proc_belong
     !--------------------------------------------------------------
     !--------------------------------------------------------------
@@ -572,15 +624,17 @@ contains
             SF_global_edges
 
         logical, dimension(:), allocatable   :: Lproc_solid,Lproc_fluid
-        integer   :: i,j,k,nv0,nv1,n,np,nel,num,ok
+        integer   :: i,j,k,ind,nv0,nv1,n,np,nel,num,ok,n_proct,n_procf,n_procs
         integer, dimension(0:1)  :: npf,nps,e_neighbor_corner
         type(near_entity), pointer   :: near_neighb => NULL()
 
         allocate(Lproc_solid(0:nproc-1),Lproc_fluid(0:nproc-1))
         do i = 0,SF_n_global_edges-1
             Lproc_solid(:) = .true. ; Lproc_fluid(:) = .true.
-            allocate(SF_global_edges(i)%elem_ref_fluid(0:nproc-1,0:1))
-            allocate(SF_global_edges(i)%elem_ref_solid(0:nproc-1,0:1))
+            n_procf = SF_global_edges(i)%local_proc_fluid%nr 
+            n_procs = SF_global_edges(i)%local_proc_solid%nr 
+            allocate(SF_global_edges(i)%elem_ref_fluid(0:n_procf-1,0:1))
+            allocate(SF_global_edges(i)%elem_ref_solid(0:n_procs-1,0:1))
             SF_global_edges(i)%elem_ref_fluid = -1
             SF_global_edges(i)%elem_ref_solid = -1
 
@@ -590,7 +644,7 @@ contains
             nps(0) = SF_global_vertices(nv0)%node(1)
             npf(1) = SF_global_vertices(nv1)%node(0)
             nps(1) = SF_global_vertices(nv1)%node(1)
-            near_neighb => SF_edges_near_elem(i)%ptr
+            near_neighb => SF_edges_near_elem(i)%ptr 
 
             do while(associated(near_neighb))
                 nel = near_neighb%elem
@@ -598,7 +652,8 @@ contains
                 np = part(nel)
                 ! fluid part
                 if((.not. elem_solid(nel)) .and. Lproc_fluid(np)      &
-                    .and. SF_global_edges(i)%local_fluid(np))then
+                    .and. (already_in(np,SF_global_edges(i)%local_proc_fluid%elem,   &
+                    SF_global_edges(i)%local_proc_fluid%nr) >= 0))then
                     do j = 0,1
                         num = npf(j)
                         ok = 0
@@ -611,15 +666,18 @@ contains
                         end do do_k
                     end do
                     if(j == 2 .and. ok == 1)then
-                        SF_global_edges(i)%elem_ref_fluid(np,0) = n
-                        SF_global_edges(i)%elem_ref_fluid(np,1) =         &
+                        ind = already_in(np,SF_global_edges(i)%local_proc_fluid%elem,   &
+                            SF_global_edges(i)%local_proc_fluid%nr)
+                        SF_global_edges(i)%elem_ref_fluid(ind,0) = n
+                        SF_global_edges(i)%elem_ref_fluid(ind,1) =         &
                             vertices2edge(e_neighbor_corner)
                         Lproc_fluid(np) = .false.
                     end if
                 end if
                 ! solid part
-                if((elem_solid(nel)) .and. Lproc_solid(np)            &
-                    .and. SF_global_edges(i)%local_solid(np))then
+                if((elem_solid(nel)) .and. Lproc_solid(np)      &
+                    .and. (already_in(np,SF_global_edges(i)%local_proc_solid%elem,   &
+                    SF_global_edges(i)%local_proc_solid%nr) >= 0))then
                     do j = 0,1
                         num = nps(j)
                         ok = 0
@@ -632,8 +690,10 @@ contains
                         end do do_k2
                     end do
                     if(j == 2 .and. ok == 1)then
-                        SF_global_edges(i)%elem_ref_solid(np,0) = n
-                        SF_global_edges(i)%elem_ref_solid(np,1) =     &
+                        ind = already_in(np,SF_global_edges(i)%local_proc_solid%elem,   &
+                            SF_global_edges(i)%local_proc_solid%nr)
+                        SF_global_edges(i)%elem_ref_solid(ind,0) = n
+                        SF_global_edges(i)%elem_ref_solid(ind,1) =     &
                             vertices2edge(e_neighbor_corner)
                         Lproc_solid(np) = .false.
                     end if
@@ -643,7 +703,7 @@ contains
         end do
 
         deallocate(Lproc_fluid,Lproc_solid)
-
+        read*
 
     end subroutine SF_edges_reference_elem
     !--------------------------------------------------------------
@@ -651,11 +711,11 @@ contains
     subroutine SF_local_faces_construct(proc,nproc,SF_n_faces,SF_n_global_faces,  &
         part,Elem_glob2loc,SF_global_face_present,SF_global_faces,        &
         SF_object_n_faces,SF_object_face,faces,SF_faces,SF_faces_shared,  &
-        SF_nf_shared,SF_face_orient,SF_local_to_global_faces,MemorySF)
+        SF_nf_shared,SF_face_orient,SF_local_to_global_faces,MemorySF_F)
 
         implicit none
         integer, intent(in)   :: proc,nproc,SF_n_faces,SF_n_global_faces
-        logical, dimension(0:), intent(in)  :: SF_global_face_present
+        logical, dimension(0:), intent(in)  :: SF_global_face_present 
         integer, dimension(0:), intent(in)  :: part,Elem_glob2loc
         type(SF_face), dimension(0:), intent(in)  :: SF_global_faces
         integer, dimension(0:), intent(in)  :: SF_object_n_faces
@@ -666,7 +726,7 @@ contains
         integer, dimension(0:nproc-1), intent(out)   :: SF_nf_shared
         integer, dimension(0:SF_n_faces-1), intent(out) :: SF_face_orient, &
             SF_local_to_global_faces
-        type(process_obj), dimension(0:), intent(inout)  :: MemorySF
+        type(process_obj), dimension(0:), intent(inout)  :: MemorySF_F
         integer :: i,j,k,nf,nel,nnf,num,n
 
         SF_nf_shared(0:) = 0
@@ -688,12 +748,12 @@ contains
             else   ! the fluid face is not on this proc, but the solid side is!!
                 SF_faces(j,0) = -1
                 num = part(nel)
-                if(num < proc)then   ! proc already seen: fluid face is already
+                if(num < proc)then   ! proc already seen: fluid face is already 
                     !   identified as a shared SF face
-                    SF_faces_shared(num,MemorySF(proc)%F(num,nf)) = j
+                    SF_faces_shared(num,MemorySF_F(nf)%procs(0,0)) = j
                 else     ! proc not seen yet
                     SF_faces_shared(num,SF_nf_shared(num)) = j
-                    MemorySF(num)%F(proc,nf) = SF_nf_shared(num)
+                    MemorySF_F(nf)%procs(0,0) = SF_nf_shared(num)
                 end if
                 SF_nf_shared(num) = SF_nf_shared(num)+1
             end if
@@ -710,12 +770,12 @@ contains
             else   ! the solid face is not on this proc, but the fluid side is!!
                 SF_faces(j,1) = -1
                 num = part(nel)
-                if(num < proc)then   ! proc already seen: solid face is already
+                if(num < proc)then   ! proc already seen: solid face is already 
                     !    identified as a shared SF face
-                    SF_faces_shared(num,MemorySF(proc)%F(num,nf)) = j
+                    SF_faces_shared(num,MemorySF_F(nf)%procs(0,0)) = j
                 else     ! proc not seen yet
                     SF_faces_shared(num,SF_nf_shared(num)) = j
-                    MemorySF(num)%F(proc,nf) = SF_nf_shared(num)
+                    MemorySF_F(nf)%procs(0,0) = SF_nf_shared(num)
                 end if
                 SF_nf_shared(num) = SF_nf_shared(num)+1
             end if
@@ -730,7 +790,7 @@ contains
         part,glob2loc,SF_global_edges,SF_global_vertices,edges,              &
         Ipointer_local,Ipointer,which_elem_in_proc,SF_global_to_local_edges, &
         SF_edges,SF_edges_shared, SF_mapping_edges_shared,SF_ne_shared,      &
-        SF_mapping_edges,MemorySF)
+        SF_mapping_edges,MemorySF_E)
 
         implicit none
         integer, intent(in)  :: proc,nproc,SF_n_edges,SF_n_global_edges
@@ -745,8 +805,9 @@ contains
             SF_mapping_edges_shared
         integer, dimension(0:nproc-1), intent(out)   :: SF_ne_shared
         integer, dimension(0:SF_n_edges-1), intent(out) :: SF_mapping_edges
-        type(process_obj), dimension(0:), intent(inout)  :: MemorySF
-        integer :: i,j,k,nf,nel,nnf,num,n,ns,nes,ne,n0,n1,nns,nv0,nels
+        type(process_obj), dimension(0:), intent(inout)  :: MemorySF_E
+        integer :: i,j,k,nf,nel,nnf,num,n,ns,nes,ne,n0,n1,nns,nv0,nels,   &
+            indf,inds,indgen,o_indf,o_inds,o_indgen
         logical   ::  orient_fluid,orient_solid,orient_fluid_loc,orient_solid_loc,  &
             orient_o_proc_fluid,orient_o_proc_solid
 
@@ -758,89 +819,93 @@ contains
 
         j = 0   ! local SF edges counting
         do i = 0,SF_n_global_edges-1
-            if((.not. SF_global_edges(i)%local_fluid(proc)) .and.    &
-                      (.not. SF_global_edges(i)%local_solid(proc))) cycle
-            orient_fluid_loc = .false. ; orient_solid_loc = .false.
-           !- yes, SF edge:
+            ! fluid index
+            indf = already_in(proc,SF_global_edges(i)%local_proc_fluid%elem,SF_global_edges(i)%local_proc_fluid%nr)
+            ! solid index
+            inds = already_in(proc,SF_global_edges(i)%local_proc_solid%elem,SF_global_edges(i)%local_proc_solid%nr)
+            ! general index
+            indgen = already_in(proc,SF_global_edges(i)%local_proc%elem,SF_global_edges(i)%local_proc%nr)
+            if(indgen < 0) cycle
+            !- yes, SF edge:
             SF_global_to_local_edges(i) = j   
-           !- fluid side
-            if(SF_global_edges(i)%local_fluid(proc))then
-                n = SF_global_edges(i)%elem_ref_fluid(proc,0)
-                ne = SF_global_edges(i)%elem_ref_fluid(proc,1)
+            orient_fluid_loc = .false. ; orient_solid_loc = .false.
+            !- fluid side
+            if(indf >= 0)then
+                n = SF_global_edges(i)%elem_ref_fluid(indf,0)
+                ne = SF_global_edges(i)%elem_ref_fluid(indf,1)
                 SF_edges(j,0) = edges(n,ne)
+                ! reference global vertex:
                 nv0 = SF_global_edges(i)%vertex(0)
                 nnf = SF_global_vertices(nv0)%node(0)
                 n0 = glob2loc(nnf)
                 if(n0 == Ipointer_local(edge2vertex(ne),n)) orient_fluid_loc = .true.
             end if
-           !- solid side
-            if(SF_global_edges(i)%local_solid(proc))then
-                ns = SF_global_edges(i)%elem_ref_solid(proc,0)
-                nes = SF_global_edges(i)%elem_ref_solid(proc,1)
+            !- solid side
+            if(inds >= 0)then
+                ns = SF_global_edges(i)%elem_ref_solid(inds,0)
+                nes = SF_global_edges(i)%elem_ref_solid(inds,1)
                 SF_edges(j,1) = edges(ns,nes)
                 nv0 = SF_global_edges(i)%vertex(0)
                 nns = SF_global_vertices(nv0)%node(1)
                 n1 = glob2loc(nns)
                 if(n1 == Ipointer_local(edge2vertex(nes),ns)) orient_solid_loc = .true.
-            end if  
+            end if
 
-           ! intraproc orientation:
+            ! intraproc orientation:
             SF_mapping_edges(j) = merge(0,1,orient_fluid_loc .eqv. orient_solid_loc)
 
-           !- now we look for SF edges shared with other procs
-            do num = 0,nproc-1
+            !- now we look for SF edges shared with other procs
+            do o_indgen = 0,SF_global_edges(i)%local_proc%nr-1
+                num = SF_global_edges(i)%local_proc%elem(o_indgen)
                 if(num == proc) cycle
-                if((.not. SF_global_edges(i)%local_fluid(num)) .and.    &
-                           (.not. SF_global_edges(i)%local_solid(num))) cycle
-                if(((.not. SF_global_edges(i)%local_fluid(proc)) .and.    &
-                   (.not. SF_global_edges(i)%local_fluid(num))).or.    &
-                   ((.not. SF_global_edges(i)%local_solid(proc)) .and. &
-                   (.not. SF_global_edges(i)%local_solid(num)))) cycle
-              ! elimination of edges which do not exchange Solid/Fluid information (only S/S or F/F)
-              ! now we have found another proc on which we have the same global SF edge
+                o_indf = already_in(num,SF_global_edges(i)%local_proc_fluid%elem,SF_global_edges(i)%local_proc_fluid%nr)
+                o_inds = already_in(num,SF_global_edges(i)%local_proc_solid%elem,SF_global_edges(i)%local_proc_solid%nr)
+                if(((indf < 0) .and. (o_indf < 0)).or.    &
+                    ((inds < 0) .and. (o_inds < 0))) cycle
+                ! elimination of edges which do not exchange Solid/Fluid information (only S/S or F/F)
+                ! now we have found another proc on which we have the same global SF edge
                 orient_solid = .false. ; orient_fluid = .false.
                 orient_o_proc_solid = .true. ; orient_o_proc_fluid = .true.
-              ! interproc orientation
-                if(SF_global_edges(i)%local_fluid(proc) .and. SF_global_edges(i)%local_solid(num))then
-                    ns = SF_global_edges(i)%elem_ref_solid(num,0)
-                    nels = which_elem_in_proc(num,ns)
-                    nes = SF_global_edges(i)%elem_ref_solid(num,1)
+                ! interproc orientation
+                if((indf >= 0) .and. (o_inds >= 0))then
+                    ns = SF_global_edges(i)%elem_ref_solid(o_inds,0)
+                    nels = which_elem_in_proc(SF_global_edges(i)%local_proc%elem(o_indgen),ns)
+                    nes = SF_global_edges(i)%elem_ref_solid(o_inds,1)
                     nv0 = SF_global_edges(i)%vertex(0)
                     nns = SF_global_vertices(nv0)%node(1)
                     if(nns == Ipointer(edge2vertex(nes),nels)) orient_solid = .true.
                     orient_o_proc_fluid = merge(.true.,.false.,orient_fluid_loc .eqv. orient_solid)
-                end if 
-                if(SF_global_edges(i)%local_solid(proc) .and. SF_global_edges(i)%local_fluid(num))then
-                    ns = SF_global_edges(i)%elem_ref_fluid(num,0)
-                    nels = which_elem_in_proc(num,ns)
-                    nes = SF_global_edges(i)%elem_ref_fluid(num,1)
+                end if
+                if((inds >= 0) .and. (o_indf >= 0))then
+                    ns = SF_global_edges(i)%elem_ref_fluid(o_indf,0)
+                    nels = which_elem_in_proc(SF_global_edges(i)%local_proc%elem(o_indgen),ns)
+                    nes = SF_global_edges(i)%elem_ref_fluid(o_indf,1)
                     nv0 = SF_global_edges(i)%vertex(0)
                     nns = SF_global_vertices(nv0)%node(0)
                     if(nns == Ipointer(edge2vertex(nes),nels)) orient_fluid = .true.
                     orient_o_proc_solid = merge(.true.,.false.,orient_fluid .eqv. orient_solid_loc)
-                end if 
+                end if
                 if(orient_o_proc_solid .neqv. orient_o_proc_fluid) stop "Problem in SF edge orientation"
-                if(num < proc)then   ! proc already seen
-                    SF_edges_shared(num,MemorySF(proc)%E(num,i)) = j
+                if(o_indgen < indgen)then   ! proc already seen
+                    SF_edges_shared(num,MemorySF_E(i)%procs(o_indgen,indgen)) = j
                 else   ! proc not seen yet
                     SF_edges_shared(num,SF_ne_shared(num)) = j
-                    MemorySF(num)%E(proc,i) = SF_ne_shared(num)
+                    MemorySF_E(i)%procs(indgen,o_indgen) = SF_ne_shared(num)
                 end if
                 SF_mapping_edges_shared(num,SF_ne_shared(num)) = merge(0,1,orient_o_proc_fluid)
                 SF_ne_shared(num) = SF_ne_shared(num)+1
-            end do 
- !--  
+            end do
+            !-- 
             j = j+1   ! one more local SF edge
         end do
-
-
+        read*
     end subroutine SF_local_edges_construct
     !--------------------------------------------------------------
     !--------------------------------------------------------------
     subroutine SF_local_vertices_construct(proc,nproc,SF_n_vertices,              &
         SF_n_global_vertices,glob2loc,N_valid_Vertex,SF_global_vertices, &
         SF_global_to_local_vertices,SF_vertices,SF_vertices_shared,      &
-        SF_nv_shared,MemorySF)
+        SF_nv_shared,MemorySF_V)
 
         implicit none
         integer, intent(in)  :: proc,nproc,SF_n_vertices,SF_n_global_vertices
@@ -850,46 +915,52 @@ contains
         integer, dimension(0:SF_n_vertices-1,0:1), intent(out) :: SF_vertices
         integer, dimension(0:,0:), intent(out)   :: SF_vertices_shared
         integer, dimension(0:nproc-1), intent(out)   :: SF_nv_shared
-        type(process_obj), dimension(0:), intent(inout)  :: MemorySF
-        integer :: i,j,k,nf,nel,nnf,num,n,ns,nes,ne,n0,n1,nns,nv0,nels
+        type(process_obj), dimension(0:), intent(inout)  :: MemorySF_V
+        integer :: i,j,k,nf,nel,nnf,num,n,ns,nes,ne,n0,n1,nns,nv0,nels,  &
+            indf,inds,indgen,o_indf,o_inds,o_indgen
 
         SF_vertices(0:,0:) = -1
         SF_nv_shared(0:) = 0
 
         j = 0   ! local SF vertices counting
         do i = 0,SF_n_global_vertices-1
-            if((.not. SF_global_vertices(i)%local_fluid(proc)) .and.    &
-                (.not. SF_global_vertices(i)%local_solid(proc))) cycle
+            ! fluid index
+            indf = already_in(proc,SF_global_vertices(i)%local_proc_fluid%elem,SF_global_vertices(i)%local_proc_fluid%nr)
+            ! solid index
+            inds = already_in(proc,SF_global_vertices(i)%local_proc_solid%elem,SF_global_vertices(i)%local_proc_solid%nr)
+            ! general index
+            indgen = already_in(proc,SF_global_vertices(i)%local_proc%elem,SF_global_vertices(i)%local_proc%nr)
+            if(indgen < 0) cycle
+            ! a SF vertex!
             SF_global_to_local_vertices(i) = j
             !- fluid side
-            if(SF_global_vertices(i)%local_fluid(proc))then
+            if(indf >= 0)then
                 nf = SF_global_vertices(i)%node(0)
                 nnf = glob2loc(nf)
                 SF_vertices(j,0) = N_valid_Vertex(nnf)
             end if
             !- solid side
-            if(SF_global_vertices(i)%local_solid(proc))then
+            if(inds >= 0)then
                 ns = SF_global_vertices(i)%node(1)
                 nns = glob2loc(ns)
                 SF_vertices(j,1) = N_valid_Vertex(nns)
             end if
 
             !- now we look for SF vertices shared with other procs
-            do num = 0,nproc-1
+            do o_indgen = 0,SF_global_vertices(i)%local_proc%nr-1
+                num = SF_global_vertices(i)%local_proc%elem(o_indgen)
                 if(num == proc) cycle
-                if((.not. SF_global_vertices(i)%local_fluid(num)) .and.   &
-                    (.not. SF_global_vertices(i)%local_solid(num))) cycle
-                if(((.not. SF_global_vertices(i)%local_fluid(proc)) .and.     &
-                    (.not. SF_global_vertices(i)%local_fluid(num))).or.    &
-                    ((.not. SF_global_vertices(i)%local_solid(proc)) .and. &
-                    (.not. SF_global_vertices(i)%local_solid(num)))) cycle
+                o_indf = already_in(num,SF_global_vertices(i)%local_proc_fluid%elem,SF_global_vertices(i)%local_proc_fluid%nr)
+                o_inds = already_in(num,SF_global_vertices(i)%local_proc_solid%elem,SF_global_vertices(i)%local_proc_solid%nr)
+                if(((indf < 0) .and. (o_indf < 0)).or.    &
+                    ((inds < 0) .and. (o_inds < 0))) cycle
                 ! elimination of vertices which do not exchange Solid/Fluid information (only S/S or F/F)
                 ! now we have found a proc on which we have the same global SF vertex
-                if(num < proc)then   ! proc already seen
-                    SF_vertices_shared(num,MemorySF(proc)%V(num,i)) = j
+                if(o_indgen < indgen)then   ! proc already seen
+                    SF_vertices_shared(num,MemorySF_V(i)%procs(o_indgen,indgen)) = j
                 else   ! proc not seen yet
                     SF_vertices_shared(num,SF_nv_shared(num)) = j
-                    MemorySF(num)%V(proc,i) = SF_nv_shared(num)
+                    MemorySF_V(i)%procs(indgen,o_indgen) = SF_nv_shared(num)
                 end if
                 SF_nv_shared(num) = SF_nv_shared(num)+1
             end do
@@ -915,7 +986,7 @@ contains
         integer, dimension(0:,0:), intent(in)  :: SF_faces,mapping_edges
         integer, dimension(0:,0:), intent(out)  :: SF_Face_Near_Edges,   &
             SF_Face_Near_Edges_Orient,SF_Face_Near_Vertices
-        integer   ::  i,j,k,n,ne,nel,nes,nv,nvl
+        integer   ::  i,j,k,n,ne,nel,nes,nv,nvl,indf,inds
 
         SF_Face_Near_Edges(0:,0:) = -1
         SF_Face_Near_Edges_Orient(0:,0) = -1
@@ -925,14 +996,17 @@ contains
             do k = 0,3
                 ! edges
                 ne = SF_global_faces(i)%edge(k)
+                indf = already_in(proc,SF_global_edges(ne)%local_proc_fluid%elem,SF_global_edges(ne)%local_proc_fluid%nr)
+                inds = already_in(proc,SF_global_edges(ne)%local_proc_solid%elem,SF_global_edges(ne)%local_proc_solid%nr)
+                if((indf < 0).and.(inds < 0)) stop "Pb in SF_faces_to_EV"
                 nel = SF_global_to_local_edges(ne)
                 SF_Face_Near_Edges(j,k) = nel
                 if(SF_faces(j,0) > -1)then
-                    n = SF_global_edges(ne)%elem_ref_fluid(proc,0)
-                    nes = SF_global_edges(ne)%elem_ref_fluid(proc,1)
+                    n = SF_global_edges(ne)%elem_ref_fluid(indf,0)
+                    nes = SF_global_edges(ne)%elem_ref_fluid(indf,1)
                 else
-                    n = SF_global_edges(ne)%elem_ref_solid(proc,0)
-                    nes = SF_global_edges(ne)%elem_ref_solid(proc,1)
+                    n = SF_global_edges(ne)%elem_ref_solid(inds,0)
+                    nes = SF_global_edges(ne)%elem_ref_solid(inds,1)
                 end if
                 SF_Face_Near_Edges_Orient(j,k) = mapping_edges(n,nes)
                 ! vertices
@@ -947,6 +1021,8 @@ contains
     !--------------------------------------------------------------
     !--------------------------------------------------------------
 end module solid_fluid
+
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
