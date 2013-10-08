@@ -20,7 +20,7 @@ subroutine allocate_domain (Tdomain, rg)
     type(domain), intent (INOUT) :: Tdomain
     integer, intent (IN) :: rg
     integer :: n,nf,ne,nv,i,ngllx,nglly,ngllz,ngll1,ngll2,   &
-        ngll,ngllPML,ngllSO,ngllNeu,ngllSF,ngll_F,ngllPML_F
+        ngll,ngllPML,ngllSO,ngllNeu,ngllSF,ngllSF_PML,ngll_F,ngllPML_F
     integer :: n_solid
 
 
@@ -185,6 +185,8 @@ subroutine allocate_domain (Tdomain, rg)
                 allocate(Tdomain%specel(n)%AccelPhi(1:ngllx-2,1:nglly-2,1:ngllz-2))
                 allocate(Tdomain%specel(n)%VelPhi0(1:ngllx-2,1:nglly-2,1:ngllz-2))
                 allocate(Tdomain%specel(n)%ForcesFl(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(Tdomain%specel(n)%Phi(1:ngllx-2,1:nglly-2,1:ngllz-2))
+                Tdomain%specel(n)%Phi = 0
                 Tdomain%specel(n)%VelPhi = 0d0
                 Tdomain%specel(n)%AccelPhi = 0d0
                 Tdomain%specel(n)%VelPhi0 = 0d0
@@ -217,8 +219,6 @@ subroutine allocate_domain (Tdomain, rg)
                     Tdomain%specel(n)%spml%VelPhi3 = 0d0
                 else
                     allocate(Tdomain%specel(n)%Acoeff(0:ngllx-1,0:nglly-1,0:ngllz-1,0:5))
-                    allocate(Tdomain%specel(n)%Phi(1:ngllx-2,1:nglly-2,1:ngllz-2))
-                    Tdomain%specel(n)%Phi = 0
                 endif
             endif
 
@@ -297,6 +297,8 @@ subroutine allocate_domain (Tdomain, rg)
             allocate(Tdomain%sFace(n)%ForcesFl(1:ngll1-2,1:ngll2-2))
             allocate(Tdomain%sFace(n)%AccelPhi(1:ngll1-2,1:ngll2-2))
             allocate(Tdomain%sFace(n)%VelPhi0(1:ngll1-2,1:ngll2-2))
+            allocate(Tdomain%sFace(n)%Phi(1:ngll1-2,1:ngll2-2))
+            Tdomain%sFace(n)%Phi = 0d0
             Tdomain%sFace(n)%MassMat = 0d0
             Tdomain%sFace(n)%VelPhi = 0d0
             Tdomain%sFace(n)%AccelPhi = 0d0
@@ -318,11 +320,7 @@ subroutine allocate_domain (Tdomain, rg)
                 Tdomain%sFace(n)%spml%VelPhi1 = 0.
                 Tdomain%sFace(n)%spml%VelPhi2 = 0.
                 Tdomain%sFace(n)%spml%VelPhi3 = 0.
-            else
-                allocate(Tdomain%sFace(n)%Phi(1:ngll1-2,1:ngll2-2))
-                Tdomain%sFace(n)%Phi = 0d0
             endif
-
         endif
     enddo
 
@@ -388,6 +386,8 @@ subroutine allocate_domain (Tdomain, rg)
             allocate(Tdomain%sEdge(n)%ForcesFl(1:ngll-2))
             allocate(Tdomain%sEdge(n)%AccelPhi(1:ngll-2))
             allocate(Tdomain%sEdge(n)%VelPhi0(1:ngll-2))
+            allocate(Tdomain%sEdge(n)%Phi(1:ngll-2))
+            Tdomain%sEdge(n)%Phi = 0d0
             Tdomain%sEdge(n)%MassMat = 0d0
             Tdomain%sEdge(n)%VelPhi = 0d0
             Tdomain%sEdge(n)%AccelPhi = 0d0
@@ -409,9 +409,6 @@ subroutine allocate_domain (Tdomain, rg)
                 Tdomain%sEdge(n)%spml%VelPhi1 = 0d0
                 Tdomain%sEdge(n)%spml%VelPhi2 = 0d0
                 Tdomain%sEdge(n)%spml%VelPhi3 = 0d0
-            else
-                allocate(Tdomain%sEdge(n)%Phi(1:ngll-2))
-                Tdomain%sEdge(n)%Phi = 0d0
             endif
 
         endif
@@ -479,6 +476,7 @@ subroutine allocate_domain (Tdomain, rg)
             Tdomain%sVertex(n)%AccelPhi = 0d0
             Tdomain%sVertex(n)%VelPhi0 = 0d0
             Tdomain%sVertex(n)%ForcesFl = 0d0
+            Tdomain%sVertex(n)%Phi = 0d0
             if(Tdomain%sVertex(n)%PML)then
                 allocate(Tdomain%sVertex(n)%spml)
                 allocate(Tdomain%sVertex(n)%spml%DumpVx(0:2))
@@ -489,53 +487,100 @@ subroutine allocate_domain (Tdomain, rg)
                 Tdomain%sVertex(n)%spml%VelPhi2 = 0d0
                 Tdomain%sVertex(n)%spml%VelPhi3 = 0d0
                 Tdomain%sVertex(n)%spml%DumpMass = 0d0
-            else
-                Tdomain%sVertex(n)%Phi = 0d0
             endif
         endif
     enddo
 
-    ! solid-fluid normal terms
+    ! solid-fluid related terms
     if(Tdomain%logicD%SF_local_present)then
         do nf = 0,Tdomain%SF%SF_n_faces-1
             ngll1 = Tdomain%SF%SF_Face(nf)%ngll1
             ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
             allocate(Tdomain%SF%SF_Face(nf)%BtN(0:ngll1-1,0:ngll2-1,0:2))
+            allocate(Tdomain%SF%SF_Face(nf)%density(0:ngll1-1,0:ngll2-1))
+            Tdomain%SF%SF_Face(nf)%BtN = 0d0
+            Tdomain%SF%SF_Face(nf)%density = 0d0
             allocate(Tdomain%SF%SF_Face(nf)%pn(0:ngll1-1,0:ngll2-1,0:2))
             allocate(Tdomain%SF%SF_Face(nf)%vn(0:ngll1-1,0:ngll2-1))
-            allocate(Tdomain%SF%SF_Face(nf)%density(0:ngll1-1,0:ngll2-1))
             allocate(Tdomain%SF%SF_Face(nf)%save_forces(1:ngll1-2,1:ngll2-2,0:2))
-            allocate(Tdomain%SF%SF_Face(nf)%save_displ(1:ngll1-2,1:ngll2-2,0:2))
-            allocate(Tdomain%SF%SF_Face(nf)%save_accel(1:ngll1-2,1:ngll2-2,0:2))
-            Tdomain%SF%SF_Face(nf)%BtN = 0d0
             Tdomain%SF%SF_Face(nf)%pn = 0d0
             Tdomain%SF%SF_Face(nf)%Vn = 0d0
-            Tdomain%SF%SF_Face(nf)%density = 0d0
             Tdomain%SF%SF_Face(nf)%save_forces = 0d0
-            Tdomain%SF%SF_Face(nf)%save_displ = 0d0
-            Tdomain%SF%SF_Face(nf)%save_accel = 0d0
-        enddo
+            if(Tdomain%SF%SF_Face(nf)%PML)then
+                allocate(Tdomain%SF%SF_Face(nf)%pn1(0:ngll1-1,0:ngll2-1,0:2))
+                allocate(Tdomain%SF%SF_Face(nf)%pn2(0:ngll1-1,0:ngll2-1,0:2))
+                allocate(Tdomain%SF%SF_Face(nf)%pn3(0:ngll1-1,0:ngll2-1,0:2))
+                allocate(Tdomain%SF%SF_Face(nf)%vn1(0:ngll1-1,0:ngll2-1))
+                allocate(Tdomain%SF%SF_Face(nf)%vn2(0:ngll1-1,0:ngll2-1))
+                allocate(Tdomain%SF%SF_Face(nf)%vn3(0:ngll1-1,0:ngll2-1))
+                allocate(Tdomain%SF%SF_Face(nf)%save_veloc1(1:ngll1-2,1:ngll2-2,0:2))
+                allocate(Tdomain%SF%SF_Face(nf)%save_veloc2(1:ngll1-2,1:ngll2-2,0:2))
+                allocate(Tdomain%SF%SF_Face(nf)%save_veloc3(1:ngll1-2,1:ngll2-2,0:2))
+                Tdomain%SF%SF_Face(nf)%pn1 = 0d0
+                Tdomain%SF%SF_Face(nf)%pn2 = 0d0
+                Tdomain%SF%SF_Face(nf)%pn3 = 0d0
+                Tdomain%SF%SF_Face(nf)%Vn1 = 0d0
+                Tdomain%SF%SF_Face(nf)%Vn2 = 0d0
+                Tdomain%SF%SF_Face(nf)%Vn3 = 0d0
+                Tdomain%SF%SF_Face(nf)%save_veloc1 = 0d0
+                Tdomain%SF%SF_Face(nf)%save_veloc2 = 0d0
+                Tdomain%SF%SF_Face(nf)%save_veloc3 = 0d0
+            else
+                allocate(Tdomain%SF%SF_Face(nf)%save_displ(1:ngll1-2,1:ngll2-2,0:2))
+                Tdomain%SF%SF_Face(nf)%save_displ = 0d0
+            end if
+        end do
 
         do ne = 0,Tdomain%SF%SF_n_edges-1
             ngll = Tdomain%SF%SF_Edge(ne)%ngll
             allocate(Tdomain%SF%SF_Edge(ne)%pn(1:ngll-2,0:2))
             allocate(Tdomain%SF%SF_Edge(ne)%save_forces(1:ngll-2,0:2))
-            allocate(Tdomain%SF%SF_Edge(ne)%save_accel(1:ngll-2,0:2))
-            allocate(Tdomain%SF%SF_Edge(ne)%save_displ(1:ngll-2,0:2))
             allocate(Tdomain%SF%SF_Edge(ne)%Vn(1:ngll-2))
             Tdomain%SF%SF_Edge(ne)%pn = 0d0
             Tdomain%SF%SF_Edge(ne)%save_forces = 0d0
-            Tdomain%SF%SF_Edge(ne)%save_accel = 0d0
-            Tdomain%SF%SF_Edge(ne)%save_displ = 0d0
             Tdomain%SF%SF_Edge(ne)%Vn = 0d0
+            if(Tdomain%SF%SF_Edge(ne)%PML)then
+                allocate(Tdomain%SF%SF_Edge(ne)%pn1(1:ngll-2,0:2))
+                allocate(Tdomain%SF%SF_Edge(ne)%pn2(1:ngll-2,0:2))
+                allocate(Tdomain%SF%SF_Edge(ne)%pn3(1:ngll-2,0:2))
+                allocate(Tdomain%SF%SF_Edge(ne)%save_veloc1(1:ngll-2,0:2))
+                allocate(Tdomain%SF%SF_Edge(ne)%save_veloc2(1:ngll-2,0:2))
+                allocate(Tdomain%SF%SF_Edge(ne)%save_veloc3(1:ngll-2,0:2))
+                allocate(Tdomain%SF%SF_Edge(ne)%Vn1(1:ngll-2))
+                allocate(Tdomain%SF%SF_Edge(ne)%Vn2(1:ngll-2))
+                allocate(Tdomain%SF%SF_Edge(ne)%Vn3(1:ngll-2))            
+                Tdomain%SF%SF_Edge(ne)%pn1 = 0d0
+                Tdomain%SF%SF_Edge(ne)%pn2 = 0d0
+                Tdomain%SF%SF_Edge(ne)%pn3 = 0d0
+                Tdomain%SF%SF_Edge(ne)%save_veloc1 = 0d0
+                Tdomain%SF%SF_Edge(ne)%save_veloc2 = 0d0
+                Tdomain%SF%SF_Edge(ne)%save_veloc3 = 0d0
+                Tdomain%SF%SF_Edge(ne)%Vn1 = 0d0
+                Tdomain%SF%SF_Edge(ne)%Vn2 = 0d0
+                Tdomain%SF%SF_Edge(ne)%Vn3 = 0d0
+            else
+                allocate(Tdomain%SF%SF_Edge(ne)%save_displ(1:ngll-2,0:2))
+                Tdomain%SF%SF_Edge(ne)%save_displ = 0d0
+            end if
         enddo
 
         do nv = 0,Tdomain%SF%SF_n_vertices-1
             Tdomain%SF%SF_Vertex(nv)%pn = 0d0
             Tdomain%SF%SF_Vertex(nv)%Vn = 0d0
             Tdomain%SF%SF_Vertex(nv)%save_forces = 0d0
-            Tdomain%SF%SF_Vertex(nv)%save_displ = 0d0
-            Tdomain%SF%SF_Vertex(nv)%save_accel = 0d0
+            if(Tdomain%SF%SF_Vertex(nv)%PML)then
+                Tdomain%SF%SF_Vertex(nv)%pn1 = 0d0
+                Tdomain%SF%SF_Vertex(nv)%pn2 = 0d0
+                Tdomain%SF%SF_Vertex(nv)%pn3 = 0d0
+                Tdomain%SF%SF_Vertex(nv)%Vn1 = 0d0
+                Tdomain%SF%SF_Vertex(nv)%Vn2 = 0d0
+                Tdomain%SF%SF_Vertex(nv)%Vn3 = 0d0
+                Tdomain%SF%SF_Vertex(nv)%save_veloc1 = 0d0
+                Tdomain%SF%SF_Vertex(nv)%save_veloc2 = 0d0
+                Tdomain%SF%SF_Vertex(nv)%save_veloc3 = 0d0
+            else
+                Tdomain%SF%SF_Vertex(nv)%save_displ = 0d0
+            end if
         enddo
 
     end if
@@ -553,6 +598,7 @@ subroutine allocate_domain (Tdomain, rg)
             ngllPML_F = 0 ! XXX
             ngllNeu = 0
             ngllSF = 0
+            ngllSF_PML = 0
             do i = 0,Tdomain%sComm(n)%nb_faces-1
                 nf = Tdomain%sComm(n)%faces(i)
                 ngll1 = Tdomain%sFace(nf)%ngll1 ; ngll2 = Tdomain%sFace(nf)%ngll2
@@ -609,13 +655,18 @@ subroutine allocate_domain (Tdomain, rg)
                 nf = Tdomain%sComm(n)%SF_faces_shared(i)
                 ngll1 = Tdomain%SF%SF_Face(nf)%ngll1; ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
                 ngllSF = ngllSF + (ngll1-2)*(ngll2-2)
+                if(Tdomain%SF%SF_Face(nf)%PML) ngllSF_PML =     &
+                              ngllSF_PML+(ngll1-2)*(ngll2-2)
             enddo
             do i = 0,Tdomain%sComm(n)%SF_ne_shared-1
                 ne = Tdomain%sComm(n)%SF_edges_shared(i)
                 ngllSF = ngllSF + Tdomain%SF%SF_Edge(ne)%ngll-2
+                if(Tdomain%SF%SF_Edge(ne)%PML) ngllSF_PML =     &
+                              ngllSF_PML+Tdomain%SF%SF_Edge(ne)%ngll-2
             enddo
             do i = 0,Tdomain%sComm(n)%SF_nv_shared-1
                 ngllSF = ngllSF + 1
+                if(Tdomain%SF%SF_Vertex(nv)%PML) ngllSF_PML = ngllSF_PML+1
             enddo
 
             ! allocations for inter-proc communications
@@ -663,6 +714,12 @@ subroutine allocate_domain (Tdomain, rg)
                 allocate(Tdomain%sComm(n)%GiveForcesSF_StoF(0:ngllSF-1))
                 allocate(Tdomain%sComm(n)%TakeForcesSF_StoF(0:ngllSF-1))
             endif
+            if(ngllSF_PML > 0)then
+                allocate(Tdomain%sComm(n)%GiveForcesSF_FtoS_PML(0:ngllSF-1,1:3,0:2))
+                allocate(Tdomain%sComm(n)%TakeForcesSF_FtoS_PML(0:ngllSF-1,1:3,0:2))
+                allocate(Tdomain%sComm(n)%GiveForcesSF_StoF_PML(0:ngllSF-1,1:3))
+                allocate(Tdomain%sComm(n)%TakeForcesSF_StoF_PML(0:ngllSF-1,1:3))
+            endif
 
             Tdomain%sComm(n)%ngll = ngll
             Tdomain%sComm(n)%ngll_F = ngll_F
@@ -672,6 +729,7 @@ subroutine allocate_domain (Tdomain, rg)
             Tdomain%sComm(n)%ngllPML_tot = ngllPML+ngllPML_F
             Tdomain%sComm(n)%ngllNeu = ngllNeu
             Tdomain%sComm(n)%ngllSF = ngllSF
+            Tdomain%sComm(n)%ngllSF_PML = ngllSF_PML
 
 
         enddo
