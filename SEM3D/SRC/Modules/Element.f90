@@ -720,6 +720,8 @@ contains
 
         Elem%VelPhi = Elem%spml%VelPhi1 + Elem%spml%VelPhi2 + Elem%spml%VelPhi3
 
+        Elem%Phi = Elem%Phi + dt * Elem%VelPhi
+
         return
     end subroutine Correction_Elem_PML_VelPhi
     !------------------------------------------------------------------

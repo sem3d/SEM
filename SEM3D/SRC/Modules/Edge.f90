@@ -137,6 +137,8 @@ contains
             E%Veloc = 0
         endif
 
+        E%V0 = E%Veloc
+
         return
     end subroutine Correction_Edge_PML_Veloc
 
@@ -158,6 +160,8 @@ contains
         if(E%Abs)then
             E%VelPhi = 0
         endif
+
+        E%Phi = E%Phi+dt*E%VelPhi
 
         return
     end subroutine Correction_Edge_PML_VelPhi

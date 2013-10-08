@@ -139,6 +139,8 @@ contains
             F%Veloc = 0
         endif
 
+        F%V0 = F%Veloc
+        
         return
     end subroutine Correction_Face_PML_Veloc
 
@@ -164,6 +166,8 @@ contains
         if(F%Abs)then
             F%VelPhi = 0
         endif
+
+        F%Phi = F%Phi+dt*F%Velphi
 
         return
     end subroutine Correction_Face_PML_VelPhi

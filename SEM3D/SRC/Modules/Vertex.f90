@@ -113,6 +113,8 @@ contains
             V%Veloc = 0
         endif
 
+        V%V0 = V%Veloc
+
         return
     end subroutine Correction_Vertex_PML_Veloc
 
@@ -126,6 +128,7 @@ contains
 
         V%VelPhi0 = V%VelPhi
         V%ForcesFl = V%Phi
+
         return
     end subroutine Prediction_Vertex_VelPhi
 
@@ -162,6 +165,8 @@ contains
         if (V%Abs) then
             V%VelPhi = 0
         endif
+
+        V%Phi = V%Phi + dt*V%VelPhi
 
         return
     end subroutine Correction_Vertex_PML_VelPhi
