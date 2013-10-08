@@ -4,7 +4,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#ifndef HAVE_TREMAIN
+#if 1
 int getrlimit(int resource, struct rlimit *rlim);
 
 void tremain_c(double* res)
