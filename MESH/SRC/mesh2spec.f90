@@ -6,6 +6,7 @@ module mesh2spec
     use solid_fluid
     use local_mesh_properties
     use neumann
+    use free_surf_fluid
 
     type :: local_sf_info
         logical :: present_local
@@ -70,7 +71,7 @@ module mesh2spec
 contains
 
     !---------------------
-    subroutine gen_mesh(tabmat,nproc,pml_b,pml_t,pml_bottom,nmatref)
+    subroutine gen_mesh(tabmat,nproc,pml_b,pml_t,pml_bottom,nmatref,strat_bool)
 
         implicit none
 
@@ -98,9 +99,11 @@ contains
         integer, intent(in), optional  :: nmatref
         character, dimension(0:), intent(in)  :: tabmat
         integer, intent(in), optional   :: pml_b, pml_t, pml_bottom
+        logical, intent(in), optional   :: strat_bool
         logical    :: any_fluid, all_fluid, solid_fluid
         integer, allocatable :: nodes_nature(:)
         logical, allocatable :: elem_contact(:), elem_solid(:)
+        logical, allocatable :: elem_fluid_dirich(:)
         !- solid/fluid --
         integer, allocatable :: Nodes_on_SF(:,:), SF_object_n_faces(:),             &
             Elem_Edge_Ref(:),     &
@@ -139,7 +142,7 @@ contains
         integer, allocatable, dimension(:) :: part
         !- local meshes
         type(souvenir), dimension(:), allocatable :: memory
-        type(process_obj), dimension(:), allocatable :: MemorySF
+        type(process_obj), dimension(:), allocatable :: MemorySF_F,MemorySF_E,MemorySF_V
         type(proc_obj), dimension(:), allocatable :: MemoryNeu
         logical, allocatable :: which_points_inside(:)
         integer  :: proc, n_vertices, n_faces, n_edges, n_points_local
@@ -164,7 +167,7 @@ contains
         call mesh_init_3D(n_nods,n_points,n_elem,n_blocks,                  &
             xco,yco,zco,Ipointer,Material,tabmat,             &
             Neu_n_global_faces,n_PW,Faces_Neumann,Faces_PW,   &
-            pml_b,pml_t,pml_bottom,nmatref)
+            pml_b,pml_t,pml_bottom,nmatref,strat_bool)
         if(Neu_n_global_faces > 0) Neumann_present = .true.
 
         !------------------------------------------------------
@@ -226,6 +229,15 @@ contains
 
         allocate(elem_near_proc(0:n_elem-1))
         call find_near_proc(n_elem,near_elem_set,part,elem_near_proc)
+
+        !-----------------------------------------------------------
+        !-  BOUNDARY CONDITIONS
+        !- Dirichlet boundary condition in fluid: free surface
+        if(any_fluid)then
+            allocate(elem_fluid_dirich(0:n_elem-1))
+            call find_fluid_elem_dirich(n_elem,dxadj,dxadjncy,   &
+                Ipointer,elem_solid,elem_fluid_dirich)
+        end if
 
         !-----------------------------------------------------
         !-   NEUMANN INTERFACE : GLOBAL PROPERTIES
@@ -355,12 +367,12 @@ contains
 
 
             !- which procs do SF vertices belong to?
-            call SF_vertices_proc_belong(nproc,n_elem,SF_n_global_vertices,part,    &
+            call SF_vertices_proc_belong(nproc,SF_n_global_vertices,part,    &
                 elem_solid,initnode,SF_global_vertices)
 
             !- which procs do SF edges belong to?
-            call SF_edges_proc_belong(nproc,SF_n_global_edges,     &
-                SF_global_vertices,SF_global_edges)
+            call SF_edges_proc_belong(nproc,part,elem_solid,SF_n_global_edges, &
+                 SF_global_vertices,SF_edges_near_elem,SF_global_edges)
 
 
         end if     !- temporary end of solid/fluid case
@@ -450,12 +462,27 @@ contains
             allocate(SF_global_to_local_vertices(0:SF_n_global_vertices-1))
 
             !- SF memory
-            allocate(MemorySF(0:nproc-1))
-            do i = 0,nproc-1
-                allocate(MemorySF(i)%F(0:nproc-1,0:SF_n_global_faces-1))
-                allocate(MemorySF(i)%E(0:nproc-1,0:SF_n_global_edges-1))
-                allocate(MemorySF(i)%V(0:nproc-1,0:SF_n_global_vertices-1))
+            allocate(MemorySF_F(0:SF_n_global_faces-1))
+            allocate(MemorySF_E(0:SF_n_global_edges-1))
+            allocate(MemorySF_V(0:SF_n_global_vertices-1))
+
+            do i = 0,SF_n_global_faces-1
+                allocate(MemorySF_F(i)%procs(0:0,0:0))
+                MemorySF_F(i)%procs(0:0,0:0) = -1
             end do
+            do i = 0,SF_n_global_edges-1
+                if(SF_global_edges(i)%local_proc%nr > 0)then
+                    allocate(MemorySF_E(i)%procs(0:SF_global_edges(i)%local_proc%nr-1,0:SF_global_edges(i)%local_proc%nr-1))
+                    MemorySF_E(i)%procs(0:,0:) = -1
+                end if
+            end do
+            do i = 0,SF_n_global_vertices-1
+                if(SF_global_vertices(i)%local_proc%nr > 0)then
+                    allocate(MemorySF_V(i)%procs(0:SF_global_vertices(i)%local_proc%nr-1,0:SF_global_vertices(i)%local_proc%nr-1))
+                    MemorySF_V(i)%procs(0:,0:) = -1
+                end if
+            end do
+
         end if   !-  temporary end of local solid/fluid properties
 
 
@@ -576,11 +603,6 @@ contains
                     Neu_global_face_present,Neu_global_faces,            &
                     faces,Neu%faces,Neu%local_to_global_faces)
 
-                !       do nf = 0,Neu_n_faces-1
-                !           print*,"GANCELLITA",proc,nf,Neu_faces(nf)
-                !       end do
-                !       read*
-
                 !- local Neumann edges  ---------------------
                 ! how many?
                 do i = 0, Neu_n_global_edges-1
@@ -633,8 +655,8 @@ contains
 
             !- now we include eventual SF objects
             if(SF%present_local)then
-                write(*,*) "    --> Solid/fluid local meshing properties."
                 SF%n_faces = 0 ; SF%n_edges = 0 ; SF%n_vertices = 0
+                write(*,*) "    --> Solid/fluid local meshing properties."
                 !- local SF faces ---------------------
                 ! - how many?
                 do nf = 0, SF_n_global_faces-1
@@ -654,14 +676,14 @@ contains
                 call SF_local_faces_construct(proc,nproc,SF%n_faces,SF_n_global_faces,  &
                     part,Elem_glob2loc,SF_global_face_present,SF_global_faces,        &
                     SF_object_n_faces,SF_object_face,faces,SF%faces,SF%faces_shared,  &
-                    SF%nf_shared,SF%face_orient,SF%local_to_global_faces,MemorySF)
+                    SF%nf_shared,SF%face_orient,SF%local_to_global_faces,MemorySF_F)
 
                 !- local SF edges  ---------------------
                 ! how many?
                 do i = 0, SF_n_global_edges-1
-                    if((.not. SF_global_edges(i)%local_fluid(proc)) .and.   &
-                        (.not. SF_global_edges(i)%local_solid(proc))) cycle
-                    SF%n_edges = SF%n_edges+1
+                    if(already_in(proc,SF_global_edges(i)%local_proc%elem,    &
+                       SF_global_edges(i)%local_proc%nr)>= 0)                 &
+                           SF%n_edges = SF%n_edges+1
                 end do
 
                 allocate(SF%edges(0:SF%n_edges-1,0:1))
@@ -674,14 +696,14 @@ contains
                     part,glob2loc,SF_global_edges,SF_global_vertices,edges,             &
                     Ipointer_local,Ipointer,which_elem_in_proc,SF_global_to_local_edges,&
                     SF%edges,SF%edges_shared, SF%mapping_edges_shared,SF%ne_shared,     &
-                    SF%mapping_edges,MemorySF)
+                    SF%mapping_edges,MemorySF_E)
 
                 !- local SF vertices
                 ! how many?
                 do i = 0, SF_n_global_vertices-1
-                    if((.not. SF_global_vertices(i)%local_fluid(proc)) .and.    &
-                        (.not. SF_global_vertices(i)%local_solid(proc))) cycle
-                    SF%n_vertices = SF%n_vertices+1
+                    if(already_in(proc,SF_global_vertices(i)%local_proc%elem,    &
+                       SF_global_vertices(i)%local_proc%nr) >= 0)                &
+                        SF%n_vertices = SF%n_vertices+1
                 end do
 
                 allocate(SF%vertices(0:SF%n_vertices-1,0:1))
@@ -691,7 +713,7 @@ contains
                 call SF_local_vertices_construct(proc,nproc,SF%n_vertices,            &
                     SF_n_global_vertices,glob2loc,N_valid_Vertex,SF_global_vertices, &
                     SF_global_to_local_vertices,SF%vertices,SF%vertices_shared,      &
-                    SF%nv_shared,MemorySF)
+                    SF%nv_shared,MemorySF_V)
 
 
                 !- finally: SF edges and vertices associated to SF faces -> important for
@@ -793,6 +815,7 @@ contains
         deallocate(nodes_nature)
         deallocate(Material)
         deallocate(Ipointer)
+        if(any_fluid) deallocate(elem_fluid_dirich)
         if(solid_fluid)then
             deallocate(SF_global_to_local_edges)
             deallocate(SF_global_to_local_vertices)
@@ -1106,6 +1129,11 @@ contains
         call write_attr_bool(fid, "solid_fluid", solid_fluid)
         call write_attr_bool(fid, "solid_fluid_loc", SF%present_local)
         call write_attr_bool(fid, "all_fluid", all_fluid)
+        if(solid_fluid .and. SF%present_local)then
+            call write_attr_int(fid, "n_SF_faces", SF%n_faces)
+            call write_attr_int(fid, "n_SF_edges", SF%n_edges)
+            call write_attr_int(fid, "n_SF_vertices", SF%n_vertices)
+        end if
         call write_attr_bool(fid, "neumann_present", neumann_present)
         call write_attr_bool(fid, "neumann_present_loc", Neu%present_local)
         call write_attr_bool(fid, "curve", curve)
