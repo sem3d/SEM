@@ -10,6 +10,7 @@ set(MESH_SRC
   ${SEMCOMMON}/pointlist.f90
   ${PRJ}/SRC/fich_cubit.f90
   ${PRJ}/SRC/fich_unv.f90
+  ${PRJ}/SRC/free_surf.f90
   ${PRJ}/SRC/local_mesh_properties.f90
   ${PRJ}/SRC/mesh2spec.f90
   ${PRJ}/SRC/mesher_mat.f90
