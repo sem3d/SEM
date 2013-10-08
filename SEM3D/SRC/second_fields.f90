@@ -19,7 +19,7 @@ contains
 
         ! physical gradient
         call physical_part_deriv(ngllx,nglly,ngllz,hTprimex,hprimey,hprimez,InvGrad,   &
-            density*phi,dphi_dx,dphi_dy,dphi_dz)
+            phi,dphi_dx,dphi_dy,dphi_dz)
 
         !
         Veloc(:,:,:,0) = dphi_dx(:,:,:)/density(:,:,:) 

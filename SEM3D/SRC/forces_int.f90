@@ -238,8 +238,6 @@ contains
 
    !---------------------------------
         else      ! FLUID PART OF THE DOMAIN
-        ! potential -> -pressure
-            Elem%ForcesFl(:,:,:) = Elem%Density(:,:,:)*Elem%ForcesFl(:,:,:)
 
         !- gradients at GLLs points
         ! d(rho*Phi)_dxi
