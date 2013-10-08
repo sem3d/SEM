@@ -14,8 +14,10 @@ module solid_fluid
        integer, dimension(0:3) :: Near_Edges_Orient
        integer                 :: Orient_Face
        integer                 :: ngll1,ngll2,dir
-       real, allocatable, dimension(:,:,:) :: normal, BtN,pn,save_forces,save_displ,save_accel
-       real, allocatable, dimension(:,:) :: vn, density
+       logical                 :: PML
+       real, allocatable, dimension(:,:,:) :: normal,BtN,pn,save_forces,save_displ,    &
+                                              pn1,pn2,pn3,save_veloc1,save_veloc2,save_veloc3
+       real, allocatable, dimension(:,:) :: vn, density,vn1,vn2,vn3
     end type face_SF
 
     type :: edge_SF
@@ -23,15 +25,19 @@ module solid_fluid
        ! index 0 for fluid element, 1 for solid one
        integer                 :: Orient_Edge
        integer                 :: ngll
-       real, allocatable, dimension(:,:) ::  BtN,pn,save_forces,save_displ,save_accel
-       real, allocatable, dimension(:) ::  vn
+       logical                 :: PML
+       real, allocatable, dimension(:,:) ::  BtN,pn,save_forces,save_displ,pn1,pn2,pn3,  &
+                                             save_veloc1,save_veloc2,save_veloc3
+       real, allocatable, dimension(:) ::  vn,vn1,vn2,vn3
     end type edge_SF
 
     type :: vertex_SF
        integer, dimension(0:1) :: vertex
        ! index 0 for fluid element, 1 for solid one
-       real, dimension(0:2) ::  BtN,pn,save_forces,save_displ,save_accel
-       real  :: vn
+       logical                 :: PML
+       real, dimension(0:2) ::  BtN,pn,save_forces,save_displ,pn1,pn2,pn3,   &
+                                save_veloc1,save_veloc2,save_veloc3
+       real  :: vn,vn1,vn2,vn3
     end type vertex_SF
 
 
