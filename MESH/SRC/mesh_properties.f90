@@ -13,7 +13,7 @@ contains
 
     subroutine mesh_init_3D(n_nods,n_points,n_elem,n_blocks,          &
         xco,yco,zco,Ipointer,Material,tabmat,n_neu,n_PW,     &
-        Faces_Neumann, Faces_PW,pml_b,pml_t,pml_bottom,nmatref)
+        Faces_Neumann, Faces_PW,pml_b,pml_t,pml_bottom,nmatref,strat_bool)
         implicit none
         integer, intent(out)   :: n_nods, n_points, n_elem, n_blocks, n_neu, &
             n_PW
@@ -23,6 +23,7 @@ contains
         character, dimension(0:), intent(in)              :: tabmat
         real, allocatable, dimension(:), intent(out)   :: xco,yco,zco
         integer, intent(in), optional   :: pml_b, pml_t, pml_bottom, nmatref
+        logical, intent(in)   :: strat_bool
         integer   :: choice, i_ex, idummy,icount,iunit, nfile, i, j, n, mesh_type
         integer, allocatable, dimension(:)  :: ind_mat, n_elem_mat
         real      :: xmin,xmax,ymin,ymax,zmin,zmax,step_x,step_y,step_z,   &
@@ -63,7 +64,7 @@ contains
             n_blocks = size(tabmat)
 
             !- just for Solid/Fluid trials..
-            Material(0:) = 0
+            !     Material(0:) = 0
             !     Material(5) = 1
             !     Material(6) = 1
             !     Material(4) = 1
@@ -74,7 +75,7 @@ contains
 
             !- PML materials added
             call nature_elem(Ipointer,xco,yco,zco,nmatref,Material,xminref,    &
-                xmaxref,yminref,ymaxref,zminref,zmaxref)
+                xmaxref,yminref,ymaxref,zminref,zmaxref,strat_bool)
 
             !- Cubit file
         case(2)
@@ -82,6 +83,8 @@ contains
                 &  Cubit meshing procedure."
             write(*,*)" CUBIT file to be analyzed."
             write(*,*) "****************************************"
+            write(*,*)
+            write(*,*) "    --> Warning: there must be no empty line in the Cubit file (depending on the version)"
             write(*,*)
             write(*,*) "  --> Name of the Cubit file:"
             read(*,*) cubitmesh
@@ -1375,17 +1378,25 @@ contains
     end subroutine mesh_on_the_fly
     !---------------------
     subroutine nature_elem(Ipoint,xp,yp,zp,nmat,mat,xminref,xmaxref,       &
-        yminref,ymaxref,zminref,zmaxref)
+        yminref,ymaxref,zminref,zmaxref,strat_bool)
         !- when on the fly construction: allows to determine the PML layers
-        !- automatically creates a SOLID PML layer; it has to be corrected after  TO BE DONE
         integer, intent(in)   :: Ipoint(0:,0:),nmat
         real, intent(in)      :: xp(0:),yp(0:),zp(0:), xminref, xmaxref,   &
             yminref,ymaxref,zminref,zmaxref
+        logical, intent(in)   :: strat_bool
         integer, intent(inout)  :: mat(0:)
         integer               :: i,j,n,nelem
-        real                  :: coord(0:7,0:2), bary(0:2)
+        real                  :: coord(0:7,0:2), bary(0:2), half
 
         nelem = size(Ipoint,2)
+
+        if(strat_bool)then
+            print*, "  --> Which z for the stratification plane?"
+            read*,half
+            if(half < zminref .or. half > zmaxref) stop "Stratification plane ill-placed."
+        end if
+
+
         do n = 0,nelem-1
             do i = 0,7
                 coord(i,0) = xp(Ipoint(i,n))
@@ -1393,6 +1404,7 @@ contains
                 coord(i,2) = zp(Ipoint(i,n))
             end do
             call barycentre(coord,bary)
+            if(.not. strat_bool)then   !! simple brick with PMLs
             !- PMLs material list
             if(bary(2) < zminref)then   ! all bottom PMLs
                 if(bary(1) < yminref)then
@@ -1474,6 +1486,137 @@ contains
                         Mat(n) = nmat+16
                     end if
                 end if
+            end if
+
+            if((bary(0) > xminref .and. bary(0) < xmaxref) .and. &
+               (bary(1) > yminref .and. bary(1) < ymaxref) .and. &
+               (bary(2) > zminref .and. bary(2) < zmaxref))then   ! physical layer
+                   Mat(n) = nmat-1
+            end if
+                                                                               
+
+            else      !! stratified medium
+          if(bary(2) < half .and. bary(2) > zminref)then   ! lower layer of lateral PMLs
+             if(bary(1) < yminref)then
+                if(bary(0) < xminref)then
+                   Mat(n) = nmat
+                else if(bary(0) > xmaxref)then
+                   Mat(n) = nmat+1
+                else
+                   Mat(n) = nmat+4
+                end if
+             else if(bary(1) > ymaxref)then
+                if(bary(0) < xminref)then
+                   Mat(n) = nmat+3
+                else if(bary(0) > xmaxref)then
+                   Mat(n) = nmat+2
+                else
+                   Mat(n) = nmat+6
+                end if
+             else
+                if(bary(0) < xminref)then
+                   Mat(n) = nmat+7
+                else if(bary(0) > xmaxref)then
+                   Mat(n) = nmat+5
+                end if
+             end if
+          end if
+
+          if(bary(2) < zminref)then   ! all bottom PMLs
+             if(bary(1) < yminref)then
+                if(bary(0) < xminref)then
+                   Mat(n) = nmat+8
+                else if(bary(0) > xmaxref)then
+                   Mat(n) = nmat+9
+                else
+                   Mat(n) = nmat+12
+                end if
+             else if(bary(1) > ymaxref)then
+                if(bary(0) < xminref)then
+                   Mat(n) = nmat+11
+                else if(bary(0) > xmaxref)then
+                   Mat(n) = nmat+10
+                else
+                   Mat(n) = nmat+14
+                end if
+             else
+                if(bary(0) < xminref)then
+                   Mat(n) = nmat+15
+                else if(bary(0) > xmaxref)then
+                   Mat(n) = nmat+13
+                else
+                   Mat(n) = nmat+16
+                end if
+             end if
+          end if
+
+          if(bary(2) > half .and. bary(2) < zmaxref)then   ! upper layer of lateral PMLs
+             if(bary(1) < yminref)then
+                if(bary(0) < xminref)then
+                   Mat(n) = nmat+17
+                else if(bary(0) > xmaxref)then
+                   Mat(n) = nmat+18
+                else
+                   Mat(n) = nmat+21
+                end if
+             else if(bary(1) > ymaxref)then
+                if(bary(0) < xminref)then
+                   Mat(n) = nmat+20
+                else if(bary(0) > xmaxref)then
+                   Mat(n) = nmat+19
+                else
+                   Mat(n) = nmat+23
+                end if
+             else
+                if(bary(0) < xminref)then
+                   Mat(n) = nmat+24
+                else if(bary(0) > xmaxref)then
+                   Mat(n) = nmat+22
+                end if
+             end if
+          end if
+
+
+          if(bary(2) > zmaxref)then   ! top PMLs
+             if(bary(1) < yminref)then
+                if(bary(0) < xminref)then
+                   Mat(n) = nmat+25
+                else if(bary(0) > xmaxref)then
+                   Mat(n) = nmat+26
+                else
+                   Mat(n) = nmat+29
+                end if
+             else if(bary(1) > ymaxref)then
+                if(bary(0) < xminref)then
+                   Mat(n) = nmat+28
+                else if(bary(0) > xmaxref)then
+                   Mat(n) = nmat+27
+                else
+                   Mat(n) = nmat+31
+                end if
+             else
+                if(bary(0) < xminref)then
+                   Mat(n) = nmat+32
+                else if(bary(0) > xmaxref)then
+                   Mat(n) = nmat+30
+                else
+                   Mat(n) = nmat+33
+                end if
+             end if
+          end if
+
+          if((bary(0) > xminref .and. bary(0) < xmaxref) .and. & 
+               (bary(1) > yminref .and. bary(1) < ymaxref) .and. & 
+               (bary(2) > zminref .and. bary(2) < half))then   ! lower physical layer
+             Mat(n) = nmat-2
+          end if
+
+          if((bary(0) > xminref .and. bary(0) < xmaxref) .and. & 
+               (bary(1) > yminref .and. bary(1) < ymaxref) .and. & 
+               (bary(2) > half .and. bary(2) < zmaxref))then   ! upper physical layer
+             Mat(n) = nmat-1
+          end if
+
             end if
 
 
