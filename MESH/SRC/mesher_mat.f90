@@ -9,11 +9,14 @@ program mesher_mat
     real, allocatable, dimension(:)       :: rho, Pspeed, Sspeed, Qpression, Qmu
     integer                   :: n_parts, pml_top, pml_bool, pml_bottom, n_mat, n_mat_tot, i_err,   &
          mat_b, i
+    logical                   :: strat_bool
     logical, parameter        :: VRAI = .true., FAUX = .false.
     integer, parameter        :: NMAX_PROCS = 8192
 
     !- PML present or not?
     pml_bool = 0 ; pml_top = 0 ; pml_bottom = 0
+    !- stratified medium?
+    strat_bool = .false.
 
     call system("clear")
 
@@ -52,11 +55,18 @@ program mesher_mat
         n_mat_tot = n_mat
         !- PMLs
         write(*,*) "  --> Number of non-PML materials:",n_mat
+        read(10,*) strat_bool
+        if(strat_bool) print*,"  --> Stratified medium."
+        if(n_mat > 2) stop "Automatic construction of this kind of medium: not done."
         read(10,*) pml_bool
         if(pml_bool /= 0 .and. pml_bool /= 1) stop "In mesh2spec: PML or not?"
         if(pml_bool == 1)then   ! PMLs added
             write(*,*) "  --> PMLs added."
-            n_mat_tot = n_mat_tot+8
+            if(strat_bool)then
+                n_mat_tot = n_mat_tot+16
+            else
+                n_mat_tot = n_mat_tot+8
+            end if
             read(10,*) pml_top,pml_bottom
             if(pml_top /= 0 .and. pml_top /= 1) stop "In mesh2spec: PML on top or not?"
             if(pml_bottom /= 0 .and. pml_bottom /= 1) stop "In mesh2spec: PML at the bottom or not?"
@@ -87,7 +97,7 @@ program mesher_mat
         close(10)
 
         !- SEM mesh file generated
-        call gen_mesh(matarray,n_parts,pml_bool,pml_top,pml_bottom,n_mat)
+        call gen_mesh(matarray,n_parts,pml_bool,pml_top,pml_bottom,n_mat,strat_bool)
 
         deallocate(rho,Pspeed,Sspeed,Qpression,Qmu)
 
@@ -112,6 +122,36 @@ contains
 
     end subroutine mat_table_construct
     !-------------------------------------
+    subroutine mat_table_construct_ondafly(mattab,nmat,strat_bool)
+        !- obtention of the material table array: important for the fluid/solid interfaces in mesh2spec
+        !- case where mesh built on the fly
+        character, intent(out)  :: mattab(0:)
+        integer, intent(in)     :: nmat
+        logical, intent(in)     :: strat_bool
+        integer                 :: i
+
+        do i = 0,nmat-1
+            read(10,"(a1)") mattab(i)
+        end do
+        if(strat_bool .and. mattab(0)=='F' .and. mattab(1) == 'S') stop "Fluid not under a solid layer."
+        if(size(mattab) == nmat) return
+        if(nmat == 1 .and. mattab(0)=='F') mattab(1:) = 'L'
+        if(nmat == 1 .and. mattab(0)=='S') mattab(1:) = 'P'
+        if(strat_bool)then   ! stratified medium
+            if(mattab(0)=='F' .and. mattab(1)=='F')then
+                mattab(2:) = 'L'
+            end if
+            if(mattab(0)=='S' .and. mattab(1)=='S')then
+                mattab(2:) = 'P'
+            end if
+            if(mattab(0)=='S' .and. mattab(1)=='F')then
+                mattab(2:18) = 'P' ; mattab(19:) = 'L'
+            end if
+        end if
+
+    end subroutine mat_table_construct_ondafly
+    !-------------------------------------
+
 end program mesher_mat
 !! Local Variables:
 !! mode: f90
