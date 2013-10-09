@@ -54,7 +54,7 @@ contains
         integer, dimension(Tdomain%n_proc) :: send_req, recv_req, send_pml_req, recv_pml_req
         integer, parameter :: tag=101, tag_pml=102
         integer, dimension(MPI_STATUS_SIZE,Tdomain%n_proc) :: statuses
-        write(*,*) "COMM 1"
+        !write(*,*) "COMM 1"
         !- now we can exchange (communication global arrays)
         n = Tdomain%n_proc
         send_req = MPI_REQUEST_NULL
@@ -87,7 +87,7 @@ contains
             endif
         enddo
 
-        write(*,*) "COMM done 1"
+        !write(*,*) "COMM done 1"
         call MPI_Waitall(Tdomain%n_proc, recv_req, statuses, ierr)
         call MPI_Waitall(Tdomain%n_proc, send_req, statuses, ierr)
         call MPI_Waitall(Tdomain%n_proc, send_pml_req, statuses, ierr)
