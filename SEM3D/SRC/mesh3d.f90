@@ -419,7 +419,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
         end do
         deallocate(itemp2, itemp2b)
         ! Vertices for each SF face
-        call read_dataset(fid, "sf_near_vertices", itemp2)
+        call read_dataset(fid, "sf_face_near_vertices", itemp2)
         do i = 0, Tdomain%SF%SF_n_faces-1
             Tdomain%SF%SF_face(i)%Near_Vertices(0:3) = itemp2(:,i+1)
         end do
