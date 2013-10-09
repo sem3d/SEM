@@ -556,6 +556,7 @@ subroutine read_input (Tdomain, rg, code)
     if (config%mpml/=0) then
         Tdomain%logicD%MPML = .true.
     end if
+    Tdomain%logicD%grad_bassin = .false.
     !Tdomain%logicD%plot_grid
     !Tdomain%logicD%run_exec
     !Tdomain%logicD%run_debug
