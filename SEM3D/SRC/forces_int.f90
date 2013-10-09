@@ -54,44 +54,22 @@ contains
 
         if(solid)then   ! SOLID PART OF THE DOMAIN
 
-        call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1, Elem%Forces(:,:,:,0), m1, 0., dUx_dxi, m1)
-        do n_z = 0,Elem%ngllz-1
-            call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,0), m1, hprimey, m2, 0., dUx_deta(:,:,n_z), m1)
-        enddo
-        call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,0), m1*m2, hprimez, m3, 0., dUx_dzeta, m1*m2)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,0),dUx_dxi,dUx_deta,dUx_dzeta)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,1),dUy_dxi,dUy_deta,dUy_dzeta)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,2),dUz_dxi,dUz_deta,dUz_dzeta)
 
-        call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1, Elem%Forces(:,:,:,1), m1, 0., dUy_dxi, m1)
-        do n_z = 0,Elem%ngllz-1
-            call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,1), m1, hprimey, m2, 0., dUy_deta(:,:,n_z), m1)
-        enddo
-        call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,1), m1*m2, hprimez, m3, 0., dUy_dzeta, m1*m2)
+        dxx = dUx_dxi*Elem%InvGrad(:,:,:,0,0) + dUx_deta*Elem%InvGrad(:,:,:,0,1) + dUx_dzeta*Elem%InvGrad(:,:,:,0,2)
+        dyx = dUx_dxi*Elem%InvGrad(:,:,:,1,0) + dUx_deta*Elem%InvGrad(:,:,:,1,1) + dUx_dzeta*Elem%InvGrad(:,:,:,1,2)
+        dzx = dUx_dxi*Elem%InvGrad(:,:,:,2,0) + dUx_deta*Elem%InvGrad(:,:,:,2,1) + dUx_dzeta*Elem%InvGrad(:,:,:,2,2)
 
-        call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1, Elem%Forces(:,:,:,2), m1, 0., dUz_dxi, m1)
-        do n_z = 0,Elem%ngllz-1
-            call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,2), m1, hprimey, m2, 0., dUz_deta(:,:,n_z), m1)
-        enddo
-        call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,2), m1*m2, hprimez, m3, 0., dUz_dzeta, m1*m2)
+        dxy = dUy_dxi*Elem%InvGrad(:,:,:,0,0) + dUy_deta*Elem%InvGrad(:,:,:,0,1) + dUy_dzeta*Elem%InvGrad(:,:,:,0,2)
+        dyy = dUy_dxi*Elem%InvGrad(:,:,:,1,0) + dUy_deta*Elem%InvGrad(:,:,:,1,1) + dUy_dzeta*Elem%InvGrad(:,:,:,1,2)
+        dzy = dUy_dxi*Elem%InvGrad(:,:,:,2,0) + dUy_deta*Elem%InvGrad(:,:,:,2,1) + dUy_dzeta*Elem%InvGrad(:,:,:,2,2)
 
-        do i = 0,m1-1
-            do j = 0,m2-1
-                do k = 0,m3-1
+        dxz = dUz_dxi*Elem%InvGrad(:,:,:,0,0) + dUz_deta*Elem%InvGrad(:,:,:,0,1) + dUz_dzeta*Elem%InvGrad(:,:,:,0,2)
+        dyz = dUz_dxi*Elem%InvGrad(:,:,:,1,0) + dUz_deta*Elem%InvGrad(:,:,:,1,1) + dUz_dzeta*Elem%InvGrad(:,:,:,1,2)
+        dzz = dUz_dxi*Elem%InvGrad(:,:,:,2,0) + dUz_deta*Elem%InvGrad(:,:,:,2,1) + dUz_dzeta*Elem%InvGrad(:,:,:,2,2)
 
-                    dxx(i,j,k) = dUx_dxi(i,j,k)*Elem%InvGrad(i,j,k,0,0) + dUx_deta(i,j,k)*Elem%InvGrad(i,j,k,0,1) + dUx_dzeta(i,j,k)*Elem%InvGrad(i,j,k,0,2)
-                    dyy(i,j,k) = dUy_dxi(i,j,k)*Elem%InvGrad(i,j,k,1,0) + dUy_deta(i,j,k)*Elem%InvGrad(i,j,k,1,1) + dUy_dzeta(i,j,k)*Elem%InvGrad(i,j,k,1,2)
-                    dzz(i,j,k) = dUz_dxi(i,j,k)*Elem%InvGrad(i,j,k,2,0) + dUz_deta(i,j,k)*Elem%InvGrad(i,j,k,2,1) + dUz_dzeta(i,j,k)*Elem%InvGrad(i,j,k,2,2)
-
-                    dyx(i,j,k) = dUx_dxi(i,j,k)*Elem%InvGrad(i,j,k,1,0) + dUx_deta(i,j,k)*Elem%InvGrad(i,j,k,1,1) + dUx_dzeta(i,j,k)*Elem%InvGrad(i,j,k,1,2)
-                    dzx(i,j,k) = dUx_dxi(i,j,k)*Elem%InvGrad(i,j,k,2,0) + dUx_deta(i,j,k)*Elem%InvGrad(i,j,k,2,1) + dUx_dzeta(i,j,k)*Elem%InvGrad(i,j,k,2,2)
-
-                    dxy(i,j,k) = dUy_dxi(i,j,k)*Elem%InvGrad(i,j,k,0,0) + dUy_deta(i,j,k)*Elem%InvGrad(i,j,k,0,1) + dUy_dzeta(i,j,k)*Elem%InvGrad(i,j,k,0,2)
-                    dzy(i,j,k) = dUy_dxi(i,j,k)*Elem%InvGrad(i,j,k,2,0) + dUy_deta(i,j,k)*Elem%InvGrad(i,j,k,2,1) + dUy_dzeta(i,j,k)*Elem%InvGrad(i,j,k,2,2)
-
-                    dxz(i,j,k) = dUz_dxi(i,j,k)*Elem%InvGrad(i,j,k,0,0) + dUz_deta(i,j,k)*Elem%InvGrad(i,j,k,0,1) + dUz_dzeta(i,j,k)*Elem%InvGrad(i,j,k,0,2)
-                    dyz(i,j,k) = dUz_dxi(i,j,k)*Elem%InvGrad(i,j,k,1,0) + dUz_deta(i,j,k)*Elem%InvGrad(i,j,k,1,1) + dUz_dzeta(i,j,k)*Elem%InvGrad(i,j,k,1,2)
-
-                enddo
-            enddo
-        enddo
 
         if (n_solid>0) then
             if (aniso) then
