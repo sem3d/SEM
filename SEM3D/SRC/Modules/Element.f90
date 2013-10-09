@@ -45,7 +45,6 @@ module selement
        real, dimension (:,:,:), allocatable :: Q, Qs, Qp, onemSbeta, onemPbeta, &
            epsilonvol_, &
            epsilondev_xx_,epsilondev_yy_,epsilondev_xy_,epsilondev_xz_,epsilondev_yz_
-       real, dimension (:), allocatable :: wgtx, wgty, wgtz
        real, dimension(:,:,:,:), allocatable :: ACoeff, Forces,Veloc,Displ,Accel,V0
        real, dimension(:,:,:,:), allocatable :: Cij, &
            factor_common_3, alphaval_3,betaval_3,gammaval_3, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_, &

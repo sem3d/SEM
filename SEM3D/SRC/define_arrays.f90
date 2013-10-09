@@ -233,12 +233,6 @@ subroutine Define_Arrays(Tdomain, rg)
                 do i = 0,ngllx-1
                     Whei(i,j,k) = Tdomain%sSubdomain(mat)%GLLwx(i) *       &
                         Tdomain%sSubdomain(mat)%GLLwy(j)*Tdomain%sSubdomain(mat)%GLLwz(k)
-        ! .. and individual ones.
-                    if (.NOT.Tdomain%specel(n)%PML) then
-                        Tdomain%specel(n)%wgtx(i) = Tdomain%sSubdomain(mat)%GLLwx(i)
-                        Tdomain%specel(n)%wgty(j) = Tdomain%sSubdomain(mat)%GLLwy(j)
-                        Tdomain%specel(n)%wgtz(k) = Tdomain%sSubdomain(mat)%GLLwz(k)
-                    endif
                 enddo
             enddo
         enddo

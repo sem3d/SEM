@@ -474,7 +474,7 @@ subroutine internal_forces(Tdomain,rank)
                 call get_Phi_Edge2Elem(Tdomain,n)
                 call get_Phi_Vertex2Elem(Tdomain,n)
             end if
-            call forces_int(Tdomain%specel(n),                                     &
+            call forces_int(Tdomain%specel(n), Tdomain%sSubDomain(mat),            &
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
                 Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
                 Tdomain%sSubDomain(mat)%hTprimez, Tdomain%n_sls,Tdomain%aniso,     &

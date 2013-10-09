@@ -113,17 +113,14 @@ subroutine allocate_domain (Tdomain, rg)
                         Tdomain%specel(n)%spml%IVeloc1 = 0.
                         Tdomain%specel(n)%spml%IVeloc2 = 0.
                         Tdomain%specel(n)%spml%IVeloc3 = 0.
-                    endif
+                    endif ! FPML
 
 
                     if (Tdomain%curve) then
                         allocate (Tdomain%specel(n)%spml%Normales (0:2, 0:2))
                         allocate (Tdomain%specel(n)%spml%Inv_Normales (0:2, 0:2))
                     endif
-                else
-                    allocate (Tdomain%specel(n)%wgtx (0:ngllx-1))
-                    allocate (Tdomain%specel(n)%wgty (0:nglly-1))
-                    allocate (Tdomain%specel(n)%wgtz (0:ngllz-1))
+                else ! PML
                 !  modif mariotti fevrier 2007 cea
                 !          allocate (Tdomain%specel(n)%Displ (1:ngllx-2, 1:nglly-2, 1:ngllz-2, 0:2))
                 !          Tdomain%specel(n)%Displ = 0
@@ -176,8 +173,8 @@ subroutine allocate_domain (Tdomain, rg)
                     Tdomain%specel(n)%R_xy_ = 0
                     Tdomain%specel(n)%R_xz_ = 0
                     Tdomain%specel(n)%R_yz_ = 0
-                endif
-                endif
+                endif ! n_solid
+                endif !PML
             endif
         else   ! FLUID PART
             if(Tdomain%TimeD%velocity_scheme)then
@@ -656,13 +653,13 @@ subroutine allocate_domain (Tdomain, rg)
                 ngll1 = Tdomain%SF%SF_Face(nf)%ngll1; ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
                 ngllSF = ngllSF + (ngll1-2)*(ngll2-2)
                 if(Tdomain%SF%SF_Face(nf)%PML) ngllSF_PML =     &
-                              ngllSF_PML+(ngll1-2)*(ngll2-2)
+                    ngllSF_PML+(ngll1-2)*(ngll2-2)
             enddo
             do i = 0,Tdomain%sComm(n)%SF_ne_shared-1
                 ne = Tdomain%sComm(n)%SF_edges_shared(i)
                 ngllSF = ngllSF + Tdomain%SF%SF_Edge(ne)%ngll-2
                 if(Tdomain%SF%SF_Edge(ne)%PML) ngllSF_PML =     &
-                              ngllSF_PML+Tdomain%SF%SF_Edge(ne)%ngll-2
+                    ngllSF_PML+Tdomain%SF%SF_Edge(ne)%ngll-2
             enddo
             do i = 0,Tdomain%sComm(n)%SF_nv_shared-1
                 ngllSF = ngllSF + 1

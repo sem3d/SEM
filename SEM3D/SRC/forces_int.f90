@@ -19,7 +19,7 @@ module forces_aniso
 
 contains
 
-    subroutine forces_int(Elem, htprimex, hprimey, htprimey, hprimez, htprimez,  &
+    subroutine forces_int(Elem, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
                n_solid, aniso, solid)
 
 
@@ -28,6 +28,7 @@ contains
         implicit none
 
         type (Element), intent (INOUT) :: Elem
+        type (subdomain), intent(IN) :: mat
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: htprimex
         real, dimension (0:Elem%nglly-1, 0:Elem%nglly-1), intent (IN) :: hprimey, htprimey
         real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
@@ -133,7 +134,7 @@ contains
                     Elem%Invgrad(:,:,:,1,2), &
                     Elem%Invgrad(:,:,:,2,2), &
                     htprimex, htprimey, htprimez, &
-                    Elem%Jacob, Elem%wgtx, Elem%wgty, Elem%wgtz, &
+                    Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &
@@ -163,7 +164,7 @@ contains
                     Elem%Invgrad(:,:,:,1,2), &
                     Elem%Invgrad(:,:,:,2,2), &
                     htprimex, htprimey, htprimez, &
-                    Elem%Jacob, Elem%wgtx, Elem%wgty, Elem%wgtz, &
+                    Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &
@@ -183,7 +184,7 @@ contains
                     Elem%Invgrad(:,:,:,1,2), &
                     Elem%Invgrad(:,:,:,2,2), &
                     htprimex, htprimey, htprimez, &
-                    Elem%Jacob, Elem%wgtx, Elem%wgty, Elem%wgtz, &
+                    Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &
@@ -223,7 +224,7 @@ contains
                     Elem%Invgrad(:,:,:,1,2), &
                     Elem%Invgrad(:,:,:,2,2), &
                     htprimex, htprimey, htprimez, &
-                    Elem%Jacob, Elem%wgtx, Elem%wgty, Elem%wgtz, &
+                    Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &
@@ -271,7 +272,7 @@ contains
                          Elem%Invgrad(:,:,:,1,2), &
                          Elem%Invgrad(:,:,:,2,2), &
                          htprimex,htprimey,htprimez, &
-                         Elem%Jacob,Elem%wgtx,Elem%wgty,Elem%wgtz, &
+                         Elem%Jacob,mat%GLLwx,mat%GLLwy,mat%GLLwz, &
                          dPhiX,dPhiY,dPhiZ,       &
                          Elem%Density,            &
                          m1,m2,m3)
