@@ -130,20 +130,6 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     endif
     call MPI_BARRIER(Tdomain%communicateur,code)
 
-    if (Tdomain%logicD%any_source) then
-        if (rg == 0) write (*,*) , "Compute source parameters "
-        call SourcePosition (Tdomain, rg)
-        call double_couple (Tdomain, rg)
-        call source_excit(Tdomain,rg)
-        call def_timefunc (Tdomain, rg)
-        !- pour entrees en temps: directement dans Modules/Source.f90
-        ! ->  lecture d'un fichier-entree pour la source; valable pour une seule source
-        do i = 0,Tdomain%n_source-1
-            if(Tdomain%sSource(i)%i_time_function == 5)then
-                call read_source_file(Tdomain%sSource(i))
-            endif
-        end do
-    endif
 
     !if (Tdomain%logicD%save_trace) then
     !    if (rg == 0) write (*,*) "Compute receiver locations "
@@ -171,6 +157,22 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
             call set_attenuation_param(Tdomain)
         endif
     endif
+
+    if (Tdomain%logicD%any_source) then
+        if (rg == 0) write (*,*) , "Compute source parameters "
+        call SourcePosition (Tdomain, rg)
+        call double_couple (Tdomain, rg)
+        call source_excit(Tdomain,rg)
+        call def_timefunc (Tdomain, rg)
+        !- pour entrees en temps: directement dans Modules/Source.f90
+        ! ->  lecture d'un fichier-entree pour la source; valable pour une seule source
+        do i = 0,Tdomain%n_source-1
+            if(Tdomain%sSource(i)%i_time_function == 5)then
+                call read_source_file(Tdomain%sSource(i))
+            endif
+        end do
+    endif
+
 
     if (rg == 0) write (*,*) "Entering the time evolution ",rg
     ! initialisation des temps
