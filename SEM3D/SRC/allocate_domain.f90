@@ -189,6 +189,7 @@ subroutine allocate_domain (Tdomain, rg)
                 Tdomain%specel(n)%VelPhi0 = 0d0
                 Tdomain%specel(n)%ForcesFl = 0d0
                 if(Tdomain%specel(n)%PML)then
+                    allocate(Tdomain%specel(n)%spml)
                     allocate(Tdomain%specel(n)%Acoeff(0:ngllx-1,0:nglly-1,0:ngllz-1,0:17))
                     allocate(Tdomain%specel(n)%spml%Veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%spml%Veloc1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
@@ -320,6 +321,7 @@ subroutine allocate_domain (Tdomain, rg)
             endif
         endif
     enddo
+
 
 
     do n = 0,Tdomain%n_edge-1

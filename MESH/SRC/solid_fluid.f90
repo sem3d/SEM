@@ -898,7 +898,7 @@ contains
             !-- 
             j = j+1   ! one more local SF edge
         end do
-        read*
+
     end subroutine SF_local_edges_construct
     !--------------------------------------------------------------
     !--------------------------------------------------------------

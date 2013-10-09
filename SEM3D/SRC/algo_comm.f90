@@ -168,26 +168,36 @@ contains
         integer, intent(in) :: rg
         integer :: n
         integer :: other, ierr
-        integer, dimension(0:Tdomain%n_proc) :: send_req, recv_req
+        integer, dimension(0:Tdomain%n_proc) :: req_s, req_r, req_s_pml,req_r_pml
         integer, parameter :: tag = 101
         integer, dimension(MPI_STATUS_SIZE,Tdomain%n_proc) :: statuses
         !- now we can exchange (communication global arrays)
         n = Tdomain%n_proc
-        send_req = MPI_REQUEST_NULL
-        recv_req = MPI_REQUEST_NULL
+        req_s = MPI_REQUEST_NULL
+        req_r = MPI_REQUEST_NULL
+        req_s_pml = MPI_REQUEST_NULL
+        req_s_pml = MPI_REQUEST_NULL
 
         do other = 0,n-1
             if (other == rg) cycle
             if (Tdomain%sComm(other)%ngllSF > 0) then
                 call MPI_Isend(Tdomain%sComm(other)%GiveForcesSF_StoF,Tdomain%sComm(other)%ngllSF, &
-                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur, send_req(other), ierr)
+                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur,req_s(other), ierr)
                 call MPI_Irecv(Tdomain%sComm(other)%TakeForcesSF_StoF,Tdomain%sComm(other)%ngllSF, &
-                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur, recv_req(other), ierr)
+                    MPI_DOUBLE_PRECISION, other, tag,Tdomain%communicateur,req_r(other), ierr)
+            endif
+            if (Tdomain%sComm(other)%ngllSF_PML > 0) then
+                call MPI_Isend(Tdomain%sComm(other)%GiveForcesSF_StoF_PML,3*Tdomain%sComm(other)%ngllSF_PML, &
+                    MPI_DOUBLE_PRECISION, other, tag,Tdomain%communicateur,req_s_pml(other), ierr)
+                call MPI_Irecv(Tdomain%sComm(other)%TakeForcesSF_StoF_PML,3*Tdomain%sComm(other)%ngllSF_PML, &
+                    MPI_DOUBLE_PRECISION, other,tag,Tdomain%communicateur,req_r_pml(other), ierr)
             endif
         enddo
 
-        call MPI_Waitall(Tdomain%n_proc, recv_req, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, send_req, statuses, ierr)
+        call MPI_Waitall(Tdomain%n_proc, req_s, statuses, ierr)
+        call MPI_Waitall(Tdomain%n_proc, req_r, statuses, ierr)
+        call MPI_Waitall(Tdomain%n_proc, req_s_pml, statuses, ierr)
+        call MPI_Waitall(Tdomain%n_proc, req_r_pml, statuses, ierr)
 
     end subroutine exchange_sem_forces_StoF
 
@@ -199,26 +209,37 @@ contains
         integer, intent(in) :: rg
         integer :: n
         integer :: other, ierr
-        integer, dimension(0:Tdomain%n_proc) :: send_req, recv_req
+        integer, dimension(0:Tdomain%n_proc) :: req_s, req_r, req_s_pml,req_r_pml
         integer, parameter :: tag = 101
         integer, dimension(MPI_STATUS_SIZE,Tdomain%n_proc) :: statuses
         !- now we can exchange (communication global arrays)
         n = Tdomain%n_proc
-        send_req = MPI_REQUEST_NULL
-        recv_req = MPI_REQUEST_NULL
+        req_s = MPI_REQUEST_NULL
+        req_r = MPI_REQUEST_NULL
+        req_s_pml = MPI_REQUEST_NULL
+        req_s_pml = MPI_REQUEST_NULL
 
         do other = 0,n-1
             if (other == rg) cycle
             if (Tdomain%sComm(other)%ngllSF > 0) then
                 call MPI_Isend(Tdomain%sComm(other)%GiveForcesSF_FtoS,3*Tdomain%sComm(other)%ngllSF, &
-                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur, send_req(other), ierr)
+                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur,req_s(other), ierr)
                 call MPI_Irecv(Tdomain%sComm(other)%TakeForcesSF_FtoS,3*Tdomain%sComm(other)%ngllSF, &
-                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur, recv_req(other), ierr)
+                    MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur,req_r(other), ierr)
             endif
+            if (Tdomain%sComm(other)%ngllSF_PML > 0) then
+                call MPI_Isend(Tdomain%sComm(other)%GiveForcesSF_FtoS_PML,9*Tdomain%sComm(other)%ngllSF_PML, &
+                     MPI_DOUBLE_PRECISION, other, tag,Tdomain%communicateur,req_s_pml(other), ierr)
+                call MPI_Irecv(Tdomain%sComm(other)%TakeForcesSF_FtoS_PML,9*Tdomain%sComm(other)%ngllSF_PML, &
+                     MPI_DOUBLE_PRECISION, other, tag,Tdomain%communicateur,req_r_pml(other), ierr)
+            endif
+
         enddo
 
-        call MPI_Waitall(Tdomain%n_proc, recv_req, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, send_req, statuses, ierr)
+        call MPI_Waitall(Tdomain%n_proc, req_s, statuses, ierr)
+        call MPI_Waitall(Tdomain%n_proc, req_r, statuses, ierr)
+        call MPI_Waitall(Tdomain%n_proc, req_s_pml, statuses, ierr)
+        call MPI_Waitall(Tdomain%n_proc, req_r_pml, statuses, ierr)
 
     end subroutine exchange_sem_forces_FtoS
 

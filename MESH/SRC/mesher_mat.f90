@@ -91,9 +91,7 @@ program mesher_mat
         write(*,*)
         write(*,*) "************************************************"
         write(*,*) "  --> Construction of the material table: OK."
-        do i = 0,n_mat-1
-            read(10,"(a1)") matarray(i)
-        end do
+        call mat_table_construct_ondafly(matarray,n_mat,strat_bool)
         close(10)
 
         !- SEM mesh file generated
