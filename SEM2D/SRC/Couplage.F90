@@ -982,6 +982,7 @@ contains
 
 
         dmin = huge(1.)
+        itrouve = -1
         numFace = comm_couplage%m_numFace(ip)
 
         do iface=1,Nbface
