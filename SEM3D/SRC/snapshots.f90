@@ -514,6 +514,7 @@ contains
         real, dimension(:,:),allocatable :: displ, veloc, accel
         real, dimension(:), allocatable :: press
         real, dimension(:,:,:,:),allocatable :: field_displ, field_veloc, field_accel
+        real, dimension(:,:,:),allocatable :: field_press
         integer, dimension(:), allocatable :: valence
         integer :: hdferr
         integer :: ngllx, nglly, ngllz, idx
@@ -551,13 +552,16 @@ contains
                 if (allocated(field_displ)) deallocate(field_displ)
                 if (allocated(field_veloc)) deallocate(field_veloc)
                 if (allocated(field_accel)) deallocate(field_accel)
+                if (allocated(field_press)) deallocate(field_press)
                 allocate(field_displ(0:ngllx-1,0:nglly-1,0:ngllz-1,3))
                 allocate(field_veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,3))
                 allocate(field_accel(0:ngllx-1,0:nglly-1,0:ngllz-1,3))
+                allocate(field_press(0:ngllx-1,0:nglly-1,0:ngllz-1))
             endif
             call gather_elem_displ(Tdomain, n, field_displ)
             call gather_elem_veloc(Tdomain, n, field_veloc)
             call gather_elem_accel(Tdomain, n, field_accel)
+            call gather_elem_press(Tdomain, n, field_press)
 
             do k = 0,ngllz-1
                 do j = 0,nglly-1
@@ -567,6 +571,7 @@ contains
                         displ(:,idx) = field_displ(i,j,k,:)
                         veloc(:,idx) = veloc(:,idx)+field_veloc(i,j,k,:)
                         accel(:,idx) = accel(:,idx)+field_accel(i,j,k,:)
+                        press(idx) = field_press(i,j,k)
                     end do
                 end do
             end do
@@ -675,21 +680,31 @@ contains
             write(61,"(a,I4.4,a)") 'geometry',rg,'.h5:/Nodes'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Geometry>'
+
             write(61,"(a,I4.4,a)") '<Attribute Name="Displ" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
             write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
             write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/displ'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Attribute>'
+
             write(61,"(a,I4.4,a)") '<Attribute Name="Veloc" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
             write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
             write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/veloc'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Attribute>'
+
             write(61,"(a,I4.4,a)") '<Attribute Name="Accel" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
             write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
             write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/accel'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Attribute>'
+
+            write(61,"(a,I4.4,a)") '<Attribute Name="Pressure" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+            write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+            write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/press'
+            write(61,"(a)") '</DataItem>'
+            write(61,"(a)") '</Attribute>'
+
             write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar" Dimensions="1">'
             write(61,"(a,I4,a)") '<DataItem Format="XML" Datatype="Int"  Dimensions="1">',rg,'</DataItem>'
             write(61,"(a)") '</Attribute>'
