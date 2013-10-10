@@ -430,6 +430,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
         do i = 0, Tdomain%SF%SF_n_faces-1
             Tdomain%SF%SF_face(i)%Face(0:1) = itemp2(1:2,i+1)
             Tdomain%SF%SF_face(i)%Orient_Face = itemp(i+1)
+            Tdomain%SF%SF_face(i)%PML = .false.
         end do
         deallocate(itemp, itemp2)
         ! SF edges
@@ -440,6 +441,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
         do i = 0, Tdomain%SF%SF_n_edges-1
             Tdomain%SF%SF_edge(i)%Edge(0:1) = itemp2(1:2,i+1)
             Tdomain%SF%SF_edge(i)%Orient_Edge = itemp(i+1)
+            Tdomain%SF%SF_edge(i)%PML = .false.
         end do
         deallocate(itemp, itemp2)
         ! SF vertices
@@ -448,6 +450,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
         allocate(Tdomain%SF%SF_vertex(0:Tdomain%SF%SF_n_vertices-1))
         do i = 0, Tdomain%SF%SF_n_vertices-1
             Tdomain%SF%SF_vertex(i)%Vertex(0:1) = itemp2(1:2,i+1)
+            Tdomain%SF%SF_Vertex(i)%PML = .false.
         end do
         deallocate(itemp2)
     end if
