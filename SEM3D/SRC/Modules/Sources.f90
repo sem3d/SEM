@@ -51,6 +51,7 @@ contains
         integer, intent(in) :: ntime
         real, intent(in) :: time
 
+        CompSource = 0d0
         select case (Sour%i_time_function)
         case (1)
             CompSource = Gaussian (time, Sour%ts, Sour%tau_b)
@@ -77,6 +78,9 @@ contains
         case (9)
             ! Square. Param : ts, gamma
             CompSource = Source_tanh(time, Sour)
+        case (10)
+            ! Square. Param : ts, gamma
+            CompSource = Ricker_fl(time, Sour%tau_b, Sour%cutoff_freq)
         end select
         CompSource = CompSource*Sour%amplitude_factor
         return
@@ -304,17 +308,6 @@ contains
 
         return
     end function Ricker_Fl
-    !----------------------------------------------------
-    !----------------------------------------------------
-    real function CompSource_Fl(Sour,time)
-        ! only a Ricker for the time being.
-        type(source) :: Sour
-        real :: time
-
-        CompSource_Fl = Ricker_fl(time,Sour%tau_b,Sour%cutoff_freq)
-
-        return
-    end function CompSource_Fl
 
 end module ssources
 !! Local Variables:

@@ -520,22 +520,20 @@ subroutine external_forces(Tdomain,timer,ntime,rank)
             !    exterieure doive etre prise a t_(n+1/2)
             t = timer+Tdomain%TimeD%dtmin/2d0
             !
+            ft = CompSource(Tdomain%sSource(ns), t, ntime)
             if(Tdomain%sSource(ns)%i_type_source == 1)then  ! collocated force in solid
-                ft = CompSource(Tdomain%sSource(ns), t, ntime)
                 !
                 i_dir = Tdomain%Ssource(ns)%i_dir
                 Tdomain%specel(nel)%Forces(:,:,:,i_dir) = Tdomain%specel(nel)%Forces(:,:,:,i_dir)+ &
                     ft*Tdomain%sSource(ns)%ExtForce(:,:,:)
             else if(Tdomain%sSource(ns)%i_type_source == 2)then  ! moment tensor source
-                ft = CompSource(Tdomain%sSource(ns), t, ntime)
-                !
                 do i_dir = 0,2
                     Tdomain%specel(nel)%Forces(:,:,:,i_dir) = Tdomain%specel(nel)%Forces(:,:,:,i_dir)+ &
                         ft*Tdomain%sSource(ns)%MomForce(:,:,:,i_dir)
                 end do
             else if(Tdomain%sSource(ns)%i_type_source == 3)then    ! pressure pulse in fluid
                 Tdomain%specel(nel)%ForcesFl(:,:,:) = Tdomain%specel(nel)%ForcesFl(:,:,:)+    &
-                    CompSource_Fl(Tdomain%sSource(ns),t)*Tdomain%sSource(ns)%ExtForce(:,:,:)
+                    ft*Tdomain%sSource(ns)%ExtForce(:,:,:)
             end if
         endif
     enddo
