@@ -27,7 +27,7 @@ subroutine Newmark(Tdomain,rg,ntime)
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: rg,ntime
 
-    integer :: n, mat
+    integer :: n, mat,code
     integer :: nf, ne, nv
     integer :: nf_aus, ne_aus, nv_aus
     integer :: ngll, ngll1, ngll2, ngllPML, ngll_F, ngllPML_F
@@ -175,6 +175,7 @@ subroutine Newmark(Tdomain,rg,ntime)
             endif
         enddo
     endif
+
 
     !- solid -> fluid coupling (normal dot velocity)
     if(Tdomain%logicD%SF_local_present)then
