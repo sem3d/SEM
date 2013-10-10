@@ -353,7 +353,7 @@ contains
         real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVx_dxi,dVx_deta,dVx_dzeta, &
             dVy_dxi,dVy_deta,dVy_dzeta, dVz_dxi,dVz_deta,dVz_dzeta
 
-        integer :: m1, m2,m3 ,n_z
+        integer :: m1, m2,m3
 
 
         m1 = Elem%ngllx; m2 = Elem%nglly;  m3= Elem%ngllz
@@ -434,7 +434,7 @@ contains
         real, dimension(0:Elem%ngllz-1,0:Elem%ngllz-1), intent(in) :: hprimez
 
         real, dimension(0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVelPhi_dxi,dVelPhi_deta,dVelPhi_dzeta
-        integer :: m1,m2,m3,n_z
+        integer :: m1,m2,m3
 
 
         m1 = Elem%ngllx ; m2 = Elem%nglly ; m3 = Elem%ngllz
@@ -513,24 +513,9 @@ contains
 
         Elem%Forces(1:m1-2,1:m2-2, 1:m3-2, 0:2) = Elem%Veloc(:,:,:,:) + dt *(0.5-bega) *Elem%Accel(:,:,:,:)
 
-        call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1,Elem%Forces(:,:,:,0), m1, 0., dVx_dxi, m1)
-        do n_z = 0,m3-1
-            call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,0), m1, hprimey, m2, 0., dVx_deta(:,:,n_z),m1)
-        enddo
-        call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,0), m1*m2, hprimez, m3, 0., dVx_dzeta, m1*m2)
-
-        call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1,Elem%Forces(:,:,:,1), m1, 0., dVy_dxi, m1)
-        do n_z = 0,m3-1
-            call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,1), m1, hprimey, m2, 0., dVy_deta(:,:,n_z),m1)
-        enddo
-        call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,1), m1*m2, hprimez, m3, 0., dVy_dzeta, m1*m2)
-
-        call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1,Elem%Forces(:,:,:,2), m1, 0., dVz_dxi, m1)
-        do n_z = 0,m3-1
-            call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,2), m1, hprimey, m2, 0., dVz_deta(:,:,n_z),m1)
-        enddo
-        call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,2), m1*m2, hprimez, m3, 0., dVz_dzeta, m1*m2)
-
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,0),dVx_dxi,dVx_deta,dVx_dzeta)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,1),dVy_dxi,dVy_deta,dVy_dzeta)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,2),dVz_dxi,dVz_deta,dVz_dzeta)
 
         Stress_Ausiliar = Elem%spml%Diagonal_Stress1 (:,:,:,0)
         Elem%spml%Diagonal_Stress1 (:,:,:,0) = Elem%spml%dumpSx(:,:,:,0) * Elem%spml%Diagonal_Stress1 (:,:,:,0) + &

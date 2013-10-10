@@ -325,6 +325,7 @@ subroutine define_fault_properties (Tdomain)
     write (23,"(a2)") ">>"
     do n = 0, Tdomain%n_fault-1
         do i = 0, Tdomain%sFault(n)%n_face-1
+            ngll = Tdomain%sFault(n)%fFace(i)%ngll
             nv = Tdomain%sFault(n)%fFace(i)%Face_to_Vertex(0)
             c1 = Tdomain%sFault(n)%Fface(i)%X_Vertex(0)
             write (23,*) c1,Tdomain%sFault(n)%fVertex(nv)%tau0
@@ -347,7 +348,7 @@ subroutine define_fault_properties (Tdomain)
     write (24,"(a2)") ">>"
     do n = 0, Tdomain%n_fault-1
         do i = 0, Tdomain%sFault(n)%n_face-1
-            ngll = Tdomain%sFault(nf)%fFace(i)%ngll
+            ngll = Tdomain%sFault(n)%fFace(i)%ngll
             nv = Tdomain%sFault(n)%fFace(i)%Face_to_Vertex(0)
             c1 = Tdomain%sFault(n)%Fface(i)%X_Vertex(0)
             write (24,*) c1,Tdomain%sFault(n)%fVertex(nv)%sigma0

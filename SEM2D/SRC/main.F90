@@ -18,7 +18,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
         use mCapteur
         use semdatafiles
         use mpi
-
+        use sem_c_bindings
 #ifdef COUPLAGE
         use scouplage
 #endif
@@ -28,18 +28,11 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
         integer :: ntime,i_snap, ierr
         integer :: isort,n
         character(len=MAX_FILE_SIZE) :: fnamef
-
-#ifdef MKA3D
-        character*4 :: ctime
-        integer :: i
         character(len=10) :: nom_grandeur
         character(len=MAX_FILE_SIZE) :: nom_dir_sorties
-        character(len=30) :: creer_dir
-        !character(len=10) :: cit
         integer :: info_capteur
         real(kind=8) :: remaining_time
         real(kind=8), parameter :: max_time_left=900
-#endif
 
 #ifdef COUPLAGE
         integer :: groupe
@@ -48,13 +41,12 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
         integer :: finSem,nrec
         integer :: tag, MaxNgParFace
         integer, dimension (MPI_STATUS_SIZE) :: status
-        !    integer iparcours !Gsa
+        integer, dimension(3) :: flags_synchro ! fin/protection/sortie
 #endif
         integer :: display_iter !! Indique si on doit faire des sortie lors de cette iteration
         real(kind=4), dimension(2) :: tarray
-        real(kind=4) :: tref, curtime
+        real(kind=4) :: tref
         real(kind=4), parameter :: display_iter_time = 5.
-        integer, dimension(3) :: flags_synchro ! fin/protection/sortie
         integer :: interrupt, rg, code, protection
 
         display_iter = 1
@@ -75,78 +67,65 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
 #endif
         rg = Tdomain%Mpi_var%my_rank
 
-#ifdef MKA3D
-        if (Tdomain%MPI_var%my_rank == 0) then
-            print*, "execution avec DIRECTIVE=MKA3D"
-        endif
-        !! call system('mkdir -p Resultats/sem')  !!initial
-        call system('mkdir -p Resultats')
-        call system('mkdir -p Capteurs/sem')
-#endif
-
 #ifdef COUPLAGE
-    call init_mka3d_path()
+        call init_mka3d_path()
 #endif
+        if (rg == 0) call create_sem_output_directories()
 
         !lecture du fichier de donnee
-        if (Tdomain%MPI_var%my_rank == 0) write (*,*) "Read input.spec"
+        if (rg == 0) write (*,*) "Read input.spec"
         call read_input (Tdomain)
 
 
         !lecture du fichier de maillage unv avec conversion en fichier sem2D
-        if (Tdomain%MPI_var%my_rank == 0) write (*,*) "Define mesh properties"
+        if (rg == 0) write (*,*) "Define mesh properties"
         call read_mesh(Tdomain)
 
 
-        if (Tdomain%MPI_var%my_rank == 0) write (*,*) "Compute Gauss-Lobatto-Legendre weights and zeroes"
+        if (rg == 0) write (*,*) "Compute Gauss-Lobatto-Legendre weights and zeroes"
         call compute_GLL (Tdomain)
 
-        if (Tdomain%MPI_var%my_rank == 0) write (*,*) "Define a global numbering for the collocation points"
+        if (rg == 0) write (*,*) "Define a global numbering for the collocation points"
         call global_numbering (Tdomain)
 
-        if (Tdomain%MPI_var%my_rank == 0) write (*,*) "Computing shape functions within thier derivatives"
+        if (rg == 0) write (*,*) "Computing shape functions within thier derivatives"
         if  (Tdomain%n_nodes == 4) then
             call shape4(TDomain)   ! Linear interpolation
         else if (Tdomain%n_nodes == 8) then
             call shape8(TDomain)  ! Quadratic interpolation
         else
-            if (Tdomain%MPI_var%my_rank == 0) write (*,*) " Bad number of nodes for hexaedral shape "
+            if (rg == 0) write (*,*) " Bad number of nodes for hexaedral shape "
             stop
         endif
 
-!        if (Tdomain%logicD%plot_grid) then
-!            if (Tdomain%MPI_var%my_rank == 0) write (*,*) "Plotting the element mesh"
-!            call plot_grid (Tdomain)
-!        endif
-
-        if (Tdomain%MPI_var%my_rank == 0) write (*,*) " Compute Courant parameter"
+        if (rg == 0) write (*,*) " Compute Courant parameter"
         call compute_Courant (Tdomain)
 
-        if (Tdomain%MPI_var%my_rank == 0) write (*,*) "Attribute PML properties"
+        if (rg == 0) write (*,*) "Attribute PML properties"
         call PML_definition (Tdomain)
 
         if (Tdomain%logicD%any_source) then
-            if (Tdomain%MPI_var%my_rank == 0) write (*,*) "Computing point-source parameters and location"
+            if (rg == 0) write (*,*) "Computing point-source parameters and location"
             call SourcePosition(Tdomain)
         endif
 
         if (Tdomain%logicD%save_trace ) then
-            if (Tdomain%MPI_var%my_rank == 0) write (*,*) "Computing receivers parameters and locations"
+            if (rg == 0) write (*,*) "Computing receivers parameters and locations"
             call ReceiverPosition(Tdomain)
         endif
 
-        if (Tdomain%MPI_var%my_rank ==0 .and. Tdomain%logicD%super_object) write(*,*) "Define Fault properties"
+        if (rg ==0 .and. Tdomain%logicD%super_object) write(*,*) "Define Fault properties"
         if (Tdomain%logicD%super_object_local_present) then
             if (Tdomain%n_fault > 0) call define_fault_properties (Tdomain)
         endif
 
-        if (Tdomain%MPI_var%my_rank == 0) write (*,*) " Allocate fields"
+        if (rg == 0) write (*,*) " Allocate fields"
         call allocate_domain (Tdomain)
 
-        if (Tdomain%MPI_var%my_rank == 0) write (*,*) "Compute tranfer quantities"
+        if (rg == 0) write (*,*) "Compute tranfer quantities"
         call wall_transfer (Tdomain)
 
-        if (Tdomain%MPI_var%my_rank == 0) write (*,*) " Compute mass matrix and internal forces coefficients"
+        if (rg == 0) write (*,*) " Compute mass matrix and internal forces coefficients"
         call define_arrays (Tdomain)
 
 
@@ -157,7 +136,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
         isort = 1
 
 #ifdef COUPLAGE
-        if (Tdomain%MPI_var%my_rank == 0) write(6,'(A)') 'Methode de couplage Mka3D/SEM2D 4: Peigne de points d''interpolation, en vitesses, systeme lineaire sur la vitesse,', &
+        if (rg == 0) write(6,'(A)') 'Methode de couplage Mka3D/SEM2D 4: Peigne de points d''interpolation, en vitesses, systeme lineaire sur la vitesse,', &
             ' contraintes discontinues pour les ddl de couplage'
 
         call initialisation_couplage(Tdomain, MaxNgParFace)
@@ -187,7 +166,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
             call read_restart(Tdomain,isort)
             open (78,file = fnamef,status="unknown",form="formatted",position="append")
         else ! pas de reprise
-            if (Tdomain%MPI_var%my_rank == 0) then
+            if (rg == 0) then
                 open (78,file = fnamef,status="unknown",form="formatted",position="rewind")
                 ! on supprime tous les fichiers et repertoire de protection
                 call system('rm -Rf ./ProRep/sem/Prot*')
@@ -238,18 +217,6 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
                 if (rg==0) write(*,*) "Sortie sur limite de temps..."
                 exit
             end if
-
-            !        call dtime(tarray, curtime)
-            !        if (curtime-tref > display_iter_time) then
-            !            display_iter = 1
-            !            tref = curtime
-            !        else
-            !            display_iter = 0
-            !        endif
-            !       if (Tdomain%MPI_var%my_rank == 0 .and. display_iter==1) then
-            !          write(*,'(a16,i8.8,a1,i8.8,a8,f10.5)') "SEM : iteration ",ntime,"/",Tdomain%TimeD%NtimeMax-1,&
-            !               " temps :",Tdomain%TimeD%rtime
-            !       endif
 
             call Newmark (Tdomain, ntime)
 
@@ -309,12 +276,11 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
 
                 if (i_snap==0) then
                     call semname_snap_result_dir(isort,nom_dir_sorties)
-                    creer_dir = "mkdir -p "//nom_dir_sorties
-                    call system(creer_dir)
+                    ierr = sem_mkdir(trim(adjustl(nom_dir_sorties)))
                 endif
 
 #ifdef COUPLAGE
-                if (Tdomain%MPI_var%my_rank == 0.and.i_snap == 0 .and. display_iter==1) then
+                if (rg == 0.and.i_snap == 0 .and. display_iter==1) then
                     write(*,'(a35,i8.8,a8,f10.5)') "SEM : sortie resultats iteration : ",ntime," temps : ",Tdomain%TimeD%rtime
                 endif
                 !i_snap=1
@@ -337,7 +303,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
             endif
 
             if (i_snap==0) then
-                if (Tdomain%MPI_var%my_rank == 0) then
+                if (rg == 0) then
                     write(78,*)isort,Tdomain%TimeD%rtime
                     call semname_nb_proc(isort,fnamef)
                     open (79,file = fnamef,status="replace",form="formatted")
@@ -410,16 +376,16 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
 #ifdef COUPLAGE
         ! on quitte directement SEM, la fin du parallelisme est geree par le main.C de la maquette
 #else
-        write (*,*) "execution completed for the rank",Tdomain%MPI_var%my_rank
+        write (*,*) "execution completed for the rank",rg
         call MPI_Finalize  (ierr)
 #endif
 #else
-        write (*,*) "execution completed for the rank",Tdomain%MPI_var%my_rank
+        write (*,*) "execution completed for the rank",rg
         call MPI_Finalize  (ierr)
 #endif
 
 #ifdef MKA3D
-        if (Tdomain%MPI_var%my_rank == 0) close(78)
+        if (rg == 0) close(78)
 #endif
 
 #ifdef COUPLAGE
