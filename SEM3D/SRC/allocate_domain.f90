@@ -664,6 +664,7 @@ subroutine allocate_domain (Tdomain, rg)
                     ngllSF_PML+Tdomain%SF%SF_Edge(ne)%ngll-2
             enddo
             do i = 0,Tdomain%sComm(n)%SF_nv_shared-1
+                nv = Tdomain%sComm(n)%SF_vertices_shared(i)
                 ngllSF = ngllSF + 1
                 if(Tdomain%SF%SF_Vertex(nv)%PML) ngllSF_PML = ngllSF_PML+1
             enddo
@@ -729,7 +730,7 @@ subroutine allocate_domain (Tdomain, rg)
             Tdomain%sComm(n)%ngllNeu = ngllNeu
             Tdomain%sComm(n)%ngllSF = ngllSF
             Tdomain%sComm(n)%ngllSF_PML = ngllSF_PML
-
+print*,"COMM",rg,n,Tdomain%sComm(n)%ngllSF,Tdomain%sComm(n)%ngllSF_PML
 
         enddo
     else
