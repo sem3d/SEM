@@ -86,6 +86,7 @@ subroutine read_input (Tdomain)
     ! It is done by any processor
     call semname_file_input_spec(fnamef)
 
+    write(*,*) "Opening:", trim(fnamef)
     call read_sem_config(config, trim(fnamef)//C_NULL_CHAR, code)
 
     Tdomain%Title_simulation = fromcstr(config%run_name)
@@ -114,22 +115,12 @@ subroutine read_input (Tdomain)
 
     call create_sem2d_sources(Tdomain, config)
 
-    !open (11,file=fnamef,form="formatted",status="old")
-    !read (11,*) Tdomain%Title_simulation
-    !read (11,*) Tdomain%TimeD%acceleration_scheme
-    !read (11,*) Tdomain%TimeD%velocity_scheme
-    !read (11,*) Tdomain%TimeD%duration
-    !read (11,*) Tdomain%TimeD%alpha
-    !read (11,*) Tdomain%TimeD%beta
-    !read (11,*) Tdomain%TimeD%gamma
-    !read (11,*) Tdomain%mesh_file
-    !read (11,*) Tdomain%material_file
-    !read (11,*) Tdomain%logicD%save_trace
-    !read (11,*) Tdomain%logicD%save_snapshots
+    Tdomain%logicD%run_echo = .false.
+    Tdomain%logicD%super_object = .false.
+    Tdomain%logicD%super_object_local_present = .false.
     !read (11,*) Tdomain%logicD%save_deformation
     !read (11,*) Tdomain%logicD%save_energy
 
-    !read (11,*) Tdomain%logicD%plot_grid
     !read (11,*) Tdomain%logicD%run_exec
     !read (11,*) Tdomain%logicD%run_debug
     !read (11,*) Tdomain%logicD%run_echo
@@ -165,8 +156,8 @@ subroutine read_input (Tdomain)
     !    enddo
     !endif
 
-
-
+    Tdomain%bMailUnv = .false.
+    Tdomain%bCapteur = .false.
     ! conversion dun maillage unv en maillage sem
     !read (11,*) Tdomain%bMailUnv
 
@@ -185,7 +176,7 @@ subroutine read_input (Tdomain)
     !if (Tdomain%logicD%save_restart) then
     !    read (11,*) Tdomain%TimeD%ncheck ! frequence de sauvegarde
     !endif
-
+    !
     !close (11)
 
     ! If echo modality write the read parameter in a file

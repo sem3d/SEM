@@ -33,10 +33,10 @@ module sdomain
        integer :: master_superviseur
 #endif
 
-       integer :: n_elem, n_face, n_vertex, n_source,n_dime,n_glob_nodes, n_line ,n_receivers
+       integer :: n_elem, n_face, n_vertex, n_source,n_glob_nodes, n_line ,n_receivers
        integer :: n_nodes, n_mat,n_glob_points, n_super_object, n_fault, n_communications
        integer, dimension (:), pointer :: Line_index, Communication_list
-
+       integer :: n_quad ! Total number of quad elements to output (including subelements)
        real, dimension (:,:), pointer :: Coord_nodes, GlobCoord
        real, dimension(:,:,:), pointer :: Store_Trace
 

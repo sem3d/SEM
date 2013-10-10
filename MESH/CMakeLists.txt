@@ -40,3 +40,11 @@ target_link_libraries(mesher metis ${MESH_EXTRA_LIBS})
 
 
 install(TARGETS mesher DESTINATION bin)
+
+add_executable(cmesh
+  ${PRJ}/CSRC/main.cpp
+  ${PRJ}/CSRC/mesh.cpp
+)
+include_directories(${PRJ}/CSRC ${PRJ}/metis/include)
+target_link_libraries(cmesh metis ${HDF5_LIBRARIES})
+

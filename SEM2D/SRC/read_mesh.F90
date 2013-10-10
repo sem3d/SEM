@@ -33,8 +33,8 @@ subroutine read_mesh(tDomain)
     type (domain), intent (INOUT) :: Tdomain
 
     integer , dimension (:), allocatable :: Ipointer
-    real :: dtmin
-
+    real :: dtmin, Qp, Qs
+    integer :: n_dime
 
     ! Read Mesh properties
     ! The reading is local to the grid
@@ -43,26 +43,30 @@ subroutine read_mesh(tDomain)
 
     write(*,*)"ouverture fichier:",fnamef
     open (12,file=fnamef, status="old", form="formatted")
-    read (12,*) Tdomain%n_dime
+    read (12,*) n_dime
+    if (n_dime /= 2) then
+        write (*,*) "A dimension different from 2 is not yet taken into account"
+        stop
+    endif
     read (12,*) Tdomain%n_glob_nodes
-    allocate (Tdomain%Coord_nodes(0:Tdomain%n_dime-1,0:Tdomain%n_glob_nodes-1))
+    allocate (Tdomain%Coord_nodes(0:1,0:Tdomain%n_glob_nodes-1))
     do i = 0,Tdomain%n_glob_nodes-1
-        read (12,*) (Tdomain%Coord_nodes(j,i), j=0,Tdomain%n_dime-1)
+        read (12,*) (Tdomain%Coord_nodes(j,i), j=0,1)
     enddo
 
     read (12,*) Tdomain%n_mat
 
 
-    ! lecture obsolete car valeurs pas utilisees
-    read (12,*) Tdomain%n_line
-    read (12,*)
-    allocate (Tdomain%Name_Line(0:Tdomain%n_line-1) )
-    allocate (Tdomain%Line_index(0:Tdomain%n_line-1) )
-    do i = 0, Tdomain%n_line -1
-        read (12,*) j, auxiliary_name
-        !Tdomain%Name_line(i) = auxiliary_name (1:1)
-        !Tdomain%Line_index(i) = j
-    enddo
+!    ! lecture obsolete car valeurs pas utilisees
+!    read (12,*) Tdomain%n_line
+!    read (12,*)
+!    allocate (Tdomain%Name_Line(0:Tdomain%n_line-1) )
+!    allocate (Tdomain%Line_index(0:Tdomain%n_line-1) )
+!    do i = 0, Tdomain%n_line -1
+!        read (12,*) j, auxiliary_name
+!        !Tdomain%Name_line(i) = auxiliary_name (1:1)
+!        !Tdomain%Line_index(i) = j
+!    enddo
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -71,42 +75,38 @@ subroutine read_mesh(tDomain)
     read (12,*) Tdomain%n_nodes
     read (12,*)
     allocate (Tdomain%specel(0:Tdomain%n_elem-1))
-    if (Tdomain%n_dime== 2) then
-        j = Tdomain%n_nodes + 9
-        allocate (Ipointer (0:j-1))
-        do i = 0,  Tdomain%n_elem - 1
-            allocate (Tdomain%specel(i)%Control_Nodes(0:Tdomain%n_nodes-1))
-            read (12,*) (Ipointer (j_aus),j_aus=0,j-1)
-            Tdomain%specel(i)%Control_Nodes(0:Tdomain%n_nodes-1) = Ipointer (0:Tdomain%n_nodes-1)
-            j_aus = Tdomain%n_nodes
-            Tdomain%specel(i)%Near_Face(0:3) = Ipointer(j_aus:j_aus+3)
-            Tdomain%specel(i)%Near_Vertex(0:3) = Ipointer(j_aus+4:j_aus+7)
-            Tdomain%specel(i)%mat_index = Ipointer(j_aus+8)
-        enddo
-        deallocate (Ipointer)
-        read (12,*)
-        read (12,*) Tdomain%n_face
-        read (12,*)
-        allocate (Tdomain%sFace(0:Tdomain%n_face-1))
+
+    j = Tdomain%n_nodes + 9
+    allocate (Ipointer (0:j-1))
+    do i = 0,  Tdomain%n_elem - 1
+        allocate (Tdomain%specel(i)%Control_Nodes(0:Tdomain%n_nodes-1))
+        read (12,*) (Ipointer (j_aus),j_aus=0,j-1)
+        Tdomain%specel(i)%Control_Nodes(0:Tdomain%n_nodes-1) = Ipointer (0:Tdomain%n_nodes-1)
+        j_aus = Tdomain%n_nodes
+        Tdomain%specel(i)%Near_Face(0:3) = Ipointer(j_aus:j_aus+3)
+        Tdomain%specel(i)%Near_Vertex(0:3) = Ipointer(j_aus+4:j_aus+7)
+        Tdomain%specel(i)%mat_index = Ipointer(j_aus+8)
+        Tdomain%specel(i)%OUTPUT = .true.
+    enddo
+    deallocate (Ipointer)
+    read (12,*)
+    read (12,*) Tdomain%n_face
+    read (12,*)
+    allocate (Tdomain%sFace(0:Tdomain%n_face-1))
 
 
-        do i = 0, Tdomain%n_face-1
-            read(12,*) Tdomain%sface(i)%Near_element(0:1), Tdomain%sface(i)%Which_face(0:1), Tdomain%sface(i)%Near_Vertex(0:1)
-        enddo
-        read (12,*)
-        read (12,*) Tdomain%n_vertex
-        read (12,*)
-        allocate (Tdomain%svertex(0:Tdomain%n_vertex-1))
-        do i = 0, Tdomain%n_vertex-1
-            read(12,*) Tdomain%svertex(i)%Glob_numbering
-        enddo
-    else
-        write (*,*) "A dimension different from 2 is not yet taken into account"
-        stop
-    endif
+    do i = 0, Tdomain%n_face-1
+        read(12,*) Tdomain%sface(i)%Near_element(0:1), Tdomain%sface(i)%Which_face(0:1), Tdomain%sface(i)%Near_Vertex(0:1)
+    enddo
+    read (12,*)
+    read (12,*) Tdomain%n_vertex
+    read (12,*)
+    allocate (Tdomain%svertex(0:Tdomain%n_vertex-1))
+    do i = 0, Tdomain%n_vertex-1
+        read(12,*) Tdomain%svertex(i)%Glob_numbering
+    enddo
 
     ! Information about super-object
-
     if (Tdomain%logicD%super_object) then
         read(12,*)
         n_aus = 0
@@ -184,10 +184,9 @@ subroutine read_mesh(tDomain)
         call semname_read_mesh_echo(Tdomain%Mpi_var%my_rank,fnamef)
 
         open(92,file=fnamef, form="formatted", status="unknown")
-        write (92,*) Tdomain%n_dime, "Dimension of the problem"
         write (92,*) Tdomain%n_glob_nodes, "Number of global nodes"
         do i = 0,Tdomain%n_glob_nodes-1
-            write (92,*) (Tdomain%Coord_nodes(j,i), j=0,Tdomain%n_dime-1)
+            write (92,*) (Tdomain%Coord_nodes(j,i), j=0,1)
         enddo
         write (92,*) Tdomain%n_mat, " Number of subdomains"
         write (92,*) Tdomain%n_line, "  Number of lines"
@@ -196,26 +195,23 @@ subroutine read_mesh(tDomain)
         enddo
         write (92,*) Tdomain%n_elem, "Number of elements"
         write (92,*) Tdomain%n_nodes, "Number of nodes"
-        if (Tdomain%n_dime== 2) then
-            j = Tdomain%n_nodes + 5
-            do i = 0,  Tdomain%n_elem - 1
-                write (92,*) Tdomain%specel(i)%Control_Nodes(0:Tdomain%n_nodes-1),  &
-                    Tdomain%specel(i)%Near_Face(0:3),  Tdomain%specel(i)%Near_Vertex(0:3), Tdomain%specel(i)%mat_index
-            enddo
-            write (92,*) "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-            write (92,*) Tdomain%n_face, "Number of faces"
-            do i = 0, Tdomain%n_face-1
-                write(92,*) Tdomain%sface(i)%Near_element(0:1), Tdomain%sface(i)%Which_face(0:1), Tdomain%sface(i)%Near_Vertex(0:1)
-            enddo
-            write (92,*) "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-            write (92,*) Tdomain%n_vertex, "Number of Vertices"
-            do i = 0, Tdomain%n_vertex-1
-                write(92,*) Tdomain%svertex(i)%Glob_numbering
-            enddo
 
-        else
-            write (*,*) "A dimension different from 2 is not yet taken into account"
-        endif
+        j = Tdomain%n_nodes + 5
+        do i = 0,  Tdomain%n_elem - 1
+            write (92,*) Tdomain%specel(i)%Control_Nodes(0:Tdomain%n_nodes-1),  &
+                Tdomain%specel(i)%Near_Face(0:3),  Tdomain%specel(i)%Near_Vertex(0:3), Tdomain%specel(i)%mat_index
+        enddo
+        write (92,*) "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        write (92,*) Tdomain%n_face, "Number of faces"
+        do i = 0, Tdomain%n_face-1
+            write(92,*) Tdomain%sface(i)%Near_element(0:1), Tdomain%sface(i)%Which_face(0:1), Tdomain%sface(i)%Near_Vertex(0:1)
+        enddo
+        write (92,*) "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        write (92,*) Tdomain%n_vertex, "Number of Vertices"
+        do i = 0, Tdomain%n_vertex-1
+            write(92,*) Tdomain%svertex(i)%Glob_numbering
+        enddo
+
     endif
 
     if (Tdomain%logicD%super_object) then
@@ -320,12 +316,16 @@ subroutine read_mesh(tDomain)
     call semname_read_inputmesh_parametrage(Tdomain%material_file,fnamef)
     open (13,file=fnamef, status="old", form="formatted")
 
-    read (13,*)
-    read (13,*)
+    read (13,*) n_aus  ! Number of material in file
+    if (n_aus<Tdomain%n_mat) then
+        write(*,*) "Material file doesn't contain enough definitions"
+        stop 1
+    end if
     do i = 0, Tdomain%n_mat-1
         read (13,*) Tdomain%sSubDomain(i)%material_type, Tdomain%sSubDomain(i)%Pspeed, &
             Tdomain%sSubDomain(i)%Sspeed, Tdomain%sSubDomain(i)%dDensity, &
-            Tdomain%sSubDomain(i)%Dt, Tdomain%sSubDomain(i)%NGLLx, Tdomain%sSubDomain(i)%NGLLz
+            Tdomain%sSubDomain(i)%NGLLx, n_aus, Tdomain%sSubDomain(i)%NGLLz, Tdomain%sSubDomain(i)%Dt, &
+            Qp, Qs
         Tdomain%sSubDomain(i)%n_loc_dim = 2
         Tdomain%sSubdomain(i)%wpml = -1
         if ( Tdomain%sSubDomain(i)%NGLLx == Tdomain%sSubDomain(i)%NGLLz)  Tdomain%sSubDomain(i)%n_loc_dim = 1

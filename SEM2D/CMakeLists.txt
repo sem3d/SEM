@@ -10,6 +10,7 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/Vertex.F90
     ${PRJ}/SRC/Sources.F90
     ${PRJ}/SRC/TimeP.F90
+    ${PRJ}/SRC/orientation.F90
     ${PRJ}/SRC/logical_input.F90
     ${PRJ}/SRC/Subdomains.F90
     ${PRJ}/SRC/Receivers.F90
@@ -39,6 +40,7 @@ set(SEM2D_SOURCES_F
 #    ${PRJ}/SRC/lister_faces_sem.f90
 #    ${PRJ}/SRC/plot_grid.F90
 #    ${PRJ}/SRC/postraitement.F90
+    ${PRJ}/SRC/snapshots.F90
     ${PRJ}/SRC/read_input.F90
     ${PRJ}/SRC/read_mesh.F90
     ${PRJ}/SRC/read_restart.F90
@@ -63,6 +65,10 @@ set(SEM2D_SOURCES_F
 set(SEM2D_SOURCES ${SEM2D_SOURCES_F}
   ${SEM_SRC_C}
 )
+
+# HDF5
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
+
 
 
 if (OPT_COUPLAGE)

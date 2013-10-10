@@ -15,18 +15,18 @@ module sfaces
        integer :: ngll, mat_index
        integer, dimension (0:1) :: Near_Element, Which_face, Near_Vertex
 
-       real, dimension (:), pointer :: massMat
-       real, dimension (:,:), pointer :: Veloc, Displ, Accel, V0, Forces
-       real, dimension (:,:), pointer :: Veloc1, Veloc2, Forces1, Forces2
-       real, dimension (:,:), pointer :: DumpMass, DumpVx, DumpVz
+       real, dimension (:), allocatable :: massMat
+       real, dimension (:,:), allocatable :: Veloc, Displ, Accel, V0, Forces
+       real, dimension (:,:), allocatable :: Veloc1, Veloc2, Forces1, Forces2
+       real, dimension (:,:), allocatable :: DumpMass, DumpVx, DumpVz
 
 #ifdef MKA3D
-       real, dimension (:,:), pointer :: ForcesMka
+       real, dimension (:,:), allocatable :: ForcesMka
 #endif
 
        logical :: coherency, PML, Abs, FPML
-       real, dimension (:), pointer :: Ivx, Ivz
-       real, dimension (:,:), pointer :: Iveloc1, Iveloc2
+       real, dimension (:), allocatable :: Ivx, Ivz
+       real, dimension (:,:), allocatable :: Iveloc1, Iveloc2
     end type face
 
 contains
