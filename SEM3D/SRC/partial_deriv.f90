@@ -202,6 +202,7 @@ END SUBROUTINE DGEMM2
 #endif
 !------------------------------------------------------------------------------------------
 !------------------------------------------------------------------------------------------
+#if 0
     subroutine physical_part_deriv(ngllx,nglly,ngllz,hTprimex,hprimey,hprimez,InvGrad,   &
                         Scalp,dScalp_dx,dScalp_dy,dScalp_dz)
     !- partial derivatives in the (x,y,z) space, of the scalar Scalp
@@ -233,3 +234,44 @@ END SUBROUTINE DGEMM2
 
 
     end subroutine physical_part_deriv
+#endif
+
+    subroutine physical_part_deriv(ngllx,nglly,ngllz,hTprimex,hprimey,hprimez,InvGrad, &
+        Scalp, dS_dx,dS_dy,dS_dz)
+    !- partial derivatives of the scalar property Scalp, with respect to xi,eta,zeta
+        implicit none
+        integer, intent(in)  :: ngllx,nglly,ngllz
+        real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: hTprimex
+        real, dimension(0:nglly-1,0:nglly-1), intent(in) :: hprimey
+        real, dimension(0:ngllz-1,0:ngllz-1), intent(in) :: hprimez
+        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:2), intent(in) :: InvGrad
+        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Scalp
+        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: dS_dx,dS_dy,dS_dz
+        real :: dS_dxi, dS_deta, dS_dzeta
+        integer :: i,j,k,l
+        DOUBLE PRECISION, PARAMETER   :: ZERO = 0.0D+0
+
+        DO K = 0, ngllz-1
+            ! d(Scalp)_dxi
+            DO J = 0, nglly-1
+                DO I = 0, ngllx-1
+                    dS_dxi = ZERO
+                    dS_deta = ZERO
+                    dS_dzeta = ZERO
+                    DO L = 0, ngllx-1
+                        dS_dxi   = dS_dxi   + Scalp(L,J,K)*hTprimex(I,L)
+                        DS_deta  = dS_deta  + Scalp(I,L,K)*hprimey(L,J)
+                        dS_dzeta = dS_dzeta + Scalp(I,J,L)*hprimez(L,K)
+                    END DO
+                    !- in the physical domain
+                    dS_dx(I,J,K) = dS_dxi*InvGrad(I,J,K,0,0) + dS_deta*InvGrad(I,J,K,0,1) +  &
+                        dS_dzeta*InvGrad(I,J,K,0,2)
+                    dS_dy(I,J,K) = dS_dxi*InvGrad(I,J,K,1,0) + dS_deta*InvGrad(I,J,K,1,1) +  &
+                        dS_dzeta*InvGrad(I,J,K,1,2)
+                    dS_dz(I,J,K) = dS_dxi*InvGrad(I,J,K,2,0) + dS_deta*InvGrad(I,J,K,2,1) +  &
+                        dS_dzeta*InvGrad(I,J,K,2,2)
+                END DO
+            END DO
+        END DO
+    end subroutine physical_part_deriv
+
