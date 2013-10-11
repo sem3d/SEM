@@ -33,23 +33,21 @@ subroutine allocate_domain (Tdomain, rg)
         ngllz = Tdomain%specel(n)%ngllz
 
         allocate(Tdomain%specel(n)%Density(0:ngllx-1,0:nglly-1,0:ngllz-1))
+        allocate(Tdomain%specel(n)%MassMat(0:ngllx-1,0:nglly-1,0:ngllz-1))
         allocate(Tdomain%specel(n)%Lambda(0:ngllx-1,0:nglly-1,0:ngllz-1))
         allocate(Tdomain%specel(n)%Mu(0:ngllx-1,0:nglly-1, 0:ngllz-1))
-        allocate(Tdomain%specel(n)%MassMat(0:ngllx-1,0:nglly-1,0:ngllz-1))
         allocate(Tdomain%specel(n)%Kappa (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
 
 
         if(Tdomain%specel(n)%solid)then  ! SOLID PART
 
             if(Tdomain%TimeD%velocity_scheme)then
-                !  modif mariotti fevrier 2007 cea capteur displ
-                allocate(Tdomain%specel(n)%Displ (1:ngllx-2, 1:nglly-2, 1:ngllz-2, 0:2))
-                Tdomain%specel(n)%Displ = 0
-
-                allocate(Tdomain%specel(n)%Veloc(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                allocate(Tdomain%specel(n)%Accel(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                allocate(Tdomain%specel(n)%V0(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+                allocate(Tdomain%specel(n)%Displ (1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+                allocate(Tdomain%specel(n)%Veloc (1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+                allocate(Tdomain%specel(n)%Accel (1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+                allocate(Tdomain%specel(n)%V0    (1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
                 allocate(Tdomain%specel(n)%Forces(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                Tdomain%specel(n)%Displ = 0
                 Tdomain%specel(n)%Veloc = 0d0
                 Tdomain%specel(n)%Accel = 0d0
                 Tdomain%specel(n)%V0 = 0d0
