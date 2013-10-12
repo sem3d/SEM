@@ -470,7 +470,7 @@ contains
             (Elem%Acoeff(:,:,:,6) * dVelPhi_dxi + Elem%Acoeff(:,:,:,7) * dVelPhi_deta + Elem%Acoeff(:,:,:,8) * dVelPhi_dzeta)
 
         ! total velocity vector after dumping = sum of splitted parts
-        Elem%Veloc(:,:,:,:) = Elem%spml%Veloc1(:,:,:,:) + Elem%spml%Veloc2(:,:,:,:) + Elem%spml%Veloc3(:,:,:,:)
+        Elem%spml%Veloc(:,:,:,:) = Elem%spml%Veloc1(:,:,:,:) + Elem%spml%Veloc2(:,:,:,:) + Elem%spml%Veloc3(:,:,:,:)
 
         return
     end subroutine Prediction_Elem_PML_VelPhi
@@ -831,47 +831,47 @@ contains
 
 
         ! forces associated to V_x
-        s0 = Elem%Acoeff(:,:,:,9) * Elem%Veloc(:,:,:,0)
+        s0 = Elem%Acoeff(:,:,:,9) * Elem%spml%Veloc(:,:,:,0)
         call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,s0(:,:,:),m1,0.,s1,m1)
         Elem%spml%ForcesFl1(:,:,:) = s1
 
-        s0 = Elem%Acoeff(:,:,:,10) * Elem%Veloc(:,:,:,0)
+        s0 = Elem%Acoeff(:,:,:,10) * Elem%spml%Veloc(:,:,:,0)
         do n_z = 0,m3-1
             call DGEMM('N','N',m1,m2,m2,1.,s0(0,0,n_z),m1, htprimey,m2,0.,s1(0,0,n_z),m1)
         enddo
         Elem%spml%ForcesFl1(:,:,:) = s1+Elem%spml%ForcesFl1(:,:,:)
 
-        s0 = Elem%Acoeff(:,:,:,11) * Elem%Veloc(:,:,:,0)
+        s0 = Elem%Acoeff(:,:,:,11) * Elem%spml%Veloc(:,:,:,0)
         call DGEMM('N','N',m1*m2,m3,m3,1.,s0(:,:,:),m1*m2,htprimez,m3,0.,s1,m1*m2)
         Elem%spml%ForcesFl1(:,:,:) = s1+Elem%spml%ForcesFl1(:,:,:)
 
         ! forces associated to V_y
-        s0 = Elem%Acoeff(:,:,:,12) * Elem%Veloc(:,:,:,1)
+        s0 = Elem%Acoeff(:,:,:,12) * Elem%spml%Veloc(:,:,:,1)
         call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,s0(:,:,:),m1,0.,s1,m1)
         Elem%spml%ForcesFl2(:,:,:) = s1
 
-        s0 = Elem%Acoeff(:,:,:,13) * Elem%Veloc(:,:,:,1)
+        s0 = Elem%Acoeff(:,:,:,13) * Elem%spml%Veloc(:,:,:,1)
         do n_z = 0,m3-1
             call DGEMM('N','N',m1,m2,m2,1.,s0(0,0,n_z),m1, htprimey,m2,0.,s1(0,0,n_z),m1)
         enddo
         Elem%spml%ForcesFl2(:,:,:) = s1+Elem%spml%ForcesFl2(:,:,:)
 
-        s0 = Elem%Acoeff(:,:,:,14) * Elem%Veloc(:,:,:,1)
+        s0 = Elem%Acoeff(:,:,:,14) * Elem%spml%Veloc(:,:,:,1)
         call DGEMM('N','N',m1*m2,m3,m3,1.,s0(:,:,:),m1*m2,htprimez,m3,0.,s1,m1*m2)
         Elem%spml%ForcesFl2(:,:,:) = s1+Elem%spml%ForcesFl2(:,:,:)
 
         ! forces associated to V_z
-        s0 = Elem%Acoeff(:,:,:,15) * Elem%Veloc(:,:,:,2)
+        s0 = Elem%Acoeff(:,:,:,15) * Elem%spml%Veloc(:,:,:,2)
         call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,s0(:,:,:),m1,0.,s1,m1)
         Elem%spml%ForcesFl3(:,:,:) = s1
 
-        s0 = Elem%Acoeff(:,:,:,16) * Elem%Veloc(:,:,:,2)
+        s0 = Elem%Acoeff(:,:,:,16) * Elem%spml%Veloc(:,:,:,2)
         do n_z = 0,m3-1
             call DGEMM('N','N',m1,m2,m2,1.,s0(0,0,n_z),m1, htprimey,m2,0.,s1(0,0,n_z),m1)
         enddo
         Elem%spml%ForcesFl3(:,:,:) = s1+Elem%spml%ForcesFl3(:,:,:)
 
-        s0 = Elem%Acoeff(:,:,:,17) * Elem%Veloc(:,:,:,2)
+        s0 = Elem%Acoeff(:,:,:,17) * Elem%spml%Veloc(:,:,:,2)
         call DGEMM('N','N',m1*m2,m3,m3,1.,s0(:,:,:),m1*m2,htprimez,m3,0.,s1,m1*m2)
         Elem%spml%ForcesFl3(:,:,:) = s1+Elem%spml%ForcesFl3(:,:,:)
 
