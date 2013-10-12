@@ -480,7 +480,6 @@ contains
         ! boucle sur tous les points de Gauss
         do i=1,npg
 
-            allocate (capteur)
             capteur=>listeCapteur
 
             ! boucle sur tous les capteurs
