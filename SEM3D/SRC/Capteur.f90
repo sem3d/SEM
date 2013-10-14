@@ -886,13 +886,11 @@ contains
         type (domain) :: TDomain
         integer :: rg
 
-        integer :: fileId, i, j, k, idim, ierr, tag
+        integer :: i, j, k, ierr, tag
 
         integer , dimension  (MPI_STATUS_SIZE) :: status
         integer request
 
-        real, dimension(3) :: recvbuf
-        real, dimension(3) :: sendbuf
         real, dimension(3) :: grandeur
         real, dimension(:,:,:,:), allocatable :: field
 
@@ -904,12 +902,10 @@ contains
         integer numproc
 
         ! tableau de correspondance
-        sendbuf=0.
-        recvbuf=0.
+        request=MPI_REQUEST_NULL
 
         ! ETAPE 0 : initialisations
-        fileId=99 ! id du fichier des sorties capteur
-        grandeur(:)=0.                               ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
+        grandeur(:)=0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
 
 
         ! Recuperation du numero de la maille Sem et des abscisses
@@ -943,14 +939,11 @@ contains
                     enddo
                 enddo
             enddo
-            sendbuf(1) = grandeur(1) ! grandeur en x
-            sendbuf(2) = grandeur(2) ! grandeur en y
-            sendbuf(3) = grandeur(3) ! grandeur en z
             tag = 100*(rg + 1)+capteur%numero
 
-            call mpi_Isend(sendbuf,3,MPI_DOUBLE_PRECISION,0,tag, Tdomain%communicateur,request, ierr)
+            if (rg/=0) call mpi_Isend(grandeur, 3,MPI_DOUBLE_PRECISION, 0, tag, Tdomain%communicateur, request, ierr)
             numproc = rg !!numero du proc courant
-
+            deallocate(field)
         endif
 
         !! Si le capteur est situe sur plusieurs processeurs, on choisit un proc et on envoie les resu au proc 0.
@@ -967,18 +960,15 @@ contains
         if (rg.eq.0) then
             if((capteur%numproc)>-1) then
 
-                ! on remplit recvbuf avec les infos du proc 0
-                recvbuf(:)=grandeur(:)
-
                 ! et ensuite avec les infos des autres proc
                 tag = 100*(capteur%numproc+1) + capteur%numero
 
-                call mpi_recv(recvbuf(1),3,MPI_DOUBLE_PRECISION,capteur%numproc,tag, Tdomain%communicateur,status,ierr)
+                if (capteur%numproc/=0) call mpi_recv(grandeur,3,MPI_DOUBLE_PRECISION,capteur%numproc,tag, Tdomain%communicateur,status,ierr)
 
                 ! ETAPE 4 : Impression du resultat dans le fichier de sortie par le proc 0
                 i = capteur%icache+1
                 capteur%valuecache(1,i) = Tdomain%TimeD%rtime
-                capteur%valuecache(2:4,i) = recvbuf(1:3)
+                capteur%valuecache(2:4,i) = grandeur(1:3)
                 capteur%icache = i
             else
                 if(ntime<= 1) then
