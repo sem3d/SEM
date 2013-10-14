@@ -518,7 +518,6 @@ contains
         type(tCapteur),pointer :: capteur
 
         ! boucle sur les capteurs
-        allocate (capteur)
         capteur=>listeCapteur
 
         do while (associated(capteur))
@@ -749,7 +748,6 @@ contains
 
 
         ! ETAPE 1 : Recuperation des valeurs de la grandeur pour les pts de Gauss definis par le capteur
-        allocate(PtGauss)
         PtGauss=>capteur%listePtGauss
         i=0
         do while (associated(PtGauss))
