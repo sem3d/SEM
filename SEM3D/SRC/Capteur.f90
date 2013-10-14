@@ -95,9 +95,6 @@ contains
         type(Tcapteur),pointer :: capteur
         type(tPtgauss),pointer :: PtGauss
 
-        integer,parameter :: fid=98
-        character(len=MAX_FILE_SIZE) :: fnamef
-
         integer :: rg
         integer :: ierr, tag
         integer , dimension  (MPI_STATUS_SIZE) :: status
@@ -173,28 +170,8 @@ contains
                         endif
                     endif
 
-                    !if (rg .eq.0 ) then
-                    !    call semname_capteur_pos(capteur%nom,fnamef)
-                    !    open(UNIT=fid,FILE=trim(fnamef),STATUS='replace')  !!modif seul proc 0
-                    !    rewind(fid)
-                    !    write(fid,'(4(A6,1X,E12.4,1X))') "X=", val0(1), " Y=", val0(2), " Z=", val0(3), " dist=", distanceMinMin
-                    !    close(fid)
-                    !endif
-                else ! les proc ecrivent tour a tour les pt de gauss
-
-                    !call semname_capteur_pos(capteur%nom,fnamef)
-                    !open(UNIT=fid,FILE=trim(fnamef),STATUS='replace')  !!modif // version initiale Capteur Sem2d
-                    !! on parcourt les pdg
-                    !do while (associated(PtGauss))
-                    !    write(fid,*) PtGauss%coord(1), PtGauss%coord(2), PtGauss%coord(3)
-                    !    PtGauss=>PtGauss%suivant
-                    !enddo
-                    !close(fid) !!modif // version initiale Capteur Sem2d
                 endif
 
-                !deallocate(PtGauss)
-
-!!!    close(fid) !!version initiale Capteur Sem2d
             elseif(capteur%type_calcul==1) then
                 xi = -1.
                 eta = -1.
@@ -216,11 +193,6 @@ contains
                     capteur%eta = eta !val0(2)
                     capteur%zeta = zeta !val0(3)
 
-                    !open(UNIT=fid,FILE=trim(fnamef),STATUS='replace')
-                    !rewind(fid)
-                    !write(fid,'(3(A6,1X,1pe15.8,1X),A22,1X,I6)') "xi=", capteur%xi, " eta=", capteur%eta, &
-                    !    " zeta=", capteur%zeta, " numero element Sem", capteur%n_el
-                    !close(fid)
                 end if
                 !! on reattribue au proc son numero d'element initial
             endif
@@ -248,7 +220,7 @@ contains
 
         type (Domain), intent (IN) :: Tdomain
 
-        integer            :: CodeErreur,fileId,i, rg
+        integer            :: CodeErreur,fileId,rg
         character(LEN=MAX_FILE_SIZE) :: ligne,fnamef
         logical            :: status
 
@@ -909,7 +881,7 @@ contains
     !! seul le proc gere l'ecriture
     !!
     subroutine sortieGrandeurCapteur_interp(capteur,Tdomain, ntime, rg)
-
+        use mpi
         implicit none
 
         type(tCapteur) :: capteur
@@ -925,6 +897,7 @@ contains
         real, dimension(3) :: sendbuf
         real, dimension(3) :: grandeur
         real, dimension(:,:,:,:), allocatable :: field
+
         integer n_el, ngllx, nglly, ngllz, mat
         real xi, eta, zeta
         real outx, outy, outz
@@ -1017,6 +990,8 @@ contains
             endif
 
         endif
+
+        call MPI_Wait(request, status, ierr)
 
     end subroutine sortieGrandeurCapteur_interp
 
