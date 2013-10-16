@@ -176,7 +176,7 @@ contains
         req_s = MPI_REQUEST_NULL
         req_r = MPI_REQUEST_NULL
         req_s_pml = MPI_REQUEST_NULL
-        req_s_pml = MPI_REQUEST_NULL
+        req_r_pml = MPI_REQUEST_NULL
 
 
         do other = 0,n-1
@@ -218,7 +218,7 @@ contains
         req_s = MPI_REQUEST_NULL
         req_r = MPI_REQUEST_NULL
         req_s_pml = MPI_REQUEST_NULL
-        req_s_pml = MPI_REQUEST_NULL
+        req_r_pml = MPI_REQUEST_NULL
 
         do other = 0,n-1
             if (other == rg) cycle
