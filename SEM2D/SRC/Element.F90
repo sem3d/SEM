@@ -22,7 +22,7 @@ module selement
        real, dimension (:,:), pointer :: Jacob,Density, Lambda, Mu,MassMat
        real, dimension(:,:,:), pointer :: Forces,Stress,Veloc,Displ,Accel,V0
        real, dimension(:,:,:), pointer :: ACoeff
-       real, dimension(:,:,:), pointer :: F_Veloc, F_Strain
+       real, dimension(:,:,:), pointer :: Strain
        real, dimension(:,:,:,:), pointer :: InvGrad
 
        ! PML allocation
@@ -371,6 +371,60 @@ contains
 
         return
     end subroutine compute_InternalForces_Elem
+
+    ! ###########################################################
+
+    !>
+    !! \brief
+    !!
+    !! \param type (Element), intent (INOUT) Elem
+    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
+    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTprime
+    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hprimez
+    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
+    !<
+
+
+    subroutine  compute_InternalForces_DG (Elem,hprime, hTprime, hprimez,hTprimez)
+      implicit none
+
+      type (Element), intent (INOUT) :: Elem
+      real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime, hTprime
+      real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
+      real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: aux1, aux2
+
+      if(Elem%Type_DG == 0) then  ! Discontinuous Galerkin 'Strong' form
+         
+
+      else if(Elem%Type_DG == 1) then! Discontinuous Galerkin 'Weak' form
+         aux1 = Elem%Acoeff(:,:,0)*Elem%Veloc(:,:,0)
+         aux2 = Elem%Acoeff(:,:,1)*Elem%Veloc(:,:,0)
+         Elem%Forces(:,:,0) = MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez)
+
+         aux1 = Elem%Acoeff(:,:,2)*Elem%Veloc(:,:,1)
+         aux2 = Elem%Acoeff(:,:,3)*Elem%Veloc(:,:,1)
+         Elem%Forces(:,:,1) = MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez)
+
+         aux1 = Elem%Acoeff(:,:,0)*Elem%Veloc(:,:,1) + Elem%Acoeff(:,:,2)*Elem%Veloc(:,:,0)
+         aux2 = Elem%Acoeff(:,:,1)*Elem%Veloc(:,:,1) + Elem%Acoeff(:,:,3)*Elem%Veloc(:,:,0)
+         Elem%Forces(:,:2) = 0.5 * (MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez))
+
+         aux1 = (Elem%Acoeff(:,:,4) + Elem%Acoeff(:,:,5))*Elem%Strain(:,:,0) + Elem%Acoeff(:,:,4)*Elem%Strain(:,:,1) &
+               + Elem%Acoeff(:,:,7)*Elem%Strain(:,:,2)
+         aux2 = (Elem%Acoeff(:,:,8) + Elem%Acoeff(:,:,9))*Elem%Strain(:,:,0) + Elem%Acoeff(:,:,8)*Elem%Strain(:,:,1) &
+               + Elem%Acoeff(:,:,11)*Elem%Strain(:,:,2)
+         Elem%Forces(:,:3) = MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez)
+
+         aux1 = (Elem%Acoeff(:,:,7) + Elem%Acoeff(:,:,6))*Elem%Strain(:,:,1) + Elem%Acoeff(:,:,6)*Elem%Strain(:,:,0) &
+               + Elem%Acoeff(:,:,5)*Elem%Strain(:,:,2)
+         aux2 = (Elem%Acoeff(:,:,11) + Elem%Acoeff(:,:,10))*Elem%Strain(:,:,1) + Elem%Acoeff(:,:,10)*Elem%Strain(:,:,0) &
+               + Elem%Acoeff(:,:,9)*Elem%Strain(:,:,2)
+         Elem%Forces(:,:4) = MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez)
+      endif
+
+      return
+    end subroutine compute_InternalForces_DG
+
 
     ! ###########################################################
     !>

@@ -84,16 +84,31 @@ subroutine define_arrays(Tdomain)
 
         Tdomain%specel(n)%MassMat  = Whei*Tdomain%specel(n)%Density*Jac
         if (.not. Tdomain%specel(n)%PML) then
-            Tdomain%specel(n)%Acoeff(:,:,0) = -Whei*(RKmod*xix**2+Rmu*xiz**2) *Jac
-            Tdomain%specel(n)%Acoeff(:,:,1) = -Whei*(RKmod*xix*etax+Rmu*  xiz*etaz)*Jac
-            Tdomain%specel(n)%Acoeff(:,:,2) = -Whei*(Rlam+Rmu)*xix*xiz*Jac
-            Tdomain%specel(n)%Acoeff(:,:,3) = -Whei*(Rlam*xix*etaz+Rmu*xiz*etax)*Jac
-            Tdomain%specel(n)%Acoeff(:,:,4) = -Whei*(RKmod*etax**2+Rmu*etaz**2)*Jac
-            Tdomain%specel(n)%Acoeff(:,:,5) = -Whei*(Rlam*etax*xiz+Rmu*etaz*xix)*Jac
-            Tdomain%specel(n)%Acoeff(:,:,6) = -Whei*(Rlam+Rmu)*etaz*etax*Jac
-            Tdomain%specel(n)%Acoeff(:,:,7) = -Whei*(RKmod*xiz**2+Rmu*xix**2)*Jac
-            Tdomain%specel(n)%Acoeff(:,:,8) = -Whei*(RKmod*xiz*etaz+Rmu*xix*etax)*Jac
-            Tdomain%specel(n)%Acoeff(:,:,9) = -Whei*(RKmod*etaz**2+Rmu* etax**2)*Jac
+           if((Tdomain%specel(n)%Type_DG==0).OR.(Tdomain%specel(n)%Type_DG==1)) then ! Discontinuous Galerkin
+              Tdomain%specel(n)%Acoeff(:,:,0) = -Whei*xix*Jac
+              Tdomain%specel(n)%Acoeff(:,:,1) = -Whei*etax*Jac
+              Tdomain%specel(n)%Acoeff(:,:,2) = -Whei*xiz*Jac
+              Tdomain%specel(n)%Acoeff(:,:,3) = -Whei*etaz*Jac
+              Tdomain%specel(n)%Acoeff(:,:,4) = -Whei*xix*Rlam*Jac
+              Tdomain%specel(n)%Acoeff(:,:,5) = -2.*Whei*xix*Rmu*Jac
+              Tdomain%specel(n)%Acoeff(:,:,6) = -Whei*xiz*Rlam*Jac
+              Tdomain%specel(n)%Acoeff(:,:,7) = -2.*Whei*xiz*Rmu*Jac
+              Tdomain%specel(n)%Acoeff(:,:,8) = -Whei*etax*Rlam*Jac
+              Tdomain%specel(n)%Acoeff(:,:,9) = -2.*Whei*etax*Rmu*Jac
+              Tdomain%specel(n)%Acoeff(:,:,10)= -Whei*etaz*Rlam*Jac
+              Tdomain%specel(n)%Acoeff(:,:,11)= -2.*Whei*etaz*Rmu*Jac
+           else if (Tdomain%specel(n)%Type_DG==2) then ! Continuous Galerkin (usual SEM)
+              Tdomain%specel(n)%Acoeff(:,:,0) = -Whei*(RKmod*xix**2+Rmu*xiz**2) *Jac
+              Tdomain%specel(n)%Acoeff(:,:,1) = -Whei*(RKmod*xix*etax+Rmu*  xiz*etaz)*Jac
+              Tdomain%specel(n)%Acoeff(:,:,2) = -Whei*(Rlam+Rmu)*xix*xiz*Jac
+              Tdomain%specel(n)%Acoeff(:,:,3) = -Whei*(Rlam*xix*etaz+Rmu*xiz*etax)*Jac
+              Tdomain%specel(n)%Acoeff(:,:,4) = -Whei*(RKmod*etax**2+Rmu*etaz**2)*Jac
+              Tdomain%specel(n)%Acoeff(:,:,5) = -Whei*(Rlam*etax*xiz+Rmu*etaz*xix)*Jac
+              Tdomain%specel(n)%Acoeff(:,:,6) = -Whei*(Rlam+Rmu)*etaz*etax*Jac
+              Tdomain%specel(n)%Acoeff(:,:,7) = -Whei*(RKmod*xiz**2+Rmu*xix**2)*Jac
+              Tdomain%specel(n)%Acoeff(:,:,8) = -Whei*(RKmod*xiz*etaz+Rmu*xix*etax)*Jac
+              Tdomain%specel(n)%Acoeff(:,:,9) = -Whei*(RKmod*etaz**2+Rmu* etax**2)*Jac
+           end if
         else
             Tdomain%specel(n)%Acoeff(:,:,0) = Rkmod*xix
             Tdomain%specel(n)%Acoeff(:,:,1) = Rkmod*etax

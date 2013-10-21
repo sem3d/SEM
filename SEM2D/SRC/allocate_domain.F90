@@ -80,9 +80,19 @@ subroutine allocate_domain (Tdomain)
                 allocate (Tdomain%specel(n)%DumpMass(0:ngllx-1,0:ngllz-1,0:1))
             endif
         else
-            allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:9))
-            allocate (Tdomain%specel(n)%Displ(1:ngllx-2,1:ngllz-2,0:1))
-            Tdomain%specel(n)%Displ = 0
+           if(Tdomain%specel(n)%Type_DG==0) then
+              allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:11))
+              allocate (Tdomain%specel(n)%Strain(0:ngllx-1,0:ngllz-1,0:2))
+              Tdomain%specel(n)%Strain = 0.
+           else if(Tdomain%specel(n)%Type_DG==1) then
+              allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:11))
+              allocate (Tdomain%specel(n)%Strain(0:ngllx-1,0:ngllz-1,0:2))
+              Tdomain%specel(n)%Strain = 0.
+           else if(Tdomain%specel(n)%Type_DG==2) then
+              allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:9))
+           endif
+           allocate (Tdomain%specel(n)%Displ(1:ngllx-2,1:ngllz-2,0:1))
+           Tdomain%specel(n)%Displ = 0
         endif
     enddo
 
