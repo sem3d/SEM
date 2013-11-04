@@ -503,6 +503,7 @@ contains
         call grp_write_int_1d(Tdomain, fid, "Proc", count, proc, nb_elem_tot)
 
         deallocate(mat)
+        deallocate(proc)
         deallocate(iglobnum)
         deallocate(data)
     end subroutine write_elem_connectivity
