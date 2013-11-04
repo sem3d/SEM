@@ -538,6 +538,7 @@ contains
             call sort(SF_global_vertices(i)%local_proc_solid%elem,    &
                 SF_global_vertices(i)%local_proc_solid%nr)
             allocate(SF_global_vertices(i)%local_proc%elem(0:jf+js-1))
+            SF_global_vertices(i)%local_proc%elem(0:) = 0
             call list_union(SF_global_vertices(i)%local_proc_fluid,   &
                 SF_global_vertices(i)%local_proc_solid,   &
                 SF_global_vertices(i)%local_proc)
@@ -600,6 +601,7 @@ contains
             call sort(SF_global_edges(i)%local_proc_solid%elem,    &
                 SF_global_edges(i)%local_proc_solid%nr)
             allocate(SF_global_edges(i)%local_proc%elem(0:jf+js-1))
+            SF_global_edges(i)%local_proc%elem(0:) = 0
             call list_union(SF_global_edges(i)%local_proc_fluid,   &
                 SF_global_edges(i)%local_proc_solid,   &
                 SF_global_edges(i)%local_proc)
