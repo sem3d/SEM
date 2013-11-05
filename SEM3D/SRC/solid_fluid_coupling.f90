@@ -113,13 +113,13 @@ subroutine StoF_coupling(Tdomain,rg)
         end do
         ! now we can exchange force values with other procs
         call exchange_sem_forces_StoF(Tdomain,rg)
-
         ! assemblage on external GLLs
         do n = 0,Tdomain%n_proc-1
             ngllSF = 0 ; ngllSF_PML = 0
             call Comm_Forces_FaceSF_StoF(Tdomain,n,ngllSF,ngllSF_PML)
             call Comm_Forces_EdgeSF_StoF(Tdomain,n,ngllSF,ngllSF_PML)
             call Comm_Forces_VertexSF_StoF(Tdomain,n,ngllSF,ngllSF_PML)
+	    if(ngllSF /= Tdomain%sComm(n)%ngllSF) stop "PB in counting SF GLL nodes."
         enddo
 
     end if
@@ -216,7 +216,6 @@ do nv = 0,Tdomain%SF%SF_n_vertices-1
     end if
 end do
 
-
 do nf = 0,Tdomain%SF%SF_n_faces-1
     nff = Tdomain%SF%SF_Face(nf)%Face(0)
     if(nff < 0) cycle   ! fluid face not on this proc
@@ -298,6 +297,7 @@ if(Tdomain%n_proc > 1)then
       call Comm_Forces_FaceSF_FtoS(Tdomain,n,ngllSF,ngllSF_PML)
       call Comm_Forces_EdgeSF_FtoS(Tdomain,n,ngllSF,ngllSF_PML)
       call Comm_Forces_VertexSF_FtoS(Tdomain,n,ngllSF,ngllSF_PML)
+      if(ngllSF /= Tdomain%sComm(n)%ngllSF) stop "PB in counting SF GLL nodes."
   enddo
 
 end if
@@ -400,6 +400,7 @@ subroutine Comm_Forces_Complete_StoF(n,Tdomain)
     enddo
 
     if(ngllSF /= Tdomain%sComm(n)%ngllSF) stop "Bad counting of SF nodes."
+
 
     return
 end subroutine Comm_Forces_Complete_StoF
@@ -561,7 +562,6 @@ subroutine Comm_Forces_FaceSF_StoF(Tdomain,n,ngllSF,ngllSF_PML)
     integer, intent(inout) :: ngllSF,ngllSF_PML
     integer :: ngll1,ngll2,nf,nnf,orient_f
 
-
     do nf = 0,Tdomain%sComm(n)%SF_nf_shared-1
         nnf = Tdomain%sComm(n)%SF_faces_shared(nf)
         ngll1 = Tdomain%SF%SF_Face(nnf)%ngll1
@@ -569,18 +569,18 @@ subroutine Comm_Forces_FaceSF_StoF(Tdomain,n,ngllSF,ngllSF_PML)
         orient_f = Tdomain%SF%SF_Face(nnf)%Orient_Face
         call Comm_Face_ScalarProperty(ngll1,ngll2,orient_f,                          &
                 Tdomain%sComm(n)%TakeForcesSF_StoF(ngllSF:ngllSF+(ngll1-2)*(ngll2-2)-1),  &
-                Tdomain%SF%SF_Face(nnf)%Vn(:,:))
+                Tdomain%SF%SF_Face(nnf)%Vn(1:ngll1-2,1:ngll2-2))
         ngllSF = ngllSF+(ngll1-2)*(ngll2-2)
         if(Tdomain%SF%SF_Face(nnf)%PML)then
             call Comm_Face_ScalarProperty(ngll1,ngll2,orient_f,                                   &
                     Tdomain%sComm(n)%TakeForcesSF_StoF_PML(ngllSF_PML:ngllSF_PML+(ngll1-2)*(ngll2-2)-1,1),  &
-                    Tdomain%SF%SF_Face(nnf)%Vn1(:,:))
+                    Tdomain%SF%SF_Face(nnf)%Vn1(1:ngll1-2,1:ngll2-2))
             call Comm_Face_ScalarProperty(ngll1,ngll2,orient_f,                                   &
                     Tdomain%sComm(n)%TakeForcesSF_StoF_PML(ngllSF_PML:ngllSF_PML+(ngll1-2)*(ngll2-2)-1,2),  &
-                    Tdomain%SF%SF_Face(nnf)%Vn2(:,:))
+                    Tdomain%SF%SF_Face(nnf)%Vn2(1:ngll1-2,1:ngll2-2))
             call Comm_Face_ScalarProperty(ngll1,ngll2,orient_f,                                   &
                     Tdomain%sComm(n)%TakeForcesSF_StoF_PML(ngllSF_PML:ngllSF_PML+(ngll1-2)*(ngll2-2)-1,3),  &
-                    Tdomain%SF%SF_Face(nnf)%Vn3(:,:))
+                    Tdomain%SF%SF_Face(nnf)%Vn3(1:ngll1-2,1:ngll2-2))
             ngllSF_PML = ngllSF_PML+(ngll1-2)*(ngll2-2)
         end if
 
@@ -609,18 +609,18 @@ subroutine Comm_Forces_FaceSF_FtoS(Tdomain,n,ngllSF,ngllSF_PML)
         orient_f = Tdomain%SF%SF_Face(nnf)%Orient_Face
         call Comm_Face_VectorProperty(ngll1,ngll2,orient_f,                          &
                 Tdomain%sComm(n)%TakeForcesSF_FtoS(ngllSF:ngllSF+(ngll1-2)*(ngll2-2)-1,0:2),  &
-                Tdomain%SF%SF_Face(nnf)%pn(:,:,0:2))
+                Tdomain%SF%SF_Face(nnf)%pn(1:ngll1-2,1:ngll2-2,0:2))
         ngllSF = ngllSF+(ngll1-2)*(ngll2-2)
         if(Tdomain%SF%SF_Face(nnf)%PML)then
             call Comm_Face_VectorProperty(ngll1,ngll2,orient_f,                                   &
                     Tdomain%sComm(n)%TakeForcesSF_FtoS_PML(ngllSF_PML:ngllSF_PML+(ngll1-2)*(ngll2-2)-1,1,0:2),  &
-                    Tdomain%SF%SF_Face(nnf)%pn1(:,:,0:2))
+                    Tdomain%SF%SF_Face(nnf)%pn1(1:ngll1-2,1:ngll2-2,0:2))
             call Comm_Face_VectorProperty(ngll1,ngll2,orient_f,                                   &
                     Tdomain%sComm(n)%TakeForcesSF_FtoS_PML(ngllSF_PML:ngllSF_PML+(ngll1-2)*(ngll2-2)-1,2,0:2),  &
-                    Tdomain%SF%SF_Face(nnf)%pn2(:,:,0:2))
+                    Tdomain%SF%SF_Face(nnf)%pn2(1:ngll1-2,1:ngll2-2,0:2))
             call Comm_Face_VectorProperty(ngll1,ngll2,orient_f,                                   &
                     Tdomain%sComm(n)%TakeForcesSF_FtoS_PML(ngllSF_PML:ngllSF_PML+(ngll1-2)*(ngll2-2)-1,3,0:2),  &
-                    Tdomain%SF%SF_Face(nnf)%pn3(:,:,0:2))
+                    Tdomain%SF%SF_Face(nnf)%pn3(1:ngll1-2,1:ngll2-2,0:2))
             ngllSF_PML = ngllSF_PML+(ngll1-2)*(ngll2-2)
         end if
 
