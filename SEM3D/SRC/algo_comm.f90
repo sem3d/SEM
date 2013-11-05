@@ -122,7 +122,7 @@ contains
         do other = 0,n-1
             if (other==rg) cycle
 
-            if (Tdomain%sComm(other)%ngll_tot/=0) then
+            if (Tdomain%sComm(other)%ngll/=0) then
                 call MPI_Isend(Tdomain%sComm(other)%GiveForces, 3*Tdomain%sComm(other)%ngll, &
                     MPI_DOUBLE_PRECISION, other, tag_sl, Tdomain%communicateur, req_s_f(other), ierr)
                 call MPI_Irecv(Tdomain%sComm(other)%TakeForces, 3*Tdomain%sComm(other)%ngll, &
@@ -132,7 +132,7 @@ contains
                 call MPI_Isend(Tdomain%sComm(other)%GiveForcesFl, 1*Tdomain%sComm(other)%ngll_F, &
                     MPI_DOUBLE_PRECISION, other, tag_fl, Tdomain%communicateur, req_s_fl(other), ierr)
                 call MPI_Irecv(Tdomain%sComm(other)%TakeForcesFL,1*Tdomain%sComm(other)%ngll_F, &
-                    MPI_DOUBLE_PRECISION, other, tag_fl, Tdomain%communicateur, req_r_f(other), ierr)
+                    MPI_DOUBLE_PRECISION, other, tag_fl, Tdomain%communicateur, req_r_fl(other), ierr)
             endif
             if (Tdomain%sComm(other)%ngllPML/=0) then
                 call MPI_Isend(Tdomain%sComm(other)%GiveForcesPML, 9*Tdomain%sComm(other)%ngllPML, &
