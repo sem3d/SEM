@@ -16,8 +16,11 @@ module sfaces
        integer, dimension (0:1) :: Near_Element, Which_face, Near_Vertex
 
        real, dimension (:), pointer :: Normal_Face
-       real, dimension (:), pointer :: k0,k1,Zp_p,Zp_m,Zs_p,Zs_m
+       real, dimension (:), pointer :: k0,k1,Zp_p,Zp_m,Zs_p,Zs_m ! Added for DG
+       real, dimension (:), pointer :: Mu_p, Mu_m, Lambda_p, Lambda_m, massMat_p, massMat_m  ! Added for DG
+       real, dimension (:), pointer :: r1, r2, r3      ! EigenVectors for DG Godunov
        real, dimension (:), pointer :: massMat
+       real, dimension (:,:), pointer :: Veloc_p,Veloc_m,Strain_p,Strain_m ! Added for DG
        real, dimension (:,:), pointer :: Veloc, Displ, Accel, V0, Forces
        real, dimension (:,:), pointer :: Veloc1, Veloc2, Forces1, Forces2
        real, dimension (:,:), pointer :: DumpMass, DumpVx, DumpVz
@@ -37,17 +40,42 @@ contains
 
     ! ############################################################
     !>
-    !! \brief
+    !! \brief Compute the flux for Element E at the face F 
+    !!  Several different fluxs are available :
+    !!  Type_Flux = 1 : Centered Flux
+    !!  Type_Flux = 2 : Godunov Flux
     !!
     !! \param type (Face), intent (INOUT) F
-    !! \param real, in
-    !! \param real, intent (IN) gam1
-    !! \param real, intent (IN) dt
-    !! \param real, intent (IN) alpha
     !<
 
-  subroutine Compute_Flux_Veloc (F,)
+  subroutine Compute_Flux_Veloc (F)
+    implicit none
 
+    type (Face), intent (INOUT)      :: F
+    real, dimension (0:2) :: Stress_jump
+    real, dimension (0:2) :: Veloc_jump
+    real                  :: aux
+    integer               :: i
+    
+    if (F%Type_Flux == 1) then ! Centered Flux
+       
+       
+    else if (F%Type_Flux == 2) then ! Godunov Flux
+
+       do i=0,F%ngll-1
+          ! Computation of jumps of stresses and Velocities :
+          call compute_stress_jump(F,Stress_jump)
+          call compute_veloc_jump(F,Veloc_jump)
+          ! Computation of eigenvectors r2 and r3:
+          r2(i,0:4) = compute_r(F,Stress_jump,i)
+          r3(i,0:4) = compute_r(F,Veloc_jump,i)
+          ! Computation of Flux :
+          F_minus = 0 ! A modifier!!!!!!!!!!!!
+          aux = Stress_jump(0) * F%Normal(0) + Stress_jump(1) * F%Normal(1) + F%Z%%%%%%%%%
+          F_star(i,0:4) = F_minus + (Stress_jump * 
+          
+       enddo
+    endif
   end subroutine Compute_Flux_Veloc
 
     ! ############################################################
@@ -256,28 +284,36 @@ contains
 
     ! ############################################################
 
-    function cross2d(a,b)
+    function crossprod(a,b)
 
-      real, dimension(0:1) :: cross2d
-      real, dimension(0:1), intent(IN) :: a, b
+      real, dimension(0:2) :: cross
+      real, dimension(0:2), intent(IN) :: a, b
 
-      cross(1) = a(2) * b(3) - a(3) * b(2)
-      cross(2) = a(3) * b(1) - a(1) * b(3)
+      crossprod(1) = a(2) * b(3) - a(3) * b(2)
+      crossprod(2) = a(3) * b(1) - a(1) * b(3)
+      crossprod(3) = a(1) * b(2) - a(2) * b(1)
 
-    end function cross2d
+    end function crossprod
 
     ! ############################################################
 
-    function cross3d(a,b)
+    function compute_r(F,jump,i)
 
-      real, dimension(0:2) :: cross3d
-      real, dimension(0:2), intent(IN) :: a, b
+      type (Face), intent (INOUT)      :: F
+      real, dimension(0:5) :: compute_r
+      real, dimension(0:2), intent(IN) :: jump
+      integer, intent(IN)              :: i
+      real, dimension(0:2) :: aux
+      
+      aux   = crossprod(F%Normal,jump)
+      aux   = crossprod(F%Normal,aux)
+      compute_r(0) = F%Normal(0) * aux(0)
+      compute_r(1) = F%Normal(1) * aux(1)
+      compute_r(2) = 0.5 * (F%Normal(1) * aux(0) + F%Normal(0) * aux(1))
+      compute_r(3) = F%Z_m(i) * aux(0)
+      compute_r(4) = F%Z_m(i) * aux(1)
 
-      cross(1) = a(2) * b(3) - a(3) * b(2)
-      cross(2) = a(3) * b(1) - a(1) * b(3)
-      cross(3) = a(1) * b(2) - a(2) * b(1)
-
-    end function cross3d
+    end function compute_r
 
     ! ############################################################
 
