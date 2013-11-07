@@ -52,8 +52,9 @@ contains
     implicit none
 
     type (Face), intent (INOUT)      :: F
-    real, dimension (0:2) :: Stress_jump
-    real, dimension (0:2) :: Veloc_jump
+    real, dimension (0:1) :: Stress_jump
+    real, dimension (0:1) :: Veloc_jump
+    real, dimension (0:4) :: F_minus
     real                  :: aux
     integer               :: i
     
@@ -61,19 +62,18 @@ contains
        
        
     else if (F%Type_Flux == 2) then ! Godunov Flux
-
        do i=0,F%ngll-1
           ! Computation of jumps of stresses and Velocities :
-          call compute_stress_jump(F,Stress_jump)
-          call compute_veloc_jump(F,Veloc_jump)
+          Stress_jump = compute_stress_jump(F,i)
+          Veloc_jump(0:1) = F%Veloc_m(i,0:1) - F%Veloc_p(i,0:1)
           ! Computation of eigenvectors r2 and r3:
-          r2(i,0:4) = compute_r(F,Stress_jump,i)
-          r3(i,0:4) = compute_r(F,Veloc_jump,i)
+          F%r2(i,0:4) = compute_r(F,Stress_jump,i)
+          F%r3(i,0:4) = compute_r(F,Veloc_jump,i)
           ! Computation of Flux :
-          F_minus = 0 ! A modifier!!!!!!!!!!!!
-          aux = Stress_jump(0) * F%Normal(0) + Stress_jump(1) * F%Normal(1) + F%Z%%%%%%%%%
-          F_star(i,0:4) = F_minus + (Stress_jump * 
-          
+          aux = Stress_jump(0) * F%Normal(0) + Stress_jump(1) * F%Normal(1) &
+               + F%Zp_p(i) * (F%Normal(0)*Veloc_jump(0) + F%Normal(1)*Veloc_jump(1))
+          F_minus = compute_F_trace(F,i,.true.)
+          F_star(i,0:4) = F_minus(:) + aux*F%k0(i)*F%r1(:) - F%k1(i)*r2(:) - F%Zs_p*F%k1(i)*r2(:)
        enddo
     endif
   end subroutine Compute_Flux_Veloc
@@ -300,9 +300,9 @@ contains
     function compute_r(F,jump,i)
 
       type (Face), intent (INOUT)      :: F
-      real, dimension(0:5) :: compute_r
       real, dimension(0:2), intent(IN) :: jump
       integer, intent(IN)              :: i
+      real, dimension(0:5) :: compute_r
       real, dimension(0:2) :: aux
       
       aux   = crossprod(F%Normal,jump)
@@ -315,6 +315,51 @@ contains
 
     end function compute_r
 
+    ! ############################################################
+
+    function compute_stress_jump(F,i)
+
+      type (Face), intent (INOUT)      :: F
+      integer, intent(IN)              :: i
+      real, dimension(0:1) :: compute_stress_jump
+      real, dimension(0:2) :: sigma
+      real                 :: trace
+      
+      trace = F%Lambda_m(i)*(F%Strain_m(i,0)+F%Strain_m(i,1))
+      sigma(:) = 2*F%Mu_m(i) * F%Strain_m(i,0:2)
+      sigma(0) = sigma_m(0) + trace
+      sigma(1) = sigma_m(1) + trace
+
+      compute_stress_jump(0) = sigma(0)*F%Normal(0) + sigma(2)*F%Normal(1)
+      compute_stress_jump(1) = sigma(2)*F%Normal(0) + sigma(1)*F%Normal(1)
+
+      trace = F%Lambda_p(i)*(F%Strain_p(i,0)+F%Strain_p(i,1))
+      sigma(:) = 2*F%Mu_p(i) * F%Strain_p(i,0:2)
+      sigma(0) = sigma(0) + trace
+      sigma(1) = sigma(1) + trace
+
+      compute_stress_jump(0) = compute_stress_jump(0) - sigma(0)*F%Normal(0) - sigma(2)*F%Normal(1)
+      compute_stress_jump(1) = compute_stress_jump(1) - sigma(2)*F%Normal(0) - sigma(1)*F%Normal(1)
+
+    end function compute_stress_jump
+
+    ! ############################################################
+
+    function compute_trace_F(F,i,bool_side)
+
+      type (Face), intent (INOUT)      :: F
+      integer, intent(IN)              :: i
+      logical, intent(IN)              :: bool_side
+      real, dimension(0:1) :: compute_trace_F
+      real, dimension(0:2) :: sigma
+      real                 :: trace
+      
+      if (bool_side) then ! Case the current element is "minus"
+         
+      else
+         
+      endif
+    end function compute_trace_F
     ! ############################################################
 
 end module sfaces

@@ -130,7 +130,7 @@ subroutine compute_coeff_flux (Tdomain, n_face)
       !! Computation of the coefficients k0 and k1 for Godunov fluxs
       do i=0,ngll
          Tdomain%sFace(n_face)%k0(i) = 1./(Tdomain%sFace(n_face)%Zp_m(i) + Tdomain%sFace(n_face)%Zp_p(i))
-         Tdomain%sFace(n_face)%k0(i) = 1./(Tdomain%sFace(n_face)%Zs_m(i) + Tdomain%sFace(n_face)%Zs_p(i))
+         Tdomain%sFace(n_face)%k1(i) = 1./(Tdomain%sFace(n_face)%Zs_m(i) + Tdomain%sFace(n_face)%Zs_p(i))
       end do
     return
 end subroutine  compute_coeff_flux
