@@ -30,7 +30,7 @@ module sfaces
        real, dimension (:,:), pointer :: ForcesMka
 #endif
 
-       logical :: coherency, PML, Abs, FPML, is_computed
+       logical :: coherency, PML, Abs, FPML, is_computed, changing_media, acoustic
        real, dimension (:), pointer :: Ivx, Ivz
        real, dimension (:,:), pointer :: Iveloc1, Iveloc2
     end type face
@@ -48,15 +48,16 @@ contains
     !! \param type (Face), intent (INOUT) F
     !<
 
-  subroutine Compute_Flux_Veloc (F,nelem)
+  subroutine Compute_Flux_Veloc (F,nelem,DG_type)
     implicit none
 
     type (Face), intent (INOUT)      :: F
     integer, intent (IN)             :: nelem
+    integer, intent (IN)             :: DG_type
     real, dimension (0:F%ngll-1,0:1) :: Stress_jump
     real, dimension (0:F%ngll-1,0:1) :: Veloc_jump
     real, dimension (0:F%ngll-1,0:4) :: F_minus
-    real, dimension (0:F%ngll-1)     :: aux
+    real, dimension (0:F%ngll-1)     :: coeff_p
     logical                          :: bool_side
     
     if(nelem==F%Near_Element(0)) then
@@ -72,21 +73,44 @@ contains
        else
           F_minus = compute_trace_F(F,bool_side)
           F%Fstar = 0.5 * (F_minus - compute_trace_F(F,.NOT.bool_side))
-          F%is_computed = .FALSE.
+          F%is_computed = .TRUE.
        endif
 
     else if (F%Type_Flux == 2) then ! Godunov Flux
-       ! Computation of jumps of stresses and Velocities :
-       Stress_jump = compute_stress_jump(F)
-       Veloc_jump(:,:) = F%Veloc_m(:,:) - F%Veloc_p(:,:)
-       ! Computation of eigenvectors r2 and r3:
-       F%r2 = compute_r(F,Stress_jump)
-       F%r3 = compute_r(F,Veloc_jump)
-       ! Computation of Flux :
-       aux(:) = Stress_jump(:,0) * F%Normal(0) + Stress_jump(:,1) * F%Normal(1) &
-            + F%Zp_p(:,i) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
-       F_minus = compute_trace_F(F,.true.)
-       F%Fstar(:,:) = F_minus(:,:) + aux(:)*F%k0(:)*F%r1(:,:) - F%k1(:)*r2(:,:) - F%Zs_p(:)*F%k1(:)*r3(:,:)
+       if(F%is_computed .AND. .NOT. F%changing_media) then
+          F%Fstar = -Fstar
+          F%is_computed = .FALSE.
+       else
+          ! Computation of jumps of stresses and Velocities :
+          Stress_jump = compute_stress_jump(F)
+          Veloc_jump(:,:) = F%Veloc_m(:,:) - F%Veloc_p(:,:)
+          if (.NOT. bool_side) Veloc_jump(:,:) = - Veloc_jump(:,:)
+          call check_r1(F,bool_side)
+          if (bool_side) then
+             coeff_p(:) = Stress_jump(:,0) * F%Normal(0) + Stress_jump(:,1) * F%Normal(1) &
+                  + F%Zp_p(:,i) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
+          else
+             coeff_p(:) = -Stress_jump(:,0) * F%Normal(0) - Stress_jump(:,1) * F%Normal(1) &
+                  + F%Zp_m(:,i) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
+          endif
+          if (.NOT. F%acoustic) then
+             ! Computation of eigenvectors r2 and r3 :
+             F%r2 = compute_r(F,Stress_jump,bool_side)
+             F%r3 = compute_r(F,Veloc_jump, bool_side)
+             ! Computation of Numerical Flux :
+             if(bool_side) then
+                F%Fstar(:,:) = coeff_p(:)*F%k0(:)*F%r1(:,:) - F%k1(:)*r2(:,:) - Zs_p*F%k1(:)*r3(:,:)
+             else
+                F%Fstar(:,:) = coeff_p(:)*F%k0(:)*F%r1(:,:) - F%k1(:)*r2(:,:) - Zs_m*F%k1(:)*r3(:,:)
+             endif
+          else ! Acoustic case
+             F%Fstar(:,:) = coeff_p(:)*F%k0(:)*F%r1(:,:)
+          endif
+          if (DG_type==1) then ! Forme "Faible" des DG
+             F_minus = compute_trace_F(F,bool_side)
+             F%Fstar(:,:) = F_minus(:,:) + F%Fstar(:,:)
+          endif
+       endif
     endif
   end subroutine Compute_Flux_Veloc
 
@@ -294,12 +318,39 @@ contains
         return
     end subroutine get_vfree_face
 
+    ! ###########################################################
+
+    !>
+    !! \brief Compute the two las componants of the vector 
+    !! for the P-wave according to the side the current element
+    !! is from the Face.
+    !!
+    !! \param type (Face), intent (IN) F
+    !! \param logical, intent (IN) bool_size
+    !<
+
+    subroutine check_r1 (F,bool_side)
+      implicit none
+
+      type (Face), intent (IN) :: F
+      logical, intent(IN)      :: bool_side
+
+      if (bool_side) then
+           F%r1(:,3) = F%Normal(0) * Zp_m(:)
+           F%r1(:,4) = F%Normal(1) * Zp_m(:)
+      else
+           F%r1(:,3) = -F%Normal(0) * Zp_p(:)
+           F%r1(:,4) = -F%Normal(1) * Zp_p(:) 
+      endif
+
+    end subroutine check_r1
     ! ############################################################
 
-    function compute_r(F,jump)
+    function compute_r(F,jump,bool_side)
 
       type (Face), intent (INOUT)                 :: F
       real, dimension(0:F%ngll-1,0:1), intent(IN) :: jump
+      logical, intent(IN)             :: bool_side
       real, dimension(0:F%ngll-1,0:4) :: compute_r
       real, dimension(0:F%ngll-1,0:2) :: aux
       
@@ -308,11 +359,19 @@ contains
       aux(:,0) = F%Normal(1)*aux(:,2)
       aux(:,1) =-F%Normal(0)*aux(:,2)
       
-      compute_r(:,0) = F%Normal(0) * aux(:,0)
-      compute_r(:,1) = F%Normal(1) * aux(:,1)
-      compute_r(:,2) = 0.5 * (F%Normal(1) * aux(:,0) + F%Normal(0) * aux(:,1))
-      compute_r(:,3) = F%Zs_m(:) * aux(:,0)
-      compute_r(:,4) = F%Zs_m(:) * aux(:,1)
+      if (bool_side) then
+         compute_r(:,0) = F%Normal(0) * aux(:,0)
+         compute_r(:,1) = F%Normal(1) * aux(:,1)
+         compute_r(:,2) = 0.5 * (F%Normal(1) * aux(:,0) + F%Normal(0) * aux(:,1))
+         compute_r(:,3) = F%Zs_m(:) * aux(:,0)
+         compute_r(:,4) = F%Zs_m(:) * aux(:,1)
+      else
+         compute_r(:,0) = -F%Normal(0) * aux(:,0)
+         compute_r(:,1) = -F%Normal(1) * aux(:,1)
+         compute_r(:,2) = -0.5 * (F%Normal(1) * aux(:,0) + F%Normal(0) * aux(:,1))
+         compute_r(:,3) = F%Zs_p(:) * aux(:,0)
+         compute_r(:,4) = F%Zs_p(:) * aux(:,1)
+      endif
 
     end function compute_r
 
