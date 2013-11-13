@@ -425,9 +425,10 @@ contains
             ibuf(2) = Tdomain%sFace(numFace)%ngll2
             ibuf(3) = face_couplage(iface)%nbPk
             ibuf(4) = face_couplage(iface)%numlocal
+            ibuf(5) = numFace
 
             tag=670000+rg+iface-1
-            call MPI_SEND(ibuf, 4, MPI_INTEGER, Tdomain%master_superviseur,tag, Tdomain%communicateur_global, ierr )
+            call MPI_SEND(ibuf, 5, MPI_INTEGER, Tdomain%master_superviseur,tag, Tdomain%communicateur_global, ierr )
 
             tag=690000+rg+iface-1
             call MPI_SEND(face_couplage(iface)%coord, 12, MPI_DOUBLE_PRECISION, Tdomain%master_superviseur, &

@@ -341,9 +341,10 @@ contains
             ibuf(2) = 0    ! ngll2
             ibuf(3) = face_couplage(iface)%nbPk
             ibuf(4) = wf
+            ibuf(5) = numFace
 
             tag=670000+Tdomain%MPI_var%my_rank+iface-1
-            call MPI_SEND(ibuf, 4, MPI_INTEGER, Tdomain%master_superviseur,tag, Tdomain%communicateur_global, ierr )
+            call MPI_SEND(ibuf, 5, MPI_INTEGER, Tdomain%master_superviseur,tag, Tdomain%communicateur_global, ierr )
 
             coord(1) = face_couplage(iface)%coord0(1)
             coord(2) = face_couplage(iface)%coord1(1)
@@ -681,7 +682,7 @@ contains
             hk = min(dmin_couplage(iface), Lface/(2.*ngll + 1.))
             !       hk = min(dmin_couplage(iface), Lface/(2.*ngll + 25.))
             !       tab_Pk(iface)%nb_pts = floor( Lface/hk) + 1
-            face_couplage(iface)%nbPk = floor( Lface/hk)
+            face_couplage(iface)%nbPk = floor( Lface/hk)*10.
             !hk = Lface/face_couplage(iface)%nbPk !correction
         enddo
     end subroutine definit_nb_pts_Pk
