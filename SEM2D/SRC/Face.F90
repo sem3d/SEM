@@ -38,17 +38,17 @@ module sfaces
 contains
 
 
-    ! ############################################################
-    !>
-    !! \brief Compute the flux for Element E at the face F 
-    !!  Several different fluxs are available :
-    !!  Type_Flux = 1 : Centered Flux
-    !!  Type_Flux = 2 : Godunov Flux
-    !!
-    !! \param type (Face), intent (INOUT) F
-    !<
+  ! ############################################################
+  !>
+  !! \brief Compute the flux for Element E at the face F 
+  !!  Several different fluxs are available :
+  !!  Type_Flux = 1 : Centered Flux
+  !!  Type_Flux = 2 : Godunov Flux
+  !!
+  !! \param type (Face), intent (INOUT) F
+  !<
 
-  subroutine Compute_Flux_Veloc (F,nelem,DG_type)
+  subroutine Compute_Flux (F,nelem,DG_type)
     implicit none
 
     type (Face), intent (INOUT)      :: F
@@ -112,7 +112,7 @@ contains
           endif
        endif
     endif
-  end subroutine Compute_Flux_Veloc
+  end subroutine Compute_Flux
 
     ! ############################################################
     !>
