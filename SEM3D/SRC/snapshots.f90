@@ -608,6 +608,7 @@ contains
         if (allocated(field_displ)) deallocate(field_displ)
         if (allocated(field_veloc)) deallocate(field_veloc)
         if (allocated(field_accel)) deallocate(field_accel)
+        if (allocated(field_press)) deallocate(field_press)
         call mpi_barrier(Tdomain%communicateur, hdferr)
     end subroutine save_field_h5
 
