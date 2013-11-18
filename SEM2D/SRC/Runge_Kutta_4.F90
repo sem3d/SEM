@@ -74,34 +74,37 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
           enddo
        enddo
 
+       ! Computing External Forces
        if (Tdomain%Type_Init==3) then
-          ! Excitation par des Forces exterieures
           call Compute_External_Forces(Tdomain,timelocal)
        endif
 
-       do n = 0, Tdomain%n_elem-1
-          F1 = Tdomain%specel(n)%Near_Face(0)
-          F2 = Tdomain%specel(n)%Near_Face(1)
-          mat = Tdomain%specel(n)%mat_index
-          ! Forces interieures
-    
-          ! Right Hand Side pressions and Velocities
-          call Compute_RHS_Press (Tdomain%specel(n), Tdomain%sFace(F1),Tdomain%sFace(F2))
-          call Compute_RHS_Veloc (Tdomain%specel(n), Tdomain%sFace(F1),Tdomain%sFace(F2))
-    
-          ! Pressions and Velocities at the next step
-          Tdomain%specel(n)%RKKP = coeffs(1) * Tdomain%specel(n)%RKKP + Tdomain%specel(n)%RHSP * dt
-          Tdomain%specel(n)%RKKV = coeffs(1) * Tdomain%specel(n)%RKKV + Tdomain%specel(n)%RHSV * dt
+       ! Communications MPI
+       ! #####################
 
-          Tdomain%specel(n)%Press = Tdomain%specel(n)%Press + coeffs(2) * Tdomain%specel(n)%RKKP
-          Tdomain%specel(n)%Veloc = Tdomain%specel(n)%Veloc + coeffs(2) * Tdomain%specel(n)%RKKV
-    
+       do n = 0, Tdomain%n_elem-1
+          type_DG = Tdomain%specel(n)%Type_DG
+
+          ! Inversion de la matrice de masse et creation des inconnues intermediaires pour
+          ! un schema classique low-storage de Runge-Kutta 4.
+          if (type_DG==2) then  ! Continuous Galerkin
+             Tdomain%specel(n)%Forces  = Tdomain%specel(n)%MassMat * Tdomain%specel(n)%Forces
+             Tdomain%specel(n)%Vect_RK = coeffs(1) * Tdomain%specel(n)%Vect_RK  + Tdomain%specel(n)%Forces * dt
+             Tdomain%specel(n)%Veloc   = Tdomain%specel(n)%Veloc + coeffs(2) * Tdomain%specel(n)%Vect_RK
+          else                  ! Discontinuous Galerkin
+             Tdomain%specel(n)%Forces(:,:,3:4) = Tdomain%specel(n)%MassMat * Tdomain%specel(n)%Forces(:,:,3:4)
+             Tdomain%specel(n)%Vect_RK = coeffs(1) * Tdomain%specel(n)%Vect_RK + Tdomain%specel(n)%Forces * dt
+             Tdomain%specel(n)%Strain  = Tdomain%specel(n)%Strain + coeffs(2) * Tdomain%specel(n)%Vect_RK(:,:,0:2)
+             Tdomain%specel(n)%Veloc   = Tdomain%specel(n)%Veloc  + coeffs(2) * Tdomain%specel(n)%Vect_RK(:,:,3:4)
+          endif
+
+          ! Pressions and Velocities at the next step
           ! Update Vertexes :
           call Update_P (Tdomain%specel(n),Tdomain%sFace(F1),Tdomain%sFace(F2))
           call Update_V (Tdomain%specel(n),Tdomain%sFace(F1),Tdomain%sFace(F2))
        enddo
-  
-    enddo
+
+    enddo ! End loop RK4
 
     return
 
@@ -136,6 +139,8 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
       end select
 
     end function Coeffs_LSERK
+
+  end subroutine Runge_Kutta4
 
 
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a
@@ -305,38 +310,6 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
 
 
 
-
-        ! AJOUT DES FORCES MKA3D
-#ifdef COUPLAGE
-        if (ntime>0) then
-            call calcul_couplage_force(Tdomain,ntime)
-        endif
-
-        ! la ForcesMka corespond a la contrainte multiplie par la surface du point de gauss correspondant
-        ! sur un meme proc la somme est deja faite
-        ! par contre lorsqu un vertex est partage sur plusieurs proc alors chaque proc n a qu une partie de la somme
-        ! il faut donc lui ajouter les contributions des autres proc
-        ! pour prendre en compte les forces imposee lors du couplage avec mka sur les points de gauss internes aux faces
-        do nf = 0, Tdomain%n_face-1
-            ngll = Tdomain%sFace(nf)%ngll
-            do i=1,ngll-2
-                Tdomain%sFace(nf)%Forces(i,0:1) = Tdomain%sFace(nf)%ForcesMka(i,0:1) + Tdomain%sFace(nf)%Forces(i,0:1)
-            enddo
-
-        enddo
-
-
-        ! pour prendre en compte les forces imposee lors du couplage avec mka sur les points de gauss des vertex
-        do nv = 0, Tdomain%n_vertex-1
-            Tdomain%sVertex(nv)%Forces(0:1) = Tdomain%sVertex(nv)%ForcesMka(0:1) + Tdomain%sVertex(nv)%Forces(0:1)
-        enddo
-
-#endif
-
-
-
-
-
         ! Communicate forces among processors
 
         ! Double value on the vertices
@@ -440,11 +413,6 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
                 i_stock = i_stock + 1
             enddo
 
-
-
-
-
-
             do nf = 0, Tdomain%sWall(i_proc)%n_pml_faces - 1
                 n_face_pointed = Tdomain%sWall(i_proc)%FacePML_List(nf)
                 ngll = Tdomain%sFace(n_face_pointed)%ngll
@@ -474,136 +442,9 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
 
         !==========================================================
         ! Definition of a super object
-
-        if (Tdomain%logicD%super_object_local_present) then
-            do n = 0, Tdomain%n_fault-1
-                do nf = 0, Tdomain%sFault(n)%n_face-1
-                    ngllx = Tdomain%sFault(n)%fFace(nf)%ngll
-                    mat = Tdomain%sFault(n)%fFace(nf)%mat_index
-                    allocate (V_free(1:ngllx-2,0:1))
-                    nf_aus = Tdomain%sFault(n)%fFace(nf)%Face_UP
-                    call get_vfree_face(Tdomain%sFace(nf_aus),V_free,ngllx,.false.,.true.)
-                    nf_aus = Tdomain%sFault(n)%fFace(nf)%Face_DOWN
-                    call get_vfree_face(Tdomain%sFace(nf_aus),V_free,ngllx,.true.,Tdomain%sFault(n)%fFace(nf)%Coherency)
-                    select case (Tdomain%sFault(n)%Problem_type)
-                    case (1)
-                        call traction_on_face_sw (Tdomain%sFault(n)%fFace(nf), V_free,Tdomain%sSubdomain(mat)%dt, &
-                            Tdomain%sFault(n)%imposed_Tolerance)
-                    case (2)
-                        call traction_on_face_adhesion (Tdomain%sFault(n)%fFace(nf), V_free,Tdomain%sSubdomain(mat)%dt, &
-                            Tdomain%sFault(n)%imposed_Tolerance)
-                    end select
-                    deallocate (V_free)
-                enddo
-
-                do nf = 0, Tdomain%sFault(n)%n_vertex-1
-                    if (.not. Tdomain%sFault(n)%fVertex(nf)%Termination) then
-                        mat = Tdomain%sFault(n)%fVertex(nf)%mat_index
-                        nv_aus = Tdomain%sFault(n)%fVertex(nf)%Vertex_UP
-                        call get_vfree_vertex (Tdomain%sVertex(nv_aus), V_free_Vertex, .false.)
-                        nv_aus = Tdomain%sFault(n)%fVertex(nf)%Vertex_DOWN
-                        call get_vfree_vertex (Tdomain%sVertex(nv_aus), V_free_Vertex, .true.)
-                        select case (Tdomain%sFault(n)%Problem_type)
-                        case (1)
-                            call traction_on_vertex_sw (Tdomain%sFault(n)%fVertex(nf),    &
-                                V_free_vertex,Tdomain%sSubdomain(mat)%dt, Tdomain%sFault(n)%imposed_Tolerance)
-
-                        case (2)
-                            call traction_on_vertex_adhesion (Tdomain%sFault(n)%fVertex(nf),   &
-                                V_free_vertex,Tdomain%sSubdomain(mat)%dt, Tdomain%sFault(n)%imposed_Tolerance)
-                        end select
-                    endif
-                enddo
-            enddo
-
-
-
-
-            ! Smoothing procedure for the normal traction
-            do  n = 0, Tdomain%n_fault-1
-                if (Tdomain%sFault(n)%smoothing ) then
-                    ns = -1
-                    do nf = 0, Tdomain%sFault(n)%n_face-1
-                        ns = ns + Tdomain%sFault(n)%fFace(nf)%ngll-1
-                    enddo
-                    allocate (Smooth(0:ns-1,0:1))
-                    ncc = 0
-                    do nf = 0, Tdomain%sFault(n)%n_face-1
-                        ngllx = Tdomain%sFault(n)%fFace(nf)%ngll
-                        Smooth (ncc:ncc+ngllx-3,0) = Tdomain%sFault(n)%fFace(nf)%distance(1:ngllx-2)
-                        Smooth (ncc:ncc+ngllx-3,1) = Tdomain%sFault(n)%fFace(nf)%traction(1:ngllx-2,1)
-                        nv_aus = Tdomain%sFault(n)%fFace(nf)%Face_to_Vertex(1)
-                        if (.not. Tdomain%sFault(n)%fVertex(nv_aus)%Termination)  then
-                            Smooth(ncc+ngllx-2,0) = Tdomain%sFault(n)%fVertex(nv_aus)%distance
-                            Smooth(ncc+ngllx-2,1) = Tdomain%sFault(n)%fVertex(nv_aus)%traction(1)
-                        endif
-                        ncc = ncc + ngllx- 1
-                    enddo
-
-                    !       call smoothing_exp(smooth,ns-1,1,4,Tdomain%sFault(n)%dx_smoothing)
-                    call smoothing_exp(smooth,ns-1,1,4,0.4)
-                    ncc = 0
-                    do nf = 0, Tdomain%sFault(n)%n_face-1
-                        ngllx = Tdomain%sFault(n)%fFace(nf)%ngll
-                        Tdomain%sFault(n)%fFace(nf)%traction(1:ngllx-2,1) = Smooth (ncc:ncc+ngllx-3,1)
-                        nv_aus = Tdomain%sFault(n)%fFace(nf)%Face_to_Vertex(1)
-                        if (.not. Tdomain%sFault(n)%fVertex(nv_aus)%Termination)  &
-                            Tdomain%sFault(n)%fVertex(nv_aus)%traction(1) = Smooth(ncc+ngllx-2,1)
-                        ncc = ncc + ngllx- 1
-                    enddo
-                    deallocate (Smooth)
-                    print *, "here you are doing smmothing"
-                endif
-
-                do nf = 0, Tdomain%sFault(n)%n_face-1
-                    call rotate_traction_face (Tdomain%sFault(n)%fFace(nf))
-                enddo
-                do nf = 0, Tdomain%sFault(n)%n_vertex-1
-                    call rotate_traction_vertex (Tdomain%sFault(n)%fVertex(nf))
-                enddo
-            enddo
-
-
-            ! Following the smoothing - special treatement
-
-            do n = 0, Tdomain%n_fault-1
-                do nf = 0, Tdomain%sFault(n)%n_face-1
-                    ngllx = Tdomain%sFault(n)%fFace(nf)%ngll
-                    nf_aus = Tdomain%sFault(n)%fFace(nf)%Face_UP
-                    do i = 0,1
-                        Tdomain%sFace(nf_aus)%Forces(1:ngllx-2,i) = Tdomain%sFace(nf_aus)%Forces(1:ngllx-2,i) + &
-                            Tdomain%sFault(n)%fFace(nf)%Bt(1:ngllx-2) * Tdomain%sFault(n)%fFace(nf)%Traction(1:ngllx-2,i)
-                    enddo
-                    nf_aus = Tdomain%sFault(n)%fFace(nf)%Face_DOWN
-                    if (Tdomain%sFault(n)%fFace(nf)%Coherency) then
-                        do i =0,1
-                            Tdomain%sFace(nf_aus)%Forces(1:ngllx-2,i) = Tdomain%sFace(nf_aus)%Forces(1:ngllx-2,i) - &
-                                Tdomain%sFault(n)%fFace(nf)%Bt(1:ngllx-2) * Tdomain%sFault(n)%fFace(nf)%Traction(1:ngllx-2,i)
-                        enddo
-                    else
-                        do i =0,1
-                            do j = 1,ngllx-2
-                                Tdomain%sFace(nf_aus)%Forces(j,i) = Tdomain%sFace(nf_aus)%Forces(j,i) - &
-                                    Tdomain%sFault(n)%fFace(nf)%Bt(ngllx-1-j) * Tdomain%sFault(n)%fFace(nf)%Traction(ngllx-1-j,i)
-                            enddo
-                        enddo
-                    endif
-                enddo
-
-                do nf = 0, Tdomain%sFault(n)%n_vertex-1
-                    if (.not. Tdomain%sFault(n)%fVertex(nf)%Termination) then
-                        nv_aus = Tdomain%sFault(n)%fVertex(nf)%Vertex_UP
-                        Tdomain%sVertex(nv_aus)%Forces(0:1) = Tdomain%sVertex(nv_aus)%Forces(0:1) + &
-                            Tdomain%sFault(n)%fVertex(nf)%Bt * Tdomain%sFault(n)%fVertex(nf)%Traction(0:1)
-                        nv_aus = Tdomain%sFault(n)%fVertex(nf)%Vertex_DOWN
-                        Tdomain%sVertex(nv_aus)%Forces(0:1) = Tdomain%sVertex(nv_aus)%Forces(0:1) - &
-                            Tdomain%sFault(n)%fVertex(nf)%Bt * Tdomain%sFault(n)%fVertex(nf)%Traction(0:1)
-                    endif
-                enddo
-            enddo
-
-        endif
-
+        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+          ! Following the smoothing - special treatement
+        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         !===fin traitement super objet =============
 
 
