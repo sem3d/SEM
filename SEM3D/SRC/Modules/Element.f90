@@ -418,7 +418,6 @@ contains
 
         Elem%spml%Residual_Stress = Elem%spml%Residual_Stress1 + Elem%spml%Residual_Stress2 + Elem%spml%Residual_Stress3
 
-
         return
     end subroutine Prediction_Elem_PML_Veloc
     !--------------------------------------------------------------------------------
@@ -438,6 +437,7 @@ contains
 
 
         m1 = Elem%ngllx ; m2 = Elem%nglly ; m3 = Elem%ngllz
+
 
         ! prediction in the element
         Elem%ForcesFl(1:m1-2,1:m2-2,1:m3-2) = Elem%VelPhi(:,:,:) +dt*(0.5-bega)*Elem%AccelPhi(:,:,:)
