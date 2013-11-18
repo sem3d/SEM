@@ -1,0 +1,37 @@
+
+material 0 {
+    vp = 1000;
+    vs = 800;
+    qp = 20;
+    qs = 30;
+    rho = 1000;
+    type = uniform;
+};
+
+material 1 {
+    vp = 1000;
+    vs = 800;
+    qp = 20;
+    qs = 30;
+    rho = 1000;
+    type = zgradient;
+    z0 = 100;
+    z1 = 10000;
+    vp1 = 2000;
+    vs1 = 850;
+    rho1 = 1500;
+};
+
+material 2 {
+    vp = 1000;
+    vs = 800;
+    qp = 20;
+    qs = 30;
+    rho = 1000;
+    type = zgradient;
+    z0 = 100;
+    z1 = 10000;
+    vp1 = 2000;
+    vs1 = 850;
+    rho1 = 1500;
+};

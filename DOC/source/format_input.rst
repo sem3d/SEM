@@ -1,7 +1,7 @@
 .. -*- coding: utf-8 -*-
 
 ===================================
-Description des parametres de SEM3D
+Description des paramètres de SEM3D
 ===================================
 
 Format
