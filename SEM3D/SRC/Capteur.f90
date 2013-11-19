@@ -342,6 +342,11 @@ contains
                     open(fileId,file=trim(fnamef),status="replace",form="formatted")
                     close(fileId)
 
+                    call semname_capteur_type(capteur%nom,"_accel",fnamef)
+
+                    open(fileId,file=trim(fnamef),status="replace",form="formatted")
+                    close(fileId)
+
                 elseif (Tdomain%logicD%run_restart.and. rg==0) then ! c'est une reprise, il faut se repositionner
                     ! au bon endroit dans le fichier de capteur pour le completer ensuite a chaque iteration
                     ! INUTILE ?
@@ -690,6 +695,11 @@ contains
             imax = 3
         endif
 
+        if (trim(capteur%grandeur).eq."ACCEL") then
+            call semname_capteur_type(capteur%nom,"_accel",fnamef)
+            imax = 3
+        endif
+
         open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
         do j=1,capteur%icache
             if (imax==1) then
@@ -927,6 +937,8 @@ contains
                 call gather_elem_veloc(Tdomain, n_el, field)
             else if (trim(capteur%grandeur).eq."DEPLA") then
                 call gather_elem_displ(Tdomain, n_el, field)
+            else if (trim(capteur%grandeur).eq."ACCEL") then
+                call gather_elem_accel(Tdomain, n_el, field)
             end if
             do i = 0,ngllx - 1
                 do j = 0,nglly - 1
