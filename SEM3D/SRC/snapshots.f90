@@ -604,7 +604,7 @@ contains
             call h5fclose_f(fid, hdferr)
             call write_xdmf(Tdomain, group, isort, nnodes_tot)
         endif
-        deallocate(displ,veloc,accel,valence)
+        deallocate(displ,veloc,accel,press,valence)
         if (allocated(field_displ)) deallocate(field_displ)
         if (allocated(field_veloc)) deallocate(field_veloc)
         if (allocated(field_accel)) deallocate(field_accel)
