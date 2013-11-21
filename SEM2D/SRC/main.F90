@@ -7,11 +7,7 @@
 !!
 !<
 
-#ifdef COUPLAGE
-subroutine  sem(master_superviseur,communicateur,communicateur_global)
-#else
     program main
-#endif
 
 
         use sdomain
@@ -422,11 +418,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
         if (Tdomain%MPI_var%my_rank == 0) close(78)
 #endif
 
-#ifdef COUPLAGE
-    end subroutine sem
-#else
 end program
-#endif
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

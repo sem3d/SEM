@@ -1,6 +1,7 @@
 PROJECT(sem2d)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 ENABLE_LANGUAGE(Fortran)
+
 set(PRJ ${PROJECT_SOURCE_DIR})
 
 set(SEM2D_SOURCES_F
@@ -36,9 +37,6 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/getiv_e2f.F90
     ${PRJ}/SRC/getmass_e2f.F90
     ${PRJ}/SRC/global_numbering.F90
-#    ${PRJ}/SRC/lister_faces_sem.f90
-#    ${PRJ}/SRC/plot_grid.F90
-#    ${PRJ}/SRC/postraitement.F90
     ${PRJ}/SRC/read_input.F90
     ${PRJ}/SRC/read_mesh.F90
     ${PRJ}/SRC/read_restart.F90
@@ -67,31 +65,24 @@ else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   set_source_files_properties(${SEM2D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-x f95-cpp-input")
 endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 
-set(SEM2D_SOURCES ${SEM2D_SOURCES_F}
-  ${SEM_SRC_C}
-)
+set(SEM2D_SOURCES ${SEM2D_SOURCES_F} ${SEM_SRC_C})
 
 if(OPT_MPI)
-#set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
-# TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
-# c++ et ne link pas semx.exe
-set(SEM_EXTRA_LIBS ${MPI_EXTRA_LIBRARY})
+  set(SEM_EXTRA_LIBS ${MPI_EXTRA_LIBRARY})
+  add_executable(sem2d_cpl  ${SEM2D_SOURCES})
+  target_link_libraries(sem2d_cpl ${CEAUSER} ${SEM_EXTRA_LIBS})
+  set_target_properties(sem2d_cpl PROPERTIES
+				  COMPILE_DEFINITIONS COUPLAGE
+				  COMPILE_FLAGS -I${PROJECT_BINARY_DIR}/cpl
+                              	  Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/cpl)
 else(OPT_MPI)
-set(SEM2D_SOURCES ${SEM2D_SOURCES}
-  ${FTM_SOURCES})
+  set(SEM2D_SOURCES ${SEM2D_SOURCES} ${FTM_SOURCES})
 endif(OPT_MPI)
 
-if (OPT_COUPLAGE)
-add_library(sem2d STATIC ${SEM2D_SOURCES})
-set_target_properties(sem2d PROPERTIES COMPILE_DEFINITIONS COUPLAGE)
-install(TARGETS sem2d ARCHIVE DESTINATION lib)
-endif (OPT_COUPLAGE)
-
-# NB: on peut compiler sem2d.exe avec OPT_COUPLAGE mais on va compiler
-# les sources 2 fois (une fois avec -DCOUPLAGE, une fois sans)
-if(NOT OPT_COUPLAGE)
 add_executable(sem2d.exe  ${SEM2D_SOURCES})
 target_link_libraries(sem2d.exe ${CEAUSER} ${SEM_EXTRA_LIBS})
+set_target_properties(sem2d.exe PROPERTIES
+				COMPILE_FLAGS -I${PROJECT_BINARY_DIR}/ncpl
+                              	Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/ncpl)
 install(TARGETS sem2d.exe DESTINATION bin)
-endif(NOT OPT_COUPLAGE)
 
