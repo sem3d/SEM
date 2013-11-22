@@ -20,9 +20,9 @@ module selement
        integer, dimension (:,:), pointer :: Iglobnum
 
        real, dimension (:,:), pointer :: Jacob,Density, Lambda, Mu,MassMat
-       real, dimension(:,:,:), pointer :: Forces,Stress,Veloc,Displ,Accel,V0
-       real, dimension(:,:,:), pointer :: ACoeff
-       real, dimension(:,:,:), pointer :: Strain
+       real, dimension (:,:), pointer :: Coeff_Integr_Faces
+       real, dimension(:,:,:), pointer :: Forces,Stress,Veloc,Displ,Accel,V0,Strain
+       real, dimension(:,:,:), pointer :: ACoeff, Vect_RK
        real, dimension(:,:,:,:), pointer :: InvGrad
 
        ! PML allocation

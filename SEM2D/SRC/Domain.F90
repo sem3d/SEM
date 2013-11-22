@@ -34,7 +34,7 @@ module sdomain
 #endif
 
        integer :: n_elem, n_face, n_vertex, n_source,n_dime,n_glob_nodes, n_line ,n_receivers
-       integer :: n_nodes, n_mat,n_glob_points, n_super_object, n_fault, n_communications
+       integer :: n_nodes, n_mat,n_glob_points, n_super_object, n_fault, n_communications, type_timeInteg
        integer, dimension (:), pointer :: Line_index, Communication_list
 
        real, dimension (:,:), pointer :: Coord_nodes, GlobCoord

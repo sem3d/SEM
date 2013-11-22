@@ -13,12 +13,12 @@ module svertices
 
     type :: vertex
 
-       logical :: PML, Abs, FPML
-       integer :: Glob_Numbering, mat_index
+       logical :: PML, Abs, FPML, is_computed
+       integer :: Glob_Numbering, mat_index, Type_DG
 
        real :: MassMat
        real, dimension (:), pointer :: DumpMass, DumpVx, DumpVz, Forces1, Forces2, Veloc1, Veloc2
-       real, dimension (:), pointer :: Displ, Veloc, Forces, Accel, V0
+       real, dimension (:), pointer :: Displ, Veloc, Forces, Accel, V0, Vect_RK
        real, dimension (:), pointer :: Ivx, Ivz,Iveloc1, Iveloc2
        real, dimension  (:), pointer :: Double_Value
 

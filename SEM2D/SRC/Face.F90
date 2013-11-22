@@ -12,7 +12,7 @@ module sfaces
     ! Modified by Gaetano 01/06/05
     type :: face
 
-       integer :: ngll, mat_indexn, type_Flux
+       integer :: ngll, mat_indexn, type_Flux, Type_DG
        integer, dimension (0:1) :: Near_Element, Which_face, Near_Vertex
 
        real, dimension (:), pointer :: Normal_Face
@@ -20,8 +20,8 @@ module sfaces
        real, dimension (:), pointer :: Mu_p, Mu_m, Lambda_p, Lambda_m, massMat_p, massMat_m  ! Added for DG
        real, dimension (:), pointer :: r1, r2, r3      ! EigenVectors for DG Godunov
        real, dimension (:), pointer :: massMat
-       real, dimension (:,:), pointer :: Veloc_p,Veloc_m,Strain_p,Strain_m ! Added for DG
-       real, dimension (:,:), pointer :: Veloc, Displ, Accel, V0, Forces
+       real, dimension (:,:), pointer :: Flux, Veloc_p,Veloc_m,Strain_p,Strain_m ! Added for DG
+       real, dimension (:,:), pointer :: Veloc, Displ, Accel, V0, Forces, Vect_RK
        real, dimension (:,:), pointer :: Veloc1, Veloc2, Forces1, Forces2
        real, dimension (:,:), pointer :: DumpMass, DumpVx, DumpVz
        real, dimension (:,:), pointer :: Normal_Nodes
@@ -40,7 +40,7 @@ contains
 
   ! ############################################################
   !>
-  !! \brief Compute the flux for Element E at the face F 
+  !! \brief Compute the flux for Element E at the face F
   !!  Several different fluxs are available :
   !!  Type_Flux = 1 : Centered Flux
   !!  Type_Flux = 2 : Godunov Flux
@@ -59,7 +59,7 @@ contains
     real, dimension (0:F%ngll-1,0:4) :: F_minus
     real, dimension (0:F%ngll-1)     :: coeff_p
     logical                          :: bool_side
-    
+
     if(nelem==F%Near_Element(0)) then
        bool_side = .TRUE.
     else
@@ -68,17 +68,17 @@ contains
 
     if (F%Type_Flux == 1) then ! Centered Flux
        if(F%is_computed) then
-          F%Fstar = -Fstar
+          F%Flux = -F%Flux
           F%is_computed = .FALSE.
        else
           F_minus = compute_trace_F(F,bool_side)
-          F%Fstar = 0.5 * (F_minus - compute_trace_F(F,.NOT.bool_side))
+          F%Flux = 0.5 * (F_minus - compute_trace_F(F,.NOT.bool_side))
           F%is_computed = .TRUE.
        endif
 
     else if (F%Type_Flux == 2) then ! Godunov Flux
        if(F%is_computed .AND. .NOT. F%changing_media) then
-          F%Fstar = -Fstar
+          F%Flux = -F%Flux
           F%is_computed = .FALSE.
        else
           ! Computation of jumps of stresses and Velocities :
@@ -99,16 +99,16 @@ contains
              F%r3 = compute_r(F,Veloc_jump, bool_side)
              ! Computation of Numerical Flux :
              if(bool_side) then
-                F%Fstar(:,:) = coeff_p(:)*F%k0(:)*F%r1(:,:) - F%k1(:)*r2(:,:) - Zs_p*F%k1(:)*r3(:,:)
+                F%Flux(:,:) = coeff_p(:)*F%k0(:)*F%r1(:,:) - F%k1(:)*r2(:,:) - Zs_p*F%k1(:)*r3(:,:)
              else
-                F%Fstar(:,:) = coeff_p(:)*F%k0(:)*F%r1(:,:) - F%k1(:)*r2(:,:) - Zs_m*F%k1(:)*r3(:,:)
+                F%Flux(:,:) = coeff_p(:)*F%k0(:)*F%r1(:,:) - F%k1(:)*r2(:,:) - Zs_m*F%k1(:)*r3(:,:)
              endif
           else ! Acoustic case
-             F%Fstar(:,:) = coeff_p(:)*F%k0(:)*F%r1(:,:)
+             F%Flux(:,:) = coeff_p(:)*F%k0(:)*F%r1(:,:)
           endif
           if (DG_type==1) then ! Forme "Faible" des DG
              F_minus = compute_trace_F(F,bool_side)
-             F%Fstar(:,:) = F_minus(:,:) + F%Fstar(:,:)
+             F%Flux(:,:) = F_minus(:,:) + F%Flux(:,:)
           endif
        endif
     endif

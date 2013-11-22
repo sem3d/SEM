@@ -402,8 +402,11 @@ subroutine define_arrays(Tdomain)
         if (Tdomain%any_PML) then
             nv_aus = nv_aus + 2*Tdomain%sWall(i_proc)%n_points_pml
         endif
-        allocate (Tdomain%sWall(i_proc)%Send_data_2(0:nv_aus-1,0:1))
-        allocate (Tdomain%sWall(i_proc)%Receive_data_2(0:nv_aus-1,0:1))
+        ! Modif of the dimensions of the following arrays by S. Terrana the 22/11/2013
+        allocate (Tdomain%sWall(i_proc)%Send_data_2(0:nv_aus-1,0:4))
+        allocate (Tdomain%sWall(i_proc)%Receive_data_2(0:nv_aus-1,0:4))
+        Tdomain%sWall(i_proc)%Send_data_2    = 0.
+        Tdomain%sWall(i_proc)%Receive_data_2 = 0.
         Tdomain%sWall(i_proc)%n_points = nv_aus
     enddo
 

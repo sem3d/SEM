@@ -253,6 +253,14 @@ subroutine shape4(Tdomain)
             enddo
         enddo
 
+        if (Tdomain%specel(n)%Type_DG .NE. 2) then
+           if (ngllx .NE. ngllz) STOP 'Case ngllx not equal to ngllz is not taken into account'
+           allocate(Tdomain%specel(n)%Coeff_Integr_Face(0:3,0:ngllx-1))
+           Coeff_Integr_Face(0,:) = Tdomain%sSubdomain(mat)%GLLwx(:)* Tdomain%specel(n)%Jacob(0:ngllx-1,0)
+           Coeff_Integr_Face(1,:) = Tdomain%sSubdomain(mat)%GLLwz(:)* Tdomain%specel(n)%Jacob(ngllx-1,0:ngllz-1)
+           Coeff_Integr_Face(2,:) = Tdomain%sSubdomain(mat)%GLLwx(:)* Tdomain%specel(n)%Jacob(0:ngllx-1,ngllz-1)
+           Coeff_Integr_Face(3,:) = Tdomain%sSubdomain(mat)%GLLwz(:)* Tdomain%specel(n)%Jacob(0,0:ngllz-1)
+        endif
     enddo
 
     ! Compute Normals for Faces with DG :
