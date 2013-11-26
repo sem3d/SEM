@@ -278,6 +278,7 @@ subroutine shape8(Tdomain)
        do i=0,ngllx-1
           if((Tdomain%sFace(n)%Normal_Nodes(i,0).EQ.0.) .AND. (Tdomain%sFace(n)%Normal_Nodes(i,1).EQ.0.)) then
              STOP "The Normal of the faces are not Computed Properly"
+          endif
        end do
     end do
 
@@ -316,7 +317,7 @@ subroutine buildNormal(Tdomain,LocInvGrad,n_elem,i,j)
         tx = LocInvGrad(1,0) ; tz = LocInvGrad(1,1)
         ! Normal build from tangent
         nx = -tz ; nz = tx
-        norm_n = sqrt(nx^2 + nz^2)
+        norm_n = sqrt(nx**2 + nz**2)
         Tdomain%sFace(nf)%Normal_Nodes(j,0) = nx / norm_n
         Tdomain%sFace(nf)%Normal_Nodes(j,1) = nz / norm_n
      end if
@@ -327,7 +328,7 @@ subroutine buildNormal(Tdomain,LocInvGrad,n_elem,i,j)
         tx = LocInvGrad(1,0) ; tz = LocInvGrad(1,1)
         ! Normal build from tangent
         nx = tz ; nz = -tx
-        norm_n = sqrt(nx^2 + nz^2)
+        norm_n = sqrt(nx**2 + nz**2)
         Tdomain%sFace(nf)%Normal_Nodes(j,0) = nx / norm_n
         Tdomain%sFace(nf)%Normal_Nodes(j,1) = nz / norm_n
      end if
@@ -340,7 +341,7 @@ subroutine buildNormal(Tdomain,LocInvGrad,n_elem,i,j)
         tx = LocInvGrad(0,0) ; tz = LocInvGrad(0,1)
         ! Normal build from tangent
         nx = tz ; nz = -tx
-        norm_n = sqrt(nx^2 + nz^2)
+        norm_n = sqrt(nx**2 + nz**2)
         Tdomain%sFace(nf)%Normal_Nodes(i,0) = nx / norm_n
         Tdomain%sFace(nf)%Normal_Nodes(i,1) = nz / norm_n
      end if
@@ -351,7 +352,7 @@ subroutine buildNormal(Tdomain,LocInvGrad,n_elem,i,j)
         tx = LocInvGrad(0,0) ; tz = LocInvGrad(0,1)
         ! Normal build from tangent
         nx = -tz ; nz = tx
-        norm_n = sqrt(nx^2 + nz^2)
+        norm_n = sqrt(nx**2 + nz**2)
         Tdomain%sFace(nf)%Normal_Nodes(i,0) = nx / norm_n
         Tdomain%sFace(nf)%Normal_Nodes(i,1) = nz / norm_n
      end if

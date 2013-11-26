@@ -401,19 +401,19 @@ contains
 
       aux1 = Elem%Acoeff(:,:,0)*Elem%Veloc(:,:,1) + Elem%Acoeff(:,:,2)*Elem%Veloc(:,:,0)
       aux2 = Elem%Acoeff(:,:,1)*Elem%Veloc(:,:,1) + Elem%Acoeff(:,:,3)*Elem%Veloc(:,:,0)
-      Elem%Forces(:,:2) = 0.5 * (MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez))
+      Elem%Forces(:,:,2) = 0.5 * (MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez))
 
       aux1 = (Elem%Acoeff(:,:,4) + Elem%Acoeff(:,:,5))*Elem%Strain(:,:,0) + Elem%Acoeff(:,:,4)*Elem%Strain(:,:,1) &
            + Elem%Acoeff(:,:,7)*Elem%Strain(:,:,2)
       aux2 = (Elem%Acoeff(:,:,8) + Elem%Acoeff(:,:,9))*Elem%Strain(:,:,0) + Elem%Acoeff(:,:,8)*Elem%Strain(:,:,1) &
            + Elem%Acoeff(:,:,11)*Elem%Strain(:,:,2)
-      Elem%Forces(:,:3) = MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez)
+      Elem%Forces(:,:,3) = MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez)
 
       aux1 = (Elem%Acoeff(:,:,7) + Elem%Acoeff(:,:,6))*Elem%Strain(:,:,1) + Elem%Acoeff(:,:,6)*Elem%Strain(:,:,0) &
            + Elem%Acoeff(:,:,5)*Elem%Strain(:,:,2)
       aux2 = (Elem%Acoeff(:,:,11) + Elem%Acoeff(:,:,10))*Elem%Strain(:,:,1) + Elem%Acoeff(:,:,10)*Elem%Strain(:,:,0) &
            + Elem%Acoeff(:,:,9)*Elem%Strain(:,:,2)
-      Elem%Forces(:,:4) = MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez)
+      Elem%Forces(:,:,4) = MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez)
 
       return
     end subroutine compute_InternalForces_DG_Weak
@@ -448,7 +448,7 @@ contains
 
       aux1 = Elem%Acoeff(:,:,0) * MATMUL(hTprime,Elem%Veloc(:,:,1)) +  Elem%Acoeff(:,:,1) * MATMUL(Elem%Veloc(:,:,1),hprimez)
       aux2 = Elem%Acoeff(:,:,2) * MATMUL(hTprime,Elem%Veloc(:,:,0)) +  Elem%Acoeff(:,:,3) * MATMUL(Elem%Veloc(:,:,0),hprimez)
-      Elem%Forces(:,:2) = -0.5 * (aux1 + aux2)
+      Elem%Forces(:,:,2) = -0.5 * (aux1 + aux2)
 
       aux1 = (Elem%Acoeff(:,:,4) + Elem%Acoeff(:,:,5)) * MATMUL(hTprime,Elem%Strain(:,:,0)) &
            + Elem%Acoeff(:,:,4) * MATMUL(hTprime,Elem%Strain(:,:,1)) &
@@ -456,7 +456,7 @@ contains
       aux2 = (Elem%Acoeff(:,:,8) + Elem%Acoeff(:,:,9)) * MATMUL(Elem%Strain(:,:,0),hprimez) &
            + Elem%Acoeff(:,:,8) * MATMUL(Elem%Strain(:,:,1),hprimez) &
            + Elem%Acoeff(:,:,11)* MATMUL(Elem%Strain(:,:,2),hprimez)
-      Elem%Forces(:,:3) = -(aux1 + aux2)
+      Elem%Forces(:,:,3) = -(aux1 + aux2)
 
       aux1 = (Elem%Acoeff(:,:,7) + Elem%Acoeff(:,:,6)) * MATMUL(hTprime,Elem%Strain(:,:,1)) &
            + Elem%Acoeff(:,:,6) * MATMUL(hTprime,Elem%Strain(:,:,0)) &
@@ -464,7 +464,7 @@ contains
       aux2 = (Elem%Acoeff(:,:,11) + Elem%Acoeff(:,:,10)) * MATMUL(Elem%Strain(:,:,1),hprimez) &
            + Elem%Acoeff(:,:,10)* MATMUL(Elem%Strain(:,:,0),hprimez) &
            + Elem%Acoeff(:,:,9) * MATMUL(Elem%Strain(:,:,2),hprimez)
-      Elem%Forces(:,:4) = -(aux1 + aux2)
+      Elem%Forces(:,:,4) = -(aux1 + aux2)
 
       return
     end subroutine compute_InternalForces_DG_Strong
@@ -478,8 +478,6 @@ contains
     !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
     !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
     !<
-
-
     subroutine  compute_InternalForces_PML_Elem (Elem,hprime, hTprimez)
         implicit none
 
@@ -506,6 +504,32 @@ contains
 
         return
     end subroutine compute_InternalForces_PML_Elem
+
+
+    ! ###########################################################
+    !>
+    !! \brief
+    !!
+    !! \param type (Element), intent (INOUT) Elem
+    !<
+    subroutine inversion_massmat(Elem)
+
+      implicit none
+      type (Element), intent (INOUT) :: Elem
+      integer  :: ngllx,ngllz,i
+
+      if(Elem%type_DG==2) then
+         ngllx = Elem%ngllx ; ngllz = Elem%ngllz
+         do i = 0,1
+            Elem%Forces(1:ngllx-2,1:ngllz-2,i) = Elem%MassMat(:,:)  * Elem%Forces(1:ngllx-2,1:ngllz-2,i)
+         enddo
+      else
+         do i = 3,4
+            Elem%Forces(:,:,i) = Elem%MassMat(:,:) * Elem%Forces(:,:,i)
+         enddo
+      endif
+
+    end subroutine inversion_massmat
 
 
 end module selement

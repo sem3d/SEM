@@ -132,7 +132,7 @@ end subroutine write_result_mesh
 
 ! #########################################
 
-subroutine compute_normals(Tdomains,nf)
+subroutine compute_normals(Tdomain,nf)
 
     use sdomain
 
@@ -142,14 +142,14 @@ subroutine compute_normals(Tdomains,nf)
     integer, intent (IN) :: nf
 
     ! local variables
-    integer :: nf, i, m_elem, ngll, nv0, nv1
+    integer :: i, n_elem, ngll, nv0, nv1
     real    :: n1, n2, nx, ny, norm
 
     n_elem = Tdomain%sFace(nf)%Near_Element(0)
     ngll   = Tdomain%sFace(nf)%ngll
     nv0    = Tdomain%sFace(nf)%Near_Vertex(0)
     nv1    = Tdomain%sFace(nf)%Near_Vertex(1)
-    allocate(Tdomain%sFace(nf)%Normal_Face(0:1))
+    allocate(Tdomain%sFace(nf)%Normal(0:1))
     allocate(Tdomain%sFace(nf)%Normal_Nodes(0:ngll-1,0:1))
 
     ! Computation of an unique Face normal
@@ -159,15 +159,15 @@ subroutine compute_normals(Tdomains,nf)
     n2  = Tdomain%coord_nodes(nv1,1) - Tdomain%coord_nodes(nv0,1)
     nx  = n2 ; ny = -n1
     norm = sqrt(nx*nx + ny*ny)
-    Tdomain%sFace(nf)%Normal_Face(0) = nx / norm
-    Tdomain%sFace(nf)%Normal_Face(1) = ny / norm
+    Tdomain%sFace(nf)%Normal(0) = nx / norm
+    Tdomain%sFace(nf)%Normal(1) = ny / norm
 
     ! Computation of a field of normals for each Gauss points
     ! For shape4, elements are linears, and the normal for the
     ! Gauss points are the same than the Face Normal
     do i = 0,ngll-1
-       Tdomain%sFace(nf)%Normal_Nodes(i,0) = Tdomain%sFace(nf)%Normal_Face(0)
-       Tdomain%sFace(nf)%Normal_Nodes(i,1) = Tdomain%sFace(nf)%Normal_Face(1)
+       Tdomain%sFace(nf)%Normal_Nodes(i,0) = Tdomain%sFace(nf)%Normal(0)
+       Tdomain%sFace(nf)%Normal_Nodes(i,1) = Tdomain%sFace(nf)%Normal(1)
     end do
 
 end subroutine compute_normals
@@ -192,7 +192,7 @@ subroutine shape4(Tdomain)
 
     ! local variables
 
-    integer :: i_aus,n, mat,ngllx,ngllz,i,j,ipoint, ngll, nv, Face_UP, nv2
+    integer :: i_aus,n, mat,ngllx,ngllz,i,j,ipoint, ngll, nv, Face_UP, nv2, nf
 
     real :: x0,x1,x2,x3,z0,z1,z2,z3,xi,eta,xp,zp, Jac, ds_local
     real :: normal_0, normal_1, normalization
@@ -255,11 +255,11 @@ subroutine shape4(Tdomain)
 
         if (Tdomain%specel(n)%Type_DG .NE. 2) then
            if (ngllx .NE. ngllz) STOP 'Case ngllx not equal to ngllz is not taken into account'
-           allocate(Tdomain%specel(n)%Coeff_Integr_Face(0:3,0:ngllx-1))
-           Coeff_Integr_Face(0,:) = Tdomain%sSubdomain(mat)%GLLwx(:)* Tdomain%specel(n)%Jacob(0:ngllx-1,0)
-           Coeff_Integr_Face(1,:) = Tdomain%sSubdomain(mat)%GLLwz(:)* Tdomain%specel(n)%Jacob(ngllx-1,0:ngllz-1)
-           Coeff_Integr_Face(2,:) = Tdomain%sSubdomain(mat)%GLLwx(:)* Tdomain%specel(n)%Jacob(0:ngllx-1,ngllz-1)
-           Coeff_Integr_Face(3,:) = Tdomain%sSubdomain(mat)%GLLwz(:)* Tdomain%specel(n)%Jacob(0,0:ngllz-1)
+           allocate(Tdomain%specel(n)%Coeff_Integr_Faces(0:3,0:ngllx-1))
+           Tdomain%specel(n)%Coeff_Integr_Faces(0,:) = Tdomain%sSubdomain(mat)%GLLwx(:)* Tdomain%specel(n)%Jacob(0:ngllx-1,0)
+           Tdomain%specel(n)%Coeff_Integr_Faces(1,:) = Tdomain%sSubdomain(mat)%GLLwz(:)* Tdomain%specel(n)%Jacob(ngllx-1,0:ngllz-1)
+           Tdomain%specel(n)%Coeff_Integr_Faces(2,:) = Tdomain%sSubdomain(mat)%GLLwx(:)* Tdomain%specel(n)%Jacob(0:ngllx-1,ngllz-1)
+           Tdomain%specel(n)%Coeff_Integr_Faces(3,:) = Tdomain%sSubdomain(mat)%GLLwz(:)* Tdomain%specel(n)%Jacob(0,0:ngllz-1)
         endif
     enddo
 

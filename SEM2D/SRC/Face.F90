@@ -12,15 +12,15 @@ module sfaces
     ! Modified by Gaetano 01/06/05
     type :: face
 
-       integer :: ngll, mat_indexn, type_Flux, Type_DG
+       integer :: ngll, mat_index, type_Flux, Type_DG
        integer, dimension (0:1) :: Near_Element, Which_face, Near_Vertex
 
-       real, dimension (:), pointer :: Normal_Face
+       real, dimension (:), pointer :: Normal
        real, dimension (:), pointer :: k0,k1,Zp_p,Zp_m,Zs_p,Zs_m ! Added for DG
        real, dimension (:), pointer :: Mu_p, Mu_m, Lambda_p, Lambda_m, massMat_p, massMat_m  ! Added for DG
-       real, dimension (:), pointer :: r1, r2, r3      ! EigenVectors for DG Godunov
        real, dimension (:), pointer :: massMat
        real, dimension (:,:), pointer :: Flux, Veloc_p,Veloc_m,Strain_p,Strain_m ! Added for DG
+       real, dimension (:,:), pointer :: r1, r2, r3        ! EigenVectors for DG Godunov
        real, dimension (:,:), pointer :: Veloc, Displ, Accel, V0, Forces, Vect_RK
        real, dimension (:,:), pointer :: Veloc1, Veloc2, Forces1, Forces2
        real, dimension (:,:), pointer :: DumpMass, DumpVx, DumpVz
@@ -54,6 +54,9 @@ contains
     type (Face), intent (INOUT)      :: F
     integer, intent (IN)             :: nelem
     integer, intent (IN)             :: DG_type
+
+    ! local variables
+    integer                          :: i
     real, dimension (0:F%ngll-1,0:1) :: Stress_jump
     real, dimension (0:F%ngll-1,0:1) :: Veloc_jump
     real, dimension (0:F%ngll-1,0:4) :: F_minus
@@ -88,10 +91,10 @@ contains
           call check_r1(F,bool_side)
           if (bool_side) then
              coeff_p(:) = Stress_jump(:,0) * F%Normal(0) + Stress_jump(:,1) * F%Normal(1) &
-                  + F%Zp_p(:,i) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
+                  + F%Zp_p(:) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
           else
              coeff_p(:) = -Stress_jump(:,0) * F%Normal(0) - Stress_jump(:,1) * F%Normal(1) &
-                  + F%Zp_m(:,i) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
+                  + F%Zp_m(:) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
           endif
           if (.NOT. F%acoustic) then
              ! Computation of eigenvectors r2 and r3 :
@@ -99,12 +102,18 @@ contains
              F%r3 = compute_r(F,Veloc_jump, bool_side)
              ! Computation of Numerical Flux :
              if(bool_side) then
-                F%Flux(:,:) = coeff_p(:)*F%k0(:)*F%r1(:,:) - F%k1(:)*r2(:,:) - Zs_p*F%k1(:)*r3(:,:)
+                do i=0,F%ngll-1
+                   F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:) - F%k1(i)*F%r2(i,:) - F%Zs_p*F%k1(i)*F%r3(i,:)
+                enddo
              else
-                F%Flux(:,:) = coeff_p(:)*F%k0(:)*F%r1(:,:) - F%k1(:)*r2(:,:) - Zs_m*F%k1(:)*r3(:,:)
+                do i=0,F%ngll-1
+                   F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:) - F%k1(i)*F%r2(i,:) - F%Zs_m*F%k1(i)*F%r3(i,:)
+                enddo
              endif
           else ! Acoustic case
-             F%Flux(:,:) = coeff_p(:)*F%k0(:)*F%r1(:,:)
+             do i=0,F%ngll-1
+                F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:)
+             enddo
           endif
           if (DG_type==1) then ! Forme "Faible" des DG
              F_minus = compute_trace_F(F,bool_side)
@@ -336,11 +345,11 @@ contains
       logical, intent(IN)      :: bool_side
 
       if (bool_side) then
-           F%r1(:,3) = F%Normal(0) * Zp_m(:)
-           F%r1(:,4) = F%Normal(1) * Zp_m(:)
+           F%r1(:,3) = F%Normal(0) * F%Zp_m(:)
+           F%r1(:,4) = F%Normal(1) * F%Zp_m(:)
       else
-           F%r1(:,3) = -F%Normal(0) * Zp_p(:)
-           F%r1(:,4) = -F%Normal(1) * Zp_p(:) 
+           F%r1(:,3) = -F%Normal(0) * F%Zp_p(:)
+           F%r1(:,4) = -F%Normal(1) * F%Zp_p(:) 
       endif
 
     end subroutine check_r1
@@ -407,14 +416,14 @@ contains
 
       if(bool_side) then ! Current element on the "minus side"
          trace(:) = F%Lambda_m(:)*(F%Strain_m(:,0)+F%Strain_m(:,1))
-         compute_stress(:,0:2) = 2*F%Mu_m(:) * F%Strain_m(:,0:2)
-         compute_stress(:,0)   = compute_stress(:,0) + trace(:)
-         compute_stress(:,1)   = compute_stress(:,1) + trace(:)
+         compute_stress(:,0) = 2*F%Mu_m(:) * F%Strain_m(:,0) + trace(:)
+         compute_stress(:,1) = 2*F%Mu_m(:) * F%Strain_m(:,1) + trace(:)
+         compute_stress(:,2) = 2*F%Mu_m(:) * F%Strain_m(:,2)
       else ! Current element on the "plus side"
          trace(:) = F%Lambda_p(:)*(F%Strain_p(:,0)+F%Strain_p(:,1))
-         compute_stress(:,0:2) = 2*F%Mu_p(:) * F%Strain_p(:,0:2)
-         compute_stress(:,0)   = compute_stress(:,0) + trace(:)
-         compute_stress(:,1)   = compute_stress(:,1) + trace(:)
+         compute_stress(:,0) = 2*F%Mu_p(:) * F%Strain_p(:,0) + trace(:)
+         compute_stress(:,1) = 2*F%Mu_p(:) * F%Strain_p(:,1) + trace(:)
+         compute_stress(:,2) = 2*F%Mu_p(:) * F%Strain_p(:,2)
       endif
     end function compute_stress
 

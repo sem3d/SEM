@@ -23,12 +23,16 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/PML_def.F90
     ${PRJ}/SRC/ajout.F90
     ${PRJ}/SRC/allocate_domain.F90
+    ${PRJ}/SRC/Assemblage.F90
+    ${PRJ}/SRC/compute_coeff_flux.F90
     ${PRJ}/SRC/compute_GLL.F90
+    ${PRJ}/SRC/Compute_external_forces.F90
     ${PRJ}/SRC/convertirUnv.F90
     ${PRJ}/SRC/courant.F90
     ${PRJ}/SRC/define_arr.F90
     ${PRJ}/SRC/define_fault_properties.F90
     ${PRJ}/SRC/dumptrace.F90
+    ${PRJ}/SRC/exchange_data_mpi.F90
     ${PRJ}/SRC/getDispl_fvel.F90
     ${PRJ}/SRC/getPMLpred_fv2el.F90
     ${PRJ}/SRC/getdumpmass_e2f.F90
@@ -43,6 +47,7 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/read_mesh.F90
     ${PRJ}/SRC/read_restart.F90
     ${PRJ}/SRC/receiver_pos.F90
+    ${PRJ}/SRC/Runge_Kutta_4.F90
     ${PRJ}/SRC/save_checkpoint.F90
     ${PRJ}/SRC/save_deformation.F90
     ${PRJ}/SRC/save_fault_trace.F90

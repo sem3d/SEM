@@ -20,17 +20,14 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
     real,    intent(in)   :: dt
 
     ! local variables
-    integer :: ns, ncc,i,j,n,np, ngllx, ngllz, mat, nelem, nf, w_face, nv_aus, nf_aus, nv
+    integer :: ns, i, j, n, np, ngllx, ngllz, mat, nelem, nf, w_face, nv_aus, nf_aus, nv
     integer :: n_face_pointed, tag_send, tag_receive, i_send, i_stock, ngll, ierr, i_proc
     integer, dimension (MPI_STATUS_SIZE) :: status
-    real :: bega, gam1,alpha,dt
-
-    integer               :: n, nf, nface, mat, F1, F2, type_BC, i, type_DG
+    integer               :: nface,  type_DG
     logical               :: coherency
     real                  :: timelocal
     real, dimension(3)    :: coeffs
 
-    type_BC = Tdomain%Type_BC
 
     ! Runge-Kutta Initialization
     do n = 0, Tdomain%n_elem-1
@@ -64,8 +61,8 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
           case(2) ! Continuous Galerkin
              call get_Displ_fv2el (Tdomain,n)
              call compute_InternalForces_Elem(Tdomain%specel(n), &
-                                              Tdomain%sSubDomain(mat)%hprime, &
-                                              Tdomain%sSubDomain(mat)%hTprime, &
+                                              Tdomain%sSubDomain(mat)%hprimex, &
+                                              Tdomain%sSubDomain(mat)%hTprimex, &
                                               Tdomain%sSubDomain(mat)%hprimez, &
                                               Tdomain%sSubDomain(mat)%hTprimez)
           end select
@@ -82,9 +79,9 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
 
 
        ! Computing External Forces
-       if (Tdomain%Type_Init==3) then
+       !if (Tdomain%Type_Init==3) then
           call Compute_External_Forces(Tdomain,timelocal)
-       endif
+       !endif
 
 
        ! Communications MPI
@@ -102,9 +99,8 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
 
        do n = 0, Tdomain%n_elem-1
           type_DG = Tdomain%specel(n)%Type_DG
-          ! Inversion de la matrice pour un schema classique LSERK 4.
+          call inversion_massmat(Tdomain%specel(n))
           if (type_DG==2) then  ! Continuous Galerkin
-             Tdomain%specel(n)%Forces  = Tdomain%specel(n)%MassMat * Tdomain%specel(n)%Forces
              Tdomain%specel(n)%Vect_RK = coeffs(1) * Tdomain%specel(n)%Vect_RK  + Tdomain%specel(n)%Forces * dt
              Tdomain%specel(n)%Veloc   = Tdomain%specel(n)%Veloc + coeffs(2) * Tdomain%specel(n)%Vect_RK
              Tdomain%specel(n)%Displ   = Tdomain%specel(n)%Displ + Tdomain%specel(n)%Veloc * dt ! ATTENTION : A REVOIR !!!!!
@@ -115,7 +111,6 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
                 call Compute_Flux(Tdomain%sFace(nface),n,type_DG)
                 call get_flux_f2el(Tdomain,n,nface,nf)
              enddo
-             Tdomain%specel(n)%Forces(:,:,3:4) = Tdomain%specel(n)%MassMat * Tdomain%specel(n)%Forces(:,:,3:4)
              Tdomain%specel(n)%Vect_RK = coeffs(1) * Tdomain%specel(n)%Vect_RK + Tdomain%specel(n)%Forces * dt
              Tdomain%specel(n)%Strain  = Tdomain%specel(n)%Strain + coeffs(2) * Tdomain%specel(n)%Vect_RK(:,:,0:2)
              Tdomain%specel(n)%Veloc   = Tdomain%specel(n)%Veloc  + coeffs(2) * Tdomain%specel(n)%Vect_RK(:,:,3:4)
@@ -126,7 +121,8 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
        do n=0, Tdomain%n_face-1
           type_DG = Tdomain%sface(n)%Type_DG
           if (type_DG == 2) then
-             Tdomain%sface(n)%Forces  = Tdomain%sface(n)%MassMat * Tdomain%sface(n)%Forces
+             Tdomain%sface(n)%Forces(:,0)  = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(:,0)
+             Tdomain%sface(n)%Forces(:,1)  = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(:,1)
              Tdomain%sface(n)%Vect_RK = coeffs(1) * Tdomain%sface(n)%Vect_RK + Tdomain%sface(n)%Forces * dt
              Tdomain%sface(n)%Veloc   = Tdomain%sface(n)%Veloc + coeffs(2) * Tdomain%sface(n)%Vect_RK
              Tdomain%sface(n)%Displ   = Tdomain%sface(n)%Displ + Tdomain%sface(n)%Veloc * dt ! ATTENTION : A REVOIR !!!!!
