@@ -85,10 +85,11 @@ subroutine read_input (Tdomain)
 
     ! It is done by any processor
     call semname_file_input_spec(fnamef)
-
+    write(*,*) "INPUT SPEC:", trim(fnamef)
     call read_sem_config(config, trim(fnamef)//C_NULL_CHAR, code)
 
     Tdomain%Title_simulation = fromcstr(config%run_name)
+    Tdomain%Type_TimeInteg = config%type_timeinteg
     Tdomain%TimeD%acceleration_scheme = config%accel_scheme .ne. 0
     Tdomain%TimeD%velocity_scheme = config%veloc_scheme .ne. 0
     Tdomain%TimeD%duration = config%sim_time
@@ -96,6 +97,7 @@ subroutine read_input (Tdomain)
     Tdomain%TimeD%beta = config%beta
     Tdomain%TimeD%gamma = config%gamma
     !Tdomain%TimeD%courant = config%courant
+    Tdomain%type_elem = config%type_elem
     Tdomain%mesh_file = fromcstr(config%mesh_file)
     Tdomain%material_file = fromcstr(config%mat_file)
     Tdomain%logicD%save_trace = config%save_traces .ne. 0

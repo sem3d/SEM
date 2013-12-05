@@ -9,6 +9,7 @@ module sem_c_config
        type(C_PTR)    :: run_name
 
        !! Integration
+       integer(C_INT) :: type_timeinteg
        integer(C_INT) :: accel_scheme
        integer(C_INT) :: veloc_scheme
        real(C_DOUBLE) :: sim_time
@@ -57,6 +58,10 @@ module sem_c_config
        real(C_DOUBLE), dimension(3) :: neu_L
        real(C_DOUBLE), dimension(3) :: neu_C
        real(C_DOUBLE) :: neu_f0
+
+       !! Type Elements (DG)
+       integer(C_INT) :: type_elem
+
     end type sem_config
 
 

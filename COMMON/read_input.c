@@ -2,6 +2,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <string.h>
 #include "file_scan.h"
 #include "sem_input.h"
 
@@ -40,6 +42,7 @@ typedef struct snapshot_cond {
 typedef struct {
     char* run_name;
     // Integration
+    int type_timeinteg;
     int accel_scheme;
     int veloc_scheme;
     double sim_time;
@@ -88,6 +91,10 @@ typedef struct {
     double neu_L[3];
     double neu_C[3];
     double neu_f0;
+
+    // Type Elements (DG)
+    int type_elem;
+
 } sem_config_t;
 
 
@@ -238,6 +245,7 @@ int expect_time_scheme(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"beta")) err=expect_eq_float(scanner, &config->beta,1);
 	else if (cmp(scanner,"gamma")) err=expect_eq_float(scanner, &config->gamma,1);
 	else if (cmp(scanner,"courant")) err=expect_eq_float(scanner, &config->courant,1);
+	else if (cmp(scanner,"type_time_integration")) err=expect_eq_int(scanner, &config->type_timeinteg,1);
 
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
@@ -375,6 +383,26 @@ int expect_snapshots(yyscan_t scanner, sem_config_t* config)
 
 
 
+int expect_type_elements(yyscan_t scanner, sem_config_t* config)
+{
+    int tok, err;
+
+    tok = skip_blank(scanner);
+    if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
+    do {
+	tok = skip_blank(scanner);
+	if (tok!=K_ID) break;
+
+	if (cmp(scanner,"dg_type")) err=expect_eq_int(scanner, &config->type_elem, 1);
+
+	if (!expect_eos(scanner)) { return 0; }
+    } while(1);
+    if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
+    return 1;
+}
+
+
+
 int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 {
     int tok, err;
@@ -402,6 +430,7 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	if (cmp(scanner,"traces_interval")) err=expect_eq_int(scanner, &config->traces_interval,1);
 	if (cmp(scanner,"traces_format")) err=expect_file_format(scanner, &config->traces_format);
 	if (cmp(scanner,"verbose_level")) err=expect_eq_int(scanner, &config->verbose_level,1);
+	if (cmp(scanner,"type_elements")) err=expect_type_elements(scanner, config);
 	// useless (yet or ever)
 	if (cmp(scanner,"anisotropy")) err=expect_eq_bool(scanner, &config->anisotropy, 1);
 	if (cmp(scanner,"gradient")) err=expect_gradient_desc(scanner, config);
@@ -478,6 +507,11 @@ void read_sem_config(sem_config_t* config, const char* input_spec, int* err)
 
     input = fopen(input_spec, "r");
 
+    if (input==NULL) {
+      fprintf(stderr, "Error opening file : '%s'\n", input_spec);
+      fprintf(stderr, "error: %d - %s\n", errno, strerror(errno));
+      exit(1);
+    }
     clear_scan(&info);
 
     yylex_init_extra( &info, &scanner );
