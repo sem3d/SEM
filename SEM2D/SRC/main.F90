@@ -38,12 +38,14 @@
 #endif
 
 #ifdef COUPLAGE
-        integer :: groupe
-        integer :: communicateur,communicateur_global,master_superviseur
+        integer :: groupe, global_rank, global_nb_proc, worldgroup, intergroup
+        integer :: communicateur,communicateur_global,master_superviseur,m_localComm, comm_super_mka
         integer :: sortie
         integer :: finSem,nrec
         integer :: tag, MaxNgParFace
         integer, dimension (MPI_STATUS_SIZE) :: status
+        integer, dimension(2) :: tab
+        integer*4 getpid, pid
         !    integer iparcours !Gsa
 #endif
         integer :: display_iter !! Indique si on doit faire des sortie lors de cette iteration
@@ -56,12 +58,49 @@
         display_iter = 1
 
 #ifdef COUPLAGE
-        Tdomain%communicateur=communicateur
-        Tdomain%communicateur_global=communicateur_global
-        Tdomain%master_superviseur=master_superviseur
+        pid = getpid()
+        write(*,*) "SEM2D[", pid, "] : Demarrage."
+        call MPI_Init(ierr)
+        call MPI_Comm_Rank (MPI_COMM_WORLD, global_rank, ierr)
+        call MPI_Comm_size(MPI_COMM_WORLD, global_nb_proc, ierr)
+        call MPI_Comm_split(MPI_COMM_WORLD, 2, Tdomain%Mpi_var%my_rank, m_localComm, ierr)
+        call MPI_Comm_Rank (m_localComm, Tdomain%Mpi_var%my_rank, ierr)
+        call MPI_Comm_size(m_localComm, Tdomain%Mpi_var%n_proc, ierr)
+
+        Tdomain%communicateur=m_localComm
+        Tdomain%communicateur_global=MPI_COMM_WORLD
+        Tdomain%master_superviseur=0
+
         call MPI_Comm_Group(Tdomain%communicateur,groupe,ierr)
         call MPI_Group_Size(groupe,Tdomain%Mpi_var%n_proc,ierr)
         call MPI_Group_Rank(groupe,Tdomain%Mpi_var%my_rank,ierr)
+
+        !! Reception des infos du superviseur
+        tag=8000000+global_rank
+        call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
+
+        !! Reception des infos de mka
+        tag=8100000+global_rank
+        call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
+
+        !! Envoi des infos de couplage
+        if (Tdomain%Mpi_var%my_rank == 0) then
+            tab(1) = global_rank
+            tab(2) = Tdomain%Mpi_var%n_proc
+            do i=1, global_nb_proc
+                tag=8200000+i-1
+                call MPI_Send(tab, 2, MPI_INTEGER, i-1, tag, MPI_COMM_WORLD, ierr)
+            enddo
+        endif
+
+        !! Reception des infos de sem
+        tag=8200000+global_rank
+        call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
+
+        call MPI_Comm_group(MPI_COMM_WORLD, worldgroup, ierr)
+        call MPI_Group_incl(worldgroup, 2, tab, intergroup, ierr)
+        call MPI_Comm_create(MPI_COMM_WORLD, intergroup, comm_super_mka, ierr)
+
 #else
         ! initialisations MPI
         call MPI_Init (ierr)
