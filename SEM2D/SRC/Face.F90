@@ -363,7 +363,7 @@ contains
     subroutine check_r1 (F,bool_side)
       implicit none
 
-      type (Face), intent (IN) :: F
+      type (Face), intent (INOUT) :: F
       logical, intent(IN)      :: bool_side
 
       if (bool_side) then
