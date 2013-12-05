@@ -33,7 +33,8 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     integer :: protection
     character(Len=MAX_FILE_SIZE) :: fnamef
 #ifdef COUPLAGE
-    integer :: groupe
+    integer :: global_rank, global_nb_proc, worldgroup, intergroup
+    integer :: m_localComm, comm_super_mka
     integer :: sortie
     integer :: finSem
     integer :: tag
@@ -41,19 +42,57 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     character*2 :: sit
     integer :: MaxNgParDir
     integer, dimension(3) :: flags_synchro ! fin/protection/sortie
+    integer*4 getpid, pid
+    integer, dimension(2) :: tab
 #endif
     integer :: interrupt, ierr
     logical :: sortie_capteur
 
+
+
+#ifdef COUPLAGE
+    pid = getpid()
+    write(*,*) "SEM3D[", pid, "] : Demarrage."
+    call MPI_Comm_Rank (MPI_COMM_WORLD, global_rank, ierr)
+    call MPI_Comm_size(MPI_COMM_WORLD, global_nb_proc, ierr)
+    call MPI_Comm_split(MPI_COMM_WORLD, 2, rg, m_localComm, ierr)
+    call MPI_Comm_Rank (m_localComm, rg, ierr)
+    call MPI_Comm_size(m_localComm, nb_procs, ierr)
+
+    Tdomain%communicateur=m_localComm
+    Tdomain%communicateur_global=MPI_COMM_WORLD
+    Tdomain%master_superviseur=0
+
+    !! Reception des infos du superviseur
+    tag=8000000+global_rank
+    call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
+
+    !! Reception des infos de mka
+    tag=8100000+global_rank
+    call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
+
+    !! Envoi des infos de couplage
+    if (rg == 0) then
+	tab(1) = global_rank
+	tab(2) = nb_procs
+	do i=1, global_nb_proc
+	    tag=8200000+i-1
+	    call MPI_Send(tab, 2, MPI_INTEGER, i-1, tag, MPI_COMM_WORLD, ierr)
+	enddo
+    endif
+
+    !! Reception des infos de sem
+    tag=8200000+global_rank
+    call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
+
+    call MPI_Comm_group(MPI_COMM_WORLD, worldgroup, ierr)
+    call MPI_Group_incl(worldgroup, 2, tab, intergroup, ierr)
+    call MPI_Comm_create(MPI_COMM_WORLD, intergroup, comm_super_mka, ierr)
+#else
     Tdomain%communicateur = communicateur
     Tdomain%communicateur_global = communicateur_global
     Tdomain%master_superviseur = master_superviseur
-#ifdef COUPLAGE
-    call MPI_Comm_Group(Tdomain%communicateur, groupe, code)
-    call MPI_Group_Size(groupe, nb_procs, code)
-    call MPI_Group_Rank(groupe, rg, code)
-#else
-    ! initialisations MPI
+
     call MPI_Comm_Rank (Tdomain%communicateur, rg, code)
     call MPI_Comm_Size (Tdomain%communicateur, nb_procs,  code)
 #endif

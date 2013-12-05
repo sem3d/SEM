@@ -38,15 +38,13 @@
 #endif
 
 #ifdef COUPLAGE
-        integer :: groupe, global_rank, global_nb_proc, worldgroup, intergroup
-        integer :: communicateur,communicateur_global,master_superviseur,m_localComm, comm_super_mka
-        integer :: sortie
-        integer :: finSem,nrec
+        integer :: global_rank, global_nb_proc, worldgroup, intergroup
+        integer :: m_localComm, comm_super_mka
+        integer :: nrec
         integer :: tag, MaxNgParFace
         integer, dimension (MPI_STATUS_SIZE) :: status
         integer, dimension(2) :: tab
         integer*4 getpid, pid
-        !    integer iparcours !Gsa
 #endif
         integer :: display_iter !! Indique si on doit faire des sortie lors de cette iteration
         real(kind=4), dimension(2) :: tarray
@@ -56,11 +54,11 @@
         integer :: interrupt, rg, code, protection
 
         display_iter = 1
+        call MPI_Init(ierr)
 
 #ifdef COUPLAGE
         pid = getpid()
         write(*,*) "SEM2D[", pid, "] : Demarrage."
-        call MPI_Init(ierr)
         call MPI_Comm_Rank (MPI_COMM_WORLD, global_rank, ierr)
         call MPI_Comm_size(MPI_COMM_WORLD, global_nb_proc, ierr)
         call MPI_Comm_split(MPI_COMM_WORLD, 2, Tdomain%Mpi_var%my_rank, m_localComm, ierr)
@@ -70,10 +68,6 @@
         Tdomain%communicateur=m_localComm
         Tdomain%communicateur_global=MPI_COMM_WORLD
         Tdomain%master_superviseur=0
-
-        call MPI_Comm_Group(Tdomain%communicateur,groupe,ierr)
-        call MPI_Group_Size(groupe,Tdomain%Mpi_var%n_proc,ierr)
-        call MPI_Group_Rank(groupe,Tdomain%Mpi_var%my_rank,ierr)
 
         !! Reception des infos du superviseur
         tag=8000000+global_rank
@@ -102,8 +96,6 @@
         call MPI_Comm_create(MPI_COMM_WORLD, intergroup, comm_super_mka, ierr)
 
 #else
-        ! initialisations MPI
-        call MPI_Init (ierr)
         call MPI_Comm_Rank (MPI_COMM_WORLD, Tdomain%Mpi_var%my_rank, ierr)
         call MPI_Comm_Size (MPI_COMM_WORLD, Tdomain%Mpi_var%n_proc,  ierr)
         Tdomain%communicateur=MPI_COMM_WORLD
@@ -196,7 +188,6 @@
             ' contraintes discontinues pour les ddl de couplage'
 
         call initialisation_couplage(Tdomain, MaxNgParFace)
-        finSem=0
 
         ! recalcul du nbre d'iteration max
         Tdomain%TimeD%ntimeMax = int (Tdomain%TimeD%Duration/Tdomain%TimeD%dtmin)
