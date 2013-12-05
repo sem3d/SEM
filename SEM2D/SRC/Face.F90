@@ -69,18 +69,26 @@ contains
        bool_side = .FALSE.
     endif
 
-    if (F%Type_Flux == 1) then ! Centered Flux
+    ! --------- CENTERED FLUX -----------
+    if (F%Type_Flux == 1) then
        if(F%is_computed) then
           F%Flux = -F%Flux
           F%is_computed = .FALSE.
        else
-          F_minus = compute_trace_F(F,bool_side)
-          F%Flux = 0.5 * (F_minus - compute_trace_F(F,.NOT.bool_side))
+          ! Treating Free-Surface case
+          if (F%Near_Element(1) .LT. 0) then
+             F%Flux = compute_trace_F(F,bool_side)
+          else
+             F_minus = compute_trace_F(F,bool_side)
+             F%Flux = 0.5 * (F_minus - compute_trace_F(F,.NOT.bool_side))
+          endif
           F%is_computed = .TRUE.
        endif
 
-    else if (F%Type_Flux == 2) then ! Godunov Flux
+    ! -------- GODUNOV FLUX ----------
+    else if (F%Type_Flux == 2) then
        if(F%is_computed .AND. .NOT. F%changing_media) then
+          ! Case the flux has been already computed
           F%Flux = -F%Flux
           F%is_computed = .FALSE.
        else
@@ -89,6 +97,11 @@ contains
           Veloc_jump(:,:) = F%Veloc_m(:,:) - F%Veloc_p(:,:)
           if (.NOT. bool_side) Veloc_jump(:,:) = - Veloc_jump(:,:)
           call check_r1(F,bool_side)
+          if (F%Near_Element(1) .LT. 0) then
+             ! Jumps for Treating Free-Surface case
+             Veloc_jump(:,:)  = 0.
+             Stress_jump(:,:) = 2. * Stress_jump(:,:)
+          endif
           if (bool_side) then
              coeff_p(:) = Stress_jump(:,0) * F%Normal(0) + Stress_jump(:,1) * F%Normal(1) &
                   + F%Zp_p(:) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
@@ -114,6 +127,10 @@ contains
              do i=0,F%ngll-1
                 F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:)
              enddo
+          endif
+          if(F%Abs) then
+             ! Absorbing Boundary Conditions
+             F%Flux(:,:) = 0.
           endif
           if (DG_type==1) then ! Forme "Faible" des DG
              F_minus = compute_trace_F(F,bool_side)
@@ -330,7 +347,7 @@ contains
     ! ###########################################################
 
     !>
-    !! \brief Compute the two las componants of the vector 
+    !! \brief Compute the two las componants of the vector
     !! for the P-wave according to the side the current element
     !! is from the Face.
     !!
@@ -349,7 +366,7 @@ contains
            F%r1(:,4) = F%Normal(1) * F%Zp_m(:)
       else
            F%r1(:,3) = -F%Normal(0) * F%Zp_p(:)
-           F%r1(:,4) = -F%Normal(1) * F%Zp_p(:) 
+           F%r1(:,4) = -F%Normal(1) * F%Zp_p(:)
       endif
 
     end subroutine check_r1
@@ -362,12 +379,12 @@ contains
       logical, intent(IN)             :: bool_side
       real, dimension(0:F%ngll-1,0:4) :: compute_r
       real, dimension(0:F%ngll-1,0:2) :: aux
-      
+
       ! Computation of n x (n x jump)
       aux(:,2) = F%Normal(0)*jump(:,1) - F%Normal(1)*jump(:,0)
       aux(:,0) = F%Normal(1)*aux(:,2)
       aux(:,1) =-F%Normal(0)*aux(:,2)
-      
+
       if (bool_side) then
          compute_r(:,0) = F%Normal(0) * aux(:,0)
          compute_r(:,1) = F%Normal(1) * aux(:,1)
@@ -392,7 +409,7 @@ contains
       real, dimension(0:F%ngll-1,0:1) :: compute_stress_jump
       real, dimension(0:F%ngll-1,0:2) :: sigma
       real, dimension(0:F%ngll-1)     :: trace
-      
+
       ! For the "minus" side
       sigma = compute_stress(F,.true.)
       compute_stress_jump(:,0) = sigma(:,0)*F%Normal(0) + sigma(:,2)*F%Normal(1)
@@ -435,7 +452,7 @@ contains
       logical, intent(IN)              :: bool_side
       real, dimension(0:F%ngll-1,0:4)  :: compute_trace_F
       real, dimension(0:F%ngll-1,0:2)  :: sigma
-      
+
       if (bool_side) then ! Case the current element is "minus"
          sigma = compute_stress(F,bool_side)
          compute_trace_F(:,0) = - F%Normal(0) * F%Veloc_m(:,0)

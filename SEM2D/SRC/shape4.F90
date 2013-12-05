@@ -183,9 +183,14 @@ subroutine shape4(Tdomain)
 
     interface
        subroutine write_result_mesh(Tdomain)
-           use sdomain
-           type(domain),target, intent (INOUT) :: Tdomain
+         use sdomain
+         type(domain),target, intent (INOUT) :: Tdomain
        end subroutine write_result_mesh
+       subroutine compute_normals(Tdomain,nf)
+         use sdomain
+         type(domain),target, intent (INOUT) :: Tdomain
+         integer     :: nf
+       end subroutine compute_normals
     end interface
     type(domain),target, intent (INOUT) :: Tdomain
 

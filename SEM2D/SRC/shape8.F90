@@ -75,8 +75,8 @@ subroutine shape8(Tdomain)
         ngllx = Tdomain%specel(n)%ngllx
         ngllz = Tdomain%specel(n)%ngllz
 
-        allocate (Tdomain%specel(n)%Jacob(0:ngllx-1,0:ngllz-1) )
-        allocate (Tdomain%specel(n)%InvGrad(0:ngllx-1,0:ngllz-1,0:1,0:1) )
+        allocate (Tdomain%specel(n)%Jacob(0:ngllx-1,0:ngllz-1))
+        allocate (Tdomain%specel(n)%InvGrad(0:ngllx-1,0:ngllz-1,0:1,0:1))
 
 #ifdef MKA3D
         write(89,'(I8,X,I4,X,I4)') n,ngllx,ngllz
@@ -123,7 +123,7 @@ subroutine shape8(Tdomain)
                 !  Creation of the normal if the node is on an element side
 
                 if ((i.EQ.0) .OR. (j.EQ.0) .OR. (i.EQ.ngllx-1) .OR. (j.EQ.ngllz-1)) then
-                   call buildNormal(Tdomain,LocInvGrad,n,i,j)
+                   ! call buildNormal(Tdomain,LocInvGrad,n,i,j)
                 end if
 
                 call invert2 (LocInvGrad, Jac )

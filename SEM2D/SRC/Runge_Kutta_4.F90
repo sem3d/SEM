@@ -77,11 +77,8 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
           enddo
        enddo
 
-
-       ! Computing External Forces
-       !if (Tdomain%Type_Init==3) then
-          call Compute_External_Forces(Tdomain,timelocal)
-       !endif
+       ! External Forces computation
+       call Compute_External_Forces(Tdomain,timelocal)
 
 
        ! Communications MPI
@@ -156,24 +153,24 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
       select case (i)
       case (1)
          Coeffs_LSERK(1) = 0.
-         Coeffs_LSERK(2) = 1432997174477./9575080441755
+         Coeffs_LSERK(2) = 1432997174477./9575080441755.
          Coeffs_LSERK(3) = 0.
       case (2)
-         Coeffs_LSERK(1) = -567301805773./1357537059087
-         Coeffs_LSERK(2) = 5161836677717./13612068292357
-         Coeffs_LSERK(3) = 1432997174477./9575080441755
+         Coeffs_LSERK(1) = -567301805773./1357537059087.
+         Coeffs_LSERK(2) = 5161836677717./13612068292357.
+         Coeffs_LSERK(3) = 1432997174477./9575080441755.
       case (3)
-         Coeffs_LSERK(1) = -2404267990393./2016746695238
-         Coeffs_LSERK(2) = 1720146321549. /2090206949498
-         Coeffs_LSERK(3) = 2526269341429. /6820363962896
+         Coeffs_LSERK(1) = -2404267990393./2016746695238.
+         Coeffs_LSERK(2) = 1720146321549. /2090206949498.
+         Coeffs_LSERK(3) = 2526269341429. /6820363962896.
       case (4)
-         Coeffs_LSERK(1) = -3550918686646./2091501179385
-         Coeffs_LSERK(2) = 3134564353537. /4481467310338
-         Coeffs_LSERK(3) = 2006345519317. /3224310063776
+         Coeffs_LSERK(1) = -3550918686646./2091501179385.
+         Coeffs_LSERK(2) = 3134564353537. /4481467310338.
+         Coeffs_LSERK(3) = 2006345519317. /3224310063776.
       case (5)
-         Coeffs_LSERK(1) = -1275806237668./842570457699
-         Coeffs_LSERK(2) = 2277821191437. /14882151754819
-         Coeffs_LSERK(3) = 2802321613138. /2924317926251
+         Coeffs_LSERK(1) = -1275806237668./842570457699.
+         Coeffs_LSERK(2) = 2277821191437. /14882151754819.
+         Coeffs_LSERK(3) = 2802321613138. /2924317926251.
       end select
 
     end function Coeffs_LSERK

@@ -99,22 +99,38 @@ subroutine allocate_domain (Tdomain)
   do n = 0, Tdomain%n_face-1
      Tdomain%sFace(n)%is_computed = .false.
      ngll = Tdomain%sFace(n)%ngll
-     allocate (Tdomain%sFace(n)%MassMat(1:ngll-2))
-     allocate (Tdomain%sFace(n)%Veloc (1:ngll-2, 0:1 ) )
-     allocate (Tdomain%sFace(n)%Forces(1:ngll-2,0:1 ) )
 #ifdef MKA3D
      allocate (Tdomain%sFace(n)%ForcesMka(1:ngll-2,0:1 ) )
      Tdomain%sFace(n)%ForcesMka=0.
 #endif
+     allocate (Tdomain%sFace(n)%MassMat(1:ngll-2))
+     allocate (Tdomain%sFace(n)%Veloc (1:ngll-2, 0:1 ) )
+     allocate (Tdomain%sFace(n)%Forces(1:ngll-2,0:1 ) )
      allocate (Tdomain%sFace(n)%Accel(1:ngll-2, 0:1))
      allocate (Tdomain%sFace(n)%V0( 1:ngll-2, 0:1 ) )
      allocate (Tdomain%sFace(n)%Flux(0:ngll-1, 0:4 ) )
+     allocate (Tdomain%sFace(n)%Veloc_p(0:ngll-1, 0:1))
+     allocate (Tdomain%sFace(n)%Veloc_m(0:ngll-1, 0:1))
+     allocate (Tdomain%sFace(n)%Strain_p(0:ngll-1, 0:2))
+     allocate (Tdomain%sFace(n)%Strain_m(0:ngll-1, 0:2))
+     allocate (Tdomain%sFace(n)%Mu_p(0:ngll-1))
+     allocate (Tdomain%sFace(n)%Mu_m(0:ngll-1))
+     allocate (Tdomain%sFace(n)%Lambda_p(0:ngll-1))
+     allocate (Tdomain%sFace(n)%Lambda_m(0:ngll-1))
      Tdomain%sFace(n)%MassMat = 0
      Tdomain%sFace(n)%Veloc = 0
      Tdomain%sFace(n)%Accel = 0
      Tdomain%sFace(n)%V0 = 0
      Tdomain%sFace(n)%Forces= 0
      Tdomain%sFace(n)%Flux  = 0
+     Tdomain%sFace(n)%Veloc_p = 0
+     Tdomain%sFace(n)%Veloc_m = 0
+     Tdomain%sFace(n)%Strain_p = 0
+     Tdomain%sFace(n)%Strain_m = 0
+     Tdomain%sFace(n)%Mu_p = 0
+     Tdomain%sFace(n)%Mu_m = 0
+     Tdomain%sFace(n)%Lambda_p = 0
+     Tdomain%sFace(n)%Lambda_m = 0
      if (Tdomain%sFace(n)%type_Flux .EQ. 2 ) then !
         ! Allocation coefficients for Godunov Fluxes
         allocate (Tdomain%sFace(n)%k0(0:ngll-1))
