@@ -13,8 +13,8 @@ program create_model_2D
     real                           :: Vp,Vs,rho,x_zone,z_zone, fact_deep,   &
         Apow,omegac,kc,sm_len,dtmin,x_start,z_start,x_step,z_step
     real, parameter                :: xzmin = 0d0
-    real, allocatable              :: coord_nodes(:,:)
-    integer, allocatable           :: specel(:,:)
+    real, dimension(:,:), allocatable :: coord_nodes
+    integer, dimension(:,:), allocatable           :: specel
     logical                        :: p_filter,log_created
     logical, parameter             :: VRAI = .true. , FAUX = .false.
     character(len=50)              :: file_out,mater_out
@@ -45,6 +45,14 @@ program create_model_2D
             read(11,*) p_filter,npow,apow,omegac,kc
         else
             read(11,*) ; read(11,*) ; read(11,*) ; read(11,*)
+            fact_deep = 0.0
+            p_ngllx = 0
+            p_ngllz = 0
+            p_filter = 0.0
+            npow=0
+            apow=0.0
+            omegac=0.0
+            kc=0.0
         end if
         read(11,*) mater_out
         close(11)
@@ -58,6 +66,9 @@ program create_model_2D
         if(logic_pml == 1)then   ! changing in the starting x and z
             x_start = -1d0*x_zone/n_elem_x
             z_start = -1d0*z_zone/n_elem_z
+        else
+            x_start = 0.0
+            z_start = 0.0
         end if
         n_elem_x = n_elem_x + 2*logic_pml
         n_elem_z = n_elem_z + 2*logic_pml

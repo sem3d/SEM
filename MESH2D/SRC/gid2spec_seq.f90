@@ -144,7 +144,6 @@ contains
             !- general index for each control point of an element
             ndim_stor = n_nods+1
             ndim_out = ndim_stor + 8
-            ndim_space = 2
 
             allocate(Ipointer(0:ndim_out-1,0:n_elem-1))
 
@@ -170,6 +169,7 @@ contains
         idummy = nglob_ctlpt
         do i = 0, n_vertex_on_interface-1
             Nodes_on_Boundary(i,1) = idummy
+            !! Ok: Gcoord alloue avec nglob_ctlpt + n_vertex_on_interface
             Gcoord(:,nglob_ctlpt+i) = Gcoord(:,Nodes_on_boundary(i,0))
             idummy = idummy + 1
         enddo
@@ -497,10 +497,76 @@ contains
             endif
         endif
 
+        write(*,*) "DBG: nglob_ctlpt (ori)=", nglob_ctlpt
+        write(*,*) "DBG: n_elem (ori)=", n_elem
+        write(*,*) "DBG: n_faces (ori)=", n_faces
+        write(*,*) "GCorig:", Gcoord(:,1)
+        call write_spec_txt(fnamout, n_nods, n_vertex, n_mat, Gcoord, Ipointer, Build_faces, Vertex_to_glob, &
+            super_object_present, Super_Object_to_Face, Super_Object_Vertex, &
+            Super_Object_Face_to_Vertex, Super_Object_Coherency)
+
+
+        deallocate (Vertex_to_Glob)
+        deallocate (N_Valid_Vertex)
+        deallocate (El_to_Face)
+        deallocate (Face_to_El)
+        deallocate (Face_to_El_What)
+        deallocate (Face_to_Vertex)
+        deallocate (Build_faces)
+        deallocate (Gcoord)
+        deallocate (Ipointer)
+        if (super_object_present) then
+            deallocate (Super_Object_to_Face)
+            deallocate (Super_Object_Coherency)
+            if (n_faces_super_object > 0) then
+                deallocate (Super_Object_UP_Face_to_Vertex)
+                deallocate (Super_Object_DOWN_Face_to_Vertex)
+                deallocate (Super_Object_Face_to_Vertex)
+            endif
+            if (n_so_vertices > 0) deallocate (Super_Object_Vertex)
+            deallocate (Super_Object)
+        endif
+    end subroutine gid2spec_seq
+
+    subroutine write_spec_txt(fnamout, n_nods, n_vertex, n_mat, Gcoord, Ipointer, Build_Faces, Vertex_to_glob, &
+        super_object_present, Super_Object_to_Face, Super_Object_Vertex, &
+        Super_Object_Face_to_Vertex, Super_Object_Coherency &
+        )
+        implicit none
+        character (len=50), intent(in) :: fnamout
+        real, dimension (0:,0:), intent(in) :: Gcoord
+        integer, dimension (0:,0:), intent(in) :: Ipointer
+        logical, intent(in) :: super_object_present
+        integer, intent(in) :: n_nods, n_vertex, n_mat
+        integer, dimension (0:,:), intent(in) :: Build_Faces
+        integer, dimension (0:), intent(in) ::  Vertex_to_glob
+        integer, dimension (0:,0:), intent(in) :: Super_Object_to_Face
+        integer, dimension (0:,0:), intent(in) :: Super_Object_Vertex
+        integer, dimension (0:,0:), intent(in) :: Super_Object_Face_to_Vertex
+        integer, dimension (0:), intent(in) :: Super_Object_Coherency
+        !
+        integer, parameter :: ndim_space=2
+        integer :: nglob_ctlpt, n_elem, ndim_out
+        integer :: n_faces, n_so_vertices
+        integer :: n_faces_super_object
+        integer :: i,j,k,n
+
+        !
+        nglob_ctlpt = size(Gcoord,2)
+        n_elem = size(Ipointer,2)
+        ndim_out = size(Ipointer,1)
+        n_faces_super_object = size(Super_Object_to_Face,2)
+        n_faces = size(Build_Faces,2)
+        n_so_vertices = size(Super_Object_Vertex,2)
+        write(*,*) "DBG: nglob_ctlpt (txt)=", nglob_ctlpt
+        write(*,*) "DBG: n_elem (txt)=", n_elem
+        write(*,*) "DBG: n_faces (txt)=", n_faces
+        write(*,*) "GC txt :", Gcoord(:,1)
+
         ! Write Local Output
         open (12,file=trim(fnamout),status="unknown",form="formatted")
 
-        write (12,202)    ndim_space, " ! Space dimension "
+        write (12,202)    2, " ! Space dimension "
         write (12,202)    nglob_ctlpt, " ! Number of local nodes "
 
         do i = 0,nglob_ctlpt-1
@@ -511,9 +577,9 @@ contains
 
         ! Artificially created
 
-        write (12,202)  1, " ! Number of line "
-        write (12,*) "Write the line number and name"
-        write (12,202) 1,"L1"
+        !write (12,202)  1, " ! Number of line "
+        !write (12,*) "Write the line number and name"
+        !write (12,202) 1,"L1"
 
         write (12,202)   n_elem, "! number of local elements"
         write (12,202)   n_nods, "! number of nodes"
@@ -552,29 +618,9 @@ contains
         endif
         write (12,203)  "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
         write (12,203) " Have a good run"
+        write (12,209) 1   ! n_proc
+        write (12,209) 0   ! n_communications
         close (12)
-
-        deallocate (Vertex_to_Glob)
-        deallocate (N_Valid_Vertex)
-        deallocate (El_to_Face)
-        deallocate (Face_to_El)
-        deallocate (Face_to_El_What)
-        deallocate (Face_to_Vertex)
-        deallocate (Build_faces)
-        deallocate (Gcoord)
-        deallocate (Ipointer)
-        if (super_object_present) then
-            deallocate (Super_Object_to_Face)
-            deallocate (Super_Object_Coherency)
-            if (n_faces_super_object > 0) then
-                deallocate (Super_Object_UP_Face_to_Vertex)
-                deallocate (Super_Object_DOWN_Face_to_Vertex)
-                deallocate (Super_Object_Face_to_Vertex)
-            endif
-            if (n_so_vertices > 0) deallocate (Super_Object_Vertex)
-            deallocate (Super_Object)
-        endif
-
 
 201     format (3e15.7)
 202     format (i8,10x,a)
@@ -586,7 +632,8 @@ contains
 208     format (2i8)
 209     format (i8)
 
-    end subroutine gid2spec_seq
+    end subroutine write_spec_txt
+
     ! #########################################################
     subroutine rotate (Ipointer,Gcoord,ndim_stor,n_elem,nglob_ctlpt,n_nods,nv)
 
