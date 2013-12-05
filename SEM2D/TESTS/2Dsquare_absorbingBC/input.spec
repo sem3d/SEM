@@ -1,8 +1,8 @@
 # -*- mode: perl -*-
-run_name = "square_absorbingBC";
+run_name = "Cube_PML";
 
 # duration of the run
-sim_time = 1.0;
+sim_time = 5.0;
 mesh_file = "mesh4spec"; # input mesh file
 mat_file = "material.input";
 
@@ -30,7 +30,7 @@ restart_iter=370;
 # introduce a source
 source {
     # coordinates of the sources ((x,y,z) or (lat,long,R) if rotundity is considered)
-    coords = 250. 250. 0.;
+    coords = 25. 25. 25.;
     # the numbers before the labels are here to help convert from previous input.spec format
     # Type (1.Impulse, 2.moment Tensor, 3.fluidpulse)
     type = impulse;
@@ -43,7 +43,6 @@ source {
 };
 
 time_scheme {
-    type_time_integration = 2; # Type of time integration (1 for Newmark, 2 for RK4)
     accel_scheme = false;  # Acceleration scheme for Newmark
     veloc_scheme = true;   # Velocity scheme for Newmark
     alpha = 0.5;           # alpha (Newmark parameter)
@@ -58,6 +57,3 @@ amortissement {
     atn_period = 0.2;      # model period 
 };
 
-type_elements {
-    dg_type = 0;           # Type of Discontinuous Galerkin (0 for Strong, 1 for Weak, 2 for Continuous)
-};
