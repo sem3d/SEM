@@ -54,7 +54,7 @@ subroutine source_excit(Tdomain,rank)
     type(domain), intent(inout) :: Tdomain
     integer, intent(in)  :: rank
     integer :: nsour,nels,mat,ngllx,nglly,ngllz,i,j,k
-    real :: xi,eta,zeta,wxi,weta,wzeta,rho,dwdxi,dwdeta,dwdzeta
+    real :: xi,eta,zeta,wxi,weta,wzeta,lambda,dwdxi,dwdeta,dwdzeta
     real, dimension(0:2,0:2) :: M,InvGrad
 
 
@@ -85,9 +85,9 @@ subroutine source_excit(Tdomain,rank)
                 end do
                 ! fluid case
                 if(.not. Tdomain%specel(nels)%solid)then
-                    rho = interp_lag(Tdomain,ngllx,nglly,ngllz,mat,xi,eta,zeta,   &
-                        Tdomain%specel(nels)%density)
-                    Tdomain%sSource(nsour)%ExtForce(:,:,:) = -Tdomain%sSource(nsour)%ExtForce(:,:,:)/rho
+                    lambda = interp_lag(Tdomain,ngllx,nglly,ngllz,mat,xi,eta,zeta,   &
+                        Tdomain%specel(nels)%lambda)
+                    Tdomain%sSource(nsour)%ExtForce(:,:,:) = -Tdomain%sSource(nsour)%ExtForce(:,:,:)/lambda
                 endif
                 ! point source = moment tensor M (explosion is a special case: M(i,j) = delta _(ij))
             else if(Tdomain%sSource(nsour)%i_type_source == 2)then

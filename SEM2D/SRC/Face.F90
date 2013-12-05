@@ -15,24 +15,29 @@ module sfaces
        integer :: ngll, mat_index, type_Flux, Type_DG
        integer, dimension (0:1) :: Near_Element, Which_face, Near_Vertex
 
-       real, dimension (:), pointer :: Normal
-       real, dimension (:), pointer :: k0,k1,Zp_p,Zp_m,Zs_p,Zs_m ! Added for DG
-       real, dimension (:), pointer :: Mu_p, Mu_m, Lambda_p, Lambda_m, massMat_p, massMat_m  ! Added for DG
-       real, dimension (:), pointer :: massMat
-       real, dimension (:,:), pointer :: Flux, Veloc_p,Veloc_m,Strain_p,Strain_m ! Added for DG
-       real, dimension (:,:), pointer :: r1, r2, r3        ! EigenVectors for DG Godunov
-       real, dimension (:,:), pointer :: Veloc, Displ, Accel, V0, Forces, Vect_RK
-       real, dimension (:,:), pointer :: Veloc1, Veloc2, Forces1, Forces2
-       real, dimension (:,:), pointer :: DumpMass, DumpVx, DumpVz
-       real, dimension (:,:), pointer :: Normal_Nodes
+       real, dimension (:), allocatable :: massMat
+       real, dimension (:,:), allocatable :: Veloc, Displ, Accel, V0, Forces
+       real, dimension (:,:), allocatable :: Veloc1, Veloc2, Forces1, Forces2
+       real, dimension (:,:), allocatable :: DumpMass, DumpVx, DumpVz
 
 #ifdef MKA3D
-       real, dimension (:,:), pointer :: ForcesMka
+       real, dimension (:,:), allocatable :: ForcesMka
 #endif
 
-       logical :: coherency, PML, Abs, FPML, is_computed, changing_media, acoustic
-       real, dimension (:), pointer :: Ivx, Ivz
-       real, dimension (:,:), pointer :: Iveloc1, Iveloc2
+       logical :: coherency, PML, Abs, FPML
+       real, dimension (:), allocatable :: Ivx, Ivz
+       real, dimension (:,:), allocatable :: Iveloc1, Iveloc2
+
+       ! DG
+       real, dimension (:), allocatable :: Normal
+       real, dimension (:), allocatable :: k0,k1,Zp_p,Zp_m,Zs_p,Zs_m
+       real, dimension (:), allocatable :: Mu_p, Mu_m, Lambda_p, Lambda_m, massMat_p, massMat_m
+       real, dimension (:,:), allocatable :: Flux, Veloc_p,Veloc_m,Strain_p,Strain_m
+       real, dimension (:,:), allocatable :: r1, r2, r3  ! EigenVectors for DG Godunov
+       real, dimension (:,:), allocatable :: Vect_RK
+       real, dimension (:,:), allocatable :: Normal_Nodes
+       logical :: is_computed, changing_media, acoustic
+
     end type face
 
 contains

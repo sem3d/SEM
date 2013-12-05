@@ -144,8 +144,13 @@ contains
         call h5screate_simple_f(2, dims, space_id, hdferr, maxdims)
         call h5pcreate_f(H5P_DATASET_CREATE_F, prop_id, hdferr)
         if ((d1*d2).gt.128 .or. d2==H5S_UNLIMITED_F) then
-            call h5pset_deflate_f(prop_id, 5, hdferr)
             call h5pset_chunk_f(prop_id, 2, chunk, hdferr)
+            if (dtype/=H5T_IEEE_F32LE .and. dtype/=H5T_IEEE_F64LE) then
+                ! Les donnees en float donnent un taux de compression bas pour un
+                ! cout de calcul eleve
+                call h5pset_deflate_f(prop_id, 5, hdferr)
+                call h5pset_shuffle_f(prop_id, hdferr)
+            endif
         end if
         call h5dcreate_f(parent, name, dtype, space_id, dset_id, hdferr, prop_id)
         !write(*,*) "h5dcreate: ", name, hdferr, dims, chunk

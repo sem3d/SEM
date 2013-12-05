@@ -37,6 +37,8 @@ subroutine create_sem2d_sources(Tdomain, config)
         Tdomain%Ssource(nsrc)%amplitude = src%amplitude
         ! Comportement Spacial
         ! i_type_source==1
+        ! DIR = Z OR y -> y
+        if (src%dir==2) src%dir = 1
         Tdomain%Ssource(nsrc)%i_dir = src%dir
         ! i_type_source==2
         !Tdomain%Ssource(nsrc)%Moment(0,0) = src%moments(1)
@@ -76,8 +78,6 @@ subroutine read_input (Tdomain)
     integer :: i, n_aus
     logical :: logic_scheme
 
-    integer :: unit_src
-    logical :: trouve_src
     character(Len=MAX_FILE_SIZE) :: fnamef
     type(sem_config) :: config
     integer :: code
@@ -85,7 +85,8 @@ subroutine read_input (Tdomain)
 
     ! It is done by any processor
     call semname_file_input_spec(fnamef)
-    write(*,*) "INPUT SPEC:", trim(fnamef)
+
+    write(*,*) "Opening:", trim(fnamef)
     call read_sem_config(config, trim(fnamef)//C_NULL_CHAR, code)
 
     Tdomain%Title_simulation = fromcstr(config%run_name)
@@ -116,22 +117,12 @@ subroutine read_input (Tdomain)
 
     call create_sem2d_sources(Tdomain, config)
 
-    !open (11,file=fnamef,form="formatted",status="old")
-    !read (11,*) Tdomain%Title_simulation
-    !read (11,*) Tdomain%TimeD%acceleration_scheme
-    !read (11,*) Tdomain%TimeD%velocity_scheme
-    !read (11,*) Tdomain%TimeD%duration
-    !read (11,*) Tdomain%TimeD%alpha
-    !read (11,*) Tdomain%TimeD%beta
-    !read (11,*) Tdomain%TimeD%gamma
-    !read (11,*) Tdomain%mesh_file
-    !read (11,*) Tdomain%material_file
-    !read (11,*) Tdomain%logicD%save_trace
-    !read (11,*) Tdomain%logicD%save_snapshots
+    Tdomain%logicD%run_echo = .false.
+    Tdomain%logicD%super_object = .false.
+    Tdomain%logicD%super_object_local_present = .false.
     !read (11,*) Tdomain%logicD%save_deformation
     !read (11,*) Tdomain%logicD%save_energy
 
-    !read (11,*) Tdomain%logicD%plot_grid
     !read (11,*) Tdomain%logicD%run_exec
     !read (11,*) Tdomain%logicD%run_debug
     !read (11,*) Tdomain%logicD%run_echo
@@ -156,6 +147,7 @@ subroutine read_input (Tdomain)
     !endif
 
 !! TODO
+    Tdomain%logicD%super_object = .false.
     !read (11,*) Tdomain%logicD%super_object
     !if (Tdomain%logicD%super_object) then
     !    read (11,*) Tdomain%n_super_object
@@ -166,28 +158,28 @@ subroutine read_input (Tdomain)
     !    enddo
     !endif
 
-
-
+    Tdomain%bMailUnv = .false.
+    Tdomain%bCapteur = .false.
     ! conversion dun maillage unv en maillage sem
-    read (11,*) Tdomain%bMailUnv
+    !read (11,*) Tdomain%bMailUnv
 
     ! prise en compte du fichier des capteurs
-    read (11,*) Tdomain%bCapteur
+    !read (11,*) Tdomain%bCapteur
 
     ! demarrage d un cas de reprise
-    read (11,*) Tdomain%logicD%run_restart
+    !read (11,*) Tdomain%logicD%run_restart
 
     ! numero de l iteration de reprise
-    read (11,*) Tdomain%TimeD%iter_reprise
+    !read (11,*) Tdomain%TimeD%iter_reprise
     !read (11,*)
 
     ! creation de fichiers de reprise
-    read (11,*) Tdomain%logicD%save_restart
-    if (Tdomain%logicD%save_restart) then
-        read (11,*) Tdomain%TimeD%ncheck ! frequence de sauvegarde
-    endif
-
-    close (11)
+    !read (11,*) Tdomain%logicD%save_restart
+    !if (Tdomain%logicD%save_restart) then
+    !    read (11,*) Tdomain%TimeD%ncheck ! frequence de sauvegarde
+    !endif
+    !
+    !close (11)
 
     ! If echo modality write the read parameter in a file
 

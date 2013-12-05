@@ -22,7 +22,7 @@ module sdomain
     use sfaults
     use mpi_list
     use communication_object
-
+    use semdatafiles
 
 
     type :: domain
@@ -33,11 +33,11 @@ module sdomain
        integer :: master_superviseur
 #endif
 
-       integer :: n_elem, n_face, n_vertex, n_source,n_dime,n_glob_nodes, n_line ,n_receivers
+       integer :: n_elem, n_face, n_vertex, n_source,n_glob_nodes, n_line ,n_receivers
        integer :: n_nodes, n_mat,n_glob_points, n_super_object, n_fault, n_communications
        integer :: type_timeInteg, type_elem
        integer, dimension (:), pointer :: Line_index, Communication_list
-
+       integer :: n_quad ! Total number of quad elements to output (including subelements)
        real, dimension (:,:), pointer :: Coord_nodes, GlobCoord
        real, dimension(:,:,:), pointer :: Store_Trace
 
@@ -47,9 +47,9 @@ module sdomain
        real, dimension(:), pointer :: GrandeurDeformation ! pour tous les points de gauss a une iteration donnee (utilise pour les sorties capteurs)
 
 
-       character (len=30) :: Title_simulation, mesh_file, station_file, material_file
+       character (len=MAX_FILE_SIZE) :: Title_simulation, mesh_file, station_file, material_file
        character (len=1), dimension (:), pointer ::  Name_Line, Super_object_type
-       character (len=30), dimension (:), pointer :: Super_object_file
+       character (len=MAX_FILE_SIZE), dimension (:), pointer :: Super_object_file
 
        logical :: any_PML,bMailUnv,bCapteur
 

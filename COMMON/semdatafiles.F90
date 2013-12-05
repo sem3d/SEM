@@ -14,6 +14,7 @@
 #endif
 
 module semdatafiles
+    use sem_c_bindings, only : sem_mkdir
     integer, parameter :: MAX_FILE_SIZE=1024
     !character(Len=20) :: datadir
     character(Len=MAX_FILE_SIZE) :: path_param
@@ -62,10 +63,15 @@ contains
     end subroutine init_sem_path
 
     subroutine create_sem_output_directories()
-        call system("mkdir -p " // trim(adjustl(path_traces)))
-        call system("mkdir -p " // trim(adjustl(path_results)))
-        call system("mkdir -p " // trim(adjustl(path_prot)))
-        call system("mkdir -p " // trim(adjustl(path_logs)))
+        integer :: ierr
+        ierr = sem_mkdir(trim(adjustl(path_traces)))
+        if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_traces))
+        ierr = sem_mkdir(trim(adjustl(path_results)))
+        if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_results))
+        ierr = sem_mkdir(trim(adjustl(path_prot)))
+        if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_prot))
+        ierr = sem_mkdir(trim(adjustl(path_logs)))
+        if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_logs))
     end subroutine create_sem_output_directories
 
     subroutine semname_dir_capteurs(dirname)
@@ -242,13 +248,10 @@ contains
         implicit none
         integer,intent(in) :: rank
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I4.4)")"./Resultats/initian.",rank
-#else
-        write(fnamef,"(a,I4.4)") "initian.",rank
-#endif
+        character(Len=20) :: temp
 
-        DEBUG(fnamef)
+        write(temp,"(a,I4.4)") "initian.",rank
+        fnamef = pjoin(path_results, temp)
     end subroutine semname_define_fault_rankn
     !!end fichier define_fault_properties 2d
 
@@ -330,16 +333,7 @@ contains
         DEBUG(fnamef)
     end subroutine semname_protection_temps_sem
 
-    subroutine semname_main_result(cit,fnamef)
-        !SEMFILE * C ./Resultats/RsemIII
-        implicit none
-        character(Len=*),intent(in) :: cit
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE) :: temp
-        write(temp,"(a,a)") "Rsem",trim(adjustl(cit))
-        fnamef = pjoin(path_results, temp)
-    end subroutine semname_main_result
-    !!end fichier main 2d
+   !!end fichier main 2d
 
     subroutine semname_snap_geom_file (srank,fnamef)
         implicit none
@@ -393,9 +387,10 @@ contains
         integer,intent(in) :: rg
         character(Len=*),intent(in) :: meshfile
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE) :: temp
+        character(Len=MAX_FILE_SIZE) :: temp, sem_dir
         write(temp,"(a,a1,I4.4)") trim(adjustl(meshfile)),".",rg
-        fnamef = pjoin(path_data, temp)
+        sem_dir = pjoin(path_data, "sem")
+        fnamef = pjoin(sem_dir, temp)
     end subroutine semname_read_input_meshfile
 
     subroutine semname_read_inputmesh_parametrage (file,fnamef) !!valable egalement pour le fichier read_mesh
@@ -412,10 +407,15 @@ contains
         integer,intent(in) :: rank
         character(Len=*),intent(in) :: mesh
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE)             :: temp
+        character(Len=MAX_FILE_SIZE)             :: temp, sem_dir
 
         write(temp,"(a,a1,I4.4)") trim(adjustl(mesh)),".",rank
+#ifdef MKA3D
+        sem_dir = pjoin(path_data, "sem")
+        fnamef = pjoin(sem_dir, temp)
+#else
         fnamef = pjoin(path_data, temp)
+#endif
     end subroutine semname_read_mesh_rank
 
     subroutine semname_read_mesh_echo (rank,fnamef)
@@ -423,39 +423,25 @@ contains
         implicit none
         integer,intent(in) :: rank
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I4.4)")"./data/sem/mesh_echo",rank
-#else
-        write(fnamef,"(a,I4.4)")"mesh_echo",rank
-#endif
-
-        DEBUG(fnamef)
+        character(Len=MAX_FILE_SIZE) :: temp
+        write(temp,*) "mesh_echo.",rank
+        fnamef = pjoin(path_data, temp)
     end subroutine semname_read_mesh_echo
 
     subroutine semname_read_mesh_material_echo (fnamef)
         !SEMFILE 93 W ./data/sem/material_echo (MKA) & material_echo (NOMKA)
         implicit none
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I4.4)")"./data/sem/material_echo"
-#else
-        write(fnamef,"(a,I4.4)")"material_echo"
-#endif
 
-        DEBUG(fnamef)
+        fnamef = pjoin(path_data, "material_echo")
     end subroutine semname_read_mesh_material_echo
 
     subroutine semname_read_mesh_station_echo (fnamef)
         !SEMFILE 94 W ./data/sem/station_file_echo (MKA) & station_file_echo (NOMKA)
         implicit none
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I4.4)")"./data/sem/station_file_echo"
-#else
-        write(fnamef,"(a,I4.4)")"station_file_echo"
-#endif
 
-        DEBUG(fnamef)
+        fnamef = pjoin(path_data, "station_file_echo")
     end subroutine semname_read_mesh_station_echo
 
     subroutine semname_save_checkpoint_cp(fnamer,fnamef)

@@ -68,14 +68,6 @@ subroutine deallocate_domain (Tdomain, rg)
                 deallocate (Tdomain%specel(n)%spml%DumpVy)
                 deallocate (Tdomain%specel(n)%spml%DumpVz)
             else
-                !  modif mariotti fevrier 2007 cea
-                !          deallocate (Tdomain%specel(n)%Acoeff)
-                !          deallocate (Tdomain%specel(n)%Displ )
-                deallocate (Tdomain%specel(n)%wgtx)
-                deallocate (Tdomain%specel(n)%wgty)
-                deallocate (Tdomain%specel(n)%wgtz)
-                !  modif mariotti fevrier 2007 cea capteur displ
-                !          deallocate (Tdomain%specel(n)%Displ)
                 if (Tdomain%aniso) then
                     deallocate (Tdomain%specel(n)%Cij)
                     if (Tdomain%n_sls>0) then

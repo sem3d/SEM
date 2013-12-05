@@ -34,30 +34,26 @@ subroutine shape8(Tdomain)
     real, dimension (0:1,0:1) :: LocInvGrad
     real, dimension (:,:), allocatable :: Store_normal
     real, dimension (:), pointer :: GLLc_face
-
-#ifdef MKA3D
     character (len=MAX_FILE_SIZE) :: fnamef
-    character(len=5) :: crank
-#endif
+    logical, parameter :: postpg=.true.
 
     ! Modified by Gaetano Festa, 27/05/05
-    !---------------------------------------------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
     ! Shape functions are derived from "Finite Elements and Approximations"
     ! by Zienkiewicz, O.C. and Morgan, K.
     ! John Wiley and Sons, 1983
-    ! --------------------------------------------------------------------------------------------------------------
+    ! --------------------------------------------------------------------------
 
     allocate (Tdomain%GlobCoord(0:1,0:Tdomain%n_glob_points-1))
 
-#ifdef MKA3D
-    call semname_posptg(Tdomain%mpi_var%my_rank,fnamef)
-    open (88,file=fnamef,form="formatted")
+    if (postpg) then
+        ! Creation des informations pour le posttraitement
+        call semname_posptg(Tdomain%mpi_var%my_rank,fnamef)
+        open (88,file=fnamef,form="formatted")
 
-    call semname_connecptg(Tdomain%mpi_var%my_rank,fnamef)
-    open (89,file=fnamef,form="formatted")
-
-#endif
-
+        call semname_connecptg(Tdomain%mpi_var%my_rank,fnamef)
+        open (89,file=fnamef,form="formatted")
+    endif
 
     do n = 0,Tdomain%n_elem - 1
         i_aus = Tdomain%specel(n)%Control_Nodes(0);  x0 = Tdomain%Coord_Nodes(0,i_aus);  z0 = Tdomain%Coord_Nodes(1,i_aus)
@@ -78,10 +74,9 @@ subroutine shape8(Tdomain)
         allocate (Tdomain%specel(n)%Jacob(0:ngllx-1,0:ngllz-1))
         allocate (Tdomain%specel(n)%InvGrad(0:ngllx-1,0:ngllz-1,0:1,0:1))
 
-#ifdef MKA3D
-        write(89,'(I8,X,I4,X,I4)') n,ngllx,ngllz
-#endif
-
+        if (postpg) then
+            write(89,'(I8,X,I4,X,I4)') n,ngllx,ngllz
+        endif
 
 
         do j = 0,ngllz - 1
@@ -103,9 +98,9 @@ subroutine shape8(Tdomain)
 
                 Tdomain%GlobCoord (0,ipoint) = xp;   Tdomain%GlobCoord (1,ipoint) = zp
 
-#ifdef MKA3D
-                write(88,*) ipoint
-#endif
+                if (postpg) then
+                    write(88,*) ipoint
+                endif
 
                 !     Computation of the derivative matrix, dx_(jj)/dxi_(ii) : more precisely we have :
                 !  LocInvGrad(0,0) = dx/dxi  ;  LocInvGrad(1,0) = dx/deta
@@ -136,13 +131,14 @@ subroutine shape8(Tdomain)
         enddo
     enddo
 
-#ifdef MKA3D
-    do i=0,Tdomain%n_glob_points-1
-        write(88,*) i, Tdomain%GlobCoord (0,i), Tdomain%GlobCoord (1,i)
-    enddo
-    close(88)
-    close(89)
-#endif
+
+    if (postpg) then
+        do i=0,Tdomain%n_glob_points-1
+            write(88,*) i, Tdomain%GlobCoord (0,i), Tdomain%GlobCoord (1,i)
+        enddo
+        close(88)
+        close(89)
+    endif
 
     if (Tdomain%logicD%super_object_local_present) then
         do n = 0, Tdomain%n_fault-1

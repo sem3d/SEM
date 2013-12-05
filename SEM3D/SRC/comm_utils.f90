@@ -42,27 +42,20 @@ subroutine Comm_Edge_ScalarProperty(ngll1,orient_e,exch_val,prop_edge)
     integer, intent(in)  :: ngll1,orient_e
     real, intent(in), dimension(ngll1-2)  :: exch_val
     real, dimension(1:ngll1-2), intent(inout) :: prop_edge
-    integer  :: j,ngll
+    integer  :: j
 
-    ngll = 1
     select case(orient_e)
     case(0)
         do j = 1,ngll1-2
-            prop_edge(j) = prop_edge(j) + exch_val(ngll)
-            ngll = ngll + 1
+            prop_edge(j) = prop_edge(j) + exch_val(j)
         end do
     case(1)
         do j = 1,ngll1-2
-            prop_edge(ngll1-1-j) = prop_edge(ngll1-1-j) + exch_val(ngll)
-            ngll = ngll + 1
+            prop_edge(ngll1-1-j) = prop_edge(ngll1-1-j) + exch_val(j)
         end do
     end select
 
-    if(ngll /= ngll1-1) &
-        stop "Pb in Comm_Edge_ScalarProperty"
-
     return
-
 end subroutine Comm_Edge_ScalarProperty
 
 subroutine Comm_Edge_VectorProperty(ngll1,orient_e,exch_val,prop_edge)
@@ -72,25 +65,18 @@ subroutine Comm_Edge_VectorProperty(ngll1,orient_e,exch_val,prop_edge)
     integer, intent(in)  :: ngll1,orient_e
     real, intent(in), dimension(ngll1-2,0:2)  :: exch_val
     real, dimension(1:ngll1-2,0:2), intent(inout) :: prop_edge
-    integer  :: j,ngll
+    integer  :: j
 
-    ngll = 1
     select case(orient_e)
     case(0)
         do j = 1,ngll1-2
-            prop_edge(j,0:2) = prop_edge(j,0:2) + exch_val(ngll,0:2)
-            ngll = ngll + 1
+            prop_edge(j,0:2) = prop_edge(j,0:2) + exch_val(j,0:2)
         end do
     case(1)
         do j = 1,ngll1-2
-            prop_edge(ngll1-1-j,0:2) = prop_edge(ngll1-1-j,0:2) + exch_val(ngll,0:2)
-            ngll = ngll + 1
+            prop_edge(ngll1-1-j,0:2) = prop_edge(ngll1-1-j,0:2) + exch_val(j,0:2)
         end do
     end select
-
-    if(ngll /= ngll1-1) &
-        stop "Pb in Comm_Edge_VectorProperty"
-
 end subroutine Comm_Edge_VectorProperty
 
 subroutine Comm_Face_ScalarProperty(ngll1,ngll2,orient_f,exch_val,prop_face)

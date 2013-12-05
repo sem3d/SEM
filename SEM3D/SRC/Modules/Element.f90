@@ -45,7 +45,6 @@ module selement
        real, dimension (:,:,:), allocatable :: Q, Qs, Qp, onemSbeta, onemPbeta, &
            epsilonvol_, &
            epsilondev_xx_,epsilondev_yy_,epsilondev_xy_,epsilondev_xz_,epsilondev_yz_
-       real, dimension (:), allocatable :: wgtx, wgty, wgtz
        real, dimension(:,:,:,:), allocatable :: ACoeff, Forces,Veloc,Displ,Accel,V0
        real, dimension(:,:,:,:), allocatable :: Cij, &
            factor_common_3, alphaval_3,betaval_3,gammaval_3, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_, &
@@ -57,7 +56,7 @@ module selement
        logical :: PML, FPML
        ! Whether this element will be part of snapshot outputs
        logical :: OUTPUT
-       type(element_pml), allocatable :: spml
+       type(element_pml), pointer :: spml
        ! fluid part
        real, dimension(:,:,:), allocatable:: ForcesFl
 
@@ -68,11 +67,17 @@ module selement
 
     interface
        subroutine DGEMM ( TRANSA, TRANSB, M, N, K, ALPHA, A, LDA, B, LDB, BETA, C, LDC )
-         CHARACTER*1        TRANSA, TRANSB
-         INTEGER            M, N, K, LDA, LDB, LDC
-         DOUBLE PRECISION   ALPHA, BETA
-         DOUBLE PRECISION   A( LDA, * ), B( LDB, * ), C( LDC, * )
+           CHARACTER*1        TRANSA, TRANSB
+           INTEGER            M, N, K, LDA, LDB, LDC
+           DOUBLE PRECISION   ALPHA, BETA
+           DOUBLE PRECISION   A( LDA, * ), B( LDB, * ), C( LDC, * )
        end subroutine DGEMM
+       ! Version simplifiee : TRANSA=N TRANSB=N M=LDA=LDC K=LDB, ALPHA=1,BETA=0
+       SUBROUTINE DGEMM2 (M, N, K, A, B, C)
+           INTEGER, INTENT(IN)             :: M, N, K
+           DOUBLE PRECISION, INTENT(IN)    :: A(M,K), B(K,N)
+           DOUBLE PRECISION, INTENT(INOUT) :: C(M,N)
+       END SUBROUTINE DGEMM2
     end interface
 
 contains
@@ -195,23 +200,13 @@ contains
 
         !- gradient at GLL points
         ! dUx_(dxi,deta,dzeta)
-        call DGEMM('N','N',m1,m2*m3,m1,1.,htprimex,m1,Elem%Forces(:,:,:,0),m1,0.,dUx_dxi,m1)
-        do n_z = 0,Elem%ngllz-1
-            call DGEMM('N','N',m1,m2,m2,1.,Elem%Forces(:,:,n_z,0),m1,hprimey,m2,0.,dUx_deta(:,:,n_z),m1)
-        enddo
-        call DGEMM('N','N',m1*m2,m3,m3,1.,Elem%Forces(:,:,:,0),m1*m2,hprimez,m3,0.,dUx_dzeta,m1*m2)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,0),dUx_dxi,dUx_deta,dUx_dzeta)
+
         ! dUy_(dxi,deta,dzeta)
-        call DGEMM('N','N',m1,m2*m3,m1,1.,htprimex,m1,Elem%Forces(:,:,:,1),m1,0.,dUy_dxi,m1)
-        do n_z = 0,Elem%ngllz-1
-            call DGEMM('N','N',m1,m2,m2,1.,Elem%Forces(:,:,n_z,1),m1,hprimey,m2,0.,dUy_deta(:,:,n_z),m1)
-        enddo
-        call DGEMM('N','N',m1*m2,m3,m3,1.,Elem%Forces(:,:,:,1),m1*m2,hprimez,m3,0.,dUy_dzeta,m1*m2)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,1),dUy_dxi,dUy_deta,dUy_dzeta)
+
         ! dUz_(dxi,deta,dzeta)
-        call DGEMM('N','N',m1,m2*m3,m1,1.,htprimex,m1,Elem%Forces(:,:,:,2),m1,0.,dUz_dxi,m1)
-        do n_z = 0,Elem%ngllz-1
-            call DGEMM('N','N',m1,m2,m2,1.,Elem%Forces(:,:,n_z,2),m1,hprimey,m2,0.,dUz_deta(:,:,n_z),m1)
-        enddo
-        call DGEMM('N','N',m1*m2,m3,m3,1.,Elem%Forces(:,:,:,2),m1*m2,hprimez,m3,0.,dUz_dzeta,m1*m2)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,2),dUz_dxi,dUz_deta,dUz_dzeta)
 
 
         !- Internal forces
@@ -303,19 +298,10 @@ contains
 
         m1 = Elem%ngllx ; m2 = Elem%nglly ; m3 = Elem%ngllz
 
-        !- Modification: potential -> density*potentiel
-        Elem%ForcesFl(:,:,:) = Elem%density(:,:,:)*Elem%ForcesFl(:,:,:)
 
         !- gradients at GLLs points
-        ! d(rho*Phi)_dxi
-        call DGEMM('N','N',m1,m2*m3,m1,1d0,htprimex,m1,Elem%ForcesFl(:,:,:),m1,0d0,dPhi_dxi,m1)
-        ! d(rho*Phi)_deta
-        do n_z = 0,Elem%ngllz-1
-            call DGEMM('N','N',m1,m2,m2,1d0,Elem%ForcesFl(:,:,n_z),m1,hprimey,m2,0d0,dPhi_deta(:,:,n_z),m1)
-        enddo
-        ! d(rho*Phi)_dzeta
-        call DGEMM('N','N',m1*m2,m3,m3,1d0,Elem%ForcesFl(:,:,:),m1*m2,hprimez,m3,0d0,dPhi_dzeta,m1*m2)
-
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%ForcesFl(:,:,:), &
+            dPhi_dxi,dPhi_deta,dPhi_dzeta)
 
         !- Internal Forces
         t1 = Elem%Acoeff(:,:,:,0)*dPhi_dxi + Elem%Acoeff(:,:,:,1)*dPhi_deta + Elem%Acoeff(:,:,:,2)*dPhi_dzeta
@@ -367,31 +353,17 @@ contains
         real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVx_dxi,dVx_deta,dVx_dzeta, &
             dVy_dxi,dVy_deta,dVy_dzeta, dVz_dxi,dVz_deta,dVz_dzeta
 
-        integer :: m1, m2,m3 ,n_z
+        integer :: m1, m2,m3
 
 
         m1 = Elem%ngllx; m2 = Elem%nglly;  m3= Elem%ngllz
   ! useless as bega = 1/2 in general
         Elem%Forces(1:m1-2,1:m2-2, 1:m3-2,0:2)  = Elem%Veloc(:,:,:,:) + dt *(0.5-bega) *Elem%Accel(:,:,:,:)
 
-  ! partial of velocity components with respect to xi,eta,zeta
-        call DGEMM ( 'N', 'N', m1, m2*m3, m1, 1., htprimex, m1,Elem%Forces(:,:,:,0) ,m1, 0., dVx_dxi, m1 )
-        do n_z = 0,Elem%ngllz-1
-            call DGEMM ( 'N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,0), m1, hprimey ,m2, 0., dVx_deta(:,:,n_z),m1 )
-        enddo
-        call DGEMM ( 'N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,0), m1*m2, hprimez ,m3, 0., dVx_dzeta, m1*m2 )
-
-        call DGEMM ( 'N', 'N', m1, m2*m3, m1, 1., htprimex, m1,Elem%Forces(:,:,:,1) ,m1, 0., dVy_dxi, m1 )
-        do n_z = 0,Elem%ngllz-1
-            call DGEMM ( 'N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,1), m1, hprimey ,m2, 0., dVy_deta(:,:,n_z),m1 )
-        enddo
-        call DGEMM ( 'N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,1), m1*m2, hprimez ,m3, 0., dVy_dzeta, m1*m2 )
-
-        call DGEMM ( 'N', 'N', m1, m2*m3, m1, 1., htprimex, m1,Elem%Forces(:,:,:,2) ,m1, 0., dVz_dxi, m1 )
-        do n_z = 0,Elem%ngllz-1
-            call DGEMM ( 'N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,2), m1, hprimey ,m2, 0., dVz_deta(:,:,n_z),m1)
-        enddo
-        call DGEMM ( 'N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,2), m1*m2, hprimez ,m3, 0., dVz_dzeta, m1*m2 )
+        ! partial of velocity components with respect to xi,eta,zeta
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,0),dVx_dxi,dVx_deta,dVx_dzeta)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,1),dVy_dxi,dVy_deta,dVy_dzeta)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,2),dVz_dxi,dVz_deta,dVz_dzeta)
 
 
   ! Stress_xx
@@ -446,7 +418,6 @@ contains
 
         Elem%spml%Residual_Stress = Elem%spml%Residual_Stress1 + Elem%spml%Residual_Stress2 + Elem%spml%Residual_Stress3
 
-
         return
     end subroutine Prediction_Elem_PML_Veloc
     !--------------------------------------------------------------------------------
@@ -462,22 +433,18 @@ contains
         real, dimension(0:Elem%ngllz-1,0:Elem%ngllz-1), intent(in) :: hprimez
 
         real, dimension(0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVelPhi_dxi,dVelPhi_deta,dVelPhi_dzeta
-        integer :: m1,m2,m3,n_z
+        integer :: m1,m2,m3
 
 
         m1 = Elem%ngllx ; m2 = Elem%nglly ; m3 = Elem%ngllz
 
+
         ! prediction in the element
         Elem%ForcesFl(1:m1-2,1:m2-2,1:m3-2) = Elem%VelPhi(:,:,:) +dt*(0.5-bega)*Elem%AccelPhi(:,:,:)
-        ! potential -> -pressure
-        Elem%ForcesFl(:,:,:) = Elem%Density(:,:,:)*Elem%ForcesFl(:,:,:)
 
         ! d(rho*Phi)_d(xi,eta,zeta)
-        call DGEMM('N','N',m1,m2*m3,m1,1.,htprimex,m1,Elem%ForcesFl(:,:,:),m1,0.,dVelPhi_dxi,m1)
-        do n_z = 0,Elem%ngllz-1
-            call DGEMM('N','N',m1,m2,m2,1.,Elem%ForcesFl(:,:,n_z),m1,hprimey,m2,0.,dVelPhi_deta(:,:,n_z),m1)
-        enddo
-        call DGEMM('N','N',m1*m2,m3,m3,1.,Elem%ForcesFl(:,:,:),m1*m2,hprimez,m3,0.,dVelPhi_dzeta,m1*m2)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%ForcesFl(:,:,:), &
+            dVelPhi_dxi,dVelPhi_deta,dVelPhi_dzeta)
 
         ! prediction for (physical) velocity (which is the equivalent of a stress, here)
         ! V_x^x
@@ -503,7 +470,7 @@ contains
             (Elem%Acoeff(:,:,:,6) * dVelPhi_dxi + Elem%Acoeff(:,:,:,7) * dVelPhi_deta + Elem%Acoeff(:,:,:,8) * dVelPhi_dzeta)
 
         ! total velocity vector after dumping = sum of splitted parts
-        Elem%Veloc(:,:,:,:) = Elem%spml%Veloc1(:,:,:,:) + Elem%spml%Veloc2(:,:,:,:) + Elem%spml%Veloc3(:,:,:,:)
+        Elem%spml%Veloc(:,:,:,:) = Elem%spml%Veloc1(:,:,:,:) + Elem%spml%Veloc2(:,:,:,:) + Elem%spml%Veloc3(:,:,:,:)
 
         return
     end subroutine Prediction_Elem_PML_VelPhi
@@ -546,24 +513,9 @@ contains
 
         Elem%Forces(1:m1-2,1:m2-2, 1:m3-2, 0:2) = Elem%Veloc(:,:,:,:) + dt *(0.5-bega) *Elem%Accel(:,:,:,:)
 
-        call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1,Elem%Forces(:,:,:,0), m1, 0., dVx_dxi, m1)
-        do n_z = 0,m3-1
-            call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,0), m1, hprimey, m2, 0., dVx_deta(:,:,n_z),m1)
-        enddo
-        call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,0), m1*m2, hprimez, m3, 0., dVx_dzeta, m1*m2)
-
-        call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1,Elem%Forces(:,:,:,1), m1, 0., dVy_dxi, m1)
-        do n_z = 0,m3-1
-            call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,1), m1, hprimey, m2, 0., dVy_deta(:,:,n_z),m1)
-        enddo
-        call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,1), m1*m2, hprimez, m3, 0., dVy_dzeta, m1*m2)
-
-        call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1,Elem%Forces(:,:,:,2), m1, 0., dVz_dxi, m1)
-        do n_z = 0,m3-1
-            call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,2), m1, hprimey, m2, 0., dVz_deta(:,:,n_z),m1)
-        enddo
-        call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,2), m1*m2, hprimez, m3, 0., dVz_dzeta, m1*m2)
-
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,0),dVx_dxi,dVx_deta,dVx_dzeta)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,1),dVy_dxi,dVy_deta,dVy_dzeta)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,2),dVz_dxi,dVz_deta,dVz_dzeta)
 
         Stress_Ausiliar = Elem%spml%Diagonal_Stress1 (:,:,:,0)
         Elem%spml%Diagonal_Stress1 (:,:,:,0) = Elem%spml%dumpSx(:,:,:,0) * Elem%spml%Diagonal_Stress1 (:,:,:,0) + &
@@ -724,6 +676,8 @@ contains
 
         Elem%VelPhi = Elem%spml%VelPhi1 + Elem%spml%VelPhi2 + Elem%spml%VelPhi3
 
+        Elem%Phi = Elem%Phi + dt * Elem%VelPhi
+
         return
     end subroutine Correction_Elem_PML_VelPhi
     !------------------------------------------------------------------
@@ -877,47 +831,47 @@ contains
 
 
         ! forces associated to V_x
-        s0 = Elem%Acoeff(:,:,:,9) * Elem%Veloc(:,:,:,0)
+        s0 = Elem%Acoeff(:,:,:,9) * Elem%spml%Veloc(:,:,:,0)
         call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,s0(:,:,:),m1,0.,s1,m1)
         Elem%spml%ForcesFl1(:,:,:) = s1
 
-        s0 = Elem%Acoeff(:,:,:,10) * Elem%Veloc(:,:,:,0)
+        s0 = Elem%Acoeff(:,:,:,10) * Elem%spml%Veloc(:,:,:,0)
         do n_z = 0,m3-1
             call DGEMM('N','N',m1,m2,m2,1.,s0(0,0,n_z),m1, htprimey,m2,0.,s1(0,0,n_z),m1)
         enddo
         Elem%spml%ForcesFl1(:,:,:) = s1+Elem%spml%ForcesFl1(:,:,:)
 
-        s0 = Elem%Acoeff(:,:,:,11) * Elem%Veloc(:,:,:,0)
+        s0 = Elem%Acoeff(:,:,:,11) * Elem%spml%Veloc(:,:,:,0)
         call DGEMM('N','N',m1*m2,m3,m3,1.,s0(:,:,:),m1*m2,htprimez,m3,0.,s1,m1*m2)
         Elem%spml%ForcesFl1(:,:,:) = s1+Elem%spml%ForcesFl1(:,:,:)
 
         ! forces associated to V_y
-        s0 = Elem%Acoeff(:,:,:,12) * Elem%Veloc(:,:,:,1)
+        s0 = Elem%Acoeff(:,:,:,12) * Elem%spml%Veloc(:,:,:,1)
         call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,s0(:,:,:),m1,0.,s1,m1)
         Elem%spml%ForcesFl2(:,:,:) = s1
 
-        s0 = Elem%Acoeff(:,:,:,13) * Elem%Veloc(:,:,:,1)
+        s0 = Elem%Acoeff(:,:,:,13) * Elem%spml%Veloc(:,:,:,1)
         do n_z = 0,m3-1
             call DGEMM('N','N',m1,m2,m2,1.,s0(0,0,n_z),m1, htprimey,m2,0.,s1(0,0,n_z),m1)
         enddo
         Elem%spml%ForcesFl2(:,:,:) = s1+Elem%spml%ForcesFl2(:,:,:)
 
-        s0 = Elem%Acoeff(:,:,:,14) * Elem%Veloc(:,:,:,1)
+        s0 = Elem%Acoeff(:,:,:,14) * Elem%spml%Veloc(:,:,:,1)
         call DGEMM('N','N',m1*m2,m3,m3,1.,s0(:,:,:),m1*m2,htprimez,m3,0.,s1,m1*m2)
         Elem%spml%ForcesFl2(:,:,:) = s1+Elem%spml%ForcesFl2(:,:,:)
 
         ! forces associated to V_z
-        s0 = Elem%Acoeff(:,:,:,15) * Elem%Veloc(:,:,:,2)
+        s0 = Elem%Acoeff(:,:,:,15) * Elem%spml%Veloc(:,:,:,2)
         call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,s0(:,:,:),m1,0.,s1,m1)
         Elem%spml%ForcesFl3(:,:,:) = s1
 
-        s0 = Elem%Acoeff(:,:,:,16) * Elem%Veloc(:,:,:,2)
+        s0 = Elem%Acoeff(:,:,:,16) * Elem%spml%Veloc(:,:,:,2)
         do n_z = 0,m3-1
             call DGEMM('N','N',m1,m2,m2,1.,s0(0,0,n_z),m1, htprimey,m2,0.,s1(0,0,n_z),m1)
         enddo
         Elem%spml%ForcesFl3(:,:,:) = s1+Elem%spml%ForcesFl3(:,:,:)
 
-        s0 = Elem%Acoeff(:,:,:,17) * Elem%Veloc(:,:,:,2)
+        s0 = Elem%Acoeff(:,:,:,17) * Elem%spml%Veloc(:,:,:,2)
         call DGEMM('N','N',m1*m2,m3,m3,1.,s0(:,:,:),m1*m2,htprimez,m3,0.,s1,m1*m2)
         Elem%spml%ForcesFl3(:,:,:) = s1+Elem%spml%ForcesFl3(:,:,:)
 

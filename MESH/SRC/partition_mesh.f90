@@ -66,11 +66,12 @@ contains
                 procs(n) = 0
             end do
         else
-            allocate(adjwgt(0:dxadj(n_elem+1)-1)) ; adjwgt = 1
+            allocate(adjwgt(0:dxadj(n_elem+1)-1))
+            adjwgt = 1
             vwgt = 1
             vsize = 1
-            tpwgts = 1./nproc
-            ubvec = 1.001
+            tpwgts = real(1./nproc,kind=4)
+            ubvec = real(1.001,kind=4)
             call METIS_PartGraphKway(n_elem,ncon,dxadj,dxadjncy,    &
                 vwgt, vsize, adjwgt, nproc, tpwgts, ubvec, options, edgecut, procs)
         end if

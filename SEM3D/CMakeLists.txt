@@ -18,6 +18,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/Domain.f90
     ${PRJ}/SRC/Modules/Couplage.f90
     ${PRJ}/SRC/Modules/solid_fluid.f90
+    ${PRJ}/SRC/orientation.f90
+    ${PRJ}/SRC/assembly.f90
     ${PRJ}/SRC/Capteur.f90
     ${PRJ}/SRC/comm_utils.f90
     ${PRJ}/SRC/Newmark.f90
@@ -45,18 +47,18 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/define_planew_properties.f90
     ${PRJ}/SRC/double_couple.f90
     ${PRJ}/SRC/forces_int.f90
-    ${PRJ}/SRC/get_Displ_Edge2Elem.f90
-    ${PRJ}/SRC/get_Displ_Face2Elem.f90
-    ${PRJ}/SRC/get_Displ_Vertex2Elem.f90
-    ${PRJ}/SRC/get_Forces_Elem2Edge.f90
-    ${PRJ}/SRC/get_Forces_Elem2Face.f90
-    ${PRJ}/SRC/get_Forces_Elem2Vertex.f90
-    ${PRJ}/SRC/get_Mass_Elem2Edge.f90
-    ${PRJ}/SRC/get_Mass_Elem2Face.f90
-    ${PRJ}/SRC/get_Mass_Elem2Vertex.f90
-    ${PRJ}/SRC/getPMLpred_e2el.f90
-    ${PRJ}/SRC/getPMLpred_f2el.f90
-    ${PRJ}/SRC/getPMLpred_v2el.f90
+#    ${PRJ}/SRC/get_Displ_Edge2Elem.f90
+#    ${PRJ}/SRC/get_Displ_Face2Elem.f90
+#    ${PRJ}/SRC/get_Displ_Vertex2Elem.f90
+#    ${PRJ}/SRC/get_Forces_Elem2Edge.f90
+#    ${PRJ}/SRC/get_Forces_Elem2Face.f90
+#    ${PRJ}/SRC/get_Forces_Elem2Vertex.f90
+#    ${PRJ}/SRC/get_Mass_Elem2Edge.f90
+#    ${PRJ}/SRC/get_Mass_Elem2Face.f90
+#    ${PRJ}/SRC/get_Mass_Elem2Vertex.f90
+#    ${PRJ}/SRC/getPMLpred_e2el.f90
+#    ${PRJ}/SRC/getPMLpred_f2el.f90
+#    ${PRJ}/SRC/getPMLpred_v2el.f90
     ${PRJ}/SRC/global_numbering.f90
     ${PRJ}/SRC/read_input.f90
     ${PRJ}/SRC/mesh3d.f90
@@ -70,12 +72,12 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/drive_sem.f90
     ${PRJ}/SRC/ondelette.f90
 
-    ${PRJ}/SRC/get_VectProperty_Edge2Elem.f90
-    ${PRJ}/SRC/get_VectProperty_Elem2Edge.f90
-    ${PRJ}/SRC/get_VectProperty_Elem2Face.f90
-    ${PRJ}/SRC/get_VectProperty_Elem2Vertex.f90
-    ${PRJ}/SRC/get_VectProperty_Face2Elem.f90
-    ${PRJ}/SRC/get_VectProperty_Vertex2Elem.f90
+#    ${PRJ}/SRC/get_VectProperty_Edge2Elem.f90
+#    ${PRJ}/SRC/get_VectProperty_Elem2Edge.f90
+#    ${PRJ}/SRC/get_VectProperty_Elem2Face.f90
+#    ${PRJ}/SRC/get_VectProperty_Elem2Vertex.f90
+#    ${PRJ}/SRC/get_VectProperty_Face2Elem.f90
+#    ${PRJ}/SRC/get_VectProperty_Vertex2Elem.f90
 
     ${PRJ}/SRC/get_ScalarProperty_Edge2Elem.f90
     ${PRJ}/SRC/get_ScalarProperty_Elem2Edge.f90
@@ -93,14 +95,14 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/snapshots.f90
 )
 
-if(NOT USE_MKL)
+#if(NOT USE_MKL)
 set(SEM3D_SOURCES_F
     ${SEM3D_SOURCES_F}
     ${PRJ}/SRC/BLAS/dgemm.f90
     ${PRJ}/SRC/BLAS/lsame.f90
     ${PRJ}/SRC/BLAS/xerbla.f90
 )
-endif(NOT USE_MKL)
+#endif(NOT USE_MKL)
 
 set(SEM3D_SOURCES ${SEM3D_SOURCES_F}
     ${SEM_SRC_C}
@@ -112,29 +114,12 @@ set(SEM3D_SOURCES ${SEM3D_SOURCES_F}
 )
 
 
-# On veut compiler les .f90 avec le preprocesseur cpp
-if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-  set_source_files_properties(${SEM3D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-fpp")
-else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-  set_source_files_properties(${SEM3D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-x f95-cpp-input")
-endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 
-
-set(SEM_EXTRA_LIBS "")
-if(OPT_MPI)
-#set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
-# TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
-# c++ et ne link pas semx.exe
-set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
-else(OPT_MPI)
-set(SEM3D_SOURCES ${SEM3D_SOURCES}
-  ${FTM_SOURCES})
-endif(OPT_MPI)
 
 # HDF5
 set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
-set(SEM3D_SOURCES ${SEM3D_SOURCES} ${SEMCOMMON}/sem_hdf5.f90)
 message("SEMLIBS: '${SEM_EXTRA_LIBS}'")
+
 if (OPT_COUPLAGE)
 add_library(sem3d STATIC ${SEM3D_SOURCES})
 set_target_properties(sem3d PROPERTIES COMPILE_DEFINITIONS COUPLAGE)
@@ -145,7 +130,7 @@ endif (OPT_COUPLAGE)
 # les sources 2 fois (une fois avec -DCOUPLAGE, une fois sans)
 if(NOT OPT_COUPLAGE)
 add_executable(sem3d.exe  ${PRJ}/SRC/main.F90 ${SEM3D_SOURCES})
-target_link_libraries(sem3d.exe ${CEAUSER} ${SEM_EXTRA_LIBS})
+target_link_libraries(sem3d.exe ${SEM_EXTRA_LIBS})
 install(TARGETS sem3d.exe RUNTIME DESTINATION bin)
 endif(NOT OPT_COUPLAGE)
 

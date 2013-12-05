@@ -2,6 +2,7 @@
 
 module sem_c_config
     use iso_c_binding
+    use sem_c_bindings
 
     integer, parameter :: NAME_MAX=200
     ! Ce type doit correspondre au type sem_config_t du module read_input.c **a l'ordre pres**
@@ -105,11 +106,6 @@ module sem_c_config
            type(sem_config), intent(in) :: config
        end subroutine dump_config
 
-       function strlen(s) bind(c)
-           use iso_c_binding
-           type(c_ptr), intent(in), value :: s
-           integer(C_INT) :: strlen
-       end function strlen
     end interface
 
 contains

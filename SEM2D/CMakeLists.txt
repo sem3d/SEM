@@ -10,6 +10,7 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/Vertex.F90
     ${PRJ}/SRC/Sources.F90
     ${PRJ}/SRC/TimeP.F90
+    ${PRJ}/SRC/orientation.F90
     ${PRJ}/SRC/logical_input.F90
     ${PRJ}/SRC/Subdomains.F90
     ${PRJ}/SRC/Receivers.F90
@@ -27,7 +28,6 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/compute_coeff_flux.F90
     ${PRJ}/SRC/compute_GLL.F90
     ${PRJ}/SRC/Compute_external_forces.F90
-    ${PRJ}/SRC/convertirUnv.F90
     ${PRJ}/SRC/courant.F90
     ${PRJ}/SRC/define_arr.F90
     ${PRJ}/SRC/define_fault_properties.F90
@@ -43,6 +43,7 @@ set(SEM2D_SOURCES_F
 #    ${PRJ}/SRC/lister_faces_sem.f90
 #    ${PRJ}/SRC/plot_grid.F90
 #    ${PRJ}/SRC/postraitement.F90
+    ${PRJ}/SRC/snapshots.F90
     ${PRJ}/SRC/read_input.F90
     ${PRJ}/SRC/read_mesh.F90
     ${PRJ}/SRC/read_restart.F90
@@ -54,7 +55,7 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/save_trace.F90
     ${PRJ}/SRC/save_vorticity.F90
     ${PRJ}/SRC/savefield.F90
-    ${PRJ}/SRC/sem.F90
+#    ${PRJ}/SRC/sem.F90
     ${PRJ}/SRC/shape4.F90
     ${PRJ}/SRC/shape8.F90
     ${PRJ}/SRC/smoothing_exp.F90
@@ -65,26 +66,14 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/main.F90
 )
 
-# On veut compiler les .f90 avec le preprocesseur cpp
-if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-  set_source_files_properties(${SEM2D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-fpp")
-else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-  set_source_files_properties(${SEM2D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-x f95-cpp-input")
-endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-
 set(SEM2D_SOURCES ${SEM2D_SOURCES_F}
   ${SEM_SRC_C}
 )
 
-if(OPT_MPI)
-#set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
-# TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
-# c++ et ne link pas semx.exe
-set(SEM_EXTRA_LIBS ${MPI_EXTRA_LIBRARY})
-else(OPT_MPI)
-set(SEM2D_SOURCES ${SEM2D_SOURCES}
-  ${FTM_SOURCES})
-endif(OPT_MPI)
+# HDF5
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
+
+
 
 if (OPT_COUPLAGE)
 add_library(sem2d STATIC ${SEM2D_SOURCES})
@@ -96,6 +85,7 @@ endif (OPT_COUPLAGE)
 # les sources 2 fois (une fois avec -DCOUPLAGE, une fois sans)
 if(NOT OPT_COUPLAGE)
 add_executable(sem2d.exe  ${SEM2D_SOURCES})
-target_link_libraries(sem2d.exe ${CEAUSER} ${SEM_EXTRA_LIBS})
-install(TARGETS sem2d.exe RUNTIME DESTINATION lib)
+target_link_libraries(sem2d.exe ${SEM_EXTRA_LIBS})
+install(TARGETS sem2d.exe DESTINATION bin)
 endif(NOT OPT_COUPLAGE)
+
