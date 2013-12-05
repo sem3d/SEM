@@ -1,0 +1,30 @@
+Description
+===========
+
+Nprocs : 1
+
+Maillage
+--------
+
+Commande ::
+
+  mesher < mesh.input
+
+Un cube de 500x500, mailles de 50m, 5 pt de gauss par maille
+
+Source
+------
+
+pulse, forme d'onde ricker
+
+Duree simu : 5
+
+Capteurs
+--------
+
+Deplacements : A(250,250), B(200,0), C(300,0) D(400,0) E(500,0)
+
+Validation
+----------
+
+Comparaison avec signal de reference.
