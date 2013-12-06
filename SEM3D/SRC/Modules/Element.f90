@@ -8,7 +8,7 @@
 !<
 
 module selement
-
+    use deriv3d
     implicit none
 
     type :: element_pml
