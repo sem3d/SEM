@@ -131,7 +131,11 @@
                     dS_dzeta = ZERO
                     DO L = 0, ngllx-1
                         dS_dxi   = dS_dxi   + Scalp(L,J,K)*hTprimex(I,L)
+                    END DO
+                    DO L = 0, nglly-1
                         DS_deta  = dS_deta  + Scalp(I,L,K)*hprimey(L,J)
+                    END DO
+                    DO L = 0, ngllz-1
                         dS_dzeta = dS_dzeta + Scalp(I,J,L)*hprimez(L,K)
                     END DO
                     !- in the physical domain
