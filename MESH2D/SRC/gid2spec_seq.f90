@@ -538,7 +538,7 @@ contains
         integer, dimension (0:,0:), intent(in) :: Ipointer
         logical, intent(in) :: super_object_present
         integer, intent(in) :: n_nods, n_vertex, n_mat
-        integer, dimension (0:,:), intent(in) :: Build_Faces
+        integer, dimension (0:,0:), intent(in) :: Build_Faces
         integer, dimension (0:), intent(in) ::  Vertex_to_glob
         integer, dimension (0:,0:), intent(in) :: Super_Object_to_Face
         integer, dimension (0:,0:), intent(in) :: Super_Object_Vertex
