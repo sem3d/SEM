@@ -72,12 +72,6 @@ module selement
            DOUBLE PRECISION   ALPHA, BETA
            DOUBLE PRECISION   A( LDA, * ), B( LDB, * ), C( LDC, * )
        end subroutine DGEMM
-       ! Version simplifiee : TRANSA=N TRANSB=N M=LDA=LDC K=LDB, ALPHA=1,BETA=0
-       SUBROUTINE DGEMM2 (M, N, K, A, B, C)
-           INTEGER, INTENT(IN)             :: M, N, K
-           DOUBLE PRECISION, INTENT(IN)    :: A(M,K), B(K,N)
-           DOUBLE PRECISION, INTENT(INOUT) :: C(M,N)
-       END SUBROUTINE DGEMM2
     end interface
 
 contains
