@@ -43,12 +43,17 @@ source {
 };
 
 time_scheme {
+    type_time_integration = 2  # Type of time integration (1 for Newmark, 2 for RK4)
     accel_scheme = false;  # Acceleration scheme for Newmark
     veloc_scheme = true;   # Velocity scheme for Newmark
     alpha = 0.5;           # alpha (Newmark parameter)
     beta = -0.5;           # beta (Newmark parameter)
     gamma = 1;             # gamma (Newmark parameter)
     courant=0.2;
+};
+
+type_elements {
+    dg_type = 0;           # Type of DG (0 for DG-strong, 1 for DG-weak, 2 for CG)
 };
 
 amortissement {
