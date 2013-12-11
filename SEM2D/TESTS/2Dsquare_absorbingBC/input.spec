@@ -1,14 +1,14 @@
 # -*- mode: perl -*-
-run_name = "Cube_PML";
+run_name = "Square_Absorbing_BC";
 
 # duration of the run
-sim_time = 5.0;
+sim_time = 0.01;
 mesh_file = "mesh4spec"; # input mesh file
 mat_file = "material.input";
 
 snapshots {
     save_snap = true;
-    snap_interval = 0.01;
+    snap_interval = 0.00005;
     deselect all;
     select box = -100 -100  100 500 500 150;
     select box = -100  100 -100 500 150 500;
@@ -43,7 +43,7 @@ source {
 };
 
 time_scheme {
-    type_time_integration = 2  # Type of time integration (1 for Newmark, 2 for RK4)
+    type_time_integration = 2;  # Type of time integration (1 for Newmark, 2 for RK4)
     accel_scheme = false;  # Acceleration scheme for Newmark
     veloc_scheme = true;   # Velocity scheme for Newmark
     alpha = 0.5;           # alpha (Newmark parameter)

@@ -51,6 +51,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
     integer :: info_capteur
     real(kind=8) :: remaining_time
     real(kind=8), parameter :: max_time_left=900
+    real          :: dt ! A SUPPRIMER
 
 #ifdef COUPLAGE
     integer :: groupe
@@ -114,7 +115,10 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
     endif
 
     if (rg == 0) write (*,*) " Compute Courant parameter"
+    dt = Tdomain%sSubDomain(0)%Dt ! A SUPPRIMER
     call compute_Courant (Tdomain)
+    Tdomain%TimeD%dtmin = dt  ! A SUPPRIMER
+    open (23,file="capteur_source", form="formatted", status="unknown") ! A SUPPRIMER
 
     if (rg == 0) write (*,*) "Attribute PML properties"
     call PML_definition (Tdomain)
@@ -239,6 +243,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
             call Newmark (Tdomain, ntime)
         else if (Tdomain%type_timeInteg==2) then
             call Runge_Kutta4(Tdomain, ntime, Tdomain%TimeD%dtmin)
+            write(23,*) ntime, Tdomain%specel(0)%Veloc(2,2,:) ! A SUPPRIMER
         endif
 
         if (ntime==Tdomain%TimeD%NtimeMax-1) then

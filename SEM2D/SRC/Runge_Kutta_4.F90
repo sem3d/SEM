@@ -68,11 +68,11 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
           end select
           ! Calcul des fluxs / Assemblage des forces
           do nf = 0,3
-             nface = Tdomain%specel(n)%Near_Face(nf)
+             nface  = Tdomain%specel(n)%Near_Face(nf)
              if(type_DG == 2) then
                 call Assemblage(Tdomain,n,nface)
              else
-                call get_data_el2f(Tdomain%sFace(nface),n)
+                call get_data_el2f(Tdomain,n,nface)
              endif
           enddo
        enddo

@@ -31,7 +31,7 @@ module sfaces
        ! DG
        real, dimension (:), allocatable :: Normal
        real, dimension (:), allocatable :: k0,k1,Zp_p,Zp_m,Zs_p,Zs_m
-       real, dimension (:), allocatable :: Mu_p, Mu_m, Lambda_p, Lambda_m, massMat_p, massMat_m
+       real, dimension (:), allocatable :: Mu_p, Mu_m, Lambda_p, Lambda_m
        real, dimension (:,:), allocatable :: Flux, Veloc_p,Veloc_m,Strain_p,Strain_m
        real, dimension (:,:), allocatable :: r1, r2, r3  ! EigenVectors for DG Godunov
        real, dimension (:,:), allocatable :: Vect_RK

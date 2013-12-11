@@ -72,7 +72,7 @@ end subroutine Assemblage
 !!\date 18/11/2013
 !! This subroutine is used only with DG elements
 !<
-subroutine Get_data_el2f (Tdomain, n_elem, nface, w_face)
+subroutine Get_data_el2f (Tdomain, n_elem, nface)
 
   use sdomain
   implicit none
@@ -80,16 +80,22 @@ subroutine Get_data_el2f (Tdomain, n_elem, nface, w_face)
   type (domain), intent (INOUT) :: Tdomain
   integer, intent(in)   :: n_elem
   integer, intent(in)   :: nface
-  integer, intent(in)   :: w_face
 
   ! local variables
-  integer :: ngll, ngllx, ngllz,i
+  integer :: ngll, ngllx, ngllz, i, w_face
   logical :: coherency
   
   ngll  = Tdomain%sFace(nface)%ngll
   ngllx = Tdomain%specel(n_elem)%ngllx
   ngllz = Tdomain%specel(n_elem)%ngllz
   coherency = Tdomain%sFace(nface)%coherency
+
+  ! Determinates the w_face value
+  if (Tdomain%sFace(nface)%Near_Element(0)==n_elem) then
+      w_face = Tdomain%sFace(nface)%Which_Face(0)
+  else
+      w_face = Tdomain%sFace(nface)%Which_Face(1)
+  endif
 
   if (Tdomain%sFace(nface)%Near_Element(0)==n_elem) then
      if (w_face == 0 ) then

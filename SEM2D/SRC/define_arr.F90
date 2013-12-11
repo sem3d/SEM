@@ -218,18 +218,13 @@ subroutine define_arrays(Tdomain)
 
     enddo
 
-    !Sebaddition sept 2013
-    ! Calcul des coefficients pour les Fluxs Godunov
-    do nf = 0, Tdomain%n_face-1
-       if(Tdomain%sFace(nf)%type_Flux .EQ. 2) &
-         call compute_coeff_flux(Tdomain,nf)
-    enddo
 
-    ! Communication inside the processor
+    ! Communication inside the processor - Assembling Masses
 
     do nf = 0, Tdomain%n_face-1
         n_elem = Tdomain%sFace(nf)%Near_element(0)
         w_face = Tdomain%sFace(nf)%Which_face(0)
+        ! Assemblage des masses sur les Faces
         call getMass_element2face (Tdomain,n_elem,nf,w_face,.true.)
         if (Tdomain%sFace(nf)%PML ) call getDumpMass_element2face (Tdomain,n_elem,nf,w_face,.true.)
         if (Tdomain%sFace(nf)%FPML ) call getIv_element2face (Tdomain,n_elem,nf,w_face,.true.)
@@ -242,6 +237,7 @@ subroutine define_arrays(Tdomain)
         endif
     enddo
 
+    ! Assemblage des masses sur les vertexes
     do n = 0, Tdomain%n_elem -1
         ngllx = Tdomain%specel(n)%ngllx; ngllz = Tdomain%specel(n)%ngllz
         nv_aus = Tdomain%specel(n)%Near_Vertex(0)
@@ -282,7 +278,7 @@ subroutine define_arrays(Tdomain)
         endif
     enddo
 
-    ! Communications between processors
+    !################  Communications between processors  ###################
 
     ! Duplicate Vertex values
     do n = 0, Tdomain%n_communications - 1
@@ -292,7 +288,7 @@ subroutine define_arrays(Tdomain)
         enddo
     enddo
 
-
+    ! Communications for PML
     if (Tdomain%any_PML) then
         do i_proc = 0, Tdomain%n_communications - 1
             allocate (Tdomain%sWall(i_proc)%Send_data_2(0:Tdomain%sWall(i_proc)%n_points_pml-1,0:1))
@@ -312,6 +308,7 @@ subroutine define_arrays(Tdomain)
                 endif
                 i_stock = i_stock + ngll - 2
             enddo
+
             tag_send = i_send * Tdomain%MPI_var%n_proc +Tdomain%MPI_var%my_rank + 600
             tag_receive = Tdomain%MPI_var%my_rank * Tdomain%MPI_var%n_proc + i_send + 600
             if (Tdomain%sWall(i_proc)%n_points_pml > 0) then
@@ -320,7 +317,6 @@ subroutine define_arrays(Tdomain)
                 call MPI_RECV (Tdomain%sWall(i_proc)%Receive_data_2, 2*Tdomain%sWall(i_proc)%n_points_pml, &
                     MPI_DOUBLE_PRECISION, i_send, tag_receive, Tdomain%communicateur, status, ierr )
             endif
-
 
             i_stock = 0
             do nf = 0, Tdomain%sWall(i_proc)%n_pml_faces - 1
@@ -342,6 +338,7 @@ subroutine define_arrays(Tdomain)
         enddo
     endif
 
+    ! Communications for mass assembling
     do i_proc = 0, Tdomain%n_communications - 1
         allocate (Tdomain%sWall(i_proc)%Send_data_1(0:Tdomain%sWall(i_proc)%n_points-1))
         allocate (Tdomain%sWall(i_proc)%Receive_data_1(0:Tdomain%sWall(i_proc)%n_points-1))
@@ -372,7 +369,6 @@ subroutine define_arrays(Tdomain)
         call MPI_RECV (Tdomain%sWall(i_proc)%Receive_data_1, Tdomain%sWall(i_proc)%n_points, MPI_DOUBLE_PRECISION, i_send, &
             tag_receive, Tdomain%communicateur, status, ierr )
 
-
         i_stock = 0
         do nf = 0, Tdomain%sWall(i_proc)%n_faces - 1
             n_face_pointed = Tdomain%sWall(i_proc)%Face_List(nf)
@@ -397,6 +393,61 @@ subroutine define_arrays(Tdomain)
         deallocate (Tdomain%sWall(i_proc)%Receive_data_1)
     enddo
 
+    ! Exchanging datas Lambda and Mu for DG faces
+    do i_proc = 0, Tdomain%n_communications - 1
+        allocate (Tdomain%sWall(i_proc)%Send_data_2(0:Tdomain%sWall(i_proc)%n_points-1,0:1))
+        allocate (Tdomain%sWall(i_proc)%Receive_data_2(0:Tdomain%sWall(i_proc)%n_points-1,0:1))
+        i_send = Tdomain%Communication_list (i_proc)
+        i_stock = 0
+        do nf = 0, Tdomain%sWall(i_proc)%n_faces-1
+            n_face_pointed = Tdomain%sWall(i_proc)%Face_List(nf)
+            ngll = Tdomain%sFace(n_face_pointed)%ngll
+            if(Tdomain%sWall(i_proc)%Face_Coherency(nf)) then
+                Tdomain%sWall(i_proc)%Send_data_2(i_stock:i_stock+ngll-1,0) = Tdomain%sFace(n_face_pointed)%Lambda_m
+                Tdomain%sWall(i_proc)%Send_data_2(i_stock:i_stock+ngll-1,1) = Tdomain%sFace(n_face_pointed)%Mu_m
+            else
+                do j=0,ngll-1
+                    Tdomain%sWall(i_proc)%Send_data_2(i_stock+j,0)= Tdomain%sFace(n_face_pointed)%Lambda_m(ngll-1-j)
+                    Tdomain%sWall(i_proc)%Send_data_2(i_stock+j,1)= Tdomain%sFace(n_face_pointed)%Mu_m(ngll-1-j)
+                enddo
+            endif
+            i_stock = i_stock + ngll
+        enddo
+        tag_send = i_send * Tdomain%MPI_var%n_proc +Tdomain%MPI_var%my_rank + 800
+        tag_receive = Tdomain%MPI_var%my_rank * Tdomain%MPI_var%n_proc + i_send + 800
+
+        call MPI_SEND (Tdomain%sWall(i_proc)%Send_data_2, 2*Tdomain%sWall(i_proc)%n_points, MPI_DOUBLE_PRECISION, &
+            i_send, tag_send, Tdomain%communicateur, ierr )
+        call MPI_RECV (Tdomain%sWall(i_proc)%Receive_data_2,2*Tdomain%sWall(i_proc)%n_points, MPI_DOUBLE_PRECISION,&
+            i_send, tag_receive, Tdomain%communicateur, status, ierr )
+
+        i_stock = 0
+        do nf = 0, Tdomain%sWall(i_proc)%n_faces - 1
+            n_face_pointed = Tdomain%sWall(i_proc)%Face_List(nf)
+            ngll = Tdomain%sFace(n_face_pointed)%ngll
+            if (Tdomain%sWall(i_proc)%Face_Coherency(nf)) then
+                Tdomain%sFace(n_face_pointed)%Lambda_p(0:ngll-1) = Tdomain%sWall(i_proc)%Receive_data_2(i_stock:i_stock+ngll-1,0)
+                Tdomain%sFace(n_face_pointed)%Mu_p(0:ngll-1)     = Tdomain%sWall(i_proc)%Receive_data_2(i_stock:i_stock+ngll-1,1)
+            else
+                do j=0,ngll-1
+                    Tdomain%sFace(n_face_pointed)%Lambda_p(0:ngll-1-j) = Tdomain%sWall(i_proc)%Receive_data_2(i_stock+j,0)
+                    Tdomain%sFace(n_face_pointed)%Mu_p(0:ngll-1-j) = Tdomain%sWall(i_proc)%Receive_data_2(i_stock+j,1)
+                enddo
+            endif
+            i_stock = i_stock + ngll
+        enddo
+        deallocate (Tdomain%sWall(i_proc)%Send_data_2)
+        deallocate (Tdomain%sWall(i_proc)%Receive_data_2)
+    enddo
+
+
+    ! Calcul des coefficients pour les Fluxs Godunov
+    do nf = 0, Tdomain%n_face-1
+       if(Tdomain%sFace(nf)%type_Flux .EQ. 2) &
+         call compute_coeff_flux(Tdomain,nf)
+    enddo
+
+    ! Preparing and allocating vectors to be exchanged at each time-step
     do i_proc = 0, Tdomain%n_communications-1
         nv_aus = Tdomain%sWall(i_proc)%n_points
         if (Tdomain%any_PML) then
@@ -414,62 +465,67 @@ subroutine define_arrays(Tdomain)
 
     do n  = 0, Tdomain%n_elem - 1
         ngllx = Tdomain%specel(n)%ngllx;  ngllz = Tdomain%specel(n)%ngllz
-        allocate (LocMassMat(1:ngllx-2,1:ngllz-2))
-        ! Redefinition of Matrices
-        if (.not. Tdomain%specel(n)%PML ) then
-            LocMassMat(:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2)
-            LocMassmat = 1./ LocMassMat
-            deallocate (Tdomain%specel(n)%MassMat)
-            allocate (Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2) )
-            Tdomain%specel(n)%MassMat =  LocMassMat
-        else
-            if (Tdomain%specel(n)%FPML) then
-
+        if (Tdomain%specel(n)%Type_DG == 2) then
+            ! Continuous Galerkin : MassMatrices need to be resized
+            allocate (LocMassMat(1:ngllx-2,1:ngllz-2))
+            ! Redefinition of Matrices
+            if (.not. Tdomain%specel(n)%PML ) then
                 LocMassMat(:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2)
-                Tdomain%specel(n)%DumpVx (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,0)
-                Tdomain%specel(n)%DumpVx (:,:,1) = 1./ Tdomain%specel(n)%DumpVx (:,:,1)
-                Tdomain%specel(n)%DumpVx(:,:,0) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,1)
-                Tdomain%specel(n)%DumpVx (:,:,0) =    Tdomain%specel(n)%DumpVx (:,:,0) *   Tdomain%specel(n)%DumpVx (:,:,1)
-
-                Tdomain%specel(n)%DumpVz (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,2)
-                Tdomain%specel(n)%DumpVz (:,:,1) = 1./ Tdomain%specel(n)%DumpVz (:,:,1)
-                Tdomain%specel(n)%DumpVz(:,:,0) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,3)
-                Tdomain%specel(n)%DumpVz (:,:,0) =    Tdomain%specel(n)%DumpVz (:,:,0) *   Tdomain%specel(n)%DumpVz (:,:,1)
-                deallocate (Tdomain%specel(n)%MassMat) ; deallocate (Tdomain%specel(n)%DumpMass)
+                LocMassmat = 1./ LocMassMat
+                deallocate (Tdomain%specel(n)%MassMat)
                 allocate (Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2) )
                 Tdomain%specel(n)%MassMat =  LocMassMat
-                LocMassMat = Tdomain%specel(n)%Ivx(1:ngllx-2,1:ngllz-2)
-                deallocate (Tdomain%specel(n)%Ivx)
-                allocate (Tdomain%specel(n)%Ivx(1:ngllx-2,1:ngllz-2) )
-                Tdomain%specel(n)%Ivx = LocMassMat *  Tdomain%specel(n)%DumpVx (:,:,1)
-                LocMassMat = Tdomain%specel(n)%Ivz(1:ngllx-2,1:ngllz-2)
-                deallocate (Tdomain%specel(n)%Ivz)
-                allocate (Tdomain%specel(n)%Ivz(1:ngllx-2,1:ngllz-2) )
-                Tdomain%specel(n)%Ivz = LocMassMat * Tdomain%specel(n)%DumpVz (:,:,1)
-
             else
+                if (Tdomain%specel(n)%FPML) then
 
-                LocMassMat(:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2)
-                Tdomain%specel(n)%DumpVx (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,0)
-                Tdomain%specel(n)%DumpVx (:,:,1) = 1./ Tdomain%specel(n)%DumpVx (:,:,1)
-                Tdomain%specel(n)%DumpVx(:,:,0) = LocMassMat - Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,0)
-                Tdomain%specel(n)%DumpVx (:,:,0) =    Tdomain%specel(n)%DumpVx (:,:,0) *   Tdomain%specel(n)%DumpVx (:,:,1)
+                    LocMassMat(:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2)
+                    Tdomain%specel(n)%DumpVx (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,0)
+                    Tdomain%specel(n)%DumpVx (:,:,1) = 1./ Tdomain%specel(n)%DumpVx (:,:,1)
+                    Tdomain%specel(n)%DumpVx(:,:,0) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,1)
+                    Tdomain%specel(n)%DumpVx (:,:,0) = Tdomain%specel(n)%DumpVx (:,:,0) * Tdomain%specel(n)%DumpVx (:,:,1)
 
-                Tdomain%specel(n)%DumpVz (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,1)
-                Tdomain%specel(n)%DumpVz (:,:,1) = 1./ Tdomain%specel(n)%DumpVz (:,:,1)
-                Tdomain%specel(n)%DumpVz(:,:,0) = LocMassMat - Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,1)
-                Tdomain%specel(n)%DumpVz (:,:,0) =    Tdomain%specel(n)%DumpVz (:,:,0) *   Tdomain%specel(n)%DumpVz (:,:,1)
-                deallocate (Tdomain%specel(n)%MassMat) ; deallocate (Tdomain%specel(n)%DumpMass)
-                allocate (Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2) )
-                Tdomain%specel(n)%MassMat =  LocMassMat
+                    Tdomain%specel(n)%DumpVz (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,2)
+                    Tdomain%specel(n)%DumpVz (:,:,1) = 1./ Tdomain%specel(n)%DumpVz (:,:,1)
+                    Tdomain%specel(n)%DumpVz(:,:,0) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,3)
+                    Tdomain%specel(n)%DumpVz (:,:,0) =    Tdomain%specel(n)%DumpVz (:,:,0) *   Tdomain%specel(n)%DumpVz (:,:,1)
+                    deallocate (Tdomain%specel(n)%MassMat) ; deallocate (Tdomain%specel(n)%DumpMass)
+                    allocate (Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2) )
+                    Tdomain%specel(n)%MassMat =  LocMassMat
+                    LocMassMat = Tdomain%specel(n)%Ivx(1:ngllx-2,1:ngllz-2)
+                    deallocate (Tdomain%specel(n)%Ivx)
+                    allocate (Tdomain%specel(n)%Ivx(1:ngllx-2,1:ngllz-2) )
+                    Tdomain%specel(n)%Ivx = LocMassMat *  Tdomain%specel(n)%DumpVx (:,:,1)
+                    LocMassMat = Tdomain%specel(n)%Ivz(1:ngllx-2,1:ngllz-2)
+                    deallocate (Tdomain%specel(n)%Ivz)
+                    allocate (Tdomain%specel(n)%Ivz(1:ngllx-2,1:ngllz-2) )
+                    Tdomain%specel(n)%Ivz = LocMassMat * Tdomain%specel(n)%DumpVz (:,:,1)
+
+                else
+
+                    LocMassMat(:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2)
+                    Tdomain%specel(n)%DumpVx (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,0)
+                    Tdomain%specel(n)%DumpVx (:,:,1) = 1./ Tdomain%specel(n)%DumpVx (:,:,1)
+                    Tdomain%specel(n)%DumpVx(:,:,0) = LocMassMat - Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,0)
+                    Tdomain%specel(n)%DumpVx (:,:,0) =    Tdomain%specel(n)%DumpVx (:,:,0) *   Tdomain%specel(n)%DumpVx (:,:,1)
+
+                    Tdomain%specel(n)%DumpVz (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,1)
+                    Tdomain%specel(n)%DumpVz (:,:,1) = 1./ Tdomain%specel(n)%DumpVz (:,:,1)
+                    Tdomain%specel(n)%DumpVz(:,:,0) = LocMassMat - Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,1)
+                    Tdomain%specel(n)%DumpVz (:,:,0) =    Tdomain%specel(n)%DumpVz (:,:,0) *   Tdomain%specel(n)%DumpVz (:,:,1)
+                    deallocate (Tdomain%specel(n)%MassMat) ; deallocate (Tdomain%specel(n)%DumpMass)
+                    allocate (Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2) )
+                    Tdomain%specel(n)%MassMat =  LocMassMat
+                endif
             endif
+            deallocate (LocMassMat)
+            ! deallocate (Tdomain%specel(n)%Lamda)
+            ! deallocate (Tdomain%specel(n)%Mu)
+            !ac a cause des sorties eventuelles des capteurs on garde Tdomain%specel(n)%InvGrad
+            !ac if (.not. Tdomain%logicD%save_deformation)  deallocate (Tdomain%specel(n)%InvGrad)
+        else
+            ! Discontinuous Galerkin Case : Mass Mat do NOT need to be resized
+            Tdomain%specel(n)%MassMat = 1. / Tdomain%specel(n)%MassMat
         endif
-        deallocate (LocMassMat)
-        ! deallocate (Tdomain%specel(n)%Lamda)
-        ! deallocate (Tdomain%specel(n)%Mu)
-        !ac a cause des sorties eventuelles des capteurs on garde Tdomain%specel(n)%InvGrad
-        !ac if (.not. Tdomain%logicD%save_deformation)  deallocate (Tdomain%specel(n)%InvGrad)
-
     enddo
 
     do nf  = 0, Tdomain%n_face - 1
