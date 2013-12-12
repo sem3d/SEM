@@ -48,7 +48,7 @@ program create_model_2D
             fact_deep = 0.0
             p_ngllx = 0
             p_ngllz = 0
-            p_filter = 0.0
+            p_filter = .false.
             npow=0
             apow=0.0
             omegac=0.0

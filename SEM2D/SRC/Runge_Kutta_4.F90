@@ -44,9 +44,8 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
        coeffs = Coeffs_LSERK(i)
        timelocal = Tdomain%TimeD%rtime + dt * coeffs(3)
 
-       !call boundary_condition(Tdomain, type_BC, timelocal)
-
        do n = 0, Tdomain%n_elem-1
+          print*, "Pour element : ", n, " massmat : ", Tdomain%specel(n)%MassMat(:,:)
           type_DG = Tdomain%specel(n)%Type_DG
           mat = Tdomain%specel(n)%mat_index
           select case (type_DG)

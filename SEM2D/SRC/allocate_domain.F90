@@ -40,6 +40,8 @@ subroutine allocate_domain (Tdomain)
          allocate (Tdomain%specel(n)%V0(  1:ngllx-2, 1:ngllz-2, 0:1 ) )
      else
          allocate (Tdomain%specel(n)%Veloc (0:ngllx-1,0:ngllz-1, 0:1))
+         allocate (Tdomain%specel(n)%Accel(0:ngllx-1,0:ngllz-1,0:1))
+         allocate (Tdomain%specel(n)%V0(  0:ngllx-1, 0:ngllz-1, 0:1 ) )
      endif
 
      Tdomain%specel(n)%Veloc = 0
