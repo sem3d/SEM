@@ -45,7 +45,6 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     integer :: interrupt, ierr
     logical :: sortie_capteur
     integer :: group, subgroup
-    integer, parameter :: ngroup=32
 
 
     Tdomain%communicateur = communicateur
@@ -61,14 +60,6 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     call MPI_Comm_Rank (Tdomain%communicateur, rg, code)
     call MPI_Comm_Size (Tdomain%communicateur, nb_procs,  code)
 #endif
-
-    Tdomain%ngroup = ngroup
-    group = rg/ngroup
-    subgroup = mod(rg,ngroup)
-    ! Create subdomains communicators
-    call MPI_Comm_split(MPI_COMM_WORLD, group, subgroup, Tdomain%comm_output, ierr)
-    call MPI_Comm_Size (Tdomain%comm_output, Tdomain%nb_output_procs,  code)
-    call MPI_Comm_Rank (Tdomain%comm_output, Tdomain%output_rank, code)
 
     if (rg==0) then
         write(*,*)
@@ -89,7 +80,14 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     ! ##############  Begin of the program  #######################
 
     call read_input (Tdomain, rg, code)
-    call MPI_BARRIER(Tdomain%communicateur, code)
+
+    group = rg/Tdomain%ngroup
+    subgroup = mod(rg,Tdomain%ngroup)
+    ! Create subdomains communicators
+    call MPI_Comm_split(MPI_COMM_WORLD, group, subgroup, Tdomain%comm_output, ierr)
+    call MPI_Comm_Size (Tdomain%comm_output, Tdomain%nb_output_procs,  code)
+    call MPI_Comm_Rank (Tdomain%comm_output, Tdomain%output_rank, code)
+
 
     if (Tdomain%logicD%super_object_local_present) then
         if (Tdomain%super_object_type == "P") then
