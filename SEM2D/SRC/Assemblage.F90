@@ -67,18 +67,18 @@ end subroutine Assemblage
 
 !>
 !!\brief Subroutine that shares the data (velocities and strains) from an element
-!! "n_elem" to its face "nface" taking into account the problems of coherency.
+!! "nelem" to its face "nface" taking into account the problems of coherency.
 !!\version 1.0
 !!\date 18/11/2013
 !! This subroutine is used only with DG elements
 !<
-subroutine Get_data_el2f (Tdomain, n_elem, nface)
+subroutine Get_data_el2f (Tdomain, nelem, nface)
 
   use sdomain
   implicit none
   
   type (domain), intent (INOUT) :: Tdomain
-  integer, intent(in)   :: n_elem
+  integer, intent(in)   :: nelem
   integer, intent(in)   :: nface
 
   ! local variables
@@ -86,69 +86,69 @@ subroutine Get_data_el2f (Tdomain, n_elem, nface)
   logical :: coherency
   
   ngll  = Tdomain%sFace(nface)%ngll
-  ngllx = Tdomain%specel(n_elem)%ngllx
-  ngllz = Tdomain%specel(n_elem)%ngllz
+  ngllx = Tdomain%specel(nelem)%ngllx
+  ngllz = Tdomain%specel(nelem)%ngllz
   coherency = Tdomain%sFace(nface)%coherency
 
   ! Determinates the w_face value
-  if (Tdomain%sFace(nface)%Near_Element(0)==n_elem) then
+  if (Tdomain%sFace(nface)%Near_Element(0)==nelem) then
       w_face = Tdomain%sFace(nface)%Which_Face(0)
   else
       w_face = Tdomain%sFace(nface)%Which_Face(1)
   endif
 
-  if (Tdomain%sFace(nface)%Near_Element(0)==n_elem) then
+  if (Tdomain%sFace(nface)%Near_Element(0)==nelem) then
      if (w_face == 0 ) then
-        Tdomain%sFace(nface)%Veloc_m  = Tdomain%specel(n_elem)%Veloc (0:ngll-1,0,0:1)
-        Tdomain%sFace(nface)%Strain_m = Tdomain%specel(n_elem)%Strain(0:ngll-1,0,0:2)
+        Tdomain%sFace(nface)%Veloc_m  = Tdomain%specel(nelem)%Veloc (0:ngll-1,0,0:1)
+        Tdomain%sFace(nface)%Strain_m = Tdomain%specel(nelem)%Strain(0:ngll-1,0,0:2)
      else if (w_face == 1 ) then
-        Tdomain%sFace(nface)%Veloc_m  = Tdomain%specel(n_elem)%Veloc (ngllx-1,0:ngll-1,0:1)
-        Tdomain%sFace(nface)%Strain_m = Tdomain%specel(n_elem)%Strain(ngllx-1,0:ngll-1,0:2)
+        Tdomain%sFace(nface)%Veloc_m  = Tdomain%specel(nelem)%Veloc (ngllx-1,0:ngll-1,0:1)
+        Tdomain%sFace(nface)%Strain_m = Tdomain%specel(nelem)%Strain(ngllx-1,0:ngll-1,0:2)
      else if (w_face == 2 ) then
-        Tdomain%sFace(nface)%Veloc_m  = Tdomain%specel(n_elem)%Veloc (0:ngll-1,ngllz-1,0:1)
-        Tdomain%sFace(nface)%Strain_m = Tdomain%specel(n_elem)%Strain(0:ngll-1,ngllz-1,0:2)
+        Tdomain%sFace(nface)%Veloc_m  = Tdomain%specel(nelem)%Veloc (0:ngll-1,ngllz-1,0:1)
+        Tdomain%sFace(nface)%Strain_m = Tdomain%specel(nelem)%Strain(0:ngll-1,ngllz-1,0:2)
      else
-        Tdomain%sFace(nface)%Veloc_m  = Tdomain%specel(n_elem)%Veloc (0,0:ngll-1,0:1)
-        Tdomain%sFace(nface)%Strain_m = Tdomain%specel(n_elem)%Strain(0,0:ngll-1,0:2)
+        Tdomain%sFace(nface)%Veloc_m  = Tdomain%specel(nelem)%Veloc (0,0:ngll-1,0:1)
+        Tdomain%sFace(nface)%Strain_m = Tdomain%specel(nelem)%Strain(0,0:ngll-1,0:2)
      endif
   else if (coherency) then
      if (w_face == 0 ) then
-        Tdomain%sFace(nface)%Veloc_p  = Tdomain%specel(n_elem)%Veloc (0:ngll-1,0,0:1)
-        Tdomain%sFace(nface)%Strain_p = Tdomain%specel(n_elem)%Strain(0:ngll-1,0,0:2)
+        Tdomain%sFace(nface)%Veloc_p  = Tdomain%specel(nelem)%Veloc (0:ngll-1,0,0:1)
+        Tdomain%sFace(nface)%Strain_p = Tdomain%specel(nelem)%Strain(0:ngll-1,0,0:2)
      else if (w_face == 1 ) then
-        Tdomain%sFace(nface)%Veloc_p  = Tdomain%specel(n_elem)%Veloc (ngllx-1,0:ngll-1,0:1)
-        Tdomain%sFace(nface)%Strain_p = Tdomain%specel(n_elem)%Strain(ngllx-1,0:ngll-1,0:2)
+        Tdomain%sFace(nface)%Veloc_p  = Tdomain%specel(nelem)%Veloc (ngllx-1,0:ngll-1,0:1)
+        Tdomain%sFace(nface)%Strain_p = Tdomain%specel(nelem)%Strain(ngllx-1,0:ngll-1,0:2)
      else if (w_face == 2 ) then
-        Tdomain%sFace(nface)%Veloc_p  = Tdomain%specel(n_elem)%Veloc (0:ngll-1,ngllz-1,0:1)
-        Tdomain%sFace(nface)%Strain_p = Tdomain%specel(n_elem)%Strain(0:ngll-1,ngllz-1,0:2)
+        Tdomain%sFace(nface)%Veloc_p  = Tdomain%specel(nelem)%Veloc (0:ngll-1,ngllz-1,0:1)
+        Tdomain%sFace(nface)%Strain_p = Tdomain%specel(nelem)%Strain(0:ngll-1,ngllz-1,0:2)
      else
-        Tdomain%sFace(nface)%Veloc_p  = Tdomain%specel(n_elem)%Veloc (0,0:ngll-1,0:1)
-        Tdomain%sFace(nface)%Strain_p = Tdomain%specel(n_elem)%Strain(0,0:ngll-1,0:2)
+        Tdomain%sFace(nface)%Veloc_p  = Tdomain%specel(nelem)%Veloc (0,0:ngll-1,0:1)
+        Tdomain%sFace(nface)%Strain_p = Tdomain%specel(nelem)%Strain(0,0:ngll-1,0:2)
      end if
   else
      if (w_face == 0 ) then
         do i=0,ngll-1
-           Tdomain%sFace(nface)%Veloc_p(i,0:1)  = Tdomain%specel(n_elem)%Veloc (ngll-1-i,0,0:1)
-           Tdomain%sFace(nface)%Strain_p(i,0:2) = Tdomain%specel(n_elem)%Strain(ngll-1-i,0,0:2)
+           Tdomain%sFace(nface)%Veloc_p(i,0:1)  = Tdomain%specel(nelem)%Veloc (ngll-1-i,0,0:1)
+           Tdomain%sFace(nface)%Strain_p(i,0:2) = Tdomain%specel(nelem)%Strain(ngll-1-i,0,0:2)
         end do
      else if (w_face == 1 ) then
-        do i=0,ngll-1 
-           Tdomain%sFace(nface)%Veloc_p(i,0:1)  = Tdomain%specel(n_elem)%Veloc (ngllx-1,ngll-1-i,0:1)
-           Tdomain%sFace(nface)%Strain_p(i,0:2) = Tdomain%specel(n_elem)%Strain(ngllx-1,ngll-1-i,0:2)
+        do i=0,ngll-1
+           Tdomain%sFace(nface)%Veloc_p(i,0:1)  = Tdomain%specel(nelem)%Veloc (ngllx-1,ngll-1-i,0:1)
+           Tdomain%sFace(nface)%Strain_p(i,0:2) = Tdomain%specel(nelem)%Strain(ngllx-1,ngll-1-i,0:2)
         end do
      else if (w_face == 2 ) then
         do i=0,ngll-1
-           Tdomain%sFace(nface)%Veloc_p(i,0:1)  = Tdomain%specel(n_elem)%Veloc (ngll-1-i,ngllz-1,0:1)
-           Tdomain%sFace(nface)%Strain_p(i,0:2) = Tdomain%specel(n_elem)%Strain(ngll-1-i,ngllz-1,0:2)
+           Tdomain%sFace(nface)%Veloc_p(i,0:1)  = Tdomain%specel(nelem)%Veloc (ngll-1-i,ngllz-1,0:1)
+           Tdomain%sFace(nface)%Strain_p(i,0:2) = Tdomain%specel(nelem)%Strain(ngll-1-i,ngllz-1,0:2)
         end do
      else
         do i=0,ngll-1
-           Tdomain%sFace(nface)%Veloc_p(i,0:1)  = Tdomain%specel(n_elem)%Veloc (0,ngll-1-i,0:1)
-           Tdomain%sFace(nface)%Strain_p(i,0:2) = Tdomain%specel(n_elem)%Strain(0,ngll-1-i,0:2)
+           Tdomain%sFace(nface)%Veloc_p(i,0:1)  = Tdomain%specel(nelem)%Veloc (0,ngll-1-i,0:1)
+           Tdomain%sFace(nface)%Strain_p(i,0:2) = Tdomain%specel(nelem)%Strain(0,ngll-1-i,0:2)
         end do
      endif
   end if
-  return  
+  return
 
 
 end subroutine Get_data_el2f
@@ -156,19 +156,19 @@ end subroutine Get_data_el2f
 
 !>
 !!\brief Subroutine that sent the fluxes computed on a face "nface" to the neighboring
-!! element "n_elem" taking into account the problems of coherency and weighting with the
+!! element "nelem" taking into account the problems of coherency and weighting with the
 !! right wheight for approximating the integral.
 !!\version 1.0
 !!\date 20/11/2013
 !! This subroutine is used only with DG elements
 !<
-subroutine Get_flux_f2el (Tdomain, n_elem, nface, w_face)
+subroutine Get_flux_f2el (Tdomain, nelem, nface, w_face)
 
   use sdomain
   implicit none
   
   type (domain), intent (INOUT) :: Tdomain
-  integer, intent(in)   :: n_elem
+  integer, intent(in)   :: nelem
   integer, intent(in)   :: nface
   integer, intent(in)   :: w_face
 
@@ -177,46 +177,46 @@ subroutine Get_flux_f2el (Tdomain, n_elem, nface, w_face)
   logical :: coherency
 
   ngll  = Tdomain%sFace(nface)%ngll
-  ngllx = Tdomain%specel(n_elem)%ngllx
-  ngllz = Tdomain%specel(n_elem)%ngllz
+  ngllx = Tdomain%specel(nelem)%ngllx
+  ngllz = Tdomain%specel(nelem)%ngllz
   coherency = Tdomain%sFace(nface)%coherency
 
   if (coherency) then
      if (w_face == 0 ) then
         do i=0,ngll-1 
-           Tdomain%specel(n_elem)%Forces(i,0,0:4) = Tdomain%sFace(nface)%Flux(i,0:4) &
-                                                * Tdomain%specel(n_elem)%Coeff_Integr_Faces(0,i)
+           Tdomain%specel(nelem)%Forces(i,0,0:4) = Tdomain%sFace(nface)%Flux(i,0:4) &
+                                                * Tdomain%specel(nelem)%Coeff_Integr_Faces(0,i)
         enddo
      else if (w_face == 1 ) then
-        Tdomain%specel(n_elem)%Forces(ngllx-1,i,0:4) = Tdomain%sFace(nface)%Flux(i,0:4) &
-                                                * Tdomain%specel(n_elem)%Coeff_Integr_Faces(1,i)
+        Tdomain%specel(nelem)%Forces(ngllx-1,i,0:4) = Tdomain%sFace(nface)%Flux(i,0:4) &
+                                                * Tdomain%specel(nelem)%Coeff_Integr_Faces(1,i)
      else if (w_face == 2 ) then
-        Tdomain%specel(n_elem)%Forces(i,ngllz-1,0:4) = Tdomain%sFace(nface)%Flux(i,0:4) &
-                                                * Tdomain%specel(n_elem)%Coeff_Integr_Faces(2,i)
+        Tdomain%specel(nelem)%Forces(i,ngllz-1,0:4) = Tdomain%sFace(nface)%Flux(i,0:4) &
+                                                * Tdomain%specel(nelem)%Coeff_Integr_Faces(2,i)
      else
-        Tdomain%specel(n_elem)%Forces(0,i,0:4) = Tdomain%sFace(nface)%Flux(i,0:4) &
-                                                * Tdomain%specel(n_elem)%Coeff_Integr_Faces(3,i)
+        Tdomain%specel(nelem)%Forces(0,i,0:4) = Tdomain%sFace(nface)%Flux(i,0:4) &
+                                                * Tdomain%specel(nelem)%Coeff_Integr_Faces(3,i)
      endif
   else 
      if (w_face == 0 ) then
         do i=0,ngll-1 
-           Tdomain%specel(n_elem)%Forces(i,0,0:4) = Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) &
-                                                * Tdomain%specel(n_elem)%Coeff_Integr_Faces(0,ngll-1-i)
+           Tdomain%specel(nelem)%Forces(i,0,0:4) = Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) &
+                                                * Tdomain%specel(nelem)%Coeff_Integr_Faces(0,ngll-1-i)
         enddo
      else if (w_face == 1 ) then
         do i=0,ngll-1 
-           Tdomain%specel(n_elem)%Forces(ngllx-1,i,0:4) = Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) &
-                                                * Tdomain%specel(n_elem)%Coeff_Integr_Faces(1,ngll-1-i)
+           Tdomain%specel(nelem)%Forces(ngllx-1,i,0:4) = Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) &
+                                                * Tdomain%specel(nelem)%Coeff_Integr_Faces(1,ngll-1-i)
         enddo
      else if (w_face == 2 ) then
         do i=0,ngll-1 
-           Tdomain%specel(n_elem)%Forces(i,ngllz-1,0:4) = Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) &
-                                                * Tdomain%specel(n_elem)%Coeff_Integr_Faces(2,ngll-1-i)
+           Tdomain%specel(nelem)%Forces(i,ngllz-1,0:4) = Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) &
+                                                * Tdomain%specel(nelem)%Coeff_Integr_Faces(2,ngll-1-i)
         enddo
      else
         do i=0,ngll-1 
-           Tdomain%specel(n_elem)%Forces(0,i,0:4) = Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) &
-                                                * Tdomain%specel(n_elem)%Coeff_Integr_Faces(3,ngll-1-i)
+           Tdomain%specel(nelem)%Forces(0,i,0:4) = Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) &
+                                                * Tdomain%specel(nelem)%Coeff_Integr_Faces(3,ngll-1-i)
         enddo
      endif
   endif

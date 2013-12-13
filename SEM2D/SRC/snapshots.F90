@@ -192,11 +192,11 @@ contains
         integer(HID_T), intent(in) :: fid
         integer, dimension(:), intent(in), allocatable :: irenum
         !
-        integer(HID_T) :: elem_id, mat_id, ngll_id, globnum_id
+        integer(HID_T) :: elem_id, mat_id, ngll_id, globnum_id, elem_num_id
         integer :: ngllx, ngllz
         integer(HSIZE_T), dimension(2) :: dims
         integer, dimension(:,:), allocatable :: data
-        integer, dimension(:), allocatable :: mat, iglobnum
+        integer, dimension(:), allocatable :: mat, elem_num, iglobnum
         integer, dimension(2,0:Tdomain%n_elem-1) :: ngll
         integer :: count, ig, nglobnum
         integer :: i, j, k, n, nb_elem
@@ -227,9 +227,11 @@ contains
         Tdomain%n_quad = count
         allocate( data(1:4,0:count-1))
         allocate( mat(0:count-1))
+        allocate( elem_num(0:count-1))
 
         call create_dset_2d(fid, "Elements", H5T_STD_I32LE, 4, count, elem_id)
         call create_dset(fid, "Material", H5T_STD_I32LE, count, mat_id)
+        call create_dset(fid, "ElemID", H5T_STD_I32LE, count, elem_num_id)
         call create_dset(fid, "Iglobnum", H5T_STD_I32LE, nglobnum, globnum_id)
 
         allocate (iglobnum(nglobnum))
@@ -248,6 +250,7 @@ contains
                     data(3,count) = irenum(Tdomain%specel(n)%Iglobnum(i+1,k+1))
                     data(4,count) = irenum(Tdomain%specel(n)%Iglobnum(i+0,k+1))
                     mat(count) = Tdomain%specel(n)%mat_index
+                    elem_num(count) = n
                     count=count+1
                 end do
             end do
@@ -269,7 +272,10 @@ contains
         dims(2)=1
         call h5dwrite_f(mat_id, H5T_NATIVE_INTEGER, mat, dims, hdferr)
         call h5dclose_f(mat_id, hdferr)
+        call h5dwrite_f(elem_num_id, H5T_NATIVE_INTEGER, elem_num, dims, hdferr)
+        call h5dclose_f(elem_num_id, hdferr)
         deallocate(data)
+        !deallocate(elem_num)
     end subroutine write_elem_connectivity
 
     subroutine save_field_h5(Tdomain, rg, isort)
@@ -407,6 +413,8 @@ contains
 
         write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Mass" Format="HDF" Datatype="Int"  Dimensions="',nn, &
             '">geometry',rg,'.h5:/Mass</DataItem>'
+        write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="ID" Format="HDF" Datatype="Int"  Dimensions="',ne, &
+            '">geometry',rg,'.h5:/ElemID</DataItem>'
         write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Jac" Format="HDF" Datatype="Int"  Dimensions="',nn, &
             '">geometry',rg,'.h5:/Jac</DataItem>'
         time = 0
@@ -447,6 +455,10 @@ contains
                 ']/DataItem[@Name="Mass"]</DataItem>'
 !            write(61,"(a,I8,a,I4.4,a)") '<DataItem Format="HDF" Datatype="Int"  Dimensions="',nn, &
 !                '">geometry',rg,'.h5:/Mass</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            write(61,"(a,I4.4,a)") '<Attribute Name="ID" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+            write(61,"(a,I4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[',rg+1, &
+                ']/DataItem[@Name="ID"]</DataItem>'
             write(61,"(a)") '</Attribute>'
             write(61,"(a,I4.4,a)") '<Attribute Name="Jac" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
             write(61,"(a,I4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[',rg+1, &

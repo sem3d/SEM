@@ -20,7 +20,7 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
     real,    intent(in)   :: dt
 
     ! local variables
-    integer :: ns, i, j, n, np, ngllx, ngllz, mat, nelem, nf, w_face, nv_aus, nf_aus, nv
+    integer :: ns, i, j, n, np, ngllx, ngllz, mat, nelem, nf
     integer :: n_face_pointed, tag_send, tag_receive, i_send, i_stock, ngll, ierr, i_proc
     integer, dimension (MPI_STATUS_SIZE) :: status
     integer               :: nface,  type_DG
@@ -34,8 +34,8 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
        if(Tdomain%specel(n)%Type_DG==2) then
           Tdomain%specel(n)%Vect_RK = Tdomain%specel(n)%Veloc
        else
-          Tdomain%specel(n)%Vect_RK(:,:,0:1) = Tdomain%specel(n)%Veloc
-          Tdomain%specel(n)%Vect_RK(:,:,2:4) = Tdomain%specel(n)%Strain
+          Tdomain%specel(n)%Vect_RK(:,:,0:2) = Tdomain%specel(n)%Strain
+          Tdomain%specel(n)%Vect_RK(:,:,3:4) = Tdomain%specel(n)%Veloc
        endif
     enddo
 
@@ -45,7 +45,6 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
        timelocal = Tdomain%TimeD%rtime + dt * coeffs(3)
 
        do n = 0, Tdomain%n_elem-1
-          print*, "Pour element : ", n, " massmat : ", Tdomain%specel(n)%MassMat(:,:)
           type_DG = Tdomain%specel(n)%Type_DG
           mat = Tdomain%specel(n)%mat_index
           select case (type_DG)

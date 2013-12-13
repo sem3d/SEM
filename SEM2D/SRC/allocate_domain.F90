@@ -33,15 +33,16 @@ subroutine allocate_domain (Tdomain)
      allocate (Tdomain%specel(n)%Density(0:ngllx-1,0:ngllz-1))
      allocate (Tdomain%specel(n)%Lambda(0:ngllx-1,0:ngllz-1))
      allocate (Tdomain%specel(n)%Mu(0:ngllx-1,0:ngllz-1))
-     allocate (Tdomain%specel(n)%Forces(  0:ngllx-1, 0:ngllz-1, 0:1 ) )
      if (Tdomain%specel(n)%type_DG==2) then
          allocate (Tdomain%specel(n)%Veloc (1:ngllx-2, 1:ngllz-2, 0:1))
          allocate (Tdomain%specel(n)%Accel(1:ngllx-2,1:ngllz-2,0:1))
-         allocate (Tdomain%specel(n)%V0(  1:ngllx-2, 1:ngllz-2, 0:1 ) )
+         allocate (Tdomain%specel(n)%V0(1:ngllx-2,1:ngllz-2, 0:1))
+         allocate (Tdomain%specel(n)%Forces(0:ngllx-1,0:ngllz-1,0:1))
      else
          allocate (Tdomain%specel(n)%Veloc (0:ngllx-1,0:ngllz-1, 0:1))
          allocate (Tdomain%specel(n)%Accel(0:ngllx-1,0:ngllz-1,0:1))
          allocate (Tdomain%specel(n)%V0(  0:ngllx-1, 0:ngllz-1, 0:1 ) )
+         allocate (Tdomain%specel(n)%Forces(0:ngllx-1,0:ngllz-1,0:4))
      endif
 
      Tdomain%specel(n)%Veloc = 0

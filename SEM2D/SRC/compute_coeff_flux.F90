@@ -8,7 +8,7 @@
 !<
 
 !>
-!! \brief Assure le calcul des coefficients pour les Flux Godunov associées à chaque face.
+!! \brief Assure le calcul des coefficients pour les Flux Godunov associes a chaque face.
 !!
 !! \param type (Domain), intent (INOUT) Tdomain
 !! \param integer, intent (IN) n_face
@@ -142,3 +142,89 @@ end subroutine  compute_coeff_flux
 !! show-trailing-whitespace: t
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+
+
+!>
+!! \brief get_MuLambda_el2f sends the Mu and Lambda coefficients from the elements to the faces
+!!  Used only for Godunov-type fluxes
+!! \param type (Domain), intent (INOUT) Tdomain
+!! \param integer, intent (IN) nelem
+!! \param integer, intent (IN) nface
+!<
+subroutine get_MuLambda_el2f (Tdomain, nelem, nface)
+  use sdomain
+  implicit none
+  type (Domain), intent (INOUT) :: Tdomain
+  integer, intent (IN) :: nelem
+  integer, intent (IN) :: nface
+
+  ! local variables
+  integer ::  ngll, ngllx, ngllz, w_face, i
+  logical :: coherency
+
+  ngll  = Tdomain%sFace(nface)%ngll
+  ngllx = Tdomain%specel(nelem)%ngllx
+  ngllz = Tdomain%specel(nelem)%ngllz
+  coherency = Tdomain%sFace(nface)%coherency
+
+  ! Determinates the w_face value
+  if (Tdomain%sFace(nface)%Near_Element(0)==nelem) then
+      w_face = Tdomain%sFace(nface)%Which_Face(0)
+  else
+      w_face = Tdomain%sFace(nface)%Which_Face(1)
+  endif
+
+  if (Tdomain%sFace(nface)%Near_Element(0)==nelem) then
+     if (w_face == 0 ) then
+        Tdomain%sFace(nface)%Mu_m  = Tdomain%specel(nelem)%Mu (0:ngll-1,0)
+        Tdomain%sFace(nface)%Lambda_m = Tdomain%specel(nelem)%Lambda(0:ngll-1,0)
+     else if (w_face == 1 ) then
+        Tdomain%sFace(nface)%Mu_m  = Tdomain%specel(nelem)%Mu (ngllx-1,0:ngll-1)
+        Tdomain%sFace(nface)%Lambda_m = Tdomain%specel(nelem)%Lambda(ngllx-1,0:ngll-1)
+     else if (w_face == 2 ) then
+        Tdomain%sFace(nface)%Mu_m  = Tdomain%specel(nelem)%Mu (0:ngll-1,ngllz-1)
+        Tdomain%sFace(nface)%Lambda_m = Tdomain%specel(nelem)%Lambda(0:ngll-1,ngllz-1)
+     else
+        Tdomain%sFace(nface)%Mu_m  = Tdomain%specel(nelem)%Mu (0,0:ngll-1)
+        Tdomain%sFace(nface)%Lambda_m = Tdomain%specel(nelem)%Lambda(0,0:ngll-1)
+     endif
+  else if (coherency) then
+     if (w_face == 0 ) then
+        Tdomain%sFace(nface)%Mu_p  = Tdomain%specel(nelem)%Mu (0:ngll-1,0)
+        Tdomain%sFace(nface)%Lambda_p = Tdomain%specel(nelem)%Lambda(0:ngll-1,0)
+     else if (w_face == 1 ) then
+        Tdomain%sFace(nface)%Mu_p  = Tdomain%specel(nelem)%Mu (ngllx-1,0:ngll-1)
+        Tdomain%sFace(nface)%Lambda_p = Tdomain%specel(nelem)%Lambda(ngllx-1,0:ngll-1)
+     else if (w_face == 2 ) then
+        Tdomain%sFace(nface)%Mu_p  = Tdomain%specel(nelem)%Mu (0:ngll-1,ngllz-1)
+        Tdomain%sFace(nface)%Lambda_p = Tdomain%specel(nelem)%Lambda(0:ngll-1,ngllz-1)
+     else
+        Tdomain%sFace(nface)%Mu_p  = Tdomain%specel(nelem)%Mu (0,0:ngll-1)
+        Tdomain%sFace(nface)%Lambda_p = Tdomain%specel(nelem)%Lambda(0,0:ngll-1)
+     end if
+  else
+     if (w_face == 0 ) then
+        do i=0,ngll-1
+           Tdomain%sFace(nface)%Mu_p(i)  = Tdomain%specel(nelem)%Mu (ngll-1-i,0)
+           Tdomain%sFace(nface)%Lambda_p(i) = Tdomain%specel(nelem)%Lambda(ngll-1-i,0)
+        end do
+     else if (w_face == 1 ) then
+        do i=0,ngll-1
+           Tdomain%sFace(nface)%Mu_p(i)  = Tdomain%specel(nelem)%Mu (ngllx-1,ngll-1-i)
+           Tdomain%sFace(nface)%Lambda_p(i) = Tdomain%specel(nelem)%Lambda(ngllx-1,ngll-1-i)
+        end do
+     else if (w_face == 2 ) then
+        do i=0,ngll-1
+           Tdomain%sFace(nface)%Mu_p(i)  = Tdomain%specel(nelem)%Mu (ngll-1-i,ngllz-1)
+           Tdomain%sFace(nface)%Lambda_p(i) = Tdomain%specel(nelem)%Lambda(ngll-1-i,ngllz-1)
+        end do
+     else
+        do i=0,ngll-1
+           Tdomain%sFace(nface)%Mu_p(i)  = Tdomain%specel(nelem)%Mu (0,ngll-1-i)
+           Tdomain%sFace(nface)%Lambda_p(i) = Tdomain%specel(nelem)%Lambda(0,ngll-1-i)
+        end do
+     endif
+  end if
+  return
+
+end subroutine get_MuLambda_el2f
