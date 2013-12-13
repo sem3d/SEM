@@ -56,7 +56,7 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/shape8.F90
     ${PRJ}/SRC/smoothing_exp.F90
     ${PRJ}/SRC/source_pos.F90
-    ${PRJ}/SRC/unv.F90
+#    ${PRJ}/SRC/unv.F90
     ${PRJ}/SRC/verify_in_quad.F90
     ${PRJ}/SRC/wall_transfer.F90
     ${PRJ}/SRC/main.F90

@@ -199,7 +199,7 @@ contains
         integer, dimension(:), allocatable :: mat, iglobnum
         integer, dimension(2,0:Tdomain%n_elem-1) :: ngll
         integer :: count, ig, nglobnum
-        integer :: i, j, k, n, nb_elem
+        integer :: i, k, n, nb_elem
         integer :: hdferr
 
         ! First we count the number of hexaedrons
