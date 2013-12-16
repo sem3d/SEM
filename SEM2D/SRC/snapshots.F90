@@ -232,6 +232,7 @@ contains
         call create_dset_2d(fid, "Elements", H5T_STD_I32LE, 4, count, elem_id)
         call create_dset(fid, "Material", H5T_STD_I32LE, count, mat_id)
         call create_dset(fid, "ElemID", H5T_STD_I32LE, count, elem_num_id)
+        !call create_dset(fid, "ElemID", H5T_STD_I32LE, Tdomain%n_elem, elem_num_id)
         call create_dset(fid, "Iglobnum", H5T_STD_I32LE, nglobnum, globnum_id)
 
         allocate (iglobnum(nglobnum))
@@ -268,8 +269,8 @@ contains
         call h5dclose_f(globnum_id, hdferr)
         call h5dwrite_f(elem_id, H5T_NATIVE_INTEGER, data, dims, hdferr)
         call h5dclose_f(elem_id, hdferr)
-        dims(1)=count
-        dims(2)=1
+        dims(1) = count
+        dims(2) = 0
         call h5dwrite_f(mat_id, H5T_NATIVE_INTEGER, mat, dims, hdferr)
         call h5dclose_f(mat_id, hdferr)
         call h5dwrite_f(elem_num_id, H5T_NATIVE_INTEGER, elem_num, dims, hdferr)
@@ -413,7 +414,7 @@ contains
 
         write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Mass" Format="HDF" Datatype="Int"  Dimensions="',nn, &
             '">geometry',rg,'.h5:/Mass</DataItem>'
-        write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="ID" Format="HDF" Datatype="Int"  Dimensions="',ne, &
+        write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="ID" Format="HDF" Datatype="Int"  Dimensions="',Tdomain%n_elem, &
             '">geometry',rg,'.h5:/ElemID</DataItem>'
         write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Jac" Format="HDF" Datatype="Int"  Dimensions="',nn, &
             '">geometry',rg,'.h5:/Jac</DataItem>'
