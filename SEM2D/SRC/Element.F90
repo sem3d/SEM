@@ -472,6 +472,7 @@ contains
            + Elem%Acoeff(:,:,9) * MATMUL(Elem%Strain(:,:,2),hprimez)
       Elem%Forces(:,:,4) = -(aux1 + aux2)
 
+      !Elem%Forces(:,:,:) = - Elem%Forces(:,:,:)
       return
     end subroutine compute_InternalForces_DG_Strong
 

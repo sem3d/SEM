@@ -155,8 +155,8 @@ subroutine compute_normals(Tdomain,nf)
     ! Computation of an unique Face normal
     nv0 = Tdomain%sVertex(nv0)%Glob_numbering
     nv1 = Tdomain%sVertex(nv1)%Glob_numbering
-    n1  = Tdomain%coord_nodes(nv1,0) - Tdomain%coord_nodes(nv0,0)
-    n2  = Tdomain%coord_nodes(nv1,1) - Tdomain%coord_nodes(nv0,1)
+    n1  = Tdomain%coord_nodes(0,nv1) - Tdomain%coord_nodes(0,nv0)
+    n2  = Tdomain%coord_nodes(1,nv1) - Tdomain%coord_nodes(1,nv0)
     nx  = n2 ; ny = -n1
     norm = sqrt(nx*nx + ny*ny)
     Tdomain%sFace(nf)%Normal(0) = nx / norm

@@ -51,28 +51,39 @@ contains
         type(element), pointer :: el
         type(face), pointer :: fc
         type(vertex), pointer :: vx
-        integer :: nx, nz, i
+        integer :: nx, nz, i, nx0, nx1, nz0, nz1
         logical :: orient
         nx = Tdomain%specel(nel)%ngllx
         nz = Tdomain%specel(nel)%ngllz
         el => Tdomain%specel(nel)
+        if (el%Type_DG==2) then
+            nx0 = 1
+            nx1 = nx-2
+            nz0 = 1
+            nz1 = nz-2
+        else
+            nx0 = 0
+            nx1 = nx-1
+            nz0 = 0
+            nz1 = nz-1
+        end if
+        field(nx0:nx1,nz0:nz1,0:1) = el%Veloc(:,:,:)
+        if (el%Type_DG==2) then
+            do i=0,3
+                fc => Tdomain%sFace(el%Near_Face(i))
+                orient = fc%coherency .or. fc%near_element(0) == nel
+                call get_VectProperty_Face2Elem(i, orient, nx, nz, fc%ngll, fc%Veloc, field)
+            end do
 
-        field(1:nx-2,1:nz-2,0:1) = el%Veloc(:,:,:)
-        do i=0,3
-            fc => Tdomain%sFace(el%Near_Face(i))
-            orient = fc%coherency .or. fc%near_element(0) == nel
-            call get_VectProperty_Face2Elem(i, orient, nx, nz, fc%ngll, fc%Veloc, field)
-        end do
-
-        vx => Tdomain%sVertex(el%Near_Vertex(0))
-        field(0,0,:) = vx%Veloc
-        vx => Tdomain%sVertex(el%Near_Vertex(1))
-        field(nx-1,0,:) = vx%Veloc
-        vx => Tdomain%sVertex(el%Near_Vertex(2))
-        field(nx-1,nz-1,:) = vx%Veloc
-        vx => Tdomain%sVertex(el%Near_Vertex(3))
-        field(0,nz-1,:) = vx%Veloc
-
+            vx => Tdomain%sVertex(el%Near_Vertex(0))
+            field(0,0,:) = vx%Veloc
+            vx => Tdomain%sVertex(el%Near_Vertex(1))
+            field(nx-1,0,:) = vx%Veloc
+            vx => Tdomain%sVertex(el%Near_Vertex(2))
+            field(nx-1,nz-1,:) = vx%Veloc
+            vx => Tdomain%sVertex(el%Near_Vertex(3))
+            field(0,nz-1,:) = vx%Veloc
+        end if
     end subroutine gather_elem_veloc
 
     subroutine compute_saved_elements(Tdomain, rg, irenum, nnodes)
@@ -414,7 +425,7 @@ contains
 
         write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Mass" Format="HDF" Datatype="Int"  Dimensions="',nn, &
             '">geometry',rg,'.h5:/Mass</DataItem>'
-        write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="ID" Format="HDF" Datatype="Int"  Dimensions="',Tdomain%n_elem, &
+        write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="ID" Format="HDF" Datatype="Int"  Dimensions="',ne, &
             '">geometry',rg,'.h5:/ElemID</DataItem>'
         write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Jac" Format="HDF" Datatype="Int"  Dimensions="',nn, &
             '">geometry',rg,'.h5:/Jac</DataItem>'
@@ -457,7 +468,7 @@ contains
 !            write(61,"(a,I8,a,I4.4,a)") '<DataItem Format="HDF" Datatype="Int"  Dimensions="',nn, &
 !                '">geometry',rg,'.h5:/Mass</DataItem>'
             write(61,"(a)") '</Attribute>'
-            write(61,"(a,I4.4,a)") '<Attribute Name="ID" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+            write(61,"(a,I4.4,a)") '<Attribute Name="ID" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
             write(61,"(a,I4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[',rg+1, &
                 ']/DataItem[@Name="ID"]</DataItem>'
             write(61,"(a)") '</Attribute>'

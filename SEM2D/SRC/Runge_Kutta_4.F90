@@ -101,7 +101,7 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
              Tdomain%specel(n)%Displ   = Tdomain%specel(n)%Displ + Tdomain%specel(n)%Veloc * dt ! ATTENTION : A REVOIR !!!!!
              Tdomain%specel(n)%Forces  = Tdomain%specel(n)%Displ
           else                  ! Discontinuous Galerkin
-             do nf = 0,3        ! Computation of the fluxs
+             do nf = 0,3        ! Computation of the fluxes
                 nface = Tdomain%specel(n)%Near_Face(nf)
                 call Compute_Flux(Tdomain%sFace(nface),n,type_DG)
                 call get_flux_f2el(Tdomain,n,nface,nf)
