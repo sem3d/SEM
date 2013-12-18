@@ -104,22 +104,6 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
              do nf = 0,3        ! Computation of the fluxes
                 nface = Tdomain%specel(n)%Near_Face(nf)
                 call Compute_Flux(Tdomain%sFace(nface),n,type_DG)
-                ! Debut a supprimer........
-                if ((n==0).AND.(nface==1)) then
-                   print*, "Neighboring faces", Tdomain%specel(n)%Near_Face(:)
-                   print*, "Temps : ", timelocal, "  et etape RK : ", i
-                   print*, "Forces :"
-                   do k=0,4
-                      !do j=0,4
-                         print*, "(",4,",",k,") ",Tdomain%specel(n)%Forces(4,k,:)
-                      !enddo
-                   enddo
-                   print*, "Fluxes :"
-                   do k=0,4
-                      print*, k, " : ", Tdomain%sface(nface)%Flux(k,:)
-                   enddo
-                endif
-                ! Fin à supprimer.........
                 call get_flux_f2el(Tdomain,n,nface,nf)
              enddo
              Tdomain%specel(n)%Vect_RK = coeffs(1) * Tdomain%specel(n)%Vect_RK + Tdomain%specel(n)%Forces * dt

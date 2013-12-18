@@ -261,10 +261,10 @@ subroutine shape4(Tdomain)
         if (Tdomain%specel(n)%Type_DG .NE. 2) then
            if (ngllx .NE. ngllz) STOP 'Case ngllx not equal to ngllz is not taken into account'
            allocate(Tdomain%specel(n)%Coeff_Integr_Faces(0:3,0:ngllx-1))
-           Tdomain%specel(n)%Coeff_Integr_Faces(0,:) = Tdomain%sSubdomain(mat)%GLLwx(:)* Tdomain%specel(n)%Jacob(0:ngllx-1,0)
-           Tdomain%specel(n)%Coeff_Integr_Faces(1,:) = Tdomain%sSubdomain(mat)%GLLwz(:)* Tdomain%specel(n)%Jacob(ngllx-1,0:ngllz-1)
-           Tdomain%specel(n)%Coeff_Integr_Faces(2,:) = Tdomain%sSubdomain(mat)%GLLwx(:)* Tdomain%specel(n)%Jacob(0:ngllx-1,ngllz-1)
-           Tdomain%specel(n)%Coeff_Integr_Faces(3,:) = Tdomain%sSubdomain(mat)%GLLwz(:)* Tdomain%specel(n)%Jacob(0,0:ngllz-1)
+           Tdomain%specel(n)%Coeff_Integr_Faces(0,:) = Tdomain%sSubdomain(mat)%GLLwx(:)* 1/(25.**2) !Tdomain%specel(n)%Jacob(0:ngllx-1,0)
+           Tdomain%specel(n)%Coeff_Integr_Faces(1,:) = Tdomain%sSubdomain(mat)%GLLwz(:)* 1/(25.**2) !Tdomain%specel(n)%Jacob(ngllx-1,0:ngllz-1)
+           Tdomain%specel(n)%Coeff_Integr_Faces(2,:) = Tdomain%sSubdomain(mat)%GLLwx(:)* 1/(25.**2) !Tdomain%specel(n)%Jacob(0:ngllx-1,ngllz-1)
+           Tdomain%specel(n)%Coeff_Integr_Faces(3,:) = Tdomain%sSubdomain(mat)%GLLwz(:)* 1/(25.**2) !Tdomain%specel(n)%Jacob(0,0:ngllz-1)
         endif
     enddo
 
