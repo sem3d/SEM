@@ -189,6 +189,12 @@ subroutine allocate_domain (Tdomain)
         allocate (Tdomain%sFace(n)%Displ(1:ngll-2,0:1))
         Tdomain%sFace(n)%Displ = 0
      endif
+     ! Flag on absorbing Faces
+     if (Tdomain%sFace(n)%Near_Element(1) == -1) then
+         Tdomain%sFace(n)%abs = .true.
+     else
+         Tdomain%sFace(n)%abs = .false.
+     endif
   enddo
 
   do n = 0, Tdomain%n_vertex-1

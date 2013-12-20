@@ -75,7 +75,7 @@ contains
     endif
 
     ! --------- CENTERED FLUX -----------
-    if (F%Type_Flux == 1) then
+    if (F%Type_Flux == 2) then
        if(F%is_computed) then
           F%Flux = -F%Flux
           F%is_computed = .FALSE.
@@ -91,7 +91,7 @@ contains
        endif
 
     ! -------- GODUNOV FLUX ----------
-    else if (F%Type_Flux == 2) then
+    else if (F%Type_Flux == 1) then
        if(F%is_computed .AND. .NOT. F%changing_media) then
           ! Case the flux has been already computed
           F%Flux = -F%Flux
@@ -112,7 +112,7 @@ contains
                   + F%Zp_p(:) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
           else
              coeff_p(:) = -Stress_jump(:,0) * F%Normal(0) - Stress_jump(:,1) * F%Normal(1) &
-                  + F%Zp_m(:) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
+                  - F%Zp_m(:) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
           endif
           if (.NOT. F%acoustic) then
              ! Computation of eigenvectors r2 and r3 :
@@ -121,11 +121,11 @@ contains
              ! Computation of Numerical Flux :
              if(bool_side) then
                 do i=0,F%ngll-1
-                   F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:) - F%k1(i)*F%r2(i,:) - F%Zs_p*F%k1(i)*F%r3(i,:)
+                   F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:) - F%k1(i)*F%r2(i,:) - F%Zs_p(i)*F%k1(i)*F%r3(i,:)
                 enddo
              else
                 do i=0,F%ngll-1
-                   F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:) - F%k1(i)*F%r2(i,:) - F%Zs_m*F%k1(i)*F%r3(i,:)
+                   F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:) - F%k1(i)*F%r2(i,:) - F%Zs_m(i)*F%k1(i)*F%r3(i,:)
                 enddo
              endif
           else ! Acoustic case
@@ -133,13 +133,18 @@ contains
                 F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:)
              enddo
           endif
-          if(F%Abs) then
-             ! Absorbing Boundary Conditions
-             F%Flux(:,:) = 0.
-          endif
+          F%Flux(:,:) = - F%Flux(:,:)
+          !F%Flux(:,3:4) = 1./1700. * F%Flux(:,3:4) ! A SUPPRIMER !!!!!!!!!!!!!
           if (DG_type==1) then ! Forme "Faible" des DG
              F_minus = compute_trace_F(F,bool_side)
-             F%Flux(:,:) = F_minus(:,:) + F%Flux(:,:)
+             F%Flux(:,:) = F%Flux(:,:) - F_minus(:,:)
+          endif
+          F%is_computed = .TRUE.
+          if(F%Abs) then
+             ! Absorbing Boundary Conditions
+             F%Flux(:,:) = compute_trace_F(F,bool_side)
+             F%Flux(:,:) = 0.! A SUPPRIMER !!!!!!!!!!!!!
+             F%is_computed = .FALSE.
           endif
        endif
     endif

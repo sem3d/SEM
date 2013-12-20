@@ -158,6 +158,9 @@ subroutine compute_normals(Tdomain,nf)
     n1  = Tdomain%coord_nodes(0,nv1) - Tdomain%coord_nodes(0,nv0)
     n2  = Tdomain%coord_nodes(1,nv1) - Tdomain%coord_nodes(1,nv0)
     nx  = n2 ; ny = -n1
+    if (Tdomain%sFace(nf)%Which_Face(0) .GE. 2) then
+        nx = -nx ; ny = -ny
+    endif
     norm = sqrt(nx*nx + ny*ny)
     Tdomain%sFace(nf)%Normal(0) = nx / norm
     Tdomain%sFace(nf)%Normal(1) = ny / norm
@@ -261,10 +264,10 @@ subroutine shape4(Tdomain)
         if (Tdomain%specel(n)%Type_DG .NE. 2) then
            if (ngllx .NE. ngllz) STOP 'Case ngllx not equal to ngllz is not taken into account'
            allocate(Tdomain%specel(n)%Coeff_Integr_Faces(0:3,0:ngllx-1))
-           Tdomain%specel(n)%Coeff_Integr_Faces(0,:) = Tdomain%sSubdomain(mat)%GLLwx(:)* 1/(25.**2) !Tdomain%specel(n)%Jacob(0:ngllx-1,0)
-           Tdomain%specel(n)%Coeff_Integr_Faces(1,:) = Tdomain%sSubdomain(mat)%GLLwz(:)* 1/(25.**2) !Tdomain%specel(n)%Jacob(ngllx-1,0:ngllz-1)
-           Tdomain%specel(n)%Coeff_Integr_Faces(2,:) = Tdomain%sSubdomain(mat)%GLLwx(:)* 1/(25.**2) !Tdomain%specel(n)%Jacob(0:ngllx-1,ngllz-1)
-           Tdomain%specel(n)%Coeff_Integr_Faces(3,:) = Tdomain%sSubdomain(mat)%GLLwz(:)* 1/(25.**2) !Tdomain%specel(n)%Jacob(0,0:ngllz-1)
+           Tdomain%specel(n)%Coeff_Integr_Faces(0,:) = Tdomain%sSubdomain(mat)%GLLwx(:)* 25. !Tdomain%specel(n)%Jacob(0:ngllx-1,0)
+           Tdomain%specel(n)%Coeff_Integr_Faces(1,:) = Tdomain%sSubdomain(mat)%GLLwz(:)* 25. !Tdomain%specel(n)%Jacob(ngllx-1,0:ngllz-1)
+           Tdomain%specel(n)%Coeff_Integr_Faces(2,:) = Tdomain%sSubdomain(mat)%GLLwx(:)* 25. !Tdomain%specel(n)%Jacob(0:ngllx-1,ngllz-1)
+           Tdomain%specel(n)%Coeff_Integr_Faces(3,:) = Tdomain%sSubdomain(mat)%GLLwz(:)* 25. !Tdomain%specel(n)%Jacob(0,0:ngllz-1)
         endif
     enddo
 

@@ -128,7 +128,7 @@ subroutine compute_coeff_flux (Tdomain, n_face)
      endif
   endif
   !! Computation of the coefficients k0, k1, and vector r1 for Godunov fluxs
-  do i=0,ngll
+  do i=0,ngll-1
      Tdomain%sFace(n_face)%k0(i) = 1./(Tdomain%sFace(n_face)%Zp_m(i) + Tdomain%sFace(n_face)%Zp_p(i))
      Tdomain%sFace(n_face)%k1(i) = 1./(Tdomain%sFace(n_face)%Zs_m(i) + Tdomain%sFace(n_face)%Zs_p(i))
      Tdomain%sFace(n_face)%r1(i,0) = Tdomain%sFace(n_face)%normal(0)**2

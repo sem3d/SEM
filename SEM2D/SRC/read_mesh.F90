@@ -378,11 +378,6 @@ subroutine read_mesh(tDomain)
         Tdomain%sFace(i)%is_computed = .false.
         Tdomain%sFace(i)%changing_media = .false.
         Tdomain%sFace(i)%acoustic = .false.
-        if (Tdomain%sFace(i)%Near_Element(1) == -1) then
-           Tdomain%sFace(i)%abs = .true.
-        else
-           Tdomain%sFace(i)%abs = .false.
-        endif
     enddo
 
     if (Tdomain%logicD%super_object_local_present) then

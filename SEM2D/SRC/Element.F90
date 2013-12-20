@@ -421,6 +421,8 @@ contains
            + Elem%Acoeff(:,:,9)*Elem%Strain(:,:,2)
       Elem%Forces(:,:,4) = MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez)
 
+      Elem%Forces(:,:,:) = - Elem%Forces(:,:,:)
+
       return
     end subroutine compute_InternalForces_DG_Weak
 
@@ -446,15 +448,15 @@ contains
 
       aux1 = MATMUL(hTprime,Elem%Veloc(:,:,0))
       aux2 = MATMUL(Elem%Veloc(:,:,0),hprimez)
-      Elem%Forces(:,:,0) = -( Elem%Acoeff(:,:,0)*aux1 + Elem%Acoeff(:,:,1)*aux2 )
+      Elem%Forces(:,:,0) = Elem%Acoeff(:,:,0)*aux1 + Elem%Acoeff(:,:,1)*aux2
 
       aux1 = MATMUL(hTprime,Elem%Veloc(:,:,1))
       aux2 = MATMUL(Elem%Veloc(:,:,1),hprimez)
-      Elem%Forces(:,:,1) = -( Elem%Acoeff(:,:,0)*aux1 + Elem%Acoeff(:,:,1)*aux2 )
+      Elem%Forces(:,:,1) = Elem%Acoeff(:,:,2)*aux1 + Elem%Acoeff(:,:,3)*aux2
 
       aux1 = Elem%Acoeff(:,:,0) * MATMUL(hTprime,Elem%Veloc(:,:,1)) +  Elem%Acoeff(:,:,1) * MATMUL(Elem%Veloc(:,:,1),hprimez)
       aux2 = Elem%Acoeff(:,:,2) * MATMUL(hTprime,Elem%Veloc(:,:,0)) +  Elem%Acoeff(:,:,3) * MATMUL(Elem%Veloc(:,:,0),hprimez)
-      Elem%Forces(:,:,2) = -0.5 * (aux1 + aux2)
+      Elem%Forces(:,:,2) = 0.5 * (aux1 + aux2)
 
       aux1 = (Elem%Acoeff(:,:,4) + Elem%Acoeff(:,:,5)) * MATMUL(hTprime,Elem%Strain(:,:,0)) &
            + Elem%Acoeff(:,:,4) * MATMUL(hTprime,Elem%Strain(:,:,1)) &
@@ -462,7 +464,7 @@ contains
       aux2 = (Elem%Acoeff(:,:,8) + Elem%Acoeff(:,:,9)) * MATMUL(Elem%Strain(:,:,0),hprimez) &
            + Elem%Acoeff(:,:,8) * MATMUL(Elem%Strain(:,:,1),hprimez) &
            + Elem%Acoeff(:,:,11)* MATMUL(Elem%Strain(:,:,2),hprimez)
-      Elem%Forces(:,:,3) = -(aux1 + aux2)
+      Elem%Forces(:,:,3) = aux1 + aux2
 
       aux1 = (Elem%Acoeff(:,:,7) + Elem%Acoeff(:,:,6)) * MATMUL(hTprime,Elem%Strain(:,:,1)) &
            + Elem%Acoeff(:,:,6) * MATMUL(hTprime,Elem%Strain(:,:,0)) &
@@ -470,9 +472,8 @@ contains
       aux2 = (Elem%Acoeff(:,:,11) + Elem%Acoeff(:,:,10)) * MATMUL(Elem%Strain(:,:,1),hprimez) &
            + Elem%Acoeff(:,:,10)* MATMUL(Elem%Strain(:,:,0),hprimez) &
            + Elem%Acoeff(:,:,9) * MATMUL(Elem%Strain(:,:,2),hprimez)
-      Elem%Forces(:,:,4) = -(aux1 + aux2)
+      Elem%Forces(:,:,4) = aux1 + aux2
 
-      !Elem%Forces(:,:,:) = - Elem%Forces(:,:,:)
       return
     end subroutine compute_InternalForces_DG_Strong
 
