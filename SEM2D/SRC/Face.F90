@@ -75,26 +75,45 @@ contains
     endif
 
     ! --------- CENTERED FLUX -----------
-    if (F%Type_Flux == 2) then
+    if (F%Type_Flux == 1) then
+
        if(F%is_computed) then
-          F%Flux = -F%Flux
+          ! Case the flux has been already computed
+          if(DG_type==1) then
+             F%Flux = -F%Flux
+          elseif (DG_type==2) then
+             F%Flux = F%Flux
+          endif
           F%is_computed = .FALSE.
        else
-          ! Treating Free-Surface case
-          if (F%Near_Element(1) .LT. 0) then
-             F%Flux = compute_trace_F(F,bool_side)
-          else
+          if (DG_type==1) then
              F_minus = compute_trace_F(F,bool_side)
-             F%Flux = 0.5 * (F_minus - compute_trace_F(F,.NOT.bool_side))
+             F%Flux = 0.5* (F_minus - compute_trace_F(F,.NOT.bool_side))
+          elseif (DG_type==2) then
+             F_minus = compute_trace_F(F,bool_side)
+             F%Flux = -0.5 * (F_minus + compute_trace_F(F,.NOT.bool_side))
           endif
           F%is_computed = .TRUE.
        endif
+       ! Treating Absorbing Boundary Conditions
+       ! Basee surla supposition F* = 0
+       if(F%Abs) then
+          if (DG_type==1) then
+             F%Flux = 0.
+          elseif (DG_type==2) then
+             F%Flux = - compute_trace_F(F,bool_side)
+          endif
+       endif
 
     ! -------- GODUNOV FLUX ----------
-    else if (F%Type_Flux == 1) then
+    else if (F%Type_Flux == 2) then
        if(F%is_computed .AND. .NOT. F%changing_media) then
           ! Case the flux has been already computed
-          F%Flux = -F%Flux
+          if (DG_type ==1 ) then
+             F%Flux = -F%Flux
+          elseif (DG_type == 2) then
+             F%Flux = -F%Flux - compute_trace_F(F,bool_side) - compute_trace_F(F,.NOT.bool_side)
+          endif
           F%is_computed = .FALSE.
        else
           ! Computation of jumps of stresses and Velocities :
@@ -133,18 +152,19 @@ contains
                 F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:)
              enddo
           endif
-          F%Flux(:,:) = - F%Flux(:,:)
-          !F%Flux(:,3:4) = 1./1700. * F%Flux(:,3:4) ! A SUPPRIMER !!!!!!!!!!!!!
           if (DG_type==1) then ! Forme "Faible" des DG
              F_minus = compute_trace_F(F,bool_side)
-             F%Flux(:,:) = F%Flux(:,:) - F_minus(:,:)
+             F%Flux(:,:) = F%Flux(:,:) + F_minus(:,:)
           endif
           F%is_computed = .TRUE.
-          if(F%Abs) then
-             ! Absorbing Boundary Conditions
-             F%Flux(:,:) = compute_trace_F(F,bool_side)
-             F%Flux(:,:) = 0.! A SUPPRIMER !!!!!!!!!!!!!
-             F%is_computed = .FALSE.
+       endif
+       ! Treating Absorbing Boundary Conditions
+       ! Basee surla supposition F* = 0
+       if(F%Abs) then
+          if (DG_type==1) then
+             F%Flux = 0.
+          elseif (DG_type==2) then
+             F%Flux = - compute_trace_F(F,bool_side)
           endif
        endif
     endif

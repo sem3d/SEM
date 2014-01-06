@@ -94,8 +94,8 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
 
        do n = 0, Tdomain%n_elem-1
           type_DG = Tdomain%specel(n)%Type_DG
-          call inversion_massmat(Tdomain%specel(n))
           if (type_DG==2) then  ! Continuous Galerkin
+             call inversion_massmat(Tdomain%specel(n))
              Tdomain%specel(n)%Vect_RK = coeffs(1) * Tdomain%specel(n)%Vect_RK  + Tdomain%specel(n)%Forces * dt
              Tdomain%specel(n)%Veloc   = Tdomain%specel(n)%Veloc + coeffs(2) * Tdomain%specel(n)%Vect_RK
              Tdomain%specel(n)%Displ   = Tdomain%specel(n)%Displ + Tdomain%specel(n)%Veloc * dt ! ATTENTION : A REVOIR !!!!!
@@ -106,6 +106,7 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
                 call Compute_Flux(Tdomain%sFace(nface),n,type_DG)
                 call get_flux_f2el(Tdomain,n,nface,nf)
              enddo
+             call inversion_massmat(Tdomain%specel(n))
              Tdomain%specel(n)%Vect_RK = coeffs(1) * Tdomain%specel(n)%Vect_RK + Tdomain%specel(n)%Forces * dt
              Tdomain%specel(n)%Strain  = Tdomain%specel(n)%Strain + coeffs(2) * Tdomain%specel(n)%Vect_RK(:,:,0:2)
              Tdomain%specel(n)%Veloc   = Tdomain%specel(n)%Veloc  + coeffs(2) * Tdomain%specel(n)%Vect_RK(:,:,3:4)
