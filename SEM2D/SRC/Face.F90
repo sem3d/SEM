@@ -81,7 +81,7 @@ contains
           ! Case the flux has been already computed
           if(DG_type==1) then
              F%Flux = -F%Flux
-          elseif (DG_type==2) then
+          elseif (DG_type==0) then
              F%Flux = F%Flux
           endif
           F%is_computed = .FALSE.
@@ -89,19 +89,19 @@ contains
           if (DG_type==1) then
              F_minus = compute_trace_F(F,bool_side)
              F%Flux = 0.5* (F_minus - compute_trace_F(F,.NOT.bool_side))
-          elseif (DG_type==2) then
+          elseif (DG_type==0) then
              F_minus = compute_trace_F(F,bool_side)
              F%Flux = -0.5 * (F_minus + compute_trace_F(F,.NOT.bool_side))
           endif
           F%is_computed = .TRUE.
        endif
        ! Treating Absorbing Boundary Conditions
-       ! Basee surla supposition F* = 0
+       ! Basee surla supposition F* = Fn-
        if(F%Abs) then
           if (DG_type==1) then
+             F%Flux = compute_trace_F(F,bool_side)
+          elseif (DG_type==0) then
              F%Flux = 0.
-          elseif (DG_type==2) then
-             F%Flux = - compute_trace_F(F,bool_side)
           endif
        endif
 
@@ -111,7 +111,7 @@ contains
           ! Case the flux has been already computed
           if (DG_type ==1 ) then
              F%Flux = -F%Flux
-          elseif (DG_type == 2) then
+          elseif (DG_type == 0) then
              F%Flux = -F%Flux - compute_trace_F(F,bool_side) - compute_trace_F(F,.NOT.bool_side)
           endif
           F%is_computed = .FALSE.
@@ -159,12 +159,12 @@ contains
           F%is_computed = .TRUE.
        endif
        ! Treating Absorbing Boundary Conditions
-       ! Basee surla supposition F* = 0
+       ! Basee surla supposition F* = Fn-
        if(F%Abs) then
           if (DG_type==1) then
+             F%Flux = compute_trace_F(F,bool_side)
+          elseif (DG_type==0) then
              F%Flux = 0.
-          elseif (DG_type==2) then
-             F%Flux = - compute_trace_F(F,bool_side)
           endif
        endif
     endif

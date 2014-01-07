@@ -62,6 +62,7 @@ module sem_c_config
 
        !! Type Elements (DG)
        integer(C_INT) :: type_elem
+       integer(C_INT) :: type_flux
 
     end type sem_config
 

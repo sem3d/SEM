@@ -94,6 +94,7 @@ typedef struct {
 
     // Type Elements (DG)
     int type_elem;
+    int type_flux;
 
 } sem_config_t;
 
@@ -397,6 +398,7 @@ int expect_type_elements(yyscan_t scanner, sem_config_t* config)
 	if (tok!=K_ID) break;
 
 	if (cmp(scanner,"dg_type")) err=expect_eq_int(scanner, &config->type_elem, 1);
+	if (cmp(scanner,"flux_type")) err=expect_eq_int(scanner, &config->type_flux, 1);
 
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);

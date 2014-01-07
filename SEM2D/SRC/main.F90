@@ -208,6 +208,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
 
     if (Tdomain%logicD%save_snapshots .or. Tdomain%logicD%save_deformation) then
         Tdomain%timeD%nsnap = Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin
+        if (Tdomain%timeD%nsnap == 0) Tdomain%timeD%nsnap = 1
         write(*,*) "Snapshot every ", Tdomain%timeD%nsnap, " iterations"
     endif
 

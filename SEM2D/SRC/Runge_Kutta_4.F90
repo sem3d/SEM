@@ -68,9 +68,9 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
           do nf = 0,3
              nface  = Tdomain%specel(n)%Near_Face(nf)
              if(type_DG == 2) then
-                call Assemblage(Tdomain,n,nface)
+                call Assemblage(Tdomain,n,nface,nf)
              else
-                call get_data_el2f(Tdomain,n,nface)
+                call get_data_el2f(Tdomain,n,nface,nf)
              endif
           enddo
        enddo
