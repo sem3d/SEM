@@ -1,4 +1,4 @@
 1
-S  3200.00  1700.00  1700.  5  0  5  .000500000  0.0  0.0
+S  3200.00  1700.00  1700.  5  0  5  .000050000  0.0  0.0
 # File in which material properties are stored
 # For any material, put type, Vp, Vs, rho, ngllx, nglly, ngllz, dt, Qp, Qs

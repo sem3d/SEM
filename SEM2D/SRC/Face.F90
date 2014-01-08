@@ -107,15 +107,15 @@ contains
 
     ! -------- GODUNOV FLUX ----------
     else if (F%Type_Flux == 2) then
-       if(F%is_computed .AND. .NOT. F%changing_media) then
+       !if(F%is_computed .AND. .NOT. F%changing_media) then
           ! Case the flux has been already computed
-          if (DG_type ==1 ) then
-             F%Flux = -F%Flux
-          elseif (DG_type == 0) then
-             F%Flux = -F%Flux - compute_trace_F(F,bool_side) - compute_trace_F(F,.NOT.bool_side)
-          endif
-          F%is_computed = .FALSE.
-       else
+          !if (DG_type ==1 ) then
+          !   F%Flux = -F%Flux
+          !elseif (DG_type == 0) then
+          !   F%Flux = -F%Flux - compute_trace_F(F,bool_side) - compute_trace_F(F,.NOT.bool_side)
+          !endif
+          !F%is_computed = .FALSE.
+       !else
           ! Computation of jumps of stresses and Velocities :
           Stress_jump = compute_stress_jump(F)
           Veloc_jump(:,:) = F%Veloc_m(:,:) - F%Veloc_p(:,:)
@@ -157,7 +157,7 @@ contains
              F%Flux(:,:) = F%Flux(:,:) + F_minus(:,:)
           endif
           F%is_computed = .TRUE.
-       endif
+       !endif
        ! Treating Absorbing Boundary Conditions
        ! Basee surla supposition F* = Fn-
        if(F%Abs) then
@@ -487,14 +487,14 @@ contains
          sigma = compute_stress(F,bool_side)
          compute_trace_F(:,0) = - F%Normal(0) * F%Veloc_m(:,0)
          compute_trace_F(:,1) = - F%Normal(1) * F%Veloc_m(:,1)
-         compute_trace_F(:,2) = - 0.5* (F%Normal(0)*F%Veloc_m(:,0) + F%Normal(1)*F%Veloc_m(:,1))
+         compute_trace_F(:,2) = - 0.5* (F%Normal(1)*F%Veloc_m(:,0) + F%Normal(0)*F%Veloc_m(:,1))
          compute_trace_F(:,3) = - (sigma(:,0)*F%Normal(0) + sigma(:,2)*F%Normal(1))
          compute_trace_F(:,4) = - (sigma(:,2)*F%Normal(0) + sigma(:,1)*F%Normal(1))
       else ! Case the current element is on "plus" side
          sigma = compute_stress(F,bool_side)
          compute_trace_F(:,0) =  F%Normal(0) * F%Veloc_p(:,0)
          compute_trace_F(:,1) =  F%Normal(1) * F%Veloc_p(:,1)
-         compute_trace_F(:,2) =  0.5* (F%Normal(0)*F%Veloc_p(:,0) + F%Normal(1)*F%Veloc_p(:,1))
+         compute_trace_F(:,2) =  0.5* (F%Normal(1)*F%Veloc_p(:,0) + F%Normal(0)*F%Veloc_p(:,1))
          compute_trace_F(:,3) =  (sigma(:,0)*F%Normal(0) + sigma(:,2)*F%Normal(1))
          compute_trace_F(:,4) =  (sigma(:,2)*F%Normal(0) + sigma(:,1)*F%Normal(1))
       endif

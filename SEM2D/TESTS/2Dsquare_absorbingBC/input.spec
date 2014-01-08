@@ -54,6 +54,7 @@ time_scheme {
 
 type_elements {
     dg_type = 0;           # Type of DG (0 for DG-strong, 1 for DG-weak, 2 for CG)
+    flux_type = 1;     	   # Type of Flux (1 for centered flux, 2 for Godunov-like flux)
 };
 
 amortissement {
