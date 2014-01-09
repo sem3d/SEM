@@ -138,6 +138,17 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
           endif
        enddo
 
+       !!!!!!!!!!!! A SUPPRIMER !!!!!!!!!!!
+       print*, "Veloc X for time : ", timelocal, "Iteration RK ", i
+       do n=0,4
+          print*, Tdomain%specel(0)%Veloc(:,4-n,0)
+       enddo
+       print*, "Veloc Y for time : ", timelocal, "Iteration RK ", i
+       do n=0,4
+          print*, Tdomain%specel(0)%Veloc(:,4-n,1)
+       enddo
+       !!!!!!!!!  FIN A SUPPRIMER !!!!!!!!!!!
+
     enddo ! End loop RK4
 
     return

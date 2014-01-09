@@ -30,7 +30,7 @@ restart_iter=370;
 # introduce a source
 source {
     # coordinates of the sources ((x,y,z) or (lat,long,R) if rotundity is considered)
-    coords = 25. 25. 25.;
+    coords = 225. 225. 225.;
     # the numbers before the labels are here to help convert from previous input.spec format
     # Type (1.Impulse, 2.moment Tensor, 3.fluidpulse)
     type = impulse;

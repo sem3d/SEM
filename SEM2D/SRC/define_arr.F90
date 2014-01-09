@@ -445,8 +445,7 @@ subroutine define_arrays(Tdomain)
     do n = 0,Tdomain%n_elem-1
         do nf=0,3
             nface = Tdomain%specel(n)%Near_Face(nf)
-            if((Tdomain%Specel(n)%Type_DG .NE. 2) .AND. (Tdomain%sFace(nface)%type_Flux .EQ. 2)) &
-                call get_MuLambda_el2f(Tdomain,n,nface)
+            if(Tdomain%Specel(n)%Type_DG .NE. 2) call get_MuLambda_el2f(Tdomain,n,nface)
         enddo
     enddo
     ! Calcul des coefficients pour les Fluxs Godunov

@@ -118,7 +118,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
     dt = Tdomain%sSubDomain(0)%Dt ! A SUPPRIMER
     call compute_Courant (Tdomain)
     Tdomain%TimeD%dtmin = dt  ! A SUPPRIMER
-    open (23,file="capteur_source", form="formatted", status="unknown") ! A SUPPRIMER
+    open (999,file="capteur_source",status="UNKNOWN",form="formatted") ! A SUPPRIMER
 
     if (rg == 0) write (*,*) "Attribute PML properties"
     call PML_definition (Tdomain)
@@ -244,7 +244,6 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
             call Newmark (Tdomain, ntime)
         else if (Tdomain%type_timeInteg==2) then
             call Runge_Kutta4(Tdomain, ntime, Tdomain%TimeD%dtmin)
-            write(23,*) ntime, Tdomain%specel(0)%Veloc(2,2,:) ! A SUPPRIMER
         endif
 
         if (ntime==Tdomain%TimeD%NtimeMax-1) then

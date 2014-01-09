@@ -13,6 +13,7 @@ subroutine Compute_external_forces (Tdomain,timelocal)
   implicit none
   type (domain), intent (INOUT) :: Tdomain
   real, intent (INOUT)          :: timelocal
+  real, dimension(0:1)          :: Fext
   integer  :: n, ns, ncc, ngllx, ngllz, i, j, np, nDG
 
   do n = 0, Tdomain%n_source-1
@@ -30,9 +31,12 @@ subroutine Compute_external_forces (Tdomain,timelocal)
            do j = 0,ngllz-1
               do i = 0,ngllx-1
                  do np = 0,1
-                    Tdomain%specel(ncc)%Forces(i,j,np+nDG) = Tdomain%specel(ncc)%Forces(i,j,np+nDG) +   &
-                         CompSource (Tdomain%sSource(n),timelocal,np)*  Tdomain%sSource(n)%Elem(ns)%ExtForce(i,j)
+                    Fext(np) =  CompSource (Tdomain%sSource(n),timelocal,np) * Tdomain%sSource(n)%Elem(ns)%ExtForce(i,j)
+                    Tdomain%specel(ncc)%Forces(i,j,np+nDG) = Tdomain%specel(ncc)%Forces(i,j,np+nDG) + Fext(np)
                  enddo
+                 ! Sortie pour la force externe
+                 if ((Fext(0).NE.0.) .AND. (Fext(1).NE.0.)) write(999,*) timelocal, Fext(:)
+                 print*, timelocal, Fext(:)
               enddo
            enddo
            
@@ -40,9 +44,11 @@ subroutine Compute_external_forces (Tdomain,timelocal)
            do j = 0,ngllz-1
               do i = 0,ngllx-1
                  do np = 0,1
-                    Tdomain%specel(ncc)%Forces(i,j,np) =Tdomain%specel(ncc)%Forces(i,j,np) +   &
-                         CompSource(Tdomain%sSource(n),timelocal,np)* Tdomain%sSource(n)%Elem(ns)%Explosion(i,j,np)
+                    Fext(np) = CompSource(Tdomain%sSource(n),timelocal,np) * Tdomain%sSource(n)%Elem(ns)%Explosion(i,j,np)
+                    Tdomain%specel(ncc)%Forces(i,j,np) =Tdomain%specel(ncc)%Forces(i,j,np) + Fext(np)
                  enddo
+                 ! Sortie pour la force externe
+                 if ((Fext(0).NE.0.) .AND. (Fext(1).NE.0.)) write(999,*) timelocal, Fext(:)
               enddo
            enddo
         endif
