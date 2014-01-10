@@ -381,6 +381,16 @@ subroutine read_mesh(tDomain)
         Tdomain%sFace(i)%acoustic = .false.
     enddo
 
+    if ((Tdomain%type_bc==2) .AND. (Tdomain%type_flux==1)) then
+        STOP "FREE Surface not implemented for Centered flux"
+    endif
+    if ((Tdomain%type_bc.NE.1) .AND. (Tdomain%type_bc.NE.2)) then
+        STOP "This choice for bc_type does not exist. Please choose 0 or 1"
+    endif
+    if ((Tdomain%type_elem.NE.0) .AND. (Tdomain%type_elem.NE.1) .AND. (Tdomain%type_elem.NE.2)) then
+        STOP "This choice for elem_type does not exist. Please choose 0, 1 or 2"
+    endif
+
     do i = 0, Tdomain%n_vertex-1
         mat = Tdomain%sVertex(i)%mat_index
         Tdomain%sVertex(i)%Type_DG = Tdomain%sSubDomain(mat)%Type_DG

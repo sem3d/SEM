@@ -35,8 +35,7 @@ subroutine Compute_external_forces (Tdomain,timelocal)
                     Tdomain%specel(ncc)%Forces(i,j,np+nDG) = Tdomain%specel(ncc)%Forces(i,j,np+nDG) + Fext(np)
                  enddo
                  ! Sortie pour la force externe
-                 if ((Fext(0).NE.0.) .AND. (Fext(1).NE.0.)) write(999,*) timelocal, Fext(:)
-                 print*, timelocal, Fext(:)
+                 if ((Fext(0).NE.0.) .OR. (Fext(1).NE.0.)) write(90,*) timelocal, Fext(0)
               enddo
            enddo
            
@@ -48,7 +47,7 @@ subroutine Compute_external_forces (Tdomain,timelocal)
                     Tdomain%specel(ncc)%Forces(i,j,np) =Tdomain%specel(ncc)%Forces(i,j,np) + Fext(np)
                  enddo
                  ! Sortie pour la force externe
-                 if ((Fext(0).NE.0.) .AND. (Fext(1).NE.0.)) write(999,*) timelocal, Fext(:)
+                 if ((Fext(0).NE.0.) .OR. (Fext(1).NE.0.)) write(90,*) timelocal, Fext(:)
               enddo
            enddo
         endif

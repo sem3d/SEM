@@ -189,11 +189,18 @@ subroutine allocate_domain (Tdomain)
         allocate (Tdomain%sFace(n)%Displ(1:ngll-2,0:1))
         Tdomain%sFace(n)%Displ = 0
      endif
-     ! Flag on absorbing Faces
+     ! Flags on absorbing/free surface Faces
      if (Tdomain%sFace(n)%Near_Element(1) == -1) then
-         Tdomain%sFace(n)%abs = .true.
+         if (Tdomain%type_bc == 1) then
+             Tdomain%sFace(n)%abs      = .true.
+             Tdomain%sFace(n)%freesurf = .false.
+         elseif (Tdomain%type_bc == 2) then
+             Tdomain%sFace(n)%abs      = .false.
+             Tdomain%sFace(n)%freesurf = .true.
+         endif
      else
          Tdomain%sFace(n)%abs = .false.
+         Tdomain%sFace(n)%freesurf = .false.
      endif
   enddo
 

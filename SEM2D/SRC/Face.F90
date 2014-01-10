@@ -24,7 +24,7 @@ module sfaces
        real, dimension (:,:), allocatable :: ForcesMka
 #endif
 
-       logical :: coherency, PML, Abs, FPML
+       logical :: coherency, PML, Abs, FPML, freesurf
        real, dimension (:), allocatable :: Ivx, Ivz
        real, dimension (:,:), allocatable :: Iveloc1, Iveloc2
 
@@ -121,7 +121,7 @@ contains
           Veloc_jump(:,:) = F%Veloc_m(:,:) - F%Veloc_p(:,:)
           if (.NOT. bool_side) Veloc_jump(:,:) = - Veloc_jump(:,:)
           call check_r1(F,bool_side)
-          if (F%Near_Element(1) .LT. 0) then
+          if (F%freesurf) then
              ! Jumps for Treating Free-Surface case
              Veloc_jump(:,:)  = 0.
              Stress_jump(:,:) = 2. * Stress_jump(:,:)

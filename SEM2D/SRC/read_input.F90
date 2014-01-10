@@ -100,6 +100,7 @@ subroutine read_input (Tdomain)
     !Tdomain%TimeD%courant = config%courant
     Tdomain%type_elem = config%type_elem
     Tdomain%type_flux = config%type_flux
+    Tdomain%type_bc   = config%type_bc
     Tdomain%mesh_file = fromcstr(config%mesh_file)
     Tdomain%material_file = fromcstr(config%mat_file)
     Tdomain%logicD%save_trace = config%save_traces .ne. 0

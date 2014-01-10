@@ -118,7 +118,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
     dt = Tdomain%sSubDomain(0)%Dt ! A SUPPRIMER
     call compute_Courant (Tdomain)
     Tdomain%TimeD%dtmin = dt  ! A SUPPRIMER
-    open (999,file="capteur_source",status="UNKNOWN",form="formatted") ! A SUPPRIMER
+    open (90,file="capteur_sourceX",status="replace",form="formatted") ! A SUPPRIMER
 
     if (rg == 0) write (*,*) "Attribute PML properties"
     call PML_definition (Tdomain)
@@ -388,7 +388,8 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
         endif
 
 
-
+        ! sortie des veloc pur les 4 capteurs ! A SUPPRIMER !!!!!!!!
+        call capteurs_veloc (Tdomain,Tdomain%TimeD%rtime,ntime,44)
 
         ! incrementation du pas de temps
         Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
