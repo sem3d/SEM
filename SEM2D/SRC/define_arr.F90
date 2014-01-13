@@ -97,6 +97,7 @@ subroutine define_arrays(Tdomain)
               Tdomain%specel(n)%Acoeff(:,:,9) = 2.*Whei*etax*Rmu*Jac
               Tdomain%specel(n)%Acoeff(:,:,10)= Whei*etaz*Rlam*Jac
               Tdomain%specel(n)%Acoeff(:,:,11)= 2.*Whei*etaz*Rmu*Jac
+              Tdomain%specel(n)%Acoeff(:,:,12)= Whei*Jac
            else if (Tdomain%specel(n)%Type_DG==2) then ! Continuous Galerkin (usual SEM)
               Tdomain%specel(n)%Acoeff(:,:,0) = -Whei*(RKmod*xix**2+Rmu*xiz**2) *Jac
               Tdomain%specel(n)%Acoeff(:,:,1) = -Whei*(RKmod*xix*etax+Rmu*  xiz*etaz)*Jac
@@ -532,6 +533,7 @@ subroutine define_arrays(Tdomain)
         else
             ! Discontinuous Galerkin Case : Mass Mat do NOT need to be resized
             Tdomain%specel(n)%MassMat = 1. / Tdomain%specel(n)%MassMat
+            Tdomain%specel(n)%Acoeff(:,:,12) = 1. / Tdomain%specel(n)%Acoeff(:,:,12)
         endif
     enddo
 

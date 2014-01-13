@@ -77,24 +77,25 @@ contains
     ! --------- CENTERED FLUX -----------
     if (F%Type_Flux == 1) then
 
-       if(F%is_computed) then
+       !if(F%is_computed) then
           ! Case the flux has been already computed
-          if(DG_type==1) then
-             F%Flux = -F%Flux
-          elseif (DG_type==0) then
-             F%Flux = F%Flux
-          endif
-          F%is_computed = .FALSE.
-       else
+          !if(DG_type==1) then
+             !F%Flux = -F%Flux
+          !elseif (DG_type==0) then
+             !F%Flux = F%Flux
+          !endif
+          !F%is_computed = .FALSE.
+       !else
           if (DG_type==1) then
              F_minus = compute_trace_F(F,bool_side)
-             F%Flux = 0.5* (F_minus - compute_trace_F(F,.NOT.bool_side))
+             !F%Flux = 0.5* (F_minus - compute_trace_F(F,.NOT.bool_side))
+             F%Flux = 0.5 * (F_minus - compute_trace_F(F,.NOT.bool_side))
           elseif (DG_type==0) then
              F_minus = compute_trace_F(F,bool_side)
              F%Flux = -0.5 * (F_minus + compute_trace_F(F,.NOT.bool_side))
           endif
           F%is_computed = .TRUE.
-       endif
+       !endif
        ! Treating Absorbing Boundary Conditions
        ! Basee surla supposition F* = Fn-
        if(F%Abs) then

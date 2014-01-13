@@ -532,6 +532,9 @@ contains
             Elem%Forces(1:ngllx-2,1:ngllz-2,i) = Elem%MassMat(:,:)  * Elem%Forces(1:ngllx-2,1:ngllz-2,i)
          enddo
       else
+         do i = 0,2
+            Elem%Forces(:,:,i) = Elem%Acoeff(:,:,12) * Elem%Forces(:,:,i)
+         enddo
          do i = 3,4
             Elem%Forces(:,:,i) = Elem%MassMat(:,:) * Elem%Forces(:,:,i)
          enddo

@@ -88,11 +88,11 @@ subroutine allocate_domain (Tdomain)
         endif
      else
         if(Tdomain%specel(n)%Type_DG==0) then
-           allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:11))
+           allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
            allocate (Tdomain%specel(n)%Strain(0:ngllx-1,0:ngllz-1,0:2))
            Tdomain%specel(n)%Strain = 0.
         else if(Tdomain%specel(n)%Type_DG==1) then
-           allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:11))
+           allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
            allocate (Tdomain%specel(n)%Strain(0:ngllx-1,0:ngllz-1,0:2))
            Tdomain%specel(n)%Strain = 0.
         else if(Tdomain%specel(n)%Type_DG==2) then

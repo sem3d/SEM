@@ -51,7 +51,7 @@ module sdomain
        character (len=1), dimension (:), pointer ::  Name_Line, Super_object_type
        character (len=MAX_FILE_SIZE), dimension (:), pointer :: Super_object_file
 
-       logical :: any_PML,bMailUnv,bCapteur
+       logical :: any_PML,bMailUnv,bCapteur,openfilescapt
 
        type (time) :: TimeD
        type (logical_array) :: logicD

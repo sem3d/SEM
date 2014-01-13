@@ -376,9 +376,8 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
         ! sortie des quantites demandees par les capteur
         if (sortie_capteur) call save_capteur(Tdomain, ntime)
 
-
         if (protection/=0) then
-            call save_checkpoint(Tdomain,Tdomain%TimeD%rtime,Tdomain%TimeD%dtmin,ntime,isort)
+            !call save_checkpoint(Tdomain,Tdomain%TimeD%rtime,Tdomain%TimeD%dtmin,ntime,isort)
         endif
 
         ! arret des calculs sur tous les procs
@@ -387,13 +386,11 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
             exit
         endif
 
-
-        ! sortie des veloc pur les 4 capteurs ! A SUPPRIMER !!!!!!!!
-        call capteurs_veloc (Tdomain,Tdomain%TimeD%rtime,ntime,44)
-
         ! incrementation du pas de temps
         Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
 
+        ! sortie des veloc pur les 4 capteurs ! A SUPPRIMER !!!!!!!!
+        call capteurs_veloc (Tdomain,Tdomain%TimeD%rtime,ntime,44)
 
     enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!

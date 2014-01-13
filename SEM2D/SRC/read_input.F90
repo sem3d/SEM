@@ -53,6 +53,7 @@ subroutine create_sem2d_sources(Tdomain, config)
 
         nsrc = nsrc + 1
         Tdomain%logicD%any_source = .true.
+        Tdomain%openfilescapt = .false.
         call c_f_pointer(src%next, src)
     end do
 
