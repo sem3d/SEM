@@ -390,7 +390,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
         Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
 
         ! sortie des veloc pur les 4 capteurs ! A SUPPRIMER !!!!!!!!
-        call capteurs_veloc (Tdomain,Tdomain%TimeD%rtime,ntime,44)
+        !call capteurs_veloc (Tdomain,Tdomain%TimeD%rtime,ntime,44)
 
     enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
