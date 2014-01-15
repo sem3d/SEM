@@ -88,8 +88,8 @@ contains
        !else
           if (DG_type==1) then
              F_minus = compute_trace_F(F,bool_side)
-             !F%Flux = 0.5* (F_minus - compute_trace_F(F,.NOT.bool_side))
-             F%Flux = 0.5 * (F_minus - compute_trace_F(F,.NOT.bool_side))
+             F%Flux = 0.5* (F_minus - compute_trace_F(F,.NOT.bool_side))
+             !F%Flux = 0.5 * (compute_trace_F(F,.true.) + compute_trace_F(F,.false.))
           elseif (DG_type==0) then
              F_minus = compute_trace_F(F,bool_side)
              F%Flux = -0.5 * (F_minus + compute_trace_F(F,.NOT.bool_side))
