@@ -28,6 +28,14 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
     real                  :: timelocal
     real, dimension(3)    :: coeffs
 
+    !if(ntime==0) then
+    !    do n=0,Tdomain%n_elem-1
+    !        Tdomain%specel(n)%Strain(:,:,0) = 1.
+    !        Tdomain%specel(n)%Strain(:,:,1) = 0.
+    !        Tdomain%specel(n)%Strain(:,:,2) = 0.
+    !    enddo
+    !endif
+
 
     ! Runge-Kutta Initialization
     do n = 0, Tdomain%n_elem-1
@@ -139,7 +147,8 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
        enddo
 
        !!!!!!!!!!!! A SUPPRIMER !!!!!!!!!!!
-       call capteurs_veloc (Tdomain,timelocal,ntime,44)
+       call capteurs_veloc (Tdomain,timelocal,ntime,30)
+       call capteurs_veloc (Tdomain,timelocal,ntime,30)
        !print*, "Veloc X for time : ", timelocal, "Iteration RK ", i
        !do n=0,4
        !   print*, Tdomain%specel(0)%Veloc(:,4-n,0)

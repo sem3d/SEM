@@ -77,97 +77,113 @@ contains
     ! --------- CENTERED FLUX -----------
     if (F%Type_Flux == 1) then
 
-       !if(F%is_computed) then
-          ! Case the flux has been already computed
-          !if(DG_type==1) then
-             !F%Flux = -F%Flux
-          !elseif (DG_type==0) then
-             !F%Flux = F%Flux
-          !endif
-          !F%is_computed = .FALSE.
-       !else
-          if (DG_type==1) then
-             F_minus = compute_trace_F(F,bool_side)
-             F%Flux = 0.5* (F_minus - compute_trace_F(F,.NOT.bool_side))
-             !F%Flux = 0.5 * (compute_trace_F(F,.true.) + compute_trace_F(F,.false.))
-          elseif (DG_type==0) then
-             F_minus = compute_trace_F(F,bool_side)
-             F%Flux = -0.5 * (F_minus + compute_trace_F(F,.NOT.bool_side))
-          endif
-          F%is_computed = .TRUE.
-       !endif
-       ! Treating Absorbing Boundary Conditions
-       ! Basee surla supposition F* = Fn-
-       if(F%Abs) then
-          if (DG_type==1) then
-             F%Flux = compute_trace_F(F,bool_side)
-          elseif (DG_type==0) then
-             F%Flux = 0.
-          endif
-       endif
+        !if(F%is_computed) then
+        ! Case the flux has been already computed
+        !if(DG_type==1) then
+        !F%Flux = -F%Flux
+        !elseif (DG_type==0) then
+        !F%Flux = F%Flux
+        !endif
+        !F%is_computed = .FALSE.
+        !else
+        if (DG_type==1) then
+            F_minus = compute_trace_F(F,bool_side)
+            F%Flux = 0.5* (F_minus - compute_trace_F(F,.NOT.bool_side))
+            !F%Flux = 0.5 * (compute_trace_F(F,.true.) + compute_trace_F(F,.false.))
+        elseif (DG_type==0) then
+            F_minus = compute_trace_F(F,bool_side)
+            F%Flux = -0.5 * (F_minus + compute_trace_F(F,.NOT.bool_side))
+        endif
+        F%is_computed = .TRUE.
+        !endif
+        ! Treating Absorbing Boundary Conditions
+        ! Basee surla supposition F* = Fn-
+        if(F%Abs) then
+            if (DG_type==1) then
+                F%Flux = compute_trace_F(F,bool_side)
+            elseif (DG_type==0) then
+                F%Flux = 0.
+            endif
+        endif
+    
+        ! -------- CENTERED LAURENT FLUX ---------- !
+    else if (F%Type_Flux == 3) then
+        if (DG_type==1) then
+            F%Flux = Flux_Laurent(F,bool_side)
+        elseif (DG_type==0) then
+            F%Flux = Flux_Laurent(F,bool_side) - compute_trace_F(F,bool_side)
+        endif
+        ! Treating Absorbing Boundary Conditions
+        if(F%Abs) then
+            if (DG_type==1) then
+                F%Flux = compute_trace_F(F,bool_side)
+            elseif (DG_type==0) then
+                F%Flux = 0.
+            endif
+        endif
 
-    ! -------- GODUNOV FLUX ----------
+        ! -------- GODUNOV FLUX ----------
     else if (F%Type_Flux == 2) then
-       !if(F%is_computed .AND. .NOT. F%changing_media) then
-          ! Case the flux has been already computed
-          !if (DG_type ==1 ) then
-          !   F%Flux = -F%Flux
-          !elseif (DG_type == 0) then
-          !   F%Flux = -F%Flux - compute_trace_F(F,bool_side) - compute_trace_F(F,.NOT.bool_side)
-          !endif
-          !F%is_computed = .FALSE.
-       !else
-          ! Computation of jumps of stresses and Velocities :
-          Stress_jump = compute_stress_jump(F)
-          Veloc_jump(:,:) = F%Veloc_m(:,:) - F%Veloc_p(:,:)
-          if (.NOT. bool_side) Veloc_jump(:,:) = - Veloc_jump(:,:)
-          call check_r1(F,bool_side)
-          if (F%freesurf) then
-             ! Jumps for Treating Free-Surface case
-             Veloc_jump(:,:)  = 0.
-             Stress_jump(:,:) = 2. * Stress_jump(:,:)
-          endif
-          if (bool_side) then
-             coeff_p(:) = Stress_jump(:,0) * F%Normal(0) + Stress_jump(:,1) * F%Normal(1) &
-                  + F%Zp_p(:) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
-          else
-             coeff_p(:) = -Stress_jump(:,0) * F%Normal(0) - Stress_jump(:,1) * F%Normal(1) &
-                  - F%Zp_m(:) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
-          endif
-          if (.NOT. F%acoustic) then
-             ! Computation of eigenvectors r2 and r3 :
-             F%r2 = compute_r(F,Stress_jump,bool_side)
-             F%r3 = compute_r(F,Veloc_jump, bool_side)
-             ! Computation of Numerical Flux :
-             if(bool_side) then
+        !if(F%is_computed .AND. .NOT. F%changing_media) then
+        ! Case the flux has been already computed
+        !if (DG_type ==1 ) then
+        !   F%Flux = -F%Flux
+        !elseif (DG_type == 0) then
+        !   F%Flux = -F%Flux - compute_trace_F(F,bool_side) - compute_trace_F(F,.NOT.bool_side)
+        !endif
+        !F%is_computed = .FALSE.
+        !else
+        ! Computation of jumps of stresses and Velocities :
+        Stress_jump = compute_stress_jump(F)
+        Veloc_jump(:,:) = F%Veloc_m(:,:) - F%Veloc_p(:,:)
+        if (.NOT. bool_side) Veloc_jump(:,:) = - Veloc_jump(:,:)
+        call check_r1(F,bool_side)
+        if (F%freesurf) then
+            ! Jumps for Treating Free-Surface case
+            Veloc_jump(:,:)  = 0.
+            Stress_jump(:,:) = 2. * Stress_jump(:,:)
+        endif
+        if (bool_side) then
+            coeff_p(:) = Stress_jump(:,0) * F%Normal(0) + Stress_jump(:,1) * F%Normal(1) &
+                + F%Zp_p(:) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
+        else
+            coeff_p(:) = -Stress_jump(:,0) * F%Normal(0) - Stress_jump(:,1) * F%Normal(1) &
+                - F%Zp_m(:) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
+        endif
+        if (.NOT. F%acoustic) then
+            ! Computation of eigenvectors r2 and r3 :
+            F%r2 = compute_r(F,Stress_jump,bool_side)
+            F%r3 = compute_r(F,Veloc_jump, bool_side)
+            ! Computation of Numerical Flux :
+            if(bool_side) then
                 do i=0,F%ngll-1
-                   F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:) - F%k1(i)*F%r2(i,:) - F%Zs_p(i)*F%k1(i)*F%r3(i,:)
+                    F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:) - F%k1(i)*F%r2(i,:) - F%Zs_p(i)*F%k1(i)*F%r3(i,:)
                 enddo
-             else
+            else
                 do i=0,F%ngll-1
-                   F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:) - F%k1(i)*F%r2(i,:) - F%Zs_m(i)*F%k1(i)*F%r3(i,:)
+                    F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:) - F%k1(i)*F%r2(i,:) - F%Zs_m(i)*F%k1(i)*F%r3(i,:)
                 enddo
-             endif
-          else ! Acoustic case
-             do i=0,F%ngll-1
+            endif
+        else ! Acoustic case
+            do i=0,F%ngll-1
                 F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:)
-             enddo
-          endif
-          if (DG_type==1) then ! Forme "Faible" des DG
-             F_minus = compute_trace_F(F,bool_side)
-             F%Flux(:,:) = F%Flux(:,:) + F_minus(:,:)
-          endif
-          F%is_computed = .TRUE.
-       !endif
-       ! Treating Absorbing Boundary Conditions
-       ! Basee surla supposition F* = Fn-
-       if(F%Abs) then
-          if (DG_type==1) then
-             F%Flux = compute_trace_F(F,bool_side)
-          elseif (DG_type==0) then
-             F%Flux = 0.
-          endif
-       endif
+            enddo
+        endif
+        if (DG_type==1) then ! Forme "Faible" des DG
+            F_minus = compute_trace_F(F,bool_side)
+            F%Flux(:,:) = F%Flux(:,:) + F_minus(:,:)
+        endif
+        F%is_computed = .TRUE.
+        !endif
+        ! Treating Absorbing Boundary Conditions
+        ! Basee surla supposition F* = Fn-
+        if(F%Abs) then
+            if (DG_type==1) then
+                F%Flux = compute_trace_F(F,bool_side)
+            elseif (DG_type==0) then
+                F%Flux = 0.
+            endif
+        endif
     endif
   end subroutine Compute_Flux
 
@@ -500,6 +516,34 @@ contains
          compute_trace_F(:,4) =  (sigma(:,2)*F%Normal(0) + sigma(:,1)*F%Normal(1))
       endif
     end function compute_trace_F
+
+    ! ############################################################
+
+
+    function Flux_Laurent(F,bool_side)
+
+        type (Face), intent (INOUT)      :: F
+        logical, intent(IN)              :: bool_side
+        real, dimension(0:F%ngll-1,0:4)  :: Flux_Laurent
+        real, dimension(0:F%ngll-1,0:2)  :: sigma, sigma_m, sigma_p
+        real, dimension(0:F%ngll-1,0:1)  :: veloc
+
+        veloc = 0.5 * (F%Veloc_m + F%Veloc_p)
+        sigma_m = compute_stress(F,.true.)
+        sigma_p = compute_stress(F,.false.)
+        sigma = 0.5 * (sigma_m + sigma_p)
+
+        Flux_Laurent(:,0) = F%normal(0) * veloc(:,0)
+        Flux_Laurent(:,1) = F%normal(1) * veloc(:,1)
+        Flux_Laurent(:,2) = 0.5 * (F%normal(1) * veloc(:,0) + F%normal(0) * veloc(:,1))
+        Flux_Laurent(:,3) = sigma(:,0)*F%Normal(0) + sigma(:,2)*F%Normal(1)
+        Flux_Laurent(:,4) = sigma(:,2)*F%Normal(0) + sigma(:,1)*F%Normal(1)
+        
+        if (bool_side) then ! Change normals signs
+            Flux_Laurent = -Flux_Laurent
+        endif
+
+    end function Flux_Laurent
 
     ! ############################################################
 

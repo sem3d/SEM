@@ -51,7 +51,6 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
     integer :: info_capteur
     real(kind=8) :: remaining_time
     real(kind=8), parameter :: max_time_left=900
-    real          :: dt ! A SUPPRIMER
 
 #ifdef COUPLAGE
     integer :: groupe
@@ -386,9 +385,6 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
 
         ! incrementation du pas de temps
         Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
-
-        ! sortie des veloc pur les 4 capteurs ! A SUPPRIMER !!!!!!!!
-        !call capteurs_veloc (Tdomain,Tdomain%TimeD%rtime,ntime,44)
 
     enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
