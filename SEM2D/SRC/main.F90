@@ -115,9 +115,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
     endif
 
     if (rg == 0) write (*,*) " Compute Courant parameter"
-    dt = Tdomain%sSubDomain(0)%Dt ! A SUPPRIMER
     call compute_Courant (Tdomain)
-    Tdomain%TimeD%dtmin = dt  ! A SUPPRIMER
     open (90,file="capteur_sourceX",status="replace",form="formatted") ! A SUPPRIMER
 
     if (rg == 0) write (*,*) "Attribute PML properties"
