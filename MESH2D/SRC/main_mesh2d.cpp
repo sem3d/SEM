@@ -60,6 +60,7 @@ struct MeshProcInfo {
     // Methods
     void add_edge_element(Quad& q, int fn, int en, int qn);
     void create_new_edge();
+    void get_quad_edge(Quad& q, int fn, int& v0, int& v1);
 };
 
 class Mesh2D {
@@ -107,7 +108,7 @@ void Mesh2D::prepare_new_proc_info(MeshProcInfo& info)
     info.m_node_map.resize(m_px.size(), -1);
 }
 
-void get_quad_edge(Quad& q, int fn, int& v0, int& v1)
+void MeshProcInfo::get_quad_edge(Quad& q, int fn, int& v0, int& v1)
 {
     switch(fn) {
     case 0:
@@ -130,6 +131,8 @@ void get_quad_edge(Quad& q, int fn, int& v0, int& v1)
 	printf("ERR: internal error in get_quad_edge\n");
 	exit(1);
     }
+    v0 = m_node_map[v0];
+    v1 = m_node_map[v1];
 }
 
 void MeshProcInfo::create_new_edge()
@@ -148,28 +151,31 @@ void MeshProcInfo::add_edge_element(Quad& q, int fn, int en, int qn)
     // qn : quad number
     // en : edge number
     int j=0;
+    int v0=-1, v1=-1;
     assert(m_edges_elems[2*en+1]==0);
     if (m_edges_elems[2*en]==-1) {
 	j=0;
+	get_quad_edge(q, fn, v0, v1);
     } else if (m_edges_elems[2*en+0]>qn) {
+	j=0;
 	// Move elem0 to index 1
 	m_edges_elems[2*en+1] = m_edges_elems[2*en+0];
 	m_edges_local[2*en+1] = m_edges_local[2*en+0];
+	// Reset vertices for elem0
+	get_quad_edge(q, fn, v0, v1);
     } else {
 	j=1;
     }
     m_edges_elems[2*en+j] = qn;
     m_edges_local[2*en+j] = fn;
-    int v0, v1;
-    get_quad_edge(q, fn, v0, v1);
-    if (m_edges_vertices[2*en+0] == -1) {
+    if (j==0) {
 	m_edges_vertices[2*en+0] = v0;
 	m_edges_vertices[2*en+1] = v1;
     } else {
-	int ev0 = m_edges_vertices[2*en+0];
-	int ev1 = m_edges_vertices[2*en+1];
-	assert((ev0==v0 && ev1==v1) || (ev0==v1 && ev1==v0));
+	v0 = m_edges_vertices[2*en+0];
+	v1 = m_edges_vertices[2*en+1];
     }
+    //printf("qn=%d fn=%d en=%d : j=%d v0=%d v1=%d\n", qn, fn, en, j, v0, v1);
 }
 
 void Mesh2D::gather_proc_info(MeshProcInfo& info, int rk)
