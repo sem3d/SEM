@@ -45,6 +45,10 @@ module sdomain
        real, dimension(:,:), pointer :: GrandeurVitesse     ! tableau conservatoire des grandeurs
        real, dimension(:,:), pointer :: GrandeurDepla     ! tableau conservatoire des grandeurs
        real, dimension(:), pointer :: GrandeurDeformation ! pour tous les points de gauss a une iteration donnee (utilise pour les sorties capteurs)
+       ! Additions S. Terrana Janv 2014
+       integer :: nCapt
+       integer, dimension (:,:), pointer :: elems_capteurs, faces_capteurs
+       integer, dimension (:),   pointer :: type_capteurs
 
 
        character (len=MAX_FILE_SIZE) :: Title_simulation, mesh_file, station_file, material_file

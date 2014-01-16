@@ -115,7 +115,6 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
 
     if (rg == 0) write (*,*) " Compute Courant parameter"
     call compute_Courant (Tdomain)
-    open (90,file="capteur_sourceX",status="replace",form="formatted") ! A SUPPRIMER
 
     if (rg == 0) write (*,*) "Attribute PML properties"
     call PML_definition (Tdomain)
@@ -129,6 +128,10 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
         if (rg == 0) write (*,*) "Computing receivers parameters and locations"
         call ReceiverPosition(Tdomain)
     endif
+
+    ! Initialisations des capteurs par S Terrana Jauary 2014
+    open (90,file="capteur_sourceX",status="replace",form="formatted")
+    call init_capteurs_veloc (Tdomain)
 
     if (rg ==0 .and. Tdomain%logicD%super_object) write(*,*) "Define Fault properties"
     if (Tdomain%logicD%super_object_local_present) then
@@ -385,6 +388,9 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
 
         ! incrementation du pas de temps
         Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
+
+        ! Sorties des Capteurs :
+        call capteurs_veloc (Tdomain,Tdomain%TimeD%rtime)
 
     enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!

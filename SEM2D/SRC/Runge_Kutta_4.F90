@@ -147,8 +147,7 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
        enddo
 
        !!!!!!!!!!!! A SUPPRIMER !!!!!!!!!!!
-       call capteurs_veloc (Tdomain,timelocal,ntime,30)
-       call capteurs_veloc (Tdomain,timelocal,ntime,30)
+       !call capteurs_veloc (Tdomain,timelocal)
        !print*, "Veloc X for time : ", timelocal, "Iteration RK ", i
        !do n=0,4
        !   print*, Tdomain%specel(0)%Veloc(:,4-n,0)
