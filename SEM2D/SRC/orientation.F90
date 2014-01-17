@@ -15,25 +15,25 @@ contains
             if (orient) then
                 Dfield(1:ngllx-2,0,:) =  Sfield(1:ngllx-2,:)
             else
-                Dfield(1:ngllx-2,0,:) =  Sfield(ngllx-2:1,:)
+                Dfield(1:ngllx-2,0,:) =  Sfield(ngllx-2:1:-1,:)
             endif
         case(1)
             if (orient) then
                 Dfield(ngllx-1,1:ngllz-2,:) =  Sfield(1:ngllz-2,:)
             else
-                Dfield(ngllx-1,1:ngllz-2,:) =  Sfield(ngllz-2:1,:)
+                Dfield(ngllx-1,1:ngllz-2,:) =  Sfield(ngllz-2:1:-1,:)
             endif
         case(2)
             if (orient) then
                 Dfield(1:ngllx-2,ngllz-1,:) =  Sfield(1:ngllx-2,:)
             else
-                Dfield(1:ngllx-2,ngllz-1,:) =  Sfield(ngllz-2:1,:)
+                Dfield(1:ngllx-2,ngllz-1,:) =  Sfield(ngllx-2:1:-1,:)
             endif
          case(3)
              if (orient) then
                  Dfield(0,1:ngllz-2,:) =  Sfield(1:ngllz-2,:)
              else
-                 Dfield(0,1:ngllz-2,:) =  Sfield(ngllz-2:1,:)
+                 Dfield(0,1:ngllz-2,:) =  Sfield(ngllz-2:1:-1,:)
              endif
         end select
     end subroutine get_VectProperty_Face2Elem
