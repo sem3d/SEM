@@ -27,15 +27,13 @@ subroutine read_mesh_h5(tDomain)
     type (domain), intent (INOUT) :: Tdomain
     !
     character (len=MAX_FILE_SIZE) :: fnamef
-    integer :: i,j,j_aus,n_aus,k_aus,w_face
-    integer , dimension (:), allocatable :: Ipointer
+    integer :: i
     integer :: n_dime
     !
-    integer, allocatable, dimension(:,:) :: itemp2, itemp2b
-    integer, allocatable, dimension(:)   :: itemp, itempb
+    integer, allocatable, dimension(:,:) :: itemp2
     real,    allocatable, dimension(:,:) :: rtemp2
-    integer(HID_T) :: fid, proc_id
-    integer :: hdferr, ierr, n_proc_mesh
+    integer(HID_T) :: fid
+    integer :: hdferr, n_proc_mesh
     ! Read Mesh properties
     ! The reading is local to the grid
 
@@ -60,7 +58,7 @@ subroutine read_mesh_h5(tDomain)
     endif
     if (n_proc_mesh /= Tdomain%MPi_var%n_proc) then
         write (*,*) "The number of selected processors is not the same as chosen for the mesh partition"
-        write (*,*) " For processor " , Tdomain%Mpi_var%my_rank, " the two values are : " ,  Tdomain%Mpi_var%n_proc, n_aus
+        write (*,*) " For processor " , Tdomain%Mpi_var%my_rank, " the two values are : " ,  Tdomain%Mpi_var%n_proc, n_proc_mesh
         stop
     endif
     ! Global nodes' coordinates for each proc.
@@ -183,6 +181,7 @@ subroutine coherency_mesh_h5(Tdomain)
 
         v0 = Tdomain%sFace(i)%Near_Vertex(0)
         v1 = Tdomain%sFace(i)%Near_Vertex(1)
+        e0 = Tdomain%sFace(i)%Near_Element(0)
         e1 = Tdomain%sFace(i)%Near_Element(1)
         Tdomain%sFace(i)%coherency = .false.
         if (e1 > -1 ) then

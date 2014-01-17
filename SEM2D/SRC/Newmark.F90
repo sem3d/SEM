@@ -231,12 +231,6 @@ subroutine Newmark (Tdomain, ntime)
             do nv = 0, Tdomain%sWall(n)%n_vertices-1
                 nv_aus = Tdomain%sWall(n)%Vertex_List(nv)
                 Tdomain%sVertex(nv_aus)%Double_Value(0:1) = Tdomain%sVertex(nv_aus)%Forces(0:1)
-#ifdef MKA3D
-                !   print*," communication force mka "
-                !   il faut faire la sommation entre les proc car ForcesMka correspond a une contrainte par la surface associee
-                !   au vertex pour chacun des faces de couplage possedant ce point de gauss
-                !    Tdomain%sVertex(nv_aus)%Double_Value(0:1) = Tdomain%sVertex(nv_aus)%Forces(0:1) - Tdomain%sVertex(nv_aus)%ForcesMka(0:1)
-#endif
             enddo
         enddo
 
