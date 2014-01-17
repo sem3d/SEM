@@ -111,7 +111,7 @@ subroutine SourcePosition(Tdomain)
                     c2 = z0 + z1 - z2 - z3
                     d2 = -z0 + z1 + z3 - z2
                     alpha = c1*d2 - d1*c2  ; beta = a1*d2 - b1*c2 + c1*b2 - d1*a2; gamm  =a1*b2 - a2*b1
-                    if (alpha ==0 ) then
+                    if (abs(alpha)<1e-7 ) then
                         eta1 = -gamm/beta
                         if (d2 == 0 .and. b2==0) then
                             xi1 = -(a1 + c1*eta1)/(b1+d1*eta1)
