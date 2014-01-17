@@ -60,7 +60,7 @@ subroutine init_capteurs_veloc (Tdomain)
   real, dimension(:,:), allocatable    :: positions
   integer, dimension(:),   allocatable :: tmp_capt_elem, tmp_capt_face
   character(len=50)                    :: fnamef,n2string
-  real    :: tol, typical_size, Xcapt, Zcapt
+  real    :: tol, typical_size
   integer :: n, nv1, nv2, ncaptElem, ncaptFace, nelem, nface, i, ngx, ngz
   logical :: is_inside, is_onface
 
@@ -113,11 +113,11 @@ subroutine init_capteurs_veloc (Tdomain)
         if(is_onface) then
            ! Capteur de type "Face"
            nface = Tdomain%specel(nelem)%Near_Face(i)
-           if (ANY(tmp_capt_elem .EQ. nface)) then
+           if (ANY(tmp_capt_face .EQ. nface)) then
               is_onface = .NOT. is_onface
            endif
            if (is_onface) then
-              tmp_capt_elem(ncaptFace)= nface
+              tmp_capt_face(ncaptFace)= nface
               Tdomain%type_capteurs(n) = 2
               write(*,*) "Capteur ", n, " is on face ",nface
               ncaptFace = ncaptFace+1

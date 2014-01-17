@@ -20,15 +20,13 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
     real,    intent(in)   :: dt
 
     ! local variables
-    integer :: ns, i, j, k, n, np, mat, nelem, nf
-    integer :: n_face_pointed, tag_send, tag_receive, i_send, i_stock, ngll, ierr, i_proc
+    integer :: i, n, mat, nf, nface, type_DG
+    integer :: tag_send, tag_receive, i_send,  ierr, i_proc
     integer, dimension (MPI_STATUS_SIZE) :: status
-    integer               :: nface,  type_DG
-    logical               :: coherency
     real                  :: timelocal
     real, dimension(3)    :: coeffs
 
-    !if(ntime==0) then
+    !if(Tdomain%TimeD%rtime==0.) then
     !    do n=0,Tdomain%n_elem-1
     !        Tdomain%specel(n)%Strain(:,:,0) = 1.
     !        Tdomain%specel(n)%Strain(:,:,1) = 0.

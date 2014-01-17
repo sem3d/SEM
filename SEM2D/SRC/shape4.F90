@@ -175,6 +175,42 @@ subroutine compute_normals(Tdomain,nf)
 
 end subroutine compute_normals
 
+
+! #########################################
+!>
+!!\file shape4.F90
+!!\brief
+!!\version 1.0
+!!\date 17/01/2014
+!! This subroutine computes the Jacobian of the transformation
+!! from a reference segment [-1,1] to the actual face nf. This
+!! tranformation is, in the linear case, just homothetic, therefore
+!! the Jacobian is the same for all the nodes of the face, and its
+!! value is equal to elongation coefficient.
+!<
+subroutine compute_Jacobian_1D(Tdomain,nf,Jac1D)
+
+  use sdomain
+
+  implicit none
+
+  type(domain), intent (IN) :: Tdomain
+  integer, intent (IN) :: nf
+  real, intent (INOUT) :: Jac1D
+
+  ! local variables
+  integer :: nv0, nv1, n0, n1
+
+  nv0= Tdomain%sFace(nf)%Near_Vertex(0)
+  nv1= Tdomain%sFace(nf)%Near_Vertex(1)
+  n0 = Tdomain%sVertex(nv0)%Glob_numbering
+  n1 = Tdomain%sVertex(nv1)%Glob_numbering
+
+  Jac1D = 0.5 * sqrt((Tdomain%Coord_Nodes(0,n0)-Tdomain%Coord_Nodes(0,n1))**2 &
+                    +(Tdomain%Coord_Nodes(1,n0)-Tdomain%Coord_Nodes(1,n1))**2 )
+
+end subroutine compute_Jacobian_1D
+
 ! #########################################
 
 subroutine shape4(Tdomain)
@@ -202,7 +238,7 @@ subroutine shape4(Tdomain)
 
     integer :: i_aus,n, mat,ngllx,ngllz,i,j,ipoint, ngll, nv, Face_UP, nv2, nf
 
-    real :: x0,x1,x2,x3,z0,z1,z2,z3,xi,eta,xp,zp, Jac, ds_local
+    real :: x0,x1,x2,x3,z0,z1,z2,z3,xi,eta,xp,zp, Jac, ds_local, Jac1D
     real :: normal_0, normal_1, normalization
     real, dimension (0:1,0:1) :: LocInvGrad
     real, dimension (:,:), allocatable :: Store_normal
@@ -264,10 +300,11 @@ subroutine shape4(Tdomain)
         if (Tdomain%specel(n)%Type_DG .NE. 2) then
            if (ngllx .NE. ngllz) STOP 'Case ngllx not equal to ngllz is not taken into account'
            allocate(Tdomain%specel(n)%Coeff_Integr_Faces(0:3,0:ngllx-1))
-           Tdomain%specel(n)%Coeff_Integr_Faces(0,:) = Tdomain%sSubdomain(mat)%GLLwx(:)* 25. !Tdomain%specel(n)%Jacob(0:ngllx-1,0)
-           Tdomain%specel(n)%Coeff_Integr_Faces(1,:) = Tdomain%sSubdomain(mat)%GLLwz(:)* 25. !Tdomain%specel(n)%Jacob(ngllx-1,0:ngllz-1)
-           Tdomain%specel(n)%Coeff_Integr_Faces(2,:) = Tdomain%sSubdomain(mat)%GLLwx(:)* 25. !Tdomain%specel(n)%Jacob(0:ngllx-1,ngllz-1)
-           Tdomain%specel(n)%Coeff_Integr_Faces(3,:) = Tdomain%sSubdomain(mat)%GLLwz(:)* 25. !Tdomain%specel(n)%Jacob(0,0:ngllz-1)
+           do i=0,3
+              nf = Tdomain%specel(n)%Near_Face(i)
+              call compute_Jacobian_1D(Tdomain,nf,Jac1D)
+              Tdomain%specel(n)%Coeff_Integr_Faces(i,:) = Tdomain%sSubdomain(mat)%GLLwx(:) * Jac1D
+           enddo
         endif
     enddo
 
