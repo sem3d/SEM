@@ -13,123 +13,6 @@
 !! \param type(domain),target, intent (INOUT) Tdomain
 !<
 
-
-#ifdef MKA3D
-#if 0
-subroutine write_result_mesh(Tdomain)
-    use sdomain
-    use semdatafiles
-    use sem_hdf5
-    use HDF5
-    type(domain),target, intent (INOUT) :: Tdomain
-
-    character (len=MAX_FILE_SIZE) :: fnamef
-    integer :: n, i, j, ipoint, mat, ngllx, ngllz
-    integer(HID_T) :: fid, dset_elem, dset_gll, dset_nodes, ngauss
-    integer :: hdferr
-    integer, dimension(:,4), allocatable :: elems
-    integer, dimension(:), allocatable :: glls
-    double precision, dimension(:,3), allocatable :: points
-
-    call init_hdf5()
-    call semname_post_data(Tdomain%mpi_var%my_rank,fnamef)
-    call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
-
-    call create_dset_2d(fid, "Elements", H5T_STD_I32LE, Tdomain%n_elem, 4, dset_elem)
-    call create_dset(fid, "GLL", H5T_STD_I32LE, nb_pts, dset_gll)
-    call create_dset_2d(fid, "NODES", H5T_IEEE_F64LE, Tdomain%n_glob_points, 3, dset_nodes)
-
-
-    allocate( elems(0:Tdomain%n_elem-1,4) )
-    ngauss = 0
-    do n = 0,Tdomain%n_elem - 1
-        mat = Tdomain%specel(n)%mat_index
-        ngllx = Tdomain%specel(n)%ngllx
-        ngllz = Tdomain%specel(n)%ngllz
-
-        elems(n,0) = ngllx
-        elems(n,0) = 1
-        elems(n,0) = ngllz
-        elems(n,0) = mat
-        ngauss = ngauss + ngllx*ngllz
-
-        do j = 0,ngllz - 1
-            do i = 0,ngllx - 1
-                ipoint = Tdomain%specel(n)%Iglobnum(i,j)
-                write(89,*) ipoint
-            end do
-        end do
-    end do
-
-    allocate( elems(0:Tdomain%n_elem-1,4) )
-    ngauss = 0
-    do n = 0,Tdomain%n_elem - 1
-        mat = Tdomain%specel(n)%mat_index
-        ngllx = Tdomain%specel(n)%ngllx
-        ngllz = Tdomain%specel(n)%ngllz
-
-        elems(n,0) = ngllx
-        elems(n,0) = 1
-        elems(n,0) = ngllz
-        elems(n,0) = mat
-        ngauss = ngauss + ngllx*ngllz
-
-        do j = 0,ngllz - 1
-            do i = 0,ngllx - 1
-                ipoint = Tdomain%specel(n)%Iglobnum(i,j)
-                write(89,*) ipoint
-            end do
-        end do
-    end do
-
-    do i=0,Tdomain%n_glob_points-1
-        write(88,*) i, Tdomain%GlobCoord (0,i), Tdomain%GlobCoord (1,i)
-    enddo
-    close(88)
-    close(89)
-end subroutine write_result_mesh
-#else
-subroutine write_result_mesh(Tdomain)
-    use sdomain
-    use semdatafiles
-    type(domain),target, intent (INOUT) :: Tdomain
-    character (len=MAX_FILE_SIZE) :: fnamef
-    integer :: n, i, j, ipoint, mat, ngllx, ngllz
-
-    call semname_posptg(Tdomain%mpi_var%my_rank,fnamef)
-    open (88,file=fnamef,form="formatted")
-
-    call semname_connecptg(Tdomain%mpi_var%my_rank,fnamef)
-    open (89,file=fnamef,form="formatted")
-
-    do n = 0,Tdomain%n_elem - 1
-        mat = Tdomain%specel(n)%mat_index
-        ngllx = Tdomain%specel(n)%ngllx
-        ngllz = Tdomain%specel(n)%ngllz
-
-        write(89,'(I8,X,I4,X,I4,X,I4,X,I4)') n,ngllx,1,ngllz,mat
-        do j = 0,ngllz - 1
-            do i = 0,ngllx - 1
-                ipoint = Tdomain%specel(n)%Iglobnum(i,j)
-                write(89,*) ipoint
-            end do
-        end do
-    end do
-    do i=0,Tdomain%n_glob_points-1
-        write(88,*) i, Tdomain%GlobCoord (0,i), Tdomain%GlobCoord (1,i)
-    enddo
-    close(88)
-    close(89)
-end subroutine write_result_mesh
-#endif
-#else
-subroutine write_result_mesh(Tdomain)
-    use sdomain
-    type(domain),target, intent (INOUT) :: Tdomain
-
-end subroutine write_result_mesh
-#endif
-
 subroutine shape4(Tdomain)
 
     use sdomain
@@ -137,12 +20,6 @@ subroutine shape4(Tdomain)
 
     implicit none
 
-    interface
-       subroutine write_result_mesh(Tdomain)
-           use sdomain
-           type(domain),target, intent (INOUT) :: Tdomain
-       end subroutine write_result_mesh
-    end interface
     type(domain),target, intent (INOUT) :: Tdomain
 
 
@@ -211,7 +88,6 @@ subroutine shape4(Tdomain)
 
     enddo
 
-    !call write_result_mesh(Tdomain)
 
     if (Tdomain%logicD%super_object_local_present) then
         do n = 0, Tdomain%n_fault-1
