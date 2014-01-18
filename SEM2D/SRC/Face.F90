@@ -105,7 +105,7 @@ contains
                 F%Flux = 0.
             endif
         endif
-    
+
         ! -------- CENTERED LAURENT FLUX ---------- !
     else if (F%Type_Flux == 3) then
         if (DG_type==1) then

@@ -373,12 +373,17 @@ subroutine read_mesh(tDomain)
         Tdomain%sVertex(n_aus)%mat_index = mat
         n_aus = Tdomain%sFace(i)%Near_Vertex(1)
         Tdomain%sVertex(n_aus)%mat_index = mat
-        ! Sebadditions Sept 2013
+        ! Sebadditions for DG - Sept 2013
         Tdomain%sFace(i)%type_Flux = Tdomain%sSubDomain(mat)%type_Flux
         Tdomain%sFace(i)%type_DG   = Tdomain%sSubDomain(mat)%type_DG
         Tdomain%sFace(i)%is_computed = .false.
         Tdomain%sFace(i)%changing_media = .false.
-        Tdomain%sFace(i)%acoustic = .false.
+        ! Case the face is in Fluid (acoustic) subdomain
+        if (Tdomain%sSubdomain(mat)%material_type == "F") then
+           Tdomain%sFace(i)%acoustic = .true.
+        else
+           Tdomain%sFace(i)%acoustic = .false.
+        endif
     enddo
 
     if ((Tdomain%type_bc==2) .AND. (Tdomain%type_flux==1)) then
