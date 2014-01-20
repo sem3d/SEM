@@ -38,6 +38,14 @@ edge_idx_t make_edge_idx(int n1, int n2)
     else return edge_idx_t(n1,n2);
 }
 
+struct Comm_proc {
+    vector<int> m_vertices;
+    map<int,int> m_vertices_map;
+    vector<int> m_edges;
+    map<edge_idx_t,int> m_edges_map;
+    vector<int> m_coherency;
+};
+
 struct MeshProcInfo {
     // Computed for storage
     vector<double> m_nodes;
@@ -49,11 +57,12 @@ struct MeshProcInfo {
     vector<int> m_edges_vertices; // vert0,vert1 for each edge
 
     int n_elements() const { return m_quads.size()/4; }
-    int n_edges() const { return m_edge_map.size(); }
+    int n_edges() const { return m_edges_vertices.size()/2; }
     int n_vertices() const { return m_nodes.size()/2; }
 
     // Bookkeeping info
     vector<int> m_node_map;
+    vector<int> m_quad_map;
     map<edge_idx_t,int> m_edge_map; // maps edge_idx to edge num+1 (so that 0 is used as not assigned)
 
 
@@ -61,6 +70,8 @@ struct MeshProcInfo {
     void add_edge_element(Quad& q, int fn, int en, int qn);
     void create_new_edge();
     void get_quad_edge(Quad& q, int fn, int& v0, int& v1);
+
+    map<int,Comm_proc> m_comm;
 };
 
 class Mesh2D {
@@ -73,7 +84,7 @@ public:
     void write_proc_field(const string& fname);
     void write_proc_file(const string& fname, int rk);
     void gather_proc_info(MeshProcInfo& info, int rk);
-    void store_local_quad_points(MeshProcInfo& info, Quad& quad);
+    void store_local_quad_points(MeshProcInfo& info, int qn, Quad& quad);
     void prepare_new_proc_info(MeshProcInfo& info);
     int m_nprocs;
     int m_mat_max;
@@ -86,8 +97,10 @@ public:
 };
 
 
-void Mesh2D::store_local_quad_points(MeshProcInfo& info, Quad& quad)
+void Mesh2D::store_local_quad_points(MeshProcInfo& info, int qn, Quad& quad)
 {
+    // Create new local quad number
+    info.m_quad_map[qn] = info.n_elements();
     for(int k=0;k<4;++k) {
 	int nn = quad.n[k];
 	int local_num = info.m_node_map[nn];
@@ -105,7 +118,9 @@ void Mesh2D::prepare_new_proc_info(MeshProcInfo& info)
     info.m_node_map.clear();
     info.m_material.clear();
     info.m_nodes.clear();
+    info.m_quad_map.clear();
     info.m_node_map.resize(m_px.size(), -1);
+    info.m_quad_map.resize(m_quads.size(), -1);
 }
 
 void MeshProcInfo::get_quad_edge(Quad& q, int fn, int& v0, int& v1)
@@ -152,11 +167,12 @@ void MeshProcInfo::add_edge_element(Quad& q, int fn, int en, int qn)
     // en : edge number
     int j=0;
     int v0=-1, v1=-1;
+    int lqn = m_quad_map[qn];
     assert(m_edges_elems[2*en+1]==0);
     if (m_edges_elems[2*en]==-1) {
 	j=0;
 	get_quad_edge(q, fn, v0, v1);
-    } else if (m_edges_elems[2*en+0]>qn) {
+    } else if (m_edges_elems[2*en+0]>lqn) {
 	j=0;
 	// Move elem0 to index 1
 	m_edges_elems[2*en+1] = m_edges_elems[2*en+0];
@@ -166,7 +182,7 @@ void MeshProcInfo::add_edge_element(Quad& q, int fn, int en, int qn)
     } else {
 	j=1;
     }
-    m_edges_elems[2*en+j] = qn;
+    m_edges_elems[2*en+j] = lqn;
     m_edges_local[2*en+j] = fn;
     if (j==0) {
 	m_edges_vertices[2*en+0] = v0;
@@ -183,8 +199,10 @@ void Mesh2D::gather_proc_info(MeshProcInfo& info, int rk)
     prepare_new_proc_info(info);
     for(int qn=0;qn<m_quads.size();++qn) {
 	Quad& quad = m_quads[qn];
-	if (rk!=m_procs[qn]) continue;
-	store_local_quad_points(info, quad);
+	if (rk!=m_procs[qn]) {
+	    continue;
+	}
+	store_local_quad_points(info, qn, quad);
 	info.m_material.push_back(m_mat1[qn]);
 	info.m_material.push_back(0); // Flag solid/fluid... TODO remove
 	info.m_material.push_back(m_mat2[qn]);
@@ -202,6 +220,42 @@ void Mesh2D::gather_proc_info(MeshProcInfo& info, int rk)
 	}
     }
     for(int k=0;k<info.m_edges_local.size();k+=2) assert(info.m_edges_local[k]!=-1);
+    for(int qn=0;qn<m_quads.size();++qn) {
+	Quad& quad = m_quads[qn];
+	if (rk!=m_procs[qn]) {
+	    // mark edges and vertices involved in communications
+	    for(int k=0;k<4;++k) {
+		// Check vertices
+		int local_node_num = info.m_node_map[quad.n[k]];
+		if (local_node_num>=0) {
+		    Comm_proc& comm = info.m_comm[m_procs[qn]];
+		    comm.m_vertices_map[quad.n[k]] = local_node_num;
+		}
+		// Check edges
+		edge_idx_t e = make_edge_idx(quad.n[k], quad.n[(k+1)%4]);
+		int edge_num = info.m_edge_map[e]-1; //edge_num is offset by one so that zero means unassigned
+		if (edge_num>=0) {
+		    Comm_proc& comm = info.m_comm[m_procs[qn]];
+		    comm.m_edges_map[e]=edge_num;
+		}
+	    }
+	}
+    }
+    map<int,Comm_proc>::iterator cit;
+    for(cit=info.m_comm.begin();cit!=info.m_comm.end();++cit) {
+	Comm_proc& comm=cit->second;
+	map<edge_idx_t,int>::const_iterator eit;
+	for(eit=comm.m_edges_map.begin();eit!=comm.m_edges_map.end();++eit) {
+	    comm.m_edges.push_back(eit->second);
+	    // Coherency
+	    int coher=1;
+	    comm.m_coherency.push_back(coher);
+	}
+	map<int,int>::const_iterator vit;
+	for(vit=comm.m_vertices_map.begin();vit!=comm.m_vertices_map.end();++vit) {
+	    comm.m_vertices.push_back(vit->second);
+	}
+    }
 }
 
 int read_attr_int(hid_t dset_id, const char* attrname)
@@ -433,6 +487,7 @@ void Mesh2D::write_proc_file(const string& fname, int rk)
 
     gather_proc_info(info, rk);
     write_attr_int(fid, "ndim", 2);
+    //m_nprocs=1;
     write_attr_int(fid, "n_processors", m_nprocs);
     write_attr_int(fid, "n_materials", m_mat_max+1);
     write_attr_int(fid, "n_elements", info.n_elements());
@@ -447,6 +502,25 @@ void Mesh2D::write_proc_file(const string& fname, int rk)
     write_dset_2d_i(fid, "faces_elem", 2, info.m_edges_elems);
     write_dset_2d_i(fid, "faces_which", 2, info.m_edges_local);
     write_dset_2d_i(fid, "faces_vertex", 2, info.m_edges_vertices);
+
+    int n_comm = info.m_comm.size();
+    //n_comm = 0;
+    write_attr_int(fid, "n_communications", n_comm);
+    map<int,Comm_proc>::const_iterator it;
+    int comm_count=0;
+    for(it=info.m_comm.begin();it!=info.m_comm.end();++it) {
+	char grp_name[60];
+	snprintf(grp_name, 60, "Comm%05d", comm_count);
+	const Comm_proc& comm = it->second;
+	hid_t grp = H5Gcreate(fid, grp_name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+	write_attr_int(grp, "processor", it->first);
+	write_dset_1d_i(grp, "vertices", comm.m_vertices);
+	write_dset_1d_i(grp, "edges", comm.m_edges);
+	write_dset_1d_i(grp, "coherency", comm.m_coherency);
+	H5Gclose(grp);
+	comm_count++;
+    }
 
     H5Fclose(fid);
 }

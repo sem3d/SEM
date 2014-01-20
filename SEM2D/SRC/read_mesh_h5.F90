@@ -27,12 +27,14 @@ subroutine read_mesh_h5(tDomain)
     type (domain), intent (INOUT) :: Tdomain
     !
     character (len=MAX_FILE_SIZE) :: fnamef
-    integer :: i
+    character (len=128) :: commgroup
+    integer :: i, j, nn
     integer :: n_dime
     !
     integer, allocatable, dimension(:,:) :: itemp2
+    integer, allocatable, dimension(:) :: itemp1
     real,    allocatable, dimension(:,:) :: rtemp2
-    integer(HID_T) :: fid
+    integer(HID_T) :: fid, commid
     integer :: hdferr, n_proc_mesh
     ! Read Mesh properties
     ! The reading is local to the grid
@@ -138,6 +140,45 @@ subroutine read_mesh_h5(tDomain)
     enddo
 
     !! TODO COMMUNICATIONS
+    call read_attr_int(fid, "n_communications", Tdomain%n_communications)
+    allocate (Tdomain%Communication_List(0:Tdomain%n_communications-1))
+    allocate (Tdomain%sWall(0:Tdomain%n_communications-1))
+    do j = 0, Tdomain%n_communications-1
+        write(commgroup,"(A,I5.5)") "Comm", j
+        write(*,*) trim(adjustl(commgroup))
+        call H5Gopen_f(fid, trim(adjustl(commgroup)), commid, hdferr)
+        ! Vertices
+        call read_attr_int(commid, "processor", Tdomain%Communication_List(j))
+        call read_dataset(commid, "vertices", itemp1)
+        nn = size(itemp1,1)
+        Tdomain%sWall(j)%n_vertices = nn
+        allocate (Tdomain%sWall(j)%Vertex_List(0:nn-1))
+        Tdomain%sWall(j)%Vertex_List(0:nn-1) = itemp1(1:nn)
+        deallocate(itemp1)
+
+        call read_dataset(commid, "edges", itemp1)
+        nn = size(itemp1,1)
+        Tdomain%sWall(j)%n_faces = nn
+        allocate (Tdomain%sWall(j)%Face_List(0:nn-1))
+        allocate (Tdomain%sWall(j)%Face_Coherency(0:nn-1))
+        Tdomain%sWall(j)%Face_List = itemp1(1:nn)
+        deallocate(itemp1)
+
+        call read_dataset(commid, "coherency", itemp1)
+        if (Tdomain%sWall(j)%n_faces .ne. size(itemp1,1)) then
+            stop "Communications faces and coherency doesn't match"
+        end if
+        do i=0,Tdomain%sWall(j)%n_faces-1
+            if (itemp1(i+1) .ne. 0) then
+                Tdomain%sWall(j)%Face_Coherency(i) = .true.
+            else
+                Tdomain%sWall(j)%Face_Coherency(i) = .false.
+            endif
+        end do
+        deallocate(itemp1)
+
+        call H5Gclose_f(commid, hdferr)
+    end do
 
     call coherency_mesh_h5(Tdomain)
 
