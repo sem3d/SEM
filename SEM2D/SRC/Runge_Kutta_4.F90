@@ -25,6 +25,7 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
     integer, dimension (MPI_STATUS_SIZE) :: status
     real                  :: timelocal
     real, dimension(3)    :: coeffs
+    logical :: acoustic
 
     !if(Tdomain%TimeD%rtime==0.) then
     !    do n=0,Tdomain%n_elem-1
@@ -107,9 +108,10 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
              Tdomain%specel(n)%Displ   = Tdomain%specel(n)%Displ + Tdomain%specel(n)%Veloc * dt ! ATTENTION : A REVOIR !!!!!
              Tdomain%specel(n)%Forces  = Tdomain%specel(n)%Displ
           else                  ! Discontinuous Galerkin
+             acoustic = Tdomain%specel(n)%Acoustic
              do nf = 0,3        ! Computation of the fluxes
                 nface = Tdomain%specel(n)%Near_Face(nf)
-                call Compute_Flux(Tdomain%sFace(nface),n,type_DG)
+                call Compute_Flux(Tdomain%sFace(nface),n,type_DG,acoustic)
                 call get_flux_f2el(Tdomain,n,nface,nf)
              enddo
              call inversion_massmat(Tdomain%specel(n))

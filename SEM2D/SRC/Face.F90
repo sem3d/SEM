@@ -36,7 +36,7 @@ module sfaces
        real, dimension (:,:), allocatable :: r1, r2, r3  ! EigenVectors for DG Godunov
        real, dimension (:,:), allocatable :: Vect_RK
        real, dimension (:,:), allocatable :: Normal_Nodes
-       logical :: is_computed, changing_media, acoustic
+       logical :: is_computed, changing_media
 
     end type face
 
@@ -53,12 +53,13 @@ contains
   !! \param type (Face), intent (INOUT) F
   !<
 
-  subroutine Compute_Flux (F,nelem,DG_type)
+  subroutine Compute_Flux (F,nelem,DG_type,acoustic)
     implicit none
 
     type (Face), intent (INOUT)      :: F
     integer, intent (IN)             :: nelem
     integer, intent (IN)             :: DG_type
+    logical, intent (IN)             :: acoustic
 
     ! local variables
     integer                          :: i
@@ -150,7 +151,7 @@ contains
             coeff_p(:) = -Stress_jump(:,0) * F%Normal(0) - Stress_jump(:,1) * F%Normal(1) &
                 - F%Zp_m(:) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
         endif
-        if (.NOT. F%acoustic) then
+        if (.NOT. acoustic) then
             ! Computation of eigenvectors r2 and r3 :
             F%r2 = compute_r(F,Stress_jump,bool_side)
             F%r3 = compute_r(F,Veloc_jump, bool_side)

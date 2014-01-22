@@ -357,6 +357,12 @@ subroutine read_mesh(tDomain)
         Tdomain%specel(i)%ngllx = Tdomain%sSubDomain(mat)%NGLLx
         Tdomain%specel(i)%ngllz = Tdomain%sSubDomain(mat)%NGLLz
         Tdomain%specel(i)%type_DG = Tdomain%sSubDomain(mat)%type_DG
+        ! Checks if the current element is on acoustic part of the domain
+        if (Tdomain%sSubdomain(mat)%material_type .EQ. "F") then
+           Tdomain%specel(i)%acoustic = .true.
+        else
+           Tdomain%specel(i)%acoustic = .false.
+        endif
     enddo
 
     do i = 0, Tdomain%n_face-1
@@ -377,12 +383,18 @@ subroutine read_mesh(tDomain)
         Tdomain%sFace(i)%type_Flux = Tdomain%sSubDomain(mat)%type_Flux
         Tdomain%sFace(i)%type_DG   = Tdomain%sSubDomain(mat)%type_DG
         Tdomain%sFace(i)%is_computed = .false.
-        Tdomain%sFace(i)%changing_media = .false.
-        ! Case the face is in Fluid (acoustic) subdomain
-        if (Tdomain%sSubdomain(mat)%material_type == "F") then
-           Tdomain%sFace(i)%acoustic = .true.
+        ! Check if the Face is an elastic-acoustic interface :
+        n_aus = Tdomain%sFace(i)%Near_Element(0)
+        k_aus = Tdomain%sFace(i)%Near_Element(1)
+        if (k_aus .NE.-1) then
+           if (Tdomain%specel(n_aus)%acoustic .EQV. Tdomain%specel(k_aus)%acoustic) then
+              Tdomain%sFace(i)%changing_media = .false.
+           else
+              Tdomain%sFace(i)%changing_media = .true.
+              write(*,*) "Changing Media on face : ", i
+           endif
         else
-           Tdomain%sFace(i)%acoustic = .false.
+           Tdomain%sFace(i)%changing_media = .false.
         endif
     enddo
 
