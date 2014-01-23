@@ -27,13 +27,11 @@ subroutine read_mesh(tDomain)
 
     implicit none
     character (len=MAX_FILE_SIZE) :: fnamef
-    character (len=10) :: auxiliary_name
 
-    integer :: i,j,j_aus,n_aus,k_aus,w_face,npml,mat
+    integer :: i,j,j_aus,n_aus,k_aus,w_face
     type (domain), intent (INOUT) :: Tdomain
 
     integer , dimension (:), allocatable :: Ipointer
-    real :: dtmin, Qp, Qs
     integer :: n_dime
 
     ! Read Mesh properties
@@ -41,7 +39,7 @@ subroutine read_mesh(tDomain)
 
     call semname_read_mesh_rank(Tdomain%mesh_file,Tdomain%Mpi_var%my_rank,fnamef)
 
-    write(*,*)"ouverture fichier:",fnamef
+    write(*,*)"ouverture fichier:",trim(adjustl(fnamef))
     open (12,file=fnamef, status="old", form="formatted")
     read (12,*) n_dime
     if (n_dime /= 2) then
@@ -58,6 +56,7 @@ subroutine read_mesh(tDomain)
 
 
 !    ! lecture obsolete car valeurs pas utilisees
+!    character (len=10) :: auxiliary_name
 !    read (12,*) Tdomain%n_line
 !    read (12,*)
 !    allocate (Tdomain%Name_Line(0:Tdomain%n_line-1) )
@@ -309,6 +308,51 @@ subroutine read_mesh(tDomain)
         endif
     enddo
 
+    call read_material_file(Tdomain)
+
+    if (Tdomain%logicD%save_trace) then
+
+        call semname_read_inputmesh_parametrage(Tdomain%station_file,fnamef)
+        open(14,file=fnamef, status="old")
+
+        read (14,*) Tdomain%n_receivers
+        read (14,*)
+        allocate (Tdomain%sReceiver(0:Tdomain%n_receivers-1))
+        do i = 0, Tdomain%n_receivers-1
+            read(14,*) Tdomain%sReceiver(i)%Xrec, Tdomain%sReceiver(i)%Zrec
+        enddo
+        close (14)
+
+        if (Tdomain%logicD%run_echo .and. Tdomain%Mpi_var%my_rank ==0) then
+
+            call semname_read_mesh_station_echo(fnamef)
+            open(94,file=fnamef, status="unknown")
+            write (94,*) Tdomain%n_receivers
+            write (94,*)  "For any receivers, listed x and z coordinates"
+            do i = 0, Tdomain%n_receivers-1
+                write (94,*) Tdomain%sReceiver(i)%Xrec, Tdomain%sReceiver(i)%Zrec
+            enddo
+            close (94)
+        endif
+    endif
+end subroutine read_mesh
+
+
+
+subroutine read_material_file(Tdomain)
+    use sdomain
+    use semdatafiles
+    use mpi
+    implicit none
+
+    type(domain), intent(inout) :: Tdomain
+    character(Len=MAX_FILE_SIZE) :: fnamef
+    !
+    real :: dtmin
+    integer :: i, j, mat, npml
+    integer :: w_face, n_aus
+    real :: Qp, Qs
+
     ! Read material properties
     npml = 0
     allocate(Tdomain%sSubdomain(0:Tdomain%n_mat-1))
@@ -444,36 +488,8 @@ subroutine read_mesh(tDomain)
         call Lame_coefficients (Tdomain%sSubDomain(i))
     enddo
 
-    if (Tdomain%logicD%save_trace) then
+end subroutine read_material_file
 
-        call semname_read_inputmesh_parametrage(Tdomain%station_file,fnamef)
-        open(14,file=fnamef, status="old")
-
-        read (14,*) Tdomain%n_receivers
-        read (14,*)
-        allocate (Tdomain%sReceiver(0:Tdomain%n_receivers-1))
-        do i = 0, Tdomain%n_receivers-1
-            read(14,*) Tdomain%sReceiver(i)%Xrec, Tdomain%sReceiver(i)%Zrec
-        enddo
-        close (14)
-
-        if (Tdomain%logicD%run_echo .and. Tdomain%Mpi_var%my_rank ==0) then
-
-            call semname_read_mesh_station_echo(fnamef)
-            open(94,file=fnamef, status="unknown")
-            write (94,*) Tdomain%n_receivers
-            write (94,*)  "For any receivers, listed x and z coordinates"
-            do i = 0, Tdomain%n_receivers-1
-                write (94,*) Tdomain%sReceiver(i)%Xrec, Tdomain%sReceiver(i)%Zrec
-            enddo
-            close (94)
-        endif
-    endif
-
-
-
-
-end subroutine read_mesh
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
