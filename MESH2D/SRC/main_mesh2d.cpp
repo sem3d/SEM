@@ -38,11 +38,20 @@ edge_idx_t make_edge_idx(int n1, int n2)
     else return edge_idx_t(n1,n2);
 }
 
+struct edge_info_t
+{
+    edge_info_t():edge(-1),coherency(-1) {}
+    edge_info_t(int e, int c):edge(e),coherency(c) {}
+    edge_info_t(const edge_info_t& ei):edge(ei.edge),coherency(ei.coherency) {}
+    int edge;
+    int coherency;
+};
+
 struct Comm_proc {
     vector<int> m_vertices;
     map<int,int> m_vertices_map;
     vector<int> m_edges;
-    map<edge_idx_t,int> m_edges_map;
+    map<edge_idx_t,edge_info_t> m_edges_map;
     vector<int> m_coherency;
 };
 
@@ -236,7 +245,7 @@ void Mesh2D::gather_proc_info(MeshProcInfo& info, int rk)
 		int edge_num = info.m_edge_map[e]-1; //edge_num is offset by one so that zero means unassigned
 		if (edge_num>=0) {
 		    Comm_proc& comm = info.m_comm[m_procs[qn]];
-		    comm.m_edges_map[e]=edge_num;
+		    comm.m_edges_map[e]=edge_info_t(edge_num,1);
 		}
 	    }
 	}
@@ -244,12 +253,10 @@ void Mesh2D::gather_proc_info(MeshProcInfo& info, int rk)
     map<int,Comm_proc>::iterator cit;
     for(cit=info.m_comm.begin();cit!=info.m_comm.end();++cit) {
 	Comm_proc& comm=cit->second;
-	map<edge_idx_t,int>::const_iterator eit;
+	map<edge_idx_t,edge_info_t>::const_iterator eit;
 	for(eit=comm.m_edges_map.begin();eit!=comm.m_edges_map.end();++eit) {
-	    comm.m_edges.push_back(eit->second);
-	    // Coherency
-	    int coher=1;
-	    comm.m_coherency.push_back(coher);
+	    comm.m_edges.push_back(eit->second.edge);
+	    comm.m_coherency.push_back(eit->second.coherency);
 	}
 	map<int,int>::const_iterator vit;
 	for(vit=comm.m_vertices_map.begin();vit!=comm.m_vertices_map.end();++vit) {
