@@ -43,6 +43,7 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/snapshots.F90
     ${PRJ}/SRC/read_input.F90
     ${PRJ}/SRC/read_mesh.F90
+    ${PRJ}/SRC/read_mesh_h5.F90
     ${PRJ}/SRC/read_restart.F90
     ${PRJ}/SRC/receiver_pos.F90
     ${PRJ}/SRC/save_checkpoint.F90

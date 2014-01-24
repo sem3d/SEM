@@ -97,6 +97,160 @@ contains
     end subroutine dist_max_elem
 
 
+subroutine read_material_file(Tdomain)
+    use semdatafiles
+    use mpi
+    implicit none
+
+    type(domain), intent(inout) :: Tdomain
+    character(Len=MAX_FILE_SIZE) :: fnamef
+    !
+    real :: dtmin
+    integer :: i, j, mat, npml
+    integer :: w_face, n_aus
+    real :: Qp, Qs
+
+    ! Read material properties
+    npml = 0
+    allocate(Tdomain%sSubdomain(0:Tdomain%n_mat-1))
+
+    call semname_read_inputmesh_parametrage(Tdomain%material_file,fnamef)
+    open (13,file=fnamef, status="old", form="formatted")
+
+    read (13,*) n_aus  ! Number of material in file
+    if (n_aus<Tdomain%n_mat) then
+        write(*,*) "Material file doesn't contain enough definitions"
+        stop 1
+    end if
+    do i = 0, Tdomain%n_mat-1
+        read (13,*) Tdomain%sSubDomain(i)%material_type, Tdomain%sSubDomain(i)%Pspeed, &
+            Tdomain%sSubDomain(i)%Sspeed, Tdomain%sSubDomain(i)%dDensity, &
+            Tdomain%sSubDomain(i)%NGLLx, n_aus, Tdomain%sSubDomain(i)%NGLLz, Tdomain%sSubDomain(i)%Dt, &
+            Qp, Qs
+        Tdomain%sSubDomain(i)%n_loc_dim = 2
+        Tdomain%sSubdomain(i)%wpml = -1
+        if ( Tdomain%sSubDomain(i)%NGLLx == Tdomain%sSubDomain(i)%NGLLz)  Tdomain%sSubDomain(i)%n_loc_dim = 1
+        if (Tdomain%sSubDomain(i)%material_type == "P" )  then
+            Tdomain%sSubDomain(i)%wpml = npml
+            npml = npml + 1
+        endif
+    enddo
+    Tdomain%any_PML  = .false.
+    if (npml > 0 ) then
+        Tdomain%any_PML = .true.
+        read(13,*); read(13,*)
+        do i = 0,Tdomain%n_mat-1
+            if (Tdomain%sSubdomain(i)%material_type == "P" ) then
+                read (13,*) Tdomain%sSubdomain(i)%Filtering,  Tdomain%sSubdomain(i)%npow, Tdomain%sSubdomain(i)%Apow, &
+                    Tdomain%sSubdomain(i)%Px, Tdomain%sSubdomain(i)%Left, Tdomain%sSubdomain(i)%Pz,  &
+                    Tdomain%sSubdomain(i)%Down, Tdomain%sSubdomain(i)%freq, Tdomain%sSubdomain(i)%k
+            endif
+        enddo
+    endif
+
+    close (13)
+
+    do i = 0,Tdomain%n_elem-1
+        mat = Tdomain%specel(i)%mat_index
+        Tdomain%specel(i)%ngllx = Tdomain%sSubDomain(mat)%NGLLx
+        Tdomain%specel(i)%ngllz = Tdomain%sSubDomain(mat)%NGLLz
+    enddo
+
+    do i = 0, Tdomain%n_face-1
+        n_aus = Tdomain%sFace(i)%Near_Element(0)
+        w_face = Tdomain%sFace(i)%Which_face(0)
+        mat = Tdomain%specel(n_aus)%mat_index
+        if (w_face == 0 .or. w_face==2) then
+            Tdomain%sFace(i)%ngll = Tdomain%sSubDomain(mat)%ngllx
+        else
+            Tdomain%sFace(i)%ngll = Tdomain%sSubDomain(mat)%ngllz
+        endif
+        Tdomain%sFace(i)%mat_index = mat
+        n_aus = Tdomain%sFace(i)%Near_Vertex(0)
+        Tdomain%sVertex(n_aus)%mat_index = mat
+        n_aus = Tdomain%sFace(i)%Near_Vertex(1)
+        Tdomain%sVertex(n_aus)%mat_index = mat
+    enddo
+
+    do i = 0, Tdomain%n_vertex-1
+        mat = Tdomain%sVertex(i)%mat_index
+    enddo
+
+    if (Tdomain%logicD%super_object_local_present) then
+        do i = 0, Tdomain%n_fault-1
+            do j = 0, Tdomain%sFault(i)%n_face-1
+                n_aus = Tdomain%sFault(i)%fFace(j)%Face_UP
+                Tdomain%sFault(i)%fFace(j)%ngll = Tdomain%sFace(n_aus)%ngll
+                w_face = Tdomain%sFace(n_aus)%Which_face(0)
+                if (w_face == 0 .or. w_face ==2) then
+                    Tdomain%sFault(i)%fFace(j)%mat_dir = 1
+                else
+                    Tdomain%sFault(i)%fFace(j)%mat_dir = 0
+                endif
+                Tdomain%sFault(i)%fFace(j)%mat_index = Tdomain%sFace(n_aus)%mat_index
+                n_aus = Tdomain%sFault(i)%fFace(j)%Face_to_Vertex(0)
+                Tdomain%sFault(i)%fVertex(n_aus)%mat_index =  Tdomain%sFault(i)%fFace(j)%mat_index
+                n_aus = Tdomain%sFault(i)%fFace(j)%Face_to_Vertex(1)
+                Tdomain%sFault(i)%fVertex(n_aus)%mat_index =  Tdomain%sFault(i)%fFace(j)%mat_index
+            enddo
+            do j = 0, Tdomain%sFault(i)%n_vertex-1
+                Tdomain%sFault(i)%fVertex(j)%Termination = .false.
+                if (Tdomain%sFault(i)%fVertex(j)%Vertex_UP == -3) &
+                    Tdomain%sFault(i)%fVertex(j)%Termination = .true.
+            enddo
+        enddo
+    endif
+
+    if (Tdomain%logicD%run_echo .and. Tdomain%MPI_var%my_rank ==0) then
+
+        call semname_read_mesh_material_echo(fnamef)
+        open(93,file=fnamef, form="formatted", status="unknown")
+
+        write (93,*) "Material properties"
+        write (93,*) Tdomain%n_mat, "   Number of material"
+        write (93,*) "Type, Pspeed, Sspeed, Density, Dt, NGLLx, NGLLz"
+        do i = 0, Tdomain%n_mat-1
+            write (93,*) Tdomain%sSubDomain(i)%material_type, Tdomain%sSubDomain(i)%Pspeed, &
+                Tdomain%sSubDomain(i)%Sspeed, Tdomain%sSubDomain(i)%DDensity, &
+                Tdomain%sSubDomain(i)%Dt, Tdomain%sSubDomain(i)%NGLLx, Tdomain%sSubDomain(i)%NGLLz
+        enddo
+        if (Tdomain%any_PML ) then
+            write (93,*) "Definition of some PML conditions"
+            write (93,*) " Filtering,  np-power,A-power, x-direction, left increase, z-direction, down-increase, cut-off frequency"
+            do i = 0,Tdomain%n_mat-1
+                if (Tdomain%sSubdomain(i)%material_type == "P" ) then
+                    write (93,*)  Tdomain%sSubdomain(i)%Filtering,  Tdomain%sSubdomain(i)%npow, Tdomain%sSubdomain(i)%Apow, &
+                        Tdomain%sSubdomain(i)%Px, Tdomain%sSubdomain(i)%Left, Tdomain%sSubdomain(i)%Pz,  &
+                        Tdomain%sSubdomain(i)%Down, Tdomain%sSubdomain(i)%freq,Tdomain%sSubdomain(i)%k
+                endif
+            enddo
+            close (93)
+        endif
+    endif
+
+    do i = 0, Tdomain%n_mat-1
+        if (Tdomain%sSubdomain(i)%material_type == "P" .and. Tdomain%sSubdomain(i)%Filtering ) &
+            Tdomain%sSubdomain(i)%freq = exp (-Tdomain%sSubdomain(i)%freq*Tdomain%sSubdomain(i)%dt/2)
+    enddo
+
+    dtmin =1e20
+    do i = 0,Tdomain%n_mat-1
+        if (Tdomain%sSubDomain(i)%Dt < dtmin ) dtmin = Tdomain%sSubDomain(i)%Dt
+    enddo
+    Tdomain%TimeD%dtmin = dtmin
+    if (dtmin > 0) then
+        Tdomain%TimeD%ntimeMax = int (Tdomain%TimeD%Duration/dtmin)
+    else
+        write (*,*) "Your dt min is zero : verify it"
+        stop
+    endif
+
+    do i = 0, Tdomain%n_mat-1
+        call Lame_coefficients (Tdomain%sSubDomain(i))
+    enddo
+
+end subroutine read_material_file
+
 
 end module sdomain
 !! Local Variables:
