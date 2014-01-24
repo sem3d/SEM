@@ -43,7 +43,9 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     integer :: MaxNgParDir
     integer, dimension(3) :: flags_synchro ! fin/protection/sortie
     integer*4 getpid, pid
-    integer, dimension(2) :: tab
+    integer, dimension(3) :: tab
+    integer :: min_rank_glob_sem
+    integer :: master_sup, nb_procs_sup, master_mka, nb_procs_mka
 #endif
     integer :: interrupt, ierr
     logical :: sortie_capteur
@@ -71,19 +73,24 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     tag=8100000+global_rank
     call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
 
+    !! On cherche le global rank minimal des procs sem
+    call MPI_Reduce(global_rank, min_rank_glob_sem, 1, MPI_INTEGER, MPI_MIN, 0, m_localComm)
+
     !! Envoi des infos de couplage
     if (rg == 0) then
 	tab(1) = global_rank
 	tab(2) = nb_procs
+        tab(3) = min_rank_glob_sem
+
 	do i=1, global_nb_proc
-	    tag=8200000+i-1
-	    call MPI_Send(tab, 2, MPI_INTEGER, i-1, tag, MPI_COMM_WORLD, ierr)
+	    tag=8200000+i
+	    call MPI_Send(tab, 3, MPI_INTEGER, i-1, tag, MPI_COMM_WORLD, ierr)
 	enddo
     endif
 
     !! Reception des infos de sem
-    tag=8200000+global_rank
-    call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
+    tag=8200000+global_rank+1
+    call MPI_Recv(tab, 3, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
 
     call MPI_Comm_group(MPI_COMM_WORLD, worldgroup, ierr)
     call MPI_Group_incl(worldgroup, 2, tab, intergroup, ierr)
