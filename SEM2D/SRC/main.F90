@@ -33,10 +33,12 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
     use mpi
     use msnapshots
     use sem_c_bindings
+    use shape_lin
+    use shape_quad
 #ifdef COUPLAGE
     use scouplage
 #endif
-
+    use snewmark
 
     implicit none
     integer, intent(in) :: communicateur,communicateur_global,master_superviseur
@@ -226,13 +228,14 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
     interrupt = 0
     do ntime= Tdomain%TimeD%NtimeMin, Tdomain%TimeD%NtimeMax-1
 
+        Tdomain%TimeD%ntime = ntime
         protection = 0
         if (interrupt>0) then
             if (rg==0) write(*,*) "Sortie sur limite de temps..."
             exit
         end if
 
-        call Newmark (Tdomain, ntime)
+        call Newmark (Tdomain)
 
         if (ntime==Tdomain%TimeD%NtimeMax-1) then
             interrupt=1
@@ -339,7 +342,6 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
         ! sortie des quantites demandees par les capteur
         if (sortie_capteur) call save_capteur(Tdomain, ntime)
 
-
         if (protection/=0) then
             call save_checkpoint(Tdomain,Tdomain%TimeD%rtime,Tdomain%TimeD%dtmin,ntime,isort)
         endif
@@ -349,9 +351,6 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
             print*,"Arret de SEM, iteration=", ntime
             exit
         endif
-
-
-
 
         ! incrementation du pas de temps
         Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin

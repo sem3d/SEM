@@ -7,14 +7,17 @@
 !! des vitesses avec une formulation contrainte-vitesse décalée en temps dans les PML.
 !<
 
-subroutine Newmark (Tdomain, ntime)
+module snewmark
     use sdomain
     use scouplage
     use mpi
+    implicit none
+contains
+
+subroutine Newmark (Tdomain)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
-    integer, intent(in) :: ntime
 
     ! local variables
     integer :: ns, ncc,i,j,n,np, ngllx, ngllz, mat, nelem,nf, w_face, nv_aus, nf_aus, nv
@@ -195,7 +198,7 @@ subroutine Newmark (Tdomain, ntime)
 
         ! AJOUT DES FORCES MKA3D
 #ifdef COUPLAGE
-        if (ntime>0) then
+        if (Tdomain%TimeD%ntime>0) then
             call calcul_couplage_force(Tdomain,ntime)
         endif
 
@@ -534,6 +537,8 @@ subroutine Newmark (Tdomain, ntime)
 
     return
 end subroutine Newmark
+
+end module snewmark
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

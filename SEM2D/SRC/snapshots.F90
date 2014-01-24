@@ -11,9 +11,8 @@ module msnapshots
 contains
 
 
-    subroutine compute_saved_elements(Tdomain, rg, irenum, nnodes)
+    subroutine compute_saved_elements(Tdomain, irenum, nnodes)
         type (domain), intent (INOUT):: Tdomain
-        integer, intent(in) :: rg
         integer, allocatable, dimension(:), intent(out) :: irenum ! maps Iglobnum to file node number
         integer, intent(out) :: nnodes
         integer :: n, i, k, ngllx, ngllz, ig, gn, ne
@@ -80,9 +79,9 @@ contains
 
         call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
 
-        call compute_saved_elements(Tdomain, rg, irenum, nnodes)
+        call compute_saved_elements(Tdomain, irenum, nnodes)
 
-        call write_global_nodes(Tdomain, rg, fid, irenum, nnodes)
+        call write_global_nodes(Tdomain, fid, irenum, nnodes)
         
         call write_elem_connectivity(Tdomain, fid, irenum)
 
@@ -94,11 +93,11 @@ contains
     end subroutine write_snapshot_geom
 
 
-    subroutine write_global_nodes(Tdomain, rg, fid, irenum, nnodes)
+    subroutine write_global_nodes(Tdomain, fid, irenum, nnodes)
         implicit none
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: fid
-        integer, intent(in) :: rg, nnodes
+        integer, intent(in) :: nnodes
         integer, dimension(:), intent(in), allocatable :: irenum
         !
         real, dimension(:,:), allocatable :: nodes
@@ -237,7 +236,7 @@ contains
         call create_dir_sorties(Tdomain, rg, isort)
         call semname_snap_result_file(rg, isort, fnamef)
 
-        call compute_saved_elements(Tdomain, rg, irenum, nnodes)
+        call compute_saved_elements(Tdomain, irenum, nnodes)
 
 
         call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)

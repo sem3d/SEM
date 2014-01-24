@@ -13,6 +13,14 @@
 !! \param type(domain),target, intent (INOUT) Tdomain
 !<
 
+! #########################################
+module shape_lin
+
+
+contains
+
+! #########################################
+
 subroutine shape4(Tdomain)
 
     use sdomain
@@ -25,13 +33,10 @@ subroutine shape4(Tdomain)
 
     ! local variables
 
-    integer :: i_aus,n, mat,ngllx,ngllz,i,j,ipoint, ngll, nv, Face_UP, nv2
-
-    real :: x0,x1,x2,x3,z0,z1,z2,z3,xi,eta,xp,zp, Jac, ds_local
-    real :: normal_0, normal_1, normalization
+    integer :: i_aus,n, mat,ngllx,ngllz,i,j,ipoint, nf
+    real :: x0,x1,x2,x3,z0,z1,z2,z3,xi,eta,xp,zp, Jac
+    real :: face_len
     real, dimension (0:1,0:1) :: LocInvGrad
-    real, dimension (:,:), allocatable :: Store_normal
-    real, dimension (:), pointer :: GLLc_face
 
     ! Modified by Gaetano Festa, 26/05/05
     !---------------------------------------------------------------------------------------------------------------
@@ -91,6 +96,25 @@ subroutine shape4(Tdomain)
 
     if (Tdomain%logicD%super_object_local_present) then
         do n = 0, Tdomain%n_fault-1
+            call manage_super_object(Tdomain, n)
+        enddo
+    endif
+    return
+end subroutine shape4
+
+
+subroutine manage_super_object(Tdomain, n)
+    use sdomain
+    implicit none
+    type(domain),target, intent (INOUT) :: Tdomain
+    integer, intent(IN) :: n
+    integer :: i, j, i_aus
+    real, dimension (:), pointer :: GLLc_face
+    real, dimension (:,:), allocatable :: Store_normal
+    real :: ds_local, normal_0, normal_1, normalization
+    real :: x0, x1, z0, z1
+    integer :: Face_up, mat, ngll, nv, nv2
+
             do  j = 0, Tdomain%sFault(n)%n_face-1
                 ngll = Tdomain%sFault(n)%fFace(j)%ngll
                 Face_up = Tdomain%sFault(n)%fFace(j)%Face_UP
@@ -130,6 +154,8 @@ subroutine shape4(Tdomain)
                     i_aus = Tdomain%specel(nv2)%Control_Nodes(0)
                     x1 = Tdomain%Coord_Nodes(0,i_aus)
                     z1 = Tdomain%Coord_Nodes(1,i_aus)
+                else
+                    stop "Inconsistency with Face_up"
                 endif
 
                 allocate (Tdomain%sFault(n)%fFace(j)%ds(0:ngll-1))
@@ -199,10 +225,10 @@ subroutine shape4(Tdomain)
                 Tdomain%sFault(n)%fFace(j)%distance(1:ngll-2)= Store_normal (1:ngll-2,0)
                 deallocate (Store_normal)
             enddo
-        enddo
-    endif
-    return
-end subroutine shape4
+
+end subroutine manage_super_object
+
+end module shape_lin
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

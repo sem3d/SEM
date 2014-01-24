@@ -21,7 +21,7 @@ subroutine get_Displ_fv2el(Tdomain,n)
 
     type(element), pointer :: el
     type(face), pointer :: fc
-    integer :: i,nx,nz,nv
+    integer :: nx,nz,nv
 
     el => Tdomain%specel(n)
     nx = el%ngllx;  nz = el%ngllz
