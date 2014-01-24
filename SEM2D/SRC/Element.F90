@@ -41,7 +41,7 @@ module selement
 
        ! DG
        integer :: type_DG
-       integer :: acoustic
+       logical :: acoustic
        real, dimension (:,:), allocatable :: Coeff_Integr_Faces
        real, dimension(:,:,:), allocatable :: Strain
        real, dimension(:,:,:), allocatable :: Vect_RK
