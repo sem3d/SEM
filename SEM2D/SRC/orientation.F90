@@ -1,5 +1,5 @@
 module orientation
-
+    use sdomain
 contains
 
     subroutine get_VectProperty_Face2Elem(nf, orient, ngllx, ngllz, ngll, Sfield, Dfield)
@@ -37,5 +37,117 @@ contains
              endif
         end select
     end subroutine get_VectProperty_Face2Elem
+
+
+   !! Recopie dans field le champs de deplacement reparti sur les Elem, Face, Edge, Vertex
+    subroutine gather_elem_displ(Tdomain, nel, field)
+        implicit none
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: nel
+        real, dimension(0:,0:,0:), intent(out) :: field
+        type(element), pointer :: el
+        type(face), pointer :: fc
+        type(vertex), pointer :: vx
+        integer :: nx, nz, i
+        logical :: orient
+        nx = Tdomain%specel(nel)%ngllx
+        nz = Tdomain%specel(nel)%ngllz
+        el => Tdomain%specel(nel)
+
+        field(1:nx-2,1:nz-2,0:1) = el%Displ(:,:,:)
+        do i=0,3
+            fc => Tdomain%sFace(el%Near_Face(i))
+            orient = fc%coherency .or. fc%near_element(0) == nel
+!            write(*,*) "EL", nel, "fc=",i, "orient:",orient, " nf=", el%Near_Face(i)
+            call get_VectProperty_Face2Elem(i, orient, nx, nz, fc%ngll, fc%Displ, field)
+        end do
+
+
+        vx => Tdomain%sVertex(el%Near_Vertex(0))
+        field(0,0,:) = vx%Displ
+        vx => Tdomain%sVertex(el%Near_Vertex(1))
+        field(nx-1,0,:) = vx%Displ
+        vx => Tdomain%sVertex(el%Near_Vertex(2))
+        field(nx-1,nz-1,:) = vx%Displ
+        vx => Tdomain%sVertex(el%Near_Vertex(3))
+        field(0,nz-1,:) = vx%Displ
+
+    end subroutine gather_elem_displ
+
+    subroutine gather_elem_veloc(Tdomain, nel, field)
+        implicit none
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: nel
+        real, dimension(0:,0:,0:), intent(out) :: field
+        type(element), pointer :: el
+        type(face), pointer :: fc
+        type(vertex), pointer :: vx
+        integer :: nx, nz, i, nx0, nx1, nz0, nz1
+        logical :: orient
+        nx = Tdomain%specel(nel)%ngllx
+        nz = Tdomain%specel(nel)%ngllz
+        el => Tdomain%specel(nel)
+
+        nx0 = 1
+        nx1 = nx-2
+        nz0 = 1
+        nz1 = nz-2
+
+        field(nx0:nx1,nz0:nz1,0:1) = el%Veloc(:,:,:)
+
+        do i=0,3
+            fc => Tdomain%sFace(el%Near_Face(i))
+            orient = fc%coherency .or. fc%near_element(0) == nel
+            call get_VectProperty_Face2Elem(i, orient, nx, nz, fc%ngll, fc%Veloc, field)
+        end do
+
+        vx => Tdomain%sVertex(el%Near_Vertex(0))
+        field(0,0,:) = vx%Veloc
+        vx => Tdomain%sVertex(el%Near_Vertex(1))
+        field(nx-1,0,:) = vx%Veloc
+        vx => Tdomain%sVertex(el%Near_Vertex(2))
+        field(nx-1,nz-1,:) = vx%Veloc
+        vx => Tdomain%sVertex(el%Near_Vertex(3))
+        field(0,nz-1,:) = vx%Veloc
+
+    end subroutine gather_elem_veloc
+
+    subroutine gather_elem_accel(Tdomain, nel, field)
+        implicit none
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: nel
+        real, dimension(0:,0:,0:), intent(out) :: field
+        type(element), pointer :: el
+        type(face), pointer :: fc
+        type(vertex), pointer :: vx
+        integer :: nx, nz, i, nx0, nx1, nz0, nz1
+        logical :: orient
+        nx = Tdomain%specel(nel)%ngllx
+        nz = Tdomain%specel(nel)%ngllz
+        el => Tdomain%specel(nel)
+
+        nx0 = 1
+        nx1 = nx-2
+        nz0 = 1
+        nz1 = nz-2
+
+        field(nx0:nx1,nz0:nz1,0:1) = el%Accel(:,:,:)
+
+        do i=0,3
+            fc => Tdomain%sFace(el%Near_Face(i))
+            orient = fc%coherency .or. fc%near_element(0) == nel
+            call get_VectProperty_Face2Elem(i, orient, nx, nz, fc%ngll, fc%Accel, field)
+        end do
+
+        vx => Tdomain%sVertex(el%Near_Vertex(0))
+        field(0,0,:) = vx%Accel
+        vx => Tdomain%sVertex(el%Near_Vertex(1))
+        field(nx-1,0,:) = vx%Accel
+        vx => Tdomain%sVertex(el%Near_Vertex(2))
+        field(nx-1,nz-1,:) = vx%Accel
+        vx => Tdomain%sVertex(el%Near_Vertex(3))
+        field(0,nz-1,:) = vx%Accel
+
+    end subroutine gather_elem_accel
 
 end module orientation
