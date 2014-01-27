@@ -79,6 +79,7 @@ subroutine init_capteurs_veloc (Tdomain)
 
   allocate (tmp_capt_elem(0:Tdomain%nCapt-1))
   allocate (tmp_capt_face(0:Tdomain%nCapt-1))
+  tmp_capt_face = -1
 
   ! Vecteur indiquent le type (element ou face) pour chaque capteur
   allocate (Tdomain%type_capteurs(0:Tdomain%nCapt-1))

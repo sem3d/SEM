@@ -539,7 +539,7 @@ contains
         Flux_Laurent(:,2) = 0.5 * (F%normal(1) * veloc(:,0) + F%normal(0) * veloc(:,1))
         Flux_Laurent(:,3) = sigma(:,0)*F%Normal(0) + sigma(:,2)*F%Normal(1)
         Flux_Laurent(:,4) = sigma(:,2)*F%Normal(0) + sigma(:,1)*F%Normal(1)
-        
+
         if (bool_side) then ! Change normals signs
             Flux_Laurent = -Flux_Laurent
         endif

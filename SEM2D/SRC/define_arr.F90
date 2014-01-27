@@ -25,7 +25,7 @@ subroutine define_arrays(Tdomain)
 
     ! local variables
 
-    integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf,nelem1,nface
+    integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf,nface
     integer :: i_send, n_face_pointed, i_proc, nv, i_stock, tag_send, tag_receive, ierr
     integer ,  dimension (MPI_STATUS_SIZE) :: status
     real :: vp,ri,rj,dx, LocMassmat_Vertex
@@ -446,13 +446,19 @@ subroutine define_arrays(Tdomain)
     do n = 0,Tdomain%n_elem-1
         do nf=0,3
             nface = Tdomain%specel(n)%Near_Face(nf)
-            if(Tdomain%Specel(n)%Type_DG .NE. 2) call get_MuLambda_el2f(Tdomain,n,nface)
+            if(Tdomain%Specel(n)%Type_DG .NE. 2) &
+                 call get_MuLambda_el2f(Tdomain,n,nface)
         enddo
     enddo
     ! Calcul des coefficients pour les Fluxs Godunov
     do nf = 0, Tdomain%n_face-1
        if(Tdomain%sFace(nf)%type_Flux .EQ. 2) &
-         call compute_coeff_flux(Tdomain,nf)
+            call compute_coeff_flux(Tdomain,nf)
+    enddo
+    ! Prolongement par continuite des proprietes du milieu pour surface libre
+    do nf = 0, Tdomain%n_face-1
+       if(Tdomain%sFace(nf)%freesurf) &
+         call coeff_freesurf(Tdomain,nf)
     enddo
 
     ! Preparing and allocating vectors to be exchanged at each time-step

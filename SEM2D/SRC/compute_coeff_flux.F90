@@ -228,3 +228,36 @@ subroutine get_MuLambda_el2f (Tdomain, nelem, nface)
   return
 
 end subroutine get_MuLambda_el2f
+
+
+!>
+!! \brief coeff_freesurf extends the Mu, Lambda, mass, and impedences coeficients from 
+!! the interior side of a face to the exterior side of it. Used for the faces where
+!! a "free surface" condition is applied.
+!!  Used principaly for Godunov-type fluxes
+!! \param type (Domain), intent (INOUT) Tdomain
+!! \param integer, intent (IN) nface
+!<
+subroutine coeff_freesurf(Tdomain,nface)
+  use sdomain
+  implicit none
+  type (Domain), intent (INOUT) :: Tdomain
+  integer, intent (IN) :: nface
+
+  ! local variables
+  integer ::  ngll,  i
+  
+  Tdomain%sface(nface)%Mu_p     = Tdomain%sface(nface)%Mu_m
+  Tdomain%sface(nface)%Lambda_p = Tdomain%sface(nface)%Lambda_m
+  Tdomain%sface(nface)%Zp_p     = Tdomain%sface(nface)%Zp_m
+  Tdomain%sface(nface)%Zs_p     = Tdomain%sface(nface)%Zs_m
+  ngll = Tdomain%sface(nface)%ngll
+  do i=0,ngll-1
+     Tdomain%sFace(nface)%k0(i) = 1./(Tdomain%sFace(nface)%Zp_m(i) + Tdomain%sFace(nface)%Zp_p(i))
+     Tdomain%sFace(nface)%k1(i) = 1./(Tdomain%sFace(nface)%Zs_m(i) + Tdomain%sFace(nface)%Zs_p(i))
+     Tdomain%sFace(nface)%r1(i,0) = Tdomain%sFace(nface)%normal(0)**2
+     Tdomain%sFace(nface)%r1(i,1) = Tdomain%sFace(nface)%normal(1)**2
+     Tdomain%sFace(nface)%r1(i,2) = Tdomain%sFace(nface)%normal(0) * Tdomain%sFace(nface)%normal(1)
+  end do
+
+end subroutine coeff_freesurf

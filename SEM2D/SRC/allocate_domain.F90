@@ -45,6 +45,10 @@ subroutine allocate_domain (Tdomain)
          allocate (Tdomain%specel(n)%Forces(0:ngllx-1,0:ngllz-1,0:4))
      endif
 
+     Tdomain%specel(n)%MassMat = 0
+     Tdomain%specel(n)%Density = 0
+     Tdomain%specel(n)%Lambda  = 0
+     Tdomain%specel(n)%Mu = 0
      Tdomain%specel(n)%Veloc = 0
      Tdomain%specel(n)%Forces = 0
      Tdomain%specel(n)%Accel = 0
