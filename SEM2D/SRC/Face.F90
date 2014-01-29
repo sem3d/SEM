@@ -182,7 +182,7 @@ contains
             if (DG_type==1) then
                 F%Flux = compute_trace_F(F,bool_side)
             elseif (DG_type==0) then
-                F%Flux = 0.
+                !F%Flux = 0.
             endif
         endif
     endif

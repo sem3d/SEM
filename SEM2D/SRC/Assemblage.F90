@@ -175,7 +175,7 @@ subroutine Get_flux_f2el (Tdomain, nelem, nface, w_face)
   ngllz = Tdomain%specel(nelem)%ngllz
   coherency = Tdomain%sFace(nface)%coherency
 
-  if (coherency) then
+  if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
      if (w_face == 0 ) then
         do i=0,ngll-1 
            Tdomain%specel(nelem)%Forces(i,0,0:4) = Tdomain%specel(nelem)%Forces(i,0,0:4) - &
