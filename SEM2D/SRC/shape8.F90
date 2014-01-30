@@ -284,13 +284,6 @@ subroutine shape8(Tdomain)
 
     return
 end subroutine shape8
-end module
-!! Local Variables:
-!! mode: f90
-!! show-trailing-whitespace: t
-!! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
-
 
 !##########################################
 
@@ -361,3 +354,10 @@ subroutine buildNormal(Tdomain,LocInvGrad,n_elem,i,j)
 
   return
 end subroutine buildNormal
+
+end module shape_quad
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent : !!

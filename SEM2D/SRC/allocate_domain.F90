@@ -255,7 +255,7 @@ subroutine allocate_domain (Tdomain)
   enddo
 
   ! Init for Runge-Kutta Low Storage time integration.
-  if(Tdomain%type_TimeInteg==1) then
+  if(Tdomain%type_TimeInteg==TIME_INTEG_RK4) then
      do n = 0, Tdomain%n_elem-1
         ngllx = Tdomain%specel(n)%ngllx
         ngllz = Tdomain%specel(n)%ngllz

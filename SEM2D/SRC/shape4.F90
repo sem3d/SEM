@@ -19,12 +19,10 @@ module shape_lin
 contains
 
 ! #########################################
-
-! #########################################
-
 subroutine compute_normals(Tdomain,nf)
 
     use sdomain
+    use sfaults
 
     implicit none
 
@@ -115,9 +113,6 @@ subroutine shape4(Tdomain)
 
     ! local variables
 
-!    integer :: i_aus,n, mat,ngllx,ngllz,i,j,ipoint, ngll, nv, Face_UP, nv2, nf
-!    real :: x0,x1,x2,x3,z0,z1,z2,z3,xi,eta,xp,zp, Jac, ds_local, Jac1D
-!    real :: normal_0, normal_1, normalization
     integer :: i_aus,n, mat,ngllx,ngllz,i,j,ipoint, nf
     real :: x0,x1,x2,x3,z0,z1,z2,z3,xi,eta,xp,zp, Jac
     real :: Jac1D
