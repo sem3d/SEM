@@ -4,3 +4,107 @@ Comm_* a voir
 
 Newmark: algo comm ecrit `a utiliser
 
+
+
+VALIDATION de SEM3D / SEM2D
+
+
+Cas analytique, fonctions de comparaison
+
+Infrastructure :
+
+lancer en faisant make test ou ./run_test un jeu de test automatisé :
+
+1/ Choisir un répertoire de travail
+2/ Copier ou lier les données d'entrée
+3/ Si nécessaire générer le maillage et le partitionner
+4/ Appliquer un paramétrage (changer l'ordre des éléments, la durée de simulation, le nb de courant)
+5/ Lancer le calcul (monoprocesseur ou MPI)
+6/ Comparer et valider les sorties.
+
+
+(s'appuyer sur l'environnement pour mka3d)
+
+Exemple:
+
+run_test -n 4 --rundir /tmp --report /tmp/report --case sem2d/test01
+run_test -n 4 --rundir /tmp --category all2D
+
+Arborescence : 
+
+RUNDIR/casename/run00001 
+   input.spec
+   material.input
+   sem/*
+   res/
+   mesh.xmf/mesh.h5
+
+REPORTDIR/casename/run00001
+    version  : contient la version git
+    output   : contient la sortie texte   
+    timeinfo : runtime /  
+
+
+
+
+
+Couverture des tests :
+
+Modélisation de la source :
+
+- pulse
+
+- moment (explo, cisaillement, ...)
+
+- contenu fréquentiel,
+
+- position dans la maille source (bord, centre)
+
+- source entretenue pour comparaison avec Helmoltz
+
+Propagation :
+
+- solution analytique,
+
+- bords libres
+
+- bords absorbants
+
+- cas limites de Vp/Vs
+
+- Propagation avec maillage raffiné / déformé
+
+Schéma d'intégration :
+
+- Comparaison pour différents nombre de courant
+
+- RK4 ?
+
+Stabilité des PML
+
+Tests des sorties numériques :
+
+- sorties capteur & snapshots
+
+- avec des maillages tordus (tore, moebus
+
+La même chose avec les éléments fluides
+
+La même chose avec protection/reprise en cours de calcul
+
+La même chose sur 1,2,4,NN procs
+
+La même chose en changeant la définition (rotation) de certains hexaèdres du maillage (test orientation/faces)
+
+Le minimum pour la prochaine version :
+
+1. Calculer les solutions numériques avec code HERMANN et comparer avec un cas 3D homogène
+
+2. Idem avec 2, 3, 4 couches.
+
+3. Avec ou sans PML
+
+
+
+
+
