@@ -35,9 +35,10 @@ module sem_c_config
 
        !! Snapshots
        integer(C_INT) :: save_snap
+       integer(C_INT) :: n_group_outputs
        real(C_DOUBLE) :: snap_interval
        integer(C_INT) :: n_snap_cond
-       type(C_PTR)    :: snapshot_selection;
+       type(C_PTR)    :: snapshot_selection
 
        !! Protection reprise
        integer(C_INT) :: prorep
@@ -132,5 +133,9 @@ end module sem_c_config
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!

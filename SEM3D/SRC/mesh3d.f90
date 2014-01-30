@@ -331,7 +331,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
         write(*,*) rg,"neumann (mesh file)=",neumann_log
         stop "Introduction of Neumann B.C.: mesh and input files not in coincidence."
     endif
-    ! Global nodes for each proc.
+    ! Global nodes' coordinates for each proc.
     !
     call read_dataset(fid, "local_nodes", rtemp2)
     Tdomain%n_glob_nodes = size(rtemp2,2)
@@ -354,8 +354,8 @@ subroutine read_mesh_file_h5(Tdomain, rg)
         Tdomain%specel(i)%OUTPUT = .true.
     enddo
     deallocate(itemp2)
-    ! Index of nodes for elements
-
+    ! Read elements definitions
+    ! n_nodes : number of control nodes (8 or 27)
     call read_dataset(fid, "elements", itemp2)
     Tdomain%n_nodes = size(itemp2,1)
     do i = 0, Tdomain%n_elem-1

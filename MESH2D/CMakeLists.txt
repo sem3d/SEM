@@ -1,12 +1,13 @@
 PROJECT(mesh2d)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
-ENABLE_LANGUAGE(Fortran)
+
+ENABLE_LANGUAGE(Fortran CXX)
 set(PRJ ${PROJECT_SOURCE_DIR})
-set(MESH_SRC
-  ${SEMCOMMON}/sem_hdf5.f90
-  ${PRJ}/SRC/create_2D.f90
-  ${PRJ}/SRC/fich_cubit.f90 
-  ${PRJ}/SRC/gid2spec_seq.f90
+set(BASE ${CMAKE_SOURCE_DIR})
+
+
+set(MESHC_SRC
+  ${PRJ}/SRC/main_mesh2d.cpp
 )
 
 set(MESH_EXTRA_LIBS "")
@@ -20,7 +21,9 @@ add_definitions(-DUSE_HDF5)
 include_directories(${HDF5_INCLUDE_DIR_FORTRAN})
 set(MESH_EXTRA_LIBS ${MESH_EXTRA_LIBS} hdf5_fortran)
 
-add_executable(mesh2d ${MESH_SRC})
-target_link_libraries(mesh2d ${MESH_EXTRA_LIBS})
+add_executable(mesh2dc ${MESHC_SRC})
+target_link_libraries(mesh2dc ${MESH_EXTRA_LIBS})
+include_directories(${BASE}/MESH/metis/include ${HDF5_INCLUDE_DIR})
+target_link_libraries(mesh2dc metis ${HDF5_LIBRARIES})
 
-install(TARGETS mesh2d DESTINATION bin)
+install(TARGETS mesh2dc DESTINATION bin)

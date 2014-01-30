@@ -67,6 +67,7 @@ typedef struct {
 
     // Snapshots
     int save_snap;
+    int n_group_outputs;  ///< Nombre de processeurs par fichier de sortie
     double snap_interval;
     int n_snap_cond;
     snapshot_cond_t* snapshot_selection;
@@ -365,6 +366,7 @@ int expect_snapshots(yyscan_t scanner, sem_config_t* config)
 	if (cmp(scanner,"snap_interval")) err=expect_eq_float(scanner, &config->snap_interval,1);
 	if (cmp(scanner,"select")) err=expect_select_snap(scanner, config, 1);
 	if (cmp(scanner,"deselect")) err=expect_select_snap(scanner, config, 0);
+	if (cmp(scanner,"group_outputs")) err=expect_eq_int(scanner, &config->n_group_outputs, 1);
 
 	if (err<=0) return err;
 
@@ -456,7 +458,7 @@ void init_sem_config(sem_config_t* cfg)
     memset(cfg, 0, sizeof(sem_config_t));
     // Valeurs par defaut
     cfg->courant = 0.2;
-
+    cfg->n_group_outputs = 32;
 }
 
 
