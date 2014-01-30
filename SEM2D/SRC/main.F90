@@ -240,9 +240,9 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
             exit
         end if
 
-        if (Tdomain%type_timeInteg==1) then
-            call Newmark (Tdomain)
-        else if (Tdomain%type_timeInteg==2) then
+        if (Tdomain%type_timeInteg==0) then
+            call Newmark (Tdomain, ntime)
+        else if (Tdomain%type_timeInteg==1) then
             call Runge_Kutta4(Tdomain, ntime, Tdomain%TimeD%dtmin)
         endif
 

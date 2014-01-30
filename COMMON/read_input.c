@@ -153,6 +153,22 @@ error:
 }
 
 
+int expect_type_integration(yyscan_t scanner, int* type)
+{
+    int tok;
+    int len;
+
+    if (!expect_eq(scanner)) return 0;
+    tok = skip_blank(scanner);
+    if (tok!=K_ID) goto error;
+    if (cmp(scanner,"Newmark"))   { *type = 0; return 1; }
+    if (cmp(scanner,"RK4"))       { *type = 1; return 1; }
+error:
+    msg_err(scanner, "Expected Newmark|RK4");
+    return 0;
+}
+
+
 int expect_source_dir(yyscan_t scanner, int* dir)
 {
     int tok;
@@ -251,7 +267,7 @@ int expect_time_scheme(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"beta")) err=expect_eq_float(scanner, &config->beta,1);
 	else if (cmp(scanner,"gamma")) err=expect_eq_float(scanner, &config->gamma,1);
 	else if (cmp(scanner,"courant")) err=expect_eq_float(scanner, &config->courant,1);
-	else if (cmp(scanner,"type_time_integration")) err=expect_eq_int(scanner, &config->type_timeinteg,1);
+	else if (cmp(scanner,"type_time_integration")) err=expect_type_integration(scanner, &config->type_timeinteg);
 
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
