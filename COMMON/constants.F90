@@ -27,7 +27,15 @@ MODULE constants
     ! Parametres systemes
 
     ! Parametres algorithmes
-
+    integer, parameter :: GALERKIN_CONT=0
+    integer, parameter :: GALERKIN_DG_STRONG=1
+    integer, parameter :: GALERKIN_DG_WEAK=2
+    integer, parameter :: FLUX_NONE=0
+    integer, parameter :: FLUX_CENTERED=1
+    integer, parameter :: FLUX_GODUNOV=2
+    integer, parameter :: FLUX_CUSTOM_LG=3
+    integer, parameter :: DG_BC_FREE=0
+    integer, parameter :: DG_BC_ABS=1
 CONTAINS
 
 END MODULE constants

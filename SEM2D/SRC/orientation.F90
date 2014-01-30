@@ -87,7 +87,7 @@ contains
         nx = Tdomain%specel(nel)%ngllx
         nz = Tdomain%specel(nel)%ngllz
         el => Tdomain%specel(nel)
-        if (el%Type_DG==2) then
+        if (el%Type_DG==GALERKIN_CONT) then
             nx0 = 1
             nx1 = nx-2
             nz0 = 1
@@ -99,7 +99,7 @@ contains
             nz1 = nz-1
         end if
         field(nx0:nx1,nz0:nz1,0:1) = el%Veloc(:,:,:)
-        if (el%Type_DG==2) then
+        if (el%Type_DG==GALERKIN_CONT) then
             do i=0,3
                 fc => Tdomain%sFace(el%Near_Face(i))
                 orient = fc%coherency .or. fc%near_element(0) == nel

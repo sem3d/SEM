@@ -8,9 +8,9 @@
 !<
 
 module selement
+    use constants
     implicit none
 
-    ! Last Modification 8/11/2004
 
     type :: element
 
@@ -59,6 +59,7 @@ contains
         el%OUTPUT = .true.
         el%FPML = .false.
         el%dist_max = 0.0
+        el%type_DG = GALERKIN_CONT
 
     end subroutine init_element
 
@@ -540,7 +541,7 @@ contains
       type (Element), intent (INOUT) :: Elem
       integer  :: ngllx,ngllz,i
 
-      if(Elem%type_DG==2) then
+      if(Elem%type_DG==GALERKIN_CONT) then
          ngllx = Elem%ngllx ; ngllz = Elem%ngllz
          do i = 0,1
             Elem%Forces(1:ngllx-2,1:ngllz-2,i) = Elem%MassMat(:,:)  * Elem%Forces(1:ngllx-2,1:ngllz-2,i)

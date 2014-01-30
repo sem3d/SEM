@@ -19,7 +19,7 @@ subroutine allocate_domain (Tdomain)
   !Modified by Gaetano Festa 01/06/2005
 
   use sdomain
-
+  use constants
   implicit none
 
   type(domain), intent (INOUT):: Tdomain
@@ -33,7 +33,7 @@ subroutine allocate_domain (Tdomain)
      allocate (Tdomain%specel(n)%Density(0:ngllx-1,0:ngllz-1))
      allocate (Tdomain%specel(n)%Lambda(0:ngllx-1,0:ngllz-1))
      allocate (Tdomain%specel(n)%Mu(0:ngllx-1,0:ngllz-1))
-     if (Tdomain%specel(n)%type_DG==2) then
+     if (Tdomain%specel(n)%type_DG==GALERKIN_CONT) then
          allocate (Tdomain%specel(n)%Veloc (1:ngllx-2, 1:ngllz-2, 0:1))
          allocate (Tdomain%specel(n)%Accel(1:ngllx-2,1:ngllz-2,0:1))
          allocate (Tdomain%specel(n)%V0(1:ngllx-2,1:ngllz-2, 0:1))
@@ -91,15 +91,15 @@ subroutine allocate_domain (Tdomain)
            allocate (Tdomain%specel(n)%DumpMass(0:ngllx-1,0:ngllz-1,0:1))
         endif
      else
-        if(Tdomain%specel(n)%Type_DG==0) then
+        if(Tdomain%specel(n)%Type_DG==GALERKIN_DG_STRONG) then
            allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
            allocate (Tdomain%specel(n)%Strain(0:ngllx-1,0:ngllz-1,0:2))
            Tdomain%specel(n)%Strain = 0.
-        else if(Tdomain%specel(n)%Type_DG==1) then
+        else if(Tdomain%specel(n)%Type_DG==GALERKIN_DG_WEAK) then
            allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
            allocate (Tdomain%specel(n)%Strain(0:ngllx-1,0:ngllz-1,0:2))
            Tdomain%specel(n)%Strain = 0.
-        else if(Tdomain%specel(n)%Type_DG==2) then
+        else if(Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
            allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:9))
         endif
         allocate (Tdomain%specel(n)%Displ(1:ngllx-2,1:ngllz-2,0:1))
@@ -142,7 +142,7 @@ subroutine allocate_domain (Tdomain)
      Tdomain%sFace(n)%Mu_m = 0
      Tdomain%sFace(n)%Lambda_p = 0
      Tdomain%sFace(n)%Lambda_m = 0
-     if (Tdomain%sFace(n)%type_Flux .EQ. 2 ) then !
+     if (Tdomain%sFace(n)%type_Flux .EQ. FLUX_GODUNOV ) then !
         ! Allocation coefficients for Godunov Fluxes
         allocate (Tdomain%sFace(n)%k0(0:ngll-1))
         allocate (Tdomain%sFace(n)%k1(0:ngll-1))
@@ -195,10 +195,10 @@ subroutine allocate_domain (Tdomain)
      endif
      ! Flags on absorbing/free surface Faces
      if (Tdomain%sFace(n)%Near_Element(1) == -1) then
-         if (Tdomain%type_bc == 1) then
+         if (Tdomain%type_bc == DG_BC_ABS) then
              Tdomain%sFace(n)%abs      = .true.
              Tdomain%sFace(n)%freesurf = .false.
-         elseif (Tdomain%type_bc == 2) then
+         elseif (Tdomain%type_bc == DG_BC_FREE) then
              Tdomain%sFace(n)%abs      = .false.
              Tdomain%sFace(n)%freesurf = .true.
          endif
@@ -255,11 +255,11 @@ subroutine allocate_domain (Tdomain)
   enddo
 
   ! Init for Runge-Kutta Low Storage time integration.
-  if(Tdomain%type_TimeInteg==2) then
+  if(Tdomain%type_TimeInteg==1) then
      do n = 0, Tdomain%n_elem-1
         ngllx = Tdomain%specel(n)%ngllx
         ngllz = Tdomain%specel(n)%ngllz
-        if (Tdomain%specel(n)%Type_DG == 2) then
+        if (Tdomain%specel(n)%Type_DG == GALERKIN_CONT) then
            allocate (Tdomain%specel(n)%Vect_RK(0:ngllx-1,0:ngllz-1,0:1))
         else
            allocate (Tdomain%specel(n)%Vect_RK(0:ngllx-1,0:ngllz-1,0:4))
@@ -268,7 +268,7 @@ subroutine allocate_domain (Tdomain)
      enddo
      do n = 0, Tdomain%n_face-1
         ngll = Tdomain%sFace(n)%ngll
-        if (Tdomain%sface(n)%Type_DG == 2) then
+        if (Tdomain%sface(n)%Type_DG == GALERKIN_CONT) then
            allocate (Tdomain%sface(n)%Vect_RK(0:ngll-1,0:1))
         else
            allocate (Tdomain%sface(n)%Vect_RK(0:ngll-1,0:4))
@@ -276,7 +276,7 @@ subroutine allocate_domain (Tdomain)
         Tdomain%sface(n)%Vect_RK = 0.
      enddo
      do n = 0, Tdomain%n_vertex-1
-        if (Tdomain%svertex(n)%Type_DG == 2) then
+        if (Tdomain%svertex(n)%Type_DG == GALERKIN_CONT) then
            allocate (Tdomain%sVertex(n)%Vect_RK(0:1))
         else
            allocate (Tdomain%sVertex(n)%Vect_RK(0:4))

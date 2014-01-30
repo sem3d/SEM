@@ -16,7 +16,6 @@
 ! #########################################
 module shape_lin
 
-
 contains
 
 ! #########################################
@@ -179,7 +178,7 @@ subroutine shape4(Tdomain)
             enddo
         enddo
 
-        if (Tdomain%specel(n)%Type_DG .NE. 2) then
+        if (Tdomain%specel(n)%Type_DG .NE. GALERKIN_CONT) then
            if (ngllx .NE. ngllz) STOP 'Case ngllx not equal to ngllz is not taken into account'
            allocate(Tdomain%specel(n)%Coeff_Integr_Faces(0:3,0:ngllx-1))
            do i=0,3
@@ -192,7 +191,7 @@ subroutine shape4(Tdomain)
 
     ! Compute Normals for Faces with DG :
     do nf=0,Tdomain%n_face-1
-       if (Tdomain%sFace(nf)%Type_flux .NE. 0) then
+       if (Tdomain%sFace(nf)%Type_flux .NE. FLUX_NONE) then
           call compute_normals(Tdomain,nf)
        end if
     end do

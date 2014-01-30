@@ -18,9 +18,9 @@
 !!\date 21/11/2013
 !<
 subroutine create_send_data (Tdomain,i_proc)
-
+    use constants
   use sdomain
-
+  
   implicit none
   type (domain), intent (INOUT) :: Tdomain
   integer, intent (IN)          :: i_proc
@@ -35,7 +35,7 @@ subroutine create_send_data (Tdomain,i_proc)
      n_face_pointed = Tdomain%sWall(i_proc)%Face_List(nf)
      ngll = Tdomain%sFace(n_face_pointed)%ngll
      if (Tdomain%sWall(i_proc)%Face_Coherency(nf)) then
-        if(Tdomain%sFace(n_face_pointed)%Type_DG==2) then ! Continuous Galerkin
+        if(Tdomain%sFace(n_face_pointed)%Type_DG==GALERKIN_CONT) then ! Continuous Galerkin
            Tdomain%sWall(i_proc)%Send_data_2(i_stock:i_stock+ngll-3,0:1) = Tdomain%sFace(n_face_pointed)%Forces (1:ngll-2,0:1)
            i_stock = i_stock + ngll - 2
         else                                              ! Discontinuous Galerkin
@@ -43,7 +43,7 @@ subroutine create_send_data (Tdomain,i_proc)
            i_stock = i_stock + ngll
         endif
      else
-        if(Tdomain%sFace(n_face_pointed)%Type_DG==2) then ! Continuous Galerkin
+        if(Tdomain%sFace(n_face_pointed)%Type_DG==GALERKIN_CONT) then ! Continuous Galerkin
            do j = 1, ngll-2
               Tdomain%sWall(i_proc)%Send_data_2(i_stock+j-1,0:1) = Tdomain%sFace(n_face_pointed)%Forces(ngll-1-j,0:1)
            enddo
@@ -113,7 +113,7 @@ subroutine assign_recv_data(Tdomain, i_proc)
      n_face_pointed = Tdomain%sWall(i_proc)%Face_List(nf)
      ngll = Tdomain%sFace(n_face_pointed)%ngll
      if (Tdomain%sWall(i_proc)%Face_Coherency(nf)) then
-        if (Tdomain%sFace(n_face_pointed)%Type_DG==2) then ! Continuous Galerkin
+        if (Tdomain%sFace(n_face_pointed)%Type_DG==GALERKIN_CONT) then ! Continuous Galerkin
            Tdomain%sFace(n_face_pointed)%Forces (1:ngll-2,0:1) =  Tdomain%sFace(n_face_pointed)%Forces ( 1:ngll-2,0:1)  + &
                 Tdomain%sWall(i_proc)%Receive_data_2(i_stock:i_stock+ngll-3,0:1)
            i_stock = i_stock + ngll - 2
@@ -123,7 +123,7 @@ subroutine assign_recv_data(Tdomain, i_proc)
            i_stock = i_stock + ngll
         endif
      else
-        if (Tdomain%sFace(n_face_pointed)%Type_DG==2) then ! Continuous Galerkin
+        if (Tdomain%sFace(n_face_pointed)%Type_DG==GALERKIN_CONT) then ! Continuous Galerkin
            do j = 1, ngll-2
               Tdomain%sFace(n_face_pointed)%Forces (ngll-1-j,0:1) =  Tdomain%sFace(n_face_pointed)%Forces (ngll-1-j,0:1)+ &
                    Tdomain%sWall(i_proc)%Receive_data_2(i_stock+j-1,0:1)

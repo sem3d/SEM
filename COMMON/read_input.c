@@ -405,6 +405,55 @@ int expect_snapshots(yyscan_t scanner, sem_config_t* config)
 }
 
 
+/// type_elements SECTION -----------------------------------------------------
+
+int expect_type_galerkin(yyscan_t scanner, int* type)
+{
+    int tok;
+    int len;
+
+    if (!expect_eq(scanner)) return 0;
+    tok = skip_blank(scanner);
+    if (tok!=K_ID) goto error;
+    if (cmp(scanner,"continuous"))   { *type = 0; return 1; }
+    if (cmp(scanner,"dg_strong"))       { *type = 1; return 1; }
+    if (cmp(scanner,"dg_weak"))       { *type = 2; return 1; }
+error:
+    msg_err(scanner, "Expected continuous|dg_strong|dg_weak");
+    return 0;
+}
+
+int expect_type_dg_flux(yyscan_t scanner, int* type)
+{
+    int tok;
+    int len;
+
+    if (!expect_eq(scanner)) return 0;
+    tok = skip_blank(scanner);
+    if (tok!=K_ID) goto error;
+    if (cmp(scanner,"none"))   { *type = 0; return 1; }
+    if (cmp(scanner,"centered"))   { *type = 1; return 1; }
+    if (cmp(scanner,"godunov"))       { *type = 2; return 1; }
+    if (cmp(scanner,"laurent"))       { *type = 3; return 1; }
+error:
+    msg_err(scanner, "Expected none|centered|godunov");
+    return 0;
+}
+
+int expect_type_dg_boundary_condition(yyscan_t scanner, int* type)
+{
+    int tok;
+    int len;
+
+    if (!expect_eq(scanner)) return 0;
+    tok = skip_blank(scanner);
+    if (tok!=K_ID) goto error;
+    if (cmp(scanner,"free"))   { *type = 0; return 1; }
+    if (cmp(scanner,"absorbing"))       { *type = 1; return 1; }
+error:
+    msg_err(scanner, "Expected free|absorbing");
+    return 0;
+}
 
 int expect_type_elements(yyscan_t scanner, sem_config_t* config)
 {
@@ -416,9 +465,9 @@ int expect_type_elements(yyscan_t scanner, sem_config_t* config)
 	tok = skip_blank(scanner);
 	if (tok!=K_ID) break;
 
-	if (cmp(scanner,"dg_type")) err=expect_eq_int(scanner, &config->type_elem, 1);
-	if (cmp(scanner,"flux_type")) err=expect_eq_int(scanner, &config->type_flux, 1);
-	if (cmp(scanner,"bc_type")) err=expect_eq_int(scanner, &config->type_bc, 1);
+	if (cmp(scanner,"dg_type")) err=expect_type_galerkin(scanner, &config->type_elem);
+	if (cmp(scanner,"flux_type")) err=expect_type_dg_flux(scanner, &config->type_flux);
+	if (cmp(scanner,"bc_type")) err=expect_type_dg_boundary_condition(scanner, &config->type_bc);
 
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);

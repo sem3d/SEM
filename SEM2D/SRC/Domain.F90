@@ -204,13 +204,15 @@ subroutine read_material_file(Tdomain)
         endif
     enddo
 
-    if ((Tdomain%type_bc==2) .AND. (Tdomain%type_flux==1)) then
+    if ((Tdomain%type_bc==DG_BC_FREE) .AND. (Tdomain%type_flux==FLUX_CENTERED)) then
         STOP "FREE Surface not implemented for Centered flux"
     endif
-    if ((Tdomain%type_bc.NE.1) .AND. (Tdomain%type_bc.NE.2)) then
+    if ((Tdomain%type_bc.NE.DG_BC_FREE) .AND. (Tdomain%type_bc.NE.DG_BC_ABS)) then
         STOP "This choice for bc_type does not exist. Please choose 0 or 1"
     endif
-    if ((Tdomain%type_elem.NE.0) .AND. (Tdomain%type_elem.NE.1) .AND. (Tdomain%type_elem.NE.2)) then
+    if ((Tdomain%type_elem.NE.GALERKIN_CONT) .AND. &
+        (Tdomain%type_elem.NE.GALERKIN_DG_STRONG) .AND. &
+        (Tdomain%type_elem.NE.GALERKIN_DG_WEAK)) then
         STOP "This choice for elem_type does not exist. Please choose 0, 1 or 2"
     endif
 

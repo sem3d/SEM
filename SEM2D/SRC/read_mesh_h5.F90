@@ -140,6 +140,7 @@ subroutine read_mesh_h5(tDomain)
     enddo
 
     !! TODO COMMUNICATIONS
+    Tdomain%n_communications = 0
     call read_attr_int(fid, "n_communications", Tdomain%n_communications)
     allocate (Tdomain%Communication_List(0:Tdomain%n_communications-1))
     allocate (Tdomain%sWall(0:Tdomain%n_communications-1))

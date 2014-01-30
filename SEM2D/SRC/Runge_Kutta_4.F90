@@ -13,7 +13,7 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
     use sdomain
     use scouplage
     use mpi
-
+    use constants
     implicit none
     type (domain), intent (INOUT) :: Tdomain
     integer, intent(in) :: ntime
@@ -38,7 +38,7 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
 
     ! Runge-Kutta Initialization
     do n = 0, Tdomain%n_elem-1
-       if(Tdomain%specel(n)%Type_DG==2) then
+       if(Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
           Tdomain%specel(n)%Vect_RK = Tdomain%specel(n)%Veloc
        else
           Tdomain%specel(n)%Vect_RK(:,:,0:2) = Tdomain%specel(n)%Strain
@@ -55,15 +55,15 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
           type_DG = Tdomain%specel(n)%Type_DG
           mat = Tdomain%specel(n)%mat_index
           select case (type_DG)
-          case(0) ! Discontinuous Galerkin Strong Formulation
+          case(GALERKIN_DG_STRONG) ! Discontinuous Galerkin Strong Formulation
              call compute_InternalForces_DG_Strong(Tdomain%specel(n), &
                                                    Tdomain%sSubDomain(mat)%hTprimex, &
                                                    Tdomain%sSubDomain(mat)%hprimez)
-          case(1) ! Discontinuous Galerkin Weak Formulation
+          case(GALERKIN_DG_WEAK) ! Discontinuous Galerkin Weak Formulation
              call compute_InternalForces_DG_Weak(Tdomain%specel(n), &
                                                  Tdomain%sSubDomain(mat)%hprimex, &
                                                  Tdomain%sSubDomain(mat)%hTprimez)
-          case(2) ! Continuous Galerkin
+          case(GALERKIN_CONT) ! Continuous Galerkin
              call get_Displ_fv2el (Tdomain,n)
              call compute_InternalForces_Elem(Tdomain%specel(n), &
                                               Tdomain%sSubDomain(mat)%hprimex, &
@@ -74,7 +74,7 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
           ! Calcul des fluxs / Assemblage des forces
           do nf = 0,3
              nface  = Tdomain%specel(n)%Near_Face(nf)
-             if(type_DG == 2) then
+             if(type_DG == GALERKIN_CONT) then
                 call Assemblage(Tdomain,n,nface,nf)
              else
                 call get_data_el2f(Tdomain,n,nface,nf)
@@ -101,7 +101,7 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
 
        do n = 0, Tdomain%n_elem-1
           type_DG = Tdomain%specel(n)%Type_DG
-          if (type_DG==2) then  ! Continuous Galerkin
+          if (type_DG==GALERKIN_CONT) then  ! Continuous Galerkin
              call inversion_massmat(Tdomain%specel(n))
              Tdomain%specel(n)%Vect_RK = coeffs(1) * Tdomain%specel(n)%Vect_RK  + Tdomain%specel(n)%Forces * dt
              Tdomain%specel(n)%Veloc   = Tdomain%specel(n)%Veloc + coeffs(2) * Tdomain%specel(n)%Vect_RK
@@ -124,7 +124,7 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
        ! Computing new values on the vertexes and the faces for Continuous Galerkin only
        do n=0, Tdomain%n_face-1
           type_DG = Tdomain%sface(n)%Type_DG
-          if (type_DG == 2) then
+          if (type_DG == GALERKIN_CONT) then
              Tdomain%sface(n)%Forces(:,0)  = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(:,0)
              Tdomain%sface(n)%Forces(:,1)  = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(:,1)
              Tdomain%sface(n)%Vect_RK = coeffs(1) * Tdomain%sface(n)%Vect_RK + Tdomain%sface(n)%Forces * dt
@@ -136,7 +136,7 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
        enddo
        do n=0, Tdomain%n_vertex-1
           type_DG = Tdomain%sVertex(n)%Type_DG
-          if (type_DG == 2) then
+          if (type_DG == GALERKIN_CONT) then
              Tdomain%sVertex(n)%Forces  = Tdomain%sVertex(n)%MassMat * Tdomain%sVertex(n)%Forces
              Tdomain%sVertex(n)%Vect_RK = coeffs(1) * Tdomain%sVertex(n)%Vect_RK + Tdomain%sVertex(n)%Forces * dt
              Tdomain%sVertex(n)%Veloc   = Tdomain%sVertex(n)%Veloc + coeffs(2) * Tdomain%sVertex(n)%Vect_RK

@@ -84,7 +84,8 @@ subroutine define_arrays(Tdomain)
 
         Tdomain%specel(n)%MassMat  = Whei*Tdomain%specel(n)%Density*Jac
         if (.not. Tdomain%specel(n)%PML) then
-           if((Tdomain%specel(n)%Type_DG==0).OR.(Tdomain%specel(n)%Type_DG==1)) then ! Discontinuous Galerkin
+           if((Tdomain%specel(n)%Type_DG==GALERKIN_DG_STRONG).OR. &
+               (Tdomain%specel(n)%Type_DG==GALERKIN_DG_WEAK)) then ! Discontinuous Galerkin
               Tdomain%specel(n)%Acoeff(:,:,0) = Whei*xix*Jac
               Tdomain%specel(n)%Acoeff(:,:,1) = Whei*etax*Jac
               Tdomain%specel(n)%Acoeff(:,:,2) = Whei*xiz*Jac
@@ -98,7 +99,7 @@ subroutine define_arrays(Tdomain)
               Tdomain%specel(n)%Acoeff(:,:,10)= Whei*etaz*Rlam*Jac
               Tdomain%specel(n)%Acoeff(:,:,11)= 2.*Whei*etaz*Rmu*Jac
               Tdomain%specel(n)%Acoeff(:,:,12)= Whei*Jac
-           else if (Tdomain%specel(n)%Type_DG==2) then ! Continuous Galerkin (usual SEM)
+           else if (Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then ! Continuous Galerkin (usual SEM)
               Tdomain%specel(n)%Acoeff(:,:,0) = -Whei*(RKmod*xix**2+Rmu*xiz**2) *Jac
               Tdomain%specel(n)%Acoeff(:,:,1) = -Whei*(RKmod*xix*etax+Rmu*  xiz*etaz)*Jac
               Tdomain%specel(n)%Acoeff(:,:,2) = -Whei*(Rlam+Rmu)*xix*xiz*Jac
@@ -446,13 +447,13 @@ subroutine define_arrays(Tdomain)
     do n = 0,Tdomain%n_elem-1
         do nf=0,3
             nface = Tdomain%specel(n)%Near_Face(nf)
-            if(Tdomain%Specel(n)%Type_DG .NE. 2) &
+            if(Tdomain%Specel(n)%Type_DG .NE. GALERKIN_CONT) &
                  call get_MuLambda_el2f(Tdomain,n,nface)
         enddo
     enddo
     ! Calcul des coefficients pour les Fluxs Godunov
     do nf = 0, Tdomain%n_face-1
-       if(Tdomain%sFace(nf)%type_Flux .EQ. 2) &
+       if(Tdomain%sFace(nf)%type_Flux .EQ. FLUX_GODUNOV) &
             call compute_coeff_flux(Tdomain,nf)
     enddo
     ! Prolongement par continuite des proprietes du milieu pour surface libre
@@ -480,7 +481,7 @@ subroutine define_arrays(Tdomain)
 
     do n  = 0, Tdomain%n_elem - 1
         ngllx = Tdomain%specel(n)%ngllx;  ngllz = Tdomain%specel(n)%ngllz
-        if (Tdomain%specel(n)%Type_DG == 2) then
+        if (Tdomain%specel(n)%Type_DG == GALERKIN_CONT) then
             ! Continuous Galerkin : MassMatrices need to be resized
             allocate (LocMassMat(1:ngllx-2,1:ngllz-2))
             ! Redefinition of Matrices

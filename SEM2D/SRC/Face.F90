@@ -78,7 +78,7 @@ contains
     endif
 
     ! --------- CENTERED FLUX -----------
-    if (F%Type_Flux == 1) then
+    if (F%Type_Flux == FLUX_CENTERED) then
 
         !if(F%is_computed) then
         ! Case the flux has been already computed
@@ -89,11 +89,11 @@ contains
         !endif
         !F%is_computed = .FALSE.
         !else
-        if (DG_type==1) then
+        if (DG_type==GALERKIN_DG_WEAK) then
             F_minus = compute_trace_F(F,bool_side)
             F%Flux = 0.5* (F_minus - compute_trace_F(F,.NOT.bool_side))
             !F%Flux = 0.5 * (compute_trace_F(F,.true.) + compute_trace_F(F,.false.))
-        elseif (DG_type==0) then
+        elseif (DG_type==GALERKIN_DG_STRONG) then
             F_minus = compute_trace_F(F,bool_side)
             F%Flux = -0.5 * (F_minus + compute_trace_F(F,.NOT.bool_side))
         endif
@@ -102,15 +102,15 @@ contains
         ! Treating Absorbing Boundary Conditions
         ! Basee surla supposition F* = Fn-
         if(F%Abs) then
-            if (DG_type==1) then
+            if (DG_type==GALERKIN_DG_WEAK) then
                 F%Flux = compute_trace_F(F,bool_side)
-            elseif (DG_type==0) then
+            elseif (DG_type==GALERKIN_DG_STRONG) then
                 F%Flux = 0.
             endif
         endif
 
         ! -------- CENTERED LAURENT FLUX ---------- !
-    else if (F%Type_Flux == 3) then
+    else if (F%Type_Flux == FLUX_CUSTOM_LG) then
         if (DG_type==1) then
             F%Flux = Flux_Laurent(F,bool_side)
         elseif (DG_type==0) then
@@ -126,7 +126,7 @@ contains
         endif
 
         ! -------- GODUNOV FLUX ----------
-    else if (F%Type_Flux == 2) then
+    else if (F%Type_Flux == FLUX_GODUNOV) then
         !if(F%is_computed .AND. .NOT. F%changing_media) then
         ! Case the flux has been already computed
         !if (DG_type ==1 ) then
@@ -172,7 +172,7 @@ contains
                 F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:)
             enddo
         endif
-        if (DG_type==1) then ! Forme "Faible" des DG
+        if (DG_type==GALERKIN_DG_WEAK) then ! Forme "Faible" des DG
             F_minus = compute_trace_F(F,bool_side)
             F%Flux(:,:) = F%Flux(:,:) + F_minus(:,:)
         endif
@@ -181,9 +181,9 @@ contains
         ! Treating Absorbing Boundary Conditions
         ! Basee surla supposition F* = Fn-
         if(F%Abs) then
-            if (DG_type==1) then
+            if (DG_type==GALERKIN_DG_WEAK) then
                 F%Flux = compute_trace_F(F,bool_side)
-            elseif (DG_type==0) then
+            elseif (DG_type==GALERKiN_DG_STRONG) then
                 !F%Flux = 0.
             endif
         endif
