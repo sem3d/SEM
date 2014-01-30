@@ -39,6 +39,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
     use scouplage
 #endif
     use snewmark
+    use srungekutta
 
     implicit none
     integer, intent(in) :: communicateur,communicateur_global,master_superviseur
@@ -243,7 +244,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
         if (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK) then
             call Newmark (Tdomain)
         else if (Tdomain%type_timeInteg==TIME_INTEG_RK4) then
-            call Runge_Kutta4(Tdomain, ntime, Tdomain%TimeD%dtmin)
+            call Runge_Kutta4(Tdomain, Tdomain%TimeD%dtmin)
         endif
 
         if (ntime==Tdomain%TimeD%NtimeMax-1) then

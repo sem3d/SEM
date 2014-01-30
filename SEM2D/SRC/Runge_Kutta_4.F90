@@ -9,20 +9,25 @@
 !! cf Algorithm pages 63-64
 !<
 
-subroutine Runge_Kutta4 (Tdomain, ntime, dt)
+module srungekutta
     use sdomain
     use scouplage
     use mpi
     use constants
+
+    implicit none
+contains
+
+subroutine Runge_Kutta4 (Tdomain, dt)
     implicit none
     type (domain), intent (INOUT) :: Tdomain
-    integer, intent(in) :: ntime
     real,    intent(in)   :: dt
 
     ! local variables
-    integer :: i, n, mat, nf, nface, type_DG
-    integer :: tag_send, tag_receive, i_send,  ierr, i_proc
+    integer :: i, n, mat, nf
+    integer :: tag_send, tag_receive, i_send, ierr, i_proc
     integer, dimension (MPI_STATUS_SIZE) :: status
+    integer               :: nface,  type_DG
     real                  :: timelocal
     real, dimension(3)    :: coeffs
     logical :: acoustic
@@ -184,3 +189,9 @@ subroutine Runge_Kutta4 (Tdomain, ntime, dt)
 
   end subroutine Runge_Kutta4
 
+end module srungekutta
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
