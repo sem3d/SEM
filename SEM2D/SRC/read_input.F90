@@ -96,7 +96,7 @@ subroutine read_input (Tdomain)
     Tdomain%TimeD%alpha = config%alpha
     Tdomain%TimeD%beta = config%beta
     Tdomain%TimeD%gamma = config%gamma
-    !Tdomain%TimeD%courant = config%courant
+    Tdomain%TimeD%courant = config%courant
     Tdomain%mesh_file = fromcstr(config%mesh_file)
     Tdomain%material_file = fromcstr(config%mat_file)
     Tdomain%logicD%save_trace = config%save_traces .ne. 0

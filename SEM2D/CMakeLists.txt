@@ -22,7 +22,6 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/Couplage.F90
     ${PRJ}/SRC/Newmark.F90
     ${PRJ}/SRC/PML_def.F90
-    ${PRJ}/SRC/ajout.F90
     ${PRJ}/SRC/allocate_domain.F90
     ${PRJ}/SRC/compute_GLL.F90
 #    ${PRJ}/SRC/convertirUnv.F90
@@ -37,12 +36,10 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/getiv_e2f.F90
     ${PRJ}/SRC/getmass_e2f.F90
     ${PRJ}/SRC/global_numbering.F90
-#    ${PRJ}/SRC/lister_faces_sem.f90
-#    ${PRJ}/SRC/plot_grid.F90
-#    ${PRJ}/SRC/postraitement.F90
     ${PRJ}/SRC/snapshots.F90
     ${PRJ}/SRC/read_input.F90
     ${PRJ}/SRC/read_mesh.F90
+    ${PRJ}/SRC/read_mesh_h5.F90
     ${PRJ}/SRC/read_restart.F90
     ${PRJ}/SRC/receiver_pos.F90
     ${PRJ}/SRC/save_checkpoint.F90
@@ -51,12 +48,10 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/save_trace.F90
     ${PRJ}/SRC/save_vorticity.F90
     ${PRJ}/SRC/savefield.F90
-#    ${PRJ}/SRC/sem.F90
     ${PRJ}/SRC/shape4.F90
     ${PRJ}/SRC/shape8.F90
     ${PRJ}/SRC/smoothing_exp.F90
     ${PRJ}/SRC/source_pos.F90
-#    ${PRJ}/SRC/unv.F90
     ${PRJ}/SRC/verify_in_quad.F90
     ${PRJ}/SRC/wall_transfer.F90
     ${PRJ}/SRC/main.F90

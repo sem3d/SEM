@@ -7,14 +7,17 @@
 !! des vitesses avec une formulation contrainte-vitesse décalée en temps dans les PML.
 !<
 
-subroutine Newmark (Tdomain, ntime)
+module snewmark
     use sdomain
     use scouplage
     use mpi
+    implicit none
+contains
+
+subroutine Newmark (Tdomain)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
-    integer, intent(in) :: ntime
 
     ! local variables
     integer :: ns, ncc,i,j,n,np, ngllx, ngllz, mat, nelem,nf, w_face, nv_aus, nf_aus, nv
@@ -195,7 +198,7 @@ subroutine Newmark (Tdomain, ntime)
 
         ! AJOUT DES FORCES MKA3D
 #ifdef COUPLAGE
-        if (ntime>0) then
+        if (Tdomain%TimeD%ntime>0) then
             call calcul_couplage_force(Tdomain,ntime)
         endif
 
@@ -231,12 +234,6 @@ subroutine Newmark (Tdomain, ntime)
             do nv = 0, Tdomain%sWall(n)%n_vertices-1
                 nv_aus = Tdomain%sWall(n)%Vertex_List(nv)
                 Tdomain%sVertex(nv_aus)%Double_Value(0:1) = Tdomain%sVertex(nv_aus)%Forces(0:1)
-#ifdef MKA3D
-                !   print*," communication force mka "
-                !   il faut faire la sommation entre les proc car ForcesMka correspond a une contrainte par la surface associee
-                !   au vertex pour chacun des faces de couplage possedant ce point de gauss
-                !    Tdomain%sVertex(nv_aus)%Double_Value(0:1) = Tdomain%sVertex(nv_aus)%Forces(0:1) - Tdomain%sVertex(nv_aus)%ForcesMka(0:1)
-#endif
             enddo
         enddo
 
@@ -540,6 +537,8 @@ subroutine Newmark (Tdomain, ntime)
 
     return
 end subroutine Newmark
+
+end module snewmark
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

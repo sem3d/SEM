@@ -13,6 +13,10 @@
 !! \param type(domain),target, intent (INOUT) Tdomain
 !<
 
+module shape_quad
+    use constants
+    implicit none
+contains
 
 subroutine shape8(Tdomain)
 
@@ -263,6 +267,7 @@ subroutine shape8(Tdomain)
 
     return
 end subroutine shape8
+end module
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

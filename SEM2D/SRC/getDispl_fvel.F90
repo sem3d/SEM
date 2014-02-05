@@ -13,94 +13,55 @@
 !! \param type (Domain), intent (INOUT) Tdomain
 !! \param integer, intent (IN) n
 !<
-
-
-subroutine get_Displ_fv2el (Tdomain,n)
-
-    ! Modified by Gaetano Festa 01/06/2005
+subroutine get_Displ_fv2el(Tdomain,n)
     use sdomain
     implicit none
     type (Domain), intent (INOUT) :: Tdomain
     integer, intent (IN) :: n
 
-    integer :: nf,i,ngllx,ngllz
+    type(element), pointer :: el
+    type(face), pointer :: fc
+    integer :: nx,nz,nv
 
-    ngllx = Tdomain%specel(n)%ngllx;  ngllz = Tdomain%specel(n)%ngllz
-    nf = Tdomain%specel(n)%near_face(0)
-    if ( Tdomain%sFace(nf)%near_element(0) == n) then
-        Tdomain%specel(n)%Forces(1:ngllx-2,0,0) =  Tdomain%sFace(nf)%Forces(:,0)
-        Tdomain%specel(n)%Forces(1:ngllx-2,0,1) =  Tdomain%sFace(nf)%Forces(:,1)
+    el => Tdomain%specel(n)
+    nx = el%ngllx;  nz = el%ngllz
+
+    fc => Tdomain%sFace(el%Near_Face(0))
+    if ( fc%near_element(0) == n .or. fc%coherency) then
+        el%Forces(1:nx-2,0,0:1) =  fc%Forces(:,0:1)
     else
-        if ( Tdomain%sFace(nf)%coherency) then
-            Tdomain%specel(n)%Forces(1:ngllx-2,0,0) =  Tdomain%sFace(nf)%Forces(:,0)
-            ! 19/12/06 bug corrige par CS Tdomain%specel(n)%Forces(1:ngllx-1,0,1) =  Tdomain%sFace(nf)%Forces(:,1)
-            Tdomain%specel(n)%Forces(1:ngllx-2,0,1) =  Tdomain%sFace(nf)%Forces(:,1)
-        else
-            do i = 1, ngllx-2
-                Tdomain%specel(n)%Forces(i,0,0) =  Tdomain%sFace(nf)%Forces(ngllx-1-i,0)
-                Tdomain%specel(n)%Forces(i,0,1) =  Tdomain%sFace(nf)%Forces(ngllx-1-i,1)
-            enddo
-        endif
+        el%Forces(1:nx-2,0,0:1) =  fc%Forces(nx-2:1:-1,0:1)
     endif
 
-    nf = Tdomain%specel(n)%near_face(1)
-    if ( Tdomain%sFace(nf)%near_element(0) == n) then
-        Tdomain%specel(n)%Forces(ngllx-1,1:ngllz-2,0) =  Tdomain%sFace(nf)%Forces(:,0)
-        Tdomain%specel(n)%Forces(ngllx-1,1:ngllz-2,1) =  Tdomain%sFace(nf)%Forces(:,1)
+    fc => Tdomain%sFace(el%Near_Face(1))
+    if ( fc%near_element(0) == n.or. fc%coherency) then
+        el%Forces(nx-1,1:nz-2,0:1) =  fc%Forces(:,0:1)
     else
-        if ( Tdomain%sFace(nf)%coherency) then
-            Tdomain%specel(n)%Forces(ngllx-1,1:ngllz-2,0)=  Tdomain%sFace(nf)%Forces(:,0)
-            Tdomain%specel(n)%Forces(ngllx-1,1:ngllz-2,1)=  Tdomain%sFace(nf)%Forces(:,1)
-        else
-            do i = 1, ngllz-2
-                Tdomain%specel(n)%Forces(ngllx-1,i,0) =  Tdomain%sFace(nf)%Forces(ngllz-1-i,0)
-                Tdomain%specel(n)%Forces(ngllx-1,i,1) =  Tdomain%sFace(nf)%Forces(ngllz-1-i,1)
-            enddo
-        endif
-    endif
-    nf = Tdomain%specel(n)%near_face(2)
-    if ( Tdomain%sFace(nf)%near_element(0) == n) then
-        Tdomain%specel(n)%Forces(1:ngllx-2,ngllz-1,0) =  Tdomain%sFace(nf)%Forces(:,0)
-        Tdomain%specel(n)%Forces(1:ngllx-2,ngllz-1,1) =  Tdomain%sFace(nf)%Forces(:,1)
-    else
-        if ( Tdomain%sFace(nf)%coherency) then
-            Tdomain%specel(n)%Forces(1:ngllx-2,ngllz-1,0) =  Tdomain%sFace(nf)%Forces(:,0)
-            Tdomain%specel(n)%Forces(1:ngllx-2,ngllz-1,1) =  Tdomain%sFace(nf)%Forces(:,1)
-        else
-            do i = 1, ngllx-2
-                Tdomain%specel(n)%Forces(i,ngllz-1,0) =  Tdomain%sFace(nf)%Forces(ngllx-1-i,0)
-                Tdomain%specel(n)%Forces(i,ngllz-1,1) =  Tdomain%sFace(nf)%Forces(ngllx-1-i,1)
-            enddo
-        endif
+        el%Forces(nx-1,1:nz-2,0:1) =  fc%Forces(nz-2:1:-1,0:1)
     endif
 
-    nf = Tdomain%specel(n)%near_face(3)
-    if ( Tdomain%sFace(nf)%near_element(0) == n) then
-        Tdomain%specel(n)%Forces(0,1:ngllz-2,0) =  Tdomain%sFace(nf)%Forces(:,0)
-        Tdomain%specel(n)%Forces(0,1:ngllz-2,1) =  Tdomain%sFace(nf)%Forces(:,1)
+    fc => Tdomain%sFace(el%Near_Face(2))
+    if ( fc%near_element(0) == n.or. fc%coherency) then
+        el%Forces(1:nx-2,nz-1,0:1) =  fc%Forces(:,0:1)
     else
-        if ( Tdomain%sFace(nf)%coherency) then
-            Tdomain%specel(n)%Forces(0,1:ngllz-2,0)=  Tdomain%sFace(nf)%Forces(:,0)
-            Tdomain%specel(n)%Forces(0,1:ngllz-2,1)=  Tdomain%sFace(nf)%Forces(:,1)
-        else
-            do i = 1, ngllz-2
-                Tdomain%specel(n)%Forces(0,i,0) =  Tdomain%sFace(nf)%Forces(ngllz-1-i,0)
-                Tdomain%specel(n)%Forces(0,i,1) =  Tdomain%sFace(nf)%Forces(ngllz-1-i,1)
-            enddo
-        endif
+        el%Forces(1:nx-2,nz-1,0:1) =  fc%Forces(nx-2:1:-1,0:1)
     endif
 
-    nf = Tdomain%specel(n)%Near_Vertex(0)
-    Tdomain%specel(n)%Forces (0,0,0:1) =Tdomain%sVertex(nf)%Forces(0:1)
+    fc => Tdomain%sFace(el%Near_Face(3))
+    if ( fc%near_element(0) == n.or. fc%coherency) then
+        el%Forces(0,1:nz-2,0:1) =  fc%Forces(:,0:1)
+    else
+        el%Forces(0,1:nz-2,0:1) =  fc%Forces(nz-2:1:-1,0:1)
+    endif
 
-    nf = Tdomain%specel(n)%Near_Vertex(1)
-    Tdomain%specel(n)%Forces (ngllx-1,0,0:1) =Tdomain%sVertex(nf)%Forces(0:1)
-
-    nf = Tdomain%specel(n)%Near_Vertex(2)
-    Tdomain%specel(n)%Forces (ngllx-1,ngllz-1,0:1) =Tdomain%sVertex(nf)%Forces(0:1)
-
-    nf = Tdomain%specel(n)%Near_Vertex(3)
-    Tdomain%specel(n)%Forces (0,ngllz-1,0:1) =Tdomain%sVertex(nf)%Forces(0:1)
+    nv = el%Near_Vertex(0)
+    el%Forces (0,0,0:1) =Tdomain%sVertex(nv)%Forces(0:1)
+    nv = el%Near_Vertex(1)
+    el%Forces (nx-1,0,0:1) =Tdomain%sVertex(nv)%Forces(0:1)
+    nv = el%Near_Vertex(2)
+    el%Forces (nx-1,nz-1,0:1) =Tdomain%sVertex(nv)%Forces(0:1)
+    nv = el%Near_Vertex(3)
+    el%Forces (0,nz-1,0:1) =Tdomain%sVertex(nv)%Forces(0:1)
 
     return
 end subroutine get_Displ_fv2el
