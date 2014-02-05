@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#define OMPI_SKIP_MPICXX
 #include <hdf5.h>
 #include <cassert>
 #include <unistd.h>
@@ -177,7 +178,7 @@ void MeshProcInfo::add_edge_element(Quad& q, int fn, int en, int qn)
     int j=0;
     int v0=-1, v1=-1;
     int lqn = m_quad_map[qn];
-    assert(m_edges_elems[2*en+1]==0);
+    assert(m_edges_elems[2*en+1]==-1);
     if (m_edges_elems[2*en]==-1) {
 	j=0;
 	get_quad_edge(q, fn, v0, v1);
