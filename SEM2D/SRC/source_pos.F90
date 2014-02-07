@@ -157,12 +157,13 @@ subroutine SourcePosition(Tdomain)
                         mat = Tdomain%specel(nnelem)%mat_index
                         ngllx = Tdomain%specel(nnelem)%ngllx
                         ngllz = Tdomain%specel(nnelem)%ngllz
-                        allocate  (Tdomain%sSource(nsour)%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1))
+                        allocate  (Tdomain%sSource(nsour)%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
                         do j = 0,ngllz-1
                             call pol_lagrange (ngllz, Tdomain%sSubdomain(mat)%GLLcz, j, Tdomain%sSource(nsour)%Elem(n)%eta,weta)
                             do i = 0,ngllx-1
                                 call pol_lagrange (ngllx, Tdomain%sSubdomain(mat)%GLLcx, i, Tdomain%sSource(nsour)%Elem(n)%xi, wxi )
-                                Tdomain%sSource(nsour)%Elem(n)%ExtForce (i,j) = wxi*weta
+                                Tdomain%sSource(nsour)%Elem(n)%ExtForce (i,j,0) = wxi*weta*Tdomain%sSource(nsour)%dir(1)
+                                Tdomain%sSource(nsour)%Elem(n)%ExtForce (i,j,1) = wxi*weta*Tdomain%sSource(nsour)%dir(2)
                             enddo
                         enddo
                     enddo
@@ -188,16 +189,16 @@ subroutine SourcePosition(Tdomain)
                         call invert2 (LocInvGrad, Jac )
                         Tdomain%sSource(nsour)%Elem(n)%Scoeff  = LocInvGrad
 
-                        allocate  (Tdomain%sSource(nsour)%Elem(n)%Explosion(0:ngllx-1,0:ngllz-1,0:1))
+                        allocate  (Tdomain%sSource(nsour)%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
                         do j = 0,ngllz-1
                             call pol_lagrange (ngllz, Tdomain%sSubdomain(mat)%GLLcz, j, eta,weta)
                             call DERIVLAG (Tdomain%sSubdomain(mat)%GLLcz, ngllz, j, eta, dwdeta)
                             do i = 0,ngllx-1
                                 call pol_lagrange (ngllx, Tdomain%sSubdomain(mat)%GLLcx, i, xi, wxi )
                                 call DERIVLAG ( Tdomain%sSubdomain(mat)%GLLcx, ngllx, i, xi, dwdxi)
-                                Tdomain%sSource(nsour)%Elem(n)%Explosion (i,j,0) = Tdomain%sSource(nsour)%Elem(n)%Scoeff(0,0) * dwdxi * weta + &
+                                Tdomain%sSource(nsour)%Elem(n)%ExtForce (i,j,0) = Tdomain%sSource(nsour)%Elem(n)%Scoeff(0,0) * dwdxi * weta + &
                                     Tdomain%sSource(nsour)%Elem(n)%Scoeff(0,1) * dwdeta * wxi
-                                Tdomain%sSource(nsour)%Elem(n)%Explosion (i,j,1) =Tdomain%sSource(nsour)%Elem(n)%Scoeff(1,0) * dwdxi * weta + &
+                                Tdomain%sSource(nsour)%Elem(n)%ExtForce (i,j,1) =Tdomain%sSource(nsour)%Elem(n)%Scoeff(1,0) * dwdxi * weta + &
                                     Tdomain%sSource(nsour)%Elem(n)%Scoeff(1,1) * dwdeta * wxi
                             enddo
                         enddo
@@ -285,12 +286,13 @@ subroutine SourcePosition(Tdomain)
                         mat = Tdomain%specel(nnelem)%mat_index
                         ngllx = Tdomain%specel(nnelem)%ngllx
                         ngllz = Tdomain%specel(nnelem)%ngllz
-                        allocate  (Tdomain%sSource(nsour)%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1))
+                        allocate  (Tdomain%sSource(nsour)%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
                         do j = 0,ngllz-1
                             call pol_lagrange (ngllz, Tdomain%sSubdomain(mat)%GLLcz, j, Tdomain%sSource(nsour)%Elem(n)%eta,weta)
                             do i = 0,ngllx-1
                                 call pol_lagrange (ngllx, Tdomain%sSubdomain(mat)%GLLcx, i, Tdomain%sSource(nsour)%Elem(n)%xi, wxi )
-                                Tdomain%sSource(nsour)%Elem(n)%ExtForce (i,j) = wxi*weta
+                                Tdomain%sSource(nsour)%Elem(n)%ExtForce (i,j,0) = wxi*weta*Tdomain%sSource(nsour)%dir(1)
+                                Tdomain%sSource(nsour)%Elem(n)%ExtForce (i,j,1) = wxi*weta*Tdomain%sSource(nsour)%dir(2)
                             enddo
                         enddo
                     enddo
@@ -334,16 +336,16 @@ subroutine SourcePosition(Tdomain)
                             z3 *(1-xi)*(xi-2*eta)) - z5 *eta*(1+xi) - z7 *eta *(1-xi) + 0.5* (z6-z4)* (1-xi**2)
                         call invert2 (LocInvGrad, Jac)
                         Tdomain%sSource(nsour)%Elem(n)%Scoeff  = LocInvGrad
-                        allocate  (Tdomain%sSource(nsour)%Elem(n)%Explosion(0:ngllx-1,0:ngllz-1,0:1))
+                        allocate  (Tdomain%sSource(nsour)%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
                         do j = 0,ngllz-1
                             call pol_lagrange (ngllz, Tdomain%sSubdomain(mat)%GLLcz, j, eta,weta)
                             call DERIVLAG (Tdomain%sSubdomain(mat)%GLLcz, ngllz, j, eta, dwdeta)
                             do i = 0,ngllx-1
                                 call pol_lagrange (ngllx, Tdomain%sSubdomain(mat)%GLLcx, i, xi, wxi )
                                 call DERIVLAG ( Tdomain%sSubdomain(mat)%GLLcx, ngllx, i, xi, dwdxi)
-                                Tdomain%sSource(nsour)%Elem(n)%Explosion (i,j,0) = Tdomain%sSource(nsour)%Elem(n)%Scoeff(0,0) * dwdxi * weta + &
+                                Tdomain%sSource(nsour)%Elem(n)%ExtForce (i,j,0) = Tdomain%sSource(nsour)%Elem(n)%Scoeff(0,0) * dwdxi * weta + &
                                     Tdomain%sSource(nsour)%Elem(n)%Scoeff(0,1) * dwdeta * wxi
-                                Tdomain%sSource(nsour)%Elem(n)%Explosion (i,j,1) =Tdomain%sSource(nsour)%Elem(n)%Scoeff(1,0) * dwdxi * weta + &
+                                Tdomain%sSource(nsour)%Elem(n)%ExtForce (i,j,1) =Tdomain%sSource(nsour)%Elem(n)%Scoeff(1,0) * dwdxi * weta + &
                                     Tdomain%sSource(nsour)%Elem(n)%Scoeff(1,1) * dwdeta * wxi
                             enddo
                         enddo

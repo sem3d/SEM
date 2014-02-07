@@ -17,6 +17,9 @@ module sem_c_config
        real(C_DOUBLE) :: beta
        real(C_DOUBLE) :: gamma
        real(C_DOUBLE) :: courant
+       real(C_DOUBLE) :: fmax
+       integer(C_INT) :: ngll
+       integer(C_INT) :: dim
 
        !! Modele, maillage
        type(C_PTR)    :: mesh_file
@@ -67,7 +70,7 @@ module sem_c_config
        type(C_PTR) :: next
        real(C_DOUBLE), dimension(3) :: coords;
        integer(C_INT) :: type;
-       integer(C_INT) :: dir;
+       real(C_DOUBLE), dimension(3) :: dir;
        integer(C_INT) :: func;
        real(C_DOUBLE), dimension(6) :: moments;
        real(C_DOUBLE) :: tau;
