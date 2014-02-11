@@ -33,9 +33,8 @@ subroutine shape4(Tdomain)
 
     ! local variables
 
-    integer :: i_aus,n, mat,ngllx,ngllz,i,j,ipoint, nf
+    integer :: i_aus,n, mat,ngllx,ngllz,i,j,ipoint
     real :: x0,x1,x2,x3,z0,z1,z2,z3,xi,eta,xp,zp, Jac
-    real :: face_len
     real, dimension (0:1,0:1) :: LocInvGrad
 
     ! Modified by Gaetano Festa, 26/05/05
@@ -96,14 +95,14 @@ subroutine shape4(Tdomain)
 
     if (Tdomain%logicD%super_object_local_present) then
         do n = 0, Tdomain%n_fault-1
-            call manage_super_object(Tdomain, n)
+            call shape4_manage_super_object(Tdomain, n)
         enddo
     endif
     return
 end subroutine shape4
 
 
-subroutine manage_super_object(Tdomain, n)
+subroutine shape4_manage_super_object(Tdomain, n)
     use sdomain
     implicit none
     type(domain),target, intent (INOUT) :: Tdomain
@@ -226,7 +225,69 @@ subroutine manage_super_object(Tdomain, n)
                 deallocate (Store_normal)
             enddo
 
-end subroutine manage_super_object
+end subroutine shape4_manage_super_object
+
+subroutine shape4_local_coord(xc, zc, x, z, xi1, eta1, inosol)
+    implicit none
+    real, dimension (0:3), intent(in) :: xc,zc
+    real, intent(in) :: x, z
+    real, intent(out) :: xi1, eta1
+    logical, intent(out) :: inosol
+    !
+    integer :: i
+    real :: a1, b1, c1, d1
+    real :: a2, b2, c2, d2
+    real :: alpha, beta, gamm, delta
+
+    a1 =  4 * x - xc(0) - xc(1) - xc(2) - xc(3)
+    b1 =  xc(0) - xc(1) + xc(3) - xc(2)
+    c1 =  xc(0) + xc(1) - xc(2) - xc(3)
+    d1 = -xc(0) + xc(1) + xc(3) - xc(2)
+    a2 =  4 * z - zc(0) - zc(1) - zc(2) - zc(3)
+    b2 =  zc(0) - zc(1) + zc(3) - zc(2)
+    c2 =  zc(0) + zc(1) - zc(2) - zc(3)
+    d2 = -zc(0) + zc(1) + zc(3) - zc(2)
+    alpha = c1*d2 - d1*c2  ; beta = a1*d2 - b1*c2 + c1*b2 - d1*a2; gamm = a1*b2 - a2*b1
+    if (abs(alpha)<1e-7 ) then
+        eta1 = -gamm/beta
+        if (d2 == 0 .and. b2==0) then
+            xi1 = -(a1 + c1*eta1)/(b1+d1*eta1)
+        else
+            xi1 = -(a2 + c2*eta1)/(b2+d2*eta1)
+        endif
+        inosol = xi1 <=1 .and. xi1>=-1 .and. eta1>=-1 .and. eta1<=1
+        inosol =.not. inosol
+    else
+        delta = beta**2 - 4* alpha*gamm
+        if (delta < 0) then
+            write (*,*)  "No solution for the location"
+            write (*,*) " Return to continue, and Ctrl C to quit"
+            stop
+        endif
+        eta1 = 0.5 * (- beta + sqrt (delta) )/ alpha
+        inosol = .true.
+        if (eta1 <= 1 .and. eta1 >=-1) then
+            xi1 = -(a2 + c2*eta1)/(b2+d2*eta1)
+            if (xi1 <=1 .and. xi1 >= -1) inosol = .false.
+        endif
+        if (inosol) then
+            eta1 =  0.5 * (- beta - sqrt (delta) )/ alpha
+            if (eta1 <= 1 .and. eta1 >=-1) then
+                xi1 = -(a2 + c2*eta1)/(b2+d2*eta1)
+                if (xi1 <=1 .and. xi1 >= -1) inosol = .false.
+            endif
+        endif
+    endif
+    if (inosol) then
+        write (*,*)  "No solution found for coordinates    ",x, z
+        write (*,*)  "Within element :"
+        do i=0,3
+            write(*,*) xc(i), zc(i)
+        end do
+        stop
+    endif
+
+end subroutine shape4_local_coord
 
 end module shape_lin
 !! Local Variables:

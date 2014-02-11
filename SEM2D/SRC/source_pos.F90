@@ -10,7 +10,8 @@
 subroutine SourcePosition(Tdomain)
 
     use sdomain
-
+    use shape_lin
+    use shape_quad
     implicit none
     type (domain), intent (INOUT) :: Tdomain
 
@@ -18,12 +19,11 @@ subroutine SourcePosition(Tdomain)
 
     integer :: nel,n, nsour,i,j,nmin,nind, mind, idef, nnelem,ipoint
     integer :: ngllx,ngllz
-    integer, parameter :: nimax = 50, njmax = 50
     integer, dimension (0:5) :: nsource
     real :: Dmin, Dist,a1,b1,c1,d1,a2,b2,c2,d2,alpha,beta,gamm,delta
     real :: eta1,eta2,xi1,xi2,dximax,detamax
     real :: x0,x1,x2,x3,x4,x5,x6,x7,z0,z1,z2,z3,z4,z5,z6,z7
-    real, dimension (0:3) :: xc,zc
+    real, dimension (0:7) :: xc,zc
     real, dimension (0:5) :: xis, etas
 
     logical :: inner,inosol
@@ -78,10 +78,11 @@ subroutine SourcePosition(Tdomain)
             mind = 0
             do n = 0, nind-1
                 nnelem = nsource(n)
-                ipoint = Tdomain%specel(nnelem)%Control_Nodes(0); xc(0)= Tdomain%Coord_nodes(0,ipoint); zc(0)= Tdomain%Coord_nodes(1,ipoint)
-                ipoint = Tdomain%specel(nnelem)%Control_Nodes(1); xc(1)= Tdomain%Coord_nodes(0,ipoint); zc(1)= Tdomain%Coord_nodes(1,ipoint)
-                ipoint = Tdomain%specel(nnelem)%Control_Nodes(2); xc(2)= Tdomain%Coord_nodes(0,ipoint); zc(2)= Tdomain%Coord_nodes(1,ipoint)
-                ipoint = Tdomain%specel(nnelem)%Control_Nodes(3); xc(3)= Tdomain%Coord_nodes(0,ipoint); zc(3)= Tdomain%Coord_nodes(1,ipoint)
+                do i=0, 3
+                    ipoint = Tdomain%specel(nnelem)%Control_Nodes(i)
+                    xc(i)= Tdomain%Coord_nodes(0,ipoint)
+                    zc(i)= Tdomain%Coord_nodes(1,ipoint)
+                end do
                 call verify_in_quad (xc,zc, Tdomain%sSource(nsour)%Xsource,  Tdomain%sSource(nsour)%Zsource, inner)
                 if (inner) then
                     nsource(mind) = nsource (n)
@@ -97,56 +98,22 @@ subroutine SourcePosition(Tdomain)
                 allocate (Tdomain%sSource(nsour)%Elem (0:mind-1)  )
                 do n = 0,mind-1
                     nnelem = nsource(n)
-                    ipoint = Tdomain%specel(nnelem)%Control_Nodes(0); x0= Tdomain%Coord_nodes(0,ipoint); z0= Tdomain%Coord_nodes(1,ipoint)
-                    ipoint = Tdomain%specel(nnelem)%Control_Nodes(1); x1= Tdomain%Coord_nodes(0,ipoint); z1= Tdomain%Coord_nodes(1,ipoint)
-                    ipoint = Tdomain%specel(nnelem)%Control_Nodes(2); x2= Tdomain%Coord_nodes(0,ipoint); z2= Tdomain%Coord_nodes(1,ipoint)
-                    ipoint = Tdomain%specel(nnelem)%Control_Nodes(3); x3= Tdomain%Coord_nodes(0,ipoint); z3= Tdomain%Coord_nodes(1,ipoint)
-                    a1 = 4 * Tdomain%sSource(nsour)%Xsource - x0 -x1- x2 - x3
-                    b1 = x0 - x1 + x3 - x2
-                    c1 = x0 + x1 - x2 - x3
-                    d1 = -x0 + x1 + x3 - x2
-                    a2 = 4 * Tdomain%sSource(nsour)%Zsource - z0 -z1- z2 - z3
-                    b2 = z0 - z1 + z3 - z2
-                    c2 = z0 + z1 - z2 - z3
-                    d2 = -z0 + z1 + z3 - z2
-                    alpha = c1*d2 - d1*c2  ; beta = a1*d2 - b1*c2 + c1*b2 - d1*a2; gamm  =a1*b2 - a2*b1
-                    if (abs(alpha)<1e-7 ) then
-                        eta1 = -gamm/beta
-                        if (d2 == 0 .and. b2==0) then
-                            xi1 = -(a1 + c1*eta1)/(b1+d1*eta1)
-                        else
-                            xi1 = -(a2 + c2*eta1)/(b2+d2*eta1)
-                        endif
-                        inosol = xi1 <=1 .and. xi1>=-1 .and. eta1>=-1 .and. eta1<=1
-                        inosol =.not. inosol
-                    else
-                        delta = beta**2 - 4* alpha*gamm
-                        if (delta < 0) then
-                            write (*,*)  "No solution for the location"
-                            write (*,*) " Return to continue, and Ctrl C to quit"
-                            read  (*,*)
-                        endif
-                        eta1 = 0.5 * (- beta + sqrt (delta) )/ alpha
-                        inosol = .true.
-                        if (eta1 <= 1 .and. eta1 >=-1) then
-                            xi1 = -(a2 + c2*eta1)/(b2+d2*eta1)
-                            if (xi1 <=1 .and. xi1 >= -1) inosol = .false.
-                        endif
-                        eta2 =  0.5 * (- beta - sqrt (delta) )/ alpha
-                        if (eta2 <= 1 .and. eta2 >=-1 .and. inosol) then
-                            xi1 = -(a2 + c2*eta2)/(b2+d2*eta2)
-                            if (xi1 <=1 .and. xi1 >= -1) inosol = .false.
-                            eta1 = eta2
-                        endif
-                    endif
-                    if (inosol) then
-                        write (*,*)  "No solution found for the source    ",nsour
-                        stop
-                    endif
-                    Tdomain%sSource(nsour)%Elem(n)%nr = nsource (n)
-                    Tdomain%sSource(nsour)%Elem(n)%xi = xi1
-                    Tdomain%sSource(nsour)%Elem(n)%eta = eta1
+                    do i=0, 3
+                        ipoint = Tdomain%specel(nnelem)%Control_Nodes(i)
+                        xc(i)= Tdomain%Coord_nodes(0,ipoint)
+                        zc(i)= Tdomain%Coord_nodes(1,ipoint)
+                    end do
+                    call shape4_local_coord(xc, zc, Tdomain%sSource(nsour)%Xsource, &
+                        Tdomain%sSource(nsour)%Zsource, xi1, eta1, inosol)
 
+                    if (inosol) then
+                        write(*,*) "Source not found"
+                        stop
+                    else
+                        Tdomain%sSource(nsour)%Elem(n)%nr = nsource (n)
+                        Tdomain%sSource(nsour)%Elem(n)%xi = xi1
+                        Tdomain%sSource(nsour)%Elem(n)%eta = eta1
+                    end if
                 enddo
 
 
@@ -160,66 +127,23 @@ subroutine SourcePosition(Tdomain)
 
         else if (Tdomain%n_nodes == 8 ) then
             mind = 0
-            dximax = 2./nimax; detamax = 2./njmax
             do n = 0, nind-1
                 nnelem = nsource(n)
                 inner = .false.
-                ipoint = Tdomain%specel(nnelem)%Control_Nodes(0)
-                x0 = Tdomain%Coord_Nodes(0,ipoint);  z0 = Tdomain%Coord_Nodes(1,ipoint)
-                ipoint = Tdomain%specel(nnelem)%Control_Nodes(1)
-                x1 = Tdomain%Coord_Nodes(0,ipoint);  z1 = Tdomain%Coord_Nodes(1,ipoint)
-                ipoint = Tdomain%specel(nnelem)%Control_Nodes(2)
-                x2 = Tdomain%Coord_Nodes(0,ipoint);  z2 = Tdomain%Coord_Nodes(1,ipoint)
-                ipoint = Tdomain%specel(nnelem)%Control_Nodes(3)
-                x3 = Tdomain%Coord_Nodes(0,ipoint);  z3 = Tdomain%Coord_Nodes(1,ipoint)
-                ipoint = Tdomain%specel(nnelem)%Control_Nodes(4)
-                x4 = Tdomain%Coord_Nodes(0,ipoint);  z4 = Tdomain%Coord_Nodes(1,ipoint)
-                ipoint = Tdomain%specel(nnelem)%Control_Nodes(5)
-                x5 = Tdomain%Coord_Nodes(0,ipoint);  z5 = Tdomain%Coord_Nodes(1,ipoint)
-                ipoint = Tdomain%specel(nnelem)%Control_Nodes(6)
-                x6 = Tdomain%Coord_Nodes(0,ipoint);  z6 = Tdomain%Coord_Nodes(1,ipoint)
-                ipoint = Tdomain%specel(nnelem)%Control_Nodes(7)
-                x7 = Tdomain%Coord_Nodes(0,ipoint);  z7 = Tdomain%Coord_Nodes(1,ipoint)
-                do12_jmax : do j = 0,njmax-1
-                    do i = 0, nimax-1
-                        xi1 = i*dximax -1; xi2 = xi1 + dximax
-                        eta1 = j * detamax-1 ; eta2 = eta1 + detamax
-                        xi1 = xi1 -dximax/nimax; xi2 = xi2 + dximax/nimax;
-                        eta1 = eta1 - detamax/njmax; eta2 = eta2 + detamax/njmax
-
-                        xc(0) = 0.25 * ( -x0 * (1.-xi1)*(1.-eta1)*(1+xi1+eta1) - x1 * (1.+xi1)*(1.-eta1)*(1-xi1+eta1) - x2 *  &
-                            (1.+xi1)*(1.+eta1)*(1-xi1-eta1) -  x3 * (1.-xi1)*(1.+eta1)*(1+xi1-eta1) ) + 0.5 * ( x4 * (1.-xi1**2)*(1.-eta1) + &
-                            x5 * (1.+xi1)*(1.-eta1**2) +x6 * (1.-xi1**2)*(1.+eta1) + x7 * (1.-xi1)*(1.-eta1**2) )
-                        zc(0) = 0.25 * ( -z0 * (1.-xi1)*(1.-eta1)*(1+xi1+eta1) - z1 * (1.+xi1)*(1.-eta1)*(1-xi1+eta1) - z2 *   &
-                            (1.+xi1)*(1.+eta1)*(1-xi1-eta1) -  z3 * (1.-xi1)*(1.+eta1)*(1+xi1-eta1) ) + 0.5 * ( z4 * (1.-xi1**2)*(1.-eta1) +  &
-                            z5 * (1.+xi1)*(1.-eta1**2) +z6 * (1.-xi1**2)*(1.+eta1) + z7 * (1.-xi1)*(1.-eta1**2) )
-                        xc(1) = 0.25 * ( -x0 * (1.-xi2)*(1.-eta1)*(1+xi2+eta1) - x1 * (1.+xi2)*(1.-eta1)*(1-xi2+eta1) - x2 * &
-                            (1.+xi2)*(1.+eta1)*(1-xi2-eta1) -  x3 * (1.-xi2)*(1.+eta1)*(1+xi2-eta1) ) + 0.5 * ( x4 * (1.-xi2**2)*(1.-eta1) + &
-                            x5 * (1.+xi2)*(1.-eta1**2) +x6 * (1.-xi2**2)*(1.+eta1) + x7 * (1.-xi2)*(1.-eta1**2) )
-                        zc(1) = 0.25 * ( -z0 * (1.-xi2)*(1.-eta1)*(1+xi2+eta1) - z1 * (1.+xi2)*(1.-eta1)*(1-xi2+eta1) - z2 *  &
-                            (1.+xi2)*(1.+eta1)*(1-xi2-eta1) -  z3 * (1.-xi2)*(1.+eta1)*(1+xi2-eta1) ) + 0.5 * ( z4 * (1.-xi2**2)*(1.-eta1) + &
-                            z5 * (1.+xi2)*(1.-eta1**2) +z6 * (1.-xi2**2)*(1.+eta1) + z7 * (1.-xi2)*(1.-eta1**2) )
-                        xc(2) = 0.25 * ( -x0 * (1.-xi2)*(1.-eta2)*(1+xi2+eta2) - x1 * (1.+xi2)*(1.-eta2)*(1-xi2+eta2) - x2 * &
-                            (1.+xi2)*(1.+eta2)*(1-xi2-eta2) -  x3 * (1.-xi2)*(1.+eta2)*(1+xi2-eta2) ) + 0.5 * ( x4 * (1.-xi2**2)*(1.-eta2) +&
-                            x5 * (1.+xi2)*(1.-eta2**2) +x6 * (1.-xi2**2)*(1.+eta2) + x7 * (1.-xi2)*(1.-eta2**2) )
-                        zc(2) = 0.25 * ( -z0 * (1.-xi2)*(1.-eta2)*(1+xi2+eta2) - z1 * (1.+xi2)*(1.-eta2)*(1-xi2+eta2) - z2 * &
-                            (1.+xi2)*(1.+eta2)*(1-xi2-eta2) -  z3 * (1.-xi2)*(1.+eta2)*(1+xi2-eta2) ) + 0.5 * ( z4 * (1.-xi2**2)*(1.-eta2) +&
-                            z5 * (1.+xi2)*(1.-eta2**2) +z6 * (1.-xi2**2)*(1.+eta2) + z7 * (1.-xi2)*(1.-eta2**2) )
-                        xc(3) = 0.25 * ( -x0 * (1.-xi1)*(1.-eta2)*(1+xi1+eta2) - x1 * (1.+xi1)*(1.-eta2)*(1-xi1+eta2) - x2 * &
-                            (1.+xi1)*(1.+eta2)*(1-xi1-eta2) -  x3 * (1.-xi1)*(1.+eta2)*(1+xi1-eta2) ) + 0.5 * ( x4 * (1.-xi1**2)*(1.-eta2) + &
-                            x5 * (1.+xi1)*(1.-eta2**2) +x6 * (1.-xi1**2)*(1.+eta2) + x7 * (1.-xi1)*(1.-eta2**2) )
-                        zc(3) = 0.25 * ( -z0 * (1.-xi1)*(1.-eta2)*(1+xi1+eta2) - z1 * (1.+xi1)*(1.-eta2)*(1-xi1+eta2) - z2 * &
-                            (1.+xi1)*(1.+eta2)*(1-xi1-eta2) -  z3 * (1.-xi1)*(1.+eta2)*(1+xi1-eta2) ) + 0.5 * ( z4 * (1.-xi1**2)*(1.-eta2) + &
-                            z5 * (1.+xi1)*(1.-eta2**2) +z6 * (1.-xi1**2)*(1.+eta2) + z7 * (1.-xi1)*(1.-eta2**2) )
-
-                        call verify_in_quad (Xc,Zc,Tdomain%sSource(nsour)%Xsource,Tdomain%sSource(nsour)%Zsource, inner)
-                        !print *, xc, zc, Tdomain%MPI_var%My_rank
-                        if (inner) exit do12_jmax
-                    enddo
-                enddo do12_jmax
-                if (inner) then
+                do i=0, 7
+                    ipoint = Tdomain%specel(nnelem)%Control_Nodes(i)
+                    xc(i)= Tdomain%Coord_nodes(0,ipoint)
+                    zc(i)= Tdomain%Coord_nodes(1,ipoint)
+                end do
+                call shape8_local_coord(xc, zc, Tdomain%sSource(nsour)%Xsource, &
+                        Tdomain%sSource(nsour)%Zsource, xi1, eta1, inosol)
+                if (inosol) then
+                    write(*,*) "Source not found"
+                    stop
+                else
                     nsource (mind) = nsource (n)
-                    xis(mind) = 0.5 * (xi1+xi2); etas(mind) = 0.5 * (eta1+eta2)
+                    xis(mind) = xi1
+                    etas(mind) = eta1
                     mind = mind +1
                 endif
             enddo

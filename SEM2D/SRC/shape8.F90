@@ -30,16 +30,11 @@ subroutine shape8(Tdomain)
 
     ! local variables
 
-    integer :: i_aus,n, mat,ngllx,ngllz,i,j,ipoint, nv, nv2, Face_UP, ngll
-
-    real :: x0,x1,x2,x3,z0,z1,z2,z3,xi,eta,xp,zp, Jac
-    real :: x4,x5,x6,x7,z4,z5,z6,z7,zin,xin,loc_distance
-    real :: normal_0, normal_1, normalization, ds_local
+    integer :: i_aus,n, mat,ngllx,ngllz,i,j,ipoint
+    real, dimension(0:7) :: xc, zc
+    real :: xi,eta,xp,zp, Jac
     real, dimension (0:1,0:1) :: LocInvGrad
-    real, dimension (:,:), allocatable :: Store_normal
-    real, dimension (:), pointer :: GLLc_face
-    character (len=MAX_FILE_SIZE) :: fnamef
-    logical, parameter :: postpg=.true.
+
 
     ! Modified by Gaetano Festa, 27/05/05
     !---------------------------------------------------------------------------
@@ -50,26 +45,12 @@ subroutine shape8(Tdomain)
 
     allocate (Tdomain%GlobCoord(0:1,0:Tdomain%n_glob_points-1))
 
-    if (postpg) then
-        ! Creation des informations pour le posttraitement
-        call semname_posptg(Tdomain%mpi_var%my_rank,fnamef)
-        open (88,file=fnamef,form="formatted")
-
-        call semname_connecptg(Tdomain%mpi_var%my_rank,fnamef)
-        open (89,file=fnamef,form="formatted")
-    endif
-
     do n = 0,Tdomain%n_elem - 1
-        i_aus = Tdomain%specel(n)%Control_Nodes(0);  x0 = Tdomain%Coord_Nodes(0,i_aus);  z0 = Tdomain%Coord_Nodes(1,i_aus)
-        i_aus = Tdomain%specel(n)%Control_Nodes(1);  x1 = Tdomain%Coord_Nodes(0,i_aus);  z1 = Tdomain%Coord_Nodes(1,i_aus)
-        i_aus = Tdomain%specel(n)%Control_Nodes(2);  x2 = Tdomain%Coord_Nodes(0,i_aus);  z2 = Tdomain%Coord_Nodes(1,i_aus)
-        i_aus = Tdomain%specel(n)%Control_Nodes(3);  x3 = Tdomain%Coord_Nodes(0,i_aus);  z3 = Tdomain%Coord_Nodes(1,i_aus)
-        i_aus = Tdomain%specel(n)%Control_Nodes(4);  x4 = Tdomain%Coord_Nodes(0,i_aus);  z4 = Tdomain%Coord_Nodes(1,i_aus)
-        i_aus = Tdomain%specel(n)%Control_Nodes(5);  x5 = Tdomain%Coord_Nodes(0,i_aus);  z5 = Tdomain%Coord_Nodes(1,i_aus)
-        i_aus = Tdomain%specel(n)%Control_Nodes(6);  x6 = Tdomain%Coord_Nodes(0,i_aus);  z6 = Tdomain%Coord_Nodes(1,i_aus)
-        i_aus = Tdomain%specel(n)%Control_Nodes(7);  x7 = Tdomain%Coord_Nodes(0,i_aus);  z7 = Tdomain%Coord_Nodes(1,i_aus)
-
-
+        do i=0,7
+            i_aus = Tdomain%specel(n)%Control_Nodes(i)
+            xc(i) = Tdomain%Coord_Nodes(0,i_aus)
+            zc(i) = Tdomain%Coord_Nodes(1,i_aus)
+        end do
 
         mat = Tdomain%specel(n)%mat_index
         ngllx = Tdomain%specel(n)%ngllx
@@ -77,11 +58,6 @@ subroutine shape8(Tdomain)
 
         allocate (Tdomain%specel(n)%Jacob(0:ngllx-1,0:ngllz-1) )
         allocate (Tdomain%specel(n)%InvGrad(0:ngllx-1,0:ngllz-1,0:1,0:1) )
-
-        if (postpg) then
-            write(89,'(I8,X,I4,X,I4)') n,ngllx,ngllz
-        endif
-
 
         do j = 0,ngllz - 1
             eta =   Tdomain%sSubdomain(mat)%GLLcz (j)
@@ -91,31 +67,40 @@ subroutine shape8(Tdomain)
 
                 ipoint = Tdomain%specel(n)%Iglobnum(i,j)
 
-                xp = 0.25 * ( -x0 * (1.-xi)*(1.-eta)*(1+xi+eta) - x1 * (1.+xi)*(1.-eta)*(1-xi+eta) - x2 * (1.+xi)*(1.+eta)*(1-xi-eta) - &
-                    x3 * (1.-xi)*(1.+eta)*(1+xi-eta) )
-                xp = xp + 0.5 * ( x4 * (1.-xi**2)*(1.-eta) + x5 * (1.+xi)*(1.-eta**2) +x6 * (1.-xi**2)*(1.+eta) +  &
-                    x7 * (1.-xi)*(1.-eta**2))
-                zp = 0.25 * ( -z0 * (1.-xi)*(1.-eta)*(1+xi+eta) - z1 * (1.+xi)*(1.-eta)*(1-xi+eta) - z2 * (1.+xi)*(1.+eta)*(1-xi-eta) - &
-                    z3 * (1.-xi)*(1.+eta)*(1+xi-eta) )
-                zp = zp + 0.5 * ( z4 * (1.-xi**2)*(1.-eta) + z5 * (1.+xi)*(1.-eta**2) +z6 * (1.-xi**2)*(1.+eta) + &
-                    z7 * (1.-xi)*(1.-eta**2) )
+                call shape8_global_coord(xc, zc, xi, eta, xp, zp)
 
                 Tdomain%GlobCoord (0,ipoint) = xp;   Tdomain%GlobCoord (1,ipoint) = zp
 
-                if (postpg) then
-                    write(88,*) ipoint
-                endif
-
                 !         Computation of the derivative matrix, dx_(jj)/dxi_(ii)
 
-                LocInvGrad(0,0) = 0.25 * (x0 *(1-eta)*(2*xi+eta) + x1 *(1-eta)*(2*xi-eta) + x2 *(1+eta)*(2*xi+eta)+  &
-                    x3 *(1+eta)*(2*xi-eta)) - x4 * xi*(1-eta) - x6 *xi *(1+eta) + 0.5* (x5-x7)* (1-eta**2)
-                LocInvGrad(1,0) = 0.25 * (x0 *(1-xi)*(2*eta+xi) - x1 *(1+xi)*(xi-2*eta) + x2 *(1+xi)*(2*eta+xi)-  &
-                    x3 *(1-xi)*(xi-2*eta)) -  x5 *eta*(1+xi) - x7 *eta *(1-xi) + 0.5* (x6-x4)* (1-xi**2)
-                LocInvGrad(0,1) = 0.25 * (z0 *(1-eta)*(2*xi+eta) + z1 *(1-eta)*(2*xi-eta) + z2 *(1+eta)*(2*xi+eta)+  &
-                    z3 *(1+eta)*(2*xi-eta)) -  z4 * xi*(1-eta) - z6 *xi *(1+eta) + 0.5* (z5-z7)* (1-eta**2)
-                LocInvGrad(1,1) = 0.25 * (z0 *(1-xi)*(2*eta+xi) - z1 *(1+xi)*(xi-2*eta) + z2 *(1+xi)*(2*eta+xi)-   &
-                    z3 *(1-xi)*(xi-2*eta)) -  z5 *eta*(1+xi) - z7 *eta *(1-xi) + 0.5* (z6-z4)* (1-xi**2)
+                LocInvGrad(0,0) = 0.25 * (xc(0) *(1-eta)*(2*xi+eta) &
+                                         +xc(1) *(1-eta)*(2*xi-eta) &
+                                         +xc(2) *(1+eta)*(2*xi+eta) &
+                                         +xc(3) *(1+eta)*(2*xi-eta)) &
+                                         -xc(4) * xi*(1-eta) &
+                                         -xc(6) * xi*(1+eta) &
+                                   +0.5* (xc(5)-xc(7))* (1-eta**2)
+                LocInvGrad(1,0) = 0.25 * (xc(0) *(1-xi)*(2*eta+xi) &
+                                         -xc(1) *(1+xi)*(xi-2*eta) &
+                                         +xc(2) *(1+xi)*(2*eta+xi) &
+                                         -xc(3) *(1-xi)*(xi-2*eta)) &
+                                         -xc(5) *eta*(1+xi) &
+                                         -xc(7) *eta*(1-xi) &
+                                   +0.5* (xc(6)-xc(4))* (1-xi**2)
+                LocInvGrad(0,1) = 0.25 * (zc(0) *(1-eta)*(2*xi+eta) &
+                                         +zc(1) *(1-eta)*(2*xi-eta) &
+                                         +zc(2) *(1+eta)*(2*xi+eta) &
+                                         +zc(3) *(1+eta)*(2*xi-eta)) &
+                                         -zc(4) * xi*(1-eta) &
+                                         -zc(6) *xi *(1+eta) &
+                                   +0.5* (zc(5)-zc(7))* (1-eta**2)
+                LocInvGrad(1,1) = 0.25 * (zc(0) *(1-xi)*(2*eta+xi) &
+                                         -zc(1) *(1+xi)*(xi-2*eta) &
+                                         +zc(2) *(1+xi)*(2*eta+xi) &
+                                         -zc(3) *(1-xi)*(xi-2*eta)) &
+                                         -zc(5) *eta*(1+xi) &
+                                         -zc(7) *eta *(1-xi) &
+                                   +0.5* (zc(6)-zc(4))* (1-xi**2)
 
                 call invert2 (LocInvGrad, Jac )
 
@@ -126,17 +111,29 @@ subroutine shape8(Tdomain)
         enddo
     enddo
 
-
-    if (postpg) then
-        do i=0,Tdomain%n_glob_points-1
-            write(88,*) i, Tdomain%GlobCoord (0,i), Tdomain%GlobCoord (1,i)
-        enddo
-        close(88)
-        close(89)
-    endif
-
     if (Tdomain%logicD%super_object_local_present) then
         do n = 0, Tdomain%n_fault-1
+            call shape8_manage_super_object(Tdomain, n)
+        end do
+    endif
+    return
+end subroutine shape8
+
+
+subroutine shape8_manage_super_object(Tdomain, n)
+    use sdomain
+    implicit none
+    type(domain),target, intent (INOUT) :: Tdomain
+    integer, intent(IN) :: n
+    integer :: i, j, i_aus
+    real, dimension (:), pointer :: GLLc_face
+    real, dimension (:,:), allocatable :: Store_normal
+    real :: ds_local, normal_0, normal_1, normalization
+    real :: x0, x1, x2, z0, z1, z2, xp, zp
+    integer :: Face_up, mat, ngll, nv, nv2
+    real :: zin,xin,loc_distance
+
+
             do  j = 0, Tdomain%sFault(n)%n_face-1
                 ngll = Tdomain%sFault(n)%fFace(j)%ngll
                 Face_up = Tdomain%sFault(n)%fFace(j)%Face_UP
@@ -260,13 +257,71 @@ subroutine shape8(Tdomain)
                 Tdomain%sFault(n)%fFace(j)%distance(1:ngll-2)= Store_normal (1:ngll-2,0)
                 deallocate (Store_normal)
             enddo
+
+end subroutine shape8_manage_super_object
+
+
+subroutine shape8_global_coord(xq, zq, xi, eta, x, z)
+    real, dimension(0:7), intent(in) :: xq, zq
+    real, intent(in) :: xi, eta
+    real, intent(out) :: x, z
+
+    x = 0.25 * ( -xq(0) * (1.-xi)*(1.-eta)*(1+xi+eta) &
+                 -xq(1) * (1.+xi)*(1.-eta)*(1-xi+eta) &
+                 -xq(2) * (1.+xi)*(1.+eta)*(1-xi-eta) &
+                 -xq(3) * (1.-xi)*(1.+eta)*(1+xi-eta) ) &
+       + 0.5 * (  xq(4) * (1.-xi**2)*(1.-eta) + &
+                  xq(5) * (1.+xi)*(1.-eta**2) + &
+                  xq(6) * (1.-xi**2)*(1.+eta) + &
+                  xq(7) * (1.-xi)*(1.-eta**2) )
+    z = 0.25 * ( -zq(0) * (1.-xi)*(1.-eta)*(1+xi+eta) &
+                 -zq(1) * (1.+xi)*(1.-eta)*(1-xi+eta) &
+                 -zq(2) * (1.+xi)*(1.+eta)*(1-xi-eta) &
+                 -zq(3) * (1.-xi)*(1.+eta)*(1+xi-eta) ) &
+       + 0.5 * (  zq(4) * (1.-xi**2)*(1.-eta) + &
+                  zq(5) * (1.+xi)*(1.-eta**2) + &
+                  zq(6) * (1.-xi**2)*(1.+eta) + &
+                  zq(7) * (1.-xi)*(1.-eta**2) )
+
+end subroutine shape8_global_coord
+
+subroutine shape8_local_coord(xq, zq, x, z, xi1, eta1, inosol)
+    implicit none
+    real, dimension (0:7), intent(in) :: xq, zq
+    real, intent(in) :: x, z
+    real, intent(out) :: xi1, eta1
+    logical, intent(out) :: inosol
+    !
+    real, dimension(0:7) :: xc, zc
+    integer, parameter :: nimax = 50, njmax = 50
+    real, parameter :: dximax = 2./nimax,  detamax = 2./njmax
+    real :: xi2, eta2
+    logical :: inner
+    integer :: i, j
+
+    inner = .false.
+    do12_jmax : do j = 0,njmax-1
+        do i = 0, nimax-1
+            xi1 = i*dximax -1; xi2 = xi1 + dximax
+            eta1 = j * detamax-1 ; eta2 = eta1 + detamax
+            xi1 = xi1 -dximax/nimax; xi2 = xi2 + dximax/nimax;
+            eta1 = eta1 - detamax/njmax; eta2 = eta2 + detamax/njmax
+
+            call shape8_global_coord(xq, zq, xi1, eta1, xc(0), zc(0))
+            call shape8_global_coord(xq, zq, xi2, eta1, xc(1), zc(1))
+            call shape8_global_coord(xq, zq, xi2, eta2, xc(2), zc(2))
+            call shape8_global_coord(xq, zq, xi1, eta2, xc(3), zc(3))
+
+            call verify_in_quad (Xc, Zc, x, z, inner)
+            if (inner) exit do12_jmax
         enddo
-    endif
+    enddo do12_jmax
 
+    inosol = .not. inner
+    xi1 = 0.5*(xi1+xi2)
+    eta1 = 0.5*(eta1+eta2)
+end subroutine shape8_local_coord
 
-
-    return
-end subroutine shape8
 end module
 !! Local Variables:
 !! mode: f90
