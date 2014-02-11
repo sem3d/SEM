@@ -98,7 +98,7 @@ La même chose en changeant la définition (rotation) de certains hexaèdres du 
 
 Le minimum pour la prochaine version :
 
-1. Calculer les solutions numérique avec code HERMANN et comparer avec un cas 3D homogène
+1. Calculer les solutions numériques avec code HERMANN et comparer avec un cas 3D homogène
 
 2. Idem avec 2, 3, 4 couches.
 
