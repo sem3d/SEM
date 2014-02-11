@@ -12,8 +12,6 @@ program drive_sem
 
     call init_sem_path(p_param, p_traces, p_results, p_data, p_prot)
 
-    call MPI_Init (ierr)
-    call MPI_Comm_Rank (MPI_COMM_WORLD, rg, ierr)
     call sem(-1, MPI_COMM_WORLD, MPI_COMM_WORLD)
 
     write (*,*) "fin du calcul sur processeurs ",rg
