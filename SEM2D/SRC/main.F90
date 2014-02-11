@@ -97,6 +97,9 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
     if (rg == 0) write (*,*) "Define mesh properties"
     call read_mesh_h5(Tdomain)
 
+    if (rg == 0) write (*,*) "Checks the inputs and the mesh"
+    call check_inputs_and_mesh (Tdomain)
+
     if (rg == 0) write (*,*) "Compute Gauss-Lobatto-Legendre weights and zeroes"
     call compute_GLL (Tdomain)
 

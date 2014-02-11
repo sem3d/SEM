@@ -82,9 +82,9 @@ contains
 
         !if(F%is_computed) then
         ! Case the flux has been already computed
-        !if(DG_type==1) then
+        !if(DG_type==GALERKIN_DG_WEAK) then
         !F%Flux = -F%Flux
-        !elseif (DG_type==0) then
+        !elseif (DG_type==GALERKIN_DG_STRONG) then
         !F%Flux = F%Flux
         !endif
         !F%is_computed = .FALSE.
@@ -111,16 +111,16 @@ contains
 
         ! -------- CENTERED LAURENT FLUX ---------- !
     else if (F%Type_Flux == FLUX_CUSTOM_LG) then
-        if (DG_type==1) then
+        if (DG_type==GALERKIN_DG_WEAK) then
             F%Flux = Flux_Laurent(F,bool_side)
-        elseif (DG_type==0) then
+        elseif (DG_type==GALERKIN_DG_STRONG) then
             F%Flux = Flux_Laurent(F,bool_side) - compute_trace_F(F,bool_side)
         endif
         ! Treating Absorbing Boundary Conditions
         if(F%Abs) then
-            if (DG_type==1) then
+            if (DG_type==GALERKIN_DG_WEAK) then
                 F%Flux = compute_trace_F(F,bool_side)
-            elseif (DG_type==0) then
+            elseif (DG_type==GALERKIN_DG_STRONG) then
                 F%Flux = 0.
             endif
         endif
@@ -129,9 +129,9 @@ contains
     else if (F%Type_Flux == FLUX_GODUNOV) then
         !if(F%is_computed .AND. .NOT. F%changing_media) then
         ! Case the flux has been already computed
-        !if (DG_type ==1 ) then
+        !if (DG_type == GALERKIN_DG_WEAK) then
         !   F%Flux = -F%Flux
-        !elseif (DG_type == 0) then
+        !elseif (DG_type == GALERKIN_DG_STRONG) then
         !   F%Flux = -F%Flux - compute_trace_F(F,bool_side) - compute_trace_F(F,.NOT.bool_side)
         !endif
         !F%is_computed = .FALSE.

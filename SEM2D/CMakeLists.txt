@@ -25,6 +25,7 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/allocate_domain.F90
     ${PRJ}/SRC/Assemblage.F90
     ${PRJ}/SRC/capteurs_veloc.F90
+    ${PRJ}/SRC/check_inputs_and_mesh.F90
     ${PRJ}/SRC/compute_coeff_flux.F90
     ${PRJ}/SRC/compute_GLL.F90
     ${PRJ}/SRC/Compute_external_forces.F90

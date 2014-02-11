@@ -296,7 +296,7 @@ subroutine buildNormal(Tdomain,LocInvGrad,n_elem,i,j)
   type(domain),target, intent (INOUT) :: Tdomain
   real, dimension (0:1,0:1), intent (IN) :: LocInvGrad
   integer, intent (IN) :: n_elem, i, j
-  
+
   ! local variables
   integer :: ngllx, ngllz, nf
   real    :: tx, tz, nx, nz, norm_n

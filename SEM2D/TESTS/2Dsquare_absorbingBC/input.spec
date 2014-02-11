@@ -2,13 +2,13 @@
 run_name = "Square_Absorbing_BC";
 
 # duration of the run
-sim_time = 0.01;
+sim_time = 2.;
 mesh_file = "mesh4spec"; # input mesh file
 mat_file = "material.input";
 
 snapshots {
     save_snap = true;
-    snap_interval = 0.00005;
+    snap_interval = 0.02;
     deselect all;
     select box = -100 -100  100 500 500 150;
     select box = -100  100 -100 500 150 500;
@@ -30,7 +30,7 @@ restart_iter=370;
 # introduce a source
 source {
     # coordinates of the sources ((x,y,z) or (lat,long,R) if rotundity is considered)
-    coords = 225. 225. 225.;
+    coords = 0. 0. 0.;
     # the numbers before the labels are here to help convert from previous input.spec format
     # Type (1.Impulse, 2.moment Tensor, 3.fluidpulse)
     type = impulse;
@@ -38,24 +38,24 @@ source {
     dir = x;
     # Function 1.gaussian,2.ricker,3.tf_heaviside,4.gabor,5.file,6.spice_bench,7.sinus
     func = ricker;
-    tau = 0.4;
+    tau = .5;
     freq = 3.;   # source main frequency / cutoff frequency
 };
 
 time_scheme {
-    type_time_integration = 2;  # Type of time integration (1 for Newmark, 2 for RK4)
+    type_time_integration = RK4;  # Type of time integration (1 for Newmark, 2 for RK4)
     accel_scheme = false;  # Acceleration scheme for Newmark
     veloc_scheme = true;   # Velocity scheme for Newmark
     alpha = 0.5;           # alpha (Newmark parameter)
     beta = -0.5;           # beta (Newmark parameter)
     gamma = 1;             # gamma (Newmark parameter)
-    courant=0.2;
+    courant=0.4;
 };
 
 type_elements {
-    dg_type = 0;           # Type of DG (0 for DG-strong, 1 for DG-weak, 2 for CG)
-    flux_type = 1;     	   # Type of Flux (1 for centered flux, 2 for Godunov-like flux)
-    bc_type = 1;	   # Type of Boundary Conditions (1 for absorbing, 2 for free surface)
+    dg_type = dg_strong;           # Type of DG (0.continuous, 1.dg_strong, 2.dg_weak)
+    flux_type = godunov;     	   # Type of Flux (0.none, 1.centered, 2.godunov, 3.laurent)
+    bc_type = absorbing;	   # Type of Boundary Conditions (0.free, 1.absorbing)
 };
 
 amortissement {

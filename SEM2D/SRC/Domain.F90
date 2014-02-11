@@ -204,18 +204,6 @@ subroutine read_material_file(Tdomain)
         endif
     enddo
 
-    if ((Tdomain%type_bc==DG_BC_FREE) .AND. (Tdomain%type_flux==FLUX_CENTERED)) then
-        STOP "FREE Surface not implemented for Centered flux"
-    endif
-    if ((Tdomain%type_bc.NE.DG_BC_FREE) .AND. (Tdomain%type_bc.NE.DG_BC_ABS)) then
-        STOP "This choice for bc_type does not exist. Please choose 0 or 1"
-    endif
-    if ((Tdomain%type_elem.NE.GALERKIN_CONT) .AND. &
-        (Tdomain%type_elem.NE.GALERKIN_DG_STRONG) .AND. &
-        (Tdomain%type_elem.NE.GALERKIN_DG_WEAK)) then
-        STOP "This choice for elem_type does not exist. Please choose 0, 1 or 2"
-    endif
-
     do i = 0, Tdomain%n_vertex-1
         mat = Tdomain%sVertex(i)%mat_index
         Tdomain%sVertex(i)%Type_DG = Tdomain%sSubDomain(mat)%Type_DG
