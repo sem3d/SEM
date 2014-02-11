@@ -35,6 +35,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
     use sem_c_bindings
     use shape_lin
     use shape_quad
+    use treceivers
 #ifdef COUPLAGE
     use scouplage
 #endif

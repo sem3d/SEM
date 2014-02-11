@@ -7,6 +7,11 @@
 !!
 !<
 
+module treceivers
+    use sreceivers
+    use sdomain
+    implicit none
+contains
 subroutine ReceiverPosition(Tdomain)
 
     use sdomain
@@ -159,6 +164,118 @@ subroutine ReceiverPosition(Tdomain)
     endif
     return
 end subroutine ReceiverPosition
+
+
+subroutine save_trace (Tdomain, it)
+    use sdomain
+    use orientation
+    implicit none
+
+    type (domain), intent (INOUT) :: Tdomain
+    integer, intent (IN) :: it
+
+    integer :: ir, nr, i,j, ngllx, ngllz, nsta
+    real :: dum0, dum1
+    real, dimension (:,:,:), allocatable :: Veloc
+
+
+    nsta = Tdomain%n_receivers
+    do ir = 0, nsta-1
+        if (Tdomain%sReceiver(ir)%located_here) then
+            nr = Tdomain%sReceiver(ir)%nr
+            dum0 = 0; dum1 = 0
+            ngllx = Tdomain%specel(nr)%ngllx
+            ngllz = Tdomain%specel(nr)%ngllz
+
+            allocate (Veloc(0:ngllx-1,0:ngllz-1,0:1))
+
+            call gather_elem_veloc(Tdomain, nr, Veloc)
+
+            Veloc(1:ngllx-2,1:ngllz-2,0:1) = Tdomain%specel(nr)%Veloc(1:ngllx-2,1:ngllz-2,0:1)
+
+            do j = 0,ngllz-1
+                do i =0,ngllx -1
+                    dum0 = dum0 + Tdomain%sReceiver(ir)%Interp_Coeff(i,j) * Veloc(i,j,0)
+                    dum1 = dum1 + Tdomain%sReceiver(ir)%Interp_Coeff(i,j) * Veloc(i,j,1)
+                enddo
+            enddo
+            Tdomain%Store_Trace(0,ir,it) = dum0;  Tdomain%Store_Trace(1,ir,it) = dum1;
+
+            deallocate (Veloc)
+        endif
+    enddo
+
+    return
+end subroutine save_trace
+
+
+subroutine dump_trace (Tdomain)
+
+    use sdomain
+    use semdatafiles
+    implicit none
+
+    type(Domain), intent (IN) :: Tdomain
+
+    integer :: i,i1,it, nt
+    character(Len=MAX_FILE_SIZE) :: fnamef
+    real :: rtime
+
+    !dumping the traces
+    print *, Tdomain%MPI_var%my_rank
+    nt = Tdomain%TimeD%ntimeMax-1
+    do i = 0,Tdomain%n_receivers-1
+        if (Tdomain%sReceiver(i)%located_here) then
+            i1 = i+1
+
+            call semname_dumptrace_tracex(i1,fnamef)
+            open (31,file=fnamef, form="formatted")
+
+            call semname_dumptrace_tracez(i1,fnamef)
+            open (32,file=fnamef, form="formatted")
+            rtime=0.
+            do it = 0, nt-1
+                rtime = rtime + Tdomain%TimeD%dtmin
+                write (31,*) rtime,Tdomain%Store_Trace (0,i,it)
+                write (32,*) rtime,Tdomain%Store_Trace (1,i,it)
+            enddo
+            close (31)
+            close (32)
+        endif
+    enddo
+    return
+end subroutine dump_trace
+
+subroutine read_receiver_file(Tdomain)
+    use sdomain
+    use semdatafiles
+    type(domain), intent(inout) :: Tdomain
+    real :: xrec, zrec
+    character(Len=100) :: recname
+    character(Len=MAX_FILE_SIZE) :: fnamef
+    integer :: i
+
+    if (.not. Tdomain%logicD%save_trace) then
+        return
+    end if
+
+    call semname_read_inputmesh_parametrage(Tdomain%station_file,fnamef)
+    open(14,file=fnamef, status="old")
+
+    read (14,*) Tdomain%n_receivers
+    read (14,*)
+    allocate (Tdomain%sReceiver(0:Tdomain%n_receivers-1))
+    do i = 0, Tdomain%n_receivers-1
+        read(14,*) recname, xrec, zrec
+        Tdomain%sReceiver(i)%Xrec = xrec
+        Tdomain%sReceiver(i)%Zrec = zrec
+    enddo
+    close (14)
+
+end subroutine read_receiver_file
+
+
+end module treceivers
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
