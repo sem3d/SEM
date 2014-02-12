@@ -53,7 +53,7 @@ end subroutine check_inputs_and_mesh
 
 
 !>
-!!\brief Subroutine check_inputs_and_mesh() checks the right orientation
+!!\brief Subroutine check_mesh() checks the right orientation
 !! of each element of the mesh and its convexity.
 !! and are already implemented. If not, the program terminates.
 !!\author S. TERRANA
@@ -61,7 +61,7 @@ end subroutine check_inputs_and_mesh
 !!\date 10/02/2014
 !!
 !<
-subroutine check_inputs_and_mesh(Tdomain)
+subroutine check_mesh(Tdomain)
     use sdomain    
     use constants
     implicit none
@@ -91,11 +91,18 @@ subroutine check_inputs_and_mesh(Tdomain)
         crossp2 = Vect2(0)*Vect3(1) - Vect2(1)*Vect3(0)
 
         if (crossp1 == 0. .OR. crossp2 == 0.) then
-            STOP "ERROR IN MESH : Element number ",n," is flat"
+            write(*,*) "Element number ", n, " is either a flat element has an edge with length 0"
+            STOP "ERROR IN MESH : Element flat or degerated !"
         endif
-        if (crossp1 .LT. 0. .OR. crossp2 .LT. 0.) then
-            STOP "ERROR IN MESH : Element number ",n," is not properly oriented."
+        if ((crossp1 .LT. 0.) .OR. (crossp2 .LT. 0.)) then
+            if ((crossp1 .LT. 0.) .AND. (crossp2 .LT. 0.)) then
+                write(*,*) "Element number ", n, " is not properly oriented (bad node local numbering)"
+                STOP "ERROR IN MESH : Element not properly oriented !"
+            else 
+                write(*,*) "Element number ", n, " is a concave-quad or a cross-quad"
+                STOP "ERROR IN MESH : Element concave or crossed!"
+            endif
         endif
     enddo
 
-end subroutine check_inputs_and_mesh
+end subroutine check_mesh
