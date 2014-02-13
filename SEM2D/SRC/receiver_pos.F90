@@ -12,11 +12,14 @@ module treceivers
     use sdomain
     implicit none
 contains
+
 subroutine ReceiverPosition(Tdomain)
 
     use sdomain
     use shape_lin
     use shape_quad
+    use constants, only : NCAPT_CACHE
+    use semdatafiles
     implicit none
     type (domain), intent (INOUT) :: Tdomain
 
@@ -30,6 +33,7 @@ subroutine ReceiverPosition(Tdomain)
     real :: eta1,xi1
     real :: outx,outz,dximax, detamax
     real, dimension (0:7) :: xc,zc
+    character(Len=MAX_FILE_SIZE) :: fnamef
 
     logical :: inosol,inner
 
@@ -160,11 +164,19 @@ subroutine ReceiverPosition(Tdomain)
         if (Tdomain%sReceiver(nrec)%located_here) i= i + 1
     enddo
     if (i > 0) then
-        allocate (Tdomain%Store_Trace(0:1,0:i-1,0:Tdomain%TimeD%ntimeMax-1))
+        allocate (Tdomain%Store_Trace(0:1,0:i-1,0:NCAPT_CACHE-1))
     endif
     return
+    ! Initialisation
+    do i = 0,Tdomain%n_receivers-1
+        if (Tdomain%sReceiver(i)%located_here) then
+            call semname_capteur_type(Tdomain%sReceiver(i)%name, "vel", fnamef)
+            open (31,file=fnamef, form="formatted", status="replace")
+            close (31)
+        endif
+    enddo
+    ! restart procedure will recover the original file content later
 end subroutine ReceiverPosition
-
 
 subroutine save_trace (Tdomain, it)
     use sdomain
@@ -174,11 +186,11 @@ subroutine save_trace (Tdomain, it)
     type (domain), intent (INOUT) :: Tdomain
     integer, intent (IN) :: it
 
-    integer :: ir, nr, i,j, ngllx, ngllz, nsta
+    integer :: ir, nr, i,j, ngllx, ngllz, nsta, ncache
     real :: dum0, dum1
-    real, dimension (:,:,:), allocatable :: Veloc
+    real, dimension (:,:,:), allocatable :: Field
 
-
+    ncache = mod(it, NCAPT_CACHE)
     nsta = Tdomain%n_receivers
     do ir = 0, nsta-1
         if (Tdomain%sReceiver(ir)%located_here) then
@@ -187,23 +199,26 @@ subroutine save_trace (Tdomain, it)
             ngllx = Tdomain%specel(nr)%ngllx
             ngllz = Tdomain%specel(nr)%ngllz
 
-            allocate (Veloc(0:ngllx-1,0:ngllz-1,0:1))
+            allocate (Field(0:ngllx-1,0:ngllz-1,0:1))
 
-            call gather_elem_veloc(Tdomain, nr, Veloc)
-
-            Veloc(1:ngllx-2,1:ngllz-2,0:1) = Tdomain%specel(nr)%Veloc(1:ngllx-2,1:ngllz-2,0:1)
+            call gather_elem_veloc(Tdomain, nr, Field)
 
             do j = 0,ngllz-1
                 do i =0,ngllx -1
-                    dum0 = dum0 + Tdomain%sReceiver(ir)%Interp_Coeff(i,j) * Veloc(i,j,0)
-                    dum1 = dum1 + Tdomain%sReceiver(ir)%Interp_Coeff(i,j) * Veloc(i,j,1)
+                    dum0 = dum0 + Tdomain%sReceiver(ir)%Interp_Coeff(i,j) * Field(i,j,0)
+                    dum1 = dum1 + Tdomain%sReceiver(ir)%Interp_Coeff(i,j) * Field(i,j,1)
                 enddo
             enddo
-            Tdomain%Store_Trace(0,ir,it) = dum0;  Tdomain%Store_Trace(1,ir,it) = dum1;
+            Tdomain%Store_Trace(0,ir,ncache) = dum0
+            Tdomain%Store_Trace(1,ir,ncache) = dum1
 
-            deallocate (Veloc)
+            deallocate (Field)
         endif
     enddo
+
+    if (ncache == NCAPT_CACHE-1) then
+        call dump_trace(Tdomain)
+    end if
 
     return
 end subroutine save_trace
@@ -217,30 +232,27 @@ subroutine dump_trace (Tdomain)
 
     type(Domain), intent (IN) :: Tdomain
 
-    integer :: i,i1,it, nt
+    integer :: i, it, it0, it1
     character(Len=MAX_FILE_SIZE) :: fnamef
     real :: rtime
 
     !dumping the traces
     print *, Tdomain%MPI_var%my_rank
-    nt = Tdomain%TimeD%ntimeMax-1
+    it1 = Tdomain%TimeD%ntime
+    it0 = NCAPT_CACHE*(Tdomain%TimeD%ntime/NCAPT_CACHE)
+
+    write(*,*) "Receivers out:", it0, it1
+
     do i = 0,Tdomain%n_receivers-1
         if (Tdomain%sReceiver(i)%located_here) then
-            i1 = i+1
-
-            call semname_dumptrace_tracex(i1,fnamef)
-            open (31,file=fnamef, form="formatted")
-
-            call semname_dumptrace_tracez(i1,fnamef)
-            open (32,file=fnamef, form="formatted")
-            rtime=0.
-            do it = 0, nt-1
+            call semname_capteur_type(Tdomain%sReceiver(i)%name, ".vel", fnamef)
+            open (31,file=fnamef, status="unknown", form="formatted", position="append")
+            rtime=it0*Tdomain%TimeD%dtmin
+            do it = it0, it1
+                write (31,*) rtime,Tdomain%Store_Trace(0,i,it-it0), Tdomain%Store_Trace (1,i,it-it0)
                 rtime = rtime + Tdomain%TimeD%dtmin
-                write (31,*) rtime,Tdomain%Store_Trace (0,i,it)
-                write (32,*) rtime,Tdomain%Store_Trace (1,i,it)
             enddo
             close (31)
-            close (32)
         endif
     enddo
     return
@@ -269,6 +281,7 @@ subroutine read_receiver_file(Tdomain)
         read(14,*) recname, xrec, zrec
         Tdomain%sReceiver(i)%Xrec = xrec
         Tdomain%sReceiver(i)%Zrec = zrec
+        Tdomain%sReceiver(i)%name = recname
     enddo
     close (14)
 

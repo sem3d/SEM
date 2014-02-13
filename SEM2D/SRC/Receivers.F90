@@ -11,7 +11,7 @@ module sreceivers
        integer :: Nr
        real :: xRec, zRec,xi,eta
        real, dimension(:,:), pointer :: Interp_coeff
-
+       character(Len=100) :: name
     end type receiver
 
 end module sreceivers
