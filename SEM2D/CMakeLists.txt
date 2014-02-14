@@ -32,7 +32,6 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/courant.F90
     ${PRJ}/SRC/define_arr.F90
     ${PRJ}/SRC/define_fault_properties.F90
-    ${PRJ}/SRC/dumptrace.F90
     ${PRJ}/SRC/exchange_data_mpi.F90
     ${PRJ}/SRC/getDispl_fvel.F90
     ${PRJ}/SRC/getPMLpred_fv2el.F90
@@ -51,7 +50,6 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/save_checkpoint.F90
     ${PRJ}/SRC/save_deformation.F90
     ${PRJ}/SRC/save_fault_trace.F90
-    ${PRJ}/SRC/save_trace.F90
     ${PRJ}/SRC/save_vorticity.F90
     ${PRJ}/SRC/savefield.F90
     ${PRJ}/SRC/shape4.F90

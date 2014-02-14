@@ -16,6 +16,7 @@ subroutine create_sem2d_sources(Tdomain, config)
     type(sem_config), intent(in) :: config
     type(sem_source), pointer :: src
     integer :: nsrc
+    real :: ndir
 
     Tdomain%n_source = config%nsources
     allocate (Tdomain%Ssource(0:Tdomain%n_source-1))
@@ -24,8 +25,7 @@ subroutine create_sem2d_sources(Tdomain, config)
     nsrc = 0
     do while(associated(src))
         Tdomain%Ssource(nsrc)%Xsource = src%coords(1)
-        !Tdomain%Ssource(nsrc)%Ysource = src%coords(2)
-        Tdomain%Ssource(nsrc)%Zsource = src%coords(3)
+        Tdomain%Ssource(nsrc)%Zsource = src%coords(2)
         Tdomain%Ssource(nsrc)%i_type_source = src%type
         ! Comportement temporel
         Tdomain%Ssource(nsrc)%i_time_function = src%func
@@ -38,18 +38,13 @@ subroutine create_sem2d_sources(Tdomain, config)
         ! Comportement Spacial
         ! i_type_source==1
         ! DIR = Z OR y -> y
-        if (src%dir==2) src%dir = 1
-        Tdomain%Ssource(nsrc)%i_dir = src%dir
+        ndir = sqrt(src%dir(1)**2 + src%dir(2)**2)
+        Tdomain%Ssource(nsrc)%dir = src%dir(1:2)/ndir
         ! i_type_source==2
-        !Tdomain%Ssource(nsrc)%Moment(0,0) = src%moments(1)
-        !Tdomain%Ssource(nsrc)%Moment(1,1) = src%moments(2)
-        !Tdomain%Ssource(nsrc)%Moment(2,1) = src%moments(3)
-        !Tdomain%Ssource(nsrc)%Moment(0,1) = src%moments(4)
-        !Tdomain%Ssource(nsrc)%Moment(1,0) = src%moments(4)
-        !Tdomain%Ssource(nsrc)%Moment(0,2) = src%moments(5)
-        !Tdomain%Ssource(nsrc)%Moment(2,0) = src%moments(5)
-        !Tdomain%Ssource(nsrc)%Moment(1,2) = src%moments(6)
-        !Tdomain%Ssource(nsrc)%Moment(2,1) = src%moments(6)
+        Tdomain%Ssource(nsrc)%Moment(0,0) = src%moments(1)
+        Tdomain%Ssource(nsrc)%Moment(1,1) = src%moments(2)
+        Tdomain%Ssource(nsrc)%Moment(1,0) = src%moments(3)
+        Tdomain%Ssource(nsrc)%Moment(0,1) = src%moments(3)
 
         nsrc = nsrc + 1
         Tdomain%logicD%any_source = .true.
@@ -235,7 +230,7 @@ subroutine read_input (Tdomain)
                 write (91,*) Tdomain%Ssource(i)%Xsource, Tdomain%Ssource(i)%Zsource
                 write (91,*) Tdomain%Ssource(i)%i_type_source
                 if (Tdomain%Ssource(i)%i_type_source == 1 ) then
-                    write (91,*) Tdomain%Ssource(i)%i_dir
+                    write (91,*) Tdomain%Ssource(i)%dir
                 else
                     write (91,*) "No parameter need here"
                 endif

@@ -15,12 +15,13 @@ module ssources
        integer :: nr
        real :: eta,xi
        real, dimension (0:1,0:1) :: Scoeff
-       real, dimension (:,:), pointer :: ExtForce
-       real, dimension (:,:,:), pointer :: explosion
+       real, dimension (:,:,:), pointer :: ExtForce
     end type elem_source
 
     type :: Source
-       integer :: i_dir, i_type_source, i_time_function,ine
+       integer :: i_type_source, i_time_function,ine
+       real, dimension(2) :: dir
+       real, dimension (0:1,0:1) :: moment
        real :: Xsource,Zsource, tau_b,cutoff_freq,amplitude
        type(elem_source), dimension(:), pointer :: Elem
     end type Source
@@ -35,37 +36,20 @@ contains
     !! \param integer np
     !! \param real time
     !<
-    real function CompSource (Sour,time,np)
+    real function CompSource (Sour,time)
 
         type (source) :: Sour
-        integer ::np
         real :: time
 
         CompSource = 0.
-        select case (Sour%i_type_source)
-        case (1)   ! Impulse
-            if (np /= Sour%i_dir) then
-                CompSource = 0.
-            else
-                select case (Sour%i_time_function)
-                case (1)
-                    CompSource = Gaussian (time,Sour%tau_b)
-                case (2)
-                    CompSource = Ricker (time,Sour%tau_b,Sour%cutoff_freq)
-                case (3)
-                    CompSource = 1
-                end select
-            end if
-        case (2) ! Explosion
-            select case (Sour%i_time_function)
-            case (1)
-                CompSource = Gaussian (time,Sour%tau_b)
-            case (2)
-                CompSource = Ricker (time,Sour%tau_b,Sour%cutoff_freq)
-
-            end select
+        select case (Sour%i_time_function)
+        case (1)
+            CompSource = Gaussian (time,Sour%tau_b)
+        case (2)
+            CompSource = Ricker (time,Sour%tau_b,Sour%cutoff_freq)
+        case (3)
+            CompSource = 1
         end select
-
         CompSource = Sour%amplitude*CompSource
 
         return

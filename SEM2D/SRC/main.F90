@@ -35,6 +35,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
     use sem_c_bindings
     use shape_lin
     use shape_quad
+    use treceivers
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -81,6 +82,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
     call MPI_Comm_Rank (MPI_COMM_WORLD, Tdomain%Mpi_var%my_rank, ierr)
     call MPI_Comm_Size (MPI_COMM_WORLD, Tdomain%Mpi_var%n_proc,  ierr)
     Tdomain%communicateur=MPI_COMM_WORLD
+    Tdomain%communicateur_global=MPI_COMM_WORLD
 #endif
     rg = Tdomain%Mpi_var%my_rank
 
@@ -133,8 +135,8 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
     endif
 
     ! Initialisations des capteurs par S Terrana Jauary 2014
-    open (90,file="capteur_sourceX",status="replace",form="formatted")
-    call init_capteurs_veloc (Tdomain)
+    !open (90,file="capteur_sourceX",status="replace",form="formatted")
+    !call init_capteurs_veloc (Tdomain)
 
     if (rg ==0 .and. Tdomain%logicD%super_object) write(*,*) "Define Fault properties"
     if (Tdomain%logicD%super_object_local_present) then
@@ -165,17 +167,6 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
 
     ! recalcul du nbre d'iteration max
     Tdomain%TimeD%ntimeMax = int (Tdomain%TimeD%Duration/Tdomain%TimeD%dtmin)
-
-    if (Tdomain%logicD%save_trace) then
-        i = 0
-        do nrec = 0, Tdomain%n_receivers-1
-            if (Tdomain%sReceiver(nrec)%located_here) i= i + 1
-        enddo
-        if (i>0) then
-            deallocate(Tdomain%Store_Trace)
-            allocate (Tdomain%Store_Trace(0:1,0:i-1,0:Tdomain%TimeD%ntimeMax-1))
-        endif
-    endif
 
 #endif
 
@@ -353,7 +344,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
 #endif
 
         ! sortie des quantites demandees par les capteur
-        if (sortie_capteur) call save_capteur(Tdomain, ntime)
+        !if (sortie_capteur) call save_capteur(Tdomain, ntime)
 
         if (protection/=0) then
             !call save_checkpoint(Tdomain,Tdomain%TimeD%rtime,Tdomain%TimeD%dtmin,ntime,isort)
@@ -369,7 +360,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
         Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
 
         ! Sorties des Capteurs :
-        call capteurs_veloc (Tdomain,Tdomain%TimeD%rtime)
+        !call capteurs_veloc (Tdomain,Tdomain%TimeD%rtime)
 
     enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!

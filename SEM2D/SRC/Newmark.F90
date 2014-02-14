@@ -105,26 +105,15 @@ subroutine Newmark (Tdomain)
                 ncc = Tdomain%sSource(n)%Elem(ns)%nr
                 ngllx = Tdomain%specel(ncc)%ngllx; ngllz = Tdomain%specel(ncc)%ngllz
 
-                if (Tdomain%sSource(n)%i_type_source == 1) then
-                    do j = 0,ngllz-1
-                        do i = 0,ngllx-1
-                            do np = 0,1
-                                Tdomain%specel(ncc)%Forces(i,j,np) = Tdomain%specel(ncc)%Forces(i,j,np) +   &
-                                    CompSource (Tdomain%sSource(n),Tdomain%TimeD%rtime,np)*  Tdomain%sSource(n)%Elem(ns)%ExtForce(i,j)
-                            enddo
+                do j = 0,ngllz-1
+                    do i = 0,ngllx-1
+                        do np = 0,1
+                            Tdomain%specel(ncc)%Forces(i,j,np) = Tdomain%specel(ncc)%Forces(i,j,np) +   &
+                                CompSource (Tdomain%sSource(n),Tdomain%TimeD%rtime)*  Tdomain%sSource(n)%Elem(ns)%ExtForce(i,j,np)
                         enddo
                     enddo
+                enddo
 
-                else if (Tdomain%sSource(n)%i_type_source == 2 ) then
-                    do j = 0,ngllz-1
-                        do i = 0,ngllx-1
-                            do np = 0,1
-                                Tdomain%specel(ncc)%Forces(i,j,np) =Tdomain%specel(ncc)%Forces(i,j,np) +   &
-                                    CompSource(Tdomain%sSource(n), Tdomain%TimeD%rtime,np)* Tdomain%sSource(n)%Elem(ns)%Explosion(i,j,np)
-                            enddo
-                        enddo
-                    enddo
-                endif
             enddo
         enddo
 

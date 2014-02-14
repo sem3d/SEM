@@ -21,9 +21,7 @@ subroutine read_mesh(tDomain)
 
     use sdomain
     use semdatafiles
-    ! Modified by Gaetano Festa 01/06/05
-    ! Introducing parallel features 12/10/05
-    !
+    use treceivers, only : read_receiver_file
 
     implicit none
     character (len=MAX_FILE_SIZE) :: fnamef
@@ -296,31 +294,8 @@ subroutine read_mesh(tDomain)
 
     call read_material_file(Tdomain)
 
-    if (Tdomain%logicD%save_trace) then
+    call read_receiver_file(Tdomain)
 
-        call semname_read_inputmesh_parametrage(Tdomain%station_file,fnamef)
-        open(14,file=fnamef, status="old")
-
-        read (14,*) Tdomain%n_receivers
-        read (14,*)
-        allocate (Tdomain%sReceiver(0:Tdomain%n_receivers-1))
-        do i = 0, Tdomain%n_receivers-1
-            read(14,*) Tdomain%sReceiver(i)%Xrec, Tdomain%sReceiver(i)%Zrec
-        enddo
-        close (14)
-
-        if (Tdomain%logicD%run_echo .and. Tdomain%Mpi_var%my_rank ==0) then
-
-            call semname_read_mesh_station_echo(fnamef)
-            open(94,file=fnamef, status="unknown")
-            write (94,*) Tdomain%n_receivers
-            write (94,*)  "For any receivers, listed x and z coordinates"
-            do i = 0, Tdomain%n_receivers-1
-                write (94,*) Tdomain%sReceiver(i)%Xrec, Tdomain%sReceiver(i)%Zrec
-            enddo
-            close (94)
-        endif
-    endif
 end subroutine read_mesh
 
 

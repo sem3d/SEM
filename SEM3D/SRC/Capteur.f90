@@ -14,14 +14,12 @@ module mCapteur
     use mpi
     use mfields
     use sem_hdf5
-
+    use constants, only : NCAPT_CACHE
     implicit none
 
     public :: read_capteur, save_capteur, evalueSortieCapteur, flushAllCapteurs
     private :: lireCapteur, capterPointDeGauss, sortirGrandeurSousCapteur, flushCapteur
 
-    ! Les fichiers capteurs sont ecrits toutes les NCAPT_CACHE sorties
-    integer, parameter :: NCAPT_CACHE=100
 
     type :: tPtgauss
        integer :: num      ! numero du point de Gauss

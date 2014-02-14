@@ -3,6 +3,100 @@
 
 #include "file_scan.h"
 
+typedef struct source {
+    struct source* next;
+    double coords[3];
+    int type;
+    double dir[3];
+    int func;
+    double moments[6];
+    double tau;
+    double freq;
+    double band[4];
+    double ts;
+    double gamma;
+    double amplitude;
+    char* time_file;
+} source_t;
+
+// Structure decrivant les condition de selection des elements a inclure
+// dans les snapshots
+typedef struct snapshot_cond {
+    struct snapshot_cond* next;
+    /// Type de condition (1 all, 2 material, 3 box)
+    int type;
+    /// Inclusion (1) ou exclusion (0)
+    int include;
+    /// Dimension de la boite pour le type box
+    double box[6];
+    /// Type de materiau pour le type material
+    int material;
+} snapshot_cond_t;
+
+typedef struct {
+    char* run_name;
+    // Integration
+    int type_timeinteg;
+    int accel_scheme;
+    int veloc_scheme;
+    double sim_time;
+    double alpha;
+    double beta;
+    double gamma;
+    double courant;
+    double fmax;
+    int ngll;
+    int dim;
+
+    // Modele, maillage
+    char*  mesh_file;
+    int model;
+    int anisotropy;
+    char* mat_file;
+    int nsources;
+    source_t *source;
+
+    // Capteurs
+    int save_traces;
+    int traces_interval;
+    int traces_format;
+    char* station_file;
+
+    // Snapshots
+    int save_snap;
+    int n_group_outputs;  ///< Nombre de processeurs par fichier de sortie
+    double snap_interval;
+    int n_snap_cond;
+    snapshot_cond_t* snapshot_selection;
+
+    // Protection reprise
+    int prorep;
+    int prorep_iter;
+    int prorep_restart_iter;
+
+    int verbose_level;
+    double mpml;
+
+    // Amortissement
+    int nsolids;
+    double atn_band[2];
+    double atn_period;
+
+    // Neumann
+    int neu_present;
+    int neu_type;
+    int neu_mat;
+    double neu_L[3];
+    double neu_C[3];
+    double neu_f0;
+
+    // Type Elements (DG)
+    int type_elem;
+    int type_flux;
+    int type_bc;
+
+} sem_config_t;
+
 
 void clear_scan( struct scan_info *info);
 

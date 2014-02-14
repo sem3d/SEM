@@ -26,7 +26,7 @@ MODULE constants
 
     ! Parametres systemes
 
-    ! Parametres algorithmes
+    ! Parametres algorithmes & code
     integer, parameter :: TIME_INTEG_NEWMARK=0
     integer, parameter :: TIME_INTEG_RK4=1
     integer, parameter :: GALERKIN_CONT=0
@@ -38,6 +38,10 @@ MODULE constants
     integer, parameter :: FLUX_CUSTOM_LG=3
     integer, parameter :: DG_BC_FREE=0
     integer, parameter :: DG_BC_ABS=1
+
+    ! Les fichiers capteurs sont ecrits toutes les NCAPT_CACHE sorties
+    integer, parameter :: NCAPT_CACHE=100
+
 CONTAINS
 
 END MODULE constants

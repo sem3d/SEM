@@ -22,6 +22,7 @@ subroutine read_mesh_h5(tDomain)
     use semdatafiles
     use HDF5
     use sem_hdf5
+    use treceivers, only : read_receiver_file
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
@@ -185,7 +186,7 @@ subroutine read_mesh_h5(tDomain)
 
     call read_material_file(Tdomain)
 
-    Tdomain%logicD%save_trace = .false.
+    call read_receiver_file(Tdomain)
 
 end subroutine read_mesh_h5
 
