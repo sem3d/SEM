@@ -127,66 +127,69 @@ contains
 
         ! -------- GODUNOV FLUX ----------
     else if (F%Type_Flux == FLUX_GODUNOV) then
-        !if(F%is_computed .AND. .NOT. F%changing_media) then
-        ! Case the flux has been already computed
-        !if (DG_type == GALERKIN_DG_WEAK) then
-        !   F%Flux = -F%Flux
-        !elseif (DG_type == GALERKIN_DG_STRONG) then
-        !   F%Flux = -F%Flux - compute_trace_F(F,bool_side) - compute_trace_F(F,.NOT.bool_side)
-        !endif
-        !F%is_computed = .FALSE.
-        !else
-        ! Computation of jumps of stresses and Velocities :
-        Stress_jump = compute_stress_jump(F)
-        Veloc_jump(:,:) = F%Veloc_m(:,:) - F%Veloc_p(:,:)
-        if (.NOT. bool_side) Veloc_jump(:,:) = - Veloc_jump(:,:)
-        call check_r1(F,bool_side)
-        if (F%freesurf) then
-            ! Jumps for Treating Free-Surface case
-            Veloc_jump(:,:)  = 0.
-            Stress_jump(:,:) = 2. * Stress_jump(:,:)
-        endif
-        if (bool_side) then
-            coeff_p(:) = Stress_jump(:,0) * F%Normal(0) + Stress_jump(:,1) * F%Normal(1) &
-                + F%Zp_p(:) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
+        if(F%is_computed .AND. .NOT. F%changing_media) then
+            ! Case the flux has been already computed
+            if (DG_type == GALERKIN_DG_WEAK) then
+                F%Flux = -F%Flux
+            elseif (DG_type == GALERKIN_DG_STRONG) then
+                F%Flux = -F%Flux - compute_trace_F(F,bool_side) - compute_trace_F(F,.NOT.bool_side)
+            endif
+            F%is_computed = .FALSE.
         else
-            coeff_p(:) = -Stress_jump(:,0) * F%Normal(0) - Stress_jump(:,1) * F%Normal(1) &
-                - F%Zp_m(:) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
-        endif
-        if (.NOT. acoustic) then
-            ! Computation of eigenvectors r2 and r3 :
-            F%r2 = compute_r(F,Stress_jump,bool_side)
-            F%r3 = compute_r(F,Veloc_jump, bool_side)
-            ! Computation of Numerical Flux :
-            if(bool_side) then
-                do i=0,F%ngll-1
-                    F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:) - F%k1(i)*F%r2(i,:) - F%Zs_p(i)*F%k1(i)*F%r3(i,:)
-                enddo
+            ! Computation of jumps of stresses and Velocities :
+            Stress_jump = compute_stress_jump(F)
+            Veloc_jump(:,:) = F%Veloc_m(:,:) - F%Veloc_p(:,:)
+            if (.NOT. bool_side) Veloc_jump(:,:) = - Veloc_jump(:,:)
+            call check_r1(F,bool_side)
+            if (F%freesurf) then
+                ! Jumps for Treating Free-Surface case
+                Veloc_jump(:,:)  = 0.
+                Stress_jump(:,:) = 2. * Stress_jump(:,:)
+            endif
+            if (bool_side) then
+                coeff_p(:) = Stress_jump(:,0) * F%Normal(0) + Stress_jump(:,1) * F%Normal(1) &
+                    + F%Zp_p(:) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
             else
+                coeff_p(:) = -Stress_jump(:,0) * F%Normal(0) - Stress_jump(:,1) * F%Normal(1) &
+                    - F%Zp_m(:) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
+            endif
+            if (.NOT. acoustic) then
+                ! Computation of eigenvectors r2 and r3 :
+                F%r2 = compute_r(F,Stress_jump,bool_side)
+                F%r3 = compute_r(F,Veloc_jump, bool_side)
+                ! Computation of Numerical Flux :
+                if(bool_side) then
+                    do i=0,F%ngll-1
+                        F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:) - F%k1(i)*F%r2(i,:) - F%Zs_p(i)*F%k1(i)*F%r3(i,:)
+                    enddo
+                else
+                    do i=0,F%ngll-1
+                        F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:) - F%k1(i)*F%r2(i,:) - F%Zs_m(i)*F%k1(i)*F%r3(i,:)
+                    enddo
+                endif
+            else ! Acoustic case
                 do i=0,F%ngll-1
-                    F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:) - F%k1(i)*F%r2(i,:) - F%Zs_m(i)*F%k1(i)*F%r3(i,:)
+                    F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:)
                 enddo
             endif
-        else ! Acoustic case
-            do i=0,F%ngll-1
-                F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:)
-            enddo
-        endif
-        if (DG_type==GALERKIN_DG_WEAK) then ! Forme "Faible" des DG
-            F_minus = compute_trace_F(F,bool_side)
-            F%Flux(:,:) = F%Flux(:,:) + F_minus(:,:)
-        endif
-        F%is_computed = .TRUE.
-        !endif
-        ! Treating Absorbing Boundary Conditions
-        ! Basee surla supposition F* = Fn-
-        if(F%Abs) then
-            if (DG_type==GALERKIN_DG_WEAK) then
-                F%Flux = compute_trace_F(F,bool_side)
-            elseif (DG_type==GALERKiN_DG_STRONG) then
-                !F%Flux = 0.
+            if (DG_type==GALERKIN_DG_WEAK) then ! Forme "Faible" des DG
+                F_minus = compute_trace_F(F,bool_side)
+                F%Flux(:,:) = F%Flux(:,:) + F_minus(:,:)
             endif
+            F%is_computed = .TRUE.
+            if (F%freesurf) F%is_computed = .FALSE.
         endif
+        ! Treating Absorbing Boundary Conditions
+        ! Basee sur la supposition " Flux sur les caracteistiques sortantes est nul"
+        ! Cela se traduit par fixer F%veloc_p = 0 et F%strain_p = 0 tout le long de la simu.
+        ! Il n'y a donc aucun traitement specifique a realiser pour les Absorbing BC.
+        !if(F%Abs) then
+        !    if (DG_type==GALERKIN_DG_WEAK) then
+        !        F%Flux = compute_trace_F(F,bool_side)
+        !    elseif (DG_type==GALERKIN_DG_STRONG) then
+        !        F%Flux = 0.
+        !    endif
+        !endif
     endif
   end subroutine Compute_Flux
 
