@@ -26,7 +26,10 @@ MODULE constants
 
     ! Parametres systemes
 
-    ! Parametres algorithmes
+    ! Parametres algorithmes & code
+
+    ! Les fichiers capteurs sont ecrits toutes les NCAPT_CACHE sorties
+    integer, parameter :: NCAPT_CACHE=100
 
 CONTAINS
 

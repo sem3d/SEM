@@ -137,7 +137,7 @@ subroutine echo_input_params(Tdomain, rg)
                 write (91,*) Tdomain%Ssource(i)%Xsource, Tdomain%Ssource(i)%Ysource, Tdomain%Ssource(i)%Zsource
                 write (91,*) Tdomain%Ssource(i)%i_type_source
                 if (Tdomain%Ssource(i)%i_type_source == 1 ) then
-                    write (91,*) Tdomain%Ssource(i)%i_dir
+                    write (91,*) Tdomain%Ssource(i)%dir
                 else
                     write (91,*) "No parameter need here"
                 endif
@@ -406,6 +406,7 @@ subroutine create_sem_sources(Tdomain, config)
     type(sem_config), intent(in) :: config
     type(sem_source), pointer :: src
     integer :: nsrc
+    real :: ndir
 
     Tdomain%n_source = config%nsources
     allocate (Tdomain%Ssource(0:Tdomain%n_source-1))
@@ -427,7 +428,9 @@ subroutine create_sem_sources(Tdomain, config)
         Tdomain%Ssource(nsrc)%ts = src%ts   ! func=4
         ! Comportement Spacial
         ! i_type_source==1
-        Tdomain%Ssource(nsrc)%i_dir = src%dir
+        ndir = sqrt(src%dir(1)**2 + src%dir(2)**2 + src%dir(3)**2)
+        Tdomain%Ssource(nsrc)%dir(0:2) = src%dir(1:3)/ndir
+        
         ! i_type_source==2
         Tdomain%Ssource(nsrc)%Moment(0,0) = src%moments(1)
         Tdomain%Ssource(nsrc)%Moment(1,1) = src%moments(2)

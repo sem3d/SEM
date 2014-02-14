@@ -1,23 +1,17 @@
 !>
 !!\file Receivers.F90
-!!\brief
-!!\author
-!!\version 1.0
-!!\date 10/03/2009
+!!\brief Contains type definition for receivers
 !!
 !<
 
 module sreceivers
-
-    ! Modified by gaetano Festa 02/06/05
-    ! Minor revisions Gaetano Festa (MPI) 13/10/05
     type :: receiver
 
        logical :: located_here
        integer :: Nr
        real :: xRec, zRec,xi,eta
        real, dimension(:,:), pointer :: Interp_coeff
-
+       character(Len=100) :: name
     end type receiver
 
 end module sreceivers

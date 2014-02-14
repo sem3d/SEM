@@ -35,6 +35,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
     use sem_c_bindings
     use shape_lin
     use shape_quad
+    use treceivers
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -157,17 +158,6 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
 
     ! recalcul du nbre d'iteration max
     Tdomain%TimeD%ntimeMax = int (Tdomain%TimeD%Duration/Tdomain%TimeD%dtmin)
-
-    if (Tdomain%logicD%save_trace) then
-        i = 0
-        do nrec = 0, Tdomain%n_receivers-1
-            if (Tdomain%sReceiver(nrec)%located_here) i= i + 1
-        enddo
-        if (i>0) then
-            deallocate(Tdomain%Store_Trace)
-            allocate (Tdomain%Store_Trace(0:1,0:i-1,0:Tdomain%TimeD%ntimeMax-1))
-        endif
-    endif
 
 #endif
 
