@@ -423,6 +423,61 @@ contains
     end subroutine compute_InternalForces_PML_Elem
 
 
+    ! ###########################################################
+    !>
+    !! \brief This subroutine computes the energy of the elastic deformation of the element
+    !!
+    !! \param type (Element), intent (INOUT) Elem
+    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTprime
+    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hprimez
+    !! \param real, intent (INOUT) E_elas
+    !<
+
+    subroutine  compute_Elastic_Energy (Elem, hTprime, hprimez, E_elas)
+        implicit none
+
+        type (Element), intent (INOUT) :: Elem
+        real, intent (INOUT) :: E_elas
+        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: Uxloc, Uzloc, dUx_dxi, dUx_deta,  dUz_dxi, dUz_deta, s0
+
+        Uxloc =Elem%Forces (:,:,0)
+        Uzloc = Elem%Forces (:,:,1)
+
+        dUx_dxi = MATMUL ( hTprime, Uxloc)
+        dUz_dxi = MATMUL ( hTprime, Uzloc )
+        dUx_deta = MATMUL ( Uxloc , hprimez )
+        dUz_deta = MATMUL ( Uzloc , hprimez )
+
+        s0 = Elem%Acoeff(:,:,0)*dUx_dxi + Elem%Acoeff(:,:,1)*dUx_deta + Elem%Acoeff(:,:,2)*dUz_dxi + Elem%Acoeff(:,:,3)*dUz_deta
+        Uxloc = MATMUL ( hprime, s0 )
+
+        s0 = Elem%Acoeff(:,:,1)*dUx_dxi + Elem%Acoeff(:,:,4)*dUx_deta + Elem%Acoeff(:,:,5)*dUz_dxi + Elem%Acoeff(:,:,6)*dUz_deta
+        Uxloc = Uxloc +  MATMUL( s0 , hTprimez )
+
+    end subroutine compute_Elastic_Energy
+
+
+    ! ###########################################################
+    !>
+    !! \brief This subroutine computes the kinetic energy of the inner nodes
+    !!  of an element
+    !! \param type (Element), intent (INOUT) Elem
+    !! \param real, intent (INOUT) E_kin
+    !<
+
+    subroutine  compute_Kinetic_Energy (Elem, E_kin)
+        implicit none
+
+        type (Element), intent (INOUT) :: Elem
+        real, intent (INOUT) :: E_kin
+        real, dimension (1:Elem%ngllx-2, 1:Elem%ngllz-2)  :: Ener_Mat
+
+        Ener_Mat = 1./Elem%MassMat(:,:) * ( Elem%Veloc(:,:,0)*Elem%Veloc(:,:,0) &
+                                           +Elem%Veloc(:,:,1)*Elem%Veloc(:,:,1))
+        E_kin = 0.5 * sum(Ener_Mat)
+
+    end subroutine compute_Kinetic_Energy
+
 end module selement
 !! Local Variables:
 !! mode: f90
