@@ -469,7 +469,7 @@ contains
              + Elem%Acoeff(:,:,8)*dUz_dxi + Elem%Acoeff(:,:,9)*dUz_deta
          EMat = EMat + dUz_deta * s0
 
-         E_elas = sum(EMat)
+         E_elas = -0.5 * sum(EMat)
 
     end subroutine compute_Elastic_Energy
 
