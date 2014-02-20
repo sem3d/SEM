@@ -42,6 +42,7 @@ module sem_c_config
        real(C_DOUBLE) :: snap_interval
        integer(C_INT) :: n_snap_cond
        type(C_PTR)    :: snapshot_selection
+       integer(C_INT) :: comp_energ
 
        !! Protection reprise
        integer(C_INT) :: prorep

@@ -39,6 +39,7 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/getif_el2f.F90
     ${PRJ}/SRC/getiv_e2f.F90
     ${PRJ}/SRC/getmass_e2f.F90
+    ${PRJ}/SRC/global_energy.F90
     ${PRJ}/SRC/global_numbering.F90
     ${PRJ}/SRC/snapshots.F90
     ${PRJ}/SRC/read_input.F90
