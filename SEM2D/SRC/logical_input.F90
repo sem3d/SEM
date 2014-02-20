@@ -16,6 +16,7 @@ module logical_input
        logical :: run_exec, run_debug, run_echo
        logical :: run_restart, save_restart
        logical :: any_source, super_object, super_object_local_present
+       logical :: compEnerg
     end type Logical_array
 
 

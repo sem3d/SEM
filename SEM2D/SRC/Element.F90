@@ -438,8 +438,13 @@ contains
 
         type (Element), intent (INOUT) :: Elem
         real, intent (INOUT) :: E_elas
-        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: Uxloc, Uzloc, dUx_dxi, dUx_deta,  dUz_dxi, dUz_deta, s0
+        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+        real, dimension ( 0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
+        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: dUx_dxi, dUx_deta,  dUz_dxi, dUz_deta
+        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: s0, EMat, Uxloc, Uzloc
 
+        ! This subroutine is called outside the Newmark scheme, so the local
+        ! displacements are store in Forces
         Uxloc =Elem%Forces (:,:,0)
         Uzloc = Elem%Forces (:,:,1)
 
@@ -448,11 +453,23 @@ contains
         dUx_deta = MATMUL ( Uxloc , hprimez )
         dUz_deta = MATMUL ( Uzloc , hprimez )
 
-        s0 = Elem%Acoeff(:,:,0)*dUx_dxi + Elem%Acoeff(:,:,1)*dUx_deta + Elem%Acoeff(:,:,2)*dUz_dxi + Elem%Acoeff(:,:,3)*dUz_deta
-        Uxloc = MATMUL ( hprime, s0 )
+         s0 =  Elem%Acoeff(:,:,0)*dUx_dxi + Elem%Acoeff(:,:,1)*dUx_deta &
+             + Elem%Acoeff(:,:,2)*dUz_dxi + Elem%Acoeff(:,:,3)*dUz_deta
+         EMat = dUx_dxi * s0
 
-        s0 = Elem%Acoeff(:,:,1)*dUx_dxi + Elem%Acoeff(:,:,4)*dUx_deta + Elem%Acoeff(:,:,5)*dUz_dxi + Elem%Acoeff(:,:,6)*dUz_deta
-        Uxloc = Uxloc +  MATMUL( s0 , hTprimez )
+         s0 =  Elem%Acoeff(:,:,2)*dUx_dxi + Elem%Acoeff(:,:,5)*dUx_deta &
+             + Elem%Acoeff(:,:,7)*dUz_dxi + Elem%Acoeff(:,:,8)*dUz_deta
+         EMat = EMat + dUz_dxi * s0
+
+         s0 =  Elem%Acoeff(:,:,1)*dUx_dxi + Elem%Acoeff(:,:,4)*dUx_deta &
+             + Elem%Acoeff(:,:,5)*dUz_dxi + Elem%Acoeff(:,:,6)*dUz_deta
+         EMat = EMat + dUx_deta * s0
+
+         s0 =  Elem%Acoeff(:,:,3)*dUx_dxi + Elem%Acoeff(:,:,6)*dUx_deta &
+             + Elem%Acoeff(:,:,8)*dUz_dxi + Elem%Acoeff(:,:,9)*dUz_deta
+         EMat = EMat + dUz_deta * s0
+
+         E_elas = sum(EMat)
 
     end subroutine compute_Elastic_Energy
 
