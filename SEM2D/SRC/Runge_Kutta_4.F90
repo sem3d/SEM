@@ -32,14 +32,6 @@ subroutine Runge_Kutta4 (Tdomain, dt)
     real, dimension(3)    :: coeffs
     logical :: acoustic
 
-    !if(Tdomain%TimeD%rtime==0.) then
-    !    do n=0,Tdomain%n_elem-1
-    !        Tdomain%specel(n)%Strain(:,:,0) = 1.
-    !        Tdomain%specel(n)%Strain(:,:,1) = 0.
-    !        Tdomain%specel(n)%Strain(:,:,2) = 0.
-    !    enddo
-    !endif
-
 
     ! Runge-Kutta Initialization
     do n = 0, Tdomain%n_elem-1

@@ -611,6 +611,32 @@ contains
 
     ! ###########################################################
     !>
+    !! \brief This subroutine computes the energy of the elastic deformation of the element.
+    !!  Suitable for DG elements only.
+    !! \param type (Element), intent (INOUT) Elem
+    !! \param real, intent (INOUT) E_elas
+    !<
+
+    subroutine  compute_Elastic_Energy_DG (Elem, E_elas)
+        implicit none
+
+        type (Element), intent (INOUT) :: Elem
+        real, intent (INOUT) :: E_elas
+        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: sigma11, sigma22, sigma12, EMat
+
+        sigma11 = (Elem%Lambda + 2*Elem%Mu) * Elem%Strain(:,:,0) + Elem%Lambda * Elem%Strain(:,:,1)
+        sigma22 = (Elem%Lambda + 2*Elem%Mu) * Elem%Strain(:,:,1) + Elem%Lambda * Elem%Strain(:,:,0)
+        sigma12 = 2*Elem%Mu * Elem%Strain(:,:,2)
+
+        EMat = Elem%Strain(:,:,0)*sigma11 + 2.*Elem%Strain(:,:,2)*sigma12 &
+             + Elem%Strain(:,:,1)*sigma22
+        E_elas = 0.5 * sum(EMat)
+
+  end subroutine compute_Elastic_Energy_DG
+
+
+    ! ###########################################################
+    !>
     !! \brief This subroutine computes the kinetic energy of the inner nodes
     !!  of an element
     !! \param type (Element), intent (INOUT) Elem
@@ -629,6 +655,29 @@ contains
         E_kin = 0.5 * sum(Ener_Mat)
 
     end subroutine compute_Kinetic_Energy
+
+
+    ! ###########################################################
+    !>
+    !! \brief This subroutine computes the kinetic energy using all the nodes
+    !!  of an element. It suitable for Discontinuous Galerkin elements only.
+    !! \param type (Element), intent (INOUT) Elem
+    !! \param real, intent (INOUT) E_kin
+    !<
+
+    subroutine  compute_Kinetic_Energy_DG (Elem, E_kin)
+        implicit none
+
+        type (Element), intent (INOUT) :: Elem
+        real, intent (INOUT) :: E_kin
+        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: Ener_Mat
+
+        Ener_Mat = 1./Elem%MassMat(:,:) * ( Elem%Veloc(:,:,0)*Elem%Veloc(:,:,0) &
+                                           +Elem%Veloc(:,:,1)*Elem%Veloc(:,:,1))
+        E_kin = 0.5 * sum(Ener_Mat)
+
+    end subroutine compute_Kinetic_Energy_DG
+
 
 end module selement
 !! Local Variables:
