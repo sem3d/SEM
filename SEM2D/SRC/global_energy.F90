@@ -38,7 +38,7 @@ contains
                 call compute_Elastic_Energy_DG (Tdomain%specel(n), E_el)
                 call compute_Kinetic_Energy_DG (Tdomain%specel(n), E_k)
             endif
-            E_tot = E_tot + E_el + E_k
+            E_tot = E_tot + E_k + E_el
         enddo
 
         if (Tdomain%TimeD%rtime == 0) then
@@ -115,4 +115,3 @@ end module sglobal_energy
 !! show-trailing-whitespace: t
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!
-

@@ -308,7 +308,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
             call save_field_h5(Tdomain, rg, isort)
 
             ! Sortie Energie totale du systeme
-            if(Tdomain%LogicD%CompEnerg) call global_energy(Tdomain)
+            !if(Tdomain%LogicD%CompEnerg) call global_energy_generalized(Tdomain)
 
         endif
 
@@ -322,7 +322,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
             endif
         endif
 
-
+        if(Tdomain%LogicD%CompEnerg) call global_energy_generalized(Tdomain)
 
         ! sortie des  ...
         if (Tdomain%logicD%save_fault_trace.and.i_snap==0) call save_fault_trace (Tdomain, ntime)

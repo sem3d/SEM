@@ -630,6 +630,7 @@ contains
 
         EMat = Elem%Strain(:,:,0)*sigma11 + 2.*Elem%Strain(:,:,2)*sigma12 &
              + Elem%Strain(:,:,1)*sigma22
+        EMat = EMat * 1. / Elem%Acoeff(:,:,12)  ! Pour multiplier par Jac*wx*wz
         E_elas = 0.5 * sum(EMat)
 
   end subroutine compute_Elastic_Energy_DG
