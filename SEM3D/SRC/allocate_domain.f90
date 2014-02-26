@@ -728,7 +728,6 @@ subroutine allocate_domain (Tdomain, rg)
             Tdomain%sComm(n)%ngllNeu = ngllNeu
             Tdomain%sComm(n)%ngllSF = ngllSF
             Tdomain%sComm(n)%ngllSF_PML = ngllSF_PML
-print*,"COMM",rg,n,Tdomain%sComm(n)%ngllSF,Tdomain%sComm(n)%ngllSF_PML
 
         enddo
     else

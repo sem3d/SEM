@@ -378,7 +378,7 @@ contains
 
         call write_global_nodes(Tdomain, rg, fid, irenum, nnodes)
         
-        call write_elem_connectivity(Tdomain, fid, irenum)
+        call write_elem_connectivity(Tdomain, rg, fid, irenum)
 
         call write_constant_fields(Tdomain, fid, irenum, nnodes)
 
@@ -418,17 +418,18 @@ contains
         deallocate(nodes)
     end subroutine write_global_nodes
 
-    subroutine write_elem_connectivity(Tdomain, fid, irenum)
+    subroutine write_elem_connectivity(Tdomain, rg, fid, irenum)
         implicit none
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: fid
         integer, dimension(:), intent(in), allocatable :: irenum
+        integer, intent(in) :: rg
         !
         integer(HID_T) :: elem_id, mat_id, ngll_id, globnum_id
         integer :: ngllx, nglly, ngllz
         integer(HSIZE_T), dimension(2) :: dims
         integer, dimension(:,:), allocatable :: data
-        integer, dimension(:), allocatable :: mat, iglobnum
+        integer, dimension(:), allocatable :: mat, iglobnum, proc
         integer, dimension(3,0:Tdomain%n_elem-1) :: ngll
         integer :: count, ig, nglobnum
         integer :: i, j, k, n, nb_elem
@@ -456,7 +457,8 @@ contains
 
         allocate( data(1:8,0:count-1))
         allocate( mat(0:count-1))
-        allocate (iglobnum(0:nglobnum-1))
+        allocate( proc(0:count-1))
+        allocate( iglobnum(0:nglobnum-1))
         dims(1) = 8
         dims(2) = count
         count = 0
@@ -479,6 +481,7 @@ contains
                         data(7,count) = ioffset+irenum(Tdomain%specel(n)%Iglobnum(i+1,j+1,k+1))
                         data(8,count) = ioffset+irenum(Tdomain%specel(n)%Iglobnum(i+0,j+1,k+1))
                         mat(count) = Tdomain%specel(n)%mat_index
+                        proc(count) = rg
                         count=count+1
                     end do
                 end do
@@ -497,8 +500,10 @@ contains
         Tdomain%n_hexa = nb_elem_tot
         call grp_write_int_1d(Tdomain, fid, "Iglobnum", nglobnum, iglobnum, nglob_tot)
         call grp_write_int_1d(Tdomain, fid, "Material", count, mat, nb_elem_tot)
+        call grp_write_int_1d(Tdomain, fid, "Proc", count, proc, nb_elem_tot)
 
         deallocate(mat)
+        deallocate(proc)
         deallocate(iglobnum)
         deallocate(data)
     end subroutine write_elem_connectivity
@@ -603,6 +608,7 @@ contains
         if (allocated(field_displ)) deallocate(field_displ)
         if (allocated(field_veloc)) deallocate(field_veloc)
         if (allocated(field_accel)) deallocate(field_accel)
+        if (allocated(field_press)) deallocate(field_press)
         call mpi_barrier(Tdomain%communicateur, hdferr)
     end subroutine save_field_h5
 
@@ -661,6 +667,8 @@ contains
         write(61,"(a,I4.4,a)") '<Grid CollectionType="Temporal" GridType="Collection" Name="space.',rg,'">'
         write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Mat" Format="HDF" Datatype="Int"  Dimensions="',ne, &
             '">geometry',rg,'.h5:/Material</DataItem>'
+        write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Proc" Format="HDF" Datatype="Int"  Dimensions="',ne, &
+            '">geometry',rg,'.h5:/Proc</DataItem>'
 
         write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Mass" Format="HDF" Datatype="Int"  Dimensions="',nn, &
             '">geometry',rg,'.h5:/Mass</DataItem>'
@@ -711,6 +719,10 @@ contains
             write(61,"(a,I4.4,a)") '<Attribute Name="Mat" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
             write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',rg, &
                 '"]/DataItem[@Name="Mat"]</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            write(61,"(a,I4.4,a)") '<Attribute Name="Proc" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
+            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',rg, &
+                '"]/DataItem[@Name="Proc"]</DataItem>'
             write(61,"(a)") '</Attribute>'
             write(61,"(a,I4.4,a)") '<Attribute Name="Mass" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
             write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',rg, &

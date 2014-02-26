@@ -547,6 +547,7 @@ subroutine read_input (Tdomain, rg, code)
     Tdomain%material_file = fromcstr(config%mat_file)
     Tdomain%logicD%save_trace = config%save_traces .ne. 0
     Tdomain%logicD%save_snapshots = config%save_snap .ne. 0
+    Tdomain%ngroup = config%n_group_outputs
     ! MODIF ICI: energie? deformation?..
     !Tdomain%logicD%save_energy = !?
     Tdomain%logicD%save_restart = config%prorep_iter .ne. 0
@@ -630,5 +631,9 @@ end module semconfig
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!

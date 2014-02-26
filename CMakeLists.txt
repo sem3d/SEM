@@ -103,9 +103,6 @@ set(SEM_SRC ${SEM_SRC}
   ${FTM_SOURCES})
 endif(OPT_MPI)
 
-# HDF5
-set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} hdf5_fortran)
-
 
 if (CEAUSER)
 add_definitions(-DHAVE_TREMAIN)

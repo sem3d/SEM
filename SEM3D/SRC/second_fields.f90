@@ -1,7 +1,7 @@
 module mfields
     use sdomain
     use orientation
-
+    use deriv3d
 contains
 
     subroutine fluid_velocity(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,InvGrad,    &

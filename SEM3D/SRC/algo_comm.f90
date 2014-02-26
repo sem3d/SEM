@@ -122,7 +122,7 @@ contains
         do other = 0,n-1
             if (other==rg) cycle
 
-            if (Tdomain%sComm(other)%ngll_tot/=0) then
+            if (Tdomain%sComm(other)%ngll/=0) then
                 call MPI_Isend(Tdomain%sComm(other)%GiveForces, 3*Tdomain%sComm(other)%ngll, &
                     MPI_DOUBLE_PRECISION, other, tag_sl, Tdomain%communicateur, req_s_f(other), ierr)
                 call MPI_Irecv(Tdomain%sComm(other)%TakeForces, 3*Tdomain%sComm(other)%ngll, &
@@ -132,7 +132,7 @@ contains
                 call MPI_Isend(Tdomain%sComm(other)%GiveForcesFl, 1*Tdomain%sComm(other)%ngll_F, &
                     MPI_DOUBLE_PRECISION, other, tag_fl, Tdomain%communicateur, req_s_fl(other), ierr)
                 call MPI_Irecv(Tdomain%sComm(other)%TakeForcesFL,1*Tdomain%sComm(other)%ngll_F, &
-                    MPI_DOUBLE_PRECISION, other, tag_fl, Tdomain%communicateur, req_r_f(other), ierr)
+                    MPI_DOUBLE_PRECISION, other, tag_fl, Tdomain%communicateur, req_r_fl(other), ierr)
             endif
             if (Tdomain%sComm(other)%ngllPML/=0) then
                 call MPI_Isend(Tdomain%sComm(other)%GiveForcesPML, 9*Tdomain%sComm(other)%ngllPML, &
@@ -168,8 +168,8 @@ contains
         integer, intent(in) :: rg
         integer :: n
         integer :: other, ierr
-        integer, dimension(0:Tdomain%n_proc) :: req_s, req_r, req_s_pml,req_r_pml
-        integer, parameter :: tag = 101
+        integer, dimension(Tdomain%n_proc) :: req_s, req_r, req_s_pml,req_r_pml
+        integer, parameter :: tag_sf = 301, tag_sf_pml = 302
         integer, dimension(MPI_STATUS_SIZE,Tdomain%n_proc) :: statuses
         !- now we can exchange (communication global arrays)
         n = Tdomain%n_proc
@@ -183,15 +183,15 @@ contains
             if (other == rg) cycle
             if (Tdomain%sComm(other)%ngllSF > 0) then
                 call MPI_Isend(Tdomain%sComm(other)%GiveForcesSF_StoF,Tdomain%sComm(other)%ngllSF, &
-                     MPI_DOUBLE_PRECISION, other, tag, Tdomain%communicateur,req_s(other), ierr)
+                     MPI_DOUBLE_PRECISION, other, tag_sf, Tdomain%communicateur,req_s(other+1), ierr)
                 call MPI_Irecv(Tdomain%sComm(other)%TakeForcesSF_StoF,Tdomain%sComm(other)%ngllSF, &
-                     MPI_DOUBLE_PRECISION, other, tag,Tdomain%communicateur,req_r(other), ierr)
+                     MPI_DOUBLE_PRECISION, other, tag_sf,Tdomain%communicateur,req_r(other+1), ierr)
             endif
             if (Tdomain%sComm(other)%ngllSF_PML > 0) then
                 call MPI_Isend(Tdomain%sComm(other)%GiveForcesSF_StoF_PML,3*Tdomain%sComm(other)%ngllSF_PML, &
-                     MPI_DOUBLE_PRECISION, other, tag,Tdomain%communicateur,req_s_pml(other), ierr)
+                     MPI_DOUBLE_PRECISION, other, tag_sf_pml,Tdomain%communicateur,req_s_pml(other+1), ierr)
                 call MPI_Irecv(Tdomain%sComm(other)%TakeForcesSF_StoF_PML,3*Tdomain%sComm(other)%ngllSF_PML, &
-                     MPI_DOUBLE_PRECISION, other,tag,Tdomain%communicateur,req_r_pml(other), ierr)
+                     MPI_DOUBLE_PRECISION, other,tag_sf_pml,Tdomain%communicateur,req_r_pml(other+1), ierr)
             endif
         enddo
 

@@ -12,8 +12,9 @@ Documentation SEM IPG-CEA
 
    intro.rst
    NEWS.rst
-   installation.rst
+   tutoriel.rst
    format_input.rst
+   installation.rst
    git.rst
 
 

@@ -7,7 +7,7 @@
 !!
 !<
 module forces_aniso
-
+    use deriv3d
     interface
        subroutine DGEMM ( TRANSA, TRANSB, M, N, K, ALPHA, A, LDA, B, LDB, BETA, C, LDC )
          CHARACTER*1        TRANSA, TRANSB

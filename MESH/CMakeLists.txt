@@ -21,8 +21,6 @@ set(MESH_SRC
   ${PRJ}/SRC/solid_fluid.f90
 )
 
-set(MESH_EXTRA_LIBS "")
-
 if(OPT_MPI)
 #set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
 # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
@@ -33,10 +31,9 @@ endif(OPT_MPI)
 
 add_definitions(-DUSE_HDF5)
 include_directories(${HDF5_INCLUDE_DIR_FORTRAN})
-set(MESH_EXTRA_LIBS ${MESH_EXTRA_LIBS} hdf5_fortran)
 
 add_executable(mesher ${MESH_SRC})
-target_link_libraries(mesher metis ${MESH_EXTRA_LIBS})
+target_link_libraries(mesher metis ${HDF5_LIBRARIES} )
 
 
 install(TARGETS mesher DESTINATION bin)

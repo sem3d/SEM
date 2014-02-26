@@ -8,7 +8,9 @@
 !<
 
 module sfaces
+    use constants
 
+    implicit none
     ! Modified by Gaetano 01/06/05
     type :: face
 

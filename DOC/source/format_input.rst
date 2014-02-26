@@ -1,7 +1,7 @@
 .. -*- coding: utf-8 -*-
 
 ===================================
-Description des parametres de SEM3D
+Description des paramètres de SEM3D
 ===================================
 
 Format
@@ -119,6 +119,7 @@ save_snap        bool          false              Sauvegarde des snapshots
 save_interval    réel          --                 Interval (temps physique) de sauvegarde des snapshots
 select           voir note     --                 Sélection des éléments à inclure dans les snapshots
 deselect         voir note     --                 Désélection des éléments à inclure dans les snapshots
+group_outputs    entier        32                 Écriture d'un fichier sortie par *group_outputs* processeurs
 ===============  ============  =================  ============================================================
 
 Note:

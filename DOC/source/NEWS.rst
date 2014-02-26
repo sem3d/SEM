@@ -3,6 +3,59 @@
 NEWS
 ====
 
+Version 2013.12
+---------------
+
+- Stabilisation des éléments fluides et couplage fluide/solide
+
+- Nouvelles fonctions d'évolution temporelle des sources (square, tanh, ...)
+
+- La limite maximum du nombre de processeurs gérés par le mailleur est
+  portée à 8192 (1024 précédement). La consommation mémoire excessive
+  en (nombre de processeurs * nombre de mailles) est résolue. On a
+  maintenant une consommation proportionnelle à (nombre de mailles x
+  nombre de processeurs voisins).
+
+- un paramètre amplitude global pour toutes les fonctions temporelles est ajouté.
+
+- la dépendance sur HDF5 est maintenant obligatoire.
+
+- Le mailleur accepte un format hdf5 (semblable àau format UNV) en entrée. Permet
+  de gérer de gros maillages beaucoup trop long à lire dans un format texte.
+
+- Limitation du nombre de sorties texte du code pour passer des codes sur un grand nombre
+  de processeurs.
+
+- bugfix: le flag mpml n'était plus pris en compte.
+
+- bugfix: le mailleur ne libérait pas immédiatement les ressources
+  HDF5, ce qui induisait des temps très long de flush en fin de
+  job. Ce temps étant compté dans l'épilogue MPI, le processus était
+  tué avant la fin.
+
+- bugfix: les paramètres d'attenuation n'étaient pas correctement
+  sauvegardé lors des protection reprise.
+
+- Les sorties ont été mutualisées par groupe de processeurs, permettant d'avoir
+  une sortie par noeud de calcul.
+, plutot qu'une sortie par processus MPI.
+
+- bugfix : pour les fluides, les excitations sont pondérées par lambda et plus rho
+
+- fluide : on assure la continuité de rho*phi et non plus phi.
+
+- mailleur: on peut mailler un milieu stratifié simple
+
+- SEM2D : mutualisation de code, utilisation du nouveau format de fichier d'entrée commun avec SEM3D.
+
+- Nouveaux champs en sortie des snapshots : pression et accélération
+
+- optimisation du calcul des forces solides sans Acoef. Le calcul des
+  dérivées spatiales a maintenant des cas particuliers pour ngll=5
+  et 7. Au delà de 10, l'ancienne méthode avec DGEMM optimisée (MKL)
+  devient plus intéressante.
+
+- correction fuite mémoire (initiale, stable) dans l'allocation des capteurs.
 
 Version 2013.04
 ---------------

@@ -45,7 +45,6 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     integer :: interrupt, ierr
     logical :: sortie_capteur
     integer :: group, subgroup
-    integer, parameter :: ngroup=32
 
 
     Tdomain%communicateur = communicateur
@@ -61,14 +60,6 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     call MPI_Comm_Rank (Tdomain%communicateur, rg, code)
     call MPI_Comm_Size (Tdomain%communicateur, nb_procs,  code)
 #endif
-
-    Tdomain%ngroup = ngroup
-    group = rg/ngroup
-    subgroup = mod(rg,ngroup)
-    ! Create subdomains communicators
-    call MPI_Comm_split(MPI_COMM_WORLD, group, subgroup, Tdomain%comm_output, ierr)
-    call MPI_Comm_Size (Tdomain%comm_output, Tdomain%nb_output_procs,  code)
-    call MPI_Comm_Rank (Tdomain%comm_output, Tdomain%output_rank, code)
 
     if (rg==0) then
         write(*,*)
@@ -107,7 +98,14 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 
 !- reading external data: run parameters (geometry, materials, time evolution,..)
     call read_input(Tdomain, rg, code)
-    call MPI_BARRIER(Tdomain%communicateur, code)
+
+    group = rg/Tdomain%ngroup
+    subgroup = mod(rg,Tdomain%ngroup)
+    ! Create subdomains communicators
+    call MPI_Comm_split(MPI_COMM_WORLD, group, subgroup, Tdomain%comm_output, ierr)
+    call MPI_Comm_Size (Tdomain%comm_output, Tdomain%nb_output_procs,  code)
+    call MPI_Comm_Rank (Tdomain%comm_output, Tdomain%output_rank, code)
+
 
 !- eventual plane wave (transmission process: Bielak & Cristiano 1984)
     if (Tdomain%logicD%super_object_local_present) then
@@ -426,5 +424,9 @@ end subroutine sem
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!

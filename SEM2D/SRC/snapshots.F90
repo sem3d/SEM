@@ -4,80 +4,15 @@ module msnapshots
     use sem_hdf5
     use semdatafiles
     use mpi
+    use constants
     !use mfields
     use orientation
     implicit none
 contains
 
-   !! Recopie dans field le champs de deplacement reparti sur les Elem, Face, Edge, Vertex
-    subroutine gather_elem_displ(Tdomain, nel, field)
-        implicit none
-        type(domain), intent(in) :: Tdomain
-        integer, intent(in) :: nel
-        real, dimension(0:,0:,0:), intent(out) :: field
-        type(element), pointer :: el
-        type(face), pointer :: fc
-        type(vertex), pointer :: vx
-        integer :: nx, nz, i
-        logical :: orient
-        nx = Tdomain%specel(nel)%ngllx
-        nz = Tdomain%specel(nel)%ngllz
-        el => Tdomain%specel(nel)
 
-        field(1:nx-2,1:nz-2,0:1) = el%Displ(:,:,:)
-        do i=0,3
-            fc => Tdomain%sFace(el%Near_Face(i))
-            orient = fc%coherency .or. fc%near_element(0) == nel
-            call get_VectProperty_Face2Elem(i, orient, nx, nz, fc%ngll, fc%Displ, field)
-        end do
-
-
-        vx => Tdomain%sVertex(el%Near_Vertex(0))
-        field(0,0,:) = vx%Displ
-        vx => Tdomain%sVertex(el%Near_Vertex(1))
-        field(nx-1,0,:) = vx%Displ
-        vx => Tdomain%sVertex(el%Near_Vertex(2))
-        field(nx-1,nz-1,:) = vx%Displ
-        vx => Tdomain%sVertex(el%Near_Vertex(3))
-        field(0,nz-1,:) = vx%Displ
-
-    end subroutine gather_elem_displ
-
-    subroutine gather_elem_veloc(Tdomain, nel, field)
-        implicit none
-        type(domain), intent(in) :: Tdomain
-        integer, intent(in) :: nel
-        real, dimension(0:,0:,0:), intent(out) :: field
-        type(element), pointer :: el
-        type(face), pointer :: fc
-        type(vertex), pointer :: vx
-        integer :: nx, nz, i
-        logical :: orient
-        nx = Tdomain%specel(nel)%ngllx
-        nz = Tdomain%specel(nel)%ngllz
-        el => Tdomain%specel(nel)
-
-        field(1:nx-2,1:nz-2,0:1) = el%Veloc(:,:,:)
-        do i=0,3
-            fc => Tdomain%sFace(el%Near_Face(i))
-            orient = fc%coherency .or. fc%near_element(0) == nel
-            call get_VectProperty_Face2Elem(i, orient, nx, nz, fc%ngll, fc%Veloc, field)
-        end do
-
-        vx => Tdomain%sVertex(el%Near_Vertex(0))
-        field(0,0,:) = vx%Veloc
-        vx => Tdomain%sVertex(el%Near_Vertex(1))
-        field(nx-1,0,:) = vx%Veloc
-        vx => Tdomain%sVertex(el%Near_Vertex(2))
-        field(nx-1,nz-1,:) = vx%Veloc
-        vx => Tdomain%sVertex(el%Near_Vertex(3))
-        field(0,nz-1,:) = vx%Veloc
-
-    end subroutine gather_elem_veloc
-
-    subroutine compute_saved_elements(Tdomain, rg, irenum, nnodes)
+    subroutine compute_saved_elements(Tdomain, irenum, nnodes)
         type (domain), intent (INOUT):: Tdomain
-        integer, intent(in) :: rg
         integer, allocatable, dimension(:), intent(out) :: irenum ! maps Iglobnum to file node number
         integer, intent(out) :: nnodes
         integer :: n, i, k, ngllx, ngllz, ig, gn, ne
@@ -144,9 +79,9 @@ contains
 
         call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
 
-        call compute_saved_elements(Tdomain, rg, irenum, nnodes)
+        call compute_saved_elements(Tdomain, irenum, nnodes)
 
-        call write_global_nodes(Tdomain, rg, fid, irenum, nnodes)
+        call write_global_nodes(Tdomain, fid, irenum, nnodes)
         
         call write_elem_connectivity(Tdomain, fid, irenum)
 
@@ -158,11 +93,11 @@ contains
     end subroutine write_snapshot_geom
 
 
-    subroutine write_global_nodes(Tdomain, rg, fid, irenum, nnodes)
+    subroutine write_global_nodes(Tdomain, fid, irenum, nnodes)
         implicit none
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: fid
-        integer, intent(in) :: rg, nnodes
+        integer, intent(in) :: nnodes
         integer, dimension(:), intent(in), allocatable :: irenum
         !
         real, dimension(:,:), allocatable :: nodes
@@ -192,14 +127,14 @@ contains
         integer(HID_T), intent(in) :: fid
         integer, dimension(:), intent(in), allocatable :: irenum
         !
-        integer(HID_T) :: elem_id, mat_id, ngll_id, globnum_id
+        integer(HID_T) :: elem_id, mat_id, ngll_id, globnum_id, elem_num_id
         integer :: ngllx, ngllz
         integer(HSIZE_T), dimension(2) :: dims
         integer, dimension(:,:), allocatable :: data
-        integer, dimension(:), allocatable :: mat, iglobnum
+        integer, dimension(:), allocatable :: mat, elem_num, iglobnum
         integer, dimension(2,0:Tdomain%n_elem-1) :: ngll
         integer :: count, ig, nglobnum
-        integer :: i, j, k, n, nb_elem
+        integer :: i, k, n, nb_elem
         integer :: hdferr
 
         ! First we count the number of hexaedrons
@@ -227,9 +162,12 @@ contains
         Tdomain%n_quad = count
         allocate( data(1:4,0:count-1))
         allocate( mat(0:count-1))
+        allocate( elem_num(0:count-1))
 
         call create_dset_2d(fid, "Elements", H5T_STD_I32LE, 4, count, elem_id)
         call create_dset(fid, "Material", H5T_STD_I32LE, count, mat_id)
+        call create_dset(fid, "ElemID", H5T_STD_I32LE, count, elem_num_id)
+        !call create_dset(fid, "ElemID", H5T_STD_I32LE, Tdomain%n_elem, elem_num_id)
         call create_dset(fid, "Iglobnum", H5T_STD_I32LE, nglobnum, globnum_id)
 
         allocate (iglobnum(nglobnum))
@@ -248,6 +186,7 @@ contains
                     data(3,count) = irenum(Tdomain%specel(n)%Iglobnum(i+1,k+1))
                     data(4,count) = irenum(Tdomain%specel(n)%Iglobnum(i+0,k+1))
                     mat(count) = Tdomain%specel(n)%mat_index
+                    elem_num(count) = n
                     count=count+1
                 end do
             end do
@@ -265,11 +204,14 @@ contains
         call h5dclose_f(globnum_id, hdferr)
         call h5dwrite_f(elem_id, H5T_NATIVE_INTEGER, data, dims, hdferr)
         call h5dclose_f(elem_id, hdferr)
-        dims(1)=count
-        dims(2)=1
+        dims(1) = count
+        dims(2) = 0
         call h5dwrite_f(mat_id, H5T_NATIVE_INTEGER, mat, dims, hdferr)
         call h5dclose_f(mat_id, hdferr)
+        call h5dwrite_f(elem_num_id, H5T_NATIVE_INTEGER, elem_num, dims, hdferr)
+        call h5dclose_f(elem_num_id, hdferr)
         deallocate(data)
+        !deallocate(elem_num)
     end subroutine write_elem_connectivity
 
     subroutine save_field_h5(Tdomain, rg, isort)
@@ -294,7 +236,7 @@ contains
         call create_dir_sorties(Tdomain, rg, isort)
         call semname_snap_result_file(rg, isort, fnamef)
 
-        call compute_saved_elements(Tdomain, rg, irenum, nnodes)
+        call compute_saved_elements(Tdomain, irenum, nnodes)
 
 
         call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
@@ -407,6 +349,8 @@ contains
 
         write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Mass" Format="HDF" Datatype="Int"  Dimensions="',nn, &
             '">geometry',rg,'.h5:/Mass</DataItem>'
+        write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="ID" Format="HDF" Datatype="Int"  Dimensions="',ne, &
+            '">geometry',rg,'.h5:/ElemID</DataItem>'
         write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Jac" Format="HDF" Datatype="Int"  Dimensions="',nn, &
             '">geometry',rg,'.h5:/Jac</DataItem>'
         time = 0
@@ -447,6 +391,10 @@ contains
                 ']/DataItem[@Name="Mass"]</DataItem>'
 !            write(61,"(a,I8,a,I4.4,a)") '<DataItem Format="HDF" Datatype="Int"  Dimensions="',nn, &
 !                '">geometry',rg,'.h5:/Mass</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            write(61,"(a,I4.4,a)") '<Attribute Name="ID" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
+            write(61,"(a,I4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[',rg+1, &
+                ']/DataItem[@Name="ID"]</DataItem>'
             write(61,"(a)") '</Attribute>'
             write(61,"(a,I4.4,a)") '<Attribute Name="Jac" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
             write(61,"(a,I4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[',rg+1, &
