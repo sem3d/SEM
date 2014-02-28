@@ -20,32 +20,36 @@ contains
         type (domain), intent (INOUT) :: Tdomain
 
         ! local variables
-        integer :: n, i, j, mat, type_DG
+        integer :: n, mat, type_DG
         real    :: E_tot, E_k, E_el
 
         E_tot = 0.
         E_k  = 0.
         E_el = 0.
-        do n = 0, Tdomain%n_elem-1
-            type_DG = Tdomain%specel(n)%Type_DG
-            mat = Tdomain%specel(n)%mat_index
-            if (type_DG .EQ. GALERKIN_CONT) then
-                call get_Displ_fv2el (Tdomain,n)
-                call compute_Elastic_Energy (Tdomain%specel(n), Tdomain%sSubDomain(mat)%hTprimex, &
-                                        Tdomain%sSubDomain(mat)%hprimez, E_el)
-                call compute_Kinetic_Energy (Tdomain%specel(n), E_k)
-            else ! Discontinuous Galerkin cases
-                call compute_Elastic_Energy_DG (Tdomain%specel(n), E_el)
-                call compute_Kinetic_Energy_DG (Tdomain%specel(n), E_k)
+        if (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK) then
+            call global_energy (Tdomain)
+
+        else if (Tdomain%type_timeInteg==TIME_INTEG_RK4) then
+            do n = 0, Tdomain%n_elem-1
+                type_DG = Tdomain%specel(n)%Type_DG
+                mat = Tdomain%specel(n)%mat_index
+                if (type_DG .EQ. GALERKIN_CONT) then
+                    call get_Displ_fv2el (Tdomain,n)
+                    call compute_Elastic_Energy(Tdomain%specel(n),Tdomain%sSubDomain(mat)%hTprimex,&
+                        Tdomain%sSubDomain(mat)%hprimez, E_el)
+                    call compute_Kinetic_Energy (Tdomain%specel(n), E_k)
+                else ! Discontinuous Galerkin cases
+                    call compute_Elastic_Energy_DG (Tdomain%specel(n), E_el)
+                    call compute_Kinetic_Energy_DG (Tdomain%specel(n), E_k)
+                endif
+                E_tot = E_tot + E_k + E_el
+            enddo
+
+            if (Tdomain%TimeD%rtime == 0) then
+                open (51,file = "Total_Energy",status="replace",form="formatted")
             endif
-            E_tot = E_tot + E_k + E_el
-        enddo
-
-        if (Tdomain%TimeD%rtime == 0) then
-            open (51,file = "Total_Energy",status="replace",form="formatted")
+            write(51,*) Tdomain%TimeD%rtime, E_tot
         endif
-        write(51,*) Tdomain%TimeD%rtime, E_tot
-
         return
     end subroutine global_energy_generalized
 
@@ -57,7 +61,7 @@ contains
         type (domain), intent (INOUT) :: Tdomain
 
         ! local variables
-        integer :: n, i, j, mat
+        integer :: n, mat
         real    :: E_tot, E_k, E_el
 
         E_tot = 0.

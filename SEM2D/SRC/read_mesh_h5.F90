@@ -239,6 +239,9 @@ subroutine coherency_mesh_h5(Tdomain)
                 if (Tdomain%specel(e1)%Control_Nodes(3) == Tdomain%sVertex(v0)%Glob_numbering) &
                     Tdomain%sFace(i)%coherency = .true.
             endif
+        elseif (Tdomain%sFace(i)%Near_Element(1) == -1) then
+            ! Set Coherency for faces on the Boundaries
+            Tdomain%sFace(i)%coherency = .true.
         endif
     enddo
 end subroutine coherency_mesh_h5

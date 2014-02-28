@@ -322,6 +322,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
             endif
         endif
 
+        !if(Tdomain%LogicD%CompEnerg) call global_energy_generalized(Tdomain)
         if(Tdomain%LogicD%CompEnerg) call global_energy_generalized(Tdomain)
 
         ! sortie des  ...
