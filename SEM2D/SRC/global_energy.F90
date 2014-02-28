@@ -19,7 +19,7 @@ contains
         type (domain), intent (INOUT) :: Tdomain
 
         ! local variables
-        integer :: n, i, j, mat
+        integer :: n, mat
         real    :: E_tot, E_k, E_el
 
         E_tot = 0.
