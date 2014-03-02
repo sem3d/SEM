@@ -240,7 +240,6 @@ subroutine coherency_mesh_h5(Tdomain)
                     Tdomain%sFace(i)%coherency = .true.
             endif
         elseif (Tdomain%sFace(i)%Near_Element(1) == -1) then
-            ! Set Coherency for faces on the Boundaries
             Tdomain%sFace(i)%coherency = .true.
         endif
     enddo
