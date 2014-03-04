@@ -20,15 +20,16 @@ contains
 
         ! local variables
         integer :: n, mat
-        real    :: E_tot, E_k, E_el
+        real    :: E_tot, E_k, E_el, Dt
 
         E_tot = 0.
         E_k  = 0.
         E_el = 0.
 
         do n=0,Tdomain%n_elem-1
-            ! Computation of the Kinetic Energy for the inner nodes of the element
-            call compute_Kinetic_Energy (Tdomain%specel(n), E_k)
+            mat = Tdomain%specel(n)%mat_index
+            Dt = Tdomain%sSubDomain(mat)%dt
+            call compute_Kinetic_Energy (Tdomain%specel(n), Dt, E_k)
             E_tot = E_tot + E_k
             ! Preparation of element displ for computing Elastic Energy
             if (.not. Tdomain%specel(n)%PML) call Prediction_Elem_Veloc (Tdomain%specel(n))
@@ -36,8 +37,9 @@ contains
 
         ! Computation of the Kinetic Energy for the faces
         do n=0,Tdomain%n_face-1
-            E_k = 0.5* sum(1./Tdomain%sFace(n)%MassMat(:)*(Tdomain%sFace(n)%Veloc(:,0)**2 &
-                                                          +Tdomain%sFace(n)%Veloc(:,1)**2))
+            mat = Tdomain%sFace(n)%mat_index
+            Dt = Tdomain%sSubDomain(mat)%dt
+            call compute_Kinetic_Energy_F (Tdomain%sFace(n), Dt, E_k)
             E_tot = E_tot + E_k
             ! Preparation of face displ for computing Elastic Energy
             if (.not. Tdomain%sFace(n)%PML)  call Prediction_Face_Veloc (Tdomain%sFace(n))
@@ -45,8 +47,9 @@ contains
 
         ! Computation of the Kinetic Energy for the Vertices
         do n=0,Tdomain%n_vertex-1
-            E_k = 0.5* 1./Tdomain%sVertex(n)%MassMat*( Tdomain%sVertex(n)%Veloc(0)**2 &
-                                                      +Tdomain%sVertex(n)%Veloc(1)**2)
+            mat = Tdomain%sVertex(n)%mat_index
+            Dt = Tdomain%sSubDomain(mat)%dt
+            call compute_Kinetic_Energy_V (Tdomain%sVertex(n), Dt, E_k)
             E_tot = E_tot + E_k
             ! Preparation of vertex displ for computing Elastic Energy
             if (.not. Tdomain%sVertex(n)%PML)  call Prediction_Vertex_Veloc (Tdomain%sVertex(n))

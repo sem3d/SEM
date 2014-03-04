@@ -196,6 +196,29 @@ contains
 
     end subroutine get_vfree_vertex
 
+    ! ############################################################
+
+    !>
+    !! \brief This subroutine computes the kinetic energy on the vertex
+    !! \param type (Vertex), intent (INOUT) V
+    !! \param real, intent (INOUT) E_kin
+    !<
+
+    subroutine  compute_Kinetic_Energy_V (V, Dt, E_kin)
+        implicit none
+
+        type (Vertex), intent (IN) :: V
+        real, intent (IN)    :: Dt
+        real, intent (INOUT) :: E_kin
+        real, dimension (0:1)  :: Vel_half
+
+        Vel_half(:) = V%Veloc(:) + 0.5 * dt * V%Forces(:)
+        E_kin       = 0.5 /V%MassMat * ( Vel_half(0)*Vel_half(0) &
+                                      +Vel_half(1)*Vel_half(1))
+
+    end subroutine compute_Kinetic_Energy_V
+
+    ! ############################################################
 
 end module svertices
 !! Local Variables:

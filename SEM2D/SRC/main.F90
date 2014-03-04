@@ -309,7 +309,6 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
         endif
 
 
-
         ! sortie des  ...
         if (Tdomain%logicD%save_fault_trace.and.i_snap==0) call save_fault_trace (Tdomain, ntime)
 
