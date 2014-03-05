@@ -287,6 +287,9 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
         ! Sauvegarde des donnees de post-traitement
         open (78,file=fnamef,status="unknown",position="rewind")
         ! on supprime tous les fichiers et repertoire de protection
+        Tdomain%TimeD%prot_m2 = -1
+        Tdomain%TimeD%prot_m1 = -1
+        Tdomain%TimeD%prot_m0 = -1
         if(rg == 0) then
             call system('rm -Rf '//path_prot)
             ierr=sem_mkdir(path_prot)
