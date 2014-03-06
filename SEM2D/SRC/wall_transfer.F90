@@ -46,7 +46,9 @@ subroutine wall_transfer (Tdomain)
     do n = 0, Tdomain%n_communications - 1
         do n_points = 0, Tdomain%sWall(n)%n_vertices-1
             nf = Tdomain%sWall(n)%Vertex_List(n_points)
-            allocate (Tdomain%sVertex(nf)%Double_Value(0:1))
+            if (.not. allocated(Tdomain%sVertex(nf)%Double_Value)) then
+                allocate (Tdomain%sVertex(nf)%Double_Value(0:1))
+            end if
         enddo
     enddo
 

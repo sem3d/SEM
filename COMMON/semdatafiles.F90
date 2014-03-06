@@ -277,32 +277,6 @@ contains
     end subroutine semname_define_planew_properties_file
     !!end fichier define_planew_properties
 
-    !!fichier dumptrace 2d
-    subroutine semname_dumptrace_tracex (i,fnamef)
-        !SEMFILE 31 W ./Capteurs/sem/tracexIII (MKA) tracexIII (NOMKA)
-        implicit none
-        integer,intent(in) :: i
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=20) :: temp
-
-        write(temp,"(a,I3.3)") "tracex",i
-        DEBUG(fnamef)
-        fnamef = pjoin(path_traces, temp)
-    end subroutine semname_dumptrace_tracex
-
-    subroutine semname_dumptrace_tracez (i,fnamef)
-        !SEMFILE 32 W ./Capteurs/sem/tracezIII (MKA) tracezIII (NOMKA)
-        implicit none
-        integer,intent(in) :: i
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=20) :: temp
-
-        write(temp,"(a,I3.3)") "tracez",i
-        DEBUG(fnamef)
-        fnamef = pjoin(path_traces, temp)
-    end subroutine semname_dumptrace_tracez
-    !!end fichier dumptrace 2d
-
     !!fichier main 2d
     subroutine semname_couplage_dat (fnamef)
         !SEMFILE 50 R data/sem/couplage.dat (COUPLAGE)

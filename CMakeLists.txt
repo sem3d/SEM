@@ -20,12 +20,17 @@ add_definitions(-DUSE_HDF5)
 include_directories(${HDF5_FORTRAN_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} ${HDF5_INCLUDE_DIR})
 include_directories(${HDF5_INCLUDE_DIR} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP})
 
-if (OPT_MPI)
+if (OPT_MPI OR HDF5_IS_PARALLEL)
     set(MPI_COMPILER mpif90)
     find_package(MPI)
-    add_definitions(-D__MPI)
     include_directories(${MPI_INCLUDE_PATH})
     set(GLOBAL_LINK_FLAGS ${MPI_LINK_FLAGS} ${GLOBAL_LINK_FLAGS})
+endif (OPT_MPI OR HDF5_IS_PARALLEL)
+
+
+if (OPT_MPI)
+  # Separate in case one wants to build non-mpi version of SEM against MPI enabled HDF5 library
+  add_definitions(-D__MPI)
 endif (OPT_MPI)
 
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
@@ -103,9 +108,6 @@ set(SEM_SRC ${SEM_SRC}
   ${FTM_SOURCES})
 endif(OPT_MPI)
 
-# HDF5
-set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} hdf5_fortran)
-
 
 if (CEAUSER)
 add_definitions(-DHAVE_TREMAIN)
@@ -116,6 +118,7 @@ endif(CEAUSER)
 add_subdirectory(SEM2D)
 add_subdirectory(SEM3D)
 add_subdirectory(MESH)
+add_subdirectory(MESH2D)
 
 
 add_executable(test_sem_path ${SEMCOMMON}/test_sem_path.f90   ${SEMCOMMON}/fileutils.c ${SEMCOMMON}/sem_c_bindings.F90 ${SEMCOMMON}/semdatafiles.F90)

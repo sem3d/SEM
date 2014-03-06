@@ -25,7 +25,7 @@ subroutine define_arrays(Tdomain)
 
     ! local variables
 
-    integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf
+    integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf,nface
     integer :: i_send, n_face_pointed, i_proc, nv, i_stock, tag_send, tag_receive, ierr
     integer ,  dimension (MPI_STATUS_SIZE) :: status
     real :: vp,ri,rj,dx, LocMassmat_Vertex

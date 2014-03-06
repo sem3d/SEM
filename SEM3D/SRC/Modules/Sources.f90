@@ -15,8 +15,9 @@ module ssources
     type :: Source
        ! xxx
        character(len = 30)  :: time_file
-       integer :: i_dir, i_type_source, i_time_function, elem, proc
+       integer :: i_type_source, i_time_function, elem, proc
        integer, dimension(0:2) :: gll
+       real, dimension(0:2) :: dir
        real :: tau_b,cutoff_freq
        real :: radius,realcolat,reallong,refcolat,reflong
        real :: amplitude_factor
@@ -33,8 +34,7 @@ module ssources
        real, dimension(0:2,0:2) :: Moment, InvGrad
        real, dimension (:,:,:,:), pointer :: coeff
        real, dimension(:), pointer :: ampli, time
-       real, allocatable, dimension(:,:,:) :: ExtForce
-       real, allocatable, dimension(:,:,:,:) :: MomForce
+       real, allocatable, dimension(:,:,:,:) :: ExtForce
     end type Source
 
 contains

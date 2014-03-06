@@ -16,7 +16,8 @@ module selement
 
        integer :: mat_index,ngllx,ngllz
        integer, dimension (:), allocatable :: Control_nodes
-       integer, dimension (0:3) :: Near_Face, Near_Vertex
+       integer, dimension (0:3) :: Near_Face   !
+       integer, dimension (0:3) :: Near_Vertex !
        integer, dimension (:,:), allocatable :: Iglobnum
 
        real, dimension (:,:), allocatable :: Jacob,Density, Lambda, Mu,MassMat
@@ -41,6 +42,18 @@ module selement
     end type element
 
 contains
+
+    subroutine init_element(el)
+        implicit none
+        type(Element), intent(INOUT) :: el
+
+        el%mat_index=-1
+        el%PML = .false.
+        el%OUTPUT = .true.
+        el%FPML = .false.
+        el%dist_max = 0.0
+
+    end subroutine init_element
 
     ! ############################################################
     !>

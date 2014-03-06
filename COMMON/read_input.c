@@ -2,95 +2,26 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <string.h>
 #include "file_scan.h"
 #include "sem_input.h"
 
 
 
-typedef struct source {
-    struct source* next;
-    double coords[3];
-    int type;
-    int dir;
-    int func;
-    double moments[6];
-    double tau;
-    double freq;
-    double band[4];
-    double ts;
-    double gamma;
-    double amplitude;
-    char* time_file;
-} source_t;
 
-// Structure decrivant les condition de selection des elements a inclure
-// dans les snapshots
-typedef struct snapshot_cond {
-    struct snapshot_cond* next;
-    /// Type de condition (1 all, 2 material, 3 box)
-    int type;
-    /// Inclusion (1) ou exclusion (0)
-    int include;
-    /// Dimension de la boite pour le type box
-    double box[6];
-    /// Type de materiau pour le type material
-    int material;
-} snapshot_cond_t;
-
-typedef struct {
-    char* run_name;
-    // Integration
-    int accel_scheme;
-    int veloc_scheme;
-    double sim_time;
-    double alpha;
-    double beta;
-    double gamma;
-    double courant;
-
-    // Modele, maillage
-    char*  mesh_file;
-    int model;
-    int anisotropy;
-    char* mat_file;
-    int nsources;
-    source_t *source;
-
-    // Capteurs
-    int save_traces;
-    int traces_interval;
-    int traces_format;
-    char* station_file;
-
-    // Snapshots
-    int save_snap;
-    double snap_interval;
-    int n_snap_cond;
-    snapshot_cond_t* snapshot_selection;
-
-    // Protection reprise
-    int prorep;
-    int prorep_iter;
-    int prorep_restart_iter;
-
-    int verbose_level;
-    double mpml;
-
-    // Amortissement
-    int nsolids;
-    double atn_band[2];
-    double atn_period;
-
-    // Neumann
-    int neu_present;
-    int neu_type;
-    int neu_mat;
-    double neu_L[3];
-    double neu_C[3];
-    double neu_f0;
-} sem_config_t;
-
-
+int check_dimension(yyscan_t scanner, sem_config_t* config)
+{
+    if (config->dim==0) {
+	msg_err(scanner, "you must set dim=2 or 3 early in the configuration file");
+	return 0;
+    }
+    if (config->dim!=2 && config->dim!=3) {
+	msg_err(scanner, "Incorrect dimension you must have dim=2 or 3");
+	return 0;
+    }
+    return 1;
+}
 
 int expect_eq_model(yyscan_t scanner, int* model)
 {
@@ -199,17 +130,21 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
     source->next = config->source;
     config->source = source;
     config->nsources ++;
-
+    if (!check_dimension(scanner, config)) return 0;
+    int dim = config->dim;
+    int mdim;
+    if (dim==2) mdim=3;
+    else mdim=6;
     tok = skip_blank(scanner);
     if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
     do {
 	tok = skip_blank(scanner);
 	if (tok!=K_ID) break;
-	if (cmp(scanner,"coords")) err=expect_eq_float(scanner, source->coords, 3);
+	if (cmp(scanner,"coords")) err=expect_eq_float(scanner, source->coords, dim);
 	else if (cmp(scanner,"type")) err=expect_source_type(scanner, &source->type);
-	else if (cmp(scanner,"dir")) err=expect_source_dir(scanner, &source->dir);
+	else if (cmp(scanner,"dir")) err=expect_eq_float(scanner, source->dir, dim);
 	else if (cmp(scanner,"func")) err=expect_source_func(scanner, &source->func);
-	else if (cmp(scanner,"moment")) err=expect_eq_float(scanner, source->moments, 6);
+	else if (cmp(scanner,"moment")) err=expect_eq_float(scanner, source->moments, mdim);
 	else if (cmp(scanner,"tau")) err=expect_eq_float(scanner, &source->tau, 1);
 	else if (cmp(scanner,"freq")) err=expect_eq_float(scanner, &source->freq, 1);
 	else if (cmp(scanner,"band")) err=expect_eq_float(scanner, source->band, 4);
@@ -355,6 +290,7 @@ int expect_snapshots(yyscan_t scanner, sem_config_t* config)
 	if (cmp(scanner,"snap_interval")) err=expect_eq_float(scanner, &config->snap_interval,1);
 	if (cmp(scanner,"select")) err=expect_select_snap(scanner, config, 1);
 	if (cmp(scanner,"deselect")) err=expect_select_snap(scanner, config, 0);
+	if (cmp(scanner,"group_outputs")) err=expect_eq_int(scanner, &config->n_group_outputs, 1);
 
 	if (err<=0) return err;
 
@@ -389,27 +325,33 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	    return 0;
 	}
 	if (cmp(scanner,"amortissement")) err=expect_amortissement(scanner, config);
-	if (cmp(scanner,"mat_file")) err=expect_eq_string(scanner, &config->mat_file,1);
-	if (cmp(scanner,"mesh_file")) err=expect_eq_string(scanner, &config->mesh_file,1);
-	if (cmp(scanner,"mpml_atn_param")) err=expect_eq_float(scanner, &config->mpml,1);
-	if (cmp(scanner,"prorep")) err=expect_eq_bool(scanner, &config->prorep,1);
-	if (cmp(scanner,"prorep_iter")) err=expect_eq_int(scanner, &config->prorep_iter,1);
-	if (cmp(scanner,"restart_iter")) err=expect_eq_int(scanner, &config->prorep_restart_iter,1);
-	if (cmp(scanner,"run_name")) err=expect_eq_string(scanner, &config->run_name,1);
-	if (cmp(scanner,"snapshots")) err=expect_snapshots(scanner, config);
-	if (cmp(scanner,"save_traces")) err=expect_eq_bool(scanner, &config->save_traces,1);
-	if (cmp(scanner,"sim_time")) err=expect_eq_float(scanner, &config->sim_time,1);
-	if (cmp(scanner,"source")) err=expect_source(scanner, config);
-	if (cmp(scanner,"station_file")) err=expect_eq_string(scanner, &config->station_file,1);
-	if (cmp(scanner,"time_scheme")) err=expect_time_scheme(scanner, config);
-	if (cmp(scanner,"traces_interval")) err=expect_eq_int(scanner, &config->traces_interval,1);
-	if (cmp(scanner,"traces_format")) err=expect_file_format(scanner, &config->traces_format);
-	if (cmp(scanner,"verbose_level")) err=expect_eq_int(scanner, &config->verbose_level,1);
+	else if (cmp(scanner,"fmax")) err=expect_eq_float(scanner, &config->fmax,1);
+	else if (cmp(scanner,"ngll")) err=expect_eq_int(scanner, &config->ngll,1);
+	else if (cmp(scanner,"dim")) {
+	    err=expect_eq_int(scanner, &config->dim,1);
+	    if (err!=0) { err = check_dimension(scanner, config); }
+	}
+	else if (cmp(scanner,"mat_file")) err=expect_eq_string(scanner, &config->mat_file,1);
+	else if (cmp(scanner,"mesh_file")) err=expect_eq_string(scanner, &config->mesh_file,1);
+	else if (cmp(scanner,"mpml_atn_param")) err=expect_eq_float(scanner, &config->mpml,1);
+	else if (cmp(scanner,"prorep")) err=expect_eq_bool(scanner, &config->prorep,1);
+	else if (cmp(scanner,"prorep_iter")) err=expect_eq_int(scanner, &config->prorep_iter,1);
+	else if (cmp(scanner,"restart_iter")) err=expect_eq_int(scanner, &config->prorep_restart_iter,1);
+	else if (cmp(scanner,"run_name")) err=expect_eq_string(scanner, &config->run_name,1);
+	else if (cmp(scanner,"snapshots")) err=expect_snapshots(scanner, config);
+	else if (cmp(scanner,"save_traces")) err=expect_eq_bool(scanner, &config->save_traces,1);
+	else if (cmp(scanner,"sim_time")) err=expect_eq_float(scanner, &config->sim_time,1);
+	else if (cmp(scanner,"source")) err=expect_source(scanner, config);
+	else if (cmp(scanner,"station_file")) err=expect_eq_string(scanner, &config->station_file,1);
+	else if (cmp(scanner,"time_scheme")) err=expect_time_scheme(scanner, config);
+	else if (cmp(scanner,"traces_interval")) err=expect_eq_int(scanner, &config->traces_interval,1);
+	else if (cmp(scanner,"traces_format")) err=expect_file_format(scanner, &config->traces_format);
+	else if (cmp(scanner,"verbose_level")) err=expect_eq_int(scanner, &config->verbose_level,1);
 	// useless (yet or ever)
-	if (cmp(scanner,"anisotropy")) err=expect_eq_bool(scanner, &config->anisotropy, 1);
-	if (cmp(scanner,"gradient")) err=expect_gradient_desc(scanner, config);
-	if (cmp(scanner,"model")) err=expect_eq_model(scanner, &config->model);
-	if (cmp(scanner,"neumann")) err=expect_neumann(scanner, config);
+	else if (cmp(scanner,"anisotropy")) err=expect_eq_bool(scanner, &config->anisotropy, 1);
+	else if (cmp(scanner,"gradient")) err=expect_gradient_desc(scanner, config);
+	else if (cmp(scanner,"model")) err=expect_eq_model(scanner, &config->model);
+	else if (cmp(scanner,"neumann")) err=expect_neumann(scanner, config);
 
 
 	if (err==0) { printf("ERR01\n"); return 0;}
@@ -423,7 +365,9 @@ void init_sem_config(sem_config_t* cfg)
     memset(cfg, 0, sizeof(sem_config_t));
     // Valeurs par defaut
     cfg->courant = 0.2;
-
+    cfg->n_group_outputs = 32;
+    cfg->ngll = 5;
+    cfg->fmax = 1.0;
 }
 
 
@@ -481,6 +425,11 @@ void read_sem_config(sem_config_t* config, const char* input_spec, int* err)
 
     input = fopen(input_spec, "r");
 
+    if (input==NULL) {
+      fprintf(stderr, "Error opening file : '%s'\n", input_spec);
+      fprintf(stderr, "error: %d - %s\n", errno, strerror(errno));
+      exit(1);
+    }
     clear_scan(&info);
 
     yylex_init_extra( &info, &scanner );
