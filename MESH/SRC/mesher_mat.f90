@@ -18,8 +18,6 @@ program mesher_mat
     !- stratified medium?
     strat_bool = .false.
 
-    call system("clear")
-
     write(*,*) "***********************************************************************"
     write(*,*) "----------  Construction of input files for SEM runs (3D)  -----------"
     write(*,*) "***********************************************************************"
