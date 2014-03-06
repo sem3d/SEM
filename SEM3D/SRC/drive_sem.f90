@@ -214,6 +214,9 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
             call system('rm -Rf '//path_prot)
             ierr=sem_mkdir(path_prot)
         end if
+        Tdomain%TimeD%prot_m2 = -1
+        Tdomain%TimeD%prot_m1 = -1
+        Tdomain%TimeD%prot_m0 = -1
     endif
     call MPI_BARRIER(Tdomain%communicateur,code)
 
