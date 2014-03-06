@@ -1076,7 +1076,7 @@ contains
         real P(8,0:2), dxi, deta, dzeta, coord(0:7,0:2)
         real xfact
         real xtrouve_def, ytrouve_def, ztrouve_def, xitrouve_def, etatrouve_def, zetatrouve_def
-        real dist_def, dist, dist_P
+        real dist, dist_P
         real xi, eta, zeta
         real eps
         integer i, j, k, im, il, in, idim, npts
@@ -1093,7 +1093,7 @@ contains
         eta_max = 1.
         zeta_min = -1.
         zeta_max = 1.
-        dist_def = huge(1.) !distance entre la solution et le point de depart
+
         !!  eps = 1.e-6 !tolerance pour accepter la solution !!trop grand pour un cas
         eps = 1.e-6 !tolerance pour accepter la solution
         n_it = 0  !nombre d'iterations
@@ -1111,7 +1111,8 @@ contains
         !!  print *,'coord de la maille pour capteur',coord(6,:)
         !!  print *,'coord de la maille pour capteur',coord(7,:)
         !  do while(dist_def > eps) !precedemment
-        do while((dist_def > eps) .AND. (n_it<n_itmax))
+        dist = huge(1.)
+        do while((dist > eps) .AND. (n_it<n_itmax))
             n_it = n_it +1
             !on subdivise la zone en 4 sous-zones d'etude
             do in=0,1
@@ -1121,7 +1122,7 @@ contains
                         deta = (eta_max - eta_min)/2.
                         dzeta = (zeta_max - zeta_min)/2.
                         !     on elargit un peu le domaine pour ne pas passer a cote de certains points critiques
-                        xfact = 1.01
+                        xfact = 1. !01
                         dxi   = xfact*dxi
                         deta  = xfact*deta
                         dzeta = xfact*dzeta
@@ -1130,7 +1131,6 @@ contains
                         eta0 = eta_min + im*deta
                         zeta0 = zeta_min + in*dzeta
                         npts = 0
-                        dist = huge(1.)
                         !Dans les boucles sur i, j et k, on definit les points P
                         do k=0,1
                             do j=0,1
@@ -1152,12 +1152,11 @@ contains
                                     enddo
                                     dist_P = sqrt(dist_P)
                                     !                     print*,' dist_P ',dist_P
-
-                                    dist = min(dist, dist_P)
                                     !
                                     !on teste si P(npts) correspond au capteur. Si oui on sort
                                     !
-                                    if(dist_P < eps) then
+                                    if(dist_P < dist) then
+                                        ! on conserve ce point
                                         xtrouve_def = P(npts,0)
                                         ytrouve_def = P(npts,1)
                                         ztrouve_def = P(npts,2)
@@ -1172,8 +1171,13 @@ contains
                                         xitrouve_def = xi
                                         etatrouve_def = eta
                                         zetatrouve_def = zeta
-                                        print *,'final xtrouve ytrouve ztrouve',xtrouve_def,ytrouve_def,ztrouve_def, &
-                                            xitrouve_def,etatrouve_def,zetatrouve_def,' iteration ',n_it,' distance ',dist_P
+                                        dist = dist_P
+                                    endif
+                                    if(dist < eps) then
+                                        write(*,*) 'Capteur:', capteur%nom
+                                        write(*,"(a,G12.5,a,G12.5,a,G12.5)") '--- XYZ: ', xtrouve_def,' ',ytrouve_def,' ',ztrouve_def
+                                        write(*,"(a,G12.5,a,G12.5,a,G12.5)") '--- LOC: ', xitrouve_def,' ',etatrouve_def,' ',zetatrouve_def
+                                        write(*,"(a,I5.5,a,G12.5)") '--- ITER:', n_it, ' DIST:', dist
                                         return
                                     endif
                                 enddo
@@ -1189,12 +1193,16 @@ contains
                             eta_max = eta0 + deta
                             zeta_min = zeta0
                             zeta_max = zeta0 + dzeta
-                            dist_def = dist_P
                         endif
                     enddo
                 enddo
             enddo
         enddo
+
+        write(*,*) 'Capteur:', capteur%nom, 'PAS DE CONVERGENCE'
+        write(*,"(a,G12.5,a,G12.5,a,G12.5)") '--- XYZ: ', xtrouve_def,' ',ytrouve_def,' ',ztrouve_def
+        write(*,"(a,G12.5,a,G12.5,a,G12.5)") '--- LOC: ', xitrouve_def,' ',etatrouve_def,' ',zetatrouve_def
+        write(*,"(a,I5.5,a,G12.5)") '--- ITER:', n_it, ' DIST:', dist
 
     end subroutine calc_xi_eta_zeta_capteur
 
