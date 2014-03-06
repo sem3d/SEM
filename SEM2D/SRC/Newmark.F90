@@ -7,14 +7,17 @@
 !! des vitesses avec une formulation contrainte-vitesse décalée en temps dans les PML.
 !<
 
-subroutine Newmark (Tdomain, ntime)
+module snewmark
     use sdomain
     use scouplage
     use mpi
+    implicit none
+contains
+
+subroutine Newmark (Tdomain)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
-    integer, intent(in) :: ntime
 
     ! local variables
     integer :: ns, ncc,i,j,n,np, ngllx, ngllz, mat, nelem,nf, w_face, nv_aus, nf_aus, nv
@@ -43,10 +46,10 @@ subroutine Newmark (Tdomain, ntime)
             Dt = Tdomain%sSubDomain(mat)%dt
 
             if (.not. Tdomain%specel(n)%PML) then
-                !           call Prediction_Elem_Veloc (Tdomain%specel(n),alpha, bega, dt)
                 call Prediction_Elem_Veloc (Tdomain%specel(n))
             else
-                ngllx = Tdomain%specel(n)%ngllx; ngllz = Tdomain%specel(n)%ngllz
+                ngllx = Tdomain%specel(n)%ngllx
+                ngllz = Tdomain%specel(n)%ngllz
                 allocate (Vxloc(0:ngllx-1, 0:ngllz-1))
                 allocate (Vzloc(0:ngllx-1, 0:ngllz-1))
                 call get_PMLprediction_fv2el (Tdomain,n,Vxloc,vzloc,ngllx,ngllz,alpha, bega,dt)
@@ -65,14 +68,12 @@ subroutine Newmark (Tdomain, ntime)
         do n = 0, Tdomain%n_face-1
             mat = Tdomain%sFace(n)%mat_index
             dt = Tdomain%sSubdomain(mat)%dt
-            !       if (.not. Tdomain%sFace(n)%PML)  call Prediction_Face_Veloc (Tdomain%sFace(n),alpha, bega, dt)
             if (.not. Tdomain%sFace(n)%PML)  call Prediction_Face_Veloc (Tdomain%sFace(n))
         enddo
 
         do n= 0, Tdomain%n_vertex-1
             mat = Tdomain%sVertex(n)%mat_index
             dt = Tdomain%sSubdomain(mat)%dt
-            !       if (.not. Tdomain%sVertex(n)%PML)  call Prediction_Vertex_Veloc (Tdomain%sVertex(n),alpha, bega, dt)
             if (.not. Tdomain%sVertex(n)%PML)  call Prediction_Vertex_Veloc (Tdomain%sVertex(n))
         enddo
 
@@ -104,26 +105,15 @@ subroutine Newmark (Tdomain, ntime)
                 ncc = Tdomain%sSource(n)%Elem(ns)%nr
                 ngllx = Tdomain%specel(ncc)%ngllx; ngllz = Tdomain%specel(ncc)%ngllz
 
-                if (Tdomain%sSource(n)%i_type_source == 1) then
-                    do j = 0,ngllz-1
-                        do i = 0,ngllx-1
-                            do np = 0,1
-                                Tdomain%specel(ncc)%Forces(i,j,np) = Tdomain%specel(ncc)%Forces(i,j,np) +   &
-                                    CompSource (Tdomain%sSource(n),Tdomain%TimeD%rtime,np)*  Tdomain%sSource(n)%Elem(ns)%ExtForce(i,j)
-                            enddo
+                do j = 0,ngllz-1
+                    do i = 0,ngllx-1
+                        do np = 0,1
+                            Tdomain%specel(ncc)%Forces(i,j,np) = Tdomain%specel(ncc)%Forces(i,j,np) +   &
+                                CompSource (Tdomain%sSource(n),Tdomain%TimeD%rtime)*  Tdomain%sSource(n)%Elem(ns)%ExtForce(i,j,np)
                         enddo
                     enddo
+                enddo
 
-                else if (Tdomain%sSource(n)%i_type_source == 2 ) then
-                    do j = 0,ngllz-1
-                        do i = 0,ngllx-1
-                            do np = 0,1
-                                Tdomain%specel(ncc)%Forces(i,j,np) =Tdomain%specel(ncc)%Forces(i,j,np) +   &
-                                    CompSource(Tdomain%sSource(n), Tdomain%TimeD%rtime,np)* Tdomain%sSource(n)%Elem(ns)%Explosion(i,j,np)
-                            enddo
-                        enddo
-                    enddo
-                endif
             enddo
         enddo
 
@@ -197,8 +187,8 @@ subroutine Newmark (Tdomain, ntime)
 
         ! AJOUT DES FORCES MKA3D
 #ifdef COUPLAGE
-        if (ntime>0) then
-            call calcul_couplage_force(Tdomain,ntime)
+        if (Tdomain%TimeD%ntime>0) then
+            call calcul_couplage_force(Tdomain,Tdomain%TimeD%ntime)
         endif
 
         ! la ForcesMka corespond a la contrainte multiplie par la surface du point de gauss correspondant
@@ -233,12 +223,6 @@ subroutine Newmark (Tdomain, ntime)
             do nv = 0, Tdomain%sWall(n)%n_vertices-1
                 nv_aus = Tdomain%sWall(n)%Vertex_List(nv)
                 Tdomain%sVertex(nv_aus)%Double_Value(0:1) = Tdomain%sVertex(nv_aus)%Forces(0:1)
-#ifdef MKA3D
-                !   print*," communication force mka "
-                !   il faut faire la sommation entre les proc car ForcesMka correspond a une contrainte par la surface associee
-                !   au vertex pour chacun des faces de couplage possedant ce point de gauss
-                !    Tdomain%sVertex(nv_aus)%Double_Value(0:1) = Tdomain%sVertex(nv_aus)%Forces(0:1) - Tdomain%sVertex(nv_aus)%ForcesMka(0:1)
-#endif
             enddo
         enddo
 
@@ -542,6 +526,8 @@ subroutine Newmark (Tdomain, ntime)
 
     return
 end subroutine Newmark
+
+end module snewmark
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

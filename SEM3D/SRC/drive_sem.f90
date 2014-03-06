@@ -49,9 +49,12 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
 #endif
     integer :: interrupt, ierr
     logical :: sortie_capteur
+    integer :: group, subgroup
 
     call MPI_Init (ierr)
 
+
+    call MPI_Init (ierr)
 
 #ifdef COUPLAGE
     pid = getpid()
@@ -124,7 +127,14 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     ! ##############  Begin of the program  #######################
 
     call read_input (Tdomain, rg, code)
-    call MPI_BARRIER(Tdomain%communicateur, code)
+
+    group = rg/Tdomain%ngroup
+    subgroup = mod(rg,Tdomain%ngroup)
+    ! Create subdomains communicators
+    call MPI_Comm_split(MPI_COMM_WORLD, group, subgroup, Tdomain%comm_output, ierr)
+    call MPI_Comm_Size (Tdomain%comm_output, Tdomain%nb_output_procs,  code)
+    call MPI_Comm_Rank (Tdomain%comm_output, Tdomain%output_rank, code)
+
 
     if (Tdomain%logicD%super_object_local_present) then
         if (Tdomain%super_object_type == "P") then
@@ -165,20 +175,6 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     endif
     call MPI_BARRIER(Tdomain%communicateur,code)
 
-    if (Tdomain%logicD%any_source) then
-        if (rg == 0) write (*,*) , "Compute source parameters "
-        call SourcePosition (Tdomain, rg)
-        call double_couple (Tdomain, rg)
-        call source_excit(Tdomain,rg)
-        call def_timefunc (Tdomain, rg)
-        !- pour entrees en temps: directement dans Modules/Source.f90
-        ! ->  lecture d'un fichier-entree pour la source; valable pour une seule source
-        do i = 0,Tdomain%n_source-1
-            if(Tdomain%sSource(i)%i_time_function == 5)then
-                call read_source_file(Tdomain%sSource(i))
-            endif
-        end do
-    endif
 
     !if (Tdomain%logicD%save_trace) then
     !    if (rg == 0) write (*,*) "Compute receiver locations "
@@ -206,6 +202,22 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
             call set_attenuation_param(Tdomain)
         endif
     endif
+
+    if (Tdomain%logicD%any_source) then
+        if (rg == 0) write (*,*) , "Compute source parameters "
+        call SourcePosition (Tdomain, rg)
+        call double_couple (Tdomain, rg)
+        call source_excit(Tdomain,rg)
+        call def_timefunc (Tdomain, rg)
+        !- pour entrees en temps: directement dans Modules/Source.f90
+        ! ->  lecture d'un fichier-entree pour la source; valable pour une seule source
+        do i = 0,Tdomain%n_source-1
+            if(Tdomain%sSource(i)%i_time_function == 5)then
+                call read_source_file(Tdomain%sSource(i))
+            endif
+        end do
+    endif
+
 
     if (rg == 0) write (*,*) "Entering the time evolution ",rg
     ! initialisation des temps
@@ -236,7 +248,10 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
     if (Tdomain%logicD%run_restart) then
         !! Il faudra ajouter la gravite ici #ifdef COUPLAGE
         call read_restart(Tdomain, rg, isort)
-        write (*,*) "Reprise effectuee sur processeur ",rg
+        call MPI_BARRIER(Tdomain%communicateur,code)
+        if (rg==0) then
+            write (*,*) "Reprise effectuee sur tous les processeurs"
+        end if
         open (78,file=fnamef,status="unknown",position="append")
     else
         ! Sauvegarde des donnees de post-traitement
@@ -246,6 +261,9 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
             call system('rm -Rf '//path_prot)
             ierr=sem_mkdir(path_prot)
         end if
+        Tdomain%TimeD%prot_m2 = -1
+        Tdomain%TimeD%prot_m1 = -1
+        Tdomain%TimeD%prot_m0 = -1
     endif
     call MPI_BARRIER(Tdomain%communicateur,code)
 
@@ -381,20 +399,31 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
 
 
         if (protection/=0) then
-            write (*,*) " sauvegarde  ",ntime," sur processeur ",rg
+            if (rg==0) then
+                write (*,*) "Creation protection  ",ntime
+            end if
             call flushAllCapteurs(Tdomain, rg)
             call save_checkpoint(Tdomain, Tdomain%TimeD%rtime, ntime, rg, Tdomain%TimeD%dtmin, isort)
         endif
 
         ! arret des calculs sur tous les procs
         if (interrupt/=0) then
-            print*,"Arret de SEM, iteration=", ntime
+            if (rg==0) print*,"Arret de SEM, iteration=", ntime
             exit
         endif
 
         ! incrementation du pas de temps !on copie Sem2d
         Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
     enddo
+
+    open (111,file = "fin_sem")
+    if (ntime>=Tdomain%TimeD%NtimeMax-1) then
+        write(111,*) 1
+    else
+        write(111,*) 0
+    end if
+    close(111)
+
 
     call flushAllCapteurs(Tdomain, rg)
 
@@ -412,5 +441,9 @@ end subroutine sem
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!

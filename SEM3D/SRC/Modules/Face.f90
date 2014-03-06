@@ -31,7 +31,7 @@ module sfaces
        ! solid-fluid
        real, dimension(:,:), allocatable :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
        ! pml
-       type(face_pml), allocatable :: spml
+       type(face_pml), pointer :: spml
 #ifdef COUPLAGE
        real, dimension (:,:,:), allocatable :: ForcesMka
        real, dimension (:,:), allocatable :: tsurfsem
@@ -82,21 +82,9 @@ contains
         !real, intent (IN) :: bega, gam1
         real, intent (IN) :: dt
         integer :: i
-        real :: xmas
-
-#ifdef COUPLAGE
-        xmas = 0.
-        if (  F%tsurfsem(1,1) > 0. ) then
-            xmas = 1.
-        endif
-#endif
 
         do i = 0,2
-#ifdef COUPLAGE
-            F%Forces(:,:,i) = F%MassMat(:,:) * F%Forces(:,:,i)/(1.+xmas)
-#else
             F%Forces(:,:,i) = F%MassMat(:,:) * F%Forces(:,:,i)
-#endif
         enddo
 
         F%Veloc(:,:,:) = F%v0(:,:,:) + dt * F%Forces(:,:,:)
@@ -151,6 +139,8 @@ contains
             F%Veloc = 0
         endif
 
+        F%V0 = F%Veloc
+        
         return
     end subroutine Correction_Face_PML_Veloc
 
@@ -176,6 +166,8 @@ contains
         if(F%Abs)then
             F%VelPhi = 0
         endif
+
+        F%Phi = F%Phi+dt*F%Velphi
 
         return
     end subroutine Correction_Face_PML_VelPhi

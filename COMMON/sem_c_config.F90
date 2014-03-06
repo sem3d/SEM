@@ -17,6 +17,9 @@ module sem_c_config
        real(C_DOUBLE) :: beta
        real(C_DOUBLE) :: gamma
        real(C_DOUBLE) :: courant
+       real(C_DOUBLE) :: fmax
+       integer(C_INT) :: ngll
+       integer(C_INT) :: dim
 
        !! Modele, maillage
        type(C_PTR)    :: mesh_file
@@ -34,9 +37,10 @@ module sem_c_config
 
        !! Snapshots
        integer(C_INT) :: save_snap
+       integer(C_INT) :: n_group_outputs
        real(C_DOUBLE) :: snap_interval
        integer(C_INT) :: n_snap_cond
-       type(C_PTR)    :: snapshot_selection;
+       type(C_PTR)    :: snapshot_selection
 
        !! Protection reprise
        integer(C_INT) :: prorep
@@ -66,7 +70,7 @@ module sem_c_config
        type(C_PTR) :: next
        real(C_DOUBLE), dimension(3) :: coords;
        integer(C_INT) :: type;
-       integer(C_INT) :: dir;
+       real(C_DOUBLE), dimension(3) :: dir;
        integer(C_INT) :: func;
        real(C_DOUBLE), dimension(6) :: moments;
        real(C_DOUBLE) :: tau;
@@ -125,5 +129,9 @@ end module sem_c_config
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!

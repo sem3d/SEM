@@ -17,13 +17,13 @@ module svertices
        integer :: Glob_Numbering, mat_index
 
        real :: MassMat
-       real, dimension (:), pointer :: DumpMass, DumpVx, DumpVz, Forces1, Forces2, Veloc1, Veloc2
-       real, dimension (:), pointer :: Displ, Veloc, Forces, Accel, V0
-       real, dimension (:), pointer :: Ivx, Ivz,Iveloc1, Iveloc2
-       real, dimension  (:), pointer :: Double_Value
+       real, dimension (:), allocatable :: DumpMass, DumpVx, DumpVz, Forces1, Forces2, Veloc1, Veloc2
+       real, dimension (:), allocatable :: Displ, Veloc, Forces, Accel, V0
+       real, dimension (:), allocatable :: Ivx, Ivz,Iveloc1, Iveloc2
+       real, dimension  (:), allocatable :: Double_Value
 
 #ifdef MKA3D
-       real, dimension (:), pointer :: ForcesMka
+       real, dimension (:), allocatable :: ForcesMka
 #endif
 
     end type vertex

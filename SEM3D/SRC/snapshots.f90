@@ -10,12 +10,281 @@ module msnapshots
     implicit none
 contains
 
+    subroutine grp_write_real_2d(Tdomain, parent_id, name, dim1, dim2, data, ntot_nodes)
+        type (domain), intent (INOUT):: Tdomain
+        integer(HID_T), intent(in) :: parent_id
+        integer, intent(in) :: dim1, dim2
+        real, dimension(0:dim1-1,0:dim2-1), intent(in) :: data
+        character(len=*), INTENT(IN) :: name
+        integer, intent(out) :: ntot_nodes
+        !
+        integer(HID_T) :: dset_id
+        real, dimension(:,:), allocatable :: all_data
+        integer, dimension(:), allocatable :: displs, counts
+        integer :: n
+        integer(HSIZE_T), dimension(2) :: dims
+        integer :: hdferr, ierr
+
+        if (Tdomain%output_rank==0) then
+            allocate(displs(0:Tdomain%nb_output_procs-1))
+            allocate(counts(0:Tdomain%nb_output_procs-1))
+        end if
+        call MPI_Gather(dim2, 1, MPI_INTEGER, counts, 1, MPI_INTEGER, 0, Tdomain%comm_output, ierr)
+
+        ntot_nodes = 0
+        if (Tdomain%output_rank==0) then
+            do n=0, Tdomain%nb_output_procs-1
+                displs(n) = dim1*ntot_nodes
+                ntot_nodes = ntot_nodes+counts(n)
+                counts(n)=counts(n)*dim1 ! for the next gatherv
+            end do
+            allocate(all_data(0:dim1-1,0:ntot_nodes-1))
+        end if
+        
+        call MPI_Gatherv(data, dim1*dim2, MPI_DOUBLE_PRECISION, all_data, counts, displs, &
+            MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+        if (Tdomain%output_rank==0) then
+            dims(1) = dim1
+            dims(2) = ntot_nodes
+            call create_dset_2d(parent_id, name, H5T_IEEE_F32LE, dims(1), dims(2), dset_id)
+            call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data, dims, hdferr)
+            call h5dclose_f(dset_id, hdferr)
+            deallocate(all_data)
+            deallocate(displs)
+            deallocate(counts)
+        end if
+    end subroutine grp_write_real_2d
+
+
+    subroutine grp_write_fields(Tdomain, parent_id, dim2, displ, veloc, accel, press, ntot_nodes)
+        type (domain), intent (INOUT):: Tdomain
+        integer(HID_T), intent(in) :: parent_id
+        integer, intent(in) :: dim2
+        real, dimension(0:2,0:dim2-1), intent(in) :: displ, veloc, accel
+        real, dimension(0:dim2-1), intent(in) :: press
+        integer, intent(out) :: ntot_nodes
+        !
+        integer(HID_T) :: dset_id
+        real, dimension(:,:), allocatable :: all_data_2d
+        real, dimension(:), allocatable :: all_data_1d
+        integer, dimension(:), allocatable :: displs, counts
+        integer :: n
+        integer(HSIZE_T), dimension(2) :: dims
+        integer :: hdferr, ierr
+
+
+        if (Tdomain%output_rank==0) then
+            allocate(displs(0:Tdomain%nb_output_procs-1))
+            allocate(counts(0:Tdomain%nb_output_procs-1))
+        end if
+        call MPI_Gather(dim2, 1, MPI_INTEGER, counts, 1, MPI_INTEGER, 0, Tdomain%comm_output, ierr)
+
+        ! On commence par recuperer les champs 1D
+        ntot_nodes = 0
+        if (Tdomain%output_rank==0) then
+            do n=0, Tdomain%nb_output_procs-1
+                displs(n) = ntot_nodes
+                ntot_nodes = ntot_nodes+counts(n)
+            end do
+            allocate(all_data_1d(0:ntot_nodes-1))
+        end if
+        
+        call MPI_Gatherv(press, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
+            MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+        if (Tdomain%output_rank==0) then
+            dims(1) = ntot_nodes
+            call create_dset(parent_id, "press", H5T_IEEE_F32LE, dims(1), dset_id)
+            call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
+            call h5dclose_f(dset_id, hdferr)
+            deallocate(all_data_1d)
+        end if
+
+        if (Tdomain%output_rank==0) then
+            do n=0, Tdomain%nb_output_procs-1
+                displs(n) = displs(n)*3
+                counts(n) = counts(n)*3
+            end do
+            allocate(all_data_2d(0:2,0:ntot_nodes-1))
+        end if
+        call MPI_Gatherv(veloc, 3*dim2, MPI_DOUBLE_PRECISION, all_data_2d, counts, displs, &
+            MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+        if (Tdomain%output_rank==0) then
+            dims(1) = 3
+            dims(2) = ntot_nodes
+            call create_dset_2d(parent_id, "veloc", H5T_IEEE_F32LE, dims(1), dims(2), dset_id)
+            call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_2d, dims, hdferr)
+            call h5dclose_f(dset_id, hdferr)
+        end if
+        call MPI_Gatherv(displ, 3*dim2, MPI_DOUBLE_PRECISION, all_data_2d, counts, displs, &
+            MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+        if (Tdomain%output_rank==0) then
+            dims(1) = 3
+            dims(2) = ntot_nodes
+            call create_dset_2d(parent_id, "displ", H5T_IEEE_F32LE, dims(1), dims(2), dset_id)
+            call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_2d, dims, hdferr)
+            call h5dclose_f(dset_id, hdferr)
+        end if
+        call MPI_Gatherv(accel, 3*dim2, MPI_DOUBLE_PRECISION, all_data_2d, counts, displs, &
+            MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+        if (Tdomain%output_rank==0) then
+            dims(1) = 3
+            dims(2) = ntot_nodes
+            call create_dset_2d(parent_id, "accel", H5T_IEEE_F32LE, dims(1), dims(2), dset_id)
+            call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_2d, dims, hdferr)
+            call h5dclose_f(dset_id, hdferr)
+        end if
+
+        if (Tdomain%output_rank==0) then
+            deallocate(all_data_2d)
+            deallocate(displs)
+            deallocate(counts)
+        end if
+    end subroutine grp_write_fields
+
+
+    subroutine grp_write_int_2d(Tdomain, parent_id, name, dim1, dim2, data, ntot_nodes)
+        type (domain), intent (INOUT):: Tdomain
+        integer(HID_T), intent(in) :: parent_id
+        integer, intent(in) :: dim1, dim2
+        integer, dimension(:,:), intent(in) :: data
+        character(len=*), INTENT(IN) :: name
+        integer, intent(out) :: ntot_nodes
+        !
+        integer(HID_T) :: dset_id
+        integer, dimension(:,:), allocatable :: all_data
+        integer, dimension(:), allocatable :: displs, counts
+        integer :: n
+        integer(HSIZE_T), dimension(2) :: dims
+        integer :: hdferr, ierr
+
+        if (Tdomain%output_rank==0) then
+            allocate(displs(0:Tdomain%nb_output_procs-1))
+            allocate(counts(0:Tdomain%nb_output_procs-1))
+        end if
+        call MPI_Gather(dim2, 1, MPI_INTEGER, counts, 1, MPI_INTEGER, 0, Tdomain%comm_output, ierr)
+
+        ntot_nodes = 0
+        if (Tdomain%output_rank==0) then
+            do n=0, Tdomain%nb_output_procs-1
+                displs(n) = dim1*ntot_nodes
+                ntot_nodes = ntot_nodes+counts(n)
+                counts(n)=counts(n)*dim1 ! for the next gatherv
+            end do
+            allocate(all_data(dim1,0:ntot_nodes-1))
+        end if
+
+        call MPI_Gatherv(data, dim1*dim2, MPI_INTEGER, all_data, counts, displs, &
+            MPI_INTEGER, 0, Tdomain%comm_output, ierr)
+        if (Tdomain%output_rank==0) then
+            dims(1) = dim1
+            dims(2) = ntot_nodes
+            call create_dset_2d(parent_id, name, H5T_STD_I32LE, dims(1), dims(2), dset_id)
+            call h5dwrite_f(dset_id, H5T_NATIVE_INTEGER, all_data, dims, hdferr)
+            call h5dclose_f(dset_id, hdferr)
+            deallocate(all_data)
+            deallocate(displs)
+            deallocate(counts)
+        end if
+    end subroutine grp_write_int_2d
+
+    subroutine grp_write_int_1d(Tdomain, parent_id, name, dim1, data, ntot_nodes)
+        type (domain), intent (INOUT):: Tdomain
+        integer(HID_T), intent(in) :: parent_id
+        integer, intent(in) :: dim1
+        integer, dimension(:), intent(in) :: data
+        character(len=*), INTENT(IN) :: name
+        integer, intent(OUT) :: ntot_nodes
+        !
+        integer(HID_T) :: dset_id
+        integer, dimension(:), allocatable :: all_data
+        integer, dimension(:), allocatable :: displs, counts
+        integer :: n
+        integer(HSIZE_T), dimension(2) :: dims
+        integer :: hdferr, ierr
+
+        if (Tdomain%output_rank==0) then
+            allocate(displs(0:Tdomain%nb_output_procs-1))
+            allocate(counts(0:Tdomain%nb_output_procs-1))
+        end if
+        call MPI_Gather(dim1, 1, MPI_INTEGER, counts, 1, MPI_INTEGER, 0, Tdomain%comm_output, ierr)
+
+        ntot_nodes = 0
+        if (Tdomain%output_rank==0) then
+            do n=0, Tdomain%nb_output_procs-1
+                displs(n) = ntot_nodes
+                ntot_nodes = ntot_nodes+counts(n)
+            end do
+            allocate(all_data(0:ntot_nodes-1))
+        end if
+
+        call MPI_Gatherv(data, dim1, MPI_INTEGER, all_data, counts, displs, &
+            MPI_INTEGER, 0, Tdomain%comm_output, ierr)
+        if (Tdomain%output_rank==0) then
+            dims(1) = ntot_nodes
+            call create_dset(parent_id, name, H5T_STD_I32LE, dims(1), dset_id)
+            call h5dwrite_f(dset_id, H5T_NATIVE_INTEGER, all_data, dims, hdferr)
+            call h5dclose_f(dset_id, hdferr)
+            deallocate(all_data)
+            deallocate(displs)
+            deallocate(counts)
+        end if
+    end subroutine grp_write_int_1d
+
+    subroutine grp_write_real_1d(Tdomain, parent_id, name, dim1, data, ntot_nodes)
+        type (domain), intent (INOUT):: Tdomain
+        integer(HID_T), intent(in) :: parent_id
+        integer, intent(in) :: dim1
+        real, dimension(:), intent(in) :: data
+        character(len=*), INTENT(IN) :: name
+        integer, intent(OUT) :: ntot_nodes
+        !
+        integer(HID_T) :: dset_id
+        real, dimension(:), allocatable :: all_data
+        integer, dimension(:), allocatable :: displs, counts
+        integer :: n
+        integer(HSIZE_T), dimension(2) :: dims
+        integer :: hdferr, ierr
+
+        if (Tdomain%output_rank==0) then
+            allocate(displs(0:Tdomain%nb_output_procs-1))
+            allocate(counts(0:Tdomain%nb_output_procs-1))
+        end if
+        call MPI_Gather(dim1, 1, MPI_INTEGER, counts, 1, MPI_INTEGER, 0, Tdomain%comm_output, ierr)
+
+        ntot_nodes = 0
+        if (Tdomain%output_rank==0) then
+            do n=0, Tdomain%nb_output_procs-1
+                displs(n) = ntot_nodes
+                ntot_nodes = ntot_nodes+counts(n)
+            end do
+            allocate(all_data(0:ntot_nodes-1))
+        end if
+
+        call MPI_Gatherv(data, dim1, MPI_DOUBLE_PRECISION, all_data, counts, displs, &
+            MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+        if (Tdomain%output_rank==0) then
+            dims(1) = ntot_nodes
+            call create_dset(parent_id, name, H5T_IEEE_F32LE, dims(1), dset_id)
+            call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data, dims, hdferr)
+            call h5dclose_f(dset_id, hdferr)
+            deallocate(all_data)
+            deallocate(displs)
+            deallocate(counts)
+        end if
+    end subroutine grp_write_real_1d
+
+
     subroutine compute_saved_elements(Tdomain, rg, irenum, nnodes)
         type (domain), intent (INOUT):: Tdomain
         integer, intent(in) :: rg
         integer, allocatable, dimension(:), intent(out) :: irenum ! maps Iglobnum to file node number
         integer, intent(out) :: nnodes
         integer :: n, i, j, k, ngllx, nglly, ngllz, ig, gn, ne
+        !
+        integer :: group, count
+        integer :: status, ierr
+
+        group = rg/Tdomain%ngroup
 
         allocate(irenum(0:Tdomain%n_glob_points-1))
 
@@ -41,6 +310,20 @@ contains
             end do
         end do
         nnodes = ig
+
+        if (.not. allocated(Tdomain%output_nodes)) then
+            allocate(Tdomain%output_nodes(0:Tdomain%nb_output_procs-1))
+            allocate(Tdomain%output_nodes_offset(0:Tdomain%nb_output_procs-1))
+        end if
+
+        call MPI_Allgather(nnodes, 1, MPI_INTEGER, Tdomain%output_nodes, 1, MPI_INTEGER, Tdomain%comm_output, ierr)
+        
+        count = 0
+        do i=0,Tdomain%nb_output_procs-1
+            Tdomain%output_nodes_offset(i) = count
+            count = count + Tdomain%output_nodes(i)
+        end do
+            
     end subroutine compute_saved_elements
 
     subroutine create_dir_sorties(Tdomain, rg, isort)
@@ -53,11 +336,7 @@ contains
 
         if (rg==0) then
             call semname_snap_result_dir(isort, temp)
-            write(*,*) rg,' Creation dir(C):', temp
             ierr = sem_mkdir(trim(adjustl(temp)))
-            write(*,*) 'code:', ierr
-!            creer_dir = "mkdir -p "//temp
-!            call system(creer_dir)
         end if
         call mpi_barrier(Tdomain%communicateur, code)
     end subroutine create_dir_sorties
@@ -76,25 +355,36 @@ contains
         integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
         integer :: nnodes
         integer, dimension(0:Tdomain%n_proc-1) :: nodes_per_proc
+        integer :: group
+
+        group = rg/Tdomain%ngroup
 
         call init_hdf5()
         if (rg==0) then
             ierr = sem_mkdir(trim(adjustl(path_results)))
         end if
         call mpi_barrier(Tdomain%communicateur, code)
-        call semname_snap_geom_file(rg, fnamef)
+        call semname_snap_geom_file(group, fnamef)
 
-        call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
+        if (Tdomain%output_rank==0) then
+            call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
+        else
+            fid = -1
+        endif
+
+        call mpi_barrier(Tdomain%communicateur, code)
 
         call compute_saved_elements(Tdomain, rg, irenum, nnodes)
 
         call write_global_nodes(Tdomain, rg, fid, irenum, nnodes)
         
-        call write_elem_connectivity(Tdomain, fid, irenum)
+        call write_elem_connectivity(Tdomain, rg, fid, irenum)
 
         call write_constant_fields(Tdomain, fid, irenum, nnodes)
 
-        call h5fclose_f(fid, hdferr)
+        if (Tdomain%output_rank==0) then
+            call h5fclose_f(fid, hdferr)
+        endif
 
         call mpi_gather(nnodes, 1, MPI_INTEGER, nodes_per_proc, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
         if (rg==0) call write_master_xdmf(Tdomain, nodes_per_proc)
@@ -109,41 +399,42 @@ contains
         integer, dimension(:), intent(in), allocatable :: irenum
         !
         real, dimension(:,:), allocatable :: nodes
+        real, dimension(:,:), allocatable :: all_nodes
+        integer, dimension(:), allocatable :: displs, counts
         integer(HSIZE_T), dimension(2) :: dims
-        integer :: n
+        integer :: n, ntot_nodes
         integer(HID_T) :: nodes_id
-        integer :: hdferr
+        integer :: hdferr, ierr
+        integer :: nnodes_tot
         
-        allocate(nodes(3,0:nnodes-1))
+        allocate(nodes(0:2,0:nnodes-1))
         do n = 0, Tdomain%n_glob_points-1
             if (irenum(n)>=0) then
                 nodes(:,irenum(n)) = Tdomain%GlobCoord(:,n)
             end if
         end do
 
-        dims(1) = 3
-        dims(2) = nnodes
-        call create_dset_2d(fid, "Nodes", H5T_IEEE_F64LE, dims(1), dims(2), nodes_id)
-        call h5dwrite_f(nodes_id, H5T_NATIVE_DOUBLE, nodes, dims, hdferr)
-        call h5dclose_f(nodes_id, hdferr)
+        call grp_write_real_2d(Tdomain, fid, "Nodes", 3, nnodes, nodes, nnodes_tot)
         deallocate(nodes)
     end subroutine write_global_nodes
 
-    subroutine write_elem_connectivity(Tdomain, fid, irenum)
+    subroutine write_elem_connectivity(Tdomain, rg, fid, irenum)
         implicit none
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: fid
         integer, dimension(:), intent(in), allocatable :: irenum
+        integer, intent(in) :: rg
         !
         integer(HID_T) :: elem_id, mat_id, ngll_id, globnum_id
         integer :: ngllx, nglly, ngllz
         integer(HSIZE_T), dimension(2) :: dims
         integer, dimension(:,:), allocatable :: data
-        integer, dimension(:), allocatable :: mat, iglobnum
+        integer, dimension(:), allocatable :: mat, iglobnum, proc
         integer, dimension(3,0:Tdomain%n_elem-1) :: ngll
         integer :: count, ig, nglobnum
         integer :: i, j, k, n, nb_elem
-        integer :: hdferr
+        integer :: nb_elem_tot, nb_gll_tot, nglob_tot
+        integer :: hdferr, ioffset
 
         ! First we count the number of hexaedrons
         count = 0
@@ -161,26 +452,18 @@ contains
             k = k + 1
         enddo
         nb_elem = k
-        !! Nombre de points de gauss par element
-        call create_dset_2d(fid, "NGLL", H5T_STD_I16LE, 3, nb_elem, ngll_id)
-        dims(1) = 3
-        dims(2) = nb_elem
-        call h5dwrite_f(ngll_id, H5T_NATIVE_INTEGER, ngll, dims, hdferr)
-        call h5dclose_f(ngll_id, hdferr)
 
-        Tdomain%n_hexa = count
+        call grp_write_int_2d(Tdomain, fid, "NGLL", 3, nb_elem, ngll, nb_gll_tot)
+
         allocate( data(1:8,0:count-1))
         allocate( mat(0:count-1))
-
-        call create_dset_2d(fid, "Elements", H5T_STD_I32LE, 8, count, elem_id)
-        call create_dset(fid, "Material", H5T_STD_I32LE, count, mat_id)
-        call create_dset(fid, "Iglobnum", H5T_STD_I32LE, nglobnum, globnum_id)
-
-        allocate (iglobnum(nglobnum))
+        allocate( proc(0:count-1))
+        allocate( iglobnum(0:nglobnum-1))
         dims(1) = 8
         dims(2) = count
         count = 0
-        ig = 1
+        ig = 0
+        ioffset = Tdomain%output_nodes_offset(Tdomain%output_rank)
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             ngllx = Tdomain%specel(n)%ngllx
@@ -189,15 +472,16 @@ contains
             do k = 0,ngllz-2
                 do j = 0,nglly-2
                     do i = 0,ngllx-2
-                        data(1,count) = irenum(Tdomain%specel(n)%Iglobnum(i+0,j+0,k+0))
-                        data(2,count) = irenum(Tdomain%specel(n)%Iglobnum(i+1,j+0,k+0))
-                        data(3,count) = irenum(Tdomain%specel(n)%Iglobnum(i+1,j+1,k+0))
-                        data(4,count) = irenum(Tdomain%specel(n)%Iglobnum(i+0,j+1,k+0))
-                        data(5,count) = irenum(Tdomain%specel(n)%Iglobnum(i+0,j+0,k+1))
-                        data(6,count) = irenum(Tdomain%specel(n)%Iglobnum(i+1,j+0,k+1))
-                        data(7,count) = irenum(Tdomain%specel(n)%Iglobnum(i+1,j+1,k+1))
-                        data(8,count) = irenum(Tdomain%specel(n)%Iglobnum(i+0,j+1,k+1))
+                        data(1,count) = ioffset+irenum(Tdomain%specel(n)%Iglobnum(i+0,j+0,k+0))
+                        data(2,count) = ioffset+irenum(Tdomain%specel(n)%Iglobnum(i+1,j+0,k+0))
+                        data(3,count) = ioffset+irenum(Tdomain%specel(n)%Iglobnum(i+1,j+1,k+0))
+                        data(4,count) = ioffset+irenum(Tdomain%specel(n)%Iglobnum(i+0,j+1,k+0))
+                        data(5,count) = ioffset+irenum(Tdomain%specel(n)%Iglobnum(i+0,j+0,k+1))
+                        data(6,count) = ioffset+irenum(Tdomain%specel(n)%Iglobnum(i+1,j+0,k+1))
+                        data(7,count) = ioffset+irenum(Tdomain%specel(n)%Iglobnum(i+1,j+1,k+1))
+                        data(8,count) = ioffset+irenum(Tdomain%specel(n)%Iglobnum(i+0,j+1,k+1))
                         mat(count) = Tdomain%specel(n)%mat_index
+                        proc(count) = rg
                         count=count+1
                     end do
                 end do
@@ -205,23 +489,22 @@ contains
             do k = 0,ngllz - 1
                 do j = 0,nglly - 1
                     do i = 0,ngllx - 1
-                        iglobnum(ig) = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                        iglobnum(ig) = ioffset + irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                         ig = ig + 1
                     end do
                 end do
             end do
         end do
-        dims(1) = nglobnum
-        dims(2) = 0
-        call h5dwrite_f(globnum_id, H5T_NATIVE_INTEGER, iglobnum, dims, hdferr)
+
+        call grp_write_int_2d(Tdomain, fid, "Elements", 8, count, data, nb_elem_tot)
+        Tdomain%n_hexa = nb_elem_tot
+        call grp_write_int_1d(Tdomain, fid, "Iglobnum", nglobnum, iglobnum, nglob_tot)
+        call grp_write_int_1d(Tdomain, fid, "Material", count, mat, nb_elem_tot)
+        call grp_write_int_1d(Tdomain, fid, "Proc", count, proc, nb_elem_tot)
+
+        deallocate(mat)
+        deallocate(proc)
         deallocate(iglobnum)
-        call h5dclose_f(globnum_id, hdferr)
-        call h5dwrite_f(elem_id, H5T_NATIVE_INTEGER, data, dims, hdferr)
-        call h5dclose_f(elem_id, hdferr)
-        dims(1)=count
-        dims(2)=1
-        call h5dwrite_f(mat_id, H5T_NATIVE_INTEGER, mat, dims, hdferr)
-        call h5dclose_f(mat_id, hdferr)
         deallocate(data)
     end subroutine write_elem_connectivity
 
@@ -233,34 +516,27 @@ contains
         character (len=MAX_FILE_SIZE) :: fnamef
         integer(HID_T) :: fid, displ_id, veloc_id, press_id
         integer(HSIZE_T), dimension(2) :: dims
-        real, dimension(:,:),allocatable :: displ, veloc
+        real, dimension(:,:),allocatable :: displ, veloc, accel
         real, dimension(:), allocatable :: press
-        real, dimension(:,:,:,:),allocatable :: field_displ, field_veloc
+        real, dimension(:,:,:,:),allocatable :: field_displ, field_veloc, field_accel
+        real, dimension(:,:,:),allocatable :: field_press
         integer, dimension(:), allocatable :: valence
         integer :: hdferr
         integer :: ngllx, nglly, ngllz, idx
         integer :: i, j, k, n
         integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
-        integer :: nnodes
+        integer :: nnodes, group, nnodes_tot
         
 
         call create_dir_sorties(Tdomain, rg, isort)
-        call semname_snap_result_file(rg, isort, fnamef)
 
         call compute_saved_elements(Tdomain, rg, irenum, nnodes)
 
-        if (nnodes==0) return
-
-        call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
-
-        dims(1) = 3
-        dims(2) = nnodes
-        call create_dset_2d(fid, "displ", H5T_IEEE_F64LE, 3, nnodes, displ_id)
-        call create_dset_2d(fid, "veloc", H5T_IEEE_F64LE, 3, nnodes, veloc_id)
-        call create_dset(fid, "pressure", H5T_IEEE_F64LE, nnodes, press_id)
+        !if (nnodes==0) return
 
         allocate(displ(0:2,0:nnodes-1))
         allocate(veloc(0:2,0:nnodes-1))
+        allocate(accel(0:2,0:nnodes-1))
         allocate(press(0:nnodes-1))
         allocate(valence(0:nnodes-1))
 
@@ -269,6 +545,7 @@ contains
         ngllz = 0
         valence(:) = 0
         veloc(:,:) = 0
+        accel(:,:) = 0
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             if (ngllx /= Tdomain%specel(n)%ngllx .or. &
@@ -279,11 +556,17 @@ contains
                 ngllz = Tdomain%specel(n)%ngllz
                 if (allocated(field_displ)) deallocate(field_displ)
                 if (allocated(field_veloc)) deallocate(field_veloc)
+                if (allocated(field_accel)) deallocate(field_accel)
+                if (allocated(field_press)) deallocate(field_press)
                 allocate(field_displ(0:ngllx-1,0:nglly-1,0:ngllz-1,3))
                 allocate(field_veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,3))
+                allocate(field_accel(0:ngllx-1,0:nglly-1,0:ngllz-1,3))
+                allocate(field_press(0:ngllx-1,0:nglly-1,0:ngllz-1))
             endif
             call gather_elem_displ(Tdomain, n, field_displ)
             call gather_elem_veloc(Tdomain, n, field_veloc)
+            call gather_elem_accel(Tdomain, n, field_accel)
+            call gather_elem_press(Tdomain, n, field_press)
 
             do k = 0,ngllz-1
                 do j = 0,nglly-1
@@ -292,6 +575,8 @@ contains
                         valence(idx) = valence(idx)+1
                         displ(:,idx) = field_displ(i,j,k,:)
                         veloc(:,idx) = veloc(:,idx)+field_veloc(i,j,k,:)
+                        accel(:,idx) = accel(:,idx)+field_accel(i,j,k,:)
+                        press(idx) = field_press(i,j,k)
                     end do
                 end do
             end do
@@ -300,31 +585,42 @@ contains
         do i = 0,nnodes-1
             if (valence(i)/=0) then
                 veloc(0:2,i) = veloc(0:2,i)/valence(i)
+                accel(0:2,i) = accel(0:2,i)/valence(i)
             else
                 write(*,*) "Elem",i," non traite"
             end if
         end do
 
-        call h5dwrite_f(displ_id, H5T_NATIVE_DOUBLE, displ, dims, hdferr)
-        call h5dwrite_f(veloc_id, H5T_NATIVE_DOUBLE, veloc, dims, hdferr)
+        if (Tdomain%output_rank==0) then
+            group = rg/Tdomain%ngroup
+            call semname_snap_result_file(group, isort, fnamef)
+            call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
+        else
+            fid = -1
+        endif
+        call grp_write_fields(Tdomain, fid, nnodes, displ, veloc, accel, press, nnodes_tot)
 
-        call h5dclose_f(displ_id, hdferr)
-        call h5dclose_f(veloc_id, hdferr)
-        call h5dclose_f(press_id, hdferr)
-        call h5fclose_f(fid, hdferr)
-        deallocate(displ,veloc,valence)
-
-        call write_xdmf(Tdomain, rg, isort, nnodes)
+        if (Tdomain%output_rank==0) then
+            call h5fclose_f(fid, hdferr)
+            call write_xdmf(Tdomain, group, isort, nnodes_tot)
+        endif
+        deallocate(displ,veloc,accel,press,valence)
+        if (allocated(field_displ)) deallocate(field_displ)
+        if (allocated(field_veloc)) deallocate(field_veloc)
+        if (allocated(field_accel)) deallocate(field_accel)
+        if (allocated(field_press)) deallocate(field_press)
+        call mpi_barrier(Tdomain%communicateur, hdferr)
     end subroutine save_field_h5
 
     subroutine write_master_xdmf(Tdomain, nodes_per_proc)
         implicit none
         type(domain), intent(in) :: Tdomain
-        integer :: n_procs, nelem
+        integer :: n_procs, nelem, n_groups
         character (len=MAX_FILE_SIZE) :: fnamef
         integer, dimension(0:Tdomain%n_proc-1), intent(in) :: nodes_per_proc
         integer :: rg
         n_procs = Tdomain%n_proc
+        n_groups = (n_procs+Tdomain%ngroup-1)/Tdomain%ngroup
         nelem = Tdomain%n_elem
         call semname_xdmf_master(fnamef)
 
@@ -335,11 +631,15 @@ contains
         write(61,"(a)") '<Domain>'
         write(61,"(a)") '<Grid CollectionType="Spatial" GridType="Collection">'
         !!! XXX: recuperer le nom par semname_*
-        do rg=0,n_procs-1
-            if (nodes_per_proc(rg).gt.0) then
-                write(61,"(a,I4.4,a)") '<xi:include href="mesh.',rg,'.xmf"/>'
-            endif
+        do rg=0,n_groups-1
+            write(61,"(a,I4.4,a)") '<xi:include href="mesh.',rg,'.xmf"/>'
         end do
+
+        !do rg=0,n_procs-1
+        !    if (nodes_per_proc(rg).gt.0) then
+        !        write(61,"(a,I4.4,a)") '<xi:include href="mesh.',rg,'.xmf"/>'
+        !    endif
+        !end do
         write(61,"(a)") '</Grid>'
         write(61,"(a)") '</Domain>'
         write(61,"(a)") '</Xdmf>'
@@ -367,6 +667,8 @@ contains
         write(61,"(a,I4.4,a)") '<Grid CollectionType="Temporal" GridType="Collection" Name="space.',rg,'">'
         write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Mat" Format="HDF" Datatype="Int"  Dimensions="',ne, &
             '">geometry',rg,'.h5:/Material</DataItem>'
+        write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Proc" Format="HDF" Datatype="Int"  Dimensions="',ne, &
+            '">geometry',rg,'.h5:/Proc</DataItem>'
 
         write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Mass" Format="HDF" Datatype="Int"  Dimensions="',nn, &
             '">geometry',rg,'.h5:/Mass</DataItem>'
@@ -374,7 +676,7 @@ contains
             '">geometry',rg,'.h5:/Jac</DataItem>'
         time = 0
         do i=1,isort
-            write(61,"(a,I4.4,a)") '<Grid Name="mesh.',rg,'">'
+            write(61,"(a,I4.4,a,I4.4,a)") '<Grid Name="mesh.',i,'.',rg,'">'
             write(61,"(a,F20.10,a)") '<Time Value="', time,'"/>'
             write(61,"(a,I8,a)") '<Topology Type="Hexahedron" NumberOfElements="',ne,'">'
             write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Int" Dimensions="',ne,' 8">'
@@ -386,28 +688,47 @@ contains
             write(61,"(a,I4.4,a)") 'geometry',rg,'.h5:/Nodes'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Geometry>'
-            write(61,"(a)") '<Attribute Name="Displ" Center="Node" AttributeType="Vector">'
+
+            write(61,"(a,I4.4,a)") '<Attribute Name="Displ" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
             write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
             write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/displ'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Attribute>'
-            write(61,"(a)") '<Attribute Name="Veloc" Center="Node" AttributeType="Vector">'
+
+            write(61,"(a,I4.4,a)") '<Attribute Name="Veloc" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
             write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
             write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/veloc'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Attribute>'
-            write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar">'
+
+            write(61,"(a,I4.4,a)") '<Attribute Name="Accel" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
+            write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
+            write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/accel'
+            write(61,"(a)") '</DataItem>'
+            write(61,"(a)") '</Attribute>'
+
+            write(61,"(a,I4.4,a)") '<Attribute Name="Pressure" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+            write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+            write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/press'
+            write(61,"(a)") '</DataItem>'
+            write(61,"(a)") '</Attribute>'
+
+            write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar" Dimensions="1">'
             write(61,"(a,I4,a)") '<DataItem Format="XML" Datatype="Int"  Dimensions="1">',rg,'</DataItem>'
             write(61,"(a)") '</Attribute>'
-            write(61,"(a)") '<Attribute Name="Mat" Center="Cell" AttributeType="Scalar">'
+            write(61,"(a,I4.4,a)") '<Attribute Name="Mat" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
             write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',rg, &
                 '"]/DataItem[@Name="Mat"]</DataItem>'
             write(61,"(a)") '</Attribute>'
-            write(61,"(a)") '<Attribute Name="Mass" Center="Node" AttributeType="Scalar">'
+            write(61,"(a,I4.4,a)") '<Attribute Name="Proc" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
+            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',rg, &
+                '"]/DataItem[@Name="Proc"]</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            write(61,"(a,I4.4,a)") '<Attribute Name="Mass" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
             write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',rg, &
                 '"]/DataItem[@Name="Mass"]</DataItem>'
             write(61,"(a)") '</Attribute>'
-            write(61,"(a)") '<Attribute Name="Jac" Center="Node" AttributeType="Scalar">'
+            write(61,"(a,I4.4,a)") '<Attribute Name="Jac" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
             write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',rg, &
                 '"]/DataItem[@Name="Jac"]</DataItem>'
             write(61,"(a)") '</Attribute>'
@@ -431,12 +752,9 @@ contains
         real, dimension(:),allocatable :: mass, jac
         integer :: hdferr
         integer :: ngllx, nglly, ngllz, idx
-        integer :: i, j, k, n
+        integer :: i, j, k, n, nnodes_tot
         
-        call create_dset(fid, "Mass", H5T_IEEE_F64LE, nnodes, mass_id)
-        call create_dset(fid, "Jac",  H5T_IEEE_F64LE, nnodes, jac_id)
 
-        dims(1) = Tdomain%n_glob_points
         allocate(mass(0:nnodes-1))
         allocate(jac(0:nnodes-1))
         ! mass
@@ -495,10 +813,8 @@ contains
             if (idx>=0) mass(idx) = Tdomain%svertex(n)%MassMat
         end do
 
-        call h5dwrite_f(mass_id, H5T_NATIVE_DOUBLE, mass, dims, hdferr)
-        call h5dclose_f(mass_id, hdferr)
-        call h5dwrite_f(jac_id, H5T_NATIVE_DOUBLE, jac, dims, hdferr)
-        call h5dclose_f(jac_id, hdferr)
+        call grp_write_real_1d(Tdomain, fid, "Mass", nnodes, mass, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "Jac", nnodes, jac, nnodes_tot)
         deallocate(mass,jac)
 
     end subroutine write_constant_fields

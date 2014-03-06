@@ -7,7 +7,7 @@
 !!
 !<
 module forces_aniso
-
+    use deriv3d
     interface
        subroutine DGEMM ( TRANSA, TRANSB, M, N, K, ALPHA, A, LDA, B, LDB, BETA, C, LDC )
          CHARACTER*1        TRANSA, TRANSB
@@ -19,7 +19,7 @@ module forces_aniso
 
 contains
 
-    subroutine forces_int(Elem, htprimex, hprimey, htprimey, hprimez, htprimez,  &
+    subroutine forces_int(Elem, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
                n_solid, aniso, solid)
 
 
@@ -28,6 +28,7 @@ contains
         implicit none
 
         type (Element), intent (INOUT) :: Elem
+        type (subdomain), intent(IN) :: mat
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: htprimex
         real, dimension (0:Elem%nglly-1, 0:Elem%nglly-1), intent (IN) :: hprimey, htprimey
         real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
@@ -37,12 +38,11 @@ contains
 
         integer :: n_z, m1,m2,m3, i,j,k
         real :: epsilon_trace_over_3
-        real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dUx_dxi, dUx_deta, dUx_dzeta, &
-            dUy_dxi, dUy_deta, dUy_dzeta, &
-            dUz_dxi, dUz_deta, dUz_dzeta, &
-            DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
-            Fox,Foy,Foz,                         &
-            dPhi_dxi, dPhi_deta, dPhi_dzeta, dPhiX,dPhiY,dPhiZ,Fo_Fl
+        real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) ::  DXX,DXY,DXZ, &
+            DYX,DYY,DYZ, &
+            DZX,DZY,DZZ, &
+            Fox,Foy,Foz, &
+            dPhiX,dPhiY,dPhiZ,Fo_Fl
 
         real, dimension(:,:,:), allocatable :: epsilondev_xx_loc, epsilondev_yy_loc, &
             epsilondev_xy_loc, epsilondev_xz_loc, epsilondev_yz_loc
@@ -53,44 +53,9 @@ contains
 
         if(solid)then   ! SOLID PART OF THE DOMAIN
 
-        call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1, Elem%Forces(:,:,:,0), m1, 0., dUx_dxi, m1)
-        do n_z = 0,Elem%ngllz-1
-            call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,0), m1, hprimey, m2, 0., dUx_deta(:,:,n_z), m1)
-        enddo
-        call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,0), m1*m2, hprimez, m3, 0., dUx_dzeta, m1*m2)
-
-        call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1, Elem%Forces(:,:,:,1), m1, 0., dUy_dxi, m1)
-        do n_z = 0,Elem%ngllz-1
-            call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,1), m1, hprimey, m2, 0., dUy_deta(:,:,n_z), m1)
-        enddo
-        call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,1), m1*m2, hprimez, m3, 0., dUy_dzeta, m1*m2)
-
-        call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1, Elem%Forces(:,:,:,2), m1, 0., dUz_dxi, m1)
-        do n_z = 0,Elem%ngllz-1
-            call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,2), m1, hprimey, m2, 0., dUz_deta(:,:,n_z), m1)
-        enddo
-        call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,2), m1*m2, hprimez, m3, 0., dUz_dzeta, m1*m2)
-
-        do i = 0,m1-1
-            do j = 0,m2-1
-                do k = 0,m3-1
-
-                    dxx(i,j,k) = dUx_dxi(i,j,k)*Elem%InvGrad(i,j,k,0,0) + dUx_deta(i,j,k)*Elem%InvGrad(i,j,k,0,1) + dUx_dzeta(i,j,k)*Elem%InvGrad(i,j,k,0,2)
-                    dyy(i,j,k) = dUy_dxi(i,j,k)*Elem%InvGrad(i,j,k,1,0) + dUy_deta(i,j,k)*Elem%InvGrad(i,j,k,1,1) + dUy_dzeta(i,j,k)*Elem%InvGrad(i,j,k,1,2)
-                    dzz(i,j,k) = dUz_dxi(i,j,k)*Elem%InvGrad(i,j,k,2,0) + dUz_deta(i,j,k)*Elem%InvGrad(i,j,k,2,1) + dUz_dzeta(i,j,k)*Elem%InvGrad(i,j,k,2,2)
-
-                    dyx(i,j,k) = dUx_dxi(i,j,k)*Elem%InvGrad(i,j,k,1,0) + dUx_deta(i,j,k)*Elem%InvGrad(i,j,k,1,1) + dUx_dzeta(i,j,k)*Elem%InvGrad(i,j,k,1,2)
-                    dzx(i,j,k) = dUx_dxi(i,j,k)*Elem%InvGrad(i,j,k,2,0) + dUx_deta(i,j,k)*Elem%InvGrad(i,j,k,2,1) + dUx_dzeta(i,j,k)*Elem%InvGrad(i,j,k,2,2)
-
-                    dxy(i,j,k) = dUy_dxi(i,j,k)*Elem%InvGrad(i,j,k,0,0) + dUy_deta(i,j,k)*Elem%InvGrad(i,j,k,0,1) + dUy_dzeta(i,j,k)*Elem%InvGrad(i,j,k,0,2)
-                    dzy(i,j,k) = dUy_dxi(i,j,k)*Elem%InvGrad(i,j,k,2,0) + dUy_deta(i,j,k)*Elem%InvGrad(i,j,k,2,1) + dUy_dzeta(i,j,k)*Elem%InvGrad(i,j,k,2,2)
-
-                    dxz(i,j,k) = dUz_dxi(i,j,k)*Elem%InvGrad(i,j,k,0,0) + dUz_deta(i,j,k)*Elem%InvGrad(i,j,k,0,1) + dUz_dzeta(i,j,k)*Elem%InvGrad(i,j,k,0,2)
-                    dyz(i,j,k) = dUz_dxi(i,j,k)*Elem%InvGrad(i,j,k,1,0) + dUz_deta(i,j,k)*Elem%InvGrad(i,j,k,1,1) + dUz_dzeta(i,j,k)*Elem%InvGrad(i,j,k,1,2)
-
-                enddo
-            enddo
-        enddo
+        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Elem%Forces(:,:,:,0),dxx,dyx,dzx)
+        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Elem%Forces(:,:,:,1),dxy,dyy,dzy)
+        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Elem%Forces(:,:,:,2),dxz,dyz,dzz)
 
         if (n_solid>0) then
             if (aniso) then
@@ -133,7 +98,7 @@ contains
                     Elem%Invgrad(:,:,:,1,2), &
                     Elem%Invgrad(:,:,:,2,2), &
                     htprimex, htprimey, htprimez, &
-                    Elem%Jacob, Elem%wgtx, Elem%wgty, Elem%wgtz, &
+                    Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &
@@ -163,7 +128,7 @@ contains
                     Elem%Invgrad(:,:,:,1,2), &
                     Elem%Invgrad(:,:,:,2,2), &
                     htprimex, htprimey, htprimez, &
-                    Elem%Jacob, Elem%wgtx, Elem%wgty, Elem%wgtz, &
+                    Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &
@@ -183,7 +148,7 @@ contains
                     Elem%Invgrad(:,:,:,1,2), &
                     Elem%Invgrad(:,:,:,2,2), &
                     htprimex, htprimey, htprimez, &
-                    Elem%Jacob, Elem%wgtx, Elem%wgty, Elem%wgtz, &
+                    Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &
@@ -223,7 +188,7 @@ contains
                     Elem%Invgrad(:,:,:,1,2), &
                     Elem%Invgrad(:,:,:,2,2), &
                     htprimex, htprimey, htprimez, &
-                    Elem%Jacob, Elem%wgtx, Elem%wgty, Elem%wgtz, &
+                    Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &
@@ -238,30 +203,13 @@ contains
 
    !---------------------------------
         else      ! FLUID PART OF THE DOMAIN
-        ! potential -> -pressure
-            Elem%ForcesFl(:,:,:) = Elem%Density(:,:,:)*Elem%ForcesFl(:,:,:)
+            ! d(rho*Phi)_dX
+            ! d(rho*Phi)_dY
+            ! d(rho*Phi)_dZ
+            call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Elem%ForcesFl, &
+                dPhiX, dPhiY, dPhiZ)
 
-        !- gradients at GLLs points
-        ! d(rho*Phi)_dxi
-            call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1, Elem%ForcesFl(:,:,:), m1, 0., dPhi_dxi, m1)
-        ! d(rho*Phi)_deta
-            do n_z = 0,Elem%ngllz-1
-                call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%ForcesFl(:,:,n_z), m1, hprimey, m2, 0., dPhi_deta(:,:,n_z), m1)
-            enddo
-        ! d(rho*Phi)_dzeta
-            call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%ForcesFl(:,:,:), m1*m2, hprimez, m3, 0., dPhi_dzeta, m1*m2)
-
-        ! d(rho*Phi)_dX 
-            dPhiX(:,:,:) = dPhi_dxi(:,:,:)*Elem%InvGrad(:,:,:,0,0) + dPhi_deta(:,:,:)*Elem%InvGrad(:,:,:,0,1) +   &
-                           dPhi_dzeta(:,:,:)*Elem%InvGrad(:,:,:,0,2)
-        ! d(rho*Phi)_dY 
-            dPhiY(:,:,:) = dPhi_dxi(:,:,:)*Elem%InvGrad(:,:,:,1,0) + dPhi_deta(:,:,:)*Elem%InvGrad(:,:,:,1,1) +   &
-                           dPhi_dzeta(:,:,:)*Elem%InvGrad(:,:,:,1,2)
-        ! d(rho*Phi)_dZ 
-            dPhiZ(:,:,:) = dPhi_dxi(:,:,:)*Elem%InvGrad(:,:,:,2,0) + dPhi_deta(:,:,:)*Elem%InvGrad(:,:,:,2,1) +   &
-                           dPhi_dzeta(:,:,:)*Elem%InvGrad(:,:,:,2,2)
-
-        ! internal forces
+            ! internal forces
             call calcul_forces_fluid(Fo_Fl,                &
                          Elem%Invgrad(:,:,:,0,0), &
                          Elem%Invgrad(:,:,:,1,0), &
@@ -273,14 +221,13 @@ contains
                          Elem%Invgrad(:,:,:,1,2), &
                          Elem%Invgrad(:,:,:,2,2), &
                          htprimex,htprimey,htprimez, &
-                         Elem%Jacob,Elem%wgtx,Elem%wgty,Elem%wgtz, &
+                         Elem%Jacob,mat%GLLwx,mat%GLLwy,mat%GLLwz, &
                          dPhiX,dPhiY,dPhiZ,       &
                          Elem%Density,            &
                          m1,m2,m3)
 
             Elem%ForcesFl(:,:,:) = -Fo_Fl(:,:,:)
 
-           
         end if
 
         return

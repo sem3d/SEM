@@ -251,11 +251,11 @@ contains
                     call MPI_RECV(buf,bufsize, MPI_DOUBLE_PRECISION, i,tag, Tdomain%communicateur, status,ierr)
 
                     do iface=1,tabNbFace(i+1)
-                        face_couplage(iface+decal)%face   = buf(1+NbChamps*(iface-1))
-                        face_couplage(iface+decal)%proc   = buf(2+NbChamps*(iface-1))
-                        face_couplage(iface+decal)%ngll   = buf(3+NbChamps*(iface-1))
-                        face_couplage(iface+decal)%noeud0 = buf(4+NbChamps*(iface-1))
-                        face_couplage(iface+decal)%noeud1 = buf(5+NbChamps*(iface-1))
+                        face_couplage(iface+decal)%face   = int(buf(1+NbChamps*(iface-1)))
+                        face_couplage(iface+decal)%proc   = int(buf(2+NbChamps*(iface-1)))
+                        face_couplage(iface+decal)%ngll   = int(buf(3+NbChamps*(iface-1)))
+                        face_couplage(iface+decal)%noeud0 = int(buf(4+NbChamps*(iface-1)))
+                        face_couplage(iface+decal)%noeud1 = int(buf(5+NbChamps*(iface-1)))
                         face_couplage(iface+decal)%coord0(1) = buf(6+NbChamps*(iface-1))
                         face_couplage(iface+decal)%coord0(2) = buf(7+NbChamps*(iface-1))
                         face_couplage(iface+decal)%coord1(1) = buf(8+NbChamps*(iface-1))
@@ -493,6 +493,8 @@ contains
                 wf = Tdomain%sface(numFace)%Which_face(0)
             elseif ( Tdomain%sface(numFace)%Near_Element(1) == numElem ) then
                 wf = Tdomain%sface(numFace)%Which_face(1)
+            else
+                stop "Internal Error, incorrect mesh information"
             endif
 
             mat = Tdomain%specel(numElem)%mat_index
@@ -519,6 +521,8 @@ contains
                 dist = sqrt((x(3)-x(2))**2+(z(3)-z(2))**2)
             else if  (wf == 3) then
                 dist = sqrt((x(0)-x(3))**2+(z(0)-z(3))**2)
+            else
+                stop "Internal Error, incorrect mesh information"
             endif
 
             do i=1,ngll-2
@@ -531,6 +535,8 @@ contains
                     out = Tdomain%sSubdomain(mat)%GLLwx(i)
                 else if  (wf == 3) then
                     out = Tdomain%sSubdomain(mat)%GLLwz(i)
+                else
+                    stop "Internal Error, incorrect mesh information"
                 endif
 
                 if ( wf == 2 .or. wf == 3 ) then
@@ -813,7 +819,8 @@ contains
             x(inod) = Tdomain%Coord_nodes(0,ipoint)
             z(inod) = Tdomain%Coord_nodes(1,ipoint)
         enddo
-
+        dist = 1.0
+        out = 1.0 ! Suppression warning
         ! calcul des poids au point de gauss
         select case (wf)
         case(0)

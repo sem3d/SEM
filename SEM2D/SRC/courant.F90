@@ -26,7 +26,7 @@ subroutine Compute_Courant (Tdomain)
     real :: dx,dxmin, courant, courant_max
     real :: dt_min, dt, dt_loc
 
-    courant = 0.05 !0.01 !0.125 !0.5  !! 0.125 semble ok mais 0.1 plus sûr
+    courant = Tdomain%TimeD%courant
 
     courant_max = 0
     dt_loc = huge(1.)
@@ -79,8 +79,7 @@ subroutine Compute_Courant (Tdomain)
 
     !! Affectation a tous les materiaux             !!! ajout 01/10
     !!
-    do n=0,Tdomain%n_elem - 1
-        mat = Tdomain%specel(n)%mat_index
+    do mat=0,Tdomain%n_mat - 1
         Tdomain%sSubdomain(mat)%Dt = dt
     enddo
     Tdomain%TimeD%dtmin = dt

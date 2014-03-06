@@ -15,8 +15,9 @@ module ssources
     type :: Source
        ! xxx
        character(len = 30)  :: time_file
-       integer :: i_dir, i_type_source, i_time_function, elem, proc
+       integer :: i_type_source, i_time_function, elem, proc
        integer, dimension(0:2) :: gll
+       real, dimension(0:2) :: dir
        real :: tau_b,cutoff_freq
        real :: radius,realcolat,reallong,refcolat,reflong
        real :: amplitude_factor
@@ -33,8 +34,7 @@ module ssources
        real, dimension(0:2,0:2) :: Moment, InvGrad
        real, dimension (:,:,:,:), pointer :: coeff
        real, dimension(:), pointer :: ampli, time
-       real, allocatable, dimension(:,:,:) :: ExtForce
-       real, allocatable, dimension(:,:,:,:) :: MomForce
+       real, allocatable, dimension(:,:,:,:) :: ExtForce
     end type Source
 
 contains
@@ -51,6 +51,7 @@ contains
         integer, intent(in) :: ntime
         real, intent(in) :: time
 
+        CompSource = 0d0
         select case (Sour%i_time_function)
         case (1)
             CompSource = Gaussian (time, Sour%ts, Sour%tau_b)
@@ -66,11 +67,20 @@ contains
             CompSource = Source_File (time,Sour%tau_b,Sour)
             !   modif pour benchmark can2
         case (6)
-            ! Source benchmark spice M0*(1-(1+t/T)exp(-t/T)) avec T=1/freq
+            ! Source benchmark spice M0*(1-(1+(t/T)**gamma)exp(-(t/T)**gamma)) avec T=1/freq
             CompSource = Source_Spice_Bench(time, Sour)
         case (7)
             ! Sinus, pour test. param : tau, cutoff_freq
             CompSource = Source_sinewave(time, Sour)
+        case (8)
+            ! Square. Param : tau, ts, gamma
+            CompSource = Source_square(time, Sour)
+        case (9)
+            ! Square. Param : ts, gamma
+            CompSource = Source_tanh(time, Sour)
+        case (10)
+            ! Square. Param : ts, gamma
+            CompSource = Ricker_fl(time, Sour%tau_b, Sour%cutoff_freq)
         end select
         CompSource = CompSource*Sour%amplitude_factor
         return
@@ -83,13 +93,57 @@ contains
         type(source), intent(in) :: Sour
         real, intent(in) :: time
         !
-        real :: T
+        real :: T, k, s
+
+        if (time<Sour%ts) then
+            Source_Spice_Bench = 0d0
+            return
+        end if
 
         T = 1./Sour%cutoff_freq
+        k = Sour%gamma
+        if (k<1d0) k=1d0
 
-        Source_Spice_Bench = (1-(1+time/T)*exp(-time/T))
+        s = ((time-Sour%ts)/T)**k
+
+        Source_Spice_Bench = (1-(1+s)*exp(-s))
         return
     end function Source_Spice_Bench
+
+    real function Source_tanh(time, Sour)
+        implicit none
+        ! only a Ricker for the time being.
+        type(source), intent(in) :: Sour
+        real, intent(in) :: time
+        !
+        real :: k,t0
+
+        t0 = Sour%ts
+        k = Sour%gamma
+
+        Source_tanh = 0.5*(tanh(k*(time-t0))+1d0)
+        return
+    end function Source_tanh
+
+    real function Source_square(t, Sour)
+        implicit none
+        ! A smoothed square
+        type(source), intent(in) :: Sour
+        real, intent(in) :: t
+        !
+        real :: dt,t0,k,w0,winf
+
+        dt = Sour%tau_b
+        t0 = Sour%ts
+        k = Sour%gamma
+
+        ! Primitive : (log(cosh(k*(t-t0)))-log(cosh(k*(t0+dt-t))))/k
+        w0 = (log(cosh(k*(-t0)))-log(cosh(k*(t0+dt))))/k
+        winf = dt
+
+        Source_square = (tanh(k*(t-t0))+tanh(k*(t0+dt-t)))/(winf-w0)
+        return
+    end function Source_square
 
     real function Source_sinewave(time, Sour)
         implicit none
@@ -254,17 +308,6 @@ contains
 
         return
     end function Ricker_Fl
-    !----------------------------------------------------
-    !----------------------------------------------------
-    real function CompSource_Fl(Sour,time)
-        ! only a Ricker for the time being.
-        type(source) :: Sour
-        real :: time
-
-        CompSource_Fl = Ricker_fl(time,Sour%tau_b,Sour%cutoff_freq)
-
-        return
-    end function CompSource_Fl
 
 end module ssources
 !! Local Variables:

@@ -14,7 +14,8 @@ subroutine PML_definition (Tdomain)
 
     type (Domain), intent (INOUT) :: Tdomain
 
-    integer :: n, i, nf, ne, nv, mat
+    integer :: n, i, nf, ne, nv, mat, nff, nfs,nef,nes,nvf,nvs
+    logical :: logicPMLf,logicPMLs
 
     do n = 0,Tdomain%n_elem-1
         mat = Tdomain%specel(n)%mat_index
@@ -329,6 +330,48 @@ subroutine PML_definition (Tdomain)
             enddo
         endif
     enddo
+
+    ! eventual solid/fluid interfaces
+    if(Tdomain%logicD%SF_local_present)then
+        do nf = 0,Tdomain%SF%SF_n_faces-1
+            logicPMLf = .false. ; logicPMLs = .false.
+            nff = Tdomain%SF%SF_face(nf)%Face(0)
+            nfs = Tdomain%SF%SF_face(nf)%Face(1)
+            if(nff > -1)then
+                if(Tdomain%sFace(nff)%PML) logicPMLf = .true.
+            end if
+            if(nfs > -1)then
+                if(Tdomain%sFace(nfs)%PML) logicPMLs = .true.
+            end if
+            if(logicPMLf .or. logicPMLs) Tdomain%SF%SF_Face(nf)%PML = .true.
+        end do
+        do ne = 0,Tdomain%SF%SF_n_edges-1
+            logicPMLf = .false. ; logicPMLs = .false.
+            nef = Tdomain%SF%SF_edge(ne)%Edge(0)
+            nes = Tdomain%SF%SF_edge(ne)%Edge(1)
+            if(nef > -1)then
+                if(Tdomain%sEdge(nef)%PML) logicPMLf = .true.
+            end if
+            if(nes > -1)then
+                if(Tdomain%sEdge(nes)%PML) logicPMLs = .true.
+            end if
+            if(logicPMLf .or. logicPMLs) Tdomain%SF%SF_Edge(ne)%PML = .true.
+        end do
+        do nv = 0,Tdomain%SF%SF_n_vertices-1
+            logicPMLf = .false. ; logicPMLs = .false.
+            nvf = Tdomain%SF%SF_Vertex(nv)%Vertex(0)
+            nvs = Tdomain%SF%SF_Vertex(nv)%Vertex(1)
+            if(nvf > -1)then
+                if(Tdomain%sVertex(nvf)%PML) logicPMLf = .true.
+            end if
+            if(nvs > -1)then
+                if(Tdomain%sVertex(nvs)%PML) logicPMLs = .true.
+            end if
+            if(logicPMLf .or. logicPMLs) Tdomain%SF%SF_Vertex(nv)%PML = .true.
+        end do
+
+    end if
+
 
     return
 end subroutine PML_definition

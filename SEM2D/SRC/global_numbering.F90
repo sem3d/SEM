@@ -76,20 +76,20 @@ subroutine global_numbering ( Tdomain )
         if  (Tdomain%sFace(nface_0)%Near_Element(0) == n ) then
             lface_0 = .true.
         else
-            nf0  = Tdomain%sFace(nface_0)%Near_Element(0)
+            nf0 = Tdomain%sFace(nface_0)%Near_Element(0)
             wf0 = Tdomain%sFace(nface_0)%Which_Face(0)
         endif
 
         if  (Tdomain%sFace(nface_1)%Near_Element(0) == n ) then
             lface_1 = .true.
         else
-            nf1  = Tdomain%sFace(nface_1)%Near_Element(0)
+            nf1 = Tdomain%sFace(nface_1)%Near_Element(0)
             wf1 = Tdomain%sFace(nface_1)%Which_Face(0)
         endif
         if  (Tdomain%sFace(nface_2)%Near_Element(0) == n ) then
             lface_2 = .true.
         else
-            nf2  = Tdomain%sFace(nface_2)%Near_Element(0)
+            nf2 = Tdomain%sFace(nface_2)%Near_Element(0)
             wf2 = Tdomain%sFace(nface_2)%Which_Face(0)
         endif
 
@@ -418,5 +418,9 @@ end subroutine whatface
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!

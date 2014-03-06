@@ -19,6 +19,10 @@ module semconfig
     use iso_c_binding
     use sem_c_config
 
+    implicit none
+
+    public :: read_input
+
 contains
 
 
@@ -133,7 +137,7 @@ subroutine echo_input_params(Tdomain, rg)
                 write (91,*) Tdomain%Ssource(i)%Xsource, Tdomain%Ssource(i)%Ysource, Tdomain%Ssource(i)%Zsource
                 write (91,*) Tdomain%Ssource(i)%i_type_source
                 if (Tdomain%Ssource(i)%i_type_source == 1 ) then
-                    write (91,*) Tdomain%Ssource(i)%i_dir
+                    write (91,*) Tdomain%Ssource(i)%dir
                 else
                     write (91,*) "No parameter need here"
                 endif
@@ -161,7 +165,7 @@ subroutine finalize_mesh_connectivity(Tdomain, rg)
     type(domain), intent(inout) :: Tdomain
     integer, intent(in)         :: rg
     integer :: i, j, k, n, nf, nnf, mat, ne, nv, nne, nnv
-    integer :: icount, n_aus
+    integer :: n_aus
 
 
     ! faces and edges => which element?
@@ -286,6 +290,8 @@ subroutine read_material_file(Tdomain, rg)
             Tdomain%sSubDomain(i)%NGLLx, Tdomain%sSubDomain(i)%NGLLy, Tdomain%sSubDomain(i)%NGLLz, &
             Tdomain%sSubDomain(i)%Dt, Tdomain%sSubDomain(i)%Qpression,  Tdomain%sSubDomain(i)%Qmu
 
+        Tdomain%sSubdomain(i)%Filtering = .false.
+
         if(rg==0 .and. .false.) then
             write (*,*) 'Material :', i
             write (*,*) 'type:', Tdomain%sSubDomain(i)%material_type
@@ -400,6 +406,7 @@ subroutine create_sem_sources(Tdomain, config)
     type(sem_config), intent(in) :: config
     type(sem_source), pointer :: src
     integer :: nsrc
+    real :: ndir
 
     Tdomain%n_source = config%nsources
     allocate (Tdomain%Ssource(0:Tdomain%n_source-1))
@@ -421,7 +428,9 @@ subroutine create_sem_sources(Tdomain, config)
         Tdomain%Ssource(nsrc)%ts = src%ts   ! func=4
         ! Comportement Spacial
         ! i_type_source==1
-        Tdomain%Ssource(nsrc)%i_dir = src%dir
+        ndir = sqrt(src%dir(1)**2 + src%dir(2)**2 + src%dir(3)**2)
+        Tdomain%Ssource(nsrc)%dir(0:2) = src%dir(1:3)/ndir
+        
         ! i_type_source==2
         Tdomain%Ssource(nsrc)%Moment(0,0) = src%moments(1)
         Tdomain%Ssource(nsrc)%Moment(1,1) = src%moments(2)
@@ -541,9 +550,17 @@ subroutine read_input (Tdomain, rg, code)
     Tdomain%material_file = fromcstr(config%mat_file)
     Tdomain%logicD%save_trace = config%save_traces .ne. 0
     Tdomain%logicD%save_snapshots = config%save_snap .ne. 0
+    Tdomain%ngroup = config%n_group_outputs
     ! MODIF ICI: energie? deformation?..
     !Tdomain%logicD%save_energy = !?
     Tdomain%logicD%save_restart = config%prorep_iter .ne. 0
+    ! MPML
+    Tdomain%logicD%MPML = .false.
+    Tdomain%MPML_coeff = config%mpml
+    if (config%mpml/=0) then
+        Tdomain%logicD%MPML = .true.
+    end if
+    Tdomain%logicD%grad_bassin = .false.
     !Tdomain%logicD%plot_grid
     !Tdomain%logicD%run_exec
     !Tdomain%logicD%run_debug
@@ -565,7 +582,11 @@ subroutine read_input (Tdomain, rg, code)
     Tdomain%T1_att = config%atn_band(1)
     Tdomain%T2_att = config%atn_band(2)
     Tdomain%T0_modele = config%atn_period
-    write(*,*) "SLS=", Tdomain%n_sls
+    if (rg==0) then
+        write(*,*) "Attenuation SLS=", Tdomain%n_sls
+        write(*,*) "         period=", Tdomain%T0_modele
+        write(*,*) "           band=", Tdomain%T1_att, Tdomain%T2_att
+    end if
 
 
     ! Neumann boundary conditions? If yes: geometrical properties read in the mesh files.
@@ -596,14 +617,14 @@ subroutine read_input (Tdomain, rg, code)
 
     call read_mesh_file_h5(Tdomain, rg)
 
-    write(*,*) rg, "Reading materials"
+    !write(*,*) rg, "Reading materials"
     !---   Properties of materials.
     call read_material_file(Tdomain, rg)
-    write(*,*) rg, "Reading materials done"
+    !write(*,*) rg, "Reading materials done"
 
     call finalize_mesh_connectivity(Tdomain, rg)
 
-    write(*,*) rg, "Finalize done"
+    !write(*,*) rg, "Finalize done"
 
     call select_output_elements(Tdomain, rg, config)
 
@@ -613,5 +634,9 @@ end module semconfig
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!

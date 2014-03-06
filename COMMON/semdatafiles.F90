@@ -248,13 +248,10 @@ contains
         implicit none
         integer,intent(in) :: rank
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I4.4)")"./Resultats/initian.",rank
-#else
-        write(fnamef,"(a,I4.4)") "initian.",rank
-#endif
+        character(Len=20) :: temp
 
-        DEBUG(fnamef)
+        write(temp,"(a,I4.4)") "initian.",rank
+        fnamef = pjoin(path_results, temp)
     end subroutine semname_define_fault_rankn
     !!end fichier define_fault_properties 2d
 
@@ -279,32 +276,6 @@ contains
         fnamef = pjoin(path_param, file)
     end subroutine semname_define_planew_properties_file
     !!end fichier define_planew_properties
-
-    !!fichier dumptrace 2d
-    subroutine semname_dumptrace_tracex (i,fnamef)
-        !SEMFILE 31 W ./Capteurs/sem/tracexIII (MKA) tracexIII (NOMKA)
-        implicit none
-        integer,intent(in) :: i
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=20) :: temp
-
-        write(temp,"(a,I3.3)") "tracex",i
-        DEBUG(fnamef)
-        fnamef = pjoin(path_traces, temp)
-    end subroutine semname_dumptrace_tracex
-
-    subroutine semname_dumptrace_tracez (i,fnamef)
-        !SEMFILE 32 W ./Capteurs/sem/tracezIII (MKA) tracezIII (NOMKA)
-        implicit none
-        integer,intent(in) :: i
-        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=20) :: temp
-
-        write(temp,"(a,I3.3)") "tracez",i
-        DEBUG(fnamef)
-        fnamef = pjoin(path_traces, temp)
-    end subroutine semname_dumptrace_tracez
-    !!end fichier dumptrace 2d
 
     !!fichier main 2d
     subroutine semname_couplage_dat (fnamef)
@@ -426,39 +397,25 @@ contains
         implicit none
         integer,intent(in) :: rank
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I4.4)")"./data/sem/mesh_echo",rank
-#else
-        write(fnamef,"(a,I4.4)")"mesh_echo",rank
-#endif
-
-        DEBUG(fnamef)
+        character(Len=MAX_FILE_SIZE) :: temp
+        write(temp,*) "mesh_echo.",rank
+        fnamef = pjoin(path_data, temp)
     end subroutine semname_read_mesh_echo
 
     subroutine semname_read_mesh_material_echo (fnamef)
         !SEMFILE 93 W ./data/sem/material_echo (MKA) & material_echo (NOMKA)
         implicit none
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I4.4)")"./data/sem/material_echo"
-#else
-        write(fnamef,"(a,I4.4)")"material_echo"
-#endif
 
-        DEBUG(fnamef)
+        fnamef = pjoin(path_data, "material_echo")
     end subroutine semname_read_mesh_material_echo
 
     subroutine semname_read_mesh_station_echo (fnamef)
         !SEMFILE 94 W ./data/sem/station_file_echo (MKA) & station_file_echo (NOMKA)
         implicit none
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-#ifdef MKA3D
-        write(fnamef,"(a,I4.4)")"./data/sem/station_file_echo"
-#else
-        write(fnamef,"(a,I4.4)")"station_file_echo"
-#endif
 
-        DEBUG(fnamef)
+        fnamef = pjoin(path_data, "station_file_echo")
     end subroutine semname_read_mesh_station_echo
 
     subroutine semname_save_checkpoint_cp(fnamer,fnamef)

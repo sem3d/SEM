@@ -15,31 +15,45 @@ module selement
     type :: element
 
        integer :: mat_index,ngllx,ngllz
-       integer, dimension (:), pointer :: Control_nodes
-       integer, dimension (0:3) :: Near_Face, Near_Vertex
-       integer, dimension (:,:), pointer :: Iglobnum
+       integer, dimension (:), allocatable :: Control_nodes
+       integer, dimension (0:3) :: Near_Face   !
+       integer, dimension (0:3) :: Near_Vertex !
+       integer, dimension (:,:), allocatable :: Iglobnum
 
-       real, dimension (:,:), pointer :: Jacob,Density, Lambda, Mu,MassMat
-       real, dimension(:,:,:), pointer :: Forces,Stress,Veloc,Displ,Accel,V0
-       real, dimension(:,:,:), pointer :: ACoeff
-       real, dimension(:,:,:,:), pointer :: InvGrad
+       real, dimension (:,:), allocatable :: Jacob,Density, Lambda, Mu,MassMat
+       real, dimension(:,:,:), allocatable :: Forces,Stress,Veloc,Displ,Accel,V0
+       real, dimension(:,:,:), allocatable :: ACoeff
+       real, dimension(:,:,:,:), allocatable :: InvGrad
+       logical :: OUTPUT
 
        ! PML allocation
        logical :: PML
-       real, dimension (:,:,:), pointer :: Stress1,Stress2
-       real, dimension (:,:,:), pointer :: Veloc1, Veloc2,Forces1,Forces2
-       real, dimension (:,:,:), pointer :: DumpMass
-       real, dimension (:,:,:), pointer :: DumpSx,DumpSz,DumpVx,DumpVz
+       real, dimension (:,:,:), allocatable :: Stress1,Stress2
+       real, dimension (:,:,:), allocatable :: Veloc1, Veloc2,Forces1,Forces2
+       real, dimension (:,:,:), allocatable :: DumpMass
+       real, dimension (:,:,:), allocatable :: DumpSx,DumpSz,DumpVx,DumpVz
 
        ! FPML allocation
        logical :: FPML
-       real, dimension (:,:), pointer ::  Isx, Isz, Ivx, Ivz
-       real, dimension (:,:,:), pointer :: Istress1, IStress2, Iveloc1, Iveloc2
+       real, dimension (:,:), allocatable ::  Isx, Isz, Ivx, Ivz
+       real, dimension (:,:,:), allocatable :: Istress1, IStress2, Iveloc1, Iveloc2
 
        real dist_max !!Ajout Gsa 03/10 - taille caracteristique de l'element
     end type element
 
 contains
+
+    subroutine init_element(el)
+        implicit none
+        type(Element), intent(INOUT) :: el
+
+        el%mat_index=-1
+        el%PML = .false.
+        el%OUTPUT = .true.
+        el%FPML = .false.
+        el%dist_max = 0.0
+
+    end subroutine init_element
 
     ! ############################################################
     !>

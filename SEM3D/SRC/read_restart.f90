@@ -149,9 +149,9 @@ subroutine read_EpsilonVol(Tdomain, elem_id)
         ngllz = Tdomain%specel(n)%ngllz
 
         if ( .not. Tdomain%specel(n)%PML ) then
-            do k = 1,ngllz-2
-                do j = 1,nglly-2
-                    do i = 1,ngllx-2
+            do k = 0,ngllz-1
+                do j = 0,nglly-1
+                    do i = 0,ngllx-1
                         if (n_solid>0) then
                             if (Tdomain%aniso) then
                             else
@@ -210,9 +210,9 @@ subroutine read_EpsilonDev(Tdomain, elem_id)
         ngllz = Tdomain%specel(n)%ngllz
 
         if ( .not. Tdomain%specel(n)%PML ) then
-            do k = 1,ngllz-2
-                do j = 1,nglly-2
-                    do i = 1,ngllx-2
+            do k = 0,ngllz-1
+                do j = 0,nglly-1
+                    do i = 0,ngllx-1
                         if (n_solid>0) then
                             Tdomain%specel(n)%epsilondev_xx_(i,j,k) = eps_dev_xx(idx)
                             Tdomain%specel(n)%epsilondev_yy_(i,j,k) = eps_dev_yy(idx)
@@ -610,7 +610,6 @@ subroutine read_restart (Tdomain,rg, isort)
     call init_hdf5()
     call init_restart(Tdomain%communicateur, rg, Tdomain%TimeD%iter_reprise, fnamef)
 
-    write(*,*) "OPENING RESTART FILE:", trim(fnamef)
     call h5fopen_f(fnamef, H5F_ACC_RDONLY_F, fid, hdferr)
 
     call h5gopen_f(fid, 'Elements', elem_id, hdferr)

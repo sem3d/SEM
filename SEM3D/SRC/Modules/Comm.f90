@@ -38,15 +38,16 @@ module scomms
        integer :: ngll ! *0:2
        real, dimension(:,:), pointer :: GiveForces, TakeForces
        integer :: ngllPML ! *1:3*0:2
-       real, dimension(:,:,:), pointer :: GiveForcesPML, TakeForcesPML
-
-       real, dimension(:,:), pointer :: GiveForcesSF_FtoS, TakeForcesSF_FtoS
+       real, dimension(:,:,:), pointer :: GiveForcesPML, TakeForcesPML,   &
+                                        GiveForcesSF_FtoS_PML,TakeForcesSF_FtoS_PML
+       real, dimension(:,:), pointer :: GiveForcesSF_FtoS, TakeForcesSF_FtoS,  &
+                                        GiveForcesSF_StoF_PML,TakeForcesSF_StoF_PML
        ! fluid communications
        real, dimension(:,:), pointer :: GiveForcesPMLFl, TakeForcesPMLFl
        real, dimension(:), pointer :: GiveForcesFl, TakeForcesFl
 
        ! Solid-fluid communication properties
-       integer  :: SF_nf_shared, SF_ne_shared, SF_nv_shared, ngllSF
+       integer  :: SF_nf_shared, SF_ne_shared, SF_nv_shared, ngllSF, ngllSF_PML
        integer, dimension(:), pointer  :: SF_faces_shared, SF_edges_shared,      &
            SF_vertices_shared,     &  ! indices
            SF_mapping_edges_shared

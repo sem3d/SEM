@@ -32,7 +32,7 @@ module svertices
        ! solid-fluid
        real :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
 
-       type(vertex_pml), allocatable :: spml
+       type(vertex_pml), pointer :: spml
 #ifdef COUPLAGE
        real, dimension (:), allocatable :: ForcesMka
        real :: tsurfsem
@@ -73,22 +73,8 @@ contains
         real, intent (IN) :: dt
         integer :: i
 
-
-        real :: xmas
-
-#ifdef COUPLAGE
-        xmas = 0.
-        if (  V%tsurfsem > 0. ) then
-            xmas = 1.
-        endif
-#endif
-
         do i = 0,2
-#ifdef COUPLAGE
-            V%Forces(i) =  V%MassMat  * V%Forces(i)/(1. + xmas )
-#else
             V%Forces(i) = V%MassMat  * V%Forces(i)
-#endif
         enddo
         V%Veloc = V%V0 + dt * V%Forces
         V%Accel =  (V%Veloc-V%V0)/dt
@@ -127,6 +113,8 @@ contains
             V%Veloc = 0
         endif
 
+        V%V0 = V%Veloc
+
         return
     end subroutine Correction_Vertex_PML_Veloc
 
@@ -140,6 +128,7 @@ contains
 
         V%VelPhi0 = V%VelPhi
         V%ForcesFl = V%Phi
+
         return
     end subroutine Prediction_Vertex_VelPhi
 
@@ -176,6 +165,8 @@ contains
         if (V%Abs) then
             V%VelPhi = 0
         endif
+
+        V%Phi = V%Phi + dt*V%VelPhi
 
         return
     end subroutine Correction_Vertex_PML_VelPhi

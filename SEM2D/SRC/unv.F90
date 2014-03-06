@@ -155,7 +155,7 @@ contains
 
 
 
-        plusPetiteValeur=1e9
+        plusPetiteValeur=2**30
         plusGrandeValeur=0
 
         do i=1,sunv%n_noeud
@@ -224,7 +224,7 @@ contains
         enddo
 
 
-        plusPetiteValeur=1e9
+        plusPetiteValeur=2**30
         plusGrandeValeur=0
 
         do i=1,sunv%n_elem

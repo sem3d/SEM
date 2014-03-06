@@ -13,6 +13,7 @@ subroutine Define_Arrays(Tdomain, rg)
     use mpi
     use scomm
     use scommutils
+    use assembly
     implicit none
 
     interface
@@ -232,12 +233,6 @@ subroutine Define_Arrays(Tdomain, rg)
                 do i = 0,ngllx-1
                     Whei(i,j,k) = Tdomain%sSubdomain(mat)%GLLwx(i) *       &
                         Tdomain%sSubdomain(mat)%GLLwy(j)*Tdomain%sSubdomain(mat)%GLLwz(k)
-        ! .. and individual ones.
-                    if (.NOT.Tdomain%specel(n)%PML) then
-                        Tdomain%specel(n)%wgtx(i) = Tdomain%sSubdomain(mat)%GLLwx(i)
-                        Tdomain%specel(n)%wgty(j) = Tdomain%sSubdomain(mat)%GLLwy(j)
-                        Tdomain%specel(n)%wgtz(k) = Tdomain%sSubdomain(mat)%GLLwz(k)
-                    endif
                 enddo
             enddo
         enddo
@@ -265,8 +260,8 @@ subroutine Define_Arrays(Tdomain, rg)
         !- mass matrix elements
         if(Tdomain%specel(n)%solid)then
             Tdomain%specel(n)%MassMat = Whei*Tdomain%specel(n)%Density*Jac
-        else   ! fluid case: inertial term ponderation by the inverse of the squared velocity
-            Tdomain%specel(n)%MassMat = Whei*Jac*Tdomain%specel(n)%Density/Rlam
+        else   ! fluid case: inertial term ponderation by the inverse of the bulk modulus
+            Tdomain%specel(n)%MassMat = Whei*Jac/Rlam
         end if
 
         !- parts of the internal forces terms: Acoeff; to be compared to
@@ -366,9 +361,9 @@ subroutine Define_Arrays(Tdomain, rg)
 
     !- Mass and DumpMass Communications (assemblage) inside Processors
     do n = 0,Tdomain%n_elem-1
-        call get_Mass_Elem2Face(Tdomain,n,rg)
-        call get_Mass_Elem2Edge(Tdomain,n,rg)
-        call get_Mass_Elem2Vertex(Tdomain,n,rg)
+        call get_Mass_Elem2Face(Tdomain,n)
+        call get_Mass_Elem2Edge(Tdomain,n)
+        call get_Mass_Elem2Vertex(Tdomain,n)
     enddo
 
 
@@ -845,7 +840,7 @@ subroutine define_PML_DumpInit(ngllx,nglly,ngllz,dt,alpha,density,RKmod,whei,jac
     DumpS(:,:,:,0) = (Id - 0.5d0*dt*alpha)*DumpS(:,:,:,1)
 
     DumpMass(:,:,:) = 0.5d0*Density(:,:,:)*Whei(:,:,:)*Jac(:,:,:)*alpha(:,:,:)*dt
-    if(.not. solid) DumpMass(:,:,:) = DumpMass(:,:,:)/RKmod(:,:,:)
+    if(.not. solid) DumpMass(:,:,:) = DumpMass(:,:,:)/RKmod(:,:,:)/Density(:,:,:)
 
     return
 

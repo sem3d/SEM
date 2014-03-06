@@ -20,12 +20,17 @@ add_definitions(-DUSE_HDF5)
 include_directories(${HDF5_FORTRAN_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} ${HDF5_INCLUDE_DIR})
 include_directories(${HDF5_INCLUDE_DIR} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP})
 
-if (OPT_MPI)
+if (OPT_MPI OR HDF5_IS_PARALLEL)
     set(MPI_COMPILER mpif90)
     find_package(MPI)
-    add_definitions(-D__MPI)
     include_directories(${MPI_INCLUDE_PATH})
     set(GLOBAL_LINK_FLAGS ${MPI_LINK_FLAGS} ${GLOBAL_LINK_FLAGS})
+endif (OPT_MPI OR HDF5_IS_PARALLEL)
+
+
+if (OPT_MPI)
+  # Separate in case one wants to build non-mpi version of SEM against MPI enabled HDF5 library
+  add_definitions(-D__MPI)
 endif (OPT_MPI)
 
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
@@ -33,7 +38,7 @@ if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   set(USE_MKL TRUE)
 else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   # Assume gfortran
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fdefault-real-8 -fdefault-double-8 -ffree-line-length-0")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -cpp -Wall -fdefault-real-8 -fdefault-double-8 -ffree-line-length-0")
   set(USE_MKL FALSE)
 endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 endif (NOT BUILD_WITH_MKA)
@@ -57,6 +62,7 @@ set(SEM_SRC
   ${SEMCOMMON}/lagrange_prop.f90
   ${SEMCOMMON}/pow.F90
   ${SEMCOMMON}/pointlist.f90
+  ${SEMCOMMON}/sem_hdf5.f90
 )
 
 set(SEM_SRC_C
@@ -67,18 +73,51 @@ set(SEM_SRC_C
   ${SEMCOMMON}/fileutils.c
 )
 
-if(NOT BUILD_WITH_MKA)
+find_library(CEAUSER cea_user PATHS /usr/local/sr/lib)
+
+
+
+if( (NOT BUILD_WITH_MKA) AND (CEAUSER STREQUAL "CEAUSER-NOTFOUND"))
 set(SEM_SRC ${SEM_SRC}
   ${SEMCOMMON}/stub_tremain.F90
 )
-endif(NOT BUILD_WITH_MKA)
+endif( (NOT BUILD_WITH_MKA) AND (CEAUSER STREQUAL "CEAUSER-NOTFOUND"))
 
 
 set(FTM_SOURCES ${SEMCOMMON}/libmpi_fantome.f90)
 
+# On veut compiler les .f90 avec le preprocesseur cpp
+if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+  set_source_files_properties(${SEM3D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-fpp")
+else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+  set_source_files_properties(${SEM3D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-x f95-cpp-input")
+endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+
+
+set(SEM_EXTRA_LIBS)
+if(OPT_MPI OR HDF5_IS_PARALLEL)
+# TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
+# c++ et ne link pas semx.exe
+set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
+else(OPT_MPI OR HDF5_IS_PARALLEL)
+set(SEM_SRC ${SEM_SRC} ${FTM_SOURCES})
+endif(OPT_MPI OR HDF5_IS_PARALLEL)
+
+
+if (CEAUSER)
+add_definitions(-DHAVE_TREMAIN)
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${CEAUSER})
+endif(CEAUSER)
+
+# HDF5
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
+message("SEMLIBS: '${SEM_EXTRA_LIBS}'")
+
+
 add_subdirectory(SEM2D)
 add_subdirectory(SEM3D)
 add_subdirectory(MESH)
+add_subdirectory(MESH2D)
 
 
 add_executable(test_sem_path ${SEMCOMMON}/test_sem_path.f90   ${SEMCOMMON}/fileutils.c ${SEMCOMMON}/sem_c_bindings.F90 ${SEMCOMMON}/semdatafiles.F90)

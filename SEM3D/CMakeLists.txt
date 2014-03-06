@@ -18,6 +18,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/Domain.f90
     ${PRJ}/SRC/Modules/Couplage.f90
     ${PRJ}/SRC/Modules/solid_fluid.f90
+    ${PRJ}/SRC/orientation.f90
+    ${PRJ}/SRC/assembly.f90
     ${PRJ}/SRC/Capteur.f90
     ${PRJ}/SRC/comm_utils.f90
     ${PRJ}/SRC/Newmark.f90
@@ -45,18 +47,18 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/define_planew_properties.f90
     ${PRJ}/SRC/double_couple.f90
     ${PRJ}/SRC/forces_int.f90
-    ${PRJ}/SRC/get_Displ_Edge2Elem.f90
-    ${PRJ}/SRC/get_Displ_Face2Elem.f90
-    ${PRJ}/SRC/get_Displ_Vertex2Elem.f90
-    ${PRJ}/SRC/get_Forces_Elem2Edge.f90
-    ${PRJ}/SRC/get_Forces_Elem2Face.f90
-    ${PRJ}/SRC/get_Forces_Elem2Vertex.f90
-    ${PRJ}/SRC/get_Mass_Elem2Edge.f90
-    ${PRJ}/SRC/get_Mass_Elem2Face.f90
-    ${PRJ}/SRC/get_Mass_Elem2Vertex.f90
-    ${PRJ}/SRC/getPMLpred_e2el.f90
-    ${PRJ}/SRC/getPMLpred_f2el.f90
-    ${PRJ}/SRC/getPMLpred_v2el.f90
+#    ${PRJ}/SRC/get_Displ_Edge2Elem.f90
+#    ${PRJ}/SRC/get_Displ_Face2Elem.f90
+#    ${PRJ}/SRC/get_Displ_Vertex2Elem.f90
+#    ${PRJ}/SRC/get_Forces_Elem2Edge.f90
+#    ${PRJ}/SRC/get_Forces_Elem2Face.f90
+#    ${PRJ}/SRC/get_Forces_Elem2Vertex.f90
+#    ${PRJ}/SRC/get_Mass_Elem2Edge.f90
+#    ${PRJ}/SRC/get_Mass_Elem2Face.f90
+#    ${PRJ}/SRC/get_Mass_Elem2Vertex.f90
+#    ${PRJ}/SRC/getPMLpred_e2el.f90
+#    ${PRJ}/SRC/getPMLpred_f2el.f90
+#    ${PRJ}/SRC/getPMLpred_v2el.f90
     ${PRJ}/SRC/global_numbering.f90
     ${PRJ}/SRC/read_input.f90
     ${PRJ}/SRC/mesh3d.f90
@@ -70,12 +72,12 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/drive_sem.f90
     ${PRJ}/SRC/ondelette.f90
 
-    ${PRJ}/SRC/get_VectProperty_Edge2Elem.f90
-    ${PRJ}/SRC/get_VectProperty_Elem2Edge.f90
-    ${PRJ}/SRC/get_VectProperty_Elem2Face.f90
-    ${PRJ}/SRC/get_VectProperty_Elem2Vertex.f90
-    ${PRJ}/SRC/get_VectProperty_Face2Elem.f90
-    ${PRJ}/SRC/get_VectProperty_Vertex2Elem.f90
+#    ${PRJ}/SRC/get_VectProperty_Edge2Elem.f90
+#    ${PRJ}/SRC/get_VectProperty_Elem2Edge.f90
+#    ${PRJ}/SRC/get_VectProperty_Elem2Face.f90
+#    ${PRJ}/SRC/get_VectProperty_Elem2Vertex.f90
+#    ${PRJ}/SRC/get_VectProperty_Face2Elem.f90
+#    ${PRJ}/SRC/get_VectProperty_Vertex2Elem.f90
 
     ${PRJ}/SRC/get_ScalarProperty_Edge2Elem.f90
     ${PRJ}/SRC/get_ScalarProperty_Elem2Edge.f90
@@ -112,25 +114,10 @@ set(SEM3D_SOURCES ${SEM3D_SOURCES_F}
 )
 
 
-# On veut compiler les .f90 avec le preprocesseur cpp
-if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-  set_source_files_properties(${SEM3D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-fpp")
-else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-  set_source_files_properties(${SEM3D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-x f95-cpp-input")
-endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-
-
-set(SEM_EXTRA_LIBS "")
-
-# HDF5
-set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} hdf5_fortran)
-set(SEM3D_SOURCES ${SEM3D_SOURCES} ${SEMCOMMON}/sem_hdf5.f90)
-
 if(OPT_MPI)
   #set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
   # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
   # c++ et ne link pas semx.exe
-  set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
 
   add_executable(sem3d_cpl ${PRJ}/SRC/main.F90 ${SEM3D_SOURCES})
   target_link_libraries(sem3d_cpl ${CEAUSER} ${SEM_EXTRA_LIBS})
@@ -143,7 +130,7 @@ else(OPT_MPI)
 endif(OPT_MPI)
 
 add_executable(sem3d.exe  ${PRJ}/SRC/main.F90 ${SEM3D_SOURCES})
-target_link_libraries(sem3d.exe ${CEAUSER} ${SEM_EXTRA_LIBS})
+target_link_libraries(sem3d.exe ${SEM_EXTRA_LIBS})
 set_target_properties(sem3d.exe PROPERTIES 
                                 COMPILE_FLAGS -I${PROJECT_BINARY_DIR}/ncpl
                                 Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/ncpl)

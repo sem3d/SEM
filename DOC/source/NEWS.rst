@@ -3,6 +3,61 @@
 NEWS
 ====
 
+Version 2013.12
+---------------
+
+- Stabilisation des éléments fluides et couplage fluide/solide.
+
+- Nouvelles fonctions d'évolution temporelle des sources (square, tanh, ...)
+
+- La limite maximum du nombre de processeurs gérés par le mailleur est
+  portée à 8192 (1024 précédement). La consommation mémoire excessive
+  (en nombre de processeurs * nombre de mailles) est résolue. On a
+  maintenant une consommation proportionnelle à : nombre de mailles x
+  nombre de processeurs voisins.
+
+- Un paramètre ``amplitude`` global pour toutes les fonctions temporelles est ajouté.
+
+- La dépendance sur la librairie HDF5 est maintenant obligatoire.
+
+- Le mailleur accepte un format HDF5 (d'un structure semblable au format UNV) en entrée.
+  Cela permet de gérer de gros maillages, beaucoup trop long à lire dans un format texte.
+
+- Limitation du nombre de sorties texte du code pour passer des codes sur un grand nombre
+  de processeurs.
+
+- Bugfix: le paramètre ``mpml`` était ignoré.
+
+- Bugfix: le mailleur ne libérait pas immédiatement les ressources
+  HDF5, ce qui induisait des temps très long de flush en fin de
+  job pour les gros maillages.
+
+  Ce temps étant décompté après l'épilogue MPI (ie après l'appel à ``MPI_Finalize``),
+  le processus était considéré comme bloqué et tué avant la fin par ``mpirun``.
+
+- Bugfix: les paramètres d'attenuation n'étaient pas correctement
+  sauvegardé dans les fichiers de protection/reprise.
+
+- Les sorties ont été mutualisées par groupe de processeurs, permettant d'avoir
+  une sortie par noeud de calcul, plutôt qu'une sortie par processus MPI.
+
+- Bugfix : pour les fluides, les excitations sont pondérées par :math:`\lambda` et plus :math:`\rho`.
+
+- Fluide : on assure la continuité de :math:`\rho{}\phi` et non plus :math:`\phi` seul.
+
+- Mailleur: on peut mailler un milieu stratifié simple.
+
+- SEM2D : mutualisation de code, utilisation du nouveau format de fichier d'entrée commun avec SEM3D.
+
+- Nouveaux champs en sortie des snapshots : pression et accélération.
+
+- Optimisation : concerne le calcul des forces solides sans Acoef.
+
+  Le calcul des dérivées spatiales a maintenant des cas particuliers
+  pour ngll=5 et 7. Au delà de 10, l'ancienne méthode avec DGEMM
+  optimisée (MKL) devient plus intéressante.
+
+- Correction d'une fuite mémoire (à l'initialisation) dans l'allocation des capteurs.
 
 Version 2013.04
 ---------------

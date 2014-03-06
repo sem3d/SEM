@@ -1,7 +1,7 @@
 .. -*- coding: utf-8 -*-
 
 ===================================
-Description des parametres de SEM3D
+Description des paramètres de SEM3D
 ===================================
 
 Format
@@ -107,7 +107,7 @@ band              réel(4)  --                 Description des bornes :math:`f_1
 ts                réel     --                 Un offset de temps :math:`t_0`
 gamma             réel     --
 time_file         chaîne   --                 Fichier contenant la source
-amplitude         réel     --
+amplitude         réel     --                 Facteur multiplicatif appliqué à la source temporelle
 ================  =======  =================  =================================================================
 
 Description de la section ``snapshots`` :
@@ -119,6 +119,7 @@ save_snap        bool          false              Sauvegarde des snapshots
 save_interval    réel          --                 Interval (temps physique) de sauvegarde des snapshots
 select           voir note     --                 Sélection des éléments à inclure dans les snapshots
 deselect         voir note     --                 Désélection des éléments à inclure dans les snapshots
+group_outputs    entier        32                 Écriture d'un fichier sortie par *group_outputs* processeurs
 ===============  ============  =================  ============================================================
 
 Note:
@@ -267,5 +268,30 @@ Les fonctions temporelles sont:
 
   .. math::
 
-     f(t) = sin(2\pi f_c (t-t_0))
+     f(t) = \sin(2\pi f_c (t-t_0))
 
+
+- ``square`` : Un carré *arrondi*
+ 
+  .. math::
+
+     f(t) = \frac{\exp(2.*\gamma*(x-t_0))-1.}{\exp(2.*\gamma*(x-t_0))+1}+\frac{\exp(2.*\gamma*(t_0+\tau-x))-1.}{\exp(2.*\gamma*(t_0+\tau-x))+1}
+
+
+Atténuation
+===========
+
+Le mécanisme d'atténuation est décrit en deux endroits :
+
+- Le fichier de description des matériaux contient les paramètres :math:`Q_P` et :math:`Q_S` du
+  milieu.
+
+- Le fichier ``input.spec`` contient la section ``amortissement`` décrite ci-dessus.
+
+L'atténuation est modélisée par N filtres (``nsolids``) sur une bande
+de fréquences décrite par ``atn_band``. Les N filtres sont centrés sur
+N fréquences choisies dans la bande spécifiée.  Le paramètre
+``atn_period`` garanti qu'un filtre est choisi spécifiquement sur la
+periode indiquée.
+
+Le code n'applique pas d'atténuation si ``nsolids=0``.

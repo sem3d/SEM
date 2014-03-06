@@ -16,6 +16,7 @@ subroutine create_sem2d_sources(Tdomain, config)
     type(sem_config), intent(in) :: config
     type(sem_source), pointer :: src
     integer :: nsrc
+    real :: ndir
 
     Tdomain%n_source = config%nsources
     allocate (Tdomain%Ssource(0:Tdomain%n_source-1))
@@ -24,8 +25,7 @@ subroutine create_sem2d_sources(Tdomain, config)
     nsrc = 0
     do while(associated(src))
         Tdomain%Ssource(nsrc)%Xsource = src%coords(1)
-        !Tdomain%Ssource(nsrc)%Ysource = src%coords(2)
-        Tdomain%Ssource(nsrc)%Zsource = src%coords(3)
+        Tdomain%Ssource(nsrc)%Zsource = src%coords(2)
         Tdomain%Ssource(nsrc)%i_type_source = src%type
         ! Comportement temporel
         Tdomain%Ssource(nsrc)%i_time_function = src%func
@@ -38,18 +38,13 @@ subroutine create_sem2d_sources(Tdomain, config)
         ! Comportement Spacial
         ! i_type_source==1
         ! DIR = Z OR y -> y
-        if (src%dir==2) src%dir = 1
-        Tdomain%Ssource(nsrc)%i_dir = src%dir
+        ndir = sqrt(src%dir(1)**2 + src%dir(2)**2)
+        Tdomain%Ssource(nsrc)%dir = src%dir(1:2)/ndir
         ! i_type_source==2
-        !Tdomain%Ssource(nsrc)%Moment(0,0) = src%moments(1)
-        !Tdomain%Ssource(nsrc)%Moment(1,1) = src%moments(2)
-        !Tdomain%Ssource(nsrc)%Moment(2,1) = src%moments(3)
-        !Tdomain%Ssource(nsrc)%Moment(0,1) = src%moments(4)
-        !Tdomain%Ssource(nsrc)%Moment(1,0) = src%moments(4)
-        !Tdomain%Ssource(nsrc)%Moment(0,2) = src%moments(5)
-        !Tdomain%Ssource(nsrc)%Moment(2,0) = src%moments(5)
-        !Tdomain%Ssource(nsrc)%Moment(1,2) = src%moments(6)
-        !Tdomain%Ssource(nsrc)%Moment(2,1) = src%moments(6)
+        Tdomain%Ssource(nsrc)%Moment(0,0) = src%moments(1)
+        Tdomain%Ssource(nsrc)%Moment(1,1) = src%moments(2)
+        Tdomain%Ssource(nsrc)%Moment(1,0) = src%moments(3)
+        Tdomain%Ssource(nsrc)%Moment(0,1) = src%moments(3)
 
         nsrc = nsrc + 1
         Tdomain%logicD%any_source = .true.
@@ -78,8 +73,6 @@ subroutine read_input (Tdomain)
     integer :: i, n_aus
     logical :: logic_scheme
 
-    integer :: unit_src
-    logical :: trouve_src
     character(Len=MAX_FILE_SIZE) :: fnamef
     type(sem_config) :: config
     integer :: code
@@ -88,6 +81,7 @@ subroutine read_input (Tdomain)
     ! It is done by any processor
     call semname_file_input_spec(fnamef)
 
+    write(*,*) "Opening:", trim(fnamef)
     call read_sem_config(config, trim(fnamef)//C_NULL_CHAR, code)
 
     Tdomain%Title_simulation = fromcstr(config%run_name)
@@ -97,7 +91,7 @@ subroutine read_input (Tdomain)
     Tdomain%TimeD%alpha = config%alpha
     Tdomain%TimeD%beta = config%beta
     Tdomain%TimeD%gamma = config%gamma
-    !Tdomain%TimeD%courant = config%courant
+    Tdomain%TimeD%courant = config%courant
     Tdomain%mesh_file = fromcstr(config%mesh_file)
     Tdomain%material_file = fromcstr(config%mat_file)
     Tdomain%logicD%save_trace = config%save_traces .ne. 0
@@ -116,22 +110,12 @@ subroutine read_input (Tdomain)
 
     call create_sem2d_sources(Tdomain, config)
 
-    !open (11,file=fnamef,form="formatted",status="old")
-    !read (11,*) Tdomain%Title_simulation
-    !read (11,*) Tdomain%TimeD%acceleration_scheme
-    !read (11,*) Tdomain%TimeD%velocity_scheme
-    !read (11,*) Tdomain%TimeD%duration
-    !read (11,*) Tdomain%TimeD%alpha
-    !read (11,*) Tdomain%TimeD%beta
-    !read (11,*) Tdomain%TimeD%gamma
-    !read (11,*) Tdomain%mesh_file
-    !read (11,*) Tdomain%material_file
-    !read (11,*) Tdomain%logicD%save_trace
-    !read (11,*) Tdomain%logicD%save_snapshots
+    Tdomain%logicD%run_echo = .false.
+    Tdomain%logicD%super_object = .false.
+    Tdomain%logicD%super_object_local_present = .false.
     !read (11,*) Tdomain%logicD%save_deformation
     !read (11,*) Tdomain%logicD%save_energy
 
-    !read (11,*) Tdomain%logicD%plot_grid
     !read (11,*) Tdomain%logicD%run_exec
     !read (11,*) Tdomain%logicD%run_debug
     !read (11,*) Tdomain%logicD%run_echo
@@ -167,8 +151,8 @@ subroutine read_input (Tdomain)
     !    enddo
     !endif
 
-
-
+    Tdomain%bMailUnv = .false.
+    Tdomain%bCapteur = .false.
     ! conversion dun maillage unv en maillage sem
     !read (11,*) Tdomain%bMailUnv
 
@@ -187,7 +171,7 @@ subroutine read_input (Tdomain)
     !if (Tdomain%logicD%save_restart) then
     !    read (11,*) Tdomain%TimeD%ncheck ! frequence de sauvegarde
     !endif
-
+    !
     !close (11)
 
     ! If echo modality write the read parameter in a file
@@ -241,7 +225,7 @@ subroutine read_input (Tdomain)
                 write (91,*) Tdomain%Ssource(i)%Xsource, Tdomain%Ssource(i)%Zsource
                 write (91,*) Tdomain%Ssource(i)%i_type_source
                 if (Tdomain%Ssource(i)%i_type_source == 1 ) then
-                    write (91,*) Tdomain%Ssource(i)%i_dir
+                    write (91,*) Tdomain%Ssource(i)%dir
                 else
                     write (91,*) "No parameter need here"
                 endif

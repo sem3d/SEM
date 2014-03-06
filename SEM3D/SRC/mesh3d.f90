@@ -287,16 +287,17 @@ subroutine read_mesh_file_h5(Tdomain, rg)
     !
     type(domain), intent(inout) :: Tdomain
     integer, intent(in)         :: rg
-    integer :: i,j,  ok
+    integer :: i,j
     logical :: neumann_log
     !
     integer(HID_T) :: fid, proc_id
-    integer :: nprocs, hdferr
+    integer :: hdferr, ierr
     integer, allocatable, dimension(:,:) :: itemp2, itemp2b
     integer, allocatable, dimension(:)   :: itemp, itempb
     real,    allocatable, dimension(:,:) :: rtemp2
-    real,    allocatable, dimension(:)   :: rtemp
+    !real,    allocatable, dimension(:)   :: rtemp
     character(len=10) :: proc_grp
+    integer, allocatable, dimension(:)   :: nb_elems_per_proc
     !
     call init_hdf5()
     !
@@ -330,7 +331,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
         write(*,*) rg,"neumann (mesh file)=",neumann_log
         stop "Introduction of Neumann B.C.: mesh and input files not in coincidence."
     endif
-    ! Global nodes for each proc.
+    ! Global nodes' coordinates for each proc.
     !
     call read_dataset(fid, "local_nodes", rtemp2)
     Tdomain%n_glob_nodes = size(rtemp2,2)
@@ -353,8 +354,8 @@ subroutine read_mesh_file_h5(Tdomain, rg)
         Tdomain%specel(i)%OUTPUT = .true.
     enddo
     deallocate(itemp2)
-    ! Index of nodes for elements
-
+    ! Read elements definitions
+    ! n_nodes : number of control nodes (8 or 27)
     call read_dataset(fid, "elements", itemp2)
     Tdomain%n_nodes = size(itemp2,1)
     do i = 0, Tdomain%n_elem-1
@@ -418,7 +419,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
         end do
         deallocate(itemp2, itemp2b)
         ! Vertices for each SF face
-        call read_dataset(fid, "sf_near_vertices", itemp2)
+        call read_dataset(fid, "sf_face_near_vertices", itemp2)
         do i = 0, Tdomain%SF%SF_n_faces-1
             Tdomain%SF%SF_face(i)%Near_Vertices(0:3) = itemp2(:,i+1)
         end do
@@ -429,6 +430,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
         do i = 0, Tdomain%SF%SF_n_faces-1
             Tdomain%SF%SF_face(i)%Face(0:1) = itemp2(1:2,i+1)
             Tdomain%SF%SF_face(i)%Orient_Face = itemp(i+1)
+            Tdomain%SF%SF_face(i)%PML = .false.
         end do
         deallocate(itemp, itemp2)
         ! SF edges
@@ -439,6 +441,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
         do i = 0, Tdomain%SF%SF_n_edges-1
             Tdomain%SF%SF_edge(i)%Edge(0:1) = itemp2(1:2,i+1)
             Tdomain%SF%SF_edge(i)%Orient_Edge = itemp(i+1)
+            Tdomain%SF%SF_edge(i)%PML = .false.
         end do
         deallocate(itemp, itemp2)
         ! SF vertices
@@ -447,6 +450,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
         allocate(Tdomain%SF%SF_vertex(0:Tdomain%SF%SF_n_vertices-1))
         do i = 0, Tdomain%SF%SF_n_vertices-1
             Tdomain%SF%SF_vertex(i)%Vertex(0:1) = itemp2(1:2,i+1)
+            Tdomain%SF%SF_Vertex(i)%PML = .false.
         end do
         deallocate(itemp2)
     end if
@@ -621,7 +625,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
 
     end do
 
-    write(*,*) "Mesh read correctly for proc #", rg
+    !write(*,*) "Mesh read correctly for proc #", rg
     if(rg == 0)then
         if(Tdomain%logicD%solid_fluid)then
             write(*,*) "  --> Propagation in solid-fluid media."
@@ -631,8 +635,17 @@ subroutine read_mesh_file_h5(Tdomain, rg)
             write(*,*) "  --> Propagation in solid media."
         end if
     end if
-    write(6,*) rg, ': nb elts  ',Tdomain%n_elem
-    write(*,*) rg, "NFACES=", Tdomain%n_face
+    allocate(nb_elems_per_proc(0:8*((Tdomain%n_proc-1)/8+1)))
+    nb_elems_per_proc = 0
+    call MPI_Gather(Tdomain%n_elem, 1, MPI_INTEGER, nb_elems_per_proc, 1, MPI_INTEGER, 0, Tdomain%communicateur, ierr)
+    if (rg==0) then
+        write(*,*) "Mesh read correctly, elements per proc:"
+        do i=0,Tdomain%n_proc-1,8
+            write(*,'(I5.5,a,8I6)') i, ":", nb_elems_per_proc(i:i+7)
+        end do
+    end if
+    deallocate(nb_elems_per_proc)
+    !write(*,*) rg, "NFACES=", Tdomain%n_face
 
 end subroutine read_mesh_file_h5
 
