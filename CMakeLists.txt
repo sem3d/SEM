@@ -20,12 +20,17 @@ add_definitions(-DUSE_HDF5)
 include_directories(${HDF5_FORTRAN_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} ${HDF5_INCLUDE_DIR})
 include_directories(${HDF5_INCLUDE_DIR} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP})
 
-if (OPT_MPI)
+if (OPT_MPI OR HDF5_IS_PARALLEL)
     set(MPI_COMPILER mpif90)
     find_package(MPI)
-    add_definitions(-D__MPI)
     include_directories(${MPI_INCLUDE_PATH})
     set(GLOBAL_LINK_FLAGS ${MPI_LINK_FLAGS} ${GLOBAL_LINK_FLAGS})
+endif (OPT_MPI OR HDF5_IS_PARALLEL)
+
+
+if (OPT_MPI)
+  # Separate in case one wants to build non-mpi version of SEM against MPI enabled HDF5 library
+  add_definitions(-D__MPI)
 endif (OPT_MPI)
 
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
