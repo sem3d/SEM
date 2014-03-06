@@ -1262,9 +1262,9 @@ contains
         end if
 
         !- number of elements
-        nelemx = nint(aint((xmax-xmin)/step_x))
-        nelemy = nint(aint((ymax-ymin)/step_y))
-        nelemz = nint(aint((zmax-zmin)/step_z))
+        nelemx = nint((xmax-xmin)/step_x)
+        nelemy = nint((ymax-ymin)/step_y)
+        nelemz = nint((zmax-zmin)/step_z)
         nelem = nelemx*nelemy*nelemz
         !- number of points
         npx = merge(nelemx+1,2*nelemx+1,mesh_type==1)
@@ -1285,9 +1285,9 @@ contains
         integer              :: nelemx,nelemy,nelemz,nx,ny,nz, indelem, aux_pt
 
         !- number of elements
-        nelemx = nint(aint((xmax-xmin)/xstep))
-        nelemy = nint(aint((ymax-ymin)/ystep))
-        nelemz = nint(aint((zmax-zmin)/zstep))
+        nelemx = nint((xmax-xmin)/xstep)
+        nelemy = nint((ymax-ymin)/ystep)
+        nelemz = nint((zmax-zmin)/zstep)
 
         indelem = 0
 
@@ -1396,7 +1396,8 @@ contains
             if(half < zminref .or. half > zmaxref) stop "Stratification plane ill-placed."
         end if
 
-
+!        write(*,*) 'Pmin', xminref, yminref,zminref
+!        write(*,*) 'Pmax', xmaxref, ymaxref,zmaxref
         do n = 0,nelem-1
             do i = 0,7
                 coord(i,0) = xp(Ipoint(i,n))
@@ -1619,7 +1620,7 @@ contains
 
             end if
 
-
+            !write(*,*) 'Elem:', n, ' mat=', Mat(n), 'ctr=', bary
         end do
 
     end subroutine nature_elem
