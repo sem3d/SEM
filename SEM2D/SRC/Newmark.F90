@@ -188,7 +188,7 @@ subroutine Newmark (Tdomain)
         ! AJOUT DES FORCES MKA3D
 #ifdef COUPLAGE
         if (Tdomain%TimeD%ntime>0) then
-            call calcul_couplage_force(Tdomain,ntime)
+            call calcul_couplage_force(Tdomain,Tdomain%TimeD%ntime)
         endif
 
         ! la ForcesMka corespond a la contrainte multiplie par la surface du point de gauss correspondant

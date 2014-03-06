@@ -32,7 +32,9 @@ subroutine Newmark(Tdomain,rg,ntime)
     integer :: nf_aus, ne_aus, nv_aus
     integer :: ngll, ngll1, ngll2, ngllPML, ngll_F, ngllPML_F
     integer, parameter :: etiquette = 100
-
+#ifdef COUPLAGE
+    integer :: i,j
+#endif
 
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a
     ! Time staggered Stress-Velocity formulation inside PML

@@ -11,7 +11,8 @@
 
 #include "metislib.h"
 
-#define MAXDEGREEFOR2HOP  20  /* The maximum degree of a vertex to be considered
+#define MAXDEGREEFOR2HOP  20
+				/* The maximum degree of a vertex to be considered
                                  for matching with a 2-hop neighbor */
 
 

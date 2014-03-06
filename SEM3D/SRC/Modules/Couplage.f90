@@ -1348,7 +1348,7 @@ contains
             ngll = ngll1 * ngll2
             do idim=1,comm_couplage%m_dim
 
-                tag = 730000+1000*rg+10*ntime+(iface-1)+100*(idim-1)
+                tag = 730000+3*(iface-1)+(idim-1)
                 call MPI_SEND(vecu_tmp(1,idim), ngll, MPI_DOUBLE_PRECISION, Tdomain%master_superviseur,&
                     tag, Tdomain%communicateur_global, ierr )
 

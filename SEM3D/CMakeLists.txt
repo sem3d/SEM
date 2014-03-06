@@ -1,8 +1,8 @@
 PROJECT(sem3d)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 ENABLE_LANGUAGE(Fortran)
-set(PRJ ${PROJECT_SOURCE_DIR})
 
+set(PRJ ${PROJECT_SOURCE_DIR})
 
 set(SEM3D_SOURCES_F
     ${SEM_SRC}
@@ -114,33 +114,35 @@ set(SEM3D_SOURCES ${SEM3D_SOURCES_F}
 )
 
 
+if(OPT_MPI)
+  #set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
+  # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
+  # c++ et ne link pas semx.exe
 
+  add_executable(sem3d_cpl ${PRJ}/SRC/main.F90 ${SEM3D_SOURCES})
+  target_link_libraries(sem3d_cpl ${CEAUSER} ${SEM_EXTRA_LIBS})
+  set_target_properties(sem3d_cpl PROPERTIES 
+                              COMPILE_DEFINITIONS COUPLAGE
+                              COMPILE_FLAGS -I${PROJECT_BINARY_DIR}/cpl
+                              Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/cpl)
+else(OPT_MPI)
+  set(SEM3D_SOURCES ${SEM3D_SOURCES} ${FTM_SOURCES})
+endif(OPT_MPI)
 
-# HDF5
-set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
-message("SEMLIBS: '${SEM_EXTRA_LIBS}'")
-
-if (OPT_COUPLAGE)
-add_library(sem3d STATIC ${SEM3D_SOURCES})
-set_target_properties(sem3d PROPERTIES COMPILE_DEFINITIONS COUPLAGE)
-install(TARGETS sem3d ARCHIVE DESTINATION lib)
-endif (OPT_COUPLAGE)
-
-# NB: on peut compiler sem3d.exe avec OPT_COUPLAGE mais on va compiler
-# les sources 2 fois (une fois avec -DCOUPLAGE, une fois sans)
-if(NOT OPT_COUPLAGE)
 add_executable(sem3d.exe  ${PRJ}/SRC/main.F90 ${SEM3D_SOURCES})
 target_link_libraries(sem3d.exe ${SEM_EXTRA_LIBS})
+set_target_properties(sem3d.exe PROPERTIES 
+                                COMPILE_FLAGS -I${PROJECT_BINARY_DIR}/ncpl
+                                Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/ncpl)
 install(TARGETS sem3d.exe RUNTIME DESTINATION bin)
-endif(NOT OPT_COUPLAGE)
 
 
 add_executable(test_Q_coeffs ${PRJ}/TESTS/UNITS/test_Q_coeffs.c
       ${PRJ}/SRC/compute_constant_Q.c
-    ${PRJ}/SRC/compute_iso_Q.c
-    ${PRJ}/SRC/constant_Q2_sub.c
-    ${PRJ}/SRC/iso_Q2_sub.c
-    ${PRJ}/SRC/nrutil.c
+      ${PRJ}/SRC/compute_iso_Q.c
+      ${PRJ}/SRC/constant_Q2_sub.c
+      ${PRJ}/SRC/iso_Q2_sub.c
+      ${PRJ}/SRC/nrutil.c
 )
 
 target_link_libraries(test_Q_coeffs m)
@@ -148,4 +150,3 @@ target_link_libraries(test_Q_coeffs m)
 add_executable(test_pointlist ${PRJ}/TESTS/UNITS/test_pointlist.f90
   ${SEMCOMMON}/pointlist.f90
 )
-
