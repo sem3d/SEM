@@ -339,7 +339,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
     allocate (Tdomain%Coord_nodes(0:Tdomain%n_dime-1,0:Tdomain%n_glob_nodes-1))
     Tdomain%Coord_nodes = rtemp2
     deallocate(rtemp2)
-    ! Elements (material and solid or fluid)
+    ! Elements (material and solid or fluid and if fluid: Dirichlet boundary?)
     call read_dataset(fid, "material", itemp2)
     if (Tdomain%n_elem /= size(itemp2,2)) then
         write(*,*) "N_elem:", Tdomain%n_elem
@@ -351,6 +351,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
         call init_element(Tdomain%specel(i))
         Tdomain%specel(i)%mat_index = itemp2(1,i+1)
         Tdomain%specel(i)%solid = itemp2(2,i+1) .ne. 0
+        Tdomain%specel(i)%fluid_dirich = itemp2(3,i+1) .ne. 0
         Tdomain%specel(i)%OUTPUT = .true.
     enddo
     deallocate(itemp2)
