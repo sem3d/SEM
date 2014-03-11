@@ -162,6 +162,9 @@ contains
         !- local solid-fluid objects
         type(local_sf_info) :: SF
 
+
+
+
         !--------------------------------------------------------------
         !- INITIALIZATIONS OF DIFFERENT MESH AND MATERIAL PROPERTIES
         call mesh_init_3D(n_nods,n_points,n_elem,n_blocks,                  &
@@ -229,15 +232,17 @@ contains
 
         allocate(elem_near_proc(0:n_elem-1))
         call find_near_proc(n_elem,near_elem_set,part,elem_near_proc)
+         
 
         !-----------------------------------------------------------
         !-  BOUNDARY CONDITIONS
         !- Dirichlet boundary condition in fluid: free surface
         if(any_fluid)then
             allocate(elem_fluid_dirich(0:n_elem-1))
-            call find_fluid_elem_dirich(n_elem,dxadj,dxadjncy,   &
+            call find_fluid_elem_freesurf(n_elem,dxadj,dxadjncy,   &
                 Ipointer,elem_solid,elem_fluid_dirich)
         end if
+
 
         !-----------------------------------------------------
         !-   NEUMANN INTERFACE : GLOBAL PROPERTIES
@@ -334,7 +339,6 @@ contains
                 SF_object,SF_object_face,SF_object_n_faces,  &
                 SF_global_faces)
 
-
             !- now we construct GLOBAL solid/fluid vertices
             allocate(SF_global_node_to_vertex(0:n_points-1))
             call SF_global_vertices_construct(n_SF_nodes,SF_n_global_faces,       &
@@ -347,7 +351,6 @@ contains
                 SF_n_global_edges,SF_global_edges)
             allocate(SF_global_edge_present(0:SF_n_global_edges-1))
 
-
             !- search for elements sharing the same SF edge:
             !     intersection of sets
             allocate(SF_edges_near_elem(0:SF_n_global_edges-1))
@@ -358,7 +361,7 @@ contains
                 n1 = SF_global_vertices(nv1)%node(1)
                 call entity_intersect(initnode(n0)%ptr,initnode(n1)%ptr,SF_edges_near_elem(i)%ptr)
                 call entity_sort(SF_edges_near_elem(i)%ptr)
-                !   call list_entity(SF_edges_near_elem(i)%ptr)
+                 !  call list_entity(SF_edges_near_elem(i)%ptr) ; read*
             end do
 
             !- if Solid-Fluid: doubled nodes -> change of indices
@@ -494,7 +497,6 @@ contains
         call system("rm -f mesh4spec.????.h5")
         meshfilename(1:10) = "mesh4spec."
 
-
         !-------------------------------------------------
         !-  CREATION OF SEM-style files : LOOP ON PROCS
         write(*,*) "  --> Loop on procs!"
@@ -556,7 +558,7 @@ contains
             allocate(shared%faces(0:nproc-1,0:6*nelem_in_proc(proc)-1))
             allocate(shared%mapping_faces(0:nproc-1,0:6*nelem_in_proc(proc)-1))
             allocate(shared%nf(0:nproc-1))
-            call local_faces_construct(proc,part,nelem_in_proc,which_elem_in_proc,   &
+            call local_faces_construct(proc,part,nelem_in_proc,which_elem_in_proc,Elem_glob2loc,   &
                 Ipointer,dxadj,dxadjncy,elem_near_proc,n_faces,faces,mapping_faces,  &
                 shared%faces,shared%mapping_faces,shared%nf,memory)
 
@@ -734,18 +736,18 @@ contains
             !- writing the meshfile
             write(meshfilename(11:14), '(i4.4)') proc
 
-            !call write_mesh_file_txt(meshfilename,solid_fluid,all_fluid,Neumann_present, &
-            !    n_elem,n_points,n_points_local,n_blocks,n_edges,n_faces,n_nods,n_vertices, &
-            !    SF, Neu, shared, &
-            !    material, elem_solid, Ipointer_local, &
-            !    faces, mapping_faces, edges, mapping_edges, vertices, &
-            !    node_loc2glob,Gcoord,vertex_to_glob, &
-            !    which_elem_in_proc,nelem_in_proc,proc,nproc)
+!            call write_mesh_file_txt(meshfilename,solid_fluid,all_fluid,Neumann_present, &
+!                n_elem,n_points,n_points_local,n_blocks,n_edges,n_faces,n_nods,n_vertices, &
+!                SF, Neu, shared, &
+!                material, elem_solid, Ipointer_local, &
+!                faces, mapping_faces, edges, mapping_edges, vertices, &
+!                node_loc2glob,Gcoord,vertex_to_glob, &
+!                which_elem_in_proc,nelem_in_proc,proc,nproc)
 
             call write_mesh_file_h5(meshfilename//".h5",solid_fluid,all_fluid,Neumann_present, &
                 n_elem,n_points,n_points_local,n_blocks,n_edges,n_faces,n_nods,n_vertices, &
                 SF, Neu, shared, &
-                material, elem_solid, Ipointer_local, &
+                material, elem_solid,elem_fluid_dirich, Ipointer_local, &
                 faces, mapping_faces, edges, mapping_edges, vertices, &
                 node_loc2glob,Gcoord,vertex_to_glob, &
                 which_elem_in_proc,nelem_in_proc,proc,nproc)
@@ -1073,7 +1075,7 @@ contains
     subroutine write_mesh_file_h5(meshfilename,solid_fluid,all_fluid,Neumann_present, &
         n_elem,n_points,n_points_local,n_blocks,n_edges,n_faces,n_nods,n_vertices, &
         SF, Neu, shared, &
-        material, elem_solid, Ipointer_local, &
+        material, elem_solid,elem_fluid_dirich, Ipointer_local, &
         faces, mapping_faces, edges, mapping_edges, vertices, &
         node_loc2glob,Gcoord,vertex_to_glob, &
         which_elem_in_proc,nelem_in_proc,proc,nproc)
@@ -1091,7 +1093,7 @@ contains
         integer, intent(in), dimension(0:nproc-1)          :: nelem_in_proc
         integer, intent(in), dimension(0:nproc-1,0:maxval(nelem_in_proc)-1) :: which_elem_in_proc
         integer, intent(in), dimension(0:n_elem-1) :: material
-        logical, intent(in), dimension(0:n_elem-1) :: elem_solid
+        logical, intent(in), dimension(0:n_elem-1) :: elem_solid, elem_fluid_dirich
         integer, intent(in), dimension(0:n_nods-1,0:nelem_in_proc(proc)-1) :: Ipointer_local
         integer, intent(in), dimension(0:nelem_in_proc(proc)-1,0:5)  :: faces
         integer, intent(in), dimension(0:nelem_in_proc(proc)-1,0:5)  :: mapping_faces
@@ -1157,7 +1159,7 @@ contains
         dims(1) = 2
         dims(2) = nelem_in_proc(proc)
 
-        allocate(itemp2(0:1,0:dims(2)-1))
+        allocate(itemp2(0:2,0:dims(2)-1))
         do i=0,nelem_in_proc(proc)-1
             nel = which_elem_in_proc(proc,i)
             itemp2(0,i) = Material(nel)
@@ -1166,6 +1168,12 @@ contains
             else
                 itemp2(1,i) = 0
             end if
+            if (elem_fluid_dirich(nel)) then
+                itemp2(2,i) = 1
+            else
+                itemp2(2,i) = 0
+            end if
+
         end do
         call write_dataset(fid, "material", itemp2, hdferr)
         deallocate(itemp2)
