@@ -27,8 +27,8 @@ module sfaces
        integer, dimension (:,:), allocatable :: Iglobnum_Face
        real, dimension (:,:), allocatable  :: MassMat
        real, dimension (:,:,:), allocatable :: Forces, Displ, Veloc, Accel, V0
-       logical :: solid
        ! solid-fluid
+       logical :: solid, fluid_dirich
        real, dimension(:,:), allocatable :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
        ! pml
        type(face_pml), pointer :: spml
@@ -102,6 +102,7 @@ contains
 
         F%ForcesFl(:,:) = F%MassMat(:,:) * F%ForcesFl(:,:)
         F%VelPhi(:,:) = F%VelPhi0(:,:) + dt * F%ForcesFl(:,:)
+        if(F%fluid_dirich) F%VelPhi = 0d0
         F%AccelPhi(:,:) = (F%VelPhi(:,:)-F%VelPhi0(:,:))/dt
         F%Phi(:,:) = F%Phi(:,:) + dt * F%VelPhi(:,:)
         return
@@ -163,7 +164,7 @@ contains
 
         F%VelPhi = F%spml%VelPhi1 + F%spml%VelPhi2 + F%spml%VelPhi3
 
-        if(F%Abs)then
+        if(F%Abs .or. F%fluid_dirich)then
             F%VelPhi = 0
         endif
 
