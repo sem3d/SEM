@@ -57,6 +57,14 @@ module sem_c_config
        real(C_DOUBLE), dimension(3) :: neu_L
        real(C_DOUBLE), dimension(3) :: neu_C
        real(C_DOUBLE) :: neu_f0
+
+       !!Material
+       integer(C_INT) :: material_present
+       integer(C_INT) :: material_type
+       type(C_PTR)    :: model_file
+       real(C_DOUBLE) :: delta_lon
+       real(C_DOUBLE) :: delta_lat
+
     end type sem_config
 
 

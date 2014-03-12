@@ -63,6 +63,11 @@ module sdomain
        character (len=30) :: file_bassin
        character (len=1)  :: Super_object_type
 
+       !!
+       integer :: earthchunk_isInit
+       character (len=MAX_FILE_SIZE) :: earthchunk_file
+       real :: earthchunk_delta_lon, earthchunk_delta_lat
+
        real :: MPML_coeff
 
     end type domain

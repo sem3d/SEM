@@ -27,6 +27,7 @@ module ssubdomains
        real, dimension (:,:), pointer :: hprimez, hTprimez
 
        character(len=1) :: material_type
+       integer :: material_definition
 
     end type Subdomain
 
