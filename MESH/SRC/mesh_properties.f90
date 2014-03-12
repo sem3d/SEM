@@ -3,6 +3,8 @@ module mesh_properties
     use fich_cubit
     use fich_unv
     use sets, only : sort
+    use mesh_earthchunk
+
     implicit none
 
 contains
@@ -30,6 +32,9 @@ contains
         character(len=30)    :: cubitmesh
         character(len=60), dimension(:), allocatable  :: unv_files
 
+
+        type(EarthChunk) :: earthchunk
+
         ! no Neumann or Plane Wave faces for the time being.
         n_neu = 0 ; n_PW = 0
 
@@ -40,6 +45,8 @@ contains
         write(*,*) "     1- On the fly"
         write(*,*) "     2- Abaqus from Cubit"
         write(*,*) "     3- Ideas (.unv) files"
+        write(*,*) "     4- HDF5 Hex8 files"
+        write(*,*) "     5- Earth Chunk"
         read(*,*) choice
         write(*,*)
         write(*,*) "****************************************"
@@ -74,6 +81,23 @@ contains
             !- PML materials added
             call nature_elem(Ipointer,xco,yco,zco,nmatref,Material,xminref,    &
                 xmaxref,yminref,ymaxref,zminref,zmaxref)
+
+        case(5)
+            
+            call init_earthchunk(earthchunk)
+
+            n_points = earthchunk%total_pt
+            n_elem = earthchunk%total_elem
+            n_nods = earthchunk%nods
+            allocate(xco(0:n_points-1),yco(0:n_points-1),zco(0:n_points-1))
+            allocate(Ipointer(0:n_nods-1,0:n_elem-1))
+            allocate(Material(0:n_elem-1))
+
+            call create_earthchunk(earthchunk, nmatref, xco,yco,zco, Ipointer, Material)
+
+            call clean_earthchunk(earthchunk)
+
+            n_blocks = size(tabmat)
 
             !- Cubit file
         case(2)
@@ -1328,6 +1352,7 @@ contains
                         Ipoint(5,indelem) = 2*nx+2*ny*(2*nelemx+1)+2*(nz+1)*(2*nelemx+1)*(2*nelemy+1)+2
                         Ipoint(6,indelem) = 2*nx+2*(ny+1)*(2*nelemx+1)+2*(nz+1)*(2*nelemx+1)*(2*nelemy+1)+2
                         Ipoint(7,indelem) = 2*nx+2*(ny+1)*(2*nelemx+1)+2*(nz+1)*(2*nelemx+1)*(2*nelemy+1)
+
                         Ipoint(8,indelem) = 2*nx+2*ny*(2*nelemx+1)+2*nz*(2*nelemx+1)*(2*nelemy+1)+1
                         Ipoint(9,indelem) = 2*nx+(2*ny+1)*(2*nelemx+1)+2*nz*(2*nelemx+1)*(2*nelemy+1)+2
                         Ipoint(10,indelem) = 2*nx+2*(ny+1)*(2*nelemx+1)+2*nz*(2*nelemx+1)*(2*nelemy+1)+1

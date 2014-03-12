@@ -8,6 +8,7 @@ add_subdirectory(metis)
 set(MESH_SRC
   ${SEMCOMMON}/sem_hdf5.f90
   ${SEMCOMMON}/pointlist.f90
+  ${PRJ}/SRC/mesh_earthchunk.f90
   ${PRJ}/SRC/fich_cubit.f90
   ${PRJ}/SRC/fich_unv.f90
   ${PRJ}/SRC/local_mesh_properties.f90
@@ -18,6 +19,7 @@ set(MESH_SRC
   ${PRJ}/SRC/partition_mesh.f90
   ${PRJ}/SRC/sets.f90
   ${PRJ}/SRC/solid_fluid.f90
+  ${PRJ}/SRC/free_surf.f90
 )
 
 
