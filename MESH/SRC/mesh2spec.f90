@@ -1168,12 +1168,15 @@ contains
             else
                 itemp2(1,i) = 0
             end if
-            if (elem_fluid_dirich(nel)) then
-                itemp2(2,i) = 1
+            if (all_fluid .OR. solid_fluid) then
+                if (elem_fluid_dirich(nel)) then
+                    itemp2(2,i) = 1
+                else
+                    itemp2(2,i) = 0
+                end if
             else
                 itemp2(2,i) = 0
             end if
-
         end do
         call write_dataset(fid, "material", itemp2, hdferr)
         deallocate(itemp2)
