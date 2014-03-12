@@ -3,7 +3,7 @@ module mesh_earthchunk
     implicit none
 
     real, parameter :: Earth_radius=6371000.d0, Pi = 3.141592653, Pi180 = Pi/180.0
-    type :: EarthChunk
+    type :: EarthChunk_t
         integer :: npt_lon, npt_lat, npt_z, total_pt, total_elem, nods
         real :: lon_center, lat_center, delta_lon, delta_lat,&
                   max_depth, step_lonlat
@@ -43,7 +43,7 @@ contains
         implicit none
         real :: delta_lon, delta_lat, step_lonlat, max_depth, curDepth, dTheta
         integer :: mesh_type, countPt, i
-        type(EarthChunk), intent(out) :: chunk
+        type(EarthChunk_t), intent(out) :: chunk
 
         write(*,*) "*****************************************"
         write(*,*) "  --> Longitude center: " ; read(*,*) chunk%lon_center
@@ -130,7 +130,7 @@ contains
 
     subroutine clean_earthchunk(chunk)
         implicit none
-        type(EarthChunk), intent(inout) :: chunk
+        type(EarthChunk_t), intent(inout) :: chunk
 
         deallocate(chunk%z_depth)
 
@@ -171,7 +171,7 @@ contains
         real :: curDepth, curX, curY, x, y, z
         real, dimension(0:2,0:2) :: rotToRealChunk
 !        real :: refX, refY, sizeChunk
-        type(EarthChunk), intent(in) :: chunk
+        type(EarthChunk_t), intent(in) :: chunk
 
 
         call defineRotation(chunk%lon_center, chunk%lat_center, rotToRealChunk)

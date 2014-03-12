@@ -34,7 +34,7 @@ contains
         character(len=60), dimension(:), allocatable  :: unv_files
 
 
-        type(EarthChunk) :: earthchunk
+        type(EarthChunk_t) :: earthchunk
 
         ! no Neumann or Plane Wave faces for the time being.
         n_neu = 0 ; n_PW = 0

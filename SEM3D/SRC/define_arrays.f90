@@ -54,7 +54,7 @@ subroutine Define_Arrays(Tdomain, rg)
 
 
 
-    if( Tdomain%earthchunk_isInit) then
+    if( Tdomain%earthchunk_isInit/=0) then
         call load_model(Tdomain%earthchunk_file, Tdomain%earthchunk_delta_lon, Tdomain%earthchunk_delta_lat)
     endif
 
@@ -399,7 +399,7 @@ subroutine Define_Arrays(Tdomain, rg)
 
 
 
-    if( Tdomain%earthchunk_isInit) then
+    if( Tdomain%earthchunk_isInit/=0) then
         ! call clean_model()
     endif
 
