@@ -13,6 +13,8 @@ subroutine Define_Arrays(Tdomain, rg)
     use mpi
     use scomm
     use scommutils
+    use constants
+    use read_model_earthchunk
     implicit none
 
     interface
@@ -49,6 +51,12 @@ subroutine Define_Arrays(Tdomain, rg)
 
     !          print*,'   sur proc ',rg,' flag gradient ',Tdomain%logicD%grad_bassin
 
+
+
+    if( Tdomain%earthchunk_isInit) then
+        call load_model(Tdomain%earthchunk_file, Tdomain%earthchunk_delta_lon, Tdomain%earthchunk_delta_lat)
+    endif
+
     do n = 0,Tdomain%n_elem-1
         mat = Tdomain%specel(n)%mat_index
         !        il faut avoir passe avant de courant.f90 pour avoir le bon pas de temps
@@ -60,139 +68,165 @@ subroutine Define_Arrays(Tdomain, rg)
         !    integration de la prise en compte du gradient de proprietes
 
 
-        !    on copie toujours le materiau de base
-        Tdomain%specel(n)%Density = Tdomain%sSubDomain(mat)%Ddensity
-        Tdomain%specel(n)%Lambda = Tdomain%sSubDomain(mat)%DLambda
-        Tdomain%specel(n)%Kappa = Tdomain%sSubDomain(mat)%DKappa
-        Tdomain%specel(n)%Mu = Tdomain%sSubDomain(mat)%DMu
-        !    si le flag gradient est actif alors on peut changer les proprietes
-        if ( Tdomain%logicD%grad_bassin ) then
-            !    debut modification des proprietes des couches de materiaux
-            !    bassin    voir programme Surface.f90
 
-            !     n_layer nombre de couches
-            !     n_colonne nombre de colonnes en x ici uniquement
-            !     x_type == 0 on remet des materiaux  homogenes dans chaque bloc
-            !     x_type == 1 on met des gradients pour chaque colonne en interpolant
-            !     suivant z
-            !       integer  :: n_colonne, n_layer, x_type
-            !    x_coord correspond aux abscisses des colonnes
-            !       real, pointer, dimension(:) :: x_coord
-            !      z_layer profondeur de  linterface pour chaque x de colonne
-            !      on definit egalement le materiaux par rho, Cp , Cs
-            !       real, pointer, dimension(:,:) :: z_layer, z_rho, z_Cp, z_Cs
+        select case( Tdomain%sSubDomain(mat)%material_definition)
+            case( MATERIAL_CONSTANT )
+                !    on copie toujours le materiau de base
+                Tdomain%specel(n)%Density = Tdomain%sSubDomain(mat)%Ddensity
+                Tdomain%specel(n)%Lambda = Tdomain%sSubDomain(mat)%DLambda
+                Tdomain%specel(n)%Kappa = Tdomain%sSubDomain(mat)%DKappa
+                Tdomain%specel(n)%Mu = Tdomain%sSubDomain(mat)%DMu
+                !    si le flag gradient est actif alors on peut changer les proprietes
 
 
-            !     on cherche tout d abord a localiser la maille a partir d un
-            !     point de Gauss interne milieux (imx,imy,imz)
-            imx = 1+(ngllx-1)/2
-            imy = 1+(nglly-1)/2
-            imz = 1+(ngllz-1)/2
-            !     on impose qu une maille appartienne a un seul groupe de gradient de
-            !     proprietes
-            ipoint = Tdomain%specel(n)%Iglobnum(imx,imy,imz)
-            xp = Tdomain%GlobCoord(0,ipoint)
-            yp = Tdomain%GlobCoord(1,ipoint)
-            zp = Tdomain%GlobCoord(2,ipoint)
-            iflag = 0
-            if ( Tdomain%sBassin%x_type .eq. 2 ) then
-                if ( zp .gt. Tdomain%sBassin%zmax) then
-                    iflag = 1
-                endif
-                if ( zp .lt. Tdomain%sBassin%zmin) then
-                    iflag = 1
-                endif
-            endif
-            !  si iflag nul on peut faire les modifications  pour toute la maille
-            if ( iflag .eq. 0 ) then
-                icolonne = 0
-                xfact = 0.D0
-                do i = 1, Tdomain%sBassin%n_colonne
-                    if ( xp .ge. Tdomain%sBassin%x_coord(i-1) .and.  xp .lt. Tdomain%sBassin%x_coord(i) ) then
-                        icolonne = i-1
-                        xfact = (xp - Tdomain%sBassin%x_coord(i-1))/(Tdomain%sBassin%x_coord(i)-Tdomain%sBassin%x_coord(i-1))
+            case( MATERIAL_EARTHCHUNK )
+                call initialize_material_earthchunk(Tdomain%specel(n), Tdomain%sSubDomain(mat), Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
+
+
+            case( MATERIAL_GRADIENT )
+                !    on copie toujours le materiau de base
+                Tdomain%specel(n)%Density = Tdomain%sSubDomain(mat)%Ddensity
+                Tdomain%specel(n)%Lambda = Tdomain%sSubDomain(mat)%DLambda
+                Tdomain%specel(n)%Kappa = Tdomain%sSubDomain(mat)%DKappa
+                Tdomain%specel(n)%Mu = Tdomain%sSubDomain(mat)%DMu
+                !    si le flag gradient est actif alors on peut changer les proprietes
+
+                if ( Tdomain%logicD%grad_bassin ) then
+                    !    debut modification des proprietes des couches de materiaux
+                    !    bassin    voir programme Surface.f90
+
+                    !     n_layer nombre de couches
+                    !     n_colonne nombre de colonnes en x ici uniquement
+                    !     x_type == 0 on remet des materiaux  homogenes dans chaque bloc
+                    !     x_type == 1 on met des gradients pour chaque colonne en interpolant
+                    !     suivant z
+                    !       integer  :: n_colonne, n_layer, x_type
+                    !    x_coord correspond aux abscisses des colonnes
+                    !       real, pointer, dimension(:) :: x_coord
+                    !      z_layer profondeur de  linterface pour chaque x de colonne
+                    !      on definit egalement le materiaux par rho, Cp , Cs
+                    !       real, pointer, dimension(:,:) :: z_layer, z_rho, z_Cp, z_Cs
+
+
+                    !     on cherche tout d abord a localiser la maille a partir d un
+                    !     point de Gauss interne milieux (imx,imy,imz)
+                    imx = 1+(ngllx-1)/2
+                    imy = 1+(nglly-1)/2
+                    imz = 1+(ngllz-1)/2
+                    !     on impose qu une maille appartienne a un seul groupe de gradient de
+                    !     proprietes
+                    ipoint = Tdomain%specel(n)%Iglobnum(imx,imy,imz)
+                    xp = Tdomain%GlobCoord(0,ipoint)
+                    yp = Tdomain%GlobCoord(1,ipoint)
+                    zp = Tdomain%GlobCoord(2,ipoint)
+                    iflag = 0
+                    if ( Tdomain%sBassin%x_type .eq. 2 ) then
+                        if ( zp .gt. Tdomain%sBassin%zmax) then
+                            iflag = 1
+                        endif
+                        if ( zp .lt. Tdomain%sBassin%zmin) then
+                            iflag = 1
+                        endif
                     endif
-                enddo
-
-                jlayer = 0
-                zfact = 0.D0
-                do j = 1,Tdomain%sBassin%n_layer
-                    zg1 = Tdomain%sBassin%z_layer(icolonne,j-1)
-                    zd1 = Tdomain%sBassin%z_layer(icolonne+1,j-1)
-                    zz1 = zg1 + xfact*(zd1-zg1)
-                    zg2 = Tdomain%sBassin%z_layer(icolonne,j)
-                    zd2 = Tdomain%sBassin%z_layer(icolonne+1,j)
-                    zz2 = zg2 + xfact*(zd2-zg2)
-                    if ( zp .ge. zz1 .and. zp .lt. zz2 ) then
-                        jlayer = j-1
-                        zfact = ( zp -zz1)/(zz2-zz1)
-                    endif
-                enddo
-                !        limite du sous-domaine de gradient
-                xg1 = Tdomain%sBassin%x_coord(icolonne)
-                xd1 = Tdomain%sBassin%x_coord(icolonne+1)
-                zg1 = Tdomain%sBassin%z_layer(icolonne,jlayer)
-                zd1 = Tdomain%sBassin%z_layer(icolonne+1,jlayer)
-                zg2 = Tdomain%sBassin%z_layer(icolonne,jlayer+1)
-                zd2 = Tdomain%sBassin%z_layer(icolonne+1,jlayer+1)
-                !
-                zrho1 = Tdomain%sBassin%z_rho(icolonne,jlayer)
-                zrho2 = Tdomain%sBassin%z_rho(icolonne,jlayer+1)
-                zCp1 = Tdomain%sBassin%z_Cp(icolonne,jlayer)
-                zCp2 = Tdomain%sBassin%z_Cp(icolonne,jlayer+1)
-                zCs1 = Tdomain%sBassin%z_Cs(icolonne,jlayer)
-                zCs2 = Tdomain%sBassin%z_Cs(icolonne,jlayer+1)
-
-                if ( Tdomain%sBassin%x_type .eq. 0 ) then
-                    !   on met les memes proprietes dans toute la maille
-                    zfact = 0.D0
-                    zrho   = zrho1 + zfact*(zrho2-zrho1)
-                    zCp   = zCp1 + zfact*(zCp2-zCp1)
-                    zCs   = zCs1 + zfact*(zCs2-zCs1)
-                    !     calcul des coeffcients elastiques
-                    Mu     = zrho*zCs*zCs
-                    Lambda = zrho*(zCp*zCp - zCs*zCs)
-                    Kappa  = Lambda + 2.D0*Mu/3.D0
-                endif
-
-                !     boucle sur les points de Gauss de la maille
-                !     xp, yp, zp coordonnees du point de Gauss
-                do k = 0, ngllz -1
-                    do j = 0,nglly-1
-                        do i = 0,ngllx-1
-                            ipoint = Tdomain%specel(n)%Iglobnum(i,j,k)
-                            xp = Tdomain%GlobCoord(0,ipoint)
-                            yp = Tdomain%GlobCoord(1,ipoint)
-                            zp = Tdomain%GlobCoord(2,ipoint)
-                            if ( Tdomain%sBassin%x_type .ge. 1 ) then
-                                !    interpolations  pour le calcul du gradient
-                                xfact = ( xp - xg1)/(xd1-xg1)
-                                zz1 = zg1 + xfact*(zd1-zg1)
-                                zz2 = zg2 + xfact*(zd2-zg2)
-                                zfact = ( zp - zz1)/(zz2-zz1)
-                                zrho   = zrho1 + zfact*(zrho2-zrho1)
-                                zCp   = zCp1 + zfact*(zCp2-zCp1)
-                                zCs   = zCs1 + zfact*(zCs2-zCs1)
-                                !     calcul des coeffcients elastiques
-                                Mu     = zrho*zCs*zCs
-                                Lambda = zrho*(zCp*zCp - zCs*zCs)
-                                Kappa  = Lambda + 2.D0*Mu/3.D0
-                            endif
-                            Tdomain%specel(n)%Density(i,j,k) = zrho
-                            Tdomain%specel(n)%Lambda(i,j,k) = Lambda
-                            Tdomain%specel(n)%Kappa(i,j,k) = Kappa
-                            Tdomain%specel(n)%Mu(i,j,k) = Mu
+                    !  si iflag nul on peut faire les modifications  pour toute la maille
+                    if ( iflag .eq. 0 ) then
+                        icolonne = 0
+                        xfact = 0.D0
+                        do i = 1, Tdomain%sBassin%n_colonne
+                        if ( xp .ge. Tdomain%sBassin%x_coord(i-1) .and.  xp .lt. Tdomain%sBassin%x_coord(i) ) then
+                            icolonne = i-1
+                            xfact = (xp - Tdomain%sBassin%x_coord(i-1))/(Tdomain%sBassin%x_coord(i)-Tdomain%sBassin%x_coord(i-1))
+                        endif
                         enddo
-                    enddo
-                enddo
 
-                !    fin test iflag nul
-            endif
-            !    fin modification des proprietes des couches de materiaux
-        endif
+                        jlayer = 0
+                        zfact = 0.D0
+                        do j = 1,Tdomain%sBassin%n_layer
+                        zg1 = Tdomain%sBassin%z_layer(icolonne,j-1)
+                        zd1 = Tdomain%sBassin%z_layer(icolonne+1,j-1)
+                        zz1 = zg1 + xfact*(zd1-zg1)
+                        zg2 = Tdomain%sBassin%z_layer(icolonne,j)
+                        zd2 = Tdomain%sBassin%z_layer(icolonne+1,j)
+                        zz2 = zg2 + xfact*(zd2-zg2)
+                        if ( zp .ge. zz1 .and. zp .lt. zz2 ) then
+                            jlayer = j-1
+                            zfact = ( zp -zz1)/(zz2-zz1)
+                        endif
+                        enddo
+                        !        limite du sous-domaine de gradient
+                        xg1 = Tdomain%sBassin%x_coord(icolonne)
+                        xd1 = Tdomain%sBassin%x_coord(icolonne+1)
+                        zg1 = Tdomain%sBassin%z_layer(icolonne,jlayer)
+                        zd1 = Tdomain%sBassin%z_layer(icolonne+1,jlayer)
+                        zg2 = Tdomain%sBassin%z_layer(icolonne,jlayer+1)
+                        zd2 = Tdomain%sBassin%z_layer(icolonne+1,jlayer+1)
+                        !
+                        zrho1 = Tdomain%sBassin%z_rho(icolonne,jlayer)
+                        zrho2 = Tdomain%sBassin%z_rho(icolonne,jlayer+1)
+                        zCp1 = Tdomain%sBassin%z_Cp(icolonne,jlayer)
+                        zCp2 = Tdomain%sBassin%z_Cp(icolonne,jlayer+1)
+                        zCs1 = Tdomain%sBassin%z_Cs(icolonne,jlayer)
+                        zCs2 = Tdomain%sBassin%z_Cs(icolonne,jlayer+1)
+
+                        if ( Tdomain%sBassin%x_type .eq. 0 ) then
+                            !   on met les memes proprietes dans toute la maille
+                            zfact = 0.D0
+                            zrho   = zrho1 + zfact*(zrho2-zrho1)
+                            zCp   = zCp1 + zfact*(zCp2-zCp1)
+                            zCs   = zCs1 + zfact*(zCs2-zCs1)
+                            !     calcul des coeffcients elastiques
+                            Mu     = zrho*zCs*zCs
+                            Lambda = zrho*(zCp*zCp - zCs*zCs)
+                            Kappa  = Lambda + 2.D0*Mu/3.D0
+                        endif
+
+                        !     boucle sur les points de Gauss de la maille
+                        !     xp, yp, zp coordonnees du point de Gauss
+                        do k = 0, ngllz -1
+                        do j = 0,nglly-1
+                        do i = 0,ngllx-1
+                        ipoint = Tdomain%specel(n)%Iglobnum(i,j,k)
+                        xp = Tdomain%GlobCoord(0,ipoint)
+                        yp = Tdomain%GlobCoord(1,ipoint)
+                        zp = Tdomain%GlobCoord(2,ipoint)
+                        if ( Tdomain%sBassin%x_type .ge. 1 ) then
+                            !    interpolations  pour le calcul du gradient
+                            xfact = ( xp - xg1)/(xd1-xg1)
+                            zz1 = zg1 + xfact*(zd1-zg1)
+                            zz2 = zg2 + xfact*(zd2-zg2)
+                            zfact = ( zp - zz1)/(zz2-zz1)
+                            zrho   = zrho1 + zfact*(zrho2-zrho1)
+                            zCp   = zCp1 + zfact*(zCp2-zCp1)
+                            zCs   = zCs1 + zfact*(zCs2-zCs1)
+                            !     calcul des coeffcients elastiques
+                            Mu     = zrho*zCs*zCs
+                            Lambda = zrho*(zCp*zCp - zCs*zCs)
+                            Kappa  = Lambda + 2.D0*Mu/3.D0
+                        endif
+                        Tdomain%specel(n)%Density(i,j,k) = zrho
+                        Tdomain%specel(n)%Lambda(i,j,k) = Lambda
+                        Tdomain%specel(n)%Kappa(i,j,k) = Kappa
+                        Tdomain%specel(n)%Mu(i,j,k) = Mu
+                        enddo
+                        enddo
+                        enddo
+
+                        !    fin test iflag nul
+                    endif
+                    !    fin modification des proprietes des couches de materiaux
+                endif
 
 
 
+
+        end select
+
+
+
+
+
+
+        !je sais pas trop ce que tout ça fait
 
         if (Tdomain%aniso) then
         else
@@ -210,6 +244,10 @@ subroutine Define_Arrays(Tdomain, rg)
                 Tdomain%specel(n)%Qp = Tdomain%sSubDomain(mat)%Qpression
             endif
         endif
+
+
+
+
 
         allocate(Jac(0:ngllx-1,0:nglly-1,0:ngllz-1))
         allocate(xix(0:ngllx-1,0:nglly-1,0:ngllz-1))
@@ -363,6 +401,14 @@ subroutine Define_Arrays(Tdomain, rg)
 
         ! end of the loop upon elements
     enddo
+
+
+
+    if( Tdomain%earthchunk_isInit) then
+        ! call clean_model()
+    endif
+
+
 
     !- Mass and DumpMass Communications (assemblage) inside Processors
     do n = 0,Tdomain%n_elem-1
