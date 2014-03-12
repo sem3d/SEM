@@ -3,6 +3,46 @@
 NEWS
 ====
 
+Version 2014.xx
+---------------
+
+- Partitionneur 2D / C++ (LA)
+
+- Entrees/sorties HDF5 pour SEM2D, sauvegarde de l'accélération dans les snapshots (LA)
+
+- nouvelle option (``dim``) obligatoire, permet :
+
+  - la direction des pulses est maintenant un vecteur quelconque.
+
+  - les vecteurs spécifiés en 2D pour Sem2D (``dim=2``) et non plus en X (Y=0) Z.
+
+  - tenseur moment quelconque en 2D
+
+- Model global EarthChunk (ML)
+
+- Calcul de l'énergie totale (ST) (option ``output_total_energy``)
+
+- Mailleur et SEM3D :
+
+  - condition de type dirichlet (P=0) pour les fluides (LG)
+
+- Corrections de bug
+
+  - compilation en mode MPI=off,
+
+  - position des recepteurs,
+
+  - mauvais calcul dans partial_deriv
+
+- Performance
+
+  - regroupement des sorties par groupes de processeurs (option ``group_outputs``)
+
+  - SEM2D, sauvegarde par blocs des capteurs.
+
+  - Optimisation mailleur 3D pour les gros cas (LG)
+
+
 Version 2013.12
 ---------------
 
