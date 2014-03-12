@@ -61,7 +61,7 @@ module selement
        real, dimension(:,:,:), allocatable:: ForcesFl
 
        ! solid-fluid
-       logical  :: solid
+       logical  :: solid, fluid_dirich
        real :: dist_max !! taille caracteristique de l'element
     end type element
 

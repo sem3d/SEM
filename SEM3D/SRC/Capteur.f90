@@ -1064,14 +1064,24 @@ contains
         real xtrouve_def, ytrouve_def, ztrouve_def, xitrouve_def, etatrouve_def, zetatrouve_def
         real dist_def, dist, dist_P
         real xi, eta, zeta
-        real eps
+        real eps,dorder
         integer i, j, k, im, il, in, idim, npts
         integer n_it
         logical interieur
         integer, parameter :: n_itmax=20
         integer i_sens
-        !! attention si le point du capteur se trouve partage entre plusieurs elements (sommets, face ou aretes)
-        !! identifiation
+
+
+   !---- solution tolerance
+        eps = 1.e-6 !tolerance pour accepter la solution
+      !- order of magnitude for the element size
+        dorder = max (sqrt((coord(0,0)-coord(6,0))**2 + (coord(0,1)-coord(6,1))**2 + (coord(0,2)-coord(6,2))**2), &
+                      sqrt((coord(1,0)-coord(7,0))**2 + (coord(1,1)-coord(7,1))**2 +(coord(1,2)-coord(7,2))**2), &
+                      sqrt((coord(2,0)-coord(4,0))**2 + (coord(2,1)-coord(4,1))**2 +(coord(2,2)-coord(4,2))**2), &
+                      sqrt((coord(3,0)-coord(5,0))**2+(coord(3,1)-coord(5,1))**2+(coord(3,2)-coord(5,2))**2))             
+       !- rescaled small epsilon
+        eps = eps*dorder
+       
 
         xi_min = -1.  !bornes min et max de la zone d'etude dans le carre de reference
         xi_max = 1.   !on coupe en 2 dans chaque direction la zone d'etude
@@ -1080,8 +1090,7 @@ contains
         zeta_min = -1.
         zeta_max = 1.
         dist_def = huge(1.) !distance entre la solution et le point de depart
-        !!  eps = 1.e-6 !tolerance pour accepter la solution !!trop grand pour un cas
-        eps = 1.e-6 !tolerance pour accepter la solution
+
         n_it = 0  !nombre d'iterations
         xi0 = xi_min
         eta0 = eta_min
@@ -1107,7 +1116,9 @@ contains
                         deta = (eta_max - eta_min)/2.
                         dzeta = (zeta_max - zeta_min)/2.
                         !     on elargit un peu le domaine pour ne pas passer a cote de certains points critiques
-                        xfact = 1.01
+                      !  xfact = 1.01
+                   ! NO CHANGE IN BOUNDARIES'CO-ORDINATES
+                        xfact = 1.0
                         dxi   = xfact*dxi
                         deta  = xfact*deta
                         dzeta = xfact*dzeta

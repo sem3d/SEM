@@ -118,13 +118,13 @@ contains
     end subroutine local_vertex_construct
     !------------------------------------------------------------
     !------------------------------------------------------------
-    subroutine local_faces_construct(proc,part,nelem_in_proc,which_elem_in_proc,   &
+    subroutine local_faces_construct(proc,part,nelem_in_proc,which_elem_in_proc,Elem_glob2loc,   &
         Ipointer,dxadj,dxadjncy,elem_near_proc,n_faces,faces,mapping_faces,     &
         faces_shared,mapping_faces_shared,nf_shared,memory)
 
         implicit none
         integer, intent(in)   :: proc
-        integer, dimension(0:), intent(in)   :: part,nelem_in_proc,dxadj,dxadjncy
+        integer, dimension(0:), intent(in)   :: part,nelem_in_proc,dxadj,dxadjncy,Elem_glob2loc
         integer, dimension(0:,0:), intent(in) :: which_elem_in_proc,Ipointer
         type(near_proc), dimension(0:), intent(in) :: elem_near_proc 
         integer, intent(out)    :: n_faces
@@ -135,6 +135,7 @@ contains
         integer    :: i,j,k,n,nel,nf,neighbor,num,ok,neighbor_face,i_count,procrank
         integer, dimension(0:3)  ::  corner,neighbor_corner,orient_corner
 
+        faces = -1
         mapping_faces = -1
         mapping_faces_shared = -1
         nf_shared = 0
@@ -168,12 +169,13 @@ contains
                                     orient_corner(0:3) = neighbor_corner(0:3)
                                     call sort(neighbor_corner,4)
                                     neighbor_face = neighb_face(neighbor_corner)
-                                    g2l : do i_count = 0,n-1
-                                        if(which_elem_in_proc(proc,i_count) == neighbor) then
+                               !     g2l : do i_count = 0,n-1
+                               !         if(which_elem_in_proc(proc,i_count) == neighbor) then
+                                            i_count = Elem_glob2loc(neighbor)
                                             faces(n,nf) = faces(i_count,neighbor_face)
-                                            exit g2l
-                                        endif
-                                    enddo g2l
+                               !             exit g2l
+                               !         endif
+                               !     enddo g2l
                                     !! Coherency
                                     call face_orientation(orient_corner,4,neighbor_face,mapping_faces(n,nf))
                                 endif
