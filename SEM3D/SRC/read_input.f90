@@ -651,14 +651,15 @@ subroutine read_input (Tdomain, rg, code)
     Tdomain%earthchunk_isInit=0
     if( config%material_type == MATERIAL_EARTHCHUNK) then
         Tdomain%earthchunk_isInit=1
-    endif
 
-    Tdomain%earthchunk_file = fromcstr(config%model_file)
-    Tdomain%earthchunk_delta_lon = config%delta_lon
-    Tdomain%earthchunk_delta_lat = config%delta_lat
+    endif
 
 
     if( config%material_present == 1) then
+        Tdomain%earthchunk_file = fromcstr(config%model_file)
+        Tdomain%earthchunk_delta_lon = config%delta_lon
+        Tdomain%earthchunk_delta_lat = config%delta_lat
+
         if( config%material_type == MATERIAL_EARTHCHUNK ) Tdomain%aniso=.true.
 
         do imat=0,Tdomain%n_mat-1

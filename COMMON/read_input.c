@@ -245,7 +245,7 @@ int expect_materials(yyscan_t scanner, sem_config_t* config)
 {
     int tok, err;
 
-	config->material_present = 1;
+    config->material_present = 1;
 
     tok = skip_blank(scanner);
     if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
@@ -261,6 +261,11 @@ int expect_materials(yyscan_t scanner, sem_config_t* config)
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
+
+    if (config->material_type!=1 && config->model_file==NULL) {
+        msg_err(scanner, "In section material, you need to specify a model_file for type!=constant");
+        return 0;
+    }
     return 1;
 
 
@@ -415,6 +420,7 @@ void init_sem_config(sem_config_t* cfg)
     cfg->n_group_outputs = 32;
     cfg->ngll = 5;
     cfg->fmax = 1.0;
+    cfg->material_type = 1;
 }
 
 
