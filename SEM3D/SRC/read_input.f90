@@ -665,6 +665,10 @@ subroutine read_input (Tdomain, rg, code)
         do imat=0,Tdomain%n_mat-1
             Tdomain%sSubDomain(imat)%material_definition = config%material_type
         enddo
+    else
+        do imat=0,Tdomain%n_mat-1
+            Tdomain%sSubDomain(imat)%material_definition = MATERIAL_CONSTANT
+        enddo
     endif
 
 
