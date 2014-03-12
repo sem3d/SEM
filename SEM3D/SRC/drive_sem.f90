@@ -53,9 +53,6 @@ subroutine  sem(master_superviseur, communicateur, communicateur_global)
 
     call MPI_Init (ierr)
 
-
-    call MPI_Init (ierr)
-
 #ifdef COUPLAGE
     pid = getpid()
     write(*,*) "SEM3D[", pid, "] : Demarrage."
