@@ -67,6 +67,7 @@ typedef struct {
     double snap_interval;
     int n_snap_cond;
     snapshot_cond_t* snapshot_selection;
+    int comp_energ;
 
     // Protection reprise
     int prorep;

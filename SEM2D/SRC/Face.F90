@@ -236,7 +236,35 @@ contains
         endif
         return
     end subroutine get_vfree_face
+
     ! ############################################################
+
+    !>
+    !! \brief This subroutine computes the kinetic energy of the interior nodes
+    !!  of an face (all the nodes except the verices)
+    !! \param type (Face), intent (INOUT) F
+    !! \param real, intent (INOUT) E_kin
+    !<
+
+    subroutine  compute_Kinetic_Energy_F (F, Dt, E_kin)
+        implicit none
+
+        type (Face), intent (IN) :: F
+        real, intent (IN)    :: Dt
+        real, intent (INOUT) :: E_kin
+        real, dimension (1:F%ngll-2)      :: Ener_Mat
+        real, dimension (1:F%ngll-2, 0:1) :: Vel_half
+        integer :: ngll
+
+        ngll = F%ngll
+        Vel_half(:,:) = F%Veloc(:,:) + 0.5 * dt * F%Forces(1:ngll-2,:)
+        Ener_Mat (:)  = 1./F%MassMat(:) * ( Vel_half(:,0)*Vel_half(:,0) &
+                                           +Vel_half(:,1)*Vel_half(:,1))
+        E_kin = 0.5 * sum(Ener_Mat)
+
+    end subroutine compute_Kinetic_Energy_F
+
+    ! ###########################################################
 
 end module sfaces
 !! Local Variables:

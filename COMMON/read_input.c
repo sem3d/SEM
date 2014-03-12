@@ -8,9 +8,6 @@
 #include "sem_input.h"
 
 
-
-
-
 int check_dimension(yyscan_t scanner, sem_config_t* config)
 {
     if (config->dim==0) {
@@ -337,6 +334,7 @@ int expect_snapshots(yyscan_t scanner, sem_config_t* config)
 	if (cmp(scanner,"select")) err=expect_select_snap(scanner, config, 1);
 	if (cmp(scanner,"deselect")) err=expect_select_snap(scanner, config, 0);
 	if (cmp(scanner,"group_outputs")) err=expect_eq_int(scanner, &config->n_group_outputs, 1);
+	if (cmp(scanner,"output_total_energy")) err=expect_eq_bool(scanner, &config->comp_energ,1);
 
 	if (err<=0) return err;
 

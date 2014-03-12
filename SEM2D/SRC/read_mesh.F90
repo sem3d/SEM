@@ -286,6 +286,8 @@ subroutine read_mesh(tDomain)
                 if (Tdomain%specel(n_aus)%Control_Nodes(3) == Tdomain%sVertex(j_aus)%Glob_numbering) &
                     Tdomain%sFace(i)%coherency = .true.
             endif
+        elseif (Tdomain%sFace(i)%Near_Element(1) == -1) then
+            Tdomain%sFace(i)%coherency = .true.
         endif
     enddo
 

@@ -36,6 +36,7 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
     use shape_lin
     use shape_quad
     use treceivers
+    use sglobal_energy
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -291,6 +292,10 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
             if (rg==0) write(*,*) "Snapshot iteration=", ntime, " tps=", Tdomain%TimeD%rtime
 
             call save_field_h5(Tdomain, rg, isort)
+
+            ! Sortie Energie totale du systeme
+            if(Tdomain%LogicD%CompEnerg) call global_energy(Tdomain)
+
         endif
 
         if (i_snap==0) then
@@ -302,7 +307,6 @@ subroutine  sem(master_superviseur,communicateur,communicateur_global)
                 close(79)
             endif
         endif
-
 
 
         ! sortie des  ...

@@ -423,6 +423,84 @@ contains
     end subroutine compute_InternalForces_PML_Elem
 
 
+    ! ###########################################################
+    !>
+    !! \brief This subroutine computes the energy of the elastic deformation of the element
+    !!
+    !! \param type (Element), intent (INOUT) Elem
+    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTprime
+    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hprimez
+    !! \param real, intent (INOUT) E_elas
+    !<
+
+    subroutine  compute_Elastic_Energy (Elem, hTprime, hprimez, E_elas)
+        implicit none
+
+        type (Element), intent (IN) :: Elem
+        real, intent (INOUT) :: E_elas
+        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+        real, dimension ( 0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
+        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: dUx_dxi, dUx_deta,  dUz_dxi, dUz_deta
+        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: s0, EMat, Uxloc, Uzloc
+
+        ! This subroutine is called outside the Newmark scheme, so the local
+        ! displacements are store in Forces
+        Uxloc =Elem%Forces (:,:,0)
+        Uzloc = Elem%Forces (:,:,1)
+
+        dUx_dxi = MATMUL ( hTprime, Uxloc)
+        dUz_dxi = MATMUL ( hTprime, Uzloc )
+        dUx_deta = MATMUL ( Uxloc , hprimez )
+        dUz_deta = MATMUL ( Uzloc , hprimez )
+
+         s0 =  Elem%Acoeff(:,:,0)*dUx_dxi + Elem%Acoeff(:,:,1)*dUx_deta &
+             + Elem%Acoeff(:,:,2)*dUz_dxi + Elem%Acoeff(:,:,3)*dUz_deta
+         EMat = dUx_dxi * s0
+
+         s0 =  Elem%Acoeff(:,:,2)*dUx_dxi + Elem%Acoeff(:,:,5)*dUx_deta &
+             + Elem%Acoeff(:,:,7)*dUz_dxi + Elem%Acoeff(:,:,8)*dUz_deta
+         EMat = EMat + dUz_dxi * s0
+
+         s0 =  Elem%Acoeff(:,:,1)*dUx_dxi + Elem%Acoeff(:,:,4)*dUx_deta &
+             + Elem%Acoeff(:,:,5)*dUz_dxi + Elem%Acoeff(:,:,6)*dUz_deta
+         EMat = EMat + dUx_deta * s0
+
+         s0 =  Elem%Acoeff(:,:,3)*dUx_dxi + Elem%Acoeff(:,:,6)*dUx_deta &
+             + Elem%Acoeff(:,:,8)*dUz_dxi + Elem%Acoeff(:,:,9)*dUz_deta
+         EMat = EMat + dUz_deta * s0
+
+         E_elas = -0.5 * sum(EMat)
+
+    end subroutine compute_Elastic_Energy
+
+
+    ! ###########################################################
+    !>
+    !! \brief This subroutine computes the kinetic energy of the inner nodes
+    !!  of an element
+    !! \param type (Element), intent (INOUT) Elem
+    !! \param real, intent (INOUT) E_kin
+    !<
+
+    subroutine  compute_Kinetic_Energy (Elem, Dt, E_kin)
+        implicit none
+
+        type (Element), intent (IN) :: Elem
+        real, intent (IN)    :: Dt
+        real, intent (INOUT) :: E_kin
+        real, dimension (1:Elem%ngllx-2, 1:Elem%ngllz-2)      :: Ener_Mat
+        real, dimension (1:Elem%ngllx-2, 1:Elem%ngllz-2, 0:1) :: Vel_half
+        integer :: ngllx, ngllz
+
+        ngllx = Elem%ngllx ; ngllz = Elem%ngllz
+
+        Vel_half(:,:,:) = Elem%Veloc(:,:,:) + 0.5 * dt * Elem%Forces(1:ngllx-2,1:ngllz-2,:)
+        Ener_Mat (:,:)  = 1./Elem%MassMat(:,:) * ( Vel_half(:,:,0)*Vel_half(:,:,0) &
+                                                  +Vel_half(:,:,1)*Vel_half(:,:,1))
+        E_kin = 0.5 * sum(Ener_Mat)
+
+    end subroutine compute_Kinetic_Energy
+
 end module selement
 !! Local Variables:
 !! mode: f90
