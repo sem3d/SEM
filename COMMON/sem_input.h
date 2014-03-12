@@ -88,6 +88,14 @@ typedef struct {
     double neu_L[3];
     double neu_C[3];
     double neu_f0;
+
+    //Material
+    int material_present;
+    int material_type;
+    char *model_file;
+    double delta_lon;
+    double delta_lat;
+
 } sem_config_t;
 
 

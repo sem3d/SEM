@@ -10,6 +10,7 @@
 
 
 
+
 int check_dimension(yyscan_t scanner, sem_config_t* config)
 {
     if (config->dim==0) {
@@ -227,6 +228,51 @@ int expect_amortissement(yyscan_t scanner, sem_config_t* config)
     return 1;
 }
 
+
+int expect_material_type(yyscan_t scanner, int* type) {
+    int tok;
+    int len;
+
+    if (!expect_eq(scanner)) return 0;
+    tok = skip_blank(scanner);
+    if (tok!=K_ID) goto error;
+    if (cmp(scanner,"constant"))  { *type = 1; return 1; }
+    if (cmp(scanner,"gradient"))  { *type = 2; return 1; }
+    if (cmp(scanner,"earthchunk"))      { *type = 3; return 1; }
+error:
+    msg_err(scanner, "Expected constant|gradient|earthchunk");
+    return 0;
+} 
+
+int expect_materials(yyscan_t scanner, sem_config_t* config)
+{
+    int tok, err;
+
+	config->material_present = 1;
+
+    tok = skip_blank(scanner);
+    if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
+    do {
+	tok = skip_blank(scanner);
+	if (tok!=K_ID) break;
+
+	if (cmp(scanner,"type")) err=expect_material_type(scanner, &config->material_type);
+	if (cmp(scanner,"file")) err=expect_eq_string(scanner, &config->model_file,1);
+	if (cmp(scanner,"delta_lon")) err=expect_eq_float(scanner, &config->delta_lon, 1);
+	if (cmp(scanner,"delta_lat")) err=expect_eq_float(scanner, &config->delta_lat, 1);
+
+	if (!expect_eos(scanner)) { return 0; }
+    } while(1);
+    if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
+    return 1;
+
+
+
+}
+
+
+
+
 int expect_neumann(yyscan_t scanner, sem_config_t* config)
 {
     int tok, err;
@@ -352,6 +398,9 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"gradient")) err=expect_gradient_desc(scanner, config);
 	else if (cmp(scanner,"model")) err=expect_eq_model(scanner, &config->model);
 	else if (cmp(scanner,"neumann")) err=expect_neumann(scanner, config);
+
+	//Material
+	if (cmp(scanner,"material")) err=expect_materials(scanner, config);
 
 
 	if (err==0) { printf("ERR01\n"); return 0;}

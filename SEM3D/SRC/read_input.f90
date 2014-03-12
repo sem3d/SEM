@@ -275,8 +275,10 @@ subroutine read_material_file(Tdomain, rg)
 
     read(13,*) n_aus
 
-    if(n_aus /= Tdomain%n_mat)   &
+    if(n_aus /= Tdomain%n_mat) then
+        write(*,*) trim(fnamef), n_aus, Tdomain%n_mat
         stop "Incompatibility between the mesh file and the material file for n_mat"
+    endif
 
 
 
@@ -515,6 +517,8 @@ subroutine read_input (Tdomain, rg, code)
     use sdomain
     use semdatafiles
     use mpi
+    use constants
+
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
@@ -523,6 +527,9 @@ subroutine read_input (Tdomain, rg, code)
     character(Len=MAX_FILE_SIZE) :: fnamef
     type(sem_config)             :: config
     logical                      :: logic_scheme
+    integer                      :: imat
+
+
 
     call semname_file_input_spec(fnamef)
 
@@ -607,6 +614,10 @@ subroutine read_input (Tdomain, rg, code)
     Tdomain%Neumann%Neu_Param%f0 = config%neu_f0
 
 
+
+
+
+
     ! Create sources from C structures
     call create_sem_sources(Tdomain, config)
 
@@ -620,7 +631,30 @@ subroutine read_input (Tdomain, rg, code)
     !write(*,*) rg, "Reading materials"
     !---   Properties of materials.
     call read_material_file(Tdomain, rg)
-    !write(*,*) rg, "Reading materials done"
+
+    ! Material Earthchunk
+
+    Tdomain%earthchunk_isInit=0
+    if( config%material_type == MATERIAL_EARTHCHUNK) then
+        Tdomain%earthchunk_isInit=1
+    endif
+
+    Tdomain%earthchunk_file = fromcstr(config%model_file)
+    Tdomain%earthchunk_delta_lon = config%delta_lon
+    Tdomain%earthchunk_delta_lat = config%delta_lat
+
+
+    if( config%material_present == 1) then
+        if( config%material_type == MATERIAL_EARTHCHUNK ) Tdomain%aniso=.true.
+
+        do imat=0,Tdomain%n_mat-1
+            Tdomain%sSubDomain(imat)%material_definition = config%material_type
+        enddo
+    endif
+
+
+    write(*,*) rg, "Reading materials done"
+
 
     call finalize_mesh_connectivity(Tdomain, rg)
 

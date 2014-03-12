@@ -31,6 +31,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/Neumann.f90
     ${PRJ}/SRC/Modules/PlaneW.f90
     ${PRJ}/SRC/Modules/Surface.f90
+    ${PRJ}/SRC/Modules/tensor_util.f90
     ${PRJ}/SRC/allocate_domain.f90
     ${PRJ}/SRC/attenuation_aniso_update.f90
     ${PRJ}/SRC/attenuation_update.f90
@@ -93,6 +94,10 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/partial_deriv.f90
 
     ${PRJ}/SRC/snapshots.f90
+
+	${PRJ}/SRC/earthchunk/material_earthchunk.f90
+	${PRJ}/SRC/earthchunk/read_model_earthchunk.f90
+	
 )
 
 #if(NOT USE_MKL)
