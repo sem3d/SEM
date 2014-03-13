@@ -705,7 +705,6 @@ contains
         end do
 
         deallocate(Lproc_fluid,Lproc_solid)
-        read*
 
     end subroutine SF_edges_reference_elem
     !--------------------------------------------------------------
