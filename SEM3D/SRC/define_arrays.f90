@@ -205,10 +205,10 @@ subroutine Define_Arrays(Tdomain, rg)
         !  modif mariotti fevrier 2007 cea
         if ((.not. Tdomain%specel(n)%PML) .and. (Tdomain%n_sls>0))  then
             if (Tdomain%aniso) then
-                Tdomain%specel(n)%Q = Tdomain%sSubDomain(mat)%Qmu
+                Tdomain%specel(n)%sl%Q = Tdomain%sSubDomain(mat)%Qmu
             else
-                Tdomain%specel(n)%Qs = Tdomain%sSubDomain(mat)%Qmu
-                Tdomain%specel(n)%Qp = Tdomain%sSubDomain(mat)%Qpression
+                Tdomain%specel(n)%sl%Qs = Tdomain%sSubDomain(mat)%Qmu
+                Tdomain%specel(n)%sl%Qp = Tdomain%sSubDomain(mat)%Qpression
             endif
         endif
 
@@ -279,10 +279,10 @@ subroutine Define_Arrays(Tdomain, rg)
         if(Tdomain%specel(n)%PML)then   ! PML case: valid for solid and fluid parts
             if(Tdomain%specel(n)%solid)then
                 call define_Acoeff_PML_iso(ngllx,nglly,ngllz,Rkmod,Rmu,Rlam,xix,xiy,xiz,    &
-                    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Tdomain%specel(n)%Acoeff)
+                    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Tdomain%specel(n)%sl%Acoeff)
             else  ! fluid case
                 call define_Acoeff_PML_fluid(ngllx,nglly,ngllz,Tdomain%specel(n)%Density,xix,xiy,xiz,    &
-                    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Tdomain%specel(n)%Acoeff)
+                    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Tdomain%specel(n)%fl%Acoeff)
             end if
 
             !- definition of the attenuation coefficient in PMLs (alpha in the literature)
@@ -326,28 +326,28 @@ subroutine Define_Arrays(Tdomain, rg)
             if(Tdomain%specel(n)%FPML)then
                 call define_FPML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,        &
                     Tdomain%sSubdomain(mat)%freq,wx,Tdomain%specel(n)%Density,             &
-                    whei,Jac,Tdomain%specel(n)%spml%DumpSx,Tdomain%specel(n)%spml%DumpMass(:,:,:,0), &
-                    Tdomain%specel(n)%spml%Isx,Tdomain%specel(n)%spml%Ivx)
+                    whei,Jac,Tdomain%specel(n)%slpml%DumpSx,Tdomain%specel(n)%slpml%DumpMass(:,:,:,0), &
+                    Tdomain%specel(n)%slpml%Isx,Tdomain%specel(n)%slpml%Ivx)
                 call define_FPML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,        &
                     Tdomain%sSubdomain(mat)%freq,wy,Tdomain%specel(n)%Density,             &
-                    whei,Jac,Tdomain%specel(n)%spml%DumpSy,Tdomain%specel(n)%spml%DumpMass(:,:,:,1), &
-                    Tdomain%specel(n)%spml%Isy,Tdomain%specel(n)%spml%Ivy)
+                    whei,Jac,Tdomain%specel(n)%slpml%DumpSy,Tdomain%specel(n)%slpml%DumpMass(:,:,:,1), &
+                    Tdomain%specel(n)%slpml%Isy,Tdomain%specel(n)%slpml%Ivy)
                 call define_FPML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,        &
                     Tdomain%sSubdomain(mat)%freq,wz,Tdomain%specel(n)%Density,             &
-                    whei,Jac,Tdomain%specel(n)%spml%DumpSz,Tdomain%specel(n)%spml%DumpMass(:,:,:,2), &
-                    Tdomain%specel(n)%spml%Isz,Tdomain%specel(n)%spml%Ivz)
+                    whei,Jac,Tdomain%specel(n)%slpml%DumpSz,Tdomain%specel(n)%slpml%DumpMass(:,:,:,2), &
+                    Tdomain%specel(n)%slpml%Isz,Tdomain%specel(n)%slpml%Ivz)
             else
                 call define_PML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,   &
                     wx,Tdomain%specel(n)%Density,RKmod,whei,Jac,                         &
-                    Tdomain%specel(n)%spml%DumpSx,Tdomain%specel(n)%spml%DumpMass(:,:,:,0), &
+                    Tdomain%specel(n)%slpml%DumpSx,Tdomain%specel(n)%slpml%DumpMass(:,:,:,0), &
                     Tdomain%specel(n)%solid)
                 call define_PML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,   &
                     wy,Tdomain%specel(n)%Density,RKmod,whei,Jac,                         &
-                    Tdomain%specel(n)%spml%DumpSy,Tdomain%specel(n)%spml%DumpMass(:,:,:,1), &
+                    Tdomain%specel(n)%slpml%DumpSy,Tdomain%specel(n)%slpml%DumpMass(:,:,:,1), &
                     Tdomain%specel(n)%solid)
                 call define_PML_DumpInit(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%Dt,   &
                     wz,Tdomain%specel(n)%Density,RKmod,whei,Jac,                         &
-                    Tdomain%specel(n)%spml%DumpSz,Tdomain%specel(n)%spml%DumpMass(:,:,:,2), &
+                    Tdomain%specel(n)%slpml%DumpSz,Tdomain%specel(n)%slpml%DumpMass(:,:,:,2), &
                     Tdomain%specel(n)%solid)
             endif
             deallocate(wx,wy,wz)
@@ -376,20 +376,20 @@ subroutine Define_Arrays(Tdomain, rg)
         if(Tdomain%specel(n)%PML)then   ! dumped masses in PML
             if(Tdomain%specel(n)%FPML)then
                 call define_FPML_DumpEnd(0,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-                    Tdomain%specel(n)%spml%DumpMass,Tdomain%specel(n)%spml%DumpVx,Tdomain%specel(n)%spml%Ivx)
+                    Tdomain%specel(n)%slpml%DumpMass,Tdomain%specel(n)%slpml%DumpVx,Tdomain%specel(n)%slpml%Ivx)
                 call define_FPML_DumpEnd(1,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-                    Tdomain%specel(n)%spml%DumpMass,Tdomain%specel(n)%spml%DumpVy,Tdomain%specel(n)%spml%Ivy)
+                    Tdomain%specel(n)%slpml%DumpMass,Tdomain%specel(n)%slpml%DumpVy,Tdomain%specel(n)%slpml%Ivy)
                 call define_FPML_DumpEnd(2,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-                    Tdomain%specel(n)%spml%DumpMass,Tdomain%specel(n)%spml%DumpVz,Tdomain%specel(n)%spml%Ivz)
+                    Tdomain%specel(n)%slpml%DumpMass,Tdomain%specel(n)%slpml%DumpVz,Tdomain%specel(n)%slpml%Ivz)
             else
                 call define_PML_DumpEnd(n,rg,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-                    Tdomain%specel(n)%spml%DumpMass(:,:,:,0),Tdomain%specel(n)%spml%DumpVx)
+                    Tdomain%specel(n)%slpml%DumpMass(:,:,:,0),Tdomain%specel(n)%slpml%DumpVx)
                 call define_PML_DumpEnd(n,rg,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-                    Tdomain%specel(n)%spml%DumpMass(:,:,:,1),Tdomain%specel(n)%spml%DumpVy)
+                    Tdomain%specel(n)%slpml%DumpMass(:,:,:,1),Tdomain%specel(n)%slpml%DumpVy)
                 call define_PML_DumpEnd(n,rg,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-                    Tdomain%specel(n)%spml%DumpMass(:,:,:,2),Tdomain%specel(n)%spml%DumpVz)
+                    Tdomain%specel(n)%slpml%DumpMass(:,:,:,2),Tdomain%specel(n)%slpml%DumpVz)
             end if
-            deallocate(Tdomain%specel(n)%spml%DumpMass)
+            deallocate(Tdomain%specel(n)%slpml%DumpMass)
         end if
         ! all elements
         allocate(LocMassMat(1:ngllx-2,1:nglly-2,1:ngllz-2))

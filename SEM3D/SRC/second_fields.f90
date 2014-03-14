@@ -96,7 +96,7 @@ contains
         el => Tdomain%specel(nel)
 
         if (el%solid) then
-            field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%Displ(:,:,:,:)
+            field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%sl%Displ(:,:,:,:)
             do i=0,5
                 fc => Tdomain%sFace(el%Near_Faces(i))
                 call get_VectProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
@@ -149,7 +149,7 @@ contains
         nz = Tdomain%specel(nel)%ngllz
         el => Tdomain%specel(nel)
         if (el%solid) then
-            field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%Veloc(:,:,:,:)
+            field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%sl%Veloc(:,:,:,:)
             do i=0,5
                 fc => Tdomain%sFace(el%Near_Faces(i))
                 call get_VectProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
@@ -167,7 +167,7 @@ contains
             end do
         else ! liquid
             allocate(phi(0:nx-1,0:ny-1,0:nz-1))
-            phi(1:nx-2,1:ny-2,1:nz-2) = el%Phi(:,:,:)
+            phi(1:nx-2,1:ny-2,1:nz-2) = el%fl%Phi(:,:,:)
             do i=0,5
                 fc => Tdomain%sFace(el%Near_Faces(i))
                 call get_ScalarProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
@@ -207,7 +207,7 @@ contains
         nz = Tdomain%specel(nel)%ngllz
         el => Tdomain%specel(nel)
         if (el%solid) then
-            field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%Accel(:,:,:,:)
+            field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%sl%Accel(:,:,:,:)
             do i=0,5
                 fc => Tdomain%sFace(el%Near_Faces(i))
                 call get_VectProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
@@ -225,7 +225,7 @@ contains
             end do
         else ! liquid
             allocate(vphi(0:nx-1,0:ny-1,0:nz-1))
-            vphi(1:nx-2,1:ny-2,1:nz-2) = el%VelPhi(:,:,:)
+            vphi(1:nx-2,1:ny-2,1:nz-2) = el%fl%VelPhi(:,:,:)
             do i=0,5
                 fc => Tdomain%sFace(el%Near_Faces(i))
                 call get_ScalarProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
@@ -265,7 +265,7 @@ contains
         el => Tdomain%specel(nel)
         if (el%solid) then
             allocate(displ(0:nx-1,0:ny-1,0:nz-1,0:2))
-            displ(1:nx-2,1:ny-2,1:nz-2,0:2) = el%Displ(:,:,:,:)
+            displ(1:nx-2,1:ny-2,1:nz-2,0:2) = el%sl%Displ(:,:,:,:)
             do i=0,5
                 fc => Tdomain%sFace(el%Near_Faces(i))
                 call get_VectProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
@@ -287,7 +287,7 @@ contains
                  el%InvGrad,displ, el%Lambda, el%Mu,field)
             deallocate(displ)
         else ! liquid
-            field(1:nx-2,1:ny-2,1:nz-2) = el%VelPhi(:,:,:)
+            field(1:nx-2,1:ny-2,1:nz-2) = el%fl%VelPhi(:,:,:)
             do i=0,5
                 fc => Tdomain%sFace(el%Near_Faces(i))
                 call get_ScalarProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &

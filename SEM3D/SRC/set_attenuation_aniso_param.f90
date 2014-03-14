@@ -47,7 +47,7 @@ subroutine set_attenuation_aniso_param (Tdomain)
                 do j = 0,nglly-1
                     do k = 0,ngllz-1
 
-                        Q_mu = Tdomain%specel(n)%Q(i,j,k)
+                        Q_mu = Tdomain%specel(n)%sl%Q(i,j,k)
                         call compute_constant_Q(T1_attenuation,T2_attenuation,n_solid,Q_mu,tau_mu,tau_sigma)
 
                         beta(:) = 1.d0 - tau_mu(:) / tau_sigma(:)
@@ -66,7 +66,7 @@ subroutine set_attenuation_aniso_param (Tdomain)
                             one_minus_sum_beta = one_minus_sum_beta - beta(i_count)
                         enddo
 
-                        Tdomain%specel(n)%onemSbeta(i,j,k) = one_minus_sum_beta
+                        Tdomain%specel(n)%sl%onemSbeta(i,j,k) = one_minus_sum_beta
 
                         big_omega = a_val*(sqrt(1.d0 + b_val*b_val/(a_val*a_val))-1.d0);
 
@@ -91,12 +91,12 @@ subroutine set_attenuation_aniso_param (Tdomain)
                         dt = Tdomain%sSubdomain(mat)%dt
                         allocate (tauinv(0:n_solid-1))
                         tauinv(:) = - 1.d0 / tau_sigma(:)
-                        Tdomain%specel(n)%factor_common_3(:,i,j,k) = 2.d0 * beta(:) * tauinv(:)
-                        Tdomain%specel(n)%alphaval_3(:,i,j,k) = 1.d0 + dt*tauinv(:) + dt**2*tauinv(:)**2 / 2.d0 + &
+                        Tdomain%specel(n)%sl%factor_common_3(:,i,j,k) = 2.d0 * beta(:) * tauinv(:)
+                        Tdomain%specel(n)%sl%alphaval_3(:,i,j,k) = 1.d0 + dt*tauinv(:) + dt**2*tauinv(:)**2 / 2.d0 + &
                             dt**3*tauinv(:)**3 / 6.d0 + dt**4*tauinv(:)**4 / 24.d0
-                        Tdomain%specel(n)%betaval_3(:,i,j,k) = dt / 2.d0 + dt**2*tauinv(:) / 3.d0 + &
+                        Tdomain%specel(n)%sl%betaval_3(:,i,j,k) = dt / 2.d0 + dt**2*tauinv(:) / 3.d0 + &
                             dt**3*tauinv(:)**2 / 8.d0 + dt**4*tauinv(:)**3 / 24.d0
-                        Tdomain%specel(n)%gammaval_3(:,i,j,k) = dt / 2.d0 + dt**2*tauinv(:) / 6.d0 + &
+                        Tdomain%specel(n)%sl%gammaval_3(:,i,j,k) = dt / 2.d0 + dt**2*tauinv(:) / 6.d0 + &
                             dt**3*tauinv(:)**2 / 24.d0
                         deallocate (tauinv)
                     enddo

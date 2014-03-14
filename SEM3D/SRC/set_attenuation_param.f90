@@ -71,8 +71,8 @@ subroutine set_attenuation_param (Tdomain)
                 do j = 0,nglly-1
                     do k = 0,ngllz-1
 
-                        Q_mu = Tdomain%specel(n)%Qs(i,j,k)
-                        Q_P = Tdomain%specel(n)%Qp(i,j,k)
+                        Q_mu = Tdomain%specel(n)%sl%Qs(i,j,k)
+                        Q_P = Tdomain%specel(n)%sl%Qp(i,j,k)
                         if (Q_mu .ne. Q_mu_old) then
                             call compute_iso_Q(T1_attenuation,T2_attenuation,n_solid,Q_mu,tau_mu,tau_sigma)
                             Q_mu_old = Q_mu
@@ -115,8 +115,8 @@ subroutine set_attenuation_param (Tdomain)
                             one_minus_sum_betaP = one_minus_sum_betaP - betaP(i_count)
                         enddo
 
-                        Tdomain%specel(n)%onemSbeta(i,j,k) = one_minus_sum_betaS
-                        Tdomain%specel(n)%onemPbeta(i,j,k) = one_minus_sum_betaP
+                        Tdomain%specel(n)%sl%onemSbeta(i,j,k) = one_minus_sum_betaS
+                        Tdomain%specel(n)%sl%onemPbeta(i,j,k) = one_minus_sum_betaP
 
                         a_val = 1.d0 - a_val
                         aP_val = 1.d0 - aP_val
@@ -165,21 +165,21 @@ subroutine set_attenuation_param (Tdomain)
                         tauinv(:) = - 1.d0 / tau_sigma(:)
                         Pinv(:) = - 1.d0 / P_sigma(:)
                         !!         partie deviatorique
-                        Tdomain%specel(n)%factor_common_3(:,i,j,k) = 2.d0 * betaS(:) * tauinv(:)
-                        Tdomain%specel(n)%alphaval_3(:,i,j,k) = 1.d0 + dt*tauinv(:) + dt**2*tauinv(:)**2 / 2.d0 + &
+                        Tdomain%specel(n)%sl%factor_common_3(:,i,j,k) = 2.d0 * betaS(:) * tauinv(:)
+                        Tdomain%specel(n)%sl%alphaval_3(:,i,j,k) = 1.d0 + dt*tauinv(:) + dt**2*tauinv(:)**2 / 2.d0 + &
                             dt**3*tauinv(:)**3 / 6.d0 + dt**4*tauinv(:)**4 / 24.d0
-                        Tdomain%specel(n)%betaval_3(:,i,j,k) = dt / 2.d0 + dt**2*tauinv(:) / 3.d0 + &
+                        Tdomain%specel(n)%sl%betaval_3(:,i,j,k) = dt / 2.d0 + dt**2*tauinv(:) / 3.d0 + &
                             dt**3*tauinv(:)**2 / 8.d0 + dt**4*tauinv(:)**3 / 24.d0
-                        Tdomain%specel(n)%gammaval_3(:,i,j,k) = dt / 2.d0 + dt**2*tauinv(:) / 6.d0 + &
+                        Tdomain%specel(n)%sl%gammaval_3(:,i,j,k) = dt / 2.d0 + dt**2*tauinv(:) / 6.d0 + &
                             dt**3*tauinv(:)**2 / 24.d0
                         deallocate (tauinv)
                         !!         partie istotrope
-                        Tdomain%specel(n)%factor_common_P(:,i,j,k) = 2.d0 * betaP(:) * Pinv(:)
-                        Tdomain%specel(n)%alphaval_P(:,i,j,k) = 1.d0 + dt*Pinv(:) + dt**2*Pinv(:)**2 / 2.d0 + &
+                        Tdomain%specel(n)%sl%factor_common_P(:,i,j,k) = 2.d0 * betaP(:) * Pinv(:)
+                        Tdomain%specel(n)%sl%alphaval_P(:,i,j,k) = 1.d0 + dt*Pinv(:) + dt**2*Pinv(:)**2 / 2.d0 + &
                             dt**3*Pinv(:)**3 / 6.d0 + dt**4*Pinv(:)**4 / 24.d0
-                        Tdomain%specel(n)%betaval_P(:,i,j,k) = dt / 2.d0 + dt**2*Pinv(:) / 3.d0 + &
+                        Tdomain%specel(n)%sl%betaval_P(:,i,j,k) = dt / 2.d0 + dt**2*Pinv(:) / 3.d0 + &
                             dt**3*Pinv(:)**2 / 8.d0 + dt**4*Pinv(:)**3 / 24.d0
-                        Tdomain%specel(n)%gammaval_P(:,i,j,k) = dt / 2.d0 + dt**2*Pinv(:) / 6.d0 + &
+                        Tdomain%specel(n)%sl%gammaval_P(:,i,j,k) = dt / 2.d0 + dt**2*Pinv(:) / 6.d0 + &
                             dt**3*Pinv(:)**2 / 24.d0
                         deallocate (Pinv)
                         !         partie deviatorique

@@ -24,14 +24,14 @@ contains
             ngll = Tdomain%sEdge(nne)%ngll
             ! now we call the general assemblage routine
             call get_VectProperty_Elem2Edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                Tdomain%sEdge(nne)%Forces(:,0:2),Tdomain%specel(n)%Forces(:,:,:,0:2))
+                Tdomain%sEdge(nne)%Forces(:,0:2),Tdomain%specel(n)%sl%Forces(:,:,:,0:2))
             if(Tdomain%sEdge(nne)%PML)then
                 call get_VectProperty_Elem2Edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                    Tdomain%sEdge(nne)%spml%Forces1(:,0:2),Tdomain%specel(n)%spml%Forces1(:,:,:,0:2))
+                    Tdomain%sEdge(nne)%spml%Forces1(:,0:2),Tdomain%specel(n)%slpml%Forces1(:,:,:,0:2))
                 call get_VectProperty_Elem2Edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                    Tdomain%sEdge(nne)%spml%Forces2(:,0:2),Tdomain%specel(n)%spml%Forces2(:,:,:,0:2))
+                    Tdomain%sEdge(nne)%spml%Forces2(:,0:2),Tdomain%specel(n)%slpml%Forces2(:,:,:,0:2))
                 call get_VectProperty_Elem2Edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                    Tdomain%sEdge(nne)%spml%Forces3(:,0:2),Tdomain%specel(n)%spml%Forces3(:,:,:,0:2))
+                    Tdomain%sEdge(nne)%spml%Forces3(:,0:2),Tdomain%specel(n)%slpml%Forces3(:,:,:,0:2))
             end if
         end do
 
@@ -60,14 +60,14 @@ contains
             ngll = Tdomain%sEdge(nne)%ngll
             ! now we call the general assemblage routine
             call get_ScalarProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                Tdomain%sEdge(nne)%ForcesFl(:),Tdomain%specel(n)%ForcesFl(:,:,:))
+                Tdomain%sEdge(nne)%ForcesFl(:),Tdomain%specel(n)%fl%ForcesFl(:,:,:))
             if(Tdomain%sEdge(nne)%PML)then
                 call get_ScalarProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                    Tdomain%sEdge(nne)%spml%ForcesFl1(:),Tdomain%specel(n)%spml%ForcesFl1(:,:,:))
+                    Tdomain%sEdge(nne)%spml%ForcesFl1(:),Tdomain%specel(n)%flpml%ForcesFl1(:,:,:))
                 call get_ScalarProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                    Tdomain%sEdge(nne)%spml%ForcesFl2(:),Tdomain%specel(n)%spml%ForcesFl2(:,:,:))
+                    Tdomain%sEdge(nne)%spml%ForcesFl2(:),Tdomain%specel(n)%flpml%ForcesFl2(:,:,:))
                 call get_ScalarProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                    Tdomain%sEdge(nne)%spml%ForcesFl3(:),Tdomain%specel(n)%spml%ForcesFl3(:,:,:))
+                    Tdomain%sEdge(nne)%spml%ForcesFl3(:),Tdomain%specel(n)%flpml%ForcesFl3(:,:,:))
             end if
         end do
 
@@ -95,14 +95,14 @@ contains
             ngll2 = Tdomain%sFace(nnf)%ngll2
             ! now we call the general assemblage routine
             call get_VectProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                Tdomain%sFace(nnf)%Forces(:,:,0:2),Tdomain%specel(n)%Forces(:,:,:,0:2))
+                Tdomain%sFace(nnf)%Forces(:,:,0:2),Tdomain%specel(n)%sl%Forces(:,:,:,0:2))
             if(Tdomain%sFace(nnf)%PML)then
                 call get_VectProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                    Tdomain%sFace(nnf)%spml%Forces1(:,:,0:2),Tdomain%specel(n)%spml%Forces1(:,:,:,0:2))
+                    Tdomain%sFace(nnf)%spml%Forces1(:,:,0:2),Tdomain%specel(n)%slpml%Forces1(:,:,:,0:2))
                 call get_VectProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                    Tdomain%sFace(nnf)%spml%Forces2(:,:,0:2),Tdomain%specel(n)%spml%Forces2(:,:,:,0:2))
+                    Tdomain%sFace(nnf)%spml%Forces2(:,:,0:2),Tdomain%specel(n)%slpml%Forces2(:,:,:,0:2))
                 call get_VectProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                    Tdomain%sFace(nnf)%spml%Forces3(:,:,0:2),Tdomain%specel(n)%spml%Forces3(:,:,:,0:2))
+                    Tdomain%sFace(nnf)%spml%Forces3(:,:,0:2),Tdomain%specel(n)%slpml%Forces3(:,:,:,0:2))
             end if
         enddo
 
@@ -132,14 +132,14 @@ contains
             ngll2 = Tdomain%sFace(nnf)%ngll2
             ! now we call the general assemblage routine
             call get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                Tdomain%sFace(nnf)%ForcesFl(:,:),Tdomain%specel(n)%ForcesFl(:,:,:))
+                Tdomain%sFace(nnf)%ForcesFl(:,:),Tdomain%specel(n)%fl%ForcesFl(:,:,:))
             if(Tdomain%sFace(nnf)%PML)then
                 call get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                    Tdomain%sFace(nnf)%spml%ForcesFl1(:,:),Tdomain%specel(n)%spml%ForcesFl1(:,:,:))
+                    Tdomain%sFace(nnf)%spml%ForcesFl1(:,:),Tdomain%specel(n)%flpml%ForcesFl1(:,:,:))
                 call get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                    Tdomain%sFace(nnf)%spml%ForcesFl2(:,:),Tdomain%specel(n)%spml%ForcesFl2(:,:,:))
+                    Tdomain%sFace(nnf)%spml%ForcesFl2(:,:),Tdomain%specel(n)%flpml%ForcesFl2(:,:,:))
                 call get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                    Tdomain%sFace(nnf)%spml%ForcesFl3(:,:),Tdomain%specel(n)%spml%ForcesFl3(:,:,:))
+                    Tdomain%sFace(nnf)%spml%ForcesFl3(:,:),Tdomain%specel(n)%flpml%ForcesFl3(:,:,:))
             end if
         enddo
 
@@ -166,14 +166,14 @@ contains
             nnv = Tdomain%specel(n)%Near_Vertices(nv)
             ! now we call the general assemblage routine
             call get_VectProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                Tdomain%sVertex(nnv)%Forces(0:2),Tdomain%specel(n)%Forces(:,:,:,0:2))
+                Tdomain%sVertex(nnv)%Forces(0:2),Tdomain%specel(n)%sl%Forces(:,:,:,0:2))
             if(Tdomain%sVertex(nnv)%PML)then
                 call get_VectProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                    Tdomain%sVertex(nnv)%spml%Forces1(0:2),Tdomain%specel(n)%spml%Forces1(:,:,:,0:2))
+                    Tdomain%sVertex(nnv)%spml%Forces1(0:2),Tdomain%specel(n)%slpml%Forces1(:,:,:,0:2))
                 call get_VectProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                    Tdomain%sVertex(nnv)%spml%Forces2(0:2),Tdomain%specel(n)%spml%Forces2(:,:,:,0:2))
+                    Tdomain%sVertex(nnv)%spml%Forces2(0:2),Tdomain%specel(n)%slpml%Forces2(:,:,:,0:2))
                 call get_VectProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                    Tdomain%sVertex(nnv)%spml%Forces3(0:2),Tdomain%specel(n)%spml%Forces3(:,:,:,0:2))
+                    Tdomain%sVertex(nnv)%spml%Forces3(0:2),Tdomain%specel(n)%slpml%Forces3(:,:,:,0:2))
             end if
         enddo
 
@@ -201,14 +201,14 @@ contains
             nnv = Tdomain%specel(n)%Near_Vertices(nv)
             ! now we call the general assemblage routine
             call get_ScalarProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                Tdomain%sVertex(nnv)%ForcesFl,Tdomain%specel(n)%ForcesFl(:,:,:))
+                Tdomain%sVertex(nnv)%ForcesFl,Tdomain%specel(n)%fl%ForcesFl(:,:,:))
             if(Tdomain%sVertex(nnv)%PML)then
                 call get_ScalarProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                    Tdomain%sVertex(nnv)%spml%ForcesFl1,Tdomain%specel(n)%spml%ForcesFl1(:,:,:))
+                    Tdomain%sVertex(nnv)%spml%ForcesFl1,Tdomain%specel(n)%flpml%ForcesFl1(:,:,:))
                 call get_ScalarProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                    Tdomain%sVertex(nnv)%spml%ForcesFl2,Tdomain%specel(n)%spml%ForcesFl2(:,:,:))
+                    Tdomain%sVertex(nnv)%spml%ForcesFl2,Tdomain%specel(n)%flpml%ForcesFl2(:,:,:))
                 call get_ScalarProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                    Tdomain%sVertex(nnv)%spml%ForcesFl3,Tdomain%specel(n)%spml%ForcesFl3(:,:,:))
+                    Tdomain%sVertex(nnv)%spml%ForcesFl3,Tdomain%specel(n)%flpml%ForcesFl3(:,:,:))
             end if
         enddo
 
@@ -241,7 +241,7 @@ contains
             ngll = Tdomain%sEdge(nne)%ngll
             ! now we call the general deassemblage routine
             call get_VectProperty_Edge2Elem(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                Tdomain%sEdge(nne)%Forces(:,0:2),Tdomain%specel(n)%Forces(:,:,:,0:2))
+                Tdomain%sEdge(nne)%Forces(:,0:2),Tdomain%specel(n)%sl%Forces(:,:,:,0:2))
         end do
 
         return
@@ -270,7 +270,7 @@ contains
             ngll = Tdomain%sEdge(nne)%ngll
             ! now we call the general deassemblage routine
             call get_ScalarProperty_Edge2Elem(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                Tdomain%sEdge(nne)%ForcesFl(:),Tdomain%specel(n)%ForcesFl(:,:,:))
+                Tdomain%sEdge(nne)%ForcesFl(:),Tdomain%specel(n)%fl%ForcesFl(:,:,:))
         end do
 
         return
@@ -297,7 +297,7 @@ contains
             ngll2 = Tdomain%sFace(nnf)%ngll2
             ! now we call the general deassemblage routine
             call get_VectProperty_Face2Elem(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                Tdomain%sFace(nnf)%Forces(:,:,0:2),Tdomain%specel(n)%Forces(:,:,:,0:2))
+                Tdomain%sFace(nnf)%Forces(:,:,0:2),Tdomain%specel(n)%sl%Forces(:,:,:,0:2))
         enddo
 
         return
@@ -326,7 +326,7 @@ contains
             ngll2 = Tdomain%sFace(nnf)%ngll2
             ! now we call the general deassemblage routine
             call get_ScalarProperty_Face2Elem(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                Tdomain%sFace(nnf)%ForcesFl(:,:),Tdomain%specel(n)%ForcesFl(:,:,:))
+                Tdomain%sFace(nnf)%ForcesFl(:,:),Tdomain%specel(n)%fl%ForcesFl(:,:,:))
         enddo
 
         return
@@ -350,7 +350,7 @@ contains
             nnv = Tdomain%specel(n)%Near_Vertices(nv)
             ! now we call the general deassemblage routine
             call get_VectProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,  &
-                Tdomain%sVertex(nnv)%Forces(0:2),Tdomain%specel(n)%Forces(:,:,:,0:2))
+                Tdomain%sVertex(nnv)%Forces(0:2),Tdomain%specel(n)%sl%Forces(:,:,:,0:2))
         enddo
 
         return
@@ -376,7 +376,7 @@ contains
             nnv = Tdomain%specel(n)%Near_Vertices(nv)
             ! now we call the general deassemblage routine
             call get_ScalarProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,  &
-                Tdomain%sVertex(nnv)%ForcesFl,Tdomain%specel(n)%ForcesFl(:,:,:))
+                Tdomain%sVertex(nnv)%ForcesFl,Tdomain%specel(n)%fl%ForcesFl(:,:,:))
         enddo
 
         return
@@ -408,14 +408,14 @@ contains
                 Tdomain%sEdge(nne)%MassMat,Tdomain%specel(n)%MassMat)
             if(Tdomain%sEdge(nne)%PML)then
                 call get_VectProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                    Tdomain%sEdge(nne)%spml%DumpMass(:,0:2),Tdomain%specel(n)%spml%DumpMass(:,:,:,0:2))
+                    Tdomain%sEdge(nne)%spml%DumpMass(:,0:2),Tdomain%specel(n)%slpml%DumpMass(:,:,:,0:2))
                 if(Tdomain%sEdge(nne)%FPML)then
                     call get_ScalarProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                        Tdomain%sEdge(nne)%spml%Ivx(:),Tdomain%specel(n)%spml%Ivx(:,:,:))
+                        Tdomain%sEdge(nne)%spml%Ivx(:),Tdomain%specel(n)%slpml%Ivx(:,:,:))
                     call get_ScalarProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                        Tdomain%sEdge(nne)%spml%Ivy(:),Tdomain%specel(n)%spml%Ivy(:,:,:))
+                        Tdomain%sEdge(nne)%spml%Ivy(:),Tdomain%specel(n)%slpml%Ivy(:,:,:))
                     call get_ScalarProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                        Tdomain%sEdge(nne)%spml%Ivz(:),Tdomain%specel(n)%spml%Ivz(:,:,:))
+                        Tdomain%sEdge(nne)%spml%Ivz(:),Tdomain%specel(n)%slpml%Ivz(:,:,:))
                 end if
             end if
 
@@ -449,14 +449,14 @@ contains
                 Tdomain%sFace(nnf)%MassMat(:,:),Tdomain%specel(n)%MassMat(:,:,:))
             if(Tdomain%sFace(nnf)%PML)then
                 call get_VectProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                    Tdomain%sFace(nnf)%spml%DumpMass(:,:,0:2),Tdomain%specel(n)%spml%DumpMass(:,:,:,0:2))
+                    Tdomain%sFace(nnf)%spml%DumpMass(:,:,0:2),Tdomain%specel(n)%slpml%DumpMass(:,:,:,0:2))
                 if(Tdomain%sFace(nnf)%FPML)then
                     call get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                        Tdomain%sFace(nnf)%spml%Ivx(:,:),Tdomain%specel(n)%spml%Ivx(:,:,:))
+                        Tdomain%sFace(nnf)%spml%Ivx(:,:),Tdomain%specel(n)%slpml%Ivx(:,:,:))
                     call get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                        Tdomain%sFace(nnf)%spml%Ivy(:,:),Tdomain%specel(n)%spml%Ivy(:,:,:))
+                        Tdomain%sFace(nnf)%spml%Ivy(:,:),Tdomain%specel(n)%slpml%Ivy(:,:,:))
                     call get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                        Tdomain%sFace(nnf)%spml%Ivz(:,:),Tdomain%specel(n)%spml%Ivz(:,:,:))
+                        Tdomain%sFace(nnf)%spml%Ivz(:,:),Tdomain%specel(n)%slpml%Ivz(:,:,:))
                 end if
             end if
 
@@ -488,14 +488,14 @@ contains
                 Tdomain%sVertex(nnv)%MassMat,Tdomain%specel(n)%MassMat(:,:,:))
             if(Tdomain%sVertex(nnv)%PML)then
                 call get_VectProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                    Tdomain%sVertex(nnv)%spml%DumpMass(0:2),Tdomain%specel(n)%spml%DumpMass(:,:,:,0:2))
+                    Tdomain%sVertex(nnv)%spml%DumpMass(0:2),Tdomain%specel(n)%slpml%DumpMass(:,:,:,0:2))
                 if(Tdomain%sVertex(nnv)%FPML)then
                     call get_ScalarProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                        Tdomain%sVertex(nnv)%spml%Ivx,Tdomain%specel(n)%spml%Ivx(:,:,:))
+                        Tdomain%sVertex(nnv)%spml%Ivx,Tdomain%specel(n)%slpml%Ivx(:,:,:))
                     call get_ScalarProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                        Tdomain%sVertex(nnv)%spml%Ivy,Tdomain%specel(n)%spml%Ivy(:,:,:))
+                        Tdomain%sVertex(nnv)%spml%Ivy,Tdomain%specel(n)%slpml%Ivy(:,:,:))
                     call get_ScalarProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                        Tdomain%sVertex(nnv)%spml%Ivz,Tdomain%specel(n)%spml%Ivz(:,:,:))
+                        Tdomain%sVertex(nnv)%spml%Ivz,Tdomain%specel(n)%slpml%Ivz(:,:,:))
                 end if
             end if
 
@@ -534,7 +534,7 @@ contains
             call get_VectProperty_Face2Elem(nf,orient_f,ngllx,nglly,ngllz,ngll1,   &
                 ngll2,Tdomain%sFace(nnf)%Veloc(:,:,0:2)+              &
                 dt*(0.5-bega)*Tdomain%sFace(nnf)%Accel(:,:,0:2),           &
-                Tdomain%specel(n)%Forces(:,:,:,0:2))
+                Tdomain%specel(n)%sl%Forces(:,:,:,0:2))
         enddo
 
         return
@@ -564,7 +564,7 @@ contains
             ! now we call the general deassemblage routine
             call get_ScalarProperty_Face2Elem(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,       &
                 Tdomain%sFace(nnf)%VelPhi(:,:)+dt*(0.5-bega)*Tdomain%sFace(nnf)%AccelPhi(:,:), &
-                Tdomain%specel(n)%ForcesFl(:,:,:))
+                Tdomain%specel(n)%fl%ForcesFl(:,:,:))
         enddo
 
         return
@@ -592,7 +592,7 @@ contains
             ! now we call the general deassemblage routine
             call get_VectProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,                             &
                 Tdomain%sVertex(nnv)%Veloc(0:2)+dt*(0.5-bega)*Tdomain%sVertex(nnv)%Accel(0:2),  &
-                Tdomain%specel(n)%Forces(:,:,:,0:2))
+                Tdomain%specel(n)%sl%Forces(:,:,:,0:2))
         enddo
 
         return
@@ -619,7 +619,7 @@ contains
             ! now we call the general deassemblage routine
             call get_ScalarProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,                     &
                 Tdomain%sVertex(nnv)%VelPhi+dt*(0.5-bega)*Tdomain%sVertex(nnv)%AccelPhi,  &
-                Tdomain%specel(n)%ForcesFl(:,:,:))
+                Tdomain%specel(n)%fl%ForcesFl(:,:,:))
         enddo
 
         return
@@ -647,7 +647,7 @@ contains
             ! now we call the general deassemblage routine
             call get_VectProperty_Edge2Elem(ne,orient_e,ngllx,nglly,ngllz,ngll,            &
                 Tdomain%sEdge(nne)%Veloc(:,0:2)+dt*(0.5-bega)*Tdomain%sEdge(nne)%Accel(:,0:2), &
-                Tdomain%specel(n)%Forces(:,:,:,0:2))
+                Tdomain%specel(n)%sl%Forces(:,:,:,0:2))
         end do
 
         return
@@ -676,7 +676,7 @@ contains
             ! now we call the general deassemblage routine
             call get_ScalarProperty_Edge2Elem(ne,orient_e,ngllx,nglly,ngllz,ngll,          &
                 Tdomain%sEdge(nne)%VelPhi(:)+dt*(0.5-bega)*Tdomain%sEdge(nne)%AccelPhi(:), &
-                Tdomain%specel(n)%ForcesFl(:,:,:))
+                Tdomain%specel(n)%fl%ForcesFl(:,:,:))
         end do
 
         return
