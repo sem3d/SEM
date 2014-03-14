@@ -361,10 +361,11 @@ contains
         integer,intent(in) :: rg
         character(Len=*),intent(in) :: meshfile
         character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
-        character(Len=MAX_FILE_SIZE) :: temp, sem_dir
+        character(Len=MAX_FILE_SIZE) :: temp!, sem_dir
         write(temp,"(a,a1,I4.4)") trim(adjustl(meshfile)),".",rg
-        sem_dir = pjoin(path_data, "sem")
-        fnamef = pjoin(sem_dir, temp)
+!        sem_dir = pjoin(path_data, "sem")
+!        fnamef = pjoin(sem_dir, temp)
+        fnamef = pjoin(path_data, temp)
     end subroutine semname_read_input_meshfile
 
     subroutine semname_read_inputmesh_parametrage (file,fnamef) !!valable egalement pour le fichier read_mesh
