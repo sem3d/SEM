@@ -270,9 +270,9 @@ subroutine write_Veloc(Tdomain, nmax, elem_id)
                         write(*,*) "Erreur fatale sauvegarde des protections"
                         stop 1
                     end if
-                    data(idx+0) = Tdomain%specel(n)%Veloc(i,j,k,0)
-                    data(idx+1) = Tdomain%specel(n)%Veloc(i,j,k,1)
-                    data(idx+2) = Tdomain%specel(n)%Veloc(i,j,k,2)
+                    data(idx+0) = Tdomain%specel(n)%sl%Veloc(i,j,k,0)
+                    data(idx+1) = Tdomain%specel(n)%sl%Veloc(i,j,k,1)
+                    data(idx+2) = Tdomain%specel(n)%sl%Veloc(i,j,k,2)
                     idx = idx + 3
                 enddo
             enddo
@@ -317,7 +317,7 @@ subroutine write_VelPhi(Tdomain, nmax, elem_id)
                         write(*,*) "Erreur fatale sauvegarde des protections"
                         stop 1
                     end if
-                    data(idx) = Tdomain%specel(n)%VelPhi(i,j,k)
+                    data(idx) = Tdomain%specel(n)%fl%VelPhi(i,j,k)
                     idx = idx + 1
                 enddo
             enddo
@@ -371,15 +371,15 @@ subroutine write_Veloc123(Tdomain, nmax, elem_id)
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
-                        data1(idx+0) = Tdomain%specel(n)%spml%Veloc1(i,j,k,0)
-                        data1(idx+1) = Tdomain%specel(n)%spml%Veloc1(i,j,k,1)
-                        data1(idx+2) = Tdomain%specel(n)%spml%Veloc1(i,j,k,2)
-                        data2(idx+0) = Tdomain%specel(n)%spml%Veloc2(i,j,k,0)
-                        data2(idx+1) = Tdomain%specel(n)%spml%Veloc2(i,j,k,1)
-                        data2(idx+2) = Tdomain%specel(n)%spml%Veloc2(i,j,k,2)
-                        data3(idx+0) = Tdomain%specel(n)%spml%Veloc3(i,j,k,0)
-                        data3(idx+1) = Tdomain%specel(n)%spml%Veloc3(i,j,k,1)
-                        data3(idx+2) = Tdomain%specel(n)%spml%Veloc3(i,j,k,2)
+                        data1(idx+0) = Tdomain%specel(n)%slpml%Veloc1(i,j,k,0)
+                        data1(idx+1) = Tdomain%specel(n)%slpml%Veloc1(i,j,k,1)
+                        data1(idx+2) = Tdomain%specel(n)%slpml%Veloc1(i,j,k,2)
+                        data2(idx+0) = Tdomain%specel(n)%slpml%Veloc2(i,j,k,0)
+                        data2(idx+1) = Tdomain%specel(n)%slpml%Veloc2(i,j,k,1)
+                        data2(idx+2) = Tdomain%specel(n)%slpml%Veloc2(i,j,k,2)
+                        data3(idx+0) = Tdomain%specel(n)%slpml%Veloc3(i,j,k,0)
+                        data3(idx+1) = Tdomain%specel(n)%slpml%Veloc3(i,j,k,1)
+                        data3(idx+2) = Tdomain%specel(n)%slpml%Veloc3(i,j,k,2)
                         idx = idx + 3
                     enddo
                 enddo
@@ -433,9 +433,9 @@ subroutine write_VelPhi123(Tdomain, nmax, elem_id)
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
-                        data1(idx) = Tdomain%specel(n)%spml%VelPhi1(i,j,k)
-                        data2(idx) = Tdomain%specel(n)%spml%VelPhi2(i,j,k)
-                        data3(idx) = Tdomain%specel(n)%spml%VelPhi3(i,j,k)
+                        data1(idx) = Tdomain%specel(n)%flpml%VelPhi1(i,j,k)
+                        data2(idx) = Tdomain%specel(n)%flpml%VelPhi2(i,j,k)
+                        data3(idx) = Tdomain%specel(n)%flpml%VelPhi3(i,j,k)
                         idx = idx + 1
                     enddo
                 enddo
@@ -486,9 +486,9 @@ subroutine write_Disp(Tdomain, nmax, elem_id)
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
-                        data(idx+0) = Tdomain%specel(n)%Displ(i,j,k,0)
-                        data(idx+1) = Tdomain%specel(n)%Displ(i,j,k,1)
-                        data(idx+2) = Tdomain%specel(n)%Displ(i,j,k,2)
+                        data(idx+0) = Tdomain%specel(n)%sl%Displ(i,j,k,0)
+                        data(idx+1) = Tdomain%specel(n)%sl%Displ(i,j,k,1)
+                        data(idx+2) = Tdomain%specel(n)%sl%Displ(i,j,k,2)
                         idx = idx + 3
                     enddo
                 enddo
@@ -534,7 +534,7 @@ subroutine write_Phi(Tdomain, nmax, elem_id)
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
-                        data(idx) = Tdomain%specel(n)%Phi(i,j,k)
+                        data(idx) = Tdomain%specel(n)%fl%Phi(i,j,k)
                         idx = idx + 1
                     enddo
                 enddo
@@ -586,7 +586,7 @@ subroutine write_EpsilonVol(Tdomain, nmax, elem_id)
                                     write(*,*) "Erreur fatale sauvegarde des protections"
                                     stop 1
                                 end if
-                                data(idx+0) = Tdomain%specel(n)%epsilonvol_(i,j,k)
+                                data(idx+0) = Tdomain%specel(n)%sl%epsilonvol_(i,j,k)
                                 idx = idx + 1
                             end if
                         end if
@@ -642,7 +642,7 @@ subroutine write_Rvol(Tdomain, nmax, elem_id)
                                     stop 1
                                 end if
                                 do i_sls = 0, n_solid-1
-                                    data(idx+i_sls) = Tdomain%specel(n)%R_vol_(i_sls,i,j,k)
+                                    data(idx+i_sls) = Tdomain%specel(n)%sl%R_vol_(i_sls,i,j,k)
                                 end do
                                 idx = idx + n_solid
                             end if
@@ -705,11 +705,11 @@ subroutine write_Rxyz(Tdomain, nmax, elem_id)
                                 stop 1
                             end if
                             do i_sls=0, n_solid-1
-                                data_xx(idx+i_sls) = Tdomain%specel(n)%R_xx_(i_sls,i,j,k)
-                                data_yy(idx+i_sls) = Tdomain%specel(n)%R_yy_(i_sls,i,j,k)
-                                data_xy(idx+i_sls) = Tdomain%specel(n)%R_xy_(i_sls,i,j,k)
-                                data_xz(idx+i_sls) = Tdomain%specel(n)%R_xz_(i_sls,i,j,k)
-                                data_yz(idx+i_sls) = Tdomain%specel(n)%R_yz_(i_sls,i,j,k)
+                                data_xx(idx+i_sls) = Tdomain%specel(n)%sl%R_xx_(i_sls,i,j,k)
+                                data_yy(idx+i_sls) = Tdomain%specel(n)%sl%R_yy_(i_sls,i,j,k)
+                                data_xy(idx+i_sls) = Tdomain%specel(n)%sl%R_xy_(i_sls,i,j,k)
+                                data_xz(idx+i_sls) = Tdomain%specel(n)%sl%R_xz_(i_sls,i,j,k)
+                                data_yz(idx+i_sls) = Tdomain%specel(n)%sl%R_yz_(i_sls,i,j,k)
                             end do
                             idx = idx + n_solid
                         end if
@@ -776,11 +776,11 @@ subroutine write_EpsilonDev(Tdomain, nmax, elem_id)
                                 write(*,*) "Erreur fatale sauvegarde des protections"
                                 stop 1
                             end if
-                            data_xx(idx) = Tdomain%specel(n)%epsilondev_xx_(i,j,k)
-                            data_yy(idx) = Tdomain%specel(n)%epsilondev_yy_(i,j,k)
-                            data_xy(idx) = Tdomain%specel(n)%epsilondev_xy_(i,j,k)
-                            data_xz(idx) = Tdomain%specel(n)%epsilondev_xz_(i,j,k)
-                            data_yz(idx) = Tdomain%specel(n)%epsilondev_yz_(i,j,k)
+                            data_xx(idx) = Tdomain%specel(n)%sl%epsilondev_xx_(i,j,k)
+                            data_yy(idx) = Tdomain%specel(n)%sl%epsilondev_yy_(i,j,k)
+                            data_xy(idx) = Tdomain%specel(n)%sl%epsilondev_xy_(i,j,k)
+                            data_xz(idx) = Tdomain%specel(n)%sl%epsilondev_xz_(i,j,k)
+                            data_yz(idx) = Tdomain%specel(n)%sl%epsilondev_yz_(i,j,k)
                             idx = idx + 1
                         end if
                     enddo
@@ -836,29 +836,29 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
-                        data(idx+ 0) = Tdomain%specel(n)%spml%Diagonal_Stress1(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%spml%Diagonal_Stress1(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%spml%Diagonal_Stress1(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%slpml%Diagonal_Stress1(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%slpml%Diagonal_Stress1(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%slpml%Diagonal_Stress1(i,j,k,2)
                         idx = idx + 3
-                        data(idx+ 0) = Tdomain%specel(n)%spml%Diagonal_Stress2(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%spml%Diagonal_Stress2(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%spml%Diagonal_Stress2(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%slpml%Diagonal_Stress2(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%slpml%Diagonal_Stress2(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%slpml%Diagonal_Stress2(i,j,k,2)
                         idx = idx + 3
-                        data(idx+ 0) = Tdomain%specel(n)%spml%Diagonal_Stress3(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%spml%Diagonal_Stress3(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%spml%Diagonal_Stress3(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%slpml%Diagonal_Stress3(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%slpml%Diagonal_Stress3(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%slpml%Diagonal_Stress3(i,j,k,2)
                         idx = idx + 3
-                        data(idx+ 0) = Tdomain%specel(n)%spml%Residual_Stress1(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%spml%Residual_Stress1(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%spml%Residual_Stress1(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%slpml%Residual_Stress1(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%slpml%Residual_Stress1(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%slpml%Residual_Stress1(i,j,k,2)
                         idx = idx + 3
-                        data(idx+ 0) = Tdomain%specel(n)%spml%Residual_Stress2(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%spml%Residual_Stress2(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%spml%Residual_Stress2(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%slpml%Residual_Stress2(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%slpml%Residual_Stress2(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%slpml%Residual_Stress2(i,j,k,2)
                         idx = idx + 3
-                        data(idx+ 0) = Tdomain%specel(n)%spml%Residual_Stress3(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%spml%Residual_Stress3(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%spml%Residual_Stress3(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%slpml%Residual_Stress3(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%slpml%Residual_Stress3(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%slpml%Residual_Stress3(i,j,k,2)
                         idx = idx + 3
                     enddo
                 enddo
@@ -905,17 +905,17 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
-                        data(idx+ 0) = Tdomain%specel(n)%spml%Veloc1(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%spml%Veloc1(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%spml%Veloc1(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%slpml%Veloc1(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%slpml%Veloc1(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%slpml%Veloc1(i,j,k,2)
                         idx = idx + 3
-                        data(idx+ 0) = Tdomain%specel(n)%spml%Veloc2(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%spml%Veloc2(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%spml%Veloc2(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%slpml%Veloc2(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%slpml%Veloc2(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%slpml%Veloc2(i,j,k,2)
                         idx = idx + 3
-                        data(idx+ 0) = Tdomain%specel(n)%spml%Veloc3(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%spml%Veloc3(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%spml%Veloc3(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%slpml%Veloc3(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%slpml%Veloc3(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%slpml%Veloc3(i,j,k,2)
                         idx = idx + 3
                     enddo
                 enddo

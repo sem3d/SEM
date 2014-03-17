@@ -40,83 +40,83 @@ subroutine allocate_domain (Tdomain, rg)
 
 
         if(Tdomain%specel(n)%solid)then  ! SOLID PART
-
+            allocate(Tdomain%specel(n)%sl)
             if(Tdomain%TimeD%velocity_scheme)then
-                allocate(Tdomain%specel(n)%Displ (1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                allocate(Tdomain%specel(n)%Veloc (1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                allocate(Tdomain%specel(n)%Accel (1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                allocate(Tdomain%specel(n)%V0    (1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                allocate(Tdomain%specel(n)%Forces(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                Tdomain%specel(n)%Displ = 0
-                Tdomain%specel(n)%Veloc = 0d0
-                Tdomain%specel(n)%Accel = 0d0
-                Tdomain%specel(n)%V0 = 0d0
-                Tdomain%specel(n)%Forces = 0d0
+                allocate(Tdomain%specel(n)%sl%Displ (1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+                allocate(Tdomain%specel(n)%sl%Veloc (1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+                allocate(Tdomain%specel(n)%sl%Accel (1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+                allocate(Tdomain%specel(n)%sl%V0    (1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+                allocate(Tdomain%specel(n)%sl%Forces(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                Tdomain%specel(n)%sl%Displ = 0
+                Tdomain%specel(n)%sl%Veloc = 0d0
+                Tdomain%specel(n)%sl%Accel = 0d0
+                Tdomain%specel(n)%sl%V0 = 0d0
+                Tdomain%specel(n)%sl%Forces = 0d0
                 if(Tdomain%specel(n)%PML)then
-                    allocate(Tdomain%specel(n)%spml)
-                    allocate(Tdomain%specel(n)%Acoeff(0:ngllx-1,0:nglly-1,0:ngllz-1,0:35))
-                    allocate(Tdomain%specel(n)%spml%Diagonal_Stress(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%spml%Diagonal_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%spml%Diagonal_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%spml%Diagonal_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%spml%Residual_Stress(0:ngllx-1, 0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%spml%Residual_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%spml%Residual_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%spml%Residual_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%spml%Veloc1(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                    allocate(Tdomain%specel(n)%spml%Veloc2(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                    allocate(Tdomain%specel(n)%spml%Veloc3(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                    allocate(Tdomain%specel(n)%spml%Forces1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%spml%Forces2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%spml%Forces3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%spml%DumpSx(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
-                    allocate(Tdomain%specel(n)%spml%DumpSy(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
-                    allocate(Tdomain%specel(n)%spml%DumpSz(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
-                    allocate(Tdomain%specel(n)%spml%DumpMass(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%spml%DumpVx(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
-                    allocate(Tdomain%specel(n)%spml%DumpVy(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
-                    allocate(Tdomain%specel(n)%spml%DumpVz(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
-                    Tdomain%specel(n)%spml%Diagonal_Stress = 0d0
-                    Tdomain%specel(n)%spml%Diagonal_Stress1 = 0d0
-                    Tdomain%specel(n)%spml%Diagonal_Stress2 = 0d0
-                    Tdomain%specel(n)%spml%Diagonal_Stress3 = 0d0
-                    Tdomain%specel(n)%spml%Residual_Stress = 0d0
-                    Tdomain%specel(n)%spml%Residual_Stress1 = 0d0
-                    Tdomain%specel(n)%spml%Residual_Stress2 = 0d0
-                    Tdomain%specel(n)%spml%Residual_Stress3 = 0d0
-                    Tdomain%specel(n)%spml%Veloc1 = 0d0
-                    Tdomain%specel(n)%spml%Veloc2 = 0d0
-                    Tdomain%specel(n)%spml%Veloc3 = 0d0
+                    allocate(Tdomain%specel(n)%slpml)
+                    allocate(Tdomain%specel(n)%sl%Acoeff(0:ngllx-1,0:nglly-1,0:ngllz-1,0:35))
+                    allocate(Tdomain%specel(n)%slpml%Diagonal_Stress(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%slpml%Diagonal_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%slpml%Diagonal_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%slpml%Diagonal_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%slpml%Residual_Stress(0:ngllx-1, 0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%slpml%Residual_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%slpml%Residual_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%slpml%Residual_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%slpml%Veloc1(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+                    allocate(Tdomain%specel(n)%slpml%Veloc2(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+                    allocate(Tdomain%specel(n)%slpml%Veloc3(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+                    allocate(Tdomain%specel(n)%slpml%Forces1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%slpml%Forces2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%slpml%Forces3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%slpml%DumpSx(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
+                    allocate(Tdomain%specel(n)%slpml%DumpSy(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
+                    allocate(Tdomain%specel(n)%slpml%DumpSz(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
+                    allocate(Tdomain%specel(n)%slpml%DumpMass(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%slpml%DumpVx(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
+                    allocate(Tdomain%specel(n)%slpml%DumpVy(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
+                    allocate(Tdomain%specel(n)%slpml%DumpVz(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
+                    Tdomain%specel(n)%slpml%Diagonal_Stress = 0d0
+                    Tdomain%specel(n)%slpml%Diagonal_Stress1 = 0d0
+                    Tdomain%specel(n)%slpml%Diagonal_Stress2 = 0d0
+                    Tdomain%specel(n)%slpml%Diagonal_Stress3 = 0d0
+                    Tdomain%specel(n)%slpml%Residual_Stress = 0d0
+                    Tdomain%specel(n)%slpml%Residual_Stress1 = 0d0
+                    Tdomain%specel(n)%slpml%Residual_Stress2 = 0d0
+                    Tdomain%specel(n)%slpml%Residual_Stress3 = 0d0
+                    Tdomain%specel(n)%slpml%Veloc1 = 0d0
+                    Tdomain%specel(n)%slpml%Veloc2 = 0d0
+                    Tdomain%specel(n)%slpml%Veloc3 = 0d0
 
                     if(Tdomain%specel(n)%FPML)then
-                        allocate(Tdomain%specel(n)%spml%Isx(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(Tdomain%specel(n)%spml%Isy(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(Tdomain%specel(n)%spml%Isz(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(Tdomain%specel(n)%spml%Ivx(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(Tdomain%specel(n)%spml%Ivy(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(Tdomain%specel(n)%spml%Ivz(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(Tdomain%specel(n)%spml%I_Diagonal_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                        allocate(Tdomain%specel(n)%spml%I_Diagonal_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                        allocate(Tdomain%specel(n)%spml%I_Diagonal_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                        allocate(Tdomain%specel(n)%spml%I_Residual_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                        allocate(Tdomain%specel(n)%spml%I_Residual_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                        allocate(Tdomain%specel(n)%spml%IVeloc1(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                        allocate(Tdomain%specel(n)%spml%IVeloc2(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                        allocate(Tdomain%specel(n)%spml%IVeloc3(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                        Tdomain%specel(n)%spml%I_Diagonal_Stress1 = 0.
-                        Tdomain%specel(n)%spml%I_Diagonal_Stress2 = 0.
-                        Tdomain%specel(n)%spml%I_Diagonal_Stress3 = 0.
-                        Tdomain%specel(n)%spml%I_Residual_Stress1 = 0.
-                        Tdomain%specel(n)%spml%I_Residual_Stress2 = 0.
-                        Tdomain%specel(n)%spml%IVeloc1 = 0.
-                        Tdomain%specel(n)%spml%IVeloc2 = 0.
-                        Tdomain%specel(n)%spml%IVeloc3 = 0.
+                        allocate(Tdomain%specel(n)%slpml%Isx(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                        allocate(Tdomain%specel(n)%slpml%Isy(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                        allocate(Tdomain%specel(n)%slpml%Isz(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                        allocate(Tdomain%specel(n)%slpml%Ivx(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                        allocate(Tdomain%specel(n)%slpml%Ivy(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                        allocate(Tdomain%specel(n)%slpml%Ivz(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                        allocate(Tdomain%specel(n)%slpml%I_Diagonal_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                        allocate(Tdomain%specel(n)%slpml%I_Diagonal_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                        allocate(Tdomain%specel(n)%slpml%I_Diagonal_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                        allocate(Tdomain%specel(n)%slpml%I_Residual_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                        allocate(Tdomain%specel(n)%slpml%I_Residual_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                        allocate(Tdomain%specel(n)%slpml%IVeloc1(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+                        allocate(Tdomain%specel(n)%slpml%IVeloc2(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+                        allocate(Tdomain%specel(n)%slpml%IVeloc3(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+                        Tdomain%specel(n)%slpml%I_Diagonal_Stress1 = 0.
+                        Tdomain%specel(n)%slpml%I_Diagonal_Stress2 = 0.
+                        Tdomain%specel(n)%slpml%I_Diagonal_Stress3 = 0.
+                        Tdomain%specel(n)%slpml%I_Residual_Stress1 = 0.
+                        Tdomain%specel(n)%slpml%I_Residual_Stress2 = 0.
+                        Tdomain%specel(n)%slpml%IVeloc1 = 0.
+                        Tdomain%specel(n)%slpml%IVeloc2 = 0.
+                        Tdomain%specel(n)%slpml%IVeloc3 = 0.
                     endif ! FPML
 
 
                     if (Tdomain%curve) then
-                        allocate (Tdomain%specel(n)%spml%Normales (0:2, 0:2))
-                        allocate (Tdomain%specel(n)%spml%Inv_Normales (0:2, 0:2))
+                        allocate (Tdomain%specel(n)%slpml%Normales (0:2, 0:2))
+                        allocate (Tdomain%specel(n)%slpml%Inv_Normales (0:2, 0:2))
                     endif
                 else ! PML
                     !  modif mariotti fevrier 2007 cea
@@ -127,94 +127,95 @@ subroutine allocate_domain (Tdomain, rg)
                     !          allocate (Tdomain%specel(n)%Displ (1:ngllx-2, 1:nglly-2, 1:ngllz-2, 0:2))
                     !          Tdomain%specel(n)%Displ = 0
                     if (Tdomain%aniso) then
-                        allocate (Tdomain%specel(n)%Cij (0:20, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                        allocate (Tdomain%specel(n)%sl%Cij (0:20, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
                     endif
                     if (n_solid>0) then
                         if (Tdomain%aniso) then
-                            allocate (Tdomain%specel(n)%Q (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                            allocate (Tdomain%specel(n)%sl%Q (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
                         else
                             !              allocate (Tdomain%specel(n)%Kappa (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            allocate (Tdomain%specel(n)%Qs (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            allocate (Tdomain%specel(n)%Qp (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            allocate (Tdomain%specel(n)%onemPbeta (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            allocate (Tdomain%specel(n)%epsilonvol_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            Tdomain%specel(n)%epsilonvol_ = 0
-                            allocate (Tdomain%specel(n)%factor_common_P (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            allocate (Tdomain%specel(n)%alphaval_P (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            allocate (Tdomain%specel(n)%betaval_P (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            allocate (Tdomain%specel(n)%gammaval_P (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            allocate (Tdomain%specel(n)%R_vol_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            Tdomain%specel(n)%R_vol_ = 0
+                            allocate (Tdomain%specel(n)%sl%Qs (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                            allocate (Tdomain%specel(n)%sl%Qp (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                            allocate (Tdomain%specel(n)%sl%onemPbeta (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                            allocate (Tdomain%specel(n)%sl%epsilonvol_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                            Tdomain%specel(n)%sl%epsilonvol_ = 0
+                            allocate (Tdomain%specel(n)%sl%factor_common_P (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                            allocate (Tdomain%specel(n)%sl%alphaval_P (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                            allocate (Tdomain%specel(n)%sl%betaval_P (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                            allocate (Tdomain%specel(n)%sl%gammaval_P (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                            allocate (Tdomain%specel(n)%sl%R_vol_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                            Tdomain%specel(n)%sl%R_vol_ = 0
                         endif
-                        allocate (Tdomain%specel(n)%onemSbeta (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%epsilondev_xx_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%epsilondev_yy_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%epsilondev_xy_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%epsilondev_xz_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%epsilondev_yz_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        Tdomain%specel(n)%epsilondev_xx_ = 0
-                        Tdomain%specel(n)%epsilondev_yy_ = 0
-                        Tdomain%specel(n)%epsilondev_xy_ = 0
-                        Tdomain%specel(n)%epsilondev_xz_ = 0
-                        Tdomain%specel(n)%epsilondev_yz_ = 0
-                        allocate (Tdomain%specel(n)%factor_common_3 (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%alphaval_3 (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%betaval_3 (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%gammaval_3 (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%R_xx_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%R_yy_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%R_xy_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%R_xz_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%R_yz_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        Tdomain%specel(n)%R_xx_ = 0
-                        Tdomain%specel(n)%R_yy_ = 0
-                        Tdomain%specel(n)%R_xy_ = 0
-                        Tdomain%specel(n)%R_xz_ = 0
-                        Tdomain%specel(n)%R_yz_ = 0
+                        allocate (Tdomain%specel(n)%sl%onemSbeta (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                        allocate (Tdomain%specel(n)%sl%epsilondev_xx_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                        allocate (Tdomain%specel(n)%sl%epsilondev_yy_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                        allocate (Tdomain%specel(n)%sl%epsilondev_xy_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                        allocate (Tdomain%specel(n)%sl%epsilondev_xz_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                        allocate (Tdomain%specel(n)%sl%epsilondev_yz_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                        Tdomain%specel(n)%sl%epsilondev_xx_ = 0
+                        Tdomain%specel(n)%sl%epsilondev_yy_ = 0
+                        Tdomain%specel(n)%sl%epsilondev_xy_ = 0
+                        Tdomain%specel(n)%sl%epsilondev_xz_ = 0
+                        Tdomain%specel(n)%sl%epsilondev_yz_ = 0
+                        allocate (Tdomain%specel(n)%sl%factor_common_3 (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                        allocate (Tdomain%specel(n)%sl%alphaval_3 (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                        allocate (Tdomain%specel(n)%sl%betaval_3 (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                        allocate (Tdomain%specel(n)%sl%gammaval_3 (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                        allocate (Tdomain%specel(n)%sl%R_xx_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                        allocate (Tdomain%specel(n)%sl%R_yy_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                        allocate (Tdomain%specel(n)%sl%R_xy_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                        allocate (Tdomain%specel(n)%sl%R_xz_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                        allocate (Tdomain%specel(n)%sl%R_yz_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                        Tdomain%specel(n)%sl%R_xx_ = 0
+                        Tdomain%specel(n)%sl%R_yy_ = 0
+                        Tdomain%specel(n)%sl%R_xy_ = 0
+                        Tdomain%specel(n)%sl%R_xz_ = 0
+                        Tdomain%specel(n)%sl%R_yz_ = 0
                     endif ! n_solid
                 endif !PML
             endif
         else   ! FLUID PART
+            allocate(Tdomain%specel(n)%fl)
             if(Tdomain%TimeD%velocity_scheme)then
-                allocate(Tdomain%specel(n)%VelPhi(1:ngllx-2,1:nglly-2,1:ngllz-2))
-                allocate(Tdomain%specel(n)%AccelPhi(1:ngllx-2,1:nglly-2,1:ngllz-2))
-                allocate(Tdomain%specel(n)%VelPhi0(1:ngllx-2,1:nglly-2,1:ngllz-2))
-                allocate(Tdomain%specel(n)%ForcesFl(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                allocate(Tdomain%specel(n)%Phi(1:ngllx-2,1:nglly-2,1:ngllz-2))
-                Tdomain%specel(n)%Phi = 0
-                Tdomain%specel(n)%VelPhi = 0d0
-                Tdomain%specel(n)%AccelPhi = 0d0
-                Tdomain%specel(n)%VelPhi0 = 0d0
-                Tdomain%specel(n)%ForcesFl = 0d0
+                allocate(Tdomain%specel(n)%fl%VelPhi(1:ngllx-2,1:nglly-2,1:ngllz-2))
+                allocate(Tdomain%specel(n)%fl%AccelPhi(1:ngllx-2,1:nglly-2,1:ngllz-2))
+                allocate(Tdomain%specel(n)%fl%VelPhi0(1:ngllx-2,1:nglly-2,1:ngllz-2))
+                allocate(Tdomain%specel(n)%fl%ForcesFl(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(Tdomain%specel(n)%fl%Phi(1:ngllx-2,1:nglly-2,1:ngllz-2))
+                Tdomain%specel(n)%fl%Phi = 0
+                Tdomain%specel(n)%fl%VelPhi = 0d0
+                Tdomain%specel(n)%fl%AccelPhi = 0d0
+                Tdomain%specel(n)%fl%VelPhi0 = 0d0
+                Tdomain%specel(n)%fl%ForcesFl = 0d0
                 if(Tdomain%specel(n)%PML)then
-                    allocate(Tdomain%specel(n)%spml)
-                    allocate(Tdomain%specel(n)%Acoeff(0:ngllx-1,0:nglly-1,0:ngllz-1,0:17))
-                    allocate(Tdomain%specel(n)%spml%Veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%spml%Veloc1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%spml%Veloc2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%spml%Veloc3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%spml%VelPhi1(1:ngllx-2,1:nglly-2,1:ngllz-2))
-                    allocate(Tdomain%specel(n)%spml%VelPhi2(1:ngllx-2,1:nglly-2,1:ngllz-2))
-                    allocate(Tdomain%specel(n)%spml%VelPhi3(1:ngllx-2,1:nglly-2,1:ngllz-2))
-                    allocate(Tdomain%specel(n)%spml%ForcesFl1(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                    allocate(Tdomain%specel(n)%spml%ForcesFl2(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                    allocate(Tdomain%specel(n)%spml%ForcesFl3(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                    allocate(Tdomain%specel(n)%spml%DumpSx(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
-                    allocate(Tdomain%specel(n)%spml%DumpSy(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
-                    allocate(Tdomain%specel(n)%spml%DumpSz(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
-                    allocate(Tdomain%specel(n)%spml%DumpMass(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%spml%DumpVx(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
-                    allocate(Tdomain%specel(n)%spml%DumpVy(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
-                    allocate(Tdomain%specel(n)%spml%DumpVz(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
-                    Tdomain%specel(n)%spml%Veloc = 0d0
-                    Tdomain%specel(n)%spml%Veloc1 = 0d0
-                    Tdomain%specel(n)%spml%Veloc2 = 0d0
-                    Tdomain%specel(n)%spml%Veloc3 = 0d0
-                    Tdomain%specel(n)%spml%VelPhi1 = 0d0
-                    Tdomain%specel(n)%spml%VelPhi2 = 0d0
-                    Tdomain%specel(n)%spml%VelPhi3 = 0d0
+                    allocate(Tdomain%specel(n)%flpml)
+                    allocate(Tdomain%specel(n)%fl%Acoeff(0:ngllx-1,0:nglly-1,0:ngllz-1,0:17))
+                    allocate(Tdomain%specel(n)%flpml%Veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%flpml%Veloc1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%flpml%Veloc2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%flpml%Veloc3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%flpml%VelPhi1(1:ngllx-2,1:nglly-2,1:ngllz-2))
+                    allocate(Tdomain%specel(n)%flpml%VelPhi2(1:ngllx-2,1:nglly-2,1:ngllz-2))
+                    allocate(Tdomain%specel(n)%flpml%VelPhi3(1:ngllx-2,1:nglly-2,1:ngllz-2))
+                    allocate(Tdomain%specel(n)%flpml%ForcesFl1(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                    allocate(Tdomain%specel(n)%flpml%ForcesFl2(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                    allocate(Tdomain%specel(n)%flpml%ForcesFl3(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                    allocate(Tdomain%specel(n)%flpml%DumpSx(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
+                    allocate(Tdomain%specel(n)%flpml%DumpSy(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
+                    allocate(Tdomain%specel(n)%flpml%DumpSz(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
+                    allocate(Tdomain%specel(n)%flpml%DumpMass(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%flpml%DumpVx(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
+                    allocate(Tdomain%specel(n)%flpml%DumpVy(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
+                    allocate(Tdomain%specel(n)%flpml%DumpVz(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
+                    Tdomain%specel(n)%flpml%Veloc = 0d0
+                    Tdomain%specel(n)%flpml%Veloc1 = 0d0
+                    Tdomain%specel(n)%flpml%Veloc2 = 0d0
+                    Tdomain%specel(n)%flpml%Veloc3 = 0d0
+                    Tdomain%specel(n)%flpml%VelPhi1 = 0d0
+                    Tdomain%specel(n)%flpml%VelPhi2 = 0d0
+                    Tdomain%specel(n)%flpml%VelPhi3 = 0d0
                 else
-                    allocate(Tdomain%specel(n)%Acoeff(0:ngllx-1,0:nglly-1,0:ngllz-1,0:5))
+                    allocate(Tdomain%specel(n)%fl%Acoeff(0:ngllx-1,0:nglly-1,0:ngllz-1,0:5))
                 endif
             endif
 

@@ -1,0 +1,5 @@
+1  # number of non PML materials
+F  # Milieu stratifié F: non T: oui
+1  # PMLs? 0: no, 1: yes
+1 1  # PMLs on top? at the bottom? (0: no, 1: yes)
+S

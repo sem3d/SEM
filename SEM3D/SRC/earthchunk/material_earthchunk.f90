@@ -68,7 +68,7 @@ subroutine  initialize_material_earthchunk( elem, matInfo, coorPt, npts)
                     idef = 0
                     do ii = 1,6
                         do jj = ii,6
-                            elem%Cij(idef,i,j,k) = Cij(ii,jj)
+                            elem%sl%Cij(idef,i,j,k) = Cij(ii,jj)
                             idef = idef + 1
                         enddo
                     enddo
