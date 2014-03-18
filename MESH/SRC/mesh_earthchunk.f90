@@ -146,17 +146,17 @@ contains
         real, dimension(0:2,0:2) :: mat
         real :: theta, phi
 
-        theta = lat*Pi180
-        phi = lon*Pi180
-        mat(0,0) = cos(phi)
-        mat(0,1) = sin(phi)*cos(theta)
-        mat(0,2) = -sin(phi)*sin(theta)
-        mat(1,0) = -sin(phi)
-        mat(1,1) = cos(phi)*cos(theta)
-        mat(1,2) = -cos(phi)*sin(theta)
-        mat(2,0) = 0
-        mat(2,1) = sin(theta)
-        mat(2,2) = cos(theta)
+        !theta = lat*Pi180
+        !phi = lon*Pi180
+        !mat(0,0) = cos(phi)
+        !mat(0,1) = sin(phi)*cos(theta)
+        !mat(0,2) = -sin(phi)*sin(theta)
+        !mat(1,0) = -sin(phi)
+        !mat(1,1) = cos(phi)*cos(theta)
+        !mat(1,2) = -cos(phi)*sin(theta)
+        !mat(2,0) = 0
+        !mat(2,1) = sin(theta)
+        !mat(2,2) = cos(theta)
 
     end subroutine defineRotation
 
@@ -174,21 +174,21 @@ contains
         type(EarthChunk_t), intent(in) :: chunk
 
 
-        call defineRotation(chunk%lon_center, chunk%lat_center, rotToRealChunk)
-
-
+!        call defineRotation(chunk%lon_center, chunk%lat_center, rotToRealChunk)
+!        call defineRotation(0.0, 90.0, rotToRealChunk)
 
         indice=0
-        do iz=0,chunk%npt_z-1
+        do iz=chunk%npt_z-1,0,-1
+        !do iz=0,chunk%npt_z-1
             curDepth = chunk%z_depth(iz)
             do iy=0, chunk%npt_lon-1
                 curY = - chunk%delta_lon/2 + iy*chunk%step_lonlat
                 do ix=0, chunk%npt_lat-1
                     curX = - chunk%delta_lat/2 + ix*chunk%step_lonlat
                     call sph2cart(Earth_radius-curDepth, curY, curX, x, y, z)
-                    xp(indice) = x * rotToRealChunk(0,0) + y * rotToRealChunk(0,1) + z * rotToRealChunk(0,2)
-                    yp(indice) = x * rotToRealChunk(1,0) + y * rotToRealChunk(1,1) + z * rotToRealChunk(1,2)
-                    zp(indice) = x * rotToRealChunk(2,0) + y * rotToRealChunk(2,1) + z * rotToRealChunk(2,2)
+                    xp(indice) = z!x * rotToRealChunk(0,0) + y * rotToRealChunk(0,1) + z * rotToRealChunk(0,2)
+                    yp(indice) = x!x * rotToRealChunk(1,0) + y * rotToRealChunk(1,1) + z * rotToRealChunk(1,2)
+                    zp(indice) = y!x * rotToRealChunk(2,0) + y * rotToRealChunk(2,1) + z * rotToRealChunk(2,2)
                     indice = indice+1
                 end do
             end do
@@ -267,7 +267,8 @@ contains
 
                     mat(indice) = nmat-1
 
-                    if( iez == nelemz-1) then
+                    !if( iez == nelemz-1) then
+                    if( iez == 0) then
                         mat(indice) = nmat+16
                         if( iex==0 ) then
                             mat(indice) = nmat+15
@@ -307,6 +308,7 @@ contains
                     else if( iey== nelemy-1) then
                         mat(indice) = nmat+6
                     end if
+
 
                     indice = indice+1
                 end do

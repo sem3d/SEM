@@ -1,4 +1,4 @@
-module read_model_earthchunk
+module model_earthchunk
     implicit none
 
     real, parameter :: Earth_radius=6371000.d0, Pi = 3.141592653, Pi180 = Pi/180.0, mille=1000.0
@@ -13,6 +13,8 @@ module read_model_earthchunk
     type(OneModel), allocatable, dimension(:) :: value_pt
     logical :: is_modelOpenQ=.false.
 
+
+    private :: getIndiceFromLonLat, checkRangeLonLat, getPtNearDepth, prem_aniso
 
 
 contains
@@ -44,7 +46,7 @@ contains
 
         lat = 90.0-acos(z/r)/Pi180
 
-        lon = atan2(y,x)/Pi180
+        lon = atan2(x,y)/Pi180
 
     end subroutine cart2sph
 
@@ -135,7 +137,7 @@ contains
 
 
     ! #######################################################
-    subroutine get_value_aniso (r, lon, lat, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu)
+    subroutine get_value_earthchunk(r, lon, lat, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu)
 
         implicit none
 
@@ -238,13 +240,13 @@ contains
         Gc=0.d0; Gs=0.d0; Hc=0.d0; Hs=0.d0; Bc=0.d0; Bs=0.d0; Ec=0.d0; Es=0.d0
 
 
-    end subroutine get_value_aniso    
+    end subroutine get_value_earthchunk
 
 
 
 
 ! #######################################################
-    subroutine load_model(filename, delta_lon, delta_lat)
+    subroutine load_earthchunk(filename, delta_lon, delta_lat)
         implicit none
         character(len=*), intent(in) :: filename
         real, intent(in) :: delta_lon, delta_lat
@@ -325,10 +327,10 @@ contains
 
 
 
-    end subroutine load_model
+    end subroutine load_earthchunk
 
 ! #######################################################
-    subroutine clean_model
+    subroutine clean_earthchunk
         integer :: npts,i
 
         npts = size(value_pt)
@@ -340,7 +342,7 @@ contains
         deallocate(value_pt)
 
 
-    end subroutine clean_model
+    end subroutine clean_earthchunk
 
 ! #######################################################
     subroutine prem_aniso(x0,rho,vpv,vph,vsv,vsh,eta,Qmu)
@@ -453,4 +455,4 @@ contains
         end subroutine prem_aniso
 
 
-end module read_model_earthchunk
+end module model_earthchunk

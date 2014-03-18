@@ -95,8 +95,12 @@ set(SEM3D_SOURCES_F
 
     ${PRJ}/SRC/snapshots.f90
 
-	${PRJ}/SRC/earthchunk/material_earthchunk.f90
-	${PRJ}/SRC/earthchunk/read_model_earthchunk.f90
+	#	${PRJ}/SRC/earthchunk/material_earthchunk.f90
+	#${PRJ}/SRC/earthchunk/read_model_earthchunk.f90
+	${PRJ}/SRC/earth_models/material_earthchunk.f90
+	${PRJ}/SRC/earth_models/material_prem.f90
+	${PRJ}/SRC/earth_models/model_earthchunk.f90
+	${PRJ}/SRC/earth_models/model_prem.f90
 	
 )
 

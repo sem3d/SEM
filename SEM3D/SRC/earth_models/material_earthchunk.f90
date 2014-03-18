@@ -1,7 +1,7 @@
 subroutine  initialize_material_earthchunk( elem, matInfo, coorPt, npts)
     use selement
     use ssubdomains
-    use read_model_earthchunk
+    use model_earthchunk
     use tensor_util
 
 
@@ -31,10 +31,20 @@ subroutine  initialize_material_earthchunk( elem, matInfo, coorPt, npts)
                 y = coorPt(1,idef)
                 z = coorPt(2,idef)
 
-                call cart2sph(x, y, z, r, lon, lat)
-                call get_value_aniso (r, lon, lat, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu)
-                theta = (90.0-lat)*Pi180
+!                call cart2sph(x, y, z, r, lon, lat)
+!                theta = (90.0-lat)*Pi180
+!                phi = lon*Pi180
+
+
+                call cart2sph(y, z, x, r, lon, lat)
+                theta = lat*Pi180
                 phi = lon*Pi180
+
+
+                lon = lon+40
+                lat = lat+35
+
+                call get_value_earthchunk (r, lon, lat, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu)
 
                 Cij(:,:) = 0.d0
                 Cij(1,1) = C

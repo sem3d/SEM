@@ -660,7 +660,7 @@ subroutine read_input (Tdomain, rg, code)
         Tdomain%earthchunk_delta_lon = config%delta_lon
         Tdomain%earthchunk_delta_lat = config%delta_lat
 
-        if( config%material_type == MATERIAL_EARTHCHUNK ) Tdomain%aniso=.true.
+        if( config%material_type == MATERIAL_EARTHCHUNK .or. config%material_type == MATERIAL_PREM ) Tdomain%aniso=.true.
 
         do imat=0,Tdomain%n_mat-1
             Tdomain%sSubDomain(imat)%material_definition = config%material_type

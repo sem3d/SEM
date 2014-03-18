@@ -15,7 +15,8 @@ subroutine Define_Arrays(Tdomain, rg)
     use scommutils
     use assembly
     use constants
-    use read_model_earthchunk
+    use model_earthchunk
+    use model_prem
     implicit none
 
     interface
@@ -55,7 +56,7 @@ subroutine Define_Arrays(Tdomain, rg)
 
 
     if( Tdomain%earthchunk_isInit/=0) then
-        call load_model(Tdomain%earthchunk_file, Tdomain%earthchunk_delta_lon, Tdomain%earthchunk_delta_lat)
+        call load_earthchunk(Tdomain%earthchunk_file, Tdomain%earthchunk_delta_lon, Tdomain%earthchunk_delta_lat)
     endif
 
     do n = 0,Tdomain%n_elem-1
@@ -83,6 +84,8 @@ subroutine Define_Arrays(Tdomain, rg)
             case( MATERIAL_EARTHCHUNK )
                 call initialize_material_earthchunk(Tdomain%specel(n), Tdomain%sSubDomain(mat), Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
 
+            case( MATERIAL_PREM )
+                call initialize_material_prem(Tdomain%specel(n), Tdomain%sSubDomain(mat), Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
 
             case( MATERIAL_GRADIENT )
                 !    on copie toujours le materiau de base
@@ -400,7 +403,7 @@ subroutine Define_Arrays(Tdomain, rg)
 
 
     if( Tdomain%earthchunk_isInit/=0) then
-        ! call clean_model()
+         call clean_earthchunk()
     endif
 
 
