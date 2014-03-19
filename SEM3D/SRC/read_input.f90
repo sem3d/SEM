@@ -656,11 +656,19 @@ subroutine read_input (Tdomain, rg, code)
 
 
     if( config%material_present == 1) then
-        Tdomain%earthchunk_file = fromcstr(config%model_file)
-        Tdomain%earthchunk_delta_lon = config%delta_lon
-        Tdomain%earthchunk_delta_lat = config%delta_lat
 
-        if( config%material_type == MATERIAL_EARTHCHUNK .or. config%material_type == MATERIAL_PREM ) Tdomain%aniso=.true.
+        select case (config%material_type)
+
+        case (MATERIAL_PREM)
+            Tdomain%aniso=.true.
+        case (MATERIAL_EARTHCHUNK)
+            Tdomain%earthchunk_isInit=1
+            Tdomain%aniso=.true.
+            Tdomain%earthchunk_file = fromcstr(config%model_file)
+            Tdomain%earthchunk_delta_lon = config%delta_lon
+            Tdomain%earthchunk_delta_lat = config%delta_lat
+
+        end select
 
         do imat=0,Tdomain%n_mat-1
             Tdomain%sSubDomain(imat)%material_definition = config%material_type

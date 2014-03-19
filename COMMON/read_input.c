@@ -238,7 +238,7 @@ int expect_material_type(yyscan_t scanner, int* type) {
     if (cmp(scanner,"earthchunk")){ *type = 3; return 1; }
     if (cmp(scanner,"prem"))      { *type = 4; return 1; }
 error:
-    msg_err(scanner, "Expected constant|gradient|earthchunk");
+    msg_err(scanner, "Expected constant|gradient|earthchunk|prem");
     return 0;
 } 
 
@@ -263,8 +263,8 @@ int expect_materials(yyscan_t scanner, sem_config_t* config)
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
 
-    if (config->material_type!=1 && config->model_file==NULL) {
-        msg_err(scanner, "In section material, you need to specify a model_file for type!=constant");
+    if (config->material_type==3 && config->model_file==NULL) {
+        msg_err(scanner, "In section material, you need to specify a model_file for type==earthchunk");
         return 0;
     }
     return 1;
