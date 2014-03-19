@@ -21,11 +21,13 @@ contains
 
         ! local variables
         integer :: n, mat, type_DG
-        real    :: E_tot, E_k, E_el
+        real    :: E_tot, E_k, E_el, Dt
 
         E_tot = 0.
         E_k  = 0.
         E_el = 0.
+        Dt = Tdomain%TimeD%dtmin
+
         if (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK) then
             call global_energy (Tdomain)
 
@@ -37,7 +39,7 @@ contains
                     call get_Displ_fv2el (Tdomain,n)
                     call compute_Elastic_Energy(Tdomain%specel(n),Tdomain%sSubDomain(mat)%hTprimex,&
                         Tdomain%sSubDomain(mat)%hprimez, E_el)
-                    call compute_Kinetic_Energy (Tdomain%specel(n), E_k)
+                    call compute_Kinetic_Energy (Tdomain%specel(n), Dt, E_k)
                 else ! Discontinuous Galerkin cases
                     call compute_Elastic_Energy_DG (Tdomain%specel(n), E_el)
                     call compute_Kinetic_Energy_DG (Tdomain%specel(n), E_k)

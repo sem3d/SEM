@@ -178,6 +178,7 @@ contains
             endif
             F%is_computed = .TRUE.
             if (F%freesurf) F%is_computed = .FALSE.
+            if (F%Abs) F%is_computed = .FALSE.
         endif
         ! Treating Absorbing Boundary Conditions
         ! Basee sur la supposition " Flux sur les caracteistiques sortantes est nul"
