@@ -571,7 +571,7 @@ contains
     subroutine  compute_Elastic_Energy (Elem, hTprime, hprimez, E_elas)
         implicit none
 
-        type (Element), intent (INOUT) :: Elem
+        type (Element), intent (IN) :: Elem
         real, intent (INOUT) :: E_elas
         real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
         real, dimension ( 0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
@@ -644,15 +644,21 @@ contains
     !! \param real, intent (INOUT) E_kin
     !<
 
-    subroutine  compute_Kinetic_Energy (Elem, E_kin)
+    subroutine  compute_Kinetic_Energy (Elem, Dt, E_kin)
         implicit none
 
-        type (Element), intent (INOUT) :: Elem
+        type (Element), intent (IN) :: Elem
+        real, intent (IN)    :: Dt
         real, intent (INOUT) :: E_kin
-        real, dimension (1:Elem%ngllx-2, 1:Elem%ngllz-2)  :: Ener_Mat
+        real, dimension (1:Elem%ngllx-2, 1:Elem%ngllz-2)      :: Ener_Mat
+        real, dimension (1:Elem%ngllx-2, 1:Elem%ngllz-2, 0:1) :: Vel_half
+        integer :: ngllx, ngllz
 
-        Ener_Mat = 1./Elem%MassMat(:,:) * ( Elem%Veloc(:,:,0)*Elem%Veloc(:,:,0) &
-                                           +Elem%Veloc(:,:,1)*Elem%Veloc(:,:,1))
+        ngllx = Elem%ngllx ; ngllz = Elem%ngllz
+
+        Vel_half(:,:,:) = Elem%Veloc(:,:,:) + 0.5 * dt * Elem%Forces(1:ngllx-2,1:ngllz-2,:)
+        Ener_Mat (:,:)  = 1./Elem%MassMat(:,:) * ( Vel_half(:,:,0)*Vel_half(:,:,0) &
+                                                  +Vel_half(:,:,1)*Vel_half(:,:,1))
         E_kin = 0.5 * sum(Ener_Mat)
 
     end subroutine compute_Kinetic_Energy

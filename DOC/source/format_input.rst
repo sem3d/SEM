@@ -277,3 +277,21 @@ Les fonctions temporelles sont:
 
      f(t) = \frac{\exp(2.*\gamma*(x-t_0))-1.}{\exp(2.*\gamma*(x-t_0))+1}+\frac{\exp(2.*\gamma*(t_0+\tau-x))-1.}{\exp(2.*\gamma*(t_0+\tau-x))+1}
 
+
+Atténuation
+===========
+
+Le mécanisme d'atténuation est décrit en deux endroits :
+
+- Le fichier de description des matériaux contient les paramètres :math:`Q_P` et :math:`Q_S` du
+  milieu.
+
+- Le fichier ``input.spec`` contient la section ``amortissement`` décrite ci-dessus.
+
+L'atténuation est modélisée par N filtres (``nsolids``) sur une bande
+de fréquences décrite par ``atn_band``. Les N filtres sont centrés sur
+N fréquences choisies dans la bande spécifiée.  Le paramètre
+``atn_period`` garanti qu'un filtre est choisi spécifiquement sur la
+periode indiquée.
+
+Le code n'applique pas d'atténuation si ``nsolids=0``.

@@ -24,8 +24,8 @@ module sedges
 
        real, dimension (:), allocatable  :: MassMat
        real, dimension (:,:), allocatable :: Forces, Displ, Veloc, Accel, V0
-       logical  :: solid
        ! solid-fluid
+       logical  :: solid, fluid_dirich
        real, dimension(:), allocatable :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
 
        type(edge_pml), pointer :: spml
@@ -107,6 +107,7 @@ contains
         E%ForcesFl(:) = E%MassMat(:) * E%ForcesFl(:)
 
         E%VelPhi(:) = E%VelPhi0(:) + dt * E%ForcesFl(:)
+        if(E%fluid_dirich) E%VelPhi = 0d0
         E%AccelPhi(:) = (E%VelPhi(:)-E%VelPhi0(:))/dt
         E%Phi(:) = E%Phi(:) + dt * E%VelPhi(:)
 
@@ -157,7 +158,7 @@ contains
 
         E%VelPhi = E%spml%VelPhi1 + E%spml%VelPhi2 + E%spml%VelPhi3
 
-        if(E%Abs)then
+        if(E%Abs .or. E%fluid_dirich)then
             E%VelPhi = 0
         endif
 

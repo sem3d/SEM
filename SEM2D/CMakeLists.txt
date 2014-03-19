@@ -1,6 +1,7 @@
 PROJECT(sem2d)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 ENABLE_LANGUAGE(Fortran)
+
 set(PRJ ${PROJECT_SOURCE_DIR})
 
 set(SEM2D_SOURCES_F
@@ -66,22 +67,25 @@ set(SEM2D_SOURCES ${SEM2D_SOURCES_F}
   ${SEM_SRC_C}
 )
 
-# HDF5
-set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
 
+if(OPT_MPI)
+  add_executable(sem2d_cpl  ${SEM2D_SOURCES})
+  target_link_libraries(sem2d_cpl ${SEM_EXTRA_LIBS})
+  set_target_properties(sem2d_cpl PROPERTIES
+				  COMPILE_DEFINITIONS COUPLAGE
+				  COMPILE_FLAGS -I${PROJECT_BINARY_DIR}/cpl
+                              	  Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/cpl)
+  install(TARGETS sem2d_cpl DESTINATION bin)
+else(OPT_MPI)
+  set(SEM2D_SOURCES ${SEM2D_SOURCES} ${FTM_SOURCES})
+endif(OPT_MPI)
 
-
-if (OPT_COUPLAGE)
-add_library(sem2d STATIC ${SEM2D_SOURCES})
-set_target_properties(sem2d PROPERTIES COMPILE_DEFINITIONS COUPLAGE)
-install(TARGETS sem2d ARCHIVE DESTINATION lib)
-endif (OPT_COUPLAGE)
-
-# NB: on peut compiler sem2d.exe avec OPT_COUPLAGE mais on va compiler
-# les sources 2 fois (une fois avec -DCOUPLAGE, une fois sans)
-if(NOT OPT_COUPLAGE)
 add_executable(sem2d.exe  ${SEM2D_SOURCES})
 target_link_libraries(sem2d.exe ${SEM_EXTRA_LIBS})
+
+set_target_properties(sem2d.exe PROPERTIES
+				COMPILE_FLAGS -I${PROJECT_BINARY_DIR}/ncpl
+                              	Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/ncpl)
+
 install(TARGETS sem2d.exe DESTINATION bin)
-endif(NOT OPT_COUPLAGE)
 

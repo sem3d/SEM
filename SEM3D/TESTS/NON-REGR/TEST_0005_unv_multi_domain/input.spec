@@ -5,6 +5,7 @@ run_name = "Cube_PML";
 sim_time = 5.0;
 mesh_file = "mesh4spec"; # input mesh file
 mat_file = "material.input";
+dim=3;
 
 save_snap = true;
 snap_interval = 0.02;
@@ -26,7 +27,7 @@ source {
     # Type (1.Impulse, 2.moment Tensor, 3.fluidpulse)
     type = impulse;
     # Direction 0.x,1.y ou 2.z (only for Impulse)
-    dir = x;
+    dir = 1. 0. 0.;
     # Function 1.gaussian,2.ricker,3.tf_heaviside,4.gabor,5.file,6.spice_bench,7.sinus
     func = ricker;
     tau = 0.5;

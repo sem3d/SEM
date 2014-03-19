@@ -96,6 +96,13 @@ typedef struct {
     int type_flux;
     int type_bc;
 
+    //Material
+    int material_present;
+    int material_type;
+    char *model_file;
+    double delta_lon;
+    double delta_lat;
+
 } sem_config_t;
 
 

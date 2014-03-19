@@ -72,37 +72,17 @@ module scouplage
 
     type :: type_face_couplage
 
-       integer :: face   ! numero de la face de couplage sem dans la numerotation du proc sem qui la contient
-       integer :: proc   ! numero du processeur sem qui contient cette face de couplage
-       integer :: ngll, ngll1, ngll2   ! nbre de point de gauss sur la face
-       integer,dimension(0:3) :: noeud ! numero des noeuds de la face
-       real,dimension(0:3,0:2) :: coord ! coordonnees des noeuds
-       integer :: elem ! numero de la maille
-       integer :: numlocal ! numero local de la face
+       integer :: face          ! numero de la face de couplage sem dans la numerotation du proc sem qui la contient
+       integer :: proc          ! numero du processeur sem qui contient cette face de couplage
+       integer :: ngll, ngll1, ngll2      ! nbre de point de gauss sur la face
+       integer,dimension(0:3) :: noeud    ! numero des noeuds de la face
+       real,dimension(0:3,0:2) :: coord   ! coordonnees des noeuds
+       integer :: elem          ! numero de la maille
+       integer :: numlocal      ! numero local de la face
+       integer :: nbPk          ! nombre de points du peigne
 
     end type type_face_couplage
 
-    type :: type_interp_Pk_face
-       integer :: nb_pts
-       real, dimension(:,:,:,:), pointer :: Interp_coeff
-       integer, dimension(:,:), pointer :: part_mka_plus_proche
-       real, dimension(:,:), pointer :: xi, eta, zeta
-       !!real, dimension(:,:), pointer :: surf
-    end type type_interp_Pk_face
-
-    type :: type_interp_pk_data
-       integer :: nb_pts
-       integer :: ngll1
-       integer :: ngll2
-       integer :: numlocal
-       real, dimension(:,:,:,:), pointer :: Interp_coeff
-       real, dimension(:,:), pointer :: xi, eta, zeta
-       type(type_interp_pk_data), pointer :: next
-    end type type_interp_pk_data
-
-    type(type_interp_pk_data), pointer :: pk_data_start
-
-    type(type_interp_Pk_face), dimension(:),pointer :: tab_Pk
     real,dimension(:), pointer :: Xpdc, Ypdc, Zpdc
 
     integer :: nbFaceTotal,nbFace
@@ -215,13 +195,11 @@ contains
         integer gl_ndim_stock, gl_Ngauss
 
         real,dimension (:), pointer :: dmin_couplage
-        logical,dimension(:), pointer :: face_deja_traitee
 
         integer ik, jk
         character(MAX_FILE_SIZE) s1 !Gsa
 
 
-        nullify(pk_data_start)
         ! envoi du pas de temps sem
         if (rg == 0) then
             tag=500000
@@ -270,19 +248,11 @@ contains
         do np=1,comm_couplage%m_nb_point_de_couplage
             ! recuperation de la face et de l element du point de couplage courant et de ses coordonnees, du numero de materiau et du nombre de pdg en x et z
             numFace = comm_couplage%m_numFace(np)
-            numElem = comm_couplage%m_numMaille(np)
-
-            mat = Tdomain%specel(numElem)%mat_index
-
-            !ngllx = Tdomain%specel(numElem)%ngllx;  ngllz = Tdomain%specel(numElem)%ngllz
-
-            ngll1 = Tdomain%sFace(numFace)%ngll1 !!Gsa 3D
-            ngll2 = Tdomain%sFace(numFace)%ngll2 !!Gsa 3D
 
             XpdC(np) = comm_couplage%m_pos_proj(3*(np-1)+1)
             YpdC(np) = comm_couplage%m_pos_proj(3*(np-1)+2)
             ZpdC(np) = comm_couplage%m_pos_proj(3*np)
-
+            
             dejaPresent=.false.
             do i=1,Nbface
                 if (comm_couplage%m_tabFaceCouplage(i).eq.numFace) then
@@ -302,13 +272,9 @@ contains
         ! on conserve le nombre de face de couplage du proc courant
         comm_couplage%m_Nbface=Nbface
 
-        allocate (tab_Pk(Nbface))
-        !if (rg == 0) then
         allocate(tabNbFace(nb_procs))
         tabNbFace(:)=0
-        !endif
 
-        !call MPI_Gather (Nbface,1,MPI_INTEGER,tabNbFace,1,MPI_INTEGER,0, Tdomain%communicateur, ierr)
         if (rg == 0) then
             count1(:)=1
             displs1(1)=0
@@ -357,27 +323,6 @@ contains
 
         call definit_nb_pts_Pk(Tdomain, dmin_couplage)
         deallocate(dmin_couplage)
-
-
-        allocate(face_deja_traitee(Nbface))
-        face_deja_traitee = .false.
-        do np=1,comm_couplage%m_nb_point_de_couplage
-            ! recuperation de la face et de l element du point de couplage courant et de ses coordonnees, du numero de materiau et du nombre de pdg en x et z
-            numFace = comm_couplage%m_numFace(np)
-            !on cherche iface
-            do iface=1,Nbface
-                if(face_couplage(iface)%face == numFace) exit
-            enddo
-            if(face_deja_traitee(iface)) cycle
-
-            numElem = comm_couplage%m_numMaille(np)
-            mat = Tdomain%specel(numElem)%mat_index
-
-            call traitement_Pk(Tdomain, iface, mat)
-            face_deja_traitee(iface) = .true.
-        enddo
-        deallocate(face_deja_traitee)
-
 
         ! on collecte sur le proc 0 un ensemble des donnees pour ttes les faces de couplage sur les differents proc
         NbChamps = 20  ! taille des donnees pour une face_couplage
@@ -478,19 +423,16 @@ contains
 
             ibuf(1) = Tdomain%sFace(numFace)%ngll1
             ibuf(2) = Tdomain%sFace(numFace)%ngll2
-            ibuf(3) = tab_Pk(iface)%nb_pts
+            ibuf(3) = face_couplage(iface)%nbPk
             ibuf(4) = face_couplage(iface)%numlocal
+            ibuf(5) = numFace
 
             tag=670000+rg+iface-1
-            call MPI_SEND(ibuf, 4, MPI_INTEGER, Tdomain%master_superviseur,tag, Tdomain%communicateur_global, ierr )
+            call MPI_SEND(ibuf, 5, MPI_INTEGER, Tdomain%master_superviseur,tag, Tdomain%communicateur_global, ierr )
 
-            tag=630000+rg+iface-1
-            call MPI_SEND(tab_Pk(iface)%Interp_coeff(1,1,0,0), (tab_Pk(iface)%nb_pts**2)*ngll, MPI_DOUBLE_PRECISION, &
-                Tdomain%master_superviseur,tag, Tdomain%communicateur_global, ierr )
-
-            tag=640000+rg+iface-1
-            call MPI_SEND(tab_Pk(iface)%part_mka_plus_proche,(tab_Pk(iface)%nb_pts**2), MPI_INTEGER, Tdomain%master_superviseur,tag, &
-                Tdomain%communicateur_global, ierr )
+            tag=690000+rg+iface-1
+            call MPI_SEND(face_couplage(iface)%coord, 12, MPI_DOUBLE_PRECISION, Tdomain%master_superviseur, &
+                tag, Tdomain%communicateur_global, ierr )
 
         enddo ! fin boucle sur les faces
 
@@ -522,6 +464,8 @@ contains
 !!!! --------------------------------------------------
 !!!! --------------------------------------------------
 
+
+
     !>
     !! Numerotation des ddl de Sem situes sur la surface de couplage
     !!
@@ -533,8 +477,6 @@ contains
     !!  (concerne les ddl sommets ou ddl de l'interieur des aretes).
     !!  On numerote les sommets et les aretes de la surface de couplage.
     !<
-
-
     subroutine calc_nb_gll(Ngauss)
 
         integer i
@@ -1090,270 +1032,6 @@ contains
 
     end function calcule_dsurf
 
-    !>
-    !!\brief Calcul de la position dans l'element de reference Sem du projete de la particule Mka
-    !!
-    !! Processus de dichotomie
-    !<
-    function calcul_xi_eta_psi(xpdc, ypdc, zpdc, x, y, z, numlocal)
-        use ref_orient
-
-        integer, intent(in) ::  numlocal
-        real :: xpdc,ypdc,zpdc
-        real, dimension(0:7) :: x, y, z
-        real, dimension(0:2) :: pg, vn
-        real xi_min, xi_max, xi0, eta0, eta_min, eta_max, xitrouve, etatrouve
-        real P(4,0:2), dxi, deta, coord(0:3,0:2)
-        real xitrouve_def, etatrouve_def
-        real dist_k, dist_def, dist
-        real xi, eta, psi
-        logical test_ok, cas_limite
-        integer n_it
-        real eps
-        real calcul_xi_eta_psi(3)
-        integer i, j, k, im, il
-        integer, parameter :: n_itmax=20
-
-
-        xi_min = -1.  !bornes min et max de la zone d'etude dans le carre de reference
-        xi_max = 1.   !on coupe en 2 dans chaque direction la zone d'etude
-        eta_min = -1.
-        eta_max = 1.
-        dist_def = huge(1.) !distance entre la solution et le point de depart
-        n_it = 0  !nombre d'iterations
-        eps = 1e-4 !tolerance pour accepter la solution
-        xi0 = xi_min
-        eta0 = eta_min
-
-        pg = 0.  ! centre de gravite de la maille
-        do i=0,7
-            pg(0) = pg(0) + x(i)
-            pg(1) = pg(1) + y(i)
-            pg(2) = pg(2) + z(i)
-        enddo
-
-        pg = pg/8.
-
-        do i=0,3
-            coord(i,0) = x(NOEUD_FACE(numlocal,i))
-            coord(i,1) = y(NOEUD_FACE(numlocal,i))
-            coord(i,2) = z(NOEUD_FACE(numlocal,i))
-        enddo
-
-        !calcul de la normale de la face
-        vn(0) = (coord(1,1) - coord(0,1) ) * (coord(3,2) - coord(0,2) ) - (coord(1,2) - coord(0,2) ) * (coord(3,1) - coord(0,1) )
-        vn(1) = (coord(1,2) - coord(0,2) ) * (coord(3,0) - coord(0,0) ) - (coord(1,0) - coord(0,0) ) * (coord(3,2) - coord(0,2) )
-        vn(2) = (coord(1,0) - coord(0,0) ) * (coord(3,1) - coord(0,1) ) - (coord(1,1) - coord(0,1) ) * (coord(3,0) - coord(0,0) )
-
-        !verification de l'orientation de la normale de la face
-        if(dot_product(vn, pg - coord(0,:)) > 0.) vn = -vn
-        !normalisation de la normale
-        if(abs(dot_product(vn,vn)) < 1e-6) then
-            write(50,*) 'Pb normale de face nulle - Arret'
-            stop
-        else
-            vn = vn / sqrt(dot_product(vn,vn))
-        endif
-
-        !  do while(dist_def > eps) !precedemment
-        do while((n_it<n_itmax))
-            !do l=1,20
-            !il s'agit aussi de se reperer par rapport a l'elt de ref et de determiner quelle face de l'elt ref on etudie
-            !est-elle a xi fixee? Par forcement - On suppose ici que c'est a xi fixe
-            n_it = n_it +1
-            !on subdivise la zone en 4 sous-zones d'etude
-            do im=0,1
-                do il=0,1
-                    dxi = (xi_max - xi_min)/2.
-                    deta = (eta_max - eta_min)/2.
-                    xi0 = xi_min + il*dxi
-                    eta0 = eta_min + im*deta
-                    k = 0
-                    dist = huge(1.)
-                    !Dans les boucles sur i et j, on definit les points P
-                    do j=0,1
-                        do i=0,1
-                            xi = xi0 + i*dxi
-                            eta = eta0 + j*deta
-                            k = k + 1
-                            P(k,0)=  0.25 * (coord(0,0)*(1-xi)*(1-eta) + coord(1,0)*(1+xi)*(1-eta) + &
-                                coord(2,0)*(1+xi)*(1+eta) + coord(3,0)*(1-xi)*(1+eta))
-                            P(k,1) = 0.25 * (coord(0,1)*(1-xi)*(1-eta) + coord(1,1)*(1+xi)*(1-eta) + &
-                                coord(2,1)*(1+xi)*(1+eta) + coord(3,1)*(1-xi)*(1+eta))
-                            P(k,2) = 0.25 * (coord(0,2)*(1-xi)*(1-eta) + coord(1,2)*(1+xi)*(1-eta) + &
-                                coord(2,2)*(1+xi)*(1+eta) + coord(3,2)*(1-xi)*(1+eta))
-                        enddo
-                    enddo
-
-                    !! on teste si (xpdc,ypdc,zpdc) est a l'interieur du contour forme des points P
-                    !! si oui on conserve xi, eta et on reduit la region
-
-                    call test_contour(P, xpdc, ypdc, zpdc, vn, test_ok, cas_limite)
-                    if(cas_limite) exit
-                    if(test_ok) then
-                        xi_min = xi0
-                        xi_max = xi0 + dxi
-                        eta_min = eta0
-                        eta_max = eta0 + deta
-                        xitrouve_def = xi0+dxi/2.
-                        etatrouve_def = eta0+deta/2.
-                        exit
-                    endif
-                enddo
-                if(cas_limite .or. test_ok) exit
-            enddo
-            if(cas_limite) exit
-        enddo
-
-
-        select case(numlocal)
-        case(0)
-            xi = xitrouve_def
-            eta = etatrouve_def
-            psi = -1.
-        case(1)
-            xi = xitrouve_def
-            eta = -1.
-            psi = etatrouve_def
-        case(2)
-            xi = 1.
-            eta = xitrouve_def
-            psi = etatrouve_def
-        case(3)
-            xi = xitrouve_def
-            eta = 1.
-            psi = etatrouve_def
-        case(4)
-            xi = -1.
-            eta = xitrouve_def
-            psi = etatrouve_def
-        case(5)
-            xi = xitrouve_def
-            eta = etatrouve_def
-            psi = 1.
-        end select
-
-        calcul_xi_eta_psi(1) = xi
-        calcul_xi_eta_psi(2) = eta
-        calcul_xi_eta_psi(3) = psi
-
-    end function calcul_xi_eta_psi
-
-    !>
-    !!\brief On teste si le point (xs,ys,zs) est a l'interieur de la face definie par les points P de normale vn
-    !<
-
-    !-------------------------------------
-    !-------------------------------------
-    !-------------------------------------
-    subroutine test_contour(P, xs, ys, zs, vn, test_ok, cas_limite)
-
-!!!!  Description: on teste si le point (xs,ys,zs) est a l'interieur du contour defini par les points P.
-!!!!  Le contour forme par les points P ne represente qu'une partie de la face.
-!!!!  vn est la normale unitaire exterieure a la face
-!!!!
-!!!!  Pour chaque arete i du contour forme par les points, on teste le produit scalaire PiS.ni ou ni
-!!!!  est la normale unitaire exterieure de l'arete i
-!!!!               test_ok est un booleen, en sortie
-!!!!
-!!!!  Historique: 10/08 - Gsa Ipsis - Creation
-!!!!              10/09 - Gsa Ipsis - Modif sur cas_limite
-!!!!  * attention : le sens de parcours dans la face (habituellement 1-2-3-4) est ici 1-2-4-3
-!!!!
-!!!! --------------------------------------------------
-
-        real, intent(in) :: P(4,0:2), vn(0:2), xs, ys, zs
-        logical, intent(out) :: test_ok, cas_limite
-        real :: Posg(0:2)
-        real :: n12(0:2), n23(0:2), n34(0:2), n41(0:2), v(0:2), dist_k
-        integer :: k
-        Posg = 0.
-        do k=1,4
-            Posg = Posg + P(k,:)
-        enddo
-        Posg = Posg/4.
-
-
-        dist_k = (Posg(0) - xs)**2 + (Posg(1) - ys)**2 + (Posg(2) - zs)**2
-
-        if (dist_k<1e-14) then
-            test_ok = .true.
-            cas_limite = .false.
-            return
-        end if
-
-        cas_limite = .false.
-        !calcul des normales de chaque arete
-        ! arete P1-P2
-        n12(0) = (P(2,1) - P(1,1))*vn(2) - (P(2,2) - P(1,2))*vn(1)
-        n12(1) = (P(2,2) - P(1,2))*vn(0) - (P(2,0) - P(1,0))*vn(2)
-        n12(2) = (P(2,0) - P(1,0))*vn(1) - (P(2,1) - P(1,1))*vn(0)
-
-        v = Posg - P(1,:)
-        if( dot_product(n12,v) > 0.) n12  = -n12
-        if(abs(dot_product(n12,n12)) < 1e-16) then
-            write(50,*) 'Pb normale d''arete nulle - Arret n12',n12,P
-            !     stop
-            cas_limite = .true.
-        endif
-        !calcul des normales de chaque arete
-        ! arete P2-P4
-        n23(0) = (P(4,1) - P(2,1))*vn(2) - (P(4,2) - P(2,2))*vn(1)
-        n23(1) = (P(4,2) - P(2,2))*vn(0) - (P(4,0) - P(2,0))*vn(2)
-        n23(2) = (P(4,0) - P(2,0))*vn(1) - (P(4,1) - P(2,1))*vn(0)
-        v = Posg - P(2,:)
-        if( dot_product(n23,v) > 0.) n23  = -n23
-        if(abs(dot_product(n23,n23)) < 1e-16) then
-            write(50,*) 'Pb normale d''arete nulle - Arret n23',n23,P
-            !     stop
-            cas_limite = .true.
-        endif
-        !calcul des normales de chaque arete
-        ! arete P3-P4
-        n34(0) = (P(4,1) - P(3,1))*vn(2) - (P(4,2) - P(3,2))*vn(1)
-        n34(1) = (P(4,2) - P(3,2))*vn(0) - (P(4,0) - P(3,0))*vn(2)
-        n34(2) = (P(4,0) - P(3,0))*vn(1) - (P(4,1) - P(3,1))*vn(0)
-        v = Posg - P(3,:)
-        if( dot_product(n34,v) > 0.) n34  = -n34
-        if(abs(dot_product(n34,n34)) < 1e-16) then
-            write(50,*) 'Pb normale d''arete nulle - Arret n34',n34,P
-            !     stop
-            cas_limite = .true.
-        endif
-        !calcul des normales de chaque arete
-        ! arete P3-P1
-        n41(0) = (P(1,1) - P(3,1))*vn(2) - (P(1,2) - P(3,2))*vn(1)
-        n41(1) = (P(1,2) - P(3,2))*vn(0) - (P(1,0) - P(3,0))*vn(2)
-        n41(2) = (P(1,0) - P(3,0))*vn(1) - (P(1,1) - P(3,1))*vn(0)
-        v = Posg - P(3,:)
-        if( dot_product(n41,v) > 0.) n41  = -n41
-        if(abs(dot_product(n41,n41)) < 1e-16) then
-            write(50,*) 'Pb normale d''arete nulle - Arret n41',n41,P
-            !     stop
-            cas_limite = .true.
-        endif
-
-        v(0) = xs - P(1,0)
-        v(1) = ys - P(1,1)
-        v(2) = zs - P(1,2)
-        test_ok = (dot_product(v,n12) <= 0.)
-        v(0) = xs - P(2,0)
-        v(1) = ys - P(2,1)
-        v(2) = zs - P(2,2)
-        test_ok = test_ok .AND. (dot_product(v,n23) <= 0.)
-        v(0) = xs - P(3,0)
-        v(1) = ys - P(3,1)
-        v(2) = zs - P(3,2)
-        test_ok = test_ok .AND. (dot_product(v,n34) <= 0.)
-        v(0) = xs - P(3,0)
-        v(1) = ys - P(3,1)
-        v(2) = zs - P(3,2)
-        test_ok = test_ok .AND. (dot_product(v,n41) <= 0.)
-
-        if(cas_limite) then
-            write(6,*) 'on est dans un cas limite et test_ok vaut ',test_ok
-        endif
-    end subroutine test_contour
 
     !>
     !! \brief Remplissage de la structure face_couplage
@@ -1421,226 +1099,6 @@ contains
     end subroutine remplit_face_couplage
 
     !>
-    !! \brief Definition des tableaux concernant les points du peigne
-    !! Abscisse curviligne de ces points d'interpolation, matrice de projection, ..
-    !!
-    !<
-
-    subroutine compute_pk_data(Tdomain, mat, pkdata)
-        type (domain), intent(IN)  :: Tdomain
-        integer, intent(IN) :: mat
-        type(type_interp_pk_data), intent(inout), pointer :: pkdata
-        integer :: nb_Pk, ngll1, ngll2, numlocal
-        integer :: jk, ik, i, j
-        real :: outx, outy, outz
-
-        nb_Pk = pkdata%nb_pts
-        ngll1 = pkdata%ngll1
-        ngll2 = pkdata%ngll2
-        numlocal = pkdata%numlocal
-
-        allocate(pkdata%Interp_coeff(nb_Pk, nb_Pk, 0:ngll1-1, 0:ngll2-1))
-        allocate(pkdata%xi(nb_Pk,nb_Pk))
-        allocate(pkdata%eta(nb_Pk,nb_Pk))
-        allocate(pkdata%zeta(nb_Pk,nb_Pk))
-
-        do jk=1, nb_Pk
-            do ik=1, nb_Pk
-
-                !!attention au sens
-                select case(numlocal)
-                case(0)
-                    pkdata%xi(ik,jk) =  -1. + 2.*ik/(nb_Pk + 1.)
-                    pkdata%eta(ik,jk) = -1. + 2.*jk/(nb_Pk + 1.)
-                    pkdata%zeta(ik,jk) = -1.
-                case(1)
-                    pkdata%xi(ik,jk) =  -1. + 2.*ik/(nb_Pk + 1.)
-                    pkdata%eta(ik,jk) = -1.
-                    pkdata%zeta(ik,jk) = -1. + 2.*jk/(nb_Pk + 1.)
-                case(2)
-                    pkdata%xi(ik,jk) = 1.
-                    pkdata%eta(ik,jk) = -1. + 2.*ik/(nb_Pk + 1.)
-                    pkdata%zeta(ik,jk) = -1. + 2.*jk/(nb_Pk + 1.)
-                case(3)
-                    pkdata%xi(ik,jk) =  -1. + 2.*ik/(nb_Pk + 1.)
-                    pkdata%eta(ik,jk) = 1.
-                    pkdata%zeta(ik,jk) = -1. + 2.*jk/(nb_Pk + 1.)
-                case(4)
-                    pkdata%xi(ik,jk) = -1.
-                    pkdata%eta(ik,jk) = -1. + 2.*ik/(nb_Pk + 1.)
-                    pkdata%zeta(ik,jk) = -1. + 2.*jk/(nb_Pk + 1.)
-                case(5)
-                    pkdata%xi(ik,jk) =  -1. + 2.*ik/(nb_Pk + 1.)
-                    pkdata%eta(ik,jk) = -1. + 2.*jk/(nb_Pk + 1.)
-                    pkdata%zeta(ik,jk) = 1.
-                end select
-
-                if (numlocal == 0.or. numlocal ==5) then
-                    do j=0,ngll2-1
-                        do i=0,ngll1-1
-                            call  pol_lagrange (ngll1,Tdomain%sSubdomain(mat)%GLLcx,i,pkdata%xi(ik,jk),outx)
-                            call  pol_lagrange (ngll2,Tdomain%sSubdomain(mat)%GLLcy,j,pkdata%eta(ik,jk),outy)
-                            pkdata%Interp_Coeff(ik,jk,i,j) = outx*outy
-
-                        enddo
-                    enddo
-                else if (numlocal == 1.or. numlocal ==3) then
-                    do j=0,ngll2-1
-                        do i=0,ngll1-1
-                            call  pol_lagrange (ngll1,Tdomain%sSubdomain(mat)%GLLcx,i,pkdata%xi(ik,jk),outx)
-                            call  pol_lagrange (ngll2,Tdomain%sSubdomain(mat)%GLLcz,j,pkdata%zeta(ik,jk),outz)
-                            pkdata%Interp_Coeff(ik,jk,i,j) = outx*outz
-                        enddo
-                    enddo
-                else if (numlocal == 2.or. numlocal ==4) then
-                    do j=0,ngll2-1
-                        do i=0,ngll1-1
-                            call  pol_lagrange (ngll1,Tdomain%sSubdomain(mat)%GLLcy,i,pkdata%eta(ik,jk),outy)
-                            call  pol_lagrange (ngll2,Tdomain%sSubdomain(mat)%GLLcz,j,pkdata%zeta(ik,jk),outz)
-                            pkdata%Interp_Coeff(ik,jk,i,j) = outy*outz
-                        enddo
-                    enddo
-                endif
-            enddo
-        enddo
-
-    end subroutine compute_pk_data
-
-    subroutine find_pk_data(Tdomain, mat, pkdata, nb_pts, ngll1, ngll2, numlocal)
-        type (domain), intent(IN)  :: Tdomain
-        integer, intent(in) :: nb_pts, ngll1, ngll2, numlocal, mat
-        type(type_interp_pk_data), intent(out), pointer :: pkdata
-        type(type_interp_pk_data), pointer :: pk
-        ! maintient une liste chainee des structures type_interp_pk_data
-        nullify(pkdata)
-        pk=>pk_data_start
-
-        do while (associated(pk))
-            if (pk%nb_pts==nb_pts .and. pk%ngll1==ngll1 .and. pk%ngll2==ngll2 .and. pk%numlocal==numlocal) then
-                !write(*,*) "Found:", nb_pts, ngll1, ngll2, numlocal
-                exit
-            end if
-            pk=>pk%next
-        end do
-        if (.not. associated(pk)) then
-            allocate(pk)
-            pk%next=>pk_data_start
-            pk_data_start=>pk
-            pk%nb_pts = nb_pts
-            pk%ngll1 = ngll1
-            pk%ngll2 = ngll2
-            pk%numlocal = numlocal
-            call compute_pk_data(Tdomain, mat, pk)
-            write(*,*) "Calc :", nb_pts, ngll1, ngll2, numlocal
-        end if
-        pkdata => pk
-    end subroutine find_pk_data
-
-    subroutine traitement_Pk(Tdomain, iface, mat)
-
-        type (domain), intent(IN)  :: Tdomain
-        integer, intent(in) :: iface, mat
-        integer :: ik, jk, nb_Pk
-        integer :: ngll1, ngll2, numlocal
-        integer :: ip
-        real :: outx, outy, outz
-        type(type_interp_pk_data), pointer :: pkdata
-
-        ngll1 = face_couplage(iface)%ngll1
-        ngll2 = face_couplage(iface)%ngll2
-        ! calcul des coordonnees (xi,eta,psi) du point de couplage
-        nb_Pk = tab_Pk(iface)%nb_pts
-        numlocal = face_couplage(iface)%numlocal
-        ! On cherche si on n'a pas deja calcule les interp_pk pour une face similaire
-
-        call find_pk_data(Tdomain, mat, pkdata, nb_Pk, ngll1, ngll2, numlocal)
-
-#if 1
-        tab_Pk(iface)%Interp_coeff => pkdata%Interp_coeff
-        tab_Pk(iface)%xi => pkdata%xi
-        tab_Pk(iface)%eta => pkdata%eta
-        tab_Pk(iface)%zeta => pkdata%zeta
-#else
-        allocate(tab_Pk(iface)%Interp_coeff(nb_Pk, nb_Pk, 0:ngll1-1, 0:ngll2-1))
-        allocate(tab_Pk(iface)%xi(nb_Pk,nb_Pk))
-        allocate(tab_Pk(iface)%eta(nb_Pk,nb_Pk))
-        allocate(tab_Pk(iface)%zeta(nb_Pk,nb_Pk))
-
-
-        do jk=1, nb_Pk
-            do ik=1, nb_Pk
-
-                !!attention au sens
-                select case(numlocal)
-                case(0)
-                    tab_Pk(iface)%xi(ik,jk) =  -1. + 2.*ik/(nb_Pk + 1.)
-                    tab_Pk(iface)%eta(ik,jk) = -1. + 2.*jk/(nb_Pk + 1.)
-                    tab_Pk(iface)%zeta(ik,jk) = -1.
-                case(1)
-                    tab_Pk(iface)%xi(ik,jk) =  -1. + 2.*ik/(nb_Pk + 1.)
-                    tab_Pk(iface)%eta(ik,jk) = -1.
-                    tab_Pk(iface)%zeta(ik,jk) = -1. + 2.*jk/(nb_Pk + 1.)
-                case(2)
-                    tab_Pk(iface)%xi(ik,jk) = 1.
-                    tab_Pk(iface)%eta(ik,jk) = -1. + 2.*ik/(nb_Pk + 1.)
-                    tab_Pk(iface)%zeta(ik,jk) = -1. + 2.*jk/(nb_Pk + 1.)
-                case(3)
-                    tab_Pk(iface)%xi(ik,jk) =  -1. + 2.*ik/(nb_Pk + 1.)
-                    tab_Pk(iface)%eta(ik,jk) = 1.
-                    tab_Pk(iface)%zeta(ik,jk) = -1. + 2.*jk/(nb_Pk + 1.)
-                case(4)
-                    tab_Pk(iface)%xi(ik,jk) = -1.
-                    tab_Pk(iface)%eta(ik,jk) = -1. + 2.*ik/(nb_Pk + 1.)
-                    tab_Pk(iface)%zeta(ik,jk) = -1. + 2.*jk/(nb_Pk + 1.)
-                case(5)
-                    tab_Pk(iface)%xi(ik,jk) =  -1. + 2.*ik/(nb_Pk + 1.)
-                    tab_Pk(iface)%eta(ik,jk) = -1. + 2.*jk/(nb_Pk + 1.)
-                    tab_Pk(iface)%zeta(ik,jk) = 1.
-                end select
-
-                if (numlocal == 0.or. numlocal ==5) then
-                    do j=0,ngll2-1
-                        do i=0,ngll1-1
-                            call  pol_lagrange (ngll1,Tdomain%sSubdomain(mat)%GLLcx,i,tab_Pk(iface)%xi(ik,jk),outx)
-                            call  pol_lagrange (ngll2,Tdomain%sSubdomain(mat)%GLLcy,j,tab_Pk(iface)%eta(ik,jk),outy)
-                            tab_Pk(iface)%Interp_Coeff(ik,jk,i,j) = outx*outy
-
-                        enddo
-                    enddo
-                else if (numlocal == 1.or. numlocal ==3) then
-                    do j=0,ngll2-1
-                        do i=0,ngll1-1
-                            call  pol_lagrange (ngll1,Tdomain%sSubdomain(mat)%GLLcx,i,tab_Pk(iface)%xi(ik,jk),outx)
-                            call  pol_lagrange (ngll2,Tdomain%sSubdomain(mat)%GLLcz,j,tab_Pk(iface)%zeta(ik,jk),outz)
-                            tab_Pk(iface)%Interp_Coeff(ik,jk,i,j) = outx*outz
-                        enddo
-                    enddo
-                else if (numlocal == 2.or. numlocal ==4) then
-                    do j=0,ngll2-1
-                        do i=0,ngll1-1
-                            call  pol_lagrange (ngll1,Tdomain%sSubdomain(mat)%GLLcy,i,tab_Pk(iface)%eta(ik,jk),outy)
-                            call  pol_lagrange (ngll2,Tdomain%sSubdomain(mat)%GLLcz,j,tab_Pk(iface)%zeta(ik,jk),outz)
-                            tab_Pk(iface)%Interp_Coeff(ik,jk,i,j) = outy*outz
-                        enddo
-                    enddo
-                endif
-            enddo
-        enddo
-#endif
-        !! Calcule des correspondances entre particule Mka et points du peigne
-        allocate(tab_Pk(iface)%part_mka_plus_proche(nb_Pk,nb_Pk))
-        do jk=1, nb_Pk
-            do ik=1, nb_Pk
-                ip = proj_plus_proche(Tdomain, comm_couplage%m_nb_point_de_couplage, iface,  &
-                    tab_Pk(iface)%xi(ik,jk), tab_Pk(iface)%eta(ik,jk), tab_Pk(iface)%zeta(ik,jk), Xpdc, Ypdc, Zpdc)
-                tab_Pk(iface)%part_mka_plus_proche(ik,jk) = ip
-            enddo
-        enddo
-
-
-    end subroutine traitement_Pk
-
-    !>
     !! \brief Calcul de la plus petite distance entre particules de couplage Mka pour une meme face
     !! de couplage Sem.
     !<
@@ -1670,135 +1128,6 @@ contains
         enddo
     end subroutine dist_min_point_de_couplage
 
-    !>
-    !! \brief Retourne  l'indice de la particule de couplage Mka se projetant sur la face iface
-    !! la plus proche du point d'interpolation d'abscisses (xi,eta,zeta)
-    !<
-
-    integer function proj_plus_proche(Tdomain, n, iface, xi, eta, zeta, Xpdc, Ypdc, Zpdc)
-
-        type (domain), intent(IN)  :: Tdomain
-        integer, intent(in) :: iface, n!, ik, jk
-        real, intent(in) :: Xpdc(n), Ypdc(n), Zpdc(n)
-        integer ip, np
-        real :: dmin, dist
-        integer :: numFace, numElem, numlocal
-        real,dimension(0:7) :: x,y, z
-        real,dimension(0:2) :: pos_Pk
-        integer ipoint, nb_Pk
-        real :: xi, eta, zeta !, psi
-        integer i !, ik, jk
-        !! trouver la position du projete - on l'a Xpdc
-        !! on choisit le plus proche
-        !! -1. + 2.*ik/(tab_Pk(iface)%nb_pts + 2.)
-
-
-        dmin = huge(1.)
-        nb_Pk = tab_Pk(iface)%nb_pts
-
-        ip = -1
-
-        do np=1,n
-            ! recuperation de la face et de l element du point de couplage courant et de ses coordonnees, du numero de materiau et du nombre de pdg en x et z
-            numFace = comm_couplage%m_numFace(np)
-
-            if(face_couplage(iface)%face == numFace) then
-
-                numElem = comm_couplage%m_numMaille(np)
-
-                ! recuperation des coor des 8 sommets de l'element
-                do i=0,7
-                    ipoint = Tdomain%specel(numElem)%Control_Nodes(i)
-                    x(i)= Tdomain%Coord_nodes(0,ipoint)
-                    y(i)= Tdomain%Coord_nodes(1,ipoint)
-                    z(i)= Tdomain%Coord_nodes(2,ipoint)
-                enddo
-
-                numlocal = face_couplage(iface)%numlocal
-
-                pos_Pk = f_trans3D(x, y, z, xi, eta, zeta)
-                dist = sqrt( (pos_Pk(0)- Xpdc(np))**2 + (pos_Pk(1)- Ypdc(np))**2 &
-                    + (pos_Pk(2)- Zpdc(np))**2)
-                if(dist< dmin) then
-                    ip = np
-                    dmin = dist
-                endif
-            endif
-        enddo
-
-        if (ip==-1) then
-            write(*,*) "Pas de point de couplage trouve pour face:", iface
-            stop 1
-        end if
-        proj_plus_proche = ip
-    end function proj_plus_proche
-
-    !>
-    !! \brief Retourne les indices du point d'interpolation le plus proche d'une particule
-    !! de couplage Mka (d'indice ip)
-    !<
-
-    function trouve_Pk_plus_proche(Tdomain, n, ip, Xpdc, Ypdc, Zpdc)
-
-        type (domain), intent(IN)  :: Tdomain
-        integer, intent(in) ::  n
-        real, intent(in) :: Xpdc(n), Ypdc(n), Zpdc(n)
-        integer ip
-        real :: dmin, dist
-        integer :: numFace, numElem, numlocal
-        real,dimension(0:7) :: x, y, z
-        real,dimension(0:2) :: pos_Pk, pos_trouve
-        integer i, iface, ik, jk, ipoint, itrouve, jtrouve, nb_Pk
-        integer  :: trouve_Pk_plus_proche(2)
-
-        dmin = huge(1.)
-        numFace = comm_couplage%m_numFace(ip)
-
-        do iface=1,Nbface
-            if(face_couplage(iface)%face == numFace) exit
-        enddo
-        nb_Pk = tab_Pk(iface)%nb_pts
-
-        numElem = comm_couplage%m_numMaille(ip)
-        numlocal = face_couplage(iface)%numlocal
-
-        ! recuperation des coor des 4 sommets de l'element
-        do i=0,7
-            ipoint = Tdomain%specel(numElem)%Control_Nodes(i)
-            x(i)= Tdomain%Coord_nodes(0,ipoint)
-            y(i)= Tdomain%Coord_nodes(1,ipoint)
-            z(i)= Tdomain%Coord_nodes(2,ipoint)
-        enddo
-
-        ! recuperation de la face et de l element du point de couplage courant et de ses coordonnees, du numero de materiau et du nombre de pdg en x et z
-
-        do ik=1,nb_Pk
-            do jk=1,nb_Pk
-                pos_Pk = f_trans3D(x, y, z, tab_Pk(iface)%xi(ik,jk), tab_Pk(iface)%eta(ik,jk), tab_Pk(iface)%zeta(ik,jk))
-
-                dist = sqrt( (pos_Pk(0)- Xpdc(ip))**2 + (pos_Pk(1)- Ypdc(ip))**2 + (pos_Pk(2)- Zpdc(ip))**2)
-
-                if(dist< dmin) then
-                    itrouve = ik
-                    jtrouve = jk
-                    !             print *,'itrouve,jtrouve' ,itrouve,jtrouve,dist
-                    dmin = dist
-                    pos_trouve = pos_Pk
-                endif
-            enddo
-        enddo
-
-
-
-        !ngllx = Tdomain%specel(numElem)%ngllx;  ngllz = Tdomain%specel(numElem)%ngllz
-
-
-
-        trouve_Pk_plus_proche(1) = itrouve
-        trouve_Pk_plus_proche(2) = jtrouve
-        !! write(6,*) 'On trouve Mka_Pk ',Xpdc(ip), Zpdc(ip), pos_trouve(0:1), ip, itrouve
-        !! write(77,'(6(1pe15.8,1X),1X,I6,1X,I6)') Xpdc(ip), Ypdc(ip), Zpdc(ip), pos_trouve(0:2), ip, itrouve
-    end function trouve_Pk_plus_proche
 
     !>
     !! \brief Definition du nombre de points d'interpolation dans une direction pour une face de couplage Sem
@@ -1868,35 +1197,11 @@ contains
             enddo
             hk = min(dmin_couplage(iface), minval(Lface)/(2.*max(ngll1,ngll2) + 1.))
             !! minimum 5 points d'interpolation par longueur caracteristique
-            tab_Pk(iface)%nb_pts = 3*(floor( maxval(Lface)/hk) + 1)
-            hk = minval(Lface)/tab_Pk(iface)%nb_pts !correction
+            face_couplage(iface)%nbPk = 3*(floor( maxval(Lface)/hk) + 1)
+            !hk = minval(Lface)/tab_Pk(iface)%nb_pts !correction
         enddo
     end subroutine definit_nb_pts_Pk
 
-    function f_trans3D(x, y, z, xi, eta, zeta)
-
-        real xi, eta, zeta
-        real x(0:7), y(0:7), z(0:7)
-        real f_trans3D(0:2)
-        !! Fonction 3D de transformation de l'element de reference vers un hexaedre quelconque.
-        !!Les points P0 a P7 respectent l'orientation Sem3d.
-        !! Attention : x,y,z dans l'intervalle [-1,1] !!
-        f_trans3D(0) = 1./8.*( (1. - xi)*(1. - eta)*(1. - zeta)*x(0) +  (1. + xi)*(1. - eta)*(1. - zeta)*x(1) +  (1. + xi)*(1. + eta)*(1. - zeta)*x(2)  &
-            + (1. - xi)*(1. + eta)*(1. - zeta)*x(3) +  (1. - xi)*(1. - eta)*(1. + zeta)*x(4) &
-            + (1. + xi)*(1. - eta)*(1. + zeta)*x(5)+ (1. + xi)*(1. + eta)*(1. + zeta)*x(6)+ (1. - xi)*(1. + eta)*(1. + zeta)*x(7) )
-
-        f_trans3D(1) = 1./8.*( (1. - xi)*(1. - eta)*(1. - zeta)*y(0) +  (1. + xi)*(1. - eta)*(1. - zeta)*y(1) +  (1. + xi)*(1. + eta)*(1. - zeta)*y(2) &
-            + (1. - xi)*(1. + eta)*(1. - zeta)*y(3) +  (1. - xi)*(1. - eta)*(1. + zeta)*y(4) &
-            + (1. + xi)*(1. - eta)*(1. + zeta)*y(5)+ (1. + xi)*(1. + eta)*(1. + zeta)*y(6)+ (1. - xi)*(1. + eta)*(1. + zeta)*y(7) )
-
-        f_trans3D(2) = 1./8.*( (1. - xi)*(1. - eta)*(1. - zeta)*z(0) +  (1. + xi)*(1. - eta)*(1. - zeta)*z(1) +  (1. + xi)*(1. + eta)*(1. - zeta)*z(2) &
-            + (1. - xi)*(1. + eta)*(1. - zeta)*z(3) +  (1. - xi)*(1. - eta)*(1. + zeta)*z(4) &
-            + (1. + xi)*(1. - eta)*(1. + zeta)*z(5)+ (1. + xi)*(1. + eta)*(1. + zeta)*z(6)+ (1. - xi)*(1. + eta)*(1. + zeta)*z(7) )
-
-    end function f_trans3D
-
-    !---------------------------------------------
-    !---------------------------------------------
 
     !>
     !! \brief Reception des surfaces des particules de couplage Mka.
@@ -2043,7 +1348,7 @@ contains
             ngll = ngll1 * ngll2
             do idim=1,comm_couplage%m_dim
 
-                tag = 730000+1000*rg+10*ntime+(iface-1)+100*(idim-1)
+                tag = 730000+3*(iface-1)+(idim-1)
                 call MPI_SEND(vecu_tmp(1,idim), ngll, MPI_DOUBLE_PRECISION, Tdomain%master_superviseur,&
                     tag, Tdomain%communicateur_global, ierr )
 
@@ -2055,121 +1360,6 @@ contains
         deallocate(vecu_tmp)
 
     end subroutine envoi_vitesse_mka
-
-
-    !!    subroutine surface_Pk(Tdomain)
-    !!        use sdomain
-    !!        implicit none
-    !!
-    !!        type (domain), intent(IN)  :: Tdomain
-    !!        real :: eta, xi, zeta
-    !!        integer numlocal, numElem
-    !!        integer i, k, iface, ik ,jk
-    !!        integer ipoint, nb_Pk
-    !!        real delta_k
-    !!        real,dimension(0:7) :: x, y, z
-    !!        real,dimension(4,0:2) :: pos_Pk
-    !!        real, dimension(4) :: eta_v, xi_v, zeta_v
-    !!        !(i,j) est le pdg le plus proche du point Pk
-    !!
-    !!        do iface=1,Nbface
-    !!            nb_Pk = tab_Pk(iface)%nb_pts
-    !!            numlocal = face_couplage(iface)%numlocal
-    !!            numElem = face_couplage(iface)%elem
-    !!            ! recuperation des coor des 8 sommets de l'element
-    !!            do i=0,7
-    !!                ipoint = Tdomain%specel(numElem)%Control_Nodes(i)
-    !!                x(i)= Tdomain%Coord_nodes(0,ipoint)
-    !!                y(i)= Tdomain%Coord_nodes(1,ipoint)
-    !!                z(i)= Tdomain%Coord_nodes(2,ipoint)
-    !!            enddo
-    !!
-    !!            delta_k = 1./(nb_Pk + 1.)
-    !!
-    !!            do jk=1,nb_Pk
-    !!                do ik=1,nb_Pk
-    !!                    xi = tab_Pk(iface)%xi(ik,jk)
-    !!                    eta = tab_Pk(iface)%eta(ik,jk)
-    !!                    zeta = tab_Pk(iface)%zeta(ik,jk)
-    !!                    select case (numlocal)
-    !!                    case(0,5)
-    !!                        xi_v(1) = xi - delta_k
-    !!                        eta_v(1) = eta - delta_k
-    !!                        zeta_v(1) = zeta
-    !!
-    !!                        xi_v(2) = xi + delta_k
-    !!                        eta_v(2) = eta - delta_k
-    !!                        zeta_v(2) = zeta
-    !!
-    !!                        xi_v(3) = xi + delta_k
-    !!                        eta_v(3) = eta + delta_k
-    !!                        zeta_v(3) = zeta
-    !!
-    !!                        xi_v(4) = xi - delta_k
-    !!                        eta_v(4) = eta + delta_k
-    !!                        zeta_v(4) = zeta
-    !!                    case(1,3)
-    !!                        xi_v(1) = xi - delta_k
-    !!                        eta_v(1) = eta
-    !!                        zeta_v(1) = zeta - delta_k
-    !!
-    !!                        xi_v(2) = xi + delta_k
-    !!                        eta_v(2) = eta
-    !!                        zeta_v(2) = zeta - delta_k
-    !!
-    !!                        xi_v(3) = xi + delta_k
-    !!                        eta_v(3) = eta
-    !!                        zeta_v(3) = zeta + delta_k
-    !!
-    !!                        xi_v(4) = xi - delta_k
-    !!                        eta_v(4) = eta
-    !!                        zeta_v(4) = zeta + delta_k
-    !!                    case(2,4)
-    !!                        xi_v(1) = xi
-    !!                        eta_v(1) = eta - delta_k
-    !!                        zeta_v(1) = zeta - delta_k
-    !!
-    !!                        xi_v(2) = xi
-    !!                        eta_v(2) = eta + delta_k
-    !!                        zeta_v(2) = zeta - delta_k
-    !!
-    !!                        xi_v(3) = xi
-    !!                        eta_v(3) = eta + delta_k
-    !!                        zeta_v(3) = zeta + delta_k
-    !!
-    !!                        xi_v(4) = xi
-    !!                        eta_v(4) = eta - delta_k
-    !!                        zeta_v(4) = zeta + delta_k
-    !!                    end select
-    !!                    do k=1,4
-    !!                        pos_Pk(k,:) = f_trans3D(x, y, z, xi_v(k), eta_v(k), zeta_v(k))
-    !!                    enddo
-    !!
-    !!                    tab_Pk(iface)%surf(ik,jk) = aire_triangle(pos_Pk(1,:), pos_Pk(2,:), pos_Pk(4,:))
-    !!
-    !!                    tab_Pk(iface)%surf(ik,jk) = tab_Pk(iface)%surf(ik,jk) &
-    !!                        + aire_triangle(pos_Pk(3,:), pos_Pk(2,:), pos_Pk(4,:))
-    !!
-    !!                    !!write(98,*) iface,ik,jk,tab_Pk(iface)%surf(ik,jk)
-    !!                enddo
-    !!            enddo
-    !!        enddo
-    !!    end subroutine surface_Pk
-
-
-    function aire_triangle(P1, P2, P3)
-        implicit none
-        real,dimension(0:2) :: P1, P2, P3
-        real aire_triangle
-        real, dimension(3) :: v1, v2, p_vec
-        v1 = P2 - P1
-        v2 = P3 - P1
-        p_vec(1) = v1(2)*v2(3) - v1(3)*v2(2)
-        p_vec(2) = v1(3)*v2(1) - v1(1)*v2(3)
-        p_vec(3) = v1(1)*v2(2) - v1(2)*v2(1)
-        aire_triangle = sqrt(p_vec(1)**2 +p_vec(2)**2 + p_vec(3)**2) /2.0
-    end function aire_triangle
-
 
 
     subroutine reception_nouveau_pdt_sem(Tdomain, rg)

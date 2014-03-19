@@ -202,23 +202,37 @@ subroutine finalize_mesh_connectivity(Tdomain, rg)
     !    enddo
     !enddo
 
-    ! material => time steps ; solid/liquid attribution
+    ! material => time steps ; solid/liquid attributions
     do n = 0,Tdomain%n_elem-1
         mat = Tdomain%specel(n)%mat_index
         do nf = 0,5
             nnf = Tdomain%specel(n)%Near_Faces(nf)
             Tdomain%sFace(nnf)%mat_index = mat
             Tdomain%sFace(nnf)%solid = Tdomain%specel(n)%solid
+            Tdomain%sFace(nnf)%fluid_dirich = .false.
+            if(Tdomain%specel(n)%fluid_dirich .and. (nf == 5))then
+                Tdomain%sFace(nnf)%fluid_dirich = .true.
+            end if
         end do
         do ne = 0,11
             nne = Tdomain%specel(n)%Near_edges(ne)
             Tdomain%sEdge(nne)%mat_index = mat
             Tdomain%sEdge(nne)%solid = Tdomain%specel(n)%solid
+            Tdomain%sEdge(nne)%fluid_dirich = .false.
+            if(Tdomain%specel(n)%fluid_dirich .and.   &
+                  ((ne == 5).or.(ne == 8).or.(ne == 9).or.(ne == 11)))then
+                Tdomain%sEdge(nne)%fluid_dirich = .true.
+            end if
         end do
         do nv = 0,7
             nnv = Tdomain%specel(n)%Near_Vertices(nv)
             Tdomain%sVertex(nnv)%mat_index = mat
             Tdomain%sVertex(nnv)%solid = Tdomain%specel(n)%solid
+            Tdomain%sVertex(nnv)%fluid_dirich = .false.
+            if(Tdomain%specel(n)%fluid_dirich .and.   &
+                  ((nv == 4).or.(nv == 5).or.(nv == 6).or.(nv == 7)))then
+                Tdomain%sVertex(nnv)%fluid_dirich = .true.
+            end if
         end do
     end do
 
@@ -275,8 +289,10 @@ subroutine read_material_file(Tdomain, rg)
 
     read(13,*) n_aus
 
-    if(n_aus /= Tdomain%n_mat)   &
+    if(n_aus /= Tdomain%n_mat) then
+        write(*,*) trim(fnamef), n_aus, Tdomain%n_mat
         stop "Incompatibility between the mesh file and the material file for n_mat"
+    endif
 
 
 
@@ -515,6 +531,8 @@ subroutine read_input (Tdomain, rg, code)
     use sdomain
     use semdatafiles
     use mpi
+    use constants
+
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
@@ -523,6 +541,9 @@ subroutine read_input (Tdomain, rg, code)
     character(Len=MAX_FILE_SIZE) :: fnamef
     type(sem_config)             :: config
     logical                      :: logic_scheme
+    integer                      :: imat
+
+
 
     call semname_file_input_spec(fnamef)
 
@@ -607,6 +628,10 @@ subroutine read_input (Tdomain, rg, code)
     Tdomain%Neumann%Neu_Param%f0 = config%neu_f0
 
 
+
+
+
+
     ! Create sources from C structures
     call create_sem_sources(Tdomain, config)
 
@@ -620,7 +645,35 @@ subroutine read_input (Tdomain, rg, code)
     !write(*,*) rg, "Reading materials"
     !---   Properties of materials.
     call read_material_file(Tdomain, rg)
-    !write(*,*) rg, "Reading materials done"
+
+    ! Material Earthchunk
+
+    Tdomain%earthchunk_isInit=0
+    if( config%material_type == MATERIAL_EARTHCHUNK) then
+        Tdomain%earthchunk_isInit=1
+
+    endif
+
+
+    if( config%material_present == 1) then
+        Tdomain%earthchunk_file = fromcstr(config%model_file)
+        Tdomain%earthchunk_delta_lon = config%delta_lon
+        Tdomain%earthchunk_delta_lat = config%delta_lat
+
+        if( config%material_type == MATERIAL_EARTHCHUNK ) Tdomain%aniso=.true.
+
+        do imat=0,Tdomain%n_mat-1
+            Tdomain%sSubDomain(imat)%material_definition = config%material_type
+        enddo
+    else
+        do imat=0,Tdomain%n_mat-1
+            Tdomain%sSubDomain(imat)%material_definition = MATERIAL_CONSTANT
+        enddo
+    endif
+
+
+    write(*,*) rg, "Reading materials done"
+
 
     call finalize_mesh_connectivity(Tdomain, rg)
 

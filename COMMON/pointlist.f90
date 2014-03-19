@@ -143,3 +143,12 @@ contains
         write(*,*) "Avg non-empty bin size:", real(table%count)/real(table%n_bins-empty)
     end subroutine fill_table_array
 end module point_list
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent : !!

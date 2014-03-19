@@ -1,5 +1,6 @@
 
 
+
 module sem_c_config
     use iso_c_binding
     use sem_c_bindings
@@ -69,6 +70,13 @@ module sem_c_config
        integer(C_INT) :: type_elem
        integer(C_INT) :: type_flux
        integer(C_INT) :: type_bc
+
+       !!Material
+       integer(C_INT) :: material_present
+       integer(C_INT) :: material_type
+       type(C_PTR)    :: model_file
+       real(C_DOUBLE) :: delta_lon
+       real(C_DOUBLE) :: delta_lat
 
     end type sem_config
 

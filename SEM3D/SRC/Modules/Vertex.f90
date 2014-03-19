@@ -28,8 +28,8 @@ module svertices
        integer :: Iglobnum_Vertex, global_numbering
        real :: MassMat
        real, dimension(0:2) :: Forces, Displ, Veloc, Accel, V0
-       logical :: solid
        ! solid-fluid
+       logical :: solid, fluid_dirich
        real :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
 
        type(vertex_pml), pointer :: spml
@@ -143,6 +143,7 @@ contains
 
         V%ForcesFl = V%MassMat * V%ForcesFl
         V%VelPhi = V%VelPhi0 + dt * V%ForcesFl
+        if(V%fluid_dirich) V%VelPhi = 0d0
         V%AccelPhi = (V%VelPhi-V%VelPhi0)/dt
         V%Phi = V%Phi + dt * V%VelPhi
         return
@@ -162,7 +163,7 @@ contains
 
         V%VelPhi = V%spml%VelPhi1 + V%spml%VelPhi2 + V%spml%VelPhi3
 
-        if (V%Abs) then
+        if (V%Abs .or. V%fluid_dirich) then
             V%VelPhi = 0
         endif
 

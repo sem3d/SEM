@@ -43,6 +43,15 @@ considérés isotropes.  Le code est prévu pour gérer les milieux
 anisotropes, mais il n'existe pas de manière simple de gérer la mise
 en données.
 
+Dans le domaine fluide, on résoud :
+
+.. math::
+
+   \frac{1}{\kappa}\frac{\partial^2 (\rho\phi)}{\partial t^2} = \nabla.v + ext
+
+   v = \frac{1}{\rho}\nabla(\rho\phi)
+
+
 Formulation éléments finis
 --------------------------
 
@@ -50,6 +59,9 @@ SEM est un code éléments finis, basé sur une formulation spectrale
 (d'où son nom). Le champ de déplacement :math:`u` est décrit dans
 chaque élément, ou maille, sur une base de polynômes de Lagrange
 d'ordre N (N défini comme paramètre).
+
+Méthode spectrale
+~~~~~~~~~~~~~~~~~
 
 Pour obtenir une convergence spectrale, ces polynômes de Lagrange sont
 définis sur les points de Gauss-Lobato-Legendre (GLL) de chaque
@@ -78,7 +90,7 @@ Ainsi, sur un élément d'ordre 5, la composante *x* du champ de
 déplacement, est décrite par un vecteur de 125 éléments
 :math:`U_{i,j,k}` .
 
-La figure :ref:`pollag` montre la forme des polynôme de Lagrange d'ordre 9, la base tensorisée
+La figure :ref:`pollag` montre la forme des polynômes de Lagrange d'ordre 9, la base tensorisée
 de dimension 2D est représentée :ref:`fig-ref-2d`
 
 .. _pollag:
@@ -112,7 +124,10 @@ ramène à une base locale :math:`\phi_i(x).\phi_j(y).\phi_k(z)` par
 changement de variable de la fonction de base :math:`\Phi` depuis la
 maille vers un élément de référence sur le segment [-1.,1.] .
 
-Enfin une des originalités de la méthode, provient du choix de
+Matrice de masse diagonale
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Enfin une des originalités de la méthode, provient du choix de la
 quadrature pour l'évaluation numérique des intégrales apparaissant
 dans la formulation élément finis.
 
@@ -122,7 +137,7 @@ scalaire dans :math:`\mathcal{L}^2`)
 
 .. math::
 
-   \int w.\rho \frac{\partial^2 u}{\partial t^2}\vec{dx} = \int w.(\nabla.(C:\nabla{}u) + \vec{f}).\vec{dx}
+   \forall w \in \mathcal{L}^2, \int w.\rho \frac{\partial^2 u}{\partial t^2}\vec{dx} = \int w.(\nabla.(C:\nabla{}u) + \vec{f}).\vec{dx}
 
 En exprimant *w* et *u* sur la même base discrète
 :math:`\Phi_i(x,y,z)` (ici *i* indexe **toutes** les fonctions de base
@@ -130,12 +145,19 @@ de tous les éléments).
 
 .. math::
 
+   \forall w = \sum_{i=1}^N w_i \Phi_i, w_i \in \mathbf{R}, 
    \sum_{i,j} w_i.\rho \frac{\partial^2 u_j}{\partial t^2}\int \Phi_i\Phi_j \vec{dx} = 
-     \sum w_i.u_j.(\nabla.(C:\nabla{}\Phi_j) + f_j\Phi_j).\vec{dx}
+     \sum w_i.u_j.\int (\nabla.(C:\nabla{}\Phi_j) + f_j\Phi_j).\Phi_i \vec{dx}
 
 Cette dernière équation apparaît alors sous la forme classique de
 l'approximation de Galerkin : :math:`a(u,w) = f(w)` avec :math:`a` une
 forme bilinéaire.
+
+On arrive à l'équation matricielle suivante :
+
+.. math::
+
+    M.\frac{\partial^2 U}{\partial t^2} + K.U = F
 
 Sans aller jusqu'au bout des développements, on voit qu'il apparaît une
 matrice :math:`M_{i,j}=\int \Phi_i\Phi_j\vec{dx}`, que l'on doit
@@ -295,7 +317,7 @@ les fichiers nécéssaires à son exécution. L'arborescence doit être la suiva
   |  |- mesh4spec.NNNN
   |- capteurs.dat
 
-input.spec:
+``input.spec`` :
 
   Ce fichier contient la configuration du code :
   - paramètres d'intégration temporelle, temps physique du calcul,
@@ -303,12 +325,56 @@ input.spec:
   - description des sorties capteurs,
   - description des sorties snapshots.
 
-material.input:
+``material.input`` :
 
   Ce fichier contient la description de chaque matériau : :math:`\rho, V_p, V_s`, un nombre
   de points GLL par direction de la maille de référence.
 
-capteurs.dat
+  Le format du fichier est le suivant :
+  
+  - la première ligne contient le nomnbre de milieux décrits
+  
+  - Une ligne par milieu, contenant :
+  
+    - le type de milieu (Solide, Fluide, PML solide (P)m PML fluide (L) )
+  
+    - Les vitesses d'ondes P, et S
+  
+    - La densité
+  
+    - L'ordre des éléments en X, Y, Z (Y est ignoré en 2D)
+  
+    - Un pas de temps (ignoré dans la version actuelle)
+  
+    - Les attenuations d'ondes P et S
+  
+  - 2 lignes de commentaires
+  
+  - Pour chaque milieu de type PML (donc P ou L), une ligne indiquant les directions d'atténuation,
+    et le type d'attenuation :
+  
+    - Un caractère pour le type de PML (filtrante (T), ou standard (F))
+  
+    - paramètres n et A pour les PML filtrantes
+  
+    - 3 couples de deux drapeaux T ou F (pour True False) indiquant si la PML attenue dans
+      les directions X, Y et Z respectivement (premier flag du couple) et dans le sens positif (T)
+      ou négatif de l'axe.
+  
+    - La fréquence de coupure en cas de PML filtrante
+  
+  Exemple ::
+  
+    27
+    S  6300.00  2500.00   2800. 5   5    5  0.000005 0. 0.
+    P  6300.00  2500.00   2800. 7   7    5  0.000005 0. 0.
+    P  6300.00  2500.00   2800. 7   7    5  0.000005 0. 0.
+    # PML properties
+    # Filtering? npow,Apow,X?,left?,Y?,Forwrd?,Z?,down?,cutoff freq
+    F 2 10. T T T T F F 0.
+    F 2 10. T F T T F F 0.
+
+``capteurs.dat`` :
 
   Contient une description des sorties capteurs souhaitées.
 
@@ -370,4 +436,132 @@ Il faut d'abord préparer le répertoire du CAS : y copier les fichiers
 ``input.spec``, ``material.input``, ``capteurs.dat``, et placer les fichiers
 ``mesh4spec.NNNN`` dans le sous-répertoire ``sem/``.
 
+On doit obtenir l'arborescence suivante ::
 
+  mon_cas/
+  |- input.spec
+  |- material.input
+  |- capteurs.dat
+  |- mat.dat
+  |- sem/
+  |  |- mesh4spec.0000.h5
+  |  |- mesh4spec.0001.h5
+  |  |- mesh4spec.0002.h5
+  |  |- mesh4spec.0003.h5
+
+
+Visualisation des résultats
+---------------------------
+
+Les résultats sont de deux sortes :
+
+- Des instantanés (mot-clef *snapshot* du fichier de config)
+  sauvegardés dans le répertoire ``res/`` : les sorties sont au format
+  HDF5, directement visualisables avec **paraview**, ou ensight en
+  ouvrant le fichier ``.xmf`` associé (Format XDMF).
+
+- Des sorties capteurs, au format texte ou hdf5 (paramétrable par
+  fichier de config).  Le format HDF5 n'a d'utilité que pour un grand
+  nombre de capteurs sur des systèmes de fichier distribués.
+
+
+Protection reprise
+------------------
+
+Il est possible de reprendre le calcul après un arrêt à partir de la dernière *protection*.
+Les fichiers de protection sont des répertoires placés dans le répertoire ``prot`` et portant
+le numéro de l'itération de protection.
+
+Pour relancer le calcul à partir d'une protection, il faut renseigner le numéro d'iteration
+avec le mot-clef ``restart_iter`` et indiquer que l'on veut redémarrer depuis une reprise :
+mot-clef ``prorep`` valant ``true``.
+
+Le mot-clef ``prorep_iter=NIT`` indique au code d'effectuer une protection toutes les ``NIT`` itérations.
+
+
+Maillage d'une topographie
+==========================
+
+
+Génération du maillage
+----------------------
+
+Pour générer ce cas on va utiliser un jeu d'outils externes à SEM : *meshtools*.
+
+Les étapes de construction sont les suivantes :
+
+- Sélection d'un ou plusieurs fichiers de topographie (format SRTM par exemple) (*utilisateur*)
+
+- Conversion/concaténation de la topographie en un format compact intermédiaire (*mt_import*)
+
+- Création d'une grille cartésienne dans la projection souhaitée (*mt_grid*)
+
+- (optionel) Création de grilles supplémentaires pour mailler des couches en profondeur épousant la topographie
+  de surface (*utilisateur*)
+
+- Génération du maillage et du fichier matériau associé (*mt_topo*)
+
+- Partitionnement du maillage (*mesher*)
+
+
+Nous allons traiter un exemple de génération de maillage à partir d'un fichier srtm ::
+
+  # On decompresse le fichier srtm
+  $ unzip srtm_56_01.zip
+  # On convertit le fichier au format hdf5 (lat/lon)
+  $ mt_import -s topo_srtm.h5 srtm_56_01.tif
+  # On projete une grille de 30x30 mailles de 1000x1000 m de cote d'origine 58N 96E dans la projection aeqd
+  $ mt_grid --vx=1000,0 --vy=0,1000 -g 30,30 -p "+proj=aeqd +lat_0=58.0 +lon_0=96.0" -n surf topo_srtm.h5 grid.h5
+  $ mt_grid --vx=500,0 --vy=0,500 -g 300,300 -p "+proj=aeqd +lat_0=58.0 +lon_0=96.0" -n surf topo.h5 grid.h5
+  # Le fichier contenant la grille est utilise pour creer un maillage
+  $ mt_topo --npml=1 --profile=mesh.profile --mat=input_material.dat grid.h5 mesh_sem.h5
+  # on renomme le fichier materiau (pour l'outil mesher)
+  $ cp mesh_sem.h5.mat material.input
+  $ mesher
+  256
+  0
+  4
+  1
+  mesh_sem.h5
+  $ mkdir sem
+  $ mv mesh4spec.0* sem/
+  # Lancement du cas sem
+  $ mpirun -n 256 sem3d.exe
+
+Modification de l'association des matériaux
+-------------------------------------------
+
+L'outil ``mt_topo`` via le fichier de profil vertical (option ``--profile``) applique une description
+de milieu homogène par couche de mailles (pas de variation en X et Y).
+
+On peut cependant aller plus loin et modifier le maillage généré avec quelques lignes de script python ::
+
+  $ python
+  # import des fonctions numpy
+  >>> from numpy import *
+  # Import du module de lecture de fichier HDF5
+  >>> import h5py
+  # Ouverture du fichier
+  >>> fmesh = h5py.File("mesh_sem.h5","r+")
+  # On lit les coordonnees des noeuds (taill Np x 3)
+  >>> nodes = fmesh["/Nodes"][...]
+  # On charge les proprietes materiau (taille Nel)
+  >>> mat = fmesh["/Mat"][...]
+  # On charge la description des elements Nel x 8
+  >>> elem = fmesh["/Elements"][...]
+  # On calcule le centre de chaque element nodes[elem,:] est un tableau
+  # de taille Nel x 8 x 3, on fait la moyenne des coordonnees sur l'axe du milieu
+  >>> ctr = nodes[elem,:].sum(axis=1)/8.
+  # on applique un nouveau materiau sur la zone d'interet :
+  >>> z1 = logical_and( ctr[:,0] > 5000, ctr[:,0] < 10000. )
+  >>> z2 = logical_and( ctr[:,1] > 2000, ctr[:,1] < 4000. )
+  >>> z3 = ctr[:,2] > -5000
+  # Un tableau de booléen de taille Nel tq les valeurs true correspondent aux
+  # élements de centre 5000<X<10000 , 2000<Y<4000, Z>-5000
+  >>> zone = logical_and(z1, logical_and(z2, z3))
+  # On change le materiau associé à cette zone
+  >>> mat[zone] = 2
+  # On récrit le nouveau champ matériau
+  >>> fmesh["/Mat"] = mat
+  # Fin
+  >>> fmesh.close()

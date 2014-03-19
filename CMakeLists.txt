@@ -20,12 +20,17 @@ add_definitions(-DUSE_HDF5)
 include_directories(${HDF5_FORTRAN_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} ${HDF5_INCLUDE_DIR})
 include_directories(${HDF5_INCLUDE_DIR} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP})
 
-if (OPT_MPI)
+if (OPT_MPI OR HDF5_IS_PARALLEL)
     set(MPI_COMPILER mpif90)
     find_package(MPI)
-    add_definitions(-D__MPI)
     include_directories(${MPI_INCLUDE_PATH})
     set(GLOBAL_LINK_FLAGS ${MPI_LINK_FLAGS} ${GLOBAL_LINK_FLAGS})
+endif (OPT_MPI OR HDF5_IS_PARALLEL)
+
+
+if (OPT_MPI)
+  # Separate in case one wants to build non-mpi version of SEM against MPI enabled HDF5 library
+  add_definitions(-D__MPI)
 endif (OPT_MPI)
 
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
@@ -40,9 +45,6 @@ endif (NOT BUILD_WITH_MKA)
 
 
 add_definitions(-DMKA3D)
-#if(OPT_COUPLAGE)
-#add_definitions(-DCOUPLAGE)
-#endif(OPT_COUPLAGE)
 
 set(SEMDIR ${PROJECT_SOURCE_DIR})
 set(SEMCOMMON ${SEMDIR}/COMMON)
@@ -75,11 +77,11 @@ find_library(CEAUSER cea_user PATHS /usr/local/sr/lib)
 
 
 
-if( (NOT BUILD_WITH_MKA) AND (CEAUSER STREQUAL "CEAUSER-NOTFOUND"))
+if(CEAUSER STREQUAL "CEAUSER-NOTFOUND")
 set(SEM_SRC ${SEM_SRC}
   ${SEMCOMMON}/stub_tremain.F90
 )
-endif( (NOT BUILD_WITH_MKA) AND (CEAUSER STREQUAL "CEAUSER-NOTFOUND"))
+endif(CEAUSER STREQUAL "CEAUSER-NOTFOUND")
 
 
 set(FTM_SOURCES ${SEMCOMMON}/libmpi_fantome.f90)
@@ -93,21 +95,23 @@ endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 
 
 set(SEM_EXTRA_LIBS)
-if(OPT_MPI)
-#set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
+if(OPT_MPI OR HDF5_IS_PARALLEL)
 # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
 # c++ et ne link pas semx.exe
 set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
-else(OPT_MPI)
-set(SEM_SRC ${SEM_SRC}
-  ${FTM_SOURCES})
-endif(OPT_MPI)
+else(OPT_MPI OR HDF5_IS_PARALLEL)
+set(SEM_SRC ${SEM_SRC} ${FTM_SOURCES})
+endif(OPT_MPI OR HDF5_IS_PARALLEL)
 
 
 if (CEAUSER)
 add_definitions(-DHAVE_TREMAIN)
 set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${CEAUSER})
 endif(CEAUSER)
+
+# HDF5
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
+message("SEMLIBS: '${SEM_EXTRA_LIBS}'")
 
 
 add_subdirectory(SEM2D)

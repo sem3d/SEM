@@ -3,59 +3,101 @@
 NEWS
 ====
 
+Version 2014.xx
+---------------
+
+- Partitionneur 2D / C++ (LA)
+
+- Entrees/sorties HDF5 pour SEM2D, sauvegarde de l'accélération dans les snapshots (LA)
+
+- nouvelle option (``dim``) obligatoire, permet :
+
+  - la direction des pulses est maintenant un vecteur quelconque.
+
+  - les vecteurs spécifiés en 2D pour Sem2D (``dim=2``) et non plus en X (Y=0) Z.
+
+  - tenseur moment quelconque en 2D
+
+- Model global EarthChunk (ML)
+
+- Calcul de l'énergie totale (ST) (option ``output_total_energy``)
+
+- Mailleur et SEM3D :
+
+  - condition de type dirichlet (P=0) pour les fluides (LG)
+
+- Corrections de bug
+
+  - compilation en mode MPI=off,
+
+  - position des recepteurs,
+
+  - mauvais calcul dans partial_deriv
+
+- Performance
+
+  - regroupement des sorties par groupes de processeurs (option ``group_outputs``)
+
+  - SEM2D, sauvegarde par blocs des capteurs.
+
+  - Optimisation mailleur 3D pour les gros cas (LG)
+
+
 Version 2013.12
 ---------------
 
-- Stabilisation des éléments fluides et couplage fluide/solide
+- Stabilisation des éléments fluides et couplage fluide/solide.
 
 - Nouvelles fonctions d'évolution temporelle des sources (square, tanh, ...)
 
 - La limite maximum du nombre de processeurs gérés par le mailleur est
   portée à 8192 (1024 précédement). La consommation mémoire excessive
-  en (nombre de processeurs * nombre de mailles) est résolue. On a
-  maintenant une consommation proportionnelle à (nombre de mailles x
-  nombre de processeurs voisins).
+  (en nombre de processeurs * nombre de mailles) est résolue. On a
+  maintenant une consommation proportionnelle à : nombre de mailles x
+  nombre de processeurs voisins.
 
-- un paramètre amplitude global pour toutes les fonctions temporelles est ajouté.
+- Un paramètre ``amplitude`` global pour toutes les fonctions temporelles est ajouté.
 
-- la dépendance sur HDF5 est maintenant obligatoire.
+- La dépendance sur la librairie HDF5 est maintenant obligatoire.
 
-- Le mailleur accepte un format hdf5 (semblable àau format UNV) en entrée. Permet
-  de gérer de gros maillages beaucoup trop long à lire dans un format texte.
+- Le mailleur accepte un format HDF5 (d'un structure semblable au format UNV) en entrée.
+  Cela permet de gérer de gros maillages, beaucoup trop long à lire dans un format texte.
 
 - Limitation du nombre de sorties texte du code pour passer des codes sur un grand nombre
   de processeurs.
 
-- bugfix: le flag mpml n'était plus pris en compte.
+- Bugfix: le paramètre ``mpml`` était ignoré.
 
-- bugfix: le mailleur ne libérait pas immédiatement les ressources
+- Bugfix: le mailleur ne libérait pas immédiatement les ressources
   HDF5, ce qui induisait des temps très long de flush en fin de
-  job. Ce temps étant compté dans l'épilogue MPI, le processus était
-  tué avant la fin.
+  job pour les gros maillages.
 
-- bugfix: les paramètres d'attenuation n'étaient pas correctement
-  sauvegardé lors des protection reprise.
+  Ce temps étant décompté après l'épilogue MPI (ie après l'appel à ``MPI_Finalize``),
+  le processus était considéré comme bloqué et tué avant la fin par ``mpirun``.
+
+- Bugfix: les paramètres d'attenuation n'étaient pas correctement
+  sauvegardé dans les fichiers de protection/reprise.
 
 - Les sorties ont été mutualisées par groupe de processeurs, permettant d'avoir
-  une sortie par noeud de calcul.
-, plutot qu'une sortie par processus MPI.
+  une sortie par noeud de calcul, plutôt qu'une sortie par processus MPI.
 
-- bugfix : pour les fluides, les excitations sont pondérées par lambda et plus rho
+- Bugfix : pour les fluides, les excitations sont pondérées par :math:`\lambda` et plus :math:`\rho`.
 
-- fluide : on assure la continuité de rho*phi et non plus phi.
+- Fluide : on assure la continuité de :math:`\rho{}\phi` et non plus :math:`\phi` seul.
 
-- mailleur: on peut mailler un milieu stratifié simple
+- Mailleur: on peut mailler un milieu stratifié simple.
 
 - SEM2D : mutualisation de code, utilisation du nouveau format de fichier d'entrée commun avec SEM3D.
 
-- Nouveaux champs en sortie des snapshots : pression et accélération
+- Nouveaux champs en sortie des snapshots : pression et accélération.
 
-- optimisation du calcul des forces solides sans Acoef. Le calcul des
-  dérivées spatiales a maintenant des cas particuliers pour ngll=5
-  et 7. Au delà de 10, l'ancienne méthode avec DGEMM optimisée (MKL)
-  devient plus intéressante.
+- Optimisation : concerne le calcul des forces solides sans Acoef.
 
-- correction fuite mémoire (initiale, stable) dans l'allocation des capteurs.
+  Le calcul des dérivées spatiales a maintenant des cas particuliers
+  pour ngll=5 et 7. Au delà de 10, l'ancienne méthode avec DGEMM
+  optimisée (MKL) devient plus intéressante.
+
+- Correction d'une fuite mémoire (à l'initialisation) dans l'allocation des capteurs.
 
 Version 2013.04
 ---------------

@@ -11,13 +11,39 @@ module selement
     use deriv3d
     implicit none
 
-    type :: element_pml
+    type :: element_solid
+       real, dimension(:,:,:,:), allocatable :: Cij
+
+       real, dimension(:,:,:,:), allocatable :: ACoeff
+       real, dimension(:,:,:,:), allocatable :: Forces,Veloc,Displ,Accel,V0
+
+        ! Attenuation
+       real, dimension (:,:,:), allocatable :: Q, Qs, Qp, onemSbeta, onemPbeta, &
+           epsilonvol_, &
+           epsilondev_xx_,epsilondev_yy_,epsilondev_xy_,epsilondev_xz_,epsilondev_yz_
+
+       real, dimension(:,:,:,:), allocatable :: &
+           factor_common_3, alphaval_3,betaval_3,gammaval_3, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_, &
+           factor_common_P, alphaval_P,betaval_P,gammaval_P, R_vol_
+
+    end type element_solid
+
+    type :: element_fluid
+       real, dimension(:,:,:,:), allocatable :: ACoeff
+       ! fluid part
+       real, dimension(:,:,:), allocatable:: Phi,VelPhi0,VelPhi,AccelPhi
+       ! fluid part
+       real, dimension(:,:,:), allocatable:: ForcesFl
+
+    end type element_fluid
+
+    type :: element_solid_pml
        ! TODO move pml related data here
        real, dimension(:,:,:,:), allocatable :: Diagonal_Stress1, Diagonal_Stress2, Diagonal_Stress3
        real, dimension(:,:,:,:), allocatable :: Residual_Stress1, Residual_Stress2, Residual_Stress3
        real, dimension(:,:,:,:), allocatable :: DumpSx,DumpSy,DumpSz
        real, dimension(:,:,:,:), allocatable :: Forces1,Forces2,Forces3
-       real, dimension(:,:,:,:), allocatable :: Veloc,Veloc1,Veloc2,Veloc3
+       real, dimension(:,:,:,:), allocatable :: Veloc1,Veloc2,Veloc3
        ! FPML
        real, dimension(:,:,:), allocatable :: Isx, Isy, Isz
        real, dimension(:,:,:), allocatable :: Ivx, Ivy, Ivz
@@ -27,43 +53,44 @@ module selement
        real, dimension(:,:,:,:), allocatable :: DumpVx,DumpVy,DumpVz, DumpMass
        real, dimension(:,:,:,:), allocatable :: Diagonal_Stress, Residual_Stress
        real, dimension(:,:), allocatable :: Normales, Inv_Normales
-       real, dimension(:,:,:), allocatable :: ForcesFl1,ForcesFl2,ForcesFl3,VelPhi1,VelPhi2,VelPhi3
-    end type element_pml
+    end type element_solid_pml
+
+    type :: element_fluid_pml
+        real, dimension(:,:,:,:), allocatable :: DumpSx,DumpSy,DumpSz
+        real, dimension(:,:,:,:), allocatable :: DumpVx,DumpVy,DumpVz, DumpMass
+        real, dimension(:,:,:,:), allocatable :: Veloc,Veloc1,Veloc2,Veloc3
+        real, dimension(:,:,:), allocatable :: ForcesFl1,ForcesFl2,ForcesFl3,VelPhi1,VelPhi2,VelPhi3
+    end type element_fluid_pml
 
     type :: element
 
        integer :: mat_index, ngllx, nglly, ngllz
        integer, dimension (:), allocatable :: Control_nodes
-
        integer, dimension (0:5) :: Near_Faces, Orient_Faces
        integer, dimension (0:11) :: Near_Edges, Orient_Edges
-
        integer, dimension (0:7) :: Near_Vertices
+
        integer, dimension (:,:,:), allocatable :: Iglobnum,Num
        real, dimension (:,:,:), allocatable :: Jacob
-       real, dimension (:,:,:), allocatable :: Density, Lambda, Mu, MassMat, Kappa
-       real, dimension (:,:,:), allocatable :: Q, Qs, Qp, onemSbeta, onemPbeta, &
-           epsilonvol_, &
-           epsilondev_xx_,epsilondev_yy_,epsilondev_xy_,epsilondev_xz_,epsilondev_yz_
-       real, dimension(:,:,:,:), allocatable :: ACoeff, Forces,Veloc,Displ,Accel,V0
-       real, dimension(:,:,:,:), allocatable :: Cij, &
-           factor_common_3, alphaval_3,betaval_3,gammaval_3, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_, &
-           factor_common_P, alphaval_P,betaval_P,gammaval_P, R_vol_
+       real, dimension (:), allocatable :: wgtx, wgty, wgtz
        real, dimension(:,:,:,:,:), allocatable :: InvGrad
-       ! fluid part
-       real, dimension(:,:,:), allocatable:: Phi,VelPhi0,VelPhi,AccelPhi
+       real, dimension (:,:,:), allocatable :: Density, MassMat
+
+       real, dimension (:,:,:), allocatable :: Lambda, Mu, Kappa
        ! flag for PML allocation
        logical :: PML, FPML
+       logical  :: solid, fluid_dirich
        ! Whether this element will be part of snapshot outputs
        logical :: OUTPUT
-       type(element_pml), pointer :: spml
-       ! fluid part
-       real, dimension(:,:,:), allocatable:: ForcesFl
 
-       ! solid-fluid
-       logical  :: solid
+       type(element_solid), allocatable :: sl
+       type(element_fluid), allocatable :: fl
+       type(element_solid_pml), allocatable :: slpml
+       type(element_fluid_pml), allocatable :: flpml
+
        real :: dist_max !! taille caracteristique de l'element
     end type element
+
 
     interface
        subroutine DGEMM ( TRANSA, TRANSB, M, N, K, ALPHA, A, LDA, B, LDB, BETA, C, LDC )
@@ -98,8 +125,8 @@ contains
 
         ngllx = Elem%ngllx ; nglly = Elem%nglly ; ngllz = Elem%ngllz
 
-        Elem%Forces(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2) = Elem%Displ
-        Elem%V0 = Elem%Veloc
+        Elem%sl%Forces(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2) = Elem%sl%Displ
+        Elem%sl%V0 = Elem%sl%Veloc
 
         return
     end subroutine Prediction_Elem_Veloc
@@ -112,8 +139,8 @@ contains
         integer :: ngllx, nglly, ngllz
 
         ngllx = Elem%ngllx ;  nglly = Elem%nglly ; ngllz = Elem%ngllz
-        Elem%VelPhi0(:,:,:) = Elem%VelPhi(:,:,:)
-        Elem%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2) = Elem%Phi(:,:,:)
+        Elem%fl%VelPhi0(:,:,:) = Elem%fl%VelPhi(:,:,:)
+        Elem%fl%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2) = Elem%fl%Phi(:,:,:)
         return
     end subroutine Prediction_Elem_VelPhi
     !--------------------------------------------------------------------------------
@@ -134,12 +161,12 @@ contains
 
         ngllx = Elem%ngllx ;  nglly = Elem%nglly ; ngllz = Elem%ngllz
         do i = 0,2
-            Elem%Forces(1:ngllx-2,1:nglly-2, 1:ngllz-2,i) = Elem%MassMat(:,:,:)*    &
-                Elem%Forces(1:ngllx-2,1:nglly-2,1:ngllz-2,i)
+            Elem%sl%Forces(1:ngllx-2,1:nglly-2, 1:ngllz-2,i) = Elem%MassMat(:,:,:)*    &
+                Elem%sl%Forces(1:ngllx-2,1:nglly-2,1:ngllz-2,i)
         enddo
-        Elem%Veloc(:,:,:,:) = Elem%v0(:,:,:,:) + dt * Elem%Forces(1:ngllx-2,1:nglly-2,1:ngllz-2,:)
-        Elem%Accel  =  (Elem%Veloc-Elem%V0)/dt
-        Elem%Displ = Elem%Displ + dt * Elem%Veloc
+        Elem%sl%Veloc(:,:,:,:) = Elem%sl%v0(:,:,:,:) + dt * Elem%sl%Forces(1:ngllx-2,1:nglly-2,1:ngllz-2,:)
+        Elem%sl%Accel  =  (Elem%sl%Veloc-Elem%sl%V0)/dt
+        Elem%sl%Displ = Elem%sl%Displ + dt * Elem%sl%Veloc
 
         return
     end subroutine Correction_Elem_Veloc
@@ -153,11 +180,11 @@ contains
 
         ngllx = Elem%ngllx ;  nglly = Elem%nglly ; ngllz = Elem%ngllz
 
-        Elem%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2) = Elem%MassMat(:,:,:)*    &
-            Elem%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2)
-        Elem%VelPhi(:,:,:) = Elem%VelPhi0(:,:,:)+ dt * Elem%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2)
-        Elem%AccelPhi  = (Elem%VelPhi-Elem%VelPhi0)/dt
-        Elem%Phi = Elem%Phi + dt*Elem%VelPhi
+        Elem%fl%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2) = Elem%MassMat(:,:,:)*    &
+            Elem%fl%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2)
+        Elem%fl%VelPhi(:,:,:) = Elem%fl%VelPhi0(:,:,:)+ dt * Elem%fl%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2)
+        Elem%fl%AccelPhi  = (Elem%fl%VelPhi-Elem%fl%VelPhi0)/dt
+        Elem%fl%Phi = Elem%fl%Phi + dt*Elem%fl%VelPhi
 
         return
     end subroutine Correction_Elem_VelPhi
@@ -194,85 +221,85 @@ contains
 
         !- gradient at GLL points
         ! dUx_(dxi,deta,dzeta)
-        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,0),dUx_dxi,dUx_deta,dUx_dzeta)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%sl%Forces(:,:,:,0),dUx_dxi,dUx_deta,dUx_dzeta)
 
         ! dUy_(dxi,deta,dzeta)
-        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,1),dUy_dxi,dUy_deta,dUy_dzeta)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%sl%Forces(:,:,:,1),dUy_dxi,dUy_deta,dUy_dzeta)
 
         ! dUz_(dxi,deta,dzeta)
-        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,2),dUz_dxi,dUz_deta,dUz_dzeta)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%sl%Forces(:,:,:,2),dUz_dxi,dUz_deta,dUz_dzeta)
 
 
         !- Internal forces
-        t1 = Elem%Acoeff(:,:,:,0)*dUx_dxi + Elem%Acoeff(:,:,:,1)*dUx_deta + Elem%Acoeff(:,:,:,2)*dUx_dzeta + &
-            Elem%Acoeff(:,:,:,3)*dUy_dxi + Elem%Acoeff(:,:,:,4)*dUy_deta + Elem%Acoeff(:,:,:,5)*dUy_dzeta +  &
-            Elem%Acoeff(:,:,:,6)*dUz_dxi + Elem%Acoeff(:,:,:,7)*dUz_deta + Elem%Acoeff(:,:,:,8)*dUz_dzeta
+        t1 = Elem%sl%Acoeff(:,:,:,0)*dUx_dxi + Elem%sl%Acoeff(:,:,:,1)*dUx_deta + Elem%sl%Acoeff(:,:,:,2)*dUx_dzeta + &
+            Elem%sl%Acoeff(:,:,:,3)*dUy_dxi + Elem%sl%Acoeff(:,:,:,4)*dUy_deta + Elem%sl%Acoeff(:,:,:,5)*dUy_dzeta +  &
+            Elem%sl%Acoeff(:,:,:,6)*dUz_dxi + Elem%sl%Acoeff(:,:,:,7)*dUz_deta + Elem%sl%Acoeff(:,:,:,8)*dUz_dzeta
 
         call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,t1(0,0,0),m1,0.,Uxloc,m1)
 
-        t1 = Elem%Acoeff(:,:,:,1)*dUx_dxi + Elem%Acoeff(:,:,:,9)*dUx_deta + Elem%Acoeff(:,:,:,10)*dUx_dzeta + &
-            Elem%Acoeff(:,:,:,11)*dUy_dxi + Elem%Acoeff(:,:,:,12)*dUy_deta + Elem%Acoeff(:,:,:,13)*dUy_dzeta + &
-            Elem%Acoeff(:,:,:,14)*dUz_dxi + Elem%Acoeff(:,:,:,15)*dUz_deta + Elem%Acoeff(:,:,:,16)*dUz_dzeta
+        t1 = Elem%sl%Acoeff(:,:,:,1)*dUx_dxi + Elem%sl%Acoeff(:,:,:,9)*dUx_deta + Elem%sl%Acoeff(:,:,:,10)*dUx_dzeta + &
+            Elem%sl%Acoeff(:,:,:,11)*dUy_dxi + Elem%sl%Acoeff(:,:,:,12)*dUy_deta + Elem%sl%Acoeff(:,:,:,13)*dUy_dzeta + &
+            Elem%sl%Acoeff(:,:,:,14)*dUz_dxi + Elem%sl%Acoeff(:,:,:,15)*dUz_deta + Elem%sl%Acoeff(:,:,:,16)*dUz_dzeta
 
         do n_z = 0,Elem%ngllz-1
             call DGEMM('N','N',m1,m2,m2,1.,t1(0,0,n_z),m1,htprimey,m2,0.,s0(0,0,n_z),m1)
         enddo
         Uxloc = s0 + Uxloc
 
-        t1 = Elem%Acoeff(:,:,:,2)*dUx_dxi + Elem%Acoeff(:,:,:,10)*dUx_deta + Elem%Acoeff(:,:,:,17)*dUx_dzeta + &
-            Elem%Acoeff(:,:,:,18)*dUy_dxi + Elem%Acoeff(:,:,:,19)*dUy_deta + Elem%Acoeff(:,:,:,20)*dUy_dzeta +&
-            Elem%Acoeff(:,:,:,21)*dUz_dxi + Elem%ACoeff(:,:,:,22)*dUz_deta + Elem%Acoeff(:,:,:,23)*dUz_dzeta
+        t1 = Elem%sl%Acoeff(:,:,:,2)*dUx_dxi + Elem%sl%Acoeff(:,:,:,10)*dUx_deta + Elem%sl%Acoeff(:,:,:,17)*dUx_dzeta + &
+            Elem%sl%Acoeff(:,:,:,18)*dUy_dxi + Elem%sl%Acoeff(:,:,:,19)*dUy_deta + Elem%sl%Acoeff(:,:,:,20)*dUy_dzeta +&
+            Elem%sl%Acoeff(:,:,:,21)*dUz_dxi + Elem%sl%ACoeff(:,:,:,22)*dUz_deta + Elem%sl%Acoeff(:,:,:,23)*dUz_dzeta
 
         call DGEMM('N','N',m1*m2,m3,m3,1.,t1(0,0,0),m1*m2,htprimez,m3,0.,s0,m1*m2)
         Uxloc = s0 + Uxloc
 
-        t1 = Elem%Acoeff(:,:,:,3)*dUx_dxi + Elem%Acoeff(:,:,:,11)*dUx_deta + Elem%Acoeff(:,:,:,18)*dUx_dzeta + &
-            Elem%Acoeff(:,:,:,24)*dUy_dxi + Elem%Acoeff(:,:,:,25)*dUy_deta + Elem%Acoeff(:,:,:,26)*dUy_dzeta + &
-            Elem%Acoeff(:,:,:,27)*dUz_dxi + Elem%Acoeff(:,:,:,28)*dUz_deta + Elem%Acoeff(:,:,:,29)*dUz_dzeta
+        t1 = Elem%sl%Acoeff(:,:,:,3)*dUx_dxi + Elem%sl%Acoeff(:,:,:,11)*dUx_deta + Elem%sl%Acoeff(:,:,:,18)*dUx_dzeta + &
+            Elem%sl%Acoeff(:,:,:,24)*dUy_dxi + Elem%sl%Acoeff(:,:,:,25)*dUy_deta + Elem%sl%Acoeff(:,:,:,26)*dUy_dzeta + &
+            Elem%sl%Acoeff(:,:,:,27)*dUz_dxi + Elem%sl%Acoeff(:,:,:,28)*dUz_deta + Elem%sl%Acoeff(:,:,:,29)*dUz_dzeta
 
         call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,t1(0,0,0),m1,0.,Uyloc,m1)
 
-        t1 = Elem%Acoeff(:,:,:,4)*dUx_dxi + Elem%Acoeff(:,:,:,12)*dUx_deta + Elem%Acoeff(:,:,:,19)*dUx_dzeta + &
-            Elem%Acoeff(:,:,:,25)*dUy_dxi + Elem%Acoeff(:,:,:,30)*dUy_deta + Elem%Acoeff(:,:,:,31)*dUy_dzeta + &
-            Elem%Acoeff(:,:,:,32)*dUz_dxi + Elem%Acoeff(:,:,:,33)*dUz_deta + Elem%Acoeff(:,:,:,34)*dUz_dzeta
+        t1 = Elem%sl%Acoeff(:,:,:,4)*dUx_dxi + Elem%sl%Acoeff(:,:,:,12)*dUx_deta + Elem%sl%Acoeff(:,:,:,19)*dUx_dzeta + &
+            Elem%sl%Acoeff(:,:,:,25)*dUy_dxi + Elem%sl%Acoeff(:,:,:,30)*dUy_deta + Elem%sl%Acoeff(:,:,:,31)*dUy_dzeta + &
+            Elem%sl%Acoeff(:,:,:,32)*dUz_dxi + Elem%sl%Acoeff(:,:,:,33)*dUz_deta + Elem%sl%Acoeff(:,:,:,34)*dUz_dzeta
 
         do n_z = 0,Elem%ngllz-1
             call DGEMM('N','N',m1,m2,m2,1.,t1(0,0,n_z),m1,htprimey,m2,0.,s0(0,0,n_z),m1)
         enddo
         Uyloc = s0 + Uyloc
 
-        t1 = Elem%Acoeff(:,:,:,5)*dUx_dxi + Elem%Acoeff(:,:,:,13)*dUx_deta + Elem%Acoeff(:,:,:,20)* dUx_dzeta +&
-            Elem%Acoeff(:,:,:,26)*dUy_dxi + Elem%Acoeff(:,:,:,31)*dUy_deta + Elem%Acoeff(:,:,:,35)*dUy_dzeta + &
-            Elem%Acoeff(:,:,:,36)*dUz_dxi + Elem%Acoeff(:,:,:,37)*dUz_deta + Elem%Acoeff(:,:,:,38)*dUz_dzeta
+        t1 = Elem%sl%Acoeff(:,:,:,5)*dUx_dxi + Elem%sl%Acoeff(:,:,:,13)*dUx_deta + Elem%sl%Acoeff(:,:,:,20)* dUx_dzeta +&
+            Elem%sl%Acoeff(:,:,:,26)*dUy_dxi + Elem%sl%Acoeff(:,:,:,31)*dUy_deta + Elem%sl%Acoeff(:,:,:,35)*dUy_dzeta + &
+            Elem%sl%Acoeff(:,:,:,36)*dUz_dxi + Elem%sl%Acoeff(:,:,:,37)*dUz_deta + Elem%sl%Acoeff(:,:,:,38)*dUz_dzeta
 
         call DGEMM('N','N',m1*m2,m3,m3,1.,t1(0,0,0),m1*m2,htprimez,m3,0.,s0,m1*m2)
         Uyloc = s0 + Uyloc
 
-        t1 = Elem%Acoeff(:,:,:,6)*dUx_dxi + Elem%Acoeff(:,:,:,14)*dUx_deta + Elem%Acoeff(:,:,:,21)*dUx_dzeta + &
-            Elem%Acoeff(:,:,:,27)*dUy_dxi + Elem%Acoeff(:,:,:,32)*dUy_deta + Elem%Acoeff(:,:,:,36)*dUy_dzeta + &
-            Elem%Acoeff(:,:,:,39)*dUz_dxi + Elem%Acoeff(:,:,:,40)*dUz_deta + Elem%Acoeff(:,:,:,41)*dUz_dzeta
+        t1 = Elem%sl%Acoeff(:,:,:,6)*dUx_dxi + Elem%sl%Acoeff(:,:,:,14)*dUx_deta + Elem%sl%Acoeff(:,:,:,21)*dUx_dzeta + &
+            Elem%sl%Acoeff(:,:,:,27)*dUy_dxi + Elem%sl%Acoeff(:,:,:,32)*dUy_deta + Elem%sl%Acoeff(:,:,:,36)*dUy_dzeta + &
+            Elem%sl%Acoeff(:,:,:,39)*dUz_dxi + Elem%sl%Acoeff(:,:,:,40)*dUz_deta + Elem%sl%Acoeff(:,:,:,41)*dUz_dzeta
 
         call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,t1(0,0,0),m1,0.,Uzloc,m1)
 
-        t1 = Elem%Acoeff(:,:,:,7)*dUx_dxi + Elem%Acoeff(:,:,:,15)*dUx_deta + Elem%Acoeff(:,:,:,22)*dUx_dzeta + &
-            Elem%Acoeff(:,:,:,28)*dUy_dxi + Elem%Acoeff(:,:,:,33)*dUy_deta + Elem%Acoeff(:,:,:,37)*dUy_dzeta + &
-            Elem%Acoeff(:,:,:,40)*dUz_dxi + Elem%Acoeff(:,:,:,42)*dUz_deta + Elem%Acoeff(:,:,:,43)*dUz_dzeta
+        t1 = Elem%sl%Acoeff(:,:,:,7)*dUx_dxi + Elem%sl%Acoeff(:,:,:,15)*dUx_deta + Elem%sl%Acoeff(:,:,:,22)*dUx_dzeta + &
+            Elem%sl%Acoeff(:,:,:,28)*dUy_dxi + Elem%sl%Acoeff(:,:,:,33)*dUy_deta + Elem%sl%Acoeff(:,:,:,37)*dUy_dzeta + &
+            Elem%sl%Acoeff(:,:,:,40)*dUz_dxi + Elem%sl%Acoeff(:,:,:,42)*dUz_deta + Elem%sl%Acoeff(:,:,:,43)*dUz_dzeta
 
         do n_z = 0,Elem%ngllz-1
             call DGEMM('N','N',m1,m2,m2,1.,t1(0,0,n_z),m1,htprimey,m2,0.,s0(0,0,n_z),m1)
         enddo
         Uzloc = s0 + Uzloc
 
-        t1 = Elem%Acoeff(:,:,:,8)*dUx_dxi + Elem%Acoeff(:,:,:,16)*dUx_deta + Elem%Acoeff(:,:,:,23)*dUx_dzeta + &
-            Elem%Acoeff(:,:,:,29)*dUy_dxi + Elem%Acoeff(:,:,:,34)*dUy_deta + Elem%Acoeff(:,:,:,38)*dUy_dzeta + &
-            Elem%Acoeff(:,:,:,41)*dUz_dxi + Elem%Acoeff(:,:,:,43)*dUz_deta + Elem%Acoeff(:,:,:,44)*dUz_dzeta
+        t1 = Elem%sl%Acoeff(:,:,:,8)*dUx_dxi + Elem%sl%Acoeff(:,:,:,16)*dUx_deta + Elem%sl%Acoeff(:,:,:,23)*dUx_dzeta + &
+            Elem%sl%Acoeff(:,:,:,29)*dUy_dxi + Elem%sl%Acoeff(:,:,:,34)*dUy_deta + Elem%sl%Acoeff(:,:,:,38)*dUy_dzeta + &
+            Elem%sl%Acoeff(:,:,:,41)*dUz_dxi + Elem%sl%Acoeff(:,:,:,43)*dUz_deta + Elem%sl%Acoeff(:,:,:,44)*dUz_dzeta
 
         call DGEMM ('N','N',m1*m2,m3,m3,1.,t1(0,0,0),m1*m2,htprimez,m3,0.,s0,m1*m2)
         Uzloc = Uzloc + s0
 
-        Elem%Forces(:,:,:,0) = Uxloc
-        Elem%Forces(:,:,:,1) = Uyloc
-        Elem%Forces(:,:,:,2) = Uzloc
+        Elem%sl%Forces(:,:,:,0) = Uxloc
+        Elem%sl%Forces(:,:,:,1) = Uyloc
+        Elem%sl%Forces(:,:,:,2) = Uzloc
 
         return
     end subroutine compute_InternalForces_Elem
@@ -294,25 +321,25 @@ contains
 
 
         !- gradients at GLLs points
-        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%ForcesFl(:,:,:), &
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%fl%ForcesFl(:,:,:), &
             dPhi_dxi,dPhi_deta,dPhi_dzeta)
 
         !- Internal Forces
-        t1 = Elem%Acoeff(:,:,:,0)*dPhi_dxi + Elem%Acoeff(:,:,:,1)*dPhi_deta + Elem%Acoeff(:,:,:,2)*dPhi_dzeta
+        t1 = Elem%fl%Acoeff(:,:,:,0)*dPhi_dxi + Elem%fl%Acoeff(:,:,:,1)*dPhi_deta + Elem%fl%Acoeff(:,:,:,2)*dPhi_dzeta
         call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,t1(0,0,0),m1,0.,Floc,m1)
 
-        t1 = Elem%Acoeff(:,:,:,1)*dPhi_dxi + Elem%Acoeff(:,:,:,3)*dPhi_deta + Elem%Acoeff(:,:,:,4)*dPhi_dzeta
+        t1 = Elem%fl%Acoeff(:,:,:,1)*dPhi_dxi + Elem%fl%Acoeff(:,:,:,3)*dPhi_deta + Elem%fl%Acoeff(:,:,:,4)*dPhi_dzeta
         do n_z = 0,Elem%ngllz-1
             call DGEMM('N','N',m1,m2,m2,1.,t1(0,0,n_z),m1,htprimey,m2,0.,s0(0,0,n_z),m1)
         enddo
         Floc = s0 + Floc
 
-        t1 = Elem%Acoeff(:,:,:,2)*dPhi_dxi + Elem%Acoeff(:,:,:,4)*dPhi_deta + Elem%Acoeff(:,:,:,5)*dPhi_dzeta
+        t1 = Elem%fl%Acoeff(:,:,:,2)*dPhi_dxi + Elem%fl%Acoeff(:,:,:,4)*dPhi_deta + Elem%fl%Acoeff(:,:,:,5)*dPhi_dzeta
         call DGEMM('N','N',m1*m2,m3,m3,1.,t1(0,0,0),m1*m2,htprimez,m3,0.,s0,m1*m2)
         Floc = s0 + Floc
 
         !-
-        Elem%ForcesFl(:,:,:) = Floc
+        Elem%fl%ForcesFl(:,:,:) = Floc
 
         return
     end subroutine compute_InternalForces_Elem_Fluid
@@ -352,65 +379,65 @@ contains
 
         m1 = Elem%ngllx; m2 = Elem%nglly;  m3= Elem%ngllz
   ! useless as bega = 1/2 in general
-        Elem%Forces(1:m1-2,1:m2-2, 1:m3-2,0:2)  = Elem%Veloc(:,:,:,:) + dt *(0.5-bega) *Elem%Accel(:,:,:,:)
+        Elem%sl%Forces(1:m1-2,1:m2-2, 1:m3-2,0:2)  = Elem%sl%Veloc(:,:,:,:) + dt *(0.5-bega) *Elem%sl%Accel(:,:,:,:)
 
         ! partial of velocity components with respect to xi,eta,zeta
-        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,0),dVx_dxi,dVx_deta,dVx_dzeta)
-        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,1),dVy_dxi,dVy_deta,dVy_dzeta)
-        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,2),dVz_dxi,dVz_deta,dVz_dzeta)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%sl%Forces(:,:,:,0),dVx_dxi,dVx_deta,dVx_dzeta)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%sl%Forces(:,:,:,1),dVy_dxi,dVy_deta,dVy_dzeta)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%sl%Forces(:,:,:,2),dVz_dxi,dVz_deta,dVz_dzeta)
 
 
   ! Stress_xx
    ! (Stress_xx)^x
-        Elem%spml%Diagonal_Stress1 (:,:,:,0) = Elem%spml%DumpSx(:,:,:,0) * Elem%spml%Diagonal_Stress1 (:,:,:,0) + &
-            Elem%spml%DumpSx(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,0) * dVx_dxi + Elem%Acoeff(:,:,:,1) * dVx_deta + Elem%Acoeff(:,:,:,2) * dVx_dzeta)
+        Elem%slpml%Diagonal_Stress1 (:,:,:,0) = Elem%slpml%DumpSx(:,:,:,0) * Elem%slpml%Diagonal_Stress1 (:,:,:,0) + &
+            Elem%slpml%DumpSx(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,0) * dVx_dxi + Elem%sl%Acoeff(:,:,:,1) * dVx_deta + Elem%sl%Acoeff(:,:,:,2) * dVx_dzeta)
    ! (Stress_xx)^y
-        Elem%spml%Diagonal_Stress2 (:,:,:,0) = Elem%spml%DumpSy(:,:,:,0) * Elem%spml%Diagonal_Stress2 (:,:,:,0) + &
-            Elem%spml%DumpSy(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,3) * dVy_dxi + Elem%Acoeff(:,:,:,4) * dVy_deta + Elem%Acoeff(:,:,:,5) * dVy_dzeta)
+        Elem%slpml%Diagonal_Stress2 (:,:,:,0) = Elem%slpml%DumpSy(:,:,:,0) * Elem%slpml%Diagonal_Stress2 (:,:,:,0) + &
+            Elem%slpml%DumpSy(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,3) * dVy_dxi + Elem%sl%Acoeff(:,:,:,4) * dVy_deta + Elem%sl%Acoeff(:,:,:,5) * dVy_dzeta)
    ! (Stress_xx)^z
-        Elem%spml%Diagonal_Stress3 (:,:,:,0) = Elem%spml%DumpSz(:,:,:,0) * Elem%spml%Diagonal_Stress3 (:,:,:,0) + &
-            Elem%spml%DumpSz(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,6) * dVz_dxi + Elem%Acoeff(:,:,:,7) * dVz_deta + Elem%Acoeff(:,:,:,8) * dVz_dzeta)
+        Elem%slpml%Diagonal_Stress3 (:,:,:,0) = Elem%slpml%DumpSz(:,:,:,0) * Elem%slpml%Diagonal_Stress3 (:,:,:,0) + &
+            Elem%slpml%DumpSz(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,6) * dVz_dxi + Elem%sl%Acoeff(:,:,:,7) * dVz_deta + Elem%sl%Acoeff(:,:,:,8) * dVz_dzeta)
 
   ! Stress_yy
-        Elem%spml%Diagonal_Stress1 (:,:,:,1) = Elem%spml%DumpSx(:,:,:,0) * Elem%spml%Diagonal_Stress1 (:,:,:,1) + &
-            Elem%spml%DumpSx(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,9) * dVx_dxi + Elem%Acoeff(:,:,:,10) * dVx_deta + Elem%Acoeff(:,:,:,11) * dVx_dzeta)
-        Elem%spml%Diagonal_Stress2 (:,:,:,1) = Elem%spml%DumpSy(:,:,:,0) * Elem%spml%Diagonal_Stress2 (:,:,:,1) + &
-            Elem%spml%DumpSy(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,12) * dVy_dxi + Elem%Acoeff(:,:,:,13) * dVy_deta + Elem%Acoeff(:,:,:,14) * dVy_dzeta)
-        Elem%spml%Diagonal_Stress3 (:,:,:,1) = Elem%spml%DumpSz(:,:,:,0) * Elem%spml%Diagonal_Stress3 (:,:,:,1) + &
-            Elem%spml%DumpSz(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,6) * dVz_dxi + Elem%Acoeff(:,:,:,7) * dVz_deta + Elem%Acoeff(:,:,:,8) * dVz_dzeta)
+        Elem%slpml%Diagonal_Stress1 (:,:,:,1) = Elem%slpml%DumpSx(:,:,:,0) * Elem%slpml%Diagonal_Stress1 (:,:,:,1) + &
+            Elem%slpml%DumpSx(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,9) * dVx_dxi + Elem%sl%Acoeff(:,:,:,10) * dVx_deta + Elem%sl%Acoeff(:,:,:,11) * dVx_dzeta)
+        Elem%slpml%Diagonal_Stress2 (:,:,:,1) = Elem%slpml%DumpSy(:,:,:,0) * Elem%slpml%Diagonal_Stress2 (:,:,:,1) + &
+            Elem%slpml%DumpSy(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,12) * dVy_dxi + Elem%sl%Acoeff(:,:,:,13) * dVy_deta + Elem%sl%Acoeff(:,:,:,14) * dVy_dzeta)
+        Elem%slpml%Diagonal_Stress3 (:,:,:,1) = Elem%slpml%DumpSz(:,:,:,0) * Elem%slpml%Diagonal_Stress3 (:,:,:,1) + &
+            Elem%slpml%DumpSz(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,6) * dVz_dxi + Elem%sl%Acoeff(:,:,:,7) * dVz_deta + Elem%sl%Acoeff(:,:,:,8) * dVz_dzeta)
 
   ! Stress_zz
-        Elem%spml%Diagonal_Stress1 (:,:,:,2) = Elem%spml%DumpSx(:,:,:,0) * Elem%spml%Diagonal_Stress1 (:,:,:,2) + &
-            Elem%spml%DumpSx(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,9) * dVx_dxi + Elem%Acoeff(:,:,:,10) * dVx_deta + Elem%Acoeff(:,:,:,11) * dVx_dzeta)
-        Elem%spml%Diagonal_Stress2 (:,:,:,2) = Elem%spml%DumpSy(:,:,:,0) * Elem%spml%Diagonal_Stress2 (:,:,:,2) + &
-            Elem%spml%DumpSy(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,3) * dVy_dxi + Elem%Acoeff(:,:,:,4) * dVy_deta + Elem%Acoeff(:,:,:,5) * dVy_dzeta)
-        Elem%spml%Diagonal_Stress3 (:,:,:,2) = Elem%spml%DumpSz(:,:,:,0) * Elem%spml%Diagonal_Stress3 (:,:,:,2) + &
-            Elem%spml%DumpSz(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,15) * dVz_dxi + Elem%Acoeff(:,:,:,16) * dVz_deta + Elem%Acoeff(:,:,:,17) * dVz_dzeta)
+        Elem%slpml%Diagonal_Stress1 (:,:,:,2) = Elem%slpml%DumpSx(:,:,:,0) * Elem%slpml%Diagonal_Stress1 (:,:,:,2) + &
+            Elem%slpml%DumpSx(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,9) * dVx_dxi + Elem%sl%Acoeff(:,:,:,10) * dVx_deta + Elem%sl%Acoeff(:,:,:,11) * dVx_dzeta)
+        Elem%slpml%Diagonal_Stress2 (:,:,:,2) = Elem%slpml%DumpSy(:,:,:,0) * Elem%slpml%Diagonal_Stress2 (:,:,:,2) + &
+            Elem%slpml%DumpSy(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,3) * dVy_dxi + Elem%sl%Acoeff(:,:,:,4) * dVy_deta + Elem%sl%Acoeff(:,:,:,5) * dVy_dzeta)
+        Elem%slpml%Diagonal_Stress3 (:,:,:,2) = Elem%slpml%DumpSz(:,:,:,0) * Elem%slpml%Diagonal_Stress3 (:,:,:,2) + &
+            Elem%slpml%DumpSz(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,15) * dVz_dxi + Elem%sl%Acoeff(:,:,:,16) * dVz_deta + Elem%sl%Acoeff(:,:,:,17) * dVz_dzeta)
 
-        Elem%spml%Diagonal_Stress = Elem%spml%Diagonal_Stress1 + Elem%spml%Diagonal_Stress2 + Elem%spml%Diagonal_Stress3
+        Elem%slpml%Diagonal_Stress = Elem%slpml%Diagonal_Stress1 + Elem%slpml%Diagonal_Stress2 + Elem%slpml%Diagonal_Stress3
 
   ! Stress_xy
-        Elem%spml%Residual_Stress1 (:,:,:,0) = Elem%spml%DumpSx(:,:,:,0) * Elem%spml%Residual_Stress1 (:,:,:,0) + &
-            Elem%spml%DumpSx(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,18) * dVy_dxi + Elem%Acoeff(:,:,:,19) * dVy_deta + Elem%Acoeff(:,:,:,20) * dVy_dzeta)
-        Elem%spml%Residual_Stress2 (:,:,:,0) = Elem%spml%DumpSy(:,:,:,0) * Elem%spml%Residual_Stress2 (:,:,:,0) + &
-            Elem%spml%DumpSy(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,21) * dVx_dxi + Elem%Acoeff(:,:,:,22) * dVx_deta + Elem%Acoeff(:,:,:,23) * dVx_dzeta)
-        Elem%spml%Residual_Stress3 (:,:,:,0) = Elem%spml%DumpSz(:,:,:,0) * Elem%spml%Residual_Stress3 (:,:,:,0)
+        Elem%slpml%Residual_Stress1 (:,:,:,0) = Elem%slpml%DumpSx(:,:,:,0) * Elem%slpml%Residual_Stress1 (:,:,:,0) + &
+            Elem%slpml%DumpSx(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,18) * dVy_dxi + Elem%sl%Acoeff(:,:,:,19) * dVy_deta + Elem%sl%Acoeff(:,:,:,20) * dVy_dzeta)
+        Elem%slpml%Residual_Stress2 (:,:,:,0) = Elem%slpml%DumpSy(:,:,:,0) * Elem%slpml%Residual_Stress2 (:,:,:,0) + &
+            Elem%slpml%DumpSy(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,21) * dVx_dxi + Elem%sl%Acoeff(:,:,:,22) * dVx_deta + Elem%sl%Acoeff(:,:,:,23) * dVx_dzeta)
+        Elem%slpml%Residual_Stress3 (:,:,:,0) = Elem%slpml%DumpSz(:,:,:,0) * Elem%slpml%Residual_Stress3 (:,:,:,0)
 
   ! Stress_xz
-        Elem%spml%Residual_Stress1 (:,:,:,1) = Elem%spml%DumpSx(:,:,:,0) * Elem%spml%Residual_Stress1 (:,:,:,1) + &
-            Elem%spml%DumpSx(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,18) * dVz_dxi + Elem%Acoeff(:,:,:,19) * dVz_deta + Elem%Acoeff(:,:,:,20) * dVz_dzeta)
-        Elem%spml%Residual_Stress2 (:,:,:,1) = Elem%spml%DumpSy(:,:,:,0) * Elem%spml%Residual_Stress2 (:,:,:,1)
-        Elem%spml%Residual_Stress3 (:,:,:,1) = Elem%spml%DumpSz(:,:,:,0) * Elem%spml%Residual_Stress3 (:,:,:,1) + &
-            Elem%spml%DumpSz(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,24) * dVx_dxi + Elem%Acoeff(:,:,:,25) * dVx_deta + Elem%Acoeff(:,:,:,26) * dVx_dzeta)
+        Elem%slpml%Residual_Stress1 (:,:,:,1) = Elem%slpml%DumpSx(:,:,:,0) * Elem%slpml%Residual_Stress1 (:,:,:,1) + &
+            Elem%slpml%DumpSx(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,18) * dVz_dxi + Elem%sl%Acoeff(:,:,:,19) * dVz_deta + Elem%sl%Acoeff(:,:,:,20) * dVz_dzeta)
+        Elem%slpml%Residual_Stress2 (:,:,:,1) = Elem%slpml%DumpSy(:,:,:,0) * Elem%slpml%Residual_Stress2 (:,:,:,1)
+        Elem%slpml%Residual_Stress3 (:,:,:,1) = Elem%slpml%DumpSz(:,:,:,0) * Elem%slpml%Residual_Stress3 (:,:,:,1) + &
+            Elem%slpml%DumpSz(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,24) * dVx_dxi + Elem%sl%Acoeff(:,:,:,25) * dVx_deta + Elem%sl%Acoeff(:,:,:,26) * dVx_dzeta)
 
   ! Stress_yz
-        Elem%spml%Residual_Stress1 (:,:,:,2) = Elem%spml%DumpSx(:,:,:,0) * Elem%spml%Residual_Stress1 (:,:,:,2)
-        Elem%spml%Residual_Stress2 (:,:,:,2) = Elem%spml%DumpSy(:,:,:,0) * Elem%spml%Residual_Stress2 (:,:,:,2) + &
-            Elem%spml%DumpSy(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,21) * dVz_dxi + Elem%Acoeff(:,:,:,22) * dVz_deta + Elem%Acoeff(:,:,:,23) * dVz_dzeta)
-        Elem%spml%Residual_Stress3 (:,:,:,2) = Elem%spml%DumpSz(:,:,:,0) * Elem%spml%Residual_Stress3 (:,:,:,2) + &
-            Elem%spml%DumpSz(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,24) * dVy_dxi + Elem%Acoeff(:,:,:,25) * dVy_deta + Elem%Acoeff(:,:,:,26) * dVy_dzeta)
+        Elem%slpml%Residual_Stress1 (:,:,:,2) = Elem%slpml%DumpSx(:,:,:,0) * Elem%slpml%Residual_Stress1 (:,:,:,2)
+        Elem%slpml%Residual_Stress2 (:,:,:,2) = Elem%slpml%DumpSy(:,:,:,0) * Elem%slpml%Residual_Stress2 (:,:,:,2) + &
+            Elem%slpml%DumpSy(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,21) * dVz_dxi + Elem%sl%Acoeff(:,:,:,22) * dVz_deta + Elem%sl%Acoeff(:,:,:,23) * dVz_dzeta)
+        Elem%slpml%Residual_Stress3 (:,:,:,2) = Elem%slpml%DumpSz(:,:,:,0) * Elem%slpml%Residual_Stress3 (:,:,:,2) + &
+            Elem%slpml%DumpSz(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,24) * dVy_dxi + Elem%sl%Acoeff(:,:,:,25) * dVy_deta + Elem%sl%Acoeff(:,:,:,26) * dVy_dzeta)
 
-        Elem%spml%Residual_Stress = Elem%spml%Residual_Stress1 + Elem%spml%Residual_Stress2 + Elem%spml%Residual_Stress3
+        Elem%slpml%Residual_Stress = Elem%slpml%Residual_Stress1 + Elem%slpml%Residual_Stress2 + Elem%slpml%Residual_Stress3
 
         return
     end subroutine Prediction_Elem_PML_Veloc
@@ -434,37 +461,37 @@ contains
 
 
         ! prediction in the element
-        Elem%ForcesFl(1:m1-2,1:m2-2,1:m3-2) = Elem%VelPhi(:,:,:) +dt*(0.5-bega)*Elem%AccelPhi(:,:,:)
+        Elem%fl%ForcesFl(1:m1-2,1:m2-2,1:m3-2) = Elem%fl%VelPhi(:,:,:) +dt*(0.5-bega)*Elem%fl%AccelPhi(:,:,:)
 
         ! d(rho*Phi)_d(xi,eta,zeta)
-        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%ForcesFl(:,:,:), &
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%fl%ForcesFl(:,:,:), &
             dVelPhi_dxi,dVelPhi_deta,dVelPhi_dzeta)
 
         ! prediction for (physical) velocity (which is the equivalent of a stress, here)
         ! V_x^x
-        Elem%spml%Veloc1(:,:,:,0) = Elem%spml%dumpSx(:,:,:,0) * Elem%spml%Veloc1(:,:,:,0) + Elem%spml%dumpSx(:,:,:,1) * Dt *  &
-            (Elem%Acoeff(:,:,:,0) * dVelPhi_dxi + Elem%Acoeff(:,:,:,1) * dVelPhi_deta + Elem%Acoeff(:,:,:,2) * dVelPhi_dzeta)
+        Elem%flpml%Veloc1(:,:,:,0) = Elem%flpml%dumpSx(:,:,:,0) * Elem%flpml%Veloc1(:,:,:,0) + Elem%flpml%dumpSx(:,:,:,1) * Dt *  &
+            (Elem%fl%Acoeff(:,:,:,0) * dVelPhi_dxi + Elem%fl%Acoeff(:,:,:,1) * dVelPhi_deta + Elem%fl%Acoeff(:,:,:,2) * dVelPhi_dzeta)
         ! V_x^y
-        Elem%spml%Veloc2(:,:,:,0) = Elem%spml%dumpSy(:,:,:,0) * Elem%spml%Veloc2(:,:,:,0)
+        Elem%flpml%Veloc2(:,:,:,0) = Elem%flpml%dumpSy(:,:,:,0) * Elem%flpml%Veloc2(:,:,:,0)
         ! V_x^z
-        Elem%spml%Veloc3(:,:,:,0) = Elem%spml%dumpSz(:,:,:,0) * Elem%spml%Veloc3(:,:,:,0)
+        Elem%flpml%Veloc3(:,:,:,0) = Elem%flpml%dumpSz(:,:,:,0) * Elem%flpml%Veloc3(:,:,:,0)
         ! V_y^x
-        Elem%spml%Veloc1(:,:,:,1) = Elem%spml%dumpSx(:,:,:,0) * Elem%spml%Veloc1(:,:,:,1)
+        Elem%flpml%Veloc1(:,:,:,1) = Elem%flpml%dumpSx(:,:,:,0) * Elem%flpml%Veloc1(:,:,:,1)
         ! V_y^y
-        Elem%spml%Veloc2(:,:,:,1) = Elem%spml%dumpSy(:,:,:,0) * Elem%spml%Veloc2(:,:,:,1) + Elem%spml%dumpSy(:,:,:,1) * Dt *  &
-            (Elem%Acoeff(:,:,:,3) * dVelPhi_dxi + Elem%Acoeff(:,:,:,4) * dVelPhi_deta + Elem%Acoeff(:,:,:,5) * dVelPhi_dzeta)
+        Elem%flpml%Veloc2(:,:,:,1) = Elem%flpml%dumpSy(:,:,:,0) * Elem%flpml%Veloc2(:,:,:,1) + Elem%flpml%dumpSy(:,:,:,1) * Dt *  &
+            (Elem%fl%Acoeff(:,:,:,3) * dVelPhi_dxi + Elem%fl%Acoeff(:,:,:,4) * dVelPhi_deta + Elem%fl%Acoeff(:,:,:,5) * dVelPhi_dzeta)
         ! V_y^z
-        Elem%spml%Veloc3(:,:,:,1) = Elem%spml%dumpSz(:,:,:,0) * Elem%spml%Veloc3(:,:,:,1)
+        Elem%flpml%Veloc3(:,:,:,1) = Elem%flpml%dumpSz(:,:,:,0) * Elem%flpml%Veloc3(:,:,:,1)
         ! V_z^x
-        Elem%spml%Veloc1(:,:,:,2) = Elem%spml%dumpSx(:,:,:,0) * Elem%spml%Veloc1(:,:,:,2)
+        Elem%flpml%Veloc1(:,:,:,2) = Elem%flpml%dumpSx(:,:,:,0) * Elem%flpml%Veloc1(:,:,:,2)
         ! V_z^y
-        Elem%spml%Veloc2(:,:,:,2) = Elem%spml%dumpSy(:,:,:,0) * Elem%spml%Veloc2(:,:,:,2)
+        Elem%flpml%Veloc2(:,:,:,2) = Elem%flpml%dumpSy(:,:,:,0) * Elem%flpml%Veloc2(:,:,:,2)
         ! V_z^z
-        Elem%spml%Veloc3(:,:,:,2) = Elem%spml%dumpSz(:,:,:,0) * Elem%spml%Veloc3(:,:,:,2) + Elem%spml%dumpSz(:,:,:,1) * Dt *  &
-            (Elem%Acoeff(:,:,:,6) * dVelPhi_dxi + Elem%Acoeff(:,:,:,7) * dVelPhi_deta + Elem%Acoeff(:,:,:,8) * dVelPhi_dzeta)
+        Elem%flpml%Veloc3(:,:,:,2) = Elem%flpml%dumpSz(:,:,:,0) * Elem%flpml%Veloc3(:,:,:,2) + Elem%flpml%dumpSz(:,:,:,1) * Dt *  &
+            (Elem%fl%Acoeff(:,:,:,6) * dVelPhi_dxi + Elem%fl%Acoeff(:,:,:,7) * dVelPhi_deta + Elem%fl%Acoeff(:,:,:,8) * dVelPhi_dzeta)
 
         ! total velocity vector after dumping = sum of splitted parts
-        Elem%spml%Veloc(:,:,:,:) = Elem%spml%Veloc1(:,:,:,:) + Elem%spml%Veloc2(:,:,:,:) + Elem%spml%Veloc3(:,:,:,:)
+        Elem%flpml%Veloc(:,:,:,:) = Elem%flpml%Veloc1(:,:,:,:) + Elem%flpml%Veloc2(:,:,:,:) + Elem%flpml%Veloc3(:,:,:,:)
 
         return
     end subroutine Prediction_Elem_PML_VelPhi
@@ -505,110 +532,110 @@ contains
         m1 = Elem%ngllx; m2 = Elem%nglly;  m3= Elem%ngllz
         fil2 = fil**2
 
-        Elem%Forces(1:m1-2,1:m2-2, 1:m3-2, 0:2) = Elem%Veloc(:,:,:,:) + dt *(0.5-bega) *Elem%Accel(:,:,:,:)
+        Elem%sl%Forces(1:m1-2,1:m2-2, 1:m3-2, 0:2) = Elem%sl%Veloc(:,:,:,:) + dt *(0.5-bega) *Elem%sl%Accel(:,:,:,:)
 
-        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,0),dVx_dxi,dVx_deta,dVx_dzeta)
-        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,1),dVy_dxi,dVy_deta,dVy_dzeta)
-        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%Forces(:,:,:,2),dVz_dxi,dVz_deta,dVz_dzeta)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%sl%Forces(:,:,:,0),dVx_dxi,dVx_deta,dVx_dzeta)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%sl%Forces(:,:,:,1),dVy_dxi,dVy_deta,dVy_dzeta)
+        call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%sl%Forces(:,:,:,2),dVz_dxi,dVz_deta,dVz_dzeta)
 
-        Stress_Ausiliar = Elem%spml%Diagonal_Stress1 (:,:,:,0)
-        Elem%spml%Diagonal_Stress1 (:,:,:,0) = Elem%spml%dumpSx(:,:,:,0) * Elem%spml%Diagonal_Stress1 (:,:,:,0) + &
-            Elem%spml%dumpSx(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,0) * dVx_dxi + Elem%Acoeff(:,:,:,1) * dVx_deta + &
-            Elem%Acoeff(:,:,:,2) * dVx_dzeta) + Elem%spml%Isx * Elem%spml%I_Diagonal_stress1 (:,:,:,0)
-        Elem%spml%I_Diagonal_Stress1  (:,:,:,0)= Fil2* Elem%spml%I_Diagonal_Stress1(:,:,:,0) + 0.5 * (1.-Fil2) * &
-            (Stress_Ausiliar +Elem%spml%Diagonal_Stress1 (:,:,:,0) )
+        Stress_Ausiliar = Elem%slpml%Diagonal_Stress1 (:,:,:,0)
+        Elem%slpml%Diagonal_Stress1 (:,:,:,0) = Elem%slpml%dumpSx(:,:,:,0) * Elem%slpml%Diagonal_Stress1 (:,:,:,0) + &
+            Elem%slpml%dumpSx(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,0) * dVx_dxi + Elem%sl%Acoeff(:,:,:,1) * dVx_deta + &
+            Elem%sl%Acoeff(:,:,:,2) * dVx_dzeta) + Elem%slpml%Isx * Elem%slpml%I_Diagonal_stress1 (:,:,:,0)
+        Elem%slpml%I_Diagonal_Stress1  (:,:,:,0)= Fil2* Elem%slpml%I_Diagonal_Stress1(:,:,:,0) + 0.5 * (1.-Fil2) * &
+            (Stress_Ausiliar +Elem%slpml%Diagonal_Stress1 (:,:,:,0) )
 
-        Stress_Ausiliar = Elem%spml%Diagonal_Stress2 (:,:,:,0)
-        Elem%spml%Diagonal_Stress2 (:,:,:,0) = Elem%spml%dumpSy(:,:,:,0) * Elem%spml%Diagonal_Stress2 (:,:,:,0) + &
-            Elem%spml%dumpSy(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,3) * dVy_dxi + Elem%Acoeff(:,:,:,4) * dVy_deta + &
-            Elem%Acoeff(:,:,:,5) * dVy_dzeta) + Elem%spml%Isy * Elem%spml%I_Diagonal_stress2 (:,:,:,0)
-        Elem%spml%I_Diagonal_Stress2  (:,:,:,0)= Fil2* Elem%spml%I_Diagonal_Stress2(:,:,:,0) + 0.5 * (1.-Fil2) * &
-            (Stress_Ausiliar +Elem%spml%Diagonal_Stress2 (:,:,:,0) )
+        Stress_Ausiliar = Elem%slpml%Diagonal_Stress2 (:,:,:,0)
+        Elem%slpml%Diagonal_Stress2 (:,:,:,0) = Elem%slpml%dumpSy(:,:,:,0) * Elem%slpml%Diagonal_Stress2 (:,:,:,0) + &
+            Elem%slpml%dumpSy(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,3) * dVy_dxi + Elem%sl%Acoeff(:,:,:,4) * dVy_deta + &
+            Elem%sl%Acoeff(:,:,:,5) * dVy_dzeta) + Elem%slpml%Isy * Elem%slpml%I_Diagonal_stress2 (:,:,:,0)
+        Elem%slpml%I_Diagonal_Stress2  (:,:,:,0)= Fil2* Elem%slpml%I_Diagonal_Stress2(:,:,:,0) + 0.5 * (1.-Fil2) * &
+            (Stress_Ausiliar +Elem%slpml%Diagonal_Stress2 (:,:,:,0) )
 
-        Stress_Ausiliar = Elem%spml%Diagonal_Stress3 (:,:,:,0)
-        Elem%spml%Diagonal_Stress3 (:,:,:,0) = Elem%spml%dumpSz(:,:,:,0) * Elem%spml%Diagonal_Stress3 (:,:,:,0) + &
-            Elem%spml%dumpSz(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,6) * dVz_dxi + Elem%Acoeff(:,:,:,7) * dVz_deta + &
-            Elem%Acoeff(:,:,:,8) * dVz_dzeta) + Elem%spml%Isz * Elem%spml%I_Diagonal_stress3 (:,:,:,0)
-        Elem%spml%I_Diagonal_Stress3  (:,:,:,0)= Fil2* Elem%spml%I_Diagonal_Stress3(:,:,:,0) + 0.5 * (1.-Fil2) * &
-            (Stress_Ausiliar +Elem%spml%Diagonal_Stress3 (:,:,:,0) )
+        Stress_Ausiliar = Elem%slpml%Diagonal_Stress3 (:,:,:,0)
+        Elem%slpml%Diagonal_Stress3 (:,:,:,0) = Elem%slpml%dumpSz(:,:,:,0) * Elem%slpml%Diagonal_Stress3 (:,:,:,0) + &
+            Elem%slpml%dumpSz(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,6) * dVz_dxi + Elem%sl%Acoeff(:,:,:,7) * dVz_deta + &
+            Elem%sl%Acoeff(:,:,:,8) * dVz_dzeta) + Elem%slpml%Isz * Elem%slpml%I_Diagonal_stress3 (:,:,:,0)
+        Elem%slpml%I_Diagonal_Stress3  (:,:,:,0)= Fil2* Elem%slpml%I_Diagonal_Stress3(:,:,:,0) + 0.5 * (1.-Fil2) * &
+            (Stress_Ausiliar +Elem%slpml%Diagonal_Stress3 (:,:,:,0) )
 
-        Stress_Ausiliar = Elem%spml%Diagonal_Stress1 (:,:,:,1)
-        Elem%spml%Diagonal_Stress1 (:,:,:,1) = Elem%spml%dumpSx(:,:,:,0) * Elem%spml%Diagonal_Stress1 (:,:,:,1) + &
-            Elem%spml%dumpSx(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,9) * dVx_dxi + Elem%Acoeff(:,:,:,10) * dVx_deta + Elem%Acoeff(:,:,:,11) * dVx_dzeta) + Elem%spml%Isx * Elem%spml%I_Diagonal_stress1 (:,:,:,1)
-        Elem%spml%I_Diagonal_Stress1  (:,:,:,1)= Fil2* Elem%spml%I_Diagonal_Stress1(:,:,:,1) + 0.5 * (1.-Fil2) * &
-            (Stress_Ausiliar +Elem%spml%Diagonal_Stress1 (:,:,:,1) )
+        Stress_Ausiliar = Elem%slpml%Diagonal_Stress1 (:,:,:,1)
+        Elem%slpml%Diagonal_Stress1 (:,:,:,1) = Elem%slpml%dumpSx(:,:,:,0) * Elem%slpml%Diagonal_Stress1 (:,:,:,1) + &
+            Elem%slpml%dumpSx(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,9) * dVx_dxi + Elem%sl%Acoeff(:,:,:,10) * dVx_deta + Elem%sl%Acoeff(:,:,:,11) * dVx_dzeta) + Elem%slpml%Isx * Elem%slpml%I_Diagonal_stress1 (:,:,:,1)
+        Elem%slpml%I_Diagonal_Stress1  (:,:,:,1)= Fil2* Elem%slpml%I_Diagonal_Stress1(:,:,:,1) + 0.5 * (1.-Fil2) * &
+            (Stress_Ausiliar +Elem%slpml%Diagonal_Stress1 (:,:,:,1) )
 
-        Stress_Ausiliar = Elem%spml%Diagonal_Stress2 (:,:,:,1)
-        Elem%spml%Diagonal_Stress2 (:,:,:,1) = Elem%spml%dumpSy(:,:,:,0) * Elem%spml%Diagonal_Stress2 (:,:,:,1) + &
-            Elem%spml%dumpSy(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,12) * dVy_dxi + Elem%Acoeff(:,:,:,13) * dVy_deta + Elem%Acoeff(:,:,:,14) * dVy_dzeta) + Elem%spml%Isy * Elem%spml%I_Diagonal_stress2 (:,:,:,1)
-        Elem%spml%I_Diagonal_Stress2  (:,:,:,1)= Fil2* Elem%spml%I_Diagonal_Stress2(:,:,:,1) + 0.5 * (1.-Fil2) * &
-            (Stress_Ausiliar +Elem%spml%Diagonal_Stress2 (:,:,:,1) )
+        Stress_Ausiliar = Elem%slpml%Diagonal_Stress2 (:,:,:,1)
+        Elem%slpml%Diagonal_Stress2 (:,:,:,1) = Elem%slpml%dumpSy(:,:,:,0) * Elem%slpml%Diagonal_Stress2 (:,:,:,1) + &
+            Elem%slpml%dumpSy(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,12) * dVy_dxi + Elem%sl%Acoeff(:,:,:,13) * dVy_deta + Elem%sl%Acoeff(:,:,:,14) * dVy_dzeta) + Elem%slpml%Isy * Elem%slpml%I_Diagonal_stress2 (:,:,:,1)
+        Elem%slpml%I_Diagonal_Stress2  (:,:,:,1)= Fil2* Elem%slpml%I_Diagonal_Stress2(:,:,:,1) + 0.5 * (1.-Fil2) * &
+            (Stress_Ausiliar +Elem%slpml%Diagonal_Stress2 (:,:,:,1) )
 
-        Stress_Ausiliar = Elem%spml%Diagonal_Stress3 (:,:,:,1)
-        Elem%spml%Diagonal_Stress3 (:,:,:,1) = Elem%spml%dumpSz(:,:,:,0) * Elem%spml%Diagonal_Stress3 (:,:,:,1) + &
-            Elem%spml%dumpSz(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,6) * dVz_dxi + Elem%Acoeff(:,:,:,7) * dVz_deta + Elem%Acoeff(:,:,:,8) * dVz_dzeta) + Elem%spml%Isz * Elem%spml%I_Diagonal_stress3 (:,:,:,1)
-        Elem%spml%I_Diagonal_Stress3  (:,:,:,1)= Fil2* Elem%spml%I_Diagonal_Stress3(:,:,:,1) + 0.5 * (1.-Fil2) * &
-            (Stress_Ausiliar +Elem%spml%Diagonal_Stress3 (:,:,:,1) )
+        Stress_Ausiliar = Elem%slpml%Diagonal_Stress3 (:,:,:,1)
+        Elem%slpml%Diagonal_Stress3 (:,:,:,1) = Elem%slpml%dumpSz(:,:,:,0) * Elem%slpml%Diagonal_Stress3 (:,:,:,1) + &
+            Elem%slpml%dumpSz(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,6) * dVz_dxi + Elem%sl%Acoeff(:,:,:,7) * dVz_deta + Elem%sl%Acoeff(:,:,:,8) * dVz_dzeta) + Elem%slpml%Isz * Elem%slpml%I_Diagonal_stress3 (:,:,:,1)
+        Elem%slpml%I_Diagonal_Stress3  (:,:,:,1)= Fil2* Elem%slpml%I_Diagonal_Stress3(:,:,:,1) + 0.5 * (1.-Fil2) * &
+            (Stress_Ausiliar +Elem%slpml%Diagonal_Stress3 (:,:,:,1) )
 
-        Stress_Ausiliar = Elem%spml%Diagonal_Stress1 (:,:,:,2)
-        Elem%spml%Diagonal_Stress1 (:,:,:,2) = Elem%spml%dumpSx(:,:,:,0) * Elem%spml%Diagonal_Stress1 (:,:,:,2) + &
-            Elem%spml%dumpSx(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,9) * dVx_dxi + Elem%Acoeff(:,:,:,10) * dVx_deta + Elem%Acoeff(:,:,:,11) * dVx_dzeta) + Elem%spml%Isx * Elem%spml%I_Diagonal_stress1 (:,:,:,2)
-        Elem%spml%I_Diagonal_Stress1  (:,:,:,2)= Fil2* Elem%spml%I_Diagonal_Stress1(:,:,:,2) + 0.5 * (1.-Fil2) * &
-            (Stress_Ausiliar +Elem%spml%Diagonal_Stress1 (:,:,:,2) )
+        Stress_Ausiliar = Elem%slpml%Diagonal_Stress1 (:,:,:,2)
+        Elem%slpml%Diagonal_Stress1 (:,:,:,2) = Elem%slpml%dumpSx(:,:,:,0) * Elem%slpml%Diagonal_Stress1 (:,:,:,2) + &
+            Elem%slpml%dumpSx(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,9) * dVx_dxi + Elem%sl%Acoeff(:,:,:,10) * dVx_deta + Elem%sl%Acoeff(:,:,:,11) * dVx_dzeta) + Elem%slpml%Isx * Elem%slpml%I_Diagonal_stress1 (:,:,:,2)
+        Elem%slpml%I_Diagonal_Stress1  (:,:,:,2)= Fil2* Elem%slpml%I_Diagonal_Stress1(:,:,:,2) + 0.5 * (1.-Fil2) * &
+            (Stress_Ausiliar +Elem%slpml%Diagonal_Stress1 (:,:,:,2) )
 
-        Stress_Ausiliar = Elem%spml%Diagonal_Stress2 (:,:,:,2)
-        Elem%spml%Diagonal_Stress2 (:,:,:,2) = Elem%spml%dumpSy(:,:,:,0) * Elem%spml%Diagonal_Stress2 (:,:,:,2) + &
-            Elem%spml%dumpSy(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,3) * dVy_dxi + Elem%Acoeff(:,:,:,4) * dVy_deta + Elem%Acoeff(:,:,:,5) * dVy_dzeta)+ Elem%spml%Isy * Elem%spml%I_Diagonal_stress2 (:,:,:,2)
-        Elem%spml%I_Diagonal_Stress2  (:,:,:,2)= Fil2* Elem%spml%I_Diagonal_Stress2(:,:,:,2) + 0.5 * (1.-Fil2) * &
-            (Stress_Ausiliar +Elem%spml%Diagonal_Stress2 (:,:,:,2) )
+        Stress_Ausiliar = Elem%slpml%Diagonal_Stress2 (:,:,:,2)
+        Elem%slpml%Diagonal_Stress2 (:,:,:,2) = Elem%slpml%dumpSy(:,:,:,0) * Elem%slpml%Diagonal_Stress2 (:,:,:,2) + &
+            Elem%slpml%dumpSy(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,3) * dVy_dxi + Elem%sl%Acoeff(:,:,:,4) * dVy_deta + Elem%sl%Acoeff(:,:,:,5) * dVy_dzeta)+ Elem%slpml%Isy * Elem%slpml%I_Diagonal_stress2 (:,:,:,2)
+        Elem%slpml%I_Diagonal_Stress2  (:,:,:,2)= Fil2* Elem%slpml%I_Diagonal_Stress2(:,:,:,2) + 0.5 * (1.-Fil2) * &
+            (Stress_Ausiliar +Elem%slpml%Diagonal_Stress2 (:,:,:,2) )
 
-        Stress_Ausiliar = Elem%spml%Diagonal_Stress3 (:,:,:,2)
-        Elem%spml%Diagonal_Stress3 (:,:,:,2) = Elem%spml%dumpSz(:,:,:,0) * Elem%spml%Diagonal_Stress3 (:,:,:,2) + &
-            Elem%spml%dumpSz(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,15) * dVz_dxi + Elem%Acoeff(:,:,:,16) * dVz_deta + Elem%Acoeff(:,:,:,17) * dVz_dzeta) + Elem%spml%Isz * Elem%spml%I_Diagonal_stress3 (:,:,:,2)
-        Elem%spml%I_Diagonal_Stress3  (:,:,:,2)= Fil2* Elem%spml%I_Diagonal_Stress3(:,:,:,2) + 0.5 * (1.-Fil2) * &
-            (Stress_Ausiliar +Elem%spml%Diagonal_Stress3 (:,:,:,2) )
-
-
-        Elem%spml%Diagonal_Stress = Elem%spml%Diagonal_Stress1 + Elem%spml%Diagonal_Stress2 + Elem%spml%Diagonal_Stress3
+        Stress_Ausiliar = Elem%slpml%Diagonal_Stress3 (:,:,:,2)
+        Elem%slpml%Diagonal_Stress3 (:,:,:,2) = Elem%slpml%dumpSz(:,:,:,0) * Elem%slpml%Diagonal_Stress3 (:,:,:,2) + &
+            Elem%slpml%dumpSz(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,15) * dVz_dxi + Elem%sl%Acoeff(:,:,:,16) * dVz_deta + Elem%sl%Acoeff(:,:,:,17) * dVz_dzeta) + Elem%slpml%Isz * Elem%slpml%I_Diagonal_stress3 (:,:,:,2)
+        Elem%slpml%I_Diagonal_Stress3  (:,:,:,2)= Fil2* Elem%slpml%I_Diagonal_Stress3(:,:,:,2) + 0.5 * (1.-Fil2) * &
+            (Stress_Ausiliar +Elem%slpml%Diagonal_Stress3 (:,:,:,2) )
 
 
-        Stress_Ausiliar = Elem%spml%residual_Stress1 (:,:,:,0)
-        Elem%spml%residual_Stress1 (:,:,:,0) = Elem%spml%dumpSx(:,:,:,0) * Elem%spml%residual_Stress1 (:,:,:,0) + &
-            Elem%spml%dumpSx(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,18) * dVy_dxi + Elem%Acoeff(:,:,:,19) * dVy_deta + Elem%Acoeff(:,:,:,20) * dVy_dzeta) + Elem%spml%Isx * Elem%spml%I_Residual_stress1(:,:,:,0)
-        Elem%spml%I_Residual_Stress1  (:,:,:,0)= Fil2* Elem%spml%I_Residual_Stress1(:,:,:,0) + 0.5 * (1.-Fil2) * &
-            (Stress_Ausiliar +Elem%spml%residual_Stress1 (:,:,:,0) )
+        Elem%slpml%Diagonal_Stress = Elem%slpml%Diagonal_Stress1 + Elem%slpml%Diagonal_Stress2 + Elem%slpml%Diagonal_Stress3
 
-        Stress_Ausiliar = Elem%spml%residual_Stress2 (:,:,:,0)
-        Elem%spml%residual_Stress2 (:,:,:,0) = Elem%spml%dumpSy(:,:,:,0) * Elem%spml%residual_Stress2 (:,:,:,0) + &
-            Elem%spml%dumpSy(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,21) * dVx_dxi + Elem%Acoeff(:,:,:,22) * dVx_deta + Elem%Acoeff(:,:,:,23) * dVx_dzeta) + Elem%spml%Isy * Elem%spml%I_Residual_stress2(:,:,:,0)
-        Elem%spml%I_Residual_Stress2  (:,:,:,0) = Fil2* Elem%spml%I_Residual_Stress2(:,:,:,0) + 0.5 * (1.-Fil2) * &
-            (Stress_Ausiliar +Elem%spml%residual_Stress2 (:,:,:,0) )
 
-        Stress_Ausiliar = Elem%spml%residual_Stress1 (:,:,:,1)
-        Elem%spml%residual_Stress1 (:,:,:,1) = Elem%spml%dumpSx(:,:,:,0) * Elem%spml%residual_Stress1 (:,:,:,1) + &
-            Elem%spml%dumpSx(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,18) * dVz_dxi + Elem%Acoeff(:,:,:,19) * dVz_deta + Elem%Acoeff(:,:,:,20) * dVz_dzeta) + Elem%spml%Isx * Elem%spml%I_Residual_stress1(:,:,:,1)
-        Elem%spml%I_Residual_Stress1  (:,:,:,1)= Fil2* Elem%spml%I_Residual_Stress1(:,:,:,1) + 0.5 * (1.-Fil2) * &
-            (Stress_Ausiliar +Elem%spml%residual_Stress1 (:,:,:,1) )
+        Stress_Ausiliar = Elem%slpml%residual_Stress1 (:,:,:,0)
+        Elem%slpml%residual_Stress1 (:,:,:,0) = Elem%slpml%dumpSx(:,:,:,0) * Elem%slpml%residual_Stress1 (:,:,:,0) + &
+            Elem%slpml%dumpSx(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,18) * dVy_dxi + Elem%sl%Acoeff(:,:,:,19) * dVy_deta + Elem%sl%Acoeff(:,:,:,20) * dVy_dzeta) + Elem%slpml%Isx * Elem%slpml%I_Residual_stress1(:,:,:,0)
+        Elem%slpml%I_Residual_Stress1  (:,:,:,0)= Fil2* Elem%slpml%I_Residual_Stress1(:,:,:,0) + 0.5 * (1.-Fil2) * &
+            (Stress_Ausiliar +Elem%slpml%residual_Stress1 (:,:,:,0) )
 
-        Stress_Ausiliar = Elem%spml%residual_Stress2 (:,:,:,1)
-        Elem%spml%residual_Stress2 (:,:,:,1) = Elem%spml%dumpSz(:,:,:,0) * Elem%spml%residual_Stress2 (:,:,:,1) + &
-            Elem%spml%dumpSz(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,24) * dVx_dxi + Elem%Acoeff(:,:,:,25) * dVx_deta + Elem%Acoeff(:,:,:,26) * dVx_dzeta) + Elem%spml%Isz * Elem%spml%I_Residual_stress2(:,:,:,1)
-        Elem%spml%I_Residual_Stress2  (:,:,:,1) = Fil2* Elem%spml%I_Residual_Stress2(:,:,:,1) + 0.5 * (1.-Fil2) * &
-            (Stress_Ausiliar +Elem%spml%residual_Stress2 (:,:,:,1) )
+        Stress_Ausiliar = Elem%slpml%residual_Stress2 (:,:,:,0)
+        Elem%slpml%residual_Stress2 (:,:,:,0) = Elem%slpml%dumpSy(:,:,:,0) * Elem%slpml%residual_Stress2 (:,:,:,0) + &
+            Elem%slpml%dumpSy(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,21) * dVx_dxi + Elem%sl%Acoeff(:,:,:,22) * dVx_deta + Elem%sl%Acoeff(:,:,:,23) * dVx_dzeta) + Elem%slpml%Isy * Elem%slpml%I_Residual_stress2(:,:,:,0)
+        Elem%slpml%I_Residual_Stress2  (:,:,:,0) = Fil2* Elem%slpml%I_Residual_Stress2(:,:,:,0) + 0.5 * (1.-Fil2) * &
+            (Stress_Ausiliar +Elem%slpml%residual_Stress2 (:,:,:,0) )
 
-        Stress_Ausiliar = Elem%spml%residual_Stress1 (:,:,:,2)
-        Elem%spml%residual_Stress1 (:,:,:,2) = Elem%spml%dumpSy(:,:,:,0) * Elem%spml%residual_Stress1 (:,:,:,2) + &
-            Elem%spml%dumpSy(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,21) * dVz_dxi + Elem%Acoeff(:,:,:,22) * dVz_deta + Elem%Acoeff(:,:,:,23) * dVz_dzeta) + Elem%spml%Isy * Elem%spml%I_Residual_stress1(:,:,:,2)
-        Elem%spml%I_Residual_Stress1  (:,:,:,2)= Fil2* Elem%spml%I_Residual_Stress1(:,:,:,2) + 0.5 * (1.-Fil2) * &
-            (Stress_Ausiliar +Elem%spml%residual_Stress1 (:,:,:,2) )
+        Stress_Ausiliar = Elem%slpml%residual_Stress1 (:,:,:,1)
+        Elem%slpml%residual_Stress1 (:,:,:,1) = Elem%slpml%dumpSx(:,:,:,0) * Elem%slpml%residual_Stress1 (:,:,:,1) + &
+            Elem%slpml%dumpSx(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,18) * dVz_dxi + Elem%sl%Acoeff(:,:,:,19) * dVz_deta + Elem%sl%Acoeff(:,:,:,20) * dVz_dzeta) + Elem%slpml%Isx * Elem%slpml%I_Residual_stress1(:,:,:,1)
+        Elem%slpml%I_Residual_Stress1  (:,:,:,1)= Fil2* Elem%slpml%I_Residual_Stress1(:,:,:,1) + 0.5 * (1.-Fil2) * &
+            (Stress_Ausiliar +Elem%slpml%residual_Stress1 (:,:,:,1) )
 
-        Stress_Ausiliar = Elem%spml%residual_Stress2 (:,:,:,2)
-        Elem%spml%residual_Stress2 (:,:,:,2) = Elem%spml%dumpSz(:,:,:,0) * Elem%spml%residual_Stress2 (:,:,:,2) + &
-            Elem%spml%dumpSz(:,:,:,1) * Dt * (Elem%Acoeff(:,:,:,24) * dVy_dxi + Elem%Acoeff(:,:,:,25) * dVy_deta + Elem%Acoeff(:,:,:,26) * dVy_dzeta)+ Elem%spml%Isz * Elem%spml%I_Residual_stress2(:,:,:,2)
-        Elem%spml%I_Residual_Stress2  (:,:,:,2) = Fil2* Elem%spml%I_Residual_Stress2(:,:,:,2) + 0.5 * (1.-Fil2) * &
-            (Stress_Ausiliar +Elem%spml%residual_Stress2 (:,:,:,2) )
+        Stress_Ausiliar = Elem%slpml%residual_Stress2 (:,:,:,1)
+        Elem%slpml%residual_Stress2 (:,:,:,1) = Elem%slpml%dumpSz(:,:,:,0) * Elem%slpml%residual_Stress2 (:,:,:,1) + &
+            Elem%slpml%dumpSz(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,24) * dVx_dxi + Elem%sl%Acoeff(:,:,:,25) * dVx_deta + Elem%sl%Acoeff(:,:,:,26) * dVx_dzeta) + Elem%slpml%Isz * Elem%slpml%I_Residual_stress2(:,:,:,1)
+        Elem%slpml%I_Residual_Stress2  (:,:,:,1) = Fil2* Elem%slpml%I_Residual_Stress2(:,:,:,1) + 0.5 * (1.-Fil2) * &
+            (Stress_Ausiliar +Elem%slpml%residual_Stress2 (:,:,:,1) )
 
-        Elem%spml%residual_Stress = Elem%spml%residual_Stress1 + Elem%spml%residual_Stress2
+        Stress_Ausiliar = Elem%slpml%residual_Stress1 (:,:,:,2)
+        Elem%slpml%residual_Stress1 (:,:,:,2) = Elem%slpml%dumpSy(:,:,:,0) * Elem%slpml%residual_Stress1 (:,:,:,2) + &
+            Elem%slpml%dumpSy(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,21) * dVz_dxi + Elem%sl%Acoeff(:,:,:,22) * dVz_deta + Elem%sl%Acoeff(:,:,:,23) * dVz_dzeta) + Elem%slpml%Isy * Elem%slpml%I_Residual_stress1(:,:,:,2)
+        Elem%slpml%I_Residual_Stress1  (:,:,:,2)= Fil2* Elem%slpml%I_Residual_Stress1(:,:,:,2) + 0.5 * (1.-Fil2) * &
+            (Stress_Ausiliar +Elem%slpml%residual_Stress1 (:,:,:,2) )
+
+        Stress_Ausiliar = Elem%slpml%residual_Stress2 (:,:,:,2)
+        Elem%slpml%residual_Stress2 (:,:,:,2) = Elem%slpml%dumpSz(:,:,:,0) * Elem%slpml%residual_Stress2 (:,:,:,2) + &
+            Elem%slpml%dumpSz(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,24) * dVy_dxi + Elem%sl%Acoeff(:,:,:,25) * dVy_deta + Elem%sl%Acoeff(:,:,:,26) * dVy_dzeta)+ Elem%slpml%Isz * Elem%slpml%I_Residual_stress2(:,:,:,2)
+        Elem%slpml%I_Residual_Stress2  (:,:,:,2) = Fil2* Elem%slpml%I_Residual_Stress2(:,:,:,2) + 0.5 * (1.-Fil2) * &
+            (Stress_Ausiliar +Elem%slpml%residual_Stress2 (:,:,:,2) )
+
+        Elem%slpml%residual_Stress = Elem%slpml%residual_Stress1 + Elem%slpml%residual_Stress2
 
         return
     end subroutine Prediction_Elem_FPML_Veloc
@@ -633,17 +660,17 @@ contains
 
 
         do i = 0,2
-            Elem%spml%Veloc1(:,:,:,i) = Elem%spml%dumpVx(:,:,:,0) * Elem%spml%Veloc1(:,:,:,i) +    &
-                dt * Elem%spml%dumpVx(:,:,:,1)*Elem%spml%Forces1(1:ngllx-2,1:nglly-2,1:ngllz-2,i)
-            Elem%spml%Veloc2(:,:,:,i) = Elem%spml%dumpVy(:,:,:,0) * Elem%spml%Veloc2(:,:,:,i) +    &
-                dt * Elem%spml%dumpVy(:,:,:,1)*Elem%spml%Forces2(1:ngllx-2,1:nglly-2,1:ngllz-2,i)
-            Elem%spml%Veloc3(:,:,:,i) = Elem%spml%dumpVz(:,:,:,0) * Elem%spml%Veloc3(:,:,:,i) +    &
-                dt * Elem%spml%dumpVz(:,:,:,1)*Elem%spml%Forces3(1:ngllx-2,1:nglly-2,1:ngllz-2,i)
+            Elem%slpml%Veloc1(:,:,:,i) = Elem%slpml%dumpVx(:,:,:,0) * Elem%slpml%Veloc1(:,:,:,i) +    &
+                dt * Elem%slpml%dumpVx(:,:,:,1)*Elem%slpml%Forces1(1:ngllx-2,1:nglly-2,1:ngllz-2,i)
+            Elem%slpml%Veloc2(:,:,:,i) = Elem%slpml%dumpVy(:,:,:,0) * Elem%slpml%Veloc2(:,:,:,i) +    &
+                dt * Elem%slpml%dumpVy(:,:,:,1)*Elem%slpml%Forces2(1:ngllx-2,1:nglly-2,1:ngllz-2,i)
+            Elem%slpml%Veloc3(:,:,:,i) = Elem%slpml%dumpVz(:,:,:,0) * Elem%slpml%Veloc3(:,:,:,i) +    &
+                dt * Elem%slpml%dumpVz(:,:,:,1)*Elem%slpml%Forces3(1:ngllx-2,1:nglly-2,1:ngllz-2,i)
         enddo
 
-        Elem%Veloc = Elem%spml%Veloc1 + Elem%spml%Veloc2 + Elem%spml%Veloc3
+        Elem%sl%Veloc = Elem%slpml%Veloc1 + Elem%slpml%Veloc2 + Elem%slpml%Veloc3
         ! Usefull only for traces and debug
-        Elem%Displ = Elem%Displ + dt * Elem%Veloc
+        Elem%sl%Displ = Elem%sl%Displ + dt * Elem%sl%Veloc
 
         return
     end subroutine Correction_Elem_PML_Veloc
@@ -661,16 +688,16 @@ contains
 
         ngllx = Elem%ngllx ; nglly = Elem%nglly ; ngllz = Elem%ngllz
 
-        Elem%spml%VelPhi1(:,:,:) = Elem%spml%dumpVx(:,:,:,0) * Elem%spml%VelPhi1(:,:,:) +    &
-            dt * Elem%spml%dumpVx(:,:,:,1)*Elem%spml%ForcesFl1(1:ngllx-2,1:nglly-2,1:ngllz-2)
-        Elem%spml%VelPhi2(:,:,:) = Elem%spml%dumpVy(:,:,:,0) * Elem%spml%VelPhi2(:,:,:) +    &
-            dt * Elem%spml%dumpVy(:,:,:,1)*Elem%spml%ForcesFl2(1:ngllx-2,1:nglly-2,1:ngllz-2)
-        Elem%spml%VelPhi3(:,:,:) = Elem%spml%dumpVz(:,:,:,0) * Elem%spml%VelPhi3(:,:,:) +    &
-            dt * Elem%spml%dumpVz(:,:,:,1)*Elem%spml%ForcesFl3(1:ngllx-2,1:nglly-2,1:ngllz-2)
+        Elem%flpml%VelPhi1(:,:,:) = Elem%slpml%dumpVx(:,:,:,0) * Elem%flpml%VelPhi1(:,:,:) +    &
+            dt * Elem%slpml%dumpVx(:,:,:,1)*Elem%flpml%ForcesFl1(1:ngllx-2,1:nglly-2,1:ngllz-2)
+        Elem%flpml%VelPhi2(:,:,:) = Elem%slpml%dumpVy(:,:,:,0) * Elem%flpml%VelPhi2(:,:,:) +    &
+            dt * Elem%slpml%dumpVy(:,:,:,1)*Elem%flpml%ForcesFl2(1:ngllx-2,1:nglly-2,1:ngllz-2)
+        Elem%flpml%VelPhi3(:,:,:) = Elem%slpml%dumpVz(:,:,:,0) * Elem%flpml%VelPhi3(:,:,:) +    &
+            dt * Elem%slpml%dumpVz(:,:,:,1)*Elem%flpml%ForcesFl3(1:ngllx-2,1:nglly-2,1:ngllz-2)
 
-        Elem%VelPhi = Elem%spml%VelPhi1 + Elem%spml%VelPhi2 + Elem%spml%VelPhi3
+        Elem%fl%VelPhi = Elem%flpml%VelPhi1 + Elem%flpml%VelPhi2 + Elem%flpml%VelPhi3
 
-        Elem%Phi = Elem%Phi + dt * Elem%VelPhi
+        Elem%fl%Phi = Elem%fl%Phi + dt * Elem%fl%VelPhi
 
         return
     end subroutine Correction_Elem_PML_VelPhi
@@ -699,20 +726,20 @@ contains
         fil2 = fil**2
 
         do i = 0,2
-            Ausiliar_Velocity =  Elem%spml%Veloc1(:,:,:,i)
-            Elem%spml%Veloc1(:,:,:,i) = Elem%spml%dumpVx(:,:,:,0) * Elem%spml%Veloc1(:,:,:,i) + dt * Elem%spml%dumpVx(:,:,:,1)*Elem%spml%Forces1(1:ngllx-2,1:nglly-2,1:ngllz-2,i) + Elem%spml%Ivx * Elem%spml%Iveloc1 (:,:,:,i)
-            Elem%spml%Iveloc1 (:,:,:,i)  = Fil2*Elem%spml%Iveloc1 (:,:,:,i)  + 0.5 * (1-Fil2) * (Ausiliar_Velocity +  Elem%spml%Veloc1(:,:,:,i))
+            Ausiliar_Velocity =  Elem%slpml%Veloc1(:,:,:,i)
+            Elem%slpml%Veloc1(:,:,:,i) = Elem%slpml%dumpVx(:,:,:,0) * Elem%slpml%Veloc1(:,:,:,i) + dt * Elem%slpml%dumpVx(:,:,:,1)*Elem%slpml%Forces1(1:ngllx-2,1:nglly-2,1:ngllz-2,i) + Elem%slpml%Ivx * Elem%slpml%Iveloc1 (:,:,:,i)
+            Elem%slpml%Iveloc1 (:,:,:,i)  = Fil2*Elem%slpml%Iveloc1 (:,:,:,i)  + 0.5 * (1-Fil2) * (Ausiliar_Velocity +  Elem%slpml%Veloc1(:,:,:,i))
 
-            Ausiliar_Velocity =  Elem%spml%Veloc2(:,:,:,i)
-            Elem%spml%Veloc2(:,:,:,i) = Elem%spml%dumpVy(:,:,:,0) * Elem%spml%Veloc2(:,:,:,i) + dt * Elem%spml%dumpVy(:,:,:,1)*Elem%spml%Forces2(1:ngllx-2,1:nglly-2,1:ngllz-2,i) + Elem%spml%Ivy * Elem%spml%Iveloc2 (:,:,:,i)
-            Elem%spml%Iveloc2 (:,:,:,i)  = Fil2*Elem%spml%Iveloc2 (:,:,:,i)  + 0.5 * (1-Fil2) * (Ausiliar_Velocity +  Elem%spml%Veloc2(:,:,:,i))
+            Ausiliar_Velocity =  Elem%slpml%Veloc2(:,:,:,i)
+            Elem%slpml%Veloc2(:,:,:,i) = Elem%slpml%dumpVy(:,:,:,0) * Elem%slpml%Veloc2(:,:,:,i) + dt * Elem%slpml%dumpVy(:,:,:,1)*Elem%slpml%Forces2(1:ngllx-2,1:nglly-2,1:ngllz-2,i) + Elem%slpml%Ivy * Elem%slpml%Iveloc2 (:,:,:,i)
+            Elem%slpml%Iveloc2 (:,:,:,i)  = Fil2*Elem%slpml%Iveloc2 (:,:,:,i)  + 0.5 * (1-Fil2) * (Ausiliar_Velocity +  Elem%slpml%Veloc2(:,:,:,i))
 
-            Ausiliar_Velocity =  Elem%spml%Veloc3(:,:,:,i)
-            Elem%spml%Veloc3(:,:,:,i) = Elem%spml%dumpVz(:,:,:,0) * Elem%spml%Veloc3(:,:,:,i) + dt * Elem%spml%dumpVz(:,:,:,1)*Elem%spml%Forces3(1:ngllx-2,1:nglly-2,1:ngllz-2,i) + Elem%spml%Ivz * Elem%spml%Iveloc3 (:,:,:,i)
-            Elem%spml%Iveloc3 (:,:,:,i)  = Fil2*Elem%spml%Iveloc3 (:,:,:,i)  + 0.5 * (1-Fil2) * (Ausiliar_Velocity +  Elem%spml%Veloc3(:,:,:,i))
+            Ausiliar_Velocity =  Elem%slpml%Veloc3(:,:,:,i)
+            Elem%slpml%Veloc3(:,:,:,i) = Elem%slpml%dumpVz(:,:,:,0) * Elem%slpml%Veloc3(:,:,:,i) + dt * Elem%slpml%dumpVz(:,:,:,1)*Elem%slpml%Forces3(1:ngllx-2,1:nglly-2,1:ngllz-2,i) + Elem%slpml%Ivz * Elem%slpml%Iveloc3 (:,:,:,i)
+            Elem%slpml%Iveloc3 (:,:,:,i)  = Fil2*Elem%slpml%Iveloc3 (:,:,:,i)  + 0.5 * (1-Fil2) * (Ausiliar_Velocity +  Elem%slpml%Veloc3(:,:,:,i))
         enddo
 
-        Elem%Veloc = Elem%spml%Veloc1 + Elem%spml%Veloc2 + Elem%spml%Veloc3
+        Elem%sl%Veloc = Elem%slpml%Veloc1 + Elem%slpml%Veloc2 + Elem%slpml%Veloc3
 
         return
     end subroutine Correction_Elem_FPML_Veloc
@@ -742,62 +769,62 @@ contains
 
         m1 = Elem%ngllx;  m2 = Elem%nglly;  m3 = Elem%ngllz
 
-        s0 = Elem%Acoeff(:,:,:,27) * Elem%spml%Diagonal_Stress(:,:,:,0) + Elem%Acoeff(:,:,:,28) * Elem%spml%residual_Stress(:,:,:,0) + &
-            Elem%Acoeff(:,:,:,29) * Elem%spml%residual_Stress(:,:,:,1)
+        s0 = Elem%sl%Acoeff(:,:,:,27) * Elem%slpml%Diagonal_Stress(:,:,:,0) + Elem%sl%Acoeff(:,:,:,28) * Elem%slpml%residual_Stress(:,:,:,0) + &
+            Elem%sl%Acoeff(:,:,:,29) * Elem%slpml%residual_Stress(:,:,:,1)
         call DGEMM ( 'N', 'N', m1, m2*m3, m1, 1., hprimex, m1, s0(:,:,:), m1, 0., s1, m1 )
-        Elem%spml%Forces1(:,:,:,0) = s1
+        Elem%slpml%Forces1(:,:,:,0) = s1
 
-        s0 = Elem%Acoeff(:,:,:,30) * Elem%spml%Diagonal_Stress(:,:,:,0) + Elem%Acoeff(:,:,:,31) * Elem%spml%residual_Stress(:,:,:,0) + &
-            Elem%Acoeff(:,:,:,32) * Elem%spml%residual_Stress(:,:,:,1)
+        s0 = Elem%sl%Acoeff(:,:,:,30) * Elem%slpml%Diagonal_Stress(:,:,:,0) + Elem%sl%Acoeff(:,:,:,31) * Elem%slpml%residual_Stress(:,:,:,0) + &
+            Elem%sl%Acoeff(:,:,:,32) * Elem%slpml%residual_Stress(:,:,:,1)
         do n_z = 0,m3-1
             call DGEMM ( 'N', 'N', m1, m2, m2, 1.,s0(0,0,n_z), m1, htprimey ,m2, 0., s1(0,0,n_z),m1 )
         enddo
-        Elem%spml%Forces2(:,:,:,0) = s1
+        Elem%slpml%Forces2(:,:,:,0) = s1
 
-        s0 = Elem%Acoeff(:,:,:,33) * Elem%spml%Diagonal_Stress(:,:,:,0) + Elem%Acoeff(:,:,:,34) * Elem%spml%residual_Stress(:,:,:,0) + &
-            Elem%Acoeff(:,:,:,35) * Elem%spml%residual_Stress(:,:,:,1)
+        s0 = Elem%sl%Acoeff(:,:,:,33) * Elem%slpml%Diagonal_Stress(:,:,:,0) + Elem%sl%Acoeff(:,:,:,34) * Elem%slpml%residual_Stress(:,:,:,0) + &
+            Elem%sl%Acoeff(:,:,:,35) * Elem%slpml%residual_Stress(:,:,:,1)
 
         call DGEMM ( 'N', 'N', m1*m2, m3, m3, 1., s0(:,:,:), m1*m2, htprimez ,m3, 0., s1, m1*m2 )
-        Elem%spml%Forces3(:,:,:,0) = s1
+        Elem%slpml%Forces3(:,:,:,0) = s1
 
-        s0 = Elem%Acoeff(:,:,:,27) * Elem%spml%residual_Stress(:,:,:,0) + Elem%Acoeff(:,:,:,28) * Elem%spml%Diagonal_Stress(:,:,:,1) + &
-            Elem%Acoeff(:,:,:,29) * Elem%spml%residual_Stress(:,:,:,2)
+        s0 = Elem%sl%Acoeff(:,:,:,27) * Elem%slpml%residual_Stress(:,:,:,0) + Elem%sl%Acoeff(:,:,:,28) * Elem%slpml%Diagonal_Stress(:,:,:,1) + &
+            Elem%sl%Acoeff(:,:,:,29) * Elem%slpml%residual_Stress(:,:,:,2)
         call DGEMM ( 'N', 'N', m1, m2*m3, m1, 1., hprimex, m1,s0(:,:,:) ,m1, 0., s1, m1 )
-        Elem%spml%Forces1(:,:,:,1) = s1
+        Elem%slpml%Forces1(:,:,:,1) = s1
 
-        s0 = Elem%Acoeff(:,:,:,30) * Elem%spml%residual_Stress(:,:,:,0) + Elem%Acoeff(:,:,:,31) * Elem%spml%Diagonal_Stress(:,:,:,1) + &
-            Elem%Acoeff(:,:,:,32) * Elem%spml%residual_Stress(:,:,:,2)
+        s0 = Elem%sl%Acoeff(:,:,:,30) * Elem%slpml%residual_Stress(:,:,:,0) + Elem%sl%Acoeff(:,:,:,31) * Elem%slpml%Diagonal_Stress(:,:,:,1) + &
+            Elem%sl%Acoeff(:,:,:,32) * Elem%slpml%residual_Stress(:,:,:,2)
         do n_z = 0,m3-1
             call DGEMM ( 'N', 'N', m1, m2, m2, 1.,s0(0,0,n_z), m1, htprimey ,m2, 0., s1(0,0,n_z),m1 )
         enddo
-        Elem%spml%Forces2(:,:,:,1) = s1
+        Elem%slpml%Forces2(:,:,:,1) = s1
 
-        s0 = Elem%Acoeff(:,:,:,33) * Elem%spml%residual_Stress(:,:,:,0) + Elem%Acoeff(:,:,:,34) * Elem%spml%Diagonal_Stress(:,:,:,1) + &
-            Elem%Acoeff(:,:,:,35) * Elem%spml%residual_Stress(:,:,:,2)
+        s0 = Elem%sl%Acoeff(:,:,:,33) * Elem%slpml%residual_Stress(:,:,:,0) + Elem%sl%Acoeff(:,:,:,34) * Elem%slpml%Diagonal_Stress(:,:,:,1) + &
+            Elem%sl%Acoeff(:,:,:,35) * Elem%slpml%residual_Stress(:,:,:,2)
 
         call DGEMM ( 'N', 'N', m1*m2, m3, m3, 1., s0(:,:,:), m1*m2, htprimez ,m3, 0., s1, m1*m2 )
-        Elem%spml%Forces3(:,:,:,1) = s1
+        Elem%slpml%Forces3(:,:,:,1) = s1
 
 
-        s0 = Elem%Acoeff(:,:,:,27) * Elem%spml%residual_Stress(:,:,:,1) + Elem%Acoeff(:,:,:,28) * Elem%spml%residual_Stress(:,:,:,2) + &
-            Elem%Acoeff(:,:,:,29) * Elem%spml%Diagonal_Stress(:,:,:,2)
+        s0 = Elem%sl%Acoeff(:,:,:,27) * Elem%slpml%residual_Stress(:,:,:,1) + Elem%sl%Acoeff(:,:,:,28) * Elem%slpml%residual_Stress(:,:,:,2) + &
+            Elem%sl%Acoeff(:,:,:,29) * Elem%slpml%Diagonal_Stress(:,:,:,2)
         call DGEMM ( 'N', 'N', m1, m2*m3, m1, 1., hprimex, m1,s0(:,:,:) ,m1, 0., s1, m1 )
-        Elem%spml%Forces1(:,:,:,2) = s1
+        Elem%slpml%Forces1(:,:,:,2) = s1
 
-        s0 = Elem%Acoeff(:,:,:,30) * Elem%spml%residual_Stress(:,:,:,1) + Elem%Acoeff(:,:,:,31) * Elem%spml%residual_Stress(:,:,:,2) + &
-            Elem%Acoeff(:,:,:,32) * Elem%spml%Diagonal_Stress(:,:,:,2)
+        s0 = Elem%sl%Acoeff(:,:,:,30) * Elem%slpml%residual_Stress(:,:,:,1) + Elem%sl%Acoeff(:,:,:,31) * Elem%slpml%residual_Stress(:,:,:,2) + &
+            Elem%sl%Acoeff(:,:,:,32) * Elem%slpml%Diagonal_Stress(:,:,:,2)
         do n_z = 0,m3-1
             call DGEMM ( 'N', 'N', m1, m2, m2, 1.,s0(0,0,n_z), m1, htprimey ,m2, 0., s1(0,0,n_z),m1 )
         enddo
-        Elem%spml%Forces2(:,:,:,2) = s1
+        Elem%slpml%Forces2(:,:,:,2) = s1
 
-        s0 = Elem%Acoeff(:,:,:,33) * Elem%spml%residual_Stress(:,:,:,1) + Elem%Acoeff(:,:,:,34) * Elem%spml%residual_Stress(:,:,:,2) + &
-            Elem%Acoeff(:,:,:,35) * Elem%spml%Diagonal_Stress(:,:,:,2)
+        s0 = Elem%sl%Acoeff(:,:,:,33) * Elem%slpml%residual_Stress(:,:,:,1) + Elem%sl%Acoeff(:,:,:,34) * Elem%slpml%residual_Stress(:,:,:,2) + &
+            Elem%sl%Acoeff(:,:,:,35) * Elem%slpml%Diagonal_Stress(:,:,:,2)
 
         call DGEMM ( 'N', 'N', m1*m2, m3, m3, 1., s0(:,:,:), m1*m2, htprimez ,m3, 0., s1, m1*m2 )
-        Elem%spml%Forces3(:,:,:,2) = s1
+        Elem%slpml%Forces3(:,:,:,2) = s1
 
-        Elem%Forces = Elem%spml%Forces1 + Elem%spml%Forces2 + Elem%spml%Forces3
+        Elem%sl%Forces = Elem%slpml%Forces1 + Elem%slpml%Forces2 + Elem%slpml%Forces3
 
         return
     end subroutine compute_InternalForces_PML_Elem
@@ -818,59 +845,59 @@ contains
 
         m1 = Elem%ngllx ; m2 = Elem%nglly ; m3 = Elem%ngllz
 
-        Elem%spml%ForcesFl1(:,:,:) = 0d0
-        Elem%spml%ForcesFl2(:,:,:) = 0d0
-        Elem%spml%ForcesFl3(:,:,:) = 0d0
+        Elem%flpml%ForcesFl1(:,:,:) = 0d0
+        Elem%flpml%ForcesFl2(:,:,:) = 0d0
+        Elem%flpml%ForcesFl3(:,:,:) = 0d0
         s0 = 0d0 ; s1 = 0d0
 
 
         ! forces associated to V_x
-        s0 = Elem%Acoeff(:,:,:,9) * Elem%spml%Veloc(:,:,:,0)
+        s0 = Elem%fl%Acoeff(:,:,:,9) * Elem%flpml%Veloc(:,:,:,0)
         call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,s0(:,:,:),m1,0.,s1,m1)
-        Elem%spml%ForcesFl1(:,:,:) = s1
+        Elem%flpml%ForcesFl1(:,:,:) = s1
 
-        s0 = Elem%Acoeff(:,:,:,10) * Elem%spml%Veloc(:,:,:,0)
+        s0 = Elem%fl%Acoeff(:,:,:,10) * Elem%flpml%Veloc(:,:,:,0)
         do n_z = 0,m3-1
             call DGEMM('N','N',m1,m2,m2,1.,s0(0,0,n_z),m1, htprimey,m2,0.,s1(0,0,n_z),m1)
         enddo
-        Elem%spml%ForcesFl1(:,:,:) = s1+Elem%spml%ForcesFl1(:,:,:)
+        Elem%flpml%ForcesFl1(:,:,:) = s1+Elem%flpml%ForcesFl1(:,:,:)
 
-        s0 = Elem%Acoeff(:,:,:,11) * Elem%spml%Veloc(:,:,:,0)
+        s0 = Elem%fl%Acoeff(:,:,:,11) * Elem%flpml%Veloc(:,:,:,0)
         call DGEMM('N','N',m1*m2,m3,m3,1.,s0(:,:,:),m1*m2,htprimez,m3,0.,s1,m1*m2)
-        Elem%spml%ForcesFl1(:,:,:) = s1+Elem%spml%ForcesFl1(:,:,:)
+        Elem%flpml%ForcesFl1(:,:,:) = s1+Elem%flpml%ForcesFl1(:,:,:)
 
         ! forces associated to V_y
-        s0 = Elem%Acoeff(:,:,:,12) * Elem%spml%Veloc(:,:,:,1)
+        s0 = Elem%fl%Acoeff(:,:,:,12) * Elem%flpml%Veloc(:,:,:,1)
         call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,s0(:,:,:),m1,0.,s1,m1)
-        Elem%spml%ForcesFl2(:,:,:) = s1
+        Elem%flpml%ForcesFl2(:,:,:) = s1
 
-        s0 = Elem%Acoeff(:,:,:,13) * Elem%spml%Veloc(:,:,:,1)
+        s0 = Elem%fl%Acoeff(:,:,:,13) * Elem%flpml%Veloc(:,:,:,1)
         do n_z = 0,m3-1
             call DGEMM('N','N',m1,m2,m2,1.,s0(0,0,n_z),m1, htprimey,m2,0.,s1(0,0,n_z),m1)
         enddo
-        Elem%spml%ForcesFl2(:,:,:) = s1+Elem%spml%ForcesFl2(:,:,:)
+        Elem%flpml%ForcesFl2(:,:,:) = s1+Elem%flpml%ForcesFl2(:,:,:)
 
-        s0 = Elem%Acoeff(:,:,:,14) * Elem%spml%Veloc(:,:,:,1)
+        s0 = Elem%fl%Acoeff(:,:,:,14) * Elem%flpml%Veloc(:,:,:,1)
         call DGEMM('N','N',m1*m2,m3,m3,1.,s0(:,:,:),m1*m2,htprimez,m3,0.,s1,m1*m2)
-        Elem%spml%ForcesFl2(:,:,:) = s1+Elem%spml%ForcesFl2(:,:,:)
+        Elem%flpml%ForcesFl2(:,:,:) = s1+Elem%flpml%ForcesFl2(:,:,:)
 
         ! forces associated to V_z
-        s0 = Elem%Acoeff(:,:,:,15) * Elem%spml%Veloc(:,:,:,2)
+        s0 = Elem%fl%Acoeff(:,:,:,15) * Elem%flpml%Veloc(:,:,:,2)
         call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,s0(:,:,:),m1,0.,s1,m1)
-        Elem%spml%ForcesFl3(:,:,:) = s1
+        Elem%flpml%ForcesFl3(:,:,:) = s1
 
-        s0 = Elem%Acoeff(:,:,:,16) * Elem%spml%Veloc(:,:,:,2)
+        s0 = Elem%fl%Acoeff(:,:,:,16) * Elem%flpml%Veloc(:,:,:,2)
         do n_z = 0,m3-1
             call DGEMM('N','N',m1,m2,m2,1.,s0(0,0,n_z),m1, htprimey,m2,0.,s1(0,0,n_z),m1)
         enddo
-        Elem%spml%ForcesFl3(:,:,:) = s1+Elem%spml%ForcesFl3(:,:,:)
+        Elem%flpml%ForcesFl3(:,:,:) = s1+Elem%flpml%ForcesFl3(:,:,:)
 
-        s0 = Elem%Acoeff(:,:,:,17) * Elem%spml%Veloc(:,:,:,2)
+        s0 = Elem%fl%Acoeff(:,:,:,17) * Elem%flpml%Veloc(:,:,:,2)
         call DGEMM('N','N',m1*m2,m3,m3,1.,s0(:,:,:),m1*m2,htprimez,m3,0.,s1,m1*m2)
-        Elem%spml%ForcesFl3(:,:,:) = s1+Elem%spml%ForcesFl3(:,:,:)
+        Elem%flpml%ForcesFl3(:,:,:) = s1+Elem%flpml%ForcesFl3(:,:,:)
 
 
-        Elem%ForcesFl(:,:,:) = Elem%spml%ForcesFl1(:,:,:) + Elem%spml%ForcesFl2(:,:,:) + Elem%spml%ForcesFl3(:,:,:)
+        Elem%fl%ForcesFl(:,:,:) = Elem%flpml%ForcesFl1(:,:,:) + Elem%flpml%ForcesFl2(:,:,:) + Elem%flpml%ForcesFl3(:,:,:)
 
         return
     end subroutine compute_InternalForces_PML_Elem_Fl
@@ -900,63 +927,63 @@ contains
 
         m1 = Elem%ngllx; m2 = Elem%nglly;  m3= Elem%ngllz
 
-        Elem%Forces(1:m1-2,1:m2-2, 1:m3-2, 0:2) = Elem%Veloc(:,:,:,:) + dt *(0.5-bega) *Elem%Accel(:,:,:,:)
+        Elem%sl%Forces(1:m1-2,1:m2-2, 1:m3-2, 0:2) = Elem%sl%Veloc(:,:,:,:) + dt *(0.5-bega) *Elem%sl%Accel(:,:,:,:)
 
-        call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1,Elem%Forces(:,:,:,0), m1, 0., dVx_dxi, m1)
+        call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1,Elem%sl%Forces(:,:,:,0), m1, 0., dVx_dxi, m1)
         do n_z = 0,m3-1
-            call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,0), m1, hprimey, m2, 0., dVx_deta(:,:,n_z),m1)
+            call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%sl%Forces(:,:,n_z,0), m1, hprimey, m2, 0., dVx_deta(:,:,n_z),m1)
         enddo
-        call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,0), m1*m2, hprimez, m3, 0., dVx_dzeta, m1*m2)
+        call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%sl%Forces(:,:,:,0), m1*m2, hprimez, m3, 0., dVx_dzeta, m1*m2)
 
-        call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1,Elem%Forces(:,:,:,1), m1, 0., dVy_dxi, m1)
+        call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1,Elem%sl%Forces(:,:,:,1), m1, 0., dVy_dxi, m1)
         do n_z = 0,m3-1
-            call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,1), m1, hprimey, m2, 0., dVy_deta(:,:,n_z),m1)
+            call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%sl%Forces(:,:,n_z,1), m1, hprimey, m2, 0., dVy_deta(:,:,n_z),m1)
         enddo
-        call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,1), m1*m2, hprimez, m3, 0., dVy_dzeta, m1*m2)
+        call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%sl%Forces(:,:,:,1), m1*m2, hprimez, m3, 0., dVy_dzeta, m1*m2)
 
-        call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1,Elem%Forces(:,:,:,2), m1, 0., dVz_dxi, m1)
+        call DGEMM ('N', 'N', m1, m2*m3, m1, 1., htprimex, m1,Elem%sl%Forces(:,:,:,2), m1, 0., dVz_dxi, m1)
         do n_z = 0,m3-1
-            call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%Forces(:,:,n_z,2), m1, hprimey, m2, 0., dVz_deta(:,:,n_z),m1)
+            call DGEMM ('N', 'N', m1, m2, m2, 1., Elem%sl%Forces(:,:,n_z,2), m1, hprimey, m2, 0., dVz_deta(:,:,n_z),m1)
         enddo
-        call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%Forces(:,:,:,2), m1*m2, hprimez, m3, 0., dVz_dzeta, m1*m2)
+        call DGEMM ('N', 'N', m1*m2, m3, m3, 1., Elem%sl%Forces(:,:,:,2), m1*m2, hprimez, m3, 0., dVz_dzeta, m1*m2)
 
 
         ! On cree VxMat, VyMat et VzMat:
 
-        VxMat(:,:,:,0,0) = Elem%Acoeff(:,:,:,0) * dVx_dxi + Elem%Acoeff(:,:,:,1) * dVx_deta + Elem%Acoeff(:,:,:,2) * dVx_dzeta
-        VxMat(:,:,:,0,1) = Elem%Acoeff(:,:,:,12) * dVx_dxi + Elem%Acoeff(:,:,:,13) * dVx_deta + Elem%Acoeff(:,:,:,14) * dVx_dzeta
-        VxMat(:,:,:,0,2) = Elem%Acoeff(:,:,:,15) * dVx_dxi + Elem%Acoeff(:,:,:,16) * dVx_deta + Elem%Acoeff(:,:,:,17) * dVx_dzeta
-        VxMat(:,:,:,1,0) = Elem%Acoeff(:,:,:,9) * dVx_dxi + Elem%Acoeff(:,:,:,10) * dVx_deta + Elem%Acoeff(:,:,:,11) * dVx_dzeta
-        VxMat(:,:,:,1,1) = Elem%Acoeff(:,:,:,3) * dVx_dxi + Elem%Acoeff(:,:,:,4) * dVx_deta + Elem%Acoeff(:,:,:,5) * dVx_dzeta
-        VxMat(:,:,:,1,2) = Elem%Acoeff(:,:,:,6) * dVx_dxi + Elem%Acoeff(:,:,:,7) * dVx_deta + Elem%Acoeff(:,:,:,8) * dVx_dzeta
-        VxMat(:,:,:,2,0) = Elem%Acoeff(:,:,:,18) * dVx_dxi + Elem%Acoeff(:,:,:,19) * dVx_deta + Elem%Acoeff(:,:,:,20) * dVx_dzeta
-        VxMat(:,:,:,2,1) = Elem%Acoeff(:,:,:,21) * dVx_dxi + Elem%Acoeff(:,:,:,22) * dVx_deta + Elem%Acoeff(:,:,:,23) * dVx_dzeta
-        VxMat(:,:,:,2,2) = Elem%Acoeff(:,:,:,24) * dVx_dxi + Elem%Acoeff(:,:,:,25) * dVx_deta + Elem%Acoeff(:,:,:,26) * dVx_dzeta
+        VxMat(:,:,:,0,0) = Elem%sl%Acoeff(:,:,:,0) * dVx_dxi + Elem%sl%Acoeff(:,:,:,1) * dVx_deta + Elem%sl%Acoeff(:,:,:,2) * dVx_dzeta
+        VxMat(:,:,:,0,1) = Elem%sl%Acoeff(:,:,:,12) * dVx_dxi + Elem%sl%Acoeff(:,:,:,13) * dVx_deta + Elem%sl%Acoeff(:,:,:,14) * dVx_dzeta
+        VxMat(:,:,:,0,2) = Elem%sl%Acoeff(:,:,:,15) * dVx_dxi + Elem%sl%Acoeff(:,:,:,16) * dVx_deta + Elem%sl%Acoeff(:,:,:,17) * dVx_dzeta
+        VxMat(:,:,:,1,0) = Elem%sl%Acoeff(:,:,:,9) * dVx_dxi + Elem%sl%Acoeff(:,:,:,10) * dVx_deta + Elem%sl%Acoeff(:,:,:,11) * dVx_dzeta
+        VxMat(:,:,:,1,1) = Elem%sl%Acoeff(:,:,:,3) * dVx_dxi + Elem%sl%Acoeff(:,:,:,4) * dVx_deta + Elem%sl%Acoeff(:,:,:,5) * dVx_dzeta
+        VxMat(:,:,:,1,2) = Elem%sl%Acoeff(:,:,:,6) * dVx_dxi + Elem%sl%Acoeff(:,:,:,7) * dVx_deta + Elem%sl%Acoeff(:,:,:,8) * dVx_dzeta
+        VxMat(:,:,:,2,0) = Elem%sl%Acoeff(:,:,:,18) * dVx_dxi + Elem%sl%Acoeff(:,:,:,19) * dVx_deta + Elem%sl%Acoeff(:,:,:,20) * dVx_dzeta
+        VxMat(:,:,:,2,1) = Elem%sl%Acoeff(:,:,:,21) * dVx_dxi + Elem%sl%Acoeff(:,:,:,22) * dVx_deta + Elem%sl%Acoeff(:,:,:,23) * dVx_dzeta
+        VxMat(:,:,:,2,2) = Elem%sl%Acoeff(:,:,:,24) * dVx_dxi + Elem%sl%Acoeff(:,:,:,25) * dVx_deta + Elem%sl%Acoeff(:,:,:,26) * dVx_dzeta
 
-        VyMat(:,:,:,0,0) = Elem%Acoeff(:,:,:,0) * dVy_dxi + Elem%Acoeff(:,:,:,1) * dVy_deta + Elem%Acoeff(:,:,:,2) * dVy_dzeta
-        VyMat(:,:,:,0,1) = Elem%Acoeff(:,:,:,12) * dVy_dxi + Elem%Acoeff(:,:,:,13) * dVy_deta + Elem%Acoeff(:,:,:,14) * dVy_dzeta
-        VyMat(:,:,:,0,2) = Elem%Acoeff(:,:,:,15) * dVy_dxi + Elem%Acoeff(:,:,:,16) * dVy_deta + Elem%Acoeff(:,:,:,17) * dVy_dzeta
-        VyMat(:,:,:,1,0) = Elem%Acoeff(:,:,:,9) * dVy_dxi + Elem%Acoeff(:,:,:,10) * dVy_deta + Elem%Acoeff(:,:,:,11) * dVy_dzeta
-        VyMat(:,:,:,1,1) = Elem%Acoeff(:,:,:,3) * dVy_dxi + Elem%Acoeff(:,:,:,4) * dVy_deta + Elem%Acoeff(:,:,:,5) * dVy_dzeta
-        VyMat(:,:,:,1,2) = Elem%Acoeff(:,:,:,6) * dVy_dxi + Elem%Acoeff(:,:,:,7) * dVy_deta + Elem%Acoeff(:,:,:,8) * dVy_dzeta
-        VyMat(:,:,:,2,0) = Elem%Acoeff(:,:,:,18) * dVy_dxi + Elem%Acoeff(:,:,:,19) * dVy_deta + Elem%Acoeff(:,:,:,20) * dVy_dzeta
-        VyMat(:,:,:,2,1) = Elem%Acoeff(:,:,:,21) * dVy_dxi + Elem%Acoeff(:,:,:,22) * dVy_deta + Elem%Acoeff(:,:,:,23) * dVy_dzeta
-        VyMat(:,:,:,2,2) = Elem%Acoeff(:,:,:,24) * dVy_dxi + Elem%Acoeff(:,:,:,25) * dVy_deta + Elem%Acoeff(:,:,:,26) * dVy_dzeta
+        VyMat(:,:,:,0,0) = Elem%sl%Acoeff(:,:,:,0) * dVy_dxi + Elem%sl%Acoeff(:,:,:,1) * dVy_deta + Elem%sl%Acoeff(:,:,:,2) * dVy_dzeta
+        VyMat(:,:,:,0,1) = Elem%sl%Acoeff(:,:,:,12) * dVy_dxi + Elem%sl%Acoeff(:,:,:,13) * dVy_deta + Elem%sl%Acoeff(:,:,:,14) * dVy_dzeta
+        VyMat(:,:,:,0,2) = Elem%sl%Acoeff(:,:,:,15) * dVy_dxi + Elem%sl%Acoeff(:,:,:,16) * dVy_deta + Elem%sl%Acoeff(:,:,:,17) * dVy_dzeta
+        VyMat(:,:,:,1,0) = Elem%sl%Acoeff(:,:,:,9) * dVy_dxi + Elem%sl%Acoeff(:,:,:,10) * dVy_deta + Elem%sl%Acoeff(:,:,:,11) * dVy_dzeta
+        VyMat(:,:,:,1,1) = Elem%sl%Acoeff(:,:,:,3) * dVy_dxi + Elem%sl%Acoeff(:,:,:,4) * dVy_deta + Elem%sl%Acoeff(:,:,:,5) * dVy_dzeta
+        VyMat(:,:,:,1,2) = Elem%sl%Acoeff(:,:,:,6) * dVy_dxi + Elem%sl%Acoeff(:,:,:,7) * dVy_deta + Elem%sl%Acoeff(:,:,:,8) * dVy_dzeta
+        VyMat(:,:,:,2,0) = Elem%sl%Acoeff(:,:,:,18) * dVy_dxi + Elem%sl%Acoeff(:,:,:,19) * dVy_deta + Elem%sl%Acoeff(:,:,:,20) * dVy_dzeta
+        VyMat(:,:,:,2,1) = Elem%sl%Acoeff(:,:,:,21) * dVy_dxi + Elem%sl%Acoeff(:,:,:,22) * dVy_deta + Elem%sl%Acoeff(:,:,:,23) * dVy_dzeta
+        VyMat(:,:,:,2,2) = Elem%sl%Acoeff(:,:,:,24) * dVy_dxi + Elem%sl%Acoeff(:,:,:,25) * dVy_deta + Elem%sl%Acoeff(:,:,:,26) * dVy_dzeta
 
-        VzMat(:,:,:,0,0) = Elem%Acoeff(:,:,:,0) * dVz_dxi + Elem%Acoeff(:,:,:,1) * dVz_deta + Elem%Acoeff(:,:,:,2) * dVz_dzeta
-        VzMat(:,:,:,0,1) = Elem%Acoeff(:,:,:,12) * dVz_dxi + Elem%Acoeff(:,:,:,13) * dVz_deta + Elem%Acoeff(:,:,:,14) * dVz_dzeta
-        VzMat(:,:,:,0,2) = Elem%Acoeff(:,:,:,15) * dVz_dxi + Elem%Acoeff(:,:,:,16) * dVz_deta + Elem%Acoeff(:,:,:,17) * dVz_dzeta
-        VzMat(:,:,:,1,0) = Elem%Acoeff(:,:,:,9) * dVz_dxi + Elem%Acoeff(:,:,:,10) * dVz_deta + Elem%Acoeff(:,:,:,11) * dVz_dzeta
-        VzMat(:,:,:,1,1) = Elem%Acoeff(:,:,:,3) * dVz_dxi + Elem%Acoeff(:,:,:,4) * dVz_deta + Elem%Acoeff(:,:,:,5) * dVz_dzeta
-        VzMat(:,:,:,1,2) = Elem%Acoeff(:,:,:,6) * dVz_dxi + Elem%Acoeff(:,:,:,7) * dVz_deta + Elem%Acoeff(:,:,:,8) * dVz_dzeta
-        VzMat(:,:,:,2,0) = Elem%Acoeff(:,:,:,18) * dVz_dxi + Elem%Acoeff(:,:,:,19) * dVz_deta + Elem%Acoeff(:,:,:,20) * dVz_dzeta
-        VzMat(:,:,:,2,1) = Elem%Acoeff(:,:,:,21) * dVz_dxi + Elem%Acoeff(:,:,:,22) * dVz_deta + Elem%Acoeff(:,:,:,23) * dVz_dzeta
-        VzMat(:,:,:,2,2) = Elem%Acoeff(:,:,:,24) * dVz_dxi + Elem%Acoeff(:,:,:,25) * dVz_deta + Elem%Acoeff(:,:,:,26) * dVz_dzeta
+        VzMat(:,:,:,0,0) = Elem%sl%Acoeff(:,:,:,0) * dVz_dxi + Elem%sl%Acoeff(:,:,:,1) * dVz_deta + Elem%sl%Acoeff(:,:,:,2) * dVz_dzeta
+        VzMat(:,:,:,0,1) = Elem%sl%Acoeff(:,:,:,12) * dVz_dxi + Elem%sl%Acoeff(:,:,:,13) * dVz_deta + Elem%sl%Acoeff(:,:,:,14) * dVz_dzeta
+        VzMat(:,:,:,0,2) = Elem%sl%Acoeff(:,:,:,15) * dVz_dxi + Elem%sl%Acoeff(:,:,:,16) * dVz_deta + Elem%sl%Acoeff(:,:,:,17) * dVz_dzeta
+        VzMat(:,:,:,1,0) = Elem%sl%Acoeff(:,:,:,9) * dVz_dxi + Elem%sl%Acoeff(:,:,:,10) * dVz_deta + Elem%sl%Acoeff(:,:,:,11) * dVz_dzeta
+        VzMat(:,:,:,1,1) = Elem%sl%Acoeff(:,:,:,3) * dVz_dxi + Elem%sl%Acoeff(:,:,:,4) * dVz_deta + Elem%sl%Acoeff(:,:,:,5) * dVz_dzeta
+        VzMat(:,:,:,1,2) = Elem%sl%Acoeff(:,:,:,6) * dVz_dxi + Elem%sl%Acoeff(:,:,:,7) * dVz_deta + Elem%sl%Acoeff(:,:,:,8) * dVz_dzeta
+        VzMat(:,:,:,2,0) = Elem%sl%Acoeff(:,:,:,18) * dVz_dxi + Elem%sl%Acoeff(:,:,:,19) * dVz_deta + Elem%sl%Acoeff(:,:,:,20) * dVz_dzeta
+        VzMat(:,:,:,2,1) = Elem%sl%Acoeff(:,:,:,21) * dVz_dxi + Elem%sl%Acoeff(:,:,:,22) * dVz_deta + Elem%sl%Acoeff(:,:,:,23) * dVz_dzeta
+        VzMat(:,:,:,2,2) = Elem%sl%Acoeff(:,:,:,24) * dVz_dxi + Elem%sl%Acoeff(:,:,:,25) * dVz_deta + Elem%sl%Acoeff(:,:,:,26) * dVz_dzeta
 
 
         ! On cree VxTerms, VyTerms et VzTerms:
 
-        inv_norm = transpose(Elem%spml%Inv_Normales)
+        inv_norm = transpose(Elem%slpml%Inv_Normales)
         do n_x = 0,m1-1
             do n_y = 0,m2-1
                 do n_z = 0,m3-1
@@ -978,56 +1005,56 @@ contains
 
         ! On calcule Diagonal_Stress:
 
-        norm = Elem%spml%Normales
+        norm = Elem%slpml%Normales
 
-        Elem%spml%Diagonal_Stress1(:,:,:,0) = Elem%spml%dumpSx(:,:,:,0) * Elem%spml%Diagonal_Stress1(:,:,:,0) + &
-            Elem%spml%dumpSx(:,:,:,1) * Dt * (norm(0,0)*VxTerms(:,:,:,0,0) + norm(1,0)*VyTerms(:,:,:,1,0) + norm(2,0)*VzTerms(:,:,:,1,0))
-        Elem%spml%Diagonal_Stress1(:,:,:,1) = Elem%spml%dumpSx(:,:,:,0) * Elem%spml%Diagonal_Stress1(:,:,:,1) + &
-            Elem%spml%dumpSx(:,:,:,1) * Dt * (norm(0,0)*VxTerms(:,:,:,1,0) + norm(1,0)*VyTerms(:,:,:,0,0) + norm(2,0)*VzTerms(:,:,:,1,0))
-        Elem%spml%Diagonal_Stress1(:,:,:,2) = Elem%spml%dumpSx(:,:,:,0) * Elem%spml%Diagonal_Stress1(:,:,:,2) + &
-            Elem%spml%dumpSx(:,:,:,1) * Dt * (norm(0,0)*VxTerms(:,:,:,1,0) + norm(1,0)*VyTerms(:,:,:,1,0) + norm(2,0)*VzTerms(:,:,:,0,0))
+        Elem%slpml%Diagonal_Stress1(:,:,:,0) = Elem%slpml%dumpSx(:,:,:,0) * Elem%slpml%Diagonal_Stress1(:,:,:,0) + &
+            Elem%slpml%dumpSx(:,:,:,1) * Dt * (norm(0,0)*VxTerms(:,:,:,0,0) + norm(1,0)*VyTerms(:,:,:,1,0) + norm(2,0)*VzTerms(:,:,:,1,0))
+        Elem%slpml%Diagonal_Stress1(:,:,:,1) = Elem%slpml%dumpSx(:,:,:,0) * Elem%slpml%Diagonal_Stress1(:,:,:,1) + &
+            Elem%slpml%dumpSx(:,:,:,1) * Dt * (norm(0,0)*VxTerms(:,:,:,1,0) + norm(1,0)*VyTerms(:,:,:,0,0) + norm(2,0)*VzTerms(:,:,:,1,0))
+        Elem%slpml%Diagonal_Stress1(:,:,:,2) = Elem%slpml%dumpSx(:,:,:,0) * Elem%slpml%Diagonal_Stress1(:,:,:,2) + &
+            Elem%slpml%dumpSx(:,:,:,1) * Dt * (norm(0,0)*VxTerms(:,:,:,1,0) + norm(1,0)*VyTerms(:,:,:,1,0) + norm(2,0)*VzTerms(:,:,:,0,0))
 
-        Elem%spml%Diagonal_Stress2(:,:,:,0) = Elem%spml%dumpSy(:,:,:,0) * Elem%spml%Diagonal_Stress2(:,:,:,0) + &
-            Elem%spml%dumpSy(:,:,:,1) * Dt * (norm(0,1)*VxTerms(:,:,:,0,1) + norm(1,1)*VyTerms(:,:,:,1,1) + norm(2,1)*VzTerms(:,:,:,1,1))
-        Elem%spml%Diagonal_Stress2(:,:,:,1) = Elem%spml%dumpSy(:,:,:,0) * Elem%spml%Diagonal_Stress2(:,:,:,1) + &
-            Elem%spml%dumpSy(:,:,:,1) * Dt * (norm(0,1)*VxTerms(:,:,:,1,1) + norm(1,1)*VyTerms(:,:,:,0,1) + norm(2,1)*VzTerms(:,:,:,1,1))
-        Elem%spml%Diagonal_Stress2(:,:,:,2) = Elem%spml%dumpSy(:,:,:,0) * Elem%spml%Diagonal_Stress2(:,:,:,2) + &
-            Elem%spml%dumpSy(:,:,:,1) * Dt * (norm(0,1)*VxTerms(:,:,:,1,1) + norm(1,1)*VyTerms(:,:,:,1,1) + norm(2,1)*VzTerms(:,:,:,0,1))
+        Elem%slpml%Diagonal_Stress2(:,:,:,0) = Elem%slpml%dumpSy(:,:,:,0) * Elem%slpml%Diagonal_Stress2(:,:,:,0) + &
+            Elem%slpml%dumpSy(:,:,:,1) * Dt * (norm(0,1)*VxTerms(:,:,:,0,1) + norm(1,1)*VyTerms(:,:,:,1,1) + norm(2,1)*VzTerms(:,:,:,1,1))
+        Elem%slpml%Diagonal_Stress2(:,:,:,1) = Elem%slpml%dumpSy(:,:,:,0) * Elem%slpml%Diagonal_Stress2(:,:,:,1) + &
+            Elem%slpml%dumpSy(:,:,:,1) * Dt * (norm(0,1)*VxTerms(:,:,:,1,1) + norm(1,1)*VyTerms(:,:,:,0,1) + norm(2,1)*VzTerms(:,:,:,1,1))
+        Elem%slpml%Diagonal_Stress2(:,:,:,2) = Elem%slpml%dumpSy(:,:,:,0) * Elem%slpml%Diagonal_Stress2(:,:,:,2) + &
+            Elem%slpml%dumpSy(:,:,:,1) * Dt * (norm(0,1)*VxTerms(:,:,:,1,1) + norm(1,1)*VyTerms(:,:,:,1,1) + norm(2,1)*VzTerms(:,:,:,0,1))
 
-        Elem%spml%Diagonal_Stress3(:,:,:,0) = Elem%spml%dumpSz(:,:,:,0) * Elem%spml%Diagonal_Stress3(:,:,:,0) + &
-            Elem%spml%dumpSz(:,:,:,1) * Dt * (norm(0,2)*VxTerms(:,:,:,0,2) + norm(1,2)*VyTerms(:,:,:,1,2) + norm(2,2)*VzTerms(:,:,:,1,2))
-        Elem%spml%Diagonal_Stress3(:,:,:,1) = Elem%spml%dumpSz(:,:,:,0) * Elem%spml%Diagonal_Stress3(:,:,:,1) + &
-            Elem%spml%dumpSz(:,:,:,1) * Dt * (norm(0,2)*VxTerms(:,:,:,1,2) + norm(1,2)*VyTerms(:,:,:,0,2) + norm(2,2)*VzTerms(:,:,:,1,2))
-        Elem%spml%Diagonal_Stress3(:,:,:,2) = Elem%spml%dumpSz(:,:,:,0) * Elem%spml%Diagonal_Stress3(:,:,:,2) + &
-            Elem%spml%dumpSz(:,:,:,1) * Dt * (norm(0,2)*VxTerms(:,:,:,1,2) + norm(1,2)*VyTerms(:,:,:,1,2) + norm(2,2)*VzTerms(:,:,:,0,2))
+        Elem%slpml%Diagonal_Stress3(:,:,:,0) = Elem%slpml%dumpSz(:,:,:,0) * Elem%slpml%Diagonal_Stress3(:,:,:,0) + &
+            Elem%slpml%dumpSz(:,:,:,1) * Dt * (norm(0,2)*VxTerms(:,:,:,0,2) + norm(1,2)*VyTerms(:,:,:,1,2) + norm(2,2)*VzTerms(:,:,:,1,2))
+        Elem%slpml%Diagonal_Stress3(:,:,:,1) = Elem%slpml%dumpSz(:,:,:,0) * Elem%slpml%Diagonal_Stress3(:,:,:,1) + &
+            Elem%slpml%dumpSz(:,:,:,1) * Dt * (norm(0,2)*VxTerms(:,:,:,1,2) + norm(1,2)*VyTerms(:,:,:,0,2) + norm(2,2)*VzTerms(:,:,:,1,2))
+        Elem%slpml%Diagonal_Stress3(:,:,:,2) = Elem%slpml%dumpSz(:,:,:,0) * Elem%slpml%Diagonal_Stress3(:,:,:,2) + &
+            Elem%slpml%dumpSz(:,:,:,1) * Dt * (norm(0,2)*VxTerms(:,:,:,1,2) + norm(1,2)*VyTerms(:,:,:,1,2) + norm(2,2)*VzTerms(:,:,:,0,2))
 
-        Elem%spml%Diagonal_Stress = Elem%spml%Diagonal_Stress1 + Elem%spml%Diagonal_Stress2 + Elem%spml%Diagonal_Stress3
+        Elem%slpml%Diagonal_Stress = Elem%slpml%Diagonal_Stress1 + Elem%slpml%Diagonal_Stress2 + Elem%slpml%Diagonal_Stress3
 
 
         ! On calcule Residual_Stress:
 
-        Elem%spml%residual_Stress1(:,:,:,0) = Elem%spml%dumpSx(:,:,:,0) * Elem%spml%residual_Stress1(:,:,:,0) + &
-            Elem%spml%dumpSx(:,:,:,1) * Dt * (norm(0,0)*VyTerms(:,:,:,2,0) + norm(1,0)*VxTerms(:,:,:,2,0))
-        Elem%spml%residual_Stress1(:,:,:,1) = Elem%spml%dumpSx(:,:,:,0) * Elem%spml%residual_Stress1(:,:,:,1) + &
-            Elem%spml%dumpSx(:,:,:,1) * Dt * (norm(0,0)*VzTerms(:,:,:,2,0) + norm(2,0)*VxTerms(:,:,:,2,0))
-        Elem%spml%residual_Stress1(:,:,:,2) = Elem%spml%dumpSx(:,:,:,0) * Elem%spml%residual_Stress1(:,:,:,2) + &
-            Elem%spml%dumpSx(:,:,:,1) * Dt * (norm(1,0)*VzTerms(:,:,:,2,0) + norm(2,0)*VyTerms(:,:,:,2,0))
+        Elem%slpml%residual_Stress1(:,:,:,0) = Elem%slpml%dumpSx(:,:,:,0) * Elem%slpml%residual_Stress1(:,:,:,0) + &
+            Elem%slpml%dumpSx(:,:,:,1) * Dt * (norm(0,0)*VyTerms(:,:,:,2,0) + norm(1,0)*VxTerms(:,:,:,2,0))
+        Elem%slpml%residual_Stress1(:,:,:,1) = Elem%slpml%dumpSx(:,:,:,0) * Elem%slpml%residual_Stress1(:,:,:,1) + &
+            Elem%slpml%dumpSx(:,:,:,1) * Dt * (norm(0,0)*VzTerms(:,:,:,2,0) + norm(2,0)*VxTerms(:,:,:,2,0))
+        Elem%slpml%residual_Stress1(:,:,:,2) = Elem%slpml%dumpSx(:,:,:,0) * Elem%slpml%residual_Stress1(:,:,:,2) + &
+            Elem%slpml%dumpSx(:,:,:,1) * Dt * (norm(1,0)*VzTerms(:,:,:,2,0) + norm(2,0)*VyTerms(:,:,:,2,0))
 
-        Elem%spml%residual_Stress2(:,:,:,0) = Elem%spml%dumpSy(:,:,:,0) * Elem%spml%residual_Stress2(:,:,:,0) + &
-            Elem%spml%dumpSy(:,:,:,1) * Dt * (norm(0,1)*VyTerms(:,:,:,2,1) + norm(1,1)*VxTerms(:,:,:,2,1))
-        Elem%spml%residual_Stress2(:,:,:,1) = Elem%spml%dumpSy(:,:,:,0) * Elem%spml%residual_Stress2(:,:,:,1) + &
-            Elem%spml%dumpSy(:,:,:,1) * Dt * (norm(0,1)*VzTerms(:,:,:,2,1) + norm(2,1)*VxTerms(:,:,:,2,1))
-        Elem%spml%residual_Stress2(:,:,:,2) = Elem%spml%dumpSy(:,:,:,0) * Elem%spml%residual_Stress2(:,:,:,2) + &
-            Elem%spml%dumpSy(:,:,:,1) * Dt * (norm(1,1)*VzTerms(:,:,:,2,1) + norm(2,1)*VyTerms(:,:,:,2,1))
+        Elem%slpml%residual_Stress2(:,:,:,0) = Elem%slpml%dumpSy(:,:,:,0) * Elem%slpml%residual_Stress2(:,:,:,0) + &
+            Elem%slpml%dumpSy(:,:,:,1) * Dt * (norm(0,1)*VyTerms(:,:,:,2,1) + norm(1,1)*VxTerms(:,:,:,2,1))
+        Elem%slpml%residual_Stress2(:,:,:,1) = Elem%slpml%dumpSy(:,:,:,0) * Elem%slpml%residual_Stress2(:,:,:,1) + &
+            Elem%slpml%dumpSy(:,:,:,1) * Dt * (norm(0,1)*VzTerms(:,:,:,2,1) + norm(2,1)*VxTerms(:,:,:,2,1))
+        Elem%slpml%residual_Stress2(:,:,:,2) = Elem%slpml%dumpSy(:,:,:,0) * Elem%slpml%residual_Stress2(:,:,:,2) + &
+            Elem%slpml%dumpSy(:,:,:,1) * Dt * (norm(1,1)*VzTerms(:,:,:,2,1) + norm(2,1)*VyTerms(:,:,:,2,1))
 
-        Elem%spml%residual_Stress3(:,:,:,0) = Elem%spml%dumpSz(:,:,:,0) * Elem%spml%residual_Stress3(:,:,:,0) + &
-            Elem%spml%dumpSz(:,:,:,1) * Dt * (norm(0,2)*VyTerms(:,:,:,2,2) + norm(1,2)*VxTerms(:,:,:,2,2))
-        Elem%spml%residual_Stress3(:,:,:,1) = Elem%spml%dumpSz(:,:,:,0) * Elem%spml%residual_Stress3(:,:,:,1) + &
-            Elem%spml%dumpSz(:,:,:,1) * Dt * (norm(0,2)*VzTerms(:,:,:,2,2) + norm(2,2)*VxTerms(:,:,:,2,2))
-        Elem%spml%residual_Stress3(:,:,:,2) = Elem%spml%dumpSz(:,:,:,0) * Elem%spml%residual_Stress3(:,:,:,2) + &
-            Elem%spml%dumpSz(:,:,:,1) * Dt * (norm(1,2)*VzTerms(:,:,:,2,2) + norm(2,2)*VyTerms(:,:,:,2,2))
+        Elem%slpml%residual_Stress3(:,:,:,0) = Elem%slpml%dumpSz(:,:,:,0) * Elem%slpml%residual_Stress3(:,:,:,0) + &
+            Elem%slpml%dumpSz(:,:,:,1) * Dt * (norm(0,2)*VyTerms(:,:,:,2,2) + norm(1,2)*VxTerms(:,:,:,2,2))
+        Elem%slpml%residual_Stress3(:,:,:,1) = Elem%slpml%dumpSz(:,:,:,0) * Elem%slpml%residual_Stress3(:,:,:,1) + &
+            Elem%slpml%dumpSz(:,:,:,1) * Dt * (norm(0,2)*VzTerms(:,:,:,2,2) + norm(2,2)*VxTerms(:,:,:,2,2))
+        Elem%slpml%residual_Stress3(:,:,:,2) = Elem%slpml%dumpSz(:,:,:,0) * Elem%slpml%residual_Stress3(:,:,:,2) + &
+            Elem%slpml%dumpSz(:,:,:,1) * Dt * (norm(1,2)*VzTerms(:,:,:,2,2) + norm(2,2)*VyTerms(:,:,:,2,2))
 
-        Elem%spml%residual_Stress = Elem%spml%residual_Stress1 + Elem%spml%residual_Stress2 + Elem%spml%residual_Stress3
+        Elem%slpml%residual_Stress = Elem%slpml%residual_Stress1 + Elem%slpml%residual_Stress2 + Elem%slpml%residual_Stress3
 
 
         return

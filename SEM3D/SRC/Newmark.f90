@@ -32,7 +32,9 @@ subroutine Newmark(Tdomain,rg,ntime)
     integer :: nf_aus, ne_aus, nv_aus
     integer :: ngll, ngll1, ngll2, ngllPML, ngll_F, ngllPML_F
     integer, parameter :: etiquette = 100
-
+#ifdef COUPLAGE
+    integer :: i,j
+#endif
 
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a
     ! Time staggered Stress-Velocity formulation inside PML
@@ -526,11 +528,11 @@ subroutine external_forces(Tdomain,timer,ntime,rank)
                 ! collocated force in solid
                 !
                 do i_dir = 0,2
-                    Tdomain%specel(nel)%Forces(:,:,:,i_dir) = Tdomain%specel(nel)%Forces(:,:,:,i_dir)+ &
+                    Tdomain%specel(nel)%sl%Forces(:,:,:,i_dir) = Tdomain%specel(nel)%sl%Forces(:,:,:,i_dir)+ &
                         ft*Tdomain%sSource(ns)%ExtForce(:,:,:,i_dir)
                 end do
             else if(Tdomain%sSource(ns)%i_type_source == 3)then    ! pressure pulse in fluid
-                Tdomain%specel(nel)%ForcesFl(:,:,:) = Tdomain%specel(nel)%ForcesFl(:,:,:)+    &
+                Tdomain%specel(nel)%fl%ForcesFl(:,:,:) = Tdomain%specel(nel)%fl%ForcesFl(:,:,:)+    &
                     ft*Tdomain%sSource(ns)%ExtForce(:,:,:,0)
             end if
         endif

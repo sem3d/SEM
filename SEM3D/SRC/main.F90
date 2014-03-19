@@ -8,17 +8,14 @@ program drive_sem
     character(Len=MAX_FILE_SIZE),parameter :: p_data = "."
     character(Len=MAX_FILE_SIZE),parameter :: p_prot = "./prot"
 
-    integer :: code, rg
+    integer :: ierr, rg
 
     call init_sem_path(p_param, p_traces, p_results, p_data, p_prot)
 
-    call MPI_Init (code)
-    call MPI_Comm_Rank (MPI_COMM_WORLD, rg, code)
-
     call sem(-1, MPI_COMM_WORLD, MPI_COMM_WORLD)
 
-    if (rg == 0) write (*,*) "fin du calcul sur processeurs ",rg
-    call mpi_finalize(code)
+    write (*,*) "fin du calcul sur processeurs ",rg
+    call mpi_finalize(ierr)
 
 end program drive_sem
 !! Local Variables:

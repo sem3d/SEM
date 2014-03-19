@@ -42,6 +42,13 @@ MODULE constants
     ! Les fichiers capteurs sont ecrits toutes les NCAPT_CACHE sorties
     integer, parameter :: NCAPT_CACHE=100
 
+
+    ! Materials
+    integer, parameter :: MATERIAL_CONSTANT   = 1
+    integer, parameter :: MATERIAL_GRADIENT   = 2
+    integer, parameter :: MATERIAL_EARTHCHUNK = 3
+
+
 CONTAINS
 
 END MODULE constants

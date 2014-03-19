@@ -39,10 +39,16 @@ module mpi
        MODULE PROCEDURE MPI_Reduce_rv, MPI_Reduce_r1, MPI_Reduce_i1, MPI_Reduce_iv
     END INTERFACE
     INTERFACE MPI_Isend
-       MODULE PROCEDURE MPI_Isend_rv, MPI_Isend_r1
+       MODULE PROCEDURE MPI_Isend_rv, MPI_Isend_r1, MPI_Isend_rij, MPI_Isend_rijk
+    END INTERFACE
+    INTERFACE MPI_Irecv
+       MODULE PROCEDURE MPI_Irecv_rv, MPI_Irecv_r1, MPI_Irecv_rij, MPI_Irecv_rijk
+    END INTERFACE
+    INTERFACE MPI_Gather
+       MODULE PROCEDURE MPI_Gather_rv, MPI_Gather_r1, MPI_Gather_iv, MPI_Gather_i1
     END INTERFACE
     INTERFACE MPI_Gatherv
-       MODULE PROCEDURE MPI_Gatherv_rv, MPI_Gatherv_r1, MPI_Gatherv_iv, MPI_Gatherv_i1
+       MODULE PROCEDURE MPI_Gatherv_rv, MPI_Gatherv_r1, MPI_Gatherv_iv, MPI_Gatherv_i1, MPI_Gatherv_rmij, MPI_Gatherv_imij
     END INTERFACE
     INTERFACE MPI_Scatterv
        MODULE PROCEDURE MPI_Scatterv_rv, MPI_Scatterv_r1, MPI_Scatterv_iv, MPI_Scatterv_i1, MPI_Scatterv_im, MPI_Scatterv_im3
@@ -77,6 +83,16 @@ contains
         ierr = 0
 
     end subroutine MPI_FINALIZE
+
+    subroutine MPI_WAITALL (count, requests, status, ierr)
+        implicit none
+        integer, intent(in) :: count
+        integer, intent(in), dimension(:) :: requests
+        integer, intent(inout), dimension(:,:) :: status
+        integer, intent(inout) :: ierr
+
+        ierr = 0
+    end subroutine MPI_WAITALL
 
     subroutine MPI_COMM_RANK (comm, rank, ierr)
         implicit none
@@ -132,6 +148,18 @@ contains
         ierr = 0
 
     end subroutine MPI_COMM_GROUP
+
+    subroutine MPI_COMM_SPLIT (comm, color, key, newcomm, ierr)
+        implicit none
+        integer, intent(in) :: comm
+        integer, intent(in) :: color, key
+        integer, intent(out):: newcomm
+        integer, intent(inout) :: ierr
+
+        newcomm = 0
+        ierr = 0
+
+    end subroutine MPI_COMM_SPLIT
 
 
     !! ----------------------- MPI_Bcast ---------------------------
@@ -452,7 +480,7 @@ contains
     end subroutine MPI_REDUCE_i1
 
     !! ----------------------- MPI_Gather ---------------------------
-    subroutine MPI_GATHER(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, root, comm, ierr )
+    subroutine MPI_GATHER_rv(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, root, comm, ierr )
         implicit none
 
         integer, intent(in) :: sendtype, recvtype, sendcount, recvcount, root, comm
@@ -460,7 +488,37 @@ contains
         real, intent(inout) :: recvbuf(recvcount)
         real, intent(in) :: sendbuf(sendcount)
         recvbuf = sendbuf
-    end subroutine MPI_GATHER
+    end subroutine MPI_GATHER_rv
+
+    subroutine MPI_GATHER_r1(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, root, comm, ierr )
+        implicit none
+
+        integer, intent(in) :: sendtype, recvtype, sendcount, recvcount, root, comm
+        integer, intent(inout) :: ierr
+        real, intent(inout) :: recvbuf(recvcount)
+        real, intent(in) :: sendbuf
+        recvbuf = sendbuf
+    end subroutine MPI_GATHER_r1
+
+    subroutine MPI_GATHER_iv(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, root, comm, ierr )
+        implicit none
+
+        integer, intent(in) :: sendtype, recvtype, sendcount, recvcount, root, comm
+        integer, intent(inout) :: ierr
+        integer, intent(inout) :: recvbuf(recvcount)
+        integer, intent(in) :: sendbuf(sendcount)
+        recvbuf = sendbuf
+    end subroutine MPI_GATHER_iv
+
+    subroutine MPI_GATHER_i1(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, root, comm, ierr )
+        implicit none
+
+        integer, intent(in) :: sendtype, recvtype, sendcount, recvcount, root, comm
+        integer, intent(inout) :: ierr
+        integer, intent(inout) :: recvbuf(recvcount)
+        integer, intent(in) :: sendbuf
+        recvbuf = sendbuf
+    end subroutine MPI_GATHER_i1
 
     !! ----------------------- MPI_Gatherv ---------------------------
     subroutine MPI_GATHERV_rv(sendbuf, sendcount, sendtype, recvbuf, recvcounts,displs, recvtype, root, comm, ierr )
@@ -473,6 +531,17 @@ contains
         real, intent(in) :: sendbuf(sendcount)
         recvbuf = sendbuf
     end subroutine MPI_GATHERV_rv
+
+    subroutine MPI_GATHERV_rmij(sendbuf, sendcount, sendtype, recvbuf, recvcounts,displs, recvtype, root, comm, ierr )
+        implicit none
+        integer, intent(in) :: sendtype, recvtype, sendcount, root, comm
+        integer, intent(inout) :: ierr
+        integer, intent(in) :: recvcounts(*)
+        integer, intent(in) :: displs(*)
+        real, intent(inout), dimension(:,:) :: recvbuf
+        real, intent(in), dimension(:,:) :: sendbuf
+        recvbuf = sendbuf
+    end subroutine MPI_GATHERV_rmij
 
     subroutine MPI_GATHERV_r1(sendbuf, sendcount, sendtype, recvbuf, recvcounts,displs, recvtype, root, comm, ierr )
         implicit none
@@ -495,6 +564,17 @@ contains
         integer, intent(in) :: sendbuf(sendcount)
         recvbuf = sendbuf
     end subroutine MPI_GATHERV_iv
+
+    subroutine MPI_GATHERV_imij(sendbuf, sendcount, sendtype, recvbuf, recvcounts,displs, recvtype, root, comm, ierr )
+        implicit none
+        integer, intent(in) :: sendtype, recvtype, sendcount, root, comm
+        integer, intent(inout) :: ierr
+        integer, intent(in) :: recvcounts(*)
+        integer, intent(in) :: displs(*)
+        integer, intent(inout), dimension(:,:) :: recvbuf
+        integer, intent(in),dimension(:,:) :: sendbuf
+        recvbuf = sendbuf
+    end subroutine MPI_GATHERV_imij
 
     subroutine MPI_GATHERV_i1(sendbuf, sendcount, sendtype, recvbuf, recvcounts,displs, recvtype, root, comm, ierr )
         implicit none
@@ -635,7 +715,7 @@ contains
         implicit none
         integer, intent(in) :: sendtype, recvtype, sendcount, recvcount, comm
         integer, intent(inout) :: ierr
-        integer, intent(inout) :: recvbuf
+        integer, intent(inout) :: recvbuf(recvcount)
         integer, intent(in) :: sendbuf
         ierr = 0
         recvbuf = sendbuf
@@ -725,6 +805,97 @@ contains
         requete = 0
     end subroutine MPI_ISEND_rv
 
+    subroutine MPI_ISEND_rij (val, long, type, dest, tag, comm, requete, ierr)
+        implicit none
+        real, intent(in), dimension(:,:) :: val
+        integer, intent(in) :: long
+        integer, intent(in) :: type
+        integer, intent(in) :: dest
+        integer, intent(in) :: tag
+        integer, intent(in) :: comm
+        integer, intent(out) :: requete
+        integer, intent(inout) :: ierr
+
+        ierr = 0
+        requete = 0
+    end subroutine MPI_ISEND_rij
+
+    subroutine MPI_ISEND_rijk (val, long, type, dest, tag, comm, requete, ierr)
+        implicit none
+        real, intent(in), dimension(:,:,:) :: val
+        integer, intent(in) :: long
+        integer, intent(in) :: type
+        integer, intent(in) :: dest
+        integer, intent(in) :: tag
+        integer, intent(in) :: comm
+        integer, intent(out) :: requete
+        integer, intent(inout) :: ierr
+
+        ierr = 0
+        requete = 0
+    end subroutine MPI_ISEND_rijk
+    !! ----------------------- MPI_Irecv ---------------------------
+    subroutine MPI_IRECV_r1 (val, long, type, dest, tag, comm, requete, ierr)
+        implicit none
+        real, intent(out) :: val
+        integer, intent(in) :: long
+        integer, intent(in) :: type
+        integer, intent(in) :: dest
+        integer, intent(in) :: tag
+        integer, intent(in) :: comm
+        integer, intent(out) :: requete
+        integer, intent(inout) :: ierr
+
+        ierr = 0
+        requete = 0
+    end subroutine MPI_IRECV_r1
+
+    subroutine MPI_IRECV_rv (val, long, type, dest, tag, comm, requete, ierr)
+        implicit none
+        real, intent(out), dimension(long) :: val
+        integer, intent(in) :: long
+        integer, intent(in) :: type
+        integer, intent(in) :: dest
+        integer, intent(in) :: tag
+        integer, intent(in) :: comm
+        integer, intent(out) :: requete
+        integer, intent(inout) :: ierr
+
+        ierr = 0
+        requete = 0
+    end subroutine MPI_IRECV_rv
+
+    subroutine MPI_IRECV_rij (val, long, type, dest, tag, comm, requete, ierr)
+        implicit none
+        real, intent(out), dimension(:,:) :: val
+        integer, intent(in) :: long
+        integer, intent(in) :: type
+        integer, intent(in) :: dest
+        integer, intent(in) :: tag
+        integer, intent(in) :: comm
+        integer, intent(out) :: requete
+        integer, intent(inout) :: ierr
+
+        ierr = 0
+        requete = 0
+    end subroutine MPI_IRECV_rij
+
+    subroutine MPI_IRECV_rijk (val, long, type, dest, tag, comm, requete, ierr)
+        implicit none
+        real, intent(out), dimension(:,:,:) :: val
+        integer, intent(in) :: long
+        integer, intent(in) :: type
+        integer, intent(in) :: dest
+        integer, intent(in) :: tag
+        integer, intent(in) :: comm
+        integer, intent(out) :: requete
+        integer, intent(inout) :: ierr
+
+        ierr = 0
+        requete = 0
+    end subroutine MPI_IRECV_rijk
+
+    !! ----------------------- MPI_Allgatherv ---------------------------
     subroutine MPI_ALLGATHERV(sendbuf, sendcount, sendtype, recvbuf, recvcounts,displs, recvtype, comm, ierr )
         implicit none
 
@@ -759,5 +930,9 @@ end module mpi
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!

@@ -53,9 +53,9 @@ contains
 
         if(solid)then   ! SOLID PART OF THE DOMAIN
 
-        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Elem%Forces(:,:,:,0),dxx,dyx,dzx)
-        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Elem%Forces(:,:,:,1),dxy,dyy,dzy)
-        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Elem%Forces(:,:,:,2),dxz,dyz,dzz)
+        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Elem%sl%Forces(:,:,:,0),dxx,dyx,dzx)
+        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Elem%sl%Forces(:,:,:,1),dxy,dyy,dzy)
+        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Elem%sl%Forces(:,:,:,2),dxz,dyz,dzz)
 
         if (n_solid>0) then
             if (aniso) then
@@ -102,17 +102,17 @@ contains
                     DXX,DXY,DXZ, &
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &
-                    Elem%Mu, Elem%Lambda, Elem%Cij, &
+                    Elem%Mu, Elem%Lambda, Elem%sl%Cij, &
                     
                     m1,m2,m3, n_solid, &
-                    Elem%onemSbeta, Elem%R_xx_, Elem%R_yy_, &
-                    Elem%R_xy_, Elem%R_xz_, Elem%R_yz_)
-                call attenuation_aniso_update(Elem%epsilondev_xx_,Elem%epsilondev_yy_, &
-                    Elem%epsilondev_xy_,Elem%epsilondev_xz_,Elem%epsilondev_yz_, &
+                    Elem%sl%onemSbeta, Elem%sl%R_xx_, Elem%sl%R_yy_, &
+                    Elem%sl%R_xy_, Elem%sl%R_xz_, Elem%sl%R_yz_)
+                call attenuation_aniso_update(Elem%sl%epsilondev_xx_,Elem%sl%epsilondev_yy_, &
+                    Elem%sl%epsilondev_xy_,Elem%sl%epsilondev_xz_,Elem%sl%epsilondev_yz_, &
                     epsilondev_xx_loc,epsilondev_yy_loc, &
                     epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc, &
-                    Elem%R_xx_,Elem%R_yy_,Elem%R_xy_,Elem%R_xz_,Elem%R_yz_, &
-                    Elem%factor_common_3,Elem%alphaval_3,Elem%betaval_3,Elem%gammaval_3, &
+                    Elem%sl%R_xx_,Elem%sl%R_yy_,Elem%sl%R_xy_,Elem%sl%R_xz_,Elem%sl%R_yz_, &
+                    Elem%sl%factor_common_3,Elem%sl%alphaval_3,Elem%sl%betaval_3,Elem%sl%gammaval_3, &
                     Elem%Mu, m1,m2,m3, n_solid)
                 deallocate(epsilondev_xx_loc,epsilondev_yy_loc,epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc)
                 !      deallocate(epsilonvol_loc)
@@ -132,7 +132,7 @@ contains
                     DXX,DXY,DXZ, &
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &
-                    Elem%Cij, &
+                    Elem%sl%Cij, &
                     m1,m2,m3)
             endif
         else
@@ -155,23 +155,23 @@ contains
                     Elem%Mu, Elem%Kappa, &
                     m1,m2,m3, n_solid, &
                                 !     Elem%onemSbeta, &
-                    Elem%R_xx_, Elem%R_yy_, &
-                    Elem%R_xy_, Elem%R_xz_, Elem%R_yz_, &
+                    Elem%sl%R_xx_, Elem%sl%R_yy_, &
+                    Elem%sl%R_xy_, Elem%sl%R_xz_, Elem%sl%R_yz_, &
                                 !      Elem%onemPbeta, &
-                    Elem%R_vol_)
+                    Elem%sl%R_vol_)
                 !                             Elem%Mu, Elem%Lambda, &
                 !                             m1,m2,m3, n_solid, &
                 !                             Elem%onemSbeta, Elem%R_xx_, Elem%R_yy_, &
                 !                             Elem%R_xy_, Elem%R_xz_, Elem%R_yz_)
-                call attenuation_update(Elem%epsilondev_xx_,Elem%epsilondev_yy_, &
-                    Elem%epsilondev_xy_,Elem%epsilondev_xz_,Elem%epsilondev_yz_, &
+                call attenuation_update(Elem%sl%epsilondev_xx_,Elem%sl%epsilondev_yy_, &
+                    Elem%sl%epsilondev_xy_,Elem%sl%epsilondev_xz_,Elem%sl%epsilondev_yz_, &
                     epsilondev_xx_loc,epsilondev_yy_loc, &
                     epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc, &
-                    Elem%R_xx_,Elem%R_yy_,Elem%R_xy_,Elem%R_xz_,Elem%R_yz_, &
-                    Elem%factor_common_3,Elem%alphaval_3,Elem%betaval_3,Elem%gammaval_3, &
+                    Elem%sl%R_xx_,Elem%sl%R_yy_,Elem%sl%R_xy_,Elem%sl%R_xz_,Elem%sl%R_yz_, &
+                    Elem%sl%factor_common_3,Elem%sl%alphaval_3,Elem%sl%betaval_3,Elem%sl%gammaval_3, &
                     Elem%Mu, m1,m2,m3, n_solid, &
-                    Elem%Kappa, Elem%epsilonvol_,epsilonvol_loc,Elem%R_vol_, &
-                    Elem%factor_common_P,Elem%alphaval_P,Elem%betaval_P,Elem%gammaval_P)
+                    Elem%Kappa, Elem%sl%epsilonvol_,epsilonvol_loc,Elem%sl%R_vol_, &
+                    Elem%sl%factor_common_P,Elem%sl%alphaval_P,Elem%sl%betaval_P,Elem%sl%gammaval_P)
                 !                              kappa_,elsilonvol_,epsilon_vol_loc,R_vol_, &
                 !                              factor_common_P_,alphaval_P_,betaval_P_,gammaval_P_)
                 deallocate(epsilondev_xx_loc,epsilondev_yy_loc,epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc)
@@ -197,16 +197,16 @@ contains
             endif
         endif
 
-        Elem%Forces(:,:,:,0) = -Fox
-        Elem%Forces(:,:,:,1) = -Foy
-        Elem%Forces(:,:,:,2) = -Foz
+        Elem%sl%Forces(:,:,:,0) = -Fox
+        Elem%sl%Forces(:,:,:,1) = -Foy
+        Elem%sl%Forces(:,:,:,2) = -Foz
 
    !---------------------------------
         else      ! FLUID PART OF THE DOMAIN
             ! d(rho*Phi)_dX
             ! d(rho*Phi)_dY
             ! d(rho*Phi)_dZ
-            call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Elem%ForcesFl, &
+            call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Elem%fl%ForcesFl, &
                 dPhiX, dPhiY, dPhiZ)
 
             ! internal forces
@@ -226,7 +226,7 @@ contains
                          Elem%Density,            &
                          m1,m2,m3)
 
-            Elem%ForcesFl(:,:,:) = -Fo_Fl(:,:,:)
+            Elem%fl%ForcesFl(:,:,:) = -Fo_Fl(:,:,:)
 
         end if
 

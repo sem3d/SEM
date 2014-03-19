@@ -5,6 +5,7 @@ run_name = "Cube_PML";
 sim_time = 5.0;
 mesh_file = "mesh4spec"; # input mesh file
 mat_file = "material.input";
+dim=3;
 
 snapshots {
     save_snap = true;
