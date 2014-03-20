@@ -53,6 +53,7 @@ module selement
        real, dimension(:,:,:,:), allocatable :: DumpVx,DumpVy,DumpVz, DumpMass
        real, dimension(:,:,:,:), allocatable :: Diagonal_Stress, Residual_Stress
        real, dimension(:,:), allocatable :: Normales, Inv_Normales
+	   integer, dimension (:,:,:), allocatable :: IPml
     end type element_solid_pml
 
     type :: element_fluid_pml
@@ -60,6 +61,7 @@ module selement
         real, dimension(:,:,:,:), allocatable :: DumpVx,DumpVy,DumpVz, DumpMass
         real, dimension(:,:,:,:), allocatable :: Veloc,Veloc1,Veloc2,Veloc3
         real, dimension(:,:,:), allocatable :: ForcesFl1,ForcesFl2,ForcesFl3,VelPhi1,VelPhi2,VelPhi3
+	    integer, dimension (:,:,:), allocatable :: IPml
     end type element_fluid_pml
 
     type :: element
@@ -87,6 +89,8 @@ module selement
        type(element_fluid), allocatable :: fl
        type(element_solid_pml), allocatable :: slpml
        type(element_fluid_pml), allocatable :: flpml
+
+	   integer, dimension (:,:,:), allocatable :: ISol, IFlu
 
        real :: dist_max !! taille caracteristique de l'element
     end type element

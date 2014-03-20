@@ -21,12 +21,54 @@ subroutine global_numbering(Tdomain,rank)
     implicit none
     integer, intent(in)  :: rank
     type(domain), intent (inout) :: Tdomain
-    integer :: n,icount,i,j,k,ngllx,nglly,ngllz,nf,nnf,ne,nne,nv,ngll1,ngll2,   &
-        orient_f,orient_e,ngll,nnv
+    integer :: n, icount, i, j, k, ngllx, nglly, ngllz, nf, nnf, ne, nne, nv, ngll1, ngll2,   &
+        orient_f, orient_e, ngll, nnv, idxS, idxF, idxSpml, idxFpml
     integer, dimension(0:6)  :: index_elem_f
     integer, dimension(0:4)  :: index_elem_e
     integer, dimension(0:2)  :: index_elem_v
+    integer, dimension (:), allocatable :: renumS, renumF, renumSpml, renumFpml
 
+    interface
+        subroutine renum_solide(Tdomain, n, ngllx, nglly, ngllz, idxS, renumS)
+            use sdomain
+            implicit none
+            type(domain), intent(inout) :: Tdomain
+            integer, intent (inout) :: idxS
+            integer, dimension (:), allocatable, intent (inout) :: renumS
+            integer, intent (in) :: n, ngllx, nglly, ngllz
+            integer :: i, j, k, num
+        end subroutine renum_solide
+
+        subroutine renum_solide_pml(Tdomain, n, ngllx, nglly, ngllz, idxS, renumS, idxSpml, renumSpml)
+            use sdomain
+            implicit none
+            type(domain), intent(inout) :: Tdomain
+            integer, intent (inout) :: idxS, idxSpml
+            integer, dimension (:), allocatable, intent (inout) :: renumS, renumSpml
+            integer, intent (in) :: n, ngllx, nglly, ngllz
+            integer :: i, j, k, num
+        end subroutine renum_solide_pml
+
+        subroutine renum_fluide(Tdomain, n, ngllx, nglly, ngllz, idxF, renumF)
+            use sdomain
+            implicit none
+            type(domain), intent(inout) :: Tdomain
+            integer, intent (inout) :: idxF
+            integer, dimension (:), allocatable, intent (inout) :: renumF
+            integer, intent (in) :: n, ngllx, nglly, ngllz
+            integer :: i, j, k, num
+        end subroutine renum_fluide
+
+        subroutine renum_fluide_pml(Tdomain, n, ngllx, nglly, ngllz, idxF, renumF, idxFpml, renumFpml)
+            use sdomain
+            implicit none
+            type(domain), intent(inout) :: Tdomain
+            integer, intent (inout) :: idxF, idxFpml
+            integer, dimension (:), allocatable, intent (inout) :: renumF, renumFpml
+            integer, intent (in) :: n, ngllx, nglly, ngllz
+            integer :: i, j, k, num
+        end subroutine renum_fluide_pml
+    end interface
 
     icount = 0
 
@@ -166,8 +208,197 @@ subroutine global_numbering(Tdomain,rank)
 
     enddo    ! end of the loop onto elements
 
+
+    ! Renumerotation
+    allocate(renumS(0:Tdomain%n_glob_points-1))
+    allocate(renumF(0:Tdomain%n_glob_points-1))
+    allocate(renumSpml(0:Tdomain%n_glob_points-1))
+    allocate(renumFpml(0:Tdomain%n_glob_points-1))
+    renumS(:) = -1
+    renumF(:) = -1
+    renumSpml(:) = -1
+    renumFpml(:) = -1
+    idxS = 0
+    idxF = 0
+    idxSpml = 0
+    idxFpml = 0
+    do n = 0,Tdomain%n_elem-1
+        ngllx = Tdomain%specel(n)%ngllx
+        nglly = Tdomain%specel(n)%nglly
+        ngllz = Tdomain%specel(n)%ngllz
+        if (Tdomain%specel(n)%solid)then
+            ! Element solide avec ou sans PML
+            allocate(Tdomain%specel(n)%ISol(0:ngllx-1,0:nglly-1,0:ngllz-1))
+            Tdomain%specel(n)%ISol(:,:,:) = -1
+
+            if (Tdomain%specel(n)%PML) then
+                call renum_solide_pml(Tdomain, n, ngllx, nglly, ngllz, idxS, renumS, idxSpml, renumSpml)
+            else
+                call renum_solide(Tdomain, n, ngllx, nglly, ngllz, idxS, renumS)
+            endif ! fin test pml on non
+
+        else
+            ! Element fluide avec ou sans PML
+            allocate(Tdomain%specel(n)%IFlu(0:ngllx-1,0:nglly-1,0:ngllz-1))
+            Tdomain%specel(n)%IFlu(:,:,:) = -1
+
+            if (Tdomain%specel(n)%PML) then
+                ! Element fluide PML
+                call renum_fluide_pml(Tdomain, n, ngllx, nglly, ngllz, idxF, renumF, idxFpml, renumFpml)
+            else
+                ! Element fluide
+                call renum_fluide(Tdomain, n, ngllx, nglly, ngllz, idxF, renumF)
+            endif ! fin test pml ou non
+        endif ! fin test solide ou liquide
+    enddo ! fin boucle sur les elements
+
+    Tdomain%ngll_s = idxS
+    Tdomain%ngll_f = idxF
+    Tdomain%ngll_pmls = idxSpml
+    Tdomain%ngll_pmlf = idxFpml
+
     return
 end subroutine global_numbering
+
+
+!! Renumerotation des points de gauss d'element solide
+subroutine renum_solide(Tdomain, n, ngllx, nglly, ngllz, idxS, renumS)
+    use sdomain
+
+    implicit none
+
+    type(domain), intent(inout) :: Tdomain
+    integer, intent (inout) :: idxS
+    integer, dimension (:), allocatable, intent (inout) :: renumS
+    integer, intent (in) :: n, ngllx, nglly, ngllz
+    integer :: i, j, k, num
+
+    do k = 0,ngllz-1
+        do j = 0,nglly-1
+            do i = 0,ngllx-1
+                num = renumS(Tdomain%specel(n)%Iglobnum(i,j,k))
+                if (num == -1) then
+                    renumS(Tdomain%specel(n)%Iglobnum(i,j,k)) = idxS
+                    num = idxS
+                    idxS = idxS + 1                                
+                endif
+                Tdomain%specel(n)%ISol(i,j,k) = num
+            enddo
+        enddo
+    enddo
+
+    return
+end subroutine renum_solide
+
+
+!! Renumerotation des points de gauss d'element solide et pml
+subroutine renum_solide_pml(Tdomain, n, ngllx, nglly, ngllz, idxS, renumS, idxSpml, renumSpml)
+    use sdomain
+
+    implicit none
+
+    type(domain), intent(inout) :: Tdomain
+    integer, intent (inout) :: idxS, idxSpml
+    integer, dimension (:), allocatable, intent (inout) :: renumS, renumSpml
+    integer, intent (in) :: n, ngllx, nglly, ngllz
+    integer :: i, j, k, num
+
+    allocate(Tdomain%specel(n)%slpml%IPml(0:ngllx-1,0:nglly-1,0:ngllz-1))
+    Tdomain%specel(n)%slpml%IPml(:,:,:) = -1
+    do k = 0,ngllz-1
+        do j = 0,nglly-1
+            do i = 0,ngllx-1
+                num = renumS(Tdomain%specel(n)%Iglobnum(i,j,k))
+                if (num == -1) then
+                    renumS(Tdomain%specel(n)%Iglobnum(i,j,k)) = idxS
+                    num = idxS
+                    idxS = idxS + 1
+                endif
+                Tdomain%specel(n)%ISol(i,j,k) = num
+
+                num = renumSpml(Tdomain%specel(n)%Iglobnum(i,j,k))
+                if (num == -1) then
+                    renumSpml(Tdomain%specel(n)%Iglobnum(i,j,k)) = idxSpml
+                    num = idxSpml
+                    idxSpml = idxSpml + 1
+                endif
+                Tdomain%specel(n)%slpml%IPml(i,j,k) = num
+            enddo
+        enddo
+    enddo
+
+    return
+end subroutine renum_solide_pml
+
+!! Renumerotation des points de gauss d'element fluide
+subroutine renum_fluide(Tdomain, n, ngllx, nglly, ngllz, idxF, renumF)
+    use sdomain
+
+    implicit none
+
+    type(domain), intent(inout) :: Tdomain
+    integer, intent (inout) :: idxF
+    integer, dimension (:), allocatable, intent (inout) :: renumF
+    integer, intent (in) :: n, ngllx, nglly, ngllz
+    integer :: i, j, k, num
+
+    do k = 0,ngllz-1
+        do j = 0,nglly-1
+            do i = 0,ngllx-1
+                num = renumF(Tdomain%specel(n)%Iglobnum(i,j,k))
+                if (num == -1) then
+                    renumF(Tdomain%specel(n)%Iglobnum(i,j,k)) = idxF
+                    num = idxF
+                    idxF = idxF + 1
+                endif
+                Tdomain%specel(n)%IFlu(i,j,k) = num
+            enddo
+        enddo
+    enddo
+
+    return
+end subroutine renum_fluide
+
+
+!! Renumerotation des points de gauss d'element fluide et pml
+subroutine renum_fluide_pml(Tdomain, n, ngllx, nglly, ngllz, idxF, renumF, idxFpml, renumFpml)
+    use sdomain
+
+    implicit none
+
+    type(domain), intent(inout) :: Tdomain
+    integer, intent (inout) :: idxF, idxFpml
+    integer, dimension (:), allocatable, intent (inout) :: renumF, renumFpml
+    integer, intent (in) :: n, ngllx, nglly, ngllz
+    integer :: i, j, k, num
+
+    allocate(Tdomain%specel(n)%flpml%IPml(0:ngllx-1,0:nglly-1,0:ngllz-1))
+    Tdomain%specel(n)%flpml%IPml(:,:,:) = -1
+    do k = 0,ngllz-1
+        do j = 0,nglly-1
+            do i = 0,ngllx-1
+                num = renumF(Tdomain%specel(n)%Iglobnum(i,j,k))
+                if (num == -1) then
+                    renumF(Tdomain%specel(n)%Iglobnum(i,j,k)) = idxF
+                    num = idxF
+                    idxF = idxF + 1
+                endif
+                Tdomain%specel(n)%IFlu(i,j,k) = num
+
+                num = renumFpml(Tdomain%specel(n)%Iglobnum(i,j,k))
+                if (num == -1) then
+                    renumFpml(Tdomain%specel(n)%Iglobnum(i,j,k)) = idxFpml
+                    num = idxFpml
+                    idxFpml = idxFpml + 1
+                endif
+                Tdomain%specel(n)%flpml%IPml(i,j,k) = num
+            enddo
+        enddo
+    enddo
+
+    return
+end subroutine renum_fluide_pml
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

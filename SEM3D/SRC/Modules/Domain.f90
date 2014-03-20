@@ -78,6 +78,9 @@ module sdomain
 
        real :: MPML_coeff
 
+       ! Nombre de gll solide, fluide, pml solide, pml fluide
+       integer :: ngll_s, ngll_f, ngll_pmls, ngll_pmlf
+
     end type domain
 
 contains
