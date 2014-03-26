@@ -691,6 +691,21 @@ subroutine define_arrays(Tdomain)
             enddo
         enddo
     endif
+
+    !! Special addition for Lamb test : A SUPPRIMER !!!!!!!!
+    do nf=0,Tdomain%n_face-1
+        i = Tdomain%sFace(nf)%Near_Vertex(0)
+        j = Tdomain%sFace(nf)%Near_Vertex(1)
+        i = Tdomain%sVertex(i)%Glob_numbering
+        j = Tdomain%sVertex(j)%Glob_numbering
+        if (Tdomain%coord_nodes(1,i)==0. .and. Tdomain%coord_nodes(1,j)==0. &
+                                         .and. Tdomain%sFace(nf)%Abs ) then
+            Tdomain%sFace(nf)%freesurf = .true.
+            Tdomain%sFace(nf)%Abs      = .false.
+        endif
+    enddo
+    !!! FIN A SUPPRIMER !!!!!!!!
+
     return
 end subroutine define_arrays
 !! Local Variables:
