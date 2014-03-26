@@ -60,11 +60,12 @@ subroutine  initialize_material_prem( elem, matInfo, coorPt, npts)
                     elem%Lambda(i,j,k) = lambda_from_Cij(Cij)
                     elem%Mu(i,j,k) = mu_from_Cij(Cij)
                 else
-                    
-                    theta = lat*Pi180
-                    phi = lon*Pi180
 
-                    call c_4tensor(Cij,theta,phi)
+                    !TODO : verifier que la rotation du tenseur est correcte
+                    !dans un modele type prem
+                    !theta = lat*Pi180
+                    !phi = lon*Pi180
+                    !call c_4tensor(Cij,theta,phi)
 
                     idef = 0
                     do ii = 1,6

@@ -69,6 +69,11 @@ contains
         chunk%delta_lat = (chunk%npt_lat-1) * chunk%step_lonlat
 
 
+        open(11, file="earthchunk_transform.txt", form="formatted")
+        write(11,*) "lon_center", chunk%lon_center
+        write(11,*) "lat_center", chunk%lat_center
+        close(11)
+
 
         countPt=0
         dTheta = Pi/180.0 *chunk%step_lonlat
