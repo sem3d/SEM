@@ -18,7 +18,7 @@ endif(OPT_MPI)
 
 add_definitions(-DUSE_HDF5)
 include_directories(${HDF5_INCLUDE_DIR_FORTRAN})
-set(MESH_EXTRA_LIBS ${MESH_EXTRA_LIBS} hdf5_fortran)
+#set(MESH_EXTRA_LIBS ${MESH_EXTRA_LIBS} hdf5_fortran)
 
 
 add_executable(mesh2dc ${MESHC_SRC})
