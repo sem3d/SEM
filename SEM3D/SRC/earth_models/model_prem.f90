@@ -26,16 +26,16 @@ contains
 
 
 ! #######################################################
-    subroutine cart2sph(x, y, z, r, lon, lat)
+    subroutine cart2sph(x, y, z, r, theta, phi)
         implicit none
         real, intent(in) :: x, y, z
-        real, intent(out) :: r, lon, lat
+        real, intent(out) :: r, theta, phi
 
         r = sqrt(x**2+y**2+z**2)
 
-        lat = 90.0-acos(z/r)/Pi180
+        theta = acos(z/r)
 
-        lon = atan2(x,y)/Pi180
+        phi = atan2(x,y)
 
     end subroutine cart2sph
 

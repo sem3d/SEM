@@ -9,7 +9,7 @@ module model_earthchunk
 
 
     integer :: n_lat, n_lon
-    real :: lon_min=360, lon_max=0, lat_min=90, lat_max=-90, lat_delta, lon_delta, max_depth
+    real :: lon_min=360, lon_max=0, lat_min=90, lat_max=-90, lat_delta, lon_delta, max_depth, lat_center=0, lon_center=0
     type(OneModel), allocatable, dimension(:) :: value_pt
     logical :: is_modelOpenQ=.false.
 
@@ -37,16 +37,16 @@ contains
 
 
 ! #######################################################
-    subroutine cart2sph(x, y, z, r, lon, lat)
+    subroutine cart2sph(x, y, z, r, theta, phi)
         implicit none
         real, intent(in) :: x, y, z
-        real, intent(out) :: r, lon, lat
+        real, intent(out) :: r, theta, phi
 
         r = sqrt(x**2+y**2+z**2)
 
-        lat = 90.0-acos(z/r)/Pi180
+        theta= acos(z/r)
 
-        lon = atan2(x,y)/Pi180
+        phi = atan2(x,y)
 
     end subroutine cart2sph
 
@@ -251,12 +251,15 @@ contains
         character(len=*), intent(in) :: filename
         real, intent(in) :: delta_lon, delta_lat
         integer :: ios, ilayer, n_lonlatPt, ipt, indice, npts, n
-        real ::  lon, lat
+        real ::  lon, lat, rtmp
         real, dimension(1:9) :: tmp_param
+        character(len=*), parameter :: file_transform='earthchunk_transform.txt'
+        character(len=20) :: buffer
 
+        ios=0
         open(11, file=filename, form="formatted", status="old", iostat=ios)
         if( ios /= 0) then
-            write(*,*) "File not open"
+            write(*,*) "Model file not open"
             return
         endif
 
@@ -324,6 +327,39 @@ contains
             max_depth = max(max_depth, value_pt(indice)%param(npts,1))
 
         enddo
+        close(11)
+
+
+        lat_center=0
+        lon_center=0
+
+        ios=0
+
+        open(11, file=file_transform, form="formatted", status="old", iostat=ios)
+        if( ios /= 0) then
+            write(*,*) "Transform file not open => (lon,lat) center is (0,0)"
+            return
+        endif
+
+        do
+            read(11,*,IOSTAT=ios) buffer, rtmp
+            if( ios /= 0) then
+                exit
+            endif
+                
+            if( buffer == 'lon_center' ) then
+                lon_center = rtmp
+            else if( buffer == 'lat_center') then
+                lat_center = rtmp
+            endif
+
+        enddo
+
+!                write(*,*) "Reading transform :", lon_center, lat_center
+
+        close(11)
+
+
 
 
 

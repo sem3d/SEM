@@ -11,7 +11,7 @@ subroutine  initialize_material_prem( elem, matInfo, coorPt, npts)
 
 
     integer :: i,j,k,ii,jj, ngllx, nglly, ngllz, idef
-    real :: x, y, z, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu, r,  lon, lat
+    real :: x, y, z, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu, r,  lon, lat, theta, phi
     real, dimension(1:6,1:6) :: Cij
 
     ngllx = elem%ngllx
@@ -29,7 +29,9 @@ subroutine  initialize_material_prem( elem, matInfo, coorPt, npts)
                 y = coorPt(1,idef)
                 z = coorPt(2,idef)
 
-                call cart2sph(y, z, x, r, lon, lat)
+                call cart2sph(y, z, x, r, theta, phi)
+                lon = phi/Pi180
+                lat = 90.0-theta/Pi180
 
 
                 call get_value_prem (r, lon, lat, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu)
@@ -63,9 +65,8 @@ subroutine  initialize_material_prem( elem, matInfo, coorPt, npts)
 
                     !TODO : verifier que la rotation du tenseur est correcte
                     !dans un modele type prem
-                    !theta = lat*Pi180
-                    !phi = lon*Pi180
-                    !call c_4tensor(Cij,theta,phi)
+
+                    call c_4tensor(Cij,theta,phi)
 
                     idef = 0
                     do ii = 1,6

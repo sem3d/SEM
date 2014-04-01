@@ -31,18 +31,14 @@ subroutine  initialize_material_earthchunk( elem, matInfo, coorPt, npts)
                 y = coorPt(1,idef)
                 z = coorPt(2,idef)
 
-!                call cart2sph(x, y, z, r, lon, lat)
-!                theta = (90.0-lat)*Pi180
-!                phi = lon*Pi180
+
+                call cart2sph(y, z, x, r, theta, phi)
+                lon = phi/Pi180
+                lat = theta/Pi180
 
 
-                call cart2sph(y, z, x, r, lon, lat)
-                theta = lat*Pi180
-                phi = lon*Pi180
-
-
-                lon = lon+40
-                lat = lat+35
+                lon = lon+lon_center
+                lat = lat+lat_center
 
                 call get_value_earthchunk (r, lon, lat, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu)
 
