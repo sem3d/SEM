@@ -38,7 +38,7 @@ subroutine  initialize_material_earthchunk( elem, matInfo, coorPt, npts)
 
 
                 lon = lon+lon_center
-                lat = lat+lat_center
+                lat = 90.0-lat+lat_center
 
                 call get_value_earthchunk (r, lon, lat, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu)
 
