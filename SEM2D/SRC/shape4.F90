@@ -15,7 +15,6 @@ contains
     subroutine compute_normals(Tdomain,nf)
 
         use sdomain
-        use sfaults
 
         implicit none
 
@@ -23,8 +22,8 @@ contains
         integer, intent (IN) :: nf
 
         ! local variables
+        real, dimension(0:1) :: normal_aux
         integer :: i, n_elem, ngll, nv0, nv1
-        real    :: n1, n2, nx, ny, norm
 
         n_elem = Tdomain%sFace(nf)%Near_Element(0)
         ngll   = Tdomain%sFace(nf)%ngll
@@ -34,17 +33,12 @@ contains
         allocate(Tdomain%sFace(nf)%Normal_Nodes(0:ngll-1,0:1))
 
         ! Computation of an unique Face normal
-        nv0 = Tdomain%sVertex(nv0)%Glob_numbering
-        nv1 = Tdomain%sVertex(nv1)%Glob_numbering
-        n1  = Tdomain%coord_nodes(0,nv1) - Tdomain%coord_nodes(0,nv0)
-        n2  = Tdomain%coord_nodes(1,nv1) - Tdomain%coord_nodes(1,nv0)
-        nx  = n2 ; ny = -n1
+        call n_from_vertices(Tdomain, normal_aux, nv0, nv1)
+        Tdomain%sFace(nf)%Normal = normal_aux
+        ! Check if normal is outward...
         if (Tdomain%sFace(nf)%Which_Face(0) .GE. 2) then
-            nx = -nx ; ny = -ny
+            Tdomain%sFace(nf)%Normal(:) = - Tdomain%sFace(nf)%Normal(:)
         endif
-        norm = sqrt(nx*nx + ny*ny)
-        Tdomain%sFace(nf)%Normal(0) = nx / norm
-        Tdomain%sFace(nf)%Normal(1) = ny / norm
 
         ! Computation of a field of normals for each Gauss points
         ! For shape4, elements are linears, and the normal for the
@@ -55,6 +49,70 @@ contains
         end do
 
     end subroutine compute_normals
+
+
+! #########################################
+    subroutine compute_normals_elem(Tdomain, nelem)
+
+        use sdomain
+
+        implicit none
+
+        type(domain),target, intent (INOUT) :: Tdomain
+        integer, intent (IN) :: nelem
+
+        ! local variables
+        integer              :: i, j, n_elem, ngllx, ngllz, ngll, nv0, nv1
+        real, dimension(0:1) :: normal_aux
+
+        ngllx = Tdomain%specel(nelem)%ngllx
+        ngllz = Tdomain%specel(nelem)%ngllz
+        ngll  = max(ngllx,ngllz)
+
+        allocate(Tdomain%specel(nelem)%Normal_nodes(0:3,0:ngll-1,0:1))
+
+        do i=0,3
+            nv0  = Tdomain%specel(nelem)%Near_Vertex(i)
+            nv1  = Tdomain%specel(nelem)%Near_Vertex(mod(i+1,4))
+            call n_from_vertices(Tdomain,normal_aux,nv0,nv1)
+            do j=0,ngll-1
+                Tdomain%specel(nelem)%Normal_Nodes(i,j,:) = normal_aux(:)
+            enddo
+        enddo
+
+    end subroutine compute_normals_elem
+
+
+    ! #########################################
+    !>
+    !!\file shape4.F90
+    !!\brief
+    !!\version 1.0
+    !!\date 01/04/2014
+    !! This function computes a normal from 2 vertices
+    !! Be carefull : this normal may not be outward !
+    !<
+    subroutine n_from_vertices(Tdomain,n_vec,nv0,nv1)
+
+        use sDomain
+        implicit none
+
+        type (domain),target, intent (IN)    :: Tdomain
+        real, dimension(0:1), intent (INOUT) :: n_vec
+        integer, intent(IN)        :: nv0, nv1
+        integer                    :: n0, n1
+        real                       :: dx, dy, nx, ny, norm
+
+        n0 = Tdomain%sVertex(nv0)%Glob_numbering
+        n1 = Tdomain%sVertex(nv1)%Glob_numbering
+        dx = Tdomain%coord_nodes(0,nv1) - Tdomain%coord_nodes(0,nv0)
+        dy = Tdomain%coord_nodes(1,nv1) - Tdomain%coord_nodes(1,nv0)
+        nx  = dy ; ny = -dx
+        norm = sqrt(nx*nx + ny*ny)
+        n_vec(0) = nx / norm
+        n_vec(1) = ny / norm
+
+    end subroutine n_from_vertices
 
 
     ! #########################################
@@ -180,6 +238,13 @@ contains
         do nf=0,Tdomain%n_face-1
             if (Tdomain%sFace(nf)%Type_flux .NE. FLUX_NONE) then
                 call compute_normals(Tdomain,nf)
+            end if
+        end do
+
+        ! Compute Normals for Elements HDG :
+        do n=0,Tdomain%n_elem-1
+            if (Tdomain%specel(n)%Type_DG .EQ. GALERKIN_HDG_RP) then
+                call compute_normals_elem(Tdomain,n)
             end if
         end do
 

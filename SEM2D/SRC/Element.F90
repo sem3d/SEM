@@ -46,6 +46,7 @@ module selement
        real, dimension (:,:), allocatable :: Coeff_Integr_Faces
        real, dimension(:,:,:), allocatable :: Strain
        real, dimension(:,:,:), allocatable :: Vect_RK
+       real, dimension(:,:,:), allocatable :: Normal_nodes
     end type element
 
 contains
