@@ -29,6 +29,7 @@ subroutine allocate_domain (Tdomain)
   do n=0,Tdomain%n_elem-1
      ngllx = Tdomain%specel(n)%ngllx
      ngllz = Tdomain%specel(n)%ngllz
+     ngll  = max (ngllx,ngllz)
      allocate (Tdomain%specel(n)%MassMat(0:ngllx-1,0:ngllz-1))
      allocate (Tdomain%specel(n)%Density(0:ngllx-1,0:ngllz-1))
      allocate (Tdomain%specel(n)%Lambda(0:ngllx-1,0:ngllz-1))
@@ -99,6 +100,12 @@ subroutine allocate_domain (Tdomain)
            allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
            allocate (Tdomain%specel(n)%Strain(0:ngllx-1,0:ngllz-1,0:2))
            Tdomain%specel(n)%Strain = 0.
+       else if(Tdomain%specel(n)%Type_DG==GALERKIN_HDG_RP) then
+           allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
+           allocate (Tdomain%specel(n)%Strain(0:ngllx-1,0:ngllz-1,0:2))
+           allocate (Tdomain%specel(n)%MatPen(0:2*(ngllx+ngllz)-1,0:2))
+           Tdomain%specel(n)%Strain = 0.
+           Tdomain%specel(n)%MatPen = 0.
         else if(Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
            allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:9))
         endif
@@ -128,6 +135,8 @@ subroutine allocate_domain (Tdomain)
      allocate (Tdomain%sFace(n)%Mu_m(0:ngll-1))
      allocate (Tdomain%sFace(n)%Lambda_p(0:ngll-1))
      allocate (Tdomain%sFace(n)%Lambda_m(0:ngll-1))
+     allocate (Tdomain%sFace(n)%Rho_p(0:ngll-1))
+     allocate (Tdomain%sFace(n)%Rho_m(0:ngll-1))
      Tdomain%sFace(n)%MassMat = 0
      Tdomain%sFace(n)%Veloc = 0
      Tdomain%sFace(n)%Accel = 0
@@ -142,26 +151,31 @@ subroutine allocate_domain (Tdomain)
      Tdomain%sFace(n)%Mu_m = 0
      Tdomain%sFace(n)%Lambda_p = 0
      Tdomain%sFace(n)%Lambda_m = 0
+     Tdomain%sFace(n)%Rho_p = 0
+     Tdomain%sFace(n)%Rho_m = 0
      if (Tdomain%sFace(n)%type_Flux .EQ. FLUX_GODUNOV ) then !
-        ! Allocation coefficients for Godunov Fluxes
-        allocate (Tdomain%sFace(n)%k0(0:ngll-1))
-        allocate (Tdomain%sFace(n)%k1(0:ngll-1))
-        allocate (Tdomain%sFace(n)%r1(0:ngll-1,0:4))
-        allocate (Tdomain%sFace(n)%r2(0:ngll-1,0:4))
-        allocate (Tdomain%sFace(n)%r3(0:ngll-1,0:4))
-        allocate (Tdomain%sFace(n)%Zp_m(0:ngll-1))
-        allocate (Tdomain%sFace(n)%Zp_p(0:ngll-1))
-        allocate (Tdomain%sFace(n)%Zs_m(0:ngll-1))
-        allocate (Tdomain%sFace(n)%Zs_p(0:ngll-1))
-        Tdomain%sFace(n)%k0 = 0
-        Tdomain%sFace(n)%k1 = 0
-        Tdomain%sFace(n)%r1 = 0
-        Tdomain%sFace(n)%r2 = 0
-        Tdomain%sFace(n)%r3 = 0
-        Tdomain%sFace(n)%Zp_m = 0
-        Tdomain%sFace(n)%Zp_p = 0
-        Tdomain%sFace(n)%Zs_m = 0
-        Tdomain%sFace(n)%Zs_p = 0
+         ! Allocation coefficients for Godunov Fluxes
+         allocate (Tdomain%sFace(n)%k0(0:ngll-1))
+         allocate (Tdomain%sFace(n)%k1(0:ngll-1))
+         allocate (Tdomain%sFace(n)%r1(0:ngll-1,0:4))
+         allocate (Tdomain%sFace(n)%r2(0:ngll-1,0:4))
+         allocate (Tdomain%sFace(n)%r3(0:ngll-1,0:4))
+         allocate (Tdomain%sFace(n)%Zp_m(0:ngll-1))
+         allocate (Tdomain%sFace(n)%Zp_p(0:ngll-1))
+         allocate (Tdomain%sFace(n)%Zs_m(0:ngll-1))
+         allocate (Tdomain%sFace(n)%Zs_p(0:ngll-1))
+         Tdomain%sFace(n)%k0 = 0
+         Tdomain%sFace(n)%k1 = 0
+         Tdomain%sFace(n)%r1 = 0
+         Tdomain%sFace(n)%r2 = 0
+         Tdomain%sFace(n)%r3 = 0
+         Tdomain%sFace(n)%Zp_m = 0
+         Tdomain%sFace(n)%Zp_p = 0
+         Tdomain%sFace(n)%Zs_m = 0
+         Tdomain%sFace(n)%Zs_p = 0
+     elseif (Tdomain%sFace(n)%type_Flux .EQ. FLUX_HDG ) then
+         allocate (Tdomain%sFace(n)%invMatPen(0:ngll-1,0:2))
+         Tdomain%sFace(n)%invMatPen = 0
      endif
 
      if (Tdomain%sFace(n)%PML ) then

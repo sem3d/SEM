@@ -37,6 +37,7 @@ MODULE constants
     integer, parameter :: FLUX_CENTERED=1
     integer, parameter :: FLUX_GODUNOV=2
     integer, parameter :: FLUX_CUSTOM_LG=3
+    integer, parameter :: FLUX_HDG=4
     integer, parameter :: DG_BC_FREE=0
     integer, parameter :: DG_BC_ABS=1
 

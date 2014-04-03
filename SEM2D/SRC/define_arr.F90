@@ -448,19 +448,27 @@ subroutine define_arrays(Tdomain)
         do nf=0,3
             nface = Tdomain%specel(n)%Near_Face(nf)
             if(Tdomain%Specel(n)%Type_DG .NE. GALERKIN_CONT) &
-                 call get_MuLambda_el2f(Tdomain,n,nface)
+                 call get_MuLambdaRho_el2f(Tdomain,n,nface)
         enddo
     enddo
-    ! Calcul des coefficients pour les Fluxs Godunov
+    ! Calcul des coefficients pour les Fluxs Godunov (DG ou HDG)
     do nf = 0, Tdomain%n_face-1
-       if(Tdomain%sFace(nf)%type_Flux .EQ. FLUX_GODUNOV) &
-            call compute_coeff_flux(Tdomain,nf)
+       if(Tdomain%sFace(nf)%type_Flux .EQ. FLUX_GODUNOV) then
+           call coeffs_flux_godunov(Tdomain,nf)
+       elseif(Tdomain%sFace(nf)%type_Flux .EQ. FLUX_HDG) then
+           call compute_invMatPen (Tdomain%sFace(nf))
+       endif
     enddo
-    ! Prolongement par continuite des proprietes du milieu pour surface libre
+    ! Prolongement par continuite des proprietes du milieu pour surface libre ou absorbante
     do nf = 0, Tdomain%n_face-1
        !if(Tdomain%sFace(nf)%freesurf) &
        if(Tdomain%sFace(nf)%freesurf .OR. Tdomain%sFace(nf)%abs) &
-         call coeff_freesurf(Tdomain,nf)
+           call coeff_freesurf(Tdomain,nf)
+    enddo
+    ! Calcul des matrices de Penalisation pour les elements HDG
+    do n = 0, Tdomain%n_elem-1
+        if(Tdomain%Specel(n)%Type_DG .EQ. GALERKIN_HDG_RP) &
+            call compute_MatPen(Tdomain%Specel(n))
     enddo
 
     ! Preparing and allocating vectors to be exchanged at each time-step

@@ -62,22 +62,29 @@ contains
         integer, intent (IN) :: nelem
 
         ! local variables
-        integer              :: i, j, n_elem, ngllx, ngllz, ngll, nv0, nv1
+        integer              :: i, j, k, ngllx, ngllz, ngll, nglltot, nv0, nv1
         real, dimension(0:1) :: normal_aux
 
-        ngllx = Tdomain%specel(nelem)%ngllx
-        ngllz = Tdomain%specel(nelem)%ngllz
-        ngll  = max(ngllx,ngllz)
+        ngllx  = Tdomain%specel(nelem)%ngllx
+        ngllz  = Tdomain%specel(nelem)%ngllz
+        nglltot= 2*(ngllx+ngllz)
+        k = 0
 
-        allocate(Tdomain%specel(nelem)%Normal_nodes(0:3,0:ngll-1,0:1))
+        allocate(Tdomain%specel(nelem)%Normal_nodes(0:nglltot-1,0:1))
 
         do i=0,3
             nv0  = Tdomain%specel(nelem)%Near_Vertex(i)
             nv1  = Tdomain%specel(nelem)%Near_Vertex(mod(i+1,4))
             call n_from_vertices(Tdomain,normal_aux,nv0,nv1)
+            if (i==0 .OR. i==2) then
+                ngll = ngllx
+            else
+                ngll = ngllz
+            endif
             do j=0,ngll-1
-                Tdomain%specel(nelem)%Normal_Nodes(i,j,:) = normal_aux(:)
+                Tdomain%specel(nelem)%Normal_Nodes(k,:) = normal_aux(:)
             enddo
+            k = k+1
         enddo
 
     end subroutine compute_normals_elem

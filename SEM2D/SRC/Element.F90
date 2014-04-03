@@ -43,10 +43,13 @@ module selement
        ! DG
        integer :: type_DG
        logical :: acoustic
-       real, dimension (:,:), allocatable :: Coeff_Integr_Faces
+       real, dimension (:,:),  allocatable :: Coeff_Integr_Faces
        real, dimension(:,:,:), allocatable :: Strain
        real, dimension(:,:,:), allocatable :: Vect_RK
-       real, dimension(:,:,:), allocatable :: Normal_nodes
+       ! HDG
+       real, dimension(:,:), allocatable :: Normal_nodes
+       real, dimension(:,:), allocatable :: MatPen
+
     end type element
 
 contains
@@ -686,6 +689,69 @@ contains
 
     end subroutine compute_Kinetic_Energy_DG
 
+
+! ###########################################################
+    !>
+    !! \brief This subroutine computes the Penalization Matrix MatPen
+    !! of an element on each external node of the element.
+    !! It suitable for Hybridizable Discontinuous Galerkin elements only.
+    !! \param type (Element), intent (INOUT) Elem
+    !!
+    !<
+    subroutine  compute_MatPen (Elem)
+        implicit none
+
+        type (Element), intent (INOUT)   :: Elem
+        !integer, intent (IN)             :: HDG_TYPE
+        real, dimension (0:Elem%ngllx-1) :: Zp_x, Zs_x
+        real, dimension (0:Elem%ngllz-1) :: Zp_z, Zs_z
+        integer    :: imin, imax, ngllx, ngllz
+
+       ngllx = Elem%ngllx ; ngllz = Elem%ngllz
+
+        ! Bottom Face :
+        Zp_x(:) = sqrt(Elem%Density(0:ngllx-1,0) * (Elem%Lambda(0:ngllx-1,0)+2.*Elem%Mu(0:ngllx-1,0)))
+        Zs_x(:) = sqrt(Elem%Density(0:ngllx-1,0) *  Elem%Lambda(0:ngllx-1,0))
+        Elem%MatPen(:,0) = Zp_x(:)*Elem%Normal_Nodes(0:ngllx-1,0)**2 + Zs_x(:)*Elem%Normal_Nodes(0:ngllx-1,1)**2
+        Elem%MatPen(:,1) = Zs_x(:)*Elem%Normal_Nodes(0:ngllx-1,0)**2 + Zp_x(:)*Elem%Normal_Nodes(0:ngllx-1,1)**2
+        Elem%MatPen(:,2) = (Zp_x(:)-Zs_x(:)) * Elem%Normal_Nodes(0:ngllx-1,0) *Elem%Normal_Nodes(0:ngllx-1,1)
+
+        ! Right Face :
+        imin = ngllx ; imax = imin + ngllz-1
+        Zp_z(:) = sqrt(Elem%Density(ngllx-1,0:ngllz-1) * (Elem%Lambda(ngllx-1,0:ngllz-1) &
+                                                         + 2.*Elem%Mu(ngllx-1,0:ngllz-1)))
+        Zs_z(:) = sqrt(Elem%Density(ngllx-1,0:ngllz-1) *  Elem%Lambda(ngllx-1,0:ngllz-1))
+        Elem%MatPen(imin:imax,0) = Zp_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
+                                 + Zs_z(:)*Elem%Normal_Nodes(imin:imax,1)**2
+        Elem%MatPen(imin:imax,1) = Zs_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
+                                 + Zp_z(:)*Elem%Normal_Nodes(imin:imax,1)**2
+        Elem%MatPen(imin:imax,2) =(Zp_z(:)-Zs_z(:))*Elem%Normal_Nodes(imin:imax,0) *Elem%Normal_Nodes(imin:imax,1)
+
+        ! Top Face :
+        imin = imax+1 ; imax = imin + ngllx-1
+        Zp_x(:) = sqrt(Elem%Density(0:ngllx-1,ngllz-1) * (Elem%Lambda(0:ngllx-1,ngllz-1) &
+                                                         + 2.*Elem%Mu(0:ngllx-1,ngllz-1)))
+        Zs_x(:) = sqrt(Elem%Density(0:ngllx-1,ngllz-1) *  Elem%Lambda(0:ngllx-1,ngllz-1))
+        Elem%MatPen(imin:imax,0) = Zp_x(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
+                                 + Zs_x(:)*Elem%Normal_Nodes(imin:imax,1)**2
+        Elem%MatPen(imin:imax,1) = Zs_x(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
+                                 + Zp_x(:)*Elem%Normal_Nodes(imin:imax,1)**2
+        Elem%MatPen(imin:imax,2) =(Zp_x(:)-Zs_x(:))*Elem%Normal_Nodes(imin:imax,0) *Elem%Normal_Nodes(imin:imax,1)
+
+        ! Left Face :
+        imin = imax+1 ; imax = imin + ngllz-1
+        Zp_z(:) = sqrt(Elem%Density(0,0:ngllz-1) * (Elem%Lambda(0,0:ngllz-1) &
+                                                   + 2.*Elem%Mu(0,0:ngllz-1)))
+        Zs_z(:) = sqrt(Elem%Density(0,0:ngllz-1) *  Elem%Lambda(0,0:ngllz-1))
+        Elem%MatPen(imin:imax,0) = Zp_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
+                                 + Zs_z(:)*Elem%Normal_Nodes(imin:imax,1)**2
+        Elem%MatPen(imin:imax,1) = Zs_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
+                                 + Zp_z(:)*Elem%Normal_Nodes(imin:imax,1)**2
+        Elem%MatPen(imin:imax,2) =(Zp_z(:)-Zs_z(:))*Elem%Normal_Nodes(imin:imax,0) *Elem%Normal_Nodes(imin:imax,1)
+
+    end subroutine compute_MatPen
+
+! ###########################################################
 
 end module selement
 !! Local Variables:

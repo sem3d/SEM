@@ -14,8 +14,7 @@
 !! \param integer, intent (IN) n_face
 !<
 
-
-subroutine compute_coeff_flux (Tdomain, n_face)
+subroutine coeffs_flux_godunov (Tdomain, n_face)
   use sdomain
   implicit none
   type (Domain), intent (INOUT) :: Tdomain
@@ -136,7 +135,7 @@ subroutine compute_coeff_flux (Tdomain, n_face)
      Tdomain%sFace(n_face)%r1(i,2) = Tdomain%sFace(n_face)%normal(0) * Tdomain%sFace(n_face)%normal(1)
   end do
   return
-end subroutine  compute_coeff_flux
+end subroutine  coeffs_flux_godunov
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
@@ -151,7 +150,7 @@ end subroutine  compute_coeff_flux
 !! \param integer, intent (IN) nelem
 !! \param integer, intent (IN) nface
 !<
-subroutine get_MuLambda_el2f (Tdomain, nelem, nface)
+subroutine get_MuLambdaRho_el2f (Tdomain, nelem, nface)
   use sdomain
   implicit none
   type (Domain), intent (INOUT) :: Tdomain
@@ -178,60 +177,72 @@ subroutine get_MuLambda_el2f (Tdomain, nelem, nface)
      if (w_face == 0 ) then
         Tdomain%sFace(nface)%Mu_m  = Tdomain%specel(nelem)%Mu (0:ngll-1,0)
         Tdomain%sFace(nface)%Lambda_m = Tdomain%specel(nelem)%Lambda(0:ngll-1,0)
+        Tdomain%sFace(nface)%Rho_m = Tdomain%specel(nelem)%Density(0:ngll-1,0)
      else if (w_face == 1 ) then
         Tdomain%sFace(nface)%Mu_m  = Tdomain%specel(nelem)%Mu (ngllx-1,0:ngll-1)
         Tdomain%sFace(nface)%Lambda_m = Tdomain%specel(nelem)%Lambda(ngllx-1,0:ngll-1)
+        Tdomain%sFace(nface)%Rho_m = Tdomain%specel(nelem)%Density(ngllx-1,0:ngll-1)
      else if (w_face == 2 ) then
         Tdomain%sFace(nface)%Mu_m  = Tdomain%specel(nelem)%Mu (0:ngll-1,ngllz-1)
         Tdomain%sFace(nface)%Lambda_m = Tdomain%specel(nelem)%Lambda(0:ngll-1,ngllz-1)
+        Tdomain%sFace(nface)%Rho_m = Tdomain%specel(nelem)%Density(0:ngll-1,ngllz-1)
      else
         Tdomain%sFace(nface)%Mu_m  = Tdomain%specel(nelem)%Mu (0,0:ngll-1)
         Tdomain%sFace(nface)%Lambda_m = Tdomain%specel(nelem)%Lambda(0,0:ngll-1)
+        Tdomain%sFace(nface)%Rho_m = Tdomain%specel(nelem)%Density(0,0:ngll-1)
      endif
   else if (coherency) then
      if (w_face == 0 ) then
         Tdomain%sFace(nface)%Mu_p  = Tdomain%specel(nelem)%Mu (0:ngll-1,0)
         Tdomain%sFace(nface)%Lambda_p = Tdomain%specel(nelem)%Lambda(0:ngll-1,0)
+        Tdomain%sFace(nface)%Rho_p = Tdomain%specel(nelem)%Density(0:ngll-1,0)
      else if (w_face == 1 ) then
         Tdomain%sFace(nface)%Mu_p  = Tdomain%specel(nelem)%Mu (ngllx-1,0:ngll-1)
         Tdomain%sFace(nface)%Lambda_p = Tdomain%specel(nelem)%Lambda(ngllx-1,0:ngll-1)
+        Tdomain%sFace(nface)%Rho_p = Tdomain%specel(nelem)%Density(ngllx-1,0:ngll-1)
      else if (w_face == 2 ) then
         Tdomain%sFace(nface)%Mu_p  = Tdomain%specel(nelem)%Mu (0:ngll-1,ngllz-1)
         Tdomain%sFace(nface)%Lambda_p = Tdomain%specel(nelem)%Lambda(0:ngll-1,ngllz-1)
+        Tdomain%sFace(nface)%Rho_p = Tdomain%specel(nelem)%Density(0:ngll-1,ngllz-1)
      else
         Tdomain%sFace(nface)%Mu_p  = Tdomain%specel(nelem)%Mu (0,0:ngll-1)
         Tdomain%sFace(nface)%Lambda_p = Tdomain%specel(nelem)%Lambda(0,0:ngll-1)
+        Tdomain%sFace(nface)%Rho_p = Tdomain%specel(nelem)%Density(0,0:ngll-1)
      end if
   else
      if (w_face == 0 ) then
         do i=0,ngll-1
            Tdomain%sFace(nface)%Mu_p(i)  = Tdomain%specel(nelem)%Mu (ngll-1-i,0)
            Tdomain%sFace(nface)%Lambda_p(i) = Tdomain%specel(nelem)%Lambda(ngll-1-i,0)
+           Tdomain%sFace(nface)%Rho_p(i) = Tdomain%specel(nelem)%Density(ngll-1-i,0)
         end do
      else if (w_face == 1 ) then
         do i=0,ngll-1
            Tdomain%sFace(nface)%Mu_p(i)  = Tdomain%specel(nelem)%Mu (ngllx-1,ngll-1-i)
            Tdomain%sFace(nface)%Lambda_p(i) = Tdomain%specel(nelem)%Lambda(ngllx-1,ngll-1-i)
+           Tdomain%sFace(nface)%Rho_p(i) = Tdomain%specel(nelem)%Density(ngllx-1,ngll-1-i)
         end do
      else if (w_face == 2 ) then
         do i=0,ngll-1
            Tdomain%sFace(nface)%Mu_p(i)  = Tdomain%specel(nelem)%Mu (ngll-1-i,ngllz-1)
            Tdomain%sFace(nface)%Lambda_p(i) = Tdomain%specel(nelem)%Lambda(ngll-1-i,ngllz-1)
+           Tdomain%sFace(nface)%Rho_p(i) = Tdomain%specel(nelem)%Density(ngll-1-i,ngllz-1)
         end do
      else
         do i=0,ngll-1
            Tdomain%sFace(nface)%Mu_p(i)  = Tdomain%specel(nelem)%Mu (0,ngll-1-i)
            Tdomain%sFace(nface)%Lambda_p(i) = Tdomain%specel(nelem)%Lambda(0,ngll-1-i)
+           Tdomain%sFace(nface)%Rho_p(i) = Tdomain%specel(nelem)%Density(0,ngll-1-i)
         end do
      endif
   end if
   return
 
-end subroutine get_MuLambda_el2f
+end subroutine get_MuLambdaRho_el2f
 
 
 !>
-!! \brief coeff_freesurf extends the Mu, Lambda, mass, and impedences coeficients from 
+!! \brief coeff_freesurf extends the Mu, Lambda, mass, and impedences coeficients from
 !! the interior side of a face to the exterior side of it. Used for the faces where
 !! a "free surface" condition is applied.
 !!  Used principaly for Godunov-type fluxes
@@ -246,9 +257,10 @@ subroutine coeff_freesurf(Tdomain,nface)
 
   ! local variables
   integer ::  ngll,  i
-  
+
   Tdomain%sface(nface)%Mu_p     = Tdomain%sface(nface)%Mu_m
   Tdomain%sface(nface)%Lambda_p = Tdomain%sface(nface)%Lambda_m
+  Tdomain%sface(nface)%Rho_p    = Tdomain%sface(nface)%Rho_m
   Tdomain%sface(nface)%Zp_p     = Tdomain%sface(nface)%Zp_m
   Tdomain%sface(nface)%Zs_p     = Tdomain%sface(nface)%Zs_m
   ngll = Tdomain%sface(nface)%ngll
@@ -261,3 +273,10 @@ subroutine coeff_freesurf(Tdomain,nface)
   end do
 
 end subroutine coeff_freesurf
+
+
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent : !!

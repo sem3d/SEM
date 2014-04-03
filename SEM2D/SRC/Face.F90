@@ -33,11 +33,12 @@ module sfaces
        ! DG
        real, dimension (:), allocatable :: Normal
        real, dimension (:), allocatable :: k0,k1,Zp_p,Zp_m,Zs_p,Zs_m
-       real, dimension (:), allocatable :: Mu_p, Mu_m, Lambda_p, Lambda_m
+       real, dimension (:), allocatable :: Mu_p, Mu_m, Lambda_p, Lambda_m, Rho_m, Rho_p
        real, dimension (:,:), allocatable :: Flux, Veloc_p,Veloc_m,Strain_p,Strain_m
        real, dimension (:,:), allocatable :: r1, r2, r3  ! EigenVectors for DG Godunov
        real, dimension (:,:), allocatable :: Vect_RK
        real, dimension (:,:), allocatable :: Normal_Nodes
+       real, dimension (:,:), allocatable :: invMatPen
        logical :: is_computed, changing_media
 
     end type face
@@ -580,6 +581,35 @@ contains
         E_kin = 0.5 * sum(Ener_Mat)
 
     end subroutine compute_Kinetic_Energy_F
+
+    ! ###########################################################
+
+    !>
+    !! \brief subroutine compute_invMatPen is used for HDG elements only
+    !! This subroutine computes the inverse of penalty matrix used on the
+    !! traces for HDG methods.
+    !! \param type (Face), intent (INOUT) F
+    !<
+    subroutine compute_invMatPen (F)
+        implicit none
+
+        type (Face), intent (INOUT) :: F
+        real, dimension(0:F%ngll-1) :: invDet, Zp_m, Zp_p, Zs_m, Zs_p
+
+        Zp_m(:) = sqrt(F%Rho_m(:) * (F%Lambda_m(:) + 2.* F%Mu_m(:)))
+        Zp_p(:) = sqrt(F%Rho_p(:) * (F%Lambda_p(:) + 2.* F%Mu_p(:)))
+        Zs_m(:) = sqrt(F%Rho_m(:) * F%Lambda_m(:))
+        Zs_p(:) = sqrt(F%Rho_p(:) * F%Lambda_p(:))
+
+        invDet(:) = 1. / ((Zp_m(:)+Zp_p(:))*(Zs_m(:)+Zs_p(:)))
+        F%InvMatPen(:,1) = invDet(:) * ((Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,1)**2 &
+                                       +(Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,2)**2)
+        F%InvMatPen(:,2) = invDet(:) * ((Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,1)**2 &
+                                       +(Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,2)**2)
+        F%InvMatPen(:,3) =-invDet(:) * ((Zp_m(:)+Zp_p(:)) - (Zs_m(:)+Zs_p(:))) &
+                                     * F%Normal_nodes(:,1) * F%Normal_nodes(:,2)
+
+    end subroutine compute_invMatPen
 
     ! ###########################################################
 
