@@ -4,7 +4,7 @@
 !! forces and displacements over the neighboring elements of a face
 !!\version 1.0
 !!\date 15/11/2013
-!! This algorithm come from a part of the previous Newmark routine 
+!! This algorithm come from a part of the previous Newmark routine
 !! with several modifications.
 !<
 subroutine Assemblage (Tdomain, nelem, nface, w_face)
@@ -23,12 +23,12 @@ subroutine Assemblage (Tdomain, nelem, nface, w_face)
   ngllz =  Tdomain%specel(nelem)%ngllz
   coherency = Tdomain%sFace(nface)%coherency
 
-  if (.not. Tdomain%sFace(nface)%is_computed) then
+  if (.not. Tdomain%sFace(nface)%is_visited) then
      Tdomain%sFace(nface)%Forces = 0.
-     Tdomain%sFace(nface)%is_computed = .true. 
+     Tdomain%sFace(nface)%is_visited = .true.
   endif
 
-  ! Assemblage of the forces on the Face nface coming from element nelem 
+  ! Assemblage of the forces on the Face nface coming from element nelem
   if (nelem==Tdomain%sFace(nface)%Near_Element(0)) then
      call getInternalF_el2f (Tdomain,nelem,nface,w_face,.true.)
   else
@@ -61,7 +61,7 @@ subroutine Assemblage (Tdomain, nelem, nface, w_face)
      Tdomain%sVertex(vertex0)%Forces = Tdomain%sVertex(vertex0)%Forces + Tdomain%specel(nelem)%Forces(0,ngllz-1,0:1)
      Tdomain%sVertex(vertex1)%Forces = Tdomain%sVertex(vertex1)%Forces + Tdomain%specel(nelem)%Forces(0,0,0:1)
   end select
-  
+
 end subroutine Assemblage
 
 
@@ -76,7 +76,7 @@ subroutine Get_data_el2f (Tdomain, nelem, nface, w_face)
 
   use sdomain
   implicit none
-  
+
   type (domain), intent (INOUT) :: Tdomain
   integer, intent(in)   :: nelem
   integer, intent(in)   :: nface
@@ -85,7 +85,7 @@ subroutine Get_data_el2f (Tdomain, nelem, nface, w_face)
   ! local variables
   integer :: ngll, ngllx, ngllz, i
   logical :: coherency
-  
+
   ngll  = Tdomain%sFace(nface)%ngll
   ngllx = Tdomain%specel(nelem)%ngllx
   ngllz = Tdomain%specel(nelem)%ngllz
@@ -160,7 +160,7 @@ subroutine Get_flux_f2el (Tdomain, nelem, nface, w_face)
 
   use sdomain
   implicit none
-  
+
   type (domain), intent (INOUT) :: Tdomain
   integer, intent(in)   :: nelem
   integer, intent(in)   :: nface
@@ -177,44 +177,44 @@ subroutine Get_flux_f2el (Tdomain, nelem, nface, w_face)
 
   if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
      if (w_face == 0 ) then
-        do i=0,ngll-1 
+        do i=0,ngll-1
            Tdomain%specel(nelem)%Forces(i,0,0:4) = Tdomain%specel(nelem)%Forces(i,0,0:4) - &
                Tdomain%sFace(nface)%Flux(i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(0,i)
         enddo
      else if (w_face == 1 ) then
-         do i=0,ngll-1 
+         do i=0,ngll-1
              Tdomain%specel(nelem)%Forces(ngllx-1,i,0:4) = Tdomain%specel(nelem)%Forces(ngllx-1,i,0:4) - &
                  Tdomain%sFace(nface)%Flux(i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(1,i)
          enddo
      else if (w_face == 2 ) then
-         do i=0,ngll-1 
+         do i=0,ngll-1
              Tdomain%specel(nelem)%Forces(i,ngllz-1,0:4) = Tdomain%specel(nelem)%Forces(i,ngllz-1,0:4) - &
                  Tdomain%sFace(nface)%Flux(i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(2,i)
          enddo
      else
-         do i=0,ngll-1 
+         do i=0,ngll-1
              Tdomain%specel(nelem)%Forces(0,i,0:4) = Tdomain%specel(nelem)%Forces(0,i,0:4) - &
                  Tdomain%sFace(nface)%Flux(i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(3,i)
          enddo
      endif
-  else 
+  else
      if (w_face == 0 ) then
-        do i=0,ngll-1 
+        do i=0,ngll-1
            Tdomain%specel(nelem)%Forces(i,0,0:4) = Tdomain%specel(nelem)%Forces(i,0,0:4) - &
                Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(0,ngll-1-i)
         enddo
      else if (w_face == 1 ) then
-        do i=0,ngll-1 
+        do i=0,ngll-1
            Tdomain%specel(nelem)%Forces(ngllx-1,i,0:4) = Tdomain%specel(nelem)%Forces(ngllx-1,i,0:4) - &
                Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(1,ngll-1-i)
         enddo
      else if (w_face == 2 ) then
-        do i=0,ngll-1 
+        do i=0,ngll-1
            Tdomain%specel(nelem)%Forces(i,ngllz-1,0:4) = Tdomain%specel(nelem)%Forces(i,ngllz-1,0:4) - &
                Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(2,ngll-1-i)
         enddo
      else
-        do i=0,ngll-1 
+        do i=0,ngll-1
            Tdomain%specel(nelem)%Forces(0,i,0:4) = Tdomain%specel(nelem)%Forces(0,i,0:4) - &
                Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(3,ngll-1-i)
         enddo
@@ -223,6 +223,114 @@ subroutine Get_flux_f2el (Tdomain, nelem, nface, w_face)
 
 
 end subroutine Get_flux_f2el
+
+
+!>
+!!\brief Subroutine that shares the traction from an element
+!! "nelem" to its face "nface" taking into account the problems of coherency.
+!!\version 1.0
+!!\date 18/11/2013
+!! This subroutine is used only with HDG elements
+!<
+subroutine Get_traction_el2f (Tdomain, nelem, nface, w_face)
+
+    use sdomain
+    implicit none
+
+    type (domain), intent (INOUT) :: Tdomain
+    integer, intent(in)   :: nelem
+    integer, intent(in)   :: nface
+    integer, intent(in)   :: w_face
+
+    ! local variables
+    integer :: ngll, ngllx, ngllz, i
+    logical :: coherency
+
+    ngll  = Tdomain%sFace(nface)%ngll
+    ngllx = Tdomain%specel(nelem)%ngllx
+    ngllz = Tdomain%specel(nelem)%ngllz
+    coherency  = Tdomain%sFace(nface)%coherency
+
+    select case (w_face)
+    case(0)
+        imin = 0
+        imax = ngllx-1
+    case(1)
+        imin = ngllx
+        imax = ngllx   + ngllz-1
+    case(2)
+        imin = ngllx   + ngllz
+        imax = 2*ngllx + ngllz-1
+    case(3)
+        imin = 2*ngllx + ngllz
+        imax = 2*ngllx + 2*ngllz -1
+    end select
+
+    if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
+        Tdomain%sFace(nface)%Traction = Tdomain%sFace(nface)%Traction &
+                                      + Tdomain%specel(nelem)%TracFace(imin:imax,0:1)
+    else ! Case coherency = false
+        do i=0,ngll-1
+            Tdomain%sFace(nface)%Traction(i,0:1) = Tdomain%sFace(nface)%Traction(i,0:1) &
+                                                 + Tdomain%specel(nelem)%TracFace(imax-i,0:1)
+        end do
+    end if
+    return
+
+end subroutine Get_traction_el2f
+
+!>
+!!\brief Subroutine that sent the traces of velocities "Vhat" computed on a face
+!! "nface" to the neighboring element "nelem" dealing with the problems of coherency.
+!! Be carreful : here the wheight for integrals are not taked into account.
+!!\version 1.0
+!!\date 03/04/2014
+!! This subroutine is used only with HDG elements
+!<
+subroutine Get_Vhat_f2el (Tdomain, nelem, nface, w_face)
+
+    use sdomain
+    implicit none
+
+    type (domain), intent (INOUT) :: Tdomain
+    integer, intent(in)   :: nelem
+    integer, intent(in)   :: nface
+    integer, intent(in)   :: w_face
+
+    ! local variables
+    integer :: ngll, ngllx, ngllz, i
+    logical :: coherency
+
+    ngll  = Tdomain%sFace(nface)%ngll
+    ngllx = Tdomain%specel(nelem)%ngllx
+    ngllz = Tdomain%specel(nelem)%ngllz
+    coherency = Tdomain%sFace(nface)%coherency
+
+    select case (w_face)
+    case(0)
+        imin = 0
+        imax = ngllx-1
+    case(1)
+        imin = ngllx
+        imax = ngllx   + ngllz-1
+    case(2)
+        imin = ngllx   + ngllz
+        imax = 2*ngllx + ngllz-1
+    case(3)
+        imin = 2*ngllx + ngllz
+        imax = 2*ngllx + 2*ngllz -1
+    end select
+
+    if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
+        Tdomain%specel(nelem)%Vhat(imin:imax,:)  = Tdomain%sFace(nface)%Veloc(:,:)
+    else
+        do i=0,ngll-1
+            Tdomain%specel(nelem)%Vhat(imax-i,:) = Tdomain%sFace(nface)%Veloc(i,:)
+        enddo
+    endif
+
+end subroutine Get_Vhat_f2el
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

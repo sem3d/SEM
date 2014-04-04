@@ -104,8 +104,12 @@ subroutine allocate_domain (Tdomain)
            allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
            allocate (Tdomain%specel(n)%Strain(0:ngllx-1,0:ngllz-1,0:2))
            allocate (Tdomain%specel(n)%MatPen(0:2*(ngllx+ngllz)-1,0:2))
-           Tdomain%specel(n)%Strain = 0.
-           Tdomain%specel(n)%MatPen = 0.
+           allocate (Tdomain%specel(n)%TracFace(0:2*(ngllx+ngllz)-1,0:1))
+           allocate (Tdomain%specel(n)%Vhat(0:2*(ngllx+ngllz)-1,0:1))
+           Tdomain%specel(n)%Strain   = 0.
+           Tdomain%specel(n)%MatPen   = 0.
+           Tdomain%specel(n)%TracFace = 0.
+           Tdomain%specel(n)%Vhat     = 0.
         else if(Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
            allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:9))
         endif

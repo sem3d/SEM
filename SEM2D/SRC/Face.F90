@@ -195,6 +195,27 @@ contains
     endif
   end subroutine Compute_Flux
 
+
+  ! ############################################################
+  !>
+  !! \brief Compute the traces of velocity on the Face. Stored in F%Veloc.
+  !! These velocities are to be understood in a HDG framework
+  !! and are the unknowns at the interface.
+  !! These velocities are computec multiplying the tractions F%TracFace
+  !! by the inverse penalization matrix F%InvMatPen.
+  !! \param type (Face), intent (INOUT) F
+  !<
+  subroutine Compute_Vhat (F)
+
+      implicit none
+      type (Face), intent (INOUT) :: F
+
+      F%Veloc(:,0) = F%InvMatPen(:,0)*F%Traction(:,0) + F%InvMatPen(:,2)*F%Traction(:,1)
+      F%Veloc(:,1) = F%InvMatPen(:,2)*F%Traction(:,0) + F%InvMatPen(:,1)*F%Traction(:,1)
+      F%Traction = 0.
+
+  end subroutine Compute_Vhat
+
     ! ############################################################
     !>
     !! \brief
@@ -205,7 +226,6 @@ contains
     !! \param real, intent (IN) dt
     !! \param real, intent (IN) alpha
     !<
-
 
     !  subroutine Prediction_Face_Veloc (F,alpha,bega, dt)
     subroutine Prediction_Face_Veloc (F)
