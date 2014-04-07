@@ -178,8 +178,13 @@ subroutine allocate_domain (Tdomain)
          Tdomain%sFace(n)%Zs_m = 0
          Tdomain%sFace(n)%Zs_p = 0
      elseif (Tdomain%sFace(n)%type_Flux .EQ. FLUX_HDG ) then
+         deallocate(Tdomain%sFace(n)%Veloc)
+         allocate (Tdomain%sFace(n)%Veloc(0:ngll-1,0:1))
          allocate (Tdomain%sFace(n)%invMatPen(0:ngll-1,0:2))
+         allocate (Tdomain%sFace(n)%Traction(0:ngll-1,0:1))
          Tdomain%sFace(n)%invMatPen = 0
+         Tdomain%sFace(n)%Traction  = 0
+         Tdomain%sFace(n)%Veloc = 0
      endif
 
      if (Tdomain%sFace(n)%PML ) then

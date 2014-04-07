@@ -171,7 +171,7 @@ contains
 
         ! local variables
 
-        integer :: i_aus,n, mat,ngllx,ngllz,i,j,ipoint
+        integer :: i_aus,n, mat,ngllx,ngllz,i,j,ipoint,imin,imax
         real :: x0,x1,x2,x3,z0,z1,z2,z3,xi,eta,xp,zp, Jac
         real, dimension (0:1,0:1) :: LocInvGrad
         integer :: nf
@@ -229,15 +229,29 @@ contains
                     Tdomain%specel(n)%Jacob (i,j) = Jac
                 enddo
             enddo
-
+            ! Computation of coefficients of integration for element boundaries
             if (Tdomain%specel(n)%Type_DG .NE. GALERKIN_CONT) then
-                if (ngllx .NE. ngllz) STOP 'Case ngllx not equal to ngllz is not taken into account'
-                allocate(Tdomain%specel(n)%Coeff_Integr_Faces(0:3,0:ngllx-1))
-                do i=0,3
-                    nf = Tdomain%specel(n)%Near_Face(i)
-                    call compute_Jacobian_1D(Tdomain,nf,Jac1D)
-                    Tdomain%specel(n)%Coeff_Integr_Faces(i,:) = Tdomain%sSubdomain(mat)%GLLwx(:) * Jac1D
-                enddo
+                allocate(Tdomain%specel(n)%Coeff_Integr_Faces(0:2*(ngllx+ngllz)-1))
+                ! Bottom boundary :
+                imin = 0 ; imax = ngllx-1
+                nf = Tdomain%specel(n)%Near_Face(0)
+                call compute_Jacobian_1D(Tdomain,nf,Jac1D)
+                Tdomain%specel(n)%Coeff_Integr_Faces(imin:imax) = Tdomain%sSubdomain(mat)%GLLwx(:) * Jac1D
+                ! Right boundary :
+                imin = imax+1 ; imax = imax + ngllz
+                nf = Tdomain%specel(n)%Near_Face(1)
+                call compute_Jacobian_1D(Tdomain,nf,Jac1D)
+                Tdomain%specel(n)%Coeff_Integr_Faces(imin:imax) = Tdomain%sSubdomain(mat)%GLLwz(:) * Jac1D
+                ! Top boundary :
+                imin = imax+1 ; imax = imax + ngllx
+                nf = Tdomain%specel(n)%Near_Face(2)
+                call compute_Jacobian_1D(Tdomain,nf,Jac1D)
+                Tdomain%specel(n)%Coeff_Integr_Faces(imin:imax) = Tdomain%sSubdomain(mat)%GLLwx(:) * Jac1D
+                ! Left boundary :
+                imin = imax+1 ; imax = imax + ngllz
+                nf = Tdomain%specel(n)%Near_Face(3)
+                call compute_Jacobian_1D(Tdomain,nf,Jac1D)
+                Tdomain%specel(n)%Coeff_Integr_Faces(imin:imax) = Tdomain%sSubdomain(mat)%GLLwz(:) * Jac1D
             endif
         enddo
 

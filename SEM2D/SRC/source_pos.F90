@@ -20,9 +20,8 @@ subroutine SourcePosition(Tdomain)
     integer :: nel,n, nsour,i,j,nmin,nind, mind, idef, nnelem,ipoint
     integer :: ngllx,ngllz
     integer, dimension (0:5) :: nsource
-    real :: Dmin, Dist,a1,b1,c1,d1,a2,b2,c2,d2,alpha,beta,gamm,delta
-    real :: eta1,eta2,xi1,xi2,dximax,detamax
-    real :: x0,x1,x2,x3,x4,x5,x6,x7,z0,z1,z2,z3,z4,z5,z6,z7
+    real :: Dmin, Dist,alpha,beta,gamm,delta
+    real :: eta1,xi1,dximax,detamax
     real, dimension (0:7) :: xc,zc
     real, dimension (0:5) :: xis, etas
 

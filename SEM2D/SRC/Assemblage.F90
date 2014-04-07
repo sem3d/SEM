@@ -23,10 +23,10 @@ subroutine Assemblage (Tdomain, nelem, nface, w_face)
   ngllz =  Tdomain%specel(nelem)%ngllz
   coherency = Tdomain%sFace(nface)%coherency
 
-  if (.not. Tdomain%sFace(nface)%is_visited) then
-     Tdomain%sFace(nface)%Forces = 0.
-     Tdomain%sFace(nface)%is_visited = .true.
-  endif
+  !if (.not. Tdomain%sFace(nface)%is_visited) then
+  !   Tdomain%sFace(nface)%Forces = 0.
+  !   Tdomain%sFace(nface)%is_visited = .true.
+  !endif
 
   ! Assemblage of the forces on the Face nface coming from element nelem
   if (nelem==Tdomain%sFace(nface)%Near_Element(0)) then
@@ -144,7 +144,6 @@ subroutine Get_data_el2f (Tdomain, nelem, nface, w_face)
   end if
   return
 
-
 end subroutine Get_data_el2f
 
 
@@ -167,7 +166,7 @@ subroutine Get_flux_f2el (Tdomain, nelem, nface, w_face)
   integer, intent(in)   :: w_face
 
   ! local variables
-  integer :: ngll, ngllx, ngllz, i
+  integer :: ngll, ngllx, ngllz, i, imin, imax
   logical :: coherency
 
   ngll  = Tdomain%sFace(nface)%ngll
@@ -175,48 +174,50 @@ subroutine Get_flux_f2el (Tdomain, nelem, nface, w_face)
   ngllz = Tdomain%specel(nelem)%ngllz
   coherency = Tdomain%sFace(nface)%coherency
 
+  call get_iminimax(Tdomain%specel(nelem),w_face,imin,imax)
+
   if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
      if (w_face == 0 ) then
         do i=0,ngll-1
            Tdomain%specel(nelem)%Forces(i,0,0:4) = Tdomain%specel(nelem)%Forces(i,0,0:4) - &
-               Tdomain%sFace(nface)%Flux(i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(0,i)
+               Tdomain%sFace(nface)%Flux(i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(imin+i)
         enddo
      else if (w_face == 1 ) then
          do i=0,ngll-1
              Tdomain%specel(nelem)%Forces(ngllx-1,i,0:4) = Tdomain%specel(nelem)%Forces(ngllx-1,i,0:4) - &
-                 Tdomain%sFace(nface)%Flux(i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(1,i)
+               Tdomain%sFace(nface)%Flux(i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(imin+i)
          enddo
      else if (w_face == 2 ) then
          do i=0,ngll-1
              Tdomain%specel(nelem)%Forces(i,ngllz-1,0:4) = Tdomain%specel(nelem)%Forces(i,ngllz-1,0:4) - &
-                 Tdomain%sFace(nface)%Flux(i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(2,i)
+               Tdomain%sFace(nface)%Flux(i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(imin+i)
          enddo
      else
          do i=0,ngll-1
              Tdomain%specel(nelem)%Forces(0,i,0:4) = Tdomain%specel(nelem)%Forces(0,i,0:4) - &
-                 Tdomain%sFace(nface)%Flux(i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(3,i)
+               Tdomain%sFace(nface)%Flux(i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(imin+i)
          enddo
      endif
   else
      if (w_face == 0 ) then
         do i=0,ngll-1
            Tdomain%specel(nelem)%Forces(i,0,0:4) = Tdomain%specel(nelem)%Forces(i,0,0:4) - &
-               Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(0,ngll-1-i)
+               Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(imin+i)
         enddo
      else if (w_face == 1 ) then
         do i=0,ngll-1
            Tdomain%specel(nelem)%Forces(ngllx-1,i,0:4) = Tdomain%specel(nelem)%Forces(ngllx-1,i,0:4) - &
-               Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(1,ngll-1-i)
+               Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(imin+i)
         enddo
      else if (w_face == 2 ) then
         do i=0,ngll-1
            Tdomain%specel(nelem)%Forces(i,ngllz-1,0:4) = Tdomain%specel(nelem)%Forces(i,ngllz-1,0:4) - &
-               Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(2,ngll-1-i)
+               Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(imin+i)
         enddo
      else
         do i=0,ngll-1
            Tdomain%specel(nelem)%Forces(0,i,0:4) = Tdomain%specel(nelem)%Forces(0,i,0:4) - &
-               Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(3,ngll-1-i)
+               Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(imin+i)
         enddo
      endif
   endif
@@ -243,7 +244,7 @@ subroutine Get_traction_el2f (Tdomain, nelem, nface, w_face)
     integer, intent(in)   :: w_face
 
     ! local variables
-    integer :: ngll, ngllx, ngllz, i
+    integer :: ngll, ngllx, ngllz, i, imin, imax
     logical :: coherency
 
     ngll  = Tdomain%sFace(nface)%ngll
@@ -251,20 +252,7 @@ subroutine Get_traction_el2f (Tdomain, nelem, nface, w_face)
     ngllz = Tdomain%specel(nelem)%ngllz
     coherency  = Tdomain%sFace(nface)%coherency
 
-    select case (w_face)
-    case(0)
-        imin = 0
-        imax = ngllx-1
-    case(1)
-        imin = ngllx
-        imax = ngllx   + ngllz-1
-    case(2)
-        imin = ngllx   + ngllz
-        imax = 2*ngllx + ngllz-1
-    case(3)
-        imin = 2*ngllx + ngllz
-        imax = 2*ngllx + 2*ngllz -1
-    end select
+    call get_iminimax(Tdomain%specel(nelem),w_face,imin,imax)
 
     if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
         Tdomain%sFace(nface)%Traction = Tdomain%sFace(nface)%Traction &
@@ -298,7 +286,7 @@ subroutine Get_Vhat_f2el (Tdomain, nelem, nface, w_face)
     integer, intent(in)   :: w_face
 
     ! local variables
-    integer :: ngll, ngllx, ngllz, i
+    integer :: ngll, ngllx, ngllz, i, imin, imax
     logical :: coherency
 
     ngll  = Tdomain%sFace(nface)%ngll
@@ -306,20 +294,7 @@ subroutine Get_Vhat_f2el (Tdomain, nelem, nface, w_face)
     ngllz = Tdomain%specel(nelem)%ngllz
     coherency = Tdomain%sFace(nface)%coherency
 
-    select case (w_face)
-    case(0)
-        imin = 0
-        imax = ngllx-1
-    case(1)
-        imin = ngllx
-        imax = ngllx   + ngllz-1
-    case(2)
-        imin = ngllx   + ngllz
-        imax = 2*ngllx + ngllz-1
-    case(3)
-        imin = 2*ngllx + ngllz
-        imax = 2*ngllx + 2*ngllz -1
-    end select
+    call get_iminimax(Tdomain%specel(nelem),w_face,imin,imax)
 
     if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
         Tdomain%specel(nelem)%Vhat(imin:imax,:)  = Tdomain%sFace(nface)%Veloc(:,:)
@@ -330,6 +305,42 @@ subroutine Get_Vhat_f2el (Tdomain, nelem, nface, w_face)
     endif
 
 end subroutine Get_Vhat_f2el
+
+!>
+!!\brief Subroutine that computes the "imin" and "imax" indexes
+!! which corresponds to the begining and the end of the arrays
+!! that contain data for a given local face "w_face" of the
+!! element "Elem".
+!!\version 1.0
+!!\date 03/04/2014
+!! This subroutine is used with DG and HDG elements.
+!<
+subroutine Get_iminimax (Elem,w_face,imin,imax)
+
+    use selement
+    implicit none
+
+    type(element), intent(IN) :: Elem
+    integer, intent (IN)      :: w_face
+    integer, intent(INOUT)    :: imin
+    integer, intent(INOUT)    :: imax
+
+    select case (w_face)
+    case(0)
+        imin = 0
+        imax = Elem%ngllx-1
+    case(1)
+        imin = Elem%ngllx
+        imax = Elem%ngllx   + Elem%ngllz-1
+    case(2)
+        imin = Elem%ngllx   + Elem%ngllz
+        imax = 2*Elem%ngllx + Elem%ngllz-1
+    case(3)
+        imin = 2*Elem%ngllx + Elem%ngllz
+        imax = 2*Elem%ngllx + 2*Elem%ngllz -1
+    end select
+
+end subroutine Get_iminimax
 
 !! Local Variables:
 !! mode: f90

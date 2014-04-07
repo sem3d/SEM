@@ -43,7 +43,7 @@ module selement
        ! DG
        integer :: type_DG
        logical :: acoustic
-       real, dimension (:,:),  allocatable :: Coeff_Integr_Faces
+       real, dimension (:),    allocatable :: Coeff_Integr_Faces
        real, dimension(:,:,:), allocatable :: Strain
        real, dimension(:,:,:), allocatable :: Vect_RK
        ! HDG
@@ -764,88 +764,89 @@ contains
         implicit none
 
         type (Element), intent (INOUT)   :: Elem
-        integer    :: imin, imax
+        integer    :: imin, imax, ngx, ngz
+        ngx = Elem%ngllx ; ngz = Elem%ngllz
 
         ! For the Bottom Face :
         imin = 0 ; imax = Elem%ngllx-1
-        Elem%TracFace(imin:imax,0) = (Elem%Lambda(0:ngllx-1,0) + 2*Elem%Mu(0:ngllx-1,0)) &
-                                    * Elem%Normal_nodes(imin:imax,0) * Elem%Strain(0:ngllx-1,0,0) &
-                                    + Elem%Lambda(0:ngllx-1,0) * Elem%Normal_nodes(imin:imax,0) &
-                                    * Elem%Strain(0:ngllx-1,0,1) &
-                                    + 2*Elem%Mu(0:ngllx-1,0)  * Elem%Normal_nodes(imin:imax,1) &
-                                    * Elem%Strain(0:ngllx-1,0,2)
-        Elem%TracFace(imin:imax,1) =  Elem%Lambda(0:ngllx-1,0) * Elem%Normal_nodes(imin:imax,1) &
-                                    * Elem%Strain(0:ngllx-1,0,0) &
-                                    +(Elem%Lambda(0:ngllx-1,0) + 2*Elem%Mu(0:ngllx-1,0)) &
-                                    * Elem%Normal_nodes(imin:imax,1) * Elem%Strain(0:ngllx-1,0,1) &
-                                    + 2*Elem%Mu(0:ngllx-1,0)  * Elem%Normal_nodes(imin:imax,0) &
-                                    * Elem%Strain(0:ngllx-1,0,2)
+        Elem%TracFace(imin:imax,0) = (Elem%Lambda(0:ngx-1,0) + 2*Elem%Mu(0:ngx-1,0)) &
+                                    * Elem%Normal_nodes(imin:imax,0) * Elem%Strain(0:ngx-1,0,0) &
+                                    + Elem%Lambda(0:ngx-1,0) * Elem%Normal_nodes(imin:imax,0) &
+                                    * Elem%Strain(0:ngx-1,0,1) &
+                                    + 2*Elem%Mu(0:ngx-1,0)  * Elem%Normal_nodes(imin:imax,1) &
+                                    * Elem%Strain(0:ngx-1,0,2)
+        Elem%TracFace(imin:imax,1) =  Elem%Lambda(0:ngx-1,0) * Elem%Normal_nodes(imin:imax,1) &
+                                    * Elem%Strain(0:ngx-1,0,0) &
+                                    +(Elem%Lambda(0:ngx-1,0) + 2*Elem%Mu(0:ngx-1,0)) &
+                                    * Elem%Normal_nodes(imin:imax,1) * Elem%Strain(0:ngx-1,0,1) &
+                                    + 2*Elem%Mu(0:ngx-1,0)  * Elem%Normal_nodes(imin:imax,0) &
+                                    * Elem%Strain(0:ngx-1,0,2)
         Elem%TracFace(imin:imax,0) =  Elem%TracFace(imin:imax,0) &
-                                    + Elem%MatPen(imin:imax,0) * Elem%Veloc(0:ngllx-1,0,0) &
-                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngllx-1,0,1)
+                                    + Elem%MatPen(imin:imax,0) * Elem%Veloc(0:ngx-1,0,0) &
+                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngx-1,0,1)
         Elem%TracFace(imin:imax,1) =  Elem%TracFace(imin:imax,1) &
-                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngllx-1,0,0) &
-                                    + Elem%MatPen(imin:imax,1) * Elem%Veloc(0:ngllx-1,0,1)
+                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngx-1,0,0) &
+                                    + Elem%MatPen(imin:imax,1) * Elem%Veloc(0:ngx-1,0,1)
         ! For the Right Face :
         imin = imax+1 ; imax = imax + Elem%ngllz
-        Elem%TracFace(imin:imax,0) = (Elem%Lambda(ngllx-1,0:ngllz-1) + 2*Elem%Mu(ngllx-1,0:ngllz-1)) &
-                                    * Elem%Normal_nodes(imin:imax,0) * Elem%Strain(ngllx-1,0:ngllz-1,0) &
-                                    + Elem%Lambda(ngllx-1,0:ngllz-1) * Elem%Normal_nodes(imin:imax,0) &
-                                    * Elem%Strain(ngllx-1,0:ngllz-1,1) &
-                                    + 2*Elem%Mu(ngllx-1,0:ngllz-1)  * Elem%Normal_nodes(imin:imax,1) &
-                                    * Elem%Strain(ngllx-1,0:ngllz-1,2)
-        Elem%TracFace(imin:imax,1) =  Elem%Lambda(ngllx-1,0:ngllz-1) * Elem%Normal_nodes(imin:imax,1) &
-                                    * Elem%Strain(ngllx-1,0:ngllz-1,0) &
-                                    +(Elem%Lambda(ngllx-1,0:ngllz-1) + 2*Elem%Mu(ngllx-1,0:ngllz-1)) &
-                                    * Elem%Normal_nodes(imin:imax,1) * Elem%Strain(ngllx-1,0:ngllz-1,1) &
-                                    + 2*Elem%Mu(ngllx-1,0:ngllz-1)  * Elem%Normal_nodes(imin:imax,0) &
-                                    * Elem%Strain(ngllx-1,0:ngllz-1,2)
+        Elem%TracFace(imin:imax,0) = (Elem%Lambda(ngx-1,0:ngz-1) + 2*Elem%Mu(ngx-1,0:ngz-1)) &
+                                    * Elem%Normal_nodes(imin:imax,0) * Elem%Strain(ngx-1,0:ngz-1,0) &
+                                    + Elem%Lambda(ngx-1,0:ngz-1) * Elem%Normal_nodes(imin:imax,0) &
+                                    * Elem%Strain(ngx-1,0:ngz-1,1) &
+                                    + 2*Elem%Mu(ngx-1,0:ngz-1)  * Elem%Normal_nodes(imin:imax,1) &
+                                    * Elem%Strain(ngx-1,0:ngz-1,2)
+        Elem%TracFace(imin:imax,1) =  Elem%Lambda(ngx-1,0:ngz-1) * Elem%Normal_nodes(imin:imax,1) &
+                                    * Elem%Strain(ngx-1,0:ngz-1,0) &
+                                    +(Elem%Lambda(ngx-1,0:ngz-1) + 2*Elem%Mu(ngx-1,0:ngz-1)) &
+                                    * Elem%Normal_nodes(imin:imax,1) * Elem%Strain(ngx-1,0:ngz-1,1) &
+                                    + 2*Elem%Mu(ngx-1,0:ngz-1)  * Elem%Normal_nodes(imin:imax,0) &
+                                    * Elem%Strain(ngx-1,0:ngz-1,2)
         Elem%TracFace(imin:imax,0) =  Elem%TracFace(imin:imax,0) &
-                                    + Elem%MatPen(imin:imax,0) * Elem%Veloc(ngllx-1,0:ngllz-1,0) &
-                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(ngllx-1,0:ngllz-1,1)
+                                    + Elem%MatPen(imin:imax,0) * Elem%Veloc(ngx-1,0:ngz-1,0) &
+                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(ngx-1,0:ngz-1,1)
         Elem%TracFace(imin:imax,1) =  Elem%TracFace(imin:imax,1) &
-                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(ngllx-1,0:ngllz-1,0) &
-                                    + Elem%MatPen(imin:imax,1) * Elem%Veloc(ngllx-1,0:ngllz-1,1)
+                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(ngx-1,0:ngz-1,0) &
+                                    + Elem%MatPen(imin:imax,1) * Elem%Veloc(ngx-1,0:ngz-1,1)
         ! For the Top Face :
         imin = imax+1 ; imax = imax + Elem%ngllx
-        Elem%TracFace(imin:imax,0) = (Elem%Lambda(0:ngllx-1,ngllz-1) + 2*Elem%Mu(0:ngllx-1,ngllz-1)) &
-                                    * Elem%Normal_nodes(imin:imax,0) * Elem%Strain(0:ngllx-1,ngllz-1,0) &
-                                    + Elem%Lambda(0:ngllx-1,ngllz-1) * Elem%Normal_nodes(imin:imax,0) &
-                                    * Elem%Strain(0:ngllx-1,ngllz-1,1) &
-                                    + 2*Elem%Mu(0:ngllx-1,ngllz-1)  * Elem%Normal_nodes(imin:imax,1) &
-                                    * Elem%Strain(0:ngllx-1,ngllz-1,2)
-        Elem%TracFace(imin:imax,1) =  Elem%Lambda(0:ngllx-1,ngllz-1) * Elem%Normal_nodes(imin:imax,1) &
-                                    * Elem%Strain(0:ngllx-1,ngllz-1,0) &
-                                    +(Elem%Lambda(0:ngllx-1,ngllz-1) + 2*Elem%Mu(0:ngllx-1,ngllz-1)) &
-                                    * Elem%Normal_nodes(imin:imax,1) * Elem%Strain(0:ngllx-1,ngllz-1,1) &
-                                    + 2*Elem%Mu(0:ngllx-1,ngllz-1)  * Elem%Normal_nodes(imin:imax,0) &
-                                    * Elem%Strain(0:ngllx-1,ngllz-1,2)
+        Elem%TracFace(imin:imax,0) = (Elem%Lambda(0:ngx-1,ngz-1) + 2*Elem%Mu(0:ngx-1,ngz-1)) &
+                                    * Elem%Normal_nodes(imin:imax,0) * Elem%Strain(0:ngx-1,ngz-1,0) &
+                                    + Elem%Lambda(0:ngx-1,ngz-1) * Elem%Normal_nodes(imin:imax,0) &
+                                    * Elem%Strain(0:ngx-1,ngz-1,1) &
+                                    + 2*Elem%Mu(0:ngx-1,ngz-1)  * Elem%Normal_nodes(imin:imax,1) &
+                                    * Elem%Strain(0:ngx-1,ngz-1,2)
+        Elem%TracFace(imin:imax,1) =  Elem%Lambda(0:ngx-1,ngz-1) * Elem%Normal_nodes(imin:imax,1) &
+                                    * Elem%Strain(0:ngx-1,ngz-1,0) &
+                                    +(Elem%Lambda(0:ngx-1,ngz-1) + 2*Elem%Mu(0:ngx-1,ngz-1)) &
+                                    * Elem%Normal_nodes(imin:imax,1) * Elem%Strain(0:ngx-1,ngz-1,1) &
+                                    + 2*Elem%Mu(0:ngx-1,ngz-1)  * Elem%Normal_nodes(imin:imax,0) &
+                                    * Elem%Strain(0:ngx-1,ngz-1,2)
         Elem%TracFace(imin:imax,0) =  Elem%TracFace(imin:imax,0) &
-                                    + Elem%MatPen(imin:imax,0) * Elem%Veloc(0:ngllx-1,ngllz-1,0) &
-                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngllx-1,ngllz-1,1)
+                                    + Elem%MatPen(imin:imax,0) * Elem%Veloc(0:ngx-1,ngz-1,0) &
+                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngx-1,ngz-1,1)
         Elem%TracFace(imin:imax,1) =  Elem%TracFace(imin:imax,1) &
-                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngllx-1,ngllz-1,0) &
-                                    + Elem%MatPen(imin:imax,1) * Elem%Veloc(0:ngllx-1,ngllz-1,1)
+                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngx-1,ngz-1,0) &
+                                    + Elem%MatPen(imin:imax,1) * Elem%Veloc(0:ngx-1,ngz-1,1)
         ! For the Left Face :
         imin = imax+1 ; imax = imax + Elem%ngllz
-        Elem%TracFace(imin:imax,0) = (Elem%Lambda(0,0:ngllz-1) + 2*Elem%Mu(0,0:ngllz-1)) &
-                                    * Elem%Normal_nodes(imin:imax,0) * Elem%Strain(0,0:ngllz-1,0) &
-                                    + Elem%Lambda(0,0:ngllz-1) * Elem%Normal_nodes(imin:imax,0) &
-                                    * Elem%Strain(0,0:ngllz-1,1) &
-                                    + 2*Elem%Mu(0,0:ngllz-1)  * Elem%Normal_nodes(imin:imax,1) &
-                                    * Elem%Strain(0,0:ngllz-1,2)
-        Elem%TracFace(imin:imax,1) =  Elem%Lambda(0,0:ngllz-1) * Elem%Normal_nodes(imin:imax,1) &
-                                    * Elem%Strain(0,0:ngllz-1,0) &
-                                    +(Elem%Lambda(0,0:ngllz-1) + 2*Elem%Mu(0,0:ngllz-1)) &
-                                    * Elem%Normal_nodes(imin:imax,1) * Elem%Strain(0,0:ngllz-1,1) &
-                                    + 2*Elem%Mu(0,0:ngllz-1)  * Elem%Normal_nodes(imin:imax,0) &
-                                    * Elem%Strain(0,0:ngllz-1,2)
+        Elem%TracFace(imin:imax,0) = (Elem%Lambda(0,0:ngz-1) + 2*Elem%Mu(0,0:ngz-1)) &
+                                    * Elem%Normal_nodes(imin:imax,0) * Elem%Strain(0,0:ngz-1,0) &
+                                    + Elem%Lambda(0,0:ngz-1) * Elem%Normal_nodes(imin:imax,0) &
+                                    * Elem%Strain(0,0:ngz-1,1) &
+                                    + 2*Elem%Mu(0,0:ngz-1)  * Elem%Normal_nodes(imin:imax,1) &
+                                    * Elem%Strain(0,0:ngz-1,2)
+        Elem%TracFace(imin:imax,1) =  Elem%Lambda(0,0:ngz-1) * Elem%Normal_nodes(imin:imax,1) &
+                                    * Elem%Strain(0,0:ngz-1,0) &
+                                    +(Elem%Lambda(0,0:ngz-1) + 2*Elem%Mu(0,0:ngz-1)) &
+                                    * Elem%Normal_nodes(imin:imax,1) * Elem%Strain(0,0:ngz-1,1) &
+                                    + 2*Elem%Mu(0,0:ngz-1)  * Elem%Normal_nodes(imin:imax,0) &
+                                    * Elem%Strain(0,0:ngz-1,2)
         Elem%TracFace(imin:imax,0) =  Elem%TracFace(imin:imax,0) &
-                                    + Elem%MatPen(imin:imax,0) * Elem%Veloc(0,0:ngllz-1,0) &
-                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(0,0:ngllz-1,1)
+                                    + Elem%MatPen(imin:imax,0) * Elem%Veloc(0,0:ngz-1,0) &
+                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(0,0:ngz-1,1)
         Elem%TracFace(imin:imax,1) =  Elem%TracFace(imin:imax,1) &
-                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(0,0:ngllz-1,0) &
-                                    + Elem%MatPen(imin:imax,1) * Elem%Veloc(0,0:ngllz-1,1)
+                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(0,0:ngz-1,0) &
+                                    + Elem%MatPen(imin:imax,1) * Elem%Veloc(0,0:ngz-1,1)
     end subroutine compute_TracFace
 
 ! ###########################################################
@@ -862,7 +863,7 @@ contains
 
         type (Element), intent (INOUT)   :: Elem
         real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: Vxz
-        integer    :: imin, imax, ngllx, ngllz
+        integer    :: imin, imax, ngx, ngz
         ngx = Elem%ngllx ; ngz = Elem%ngllz
 
         ! Adding contribution of Vhat on the trace Traction :
@@ -896,11 +897,11 @@ contains
         Elem%Forces(ngx-1,0:ngz-1,4) = Elem%Forces(ngx-1,0:ngz-1,4) - Elem%TracFace(imin:imax,1)
         ! For the Top Face :
         imin = imax+1 ; imax = imax+ngx
-        Elem%Forces(0:ngx-1,ngz,0) = Elem%Forces(0:ngx-1,ngz,0) - Elem%Vhat(imin:imax,0)
-        Elem%Forces(0:ngx-1,ngz,1) = Elem%Forces(0:ngx-1,ngz,1) - Elem%Vhat(imin:imax,1)
-        Elem%Forces(0:ngx-1,ngz,2) = Elem%Forces(0:ngx-1,ngz,2) - Vxz(imin:imax)
-        Elem%Forces(0:ngx-1,ngz,3) = Elem%Forces(0:ngx-1,ngz,3) - Elem%TracFace(imin:imax,0)
-        Elem%Forces(0:ngx-1,ngz,4) = Elem%Forces(0:ngx-1,ngz,4) - Elem%TracFace(imin:imax,1)
+        Elem%Forces(0:ngx-1,ngz-1,0) = Elem%Forces(0:ngx-1,ngz-1,0) - Elem%Vhat(imin:imax,0)
+        Elem%Forces(0:ngx-1,ngz-1,1) = Elem%Forces(0:ngx-1,ngz-1,1) - Elem%Vhat(imin:imax,1)
+        Elem%Forces(0:ngx-1,ngz-1,2) = Elem%Forces(0:ngx-1,ngz-1,2) - Vxz(imin:imax)
+        Elem%Forces(0:ngx-1,ngz-1,3) = Elem%Forces(0:ngx-1,ngz-1,3) - Elem%TracFace(imin:imax,0)
+        Elem%Forces(0:ngx-1,ngz-1,4) = Elem%Forces(0:ngx-1,ngz-1,4) - Elem%TracFace(imin:imax,1)
         ! For the Left Face :
         imin = imax+1 ; imax = imax+ngz
         Elem%Forces(0,0:ngz-1,0) = Elem%Forces(0,0:ngz-1,0) - Elem%Vhat(imin:imax,0)

@@ -461,9 +461,10 @@ subroutine define_arrays(Tdomain)
     enddo
     ! Prolongement par continuite des proprietes du milieu pour surface libre ou absorbante
     do nf = 0, Tdomain%n_face-1
-       !if(Tdomain%sFace(nf)%freesurf) &
-       if(Tdomain%sFace(nf)%freesurf .OR. Tdomain%sFace(nf)%abs) &
-           call coeff_freesurf(Tdomain,nf)
+        if(Tdomain%sFace(nf)%Type_Flux .EQ. FLUX_GODUNOV) then
+            if(Tdomain%sFace(nf)%freesurf .OR. Tdomain%sFace(nf)%abs) &
+                call coeff_freesurf(Tdomain,nf)
+        endif
     enddo
     ! Calcul des matrices de Penalisation pour les elements HDG
     do n = 0, Tdomain%n_elem-1

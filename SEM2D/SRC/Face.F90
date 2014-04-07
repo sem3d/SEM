@@ -38,7 +38,7 @@ module sfaces
        real, dimension (:,:), allocatable :: r1, r2, r3  ! EigenVectors for DG Godunov
        real, dimension (:,:), allocatable :: Vect_RK
        real, dimension (:,:), allocatable :: Normal_Nodes
-       real, dimension (:,:), allocatable :: invMatPen
+       real, dimension (:,:), allocatable :: invMatPen, Traction
        logical :: is_computed, changing_media
 
     end type face
@@ -210,9 +210,14 @@ contains
       implicit none
       type (Face), intent (INOUT) :: F
 
-      F%Veloc(:,0) = F%InvMatPen(:,0)*F%Traction(:,0) + F%InvMatPen(:,2)*F%Traction(:,1)
-      F%Veloc(:,1) = F%InvMatPen(:,2)*F%Traction(:,0) + F%InvMatPen(:,1)*F%Traction(:,1)
-      F%Traction = 0.
+      if (.NOT. F%is_computed) then
+          F%Veloc(:,0) = F%InvMatPen(:,0)*F%Traction(:,0) + F%InvMatPen(:,2)*F%Traction(:,1)
+          F%Veloc(:,1) = F%InvMatPen(:,2)*F%Traction(:,0) + F%InvMatPen(:,1)*F%Traction(:,1)
+          F%Traction = 0.
+          F%is_computed = .TRUE.
+      else
+          F%is_computed = .FALSE.
+      endif
 
   end subroutine Compute_Vhat
 
@@ -484,7 +489,6 @@ contains
       type (Face), intent (INOUT)     :: F
       real, dimension(0:F%ngll-1,0:1) :: compute_stress_jump
       real, dimension(0:F%ngll-1,0:2) :: sigma
-      real, dimension(0:F%ngll-1)     :: trace
 
       ! For the "minus" side
       sigma = compute_stress(F,.true.)
@@ -622,12 +626,12 @@ contains
         Zs_p(:) = sqrt(F%Rho_p(:) * F%Lambda_p(:))
 
         invDet(:) = 1. / ((Zp_m(:)+Zp_p(:))*(Zs_m(:)+Zs_p(:)))
-        F%InvMatPen(:,1) = invDet(:) * ((Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,1)**2 &
-                                       +(Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,2)**2)
-        F%InvMatPen(:,2) = invDet(:) * ((Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,1)**2 &
-                                       +(Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,2)**2)
-        F%InvMatPen(:,3) =-invDet(:) * ((Zp_m(:)+Zp_p(:)) - (Zs_m(:)+Zs_p(:))) &
-                                     * F%Normal_nodes(:,1) * F%Normal_nodes(:,2)
+        F%InvMatPen(:,0) = invDet(:) * ((Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,0)**2 &
+                                       +(Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,1)**2)
+        F%InvMatPen(:,1) = invDet(:) * ((Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,0)**2 &
+                                       +(Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,1)**2)
+        F%InvMatPen(:,2) =-invDet(:) * ((Zp_m(:)+Zp_p(:)) - (Zs_m(:)+Zs_p(:))) &
+                                     * F%Normal_nodes(:,0) * F%Normal_nodes(:,1)
 
     end subroutine compute_invMatPen
 

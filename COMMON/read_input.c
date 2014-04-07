@@ -392,8 +392,9 @@ int expect_type_galerkin(yyscan_t scanner, int* type)
     if (cmp(scanner,"continuous"))   { *type = 0; return 1; }
     if (cmp(scanner,"dg_strong"))       { *type = 1; return 1; }
     if (cmp(scanner,"dg_weak"))       { *type = 2; return 1; }
+    if (cmp(scanner,"hdg_rp"))       { *type = 3; return 1; }
 error:
-    msg_err(scanner, "Expected continuous|dg_strong|dg_weak");
+    msg_err(scanner, "Expected continuous|dg_strong|dg_weak|hdg");
     return 0;
 }
 
@@ -409,8 +410,9 @@ int expect_type_dg_flux(yyscan_t scanner, int* type)
     if (cmp(scanner,"centered"))   { *type = 1; return 1; }
     if (cmp(scanner,"godunov"))       { *type = 2; return 1; }
     if (cmp(scanner,"laurent"))       { *type = 3; return 1; }
+    if (cmp(scanner,"hdg_rp"))       { *type = 4; return 1; }
 error:
-    msg_err(scanner, "Expected none|centered|godunov");
+    msg_err(scanner, "Expected none|centered|godunov|hdg_rp");
     return 0;
 }
 

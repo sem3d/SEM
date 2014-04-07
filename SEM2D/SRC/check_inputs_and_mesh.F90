@@ -40,10 +40,11 @@ subroutine check_inputs_and_mesh(Tdomain)
         STOP "This choice for boundary condition does not exist. Please choose free or absorbing"
     endif
 
-    if ((Tdomain%type_elem.NE.GALERKIN_CONT) .AND. &
-        (Tdomain%type_elem.NE.GALERKIN_DG_STRONG) .AND. &
-        (Tdomain%type_elem.NE.GALERKIN_DG_WEAK)) then
-        STOP "This choice for elem_type does not exist. Choose : continuous, dg-strong, or dg-weak"
+    if ((Tdomain%type_elem.NE.GALERKIN_CONT)     .AND. &
+        (Tdomain%type_elem.NE.GALERKIN_DG_STRONG).AND. &
+        (Tdomain%type_elem.NE.GALERKIN_DG_WEAK)  .AND. &
+        (Tdomain%type_elem.NE.GALERKIN_HDG_RP)) then
+        STOP "This choice for elem_type does not exist. Choose : continuous, dg-strong, dg-weak, or hdg_rp"
     endif
 
     ! Check the regularity of the mesh :
@@ -106,3 +107,8 @@ subroutine check_mesh(Tdomain)
     enddo
 
 end subroutine check_mesh
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent : !!

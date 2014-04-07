@@ -60,6 +60,11 @@ subroutine Runge_Kutta4 (Tdomain, dt)
              call compute_InternalForces_DG_Weak(Tdomain%specel(n), &
                                                  Tdomain%sSubDomain(mat)%hprimex, &
                                                  Tdomain%sSubDomain(mat)%hTprimez)
+         case(GALERKIN_HDG_RP)   ! Hybridizable Discontinuous Galerkin
+             call compute_InternalForces_DG_Weak(Tdomain%specel(n), &
+                                                 Tdomain%sSubDomain(mat)%hprimex, &
+                                                 Tdomain%sSubDomain(mat)%hTprimez)
+             call compute_TracFace (Tdomain%specel(n))
           case(GALERKIN_CONT) ! Continuous Galerkin
              call get_Displ_fv2el (Tdomain,n)
              call compute_InternalForces_Elem(Tdomain%specel(n), &
@@ -70,12 +75,14 @@ subroutine Runge_Kutta4 (Tdomain, dt)
           end select
           ! Calcul des fluxs / Assemblage des forces
           do nf = 0,3
-             nface  = Tdomain%specel(n)%Near_Face(nf)
-             if(type_DG == GALERKIN_CONT) then
-                call Assemblage(Tdomain,n,nface,nf)
-             else
-                call get_data_el2f(Tdomain,n,nface,nf)
-             endif
+              nface  = Tdomain%specel(n)%Near_Face(nf)
+              if(type_DG == GALERKIN_CONT) then
+                  call Assemblage(Tdomain,n,nface,nf)
+              elseif(type_DG == GALERKIN_HDG_RP) then
+                  call get_traction_el2f(Tdomain,n,nface,nf)
+              else  ! Usual Discontinuous Galerkin
+                  call get_data_el2f(Tdomain,n,nface,nf)
+              endif
           enddo
        enddo
 
@@ -106,11 +113,20 @@ subroutine Runge_Kutta4 (Tdomain, dt)
              Tdomain%specel(n)%Forces  = Tdomain%specel(n)%Displ
           else                  ! Discontinuous Galerkin
              acoustic = Tdomain%specel(n)%Acoustic
-             do nf = 0,3        ! Computation of the fluxes
-                nface = Tdomain%specel(n)%Near_Face(nf)
-                call Compute_Flux(Tdomain%sFace(nface),n,type_DG,acoustic)
-                call get_flux_f2el(Tdomain,n,nface,nf)
-             enddo
+             if (type_DG==GALERKIN_HDG_RP) then  ! Hybridizable Discont Galerkin
+                 do nf = 0,3        ! Computation of the Velocities Traces
+                     nface = Tdomain%specel(n)%Near_Face(nf)
+                     call Compute_Vhat(Tdomain%sFace(nface))
+                     call get_Vhat_f2el(Tdomain,n,nface,nf)
+                 enddo
+                 call Compute_Traces (Tdomain%specel(n))
+             elseif (type_DG==GALERKIN_DG_WEAK .OR. type_DG==GALERKIN_DG_STRONG) then ! Disc Galerkin
+                 do nf = 0,3        ! Computation of the fluxes
+                     nface = Tdomain%specel(n)%Near_Face(nf)
+                     call Compute_Flux(Tdomain%sFace(nface),n,type_DG,acoustic)
+                     call get_flux_f2el(Tdomain,n,nface,nf)
+                 enddo
+             endif
              call inversion_massmat(Tdomain%specel(n))
              Tdomain%specel(n)%Vect_RK = coeffs(1) * Tdomain%specel(n)%Vect_RK + Tdomain%specel(n)%Forces * dt
              Tdomain%specel(n)%Strain  = Tdomain%specel(n)%Strain + coeffs(2) * Tdomain%specel(n)%Vect_RK(:,:,0:2)
