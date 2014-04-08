@@ -85,7 +85,8 @@ subroutine define_arrays(Tdomain)
         Tdomain%specel(n)%MassMat  = Whei*Tdomain%specel(n)%Density*Jac
         if (.not. Tdomain%specel(n)%PML) then
            if((Tdomain%specel(n)%Type_DG==GALERKIN_DG_STRONG).OR. &
-               (Tdomain%specel(n)%Type_DG==GALERKIN_DG_WEAK)) then ! Discontinuous Galerkin
+               (Tdomain%specel(n)%Type_DG==GALERKIN_DG_WEAK) .OR. &
+               (Tdomain%specel(n)%Type_DG==GALERKIN_HDG_RP) ) then ! Discontinuous Galerkin
               Tdomain%specel(n)%Acoeff(:,:,0) = Whei*xix*Jac
               Tdomain%specel(n)%Acoeff(:,:,1) = Whei*etax*Jac
               Tdomain%specel(n)%Acoeff(:,:,2) = Whei*xiz*Jac

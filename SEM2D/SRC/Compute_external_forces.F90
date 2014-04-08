@@ -10,6 +10,7 @@ subroutine Compute_external_forces (Tdomain,timelocal)
 
     use sdomain
     use ssources
+    use constants
     implicit none
     type (domain), intent (INOUT) :: Tdomain
     real, intent (INOUT)          :: timelocal
@@ -20,7 +21,7 @@ subroutine Compute_external_forces (Tdomain,timelocal)
         do ns =0, Tdomain%sSource(n)%ine-1
             ncc = Tdomain%sSource(n)%Elem(ns)%nr
             ngllx = Tdomain%specel(ncc)%ngllx; ngllz = Tdomain%specel(ncc)%ngllz
-            if ( Tdomain%specel(ncc)%Type_DG == 2) then
+            if ( Tdomain%specel(ncc)%Type_DG == GALERKIN_CONT) then
                 nDG = 0
             else ! In DG case, the forces has to be put in Forces(:,:,3:4)
                 ! instead of Forces(:,:,0:1) ... nDG is then computed here to shift Forces
@@ -41,3 +42,8 @@ subroutine Compute_external_forces (Tdomain,timelocal)
     enddo
 
 end subroutine Compute_external_forces
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent : !!

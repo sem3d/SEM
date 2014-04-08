@@ -83,8 +83,8 @@ contains
             endif
             do j=0,ngll-1
                 Tdomain%specel(nelem)%Normal_Nodes(k,:) = normal_aux(:)
+                k = k+1
             enddo
-            k = k+1
         enddo
 
     end subroutine compute_normals_elem

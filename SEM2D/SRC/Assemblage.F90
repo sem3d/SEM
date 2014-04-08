@@ -306,42 +306,6 @@ subroutine Get_Vhat_f2el (Tdomain, nelem, nface, w_face)
 
 end subroutine Get_Vhat_f2el
 
-!>
-!!\brief Subroutine that computes the "imin" and "imax" indexes
-!! which corresponds to the begining and the end of the arrays
-!! that contain data for a given local face "w_face" of the
-!! element "Elem".
-!!\version 1.0
-!!\date 03/04/2014
-!! This subroutine is used with DG and HDG elements.
-!<
-subroutine Get_iminimax (Elem,w_face,imin,imax)
-
-    use selement
-    implicit none
-
-    type(element), intent(IN) :: Elem
-    integer, intent (IN)      :: w_face
-    integer, intent(INOUT)    :: imin
-    integer, intent(INOUT)    :: imax
-
-    select case (w_face)
-    case(0)
-        imin = 0
-        imax = Elem%ngllx-1
-    case(1)
-        imin = Elem%ngllx
-        imax = Elem%ngllx   + Elem%ngllz-1
-    case(2)
-        imin = Elem%ngllx   + Elem%ngllz
-        imax = 2*Elem%ngllx + Elem%ngllz-1
-    case(3)
-        imin = 2*Elem%ngllx + Elem%ngllz
-        imax = 2*Elem%ngllx + 2*Elem%ngllz -1
-    end select
-
-end subroutine Get_iminimax
-
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

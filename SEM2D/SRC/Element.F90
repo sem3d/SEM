@@ -707,17 +707,20 @@ contains
         real, dimension (0:Elem%ngllz-1) :: Zp_z, Zs_z
         integer    :: imin, imax, ngllx, ngllz
 
-       ngllx = Elem%ngllx ; ngllz = Elem%ngllz
+        ngllx = Elem%ngllx ; ngllz = Elem%ngllz
 
         ! Bottom Face :
+        call get_iminimax(Elem,0,imin,imax)
         Zp_x(:) = sqrt(Elem%Density(0:ngllx-1,0) * (Elem%Lambda(0:ngllx-1,0)+2.*Elem%Mu(0:ngllx-1,0)))
         Zs_x(:) = sqrt(Elem%Density(0:ngllx-1,0) *  Elem%Lambda(0:ngllx-1,0))
-        Elem%MatPen(:,0) = Zp_x(:)*Elem%Normal_Nodes(0:ngllx-1,0)**2 + Zs_x(:)*Elem%Normal_Nodes(0:ngllx-1,1)**2
-        Elem%MatPen(:,1) = Zs_x(:)*Elem%Normal_Nodes(0:ngllx-1,0)**2 + Zp_x(:)*Elem%Normal_Nodes(0:ngllx-1,1)**2
-        Elem%MatPen(:,2) = (Zp_x(:)-Zs_x(:)) * Elem%Normal_Nodes(0:ngllx-1,0) *Elem%Normal_Nodes(0:ngllx-1,1)
+        Elem%MatPen(imin:imax,0) = Zp_x(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
+                                 + Zs_x(:)*Elem%Normal_Nodes(imin:imax,1)**2
+        Elem%MatPen(imin:imax,1) = Zs_x(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
+                                 + Zp_x(:)*Elem%Normal_Nodes(imin:imax,1)**2
+        Elem%MatPen(imin:imax,2) =(Zp_x(:)-Zs_x(:))*Elem%Normal_Nodes(imin:imax,0) *Elem%Normal_Nodes(imin:imax,1)
 
         ! Right Face :
-        imin = ngllx ; imax = imin + ngllz-1
+        call get_iminimax(Elem,1,imin,imax)
         Zp_z(:) = sqrt(Elem%Density(ngllx-1,0:ngllz-1) * (Elem%Lambda(ngllx-1,0:ngllz-1) &
                                                          + 2.*Elem%Mu(ngllx-1,0:ngllz-1)))
         Zs_z(:) = sqrt(Elem%Density(ngllx-1,0:ngllz-1) *  Elem%Lambda(ngllx-1,0:ngllz-1))
@@ -728,7 +731,7 @@ contains
         Elem%MatPen(imin:imax,2) =(Zp_z(:)-Zs_z(:))*Elem%Normal_Nodes(imin:imax,0) *Elem%Normal_Nodes(imin:imax,1)
 
         ! Top Face :
-        imin = imax+1 ; imax = imin + ngllx-1
+        call get_iminimax(Elem,2,imin,imax)
         Zp_x(:) = sqrt(Elem%Density(0:ngllx-1,ngllz-1) * (Elem%Lambda(0:ngllx-1,ngllz-1) &
                                                          + 2.*Elem%Mu(0:ngllx-1,ngllz-1)))
         Zs_x(:) = sqrt(Elem%Density(0:ngllx-1,ngllz-1) *  Elem%Lambda(0:ngllx-1,ngllz-1))
@@ -739,9 +742,8 @@ contains
         Elem%MatPen(imin:imax,2) =(Zp_x(:)-Zs_x(:))*Elem%Normal_Nodes(imin:imax,0) *Elem%Normal_Nodes(imin:imax,1)
 
         ! Left Face :
-        imin = imax+1 ; imax = imin + ngllz-1
-        Zp_z(:) = sqrt(Elem%Density(0,0:ngllz-1) * (Elem%Lambda(0,0:ngllz-1) &
-                                                   + 2.*Elem%Mu(0,0:ngllz-1)))
+        call get_iminimax(Elem,3,imin,imax)
+        Zp_z(:) = sqrt(Elem%Density(0,0:ngllz-1) * (Elem%Lambda(0,0:ngllz-1)+2.*Elem%Mu(0,0:ngllz-1)))
         Zs_z(:) = sqrt(Elem%Density(0,0:ngllz-1) *  Elem%Lambda(0,0:ngllz-1))
         Elem%MatPen(imin:imax,0) = Zp_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
                                  + Zs_z(:)*Elem%Normal_Nodes(imin:imax,1)**2
@@ -768,7 +770,7 @@ contains
         ngx = Elem%ngllx ; ngz = Elem%ngllz
 
         ! For the Bottom Face :
-        imin = 0 ; imax = Elem%ngllx-1
+        call get_iminimax(Elem,0,imin,imax)
         Elem%TracFace(imin:imax,0) = (Elem%Lambda(0:ngx-1,0) + 2*Elem%Mu(0:ngx-1,0)) &
                                     * Elem%Normal_nodes(imin:imax,0) * Elem%Strain(0:ngx-1,0,0) &
                                     + Elem%Lambda(0:ngx-1,0) * Elem%Normal_nodes(imin:imax,0) &
@@ -782,13 +784,13 @@ contains
                                     + 2*Elem%Mu(0:ngx-1,0)  * Elem%Normal_nodes(imin:imax,0) &
                                     * Elem%Strain(0:ngx-1,0,2)
         Elem%TracFace(imin:imax,0) =  Elem%TracFace(imin:imax,0) &
-                                    + Elem%MatPen(imin:imax,0) * Elem%Veloc(0:ngx-1,0,0) &
-                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngx-1,0,1)
+                                    - Elem%MatPen(imin:imax,0) * Elem%Veloc(0:ngx-1,0,0) &
+                                    - Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngx-1,0,1)
         Elem%TracFace(imin:imax,1) =  Elem%TracFace(imin:imax,1) &
-                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngx-1,0,0) &
-                                    + Elem%MatPen(imin:imax,1) * Elem%Veloc(0:ngx-1,0,1)
+                                    - Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngx-1,0,0) &
+                                    - Elem%MatPen(imin:imax,1) * Elem%Veloc(0:ngx-1,0,1)
         ! For the Right Face :
-        imin = imax+1 ; imax = imax + Elem%ngllz
+        call get_iminimax(Elem,1,imin,imax)
         Elem%TracFace(imin:imax,0) = (Elem%Lambda(ngx-1,0:ngz-1) + 2*Elem%Mu(ngx-1,0:ngz-1)) &
                                     * Elem%Normal_nodes(imin:imax,0) * Elem%Strain(ngx-1,0:ngz-1,0) &
                                     + Elem%Lambda(ngx-1,0:ngz-1) * Elem%Normal_nodes(imin:imax,0) &
@@ -802,13 +804,13 @@ contains
                                     + 2*Elem%Mu(ngx-1,0:ngz-1)  * Elem%Normal_nodes(imin:imax,0) &
                                     * Elem%Strain(ngx-1,0:ngz-1,2)
         Elem%TracFace(imin:imax,0) =  Elem%TracFace(imin:imax,0) &
-                                    + Elem%MatPen(imin:imax,0) * Elem%Veloc(ngx-1,0:ngz-1,0) &
-                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(ngx-1,0:ngz-1,1)
+                                    - Elem%MatPen(imin:imax,0) * Elem%Veloc(ngx-1,0:ngz-1,0) &
+                                    - Elem%MatPen(imin:imax,2) * Elem%Veloc(ngx-1,0:ngz-1,1)
         Elem%TracFace(imin:imax,1) =  Elem%TracFace(imin:imax,1) &
-                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(ngx-1,0:ngz-1,0) &
-                                    + Elem%MatPen(imin:imax,1) * Elem%Veloc(ngx-1,0:ngz-1,1)
+                                    - Elem%MatPen(imin:imax,2) * Elem%Veloc(ngx-1,0:ngz-1,0) &
+                                    - Elem%MatPen(imin:imax,1) * Elem%Veloc(ngx-1,0:ngz-1,1)
         ! For the Top Face :
-        imin = imax+1 ; imax = imax + Elem%ngllx
+        call get_iminimax(Elem,2,imin,imax)
         Elem%TracFace(imin:imax,0) = (Elem%Lambda(0:ngx-1,ngz-1) + 2*Elem%Mu(0:ngx-1,ngz-1)) &
                                     * Elem%Normal_nodes(imin:imax,0) * Elem%Strain(0:ngx-1,ngz-1,0) &
                                     + Elem%Lambda(0:ngx-1,ngz-1) * Elem%Normal_nodes(imin:imax,0) &
@@ -822,13 +824,13 @@ contains
                                     + 2*Elem%Mu(0:ngx-1,ngz-1)  * Elem%Normal_nodes(imin:imax,0) &
                                     * Elem%Strain(0:ngx-1,ngz-1,2)
         Elem%TracFace(imin:imax,0) =  Elem%TracFace(imin:imax,0) &
-                                    + Elem%MatPen(imin:imax,0) * Elem%Veloc(0:ngx-1,ngz-1,0) &
-                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngx-1,ngz-1,1)
+                                    - Elem%MatPen(imin:imax,0) * Elem%Veloc(0:ngx-1,ngz-1,0) &
+                                    - Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngx-1,ngz-1,1)
         Elem%TracFace(imin:imax,1) =  Elem%TracFace(imin:imax,1) &
-                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngx-1,ngz-1,0) &
-                                    + Elem%MatPen(imin:imax,1) * Elem%Veloc(0:ngx-1,ngz-1,1)
+                                    - Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngx-1,ngz-1,0) &
+                                    - Elem%MatPen(imin:imax,1) * Elem%Veloc(0:ngx-1,ngz-1,1)
         ! For the Left Face :
-        imin = imax+1 ; imax = imax + Elem%ngllz
+        call get_iminimax(Elem,3,imin,imax)
         Elem%TracFace(imin:imax,0) = (Elem%Lambda(0,0:ngz-1) + 2*Elem%Mu(0,0:ngz-1)) &
                                     * Elem%Normal_nodes(imin:imax,0) * Elem%Strain(0,0:ngz-1,0) &
                                     + Elem%Lambda(0,0:ngz-1) * Elem%Normal_nodes(imin:imax,0) &
@@ -842,11 +844,11 @@ contains
                                     + 2*Elem%Mu(0,0:ngz-1)  * Elem%Normal_nodes(imin:imax,0) &
                                     * Elem%Strain(0,0:ngz-1,2)
         Elem%TracFace(imin:imax,0) =  Elem%TracFace(imin:imax,0) &
-                                    + Elem%MatPen(imin:imax,0) * Elem%Veloc(0,0:ngz-1,0) &
-                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(0,0:ngz-1,1)
+                                    - Elem%MatPen(imin:imax,0) * Elem%Veloc(0,0:ngz-1,0) &
+                                    - Elem%MatPen(imin:imax,2) * Elem%Veloc(0,0:ngz-1,1)
         Elem%TracFace(imin:imax,1) =  Elem%TracFace(imin:imax,1) &
-                                    + Elem%MatPen(imin:imax,2) * Elem%Veloc(0,0:ngz-1,0) &
-                                    + Elem%MatPen(imin:imax,1) * Elem%Veloc(0,0:ngz-1,1)
+                                    - Elem%MatPen(imin:imax,2) * Elem%Veloc(0,0:ngz-1,0) &
+                                    - Elem%MatPen(imin:imax,1) * Elem%Veloc(0,0:ngz-1,1)
     end subroutine compute_TracFace
 
 ! ###########################################################
@@ -882,28 +884,28 @@ contains
 
         ! Adding Strain and velocities traces to Elem%Forces :
         ! For the Bottom Face :
-        imin = 0 ; imax = ngx-1
+        call get_iminimax(Elem,0,imin,imax)
         Elem%Forces(0:ngx-1,0,0) = Elem%Forces(0:ngx-1,0,0) - Elem%Vhat(imin:imax,0)
         Elem%Forces(0:ngx-1,0,1) = Elem%Forces(0:ngx-1,0,1) - Elem%Vhat(imin:imax,1)
         Elem%Forces(0:ngx-1,0,2) = Elem%Forces(0:ngx-1,0,2) - Vxz(imin:imax)
         Elem%Forces(0:ngx-1,0,3) = Elem%Forces(0:ngx-1,0,3) - Elem%TracFace(imin:imax,0)
         Elem%Forces(0:ngx-1,0,4) = Elem%Forces(0:ngx-1,0,4) - Elem%TracFace(imin:imax,1)
         ! For the Right Face :
-        imin = imax+1 ; imax = imax+ngz
+        call get_iminimax(Elem,1,imin,imax)
         Elem%Forces(ngx-1,0:ngz-1,0) = Elem%Forces(ngx-1,0:ngz-1,0) - Elem%Vhat(imin:imax,0)
         Elem%Forces(ngx-1,0:ngz-1,1) = Elem%Forces(ngx-1,0:ngz-1,1) - Elem%Vhat(imin:imax,1)
         Elem%Forces(ngx-1,0:ngz-1,2) = Elem%Forces(ngx-1,0:ngz-1,2) - Vxz(imin:imax)
         Elem%Forces(ngx-1,0:ngz-1,3) = Elem%Forces(ngx-1,0:ngz-1,3) - Elem%TracFace(imin:imax,0)
         Elem%Forces(ngx-1,0:ngz-1,4) = Elem%Forces(ngx-1,0:ngz-1,4) - Elem%TracFace(imin:imax,1)
         ! For the Top Face :
-        imin = imax+1 ; imax = imax+ngx
+        call get_iminimax(Elem,2,imin,imax)
         Elem%Forces(0:ngx-1,ngz-1,0) = Elem%Forces(0:ngx-1,ngz-1,0) - Elem%Vhat(imin:imax,0)
         Elem%Forces(0:ngx-1,ngz-1,1) = Elem%Forces(0:ngx-1,ngz-1,1) - Elem%Vhat(imin:imax,1)
         Elem%Forces(0:ngx-1,ngz-1,2) = Elem%Forces(0:ngx-1,ngz-1,2) - Vxz(imin:imax)
         Elem%Forces(0:ngx-1,ngz-1,3) = Elem%Forces(0:ngx-1,ngz-1,3) - Elem%TracFace(imin:imax,0)
         Elem%Forces(0:ngx-1,ngz-1,4) = Elem%Forces(0:ngx-1,ngz-1,4) - Elem%TracFace(imin:imax,1)
         ! For the Left Face :
-        imin = imax+1 ; imax = imax+ngz
+        call get_iminimax(Elem,3,imin,imax)
         Elem%Forces(0,0:ngz-1,0) = Elem%Forces(0,0:ngz-1,0) - Elem%Vhat(imin:imax,0)
         Elem%Forces(0,0:ngz-1,1) = Elem%Forces(0,0:ngz-1,1) - Elem%Vhat(imin:imax,1)
         Elem%Forces(0,0:ngz-1,2) = Elem%Forces(0,0:ngz-1,2) - Vxz(imin:imax)
@@ -912,6 +914,40 @@ contains
 
     end subroutine compute_Traces
 
+
+! ###########################################################
+!>
+!!\brief Subroutine that computes the "imin" and "imax" indexes  which corresponds to the
+!! begining and the end of the arrays that contain data for the local face "w_face" of element "Elem".
+!!\version 1.0
+!!\date 03/04/2014
+!! This subroutine is used with DG and HDG elements.
+!<
+subroutine get_iminimax (Elem,w_face,imin,imax)
+
+    implicit none
+
+    type(element), intent(IN) :: Elem
+    integer, intent (IN)      :: w_face
+    integer, intent(INOUT)    :: imin
+    integer, intent(INOUT)    :: imax
+
+    select case (w_face)
+    case(0)
+        imin = 0
+        imax = Elem%ngllx-1
+    case(1)
+        imin = Elem%ngllx
+        imax = Elem%ngllx   + Elem%ngllz-1
+    case(2)
+        imin = Elem%ngllx   + Elem%ngllz
+        imax = 2*Elem%ngllx + Elem%ngllz-1
+    case(3)
+        imin = 2*Elem%ngllx + Elem%ngllz
+        imax = 2*Elem%ngllx + 2*Elem%ngllz -1
+    end select
+
+end subroutine get_iminimax
 
 ! ###########################################################
 

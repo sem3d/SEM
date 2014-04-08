@@ -211,8 +211,8 @@ contains
       type (Face), intent (INOUT) :: F
 
       if (.NOT. F%is_computed) then
-          F%Veloc(:,0) = F%InvMatPen(:,0)*F%Traction(:,0) + F%InvMatPen(:,2)*F%Traction(:,1)
-          F%Veloc(:,1) = F%InvMatPen(:,2)*F%Traction(:,0) + F%InvMatPen(:,1)*F%Traction(:,1)
+          F%Veloc(:,0) = - F%InvMatPen(:,0)*F%Traction(:,0) - F%InvMatPen(:,2)*F%Traction(:,1)
+          F%Veloc(:,1) = - F%InvMatPen(:,2)*F%Traction(:,0) - F%InvMatPen(:,1)*F%Traction(:,1)
           F%Traction = 0.
           F%is_computed = .TRUE.
       else
