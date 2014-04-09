@@ -622,8 +622,8 @@ contains
 
         Zp_m(:) = sqrt(F%Rho_m(:) * (F%Lambda_m(:) + 2.* F%Mu_m(:)))
         Zp_p(:) = sqrt(F%Rho_p(:) * (F%Lambda_p(:) + 2.* F%Mu_p(:)))
-        Zs_m(:) = sqrt(F%Rho_m(:) * F%Lambda_m(:))
-        Zs_p(:) = sqrt(F%Rho_p(:) * F%Lambda_p(:))
+        Zs_m(:) = sqrt(F%Rho_m(:) * F%Mu_m(:))
+        Zs_p(:) = sqrt(F%Rho_p(:) * F%Mu_p(:))
 
         invDet(:) = 1. / ((Zp_m(:)+Zp_p(:))*(Zs_m(:)+Zs_p(:)))
         F%InvMatPen(:,0) = invDet(:) * ((Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,0)**2 &

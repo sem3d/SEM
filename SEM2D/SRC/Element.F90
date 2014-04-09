@@ -702,7 +702,6 @@ contains
         implicit none
 
         type (Element), intent (INOUT)   :: Elem
-        !integer, intent (IN)             :: HDG_TYPE
         real, dimension (0:Elem%ngllx-1) :: Zp_x, Zs_x
         real, dimension (0:Elem%ngllz-1) :: Zp_z, Zs_z
         integer    :: imin, imax, ngllx, ngllz
@@ -711,8 +710,8 @@ contains
 
         ! Bottom Face :
         call get_iminimax(Elem,0,imin,imax)
-        Zp_x(:) = sqrt(Elem%Density(0:ngllx-1,0) * (Elem%Lambda(0:ngllx-1,0)+2.*Elem%Mu(0:ngllx-1,0)))
-        Zs_x(:) = sqrt(Elem%Density(0:ngllx-1,0) *  Elem%Lambda(0:ngllx-1,0))
+        Zp_x(:) = sqrt(Elem%Density(0:ngllx-1,0) *(Elem%Lambda(0:ngllx-1,0)+2.*Elem%Mu(0:ngllx-1,0)))
+        Zs_x(:) = sqrt(Elem%Density(0:ngllx-1,0) * Elem%Mu(0:ngllx-1,0))
         Elem%MatPen(imin:imax,0) = Zp_x(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
                                  + Zs_x(:)*Elem%Normal_Nodes(imin:imax,1)**2
         Elem%MatPen(imin:imax,1) = Zs_x(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
@@ -723,7 +722,7 @@ contains
         call get_iminimax(Elem,1,imin,imax)
         Zp_z(:) = sqrt(Elem%Density(ngllx-1,0:ngllz-1) * (Elem%Lambda(ngllx-1,0:ngllz-1) &
                                                          + 2.*Elem%Mu(ngllx-1,0:ngllz-1)))
-        Zs_z(:) = sqrt(Elem%Density(ngllx-1,0:ngllz-1) *  Elem%Lambda(ngllx-1,0:ngllz-1))
+        Zs_z(:) = sqrt(Elem%Density(ngllx-1,0:ngllz-1) *  Elem%Mu(ngllx-1,0:ngllz-1))
         Elem%MatPen(imin:imax,0) = Zp_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
                                  + Zs_z(:)*Elem%Normal_Nodes(imin:imax,1)**2
         Elem%MatPen(imin:imax,1) = Zs_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
@@ -734,7 +733,7 @@ contains
         call get_iminimax(Elem,2,imin,imax)
         Zp_x(:) = sqrt(Elem%Density(0:ngllx-1,ngllz-1) * (Elem%Lambda(0:ngllx-1,ngllz-1) &
                                                          + 2.*Elem%Mu(0:ngllx-1,ngllz-1)))
-        Zs_x(:) = sqrt(Elem%Density(0:ngllx-1,ngllz-1) *  Elem%Lambda(0:ngllx-1,ngllz-1))
+        Zs_x(:) = sqrt(Elem%Density(0:ngllx-1,ngllz-1) *  Elem%Mu(0:ngllx-1,ngllz-1))
         Elem%MatPen(imin:imax,0) = Zp_x(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
                                  + Zs_x(:)*Elem%Normal_Nodes(imin:imax,1)**2
         Elem%MatPen(imin:imax,1) = Zs_x(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
@@ -743,8 +742,8 @@ contains
 
         ! Left Face :
         call get_iminimax(Elem,3,imin,imax)
-        Zp_z(:) = sqrt(Elem%Density(0,0:ngllz-1) * (Elem%Lambda(0,0:ngllz-1)+2.*Elem%Mu(0,0:ngllz-1)))
-        Zs_z(:) = sqrt(Elem%Density(0,0:ngllz-1) *  Elem%Lambda(0,0:ngllz-1))
+        Zp_z(:) = sqrt(Elem%Density(0,0:ngllz-1) *(Elem%Lambda(0,0:ngllz-1)+2.*Elem%Mu(0,0:ngllz-1)))
+        Zs_z(:) = sqrt(Elem%Density(0,0:ngllz-1) * Elem%Mu(0,0:ngllz-1))
         Elem%MatPen(imin:imax,0) = Zp_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
                                  + Zs_z(:)*Elem%Normal_Nodes(imin:imax,1)**2
         Elem%MatPen(imin:imax,1) = Zs_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
