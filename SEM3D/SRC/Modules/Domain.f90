@@ -21,6 +21,7 @@ module sdomain
     use sbassin
     use solid_fluid
     use semdatafiles
+    use schamps
 
     type :: domain
 
@@ -80,6 +81,13 @@ module sdomain
 
        ! Nombre de gll solide, fluide, pml solide, pml fluide
        integer :: ngll_s, ngll_f, ngll_pmls, ngll_pmlf
+
+       ! Champs
+       type(champs) :: champs0
+       type(champs) :: champs1
+
+       ! MassMat pour elements solide
+       real, dimension(:), allocatable :: MassMatSol, MassMatFlu
 
     end type domain
 

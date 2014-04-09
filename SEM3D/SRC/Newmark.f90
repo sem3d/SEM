@@ -7,6 +7,7 @@
 !! La routine Newmark assure la rï¿½solution des ï¿½quations via un algorithme de predicteur-multi-correcteur
 !! des vitesses avec une formulation contrainte-vitesse dï¿½calï¿½e en temps dans les PML.
 !<
+#define OLD 0
 
 subroutine Newmark(Tdomain,rg,ntime)
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a
@@ -21,6 +22,7 @@ subroutine Newmark(Tdomain,rg,ntime)
     use scommutils
     use orientation
     use assembly
+    use schamps
 
     implicit none
 
@@ -36,26 +38,42 @@ subroutine Newmark(Tdomain,rg,ntime)
     integer :: i,j
 #endif
 
+
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a
     ! Time staggered Stress-Velocity formulation inside PML
     ! PML needs to be implemented
     if(.not. Tdomain%TimeD%velocity_scheme)   &
         stop "Newmark scheme implemented only in velocity form."
 
+
     !- Prediction Phase
+#if OLD
     call Newmark_Predictor(Tdomain,rg)
+#else
+    call Newmark_Predictor2(Tdomain,Tdomain%champs1)
+#endif
 
     !- Solution phase
+#if OLD
     call internal_forces(Tdomain,rg)
+#else
+    call internal_forces2(Tdomain,Tdomain%champs1)
+#endif
 
 
     ! External Forces
     if(Tdomain%logicD%any_source)then
+#if OLD
         call external_forces(Tdomain,Tdomain%TimeD%rtime,ntime,rg)
+#else
+        call external_forces2(Tdomain,Tdomain%TimeD%rtime,ntime,rg,Tdomain%champs1)
+#endif
     end if
 
     ! Communication of Forces within a single process
+#if OLD
     call inside_proc_forces(Tdomain)
+#endif
 
 
 
@@ -187,7 +205,11 @@ subroutine Newmark(Tdomain,rg,ntime)
 
 
     !- correction phase
+#if OLD
     call Newmark_Corrector(Tdomain,rg)
+#else
+    call Newmark_Corrector2(Tdomain,Tdomain%champs1)
+#endif
 
     if(Tdomain%logicD%SF_local_present)then
         !- fluid -> solid coupling (pressure times velocity)
@@ -204,7 +226,6 @@ end subroutine Newmark
 !---------------------------------------------------------------------------------------
 !---------------------------------------------------------------------------------------
 subroutine Newmark_Predictor(Tdomain,rg)
-
     use sdomain
     use assembly
     implicit none
@@ -319,6 +340,33 @@ subroutine Newmark_Predictor(Tdomain,rg)
     return
 
 end subroutine Newmark_Predictor
+!-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+subroutine Newmark_Predictor2(Tdomain,champs1)
+    use schamps
+    use sdomain
+    implicit none
+
+    type(domain), intent(inout)   :: Tdomain
+    type(champs), intent(inout) :: champs1
+
+    ! Elements solide
+    if (Tdomain%ngll_s /= 0) then
+        champs1%Depla = Tdomain%champs0%Depla
+        champs1%Veloc = Tdomain%champs0%Veloc
+        champs1%Forces = 0d0
+    endif
+
+    ! Elements fluide
+    if (Tdomain%ngll_f /= 0) then
+        champs1%VelPhi = Tdomain%champs0%VelPhi
+        champs1%Phi = Tdomain%champs0%Phi
+        champs1%ForcesFl = 0d0
+    endif
+
+    return
+
+end subroutine Newmark_Predictor2
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
 subroutine Newmark_Corrector(Tdomain,rg)
@@ -453,6 +501,38 @@ subroutine Newmark_Corrector(Tdomain,rg)
 end subroutine Newmark_Corrector
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
+subroutine Newmark_Corrector2(Tdomain,champs1)
+    use sdomain
+    use schamps
+    implicit none
+
+    type(domain), intent(inout)   :: Tdomain
+    type(champs), intent(inout)   :: champs1
+    integer  :: n, i_dir
+
+    ! Si il existe des éléments solide
+    if (Tdomain%ngll_s /= 0) then
+        do n = 0,Tdomain%ngll_s-1
+            do i_dir = 0,2
+                Tdomain%champs0%Forces(n,i_dir) = champs1%Forces(n,i_dir) * Tdomain%MassMatSol(n)
+            enddo
+        enddo
+        Tdomain%champs0%Veloc = Tdomain%champs0%Veloc + Tdomain%TimeD%dtmin * Tdomain%champs0%Forces
+        Tdomain%champs0%Depla = Tdomain%champs0%Depla + Tdomain%TimeD%dtmin * Tdomain%champs0%Veloc
+
+    endif
+
+    ! Si il existe des éléments fluide
+    if (Tdomain%ngll_f /= 0) then
+        Tdomain%champs0%ForcesFl = champs1%ForcesFl * Tdomain%MassMatFlu
+        Tdomain%champs0%VelPhi = (Tdomain%champs0%VelPhi + Tdomain%TimeD%dtmin * Tdomain%champs0%ForcesFl) * Tdomain%champs0%Fluid_dirich
+        Tdomain%champs0%Phi = Tdomain%champs0%Phi + Tdomain%TimeD%dtmin * Tdomain%champs0%VelPhi
+    endif
+
+    return
+end subroutine Newmark_Corrector2
+!-----------------------------------------------------------------------------
+!-----------------------------------------------------------------------------
 subroutine internal_forces(Tdomain,rank)
     ! volume forces - depending on rheology
     use sdomain
@@ -498,6 +578,32 @@ subroutine internal_forces(Tdomain,rank)
 
     return
 end subroutine internal_forces
+!-----------------------------------------------------------------------------
+!-----------------------------------------------------------------------------
+subroutine internal_forces2(Tdomain,champs1)
+    ! volume forces - depending on rheology
+    use sdomain
+    use schamps
+    use forces_aniso
+    implicit none
+
+    type(domain), intent(inout)  :: Tdomain
+    type(champs), intent(inout) :: champs1
+    integer  :: n,mat
+
+    do n = 0,Tdomain%n_elem-1
+        mat = Tdomain%specel(n)%mat_index
+        if(.not. Tdomain%specel(n)%PML)then
+            call forces_int2(Tdomain%specel(n), Tdomain%sSubDomain(mat),           &
+                Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
+                Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
+                Tdomain%sSubDomain(mat)%hTprimez, Tdomain%n_sls,Tdomain%aniso,     &
+                Tdomain%specel(n)%solid, champs1)
+        endif
+    enddo
+
+    return
+end subroutine internal_forces2
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
 subroutine external_forces(Tdomain,timer,ntime,rank)
@@ -540,6 +646,62 @@ subroutine external_forces(Tdomain,timer,ntime,rank)
 
     return
 end subroutine external_forces
+!-------------------------------------------------------------------------------
+!-------------------------------------------------------------------------------
+subroutine external_forces2(Tdomain,timer,ntime,rank,champs1)
+    use sdomain
+    use schamps
+    implicit none
+
+    type(domain), intent(inout)  :: Tdomain
+    integer, intent(in)  :: rank, ntime
+    real, intent(in)  :: timer
+    type(champs), intent(inout)  :: champs1
+    integer  :: ns,nel,i_dir, i,j,k
+    real :: t, ft
+
+    do ns = 0, Tdomain%n_source-1
+        if(rank == Tdomain%sSource(ns)%proc)then
+            nel = Tdomain%Ssource(ns)%elem
+
+            !  vieille version:
+            ! time : t_(n+1/2) for solid ; t_n for fluid
+             ! t = merge(timer+Tdomain%TimeD%dtmin/2d0,timer,Tdomain%specel(nel)%solid)
+            ! nouvelle version:
+            ! le temps n'est plus decale pour les sources, pour un saute-mouton
+            !   on rajoute le 1/2 pas de temps qui correspond au fait que la
+            !    exterieure doive etre prise a t_(n+1/2)
+            t = timer+Tdomain%TimeD%dtmin/2d0
+            !
+            ft = CompSource(Tdomain%sSource(ns), t, ntime)
+            if(Tdomain%sSource(ns)%i_type_source == 1 .or. Tdomain%sSource(ns)%i_type_source == 2) then
+                ! collocated force in solid
+                !
+                do i_dir = 0,2
+                    do k = 0,Tdomain%specel(nel)%ngllz-1
+                        do j = 0,Tdomain%specel(nel)%nglly-1
+                            do i = 0,Tdomain%specel(nel)%ngllx-1
+                                champs1%Forces(Tdomain%specel(nel)%Isol(i,j,k),i_dir) = champs1%Forces(Tdomain%specel(nel)%Isol(i,j,k),i_dir) + &
+                                    ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
+                            enddo
+                        enddo
+                    enddo
+                enddo
+            else if(Tdomain%sSource(ns)%i_type_source == 3)then    ! pressure pulse in fluid
+                do k = 0,Tdomain%specel(nel)%ngllz-1
+                    do j = 0,Tdomain%specel(nel)%nglly-1
+                        do i = 0,Tdomain%specel(nel)%ngllx-1
+                            champs1%ForcesFl(Tdomain%specel(nel)%Iflu(i,j,k)) = champs1%ForcesFl(Tdomain%specel(nel)%Iflu(i,j,k)) +    &
+                                ft*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
+                        enddo
+                    enddo
+                enddo
+            end if
+        endif
+    enddo
+
+    return
+end subroutine external_forces2
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
 subroutine inside_proc_forces(Tdomain)

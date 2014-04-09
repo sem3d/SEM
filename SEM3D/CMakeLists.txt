@@ -7,6 +7,7 @@ set(PRJ ${PROJECT_SOURCE_DIR})
 set(SEM3D_SOURCES_F
     ${SEM_SRC}
     ${PRJ}/SRC/geometrical_prop.f90
+    ${PRJ}/SRC/Modules/Champs.f90
     ${PRJ}/SRC/Modules/Element.f90
     ${PRJ}/SRC/Modules/Face.f90
     ${PRJ}/SRC/Modules/Vertex.f90

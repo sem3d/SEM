@@ -208,6 +208,10 @@ subroutine inverse_mass_mat(Tdomain)
   integer :: ngllx, nglly, ngllz, n, nf, ne, nv
   real, dimension(:,:,:), allocatable  :: LocMassMat
 
+#if NEW_GLOBAL_METHOD
+    Tdomain%MassMatSol(:) = 1d0/Tdomain%MassMatSol(:)
+    Tdomain%MassMatFlu(:) = 1d0/Tdomain%MassMatFlu(:)
+#else
      ! Now that the mass from the elements' borders have been pushed and assembled on the faces, edges and vertices,
      ! we can invert the interior mass matrix elements and reallocate
      do n = 0,Tdomain%n_elem-1
@@ -232,6 +236,7 @@ subroutine inverse_mass_mat(Tdomain)
     do nv = 0,Tdomain%n_vertex-1
         Tdomain%sVertex(nv)%MassMat = 1./ Tdomain%sVertex(nv)%MassMat
     end do
+#endif
 end subroutine inverse_mass_mat
 
 
@@ -568,6 +573,22 @@ subroutine init_local_mass_mat(Tdomain, specel, mat, Whei)
         enddo
      enddo
   enddo
+
+#if NEW_GLOBAL_METHOD
+  do k = 0,ngllz-1
+     do j = 0,nglly-1
+        do i = 0,ngllx-1
+           if (Tdomain%specel(n)%solid) then
+              Tdomain%MassMatSol(Tdomain%specel(n)%Isol(i,j,k)) = Tdomain%MassMatSol(Tdomain%specel(n)%Isol(i,j,k)) &
+                   + Tdomain%specel(n)%MassMat(i,j,k)
+           else
+              Tdomain%MassMatFlu(Tdomain%specel(n)%Iflu(i,j,k)) = Tdomain%MassMatFlu(Tdomain%specel(n)%Iflu(i,j,k)) &
+                   + Tdomain%specel(n)%MassMat(i,j,k)
+           endif
+        enddo
+     enddo
+  enddo
+#endif
 
   !- mass matrix elements
 end subroutine init_local_mass_mat

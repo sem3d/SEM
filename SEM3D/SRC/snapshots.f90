@@ -1,4 +1,4 @@
-
+#define OLD 0
 module msnapshots
     use sdomain
     use hdf5
@@ -519,13 +519,14 @@ contains
         real, dimension(:,:),allocatable :: displ, veloc, accel
         real, dimension(:), allocatable :: press
         real, dimension(:,:,:,:),allocatable :: field_displ, field_veloc, field_accel
-        real, dimension(:,:,:),allocatable :: field_press
+        real, dimension(:,:,:),allocatable :: field_press, Phi, VelPhi
         integer, dimension(:), allocatable :: valence
+        real, dimension(:,:,:,:), allocatable :: Depla
         integer :: hdferr
         integer :: ngllx, nglly, ngllz, idx
-        integer :: i, j, k, n
+        integer :: i, j, k, n, i_dir
         integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
-        integer :: nnodes, group, nnodes_tot
+        integer :: nnodes, group, nnodes_tot, mat
         
 
         call create_dir_sorties(Tdomain, rg, isort)
@@ -546,6 +547,7 @@ contains
         valence(:) = 0
         veloc(:,:) = 0
         accel(:,:) = 0
+
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             if (ngllx /= Tdomain%specel(n)%ngllx .or. &
@@ -568,28 +570,92 @@ contains
             call gather_elem_accel(Tdomain, n, field_accel)
             call gather_elem_press(Tdomain, n, field_press)
 
+#if ! OLD
+            if (Tdomain%specel(n)%solid) then
+                ! Element solide
+                allocate(Depla(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                do i_dir = 0,2
+                    do k = 0,ngllz-1
+                        do j = 0,nglly-1
+                            do i = 0,ngllx-1
+                                Depla(i,j,k,i_dir) = Tdomain%champs0%Depla(Tdomain%specel(n)%Isol(i,j,k),i_dir)
+                            enddo
+                        enddo
+                    enddo
+                enddo
+                mat = Tdomain%specel(n)%mat_index
+                call pressure_solid(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%htprimex,              &
+                    Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
+                    Tdomain%specel(n)%InvGrad, Depla, Tdomain%specel(n)%Lambda, &
+                    Tdomain%specel(n)%Mu, field_press)
+                deallocate(Depla)
+            else
+                ! Element fluide
+                allocate(Phi(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(VelPhi(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                do k = 0,ngllz-1
+                    do j = 0,nglly-1
+                        do i = 0,ngllx-1
+                            Phi(i,j,k) = Tdomain%champs0%Phi(Tdomain%specel(n)%Iflu(i,j,k))
+                            VelPhi(i,j,k) = Tdomain%champs0%VelPhi(Tdomain%specel(n)%Iflu(i,j,k))
+                        enddo
+                    enddo
+                enddo
+                mat = Tdomain%specel(n)%mat_index
+                call fluid_velocity(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%htprimex,              &
+                    Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
+                    Tdomain%specel(n)%InvGrad,Tdomain%specel(n)%density,Phi,field_veloc)
+                call fluid_velocity(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%htprimex,              &
+                   Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
+                   Tdomain%specel(n)%InvGrad,Tdomain%specel(n)%density,VelPhi,field_accel)
+                field_press = -VelPhi
+                deallocate(Phi)
+                deallocate(VelPhi)
+            endif
+#endif
+
             do k = 0,ngllz-1
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
                         idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+#if OLD
                         valence(idx) = valence(idx)+1
                         displ(:,idx) = field_displ(i,j,k,:)
                         veloc(:,idx) = veloc(:,idx)+field_veloc(i,j,k,:)
                         accel(:,idx) = accel(:,idx)+field_accel(i,j,k,:)
                         press(idx) = field_press(i,j,k)
+#else
+                        if (Tdomain%specel(n)%solid) then
+                            displ(:,idx) = Tdomain%champs0%Depla(Tdomain%specel(n)%Isol(i,j,k),:)
+                            veloc(:,idx) = Tdomain%champs0%Veloc(Tdomain%specel(n)%Isol(i,j,k),:)
+                            accel(:,idx) = Tdomain%champs0%Forces(Tdomain%specel(n)%Isol(i,j,k),:)
+                            press(idx) = field_press(i,j,k)
+                        else
+                            valence(idx) = valence(idx)+1
+                            displ(:,idx) = 0d0
+                            veloc(:,idx) = veloc(:,idx) + field_veloc(i,j,k,:)
+                            accel(:,idx) = accel(:,idx) + field_accel(i,j,k,:)
+                            press(idx) = field_press(i,j,k)
+                        endif
+#endif
                     end do
                 end do
             end do
         end do
+
+#if ! OLD
+        if (Tdomain%ngll_f /= 0) then
+#endif
         ! normalization
         do i = 0,nnodes-1
             if (valence(i)/=0) then
                 veloc(0:2,i) = veloc(0:2,i)/valence(i)
                 accel(0:2,i) = accel(0:2,i)/valence(i)
-            else
-                write(*,*) "Elem",i," non traite"
             end if
         end do
+#if ! OLD
+        endif
+#endif
 
         if (Tdomain%output_rank==0) then
             group = rg/Tdomain%ngroup
