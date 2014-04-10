@@ -462,9 +462,11 @@ subroutine define_arrays(Tdomain)
     enddo
     ! Prolongement par continuite des proprietes du milieu pour surface libre ou absorbante
     do nf = 0, Tdomain%n_face-1
-        if(Tdomain%sFace(nf)%Type_Flux .EQ. FLUX_GODUNOV) then
-            if(Tdomain%sFace(nf)%freesurf .OR. Tdomain%sFace(nf)%abs) &
-                call coeff_freesurf(Tdomain,nf)
+        if(Tdomain%sFace(nf)%freesurf .OR. Tdomain%sFace(nf)%abs) then
+            if(Tdomain%sFace(nf)%Type_Flux .EQ. FLUX_GODUNOV) &
+                call coeffs_freesurf_abs(Tdomain,nf)
+            if(Tdomain%sFace(nf)%Type_Flux .EQ. FLUX_HDG) &
+                call coeffs_freesurf_abs_HDG(Tdomain,nf)
         endif
     enddo
     ! Calcul des matrices de Penalisation pour les elements HDG
@@ -701,20 +703,6 @@ subroutine define_arrays(Tdomain)
             enddo
         enddo
     endif
-
-    !! Special addition for Lamb test : A SUPPRIMER !!!!!!!!
-    do nf=0,Tdomain%n_face-1
-        i = Tdomain%sFace(nf)%Near_Vertex(0)
-        j = Tdomain%sFace(nf)%Near_Vertex(1)
-        i = Tdomain%sVertex(i)%Glob_numbering
-        j = Tdomain%sVertex(j)%Glob_numbering
-        if (Tdomain%coord_nodes(1,i)==0. .and. Tdomain%coord_nodes(1,j)==0. &
-                                         .and. Tdomain%sFace(nf)%Abs ) then
-            Tdomain%sFace(nf)%freesurf = .true.
-            Tdomain%sFace(nf)%Abs      = .false.
-        endif
-    enddo
-    !!! FIN A SUPPRIMER !!!!!!!!
 
     return
 end subroutine define_arrays

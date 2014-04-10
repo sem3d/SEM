@@ -10,11 +10,11 @@
 !<
 
 subroutine check_inputs_and_mesh(Tdomain)
-    use sdomain    
+    use sdomain
     use constants
-    
+
     implicit none
-    
+
     type(domain), intent(inout)  :: Tdomain
 
     if ((Tdomain%type_timeInteg .NE. TIME_INTEG_NEWMARK) .AND. &
@@ -63,17 +63,16 @@ end subroutine check_inputs_and_mesh
 !!
 !<
 subroutine check_mesh(Tdomain)
-    use sdomain    
+    use sdomain
     use constants
     implicit none
-    
+
     type(domain), intent(inout)  :: Tdomain
     real, dimension(0:1)         :: vect1, vect2, vect3
     integer, dimension (0:3)     :: Vertices
     integer :: n, nv0, nv1, nv2, nv3
     real    :: crossp1, crossp2
-    
-    
+
     do n=0,Tdomain%n_elem-1
         Vertices = Tdomain%specel(n)%Near_Vertex
         nv0 = Tdomain%sVertex(Vertices(0))%Glob_Numbering
@@ -87,7 +86,7 @@ subroutine check_mesh(Tdomain)
         vect2(1) = Tdomain%coord_nodes(1,nv2) - Tdomain%coord_nodes(1,nv1)
         vect3(0) = Tdomain%coord_nodes(0,nv3) - Tdomain%coord_nodes(0,nv2)
         vect3(1) = Tdomain%coord_nodes(1,nv3) - Tdomain%coord_nodes(1,nv2)
-        
+
         crossp1 = Vect1(0)*Vect2(1) - Vect1(1)*Vect2(0)
         crossp2 = Vect2(0)*Vect3(1) - Vect2(1)*Vect3(0)
 
@@ -99,7 +98,7 @@ subroutine check_mesh(Tdomain)
             if ((crossp1 .LT. 0.) .AND. (crossp2 .LT. 0.)) then
                 write(*,*) "Element number ", n, " is not properly oriented (bad node local numbering)"
                 STOP "ERROR IN MESH : Element not properly oriented !"
-            else 
+            else
                 write(*,*) "Element number ", n, " is a concave-quad or a cross-quad"
                 STOP "ERROR IN MESH : Element concave or crossed!"
             endif
