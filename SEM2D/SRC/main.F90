@@ -73,7 +73,7 @@ subroutine  sem()
 #endif
     integer :: display_iter !! Indique si on doit faire des sortie lors de cette iteration
     real(kind=4), dimension(2) :: tarray
-    real(kind=4) :: tref
+    real(kind=4) :: tref, t_fin, t_ini
     real(kind=4), parameter :: display_iter_time = 5.
     integer :: interrupt, rg, code, protection
 
@@ -266,6 +266,7 @@ subroutine  sem()
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! BOUCLE DE CALCUL EN TEMPS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    call CPU_TIME( t_ini )
     call dtime(tarray, tref)
     interrupt = 0
     do ntime= Tdomain%TimeD%NtimeMin, Tdomain%TimeD%NtimeMax-1
@@ -429,6 +430,8 @@ subroutine  sem()
     call MPI_Finalize  (ierr)
     if (rg == 0) write (*,*) "Execution completed"
 #endif
+    if (rg == 0) call CPU_TIME( t_fin )
+    if (rg == 0) write (*,*) "CPU Time for computation : ", t_fin - t_ini
     if (rg == 0) close(78)
 
 end subroutine sem

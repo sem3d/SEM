@@ -96,10 +96,10 @@ subroutine Runge_Kutta4 (Tdomain, dt)
           call Create_send_data(TDomain,i_proc)
           tag_send = i_send * Tdomain%MPI_var%n_proc +Tdomain%MPI_var%my_rank + 900
           tag_receive = Tdomain%MPI_var%my_rank * Tdomain%MPI_var%n_proc + i_send + 900
-          call MPI_SEND (Tdomain%sWall(i_proc)%Send_data_2,2* Tdomain%sWall(i_proc)%n_points, MPI_DOUBLE_PRECISION, i_send, &
-               tag_send, Tdomain%communicateur, ierr )
-          call MPI_RECV (Tdomain%sWall(i_proc)%Receive_data_2, 2* Tdomain%sWall(i_proc)%n_points, MPI_DOUBLE_PRECISION, i_send, &
-               tag_receive, Tdomain%communicateur, status, ierr )
+          call MPI_SEND (Tdomain%sWall(i_proc)%Send_data_2,2* Tdomain%sWall(i_proc)%n_points, &
+               MPI_DOUBLE_PRECISION, i_send, tag_send, Tdomain%communicateur, ierr )
+          call MPI_RECV (Tdomain%sWall(i_proc)%Receive_data_2,2*Tdomain%sWall(i_proc)%n_points,&
+               MPI_DOUBLE_PRECISION, i_send, tag_receive, Tdomain%communicateur, status, ierr )
           call Assign_recv_data(TDomain,i_proc)
        enddo
 
