@@ -1,51 +1,20 @@
 module model_prem
     implicit none
 
-    real, parameter :: Earth_radius=6371000.d0, Pi = 3.141592653, Pi180 = Pi/180.0, mille=1000.0
+    real, parameter :: Earth_radius=6371000.d0, mille=1000.0
 
 
 
 
 contains
 
-! #######################################################
-    subroutine sph2cart(r, lon, lat, x, y, z)
-        implicit none
-        real, intent(in) :: r, lon, lat
-        real, intent(out) :: x, y, z
-        real :: colatRad, lonRad
-        colatRad = (90.0-lat)*Pi180
-        lonRad = lon*Pi180
-
-        x = r * sin(colatRad) * sin(lonRad)
-        y = r * sin(colatRad) * cos(lonRad)
-        z = r * cos(colatRad)
-
-
-    end subroutine sph2cart
-
-
-! #######################################################
-    subroutine cart2sph(x, y, z, r, theta, phi)
-        implicit none
-        real, intent(in) :: x, y, z
-        real, intent(out) :: r, theta, phi
-
-        r = sqrt(x**2+y**2+z**2)
-
-        theta = acos(z/r)
-
-        phi = atan2(x,y)
-
-    end subroutine cart2sph
-
 
     ! #######################################################
-    subroutine get_value_prem (r, lon, lat, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu)
+    subroutine get_value_prem (r, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu)
 
         implicit none
 
-        real, intent(in) :: r, lon, lat
+        real, intent(in) :: r
         real, intent(out) :: rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu
         real :: vpv,vph,vsv,vsh,eta_aniso,depth
 

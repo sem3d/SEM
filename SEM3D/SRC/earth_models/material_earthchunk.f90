@@ -3,6 +3,7 @@ subroutine  initialize_material_earthchunk( elem, matInfo, coorPt, npts)
     use ssubdomains
     use model_earthchunk
     use tensor_util
+    use earth_transform
 
 
     type(element), intent(inout) :: elem
@@ -12,8 +13,9 @@ subroutine  initialize_material_earthchunk( elem, matInfo, coorPt, npts)
 
 
     integer :: i,j,k,ii,jj, ngllx, nglly, ngllz, idef
-    real :: x, y, z, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu, r, theta, phi, lon, lat
+    real :: xr, yr, zr, x, y, z, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu, r, theta, phi, lon, lat, theta_loc, phi_loc
     real, dimension(1:6,1:6) :: Cij
+    real, dimension(3,3) :: RotMat
 
     ngllx = elem%ngllx
     nglly = elem%nglly
@@ -31,14 +33,18 @@ subroutine  initialize_material_earthchunk( elem, matInfo, coorPt, npts)
                 y = coorPt(1,idef)
                 z = coorPt(2,idef)
 
+                call getRotMat_loc2glob(lon_center, lat_center, RotMat)
+                call cart2sph(x, y, z, r, theta_loc, phi_loc)
 
-                call cart2sph(y, z, x, r, theta, phi)
+
+                xr = RotMat(1,1)*x + RotMat(1,2)*y + RotMat(1,3)*z
+                yr = RotMat(2,1)*x + RotMat(2,2)*y + RotMat(2,3)*z
+                zr = RotMat(3,1)*x + RotMat(3,2)*y + RotMat(3,3)*z
+
+                call cart2sph(xr, yr, zr, r, theta, phi)
+
                 lon = phi/Pi180
-                lat = theta/Pi180
-
-
-                lon = lon+lon_center
-                lat = 90.0-lat+lat_center
+                lat = 90-0-theta/Pi180
 
                 call get_value_earthchunk (r, lon, lat, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu)
 
@@ -69,7 +75,7 @@ subroutine  initialize_material_earthchunk( elem, matInfo, coorPt, npts)
                     elem%Mu(i,j,k) = mu_from_Cij(Cij)
                 else
                     
-                    call c_4tensor(Cij,theta,phi)
+                    call c_4tensor(Cij,theta_loc,phi_loc)
 
                     idef = 0
                     do ii = 1,6

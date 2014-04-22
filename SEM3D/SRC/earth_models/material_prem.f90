@@ -3,6 +3,7 @@ subroutine  initialize_material_prem( elem, matInfo, coorPt, npts)
     use ssubdomains
     use model_prem
     use tensor_util
+    use earth_transform
 
     type(element), intent(inout) :: elem
     type(subdomain), intent(in) :: matInfo
@@ -11,7 +12,7 @@ subroutine  initialize_material_prem( elem, matInfo, coorPt, npts)
 
 
     integer :: i,j,k,ii,jj, ngllx, nglly, ngllz, idef
-    real :: x, y, z, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu, r,  lon, lat, theta, phi
+    real :: x, y, z, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu, r, theta, phi
     real, dimension(1:6,1:6) :: Cij
 
     ngllx = elem%ngllx
@@ -29,12 +30,9 @@ subroutine  initialize_material_prem( elem, matInfo, coorPt, npts)
                 y = coorPt(1,idef)
                 z = coorPt(2,idef)
 
-                call cart2sph(y, z, x, r, theta, phi)
-                lon = phi/Pi180
-                lat = 90.0-theta/Pi180
+                call cart2sph(x, y, z, r, theta, phi)
 
-
-                call get_value_prem (r, lon, lat, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu)
+                call get_value_prem (r, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu)
 
                 Cij(:,:) = 0.d0
                 Cij(1,1) = C
@@ -62,9 +60,6 @@ subroutine  initialize_material_prem( elem, matInfo, coorPt, npts)
                     elem%Lambda(i,j,k) = lambda_from_Cij(Cij)
                     elem%Mu(i,j,k) = mu_from_Cij(Cij)
                 else
-
-                    !TODO : verifier que la rotation du tenseur est correcte
-                    !dans un modele type prem
 
                     call c_4tensor(Cij,theta,phi)
 

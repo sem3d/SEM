@@ -1,7 +1,9 @@
 module model_earthchunk
     implicit none
 
-    real, parameter :: Earth_radius=6371000.d0, Pi = 3.141592653, Pi180 = Pi/180.0, mille=1000.0
+    real, parameter ::  mille=1000.0
+!Earth_radius=6371000.d0
+
 
     type :: OneModel
         real, dimension(:,:), allocatable :: param
@@ -10,6 +12,7 @@ module model_earthchunk
 
     integer :: n_lat, n_lon
     real :: lon_min=360, lon_max=0, lat_min=90, lat_max=-90, lat_delta, lon_delta, max_depth, lat_center=0, lon_center=0
+    real :: Earth_radius=6371000.d0
     type(OneModel), allocatable, dimension(:) :: value_pt
     logical :: is_modelOpenQ=.false.
 
@@ -18,37 +21,6 @@ module model_earthchunk
 
 
 contains
-
-! #######################################################
-    subroutine sph2cart(r, lon, lat, x, y, z)
-        implicit none
-        real, intent(in) :: r, lon, lat
-        real, intent(out) :: x, y, z
-        real :: colatRad, lonRad
-        colatRad = (90.0-lat)*Pi180
-        lonRad = lon*Pi180
-
-        x = r * sin(colatRad) * sin(lonRad)
-        y = r * sin(colatRad) * cos(lonRad)
-        z = r * cos(colatRad)
-
-
-    end subroutine sph2cart
-
-
-! #######################################################
-    subroutine cart2sph(x, y, z, r, theta, phi)
-        implicit none
-        real, intent(in) :: x, y, z
-        real, intent(out) :: r, theta, phi
-
-        r = sqrt(x**2+y**2+z**2)
-
-        theta= acos(z/r)
-
-        phi = atan2(x,y)
-
-    end subroutine cart2sph
 
 ! #######################################################
     integer function getIndiceFromLonLat(lon, lat)
@@ -351,6 +323,8 @@ contains
                 lon_center = rtmp
             else if( buffer == 'lat_center') then
                 lat_center = rtmp
+            else if( buffer == 'earth_radius') then
+                Earth_radius = rtmp
             endif
 
         enddo
