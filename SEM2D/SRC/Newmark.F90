@@ -47,6 +47,9 @@ subroutine Newmark (Tdomain)
 
             if (.not. Tdomain%specel(n)%PML) then
                 call Prediction_Elem_Veloc (Tdomain%specel(n))
+            elseif (Tdomain%specel(n)%CPML) then
+                call Prediction_Elem_CPML_Veloc (Tdomain%specel(n),alpha, bega, dt,Vxloc,Vzloc, &
+                        Tdomain%sSubDomain(mat)%hPrimez, Tdomain%sSubDomain(mat)%hTPrimex)
             else
                 ngllx = Tdomain%specel(n)%ngllx
                 ngllz = Tdomain%specel(n)%ngllz

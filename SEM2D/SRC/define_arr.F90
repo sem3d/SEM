@@ -115,6 +115,7 @@ subroutine define_arrays(Tdomain)
             ! Defining PML properties
 
             if (Tdomain%sSubDomain(mat)%Px) then
+                ! Computation of dx : the horizontal length of the PML element
                 idef = Tdomain%specel(n)%Iglobnum (0,0); dx = Tdomain%GlobCoord (0,idef)
                 idef = Tdomain%specel(n)%Iglobnum (ngllx-1,0); dx = abs (Tdomain%GlobCoord (0,idef) -dx);
                 if (Tdomain%sSubDomain(mat)%Left) then
@@ -136,6 +137,7 @@ subroutine define_arrays(Tdomain)
                 wx = 0.
             endif
             if (Tdomain%sSubDomain(mat)%Pz) then
+                ! Computation of dx : the vertical heigth of the PML element
                 idef = Tdomain%specel(n)%Iglobnum (0,0); dx = Tdomain%GlobCoord (1,idef)
                 idef = Tdomain%specel(n)%Iglobnum (0,ngllz-1); dx = abs (Tdomain%GlobCoord (1,idef) -dx)
                 if (Tdomain%sSubDomain(mat)%Down) then
@@ -197,6 +199,13 @@ subroutine define_arrays(Tdomain)
 
                 Tdomain%specel(n)%DumpMass(:,:,0) = 0.5 * Tdomain%specel(n)%Density * Whei * Tdomain%sSubdomain(mat)%Dt * wx * Jac
                 Tdomain%specel(n)%DumpMass(:,:,1) = 0.5 * Tdomain%specel(n)%Density * Whei * Tdomain%sSubdomain(mat)%Dt * wz * Jac
+            endif
+
+            if (Tdomain%specel(n)%CPML) then
+                Tdomain%specel(n)%Bx(:,:) = exp(-(wx(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:)) * Tdomain%sSubdomain(mat)%Dt)
+                Tdomain%specel(n)%Ax(:,:) = wx(:,:) * (Tdomain%specel(n)%Bx(:,:) - Id(:,:)) / (wx(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:))
+                Tdomain%specel(n)%Bz(:,:) = exp(-(wz(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:)) * Tdomain%sSubdomain(mat)%Dt)
+                Tdomain%specel(n)%Az(:,:) = wz(:,:) * (Tdomain%specel(n)%Bz(:,:) - Id(:,:)) / (wz(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:))
             endif
         endif
         deallocate (xix,xiz,etax,etaz,Id,wx,wz,Whei,RKmod, Jac, Rmu, Rlam)

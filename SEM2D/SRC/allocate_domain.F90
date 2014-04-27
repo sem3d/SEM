@@ -44,6 +44,16 @@ subroutine allocate_domain (Tdomain)
         Tdomain%specel(n)%V0 = 0
 
         if (Tdomain%specel(n)%PML ) then
+            if(Tdomain%specel(n)%CPML ) then
+                allocate (Tdomain%specel(n)%Stress (0:ngllx-1, 0:ngllz-1, 0:2))
+                allocate (Tdomain%specel(n)%IVeloc1(0:ngllx-1,0:ngllz-1))
+                allocate (Tdomain%specel(n)%IStress1(0:ngllx-1,0:ngllz-1,0:2))
+                allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:15))
+                Tdomain%specel(n)%Stress  = 0.
+                Tdomain%specel(n)%IVeloc1 = 0.
+                Tdomain%specel(n)%IStress1 = 0.
+                Tdomain%specel(n)%Acoeff  = 0.
+            else
             allocate (Tdomain%specel(n)%Stress (  0:ngllx-1, 0:ngllz-1, 0:2 ))
             allocate (Tdomain%specel(n)%Forces1 (0:ngllx-1,0:ngllz-1,0:1) )
             allocate (Tdomain%specel(n)%Forces2 (0:ngllx-1,0:ngllz-1,0:1) )
@@ -79,7 +89,8 @@ subroutine allocate_domain (Tdomain)
             else
                 allocate (Tdomain%specel(n)%DumpMass(0:ngllx-1,0:ngllz-1,0:1))
             endif
-        else
+        endif
+        else ! Case no PML
             allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:9))
             allocate (Tdomain%specel(n)%Displ(1:ngllx-2,1:ngllz-2,0:1))
             Tdomain%specel(n)%Displ = 0

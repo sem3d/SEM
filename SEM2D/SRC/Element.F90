@@ -38,6 +38,10 @@ module selement
        real, dimension (:,:), allocatable ::  Isx, Isz, Ivx, Ivz
        real, dimension (:,:,:), allocatable :: Istress1, IStress2, Iveloc1, Iveloc2
 
+       ! CPML allocation
+       logical :: CPML
+       real, dimension (:,:), allocatable ::  Ax, Bx, Az, Bz
+
        real dist_max !!Ajout Gsa 03/10 - taille caracteristique de l'element
     end type element
 
@@ -336,6 +340,65 @@ contains
         Elem%Stress = Elem%Stress1 + Elem%Stress2
         return
     end subroutine Prediction_Elem_FPML_Veloc
+
+    ! ###########################################################
+    !>
+    !! \brief
+    !!
+    !! \param type (Element), intent (INOUT) Elem
+    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTmat
+    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hmatz
+    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) Vxloc
+    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) Vzloc
+    !! \param real, intent (IN) bega
+    !! \param real, intent (IN) dt
+    !! \param real, intent (IN) alpha
+    !! \param real, intent (IN) fil
+    !<
+    subroutine Prediction_Elem_CPML_Veloc (Elem, alpha, bega, dt, Vxloc, Vzloc, Hmatz, HTmat, fil)
+        implicit none
+
+        type (Element), intent (INOUT) :: Elem
+        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) ::  hTmat
+        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hmatz
+        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) ::Vxloc, Vzloc
+        real, intent (IN) :: bega, dt, alpha, fil
+
+        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: s0,s1,s2,s3, Stress_ausiliar
+
+        integer :: ngllx, ngllz
+
+        ngllx = Elem%ngllx; ngllz = Elem%ngllz
+
+        VxLoc(1:ngllx-2,1:ngllz-2) = (0.5+alpha) * Elem%Veloc(:,:,0) &
+                                   + dt *(0.5-bega)*Elem%Accel(:,:,0) + (0.5-alpha)*Elem%V0(:,:,0)
+        VzLoc(1:ngllx-2,1:ngllz-2) = (0.5+alpha) * Elem%Veloc(:,:,1) &
+                                   + dt *(0.5-bega)*Elem%Accel(:,:,1) + (0.5-alpha)*Elem%V0(:,:,1)
+        s0 = MATMUL (HTmat,VxLoc)
+        s2 = MATMUL (HTmat,VzLoc)
+        s1 = MATMUL (VxLoc,Hmatz)
+        s3 = MATMUL (VzLoc,Hmatz)
+
+        Elem%Stress(:,:,0) = Elem%Stress(:,:,0) +  Dt * (Elem%Acoeff(:,:,0) * s0 + Elem%Acoeff(:,:,2) * s2 )
+
+######################### following is OLD ########################
+        Elem%Stress1(:,:,0) = Elem%DumpSx(:,:,0) * Elem%Stress1(:,:,0) + Elem%DumpSx(:,:,1) * Dt * (Elem%Acoeff(:,:,0) * s0 + &
+            Elem%Acoeff(:,:,2) * s2 )
+        Elem%Stress2(:,:,0) =  Elem%DumpSz(:,:,0) * Elem%Stress2(:,:,0) + Elem%DumpSz(:,:,1) * Dt * (Elem%Acoeff(:,:,3) * s3 + &
+            Elem%Acoeff(:,:,1)* s1 )
+
+        Elem%Stress1(:,:,1) = Elem%DumpSx(:,:,0) * Elem%Stress1(:,:,1) + Elem%DumpSx(:,:,1) * Dt * (Elem%Acoeff(:,:,4) * s0 + &
+            Elem%Acoeff(:,:,6) * s2 )
+        Elem%Stress2(:,:,1) =  Elem%DumpSz(:,:,0) * Elem%Stress2(:,:,1) + Elem%DumpSz(:,:,1) * Dt *( Elem%Acoeff(:,:,7) * s3 + &
+            Elem%Acoeff(:,:,5) * s1 )
+
+        Elem%Stress1(:,:,2) = Elem%DumpSx(:,:,0) * Elem%Stress1(:,:,2) + Elem%DumpSx(:,:,1) * Dt * (Elem%Acoeff(:,:,10) * s2 + &
+            Elem%Acoeff(:,:,8) * s0)
+        Elem%Stress2(:,:,2) =  Elem%DumpSz(:,:,0) * Elem%Stress2(:,:,2) + Elem%DumpSz(:,:,1) * Dt * (Elem%Acoeff(:,:,9) * s1 + &
+            Elem%Acoeff(:,:,11) * s3 )
+
+        return
+    end subroutine Prediction_Elem_CPML_Veloc
 
     ! ###########################################################
 
