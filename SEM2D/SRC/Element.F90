@@ -202,6 +202,8 @@ contains
 
         return
     end subroutine Correction_Elem_FPML_Veloc
+
+
     ! ###########################################################
     !>
     !! \brief
@@ -364,7 +366,7 @@ contains
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) ::Vxloc, Vzloc
         real, intent (IN) :: bega, dt, alpha, fil
 
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: s0,s1,s2,s3, Stress_ausiliar
+        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: s0,s1,s2,s3, Stress_aux
 
         integer :: ngllx, ngllz
 
@@ -379,24 +381,25 @@ contains
         s1 = MATMUL (VxLoc,Hmatz)
         s3 = MATMUL (VzLoc,Hmatz)
 
-        Elem%Stress(:,:,0) = Elem%Stress(:,:,0) +  Dt * (Elem%Acoeff(:,:,0) * s0 + Elem%Acoeff(:,:,2) * s2 )
+        ! Updating convolution :
+        Elem%PsiVxxi (:,:) = Elem%Bxi (:,:) * Elem%PsiVxxi (:,:) + Elem%Axi (:,:) * s0
+        Elem%PsiVxeta(:,:) = Elem%Beta(:,:) * Elem%PsiVxeta(:,:) + Elem%Aeta(:,:) * s1
+        Elem%PsiVzxi (:,:) = Elem%Bxi (:,:) * Elem%PsiVzxi (:,:) + Elem%Axi (:,:) * s2
+        Elem%PsiVzeta(:,:) = Elem%Beta(:,:) * Elem%PsiVzeta(:,:) + Elem%Aeta(:,:) * s3
 
-######################### following is OLD ########################
-        Elem%Stress1(:,:,0) = Elem%DumpSx(:,:,0) * Elem%Stress1(:,:,0) + Elem%DumpSx(:,:,1) * Dt * (Elem%Acoeff(:,:,0) * s0 + &
-            Elem%Acoeff(:,:,2) * s2 )
-        Elem%Stress2(:,:,0) =  Elem%DumpSz(:,:,0) * Elem%Stress2(:,:,0) + Elem%DumpSz(:,:,1) * Dt * (Elem%Acoeff(:,:,3) * s3 + &
-            Elem%Acoeff(:,:,1)* s1 )
-
-        Elem%Stress1(:,:,1) = Elem%DumpSx(:,:,0) * Elem%Stress1(:,:,1) + Elem%DumpSx(:,:,1) * Dt * (Elem%Acoeff(:,:,4) * s0 + &
-            Elem%Acoeff(:,:,6) * s2 )
-        Elem%Stress2(:,:,1) =  Elem%DumpSz(:,:,0) * Elem%Stress2(:,:,1) + Elem%DumpSz(:,:,1) * Dt *( Elem%Acoeff(:,:,7) * s3 + &
-            Elem%Acoeff(:,:,5) * s1 )
-
-        Elem%Stress1(:,:,2) = Elem%DumpSx(:,:,0) * Elem%Stress1(:,:,2) + Elem%DumpSx(:,:,1) * Dt * (Elem%Acoeff(:,:,10) * s2 + &
-            Elem%Acoeff(:,:,8) * s0)
-        Elem%Stress2(:,:,2) =  Elem%DumpSz(:,:,0) * Elem%Stress2(:,:,2) + Elem%DumpSz(:,:,1) * Dt * (Elem%Acoeff(:,:,9) * s1 + &
-            Elem%Acoeff(:,:,11) * s3 )
-
+        ! Updating PML Stresses in the PML
+        Elem%Stress(:,:,0)= Elem%Stress(:,:,0) + Dt*(Elem%Acoeff(:,:,0)*(s0 + Elem%PsiVxxi (:,:)) &
+                                                    +Elem%Acoeff(:,:,2)*(s2 + Elem%PsiVzxi (:,:)) &
+                                                    +Elem%Acoeff(:,:,3)*(s3 + Elem%PsiVzeta(:,:)) &
+                                                    +Elem%Acoeff(:,:,1)*(s1 + Elem%PsiVxeta(:,:)))
+        Elem%Stress(:,:,1)= Elem%Stress(:,:,1) + Dt*(Elem%Acoeff(:,:,4)*(s0 + Elem%PsiVxxi (:,:)) &
+                                                    +Elem%Acoeff(:,:,6)*(s2 + Elem%PsiVzxi (:,:)) &
+                                                    +Elem%Acoeff(:,:,7)*(s3 + Elem%PsiVzeta(:,:)) &
+                                                    +Elem%Acoeff(:,:,5)*(s1 + Elem%PsiVxeta(:,:)))
+        Elem%Stress(:,:,2)= Elem%Stress(:,:,2) + Dt*(Elem%Acoeff(:,:,8)*(s0 + Elem%PsiVxxi (:,:)) &
+                                                    +Elem%Acoeff(:,:,10)*(s2+ Elem%PsiVzxi (:,:)) &
+                                                    +Elem%Acoeff(:,:,11)*(s3+ Elem%PsiVzeta(:,:)) &
+                                                    +Elem%Acoeff(:,:,9)*(s1 + Elem%PsiVxeta(:,:)))
         return
     end subroutine Prediction_Elem_CPML_Veloc
 
