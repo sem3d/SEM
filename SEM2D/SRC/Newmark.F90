@@ -44,12 +44,8 @@ subroutine Newmark (Tdomain)
         do n = 0, Tdomain%n_elem -1
             mat = Tdomain%specel(n)%mat_index
             Dt = Tdomain%sSubDomain(mat)%dt
-
             if (.not. Tdomain%specel(n)%PML) then
                 call Prediction_Elem_Veloc (Tdomain%specel(n))
-            elseif (Tdomain%specel(n)%CPML) then
-                call Prediction_Elem_CPML_Veloc (Tdomain%specel(n),alpha, bega, dt,Vxloc,Vzloc, &
-                        Tdomain%sSubDomain(mat)%hPrimez, Tdomain%sSubDomain(mat)%hTPrimex)
             else
                 ngllx = Tdomain%specel(n)%ngllx
                 ngllz = Tdomain%specel(n)%ngllz
@@ -60,6 +56,9 @@ subroutine Newmark (Tdomain)
                     call Prediction_Elem_FPML_Veloc  (Tdomain%specel(n),alpha, bega, dt,Vxloc,Vzloc, &
                         Tdomain%sSubDomain(mat)%hPrimez, Tdomain%sSubDomain(mat)%hTPrimex, &
                         Tdomain%sSubDomain(mat)%freq)
+                elseif (Tdomain%specel(n)%CPML) then
+                    call Prediction_Elem_CPML_Veloc  (Tdomain%specel(n),alpha, bega, dt,Vxloc,Vzloc, &
+                        Tdomain%sSubDomain(mat)%hPrimez, Tdomain%sSubDomain(mat)%hTPrimex)
                 else
                     call Prediction_Elem_PML_Veloc  (Tdomain%specel(n),alpha, bega, dt,Vxloc,Vzloc, &
                         Tdomain%sSubDomain(mat)%hPrimez, Tdomain%sSubDomain(mat)%hTPrimex)
@@ -85,20 +84,22 @@ subroutine Newmark (Tdomain)
             mat = Tdomain%specel(n)%mat_index
             if (.not. Tdomain%specel(n)%PML ) then
                 call get_Displ_fv2el (Tdomain,n)
-
-                call compute_InternalForces_Elem (Tdomain%specel(n),                &
+                call compute_InternalForces_Elem (Tdomain%specel(n), &
                     Tdomain%sSubDomain(mat)%hprimex,  &
                     Tdomain%sSubDomain(mat)%hTprimex, &
                     Tdomain%sSubDomain(mat)%hprimez,  &
                     Tdomain%sSubDomain(mat)%hTprimez)
 
+            elseif (Tdomain%specel(n)%CPML) then
+                call compute_InternalForces_CPML_Elem (Tdomain%specel(n), &
+                    Tdomain%sSubDomain(mat)%hprimex, &
+                    Tdomain%sSubDomain(mat)%hTprimez)
             else
                 call compute_InternalForces_PML_Elem (Tdomain%specel(n), &
                     Tdomain%sSubDomain(mat)%hprimex, &
                     Tdomain%sSubDomain(mat)%hTprimez)
             endif
         enddo
-
 
 
 
@@ -123,25 +124,27 @@ subroutine Newmark (Tdomain)
         ! Communication of Forces
 
         do nf = 0, Tdomain%n_face-1
-            Tdomain%sFace(nf)%Forces = 0
-            if  (Tdomain%sFace(nf)%PML) then
-                Tdomain%sFace(nf)%Forces1 = 0; Tdomain%sFace(nf)%Forces2 = 0
-            endif
             nelem = Tdomain%sFace(nf)%Near_element(0)
             w_face = Tdomain%sFace(nf)%Which_face(0)
+            Tdomain%sFace(nf)%Forces = 0
             call getInternalF_el2f (Tdomain,nelem,nf,w_face,.true.)
-            if (Tdomain%sFace(nf)%PML ) call getInternalF_PML_el2f (Tdomain,nelem,nf,w_face,.true.)
+            if (Tdomain%sFace(nf)%PML .AND. .NOT. Tdomain%sFace(nf)%CPML) then
+                Tdomain%sFace(nf)%Forces1 = 0; Tdomain%sFace(nf)%Forces2 = 0
+                call getInternalF_PML_el2f (Tdomain,nelem,nf,w_face,.true.)
+            endif
             nelem = Tdomain%sFace(nf)%Near_element(1)
             if (nelem > -1) then
                 w_face = Tdomain%sFace(nf)%Which_face(1)
                 call getInternalF_el2f (Tdomain,nelem,nf,w_face,Tdomain%sFace(nf)%coherency)
-                if (Tdomain%sFace(nf)%PML ) call getInternalF_PML_el2f (Tdomain,nelem,nf,w_face,Tdomain%sFace(nf)%coherency)
+                if (Tdomain%sFace(nf)%PML .AND. .NOT. Tdomain%sFace(nf)%CPML) then
+                    call getInternalF_PML_el2f (Tdomain,nelem,nf,w_face,Tdomain%sFace(nf)%coherency)
+                endif
             endif
         enddo
 
         do nv = 0, Tdomain%n_vertex-1
             Tdomain%sVertex(nv)%Forces= 0
-            if (Tdomain%sVertex(nv)%PML ) then
+            if (Tdomain%sVertex(nv)%PML .AND. .NOT. Tdomain%sFace(nf)%CPML) then
                 Tdomain%sVertex(nv)%Forces1= 0;    Tdomain%sVertex(nv)%Forces2= 0
             endif
         enddo
@@ -155,7 +158,7 @@ subroutine Newmark (Tdomain)
             nv = Tdomain%specel(n)%Near_Vertex(0)
             Tdomain%sVertex(nv)%Forces(0:1) = Tdomain%sVertex(nv)%Forces(0:1) + Tdomain%specel(n)%Forces(0,0,0:1)
 
-            if (Tdomain%sVertex(nv)%PML) then
+            if (Tdomain%sVertex(nv)%PML .AND. .NOT. Tdomain%sFace(nf)%CPML) then
                 Tdomain%sVertex(nv)%Forces1(0:1) = Tdomain%sVertex(nv)%Forces1(0:1) + Tdomain%specel(n)%Forces1(0,0,0:1)
                 Tdomain%sVertex(nv)%Forces2(0:1) = Tdomain%sVertex(nv)%Forces2(0:1) + Tdomain%specel(n)%Forces2(0,0,0:1)
             endif
@@ -163,21 +166,21 @@ subroutine Newmark (Tdomain)
 
             nv = Tdomain%specel(n)%Near_Vertex(1)
             Tdomain%sVertex(nv)%Forces(0:1) = Tdomain%sVertex(nv)%Forces(0:1) + Tdomain%specel(n)%Forces(ngllx-1,0,0:1)
-            if (Tdomain%sVertex(nv)%PML) then
+            if (Tdomain%sVertex(nv)%PML .AND. .NOT. Tdomain%sFace(nf)%CPML) then
                 Tdomain%sVertex(nv)%Forces1(0:1) = Tdomain%sVertex(nv)%Forces1(0:1) + Tdomain%specel(n)%Forces1(ngllx-1,0,0:1)
                 Tdomain%sVertex(nv)%Forces2(0:1) = Tdomain%sVertex(nv)%Forces2(0:1) + Tdomain%specel(n)%Forces2(ngllx-1,0,0:1)
             endif
 
             nv = Tdomain%specel(n)%Near_Vertex(2)
             Tdomain%sVertex(nv)%Forces(0:1) = Tdomain%sVertex(nv)%Forces(0:1) + Tdomain%specel(n)%Forces(ngllx-1,ngllz-1,0:1)
-            if (Tdomain%sVertex(nv)%PML) then
+            if (Tdomain%sVertex(nv)%PML .AND. .NOT. Tdomain%sFace(nf)%CPML) then
                 Tdomain%sVertex(nv)%Forces1(0:1) = Tdomain%sVertex(nv)%Forces1(0:1) + Tdomain%specel(n)%Forces1(ngllx-1,ngllz-1,0:1)
                 Tdomain%sVertex(nv)%Forces2(0:1) = Tdomain%sVertex(nv)%Forces2(0:1) + Tdomain%specel(n)%Forces2(ngllx-1,ngllz-1,0:1)
             endif
 
             nv = Tdomain%specel(n)%Near_Vertex(3)
             Tdomain%sVertex(nv)%Forces(0:1) = Tdomain%sVertex(nv)%Forces(0:1) + Tdomain%specel(n)%Forces(0,ngllz-1,0:1)
-            if (Tdomain%sVertex(nv)%PML) then
+            if (Tdomain%sVertex(nv)%PML .AND. .NOT. Tdomain%sFace(nf)%CPML) then
                 Tdomain%sVertex(nv)%Forces1(0:1) = Tdomain%sVertex(nv)%Forces1(0:1) + Tdomain%specel(n)%Forces1(0,ngllz-1,0:1)
                 Tdomain%sVertex(nv)%Forces2(0:1) = Tdomain%sVertex(nv)%Forces2(0:1) + Tdomain%specel(n)%Forces2(0,ngllz-1,0:1)
             endif
@@ -490,6 +493,9 @@ subroutine Newmark (Tdomain)
             else
                 if (Tdomain%specel(n)%FPML) then
                     call Correction_Elem_FPML_Veloc (Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt, Tdomain%sSubdomain(mat)%freq)
+                elseif (Tdomain%specel(n)%CPML) then
+                    Tdomain%specel(n)%V0 = Tdomain%specel(n)%Veloc
+                    call Correction_Elem_Veloc (Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt)
                 else
                     call Correction_Elem_PML_Veloc (Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt)
                 endif
@@ -503,6 +509,9 @@ subroutine Newmark (Tdomain)
             else
                 if (Tdomain%sFace(nf)%FPML) then
                     call Correction_Face_FPML_Veloc (Tdomain%sFace(nf),Tdomain%sSubDomain(mat)%Dt, Tdomain%sSubDomain(mat)%freq)
+                elseif (Tdomain%sFace(nf)%CPML) then
+                    Tdomain%sFace(nf)%V0 = Tdomain%sFace(nf)%Veloc
+                    call Correction_Face_Veloc (Tdomain%sFace(nf),Tdomain%sFace(nf)%ngll, Tdomain%sSubDomain(mat)%Dt)
                 else
                     call Correction_Face_PML_Veloc (Tdomain%sFace(nf),Tdomain%sSubDomain(mat)%Dt)
                 endif
@@ -516,6 +525,9 @@ subroutine Newmark (Tdomain)
             else
                 if (Tdomain%sVertex(nv)%FPML) then
                     call Correction_Vertex_FPML_Veloc (Tdomain%sVertex(nv),Tdomain%sSubDomain(mat)%Dt, Tdomain%sSubdomain(mat)%freq)
+                elseif (Tdomain%sVertex(nv)%CPML) then
+                    Tdomain%sVertex(nv)%V0 = Tdomain%sVertex(nv)%Veloc
+                    call Correction_Vertex_Veloc (Tdomain%sVertex(nv), Tdomain%sSubDomain(mat)%Dt)
                 else
                     call Correction_Vertex_PML_Veloc (Tdomain%sVertex(nv),Tdomain%sSubDomain(mat)%Dt)
                 endif

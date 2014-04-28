@@ -40,7 +40,9 @@ module selement
 
        ! CPML allocation
        logical :: CPML
-       real, dimension (:,:), allocatable ::  Ax, Bx, Az, Bz
+       real, dimension (:,:), allocatable :: Axi, Bxi, Aeta, Beta
+       real, dimension (:,:), allocatable :: PsiVxxi, PsiVxeta, PsiVzxi, PsiVzeta, PsiSxxxi
+       real, dimension (:,:), allocatable :: PsiSxxeta, PsiSzzxi, PsiSzzeta, PsiSxzxi, PsiSxzeta
 
        real dist_max !!Ajout Gsa 03/10 - taille caracteristique de l'element
     end type element
@@ -422,7 +424,7 @@ contains
         type (Element), intent (INOUT) :: Elem
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime, hTprime
         real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
-        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: Uxloc, Uzloc, dUx_dxi, dUx_deta,  dUz_dxi, dUz_deta, s0
+        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1) :: Uxloc, Uzloc, dUx_dxi, dUx_deta,  dUz_dxi, dUz_deta, s0
 
         Uxloc =Elem%Forces (:,:,0)
         Uzloc = Elem%Forces (:,:,1)
@@ -450,6 +452,8 @@ contains
 
         return
     end subroutine compute_InternalForces_Elem
+
+
 
     ! ###########################################################
     !>
@@ -488,6 +492,54 @@ contains
         return
     end subroutine compute_InternalForces_PML_Elem
 
+
+
+    ! ###########################################################
+    !>
+    !! \brief
+    !!
+    !! \param type (Element), intent (INOUT) Elem
+    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
+    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
+    !<
+
+    subroutine  compute_InternalForces_CPML_Elem (Elem,hprime, hTprimez)
+        implicit none
+
+        type (Element), intent (INOUT) :: Elem
+        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime
+        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hTprimez
+        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: s0,s1
+
+        ! Updating convolution :
+        Elem%PsiSxxxi (:,:) = Elem%Bxi (:,:) * Elem%PsiSxxxi (:,:) &
+                            + Elem%Axi (:,:) * MATMUL(hprime,Elem%Stress(:,:,0))
+        Elem%PsiSxxeta(:,:) = Elem%Beta(:,:) * Elem%PsiSxxeta(:,:) &
+                            + Elem%Aeta(:,:) * MATMUL(Elem%Stress(:,:,0),hTprimez)
+        Elem%PsiSzzxi (:,:) = Elem%Bxi (:,:) * Elem%PsiSzzxi (:,:) &
+                            + Elem%Axi (:,:) * MATMUL(hprime,Elem%Stress(:,:,1))
+        Elem%PsiSzzeta(:,:) = Elem%Beta(:,:) * Elem%PsiSzzeta(:,:) &
+                            + Elem%Aeta(:,:) * MATMUL(Elem%Stress(:,:,1),hTprimez)
+        Elem%PsiSxzxi (:,:) = Elem%Bxi (:,:) * Elem%PsiSxzxi (:,:) &
+                            + Elem%Axi (:,:) * MATMUL(hprime,Elem%Stress(:,:,2))
+        Elem%PsiSxzeta(:,:) = Elem%Beta(:,:) * Elem%PsiSxzeta(:,:) &
+                            + Elem%Aeta(:,:) * MATMUL(Elem%Stress(:,:,2),hTprimez)
+
+        ! Updating Forces :
+        s0 = Elem%Acoeff(:,:,12) * Elem%Stress(:,:,0) + Elem%Acoeff(:,:,14) * Elem%Stress(:,:,2)
+        s1 = Elem%Acoeff(:,:,15) * Elem%Stress(:,:,2) + Elem%Acoeff(:,:,13) * Elem%Stress (:,:,0)
+        Elem%Forces(:,:,0) = MATMUL(hprime,s0) + MATMUL(s1,hTprimez) &
+                           + Elem%Acoeff(:,:,12)*Elem%PsiSxxxi(:,:) + Elem%Acoeff(:,:,13)*Elem%PsiSxxeta(:,:) &
+                           + Elem%Acoeff(:,:,14)*Elem%PsiSxzxi(:,:) + Elem%Acoeff(:,:,15)*Elem%PsiSxzeta(:,:)
+
+        s0 = Elem%Acoeff(:,:,12) * Elem%Stress(:,:,2) + Elem%Acoeff(:,:,14) * Elem%Stress(:,:,1)
+        s1 = Elem%Acoeff(:,:,15) * Elem%Stress(:,:,1) + Elem%Acoeff(:,:,13) * Elem%Stress (:,:,2)
+        Elem%Forces(:,:,1) = MATMUL(hprime,s0) + MATMUL(s1,hTprimez) &
+                           + Elem%Acoeff(:,:,12)*Elem%PsiSxzxi(:,:) + Elem%Acoeff(:,:,13)*Elem%PsiSxzeta(:,:) &
+                           + Elem%Acoeff(:,:,14)*Elem%PsiSzzxi(:,:) + Elem%Acoeff(:,:,15)*Elem%PsiSzzeta(:,:)
+
+        return
+    end subroutine compute_InternalForces_CPML_Elem
 
     ! ###########################################################
     !>
