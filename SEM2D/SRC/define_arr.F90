@@ -25,7 +25,7 @@ subroutine define_arrays(Tdomain)
 
     ! local variables
 
-    integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf,nface
+    integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf
     integer :: i_send, n_face_pointed, i_proc, nv, i_stock, tag_send, tag_receive, ierr
     integer ,  dimension (MPI_STATUS_SIZE) :: status
     real :: vp,ri,rj,dx, LocMassmat_Vertex
@@ -194,7 +194,7 @@ subroutine define_arrays(Tdomain)
                 Tdomain%specel(n)%Beta(:,:) = exp(-(wz(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:)) * Tdomain%sSubdomain(mat)%Dt)
                 Tdomain%specel(n)%Aeta(:,:) = wz(:,:) * (Tdomain%specel(n)%Beta(:,:) - Id(:,:)) / (wz(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:))
 
-            else
+            else ! Usual PML
                 Tdomain%specel(n)%DumpSx(:,:,1) = Id(:,:) + 0.5 * Tdomain%sSubdomain(mat)%Dt * wx(:,:)
                 Tdomain%specel(n)%DumpSx (:,:,1) = 1./ Tdomain%specel(n)%DumpSx (:,:,1)
                 Tdomain%specel(n)%DumpSx (:,:,0) = (Id(:,:) - Tdomain%sSubdomain(mat)%Dt * 0.5 * wx(:,:)) * Tdomain%specel(n)%DumpSx(:,:,1)
@@ -219,13 +219,13 @@ subroutine define_arrays(Tdomain)
         n_elem = Tdomain%sFace(nf)%Near_element(0)
         w_face = Tdomain%sFace(nf)%Which_face(0)
         call getMass_element2face (Tdomain,n_elem,nf,w_face,.true.)
-        if (Tdomain%sFace(nf)%PML ) call getDumpMass_element2face (Tdomain,n_elem,nf,w_face,.true.)
-        if (Tdomain%sFace(nf)%FPML ) call getIv_element2face (Tdomain,n_elem,nf,w_face,.true.)
+        if (Tdomain%sFace(nf)%PML .and. (.not.Tdomain%sFace(nf)%CPML)) call getDumpMass_element2face (Tdomain,n_elem,nf,w_face,.true.)
+        if (Tdomain%sFace(nf)%FPML) call getIv_element2face (Tdomain,n_elem,nf,w_face,.true.)
         n_elem = Tdomain%sFace(nf)%Near_element(1)
         if (n_elem > -1) then
             w_face = Tdomain%sFace(nf)%Which_face(1)
             call getMass_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
-            if (Tdomain%sFace(nf)%PML ) call getDumpMass_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
+            if (Tdomain%sFace(nf)%PML .and. (.not.Tdomain%sFace(nf)%CPML)) call getDumpMass_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
             if (Tdomain%sFace(nf)%FPML ) call getIv_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
         endif
     enddo
@@ -234,7 +234,7 @@ subroutine define_arrays(Tdomain)
         ngllx = Tdomain%specel(n)%ngllx; ngllz = Tdomain%specel(n)%ngllz
         nv_aus = Tdomain%specel(n)%Near_Vertex(0)
         Tdomain%sVertex(nv_aus)%MassMat = Tdomain%sVertex(nv_aus)%MassMat + Tdomain%specel(n)%MassMat(0,0)
-        if (Tdomain%sVertex(nv_aus)%PML)    &
+        if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML))    &
             Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:)+ Tdomain%specel(n)%DumpMass(0,0,:)
         if (Tdomain%sVertex(nv_aus)%FPML) then
             Tdomain%sVertex(nv_aus)%Ivx(0) = Tdomain%sVertex(nv_aus)%Ivx(0)+ Tdomain%specel(n)%Ivx(0,0)
@@ -243,7 +243,7 @@ subroutine define_arrays(Tdomain)
 
         nv_aus = Tdomain%specel(n)%Near_Vertex(1)
         Tdomain%sVertex(nv_aus)%MassMat = Tdomain%sVertex(nv_aus)%MassMat + Tdomain%specel(n)%MassMat(ngllx-1,0)
-        if (Tdomain%sVertex(nv_aus)%PML)    &
+        if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML))    &
             Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:)+ Tdomain%specel(n)%DumpMass(ngllx-1,0,:)
         if (Tdomain%sVertex(nv_aus)%FPML) then
             Tdomain%sVertex(nv_aus)%Ivx(0) = Tdomain%sVertex(nv_aus)%Ivx(0)+ Tdomain%specel(n)%Ivx(ngllx-1,0)
@@ -252,7 +252,7 @@ subroutine define_arrays(Tdomain)
 
         nv_aus = Tdomain%specel(n)%Near_Vertex(2)
         Tdomain%sVertex(nv_aus)%MassMat = Tdomain%sVertex(nv_aus)%MassMat + Tdomain%specel(n)%MassMat(ngllx-1,ngllz-1)
-        if (Tdomain%sVertex(nv_aus)%PML)   &
+        if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML))   &
             Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:) + &
             Tdomain%specel(n)%DumpMass(ngllx-1,ngllz-1,:)
         if (Tdomain%sVertex(nv_aus)%FPML) then
@@ -262,7 +262,7 @@ subroutine define_arrays(Tdomain)
 
         nv_aus = Tdomain%specel(n)%Near_Vertex(3)
         Tdomain%sVertex(nv_aus)%MassMat = Tdomain%sVertex(nv_aus)%MassMat + Tdomain%specel(n)%MassMat(0,ngllz-1)
-        if (Tdomain%sVertex(nv_aus)%PML)    &
+        if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML))    &
             Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:)+ Tdomain%specel(n)%DumpMass(0,ngllz-1,:)
         if (Tdomain%sVertex(nv_aus)%FPML) then
             Tdomain%sVertex(nv_aus)%Ivx(0) = Tdomain%sVertex(nv_aus)%Ivx(0)+ Tdomain%specel(n)%Ivx(0,ngllz-1)
@@ -432,7 +432,7 @@ subroutine define_arrays(Tdomain)
                 allocate (Tdomain%specel(n)%Ivz(1:ngllx-2,1:ngllz-2) )
                 Tdomain%specel(n)%Ivz = LocMassMat * Tdomain%specel(n)%DumpVz (:,:,1)
 
-            else
+            elseif (.not.Tdomain%specel(n)%CPML) then
 
                 LocMassMat(:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2)
                 Tdomain%specel(n)%DumpVx (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,0)
@@ -472,7 +472,7 @@ subroutine define_arrays(Tdomain)
                 Tdomain%sFace(nf)%Ivx = Tdomain%sFace(nf)%Ivx * Tdomain%sFace(nf)%DumpVx(:,1)
                 Tdomain%sFace(nf)%Ivz = Tdomain%sFace(nf)%Ivz * Tdomain%sFace(nf)%DumpVz(:,1)
                 deallocate (Tdomain%sFace(nf)%DumpMass)
-            else
+            elseif (.not.Tdomain%sFace(nf)%CPML) then
                 Tdomain%sFace(nf)%DumpVx (:,1) =  Tdomain%sFace(nf)%MassMat + Tdomain%sFace(nf)%DumpMass(:,0)
                 Tdomain%sFace(nf)%DumpVx (:,1) = 1./Tdomain%sFace(nf)%DumpVx (:,1)
                 Tdomain%sFace(nf)%DumpVx (:,0) =  Tdomain%sFace(nf)%MassMat - Tdomain%sFace(nf)%DumpMass(:,0)
@@ -505,7 +505,7 @@ subroutine define_arrays(Tdomain)
                 Tdomain%sVertex(nv_aus)%Ivz(0) = Tdomain%sVertex(nv_aus)%Ivz(0) * Tdomain%sVertex(nv_aus)%DumpVz(1)
 
                 deallocate (Tdomain%sVertex(nv_aus)%DumpMass)
-            else
+            elseif (tdomain%sVertex(nv_aus)%CPML) then
                 Tdomain%sVertex(nv_aus)%DumpVx (1) =  Tdomain%sVertex(nv_aus)%MassMat + Tdomain%sVertex(nv_aus)%DumpMass(0)
                 Tdomain%sVertex(nv_aus)%DumpVx (1) = 1./Tdomain%sVertex(nv_aus)%DumpVx (1)
                 Tdomain%sVertex(nv_aus)%DumpVx (0) =  Tdomain%sVertex(nv_aus)%MassMat - Tdomain%sVertex(nv_aus)%DumpMass(0)

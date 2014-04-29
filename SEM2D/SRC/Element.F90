@@ -359,16 +359,16 @@ contains
     !! \param real, intent (IN) alpha
     !! \param real, intent (IN) fil
     !<
-    subroutine Prediction_Elem_CPML_Veloc (Elem, alpha, bega, dt, Vxloc, Vzloc, Hmatz, HTmat, fil)
+    subroutine Prediction_Elem_CPML_Veloc (Elem, alpha, bega, dt, Vxloc, Vzloc, Hmatz, HTmat)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) ::  hTmat
         real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hmatz
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) ::Vxloc, Vzloc
-        real, intent (IN) :: bega, dt, alpha, fil
+        real, intent (IN) :: bega, dt, alpha
 
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: s0,s1,s2,s3, Stress_aux
+        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: s0,s1,s2,s3
 
         integer :: ngllx, ngllz
 

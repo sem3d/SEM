@@ -251,7 +251,7 @@ int expect_pml_infos(yyscan_t scanner, sem_config_t* config)
 	if (tok!=K_ID) break;
 
 	// TODO
-	if (cmp(scanner,"pml_type")) err=expect_pml_type(scanner, &config->pml_type, 1);
+	if (cmp(scanner,"pml_type")) err=expect_pml_type(scanner, &config->pml_type);
 
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);

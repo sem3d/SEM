@@ -13,7 +13,7 @@ module svertices
 
     type :: vertex
 
-       logical :: PML, Abs, FPML
+       logical :: PML, Abs, FPML, CPML
        integer :: Glob_Numbering, mat_index
 
        real :: MassMat
