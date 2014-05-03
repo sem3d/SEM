@@ -37,11 +37,13 @@ subroutine allocate_domain (Tdomain)
         allocate (Tdomain%specel(n)%Forces(  0:ngllx-1, 0:ngllz-1, 0:1 ) )
         allocate (Tdomain%specel(n)%Accel(1:ngllx-2,1:ngllz-2,0:1))
         allocate (Tdomain%specel(n)%V0(  1:ngllx-2, 1:ngllz-2, 0:1 ) )
+        allocate (Tdomain%specel(n)%Displ(1:ngllx-2,1:ngllz-2,0:1))
 
         Tdomain%specel(n)%Veloc = 0
         Tdomain%specel(n)%Forces = 0
         Tdomain%specel(n)%Accel = 0
         Tdomain%specel(n)%V0 = 0
+        Tdomain%specel(n)%Displ = 0
 
         if(Tdomain%specel(n)%CPML ) then
             allocate (Tdomain%specel(n)%Stress (0:ngllx-1, 0:ngllz-1, 0:2))
@@ -114,8 +116,6 @@ subroutine allocate_domain (Tdomain)
             endif
         else ! Case no PML
             allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:9))
-            allocate (Tdomain%specel(n)%Displ(1:ngllx-2,1:ngllz-2,0:1))
-            Tdomain%specel(n)%Displ = 0
         endif
     enddo
 
@@ -134,11 +134,13 @@ subroutine allocate_domain (Tdomain)
 
         allocate (Tdomain%sFace(n)%Accel(1:ngll-2, 0:1))
         allocate (Tdomain%sFace(n)%V0( 1:ngll-2, 0:1 ) )
+        allocate (Tdomain%sFace(n)%Displ(1:ngll-2,0:1))
         Tdomain%sFace(n)%MassMat = 0
         Tdomain%sFace(n)%Veloc = 0
         Tdomain%sFace(n)%Accel = 0
         Tdomain%sFace(n)%V0 = 0
         Tdomain%sFace(n)%Forces = 0
+        Tdomain%sFace(n)%Displ = 0
 
         if (Tdomain%sFace(n)%PML .AND. (.NOT.Tdomain%sFace(n)%CPML)) then
             allocate (Tdomain%sFace(n)%Forces1 (1:ngll-2,0:1) )
@@ -165,9 +167,6 @@ subroutine allocate_domain (Tdomain)
                 allocate (Tdomain%sFace(n)%DumpMass(1:ngll-2,0:1))
             endif
             Tdomain%sFace(n)%DumpMass = 0.
-        else
-            allocate (Tdomain%sFace(n)%Displ(1:ngll-2,0:1))
-            Tdomain%sFace(n)%Displ = 0
         endif
     enddo
 
@@ -176,7 +175,7 @@ subroutine allocate_domain (Tdomain)
         allocate (Tdomain%sVertex(n)%Forces (0:1))
         allocate (Tdomain%sVertex(n)%Accel (0:1))
         allocate (Tdomain%sVertex(n)%V0 (0:1))
-
+        allocate (Tdomain%sVertex(n)%Displ(0:1))
 #ifdef MKA3D
         allocate (Tdomain%sVertex(n)%ForcesMka(0:1 ) )
         Tdomain%sVertex(n)%ForcesMka=0
@@ -187,6 +186,7 @@ subroutine allocate_domain (Tdomain)
         Tdomain%sVertex(n)%Veloc = 0
         Tdomain%sVertex(n)%Accel = 0
         Tdomain%sVertex(n)%V0 = 0
+        Tdomain%sVertex(n)%Displ = 0
 
         if (Tdomain%sVertex(n)%PML .AND. (.NOT.Tdomain%sFace(n)%CPML)) then
             allocate (Tdomain%sVertex(n)%Forces1 (0:1) )
@@ -210,9 +210,6 @@ subroutine allocate_domain (Tdomain)
                 allocate (Tdomain%sVertex(n)%DumpMass(0:1))
             endif
             Tdomain%sVertex(n)%DumpMass = 0
-        else
-            allocate (Tdomain%sVertex(n)%Displ(0:1))
-            Tdomain%sVertex(n)%Displ = 0
         endif
     enddo
 

@@ -32,6 +32,7 @@ subroutine PML_definition (Tdomain)
     do n = 0, Tdomain%n_elem -1
         mat = Tdomain%specel(n)%mat_index
         Tdomain%specel(n)%PML = .false.
+        Tdomain%specel(n)%CPML = .false.
         Tdomain%specel(n)%FPML = .false.
         if (Tdomain%sSubDomain(mat)%material_type == "P" ) then
             Tdomain%specel(n)%PML = .true.

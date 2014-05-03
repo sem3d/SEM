@@ -401,7 +401,7 @@ subroutine define_arrays(Tdomain)
         ngllx = Tdomain%specel(n)%ngllx;  ngllz = Tdomain%specel(n)%ngllz
         allocate (LocMassMat(1:ngllx-2,1:ngllz-2))
         ! Redefinition of Matrices
-        if (.not. Tdomain%specel(n)%PML ) then
+        if ((.not. Tdomain%specel(n)%PML) .or. Tdomain%specel(n)%CPML) then
             LocMassMat(:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2)
             LocMassmat = 1./ LocMassMat
             deallocate (Tdomain%specel(n)%MassMat)
