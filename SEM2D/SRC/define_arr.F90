@@ -505,7 +505,7 @@ subroutine define_arrays(Tdomain)
                 Tdomain%sVertex(nv_aus)%Ivz(0) = Tdomain%sVertex(nv_aus)%Ivz(0) * Tdomain%sVertex(nv_aus)%DumpVz(1)
 
                 deallocate (Tdomain%sVertex(nv_aus)%DumpMass)
-            elseif (tdomain%sVertex(nv_aus)%CPML) then
+            elseif (.not. tdomain%sVertex(nv_aus)%CPML) then
                 Tdomain%sVertex(nv_aus)%DumpVx (1) =  Tdomain%sVertex(nv_aus)%MassMat + Tdomain%sVertex(nv_aus)%DumpMass(0)
                 Tdomain%sVertex(nv_aus)%DumpVx (1) = 1./Tdomain%sVertex(nv_aus)%DumpVx (1)
                 Tdomain%sVertex(nv_aus)%DumpVx (0) =  Tdomain%sVertex(nv_aus)%MassMat - Tdomain%sVertex(nv_aus)%DumpMass(0)
