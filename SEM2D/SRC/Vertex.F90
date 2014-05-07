@@ -68,8 +68,6 @@ contains
     !! \param real, intent (IN) dt
     !<
 
-
-    !  subroutine Correction_Vertex_Veloc (V, bega, gam1,dt)
     subroutine Correction_Vertex_Veloc (V, dt)
         implicit none
 
@@ -124,6 +122,40 @@ contains
 
         return
     end subroutine Correction_Vertex_PML_Veloc
+
+    ! ###########################################################
+    !>
+    !! \brief
+    !!
+    !! \param type (Vertex), intent (INOUT) V
+    !! \param real, intent (IN) bega
+    !! \param real, intent (IN) gam1
+    !! \param real, intent (IN) dt
+    !<
+
+    subroutine Correction_Vertex_CPML_Veloc (V, dt)
+        implicit none
+
+        type (Vertex), intent (INOUT) :: V
+        real, intent (IN) :: dt
+
+        integer :: i
+
+        V%V0 = V%Veloc
+        if (V%Abs) then
+            V%Veloc = 0
+        else
+            do i = 0,1
+                V%Forces(i) = V%MassMat * V%Forces(i)
+            enddo
+            V%Veloc  = V%v0+ dt * V%Forces
+            V%Accel  =  (V%Veloc-V%V0)/dt
+            V%Displ  =  V%Displ + dt * V%Veloc
+        endif
+        return
+    end subroutine Correction_Vertex_CPML_Veloc
+
+
     ! ###########################################################
     !>
     !! \brief
@@ -132,8 +164,6 @@ contains
     !! \param real, intent (IN) dt
     !! \param real, intent (IN) fil
     !<
-
-
     subroutine Correction_Vertex_FPML_Veloc (V, dt, fil)
         implicit none
 
