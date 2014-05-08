@@ -189,10 +189,14 @@ subroutine define_arrays(Tdomain)
                 Tdomain%specel(n)%Ivz=Tdomain%specel(n)%Density*Whei*Tdomain%sSubdomain(mat)%Dt*wz*Jac*Tdomain%sSubdomain(mat)%freq
 
             elseif (Tdomain%specel(n)%CPML) then
-                Tdomain%specel(n)%Bxi(:,:)  = exp(-(wx(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:)) * Tdomain%sSubdomain(mat)%Dt)
-                Tdomain%specel(n)%Axi(:,:)  = wx(:,:) * (Tdomain%specel(n)%Bxi (:,:) - Id(:,:)) / (wx(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:))
-                Tdomain%specel(n)%Beta(:,:) = exp(-(wz(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:)) * Tdomain%sSubdomain(mat)%Dt)
-                Tdomain%specel(n)%Aeta(:,:) = wz(:,:) * (Tdomain%specel(n)%Beta(:,:) - Id(:,:)) / (wz(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:))
+                if (Tdomain%sSubDomain(mat)%Px) then
+                    Tdomain%specel(n)%Bxi(:,:)  = exp(-(wx(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:)) * Tdomain%sSubdomain(mat)%Dt)
+                    Tdomain%specel(n)%Axi(:,:)  = wx(:,:) * (Tdomain%specel(n)%Bxi (:,:) - Id(:,:)) / (wx(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:))
+               endif
+               if (Tdomain%sSubDomain(mat)%Pz) then
+                   Tdomain%specel(n)%Beta(:,:) = exp(-(wz(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:)) * Tdomain%sSubdomain(mat)%Dt)
+                   Tdomain%specel(n)%Aeta(:,:) = wz(:,:) * (Tdomain%specel(n)%Beta(:,:) - Id(:,:)) / (wz(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:))
+                endif
 
             else ! Usual PML
                 Tdomain%specel(n)%DumpSx(:,:,1) = Id(:,:) + 0.5 * Tdomain%sSubdomain(mat)%Dt * wx(:,:)
