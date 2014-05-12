@@ -111,6 +111,10 @@ subroutine define_arrays(Tdomain)
             Tdomain%specel(n)%Acoeff(:,:,13) = -Whei*etax*Jac
             Tdomain%specel(n)%Acoeff(:,:,14) = -Whei * xiz*Jac
             Tdomain%specel(n)%Acoeff(:,:,15) = -Whei *etaz*Jac
+            if (Tdomain%specel(n)%CPML) then
+                Tdomain%specel(n)%Acoeff(:,:,16) = Whei * Jac
+                Tdomain%specel(n)%Acoeff(:,:,17) = 1./(Whei*Jac)
+            endif
 
             ! Defining PML properties
 

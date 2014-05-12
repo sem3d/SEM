@@ -47,7 +47,7 @@ subroutine allocate_domain (Tdomain)
 
         if(Tdomain%specel(n)%CPML ) then
             allocate (Tdomain%specel(n)%Stress (0:ngllx-1, 0:ngllz-1, 0:2))
-            allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:15))
+            allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:17))
             allocate (Tdomain%specel(n)%Axi (0:ngllx-1,0:ngllz-1))
             allocate (Tdomain%specel(n)%Aeta(0:ngllx-1,0:ngllz-1))
             allocate (Tdomain%specel(n)%Bxi (0:ngllx-1,0:ngllz-1))
