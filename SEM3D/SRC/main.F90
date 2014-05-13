@@ -12,13 +12,13 @@ program drive_sem
 
     call init_sem_path(p_param, p_traces, p_results, p_data, p_prot)
 
-    call MPI_Init (code)
-    call MPI_Comm_Rank (MPI_COMM_WORLD, rg, code)
+    call MPI_INIT(code)
+    call MPI_COMM_RANK(MPI_COMM_WORLD, rg, code)
 
     call sem(-1, MPI_COMM_WORLD, MPI_COMM_WORLD)
 
     if (rg == 0) write (*,*) "fin du calcul sur processeurs ",rg
-    call mpi_finalize(code)
+    call MPI_FINALIZE(code)
 
 end program drive_sem
 !! Local Variables:
