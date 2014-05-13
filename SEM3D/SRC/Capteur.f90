@@ -516,7 +516,7 @@ contains
     subroutine evalueSortieCapteur(it, time, sortie_capteur)
         implicit none
         integer, intent(in) :: it
-        real*8, intent(in) :: time
+        double precision, intent(in) :: time
         logical, intent(out) :: sortie_capteur
         type(tCapteur),pointer :: capteur
 
@@ -671,7 +671,8 @@ contains
         implicit none
         integer :: rg
         type(tCapteur),pointer :: capteur
-        integer :: fileId, j, imax
+        integer, parameter :: fileId=123
+        integer :: j, imax
         character(len=MAX_FILE_SIZE) :: fnamef
 
         if (rg/=0) return

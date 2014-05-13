@@ -13,7 +13,7 @@ subroutine read_Veloc(Tdomain, elem_id)
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
-    real*8, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ
+    double precision, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ
     integer :: idx1, idx2, idx3, ngllx, nglly, ngllz
     integer :: n, i, j, k
 
@@ -74,7 +74,7 @@ subroutine read_VelPhi(Tdomain, elem_id)
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
-    real*8, allocatable, dimension(:) :: velphi, velphi1, velphi2, velphi3, phi
+    double precision, allocatable, dimension(:) :: velphi, velphi1, velphi2, velphi3, phi
     integer :: idx1, idx2, idx3, ngllx, nglly, ngllz
     integer :: n, i, j, k
 
@@ -127,7 +127,7 @@ subroutine read_EpsilonVol(Tdomain, elem_id)
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
-    real*8, allocatable, dimension(:) :: epsilonvol, rvol, rxx, ryy, rxy, rxz, ryz
+    double precision, allocatable, dimension(:) :: epsilonvol, rvol, rxx, ryy, rxy, rxz, ryz
     integer :: idx1, idx2, idx3, ngllx, nglly, ngllz
     integer :: n, i, j, k, i_sls
     integer :: n_solid
@@ -192,7 +192,7 @@ subroutine read_EpsilonDev(Tdomain, elem_id)
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
-    real*8, allocatable, dimension(:) :: eps_dev_xx, eps_dev_yy, eps_dev_xy, eps_dev_xz, eps_dev_yz
+    double precision, allocatable, dimension(:) :: eps_dev_xx, eps_dev_yy, eps_dev_xy, eps_dev_xz, eps_dev_yz
     integer :: idx, ngllx, nglly, ngllz
     integer :: n, i, j, k
     integer :: n_solid
@@ -240,7 +240,7 @@ subroutine read_Stress(Tdomain, elem_id)
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
-    real*8, allocatable, dimension(:) :: stress
+    double precision, allocatable, dimension(:) :: stress
     integer :: idx, ngllx, nglly, ngllz
     integer :: n, i, j, k
     integer :: n_solid
@@ -297,7 +297,7 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
-    real*8, allocatable, dimension(:) :: Veloc
+    double precision, allocatable, dimension(:) :: Veloc
     integer :: idx, ngllx, nglly, ngllz
     integer :: n, i, j, k
 
@@ -342,7 +342,7 @@ subroutine read_Faces(Tdomain, face_id)
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: face_id
-    real*8, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ, &
+    double precision, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ, &
                                          velphi, velphi1, velphi2, velphi3, phi
     integer :: idx1, idx2, idx3,idx4,idx5,idx6, ngll1, ngll2
     integer :: n, i, j
@@ -431,7 +431,7 @@ subroutine read_Edges(Tdomain, edge_id)
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: edge_id
-    real*8, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ, &
+    double precision, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ, &
                                          velphi, velphi1, velphi2, velphi3, phi
     integer :: idx1, idx2, idx3, idx4,idx5,idx6,ngll
     integer :: n, i
@@ -515,7 +515,7 @@ subroutine read_Vertices(Tdomain, vertex_id)
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: vertex_id
-    real*8, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ, &
+    double precision, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ, &
                                          velphi, velphi1, velphi2, velphi3, phi
     integer :: idx1, idx2, idx3,idx4,idx5,idx6
     integer :: n

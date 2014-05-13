@@ -445,8 +445,8 @@ CONTAINS
         !***************************************************************
         IMPLICIT NONE
         REAL(kind=8), INTENT(IN) :: A, B
-        REAL(kind=8), DIMENSION(N), INTENT(OUT) :: CS, DZ
         INTEGER, INTENT(IN) :: N
+        REAL(kind=8), DIMENSION(N), INTENT(OUT) :: CS, DZ
         INTEGER :: I, IT
         REAL(kind=8) :: AB, C, DI, CSX, Y, DY, D2Y
         REAL(kind=8), PARAMETER :: EPS=1.D-17
@@ -881,9 +881,9 @@ CONTAINS
         !****************************************************************
         IMPLICIT NONE
         REAL(kind=8), INTENT(IN) :: A, B
+        INTEGER, INTENT(IN) :: N
         REAL(kind=8), DIMENSION(N), INTENT(IN) :: CS, DZ
         REAL(kind=8), DIMENSION(N), INTENT(OUT) :: WE
-        INTEGER, INTENT(IN) :: N
         INTEGER :: I, M
         REAL(kind=8) :: AB, A2, B2, GA2, GB2, GAB, C, X, DY, DM
 

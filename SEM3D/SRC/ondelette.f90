@@ -22,8 +22,9 @@ subroutine def_timefunc (Tdomain,rg)
     integer :: j,nstep2,i,isrc,nstep,NBE_loc
     real :: wt,freq,t1,t2,tmax,dt,t0,f1h,f2h,f3h,f4h
     real, parameter :: amp = 1
-    complex*16 :: dphi
-    complex*16, dimension(:), allocatable :: spectre,tmp
+    integer, parameter :: dp = selected_real_kind(15,50)
+    complex(dp) :: dphi
+    complex(dp), dimension(:), allocatable :: spectre,tmp
 
 
     nstep = Tdomain%TimeD%ntimeMax
@@ -113,10 +114,11 @@ end subroutine def_timefunc
 subroutine dfour1(u,n,isign)
 
     integer n,isign
-    complex*16 u(n)
+    integer, parameter :: dp = selected_real_kind(15,50)
+    complex(dp) :: u(n)
 
     integer inc,jump,lot,i
-    real*8 a(n),b(n),trigs(2*n)
+    double precision :: a(n),b(n),trigs(2*n)
 
     inc = 1
     jump = 1
@@ -165,8 +167,8 @@ end subroutine dfour1
 
 SUBROUTINE SETGPFA(TRIGS,N)
 
-    double precision TRIGS(*)
-    double precision TWOPI,ANGLE,DEL
+    double precision :: TRIGS(*)
+    double precision :: TWOPI,ANGLE,DEL
     DIMENSION NJ(3)
 
     !     DECOMPOSE N INTO FACTORS 2,3,5
@@ -275,7 +277,7 @@ END SUBROUTINE SETGPFA
 
 SUBROUTINE GPFA(A,B,TRIGS,INC,JUMP,N,LOT,ISIGN)
 
-    double precision  A(*), B(*), TRIGS(*)
+    double precision ::  A(*), B(*), TRIGS(*)
     DIMENSION NJ(3)
 
     !     DECOMPOSE N INTO FACTORS 2,3,5
@@ -334,18 +336,18 @@ END SUBROUTINE GPFA
 !-------------------------------------------------------------------
 !
 subroutine gpfa2f(a,b,trigs,inc,jump,n,mm,lot,isign)
-    double precision a(*), b(*), trigs(*)
+    double precision :: a(*), b(*), trigs(*)
 
-    real*8  s
-    real*8 aja,ajc,t0,t2,ajb,ajd,t1,t3
-    real*8 bja,bjc,u0,u2,bjb,bjd,u1,u3
-    real*8 co1,si1,co2,si2,co3,si3
-    real*8 c1,c2,c3
-    real *8 aje,ajg,ajf,ajh
-    real*8 bje,bjg,bjf,bjh
-    real*8 co4,si4,co5,si5,co6,si6,co7,si7
-    real*8  aji,ajk,ajl,ajm,ajn,ajo,ajp
-    real*8   bji,bjk,bjl,bjm,bjn,bjo,bjp
+    double precision ::  s
+    double precision :: aja,ajc,t0,t2,ajb,ajd,t1,t3
+    double precision :: bja,bjc,u0,u2,bjb,bjd,u1,u3
+    double precision :: co1,si1,co2,si2,co3,si3
+    double precision :: c1,c2,c3
+    double precision :: aje,ajg,ajf,ajh
+    double precision :: bje,bjg,bjf,bjh
+    double precision :: co4,si4,co5,si5,co6,si6,co7,si7
+    double precision ::  aji,ajk,ajl,ajm,ajn,ajo,ajp
+    double precision ::   bji,bjk,bjl,bjm,bjn,bjo,bjp
 
     data lvr/128/
 
@@ -1314,19 +1316,19 @@ end subroutine gpfa2f
 !-------------------------------------------------------------------
 !
 subroutine gpfa3f(a,b,trigs,inc,jump,n,mm,lot,isign)
-    double precision  a(*), b(*), trigs(*)
-    real *8 sin60
+    double precision ::  a(*), b(*), trigs(*)
+    double precision :: sin60
     data sin60/0.866025403784437/
 
-    real*8  s
-    real*8 aja,ajc,t2,ajb,ajd,t1,t3
-    real*8 bja,bjc,u2,bjb,bjd,u1,u3
-    real*8 co1,si1,co2,si2
-    real*8 c1
-    real *8 aje,ajg,ajf,ajh
-    real*8 bje,bjg,bjf,bjh
-    real*8  aji
-    real*8   bji
+    double precision ::  s
+    double precision :: aja,ajc,t2,ajb,ajd,t1,t3
+    double precision :: bja,bjc,u2,bjb,bjd,u1,u3
+    double precision :: co1,si1,co2,si2
+    double precision :: c1
+    double precision :: aje,ajg,ajf,ajh
+    double precision :: bje,bjg,bjf,bjh
+    double precision ::  aji
+    double precision ::   bji
 
     data lvr/128/
     !
@@ -1744,22 +1746,22 @@ end subroutine gpfa3f
 !-------------------------------------------------------------------
 !
 subroutine gpfa5f(a,b,trigs,inc,jump,n,mm,lot,isign)
-    real*8  a(*), b(*), trigs(*)
-    real *8 sin36,sin72, qrt5
+    double precision ::  a(*), b(*), trigs(*)
+    double precision :: sin36,sin72, qrt5
     data sin36/0.587785252292473/, sin72/0.951056516295154/, qrt5/0.559016994374947/
 
-    real*8  s
-    real*8 t1,t2,t3,t4,t5,t6,t8,t9,t10,t11
-    real*8 u1,u2,u3,u4,u5,u6,u8,u9,u10,u11
-    real*8 aja,ajc,ajb,ajd
-    real*8 bja,bjc,bjb,bjd
-    real*8 co1,si1,co2,si2,co3,si3
-    real*8 c1,c2,c3
-    real *8 aje,ajg,ajf,ajh
-    real*8 bje,bjg,bjf,bjh
-    real*8 co4,si4
-    real*8  aji,ajk,ajl,ajm,ajn,ajo,ajp
-    real*8   bji,bjk,bjl,bjm,bjn,bjo,bjp
+    double precision ::  s
+    double precision :: t1,t2,t3,t4,t5,t6,t8,t9,t10,t11
+    double precision :: u1,u2,u3,u4,u5,u6,u8,u9,u10,u11
+    double precision :: aja,ajc,ajb,ajd
+    double precision :: bja,bjc,bjb,bjd
+    double precision :: co1,si1,co2,si2,co3,si3
+    double precision :: c1,c2,c3
+    double precision :: aje,ajg,ajf,ajh
+    double precision :: bje,bjg,bjf,bjh
+    double precision :: co4,si4
+    double precision ::  aji,ajk,ajl,ajm,ajn,ajo,ajp
+    double precision ::   bji,bjk,bjl,bjm,bjn,bjo,bjp
 
     data lvr/128/
     !

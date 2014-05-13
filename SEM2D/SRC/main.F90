@@ -52,7 +52,7 @@ subroutine  sem()
     integer :: info_capteur
     real(kind=8) :: remaining_time
     real(kind=8), parameter :: max_time_left=900
-    integer*4 getpid, pid
+    integer :: getpid, pid
 
 #ifdef COUPLAGE
     integer :: finSem

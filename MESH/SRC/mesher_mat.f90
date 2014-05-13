@@ -28,7 +28,7 @@ program mesher_mat
         stop "In mesher_mat: sure, for the proc number?"
     write(*,*)
     write(*,*) " -> Construction of the material model and mesh file? (0: no, 1: yes) "
-    read(*,*), mat_b
+    read(*,*) mat_b
     if(mat_b /= 0 .and. mat_b /= 1) stop "Wrong character.."
 
     if(mat_b == 0)then  ! material model already constructed
