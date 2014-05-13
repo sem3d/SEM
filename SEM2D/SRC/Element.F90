@@ -503,14 +503,14 @@ contains
     !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
     !<
 
-    subroutine  compute_InternalForces_CPML_Elem (Elem, hprime, hTprimez)
+    subroutine  compute_InternalForces_CPML_Elem (Elem, hprime, hTprime, hprimez, hTprimez)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hTprimez
-        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: s0,s1
 
+        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: s0,s1
+        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime, hTprime
+        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
         s0 = MATMUL(hTprime,Elem%Axi)
         s1 = MATMUL(Elem%Aeta,hprimez)
 
@@ -532,16 +532,16 @@ contains
 
         ! Updating Forces :
         s0 = Elem%Acoeff(:,:,12) * Elem%Stress(:,:,0) + Elem%Acoeff(:,:,14) * Elem%Stress(:,:,2)
-        s1 = Elem%Acoeff(:,:,15) * Elem%Stress(:,:,2) + Elem%Acoeff(:,:,13) * Elem%Stress (:,:,0)
-        Elem%Forces(:,:,0) = - MATMUL(hprime,s0) - MATMUL(s1,hTprimez) &
-                           + Elem%Acoeff(:,:,12)*Elem%PsiSxxxi(:,:) + Elem%Acoeff(:,:,13)*Elem%PsiSxxeta(:,:) &
-                           + Elem%Acoeff(:,:,14)*Elem%PsiSxzxi(:,:) + Elem%Acoeff(:,:,15)*Elem%PsiSxzeta(:,:)
+        s1 = Elem%Acoeff(:,:,13) * Elem%Stress(:,:,0) + Elem%Acoeff(:,:,15) * Elem%Stress(:,:,2)
+        Elem%Forces(:,:,0) = MATMUL(hprime,s0) + MATMUL(s1,hTprimez) &
+                           - Elem%Acoeff(:,:,12)*Elem%PsiSxxxi(:,:) - Elem%Acoeff(:,:,13)*Elem%PsiSxxeta(:,:) &
+                           - Elem%Acoeff(:,:,14)*Elem%PsiSxzxi(:,:) - Elem%Acoeff(:,:,15)*Elem%PsiSxzeta(:,:)
 
         s0 = Elem%Acoeff(:,:,12) * Elem%Stress(:,:,2) + Elem%Acoeff(:,:,14) * Elem%Stress(:,:,1)
-        s1 = Elem%Acoeff(:,:,15) * Elem%Stress(:,:,1) + Elem%Acoeff(:,:,13) * Elem%Stress (:,:,2)
-        Elem%Forces(:,:,1) = - MATMUL(hprime,s0) - MATMUL(s1,hTprimez) &
-                           + Elem%Acoeff(:,:,12)*Elem%PsiSxzxi(:,:) + Elem%Acoeff(:,:,13)*Elem%PsiSxzeta(:,:) &
-                           + Elem%Acoeff(:,:,14)*Elem%PsiSzzxi(:,:) + Elem%Acoeff(:,:,15)*Elem%PsiSzzeta(:,:)
+        s1 = Elem%Acoeff(:,:,13) * Elem%Stress(:,:,2) + Elem%Acoeff(:,:,15) * Elem%Stress(:,:,1)
+        Elem%Forces(:,:,1) = MATMUL(hprime,s0) + MATMUL(s1,hTprimez) &
+                           - Elem%Acoeff(:,:,12)*Elem%PsiSxzxi(:,:) - Elem%Acoeff(:,:,13)*Elem%PsiSxzeta(:,:) &
+                           - Elem%Acoeff(:,:,14)*Elem%PsiSzzxi(:,:) - Elem%Acoeff(:,:,15)*Elem%PsiSzzeta(:,:)
 
         return
     end subroutine compute_InternalForces_CPML_Elem

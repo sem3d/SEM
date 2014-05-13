@@ -92,7 +92,9 @@ subroutine Newmark (Tdomain)
 
             elseif (Tdomain%specel(n)%CPML) then
                 call compute_InternalForces_CPML_Elem (Tdomain%specel(n), &
-                    Tdomain%sSubDomain(mat)%hprimex, &
+                    Tdomain%sSubDomain(mat)%hprimex,  &
+                    Tdomain%sSubDomain(mat)%hTprimex, &
+                    Tdomain%sSubDomain(mat)%hprimez,  &
                     Tdomain%sSubDomain(mat)%hTprimez)
             else
                 call compute_InternalForces_PML_Elem (Tdomain%specel(n), &
