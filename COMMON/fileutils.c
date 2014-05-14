@@ -15,12 +15,12 @@ int sem_mkdir_c(const char* path)
     res = mkdir(path, 0755);
     if (res==-1) {
 	if (errno==EEXIST) {
-	    fprintf(stderr, "Warning: path '%s' already exists\n", path);
+	    fprintf(stderr, "        Warning: path '%s' already exists\n", path);
 	    return 0;
 	}
 	return errno;
     } else {
-	fprintf(stderr, "Creation of '%s' ok\n", path);
+	fprintf(stderr, "        Creation of '%s' ok\n", path);
     }
     return 0;
 }

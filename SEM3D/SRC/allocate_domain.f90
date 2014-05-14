@@ -714,10 +714,10 @@ subroutine allocate_domain (Tdomain, rg)
                 allocate(Tdomain%sComm(n)%TakeForcesSF_StoF(0:ngllSF-1))
             endif
             if(ngllSF_PML > 0)then
-                allocate(Tdomain%sComm(n)%GiveForcesSF_FtoS_PML(0:ngllSF-1,1:3,0:2))
-                allocate(Tdomain%sComm(n)%TakeForcesSF_FtoS_PML(0:ngllSF-1,1:3,0:2))
-                allocate(Tdomain%sComm(n)%GiveForcesSF_StoF_PML(0:ngllSF-1,1:3))
-                allocate(Tdomain%sComm(n)%TakeForcesSF_StoF_PML(0:ngllSF-1,1:3))
+                allocate(Tdomain%sComm(n)%GiveForcesSF_FtoS_PML(0:ngllSF_PML-1,1:3,0:2))
+                allocate(Tdomain%sComm(n)%TakeForcesSF_FtoS_PML(0:ngllSF_PML-1,1:3,0:2))
+                allocate(Tdomain%sComm(n)%GiveForcesSF_StoF_PML(0:ngllSF_PML-1,1:3))
+                allocate(Tdomain%sComm(n)%TakeForcesSF_StoF_PML(0:ngllSF_PML-1,1:3))
             endif
 
             Tdomain%sComm(n)%ngll = ngll
