@@ -55,8 +55,6 @@ subroutine  sem()
     integer*4 getpid, pid
 
 #ifdef COUPLAGE
-    integer :: groupe
-    integer :: sortie
     integer :: finSem
     integer :: tag, MaxNgParFace
     integer, dimension (MPI_STATUS_SIZE) :: status
@@ -65,7 +63,7 @@ subroutine  sem()
 
     integer :: global_rank, global_nb_proc, worldgroup, intergroup
     integer :: m_localComm, comm_super_mka
-    integer :: nrec, n
+    integer :: n
     integer :: min_rank_glob_sem
 #endif
     integer :: display_iter !! Indique si on doit faire des sortie lors de cette iteration
@@ -136,7 +134,7 @@ subroutine  sem()
 
     !lecture du fichier de maillage unv avec conversion en fichier sem2D
     if (rg == 0) write (*,*) "Define mesh properties"
-    call read_mesh_h5(Tdomain)
+    call read_mesh(Tdomain)
 
     if (rg == 0) write (*,*) "Compute Gauss-Lobatto-Legendre weights and zeroes"
     call compute_GLL (Tdomain)
@@ -233,6 +231,7 @@ subroutine  sem()
 
     if (Tdomain%logicD%save_snapshots .or. Tdomain%logicD%save_deformation) then
         Tdomain%timeD%nsnap = Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin
+        if (Tdomain%timeD%nsnap == 0) Tdomain%timeD%nsnap = 1
         write(*,*) "Snapshot every ", Tdomain%timeD%nsnap, " iterations"
     endif
 
