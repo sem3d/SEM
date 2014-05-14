@@ -196,10 +196,12 @@ subroutine define_arrays(Tdomain)
                 if (Tdomain%sSubDomain(mat)%Px) then
                     Tdomain%specel(n)%Bxi(:,:)  = exp(-(wx(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:)) * Tdomain%sSubdomain(mat)%Dt)
                     Tdomain%specel(n)%Axi(:,:)  = wx(:,:) * (Tdomain%specel(n)%Bxi (:,:) - Id(:,:)) / (wx(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:))
+                    if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Axi(:,:) = Tdomain%specel(n)%Bxi (:,:) - Id(:,:)
                endif
                if (Tdomain%sSubDomain(mat)%Pz) then
                    Tdomain%specel(n)%Beta(:,:) = exp(-(wz(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:)) * Tdomain%sSubdomain(mat)%Dt)
                    Tdomain%specel(n)%Aeta(:,:) = wz(:,:) * (Tdomain%specel(n)%Beta(:,:) - Id(:,:)) / (wz(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:))
+                   if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Aeta(:,:) = Tdomain%specel(n)%Beta (:,:) - Id(:,:)
                 endif
 
             else ! Usual PML
