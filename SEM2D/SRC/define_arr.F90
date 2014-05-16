@@ -32,7 +32,7 @@ subroutine define_arrays(Tdomain)
     real, external :: pow
     real, dimension (:), allocatable :: LocMassMat1D, LocMassMat1D_Down, Send_bt, Receive_Bt
     real, dimension (:,:), allocatable :: xix,etax, xiz,etaz,Jac, Rlam,Rmu,RKmod,Whei,Id,wx, wz
-    real, dimension (:,:), allocatable :: LocMassMat
+    real, dimension (:,:), allocatable :: LocMassMat,OmegaCutx,OmegaCutz
 
     ! Gaetano Festa, modified 01/06/2004
     ! Modification (MPI) 13/10/2005
@@ -61,6 +61,8 @@ subroutine define_arrays(Tdomain)
         allocate (Whei (0:ngllx-1,0:ngllz-1))
         allocate (wx (0:ngllx-1,0:ngllz-1))
         allocate (wz (0:ngllx-1,0:ngllz-1))
+        allocate (OmegaCutx (0:ngllx-1,0:ngllz-1))
+        allocate (OmegaCutz (0:ngllx-1,0:ngllz-1))
         allocate (Id (0:ngllx-1,0:ngllz-1))
         allocate (Jac(0:ngllx-1,0:ngllz-1))
         allocate (Rlam(0:ngllx-1,0:ngllz-1))
@@ -128,6 +130,7 @@ subroutine define_arrays(Tdomain)
                         vp = Rkmod(i,0)/Tdomain%specel(n)%Density(i,0)
                         vp = sqrt(vp)
                         wx(i,0:ngllz-1) = pow (ri,vp,ngllx-1,dx, Tdomain%sSubdomain(mat)%Apow,Tdomain%sSubdomain(mat)%npow)
+                        OmegaCutx(i,0:ngllz-1)  = Tdomain%sSubdomain(mat)%freq * (1 - (ri/float(ngllx-1))**1)
                     enddo
                 else
                     do i = 0,ngllx-1
@@ -135,6 +138,7 @@ subroutine define_arrays(Tdomain)
                         vp = Rkmod(i,0)/Tdomain%specel(n)%Density(i,0)
                         vp = sqrt(vp)
                         wx(i,0:ngllz-1) = pow (ri,vp,ngllx-1,dx, Tdomain%sSubdomain(mat)%Apow,Tdomain%sSubdomain(mat)%npow)
+                        OmegaCutx(i,0:ngllz-1)  = Tdomain%sSubdomain(mat)%freq * (1 - (ri/float(ngllx-1))**1)
                     enddo
                 endif
             else
@@ -150,6 +154,7 @@ subroutine define_arrays(Tdomain)
                         vp = Rkmod(0,j)/Tdomain%specel(n)%Density(0,j)
                         vp = sqrt(vp)
                         wz(0:ngllx-1,j) = pow (rj,vp,ngllz-1,dx, Tdomain%sSubdomain(mat)%Apow,Tdomain%sSubdomain(mat)%npow)
+                        OmegaCutz(0:ngllx-1,j) = Tdomain%sSubdomain(mat)%freq * (1 - (rj/float(ngllz-1))**1)
                     enddo
                 else
                     do j = 0,ngllz-1
@@ -157,6 +162,7 @@ subroutine define_arrays(Tdomain)
                         vp = Rkmod(0,j)/Tdomain%specel(n)%Density(0,j)
                         vp = sqrt(vp)
                         wz(0:ngllx-1,j) = pow (rj,vp,ngllz-1,dx, Tdomain%sSubdomain(mat)%Apow,Tdomain%sSubdomain(mat)%npow)
+                        OmegaCutz(0:ngllx-1,j) = Tdomain%sSubdomain(mat)%freq * (1 - (rj/float(ngllz-1))**1)
                     enddo
                 endif
             else
@@ -194,13 +200,13 @@ subroutine define_arrays(Tdomain)
 
             elseif (Tdomain%specel(n)%CPML) then
                 if (Tdomain%sSubDomain(mat)%Px) then
-                    Tdomain%specel(n)%Bxi(:,:)  = exp(-(wx(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:)) * Tdomain%sSubdomain(mat)%Dt)
-                    Tdomain%specel(n)%Axi(:,:)  = wx(:,:) * (Tdomain%specel(n)%Bxi (:,:) - Id(:,:)) / (wx(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:))
+                    Tdomain%specel(n)%Bxi(:,:)  = exp(-(wx(:,:) + OmegaCutx(:,:)) * Tdomain%sSubdomain(mat)%Dt)
+                    Tdomain%specel(n)%Axi(:,:)  = wx(:,:) * (Tdomain%specel(n)%Bxi (:,:) - Id(:,:)) / (wx(:,:) + OmegaCutx(:,:))
                     if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Axi(:,:) = Tdomain%specel(n)%Bxi (:,:) - Id(:,:)
                endif
                if (Tdomain%sSubDomain(mat)%Pz) then
-                   Tdomain%specel(n)%Beta(:,:) = exp(-(wz(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:)) * Tdomain%sSubdomain(mat)%Dt)
-                   Tdomain%specel(n)%Aeta(:,:) = wz(:,:) * (Tdomain%specel(n)%Beta(:,:) - Id(:,:)) / (wz(:,:) + Tdomain%sSubdomain(mat)%freq*Id(:,:))
+                   Tdomain%specel(n)%Beta(:,:) = exp(-(wz(:,:) + OmegaCutz(:,:)) * Tdomain%sSubdomain(mat)%Dt)
+                   Tdomain%specel(n)%Aeta(:,:) = wz(:,:) * (Tdomain%specel(n)%Beta(:,:) - Id(:,:)) / (wz(:,:) + OmegaCutz(:,:))
                    if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Aeta(:,:) = Tdomain%specel(n)%Beta (:,:) - Id(:,:)
                 endif
 
@@ -219,7 +225,7 @@ subroutine define_arrays(Tdomain)
 
 
         endif
-        deallocate (xix,xiz,etax,etaz,Id,wx,wz,Whei,RKmod, Jac, Rmu, Rlam)
+        deallocate (xix,xiz,etax,etaz,Id,wx,wz,OmegaCutx,OmegaCutz,Whei,RKmod,Jac,Rmu,Rlam)
 
     enddo
 
