@@ -130,7 +130,7 @@ subroutine define_arrays(Tdomain)
                         vp = Rkmod(i,0)/Tdomain%specel(n)%Density(i,0)
                         vp = sqrt(vp)
                         wx(i,0:ngllz-1) = pow (ri,vp,ngllx-1,dx, Tdomain%sSubdomain(mat)%Apow,Tdomain%sSubdomain(mat)%npow)
-                        OmegaCutx(i,0:ngllz-1)  = Tdomain%sSubdomain(mat)%freq * (1 - (ri/float(ngllx-1))**1)
+                        OmegaCutx(i,0:ngllz-1)  = Tdomain%sSubdomain(mat)%freq !* (1 - (ri/float(ngllx-1))**1)
                     enddo
                 else
                     do i = 0,ngllx-1
@@ -138,7 +138,7 @@ subroutine define_arrays(Tdomain)
                         vp = Rkmod(i,0)/Tdomain%specel(n)%Density(i,0)
                         vp = sqrt(vp)
                         wx(i,0:ngllz-1) = pow (ri,vp,ngllx-1,dx, Tdomain%sSubdomain(mat)%Apow,Tdomain%sSubdomain(mat)%npow)
-                        OmegaCutx(i,0:ngllz-1)  = Tdomain%sSubdomain(mat)%freq * (1 - (ri/float(ngllx-1))**1)
+                        OmegaCutx(i,0:ngllz-1)  = Tdomain%sSubdomain(mat)%freq !* (1 - (ri/float(ngllx-1))**1)
                     enddo
                 endif
             else
@@ -154,7 +154,7 @@ subroutine define_arrays(Tdomain)
                         vp = Rkmod(0,j)/Tdomain%specel(n)%Density(0,j)
                         vp = sqrt(vp)
                         wz(0:ngllx-1,j) = pow (rj,vp,ngllz-1,dx, Tdomain%sSubdomain(mat)%Apow,Tdomain%sSubdomain(mat)%npow)
-                        OmegaCutz(0:ngllx-1,j) = Tdomain%sSubdomain(mat)%freq * (1 - (rj/float(ngllz-1))**1)
+                        OmegaCutz(0:ngllx-1,j) = Tdomain%sSubdomain(mat)%freq !* (1 - (rj/float(ngllz-1))**2)
                     enddo
                 else
                     do j = 0,ngllz-1
@@ -162,7 +162,7 @@ subroutine define_arrays(Tdomain)
                         vp = Rkmod(0,j)/Tdomain%specel(n)%Density(0,j)
                         vp = sqrt(vp)
                         wz(0:ngllx-1,j) = pow (rj,vp,ngllz-1,dx, Tdomain%sSubdomain(mat)%Apow,Tdomain%sSubdomain(mat)%npow)
-                        OmegaCutz(0:ngllx-1,j) = Tdomain%sSubdomain(mat)%freq * (1 - (rj/float(ngllz-1))**1)
+                        OmegaCutz(0:ngllx-1,j) = Tdomain%sSubdomain(mat)%freq !* (1 - (rj/float(ngllz-1))**2)
                     enddo
                 endif
             else
