@@ -52,6 +52,8 @@ subroutine allocate_domain (Tdomain)
             allocate (Tdomain%specel(n)%Aeta(0:ngllx-1,0:ngllz-1))
             allocate (Tdomain%specel(n)%Bxi (0:ngllx-1,0:ngllz-1))
             allocate (Tdomain%specel(n)%Beta(0:ngllx-1,0:ngllz-1))
+            allocate (Tdomain%specel(n)%Axi_prime (0:ngllx-1,0:ngllz-1))
+            allocate (Tdomain%specel(n)%Aeta_prime(0:ngllx-1,0:ngllz-1))
             allocate (Tdomain%specel(n)%PsiVxxi (0:ngllx-1,0:ngllz-1))
             allocate (Tdomain%specel(n)%PsiVxeta(0:ngllx-1,0:ngllz-1))
             allocate (Tdomain%specel(n)%PsiVzxi (0:ngllx-1,0:ngllz-1))
@@ -68,6 +70,8 @@ subroutine allocate_domain (Tdomain)
             Tdomain%specel(n)%Aeta      = 0.
             Tdomain%specel(n)%Bxi       = 0.
             Tdomain%specel(n)%Beta      = 0.
+            Tdomain%specel(n)%Axi_prime = 0.
+            Tdomain%specel(n)%Aeta_prime= 0.
             Tdomain%specel(n)%PsiVxxi   = 0.
             Tdomain%specel(n)%PsiVxeta  = 0.
             Tdomain%specel(n)%PsiVzxi   = 0.

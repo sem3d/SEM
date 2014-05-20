@@ -40,7 +40,7 @@ module selement
 
        ! CPML allocation
        logical :: CPML
-       real, dimension (:,:), allocatable :: Axi, Bxi, Aeta, Beta
+       real, dimension (:,:), allocatable :: Axi, Bxi, Aeta, Beta, Axi_prime, Aeta_prime
        real, dimension (:,:), allocatable :: PsiVxxi, PsiVxeta, PsiVzxi, PsiVzeta, PsiSxxxi
        real, dimension (:,:), allocatable :: PsiSxxeta, PsiSzzxi, PsiSzzeta, PsiSxzxi, PsiSxzeta
 
@@ -516,19 +516,25 @@ contains
 
         ! Updating convolution :
         Elem%PsiSxxxi (:,:) = Elem%Bxi (:,:) * Elem%PsiSxxxi (:,:) - Elem%Stress(:,:,0) * s0 &
-            - Elem%Acoeff(:,:,17) * MATMUL(hprime, Elem%Stress(:,:,0)*Elem%Axi(:,:)*Elem%Acoeff(:,:,16))
+            - Elem%Axi_prime (:,:) * Elem%Stress(:,:,0)
+            !- Elem%Acoeff(:,:,17) * MATMUL(hprime, Elem%Stress(:,:,0)*Elem%Axi(:,:)*Elem%Acoeff(:,:,16))
         Elem%PsiSxxeta(:,:) = Elem%Beta(:,:) * Elem%PsiSxxeta(:,:) - Elem%Stress(:,:,0) * s1 &
-            - Elem%Acoeff(:,:,17) * MATMUL(Elem%Stress(:,:,0)*Elem%Aeta(:,:)*Elem%Acoeff(:,:,16), hTprimez)
+            - Elem%Aeta_prime(:,:) * Elem%Stress(:,:,0)
+            !- Elem%Acoeff(:,:,17) * MATMUL(Elem%Stress(:,:,0)*Elem%Aeta(:,:)*Elem%Acoeff(:,:,16), hTprimez)
 
         Elem%PsiSzzxi (:,:) = Elem%Bxi (:,:) * Elem%PsiSzzxi (:,:) - Elem%Stress(:,:,1) * s0 &
-            - Elem%Acoeff(:,:,17) * MATMUL(hprime, Elem%Stress(:,:,1)*Elem%Axi(:,:)*Elem%Acoeff(:,:,16))
+            - Elem%Axi_prime (:,:) * Elem%Stress(:,:,1)
+            !- Elem%Acoeff(:,:,17) * MATMUL(hprime, Elem%Stress(:,:,1)*Elem%Axi(:,:)*Elem%Acoeff(:,:,16))
         Elem%PsiSzzeta(:,:) = Elem%Beta(:,:) * Elem%PsiSzzeta(:,:) - Elem%Stress(:,:,1) * s1 &
-            - Elem%Acoeff(:,:,17) * MATMUL(Elem%Stress(:,:,1)*Elem%Aeta(:,:)*Elem%Acoeff(:,:,16), hTprimez)
+            - Elem%Aeta_prime(:,:) * Elem%Stress(:,:,1)
+            !- Elem%Acoeff(:,:,17) * MATMUL(Elem%Stress(:,:,1)*Elem%Aeta(:,:)*Elem%Acoeff(:,:,16), hTprimez)
 
         Elem%PsiSxzxi (:,:) = Elem%Bxi (:,:) * Elem%PsiSxzxi (:,:) - Elem%Stress(:,:,2) * s0 &
-            - Elem%Acoeff(:,:,17) * MATMUL(hprime, Elem%Stress(:,:,2)*Elem%Axi(:,:)*Elem%Acoeff(:,:,16))
+            - Elem%Axi_prime (:,:) * Elem%Stress(:,:,2)
+            !- Elem%Acoeff(:,:,17) * MATMUL(hprime, Elem%Stress(:,:,2)*Elem%Axi(:,:)*Elem%Acoeff(:,:,16))
         Elem%PsiSxzeta(:,:) = Elem%Beta(:,:) * Elem%PsiSxzeta(:,:) - Elem%Stress(:,:,2) * s1 &
-            - Elem%Acoeff(:,:,17) * MATMUL(Elem%Stress(:,:,2)*Elem%Aeta(:,:)*Elem%Acoeff(:,:,16), hTprimez)
+            - Elem%Aeta_prime(:,:) * Elem%Stress(:,:,2)
+            !- Elem%Acoeff(:,:,17) * MATMUL(Elem%Stress(:,:,2)*Elem%Aeta(:,:)*Elem%Acoeff(:,:,16), hTprimez)
 
         ! Updating Forces :
         s0 = Elem%Acoeff(:,:,12) * Elem%Stress(:,:,0) + Elem%Acoeff(:,:,14) * Elem%Stress(:,:,2)
