@@ -100,7 +100,7 @@ coords            réel(3)  0 0 0              Position de la source
 type              kw       --                 Type spatial: impulse|moment|fluidpulse
 dir               kw       --                 Direction pour le type impulse ou fluidpulse (val: x|y|z)
 func              kw       --                 Type temporel (voir `Les sources`_ ci-dessous)
-moment            réel(6)  --                 Moment xx yy zz xy yx xz pour le type moment
+moment            réel(6)  --                 Moment xx yy zz xy xz yz pour le type moment
 tau               réel     --                 Un temps caractéristique :math:`\tau`
 freq              réel     --                 Une fréquence :math:`f_c`
 band              réel(4)  --                 Description des bornes :math:`f_1,f_2,f_3,f_4` pour tf_heaviside
