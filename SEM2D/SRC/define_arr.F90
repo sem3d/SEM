@@ -25,14 +25,14 @@ subroutine define_arrays(Tdomain)
 
     ! local variables
 
-    integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf
+    integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf,npow
     integer :: i_send, n_face_pointed, i_proc, nv, i_stock, tag_send, tag_receive, ierr
     integer ,  dimension (MPI_STATUS_SIZE) :: status
-    real :: vp,ri,rj,dx, LocMassmat_Vertex
+    real :: vp,ri,rj,dx,LocMassmat_Vertex,Apow
     real, external :: pow
     real, dimension (:), allocatable :: LocMassMat1D, LocMassMat1D_Down, Send_bt, Receive_Bt
     real, dimension (:,:), allocatable :: xix,etax, xiz,etaz,Jac, Rlam,Rmu,RKmod,Whei,Id,wx, wz
-    real, dimension (:,:), allocatable :: LocMassMat,OmegaCutx,OmegaCutz
+    real, dimension (:,:), allocatable :: LocMassMat,OmegaCutx,OmegaCutz,du_du_x,du_du_z,duux,duuz
 
     ! Gaetano Festa, modified 01/06/2004
     ! Modification (MPI) 13/10/2005
@@ -63,6 +63,10 @@ subroutine define_arrays(Tdomain)
         allocate (wz (0:ngllx-1,0:ngllz-1))
         allocate (OmegaCutx (0:ngllx-1,0:ngllz-1))
         allocate (OmegaCutz (0:ngllx-1,0:ngllz-1))
+        allocate (du_du_x (0:ngllx-1,0:ngllz-1))
+        allocate (du_du_z (0:ngllx-1,0:ngllz-1))
+        allocate (duux (0:ngllx-1,0:ngllz-1))
+        allocate (duuz (0:ngllx-1,0:ngllz-1))
         allocate (Id (0:ngllx-1,0:ngllz-1))
         allocate (Jac(0:ngllx-1,0:ngllz-1))
         allocate (Rlam(0:ngllx-1,0:ngllz-1))
@@ -118,8 +122,10 @@ subroutine define_arrays(Tdomain)
                 Tdomain%specel(n)%Acoeff(:,:,17) = 1./(Whei*Jac)
             endif
 
+
             ! Defining PML properties
 
+            Apow = Tdomain%sSubdomain(mat)%Apow ; npow = Tdomain%sSubdomain(mat)%npow
             if (Tdomain%sSubDomain(mat)%Px) then
                 ! Computation of dx : the horizontal length of the PML element
                 idef = Tdomain%specel(n)%Iglobnum (0,0); dx = Tdomain%GlobCoord (0,idef)
@@ -129,16 +135,24 @@ subroutine define_arrays(Tdomain)
                         ri = 0.5*(1+Tdomain%sSubDomain(mat)%GLLcx(ngllx-1-i)) * float (ngllx-1)
                         vp = Rkmod(i,0)/Tdomain%specel(n)%Density(i,0)
                         vp = sqrt(vp)
-                        wx(i,0:ngllz-1) = pow (ri,vp,ngllx-1,dx, Tdomain%sSubdomain(mat)%Apow,Tdomain%sSubdomain(mat)%npow)
-                        OmegaCutx(i,0:ngllz-1)  = Tdomain%sSubdomain(mat)%freq !* (1 - (ri/float(ngllx-1))**1)
+                        wx(i,0:ngllz-1) = pow (ri,vp,ngllx-1,dx,Apow,npow)
+                        OmegaCutx(i,0:ngllz-1) = Tdomain%sSubdomain(mat)%freq !* (1 - (ri/float(ngllx-1))**1)
+                        du_du_x(i,0:ngllz-1) = -0.5*npow*pow(ri,vp,ngllx-1,dx,Apow,npow-1) * (OmegaCutx(i,0) + wx(i,0)) &
+                                             + wx(i,0) * (0.5*npow*pow(ri,vp,ngllx-1,dx,Apow,npow-1) + 0.)
+                        duux(i,0:ngllz-1) = -wx(i,0) * (0.5*npow*pow(ri,vp,ngllx-1,dx,Apow,npow-1) + 0.) &
+                                          * (wx(i,0) + OmegaCutx(i,0)) * Tdomain%sSubdomain(mat)%Dt
                     enddo
                 else
                     do i = 0,ngllx-1
                         ri = 0.5*(1+Tdomain%sSubDomain(mat)%GLLcx(i))*float (ngllx-1)
                         vp = Rkmod(i,0)/Tdomain%specel(n)%Density(i,0)
                         vp = sqrt(vp)
-                        wx(i,0:ngllz-1) = pow (ri,vp,ngllx-1,dx, Tdomain%sSubdomain(mat)%Apow,Tdomain%sSubdomain(mat)%npow)
+                        wx(i,0:ngllz-1) = pow (ri,vp,ngllx-1,dx,Apow,npow)
                         OmegaCutx(i,0:ngllz-1)  = Tdomain%sSubdomain(mat)%freq !* (1 - (ri/float(ngllx-1))**1)
+                        du_du_x(i,0:ngllz-1) = 0.5*npow*pow(ri,vp,ngllx-1,dx,Apow,npow-1) * (OmegaCutx(i,0) + wx(i,0)) &
+                                             - wx(i,0) * (0.5*npow*pow(ri,vp,ngllx-1,dx,Apow,npow-1) + 0.)
+                        duux(i,0:ngllz-1) = wx(i,0) * (0.5*npow*pow(ri,vp,ngllx-1,dx,Apow,npow-1) + 0.) &
+                                          * (wx(i,0) + OmegaCutx(i,0)) * Tdomain%sSubdomain(mat)%Dt
                     enddo
                 endif
             else
@@ -153,16 +167,24 @@ subroutine define_arrays(Tdomain)
                         rj = 0.5*(1+Tdomain%sSubdomain(mat)%GLLcz(ngllz-1-j)) * float (ngllz-1)
                         vp = Rkmod(0,j)/Tdomain%specel(n)%Density(0,j)
                         vp = sqrt(vp)
-                        wz(0:ngllx-1,j) = pow (rj,vp,ngllz-1,dx, Tdomain%sSubdomain(mat)%Apow,Tdomain%sSubdomain(mat)%npow)
-                        OmegaCutz(0:ngllx-1,j) = Tdomain%sSubdomain(mat)%freq !* (1 - (rj/float(ngllz-1))**2)
+                        wz(0:ngllx-1,j) = pow (rj,vp,ngllz-1,dx,Apow,npow)
+                        OmegaCutz(0:ngllx-1,j) = Tdomain%sSubdomain(mat)%freq !* (1 - (rj/float(ngllz-1))**1)
+                        du_du_z(0:ngllx-1,j) = -0.5*npow*pow(rj,vp,ngllz-1,dx,Apow,npow-1) * (OmegaCutz(0,j) + wz(0,j)) &
+                                             + wz(0,j) * (0.5*npow*pow(rj,vp,ngllz-1,dx,Apow,npow-1) + 0.)
+                        duuz(0:ngllx-1,j) = -wz(0,j) * (0.5*npow*pow(rj,vp,ngllz-1,dx,Apow,npow-1) + 0.) &
+                                          * (wz(0,j) + OmegaCutz(0,j)) * Tdomain%sSubdomain(mat)%Dt
                     enddo
                 else
                     do j = 0,ngllz-1
                         rj = 0.5*(1+Tdomain%sSubdomain(mat)%GLLcz(j)) * float (ngllz-1)
                         vp = Rkmod(0,j)/Tdomain%specel(n)%Density(0,j)
                         vp = sqrt(vp)
-                        wz(0:ngllx-1,j) = pow (rj,vp,ngllz-1,dx, Tdomain%sSubdomain(mat)%Apow,Tdomain%sSubdomain(mat)%npow)
-                        OmegaCutz(0:ngllx-1,j) = Tdomain%sSubdomain(mat)%freq !* (1 - (rj/float(ngllz-1))**2)
+                        wz(0:ngllx-1,j) = pow (rj,vp,ngllz-1,dx,Apow,npow)
+                        OmegaCutz(0:ngllx-1,j) = Tdomain%sSubdomain(mat)%freq !* (1 - (rj/float(ngllz-1))**1)
+                        du_du_z(0:ngllx-1,j) = 0.5*npow*pow(rj,vp,ngllz-1,dx,Apow,npow-1) * (OmegaCutz(0,j) + wz(0,j)) &
+                                             - wz(0,j) * (0.5*npow*pow(rj,vp,ngllz-1,dx,Apow,npow-1) + 0.)
+                        duuz(0:ngllx-1,j) = wz(0,j) * (0.5*npow*pow(rj,vp,ngllz-1,dx,Apow,npow-1) + 0.) &
+                                          * (wz(0,j) + OmegaCutz(0,j)) * Tdomain%sSubdomain(mat)%Dt
                     enddo
                 endif
             else
@@ -203,11 +225,15 @@ subroutine define_arrays(Tdomain)
                     Tdomain%specel(n)%Bxi(:,:)  = exp(-(wx(:,:) + OmegaCutx(:,:)) * Tdomain%sSubdomain(mat)%Dt)
                     Tdomain%specel(n)%Axi(:,:)  = wx(:,:) * (Tdomain%specel(n)%Bxi (:,:) - Id(:,:)) / (wx(:,:) + OmegaCutx(:,:))
                     if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Axi(:,:) = Tdomain%specel(n)%Bxi (:,:) - Id(:,:)
+                    Tdomain%specel(n)%Axi_prime(:,:) = ((Tdomain%specel(n)%Bxi(:,:) - Id(:,:)) * du_du_x(:,:)  &
+                                                       - Tdomain%specel(n)%Bxi(:,:) * duux(:,:))/ (wx(:,:) + OmegaCutx(:,:))**2
                endif
                if (Tdomain%sSubDomain(mat)%Pz) then
                    Tdomain%specel(n)%Beta(:,:) = exp(-(wz(:,:) + OmegaCutz(:,:)) * Tdomain%sSubdomain(mat)%Dt)
                    Tdomain%specel(n)%Aeta(:,:) = wz(:,:) * (Tdomain%specel(n)%Beta(:,:) - Id(:,:)) / (wz(:,:) + OmegaCutz(:,:))
                    if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Aeta(:,:) = Tdomain%specel(n)%Beta (:,:) - Id(:,:)
+                   Tdomain%specel(n)%Aeta_prime(:,:) = ((Tdomain%specel(n)%Beta(:,:) - Id(:,:)) * du_du_z(:,:) &
+                                                       - Tdomain%specel(n)%Beta(:,:) * duuz(:,:)) / (wz(:,:) + OmegaCutz(:,:))**2
                 endif
 
             else ! Usual PML
@@ -225,7 +251,7 @@ subroutine define_arrays(Tdomain)
 
 
         endif
-        deallocate (xix,xiz,etax,etaz,Id,wx,wz,OmegaCutx,OmegaCutz,Whei,RKmod,Jac,Rmu,Rlam)
+        deallocate(xix,xiz,etax,etaz,Id,wx,wz,OmegaCutx,OmegaCutz,du_du_x,du_du_z,duux,duuz,Whei,RKmod,Jac,Rmu,Rlam)
 
     enddo
 
