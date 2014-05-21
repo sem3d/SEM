@@ -25,10 +25,10 @@ subroutine define_arrays(Tdomain)
 
     ! local variables
 
-    integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf,npow
+    integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf,npow,powOmc
     integer :: i_send, n_face_pointed, i_proc, nv, i_stock, tag_send, tag_receive, ierr
     integer ,  dimension (MPI_STATUS_SIZE) :: status
-    real :: vp,ri,rj,dx,LocMassmat_Vertex,Apow
+    real :: vp,ri,rj,dx,LocMassmat_Vertex,Apow,OmegaCprime,PI, Omega_c
     real, external :: pow
     real, dimension (:), allocatable :: LocMassMat1D, LocMassMat1D_Down, Send_bt, Receive_Bt
     real, dimension (:,:), allocatable :: xix,etax, xiz,etaz,Jac, Rlam,Rmu,RKmod,Whei,Id,wx, wz
@@ -36,6 +36,9 @@ subroutine define_arrays(Tdomain)
 
     ! Gaetano Festa, modified 01/06/2004
     ! Modification (MPI) 13/10/2005
+    ! Modifications by S. Terrana for introduction of CPML : may 2014
+
+    PI = 4. * atan(1.)
 
     ! Attribute elastic properties from material
 
@@ -126,32 +129,39 @@ subroutine define_arrays(Tdomain)
             ! Defining PML properties
 
             Apow = Tdomain%sSubdomain(mat)%Apow ; npow = Tdomain%sSubdomain(mat)%npow
+            Omega_c = 2. * PI * Tdomain%sSubdomain(mat)%freq ! Frequence de coupure
+            ! PowOmc is the exponent of the power law of decreasing Omega_c (pulsation de coupure)
+            ! in the PML. Usually, Omega_C obbey to a law Omega_c(x) = 2*pi*freq_c (1-(x/L)^{powOmc})
+            ! powOmc is set to 1 because it produces better absorbtion on the cases we have studied.
+            powOmc = 1
             if (Tdomain%sSubDomain(mat)%Px) then
                 ! Computation of dx : the horizontal length of the PML element
                 idef = Tdomain%specel(n)%Iglobnum (0,0); dx = Tdomain%GlobCoord (0,idef)
                 idef = Tdomain%specel(n)%Iglobnum (ngllx-1,0); dx = abs (Tdomain%GlobCoord (0,idef) -dx);
                 if (Tdomain%sSubDomain(mat)%Left) then
                     do i = 0,ngllx-1
-                        ri = 0.5*(1+Tdomain%sSubDomain(mat)%GLLcx(ngllx-1-i)) * float (ngllx-1)
+                        ri = 0.5*(1+Tdomain%sSubDomain(mat)%GLLcx(ngllx-1-i))
                         vp = Rkmod(i,0)/Tdomain%specel(n)%Density(i,0)
                         vp = sqrt(vp)
-                        wx(i,0:ngllz-1) = pow (ri,vp,ngllx-1,dx,Apow,npow)
-                        OmegaCutx(i,0:ngllz-1) = Tdomain%sSubdomain(mat)%freq !* (1 - (ri/float(ngllx-1))**1)
-                        du_du_x(i,0:ngllz-1) = -0.5*npow*pow(ri,vp,ngllx-1,dx,Apow,npow-1) * (OmegaCutx(i,0) + wx(i,0)) &
-                                             + wx(i,0) * (0.5*npow*pow(ri,vp,ngllx-1,dx,Apow,npow-1) + 0.)
-                        duux(i,0:ngllz-1) = -wx(i,0) * (0.5*npow*pow(ri,vp,ngllx-1,dx,Apow,npow-1) + 0.) &
+                        wx(i,0:ngllz-1) = pow (ri,vp,1,dx,Apow,npow)
+                        OmegaCutx(i,0:ngllz-1) = Omega_c * (1 - ri**PowOmc)
+                        OmegaCprime = 0.5 * Omega_c * PowOmc * ri**(PowOmc-1)
+                        du_du_x(i,0:ngllz-1) = -0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) * (OmegaCutx(i,0) + wx(i,0)) &
+                                             + wx(i,0) * (0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) + OmegaCprime)
+                        duux(i,0:ngllz-1) = -wx(i,0) * (0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) + OmegaCprime) &
                                           * (wx(i,0) + OmegaCutx(i,0)) * Tdomain%sSubdomain(mat)%Dt
                     enddo
                 else
                     do i = 0,ngllx-1
-                        ri = 0.5*(1+Tdomain%sSubDomain(mat)%GLLcx(i))*float (ngllx-1)
+                        ri = 0.5*(1+Tdomain%sSubDomain(mat)%GLLcx(i))
                         vp = Rkmod(i,0)/Tdomain%specel(n)%Density(i,0)
                         vp = sqrt(vp)
-                        wx(i,0:ngllz-1) = pow (ri,vp,ngllx-1,dx,Apow,npow)
-                        OmegaCutx(i,0:ngllz-1)  = Tdomain%sSubdomain(mat)%freq !* (1 - (ri/float(ngllx-1))**1)
-                        du_du_x(i,0:ngllz-1) = 0.5*npow*pow(ri,vp,ngllx-1,dx,Apow,npow-1) * (OmegaCutx(i,0) + wx(i,0)) &
-                                             - wx(i,0) * (0.5*npow*pow(ri,vp,ngllx-1,dx,Apow,npow-1) + 0.)
-                        duux(i,0:ngllz-1) = wx(i,0) * (0.5*npow*pow(ri,vp,ngllx-1,dx,Apow,npow-1) + 0.) &
+                        wx(i,0:ngllz-1) = pow (ri,vp,1,dx,Apow,npow)
+                        OmegaCutx(i,0:ngllz-1)  = Omega_c * (1 - ri**PowOmc)
+                        OmegaCprime = -0.5 * Omega_c * PowOmc * ri**(PowOmc-1)
+                        du_du_x(i,0:ngllz-1) = 0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) * (OmegaCutx(i,0) + wx(i,0)) &
+                                             - wx(i,0) * (0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) + OmegaCprime)
+                        duux(i,0:ngllz-1) = wx(i,0) * (0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) + OmegaCprime) &
                                           * (wx(i,0) + OmegaCutx(i,0)) * Tdomain%sSubdomain(mat)%Dt
                     enddo
                 endif
@@ -164,26 +174,28 @@ subroutine define_arrays(Tdomain)
                 idef = Tdomain%specel(n)%Iglobnum (0,ngllz-1); dx = abs (Tdomain%GlobCoord (1,idef) -dx)
                 if (Tdomain%sSubDomain(mat)%Down) then
                     do j = 0,ngllz-1
-                        rj = 0.5*(1+Tdomain%sSubdomain(mat)%GLLcz(ngllz-1-j)) * float (ngllz-1)
+                        rj = 0.5*(1+Tdomain%sSubdomain(mat)%GLLcz(ngllz-1-j))
                         vp = Rkmod(0,j)/Tdomain%specel(n)%Density(0,j)
                         vp = sqrt(vp)
-                        wz(0:ngllx-1,j) = pow (rj,vp,ngllz-1,dx,Apow,npow)
-                        OmegaCutz(0:ngllx-1,j) = Tdomain%sSubdomain(mat)%freq !* (1 - (rj/float(ngllz-1))**1)
-                        du_du_z(0:ngllx-1,j) = -0.5*npow*pow(rj,vp,ngllz-1,dx,Apow,npow-1) * (OmegaCutz(0,j) + wz(0,j)) &
-                                             + wz(0,j) * (0.5*npow*pow(rj,vp,ngllz-1,dx,Apow,npow-1) + 0.)
-                        duuz(0:ngllx-1,j) = -wz(0,j) * (0.5*npow*pow(rj,vp,ngllz-1,dx,Apow,npow-1) + 0.) &
+                        wz(0:ngllx-1,j) = pow (rj,vp,1,dx,Apow,npow)
+                        OmegaCutz(0:ngllx-1,j) = Omega_c * (1 - rj**PowOmc)
+                        OmegaCprime = 0.5 * Omega_c * PowOmc * rj**(PowOmc-1)
+                        du_du_z(0:ngllx-1,j) = -0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) * (OmegaCutz(0,j) + wz(0,j)) &
+                                             + wz(0,j) * (0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) + OmegaCprime)
+                        duuz(0:ngllx-1,j) = -wz(0,j) * (0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) + OmegaCprime) &
                                           * (wz(0,j) + OmegaCutz(0,j)) * Tdomain%sSubdomain(mat)%Dt
                     enddo
                 else
                     do j = 0,ngllz-1
-                        rj = 0.5*(1+Tdomain%sSubdomain(mat)%GLLcz(j)) * float (ngllz-1)
+                        rj = 0.5*(1+Tdomain%sSubdomain(mat)%GLLcz(j))
                         vp = Rkmod(0,j)/Tdomain%specel(n)%Density(0,j)
                         vp = sqrt(vp)
-                        wz(0:ngllx-1,j) = pow (rj,vp,ngllz-1,dx,Apow,npow)
-                        OmegaCutz(0:ngllx-1,j) = Tdomain%sSubdomain(mat)%freq !* (1 - (rj/float(ngllz-1))**1)
-                        du_du_z(0:ngllx-1,j) = 0.5*npow*pow(rj,vp,ngllz-1,dx,Apow,npow-1) * (OmegaCutz(0,j) + wz(0,j)) &
-                                             - wz(0,j) * (0.5*npow*pow(rj,vp,ngllz-1,dx,Apow,npow-1) + 0.)
-                        duuz(0:ngllx-1,j) = wz(0,j) * (0.5*npow*pow(rj,vp,ngllz-1,dx,Apow,npow-1) + 0.) &
+                        wz(0:ngllx-1,j) = pow (rj,vp,1,dx,Apow,npow)
+                        OmegaCutz(0:ngllx-1,j) = Omega_c * (1 - rj**PowOmc)
+                        OmegaCprime = -0.5 * Omega_c * PowOmc * rj**(PowOmc-1)
+                        du_du_z(0:ngllx-1,j) = 0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) * (OmegaCutz(0,j) + wz(0,j)) &
+                                             - wz(0,j) * (0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) + OmegaCprime)
+                        duuz(0:ngllx-1,j) = wz(0,j) * (0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) + OmegaCprime) &
                                           * (wz(0,j) + OmegaCutz(0,j)) * Tdomain%sSubdomain(mat)%Dt
                     enddo
                 endif

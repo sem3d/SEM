@@ -233,8 +233,11 @@ subroutine read_material_file(Tdomain)
     endif
 
     do i = 0, Tdomain%n_mat-1
-        if (Tdomain%sSubdomain(i)%material_type == "P" .and. Tdomain%sSubdomain(i)%Filtering ) &
+        if (Tdomain%sSubdomain(i)%material_type == "P" &
+            .and. Tdomain%sSubdomain(i)%Filtering &
+            .and. (Tdomain%pml_type == 2) ) then
             Tdomain%sSubdomain(i)%freq = exp (-Tdomain%sSubdomain(i)%freq*Tdomain%sSubdomain(i)%dt/2)
+        endif
     enddo
 
     dtmin =1e20
