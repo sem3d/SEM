@@ -1,4 +1,3 @@
-#define OLD 0
 module msnapshots
     use sdomain
     use hdf5
@@ -570,7 +569,7 @@ contains
             call gather_elem_accel(Tdomain, n, field_accel)
             call gather_elem_press(Tdomain, n, field_press)
 
-#if ! OLD
+#if NEW_GLOBAL_METHOD
             if (Tdomain%specel(n)%solid) then
                 ! Element solide
                 allocate(Depla(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
@@ -618,13 +617,7 @@ contains
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
                         idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
-#if OLD
-                        valence(idx) = valence(idx)+1
-                        displ(:,idx) = field_displ(i,j,k,:)
-                        veloc(:,idx) = veloc(:,idx)+field_veloc(i,j,k,:)
-                        accel(:,idx) = accel(:,idx)+field_accel(i,j,k,:)
-                        press(idx) = field_press(i,j,k)
-#else
+#if NEW_GLOBAL_METHOD
                         if (Tdomain%specel(n)%solid) then
                             displ(:,idx) = Tdomain%champs0%Depla(Tdomain%specel(n)%Isol(i,j,k),:)
                             veloc(:,idx) = Tdomain%champs0%Veloc(Tdomain%specel(n)%Isol(i,j,k),:)
@@ -637,13 +630,19 @@ contains
                             accel(:,idx) = accel(:,idx) + field_accel(i,j,k,:)
                             press(idx) = field_press(i,j,k)
                         endif
+#else
+                        valence(idx) = valence(idx)+1
+                        displ(:,idx) = field_displ(i,j,k,:)
+                        veloc(:,idx) = veloc(:,idx)+field_veloc(i,j,k,:)
+                        accel(:,idx) = accel(:,idx)+field_accel(i,j,k,:)
+                        press(idx) = field_press(i,j,k)
 #endif
                     end do
                 end do
             end do
         end do
 
-#if ! OLD
+#if NEW_GLOBAL_METHOD
         if (Tdomain%ngll_f /= 0) then
 #endif
         ! normalization
@@ -653,7 +652,7 @@ contains
                 accel(0:2,i) = accel(0:2,i)/valence(i)
             end if
         end do
-#if ! OLD
+#if NEW_GLOBAL_METHOD
         endif
 #endif
 
