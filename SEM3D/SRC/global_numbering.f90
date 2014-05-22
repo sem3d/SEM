@@ -22,7 +22,7 @@ subroutine global_numbering(Tdomain,rank)
     integer, intent(in)  :: rank
     type(domain), intent (inout) :: Tdomain
     integer :: n, icount, i, j, k, ngllx, nglly, ngllz, nf, nnf, ne, nne, nv, ngll1, ngll2,   &
-        orient_f, orient_e, ngll, nnv, idxS, idxF, idxSpml, idxFpml
+        orient_f, orient_e, ngll, nnv, idxS, idxF, idxSpml, idxFpml, dir, ks, kl
     integer, dimension(0:6)  :: index_elem_f
     integer, dimension(0:4)  :: index_elem_e
     integer, dimension(0:2)  :: index_elem_v
@@ -257,9 +257,142 @@ subroutine global_numbering(Tdomain,rank)
     Tdomain%ngll_pmls = idxSpml
     Tdomain%ngll_pmlf = idxFpml
 
+
+
+    !! Couplage solide/fluide
+    !! On liste les numeraux globaux des points de gauss concernant les faces de couplage S/F
+    if(Tdomain%logicD%SF_local_present)then
+        ! On compte le nombre de points de gauss pour les faces de couplages
+        k = 0
+        do nf = 0,Tdomain%SF%SF_n_faces-1
+            nnf = Tdomain%SF%SF_Face(nf)%Face(1)
+            if(nnf < 0) cycle
+            n = Tdomain%sFace(nnf)%which_elem
+            dir = Tdomain%sFace(nnf)%dir
+            ngllx = Tdomain%specel(n)%ngllx
+            nglly = Tdomain%specel(n)%nglly
+            ngllz = Tdomain%specel(n)%ngllz
+            if(dir == 0 .OR. dir == 5)then
+                do j = 0,nglly-1
+                    do i = 0,ngllx-1
+                        k = k + 1
+                    enddo
+                enddo
+            else if(dir == 1 .OR. dir == 3)then
+                do j = 0,ngllz-1
+                    do i = 0,ngllx-1
+                        k = k + 1
+                    enddo
+                enddo
+            else
+                do j = 0,ngllz-1
+                    do i = 0,nglly-1
+                        k = k + 1
+                    enddo
+                enddo
+            endif
+        enddo
+
+        ! On alloue et on initialise les tableaux d'indice des points de couplage
+        Tdomain%SF%ngll = k
+        allocate(Tdomain%SF%SF_IGlobSol(0:k-1))
+        allocate(Tdomain%SF%SF_IGlobFlu(0:k-1))
+        Tdomain%SF%SF_IGlobSol = -1
+        Tdomain%SF%SF_IGlobFlu = -1
+
+        ! On peuple le tableau d'indice des ngll de couplage en fonction des direcions des faces
+        ks = 0
+        kl = 0
+        k = 0
+
+        do nf = 0,Tdomain%SF%SF_n_faces-1
+            ! Partie fluide
+            nnf = Tdomain%SF%SF_Face(nf)%Face(0)
+            if(nnf > -1) then
+                n = Tdomain%sFace(nnf)%which_elem
+                dir = Tdomain%sFace(nnf)%dir
+                ngllx = Tdomain%specel(n)%ngllx
+                nglly = Tdomain%specel(n)%nglly
+                ngllz = Tdomain%specel(n)%ngllz
+
+                call populate_index_SF(Tdomain%SF%ngll, dir, ngllx, nglly, ngllz, &
+                                       Tdomain%specel(n)%IFlu, kl, Tdomain%SF%SF_IGlobFlu)
+            end if
+            
+            ! Partie Solide
+            nnf = Tdomain%SF%SF_Face(nf)%Face(1)
+            if(nnf > -1) then
+                n = Tdomain%sFace(nnf)%which_elem
+                dir = Tdomain%sFace(nnf)%dir
+                ngllx = Tdomain%specel(n)%ngllx
+                nglly = Tdomain%specel(n)%nglly
+                ngllz = Tdomain%specel(n)%ngllz
+                
+                call populate_index_SF(Tdomain%SF%ngll, dir, ngllx, nglly, ngllz, &
+                                       Tdomain%specel(n)%ISol, ks, Tdomain%SF%SF_IGlobSol)
+            end if
+        enddo
+
+    endif ! fin traitement couplage Solide / Fluide
+
     return
 end subroutine global_numbering
 
+subroutine populate_index_SF(ngll,dir,ngllx,nglly,ngllz,ISolFlu,k,SF_IGlob)
+    implicit none
+
+    integer, intent(in) :: ngll, dir, ngllx, nglly, ngllz
+    integer, intent(in), dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: ISolFlu
+    integer, intent(inout) :: k
+    integer, intent(inout), dimension(0:ngll-1) :: SF_IGlob
+    integer :: i,j
+
+    if(dir == 0)then
+        do j = 0,nglly-1
+            do i = 0,ngllx-1
+                SF_IGlob(k) = ISolFlu(i,j,0)
+                k = k + 1
+            enddo
+        enddo
+    else if(dir == 1)then
+        do j = 0,ngllz-1
+            do i = 0,ngllx-1
+                SF_IGlob(k) = ISolFlu(i,0,j)
+                k = k + 1
+            enddo
+        enddo
+    else if(dir == 2)then
+        do j = 0,ngllz-1
+            do i = 0,nglly-1
+                SF_IGlob(k) = ISolFlu(ngllx-1,i,j)
+                k = k + 1
+            enddo
+        enddo
+    else if(dir == 3)then
+        do j = 0,ngllz-1
+            do i = 0,ngllx-1
+                SF_IGlob(k) = ISolFlu(i,nglly-1,j)
+                k = k + 1
+            enddo
+        enddo
+    else if(dir == 4)then
+        do j = 0,ngllz-1
+            do i = 0,nglly-1
+                SF_IGlob(k) = ISolFlu(0,i,j)
+                k = k + 1
+            enddo
+        enddo
+    else if(dir == 5)then
+        do j = 0,nglly-1
+            do i = 0,ngllx-1
+                SF_IGlob(k) = ISolFlu(i,j,ngllz-1)
+                k = k + 1
+            enddo
+        enddo
+    end if
+
+    return
+end subroutine populate_index_SF
 
 !! Renumerotation des points de gauss d'element solide
 subroutine renum_solide(Tdomain, n, ngllx, nglly, ngllz, idxS, renumS)

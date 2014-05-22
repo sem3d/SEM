@@ -19,7 +19,7 @@ subroutine allocate_domain (Tdomain, rg)
 
     type(domain), intent (INOUT) :: Tdomain
     integer, intent (IN) :: rg
-    integer :: n,nf,ne,nv,i,j,ngllx,nglly,ngllz,ngll1,ngll2,   &
+    integer :: n,nf,ne,nv,i,j,k,ngllx,nglly,ngllz,ngll1,ngll2,   &
         ngll,ngllPML,ngllSO,ngllNeu,ngllSF,ngllSF_PML,ngll_F,ngllPML_F
     integer :: n_solid
 
@@ -490,7 +490,11 @@ subroutine allocate_domain (Tdomain, rg)
     enddo
 
     ! solid-fluid related terms
+    k = 0
     if(Tdomain%logicD%SF_local_present)then
+        ! On alloue le tableau de BtN
+        allocate(Tdomain%SF%SF_BtN(0:Tdomain%SF%ngll-1,0:2))
+        Tdomain%SF%SF_BtN(:,:) = 0d0
         do nf = 0,Tdomain%SF%SF_n_faces-1
             ngll1 = Tdomain%SF%SF_Face(nf)%ngll1
             ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
@@ -528,6 +532,7 @@ subroutine allocate_domain (Tdomain, rg)
                 Tdomain%SF%SF_Face(nf)%save_displ = 0d0
             end if
         end do
+        
 
         do ne = 0,Tdomain%SF%SF_n_edges-1
             ngll = Tdomain%SF%SF_Edge(ne)%ngll
@@ -791,6 +796,12 @@ subroutine allocate_domain (Tdomain, rg)
         ! Allocation de Tdomain%MassMatFlu pour les fluides
         allocate(Tdomain%MassMatFlu(0:Tdomain%ngll_f-1))
         Tdomain%MassMatFlu = 0d0
+    endif
+
+    ! Allocation et initialisation des champs pour le couplage solide / fluide
+    if (Tdomain%logicD%SF_local_present)then
+        allocate(Tdomain%champs0%Save_forces(0:Tdomain%SF%ngll-1,0:2))
+        allocate(Tdomain%champs0%Save_depla(0:Tdomain%SF%ngll-1,0:2))
     endif
 
     return

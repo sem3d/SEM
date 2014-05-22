@@ -421,9 +421,9 @@ subroutine define_Face_SF(Tdomain)
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    integer :: nf,ngllx,nglly,ngllz,ngll1,ngll2,mat,i,w_elem
-    real, dimension(:,:,:), allocatable :: Store_Btn
+    integer :: nf,ngllx,nglly,ngllz,ngll1,ngll2,mat,i,w_elem,j,kb,dir
 
+    kb = 0
     do nf = 0,Tdomain%SF%SF_n_faces-1
         ngll1 = Tdomain%SF%SF_Face(nf)%ngll1 ; ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
         if(Tdomain%SF%SF_face(nf)%Face(0) > 0)then
@@ -435,11 +435,41 @@ subroutine define_Face_SF(Tdomain)
         ngllx = Tdomain%sSubdomain(mat)%ngllx
         nglly = Tdomain%sSubdomain(mat)%nglly
         ngllz = Tdomain%sSubdomain(mat)%ngllz
-        call normal_face_weighting(Tdomain%SF%SF_face(nf)%dir,ngllx,nglly,ngllz,     &
+        dir = Tdomain%SF%SF_face(nf)%dir
+        call normal_face_weighting(dir,ngllx,nglly,ngllz,     &
             ngll1,ngll2,Tdomain%SF%SF_face(nf)%normal,Tdomain%sSubdomain(mat)%GLLwx, &
             Tdomain%sSubdomain(mat)%GLLwy,Tdomain%sSubdomain(mat)%GLLwz,             &
             Tdomain%SF%SF_Face(nf)%Btn)
+
+        ! On calcul le tableau de BtN global
+        if(dir == 0 .or. dir == 5)then
+            do j = 0,ngll2-1
+                do i = 0,ngll1-1
+                    Tdomain%SF%SF_BtN(kb,0:2) = Tdomain%sSubdomain(mat)%GLLwx(i)* &
+                        Tdomain%sSubdomain(mat)%GLLwy(j)*Tdomain%SF%SF_face(nf)%normal(i,j,0:2)
+                    kb = kb + 1 
+                enddo
+            enddo
+        else if(dir == 1 .or. dir == 3)then
+            do j = 0,ngll2-1
+                do i = 0,ngll1-1
+                    Tdomain%SF%SF_BtN(kb,0:2) = Tdomain%sSubdomain(mat)%GLLwx(i)* &
+                        Tdomain%sSubdomain(mat)%GLLwz(j)*Tdomain%SF%SF_face(nf)%normal(i,j,0:2)
+
+                    kb = kb + 1
+                enddo
+            enddo
+        else
+            do j = 0,ngll2-1
+                do i = 0,ngll1-1
+                    Tdomain%SF%SF_BtN(kb,0:2) = Tdomain%sSubdomain(mat)%GLLwy(i)* &
+                        Tdomain%sSubdomain(mat)%GLLwz(j)*Tdomain%SF%SF_face(nf)%normal(i,j,0:2)
+                    kb = kb + 1
+                enddo
+            enddo
+        end if
     enddo
+
 
 end subroutine define_Face_SF
 !! Local Variables:

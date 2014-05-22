@@ -34,42 +34,46 @@ subroutine deallocate_domain (Tdomain, rg)
         deallocate (Tdomain%specel(n)%Control_Nodes)
         deallocate (Tdomain%specel(n)%Jacob)
         if (Tdomain%TimeD%velocity_scheme) then
-            deallocate (Tdomain%specel(n)%sl%Veloc )
-            !  modif mariotti fevrier 2007 cea capteur displ
-            deallocate (Tdomain%specel(n)%sl%Displ)
+            if (Tdomain%specel(n)%solid) then
+                deallocate (Tdomain%specel(n)%sl%Veloc )
+                !  modif mariotti fevrier 2007 cea capteur displ
+                deallocate (Tdomain%specel(n)%sl%Displ)
 
-            deallocate (Tdomain%specel(n)%sl%Accel)
-            deallocate (Tdomain%specel(n)%sl%V0 )
-            deallocate (Tdomain%specel(n)%sl%Forces)
+                deallocate (Tdomain%specel(n)%sl%Accel)
+                deallocate (Tdomain%specel(n)%sl%V0 )
+                deallocate (Tdomain%specel(n)%sl%Forces)
+            endif
             if (Tdomain%specel(n)%PML) then
                 !  modif mariotti fevrier 2007 cea
                 deallocate (Tdomain%specel(n)%Lambda)
                 deallocate (Tdomain%specel(n)%Kappa)
                 deallocate (Tdomain%specel(n)%Mu)
 
-                deallocate (Tdomain%specel(n)%sl%Acoeff)
-                deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress)
-                deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress1)
-                deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress2)
-                deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress3)
-                deallocate (Tdomain%specel(n)%slpml%Residual_Stress)
-                deallocate (Tdomain%specel(n)%slpml%Residual_Stress1)
-                deallocate (Tdomain%specel(n)%slpml%Residual_Stress2)
-                deallocate (Tdomain%specel(n)%slpml%Veloc1)
-                deallocate (Tdomain%specel(n)%slpml%Veloc2)
-                deallocate (Tdomain%specel(n)%slpml%Veloc3)
-                deallocate (Tdomain%specel(n)%slpml%Forces1)
-                deallocate (Tdomain%specel(n)%slpml%Forces2)
-                deallocate (Tdomain%specel(n)%slpml%Forces3)
-                deallocate (Tdomain%specel(n)%slpml%DumpSx)
-                deallocate (Tdomain%specel(n)%slpml%DumpSy)
-                deallocate (Tdomain%specel(n)%slpml%DumpSz)
-                deallocate (Tdomain%specel(n)%slpml%DumpVx)
-                deallocate (Tdomain%specel(n)%slpml%DumpVy)
-                deallocate (Tdomain%specel(n)%slpml%DumpVz)
+                if (Tdomain%specel(n)%solid) then
+                    deallocate (Tdomain%specel(n)%sl%Acoeff)
+                    deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress)
+                    deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress1)
+                    deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress2)
+                    deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress3)
+                    deallocate (Tdomain%specel(n)%slpml%Residual_Stress)
+                    deallocate (Tdomain%specel(n)%slpml%Residual_Stress1)
+                    deallocate (Tdomain%specel(n)%slpml%Residual_Stress2)
+                    deallocate (Tdomain%specel(n)%slpml%Veloc1)
+                    deallocate (Tdomain%specel(n)%slpml%Veloc2)
+                    deallocate (Tdomain%specel(n)%slpml%Veloc3)
+                    deallocate (Tdomain%specel(n)%slpml%Forces1)
+                    deallocate (Tdomain%specel(n)%slpml%Forces2)
+                    deallocate (Tdomain%specel(n)%slpml%Forces3)
+                    deallocate (Tdomain%specel(n)%slpml%DumpSx)
+                    deallocate (Tdomain%specel(n)%slpml%DumpSy)
+                    deallocate (Tdomain%specel(n)%slpml%DumpSz)
+                    deallocate (Tdomain%specel(n)%slpml%DumpVx)
+                    deallocate (Tdomain%specel(n)%slpml%DumpVy)
+                    deallocate (Tdomain%specel(n)%slpml%DumpVz)
+                endif
             else
                 if (Tdomain%aniso) then
-                    deallocate (Tdomain%specel(n)%sl%Cij)
+                    if (Tdomain%specel(n)%solid) deallocate (Tdomain%specel(n)%sl%Cij)
                     if (Tdomain%n_sls>0) then
                         deallocate (Tdomain%specel(n)%Lambda)
                         deallocate (Tdomain%specel(n)%Kappa)

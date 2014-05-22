@@ -43,7 +43,9 @@ module solid_fluid
 
     ! general SF object
     type :: SF_object
-       integer  :: SF_n_faces, SF_n_edges, SF_n_vertices
+       integer  :: SF_n_faces, SF_n_edges, SF_n_vertices, ngll
+       integer, allocatable, dimension(:) :: SF_IGlobSol, SF_IGlobFlu
+       real, allocatable, dimension(:,:) :: SF_BtN
        type(face_SF), dimension(:), pointer  :: SF_face
        type(edge_SF), dimension(:), pointer  :: SF_edge
        type(vertex_SF), dimension(:), pointer  :: SF_vertex

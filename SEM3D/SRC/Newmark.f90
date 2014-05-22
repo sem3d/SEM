@@ -199,8 +199,18 @@ subroutine Newmark(Tdomain,rg,ntime)
 
     !- solid -> fluid coupling (normal dot velocity)
     if(Tdomain%logicD%SF_local_present)then
+#if OLD
         call SF_solid_values_saving(Tdomain)
         call StoF_coupling(Tdomain,rg)
+#else
+        call SF_solid_values_saving_2(Tdomain%ngll_s, Tdomain%SF%ngll, Tdomain%SF%SF_IGlobSol, &
+                                      Tdomain%champs1%Forces, Tdomain%champs1%Depla, &
+                                      Tdomain%champs0%Save_forces, &
+                                      Tdomain%champs0%Save_depla)
+        call StoF_coupling_2(Tdomain%ngll_s, Tdomain%ngll_f, Tdomain%SF%ngll, Tdomain%SF%SF_IGlobSol, &
+                             Tdomain%SF%SF_IGlobFlu, Tdomain%champs0%Veloc, &
+                             Tdomain%SF%SF_BtN, Tdomain%champs1%ForcesFl)
+#endif
     end if
 
 
@@ -212,10 +222,24 @@ subroutine Newmark(Tdomain,rg,ntime)
 #endif
 
     if(Tdomain%logicD%SF_local_present)then
+#if OLD
         !- fluid -> solid coupling (pressure times velocity)
         call FtoS_coupling(Tdomain,rg)
         !- recorrecting on solid faces, edges and vertices
         call Newmark_recorrect_solid(Tdomain)
+#else
+        !- fluid -> solid coupling (pressure times velocity)
+        call FtoS_coupling_2(Tdomain%ngll_s, Tdomain%ngll_f, Tdomain%SF%ngll, &
+                             Tdomain%SF%SF_IGlobSol, Tdomain%SF%SF_IGlobFlu, &
+                             Tdomain%SF%SF_BtN, Tdomain%champs0%Save_forces, &
+                             Tdomain%champs0%Save_depla, Tdomain%champs0%VelPhi, &
+                             Tdomain%champs0%Forces, Tdomain%champs0%Depla)
+        !- recorrecting on solid faces
+        call Newmark_recorrect_solid_2(Tdomain%ngll_s, Tdomain%SF%ngll, Tdomain%TimeD%dtmin, &
+                                       Tdomain%SF%SF_IGlobSol, Tdomain%MassMatSol, &
+                                       Tdomain%champs0%Forces, Tdomain%champs0%Veloc, &
+                                       Tdomain%champs0%Depla)
+#endif
     end if
 
     if (rg==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
