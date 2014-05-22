@@ -28,7 +28,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     ! Hors couplage on doit avoir -1 MPI_COMM_WORLD, MPI_COMM_WORLD
     integer, intent(in) :: communicateur, communicateur_global, master_superviseur
 
-    type(domain), target :: Tdomain
+    type(domain) :: Tdomain
 
     integer :: code, rg, nb_procs, ntime, i_snap, n
     integer :: i, isort, ierr
@@ -348,7 +348,7 @@ subroutine RUN_INIT_INTERACT(Tdomain,rg,isort)
         !! Il faudra ajouter la gravite ici #ifdef COUPLAGE
         call read_restart(Tdomain, rg, isort)
         call MPI_Barrier(Tdomain%communicateur,code)
-        if(rg == 0) write (*,*) , "--> RESTARTING ON ALL CPUs"
+        if(rg == 0) write (*,*) "--> RESTARTING ON ALL CPUs"
         open(78,file=fnamef,status="unknown",position="append")
     else
         ! Sauvegarde des donnees de post-traitement
@@ -369,7 +369,7 @@ subroutine RUN_INIT_INTERACT(Tdomain,rg,isort)
         call write_snapshot_geom(Tdomain, rg)
         Tdomain%timeD%nsnap = int(Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin)
         Tdomain%timeD%nsnap = max(1, Tdomain%timeD%nsnap)
-        if(rg == 0) write (*,*) , "--> SNAPSHOTS RECORDED EVERY ", Tdomain%timeD%nsnap, " iterations"
+        if(rg == 0) write (*,*) "--> SNAPSHOTS RECORDED EVERY ", Tdomain%timeD%nsnap, " iterations"
     end if
 
 !- eventual outputs at receivers, and their properties
@@ -433,7 +433,7 @@ subroutine TIME_STEPPING(Tdomain,rg,isort,ntime)
 
     implicit none
 
-    type(domain), target :: Tdomain
+    type(domain) :: Tdomain
     integer, intent(inout)  :: rg,isort
     integer, intent(out)  :: ntime
 
@@ -577,7 +577,7 @@ subroutine MKA_COUPLING_OUT(Tdomain,rg,ntime,interrupt,protection,i_snap)
 
     implicit none
 
-    type(domain), target :: Tdomain
+    type(domain) :: Tdomain
     integer, intent(in)  :: rg,ntime
     integer, intent(inout) :: interrupt,protection,i_snap
 
@@ -630,7 +630,7 @@ subroutine OUTPUT_SNAPSHOTS(Tdomain,nb_procs,rg,ntime,isort)
 
     implicit none
 
-    type(domain), target   :: Tdomain
+    type(domain) :: Tdomain
     integer, intent(in)    :: rg,ntime,nb_procs
     integer, intent(inout) :: isort
     character(Len=MAX_FILE_SIZE) :: fnamef
@@ -663,7 +663,7 @@ subroutine END_SEM(Tdomain,rg,ntime)
 
     implicit none
 
-    type(domain), target :: Tdomain
+    type(domain) :: Tdomain
     integer, intent(in)  :: rg,ntime
 
     
