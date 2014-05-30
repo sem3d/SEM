@@ -83,6 +83,9 @@ typedef struct {
     double atn_band[2];
     double atn_period;
 
+    // PML informations
+    int pml_type;
+
     // Neumann
     int neu_present;
     int neu_type;

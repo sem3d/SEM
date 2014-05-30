@@ -58,6 +58,9 @@ module sem_c_config
        real(C_DOUBLE), dimension(2) :: atn_band
        real(C_DOUBLE) :: atn_period
 
+       !! PML informations
+       integer(C_INT) :: pml_type
+
        !! Neumann
        integer(C_INT) :: neu_present
        integer(C_INT) :: neu_type

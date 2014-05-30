@@ -55,11 +55,9 @@ subroutine  sem()
     integer :: info_capteur
     real(kind=8) :: remaining_time
     real(kind=8), parameter :: max_time_left=900
-    integer*4 getpid, pid
+    integer :: getpid, pid
 
 #ifdef COUPLAGE
-    integer :: groupe
-    integer :: sortie
     integer :: finSem
     integer :: tag, MaxNgParFace
     integer, dimension (MPI_STATUS_SIZE) :: status
@@ -68,7 +66,7 @@ subroutine  sem()
 
     integer :: global_rank, global_nb_proc, worldgroup, intergroup
     integer :: m_localComm, comm_super_mka
-    integer :: nrec, n
+    integer :: n
     integer :: min_rank_glob_sem
 #endif
     integer :: display_iter !! Indique si on doit faire des sortie lors de cette iteration
@@ -140,7 +138,7 @@ subroutine  sem()
 
     !lecture du fichier de maillage unv avec conversion en fichier sem2D
     if (rg == 0) write (*,*) "Define mesh properties"
-    call read_mesh_h5(Tdomain)
+    call read_mesh(Tdomain)
 
     if (rg == 0) write (*,*) "Checks the inputs and the mesh"
     call check_inputs_and_mesh (Tdomain)

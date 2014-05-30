@@ -7,6 +7,7 @@ module msnapshots
     use constants
     !use mfields
     use orientation
+    use sem_c_bindings
     implicit none
 contains
 
@@ -45,13 +46,11 @@ contains
         type (domain), intent (IN):: Tdomain
         integer,intent(in) :: isort, rg
         character(Len=MAX_FILE_SIZE) :: temp
-        character(len=MAX_FILE_SIZE+10) :: creer_dir
         integer :: code
 
         if (rg==0) then
             call semname_snap_result_dir(isort, temp)
-            creer_dir = "mkdir -p "//temp
-            call system(creer_dir)
+            code = sem_mkdir(temp)
         end if
         call mpi_barrier(Tdomain%communicateur, code)
     end subroutine create_dir_sorties
@@ -72,7 +71,7 @@ contains
 
         call init_hdf5()
         if (rg==0) then
-            call system("mkdir -p " // path_results)
+            code = sem_mkdir(path_results)
         end if
         call mpi_barrier(Tdomain%communicateur, code)
         call semname_snap_geom_file(rg, fnamef)

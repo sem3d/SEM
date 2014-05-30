@@ -12,7 +12,7 @@ module ssubdomains
 
     type Subdomain
 
-       integer :: NGLLx, NGLLz,  n_loc_dim, wpml, npow
+       integer :: NGLLx, NGLLz,  n_loc_dim, wpml, npow, pml_type
        integer :: type_DG,type_Flux
 
        real :: Pspeed, Sspeed, Ddensity, DT, DLambda, DMu, Apow, freq, k

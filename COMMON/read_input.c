@@ -56,6 +56,21 @@ error:
     return 0;
 }
 
+int expect_pml_type(yyscan_t scanner, int* type)
+{
+    int tok;
+    int len;
+if (!expect_eq(scanner)) return 0;
+    tok = skip_blank(scanner);
+    if (tok!=K_ID) goto error;
+    if (cmp(scanner,"PML"))    { *type = 1; return 1; }
+    if (cmp(scanner,"FPML"))   { *type = 2; return 1; }
+    if (cmp(scanner,"CPML"))   { *type = 3; return 1; }
+error:
+    msg_err(scanner, "Expected PML|FPML|CPML");
+    return 0;
+}
+
 int expect_file_format(yyscan_t scanner, int* type)
 {
     int tok;
@@ -242,6 +257,24 @@ int expect_amortissement(yyscan_t scanner, sem_config_t* config)
     return 1;
 }
 
+int expect_pml_infos(yyscan_t scanner, sem_config_t* config)
+{
+    int tok, err;
+
+    tok = skip_blank(scanner);
+    if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
+    do {
+	tok = skip_blank(scanner);
+	if (tok!=K_ID) break;
+
+	// TODO
+	if (cmp(scanner,"pml_type")) err=expect_pml_type(scanner, &config->pml_type);
+
+	if (!expect_eos(scanner)) { return 0; }
+    } while(1);
+    if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
+    return 1;
+}
 
 int expect_material_type(yyscan_t scanner, int* type) {
     int tok;
@@ -256,7 +289,7 @@ int expect_material_type(yyscan_t scanner, int* type) {
 error:
     msg_err(scanner, "Expected constant|gradient|earthchunk");
     return 0;
-} 
+}
 
 int expect_materials(yyscan_t scanner, sem_config_t* config)
 {
@@ -487,6 +520,7 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"traces_format")) err=expect_file_format(scanner, &config->traces_format);
 	else if (cmp(scanner,"verbose_level")) err=expect_eq_int(scanner, &config->verbose_level,1);
 	else if (cmp(scanner,"type_elements")) err=expect_type_elements(scanner, config);
+	else if (cmp(scanner,"pml_infos")) err=expect_pml_infos(scanner, config);
 	// useless (yet or ever)
 	else if (cmp(scanner,"anisotropy")) err=expect_eq_bool(scanner, &config->anisotropy, 1);
 	else if (cmp(scanner,"gradient")) err=expect_gradient_desc(scanner, config);

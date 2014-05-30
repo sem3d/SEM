@@ -891,12 +891,12 @@ contains
         which_elem_in_proc,nelem_in_proc,proc,nproc)
         implicit none
         character(len=14),intent(in) :: meshfilename
-        real, intent(in), dimension(0:n_points-1,0:2)      :: Gcoord
         integer, intent(in)          :: proc, nproc
         logical, intent(in)          :: all_fluid, solid_fluid
         logical, intent(in)          :: Neumann_present
         integer, intent(in)          :: n_elem,n_points, n_points_local, n_blocks
         integer, intent(in)          :: n_edges, n_faces, n_nods, n_vertices
+        real, intent(in), dimension(0:n_points-1,0:2)      :: Gcoord
         integer, intent(in), dimension(0:n_points_local-1) :: node_loc2glob
         integer, intent(in), dimension(0:nproc-1)          :: nelem_in_proc
         integer, intent(in), dimension(0:nproc-1,0:maxval(nelem_in_proc)-1) :: which_elem_in_proc
@@ -1083,12 +1083,12 @@ contains
         use sem_hdf5
         implicit none
         character(len=17),intent(in) :: meshfilename
-        real, intent(in), dimension(0:n_points-1,0:2)      :: Gcoord
         integer, intent(in)          :: proc, nproc
         logical, intent(in)          :: all_fluid, solid_fluid
         logical, intent(in)          :: Neumann_present
         integer, intent(in)          :: n_elem,n_points, n_points_local, n_blocks
         integer, intent(in)          :: n_edges, n_faces, n_nods, n_vertices
+        real, intent(in), dimension(0:n_points-1,0:2)      :: Gcoord
         integer, intent(in), dimension(0:n_points_local-1) :: node_loc2glob
         integer, intent(in), dimension(0:nproc-1)          :: nelem_in_proc
         integer, intent(in), dimension(0:nproc-1,0:maxval(nelem_in_proc)-1) :: which_elem_in_proc

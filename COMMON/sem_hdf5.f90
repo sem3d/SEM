@@ -95,7 +95,7 @@ contains
             chunk(1) = 256
             dims(1) = 0
         else
-            chunk(1) = min(nmax, 256*1024)
+            chunk(1) = min(nmax, 256*1024_HSIZE_T)
         end if
         call h5screate_simple_f(1, dims, space_id, hdferr, dims)
         call h5pcreate_f(H5P_DATASET_CREATE_F, prop_id, hdferr)
@@ -134,12 +134,12 @@ contains
         dims(2) = d2
         maxdims(1) = d1
         maxdims(2) = d2
-        chunk(1) = min(d1, 256*1024)
+        chunk(1) = min(d1, 256*1024_HSIZE_T)
         if (d2==H5S_UNLIMITED_F) then
             chunk(2) = 64
             dims(2) = 0
         else
-            chunk(2) = max(1, min(d2, 256*1024/chunk(1)))
+            chunk(2) = max(1_HSIZE_T, min(d2, int(256*1024/chunk(1),HSIZE_T)))
         endif
         call h5screate_simple_f(2, dims, space_id, hdferr, maxdims)
         call h5pcreate_f(H5P_DATASET_CREATE_F, prop_id, hdferr)
@@ -172,7 +172,7 @@ contains
         use HDF5
         character(len=*), INTENT(IN) :: name
         integer(HID_T), INTENT(IN) :: parent
-        real*8, dimension(:), allocatable, intent(out) :: data
+        double precision, dimension(:), allocatable, intent(out) :: data
         integer(HID_T) :: dset_id, space_id
         integer(HSIZE_T), dimension(1) :: dims, maxdims
         integer :: hdferr
@@ -209,7 +209,7 @@ contains
         use HDF5
         character(len=*), INTENT(IN) :: name
         integer(HID_T), INTENT(IN) :: parent
-        real*8, dimension(:,:), allocatable, intent(out) :: data
+        double precision, dimension(:,:), allocatable, intent(out) :: data
         integer(HID_T) :: dset_id, space_id
         integer(HSIZE_T), dimension(2) :: dims, maxdims
         integer :: hdferr
@@ -247,7 +247,7 @@ contains
         use HDF5
         integer(HID_T), intent(in) :: dset
         character(len=*), intent(in) :: attr
-        integer*4, intent(in) :: value
+        integer, intent(in) :: value
         integer :: hdferr
         integer(HID_T) :: attr_id, space_id
         integer(HSIZE_T), dimension(1) :: dims
@@ -265,7 +265,7 @@ contains
         use HDF5
         integer(HID_T), intent(in) :: dset
         character(len=*), intent(in) :: attr
-        real*8, intent(in) :: value
+        double precision, intent(in) :: value
         integer :: hdferr
         integer(HID_T) :: attr_id, space_id
         integer(HSIZE_T), dimension(1) :: dims
@@ -307,7 +307,7 @@ contains
         use HDF5
         integer(HID_T), intent(in) :: dset
         character(len=*), intent(in) :: attr
-        integer*4, intent(out) :: value
+        integer, intent(out) :: value
         integer :: hdferr
         integer(HID_T) :: attr_id, space_id
         integer(HSIZE_T), dimension(1) :: dims
@@ -347,7 +347,7 @@ contains
         use HDF5
         integer(HID_T), intent(in) :: dset
         character(len=*), intent(in) :: attr
-        real*8, intent(out) :: value
+        double precision, intent(out) :: value
         integer :: hdferr
         integer(HID_T) :: attr_id, space_id
         integer(HSIZE_T), dimension(1) :: dims
@@ -365,7 +365,7 @@ contains
         implicit none
         integer(HID_T), intent(in) :: parent
         character(len=*), intent(in) :: name
-        real*8, dimension(:), intent(in) :: arr
+        double precision, dimension(:), intent(in) :: arr
         integer, intent(out) :: hdferr
         !
         integer(HSIZE_T), dimension(1) ::  dims
@@ -381,7 +381,7 @@ contains
         implicit none
         integer(HID_T), intent(in) :: parent
         character(len=*), intent(in) :: name
-        real*8, dimension(:,:), intent(in) :: arr
+        double precision, dimension(:,:), intent(in) :: arr
         integer, intent(out) :: hdferr
         !
         integer(HSIZE_T), dimension(2) ::  dims
@@ -430,7 +430,7 @@ contains
         use HDF5
         implicit none
         integer(HID_T), intent(in) :: dset_id
-        real*8, dimension(:,:), intent(in) :: arr
+        double precision, dimension(:,:), intent(in) :: arr
         integer, intent(out) :: hdferr
         !
         integer(HSIZE_T), dimension(2) ::  dims, maxdims, offset, dsize
