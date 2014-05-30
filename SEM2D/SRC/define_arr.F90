@@ -25,7 +25,7 @@ subroutine define_arrays(Tdomain)
 
     ! local variables
 
-    integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf,npow,powOmc
+    integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf,npow,powOmc,nface
     integer :: i_send, n_face_pointed, i_proc, nv, i_stock, tag_send, tag_receive, ierr
     integer ,  dimension (MPI_STATUS_SIZE) :: status
     real :: vp,ri,rj,dx,LocMassmat_Vertex,Apow,OmegaCprime,PI,Omega_c,dxdxi,dzdeta
@@ -588,62 +588,60 @@ subroutine define_arrays(Tdomain)
         if (Tdomain%specel(n)%Type_DG == GALERKIN_CONT) then
             ! Continuous Galerkin : MassMatrices need to be resized
             allocate (LocMassMat(1:ngllx-2,1:ngllz-2))
-        endif
-        ! Redefinition of Matrices
-        if ((.not. Tdomain%specel(n)%PML) .or. Tdomain%specel(n)%CPML) then
-            LocMassMat(:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2)
-            LocMassmat = 1./ LocMassMat
-            deallocate (Tdomain%specel(n)%MassMat)
-            allocate (Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2) )
-            Tdomain%specel(n)%MassMat =  LocMassMat
-        else
-            if (Tdomain%specel(n)%FPML) then
+            ! Redefinition of Matrices
+            if ((.not. Tdomain%specel(n)%PML) .or. Tdomain%specel(n)%CPML) then
                 LocMassMat(:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2)
-                Tdomain%specel(n)%DumpVx (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,0)
-                Tdomain%specel(n)%DumpVx (:,:,1) = 1./ Tdomain%specel(n)%DumpVx (:,:,1)
-                Tdomain%specel(n)%DumpVx(:,:,0) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,1)
-                Tdomain%specel(n)%DumpVx (:,:,0) = Tdomain%specel(n)%DumpVx (:,:,0) * Tdomain%specel(n)%DumpVx (:,:,1)
-
-                Tdomain%specel(n)%DumpVz (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,2)
-                Tdomain%specel(n)%DumpVz (:,:,1) = 1./ Tdomain%specel(n)%DumpVz (:,:,1)
-                Tdomain%specel(n)%DumpVz(:,:,0) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,3)
-                Tdomain%specel(n)%DumpVz (:,:,0) =    Tdomain%specel(n)%DumpVz (:,:,0) *   Tdomain%specel(n)%DumpVz (:,:,1)
-                deallocate (Tdomain%specel(n)%MassMat) ; deallocate (Tdomain%specel(n)%DumpMass)
+                LocMassmat = 1./ LocMassMat
+                deallocate (Tdomain%specel(n)%MassMat)
                 allocate (Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2) )
                 Tdomain%specel(n)%MassMat =  LocMassMat
-                LocMassMat = Tdomain%specel(n)%Ivx(1:ngllx-2,1:ngllz-2)
-                deallocate (Tdomain%specel(n)%Ivx)
-                allocate (Tdomain%specel(n)%Ivx(1:ngllx-2,1:ngllz-2) )
-                Tdomain%specel(n)%Ivx = LocMassMat *  Tdomain%specel(n)%DumpVx (:,:,1)
-                LocMassMat = Tdomain%specel(n)%Ivz(1:ngllx-2,1:ngllz-2)
-                deallocate (Tdomain%specel(n)%Ivz)
-                allocate (Tdomain%specel(n)%Ivz(1:ngllx-2,1:ngllz-2) )
-                Tdomain%specel(n)%Ivz = LocMassMat * Tdomain%specel(n)%DumpVz (:,:,1)
+            else
+                if (Tdomain%specel(n)%FPML) then
+                    LocMassMat(:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2)
+                    Tdomain%specel(n)%DumpVx (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,0)
+                    Tdomain%specel(n)%DumpVx (:,:,1) = 1./ Tdomain%specel(n)%DumpVx (:,:,1)
+                    Tdomain%specel(n)%DumpVx(:,:,0) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,1)
+                    Tdomain%specel(n)%DumpVx (:,:,0) = Tdomain%specel(n)%DumpVx (:,:,0) * Tdomain%specel(n)%DumpVx (:,:,1)
 
-            elseif (.not.Tdomain%specel(n)%CPML) then
+                    Tdomain%specel(n)%DumpVz (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,2)
+                    Tdomain%specel(n)%DumpVz (:,:,1) = 1./ Tdomain%specel(n)%DumpVz (:,:,1)
+                    Tdomain%specel(n)%DumpVz(:,:,0) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,3)
+                    Tdomain%specel(n)%DumpVz (:,:,0) =    Tdomain%specel(n)%DumpVz (:,:,0) *   Tdomain%specel(n)%DumpVz (:,:,1)
+                    deallocate (Tdomain%specel(n)%MassMat) ; deallocate (Tdomain%specel(n)%DumpMass)
+                    allocate (Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2) )
+                    Tdomain%specel(n)%MassMat =  LocMassMat
+                    LocMassMat = Tdomain%specel(n)%Ivx(1:ngllx-2,1:ngllz-2)
+                    deallocate (Tdomain%specel(n)%Ivx)
+                    allocate (Tdomain%specel(n)%Ivx(1:ngllx-2,1:ngllz-2) )
+                    Tdomain%specel(n)%Ivx = LocMassMat *  Tdomain%specel(n)%DumpVx (:,:,1)
+                    LocMassMat = Tdomain%specel(n)%Ivz(1:ngllx-2,1:ngllz-2)
+                    deallocate (Tdomain%specel(n)%Ivz)
+                    allocate (Tdomain%specel(n)%Ivz(1:ngllx-2,1:ngllz-2) )
+                    Tdomain%specel(n)%Ivz = LocMassMat * Tdomain%specel(n)%DumpVz (:,:,1)
 
-                LocMassMat(:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2)
-                Tdomain%specel(n)%DumpVx (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,0)
-                Tdomain%specel(n)%DumpVx (:,:,1) = 1./ Tdomain%specel(n)%DumpVx (:,:,1)
-                Tdomain%specel(n)%DumpVx(:,:,0) = LocMassMat - Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,0)
-                Tdomain%specel(n)%DumpVx (:,:,0) =    Tdomain%specel(n)%DumpVx (:,:,0) *   Tdomain%specel(n)%DumpVx (:,:,1)
+                elseif (.not.Tdomain%specel(n)%CPML) then
 
-                Tdomain%specel(n)%DumpVz (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,1)
-                Tdomain%specel(n)%DumpVz (:,:,1) = 1./ Tdomain%specel(n)%DumpVz (:,:,1)
-                Tdomain%specel(n)%DumpVz(:,:,0) = LocMassMat - Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,1)
-                Tdomain%specel(n)%DumpVz (:,:,0) =    Tdomain%specel(n)%DumpVz (:,:,0) *   Tdomain%specel(n)%DumpVz (:,:,1)
-                deallocate (Tdomain%specel(n)%MassMat) ; deallocate (Tdomain%specel(n)%DumpMass)
-                allocate (Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2) )
-                Tdomain%specel(n)%MassMat =  LocMassMat
+                    LocMassMat(:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2)
+                    Tdomain%specel(n)%DumpVx (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,0)
+                    Tdomain%specel(n)%DumpVx (:,:,1) = 1./ Tdomain%specel(n)%DumpVx (:,:,1)
+                    Tdomain%specel(n)%DumpVx(:,:,0) = LocMassMat - Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,0)
+                    Tdomain%specel(n)%DumpVx (:,:,0) =    Tdomain%specel(n)%DumpVx (:,:,0) *   Tdomain%specel(n)%DumpVx (:,:,1)
+
+                    Tdomain%specel(n)%DumpVz (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,1)
+                    Tdomain%specel(n)%DumpVz (:,:,1) = 1./ Tdomain%specel(n)%DumpVz (:,:,1)
+                    Tdomain%specel(n)%DumpVz(:,:,0) = LocMassMat - Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,1)
+                    Tdomain%specel(n)%DumpVz (:,:,0) =    Tdomain%specel(n)%DumpVz (:,:,0) *   Tdomain%specel(n)%DumpVz (:,:,1)
+                    deallocate (Tdomain%specel(n)%MassMat) ; deallocate (Tdomain%specel(n)%DumpMass)
+                    allocate (Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2) )
+                    Tdomain%specel(n)%MassMat =  LocMassMat
+                endif
             endif
-        endif
-        deallocate (LocMassMat)
-        ! deallocate (Tdomain%specel(n)%Lamda)
-        ! deallocate (Tdomain%specel(n)%Mu)
-        !ac a cause des sorties eventuelles des capteurs on garde Tdomain%specel(n)%InvGrad
-        !ac if (.not. Tdomain%logicD%save_deformation)  deallocate (Tdomain%specel(n)%InvGrad)
-
-        if (Tdomain%specel(n)%Type_DG .NE. GALERKIN_CONT) then
+            deallocate (LocMassMat)
+            ! deallocate (Tdomain%specel(n)%Lamda)
+            ! deallocate (Tdomain%specel(n)%Mu)
+            !ac a cause des sorties eventuelles des capteurs on garde Tdomain%specel(n)%InvGrad
+            !ac if (.not. Tdomain%logicD%save_deformation)  deallocate (Tdomain%specel(n)%InvGrad)
+        else
             ! Discontinuous Galerkin Case : Mass Mat do NOT need to be resized
             Tdomain%specel(n)%MassMat = 1. / Tdomain%specel(n)%MassMat
             Tdomain%specel(n)%Acoeff(:,:,12) = 1. / Tdomain%specel(n)%Acoeff(:,:,12)

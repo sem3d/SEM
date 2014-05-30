@@ -24,7 +24,7 @@ subroutine allocate_domain (Tdomain)
 
   type(domain), intent (INOUT):: Tdomain
 
-  integer :: i,j,n,ngllx,ngllz,ngll
+  integer :: n,ngllx,ngllz,ngll
 
   do n=0,Tdomain%n_elem-1
      ngllx = Tdomain%specel(n)%ngllx
@@ -274,7 +274,6 @@ subroutine allocate_domain (Tdomain)
      allocate (Tdomain%sVertex(n)%Forces (0:1))
      allocate (Tdomain%sVertex(n)%Accel (0:1))
      allocate (Tdomain%sVertex(n)%V0 (0:1))
-     allocate (Tdomain%sVertex(n)%Displ(0:1))
 #ifdef MKA3D
      allocate (Tdomain%sVertex(n)%ForcesMka(0:1 ) )
      Tdomain%sVertex(n)%ForcesMka=0
@@ -284,7 +283,6 @@ subroutine allocate_domain (Tdomain)
      Tdomain%sVertex(n)%Veloc = 0
      Tdomain%sVertex(n)%Accel = 0
      Tdomain%sVertex(n)%V0 = 0
-     Tdomain%sVertex(n)%Displ = 0
 
      if (Tdomain%sVertex(n)%PML .AND. (.NOT.Tdomain%sFace(n)%CPML)) then
          allocate (Tdomain%sVertex(n)%Forces1 (0:1) )
