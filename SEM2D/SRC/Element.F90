@@ -526,7 +526,6 @@ contains
     !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hprimez
     !<
 
-
     subroutine  compute_InternalForces_DG_Strong (Elem,hTprime,hprimez)
       implicit none
 
@@ -566,6 +565,58 @@ contains
       return
     end subroutine compute_InternalForces_DG_Strong
 
+
+    ! ###########################################################
+    !>
+    !! \brief Thus subroutine adds the contribution of the memory PML terms
+    !! for the ADE-PML in case of DG or HDG.
+    !! \param type (Element), intent (INOUT) Elem
+    !<
+    subroutine  add_Psi4PML (Elem)
+        implicit none
+
+        type (Element), intent (INOUT) :: Elem
+
+        Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + Elem%PsiVxxi (:,:) * Elem%Acoeff(:,:,0) &
+                                                + Elem%PsiVxeta(:,:) * Elem%Acoeff(:,:,1) &
+        Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + Elem%PsiVzxi (:,:) * Elem%Acoeff(:,:,2) &
+                                                + Elem%PsiVzeta(:,:) * Elem%Acoeff(:,:,3)
+        Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + 0.5*(Elem%PsiVxxi (:,:) * Elem%Acoeff(:,:,2) &
+                                                      +Elem%PsiVxeta(:,:) * Elem%Acoeff(:,:,3) &
+                                                      +Elem%PsiVzxi (:,:) * Elem%Acoeff(:,:,0) &
+                                                      +Elem%PsiVzeta(:,:) * Elem%Acoeff(:,:,1))
+        Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + Elem%PsiSxxxi (:,:) * Elem%Acoeff(:,:,0) &
+                                                + Elem%PsiSxxeta(:,:) * Elem%Acoeff(:,:,1) &
+                                                + Elem%PsiSxzxi (:,:) * Elem%Acoeff(:,:,2) &
+                                                + Elem%PsiSxzeta(:,:) * Elem%Acoeff(:,:,3)
+        Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + Elem%PsiSxzxi (:,:) * Elem%Acoeff(:,:,0) &
+                                                + Elem%PsiSxzeta(:,:) * Elem%Acoeff(:,:,1) &
+                                                + Elem%PsiSzzxi (:,:) * Elem%Acoeff(:,:,2) &
+                                                + Elem%PsiSzzeta(:,:) * Elem%Acoeff(:,:,3)
+        return
+    end subroutine add_Psi4PML
+
+
+    ! ###########################################################
+    !>
+    !! \brief Thus subroutine is used in a ADE-PML framework :
+    !! the memory terms PsiS*** and PsiV*** are updated for the next iteration.
+    !! In a RK4 framework, the ADE for the Psi variables is solved using RK4,
+    !! like the others variables.
+    !! \param type (Element), intent (INOUT) Elem
+    !! \param real, intent (IN) coeff1
+    !! \param real, intent (IN) coeff2
+    !<
+    subroutine  update_Psi_RK4 (Elem,coeff1,coeff2)
+        implicit none
+
+        type(Element), intent (INOUT) :: Elem
+        real, intent(IN) :: coeff1
+        real, intent(IN) :: coeff2
+
+        ########################################
+        ########################################
+    end subroutine update_Psi_RK4
 
     ! ###########################################################
     !>
