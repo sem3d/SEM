@@ -129,7 +129,7 @@ subroutine Runge_Kutta4 (Tdomain, dt)
              endif
              if(Tdomain%CPML) call add_Psi4PML(Tdomain%specel(n))
              call inversion_massmat(Tdomain%specel(n))
-             if(Tdomain%CPML) call update_Psi_RK4(Tdomain%specel(n),coeffs(1),coeffs(2))
+             if(Tdomain%CPML) call update_Psi_RK4(Tdomain%specel(n),coeffs(1),coeffs(2),dt)
              Tdomain%specel(n)%Vect_RK = coeffs(1) * Tdomain%specel(n)%Vect_RK + Tdomain%specel(n)%Forces * dt
              Tdomain%specel(n)%Strain  = Tdomain%specel(n)%Strain + coeffs(2) * Tdomain%specel(n)%Vect_RK(:,:,0:2)
              Tdomain%specel(n)%Veloc   = Tdomain%specel(n)%Veloc  + coeffs(2) * Tdomain%specel(n)%Vect_RK(:,:,3:4)

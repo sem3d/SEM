@@ -607,15 +607,34 @@ contains
     !! \param real, intent (IN) coeff1
     !! \param real, intent (IN) coeff2
     !<
-    subroutine  update_Psi_RK4 (Elem,coeff1,coeff2)
+    subroutine  update_Psi_RK4 (Elem,coeff1,coeff2,Dt)
         implicit none
 
         type(Element), intent (INOUT) :: Elem
         real, intent(IN) :: coeff1
         real, intent(IN) :: coeff2
+        real, intent(IN) :: Dt
+        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: PsiTrace
+        real, dimension(0:ngllx+1,0:ngllz+1,0:9) :: smbr
+        integer          :: ngx, ngz
 
-        ########################################
-        ########################################
+        ! Defining Second Member of time evolution equation for the Psi
+        Saux = Elem%Stain(:,:,0)
+        smbr(:,:,0) = -Elem%Bx(:,:) * Elem%PsiSxxxi(:,:) - MATMUL(Htprimex,Saux)
+
+        ! UPDATING in time using usual LSERK4
+        Elem%Psi_RK(:,:,:)  = coeff1 * Elem%Psi_RK(:,:,:) + Dt*smbr(:,:,:)
+        Elem%PsiSxxxi (:,:) = Elem%PsiSxxxi (:,:) + coeff2 * Elem%Psi_RK(:,:,0)
+        Elem%PsiSxxeta(:,:) = Elem%PsiSxxeta(:,:) + coeff2 * Elem%Psi_RK(:,:,1)
+        Elem%PsiSzzxi (:,:) = Elem%PsiSzzxi (:,:) + coeff2 * Elem%Psi_RK(:,:,2)
+        Elem%PsiSzzeta(:,:) = Elem%PsiSzzeta(:,:) + coeff2 * Elem%Psi_RK(:,:,3)
+        Elem%PsiSxzxi (:,:) = Elem%PsiSxzxi (:,:) + coeff2 * Elem%Psi_RK(:,:,4)
+        Elem%PsiSxzeta(:,:) = Elem%PsiSxzeta(:,:) + coeff2 * Elem%Psi_RK(:,:,5)
+        Elem%PsiVxxi (:,:)  = Elem%PsiVxxi (:,:)  + coeff2 * Elem%Psi_RK(:,:,6)
+        Elem%PsiVxeta(:,:)  = Elem%PsiVxeta(:,:)  + coeff2 * Elem%Psi_RK(:,:,7)
+        Elem%PsiVzxi (:,:)  = Elem%PsiVxxi (:,:)  + coeff2 * Elem%Psi_RK(:,:,8)
+        Elem%PsiVzeta(:,:)  = Elem%PsiVxeta(:,:)  + coeff2 * Elem%Psi_RK(:,:,9)
+
     end subroutine update_Psi_RK4
 
     ! ###########################################################
