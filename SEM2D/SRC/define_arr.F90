@@ -37,6 +37,7 @@ subroutine define_arrays(Tdomain)
     ! Gaetano Festa, modified 01/06/2004
     ! Modification (MPI) 13/10/2005
     ! Modifications by S. Terrana for introduction of CPML : may 2014
+    ! Modifications by S. Terrana for introduction of ADEPML : june 2014
 
     PI = 4. * atan(1.)
 
@@ -92,7 +93,7 @@ subroutine define_arrays(Tdomain)
         RKmod = Rlam + 2. * Rmu
 
         Tdomain%specel(n)%MassMat  = Whei*Tdomain%specel(n)%Density*Jac
-        if (.not. Tdomain%specel(n)%PML) then
+        if ((.not. Tdomain%specel(n)%PML) .or. Tdomain%specel(n)%ADEPML) then
            if((Tdomain%specel(n)%Type_DG==GALERKIN_DG_STRONG).OR. &
                (Tdomain%specel(n)%Type_DG==GALERKIN_DG_WEAK) .OR. &
                (Tdomain%specel(n)%Type_DG==GALERKIN_HDG_RP) ) then ! Discontinuous Galerkin
@@ -278,21 +279,31 @@ subroutine define_arrays(Tdomain)
                 Tdomain%specel(n)%Ivx=Tdomain%specel(n)%Density*Whei*Tdomain%sSubdomain(mat)%Dt*wx*Jac*Tdomain%sSubdomain(mat)%freq
                 Tdomain%specel(n)%Ivz=Tdomain%specel(n)%Density*Whei*Tdomain%sSubdomain(mat)%Dt*wz*Jac*Tdomain%sSubdomain(mat)%freq
 
-            elseif (Tdomain%specel(n)%CPML) then
+            elseif (Tdomain%specel(n)%CPML .OR. Tdomain%specel(n)%ADEPML) then
                 if (Tdomain%sSubDomain(mat)%Px) then
-                    Tdomain%specel(n)%Bxi(:,:)  = exp(-(wx(:,:) + OmegaCutx(:,:)) * Tdomain%sSubdomain(mat)%Dt)
-                    Tdomain%specel(n)%Axi(:,:)  = wx(:,:) * (Tdomain%specel(n)%Bxi (:,:) - Id(:,:)) / (wx(:,:) + OmegaCutx(:,:))
-                    if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Axi(:,:) = Tdomain%specel(n)%Bxi (:,:) - Id(:,:)
-                    Tdomain%specel(n)%Axi_prime(:,:) = ((Tdomain%specel(n)%Bxi(:,:) - Id(:,:)) * du_du_x(:,:)  &
-                                                       - Tdomain%specel(n)%Bxi(:,:) * duux(:,:))/ (wx(:,:) + OmegaCutx(:,:))**2
+                    if (Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
+                        Tdomain%specel(n)%Bxi(:,:)  = exp(-(wx(:,:) + OmegaCutx(:,:)) * Tdomain%sSubdomain(mat)%Dt)
+                        Tdomain%specel(n)%Axi(:,:)  = wx(:,:) * (Tdomain%specel(n)%Bxi (:,:) - Id(:,:)) / (wx(:,:) + OmegaCutx(:,:))
+                        if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Axi(:,:) = Tdomain%specel(n)%Bxi (:,:) - Id(:,:)
+                        Tdomain%specel(n)%Axi_prime(:,:) = ((Tdomain%specel(n)%Bxi(:,:) - Id(:,:)) * du_du_x(:,:)  &
+                                                           - Tdomain%specel(n)%Bxi(:,:) * duux(:,:))/ (wx(:,:) + OmegaCutx(:,:))**2
+                    else ! ADE-PML for HDG
+                        Tdomain%specel(n)%Bxi(:,:) = wx(:,:) + OmegaCutx(:,:)
+                        Tdomain%specel(n)%Axi(:,:) = wx(:,:)
+                    endif
                endif
-               if (Tdomain%sSubDomain(mat)%Pz) then
-                   Tdomain%specel(n)%Beta(:,:) = exp(-(wz(:,:) + OmegaCutz(:,:)) * Tdomain%sSubdomain(mat)%Dt)
-                   Tdomain%specel(n)%Aeta(:,:) = wz(:,:) * (Tdomain%specel(n)%Beta(:,:) - Id(:,:)) / (wz(:,:) + OmegaCutz(:,:))
-                   if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Aeta(:,:) = Tdomain%specel(n)%Beta (:,:) - Id(:,:)
-                   Tdomain%specel(n)%Aeta_prime(:,:) = ((Tdomain%specel(n)%Beta(:,:) - Id(:,:)) * du_du_z(:,:) &
-                                                       - Tdomain%specel(n)%Beta(:,:) * duuz(:,:)) / (wz(:,:) + OmegaCutz(:,:))**2
-                endif
+               if (Tdomain%sSubDomain(mat)%Pz .OR. Tdomain%specel(n)%ADEPML) then
+                   if (Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
+                       Tdomain%specel(n)%Beta(:,:) = exp(-(wz(:,:) + OmegaCutz(:,:)) * Tdomain%sSubdomain(mat)%Dt)
+                       Tdomain%specel(n)%Aeta(:,:) = wz(:,:) * (Tdomain%specel(n)%Beta(:,:) - Id(:,:)) / (wz(:,:) + OmegaCutz(:,:))
+                       if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Aeta(:,:) = Tdomain%specel(n)%Beta (:,:) - Id(:,:)
+                       Tdomain%specel(n)%Aeta_prime(:,:) = ((Tdomain%specel(n)%Beta(:,:) - Id(:,:)) * du_du_z(:,:) &
+                                                           - Tdomain%specel(n)%Beta(:,:) * duuz(:,:)) / (wz(:,:) + OmegaCutz(:,:))**2
+                   else
+                       Tdomain%specel(n)%Beta(:,:) = wz(:,:) + OmegaCutz(:,:)
+                       Tdomain%specel(n)%Aeta(:,:) = wz(:,:)
+                   endif
+               endif
 
             else ! Usual PML
                 Tdomain%specel(n)%DumpSx(:,:,1) = Id(:,:) + 0.5 * Tdomain%sSubdomain(mat)%Dt * wx(:,:)
@@ -321,13 +332,15 @@ subroutine define_arrays(Tdomain)
         w_face = Tdomain%sFace(nf)%Which_face(0)
         ! Assemblage des masses sur les Faces
         call getMass_element2face (Tdomain,n_elem,nf,w_face,.true.)
-        if (Tdomain%sFace(nf)%PML .and. (.not.Tdomain%sFace(nf)%CPML)) call getDumpMass_element2face (Tdomain,n_elem,nf,w_face,.true.)
+        if (Tdomain%sFace(nf)%PML .and. (.not.Tdomain%sFace(nf)%CPML) .and. &
+           (.not.Tdomain%sFace(nf)%ADEPML)) call getDumpMass_element2face (Tdomain,n_elem,nf,w_face,.true.)
         if (Tdomain%sFace(nf)%FPML) call getIv_element2face (Tdomain,n_elem,nf,w_face,.true.)
         n_elem = Tdomain%sFace(nf)%Near_element(1)
         if (n_elem > -1) then
             w_face = Tdomain%sFace(nf)%Which_face(1)
             call getMass_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
-            if (Tdomain%sFace(nf)%PML .and. (.not.Tdomain%sFace(nf)%CPML)) call getDumpMass_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
+            if (Tdomain%sFace(nf)%PML .and. (.not.Tdomain%sFace(nf)%CPML) .and. &
+               (.not.Tdomain%sFace(nf)%ADEPML)) call getDumpMass_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
             if (Tdomain%sFace(nf)%FPML ) call getIv_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
         endif
     enddo
@@ -650,7 +663,7 @@ subroutine define_arrays(Tdomain)
 
     do nf  = 0, Tdomain%n_face - 1
         if (Tdomain%sFace(nf)%PML ) then
-            if (Tdomain%sFace(nf)%CPML) then
+            if (Tdomain%sFace(nf)%CPML .OR. Tdomain%sFace(nf)%ADEPML) then
                Tdomain%sFace(nf)%MassMat = 1./ Tdomain%sFace(nf)%MassMat
             elseif (Tdomain%sFace(nf)%FPML) then
                 Tdomain%sFace(nf)%DumpVx (:,1) =  Tdomain%sFace(nf)%MassMat + Tdomain%sFace(nf)%DumpMass(:,0)

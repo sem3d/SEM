@@ -38,8 +38,8 @@ module selement
        real, dimension (:,:), allocatable ::  Isx, Isz, Ivx, Ivz
        real, dimension (:,:,:), allocatable :: Istress1, IStress2, Iveloc1, Iveloc2
 
-       ! CPML allocation
-       logical :: CPML
+       ! CPML or ADE-PML allocation
+       logical :: CPML, ADEPML
        real, dimension (:,:), allocatable :: Axi, Bxi, Aeta, Beta, Axi_prime, Aeta_prime
        real, dimension (:,:), allocatable :: PsiVxxi, PsiVxeta, PsiVzxi, PsiVzeta, PsiSxxxi
        real, dimension (:,:), allocatable :: PsiSxxeta, PsiSzzxi, PsiSzzeta, PsiSxzxi, PsiSxzeta
@@ -51,7 +51,7 @@ module selement
        logical :: acoustic
        real, dimension (:),    allocatable :: Coeff_Integr_Faces
        real, dimension(:,:,:), allocatable :: Strain
-       real, dimension(:,:,:), allocatable :: Vect_RK
+       real, dimension(:,:,:), allocatable :: Vect_RK, Psi_RK
        ! HDG
        real, dimension(:,:), allocatable :: Normal_nodes
        real, dimension(:,:), allocatable :: MatPen, TracFace, Vhat
@@ -577,22 +577,28 @@ contains
 
         type (Element), intent (INOUT) :: Elem
 
-        Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + Elem%PsiVxxi (:,:) * Elem%Acoeff(:,:,0) &
-                                                + Elem%PsiVxeta(:,:) * Elem%Acoeff(:,:,1) &
-        Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + Elem%PsiVzxi (:,:) * Elem%Acoeff(:,:,2) &
-                                                + Elem%PsiVzeta(:,:) * Elem%Acoeff(:,:,3)
-        Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + 0.5*(Elem%PsiVxxi (:,:) * Elem%Acoeff(:,:,2) &
-                                                      +Elem%PsiVxeta(:,:) * Elem%Acoeff(:,:,3) &
-                                                      +Elem%PsiVzxi (:,:) * Elem%Acoeff(:,:,0) &
-                                                      +Elem%PsiVzeta(:,:) * Elem%Acoeff(:,:,1))
-        Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + Elem%PsiSxxxi (:,:) * Elem%Acoeff(:,:,0) &
-                                                + Elem%PsiSxxeta(:,:) * Elem%Acoeff(:,:,1) &
-                                                + Elem%PsiSxzxi (:,:) * Elem%Acoeff(:,:,2) &
-                                                + Elem%PsiSxzeta(:,:) * Elem%Acoeff(:,:,3)
-        Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + Elem%PsiSxzxi (:,:) * Elem%Acoeff(:,:,0) &
-                                                + Elem%PsiSxzeta(:,:) * Elem%Acoeff(:,:,1) &
-                                                + Elem%PsiSzzxi (:,:) * Elem%Acoeff(:,:,2) &
-                                                + Elem%PsiSzzeta(:,:) * Elem%Acoeff(:,:,3)
+        Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + Elem%PsiVxxi (:,:)
+        Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + Elem%PsiVzeta(:,:)
+        Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + 0.5 * (Elem%PsiVxeta(:,:) + Elem%PsiVzxi(:,:))
+        Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + Elem%PsiSxxxi (:,:) + Elem%PsiSxzeta(:,:)
+        Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + Elem%PsiSxzxi (:,:) + Elem%PsiSzzeta(:,:)
+
+        !Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + Elem%PsiVxxi (:,:) * Elem%Acoeff(:,:,0) &
+        !                                        + Elem%PsiVxeta(:,:) * Elem%Acoeff(:,:,1) &
+        !Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + Elem%PsiVzeta(:,:) * Elem%Acoeff(:,:,3) &
+        !                                        + Elem%PsiVzxi (:,:) * Elem%Acoeff(:,:,2)
+        !Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + 0.5*(Elem%PsiVxxi (:,:) * Elem%Acoeff(:,:,2) &
+        !                                              +Elem%PsiVxeta(:,:) * Elem%Acoeff(:,:,3) &
+        !                                              +Elem%PsiVzxi (:,:) * Elem%Acoeff(:,:,0) &
+        !                                              +Elem%PsiVzeta(:,:) * Elem%Acoeff(:,:,1))
+        !Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + Elem%PsiSxxxi (:,:) * Elem%Acoeff(:,:,0) &
+        !                                        + Elem%PsiSxxeta(:,:) * Elem%Acoeff(:,:,1) &
+        !                                        + Elem%PsiSxzxi (:,:) * Elem%Acoeff(:,:,2) &
+        !                                        + Elem%PsiSxzeta(:,:) * Elem%Acoeff(:,:,3)
+        !Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + Elem%PsiSxzxi (:,:) * Elem%Acoeff(:,:,0) &
+        !                                        + Elem%PsiSxzeta(:,:) * Elem%Acoeff(:,:,1) &
+        !                                        + Elem%PsiSzzxi (:,:) * Elem%Acoeff(:,:,2) &
+        !                                        + Elem%PsiSzzeta(:,:) * Elem%Acoeff(:,:,3)
         return
     end subroutine add_Psi4PML
 
@@ -604,23 +610,65 @@ contains
     !! In a RK4 framework, the ADE for the Psi variables is solved using RK4,
     !! like the others variables.
     !! \param type (Element), intent (INOUT) Elem
+    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
     !! \param real, intent (IN) coeff1
     !! \param real, intent (IN) coeff2
     !<
-    subroutine  update_Psi_RK4 (Elem,coeff1,coeff2,Dt)
+    subroutine  update_Psi_RK4 (Elem,HTprime,Hprimez,coeff1,coeff2,Dt)
         implicit none
 
         type(Element), intent (INOUT) :: Elem
+        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
         real, intent(IN) :: coeff1
         real, intent(IN) :: coeff2
         real, intent(IN) :: Dt
-        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: PsiTrace
-        real, dimension(0:ngllx+1,0:ngllz+1,0:9) :: smbr
+        !real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: PsiTrace
+        real, dimension(0:Elem%ngllx+1,0:Elem%ngllz+1,0:9) :: smbr
         integer          :: ngx, ngz
 
         ! Defining Second Member of time evolution equation for the Psi
-        Saux = Elem%Stain(:,:,0)
-        smbr(:,:,0) = -Elem%Bx(:,:) * Elem%PsiSxxxi(:,:) - MATMUL(Htprimex,Saux)
+        ! Second member for Stresses memory variables
+        smbr(:,:,0) = - Elem%Bxi (:,:) * Elem%PsiSxxxi (:,:) - Elem%Axi (:,:) * &
+                      ((Elem%Acoeff(:,:,4) + Elem%Acoeff(:,:,5)) * MATMUL(HTprime,Elem%Strain(:,:,0)) &
+                      + Elem%Acoeff(:,:,4) * MATMUL(HTprime,Elem%Strain(:,:,1)) &
+                      +(Elem%Acoeff(:,:,8) + Elem%Acoeff(:,:,9)) * MATMUL(Elem%Strain(:,:,0),Hprimez) &
+                      + Elem%Acoeff(:,:,8) * MATMUL(Elem%Strain(:,:,1),Hprimez))
+        smbr(:,:,1) = - Elem%Beta(:,:) * Elem%PsiSxxeta(:,:) - Elem%Aeta(:,:) * &
+                      ((Elem%Acoeff(:,:,6) + Elem%Acoeff(:,:,7)) * MATMUL(HTprime,Elem%Strain(:,:,0)) &
+                      + Elem%Acoeff(:,:,6) * MATMUL(HTprime,Elem%Strain(:,:,1)) &
+                      +(Elem%Acoeff(:,:,10) + Elem%Acoeff(:,:,11)) * MATMUL(Elem%Strain(:,:,0),Hprimez) &
+                      + Elem%Acoeff(:,:,10) * MATMUL(Elem%Strain(:,:,1),Hprimez))
+        smbr(:,:,2) = - Elem%Bxi (:,:) * Elem%PsiSzzxi (:,:) - Elem%Axi (:,:) * &
+                      ((Elem%Acoeff(:,:,4) + Elem%Acoeff(:,:,5)) * MATMUL(HTprime,Elem%Strain(:,:,1)) &
+                      + Elem%Acoeff(:,:,4) * MATMUL(HTprime,Elem%Strain(:,:,0)) &
+                      +(Elem%Acoeff(:,:,8) + Elem%Acoeff(:,:,9)) * MATMUL(Elem%Strain(:,:,1),Hprimez) &
+                      + Elem%Acoeff(:,:,8) * MATMUL(Elem%Strain(:,:,0),Hprimez))
+        smbr(:,:,3) = - Elem%Beta(:,:) * Elem%PsiSzzeta(:,:) - Elem%Aeta(:,:) * &
+                      ((Elem%Acoeff(:,:,6) + Elem%Acoeff(:,:,7)) * MATMUL(HTprime,Elem%Strain(:,:,1)) &
+                      + Elem%Acoeff(:,:,6) * MATMUL(HTprime,Elem%Strain(:,:,0)) &
+                      +(Elem%Acoeff(:,:,10) + Elem%Acoeff(:,:,11)) * MATMUL(Elem%Strain(:,:,1),Hprimez) &
+                      + Elem%Acoeff(:,:,10) * MATMUL(Elem%Strain(:,:,0),Hprimez))
+        smbr(:,:,4) = - Elem%Bxi (:,:) * Elem%PsiSxzxi (:,:) - Elem%Axi (:,:) * &
+                      ( Elem%Acoeff(:,:,5) * MATMUL(HTprime,Elem%Strain(:,:,2)) &
+                      + Elem%Acoeff(:,:,9) * MATMUL(Elem%Strain(:,:,2),Hprimez))
+        smbr(:,:,5) = - Elem%Beta(:,:) * Elem%PsiSxzeta(:,:) - Elem%Aeta(:,:) * &
+                      ( Elem%Acoeff(:,:,7) * MATMUL(HTprime,Elem%Strain(:,:,2)) &
+                      + Elem%Acoeff(:,:,11) * MATMUL(Elem%Strain(:,:,2),Hprimez))
+        ! Second member for Velocities memory variables
+        smbr(:,:,6) = - Elem%Bxi (:,:) * Elem%PsiVxxi (:,:) - Elem%Axi (:,:) * &
+                      ( Elem%Acoeff(:,:,0) * MATMUL(HTprime,Elem%Veloc(:,:,0)) &
+                      + Elem%Acoeff(:,:,1) * MATMUL(Elem%Veloc(:,:,0),Hprimez))
+        smbr(:,:,7) = - Elem%Beta(:,:) * Elem%PsiVxeta(:,:) - Elem%Aeta(:,:) * &
+                      ( Elem%Acoeff(:,:,2) * MATMUL(HTprime,Elem%Veloc(:,:,0)) &
+                      + Elem%Acoeff(:,:,3) * MATMUL(Elem%Veloc(:,:,0),Hprimez))
+        smbr(:,:,8) = - Elem%Bxi (:,:) * Elem%PsiVzxi (:,:) - Elem%Axi (:,:) * &
+                      ( Elem%Acoeff(:,:,0) * MATMUL(HTprime,Elem%Veloc(:,:,1)) &
+                      + Elem%Acoeff(:,:,1) * MATMUL(Elem%Veloc(:,:,1),Hprimez))
+        smbr(:,:,9) = - Elem%Beta(:,:) * Elem%PsiVzeta(:,:) - Elem%Aeta(:,:) * &
+                      ( Elem%Acoeff(:,:,2) * MATMUL(HTprime,Elem%Veloc(:,:,1)) &
+                      + Elem%Acoeff(:,:,3) * MATMUL(Elem%Veloc(:,:,1),Hprimez))
 
         ! UPDATING in time using usual LSERK4
         Elem%Psi_RK(:,:,:)  = coeff1 * Elem%Psi_RK(:,:,:) + Dt*smbr(:,:,:)

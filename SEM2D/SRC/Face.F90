@@ -26,7 +26,7 @@ module sfaces
        real, dimension (:,:), allocatable :: ForcesMka
 #endif
 
-       logical :: coherency, PML, Abs, FPML, CPML, freesurf
+       logical :: coherency, PML, Abs, FPML, CPML, ADEPML, freesurf
 
        real, dimension (:), allocatable :: Ivx, Ivz
        real, dimension (:,:), allocatable :: Iveloc1, Iveloc2

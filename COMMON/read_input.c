@@ -66,8 +66,9 @@ if (!expect_eq(scanner)) return 0;
     if (cmp(scanner,"PML"))    { *type = 1; return 1; }
     if (cmp(scanner,"FPML"))   { *type = 2; return 1; }
     if (cmp(scanner,"CPML"))   { *type = 3; return 1; }
+    if (cmp(scanner,"ADEPML")) { *type = 4; return 1; }
 error:
-    msg_err(scanner, "Expected PML|FPML|CPML");
+    msg_err(scanner, "Expected PML|FPML|CPML|ADEPML");
     return 0;
 }
 

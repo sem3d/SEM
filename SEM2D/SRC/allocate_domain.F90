@@ -34,29 +34,45 @@ subroutine allocate_domain (Tdomain)
      allocate (Tdomain%specel(n)%Density(0:ngllx-1,0:ngllz-1))
      allocate (Tdomain%specel(n)%Lambda(0:ngllx-1,0:ngllz-1))
      allocate (Tdomain%specel(n)%Mu(0:ngllx-1,0:ngllz-1))
+     allocate (Tdomain%specel(n)%Displ(1:ngllx-2,1:ngllz-2,0:1))
      if (Tdomain%specel(n)%type_DG==GALERKIN_CONT) then
          allocate (Tdomain%specel(n)%Veloc (1:ngllx-2, 1:ngllz-2, 0:1))
          allocate (Tdomain%specel(n)%Accel(1:ngllx-2,1:ngllz-2,0:1))
          allocate (Tdomain%specel(n)%V0(1:ngllx-2,1:ngllz-2, 0:1))
          allocate (Tdomain%specel(n)%Forces(0:ngllx-1,0:ngllz-1,0:1))
-     else
+     else ! Discontinuous case
          allocate (Tdomain%specel(n)%Veloc (0:ngllx-1,0:ngllz-1, 0:1))
          allocate (Tdomain%specel(n)%Accel(0:ngllx-1,0:ngllz-1,0:1))
          allocate (Tdomain%specel(n)%V0(  0:ngllx-1, 0:ngllz-1, 0:1 ) )
          allocate (Tdomain%specel(n)%Forces(0:ngllx-1,0:ngllz-1,0:4))
+         allocate (Tdomain%specel(n)%Strain(0:ngllx-1,0:ngllz-1,0:2))
+         if(Tdomain%specel(n)%Type_DG==GALERKIN_HDG_RP) then
+             allocate (Tdomain%specel(n)%MatPen(0:2*(ngllx+ngllz)-1,0:2))
+             allocate (Tdomain%specel(n)%TracFace(0:2*(ngllx+ngllz)-1,0:1))
+             allocate (Tdomain%specel(n)%Vhat(0:2*(ngllx+ngllz)-1,0:1))
+             Tdomain%specel(n)%MatPen   = 0.
+             Tdomain%specel(n)%TracFace = 0.
+             Tdomain%specel(n)%Vhat     = 0.
+         endif
      endif
      Tdomain%specel(n)%MassMat = 0
      Tdomain%specel(n)%Density = 0
      Tdomain%specel(n)%Lambda  = 0
      Tdomain%specel(n)%Mu = 0
+     Tdomain%specel(n)%Displ = 0.
      Tdomain%specel(n)%Veloc = 0
      Tdomain%specel(n)%Forces = 0
      Tdomain%specel(n)%Accel = 0
      Tdomain%specel(n)%V0 = 0
+     Tdomain%specel(n)%Strain = 0
 
-     if(Tdomain%specel(n)%CPML ) then
+     if(Tdomain%specel(n)%CPML .OR. Tdomain%specel(n)%ADEPML) then
+         if(Tdomain%specel(n)%ADEPML) then
+             allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
+         elseif(Tdomain%specel(n)%CPML) then
+             allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:17))
+         endif
          allocate (Tdomain%specel(n)%Stress (0:ngllx-1, 0:ngllz-1, 0:2))
-         allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:17))
          allocate (Tdomain%specel(n)%Axi (0:ngllx-1,0:ngllz-1))
          allocate (Tdomain%specel(n)%Aeta(0:ngllx-1,0:ngllz-1))
          allocate (Tdomain%specel(n)%Bxi (0:ngllx-1,0:ngllz-1))
@@ -128,29 +144,12 @@ subroutine allocate_domain (Tdomain)
              allocate (Tdomain%specel(n)%DumpMass(0:ngllx-1,0:ngllz-1,0:1))
          endif
      else ! Case Element is not PML
-         if(Tdomain%specel(n)%Type_DG==GALERKIN_DG_STRONG) then
-             allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
-             allocate (Tdomain%specel(n)%Strain(0:ngllx-1,0:ngllz-1,0:2))
-             Tdomain%specel(n)%Strain = 0.
-         else if(Tdomain%specel(n)%Type_DG==GALERKIN_DG_WEAK) then
-             allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
-             allocate (Tdomain%specel(n)%Strain(0:ngllx-1,0:ngllz-1,0:2))
-             Tdomain%specel(n)%Strain = 0.
-         else if(Tdomain%specel(n)%Type_DG==GALERKIN_HDG_RP) then
-             allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
-             allocate (Tdomain%specel(n)%Strain(0:ngllx-1,0:ngllz-1,0:2))
-             allocate (Tdomain%specel(n)%MatPen(0:2*(ngllx+ngllz)-1,0:2))
-             allocate (Tdomain%specel(n)%TracFace(0:2*(ngllx+ngllz)-1,0:1))
-             allocate (Tdomain%specel(n)%Vhat(0:2*(ngllx+ngllz)-1,0:1))
-             Tdomain%specel(n)%Strain   = 0.
-             Tdomain%specel(n)%MatPen   = 0.
-             Tdomain%specel(n)%TracFace = 0.
-             Tdomain%specel(n)%Vhat     = 0.
-         else if(Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
+         if(Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
              allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:9))
+         else ! Discontinuous Case
+             allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
          endif
-         allocate (Tdomain%specel(n)%Displ(1:ngllx-2,1:ngllz-2,0:1))
-         Tdomain%specel(n)%Displ = 0
+         Tdomain%specel(n)%Acoeff = 0.
      endif
  enddo
 
@@ -323,6 +322,10 @@ subroutine allocate_domain (Tdomain)
            allocate (Tdomain%specel(n)%Vect_RK(0:ngllx-1,0:ngllz-1,0:4))
         endif
         Tdomain%specel(n)%Vect_RK = 0.
+        if (Tdomain%specel(n)%ADEPML) then
+            allocate (Tdomain%specel(n)%Psi_RK(0:ngllx-1,0:ngllz-1,0:9))
+            Tdomain%specel(n)%Psi_RK = 0.
+        endif
      enddo
      do n = 0, Tdomain%n_face-1
         ngll = Tdomain%sFace(n)%ngll

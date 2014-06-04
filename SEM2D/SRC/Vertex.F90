@@ -13,7 +13,7 @@ module svertices
 
     type :: vertex
 
-       logical :: PML, Abs, FPML, CPML, is_computed
+       logical :: PML, Abs, FPML, CPML, ADEPML, is_computed
        integer :: Glob_Numbering, mat_index, Type_DG
        real :: MassMat
        real, dimension (:), allocatable :: DumpMass, DumpVx, DumpVz, Forces1, Forces2, Veloc1, Veloc2
