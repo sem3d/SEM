@@ -101,12 +101,12 @@ set(SEM3D_SOURCES_F
 )
 
 #if(NOT USE_MKL)
-set(SEM3D_SOURCES_F
-    ${SEM3D_SOURCES_F}
-    ${PRJ}/SRC/BLAS/dgemm.f90
-    ${PRJ}/SRC/BLAS/lsame.f90
-    ${PRJ}/SRC/BLAS/xerbla.f90
-)
+#set(SEM3D_SOURCES_F
+#    ${SEM3D_SOURCES_F}
+#    ${PRJ}/SRC/BLAS/dgemm.f90
+#    ${PRJ}/SRC/BLAS/lsame.f90
+#    ${PRJ}/SRC/BLAS/xerbla.f90
+#)
 #endif(NOT USE_MKL)
 
 set(SEM3D_SOURCES ${SEM3D_SOURCES_F}

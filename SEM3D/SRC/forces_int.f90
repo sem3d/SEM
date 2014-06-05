@@ -8,14 +8,6 @@
 !<
 module forces_aniso
     use deriv3d
-    interface
-       subroutine DGEMM ( TRANSA, TRANSB, M, N, K, ALPHA, A, LDA, B, LDB, BETA, C, LDC )
-         CHARACTER*1        TRANSA, TRANSB
-         INTEGER            M, N, K, LDA, LDB, LDC
-         DOUBLE PRECISION   ALPHA, BETA
-         DOUBLE PRECISION   A( LDA, * ), B( LDB, * ), C( LDC, * )
-       end subroutine DGEMM
-    end interface
 
 contains
 

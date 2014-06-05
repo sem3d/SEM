@@ -63,6 +63,7 @@ set(SEM_SRC
   ${SEMCOMMON}/pow.F90
   ${SEMCOMMON}/pointlist.f90
   ${SEMCOMMON}/sem_hdf5.f90
+  ${SEMCOMMON}/blas.F90
 )
 
 set(SEM_SRC_C
