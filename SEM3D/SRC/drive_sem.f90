@@ -115,6 +115,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 !----------------------------------------------------------------------------------------------!
 
     call INIT_MESSAGE(rg)
+    call START_SEM(rg)
 
 !---------------------------------------------------------------------------------------------!
 !------------------------------    RUN PREPARATION : INPUT DATA, -----------------------------!
@@ -122,7 +123,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 !---------------------------------------------------------------------------------------------!
 
     call RUN_PREPARED(Tdomain,rg)
-    call RUN_INIT_INTERACT(Tdomain,rg,isort) 
+    call RUN_INIT_INTERACT(Tdomain,rg,isort)
 
 !---------------------------------------------------------------------------------------------!
 !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
@@ -509,7 +510,9 @@ subroutine TIME_STEPPING(Tdomain,rg,isort,ntime)
     !- Checkpoint restart
         if(Tdomain%logicD%save_restart)then
             ! protection for a future restart?
-            if(mod(ntime,Tdomain%TimeD%ncheck) == 0) protection = 1
+            if(mod(ntime,Tdomain%TimeD%ncheck) == 0) then
+                if (ntime/=0) protection = 1
+            end if
         endif
     !- Time remaining
         call TREMAIN(remaining_time)
@@ -666,14 +669,15 @@ subroutine END_SEM(Tdomain,rg,ntime)
     type(domain) :: Tdomain
     integer, intent(in)  :: rg,ntime
 
-    
-    open (111,file = "fin_sem")
-    if (ntime >= Tdomain%TimeD%NtimeMax-1) then
-        write(111,*) 1
-    else
-        write(111,*) 0
+    if (rg==0) then
+        open (111,file = "fin_sem", status="REPLACE")
+        if (ntime >= Tdomain%TimeD%NtimeMax-1) then
+            write(111,*) 1
+        else
+            write(111,*) 0
+        end if
+        close(111)
     end if
-    close(111)
 
 
     call flushAllCapteurs(Tdomain, rg)
@@ -685,6 +689,17 @@ subroutine END_SEM(Tdomain,rg,ntime)
 #endif
 
 end subroutine END_SEM
+
+subroutine START_SEM(rg)
+    implicit none
+    integer, intent(in) :: rg
+    if (rg==0) then
+        open (111,file = "fin_sem", status="REPLACE")
+        write(111,*) -1
+        close(111)
+    end if
+
+end subroutine START_SEM
 
 end module drive_sem
 !! Local Variables:
