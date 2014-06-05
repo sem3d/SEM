@@ -165,6 +165,7 @@ subroutine allocate_domain (Tdomain)
      allocate (Tdomain%sFace(n)%Forces(1:ngll-2,0:1 ) )
      allocate (Tdomain%sFace(n)%Accel(1:ngll-2, 0:1))
      allocate (Tdomain%sFace(n)%V0( 1:ngll-2, 0:1 ) )
+     allocate (Tdomain%sFace(n)%Displ( 1:ngll-2, 0:1 ) )
      allocate (Tdomain%sFace(n)%Flux(0:ngll-1, 0:4 ) )
      allocate (Tdomain%sFace(n)%Veloc_p(0:ngll-1, 0:1))
      allocate (Tdomain%sFace(n)%Veloc_m(0:ngll-1, 0:1))
@@ -180,6 +181,7 @@ subroutine allocate_domain (Tdomain)
      Tdomain%sFace(n)%Veloc = 0
      Tdomain%sFace(n)%Accel = 0
      Tdomain%sFace(n)%V0 = 0
+     Tdomain%sFace(n)%Displ = 0
      Tdomain%sFace(n)%Forces= 0
      Tdomain%sFace(n)%Flux  = 0
      Tdomain%sFace(n)%Veloc_p = 0
@@ -247,9 +249,6 @@ subroutine allocate_domain (Tdomain)
              allocate (Tdomain%sFace(n)%DumpMass(1:ngll-2,0:1))
          endif
          Tdomain%sFace(n)%DumpMass = 0.
-     else
-         allocate (Tdomain%sFace(n)%Displ(1:ngll-2,0:1))
-         Tdomain%sFace(n)%Displ = 0
      endif
 
      ! Flags on absorbing/free surface Faces
@@ -273,6 +272,7 @@ subroutine allocate_domain (Tdomain)
      allocate (Tdomain%sVertex(n)%Forces (0:1))
      allocate (Tdomain%sVertex(n)%Accel (0:1))
      allocate (Tdomain%sVertex(n)%V0 (0:1))
+     allocate (Tdomain%sVertex(n)%Displ(0:1))
 #ifdef MKA3D
      allocate (Tdomain%sVertex(n)%ForcesMka(0:1 ) )
      Tdomain%sVertex(n)%ForcesMka=0
@@ -282,6 +282,7 @@ subroutine allocate_domain (Tdomain)
      Tdomain%sVertex(n)%Veloc = 0
      Tdomain%sVertex(n)%Accel = 0
      Tdomain%sVertex(n)%V0 = 0
+     Tdomain%sVertex(n)%Displ = 0
 
      if (Tdomain%sVertex(n)%PML .AND. (.NOT.Tdomain%sFace(n)%CPML)) then
          allocate (Tdomain%sVertex(n)%Forces1 (0:1) )
@@ -305,9 +306,6 @@ subroutine allocate_domain (Tdomain)
              allocate (Tdomain%sVertex(n)%DumpMass(0:1))
          endif
          Tdomain%sVertex(n)%DumpMass = 0
-     else
-         allocate (Tdomain%sVertex(n)%Displ(0:1))
-         Tdomain%sVertex(n)%Displ = 0
      endif
  enddo
 

@@ -47,8 +47,9 @@ contains
                 E_tot = E_tot + E_k + E_el
             enddo
 
-            if (Tdomain%TimeD%rtime == 0) then
+            if (.not. Tdomain%openfilescapt) then
                 open (51,file = "Total_Energy",status="replace",form="formatted")
+                Tdomain%openfilescapt = .true.
             endif
             write(51,*) Tdomain%TimeD%rtime, E_tot
         endif
@@ -116,8 +117,9 @@ contains
             endif
         enddo
 
-        if (Tdomain%TimeD%rtime == 0) then
+        if (.not. Tdomain%openfilescapt) then
             open (51,file = "Total_Energy",status="replace",form="formatted")
+            Tdomain%openfilescapt = .true.
         endif
         write(51,*) Tdomain%TimeD%rtime, E_tot
 

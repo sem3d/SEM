@@ -41,6 +41,18 @@ subroutine Runge_Kutta4 (Tdomain, dt)
           Tdomain%specel(n)%Vect_RK(:,:,0:2) = Tdomain%specel(n)%Strain
           Tdomain%specel(n)%Vect_RK(:,:,3:4) = Tdomain%specel(n)%Veloc
        endif
+       if(Tdomain%specel(n)%ADEPML) then
+           Tdomain%specel(n)%Psi_RK(:,:,0) = Tdomain%specel(n)%PsiSxxxi (:,:)
+           Tdomain%specel(n)%Psi_RK(:,:,1) = Tdomain%specel(n)%PsiSxxeta(:,:)
+           Tdomain%specel(n)%Psi_RK(:,:,2) = Tdomain%specel(n)%PsiSzzxi (:,:)
+           Tdomain%specel(n)%Psi_RK(:,:,3) = Tdomain%specel(n)%PsiSzzeta(:,:)
+           Tdomain%specel(n)%Psi_RK(:,:,4) = Tdomain%specel(n)%PsiSxzxi (:,:)
+           Tdomain%specel(n)%Psi_RK(:,:,5) = Tdomain%specel(n)%PsiSxzeta(:,:)
+           Tdomain%specel(n)%Psi_RK(:,:,6) = Tdomain%specel(n)%PsiVxxi (:,:)
+           Tdomain%specel(n)%Psi_RK(:,:,7) = Tdomain%specel(n)%PsiVxeta(:,:)
+           Tdomain%specel(n)%Psi_RK(:,:,8) = Tdomain%specel(n)%PsiVzxi (:,:)
+           Tdomain%specel(n)%Psi_RK(:,:,9) = Tdomain%specel(n)%PsiVzeta(:,:)
+       endif
     enddo
 
     do i = 1,5

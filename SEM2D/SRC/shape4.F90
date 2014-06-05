@@ -82,7 +82,8 @@ contains
                 ngll = ngllz
             endif
             do j=0,ngll-1
-                Tdomain%specel(nelem)%Normal_Nodes(k,:) = normal_aux(:)
+                Tdomain%specel(nelem)%Normal_Nodes(k,0) = normal_aux(0)
+                Tdomain%specel(nelem)%Normal_Nodes(k,1) = normal_aux(1)
                 k = k+1
             enddo
         enddo
@@ -112,8 +113,8 @@ contains
 
         n0 = Tdomain%sVertex(nv0)%Glob_numbering
         n1 = Tdomain%sVertex(nv1)%Glob_numbering
-        dx = Tdomain%coord_nodes(0,nv1) - Tdomain%coord_nodes(0,nv0)
-        dy = Tdomain%coord_nodes(1,nv1) - Tdomain%coord_nodes(1,nv0)
+        dx = Tdomain%coord_nodes(0,n1) - Tdomain%coord_nodes(0,n0)
+        dy = Tdomain%coord_nodes(1,n1) - Tdomain%coord_nodes(1,n0)
         nx  = dy ; ny = -dx
         norm = sqrt(nx*nx + ny*ny)
         n_vec(0) = nx / norm

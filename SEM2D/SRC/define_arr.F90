@@ -143,16 +143,16 @@ subroutine define_arrays(Tdomain)
                 Tdomain%specel(n)%Acoeff(:,:,16) = Whei * Jac
                 Tdomain%specel(n)%Acoeff(:,:,17) = 1./(Whei*Jac)
             endif
+        endif
 
-
+        if (Tdomain%specel(n)%PML) then
             ! Defining PML properties
-
             Apow = Tdomain%sSubdomain(mat)%Apow ; npow = Tdomain%sSubdomain(mat)%npow
             Omega_c = 2. * PI * Tdomain%sSubdomain(mat)%freq ! Frequence de coupure
             ! PowOmc is the exponent of the power law of decreasing Omega_c (pulsation de coupure)
             ! in the PML. Usually, Omega_C obbey to a law Omega_c(x) = 2*pi*freq_c (1-(x/L)^{powOmc})
             ! powOmc is set to 1 because it produces better absorbtion on the cases we have studied.
-            powOmc = 1
+            powOmc = 0
             if (Tdomain%sSubDomain(mat)%Px) then
                 ! Computation of dx : the horizontal length of the PML element
                 idef = Tdomain%specel(n)%Iglobnum (0,0); dx = Tdomain%GlobCoord (0,idef)

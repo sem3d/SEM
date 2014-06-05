@@ -625,8 +625,7 @@ contains
         real, intent(IN) :: coeff2
         real, intent(IN) :: Dt
         !real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: PsiTrace
-        real, dimension(0:Elem%ngllx+1,0:Elem%ngllz+1,0:9) :: smbr
-        integer          :: ngx, ngz
+        real, dimension(0:Elem%ngllx-1,0:Elem%ngllz-1,0:9) :: smbr
 
         ! Defining Second Member of time evolution equation for the Psi
         ! Second member for Stresses memory variables
