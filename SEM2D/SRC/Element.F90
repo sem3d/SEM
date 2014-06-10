@@ -679,8 +679,8 @@ contains
         Elem%PsiSxzeta(:,:) = Elem%PsiSxzeta(:,:) + coeff2 * Elem%Psi_RK(:,:,5)
         Elem%PsiVxxi (:,:)  = Elem%PsiVxxi (:,:)  + coeff2 * Elem%Psi_RK(:,:,6)
         Elem%PsiVxeta(:,:)  = Elem%PsiVxeta(:,:)  + coeff2 * Elem%Psi_RK(:,:,7)
-        Elem%PsiVzxi (:,:)  = Elem%PsiVxxi (:,:)  + coeff2 * Elem%Psi_RK(:,:,8)
-        Elem%PsiVzeta(:,:)  = Elem%PsiVxeta(:,:)  + coeff2 * Elem%Psi_RK(:,:,9)
+        Elem%PsiVzxi (:,:)  = Elem%PsiVzxi (:,:)  + coeff2 * Elem%Psi_RK(:,:,8)
+        Elem%PsiVzeta(:,:)  = Elem%PsiVzeta(:,:)  + coeff2 * Elem%Psi_RK(:,:,9)
 
     end subroutine update_Psi_RK4
 

@@ -40,6 +40,7 @@ MODULE constants
     integer, parameter :: FLUX_HDG=4
     integer, parameter :: DG_BC_FREE=0
     integer, parameter :: DG_BC_ABS=1
+    integer, parameter :: DG_BC_REFL=2
 
     ! Les fichiers capteurs sont ecrits toutes les NCAPT_CACHE sorties
     integer, parameter :: NCAPT_CACHE=100

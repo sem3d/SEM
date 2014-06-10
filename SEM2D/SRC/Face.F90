@@ -26,7 +26,7 @@ module sfaces
        real, dimension (:,:), allocatable :: ForcesMka
 #endif
 
-       logical :: coherency, PML, Abs, FPML, CPML, ADEPML, freesurf
+       logical :: coherency, PML, Abs, FPML, CPML, ADEPML, freesurf, reflex
 
        real, dimension (:), allocatable :: Ivx, Ivz
        real, dimension (:,:), allocatable :: Iveloc1, Iveloc2
@@ -216,8 +216,13 @@ contains
           F%Veloc(:,1) = - F%InvMatPen(:,2)*F%Traction(:,0) - F%InvMatPen(:,1)*F%Traction(:,1)
           F%Traction = 0.
           F%is_computed = .TRUE.
+          ! Treatment of boundary faces
           if (F%freesurf) F%is_computed = .FALSE.
           if (F%Abs) F%is_computed = .FALSE.
+          if (F%reflex) then
+             F%Veloc(:,:) = 0.
+             F%is_computed = .FALSE.
+          endif
       else
           F%is_computed = .FALSE.
       endif

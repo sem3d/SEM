@@ -36,8 +36,10 @@ subroutine check_inputs_and_mesh(Tdomain)
         STOP "FREE Surface not implemented for Centered flux"
     endif
 
-    if ((Tdomain%type_bc.NE.DG_BC_FREE) .AND. (Tdomain%type_bc.NE.DG_BC_ABS)) then
-        STOP "This choice for boundary condition does not exist. Please choose free or absorbing"
+    if ((Tdomain%type_bc.NE.DG_BC_FREE) .AND. &
+        (Tdomain%type_bc.NE.DG_BC_ABS) .AND. &
+        (Tdomain%type_bc.NE.DG_BC_REFL))then
+        STOP "This choice for boundary condition does not exist. Please choose free or absorbing or reflexing"
     endif
 
     if ((Tdomain%type_elem.NE.GALERKIN_CONT)     .AND. &

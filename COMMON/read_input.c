@@ -460,8 +460,9 @@ int expect_type_dg_boundary_condition(yyscan_t scanner, int* type)
     if (tok!=K_ID) goto error;
     if (cmp(scanner,"free"))   { *type = 0; return 1; }
     if (cmp(scanner,"absorbing"))       { *type = 1; return 1; }
+    if (cmp(scanner,"reflecting"))       { *type = 1; return 2; }
 error:
-    msg_err(scanner, "Expected free|absorbing");
+    msg_err(scanner, "Expected free|absorbing|reflecting");
     return 0;
 }
 

@@ -256,13 +256,20 @@ subroutine allocate_domain (Tdomain)
          if (Tdomain%type_bc == DG_BC_ABS) then
              Tdomain%sFace(n)%abs      = .true.
              Tdomain%sFace(n)%freesurf = .false.
+             Tdomain%sFace(n)%reflex   = .false.
          elseif (Tdomain%type_bc == DG_BC_FREE) then
              Tdomain%sFace(n)%abs      = .false.
              Tdomain%sFace(n)%freesurf = .true.
+             Tdomain%sFace(n)%reflex   = .false.
+          elseif (Tdomain%type_bc == DG_BC_REFL) then
+             Tdomain%sFace(n)%abs      = .false.
+             Tdomain%sFace(n)%freesurf = .false.
+             Tdomain%sFace(n)%reflex   = .true.
          endif
      else
          Tdomain%sFace(n)%abs = .false.
          Tdomain%sFace(n)%freesurf = .false.
+         Tdomain%sFace(n)%reflex   = .false.
      endif
   enddo
 
