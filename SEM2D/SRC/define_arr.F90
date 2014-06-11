@@ -32,7 +32,8 @@ subroutine define_arrays(Tdomain)
     real, external :: pow
     real, dimension (:), allocatable :: LocMassMat1D, LocMassMat1D_Down, Send_bt, Receive_Bt
     real, dimension (:,:), allocatable :: xix,etax, xiz,etaz,Jac, Rlam,Rmu,RKmod,Whei,Id,wx, wz
-    real, dimension (:,:), allocatable :: LocMassMat,OmegaCutx,OmegaCutz,du_du_x,du_du_z,duux,duuz
+    real, dimension (:,:), allocatable :: LocMassMat,OmegaCutx,OmegaCutz,du_du_x,du_du_z
+    real, dimension (:,:), allocatable :: duux,duuz,wx_prime,wz_prime
 
     ! Gaetano Festa, modified 01/06/2004
     ! Modification (MPI) 13/10/2005
@@ -65,6 +66,8 @@ subroutine define_arrays(Tdomain)
         allocate (Whei (0:ngllx-1,0:ngllz-1))
         allocate (wx (0:ngllx-1,0:ngllz-1))
         allocate (wz (0:ngllx-1,0:ngllz-1))
+        allocate (wx_prime (0:ngllx-1,0:ngllz-1))
+        allocate (wz_prime (0:ngllx-1,0:ngllz-1))
         allocate (OmegaCutx (0:ngllx-1,0:ngllz-1))
         allocate (OmegaCutz (0:ngllx-1,0:ngllz-1))
         allocate (du_du_x (0:ngllx-1,0:ngllz-1))
@@ -152,7 +155,7 @@ subroutine define_arrays(Tdomain)
             ! PowOmc is the exponent of the power law of decreasing Omega_c (pulsation de coupure)
             ! in the PML. Usually, Omega_C obbey to a law Omega_c(x) = 2*pi*freq_c (1-(x/L)^{powOmc})
             ! powOmc is set to 1 because it produces better absorbtion on the cases we have studied.
-            powOmc = 0
+            powOmc = 1
             if (Tdomain%sSubDomain(mat)%Px) then
                 ! Computation of dx : the horizontal length of the PML element
                 idef = Tdomain%specel(n)%Iglobnum (0,0); dx = Tdomain%GlobCoord (0,idef)
@@ -164,6 +167,7 @@ subroutine define_arrays(Tdomain)
                         vp = sqrt(vp)
                         dxdxi = -0.5
                         wx(i,0:ngllz-1) = pow (ri,vp,1,dx,Apow,npow)
+                        wx_prime(i,0:ngllz-1) = dxdxi * npow * pow (ri,vp,1,dx,Apow,npow-1)
                         OmegaCutx(i,0:ngllz-1) = Omega_c * (1 - ri**PowOmc)
                         OmegaCprime = -Omega_c * PowOmc * ri**(PowOmc-1)
                         if (powOmc == 0) then
@@ -182,6 +186,7 @@ subroutine define_arrays(Tdomain)
                         vp = sqrt(vp)
                         dxdxi = 0.5
                         wx(i,0:ngllz-1) = pow (ri,vp,1,dx,Apow,npow)
+                        wx_prime(i,0:ngllz-1) = dxdxi * npow * pow (ri,vp,1,dx,Apow,npow-1)
                         OmegaCutx(i,0:ngllz-1)  = Omega_c * (1 - ri**PowOmc)
                         OmegaCprime = -Omega_c * PowOmc * ri**(PowOmc-1)
                         if (powOmc == 0) then
@@ -212,6 +217,7 @@ subroutine define_arrays(Tdomain)
                         vp = sqrt(vp)
                         dzdeta = -0.5
                         wz(0:ngllx-1,j) = pow (rj,vp,1,dx,Apow,npow)
+                        wz_prime(0:ngllx-1,j) = dzdeta * npow * pow (rj,vp,1,dx,Apow,npow-1)
                         OmegaCutz(0:ngllx-1,j) = Omega_c * (1 - rj**PowOmc)
                         OmegaCprime = -Omega_c * PowOmc * rj**(PowOmc-1)
                         if (powOmc == 0) then
@@ -230,6 +236,7 @@ subroutine define_arrays(Tdomain)
                         vp = sqrt(vp)
                         dzdeta = 0.5
                         wz(0:ngllx-1,j) = pow (rj,vp,1,dx,Apow,npow)
+                        wz_prime(0:ngllx-1,j) = dzdeta * npow * pow (rj,vp,1,dx,Apow,npow-1)
                         OmegaCutz(0:ngllx-1,j) = Omega_c * (1 - rj**PowOmc)
                         OmegaCprime = -Omega_c * PowOmc * rj**(PowOmc-1)
                         if (powOmc == 0) then
@@ -290,6 +297,7 @@ subroutine define_arrays(Tdomain)
                     else ! ADE-PML for HDG
                         Tdomain%specel(n)%Bxi(:,:) = wx(:,:) + OmegaCutx(:,:)
                         Tdomain%specel(n)%Axi(:,:) = wx(:,:)
+                        Tdomain%specel(n)%Axi_prime(:,:) = wx_prime(:,:)
                     endif
                endif
                if (Tdomain%sSubDomain(mat)%Pz .OR. Tdomain%specel(n)%ADEPML) then
@@ -302,6 +310,7 @@ subroutine define_arrays(Tdomain)
                    else
                        Tdomain%specel(n)%Beta(:,:) = wz(:,:) + OmegaCutz(:,:)
                        Tdomain%specel(n)%Aeta(:,:) = wz(:,:)
+                       Tdomain%specel(n)%Aeta_prime(:,:) = wz_prime(:,:)
                    endif
                endif
 
@@ -320,7 +329,8 @@ subroutine define_arrays(Tdomain)
 
 
         endif
-        deallocate(xix,xiz,etax,etaz,Id,wx,wz,OmegaCutx,OmegaCutz,du_du_x,du_du_z,duux,duuz,Whei,RKmod,Jac,Rmu,Rlam)
+        deallocate(xix,xiz,etax,etaz,Id,wx,wz,OmegaCutx,OmegaCutz,du_du_x,du_du_z, &
+                   duux,duuz,wx_prime,wz_prime,Whei,RKmod,Jac,Rmu,Rlam)
 
     enddo
 

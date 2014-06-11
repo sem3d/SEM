@@ -626,6 +626,8 @@ contains
         real, intent(IN) :: Dt
         !real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: PsiTrace
         real, dimension(0:Elem%ngllx-1,0:Elem%ngllz-1,0:9) :: smbr
+        logical          :: oldschool
+        oldschool = .true.
 
         ! Defining Second Member of time evolution equation for the Psi
         ! Second member for Stresses memory variables
@@ -656,6 +658,7 @@ contains
                       ( Elem%Acoeff(:,:,7) * MATMUL(HTprime,Elem%Strain(:,:,2)) &
                       + Elem%Acoeff(:,:,11) * MATMUL(Elem%Strain(:,:,2),Hprimez))
         ! Second member for Velocities memory variables
+        if (oldschool) then
         smbr(:,:,6) = - Elem%Bxi (:,:) * Elem%PsiVxxi (:,:) - Elem%Axi (:,:) * &
                       ( Elem%Acoeff(:,:,0) * MATMUL(HTprime,Elem%Veloc(:,:,0)) &
                       + Elem%Acoeff(:,:,1) * MATMUL(Elem%Veloc(:,:,0),Hprimez))
@@ -668,6 +671,21 @@ contains
         smbr(:,:,9) = - Elem%Beta(:,:) * Elem%PsiVzeta(:,:) - Elem%Aeta(:,:) * &
                       ( Elem%Acoeff(:,:,2) * MATMUL(HTprime,Elem%Veloc(:,:,1)) &
                       + Elem%Acoeff(:,:,3) * MATMUL(Elem%Veloc(:,:,1),Hprimez))
+        else
+        smbr(:,:,6) = - Elem%Bxi (:,:) * Elem%PsiVxxi (:,:) + Elem%Axi_prime (:,:) * Elem%Veloc(:,:,0) &
+                      + MATMUL(Hprime,Elem%Veloc(:,:,0)*Elem%Axi(:,:)*Elem%Acoeff(#,:,:)) &
+                      + MATMUL(Elem%Veloc(:,:,0)*Elem%Axi(:,:)*Elem%Acoeff(#,:,:),HTprimez)
+        smbr(:,:,7) = - Elem%Beta(:,:) * Elem%PsiVxeta(:,:) + Elem%Aeta_prime(:,:) * Elem%Veloc(:,:,0) &
+                      + MATMUL(Hprime,Elem%Veloc(:,:,0)*Elem%Aeta(:,:)*Elem%Acoeff(#,:,:)) &
+                      + MATMUL(Elem%Veloc(:,:,0)*Elem%Aeta(:,:)*Elem%Acoeff(#,:,:),HTprimez)
+        smbr(:,:,8) = - Elem%Bxi (:,:) * Elem%PsiVzxi (:,:) + Elem%Axi_prime (:,:) * Elem%Veloc(:,:,1) &
+                      + MATMUL(Hprime,Elem%Veloc(:,:,1)*Elem%Axi(:,:)*Elem%Acoeff(#,:,:)) &
+                      + MATMUL(Elem%Veloc(:,:,1)*Elem%Axi(:,:)*Elem%Acoeff(#,:,:),HTprimez)
+        smbr(:,:,9) = - Elem%Beta(:,:) * Elem%PsiVzeta(:,:) + Elem%Aeta_prime(:,:) * Elem%Veloc(:,:,1) &
+                      + MATMUL(Hprime,Elem%Veloc(:,:,1)*Elem%Aeta(:,:)*Elem%Acoeff(#,:,:)) &
+                      + MATMUL(Elem%Veloc(:,:,1)*Elem%Aeta(:,:)*Elem%Acoeff(#,:,:),HTprimez)
+        #Ajouter la contribution des faces !!!!!!!!!!!!!!
+        endif
 
         ! UPDATING in time using usual LSERK4
         Elem%Psi_RK(:,:,:)  = coeff1 * Elem%Psi_RK(:,:,:) + Dt*smbr(:,:,:)
