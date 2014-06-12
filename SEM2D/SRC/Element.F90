@@ -615,19 +615,21 @@ contains
     !! \param real, intent (IN) coeff1
     !! \param real, intent (IN) coeff2
     !<
-    subroutine  update_Psi_RK4 (Elem,HTprime,Hprimez,coeff1,coeff2,Dt)
+    subroutine  update_Psi_RK4 (Elem,hprime,hTprime,hprimez,hTprimez,coeff1,coeff2,Dt)
         implicit none
 
         type(Element), intent (INOUT) :: Elem
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
+        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime, hTprime
+        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
         real, intent(IN) :: coeff1
         real, intent(IN) :: coeff2
         real, intent(IN) :: Dt
-        !real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: PsiTrace
         real, dimension(0:Elem%ngllx-1,0:Elem%ngllz-1,0:9) :: smbr
+        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: VxNx, VxNz, VzNx, VzNz
+        integer          :: imin, imax, ngx, ngz
         logical          :: oldschool
-        oldschool = .true.
+        ngx = Elem%ngllx ; ngz = Elem%ngllz
+        oldschool = .false.
 
         ! Defining Second Member of time evolution equation for the Psi
         ! Second member for Stresses memory variables
@@ -673,18 +675,46 @@ contains
                       + Elem%Acoeff(:,:,3) * MATMUL(Elem%Veloc(:,:,1),Hprimez))
         else
         smbr(:,:,6) = - Elem%Bxi (:,:) * Elem%PsiVxxi (:,:) + Elem%Axi_prime (:,:) * Elem%Veloc(:,:,0) &
-                      + MATMUL(Hprime,Elem%Veloc(:,:,0)*Elem%Axi(:,:)*Elem%Acoeff(#,:,:)) &
-                      + MATMUL(Elem%Veloc(:,:,0)*Elem%Axi(:,:)*Elem%Acoeff(#,:,:),HTprimez)
+                      + MATMUL(Hprime,Elem%Veloc(:,:,0)*Elem%Axi(:,:)*Elem%Acoeff(:,:,0)) &
+                      + MATMUL(Elem%Veloc(:,:,0)*Elem%Axi(:,:)*Elem%Acoeff(:,:,1),HTprimez)
         smbr(:,:,7) = - Elem%Beta(:,:) * Elem%PsiVxeta(:,:) + Elem%Aeta_prime(:,:) * Elem%Veloc(:,:,0) &
-                      + MATMUL(Hprime,Elem%Veloc(:,:,0)*Elem%Aeta(:,:)*Elem%Acoeff(#,:,:)) &
-                      + MATMUL(Elem%Veloc(:,:,0)*Elem%Aeta(:,:)*Elem%Acoeff(#,:,:),HTprimez)
+                      + MATMUL(Hprime,Elem%Veloc(:,:,0)*Elem%Aeta(:,:)*Elem%Acoeff(:,:,2)) &
+                      + MATMUL(Elem%Veloc(:,:,0)*Elem%Aeta(:,:)*Elem%Acoeff(:,:,3),HTprimez)
         smbr(:,:,8) = - Elem%Bxi (:,:) * Elem%PsiVzxi (:,:) + Elem%Axi_prime (:,:) * Elem%Veloc(:,:,1) &
-                      + MATMUL(Hprime,Elem%Veloc(:,:,1)*Elem%Axi(:,:)*Elem%Acoeff(#,:,:)) &
-                      + MATMUL(Elem%Veloc(:,:,1)*Elem%Axi(:,:)*Elem%Acoeff(#,:,:),HTprimez)
+                      + MATMUL(Hprime,Elem%Veloc(:,:,1)*Elem%Axi(:,:)*Elem%Acoeff(:,:,0)) &
+                      + MATMUL(Elem%Veloc(:,:,1)*Elem%Axi(:,:)*Elem%Acoeff(:,:,1),HTprimez)
         smbr(:,:,9) = - Elem%Beta(:,:) * Elem%PsiVzeta(:,:) + Elem%Aeta_prime(:,:) * Elem%Veloc(:,:,1) &
-                      + MATMUL(Hprime,Elem%Veloc(:,:,1)*Elem%Aeta(:,:)*Elem%Acoeff(#,:,:)) &
-                      + MATMUL(Elem%Veloc(:,:,1)*Elem%Aeta(:,:)*Elem%Acoeff(#,:,:),HTprimez)
-        #Ajouter la contribution des faces !!!!!!!!!!!!!!
+                      + MATMUL(Hprime,Elem%Veloc(:,:,1)*Elem%Aeta(:,:)*Elem%Acoeff(:,:,2)) &
+                      + MATMUL(Elem%Veloc(:,:,1)*Elem%Aeta(:,:)*Elem%Acoeff(:,:,3),HTprimez)
+        ! Adding the traces computed from Vhat
+        VxNx(:) = Elem%Vhat(:,0) * Elem%Normal_Nodes(:,0) * Elem%Coeff_integr_Faces(:)
+        VxNz(:) = Elem%Vhat(:,0) * Elem%Normal_Nodes(:,1) * Elem%Coeff_integr_Faces(:)
+        VzNx(:) = Elem%Vhat(:,1) * Elem%Normal_Nodes(:,0) * Elem%Coeff_integr_Faces(:)
+        VzNz(:) = Elem%Vhat(:,1) * Elem%Normal_Nodes(:,1) * Elem%Coeff_integr_Faces(:)
+        ! For the Bottom Face :
+        call get_iminimax(Elem,0,imin,imax)
+        smbr(0:ngx-1,0,6) = smbr(0:ngx-1,0,6) + Elem%Axi (0:ngx-1,0) * VxNx(imin:imax)
+        smbr(0:ngx-1,0,7) = smbr(0:ngx-1,0,7) + Elem%Aeta(0:ngx-1,0) * VxNz(imin:imax)
+        smbr(0:ngx-1,0,8) = smbr(0:ngx-1,0,8) + Elem%Axi (0:ngx-1,0) * VzNx(imin:imax)
+        smbr(0:ngx-1,0,9) = smbr(0:ngx-1,0,9) + Elem%Aeta(0:ngx-1,0) * VzNz(imin:imax)
+        ! For the right Face :
+        call get_iminimax(Elem,1,imin,imax)
+        smbr(ngx-1,0:ngz-1,6) = smbr(ngx-1,0:ngz-1,6) + Elem%Axi (ngx-1,0:ngz-1) * VxNx(imin:imax)
+        smbr(ngx-1,0:ngz-1,7) = smbr(ngx-1,0:ngz-1,7) + Elem%Aeta(ngx-1,0:ngz-1) * VxNz(imin:imax)
+        smbr(ngx-1,0:ngz-1,8) = smbr(ngx-1,0:ngz-1,8) + Elem%Axi (ngx-1,0:ngz-1) * VzNx(imin:imax)
+        smbr(ngx-1,0:ngz-1,9) = smbr(ngx-1,0:ngz-1,9) + Elem%Aeta(ngx-1,0:ngz-1) * VzNz(imin:imax)
+        ! For the Top Face :
+        call get_iminimax(Elem,2,imin,imax)
+        smbr(0:ngx-1,ngz-1,6) = smbr(0:ngx-1,ngz-1,6) + Elem%Axi (0:ngx-1,ngz-1) * VxNx(imin:imax)
+        smbr(0:ngx-1,ngz-1,7) = smbr(0:ngx-1,ngz-1,7) + Elem%Aeta(0:ngx-1,ngz-1) * VxNz(imin:imax)
+        smbr(0:ngx-1,ngz-1,8) = smbr(0:ngx-1,ngz-1,8) + Elem%Axi (0:ngx-1,ngz-1) * VzNx(imin:imax)
+        smbr(0:ngx-1,ngz-1,9) = smbr(0:ngx-1,ngz-1,9) + Elem%Aeta(0:ngx-1,ngz-1) * VzNz(imin:imax)
+        ! For the Left Face :
+        call get_iminimax(Elem,3,imin,imax)
+        smbr(0,0:ngz-1,6) = smbr(0,0:ngz-1,6) + Elem%Axi (0,0:ngz-1) * VxNx(imin:imax)
+        smbr(0,0:ngz-1,7) = smbr(0,0:ngz-1,7) + Elem%Aeta(0,0:ngz-1) * VxNz(imin:imax)
+        smbr(0,0:ngz-1,8) = smbr(0,0:ngz-1,8) + Elem%Axi (0,0:ngz-1) * VzNx(imin:imax)
+        smbr(0,0:ngz-1,9) = smbr(0,0:ngz-1,9) + Elem%Aeta(0,0:ngz-1) * VzNz(imin:imax)
         endif
 
         ! UPDATING in time using usual LSERK4
@@ -1121,7 +1151,7 @@ contains
         implicit none
 
         type (Element), intent (INOUT)   :: Elem
-        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: Vxz
+        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: Vhatx,Vhatz,Vhatxz
         integer    :: imin, imax, ngx, ngz
         ngx = Elem%ngllx ; ngz = Elem%ngllz
 
@@ -1134,38 +1164,38 @@ contains
         Elem%TracFace(:,0) = Elem%TracFace(:,0) * Elem%Coeff_Integr_Faces(:)
         Elem%TracFace(:,1) = Elem%TracFace(:,1) * Elem%Coeff_Integr_Faces(:)
 
-        Vxz(:) = 0.5 * ( Elem%Vhat(:,0) * Elem%Normal_Nodes(:,1) &
-                       + Elem%Vhat(:,1) * Elem%Normal_Nodes(:,0))* Elem%Coeff_Integr_Faces(:)
-        Elem%Vhat(:,0) = Elem%Vhat(:,0) * Elem%Normal_Nodes(:,0) * Elem%Coeff_Integr_Faces(:)
-        Elem%Vhat(:,1) = Elem%Vhat(:,1) * Elem%Normal_Nodes(:,1) * Elem%Coeff_Integr_Faces(:)
+        Vhatxz(:) = 0.5 * ( Elem%Vhat(:,0) * Elem%Normal_Nodes(:,1) &
+                          + Elem%Vhat(:,1) * Elem%Normal_Nodes(:,0))* Elem%Coeff_Integr_Faces(:)
+        Vhatx(:) = Elem%Vhat(:,0) * Elem%Normal_Nodes(:,0) * Elem%Coeff_Integr_Faces(:)
+        Vhatz(:) = Elem%Vhat(:,1) * Elem%Normal_Nodes(:,1) * Elem%Coeff_Integr_Faces(:)
 
         ! Adding Strain and velocities traces to Elem%Forces :
         ! For the Bottom Face :
         call get_iminimax(Elem,0,imin,imax)
-        Elem%Forces(0:ngx-1,0,0) = Elem%Forces(0:ngx-1,0,0) + Elem%Vhat(imin:imax,0)
-        Elem%Forces(0:ngx-1,0,1) = Elem%Forces(0:ngx-1,0,1) + Elem%Vhat(imin:imax,1)
-        Elem%Forces(0:ngx-1,0,2) = Elem%Forces(0:ngx-1,0,2) + Vxz(imin:imax)
+        Elem%Forces(0:ngx-1,0,0) = Elem%Forces(0:ngx-1,0,0) + Vhatx (imin:imax)
+        Elem%Forces(0:ngx-1,0,1) = Elem%Forces(0:ngx-1,0,1) + Vhatz (imin:imax)
+        Elem%Forces(0:ngx-1,0,2) = Elem%Forces(0:ngx-1,0,2) + Vhatxz(imin:imax)
         Elem%Forces(0:ngx-1,0,3) = Elem%Forces(0:ngx-1,0,3) + Elem%TracFace(imin:imax,0)
         Elem%Forces(0:ngx-1,0,4) = Elem%Forces(0:ngx-1,0,4) + Elem%TracFace(imin:imax,1)
         ! For the Right Face :
         call get_iminimax(Elem,1,imin,imax)
-        Elem%Forces(ngx-1,0:ngz-1,0) = Elem%Forces(ngx-1,0:ngz-1,0) + Elem%Vhat(imin:imax,0)
-        Elem%Forces(ngx-1,0:ngz-1,1) = Elem%Forces(ngx-1,0:ngz-1,1) + Elem%Vhat(imin:imax,1)
-        Elem%Forces(ngx-1,0:ngz-1,2) = Elem%Forces(ngx-1,0:ngz-1,2) + Vxz(imin:imax)
+        Elem%Forces(ngx-1,0:ngz-1,0) = Elem%Forces(ngx-1,0:ngz-1,0) + Vhatx (imin:imax)
+        Elem%Forces(ngx-1,0:ngz-1,1) = Elem%Forces(ngx-1,0:ngz-1,1) + Vhatz (imin:imax)
+        Elem%Forces(ngx-1,0:ngz-1,2) = Elem%Forces(ngx-1,0:ngz-1,2) + Vhatxz(imin:imax)
         Elem%Forces(ngx-1,0:ngz-1,3) = Elem%Forces(ngx-1,0:ngz-1,3) + Elem%TracFace(imin:imax,0)
         Elem%Forces(ngx-1,0:ngz-1,4) = Elem%Forces(ngx-1,0:ngz-1,4) + Elem%TracFace(imin:imax,1)
         ! For the Top Face :
         call get_iminimax(Elem,2,imin,imax)
-        Elem%Forces(0:ngx-1,ngz-1,0) = Elem%Forces(0:ngx-1,ngz-1,0) + Elem%Vhat(imin:imax,0)
-        Elem%Forces(0:ngx-1,ngz-1,1) = Elem%Forces(0:ngx-1,ngz-1,1) + Elem%Vhat(imin:imax,1)
-        Elem%Forces(0:ngx-1,ngz-1,2) = Elem%Forces(0:ngx-1,ngz-1,2) + Vxz(imin:imax)
+        Elem%Forces(0:ngx-1,ngz-1,0) = Elem%Forces(0:ngx-1,ngz-1,0) + Vhatx (imin:imax)
+        Elem%Forces(0:ngx-1,ngz-1,1) = Elem%Forces(0:ngx-1,ngz-1,1) + Vhatz (imin:imax)
+        Elem%Forces(0:ngx-1,ngz-1,2) = Elem%Forces(0:ngx-1,ngz-1,2) + Vhatxz(imin:imax)
         Elem%Forces(0:ngx-1,ngz-1,3) = Elem%Forces(0:ngx-1,ngz-1,3) + Elem%TracFace(imin:imax,0)
         Elem%Forces(0:ngx-1,ngz-1,4) = Elem%Forces(0:ngx-1,ngz-1,4) + Elem%TracFace(imin:imax,1)
         ! For the Left Face :
         call get_iminimax(Elem,3,imin,imax)
-        Elem%Forces(0,0:ngz-1,0) = Elem%Forces(0,0:ngz-1,0) + Elem%Vhat(imin:imax,0)
-        Elem%Forces(0,0:ngz-1,1) = Elem%Forces(0,0:ngz-1,1) + Elem%Vhat(imin:imax,1)
-        Elem%Forces(0,0:ngz-1,2) = Elem%Forces(0,0:ngz-1,2) + Vxz(imin:imax)
+        Elem%Forces(0,0:ngz-1,0) = Elem%Forces(0,0:ngz-1,0) + Vhatx (imin:imax)
+        Elem%Forces(0,0:ngz-1,1) = Elem%Forces(0,0:ngz-1,1) + Vhatz (imin:imax)
+        Elem%Forces(0,0:ngz-1,2) = Elem%Forces(0,0:ngz-1,2) + Vhatxz(imin:imax)
         Elem%Forces(0,0:ngz-1,3) = Elem%Forces(0,0:ngz-1,3) + Elem%TracFace(imin:imax,0)
         Elem%Forces(0,0:ngz-1,4) = Elem%Forces(0,0:ngz-1,4) + Elem%TracFace(imin:imax,1)
 
