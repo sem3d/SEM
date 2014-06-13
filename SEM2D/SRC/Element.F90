@@ -583,22 +583,6 @@ contains
         Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + Elem%PsiSxxxi (:,:) + Elem%PsiSxzeta(:,:)
         Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + Elem%PsiSxzxi (:,:) + Elem%PsiSzzeta(:,:)
 
-        !Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + Elem%PsiVxxi (:,:) * Elem%Acoeff(:,:,0) &
-        !                                        + Elem%PsiVxeta(:,:) * Elem%Acoeff(:,:,1) &
-        !Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + Elem%PsiVzeta(:,:) * Elem%Acoeff(:,:,3) &
-        !                                        + Elem%PsiVzxi (:,:) * Elem%Acoeff(:,:,2)
-        !Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + 0.5*(Elem%PsiVxxi (:,:) * Elem%Acoeff(:,:,2) &
-        !                                              +Elem%PsiVxeta(:,:) * Elem%Acoeff(:,:,3) &
-        !                                              +Elem%PsiVzxi (:,:) * Elem%Acoeff(:,:,0) &
-        !                                              +Elem%PsiVzeta(:,:) * Elem%Acoeff(:,:,1))
-        !Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + Elem%PsiSxxxi (:,:) * Elem%Acoeff(:,:,0) &
-        !                                        + Elem%PsiSxxeta(:,:) * Elem%Acoeff(:,:,1) &
-        !                                        + Elem%PsiSxzxi (:,:) * Elem%Acoeff(:,:,2) &
-        !                                        + Elem%PsiSxzeta(:,:) * Elem%Acoeff(:,:,3)
-        !Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + Elem%PsiSxzxi (:,:) * Elem%Acoeff(:,:,0) &
-        !                                        + Elem%PsiSxzeta(:,:) * Elem%Acoeff(:,:,1) &
-        !                                        + Elem%PsiSzzxi (:,:) * Elem%Acoeff(:,:,2) &
-        !                                        + Elem%PsiSzzeta(:,:) * Elem%Acoeff(:,:,3)
         return
     end subroutine add_Psi4PML
 
@@ -794,19 +778,19 @@ contains
         s1 = MATMUL(Elem%Aeta,hprimez)
 
         ! Updating convolution :
-        Elem%PsiSxxxi (:,:) = Elem%Bxi (:,:) * Elem%PsiSxxxi (:,:) - Elem%Axi_prime (:,:) * Elem%Stress(:,:,0) & ! - Elem%Stress(:,:,0) * s0 &
+        Elem%PsiSxxxi (:,:) = Elem%Bxi (:,:) * Elem%PsiSxxxi (:,:) - Elem%Axi_prime (:,:) * Elem%Stress(:,:,0) &
             - Elem%Acoeff(:,:,17) * MATMUL(hprime, Elem%Stress(:,:,0)*Elem%Axi(:,:)*Elem%Acoeff(:,:,16))
-        Elem%PsiSxxeta(:,:) = Elem%Beta(:,:) * Elem%PsiSxxeta(:,:) - Elem%Aeta_prime(:,:) * Elem%Stress(:,:,0) & ! - Elem%Stress(:,:,0) * s1 &
+        Elem%PsiSxxeta(:,:) = Elem%Beta(:,:) * Elem%PsiSxxeta(:,:) - Elem%Aeta_prime(:,:) * Elem%Stress(:,:,0) &
             - Elem%Acoeff(:,:,17) * MATMUL(Elem%Stress(:,:,0)*Elem%Aeta(:,:)*Elem%Acoeff(:,:,16), hTprimez)
 
-        Elem%PsiSzzxi (:,:) = Elem%Bxi (:,:) * Elem%PsiSzzxi (:,:) - Elem%Axi_prime (:,:) * Elem%Stress(:,:,1) & ! - Elem%Stress(:,:,1) * s0 &
+        Elem%PsiSzzxi (:,:) = Elem%Bxi (:,:) * Elem%PsiSzzxi (:,:) - Elem%Axi_prime (:,:) * Elem%Stress(:,:,1) &
             - Elem%Acoeff(:,:,17) * MATMUL(hprime, Elem%Stress(:,:,1)*Elem%Axi(:,:)*Elem%Acoeff(:,:,16))
-        Elem%PsiSzzeta(:,:) = Elem%Beta(:,:) * Elem%PsiSzzeta(:,:) - Elem%Aeta_prime(:,:) * Elem%Stress(:,:,1) & ! - Elem%Stress(:,:,1) * s1 &
+        Elem%PsiSzzeta(:,:) = Elem%Beta(:,:) * Elem%PsiSzzeta(:,:) - Elem%Aeta_prime(:,:) * Elem%Stress(:,:,1) &
             - Elem%Acoeff(:,:,17) * MATMUL(Elem%Stress(:,:,1)*Elem%Aeta(:,:)*Elem%Acoeff(:,:,16), hTprimez)
 
-        Elem%PsiSxzxi (:,:) = Elem%Bxi (:,:) * Elem%PsiSxzxi (:,:) - Elem%Axi_prime (:,:) * Elem%Stress(:,:,2) & ! - Elem%Stress(:,:,2) * s0 &
+        Elem%PsiSxzxi (:,:) = Elem%Bxi (:,:) * Elem%PsiSxzxi (:,:) - Elem%Axi_prime (:,:) * Elem%Stress(:,:,2) &
             - Elem%Acoeff(:,:,17) * MATMUL(hprime, Elem%Stress(:,:,2)*Elem%Axi(:,:)*Elem%Acoeff(:,:,16))
-        Elem%PsiSxzeta(:,:) = Elem%Beta(:,:) * Elem%PsiSxzeta(:,:) - Elem%Aeta_prime(:,:) * Elem%Stress(:,:,2) & ! - Elem%Stress(:,:,2) * s1 &
+        Elem%PsiSxzeta(:,:) = Elem%Beta(:,:) * Elem%PsiSxzeta(:,:) - Elem%Aeta_prime(:,:) * Elem%Stress(:,:,2) &
             - Elem%Acoeff(:,:,17) * MATMUL(Elem%Stress(:,:,2)*Elem%Aeta(:,:)*Elem%Acoeff(:,:,16), hTprimez)
 
         ! Updating Forces :

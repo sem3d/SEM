@@ -155,7 +155,7 @@ subroutine define_arrays(Tdomain)
             ! PowOmc is the exponent of the power law of decreasing Omega_c (pulsation de coupure)
             ! in the PML. Usually, Omega_C obbey to a law Omega_c(x) = 2*pi*freq_c (1-(x/L)^{powOmc})
             ! powOmc is set to 1 because it produces better absorbtion on the cases we have studied.
-            powOmc = 1
+            powOmc = 0
             if (Tdomain%sSubDomain(mat)%Px) then
                 ! Computation of dx : the horizontal length of the PML element
                 idef = Tdomain%specel(n)%Iglobnum (0,0); dx = Tdomain%GlobCoord (0,idef)
@@ -300,14 +300,14 @@ subroutine define_arrays(Tdomain)
                         Tdomain%specel(n)%Axi_prime(:,:) = wx_prime(:,:) * Tdomain%specel(n)%Acoeff(:,:,0)
                     endif
                endif
-               if (Tdomain%sSubDomain(mat)%Pz .OR. Tdomain%specel(n)%ADEPML) then
+               if (Tdomain%sSubDomain(mat)%Pz) then
                    if (Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
                        Tdomain%specel(n)%Beta(:,:) = exp(-(wz(:,:) + OmegaCutz(:,:)) * Tdomain%sSubdomain(mat)%Dt)
                        Tdomain%specel(n)%Aeta(:,:) = wz(:,:) * (Tdomain%specel(n)%Beta(:,:) - Id(:,:)) / (wz(:,:) + OmegaCutz(:,:))
                        if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Aeta(:,:) = Tdomain%specel(n)%Beta (:,:) - Id(:,:)
                        Tdomain%specel(n)%Aeta_prime(:,:) = ((Tdomain%specel(n)%Beta(:,:) - Id(:,:)) * du_du_z(:,:) &
                                                            - Tdomain%specel(n)%Beta(:,:) * duuz(:,:)) / (wz(:,:) + OmegaCutz(:,:))**2
-                   else
+                   else ! ADE-PML for HDG
                        Tdomain%specel(n)%Beta(:,:) = wz(:,:) + OmegaCutz(:,:)
                        Tdomain%specel(n)%Aeta(:,:) = wz(:,:)
                        Tdomain%specel(n)%Aeta_prime(:,:) = wz_prime(:,:) * Tdomain%specel(n)%Acoeff(:,:,3)
