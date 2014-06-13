@@ -674,16 +674,20 @@ contains
                       ( Elem%Acoeff(:,:,2) * MATMUL(HTprime,Elem%Veloc(:,:,1)) &
                       + Elem%Acoeff(:,:,3) * MATMUL(Elem%Veloc(:,:,1),Hprimez))
         else
-        smbr(:,:,6) = - Elem%Bxi (:,:) * Elem%PsiVxxi (:,:) + Elem%Axi_prime (:,:) * Elem%Veloc(:,:,0) &
+        smbr(:,:,6) = - Elem%Bxi (:,:) * Elem%PsiVxxi (:,:) &
+                      + Elem%Axi_prime (:,:) * Elem%Veloc(:,:,0) &
                       + MATMUL(Hprime,Elem%Veloc(:,:,0)*Elem%Axi(:,:)*Elem%Acoeff(:,:,0)) &
                       + MATMUL(Elem%Veloc(:,:,0)*Elem%Axi(:,:)*Elem%Acoeff(:,:,1),HTprimez)
-        smbr(:,:,7) = - Elem%Beta(:,:) * Elem%PsiVxeta(:,:) + Elem%Aeta_prime(:,:) * Elem%Veloc(:,:,0) &
+        smbr(:,:,7) = - Elem%Beta(:,:) * Elem%PsiVxeta(:,:) &
+                      + Elem%Aeta_prime(:,:) * Elem%Veloc(:,:,0) &
                       + MATMUL(Hprime,Elem%Veloc(:,:,0)*Elem%Aeta(:,:)*Elem%Acoeff(:,:,2)) &
                       + MATMUL(Elem%Veloc(:,:,0)*Elem%Aeta(:,:)*Elem%Acoeff(:,:,3),HTprimez)
-        smbr(:,:,8) = - Elem%Bxi (:,:) * Elem%PsiVzxi (:,:) + Elem%Axi_prime (:,:) * Elem%Veloc(:,:,1) &
+        smbr(:,:,8) = - Elem%Bxi (:,:) * Elem%PsiVzxi (:,:) &
+                      + Elem%Axi_prime (:,:) * Elem%Veloc(:,:,1) &
                       + MATMUL(Hprime,Elem%Veloc(:,:,1)*Elem%Axi(:,:)*Elem%Acoeff(:,:,0)) &
                       + MATMUL(Elem%Veloc(:,:,1)*Elem%Axi(:,:)*Elem%Acoeff(:,:,1),HTprimez)
-        smbr(:,:,9) = - Elem%Beta(:,:) * Elem%PsiVzeta(:,:) + Elem%Aeta_prime(:,:) * Elem%Veloc(:,:,1) &
+        smbr(:,:,9) = - Elem%Beta(:,:) * Elem%PsiVzeta(:,:) &
+                      + Elem%Aeta_prime(:,:) * Elem%Veloc(:,:,1) &
                       + MATMUL(Hprime,Elem%Veloc(:,:,1)*Elem%Aeta(:,:)*Elem%Acoeff(:,:,2)) &
                       + MATMUL(Elem%Veloc(:,:,1)*Elem%Aeta(:,:)*Elem%Acoeff(:,:,3),HTprimez)
         ! Adding the traces computed from Vhat
@@ -693,28 +697,28 @@ contains
         VzNz(:) = Elem%Vhat(:,1) * Elem%Normal_Nodes(:,1) * Elem%Coeff_integr_Faces(:)
         ! For the Bottom Face :
         call get_iminimax(Elem,0,imin,imax)
-        smbr(0:ngx-1,0,6) = smbr(0:ngx-1,0,6) + Elem%Axi (0:ngx-1,0) * VxNx(imin:imax)
-        smbr(0:ngx-1,0,7) = smbr(0:ngx-1,0,7) + Elem%Aeta(0:ngx-1,0) * VxNz(imin:imax)
-        smbr(0:ngx-1,0,8) = smbr(0:ngx-1,0,8) + Elem%Axi (0:ngx-1,0) * VzNx(imin:imax)
-        smbr(0:ngx-1,0,9) = smbr(0:ngx-1,0,9) + Elem%Aeta(0:ngx-1,0) * VzNz(imin:imax)
+        smbr(0:ngx-1,0,6) = smbr(0:ngx-1,0,6) - Elem%Axi (0:ngx-1,0) * VxNx(imin:imax)
+        smbr(0:ngx-1,0,7) = smbr(0:ngx-1,0,7) - Elem%Aeta(0:ngx-1,0) * VxNz(imin:imax)
+        smbr(0:ngx-1,0,8) = smbr(0:ngx-1,0,8) - Elem%Axi (0:ngx-1,0) * VzNx(imin:imax)
+        smbr(0:ngx-1,0,9) = smbr(0:ngx-1,0,9) - Elem%Aeta(0:ngx-1,0) * VzNz(imin:imax)
         ! For the right Face :
         call get_iminimax(Elem,1,imin,imax)
-        smbr(ngx-1,0:ngz-1,6) = smbr(ngx-1,0:ngz-1,6) + Elem%Axi (ngx-1,0:ngz-1) * VxNx(imin:imax)
-        smbr(ngx-1,0:ngz-1,7) = smbr(ngx-1,0:ngz-1,7) + Elem%Aeta(ngx-1,0:ngz-1) * VxNz(imin:imax)
-        smbr(ngx-1,0:ngz-1,8) = smbr(ngx-1,0:ngz-1,8) + Elem%Axi (ngx-1,0:ngz-1) * VzNx(imin:imax)
-        smbr(ngx-1,0:ngz-1,9) = smbr(ngx-1,0:ngz-1,9) + Elem%Aeta(ngx-1,0:ngz-1) * VzNz(imin:imax)
+        smbr(ngx-1,0:ngz-1,6) = smbr(ngx-1,0:ngz-1,6) - Elem%Axi (ngx-1,0:ngz-1) * VxNx(imin:imax)
+        smbr(ngx-1,0:ngz-1,7) = smbr(ngx-1,0:ngz-1,7) - Elem%Aeta(ngx-1,0:ngz-1) * VxNz(imin:imax)
+        smbr(ngx-1,0:ngz-1,8) = smbr(ngx-1,0:ngz-1,8) - Elem%Axi (ngx-1,0:ngz-1) * VzNx(imin:imax)
+        smbr(ngx-1,0:ngz-1,9) = smbr(ngx-1,0:ngz-1,9) - Elem%Aeta(ngx-1,0:ngz-1) * VzNz(imin:imax)
         ! For the Top Face :
         call get_iminimax(Elem,2,imin,imax)
-        smbr(0:ngx-1,ngz-1,6) = smbr(0:ngx-1,ngz-1,6) + Elem%Axi (0:ngx-1,ngz-1) * VxNx(imin:imax)
-        smbr(0:ngx-1,ngz-1,7) = smbr(0:ngx-1,ngz-1,7) + Elem%Aeta(0:ngx-1,ngz-1) * VxNz(imin:imax)
-        smbr(0:ngx-1,ngz-1,8) = smbr(0:ngx-1,ngz-1,8) + Elem%Axi (0:ngx-1,ngz-1) * VzNx(imin:imax)
-        smbr(0:ngx-1,ngz-1,9) = smbr(0:ngx-1,ngz-1,9) + Elem%Aeta(0:ngx-1,ngz-1) * VzNz(imin:imax)
+        smbr(0:ngx-1,ngz-1,6) = smbr(0:ngx-1,ngz-1,6) - Elem%Axi (0:ngx-1,ngz-1) * VxNx(imin:imax)
+        smbr(0:ngx-1,ngz-1,7) = smbr(0:ngx-1,ngz-1,7) - Elem%Aeta(0:ngx-1,ngz-1) * VxNz(imin:imax)
+        smbr(0:ngx-1,ngz-1,8) = smbr(0:ngx-1,ngz-1,8) - Elem%Axi (0:ngx-1,ngz-1) * VzNx(imin:imax)
+        smbr(0:ngx-1,ngz-1,9) = smbr(0:ngx-1,ngz-1,9) - Elem%Aeta(0:ngx-1,ngz-1) * VzNz(imin:imax)
         ! For the Left Face :
         call get_iminimax(Elem,3,imin,imax)
-        smbr(0,0:ngz-1,6) = smbr(0,0:ngz-1,6) + Elem%Axi (0,0:ngz-1) * VxNx(imin:imax)
-        smbr(0,0:ngz-1,7) = smbr(0,0:ngz-1,7) + Elem%Aeta(0,0:ngz-1) * VxNz(imin:imax)
-        smbr(0,0:ngz-1,8) = smbr(0,0:ngz-1,8) + Elem%Axi (0,0:ngz-1) * VzNx(imin:imax)
-        smbr(0,0:ngz-1,9) = smbr(0,0:ngz-1,9) + Elem%Aeta(0,0:ngz-1) * VzNz(imin:imax)
+        smbr(0,0:ngz-1,6) = smbr(0,0:ngz-1,6) - Elem%Axi (0,0:ngz-1) * VxNx(imin:imax)
+        smbr(0,0:ngz-1,7) = smbr(0,0:ngz-1,7) - Elem%Aeta(0,0:ngz-1) * VxNz(imin:imax)
+        smbr(0,0:ngz-1,8) = smbr(0,0:ngz-1,8) - Elem%Axi (0,0:ngz-1) * VzNx(imin:imax)
+        smbr(0,0:ngz-1,9) = smbr(0,0:ngz-1,9) - Elem%Aeta(0,0:ngz-1) * VzNz(imin:imax)
         endif
 
         ! UPDATING in time using usual LSERK4

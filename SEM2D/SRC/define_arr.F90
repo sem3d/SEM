@@ -297,7 +297,7 @@ subroutine define_arrays(Tdomain)
                     else ! ADE-PML for HDG
                         Tdomain%specel(n)%Bxi(:,:) = wx(:,:) + OmegaCutx(:,:)
                         Tdomain%specel(n)%Axi(:,:) = wx(:,:)
-                        Tdomain%specel(n)%Axi_prime(:,:) = wx_prime(:,:)
+                        Tdomain%specel(n)%Axi_prime(:,:) = wx_prime(:,:) * Tdomain%specel(n)%Acoeff(:,:,0)
                     endif
                endif
                if (Tdomain%sSubDomain(mat)%Pz .OR. Tdomain%specel(n)%ADEPML) then
@@ -310,7 +310,7 @@ subroutine define_arrays(Tdomain)
                    else
                        Tdomain%specel(n)%Beta(:,:) = wz(:,:) + OmegaCutz(:,:)
                        Tdomain%specel(n)%Aeta(:,:) = wz(:,:)
-                       Tdomain%specel(n)%Aeta_prime(:,:) = wz_prime(:,:)
+                       Tdomain%specel(n)%Aeta_prime(:,:) = wz_prime(:,:) * Tdomain%specel(n)%Acoeff(:,:,3)
                    endif
                endif
 
