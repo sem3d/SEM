@@ -35,16 +35,18 @@ contains
             do n = 0, Tdomain%n_elem-1
                 type_DG = Tdomain%specel(n)%Type_DG
                 mat = Tdomain%specel(n)%mat_index
-                if (type_DG .EQ. GALERKIN_CONT) then
-                    call get_Displ_fv2el (Tdomain,n)
-                    call compute_Elastic_Energy(Tdomain%specel(n),Tdomain%sSubDomain(mat)%hTprimex,&
-                        Tdomain%sSubDomain(mat)%hprimez, E_el)
-                    call compute_Kinetic_Energy (Tdomain%specel(n), Dt, E_k)
-                else ! Discontinuous Galerkin cases
-                    call compute_Elastic_Energy_DG (Tdomain%specel(n), E_el)
-                    call compute_Kinetic_Energy_DG (Tdomain%specel(n), E_k)
+                if (.not. Tdomain%specel(n)%PML) then
+                    if (type_DG .EQ. GALERKIN_CONT) then
+                        call get_Displ_fv2el (Tdomain,n)
+                        call compute_Elastic_Energy(Tdomain%specel(n),Tdomain%sSubDomain(mat)%hTprimex,&
+                            Tdomain%sSubDomain(mat)%hprimez, E_el)
+                        call compute_Kinetic_Energy (Tdomain%specel(n), Dt, E_k)
+                    else ! Discontinuous Galerkin cases
+                        call compute_Elastic_Energy_DG (Tdomain%specel(n), E_el)
+                        call compute_Kinetic_Energy_DG (Tdomain%specel(n), E_k)
+                    endif
+                    E_tot = E_tot + E_k + E_el
                 endif
-                E_tot = E_tot + E_k + E_el
             enddo
 
             if (.not. Tdomain%openfilescapt) then

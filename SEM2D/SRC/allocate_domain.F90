@@ -24,7 +24,7 @@ subroutine allocate_domain (Tdomain)
 
   type(domain), intent (INOUT):: Tdomain
 
-  integer :: n,ngllx,ngllz,ngll
+  integer :: n,ngllx,ngllz,ngll,i,j
 
   do n=0,Tdomain%n_elem-1
      ngllx = Tdomain%specel(n)%ngllx
@@ -351,18 +351,19 @@ subroutine allocate_domain (Tdomain)
      enddo
   endif
 
-  !! Special addition for Lamb test : A SUPPRIMER !!!!!!!!
-!  do n=0,Tdomain%n_face-1
-!      i = Tdomain%sFace(n)%Near_Vertex(0)
-!      j = Tdomain%sFace(n)%Near_Vertex(1)
-!      i = Tdomain%sVertex(i)%Glob_numbering
-!      j = Tdomain%sVertex(j)%Glob_numbering
-!      if (Tdomain%coord_nodes(1,i)==0. .and. Tdomain%coord_nodes(1,j)==0. &
-!          .and. Tdomain%sFace(n)%Abs ) then
-!          Tdomain%sFace(n)%freesurf = .true.
-!          Tdomain%sFace(n)%Abs      = .false.
-!      endif
-!  enddo
+  ! Special addition for Lamb test : A SUPPRIMER !!!!!!!!
+  !do n=0,Tdomain%n_face-1
+  !    i = Tdomain%sFace(n)%Near_Vertex(0)
+  !    j = Tdomain%sFace(n)%Near_Vertex(1)
+  !    i = Tdomain%sVertex(i)%Glob_numbering
+  !    j = Tdomain%sVertex(j)%Glob_numbering
+  !    if (Tdomain%coord_nodes(1,i)==1000. .and. Tdomain%coord_nodes(1,j)==1000. &
+  !        .and. Tdomain%sFace(n)%Reflex ) then
+  !        Tdomain%sFace(n)%freesurf = .true.
+  !        Tdomain%sFace(n)%Abs      = .false.
+  !        Tdomain%sFace(n)%Reflex   = .false.
+  !    endif
+  !enddo
   !!! FIN A SUPPRIMER !!!!!!!!
 
   return
