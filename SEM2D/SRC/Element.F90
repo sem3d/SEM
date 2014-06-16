@@ -40,9 +40,9 @@ module selement
 
        ! CPML allocation
        logical :: CPML
-       real, dimension (:,:), allocatable :: Axi, Bxi, Aeta, Beta, Axi_prime, Aeta_prime
-       real, dimension (:,:), allocatable :: PsiVxxi, PsiVxeta, PsiVzxi, PsiVzeta, PsiSxxxi
-       real, dimension (:,:), allocatable :: PsiSxxeta, PsiSzzxi, PsiSzzeta, PsiSxzxi, PsiSxzeta
+       real, dimension (:,:), allocatable :: Ax, Bx, Az, Bz, Ax_prime, Az_prime
+       real, dimension (:,:), allocatable :: PsiVxx, PsiVxz, PsiVzx, PsiVzz
+       real, dimension (:,:), allocatable :: PsiSxxx, PsiSzzz, PsiSxzx, PsiSxzz
 
        real dist_max !!Ajout Gsa 03/10 - taille caracteristique de l'element
     end type element

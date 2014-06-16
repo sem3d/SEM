@@ -54,34 +54,30 @@ subroutine allocate_domain (Tdomain)
             allocate (Tdomain%specel(n)%Beta(0:ngllx-1,0:ngllz-1))
             allocate (Tdomain%specel(n)%Axi_prime (0:ngllx-1,0:ngllz-1))
             allocate (Tdomain%specel(n)%Aeta_prime(0:ngllx-1,0:ngllz-1))
-            allocate (Tdomain%specel(n)%PsiVxxi (0:ngllx-1,0:ngllz-1))
-            allocate (Tdomain%specel(n)%PsiVxeta(0:ngllx-1,0:ngllz-1))
-            allocate (Tdomain%specel(n)%PsiVzxi (0:ngllx-1,0:ngllz-1))
-            allocate (Tdomain%specel(n)%PsiVzeta(0:ngllx-1,0:ngllz-1))
-            allocate (Tdomain%specel(n)%PsiSxxxi (0:ngllx-1,0:ngllz-1))
-            allocate (Tdomain%specel(n)%PsiSxxeta(0:ngllx-1,0:ngllz-1))
-            allocate (Tdomain%specel(n)%PsiSzzxi (0:ngllx-1,0:ngllz-1))
-            allocate (Tdomain%specel(n)%PsiSzzeta(0:ngllx-1,0:ngllz-1))
-            allocate (Tdomain%specel(n)%PsiSxzxi (0:ngllx-1,0:ngllz-1))
-            allocate (Tdomain%specel(n)%PsiSxzeta(0:ngllx-1,0:ngllz-1))
-            Tdomain%specel(n)%Stress    = 0.
-            Tdomain%specel(n)%Acoeff    = 0.
-            Tdomain%specel(n)%Axi       = 0.
-            Tdomain%specel(n)%Aeta      = 0.
-            Tdomain%specel(n)%Bxi       = 0.
-            Tdomain%specel(n)%Beta      = 0.
-            Tdomain%specel(n)%Axi_prime = 0.
-            Tdomain%specel(n)%Aeta_prime= 0.
-            Tdomain%specel(n)%PsiVxxi   = 0.
-            Tdomain%specel(n)%PsiVxeta  = 0.
-            Tdomain%specel(n)%PsiVzxi   = 0.
-            Tdomain%specel(n)%PsiVzeta  = 0.
-            Tdomain%specel(n)%PsiSxxxi  = 0.
-            Tdomain%specel(n)%PsiSxxeta = 0.
-            Tdomain%specel(n)%PsiSzzxi  = 0.
-            Tdomain%specel(n)%PsiSzzeta = 0.
-            Tdomain%specel(n)%PsiSxzxi  = 0.
-            Tdomain%specel(n)%PsiSxzeta = 0.
+            allocate (Tdomain%specel(n)%PsiVxx (0:ngllx-1,0:ngllz-1))
+            allocate (Tdomain%specel(n)%PsiVxz (0:ngllx-1,0:ngllz-1))
+            allocate (Tdomain%specel(n)%PsiVzx (0:ngllx-1,0:ngllz-1))
+            allocate (Tdomain%specel(n)%PsiVzz (0:ngllx-1,0:ngllz-1))
+            allocate (Tdomain%specel(n)%PsiSxxx (0:ngllx-1,0:ngllz-1))
+            allocate (Tdomain%specel(n)%PsiSzzz (0:ngllx-1,0:ngllz-1))
+            allocate (Tdomain%specel(n)%PsiSxzx (0:ngllx-1,0:ngllz-1))
+            allocate (Tdomain%specel(n)%PsiSxzz (0:ngllx-1,0:ngllz-1))
+            Tdomain%specel(n)%Stress   = 0.
+            Tdomain%specel(n)%Acoeff   = 0.
+            Tdomain%specel(n)%Ax       = 0.
+            Tdomain%specel(n)%Az       = 0.
+            Tdomain%specel(n)%Bx       = 0.
+            Tdomain%specel(n)%Bz       = 0.
+            Tdomain%specel(n)%Ax_prime = 0.
+            Tdomain%specel(n)%Az_prime = 0.
+            Tdomain%specel(n)%PsiVxx   = 0.
+            Tdomain%specel(n)%PsiVxz   = 0.
+            Tdomain%specel(n)%PsiVzx   = 0.
+            Tdomain%specel(n)%PsiVzz   = 0.
+            Tdomain%specel(n)%PsiSxxx  = 0.
+            Tdomain%specel(n)%PsiSzzz  = 0.
+            Tdomain%specel(n)%PsiSxzx  = 0.
+            Tdomain%specel(n)%PsiSxzz  = 0.
         elseif (Tdomain%specel(n)%PML ) then
             allocate (Tdomain%specel(n)%Stress (  0:ngllx-1, 0:ngllz-1, 0:2 ))
             allocate (Tdomain%specel(n)%Forces1 (0:ngllx-1,0:ngllz-1,0:1) )

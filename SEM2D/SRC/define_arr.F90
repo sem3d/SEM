@@ -262,18 +262,18 @@ subroutine define_arrays(Tdomain)
 
             elseif (Tdomain%specel(n)%CPML) then
                 if (Tdomain%sSubDomain(mat)%Px) then
-                    Tdomain%specel(n)%Bxi(:,:)  = exp(-(wx(:,:) + OmegaCutx(:,:)) * Tdomain%sSubdomain(mat)%Dt)
-                    Tdomain%specel(n)%Axi(:,:)  = wx(:,:) * (Tdomain%specel(n)%Bxi (:,:) - Id(:,:)) / (wx(:,:) + OmegaCutx(:,:))
-                    if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Axi(:,:) = Tdomain%specel(n)%Bxi (:,:) - Id(:,:)
-                    Tdomain%specel(n)%Axi_prime(:,:) = ((Tdomain%specel(n)%Bxi(:,:) - Id(:,:)) * du_du_x(:,:)  &
-                                                       - Tdomain%specel(n)%Bxi(:,:) * duux(:,:))/ (wx(:,:) + OmegaCutx(:,:))**2
+                    Tdomain%specel(n)%Bx(:,:)  = exp(-(wx(:,:) + OmegaCutx(:,:)) * Tdomain%sSubdomain(mat)%Dt)
+                    Tdomain%specel(n)%Ax(:,:)  = wx(:,:) * (Tdomain%specel(n)%Bx(:,:) - Id(:,:)) / (wx(:,:) + OmegaCutx(:,:))
+                    if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Ax(:,:) = Tdomain%specel(n)%Bx(:,:) - Id(:,:)
+                    Tdomain%specel(n)%Ax_prime(:,:) = ((Tdomain%specel(n)%Bx(:,:) - Id(:,:)) * du_du_x(:,:)  &
+                                                       - Tdomain%specel(n)%Bx(:,:) * duux(:,:))/ (wx(:,:) + OmegaCutx(:,:))**2
                endif
                if (Tdomain%sSubDomain(mat)%Pz) then
-                   Tdomain%specel(n)%Beta(:,:) = exp(-(wz(:,:) + OmegaCutz(:,:)) * Tdomain%sSubdomain(mat)%Dt)
-                   Tdomain%specel(n)%Aeta(:,:) = wz(:,:) * (Tdomain%specel(n)%Beta(:,:) - Id(:,:)) / (wz(:,:) + OmegaCutz(:,:))
-                   if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Aeta(:,:) = Tdomain%specel(n)%Beta (:,:) - Id(:,:)
-                   Tdomain%specel(n)%Aeta_prime(:,:) = ((Tdomain%specel(n)%Beta(:,:) - Id(:,:)) * du_du_z(:,:) &
-                                                       - Tdomain%specel(n)%Beta(:,:) * duuz(:,:)) / (wz(:,:) + OmegaCutz(:,:))**2
+                   Tdomain%specel(n)%Bz(:,:) = exp(-(wz(:,:) + OmegaCutz(:,:)) * Tdomain%sSubdomain(mat)%Dt)
+                   Tdomain%specel(n)%Az(:,:) = wz(:,:) * (Tdomain%specel(n)%Bz(:,:) - Id(:,:)) / (wz(:,:) + OmegaCutz(:,:))
+                   if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Az(:,:) = Tdomain%specel(n)%Bz(:,:) - Id(:,:)
+                   Tdomain%specel(n)%Az_prime(:,:) = ((Tdomain%specel(n)%Bz(:,:) - Id(:,:)) * du_du_z(:,:) &
+                                                       - Tdomain%specel(n)%Bz(:,:) * duuz(:,:)) / (wz(:,:) + OmegaCutz(:,:))**2
                 endif
 
             else ! Usual PML
