@@ -503,6 +503,8 @@ contains
     !!
     !! \param type (Element), intent (INOUT) Elem
     !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
+    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTprime
+    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hprimez
     !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
     !<
 
@@ -514,35 +516,41 @@ contains
         real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: dAxdx,dAzdz,s0,s1
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime, hTprime
         real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
+        logical :: withIntegrationByPart  = .false.
 
- dAxdx = Elem%Acoeff(:,:,12)*MATMUL(hTprime,Elem%Ax) + Elem%Acoeff(:,:,13)*MATMUL(Elem%Ax,hprimez)
- dAzdz = Elem%Acoeff(:,:,14)*MATMUL(hTprime,Elem%Az) + Elem%Acoeff(:,:,15)*MATMUL(Elem%Az,hprimez)
+        dAxdx = Elem%Acoeff(:,:,12)*MATMUL(hTprime,Elem%Ax) &
+              + Elem%Acoeff(:,:,13)*MATMUL(Elem%Ax,hprimez)
+        dAzdz = Elem%Acoeff(:,:,14)*MATMUL(hTprime,Elem%Az) &
+              + Elem%Acoeff(:,:,15)*MATMUL(Elem%Az,hprimez)
 
         ! Updating convolution :
-        !Elem%PsiSxxx(:,:) = Elem%Bx(:,:)*Elem%PsiSxxx(:,:) + Elem%Stress(:,:,0)*dAxdx(:,:) &
-        !                  + MATMUL(hprime,Elem%Stress(:,:,0)*Elem%Acoeff(:,:,12)*Elem%Ax(:,:)) &
-        !                  + MATMUL(Elem%Stress(:,:,0)*Elem%Acoeff(:,:,13)*Elem%Ax(:,:),hTprimez)
+        if (withIntegrationByPart) then ! With Integration by part
+        Elem%PsiSxxx(:,:) = Elem%Bx(:,:)*Elem%PsiSxxx(:,:) + Elem%Stress(:,:,0)*dAxdx(:,:) &
+                          + MATMUL(hprime,Elem%Stress(:,:,0)*Elem%Acoeff(:,:,12)*Elem%Ax(:,:)) &
+                          + MATMUL(Elem%Stress(:,:,0)*Elem%Acoeff(:,:,13)*Elem%Ax(:,:),hTprimez)
+        Elem%PsiSzzz(:,:) = Elem%Bz(:,:)*Elem%PsiSzzz(:,:) + Elem%Stress(:,:,1)*dAzdz(:,:) &
+                          + MATMUL(hprime,Elem%Stress(:,:,1)*Elem%Acoeff(:,:,14)*Elem%Az(:,:)) &
+                          + MATMUL(Elem%Stress(:,:,1)*Elem%Acoeff(:,:,15)*Elem%Az(:,:),hTprimez)
+        Elem%PsiSxzx(:,:) = Elem%Bx(:,:)*Elem%PsiSxzx(:,:) + Elem%Stress(:,:,2)*dAxdx(:,:) &
+                          + MATMUL(hprime,Elem%Stress(:,:,2)*Elem%Acoeff(:,:,12)*Elem%Ax(:,:)) &
+                          + MATMUL(Elem%Stress(:,:,2)*Elem%Acoeff(:,:,13)*Elem%Ax(:,:),hTprimez)
+        Elem%PsiSxzz(:,:) = Elem%Bz(:,:)*Elem%PsiSxzz(:,:) + Elem%Stress(:,:,2)*dAzdz(:,:) &
+                          + MATMUL(hprime,Elem%Stress(:,:,2)*Elem%Acoeff(:,:,14)*Elem%Az(:,:)) &
+                          + MATMUL(Elem%Stress(:,:,2)*Elem%Acoeff(:,:,15)*Elem%Az(:,:),hTprimez)
+        else ! Without Integration by part
         Elem%PsiSxxx(:,:) = Elem%Bx(:,:)*Elem%PsiSxxx(:,:) - Elem%Ax(:,:) * &
-                          ( Elem%Acoeff(:,:,12) * MATMUL(hTprime,Elem%Stress(:,:,0))) &
+                          ( Elem%Acoeff(:,:,12) * MATMUL(hTprime,Elem%Stress(:,:,0)) &
                           + Elem%Acoeff(:,:,13) * MATMUL(Elem%Stress(:,:,0),hprimez))
-        !Elem%PsiSzzz(:,:) = Elem%Bz(:,:)*Elem%PsiSzzz(:,:) + Elem%Stress(:,:,1)*dAzdz(:,:) &
-        !                  + MATMUL(hprime,Elem%Stress(:,:,1)*Elem%Acoeff(:,:,14)*Elem%Az(:,:)) &
-        !                  + MATMUL(Elem%Stress(:,:,1)*Elem%Acoeff(:,:,15)*Elem%Az(:,:),hTprimez)
         Elem%PsiSzzz(:,:) = Elem%Bz(:,:)*Elem%PsiSzzz(:,:) - Elem%Az(:,:) * &
                           ( Elem%Acoeff(:,:,14) * MATMUL(hTprime,Elem%Stress(:,:,1)) &
                           + Elem%Acoeff(:,:,15) * MATMUL(Elem%Stress(:,:,1),hprimez))
-        !Elem%PsiSxzx(:,:) = Elem%Bx(:,:)*Elem%PsiSxzx(:,:) + Elem%Stress(:,:,2)*dAxdx(:,:) &
-        !                  + MATMUL(hprime,Elem%Stress(:,:,2)*Elem%Acoeff(:,:,12)*Elem%Ax(:,:)) &
-        !                  + MATMUL(Elem%Stress(:,:,2)*Elem%Acoeff(:,:,13)*Elem%Ax(:,:),hTprimez)
         Elem%PsiSxzx(:,:) = Elem%Bx(:,:)*Elem%PsiSxzx(:,:) - Elem%Ax(:,:) * &
                           ( Elem%Acoeff(:,:,12) * MATMUL(hTprime,Elem%Stress(:,:,2)) &
                           + Elem%Acoeff(:,:,13) * MATMUL(Elem%Stress(:,:,2),hprimez))
-        !Elem%PsiSxzz(:,:) = Elem%Bz(:,:)*Elem%PsiSxzz(:,:) + Elem%Stress(:,:,2)*dAzdz(:,:) &
-        !                  + MATMUL(hprime,Elem%Stress(:,:,2)*Elem%Acoeff(:,:,14)*Elem%Az(:,:)) &
-        !                  + MATMUL(Elem%Stress(:,:,2)*Elem%Acoeff(:,:,15)*Elem%Az(:,:),hTprimez)
         Elem%PsiSxzz(:,:) = Elem%Bz(:,:)*Elem%PsiSxzz(:,:) - Elem%Az(:,:) * &
                           ( Elem%Acoeff(:,:,14) * MATMUL(hTprime,Elem%Stress(:,:,2)) &
                           + Elem%Acoeff(:,:,15) * MATMUL(Elem%Stress(:,:,2),hprimez))
+        endif
 
         ! Updating Forces :
         s0 = Elem%Acoeff(:,:,12) * Elem%Stress(:,:,0) + Elem%Acoeff(:,:,14) * Elem%Stress(:,:,2)

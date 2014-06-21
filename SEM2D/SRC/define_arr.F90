@@ -133,7 +133,7 @@ subroutine define_arrays(Tdomain)
             ! PowOmc is the exponent of the power law of decreasing Omega_c (pulsation de coupure)
             ! in the PML. Usually, Omega_C obbey to a law Omega_c(x) = 2*pi*freq_c (1-(x/L)^{powOmc})
             ! powOmc is set to 1 because it produces better absorbtion on the cases we have studied.
-            powOmc = 0
+            powOmc = 1
             if (Tdomain%sSubDomain(mat)%Px) then
                 ! Computation of dx : the horizontal length of the PML element
                 idef = Tdomain%specel(n)%Iglobnum (0,0); dx = Tdomain%GlobCoord (0,idef)
