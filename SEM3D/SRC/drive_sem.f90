@@ -23,7 +23,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     ! Hors couplage on doit avoir -1 MPI_COMM_WORLD, MPI_COMM_WORLD
     integer, intent(in) :: communicateur, communicateur_global, master_superviseur
 
-    type(domain), target :: Tdomain
+    type(domain) :: Tdomain
 
     integer :: code, rg, nb_procs, ntime, i_snap, n
     integer :: i, isort, ierr
@@ -428,7 +428,7 @@ subroutine TIME_STEPPING(Tdomain,rg,isort,ntime)
 
     implicit none
 
-    type(domain), target :: Tdomain
+    type(domain) :: Tdomain
     integer, intent(inout)  :: rg,isort
     integer, intent(out)  :: ntime
 
@@ -572,7 +572,7 @@ subroutine MKA_COUPLING_OUT(Tdomain,rg,ntime,interrupt,protection,i_snap)
 
     implicit none
 
-    type(domain), target :: Tdomain
+    type(domain) :: Tdomain
     integer, intent(in)  :: rg,ntime
     integer, intent(inout) :: interrupt,protection,i_snap
 
@@ -625,7 +625,7 @@ subroutine OUTPUT_SNAPSHOTS(Tdomain,nb_procs,rg,ntime,isort)
 
     implicit none
 
-    type(domain), target   :: Tdomain
+    type(domain)  :: Tdomain
     integer, intent(in)    :: rg,ntime,nb_procs
     integer, intent(inout) :: isort
     character(Len=MAX_FILE_SIZE) :: fnamef
@@ -658,7 +658,7 @@ subroutine END_SEM(Tdomain,rg,ntime)
 
     implicit none
 
-    type(domain), target :: Tdomain
+    type(domain) :: Tdomain
     integer, intent(in)  :: rg,ntime
 
     

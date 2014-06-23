@@ -54,6 +54,7 @@ contains
                 Tdomain%openfilescapt = .true.
             endif
             write(51,*) Tdomain%TimeD%rtime, E_tot
+            call flush(51)
         endif
         return
     end subroutine global_energy_generalized
@@ -124,6 +125,7 @@ contains
             Tdomain%openfilescapt = .true.
         endif
         write(51,*) Tdomain%TimeD%rtime, E_tot
+        call flush(51)
 
         return
     end subroutine global_energy
