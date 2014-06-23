@@ -131,6 +131,7 @@ subroutine Runge_Kutta4 (Tdomain, dt)
                      call get_Vhat_f2el(Tdomain,n,nface,nf)
                  enddo
                  call Compute_Traces (Tdomain%specel(n))
+                 if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,n)
              elseif (type_DG==GALERKIN_DG_WEAK .OR. type_DG==GALERKIN_DG_STRONG) then ! Disc Galerkin
                  do nf = 0,3        ! Computation of the fluxes
                      nface = Tdomain%specel(n)%Near_Face(nf)

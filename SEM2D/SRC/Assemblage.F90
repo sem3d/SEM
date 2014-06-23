@@ -306,6 +306,47 @@ subroutine Get_Vhat_f2el (Tdomain, nelem, nface, w_face)
 
 end subroutine Get_Vhat_f2el
 
+
+!>
+!!\brief This Subroutine enforces the Dirichlet Boundary Conditions (Veloc = 0)
+!! in a DG or HDG context, setting the corresponding forces to zero.
+!! Subroutine particularly usefull in a context using PML.
+!!\version 1.0
+!!\date 20/06/2014
+!! This subroutine is used only with DG and HDG elements
+!<
+subroutine enforce_diriclet_BC (Tdomain, nelem)
+
+    use sdomain
+    implicit none
+
+    type (domain), intent (INOUT) :: Tdomain
+    integer, intent(in)   :: nelem
+    integer :: i, nface, ngllx, ngllz
+    logical :: is_refl
+
+    ngllx = Tdomain%specel(nelem)%ngllx
+    ngllz = Tdomain%specel(nelem)%ngllz
+
+    do i=0,3
+        nface = Tdomain%specel(nelem)%Near_Face(i)
+        is_refl = Tdomain%sFace(nface)%reflex
+        if (is_refl) then
+            select case (i)
+            case(0)
+                Tdomain%specel(nelem)%Forces(0:ngllx-1,0,3:4) = 0.
+            case(1)
+                Tdomain%specel(nelem)%Forces(ngllx-1,0:ngllz-1,3:4) = 0.
+            case(2)
+                Tdomain%specel(nelem)%Forces(0:ngllx-1,ngllz-1,3:4) = 0.
+            case(3)
+                Tdomain%specel(nelem)%Forces(0,0:ngllz-1,3:4) = 0.
+            end select
+        endif
+    enddo
+
+end subroutine enforce_diriclet_BC
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
