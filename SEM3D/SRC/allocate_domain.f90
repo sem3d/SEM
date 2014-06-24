@@ -63,9 +63,9 @@ subroutine allocate_domain (Tdomain, rg)
                     allocate(Tdomain%specel(n)%slpml%Residual_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%slpml%Residual_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%slpml%Residual_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%slpml%Veloc1(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                    allocate(Tdomain%specel(n)%slpml%Veloc2(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                    allocate(Tdomain%specel(n)%slpml%Veloc3(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+                    allocate(Tdomain%specel(n)%slpml%Veloc1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%slpml%Veloc2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                    allocate(Tdomain%specel(n)%slpml%Veloc3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%slpml%Forces1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%slpml%Forces2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%slpml%Forces3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
@@ -73,9 +73,9 @@ subroutine allocate_domain (Tdomain, rg)
                     allocate(Tdomain%specel(n)%slpml%DumpSy(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
                     allocate(Tdomain%specel(n)%slpml%DumpSz(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
                     allocate(Tdomain%specel(n)%slpml%DumpMass(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%slpml%DumpVx(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
-                    allocate(Tdomain%specel(n)%slpml%DumpVy(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
-                    allocate(Tdomain%specel(n)%slpml%DumpVz(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
+                    allocate(Tdomain%specel(n)%slpml%DumpVx(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
+                    allocate(Tdomain%specel(n)%slpml%DumpVy(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
+                    allocate(Tdomain%specel(n)%slpml%DumpVz(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
                     Tdomain%specel(n)%slpml%Diagonal_Stress = 0d0
                     Tdomain%specel(n)%slpml%Diagonal_Stress1 = 0d0
                     Tdomain%specel(n)%slpml%Diagonal_Stress2 = 0d0
@@ -761,6 +761,16 @@ subroutine allocate_domain (Tdomain, rg)
         ! Allocation de Tdomain%MassMatSol pour les solides
         allocate(Tdomain%MassMatSol(0:Tdomain%ngll_s-1))
         Tdomain%MassMatSol = 0d0
+    endif
+
+    ! Allocation et initialisation de Tdomain%champs0 pour les PML solides
+    if (Tdomain%ngll_pmls /= 0) then
+        allocate(Tdomain%champs1%ForcesPML(0:(Tdomain%ngll_pmls*3)-1,0:2))
+        allocate(Tdomain%champs0%VelocPML(0:(Tdomain%ngll_pmls*3)-1,0:2))
+        allocate(Tdomain%champs0%DumpV(0:(Tdomain%ngll_pmls*3)-1,0:1))
+        Tdomain%champs1%ForcesPML = 0d0
+        Tdomain%champs0%VelocPML = 0d0
+        Tdomain%champs0%DumpV = 0d0
     endif
 
     ! Allocation et initialisation de Tdomain%champs0 et champs1 pour les fluides

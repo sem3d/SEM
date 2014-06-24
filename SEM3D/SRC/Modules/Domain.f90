@@ -89,6 +89,10 @@ module sdomain
        ! MassMat pour elements solide
        real, dimension(:), allocatable :: MassMatSol, MassMatFlu
 
+       ! Interface Solide / PML
+       integer :: nbInterfSolPml ! nombre de points de gauss à l'interface Solide / PML
+       integer, dimension(:,:), allocatable :: InterfSolPml ! dimension(0:nbInterfSolPml-1,0:1), 0 Sol, 1 PML
+
     end type domain
 
 contains

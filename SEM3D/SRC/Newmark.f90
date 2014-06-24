@@ -372,6 +372,11 @@ subroutine Newmark_Predictor2(Tdomain,champs1)
 
     type(domain), intent(inout)   :: Tdomain
     type(champs), intent(inout) :: champs1
+    integer :: nel, mat, n, indsol, indpml
+    real :: bega, dt
+
+    bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
+    dt = Tdomain%TimeD%dtmin
 
     ! Elements solide
     if (Tdomain%ngll_s /= 0) then
@@ -385,6 +390,38 @@ subroutine Newmark_Predictor2(Tdomain,champs1)
         champs1%VelPhi = Tdomain%champs0%VelPhi
         champs1%Phi = Tdomain%champs0%Phi
         champs1%ForcesFl = 0d0
+    endif
+
+    ! Elements solide pml
+    if (Tdomain%ngll_pmls /= 0) then
+        do n = 0,Tdomain%nbInterfSolPml-1
+            ! Couplage à l'interface solide / PML
+            indsol = Tdomain%InterfSolPml(n,0)
+            indpml = Tdomain%InterfSolPml(n,1)
+            Tdomain%champs0%VelocPML(indpml,:) = Tdomain%champs0%Veloc(indsol,:)
+            Tdomain%champs0%VelocPML(indpml+1,:) = 0.
+            Tdomain%champs0%VelocPML(indpml+2,:) = 0.
+        enddo
+
+        do nel = 0,Tdomain%n_elem-1
+            if (Tdomain%specel(nel)%PML) then
+                mat = Tdomain%specel(nel)%mat_index
+                if (Tdomain%curve) then
+                    ! TODO
+                else
+                    if (Tdomain%specel(nel)%FPML) then
+                        ! TODO
+                    else
+                        call Prediction_Elem_PML_Veloc_2(Tdomain%specel(nel), bega, dt, &
+                                                         Tdomain%sSubDomain(mat)%hTPrimex, &
+                                                         Tdomain%sSubDomain(mat)%hPrimey, &
+                                                         Tdomain%sSubDomain(mat)%hprimez, &
+                                                         Tdomain%champs0%VelocPML, &
+                                                         Tdomain%champs1%ForcesPML)
+                    endif
+                endif
+            endif
+        enddo
     endif
 
     return
@@ -530,8 +567,19 @@ subroutine Newmark_Corrector2(Tdomain,champs1)
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
-    type(champs), intent(inout)   :: champs1
+    type(champs), intent(in)   :: champs1
     integer  :: n, i_dir
+
+    if (Tdomain%ngll_pmls /= 0) then
+        do i_dir = 0,2
+            Tdomain%champs0%VelocPML(:,i_dir) = Tdomain%champs0%DumpV(:,0) * &
+                                                Tdomain%champs0%VelocPML(:,i_dir) + &
+                                                Tdomain%TimeD%dtmin * &
+                                                Tdomain%champs0%DumpV(:,1) * &
+                                                champs1%ForcesPML(:,i_dir)
+        enddo
+        ! Eventuellement : DeplaPML(:,:) = DeplaPML(:,:) + dt * VelocPML(:,:)
+    endif
 
     ! Si il existe des éléments solide
     if (Tdomain%ngll_s /= 0) then
@@ -542,7 +590,6 @@ subroutine Newmark_Corrector2(Tdomain,champs1)
         enddo
         Tdomain%champs0%Veloc = Tdomain%champs0%Veloc + Tdomain%TimeD%dtmin * Tdomain%champs0%Forces
         Tdomain%champs0%Depla = Tdomain%champs0%Depla + Tdomain%TimeD%dtmin * Tdomain%champs0%Veloc
-
     endif
 
     ! Si il existe des éléments fluide
@@ -612,7 +659,7 @@ subroutine internal_forces2(Tdomain,champs1)
 
     type(domain), intent(inout)  :: Tdomain
     type(champs), intent(inout) :: champs1
-    integer  :: n,mat
+    integer  :: n,mat, indsol, indpml
 
     do n = 0,Tdomain%n_elem-1
         mat = Tdomain%specel(n)%mat_index
@@ -622,8 +669,28 @@ subroutine internal_forces2(Tdomain,champs1)
                 Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
                 Tdomain%sSubDomain(mat)%hTprimez, Tdomain%n_sls,Tdomain%aniso,     &
                 Tdomain%specel(n)%solid, champs1)
+        else ! PML
+            if (Tdomain%specel(n)%solid)then
+                call compute_InternalForces_PML_Elem_2(Tdomain%specel(n),                &
+                    Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimey, &
+                    Tdomain%sSubDomain(mat)%hTprimez, Tdomain%ngll_pmls, champs1%ForcesPML)
+            else
+                ! TODO
+            endif
         endif
     enddo
+
+    ! Couplage interface solide / PML
+    if (Tdomain%ngll_pmls > 0) then
+        do n = 0,Tdomain%nbInterfSolPml-1
+            indsol = Tdomain%InterfSolPml(n,0)
+            indpml = Tdomain%InterfSolPml(n,1)
+            champs1%Forces(indsol,:) = champs1%Forces(indsol,:) + &
+                                       champs1%ForcesPML(indpml,:) + &
+                                       champs1%ForcesPML(indpml+1,:) + &
+                                       champs1%ForcesPML(indpml+2,:)
+        enddo
+    endif
 
     return
 end subroutine internal_forces2

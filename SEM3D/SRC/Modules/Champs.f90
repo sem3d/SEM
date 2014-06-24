@@ -15,7 +15,9 @@ module schamps
         real, dimension(:,:), allocatable :: Veloc
 
         !! Solide PML
-
+        real, dimension(:,:), allocatable :: ForcesPML
+        real, dimension(:,:), allocatable :: VelocPML
+        real, dimension(:,:), allocatable :: DumpV
 
         !! Fluide 
         real, dimension(:), allocatable :: ForcesFl

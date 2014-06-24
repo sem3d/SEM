@@ -225,6 +225,13 @@ subroutine RUN_PREPARED(Tdomain,rg)
     call compute_GLL(Tdomain)
     call MPI_Barrier(Tdomain%communicateur, code)
 
+!- absorbing layers (PMLs)
+    if (Tdomain%any_PML)then
+        if (rg == 0) write (*,*) "Attribute PML properties "
+        call PML_definition(Tdomain)
+    endif
+    call MPI_BARRIER(Tdomain%communicateur,code)
+
 !- from elementary to global numbering
     if (rg == 0) write (*,*) "--> DEFINING A GLOBAL NUMBERING FOR COLLOCATION POINTS"
     call global_numbering (Tdomain,rg)
@@ -246,14 +253,6 @@ subroutine RUN_PREPARED(Tdomain,rg)
     if (rg == 0) write (*,*) "--> COMPUTING COURANT PARAMETER"
     call compute_Courant(Tdomain,rg)
     call MPI_Barrier(Tdomain%communicateur,code)
-
-!- absorbing layers (PMLs)
-    if (Tdomain%any_PML)then
-        if (rg == 0) write (*,*) "--> ATTRIBUTING PMLs PROPERTIES"
-        call PML_definition(Tdomain)
-    endif
-    call MPI_Barrier(Tdomain%communicateur,code)
-
 
 !- allocation of different fields' sizes 
     if (rg == 0) write (*,*) "--> ALLOCATING FIELDS"
