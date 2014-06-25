@@ -294,7 +294,7 @@ contains
         !          F%Forces(:,i) = F%MassMat(:)  * F%Forces(:,i)
         !      enddo
         !  fin test modif
-        if (F%Abs) F%Forces = 0
+        if (F%Abs .or. F%reflex) F%Forces = 0
         !  test mariotti
         !      F%Veloc  = F%v0+ dt * F%Forces
         !      F%Accel  = F%Accel + gam1 /dt * (F%Veloc-F%V0)
@@ -323,7 +323,7 @@ contains
 
         F%V0 = F%Veloc
 
-        if  (F%Abs) then
+        if  (F%Abs .or. F%reflex) then
             F%Veloc1 = 0; F%Veloc2 = 0; F%Veloc = 0
         else
 
@@ -354,7 +354,7 @@ contains
         ngll = F%ngll
         F%V0 = F%Veloc
 
-        if  (F%Abs) then
+        if  (F%Abs .or. F%reflex) then
             F%Veloc = 0
         else
             do i = 0,1
@@ -392,7 +392,7 @@ contains
         fil2 = fil**2
         F%V0 = F%Veloc
 
-        if  (F%Abs) then
+        if  (F%Abs .or. F%reflex) then
             F%Veloc1 = 0; F%Veloc2 = 0; F%Veloc = 0
         else
 

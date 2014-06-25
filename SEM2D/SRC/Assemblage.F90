@@ -347,6 +347,42 @@ subroutine enforce_diriclet_BC (Tdomain, nelem)
 
 end subroutine enforce_diriclet_BC
 
+!>
+!!\brief This Subroutine enforces the Dirichlet Boundary Conditions (Veloc = 0)
+!! in a DG or HDG context, setting the corresponding forces to zero.
+!! Subroutine particularly usefull in a context using PML.
+!!\version 1.0
+!!\date 20/06/2014
+!! This subroutine is used only with DG and HDG elements
+!<
+subroutine enforce_diriclet_corners_vhat (Tdomain, nelem)
+
+    use sdomain
+    implicit none
+
+    type (domain), intent (INOUT) :: Tdomain
+    integer, intent(in)   :: nelem
+    integer :: i, nface, ngllx, ngllz, nglltot, imin, imax, index1, index2
+    logical :: is_refl
+
+    ngllx = Tdomain%specel(nelem)%ngllx
+    ngllz = Tdomain%specel(nelem)%ngllz
+    nglltot = 2*(ngllx + ngllz)
+
+    do i=0,3
+        nface = Tdomain%specel(nelem)%Near_Face(i)
+        is_refl = Tdomain%sFace(nface)%reflex
+        if (is_refl) then
+           call get_iminimax(Tdomain%specel(nelem),i,imin,imax)
+           index1 = modulo(imin-1,nglltot)
+           index2 = modulo(imax+1,nglltot)
+           Tdomain%specel(nelem)%Vhat(index1,:) = 0.
+           Tdomain%specel(nelem)%Vhat(index2,:) = 0.
+        endif
+    enddo
+
+end subroutine enforce_diriclet_corners_vhat
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

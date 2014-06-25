@@ -13,7 +13,7 @@ module svertices
 
     type :: vertex
 
-       logical :: PML, Abs, FPML, CPML, ADEPML, is_computed
+       logical :: PML, Abs, reflex, FPML, CPML, ADEPML, is_computed
        integer :: Glob_Numbering, mat_index, Type_DG
        real :: MassMat
        real, dimension (:), allocatable :: DumpMass, DumpVx, DumpVz, Forces1, Forces2, Veloc1, Veloc2
@@ -82,7 +82,7 @@ contains
             V%Forces(i) = V%MassMat * V%Forces(i)
         enddo
 
-        if (V%Abs) V%Forces = 0
+        if (V%Abs .or. V%reflex) V%Forces = 0
         !  test mariotti
         !      V%Veloc  = V%v0+ dt * V%Forces
         !      V%Accel  = V%Accel + gam1 /dt * (V%Veloc-V%V0)
@@ -110,7 +110,7 @@ contains
 
         integer :: i
 
-        if  (V%Abs) then
+        if  (V%Abs .or. V%reflex) then
             V%Veloc1 = 0; V%Veloc2 = 0; V%Veloc = 0
         else
             V%V0 = V%Veloc
@@ -143,7 +143,7 @@ contains
         integer :: i
 
         V%V0 = V%Veloc
-        if (V%Abs) then
+        if (V%Abs .or. V%reflex) then
             V%Veloc = 0
         else
             do i = 0,1
@@ -178,7 +178,7 @@ contains
         fil2 = fil**2
         V%V0 = V%Veloc
 
-        if  (V%Abs) then
+        if  (V%Abs .or. V%reflex) then
             V%Veloc1 = 0; V%Veloc2 = 0; V%Veloc = 0
         else
 

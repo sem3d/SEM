@@ -266,6 +266,12 @@ subroutine allocate_domain (Tdomain)
          Tdomain%sFace(n)%freesurf = .false.
          Tdomain%sFace(n)%reflex   = .false.
      endif
+     i = Tdomain%sFace(n)%Near_Vertex(0)
+     j = Tdomain%sFace(n)%Near_Vertex(1)
+     Tdomain%sVertex(i)%abs    = Tdomain%sFace(n)%abs
+     Tdomain%sVertex(j)%abs    = Tdomain%sFace(n)%abs
+     Tdomain%sVertex(i)%reflex = Tdomain%sFace(n)%reflex
+     Tdomain%sVertex(j)%reflex = Tdomain%sFace(n)%reflex
   enddo
 
   do n = 0, Tdomain%n_vertex-1

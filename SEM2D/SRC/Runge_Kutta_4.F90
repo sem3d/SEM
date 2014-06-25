@@ -124,14 +124,15 @@ subroutine Runge_Kutta4 (Tdomain, dt)
              Tdomain%specel(n)%Forces  = Tdomain%specel(n)%Displ
           else                  ! Discontinuous Galerkin
              acoustic = Tdomain%specel(n)%Acoustic
-             if (type_DG==GALERKIN_HDG_RP) then  ! Hybridizable Discont Galerkin
+             if (type_DG==GALERKIN_HDG_RP) then
                  do nf = 0,3        ! Computation of the Velocities Traces
                      nface = Tdomain%specel(n)%Near_Face(nf)
                      call Compute_Vhat(Tdomain%sFace(nface))
                      call get_Vhat_f2el(Tdomain,n,nface,nf)
                  enddo
+                 !if(Tdomain%specel(n)%ADEPML) call enforce_diriclet_corners_vhat(Tdomain,n)
                  call Compute_Traces (Tdomain%specel(n))
-             elseif (type_DG==GALERKIN_DG_WEAK .OR. type_DG==GALERKIN_DG_STRONG) then ! Disc Galerkin
+             elseif (type_DG==GALERKIN_DG_WEAK .OR. type_DG==GALERKIN_DG_STRONG) then
                  do nf = 0,3        ! Computation of the fluxes
                      nface = Tdomain%specel(n)%Near_Face(nf)
                      call Compute_Flux(Tdomain%sFace(nface),n,type_DG,acoustic)
