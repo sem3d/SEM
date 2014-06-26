@@ -373,11 +373,22 @@ subroutine enforce_diriclet_corners_vhat (Tdomain, nelem)
         nface = Tdomain%specel(nelem)%Near_Face(i)
         is_refl = Tdomain%sFace(nface)%reflex
         if (is_refl) then
-           call get_iminimax(Tdomain%specel(nelem),i,imin,imax)
-           index1 = modulo(imin-1,nglltot)
-           index2 = modulo(imax+1,nglltot)
-           Tdomain%specel(nelem)%Vhat(index1,:) = 0.
-           Tdomain%specel(nelem)%Vhat(index2,:) = 0.
+            select case (i)
+                case(0)
+                    index1 = 2*ngllx + ngllz
+                    index2 = ngllx
+                case(1)
+                    index1 = ngllx-1
+                    index2 = 2*ngllx + ngllz-1
+                case(2)
+                    index1 = 2*ngllx + 2*ngllz -1
+                    index2 = ngllx + ngllz-1
+                case(3)
+                    index1 = 0
+                    index2 = ngllx + ngllz
+                end select
+            Tdomain%specel(nelem)%Vhat(index1,:) = 0.
+            Tdomain%specel(nelem)%Vhat(index2,:) = 0.
         endif
     enddo
 
