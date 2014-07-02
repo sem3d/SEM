@@ -658,19 +658,33 @@ contains
 
         type (Face), intent (INOUT) :: F
         real, dimension(0:F%ngll-1) :: invDet, Zp_m, Zp_p, Zs_m, Zs_p
+        logical                     :: is_acoustic
 
         Zp_m(:) = sqrt(F%Rho_m(:) * (F%Lambda_m(:) + 2.* F%Mu_m(:)))
         Zp_p(:) = sqrt(F%Rho_p(:) * (F%Lambda_p(:) + 2.* F%Mu_p(:)))
         Zs_m(:) = sqrt(F%Rho_m(:) * F%Mu_m(:))
         Zs_p(:) = sqrt(F%Rho_p(:) * F%Mu_p(:))
 
-        invDet(:) = 1. / ((Zp_m(:)+Zp_p(:))*(Zs_m(:)+Zs_p(:)))
-        F%InvMatPen(:,0) = invDet(:) * ((Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,0)**2 &
-                                       +(Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,1)**2)
-        F%InvMatPen(:,1) = invDet(:) * ((Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,0)**2 &
-                                       +(Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,1)**2)
-        F%InvMatPen(:,2) =-invDet(:) * ((Zp_m(:)+Zp_p(:)) - (Zs_m(:)+Zs_p(:))) &
-                                     * F%Normal_nodes(:,0) * F%Normal_nodes(:,1)
+        if ((F%Mu_p(0) == 0.) .and. (F%Mu_m(0) == 0.)) then
+           is_acoustic = .true.
+        else
+           is_acoustic = .false.
+        endif
+
+        if (.not. is_acoustic) then
+           invDet(:) = 1. / ((Zp_m(:)+Zp_p(:))*(Zs_m(:)+Zs_p(:)))
+           F%InvMatPen(:,0) = invDet(:) * ((Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,0)**2 &
+                                          +(Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,1)**2)
+           F%InvMatPen(:,1) = invDet(:) * ((Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,0)**2 &
+                                          +(Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,1)**2)
+           F%InvMatPen(:,2) =-invDet(:) * ((Zp_m(:)+Zp_p(:)) - (Zs_m(:)+Zs_p(:))) &
+                                        * F%Normal_nodes(:,0) * F%Normal_nodes(:,1)
+        else ! acoustic case
+           invDet(:) = 1. / (Zp_m(:)+Zp_p(:))
+           F%InvMatPen(:,0) = invDet(:)
+           F%InvMatPen(:,1) = invDet(:)
+           F%InvMatPen(:,2) = 0.
+        endif
 
     end subroutine compute_invMatPen
 
