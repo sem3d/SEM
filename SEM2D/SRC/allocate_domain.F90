@@ -46,6 +46,7 @@ subroutine allocate_domain (Tdomain)
          allocate (Tdomain%specel(n)%V0(  0:ngllx-1, 0:ngllz-1, 0:1 ) )
          allocate (Tdomain%specel(n)%Forces(0:ngllx-1,0:ngllz-1,0:4))
          allocate (Tdomain%specel(n)%Strain(0:ngllx-1,0:ngllz-1,0:2))
+         Tdomain%specel(n)%Strain = 0
          if(Tdomain%specel(n)%Type_DG==GALERKIN_HDG_RP) then
              allocate (Tdomain%specel(n)%MatPen(0:2*(ngllx+ngllz)-1,0:2))
              allocate (Tdomain%specel(n)%TracFace(0:2*(ngllx+ngllz)-1,0:1))
@@ -64,7 +65,6 @@ subroutine allocate_domain (Tdomain)
      Tdomain%specel(n)%Forces = 0
      Tdomain%specel(n)%Accel = 0
      Tdomain%specel(n)%V0 = 0
-     Tdomain%specel(n)%Strain = 0
 
      if(Tdomain%specel(n)%CPML .OR. Tdomain%specel(n)%ADEPML) then
          if(Tdomain%specel(n)%ADEPML) then
