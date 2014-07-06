@@ -170,6 +170,9 @@ subroutine read_material_file(Tdomain)
         ! Checks if the current element is on acoustic part of the domain
         if (Tdomain%sSubdomain(mat)%material_type .EQ. "F") then
            Tdomain%specel(i)%acoustic = .true.
+        elseif ((Tdomain%sSubdomain(mat)%material_type .EQ. "P") .AND. &
+                (Tdomain%sSubdomain(mat)%Sspeed .EQ. 0.)) then
+            Tdomain%specel(i)%acoustic = .true.
         else
            Tdomain%specel(i)%acoustic = .false.
         endif
