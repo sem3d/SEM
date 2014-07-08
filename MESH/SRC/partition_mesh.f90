@@ -21,10 +21,10 @@ module partition_mesh
 contains
 
     !-----------------------------------------------------
-    subroutine part_mesh_3D(n_elem, n_points, Ipoint, nproc, dxadj, dxadjncy, procs)
+    subroutine part_mesh_3D(n_nodes, n_elem, n_points, Ipoint, nproc, dxadj, dxadjncy, procs)
         implicit none
-        integer, intent(in)                            :: n_elem, nproc, n_points
-        integer, intent(in), dimension(0:7,0:n_elem-1) :: Ipoint
+        integer, intent(in)                            :: n_nodes,n_elem, nproc, n_points
+        integer, intent(in), dimension(0:n_nodes-1,0:n_elem-1) :: Ipoint
         integer, dimension(0:8*n_elem-1),target        :: eind
         integer, dimension(0:n_elem),target            :: eptr
         integer, dimension(0:n_elem-1)                 :: vwgt, vsize
@@ -57,7 +57,7 @@ contains
         write(*,*) "  --> Number of procs: ",nproc
         !allocate(dxadj(0:n_elem),dxadjncy(0:8*n_elem-1))
         call METIS_SetDefaultOptions(options)
-        call METIS_MeshToDual(n_elem,n_points,c_loc(eptr),c_loc(eind),1,numflag,dxadj_p,dxadjncy_p)
+        call METIS_MeshToDual(n_elem,n_points,c_loc(eptr),c_loc(eind),4,numflag,dxadj_p,dxadjncy_p)
         call c_f_pointer(dxadj_p, dxadj, [n_elem+1])
         call c_f_pointer(dxadjncy_p, dxadjncy, [dxadj(n_elem+1)])
         allocate(procs(0:n_elem-1))
