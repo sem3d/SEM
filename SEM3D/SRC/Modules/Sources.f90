@@ -247,12 +247,12 @@ contains
         implicit none
         !
         real, intent(in) :: time, tau, f0
-        real :: sigma
-
+        real :: sigma, alpha
+ 
+        alpha = -1d0*M_PI**2*f0**2
         if ( time < 2.5*tau ) then
-            sigma = M_PI * f0 * (time-tau)
-            sigma = sigma**2
-            Ricker = (1 - 2*sigma) * exp(-sigma) !version Gsa Ipsis (amplitude)
+            sigma = alpha * (time-tau)**2
+            Ricker = 2d0*alpha*(1 + 2*sigma) * dexp(sigma)
         else
             Ricker = 0.
         endif
