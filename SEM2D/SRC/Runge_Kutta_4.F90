@@ -39,8 +39,8 @@ subroutine Runge_Kutta4 (Tdomain, dt)
           Tdomain%specel(n)%Vect_RK(:,:,0:1) = Tdomain%specel(n)%Veloc(:,:,0:1)
           Tdomain%specel(n)%Vect_RK(:,:,2:3) = Tdomain%specel(n)%Displ(:,:,0:1)
           do i=0,3
-              nf = Tdomain%specel(n)%NearFace(i)
-              nv = Tdomain%specel(n)%NearVertex(i)
+              nf = Tdomain%specel(n)%Near_Face(i)
+              nv = Tdomain%specel(n)%Near_Vertex(i)
               Tdomain%sFace(nf)%Vect_RK(:,0:1) = Tdomain%sFace(nf)%Veloc(:,0:1)
               Tdomain%sFace(nf)%Vect_RK(:,2:3) = Tdomain%sFace(nf)%Displ(:,0:1)
               Tdomain%sVertex(nv)%Vect_RK(0:1) = Tdomain%sVertex(nv)%Veloc(0:1)
@@ -85,7 +85,7 @@ subroutine Runge_Kutta4 (Tdomain, dt)
                                                  Tdomain%sSubDomain(mat)%hTprimez)
              call compute_TracFace (Tdomain%specel(n))
           case(GALERKIN_CONT) ! Continuous Galerkin
-             call get_Displ_fv2el (Tdomain,n)
+             call get_RealDispl_fv2el (Tdomain,n)
              call compute_InternalForces_Elem(Tdomain%specel(n), &
                                               Tdomain%sSubDomain(mat)%hprimex, &
                                               Tdomain%sSubDomain(mat)%hTprimex, &
@@ -127,10 +127,7 @@ subroutine Runge_Kutta4 (Tdomain, dt)
           type_DG = Tdomain%specel(n)%Type_DG
           if (type_DG==GALERKIN_CONT) then  ! Continuous Galerkin
              call inversion_massmat(Tdomain%specel(n))
-             Tdomain%specel(n)%Vect_RK = coeffs(1) * Tdomain%specel(n)%Vect_RK  + Tdomain%specel(n)%Forces * dt
-             Tdomain%specel(n)%Veloc   = Tdomain%specel(n)%Veloc + coeffs(2) * Tdomain%specel(n)%Vect_RK
-             Tdomain%specel(n)%Displ   = Tdomain%specel(n)%Displ + Tdomain%specel(n)%Veloc * dt ! ATTENTION : A REVOIR !!!!!
-             Tdomain%specel(n)%Forces  = Tdomain%specel(n)%Displ
+             call update_Elem_RK4 (Tdomain%specel(n),coeffs(1),coeffs(2),dt)
           else                  ! Discontinuous Galerkin
              acoustic = Tdomain%specel(n)%Acoustic
              if (type_DG==GALERKIN_HDG_RP) then
@@ -157,36 +154,12 @@ subroutine Runge_Kutta4 (Tdomain, dt)
                                                               Tdomain%sSubDomain(mat)%hprimez,  &
                                                               Tdomain%sSubDomain(mat)%hTprimez, &
                                                               coeffs(1),coeffs(2),dt)
-             Tdomain%specel(n)%Vect_RK = coeffs(1) * Tdomain%specel(n)%Vect_RK + Tdomain%specel(n)%Forces * dt
-             Tdomain%specel(n)%Strain  = Tdomain%specel(n)%Strain + coeffs(2) * Tdomain%specel(n)%Vect_RK(:,:,0:2)
-             Tdomain%specel(n)%Veloc   = Tdomain%specel(n)%Veloc  + coeffs(2) * Tdomain%specel(n)%Vect_RK(:,:,3:4)
+             call update_Elem_RK4 (Tdomain%specel(n),coeffs(1),coeffs(2),dt)
           endif
        enddo
 
-       ! Computing new values on the vertexes and the faces for Continuous Galerkin only
-       do n=0, Tdomain%n_face-1
-          type_DG = Tdomain%sface(n)%Type_DG
-          if (type_DG == GALERKIN_CONT) then
-             Tdomain%sface(n)%Forces(:,0)  = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(:,0)
-             Tdomain%sface(n)%Forces(:,1)  = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(:,1)
-             Tdomain%sface(n)%Vect_RK = coeffs(1) * Tdomain%sface(n)%Vect_RK + Tdomain%sface(n)%Forces * dt
-             Tdomain%sface(n)%Veloc   = Tdomain%sface(n)%Veloc + coeffs(2) * Tdomain%sface(n)%Vect_RK
-             Tdomain%sface(n)%Displ   = Tdomain%sface(n)%Displ + Tdomain%sface(n)%Veloc * dt ! ATTENTION : A REVOIR !!!!!
-             Tdomain%sface(n)%Forces  = Tdomain%sface(n)%Displ
-             Tdomain%sface(n)%is_computed = .false.
-          endif
-       enddo
-       do n=0, Tdomain%n_vertex-1
-          type_DG = Tdomain%sVertex(n)%Type_DG
-          if (type_DG == GALERKIN_CONT) then
-             Tdomain%sVertex(n)%Forces  = Tdomain%sVertex(n)%MassMat * Tdomain%sVertex(n)%Forces
-             Tdomain%sVertex(n)%Vect_RK = coeffs(1) * Tdomain%sVertex(n)%Vect_RK + Tdomain%sVertex(n)%Forces * dt
-             Tdomain%sVertex(n)%Veloc   = Tdomain%sVertex(n)%Veloc + coeffs(2) * Tdomain%sVertex(n)%Vect_RK
-             Tdomain%sVertex(n)%Displ   = Tdomain%sVertex(n)%Displ + Tdomain%sVertex(n)%Veloc * dt ! ATTENTION : A REVOIR !!!!!
-             Tdomain%sVertex(n)%Forces  = Tdomain%sVertex(n)%Displ
-             Tdomain%sVertex(n)%is_computed = .false.
-          endif
-       enddo
+       ! Updates of faces and vertices if continuous elements
+       if(Tdomain%type_elem==GALERKIN_CONT) call Update_FV_RK4 (Tdomain,coeffs(1),coeffs(2),dt)
 
     enddo ! End loop RK4
 
@@ -225,6 +198,54 @@ subroutine Runge_Kutta4 (Tdomain, dt)
     end function Coeffs_LSERK
 
   end subroutine Runge_Kutta4
+
+
+  ! ###########################################################
+  !>
+  !! \brief This subroutine updates the faces and the vertices of the domain
+  !! in a Runge Kutta framework if the domain contains any Continuous Galerkin element.
+  !!
+  !! \param type (Domain), intent (INOUT) Tdomain
+  !<
+  subroutine Update_FV_RK4 (Tdomain,coeff1,coeff2,Dt)
+
+    implicit none
+    type (domain), intent (INOUT) :: Tdomain
+    real, intent(IN) :: coeff1
+    real, intent(IN) :: coeff2
+    real, intent(IN) :: Dt
+    ! local variables
+    integer :: n, type_DG
+
+    do n=0, Tdomain%n_face-1
+       type_DG = Tdomain%sface(n)%Type_DG
+       if (type_DG == GALERKIN_CONT) then
+          ! Inversion of Mass Matrix to get 2nd member of velocity equation
+          Tdomain%sface(n)%Forces(:,0)  = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(:,0)
+          Tdomain%sface(n)%Forces(:,1)  = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(:,1)
+          ! RK4 Updates of velocities and displacements
+          Tdomain%sface(n)%Vect_RK(:,0:1) = coeff1 * Tdomain%sface(n)%Vect_RK(:,0:1) + Dt * Tdomain%sface(n)%Forces(:,0:1)
+          Tdomain%sface(n)%Vect_RK(:,2:3) = coeff1 * Tdomain%sface(n)%Vect_RK(:,2:3) + Dt * Tdomain%sface(n)%Veloc (:,0:1)
+          Tdomain%sface(n)%Veloc   = Tdomain%sface(n)%Veloc + coeff2 * Tdomain%sface(n)%Vect_RK(:,0:1)
+          Tdomain%sface(n)%Displ   = Tdomain%sface(n)%Displ + coeff2 * Tdomain%sface(n)%Vect_RK(:,2:3)
+          Tdomain%sface(n)%is_computed = .false.
+       endif
+    enddo
+    do n=0, Tdomain%n_vertex-1
+       type_DG = Tdomain%sVertex(n)%Type_DG
+       if (type_DG == GALERKIN_CONT) then
+          ! Inversion of Mass Matrix to get 2nd member of velocity equation
+          Tdomain%sVertex(n)%Forces  = Tdomain%sVertex(n)%MassMat * Tdomain%sVertex(n)%Forces
+          ! RK4 Updates of velocities and displacements
+          Tdomain%sVertex(n)%Vect_RK(0:1) = coeff1 * Tdomain%sVertex(n)%Vect_RK(0:1) + Dt * Tdomain%sVertex(n)%Forces
+          Tdomain%sVertex(n)%Vect_RK(2:3) = coeff1 * Tdomain%sVertex(n)%Vect_RK(2:3) + Dt * Tdomain%sVertex(n)%Veloc
+          Tdomain%sVertex(n)%Veloc   = Tdomain%sVertex(n)%Veloc + coeff2 * Tdomain%sVertex(n)%Vect_RK(0:1)
+          Tdomain%sVertex(n)%Displ   = Tdomain%sVertex(n)%Displ + coeff2 * Tdomain%sVertex(n)%Vect_RK(2:3)
+          Tdomain%sVertex(n)%is_computed = .false.
+       endif
+    enddo
+
+  end subroutine Update_FV_RK4
 
 end module srungekutta
 !! Local Variables:

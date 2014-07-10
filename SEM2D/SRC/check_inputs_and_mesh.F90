@@ -27,10 +27,10 @@ subroutine check_inputs_and_mesh(Tdomain)
         STOP "Error : For Newmark, only continuous Galerkin is available"
     endif
 
-    if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_RK4) .AND. &
-        (Tdomain%type_elem .EQ. GALERKIN_CONT)) then
-        STOP "Error : For RK4, only discontinuous Galerkin methods are available"
-    endif
+    !if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_RK4) .AND. &
+    !    (Tdomain%type_elem .EQ. GALERKIN_CONT)) then
+    !    STOP "Error : For RK4, only discontinuous Galerkin methods are available"
+    !endif
 
     if ((Tdomain%type_bc==DG_BC_FREE) .AND. (Tdomain%type_flux==FLUX_CENTERED)) then
         STOP "FREE Surface not implemented for Centered flux"

@@ -571,6 +571,40 @@ contains
 
     ! ###########################################################
     !>
+    !! \brief Thus subroutine is used in a Runge-Kutta 4 framework :
+    !! It updates the variables for each of the 5 steps of the LSERK4 time scheme.
+    !! For continuous Galerkin elements, velocities and displacements are updated ;
+    !! For discontinuous Galerkin elements, velocities and strains are updated.
+    !! \param type (Element), intent (INOUT) Elem
+    !! \param real, intent (IN) coeff1
+    !! \param real, intent (IN) coeff2
+    !! \param real, intent (IN) Dt
+    !<
+    subroutine  update_Elem_RK4 (Elem,coeff1,coeff2,Dt)
+        implicit none
+
+        type(Element), intent (INOUT) :: Elem
+        real, intent(IN) :: coeff1
+        real, intent(IN) :: coeff2
+        real, intent(IN) :: Dt
+        integer          :: ngx, ngz
+
+        if (Elem%type_DG==GALERKIN_CONT) then
+            ngx = Elem%ngllx ; ngz = Elem%ngllz
+            Elem%Vect_RK(:,:,0:1) = coeff1 * Elem%Vect_RK(:,:,0:1)  + Dt * Elem%Forces(1:ngx-2,1:ngz-2,0:1)
+            Elem%Vect_RK(:,:,2:3) = coeff1 * Elem%Vect_RK(:,:,2:3)  + Dt * Elem%Veloc(:,:,:)
+            Elem%Veloc = Elem%Veloc + coeff2 * Elem%Vect_RK(:,:,0:1)
+            Elem%Displ = Elem%Displ + coeff2 * Elem%Vect_RK(:,:,2:3)
+        else
+            Elem%Vect_RK = coeff1 * Elem%Vect_RK + Dt * Elem%Forces
+            Elem%Strain  = Elem%Strain + coeff2 * Elem%Vect_RK(:,:,0:2)
+            Elem%Veloc   = Elem%Veloc  + coeff2 * Elem%Vect_RK(:,:,3:4)
+        endif
+
+    end subroutine update_Elem_RK4
+
+    ! ###########################################################
+    !>
     !! \brief Thus subroutine adds the contribution of the memory PML terms
     !! for the ADE-PML in case of DG or HDG.
     !! \param type (Element), intent (INOUT) Elem
@@ -601,6 +635,7 @@ contains
     !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
     !! \param real, intent (IN) coeff1
     !! \param real, intent (IN) coeff2
+    !! \param real, intent (IN) Dt
     !<
     subroutine  update_Psi_RK4 (Elem,hprime,hTprime,hprimez,hTprimez,coeff1,coeff2,Dt)
         implicit none
