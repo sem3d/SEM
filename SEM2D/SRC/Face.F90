@@ -181,8 +181,11 @@ contains
             F%is_computed = .TRUE.
             if (F%freesurf) F%is_computed = .FALSE.
             if (F%Abs) F%is_computed = .FALSE.
-            if (F%Reflex) F%is_computed = .FALSE.
-            if (F%Reflex) F%Flux(:,:) = 0.
+            if (F%Reflex) then
+                F%is_computed = .FALSE.
+                if (DG_type==GALERKIN_DG_WEAK)   F%Flux(:,:) = 0.
+                if (DG_type==GALERKIN_DG_STRONG) F%Flux(:,:) = F_minus(:,:)
+            endif
         endif
         ! Treating Absorbing Boundary Conditions
         ! Basee sur la supposition " Flux sur les caracteistiques sortantes est nul"

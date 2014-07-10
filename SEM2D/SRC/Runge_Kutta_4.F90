@@ -24,7 +24,7 @@ subroutine Runge_Kutta4 (Tdomain, dt)
     real,    intent(in)   :: dt
 
     ! local variables
-    integer :: i, n, mat, nf
+    integer :: i, n, mat, nf, nv
     integer :: tag_send, tag_receive, i_send, ierr, i_proc
     integer, dimension (MPI_STATUS_SIZE) :: status
     integer               :: nface,  type_DG
@@ -36,7 +36,16 @@ subroutine Runge_Kutta4 (Tdomain, dt)
     ! Runge-Kutta Initialization
     do n = 0, Tdomain%n_elem-1
        if(Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
-          Tdomain%specel(n)%Vect_RK = Tdomain%specel(n)%Veloc
+          Tdomain%specel(n)%Vect_RK(:,:,0:1) = Tdomain%specel(n)%Veloc(:,:,0:1)
+          Tdomain%specel(n)%Vect_RK(:,:,2:3) = Tdomain%specel(n)%Displ(:,:,0:1)
+          do i=0,3
+              nf = Tdomain%specel(n)%NearFace(i)
+              nv = Tdomain%specel(n)%NearVertex(i)
+              Tdomain%sFace(nf)%Vect_RK(:,0:1) = Tdomain%sFace(nf)%Veloc(:,0:1)
+              Tdomain%sFace(nf)%Vect_RK(:,2:3) = Tdomain%sFace(nf)%Displ(:,0:1)
+              Tdomain%sVertex(nv)%Vect_RK(0:1) = Tdomain%sVertex(nv)%Veloc(0:1)
+              Tdomain%sVertex(nv)%Vect_RK(2:3) = Tdomain%sVertex(nv)%Displ(0:1)
+          enddo
        else
           Tdomain%specel(n)%Vect_RK(:,:,0:2) = Tdomain%specel(n)%Strain
           Tdomain%specel(n)%Vect_RK(:,:,3:4) = Tdomain%specel(n)%Veloc

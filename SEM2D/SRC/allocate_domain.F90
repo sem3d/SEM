@@ -323,7 +323,7 @@ subroutine allocate_domain (Tdomain)
         ngllx = Tdomain%specel(n)%ngllx
         ngllz = Tdomain%specel(n)%ngllz
         if (Tdomain%specel(n)%Type_DG == GALERKIN_CONT) then
-           allocate (Tdomain%specel(n)%Vect_RK(0:ngllx-1,0:ngllz-1,0:1))
+           allocate (Tdomain%specel(n)%Vect_RK(0:ngllx-1,0:ngllz-1,0:3))
         else
            allocate (Tdomain%specel(n)%Vect_RK(0:ngllx-1,0:ngllz-1,0:4))
         endif
@@ -336,7 +336,7 @@ subroutine allocate_domain (Tdomain)
      do n = 0, Tdomain%n_face-1
         ngll = Tdomain%sFace(n)%ngll
         if (Tdomain%sface(n)%Type_DG == GALERKIN_CONT) then
-           allocate (Tdomain%sface(n)%Vect_RK(0:ngll-1,0:1))
+           allocate (Tdomain%sface(n)%Vect_RK(0:ngll-1,0:3))
         else
            allocate (Tdomain%sface(n)%Vect_RK(0:ngll-1,0:4))
         endif
@@ -344,7 +344,7 @@ subroutine allocate_domain (Tdomain)
      enddo
      do n = 0, Tdomain%n_vertex-1
         if (Tdomain%svertex(n)%Type_DG == GALERKIN_CONT) then
-           allocate (Tdomain%sVertex(n)%Vect_RK(0:1))
+           allocate (Tdomain%sVertex(n)%Vect_RK(0:3))
         else
            allocate (Tdomain%sVertex(n)%Vect_RK(0:4))
         endif
