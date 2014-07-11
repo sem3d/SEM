@@ -24,27 +24,32 @@ subroutine Runge_Kutta4 (Tdomain, dt)
     real,    intent(in)   :: dt
 
     ! local variables
-    integer :: i, n, mat, nf, nv
+    integer :: i, n, mat, nf, nv, ngx, ngz
     integer :: tag_send, tag_receive, i_send, ierr, i_proc
     integer, dimension (MPI_STATUS_SIZE) :: status
     integer               :: nface,  type_DG
     real                  :: timelocal
     real, dimension(3)    :: coeffs
+    real, dimension (:,:), allocatable :: Vxloc, Vzloc
     logical :: acoustic
 
 
     ! Runge-Kutta Initialization
     do n = 0, Tdomain%n_elem-1
        if(Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
-          Tdomain%specel(n)%Vect_RK(:,:,0:1) = Tdomain%specel(n)%Veloc(:,:,0:1)
-          Tdomain%specel(n)%Vect_RK(:,:,2:3) = Tdomain%specel(n)%Displ(:,:,0:1)
+           Tdomain%specel(n)%Vect_RK(:,:,0:2) = Tdomain%specel(n)%Stress(1:ngx-2,1:ngz-2,0:2)
+           Tdomain%specel(n)%Vect_RK(:,:,3:4) = Tdomain%specel(n)%Veloc(:,:,0:1)
+          !Tdomain%specel(n)%Vect_RK(:,:,0:1) = Tdomain%specel(n)%Veloc(:,:,0:1)
+          !Tdomain%specel(n)%Vect_RK(:,:,2:3) = Tdomain%specel(n)%Displ(:,:,0:1)
           do i=0,3
               nf = Tdomain%specel(n)%Near_Face(i)
               nv = Tdomain%specel(n)%Near_Vertex(i)
               Tdomain%sFace(nf)%Vect_RK(:,0:1) = Tdomain%sFace(nf)%Veloc(:,0:1)
-              Tdomain%sFace(nf)%Vect_RK(:,2:3) = Tdomain%sFace(nf)%Displ(:,0:1)
               Tdomain%sVertex(nv)%Vect_RK(0:1) = Tdomain%sVertex(nv)%Veloc(0:1)
-              Tdomain%sVertex(nv)%Vect_RK(2:3) = Tdomain%sVertex(nv)%Displ(0:1)
+              !Tdomain%sFace(nf)%Vect_RK(:,0:1) = Tdomain%sFace(nf)%Veloc(:,0:1)
+              !Tdomain%sFace(nf)%Vect_RK(:,2:3) = Tdomain%sFace(nf)%Displ(:,0:1)
+              !Tdomain%sVertex(nv)%Vect_RK(0:1) = Tdomain%sVertex(nv)%Veloc(0:1)
+              !Tdomain%sVertex(nv)%Vect_RK(2:3) = Tdomain%sVertex(nv)%Displ(0:1)
           enddo
        else
           Tdomain%specel(n)%Vect_RK(:,:,0:2) = Tdomain%specel(n)%Strain
@@ -85,12 +90,22 @@ subroutine Runge_Kutta4 (Tdomain, dt)
                                                  Tdomain%sSubDomain(mat)%hTprimez)
              call compute_TracFace (Tdomain%specel(n))
           case(GALERKIN_CONT) ! Continuous Galerkin
-             call get_RealDispl_fv2el (Tdomain,n)
-             call compute_InternalForces_Elem(Tdomain%specel(n), &
-                                              Tdomain%sSubDomain(mat)%hprimex, &
-                                              Tdomain%sSubDomain(mat)%hTprimex, &
-                                              Tdomain%sSubDomain(mat)%hprimez, &
-                                              Tdomain%sSubDomain(mat)%hTprimez)
+             ngx = Tdomain%specel(n)%ngllx
+             ngz = Tdomain%specel(n)%ngllz
+             allocate (Vxloc(0:ngx-1, 0:ngz-1))
+             allocate (Vzloc(0:ngx-1, 0:ngz-1))
+             call get_PMLprediction_fv2el (Tdomain,n,Vxloc,vzloc,ngx,ngz,0.5,0.5,dt)
+             call compute_2ndMember_Veloc_Stress(Tdomain%specel(n), Vxloc, Vzloc, &
+                                                 Tdomain%sSubDomain(mat)%hprimex, &
+                                                 Tdomain%sSubDomain(mat)%hTprimex, &
+                                                 Tdomain%sSubDomain(mat)%hprimez, &
+                                                 Tdomain%sSubDomain(mat)%hTprimez)
+             !call get_RealDispl_fv2el (Tdomain,n)
+             !call compute_InternalForces_Elem(Tdomain%specel(n), &
+             !                                 Tdomain%sSubDomain(mat)%hprimex, &
+             !                                 Tdomain%sSubDomain(mat)%hTprimex, &
+             !                                 Tdomain%sSubDomain(mat)%hprimez, &
+             !                                 Tdomain%sSubDomain(mat)%hTprimez)
           end select
           ! Calcul des fluxs / Assemblage des forces
           do nf = 0,3
