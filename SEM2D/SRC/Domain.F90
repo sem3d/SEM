@@ -204,7 +204,6 @@ subroutine read_material_file(Tdomain)
               Tdomain%sFace(i)%changing_media = .false.
            else
               Tdomain%sFace(i)%changing_media = .true.
-              write(*,*) "Changing Media on face : ", i
            endif
         else
            Tdomain%sFace(i)%changing_media = .false.

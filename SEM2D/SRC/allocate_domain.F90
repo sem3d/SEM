@@ -140,7 +140,8 @@ subroutine allocate_domain (Tdomain)
          endif
      else ! Case Element is not PML
          if(Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
-             allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:9))
+             allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:15))
+             !allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:9))
          else ! Discontinuous Case
              allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
          endif
@@ -325,6 +326,10 @@ subroutine allocate_domain (Tdomain)
         if (Tdomain%specel(n)%Type_DG == GALERKIN_CONT) then
            allocate (Tdomain%specel(n)%Vect_RK(0:ngllx-1,0:ngllz-1,0:4))
            allocate (Tdomain%specel(n)%StressSMBR(0:ngllx-1,0:ngllz-1,0:2))
+           allocate (Tdomain%specel(n)%Stress(0:ngllx-1,0:ngllz-1,0:2))
+           Tdomain%specel(n)%Vect_RK = 0.
+           Tdomain%specel(n)%StressSMBR = 0.
+           Tdomain%specel(n)%Stress = 0.
            !allocate (Tdomain%specel(n)%Vect_RK(1:ngllx-2,1:ngllz-2,0:3))
         else
            allocate (Tdomain%specel(n)%Vect_RK(0:ngllx-1,0:ngllz-1,0:4))

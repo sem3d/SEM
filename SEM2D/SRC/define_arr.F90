@@ -34,6 +34,7 @@ subroutine define_arrays(Tdomain)
     real, dimension (:,:), allocatable :: xix,etax, xiz,etaz,Jac, Rlam,Rmu,RKmod,Whei,Id,wx, wz
     real, dimension (:,:), allocatable :: LocMassMat,OmegaCutx,OmegaCutz,du_du_x,du_du_z
     real, dimension (:,:), allocatable :: duux,duuz,wx_prime,wz_prime
+    logical  :: CG_RK4
 
     ! Gaetano Festa, modified 01/06/2004
     ! Modification (MPI) 13/10/2005
@@ -94,9 +95,11 @@ subroutine define_arrays(Tdomain)
         Rlam = Tdomain%specel(n)%Lambda
         Rmu  = Tdomain%specel(n)%Mu
         RKmod = Rlam + 2. * Rmu
-
         Tdomain%specel(n)%MassMat  = Whei*Tdomain%specel(n)%Density*Jac
-        if ((.not. Tdomain%specel(n)%PML) .or. Tdomain%specel(n)%ADEPML) then
+        CG_RK4 = (Tdomain%type_timeInteg == TIME_INTEG_RK4) .and. &
+                 (Tdomain%specel(n)%Type_DG==GALERKIN_CONT)
+
+        if ((.not. Tdomain%specel(n)%PML) .or. (.not. CG_RK4) .or. Tdomain%specel(n)%ADEPML) then
            if((Tdomain%specel(n)%Type_DG==GALERKIN_DG_STRONG).OR. &
                (Tdomain%specel(n)%Type_DG==GALERKIN_DG_WEAK) .OR. &
                (Tdomain%specel(n)%Type_DG==GALERKIN_HDG_RP) ) then ! Discontinuous Galerkin

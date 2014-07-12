@@ -37,8 +37,10 @@ subroutine Runge_Kutta4 (Tdomain, dt)
     ! Runge-Kutta Initialization
     do n = 0, Tdomain%n_elem-1
        if(Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
-           Tdomain%specel(n)%Vect_RK(:,:,0:2) = Tdomain%specel(n)%Stress(1:ngx-2,1:ngz-2,0:2)
-           Tdomain%specel(n)%Vect_RK(:,:,3:4) = Tdomain%specel(n)%Veloc(:,:,0:1)
+           ngx = Tdomain%specel(n)%ngllx
+           ngz = Tdomain%specel(n)%ngllz
+           Tdomain%specel(n)%Vect_RK(1:ngx-2,1:ngz-2,0:1) = Tdomain%specel(n)%Veloc(:,:,0:1)
+           Tdomain%specel(n)%Vect_RK(:,:,2:4) = Tdomain%specel(n)%Stress(:,:,0:2)
           !Tdomain%specel(n)%Vect_RK(:,:,0:1) = Tdomain%specel(n)%Veloc(:,:,0:1)
           !Tdomain%specel(n)%Vect_RK(:,:,2:3) = Tdomain%specel(n)%Displ(:,:,0:1)
           do i=0,3
@@ -100,6 +102,7 @@ subroutine Runge_Kutta4 (Tdomain, dt)
                                                  Tdomain%sSubDomain(mat)%hTprimex, &
                                                  Tdomain%sSubDomain(mat)%hprimez, &
                                                  Tdomain%sSubDomain(mat)%hTprimez)
+             deallocate (VxLoc, Vzloc)
              !call get_RealDispl_fv2el (Tdomain,n)
              !call compute_InternalForces_Elem(Tdomain%specel(n), &
              !                                 Tdomain%sSubDomain(mat)%hprimex, &

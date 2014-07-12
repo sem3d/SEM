@@ -591,10 +591,10 @@ contains
 
         if (Elem%type_DG==GALERKIN_CONT) then
             ngx = Elem%ngllx ; ngz = Elem%ngllz
-            Elem%Vect_RK(:,:,0:1) = coeff1 * Elem%Vect_RK(:,:,0:1) &
+            Elem%Vect_RK(1:ngx-2,1:ngz-2,0:1) = coeff1 * Elem%Vect_RK(1:ngx-2,1:ngz-2,0:1) &
                                   + Dt * Elem%Forces(1:ngx-2,1:ngz-2,0:1)
             Elem%Vect_RK(:,:,2:4) = coeff1 * Elem%Vect_RK(:,:,2:4) + Dt * Elem%StressSMBR(:,:,:)
-            Elem%Veloc  = Elem%Veloc  + coeff2 * Elem%Vect_RK(:,:,0:1)
+            Elem%Veloc  = Elem%Veloc  + coeff2 * Elem%Vect_RK(1:ngx-2,1:ngz-2,0:1)
             Elem%Stress = Elem%Stress + coeff2 * Elem%Vect_RK(:,:,2:4)
             !Elem%Vect_RK(:,:,2:3) = coeff1 * Elem%Vect_RK(:,:,2:3)  + Dt * Elem%Veloc(:,:,:)
             !Elem%Veloc = Elem%Veloc + coeff2 * Elem%Vect_RK(:,:,0:1)
@@ -880,6 +880,8 @@ contains
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) ::Vxloc, Vzloc
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: s0,s1,s2,s3
 
+        VxLoc(1:Elem%ngllx-2,1:Elem%ngllz-2) = Elem%Veloc(:,:,0)
+        VzLoc(1:Elem%ngllx-2,1:Elem%ngllz-2) = Elem%Veloc(:,:,1)
         ! Second member of the Velocity time-evolution Equation (iternal forces)
         s0 = Elem%Acoeff(:,:,12) * Elem%Stress(:,:,0) + Elem%Acoeff(:,:,14) * Elem%Stress(:,:,2)
         s1 = Elem%Acoeff(:,:,13) * Elem%Stress(:,:,0) + Elem%Acoeff(:,:,15) * Elem%Stress(:,:,2)
