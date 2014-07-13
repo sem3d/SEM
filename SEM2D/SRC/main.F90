@@ -45,6 +45,7 @@ subroutine  sem()
 #endif
     use snewmark
     use srungekutta
+    use sleap_frog
 
     implicit none
 
@@ -138,7 +139,7 @@ subroutine  sem()
 
     !lecture du fichier de maillage unv avec conversion en fichier sem2D
     if (rg == 0) write (*,*) "Define mesh properties"
-    call read_mesh(Tdomain)
+    call read_mesh_h5(Tdomain)
 
     if (rg == 0) write (*,*) "Checks the inputs and the mesh"
     call check_inputs_and_mesh (Tdomain)
@@ -280,6 +281,8 @@ subroutine  sem()
             call Newmark (Tdomain)
         else if (Tdomain%type_timeInteg==TIME_INTEG_RK4) then
             call Runge_Kutta4(Tdomain, Tdomain%TimeD%dtmin)
+        else if (Tdomain%type_timeInteg==TIME_INTEG_LEAPFROG) then
+            call Leap_Frog(Tdomain)
         endif
 
         if (ntime==Tdomain%TimeD%NtimeMax-1) then

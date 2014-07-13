@@ -18,8 +18,9 @@ subroutine check_inputs_and_mesh(Tdomain)
     type(domain), intent(inout)  :: Tdomain
 
     if ((Tdomain%type_timeInteg .NE. TIME_INTEG_NEWMARK) .AND. &
-        (Tdomain%type_timeInteg .NE. TIME_INTEG_RK4)) then
-        STOP "This choice for time_integ does not exist. Please choose RK4 or Newmark"
+        (Tdomain%type_timeInteg .NE. TIME_INTEG_RK4)     .AND. &
+        (Tdomain%type_timeInteg .NE. TIME_INTEG_LEAPFROG)) then
+        STOP "This choice for time_integ does not exist. Please choose RK4 or Newmark or LeapFrog"
     endif
 
     if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_NEWMARK) .AND. &
