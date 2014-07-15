@@ -22,6 +22,7 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/Capteur.F90
     ${PRJ}/SRC/Couplage.F90
     ${PRJ}/SRC/Newmark.F90
+    ${PRJ}/SRC/Newmark_DG.F90
     ${PRJ}/SRC/PML_def.F90
     ${PRJ}/SRC/allocate_domain.F90
     ${PRJ}/SRC/Assemblage.F90
@@ -42,7 +43,6 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/getmass_e2f.F90
     ${PRJ}/SRC/global_energy.F90
     ${PRJ}/SRC/global_numbering.F90
-    ${PRJ}/SRC/Leap_Frog.F90
     ${PRJ}/SRC/snapshots.F90
     ${PRJ}/SRC/read_input.F90
     ${PRJ}/SRC/read_mesh.F90

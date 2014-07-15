@@ -43,9 +43,8 @@ subroutine  sem()
 #ifdef COUPLAGE
     use scouplage
 #endif
-    use snewmark
+    use snewmark_dg
     use srungekutta
-    use sleap_frog
 
     implicit none
 
@@ -281,8 +280,8 @@ subroutine  sem()
             call Newmark (Tdomain)
         else if (Tdomain%type_timeInteg==TIME_INTEG_RK4) then
             call Runge_Kutta4(Tdomain, Tdomain%TimeD%dtmin)
-        else if (Tdomain%type_timeInteg==TIME_INTEG_LEAPFROG) then
-            call Leap_Frog(Tdomain)
+        else if (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_DG) then
+            call Newmark_DG(Tdomain)
         endif
 
         if (ntime==Tdomain%TimeD%NtimeMax-1) then
