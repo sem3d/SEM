@@ -87,13 +87,8 @@ subroutine Runge_Kutta4 (Tdomain, dt)
                                                  Tdomain%sSubDomain(mat)%hprimex, &
                                                  Tdomain%sSubDomain(mat)%hTprimez)
          case(GALERKIN_HDG_RP)   ! Hybridizable Discontinuous Galerkin
-             !call compute_InternalForces_DG_Weak(Tdomain%specel(n), &
-             !                                    Tdomain%sSubDomain(mat)%hprimex, &
-             !                                    Tdomain%sSubDomain(mat)%hTprimez)
-             call compute_InternalForces_DG_Test(Tdomain%specel(n), &
+             call compute_InternalForces_DG_Weak(Tdomain%specel(n), &
                                                  Tdomain%sSubDomain(mat)%hprimex, &
-                                                 Tdomain%sSubDomain(mat)%hTprimex, &
-                                                 Tdomain%sSubDomain(mat)%hprimez, &
                                                  Tdomain%sSubDomain(mat)%hTprimez)
              call compute_TracFace (Tdomain%specel(n))
           case(GALERKIN_CONT) ! Continuous Galerkin

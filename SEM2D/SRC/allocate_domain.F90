@@ -51,11 +51,9 @@ subroutine allocate_domain (Tdomain)
              allocate (Tdomain%specel(n)%MatPen(0:2*(ngllx+ngllz)-1,0:2))
              allocate (Tdomain%specel(n)%TracFace(0:2*(ngllx+ngllz)-1,0:1))
              allocate (Tdomain%specel(n)%Vhat(0:2*(ngllx+ngllz)-1,0:1))
-             allocate (Tdomain%specel(n)%SigmaN(0:2*(ngllx+ngllz)-1,0:1)) ! A SUPPRIMER
              Tdomain%specel(n)%MatPen   = 0.
              Tdomain%specel(n)%TracFace = 0.
              Tdomain%specel(n)%Vhat     = 0.
-             Tdomain%specel(n)%SigmaN   = 0. ! A SUPPRIMER
          endif
      endif
      Tdomain%specel(n)%MassMat = 0
