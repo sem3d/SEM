@@ -1,6 +1,7 @@
-program drive_sem
+program SEM3D
     use mpi
     use semdatafiles
+    use drive_sem
 
     character(Len=MAX_FILE_SIZE),parameter :: p_param = "."
     character(Len=MAX_FILE_SIZE),parameter :: p_traces = "./traces"
@@ -14,6 +15,7 @@ program drive_sem
 
     call sem(-1, MPI_COMM_WORLD, MPI_COMM_WORLD)
 
+    call MPI_Comm_Rank (MPI_COMM_WORLD, rg, ierr)
     if (rg==0) then
         ! synchro pour s'assurer que le message s'affiche lorsque tout le monde a bien termine
         call MPI_Barrier(MPI_COMM_WORLD, ierr)
@@ -21,7 +23,7 @@ program drive_sem
     end if
     call mpi_finalize(ierr)
 
-end program drive_sem
+end program SEM3D
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

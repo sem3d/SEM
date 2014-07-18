@@ -6,6 +6,10 @@
 !! \date
 !!
 !<
+
+module drive_sem
+
+contains
 subroutine sem(master_superviseur, communicateur, communicateur_global)
     use sdomain
     use mCapteur
@@ -681,6 +685,7 @@ subroutine END_SEM(Tdomain,rg,ntime)
 
 end subroutine END_SEM
 
+end module drive_sem
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
