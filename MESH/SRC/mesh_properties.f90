@@ -1482,7 +1482,7 @@ contains
         xminref = xmin ; xmaxref = xmax
         yminref = ymin ; ymaxref = ymax
         zmaxref = zmax
-        if(pml_b)then
+        if(pml_b == 1)then
             zminref = z_dep(1)
         else
             zminref = z_dep(0)

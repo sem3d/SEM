@@ -161,9 +161,9 @@ contains
     end subroutine defineRotation
 
 
-    subroutine create_earthchunk(chunk, nmat, xp, yp, zp, Ipoint, mat)
+    subroutine create_earthchunk(chunk, pml_b, nmat, xp, yp, zp, Ipoint, mat)
         implicit none
-        integer, intent(in) :: nmat
+        integer, intent(in) :: nmat, pml_b
         real, dimension(0:), intent(out) :: xp, yp, zp
         integer, dimension(0:,0:), intent(out) :: Ipoint
         integer, dimension(0:), intent(out) :: mat
