@@ -199,7 +199,7 @@ subroutine RUN_PREPARED(Tdomain,rg)
 !- Create subdomains communicators
     group = rg/Tdomain%ngroup
     subgroup = mod(rg,Tdomain%ngroup)
-    call MPI_Comm_split(MPI_COMM_WORLD, group, subgroup, Tdomain%comm_output, ierr)
+    call MPI_Comm_split(Tdomain%communicateur, group, subgroup, Tdomain%comm_output, ierr)
     call MPI_Comm_size(Tdomain%comm_output, Tdomain%nb_output_procs,  code)
     call MPI_Comm_rank(Tdomain%comm_output, Tdomain%output_rank, code)
 

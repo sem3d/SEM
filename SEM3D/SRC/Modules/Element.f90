@@ -83,10 +83,10 @@ module selement
        ! Whether this element will be part of snapshot outputs
        logical :: OUTPUT
 
-       type(element_solid), allocatable :: sl
-       type(element_fluid), allocatable :: fl
-       type(element_solid_pml), allocatable :: slpml
-       type(element_fluid_pml), allocatable :: flpml
+       type(element_solid), pointer :: sl
+       type(element_fluid), pointer :: fl
+       type(element_solid_pml), pointer :: slpml
+       type(element_fluid_pml), pointer :: flpml
 
        real :: dist_max !! taille caracteristique de l'element
     end type element
