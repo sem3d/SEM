@@ -110,8 +110,15 @@ subroutine Runge_Kutta4 (Tdomain, dt)
              !                                 Tdomain%sSubDomain(mat)%hprimez, &
              !                                 Tdomain%sSubDomain(mat)%hTprimez)
           end select
-          ! Calcul des fluxs / Assemblage des forces
-          do nf = 0,3
+       enddo
+
+       ! External Forces computation
+       call Compute_External_Forces(Tdomain,timelocal)
+
+       ! Calcul des fluxs / Assemblage des forces
+       do n = 0, Tdomain%n_elem-1
+          type_DG = Tdomain%specel(n)%Type_DG
+           do nf = 0,3
               nface  = Tdomain%specel(n)%Near_Face(nf)
               if(type_DG == GALERKIN_CONT) then
                   call Assemblage(Tdomain,n,nface,nf)
@@ -122,10 +129,6 @@ subroutine Runge_Kutta4 (Tdomain, dt)
               endif
            enddo
        enddo
-
-       ! External Forces computation
-       call Compute_External_Forces(Tdomain,timelocal)
-
 
        ! Communications MPI
        do i_proc = 0, Tdomain%n_communications - 1
