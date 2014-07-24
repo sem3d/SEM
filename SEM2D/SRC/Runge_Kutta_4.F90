@@ -244,12 +244,13 @@ subroutine Runge_Kutta4 (Tdomain, dt)
           ! Inversion of Mass Matrix to get 2nd member of velocity equation
           Tdomain%sface(n)%Forces(:,0)  = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(:,0)
           Tdomain%sface(n)%Forces(:,1)  = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(:,1)
+          if (Tdomain%sface(n)%reflex) Tdomain%sface(n)%Forces = 0.
           ! RK4 Updates of velocities and displacements
-          Tdomain%sface(n)%Vect_RK(:,0:1) = coeff1 * Tdomain%sface(n)%Vect_RK(:,0:1) + Dt * Tdomain%sface(n)%Forces(:,0:1)
-          Tdomain%sface(n)%Vect_RK(:,2:3) = coeff1 * Tdomain%sface(n)%Vect_RK(:,2:3) + Dt * Tdomain%sface(n)%Veloc (:,0:1)
+          Tdomain%sface(n)%Vect_RK = coeff1 * Tdomain%sface(n)%Vect_RK + Dt * Tdomain%sface(n)%Forces(:,0:1)
           Tdomain%sface(n)%Veloc   = Tdomain%sface(n)%Veloc + coeff2 * Tdomain%sface(n)%Vect_RK(:,0:1)
-          Tdomain%sface(n)%Displ   = Tdomain%sface(n)%Displ + coeff2 * Tdomain%sface(n)%Vect_RK(:,2:3)
           Tdomain%sface(n)%is_computed = .false.
+          !Tdomain%sface(n)%Displ   = Tdomain%sface(n)%Displ + coeff2 * Tdomain%sface(n)%Vect_RK(:,2:3)
+          !Tdomain%sface(n)%Vect_RK(:,2:3) = coeff1 * Tdomain%sface(n)%Vect_RK(:,2:3) + Dt * Tdomain%sface(n)%Veloc (:,0:1)
        endif
     enddo
     do n=0, Tdomain%n_vertex-1
@@ -257,12 +258,13 @@ subroutine Runge_Kutta4 (Tdomain, dt)
        if (type_DG == GALERKIN_CONT) then
           ! Inversion of Mass Matrix to get 2nd member of velocity equation
           Tdomain%sVertex(n)%Forces  = Tdomain%sVertex(n)%MassMat * Tdomain%sVertex(n)%Forces
+          if (Tdomain%sVertex(n)%reflex) Tdomain%sVertex(n)%Forces = 0.
           ! RK4 Updates of velocities and displacements
-          Tdomain%sVertex(n)%Vect_RK(0:1) = coeff1 * Tdomain%sVertex(n)%Vect_RK(0:1) + Dt * Tdomain%sVertex(n)%Forces
-          Tdomain%sVertex(n)%Vect_RK(2:3) = coeff1 * Tdomain%sVertex(n)%Vect_RK(2:3) + Dt * Tdomain%sVertex(n)%Veloc
+          Tdomain%sVertex(n)%Vect_RK = coeff1 * Tdomain%sVertex(n)%Vect_RK + Dt * Tdomain%sVertex(n)%Forces
           Tdomain%sVertex(n)%Veloc   = Tdomain%sVertex(n)%Veloc + coeff2 * Tdomain%sVertex(n)%Vect_RK(0:1)
-          Tdomain%sVertex(n)%Displ   = Tdomain%sVertex(n)%Displ + coeff2 * Tdomain%sVertex(n)%Vect_RK(2:3)
           Tdomain%sVertex(n)%is_computed = .false.
+          !Tdomain%sVertex(n)%Displ   = Tdomain%sVertex(n)%Displ + coeff2 * Tdomain%sVertex(n)%Vect_RK(2:3)
+          !Tdomain%sVertex(n)%Vect_RK(2:3) = coeff1 * Tdomain%sVertex(n)%Vect_RK(2:3) + Dt * Tdomain%sVertex(n)%Veloc
        endif
     enddo
 

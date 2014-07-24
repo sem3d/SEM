@@ -343,13 +343,13 @@ subroutine allocate_domain (Tdomain)
      do n = 0, Tdomain%n_face-1
         ngll = Tdomain%sFace(n)%ngll
         if (Tdomain%sface(n)%Type_DG == GALERKIN_CONT) then
-           allocate (Tdomain%sface(n)%Vect_RK(1:ngll-2,0:3))
+           allocate (Tdomain%sface(n)%Vect_RK(1:ngll-2,0:1))
            Tdomain%sface(n)%Vect_RK = 0.
         endif
      enddo
      do n = 0, Tdomain%n_vertex-1
         if (Tdomain%svertex(n)%Type_DG == GALERKIN_CONT) then
-           allocate (Tdomain%sVertex(n)%Vect_RK(0:3))
+           allocate (Tdomain%sVertex(n)%Vect_RK(0:1))
            Tdomain%svertex(n)%Vect_RK = 0.
         endif
      enddo

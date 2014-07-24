@@ -99,7 +99,8 @@ subroutine define_arrays(Tdomain)
         CG_RK4 = (Tdomain%type_timeInteg == TIME_INTEG_RK4) .and. &
                  (Tdomain%specel(n)%Type_DG==GALERKIN_CONT)
 
-        if ((.not. Tdomain%specel(n)%PML) .or. (.not. CG_RK4) .or. Tdomain%specel(n)%ADEPML) then
+        if (((.not. Tdomain%specel(n)%PML) .or. Tdomain%specel(n)%ADEPML) .and. &
+             (.not. CG_RK4)) then
            if((Tdomain%specel(n)%Type_DG==GALERKIN_DG_STRONG).OR. &
                (Tdomain%specel(n)%Type_DG==GALERKIN_DG_WEAK) .OR. &
                (Tdomain%specel(n)%Type_DG==GALERKIN_HDG_RP) ) then ! Discontinuous Galerkin
