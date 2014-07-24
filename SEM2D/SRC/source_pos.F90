@@ -117,9 +117,11 @@ subroutine SourcePosition(Tdomain)
 
                 if (Tdomain%sSource(nsour)%i_type_source == 1) then  ! Pulse directional force
                     call source_excit_pulse(Tdomain, Tdomain%sSource(nsour))
-                else if (Tdomain%sSource(nsour)%i_type_source  == 2) then
+                else if (Tdomain%sSource(nsour)%i_type_source  == 2) then ! Moment * Dirac
                     call calc_shape4_coeffs(Tdomain, Tdomain%sSource(nsour))
                     call source_excit_moment(Tdomain, Tdomain%sSource(nsour))
+                else if (Tdomain%sSource(nsour)%i_type_source  == 3) then ! Dirac Smoothed
+                    call source_dirac_projected(Tdomain, Tdomain%sSource(nsour))
                 endif
             endif
 
@@ -249,6 +251,49 @@ subroutine source_excit_moment(Tdomain, src)
         enddo
     enddo
 end subroutine source_excit_moment
+
+! ############################################################
+!>
+!! \brief This subroutine is computes the distribution of the forces on an element
+!! approximating a Dirac function by a finite sum of Legendre Polynomials.
+!!
+!! \param type (Element), intent (INOUT) Tdomain
+!! \param type (source),  intent (INOUT) src
+!<
+subroutine source_dirac_projected(Tdomain, src)
+    use sdomain
+    use ssources
+    use ssubdomains
+    use selement
+    implicit none
+    type(Domain), intent(inout) :: Tdomain
+    type(Source), intent(inout) :: src
+    type(Subdomain), pointer :: mat
+    type(element), pointer :: elem
+    real, dimension(0:1, 0:1) :: M
+    real, dimension(:,:), allocatable :: Dirac_projected
+    integer :: n, i, j, ngllx, ngllz, mat, nelem, nglleg
+    real    :: xi, eta
+
+    M = src%moment
+    do n = 0, src%ine-1 ! loop on all elements
+        nelem = src%Elem(n)%nr
+        nmat = Tdomain%specel(nelem)%mat_index
+        mat => Tdomain%sSubdomain(nmat)
+        elem => Tdomain%specel(nelem)
+        eta = src%Elem(n)%eta
+        xi = src%Elem(n)%xi
+        ngllx = Tdomain%specel(nelem)%ngllx
+        ngllz = Tdomain%specel(nelem)%ngllz
+        ! order of polynomial Legendre basis for Dirac projection
+        nglleg = max(ngllx,ngllz)
+        allocate(Dirac_projected(0:nglleg-1,0:nglleg-1))
+        call project_dirac_on_Legendre(Dirac_projected,nglleg)
+        src%Elem(n)%ExtForce(:,:,0) = ...
+        src%Elem(n)%ExtForce(:,:,1) = ...
+    enddo
+
+end subroutine source_dirac_projected
 
 subroutine calc_shape4_coeffs(Tdomain, src)
     use sdomain
