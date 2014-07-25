@@ -271,8 +271,9 @@ subroutine source_dirac_projected(Tdomain, src)
     type(Subdomain), pointer :: mat
     type(element), pointer :: elem
     real, dimension(0:1, 0:1) :: M
-    real, dimension(:,:), allocatable :: Dirac_projected
-    integer :: n, i, j, ngllx, ngllz, mat, nelem, nglleg
+    real, dimension(:,:), allocatable :: Dirac_projected, whei, xix, xiz, etax, etaz, aux1, aux2
+    real, dimension(:),   allocatable :: Fsurf1, Fsurf2
+    integer :: n, i, j, ngllx, ngllz, nelem, nmat, imin, imax
     real    :: xi, eta
 
     M = src%moment
@@ -283,17 +284,119 @@ subroutine source_dirac_projected(Tdomain, src)
         elem => Tdomain%specel(nelem)
         eta = src%Elem(n)%eta
         xi = src%Elem(n)%xi
-        ngllx = Tdomain%specel(nelem)%ngllx
-        ngllz = Tdomain%specel(nelem)%ngllz
-        ! order of polynomial Legendre basis for Dirac projection
-        nglleg = max(ngllx,ngllz)
-        allocate(Dirac_projected(0:nglleg-1,0:nglleg-1))
-        call project_dirac_on_Legendre(Dirac_projected,nglleg)
-        src%Elem(n)%ExtForce(:,:,0) = ...
-        src%Elem(n)%ExtForce(:,:,1) = ...
+        ngllx = elem%ngllx
+        ngllz = elem%ngllz
+        allocate (xix  (0:ngllx-1,0:ngllz-1))
+        allocate (xiz  (0:ngllx-1,0:ngllz-1))
+        allocate (etax (0:ngllx-1,0:ngllz-1))
+        allocate (etaz (0:ngllx-1,0:ngllz-1))
+        allocate (whei (0:ngllx-1,0:ngllz-1))
+        allocate (aux1 (0:ngllx-1,0:ngllz-1))
+        allocate (aux2 (0:ngllx-1,0:ngllz-1))
+        allocate (Dirac_projected(0:ngllx-1,0:ngllz-1))
+        xix  = elem%InvGrad(:,:,0,0)
+        xiz  = elem%InvGrad(:,:,1,0)
+        etax = elem%InvGrad(:,:,0,1)
+        etaz = elem%InvGrad(:,:,1,1)
+        do j = 0,ngllz-1
+            do i = 0,ngllx-1
+                Whei (i,j) = mat%GLLwx(i)* mat%GLLwz(j)
+            enddo
+        enddo
+        call project_dirac_on_Legendre(Dirac_projected,mat%gllcx,mat%gllcz,xi,eta,ngllx,ngllz)
+        aux1 = (M(0,0) * xix + M(0,1) * xiz) * whei(:,:) * elem%Jacob(:,:) * Dirac_projected(:,:)
+        aux2 = (M(0,0) *etax + M(0,1) *etaz) * whei(:,:) * elem%Jacob(:,:) * Dirac_projected(:,:)
+        src%Elem(n)%ExtForce(:,:,0) = MATMUL(mat%hprimex,aux1) + MATMUL(aux2,mat%hTprimez)
+        aux1 = (M(1,0) * xix + M(1,1) * xiz) * whei(:,:) * elem%Jacob(:,:) * Dirac_projected(:,:)
+        aux2 = (M(1,0) *etax + M(1,1) *etaz) * whei(:,:) * elem%Jacob(:,:) * Dirac_projected(:,:)
+        src%Elem(n)%ExtForce(:,:,1) = MATMUL(mat%hprimex,aux1) + MATMUL(aux2,mat%hTprimez)
+
+        ! contribution integrale surfacique :
+        allocate(Fsurf1(0:2*(ngllx+ngllz)-1))
+        allocate(Fsurf2(0:2*(ngllx+ngllz)-1))
+        Fsurf1 = (M(0,0)*Elem%Normal_Nodes(:,0) + M(0,1)*Elem%Normal_Nodes(:,1)) &
+                       * Elem%Coeff_integr_Faces(:)
+        Fsurf2 = (M(1,0)*Elem%Normal_Nodes(:,0) + M(1,1)*Elem%Normal_Nodes(:,1)) &
+                       * Elem%Coeff_integr_Faces(:)
+        ! For the Bottom Face :
+        call get_iminimax(Elem,0,imin,imax)
+        src%Elem(n)%ExtForce(0:ngllx-1,0,0) = src%Elem(n)%ExtForce(0:ngllx-1,0,0) &
+                  - Dirac_projected(0:ngllx-1,0) * Fsurf1(imin:imax)
+        src%Elem(n)%ExtForce(0:ngllx-1,0,1) = src%Elem(n)%ExtForce(0:ngllx-1,0,1) &
+                  - Dirac_projected(0:ngllx-1,0) * Fsurf2(imin:imax)
+        ! For the right Face :
+        call get_iminimax(Elem,1,imin,imax)
+        src%Elem(n)%ExtForce(ngllx-1,0:ngllz-1,0) = src%Elem(n)%ExtForce(ngllx-1,0:ngllz-1,0) &
+                  - Dirac_projected(ngllx-1,0:ngllz-1) * Fsurf1(imin:imax)
+        src%Elem(n)%ExtForce(ngllx-1,0:ngllz-1,1) = src%Elem(n)%ExtForce(ngllx-1,0:ngllz-1,1) &
+                  - Dirac_projected(ngllx-1,0:ngllz-1) * Fsurf2(imin:imax)
+        ! For the Top Face :
+        call get_iminimax(Elem,2,imin,imax)
+        src%Elem(n)%ExtForce(0:ngllx-1,ngllz-1,0) = src%Elem(n)%ExtForce(0:ngllx-1,ngllz-1,0) &
+                  - Dirac_projected(0:ngllx-1,ngllz-1) * Fsurf1(imin:imax)
+        src%Elem(n)%ExtForce(0:ngllx-1,ngllz-1,1) = src%Elem(n)%ExtForce(0:ngllx-1,ngllz-1,1) &
+                  - Dirac_projected(0:ngllx-1,ngllz-1) * Fsurf2(imin:imax)
+        ! For the Left Face :
+        call get_iminimax(Elem,3,imin,imax)
+        src%Elem(n)%ExtForce(0,0:ngllz-1,0) = src%Elem(n)%ExtForce(0,0:ngllz-1,0) &
+                  - Dirac_projected(ngllx-1,0:ngllz-1) * Fsurf1(imin:imax)
+        src%Elem(n)%ExtForce(0,0:ngllz-1,1) = src%Elem(n)%ExtForce(0,0:ngllz-1,1) &
+                  - Dirac_projected(0,0:ngllz-1) * Fsurf2(imin:imax)
+        deallocate(Dirac_projected, whei, xix, xiz, etax, etaz, aux1, aux2)
     enddo
 
 end subroutine source_dirac_projected
+
+! ############################################################
+!>
+!! \brief This subroutine uses the decomposition of the dirac
+!! function Delta(x-xs,y-ys) on the Legendre basis on the source
+!! element and then the subroutine computes the values of this
+!! decomposition on all the gll nodes of the element.
+!! Then everything is stored in the matrix : Dirac_projected
+!!
+!! \param type (Element), intent (INOUT) Tdomain
+!! \param type (source),  intent (INOUT) src
+!<
+subroutine project_dirac_on_Legendre(Dirac_projected,GLLcx,GLLcz,xi,eta,ngllx,ngllz)
+
+    real, dimension (0:ngllx-1, 0:ngllz-1), intent(INOUT) :: Dirac_projected
+    real, dimension (0:ngllx-1), intent(IN) :: GLLcx
+    real, dimension (0:ngllz-1), intent(IN) :: GLLcz
+    real,    intent(IN) :: xi, eta
+    integer, intent(IN) :: ngllx, ngllz
+    integer  :: i, j, n, m
+    real     :: interp_at_gll, d1, d2, resx, resy, xi_i, eta_j
+    real, dimension (0:ngllx-1) :: Pn_xs
+    real, dimension (0:ngllz-1) :: Pm_ys
+
+    ! Compute values of the Legendre polynomials Pn on the sources coords (eta,xi)
+    do n=0,ngllx-1
+        call VALEPO(n,xi, resx,d1,d2)
+        Pn_xs(n) = resx
+    enddo
+    do n=0,ngllz-1
+        call VALEPO(n,eta,resy,d1,d2)
+        Pm_ys(n) = resy
+    enddo
+    do i=0,ngllx-1
+        do j=0,ngllz-1
+            ! For each gll (eta_i,xi_j), polynomial projection is computed
+            interp_at_gll = 0.
+            xi_i = GLLcx(i)
+            eta_j = GLLcz(j)
+            do m=0,ngllx-1
+                do n=0,ngllz-1
+                    call VALEPO(m,xi_i, resx,d1,d2)
+                    call VALEPO(n,eta_j,resy,d1,d2)
+                    interp_at_gll = interp_at_gll + (m+0.5)*(n+0.5)*Pn_xs(m)*Pn_ys(n)*resx*resy
+                enddo
+            enddo
+            Dirac_projected(i,j) = interp_at_gll
+        enddo
+    enddo
+end subroutine project_dirac_on_Legendre
+
 
 subroutine calc_shape4_coeffs(Tdomain, src)
     use sdomain
