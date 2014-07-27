@@ -120,7 +120,7 @@ subroutine SourcePosition(Tdomain)
                 else if (Tdomain%sSource(nsour)%i_type_source  == 2) then ! Moment * Dirac
                     call calc_shape4_coeffs(Tdomain, Tdomain%sSource(nsour))
                     call source_excit_moment(Tdomain, Tdomain%sSource(nsour))
-                else if (Tdomain%sSource(nsour)%i_type_source  == 3) then ! Dirac Smoothed
+                else if (Tdomain%sSource(nsour)%i_type_source  == 4) then ! Dirac Smoothed
                     call source_dirac_projected(Tdomain, Tdomain%sSource(nsour))
                 endif
             endif
@@ -304,6 +304,7 @@ subroutine source_dirac_projected(Tdomain, src)
             enddo
         enddo
         call project_dirac_on_Legendre(Dirac_projected,mat%gllcx,mat%gllcz,xi,eta,ngllx,ngllz)
+        allocate  (src%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
         aux1 = (M(0,0) * xix + M(0,1) * xiz) * whei(:,:) * elem%Jacob(:,:) * Dirac_projected(:,:)
         aux2 = (M(0,0) *etax + M(0,1) *etaz) * whei(:,:) * elem%Jacob(:,:) * Dirac_projected(:,:)
         src%Elem(n)%ExtForce(:,:,0) = MATMUL(mat%hprimex,aux1) + MATMUL(aux2,mat%hTprimez)
@@ -342,7 +343,7 @@ subroutine source_dirac_projected(Tdomain, src)
                   - Dirac_projected(ngllx-1,0:ngllz-1) * Fsurf1(imin:imax)
         src%Elem(n)%ExtForce(0,0:ngllz-1,1) = src%Elem(n)%ExtForce(0,0:ngllz-1,1) &
                   - Dirac_projected(0,0:ngllz-1) * Fsurf2(imin:imax)
-        deallocate(Dirac_projected, whei, xix, xiz, etax, etaz, aux1, aux2)
+        deallocate(Dirac_projected, whei, xix, xiz, etax, etaz, aux1, aux2, Fsurf1, Fsurf2)
     enddo
 
 end subroutine source_dirac_projected
@@ -359,6 +360,8 @@ end subroutine source_dirac_projected
 !! \param type (source),  intent (INOUT) src
 !<
 subroutine project_dirac_on_Legendre(Dirac_projected,GLLcx,GLLcz,xi,eta,ngllx,ngllz)
+
+    use splib, only : valepo
 
     real, dimension (0:ngllx-1, 0:ngllz-1), intent(INOUT) :: Dirac_projected
     real, dimension (0:ngllx-1), intent(IN) :: GLLcx
@@ -389,7 +392,7 @@ subroutine project_dirac_on_Legendre(Dirac_projected,GLLcx,GLLcz,xi,eta,ngllx,ng
                 do n=0,ngllz-1
                     call VALEPO(m,xi_i, resx,d1,d2)
                     call VALEPO(n,eta_j,resy,d1,d2)
-                    interp_at_gll = interp_at_gll + (m+0.5)*(n+0.5)*Pn_xs(m)*Pn_ys(n)*resx*resy
+                    interp_at_gll = interp_at_gll + (m+0.5)*(n+0.5)*Pn_xs(m)*Pm_ys(n)*resx*resy
                 enddo
             enddo
             Dirac_projected(i,j) = interp_at_gll

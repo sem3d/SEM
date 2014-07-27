@@ -231,7 +231,7 @@ contains
                 enddo
             enddo
             ! Computation of coefficients of integration for element boundaries
-            if (Tdomain%specel(n)%Type_DG .NE. GALERKIN_CONT) then
+            !if (Tdomain%specel(n)%Type_DG .NE. GALERKIN_CONT) then
                 allocate(Tdomain%specel(n)%Coeff_Integr_Faces(0:2*(ngllx+ngllz)-1))
                 ! Bottom boundary :
                 imin = 0 ; imax = ngllx-1
@@ -253,7 +253,7 @@ contains
                 nf = Tdomain%specel(n)%Near_Face(3)
                 call compute_Jacobian_1D(Tdomain,nf,Jac1D)
                 Tdomain%specel(n)%Coeff_Integr_Faces(imin:imax) = Tdomain%sSubdomain(mat)%GLLwz(:) * Jac1D
-            endif
+            !endif
         enddo
 
         ! Compute Normals for Faces with DG :
@@ -265,9 +265,9 @@ contains
 
         ! Compute Normals for Elements HDG :
         do n=0,Tdomain%n_elem-1
-            if (Tdomain%specel(n)%Type_DG .EQ. GALERKIN_HDG_RP) then
+            !if (Tdomain%specel(n)%Type_DG .EQ. GALERKIN_HDG_RP) then
                 call compute_normals_elem(Tdomain,n)
-            end if
+            !end if
         end do
 
         if (Tdomain%logicD%super_object_local_present) then

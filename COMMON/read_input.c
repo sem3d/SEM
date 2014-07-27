@@ -51,8 +51,9 @@ int expect_source_type(yyscan_t scanner, int* type)
     if (cmp(scanner,"impulse"))    { *type = 1; return 1; }
     if (cmp(scanner,"moment"))     { *type = 2; return 1; }
     if (cmp(scanner,"fluidpulse")) { *type = 3; return 1; }
+    if (cmp(scanner,"dirac_proj")) { *type = 4; return 1; }
 error:
-    msg_err(scanner, "Expected pulse|impulse|moment|fluidpulse");
+    msg_err(scanner, "Expected pulse|impulse|moment|fluidpulse|dirac_proj");
     return 0;
 }
 
