@@ -121,16 +121,18 @@ set(SEM3D_SOURCES ${SEM3D_SOURCES_F}
 
 
 if(OPT_MPI)
-  #set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
-  # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
-  # c++ et ne link pas semx.exe
+  if (NOT OPT_NEW_GLOBAL_METHOD)
+    #set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
+    # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
+    # c++ et ne link pas semx.exe
 
-  add_executable(sem3d_cpl ${PRJ}/SRC/main.F90 ${SEM3D_SOURCES})
-  target_link_libraries(sem3d_cpl ${SEM_EXTRA_LIBS})
-  set_target_properties(sem3d_cpl PROPERTIES 
+    add_executable(sem3d_cpl ${PRJ}/SRC/main.F90 ${SEM3D_SOURCES})
+    target_link_libraries(sem3d_cpl ${SEM_EXTRA_LIBS})
+    set_target_properties(sem3d_cpl PROPERTIES 
                               COMPILE_DEFINITIONS COUPLAGE
                               COMPILE_FLAGS -I${PROJECT_BINARY_DIR}/cpl
                               Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/cpl)
+  endif(NOT OPT_NEW_GLOBAL_METHOD)
 else(OPT_MPI)
   set(SEM3D_SOURCES ${SEM3D_SOURCES} ${FTM_SOURCES})
 endif(OPT_MPI)
