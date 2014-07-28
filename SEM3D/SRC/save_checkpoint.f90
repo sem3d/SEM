@@ -55,7 +55,7 @@ subroutine init_protection(Tdomain, it, rg, prot_file)
     call MPI_Barrier(Tdomain%communicateur, ierr)
 
 end subroutine init_protection
-
+#if ! NEW_GLOBAL_METHOD
 subroutine compute_save_offsets(Tdomain, offset, offset_f, offset_e, offset_v)
     use sdomain
     implicit none
@@ -233,7 +233,97 @@ subroutine compute_save_offsets(Tdomain, offset, offset_f, offset_e, offset_v)
     !write(*,*) "Offsets (E):", offset_e
     !write(*,*) "Offsets (V):", offset_v
 end subroutine compute_save_offsets
+#else
+subroutine compute_save_offsets_2(Tdomain, offset)
+    use sdomain
+    implicit none
+    type (domain), intent (IN):: Tdomain
+    integer(kind=4), intent(out), dimension (12) :: offset
+    integer :: n,ngllx,nglly,ngllz,ngll,ngll1,ngll2,n_solid
 
+    ! Calcul des offsets de positions dans les tableaux
+    n_solid = Tdomain%n_sls
+    offset(1:12)=0
+    do n = 0,Tdomain%n_elem-1
+        ngllx = Tdomain%specel(n)%ngllx;  nglly = Tdomain%specel(n)%nglly; ngllz = Tdomain%specel(n)%ngllz
+        ngll = (ngllx-2)*(nglly-2)*(ngllz-2)
+        ngll2 = ngllx*nglly*ngllz
+        if(Tdomain%specel(n)%solid)then  ! solid part
+        ! pour Veloc : 1
+        offset(1) = offset(1) + ngll*3
+        if ( .not. Tdomain%specel(n)%PML ) then
+            ! Veloc1, Veloc2, Veloc3 : 2
+            offset(2) = offset(2) + 0
+            ! pour Displ : 3
+            offset(3) = offset(3) + ngll*3
+
+            if ( n_solid > 0 ) then
+                if (Tdomain%aniso) then
+                    ! pour EpsilonVol : 4
+                    offset(4) = offset(4) + 0
+                    ! pour R_vol : 5
+                    offset(5) = offset(5) + 0
+                else
+                    ! pour EpsilonVol : 4
+                    offset(4) = offset(4) + ngll2
+                    ! pour R_vol : 5
+                    offset(5) = offset(5) + ngll2*n_solid
+                endif
+                ! pour R_xx, R_yy, R_xy, R_xz, R_yz : 6
+                offset(6) = offset(6) + ngll2*n_solid
+                ! pour epsilondev_xx, yy, xy, xz, yz : 7
+                offset(7) = offset(7) + ngll2
+            else
+                ! pour EpsilonVol : 4
+                offset(4) = offset(4) + 0
+                ! pour R_vol : 5
+                offset(5) = offset(5) + 0
+                ! pour R_xx, R_yy, R_xy, R_xz, R_yz : 6
+                offset(6) = offset(6) + 0
+                ! pour epsilondev_xx, yy, xy, xz, yz : 7
+                offset(7) = offset(7) + 0
+            end if
+            ! pour Stress : 8
+            offset(8) = offset(8) + 0
+        else
+            ! Veloc1, Veloc2, Veloc3 : 2
+            offset(2) = offset(2) + ngll*3
+            ! pour Displ : 3
+            offset(3) = offset(3) + 0
+            ! pour EpsilonVol : 4
+            offset(4) = offset(4) + 0
+            ! pour R_vol : 5
+            offset(5) = offset(5) + 0
+            ! pour R_xx, R_yy, R_xy, R_xz, R_yz : 6
+            offset(6) = offset(6) + 0
+            ! pour epsilondev_xx, yy, xy, xz, yz : 7
+            offset(7) = offset(7) + 0
+            ! pour Stress : 8
+            offset(8) = offset(8) + ngll2*18
+        end if
+        else   ! fluid part
+        ! pour VelPhi : 9
+        offset(9) = offset(9) + ngll
+        if ( .not. Tdomain%specel(n)%PML ) then
+            ! VelPhi1, VelPhi2, VelPhi3 : 10
+            offset(10) = offset(10) + 0
+            ! pour Phi : 11
+            offset(11) = offset(11) + ngll
+            ! pour Veloc : 12
+            offset(12) = offset(12) + 0
+        else  ! PML
+            ! VelPhi1, VelPhi2, VelPhi3 : 10
+            offset(10) = offset(10) + ngll
+            ! pour Phi : 11
+            offset(11) = offset(11) + 0
+            ! pour Veloc : 12
+            offset(12) = offset(12) + ngll2*9
+        end if
+
+        end if
+    end do
+end subroutine compute_save_offsets_2
+#endif
 
 subroutine write_Veloc(Tdomain, nmax, elem_id)
     use sdomain, only : domain
@@ -248,6 +338,9 @@ subroutine write_Veloc(Tdomain, nmax, elem_id)
     integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
     real(kind=8), dimension(1:nmax) :: data
     integer(HSIZE_T), dimension(1) :: dims
+#if NEW_GLOBAL_METHOD
+    integer :: id
+#endif
 
 
     call create_dset(elem_id, "Veloc", H5T_IEEE_F64LE, nmax, dset_id)
@@ -259,6 +352,7 @@ subroutine write_Veloc(Tdomain, nmax, elem_id)
     idx = 1
     do n = 0,Tdomain%n_elem-1
         if(.not. Tdomain%specel(n)%solid) cycle
+        if(Tdomain%specel(n)%PML) cycle
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
@@ -270,9 +364,16 @@ subroutine write_Veloc(Tdomain, nmax, elem_id)
                         write(*,*) "Erreur fatale sauvegarde des protections"
                         stop 1
                     end if
+#if ! NEW_GLOBAL_METHOD
                     data(idx+0) = Tdomain%specel(n)%sl%Veloc(i,j,k,0)
                     data(idx+1) = Tdomain%specel(n)%sl%Veloc(i,j,k,1)
                     data(idx+2) = Tdomain%specel(n)%sl%Veloc(i,j,k,2)
+#else
+                    id = Tdomain%specel(n)%ISol(i,j,k)
+                    data(idx+0) = Tdomain%champs0%Veloc(id,0)
+                    data(idx+1) = Tdomain%champs0%Veloc(id,1)
+                    data(idx+2) = Tdomain%champs0%Veloc(id,2)
+#endif
                     idx = idx + 3
                 enddo
             enddo
@@ -317,7 +418,11 @@ subroutine write_VelPhi(Tdomain, nmax, elem_id)
                         write(*,*) "Erreur fatale sauvegarde des protections"
                         stop 1
                     end if
+#if ! NEW_GLOBAL_METHOD
                     data(idx) = Tdomain%specel(n)%fl%VelPhi(i,j,k)
+#else
+                    data(idx) = Tdomain%champs0%VelPhi(Tdomain%specel(n)%IFlu(i,j,k))
+#endif
                     idx = idx + 1
                 enddo
             enddo
@@ -340,6 +445,9 @@ subroutine write_Veloc123(Tdomain, nmax, elem_id)
     integer(kind=4), intent(IN) :: nmax
 
     integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
+#if NEW_GLOBAL_METHOD
+    integer :: id
+#endif
     real(kind=8), dimension(1:nmax) :: data1, data2, data3
     integer(HSIZE_T), dimension(1) :: dims
 
@@ -371,6 +479,7 @@ subroutine write_Veloc123(Tdomain, nmax, elem_id)
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
+#if ! NEW_GLOBAL_METHOD
                         data1(idx+0) = Tdomain%specel(n)%slpml%Veloc1(i,j,k,0)
                         data1(idx+1) = Tdomain%specel(n)%slpml%Veloc1(i,j,k,1)
                         data1(idx+2) = Tdomain%specel(n)%slpml%Veloc1(i,j,k,2)
@@ -380,6 +489,18 @@ subroutine write_Veloc123(Tdomain, nmax, elem_id)
                         data3(idx+0) = Tdomain%specel(n)%slpml%Veloc3(i,j,k,0)
                         data3(idx+1) = Tdomain%specel(n)%slpml%Veloc3(i,j,k,1)
                         data3(idx+2) = Tdomain%specel(n)%slpml%Veloc3(i,j,k,2)
+#else
+                        id = Tdomain%specel(n)%slpml%ISolPML(i,j,k)
+                        data1(idx+0) = Tdomain%champs0%VelocPML(id,0)
+                        data1(idx+1) = Tdomain%champs0%VelocPML(id,1)
+                        data1(idx+2) = Tdomain%champs0%VelocPML(id,2)
+                        data2(idx+0) = Tdomain%champs0%VelocPML(id+1,0)
+                        data2(idx+1) = Tdomain%champs0%VelocPML(id+1,1)
+                        data2(idx+2) = Tdomain%champs0%VelocPML(id+1,2)
+                        data3(idx+0) = Tdomain%champs0%VelocPML(id+2,0)
+                        data3(idx+1) = Tdomain%champs0%VelocPML(id+2,1)
+                        data3(idx+2) = Tdomain%champs0%VelocPML(id+2,2)
+#endif
                         idx = idx + 3
                     enddo
                 enddo
@@ -464,6 +585,9 @@ subroutine write_Disp(Tdomain, nmax, elem_id)
     integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
     real(kind=8), dimension(1:nmax) :: data
     integer(HSIZE_T), dimension(1) :: dims
+#if NEW_GLOBAL_METHOD
+    integer :: id
+#endif
 
     call create_dset(elem_id, "Displ", H5T_IEEE_F64LE, nmax, dset_id)
     if(nmax <= 0)then
@@ -486,9 +610,16 @@ subroutine write_Disp(Tdomain, nmax, elem_id)
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
+#if ! NEW_GLOBAL_METHOD
                         data(idx+0) = Tdomain%specel(n)%sl%Displ(i,j,k,0)
                         data(idx+1) = Tdomain%specel(n)%sl%Displ(i,j,k,1)
                         data(idx+2) = Tdomain%specel(n)%sl%Displ(i,j,k,2)
+#else
+                        id = Tdomain%specel(n)%ISol(i,j,k)
+                        data(idx+0) = Tdomain%champs0%Depla(id,0)
+                        data(idx+1) = Tdomain%champs0%Depla(id,1)
+                        data(idx+2) = Tdomain%champs0%Depla(id,2)
+#endif
                         idx = idx + 3
                     enddo
                 enddo
@@ -534,7 +665,11 @@ subroutine write_Phi(Tdomain, nmax, elem_id)
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
+#if ! NEW_GLOBAL_METHOD
                         data(idx) = Tdomain%specel(n)%fl%Phi(i,j,k)
+#else
+                        data(idx) = Tdomain%champs0%Phi(Tdomain%specel(n)%IFlu(i,j,k))
+#endif
                         idx = idx + 1
                     enddo
                 enddo
@@ -882,6 +1017,9 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
     integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
     real(kind=8), dimension(1:nmax) :: data
     integer(HSIZE_T), dimension(1) :: dims
+#if NEW_GLOBAL_METHOD
+    integer :: id
+#endif
 
     call create_dset(elem_id, "Veloc_Fl", H5T_IEEE_F64LE, nmax, dset_id)
     if(nmax <= 0)then
@@ -905,6 +1043,7 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
+#if ! NEW_GLOBAL_METHOD
                         data(idx+ 0) = Tdomain%specel(n)%slpml%Veloc1(i,j,k,0)
                         data(idx+ 1) = Tdomain%specel(n)%slpml%Veloc1(i,j,k,1)
                         data(idx+ 2) = Tdomain%specel(n)%slpml%Veloc1(i,j,k,2)
@@ -917,6 +1056,22 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
                         data(idx+ 1) = Tdomain%specel(n)%slpml%Veloc3(i,j,k,1)
                         data(idx+ 2) = Tdomain%specel(n)%slpml%Veloc3(i,j,k,2)
                         idx = idx + 3
+#else
+                        id = Tdomain%specel(n)%slpml%ISolPML(i,j,k)
+                        data(idx+ 0) = Tdomain%champs0%VelocPML(id,0)
+                        data(idx+ 1) = Tdomain%champs0%VelocPML(id,1)
+                        data(idx+ 2) = Tdomain%champs0%VelocPML(id,2)
+                        idx = idx + 3
+                        data(idx+ 0) = Tdomain%champs0%VelocPML(id+1,0)
+                        data(idx+ 1) = Tdomain%champs0%VelocPML(id+1,1)
+                        data(idx+ 2) = Tdomain%champs0%VelocPML(id+1,2)
+                        idx = idx + 3
+                        data(idx+ 0) = Tdomain%champs0%VelocPML(id+2,0)
+                        data(idx+ 1) = Tdomain%champs0%VelocPML(id+2,1)
+                        data(idx+ 2) = Tdomain%champs0%VelocPML(id+2,2)
+                        idx = idx + 3
+#endif
+
                     enddo
                 enddo
             enddo
@@ -927,7 +1082,7 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
 end subroutine write_Veloc_Fluid_PML
 
 
-
+#if ! NEW_GLOBAL_METHOD
 subroutine write_Faces(Tdomain, offset_f, face_id)
     use sdomain, only : domain
     use sem_hdf5, only : create_dset
@@ -1316,7 +1471,7 @@ subroutine write_Vertices(Tdomain, offset_v, vertex_id)
     call h5dclose_f(velphi3_id, hdferr)
 
 end subroutine write_Vertices
-
+#endif
 subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, isort)
     use sdomain
     use HDF5
@@ -1332,14 +1487,19 @@ subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, isort)
     integer :: n_solid , i_sls
     ! HDF5 stuff
     integer :: hdferr
-    integer(HID_T) :: fid, dset_id, elem_id, face_id, edge_id, vertex_id
+    integer(HID_T) :: fid, dset_id, elem_id
+#if ! NEW_GLOBAL_METHOD
+    integer(HID_T) :: face_id, edge_id, vertex_id
+#endif
     logical :: avail
     integer :: nelem, noffset
     integer :: size_vec, size_eps, size_epsaniso
     integer(kind=4), dimension (12) :: offset
+#if ! NEW_GLOBAL_METHOD
     integer(kind=4), dimension (6) :: offset_f ! Veloc / Displ / (Veloc1,Veloc2,Veloc3)
     integer(kind=4), dimension (6) :: offset_e ! Veloc / Displ / (Veloc1,Veloc2,Veloc3)
     integer(kind=4), dimension (6) :: offset_v ! Veloc / Displ / (Veloc1,Veloc2,Veloc3)
+#endif
     integer(HSIZE_T), dimension(2) :: off_dims
 
     if (rg == 0) then
@@ -1353,8 +1513,11 @@ subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, isort)
     off_dims(2) = 12
 
     call init_hdf5()
-
+#if ! NEW_GLOBAL_METHOD
     call compute_save_offsets(Tdomain, offset, offset_f, offset_e, offset_v)
+#else
+    call compute_save_offsets_2(Tdomain, offset)
+#endif
 
     call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
 
@@ -1366,9 +1529,11 @@ subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, isort)
     !write(*,*) "DBG: Create groups"
     ! ifort doesn't care, but gfortran complains that the last integer should be 8 bytes
     call h5gcreate_f(fid, 'Elements', elem_id, hdferr, 0_SIZE_T)
+#if ! NEW_GLOBAL_METHOD
     call h5gcreate_f(fid, 'Faces', face_id, hdferr, 0_SIZE_T)
     call h5gcreate_f(fid, 'Edges', edge_id, hdferr, 0_SIZE_T)
     call h5gcreate_f(fid, 'Vertices', vertex_id, hdferr, 0_SIZE_T)
+#endif
 
     !  call create_dset_2d(fid, "Offsets", H5T_STD_I32LE, nelem+1, 8, dset_id)
     !  call h5dwrite_f(dset_id, H5T_STD_I32LE, offset, off_dims, hdferr)
@@ -1400,18 +1565,21 @@ subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, isort)
     call write_Phi(Tdomain, offset(11), elem_id)
     !write(*,*) "DBG: Write fluid pml"
     call write_Veloc_Fluid_PML(Tdomain, offset(12), elem_id)
-
+#if ! NEW_GLOBAL_METHOD
     !write(*,*) "DBG: Write faces"
     call write_Faces(Tdomain, offset_f, face_id)
     !write(*,*) "DBG: Write edges"
     call write_Edges(Tdomain, offset_e, edge_id)
     !write(*,*) "DBG: Write vertices"
     call write_Vertices(Tdomain, offset_v, vertex_id)
+#endif
 
     call h5gclose_f(elem_id, hdferr)
+#if ! NEW_GLOBAL_METHOD
     call h5gclose_f(face_id, hdferr)
     call h5gclose_f(edge_id, hdferr)
     call h5gclose_f(vertex_id, hdferr)
+#endif
     call h5fclose_f(fid, hdferr)
 end subroutine save_checkpoint
 !! Local Variables:

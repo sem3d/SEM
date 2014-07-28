@@ -140,9 +140,12 @@ subroutine Newmark(Tdomain,rg,ntime)
 
     endif  ! if nproc > 1
 
-
     ! Neumann B.C.: associated forces
     if(Tdomain%logicD%neumann_local_present)then
+#if NEW_GLOBAL_METHOD
+    !TODO
+    stop "TODO: conditions de Neumann non prises en compte (Newmark)"
+#else
         mat = Tdomain%Neumann%Neu_Param%mat_index
         do nf = 0,Tdomain%Neumann%Neu_n_faces-1
             ngll1 = Tdomain%Neumann%Neu_Face(nf)%ngll1
@@ -193,6 +196,7 @@ subroutine Newmark(Tdomain,rg,ntime)
                     Tdomain%Neumann%Neu_Vertex(nv)%Forces(0:2)
             endif
         enddo
+#endif
     endif
 
 
@@ -248,6 +252,7 @@ subroutine Newmark(Tdomain,rg,ntime)
 end subroutine Newmark
 !---------------------------------------------------------------------------------------
 !---------------------------------------------------------------------------------------
+#if ! NEW_GLOBAL_METHOD
 subroutine Newmark_Predictor(Tdomain,rg)
     use sdomain
     use assembly
@@ -363,8 +368,10 @@ subroutine Newmark_Predictor(Tdomain,rg)
     return
 
 end subroutine Newmark_Predictor
+#endif
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
+#if NEW_GLOBAL_METHOD
 subroutine Newmark_Predictor2(Tdomain,champs1)
     use schamps
     use sdomain
@@ -394,11 +401,19 @@ subroutine Newmark_Predictor2(Tdomain,champs1)
 
     ! Elements solide pml
     if (Tdomain%ngll_pmls /= 0) then
+        champs1%ForcesPML = 0.
         do n = 0,Tdomain%nbInterfSolPml-1
             ! Couplage à l'interface solide / PML
             indsol = Tdomain%InterfSolPml(n,0)
             indpml = Tdomain%InterfSolPml(n,1)
             Tdomain%champs0%VelocPML(indpml,:) = Tdomain%champs0%Veloc(indsol,:)
+            Tdomain%champs0%VelocPML(indpml+1,:) = 0.
+            Tdomain%champs0%VelocPML(indpml+2,:) = 0.
+        enddo
+
+        do n = 0, Tdomain%nbOuterPMLNodes-1
+            indpml = Tdomain%OuterPMLNodes(n)
+            Tdomain%champs0%VelocPML(indpml,:) = 0.
             Tdomain%champs0%VelocPML(indpml+1,:) = 0.
             Tdomain%champs0%VelocPML(indpml+2,:) = 0.
         enddo
@@ -416,6 +431,7 @@ subroutine Newmark_Predictor2(Tdomain,champs1)
                                                          Tdomain%sSubDomain(mat)%hTPrimex, &
                                                          Tdomain%sSubDomain(mat)%hPrimey, &
                                                          Tdomain%sSubDomain(mat)%hprimez, &
+                                                         Tdomain%ngll_pmls, &
                                                          Tdomain%champs0%VelocPML, &
                                                          Tdomain%champs1%ForcesPML)
                     endif
@@ -427,8 +443,10 @@ subroutine Newmark_Predictor2(Tdomain,champs1)
     return
 
 end subroutine Newmark_Predictor2
+#endif
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
+#if ! NEW_GLOBAL_METHOD
 subroutine Newmark_Corrector(Tdomain,rg)
     use sdomain
     implicit none
@@ -559,8 +577,10 @@ subroutine Newmark_Corrector(Tdomain,rg)
 
     return
 end subroutine Newmark_Corrector
+#endif
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
+#if NEW_GLOBAL_METHOD
 subroutine Newmark_Corrector2(Tdomain,champs1)
     use sdomain
     use schamps
@@ -601,8 +621,10 @@ subroutine Newmark_Corrector2(Tdomain,champs1)
 
     return
 end subroutine Newmark_Corrector2
+#endif
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
+#if ! NEW_GLOBAL_METHOD
 subroutine internal_forces(Tdomain,rank)
     ! volume forces - depending on rheology
     use sdomain
@@ -648,8 +670,10 @@ subroutine internal_forces(Tdomain,rank)
 
     return
 end subroutine internal_forces
+#endif
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
+#if NEW_GLOBAL_METHOD
 subroutine internal_forces2(Tdomain,champs1)
     ! volume forces - depending on rheology
     use sdomain
@@ -694,8 +718,10 @@ subroutine internal_forces2(Tdomain,champs1)
 
     return
 end subroutine internal_forces2
+#endif
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
+#if ! NEW_GLOBAL_METHOD
 subroutine external_forces(Tdomain,timer,ntime,rank)
     use sdomain
     implicit none
@@ -736,8 +762,10 @@ subroutine external_forces(Tdomain,timer,ntime,rank)
 
     return
 end subroutine external_forces
+#endif
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
+#if NEW_GLOBAL_METHOD
 subroutine external_forces2(Tdomain,timer,ntime,rank,champs1)
     use sdomain
     use schamps
@@ -792,8 +820,10 @@ subroutine external_forces2(Tdomain,timer,ntime,rank,champs1)
 
     return
 end subroutine external_forces2
+#endif
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
+#if ! NEW_GLOBAL_METHOD
 subroutine inside_proc_forces(Tdomain)
     use sdomain
     use assembly
@@ -872,6 +902,7 @@ subroutine inside_proc_forces(Tdomain)
 
     return
 end subroutine inside_proc_forces
+#endif
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
 subroutine Comm_Forces_Complete(n,Tdomain)
@@ -882,6 +913,10 @@ subroutine Comm_Forces_Complete(n,Tdomain)
     integer, intent(in)   :: n
     integer  :: ngll,ngll_F,i,j,k,nf,ne,nv
 
+#if NEW_GLOBAL_METHOD
+    !TODO
+    write(*,*) "TODO: parallelisation (Comm_Forces_Complete)"
+#else
     ngll = 0 ; ngll_F = 0
     ! faces
     do i = 0,Tdomain%sComm(n)%nb_faces-1
@@ -928,7 +963,7 @@ subroutine Comm_Forces_Complete(n,Tdomain)
             ngll_F = ngll_F + 1
         end if
     enddo
-
+#endif
     return
 end subroutine Comm_Forces_Complete
 !-----------------------------------------------------------------------------
@@ -940,7 +975,10 @@ subroutine Comm_Forces_PML_Complete(n,Tdomain)
     type(domain), intent(inout)  :: Tdomain
     integer, intent(in)   :: n
     integer  :: ngllPML,ngllPML_F,i,j,k,nf,ne,nv
-
+#if NEW_GLOBAL_METHOD
+    !TODO
+    write(*,*) "TODO: parallelisation (Comm_Forces_PML_Complete)"
+#else
     ngllPML = 0 ; ngllPML_F = 0
 
     ! faces
@@ -1006,7 +1044,7 @@ subroutine Comm_Forces_PML_Complete(n,Tdomain)
             end if
         endif
     enddo
-
+#endif
     return
 end subroutine Comm_Forces_PML_Complete
 !---------------------------------------------------------------------------------------

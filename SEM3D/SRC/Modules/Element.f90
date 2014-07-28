@@ -15,7 +15,9 @@ module selement
        real, dimension(:,:,:,:), allocatable :: Cij
 
        real, dimension(:,:,:,:), allocatable :: ACoeff
-       real, dimension(:,:,:,:), allocatable :: Forces,Veloc,Displ,Accel,V0
+#if ! NEW_GLOBAL_METHOD
+        real, dimension(:,:,:,:), allocatable :: Forces,Veloc,Displ,Accel,V0
+#endif
 
         ! Attenuation
        real, dimension (:,:,:), allocatable :: Q, Qs, Qp, onemSbeta, onemPbeta, &
@@ -30,11 +32,10 @@ module selement
 
     type :: element_fluid
        real, dimension(:,:,:,:), allocatable :: ACoeff
-       ! fluid part
+#if ! NEW_GLOBAL_METHOD
        real, dimension(:,:,:), allocatable:: Phi,VelPhi0,VelPhi,AccelPhi
-       ! fluid part
        real, dimension(:,:,:), allocatable:: ForcesFl
-
+#endif
     end type element_fluid
 
     type :: element_solid_pml
@@ -43,16 +44,24 @@ module selement
        real, dimension(:,:,:,:), allocatable :: Residual_Stress1, Residual_Stress2, Residual_Stress3
        real, dimension(:,:,:,:), allocatable :: DumpSx,DumpSy,DumpSz
        real, dimension(:,:,:,:), allocatable :: Forces1,Forces2,Forces3
+#if ! NEW_GLOBAL_METHOD
        real, dimension(:,:,:,:), allocatable :: Veloc1,Veloc2,Veloc3
+#endif
        ! FPML
        real, dimension(:,:,:), allocatable :: Isx, Isy, Isz
        real, dimension(:,:,:), allocatable :: Ivx, Ivy, Ivz
        real, dimension(:,:,:,:), allocatable :: Iveloc1, Iveloc2, Iveloc3
        real, dimension(:,:,:,:), allocatable :: I_Diagonal_Stress1, I_Diagonal_Stress2, I_Diagonal_Stress3
        real, dimension(:,:,:,:), allocatable :: I_Residual_Stress1, I_Residual_Stress2
-       real, dimension(:,:,:,:), allocatable :: DumpVx,DumpVy,DumpVz, DumpMass
+#if ! NEW_GLOBAL_METHOD
+       real, dimension(:,:,:,:), allocatable :: DumpVx,DumpVy,DumpVz
+#endif
+       real, dimension(:,:,:,:), allocatable :: DumpMass
        real, dimension(:,:,:,:), allocatable :: Diagonal_Stress, Residual_Stress
        real, dimension(:,:), allocatable :: Normales, Inv_Normales
+#if NEW_GLOBAL_METHOD
+       integer, dimension (:,:,:), allocatable :: ISolPml
+#endif
     end type element_solid_pml
 
     type :: element_fluid_pml
@@ -60,6 +69,9 @@ module selement
         real, dimension(:,:,:,:), allocatable :: DumpVx,DumpVy,DumpVz, DumpMass
         real, dimension(:,:,:,:), allocatable :: Veloc,Veloc1,Veloc2,Veloc3
         real, dimension(:,:,:), allocatable :: ForcesFl1,ForcesFl2,ForcesFl3,VelPhi1,VelPhi2,VelPhi3
+#if NEW_GLOBAL_METHOD
+       integer, dimension (:,:,:), allocatable :: IFluPml
+#endif
     end type element_fluid_pml
 
     type :: element
@@ -87,9 +99,9 @@ module selement
        type(element_fluid), allocatable :: fl
        type(element_solid_pml), allocatable :: slpml
        type(element_fluid_pml), allocatable :: flpml
-
-	   integer, dimension (:,:,:), allocatable :: ISol, IFlu, ISolPml, IFluPml
-
+#if NEW_GLOBAL_METHOD
+	   integer, dimension (:,:,:), allocatable :: ISol, IFlu
+#endif
        real :: dist_max !! taille caracteristique de l'element
     end type element
 
@@ -105,7 +117,7 @@ module selement
 
 contains
 
-
+#if ! NEW_GLOBAL_METHOD
     !--------------------------------------------------------------
     !>
     !! \fn subroutine Prediction_Elem_Veloc (Elem,alpha,bega, gam1,dt)
@@ -174,35 +186,6 @@ contains
     end subroutine Correction_Elem_Veloc
     !--------------------------------------------------------------------------------
     !--------------------------------------------------------------------------------
-    subroutine Correction_Elem_Veloc_2(Elem,dt,ngll,MassMat,Forces1,Forces,Veloc,Depla)
-        implicit none
-        type(Element), intent(inout) :: Elem
-        real, intent(in) :: dt
-        integer, intent (in) :: ngll
-        real, dimension(0:ngll-1), intent(in) :: MassMat
-        real, dimension(0:ngll-1,0:2), intent(in) :: Forces1
-        real, dimension(0:ngll-1,0:2), intent(inout) :: Forces, Veloc, Depla
-        integer :: ngllx, nglly, ngllz, i, j, k, ind, i_dir
-
-
-        ngllx = Elem%ngllx ;  nglly = Elem%nglly ; ngllz = Elem%ngllz
-        do k = 0,ngllz-1
-            do j = 0,nglly-1
-                do i = 0,ngllx-1
-                    ind = Elem%Isol(i,j,k)
-                    do i_dir = 0,2
-                        Forces(ind,i_dir) = Forces1(ind,i_dir) * MassMat(ind)
-                    enddo
-                    Veloc(ind,:) = Veloc(ind,:) + dt * Forces(ind,:)
-                    Depla(ind,:) = Depla(ind,:) + dt * Veloc(ind,:)
-                enddo
-            enddo
-        enddo
-
-        return
-    end subroutine Correction_Elem_Veloc_2
-    !--------------------------------------------------------------------------------
-    !--------------------------------------------------------------------------------
     subroutine Correction_Elem_VelPhi(Elem,dt)
         implicit none
         type(Element), intent(inout) :: Elem
@@ -219,6 +202,7 @@ contains
 
         return
     end subroutine Correction_Elem_VelPhi
+
     !--------------------------------------------------------------------------------
     !--------------------------------------------------------------------------------
     !>
@@ -375,7 +359,6 @@ contains
         return
     end subroutine compute_InternalForces_Elem_Fluid
 
-
     !--------------------------------------------------------------------------------
     !--------------------------------------------------------------------------------
     !>
@@ -472,9 +455,11 @@ contains
 
         return
     end subroutine Prediction_Elem_PML_Veloc
+#endif
     !--------------------------------------------------------------------------------
     !--------------------------------------------------------------------------------
-    subroutine Prediction_Elem_PML_Veloc_2(Elem,bega,dt,hTprimex,Hprimey,Hprimez, Vitesses, Forces)
+#if NEW_GLOBAL_METHOD
+    subroutine Prediction_Elem_PML_Veloc_2(Elem,bega,dt,hTprimex,Hprimey,Hprimez, ngll_pmls, Vitesses, Forces)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
@@ -482,7 +467,8 @@ contains
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprimex
         real, dimension (0:Elem%nglly-1, 0:Elem%nglly-1), intent (IN) :: hprimey
         real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
-        real, dimension (:,:), intent (IN) :: Vitesses, Forces
+        integer, intent(in) :: ngll_pmls
+        real, dimension (0:ngll_pmls-1,0:2), intent (IN) :: Vitesses, Forces
         real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVx_dxi,dVx_deta,dVx_dzeta, &
             dVy_dxi,dVy_deta,dVy_dzeta, dVz_dxi,dVz_deta,dVz_dzeta
         real, dimension (:,:,:,:), allocatable :: Veloc
@@ -490,13 +476,12 @@ contains
 
         m1 = Elem%ngllx; m2 = Elem%nglly;  m3= Elem%ngllz
 
-! 
         allocate(Veloc(0:m1-1,0:m2-1,0:m3-1,0:2))
         do i_dir = 0,2
             do k = 0,m3-1
                 do j = 0,m2-1
                     do i = 0,m1-1
-                        ind = Elem%ISolPml(i,j,k)
+                        ind = Elem%slpml%ISolPml(i,j,k)
                         Veloc(i,j,k,i_dir) = Vitesses(ind,i_dir) + Vitesses(ind+1,i_dir) + Vitesses(ind+2,i_dir) + &
                                              (dt * (0.5-bega) * (Forces(ind,i_dir)+Forces(ind+1,i_dir)+Forces(ind+2,i_dir)))
                     enddo
@@ -510,7 +495,6 @@ contains
         call elem_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Veloc(:,:,:,2),dVz_dxi,dVz_deta,dVz_dzeta)
 
         deallocate(Veloc)
-
 
   ! Stress_xx
    ! (Stress_xx)^x
@@ -566,8 +550,10 @@ contains
 
         return
     end subroutine Prediction_Elem_PML_Veloc_2
+#endif
     !--------------------------------------------------------------------------------
     !--------------------------------------------------------------------------------
+#if ! NEW_GLOBAL_METHOD
     subroutine Prediction_Elem_PML_VelPhi(Elem,bega,dt,hTprimex,Hprimey,Hprimez)
         ! same as previously, but for fluid part
         implicit none
@@ -764,6 +750,7 @@ contains
 
         return
     end subroutine Prediction_Elem_FPML_Veloc
+
     !------------------------------------------------------------------
     !------------------------------------------------------------------
     !>
@@ -802,40 +789,6 @@ contains
 
     !------------------------------------------------------------------
     !------------------------------------------------------------------
-    subroutine Correction_Elem_PML_Veloc_2(Elem,dt,ngll_pmls,Veloc,Depla)
-
-        implicit none
-
-        type(Element), intent(inout) :: Elem
-        real, intent(in) :: dt
-        integer, intent(in) :: ngll_pmls
-        real, dimension(0:(ngll_pmls*3)-1,0:2), intent(inout) :: Veloc, Depla
-        integer :: ngllx, nglly, ngllz, i, j, k, ind
-
-        ngllx = Elem%ngllx; nglly = Elem%nglly; ngllz = Elem%ngllz
-
-        do k = 0,ngllz-1
-            do j = 0,nglly-1
-                do i = 0,ngllx-1
-                    ind = Elem%ISolPml(i,j,k)
-                    Veloc(ind,:) = Elem%slpml%dumpVx(i,j,k,0) * Elem%slpml%Veloc1(i,j,k,:) + &
-                                   dt * Elem%slpml%dumpVx(i,j,k,1) * Elem%slpml%Forces1(i,j,k,:)
-                    Veloc(ind+1,:) = Elem%slpml%dumpVy(i,j,k,0) * Elem%slpml%Veloc2(i,j,k,:) + &
-                                   dt * Elem%slpml%dumpVy(i,j,k,1) * Elem%slpml%Forces2(i,j,k,:)
-                    Veloc(ind+2,:) = Elem%slpml%dumpVz(i,j,k,0) * Elem%slpml%Veloc3(i,j,k,:) + &
-                                   dt * Elem%slpml%dumpVz(i,j,k,1) * Elem%slpml%Forces3(i,j,k,:)
-
-                    Depla(ind,:) = Depla(ind,:) + dt * Veloc(ind,:)
-                    Depla(ind+1,:) = Depla(ind+1,:) + dt * Veloc(ind+1,:)
-                    Depla(ind+2,:) = Depla(ind+2,:) + dt * Veloc(ind+2,:)
-                enddo
-            enddo
-        enddo
-        
-        return
-    end subroutine Correction_Elem_PML_Veloc_2
-    !------------------------------------------------------------------
-    !------------------------------------------------------------------
     subroutine Correction_Elem_PML_VelPhi(Elem,dt)
 
         implicit none
@@ -860,6 +813,7 @@ contains
 
         return
     end subroutine Correction_Elem_PML_VelPhi
+
     !------------------------------------------------------------------
     !------------------------------------------------------------------
     !>
@@ -987,8 +941,10 @@ contains
 
         return
     end subroutine compute_InternalForces_PML_Elem
+#endif
     !------------------------------------------------------------------------------------------------
     !------------------------------------------------------------------------------------------------
+#if NEW_GLOBAL_METHOD 
     subroutine  compute_InternalForces_PML_Elem_2 (Elem, hprimex, hTprimey, htprimez, ngll, Forces)
         implicit none
 
@@ -997,7 +953,7 @@ contains
         real, dimension (0:Elem%nglly-1, 0:Elem%nglly-1), intent (IN) :: hTprimey
         real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hTprimez
         integer, intent(in) :: ngll
-        real, dimension (0:(ngll*3)-1,0:2), intent (INOUT) :: Forces
+        real, dimension (0:ngll-1,0:2), intent (INOUT) :: Forces
 
         integer :: m1, m2, m3, n_z, ind, i, j, k
         real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: s0,s1
@@ -1063,18 +1019,20 @@ contains
         do k = 0,m3-1
             do j = 0,m2-1
                 do i = 0,m1-1
-                    ind = Elem%ISolPml(i,j,k)
-                    Forces(ind,:) = Elem%slpml%Forces1(i,j,k,:)
-                    Forces(ind+1,:) = Elem%slpml%Forces2(i,j,k,:)
-                    Forces(ind+2,:) = Elem%slpml%Forces3(i,j,k,:)
+                    ind = Elem%slpml%ISolPml(i,j,k)
+                    Forces(ind,:) = Forces(ind,:)+Elem%slpml%Forces1(i,j,k,:)
+                    Forces(ind+1,:) = Forces(ind+1,:)+Elem%slpml%Forces2(i,j,k,:)
+                    Forces(ind+2,:) = Forces(ind+2,:)+Elem%slpml%Forces3(i,j,k,:)
                 enddo
             enddo
         enddo
 
         return
     end subroutine compute_InternalForces_PML_Elem_2
+#endif
     !------------------------------------------------------------------------------------------------
     !------------------------------------------------------------------------------------------------
+#if ! NEW_GLOBAL_METHOD
     subroutine compute_InternalForces_PML_Elem_Fl(Elem,hprimex,hTprimey,htprimez)
 
         implicit none
@@ -1304,7 +1262,7 @@ contains
 
         return
     end subroutine Prediction_Elem_PML_Veloc_curve
-
+#endif
 
     subroutine init_element(el)
         type(element), intent(inout) :: el

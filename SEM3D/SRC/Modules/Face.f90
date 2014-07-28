@@ -13,23 +13,29 @@ module sfaces
     ! Modified by Paul Cupillard 06/11/2005
 
     type :: face_pml
+#if ! NEW_GLOBAL_METHOD
        real, dimension (:,:,:), allocatable :: Forces1, Forces2, Forces3, Veloc1, Veloc2, Veloc3
        real, dimension (:,:,:), allocatable :: DumpVx, DumpVy, DumpVz, DumpMass
+       real, dimension(:,:), allocatable :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
+#endif
        real, dimension (:,:,:), allocatable :: IVeloc1, IVeloc2, IVeloc3
        real, dimension (:,:), allocatable :: Ivx, Ivy, Ivz
-       real, dimension(:,:), allocatable :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
     end type face_pml
 
     type :: face
        logical :: PML, Abs, FPML
        integer :: ngll1, ngll2, dir, Which_Elem, mat_index
-       integer, dimension (:), allocatable :: FaceNum
        integer, dimension (:,:), allocatable :: Iglobnum_Face
+#if ! NEW_GLOBAL_METHOD
        real, dimension (:,:), allocatable  :: MassMat
        real, dimension (:,:,:), allocatable :: Forces, Displ, Veloc, Accel, V0
+#endif
+
        ! solid-fluid
        logical :: solid, fluid_dirich
+#if ! NEW_GLOBAL_METHOD
        real, dimension(:,:), allocatable :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
+#endif
        ! pml
        type(face_pml), pointer :: spml
 #ifdef COUPLAGE
@@ -39,7 +45,7 @@ module sfaces
     end type face
 
 contains
-
+#if ! NEW_GLOBAL_METHOD
     ! ############################################################
     !>
     !! \brief
@@ -107,7 +113,6 @@ contains
         F%Phi(:,:) = F%Phi(:,:) + dt * F%VelPhi(:,:)
         return
     end subroutine Correction_Face_VelPhi
-
 
     ! ##########################################################
     !>
@@ -220,149 +225,7 @@ contains
 
         return
     end subroutine Correction_Face_FPML_Veloc
-
-
-    ! ############################################################
-    subroutine get_vel_face (F, Vfree, ngll1, ngll2, dt, logic, orient)
-        implicit none
-
-        integer, intent (IN) :: ngll1, ngll2, orient
-        real, intent (IN) :: dt
-        type (Face), intent (IN) :: F
-        real, dimension (1:ngll1-2,1:ngll2-2,0:2), intent (INOUT) :: Vfree
-        logical, intent (IN) :: logic
-
-        integer :: i,j
-
-        if (.not. F%PML) then
-
-            if (logic) then
-                select case (orient)
-                case (0)
-                    do i = 0,2
-                        Vfree(1:ngll1-2,1:ngll2-2,i) = Vfree(1:ngll1-2,1:ngll2-2,i) - ( F%V0(1:ngll1-2,1:ngll2-2,i) + &
-                            dt*F%MassMat(1:ngll1-2,1:ngll2-2)*F%Forces(1:ngll1-2,1:ngll2-2,i) )
-                    enddo
-                case (1)
-                    do j = 1, ngll2-2
-                        do i = 1, ngll1-2
-                            Vfree(i,j,0:2) = Vfree(i,j,0:2) - ( F%V0(ngll1-1-i,j,0:2) + dt*F%MassMat(ngll1-1-i,j)*F%Forces(ngll1-1-i,j,0:2) )
-                        enddo
-                    enddo
-                case (2)
-                    do j = 1, ngll2-2
-                        do i = 1, ngll1-2
-                            Vfree(i,j,0:2) = Vfree(i,j,0:2) - ( F%V0(i,ngll2-1-j,0:2) + dt*F%MassMat(i,ngll2-1-j)*F%Forces(i,ngll2-1-j,0:2) )
-                        enddo
-                    enddo
-                case (3)
-                    do j = 1, ngll2-2
-                        do i = 1, ngll1-2
-                            Vfree(i,j,0:2) = Vfree(i,j,0:2) - ( F%V0(ngll1-1-i,ngll2-1-j,0:2) + dt*F%MassMat(ngll1-1-i,ngll2-1-j)*F%Forces(ngll1-1-i,ngll2-1-j,0:2) )
-                        enddo
-                    enddo
-                case (4)
-                    do j = 1, ngll2-2
-                        do i = 1, ngll1-2
-                            Vfree(i,j,0:2) = Vfree(i,j,0:2) - ( F%V0(j,i,0:2) + dt*F%MassMat(j,i)*F%Forces(j,i,0:2) )
-                        enddo
-                    enddo
-                case (5)
-                    do j = 1, ngll2-2
-                        do i = 1, ngll1-2
-                            Vfree(i,j,0:2) = Vfree(i,j,0:2) - ( F%V0(ngll1-1-j,i,0:2) + dt*F%MassMat(ngll1-1-j,i)*F%Forces(ngll1-1-j,i,0:2) )
-                        enddo
-                    enddo
-                case (6)
-                    do j = 1, ngll2-2
-                        do i = 1, ngll1-2
-                            Vfree(i,j,0:2) = Vfree(i,j,0:2) - ( F%V0(j,ngll2-1-i,0:2) + dt*F%MassMat(j,ngll2-1-i)*F%Forces(j,ngll2-1-i,0:2) )
-                        enddo
-                    enddo
-                case (7)
-                    do j = 1, ngll2-2
-                        do i = 1, ngll1-2
-                            Vfree(i,j,0:2) = Vfree(i,j,0:2) - ( F%V0(ngll1-1-j,ngll2-1-i,0:2) + dt*F%MassMat(ngll1-1-j,ngll2-1-i)*F%Forces(ngll1-1-j,ngll2-1-i,0:2) )
-                        enddo
-                    enddo
-                end select
-            else
-                do i = 0,2
-                    Vfree(1:ngll1-2,1:ngll2-2,i) =  F%V0(1:ngll1-2,1:ngll2-2,i) + dt*F%MassMat(1:ngll1-2,1:ngll2-2)*F%Forces(1:ngll1-2,1:ngll2-2,i)
-                enddo
-            endif
-
-        else
-
-            if (logic) then
-                select case (orient)
-                case (0)
-                    do i = 0,2
-                        Vfree(1:ngll1-2,1:ngll2-2,i) = Vfree(1:ngll1-2,1:ngll2-2,i) - ( F%spml%DumpVz(1:ngll1-2,1:ngll2-2,0) * F%spml%Veloc3(1:ngll1-2,1:ngll2-2,i) + &
-                            dt * F%spml%DumpVz(1:ngll1-2,1:ngll2-2,1) * F%spml%Forces3(1:ngll1-2,1:ngll2-2,i) )
-                    enddo
-                case (1)
-                    do j = 1, ngll2-2
-                        do i = 1, ngll1-2
-                            Vfree(i,j,0:2) = Vfree(i,j,0:2) - ( F%spml%DumpVz(ngll1-1-i,j,0) * F%spml%Veloc3(ngll1-1-i,j,0:2) + &
-                                dt * F%spml%DumpVz(ngll1-1-i,j,1) * F%spml%Forces3(ngll1-1-i,j,0:2) )
-                        enddo
-                    enddo
-                case (2)
-                    do j = 1, ngll2-2
-                        do i = 1, ngll1-2
-                            Vfree(i,j,0:2) = Vfree(i,j,0:2) - ( F%spml%DumpVz(i,ngll2-1-j,0) * F%spml%Veloc3(i,ngll2-1-j,0:2) + &
-                                dt * F%spml%DumpVz(i,ngll2-1-j,1) * F%spml%Forces3(i,ngll2-1-j,0:2) )
-                        enddo
-                    enddo
-                case (3)
-                    do j = 1, ngll2-2
-                        do i = 1, ngll1-2
-                            Vfree(i,j,0:2) = Vfree(i,j,0:2) - ( F%spml%DumpVz(ngll1-1-i,ngll2-1-j,0) * F%spml%Veloc3(ngll1-1-i,ngll2-1-j,0:2) + &
-                                dt * F%spml%DumpVz(ngll1-1-i,ngll2-1-j,1) * F%spml%Forces3(ngll1-1-i,ngll2-1-j,0:2) )
-                        enddo
-                    enddo
-                case (4)
-                    do j = 1, ngll2-2
-                        do i = 1, ngll1-2
-                            Vfree(i,j,0:2) = Vfree(i,j,0:2) - ( F%spml%DumpVz(j,i,0) * F%spml%Veloc3(j,i,0:2) + &
-                                dt * F%spml%DumpVz(j,i,1) * F%spml%Forces3(j,i,0:2) )
-                        enddo
-                    enddo
-                case (5)
-                    do j = 1, ngll2-2
-                        do i = 1, ngll1-2
-                            Vfree(i,j,0:2) = Vfree(i,j,0:2) - ( F%spml%DumpVz(ngll2-1-j,i,0) * F%spml%Veloc3(ngll2-1-j,i,0:2) + &
-                                dt * F%spml%DumpVz(ngll2-1-j,i,1) * F%spml%Forces3(ngll2-1-j,i,0:2) )
-                        enddo
-                    enddo
-                case (6)
-                    do j = 1, ngll2-2
-                        do i = 1, ngll1-2
-                            Vfree(i,j,0:2) = Vfree(i,j,0:2) - ( F%spml%DumpVz(j,ngll1-1-i,0) * F%spml%Veloc3(j,ngll1-1-i,0:2) + &
-                                dt * F%spml%DumpVz(j,ngll1-1-i,1) * F%spml%Forces3(j,ngll1-1-i,0:2) )
-                        enddo
-                    enddo
-                case (7)
-                    do j = 1, ngll2-2
-                        do i = 1, ngll1-2
-                            Vfree(i,j,0:2) = Vfree(i,j,0:2) - ( F%spml%DumpVz(ngll2-1-j,ngll1-1-i,0) * F%spml%Veloc3(ngll2-1-j,ngll1-1-i,0:2) + &
-                                dt * F%spml%DumpVz(ngll2-1-j,ngll1-1-i,1) * F%spml%Forces3(ngll2-1-j,ngll1-1-i,0:2) )
-                        enddo
-                    enddo
-                end select
-            else
-                do i = 0,2
-                    Vfree(1:ngll1-2,1:ngll2-2,i) =  F%spml%DumpVz(1:ngll1-2,1:ngll2-2,0) * F%spml%Veloc3(1:ngll1-2,1:ngll2-2,i) + &
-                        dt * F%spml%DumpVz(1:ngll1-2,1:ngll2-2,1) * F%spml%Forces3(1:ngll1-2,1:ngll2-2,i)
-                enddo
-            endif
-
-        endif
-
-        return
-    end subroutine get_vel_face
-
+#endif
     ! ############################################################
 
     subroutine init_face(fc)

@@ -79,19 +79,27 @@ module sdomain
 
        real :: MPML_coeff
 
+#if NEW_GLOBAL_METHOD
        ! Nombre de gll solide, fluide, pml solide, pml fluide
        integer :: ngll_s, ngll_f, ngll_pmls, ngll_pmlf
+
 
        ! Champs
        type(champs) :: champs0
        type(champs) :: champs1
 
-       ! MassMat pour elements solide
-       real, dimension(:), allocatable :: MassMatSol, MassMatFlu
+       ! MassMat pour elements solide, fluide, solide pml et fluide pml
+       real, dimension(:), allocatable :: MassMatSol, MassMatFlu, MassMatSolPml, DumpMass
 
        ! Interface Solide / PML
        integer :: nbInterfSolPml ! nombre de points de gauss à l'interface Solide / PML
        integer, dimension(:,:), allocatable :: InterfSolPml ! dimension(0:nbInterfSolPml-1,0:1), 0 Sol, 1 PML
+
+        ! Faces externes PML
+        ! Permet par exemple de mettre a 0 le champs de vitesse pour certaines face, edge, vertex PML
+        integer, dimension(:), allocatable :: OuterPMLNodes
+        integer :: nbOuterPMLNodes
+#endif
 
     end type domain
 

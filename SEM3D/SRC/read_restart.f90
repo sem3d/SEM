@@ -16,6 +16,9 @@ subroutine read_Veloc(Tdomain, elem_id)
     double precision, allocatable, dimension(:) :: veloc, veloc1, veloc2, veloc3, displ
     integer :: idx1, idx2, idx3, ngllx, nglly, ngllz
     integer :: n, i, j, k
+#if NEW_GLOBAL_METHOD
+    integer :: id
+#endif
 
 
     call read_dset_1d_real(elem_id, "Veloc", veloc)
@@ -35,16 +38,29 @@ subroutine read_Veloc(Tdomain, elem_id)
         do k = 1,ngllz-2
             do j = 1,nglly-2
                 do i = 1,ngllx-2
+#if ! NEW_GLOBAL_METHOD
                     Tdomain%specel(n)%sl%Veloc(i,j,k,0) = veloc(idx1+0)
                     Tdomain%specel(n)%sl%Veloc(i,j,k,1) = veloc(idx1+1)
                     Tdomain%specel(n)%sl%Veloc(i,j,k,2) = veloc(idx1+2)
+#endif
                     idx1 = idx1 + 3
                     if ( .not. Tdomain%specel(n)%PML ) then
+#if ! NEW_GLOBAL_METHOD
                         Tdomain%specel(n)%sl%Displ(i,j,k,0) = displ(idx2+0)
                         Tdomain%specel(n)%sl%Displ(i,j,k,1) = displ(idx2+1)
                         Tdomain%specel(n)%sl%Displ(i,j,k,2) = displ(idx2+2)
+#else
+                        id = Tdomain%specel(n)%ISol(i,j,k)
+                        Tdomain%champs0%Veloc(id,0) = veloc(idx1+0)
+                        Tdomain%champs0%Veloc(id,1) = veloc(idx1+1)
+                        Tdomain%champs0%Veloc(id,2) = veloc(idx1+2)
+                        Tdomain%champs0%Depla(id,0) = displ(idx2+0)
+                        Tdomain%champs0%Depla(id,1) = displ(idx2+1)
+                        Tdomain%champs0%Depla(id,2) = displ(idx2+2)
+#endif
                         idx2 = idx2 + 3
                     else
+#if ! NEW_GLOBAL_METHOD
                         Tdomain%specel(n)%slpml%Veloc1(i,j,k,0) = veloc1(idx3+0)
                         Tdomain%specel(n)%slpml%Veloc1(i,j,k,1) = veloc1(idx3+1)
                         Tdomain%specel(n)%slpml%Veloc1(i,j,k,2) = veloc1(idx3+2)
@@ -54,6 +70,18 @@ subroutine read_Veloc(Tdomain, elem_id)
                         Tdomain%specel(n)%slpml%Veloc3(i,j,k,0) = veloc3(idx3+0)
                         Tdomain%specel(n)%slpml%Veloc3(i,j,k,1) = veloc3(idx3+1)
                         Tdomain%specel(n)%slpml%Veloc3(i,j,k,2) = veloc3(idx3+2)
+#else
+                        id = Tdomain%specel(n)%slpml%ISolPML(i,j,k)
+                        Tdomain%champs0%VelocPML(id,0)   = veloc1(idx3+0)
+                        Tdomain%champs0%VelocPML(id,1)   = veloc1(idx3+1)
+                        Tdomain%champs0%VelocPML(id,2)   = veloc1(idx3+2)
+                        Tdomain%champs0%VelocPML(id+1,0) = veloc2(idx3+0)
+                        Tdomain%champs0%VelocPML(id+1,1) = veloc2(idx3+1)
+                        Tdomain%champs0%VelocPML(id+1,2) = veloc2(idx3+2)
+                        Tdomain%champs0%VelocPML(id+2,0) = veloc3(idx3+0)
+                        Tdomain%champs0%VelocPML(id+2,1) = veloc3(idx3+1)
+                        Tdomain%champs0%VelocPML(id+2,2) = veloc3(idx3+2)
+#endif
                         idx3 = idx3 + 3
                     end if
                 end do
@@ -96,10 +124,18 @@ subroutine read_VelPhi(Tdomain, elem_id)
         do k = 1,ngllz-2
             do j = 1,nglly-2
                 do i = 1,ngllx-2
+#if ! NEW_GLOBAL_METHOD
                     Tdomain%specel(n)%fl%VelPhi(i,j,k) = velphi(idx1)
+#else
+                    Tdomain%champs0%VelPhi(Tdomain%specel(n)%IFlu(i,j,k)) = velphi(idx1)
+#endif
                     idx1 = idx1 + 1
                     if ( .not. Tdomain%specel(n)%PML ) then
+#if ! NEW_GLOBAL_METHOD
                         Tdomain%specel(n)%fl%Phi(i,j,k) = phi(idx2)
+#else
+                        Tdomain%champs0%Phi(Tdomain%specel(n)%IFlu(i,j,k)) = phi(idx2)
+#endif
                         idx2 = idx2 + 1
                     else
                         Tdomain%specel(n)%flpml%VelPhi1(i,j,k) = velphi1(idx3)
@@ -300,6 +336,9 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
     double precision, allocatable, dimension(:) :: Veloc
     integer :: idx, ngllx, nglly, ngllz
     integer :: n, i, j, k
+#if NEW_GLOBAL_METHOD
+    integer :: id
+#endif
 
     call read_dset_1d_real(elem_id, "Veloc_Fl", veloc)
     idx = 1
@@ -313,6 +352,7 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
             do k = 0,ngllz-1
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
+#if ! NEW_GLOBAL_METHOD
                         Tdomain%specel(n)%slpml%Veloc1(i,j,k,0) = veloc(idx+0)
                         Tdomain%specel(n)%slpml%Veloc1(i,j,k,1) = veloc(idx+1)
                         Tdomain%specel(n)%slpml%Veloc1(i,j,k,2) = veloc(idx+2)
@@ -325,6 +365,21 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
                         Tdomain%specel(n)%slpml%Veloc3(i,j,k,1) = veloc(idx+1)
                         Tdomain%specel(n)%slpml%Veloc3(i,j,k,2) = veloc(idx+2)
                         idx = idx + 3
+#else
+                        id = Tdomain%specel(n)%slpml%ISolPML(i,j,k)
+                        Tdomain%champs0%VelocPML(id,0) = veloc(idx+0)
+                        Tdomain%champs0%VelocPML(id,1) = veloc(idx+1)
+                        Tdomain%champs0%VelocPML(id,2) = veloc(idx+2)
+                        idx = idx + 3
+                        Tdomain%champs0%VelocPML(id+1,0) = veloc(idx+0)
+                        Tdomain%champs0%VelocPML(id+1,1) = veloc(idx+1)
+                        Tdomain%champs0%VelocPML(id+1,2) = veloc(idx+2)
+                        idx = idx + 3
+                        Tdomain%champs0%VelocPML(id+2,0) = veloc(idx+0)
+                        Tdomain%champs0%VelocPML(id+2,1) = veloc(idx+1)
+                        Tdomain%champs0%VelocPML(id+2,2) = veloc(idx+2)
+                        idx = idx + 3
+#endif
                     end do
                 end do
             end do
@@ -334,7 +389,7 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
 end subroutine read_Veloc_Fluid_PML
 
 
-
+#if ! NEW_GLOBAL_METHOD
 subroutine read_Faces(Tdomain, face_id)
     use sdomain
     use HDF5
@@ -586,7 +641,7 @@ subroutine read_Vertices(Tdomain, vertex_id)
     deallocate(velphi3)
     deallocate(phi)
 end subroutine read_Vertices
-
+#endif
 subroutine read_restart (Tdomain,rg, isort)
     use HDF5
     use sem_hdf5
@@ -604,7 +659,10 @@ subroutine read_restart (Tdomain,rg, isort)
     integer :: it
 
     ! HDF5 Variables
-    integer(HID_T) :: fid, elem_id, face_id, edge_id, vertex_id
+    integer(HID_T) :: fid, elem_id
+#if ! NEW_GLOBAL_METHOD
+    integer(HID_T) :: face_id, edge_id, vertex_id
+#endif
     integer :: hdferr
 
     call init_hdf5()
@@ -613,10 +671,11 @@ subroutine read_restart (Tdomain,rg, isort)
     call h5fopen_f(fnamef, H5F_ACC_RDONLY_F, fid, hdferr)
 
     call h5gopen_f(fid, 'Elements', elem_id, hdferr)
+#if ! NEW_GLOBAL_METHOD
     call h5gopen_f(fid, 'Faces', face_id, hdferr)
     call h5gopen_f(fid, 'Edges', edge_id, hdferr)
     call h5gopen_f(fid, 'Vertices', vertex_id, hdferr)
-
+#endif
     call read_attr_real(fid, "rtime", rtime)
     call read_attr_real(fid, "dtmin", dtmin)
     call read_attr_int(fid, "iteration", it)
@@ -642,14 +701,17 @@ subroutine read_restart (Tdomain,rg, isort)
     call read_EpsilonDev(Tdomain, elem_id)
     call read_Stress(Tdomain, elem_id)
     call read_Veloc_Fluid_PML(Tdomain, elem_id)
+#if ! NEW_GLOBAL_METHOD
     call read_Faces(Tdomain, face_id)
     call read_Edges(Tdomain, edge_id)
     call read_Vertices(Tdomain, vertex_id)
-
+#endif
     call h5gclose_f(elem_id, hdferr)
+#if ! NEW_GLOBAL_METHOD
     call h5gclose_f(face_id, hdferr)
     call h5gclose_f(edge_id, hdferr)
     call h5gclose_f(vertex_id, hdferr)
+#endif
     call h5fclose_f(fid, hdferr)
 
     call clean_prot(Tdomain%TimeD%prot_m0, rg)

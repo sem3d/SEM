@@ -6,7 +6,7 @@
 !! \date
 !!
 !<
-
+#if ! NEW_GLOBAL_METHOD
 subroutine get_Mass_Elem2Edge(Tdomain,n)
 
     use sdomain
@@ -45,6 +45,7 @@ subroutine get_Mass_Elem2Edge(Tdomain,n)
     return
 
 end subroutine get_Mass_Elem2Edge
+#endif
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

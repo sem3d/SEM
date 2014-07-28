@@ -34,6 +34,7 @@ subroutine deallocate_domain (Tdomain, rg)
         deallocate (Tdomain%specel(n)%Control_Nodes)
         deallocate (Tdomain%specel(n)%Jacob)
         if (Tdomain%TimeD%velocity_scheme) then
+#if ! NEW_GLOBAL_METHOD
             if (Tdomain%specel(n)%solid) then
                 deallocate (Tdomain%specel(n)%sl%Veloc )
                 !  modif mariotti fevrier 2007 cea capteur displ
@@ -43,6 +44,7 @@ subroutine deallocate_domain (Tdomain, rg)
                 deallocate (Tdomain%specel(n)%sl%V0 )
                 deallocate (Tdomain%specel(n)%sl%Forces)
             endif
+#endif
             if (Tdomain%specel(n)%PML) then
                 !  modif mariotti fevrier 2007 cea
                 deallocate (Tdomain%specel(n)%Lambda)
@@ -58,18 +60,20 @@ subroutine deallocate_domain (Tdomain, rg)
                     deallocate (Tdomain%specel(n)%slpml%Residual_Stress)
                     deallocate (Tdomain%specel(n)%slpml%Residual_Stress1)
                     deallocate (Tdomain%specel(n)%slpml%Residual_Stress2)
-                    deallocate (Tdomain%specel(n)%slpml%Veloc1)
-                    deallocate (Tdomain%specel(n)%slpml%Veloc2)
-                    deallocate (Tdomain%specel(n)%slpml%Veloc3)
                     deallocate (Tdomain%specel(n)%slpml%Forces1)
                     deallocate (Tdomain%specel(n)%slpml%Forces2)
                     deallocate (Tdomain%specel(n)%slpml%Forces3)
                     deallocate (Tdomain%specel(n)%slpml%DumpSx)
                     deallocate (Tdomain%specel(n)%slpml%DumpSy)
                     deallocate (Tdomain%specel(n)%slpml%DumpSz)
+#if ! NEW_GLOBAL_METHOD
+                    deallocate (Tdomain%specel(n)%slpml%Veloc1)
+                    deallocate (Tdomain%specel(n)%slpml%Veloc2)
+                    deallocate (Tdomain%specel(n)%slpml%Veloc3)
                     deallocate (Tdomain%specel(n)%slpml%DumpVx)
                     deallocate (Tdomain%specel(n)%slpml%DumpVy)
                     deallocate (Tdomain%specel(n)%slpml%DumpVz)
+#endif
                 endif
             else
                 if (Tdomain%aniso) then
@@ -124,6 +128,7 @@ subroutine deallocate_domain (Tdomain, rg)
     enddo
 
     do n = 0, Tdomain%n_face-1
+#if ! NEW_GLOBAL_METHOD
         deallocate (Tdomain%sFace(n)%MassMat)
         deallocate (Tdomain%sFace(n)%Veloc)
 
@@ -133,7 +138,9 @@ subroutine deallocate_domain (Tdomain, rg)
         deallocate (Tdomain%sFace(n)%Forces)
         deallocate (Tdomain%sFace(n)%Accel)
         deallocate (Tdomain%sFace(n)%V0)
+#endif
         if (Tdomain%sFace(n)%PML) then
+#if ! NEW_GLOBAL_METHOD
             deallocate (Tdomain%sFace(n)%spml%Forces1)
             deallocate (Tdomain%sFace(n)%spml%Forces2)
             deallocate (Tdomain%sFace(n)%spml%Forces3)
@@ -143,6 +150,7 @@ subroutine deallocate_domain (Tdomain, rg)
             deallocate (Tdomain%sFace(n)%spml%DumpVx)
             deallocate (Tdomain%sFace(n)%spml%DumpVy)
             deallocate (Tdomain%sFace(n)%spml%DumpVz)
+#endif
         else
             !  modif mariotti fevrier 2007 cea capteur displ
             !        deallocate (Tdomain%sFace(n)%Displ)
@@ -150,6 +158,7 @@ subroutine deallocate_domain (Tdomain, rg)
     enddo
 
     do n = 0,Tdomain%n_edge-1
+#if ! NEW_GLOBAL_METHOD
         deallocate (Tdomain%sEdge(n)%MassMat)
         deallocate (Tdomain%sEdge(n)%Veloc)
         !  modif mariotti fevrier 2007 cea capteur displ
@@ -168,10 +177,8 @@ subroutine deallocate_domain (Tdomain, rg)
             deallocate (Tdomain%sEdge(n)%spml%DumpVx)
             deallocate (Tdomain%sEdge(n)%spml%DumpVy)
             deallocate (Tdomain%sEdge(n)%spml%DumpVz)
-        else
-            !  modif mariotti fevrier 2007 cea capteur displ
-            !        deallocate (Tdomain%sEdge(n)%Displ)
         endif
+#endif
     enddo
 
     do n = 0,Tdomain%n_proc-1

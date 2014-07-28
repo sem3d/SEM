@@ -7,26 +7,33 @@
 module sedges
 
     type :: edge_pml
+#if ! NEW_GLOBAL_METHOD
        real, dimension (:,:), allocatable :: DumpMass, DumpVx, DumpVy, DumpVz
        real, dimension (:,:), allocatable :: Veloc1, Veloc2, Veloc3
        real, dimension (:,:), allocatable :: Forces1, Forces2, Forces3
+              real, dimension(:), allocatable :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
+#endif
        real, dimension (:,:), allocatable :: IVeloc1, Iveloc2, Iveloc3
        real, dimension (:), allocatable :: Ivx, Ivy, Ivz
-       real, dimension(:), allocatable :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
+
     end type edge_pml
     type :: edge
 
        logical :: PML, Abs, FPML
 
        integer :: ngll,mat_index
-       integer, dimension (:), allocatable :: Iglobnum_Edge,EdgeNum
-       !integer, dimension (:), allocatable :: Which_Elem,Which_EdgeinElem
+       integer, dimension (:), allocatable :: Iglobnum_Edge
 
+#if ! NEW_GLOBAL_METHOD
        real, dimension (:), allocatable  :: MassMat
        real, dimension (:,:), allocatable :: Forces, Displ, Veloc, Accel, V0
+#endif
+
        ! solid-fluid
        logical  :: solid, fluid_dirich
+#if ! NEW_GLOBAL_METHOD
        real, dimension(:), allocatable :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
+#endif
 
        type(edge_pml), pointer :: spml
 #ifdef COUPLAGE
@@ -39,7 +46,7 @@ module sedges
     end type edge
 
 contains
-
+#if ! NEW_GLOBAL_METHOD
     ! ############################################################
     !subroutine Prediction_Edge_Veloc (E, alpha, bega, dt)
     subroutine Prediction_Edge_Veloc (E,dt)
@@ -202,65 +209,7 @@ contains
 
         return
     end subroutine Correction_Edge_FPML_Veloc
-
-    ! ############################################
-
-    subroutine get_vel_edge (E, Vfree, ngll, dt, logic, orient)
-        implicit none
-
-        integer, intent (IN) :: ngll, orient
-        real, intent (IN) :: dt
-        type (Edge), intent (IN) :: E
-        real, dimension (1:ngll-2,0:2), intent (INOUT) :: Vfree
-        logical, intent (IN) :: logic
-
-        integer :: i,j
-
-        if (.not. E%PML) then
-
-            if (logic) then
-                if ( orient ==0 ) then
-                    do i = 0,2
-                        Vfree(1:ngll-2,i) = Vfree(1:ngll-2,i) - ( E%V0(1:ngll-2,i) + dt*E%MassMat(1:ngll-2)*E%Forces(1:ngll-2,i) )
-                    enddo
-                else
-                    do i = 0,2
-                        do j = 1, ngll-2
-                            Vfree(j,i) = Vfree(j,i) - ( E%V0(ngll-1-j,i) + dt*E%MassMat(ngll-1-j)*E%Forces(ngll-1-j,i) )
-                        enddo
-                    enddo
-                endif
-            else
-                do i = 0,2
-                    Vfree(1:ngll-2,i) =  E%V0(1:ngll-2,i) + dt*E%MassMat(1:ngll-2)*E%Forces(1:ngll-2,i)
-                enddo
-            endif
-
-        else
-
-            if (logic) then
-                if ( orient ==0 ) then
-                    do i = 0,2
-                        Vfree(1:ngll-2,i) = Vfree(1:ngll-2,i) - ( E%spml%DumpVz(1:ngll-2,0) * E%spml%Veloc3(1:ngll-2,i) &
-                            + dt * E%spml%DumpVz(1:ngll-2,1) * E%spml%Forces3(1:ngll-2,i) )
-                    enddo
-                else
-                    do i = 0,2
-                        do j = 1, ngll-2
-                            Vfree(j,i) = Vfree(j,i) - ( E%spml%DumpVz(ngll-1-j,0) * E%spml%Veloc3(ngll-1-j,i) + dt * E%spml%DumpVz(ngll-1-j,1) * E%spml%Forces3(ngll-1-j,i) )
-                        enddo
-                    enddo
-                endif
-            else
-                do i = 0,2
-                    Vfree(1:ngll-2,i) =  E%spml%DumpVz(1:ngll-2,0) * E%spml%Veloc3(1:ngll-2,i) + dt * E%spml%DumpVz(1:ngll-2,1) * E%spml%Forces3(1:ngll-2,i)
-                enddo
-            endif
-
-        endif
-
-        return
-    end subroutine get_vel_edge
+#endif
 
     ! ###########################################################
     subroutine init_edge(ed)

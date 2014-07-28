@@ -42,6 +42,7 @@ subroutine allocate_domain (Tdomain, rg)
         if(Tdomain%specel(n)%solid)then  ! SOLID PART
             allocate(Tdomain%specel(n)%sl)
             if(Tdomain%TimeD%velocity_scheme)then
+#if ! NEW_GLOBAL_METHOD
                 allocate(Tdomain%specel(n)%sl%Displ (1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
                 allocate(Tdomain%specel(n)%sl%Veloc (1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
                 allocate(Tdomain%specel(n)%sl%Accel (1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
@@ -52,8 +53,11 @@ subroutine allocate_domain (Tdomain, rg)
                 Tdomain%specel(n)%sl%Accel = 0d0
                 Tdomain%specel(n)%sl%V0 = 0d0
                 Tdomain%specel(n)%sl%Forces = 0d0
+#endif
                 if(Tdomain%specel(n)%PML)then
+#if ! NEW_GLOBAL_METHOD
                     allocate(Tdomain%specel(n)%slpml)
+#endif
                     allocate(Tdomain%specel(n)%sl%Acoeff(0:ngllx-1,0:nglly-1,0:ngllz-1,0:35))
                     allocate(Tdomain%specel(n)%slpml%Diagonal_Stress(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%slpml%Diagonal_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
@@ -63,9 +67,11 @@ subroutine allocate_domain (Tdomain, rg)
                     allocate(Tdomain%specel(n)%slpml%Residual_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%slpml%Residual_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%slpml%Residual_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%slpml%Veloc1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%slpml%Veloc2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%slpml%Veloc3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+#if ! NEW_GLOBAL_METHOD
+                    allocate(Tdomain%specel(n)%slpml%Veloc1(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+                    allocate(Tdomain%specel(n)%slpml%Veloc2(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+                    allocate(Tdomain%specel(n)%slpml%Veloc3(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
+#endif
                     allocate(Tdomain%specel(n)%slpml%Forces1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%slpml%Forces2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%slpml%Forces3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
@@ -73,9 +79,11 @@ subroutine allocate_domain (Tdomain, rg)
                     allocate(Tdomain%specel(n)%slpml%DumpSy(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
                     allocate(Tdomain%specel(n)%slpml%DumpSz(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
                     allocate(Tdomain%specel(n)%slpml%DumpMass(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%slpml%DumpVx(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
-                    allocate(Tdomain%specel(n)%slpml%DumpVy(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
-                    allocate(Tdomain%specel(n)%slpml%DumpVz(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
+#if ! NEW_GLOBAL_METHOD
+                    allocate(Tdomain%specel(n)%slpml%DumpVx(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
+                    allocate(Tdomain%specel(n)%slpml%DumpVy(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
+                    allocate(Tdomain%specel(n)%slpml%DumpVz(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1))
+#endif
                     Tdomain%specel(n)%slpml%Diagonal_Stress = 0d0
                     Tdomain%specel(n)%slpml%Diagonal_Stress1 = 0d0
                     Tdomain%specel(n)%slpml%Diagonal_Stress2 = 0d0
@@ -84,10 +92,11 @@ subroutine allocate_domain (Tdomain, rg)
                     Tdomain%specel(n)%slpml%Residual_Stress1 = 0d0
                     Tdomain%specel(n)%slpml%Residual_Stress2 = 0d0
                     Tdomain%specel(n)%slpml%Residual_Stress3 = 0d0
+#if ! NEW_GLOBAL_METHOD
                     Tdomain%specel(n)%slpml%Veloc1 = 0d0
                     Tdomain%specel(n)%slpml%Veloc2 = 0d0
                     Tdomain%specel(n)%slpml%Veloc3 = 0d0
-
+#endif
                     if(Tdomain%specel(n)%FPML)then
                         allocate(Tdomain%specel(n)%slpml%Isx(0:ngllx-1,0:nglly-1,0:ngllz-1))
                         allocate(Tdomain%specel(n)%slpml%Isy(0:ngllx-1,0:nglly-1,0:ngllz-1))
@@ -177,6 +186,7 @@ subroutine allocate_domain (Tdomain, rg)
         else   ! FLUID PART
             allocate(Tdomain%specel(n)%fl)
             if(Tdomain%TimeD%velocity_scheme)then
+#if ! NEW_GLOBAL_METHOD
                 allocate(Tdomain%specel(n)%fl%VelPhi(1:ngllx-2,1:nglly-2,1:ngllz-2))
                 allocate(Tdomain%specel(n)%fl%AccelPhi(1:ngllx-2,1:nglly-2,1:ngllz-2))
                 allocate(Tdomain%specel(n)%fl%VelPhi0(1:ngllx-2,1:nglly-2,1:ngllz-2))
@@ -187,8 +197,11 @@ subroutine allocate_domain (Tdomain, rg)
                 Tdomain%specel(n)%fl%AccelPhi = 0d0
                 Tdomain%specel(n)%fl%VelPhi0 = 0d0
                 Tdomain%specel(n)%fl%ForcesFl = 0d0
+#endif
                 if(Tdomain%specel(n)%PML)then
+#if ! NEW_GLOBAL_METHOD
                     allocate(Tdomain%specel(n)%flpml)
+#endif
                     allocate(Tdomain%specel(n)%fl%Acoeff(0:ngllx-1,0:nglly-1,0:ngllz-1,0:17))
                     allocate(Tdomain%specel(n)%flpml%Veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%flpml%Veloc1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
@@ -226,6 +239,7 @@ subroutine allocate_domain (Tdomain, rg)
     do n = 0, Tdomain%n_face-1
         ngll1 = Tdomain%sFace(n)%ngll1; ngll2 = Tdomain%sFace(n)%ngll2
         if(Tdomain%sFace(n)%solid)then    ! SOLID PART
+#if ! NEW_GLOBAL_METHOD
             allocate(Tdomain%sFace(n)%MassMat(1:ngll1-2,1:ngll2-2))
             allocate(Tdomain%sFace(n)%Veloc(1:ngll1-2,1:ngll2-2,0:2))
 
@@ -234,7 +248,7 @@ subroutine allocate_domain (Tdomain, rg)
             Tdomain%sFace(n)%Displ = 0
 
             allocate(Tdomain%sFace(n)%Forces(1:ngll1-2,1:ngll2-2,0:2))
-
+#endif
 #ifdef COUPLAGE
             allocate (Tdomain%sFace(n)%ForcesMka(1:ngll1-2,1:ngll2-2,0:2 ) )
             Tdomain%sFace(n)%ForcesMka = 0.
@@ -243,7 +257,7 @@ subroutine allocate_domain (Tdomain, rg)
             allocate (Tdomain%sFace(n)%tsurfsem(1:ngll1-2,1:ngll2-2 ) )
             Tdomain%sFace(n)%tsurfsem = 0.
 #endif
-
+#if ! NEW_GLOBAL_METHOD
             allocate(Tdomain%sFace(n)%Accel(1:ngll1-2,1:ngll2-2,0:2))
             allocate(Tdomain%sFace(n)%V0(1:ngll1-2,1:ngll2-2,0:2))
             Tdomain%sFace(n)%MassMat = 0d0
@@ -251,15 +265,17 @@ subroutine allocate_domain (Tdomain, rg)
             Tdomain%sFace(n)%Accel = 0d0
             Tdomain%sFace(n)%V0 = 0d0
             Tdomain%sFace(n)%Forces = 0d0
+#endif
             if(Tdomain%sFace(n)%PML)then
                 allocate(Tdomain%sFace(n)%spml)
+#if ! NEW_GLOBAL_METHOD
                 allocate(Tdomain%sFace(n)%spml%Forces1(1:ngll1-2,1:ngll2-2,0:2))
                 allocate(Tdomain%sFace(n)%spml%Forces2(1:ngll1-2,1:ngll2-2,0:2))
                 allocate(Tdomain%sFace(n)%spml%Forces3(1:ngll1-2,1:ngll2-2,0:2))
-                allocate(Tdomain%sFace(n)%spml%DumpMass(1:ngll1-2,1:ngll2-2,0:2))
                 allocate(Tdomain%sFace(n)%spml%Veloc1(1:ngll1-2,1:ngll2-2,0:2))
                 allocate(Tdomain%sFace(n)%spml%Veloc2(1:ngll1-2,1:ngll2-2,0:2))
                 allocate(Tdomain%sFace(n)%spml%Veloc3(1:ngll1-2,1:ngll2-2,0:2))
+                allocate(Tdomain%sFace(n)%spml%DumpMass(1:ngll1-2,1:ngll2-2,0:2))
                 allocate(Tdomain%sFace(n)%spml%DumpVx(1:ngll1-2,1:ngll2-2,0:1))
                 allocate(Tdomain%sFace(n)%spml%DumpVy(1:ngll1-2,1:ngll2-2,0:1))
                 allocate(Tdomain%sFace(n)%spml%DumpVz(1:ngll1-2,1:ngll2-2,0:1))
@@ -267,6 +283,7 @@ subroutine allocate_domain (Tdomain, rg)
                 Tdomain%sFace(n)%spml%Veloc1 = 0.
                 Tdomain%sFace(n)%spml%Veloc2 = 0.
                 Tdomain%sFace(n)%spml%Veloc3 = 0.
+#endif
                 if(Tdomain%sFace(n)%FPML)then
                     allocate(Tdomain%sFace(n)%spml%Ivx(1:ngll1-2,1:ngll2-1))
                     allocate(Tdomain%sFace(n)%spml%Ivy(1:ngll1-2,1:ngll2-1))
@@ -289,6 +306,7 @@ subroutine allocate_domain (Tdomain, rg)
                 !       Tdomain%sFace(n)%Displ = 0
             endif
         else   ! FLUID PART
+#if ! NEW_GLOBAL_METHOD
             allocate(Tdomain%sFace(n)%MassMat(1:ngll1-2,1:ngll2-2))
             allocate(Tdomain%sFace(n)%VelPhi(1:ngll1-2,1:ngll2-2))
             allocate(Tdomain%sFace(n)%ForcesFl(1:ngll1-2,1:ngll2-2))
@@ -301,15 +319,17 @@ subroutine allocate_domain (Tdomain, rg)
             Tdomain%sFace(n)%AccelPhi = 0d0
             Tdomain%sFace(n)%VelPhi0 = 0d0
             Tdomain%sFace(n)%ForcesFl = 0d0
+#endif
             if(Tdomain%sFace(n)%PML)then
                 allocate(Tdomain%sFace(n)%spml)
+#if ! NEW_GLOBAL_METHOD
                 allocate(Tdomain%sFace(n)%spml%ForcesFl1(1:ngll1-2,1:ngll2-2))
                 allocate(Tdomain%sFace(n)%spml%ForcesFl2(1:ngll1-2,1:ngll2-2))
                 allocate(Tdomain%sFace(n)%spml%ForcesFl3(1:ngll1-2,1:ngll2-2))
-                allocate(Tdomain%sFace(n)%spml%DumpMass(1:ngll1-2,1:ngll2-2,0:2))
                 allocate(Tdomain%sFace(n)%spml%VelPhi1(1:ngll1-2,1:ngll2-2))
                 allocate(Tdomain%sFace(n)%spml%VelPhi2(1:ngll1-2,1:ngll2-2))
                 allocate(Tdomain%sFace(n)%spml%VelPhi3(1:ngll1-2,1:ngll2-2))
+                allocate(Tdomain%sFace(n)%spml%DumpMass(1:ngll1-2,1:ngll2-2,0:2))
                 allocate(Tdomain%sFace(n)%spml%DumpVx(1:ngll1-2,1:ngll2-2,0:1))
                 allocate(Tdomain%sFace(n)%spml%DumpVy(1:ngll1-2,1:ngll2-2,0:1))
                 allocate(Tdomain%sFace(n)%spml%DumpVz(1:ngll1-2,1:ngll2-2,0:1))
@@ -317,6 +337,7 @@ subroutine allocate_domain (Tdomain, rg)
                 Tdomain%sFace(n)%spml%VelPhi1 = 0.
                 Tdomain%sFace(n)%spml%VelPhi2 = 0.
                 Tdomain%sFace(n)%spml%VelPhi3 = 0.
+#endif
             endif
         endif
     enddo
@@ -326,6 +347,7 @@ subroutine allocate_domain (Tdomain, rg)
     do n = 0,Tdomain%n_edge-1
         ngll = Tdomain%sEdge(n)%ngll
         if(Tdomain%sEdge(n)%solid)then   ! SOLID PART
+#if ! NEW_GLOBAL_METHOD
             allocate(Tdomain%sEdge(n)%MassMat(1:ngll-2))
             allocate(Tdomain%sEdge(n)%Veloc(1:ngll-2,0:2))
 
@@ -336,20 +358,23 @@ subroutine allocate_domain (Tdomain, rg)
             allocate(Tdomain%sEdge(n)%Forces(1:ngll-2,0:2))
             allocate(Tdomain%sEdge(n)%Accel(1:ngll-2,0:2))
             allocate(Tdomain%sEdge(n)%V0(1:ngll-2,0:2))
+
             Tdomain%sEdge(n)%MassMat = 0d0
             Tdomain%sEdge(n)%Veloc = 0d0
             Tdomain%sEdge(n)%Accel = 0d0
             Tdomain%sEdge(n)%V0 = 0d0
             Tdomain%sEdge(n)%Forces = 0d0
+#endif
             if(Tdomain%sEdge(n)%PML)then
                 allocate(Tdomain%sEdge(n)%spml)
+#if ! NEW_GLOBAL_METHOD
                 allocate(Tdomain%sEdge(n)%spml%Forces1(1:ngll-2,0:2))
                 allocate(Tdomain%sEdge(n)%spml%Forces2(1:ngll-2,0:2))
                 allocate(Tdomain%sEdge(n)%spml%Forces3(1:ngll-2,0:2))
-                allocate(Tdomain%sEdge(n)%spml%DumpMass(1:ngll-2, 0:2))
                 allocate(Tdomain%sEdge(n)%spml%Veloc1(1:ngll-2,0:2))
                 allocate(Tdomain%sEdge(n)%spml%Veloc2(1:ngll-2,0:2))
                 allocate(Tdomain%sEdge(n)%spml%Veloc3(1:ngll-2,0:2))
+                allocate(Tdomain%sEdge(n)%spml%DumpMass(1:ngll-2, 0:2))
                 allocate(Tdomain%sEdge(n)%spml%DumpVx(1:ngll-2,0:1))
                 allocate(Tdomain%sEdge(n)%spml%DumpVy(1:ngll-2,0:1))
                 allocate(Tdomain%sEdge(n)%spml%DumpVz(1:ngll-2,0:1))
@@ -357,6 +382,7 @@ subroutine allocate_domain (Tdomain, rg)
                 Tdomain%sEdge(n)%spml%Veloc1 = 0d0
                 Tdomain%sEdge(n)%spml%Veloc2 = 0d0
                 Tdomain%sEdge(n)%spml%Veloc3 = 0d0
+#endif
                 if(Tdomain%sEdge(n)%FPML)then
                     allocate(Tdomain%sEdge(n)%spml%Ivx(1:ngll-2))
                     allocate(Tdomain%sEdge(n)%spml%Ivy(1:ngll-2))
@@ -372,13 +398,9 @@ subroutine allocate_domain (Tdomain, rg)
                     Tdomain%sEdge(n)%spml%Ivz = 0.
                 endif
 
-
-
-            else
-                !        allocate (Tdomain%sEdge(n)%Displ (1:ngll-2, 0:2))
-                !        Tdomain%sEdge(n)%Displ = 0
             endif
         else   ! FLUID PART
+#if ! NEW_GLOBAL_METHOD
             allocate(Tdomain%sEdge(n)%MassMat(1:ngll-2))
             allocate(Tdomain%sEdge(n)%VelPhi(1:ngll-2))
             allocate(Tdomain%sEdge(n)%ForcesFl(1:ngll-2))
@@ -391,15 +413,17 @@ subroutine allocate_domain (Tdomain, rg)
             Tdomain%sEdge(n)%AccelPhi = 0d0
             Tdomain%sEdge(n)%VelPhi0 = 0d0
             Tdomain%sEdge(n)%ForcesFl = 0d0
+#endif
             if(Tdomain%sEdge(n)%PML)then
                 allocate(Tdomain%sEdge(n)%spml)
+#if ! NEW_GLOBAL_METHOD
                 allocate(Tdomain%sEdge(n)%spml%ForcesFl1(1:ngll-2))
                 allocate(Tdomain%sEdge(n)%spml%ForcesFl2(1:ngll-2))
                 allocate(Tdomain%sEdge(n)%spml%ForcesFl3(1:ngll-2))
-                allocate(Tdomain%sEdge(n)%spml%DumpMass(1:ngll-2,0:2))
                 allocate(Tdomain%sEdge(n)%spml%VelPhi1(1:ngll-2))
                 allocate(Tdomain%sEdge(n)%spml%VelPhi2(1:ngll-2))
                 allocate(Tdomain%sEdge(n)%spml%VelPhi3(1:ngll-2))
+                allocate(Tdomain%sEdge(n)%spml%DumpMass(1:ngll-2,0:2))
                 allocate(Tdomain%sEdge(n)%spml%DumpVx(1:ngll-2,0:1))
                 allocate(Tdomain%sEdge(n)%spml%DumpVy(1:ngll-2,0:1))
                 allocate(Tdomain%sEdge(n)%spml%DumpVz(1:ngll-2,0:1))
@@ -407,6 +431,7 @@ subroutine allocate_domain (Tdomain, rg)
                 Tdomain%sEdge(n)%spml%VelPhi1 = 0d0
                 Tdomain%sEdge(n)%spml%VelPhi2 = 0d0
                 Tdomain%sEdge(n)%spml%VelPhi3 = 0d0
+#endif
             endif
 
         endif
@@ -427,11 +452,13 @@ subroutine allocate_domain (Tdomain, rg)
 
     do n = 0,Tdomain%n_vertex-1
         if(Tdomain%sVertex(n)%solid)then  ! SOLID PART
+#if ! NEW_GLOBAL_METHOD
             Tdomain%sVertex(n)%MassMat = 0d0
             Tdomain%sVertex(n)%Veloc = 0d0
             Tdomain%sVertex(n)%Accel = 0d0
             Tdomain%sVertex(n)%V0 = 0d0
             Tdomain%sVertex(n)%Forces = 0d0
+#endif
 #ifdef COUPLAGE
             allocate (Tdomain%sVertex(n)%ForcesMka(0:2) )
             Tdomain%sVertex(n)%ForcesMka = 0
@@ -440,6 +467,7 @@ subroutine allocate_domain (Tdomain, rg)
 
             if(Tdomain%sVertex(n)%PML)then
                 allocate(Tdomain%sVertex(n)%spml)
+#if ! NEW_GLOBAL_METHOD
                 allocate(Tdomain%sVertex(n)%spml%Veloc1(0:2))
                 allocate(Tdomain%sVertex(n)%spml%Veloc2(0:2))
                 allocate(Tdomain%sVertex(n)%spml%Veloc3(0:2))
@@ -447,10 +475,11 @@ subroutine allocate_domain (Tdomain, rg)
                 allocate(Tdomain%sVertex(n)%spml%DumpVy(0:2))
                 allocate(Tdomain%sVertex(n)%spml%DumpVz(0:2))
                 allocate(Tdomain%sVertex(n)%spml%DumpMass(0:2))
+                Tdomain%sVertex(n)%spml%DumpMass = 0d0
                 Tdomain%sVertex(n)%spml%Veloc1 = 0d0
                 Tdomain%sVertex(n)%spml%Veloc2 = 0d0
                 Tdomain%sVertex(n)%spml%Veloc3 = 0d0
-                Tdomain%sVertex(n)%spml%DumpMass = 0d0
+#endif
                 if(Tdomain%sVertex(n)%FPML)then
                     allocate(Tdomain%sVertex(n)%spml%IVeloc1(0:2))
                     allocate(Tdomain%sVertex(n)%spml%IVeloc2(0:2))
@@ -466,25 +495,31 @@ subroutine allocate_domain (Tdomain, rg)
                     Tdomain%sVertex(n)%spml%Ivz = 0d0
                 endif
             else
+#if ! NEW_GLOBAL_METHOD
                 Tdomain%sVertex(n)%Displ = 0d0
+#endif
             endif
         else   ! FLUID PART
+#if ! NEW_GLOBAL_METHOD
             Tdomain%sVertex(n)%MassMat = 0d0
             Tdomain%sVertex(n)%VelPhi = 0d0
             Tdomain%sVertex(n)%AccelPhi = 0d0
             Tdomain%sVertex(n)%VelPhi0 = 0d0
             Tdomain%sVertex(n)%ForcesFl = 0d0
             Tdomain%sVertex(n)%Phi = 0d0
+#endif
             if(Tdomain%sVertex(n)%PML)then
                 allocate(Tdomain%sVertex(n)%spml)
+#if ! NEW_GLOBAL_METHOD
                 allocate(Tdomain%sVertex(n)%spml%DumpVx(0:2))
                 allocate(Tdomain%sVertex(n)%spml%DumpVy(0:2))
                 allocate(Tdomain%sVertex(n)%spml%DumpVz(0:2))
                 allocate(Tdomain%sVertex(n)%spml%DumpMass(0:2))
+                Tdomain%sVertex(n)%spml%DumpMass = 0d0
                 Tdomain%sVertex(n)%spml%VelPhi1 = 0d0
                 Tdomain%sVertex(n)%spml%VelPhi2 = 0d0
                 Tdomain%sVertex(n)%spml%VelPhi3 = 0d0
-                Tdomain%sVertex(n)%spml%DumpMass = 0d0
+#endif
             endif
         endif
     enddo
@@ -744,7 +779,7 @@ subroutine allocate_domain (Tdomain, rg)
     endif
 
 
-
+#if NEW_GLOBAL_METHOD
     ! Allocation et initialisation de Tdomain%champs0 et champs1 pour les solides
     if (Tdomain%ngll_s /= 0) then
         allocate(Tdomain%champs0%Forces(0:Tdomain%ngll_s-1,0:2))
@@ -765,12 +800,19 @@ subroutine allocate_domain (Tdomain, rg)
 
     ! Allocation et initialisation de Tdomain%champs0 pour les PML solides
     if (Tdomain%ngll_pmls /= 0) then
-        allocate(Tdomain%champs1%ForcesPML(0:(Tdomain%ngll_pmls*3)-1,0:2))
-        allocate(Tdomain%champs0%VelocPML(0:(Tdomain%ngll_pmls*3)-1,0:2))
-        allocate(Tdomain%champs0%DumpV(0:(Tdomain%ngll_pmls*3)-1,0:1))
+        allocate(Tdomain%champs1%ForcesPML(0:Tdomain%ngll_pmls-1,0:2))
+        allocate(Tdomain%champs0%VelocPML(0:Tdomain%ngll_pmls-1,0:2))
+        allocate(Tdomain%champs0%DumpV(0:Tdomain%ngll_pmls-1,0:1))
         Tdomain%champs1%ForcesPML = 0d0
         Tdomain%champs0%VelocPML = 0d0
         Tdomain%champs0%DumpV = 0d0
+
+        ! Allocation de Tdomain%MassMatSolPml pour les PML solides
+        allocate(Tdomain%MassMatSolPml(0:Tdomain%ngll_pmls-1))
+        Tdomain%MassMatSolPml = 0d0
+
+        allocate(Tdomain%DumpMass(0:Tdomain%ngll_pmls-1))
+        Tdomain%DumpMass = 0d0
     endif
 
     ! Allocation et initialisation de Tdomain%champs0 et champs1 pour les fluides
@@ -813,6 +855,7 @@ subroutine allocate_domain (Tdomain, rg)
         allocate(Tdomain%champs0%Save_forces(0:Tdomain%SF%ngll-1,0:2))
         allocate(Tdomain%champs0%Save_depla(0:Tdomain%SF%ngll-1,0:2))
     endif
+#endif
 
     return
 end subroutine allocate_domain

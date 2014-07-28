@@ -13,25 +13,30 @@ module svertices
     ! Modified by Paul 06/11/2005
 
     type :: vertex_pml
+#if ! NEW_GLOBAL_METHOD
        real, dimension(0:2) :: Forces1, Forces2, Forces3
-       real, dimension(:), allocatable :: DumpMass
        real, dimension(:), allocatable :: Veloc1, Veloc2, Veloc3
-       real, dimension(:), allocatable :: DumpVx, DumpVy, DumpVz
+       real, dimension(:), allocatable :: DumpVx, DumpVy, DumpVz, DumpMass
+       real :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
+#endif
        real, dimension (:), allocatable :: Iveloc1, Iveloc2, Iveloc3
        real, dimension (:), allocatable :: Ivx, Ivy, Ivz
-       real :: ForcesFl1, ForcesFl2, ForcesFl3, VelPhi1, VelPhi2, VelPhi3
     end type vertex_pml
 
     type :: vertex
        integer  :: mat_index
        logical :: PML, Abs, FPML
        integer :: Iglobnum_Vertex, global_numbering
+#if ! NEW_GLOBAL_METHOD
        real :: MassMat
        real, dimension(0:2) :: Forces, Displ, Veloc, Accel, V0
+#endif
+       
        ! solid-fluid
        logical :: solid, fluid_dirich
+#if ! NEW_GLOBAL_METHOD
        real :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
-
+#endif
        type(vertex_pml), pointer :: spml
 #ifdef COUPLAGE
        real, dimension (:), allocatable :: ForcesMka
@@ -41,7 +46,7 @@ module svertices
     end type vertex
 
 contains
-
+#if ! NEW_GLOBAL_METHOD
     ! ############################################################
     !>
     !! \brief Predicteur pour les vertex
@@ -208,37 +213,7 @@ contains
         return
     end subroutine Correction_Vertex_FPML_Veloc
     ! ###########################################################
-
-    subroutine get_vel_vertex(V,Vfree,dt,logic)
-        implicit none
-
-        type (Vertex), intent (IN) :: V
-        real, dimension (0:2), intent (INOUT) :: Vfree
-        logical, intent (IN) :: logic
-        real, intent(IN) :: dt
-
-        if (.not. V%PML) then
-
-            if (logic) then
-                Vfree(0:2) = Vfree(0:2) -  ( V%V0(0:2) + dt*V%MassMat*V%Forces(0:2) )
-            else
-                Vfree(0:2) =  V%V0(0:2) + dt*V%MassMat*V%Forces(0:2)
-            endif
-
-        else
-
-            if (logic) then
-                Vfree(0:2) = Vfree(0:2) - (V%spml%DumpVz(0) * V%spml%Veloc3(0:2) + dt * V%spml%DumpVz(1) * V%spml%Forces3(0:2) )
-            else
-                Vfree(0:2) =  V%spml%DumpVz(0) * V%spml%Veloc3(0:2) + dt * V%spml%DumpVz(1) * V%spml%Forces3(0:2)
-            endif
-
-        endif
-
-        return
-    end subroutine get_vel_vertex
-    ! ###########################################################
-
+#endif
     subroutine init_vertex(ve)
         type(Vertex), intent(inout) :: ve
 
@@ -248,6 +223,7 @@ contains
         ve%solid = .true.
         ve%global_numbering = -1
         ve%Iglobnum_Vertex = -1
+#if ! NEW_GLOBAL_METHOD
         ve%MassMat = 0
         ve%Forces = 0.
         ve%Displ = 0.
@@ -259,6 +235,7 @@ contains
         ve%VelPhi = 0.
         ve%AccelPhi = 0.
         ve%VelPhi0 = 0.
+#endif
     end subroutine init_vertex
 
 end module svertices

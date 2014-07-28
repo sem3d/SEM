@@ -1,3 +1,4 @@
+#if ! NEW_GLOBAL_METHOD
 subroutine StoF_coupling(Tdomain,rg)
     ! from solid to fluid: velocity (dot) normal
     use sdomain
@@ -173,8 +174,10 @@ subroutine StoF_coupling(Tdomain,rg)
 
 
 end subroutine StoF_coupling
+#endif
 !----------------------------------------------------------------
 !----------------------------------------------------------------
+#if NEW_GLOBAL_METHOD
 subroutine StoF_coupling_2(ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_IGlobFlu, Veloc, BtN, ForcesFl)
     ! from solid to fluid: velocity (dot) normal
     implicit none
@@ -196,8 +199,10 @@ subroutine StoF_coupling_2(ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_IGlobFlu
     enddo
 
 end subroutine StoF_coupling_2
+#endif
 !----------------------------------------------------------------
 !----------------------------------------------------------------
+#if ! NEW_GLOBAL_METHOD
 subroutine FtoS_coupling(Tdomain,rg)
     ! from fluid to solid: normal times pressure (= -rho . VelPhi)
     use sdomain
@@ -386,8 +391,10 @@ subroutine FtoS_coupling(Tdomain,rg)
 
 
 end subroutine FtoS_coupling
+#endif
 !----------------------------------------------------------------
 !----------------------------------------------------------------
+#if NEW_GLOBAL_METHOD
 subroutine FtoS_coupling_2(ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_IGlobFlu, BtN, Save_forces, Save_depla, VelPhi, Forces, Depla)
     ! from fluid to solid: normal times pressure (= -rho . VelPhi)
     implicit none
@@ -407,6 +414,7 @@ subroutine FtoS_coupling_2(ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_IGlobFlu
     enddo
 
 end subroutine FtoS_coupling_2
+#endif
 !----------------------------------------------------------------
 !----------------------------------------------------------------
 subroutine Comm_Forces_Complete_StoF(n,Tdomain)
@@ -809,6 +817,7 @@ subroutine Comm_Forces_VertexSF_FtoS(Tdomain,n,ngllSF,ngllSF_PML)
 end subroutine Comm_Forces_VertexSF_FtoS
 !---------------------------------------------------------------------------------------
 !---------------------------------------------------------------------------------------
+#if ! NEW_GLOBAL_METHOD
 subroutine SF_solid_values_saving(Tdomain)
     ! saves values of fields Forces, Displ on the solid side of a SF object -
     !    for they are flushed in the 1st correction phase
@@ -857,8 +866,10 @@ subroutine SF_solid_values_saving(Tdomain)
 
     return
 end subroutine SF_solid_values_saving
+#endif
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
+#if NEW_GLOBAL_METHOD
 subroutine SF_solid_values_saving_2(ngll_sol, SF_ngll, SF_IGlobSol, Forces, Depla, Save_forces, Save_depla)
     ! saves values of fields Forces, Displ on the solid side of a SF object -
     !    for they are flushed in the 1st correction phase
@@ -877,8 +888,10 @@ subroutine SF_solid_values_saving_2(ngll_sol, SF_ngll, SF_IGlobSol, Forces, Depl
 
     return
 end subroutine SF_solid_values_saving_2
+#endif
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
+#if ! NEW_GLOBAL_METHOD
 subroutine Newmark_recorrect_solid(Tdomain)
     use sdomain
     implicit none
@@ -945,8 +958,10 @@ subroutine Newmark_recorrect_solid(Tdomain)
     end do
 
 end subroutine Newmark_recorrect_solid
+#endif
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
+#if NEW_GLOBAL_METHOD
 subroutine Newmark_recorrect_solid_2(ngll_sol, SF_ngll, dt, SF_IGlobSol, MassMatSol, Forces, Veloc, Depla)
     implicit none
 
@@ -967,3 +982,4 @@ subroutine Newmark_recorrect_solid_2(ngll_sol, SF_ngll, dt, SF_IGlobSol, MassMat
     enddo
 
 end subroutine Newmark_recorrect_solid_2
+#endif

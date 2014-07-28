@@ -18,7 +18,7 @@ module forces_aniso
     end interface
 
 contains
-
+#if ! NEW_GLOBAL_METHOD
     subroutine forces_int(Elem, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
                n_solid, aniso, solid)
 
@@ -232,8 +232,9 @@ contains
 
         return
     end subroutine forces_int
+#endif
 
-
+#if NEW_GLOBAL_METHOD
     subroutine forces_int2(Elem, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
                n_solid, aniso, solid, champs1)
 
@@ -481,7 +482,7 @@ contains
 
         return
     end subroutine forces_int2
-
+#endif
 end module forces_aniso
 !! Local Variables:
 !! mode: f90

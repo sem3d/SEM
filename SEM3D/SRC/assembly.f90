@@ -2,7 +2,7 @@ module assembly
     use orientation
 
 contains
-
+#if ! NEW_GLOBAL_METHOD
     ! Forces assembly
 
     subroutine get_Forces_Elem2Edge(Tdomain,n)
@@ -217,7 +217,6 @@ contains
     end subroutine get_ForcesFl_Elem2Vertex
 
 
-
     ! Disp assembly
     ! =======================================
 
@@ -381,7 +380,7 @@ contains
 
         return
     end subroutine get_Phi_Vertex2Elem
-
+#endif
 
     ! Mass assembly
     ! =============================================
@@ -403,12 +402,16 @@ contains
             nne = Tdomain%specel(n)%Near_Edges(ne)
             orient_e = Tdomain%specel(n)%Orient_Edges(ne)
             ngll = Tdomain%sEdge(nne)%ngll
+#if ! NEW_GLOBAL_METHOD
             ! now we call the general assemblage routine
             call get_ScalarProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
                 Tdomain%sEdge(nne)%MassMat,Tdomain%specel(n)%MassMat)
+#endif
             if(Tdomain%sEdge(nne)%PML)then
+#if ! NEW_GLOBAL_METHOD
                 call get_VectProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
                     Tdomain%sEdge(nne)%spml%DumpMass(:,0:2),Tdomain%specel(n)%slpml%DumpMass(:,:,:,0:2))
+#endif
                 if(Tdomain%sEdge(nne)%FPML)then
                     call get_ScalarProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
                         Tdomain%sEdge(nne)%spml%Ivx(:),Tdomain%specel(n)%slpml%Ivx(:,:,:))
@@ -443,13 +446,16 @@ contains
             orient_f = Tdomain%specel(n)%Orient_Faces(nf)
             ngll1 = Tdomain%sFace(nnf)%ngll1
             ngll2 = Tdomain%sFace(nnf)%ngll2
-
+#if ! NEW_GLOBAL_METHOD
             ! now we call the general assemblage routine
             call get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
                 Tdomain%sFace(nnf)%MassMat(:,:),Tdomain%specel(n)%MassMat(:,:,:))
+#endif
             if(Tdomain%sFace(nnf)%PML)then
+#if ! NEW_GLOBAL_METHOD
                 call get_VectProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
                     Tdomain%sFace(nnf)%spml%DumpMass(:,:,0:2),Tdomain%specel(n)%slpml%DumpMass(:,:,:,0:2))
+#endif
                 if(Tdomain%sFace(nnf)%FPML)then
                     call get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
                         Tdomain%sFace(nnf)%spml%Ivx(:,:),Tdomain%specel(n)%slpml%Ivx(:,:,:))
@@ -483,12 +489,16 @@ contains
 
         do nv = 0,7
             nnv = Tdomain%specel(n)%Near_Vertices(nv)
+#if ! NEW_GLOBAL_METHOD
             ! now we call the general assemblage routine
             call get_ScalarProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
                 Tdomain%sVertex(nnv)%MassMat,Tdomain%specel(n)%MassMat(:,:,:))
+#endif
             if(Tdomain%sVertex(nnv)%PML)then
+#if ! NEW_GLOBAL_METHOD
                 call get_VectProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
                     Tdomain%sVertex(nnv)%spml%DumpMass(0:2),Tdomain%specel(n)%slpml%DumpMass(:,:,:,0:2))
+#endif
                 if(Tdomain%sVertex(nnv)%FPML)then
                     call get_ScalarProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
                         Tdomain%sVertex(nnv)%spml%Ivx,Tdomain%specel(n)%slpml%Ivx(:,:,:))
@@ -510,7 +520,7 @@ contains
     ! PML Assembly routines
     ! ==============================================
 
-
+#if ! NEW_GLOBAL_METHOD
     subroutine get_PMLprediction_f2el(Tdomain,n,bega,dt)
 
         use sdomain
@@ -682,7 +692,7 @@ contains
         return
 
     end subroutine get_PMLprediction_e2el_fl
-
+#endif
 end module assembly
 !! Local Variables:
 !! mode: f90

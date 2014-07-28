@@ -80,6 +80,7 @@ contains
 
     end subroutine pressure_solid
 
+#if ! NEW_GLOBAL_METHOD
     !! Recopie dans field le champs de deplacement reparti sur les Elem, Face, Edge, Vertex
     subroutine gather_elem_displ(Tdomain, nel, field)
         type(domain), intent(in) :: Tdomain
@@ -117,6 +118,7 @@ contains
         end if
 
     end subroutine gather_elem_displ
+#endif
 
     subroutine check_field(nel, field, nx, ny, nz)
         integer, intent(in) :: nel, nx, ny, nz
@@ -134,6 +136,7 @@ contains
         end do
     end subroutine check_field
 
+#if ! NEW_GLOBAL_METHOD
     subroutine gather_elem_veloc(Tdomain, nel, field)
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: nel
@@ -307,6 +310,178 @@ contains
         end if
 
     end subroutine gather_elem_press
+#endif
 
+#if NEW_GLOBAL_METHOD
+    subroutine gather_elem_veloc_2(Tdomain, nel, field)
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: nel
+        real, dimension(0:,0:,0:,0:), intent(out) :: field
+        real, dimension(:,:,:), allocatable :: phi
+        type(element), pointer :: el
+        integer :: nx, ny, nz, i, j, k, mat, ind
+        nx = Tdomain%specel(nel)%ngllx
+        ny = Tdomain%specel(nel)%nglly
+        nz = Tdomain%specel(nel)%ngllz
+        el => Tdomain%specel(nel)
+        if (el%solid) then
+            if (el%PML) then
+                field = 0d0
+            else
+                do k=0,nz-1
+                    do j=0,ny-1
+                        do i=0,nx-1
+                            ind = el%ISol(i,j,k)
+                            field(i,j,k,:) = Tdomain%champs0%Veloc(ind,:)
+                        enddo
+                    enddo
+                enddo
+            endif
+        else ! liquid
+            if (el%PML) then
+                field = 0d0
+            else
+                allocate(phi(0:nx-1,0:ny-1,0:nz-1))
+                do k=0,nz-1
+                    do j=0,ny-1
+                        do i=0,nx-1
+                            ind = el%IFlu(i,j,k)
+                            phi(i,j,k) = Tdomain%champs0%Phi(ind)
+                        enddo
+                    enddo
+                enddo
+                mat = el%mat_index
+                call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
+                            Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
+                            el%InvGrad,el%density,phi,field)
+                deallocate(phi)
+            endif
+        end if
+
+    end subroutine gather_elem_veloc_2
+
+    subroutine gather_elem_displ_2(Tdomain, nel, field)
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: nel
+        real, dimension(0:,0:,0:,0:), intent(out) :: field
+        type(element), pointer :: el
+        integer :: nx, ny, nz, i, j, k, ind
+        nx = Tdomain%specel(nel)%ngllx
+        ny = Tdomain%specel(nel)%nglly
+        nz = Tdomain%specel(nel)%ngllz
+        el => Tdomain%specel(nel)
+
+        if (el%solid) then
+            if (el%PML) then
+                field = 0d0
+            else
+                do k=0,nz-1
+                    do j=0,ny-1
+                        do i=0,nx-1
+                            ind = el%ISol(i,j,k)
+                            field(i,j,k,:) = Tdomain%champs0%Depla(ind,:)
+                        enddo
+                    enddo
+                enddo
+            endif
+        else ! liquid
+            field = 0d0
+        end if
+
+    end subroutine gather_elem_displ_2
+
+    subroutine gather_elem_accel_2(Tdomain, nel, field)
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: nel
+        real, dimension(0:,0:,0:,0:), intent(out) :: field
+        real, dimension(:,:,:), allocatable :: vphi
+        type(element), pointer :: el
+        integer :: nx, ny, nz, i, j, k, ind
+        nx = Tdomain%specel(nel)%ngllx
+        ny = Tdomain%specel(nel)%nglly
+        nz = Tdomain%specel(nel)%ngllz
+        el => Tdomain%specel(nel)
+        if (el%solid) then
+            if (el%PML) then
+                field = 0d0
+            else
+                do k=0,nz-1
+                    do j=0,ny-1
+                        do i=0,nx-1
+                            ind = el%ISol(i,j,k)
+                            field(i,j,k,:) = Tdomain%champs0%Forces(ind,:)
+                        enddo
+                    enddo
+                enddo
+            endif
+        else ! liquid
+            if (el%PML) then
+                field = 0d0
+            else
+                allocate(vphi(0:nx-1,0:ny-1,0:nz-1))
+                do k=0,nz-1
+                    do j=0,ny-1
+                        do i=0,nx-1
+                            ind = el%IFlu(i,j,k)
+                            vphi(i,j,k) = Tdomain%champs0%VelPhi(ind)
+                        enddo
+                    enddo
+                enddo
+                mat = el%mat_index
+                call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
+                            Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
+                            el%InvGrad,el%density,vphi,field)
+                deallocate(vphi)
+            endif
+        end if
+    end subroutine gather_elem_accel_2
+
+    subroutine gather_elem_press_2(Tdomain, nel, field)
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: nel
+        real, dimension(0:,0:,0:), intent(out) :: field
+        real, dimension(:,:,:,:), allocatable :: displ
+        type(element), pointer :: el
+        integer :: nx, ny, nz, i, j, k, ind, mat
+        nx = Tdomain%specel(nel)%ngllx
+        ny = Tdomain%specel(nel)%nglly
+        nz = Tdomain%specel(nel)%ngllz
+        el => Tdomain%specel(nel)
+        if (el%solid) then
+            if (el%PML) then
+                field = 0d0
+            else
+                allocate(displ(0:nx-1,0:ny-1,0:nz-1,0:2))
+                do k=0,nz-1
+                    do j=0,ny-1
+                        do i=0,nx-1
+                            ind = el%ISol(i,j,k)
+                            displ(i,j,k,:) = Tdomain%champs0%Depla(ind,:)
+                        enddo
+                    enddo
+                enddo
+                mat = el%mat_index
+                call pressure_solid(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
+                    Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
+                    el%InvGrad,displ, el%Lambda, el%Mu,field)
+                deallocate(displ)
+            endif
+        else ! liquid
+            if (el%PML) then
+                field = 0d0
+            else
+                do k=0,nz-1
+                    do j=0,ny-1
+                        do i=0,nx-1
+                            ind = el%IFlu(i,j,k)
+                            field(i,j,k) = -Tdomain%champs0%VelPhi(ind)
+                        enddo
+                    enddo
+                enddo
+            endif
+        end if
+
+    end subroutine gather_elem_press_2
+#endif
 
 end module mfields
