@@ -117,6 +117,27 @@ module selement
 
 contains
 
+    integer function get_domain(el)
+        use constants
+        implicit none
+        type(Element), intent(INOUT) :: el
+
+        if (el%solid) then
+            if (el%PML) then
+                get_domain = DM_SOLID_PML
+            else
+                get_domain = DM_SOLID
+            endif
+        else ! Fluid
+            if (el%PML) then
+                get_domain = DM_FLUID_PML
+            else
+                get_domain = DM_FLUID
+            endif
+        endif
+        return
+    end function get_domain
+
 #if ! NEW_GLOBAL_METHOD
     !--------------------------------------------------------------
     !>

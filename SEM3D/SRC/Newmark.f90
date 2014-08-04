@@ -590,6 +590,7 @@ subroutine Newmark_Corrector2(Tdomain,champs1)
     type(champs), intent(in)   :: champs1
     integer  :: n, i_dir
 
+    ! Si il existe des éléments PML solide
     if (Tdomain%ngll_pmls /= 0) then
         do i_dir = 0,2
             Tdomain%champs0%VelocPML(:,i_dir) = Tdomain%champs0%DumpV(:,0) * &
@@ -598,7 +599,7 @@ subroutine Newmark_Corrector2(Tdomain,champs1)
                                                 Tdomain%champs0%DumpV(:,1) * &
                                                 champs1%ForcesPML(:,i_dir)
         enddo
-        ! Eventuellement : DeplaPML(:,:) = DeplaPML(:,:) + dt * VelocPML(:,:)
+        !TODO Eventuellement : DeplaPML(:,:) = DeplaPML(:,:) + dt * VelocPML(:,:)
     endif
 
     ! Si il existe des éléments solide

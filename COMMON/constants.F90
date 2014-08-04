@@ -37,7 +37,11 @@ MODULE constants
     integer, parameter :: MATERIAL_GRADIENT   = 2
     integer, parameter :: MATERIAL_EARTHCHUNK = 3
 
-
+    ! DOMAINS (par ordre de priorite pour les sauvegardes)
+    integer, parameter :: DM_SOLID = 4
+    integer, parameter :: DM_SOLID_PML = 2
+    integer, parameter :: DM_FLUID = 3
+    integer, parameter :: DM_FLUID_PML = 1
 CONTAINS
 
 END MODULE constants

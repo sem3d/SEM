@@ -273,17 +273,15 @@ contains
     end subroutine grp_write_real_1d
 
 
-    subroutine compute_saved_elements(Tdomain, rg, irenum, nnodes)
+    subroutine compute_saved_elements(Tdomain, irenum, nnodes, domains)
         type (domain), intent (INOUT):: Tdomain
-        integer, intent(in) :: rg
         integer, allocatable, dimension(:), intent(out) :: irenum ! maps Iglobnum to file node number
         integer, intent(out) :: nnodes
         integer :: n, i, j, k, ngllx, nglly, ngllz, ig, gn, ne
         !
-        integer :: group, count
-        integer :: status, ierr
-
-        group = rg/Tdomain%ngroup
+        integer :: count
+        integer :: status, ierr, domain
+        integer, dimension(:), allocatable, intent(out) :: domains
 
         allocate(irenum(0:Tdomain%n_glob_points-1))
 
@@ -309,6 +307,28 @@ contains
             end do
         end do
         nnodes = ig
+
+        allocate(domains(0:ig-1))
+        domain = 0
+        domains = 0
+        do n = 0,Tdomain%n_elem-1
+            if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            ngllx = Tdomain%specel(n)%ngllx
+            nglly = Tdomain%specel(n)%nglly
+            ngllz = Tdomain%specel(n)%ngllz
+            domain = get_domain(Tdomain%specel(n))
+
+            do k = 0,ngllz - 1
+                do j = 0,nglly - 1
+                    do i = 0,ngllx - 1
+                        gn = Tdomain%specel(n)%Iglobnum(i,j,k)
+                        if (domain>domains(irenum(gn))) then
+                            domains(irenum(gn)) = domain
+                        endif
+                    end do
+                end do
+            end do
+        end do
 
         if (.not. allocated(Tdomain%output_nodes)) then
             allocate(Tdomain%output_nodes(0:Tdomain%nb_output_procs-1))
@@ -355,6 +375,7 @@ contains
         integer :: nnodes
         integer, dimension(0:Tdomain%n_proc-1) :: nodes_per_proc
         integer :: group
+        integer, dimension(:), allocatable :: domains
 
         group = rg/Tdomain%ngroup
 
@@ -373,13 +394,13 @@ contains
 
         call mpi_barrier(Tdomain%communicateur, code)
 
-        call compute_saved_elements(Tdomain, rg, irenum, nnodes)
+        call compute_saved_elements(Tdomain, irenum, nnodes, domains)
 
         call write_global_nodes(Tdomain, rg, fid, irenum, nnodes)
         
         call write_elem_connectivity(Tdomain, rg, fid, irenum)
 
-        call write_constant_fields(Tdomain, fid, irenum, nnodes)
+        call write_constant_fields(Tdomain, fid, irenum, nnodes, domains)
 
         if (Tdomain%output_rank==0) then
             call h5fclose_f(fid, hdferr)
@@ -518,7 +539,11 @@ contains
         real, dimension(:,:),allocatable :: displ, veloc, accel
         real, dimension(:), allocatable :: press
         real, dimension(:,:,:,:),allocatable :: field_displ, field_veloc, field_accel
-        real, dimension(:,:,:),allocatable :: field_press, Phi, VelPhi
+        real, dimension(:,:,:),allocatable :: field_press
+#if NEW_GLOBAL_METHOD
+        real, dimension(:,:,:),allocatable :: field_phi, field_vphi
+        integer :: domain
+#endif
         integer, dimension(:), allocatable :: valence
         real, dimension(:,:,:,:), allocatable :: Depla
         integer :: hdferr
@@ -526,13 +551,13 @@ contains
         integer :: i, j, k, n, i_dir
         integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
         integer :: nnodes, group, nnodes_tot, mat
-        
+        integer, dimension(:), allocatable :: domains
+        type(Element), pointer :: el
+        type(subdomain), pointer :: sub_dom_mat
 
         call create_dir_sorties(Tdomain, rg, isort)
 
-        call compute_saved_elements(Tdomain, rg, irenum, nnodes)
-
-        !if (nnodes==0) return
+        call compute_saved_elements(Tdomain, irenum, nnodes, domains)
 
         allocate(displ(0:2,0:nnodes-1))
         allocate(veloc(0:2,0:nnodes-1))
@@ -550,151 +575,109 @@ contains
         press(:) = 0d0
 
         do n = 0,Tdomain%n_elem-1
-            if (.not. Tdomain%specel(n)%OUTPUT) cycle
-            if (ngllx /= Tdomain%specel(n)%ngllx .or. &
-                nglly /= Tdomain%specel(n)%nglly .or. &
-                ngllz /= Tdomain%specel(n)%ngllz) then
-                ngllx = Tdomain%specel(n)%ngllx
-                nglly = Tdomain%specel(n)%nglly
-                ngllz = Tdomain%specel(n)%ngllz
+            el => Tdomain%specel(n)
+            sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
+            if (.not. el%OUTPUT) cycle
+            if (ngllx /= el%ngllx .or. &
+                nglly /= el%nglly .or. &
+                ngllz /= el%ngllz) then
+                ngllx = el%ngllx
+                nglly = el%nglly
+                ngllz = el%ngllz
                 if (allocated(field_veloc)) deallocate(field_veloc)
                 if (allocated(field_accel)) deallocate(field_accel)
                 if (allocated(field_press)) deallocate(field_press)
                 if (allocated(field_displ)) deallocate(field_displ)
-                allocate(field_displ(0:ngllx-1,0:nglly-1,0:ngllz-1,3))
-                allocate(field_veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,3))
-                allocate(field_accel(0:ngllx-1,0:nglly-1,0:ngllz-1,3))
-                allocate(field_press(0:ngllx-1,0:nglly-1,0:ngllz-1))
-            endif
 #if NEW_GLOBAL_METHOD
-            call gather_elem_displ_2(Tdomain, n, field_displ)
-            call gather_elem_veloc_2(Tdomain, n, field_veloc)
-            call gather_elem_accel_2(Tdomain, n, field_accel)
-            call gather_elem_press_2(Tdomain, n, field_press)
+                if (allocated(field_phi)) deallocate(field_phi)
+                if (allocated(field_vphi)) deallocate(field_vphi)
+#endif
+                allocate(field_displ(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                allocate(field_veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                allocate(field_accel(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                allocate(field_press(0:ngllx-1,0:nglly-1,0:ngllz-1))
+#if NEW_GLOBAL_METHOD
+                allocate(field_phi(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(field_vphi(0:ngllx-1,0:nglly-1,0:ngllz-1))
+#endif
+            endif
+            
+#if NEW_GLOBAL_METHOD
+            domain = get_domain(el)
+            select case(domain)
+            case (DM_SOLID)
+                call gather_field(el, field_displ, Tdomain%champs0%Depla, el%Isol)
+                call gather_field(el, field_veloc, Tdomain%champs0%Veloc, el%Isol)
+                call gather_field(el, field_accel, Tdomain%champs0%Forces, el%Isol)
+                call pressure_solid(ngllx,nglly,ngllz,sub_dom_mat%htprimex,              &
+                    sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
+                    el%InvGrad,field_displ, el%Lambda, el%Mu,field_press)
+            case (DM_SOLID_PML)
+                field_displ = 0
+                call gather_field_pml(el, field_veloc, Tdomain%champs0%VelocPML, el%slpml%IsolPML)
+                !call gather_field_pml(el, field_accel, Tdomain%champs1%ForcesPML, el%slpml%IsolPML)
+                field_accel = 0
+                field_press = 0
+            case (DM_FLUID)
+                field_displ = 0
+                call gather_field_fluid(el, field_phi, Tdomain%champs0%Phi, el%IFlu)
+                call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex,              &
+                            sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
+                            el%InvGrad,el%density,field_phi,field_veloc)
+                call gather_field_fluid(el, field_vphi, Tdomain%champs0%VelPhi, el%IFlu)
+                call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex,              &
+                            sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
+                            el%InvGrad,el%density,field_vphi,field_accel)
+                field_press = -field_vphi
+            case (DM_FLUID_PML)
+                field_displ = 0
+                field_veloc = 0
+                field_accel = 0
+                field_press = 0
+            end select
+
+            do k = 0,ngllz-1
+                do j = 0,nglly-1
+                    do i = 0,ngllx-1
+                        idx = irenum(el%Iglobnum(i,j,k))
+                        if (domains(idx)==domain) then
+                            valence(idx) = valence(idx)+1
+                            displ(:,idx) = field_displ(i,j,k,:)
+                            veloc(:,idx) = veloc(:,idx) + field_veloc(i,j,k,:)
+                            accel(:,idx) = accel(:,idx) + field_accel(i,j,k,:)
+                            press(idx) = field_press(i,j,k)
+                        endif
+                    enddo
+                enddo
+            enddo
 #else
             call gather_elem_displ(Tdomain, n, field_displ)
             call gather_elem_veloc(Tdomain, n, field_veloc)
             call gather_elem_accel(Tdomain, n, field_accel)
             call gather_elem_press(Tdomain, n, field_press)
-#endif
-! #if NEW_GLOBAL_METHOD
-!             if (.not. Tdomain%specel(n)%PML) then
-!                 if (Tdomain%specel(n)%solid) then
-!                     ! Element solide
-!                     allocate(Depla(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-!                     do i_dir = 0,2
-!                         do k = 0,ngllz-1
-!                             do j = 0,nglly-1
-!                                 do i = 0,ngllx-1
-!                                     Depla(i,j,k,i_dir) = Tdomain%champs0%Depla(Tdomain%specel(n)%Isol(i,j,k),i_dir)
-!                                 enddo
-!                             enddo
-!                         enddo
-!                     enddo
-!                     mat = Tdomain%specel(n)%mat_index
-!                     call pressure_solid(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%htprimex,              &
-!                         Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
-!                         Tdomain%specel(n)%InvGrad, Depla, Tdomain%specel(n)%Lambda, &
-!                         Tdomain%specel(n)%Mu, field_press)
-!                     deallocate(Depla)
-!                 else
-!                     ! Element fluide
-!                     allocate(Phi(0:ngllx-1,0:nglly-1,0:ngllz-1))
-!                     allocate(VelPhi(0:ngllx-1,0:nglly-1,0:ngllz-1))
-!                     do k = 0,ngllz-1
-!                         do j = 0,nglly-1
-!                             do i = 0,ngllx-1
-!                                 Phi(i,j,k) = Tdomain%champs0%Phi(Tdomain%specel(n)%Iflu(i,j,k))
-!                                 VelPhi(i,j,k) = Tdomain%champs0%VelPhi(Tdomain%specel(n)%Iflu(i,j,k))
-!                             enddo
-!                         enddo
-!                     enddo
-!                     mat = Tdomain%specel(n)%mat_index
-!                     call fluid_velocity(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%htprimex,              &
-!                         Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
-!                         Tdomain%specel(n)%InvGrad,Tdomain%specel(n)%density,Phi,field_veloc)
-!                     call fluid_velocity(ngllx,nglly,ngllz,Tdomain%sSubdomain(mat)%htprimex,              &
-!                     Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
-!                     Tdomain%specel(n)%InvGrad,Tdomain%specel(n)%density,VelPhi,field_accel)
-!                     field_press = -VelPhi
-!                     deallocate(Phi)
-!                     deallocate(VelPhi)
-!                 endif
-!             endif
-! #endif
-            if (.not. Tdomain%specel(n)%PML) then
-                do k = 0,ngllz-1
-                    do j = 0,nglly-1
-                        do i = 0,ngllx-1
-                            idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
-#if NEW_GLOBAL_METHOD
-                            if (Tdomain%specel(n)%solid) then
-                                displ(:,idx) = Tdomain%champs0%Depla(Tdomain%specel(n)%Isol(i,j,k),:)
-                                veloc(:,idx) = Tdomain%champs0%Veloc(Tdomain%specel(n)%Isol(i,j,k),:)
-                                accel(:,idx) = Tdomain%champs0%Forces(Tdomain%specel(n)%Isol(i,j,k),:)
-                                !press(idx) = field_press(i,j,k)
-                            else
-                                valence(idx) = valence(idx)+1
-                                displ(:,idx) = 0d0
-                                veloc(:,idx) = veloc(:,idx) + field_veloc(i,j,k,:)
-                                accel(:,idx) = accel(:,idx) + field_accel(i,j,k,:)
-                                !press(idx) = field_press(i,j,k)
-                            endif
-#else
-                            valence(idx) = valence(idx)+1
-                            displ(:,idx) = field_displ(i,j,k,:)
-                            veloc(:,idx) = veloc(:,idx)+field_veloc(i,j,k,:)
-                            accel(:,idx) = accel(:,idx)+field_accel(i,j,k,:)
-                            !press(idx) = field_press(i,j,k)
-#endif
-                        end do
-                    end do
-                end do
-            else
-                do k = 0,ngllz-1
-                    do j = 0,nglly-1
-                        do i = 0,ngllx-1
-                            idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
-#if NEW_GLOBAL_METHOD
-                            if (Tdomain%specel(n)%solid) then
-                                displ(0,idx) = Tdomain%champs0%DumpV(Tdomain%specel(n)%slpml%IsolPML(i,j,k)+0,1)
-                                displ(1,idx) = Tdomain%champs0%DumpV(Tdomain%specel(n)%slpml%IsolPML(i,j,k)+1,1)
-                                displ(2,idx) = Tdomain%champs0%DumpV(Tdomain%specel(n)%slpml%IsolPML(i,j,k)+2,1)
-                                veloc(:,idx) = Tdomain%champs0%VelocPML(Tdomain%specel(n)%slpml%IsolPML(i,j,k)+0,:) + &
-                                               Tdomain%champs0%VelocPML(Tdomain%specel(n)%slpml%IsolPML(i,j,k)+1,:) + &
-                                               Tdomain%champs0%VelocPML(Tdomain%specel(n)%slpml%IsolPML(i,j,k)+2,:)
-                                accel(0,idx) = Tdomain%champs0%DumpV(Tdomain%specel(n)%slpml%IsolPML(i,j,k)+0,0)
-                                accel(1,idx) = Tdomain%champs0%DumpV(Tdomain%specel(n)%slpml%IsolPML(i,j,k)+1,0)
-                                accel(2,idx) = Tdomain%champs0%DumpV(Tdomain%specel(n)%slpml%IsolPML(i,j,k)+2,0)
-                                press(idx) = Tdomain%champs0%DumpV(Tdomain%specel(n)%slpml%IsolPML(i,j,k)+0,1)
-                            else
-                                valence(idx) = valence(idx)+1
-                                displ(:,idx) = 0d0
-                                veloc(:,idx) = veloc(:,idx) + field_veloc(i,j,k,:)
-                                accel(:,idx) = accel(:,idx) + field_accel(i,j,k,:)
-                                press(idx) = field_press(i,j,k)
-                            endif
-#endif
-                        end do
-                    end do
-                end do
 
-            endif
-        end do
-
-#if NEW_GLOBAL_METHOD
-        if (Tdomain%ngll_f /= 0) then
+            do k = 0,ngllz-1
+                do j = 0,nglly-1
+                    do i = 0,ngllx-1
+                        idx = irenum(el%Iglobnum(i,j,k))
+                        valence(idx) = valence(idx)+1
+                        displ(:,idx) = field_displ(i,j,k,:)
+                        veloc(:,idx) = veloc(:,idx) + field_veloc(i,j,k,:)
+                        accel(:,idx) = accel(:,idx) + field_accel(i,j,k,:)
+                        press(idx) = field_press(i,j,k)
+                    enddo
+                enddo
+            enddo
 #endif
+        enddo
+
         ! normalization
         do i = 0,nnodes-1
             if (valence(i)/=0) then
                 veloc(0:2,i) = veloc(0:2,i)/valence(i)
                 accel(0:2,i) = accel(0:2,i)/valence(i)
             end if
-        end do
-#if NEW_GLOBAL_METHOD
-        endif
-#endif
+        enddo
 
         if (Tdomain%output_rank==0) then
             group = rg/Tdomain%ngroup
@@ -714,6 +697,10 @@ contains
         if (allocated(field_veloc)) deallocate(field_veloc)
         if (allocated(field_accel)) deallocate(field_accel)
         if (allocated(field_press)) deallocate(field_press)
+#if NEW_GLOBAL_METHOD
+        if (allocated(field_phi)) deallocate(field_phi)
+        if (allocated(field_vphi)) deallocate(field_vphi)
+#endif
         call mpi_barrier(Tdomain%communicateur, hdferr)
     end subroutine save_field_h5
 
@@ -845,12 +832,13 @@ contains
         close(61)
     end subroutine write_xdmf
 
-    subroutine write_constant_fields(Tdomain, fid, irenum, nnodes)
+    subroutine write_constant_fields(Tdomain, fid, irenum, nnodes, domains)
         implicit none
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: fid
         integer, dimension(:), intent(in), allocatable :: irenum
         integer, intent(in) :: nnodes
+        integer, dimension(:), allocatable, intent(in) :: domains
         !
         integer(HID_T) :: mass_id, jac_id
         integer(HSIZE_T), dimension(1) :: dims
@@ -858,6 +846,9 @@ contains
         integer :: hdferr
         integer :: ngllx, nglly, ngllz, idx
         integer :: i, j, k, n, nnodes_tot
+#if NEW_GLOBAL_METHOD
+        integer :: domain
+#endif
         
 
         allocate(mass(0:nnodes-1))
@@ -878,6 +869,60 @@ contains
                 end do
             end do
         end do
+#else
+        do n = 0,Tdomain%n_elem-1
+            if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            ngllx = Tdomain%specel(n)%ngllx
+            nglly = Tdomain%specel(n)%nglly
+            ngllz = Tdomain%specel(n)%ngllz
+            domain = get_domain(Tdomain%specel(n))
+            select case(domain)
+            case (DM_SOLID)
+                do k = 0,ngllz-1
+                    do j = 0,nglly-1
+                        do i = 0,ngllx-1
+                            idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                            if (domains(idx)==domain) then
+                                mass(idx) = Tdomain%MassMatSol(Tdomain%specel(n)%Isol(i,j,k))
+                            endif
+                        end do
+                    end do
+                end do
+            case (DM_SOLID_PML)
+                do k = 0,ngllz-1
+                    do j = 0,nglly-1
+                        do i = 0,ngllx-1
+                            idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                            if (domains(idx)==domain) then
+                                !mass(idx) = Tdomain%MassMatSolPML(Tdomain%specel(n)%slpml%IsolPML(i,j,k))
+                                mass(idx) = 0
+                            endif
+                        end do
+                    end do
+                end do
+            case (DM_FLUID)
+                do k = 0,ngllz-1
+                    do j = 0,nglly-1
+                        do i = 0,ngllx-1
+                            idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                            if (domains(idx)==domain) then
+                                mass(idx) = Tdomain%MassMatFlu(Tdomain%specel(n)%IFlu(i,j,k))
+                            endif
+                        end do
+                    end do
+                end do
+            case (DM_FLUID_PML)
+                do k = 0,ngllz-1
+                    do j = 0,nglly-1
+                        do i = 0,ngllx-1
+                            !TODO
+                            stop "TODO : assemblage de la masse mat pour PML fluide !"
+                        end do
+                    end do
+                end do
+            end select
+        enddo
+        deallocate(Tdomain%MassMatSolPml)
 #endif
         ! jac
         do n = 0,Tdomain%n_elem-1

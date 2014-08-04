@@ -313,6 +313,60 @@ contains
 #endif
 
 #if NEW_GLOBAL_METHOD
+    subroutine gather_field(el, field, src_field, inum)
+        type(element), intent(in), pointer :: el
+        real, dimension(0:,0:,0:,0:), intent(out) :: field
+        real, dimension(0:,0:), intent(in) :: src_field
+        integer, dimension(0:,0:,0:), intent(in) :: inum
+        !
+        integer :: i,j,k
+
+        do k=0,el%ngllz-1
+            do j=0,el%nglly-1
+                do i=0,el%ngllx-1
+                    ind = inum(i,j,k)
+                    field(i,j,k,:) = src_field(ind,:) 
+                enddo
+            enddo
+        enddo
+    end subroutine gather_field
+
+    subroutine gather_field_pml(el, field, src_field, inum)
+        type(element), intent(in), pointer :: el
+        real, dimension(0:,0:,0:,0:), intent(out) :: field
+        real, dimension(0:,0:), intent(in) :: src_field
+        integer, dimension(0:,0:,0:), intent(in) :: inum
+        !
+        integer :: i,j,k
+
+        do k=0,el%ngllz-1
+            do j=0,el%nglly-1
+                do i=0,el%ngllx-1
+                    ind = inum(i,j,k)
+                    field(i,j,k,:) = src_field(ind,:) + src_field(ind+1,:) + src_field(ind+2,:)
+                enddo
+            enddo
+        enddo
+    end subroutine gather_field_pml
+
+    subroutine gather_field_fluid(el, field, src_field, inum)
+        type(element), intent(in), pointer :: el
+        real, dimension(0:,0:,0:), intent(out) :: field
+        real, dimension(0:), intent(in) :: src_field
+        integer, dimension(0:,0:,0:), intent(in) :: inum
+        !
+        integer :: i,j,k
+
+        do k=0,el%ngllz-1
+            do j=0,el%nglly-1
+                do i=0,el%ngllx-1
+                    ind = inum(i,j,k)
+                    field(i,j,k) = src_field(ind) 
+                enddo
+            enddo
+        enddo
+    end subroutine gather_field_fluid
+
     subroutine gather_elem_veloc_2(Tdomain, nel, field)
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: nel
@@ -326,7 +380,16 @@ contains
         el => Tdomain%specel(nel)
         if (el%solid) then
             if (el%PML) then
-                field = 0d0
+                do k=0,nz-1
+                    do j=0,ny-1
+                        do i=0,nx-1
+                            ind = el%slpml%ISolPML(i,j,k)
+                            field(i,j,k,:) = Tdomain%champs0%VelocPml(ind,:) + &
+                                             Tdomain%champs0%VelocPml(ind+1,:) + &
+                                             Tdomain%champs0%VelocPml(ind+2,:)
+                        enddo
+                    enddo
+                enddo
             else
                 do k=0,nz-1
                     do j=0,ny-1
@@ -403,7 +466,16 @@ contains
         el => Tdomain%specel(nel)
         if (el%solid) then
             if (el%PML) then
-                field = 0d0
+                do k=0,nz-1
+                    do j=0,ny-1
+                        do i=0,nx-1
+                            ind = el%slpml%ISolPML(i,j,k)
+                            field(i,j,k,:) = Tdomain%champs1%ForcesPML(ind,:) + &
+                                             Tdomain%champs1%ForcesPML(ind+1,:) + &
+                                             Tdomain%champs1%ForcesPML(ind+2,:)
+                        enddo
+                    enddo
+                enddo
             else
                 do k=0,nz-1
                     do j=0,ny-1
@@ -435,53 +507,6 @@ contains
             endif
         end if
     end subroutine gather_elem_accel_2
-
-    subroutine gather_elem_press_2(Tdomain, nel, field)
-        type(domain), intent(in) :: Tdomain
-        integer, intent(in) :: nel
-        real, dimension(0:,0:,0:), intent(out) :: field
-        real, dimension(:,:,:,:), allocatable :: displ
-        type(element), pointer :: el
-        integer :: nx, ny, nz, i, j, k, ind, mat
-        nx = Tdomain%specel(nel)%ngllx
-        ny = Tdomain%specel(nel)%nglly
-        nz = Tdomain%specel(nel)%ngllz
-        el => Tdomain%specel(nel)
-        if (el%solid) then
-            if (el%PML) then
-                field = 0d0
-            else
-                allocate(displ(0:nx-1,0:ny-1,0:nz-1,0:2))
-                do k=0,nz-1
-                    do j=0,ny-1
-                        do i=0,nx-1
-                            ind = el%ISol(i,j,k)
-                            displ(i,j,k,:) = Tdomain%champs0%Depla(ind,:)
-                        enddo
-                    enddo
-                enddo
-                mat = el%mat_index
-                call pressure_solid(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
-                    Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
-                    el%InvGrad,displ, el%Lambda, el%Mu,field)
-                deallocate(displ)
-            endif
-        else ! liquid
-            if (el%PML) then
-                field = 0d0
-            else
-                do k=0,nz-1
-                    do j=0,ny-1
-                        do i=0,nx-1
-                            ind = el%IFlu(i,j,k)
-                            field(i,j,k) = -Tdomain%champs0%VelPhi(ind)
-                        enddo
-                    enddo
-                enddo
-            endif
-        end if
-
-    end subroutine gather_elem_press_2
 #endif
 
 end module mfields
