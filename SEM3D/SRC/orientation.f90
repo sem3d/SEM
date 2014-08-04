@@ -1,7 +1,7 @@
 module orientation
 
 contains
-    
+#if ! NEW_GLOBAL_METHOD   
     subroutine get_VectProperty_Vertex2Elem(nv,ngllx,nglly,ngllz,   &
         prop_vertex,prop_elem)
         ! general routine for the assemblage procedure: Element -> vertex
@@ -239,7 +239,7 @@ contains
         return
 
     end subroutine get_VectProperty_Elem2Vertex
-
+#endif
 end module orientation
 !! Local Variables:
 !! mode: f90
