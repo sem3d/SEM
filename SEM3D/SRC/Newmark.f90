@@ -121,14 +121,21 @@ subroutine Newmark(Tdomain,rg,ntime)
     if(Tdomain%n_proc > 1)then
         ! from external faces, edges and vertices to Communication global arrays
         do n = 0,Tdomain%n_proc-1
+#if NEW_GLOBAL_METHOD
+            call Comm_Forces_Complete_2(n,Tdomain)
+#else
             call Comm_Forces_Complete(n,Tdomain)
             call Comm_Forces_PML_Complete(n,Tdomain)
+#endif
         end do
 
         call exchange_sem_forces(Tdomain, rg)
 
         ! now: assemblage on external faces, edges and vertices
         do n = 0,Tdomain%n_proc-1
+#if NEW_GLOBAL_METHOD
+            call Comm_Forces_Assembl(Tdomain,n)
+#else
             ngll = 0
             ngll_F = 0
             ngllPML = 0
@@ -136,6 +143,7 @@ subroutine Newmark(Tdomain,rg,ntime)
             call Comm_Forces_Face  (Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
             call Comm_Forces_Edge  (Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
             call Comm_Forces_Vertex(Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
+#endif
         enddo
 
     endif  ! if nproc > 1
@@ -906,6 +914,140 @@ end subroutine inside_proc_forces
 #endif
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
+#if NEW_GLOBAL_METHOD
+subroutine Comm_Forces_Complete_2(n,Tdomain)
+    use sdomain
+    implicit none
+
+    type(domain), intent(inout)  :: Tdomain
+    integer, intent(in)   :: n
+    integer :: ngll, ngll_F, idx, i, j, k, nf, ne, nv, ngllPML, ngllPML_F
+
+    ngll = 0 ; ngll_F = 0
+    ngllPML = 0 ; ngllPML_F = 0
+
+    ! Faces
+    do i = 0,Tdomain%sComm(n)%nb_faces-1
+        nf = Tdomain%sComm(n)%faces(i)
+        if(Tdomain%sFace(nf)%solid)then
+            if(Tdomain%sFace(nf)%PML) then
+                do j = 1,Tdomain%sFace(nf)%ngll2-2
+                    do k = 1,Tdomain%sFace(nf)%ngll1-2
+                        idx = Tdomain%sFace(nf)%Renum(k,j)
+                        Tdomain%sComm(n)%GiveForcesPML(ngllPML,1,0:2) = Tdomain%champs1%ForcesPML(idx,0:2)
+                        Tdomain%sComm(n)%GiveForcesPML(ngllPML,2,0:2) = Tdomain%champs1%ForcesPML(idx+1,0:2)
+                        Tdomain%sComm(n)%GiveForcesPML(ngllPML,3,0:2) = Tdomain%champs1%ForcesPML(idx+2,0:2)
+                        ngllPML = ngllPML + 1
+                    enddo
+                enddo
+            else
+                do j = 1,Tdomain%sFace(nf)%ngll2-2
+                    do k = 1,Tdomain%sFace(nf)%ngll1-2
+                        idx = Tdomain%sFace(nf)%Renum(k,j)
+                        Tdomain%sComm(n)%GiveForces(ngll,0:2) = Tdomain%champs1%Forces(idx,0:2)
+                        ngll = ngll + 1
+                    enddo
+                enddo
+            endif
+        else
+            if(Tdomain%sFace(nf)%PML) then
+                do j = 1,Tdomain%sFace(nf)%ngll2-2
+                    do k = 1,Tdomain%sFace(nf)%ngll1-2
+                        idx = Tdomain%sFace(nf)%Renum(k,j)
+! TODO
+                        stop "Newmark Comm_Forces_PML_Complete : PML fluide"
+!                         Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,1) = Tdomain%champs1%ForcesFLPML(idx)
+!                         Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,2) = Tdomain%champs1%ForcesFLPML(idx+1)
+!                         Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,3) = Tdomain%champs1%ForcesFLPML(idx+2)
+                        ngllPML_F = ngllPML_F + 1                       
+                    enddo                                               
+                enddo
+            else
+                do j = 1,Tdomain%sFace(nf)%ngll2-2
+                    do k = 1,Tdomain%sFace(nf)%ngll1-2
+                        idx = Tdomain%sFace(nf)%Renum(k,j)
+                        Tdomain%sComm(n)%GiveForcesFl(ngll_F) = Tdomain%champs1%ForcesFl(idx)
+                        ngll_F = ngll_F + 1
+                    enddo
+                enddo
+            endif
+        end if
+    enddo
+    ! Edges
+    do i = 0,Tdomain%sComm(n)%nb_edges-1
+        ne = Tdomain%sComm(n)%edges(i)
+        if(Tdomain%sEdge(ne)%solid)then
+            if(Tdomain%sEdge(ne)%PML)then
+                do j = 1,Tdomain%sEdge(ne)%ngll-2
+                    idx = Tdomain%sEdge(ne)%Renum(j)
+                    Tdomain%sComm(n)%GiveForcesPML(ngllPML,1,0:2) = Tdomain%champs1%ForcesPML(idx,0:2)
+                    Tdomain%sComm(n)%GiveForcesPML(ngllPML,2,0:2) = Tdomain%champs1%ForcesPML(idx+1,0:2)
+                    Tdomain%sComm(n)%GiveForcesPML(ngllPML,3,0:2) = Tdomain%champs1%ForcesPML(idx+2,0:2)
+                    ngllPML = ngllPML + 1
+                enddo
+            else
+                do j = 1,Tdomain%sEdge(ne)%ngll-2
+                    idx = Tdomain%sEdge(ne)%Renum(j)
+                    Tdomain%sComm(n)%GiveForces(ngll,0:2) = Tdomain%champs1%Forces(idx,0:2)
+                    ngll = ngll + 1
+                enddo
+            endif
+        else
+            if(Tdomain%sEdge(ne)%PML)then
+                do j = 1,Tdomain%sEdge(ne)%ngll-2
+                    idx = Tdomain%sEdge(ne)%Renum(j)
+! TODO
+                    stop "Newmark Comm_Forces_PML_Complete : PML fluide"
+!                     Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,1) = Tdomain%champs1%ForcesFLPML(idx)
+!                     Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,2) = Tdomain%champs1%ForcesFLPML(idx+1)
+!                     Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,3) = Tdomain%champs1%ForcesFLPML(idx+2)
+                    ngllPML_F = ngllPML_F + 1
+                enddo
+            else
+                do j = 1,Tdomain%sEdge(ne)%ngll-2
+                    idx = Tdomain%sEdge(ne)%Renum(j)
+                    Tdomain%sComm(n)%GiveForcesFl(ngll_F) = Tdomain%champs1%ForcesFl(idx)
+                    ngll_F = ngll_F + 1
+                enddo
+            endif
+        end if
+    enddo
+    ! Vertices
+    do i = 0,Tdomain%sComm(n)%nb_vertices-1
+        nv =  Tdomain%sComm(n)%vertices(i)
+        if(Tdomain%sVertex(nv)%solid)then
+            if(Tdomain%sVertex(nv)%PML) then
+                idx = Tdomain%sVertex(nv)%Renum
+                Tdomain%sComm(n)%GiveForcesPML(ngllPML,1,0:2) = Tdomain%champs1%ForcesPML(idx,0:2)
+                Tdomain%sComm(n)%GiveForcesPML(ngllPML,2,0:2) = Tdomain%champs1%ForcesPML(idx+1,0:2)
+                Tdomain%sComm(n)%GiveForcesPML(ngllPML,3,0:2) = Tdomain%champs1%ForcesPML(idx+2,0:2)
+                ngllPML = ngllPML + 1
+            else
+                idx = Tdomain%sVertex(nv)%Renum
+                Tdomain%sComm(n)%GiveForces(ngll,0:2) = Tdomain%champs1%Forces(idx,0:2)
+                ngll = ngll + 1
+            endif
+        else
+            if(Tdomain%sVertex(nv)%PML) then
+                 idx = Tdomain%sVertex(nv)%Renum
+! TODO
+                    stop "Newmark Comm_Forces_PML_Complete : PML fluide"
+!                 Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,1) = Tdomain%champs1%ForcesFLPML(idx)
+!                 Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,2) = Tdomain%champs1%ForcesFLPML(idx+1)
+!                 Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,3) = Tdomain%champs1%ForcesFLPML(idx+2)
+                ngllPML_F = ngllPML_F + 1
+            else
+                idx = Tdomain%sVertex(nv)%Renum
+                Tdomain%sComm(n)%GiveForcesFl(ngll_F) = Tdomain%champs1%ForcesFl(idx)
+                ngll_F = ngll_F + 1
+            endif
+        end if
+    enddo
+end subroutine Comm_Forces_Complete_2
+#endif
+!-----------------------------------------------------------------------------
+!-----------------------------------------------------------------------------
+#if ! NEW_GLOBAL_METHOD
 subroutine Comm_Forces_Complete(n,Tdomain)
     use sdomain
     implicit none
@@ -914,10 +1056,6 @@ subroutine Comm_Forces_Complete(n,Tdomain)
     integer, intent(in)   :: n
     integer  :: ngll,ngll_F,i,j,k,nf,ne,nv
 
-#if NEW_GLOBAL_METHOD
-    !TODO
-    write(*,*) "TODO: parallelisation (Comm_Forces_Complete)"
-#else
     ngll = 0 ; ngll_F = 0
     ! faces
     do i = 0,Tdomain%sComm(n)%nb_faces-1
@@ -964,7 +1102,7 @@ subroutine Comm_Forces_Complete(n,Tdomain)
             ngll_F = ngll_F + 1
         end if
     enddo
-#endif
+
     return
 end subroutine Comm_Forces_Complete
 !-----------------------------------------------------------------------------
@@ -976,10 +1114,7 @@ subroutine Comm_Forces_PML_Complete(n,Tdomain)
     type(domain), intent(inout)  :: Tdomain
     integer, intent(in)   :: n
     integer  :: ngllPML,ngllPML_F,i,j,k,nf,ne,nv
-#if NEW_GLOBAL_METHOD
-    !TODO
-    write(*,*) "TODO: parallelisation (Comm_Forces_PML_Complete)"
-#else
+
     ngllPML = 0 ; ngllPML_F = 0
 
     ! faces
@@ -1045,9 +1180,10 @@ subroutine Comm_Forces_PML_Complete(n,Tdomain)
             end if
         endif
     enddo
-#endif
+
     return
 end subroutine Comm_Forces_PML_Complete
+#endif
 !---------------------------------------------------------------------------------------
 !---------------------------------------------------------------------------------------
 !! subroutine GetProp_Elem(Tdomain,n,nr,rank)

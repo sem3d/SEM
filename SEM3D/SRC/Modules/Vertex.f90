@@ -30,6 +30,9 @@ module svertices
 #if ! NEW_GLOBAL_METHOD
        real :: MassMat
        real, dimension(0:2) :: Forces, Displ, Veloc, Accel, V0
+#else
+       ! Lien entre ngll et numérotation des champs globaux
+       integer :: Renum
 #endif
        
        ! solid-fluid

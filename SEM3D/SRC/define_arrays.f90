@@ -149,7 +149,6 @@ subroutine assemble_mass_matrices(Tdomain, rg)
             ngll_tot = 0
             ngllPML_tot = 0
             ngllNeu = 0
-
             call Comm_Mass_Face(Tdomain,n,ngll_tot,ngllPML_tot)
             call Comm_Mass_Edge(Tdomain,n,ngll_tot,ngllPML_tot)
             call Comm_Mass_Vertex(Tdomain,n,ngll_tot,ngllPML_tot)
@@ -181,7 +180,6 @@ subroutine assemble_mass_matrices(Tdomain, rg)
                     Tdomain%sComm(n)%TakeNeu(ngllNeu,0:2)
                 ngllNeu = ngllNeu + 1
             enddo
-
 
             if(Tdomain%sComm(n)%ngll_tot > 0)then
                 deallocate(Tdomain%sComm(n)%Give)

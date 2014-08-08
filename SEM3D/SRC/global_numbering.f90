@@ -371,9 +371,9 @@ subroutine global_numbering(Tdomain,rank)
 
     abscount = 0
     do n = 0,Tdomain%n_face-1
+        ngllx = Tdomain%sFace(n)%ngll1
+        nglly = Tdomain%sFace(n)%ngll2
         if (Tdomain%sFace(n)%Abs .and. Tdomain%sFace(n)%PML) then
-            ngllx = Tdomain%sFace(n)%ngll1
-            nglly = Tdomain%sFace(n)%ngll2
             do j = 1,nglly-2
                 do i = 1,ngllx-2
                     idxSpml = renumSpml(Tdomain%sFace(n)%Iglobnum_Face(i,j))
@@ -383,9 +383,42 @@ subroutine global_numbering(Tdomain,rank)
                 enddo
             enddo
         endif
+        
+        allocate(Tdomain%sFace(n)%Renum(1:ngllx-2,1:nglly-2))
+        Tdomain%sFace(n)%Renum(:,:) = -1
+        if (Tdomain%sFace(n)%solid) then
+            if (Tdomain%sFace(n)%PML) then
+                do j = 1,nglly-2
+                    do i = 1,ngllx-2
+                        Tdomain%sFace(n)%Renum(i,j) = renumSpml(Tdomain%sFace(n)%Iglobnum_Face(i,j)) 
+                    enddo
+                enddo
+            else
+                do j = 1,nglly-2
+                    do i = 1,ngllx-2
+                        Tdomain%sFace(n)%Renum(i,j) = renumS(Tdomain%sFace(n)%Iglobnum_Face(i,j))
+                    enddo
+                enddo
+            endif
+        else
+            if (Tdomain%sFace(n)%PML) then
+                do j = 1,nglly-2
+                    do i = 1,ngllx-2
+                        Tdomain%sFace(n)%Renum(i,j) = renumFpml(Tdomain%sFace(n)%Iglobnum_Face(i,j)) 
+                    enddo
+                enddo
+            else
+                do j = 1,nglly-2
+                    do i = 1,ngllx-2
+                        Tdomain%sFace(n)%Renum(i,j) = renumF(Tdomain%sFace(n)%Iglobnum_Face(i,j))
+                    enddo
+                enddo
+            endif
+        endif
     enddo
 
     do n = 0,Tdomain%n_edge-1
+        ngllx = Tdomain%sEdge(n)%ngll
         if (Tdomain%sEdge(n)%Abs .and. Tdomain%sEdge(n)%PML) then
             ngllx = Tdomain%sEdge(n)%ngll
             do i = 1,ngllx-2
@@ -395,6 +428,30 @@ subroutine global_numbering(Tdomain,rank)
                 abscount = abscount + 1
             enddo
         endif
+
+        allocate(Tdomain%sEdge(n)%Renum(1:ngllx-2))
+        Tdomain%sEdge(n)%Renum(:) = -1
+        if (Tdomain%sEdge(n)%solid) then
+            if (Tdomain%sEdge(n)%PML) then
+                do i = 1,ngllx-2
+                    Tdomain%sEdge(n)%Renum(i) = renumSpml(Tdomain%sEdge(n)%Iglobnum_Edge(i))
+                enddo
+            else
+                do i = 1,ngllx-2
+                    Tdomain%sEdge(n)%Renum(i) = renumS(Tdomain%sEdge(n)%Iglobnum_Edge(i))
+                enddo
+            endif
+        else
+            if (Tdomain%sEdge(n)%PML) then
+                do i = 1,ngllx-2
+                    Tdomain%sEdge(n)%Renum(i) = renumFpml(Tdomain%sEdge(n)%Iglobnum_Edge(i))
+                enddo
+            else
+                do i = 1,ngllx-2
+                    Tdomain%sEdge(n)%Renum(i) = renumF(Tdomain%sEdge(n)%Iglobnum_Edge(i))
+                enddo
+            endif
+        endif
     enddo
 
     do n = 0,Tdomain%n_vertex-1
@@ -403,6 +460,20 @@ subroutine global_numbering(Tdomain,rank)
             if (idxSpml .EQ. -1) stop "Unexpected non pml outer Vertex !"
             Tdomain%OuterPMLNodes(abscount) = idxSpml
             abscount = abscount + 1
+        endif
+
+        if (Tdomain%sVertex(n)%solid) then
+            if (Tdomain%sVertex(n)%PML) then
+                Tdomain%sVertex(n)%Renum = renumSpml(Tdomain%sVertex(n)%Iglobnum_Vertex)
+            else
+                Tdomain%sVertex(n)%Renum = renumS(Tdomain%sVertex(n)%Iglobnum_Vertex)
+            endif
+        else
+            if (Tdomain%sVertex(n)%PML) then
+                Tdomain%sVertex(n)%Renum = renumFpml(Tdomain%sVertex(n)%Iglobnum_Vertex)
+            else
+                Tdomain%sVertex(n)%Renum = renumF(Tdomain%sVertex(n)%Iglobnum_Vertex)
+            endif
         endif
     enddo
 

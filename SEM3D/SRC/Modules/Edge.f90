@@ -27,6 +27,9 @@ module sedges
 #if ! NEW_GLOBAL_METHOD
        real, dimension (:), allocatable  :: MassMat
        real, dimension (:,:), allocatable :: Forces, Displ, Veloc, Accel, V0
+#else
+       ! Lien entre ngll et numérotation des champs globaux
+       integer, dimension (:), allocatable :: Renum
 #endif
 
        ! solid-fluid
