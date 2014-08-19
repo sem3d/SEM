@@ -16,9 +16,10 @@ program SEM3D
     call sem(-1, MPI_COMM_WORLD, MPI_COMM_WORLD)
 
     call MPI_Comm_Rank (MPI_COMM_WORLD, rg, ierr)
+
+    ! synchro pour s'assurer que le message s'affiche lorsque tout le monde a bien termine
+    call MPI_Barrier(MPI_COMM_WORLD, ierr)
     if (rg==0) then
-        ! synchro pour s'assurer que le message s'affiche lorsque tout le monde a bien termine
-        call MPI_Barrier(MPI_COMM_WORLD, ierr)
         write (*,*) "fin du calcul sur processeurs "
     end if
     call mpi_finalize(ierr)
