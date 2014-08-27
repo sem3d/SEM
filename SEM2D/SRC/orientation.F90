@@ -38,6 +38,42 @@ contains
         end select
     end subroutine get_VectProperty_Face2Elem
 
+    subroutine get_VectProperty_FullFace2Elem(nf, orient, ngllx, ngllz, ngll, Sfield, Dfield)
+        integer, intent(in)  :: nf       ! numero local de la face
+        logical, intent(in)  :: orient   ! orientation
+        integer, intent(in)  :: ngllx    ! ngllx de l'element cible
+        integer, intent(in)  :: ngllz    ! ngllz de l'element cible
+        integer, intent(in)  :: ngll     ! ngll de la face
+        real, dimension(0:ngllx-1,0:ngllz-1,0:1), intent(inout) :: Dfield ! Valeur E/S du champ de l'elem
+        real, dimension(0:ngll-1,0:1), intent(in) :: Sfield ! Valeur E du champ de la face
+        select case(nf)
+        case (0)
+            if (orient) then
+                Dfield(0:ngllx-1,0,:) = Dfield(0:ngllx-1,0,:) + Sfield(0:ngllx-1,:)
+            else
+                Dfield(0:ngllx-1,0,:) = Dfield(0:ngllx-1,0,:) + Sfield(ngllx-1:0:-1,:)
+            endif
+        case(1)
+            if (orient) then
+                Dfield(ngllx-1,0:ngllz-1,:) = Dfield(ngllx-1,0:ngllz-1,:) + Sfield(0:ngllz-1,:)
+            else
+                Dfield(ngllx-1,0:ngllz-1,:) = Dfield(ngllx-1,0:ngllz-1,:) + Sfield(ngllz-1:0:-1,:)
+            endif
+        case(2)
+            if (orient) then
+                Dfield(0:ngllx-1,ngllz-1,:) = Dfield(0:ngllx-1,ngllz-1,:) + Sfield(0:ngllx-1,:)
+            else
+                Dfield(0:ngllx-1,ngllz-1,:) = Dfield(0:ngllx-1,ngllz-1,:) + Sfield(ngllx-1:0:-1,:)
+            endif
+         case(3)
+             if (orient) then
+                 Dfield(0,0:ngllz-1,:) = Dfield(0,0:ngllz-1,:) + Sfield(0:ngllz-1,:)
+             else
+                 Dfield(0,0:ngllz-1,:) = Dfield(0,0:ngllz-1,:) + Sfield(ngllz-1:0:-1,:)
+             endif
+        end select
+    end subroutine get_VectProperty_FullFace2Elem
+
     subroutine get_ScalProperty_Face2Elem(nf, orient, ngllx, ngllz, ngll, Sfield, Dfield)
         integer, intent(in)  :: nf       ! numero local de la face
         logical, intent(in)  :: orient   ! orientation
@@ -123,7 +159,7 @@ contains
         nx = Tdomain%specel(nel)%ngllx
         nz = Tdomain%specel(nel)%ngllz
         el => Tdomain%specel(nel)
-        if (el%Type_DG==GALERKIN_CONT) then
+        if (el%Type_DG==GALERKIN_CONT .OR. el%Type_DG==GALERKIN_HDG_RP) then
             nx0 = 1
             nx1 = nx-2
             nz0 = 1
@@ -134,14 +170,13 @@ contains
             nz0 = 0
             nz1 = nz-1
         end if
-        field(nx0:nx1,nz0:nz1,0:1) = el%Veloc(:,:,:)
+        field(nx0:nx1,nz0:nz1,0:1) = el%Veloc(nx0:nx1,nz0:nz1,0:1)
         if (el%Type_DG==GALERKIN_CONT) then
             do i=0,3
                 fc => Tdomain%sFace(el%Near_Face(i))
                 orient = fc%coherency .or. fc%near_element(0) == nel
                 call get_VectProperty_Face2Elem(i, orient, nx, nz, fc%ngll, fc%Veloc, field)
             end do
-
             vx => Tdomain%sVertex(el%Near_Vertex(0))
             field(0,0,:) = vx%Veloc
             vx => Tdomain%sVertex(el%Near_Vertex(1))
@@ -150,6 +185,16 @@ contains
             field(nx-1,nz-1,:) = vx%Veloc
             vx => Tdomain%sVertex(el%Near_Vertex(3))
             field(0,nz-1,:) = vx%Veloc
+        else if (el%Type_DG==GALERKIN_HDG_RP) then
+            do i=0,3
+                fc => Tdomain%sFace(el%Near_Face(i))
+                orient = fc%coherency .or. fc%near_element(0) == nel
+                call get_VectProperty_FullFace2Elem(i, orient, nx, nz, fc%ngll, fc%Veloc, field)
+            end do
+            field(0,0,:)       = 0.5 * field(0,0,:)
+            field(nx-1,0,:)    = 0.5 * field(nx-1,0,:)
+            field(nx-1,nz-1,:) = 0.5 * field(nx-1,nz-1,:)
+            field(0,nz-1,:)    = 0.5 * field(0,nz-1,:)
         end if
     end subroutine gather_elem_veloc
 
