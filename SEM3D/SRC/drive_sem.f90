@@ -192,6 +192,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     if (rg == 0) write (*,*) "Computing (Courant parameter, timestep) ",rg
     call compute_Courant(Tdomain,rg)
     call MPI_BARRIER(Tdomain%communicateur,code)
+ 
 
 !- absorbing layers (PMLs)
     if (Tdomain%any_PML)then

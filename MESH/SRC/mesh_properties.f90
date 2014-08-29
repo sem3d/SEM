@@ -30,6 +30,7 @@ contains
         integer, allocatable, dimension(:)  :: ind_mat, n_elem_mat
         real      :: xmin,xmax,ymin,ymax,zmin,zmax,step_x,step_y,step_z,   &
             xminref,xmaxref,yminref,ymaxref,zminref,zmaxref
+        integer :: n_mate
         character(len=30)    :: cubitmesh
         character(len=60), dimension(:), allocatable  :: unv_files
 
@@ -81,7 +82,7 @@ contains
 
             !- PML materials added
             call nature_elem(Ipointer,xco,yco,zco,nmatref,Material,xminref,    &
-                xmaxref,yminref,ymaxref,zminref,zmaxref,strat_bool)
+                xmaxref,yminref,ymaxref,zminref,zmaxref,strat_bool,pml_t)
 
             !- Cubit file
         case(2)
@@ -160,10 +161,11 @@ contains
             allocate(unv_files(0:nfile-1))
             call lec_init_unv(unv_files)
 
+            n_mate = size(tabmat,1)
             n_nods = 8
             if (.true.) then
                 if (choice==3) then
-                    call lec_unv_v2(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks)
+                    call lec_unv_v2(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks, n_mate)
                 else
                     call lec_hdf5(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks)
                 endif
@@ -1285,9 +1287,9 @@ contains
         end if
 
         !- number of elements
-        nelemx = nint((xmax-xmin)/step_x)
-        nelemy = nint((ymax-ymin)/step_y)
-        nelemz = nint((zmax-zmin)/step_z)
+        nelemx = nint(aint((xmax-xmin)/step_x))
+        nelemy = nint(aint((ymax-ymin)/step_y))
+        nelemz = nint(aint((zmax-zmin)/step_z))
         nelem = nelemx*nelemy*nelemz
         !- number of points
         npx = merge(nelemx+1,2*nelemx+1,mesh_type==1)
@@ -1308,9 +1310,9 @@ contains
         integer              :: nelemx,nelemy,nelemz,nx,ny,nz, indelem, aux_pt
 
         !- number of elements
-        nelemx = nint((xmax-xmin)/xstep)
-        nelemy = nint((ymax-ymin)/ystep)
-        nelemz = nint((zmax-zmin)/zstep)
+        nelemx = nint(aint((xmax-xmin)/xstep))
+        nelemy = nint(aint((ymax-ymin)/ystep))
+        nelemz = nint(aint((zmax-zmin)/zstep))
 
         indelem = 0
 
@@ -1332,6 +1334,7 @@ contains
                     end do
                 end do
             end do
+
             !- co-ordinates
             aux_pt = 0
             do nz = 0,nelemz
@@ -1402,12 +1405,15 @@ contains
     end subroutine mesh_on_the_fly
     !---------------------
     subroutine nature_elem(Ipoint,xp,yp,zp,nmat,mat,xminref,xmaxref,       &
-        yminref,ymaxref,zminref,zmaxref,strat_bool)
+        yminref,ymaxref,zminref,zmaxref,strat_bool,pml_t)
         !- when on the fly construction: allows to determine the PML layers
         integer, intent(in)   :: Ipoint(0:,0:),nmat
         real, intent(in)      :: xp(0:),yp(0:),zp(0:), xminref, xmaxref,   &
             yminref,ymaxref,zminref,zmaxref
         logical, intent(in)   :: strat_bool
+        ! Ajouter pml_t pour mettre le nombre de PML total
+        integer, intent(in)   :: pml_t
+        ! Fin de l'addition
         integer, intent(inout)  :: mat(0:)
         integer               :: i,j,n,nelem
         real                  :: coord(0:7,0:2), bary(0:2), half
@@ -1420,8 +1426,7 @@ contains
             if(half < zminref .or. half > zmaxref) stop "Stratification plane ill-placed."
         end if
 
-!        write(*,*) 'Pmin', xminref, yminref,zminref
-!        write(*,*) 'Pmax', xmaxref, ymaxref,zmaxref
+
         do n = 0,nelem-1
             do i = 0,7
                 coord(i,0) = xp(Ipoint(i,n))
@@ -1434,27 +1439,28 @@ contains
             if(bary(2) < zminref)then   ! all bottom PMLs
                 if(bary(1) < yminref)then
                     if(bary(0) < xminref)then
-                        Mat(n) = nmat+17
+                        ! -9 + (pml_t*9)
+                        Mat(n) = nmat+8+(pml_t*9)
                     else if(bary(0) > xmaxref)then
-                        Mat(n) = nmat+18
+                        Mat(n) = nmat+9+(pml_t*9)
                     else
-                        Mat(n) = nmat+21
+                        Mat(n) = nmat+12+(pml_t*9)
                     end if
                 else if(bary(1) > ymaxref)then
                     if(bary(0) < xminref)then
-                        Mat(n) = nmat+20
+                        Mat(n) = nmat+11+(pml_t*9)
                     else if(bary(0) > xmaxref)then
-                        Mat(n) = nmat+19
+                        Mat(n) = nmat+10+(pml_t*9)
                     else
-                        Mat(n) = nmat+23
+                        Mat(n) = nmat+14+(pml_t*9)
                     end if
                 else
                     if(bary(0) < xminref)then
-                        Mat(n) = nmat+24
+                        Mat(n) = nmat+15+(pml_t*9)
                     else if(bary(0) > xmaxref)then
-                        Mat(n) = nmat+22
+                        Mat(n) = nmat+13+(pml_t*9)
                     else
-                        Mat(n) = nmat+25
+                        Mat(n) = nmat+16+(pml_t*9)
                     end if
                 end if
             end if
@@ -1488,27 +1494,27 @@ contains
             if(bary(2) > zmaxref)then   ! top PMLs
                 if(bary(1) < yminref)then
                     if(bary(0) < xminref)then
-                        Mat(n) = nmat+8
+                        Mat(n) = nmat-1+(pml_t*9)
                     else if(bary(0) > xmaxref)then
-                        Mat(n) = nmat+9
+                        Mat(n) = nmat+(pml_t*9)
                     else
-                        Mat(n) = nmat+12
+                        Mat(n) = nmat+3+(pml_t*9)
                     end if
                 else if(bary(1) > ymaxref)then
                     if(bary(0) < xminref)then
-                        Mat(n) = nmat+11
+                        Mat(n) = nmat+2+(pml_t*9)
                     else if(bary(0) > xmaxref)then
-                        Mat(n) = nmat+10
+                        Mat(n) = nmat+1+(pml_t*9)
                     else
-                        Mat(n) = nmat+14
+                        Mat(n) = nmat+5+(pml_t*9)
                     end if
                 else
                     if(bary(0) < xminref)then
-                        Mat(n) = nmat+15
+                        Mat(n) = nmat+6+(pml_t*9)
                     else if(bary(0) > xmaxref)then
-                        Mat(n) = nmat+13
+                        Mat(n) = nmat+4+(pml_t*9)
                     else
-                        Mat(n) = nmat+16
+                        Mat(n) = nmat+7+(pml_t*9)
                     end if
                 end if
             end if
@@ -1550,27 +1556,27 @@ contains
           if(bary(2) < zminref)then   ! all bottom PMLs
              if(bary(1) < yminref)then
                 if(bary(0) < xminref)then
-                   Mat(n) = nmat+8
+                   Mat(n) = nmat-1+(pml_t*9)
                 else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+9
+                   Mat(n) = nmat+(pml_t*9)
                 else
-                   Mat(n) = nmat+12
+                   Mat(n) = nmat+3+(pml_t*9)
                 end if
              else if(bary(1) > ymaxref)then
                 if(bary(0) < xminref)then
-                   Mat(n) = nmat+11
+                   Mat(n) = nmat+2+(pml_t*9)
                 else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+10
+                   Mat(n) = nmat+1+(pml_t*9)
                 else
-                   Mat(n) = nmat+14
+                   Mat(n) = nmat+5+(pml_t*9)
                 end if
              else
                 if(bary(0) < xminref)then
-                   Mat(n) = nmat+15
+                   Mat(n) = nmat+6+(pml_t*9)
                 else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+13
+                   Mat(n) = nmat+4+(pml_t*9)
                 else
-                   Mat(n) = nmat+16
+                   Mat(n) = nmat+7+(pml_t*9)
                 end if
              end if
           end if
@@ -1578,25 +1584,25 @@ contains
           if(bary(2) > half .and. bary(2) < zmaxref)then   ! upper layer of lateral PMLs
              if(bary(1) < yminref)then
                 if(bary(0) < xminref)then
-                   Mat(n) = nmat+17
+                   Mat(n) = nmat+8+(pml_t*9)
                 else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+18
+                   Mat(n) = nmat+9+(pml_t*9)
                 else
-                   Mat(n) = nmat+21
+                   Mat(n) = nmat+12+(pml_t*9)
                 end if
              else if(bary(1) > ymaxref)then
                 if(bary(0) < xminref)then
-                   Mat(n) = nmat+20
+                   Mat(n) = nmat+11+(pml_t*9)
                 else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+19
+                   Mat(n) = nmat+10+(pml_t*9)
                 else
-                   Mat(n) = nmat+23
+                   Mat(n) = nmat+14+(pml_t*9)
                 end if
              else
                 if(bary(0) < xminref)then
-                   Mat(n) = nmat+24
+                   Mat(n) = nmat+15+(pml_t*9)
                 else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+22
+                   Mat(n) = nmat+13+(pml_t*9)
                 end if
              end if
           end if
@@ -1605,27 +1611,27 @@ contains
           if(bary(2) > zmaxref)then   ! top PMLs
              if(bary(1) < yminref)then
                 if(bary(0) < xminref)then
-                   Mat(n) = nmat+25
+                   Mat(n) = nmat+16+(pml_t*9)
                 else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+26
+                   Mat(n) = nmat+17+(pml_t*9)
                 else
-                   Mat(n) = nmat+29
+                   Mat(n) = nmat+20+(pml_t*9)
                 end if
              else if(bary(1) > ymaxref)then
                 if(bary(0) < xminref)then
-                   Mat(n) = nmat+28
+                   Mat(n) = nmat+19+(pml_t*9)
                 else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+27
+                   Mat(n) = nmat+18+(pml_t*9)
                 else
-                   Mat(n) = nmat+31
+                   Mat(n) = nmat+22+(pml_t*9)
                 end if
              else
                 if(bary(0) < xminref)then
-                   Mat(n) = nmat+32
+                   Mat(n) = nmat+23+(pml_t*9)
                 else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+30
+                   Mat(n) = nmat+21+(pml_t*9)
                 else
-                   Mat(n) = nmat+33
+                   Mat(n) = nmat+24+(pml_t*9)
                 end if
              end if
           end if
@@ -1644,7 +1650,7 @@ contains
 
             end if
 
-            !write(*,*) 'Elem:', n, ' mat=', Mat(n), 'ctr=', bary
+
         end do
 
     end subroutine nature_elem

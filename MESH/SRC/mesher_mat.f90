@@ -76,12 +76,12 @@ program mesher_mat
                 write(*,*) "    --> PMLs at the bottom."
                 n_mat_tot = n_mat_tot+9
             end if
-        else
+        else !if pml_bool = 0
             read(10,*)
             write(*,*)
-            write(*,*) "  --> Run without absorbing boundaries: you may observe some reflected phases."
-            write(*,*) "       Ok? (type enter if..)"
-            read*
+            !write(*,*) "  --> Run without absorbing boundaries: you may observe some reflected phases."
+            !write(*,*) "       Ok? (type enter if..)"
+            ! read*
         end if
         !- construction of the material table
         allocate(matarray(0:n_mat_tot-1),rho(0:n_mat_tot-1),Pspeed(0:n_mat_tot-1),Sspeed(0:n_mat_tot-1),    &
@@ -100,6 +100,7 @@ program mesher_mat
     end if
 
     deallocate(matarray)
+   ! write(*,*) "  number of materials : ", n_mat
 
 !!!!!!!!!!!!!!!!!!!!!!
 contains

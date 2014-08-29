@@ -172,7 +172,6 @@ contains
             Neu_n_global_faces,n_PW,Faces_Neumann,Faces_PW,   &
             pml_b,pml_t,pml_bottom,nmatref,strat_bool)
         if(Neu_n_global_faces > 0) Neumann_present = .true.
-
         !------------------------------------------------------
         !- LOOKING FOR NEAREST NEIGHBOURS FOR EACH ELEMENT
         write(*,*)
@@ -510,16 +509,23 @@ contains
             !- which nodes belong to the processor?
             !- these nodes will be sorted according to the global numbering
             !- Creation of local nodes. Correspondences local <-> global nodes.
+
+            !write(*,*) "   BEFORE ALLOCATE  "
             allocate(Ipointer_local(0:n_nods-1,0:nelem_in_proc(proc)-1))
+            !write(*,*) "   AFTER ALLOCATE  "
             call local_nodes_definition(proc,n_nods,n_points,nelem_in_proc,    &
                 which_elem_in_proc,Ipointer,n_points_local,          &
                 which_points_inside,glob2loc,Ipointer_local,node_loc2glob)
             !- vertices construction
             allocate(vertices(0:nelem_in_proc(proc)-1,0:7))
+
+            !write(*,*) "   BEFORE LOCAL VERTEX CONSTRUCTION  "
             call local_vertex_construct(proc,n_points_local,nelem_in_proc,        &
                 Ipointer_local,n_vertices,vertices,vertex_to_glob,N_valid_Vertex)
+            !write(*,*) "   AFTER LOCAL VERTEX CONSTRUCTION  "
 
-            !- Neumann objects locally?
+            !write(*,*) "  BEFORE NEUMANN  "
+!            - Neumann objects locally?
             if(Neumann_present)then
                 Neu_global_face_present(:) = .false.
                 Neu_global_edge_present(:) = .false.
@@ -533,8 +539,11 @@ contains
                 Neu_global_to_local_edges(0:) = -1
                 Neu_global_to_local_vertices(0:) = -1
             end if
+            !write(*,*) "  AFTER NEUMANN  "
+
 
             !- SF objects locally? => only a SF node is enough, that means: an element in contact
+            !write(*,*) "  BEFORE SF  "
             if(solid_fluid)then
                 SF_global_face_present(:) = .false.
                 SF_global_edge_present(:) = .false.
@@ -549,7 +558,7 @@ contains
                 SF_global_to_local_edges(0:) = -1
                 SF_global_to_local_vertices(0:) = -1
             end if
-
+            !write(*,*) "  AFTER SF  "
 
             !- Now let's turn to faces: 6 associated  to each element
             !  Are also determined: the faces shared between different procs
@@ -585,6 +594,7 @@ contains
 
 
             !- now we include eventual Neumann objects
+            !write(*,*) "  BEFORE INCLUDE NEUMANN  "
             if(Neu%present_local)then
                 write(*,*) "    --> Neumann local meshing properties."
                 Neu%n_faces = 0 ; Neu%n_edges = 0 ; Neu%n_vertices = 0
@@ -652,10 +662,11 @@ contains
 
 
             end if   !-   end of local Neumann properties
-
+            !write(*,*) "  AFTER INCLUDE NEUMANN  "
 
 
             !- now we include eventual SF objects
+            !write(*,*) "  BEFORE INCLUDE SF  "
             if(SF%present_local)then
                 SF%n_faces = 0 ; SF%n_edges = 0 ; SF%n_vertices = 0
                 write(*,*) "    --> Solid/fluid local meshing properties."
@@ -731,7 +742,7 @@ contains
 
 
             end if   !-   end of local SF properties
-
+            !write(*,*) "  AFTER INCLUDE SF  "
 
             !- writing the meshfile
             write(meshfilename(11:14), '(i4.4)') proc
@@ -744,6 +755,7 @@ contains
 !                node_loc2glob,Gcoord,vertex_to_glob, &
 !                which_elem_in_proc,nelem_in_proc,proc,nproc)
 
+            !write(*,*) "  BEFORE WRITE MESH FILE H5  "
             call write_mesh_file_h5(meshfilename//".h5",solid_fluid,all_fluid,Neumann_present, &
                 n_elem,n_points,n_points_local,n_blocks,n_edges,n_faces,n_nods,n_vertices, &
                 SF, Neu, shared, &
@@ -752,7 +764,9 @@ contains
                 node_loc2glob,Gcoord,vertex_to_glob, &
                 which_elem_in_proc,nelem_in_proc,proc,nproc)
 
+           ! write(*,*) "  AFTER WRITE MESH FILE H5  "
 
+            !write(*,*) "  BEFORE DEALLOCATE ON EACH PROC  "
             ! - deallocations on each proc
             deallocate(Ipointer_local)
             deallocate(node_loc2glob)
@@ -772,8 +786,9 @@ contains
             deallocate(shared%ne)
             deallocate(shared%vertices)
             deallocate(shared%nv)
-
+            !write(*,*) "  AFTER DEALLOCATE ON EACH PROC  "
             ! deallocations if SF objects present locally
+            !write(*,*) "  BEFORE DEALLOCATE IF SF PRESENT LOCALLY  "
             if(SF%present_local)then
                 deallocate(SF%faces)
                 deallocate(SF%nf_shared)
@@ -792,6 +807,8 @@ contains
                 deallocate(SF%Face_Near_Edges_Orient)
                 deallocate(SF%Face_Near_Vertices)
             end if
+            !write(*,*) "  AFTER DEALLOCATE IF SF PRESENT LOCALLY  "
+            !write(*,*) "  BEFORE DEALLOCATE IF NEUMANN PRESENT LOCALLY  "
             if(Neu%present_local)then
                 deallocate(Neu%faces)
                 deallocate(Neu%edges)
@@ -806,7 +823,7 @@ contains
                 deallocate(Neu%Face_Near_Edges_Orient)
                 deallocate(Neu%Face_Near_Vertices)
             end if
-
+            !write(*,*) "  AFTER DEALLOCATE IF NEUMANN PRESENT LOCALLY  "
 
             !- end of the loop on processors -!
         end do
@@ -827,6 +844,7 @@ contains
             deallocate(Neu_global_to_local_vertices)
         end if
 
+        !write(*,*) "      --- BEFOR DEALLOCATE ---"
         do nel = 0,n_elem-1
             if(part(nel) /= nproc-1)then
                 if (associated(memory(nel)%rank)) then
@@ -838,14 +856,14 @@ contains
             endif
         enddo
         deallocate(memory)
-
+        !write(*,*) "      --- AFTER DEALLOCATE ---"
 
 
         write(*,*)
         write(*,*) "****************************************"
         write(*,*) "      --- NOW SEM CAN BE USED.. ---"
         write(*,*) "****************************************"
-
+        write(*,*) "      NB MATERIALS ", n_blocks
 
     contains
 
@@ -1118,9 +1136,12 @@ contains
         !
         call init_hdf5()
         !
+        !write(*,*) "      --- BEFOR CALL H5CREATE_F ---"
         call h5fcreate_f(meshfilename, H5F_ACC_TRUNC_F, fid, hdferr)
+        !write(*,*) "      --- AFTER CALL H5CREATE_F ---"
         !
         !! Attributes
+        !write(*,*) "      --- BEFOR CALL ALL ATRIBUTE ---"
         call write_attr_int(fid, "ndim", 3)
         call write_attr_int(fid, "n_processors", nproc)
         call write_attr_int(fid, "n_materials", n_blocks)
@@ -1139,14 +1160,14 @@ contains
         call write_attr_bool(fid, "neumann_present", neumann_present)
         call write_attr_bool(fid, "neumann_present_loc", Neu%present_local)
         call write_attr_bool(fid, "curve", curve)
-
+        !write(*,*) "      --- AFTER CALL ALL ATRIBUTE ---"
 
 
         dims(1) = 3
         dims(2) = n_points_local
 
         ! Local nodes
-
+        !write(*,*) "      --- Before 1 ---"
         allocate(rtemp2(0:2,0:n_points_local-1))
         do n = 0,n_points_local-1
             i_count = node_loc2glob(n)
@@ -1154,13 +1175,15 @@ contains
         enddo
         call write_dataset(fid, "local_nodes", rtemp2, hdferr)
         deallocate(rtemp2)
-
+        !write(*,*) "      --- before 2---"
         ! Material table and solid fluid flag
         dims(1) = 2
         dims(2) = nelem_in_proc(proc)
 
         allocate(itemp2(0:2,0:dims(2)-1))
+        !write(*,*) "      --- befire 3 ---"
         do i=0,nelem_in_proc(proc)-1
+            !write(*,*) "      --- Flag 1 ---"
             nel = which_elem_in_proc(proc,i)
             itemp2(0,i) = Material(nel)
             if (elem_solid(nel)) then
@@ -1168,34 +1191,50 @@ contains
             else
                 itemp2(1,i) = 0
             end if
-            if (all_fluid .OR. solid_fluid) then
-                if (elem_fluid_dirich(nel)) then
-                    itemp2(2,i) = 1
-                else
-                    itemp2(2,i) = 0
-                end if
-            else
-                itemp2(2,i) = 0
-            end if
+            !write(*,*) "all_fluid = ", all_fluid
+            !write(*,*) "solid_fluid = ", solid_fluid
+
+            ! PARTIE QUE JAI COMMENTE POUR LE CAS SANS PML
+
+            !if (all_fluid .OR. solid_fluid) then
+            !    write(*,*) "      nel = ", nel
+            !    write(*,*) "elem_fluid_dirich(nel) = ", elem_fluid_dirich
+            !    write(*,*) "      --- Flag 3 ---"
+            !    if (elem_fluid_dirich(nel)) then
+            !        itemp2(2,i) = 1
+            !    else
+            !        itemp2(2,i) = 0
+            !    end if
+            !else
+            !    itemp2(2,i) = 0
+
+            ! END OF PARTIE QUE JAI COMMENTE POUR LE CAS SANS PML
+
+            itemp2(2,i) = 0
+            !end if
+           ! write(*,*) "      --- Flag 4 ---"
         end do
+        !write(*,*) "      --- before 4 ---"
         call write_dataset(fid, "material", itemp2, hdferr)
+        !write(*,*) "      --- before 5---"
         deallocate(itemp2)
+
 
         ! Global node indexes per element
         call write_dataset(fid, "elements", Ipointer_local, hdferr)
-
+        !write(*,*) "      --- before 6 ---"
         !Faces
         call write_dataset(fid, "faces", transpose(faces), hdferr)
         call write_dataset(fid, "faces_map", transpose(mapping_faces), hdferr)
-
+        !write(*,*) "      --- before 7 ---"
         !Edges
         call write_dataset(fid, "edges", transpose(edges), hdferr)
         call write_dataset(fid, "edges_map", transpose(mapping_edges), hdferr)
-
+       ! write(*,*) "      --- before 8 ---"
         ! Vertices
         call write_dataset(fid, "vertices", transpose(vertices), hdferr)
         call write_dataset(fid, "vertices_to_global", vertex_to_glob(0:n_vertices-1), hdferr)
-
+        !write(*,*) "      --- BEFORE  ---"
         if (solid_fluid .and. SF%present_local) then
             call write_dataset(fid, "sf_face_near_edges", transpose(SF%Face_Near_Edges), hdferr)
             call write_dataset(fid, "sf_face_near_edges_orient", transpose(SF%Face_Near_Edges_Orient), hdferr)
@@ -1216,8 +1255,10 @@ contains
             call write_dataset(fid, "neu_vertex_glob_interface", Neu%vertices, hdferr)
 
         end if
+        !write(*,*) "      --- AFTER  ---"
 
         ! Communications
+        !write(*,*) "      --- BEFORE COMMUNICATIONS ---"
         do n=0,nproc-1
             write(proc_grp,"(a,I4.4)") "Proc", n
             call h5gcreate_f(fid, trim(adjustl(proc_grp)), proc_id, hdferr, 0_SIZE_T)
@@ -1262,7 +1303,7 @@ contains
             end if
             call h5gclose_f(proc_id, hdferr)
         end do
-
+        !write(*,*) "      --- AFTER COMMUNICATIONS ---"
 
         call h5fclose_f(fid, hdferr)
 

@@ -81,6 +81,12 @@ contains
         case (10)
             ! Square. Param : ts, gamma
             CompSource = Ricker_fl(time, Sour%tau_b, Sour%cutoff_freq)
+        case (11)
+            ! fonction de triangle
+            CompSource = Triangle(time, Sour%tau_b)
+        case (12)
+            ! Heaviside Step Function (Kausel-2006)
+            CompSource = HSF(time, Sour%tau_b)
         end select
         CompSource = CompSource*Sour%amplitude_factor
         return
@@ -243,12 +249,57 @@ contains
     !! \param real tau
     !! \param real f0
     !<
+
+
+
+
+    real function Triangle (time,tau)
+        implicit none
+        !
+    
+         real, intent(in) :: time, tau
+
+         !! tau = coefficient of pression
+
+         if ( time < 0.005 ) then
+              Triangle = - time * tau * ( 10 ** 10 )
+         elseif ( time < 0.01 ) then
+              Triangle = - ( -time + 0.01 ) * tau * ( 10 ** 10 )
+         else
+              Triangle = 0.
+         endif
+        
+         return
+    end function Triangle
+
+   ! ###############################################################################
+
+    real function HSF (time, tau)
+        implicit none
+        ! HEAVISIDE STEP FUNCTION (KAUSEL-2006)
+        real, intent(in) :: time, tau
+        
+        if ( time < 0.00000001 ) then
+            HSF =0.
+        endif
+        if ( time == 0. ) then
+            HSF = -0.5 * tau
+        endif
+        if ( time > 0.00000001 ) then
+            HSF = -1 * tau
+        endif
+        return
+    end function HSF
+ 
+    
+    ! ############################################################################
+
     real function Ricker (time,tau,f0)
         implicit none
         !
         real, intent(in) :: time, tau, f0
         real :: sigma
-
+     
         if ( time < 2.5*tau ) then
             sigma = M_PI * f0 * (time-tau)
             sigma = sigma**2

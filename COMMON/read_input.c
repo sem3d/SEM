@@ -106,8 +106,10 @@ int expect_source_func(yyscan_t scanner, int* type)
     if (cmp(scanner,"square"))       { *type = 8; return 1; }
     if (cmp(scanner,"tanh"))         { *type = 9; return 1; }
     if (cmp(scanner,"ricker_fl"))    { *type =10; return 1; }
+    if (cmp(scanner,"triangle"))     { *type =11; return 1; }
+    if (cmp(scanner,"hsf"))          { *type =12; return 1; }
 error:
-    msg_err(scanner, "Expected gaussian|ricker|tf_heaviside|gabor|file|spice_bench|sinus|square|tanh|ricker_fl");
+    msg_err(scanner, "Expected gaussian|ricker|tf_heaviside|gabor|file|spice_bench|sinus|square|tanh|ricker_fl|triangle|hsf");
     return 0;
 }
 
