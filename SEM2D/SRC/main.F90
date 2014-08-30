@@ -134,7 +134,10 @@ subroutine  sem()
 
     !lecture du fichier de maillage unv avec conversion en fichier sem2D
     if (rg == 0) write (*,*) "Define mesh properties"
-    call read_mesh(Tdomain)
+    call read_mesh_h5(Tdomain)
+
+    ! mesh deformation (for testing purposes)
+    !call rotate_mesh(Tdomain)
 
     if (rg == 0) write (*,*) "Compute Gauss-Lobatto-Legendre weights and zeroes"
     call compute_GLL (Tdomain)
