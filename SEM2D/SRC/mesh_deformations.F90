@@ -35,6 +35,40 @@ subroutine rotate_mesh(Tdomain)
 
 end subroutine rotate_mesh
 
+!####################################################
+
+subroutine random_mesh_deformation(Tdomain)
+
+    use sdomain
+
+    implicit none
+    type (Domain), intent (INOUT) :: Tdomain
+
+    ! Local declarations
+    integer :: i, n1, n2
+    real    :: Lc, d, x, y, xnew, ynew, harv1, harv2, x_al, y_al
+
+    ! Computes caracteristical length from the first element of the domain
+    n1 = Tdomain%specel(0)%Control_Nodes(0)
+    n2 = Tdomain%specel(0)%Control_Nodes(1)
+    Lc = sqrt( (Tdomain%Coord_nodes(0,n1) - Tdomain%Coord_nodes(0,n2))**2 &
+              +(Tdomain%Coord_nodes(1,n1) - Tdomain%Coord_nodes(1,n2))**2)
+    ! Parameter for the random deformation
+    d  = 0.50
+
+    do i=0,Tdomain%n_glob_nodes-1
+        x = Tdomain%Coord_nodes(0,i)
+        y = Tdomain%Coord_nodes(1,i)
+        call random_number(harv1)
+        call random_number(harv2)
+        xnew = x + Lc * d * 0.5 * (2.*harv1 - 1.)
+        ynew = y + Lc * d * 0.5 * (2.*harv2 - 1.)
+        Tdomain%Coord_nodes(0,i) = xnew
+        Tdomain%Coord_nodes(1,i) = ynew
+    enddo
+
+end subroutine random_mesh_deformation
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
