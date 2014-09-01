@@ -63,6 +63,14 @@ subroutine ReceiverPosition(Tdomain)
             stop
         end if
 
+        ! If "collapse mode" is choosen for captors, the captors are relocated on the nearest gll node
+        if (Tdomain%capt_loc_type == CAPT_NEAREST_NODE .AND. Dmin > 0.) then
+            Tdomain%sReceiver(nrec)%Xrec = Tdomain%GlobCoord(0,nmin)
+            Tdomain%sReceiver(nrec)%Zrec = Tdomain%GlobCoord(1,nmin)
+            write (*,*) "Receiver",nrec, " has been relocated on GLL node ",nmin
+            write (*,*) " on the new position : ", Tdomain%GlobCoord(0,nmin), Tdomain%GlobCoord(1,nmin)
+        endif
+
         ! Search for the element
         nind = 0
         do n = 0,nel-1
@@ -154,6 +162,9 @@ subroutine ReceiverPosition(Tdomain)
                 do i = 0,ngllx -1
                     call  pol_lagrange (ngllx,Tdomain%sSubdomain(mat)%GLLcx,i,Tdomain%sReceiver(nrec)%xi,outx)
                     Tdomain%sReceiver(nrec)%Interp_Coeff(i,j) = outx*outz
+                    if (Tdomain%capt_loc_type == CAPT_NEAREST_NODE) then
+                        Tdomain%sReceiver(nrec)%Interp_Coeff(i,j) = anint(outx*outz)
+                    endif
                 enddo
             enddo
         endif

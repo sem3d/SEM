@@ -35,7 +35,7 @@ module sdomain
 
        integer :: n_elem, n_face, n_vertex, n_source,n_glob_nodes, n_line ,n_receivers
        integer :: n_nodes, n_mat,n_glob_points, n_super_object, n_fault, n_communications
-       integer :: type_timeInteg, type_elem, type_flux, type_bc, pml_type
+       integer :: type_timeInteg, type_elem, type_flux, type_bc, pml_type, capt_loc_type
 
        integer, dimension (:), pointer :: Line_index, Communication_list
        integer :: n_quad ! Total number of quad elements to output (including subelements)

@@ -61,6 +61,7 @@ typedef struct {
     int traces_interval;
     int traces_format;
     char* station_file;
+    int capt_loc_type;
 
     // Snapshots
     int save_snap;

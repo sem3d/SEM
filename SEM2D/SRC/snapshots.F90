@@ -273,7 +273,7 @@ contains
                 allocate(field_veloc(0:ngllx-1,0:ngllz-1,2))
                 allocate(field_accel(0:ngllx-1,0:ngllz-1,2))
             endif
-            field_veloc = 0.
+
             call gather_elem_displ(Tdomain, n, field_displ)
             call gather_elem_veloc(Tdomain, n, field_veloc)
             call gather_elem_accel(Tdomain, n, field_accel)

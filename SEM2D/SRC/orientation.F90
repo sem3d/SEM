@@ -159,6 +159,7 @@ contains
         nx = Tdomain%specel(nel)%ngllx
         nz = Tdomain%specel(nel)%ngllz
         el => Tdomain%specel(nel)
+        field = 0. ! Initialisation du champ (important pour HDG)
         if (el%Type_DG==GALERKIN_CONT .OR. el%Type_DG==GALERKIN_HDG_RP) then
             nx0 = 1
             nx1 = nx-2

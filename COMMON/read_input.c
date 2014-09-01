@@ -522,6 +522,7 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"time_scheme")) err=expect_time_scheme(scanner, config);
 	else if (cmp(scanner,"traces_interval")) err=expect_eq_int(scanner, &config->traces_interval,1);
 	else if (cmp(scanner,"traces_format")) err=expect_file_format(scanner, &config->traces_format);
+	else if (cmp(scanner,"capt_loc_type")) err=expect_eq_int(scanner, &config->capt_loc_type,1);
 	else if (cmp(scanner,"verbose_level")) err=expect_eq_int(scanner, &config->verbose_level,1);
 	else if (cmp(scanner,"type_elements")) err=expect_type_elements(scanner, config);
 	else if (cmp(scanner,"pml_infos")) err=expect_pml_infos(scanner, config);

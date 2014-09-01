@@ -109,6 +109,7 @@ subroutine read_input (Tdomain)
     Tdomain%station_file = fromcstr(config%station_file)
     !Tdomain%TimeD%ntrace = config%traces_interval ! XXX
     Tdomain%TimeD%time_snapshots = config%snap_interval
+    Tdomain%capt_loc_type = config%capt_loc_type
     logic_scheme = Tdomain%TimeD%acceleration_scheme .neqv. Tdomain%TimeD%velocity_scheme
     if(.not. logic_scheme) then
         stop "Both acceleration and velocity schemes: no compatibility, chose only one."

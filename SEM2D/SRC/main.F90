@@ -141,7 +141,7 @@ subroutine  sem()
     call read_mesh_h5(Tdomain)
 
     ! mesh deformation (for testing purposes)
-    call rotate_mesh(Tdomain)
+    !call rotate_mesh(Tdomain)
 
     if (rg == 0) write (*,*) "Checks the inputs and the mesh"
     call check_inputs_and_mesh (Tdomain)

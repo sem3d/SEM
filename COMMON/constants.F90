@@ -45,7 +45,8 @@ MODULE constants
 
     ! Les fichiers capteurs sont ecrits toutes les NCAPT_CACHE sorties
     integer, parameter :: NCAPT_CACHE=100
-
+    integer, parameter :: CAPT_INTERPOLATED=0
+    integer, parameter :: CAPT_NEAREST_NODE=1
 
     ! Materials
     integer, parameter :: MATERIAL_CONSTANT   = 1
