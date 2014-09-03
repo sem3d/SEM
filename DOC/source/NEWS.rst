@@ -123,7 +123,7 @@ Fonctionnalités du code :
 
 - Introduction d'un mécanisme d'amortissement sismique. On spécifie Qp
   et Qs dans le fichier matériau. La bande de fréquence et le
-  paramétrage du filtre est déterminé par le fichier de configuration.
+  paramétrage du filtre sont déterminés par le fichier de configuration.
 
 - Nouvelles formes d'onde pour les sources (Benchmark E2VP, Benchmark
   SPICE, sinus).
@@ -145,7 +145,7 @@ Entrées/sorties :
 
 - (:program:`SEM3D`, :program:`SEM2D`) Un nouveau format de fichier d'entrée (input.spec) :
 
-  L'ancien format était très confu : une liste de valeurs lues de
+  L'ancien format était très confus : une liste de valeurs lues de
   manière aveugle par les codes. Chaque code lisait ses paramètres
   dans un ordre pré-établi. Il était impossible de réutiliser un
   fichier de config d'une version à l'autre.

@@ -39,19 +39,29 @@ Les mots-clef pouvant être utilisés dans le fichier (niveau 0, hors toute sect
 Mot-clef          Type     Valeur par défaut  Description
 ================  =======  =================  ================================================================
 amortissement     section  n/a                Description de l'amortissement
+fmax              réel     1Hz                Fréquence max attendue du signal (utilisé pour vérifications)
+ngll              entier   5                  (futur) nombre de points de gauss par maille
+dim               entier   obligatoire        Spécifie si le calcul est 2D ou 3D.
 mat_file          chaîne   "material.input"   Nom du fichier de description des matériaux
 mesh_file         chaîne   "mesh4spec"        Nom de base des fichiers maillage
 mpml_atn_param    réel     0.0                Coéfficient d'amortissement MPML (et activation MPML si non nul)
 prorep            bool     false              Reprise d'un calcul précédent
-prorep_iter       entier   n/a                Numéro de la protection pour reprendre le calcul
+prorep_iter       entier   n/a                Interval entre 2 protections (0 pour désactiver les protections)
+restart_iter      entier   n/a                Numéro de la protection pour reprendre le calcul
 run_name          chaîne   ""                 Titre de la simulation
 snapshots         section  n/a                Description des paramètres de sauvegarde des snapshots
 save_traces       bool     false              Activation des capteurs
-traces_format     kw       text               Format des sorties capteurs ``text`` ou ``hdf5``
 sim_time          réel     aucune             Durée (temps physique) de la simulation
 source            section  n/a                Description d'une source (peut apparaître plusieurs fois)
 station_file      chaîne   "capteurs.dat"     Fichier de description des capteurs
+traces_interval   entier                      Interval de sortie des capteurs en nombre d'itérations
+traces_format     kw       text               Format des sorties capteurs ``text`` ou ``hdf5``
 time_scheme       section  n/a                Section de description du schéma d'intégration en temps
+pml_info          section                     Pour l'instant 2D seul. Description des PMLs
+anisotropy        bool                        (futur: non utilisé)
+gradient          section                     (futur: non utilisé)
+model             section                     (futur: non utilisé)
+neumann           section                     (futur: non utilisé)
 verbose_level     entier
 ================  =======  =================  ================================================================
 
@@ -65,7 +75,6 @@ gradient          section   n/a                Description des gradients
 model             kw        --                 CUB|homo|prem|3D_berkeley
 neumann           bool                         .
 traces_interval   entier                       .
-traces_format     kw
 ================  ========  =================  ===========================================================
 
 Description de la section ``amortissement`` :
@@ -110,17 +119,24 @@ time_file         chaîne   --                 Fichier contenant la source
 amplitude         réel     --                 Facteur multiplicatif appliqué à la source temporelle
 ================  =======  =================  =================================================================
 
+Note:
+  Depuis la version 2014.09, la dimension des vecteurs et matrices ci-dessus, dépend de la dimension
+  du problème (paramètre dim=2 ou dim=3). En 2D les paramètres ``coords`` et ``moment`` sont respectivement
+  de dimension 2 et 4.
+
+
 Description de la section ``snapshots`` :
 
-===============  ============  =================  ============================================================
-Mot-clef         Type          Valeur par défaut  Description
-===============  ============  =================  ============================================================
-save_snap        bool          false              Sauvegarde des snapshots
-save_interval    réel          --                 Interval (temps physique) de sauvegarde des snapshots
-select           voir note     --                 Sélection des éléments à inclure dans les snapshots
-deselect         voir note     --                 Désélection des éléments à inclure dans les snapshots
-group_outputs    entier        32                 Écriture d'un fichier sortie par *group_outputs* processeurs
-===============  ============  =================  ============================================================
+===================  ============  =================  ============================================================
+Mot-clef             Type          Valeur par défaut  Description
+===================  ============  =================  ============================================================
+save_snap            bool          false              Sauvegarde des snapshots
+save_interval        réel          --                 Interval (temps physique) de sauvegarde des snapshots
+select               voir note     --                 Sélection des éléments à inclure dans les snapshots
+deselect             voir note     --                 Désélection des éléments à inclure dans les snapshots
+group_outputs        entier        32                 Écriture d'un fichier sortie par *group_outputs* processeurs
+output_total_energy  bool                             2D uniquement, calcul de l'énergie totale
+===================  ============  =================  ============================================================
 
 Note:
   Par défaut, les snapshots incluent toutes les mailles. Le format de la commande select/deselect

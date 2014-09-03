@@ -27,7 +27,7 @@ d'outils *meshtools*.
 Les équations du mouvement
 --------------------------
 
-SEM résout la propagation d'onde élastique dans un milieu décrit par l'équation
+SEM résoud la propagation d'onde élastique dans un milieu décrit par l'équation
 locale du mouvement reliant le déplacement :math:`u` en chaque point matériel, les
 contraintes :math:`\sigma` et les forces extérieures :math:`\vec{f}` :
 
