@@ -24,7 +24,7 @@ module selement
        real, dimension(:,:,:), allocatable :: Forces,Stress,Veloc,Displ,Accel,V0
        real, dimension(:,:,:), allocatable :: ACoeff
        real, dimension(:,:,:,:), allocatable :: InvGrad
-       logical :: OUTPUT
+       logical :: OUTPUT, is_source
 
        ! PML allocation
        logical :: PML

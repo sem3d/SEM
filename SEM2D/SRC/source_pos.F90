@@ -55,6 +55,7 @@ subroutine SourcePosition(Tdomain)
         ! Search for the elements containing this point (allow a maximum of 6)
         nind = 0
         do n = 0,nel-1
+            Tdomain%specel(n)%is_source = .false.
             ngllx = Tdomain%specel(n)%ngllx
             ngllz = Tdomain%specel(n)%ngllz
             do j = 0,ngllz-1
@@ -111,6 +112,7 @@ subroutine SourcePosition(Tdomain)
                         Tdomain%sSource(nsour)%Elem(n)%nr = nsource (n)
                         Tdomain%sSource(nsour)%Elem(n)%xi = xi1
                         Tdomain%sSource(nsour)%Elem(n)%eta = eta1
+                        Tdomain%specel(nsource(n))%is_source = .true.
                     end if
                 enddo
 

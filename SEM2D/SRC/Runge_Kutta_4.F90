@@ -123,7 +123,7 @@ subroutine Runge_Kutta4 (Tdomain, dt)
               if(type_DG == GALERKIN_CONT) then
                   call Assemblage(Tdomain,n,nface,nf)
               elseif(type_DG == GALERKIN_HDG_RP) then
-                  call get_traction_el2f(Tdomain,n,nface,nf)
+                  call get_traction_el2f(Tdomain,n,nface,nf,timelocal)
               else  ! Usual Discontinuous Galerkin
                   call get_data_el2f(Tdomain,n,nface,nf)
               endif

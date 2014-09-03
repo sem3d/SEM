@@ -233,19 +233,23 @@ end subroutine Get_flux_f2el
 !!\date 18/11/2013
 !! This subroutine is used only with HDG elements
 !<
-subroutine Get_traction_el2f (Tdomain, nelem, nface, w_face)
+subroutine Get_traction_el2f (Tdomain, nelem, nface, w_face, timelocal)
 
     use sdomain
+    use ssources
+    use constants
     implicit none
 
     type (domain), intent (INOUT) :: Tdomain
     integer, intent(in)   :: nelem
     integer, intent(in)   :: nface
     integer, intent(in)   :: w_face
+    real,   intent (in)    :: timelocal
 
     ! local variables
-    integer :: ngll, ngllx, ngllz, i, imin, imax
+    integer :: ngll, ngllx, ngllz, i, imin, imax, np
     logical :: coherency
+    real, dimension(:,:), allocatable :: Fext
 
     ngll  = Tdomain%sFace(nface)%ngll
     ngllx = Tdomain%specel(nelem)%ngllx
@@ -263,6 +267,34 @@ subroutine Get_traction_el2f (Tdomain, nelem, nface, w_face)
                                                  + Tdomain%specel(nelem)%TracFace(imax-i,0:1)
         end do
     end if
+
+    ! Ajout des sources surfaciques pour les problemes de Riemann autour des elements sources
+    if (Tdomain%specel(nelem)%is_source) then
+        allocate(Fext(0:ngll-1,0:1))
+        select case(w_face)
+        case(0)
+            Fext(0:ngll-1,0) =  CompSource(Tdomain%sSource(0),timelocal) &
+                              * Tdomain%sSource(0)%Elem(0)%ExtForce(0:ngllx-1,0,0)
+            Fext(0:ngll-1,1) =  CompSource(Tdomain%sSource(0),timelocal) &
+                              * Tdomain%sSource(0)%Elem(0)%ExtForce(0:ngllx-1,0,1)
+        case(1)
+            Fext(0:ngll-1,0) =  CompSource(Tdomain%sSource(0),timelocal) &
+                              * Tdomain%sSource(0)%Elem(0)%ExtForce(ngllx-1,0:ngllz-1,0)
+            Fext(0:ngll-1,1) =  CompSource(Tdomain%sSource(0),timelocal) &
+                              * Tdomain%sSource(0)%Elem(0)%ExtForce(ngllx-1,0:ngllz-1,1)
+        case(2)
+            Fext(0:ngll-1,0) =  CompSource(Tdomain%sSource(0),timelocal) &
+                              * Tdomain%sSource(0)%Elem(0)%ExtForce(0:ngllx-1,ngllz-1,0)
+            Fext(0:ngll-1,1) =  CompSource(Tdomain%sSource(0),timelocal) &
+                              * Tdomain%sSource(0)%Elem(0)%ExtForce(0:ngllx-1,ngllz-1,1)
+        case(3)
+            Fext(0:ngll-1,0) =  CompSource(Tdomain%sSource(0),timelocal) &
+                              * Tdomain%sSource(0)%Elem(0)%ExtForce(0,0:ngllz-1,0)
+            Fext(0:ngll-1,1) =  CompSource(Tdomain%sSource(0),timelocal) &
+                              * Tdomain%sSource(0)%Elem(0)%ExtForce(0,0:ngllz-1,1)
+        end select
+        Tdomain%sFace(nface)%Traction = Tdomain%sFace(nface)%Traction - 0.005 * Fext
+    endif
     return
 
 end subroutine Get_traction_el2f
