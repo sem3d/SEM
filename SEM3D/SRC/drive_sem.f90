@@ -8,6 +8,7 @@
 !<
 subroutine sem(master_superviseur, communicateur, communicateur_global)
     use sdomain
+    use mdefinitions
     use mCapteur
     use semdatafiles
     use mpi
