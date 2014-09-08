@@ -71,7 +71,7 @@ module mesh2spec
 contains
 
     !---------------------
-    subroutine gen_mesh(tabmat,nproc,pml_b,pml_t,pml_bottom,nmatref,strat_bool)
+    subroutine gen_mesh(nproc)
 
         implicit none
 
@@ -95,11 +95,8 @@ contains
         type(near_proc), dimension(:), allocatable  :: elem_near_proc
 
         !- materials --
+        character, dimension(:), allocatable  ::  tabmat
         integer      :: n_SF_nodes
-        integer, intent(in), optional  :: nmatref
-        character, dimension(0:), intent(in)  :: tabmat
-        integer, intent(in), optional   :: pml_b, pml_t, pml_bottom
-        logical, intent(in), optional   :: strat_bool
         logical    :: any_fluid, all_fluid, solid_fluid
         integer, allocatable :: nodes_nature(:)
         logical, allocatable :: elem_contact(:), elem_solid(:)
@@ -169,8 +166,7 @@ contains
         !- INITIALIZATIONS OF DIFFERENT MESH AND MATERIAL PROPERTIES
         call mesh_init_3D(n_nods,n_points,n_elem,n_blocks,                  &
             xco,yco,zco,Ipointer,Material,tabmat,             &
-            Neu_n_global_faces,n_PW,Faces_Neumann,Faces_PW,   &
-            pml_b,pml_t,pml_bottom,nmatref,strat_bool)
+            Neu_n_global_faces,n_PW,Faces_Neumann,Faces_PW)
         if(Neu_n_global_faces > 0) Neumann_present = .true.
 
         !------------------------------------------------------
@@ -227,7 +223,7 @@ contains
         !--    here we use the METIS library (perhaps try Scotch later), v.4.0.3
         !--    Eventually: upgrade to Metis 5.0, but the syntax has changed --
 
-        call part_mesh_3D(n_elem,n_points,Ipointer,nproc,dxadj,dxadjncy,part)
+        call part_mesh_3D(n_nods,n_elem,n_points,Ipointer,nproc,dxadj,dxadjncy,part)
         write(*,*) "  --> Partition done."
 
         allocate(elem_near_proc(0:n_elem-1))
@@ -810,6 +806,8 @@ contains
 
             !- end of the loop on processors -!
         end do
+
+
         deallocate(which_points_inside)
         !---------------------------------------
         deallocate(elem_solid)
@@ -891,12 +889,12 @@ contains
         which_elem_in_proc,nelem_in_proc,proc,nproc)
         implicit none
         character(len=14),intent(in) :: meshfilename
-        real, intent(in), dimension(0:n_points-1,0:2)      :: Gcoord
         integer, intent(in)          :: proc, nproc
         logical, intent(in)          :: all_fluid, solid_fluid
         logical, intent(in)          :: Neumann_present
         integer, intent(in)          :: n_elem,n_points, n_points_local, n_blocks
         integer, intent(in)          :: n_edges, n_faces, n_nods, n_vertices
+        real, intent(in), dimension(0:n_points-1,0:2)      :: Gcoord
         integer, intent(in), dimension(0:n_points_local-1) :: node_loc2glob
         integer, intent(in), dimension(0:nproc-1)          :: nelem_in_proc
         integer, intent(in), dimension(0:nproc-1,0:maxval(nelem_in_proc)-1) :: which_elem_in_proc
@@ -1083,12 +1081,12 @@ contains
         use sem_hdf5
         implicit none
         character(len=17),intent(in) :: meshfilename
-        real, intent(in), dimension(0:n_points-1,0:2)      :: Gcoord
         integer, intent(in)          :: proc, nproc
         logical, intent(in)          :: all_fluid, solid_fluid
         logical, intent(in)          :: Neumann_present
         integer, intent(in)          :: n_elem,n_points, n_points_local, n_blocks
         integer, intent(in)          :: n_edges, n_faces, n_nods, n_vertices
+        real, intent(in), dimension(0:n_points-1,0:2)      :: Gcoord
         integer, intent(in), dimension(0:n_points_local-1) :: node_loc2glob
         integer, intent(in), dimension(0:nproc-1)          :: nelem_in_proc
         integer, intent(in), dimension(0:nproc-1,0:maxval(nelem_in_proc)-1) :: which_elem_in_proc

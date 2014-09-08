@@ -12,7 +12,7 @@ module free_surf_fluid
   !- these fluid elements are then positively flagged => attribution for face, edges, 
   !    vertices in the SEM run.
 
-    use mesh_properties
+    private  :: face2corner 
 
     contains
 
@@ -57,6 +57,49 @@ module free_surf_fluid
           end do find_el
 
     end subroutine find_fluid_elem_freesurf
+
+    !-------------------------------------
+    subroutine face2corner(Ipoint,nfa,corn)
+        implicit none
+        integer, intent(in)   :: Ipoint(0:7),nfa
+        integer, intent(out)  :: corn(0:3)
+
+        select case(nfa)
+        case(0)
+            corn(0) = Ipoint(0)
+            corn(1) = Ipoint(1)
+            corn(2) = Ipoint(2)
+            corn(3) = Ipoint(3)
+        case(1)
+            corn(0) = Ipoint(0)
+            corn(1) = Ipoint(1)
+            corn(2) = Ipoint(5)
+            corn(3) = Ipoint(4)
+        case(2)
+            corn(0) = Ipoint(1)
+            corn(1) = Ipoint(2)
+            corn(2) = Ipoint(6)
+            corn(3) = Ipoint(5)
+        case(3)
+            corn(0) = Ipoint(3)
+            corn(1) = Ipoint(2)
+            corn(2) = Ipoint(6)
+            corn(3) = Ipoint(7)
+        case(4)
+            corn(0) = Ipoint(0)
+            corn(1) = Ipoint(3)
+            corn(2) = Ipoint(7)
+            corn(3) = Ipoint(4)
+        case(5)
+            corn(0) = Ipoint(4)
+            corn(1) = Ipoint(5)
+            corn(2) = Ipoint(6)
+            corn(3) = Ipoint(7)
+        end select
+
+    end subroutine face2corner
+    !---------------------------------------
+
 
 end module free_surf_fluid
 

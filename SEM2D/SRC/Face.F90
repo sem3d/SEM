@@ -26,7 +26,7 @@ module sfaces
        real, dimension (:,:), allocatable :: ForcesMka
 #endif
 
-       logical :: coherency, PML, Abs, FPML
+       logical :: coherency, PML, Abs, FPML, CPML
        real, dimension (:), allocatable :: Ivx, Ivz
        real, dimension (:,:), allocatable :: Iveloc1, Iveloc2
     end type face
@@ -110,6 +110,7 @@ contains
         return
     end subroutine Correction_Face_Veloc
 
+
     ! ###########################################################
     !>
     !! \brief
@@ -117,8 +118,6 @@ contains
     !! \param type (Face), intent (INOUT) F
     !! \param real, intent (IN) dt
     !<
-
-
     subroutine Correction_Face_PML_Veloc (F, dt)
         implicit none
 
@@ -142,6 +141,38 @@ contains
 
         return
     end subroutine Correction_Face_PML_Veloc
+
+    ! ###########################################################
+    !>
+    !! \brief
+    !!
+    !! \param type (Face), intent (INOUT) F
+    !! \param real, intent (IN) dt
+    !<
+    subroutine Correction_Face_CPML_Veloc (F, dt)
+        implicit none
+
+        type (Face), intent (INOUT) :: F
+        real, intent (IN) ::  dt
+        integer :: i,ngll
+
+        ngll = F%ngll
+        F%V0 = F%Veloc
+
+        if  (F%Abs) then
+            F%Veloc = 0
+        else
+            do i = 0,1
+                F%Forces(:,i) = F%MassMat(1:ngll-2)  * F%Forces(:,i)
+            enddo
+            F%Veloc  = F%v0+ dt * F%Forces
+            F%Accel  = (F%Veloc-F%V0)/dt
+            F%Displ  =  F%Displ + dt * F%Veloc
+        endif
+
+        return
+    end subroutine Correction_Face_CPML_Veloc
+
     ! ###########################################################
     !>
     !! \brief

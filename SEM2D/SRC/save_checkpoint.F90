@@ -86,7 +86,7 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
     do n = 0,Tdomain%n_elem-1
         ngllx = Tdomain%specel(n)%ngllx
         ngllz = Tdomain%specel(n)%ngllz
-        if ( .not. Tdomain%specel(n)%PML ) then
+        if ( (.not.Tdomain%specel(n)%PML) .or. Tdomain%specel(n)%CPML) then
             do j = 1,ngllz-2
                 do i = 1,ngllx-2
                     write(61,*) Tdomain%specel(n)%Veloc(i,j,0)
@@ -124,7 +124,7 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
     ! Save Fields for Faces
     do n = 0,Tdomain%n_face-1
         ngll = Tdomain%sFace(n)%ngll
-        if (.not. Tdomain%sFace(n)%PML ) then
+        if ((.not.Tdomain%sFace(n)%PML) .or. Tdomain%sFace(n)%CPML) then
             do i = 1,ngll-2
                 write(61,*) Tdomain%sFace(n)%Veloc(i,0)
                 write(61,*) Tdomain%sFace(n)%Veloc(i,1)
@@ -148,7 +148,7 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
 
     ! Save Fields for Vertices
     do n = 0,Tdomain%n_vertex-1
-        if (.not. Tdomain%sVertex(n)%PML ) then
+        if ((.not.Tdomain%sVertex(n)%PML) .or. Tdomain%sVertex(n)%CPML) then
             do i = 0,1
                 write(61,*) Tdomain%sVertex(n)%Veloc(i)
                 write(61,*) Tdomain%sVertex(n)%Displ(i)

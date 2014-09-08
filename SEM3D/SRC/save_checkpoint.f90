@@ -1343,7 +1343,7 @@ subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, isort)
     integer(HSIZE_T), dimension(2) :: off_dims
 
     if (rg == 0) then
-        write (*,'(A40,I8,A1,f10.6)') "SEM : protection a iteration et tps:",it," ",rtime
+        write (*,'(A44,I8,A1,f10.6)') "--> SEM : protection at iteration and time :",it," ",rtime
     endif
     call init_protection(Tdomain, it, rg, fnamef)
 

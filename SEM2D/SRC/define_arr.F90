@@ -25,17 +25,20 @@ subroutine define_arrays(Tdomain)
 
     ! local variables
 
-    integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf,nface
+    integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf,npow,powOmc
     integer :: i_send, n_face_pointed, i_proc, nv, i_stock, tag_send, tag_receive, ierr
     integer ,  dimension (MPI_STATUS_SIZE) :: status
-    real :: vp,ri,rj,dx, LocMassmat_Vertex
+    real :: vp,ri,rj,dx,LocMassmat_Vertex,Apow,OmegaCprime,PI, Omega_c
     real, external :: pow
     real, dimension (:), allocatable :: LocMassMat1D, LocMassMat1D_Down, Send_bt, Receive_Bt
     real, dimension (:,:), allocatable :: xix,etax, xiz,etaz,Jac, Rlam,Rmu,RKmod,Whei,Id,wx, wz
-    real, dimension (:,:), allocatable :: LocMassMat
+    real, dimension (:,:), allocatable :: LocMassMat,OmegaCutx,OmegaCutz,du_du_x,du_du_z,duux,duuz
 
     ! Gaetano Festa, modified 01/06/2004
     ! Modification (MPI) 13/10/2005
+    ! Modifications by S. Terrana for introduction of CPML : may 2014
+
+    PI = 4. * atan(1.)
 
     ! Attribute elastic properties from material
 
@@ -61,6 +64,12 @@ subroutine define_arrays(Tdomain)
         allocate (Whei (0:ngllx-1,0:ngllz-1))
         allocate (wx (0:ngllx-1,0:ngllz-1))
         allocate (wz (0:ngllx-1,0:ngllz-1))
+        allocate (OmegaCutx (0:ngllx-1,0:ngllz-1))
+        allocate (OmegaCutz (0:ngllx-1,0:ngllz-1))
+        allocate (du_du_x (0:ngllx-1,0:ngllz-1))
+        allocate (du_du_z (0:ngllx-1,0:ngllz-1))
+        allocate (duux (0:ngllx-1,0:ngllz-1))
+        allocate (duuz (0:ngllx-1,0:ngllz-1))
         allocate (Id (0:ngllx-1,0:ngllz-1))
         allocate (Jac(0:ngllx-1,0:ngllz-1))
         allocate (Rlam(0:ngllx-1,0:ngllz-1))
@@ -111,46 +120,83 @@ subroutine define_arrays(Tdomain)
             Tdomain%specel(n)%Acoeff(:,:,13) = -Whei*etax*Jac
             Tdomain%specel(n)%Acoeff(:,:,14) = -Whei * xiz*Jac
             Tdomain%specel(n)%Acoeff(:,:,15) = -Whei *etaz*Jac
+            if (Tdomain%specel(n)%CPML) then
+                Tdomain%specel(n)%Acoeff(:,:,16) = Whei * Jac
+                Tdomain%specel(n)%Acoeff(:,:,17) = 1./(Whei*Jac)
+            endif
+
 
             ! Defining PML properties
 
+            Apow = Tdomain%sSubdomain(mat)%Apow ; npow = Tdomain%sSubdomain(mat)%npow
+            Omega_c = 2. * PI * Tdomain%sSubdomain(mat)%freq ! Frequence de coupure
+            ! PowOmc is the exponent of the power law of decreasing Omega_c (pulsation de coupure)
+            ! in the PML. Usually, Omega_C obbey to a law Omega_c(x) = 2*pi*freq_c (1-(x/L)^{powOmc})
+            ! powOmc is set to 1 because it produces better absorbtion on the cases we have studied.
+            powOmc = 1
             if (Tdomain%sSubDomain(mat)%Px) then
+                ! Computation of dx : the horizontal length of the PML element
                 idef = Tdomain%specel(n)%Iglobnum (0,0); dx = Tdomain%GlobCoord (0,idef)
                 idef = Tdomain%specel(n)%Iglobnum (ngllx-1,0); dx = abs (Tdomain%GlobCoord (0,idef) -dx);
                 if (Tdomain%sSubDomain(mat)%Left) then
                     do i = 0,ngllx-1
-                        ri = 0.5*(1+Tdomain%sSubDomain(mat)%GLLcx(ngllx-1-i)) * float (ngllx-1)
+                        ri = 0.5*(1+Tdomain%sSubDomain(mat)%GLLcx(ngllx-1-i))
                         vp = Rkmod(i,0)/Tdomain%specel(n)%Density(i,0)
                         vp = sqrt(vp)
-                        wx(i,0:ngllz-1) = pow (ri,vp,ngllx-1,dx, Tdomain%sSubdomain(mat)%Apow,Tdomain%sSubdomain(mat)%npow)
+                        wx(i,0:ngllz-1) = pow (ri,vp,1,dx,Apow,npow)
+                        OmegaCutx(i,0:ngllz-1) = Omega_c * (1 - ri**PowOmc)
+                        OmegaCprime = 0.5 * Omega_c * PowOmc * ri**(PowOmc-1)
+                        du_du_x(i,0:ngllz-1) = -0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) * (OmegaCutx(i,0) + wx(i,0)) &
+                                             + wx(i,0) * (0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) + OmegaCprime)
+                        duux(i,0:ngllz-1) = -wx(i,0) * (0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) + OmegaCprime) &
+                                          * (wx(i,0) + OmegaCutx(i,0)) * Tdomain%sSubdomain(mat)%Dt
                     enddo
                 else
                     do i = 0,ngllx-1
-                        ri = 0.5*(1+Tdomain%sSubDomain(mat)%GLLcx(i))*float (ngllx-1)
+                        ri = 0.5*(1+Tdomain%sSubDomain(mat)%GLLcx(i))
                         vp = Rkmod(i,0)/Tdomain%specel(n)%Density(i,0)
                         vp = sqrt(vp)
-                        wx(i,0:ngllz-1) = pow (ri,vp,ngllx-1,dx, Tdomain%sSubdomain(mat)%Apow,Tdomain%sSubdomain(mat)%npow)
+                        wx(i,0:ngllz-1) = pow (ri,vp,1,dx,Apow,npow)
+                        OmegaCutx(i,0:ngllz-1)  = Omega_c * (1 - ri**PowOmc)
+                        OmegaCprime = -0.5 * Omega_c * PowOmc * ri**(PowOmc-1)
+                        du_du_x(i,0:ngllz-1) = 0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) * (OmegaCutx(i,0) + wx(i,0)) &
+                                             - wx(i,0) * (0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) + OmegaCprime)
+                        duux(i,0:ngllz-1) = wx(i,0) * (0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) + OmegaCprime) &
+                                          * (wx(i,0) + OmegaCutx(i,0)) * Tdomain%sSubdomain(mat)%Dt
                     enddo
                 endif
             else
                 wx = 0.
             endif
             if (Tdomain%sSubDomain(mat)%Pz) then
+                ! Computation of dx : the vertical heigth of the PML element
                 idef = Tdomain%specel(n)%Iglobnum (0,0); dx = Tdomain%GlobCoord (1,idef)
                 idef = Tdomain%specel(n)%Iglobnum (0,ngllz-1); dx = abs (Tdomain%GlobCoord (1,idef) -dx)
                 if (Tdomain%sSubDomain(mat)%Down) then
                     do j = 0,ngllz-1
-                        rj = 0.5*(1+Tdomain%sSubdomain(mat)%GLLcz(ngllz-1-j)) * float (ngllz-1)
+                        rj = 0.5*(1+Tdomain%sSubdomain(mat)%GLLcz(ngllz-1-j))
                         vp = Rkmod(0,j)/Tdomain%specel(n)%Density(0,j)
                         vp = sqrt(vp)
-                        wz(0:ngllx-1,j) = pow (rj,vp,ngllz-1,dx, Tdomain%sSubdomain(mat)%Apow,Tdomain%sSubdomain(mat)%npow)
+                        wz(0:ngllx-1,j) = pow (rj,vp,1,dx,Apow,npow)
+                        OmegaCutz(0:ngllx-1,j) = Omega_c * (1 - rj**PowOmc)
+                        OmegaCprime = 0.5 * Omega_c * PowOmc * rj**(PowOmc-1)
+                        du_du_z(0:ngllx-1,j) = -0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) * (OmegaCutz(0,j) + wz(0,j)) &
+                                             + wz(0,j) * (0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) + OmegaCprime)
+                        duuz(0:ngllx-1,j) = -wz(0,j) * (0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) + OmegaCprime) &
+                                          * (wz(0,j) + OmegaCutz(0,j)) * Tdomain%sSubdomain(mat)%Dt
                     enddo
                 else
                     do j = 0,ngllz-1
-                        rj = 0.5*(1+Tdomain%sSubdomain(mat)%GLLcz(j)) * float (ngllz-1)
+                        rj = 0.5*(1+Tdomain%sSubdomain(mat)%GLLcz(j))
                         vp = Rkmod(0,j)/Tdomain%specel(n)%Density(0,j)
                         vp = sqrt(vp)
-                        wz(0:ngllx-1,j) = pow (rj,vp,ngllz-1,dx, Tdomain%sSubdomain(mat)%Apow,Tdomain%sSubdomain(mat)%npow)
+                        wz(0:ngllx-1,j) = pow (rj,vp,1,dx,Apow,npow)
+                        OmegaCutz(0:ngllx-1,j) = Omega_c * (1 - rj**PowOmc)
+                        OmegaCprime = -0.5 * Omega_c * PowOmc * rj**(PowOmc-1)
+                        du_du_z(0:ngllx-1,j) = 0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) * (OmegaCutz(0,j) + wz(0,j)) &
+                                             - wz(0,j) * (0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) + OmegaCprime)
+                        duuz(0:ngllx-1,j) = wz(0,j) * (0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) + OmegaCprime) &
+                                          * (wz(0,j) + OmegaCutz(0,j)) * Tdomain%sSubdomain(mat)%Dt
                     enddo
                 endif
             else
@@ -185,8 +231,24 @@ subroutine define_arrays(Tdomain)
 
                 Tdomain%specel(n)%Ivx=Tdomain%specel(n)%Density*Whei*Tdomain%sSubdomain(mat)%Dt*wx*Jac*Tdomain%sSubdomain(mat)%freq
                 Tdomain%specel(n)%Ivz=Tdomain%specel(n)%Density*Whei*Tdomain%sSubdomain(mat)%Dt*wz*Jac*Tdomain%sSubdomain(mat)%freq
-            else
 
+            elseif (Tdomain%specel(n)%CPML) then
+                if (Tdomain%sSubDomain(mat)%Px) then
+                    Tdomain%specel(n)%Bxi(:,:)  = exp(-(wx(:,:) + OmegaCutx(:,:)) * Tdomain%sSubdomain(mat)%Dt)
+                    Tdomain%specel(n)%Axi(:,:)  = wx(:,:) * (Tdomain%specel(n)%Bxi (:,:) - Id(:,:)) / (wx(:,:) + OmegaCutx(:,:))
+                    if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Axi(:,:) = Tdomain%specel(n)%Bxi (:,:) - Id(:,:)
+                    Tdomain%specel(n)%Axi_prime(:,:) = ((Tdomain%specel(n)%Bxi(:,:) - Id(:,:)) * du_du_x(:,:)  &
+                                                       - Tdomain%specel(n)%Bxi(:,:) * duux(:,:))/ (wx(:,:) + OmegaCutx(:,:))**2
+               endif
+               if (Tdomain%sSubDomain(mat)%Pz) then
+                   Tdomain%specel(n)%Beta(:,:) = exp(-(wz(:,:) + OmegaCutz(:,:)) * Tdomain%sSubdomain(mat)%Dt)
+                   Tdomain%specel(n)%Aeta(:,:) = wz(:,:) * (Tdomain%specel(n)%Beta(:,:) - Id(:,:)) / (wz(:,:) + OmegaCutz(:,:))
+                   if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Aeta(:,:) = Tdomain%specel(n)%Beta (:,:) - Id(:,:)
+                   Tdomain%specel(n)%Aeta_prime(:,:) = ((Tdomain%specel(n)%Beta(:,:) - Id(:,:)) * du_du_z(:,:) &
+                                                       - Tdomain%specel(n)%Beta(:,:) * duuz(:,:)) / (wz(:,:) + OmegaCutz(:,:))**2
+                endif
+
+            else ! Usual PML
                 Tdomain%specel(n)%DumpSx(:,:,1) = Id(:,:) + 0.5 * Tdomain%sSubdomain(mat)%Dt * wx(:,:)
                 Tdomain%specel(n)%DumpSx (:,:,1) = 1./ Tdomain%specel(n)%DumpSx (:,:,1)
                 Tdomain%specel(n)%DumpSx (:,:,0) = (Id(:,:) - Tdomain%sSubdomain(mat)%Dt * 0.5 * wx(:,:)) * Tdomain%specel(n)%DumpSx(:,:,1)
@@ -198,8 +260,10 @@ subroutine define_arrays(Tdomain)
                 Tdomain%specel(n)%DumpMass(:,:,0) = 0.5 * Tdomain%specel(n)%Density * Whei * Tdomain%sSubdomain(mat)%Dt * wx * Jac
                 Tdomain%specel(n)%DumpMass(:,:,1) = 0.5 * Tdomain%specel(n)%Density * Whei * Tdomain%sSubdomain(mat)%Dt * wz * Jac
             endif
+
+
         endif
-        deallocate (xix,xiz,etax,etaz,Id,wx,wz,Whei,RKmod, Jac, Rmu, Rlam)
+        deallocate(xix,xiz,etax,etaz,Id,wx,wz,OmegaCutx,OmegaCutz,du_du_x,du_du_z,duux,duuz,Whei,RKmod,Jac,Rmu,Rlam)
 
     enddo
 
@@ -209,13 +273,13 @@ subroutine define_arrays(Tdomain)
         n_elem = Tdomain%sFace(nf)%Near_element(0)
         w_face = Tdomain%sFace(nf)%Which_face(0)
         call getMass_element2face (Tdomain,n_elem,nf,w_face,.true.)
-        if (Tdomain%sFace(nf)%PML ) call getDumpMass_element2face (Tdomain,n_elem,nf,w_face,.true.)
-        if (Tdomain%sFace(nf)%FPML ) call getIv_element2face (Tdomain,n_elem,nf,w_face,.true.)
+        if (Tdomain%sFace(nf)%PML .and. (.not.Tdomain%sFace(nf)%CPML)) call getDumpMass_element2face (Tdomain,n_elem,nf,w_face,.true.)
+        if (Tdomain%sFace(nf)%FPML) call getIv_element2face (Tdomain,n_elem,nf,w_face,.true.)
         n_elem = Tdomain%sFace(nf)%Near_element(1)
         if (n_elem > -1) then
             w_face = Tdomain%sFace(nf)%Which_face(1)
             call getMass_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
-            if (Tdomain%sFace(nf)%PML ) call getDumpMass_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
+            if (Tdomain%sFace(nf)%PML .and. (.not.Tdomain%sFace(nf)%CPML)) call getDumpMass_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
             if (Tdomain%sFace(nf)%FPML ) call getIv_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
         endif
     enddo
@@ -224,7 +288,7 @@ subroutine define_arrays(Tdomain)
         ngllx = Tdomain%specel(n)%ngllx; ngllz = Tdomain%specel(n)%ngllz
         nv_aus = Tdomain%specel(n)%Near_Vertex(0)
         Tdomain%sVertex(nv_aus)%MassMat = Tdomain%sVertex(nv_aus)%MassMat + Tdomain%specel(n)%MassMat(0,0)
-        if (Tdomain%sVertex(nv_aus)%PML)    &
+        if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML))    &
             Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:)+ Tdomain%specel(n)%DumpMass(0,0,:)
         if (Tdomain%sVertex(nv_aus)%FPML) then
             Tdomain%sVertex(nv_aus)%Ivx(0) = Tdomain%sVertex(nv_aus)%Ivx(0)+ Tdomain%specel(n)%Ivx(0,0)
@@ -233,7 +297,7 @@ subroutine define_arrays(Tdomain)
 
         nv_aus = Tdomain%specel(n)%Near_Vertex(1)
         Tdomain%sVertex(nv_aus)%MassMat = Tdomain%sVertex(nv_aus)%MassMat + Tdomain%specel(n)%MassMat(ngllx-1,0)
-        if (Tdomain%sVertex(nv_aus)%PML)    &
+        if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML))    &
             Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:)+ Tdomain%specel(n)%DumpMass(ngllx-1,0,:)
         if (Tdomain%sVertex(nv_aus)%FPML) then
             Tdomain%sVertex(nv_aus)%Ivx(0) = Tdomain%sVertex(nv_aus)%Ivx(0)+ Tdomain%specel(n)%Ivx(ngllx-1,0)
@@ -242,7 +306,7 @@ subroutine define_arrays(Tdomain)
 
         nv_aus = Tdomain%specel(n)%Near_Vertex(2)
         Tdomain%sVertex(nv_aus)%MassMat = Tdomain%sVertex(nv_aus)%MassMat + Tdomain%specel(n)%MassMat(ngllx-1,ngllz-1)
-        if (Tdomain%sVertex(nv_aus)%PML)   &
+        if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML))   &
             Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:) + &
             Tdomain%specel(n)%DumpMass(ngllx-1,ngllz-1,:)
         if (Tdomain%sVertex(nv_aus)%FPML) then
@@ -252,7 +316,7 @@ subroutine define_arrays(Tdomain)
 
         nv_aus = Tdomain%specel(n)%Near_Vertex(3)
         Tdomain%sVertex(nv_aus)%MassMat = Tdomain%sVertex(nv_aus)%MassMat + Tdomain%specel(n)%MassMat(0,ngllz-1)
-        if (Tdomain%sVertex(nv_aus)%PML)    &
+        if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML))    &
             Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:)+ Tdomain%specel(n)%DumpMass(0,ngllz-1,:)
         if (Tdomain%sVertex(nv_aus)%FPML) then
             Tdomain%sVertex(nv_aus)%Ivx(0) = Tdomain%sVertex(nv_aus)%Ivx(0)+ Tdomain%specel(n)%Ivx(0,ngllz-1)
@@ -391,7 +455,7 @@ subroutine define_arrays(Tdomain)
         ngllx = Tdomain%specel(n)%ngllx;  ngllz = Tdomain%specel(n)%ngllz
         allocate (LocMassMat(1:ngllx-2,1:ngllz-2))
         ! Redefinition of Matrices
-        if (.not. Tdomain%specel(n)%PML ) then
+        if ((.not. Tdomain%specel(n)%PML) .or. Tdomain%specel(n)%CPML) then
             LocMassMat(:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2)
             LocMassmat = 1./ LocMassMat
             deallocate (Tdomain%specel(n)%MassMat)
@@ -422,7 +486,7 @@ subroutine define_arrays(Tdomain)
                 allocate (Tdomain%specel(n)%Ivz(1:ngllx-2,1:ngllz-2) )
                 Tdomain%specel(n)%Ivz = LocMassMat * Tdomain%specel(n)%DumpVz (:,:,1)
 
-            else
+            elseif (.not.Tdomain%specel(n)%CPML) then
 
                 LocMassMat(:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2)
                 Tdomain%specel(n)%DumpVx (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,0)
@@ -449,7 +513,9 @@ subroutine define_arrays(Tdomain)
 
     do nf  = 0, Tdomain%n_face - 1
         if (Tdomain%sFace(nf)%PML ) then
-            if (Tdomain%sFace(nf)%FPML) then
+            if (Tdomain%sFace(nf)%CPML) then
+               Tdomain%sFace(nf)%MassMat = 1./ Tdomain%sFace(nf)%MassMat
+            elseif (Tdomain%sFace(nf)%FPML) then
                 Tdomain%sFace(nf)%DumpVx (:,1) =  Tdomain%sFace(nf)%MassMat + Tdomain%sFace(nf)%DumpMass(:,0)
                 Tdomain%sFace(nf)%DumpVx (:,1) = 1./Tdomain%sFace(nf)%DumpVx (:,1)
                 Tdomain%sFace(nf)%DumpVx (:,0) =  Tdomain%sFace(nf)%MassMat + Tdomain%sFace(nf)%DumpMass(:,1)
@@ -462,7 +528,7 @@ subroutine define_arrays(Tdomain)
                 Tdomain%sFace(nf)%Ivx = Tdomain%sFace(nf)%Ivx * Tdomain%sFace(nf)%DumpVx(:,1)
                 Tdomain%sFace(nf)%Ivz = Tdomain%sFace(nf)%Ivz * Tdomain%sFace(nf)%DumpVz(:,1)
                 deallocate (Tdomain%sFace(nf)%DumpMass)
-            else
+            else ! Normal PML
                 Tdomain%sFace(nf)%DumpVx (:,1) =  Tdomain%sFace(nf)%MassMat + Tdomain%sFace(nf)%DumpMass(:,0)
                 Tdomain%sFace(nf)%DumpVx (:,1) = 1./Tdomain%sFace(nf)%DumpVx (:,1)
                 Tdomain%sFace(nf)%DumpVx (:,0) =  Tdomain%sFace(nf)%MassMat - Tdomain%sFace(nf)%DumpMass(:,0)
@@ -481,7 +547,9 @@ subroutine define_arrays(Tdomain)
 
     do nv_aus = 0, Tdomain%n_vertex - 1
         if (Tdomain%sVertex(nv_aus)%PML) then
-            if (tdomain%sVertex(nv_aus)%FPML) then
+            if (tdomain%sVertex(nv_aus)%CPML) then
+                Tdomain%sVertex(nv_aus)%MassMat = 1./Tdomain%sVertex(nv_aus)%MassMat
+            elseif (tdomain%sVertex(nv_aus)%FPML) then
                 Tdomain%sVertex(nv_aus)%DumpVx (1) =  Tdomain%sVertex(nv_aus)%MassMat + Tdomain%sVertex(nv_aus)%DumpMass(0)
                 Tdomain%sVertex(nv_aus)%DumpVx (1) = 1./Tdomain%sVertex(nv_aus)%DumpVx (1)
                 Tdomain%sVertex(nv_aus)%DumpVx (0) =  Tdomain%sVertex(nv_aus)%MassMat + Tdomain%sVertex(nv_aus)%DumpMass(1)
@@ -495,7 +563,7 @@ subroutine define_arrays(Tdomain)
                 Tdomain%sVertex(nv_aus)%Ivz(0) = Tdomain%sVertex(nv_aus)%Ivz(0) * Tdomain%sVertex(nv_aus)%DumpVz(1)
 
                 deallocate (Tdomain%sVertex(nv_aus)%DumpMass)
-            else
+            else ! usual PML
                 Tdomain%sVertex(nv_aus)%DumpVx (1) =  Tdomain%sVertex(nv_aus)%MassMat + Tdomain%sVertex(nv_aus)%DumpMass(0)
                 Tdomain%sVertex(nv_aus)%DumpVx (1) = 1./Tdomain%sVertex(nv_aus)%DumpVx (1)
                 Tdomain%sVertex(nv_aus)%DumpVx (0) =  Tdomain%sVertex(nv_aus)%MassMat - Tdomain%sVertex(nv_aus)%DumpMass(0)

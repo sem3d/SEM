@@ -94,6 +94,7 @@ subroutine read_input (Tdomain)
     Tdomain%TimeD%courant = config%courant
     Tdomain%mesh_file = fromcstr(config%mesh_file)
     Tdomain%material_file = fromcstr(config%mat_file)
+    Tdomain%pml_type = config%pml_type
     Tdomain%logicD%save_trace = config%save_traces .ne. 0
     Tdomain%logicD%save_snapshots = config%save_snap .ne. 0
     Tdomain%logicD%run_restart = config%prorep .ne. 0

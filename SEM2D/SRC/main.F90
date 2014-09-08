@@ -52,11 +52,9 @@ subroutine  sem()
     integer :: info_capteur
     real(kind=8) :: remaining_time
     real(kind=8), parameter :: max_time_left=900
-    integer*4 getpid, pid
+    integer :: getpid, pid
 
 #ifdef COUPLAGE
-    integer :: groupe
-    integer :: sortie
     integer :: finSem
     integer :: tag, MaxNgParFace
     integer, dimension (MPI_STATUS_SIZE) :: status
@@ -65,7 +63,7 @@ subroutine  sem()
 
     integer :: global_rank, global_nb_proc, worldgroup, intergroup
     integer :: m_localComm, comm_super_mka
-    integer :: nrec, n
+    integer :: n
     integer :: min_rank_glob_sem
 #endif
     integer :: display_iter !! Indique si on doit faire des sortie lors de cette iteration
@@ -99,7 +97,7 @@ subroutine  sem()
     call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
 
     !! On cherche le global rank minimal des procs sem
-    call MPI_Reduce(global_rank, min_rank_glob_sem, 1, MPI_INTEGER, MPI_MIN, 0, m_localComm)
+    call MPI_Reduce(global_rank, min_rank_glob_sem, 1, MPI_INTEGER, MPI_MIN, 0, m_localComm, ierr)
 
     !! Envoi des infos de couplage
     if (Tdomain%Mpi_var%my_rank == 0) then
@@ -136,7 +134,7 @@ subroutine  sem()
 
     !lecture du fichier de maillage unv avec conversion en fichier sem2D
     if (rg == 0) write (*,*) "Define mesh properties"
-    call read_mesh_h5(Tdomain)
+    call read_mesh(Tdomain)
 
     if (rg == 0) write (*,*) "Compute Gauss-Lobatto-Legendre weights and zeroes"
     call compute_GLL (Tdomain)
@@ -233,6 +231,7 @@ subroutine  sem()
 
     if (Tdomain%logicD%save_snapshots .or. Tdomain%logicD%save_deformation) then
         Tdomain%timeD%nsnap = Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin
+        if (Tdomain%timeD%nsnap == 0) Tdomain%timeD%nsnap = 1
         write(*,*) "Snapshot every ", Tdomain%timeD%nsnap, " iterations"
     endif
 

@@ -26,25 +26,44 @@ subroutine PML_definition (Tdomain)
     ! local variables
     integer :: n, mat,n_el0, n_el1, nv, nf, n_pml_faces, i
     integer, dimension (:), allocatable :: FacePML_List
-    logical, dimension (:), allocatable :: Logical_PML_Vertices, Logical_Abs_Vertices, Logical_FPML_Vertices, FacePML_Coherency
+    logical, dimension (:), allocatable :: Logical_PML_Vertices, Logical_Abs_Vertices,FacePML_Coherency
+    logical, dimension (:), allocatable :: Logical_FPML_Vertices, Logical_CPML_Vertices
 
     do n = 0, Tdomain%n_elem -1
         mat = Tdomain%specel(n)%mat_index
         Tdomain%specel(n)%PML = .false.
+        Tdomain%specel(n)%CPML = .false.
         Tdomain%specel(n)%FPML = .false.
-        if (Tdomain%sSubDomain(mat)%material_type == "P" ) Tdomain%specel(n)%PML = .true.
-        if (Tdomain%specel(n)%PML .and. Tdomain%sSubDomain(mat)%Filtering ) Tdomain%specel(n)%FPML =.true.
+        if (Tdomain%sSubDomain(mat)%material_type == "P" ) then
+            Tdomain%specel(n)%PML = .true.
+            select case (Tdomain%pml_type)
+            case (1)
+                Tdomain%specel(n)%FPML = .false.
+                Tdomain%specel(n)%CPML = .false.
+            case (2)
+                Tdomain%specel(n)%FPML = .true.
+                Tdomain%specel(n)%CPML = .false.
+            case (3)
+                Tdomain%specel(n)%FPML = .false.
+                Tdomain%specel(n)%CPML = .true.
+            case default
+                STOP "Wrong choice for PML types : it should be 1, 2, or 3"
+            end select
+            !if (Tdomain%specel(n)%PML .and. Tdomain%sSubDomain(mat)%Filtering ) Tdomain%specel(n)%FPML =.true.
+        endif
     enddo
 
     do n = 0, Tdomain%n_face-1
         Tdomain%sFace(n)%PML = .false.
         Tdomain%sFace(n)%FPML = .false.
+        Tdomain%sFace(n)%CPML = .false.
         Tdomain%sFace(n)%Abs = .false.
         n_el0 = Tdomain%sFace(n)%Near_Element(0)
         n_el1 = Tdomain%sFace(n)%Near_Element(1)
         if (n_el1 > -1) then
             if (Tdomain%specel(n_el0)%PML .and. Tdomain%specel(n_el1)%PML) Tdomain%sFace(n)%PML = .true.
             if (Tdomain%specel(n_el0)%FPML .and. Tdomain%specel(n_el1)%FPML) Tdomain%sFace(n)%FPML = .true.
+            if (Tdomain%specel(n_el0)%CPML .and. Tdomain%specel(n_el1)%CPML) Tdomain%sFace(n)%CPML = .true.
         else
             if (Tdomain%specel(n_el0)%PML) then
                 mat = Tdomain%specel(n_el0)%mat_index
@@ -99,9 +118,11 @@ subroutine PML_definition (Tdomain)
 
     allocate (Logical_PML_vertices(0:Tdomain%n_vertex-1))
     allocate (Logical_FPML_vertices(0:Tdomain%n_vertex-1))
+    allocate (Logical_CPML_vertices(0:Tdomain%n_vertex-1))
     allocate (Logical_Abs_vertices(0:Tdomain%n_vertex-1))
     Logical_PML_vertices = .true.
     Logical_FPML_vertices = .true.
+    Logical_CPML_vertices = .true.
     Logical_Abs_vertices = .false.
 
     do n = 0, Tdomain%n_face-1
@@ -117,6 +138,12 @@ subroutine PML_definition (Tdomain)
             nv = Tdomain%sFace(n)%Near_Vertex(1)
             Logical_FPML_Vertices(nv) = .false.
         endif
+        if (.not. Tdomain%sFace(n)%CPML) then
+            nv = Tdomain%sFace(n)%Near_Vertex(0)
+            Logical_CPML_Vertices(nv) = .false.
+            nv = Tdomain%sFace(n)%Near_Vertex(1)
+            Logical_CPML_Vertices(nv) = .false.
+        endif
         if (Tdomain%sFace(n)%Abs) then
             nv = Tdomain%sFace(n)%Near_Vertex(0)
             Logical_Abs_Vertices(nv) = .true.
@@ -129,11 +156,13 @@ subroutine PML_definition (Tdomain)
     do n = 0, Tdomain%n_vertex-1
         Tdomain%sVertex(n)%PML = Logical_PML_Vertices (n)
         Tdomain%sVertex(n)%FPML = Logical_FPML_Vertices (n)
+        Tdomain%sVertex(n)%CPML = Logical_CPML_Vertices (n)
         Tdomain%sVertex(n)%Abs = Logical_Abs_Vertices (n)
     enddo
 
     deallocate (Logical_PML_Vertices)
     deallocate (Logical_FPML_Vertices)
+    deallocate (Logical_CPML_Vertices)
     deallocate (Logical_Abs_Vertices )
     return
 end subroutine PML_definition

@@ -35,6 +35,7 @@ module sdomain
 
        integer :: n_elem, n_face, n_vertex, n_source,n_glob_nodes, n_line ,n_receivers
        integer :: n_nodes, n_mat,n_glob_points, n_super_object, n_fault, n_communications
+       integer :: pml_type   ! Type of PML used (if any)
        integer, dimension (:), pointer :: Line_index, Communication_list
        integer :: n_quad ! Total number of quad elements to output (including subelements)
        real, dimension (:,:), pointer :: Coord_nodes, GlobCoord
@@ -144,6 +145,9 @@ subroutine read_material_file(Tdomain)
                 read (13,*) Tdomain%sSubdomain(i)%Filtering,  Tdomain%sSubdomain(i)%npow, Tdomain%sSubdomain(i)%Apow, &
                     Tdomain%sSubdomain(i)%Px, Tdomain%sSubdomain(i)%Left, Tdomain%sSubdomain(i)%Pz,  &
                     Tdomain%sSubdomain(i)%Down, Tdomain%sSubdomain(i)%freq, Tdomain%sSubdomain(i)%k
+                ! Warning : The variable "Filtering" is no longer used : the kind of PML|FPML|CPML is
+                ! assigned directly in the file : input.spec :
+                Tdomain%sSubdomain(i)%pml_type = Tdomain%pml_type
             endif
         enddo
     endif
@@ -229,8 +233,11 @@ subroutine read_material_file(Tdomain)
     endif
 
     do i = 0, Tdomain%n_mat-1
-        if (Tdomain%sSubdomain(i)%material_type == "P" .and. Tdomain%sSubdomain(i)%Filtering ) &
+        if (Tdomain%sSubdomain(i)%material_type == "P" &
+            .and. Tdomain%sSubdomain(i)%Filtering &
+            .and. (Tdomain%pml_type == 2) ) then
             Tdomain%sSubdomain(i)%freq = exp (-Tdomain%sSubdomain(i)%freq*Tdomain%sSubdomain(i)%dt/2)
+        endif
     enddo
 
     dtmin =1e20

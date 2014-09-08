@@ -107,22 +107,19 @@ contains
     !<
     subroutine initialisation_couplage(Tdomain, MaxNgparFace)
         type (domain), intent(INOUT)  :: Tdomain
-        integer :: i,ipoint
+        integer :: i
         integer :: tag,ierr
         integer :: wf,ngll,np
-        integer :: numFace,numElem,mat
+        integer :: numFace,numElem
         integer :: iface,bufsize,decal,nbchamps
         integer :: Ngauss,MaxNgParFace,gl_MaxNgParFace
         logical :: dejaPresent
         integer, dimension (MPI_STATUS_SIZE) :: status
         integer, dimension(:),pointer:: tabNbFace
-        integer,dimension(:), pointer :: idiag
         integer,dimension(:),pointer :: displs,count
         integer,dimension(5)  :: ibuf
         real, dimension (:),pointer :: buf
-        real,dimension (:), pointer :: acol
         real,dimension (:), pointer :: dmin_couplage
-        character(Len=MAX_FILE_SIZE) fnamef
         real,dimension(4) :: coord
 
 
@@ -381,8 +378,6 @@ contains
 
         ! faire toutes les deallocations possibles
         deallocate(tabNbFace)
-!         deallocate(acol)
-!         deallocate(idiag)
         deallocate(displs)
         deallocate(count)
         deallocate(comm_couplage%m_pos_proj)
@@ -688,7 +683,7 @@ contains
             hk = min(dmin_couplage(iface), Lface/(2.*ngll + 1.))
             !       hk = min(dmin_couplage(iface), Lface/(2.*ngll + 25.))
             !       tab_Pk(iface)%nb_pts = floor( Lface/hk) + 1
-            face_couplage(iface)%nbPk = floor( Lface/hk)*10.
+            face_couplage(iface)%nbPk = int(floor( Lface/hk)*10.)
             !hk = Lface/face_couplage(iface)%nbPk !correction
         enddo
     end subroutine definit_nb_pts_Pk

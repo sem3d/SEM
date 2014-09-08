@@ -1,6 +1,7 @@
-program drive_sem
+program SEM3D
     use mpi
     use semdatafiles
+    use drive_sem
 
     character(Len=MAX_FILE_SIZE),parameter :: p_param = "."
     character(Len=MAX_FILE_SIZE),parameter :: p_traces = "./traces"
@@ -14,12 +15,22 @@ program drive_sem
 
     call sem(-1, MPI_COMM_WORLD, MPI_COMM_WORLD)
 
-    write (*,*) "fin du calcul sur processeurs ",rg
+    call MPI_Comm_Rank (MPI_COMM_WORLD, rg, ierr)
+
+    ! synchro pour s'assurer que le message s'affiche lorsque tout le monde a bien termine
+    call MPI_Barrier(MPI_COMM_WORLD, ierr)
+    if (rg==0) then
+        write (*,*) "fin du calcul sur processeurs "
+    end if
     call mpi_finalize(ierr)
 
-end program drive_sem
+end program SEM3D
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!

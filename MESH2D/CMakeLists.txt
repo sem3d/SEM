@@ -11,19 +11,14 @@ set(MESHC_SRC
 
 set(MESH_EXTRA_LIBS "")
 
-if(OPT_MPI)
+if(OPT_MPI OR HDF5_IS_PARALLEL)
 set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
-else(OPT_MPI)
-endif(OPT_MPI)
+endif(OPT_MPI OR HDF5_IS_PARALLEL)
 
-add_definitions(-DUSE_HDF5)
-include_directories(${HDF5_INCLUDE_DIR_FORTRAN})
-set(MESH_EXTRA_LIBS ${MESH_EXTRA_LIBS} hdf5_fortran)
+set(MESH_EXTRA_LIBS ${MESH_EXTRA_LIBS} ${HDF5_LIBRARIES})
 
-
+include_directories(${BASE}/MESH/metis/include)
 add_executable(mesh2dc ${MESHC_SRC})
-target_link_libraries(mesh2dc ${MESH_EXTRA_LIBS})
-include_directories(${BASE}/MESH/metis/include ${HDF5_INCLUDE_DIR})
-target_link_libraries(mesh2dc metis ${HDF5_LIBRARIES})
+target_link_libraries(mesh2dc metis ${MESH_EXTRA_LIBS})
 
 install(TARGETS mesh2dc DESTINATION bin)
