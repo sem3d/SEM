@@ -18,6 +18,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     use semdatafiles
     use mpi
     use msnapshots
+    use mdefinitions, only : define_arrays
     use semconfig !< pour config C
     use sem_c_bindings
 #ifdef COUPLAGE
