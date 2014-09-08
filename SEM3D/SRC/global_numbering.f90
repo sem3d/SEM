@@ -9,6 +9,10 @@
 !! Définition de Iglobnum et  renvoi du nombre total de ddl: elements, faces, aretes, sommets
 !!
 !<
+module mrenumber
+  public :: global_numbering
+  private :: populate_index_SF,renum_element, renum_face, renum_edge,renum_vertex
+contains
 subroutine global_numbering(Tdomain,rank)
 
     ! routine different from the 2D case. Everything is independently numbered, here (inner
@@ -31,22 +35,8 @@ subroutine global_numbering(Tdomain,rank)
     integer :: idxS, idxF, idxSpml, idxFpml, dir, ks, kl, &
         nbPtInterfSolPml, abscount
     integer, dimension (:), allocatable :: renumS, renumF, renumSpml, renumFpml
-
-    interface
-        subroutine renum_element(ngllx, nglly, ngllz, Iglobnum, Irenum, idx, renum, isPML)
-            implicit none
-            integer, intent(in) :: ngllx, nglly, ngllz
-            integer, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Iglobnum 
-            integer, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(inout) :: Irenum
-            integer, intent (inout) :: idx
-            integer, dimension (:), allocatable, intent (inout) :: renum
-            logical, intent(in) :: isPML            
-            integer :: i, j, k, num, ind, ddl
-        end subroutine renum_element
-        
-    end interface
 #endif
-    
+
 
     icount = 0
 #if NEW_GLOBAL_METHOD
@@ -98,7 +88,7 @@ subroutine global_numbering(Tdomain,rank)
         enddo
 #if NEW_GLOBAL_METHOD
         if (Tdomain%sEdge(n)%Abs .and. Tdomain%sEdge(n)%PML) then
-            abscount = abscount + ngllx - 2 
+            abscount = abscount + ngllx - 2
         endif
 #endif
     enddo
@@ -263,6 +253,72 @@ subroutine global_numbering(Tdomain,rank)
         endif ! fin test solide ou liquide
     enddo ! fin boucle sur les elements
 
+    ! Faces
+    do n = 0,Tdomain%n_face-1
+        ngllx = Tdomain%sFace(n)%ngll1
+        nglly = Tdomain%sFace(n)%ngll2
+        if (Tdomain%sFace(n)%solid)then
+            if (Tdomain%sFace(n)%PML) then
+                call renum_face(ngllx, nglly, Tdomain%sFace(n)%Iglobnum_Face, &
+                                idxSpml, renumSpml, .true.)
+            else
+                call renum_face(ngllx, nglly, Tdomain%sFace(n)%Iglobnum_Face, &
+                                idxS, renumS, .false.)
+            endif
+        else
+            if (Tdomain%sFace(n)%PML) then
+                call renum_face(ngllx, nglly, Tdomain%sFace(n)%Iglobnum_Face, &
+                                idxFpml, renumFpml, .true.)
+            else
+                call renum_face(ngllx, nglly, Tdomain%sFace(n)%Iglobnum_Face, &
+                                idxF, renumF, .false.)
+            endif
+        endif
+    enddo
+
+    ! Edges
+    do n = 0,Tdomain%n_edge-1
+        ngllx = Tdomain%sEdge(n)%ngll
+        if (Tdomain%sEdge(n)%solid)then
+            if (Tdomain%sEdge(n)%PML) then
+                call renum_edge(ngllx, Tdomain%sEdge(n)%Iglobnum_Edge, &
+                                idxSpml, renumSpml, .true.)
+            else
+                call renum_edge(ngllx, Tdomain%sEdge(n)%Iglobnum_Edge, &
+                                idxS, renumS, .false.)
+            endif
+        else
+            if (Tdomain%sEdge(n)%PML) then
+                call renum_edge(ngllx, Tdomain%sEdge(n)%Iglobnum_Edge, &
+                                idxFpml, renumFpml, .true.)
+            else
+                call renum_edge(ngllx, Tdomain%sEdge(n)%Iglobnum_Edge, &
+                                idxF, renumF, .false.)
+            endif
+        endif
+    enddo
+
+    ! Vertices
+    do n = 0,Tdomain%n_vertex-1
+        if (Tdomain%sVertex(n)%solid)then
+            if (Tdomain%sVertex(n)%PML) then
+                call renum_vertex(Tdomain%sVertex(n)%Iglobnum_Vertex, &
+                                  idxSpml, renumSpml, .true.)
+            else
+                call renum_vertex(Tdomain%sVertex(n)%Iglobnum_Vertex, &
+                                  idxS, renumS, .false.)
+            endif
+        else
+            if (Tdomain%sVertex(n)%PML) then
+                call renum_vertex(Tdomain%sVertex(n)%Iglobnum_Vertex, &
+                                  idxFpml, renumFpml, .true.)
+            else
+                call renum_vertex(Tdomain%sVertex(n)%Iglobnum_Vertex, &
+                                  idxF, renumF, .false.)
+            endif
+        endif
+    enddo
+
     if (Tdomain%any_PML) then
         nbPtInterfSolPml = 0
         ! On cré l'interface de couplage Sol/PML
@@ -290,8 +346,6 @@ subroutine global_numbering(Tdomain,rank)
     Tdomain%ngll_f = idxF
     Tdomain%ngll_pmls = idxSpml
     Tdomain%ngll_pmlf = idxFpml
-
-
 
     !! Couplage solide/fluide
     !! On liste les numeraux globaux des points de gauss concernant les faces de couplage S/F
@@ -352,7 +406,7 @@ subroutine global_numbering(Tdomain,rank)
                 call populate_index_SF(Tdomain%SF%ngll, dir, ngllx, nglly, ngllz, &
                                        Tdomain%specel(n)%IFlu, kl, Tdomain%SF%SF_IGlobFlu)
             end if
-            
+
             ! Partie Solide
             nnf = Tdomain%SF%SF_Face(nf)%Face(1)
             if(nnf > -1) then
@@ -361,7 +415,7 @@ subroutine global_numbering(Tdomain,rank)
                 ngllx = Tdomain%specel(n)%ngllx
                 nglly = Tdomain%specel(n)%nglly
                 ngllz = Tdomain%specel(n)%ngllz
-                
+
                 call populate_index_SF(Tdomain%SF%ngll, dir, ngllx, nglly, ngllz, &
                                        Tdomain%specel(n)%ISol, ks, Tdomain%SF%SF_IGlobSol)
             end if
@@ -379,24 +433,25 @@ subroutine global_numbering(Tdomain,rank)
                     idxSpml = renumSpml(Tdomain%sFace(n)%Iglobnum_Face(i,j))
                     if (idxSpml .EQ. -1) stop "Unexpected non pml outer Face !"
                     Tdomain%OuterPMLNodes(abscount) = idxSpml
-                    abscount = abscount + 1 
+                    abscount = abscount + 1
                 enddo
             enddo
         endif
-        
+
         allocate(Tdomain%sFace(n)%Renum(1:ngllx-2,1:nglly-2))
-        Tdomain%sFace(n)%Renum(:,:) = -1
         if (Tdomain%sFace(n)%solid) then
             if (Tdomain%sFace(n)%PML) then
                 do j = 1,nglly-2
                     do i = 1,ngllx-2
-                        Tdomain%sFace(n)%Renum(i,j) = renumSpml(Tdomain%sFace(n)%Iglobnum_Face(i,j)) 
+                        Tdomain%sFace(n)%Renum(i,j) = renumSpml(Tdomain%sFace(n)%Iglobnum_Face(i,j))
+                        if (Tdomain%sFace(n)%Renum(i,j) < 0) stop "Error renumbering SOLID PML faces"
                     enddo
                 enddo
             else
                 do j = 1,nglly-2
                     do i = 1,ngllx-2
                         Tdomain%sFace(n)%Renum(i,j) = renumS(Tdomain%sFace(n)%Iglobnum_Face(i,j))
+                        if (Tdomain%sFace(n)%Renum(i,j) < 0) stop "Error renumbering SOLID faces"
                     enddo
                 enddo
             endif
@@ -404,13 +459,15 @@ subroutine global_numbering(Tdomain,rank)
             if (Tdomain%sFace(n)%PML) then
                 do j = 1,nglly-2
                     do i = 1,ngllx-2
-                        Tdomain%sFace(n)%Renum(i,j) = renumFpml(Tdomain%sFace(n)%Iglobnum_Face(i,j)) 
+                        Tdomain%sFace(n)%Renum(i,j) = renumFpml(Tdomain%sFace(n)%Iglobnum_Face(i,j))
+                        if (Tdomain%sFace(n)%Renum(i,j) < 0) stop "Error renumbering FLUID PML faces"
                     enddo
                 enddo
             else
                 do j = 1,nglly-2
                     do i = 1,ngllx-2
                         Tdomain%sFace(n)%Renum(i,j) = renumF(Tdomain%sFace(n)%Iglobnum_Face(i,j))
+                        if (Tdomain%sFace(n)%Renum(i,j) < 0) stop "Error renumbering FLUID faces"
                     enddo
                 enddo
             endif
@@ -420,7 +477,6 @@ subroutine global_numbering(Tdomain,rank)
     do n = 0,Tdomain%n_edge-1
         ngllx = Tdomain%sEdge(n)%ngll
         if (Tdomain%sEdge(n)%Abs .and. Tdomain%sEdge(n)%PML) then
-            ngllx = Tdomain%sEdge(n)%ngll
             do i = 1,ngllx-2
                 idxSpml = renumSpml(Tdomain%sEdge(n)%Iglobnum_Edge(i))
                 if (idxSpml .EQ. -1) stop "Unexpected non pml outer Edge !"
@@ -548,12 +604,12 @@ subroutine renum_element(ngllx, nglly, ngllz, Iglobnum, Irenum, idx, renum, isPM
     implicit none
 
     integer, intent(in) :: ngllx, nglly, ngllz
-    integer, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Iglobnum 
-    integer, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(inout) :: Irenum
+    integer, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Iglobnum
+    integer, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: Irenum
     integer, intent (inout) :: idx
     integer, dimension (:), allocatable, intent (inout) :: renum
     logical, intent(in) :: isPML
-    
+
     integer :: i, j, k, num, ind, ddl
 
     if (isPML) then
@@ -579,7 +635,90 @@ subroutine renum_element(ngllx, nglly, ngllz, Iglobnum, Irenum, idx, renum, isPM
 
     return
 end subroutine renum_element
+
+subroutine renum_face(ngllx, nglly, Iglobnum, idx, renum, isPML)
+    implicit none
+
+    integer, intent(in) :: ngllx, nglly
+    integer, dimension(1:ngllx-2,1:nglly-2), intent(in) :: Iglobnum
+    integer, intent (inout) :: idx
+    integer, dimension (:), allocatable, intent (inout) :: renum
+    logical, intent(in) :: isPML
+
+    integer :: i, j, ind, ddl
+
+    if (isPML) then
+        ddl = 3
+    else
+        ddl = 1
+    endif
+
+    do j = 1,nglly-2
+        do i = 1,ngllx-2
+            ind = Iglobnum(i,j)
+            if (renum(ind) == -1) then
+                renum(ind) = idx
+                idx = idx + ddl
+            endif
+        enddo
+    enddo
+
+    return
+end subroutine renum_face
+
+subroutine renum_edge(ngllx, Iglobnum, idx, renum, isPML)
+    implicit none
+
+    integer, intent(in) :: ngllx
+    integer, dimension(1:ngllx-2), intent(in) :: Iglobnum
+    integer, intent (inout) :: idx
+    integer, dimension (:), allocatable, intent (inout) :: renum
+    logical, intent(in) :: isPML
+
+    integer :: i, ind, ddl
+
+    if (isPML) then
+        ddl = 3
+    else
+        ddl = 1
+    endif
+
+    do i = 1,ngllx-2
+        ind = Iglobnum(i)
+        if (renum(ind) == -1) then
+            renum(ind) = idx
+            idx = idx + ddl
+        endif
+    enddo
+
+    return
+end subroutine renum_edge
+
+subroutine renum_vertex(Iglobnum, idx, renum, isPML)
+    implicit none
+
+    integer, intent(in) :: Iglobnum
+    integer, intent (inout) :: idx
+    integer, dimension (:), allocatable, intent (inout) :: renum
+    logical, intent(in) :: isPML
+
+    integer :: ddl
+
+    if (isPML) then
+        ddl = 3
+    else
+        ddl = 1
+    endif
+
+    if (renum(Iglobnum) == -1) then
+        renum(Iglobnum) = idx
+        idx = idx + ddl
+    endif
+
+    return
+end subroutine renum_vertex
 #endif
+end module mrenumber
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
