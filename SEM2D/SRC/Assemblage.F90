@@ -17,16 +17,11 @@ subroutine Assemblage (Tdomain, nelem, nface, w_face)
   integer, intent(in)   :: nface
   integer, intent(in)   :: w_face
   logical               :: coherency
-  integer               :: vertex0, vertex1, ngllx, ngllz
+  integer               :: vertex0, ngllx, ngllz
 
   ngllx =  Tdomain%specel(nelem)%ngllx
   ngllz =  Tdomain%specel(nelem)%ngllz
   coherency = Tdomain%sFace(nface)%coherency
-
-  !if (.not. Tdomain%sFace(nface)%is_visited) then
-  !   Tdomain%sFace(nface)%Forces = 0.
-  !   Tdomain%sFace(nface)%is_visited = .true.
-  !endif
 
   ! Assemblage of the forces on the Face nface coming from element nelem
   if (nelem==Tdomain%sFace(nface)%Near_Element(0)) then
@@ -34,32 +29,23 @@ subroutine Assemblage (Tdomain, nelem, nface, w_face)
   else
      call getInternalF_el2f (Tdomain,nelem,nface,w_face,coherency)
   endif
-  ! Assemblage of the forces of the two vertexes of nface
+  ! Assemblage of the forces of the first of the two vertexes of nface
   vertex0 = Tdomain%specel(nelem)%Near_Vertex(w_face)
-  vertex1 = Tdomain%specel(nelem)%Near_Vertex(modulo(w_face+1,4))
 
   if (.not. Tdomain%sVertex(vertex0)%is_computed) then
      Tdomain%sVertex(vertex0)%Forces = 0.
      Tdomain%sVertex(vertex0)%is_computed = .true.
   endif
-  if (.not. Tdomain%sVertex(vertex1)%is_computed) then
-     Tdomain%sVertex(vertex1)%Forces = 0.
-     Tdomain%sVertex(vertex1)%is_computed = .true.
-  endif
 
   select case (w_face)
   case(0)
      Tdomain%sVertex(vertex0)%Forces = Tdomain%sVertex(vertex0)%Forces + Tdomain%specel(nelem)%Forces(0,0,0:1)
-     Tdomain%sVertex(vertex1)%Forces = Tdomain%sVertex(vertex1)%Forces + Tdomain%specel(nelem)%Forces(ngllx-1,0,0:1)
   case(1)
      Tdomain%sVertex(vertex0)%Forces = Tdomain%sVertex(vertex0)%Forces + Tdomain%specel(nelem)%Forces(ngllx-1,0,0:1)
-     Tdomain%sVertex(vertex1)%Forces = Tdomain%sVertex(vertex1)%Forces + Tdomain%specel(nelem)%Forces(ngllx-1,ngllz-1,0:1)
   case(2)
      Tdomain%sVertex(vertex0)%Forces = Tdomain%sVertex(vertex0)%Forces + Tdomain%specel(nelem)%Forces(ngllx-1,ngllz-1,0:1)
-     Tdomain%sVertex(vertex1)%Forces = Tdomain%sVertex(vertex1)%Forces + Tdomain%specel(nelem)%Forces(0,ngllz-1,0:1)
   case(3)
      Tdomain%sVertex(vertex0)%Forces = Tdomain%sVertex(vertex0)%Forces + Tdomain%specel(nelem)%Forces(0,ngllz-1,0:1)
-     Tdomain%sVertex(vertex1)%Forces = Tdomain%sVertex(vertex1)%Forces + Tdomain%specel(nelem)%Forces(0,0,0:1)
   end select
 
 end subroutine Assemblage
@@ -293,7 +279,7 @@ subroutine Get_traction_el2f (Tdomain, nelem, nface, w_face, timelocal)
             Fext(0:ngll-1,1) =  CompSource(Tdomain%sSource(0),timelocal) &
                               * Tdomain%sSource(0)%Elem(0)%ExtForce(0,0:ngllz-1,1)
         end select
-        Tdomain%sFace(nface)%Traction = Tdomain%sFace(nface)%Traction - 0.005 * Fext
+        !Tdomain%sFace(nface)%Traction = Tdomain%sFace(nface)%Traction - 0.005 * Fext
     endif
     return
 

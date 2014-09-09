@@ -146,6 +146,54 @@ subroutine get_PMLprediction_fv2el (Tdomain,n,Vxloc,Vzloc,ngllx,ngllz,alpha, beg
 
     return
 end subroutine get_PMLprediction_fv2el
+
+
+subroutine get_simpler (Tdomain,n,Vxloc,Vzloc,ngllx,ngllz,dt)
+
+    ! Modified by S Terrana 09/09/2014
+    use sdomain
+    implicit none
+    type (Domain), intent (IN) :: Tdomain
+    integer, intent (IN) :: n, ngllx,ngllz
+    real, intent(IN) :: dt
+    real, dimension (0:ngllx-1,0:ngllz-1), intent(INOUT) :: Vxloc,Vzloc
+
+    integer :: nf,i,nv
+
+    nf = Tdomain%specel(n)%near_face(0)
+    Vxloc(1:ngllx-2,0) = Tdomain%sFace(nf)%Veloc(:,0)
+    Vzloc(1:ngllx-2,0) = Tdomain%sFace(nf)%Veloc(:,1)
+
+    nf = Tdomain%specel(n)%near_face(1)
+    Vxloc(ngllx-1,1:ngllz-2) = Tdomain%sFace(nf)%Veloc(:,0)
+    Vzloc(ngllx-1,1:ngllz-2) = Tdomain%sFace(nf)%Veloc(:,1)
+
+    nf = Tdomain%specel(n)%near_face(2)
+    Vxloc(1:ngllx-2,ngllz-1) = Tdomain%sFace(nf)%Veloc(:,0)
+    Vzloc(1:ngllx-2,ngllz-1) = Tdomain%sFace(nf)%Veloc(:,1)
+
+    nf = Tdomain%specel(n)%near_face(3)
+    Vxloc(0,1:ngllz-2) = Tdomain%sFace(nf)%Veloc(:,0)
+    Vzloc(0,1:ngllz-2) = Tdomain%sFace(nf)%Veloc(:,1)
+
+    nv = Tdomain%specel(n)%near_Vertex(0)
+    Vxloc(0,0) = Tdomain%sVertex(nv)%Veloc(0)
+    Vzloc(0,0) = Tdomain%sVertex(nv)%Veloc(1)
+
+    nv = Tdomain%specel(n)%near_Vertex(1)
+    Vxloc(ngllx-1,0) = Tdomain%sVertex(nv)%Veloc(0)
+    Vzloc(ngllx-1,0) = Tdomain%sVertex(nv)%Veloc(1)
+
+    nv = Tdomain%specel(n)%near_Vertex(2)
+    Vxloc(ngllx-1,ngllz-1) = Tdomain%sVertex(nv)%Veloc(0)
+    Vzloc(ngllx-1,ngllz-1) = Tdomain%sVertex(nv)%Veloc(1)
+
+    nv = Tdomain%specel(n)%near_Vertex(3)
+    Vxloc(0,ngllz-1) = Tdomain%sVertex(nv)%Veloc(0)
+    Vzloc(0,ngllz-1) = Tdomain%sVertex(nv)%Veloc(1)
+
+    return
+end subroutine get_simpler
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

@@ -34,41 +34,6 @@ subroutine Runge_Kutta4 (Tdomain, dt)
     logical :: acoustic
 
 
-    ! Runge-Kutta Initialization
-    do n = 0, Tdomain%n_elem-1
-       if(Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
-           ngx = Tdomain%specel(n)%ngllx
-           ngz = Tdomain%specel(n)%ngllz
-           Tdomain%specel(n)%Vect_RK(1:ngx-2,1:ngz-2,0:1) = Tdomain%specel(n)%Veloc(:,:,0:1)
-           Tdomain%specel(n)%Vect_RK(:,:,2:4) = Tdomain%specel(n)%Stress(:,:,0:2)
-          !Tdomain%specel(n)%Vect_RK(:,:,0:1) = Tdomain%specel(n)%Veloc(:,:,0:1)
-          !Tdomain%specel(n)%Vect_RK(:,:,2:3) = Tdomain%specel(n)%Displ(:,:,0:1)
-          do i=0,3
-              nf = Tdomain%specel(n)%Near_Face(i)
-              nv = Tdomain%specel(n)%Near_Vertex(i)
-              Tdomain%sFace(nf)%Vect_RK(:,0:1) = Tdomain%sFace(nf)%Veloc(:,0:1)
-              Tdomain%sVertex(nv)%Vect_RK(0:1) = Tdomain%sVertex(nv)%Veloc(0:1)
-              !Tdomain%sFace(nf)%Vect_RK(:,0:1) = Tdomain%sFace(nf)%Veloc(:,0:1)
-              !Tdomain%sFace(nf)%Vect_RK(:,2:3) = Tdomain%sFace(nf)%Displ(:,0:1)
-              !Tdomain%sVertex(nv)%Vect_RK(0:1) = Tdomain%sVertex(nv)%Veloc(0:1)
-              !Tdomain%sVertex(nv)%Vect_RK(2:3) = Tdomain%sVertex(nv)%Displ(0:1)
-          enddo
-       else
-          Tdomain%specel(n)%Vect_RK(:,:,0:2) = Tdomain%specel(n)%Strain
-          Tdomain%specel(n)%Vect_RK(:,:,3:4) = Tdomain%specel(n)%Veloc
-       endif
-       if(Tdomain%specel(n)%ADEPML) then
-           Tdomain%specel(n)%Psi_RK(:,:,0) = Tdomain%specel(n)%PsiSxxx(:,:)
-           Tdomain%specel(n)%Psi_RK(:,:,1) = Tdomain%specel(n)%PsiSzzz(:,:)
-           Tdomain%specel(n)%Psi_RK(:,:,2) = Tdomain%specel(n)%PsiSxzx(:,:)
-           Tdomain%specel(n)%Psi_RK(:,:,3) = Tdomain%specel(n)%PsiSxzz(:,:)
-           Tdomain%specel(n)%Psi_RK(:,:,4) = Tdomain%specel(n)%PsiVxx(:,:)
-           Tdomain%specel(n)%Psi_RK(:,:,5) = Tdomain%specel(n)%PsiVxz(:,:)
-           Tdomain%specel(n)%Psi_RK(:,:,6) = Tdomain%specel(n)%PsiVzx(:,:)
-           Tdomain%specel(n)%Psi_RK(:,:,7) = Tdomain%specel(n)%PsiVzz(:,:)
-       endif
-    enddo
-
     do i = 1,5
        ! Calcul des Coefficients RK low storage
        coeffs = Coeffs_LSERK(i)
@@ -96,6 +61,7 @@ subroutine Runge_Kutta4 (Tdomain, dt)
              ngz = Tdomain%specel(n)%ngllz
              allocate (Vxloc(0:ngx-1, 0:ngz-1))
              allocate (Vzloc(0:ngx-1, 0:ngz-1))
+             !call get_simpler (Tdomain,n,Vxloc,vzloc,ngx,ngz,dt)
              call get_PMLprediction_fv2el (Tdomain,n,Vxloc,vzloc,ngx,ngz,0.5,0.5,dt)
              call compute_2ndMember_Veloc_Stress(Tdomain%specel(n), Vxloc, Vzloc, &
                                                  Tdomain%sSubDomain(mat)%hprimex, &
