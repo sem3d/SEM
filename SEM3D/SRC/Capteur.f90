@@ -699,7 +699,6 @@ contains
             imax = 3
         endif
 
-        fileId = 97
         open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
         do j=1,capteur%icache
             if (imax==1) then
