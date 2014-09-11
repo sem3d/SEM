@@ -139,3 +139,111 @@ Ou en mode automatique avec les saisies clavier enregistrées dans le fichier ``
   $ ${chemin_build}/MESH/mesher < mesh.input
   
 
+Résolutions des problèmes de compilation
+----------------------------------------
+
+Dans l'ordre :
+
+1. Lire le message d'erreur
+
+2. Déterminer si il s'agit d'une erreur de compilation ou d'une erreur d'édition de lien
+
+3. **Relire le message d'erreur** et **tout** le message...
+
+4. Regarder ci-dessous si c'est un problème courant
+
+
+Plusieurs problèmes peuvent survenir lors de la compilation, et/ou l'édition de lien de SEM.
+
+Pour les résoudre il faut avant tout comprendre le processus de compilation :
+
+- Chaque fichier source (``.f``, ``.c``, ``.f90``) est transformé par
+  le *compilateur* en un fichier binaire (``.o``).
+
+- En supposant que la version que vous compilez a déjà été compilée
+  par ailleurs, les erreurs qui peuvent survenir lors de la
+  compilation sont :
+
+  - Un compilateur non testé : Fortran est un langage très mal
+    normalisé, ``gfortran`` est souvant plus strict que ``ifort``,
+    certaines formulation vont compiler avec l'un et pas avec l'aure.
+
+    Exemple notoire : ifort accepte une structure ``allocatable``
+    comme membre d'une autre structure alors que gfortran va exiger un
+    ``pointer``
+
+  - L'unité de compilation (fichier .f90 par exemple) utilise un
+    module externe non reconnu.
+
+    Exemple classique : gfortran ne peut pas charger le module mpi ou hdf5.
+
+    plusieurs cas :
+
+    - Le module n'est simplement pas trouvé :
+
+      - il faut d'abord trouver le module (``mpi.mod`` ou ``hdf5.mod``)
+      
+      - puis faire en sorte que le compilateur le trouve : il faut
+        ajouter l'option ``-I/chemin/vers/module`` dans une des
+        variables ``*_FLAGS`` de cmake. On peut vérifier ce que
+        ``cmake`` passe au compilateur avec ``make VERBOSE=1``
+
+    - Le module est produit par un autre compilateur :
+
+      - gfortran ne peut pas utiliser un module compilé avec ifort et vice-versa.
+
+        Il ne peut pas utiliser non plus la librairie produite,
+        autrement dit un appel à une fonction externe (dans le style
+        Fortran 77) va compiler mais produire des erreurs lors de
+        l'exécution.
+
+      - Plus génant, gfortran est incapable d'utiliser un module
+        produit par une version majeur différente : on ne peut pas
+        compiler SEM avec gfortran 4.8 et lui faire utiliser une
+        librairie compilée avec gfortran 4.7
+
+Après la compilation vient l'édition de lien, c'est le moment ou l'on
+assemble les fichiers ``.o`` pour en faire un exécutable. Cela
+consiste principalement à relier les appels de fonctions externes à
+une unité avec leurs définitions dans une autre unité ou dans une
+librairie.
+
+Il y a encore plusieurs erreurs classiques :
+
+- La librairie n'est pas trouvée :
+
+  Il faut inclure la librairie dans la compilation. Dans ``cmake`` ce
+  sont les variables ``*_LDFLAGS`` ou ``*LIBRARIES`` qui contrôle
+  cette partie de la procédure. On peut ajouter le chemin complet
+  d'une librairie, ou les options ``-L/chemin -lnom_de_lib``.
+
+  Si le linker indique qu'il ne trouve pas une librairie, c'est que
+  celle-ci lui à été désignée : donc soit une option ``-lnom_de_lib``
+  existe mais aucun fichier ``libnom_de_lib.so`` n'est présent dans
+  les chemins fournis au linker, soit une librairie utilisée indique
+  qu'elle dépend d'une autre librairie introuvable.
+
+- La seconde erreur possible est que le linker ne peut pas résoudre un
+  symbole. C'est à dire que quelque part dans un fichier ``.o`` ou
+  dans une librairie, une fonction est appelée, mais la définition de
+  cette fonction n'est dans aucun autre fichier ``.o`` ou librairie.
+
+  - Cela peut venir du code : par exemple lorsqu'on compile SEM en
+    monoprocesseur, on utilise une "fausse" librairie MPI. Cette
+    version étant moins testée, il se peut qu'un développeur ait
+    utilisé une fonction MPI non encore émulée. (c'est arrivé dans le
+    passé, mais le nombre de fonction MPI étant limité, on va finir
+    par les avoir toutes émulées).
+
+  - Le plus souvent, cela vient d'une librairie qui dépend d'une autre librairie, qui ne spécifie pas
+    ses dépendances (car ce n'est pas obligatoire pour une librairie).
+
+    C'est le cas avec les librairies de support du compilateur intel.
+
+    Par exemple: je compile hdf5 avec icc 10. qui utilise des
+    fonctions provenant de la librairie de support du compilateur
+    10.0. Et plus tard je compile *et* je link SEM avec
+    icc/ifort 11. Entre temps la fonction utilisée par intel 10. à
+    disparu est n'est plus dans la librairie de support de
+    Intel 11. Donc à l'édition de lien le symbole utilisé par la
+    librairie hdf5 ne sera plus présent.
