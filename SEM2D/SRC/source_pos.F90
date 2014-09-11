@@ -122,7 +122,7 @@ subroutine SourcePosition(Tdomain)
                 else if (Tdomain%sSource(nsour)%i_type_source  == 2) then ! Moment * Dirac
                     call calc_shape4_coeffs(Tdomain, Tdomain%sSource(nsour))
                     call source_excit_moment(Tdomain, Tdomain%sSource(nsour))
-                else if (Tdomain%sSource(nsour)%i_type_source  == 4) then ! Dirac Smoothed
+                else if (Tdomain%sSource(nsour)%i_type_source  == 4) then ! Dirac projected
                     call source_dirac_projected(Tdomain, Tdomain%sSource(nsour))
                 endif
             endif
@@ -307,20 +307,20 @@ subroutine source_dirac_projected(Tdomain, src)
         enddo
         call project_dirac_on_Legendre(Dirac_projected,mat%gllcx,mat%gllcz,xi,eta,ngllx,ngllz)
         allocate  (src%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
-        aux1 = (M(0,0) * xix + M(0,1) * xiz) * whei(:,:) * elem%Jacob(:,:) * Dirac_projected(:,:)
-        aux2 = (M(0,0) *etax + M(0,1) *etaz) * whei(:,:) * elem%Jacob(:,:) * Dirac_projected(:,:)
+        aux1 = (M(0,0) * xix + M(0,1) * xiz) * whei(:,:) * Dirac_projected(:,:) !* elem%Jacob(:,:)
+        aux2 = (M(0,0) *etax + M(0,1) *etaz) * whei(:,:) * Dirac_projected(:,:) !* elem%Jacob(:,:)
         src%Elem(n)%ExtForce(:,:,0) = MATMUL(mat%hprimex,aux1) + MATMUL(aux2,mat%hTprimez)
-        aux1 = (M(1,0) * xix + M(1,1) * xiz) * whei(:,:) * elem%Jacob(:,:) * Dirac_projected(:,:)
-        aux2 = (M(1,0) *etax + M(1,1) *etaz) * whei(:,:) * elem%Jacob(:,:) * Dirac_projected(:,:)
+        aux1 = (M(1,0) * xix + M(1,1) * xiz) * whei(:,:) * Dirac_projected(:,:) !* elem%Jacob(:,:)
+        aux2 = (M(1,0) *etax + M(1,1) *etaz) * whei(:,:) * Dirac_projected(:,:) !* elem%Jacob(:,:)
         src%Elem(n)%ExtForce(:,:,1) = MATMUL(mat%hprimex,aux1) + MATMUL(aux2,mat%hTprimez)
 
         ! contribution integrale surfacique :
         allocate(Fsurf1(0:2*(ngllx+ngllz)-1))
         allocate(Fsurf2(0:2*(ngllx+ngllz)-1))
         Fsurf1 = (M(0,0)*Elem%Normal_Nodes(:,0) + M(0,1)*Elem%Normal_Nodes(:,1)) &
-                       * Elem%Coeff_integr_Faces(:)
+                       * Elem%Coeff_integr_Faces(:) * 0.
         Fsurf2 = (M(1,0)*Elem%Normal_Nodes(:,0) + M(1,1)*Elem%Normal_Nodes(:,1)) &
-                       * Elem%Coeff_integr_Faces(:)
+                       * Elem%Coeff_integr_Faces(:) * 0.
         ! For the Bottom Face :
         call get_iminimax(Elem,0,imin,imax)
         src%Elem(n)%ExtForce(0:ngllx-1,0,0) = src%Elem(n)%ExtForce(0:ngllx-1,0,0) &
