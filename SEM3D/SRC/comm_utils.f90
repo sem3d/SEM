@@ -633,9 +633,15 @@ subroutine Comm_Mass_Face_2 (Tdomain,n,ngll,ngllPML)
                         Tdomain%DumpMass(idx) = Tdomain%DumpMass(idx) + &
                                                 Tdomain%sComm(n)%TakePML(ngllPML,0)
                         Tdomain%DumpMass(idx+1) = Tdomain%DumpMass(idx+1) + &
-                                                    Tdomain%sComm(n)%TakePML(ngllPML,1)
+                                                  Tdomain%sComm(n)%TakePML(ngllPML,1)
                         Tdomain%DumpMass(idx+2) = Tdomain%DumpMass(idx+2) + &
-                                                    Tdomain%sComm(n)%TakePML(ngllPML,2)
+                                                  Tdomain%sComm(n)%TakePML(ngllPML,2)
+                        Tdomain%MassMatSolPml(idx) = Tdomain%MassMatSolPml(idx) + &
+                                                     Tdomain%sComm(n)%TakePML(ngllPML,3)
+                        Tdomain%MassMatSolPml(idx+1) = Tdomain%MassMatSolPml(idx+1) + &
+                                                       Tdomain%sComm(n)%TakePML(ngllPML,3)
+                        Tdomain%MassMatSolPml(idx+2) = Tdomain%MassMatSolPml(idx+2) + &
+                                                       Tdomain%sComm(n)%TakePML(ngllPML,3)
                         ngllPML = ngllPML + 1
                     enddo
                 enddo
@@ -644,7 +650,7 @@ subroutine Comm_Mass_Face_2 (Tdomain,n,ngll,ngllPML)
                     do k = 1,ngll1-2
                         idx = Tdomain%sFace(nf)%Renum(k,j)
                         Tdomain%MassMatSol(idx) = Tdomain%MassMatSol(idx) + &
-                                                    Tdomain%sComm(n)%Take(ngll)
+                                                  Tdomain%sComm(n)%Take(ngll)
                         ngll = ngll + 1
                     enddo
                 enddo
@@ -683,9 +689,15 @@ subroutine Comm_Mass_Edge_2(Tdomain,n,ngll,ngllPML)
                     Tdomain%DumpMass(idx) = Tdomain%DumpMass(idx) + &
                                             Tdomain%sComm(n)%TakePML(ngllPML,0)
                     Tdomain%DumpMass(idx+1) = Tdomain%DumpMass(idx+1) + &
-                                                Tdomain%sComm(n)%TakePML(ngllPML,1)
+                                              Tdomain%sComm(n)%TakePML(ngllPML,1)
                     Tdomain%DumpMass(idx+2) = Tdomain%DumpMass(idx+2) + &
-                                                Tdomain%sComm(n)%TakePML(ngllPML,2)
+                                              Tdomain%sComm(n)%TakePML(ngllPML,2)
+                    Tdomain%MassMatSolPml(idx) = Tdomain%MassMatSolPml(idx) + &
+                                                 Tdomain%sComm(n)%TakePML(ngllPML,3)
+                    Tdomain%MassMatSolPml(idx+1) = Tdomain%MassMatSolPml(idx+1) + &
+                                                   Tdomain%sComm(n)%TakePML(ngllPML,3)
+                    Tdomain%MassMatSolPml(idx+2) = Tdomain%MassMatSolPml(idx+2) + &
+                                                   Tdomain%sComm(n)%TakePML(ngllPML,3)
                     ngllPML = ngllPML + 1
                 enddo
             else
@@ -731,6 +743,12 @@ subroutine Comm_Mass_Vertex_2(Tdomain,n,ngll,ngllPML)
                                           Tdomain%sComm(n)%TakePML(ngllPML,1)
                 Tdomain%DumpMass(idx+2) = Tdomain%DumpMass(idx+2) + &
                                           Tdomain%sComm(n)%TakePML(ngllPML,2)
+                Tdomain%MassMatSolPml(idx) = Tdomain%MassMatSolPml(idx) + &
+                                             Tdomain%sComm(n)%TakePML(ngllPML,3)
+                Tdomain%MassMatSolPml(idx+1) = Tdomain%MassMatSolPml(idx+1) + &
+                                               Tdomain%sComm(n)%TakePML(ngllPML,3)
+                Tdomain%MassMatSolPml(idx+2) = Tdomain%MassMatSolPml(idx+2) + &
+                                               Tdomain%sComm(n)%TakePML(ngllPML,3)
                 ngllPML = ngllPML + 1
             else
                 idx = Tdomain%sVertex(nv)%Renum

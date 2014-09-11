@@ -853,6 +853,7 @@ contains
 
         allocate(mass(0:nnodes-1))
         allocate(jac(0:nnodes-1))
+        mass = 0d0
 #if ! NEW_GLOBAL_METHOD
         ! mass
         do n = 0,Tdomain%n_elem-1
@@ -894,8 +895,7 @@ contains
                         do i = 0,ngllx-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain) then
-                                !mass(idx) = Tdomain%MassMatSolPML(Tdomain%specel(n)%slpml%IsolPML(i,j,k))
-                                mass(idx) = 0
+                                mass(idx) = Tdomain%MassMatSolPML(Tdomain%specel(n)%slpml%IsolPML(i,j,k))
                             endif
                         end do
                     end do

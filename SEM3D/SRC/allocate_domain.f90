@@ -719,8 +719,8 @@ subroutine allocate_domain (Tdomain, rg)
                     allocate(Tdomain%sComm(n)%GivePML(0:ngllPML+ngllPML_F-1,0:5))
                     allocate(Tdomain%sComm(n)%TakePML(0:ngllPML+ngllPML_F-1,0:5))
                 else
-                    allocate(Tdomain%sComm(n)%GivePML(0:ngllPML+ngllPML_F-1,0:2))
-                    allocate(Tdomain%sComm(n)%TakePML(0:ngllPML+ngllPML_F-1,0:2))
+                    allocate(Tdomain%sComm(n)%GivePML(0:ngllPML+ngllPML_F-1,0:3))
+                    allocate(Tdomain%sComm(n)%TakePML(0:ngllPML+ngllPML_F-1,0:3))
                 end if
             end if
             ! solid

@@ -74,7 +74,7 @@ contains
                 if (Tdomain%any_FPML) then
                     k = 6
                 else
-                    k = 3
+                    k = 4
                 end if
                 if (Tdomain%sComm(other)%ngllPML_tot/=0) then
                     call MPI_Isend(Tdomain%sComm(other)%GivePML, k*Tdomain%sComm(other)%ngllPML_tot, &

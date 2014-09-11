@@ -12,7 +12,6 @@ module drive_sem
 contains
 subroutine sem(master_superviseur, communicateur, communicateur_global)
     use sdomain
-    use mdefinitions
     use mrenumber
     use mCapteur
     use semdatafiles
@@ -163,8 +162,9 @@ end subroutine INIT_MESSAGE
 !-----------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------
 subroutine RUN_PREPARED(Tdomain,rg)
-
     use sdomain
+    use mrenumber
+    use mdefinitions
     use mCapteur
     use semdatafiles
     use mpi
