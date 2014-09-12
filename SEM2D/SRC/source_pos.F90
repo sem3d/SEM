@@ -17,7 +17,7 @@ subroutine SourcePosition(Tdomain)
 
     ! local variables
 
-    integer :: nel,n, nsour,i,j,nmin,nind, mind, idef, nnelem,ipoint
+    integer :: nel,n, nsour,i,j,nmin,nind, mind, idef, nnelem, ipoint, ng
     integer :: ngllx,ngllz
     integer, dimension (0:5) :: nsource
     real :: Dmin, Dist, eta1, xi1
@@ -167,6 +167,49 @@ subroutine SourcePosition(Tdomain)
                 endif
             endif
         endif   ! if on nnods
+
+        ! Special treatment for a point source mollified by a Gaussian in space :
+        if if (Tdomain%sSource(nsour)%i_type_source == 5) then
+            Tdomain%specel(n)%is_source = .false.
+            ! Fist step : finding elements concerned by the gaussian Source
+            do n = 0,nel-1
+                Tol = 1.E-7
+                mind = 0
+                ngllx = Tdomain%specel(n)%ngllx
+                ngllz = Tdomain%specel(n)%ngllz
+                do j = 0,ngllz-1
+                    do i = 0,ngllx-1
+                        ng = Tdomain%specel(n)%Iglobnum(i,j)
+                        Dist = (Tdomain%GlobCoord(0,n)-Tdomain%Ssource(nsour)%Xsource)**2  +  &
+                               (Tdomain%GlobCoord(1,n)-Tdomain%Ssource(nsour)%Zsource)**2
+                        call Gaussian2d(Dist,Tdomain%Ssource(nsour)%sigma,res)
+                        if ( res > Tol ) then
+                            Tdomain%specel(n)%is_source = .true.
+                            mind = mind +1
+                        enddo
+                    enddo
+                enddo
+            enddo
+            write (*,*) "Gaussian Source, elements concerned by the space source Gaussian : ", nind
+            allocate (Tdomain%sSource(nsour)%Elem(0:mind-1))
+            ! Second step : computing coefficient source matrix ExtForces for source elements
+            do n = 0,mind-1
+                mind = 0
+                ngllx = Tdomain%specel(n)%ngllx
+                ngllz = Tdomain%specel(n)%ngllz
+                allocate(Tdomain%sSource(nsour)%Elem(n)%ExtForces(0:ngllx-1,0:ngllz-1,0:1))
+                do j = 0,ngllz-1
+                    do i = 0,ngllx-1
+                        ng = Tdomain%specel(n)%Iglobnum(i,j)
+                        Dist = (Tdomain%GlobCoord(0,n)-Tdomain%Ssource(nsour)%Xsource)**2  +  &
+                               (Tdomain%GlobCoord(1,n)-Tdomain%Ssource(nsour)%Zsource)**2
+                        call Gaussian2d(Dist,Tdomain%Ssource(nsour)%sigma,res)
+                        Tdomain%sSource(nsour)%Elem(n)%ExtForces(i,j,0) = res
+                        Tdomain%sSource(nsour)%Elem(n)%ExtForces(i,j,1) = res
+                    enddo
+                enddo
+            enddo
+        endif
 
         if (Tdomain%sSource(nsour)%ine /= 0) then
             write (*,*) "Source ", nsour , " is in the processor ", Tdomain%Mpi_var%my_rank
