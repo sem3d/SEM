@@ -99,6 +99,7 @@ module sem_c_config
        real(C_DOUBLE) :: ts
        real(C_DOUBLE) :: gamma
        real(C_DOUBLE) :: amplitude
+       real(C_DOUBLE) :: sigma
        type(C_PTR) :: time_file
     end type sem_source
 

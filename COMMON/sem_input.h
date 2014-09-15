@@ -16,6 +16,7 @@ typedef struct source {
     double ts;
     double gamma;
     double amplitude;
+    double sigma;
     char* time_file;
 } source_t;
 

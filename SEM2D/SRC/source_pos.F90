@@ -17,7 +17,7 @@ subroutine SourcePosition(Tdomain)
 
     ! local variables
 
-    integer :: nel,n, nsour,i,j,nmin,nind, mind, idef, nnelem, ipoint, ng
+    integer :: nel,n, nsour,i,j,nmin,nind, mind, idef, nnelem, ipoint
     integer :: ngllx,ngllz
     integer, dimension (0:5) :: nsource
     real :: Dmin, Dist, eta1, xi1
@@ -169,46 +169,8 @@ subroutine SourcePosition(Tdomain)
         endif   ! if on nnods
 
         ! Special treatment for a point source mollified by a Gaussian in space :
-        if if (Tdomain%sSource(nsour)%i_type_source == 5) then
-            Tdomain%specel(n)%is_source = .false.
-            ! Fist step : finding elements concerned by the gaussian Source
-            do n = 0,nel-1
-                Tol = 1.E-7
-                mind = 0
-                ngllx = Tdomain%specel(n)%ngllx
-                ngllz = Tdomain%specel(n)%ngllz
-                do j = 0,ngllz-1
-                    do i = 0,ngllx-1
-                        ng = Tdomain%specel(n)%Iglobnum(i,j)
-                        Dist = (Tdomain%GlobCoord(0,n)-Tdomain%Ssource(nsour)%Xsource)**2  +  &
-                               (Tdomain%GlobCoord(1,n)-Tdomain%Ssource(nsour)%Zsource)**2
-                        call Gaussian2d(Dist,Tdomain%Ssource(nsour)%sigma,res)
-                        if ( res > Tol ) then
-                            Tdomain%specel(n)%is_source = .true.
-                            mind = mind +1
-                        enddo
-                    enddo
-                enddo
-            enddo
-            write (*,*) "Gaussian Source, elements concerned by the space source Gaussian : ", nind
-            allocate (Tdomain%sSource(nsour)%Elem(0:mind-1))
-            ! Second step : computing coefficient source matrix ExtForces for source elements
-            do n = 0,mind-1
-                mind = 0
-                ngllx = Tdomain%specel(n)%ngllx
-                ngllz = Tdomain%specel(n)%ngllz
-                allocate(Tdomain%sSource(nsour)%Elem(n)%ExtForces(0:ngllx-1,0:ngllz-1,0:1))
-                do j = 0,ngllz-1
-                    do i = 0,ngllx-1
-                        ng = Tdomain%specel(n)%Iglobnum(i,j)
-                        Dist = (Tdomain%GlobCoord(0,n)-Tdomain%Ssource(nsour)%Xsource)**2  +  &
-                               (Tdomain%GlobCoord(1,n)-Tdomain%Ssource(nsour)%Zsource)**2
-                        call Gaussian2d(Dist,Tdomain%Ssource(nsour)%sigma,res)
-                        Tdomain%sSource(nsour)%Elem(n)%ExtForces(i,j,0) = res
-                        Tdomain%sSource(nsour)%Elem(n)%ExtForces(i,j,1) = res
-                    enddo
-                enddo
-            enddo
+        if (Tdomain%sSource(nsour)%i_type_source == 5) then
+            call source_space_gaussian(Tdomain, Tdomain%sSource(nsour))
         endif
 
         if (Tdomain%sSource(nsour)%ine /= 0) then
@@ -299,7 +261,7 @@ end subroutine source_excit_moment
 
 ! ############################################################
 !>
-!! \brief This subroutine is computes the distribution of the forces on an element
+!! \brief This subroutine computes the distribution of the forces on an element
 !! approximating a Dirac function by a finite sum of Legendre Polynomials.
 !!
 !! \param type (Element), intent (INOUT) Tdomain
@@ -393,6 +355,7 @@ subroutine source_dirac_projected(Tdomain, src)
 
 end subroutine source_dirac_projected
 
+
 ! ############################################################
 !>
 !! \brief This subroutine uses the decomposition of the dirac
@@ -445,6 +408,92 @@ subroutine project_dirac_on_Legendre(Dirac_projected,GLLcx,GLLcz,xi,eta,ngllx,ng
     enddo
 end subroutine project_dirac_on_Legendre
 
+
+! ############################################################
+!>
+!! \brief This subroutine deals with a source which in spatially
+!! mollified by a Gaussian function.
+!! In a first step, the subroutine finds the elements that are in the scope
+!! of the Gaussian, and therefore these elements are condidered as sources.
+!! In a second step, the matrices ExtForce(:,:,:) are computed for these
+!! elements using a analytic computation of the derivatives of the Gaussian.
+!!
+!! \param type (Element), intent (INOUT) Tdomain
+!! \param type (source),  intent (INOUT) src
+!<
+subroutine source_space_gaussian(Tdomain, src)
+    use sdomain
+    use ssources
+    use ssubdomains
+    use selement
+    implicit none
+    type(Domain), intent(inout) :: Tdomain
+    type(Source), intent(inout) :: src
+    type(Subdomain), pointer    :: mat
+    real, dimension(0:1, 0:1)   :: M
+    real      :: Tol, Dx, Dz, Dist, res, dGauss_dx, dGauss_dz, WheiJac
+    integer   :: n, ng, ns, nel, nmat, mind, ngllx, ngllz, i, j
+
+    M = src%moment
+    nel  = Tdomain%n_elem
+    mind = 0
+
+    ! Fist step : finding elements concerned by the gaussian Source
+    do n = 0,nel-1
+       Tol = 1.E-7
+       ngllx = Tdomain%specel(n)%ngllx
+       ngllz = Tdomain%specel(n)%ngllz
+       Tdomain%specel(n)%is_source = .false.
+       do j = 0,ngllz-1
+          do i = 0,ngllx-1
+             ng = Tdomain%specel(n)%Iglobnum(i,j)
+             Dist = (Tdomain%GlobCoord(0,ng)-src%Xsource)**2  +  &
+                    (Tdomain%GlobCoord(1,ng)-src%Zsource)**2
+             call Gaussian2d(Dist,src%sigma,res)
+             if ((res > Tol) .and. (.not. Tdomain%specel(n)%is_source)) then
+                Tdomain%specel(n)%is_source = .true.
+                mind = mind +1
+             endif
+          enddo
+       enddo
+    enddo
+
+    write (*,*) "Gaussian Source, elements concerned by the space source Gaussian : ", mind
+    src%ine = mind
+    deallocate(src%Elem)
+    allocate (src%Elem(0:mind-1))
+    ns = 0
+    ! Second step : computing coefficient source matrix ExtForces for source elements
+    do n = 0,nel-1
+       if (Tdomain%specel(n)%is_source) then
+          src%Elem(ns)%nr = n
+          ngllx = Tdomain%specel(n)%ngllx
+          ngllz = Tdomain%specel(n)%ngllz
+          nmat  = Tdomain%specel(n)%mat_index
+          mat  => Tdomain%sSubdomain(nmat)
+          allocate(src%Elem(ns)%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
+          do j = 0,ngllz-1
+             do i = 0,ngllx-1
+                ng = Tdomain%specel(n)%Iglobnum(i,j)
+                WheiJac = Tdomain%specel(n)%Jacob(i,j) * mat%GLLwx(i) * mat%GLLwz(j)
+                Dx = Tdomain%GlobCoord(0,ng)-src%Xsource
+                Dz = Tdomain%GlobCoord(1,ng)-src%Zsource
+                Dist = Dx**2 + Dz**2
+                call Gaussian2d(Dist,src%sigma,res)
+                dGauss_dx = -Dx / (src%sigma**2) * res
+                dGauss_dz = -Dz / (src%sigma**2) * res
+                src%Elem(ns)%ExtForce(i,j,0) = -wheiJac * (dGauss_dx*M(0,0) + dGauss_dz*M(0,1))
+                src%Elem(ns)%ExtForce(i,j,1) = -wheiJac * (dGauss_dx*M(1,0) + dGauss_dz*M(1,1))
+             enddo
+          enddo
+          ns = ns+1
+       endif
+    enddo
+    return
+end subroutine source_space_gaussian
+
+
+! ############################################################
 
 subroutine calc_shape4_coeffs(Tdomain, src)
     use sdomain
@@ -535,6 +584,18 @@ subroutine calc_shape8_coeffs(Tdomain, src)
     enddo
 end subroutine calc_shape8_coeffs
 
+
+subroutine  Gaussian2d(Dist,sigma,res)
+
+  implicit none
+  real, intent(in)  :: Dist, sigma
+  real, intent(out) :: res
+  real              :: PI
+
+  PI = Acos(-1.)
+  res = 1./(sigma * sqrt(2.*PI)) * exp(-Dist/(2.*sigma**2))
+
+end subroutine Gaussian2d
 
 
 !! Local Variables:

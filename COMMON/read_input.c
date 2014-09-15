@@ -185,6 +185,7 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"gamma")) err=expect_eq_float(scanner, &source->gamma, 1);
 	else if (cmp(scanner,"time_file")) err=expect_eq_string(scanner, &source->time_file,1);
 	else if (cmp(scanner,"amplitude")) err=expect_eq_float(scanner, &source->amplitude, 1);
+	else if (cmp(scanner,"sigma")) err=expect_eq_float(scanner, &source->sigma, 1);
 
 	if (err<=0) return 0;
 	if (!expect_eos(scanner)) { return 0; }

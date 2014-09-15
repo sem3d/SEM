@@ -35,6 +35,7 @@ subroutine create_sem2d_sources(Tdomain, config)
         !Tdomain%Ssource(nsrc)%gamma = src%gamma ! func=4
         !Tdomain%Ssource(nsrc)%ts = src%ts   ! func=4
         Tdomain%Ssource(nsrc)%amplitude = src%amplitude
+        Tdomain%Ssource(nsrc)%sigma     = src%sigma
         ! Comportement Spacial
         ! i_type_source==1
         ! DIR = Z OR y -> y

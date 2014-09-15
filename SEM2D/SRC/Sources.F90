@@ -22,7 +22,7 @@ module ssources
        integer :: i_type_source, i_time_function,ine
        real, dimension(2) :: dir
        real, dimension (0:1,0:1) :: moment
-       real :: Xsource,Zsource, tau_b,cutoff_freq,amplitude
+       real :: Xsource,Zsource, tau_b,cutoff_freq,amplitude,sigma
        type(elem_source), dimension(:), pointer :: Elem
     end type Source
 
