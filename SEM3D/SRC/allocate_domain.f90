@@ -710,6 +710,7 @@ subroutine allocate_domain (Tdomain, rg)
 
             ! allocations for inter-proc communications
             ! for mass communications
+#if ! NEW_GLOBAL_METHOD
             if(ngll+ngll_F > 0)then
                 allocate(Tdomain%sComm(n)%Give(0:ngll+ngll_F-1))
                 allocate(Tdomain%sComm(n)%Take(0:ngll+ngll_F-1))
@@ -741,6 +742,7 @@ subroutine allocate_domain (Tdomain, rg)
                 allocate(Tdomain%sComm(n)%GiveForcesPMLFl(0:ngllPML_F-1,1:3))
                 allocate(Tdomain%sComm(n)%TakeForcesPMLFl(0:ngllPML_F-1,1:3))
             endif
+#endif
             ! Neumann
             if(ngllNeu > 0)then
                 allocate(Tdomain%sComm(n)%GiveNeu(0:ngllNeu-1,0:2))
@@ -759,23 +761,26 @@ subroutine allocate_domain (Tdomain, rg)
                 allocate(Tdomain%sComm(n)%GiveForcesSF_StoF_PML(0:ngllSF_PML-1,1:3))
                 allocate(Tdomain%sComm(n)%TakeForcesSF_StoF_PML(0:ngllSF_PML-1,1:3))
             endif
-
+#if ! NEW_GLOBAL_METHOD
             Tdomain%sComm(n)%ngll = ngll
             Tdomain%sComm(n)%ngll_F = ngll_F
             Tdomain%sComm(n)%ngll_tot = ngll+ngll_F
             Tdomain%sComm(n)%ngllPML = ngllPML
             Tdomain%sComm(n)%ngllPML_F = ngllPML_F
             Tdomain%sComm(n)%ngllPML_tot = ngllPML+ngllPML_F
+#endif
             Tdomain%sComm(n)%ngllNeu = ngllNeu
             Tdomain%sComm(n)%ngllSF = ngllSF
             Tdomain%sComm(n)%ngllSF_PML = ngllSF_PML
 
         enddo
     else
+#if ! NEW_GLOBAL_METHOD
         Tdomain%sComm(0)%ngll = 0
         Tdomain%sComm(0)%ngllPML = 0
         Tdomain%sComm(0)%ngllSO = 0
         Tdomain%sComm(0)%ngllPML_F = 0
+#endif
     endif
 
 

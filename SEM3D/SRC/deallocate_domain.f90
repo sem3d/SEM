@@ -180,7 +180,7 @@ subroutine deallocate_domain (Tdomain, rg)
         endif
 #endif
     enddo
-
+#if ! NEW_GLOBAL_METHOD
     do n = 0,Tdomain%n_proc-1
         if (Tdomain%sComm(n)%ngll>0) then
             deallocate (Tdomain%sComm(n)%GiveForces)
@@ -191,6 +191,7 @@ subroutine deallocate_domain (Tdomain, rg)
             deallocate (Tdomain%sComm(n)%TakeForcesPML)
         endif
     enddo
+#endif
     !purge -fuites memoire
     deallocate (Tdomain%sComm)
 

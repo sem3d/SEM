@@ -74,7 +74,7 @@ contains
 !        call MPI_Waitall(Tdomain%n_proc, vector%send_reqs, statuses, ierr)
 !    end subroutine exchange_sem_wait_1d
 
-
+#if ! NEW_GLOBAL_METHOD
     subroutine exchange_sem(Tdomain, rg)
         use sdomain
         use mpi
@@ -191,7 +191,7 @@ contains
         call MPI_Waitall(Tdomain%n_proc, req_r_fpml, statuses, ierr)
         !write(*,*) "END Exchange sem forces", rg
     end subroutine exchange_sem_forces
-
+#endif
     subroutine exchange_sem_forces_StoF(Tdomain, rg)
         use sdomain
         use mpi
