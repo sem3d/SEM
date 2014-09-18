@@ -18,7 +18,7 @@ module mdefinitions
     private :: define_alpha_PML
 #if NEW_GLOBAL_METHOD
     private :: define_PML_DumpInit_2, define_PML_DumpEnd_2
-    private :: Comm_Mass_Complete_2, assemble_DumpMass
+    private :: assemble_DumpMass
 #else
     private :: define_PML_DumpInit, define_PML_DumpEnd
     private :: Comm_Mass_Complete, Comm_Mass_Complete_PML, Comm_Normal_Neumann
@@ -67,7 +67,11 @@ subroutine Define_Arrays(Tdomain, rg)
     endif
 
     call init_solid_fluid_interface(Tdomain)
+#if NEW_GLOBAL_METHOD
+    call assemble_mass_matrices_2(Tdomain, rg)
+#else
     call assemble_mass_matrices(Tdomain, rg)
+#endif
     call finalize_pml_properties(Tdomain)
     call inverse_mass_mat(Tdomain)
 
@@ -119,24 +123,17 @@ subroutine init_solid_fluid_interface(Tdomain)
     endif
 end subroutine init_solid_fluid_interface
 
+#if ! NEW_GLOBAL_METHOD
 subroutine assemble_mass_matrices(Tdomain, rg)
-#if NEW_GLOBAL_METHOD
-    use scommutils, only : Comm_Mass_Face_2, Comm_Mass_Edge_2, Comm_Mass_Vertex_2
-#else
     use assembly, only : get_mass_elem2face, get_mass_elem2edge, get_mass_elem2vertex
     use scommutils, only : Comm_Mass_Face, Comm_Mass_Edge, Comm_Mass_Vertex
-#endif
+
     type (domain), intent (INOUT), target :: Tdomain
     integer, intent(in) :: rg
     !
     integer :: n, i, j, ne, nv, ngll1
     integer :: ngll_tot, ngllPML_tot, ngllNeu
-#if NEW_GLOBAL_METHOD
-    integer :: indpml, indsol
-    real :: mass
-#endif
 
-#if ! NEW_GLOBAL_METHOD
      !- Mass and DumpMass Communications (assemblage) inside Processors
      do n = 0,Tdomain%n_elem-1
         ! assemble MassMat, DumpMass, Ivx,Ivy, Ivz on faces/edges/vertices
@@ -144,21 +141,6 @@ subroutine assemble_mass_matrices(Tdomain, rg)
         call get_Mass_Elem2Edge(Tdomain,n)
         call get_Mass_Elem2Vertex(Tdomain,n)
      enddo
-#else
-     ! Finish assembling mass between PML and non PML domains
-  ! On assemble la matrice de masse entre les domaines S et SPML, ainsi que F et FPML
-    do n = 0,Tdomain%nbInterfSolPml-1
-        ! Couplage à l'interface solide / PML
-        indsol = Tdomain%InterfSolPml(n,0)
-        indpml = Tdomain%InterfSolPml(n,1)
-        Mass = Tdomain%MassMatSol(indsol) + Tdomain%MassMatSolPml(indpml)
-        Tdomain%MassMatSol(indsol) = Mass
-        Tdomain%MassMatSolPml(indpml+0) = Mass
-        Tdomain%MassMatSolPml(indpml+1) = Mass
-        Tdomain%MassMatSolPml(indpml+2) = Mass
-    enddo
-
-#endif
 
     !----------------------------------------------------------
     !- MPI communications: assemblage between procs
@@ -167,13 +149,9 @@ subroutine assemble_mass_matrices(Tdomain, rg)
         !-------------------------------------------------
         !- from external faces, edges and vertices to Communication global arrays
         do n = 0,Tdomain%n_proc-1
-#if NEW_GLOBAL_METHOD
-            call Comm_Mass_Complete_2(n,Tdomain)
-#else
             call Comm_Mass_Complete(n,Tdomain)
             call Comm_Mass_Complete_PML(n,Tdomain)
             call Comm_Normal_Neumann(n,Tdomain)
-#endif
         enddo
 
         call exchange_sem(Tdomain, rg)
@@ -183,11 +161,6 @@ subroutine assemble_mass_matrices(Tdomain, rg)
             ngll_tot = 0
             ngllPML_tot = 0
             ngllNeu = 0
-#if NEW_GLOBAL_METHOD
-            call Comm_Mass_Face_2(Tdomain,n,ngll_tot,ngllPML_tot)
-            call Comm_Mass_Edge_2(Tdomain,n,ngll_tot,ngllPML_tot)
-            call Comm_Mass_Vertex_2(Tdomain,n,ngll_tot,ngllPML_tot)
-#else
             call Comm_Mass_Face(Tdomain,n,ngll_tot,ngllPML_tot)
             call Comm_Mass_Edge(Tdomain,n,ngll_tot,ngllPML_tot)
             call Comm_Mass_Vertex(Tdomain,n,ngll_tot,ngllPML_tot)
@@ -223,7 +196,6 @@ subroutine assemble_mass_matrices(Tdomain, rg)
                 deallocate(Tdomain%sComm(n)%GiveNeu)
                 deallocate(Tdomain%sComm(n)%TakeNeu)
             endif
-#endif
             if(Tdomain%sComm(n)%ngll_tot > 0)then
                 deallocate(Tdomain%sComm(n)%Give)
                 deallocate(Tdomain%sComm(n)%Take)
@@ -238,6 +210,129 @@ subroutine assemble_mass_matrices(Tdomain, rg)
     endif
 
 end subroutine assemble_mass_matrices
+#endif
+
+#if NEW_GLOBAL_METHOD
+subroutine assemble_mass_matrices_2(Tdomain, rg)
+    implicit none
+    type (domain), intent (INOUT), target :: Tdomain
+    integer, intent(in) :: rg
+
+    integer :: n, indsol, indpml, nsol, nsolpml
+    integer :: i,j,k,nf,ne,nv,idx
+    real :: Mass
+
+    ! Couplage à l'interface solide / PML
+    do n = 0,Tdomain%nbInterfSolPml-1
+        indsol = Tdomain%InterfSolPml(n,0)
+        indpml = Tdomain%InterfSolPml(n,1)
+        Mass = Tdomain%MassMatSol(indsol) + Tdomain%MassMatSolPml(indpml)
+        Tdomain%MassMatSol(indsol) = Mass
+        Tdomain%MassMatSolPml(indpml+0) = Mass
+        Tdomain%MassMatSolPml(indpml+1) = Mass
+        Tdomain%MassMatSolPml(indpml+2) = Mass
+    enddo
+
+    if(Tdomain%Comm_mass%ncomm > 0)then
+        do n = 0,Tdomain%Comm_mass%ncomm-1
+            ! Domain SOLID
+            k = 0
+            do i=0,Tdomain%Comm_mass%Data(n)%nsol-1
+                idx = Tdomain%Comm_mass%Data(n)%IGiveS(i)
+                Tdomain%Comm_mass%Data(n)%Give(k) = Tdomain%MassMatSol(idx)
+                k=k+1
+            end do
+
+            ! Domain SOLID PML
+            do i=0,Tdomain%Comm_mass%Data(n)%nsolpml-1
+                idx = Tdomain%Comm_mass%Data(n)%IGiveSPML(i)
+                Tdomain%Comm_mass%Data(n)%Give(k+0) = Tdomain%DumpMass(idx)
+                Tdomain%Comm_mass%Data(n)%Give(k+1) = Tdomain%DumpMass(idx+1)
+                Tdomain%Comm_mass%Data(n)%Give(k+2) = Tdomain%DumpMass(idx+2)
+                Tdomain%Comm_mass%Data(n)%Give(k+3) = Tdomain%MassMatSolPml(idx)
+                k=k+4
+            end do
+
+            ! Domain FLUID
+            do i=0,Tdomain%Comm_mass%Data(n)%nflu-1
+                idx = Tdomain%Comm_mass%Data(n)%IGiveF(i)
+                Tdomain%Comm_mass%Data(n)%Give(k) = Tdomain%MassMatFlu(idx)
+                k=k+1
+            end do
+
+            ! Domain FLUID PML
+            do i=0,Tdomain%Comm_mass%Data(n)%nflupml-1
+                idx = Tdomain%Comm_mass%Data(n)%IGiveFPML(i)
+                !TODO
+                Tdomain%Comm_mass%Data(n)%Give(k) = Tdomain%MassMatFluPml(idx)
+                k=k+1
+            end do
+
+            Tdomain%Comm_mass%Data(n)%nsend = k
+        end do
+        
+        ! Exchange
+        call exchange_sem_var(Tdomain, 103, Tdomain%Comm_mass)
+
+        ! Take
+        do n = 0,Tdomain%Comm_mass%ncomm-1
+            ! Domain SOLID
+            k = 0
+            do i=0,Tdomain%Comm_mass%Data(n)%nsol-1
+                idx = Tdomain%Comm_mass%Data(n)%ITakeS(i)
+                Tdomain%MassMatSol(idx) = Tdomain%MassMatSol(idx) + &
+                                          Tdomain%Comm_mass%Data(n)%Take(k)
+                k = k + 1
+            end do
+
+            ! Domain SOLID PML
+            do i=0,Tdomain%Comm_mass%Data(n)%nsolpml-1
+                idx = Tdomain%Comm_mass%Data(n)%ITakeSPML(i)
+                Tdomain%DumpMass(idx+0) = Tdomain%DumpMass(idx+0) + Tdomain%Comm_mass%Data(n)%Take(k+0)
+                Tdomain%DumpMass(idx+1) = Tdomain%DumpMass(idx+1) + Tdomain%Comm_mass%Data(n)%Take(k+1)
+                Tdomain%DumpMass(idx+2) = Tdomain%DumpMass(idx+2) + Tdomain%Comm_mass%Data(n)%Take(k+2)
+                Tdomain%MassMatSolPml(idx+0) = Tdomain%MassMatSolPml(idx+0) + Tdomain%Comm_mass%Data(n)%Take(k+3)
+                Tdomain%MassMatSolPml(idx+1) = Tdomain%MassMatSolPml(idx+1) + Tdomain%Comm_mass%Data(n)%Take(k+3)
+                Tdomain%MassMatSolPml(idx+2) = Tdomain%MassMatSolPml(idx+2) + Tdomain%Comm_mass%Data(n)%Take(k+3)
+                k = k + 4
+            end do
+
+            ! Domain FLUID
+            do i=0,Tdomain%Comm_mass%Data(n)%nflu-1
+                idx = Tdomain%Comm_mass%Data(n)%ITakeF(i)
+                Tdomain%MassMatFlu(idx) = Tdomain%MassMatFlu(idx) + Tdomain%Comm_mass%Data(n)%Take(k)
+                k=k+1
+            end do
+
+            ! Domain FLUID PML
+            do i=0,Tdomain%Comm_mass%Data(n)%nflupml-1
+                idx = Tdomain%Comm_mass%Data(n)%ITakeFPML(i)
+                !TODO
+                Tdomain%MassMatFluPml(idx) = Tdomain%MassMatFluPml(idx) + Tdomain%Comm_mass%Data(n)%Take(k)
+                k=k+1
+            end do
+
+            ! deallocate
+            deallocate(Tdomain%Comm_mass%Data(n)%Give)
+            deallocate(Tdomain%Comm_mass%Data(n)%Take)
+            deallocate(Tdomain%Comm_mass%Data(n)%IGiveS)
+            deallocate(Tdomain%Comm_mass%Data(n)%ITakeS)
+            deallocate(Tdomain%Comm_mass%Data(n)%IGiveSPML)
+            deallocate(Tdomain%Comm_mass%Data(n)%ITakeSPML)
+            deallocate(Tdomain%Comm_mass%Data(n)%IGiveF)
+            deallocate(Tdomain%Comm_mass%Data(n)%ITakeF)
+            deallocate(Tdomain%Comm_mass%Data(n)%IGiveFPML)
+            deallocate(Tdomain%Comm_mass%Data(n)%ITakeFPML)
+        end do
+
+        deallocate(Tdomain%Comm_mass%Data)
+        deallocate(Tdomain%Comm_mass%send_reqs)
+        deallocate(Tdomain%Comm_mass%recv_reqs)
+    end if
+
+    return
+end subroutine assemble_mass_matrices_2
+#endif
 !---------------------------------------------------------------------------------------
 subroutine inverse_mass_mat(Tdomain)
   type (domain), intent (INOUT), target :: Tdomain
@@ -1172,112 +1267,6 @@ subroutine define_FPML_DumpEnd(dir,ngllx,nglly,ngllz,DumpV,Iv)
     return
 
 end subroutine define_FPML_DumpEnd
-#if NEW_GLOBAL_METHOD
-subroutine Comm_Mass_Complete_2(n,Tdomain)
-    use sdomain
-    implicit none
-
-    integer, intent(in)  :: n
-    type(domain), intent(inout) :: Tdomain
-    integer  :: i,j,k,ngll,ngll_F,ngllPML,ngllPML_F,nf,ne,nv,idx
-
-    ngll = 0; ngll_F = 0
-    ngllPML = 0 ; ngllPML_F = 0
-    ! faces
-    do i = 0,Tdomain%sComm(n)%nb_faces-1
-        nf = Tdomain%sComm(n)%faces(i)
-        if (Tdomain%sFace(nf)%solid) then
-            if (Tdomain%sFace(nf)%PML) then
-                do j = 1,Tdomain%sFace(nf)%ngll2-2
-                    do k = 1,Tdomain%sFace(nf)%ngll1-2
-                        idx = Tdomain%sFace(nf)%Renum(k,j)
-                        Tdomain%sComm(n)%GivePML(ngllPML,0) = Tdomain%DumpMass(idx)
-                        Tdomain%sComm(n)%GivePML(ngllPML,1) = Tdomain%DumpMass(idx+1)
-                        Tdomain%sComm(n)%GivePML(ngllPML,2) = Tdomain%DumpMass(idx+2)
-                        Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%MassMatSolPml(idx)
-                        ngllPML = ngllPML + 1
-                    enddo
-                enddo
-            else
-                do j = 1,Tdomain%sFace(nf)%ngll2-2
-                    do k = 1,Tdomain%sFace(nf)%ngll1-2
-                        idx = Tdomain%sFace(nf)%Renum(k,j)
-                        Tdomain%sComm(n)%Give(ngll) = Tdomain%MassMatSol(idx)
-                        ngll = ngll + 1
-                    enddo
-                enddo
-            endif
-        else
-            if (Tdomain%sFace(nf)%PML) then
-!TODO
-                stop "define_arrays, Comm_Mass_Complete_2, PML fluide"
-            else
-!TODO
-                stop "define_arrays, Comm_Mass_Complete_2, fluide"            
-            endif
-        endif
-    enddo
-    ! edges
-    do i = 0,Tdomain%sComm(n)%nb_edges-1
-        ne = Tdomain%sComm(n)%edges(i)
-        if (Tdomain%sEdge(ne)%solid) then
-            if (Tdomain%sEdge(ne)%PML) then
-                do j = 1,Tdomain%sEdge(ne)%ngll-2
-                    idx = Tdomain%sEdge(ne)%Renum(j)
-                    Tdomain%sComm(n)%GivePML(ngllPML,0) = Tdomain%DumpMass(idx)
-                    Tdomain%sComm(n)%GivePML(ngllPML,1) = Tdomain%DumpMass(idx+1)
-                    Tdomain%sComm(n)%GivePML(ngllPML,2) = Tdomain%DumpMass(idx+2)
-                    Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%MassMatSolPml(idx)
-                    ngllPML = ngllPML + 1
-                enddo
-            else
-                do j = 1,Tdomain%sEdge(ne)%ngll-2
-                    idx = Tdomain%sEdge(ne)%Renum(j)
-                    Tdomain%sComm(n)%Give(ngll) = Tdomain%MassMatSol(idx)
-                    ngll = ngll + 1
-                enddo
-            endif
-        else
-            if (Tdomain%sEdge(ne)%PML) then
-!TODO
-                stop "define_arrays, Comm_Mass_Complete_2, PML fluide"
-            else
-!TODO
-                stop "define_arrays, Comm_Mass_Complete_2, fluide"
-            endif
-        endif
-    enddo
-    ! vertices
-    do i = 0,Tdomain%sComm(n)%nb_vertices-1
-        nv =  Tdomain%sComm(n)%vertices(i)
-        idx = Tdomain%sVertex(nv)%Renum
-        if (Tdomain%svertex(nv)%solid) then
-            if (Tdomain%svertex(nv)%PML) then
-                Tdomain%sComm(n)%GivePML(ngllPML,0) = Tdomain%DumpMass(idx)
-                Tdomain%sComm(n)%GivePML(ngllPML,1) = Tdomain%DumpMass(idx+1)
-                Tdomain%sComm(n)%GivePML(ngllPML,2) = Tdomain%DumpMass(idx+2)
-                Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%MassMatSolPml(idx)
-                ngllPML = ngllPML + 1
-            else
-                Tdomain%sComm(n)%Give(ngll) = Tdomain%MassMatSol(idx)
-                ngll = ngll + 1
-            endif
-        else
-            if (Tdomain%sVertex(nv)%PML) then
-!TODO
-                stop "define_arrays, Comm_Mass_Complete_2, PML fluide"
-            else
-!TODO
-                stop "define_arrays, Comm_Mass_Complete_2, fluide"
-            endif
-
-        endif
-    enddo
-
-end subroutine Comm_Mass_Complete_2
-!----------------------------------------------------------------------------------
-!----------------------------------------------------------------------------------
-#endif
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
 #if ! NEW_GLOBAL_METHOD

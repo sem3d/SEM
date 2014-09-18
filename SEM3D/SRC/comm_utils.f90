@@ -507,9 +507,7 @@ subroutine Comm_Forces_Face(Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
 
     return
 end subroutine Comm_Forces_Face
-#endif
 
-#if ! NEW_GLOBAL_METHOD
 subroutine Comm_Forces_Vertex (Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
 
     use sdomain
@@ -546,8 +544,7 @@ subroutine Comm_Forces_Vertex (Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
 
     return
 end subroutine Comm_Forces_Vertex
-#endif
-#if ! NEW_GLOBAL_METHOD
+
 subroutine Comm_Mass_Edge (Tdomain,n,ngll,ngllPML)
 
     use sdomain
@@ -608,170 +605,7 @@ subroutine Comm_Mass_Edge (Tdomain,n,ngll,ngllPML)
 
     return
 end subroutine Comm_Mass_Edge
-#endif
 
-#if NEW_GLOBAL_METHOD
-subroutine Comm_Mass_Face_2 (Tdomain,n,ngll,ngllPML)
-    use sdomain
-    implicit none
-
-    type (Domain), intent (INOUT) :: Tdomain
-    integer, intent (IN) :: n
-    integer, intent (INOUT) :: ngll,ngllPML
-
-    integer :: ngll1,ngll2,i,j,k,nf,idx
-
-    do i = 0,Tdomain%sComm(n)%nb_faces-1
-        nf = Tdomain%sComm(n)%faces(i)
-        ngll1 = Tdomain%sFace(nf)%ngll1
-        ngll2 = Tdomain%sFace(nf)%ngll2
-        if (Tdomain%sFace(nf)%solid) then ! solide
-            if (Tdomain%sFace(nf)%PML) then
-                do j = 1,ngll2-2
-                    do k = 1,ngll1-2
-                        idx = Tdomain%sFace(nf)%Renum(k,j)
-                        Tdomain%DumpMass(idx) = Tdomain%DumpMass(idx) + &
-                                                Tdomain%sComm(n)%TakePML(ngllPML,0)
-                        Tdomain%DumpMass(idx+1) = Tdomain%DumpMass(idx+1) + &
-                                                  Tdomain%sComm(n)%TakePML(ngllPML,1)
-                        Tdomain%DumpMass(idx+2) = Tdomain%DumpMass(idx+2) + &
-                                                  Tdomain%sComm(n)%TakePML(ngllPML,2)
-                        Tdomain%MassMatSolPml(idx) = Tdomain%MassMatSolPml(idx) + &
-                                                     Tdomain%sComm(n)%TakePML(ngllPML,3)
-                        Tdomain%MassMatSolPml(idx+1) = Tdomain%MassMatSolPml(idx+1) + &
-                                                       Tdomain%sComm(n)%TakePML(ngllPML,3)
-                        Tdomain%MassMatSolPml(idx+2) = Tdomain%MassMatSolPml(idx+2) + &
-                                                       Tdomain%sComm(n)%TakePML(ngllPML,3)
-                        ngllPML = ngllPML + 1
-                    enddo
-                enddo
-            else
-                do j = 1,ngll2-2
-                    do k = 1,ngll1-2
-                        idx = Tdomain%sFace(nf)%Renum(k,j)
-                        Tdomain%MassMatSol(idx) = Tdomain%MassMatSol(idx) + &
-                                                  Tdomain%sComm(n)%Take(ngll)
-                        ngll = ngll + 1
-                    enddo
-                enddo
-            endif
-        else ! fluide
-            if (Tdomain%sFace(nf)%PML) then
-                !TODO
-                stop "comm_utils.f90 Comm_Mass_Face_2 PML fluide"
-            else
-                !TODO
-                stop "comm_utils.f90 Comm_Mass_Face_2 fluide"
-            endif
-        endif
-    enddo
-
-    return
-end subroutine Comm_Mass_Face_2
-
-subroutine Comm_Mass_Edge_2(Tdomain,n,ngll,ngllPML)
-    use sdomain
-    implicit none
-
-    type (Domain), intent (INOUT) :: Tdomain
-    integer, intent (IN) :: n
-    integer, intent (INOUT) :: ngll,ngllPML
-
-    integer :: ngll1,i,j,ne,idx
-
-    do i = 0,Tdomain%sComm(n)%nb_edges-1
-        ne = Tdomain%sComm(n)%edges(i)
-        ngll1 = Tdomain%sEdge(ne)%ngll
-        if (Tdomain%sEdge(ne)%solid) then
-            if (Tdomain%sEdge(ne)%PML) then
-                do j = 1,ngll1-2
-                    idx = Tdomain%sEdge(ne)%Renum(j)
-                    Tdomain%DumpMass(idx) = Tdomain%DumpMass(idx) + &
-                                            Tdomain%sComm(n)%TakePML(ngllPML,0)
-                    Tdomain%DumpMass(idx+1) = Tdomain%DumpMass(idx+1) + &
-                                              Tdomain%sComm(n)%TakePML(ngllPML,1)
-                    Tdomain%DumpMass(idx+2) = Tdomain%DumpMass(idx+2) + &
-                                              Tdomain%sComm(n)%TakePML(ngllPML,2)
-                    Tdomain%MassMatSolPml(idx) = Tdomain%MassMatSolPml(idx) + &
-                                                 Tdomain%sComm(n)%TakePML(ngllPML,3)
-                    Tdomain%MassMatSolPml(idx+1) = Tdomain%MassMatSolPml(idx+1) + &
-                                                   Tdomain%sComm(n)%TakePML(ngllPML,3)
-                    Tdomain%MassMatSolPml(idx+2) = Tdomain%MassMatSolPml(idx+2) + &
-                                                   Tdomain%sComm(n)%TakePML(ngllPML,3)
-                    ngllPML = ngllPML + 1
-                enddo
-            else
-                do j = 1,ngll1-2
-                    idx = Tdomain%sEdge(ne)%Renum(j)
-                    Tdomain%MassMatSol(idx) = Tdomain%MassMatSol(idx) + &
-                                                Tdomain%sComm(n)%Take(ngll)
-                    ngll = ngll + 1
-                enddo
-            endif
-        else
-            if (Tdomain%sEdge(ne)%PML) then
-                !TODO
-                stop "comm_utils.f90 Comm_Mass_Edge_2 PML fluide"
-            else
-                !TODO
-                stop "comm_utils.f90 Comm_Mass_Edge_2 fluide"
-            endif
-        endif
-    enddo
-
-    return
-end subroutine Comm_Mass_Edge_2
-
-subroutine Comm_Mass_Vertex_2(Tdomain,n,ngll,ngllPML)
-    use sdomain
-    implicit none
-
-    type (Domain), intent (INOUT) :: Tdomain
-    integer, intent (IN) :: n
-    integer, intent (INOUT) :: ngll,ngllPML
-
-    integer :: i,nv,idx
-
-    do i = 0,Tdomain%sComm(n)%nb_vertices-1
-        nv =  Tdomain%sComm(n)%vertices(i)
-        if (Tdomain%sVertex(nv)%solid) then
-            if (Tdomain%sVertex(nv)%PML) then
-                idx = Tdomain%sVertex(nv)%Renum
-                Tdomain%DumpMass(idx) = Tdomain%DumpMass(idx) + &
-                                        Tdomain%sComm(n)%TakePML(ngllPML,0)
-                Tdomain%DumpMass(idx+1) = Tdomain%DumpMass(idx+1) + &
-                                          Tdomain%sComm(n)%TakePML(ngllPML,1)
-                Tdomain%DumpMass(idx+2) = Tdomain%DumpMass(idx+2) + &
-                                          Tdomain%sComm(n)%TakePML(ngllPML,2)
-                Tdomain%MassMatSolPml(idx) = Tdomain%MassMatSolPml(idx) + &
-                                             Tdomain%sComm(n)%TakePML(ngllPML,3)
-                Tdomain%MassMatSolPml(idx+1) = Tdomain%MassMatSolPml(idx+1) + &
-                                               Tdomain%sComm(n)%TakePML(ngllPML,3)
-                Tdomain%MassMatSolPml(idx+2) = Tdomain%MassMatSolPml(idx+2) + &
-                                               Tdomain%sComm(n)%TakePML(ngllPML,3)
-                ngllPML = ngllPML + 1
-            else
-                idx = Tdomain%sVertex(nv)%Renum
-                Tdomain%MassMatSol(idx) = Tdomain%MassMatSol(idx) + &
-                                          Tdomain%sComm(n)%Take(ngll)
-                ngll = ngll + 1
-            endif
-        else
-            if (Tdomain%sVertex(nv)%PML) then
-                !TODO
-                stop "comm_utils.f90 Comm_Mass_Vertex_2 PML fluide"
-            else
-                !TODO
-                stop "comm_utils.f90 Comm_Mass_Vertex_2 fluide"
-            endif
-        endif
-    enddo
-
-    return
-end subroutine Comm_Mass_Vertex_2
-#endif
-
-#if ! NEW_GLOBAL_METHOD
 subroutine Comm_Mass_Face (Tdomain,n,ngll,ngllPML)
     use sdomain
     implicit none

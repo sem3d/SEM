@@ -6,17 +6,35 @@
 
 module scomms
 
-    type :: comm_vector_1d
-       integer, dimension(:), allocatable :: n
-       real, dimension(:,:), allocatable :: Give, Take
+    type :: exchange_vector
+       integer :: ndata ! Taille allouee de Give/Take
+       integer :: nsend ! Taille a echanger pour une communication (<=ndata)
+       integer :: nsol, nsolpml, nflu, nflupml ! Nombre de point de gauss a echanger pour chaque domaine
+       ! si on echange 4 ddl pour solpml et 2 pour sol alors ndata=2*nsol+4*nsolpml...
+       integer :: src, dest
+       real, dimension(:), allocatable :: Give, Take
+       integer, dimension(:), allocatable :: IGiveS, IGiveSPML, IGiveF, IGiveFPML
+       integer, dimension(:), allocatable :: ITakeS, ITakeSPML, ITakeF, ITakeFPML
+    end type
+
+    type :: comm_vector
+       integer :: ncomm
+       type(exchange_vector), dimension(:), allocatable :: Data ! dimmension : 0,ncomm-1
        integer, dimension(:), allocatable :: send_reqs
        integer, dimension(:), allocatable :: recv_reqs
-    end type comm_vector_1d
+    end type comm_vector 
 
-    type :: comm_vector_2d
-       integer :: n,m
-       real, dimension(:,:), pointer :: Give, Take
-    end type comm_vector_2d
+!     type :: comm_vector_1d
+!        integer, dimension(:), allocatable :: n
+!        real, dimension(:,:), allocatable :: Give, Take
+!        integer, dimension(:), allocatable :: send_reqs
+!        integer, dimension(:), allocatable :: recv_reqs
+!     end type comm_vector_1d
+! 
+!     type :: comm_vector_2d
+!        integer :: n,m
+!        real, dimension(:,:), pointer :: Give, Take
+!     end type comm_vector_2d
 
     type :: comm
 
@@ -61,17 +79,17 @@ module scomms
 
 contains
 
-    subroutine allocate_comm_vector_1d(vector, nprocs, n)
-        type(comm_vector_1d), intent(inout) :: vector
-        integer, intent(in) :: nprocs, n
-
-        allocate(vector%n(0:nprocs-1))
-        allocate(vector%recv_reqs(0:nprocs-1))
-        allocate(vector%send_reqs(0:nprocs-1))
-        allocate(vector%Give(0:n-1, 0:nprocs-1))
-        allocate(vector%Take(0:n-1, 0:nprocs-1))
-
-    end subroutine allocate_comm_vector_1d
+!     subroutine allocate_comm_vector_1d(vector, nprocs, n)
+!         type(comm_vector_1d), intent(inout) :: vector
+!         integer, intent(in) :: nprocs, n
+! 
+!         allocate(vector%n(0:nprocs-1))
+!         allocate(vector%recv_reqs(0:nprocs-1))
+!         allocate(vector%send_reqs(0:nprocs-1))
+!         allocate(vector%Give(0:n-1, 0:nprocs-1))
+!         allocate(vector%Take(0:n-1, 0:nprocs-1))
+! 
+!     end subroutine allocate_comm_vector_1d
 end module scomms
 !! Local Variables:
 !! mode: f90

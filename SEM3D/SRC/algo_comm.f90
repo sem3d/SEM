@@ -2,6 +2,38 @@ module scomm
 
 contains
 
+    subroutine exchange_sem_var(Tdomain, tag, vector)
+        use sdomain
+        use mpi
+        implicit none
+        type(domain), intent(inout) :: Tdomain
+        integer, intent(in) :: tag
+        type(comm_vector), intent(inout) :: vector
+
+        integer, dimension(MPI_STATUS_SIZE,vector%ncomm) :: statuses
+        integer :: dest, src, ierr, n, i
+
+        !- now we can exchange (communication global arrays)
+        vector%send_reqs = MPI_REQUEST_NULL
+        vector%recv_reqs = MPI_REQUEST_NULL
+
+        do i = 0,vector%ncomm-1
+            dest = vector%Data(i)%dest
+            src = vector%Data(i)%src
+            call MPI_Isend(vector%Data(i)%Give, vector%Data(i)%ndata, &
+                           MPI_DOUBLE_PRECISION, dest, tag, Tdomain%communicateur, &
+                           vector%send_reqs(i), ierr)
+
+            call MPI_Irecv(vector%Data(i)%Take, vector%Data(i)%ndata, &
+                           MPI_DOUBLE_PRECISION, dest, tag, Tdomain%communicateur, &
+                           vector%recv_reqs(i), ierr)
+        enddo
+
+        call MPI_Waitall(vector%ncomm, vector%recv_reqs, statuses, ierr)
+        call MPI_Waitall(vector%ncomm, vector%send_reqs, statuses, ierr)
+
+    end subroutine exchange_sem_var
+
 !    subroutine exchange_sem_1d(Tdomain, rg, tag, vector)
 !        use sdomain
 !        use mpi
@@ -54,7 +86,7 @@ contains
         integer, dimension(Tdomain%n_proc) :: send_req, recv_req, send_pml_req, recv_pml_req
         integer, parameter :: tag=101, tag_pml=102
         integer, dimension(MPI_STATUS_SIZE,Tdomain%n_proc) :: statuses
-        !write(*,*) "COMM 1"
+
         !- now we can exchange (communication global arrays)
         n = Tdomain%n_proc
         send_req = MPI_REQUEST_NULL

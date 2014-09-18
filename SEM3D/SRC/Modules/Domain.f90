@@ -89,7 +89,9 @@ module sdomain
        type(champs) :: champs1
 
        ! MassMat pour elements solide, fluide, solide pml et fluide pml
-       real, dimension(:), allocatable :: MassMatSol, MassMatFlu, MassMatSolPml, DumpMass
+       real, dimension(:), allocatable :: MassMatSol, MassMatFlu
+       real, dimension(:), allocatable :: MassMatSolPml, MassMatFluPml
+       real, dimension(:), allocatable :: DumpMass
 
        ! Interface Solide / PML
        integer :: nbInterfSolPml ! nombre de points de gauss à l'interface Solide / PML
@@ -99,6 +101,10 @@ module sdomain
         ! Permet par exemple de mettre a 0 le champs de vitesse pour certaines face, edge, vertex PML
         integer, dimension(:), allocatable :: OuterPMLNodes
         integer :: nbOuterPMLNodes
+
+        ! Communication
+        type(comm_vector) :: Comm_mass
+        type(comm_vector) :: Comm_forces
 #endif
 
     end type domain
