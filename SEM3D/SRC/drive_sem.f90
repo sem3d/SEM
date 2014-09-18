@@ -161,7 +161,6 @@ end subroutine INIT_MESSAGE
 !-----------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------
 subroutine RUN_PREPARED(Tdomain,rg)
-
     use sdomain
     use mCapteur
     use semdatafiles
@@ -169,6 +168,7 @@ subroutine RUN_PREPARED(Tdomain,rg)
     use msnapshots
     use semconfig !< pour config C
     use sem_c_bindings
+    use mdefinitions
 #ifdef COUPLAGE
     use scouplage
 #endif

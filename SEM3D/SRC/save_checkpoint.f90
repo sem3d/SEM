@@ -905,17 +905,17 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
-                        data(idx+ 0) = Tdomain%specel(n)%slpml%Veloc1(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%slpml%Veloc1(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%slpml%Veloc1(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%flpml%Veloc1(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%flpml%Veloc1(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%flpml%Veloc1(i,j,k,2)
                         idx = idx + 3
-                        data(idx+ 0) = Tdomain%specel(n)%slpml%Veloc2(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%slpml%Veloc2(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%slpml%Veloc2(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%flpml%Veloc2(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%flpml%Veloc2(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%flpml%Veloc2(i,j,k,2)
                         idx = idx + 3
-                        data(idx+ 0) = Tdomain%specel(n)%slpml%Veloc3(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%slpml%Veloc3(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%slpml%Veloc3(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%flpml%Veloc3(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%flpml%Veloc3(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%flpml%Veloc3(i,j,k,2)
                         idx = idx + 3
                     enddo
                 enddo
