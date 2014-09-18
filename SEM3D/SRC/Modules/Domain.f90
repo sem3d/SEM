@@ -103,8 +103,7 @@ module sdomain
         integer :: nbOuterPMLNodes
 
         ! Communication
-        type(comm_vector) :: Comm_mass
-        type(comm_vector) :: Comm_forces
+        type(comm_vector) :: Comm_data
 #endif
 
     end type domain

@@ -535,13 +535,11 @@ subroutine global_numbering(Tdomain,rank)
         endif
     enddo
 
-
-    call prepare_comm_vector(Tdomain,rank,Tdomain%Comm_mass, 1, 4, 1, 1)
-    call prepare_comm_vector(Tdomain,rank,Tdomain%Comm_forces, 3, 9, 1, 3)
-!     call debug_comm_vector(Tdomain, rank, 0, 1, Tdomain%Comm_mass)
-!     call debug_comm_vector(Tdomain, rank, 0, 2, Tdomain%Comm_mass)
-!     call debug_comm_vector(Tdomain, rank, 0, 3, Tdomain%Comm_mass)
-!     call debug_comm_vector(Tdomain, rank, 3, 0, Tdomain%Comm_mass)
+    call prepare_comm_vector(Tdomain,rank,Tdomain%Comm_data, 3, 9, 1, 3)
+!     call debug_comm_vector(Tdomain, rank, 0, 1, Tdomain%Comm_data)
+!     call debug_comm_vector(Tdomain, rank, 0, 2, Tdomain%Comm_data)
+!     call debug_comm_vector(Tdomain, rank, 0, 3, Tdomain%Comm_data)
+!     call debug_comm_vector(Tdomain, rank, 3, 0, Tdomain%Comm_data)
 
     deallocate(renumS)
     deallocate(renumSpml)
