@@ -166,8 +166,8 @@ contains
             f_lon = (f_lon-lon_min)/lon_delta
             f_lat = (f_lat-lat_min)/lat_delta
 
-            i_lon = aint(f_lon)
-            i_lat = aint(f_lat)
+            i_lon = int(f_lon)
+            i_lat = int(f_lat)
 
             wlon = f_lon-i_lon
             wlat = f_lat-i_lat

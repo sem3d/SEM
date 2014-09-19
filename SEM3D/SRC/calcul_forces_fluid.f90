@@ -19,13 +19,13 @@ subroutine calcul_forces_fluid(FFl,xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3,      &
     real, dimension(0:ngllz-1), intent(in) :: wheiz
 
     integer :: i,j,k,l
-    real :: sx,sy,sz,t4,F1,F2,F3
-    real :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
-    real :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
+    real :: sx,sy,sz,t4,F1
+    real :: t41,t11,t51,t12,t61,t13
+    real :: xt1,xt6,xt10
     real, parameter :: zero = 0.
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: xdens
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t1,t5,t8,t2,t6,t9
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t3,t7,t10
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t1,t6
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t10
 
 
     xdens(:,:,:) = 1d0/dens_(:,:,:)

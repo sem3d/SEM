@@ -88,6 +88,7 @@ contains
         integer :: which_nod
         real :: xi,eta,zeta
 
+        Comp_shapefunc = 0.0
         select case (which_nod)
         case (0)
             Comp_shapefunc = 0.125 * xi*(xi-1) * eta*(eta-1) * zeta*(zeta-1)

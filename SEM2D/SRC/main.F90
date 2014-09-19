@@ -50,7 +50,6 @@ subroutine  sem()
     integer :: isort
     character(len=MAX_FILE_SIZE) :: fnamef
     integer :: info_capteur
-    real(kind=8) :: remaining_time
     real(kind=8), parameter :: max_time_left=900
     integer :: getpid, pid
 
@@ -65,6 +64,8 @@ subroutine  sem()
     integer :: m_localComm, comm_super_mka
     integer :: n
     integer :: min_rank_glob_sem
+#else
+    real(kind=8) :: remaining_time
 #endif
     integer :: display_iter !! Indique si on doit faire des sortie lors de cette iteration
     real(kind=4), dimension(2) :: tarray
@@ -230,7 +231,7 @@ subroutine  sem()
 
 
     if (Tdomain%logicD%save_snapshots .or. Tdomain%logicD%save_deformation) then
-        Tdomain%timeD%nsnap = Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin
+        Tdomain%timeD%nsnap = int(Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin)
         if (Tdomain%timeD%nsnap == 0) Tdomain%timeD%nsnap = 1
         write(*,*) "Snapshot every ", Tdomain%timeD%nsnap, " iterations"
     endif
@@ -271,7 +272,7 @@ subroutine  sem()
         endif
 
 #ifdef COUPLAGE
-        call envoi_vitesse_mka(Tdomain, ntime) !! syst. lineaire vitesse
+        call envoi_vitesse_mka(Tdomain) !! syst. lineaire vitesse
 
         ! traitement de l arret
         ! comm entre le master_sem et le Tdomain%master_superviseur : reception de la valeur de l interruption

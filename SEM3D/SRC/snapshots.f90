@@ -331,7 +331,6 @@ contains
         type (domain), intent (IN):: Tdomain
         integer,intent(in) :: isort, rg
         character(Len=MAX_FILE_SIZE) :: temp
-        character(len=MAX_FILE_SIZE+10) :: creer_dir
         integer :: code, ierr
 
         if (rg==0) then
@@ -399,14 +398,9 @@ contains
         integer, dimension(:), intent(in), allocatable :: irenum
         !
         real, dimension(:,:), allocatable :: nodes
-        real, dimension(:,:), allocatable :: all_nodes
-        integer, dimension(:), allocatable :: displs, counts
-        integer(HSIZE_T), dimension(2) :: dims
-        integer :: n, ntot_nodes
-        integer(HID_T) :: nodes_id
-        integer :: hdferr, ierr
+        integer :: n
         integer :: nnodes_tot
-        
+        !
         allocate(nodes(0:2,0:nnodes-1))
         do n = 0, Tdomain%n_glob_points-1
             if (irenum(n)>=0) then
@@ -425,7 +419,6 @@ contains
         integer, dimension(:), intent(in), allocatable :: irenum
         integer, intent(in) :: rg
         !
-        integer(HID_T) :: elem_id, mat_id, ngll_id, globnum_id
         integer :: ngllx, nglly, ngllz
         integer(HSIZE_T), dimension(2) :: dims
         integer, dimension(:,:), allocatable :: data
@@ -434,7 +427,7 @@ contains
         integer :: count, ig, nglobnum
         integer :: i, j, k, n, nb_elem
         integer :: nb_elem_tot, nb_gll_tot, nglob_tot
-        integer :: hdferr, ioffset
+        integer :: ioffset
 
         ! First we count the number of hexaedrons
         count = 0
@@ -514,8 +507,7 @@ contains
         integer, intent(in) :: rg, isort
         !
         character (len=MAX_FILE_SIZE) :: fnamef
-        integer(HID_T) :: fid, displ_id, veloc_id, press_id
-        integer(HSIZE_T), dimension(2) :: dims
+        integer(HID_T) :: fid
         real, dimension(:,:),allocatable :: displ, veloc, accel
         real, dimension(:), allocatable :: press
         real, dimension(:,:,:,:),allocatable :: field_displ, field_veloc, field_accel
@@ -747,10 +739,7 @@ contains
         integer, dimension(:), intent(in), allocatable :: irenum
         integer, intent(in) :: nnodes
         !
-        integer(HID_T) :: mass_id, jac_id
-        integer(HSIZE_T), dimension(1) :: dims
         real, dimension(:),allocatable :: mass, jac
-        integer :: hdferr
         integer :: ngllx, nglly, ngllz, idx
         integer :: i, j, k, n, nnodes_tot
         

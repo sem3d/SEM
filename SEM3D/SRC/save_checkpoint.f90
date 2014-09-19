@@ -1071,7 +1071,7 @@ subroutine write_Edges(Tdomain, offset_e, edge_id)
 
     integer(HID_T) :: veloc_id, displ_id, veloc1_id, veloc2_id, veloc3_id,   &
                       velphi_id, phi_id, velphi1_id, velphi2_id, velphi3_id
-    integer :: n,ngll,idx1,idx2,idx3,idx4,idx5,idx6,i,j,hdferr
+    integer :: n,ngll,idx1,idx2,idx3,idx4,idx5,idx6,i,hdferr
     real(kind=8), dimension(1:offset_e(1)) :: veloc
     real(kind=8), dimension(1:offset_e(2)) :: displ
     real(kind=8), dimension(1:offset_e(3)) :: veloc1
@@ -1202,7 +1202,7 @@ subroutine write_Vertices(Tdomain, offset_v, vertex_id)
 
     integer(HID_T) :: veloc_id, displ_id, veloc1_id, veloc2_id, veloc3_id,  &
                       velphi_id, phi_id, velphi1_id, velphi2_id, velphi3_id
-    integer :: n,idx1,idx2,idx3,idx4,idx5,idx6,i,j,hdferr
+    integer :: n,idx1,idx2,idx3,idx4,idx5,idx6,hdferr
     real(kind=8), dimension(1:offset_v(1)) :: veloc
     real(kind=8), dimension(1:offset_v(2)) :: displ
     real(kind=8), dimension(1:offset_v(3)) :: veloc1
@@ -1327,15 +1327,11 @@ subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, isort)
     type (domain), intent (INOUT):: Tdomain
     integer, intent (IN) :: it, rg, isort
     real, intent (IN) :: rtime, dtmin
-    character (len=MAX_FILE_SIZE) :: fnamef, fnamer
-    !  complement de sauvegarde pour le partie facteur de qualite Qp et Qs
-    integer :: n_solid , i_sls
+    character (len=MAX_FILE_SIZE) :: fnamef
     ! HDF5 stuff
     integer :: hdferr
-    integer(HID_T) :: fid, dset_id, elem_id, face_id, edge_id, vertex_id
-    logical :: avail
-    integer :: nelem, noffset
-    integer :: size_vec, size_eps, size_epsaniso
+    integer(HID_T) :: fid, elem_id, face_id, edge_id, vertex_id
+    integer :: nelem
     integer(kind=4), dimension (12) :: offset
     integer(kind=4), dimension (6) :: offset_f ! Veloc / Displ / (Veloc1,Veloc2,Veloc3)
     integer(kind=4), dimension (6) :: offset_e ! Veloc / Displ / (Veloc1,Veloc2,Veloc3)
