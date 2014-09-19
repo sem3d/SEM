@@ -468,15 +468,16 @@ subroutine init_element_acoeff(Tdomain,specel,mat,whei)
   !- parts of the internal forces terms: Acoeff; to be compared to
   !  general expressions = products of material properties and nabla operators
 
-  !if(.not. specel%PML)then
-  !   if(specel%solid)then
-  !      call define_Acoeff_iso(ngllx,nglly,ngllz,Rkmod,Rmu,Rlam,xix,xiy,xiz,    &
-  !           etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,specel%Acoeff)
-  !   else   ! fluid case
-  !      call define_Acoeff_fluid(ngllx,nglly,ngllz,specel%Density,xix,xiy,xiz,    &
-  !           etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,specel%Acoeff)
-  !   end if
-  !endif
+  if(.not. specel%PML .and. .false.)then
+      ! On n'utilise pas les Acoef pour l'instant
+      if(specel%solid)then
+          call define_Acoeff_iso(ngllx,nglly,ngllz,Rkmod,specel%Mu,specel%Lambda,xix,xiy,xiz,    &
+              etax,etay,etaz,zetax,zetay,zetaz,Whei,specel%Jacob,specel%sl%Acoeff)
+      else   ! fluid case
+          call define_Acoeff_fluid(ngllx,nglly,ngllz,specel%Density,xix,xiy,xiz,    &
+              etax,etay,etaz,zetax,zetay,zetaz,Whei,specel%Jacob,specel%fl%Acoeff)
+      end if
+  endif
 
   if(specel%PML)then   ! PML case: valid for solid and fluid parts
      if(specel%solid)then
@@ -568,34 +569,34 @@ subroutine init_pml_properties(Tdomain,specel,mat,Whei)
      ! Compute DumpS(x,y,z) and DumpMass(0,1,2)
 #if NEW_GLOBAL_METHOD
      call define_PML_DumpInit_2(ngllx,nglly,ngllz,mat%Dt,freq,wx,specel%MassMat, &
-          specel%slpml%DumpSx,specel%slpml%DumpMass(:,:,:,0))
+          specel%xpml%DumpSx,specel%xpml%DumpMass(:,:,:,0))
      call define_PML_DumpInit_2(ngllx,nglly,ngllz,mat%Dt,freq,wy,specel%MassMat, &
-          specel%slpml%DumpSy,specel%slpml%DumpMass(:,:,:,1))
+          specel%xpml%DumpSy,specel%xpml%DumpMass(:,:,:,1))
      call define_PML_DumpInit_2(ngllx,nglly,ngllz,mat%Dt,freq,wz,specel%MassMat, &
-          specel%slpml%DumpSz,specel%slpml%DumpMass(:,:,:,2))
+          specel%xpml%DumpSz,specel%xpml%DumpMass(:,:,:,2))
 
      call assemble_DumpMass(Tdomain,specel)
 
 #else
      call define_PML_DumpInit(ngllx,nglly,ngllz,mat%Dt,freq,wx,specel%MassMat, &
-          specel%slpml%DumpSx,specel%slpml%DumpMass(:,:,:,0))
+         specel%xpml%DumpSx,specel%xpml%DumpMass(:,:,:,0))
      call define_PML_DumpInit(ngllx,nglly,ngllz,mat%Dt,freq,wy,specel%MassMat, &
-          specel%slpml%DumpSy,specel%slpml%DumpMass(:,:,:,1))
+         specel%xpml%DumpSy,specel%xpml%DumpMass(:,:,:,1))
      call define_PML_DumpInit(ngllx,nglly,ngllz,mat%Dt,freq,wz,specel%MassMat, &
-          specel%slpml%DumpSz,specel%slpml%DumpMass(:,:,:,2))
+         specel%xpml%DumpSz,specel%xpml%DumpMass(:,:,:,2))
 #endif
 
      if(specel%FPML)then
         ! Compute Is(xyz) and Iv(xyz)
         call define_FPML_DumpInit(ngllx,nglly,ngllz,mat%Dt,        &
              mat%freq,wx,specel%MassMat, &
-             specel%slpml%DumpSx,specel%slpml%Isx,specel%slpml%Ivx)
+             specel%xpml%DumpSx,specel%slpml%Isx,specel%slpml%Ivx)
         call define_FPML_DumpInit(ngllx,nglly,ngllz,mat%Dt,        &
              mat%freq,wy,specel%MassMat,             &
-             specel%slpml%DumpSy,specel%slpml%Isy,specel%slpml%Ivy)
+             specel%xpml%DumpSy,specel%slpml%Isy,specel%slpml%Ivy)
         call define_FPML_DumpInit(ngllx,nglly,ngllz,mat%Dt,        &
              mat%freq,wz,specel%MassMat,             &
-             specel%slpml%DumpSz, specel%slpml%Isz,specel%slpml%Ivz)
+             specel%xpml%DumpSz,specel%slpml%Isz,specel%slpml%Ivz)
      endif
      deallocate(wx,wy,wz)
 
@@ -624,21 +625,22 @@ subroutine finalize_pml_properties(Tdomain)
 
 #else
             call define_PML_DumpEnd(n,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-                    Tdomain%specel(n)%slpml%DumpMass(:,:,:,0),Tdomain%specel(n)%slpml%DumpVx)
+                Tdomain%specel(n)%xpml%DumpMass(:,:,:,0),Tdomain%specel(n)%xpml%DumpVx)
             call define_PML_DumpEnd(n,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-                    Tdomain%specel(n)%slpml%DumpMass(:,:,:,1),Tdomain%specel(n)%slpml%DumpVy)
+                Tdomain%specel(n)%xpml%DumpMass(:,:,:,1),Tdomain%specel(n)%xpml%DumpVy)
             call define_PML_DumpEnd(n,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-                    Tdomain%specel(n)%slpml%DumpMass(:,:,:,2),Tdomain%specel(n)%slpml%DumpVz)
+                Tdomain%specel(n)%xpml%DumpMass(:,:,:,2),Tdomain%specel(n)%xpml%DumpVz)
+
             if(Tdomain%specel(n)%FPML)then
                 call define_FPML_DumpEnd(0,ngllx,nglly,ngllz,&
-                     Tdomain%specel(n)%slpml%DumpVx,Tdomain%specel(n)%slpml%Ivx)
+                    Tdomain%specel(n)%xpml%DumpVx,Tdomain%specel(n)%slpml%Ivx)
                 call define_FPML_DumpEnd(1,ngllx,nglly,ngllz,&
-                     Tdomain%specel(n)%slpml%DumpVy,Tdomain%specel(n)%slpml%Ivy)
+                    Tdomain%specel(n)%xpml%DumpVy,Tdomain%specel(n)%slpml%Ivy)
                 call define_FPML_DumpEnd(2,ngllx,nglly,ngllz,&
-                     Tdomain%specel(n)%slpml%DumpVz,Tdomain%specel(n)%slpml%Ivz)
+                    Tdomain%specel(n)%xpml%DumpVz,Tdomain%specel(n)%slpml%Ivz)
             end if
 #endif
-            deallocate(Tdomain%specel(n)%slpml%DumpMass)
+            deallocate(Tdomain%specel(n)%xpml%DumpMass)
         end if
      end do
 #if ! NEW_GLOBAL_METHOD
@@ -1182,12 +1184,12 @@ subroutine assemble_DumpMass(Tdomain,specel)
                     if (specel%solid) then
                         Tdomain%DumpMass(specel%slpml%ISolPml(i,j,k)+m) = &
                             Tdomain%DumpMass(specel%slpml%ISolPml(i,j,k)+m) &
-                            + specel%slpml%DumpMass(i,j,k,m)
+                            + specel%xpml%DumpMass(i,j,k,m)
                     else
                         !todo
                         !Tdomain%DumpMass(specel%flpml%IFluPml(i,j,k),:) = &
                         !    Tdomain%DumpMass(specel%flpml%IFluPml(i,j,k),:) &
-                        !    + specel%slpml%DumpMass(i,j,k,:)
+                        !    + specel%xpml%DumpMass(i,j,k,:)
                     endif
                 enddo
             enddo

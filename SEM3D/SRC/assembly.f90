@@ -407,7 +407,7 @@ contains
                 Tdomain%sEdge(nne)%MassMat,Tdomain%specel(n)%MassMat)
             if(Tdomain%sEdge(nne)%PML)then
                 call get_VectProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
-                    Tdomain%sEdge(nne)%spml%DumpMass(:,0:2),Tdomain%specel(n)%slpml%DumpMass(:,:,:,0:2))
+                    Tdomain%sEdge(nne)%spml%DumpMass(:,0:2),Tdomain%specel(n)%xpml%DumpMass(:,:,:,0:2))
                 if(Tdomain%sEdge(nne)%FPML)then
                     call get_ScalarProperty_Elem2edge(ne,orient_e,ngllx,nglly,ngllz,ngll,  &
                         Tdomain%sEdge(nne)%spml%Ivx(:),Tdomain%specel(n)%slpml%Ivx(:,:,:))
@@ -448,7 +448,7 @@ contains
                 Tdomain%sFace(nnf)%MassMat(:,:),Tdomain%specel(n)%MassMat(:,:,:))
             if(Tdomain%sFace(nnf)%PML)then
                 call get_VectProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
-                    Tdomain%sFace(nnf)%spml%DumpMass(:,:,0:2),Tdomain%specel(n)%slpml%DumpMass(:,:,:,0:2))
+                    Tdomain%sFace(nnf)%spml%DumpMass(:,:,0:2),Tdomain%specel(n)%xpml%DumpMass(:,:,:,0:2))
                 if(Tdomain%sFace(nnf)%FPML)then
                     call get_ScalarProperty_Elem2face(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll2,  &
                         Tdomain%sFace(nnf)%spml%Ivx(:,:),Tdomain%specel(n)%slpml%Ivx(:,:,:))
@@ -485,7 +485,7 @@ contains
                 Tdomain%sVertex(nnv)%MassMat,Tdomain%specel(n)%MassMat(:,:,:))
             if(Tdomain%sVertex(nnv)%PML)then
                 call get_VectProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
-                    Tdomain%sVertex(nnv)%spml%DumpMass(0:2),Tdomain%specel(n)%slpml%DumpMass(:,:,:,0:2))
+                    Tdomain%sVertex(nnv)%spml%DumpMass(0:2),Tdomain%specel(n)%xpml%DumpMass(:,:,:,0:2))
                 if(Tdomain%sVertex(nnv)%FPML)then
                     call get_ScalarProperty_Elem2vertex(nv,ngllx,nglly,ngllz,  &
                         Tdomain%sVertex(nnv)%spml%Ivx,Tdomain%specel(n)%slpml%Ivx(:,:,:))
