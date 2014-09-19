@@ -14,10 +14,11 @@ module snewmark_dg
     implicit none
 contains
 
-subroutine Newmark_DG (Tdomain)
+subroutine Newmark_DG (Tdomain,Dt)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
+    real,    intent(in)   :: dt
 
     ! local variables
     integer :: ns, ncc,i,j,n,np, ngllx, ngllz, mat, nelem,nf, w_face, nv_aus, nf_aus, nv
@@ -32,12 +33,30 @@ subroutine Newmark_DG (Tdomain)
 
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a
     ! Time staggered Stress-Velocity formulation inside PML
+    alpha =Tdomain%TimeD%alpha
+    bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
+    gam1 = 1. / Tdomain%TimeD%gamma
+
 
     ! Predictor Phase
 
+    do n=0,Tdomain%n_elem-1
+        alpha =Tdomain%TimeD%alpha
+        bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
+        gam1 = 1. / Tdomain%TimeD%gamma
+        Tdomain%specel(n)%Vect_RK(:,:,2:4) = Tdomain%specel(n)%Strain(:,:,:) &
+                                           + Dt * (1-bega) * Tdomain%specel(n)%Veloc(:,:)
+        Tdomain%specel(n)%Vect_RK(:,:,0:1) = 0.
+    enddo
 
-
-
+    ! Multicorrector phase :
+    i = 0
+    do while (resid >= something)
+        do n=0,Tdomain%n_elem-1
+            call compute_internal_forces ()
+        enddo
+        i = i+1
+    enddo
 
 
     return
