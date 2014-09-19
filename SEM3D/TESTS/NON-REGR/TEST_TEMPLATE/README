@@ -1,0 +1,43 @@
+Description
+===========
+
+Nprocs : %(nprocs)s
+
+Maillage
+--------
+
+Commande ::
+
+  mesher < mesh.input
+
+Un cube de :
+
+- X : %(xmin)s -> %(xmax)s, mailles de %(xstep)s
+
+- Y : %(ymin)s -> %(ymax)s, mailles de %(ystep)s
+
+- Z : %(nblayers)s couche(s) à partir de %(zmax)s
+
+%(txtlayer)s
+
+
+%(nglls) par maille
+
+Source
+------
+
+Type : %(stype)s
+
+Forme d'onde : %(sfunc)s
+
+Duree simu : 5
+
+Capteurs
+--------
+
+Deplacements : A(100,0), B(200,0), C(300,0) D(400,0) E(500,0)
+
+Validation
+----------
+
+Comparaison avec signal de reference.
