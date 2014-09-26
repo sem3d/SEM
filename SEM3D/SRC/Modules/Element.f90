@@ -16,9 +16,6 @@ module selement
        real, dimension(:,:,:,:), allocatable :: Cij
 
        real, dimension(:,:,:,:), allocatable :: ACoeff
-#if ! NEW_GLOBAL_METHOD
-        real, dimension(:,:,:,:), allocatable :: Forces,Veloc,Displ,Accel,V0
-#endif
 
         ! Attenuation
        real, dimension (:,:,:), allocatable :: Q, Qs, Qp, onemSbeta, onemPbeta, &
@@ -33,10 +30,6 @@ module selement
 
     type :: element_fluid
        real, dimension(:,:,:,:), allocatable :: ACoeff
-#if ! NEW_GLOBAL_METHOD
-       real, dimension(:,:,:), allocatable:: Phi,VelPhi0,VelPhi,AccelPhi
-       real, dimension(:,:,:), allocatable:: ForcesFl
-#endif
     end type element_fluid
 
     type :: element_pml
@@ -49,28 +42,20 @@ module selement
        real, dimension(:,:,:,:), allocatable :: Diagonal_Stress1, Diagonal_Stress2, Diagonal_Stress3
        real, dimension(:,:,:,:), allocatable :: Residual_Stress1, Residual_Stress2, Residual_Stress3
        real, dimension(:,:,:,:), allocatable :: Forces1,Forces2,Forces3
-#if ! NEW_GLOBAL_METHOD
-       real, dimension(:,:,:,:), allocatable :: Veloc1,Veloc2,Veloc3
-#endif
        ! FPML
        real, dimension(:,:,:), allocatable :: Isx, Isy, Isz
        real, dimension(:,:,:), allocatable :: Ivx, Ivy, Ivz
        real, dimension(:,:,:,:), allocatable :: Iveloc1, Iveloc2, Iveloc3
        real, dimension(:,:,:,:), allocatable :: I_Diagonal_Stress1, I_Diagonal_Stress2, I_Diagonal_Stress3
        real, dimension(:,:,:,:), allocatable :: I_Residual_Stress1, I_Residual_Stress2
-
+       real, dimension(:,:,:,:), allocatable :: DumpMass
        real, dimension(:,:,:,:), allocatable :: Diagonal_Stress, Residual_Stress
        real, dimension(:,:), allocatable :: Normales, Inv_Normales
-#if NEW_GLOBAL_METHOD
        integer, dimension (:,:,:), allocatable :: ISolPml
-#endif
     end type element_solid_pml
 
     type :: element_fluid_pml
-
-#if NEW_GLOBAL_METHOD
         integer, dimension (:,:,:), allocatable :: IFluPml
-#endif
         real, dimension(:,:,:,:), allocatable :: Veloc
         real, dimension(:,:,:,:), allocatable :: Veloc1,Veloc2,Veloc3
         real, dimension(:,:,:), allocatable :: ForcesFl1,ForcesFl2,ForcesFl3
@@ -103,9 +88,7 @@ module selement
        type(element_pml), allocatable :: xpml
        type(element_solid_pml), allocatable :: slpml
        type(element_fluid_pml), allocatable :: flpml
-#if NEW_GLOBAL_METHOD
-	   integer, dimension (:,:,:), allocatable :: ISol, IFlu
-#endif
+       integer, dimension (:,:,:), allocatable :: ISol, IFlu
        real :: dist_max !! taille caracteristique de l'element
     end type element
 
@@ -142,92 +125,7 @@ contains
         return
     end function get_domain
 
-#if ! NEW_GLOBAL_METHOD
-    !--------------------------------------------------------------
-    !>
-    !! \fn subroutine Prediction_Elem_Veloc (Elem,alpha,bega, gam1,dt)
-    !! \brief
-    !!
-    !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (IN) bega
-    !! \param real, intent (IN) gam1
-    !! \param real, intent (IN) dt
-    !! \param real, intent (IN) alpha
-    !<
-    subroutine Prediction_Elem_Veloc(Elem)
-
-        implicit none
-
-        type(Element), intent(inout) :: Elem
-        integer :: ngllx, nglly, ngllz
-
-
-        ngllx = Elem%ngllx ; nglly = Elem%nglly ; ngllz = Elem%ngllz
-
-        Elem%sl%Forces(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2) = Elem%sl%Displ
-        Elem%sl%V0 = Elem%sl%Veloc
-
-        return
-    end subroutine Prediction_Elem_Veloc
-    !--------------------------------------------------------------------------------
-    !--------------------------------------------------------------------------------
-    subroutine Prediction_Elem_VelPhi(Elem,dt)
-        implicit none
-        type(Element), intent(inout) :: Elem
-        real, intent(in) :: dt
-        integer :: ngllx, nglly, ngllz
-
-        ngllx = Elem%ngllx ;  nglly = Elem%nglly ; ngllz = Elem%ngllz
-        Elem%fl%VelPhi0(:,:,:) = Elem%fl%VelPhi(:,:,:)
-        Elem%fl%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2) = Elem%fl%Phi(:,:,:)
-        return
-    end subroutine Prediction_Elem_VelPhi
-    !--------------------------------------------------------------------------------
-    !--------------------------------------------------------------------------------
-    !>
-    !! \fn subroutine Correction_Elem_Veloc (Elem, bega, gam1,dt)
-    !! \brief
-    !!
-    !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (IN) dt
-    !<
-    subroutine Correction_Elem_Veloc(Elem,dt)
-        implicit none
-        type(Element), intent(inout) :: Elem
-        real, intent(in) :: dt
-        integer :: ngllx, nglly, ngllz, i
-
-
-        ngllx = Elem%ngllx ;  nglly = Elem%nglly ; ngllz = Elem%ngllz
-        do i = 0,2
-            Elem%sl%Forces(1:ngllx-2,1:nglly-2, 1:ngllz-2,i) = Elem%MassMat(:,:,:)*    &
-                Elem%sl%Forces(1:ngllx-2,1:nglly-2,1:ngllz-2,i)
-        enddo
-        Elem%sl%Veloc(:,:,:,:) = Elem%sl%v0(:,:,:,:) + dt * Elem%sl%Forces(1:ngllx-2,1:nglly-2,1:ngllz-2,:)
-        Elem%sl%Accel  =  (Elem%sl%Veloc-Elem%sl%V0)/dt
-        Elem%sl%Displ = Elem%sl%Displ + dt * Elem%sl%Veloc
-
-        return
-    end subroutine Correction_Elem_Veloc
-    !--------------------------------------------------------------------------------
-    !--------------------------------------------------------------------------------
-    subroutine Correction_Elem_VelPhi(Elem,dt)
-        implicit none
-        type(Element), intent(inout) :: Elem
-        real, intent(in) :: dt
-        integer :: ngllx, nglly, ngllz
-
-        ngllx = Elem%ngllx ;  nglly = Elem%nglly ; ngllz = Elem%ngllz
-
-        Elem%fl%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2) = Elem%MassMat(:,:,:)*    &
-            Elem%fl%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2)
-        Elem%fl%VelPhi(:,:,:) = Elem%fl%VelPhi0(:,:,:)+ dt * Elem%fl%ForcesFl(1:ngllx-2,1:nglly-2,1:ngllz-2)
-        Elem%fl%AccelPhi  = (Elem%fl%VelPhi-Elem%fl%VelPhi0)/dt
-        Elem%fl%Phi = Elem%fl%Phi + dt*Elem%fl%VelPhi
-
-        return
-    end subroutine Correction_Elem_VelPhi
-
+#if 0
     !--------------------------------------------------------------------------------
     !--------------------------------------------------------------------------------
     !>
@@ -383,6 +281,7 @@ contains
 
         return
     end subroutine compute_InternalForces_Elem_Fluid
+#endif
 
     !--------------------------------------------------------------------------------
     !--------------------------------------------------------------------------------
@@ -399,92 +298,9 @@ contains
     !! \param real, intent (IN) dt
     !! \param real, intent (IN) alpha
     !<
-    subroutine Prediction_Elem_PML_Veloc(Elem,bega,dt,hprimex,Hprimey,Hprimez,rg,n)
-
-        implicit none
-
-        type (Element), intent (INOUT) :: Elem
-        real, intent (IN) :: bega, dt
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprimex
-        real, dimension (0:Elem%nglly-1, 0:Elem%nglly-1), intent (IN) :: hprimey
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
-        integer, intent (IN) :: rg, n
-
-        real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVx_dxi,dVx_deta,dVx_dzeta, &
-            dVy_dxi,dVy_deta,dVy_dzeta, dVz_dxi,dVz_deta,dVz_dzeta
-
-        integer :: m1, m2,m3
-
-
-        m1 = Elem%ngllx; m2 = Elem%nglly;  m3= Elem%ngllz
-  ! useless as bega = 1/2 in general
-        Elem%sl%Forces(1:m1-2,1:m2-2, 1:m3-2,0:2)  = Elem%sl%Veloc(:,:,:,:) + dt *(0.5-bega) *Elem%sl%Accel(:,:,:,:)
-
-        ! partial of velocity components with respect to xi,eta,zeta
-        call elem_part_deriv(m1,m2,m3,hprimex,hprimey,hprimez,Elem%sl%Forces(:,:,:,0),dVx_dxi,dVx_deta,dVx_dzeta)
-        call elem_part_deriv(m1,m2,m3,hprimex,hprimey,hprimez,Elem%sl%Forces(:,:,:,1),dVy_dxi,dVy_deta,dVy_dzeta)
-        call elem_part_deriv(m1,m2,m3,hprimex,hprimey,hprimez,Elem%sl%Forces(:,:,:,2),dVz_dxi,dVz_deta,dVz_dzeta)
-
-
-  ! Stress_xx
-   ! (Stress_xx)^x
-        Elem%slpml%Diagonal_Stress1 (:,:,:,0) = Elem%xpml%DumpSx(:,:,:,0) * Elem%slpml%Diagonal_Stress1 (:,:,:,0) + &
-            Elem%xpml%DumpSx(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,0) * dVx_dxi + Elem%sl%Acoeff(:,:,:,1) * dVx_deta + Elem%sl%Acoeff(:,:,:,2) * dVx_dzeta)
-   ! (Stress_xx)^y
-        Elem%slpml%Diagonal_Stress2 (:,:,:,0) = Elem%xpml%DumpSy(:,:,:,0) * Elem%slpml%Diagonal_Stress2 (:,:,:,0) + &
-            Elem%xpml%DumpSy(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,3) * dVy_dxi + Elem%sl%Acoeff(:,:,:,4) * dVy_deta + Elem%sl%Acoeff(:,:,:,5) * dVy_dzeta)
-   ! (Stress_xx)^z
-        Elem%slpml%Diagonal_Stress3 (:,:,:,0) = Elem%xpml%DumpSz(:,:,:,0) * Elem%slpml%Diagonal_Stress3 (:,:,:,0) + &
-            Elem%xpml%DumpSz(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,6) * dVz_dxi + Elem%sl%Acoeff(:,:,:,7) * dVz_deta + Elem%sl%Acoeff(:,:,:,8) * dVz_dzeta)
-
-  ! Stress_yy
-        Elem%slpml%Diagonal_Stress1 (:,:,:,1) = Elem%xpml%DumpSx(:,:,:,0) * Elem%slpml%Diagonal_Stress1 (:,:,:,1) + &
-            Elem%xpml%DumpSx(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,9) * dVx_dxi + Elem%sl%Acoeff(:,:,:,10) * dVx_deta + Elem%sl%Acoeff(:,:,:,11) * dVx_dzeta)
-        Elem%slpml%Diagonal_Stress2 (:,:,:,1) = Elem%xpml%DumpSy(:,:,:,0) * Elem%slpml%Diagonal_Stress2 (:,:,:,1) + &
-            Elem%xpml%DumpSy(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,12) * dVy_dxi + Elem%sl%Acoeff(:,:,:,13) * dVy_deta + Elem%sl%Acoeff(:,:,:,14) * dVy_dzeta)
-        Elem%slpml%Diagonal_Stress3 (:,:,:,1) = Elem%xpml%DumpSz(:,:,:,0) * Elem%slpml%Diagonal_Stress3 (:,:,:,1) + &
-            Elem%xpml%DumpSz(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,6) * dVz_dxi + Elem%sl%Acoeff(:,:,:,7) * dVz_deta + Elem%sl%Acoeff(:,:,:,8) * dVz_dzeta)
-
-  ! Stress_zz
-        Elem%slpml%Diagonal_Stress1 (:,:,:,2) = Elem%xpml%DumpSx(:,:,:,0) * Elem%slpml%Diagonal_Stress1 (:,:,:,2) + &
-            Elem%xpml%DumpSx(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,9) * dVx_dxi + Elem%sl%Acoeff(:,:,:,10) * dVx_deta + Elem%sl%Acoeff(:,:,:,11) * dVx_dzeta)
-        Elem%slpml%Diagonal_Stress2 (:,:,:,2) = Elem%xpml%DumpSy(:,:,:,0) * Elem%slpml%Diagonal_Stress2 (:,:,:,2) + &
-            Elem%xpml%DumpSy(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,3) * dVy_dxi + Elem%sl%Acoeff(:,:,:,4) * dVy_deta + Elem%sl%Acoeff(:,:,:,5) * dVy_dzeta)
-        Elem%slpml%Diagonal_Stress3 (:,:,:,2) = Elem%xpml%DumpSz(:,:,:,0) * Elem%slpml%Diagonal_Stress3 (:,:,:,2) + &
-            Elem%xpml%DumpSz(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,15) * dVz_dxi + Elem%sl%Acoeff(:,:,:,16) * dVz_deta + Elem%sl%Acoeff(:,:,:,17) * dVz_dzeta)
-
-        Elem%slpml%Diagonal_Stress = Elem%slpml%Diagonal_Stress1 + Elem%slpml%Diagonal_Stress2 + Elem%slpml%Diagonal_Stress3
-
-  ! Stress_xy
-        Elem%slpml%Residual_Stress1 (:,:,:,0) = Elem%xpml%DumpSx(:,:,:,0) * Elem%slpml%Residual_Stress1 (:,:,:,0) + &
-            Elem%xpml%DumpSx(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,18) * dVy_dxi + Elem%sl%Acoeff(:,:,:,19) * dVy_deta + Elem%sl%Acoeff(:,:,:,20) * dVy_dzeta)
-        Elem%slpml%Residual_Stress2 (:,:,:,0) = Elem%xpml%DumpSy(:,:,:,0) * Elem%slpml%Residual_Stress2 (:,:,:,0) + &
-            Elem%xpml%DumpSy(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,21) * dVx_dxi + Elem%sl%Acoeff(:,:,:,22) * dVx_deta + Elem%sl%Acoeff(:,:,:,23) * dVx_dzeta)
-        Elem%slpml%Residual_Stress3 (:,:,:,0) = Elem%xpml%DumpSz(:,:,:,0) * Elem%slpml%Residual_Stress3 (:,:,:,0)
-
-  ! Stress_xz
-        Elem%slpml%Residual_Stress1 (:,:,:,1) = Elem%xpml%DumpSx(:,:,:,0) * Elem%slpml%Residual_Stress1 (:,:,:,1) + &
-            Elem%xpml%DumpSx(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,18) * dVz_dxi + Elem%sl%Acoeff(:,:,:,19) * dVz_deta + Elem%sl%Acoeff(:,:,:,20) * dVz_dzeta)
-        Elem%slpml%Residual_Stress2 (:,:,:,1) = Elem%xpml%DumpSy(:,:,:,0) * Elem%slpml%Residual_Stress2 (:,:,:,1)
-        Elem%slpml%Residual_Stress3 (:,:,:,1) = Elem%xpml%DumpSz(:,:,:,0) * Elem%slpml%Residual_Stress3 (:,:,:,1) + &
-            Elem%xpml%DumpSz(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,24) * dVx_dxi + Elem%sl%Acoeff(:,:,:,25) * dVx_deta + Elem%sl%Acoeff(:,:,:,26) * dVx_dzeta)
-
-  ! Stress_yz
-        Elem%slpml%Residual_Stress1 (:,:,:,2) = Elem%xpml%DumpSx(:,:,:,0) * Elem%slpml%Residual_Stress1 (:,:,:,2)
-        Elem%slpml%Residual_Stress2 (:,:,:,2) = Elem%xpml%DumpSy(:,:,:,0) * Elem%slpml%Residual_Stress2 (:,:,:,2) + &
-            Elem%xpml%DumpSy(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,21) * dVz_dxi + Elem%sl%Acoeff(:,:,:,22) * dVz_deta + Elem%sl%Acoeff(:,:,:,23) * dVz_dzeta)
-        Elem%slpml%Residual_Stress3 (:,:,:,2) = Elem%xpml%DumpSz(:,:,:,0) * Elem%slpml%Residual_Stress3 (:,:,:,2) + &
-            Elem%xpml%DumpSz(:,:,:,1) * Dt * (Elem%sl%Acoeff(:,:,:,24) * dVy_dxi + Elem%sl%Acoeff(:,:,:,25) * dVy_deta + Elem%sl%Acoeff(:,:,:,26) * dVy_dzeta)
-
-        Elem%slpml%Residual_Stress = Elem%slpml%Residual_Stress1 + Elem%slpml%Residual_Stress2 + Elem%slpml%Residual_Stress3
-
-        return
-    end subroutine Prediction_Elem_PML_Veloc
-#endif
     !--------------------------------------------------------------------------------
     !--------------------------------------------------------------------------------
-#if NEW_GLOBAL_METHOD
-    subroutine Prediction_Elem_PML_Veloc_2(Elem,bega,dt,hprimex,Hprimey,Hprimez, ngll_pmls, Vitesses, Forces)
+    subroutine Prediction_Elem_PML_Veloc(Elem,bega,dt,hprimex,Hprimey,Hprimez, ngll_pmls, Vitesses, Forces)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
@@ -574,11 +390,10 @@ contains
         Elem%slpml%Residual_Stress = Elem%slpml%Residual_Stress1 + Elem%slpml%Residual_Stress2 + Elem%slpml%Residual_Stress3
 
         return
-    end subroutine Prediction_Elem_PML_Veloc_2
-#endif
+    end subroutine Prediction_Elem_PML_Veloc
     !--------------------------------------------------------------------------------
     !--------------------------------------------------------------------------------
-#if ! NEW_GLOBAL_METHOD
+#if 0
     subroutine Prediction_Elem_PML_VelPhi(Elem,bega,dt,hprimex,Hprimey,Hprimez)
         ! same as previously, but for fluid part
         implicit none
@@ -778,42 +593,6 @@ contains
 
     !------------------------------------------------------------------
     !------------------------------------------------------------------
-    !>
-    !! \fn subroutine Correction_Elem_PML_Veloc (Elem, dt)
-    !! \brief
-    !!
-    !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (IN) dt
-    !<
-    subroutine Correction_Elem_PML_Veloc(Elem,dt)
-
-        implicit none
-
-        type(Element), intent(inout) :: Elem
-        real, intent(in) :: dt
-        integer :: ngllx, nglly, ngllz, i
-
-        ngllx = Elem%ngllx; nglly = Elem%nglly; ngllz = Elem%ngllz
-
-
-        do i = 0,2
-            Elem%slpml%Veloc1(:,:,:,i) = Elem%xpml%DumpVx(:,:,:,0) * Elem%slpml%Veloc1(:,:,:,i) +    &
-                dt * Elem%xpml%DumpVx(:,:,:,1)*Elem%slpml%Forces1(1:ngllx-2,1:nglly-2,1:ngllz-2,i)
-            Elem%slpml%Veloc2(:,:,:,i) = Elem%xpml%DumpVy(:,:,:,0) * Elem%slpml%Veloc2(:,:,:,i) +    &
-                dt * Elem%xpml%DumpVy(:,:,:,1)*Elem%slpml%Forces2(1:ngllx-2,1:nglly-2,1:ngllz-2,i)
-            Elem%slpml%Veloc3(:,:,:,i) = Elem%xpml%DumpVz(:,:,:,0) * Elem%slpml%Veloc3(:,:,:,i) +    &
-                dt * Elem%xpml%DumpVz(:,:,:,1)*Elem%slpml%Forces3(1:ngllx-2,1:nglly-2,1:ngllz-2,i)
-        enddo
-
-        Elem%sl%Veloc = Elem%slpml%Veloc1 + Elem%slpml%Veloc2 + Elem%slpml%Veloc3
-        ! Usefull only for traces and debug
-        Elem%sl%Displ = Elem%sl%Displ + dt * Elem%sl%Veloc
-
-        return
-    end subroutine Correction_Elem_PML_Veloc
-
-    !------------------------------------------------------------------
-    !------------------------------------------------------------------
     subroutine Correction_Elem_PML_VelPhi(Elem,dt)
 
         implicit none
@@ -881,105 +660,11 @@ contains
 
         return
     end subroutine Correction_Elem_FPML_Veloc
-
-    !------------------------------------------------------------------------------------------------
-    !------------------------------------------------------------------------------------------------
-    !>
-    !! \fn subroutine compute_InternalForces_PML_Elem (Elem,hprime, hTprimez)
-    !! \brief
-    !!
-    !! \param type (Element), intent (INOUT) Elem
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
-    !<
-    subroutine  compute_InternalForces_PML_Elem (Elem, hprimex, hTprimey, htprimez)
-
-        implicit none
-
-        type (Element), intent (INOUT) :: Elem
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprimex
-        real, dimension (0:Elem%nglly-1, 0:Elem%nglly-1), intent (IN) :: hTprimey
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hTprimez
-
-        integer :: m1, m2, m3, n_z
-        real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: s0,s1
-
-
-        m1 = Elem%ngllx;  m2 = Elem%nglly;  m3 = Elem%ngllz
-
-        s0 = Elem%sl%Acoeff(:,:,:,27) * Elem%slpml%Diagonal_Stress(:,:,:,0) + Elem%sl%Acoeff(:,:,:,28) * Elem%slpml%residual_Stress(:,:,:,0) + &
-            Elem%sl%Acoeff(:,:,:,29) * Elem%slpml%residual_Stress(:,:,:,1)
-        !call DGEMM ( 'N', 'N', m1, m2*m3, m1, 1., hprimex, m1, s0(:,:,:), m1, 0., s1, m1 )
-        call DGEMM2 ( m1, m2*m3, m1, hprimex, s0(:,:,:), s1 )
-        Elem%slpml%Forces1(:,:,:,0) = s1
-
-        s0 = Elem%sl%Acoeff(:,:,:,30) * Elem%slpml%Diagonal_Stress(:,:,:,0) + Elem%sl%Acoeff(:,:,:,31) * Elem%slpml%residual_Stress(:,:,:,0) + &
-            Elem%sl%Acoeff(:,:,:,32) * Elem%slpml%residual_Stress(:,:,:,1)
-        do n_z = 0,m3-1
-            !call DGEMM ( 'N', 'N', m1, m2, m2, 1.,s0(0,0,n_z), m1, htprimey ,m2, 0., s1(0,0,n_z),m1 )
-            call DGEMM2 ( m1, m2, m2, s0(0,0,n_z), htprimey , s1(0,0,n_z) )
-        enddo
-        Elem%slpml%Forces2(:,:,:,0) = s1
-
-        s0 = Elem%sl%Acoeff(:,:,:,33) * Elem%slpml%Diagonal_Stress(:,:,:,0) + Elem%sl%Acoeff(:,:,:,34) * Elem%slpml%residual_Stress(:,:,:,0) + &
-            Elem%sl%Acoeff(:,:,:,35) * Elem%slpml%residual_Stress(:,:,:,1)
-
-        !call DGEMM ( 'N', 'N', m1*m2, m3, m3, 1., s0(:,:,:), m1*m2, htprimez ,m3, 0., s1, m1*m2 )
-        call DGEMM2 ( m1*m2, m3, m3, s0(:,:,:), htprimez, s1 )
-        Elem%slpml%Forces3(:,:,:,0) = s1
-
-        s0 = Elem%sl%Acoeff(:,:,:,27) * Elem%slpml%residual_Stress(:,:,:,0) + Elem%sl%Acoeff(:,:,:,28) * Elem%slpml%Diagonal_Stress(:,:,:,1) + &
-            Elem%sl%Acoeff(:,:,:,29) * Elem%slpml%residual_Stress(:,:,:,2)
-        !call DGEMM ( 'N', 'N', m1, m2*m3, m1, 1., hprimex, m1,s0(:,:,:) ,m1, 0., s1, m1 )
-        call DGEMM2 ( m1, m2*m3, m1, hprimex, s0(:,:,:), s1 )
-        Elem%slpml%Forces1(:,:,:,1) = s1
-
-        s0 = Elem%sl%Acoeff(:,:,:,30) * Elem%slpml%residual_Stress(:,:,:,0) + Elem%sl%Acoeff(:,:,:,31) * Elem%slpml%Diagonal_Stress(:,:,:,1) + &
-            Elem%sl%Acoeff(:,:,:,32) * Elem%slpml%residual_Stress(:,:,:,2)
-        do n_z = 0,m3-1
-            !call DGEMM ( 'N', 'N', m1, m2, m2, 1.,s0(0,0,n_z), m1, htprimey ,m2, 0., s1(0,0,n_z),m1 )
-            call DGEMM2 ( m1, m2, m2, s0(0,0,n_z), htprimey, s1(0,0,n_z) )
-        enddo
-        Elem%slpml%Forces2(:,:,:,1) = s1
-
-        s0 = Elem%sl%Acoeff(:,:,:,33) * Elem%slpml%residual_Stress(:,:,:,0) + Elem%sl%Acoeff(:,:,:,34) * Elem%slpml%Diagonal_Stress(:,:,:,1) + &
-            Elem%sl%Acoeff(:,:,:,35) * Elem%slpml%residual_Stress(:,:,:,2)
-
-        !call DGEMM ( 'N', 'N', m1*m2, m3, m3, 1., s0(:,:,:), m1*m2, htprimez ,m3, 0., s1, m1*m2 )
-        call DGEMM2 ( m1*m2, m3, m3, s0(:,:,:), htprimez, s1 )
-        Elem%slpml%Forces3(:,:,:,1) = s1
-
-
-        s0 = Elem%sl%Acoeff(:,:,:,27) * Elem%slpml%residual_Stress(:,:,:,1) + Elem%sl%Acoeff(:,:,:,28) * Elem%slpml%residual_Stress(:,:,:,2) + &
-            Elem%sl%Acoeff(:,:,:,29) * Elem%slpml%Diagonal_Stress(:,:,:,2)
-        !call DGEMM ( 'N', 'N', m1, m2*m3, m1, 1., hprimex, m1,s0(:,:,:) ,m1, 0., s1, m1 )
-        call DGEMM2 ( m1, m2*m3, m1, hprimex, s0(:,:,:), s1 )
-        Elem%slpml%Forces1(:,:,:,2) = s1
-
-        s0 = Elem%sl%Acoeff(:,:,:,30) * Elem%slpml%residual_Stress(:,:,:,1) + Elem%sl%Acoeff(:,:,:,31) * Elem%slpml%residual_Stress(:,:,:,2) + &
-            Elem%sl%Acoeff(:,:,:,32) * Elem%slpml%Diagonal_Stress(:,:,:,2)
-        do n_z = 0,m3-1
-            !call DGEMM ( 'N', 'N', m1, m2, m2, 1.,s0(0,0,n_z), m1, htprimey ,m2, 0., s1(0,0,n_z),m1 )
-            call DGEMM2 ( m1, m2, m2, s0(0,0,n_z), htprimey, s1(0,0,n_z) )
-        enddo
-        Elem%slpml%Forces2(:,:,:,2) = s1
-
-        s0 = Elem%sl%Acoeff(:,:,:,33) * Elem%slpml%residual_Stress(:,:,:,1) + Elem%sl%Acoeff(:,:,:,34) * Elem%slpml%residual_Stress(:,:,:,2) + &
-            Elem%sl%Acoeff(:,:,:,35) * Elem%slpml%Diagonal_Stress(:,:,:,2)
-
-        !call DGEMM ( 'N', 'N', m1*m2, m3, m3, 1., s0(:,:,:), m1*m2, htprimez ,m3, 0., s1, m1*m2 )
-        call DGEMM2 ( m1*m2, m3, m3, s0(:,:,:), htprimez, s1 )
-        Elem%slpml%Forces3(:,:,:,2) = s1
-
-        Elem%sl%Forces = Elem%slpml%Forces1 + Elem%slpml%Forces2 + Elem%slpml%Forces3
-
-        return
-    end subroutine compute_InternalForces_PML_Elem
 #endif
+
     !------------------------------------------------------------------------------------------------
     !------------------------------------------------------------------------------------------------
-#if NEW_GLOBAL_METHOD 
-    subroutine  compute_InternalForces_PML_Elem_2 (Elem, hprimex, hTprimey, htprimez, ngll, Forces)
+    subroutine  compute_InternalForces_PML_Elem (Elem, hprimex, hTprimey, htprimez, ngll, Forces)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
@@ -1062,87 +747,11 @@ contains
         enddo
 
         return
-    end subroutine compute_InternalForces_PML_Elem_2
-#endif
-    !------------------------------------------------------------------------------------------------
-    !------------------------------------------------------------------------------------------------
-#if ! NEW_GLOBAL_METHOD
-    subroutine compute_InternalForces_PML_Elem_Fl(Elem,hprimex,hTprimey,htprimez)
-
-        implicit none
-
-        type(Element), intent(inout) :: Elem
-        real, dimension(0:Elem%ngllx-1,0:Elem%ngllx-1), intent(in) :: hprimex
-        real, dimension(0:Elem%nglly-1,0:Elem%nglly-1), intent(in) :: hTprimey
-        real, dimension(0:Elem%ngllz-1,0:Elem%ngllz-1), intent(in) :: hTprimez
-
-        integer :: m1, m2, m3, n_z
-        real, dimension(0:Elem%ngllx-1,0:Elem%nglly-1,0:Elem%ngllz-1)  :: s0,s1
-
-
-        m1 = Elem%ngllx ; m2 = Elem%nglly ; m3 = Elem%ngllz
-
-        Elem%flpml%ForcesFl1(:,:,:) = 0d0
-        Elem%flpml%ForcesFl2(:,:,:) = 0d0
-        Elem%flpml%ForcesFl3(:,:,:) = 0d0
-        s0 = 0d0 ; s1 = 0d0
-
-
-        ! forces associated to V_x
-        s0 = Elem%fl%Acoeff(:,:,:,9) * Elem%flpml%Veloc(:,:,:,0)
-        call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,s0(:,:,:),m1,0.,s1,m1)
-        Elem%flpml%ForcesFl1(:,:,:) = s1
-
-        s0 = Elem%fl%Acoeff(:,:,:,10) * Elem%flpml%Veloc(:,:,:,0)
-        do n_z = 0,m3-1
-            call DGEMM('N','N',m1,m2,m2,1.,s0(0,0,n_z),m1, htprimey,m2,0.,s1(0,0,n_z),m1)
-        enddo
-        Elem%flpml%ForcesFl1(:,:,:) = s1+Elem%flpml%ForcesFl1(:,:,:)
-
-        s0 = Elem%fl%Acoeff(:,:,:,11) * Elem%flpml%Veloc(:,:,:,0)
-        call DGEMM('N','N',m1*m2,m3,m3,1.,s0(:,:,:),m1*m2,htprimez,m3,0.,s1,m1*m2)
-        Elem%flpml%ForcesFl1(:,:,:) = s1+Elem%flpml%ForcesFl1(:,:,:)
-
-        ! forces associated to V_y
-        s0 = Elem%fl%Acoeff(:,:,:,12) * Elem%flpml%Veloc(:,:,:,1)
-        call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,s0(:,:,:),m1,0.,s1,m1)
-        Elem%flpml%ForcesFl2(:,:,:) = s1
-
-        s0 = Elem%fl%Acoeff(:,:,:,13) * Elem%flpml%Veloc(:,:,:,1)
-        do n_z = 0,m3-1
-            call DGEMM('N','N',m1,m2,m2,1.,s0(0,0,n_z),m1, htprimey,m2,0.,s1(0,0,n_z),m1)
-        enddo
-        Elem%flpml%ForcesFl2(:,:,:) = s1+Elem%flpml%ForcesFl2(:,:,:)
-
-        s0 = Elem%fl%Acoeff(:,:,:,14) * Elem%flpml%Veloc(:,:,:,1)
-        call DGEMM('N','N',m1*m2,m3,m3,1.,s0(:,:,:),m1*m2,htprimez,m3,0.,s1,m1*m2)
-        Elem%flpml%ForcesFl2(:,:,:) = s1+Elem%flpml%ForcesFl2(:,:,:)
-
-        ! forces associated to V_z
-        s0 = Elem%fl%Acoeff(:,:,:,15) * Elem%flpml%Veloc(:,:,:,2)
-        call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,s0(:,:,:),m1,0.,s1,m1)
-        Elem%flpml%ForcesFl3(:,:,:) = s1
-
-        s0 = Elem%fl%Acoeff(:,:,:,16) * Elem%flpml%Veloc(:,:,:,2)
-        do n_z = 0,m3-1
-            call DGEMM('N','N',m1,m2,m2,1.,s0(0,0,n_z),m1, htprimey,m2,0.,s1(0,0,n_z),m1)
-        enddo
-        Elem%flpml%ForcesFl3(:,:,:) = s1+Elem%flpml%ForcesFl3(:,:,:)
-
-        s0 = Elem%fl%Acoeff(:,:,:,17) * Elem%flpml%Veloc(:,:,:,2)
-        call DGEMM('N','N',m1*m2,m3,m3,1.,s0(:,:,:),m1*m2,htprimez,m3,0.,s1,m1*m2)
-        Elem%flpml%ForcesFl3(:,:,:) = s1+Elem%flpml%ForcesFl3(:,:,:)
-
-
-        Elem%fl%ForcesFl(:,:,:) = Elem%flpml%ForcesFl1(:,:,:) + Elem%flpml%ForcesFl2(:,:,:) + Elem%flpml%ForcesFl3(:,:,:)
-
-        return
-    end subroutine compute_InternalForces_PML_Elem_Fl
+    end subroutine compute_InternalForces_PML_Elem
     !------------------------------------------------------------------------------------------------
     !------------------------------------------------------------------------------------------------
 
-    ! ###########################################################
-    ! ###########################################################
+#if 0
     subroutine Prediction_Elem_PML_Veloc_curve (Elem, bega, dt, hTprimex, Hprimey, Hprimez)
 
         implicit none
@@ -1311,67 +920,6 @@ contains
     end subroutine init_element
 
 
-!    subroutine compute_local_coordinates(el, coord, mat, xs,ys,zs, xi, eta, zeta)
-!        use ssubdomains
-!        use shape_geom_3d
-!        type(element), intent(in) :: el
-!        type(Subdomain), intent(in) :: mat
-!        real, intent(in) :: xs,ys,zs
-!        real, dimension(0:,0:), intent(in) :: coord
-!        real, intent(out) :: xi, eta, zeta
-!        real :: x,y,z
-!        integer :: i,j,k, ipt
-!        integer :: ic,jc,kc
-!        real :: dmin, d, derr
-!        real, dimension(0:2,0:2) :: LocInvGrad, Jac
-!        real, dimension(0:7) :: xco, yco, zco
-!        real, dimension(0:2) :: vx,dx
-!
-!        !
-!        ! On cherche le pt de gauss le plus proche
-!        !
-!        dmin = 1e30
-!        do i = 0,mat%ngllx-1
-!            do j = 0,mat%nglly-1
-!                do k = 0,mat%ngllz-1
-!                    ipt = el%Iglobnum(i,j,k)
-!                    d = sqrt ((coord(0,ipt)-xs)**2 + (coord(1,ipt)-ys)**2 + (coord(2,ipt)-zs)**2)
-!                    if (d <= dmin) then
-!                        dmin = d
-!                        ic = i
-!                        jc = j
-!                        kc = k
-!                    endif
-!                enddo
-!            enddo
-!        enddo
-!        do i=0,7
-!            xco(i) = coord(0, el%Control_Nodes(i))
-!            yco(i) = coord(1, el%Control_Nodes(i))
-!            zco(i) = coord(2, el%Control_Nodes(i))
-!        end do
-!        do
-!            x = f_p(xco, xi, eta, zeta)
-!            y = f_p(yco, xi, eta, zeta)
-!            z = f_p(zco, xi, eta, zeta)
-!
-!            LocInvGrad(0,0) = der_dx_dxi(xco,eta,zeta)
-!            LocInvGrad(1,0) = der_dx_deta(xco,xi,zeta)
-!            LocInvGrad(2,0) = der_dx_dzeta(xco,xi,eta)
-!            LocInvGrad(0,1) = der_dy_dxi(yco,eta,zeta)
-!            LocInvGrad(1,1) = der_dy_deta(yco,xi,zeta)
-!            LocInvGrad(2,1) = der_dy_dzeta(yco,xi,eta)
-!            LocInvGrad(0,2) = der_dz_dxi(zco,eta,zeta)
-!            LocInvGrad(1,2) = der_dz_deta(zco,xi,zeta)
-!            LocInvGrad(2,2) = der_dz_dzeta(zco,xi,eta)
-!
-!            call invert_3d(LocInvGrad,Jac)
-!
-!            derr = (x-xs)**2+(y-ys)**2+(z-zs)**2
-!            if (derr<1e-14) exit
-!        end do
-!
-!    end subroutine compute_local_coordinates
 
 end module selement
 

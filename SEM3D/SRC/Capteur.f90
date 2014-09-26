@@ -933,23 +933,11 @@ contains
             mat = Tdomain%specel(n_el)%mat_index
             allocate(field(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
             if (trim(capteur%grandeur).eq."VITESSE") then
-#if NEW_GLOBAL_METHOD
-                call gather_elem_veloc_2(Tdomain, n_el, field)
-#else
                 call gather_elem_veloc(Tdomain, n_el, field)
-#endif
             else if (trim(capteur%grandeur).eq."DEPLA") then
-#if NEW_GLOBAL_METHOD
-                call gather_elem_displ_2(Tdomain, n_el, field)
-#else
                 call gather_elem_displ(Tdomain, n_el, field)
-#endif
             else if (trim(capteur%grandeur).eq."ACCEL") then
-#if NEW_GLOBAL_METHOD
-                call gather_elem_accel_2(Tdomain, n_el, field)
-#else
                 call gather_elem_accel(Tdomain, n_el, field)
-#endif
             end if
             do i = 0,ngllx - 1
                 do j = 0,nglly - 1

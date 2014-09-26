@@ -31,7 +31,6 @@ subroutine global_numbering(Tdomain,rank)
     integer, dimension(0:4)  :: index_elem_e
     integer, dimension(0:2)  :: index_elem_v
 
-#if NEW_GLOBAL_METHOD
     integer :: idx, idxS, idxF, idxSpml, idxFpml, idxSF, dir, ks, kl
     integer :: nbPtInterfSolPml, abscount, nproc, sol, flu
     integer, dimension (:), allocatable :: renumS, renumF, renumSpml, renumFpml
@@ -39,13 +38,9 @@ subroutine global_numbering(Tdomain,rank)
     integer :: nsol, nsolpml, nflu, nflupml
     logical :: saut
 
-#endif
-
 
     icount = 0
-#if NEW_GLOBAL_METHOD
     abscount = 0
-#endif
 
     do n = 0,Tdomain%n_elem-1
         ngllx = Tdomain%specel(n)%ngllx
@@ -75,11 +70,9 @@ subroutine global_numbering(Tdomain,rank)
                 icount = icount + 1
             enddo
         enddo
-#if NEW_GLOBAL_METHOD
         if (Tdomain%sFace(n)%Abs .and. Tdomain%sFace(n)%PML) then
             abscount = abscount + (ngllx-2) * (nglly-2)
         endif
-#endif
     enddo
 
     do n = 0,Tdomain%n_edge-1
@@ -90,27 +83,21 @@ subroutine global_numbering(Tdomain,rank)
             Tdomain%sEdge(n)%Iglobnum_Edge(i) = icount
             icount = icount + 1
         enddo
-#if NEW_GLOBAL_METHOD
         if (Tdomain%sEdge(n)%Abs .and. Tdomain%sEdge(n)%PML) then
             abscount = abscount + ngllx - 2
         endif
-#endif
     enddo
 
     do n = 0,Tdomain%n_vertex-1
         Tdomain%sVertex(n)%Iglobnum_Vertex = icount
         icount = icount + 1
-#if NEW_GLOBAL_METHOD
         if (Tdomain%sVertex(n)%Abs .and. Tdomain%sVertex(n)%PML) then
             abscount = abscount + 1
         endif
-#endif
     enddo
 
-#if NEW_GLOBAL_METHOD
     Tdomain%nbOuterPMLNodes = abscount
     allocate(Tdomain%OuterPMLNodes(0:Tdomain%nbOuterPMLNodes-1))
-#endif
 
     ! total number of GLL points (= degrees of freedom)
     Tdomain%n_glob_points = icount
@@ -203,7 +190,6 @@ subroutine global_numbering(Tdomain,rank)
 
     enddo    ! end of the loop onto elements
 
-#if NEW_GLOBAL_METHOD
     ! Renumerotation
     allocate(renumS(0:Tdomain%n_glob_points-1))
     allocate(renumF(0:Tdomain%n_glob_points-1))
@@ -580,12 +566,9 @@ subroutine global_numbering(Tdomain,rank)
     deallocate(renumSpml)
     deallocate(renumF)
     deallocate(renumFpml)
-#endif
 
     return
 end subroutine global_numbering
-
-#if NEW_GLOBAL_METHOD
 
 subroutine prepare_comm_vector(Tdomain,rank,comm_data, nddlsol, nddlsolpml, nddlfluid, nddlfluidpml)
     use sdomain
@@ -1742,10 +1725,6 @@ integer function num_gll_face(Tdomain, nnf)
     end if
     return
 end function num_gll_face
-
-#endif
-
-
 
 subroutine renumSolFlu(Tdomain)
     use sdomain

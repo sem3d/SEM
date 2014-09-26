@@ -80,45 +80,6 @@ contains
 
     end subroutine pressure_solid
 
-#if ! NEW_GLOBAL_METHOD
-    !! Recopie dans field le champs de deplacement reparti sur les Elem, Face, Edge, Vertex
-    subroutine gather_elem_displ(Tdomain, nel, field)
-        type(domain), intent(in) :: Tdomain
-        integer, intent(in) :: nel
-        real, dimension(0:,0:,0:,0:), intent(out) :: field
-        type(element), pointer :: el
-        type(face), pointer :: fc
-        type(edge), pointer :: ed
-        type(vertex), pointer :: vx
-        integer :: nx, ny, nz, i
-        nx = Tdomain%specel(nel)%ngllx
-        ny = Tdomain%specel(nel)%nglly
-        nz = Tdomain%specel(nel)%ngllz
-        el => Tdomain%specel(nel)
-
-        if (el%solid) then
-            field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%sl%Displ(:,:,:,:)
-            do i=0,5
-                fc => Tdomain%sFace(el%Near_Faces(i))
-                call get_VectProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
-                    fc%Displ, field)
-            end do
-
-            do i=0,11
-                ed => Tdomain%sEdge(el%Near_Edges(i))
-                call get_VectProperty_Edge2Elem(i,el%Orient_Edges(i), nx, ny, nz, ed%ngll, &
-                    ed%Displ, field)
-            end do
-            do i=0,7
-                vx => Tdomain%sVertex(el%Near_Vertices(i))
-                call get_VectProperty_Vertex2Elem(i, nx, ny, nz, vx%Displ, field)
-            end do
-        else ! liquid
-            field = 0d0
-        end if
-
-    end subroutine gather_elem_displ
-#endif
 
     subroutine check_field(nel, field, nx, ny, nz)
         integer, intent(in) :: nel, nx, ny, nz
@@ -136,183 +97,6 @@ contains
         end do
     end subroutine check_field
 
-#if ! NEW_GLOBAL_METHOD
-    subroutine gather_elem_veloc(Tdomain, nel, field)
-        type(domain), intent(in) :: Tdomain
-        integer, intent(in) :: nel
-        real, dimension(0:,0:,0:,0:), intent(out) :: field
-        real, dimension(:,:,:), allocatable :: phi
-        type(element), pointer :: el
-        type(face), pointer :: fc
-        type(edge), pointer :: ed
-        type(vertex), pointer :: vx
-        integer :: nx, ny, nz, i, mat
-        nx = Tdomain%specel(nel)%ngllx
-        ny = Tdomain%specel(nel)%nglly
-        nz = Tdomain%specel(nel)%ngllz
-        el => Tdomain%specel(nel)
-        if (el%solid) then
-            field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%sl%Veloc(:,:,:,:)
-            do i=0,5
-                fc => Tdomain%sFace(el%Near_Faces(i))
-                call get_VectProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
-                    fc%Veloc, field)
-            end do
-
-            do i=0,11
-                ed => Tdomain%sEdge(el%Near_Edges(i))
-                call get_VectProperty_Edge2Elem(i,el%Orient_Edges(i), nx, ny, nz, ed%ngll, &
-                    ed%Veloc, field)
-            end do
-            do i=0,7
-                vx => Tdomain%sVertex(el%Near_Vertices(i))
-                call get_VectProperty_Vertex2Elem(i, nx, ny, nz, vx%Veloc, field)
-            end do
-        else ! liquid
-            allocate(phi(0:nx-1,0:ny-1,0:nz-1))
-            phi(1:nx-2,1:ny-2,1:nz-2) = el%fl%Phi(:,:,:)
-            do i=0,5
-                fc => Tdomain%sFace(el%Near_Faces(i))
-                call get_ScalarProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
-                    fc%Phi, phi)
-            end do
-
-            do i=0,11
-                ed => Tdomain%sEdge(el%Near_Edges(i))
-                call get_ScalarProperty_Edge2Elem(i,el%Orient_Edges(i), nx, ny, nz, ed%ngll, &
-                    ed%Phi, phi)
-            end do
-            do i=0,7
-                vx => Tdomain%sVertex(el%Near_Vertices(i))
-                call get_ScalarProperty_Vertex2Elem(i, nx, ny, nz, vx%Phi, phi)
-            end do
-            mat = el%mat_index
-            call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
-                          Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
-                          el%InvGrad,el%density,phi,field)
-            deallocate(phi)
-        end if
-
-    end subroutine gather_elem_veloc
-
-    subroutine gather_elem_accel(Tdomain, nel, field)
-        type(domain), intent(in) :: Tdomain
-        integer, intent(in) :: nel
-        real, dimension(0:,0:,0:,0:), intent(out) :: field
-        real, dimension(:,:,:), allocatable :: vphi
-        type(element), pointer :: el
-        type(face), pointer :: fc
-        type(edge), pointer :: ed
-        type(vertex), pointer :: vx
-        integer :: nx, ny, nz, i
-        nx = Tdomain%specel(nel)%ngllx
-        ny = Tdomain%specel(nel)%nglly
-        nz = Tdomain%specel(nel)%ngllz
-        el => Tdomain%specel(nel)
-        if (el%solid) then
-            field(1:nx-2,1:ny-2,1:nz-2,0:2) = el%sl%Accel(:,:,:,:)
-            do i=0,5
-                fc => Tdomain%sFace(el%Near_Faces(i))
-                call get_VectProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
-                    fc%Accel, field)
-            end do
-
-            do i=0,11
-                ed => Tdomain%sEdge(el%Near_Edges(i))
-                call get_VectProperty_Edge2Elem(i,el%Orient_Edges(i), nx, ny, nz, ed%ngll, &
-                    ed%Accel, field)
-            end do
-            do i=0,7
-                vx => Tdomain%sVertex(el%Near_Vertices(i))
-                call get_VectProperty_Vertex2Elem(i, nx, ny, nz, vx%Accel, field)
-            end do
-        else ! liquid
-            allocate(vphi(0:nx-1,0:ny-1,0:nz-1))
-            vphi(1:nx-2,1:ny-2,1:nz-2) = el%fl%VelPhi(:,:,:)
-            do i=0,5
-                fc => Tdomain%sFace(el%Near_Faces(i))
-                call get_ScalarProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
-                    fc%VelPhi, vphi)
-            end do
-
-            do i=0,11
-                ed => Tdomain%sEdge(el%Near_Edges(i))
-                call get_ScalarProperty_Edge2Elem(i,el%Orient_Edges(i), nx, ny, nz, ed%ngll, &
-                    ed%VelPhi, vphi)
-            end do
-            do i=0,7
-                vx => Tdomain%sVertex(el%Near_Vertices(i))
-                call get_ScalarProperty_Vertex2Elem(i, nx, ny, nz, vx%VelPhi, vphi)
-            end do
-            mat = el%mat_index
-            call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
-                          Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
-                          el%InvGrad,el%density,vphi,field)
-            deallocate(vphi)
-        end if
-    end subroutine gather_elem_accel
-
-    subroutine gather_elem_press(Tdomain, nel, field)
-        type(domain), intent(in) :: Tdomain
-        integer, intent(in) :: nel
-        real, dimension(0:,0:,0:), intent(out) :: field
-        real, dimension(:,:,:,:), allocatable :: displ
-        type(element), pointer :: el
-        type(face), pointer :: fc
-        type(edge), pointer :: ed
-        type(vertex), pointer :: vx
-        integer :: nx, ny, nz, i, mat
-        nx = Tdomain%specel(nel)%ngllx
-        ny = Tdomain%specel(nel)%nglly
-        nz = Tdomain%specel(nel)%ngllz
-        el => Tdomain%specel(nel)
-        if (el%solid) then
-            allocate(displ(0:nx-1,0:ny-1,0:nz-1,0:2))
-            displ(1:nx-2,1:ny-2,1:nz-2,0:2) = el%sl%Displ(:,:,:,:)
-            do i=0,5
-                fc => Tdomain%sFace(el%Near_Faces(i))
-                call get_VectProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
-                    fc%Displ, displ)
-            end do
-
-            do i=0,11
-                ed => Tdomain%sEdge(el%Near_Edges(i))
-                call get_VectProperty_Edge2Elem(i,el%Orient_Edges(i), nx, ny, nz, ed%ngll, &
-                    ed%Displ, displ)
-            end do
-            do i=0,7
-                vx => Tdomain%sVertex(el%Near_Vertices(i))
-                call get_VectProperty_Vertex2Elem(i, nx, ny, nz, vx%Displ, displ)
-            end do
-            mat = el%mat_index
-            call pressure_solid(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
-                 Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
-                 el%InvGrad,displ, el%Lambda, el%Mu,field)
-            deallocate(displ)
-        else ! liquid
-            field(1:nx-2,1:ny-2,1:nz-2) = el%fl%VelPhi(:,:,:)
-            do i=0,5
-                fc => Tdomain%sFace(el%Near_Faces(i))
-                call get_ScalarProperty_Face2Elem(i,el%Orient_Faces(i), nx, ny, nz, fc%ngll1, fc%ngll2, &
-                    fc%VelPhi, field)
-            end do
-
-            do i=0,11
-                ed => Tdomain%sEdge(el%Near_Edges(i))
-                call get_ScalarProperty_Edge2Elem(i,el%Orient_Edges(i), nx, ny, nz, ed%ngll, &
-                    ed%VelPhi, field)
-            end do
-            do i=0,7
-                vx => Tdomain%sVertex(el%Near_Vertices(i))
-                call get_ScalarProperty_Vertex2Elem(i, nx, ny, nz, vx%VelPhi, field)
-            end do
-            field = -field
-        end if
-
-    end subroutine gather_elem_press
-#endif
-
-#if NEW_GLOBAL_METHOD
     subroutine gather_field(el, field, src_field, inum)
         type(element), intent(in), pointer :: el
         real, dimension(0:,0:,0:,0:), intent(out) :: field
@@ -367,7 +151,7 @@ contains
         enddo
     end subroutine gather_field_fluid
 
-    subroutine gather_elem_veloc_2(Tdomain, nel, field)
+    subroutine gather_elem_veloc(Tdomain, nel, field)
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: nel
         real, dimension(0:,0:,0:,0:), intent(out) :: field
@@ -421,9 +205,9 @@ contains
             endif
         end if
 
-    end subroutine gather_elem_veloc_2
+    end subroutine gather_elem_veloc
 
-    subroutine gather_elem_displ_2(Tdomain, nel, field)
+    subroutine gather_elem_displ(Tdomain, nel, field)
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: nel
         real, dimension(0:,0:,0:,0:), intent(out) :: field
@@ -451,9 +235,9 @@ contains
             field = 0d0
         end if
 
-    end subroutine gather_elem_displ_2
+    end subroutine gather_elem_displ
 
-    subroutine gather_elem_accel_2(Tdomain, nel, field)
+    subroutine gather_elem_accel(Tdomain, nel, field)
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: nel
         real, dimension(0:,0:,0:,0:), intent(out) :: field
@@ -506,7 +290,6 @@ contains
                 deallocate(vphi)
             endif
         end if
-    end subroutine gather_elem_accel_2
-#endif
+    end subroutine gather_elem_accel
 
 end module mfields

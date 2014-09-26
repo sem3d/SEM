@@ -16,14 +16,8 @@ module mdefinitions
     private :: define_Acoeff_iso, define_Acoeff_fluid
     private :: define_Acoeff_PML_iso, define_Acoeff_PML_fluid
     private :: define_alpha_PML
-#if NEW_GLOBAL_METHOD
-    private :: define_PML_DumpInit_2, define_PML_DumpEnd_2
-    private :: assemble_DumpMass
-#else
     private :: define_PML_DumpInit, define_PML_DumpEnd
-    private :: Comm_Mass_Complete, Comm_Mass_Complete_PML, Comm_Normal_Neumann
-#endif
-    private :: define_PML_Face_DumpEnd, define_PML_Edge_DumpEnd, define_PML_Vertex_DumpEnd
+    private :: assemble_DumpMass
     private :: define_FPML_DumpInit, define_FPML_DumpEnd
 
 contains
@@ -67,11 +61,7 @@ subroutine Define_Arrays(Tdomain, rg)
     endif
 
     call init_solid_fluid_interface(Tdomain)
-#if NEW_GLOBAL_METHOD
-    call assemble_mass_matrices_2(Tdomain, rg)
-#else
     call assemble_mass_matrices(Tdomain, rg)
-#endif
     call finalize_pml_properties(Tdomain)
     call inverse_mass_mat(Tdomain)
 
@@ -123,97 +113,8 @@ subroutine init_solid_fluid_interface(Tdomain)
     endif
 end subroutine init_solid_fluid_interface
 
-#if ! NEW_GLOBAL_METHOD
+
 subroutine assemble_mass_matrices(Tdomain, rg)
-    use assembly, only : get_mass_elem2face, get_mass_elem2edge, get_mass_elem2vertex
-    use scommutils, only : Comm_Mass_Face, Comm_Mass_Edge, Comm_Mass_Vertex
-
-    type (domain), intent (INOUT), target :: Tdomain
-    integer, intent(in) :: rg
-    !
-    integer :: n, i, j, ne, nv, ngll1
-    integer :: ngll_tot, ngllPML_tot, ngllNeu
-
-     !- Mass and DumpMass Communications (assemblage) inside Processors
-     do n = 0,Tdomain%n_elem-1
-        ! assemble MassMat, DumpMass, Ivx,Ivy, Ivz on faces/edges/vertices
-        call get_Mass_Elem2Face(Tdomain,n)
-        call get_Mass_Elem2Edge(Tdomain,n)
-        call get_Mass_Elem2Vertex(Tdomain,n)
-     enddo
-
-    !----------------------------------------------------------
-    !- MPI communications: assemblage between procs
-    !----------------------------------------------------------
-    if(Tdomain%n_proc > 1)then
-        !-------------------------------------------------
-        !- from external faces, edges and vertices to Communication global arrays
-        do n = 0,Tdomain%n_proc-1
-            call Comm_Mass_Complete(n,Tdomain)
-            call Comm_Mass_Complete_PML(n,Tdomain)
-            call Comm_Normal_Neumann(n,Tdomain)
-        enddo
-
-        call exchange_sem(Tdomain, rg)
-
-        ! now: assemblage on external faces, edges and vertices
-        do n = 0,Tdomain%n_proc-1
-            ngll_tot = 0
-            ngllPML_tot = 0
-            ngllNeu = 0
-            call Comm_Mass_Face(Tdomain,n,ngll_tot,ngllPML_tot)
-            call Comm_Mass_Edge(Tdomain,n,ngll_tot,ngllPML_tot)
-            call Comm_Mass_Vertex(Tdomain,n,ngll_tot,ngllPML_tot)
-
-            ! Neumann
-            do i = 0,Tdomain%sComm(n)%Neu_ne_shared-1
-                ne = Tdomain%sComm(n)%Neu_edges_shared(i)
-                ngll1 = Tdomain%Neumann%Neu_Edge(ne)%ngll
-                if(Tdomain%sComm(n)%Neu_mapping_edges_shared(i) == 0)then
-                    do j = 1,Tdomain%Neumann%Neu_Edge(ne)%ngll-2
-                        Tdomain%Neumann%Neu_Edge(ne)%BtN(j,0:2) = Tdomain%Neumann%Neu_Edge(ne)%Btn(j,0:2) +  &
-                            Tdomain%sComm(n)%TakeNeu(ngllNeu,0:2)
-                        ngllNeu = ngllNeu + 1
-                    enddo
-                else if(Tdomain%sComm(n)%Neu_mapping_edges_shared(i) == 1)then
-                    do j = 1,Tdomain%Neumann%Neu_Edge(ne)%ngll-2
-                        Tdomain%Neumann%Neu_Edge(ne)%Btn(ngll1-1-j,0:2) = Tdomain%Neumann%Neu_Edge(ne)%Btn(ngll1-1-j,0:2) + &
-                            Tdomain%sComm(n)%TakeNeu(ngllNeu,0:2)
-                        ngllNeu = ngllNeu + 1
-                    enddo
-                else
-                    print*,'Pb with coherency number for edge in define arrays'
-                    STOP 1
-                endif
-            enddo
-            do i = 0,Tdomain%sComm(n)%Neu_nv_shared-1
-                nv = Tdomain%sComm(n)%Neu_vertices_shared(i)
-                Tdomain%Neumann%Neu_Vertex(nv)%Btn(0:2) = Tdomain%Neumann%Neu_Vertex(nv)%Btn(0:2) + &
-                    Tdomain%sComm(n)%TakeNeu(ngllNeu,0:2)
-                ngllNeu = ngllNeu + 1
-            enddo
-            if(Tdomain%sComm(n)%ngllNeu > 0)then
-                deallocate(Tdomain%sComm(n)%GiveNeu)
-                deallocate(Tdomain%sComm(n)%TakeNeu)
-            endif
-            if(Tdomain%sComm(n)%ngll_tot > 0)then
-                deallocate(Tdomain%sComm(n)%Give)
-                deallocate(Tdomain%sComm(n)%Take)
-            endif
-            if(Tdomain%sComm(n)%ngllPML_tot > 0)then
-                deallocate(Tdomain%sComm(n)%GivePML)
-                deallocate(Tdomain%sComm(n)%TakePML)
-            endif
-            ! end of the loop upon processors
-        enddo
-        !--------------------------------------------------------------
-    endif
-
-end subroutine assemble_mass_matrices
-#endif
-
-#if NEW_GLOBAL_METHOD
-subroutine assemble_mass_matrices_2(Tdomain, rg)
     implicit none
     type (domain), intent (INOUT), target :: Tdomain
     integer, intent(in) :: rg
@@ -315,8 +216,7 @@ subroutine assemble_mass_matrices_2(Tdomain, rg)
     end if
 
     return
-end subroutine assemble_mass_matrices_2
-#endif
+end subroutine assemble_mass_matrices
 !---------------------------------------------------------------------------------------
 subroutine inverse_mass_mat(Tdomain)
   type (domain), intent (INOUT), target :: Tdomain
@@ -324,37 +224,10 @@ subroutine inverse_mass_mat(Tdomain)
   integer :: ngllx, nglly, ngllz, n, nf, ne, nv
   real, dimension(:,:,:), allocatable  :: LocMassMat
 
-#if NEW_GLOBAL_METHOD
     if (Tdomain%ngll_s /= 0)    Tdomain%MassMatSol(:) = 1d0/Tdomain%MassMatSol(:)
     if (Tdomain%ngll_f /= 0)    Tdomain%MassMatFlu(:) = 1d0/Tdomain%MassMatFlu(:)
     if (Tdomain%ngll_pmls /= 0) Tdomain%MassMatSolPml(:) = 1d0/Tdomain%MassMatSolPml(:)
 
-#else
-     ! Now that the mass from the elements' borders have been pushed and assembled on the faces, edges and vertices,
-     ! we can invert the interior mass matrix elements and reallocate
-     do n = 0,Tdomain%n_elem-1
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
-        ! all elements
-        allocate(LocMassMat(1:ngllx-2,1:nglly-2,1:ngllz-2))
-        LocMassMat(:,:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:nglly-2,1:ngllz-2)
-        LocMassmat(:,:,:) = 1d0/LocMassMat(:,:,:)  ! inversion
-        deallocate(Tdomain%specel(n)%MassMat)
-        allocate(Tdomain%specel(n)%MassMat(1:ngllx-2,1:nglly-2,1:ngllz-2))
-        Tdomain%specel(n)%MassMat(:,:,:) = LocMassMat(:,:,:)
-        deallocate(LocMassMat)
-    enddo
-    do nf = 0,Tdomain%n_face-1
-        Tdomain%sFace(nf)%MassMat = 1./ Tdomain%sFace(nf)%MassMat
-    end do
-    do ne = 0,Tdomain%n_edge-1
-        Tdomain%sEdge(ne)%MassMat = 1./ Tdomain%sEdge(ne)%MassMat
-     end do
-    do nv = 0,Tdomain%n_vertex-1
-        Tdomain%sVertex(nv)%MassMat = 1./ Tdomain%sVertex(nv)%MassMat
-    end do
-#endif
 end subroutine inverse_mass_mat
 
 
@@ -563,24 +436,14 @@ subroutine init_pml_properties(Tdomain,specel,mat,Whei)
      end if
 
      ! Compute DumpS(x,y,z) and DumpMass(0,1,2)
-#if NEW_GLOBAL_METHOD
-     call define_PML_DumpInit_2(ngllx,nglly,ngllz,mat%Dt,freq,wx,specel%MassMat, &
-          specel%xpml%DumpSx,specel%xpml%DumpMass(:,:,:,0))
-     call define_PML_DumpInit_2(ngllx,nglly,ngllz,mat%Dt,freq,wy,specel%MassMat, &
-          specel%xpml%DumpSy,specel%xpml%DumpMass(:,:,:,1))
-     call define_PML_DumpInit_2(ngllx,nglly,ngllz,mat%Dt,freq,wz,specel%MassMat, &
-          specel%xpml%DumpSz,specel%xpml%DumpMass(:,:,:,2))
-
-     call assemble_DumpMass(Tdomain,specel)
-
-#else
      call define_PML_DumpInit(ngllx,nglly,ngllz,mat%Dt,freq,wx,specel%MassMat, &
          specel%xpml%DumpSx,specel%xpml%DumpMass(:,:,:,0))
      call define_PML_DumpInit(ngllx,nglly,ngllz,mat%Dt,freq,wy,specel%MassMat, &
          specel%xpml%DumpSy,specel%xpml%DumpMass(:,:,:,1))
      call define_PML_DumpInit(ngllx,nglly,ngllz,mat%Dt,freq,wz,specel%MassMat, &
          specel%xpml%DumpSz,specel%xpml%DumpMass(:,:,:,2))
-#endif
+
+     call assemble_DumpMass(Tdomain,specel)
 
      if(specel%FPML)then
         ! Compute Is(xyz) and Iv(xyz)
@@ -614,74 +477,21 @@ subroutine finalize_pml_properties(Tdomain)
         ngllz = Tdomain%specel(n)%ngllz
 
         if(Tdomain%specel(n)%PML)then   ! dumped masses in PML
-#if NEW_GLOBAL_METHOD
             ! Compute DumpV
-            call define_PML_DumpEnd_2(Tdomain%ngll_pmls, Tdomain%MassMatSolPml, &
-                                      Tdomain%DumpMass, Tdomain%champs0%DumpV)
+            call define_PML_DumpEnd(Tdomain%ngll_pmls, Tdomain%MassMatSolPml, &
+                Tdomain%DumpMass, Tdomain%champs0%DumpV)
 
-#else
-            call define_PML_DumpEnd(n,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-                Tdomain%specel(n)%xpml%DumpMass(:,:,:,0),Tdomain%specel(n)%xpml%DumpVx)
-            call define_PML_DumpEnd(n,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-                Tdomain%specel(n)%xpml%DumpMass(:,:,:,1),Tdomain%specel(n)%xpml%DumpVy)
-            call define_PML_DumpEnd(n,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
-                Tdomain%specel(n)%xpml%DumpMass(:,:,:,2),Tdomain%specel(n)%xpml%DumpVz)
-
-            if(Tdomain%specel(n)%FPML)then
-                call define_FPML_DumpEnd(0,ngllx,nglly,ngllz,&
-                    Tdomain%specel(n)%xpml%DumpVx,Tdomain%specel(n)%slpml%Ivx)
-                call define_FPML_DumpEnd(1,ngllx,nglly,ngllz,&
-                    Tdomain%specel(n)%xpml%DumpVy,Tdomain%specel(n)%slpml%Ivy)
-                call define_FPML_DumpEnd(2,ngllx,nglly,ngllz,&
-                    Tdomain%specel(n)%xpml%DumpVz,Tdomain%specel(n)%slpml%Ivz)
-            end if
-#endif
+!            if(specel%FPML)then
+!                call define_FPML_DumpEnd(ngllx,nglly,ngllz, &
+!                    specel%xpml%DumpVx,specel%slpml%Ivx)
+!                call define_FPML_DumpEnd(ngllx,nglly,ngllz, &
+!                    specel%xpml%DumpVy,specel%slpml%Ivy)
+!                call define_FPML_DumpEnd(ngllx,nglly,ngllz, &
+!                    specel%xpml%DumpVz,specel%slpml%Ivz)
+!            end if
             deallocate(Tdomain%specel(n)%xpml%DumpMass)
         end if
      end do
-#if ! NEW_GLOBAL_METHOD
-    !- back to local properties: now we can calculate PML properties
-    !     at nodes of faces, edges and vertices.
-    do nf = 0,Tdomain%n_face-1
-        if(Tdomain%sFace(nf)%PML)then
-            ngll1 = Tdomain%sFace(nf)%ngll1
-            ngll2 = Tdomain%sFace(nf)%ngll2
-            call define_PML_Face_DumpEnd(ngll1,ngll2,Tdomain%sFace(nf)%Massmat,  &
-                Tdomain%sFace(nf)%spml%DumpMass(:,:,0),Tdomain%sFace(nf)%spml%DumpVx)
-            call define_PML_Face_DumpEnd(ngll1,ngll2,Tdomain%sFace(nf)%Massmat,  &
-                Tdomain%sFace(nf)%spml%DumpMass(:,:,1),Tdomain%sFace(nf)%spml%DumpVy)
-            call define_PML_Face_DumpEnd(ngll1,ngll2,Tdomain%sFace(nf)%Massmat,  &
-                Tdomain%sFace(nf)%spml%DumpMass(:,:,2),Tdomain%sFace(nf)%spml%DumpVz)
-            ! XXX For FPML should we do Iv=Iv*DumpV ?
-            deallocate(Tdomain%sFace(nf)%spml%DumpMass)
-        endif
-    enddo
-
-    do ne = 0,Tdomain%n_edge-1
-        if(Tdomain%sEdge(ne)%PML)then
-            ngll = Tdomain%sEdge(ne)%ngll
-            call define_PML_Edge_DumpEnd(ngll,Tdomain%sEdge(ne)%Massmat,    &
-                Tdomain%sEdge(ne)%spml%DumpMass(:,0),Tdomain%sEdge(ne)%spml%DumpVx)
-            call define_PML_Edge_DumpEnd(ngll,Tdomain%sEdge(ne)%Massmat,    &
-                Tdomain%sEdge(ne)%spml%DumpMass(:,1),Tdomain%sEdge(ne)%spml%DumpVy)
-            call define_PML_Edge_DumpEnd(ngll,Tdomain%sEdge(ne)%Massmat,    &
-                Tdomain%sEdge(ne)%spml%DumpMass(:,2),Tdomain%sEdge(ne)%spml%DumpVz)
-            deallocate(Tdomain%sEdge(ne)%spml%DumpMass)
-        endif
-    enddo
-
-    do nv = 0,Tdomain%n_vertex-1
-        if(Tdomain%sVertex(nv)%PML)then
-            call define_PML_Vertex_DumpEnd(Tdomain%sVertex(nv)%Massmat,    &
-                Tdomain%sVertex(nv)%spml%DumpMass(0),Tdomain%sVertex(nv)%spml%DumpVx)
-            call define_PML_Vertex_DumpEnd(Tdomain%sVertex(nv)%Massmat,    &
-                Tdomain%sVertex(nv)%spml%DumpMass(1),Tdomain%sVertex(nv)%spml%DumpVy)
-            call define_PML_Vertex_DumpEnd(Tdomain%sVertex(nv)%Massmat,    &
-                Tdomain%sVertex(nv)%spml%DumpMass(2),Tdomain%sVertex(nv)%spml%DumpVz)
-        endif
-    enddo
-#endif
-
 end subroutine finalize_pml_properties
 
 subroutine init_local_mass_mat(Tdomain, specel, mat, Whei)
@@ -691,10 +501,8 @@ subroutine init_local_mass_mat(Tdomain, specel, mat, Whei)
   real, dimension(:,:,:), allocatable, intent(out) :: Whei
   !
   integer :: i, j, k
-#if NEW_GLOBAL_METHOD
   integer :: n, ind, indsol, indpml
   real :: Mass
-#endif
 
   allocate(Whei(0:specel%ngllx-1,0:specel%nglly-1,0:specel%ngllz-1))
   !- general (element) weighting: tensorial property..
@@ -711,7 +519,6 @@ subroutine init_local_mass_mat(Tdomain, specel, mat, Whei)
      enddo
   enddo
 
-#if NEW_GLOBAL_METHOD
   if(specel%PML)then ! PML part
     do k = 0,specel%ngllz-1
         do j = 0,specel%nglly-1
@@ -745,7 +552,6 @@ subroutine init_local_mass_mat(Tdomain, specel, mat, Whei)
         enddo
     enddo
   endif
-#endif
   !- mass matrix elements
 end subroutine init_local_mass_mat
 
@@ -1110,33 +916,7 @@ subroutine define_FPML_DumpInit(ngllx,nglly,ngllz,dt,freq,alpha,MassMat,  &
 end subroutine define_FPML_DumpInit
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
-#if ! NEW_GLOBAL_METHOD
-subroutine define_PML_DumpInit(ngllx,nglly,ngllz,dt,freq,alpha,MassMat,DumpS,DumpMass)
-    !- defining parameters related to stresses and mass matrix elements, in the case of
-    !    a PML, along a given splitted direction:
-    integer, intent(in)  :: ngllx,nglly,ngllz
-    real, intent(in) :: dt, freq
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: alpha
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: MassMat
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1), intent(out) :: DumpS
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: DumpMass
-
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1)  :: Id
-    integer :: n,i,j,k,m
-
-    Id = 1d0
-
-    DumpS(:,:,:,1) = Id + 0.5d0*dt*alpha*freq
-    DumpS(:,:,:,1) = 1d0/DumpS(:,:,:,1)
-    DumpS(:,:,:,0) = (Id - 0.5d0*dt*alpha*freq)*DumpS(:,:,:,1)
-    DumpMass(:,:,:) = 0.5d0*MassMat(:,:,:)*alpha(:,:,:)*dt*freq
-
-    return
-
-end subroutine define_PML_DumpInit
-#endif
-#if NEW_GLOBAL_METHOD
-subroutine define_PML_DumpInit_2(ngllx,nglly,ngllz,dt,freq,alpha,&
+subroutine define_PML_DumpInit(ngllx,nglly,ngllz,dt,freq,alpha,&
                                  MassMat,DumpS,DumpMass)
     !- defining parameters related to stresses and mass matrix elements, in the case of
     !    a PML, along a given splitted direction:
@@ -1157,7 +937,7 @@ subroutine define_PML_DumpInit_2(ngllx,nglly,ngllz,dt,freq,alpha,&
     DumpMass(:,:,:) = 0.5d0*MassMat(:,:,:)*alpha(:,:,:)*dt*freq
 
     return
-end subroutine define_PML_DumpInit_2
+end subroutine define_PML_DumpInit
 
 subroutine assemble_DumpMass(Tdomain,specel)
     type(domain), intent(inout) :: Tdomain
@@ -1186,31 +966,9 @@ subroutine assemble_DumpMass(Tdomain,specel)
 
     return
 end subroutine assemble_DumpMass
-#endif
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
-#if ! NEW_GLOBAL_METHOD
-subroutine define_PML_DumpEnd(n,ngllx,nglly,ngllz,Massmat,DumpMass,DumpV)
-    integer, intent(in)   :: ngllx,nglly,ngllz,n
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: MassMat
-    real, dimension(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1), intent(out) :: DumpV
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: DumpMass
-    real, dimension(1:ngllx-2,1:nglly-2,1:ngllz-2)  :: LocMassMat
-
-    LocMassMat(:,:,:) = MassMat(1:ngllx-2,1:nglly-2,1:ngllz-2)
-    DumpV(:,:,:,1) = LocMassMat + DumpMass(1:ngllx-2,1:nglly-2,1:ngllz-2)
-    DumpV(:,:,:,1) = 1d0/DumpV(:,:,:,1)
-    DumpV(:,:,:,0) = LocMassMat - DumpMass(1:ngllx-2,1:nglly-2,1:ngllz-2)
-    DumpV(:,:,:,0) = DumpV(:,:,:,0) * DumpV(:,:,:,1)
-
-    return
-
-end subroutine define_PML_DumpEnd
-#endif
-!----------------------------------------------------------------------------------
-!----------------------------------------------------------------------------------
-#if NEW_GLOBAL_METHOD
-subroutine define_PML_DumpEnd_2(ngll_pmls,Massmat,DumpMass,DumpV)
+subroutine define_PML_DumpEnd(ngll_pmls,Massmat,DumpMass,DumpV)
     implicit none
     integer, intent(in)   :: ngll_pmls
     real, dimension(0:ngll_pmls-1), intent(in) :: MassMat, DumpMass
@@ -1222,14 +980,14 @@ subroutine define_PML_DumpEnd_2(ngll_pmls,Massmat,DumpMass,DumpV)
     DumpV(:,0) = DumpV(:,0) * DumpV(:,1)
 
     return
-end subroutine define_PML_DumpEnd_2
-#endif
+end subroutine define_PML_DumpEnd
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
-subroutine define_FPML_DumpEnd(dir,ngllx,nglly,ngllz,DumpV,Iv)
+
+subroutine define_FPML_DumpEnd(ngllx,nglly,ngllz,DumpV,Iv)
 
     implicit none
-    integer, intent(in)   :: dir,ngllx,nglly,ngllz
+    integer, intent(in)   :: ngllx,nglly,ngllz
     real, dimension(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1), intent(in) :: DumpV
     real, dimension(:,:,:), allocatable, intent(inout) :: Iv
     real, dimension(1:ngllx-2,1:nglly-2,1:ngllz-2)  :: LocIv
@@ -1241,107 +999,6 @@ subroutine define_FPML_DumpEnd(dir,ngllx,nglly,ngllz,DumpV,Iv)
     return
 
 end subroutine define_FPML_DumpEnd
-!----------------------------------------------------------------------------------
-!----------------------------------------------------------------------------------
-#if ! NEW_GLOBAL_METHOD
-subroutine Comm_Mass_Complete(n,Tdomain)
-    use sdomain
-    implicit none
-
-    integer, intent(in)  :: n
-    type(domain), intent(inout) :: Tdomain
-    integer  :: i,j,k,ngll,nf,ne,nv
-
-    ngll = 0
-    ! faces
-    do i = 0,Tdomain%sComm(n)%nb_faces-1
-        nf = Tdomain%sComm(n)%faces(i)
-        do j = 1,Tdomain%sFace(nf)%ngll2-2
-            do k = 1,Tdomain%sFace(nf)%ngll1-2
-                Tdomain%sComm(n)%Give(ngll) = Tdomain%sFace(nf)%MassMat(k,j)
-                ngll = ngll + 1
-            enddo
-        enddo
-    enddo
-    ! edges
-    do i = 0,Tdomain%sComm(n)%nb_edges-1
-        ne = Tdomain%sComm(n)%edges(i)
-        do j = 1,Tdomain%sEdge(ne)%ngll-2
-            Tdomain%sComm(n)%Give(ngll) = Tdomain%sEdge(ne)%MassMat(j)
-            ngll = ngll + 1
-        enddo
-    enddo
-    ! vertices
-    do i = 0,Tdomain%sComm(n)%nb_vertices-1
-        nv =  Tdomain%sComm(n)%vertices(i)
-        Tdomain%sComm(n)%Give(ngll) = Tdomain%svertex(nv)%MassMat
-        ngll = ngll + 1
-    enddo
-
-    if(ngll /= Tdomain%sComm(n)%ngll_tot) &
-        stop "Incompatibility in mass transmission between procs."
-
-end subroutine Comm_Mass_Complete
-!----------------------------------------------------------------------------------
-!----------------------------------------------------------------------------------
-subroutine Comm_Mass_Complete_PML(n,Tdomain)
-    use sdomain
-    implicit none
-
-    integer, intent(in)  :: n
-    type(domain), intent(inout) :: Tdomain
-    integer  :: i,j,k,ngllPML,nf,ne,nv
-
-    ngllPML = 0
-    ! faces
-    do i = 0,Tdomain%sComm(n)%nb_faces-1
-        nf = Tdomain%sComm(n)%faces(i)
-        if(Tdomain%sFace(nf)%PML)then
-            do j = 1,Tdomain%sFace(nf)%ngll2-2
-                do k = 1,Tdomain%sFace(nf)%ngll1-2
-                    Tdomain%sComm(n)%GivePML(ngllPML,0:2) = Tdomain%sFace(nf)%spml%DumpMass(k,j,0:2)
-                    if(Tdomain%any_FPML)then
-                        Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%sFace(nf)%spml%Ivx(k,j)
-                        Tdomain%sComm(n)%GivePML(ngllPML,4) = Tdomain%sFace(nf)%spml%Ivy(k,j)
-                        Tdomain%sComm(n)%GivePML(ngllPML,5) = Tdomain%sFace(nf)%spml%Ivz(k,j)
-                    endif
-                    ngllPML = ngllPML + 1
-                enddo
-            enddo
-        endif
-    enddo
-    ! edges
-    do i = 0,Tdomain%sComm(n)%nb_edges-1
-        ne = Tdomain%sComm(n)%edges(i)
-        if(Tdomain%sEdge(ne)%PML)then
-            do j = 1,Tdomain%sEdge(ne)%ngll-2
-                Tdomain%sComm(n)%GivePML(ngllPML,0:2) = Tdomain%sEdge(ne)%spml%DumpMass(j,0:2)
-                if(Tdomain%any_FPML)then
-                    Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%sEdge(ne)%spml%Ivx(j)
-                    Tdomain%sComm(n)%GivePML(ngllPML,4) = Tdomain%sEdge(ne)%spml%Ivy(j)
-                    Tdomain%sComm(n)%GivePML(ngllPML,5) = Tdomain%sEdge(ne)%spml%Ivz(j)
-                endif
-                ngllPML = ngllPML + 1
-            enddo
-        endif
-    enddo
-    do i = 0,Tdomain%sComm(n)%nb_vertices-1
-        nv = Tdomain%sComm(n)%vertices(i)
-        if(Tdomain%sVertex(nv)%PML)then
-            Tdomain%sComm(n)%GivePML(ngllPML,0:2) = Tdomain%sVertex(nv)%spml%DumpMass(0:2)
-            if(Tdomain%any_FPML)then
-                Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%sVertex(nv)%spml%Ivx(0)
-                Tdomain%sComm(n)%GivePML(ngllPML,4) = Tdomain%sVertex(nv)%spml%Ivy(0)
-                Tdomain%sComm(n)%GivePML(ngllPML,5) = Tdomain%sVertex(nv)%spml%Ivz(0)
-            endif
-            ngllPML = ngllPML + 1
-        endif
-    enddo
-
-    if(ngllPML /= Tdomain%sComm(n)%ngllPML_tot) &
-        stop "Incompatibility in mass transmission between procs."
-
-end subroutine Comm_Mass_Complete_PML
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
 subroutine Comm_Normal_Neumann(n,Tdomain)
@@ -1371,60 +1028,6 @@ subroutine Comm_Normal_Neumann(n,Tdomain)
         stop "Incompatibility in Neumann normal transmission between procs."
 
 end subroutine Comm_Normal_Neumann
-#endif
-!----------------------------------------------------------------------------------
-!----------------------------------------------------------------------------------
-subroutine define_PML_Face_DumpEnd(ngll1,ngll2,Massmat,DumpMass,DumpV)
-
-    implicit none
-    integer, intent(in)   :: ngll1,ngll2
-    real, dimension(1:ngll1-2,1:ngll2-2), intent(in) :: MassMat
-    real, dimension(1:ngll1-2,1:ngll2-2,0:1), intent(out) :: DumpV
-    real, dimension(1:ngll1-2,1:ngll2-2), intent(in) :: DumpMass
-
-    DumpV(:,:,1) = MassMat + DumpMass
-    DumpV(:,:,1) = 1d0/DumpV(:,:,1)
-    DumpV(:,:,0) = MassMat - DumpMass
-    DumpV(:,:,0) = DumpV(:,:,0) * DumpV(:,:,1)
-
-    return
-
-end subroutine define_PML_Face_DumpEnd
-!----------------------------------------------------------------------------------
-!----------------------------------------------------------------------------------
-subroutine define_PML_Edge_DumpEnd(ngll,Massmat,DumpMass,DumpV)
-
-    implicit none
-    integer, intent(in)   :: ngll
-    real, dimension(1:ngll-2), intent(in) :: MassMat
-    real, dimension(1:ngll-2,0:1), intent(out) :: DumpV
-    real, dimension(1:ngll-2), intent(in) :: DumpMass
-
-    DumpV(:,1) = MassMat + DumpMass
-    DumpV(:,1) = 1d0/DumpV(:,1)
-    DumpV(:,0) = MassMat - DumpMass
-    DumpV(:,0) = DumpV(:,0) * DumpV(:,1)
-
-    return
-
-end subroutine define_PML_Edge_DumpEnd
-!----------------------------------------------------------------------------------
-!----------------------------------------------------------------------------------
-subroutine define_PML_Vertex_DumpEnd(Massmat,DumpMass,DumpV)
-
-    implicit none
-    real, intent(in) :: MassMat
-    real, dimension(0:1), intent(out) :: DumpV
-    real, intent(in) :: DumpMass
-
-    DumpV(1) = MassMat + DumpMass
-    DumpV(1) = 1d0/DumpV(1)
-    DumpV(0) = MassMat - DumpMass
-    DumpV(0) = DumpV(0) * DumpV(1)
-
-    return
-
-end subroutine define_PML_Vertex_DumpEnd
 end module mdefinitions
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------

@@ -79,7 +79,6 @@ module sdomain
 
        real :: MPML_coeff
 
-#if NEW_GLOBAL_METHOD
        ! Nombre de gll solide, fluide, pml solide, pml fluide
        integer :: ngll_s, ngll_f, ngll_pmls, ngll_pmlf
 
@@ -97,15 +96,14 @@ module sdomain
        integer :: nbInterfSolPml ! nombre de points de gauss à l'interface Solide / PML
        integer, dimension(:,:), allocatable :: InterfSolPml ! dimension(0:nbInterfSolPml-1,0:1), 0 Sol, 1 PML
 
-        ! Faces externes PML
-        ! Permet par exemple de mettre a 0 le champs de vitesse pour certaines face, edge, vertex PML
-        integer, dimension(:), allocatable :: OuterPMLNodes
-        integer :: nbOuterPMLNodes
+       ! Faces externes PML
+       ! Permet par exemple de mettre a 0 le champs de vitesse pour certaines face, edge, vertex PML
+       integer, dimension(:), allocatable :: OuterPMLNodes
+       integer :: nbOuterPMLNodes
 
         ! Communication
         type(comm_vector) :: Comm_data      ! Comm mass et forces
         type(comm_vector) :: Comm_SolFlu    ! Comm couplage solide/fluide
-#endif
 
     end type domain
 

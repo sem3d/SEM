@@ -578,21 +578,16 @@ contains
                 if (allocated(field_accel)) deallocate(field_accel)
                 if (allocated(field_press)) deallocate(field_press)
                 if (allocated(field_displ)) deallocate(field_displ)
-#if NEW_GLOBAL_METHOD
                 if (allocated(field_phi)) deallocate(field_phi)
                 if (allocated(field_vphi)) deallocate(field_vphi)
-#endif
                 allocate(field_displ(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                 allocate(field_veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                 allocate(field_accel(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                 allocate(field_press(0:ngllx-1,0:nglly-1,0:ngllz-1))
-#if NEW_GLOBAL_METHOD
                 allocate(field_phi(0:ngllx-1,0:nglly-1,0:ngllz-1))
                 allocate(field_vphi(0:ngllx-1,0:nglly-1,0:ngllz-1))
-#endif
             endif
             
-#if NEW_GLOBAL_METHOD
             domain_type = get_domain(el)
             select case(domain_type)
             case (DM_SOLID)
@@ -640,11 +635,10 @@ contains
                     enddo
                 enddo
             enddo
-#else
             call gather_elem_displ(Tdomain, n, field_displ)
             call gather_elem_veloc(Tdomain, n, field_veloc)
             call gather_elem_accel(Tdomain, n, field_accel)
-            call gather_elem_press(Tdomain, n, field_press)
+            !call gather_elem_press(Tdomain, n, field_press)
 
             do k = 0,ngllz-1
                 do j = 0,nglly-1
@@ -658,7 +652,6 @@ contains
                     enddo
                 enddo
             enddo
-#endif
         enddo
 
         ! normalization
@@ -687,10 +680,8 @@ contains
         if (allocated(field_veloc)) deallocate(field_veloc)
         if (allocated(field_accel)) deallocate(field_accel)
         if (allocated(field_press)) deallocate(field_press)
-#if NEW_GLOBAL_METHOD
         if (allocated(field_phi)) deallocate(field_phi)
         if (allocated(field_vphi)) deallocate(field_vphi)
-#endif
         call mpi_barrier(Tdomain%communicateur, hdferr)
     end subroutine save_field_h5
 
@@ -833,31 +824,12 @@ contains
         real, dimension(:),allocatable :: mass, jac
         integer :: ngllx, nglly, ngllz, idx
         integer :: i, j, k, n, nnodes_tot
-#if NEW_GLOBAL_METHOD
         integer :: domain_type
-#endif
         
 
         allocate(mass(0:nnodes-1))
         allocate(jac(0:nnodes-1))
         mass = 0d0
-#if ! NEW_GLOBAL_METHOD
-        ! mass
-        do n = 0,Tdomain%n_elem-1
-            if (.not. Tdomain%specel(n)%OUTPUT) cycle
-            ngllx = Tdomain%specel(n)%ngllx
-            nglly = Tdomain%specel(n)%nglly
-            ngllz = Tdomain%specel(n)%ngllz
-            do k = 1,ngllz-2
-                do j = 1,nglly-2
-                    do i = 1,ngllx-2
-                        idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
-                        mass(idx) = Tdomain%specel(n)%MassMat(i,j,k)
-                    end do
-                end do
-            end do
-        end do
-#else
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             ngllx = Tdomain%specel(n)%ngllx
@@ -910,7 +882,6 @@ contains
             end select
         enddo
         if (Tdomain%any_PML) deallocate(Tdomain%MassMatSolPml)
-#endif
         ! jac
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
@@ -927,31 +898,6 @@ contains
             end do
         end do
 
-#if ! NEW_GLOBAL_METHOD
-        do n = 0,Tdomain%n_face-1
-            ngllx = Tdomain%sface(n)%ngll1
-            nglly = Tdomain%sface(n)%ngll2
-            do j = 1,nglly-2
-                do i = 1,ngllx-2
-                    idx = irenum(Tdomain%sface(n)%Iglobnum_Face(i,j))
-                    if (idx>=0) mass(idx) = Tdomain%sface(n)%MassMat(i,j)
-                end do
-            end do
-        end do
-
-        do n = 0,Tdomain%n_edge-1
-            ngllx = Tdomain%sedge(n)%ngll
-            do i = 1,ngllx-2
-                idx = irenum(Tdomain%sedge(n)%Iglobnum_Edge(i))
-                if (idx>=0) mass(idx) = Tdomain%sedge(n)%MassMat(i)
-            end do
-        end do
-
-        do n = 0,Tdomain%n_vertex-1
-            idx = irenum(Tdomain%svertex(n)%Iglobnum_Vertex)
-            if (idx>=0) mass(idx) = Tdomain%svertex(n)%MassMat
-        end do
-#endif
         call grp_write_real_1d(Tdomain, fid, "Mass", nnodes, mass, nnodes_tot)
         call grp_write_real_1d(Tdomain, fid, "Jac", nnodes, jac, nnodes_tot)
         deallocate(mass,jac)

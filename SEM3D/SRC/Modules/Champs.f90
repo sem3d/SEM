@@ -19,7 +19,7 @@ module schamps
         real, dimension(:,:), allocatable :: VelocPML
         real, dimension(:,:), allocatable :: DumpV
 
-        !! Fluide 
+        !! Fluide
         real, dimension(:), allocatable :: ForcesFl
         real, dimension(:), allocatable :: Phi
         real, dimension(:), allocatable :: VelPhi
