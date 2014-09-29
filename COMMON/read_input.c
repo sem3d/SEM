@@ -100,9 +100,9 @@ int expect_type_integration(yyscan_t scanner, int* type)
     if (tok!=K_ID) goto error;
     if (cmp(scanner,"Newmark"))   { *type = 0; return 1; }
     if (cmp(scanner,"RK4"))       { *type = 1; return 1; }
-    if (cmp(scanner,"Newmark_DG")){ *type = 2; return 1; }
+    if (cmp(scanner,"Newmark_PMC")){ *type = 2; return 1; }
 error:
-    msg_err(scanner, "Expected Newmark|RK4|Newmark_DG");
+    msg_err(scanner, "Expected Newmark|RK4|Newmark_PMC");
     return 0;
 }
 

@@ -283,7 +283,7 @@ subroutine  sem()
             call Newmark (Tdomain)
         else if (Tdomain%type_timeInteg==TIME_INTEG_RK4) then
             call Runge_Kutta4(Tdomain, Tdomain%TimeD%dtmin)
-        else if (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_DG) then
+        else if (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC) then
             call Newmark_DG(Tdomain)
         endif
 

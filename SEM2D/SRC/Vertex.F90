@@ -19,13 +19,17 @@ module svertices
        real, dimension (:), allocatable :: DumpMass, DumpVx, DumpVz, Forces1, Forces2, Veloc1, Veloc2
        real, dimension (:), allocatable :: Displ, Veloc, Forces, Accel, V0
        real, dimension (:), allocatable :: Ivx, Ivz,Iveloc1, Iveloc2
-       real, dimension  (:), allocatable :: Double_Value
+       real, dimension (:), allocatable :: Double_Value
 
 #ifdef MKA3D
        real, dimension (:), allocatable :: ForcesMka
 #endif
        ! DG
-       real, dimension (:), allocatable :: Vect_RK
+       integer :: valence
+       real,   dimension (:), allocatable :: Vect_RK
+       integer,dimension (:), allocatable :: Near_Face
+       real, dimension (:,:), allocatable :: Mat_Lambda
+       real,   dimension (:), allocatable :: Smbr_Lambda
 
     end type vertex
 

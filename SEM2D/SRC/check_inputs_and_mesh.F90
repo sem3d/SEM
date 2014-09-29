@@ -19,7 +19,7 @@ subroutine check_inputs_and_mesh(Tdomain)
 
     if ((Tdomain%type_timeInteg .NE. TIME_INTEG_NEWMARK) .AND. &
         (Tdomain%type_timeInteg .NE. TIME_INTEG_RK4)     .AND. &
-        (Tdomain%type_timeInteg .NE. TIME_INTEG_NEWMARK_DG)) then
+        (Tdomain%type_timeInteg .NE. TIME_INTEG_NEWMARK_PMC)) then
         STOP "This choice for time_integ does not exist. Please choose RK4, Newmark or Newmark_DG"
     endif
 

@@ -292,6 +292,9 @@ subroutine read_mesh(tDomain)
         endif
     enddo
 
+    if (Tdomain%type_timeInteg == TIME_INTEG_NEWMARK_PMC) &
+        call set_Vertex_Valence (Tdomain)
+
     call read_material_file(Tdomain)
 
     call read_receiver_file(Tdomain)
