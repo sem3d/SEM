@@ -191,7 +191,7 @@ contains
         call MPI_Waitall(Tdomain%n_proc, req_r_fpml, statuses, ierr)
         !write(*,*) "END Exchange sem forces", rg
     end subroutine exchange_sem_forces
-#endif
+
     subroutine exchange_sem_forces_StoF(Tdomain, rg)
         use sdomain
         use mpi
@@ -275,7 +275,7 @@ contains
         call MPI_Waitall(Tdomain%n_proc, req_r_pml, statuses, ierr)
 
     end subroutine exchange_sem_forces_FtoS
-
+#endif
 
 end module scomm
 !! Local Variables:

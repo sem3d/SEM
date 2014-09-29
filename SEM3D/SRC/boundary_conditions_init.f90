@@ -423,6 +423,8 @@ subroutine define_Face_SF(Tdomain)
     type(domain), intent(inout)  :: Tdomain
     integer :: nf,ngllx,nglly,ngllz,ngll1,ngll2,mat,i,w_elem,j,kb,dir
 
+    Tdomain%SF%SF_BtN(:,:) = 0.
+
     kb = 0
     do nf = 0,Tdomain%SF%SF_n_faces-1
         ngll1 = Tdomain%SF%SF_Face(nf)%ngll1 ; ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
@@ -441,37 +443,18 @@ subroutine define_Face_SF(Tdomain)
             Tdomain%sSubdomain(mat)%GLLwy,Tdomain%sSubdomain(mat)%GLLwz,             &
             Tdomain%SF%SF_Face(nf)%Btn)
 
-        ! On calcul le tableau de BtN global
-        if(dir == 0 .or. dir == 5)then
-            do j = 0,ngll2-1
-                do i = 0,ngll1-1
-                    Tdomain%SF%SF_BtN(kb,0:2) = Tdomain%sSubdomain(mat)%GLLwx(i)* &
-                        Tdomain%sSubdomain(mat)%GLLwy(j)*Tdomain%SF%SF_face(nf)%normal(i,j,0:2)
-                    kb = kb + 1 
-                enddo
-            enddo
-        else if(dir == 1 .or. dir == 3)then
-            do j = 0,ngll2-1
-                do i = 0,ngll1-1
-                    Tdomain%SF%SF_BtN(kb,0:2) = Tdomain%sSubdomain(mat)%GLLwx(i)* &
-                        Tdomain%sSubdomain(mat)%GLLwz(j)*Tdomain%SF%SF_face(nf)%normal(i,j,0:2)
 
-                    kb = kb + 1
-                enddo
-            enddo
-        else
-            do j = 0,ngll2-1
-                do i = 0,ngll1-1
-                    Tdomain%SF%SF_BtN(kb,0:2) = Tdomain%sSubdomain(mat)%GLLwy(i)* &
-                        Tdomain%sSubdomain(mat)%GLLwz(j)*Tdomain%SF%SF_face(nf)%normal(i,j,0:2)
-                    kb = kb + 1
-                enddo
-            enddo
-        end if
+        ! On calcul le tableau de BtN global
+        do j = 0,ngll2-1
+           do i = 0,ngll1-1
+               kb = Tdomain%SF%SF_Face(nf)%I_sf(i,j)
+               Tdomain%SF%SF_BtN(kb,0:2) = Tdomain%SF%SF_BtN(kb,0:2) + Tdomain%SF%SF_Face(nf)%Btn(i,j,0:2)
+           enddo
+        enddo
     enddo
 
-
 end subroutine define_Face_SF
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

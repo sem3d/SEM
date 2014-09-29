@@ -32,9 +32,10 @@ subroutine global_numbering(Tdomain,rank)
     integer, dimension(0:2)  :: index_elem_v
 
 #if NEW_GLOBAL_METHOD
-    integer :: idx, idxS, idxF, idxSpml, idxFpml, dir, ks, kl
+    integer :: idx, idxS, idxF, idxSpml, idxFpml, idxSF, dir, ks, kl
     integer :: nbPtInterfSolPml, abscount, nproc
     integer, dimension (:), allocatable :: renumS, renumF, renumSpml, renumFpml
+    integer, dimension (:,:), allocatable :: renumSF
     integer :: nsol, nsolpml, nflu, nflupml
 
 #endif
@@ -207,14 +208,17 @@ subroutine global_numbering(Tdomain,rank)
     allocate(renumF(0:Tdomain%n_glob_points-1))
     allocate(renumSpml(0:Tdomain%n_glob_points-1))
     allocate(renumFpml(0:Tdomain%n_glob_points-1))
+    allocate(renumSF(0:Tdomain%n_glob_points-1,0:2))
     renumS(:) = -1
     renumF(:) = -1
     renumSpml(:) = -1
     renumFpml(:) = -1
+    renumSF = -1
     idxS = 0
     idxF = 0
     idxSpml = 0
     idxFpml = 0
+    idxSF = 0
     do n = 0,Tdomain%n_elem-1
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
@@ -356,46 +360,19 @@ subroutine global_numbering(Tdomain,rank)
         k = 0
         do nf = 0,Tdomain%SF%SF_n_faces-1
             nnf = Tdomain%SF%SF_Face(nf)%Face(1)
-            if(nnf < 0) cycle
-            n = Tdomain%sFace(nnf)%which_elem
-            dir = Tdomain%sFace(nnf)%dir
-            ngllx = Tdomain%specel(n)%ngllx
-            nglly = Tdomain%specel(n)%nglly
-            ngllz = Tdomain%specel(n)%ngllz
-            if(dir == 0 .OR. dir == 5)then
-                do j = 0,nglly-1
-                    do i = 0,ngllx-1
-                        k = k + 1
-                    enddo
-                enddo
-            else if(dir == 1 .OR. dir == 3)then
-                do j = 0,ngllz-1
-                    do i = 0,ngllx-1
-                        k = k + 1
-                    enddo
-                enddo
-            else
-                do j = 0,ngllz-1
-                    do i = 0,nglly-1
-                        k = k + 1
-                    enddo
-                enddo
-            endif
+            ks = num_gll_face(Tdomain, nnf)
+            nnf = Tdomain%SF%SF_Face(nf)%Face(0)
+            kl = num_gll_face(Tdomain, nnf)
+            k = k + max(kl,ks)
         enddo
 
-        ! On alloue et on initialise les tableaux d'indice des points de couplage
-        Tdomain%SF%ngll = k
-        allocate(Tdomain%SF%SF_IGlobSol(0:k-1))
-        allocate(Tdomain%SF%SF_IGlobFlu(0:k-1))
-        Tdomain%SF%SF_IGlobSol = -1
-        Tdomain%SF%SF_IGlobFlu = -1
 
         ! On peuple le tableau d'indice des ngll de couplage en fonction des direcions des faces
-        ks = 0
-        kl = 0
         k = 0
 
         do nf = 0,Tdomain%SF%SF_n_faces-1
+            allocate(Tdomain%SF%SF_Face(nf)%I_sf(0:ngll1-1,0:ngll2-1))
+            Tdomain%SF%SF_Face(nf)%I_sf = -1
             ! Partie fluide
             nnf = Tdomain%SF%SF_Face(nf)%Face(0)
             if(nnf > -1) then
@@ -405,8 +382,13 @@ subroutine global_numbering(Tdomain,rank)
                 nglly = Tdomain%specel(n)%nglly
                 ngllz = Tdomain%specel(n)%ngllz
 
-                call populate_index_SF(Tdomain%SF%ngll, dir, ngllx, nglly, ngllz, &
-                                       Tdomain%specel(n)%IFlu, kl, Tdomain%SF%SF_IGlobFlu)
+                write(*,*) "DEBUG: rank, which_elem fluide", rank, n, dir
+                call populate_index_SF(rank, 1, Tdomain%SF%ngll, dir, ngllx, nglly, ngllz, &
+                                       Tdomain%specel(n)%IFlu,  &
+                                       Tdomain%specel(n)%IGlobnum, k, &
+                                       Tdomain%n_glob_points, renumSF, Tdomain%SF%SF_Face(nf)%I_sf)
+            else
+                write(*,*) "HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH"
             end if
 
             ! Partie Solide
@@ -418,11 +400,28 @@ subroutine global_numbering(Tdomain,rank)
                 nglly = Tdomain%specel(n)%nglly
                 ngllz = Tdomain%specel(n)%ngllz
 
-                call populate_index_SF(Tdomain%SF%ngll, dir, ngllx, nglly, ngllz, &
-                                       Tdomain%specel(n)%ISol, ks, Tdomain%SF%SF_IGlobSol)
+                write(*,*) "DEBUG: rank, which_elem solide", rank, n, dir
+                call populate_index_SF(rank, 2, Tdomain%SF%ngll, dir, ngllx, nglly, ngllz, &
+                                       Tdomain%specel(n)%ISol,  &
+                                       Tdomain%specel(n)%IGlobnum, k, &
+                                       Tdomain%n_glob_points, renumSF, Tdomain%SF%SF_Face(nf)%I_sf)
+            else
+                write(*,*) "GGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG"
             end if
         enddo
-
+        ! On alloue et on initialise les tableaux d'indice des points de couplage
+        Tdomain%SF%ngll = k
+        allocate(Tdomain%SF%SF_IGlobSol(0:k-1))
+        allocate(Tdomain%SF%SF_IGlobFlu(0:k-1))
+        Tdomain%SF%SF_IGlobSol = -1
+        Tdomain%SF%SF_IGlobFlu = -1
+        do k=0,Tdomain%n_glob_points-1
+            kl = renumSF(k,0)
+            if (kl/=-1) then
+                Tdomain%SF%SF_IGlobFlu(kl) = renumSF(k,1)
+                Tdomain%SF%SF_IGlobSol(kl) = renumSF(k,2)
+            endif
+        end do
     endif ! fin traitement couplage Solide / Fluide
 
     abscount = 0
@@ -536,6 +535,7 @@ subroutine global_numbering(Tdomain,rank)
     enddo
 
     call prepare_comm_vector(Tdomain,rank,Tdomain%Comm_data, 3, 9, 1, 3)
+    call prepare_comm_vector_SF(Tdomain,rank,Tdomain%n_glob_points,renumSF,Tdomain%Comm_SolFlu)
 !     call debug_comm_vector(Tdomain, rank, 0, 1, Tdomain%Comm_data)
 !     call debug_comm_vector(Tdomain, rank, 0, 2, Tdomain%Comm_data)
 !     call debug_comm_vector(Tdomain, rank, 0, 3, Tdomain%Comm_data)
@@ -1215,55 +1215,387 @@ subroutine allocate_comm_vector(Tdomain,rank, comm_data, nddlsol, nddlsolpml, nd
     return
 end subroutine allocate_comm_vector
 
-subroutine populate_index_SF(ngll,dir,ngllx,nglly,ngllz,ISolFlu,k,SF_IGlob)
+subroutine prepare_comm_vector_SF(Tdomain,rank,nglobpoints,renumSF,comm_data)
+    use sdomain
     implicit none
 
-    integer, intent(in) :: ngll, dir, ngllx, nglly, ngllz
+    type(domain), intent (inout) :: Tdomain
+    type(comm_vector), intent(inout) :: comm_data
+    integer, intent(in) :: rank, nglobpoints
+    integer, intent(in), dimension(0:nglobpoints-1,0:2) :: renumSF
+
+    integer :: n,nproc,nSF
+    integer :: i,j,k,nf,ne,nv,idx,ngll1,ngll2
+
+    ! Remplissage des IGive et ITake
+    if(Tdomain%n_proc > 1)then
+        call allocate_comm_vector_SF(Tdomain,rank, comm_data)
+
+        do n = 0,Comm_data%ncomm-1
+            nproc = Comm_data%Data(n)%dest
+            nSF = 0
+
+            ! Remplissage des Igive
+            ! Faces
+            do i = 0,Tdomain%sComm(nproc)%SF_nf_shared-1
+                nf = Tdomain%sComm(nproc)%SF_faces_shared(i)
+                do j = 1,Tdomain%sFace(nf)%ngll2-2
+                    do k = 1,Tdomain%sFace(nf)%ngll1-2
+                        idx = Tdomain%sFace(nf)%Iglobnum_Face(k,j)
+                        Comm_data%Data(n)%IGiveS(nSF) = renumSF(idx,0)
+                        nSF = nSF + 1
+                    end do
+                end do
+            enddo
+
+            ! Edges
+            do i = 0,Tdomain%sComm(nproc)%SF_ne_shared-1
+                ne = Tdomain%sComm(nproc)%SF_edges_shared(i)
+                do j = 1,Tdomain%sEdge(ne)%ngll-2
+                    idx = Tdomain%sEdge(ne)%Iglobnum_Edge(j)
+                    Comm_data%Data(n)%IGiveS(nSF) = renumSF(idx,0)
+                    nSF = nSF + 1
+                enddo
+            enddo
+
+            ! Vertices
+            do i = 0,Tdomain%sComm(nproc)%SF_nv_shared-1
+                nv =  Tdomain%sComm(nproc)%SF_vertices_shared(i)
+                idx = Tdomain%sVertex(nv)%Iglobnum_Vertex
+                Comm_data%Data(n)%IGiveS(nSF) = renumSF(idx,0)
+                nSF = nSF + 1
+            enddo
+
+
+            nSF = 0
+            ! Remplissage des ITake
+            ! Faces
+            do i = 0,Tdomain%sComm(nproc)%SF_nf_shared-1
+                nf = Tdomain%sComm(nproc)%SF_faces_shared(i)
+                ngll1 = Tdomain%sFace(nf)%ngll1
+                ngll2 = Tdomain%sFace(nf)%ngll2
+
+                if ( Tdomain%sComm(nproc)%orient_faces(i) == 0 ) then
+                    do j = 1,ngll2-2
+                        do k = 1,ngll1-2
+                            idx = Tdomain%sFace(nf)%Iglobnum_Face(k,j)
+                            Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
+                            nSF = nSF + 1
+                        enddo
+                    enddo
+
+                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 1 ) then
+                    do j = 1,ngll2-2
+                        do k = 1,ngll1-2
+                            idx = Tdomain%sFace(nf)%Iglobnum_Face(ngll1-1-k,j)
+                            Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
+                            nSF = nSF + 1
+                        enddo
+                    enddo
+
+                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 2 ) then
+                   do j = 1,ngll2-2
+                        do k = 1,ngll1-2
+                            idx = Tdomain%sFace(nf)%Iglobnum_Face(k,ngll2-1-j)
+                            Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
+                            nSF = nSF + 1
+                        enddo
+                    enddo
+
+                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 3 ) then
+                    do j = 1,ngll2-2
+                        do k = 1,ngll1-2
+                            idx = Tdomain%sFace(nf)%Iglobnum_Face(ngll1-1-k,ngll2-1-j)
+                            Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
+                            nSF = nSF + 1
+                        enddo
+                    enddo
+
+                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 4 ) then
+                    do j = 1,ngll1-2
+                        do k = 1,ngll2-2
+                            idx = Tdomain%sFace(nf)%Iglobnum_Face(j,k)
+                            Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
+                            nSF = nSF + 1
+                        enddo
+                    enddo
+
+                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 5 ) then
+                    do j = 1,ngll1-2
+                        do k = 1,ngll2-2
+                            idx = Tdomain%sFace(nf)%Iglobnum_Face(ngll1-1-j,k)
+                            Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
+                            nSF = nSF + 1
+                        enddo
+                    enddo
+
+                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 6 ) then
+                    do j = 1,ngll1-2
+                        do k = 1,ngll2-2
+                            idx = Tdomain%sFace(nf)%Iglobnum_Face(j,ngll2-1-k)
+                            Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
+                            nSF = nSF + 1
+                        enddo
+                    enddo
+
+                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 7 ) then
+                    do j = 1,ngll1-2
+                        do k = 1,ngll2-2
+                            idx = Tdomain%sFace(nf)%Iglobnum_Face(ngll1-1-j,ngll2-1-k)
+                            Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
+                            nSF = nSF + 1
+                        enddo
+                    enddo
+                endif ! orient_f
+            enddo            
+
+            ! Edges
+            do i = 0,Tdomain%sComm(nproc)%SF_ne_shared-1
+                ne = Tdomain%sComm(nproc)%SF_edges_shared(i)
+                ngll1 = Tdomain%sEdge(ne)%ngll
+
+                if ( Tdomain%sComm(nproc)%orient_edges(i) == 0 ) then
+                    do j = 1,ngll1-2
+                        idx = Tdomain%sEdge(ne)%Iglobnum_Edge(j)
+                        Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
+                        nSF = nSF + 1
+                    enddo
+
+                else if ( Tdomain%sComm(nproc)%orient_edges(i) == 1 ) then
+                    do j = 1,ngll1-2
+                        idx = Tdomain%sEdge(ne)%Iglobnum_Edge(ngll1-1-j)
+                        Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
+                        nSF = nSF + 1
+                    enddo
+                endif ! orient_edges
+            enddo
+
+            ! Vertices
+            do i = 0,Tdomain%sComm(nproc)%SF_nv_shared-1
+                nv =  Tdomain%sComm(nproc)%SF_vertices_shared(i)
+                idx = Tdomain%sVertex(nv)%Iglobnum_Vertex
+                Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
+                nSF = nSF + 1
+            enddo
+        enddo 
+    endif
+
+end subroutine prepare_comm_vector_SF
+
+subroutine allocate_comm_vector_SF(Tdomain, rank, comm_data)
+    use sdomain
+    implicit none
+
+    type(domain), intent (inout) :: Tdomain
+    type(comm_vector), intent(inout) :: comm_data
+    integer, intent(in) :: rank
+    integer :: n_data, n_comm, nSF
+    integer :: n, nf, ne, nv, i
+
+    n_comm = 0
+    do n = 0,Tdomain%n_proc-1
+        if (Tdomain%sComm(n)%SF_nf_shared > 0 .OR. &
+            Tdomain%sComm(n)%SF_ne_shared > 0 .OR. &
+            Tdomain%sComm(n)%SF_nv_shared > 0) then
+            n_comm = n_comm + 1
+        endif
+    enddo
+
+    allocate(Comm_data%Data(0:n_comm-1))
+    allocate(Comm_data%send_reqs(0:n_comm-1))
+    allocate(Comm_data%recv_reqs(0:n_comm-1))
+    Comm_data%ncomm = n_comm
+
+    n_comm = 0
+    do n = 0,Tdomain%n_proc-1
+        if (Tdomain%sComm(n)%SF_nf_shared < 1 .AND. &
+            Tdomain%sComm(n)%SF_ne_shared < 1 .AND. &
+            Tdomain%sComm(n)%SF_nv_shared < 1) cycle
+
+        nSF = 0
+
+        ! Faces
+        do i = 0,Tdomain%sComm(n)%SF_nf_shared-1
+            nf = Tdomain%sComm(n)%SF_faces_shared(i)
+            nSF = nSF + ((Tdomain%sFace(nf)%ngll1-2) * (Tdomain%sFace(nf)%ngll2-2))
+        enddo
+        ! Edges
+        do i = 0,Tdomain%sComm(n)%SF_ne_shared-1
+            ne = Tdomain%sComm(n)%SF_edges_shared(i)
+            nSF = nSF + Tdomain%sEdge(ne)%ngll-2
+        enddo
+        ! Vertices
+        do i = 0,Tdomain%sComm(n)%SF_nv_shared-1
+            nv = Tdomain%sComm(n)%SF_vertices_shared(i)
+            nSF = nSF + 1
+        enddo
+
+        n_data = nSF
+
+        ! Initialisation et allocation de Comm_vector
+        Comm_data%Data(n_comm)%src = rank
+        Comm_data%Data(n_comm)%dest = n
+        Comm_data%Data(n_comm)%ndata = n_data
+        allocate(Comm_data%Data(n_comm)%Give(0:n_data-1))
+        allocate(Comm_data%Data(n_comm)%Take(0:n_data-1))
+        allocate(Comm_data%Data(n_comm)%IGiveS(0:n_data-1))
+        allocate(Comm_data%Data(n_comm)%ITakeS(0:n_data-1))
+
+        n_comm = n_comm + 1
+    enddo
+
+    return
+end subroutine allocate_comm_vector_SF
+
+subroutine populate_index_SF(rank, sf, ngll,dir,ngllx,nglly,ngllz, &
+                             ISolFlu, IGlobnum,k,nglobpoints,renumSF, Isf)
+    implicit none
+
+    integer, intent(in) :: rank, sf, ngll, dir, ngllx, nglly, ngllz, nglobpoints
     integer, intent(in), dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: ISolFlu
+    integer, intent(in), dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: IGlobnum
     integer, intent(inout) :: k
-    integer, intent(inout), dimension(0:ngll-1) :: SF_IGlob
-    integer :: i,j
+    integer, intent(inout), dimension(0:nglobpoints-1, 0:2) :: renumSF
+    integer, intent(inout), dimension(:,:), allocatable :: Isf
+
+    integer :: i,j, gnum, dnum
 
     if(dir == 0)then
         do j = 0,nglly-1
             do i = 0,ngllx-1
-                SF_IGlob(k) = ISolFlu(i,j,0)
-                k = k + 1
+                dnum = ISolFlu(i,j,0)
+                gnum = IGlobnum(i,j,0)
+                if (renumSF(gnum, 0) == -1) then
+                    renumSF(gnum, 0) = k
+                    renumSF(gnum, sf) = dnum
+                    k = k + 1
+                else
+                    if (renumSF(gnum, sf)/= -1 .and. renumSF(gnum, sf) /= dnum) then
+                        write(*,*) "Err", rank, sf, gnum, dnum
+                        stop "bye"
+                    endif
+                endif
+                if (Isf(i,j)/=-1 .and. Isf(i,j)/=renumSF(gnum, 0)) then
+                    write(*,*) "Warning :...."
+                else
+                    Isf(i,j) = renumSF(gnum, 0)
+                endif
+                !write(*,*) "R:", rank, i, j, 0, gnum, k
             enddo
         enddo
     else if(dir == 1)then
         do j = 0,ngllz-1
             do i = 0,ngllx-1
-                SF_IGlob(k) = ISolFlu(i,0,j)
-                k = k + 1
+                dnum = ISolFlu(i,0,j)
+                gnum = IGlobnum(i,0,j)
+                if (renumSF(gnum, 0) == -1) then
+                    renumSF(gnum, 0) = k
+                    renumSF(gnum, sf) = dnum
+                    k = k + 1
+                else
+                    if (renumSF(gnum, sf)/= -1 .and. renumSF(gnum, sf) /= dnum) then
+                        write(*,*) "Err", rank, sf, gnum, dnum
+                        stop "bye"
+                    endif
+                end if
+                if (Isf(i,j)/=-1 .and. Isf(i,j)/=renumSF(gnum, 0)) then
+                    write(*,*) "Warning :...."
+                else
+                    Isf(i,j) = renumSF(gnum, 0)
+                endif
+                !write(*,*) "R:", rank, i, 0, j, gnum, k
             enddo
         enddo
     else if(dir == 2)then
         do j = 0,ngllz-1
             do i = 0,nglly-1
-                SF_IGlob(k) = ISolFlu(ngllx-1,i,j)
-                k = k + 1
+                dnum = ISolFlu(ngllx-1,i,j)
+                gnum = IGlobnum(ngllx-1,i,j)
+                if (renumSF(gnum, 0) == -1) then
+                    renumSF(gnum, 0) = k
+                    renumSF(gnum, sf) = dnum
+                    k = k + 1
+                else
+                    if (renumSF(gnum, sf)/= -1 .and. renumSF(gnum, sf) /= dnum) then
+                        write(*,*) "Err", rank, sf, gnum, dnum
+                        stop "bye"
+                    endif
+                end if
+                if (Isf(i,j)/=-1 .and. Isf(i,j)/=renumSF(gnum, 0)) then
+                    write(*,*) "Warning :...."
+                else
+                    Isf(i,j) = renumSF(gnum, 0)
+                endif
+                !write(*,*) "R:", rank, ngllx-1, i, j, gnum, k
             enddo
         enddo
     else if(dir == 3)then
         do j = 0,ngllz-1
             do i = 0,ngllx-1
-                SF_IGlob(k) = ISolFlu(i,nglly-1,j)
-                k = k + 1
+                dnum = ISolFlu(i,nglly-1,j)
+                gnum = IGlobnum(i,nglly-1,j)
+                if (renumSF(gnum, 0) == -1) then
+                    renumSF(gnum, 0) = k
+                    renumSF(gnum, sf) = dnum
+                    k = k + 1
+                else
+                    if (renumSF(gnum, sf)/= -1 .and. renumSF(gnum, sf) /= dnum) then
+                        write(*,*) "Err", rank, sf, gnum, dnum
+                        stop "bye"
+                    endif
+                end if
+                if (Isf(i,j)/=-1 .and. Isf(i,j)/=renumSF(gnum, 0)) then
+                    write(*,*) "Warning :...."
+                else
+                    Isf(i,j) = renumSF(gnum, 0)
+                endif
+                !write(*,*) "R:", rank, i, nglly-1, j, gnum, k
             enddo
         enddo
     else if(dir == 4)then
         do j = 0,ngllz-1
             do i = 0,nglly-1
-                SF_IGlob(k) = ISolFlu(0,i,j)
-                k = k + 1
+                dnum = ISolFlu(0,i,j)
+                gnum = IGlobnum(0,i,j)
+                if (renumSF(gnum, 0) == -1) then
+                    renumSF(gnum, 0) = k
+                    renumSF(gnum, sf) = dnum
+                    k = k + 1
+                else
+                    if (renumSF(gnum, sf)/= -1 .and. renumSF(gnum, sf) /= dnum) then
+                        write(*,*) "Err", rank, sf, gnum, dnum
+                        stop "bye"
+                    endif
+                end if
+                if (Isf(i,j)/=-1 .and. Isf(i,j)/=renumSF(gnum, 0)) then
+                    write(*,*) "Warning :...."
+                else
+                    Isf(i,j) = renumSF(gnum, 0)
+                endif
+                !write(*,*) "R:", rank, 0, i, j, gnum, k
             enddo
         enddo
     else if(dir == 5)then
         do j = 0,nglly-1
             do i = 0,ngllx-1
-                SF_IGlob(k) = ISolFlu(i,j,ngllz-1)
-                k = k + 1
+                dnum = ISolFlu(i,j,ngllz-1)
+                gnum = IGlobnum(i,j,ngllz-1)
+                if (renumSF(gnum, 0) == -1) then
+                    renumSF(gnum, 0) = k
+                    renumSF(gnum, sf) = dnum
+                    k = k + 1
+                else
+                    if (renumSF(gnum, sf)/= -1 .and. renumSF(gnum, sf) /= dnum) then
+                        write(*,*) "Err", rank, sf, gnum, dnum
+                        stop "bye"
+                    endif
+                end if
+                if (Isf(i,j)/=-1 .and. Isf(i,j)/=renumSF(gnum, 0)) then
+                    write(*,*) "Warning :...."
+                else
+                    Isf(i,j) = renumSF(gnum, 0)
+                endif
+                !write(*,*) "R:", rank, i, j, ngllz-1, gnum, k
             enddo
         enddo
     end if
@@ -1413,6 +1745,32 @@ subroutine debug_comm_vector(Tdomain, rank, src, dest, comm)
     end do
 end subroutine debug_comm_vector
 
+integer function num_gll_face(Tdomain, nnf)
+    use sdomain
+    implicit none
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in) :: nnf
+    !
+    integer :: ngllx, nglly, ngllz, dir, n
+    !
+    if(nnf < 0) then
+        num_gll_face = 0
+    else
+        n = Tdomain%sFace(nnf)%which_elem
+        dir = Tdomain%sFace(nnf)%dir
+        ngllx = Tdomain%specel(n)%ngllx
+        nglly = Tdomain%specel(n)%nglly
+        ngllz = Tdomain%specel(n)%ngllz
+        if(dir == 0 .OR. dir == 5)then
+            num_gll_face = (ngllx * nglly)
+        else if(dir == 1 .OR. dir == 3)then
+            num_gll_face = (ngllx * ngllz)
+        else
+            num_gll_face = (nglly * ngllz)
+        endif
+    end if
+    return
+end function num_gll_face
 
 #endif
 end module mrenumber

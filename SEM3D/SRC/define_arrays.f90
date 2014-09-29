@@ -325,9 +325,9 @@ subroutine inverse_mass_mat(Tdomain)
   real, dimension(:,:,:), allocatable  :: LocMassMat
 
 #if NEW_GLOBAL_METHOD
-    Tdomain%MassMatSol(:) = 1d0/Tdomain%MassMatSol(:)
-    Tdomain%MassMatFlu(:) = 1d0/Tdomain%MassMatFlu(:)
-    Tdomain%MassMatSolPml(:) = 1d0/Tdomain%MassMatSolPml(:)
+    if (Tdomain%ngll_s /= 0)    Tdomain%MassMatSol(:) = 1d0/Tdomain%MassMatSol(:)
+    if (Tdomain%ngll_f /= 0)    Tdomain%MassMatFlu(:) = 1d0/Tdomain%MassMatFlu(:)
+    if (Tdomain%ngll_pmls /= 0) Tdomain%MassMatSolPml(:) = 1d0/Tdomain%MassMatSolPml(:)
 
 #else
      ! Now that the mass from the elements' borders have been pushed and assembled on the faces, edges and vertices,

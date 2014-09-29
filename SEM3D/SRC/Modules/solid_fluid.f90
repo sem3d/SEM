@@ -18,6 +18,7 @@ module solid_fluid
        real, allocatable, dimension(:,:,:) :: normal,BtN,pn,save_forces,save_displ,    &
                                               pn1,pn2,pn3,save_veloc1,save_veloc2,save_veloc3
        real, allocatable, dimension(:,:) :: vn, density,vn1,vn2,vn3
+       integer, allocatable, dimension(:,:) :: I_sf
     end type face_SF
 
     type :: edge_SF

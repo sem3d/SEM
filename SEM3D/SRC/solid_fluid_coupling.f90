@@ -105,7 +105,6 @@ subroutine StoF_coupling(Tdomain,rg)
         end do
     end do
 
-
     ! now we can exchange values for SF sides on different procs
     if(Tdomain%n_proc > 1)then
         do n = 0,Tdomain%n_proc-1
@@ -124,7 +123,6 @@ subroutine StoF_coupling(Tdomain,rg)
             if(ngllSF /= Tdomain%sComm(n)%ngllSF) stop "PB in counting SF GLL nodes."
         enddo
     end if
-
 
     ! now the coupling Solid -> Fluid can be done.
     do nf = 0,Tdomain%SF%SF_n_faces-1
@@ -178,24 +176,56 @@ end subroutine StoF_coupling
 !----------------------------------------------------------------
 !----------------------------------------------------------------
 #if NEW_GLOBAL_METHOD
-subroutine StoF_coupling_2(ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_IGlobFlu, Veloc, BtN, ForcesFl)
+subroutine StoF_coupling_2(Tdomain,ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_IGlobFlu, Veloc, BtN, ForcesFl)
     ! from solid to fluid: velocity (dot) normal
+    use sdomain
+    use scomm
     implicit none
 
+    type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: ngll_sol, ngll_flu, SF_ngll
     integer, intent(in), dimension(0:SF_ngll-1) :: SF_IGlobSol, SF_IGlobFlu
     real, intent(in), dimension(0:ngll_sol-1,0:2) :: Veloc
     real, intent(in), dimension(0:SF_ngll-1,0:2) :: BtN
     real, intent(inout), dimension(0:ngll_flu-1) :: ForcesFl
-    integer  :: i,j
-    real :: vn
+    integer  :: i,j,k,n,idx
+    real, dimension(0:SF_ngll-1) :: vn
+
+    vn(:) = 0d0
+    do i = 0,SF_ngll-1
+        do j = 0,2
+            vn(i) = vn(i) + (BtN(i,j) * Veloc(SF_IGlobSol(i),j))
+        enddo
+    enddo
+
+    if (Tdomain%Comm_SolFlu%ncomm > 0)then
+        ! Give
+        do n = 0,Tdomain%Comm_SolFlu%ncomm-1
+            k = 0
+            do i=0,Tdomain%Comm_SolFlu%Data(n)%ndata-1
+                idx = Tdomain%Comm_SolFlu%Data(n)%IGiveS(i)
+                Tdomain%Comm_SolFlu%Data(n)%Give(k) = vn(idx)
+                k=k+1
+            end do
+            Tdomain%Comm_SolFlu%Data(n)%nsend = k
+        enddo
+
+        ! Exchange interproc of vn
+        call exchange_sem_var(Tdomain, 301, Tdomain%Comm_SolFlu)
+
+        ! Take
+        do n = 0,Tdomain%Comm_SolFlu%ncomm-1
+            k = 0
+            do i=0,Tdomain%Comm_SolFlu%Data(n)%ndata-1
+                idx = Tdomain%Comm_SolFlu%Data(n)%ITakeS(i)
+                vn(idx) = vn(idx) + Tdomain%Comm_SolFlu%Data(n)%Take(k)
+                k=k+1
+            enddo
+        enddo
+    endif
 
     do i = 0,SF_ngll-1
-        vn = 0.
-        do j = 0,2
-            vn = vn + (BtN(i,j) * Veloc(SF_IGlobSol(i),j))
-        enddo
-        ForcesFl(SF_IGlobFlu(i)) = ForcesFl(SF_IGlobFlu(i)) + vn
+        ForcesFl(SF_IGlobFlu(i)) = ForcesFl(SF_IGlobFlu(i)) + vn(i)
     enddo
 
 end subroutine StoF_coupling_2
@@ -395,20 +425,58 @@ end subroutine FtoS_coupling
 !----------------------------------------------------------------
 !----------------------------------------------------------------
 #if NEW_GLOBAL_METHOD
-subroutine FtoS_coupling_2(ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_IGlobFlu, BtN, Save_forces, Save_depla, VelPhi, Forces, Depla)
+subroutine FtoS_coupling_2(Tdomain,ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_IGlobFlu, BtN, Save_forces, Save_depla, VelPhi, Forces, Depla)
     ! from fluid to solid: normal times pressure (= -rho . VelPhi)
+    use sdomain
+    use scomm
     implicit none
 
+    type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: ngll_sol, ngll_flu, SF_ngll
     integer, intent(in), dimension(0:SF_ngll-1) :: SF_IGlobSol, SF_IGlobFlu
     real, intent(in), dimension(0:SF_ngll-1,0:2) :: Save_forces, Save_depla, BtN
     real, intent(in), dimension(0:ngll_flu-1) :: VelPhi
     real, intent(inout), dimension(0:ngll_sol-1,0:2) :: Forces, Depla
-    integer  :: i,j
+
+    integer  :: i,j,k,n,idx
+    real, dimension(0:SF_ngll-1) :: pn
+
+    pn(:) = 0d0
+    do i = 0,SF_ngll-1
+        do j = 0,2
+            pn(i) = pn(i) + (BtN(i,j) * VelPhi(SF_IGlobFlu(i)))
+        enddo
+    enddo
+
+    if (Tdomain%Comm_SolFlu%ncomm > 0)then
+        ! Give
+        do n = 0,Tdomain%Comm_SolFlu%ncomm-1
+            k = 0
+            do i=0,Tdomain%Comm_SolFlu%Data(n)%ndata-1
+                idx = Tdomain%Comm_SolFlu%Data(n)%IGiveS(i)
+                Tdomain%Comm_SolFlu%Data(n)%Give(k) = pn(idx)
+                k=k+1
+            end do
+            Tdomain%Comm_SolFlu%Data(n)%nsend = k
+        enddo
+
+        ! Exchange interproc of vn
+        call exchange_sem_var(Tdomain, 302, Tdomain%Comm_SolFlu)
+
+        ! Take
+        do n = 0,Tdomain%Comm_SolFlu%ncomm-1
+            k = 0
+            do i=0,Tdomain%Comm_SolFlu%Data(n)%ndata-1
+                idx = Tdomain%Comm_SolFlu%Data(n)%ITakeS(i)
+                pn(idx) = pn(idx) + Tdomain%Comm_SolFlu%Data(n)%Take(k)
+                k=k+1
+            enddo
+        enddo
+    endif
 
     do j = 0,2
         do i = 0,SF_ngll-1
-            Forces(SF_IGlobSol(i),j) = Save_forces(i,j) - (BtN(i,j) * VelPhi(SF_IGlobFlu(i)))
+            Forces(SF_IGlobSol(i),j) = Save_forces(i,j) + pn(i)
             Depla(SF_IGlobSol(i),j) = Save_depla(i,j)
         enddo
     enddo
@@ -879,11 +947,17 @@ subroutine SF_solid_values_saving_2(ngll_sol, SF_ngll, SF_IGlobSol, Forces, Depl
     integer, dimension(0:SF_ngll-1), intent(in) :: SF_IGlobSol
     real, dimension(0:ngll_sol-1,0:2), intent(in) :: Forces, Depla
     real, dimension(0:SF_ngll-1,0:2), intent(inout) :: Save_forces, Save_depla
-    integer  :: i
+    integer  :: i,idx
     
     do i = 0, SF_ngll-1
-        Save_forces(i,:) = Forces(SF_IGlobSol(i),:)
-        Save_depla(i,:) = Depla(SF_IGlobSol(i),:)
+        idx = SF_IGlobSol(i)
+        if (idx /= -1) then
+            Save_forces(i,:) = Forces(SF_IGlobSol(i),:)
+            Save_depla(i,:) = Depla(SF_IGlobSol(i),:)
+        else
+            Save_forces(i,:) = 0.
+            Save_depla(i,:) = 0.
+        endif
     enddo
 
     return

@@ -193,7 +193,7 @@ subroutine Newmark(Tdomain,rg,ntime)
                                       Tdomain%champs1%Forces, Tdomain%champs1%Depla, &
                                       Tdomain%champs0%Save_forces, &
                                       Tdomain%champs0%Save_depla)
-        call StoF_coupling_2(Tdomain%ngll_s, Tdomain%ngll_f, Tdomain%SF%ngll, Tdomain%SF%SF_IGlobSol, &
+        call StoF_coupling_2(Tdomain, Tdomain%ngll_s, Tdomain%ngll_f, Tdomain%SF%ngll, Tdomain%SF%SF_IGlobSol, &
                              Tdomain%SF%SF_IGlobFlu, Tdomain%champs0%Veloc, &
                              Tdomain%SF%SF_BtN, Tdomain%champs1%ForcesFl)
 #else
@@ -213,7 +213,7 @@ subroutine Newmark(Tdomain,rg,ntime)
     if(Tdomain%logicD%SF_local_present)then
 #if NEW_GLOBAL_METHOD
         !- fluid -> solid coupling (pressure times velocity)
-        call FtoS_coupling_2(Tdomain%ngll_s, Tdomain%ngll_f, Tdomain%SF%ngll, &
+        call FtoS_coupling_2(Tdomain, Tdomain%ngll_s, Tdomain%ngll_f, Tdomain%SF%ngll, &
                              Tdomain%SF%SF_IGlobSol, Tdomain%SF%SF_IGlobFlu, &
                              Tdomain%SF%SF_BtN, Tdomain%champs0%Save_forces, &
                              Tdomain%champs0%Save_depla, Tdomain%champs0%VelPhi, &

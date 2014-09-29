@@ -103,7 +103,8 @@ module sdomain
         integer :: nbOuterPMLNodes
 
         ! Communication
-        type(comm_vector) :: Comm_data
+        type(comm_vector) :: Comm_data      ! Comm mass et forces
+        type(comm_vector) :: Comm_SolFlu    ! Comm couplage solide/fluide
 #endif
 
     end type domain

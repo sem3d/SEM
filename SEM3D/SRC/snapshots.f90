@@ -922,7 +922,7 @@ contains
                 end do
             end select
         enddo
-        deallocate(Tdomain%MassMatSolPml)
+        if (Tdomain%any_PML) deallocate(Tdomain%MassMatSolPml)
 #endif
         ! jac
         do n = 0,Tdomain%n_elem-1
