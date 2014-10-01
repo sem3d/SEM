@@ -467,6 +467,9 @@ contains
         yco(:) = coords(1,:)
         zco(:) = coords(2,:)
         deallocate(coords)
+        deallocate(mat_block)
+        deallocate(el_group)
+        deallocate(Epointer)
         n_points = points%count
     end subroutine lec_unv_v2
 

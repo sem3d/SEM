@@ -327,7 +327,8 @@ subroutine read_material_file(Tdomain, rg)
             Tdomain%sSubDomain(i)%wpml = npml
             npml = npml + 1
         endif
-    enddo
+       write(1,*)Tdomain%sSubDomain(i)%wpml 
+    enddo 
 
     Tdomain%any_PML = .false.
     Tdomain%any_FPML = .false.
@@ -342,12 +343,12 @@ subroutine read_material_file(Tdomain, rg)
                     Tdomain%sSubdomain(i)%Left, Tdomain%sSubdomain(i)%Py,                  &
                     Tdomain%sSubdomain(i)%Forward, Tdomain%sSubdomain(i)%Pz,               &
                     Tdomain%sSubdomain(i)%Down, Tdomain%sSubdomain(i)%freq
-                if(Tdomain%sSubdomain(i)%Filtering) Tdomain%any_FPML = .true.
+                  if(Tdomain%sSubdomain(i)%Filtering) Tdomain%any_FPML = .true.
             endif
         enddo
     endif
     close(13)
-
+  
     !- GLL properties in elements, on faces, edges.
     allocate(L_Face(0:Tdomain%n_face-1))
     L_Face = .true.
@@ -442,6 +443,14 @@ subroutine create_sem_sources(Tdomain, config)
         Tdomain%Ssource(nsrc)%fh = src%band  ! func=3
         Tdomain%Ssource(nsrc)%gamma = src%gamma ! func=4
         Tdomain%Ssource(nsrc)%ts = src%ts   ! func=4
+        Tdomain%Ssource(nsrc)%Q = src%Q
+        Tdomain%Ssource(nsrc)%Y = src%Y
+        Tdomain%Ssource(nsrc)%X = src%X
+        Tdomain%Ssource(nsrc)%L = src%L
+        Tdomain%Ssource(nsrc)%v = src%v
+        Tdomain%Ssource(nsrc)%a = src%a
+        Tdomain%Ssource(nsrc)%d = src%d
+
         ! Comportement Spacial
         ! i_type_source==1
         ndir = sqrt(src%dir(1)**2 + src%dir(2)**2 + src%dir(3)**2)

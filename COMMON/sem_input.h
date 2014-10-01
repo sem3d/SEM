@@ -17,6 +17,13 @@ typedef struct source {
     double gamma;
     double amplitude;
     char* time_file;
+    double Q;
+    double X;
+    double Y;
+    double L;
+    double v;
+    double d;
+    double a;
 } source_t;
 
 // Structure decrivant les condition de selection des elements a inclure
