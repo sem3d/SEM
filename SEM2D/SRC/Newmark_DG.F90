@@ -7,14 +7,14 @@
 !! des vitesses avec une formulation contrainte-vitesse décalée en temps dans les PML.
 !<
 
-module snewmark_dg
+module snewmark_pmc
     use sdomain
     use scouplage
     use mpi
     implicit none
 contains
 
-subroutine Newmark_DG (Tdomain,Dt)
+subroutine Newmark_PMC (Tdomain,Dt)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
@@ -41,12 +41,10 @@ subroutine Newmark_DG (Tdomain,Dt)
     ! Predictor Phase
 
     do n=0,Tdomain%n_elem-1
-        alpha =Tdomain%TimeD%alpha
-        bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
-        gam1 = 1. / Tdomain%TimeD%gamma
-        Tdomain%specel(n)%Vect_RK(:,:,2:4) = Tdomain%specel(n)%Strain(:,:,:) &
-                                           + Dt * (1-bega) * Tdomain%specel(n)%Veloc(:,:)
-        Tdomain%specel(n)%Vect_RK(:,:,0:1) = 0.
+        ! Dans le tableau Vect_RK sont stockes les deformations et vitesses de l'instant tn
+        Elem%S0(:,:,:) = Elem%Strain(:,:,:)
+        Elem%V0(:,:,:) = Elem%Veloc(:,:,:)
+        call Prediction_Elem_NPMC (Tdomain%specel(n))
     enddo
 
     ! Multicorrector phase :

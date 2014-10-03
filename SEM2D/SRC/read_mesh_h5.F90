@@ -248,6 +248,54 @@ subroutine coherency_mesh_h5(Tdomain)
     enddo
 end subroutine coherency_mesh_h5
 
+
+!!\brief Computes the valence of each vertex, and gets its neighbouring faces
+!!\author Sebastien Terrana
+!!\version 1.0
+!!\date 30/09/2014
+!! \param type (domain), intent (INOUT) Tdomain
+!<
+subroutine set_vertex_valence(Tdomain)
+    use sdomain
+    implicit none
+    type (domain), intent (INOUT) :: Tdomain
+
+    integer :: nv, nf, val, i
+
+    do nv=0,Tdomain%n_vertex-1
+        Tdomain%sVertex(nv)%Valence = 0
+    enddo
+
+    do nf=0,Tdomain%n_face-1
+        nv = Tdomain%sFace(nf)%Near_Vertex(0)
+        Tdomain%sVertex(nv)%Valence += 1
+        nv = Tdomain%sFace(nf)%Near_Vertex(1)
+        Tdomain%sVertex(nv)%Valence += 1
+    enddo
+
+    do nv=0,Tdomain%n_vertex-1
+        val = Tdomain%sVertex(nv)%Valence
+        allocate(Tdomain%sVertex(nv)%Near_Face(0:val-1))
+        Tdomain%sVertex(nv)%Near_Face(:) = -1
+    enddo
+
+    do nf=0,Tdomain%n_face-1
+        nv = Tdomain%sFace(nf)%Near_Vertex(0)
+        i = 0
+        do while (Tdomain%sVertex(nv)%Near_Face(i) < 0)
+            i = i+1
+        enddo
+        Tdomain%sVertex(nv)%Near_Face(i) = nf
+        nv = Tdomain%sFace(nf)%Near_Vertex(1)
+        i = 0
+        do while (Tdomain%sVertex(nv)%Near_Face(i) < 0)
+            i = i+1
+        enddo
+        Tdomain%sVertex(nv)%Near_Face(i) = nf
+    enddo
+
+end subroutine set_vertex_valence
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

@@ -83,8 +83,6 @@ contains
     !! \param real, intent (IN) dt
     !! \param real, intent (IN) alpha
     !<
-
-
     !subroutine Prediction_Elem_Veloc (Elem,alpha,bega, dt)
     subroutine Prediction_Elem_Veloc (Elem)
         implicit none
@@ -104,6 +102,37 @@ contains
 
         return
     end subroutine Prediction_Elem_Veloc
+
+
+    ! ############################################################
+    !>
+    !! \brief
+    !!
+    !! \param type (Element), intent (INOUT) Elem
+    !! \param real, intent (IN) dt
+    !<
+    subroutine Prediction_Elem_NPMC (Elem, hTmat, hmatz, Dt)
+        implicit none
+
+        type (Element), intent (INOUT) :: Elem
+        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) ::  hTmat
+        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hmatz
+        real, intent (IN) :: Dt
+
+        Elem%Strain(:,:,0) = Elem%S0(:,:,0) + 0.5 * Dt * &
+                            (Elem%InvGrad(:,:,0,0) * MATMUL(hTprimex,Elem%Veloc(:,:,0)+Elem%V0(:,:,0)) &
+                            +Elem%InvGrad(:,:,0,1) * MATMUL(Elem%Veloc(:,:,0)+Elem%V0(:,:,0),hprimez))
+        Elem%Strain(:,:,1) = Elem%S0(:,:,1) + 0.5 * Dt * &
+                            (Elem%InvGrad(:,:,1,0) * MATMUL(hTprimex,Elem%Veloc(:,:,1)+Elem%V0(:,:,1)) &
+                            +Elem%InvGrad(:,:,1,1) * MATMUL(Elem%Veloc(:,:,1)+Elem%V0(:,:,1),hprimez))
+        Elem%Strain(:,:,2) = Elem%S0(:,:,1) + 0.25 * Dt * &
+                            (Elem%InvGrad(:,:,0,0) * MATMUL(hTprimex,Elem%Veloc(:,:,1)+Elem%V0(:,:,1)) &
+                            +Elem%InvGrad(:,:,0,1) * MATMUL(Elem%Veloc(:,:,1)+Elem%V0(:,:,1),hprimez)  &
+                            +Elem%InvGrad(:,:,1,0) * MATMUL(hTprimex,Elem%Veloc(:,:,0)+Elem%V0(:,:,0)) &
+                            +Elem%InvGrad(:,:,1,1) * MATMUL(Elem%Veloc(:,:,0)+Elem%V0(:,:,0),hprimez))
+        return
+    end subroutine Prediction_Elem_NPMC
+
 
     ! ###########################################################
     !>
