@@ -95,10 +95,15 @@ endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 
 
 set(SEM_EXTRA_LIBS)
+
+# HDF5
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
+
+# MPI
 if(OPT_MPI OR HDF5_IS_PARALLEL)
 # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
 # c++ et ne link pas semx.exe
-set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
 else(OPT_MPI OR HDF5_IS_PARALLEL)
 set(SEM_SRC ${SEM_SRC} ${FTM_SOURCES})
 endif(OPT_MPI OR HDF5_IS_PARALLEL)
@@ -109,8 +114,6 @@ add_definitions(-DHAVE_TREMAIN)
 set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${CEAUSER})
 endif(CEAUSER)
 
-# HDF5
-set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
 message("SEMLIBS: '${SEM_EXTRA_LIBS}'")
 
 
