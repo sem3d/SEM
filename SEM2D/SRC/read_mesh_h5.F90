@@ -286,12 +286,15 @@ subroutine set_vertex_valence(Tdomain)
             i = i+1
         enddo
         Tdomain%sVertex(nv)%Near_Face(i) = nf
+        Tdomain%sFace(nf)%pos_in_VertMat(0) = i
+
         nv = Tdomain%sFace(nf)%Near_Vertex(1)
         i = 0
         do while (Tdomain%sVertex(nv)%Near_Face(i) < 0)
             i = i+1
         enddo
         Tdomain%sVertex(nv)%Near_Face(i) = nf
+        Tdomain%sFace(nf)%pos_in_VertMat(1) = i
     enddo
 
 end subroutine set_vertex_valence

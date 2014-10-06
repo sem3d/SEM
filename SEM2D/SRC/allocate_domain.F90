@@ -141,7 +141,6 @@ subroutine allocate_domain (Tdomain)
      else ! Case Element is not PML
          if(Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
              allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:15))
-             !allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:9))
          else ! Discontinuous Case
              allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
          endif
@@ -352,6 +351,18 @@ subroutine allocate_domain (Tdomain)
            allocate (Tdomain%sVertex(n)%Vect_RK(0:1))
            Tdomain%svertex(n)%Vect_RK = 0.
         endif
+     enddo
+  else if (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC) then
+     do n = 0, Tdomain%n_elem-1
+        ngllx = Tdomain%specel(n)%ngllx
+        ngllz = Tdomain%specel(n)%ngllz
+        allocate (Tdomain%specel(n)%Strain0(0:ngllx-1,0:ngllz-1,0:2))
+     enddo
+     do n = 0, Tdomain%n_vertex-1
+        i = Tdomain%sVertex(n)%Valence
+        allocate (Tdomain%sVertex(n)%MatLambda (0:(2*i-1),0:(2*i-1)))
+        allocate (Tdomain%sVertex(n)%smbrLambda(0:(2*i-1)))
+        allocate (Tdomain%sVertex(n)%Lambda (0:(2*i-1)))
      enddo
   endif
 

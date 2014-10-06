@@ -21,13 +21,12 @@ subroutine Newmark_PMC (Tdomain,Dt)
     real,    intent(in)   :: dt
 
     ! local variables
-    integer :: ns, ncc,i,j,n,np, ngllx, ngllz, mat, nelem,nf, w_face, nv_aus, nf_aus, nv
+    integer :: i,j,n,np, ngllx, ngllz, mat, nelem,nf, w_face, nv_aus, nf_aus, nv, pos, iter
     integer :: n_face_pointed, tag_send, tag_receive, i_send, i_stock, ngll, ierr, i_proc
     integer, dimension (MPI_STATUS_SIZE) :: status
     real :: bega, gam1,alpha,dt
 
-    real, dimension (0:1) :: V_free_vertex
-    real, dimension (:,:), allocatable :: Vxloc, Vzloc, V_free
+    real, dimension (:,:), allocatable :: Vxloc, Vzloc
     real, dimension (:,:), allocatable :: Smooth
 
 
@@ -36,7 +35,7 @@ subroutine Newmark_PMC (Tdomain,Dt)
     alpha =Tdomain%TimeD%alpha
     bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
     gam1 = 1. / Tdomain%TimeD%gamma
-
+    n_it_max = 5
 
     ! Predictor Phase
 
@@ -48,12 +47,60 @@ subroutine Newmark_PMC (Tdomain,Dt)
     enddo
 
     ! Multicorrector phase :
-    i = 0
-    do while (resid >= something)
+    iter= 0
+
+    do while (iter<n_it_max)
+
         do n=0,Tdomain%n_elem-1
             call compute_internal_forces ()
         enddo
-        i = i+1
+
+        ! Send informations on vertices
+        do n=0,Tdomain%n_face-1
+            do i=0,1
+                smbr = ...
+                nv   = Tdomain%sFace(n)%Near_Vertex(i)
+                pos  = Tdomain%sFace(n)%pos_in_VertMat(i)
+                Tdomain%sVertex(nv)%smbrLambda((2*pos):(2*pos+1)) = smbr
+            enddo
+        enddo
+
+        ! Solve linear systems on the vertices
+        do n=0,Tdomain%n_vertex-1
+            call solve_gradient_conjugue()
+        enddo
+
+        ! Constructing the Lambdas on the faces
+        do n=0,Tdomain%n_face-1
+            ngll = Tdomain%sFace(n)%ngll
+            ! Faces ends (vertices)
+            do i=0,1
+                nv   = Tdomain%sFace(n)%Near_Vertex(i)
+                pos  = Tdomain%sFace(n)%pos_in_VertMat(i)
+                Tdomain%sFace(n)%Veloc(i*(ngll-1),:) = Tdomain%sVertex(nv)%Lambda((2*pos):(2*pos+1))
+            enddo
+            ! Faces inner nodes
+            do i=1,ngll-1
+                Tdomain%sFace(n)%Veloc(i) = .....
+            enddo
+        enddo
+
+        ! Communication Lamdas from faces to elements
+        do n=0,Tdomain%n_elem-1
+            do nf = 0,3
+                nface = Tdomain%specel(n)%Near_Face(nf)
+                call get_Vhat_f2el(Tdomain,n,nface,nf)
+            enddo
+        enddo
+
+        !!!!!!!!!!!!!  MPI COMMUNICATIONS HERE  !!!!!!!!!!!!!!!!!!!
+
+        ! Solveurs locaux : gets Veloc and Strain from Lambda
+        do n=0,Tdomain%n_elem-1
+            ! Solveur Local
+            ! Solveur Local
+        enddo
+        iter = iter+1
     enddo
 
 

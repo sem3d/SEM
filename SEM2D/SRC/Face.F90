@@ -38,8 +38,10 @@ module sfaces
        real, dimension (:,:), allocatable :: Flux, Veloc_p,Veloc_m,Strain_p,Strain_m
        real, dimension (:,:), allocatable :: r1, r2, r3  ! EigenVectors for DG Godunov
        real, dimension (:,:), allocatable :: Vect_RK
+       ! HDG
        real, dimension (:,:), allocatable :: Normal_Nodes
        real, dimension (:,:), allocatable :: invMatPen, Traction
+       integer, dimension (0:1) :: pos_in_VertMat
        logical :: is_computed, changing_media
 
     end type face
