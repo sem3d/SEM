@@ -9,15 +9,9 @@ set(MESHC_SRC
   ${PRJ}/SRC/main_mesh2d.cpp
 )
 
-set(MESH_EXTRA_LIBS "")
+set(MESH_EXTRA_LIBS ${SEM_EXTRA_LIBS})
 
-if(OPT_MPI OR HDF5_IS_PARALLEL)
-set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
-endif(OPT_MPI OR HDF5_IS_PARALLEL)
-
-set(MESH_EXTRA_LIBS ${MESH_EXTRA_LIBS} ${HDF5_LIBRARIES})
-
-include_directories(${BASE}/MESH/metis/include)
+include_directories(BEFORE ${BASE}/MESH/metis/include)
 add_executable(mesh2dc ${MESHC_SRC})
 target_link_libraries(mesh2dc metis ${MESH_EXTRA_LIBS})
 
