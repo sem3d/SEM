@@ -18,7 +18,9 @@ module solid_fluid
        real, allocatable, dimension(:,:,:) :: normal,BtN,pn,save_forces,save_displ,    &
                                               pn1,pn2,pn3,save_veloc1,save_veloc2,save_veloc3
        real, allocatable, dimension(:,:) :: vn, density,vn1,vn2,vn3
+       ! Assigns a unique (assembled, shared with edge, vertices) index to solid-fluid glls
        integer, allocatable, dimension(:,:) :: I_sf
+       integer, allocatable, dimension(:,:,:) :: IG
     end type face_SF
 
     type :: edge_SF
@@ -30,6 +32,8 @@ module solid_fluid
        real, allocatable, dimension(:,:) ::  BtN,pn,save_forces,save_displ,pn1,pn2,pn3,  &
                                              save_veloc1,save_veloc2,save_veloc3
        real, allocatable, dimension(:) ::  vn,vn1,vn2,vn3
+       integer, allocatable, dimension(:) :: I_sf
+       integer, allocatable, dimension(:,:) :: IG
     end type edge_SF
 
     type :: vertex_SF
@@ -39,6 +43,8 @@ module solid_fluid
        real, dimension(0:2) ::  BtN,pn,save_forces,save_displ,pn1,pn2,pn3,   &
                                 save_veloc1,save_veloc2,save_veloc3
        real  :: vn,vn1,vn2,vn3
+       integer :: I_sf
+       integer, dimension(0:2) :: IG
     end type vertex_SF
 
 
@@ -46,6 +52,7 @@ module solid_fluid
     type :: SF_object
        integer  :: SF_n_faces, SF_n_edges, SF_n_vertices, ngll
        integer, allocatable, dimension(:) :: SF_IGlobSol, SF_IGlobFlu
+       integer, allocatable, dimension(:,:) :: SF_IGlob ! 0 fluid, 1 solid, 2 index of shared gll
        real, allocatable, dimension(:,:) :: SF_BtN
        type(face_SF), dimension(:), pointer  :: SF_face
        type(edge_SF), dimension(:), pointer  :: SF_edge

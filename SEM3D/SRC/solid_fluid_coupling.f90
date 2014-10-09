@@ -193,6 +193,7 @@ subroutine StoF_coupling_2(Tdomain,ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_
 
     vn(:) = 0d0
     do i = 0,SF_ngll-1
+        if (SF_IGlobSol(i) < 0) cycle ! solid face not on this proc
         do j = 0,2
             vn(i) = vn(i) + (BtN(i,j) * Veloc(SF_IGlobSol(i),j))
         enddo
@@ -225,6 +226,7 @@ subroutine StoF_coupling_2(Tdomain,ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_
     endif
 
     do i = 0,SF_ngll-1
+        if (SF_IGlobFlu(i) < 0) cycle ! fluid face not on this proc
         ForcesFl(SF_IGlobFlu(i)) = ForcesFl(SF_IGlobFlu(i)) + vn(i)
     enddo
 

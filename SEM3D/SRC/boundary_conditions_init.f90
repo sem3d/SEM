@@ -281,6 +281,50 @@ subroutine Scalar_Edge2Face(ne,ngll1,ngll2,ngll,orient_e,BtNf,BtNe)
 end subroutine Scalar_Edge2Face
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
+subroutine Number_Edge2Face(ne,ngll1,ngll2,ngll,orient_e,BtNf,BtNe)
+    !- assemblage scalar values BtN, from edge to face.
+    implicit none
+
+    integer, intent(in)   :: ne,ngll1,ngll2,ngll,orient_e
+    integer, dimension(0:ngll1-1,0:ngll2-1), intent(inout)  :: BtNf
+    integer, dimension(1:ngll-2), intent(in)  :: BtNe
+    integer  :: j
+
+    if(orient_e == 0)then
+        select case(ne)
+        case(0)
+            BtNf(1:ngll1-2,0) = BtNe(1:ngll-2)
+        case(1)
+            BtNf(ngll1-1,1:ngll2-2) = BtNe(1:ngll-2)
+        case(2)
+            BtNf(1:ngll1-2,ngll2-1) = BtNe(1:ngll-2)
+        case(3)
+            BtNf(0,1:ngll2-2) = BtNe(1:ngll-2)
+        end select
+    else
+        select case(ne)
+        case(0)
+            do j=1,ngll-2
+                BtNf(ngll1-1-j,0) = BtNe(j)
+            enddo
+        case(1)
+            do j=1,ngll-2
+                BtNf(ngll1-1,ngll2-1-j) = BtNe(j)
+            enddo
+        case(2)
+            do j=1,ngll-2
+                BtNf(ngll1-1-j,ngll2-1) = BtNe(j)
+            enddo
+        case(3)
+            do j=1,ngll-2
+                BtNf(0,ngll2-1-j) = BtNe(j)
+            enddo
+        end select
+    endif
+
+end subroutine Number_Edge2Face
+!--------------------------------------------------------------------------
+!--------------------------------------------------------------------------
 subroutine Scalar_Vertex2Face(nv,ngll1,ngll2,BtNf,BtNv)
     !- assemblage of scalar values (BtN), from vertex to face.
     implicit none
@@ -302,6 +346,29 @@ subroutine Scalar_Vertex2Face(nv,ngll1,ngll2,BtNf,BtNv)
 
 
 end subroutine Scalar_Vertex2Face
+!--------------------------------------------------------------------------
+!--------------------------------------------------------------------------
+subroutine Number_Vertex2Face(nv,ngll1,ngll2,BtNf,BtNv)
+    !- assemblage of scalar values (BtN), from vertex to face.
+    implicit none
+
+    integer, intent(in)   :: nv,ngll1,ngll2
+    integer, dimension(0:ngll1-1,0:ngll2-1), intent(inout)  :: BtNf
+    integer, intent(in)  :: BtNv
+
+    select case(nv)
+    case(0)
+        BtNf(0,0) = BtNv
+    case(1)
+        BtNf(ngll1-1,0) = BtNv
+    case(2)
+        BtNf(ngll1-1,ngll2-1) = BtNv
+    case(3)
+        BtNf(0,ngll2-1) = BtNv
+    end select
+
+
+end subroutine Number_Vertex2Face
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 subroutine BtN_Face2Edge(ne,ngll1,ngll2,ngll,orient_e,BtNf,BtNe)
@@ -454,6 +521,38 @@ subroutine define_Face_SF(Tdomain)
     enddo
 
 end subroutine define_Face_SF
+!--------------------------------------------------------------------------
+!--------------------------------------------------------------------------
+subroutine Number_Face2Face(ngll1,ngll2,orient_e,BtNf,BtNe)
+    !- assemblage scalar values BtN, from edge to face.
+    implicit none
+
+    integer, intent(in)   :: ngll1,ngll2,orient_e
+    integer, dimension(0:ngll1-1,0:ngll2-1), intent(inout)  :: BtNf
+    integer, dimension(1:ngll1-2,1:ngll2-2), intent(in)  :: BtNe
+    integer  :: j
+
+
+    select case(orient_e)
+        case(0)
+            BtNf(1:ngll1-2,1:ngll2-2) = BtNe
+        case(1) ! TODO
+            BtNf(1:ngll1-2,1:ngll2-2) = BtNe
+        case(2) ! TODO
+            BtNf(1:ngll1-2,1:ngll2-2) = BtNe
+        case(3) ! TODO
+            BtNf(1:ngll1-2,1:ngll2-2) = BtNe
+        case(4) ! TODO
+            BtNf(1:ngll1-2,1:ngll2-2) = BtNe
+        case(5) ! TODO
+            BtNf(1:ngll1-2,1:ngll2-2) = BtNe
+        case(6) ! TODO
+            BtNf(1:ngll1-2,1:ngll2-2) = BtNe
+        case(7) ! TODO
+            BtNf(1:ngll1-2,1:ngll2-2) = BtNe
+    end select
+
+end subroutine Number_Face2Face
 
 !! Local Variables:
 !! mode: f90
