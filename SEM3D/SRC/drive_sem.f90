@@ -29,7 +29,6 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     integer, intent(in) :: communicateur, communicateur_global, master_superviseur
 
     type(domain) :: Tdomain
-
     integer :: code, rg, nb_procs, ntime, i_snap, n
     integer :: i, isort, ierr
     real(kind=8) :: remaining_time
@@ -84,14 +83,14 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 
     !! Envoi des infos de couplage
     if (rg == 0) then
-	tab(1) = global_rank
-	tab(2) = nb_procs
+        tab(1) = global_rank
+        tab(2) = nb_procs
         tab(3) = min_rank_glob_sem
 
-	do i=1, global_nb_proc
-	    tag=8200000+i
-	    call MPI_Send(tab, 3, MPI_INTEGER, i-1, tag, MPI_COMM_WORLD, ierr)
-	enddo
+        do i=1, global_nb_proc
+            tag=8200000+i
+            call MPI_Send(tab, 3, MPI_INTEGER, i-1, tag, MPI_COMM_WORLD, ierr)
+        enddo
     endif
 
     !! Reception des infos de sem
@@ -129,7 +128,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
 !---------------------------------------------------------------------------------------------!
 
-    call TIME_STEPPING(Tdomain,rg,isort,ntime)
+    call TIME_STEPPING(Tdomain,nb_procs,rg,isort,ntime)
 
 !---------------------------------------------------------------------------------------------!
 !-------------------------------      NORMAL  END OF THE RUN      ----------------------------!
@@ -420,7 +419,7 @@ subroutine INIT_COUPLING_MKA(Tdomain,nb_procs,rg)
 end subroutine INIT_COUPLING_MKA
 !-----------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------
-subroutine TIME_STEPPING(Tdomain,rg,isort,ntime)
+subroutine TIME_STEPPING(Tdomain,nb_procs,rg,isort,ntime)
     use sdomain
     use mCapteur
     use semdatafiles
@@ -435,10 +434,11 @@ subroutine TIME_STEPPING(Tdomain,rg,isort,ntime)
     implicit none
 
     type(domain) :: Tdomain
-    integer, intent(inout)  :: rg,isort
+    integer, intent(in) :: rg, nb_procs
+    integer, intent(inout)  :: isort
     integer, intent(out)  :: ntime
 
-    integer :: code,nb_procs,i_snap, n
+    integer :: code,i_snap, n
     integer :: i
     real(kind=8) :: remaining_time
     real(kind=8), parameter :: max_time_left = 900
@@ -668,6 +668,7 @@ subroutine END_SEM(Tdomain,rg,ntime)
 
     type(domain) :: Tdomain
     integer, intent(in)  :: rg,ntime
+    integer :: ierr
 
     if (rg==0) then
         open (111,file = "fin_sem", status="REPLACE")
@@ -688,6 +689,7 @@ subroutine END_SEM(Tdomain,rg,ntime)
     close(50)
 #endif
 
+    call MPI_Comm_free(Tdomain%comm_output, ierr)
 end subroutine END_SEM
 
 subroutine START_SEM(rg)
