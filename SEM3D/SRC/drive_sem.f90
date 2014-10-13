@@ -79,7 +79,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
 
     !! On cherche le global rank minimal des procs sem
-    call MPI_Reduce(global_rank, min_rank_glob_sem, 1, MPI_INTEGER, MPI_MIN, 0, m_localComm)
+    call MPI_Reduce(global_rank, min_rank_glob_sem, 1, MPI_INTEGER, MPI_MIN, 0, m_localComm, ierr)
 
     !! Envoi des infos de couplage
     if (rg == 0) then
