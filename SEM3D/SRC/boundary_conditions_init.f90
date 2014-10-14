@@ -421,8 +421,7 @@ subroutine define_Face_SF(Tdomain)
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    integer :: nf,ngllx,nglly,ngllz,ngll1,ngll2,mat,i,w_elem
-    real, dimension(:,:,:), allocatable :: Store_Btn
+    integer :: nf,ngllx,nglly,ngllz,ngll1,ngll2,mat,w_elem
 
     do nf = 0,Tdomain%SF%SF_n_faces-1
         ngll1 = Tdomain%SF%SF_Face(nf)%ngll1 ; ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
