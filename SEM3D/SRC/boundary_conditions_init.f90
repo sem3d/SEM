@@ -488,8 +488,9 @@ subroutine define_Face_SF(Tdomain)
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    integer :: nf,ngllx,nglly,ngllz,ngll1,ngll2,mat,i,w_elem,j,kb,dir
+    integer :: nf,ngllx,nglly,ngllz,ngll1,ngll2,mat,w_elem,dir
 
+    integer :: i, j, kb
     Tdomain%SF%SF_BtN(:,:) = 0.
 
     kb = 0

@@ -1,15 +1,6 @@
 !>
-!!\file pow.F90
-!!\brief Contient la fonction pow.
-!!\author
-!!\version 1.0
-!!\date 10/03/2009
-!!
-!<
-
-!>
 !! \fn function pow (x,vp,npm,dx,A,np)
-!! \brief
+!! \brief calcule le facteur d'attenuation PML
 !!
 !! \param real x
 !! \param real vp

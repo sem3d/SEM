@@ -20,7 +20,7 @@ Version 2014.xx
 
 - Model global EarthChunk (ML)
 
-- Calcul de l'énergie totale (ST) (option ``output_total_energy``)
+- Calcul de l'énergie totale pour Sem 2D (ST) (option ``output_total_energy``)
 
 - Mailleur et SEM3D :
 

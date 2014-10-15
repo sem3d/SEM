@@ -6,7 +6,7 @@ MODULE BLAS
 CONTAINS
     SUBROUTINE DGEMM ( TRANSA, TRANSB, M, N, K, ALPHA, A, LDA, B, LDB, BETA, C, LDC )
         !     .. Scalar Arguments ..
-        CHARACTER*1, INTENT(IN)         :: TRANSA, TRANSB
+        CHARACTER(len=1), INTENT(IN)         :: TRANSA, TRANSB
         INTEGER, INTENT(IN)             :: M, N, K, LDA, LDB, LDC
         DOUBLE PRECISION, INTENT(IN)    :: ALPHA, BETA
         !     .. Array Arguments ..
@@ -398,8 +398,8 @@ CONTAINS
         !     February 29, 1992
         !
         !     .. Scalar Arguments ..
-        CHARACTER*6        SRNAME
-        INTEGER            INFO
+        CHARACTER(len=6) :: SRNAME
+        INTEGER          :: INFO
         !     ..
         !
         !  Purpose
@@ -433,6 +433,186 @@ CONTAINS
         !
     END SUBROUTINE XERBLA
 
+
+    SUBROUTINE DGEMM3 (M, N, K, A, B, C)
+        !     .. Scalar Arguments ..
+        INTEGER, INTENT(IN)             :: M, N, K
+        !     .. Array Arguments ..
+        DOUBLE PRECISION, INTENT(IN)    :: A(M,K), B(K,N)
+        DOUBLE PRECISION, INTENT(INOUT) :: C(M,N)
+        !     ..
+        !
+        !  Purpose
+        !  =======
+        !
+        !  DGEMM2  performs one of the matrix-matrix operations
+        !
+        !     C := A * B
+        !
+        !  Parameters
+        !  ==========
+        !
+        !
+        !  M      - INTEGER.
+        !           On entry,  M  specifies  the number  of rows  of the  matrix
+        !           op( A )  and of the  matrix  C.  M  must  be at least  zero.
+        !           Unchanged on exit.
+        !
+        !  N      - INTEGER.
+        !           On entry,  N  specifies the number  of columns of the matrix
+        !           op( B ) and the number of columns of the matrix C. N must be
+        !           at least zero.
+        !           Unchanged on exit.
+        !
+        !  K      - INTEGER.
+        !           On entry,  K  specifies  the number of columns of the matrix
+        !           op( A ) and the number of rows of the matrix op( B ). K must
+        !           be at least  zero.
+        !           Unchanged on exit.
+        !
+        !  A      - DOUBLE PRECISION array of DIMENSION ( LDA, ka ), where ka is
+        !           k  when  TRANSA = 'N' or 'n',  and is  m  otherwise.
+        !           Before entry with  TRANSA = 'N' or 'n',  the leading  m by k
+        !           part of the array  A  must contain the matrix  A,  otherwise
+        !           the leading  k by m  part of the array  A  must contain  the
+        !           matrix A.
+        !           Unchanged on exit.
+        !
+        !  B      - DOUBLE PRECISION array of DIMENSION ( LDB, kb ), where kb is
+        !           n  when  TRANSB = 'N' or 'n',  and is  k  otherwise.
+        !           Before entry with  TRANSB = 'N' or 'n',  the leading  k by n
+        !           part of the array  B  must contain the matrix  B,  otherwise
+        !           the leading  n by k  part of the array  B  must contain  the
+        !           matrix B.
+        !           Unchanged on exit.
+        !
+        !  C      - DOUBLE PRECISION array of DIMENSION ( LDC, n ).
+        !           Before entry, the leading  m by n  part of the array  C must
+        !           contain the matrix  C,  except when  beta  is zero, in which
+        !           case C need not be set on entry.
+        !           On exit, the array  C  is overwritten by the  m by n  matrix
+        !           ( alpha*op( A )*op( B ) + beta*C ).
+        !
+        INTEGER            :: I, J, L
+        DOUBLE PRECISION   :: TEMP
+        !     .. Parameters ..
+        DOUBLE PRECISION, PARAMETER   :: ZERO = 0.0D+0
+        !
+        IF( ( M.EQ.0 ).OR.( N.EQ.0 ) ) RETURN
+
+        DO J = 1, N
+            DO I = 1, M
+                C( I, J ) = ZERO
+            END DO
+            DO L = 1, K
+                TEMP = B( L, J )
+                DO I = 1, M
+                    C( I, J ) = C( I, J ) + TEMP*A( I, L )
+                END DO
+            END DO
+        END DO
+        !
+        RETURN
+    END SUBROUTINE DGEMM3
+
+
+    SUBROUTINE DGEMM2 (M, N, L, A, B, C)
+        !     .. Parameters ..
+        DOUBLE PRECISION, PARAMETER   :: ZERO = 0.0D+0
+        INTEGER, PARAMETER :: NB = 4
+        !
+        INTEGER, INTENT(IN)             :: M, N, L
+        DOUBLE PRECISION, INTENT(IN)    :: A(M,L), B(L,N)
+        DOUBLE PRECISION, INTENT(INOUT) :: C(M,N)
+        !
+        INTEGER            :: I, J, K, IB, JB, KB
+        INTEGER            :: NIB, NJB, NKB
+        DOUBLE PRECISION, DIMENSION(NB,NB) :: TMP
+        IF( ( M.EQ.0 ).OR.( N.EQ.0 ) ) RETURN
+
+        NIB = NB*(M/NB)
+        NJB = NB*(N/NB)
+        NKB = NB*(L/NB)
+
+        !write(*,*) "dgemm2: M x=", M, "N =", N, "L =", L
+        !write(*,*) "dgemm2: NI=", NIB, "NJ=", NJB, "NK=", NKB
+
+
+        DO JB = 1, NJB, NB
+            DO IB = 1, NIB, NB
+                TMP = 0.
+                DO KB = 1, NKB, NB
+                    DO J=1,NB
+                        DO K=1,NB
+                            DO I=1,NB
+                                TMP(I,J) = TMP(I,J) + A(IB+I-1, KB+K-1)*B(KB+K-1, JB+J-1)
+                            END DO
+                        END DO
+                    END DO
+                END DO
+                DO J=1,NB
+                    DO I=1,NB
+                        DO K=NKB+1,L
+                            TMP(I,J) = TMP(I,J) + A(IB+I-1, K)*B(K, JB+J-1)
+                        END DO
+                    END DO
+                END DO
+                C(IB:IB+NB-1,JB:JB+NB-1) = TMP
+            END DO
+            ! Last Line
+            ! ...
+            TMP = 0.
+            DO I = 1, (M-NIB)
+                DO KB = 1, NKB, NB
+                    DO J=1,NB
+                        DO K=1,NB
+                            TMP(I,J) = TMP(I,J) + A(NIB+I, KB+K-1)*B(KB+K-1, JB+J-1)
+                        END DO
+                    END DO
+                END DO
+                DO J=1,NB
+                    DO K=NKB+1,L
+                        TMP(I,J) = TMP(I,J) + A(NIB+I, K)*B(K, JB+J-1)
+                    END DO
+                END DO
+            END DO
+            C(NIB+1:M,JB:JB+NB-1) = TMP(1:M-NIB,:)
+        END DO
+        ! Last column
+        ! ...
+        DO IB = 1, NIB, NB
+            TMP = 0.
+            DO KB = 1, NKB, NB
+                DO J=1,N-NJB
+                    DO I=1,NB
+                        DO K=1,NB
+                            TMP(I,J) = TMP(I,J) + A(IB+I-1, KB+K-1)*B(KB+K-1, NJB+J)
+                        END DO
+                    END DO
+                END DO
+            END DO
+            DO J=1,N-NJB
+                DO I=1,NB
+                    DO K=NKB+1,L
+                        TMP(I,J) = TMP(I,J) + A(IB+I-1, K)*B(K, NJB+J)
+                    END DO
+                END DO
+            END DO
+            C(IB:IB+NB-1,NJB+1:N) = TMP(:,1:N-NJB)
+        END DO
+        ! Last Line, last col
+        ! ...
+        DO J=NJB+1, N
+            DO I = NIB+1, M
+                C(I,J) = 0.
+                DO K=1,L
+                    C(I,J) = C(I,J) + A(I, K)*B(K, J)
+                END DO
+            END DO
+        END DO
+
+        RETURN
+    END SUBROUTINE DGEMM2
 
 END MODULE BLAS
 !! Local Variables:

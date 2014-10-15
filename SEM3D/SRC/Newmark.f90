@@ -417,11 +417,11 @@ subroutine Newmark_Predictor(Tdomain,rg)
                 else
                     if (Tdomain%specel(n)%FPML) then
                         call Prediction_Elem_FPML_Veloc(Tdomain%specel(n),bega,dt, &
-                            Tdomain%sSubDomain(mat)%hTPrimex,Tdomain%sSubDomain(mat)%hPrimey, &
+                            Tdomain%sSubDomain(mat)%hPrimex,Tdomain%sSubDomain(mat)%hPrimey, &
                             Tdomain%sSubDomain(mat)%hprimez,rg,n,Tdomain%sSubDomain(mat)%freq)
                     else
                         call Prediction_Elem_PML_Veloc(Tdomain%specel(n),bega,dt, &
-                            Tdomain%sSubDomain(mat)%hTPrimex,Tdomain%sSubDomain(mat)%hPrimey, &
+                            Tdomain%sSubDomain(mat)%hPrimex,Tdomain%sSubDomain(mat)%hPrimey, &
                             Tdomain%sSubDomain(mat)%hprimez,rg,n)
                     endif
                     !   fin test sur curve
@@ -436,7 +436,7 @@ subroutine Newmark_Predictor(Tdomain,rg)
                 call get_PMLprediction_e2el_fl(Tdomain,n,bega,dt)
                 call get_PMLprediction_f2el_fl(Tdomain,n,bega,dt)
                 call Prediction_Elem_PML_VelPhi(Tdomain%specel(n),bega,dt,             &
-                    Tdomain%sSubDomain(mat)%hTPrimex,Tdomain%sSubDomain(mat)%hPrimey, &
+                    Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hPrimey, &
                     Tdomain%sSubDomain(mat)%hprimez)
             endif
         end if

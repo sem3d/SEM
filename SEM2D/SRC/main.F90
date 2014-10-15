@@ -50,7 +50,6 @@ subroutine  sem()
     integer :: isort
     character(len=MAX_FILE_SIZE) :: fnamef
     integer :: info_capteur
-    real(kind=8) :: remaining_time
     real(kind=8), parameter :: max_time_left=900
     integer :: getpid, pid
 
@@ -65,6 +64,8 @@ subroutine  sem()
     integer :: m_localComm, comm_super_mka
     integer :: n
     integer :: min_rank_glob_sem
+#else
+    real(kind=8) :: remaining_time
 #endif
     integer :: display_iter !! Indique si on doit faire des sortie lors de cette iteration
     real(kind=4), dimension(2) :: tarray
@@ -75,7 +76,7 @@ subroutine  sem()
     display_iter = 1
     call MPI_Init(ierr)
     pid = getpid()
-    write(*,*) "SEM2D[", pid, "] : Demarrage."
+    !write(*,*) "SEM2D[", pid, "] : Demarrage."
 
 #ifdef COUPLAGE
     call MPI_Comm_Rank (MPI_COMM_WORLD, global_rank, ierr)
@@ -122,9 +123,12 @@ subroutine  sem()
     call MPI_Comm_Rank (MPI_COMM_WORLD, Tdomain%Mpi_var%my_rank, ierr)
     call MPI_Comm_Size (MPI_COMM_WORLD, Tdomain%Mpi_var%n_proc,  ierr)
     Tdomain%communicateur=MPI_COMM_WORLD
+    Tdomain%communicateur_global=MPI_COMM_WORLD
 #endif
 
     rg = Tdomain%Mpi_var%my_rank
+
+    call START_SEM(Tdomain)
 
     if (rg == 0) call create_sem_output_directories()
 
@@ -134,7 +138,7 @@ subroutine  sem()
 
     !lecture du fichier de maillage unv avec conversion en fichier sem2D
     if (rg == 0) write (*,*) "Define mesh properties"
-    call read_mesh(Tdomain)
+    call read_mesh_h5(Tdomain)
 
     if (rg == 0) write (*,*) "Compute Gauss-Lobatto-Legendre weights and zeroes"
     call compute_GLL (Tdomain)
@@ -230,7 +234,7 @@ subroutine  sem()
 
 
     if (Tdomain%logicD%save_snapshots .or. Tdomain%logicD%save_deformation) then
-        Tdomain%timeD%nsnap = Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin
+        Tdomain%timeD%nsnap = int(Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin)
         if (Tdomain%timeD%nsnap == 0) Tdomain%timeD%nsnap = 1
         write(*,*) "Snapshot every ", Tdomain%timeD%nsnap, " iterations"
     endif
@@ -271,7 +275,7 @@ subroutine  sem()
         endif
 
 #ifdef COUPLAGE
-        call envoi_vitesse_mka(Tdomain, ntime) !! syst. lineaire vitesse
+        call envoi_vitesse_mka(Tdomain) !! syst. lineaire vitesse
 
         ! traitement de l arret
         ! comm entre le master_sem et le Tdomain%master_superviseur : reception de la valeur de l interruption
@@ -280,7 +284,7 @@ subroutine  sem()
         flags_synchro(2) = 0      ! SEM ne declenche pas les protections
         flags_synchro(3) = 0
 
-        call MPI_ALLREDUCE(MPI_IN_PLACE, flags_synchro, 3, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, code)
+        call MPI_Allreduce(MPI_IN_PLACE, flags_synchro, 3, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, code)
 
         interrupt = flags_synchro(1)
         protection = flags_synchro(2)
@@ -303,7 +307,7 @@ subroutine  sem()
         if (remaining_time<max_time_left) then
             interrupt = 1
         end if
-        call mpi_allreduce(MPI_IN_PLACE, interrupt, 1, MPI_INTEGER, MPI_SUM, &
+        call MPI_Allreduce(MPI_IN_PLACE, interrupt, 1, MPI_INTEGER, MPI_SUM, &
             Tdomain%communicateur_global, code)
 
         if (Tdomain%logicD%save_snapshots)  then
@@ -393,6 +397,7 @@ subroutine  sem()
     ! FIN BOUCLE DE CALCUL EN TEMPS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    call END_SEM(Tdomain, ntime)
 
     if (Tdomain%logicD%save_trace) call dump_trace(Tdomain)
 
@@ -400,6 +405,7 @@ subroutine  sem()
         deallocate(Tdomain%GrandeurDeformation)
         deallocate(Tdomain%GrandeurVitesse)
     endif
+
 
 #ifdef COUPLAGE
     ! on quitte directement SEM, la fin du parallelisme est geree par le main.C de la maquette
@@ -410,6 +416,42 @@ subroutine  sem()
     if (rg == 0) close(78)
 
 end subroutine sem
+
+
+subroutine START_SEM(Tdomain)
+    use sdomain
+    implicit none
+    type(domain), intent(in) :: Tdomain
+    integer :: rg
+    rg = Tdomain%Mpi_var%my_rank
+
+    if (rg==0) then
+        open (111,file = "fin_sem", status="REPLACE")
+        write(111,*) -1
+        close(111)
+    end if
+
+end subroutine START_SEM
+
+subroutine END_SEM(Tdomain, ntime)
+    use sdomain
+    implicit none
+    type(domain), intent(in) :: Tdomain
+    integer, intent(in) :: ntime
+    integer :: rg
+    rg = Tdomain%Mpi_var%my_rank
+    if (rg==0) then
+        open (111,file = "fin_sem", status="REPLACE")
+        if (ntime >= Tdomain%TimeD%NtimeMax-1) then
+            write(111,*) 1
+        else
+            write(111,*) 0
+        end if
+        close(111)
+    end if
+
+end subroutine END_SEM
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

@@ -243,6 +243,7 @@ subroutine PML_definition (Tdomain)
 
     do n = 0,Tdomain%n_elem-1
         mat = Tdomain%specel(n)%mat_index
+        ! TODO: Warning for non pml subdomains
         if (Tdomain%sSubdomain(mat)%Px) then
             if (Tdomain%sSubdomain(mat)%Left) then
                 nf = Tdomain%specel(n)%Near_Faces(4);   Tdomain%sFace(nf)%Abs = .true.

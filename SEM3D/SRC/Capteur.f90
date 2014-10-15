@@ -1002,7 +1002,7 @@ contains
 
         endif
 
-        call MPI_Wait(request, status, ierr)
+        if (request/=MPI_REQUEST_NULL) call MPI_Wait(request, status, ierr)
 
     end subroutine sortieGrandeurCapteur_interp
 

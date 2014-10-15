@@ -29,29 +29,20 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     ! Hors couplage on doit avoir -1 MPI_COMM_WORLD, MPI_COMM_WORLD
     integer, intent(in) :: communicateur, communicateur_global, master_superviseur
 
-    type(domain), target :: Tdomain
-
-    integer :: code, rg, nb_procs, ntime, i_snap, n
-    integer :: i, isort, ierr
-    real(kind=8) :: remaining_time
+    type(domain) :: Tdomain
+    integer :: rg, nb_procs, ntime
+    integer :: isort, ierr
     real(kind=8), parameter :: max_time_left=900
-    integer :: protection
-    character(Len=MAX_FILE_SIZE) :: fnamef
 #ifdef COUPLAGE
     integer :: global_rank, global_nb_proc, worldgroup, intergroup
     integer :: m_localComm, comm_super_mka
-    integer :: sortie
+    integer :: n
     integer :: tag
     integer, dimension (MPI_STATUS_SIZE) :: status
-    integer :: MaxNgParDir
-    integer, dimension(3) :: flags_synchro ! fin/protection/sortie
     integer :: getpid, pid
     integer, dimension(3) :: tab
     integer :: min_rank_glob_sem
-    integer :: master_sup, nb_procs_sup, master_mka, nb_procs_mka
 #endif
-    integer :: interrupt
-    integer :: group, subgroup
 
     call MPI_Init (ierr)
 
@@ -85,14 +76,14 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 
     !! Envoi des infos de couplage
     if (rg == 0) then
-	tab(1) = global_rank
-	tab(2) = nb_procs
+        tab(1) = global_rank
+        tab(2) = nb_procs
         tab(3) = min_rank_glob_sem
 
-	do i=1, global_nb_proc
-	    tag=8200000+i
-	    call MPI_Send(tab, 3, MPI_INTEGER, i-1, tag, MPI_COMM_WORLD, ierr)
-	enddo
+        do n=1, global_nb_proc
+            tag=8200000+n
+            call MPI_Send(tab, 3, MPI_INTEGER, n-1, tag, MPI_COMM_WORLD, ierr)
+        enddo
     endif
 
     !! Reception des infos de sem
@@ -107,8 +98,8 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     Tdomain%communicateur_global = communicateur_global
     Tdomain%master_superviseur = master_superviseur
 
-    call MPI_Comm_Rank (Tdomain%communicateur, rg, code)
-    call MPI_Comm_Size (Tdomain%communicateur, nb_procs,  code)
+    call MPI_Comm_Rank (Tdomain%communicateur, rg, ierr)
+    call MPI_Comm_Size (Tdomain%communicateur, nb_procs, ierr)
 #endif
 
 !----------------------------------------------------------------------------------------------!
@@ -116,6 +107,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 !----------------------------------------------------------------------------------------------!
 
     call INIT_MESSAGE(rg)
+    call START_SEM(rg)
 
 !---------------------------------------------------------------------------------------------!
 !------------------------------    RUN PREPARATION : INPUT DATA, -----------------------------!
@@ -123,13 +115,13 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 !---------------------------------------------------------------------------------------------!
 
     call RUN_PREPARED(Tdomain,rg)
-    call RUN_INIT_INTERACT(Tdomain,rg,isort) 
+    call RUN_INIT_INTERACT(Tdomain,nb_procs,rg,isort)
 
 !---------------------------------------------------------------------------------------------!
 !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
 !---------------------------------------------------------------------------------------------!
 
-    call TIME_STEPPING(Tdomain,rg,isort,ntime)
+    call TIME_STEPPING(Tdomain,nb_procs,rg,isort,ntime)
 
 !---------------------------------------------------------------------------------------------!
 !-------------------------------      NORMAL  END OF THE RUN      ----------------------------!
@@ -303,7 +295,7 @@ subroutine RUN_PREPARED(Tdomain,rg)
 end subroutine RUN_PREPARED
 !-----------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------
-subroutine RUN_INIT_INTERACT(Tdomain,rg,isort) 
+subroutine RUN_INIT_INTERACT(Tdomain,nb_procs,rg,isort)
     use sdomain
     use mCapteur
     use semdatafiles
@@ -318,10 +310,10 @@ subroutine RUN_INIT_INTERACT(Tdomain,rg,isort)
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    integer, intent(in)         :: rg
+    integer, intent(in)         :: rg, nb_procs
     integer, intent(inout)      :: isort
 
-    integer :: code,nb_procs, i_snap, ierr
+    integer :: code,ierr
     integer :: info_capteur
     character(Len=MAX_FILE_SIZE) :: fnamef
 
@@ -350,7 +342,7 @@ subroutine RUN_INIT_INTERACT(Tdomain,rg,isort)
         !! Il faudra ajouter la gravite ici #ifdef COUPLAGE
         call read_restart(Tdomain, rg, isort)
         call MPI_Barrier(Tdomain%communicateur,code)
-        if(rg == 0) write (*,*) , "--> RESTARTING ON ALL CPUs"
+        if(rg == 0) write (*,*) "--> RESTARTING ON ALL CPUs"
         open(78,file=fnamef,status="unknown",position="append")
     else
         ! Sauvegarde des donnees de post-traitement
@@ -371,7 +363,7 @@ subroutine RUN_INIT_INTERACT(Tdomain,rg,isort)
         call write_snapshot_geom(Tdomain, rg)
         Tdomain%timeD%nsnap = int(Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin)
         Tdomain%timeD%nsnap = max(1, Tdomain%timeD%nsnap)
-        if(rg == 0) write (*,*) , "--> SNAPSHOTS RECORDED EVERY ", Tdomain%timeD%nsnap, " iterations"
+        if(rg == 0) write (*,*) "--> SNAPSHOTS RECORDED EVERY ", Tdomain%timeD%nsnap, " iterations"
     end if
 
 !- eventual outputs at receivers, and their properties
@@ -382,6 +374,7 @@ subroutine RUN_INIT_INTERACT(Tdomain,rg,isort)
 end subroutine RUN_INIT_INTERACT
 !-----------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------
+#ifdef COUPLAGE
 subroutine INIT_COUPLING_MKA(Tdomain,nb_procs,rg)
 
     use sdomain
@@ -400,28 +393,28 @@ subroutine INIT_COUPLING_MKA(Tdomain,nb_procs,rg)
     character(Len=MAX_FILE_SIZE) :: fnamef
     integer                      :: finSem,MaxNgParDir
 
-    if (rg == 0) write(6,'(A)') 'Methode de couplage Mka3D/SEM3D 4: Peigne de points d''interpolation, en vitesses, systeme lineaire sur la vitesse,', &
-        ' contraintes discontinues pour les ddl de couplage'
+    if (rg == 0) then
+        write(6,'(A)') 'Methode de couplage Mka3D/SEM3D 4: Peigne de points d''interpolation,', &
+            ' en vitesses, systeme lineaire sur la vitesse,', &
+            ' contraintes discontinues pour les ddl de couplage'
+    endif
     call semname_drive_sem_listing(rg, fnamef)
     open(UNIT=50, FILE=fnamef, STATUS='UNKNOWN')
-#ifdef COUPLAGE
     call initialisation_couplage(Tdomain, rg, MaxNgParDir, nb_procs)
-#endif
     finSem = 0
 
-    !- new max. number of iterations 
+    !- new max. number of iterations
     Tdomain%TimeD%ntimeMax = int(Tdomain%TimeD%Duration/Tdomain%TimeD%dtmin)
-   ! this block placed here - is it ok, or not?
-#ifdef COUPLAGE
+    ! this block placed here - is it ok, or not?
     call reception_surface_part_mka(Tdomain, rg)
     call reception_nouveau_pdt_sem(Tdomain, rg)
-#endif
 
 
 end subroutine INIT_COUPLING_MKA
+#endif
 !-----------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------
-subroutine TIME_STEPPING(Tdomain,rg,isort,ntime)
+subroutine TIME_STEPPING(Tdomain,nb_procs,rg,isort,ntime)
     use sdomain
     use mCapteur
     use semdatafiles
@@ -435,18 +428,21 @@ subroutine TIME_STEPPING(Tdomain,rg,isort,ntime)
 
     implicit none
 
-    type(domain), target :: Tdomain
-    integer, intent(inout)  :: rg,isort
+    type(domain) :: Tdomain
+    integer, intent(in) :: rg, nb_procs
+    integer, intent(inout)  :: isort
     integer, intent(out)  :: ntime
 
-    integer :: code,nb_procs,i_snap, n
-    integer :: i
-    real(kind=8) :: remaining_time
+    integer :: i_snap
     real(kind=8), parameter :: max_time_left = 900
     integer :: protection
-    character(Len=MAX_FILE_SIZE) :: fnamef
     integer :: interrupt
     logical :: sortie_capteur
+#ifdef COUPLAGE
+#else
+    real(kind=8) :: remaining_time
+    integer :: code
+#endif
 
 
     if(rg == 0)then
@@ -511,7 +507,9 @@ subroutine TIME_STEPPING(Tdomain,rg,isort,ntime)
     !- Checkpoint restart
         if(Tdomain%logicD%save_restart)then
             ! protection for a future restart?
-            if(mod(ntime,Tdomain%TimeD%ncheck) == 0) protection = 1
+            if(mod(ntime,Tdomain%TimeD%ncheck) == 0) then
+                if (ntime/=0) protection = 1
+            end if
         endif
     !- Time remaining
         call TREMAIN(remaining_time)
@@ -567,6 +565,7 @@ subroutine TIME_STEPPING(Tdomain,rg,isort,ntime)
 end subroutine TIME_STEPPING
 !-----------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------
+#ifdef COUPLAGE
 subroutine MKA_COUPLING_OUT(Tdomain,rg,ntime,interrupt,protection,i_snap)
     use sdomain
     use mCapteur
@@ -579,19 +578,17 @@ subroutine MKA_COUPLING_OUT(Tdomain,rg,ntime,interrupt,protection,i_snap)
 
     implicit none
 
-    type(domain), target :: Tdomain
+    type(domain) :: Tdomain
     integer, intent(in)  :: rg,ntime
     integer, intent(inout) :: interrupt,protection,i_snap
 
-    integer :: code,n
+    integer :: code, n
     integer, dimension(3) :: flags_synchro ! fin/protection/sortie
 
-#ifdef COUPLAGE
     call ENVOI_VITESSE_MKA(Tdomain, ntime, rg) !! syst. lineaire vitesse
-#endif
 
-!- traitement de l arret
-!  comm entre le master_sem et le Tdomain%master_superviseur : reception de la valeur de l interruption
+    !- traitement de l arret
+    !  comm entre le master_sem et le Tdomain%master_superviseur : reception de la valeur de l interruption
 
     flags_synchro(1) = interrupt
     flags_synchro(2) = 0      ! SEM ne declenche pas les protections
@@ -606,9 +603,8 @@ subroutine MKA_COUPLING_OUT(Tdomain,rg,ntime,interrupt,protection,i_snap)
     else
         i_snap = 1
     end if
-!- reinitializations of coupling fields    
+    !- reinitializations of coupling fields
     ! remise a zero dans tous les cas des forces Mka sur les faces
-#ifdef COUPLAGE
     do n = 0, Tdomain%n_face-1
         Tdomain%sFace(n)%ForcesMka = 0.
     enddo
@@ -620,9 +616,10 @@ subroutine MKA_COUPLING_OUT(Tdomain,rg,ntime,interrupt,protection,i_snap)
     do n = 0, Tdomain%n_edge-1
         Tdomain%sEdge(n)%ForcesMka = 0.
     enddo
-#endif
 
 end subroutine MKA_COUPLING_OUT
+#endif
+
 !-----------------------------------------------------------------------------------
 !-----------------------------------------------------------------------------------
 subroutine OUTPUT_SNAPSHOTS(Tdomain,nb_procs,rg,ntime,isort)
@@ -632,7 +629,7 @@ subroutine OUTPUT_SNAPSHOTS(Tdomain,nb_procs,rg,ntime,isort)
 
     implicit none
 
-    type(domain), target   :: Tdomain
+    type(domain) :: Tdomain
     integer, intent(in)    :: rg,ntime,nb_procs
     integer, intent(inout) :: isort
     character(Len=MAX_FILE_SIZE) :: fnamef
@@ -665,17 +662,19 @@ subroutine END_SEM(Tdomain,rg,ntime)
 
     implicit none
 
-    type(domain), target :: Tdomain
+    type(domain) :: Tdomain
     integer, intent(in)  :: rg,ntime
+    integer :: ierr
 
-    
-    open (111,file = "fin_sem")
-    if (ntime >= Tdomain%TimeD%NtimeMax-1) then
-        write(111,*) 1
-    else
-        write(111,*) 0
+    if (rg==0) then
+        open (111,file = "fin_sem", status="REPLACE")
+        if (ntime >= Tdomain%TimeD%NtimeMax-1) then
+            write(111,*) 1
+        else
+            write(111,*) 0
+        end if
+        close(111)
     end if
-    close(111)
 
 
     call flushAllCapteurs(Tdomain, rg)
@@ -686,7 +685,19 @@ subroutine END_SEM(Tdomain,rg,ntime)
     close(50)
 #endif
 
+    call MPI_Comm_free(Tdomain%comm_output, ierr)
 end subroutine END_SEM
+
+subroutine START_SEM(rg)
+    implicit none
+    integer, intent(in) :: rg
+    if (rg==0) then
+        open (111,file = "fin_sem", status="REPLACE")
+        write(111,*) -1
+        close(111)
+    end if
+
+end subroutine START_SEM
 
 end module drive_sem
 !! Local Variables:

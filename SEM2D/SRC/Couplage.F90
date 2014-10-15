@@ -726,10 +726,9 @@ contains
 !!!! Envoi des donnees au Superviseur
 !!!! --------------------------------------------------
 
-    subroutine envoi_vitesse_mka(Tdomain,ntime)
+    subroutine envoi_vitesse_mka(Tdomain)
 
         type (domain), intent(INOUT)  :: Tdomain
-        integer, intent(IN) :: ntime
 
         integer :: tag, ierr
         integer :: i,numFace

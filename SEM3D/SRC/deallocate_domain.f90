@@ -121,7 +121,7 @@ subroutine deallocate_domain (Tdomain, rg)
 
             endif
         endif
-        if (.not. Tdomain%specel(n)%PML) then
+        if (.not. Tdomain%specel(n)%PML) then ! TODO: why not PML?
             deallocate (Tdomain%specel(n)%InvGrad)     !purge fuites memoire Gsa
         endif
     enddo

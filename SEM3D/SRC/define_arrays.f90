@@ -424,13 +424,10 @@ subroutine init_element_acoeff(Tdomain,specel,mat,whei)
   real, dimension(:,:,:), allocatable, intent(in) :: Whei
   !
   integer :: ngllx, nglly, ngllz
-  integer :: i, j, k
   real, dimension(:,:,:), allocatable :: xix,xiy,xiz
   real, dimension(:,:,:), allocatable :: etax,etay,etaz
   real, dimension(:,:,:), allocatable :: zetax,zetay,zetaz
   real, dimension(:,:,:), allocatable :: RKmod
-  real, dimension(:,:,:), allocatable :: wx,wy,wz
-  real :: freq
 
   ngllx = specel%ngllx
   nglly = specel%nglly
@@ -504,7 +501,6 @@ subroutine init_pml_properties(Tdomain,specel,mat,Whei)
     real, dimension(:,:,:), allocatable, intent(in) :: Whei
     !
     integer :: ngllx, nglly, ngllz
-    integer :: i, j, k
     real, dimension(:,:,:), allocatable :: temp_PMLx,temp_PMLy
     real, dimension(:,:,:), allocatable :: RKmod
     real, dimension(:,:,:), allocatable :: wx,wy,wz
@@ -848,18 +844,6 @@ subroutine initialize_material_gradient(Tdomain, specel, mat)
      zCs1 = Tdomain%sBassin%z_Cs(icolonne,jlayer)
      zCs2 = Tdomain%sBassin%z_Cs(icolonne,jlayer+1)
 
-     if ( Tdomain%sBassin%x_type .eq. 0 ) then
-        !   on met les memes proprietes dans toute la maille
-        zfact = 0.D0
-        zrho   = zrho1 + zfact*(zrho2-zrho1)
-        zCp   = zCp1 + zfact*(zCp2-zCp1)
-        zCs   = zCs1 + zfact*(zCs2-zCs1)
-        !     calcul des coeffcients elastiques
-        Mu     = zrho*zCs*zCs
-        Lambda = zrho*(zCp*zCp - zCs*zCs)
-        Kappa  = Lambda + 2.D0*Mu/3.D0
-     endif
-
      !     boucle sur les points de Gauss de la maille
      !     xp, yp, zp coordonnees du point de Gauss
      do k = 0, ngllz -1
@@ -875,14 +859,18 @@ subroutine initialize_material_gradient(Tdomain, specel, mat)
                  zz1 = zg1 + xfact*(zd1-zg1)
                  zz2 = zg2 + xfact*(zd2-zg2)
                  zfact = ( zp - zz1)/(zz2-zz1)
-                 zrho   = zrho1 + zfact*(zrho2-zrho1)
-                 zCp   = zCp1 + zfact*(zCp2-zCp1)
-                 zCs   = zCs1 + zfact*(zCs2-zCs1)
-                 !     calcul des coeffcients elastiques
-                 Mu     = zrho*zCs*zCs
-                 Lambda = zrho*(zCp*zCp - zCs*zCs)
-                 Kappa  = Lambda + 2.D0*Mu/3.D0
+              else
+                  !   on met les memes proprietes dans toute la maille
+                  zfact = 0.D0
               endif
+              zrho   = zrho1 + zfact*(zrho2-zrho1)
+              zCp   = zCp1 + zfact*(zCp2-zCp1)
+              zCs   = zCs1 + zfact*(zCs2-zCs1)
+              !     calcul des coeffcients elastiques
+              Mu     = zrho*zCs*zCs
+              Lambda = zrho*(zCp*zCp - zCs*zCs)
+              Kappa  = Lambda + 2.D0*Mu/3.D0
+
               specel%Density(i,j,k) = zrho
               specel%Lambda(i,j,k) = Lambda
               specel%Kappa(i,j,k) = Kappa

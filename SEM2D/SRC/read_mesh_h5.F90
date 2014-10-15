@@ -41,7 +41,7 @@ subroutine read_mesh_h5(tDomain)
     ! The reading is local to the grid
 
     call semname_read_mesh_rank(Tdomain%mesh_file,Tdomain%Mpi_var%my_rank,fnamef)
-    write(*,*)"ouverture fichier:",trim(adjustl(fnamef))
+    write(*,*)"ouverture fichier:",trim(adjustl(fnamef))//".h5"
     call init_hdf5()
     !
     call h5fopen_f(trim(adjustl(fnamef))//".h5", H5F_ACC_RDONLY_F, fid, hdferr)
