@@ -105,14 +105,16 @@ contains
         integer(HID_T) :: nodes_id
         integer :: hdferr
         
-        allocate(nodes(2,0:nnodes-1))
+        allocate(nodes(0:2,0:nnodes-1))
         do n = 0, Tdomain%n_glob_points-1
             if (irenum(n)>=0) then
-                nodes(:,irenum(n)) = Tdomain%GlobCoord(:,n)
+                nodes(0,irenum(n)) = Tdomain%GlobCoord(0,n)
+		nodes(1,irenum(n)) = Tdomain%GlobCoord(1,n)
+		nodes(2,irenum(n)) = 0.
             end if
         end do
 
-        dims(1) = 2
+        dims(1) = 3
         dims(2) = nnodes
         call create_dset_2d(fid, "Nodes", H5T_IEEE_F64LE, dims(1), dims(2), nodes_id)
         call h5dwrite_f(nodes_id, H5T_NATIVE_DOUBLE, nodes, dims, hdferr)
@@ -131,7 +133,7 @@ contains
         integer(HSIZE_T), dimension(2) :: dims
         integer, dimension(:,:), allocatable :: data
         integer, dimension(:), allocatable :: mat, elem_num, iglobnum
-        integer, dimension(2,0:Tdomain%n_elem-1) :: ngll
+        integer, dimension(3,0:Tdomain%n_elem-1) :: ngll
         integer :: count, ig, nglobnum
         integer :: i, k, n, nb_elem
         integer :: hdferr
@@ -144,6 +146,7 @@ contains
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             ngll(1,k) = Tdomain%specel(n)%ngllx
             ngll(2,k) = Tdomain%specel(n)%ngllz
+	    ngll(3,k) = 0
             ! Max number of global points (can count elem vertices twice)
             nglobnum = nglobnum + ngll(1,k)*ngll(2,k)
             ! Number of subelements
@@ -152,9 +155,9 @@ contains
         enddo
         nb_elem = k
         !! Nombre de points de gauss par element
-        call create_dset_2d(fid, "NGLL", H5T_STD_I16LE, 2, nb_elem, ngll_id)
-        dims(1) = 2
+	dims(1) = 3
         dims(2) = nb_elem
+        call create_dset_2d(fid, "NGLL", H5T_STD_I16LE, dims(1), dims(2), ngll_id)
         call h5dwrite_f(ngll_id, H5T_NATIVE_INTEGER, ngll, dims, hdferr)
         call h5dclose_f(ngll_id, hdferr)
 
