@@ -280,7 +280,7 @@ contains
         integer :: n, i, j, k, ngllx, nglly, ngllz, ig, gn, ne
         !
         integer :: count
-        integer :: status, ierr, domain
+        integer :: status, ierr, domain_type
         integer, dimension(:), allocatable, intent(out) :: domains
 
         allocate(irenum(0:Tdomain%n_glob_points-1))
@@ -309,21 +309,21 @@ contains
         nnodes = ig
 
         allocate(domains(0:ig-1))
-        domain = 0
+        domain_type = 0
         domains = 0
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             ngllx = Tdomain%specel(n)%ngllx
             nglly = Tdomain%specel(n)%nglly
             ngllz = Tdomain%specel(n)%ngllz
-            domain = get_domain(Tdomain%specel(n))
+            domain_type = get_domain(Tdomain%specel(n))
 
             do k = 0,ngllz - 1
                 do j = 0,nglly - 1
                     do i = 0,ngllx - 1
                         gn = Tdomain%specel(n)%Iglobnum(i,j,k)
-                        if (domain>domains(irenum(gn))) then
-                            domains(irenum(gn)) = domain
+                        if (domain_type>domains(irenum(gn))) then
+                            domains(irenum(gn)) = domain_type
                         endif
                     end do
                 end do
@@ -532,10 +532,8 @@ contains
         real, dimension(:), allocatable :: press
         real, dimension(:,:,:,:),allocatable :: field_displ, field_veloc, field_accel
         real, dimension(:,:,:),allocatable :: field_press
-#if NEW_GLOBAL_METHOD
         real, dimension(:,:,:),allocatable :: field_phi, field_vphi
-        integer :: domain
-#endif
+        integer :: domain_type
         integer, dimension(:), allocatable :: valence
         real, dimension(:,:,:,:), allocatable :: Depla
         integer :: hdferr
@@ -560,7 +558,7 @@ contains
         ngllx = 0
         nglly = 0
         ngllz = 0
-        valence(:) = 0d0
+        valence(:) = 0
         veloc(:,:) = 0d0
         accel(:,:) = 0d0
         displ(:,:) = 0d0
@@ -595,8 +593,8 @@ contains
             endif
             
 #if NEW_GLOBAL_METHOD
-            domain = get_domain(el)
-            select case(domain)
+            domain_type = get_domain(el)
+            select case(domain_type)
             case (DM_SOLID)
                 call gather_field(el, field_displ, Tdomain%champs0%Depla, el%Isol)
                 call gather_field(el, field_veloc, Tdomain%champs0%Veloc, el%Isol)
@@ -632,7 +630,7 @@ contains
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
                         idx = irenum(el%Iglobnum(i,j,k))
-                        if (domains(idx)==domain) then
+                        if (domains(idx)==domain_type) then
                             valence(idx) = valence(idx)+1
                             displ(:,idx) = field_displ(i,j,k,:)
                             veloc(:,idx) = veloc(:,idx) + field_veloc(i,j,k,:)
@@ -836,7 +834,7 @@ contains
         integer :: ngllx, nglly, ngllz, idx
         integer :: i, j, k, n, nnodes_tot
 #if NEW_GLOBAL_METHOD
-        integer :: domain
+        integer :: domain_type
 #endif
         
 
@@ -865,14 +863,14 @@ contains
             ngllx = Tdomain%specel(n)%ngllx
             nglly = Tdomain%specel(n)%nglly
             ngllz = Tdomain%specel(n)%ngllz
-            domain = get_domain(Tdomain%specel(n))
-            select case(domain)
+            domain_type = get_domain(Tdomain%specel(n))
+            select case(domain_type)
             case (DM_SOLID)
                 do k = 0,ngllz-1
                     do j = 0,nglly-1
                         do i = 0,ngllx-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
-                            if (domains(idx)==domain) then
+                            if (domains(idx)==domain_type) then
                                 mass(idx) = Tdomain%MassMatSol(Tdomain%specel(n)%Isol(i,j,k))
                             endif
                         end do
@@ -883,7 +881,7 @@ contains
                     do j = 0,nglly-1
                         do i = 0,ngllx-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
-                            if (domains(idx)==domain) then
+                            if (domains(idx)==domain_type) then
                                 mass(idx) = Tdomain%MassMatSolPML(Tdomain%specel(n)%slpml%IsolPML(i,j,k))
                             endif
                         end do
@@ -894,7 +892,7 @@ contains
                     do j = 0,nglly-1
                         do i = 0,ngllx-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
-                            if (domains(idx)==domain) then
+                            if (domains(idx)==domain_type) then
                                 mass(idx) = Tdomain%MassMatFlu(Tdomain%specel(n)%IFlu(i,j,k))
                             endif
                         end do

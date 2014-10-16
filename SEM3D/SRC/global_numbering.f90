@@ -1693,26 +1693,26 @@ subroutine renum_vertex(Iglobnum, idx, renum, isPML)
     return
 end subroutine renum_vertex
 
-subroutine debug_comm_vector(Tdomain, rank, src, dest, comm)
+subroutine debug_comm_vector(Tdomain, rank, src, dest, commvec)
     use sdomain
     implicit none
     type(domain), intent(in) :: Tdomain
     integer, intent(in) :: rank, src, dest
-    type(comm_vector), intent(in) :: comm
+    type(comm_vector), intent(in) :: commvec
     !
     integer :: i,k
 
-    do i=0, comm%ncomm-1
-        if (comm%Data(i)%src/=src .or. comm%Data(i)%dest/=dest) cycle
+    do i=0, commvec%ncomm-1
+        if (commvec%Data(i)%src/=src .or. commvec%Data(i)%dest/=dest) cycle
 
         write(*,*) rank, "COMM:", src, dest
-        write(*,*) rank, "NSOL ", comm%Data(i)%nsol
-        write(*,*) rank, "NSPML", comm%Data(i)%nsolpml
-        write(*,*) rank, "NFLU ", comm%Data(i)%nflu
-        write(*,*) rank, "NFPML", comm%Data(i)%nflupml
+        write(*,*) rank, "NSOL ", commvec%Data(i)%nsol
+        write(*,*) rank, "NSPML", commvec%Data(i)%nsolpml
+        write(*,*) rank, "NFLU ", commvec%Data(i)%nflu
+        write(*,*) rank, "NFPML", commvec%Data(i)%nflupml
 
-        write(*,*) rank, "ISOL>", (comm%Data(i)%IGiveS(k), k=0,10)
-        write(*,*) rank, "ISOL<", (comm%Data(i)%ITakeS(k), k=0,10)
+        write(*,*) rank, "ISOL>", (commvec%Data(i)%IGiveS(k), k=0,10)
+        write(*,*) rank, "ISOL<", (commvec%Data(i)%ITakeS(k), k=0,10)
     end do
 end subroutine debug_comm_vector
 
