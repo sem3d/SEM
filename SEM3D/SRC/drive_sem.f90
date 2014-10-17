@@ -154,6 +154,7 @@ end subroutine INIT_MESSAGE
 !-----------------------------------------------------------------------------------
 subroutine RUN_PREPARED(Tdomain,rg)
     use sdomain
+    use sdomain_alloc
     use mCapteur
     use semdatafiles
     use mpi

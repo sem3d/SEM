@@ -12,17 +12,16 @@
 !!
 !! \param type(domain), intent (INOUT) Tdomain
 !<
-subroutine allocate_domain (Tdomain, rg)
-
+module sdomain_alloc
     use sdomain
     implicit none
+contains
+subroutine allocate_domain (Tdomain, rg)
 
     type(domain), intent (INOUT) :: Tdomain
     integer, intent (IN) :: rg
-    integer :: n,nf,ne,nv,i,ngllx,nglly,ngllz,ngll1,ngll2,   &
-        ngll,ngllPML,ngllSO,ngllNeu,ngllSF,ngllSF_PML,ngll_F,ngllPML_F
+    integer :: n,nf,ne,nv,ngllx,nglly,ngllz,ngll1,ngll2,ngll
     integer :: n_solid
-
 
     do n = 0,Tdomain%n_elem-1
 
@@ -585,6 +584,23 @@ subroutine allocate_domain (Tdomain, rg)
     !------------------------
     if(Tdomain%n_proc > 1)then
         do n = 0,Tdomain%n_proc-1
+            call allocate_comm_proc (Tdomain, rg, n)
+        enddo
+    else
+        Tdomain%sComm(0)%ngll = 0
+        Tdomain%sComm(0)%ngllPML = 0
+        Tdomain%sComm(0)%ngllSO = 0
+        Tdomain%sComm(0)%ngllPML_F = 0
+    endif
+
+    return
+end subroutine allocate_domain
+
+    subroutine allocate_comm_proc(Tdomain, rg, n)
+        type(domain), intent (INOUT) :: Tdomain
+        integer, intent (IN) :: rg
+        integer :: n,nf,ne,nv,i,ngll1,ngll2,   &
+            ngll,ngllPML,ngllSO,ngllNeu,ngllSF,ngllSF_PML,ngll_F,ngllPML_F
             ngll = 0
             ngll_F = 0
             ngllPML = 0
@@ -726,16 +742,8 @@ subroutine allocate_domain (Tdomain, rg)
             Tdomain%sComm(n)%ngllSF = ngllSF
             Tdomain%sComm(n)%ngllSF_PML = ngllSF_PML
 
-        enddo
-    else
-        Tdomain%sComm(0)%ngll = 0
-        Tdomain%sComm(0)%ngllPML = 0
-        Tdomain%sComm(0)%ngllSO = 0
-        Tdomain%sComm(0)%ngllPML_F = 0
-    endif
-
-    return
-end subroutine allocate_domain
+        end subroutine allocate_comm_proc
+end module sdomain_alloc
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
