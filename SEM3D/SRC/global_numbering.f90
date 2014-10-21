@@ -9,7 +9,7 @@
 !! Définition de Iglobnum et  renvoi du nombre total de ddl: elements, faces, aretes, sommets
 !!
 !<
-subroutine global_numbering(Tdomain,rank)
+subroutine global_numbering(Tdomain)
 
     ! routine different from the 2D case. Everything is independently numbered, here (inner
     !      points in elements, on faces, edges and vertices). And then associated in
@@ -19,7 +19,6 @@ subroutine global_numbering(Tdomain,rank)
     use sdomain
     use mindex
     implicit none
-    integer, intent(in)  :: rank
     type(domain), intent (inout) :: Tdomain
     integer :: n,icount,i,j,k,ngllx,nglly,ngllz,nf,nnf,ne,nne,nv,ngll1,ngll2,   &
         orient_f,orient_e,ngll,nnv

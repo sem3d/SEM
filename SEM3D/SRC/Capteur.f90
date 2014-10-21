@@ -85,11 +85,13 @@ contains
     !! Elle est appelée une seule fois, avant la boucle en temps, afin d'initialiser les capteurs.
     !! \param type (domain), target Tdomain
     !<
-    subroutine read_capteur(tDomain, rg, info_capteur)
+    subroutine read_capteur(Tdomain, info_capteur)
 
         implicit none
 
         type (domain), target  :: Tdomain
+        integer :: info_capteur
+        !
         type(Tcapteur),pointer :: capteur
         type(tPtgauss),pointer :: PtGauss
 
@@ -99,14 +101,15 @@ contains
         real :: distanceMinMin
         real,dimension(3) :: val, val0
         real,dimension(:),allocatable :: sendbuf, recvbuf
-        integer info_capteur, numproc_max
+        integer numproc_max
         real xi, eta, zeta
         integer n_el
 
+        rg = Tdomain%rank
         ! lecture des parametres des capteurs
 
         !lecture du fichier des capteurs capteurs.dat
-        call lireCapteur(tDomain, rg, info_capteur)
+        call lireCapteur(Tdomain, info_capteur)
 
         ! En reprise on ne recree pas le fichier capteur
         if (Tdomain%TimeD%NtimeMin==0) then
@@ -175,7 +178,7 @@ contains
                 eta = -1.
                 zeta  = -1.
                 n_el = -1
-                call trouve_capteur(Tdomain, rg, capteur, n_el, xi, eta, zeta)
+                call trouve_capteur(Tdomain, capteur, n_el, xi, eta, zeta)
 
                 val(1) = xi
                 val(2) = eta
@@ -211,21 +214,19 @@ contains
     !!
     !! \param type (Domain), intent (IN) Tdomain
     !<
-    subroutine lireCapteur(Tdomain, rg, info_capteur)
-
+    subroutine lireCapteur(Tdomain, info_capteur)
         implicit none
-
-
         type (Domain), intent (IN) :: Tdomain
-
+        integer :: info_capteur
+        !
         integer            :: CodeErreur,fileId,rg
         character(LEN=MAX_FILE_SIZE) :: ligne,fnamef
         logical            :: status
 
         type(Tcapteur),pointer :: capteur
-        integer info_capteur
         character(LEN=6) :: char_calcul
 
+        rg = Tdomain%rank
         ! Id des fichiers de sortie des capteur
         fileId=99
 
@@ -239,7 +240,7 @@ contains
         INQUIRE(File=trim(Tdomain%station_file),Exist=status)
         info_capteur=0
         if ( .not.status ) then
-            if(rg==0) &
+            if(Tdomain%rank==0) &
                 write (*,*)"fichier des capteurs introuvable :",trim(Tdomain%station_file)
             !!      stop
             info_capteur=1
@@ -543,12 +544,12 @@ contains
     !<
 
 
-    subroutine save_capteur(Tdomain, ntime, rg)
+    subroutine save_capteur(Tdomain, ntime)
 
 
         implicit none
 
-        integer :: rg, ntime
+        integer :: ntime
         type (domain) :: TDomain
 
         type(tCapteur),pointer :: capteur
@@ -560,9 +561,9 @@ contains
         do while (associated(capteur))
 
             if(capteur%type_calcul==0) then
-                call sortirGrandeurSousCapteur(capteur,Tdomain, rg)
+                call sortirGrandeurSousCapteur(capteur,Tdomain)
             else
-                call sortieGrandeurCapteur_interp(capteur,Tdomain, ntime, rg)
+                call sortieGrandeurCapteur_interp(capteur,Tdomain, ntime)
             endif
 
             if (capteur%icache==NCAPT_CACHE) do_flush = .true.
@@ -570,7 +571,7 @@ contains
             capteur=>capteur%suivant
         enddo
 
-        if (do_flush) call flushAllCapteurs(Tdomain,rg)
+        if (do_flush) call flushAllCapteurs(Tdomain)
 
     end subroutine save_capteur
 
@@ -639,9 +640,8 @@ contains
         call h5fclose_f(fid, hdferr)
     end subroutine append_traces_h5
 
-    subroutine flushAllCapteurs(Tdomain, rg)
+    subroutine flushAllCapteurs(Tdomain)
         implicit none
-        integer :: rg
         type (domain) :: TDomain
         type(tCapteur),pointer :: capteur
 
@@ -653,11 +653,11 @@ contains
             ! boucle sur les capteurs
             capteur=>listeCapteur
             do while (associated(capteur))
-                call flushCapteur(capteur,rg)
+                call flushCapteur(capteur,Tdomain%rank)
                 capteur=>capteur%suivant
             enddo
         else
-            if (rg/=0) return
+            if (Tdomain%rank/=0) return
             ! Sauvegarde au format hdf5
             if (.not. traces_h5_created) then
                 call create_traces_h5_skel()
@@ -669,8 +669,9 @@ contains
 
     subroutine flushCapteur(capteur, rg)
         implicit none
-        integer :: rg
+        integer, intent(in) :: rg
         type(tCapteur),pointer :: capteur
+        !
         integer, parameter :: fileId=123
         integer :: j, imax
         character(len=MAX_FILE_SIZE) :: fnamef
@@ -725,7 +726,7 @@ contains
     !<
 
 
-    subroutine sortirGrandeurSousCapteur(capteur,Tdomain, rg)
+    subroutine sortirGrandeurSousCapteur(capteur,Tdomain)
 
         implicit none
 
@@ -745,6 +746,7 @@ contains
         real,dimension(:),allocatable :: recvbuf
         real,dimension(4) :: sendbuf
 
+        rg = Tdomain%rank
         ! tableau de correspondance
         allocate(recvbuf(4*Tdomain%n_proc))
         sendbuf=0.
@@ -887,7 +889,7 @@ contains
     !! la maille se trouve dans un seul proc
     !! seul le proc gere l'ecriture
     !!
-    subroutine sortieGrandeurCapteur_interp(capteur,Tdomain, ntime, rg)
+    subroutine sortieGrandeurCapteur_interp(capteur,Tdomain, ntime)
         use mpi
         implicit none
 
@@ -910,6 +912,7 @@ contains
         integer ntime
         integer numproc
 
+        rg = Tdomain%rank
         ! tableau de correspondance
         request=MPI_REQUEST_NULL
 
@@ -997,23 +1000,26 @@ contains
     !!on identifie la maille dans laquelle se trouve le capteur. Il peut y en avoir plusieurs,
     !! alors le capteur est sur une face, arete ou sur un sommet
     !!
-    subroutine trouve_capteur(Tdomain, rg, capteur, n_el, xi, eta, zeta)
+    subroutine trouve_capteur(Tdomain, capteur, n_el, xi, eta, zeta)
 
         implicit none
         type (domain), INTENT(INOUT)  :: Tdomain
-        integer rg
         type(Tcapteur) :: capteur
-        integer ipoint
-        integer i, n, n_el
-        real dist
+        integer :: n_el
+        real :: xi, eta, zeta
+        !
+        integer :: rg
+        integer :: ipoint
+        integer :: i, n
+        real    :: dist
         integer P(0:7)
         real coor(0:7,0:2)
         real eps
-        real xi, eta, zeta
         logical dans_maille
         integer i_sens
-        eps=1.e-4
 
+        eps=1.e-4
+        rg = Tdomain%rank
         n_el = -1
         i_sens = 0 !sens de parcours continu
         do n=0,Tdomain%n_elem-1

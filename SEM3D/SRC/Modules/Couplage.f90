@@ -151,7 +151,7 @@ contains
     !<
 
 
-    subroutine initialisation_couplage(Tdomain, rg, MaxNgParDir, nb_procs)
+    subroutine initialisation_couplage(Tdomain, MaxNgParDir)
 
 !!!!  Description: Initialisation du couplage pour Sem3d
 !!!!
@@ -164,9 +164,9 @@ contains
 !!!!
 !!!! --------------------------------------------------
         type (domain), intent(INOUT)  :: Tdomain
-
-        integer, intent(in) :: rg, nb_procs
         integer, intent(out) :: MaxNgParDir
+        !
+        integer :: rg, nb_procs
         integer :: i,j,k,l,ipoint
         integer :: tag,ierr
         integer :: ngll1, np, ngll2, ngll  !, ngllx, ngllz,
@@ -182,8 +182,8 @@ contains
         integer, dimension (MPI_STATUS_SIZE) :: status
 
         integer, dimension(:),pointer:: tabNbFace
-        integer,dimension(nb_procs) :: displs1, count1
-        integer,dimension(nb_procs) :: displs2, count2
+        integer,dimension(Tdomain%nb_procs) :: displs1, count1
+        integer,dimension(Tdomain%nb_procs) :: displs2, count2
         integer,dimension(5) :: ibuf
         real, dimension (:),pointer :: buf
         real,dimension(0:7) :: x, y, z
@@ -199,7 +199,8 @@ contains
         integer ik, jk
         character(MAX_FILE_SIZE) s1 !Gsa
 
-
+        rg = Tdomain%rank
+        nb_procs = Tdomain%nb_procs
         ! envoi du pas de temps sem
         if (rg == 0) then
             tag=500000
@@ -307,7 +308,7 @@ contains
 
         ! remplissage de la structure face_couplage
 
-        call remplit_face_couplage(Tdomain, rg, MaxNgParFace, MaxNgParDir)
+        call remplit_face_couplage(Tdomain, MaxNgParFace, MaxNgParDir)
 
         !Il faut transmettre gl_MaxNgPardir a tous les procs car mpi_scatterv l'utilise
         call MPI_AllReduce (MaxNgParDir, gl_MaxNgParDir, 1, MPI_INTEGER, MPI_MAX, Tdomain%communicateur, ierr)
@@ -513,7 +514,7 @@ contains
     !<
 
 
-    subroutine calcul_couplage_force(Tdomain,ntime,rg)
+    subroutine calcul_couplage_force(Tdomain,ntime)
 
 !!!!  Description: Calcul des forces aux points de Gauss apres resolution du systeme lineaire (faite par le Superviseur)
 !!!!
@@ -537,7 +538,6 @@ contains
 
         type (domain), intent(INOUT)  :: Tdomain
         integer, intent(IN) :: ntime
-        integer, intent(IN) :: rg ! rank
 
         integer :: i,j, numElem,numFace, mat
         integer :: ngll, ngllx, nglly, ngllz
@@ -556,7 +556,8 @@ contains
         real, dimension(comm_couplage%m_dim, comm_couplage%m_local_ngauss) :: force_impose
 
         !   flag pour sauvegarder la surface tsurf
-        integer :: sauvetsurf ;
+        integer :: sauvetsurf
+
         sauvetsurf = 1
         if ( .not.Tdomain%logicD%run_restart) then
             if ( ntime .gt. 1 ) then
@@ -567,12 +568,11 @@ contains
                 sauvetsurf = 0
             endif
         endif
-        !           print*,'rg  ntime sauvetsurf ',rg,'iter ',ntime,sauvetsurf
 
         ! RECEPTION DES FORCES DU SUPERVISEUR
 
         ! reception du vecteur force appliquees au pt de gauss de sem, solution du systeme resolu par le superviseur
-        tag=1500000+10000*rg+ntime
+        tag=1500000+10000*Tdomain%rank + ntime
         call MPI_RECV (force_impose,comm_couplage%m_dim*comm_couplage%m_local_ngauss, MPI_DOUBLE_PRECISION,&
             Tdomain%master_superviseur,tag, Tdomain%communicateur_global, status, ierr )
 
@@ -1040,12 +1040,11 @@ contains
     !!
     !<
 
-    subroutine remplit_face_couplage(Tdomain, rg, MaxNgParFace, MaxNgParDir)
+    subroutine remplit_face_couplage(Tdomain, MaxNgParFace, MaxNgParDir)
 
         use ref_orient
 
         type (domain), intent(IN)  :: Tdomain
-        integer, intent(in) :: rg
         integer, intent(out) :: MaxNgParFace, MaxNgParDir
         integer :: numFace, numElem, ngll1, ngll2, numlocal
         integer :: i, iface, j, iel, k
@@ -1060,7 +1059,7 @@ contains
             MaxNgParDir = max(max(MaxNgParDir,ngll1),ngll2)
 
             face_couplage(iface)%face   = numFace
-            face_couplage(iface)%proc   = rg
+            face_couplage(iface)%proc   = Tdomain%rank
             face_couplage(iface)%ngll1   = ngll1  !3D Gsa
             face_couplage(iface)%ngll2   = ngll2  !3D Gsa
 
@@ -1208,19 +1207,17 @@ contains
     !!
     !<
 
-    subroutine reception_surface_part_mka(Tdomain, rg)
+    subroutine reception_surface_part_mka(Tdomain)
         use sdomain
         implicit none
 
         type (domain), intent(IN)  :: Tdomain
-        integer, intent(IN) :: rg
         integer, dimension (MPI_STATUS_SIZE) :: status
         integer :: tag, ierr
 
-
         ! a faire une seule fois
         if(comm_couplage%m_nb_point_de_couplage > 0) then
-            tag = 510000 + 1000*rg + 1
+            tag = 510000 + 1000*Tdomain%rank + 1
             call MPI_RECV (comm_couplage%m_surf_part,comm_couplage%m_nb_point_de_couplage, &
                 MPI_DOUBLE_PRECISION, Tdomain%master_superviseur, &
                 tag, Tdomain%communicateur_global, status, ierr )
@@ -1241,14 +1238,13 @@ contains
 !!!! Simple recuperation des vitesses aux points de Gauss
 !!!! Envoi des donnees au Superviseur
 !!!! --------------------------------------------------
-    subroutine envoi_vitesse_mka(Tdomain,ntime,rg)
+    subroutine envoi_vitesse_mka(Tdomain,ntime)
 
         use ref_orient
 
         type (domain), intent(INOUT)  :: Tdomain
         integer, intent(IN) :: ntime
 
-        integer :: rg
         integer :: tag, ierr
         integer :: i,j,numElem, numFace, numlocal, mat
         integer :: ngll
@@ -1362,19 +1358,17 @@ contains
     end subroutine envoi_vitesse_mka
 
 
-    subroutine reception_nouveau_pdt_sem(Tdomain, rg)
+    subroutine reception_nouveau_pdt_sem(Tdomain)
 
         use sdomain
         implicit none
-
-        integer, intent(IN) :: rg
         type (Domain), intent (INOUT) :: Tdomain
         integer :: n, mat
         real dtsem
         integer :: tag,ierr
         integer, dimension (MPI_STATUS_SIZE) :: status
 
-        tag = 4100000+10000*rg
+        tag = 4100000+10000*Tdomain%rank
         call MPI_RECV(dtsem, 1, MPI_DOUBLE_PRECISION, Tdomain%master_superviseur,tag, &
             Tdomain%communicateur_global, status,ierr)
 

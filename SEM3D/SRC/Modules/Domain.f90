@@ -23,13 +23,13 @@ module sdomain
     use semdatafiles
 
     type :: domain
-
-       ! Communicateur incluant les processeurs SEM uniquement
-       integer :: communicateur
-       ! Hors couplage : communicateur=communicateur_global
-       ! mode couplage : communicateur incluant tous les codes
+       integer :: communicateur !<<< Communicator including all SEM processors
+       integer :: rank          !<<< Rank of this process within this communicator
+       integer :: nb_procs      !<<< Total number of SEM processors
+       ! Without coupling : communicateur=communicateur_global
+       ! With coupling    : communicateur : includes every processes
        integer :: communicateur_global
-       ! Communicateur pour le reassemblage des sorties
+       ! Communicator used for output grouping. Only rank 0 of this comm produces outputs
        integer :: comm_output
        ! Nombre de processeur dans le groupe de communication associe a comm_output
        integer :: nb_output_procs

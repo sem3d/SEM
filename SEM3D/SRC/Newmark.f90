@@ -8,7 +8,7 @@
 !! des vitesses avec une formulation contrainte-vitesse d�cal�e en temps dans les PML.
 !<
 
-subroutine Newmark(Tdomain,rg,ntime)
+subroutine Newmark(Tdomain,ntime)
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a
     ! Time staggered Stress-Velocity formulation inside PML
     use sdomain
@@ -25,8 +25,8 @@ subroutine Newmark(Tdomain,rg,ntime)
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    integer, intent(in) :: rg,ntime
-
+    integer, intent(in) :: ntime
+    integer :: rg
     integer :: n, mat,code
     integer :: nf, ne, nv
     integer :: nf_aus, ne_aus, nv_aus
@@ -43,15 +43,15 @@ subroutine Newmark(Tdomain,rg,ntime)
         stop "Newmark scheme implemented only in velocity form."
 
     !- Prediction Phase
-    call Newmark_Predictor(Tdomain,rg)
+    call Newmark_Predictor(Tdomain)
 
     !- Solution phase
-    call internal_forces(Tdomain,rg)
+    call internal_forces(Tdomain)
 
 
     ! External Forces
     if(Tdomain%logicD%any_source)then
-        call external_forces(Tdomain,Tdomain%TimeD%rtime,ntime,rg)
+        call external_forces(Tdomain,Tdomain%TimeD%rtime,ntime)
     end if
 
     ! Communication of Forces within a single process
@@ -61,7 +61,7 @@ subroutine Newmark(Tdomain,rg,ntime)
 
 #ifdef COUPLAGE
     if (ntime>0) then
-        call calcul_couplage_force(Tdomain, ntime, rg)
+        call calcul_couplage_force(Tdomain, ntime)
     endif
 
     !Gsa Ipsis (tout le passage)
@@ -187,7 +187,7 @@ subroutine Newmark(Tdomain,rg,ntime)
 
 
     !- correction phase
-    call Newmark_Corrector(Tdomain,rg)
+    call Newmark_Corrector(Tdomain)
 
     if(Tdomain%logicD%SF_local_present)then
         !- fluid -> solid coupling (pressure times velocity)
@@ -203,14 +203,14 @@ subroutine Newmark(Tdomain,rg,ntime)
 end subroutine Newmark
 !---------------------------------------------------------------------------------------
 !---------------------------------------------------------------------------------------
-subroutine Newmark_Predictor(Tdomain,rg)
+subroutine Newmark_Predictor(Tdomain)
 
     use sdomain
     use assembly
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
-    integer, intent(in)  :: rg
+    integer :: rg
     real  :: alpha,bega,gam1,dt
     integer  :: i,n,mat,nf,ne,nv
     logical, dimension(:), allocatable  :: L_Face,L_Edge,L_Vertex
@@ -218,7 +218,7 @@ subroutine Newmark_Predictor(Tdomain,rg)
     alpha = Tdomain%TimeD%alpha
     bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
     gam1 = 1. / Tdomain%TimeD%gamma
-
+    rg = Tdomain%rank
 
     do n = 0,Tdomain%n_elem-1
         ! attention au pas de temps a envoyer dans la loi
@@ -321,12 +321,11 @@ subroutine Newmark_Predictor(Tdomain,rg)
 end subroutine Newmark_Predictor
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
-subroutine Newmark_Corrector(Tdomain,rg)
+subroutine Newmark_Corrector(Tdomain)
     use sdomain
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
-    integer, intent(in)  :: rg
     real  :: dt
     integer  :: i,n,mat,nf,ne,nv
     logical, dimension(:), allocatable  :: L_Face,L_Edge,L_Vertex
@@ -453,7 +452,7 @@ subroutine Newmark_Corrector(Tdomain,rg)
 end subroutine Newmark_Corrector
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
-subroutine internal_forces(Tdomain,rank)
+subroutine internal_forces(Tdomain)
     ! volume forces - depending on rheology
     use sdomain
     use forces_aniso
@@ -461,7 +460,6 @@ subroutine internal_forces(Tdomain,rank)
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    integer, intent(in)   :: rank
     integer  :: n,mat
 
 
@@ -500,18 +498,18 @@ subroutine internal_forces(Tdomain,rank)
 end subroutine internal_forces
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
-subroutine external_forces(Tdomain,timer,ntime,rank)
+subroutine external_forces(Tdomain,timer,ntime)
     use sdomain
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    integer, intent(in)  :: rank, ntime
+    integer, intent(in)  :: ntime
     real, intent(in)  :: timer
     integer  :: ns,nel,i_dir
     real :: t, ft
 
     do ns = 0, Tdomain%n_source-1
-        if(rank == Tdomain%sSource(ns)%proc)then
+        if(Tdomain%rank == Tdomain%sSource(ns)%proc)then
             nel = Tdomain%Ssource(ns)%elem
 
             !  vieille version:
