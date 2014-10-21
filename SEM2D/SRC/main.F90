@@ -222,8 +222,6 @@ subroutine  sem()
     if(info_capteur /= 0) then
         Tdomain%bCapteur = .FALSE.
         sortie_capteur = .FALSE.
-        sortie_capteur_vitesse = .FALSE.
-        sortie_capteur_depla = .FALSE.
         sortie_capteur_deformation = .FALSE.
     endif
 
