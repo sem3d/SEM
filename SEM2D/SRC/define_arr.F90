@@ -592,6 +592,13 @@ subroutine define_arrays(Tdomain)
         if(Tdomain%Specel(n)%Type_DG .EQ. GALERKIN_HDG_RP) &
             call compute_MatPen(Tdomain%Specel(n))
     enddo
+    ! Calcul des matrices de coefficients CA^-1 et ED^-1 pour HDG en semi-implicite
+    if (Tdomain%Specel(n)%Type_timeInteg .EQ. TIME_INTEG_NEWMARK_PMC) then
+        do n = 0, Tdomain%n_elem-1
+            call compute_CAinv(Tdomain%Specel(n))
+            call compute_EDinv(Tdomain%Specel(n))
+        enddo
+    endif
 
     ! Preparing and allocating vectors to be exchanged at each time-step
     do i_proc = 0, Tdomain%n_communications-1
