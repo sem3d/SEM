@@ -77,6 +77,7 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
         call system(trim(commande))
     endif
 
+    call MPI_Barrier (Tdomain%communicateur, ierr)
 
     open (61,file=prot_file,status="unknown",form="formatted")
     write(61,*) rtime,dtmin
