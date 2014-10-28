@@ -131,6 +131,7 @@ subroutine  sem()
     call START_SEM(Tdomain)
 
     if (rg == 0) call create_sem_output_directories()
+    call MPI_Barrier (Tdomain%communicateur, ierr)
 
     !lecture du fichier de donnee
     if (rg == 0) write (*,*) "Read input.spec"
