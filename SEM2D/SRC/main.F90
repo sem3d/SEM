@@ -18,9 +18,10 @@ program main
     character(Len=MAX_FILE_SIZE),parameter :: p_results = "./res"
     character(Len=MAX_FILE_SIZE),parameter :: p_data = "."
     character(Len=MAX_FILE_SIZE),parameter :: p_prot = "./prot"
+    character(Len=MAX_FILE_SIZE),parameter :: p_prop = "./prop"
 
 #ifndef COUPLAGE
-    call init_sem_path(p_param, p_traces, p_results, p_data, p_prot)
+    call init_sem_path(p_param, p_traces, p_results, p_data, p_prot, p_prop)
 #else
     call init_mka3d_path()
 #endif

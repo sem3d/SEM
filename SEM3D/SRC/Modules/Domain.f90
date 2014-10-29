@@ -1,6 +1,6 @@
 !>
 !!\file Domain.f90
-!!\brief Contient le définition du type domain
+!!\brief Contient le dï¿½finition du type domain
 !!
 !<
 
@@ -40,22 +40,22 @@ module sdomain
        ! En mode couplage : Rg du superviseur dans le communicateur global
        integer :: master_superviseur
 
-       type(time) :: TimeD
+       type(time)          :: TimeD
        type(logical_array) :: logicD
-       type(source), dimension (:), pointer :: sSource
-       type(element), dimension(:), pointer :: specel
-       type(face), dimension (:), pointer :: sFace
-       type(comm), dimension (:), pointer :: sComm
-       type(edge), dimension (:), pointer :: sEdge
-       type(vertex), dimension (:), pointer :: sVertex
+       type(planew)        :: sPlaneW
+       type(Neu_object)    :: Neumann
+       type(surf)          :: sSurf
+       type(bassin)        :: sBassin
+       type(SF_object)     :: SF
+       type(source)   , dimension (:), pointer :: sSource
+       type(element)  , dimension (:), pointer :: specel
+       type(face)     , dimension (:), pointer :: sFace
+       type(comm)     , dimension (:), pointer :: sComm
+       type(edge)     , dimension (:), pointer :: sEdge
+       type(vertex)   , dimension (:), pointer :: sVertex
        type(subdomain), dimension (:), pointer :: sSubDomain
-       type (planew) :: sPlaneW
-       type(Neu_object) :: Neumann
-       type (surf) :: sSurf
-       type (bassin) :: sBassin
-       type(SF_object) :: SF
 
-       logical :: any_PML, curve, any_FPML, aniso
+       logical :: any_PML, curve, any_FPML, aniso, any_Random
 
        integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers, n_proc
        integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls
@@ -77,6 +77,8 @@ module sdomain
        real :: earthchunk_delta_lon, earthchunk_delta_lat
 
        real :: MPML_coeff
+
+       !real, dimension(:, :), allocatable :: Mu, Lambda, Dens
 
     end type domain
 

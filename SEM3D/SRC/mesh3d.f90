@@ -283,11 +283,12 @@ subroutine read_mesh_file_h5(Tdomain, rg)
     use mpi
     use hdf5
     use sem_hdf5
+    use displayCarvalhol
     implicit none
     !
     type(domain), intent(inout) :: Tdomain
     integer, intent(in)         :: rg
-    integer :: i,j
+    integer :: i,j, mat
     logical :: neumann_log
     !
     integer(HID_T) :: fid, proc_id
@@ -308,19 +309,19 @@ subroutine read_mesh_file_h5(Tdomain, rg)
     endif
     !
     !-- Reading mesh properties
-    call read_attr_int(fid, "ndim", Tdomain%n_dime)
+    call read_attr_int (fid, "ndim", Tdomain%n_dime)
     call read_attr_bool(fid, "solid_fluid", Tdomain%logicD%solid_fluid)
     call read_attr_bool(fid, "all_fluid", Tdomain%logicD%all_fluid)
     call read_attr_bool(fid, "neumann_present", neumann_log)
     call read_attr_bool(fid, "neumann_present_loc", Tdomain%logicD%Neumann_local_present)
     call read_attr_bool(fid, "curve", Tdomain%curve)
     call read_attr_bool(fid, "solid_fluid_loc", Tdomain%logicD%SF_local_present)
-    call read_attr_int(fid, "n_processors", Tdomain%n_proc)
-    call read_attr_int(fid, "n_materials", Tdomain%n_mat)
-    call read_attr_int(fid, "n_elements",  Tdomain%n_elem)
-    call read_attr_int(fid, "n_faces",     Tdomain%n_face)
-    call read_attr_int(fid, "n_edges",     Tdomain%n_edge)
-    call read_attr_int(fid, "n_vertices",  Tdomain%n_vertex)
+    call read_attr_int (fid, "n_processors", Tdomain%n_proc)
+    call read_attr_int (fid, "n_materials", Tdomain%n_mat)
+    call read_attr_int (fid, "n_elements",  Tdomain%n_elem)
+    call read_attr_int (fid, "n_faces",     Tdomain%n_face)
+    call read_attr_int (fid, "n_edges",     Tdomain%n_edge)
+    call read_attr_int (fid, "n_vertices",  Tdomain%n_vertex)
     !
     if(Tdomain%n_dime /=3)   &
         stop "No general code for the time being: only 3D propagation"
@@ -331,14 +332,19 @@ subroutine read_mesh_file_h5(Tdomain, rg)
         write(*,*) rg,"neumann (mesh file)=",neumann_log
         stop "Introduction of Neumann B.C.: mesh and input files not in coincidence."
     endif
+
+    !Subdomains allocation
+    allocate(Tdomain%sSubdomain(0:Tdomain%n_mat-1))
+
     ! Global nodes' coordinates for each proc.
-    !
     call read_dataset(fid, "local_nodes", rtemp2)
     Tdomain%n_glob_nodes = size(rtemp2,2)
-    !
     allocate (Tdomain%Coord_nodes(0:Tdomain%n_dime-1,0:Tdomain%n_glob_nodes-1))
     Tdomain%Coord_nodes = rtemp2
     deallocate(rtemp2)
+
+    !call dispCarvalhol(transpose(Tdomain%Coord_nodes), "transpose(Tdomain%Coord_nodes)")
+
     ! Elements (material and solid or fluid and if fluid: Dirichlet boundary?)
     call read_dataset(fid, "material", itemp2)
     if (Tdomain%n_elem /= size(itemp2,2)) then
@@ -353,7 +359,21 @@ subroutine read_mesh_file_h5(Tdomain, rg)
         Tdomain%specel(i)%solid = itemp2(2,i+1) .ne. 0
         Tdomain%specel(i)%fluid_dirich = itemp2(3,i+1) .ne. 0
         Tdomain%specel(i)%OUTPUT = .true.
+        Tdomain%sSubdomain(itemp2(1,i+1))%nElem = 1 + Tdomain%sSubdomain(itemp2(1,i+1))%nElem !Counting number of elements by subdomain per proc
     enddo
+
+    !Building element list in each subdomain
+    do i=0,Tdomain%n_mat-1
+    	allocate (Tdomain%sSubdomain(i)%elemList(0:Tdomain%sSubdomain(i)%nElem-1))
+    	Tdomain%sSubdomain(i)%elemList(:) = -1 !-1 to detect errors
+    	Tdomain%sSubdomain(i)%nElem       = 0 !Using to count the elements in the next loop
+    enddo
+    do i=0,Tdomain%n_elem-1
+    	mat = Tdomain%specel(i)%mat_index
+    	Tdomain%sSubdomain(mat)%elemList(Tdomain%sSubdomain(mat)%nElem) = i
+    	Tdomain%sSubdomain(mat)%nElem = Tdomain%sSubdomain(mat)%nElem + 1
+    enddo
+
     deallocate(itemp2)
     ! Read elements definitions
     ! n_nodes : number of control nodes (8 or 27)
@@ -527,7 +547,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
             call read_dataset(proc_id, "faces", itemp)
             call read_dataset(proc_id, "faces_map", itempb)
             do j = 0,Tdomain%sComm(i)%nb_faces-1
-                Tdomain%sComm(i)%faces(j) = itemp(j+1)
+                Tdomain%sComm(i)%faces(j)        = itemp(j+1)
                 Tdomain%sComm(i)%orient_faces(j) = itempb(j+1)
             enddo
             deallocate(itemp, itempb)

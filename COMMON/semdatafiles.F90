@@ -23,6 +23,7 @@ module semdatafiles
     character(Len=MAX_FILE_SIZE) :: path_data
     character(Len=MAX_FILE_SIZE) :: path_prot
     character(Len=MAX_FILE_SIZE) :: path_logs
+    character(Len=MAX_FILE_SIZE) :: path_prop
 contains
 
     function pjoin(s1, s2)
@@ -47,12 +48,13 @@ contains
         path_logs = "./listings"
     end subroutine init_mka3d_path
 
-    subroutine init_sem_path(param, traces, results, data, prorep)
+    subroutine init_sem_path(param, traces, results, data, prorep, properties)
         character(Len=MAX_FILE_SIZE), intent(in) :: param
         character(Len=MAX_FILE_SIZE), intent(in) :: traces
         character(Len=MAX_FILE_SIZE), intent(in) :: results
         character(Len=MAX_FILE_SIZE), intent(in) :: data
         character(Len=MAX_FILE_SIZE), intent(in) :: prorep
+        character(Len=MAX_FILE_SIZE), intent(in) :: properties
 
         path_param = param
         path_traces = traces
@@ -60,6 +62,8 @@ contains
         path_data = data
         path_prot = prorep
         path_logs = "."
+        path_prop = properties
+
     end subroutine init_sem_path
 
     subroutine create_sem_output_directories()
@@ -72,6 +76,8 @@ contains
         if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_prot))
         ierr = sem_mkdir(trim(adjustl(path_logs)))
         if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_logs))
+        ierr = sem_mkdir(trim(adjustl(path_prop)))
+        if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_prop))
     end subroutine create_sem_output_directories
 
     subroutine semname_dir_capteurs(dirname)

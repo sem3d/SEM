@@ -11,23 +11,34 @@ module ssubdomains
 
     type Subdomain
 
-       logical :: Filtering, Px, Py, Pz, Left, Forward, Down
+        logical :: Filtering, Px, Py, Pz, Left, Forward, Down
 
-       integer :: NGLLx, NGLLy, NGLLz, wpml, npow
+        integer :: NGLLx, NGLLy, NGLLz, wpml, npow
 
-       !  modif mariotti fevrier 2007 cea
-       ! Qmu en plus
-       real :: Pspeed, Sspeed, Ddensity, Dt, Apow, freq, DLambda, DMu, Qmu, Q
-       real :: DKappa, Qpression
-       real, dimension (:), pointer :: GLLcx, GLLpolx, GLLwx
-       real, dimension (:,:), pointer :: hprimex, hTprimex
-       real, dimension (:), pointer :: GLLcy, GLLpoly, GLLwy
-       real, dimension (:,:), pointer :: hprimey, hTprimey
-       real, dimension (:), pointer :: GLLcz, GLLpolz, GLLwz
-       real, dimension (:,:), pointer :: hprimez, hTprimez
+        !  modif mariotti fevrier 2007 cea
+        ! Qmu en plus
+        real :: Pspeed, Sspeed, Ddensity, Dt, Apow, freq, DLambda, DMu, Qmu, Q
+        real :: DKappa, Qpression
+        real, dimension (:), pointer :: GLLcx, GLLpolx, GLLwx
+        real, dimension (:,:), pointer :: hprimex, hTprimex
+        real, dimension (:), pointer :: GLLcy, GLLpoly, GLLwy
+        real, dimension (:,:), pointer :: hprimey, hTprimey
+        real, dimension (:), pointer :: GLLcz, GLLpolz, GLLwz
+		real, dimension (:,:), pointer :: hprimez, hTprimez
 
-       character(len=1) :: material_type
-       integer :: material_definition
+        character(len=1) :: material_type
+        integer          :: material_definition
+        !Modification to accept random media
+		character(len = 15) :: corrMod
+        integer             :: nElem = 0 !number of elements in each subdomain (by proc) - mesh3d.f90(362)
+        integer            , dimension(:)   , allocatable :: elemList !List of elements in "Tdomain%specel(:)" that belong to this subdomain (by proc)
+		character(len = 30), dimension(:)   , allocatable :: margiFirst
+        real               , dimension(:)   , allocatable :: varProp
+        integer            , dimension(:)   , allocatable :: chosenSeed
+        logical            , dimension(:,:) , allocatable :: globCoordMask
+    	real               , dimension(:)   , allocatable :: corrL
+        real               , dimension(:)   , allocatable :: MinBound, MaxBound
+        real               , dimension(:, :), allocatable :: prop !Properties
 
     end type Subdomain
 
