@@ -274,33 +274,7 @@ subroutine coeffs_freesurf_abs(Tdomain,nface)
 
 end subroutine coeffs_freesurf_abs
 
-!>
-!! \brief coeff_freesurf extends the Mu, Lambda, mass, from
-!! the interior side of a face to its exterior side. Used for the faces where
-!! a "free surface" or an "absorbing" boundary condition is applied.
-!!  Used principaly for HDG.
-!! \param type (Domain), intent (INOUT) Tdomain
-!! \param integer, intent (IN) nface
-!<
-subroutine coeffs_freesurf_abs_HDG(Tdomain,nface)
-    use sdomain
-    implicit none
-    type (Domain), intent (INOUT) :: Tdomain
-    integer, intent (IN) :: nface
 
-    if (Tdomain%sface(nface)%Abs) then
-        Tdomain%sface(nface)%Mu_p     = Tdomain%sface(nface)%Mu_m
-        Tdomain%sface(nface)%Lambda_p = Tdomain%sface(nface)%Lambda_m
-        Tdomain%sface(nface)%Rho_p    = Tdomain%sface(nface)%Rho_m
-        call compute_InvMatPen(Tdomain%sFace(nface))
-    elseif(Tdomain%sface(nface)%freesurf) then
-        Tdomain%sface(nface)%Mu_p     = 0.
-        Tdomain%sface(nface)%Lambda_p = 0.
-        Tdomain%sface(nface)%Rho_p    = 0.
-        call compute_InvMatPen(Tdomain%sFace(nface))
-    endif
-
-end subroutine coeffs_freesurf_abs_HDG
 
 !! Local Variables:
 !! mode: f90

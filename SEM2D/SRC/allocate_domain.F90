@@ -212,9 +212,9 @@ subroutine allocate_domain (Tdomain)
      elseif (Tdomain%sFace(n)%type_Flux .EQ. FLUX_HDG ) then
          deallocate(Tdomain%sFace(n)%Veloc)
          allocate (Tdomain%sFace(n)%Veloc(0:ngll-1,0:1))
-         allocate (Tdomain%sFace(n)%invMatPen(0:ngll-1,0:2))
+         allocate (Tdomain%sFace(n)%Kinv (0:ngll-1,0:2))
          allocate (Tdomain%sFace(n)%Traction(0:ngll-1,0:1))
-         Tdomain%sFace(n)%invMatPen = 0
+         Tdomain%sFace(n)%Kinv = 0
          Tdomain%sFace(n)%Traction  = 0
          Tdomain%sFace(n)%Veloc = 0
      endif
@@ -357,6 +357,8 @@ subroutine allocate_domain (Tdomain)
         ngllx = Tdomain%specel(n)%ngllx
         ngllz = Tdomain%specel(n)%ngllz
         allocate (Tdomain%specel(n)%Strain0(0:ngllx-1,0:ngllz-1,0:2))
+        allocate (Tdomain%specel(n)%CAinv(0:2*(ngllx+ngllz)-1,0:1,0:2)
+        allocate (Tdomain%specel(n)%EDinv(0:2*(ngllx+ngllz)-1,0:1,0:2)
      enddo
      do n = 0, Tdomain%n_vertex-1
         i = Tdomain%sVertex(n)%Valence

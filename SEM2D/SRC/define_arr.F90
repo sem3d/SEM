@@ -575,7 +575,7 @@ subroutine define_arrays(Tdomain)
        if(Tdomain%sFace(nf)%type_Flux .EQ. FLUX_GODUNOV) then
            call coeffs_flux_godunov(Tdomain,nf)
        elseif(Tdomain%sFace(nf)%type_Flux .EQ. FLUX_HDG) then
-           call compute_invMatPen (Tdomain%sFace(nf))
+           call compute_Kinv (Tdomain%sFace(nf))
        endif
     enddo
     ! Prolongement par continuite des proprietes du milieu pour surface libre ou absorbante

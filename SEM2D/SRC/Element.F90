@@ -55,6 +55,7 @@ module selement
        ! HDG
        real, dimension(:,:), allocatable :: Normal_nodes
        real, dimension(:,:), allocatable :: MatPen, TracFace, Vhat
+       real, dimension(:,:,:), allocatable :: CAinv, EDinv
 
     end type element
 

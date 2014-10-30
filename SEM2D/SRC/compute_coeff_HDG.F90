@@ -8,6 +8,7 @@
 !<
 
 module scompute_coeff_HDG
+    use sdomain
     use selement
     use mpi
     use constants
@@ -77,6 +78,35 @@ contains
 
     ! ###########################################################
     !>
+    !! \brief coeff_freesurf extends the Mu, Lambda, mass, from
+    !! the interior side of a face to its exterior side. Used for the faces where
+    !! a "free surface" or an "absorbing" boundary condition is applied.
+    !!  Used principaly for HDG.
+    !! \param type (Domain), intent (INOUT) Tdomain
+    !! \param integer, intent (IN) nface
+    !<
+    subroutine coeffs_freesurf_abs_HDG(Tdomain,nface)
+        use sdomain
+        implicit none
+        type (Domain), intent (INOUT) :: Tdomain
+        integer, intent (IN) :: nface
+
+        if (Tdomain%sface(nface)%Abs) then
+            Tdomain%sface(nface)%Mu_p     = Tdomain%sface(nface)%Mu_m
+            Tdomain%sface(nface)%Lambda_p = Tdomain%sface(nface)%Lambda_m
+            Tdomain%sface(nface)%Rho_p    = Tdomain%sface(nface)%Rho_m
+            call compute_Kinv(Tdomain%sFace(nface))
+        elseif(Tdomain%sface(nface)%freesurf) then
+            Tdomain%sface(nface)%Mu_p     = 0.
+            Tdomain%sface(nface)%Lambda_p = 0.
+            Tdomain%sface(nface)%Rho_p    = 0.
+            call compute_Kinv(Tdomain%sFace(nface))
+        endif
+
+    end subroutine coeffs_freesurf_abs_HDG
+
+    ! ###########################################################
+    !>
     !! \brief This subroutine computes the local matrix C.A^-1 which
     !! will be used to build the system on Lagrange multiplicators K * Lambda = R
     !! Indeed C.A^-1 is usefull for computing both K and R.
@@ -84,11 +114,72 @@ contains
     !! It suitable for Hybridizable Discontinuous Galerkin elements only.
     !! \param type (Element), intent (INOUT) Elem
     !<
-    subroutine  compute_CAinv (Elem)
+    subroutine  compute_CAinv (Elem, Dt)
 
-        type (Element), intent (INOUT)   :: Elem
+        type (Element), intent (INOUT) :: Elem
+        real, intent(IN) :: Dt
+        integer :: imin, imax, ngx, ngz
+        ngx = Elem%ngllx ; ngz = Elem%ngllz
 
-        
+        Elem%CAinv(:,0,0) = Elem%Coeff_Integr_Faces(:) * Elem%Normal_Nodes(:,0)
+        Elem%CAinv(:,0,1) = Elem%Coeff_Integr_Faces(:) * Elem%Normal_Nodes(:,0)
+        Elem%CAinv(:,0,2) = Elem%Coeff_Integr_Faces(:) * Elem%Normal_Nodes(:,1)
+        Elem%CAinv(:,1,0) = Elem%Coeff_Integr_Faces(:) * Elem%Normal_Nodes(:,1)
+        Elem%CAinv(:,1,1) = Elem%Coeff_Integr_Faces(:) * Elem%Normal_Nodes(:,1)
+        Elem%CAinv(:,1,2) = Elem%Coeff_Integr_Faces(:) * Elem%Normal_Nodes(:,0)
+
+        call get_iminimax(Elem,0,imin,imax)
+        Elem%CAinv(imin:imax,0,0) = (Elem%Lambda(0:ngx-1,0) + 2*Elem%Mu(0:ngx-1,0)) &
+                                  * Dt / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,0,0)
+        Elem%CAinv(imin:imax,0,1) = (Elem%Lambda(0:ngx-1,0)) &
+                                  * Dt / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,0,1)
+        Elem%CAinv(imin:imax,0,2) = (Elem%Mu(0:ngx-1,0)) &
+                                  * Dt / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,0,2)
+        Elem%CAinv(imin:imax,1,0) = (Elem%Lambda(0:ngx-1,0)) &
+                                  * Dt / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,1,0)
+        Elem%CAinv(imin:imax,1,1) = (Elem%Lambda(0:ngx-1,0) + 2*Elem%Mu(0:ngx-1,0)) &
+                                  * Dt / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,1,1)
+        Elem%CAinv(imin:imax,1,2) = (Elem%Mu(0:ngx-1,0)) &
+                                  * Dt / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,1,2)
+        call get_iminimax(Elem,1,imin,imax)
+        Elem%CAinv(imin:imax,0,0) = (Elem%Lambda(ngx-1,0:ngz-1) + 2*Elem%Mu(ngx-1,0:ngz-1)) &
+                                  * Dt / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,0,0)
+        Elem%CAinv(imin:imax,0,1) = (Elem%Lambda(ngx-1,0:ngz-1)) &
+                                  * Dt / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,0,1)
+        Elem%CAinv(imin:imax,0,2) = (Elem%Mu(ngx-1,0:ngz-1)) &
+                                  * Dt / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,0,2)
+        Elem%CAinv(imin:imax,1,0) = (Elem%Lambda(ngx-1,0:ngz-1)) &
+                                  * Dt / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,1,0)
+        Elem%CAinv(imin:imax,1,1) = (Elem%Lambda(ngx-1,0:ngz-1) + 2*Elem%Mu(ngx-1,0:ngz-1)) &
+                                  * Dt / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,1,1)
+        Elem%CAinv(imin:imax,1,2) = (Elem%Mu(ngx-1,0:ngz-1)) &
+                                  * Dt / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,1,2)
+        call get_iminimax(Elem,2,imin,imax)
+        Elem%CAinv(imin:imax,0,0) = (Elem%Lambda(0:ngx-1,ngz-1) + 2*Elem%Mu(0:ngx-1,ngz-1)) &
+                                  * Dt / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,0,0)
+        Elem%CAinv(imin:imax,0,1) = (Elem%Lambda(0:ngx-1,ngz-1)) &
+                                  * Dt / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,0,1)
+        Elem%CAinv(imin:imax,0,2) = (Elem%Mu(0:ngx-1,ngz-1)) &
+                                  * Dt / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,0,2)
+        Elem%CAinv(imin:imax,1,0) = (Elem%Lambda(0:ngx-1,ngz-1)) &
+                                  * Dt / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,1,0)
+        Elem%CAinv(imin:imax,1,1) = (Elem%Lambda(0:ngx-1,ngz-1) + 2*Elem%Mu(0:ngx-1,ngz-1)) &
+                                  * Dt / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,1,1)
+        Elem%CAinv(imin:imax,1,2) = (Elem%Mu(0:ngx-1,ngz-1)) &
+                                  * Dt / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,1,2)
+        call get_iminimax(Elem,3,imin,imax)
+        Elem%CAinv(imin:imax,0,0) = (Elem%Lambda(0,0:ngz-1) + 2*Elem%Mu(0,0:ngz-1)) &
+                                  * Dt / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,0,0)
+        Elem%CAinv(imin:imax,0,1) = (Elem%Lambda(0,0:ngz-1)) &
+                                  * Dt / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,0,1)
+        Elem%CAinv(imin:imax,0,2) = (Elem%Mu(0,0:ngz-1)) &
+                                  * Dt / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,0,2)
+        Elem%CAinv(imin:imax,1,0) = (Elem%Lambda(0,0:ngz-1)) &
+                                  * Dt / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,1,0)
+        Elem%CAinv(imin:imax,1,1) = (Elem%Lambda(0,0:ngz-1) + 2*Elem%Mu(0,0:ngz-1)) &
+                                  * Dt / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,1,1)
+        Elem%CAinv(imin:imax,1,2) = (Elem%Mu(0,0:ngz-1)) &
+                                  * Dt / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,1,2)
 
     end subroutine compute_CAinv
 
@@ -101,14 +192,138 @@ contains
     !! It suitable for Hybridizable Discontinuous Galerkin elements only.
     !! \param type (Element), intent (INOUT) Elem
     !<
-    subroutine  compute_EDinv (Elem)
+    subroutine  compute_EDinv (Elem, Dt)
 
         type (Element), intent (INOUT)   :: Elem
+        real, intent(IN) :: Dt
+        integer :: imin, imax, ngx, ngz
+        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1,0:1) :: matD
+        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: det, tmp
 
-        
+        ngx = Elem%ngllx ; ngz = Elem%ngllz
+
+        ! Calcul de la matrice D :
+        ! Attention la matrice D ne devrait pas etre dedoublee aux noeuds des coin
+        ! Ici cependant elle est dedoublee car il faudra la multiplier avec E qui, elle,
+        ! est en effet dedoublee. Du coup les 2 entres de D pour un coin ont la meme valeur.
+
+        ! Termes provenant du terme tau=matpen
+        matD(:,0,0) = Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,0)
+        matD(:,1,1) = Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,1)
+        matD(:,0,1) = Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,2)
+        matD(:,1,0) = matD(:,0,1)
+        ! Couplage aux coins :
+        matD(0,:,:) = matD(0,:,:) + matD(2*ngx+ngz,:,:)
+        matD(2*ngx+ngz,:,:) = matD(0,:,:)
+        matD(ngx-1,:,:) = matD(ngx-1,:,:) + matD(ngx,:,:)
+        matD(ngx,:,:)   = matD(ngx-1,:,:)
+        matD(ngx+ngz-1,:,:)   = matD(ngx+ngz-1,:,:) + matD(2*ngx+ngz-1,:,:)
+        matD(2*ngx+ngz-1,:,:) = matD(ngx+ngz-1,:,:)
+        matD(ngx+ngz,:,:)       = matD(ngx+ngz,:,:) + matD(2*(ngx+ngz)-1,:,:)
+        matD(2*(ngx+ngz)-1,:,:) = matD(ngx+ngz,:,:)
+
+        ! Termes provenant de la matrice de masse :
+        ! Bottom face :
+        call get_iminimax(Elem,0,imin,imax)
+        matD(imin:imax,0,0) = matD(imin:imax,0,0) + 1./Dt*Elem%Acoeff(12,0:ngx-1,0)*Elem%Density(0:ngx-1,0)
+        matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(12,0:ngx-1,0)*Elem%Density(0:ngx-1,0)
+        ! Right face :
+        call get_iminimax(Elem,1,imin,imax)
+        matD(imin:imax,0,0) = matD(imin:imax,0,0) + 1./Dt*Elem%Acoeff(12,ngx-1,0:ngz-1)*Elem%Density(ngx-1,0:ngz-1)
+        matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(12,ngx-1,0:ngz-1)*Elem%Density(ngx-1,0:ngz-1)
+        ! Top Face :
+        call get_iminimax(Elem,2,imin,imax)
+        matD(imin:imax,0,0) = matD(imin:imax,0,0) + 1./Dt*Elem%Acoeff(12,0:ngx-1,ngz-1)*Elem%Density(0:ngx-1,ngz-1)
+        matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(12,0:ngx-1,ngz-1)*Elem%Density(0:ngx-1,ngz-1)
+        ! Left Face :
+        call get_iminimax(Elem,3,imin,imax)
+        matD(imin:imax,0,0) = matD(imin:imax,0,0) + 1./Dt*Elem%Acoeff(12,0,0:ngz-1)*Elem%Density(0,0:ngz-1)
+        matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(12,0,0:ngz-1)*Elem%Density(0,0:ngz-1)
+
+        ! Inversion de la matrice D sur tous les noeuds de bord :
+        det(:) = matD(:,0,0) * matD(:,1,1) - matD(:,1,0) * matD(:,1,0)
+        tmp(:) = matD(:,0,0)
+        matD(:,0,0) = 1./det(:)  * matD(:,1,1)
+        matD(:,1,1) = 1./det(:)  * tmp(:)
+        matD(:,0,1) = -1./det(:) * matD(:,0,1)
+        matD(:,1,0) = -1./det(:) * matD(:,1,0)
+
+        ! Calcul du produit matriciel E * D^-1 :
+        Elem%EDinv(:,0,0) = Elem%Coeff_Integr_Faces(:) * (Elem%MatPen(:,0)*matD(:,0,0)+Elem%MatPen(:,2)*matD(:,1,0))
+        Elem%EDinv(:,0,1) = Elem%Coeff_Integr_Faces(:) * (Elem%MatPen(:,0)*matD(:,0,1)+Elem%MatPen(:,2)*matD(:,1,1))
+        Elem%EDinv(:,1,0) = Elem%Coeff_Integr_Faces(:) * (Elem%MatPen(:,2)*matD(:,0,0)+Elem%MatPen(:,1)*matD(:,1,0))
+        Elem%EDinv(:,1,1) = Elem%Coeff_Integr_Faces(:) * (Elem%MatPen(:,2)*matD(:,0,1)+Elem%MatPen(:,1)*matD(:,1,1))
 
     end subroutine compute_EDinv
 
+    ! ###########################################################
+    !>
+    !! \brief This subroutine computes the matrix K on a given face
+    !! (for the system on Lagrange multiplicators K * Lambda = R)
+    !! on the interiors nodes of the face only.
+    !! This matrix is defined for each node lying on the element border.
+    !! It suitable for Hybridizable Discontinuous Galerkin elements only.
+    !! \param type (domain), intent (INOUT) Tdomain
+    !<
+    subroutine build_K_on_face(Tdomain, nelem)
+
+        implicit none
+        type (domain), intent (INOUT) :: Tdomain
+        integer, intent(IN) :: nelem
+        real, dimension(2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:1,0:1) :: CtAC, EtDE, G
+        real, dimension(2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:2) :: K
+        type(element), pointer :: Elem
+        integer :: nf, nface, i, imin, imax
+        logical :: coherency
+
+        Elem => Tdomain%specel(nelem)
+
+        ! Calcul du terme Ct*Ainv*C qui contribue a la matrice K
+        CtAC(:,0,0) = Elem%Coeff_integr_Faces(:) * (Elem%CAinv(:,0,0)*Elem%Normal_Nodes(:,0) &
+                                                   +Elem%CAinv(:,0,2)*Elem%Normal_Nodes(:,1))
+        CtAC(:,0,1) = Elem%Coeff_integr_Faces(:) * (Elem%CAinv(:,0,1)*Elem%Normal_Nodes(:,1) &
+                                                   +Elem%CAinv(:,0,2)*Elem%Normal_Nodes(:,0))
+        CtAC(:,1,0) = Elem%Coeff_integr_Faces(:) * (Elem%CAinv(:,1,0)*Elem%Normal_Nodes(:,0) &
+                                                   +Elem%CAinv(:,1,2)*Elem%Normal_Nodes(:,1))
+        CtAC(:,0,1) = Elem%Coeff_integr_Faces(:) * (Elem%CAinv(:,1,1)*Elem%Normal_Nodes(:,1) &
+                                                   +Elem%CAinv(:,1,2)*Elem%Normal_Nodes(:,0))
+
+        ! Calcul du terme Et*Dinv*E qui contribue a la matrice K
+        EtDE(:,0,0) = Elem%Coeff_integr_Faces(:) * (Elem%EDinv(:,0,0)*Elem%MatPen(:,0) &
+                                                   +Elem%EDinv(:,0,1)*Elem%MatPen(:,2))
+        EtDE(:,0,1) = Elem%Coeff_integr_Faces(:) * (Elem%EDinv(:,0,0)*Elem%MatPen(:,2) &
+                                                   +Elem%EDinv(:,0,1)*Elem%MatPen(:,1))
+        EtDE(:,1,0) = Elem%Coeff_integr_Faces(:) * (Elem%EDinv(:,1,0)*Elem%MatPen(:,0) &
+                                                   +Elem%EDinv(:,1,1)*Elem%MatPen(:,2))
+        EtDE(:,0,1) = Elem%Coeff_integr_Faces(:) * (Elem%EDinv(:,1,0)*Elem%MatPen(:,2) &
+                                                   +Elem%EDinv(:,1,1)*Elem%MatPen(:,1))
+
+        ! Calcul du terme G qui contribue e la matrice K
+        G(:,0,0) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,0)
+        G(:,0,1) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,2)
+        G(:,1,0) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,2)
+        G(:,1,1) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,1)
+
+        ! Addition de toutes les contributions pour la matrice K : (etant sym, elle n'a que 3 composantes)
+        K(:,0) = CtAC(:,0,0) - EtDE(:,0,0) + G(:,0,0)
+        K(:,1) = CtAC(:,0,1) - EtDE(:,0,1) + G(:,0,1)
+        K(:,2) = CtAC(:,1,1) - EtDE(:,1,1) + G(:,1,1)
+
+        ! Envoi des matrices sur les faces :
+        do nf=0,3
+            nface = Elem%Near_Face(nf)
+            call get_iminimax(Elem,nf,imin,imax)
+            coherency  = Tdomain%sFace(nface)%coherency
+            if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
+                Tdomain%sFace(nface)%Kinv(:,:) = Tdomain%sFace(nface)%Kinv(:,:) + K(imin:imax,:)
+            else
+                do i=0,Tdomain%sFace(nface)%ngll-1
+                    Tdomain%sFace(nface)%Kinv(i,:) = Tdomain%sFace(nface)%Kinv(i,:) + K(imax-i,:)
+                end do
+            endif
+        enddo
+
+    end subroutine build_K_on_face
 
 end module scompute_coeff_HDG
 !! Local Variables:
