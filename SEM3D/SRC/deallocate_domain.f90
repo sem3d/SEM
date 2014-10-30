@@ -25,8 +25,8 @@ subroutine deallocate_domain (Tdomain, rg)
 
     deallocate (Tdomain%GlobCoord)
     deallocate (Tdomain%Coord_Nodes)
-    deallocate (Tdomain%not_PML_List)
-    deallocate (Tdomain%subD_exist)
+    if(allocated(Tdomain%not_PML_List)) deallocate (Tdomain%not_PML_List)
+    if(allocated(Tdomain%subD_exist)) deallocate (Tdomain%subD_exist)
 
     do n = 0,Tdomain%n_elem-1
         deallocate (Tdomain%specel(n)%Density)
@@ -213,9 +213,10 @@ subroutine deallocate_domain (Tdomain, rg)
         deallocate (Tdomain%sSubdomain(n)%hprimex)
         deallocate (Tdomain%sSubdomain(n)%hTprimex)
 
-		call MPI_COMM_FREE (Tdomain%subDComm(n),code)
+		if(allocated(Tdomain%subDComm)) call MPI_COMM_FREE (Tdomain%subDComm(n),code)
     enddo
-    deallocate (Tdomain%subDComm)
+
+    if(allocated(Tdomain%subDComm)) deallocate (Tdomain%subDComm)
     deallocate (Tdomain%sSubdomain)
 
     do n = 0, Tdomain%n_source-1

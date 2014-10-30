@@ -255,15 +255,6 @@ contains
 		                all_HDF5nameList, len(HDF5nameList)*size(HDF5nameList), MPI_CHARACTER,     &
 		                 0              , effectComm       , code)
 
-
-
-!		call MPI_GATHER(nElemStr    , len(nElemStr), MPI_CHARACTER,     &
-!		                all_nElemStr, len(nElemStr), MPI_CHARACTER,     &
-!		                 0          , effectComm   , code)
-!		call MPI_GATHER(fileHDF5Name    , len(fileHDF5Name), MPI_CHARACTER,     &
-!		                all_fileHDF5Name, len(fileHDF5Name), MPI_CHARACTER,     &
-!		                 0          , effectComm           , code)
-
 		if(rang == 0) then
 			!Common parameters
 			Nmc         = nSamples

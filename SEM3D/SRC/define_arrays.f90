@@ -48,7 +48,7 @@ subroutine Define_Arrays(Tdomain, rg)
     real    :: xd1,xg1
     real    :: zrho,zrho1,zrho2,zCp,zCp1,zCp2,zCs,zCs1,zCs2
     real    :: Mu,Kappa,Lambda
-    character(len=15) :: procFileName = "Monoproc"
+    character(len=15) :: procFileName = "BiProc"
     character(len=50) :: h5folder  = "./prop/h5", &
     					 XMFfolder = "./prop", &
     					 h5_to_xmf = "./h5"
@@ -70,10 +70,6 @@ subroutine Define_Arrays(Tdomain, rg)
     integer         , dimension(:)   , allocatable :: nSubDPoints;
     real            , dimension(:)   , allocatable :: avgProp;
     character(len=110) , dimension(:), allocatable :: HDF5NameList
-!    real :: varMu, varLambda, varDens
-!    double precision, dimension(3)                 :: corrL
-!    character(len = 15)                            :: corrMod, margiFirst
-!    double precision, dimension(:, :), allocatable :: xPoints, randMu, randLambda, randDens;
 	!END Modif Random Field
 
 !!! Attribute elastic properties from material !!!
@@ -95,10 +91,11 @@ subroutine Define_Arrays(Tdomain, rg)
 	allocate(HDF5NameList(0:Tdomain%n_mat-1))
 	HDF5NameList(:) = "not_Used"
 
-	write(*,*) "Tdomain%subD_exist = ", Tdomain%subD_exist
+	!write(*,*) "Tdomain%n_mat      = ", Tdomain%n_mat
+	!write(*,*) "Tdomain%subD_exist = ", Tdomain%subD_exist
 
 	do mat = 0, Tdomain%n_mat - 1
-	    write(*,*) "Subdomain = ", mat
+	    write(*,*) "Rang", rg, "Subdomain = ", mat
 	    !call dispCarvalhol(Tdomain%sSubdomain(mat)%elemList(:), "Tdomain%sSubdomain(mat)%elemList(:)")
 	    write(*,*) "Tdomain%sSubdomain(mat)%nElem = ", Tdomain%sSubdomain(mat)%nElem
 
@@ -106,7 +103,7 @@ subroutine Define_Arrays(Tdomain, rg)
 		key = 1
 		if(Tdomain%subD_exist(mat)) key = 0
 		call MPI_COMM_SPLIT (Tdomain%communicateur, key, rg, Tdomain%subDComm(mat), code) !Creating subD communicator
-		write(*,*) "Tdomain%subDComm(", mat, ") = ", Tdomain%subDComm(mat)
+		!write(*,*) "Tdomain%subDComm(", mat, ") = ", Tdomain%subDComm(mat)
 
 	    !Initializing random subdomain specifics
 	    if(Tdomain%sSubDomain(mat)%material_type == "R" .and. &
@@ -122,8 +119,8 @@ subroutine Define_Arrays(Tdomain, rg)
 	            								Tdomain%GlobCoord(1,ipoint), &
 	            								Tdomain%GlobCoord(2,ipoint)]
 	        Tdomain%sSubDomain(mat)%MaxBound = Tdomain%sSubDomain(mat)%MinBound
-	    	write(*,*) "Tdomain%sSubDomain(", mat, ")%MinBound = ", Tdomain%sSubDomain(mat)%MinBound
-	    	write(*,*) "Tdomain%sSubDomain(", mat, ")%MaxBound = ", Tdomain%sSubDomain(mat)%MaxBound
+	    	!write(*,*) "Tdomain%sSubDomain(", mat, ")%MinBound = ", Tdomain%sSubDomain(mat)%MinBound
+	    	!write(*,*) "Tdomain%sSubDomain(", mat, ")%MaxBound = ", Tdomain%sSubDomain(mat)%MaxBound
 	    end if
 
 	    !Building Mask and Extremes
@@ -146,7 +143,7 @@ subroutine Define_Arrays(Tdomain, rg)
 	                    !Extremes
 	                    if(Tdomain%sSubDomain(mat)%material_type == "R" .and. &
 	                       Tdomain%subD_exist(mat)) then
-	                    	!write(*,*) "ipoint = ", ipoint
+	                    	!write(*,*) "Is R material and ipoint = ", ipoint
 	                        do coord = 0, 2
 	                            if(Tdomain%GlobCoord(coord,ipoint) < Tdomain%sSubDomain(mat)%MinBound(coord)) &
 	                                Tdomain%sSubDomain(mat)%MinBound(coord) = Tdomain%GlobCoord(coord,ipoint)
@@ -159,10 +156,10 @@ subroutine Define_Arrays(Tdomain, rg)
 	    	end do !END Loop over GLLs
 	    end do !END Loop over subdomain elements
 
-		if(Tdomain%sSubDomain(mat)%material_type == "R" .and. &
-	       Tdomain%subD_exist(mat)) then
+		!if(Tdomain%sSubDomain(mat)%material_type == "R" .and. &
+	    !   Tdomain%subD_exist(mat)) then
 
-	   	end if
+	   	!end if
 
 	    !General subdomain data
 	    nSubDPoints(mat) = count(Tdomain%sSubDomain(mat)%globCoordMask(0,:)) !Identifier of number of points to the XMF file
@@ -172,8 +169,8 @@ subroutine Define_Arrays(Tdomain, rg)
 	       Tdomain%subD_exist(mat)) then
 
 	            !Establishing the global extremes for each subdomain
-	            write(*,*)"..%MinBoundGlob Before   = ", Tdomain%sSubDomain(mat)%MinBound
-	            write(*,*)"..%MaxBoundGlob Before   = ", Tdomain%sSubDomain(mat)%MaxBound
+	            !write(*,*)"..%MinBoundGlob Before   = ", Tdomain%sSubDomain(mat)%MinBound
+	            !write(*,*)"..%MaxBoundGlob Before   = ", Tdomain%sSubDomain(mat)%MaxBound
 	            tempMin = Tdomain%sSubDomain(mat)%MinBound
 	            tempMax = Tdomain%sSubDomain(mat)%MaxBound
 
@@ -187,8 +184,8 @@ subroutine Define_Arrays(Tdomain, rg)
 	                size(Tdomain%sSubDomain(mat)%MaxBound), &
 	                MPI_DOUBLE_PRECISION, MPI_MAX,          &
 	                Tdomain%subDComm(mat) ,code)
-	            write(*,*)"..%MinBoundGlob After = ", Tdomain%sSubDomain(mat)%MinBound
-	            write(*,*)"..%MaxBoundGlob After = ", Tdomain%sSubDomain(mat)%MaxBound
+	            !write(*,*)"..%MinBoundGlob After = ", Tdomain%sSubDomain(mat)%MinBound
+	            !write(*,*)"..%MaxBoundGlob After = ", Tdomain%sSubDomain(mat)%MaxBound
 
 	            !Choosing the seed for properties field creation
 				rgSubD  = -1
@@ -199,29 +196,30 @@ subroutine Define_Arrays(Tdomain, rg)
 	            call MPI_BCAST (Tdomain%sSubdomain(mat)%chosenSeed,             &
 	                size(Tdomain%sSubdomain(mat)%chosenSeed),       &
 	                MPI_INTEGER, 0, Tdomain%subDComm(mat), code)
-	            write(*,*)"..%chosenSeed   = ", Tdomain%sSubdomain(mat)%chosenSeed
+	            !write(*,*)"..%chosenSeed   = ", Tdomain%sSubdomain(mat)%chosenSeed
 		end if
 	end do !END Loop over subdomains
 
-	!CONFIRMED
 
 	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	!Building and applying non-PMLs properties!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	write(*,*) ">>>>Building and applying non-PMLs properties"
+	write(*,*) "Tdomain%not_PML_List = ", Tdomain%not_PML_List
+	write(*,*) ".not.Tdomain%subD_exist = ", (.not.Tdomain%subD_exist)
+	write(*,*) "Tdomain%subD_exist = ", (Tdomain%subD_exist)
 	do mat = 0, Tdomain%n_mat - 1
 
 		if(Tdomain%not_PML_List(mat).and.(.not.Tdomain%subD_exist(mat))) then
 
 			allocate(xPoints (0:-1, 0:2))
-	        write(*,*) "Before HDF5 creation"
+	        write(*,*) "Before empty HDF5 creation"
 	        call write_ResultHDF5Unstruct_MPI(xPoints, Tdomain%sSubDomain(mat)%prop, trim(procFileName), &
 	            rg, trim(h5folder), &
 	            Tdomain%communicateur, ["_proc", "_subD"], [rg, mat], HDF5NameList(mat))
-	        write(*,*) "After HDF5 creation"
+	        write(*,*) "After emptyHDF5 creation"
 	        deallocate(xPoints)
-
 
 	    else if(Tdomain%not_PML_List(mat).and.Tdomain%subD_exist(mat)) then
 
@@ -306,11 +304,11 @@ subroutine Define_Arrays(Tdomain, rg)
 	        end if
 
 	        !Writes a file *.h5 for every proc/material
-	        write(*,*) "Before HDF5 creation"
+	        write(*,*) "Before full HDF5 creation"
 	        call write_ResultHDF5Unstruct_MPI(xPoints, Tdomain%sSubDomain(mat)%prop, trim(procFileName), &
 	            rg, trim(h5folder), &
 	            Tdomain%communicateur, ["_proc", "_subD"], [rg, mat], HDF5NameList(mat))
-	        write(*,*) "After HDF5 creation"
+	        write(*,*) "After full HDF5 creation"
 	        deallocate(xPoints)
 
 			!Applying properties on non-PML-----------------------------------------------
@@ -498,22 +496,22 @@ subroutine Define_Arrays(Tdomain, rg)
 		end if
 		!Non-PML condition
 	end do
-	!END Loop over subdomains (for Non-PMLs)
-
-	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	!Building and applying PMLs properties!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!	!END Loop over subdomains (for Non-PMLs)
+!
+!	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!	!Building and applying PMLs properties!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	write(*,*) ">>>>Building and applying PMLs properties"
 	do mat = 0, Tdomain%n_mat - 1
 
 		if((.not. Tdomain%not_PML_List(mat)).and.(.not.Tdomain%subD_exist(mat))) then
 			allocate(xPoints (0:-1, 0:2))
-	        write(*,*) "Before HDF5 creation"
+			write(*,*) "Before empty HDF5 creation"
 	        call write_ResultHDF5Unstruct_MPI(xPoints, Tdomain%sSubDomain(mat)%prop, trim(procFileName), &
 	            rg, trim(h5folder), &
 	            Tdomain%communicateur, ["_proc", "_subD"], [rg, mat], HDF5NameList(mat))
-	        write(*,*) "After HDF5 creation"
+	        write(*,*) "After emptyHDF5 creation"
 	        deallocate(xPoints)
 
 	    else if((.not. Tdomain%not_PML_List(mat)).and.Tdomain%subD_exist(mat)) then
@@ -771,21 +769,31 @@ subroutine Define_Arrays(Tdomain, rg)
     										  Tdomain%communicateur, ["_proc", "_subD"], [rg, mat], HDF5NameList(mat))
     		!write(*,*) "After HDF5 PML creation"
     		deallocate(xPoints)
-			end do !END Loop over subdomain elements
+			end do
+			!END Loop over subdomain elements
 			!END Calculate Average Property----------------------------------------
 		end if
 		!PML condition
 	end do !END Loop over subdomains (for PMLs)
 
 
-	!Printing for verification
-	do n = 0,Tdomain%n_elem-1
-		write(*,*) ""
-		write(*,*) "ELEM ", n
-		write(*,*) "Dens = ", Tdomain%specel(n)%Density
-		write(*,*) "Lamb = ", Tdomain%specel(n)%Lambda
-		write(*,*) "Mu   = ", Tdomain%specel(n)%Mu
-	end do
+!	!Printing for verification
+!	do n = 0,Tdomain%n_elem-1
+!		write(*,*) ""
+!		write(*,*) "ELEM ", n
+!		write(*,*) "Dens = ", Tdomain%specel(n)%Density
+!		write(*,*) "Lamb = ", Tdomain%specel(n)%Lambda
+!		write(*,*) "Mu   = ", Tdomain%specel(n)%Mu
+!	end do
+
+	!Writing XMF File
+	write(*,*) "Before XMF creation"
+	!write(*,*) "HDF5NameList in rang ", rg, " = ", HDF5NameList
+	call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, trim(string_join(procFileName,"-byProc-")), rg, trim(XMFfolder), &
+    					 Tdomain%communicateur, trim(h5_to_xmf), ["Density","Lambda","Mu"], byProc = .true.)
+	call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, trim(string_join(procFileName,"-bySubD-")), rg, trim(XMFfolder), &
+    					 Tdomain%communicateur, trim(h5_to_xmf), ["Density","Lambda","Mu"], byProc = .false.)
+  	if(rg == 0) write(*,*) "After XMF creation"
 
     !Deallocating
 	if (allocated(xPoints))  deallocate(xPoints)
@@ -801,15 +809,6 @@ subroutine Define_Arrays(Tdomain, rg)
 	    if (allocated(Tdomain%sSubDomain(mat)%globCoordMask)) deallocate(Tdomain%sSubDomain(mat)%globCoordMask)
 	    if (allocated(Tdomain%sSubdomain(mat)%elemList))      deallocate(Tdomain%sSubdomain(mat)%elemList)
 	end do
-
-	!Writing XMF File
-	!write(*,*) "Before XMF creation"
-	if(rg == 0) write(*,*) "HDF5NameList in rang 0 = ", HDF5NameList
-	if(rg == 0) call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, trim(string_join(procFileName,"-byProc-")), rg, trim(XMFfolder), &
-    					 Tdomain%communicateur, trim(h5_to_xmf), ["Density","Lambda","Mu"], byProc = .true.)
-	if(rg == 0) call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, trim(string_join(procFileName,"-bySubD-")), rg, trim(XMFfolder), &
-    					 Tdomain%communicateur, trim(h5_to_xmf), ["Density","Lambda","Mu"], byProc = .false.)
-  	!if(rg == 0) write(*,*) "After XMF creation"
 
 	if(allocated(HDF5NameList)) deallocate (HDF5NameList)
 	if(allocated(nSubDPoints))  deallocate (nSubDPoints)
