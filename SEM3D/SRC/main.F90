@@ -8,10 +8,11 @@ program drive_sem
     character(Len=MAX_FILE_SIZE),parameter :: p_data = "."
     character(Len=MAX_FILE_SIZE),parameter :: p_prot = "./prot"
     character(Len=MAX_FILE_SIZE),parameter :: p_prop = "./prop"
+    character(Len=MAX_FILE_SIZE),parameter :: p_prop_h5 = "./prop/h5"
 
     integer :: ierr, rg
 
-    call init_sem_path(p_param, p_traces, p_results, p_data, p_prot, p_prop)
+    call init_sem_path(p_param, p_traces, p_results, p_data, p_prot, p_prop, p_prop_h5)
 
     call sem(-1, MPI_COMM_WORLD, MPI_COMM_WORLD)
 

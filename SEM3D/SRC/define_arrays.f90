@@ -48,6 +48,10 @@ subroutine Define_Arrays(Tdomain, rg)
     real    :: xd1,xg1
     real    :: zrho,zrho1,zrho2,zCp,zCp1,zCp2,zCs,zCs1,zCs2
     real    :: Mu,Kappa,Lambda
+    character(len=15) :: procFileName = "Monoproc"
+    character(len=50) :: h5folder  = "./prop/h5", &
+    					 XMFfolder = "./prop", &
+    					 h5_to_xmf = "./h5"
     real, dimension(0:2)                :: tempMin, tempMax
     real, dimension(:,:,:), allocatable :: xix  ,xiy  ,xiz,         &
     									   etax ,etay ,etaz,        &
@@ -60,11 +64,10 @@ subroutine Define_Arrays(Tdomain, rg)
     integer :: gllMult, LimPML1, LimPML2, LimPML3
     integer :: code, error, coord, nProp
     logical :: random
-    integer :: RFpoint
+    integer :: RFpoint, assocMat, imn, key, rgSubD
     real    :: MeanParamMu, MeanParamLambda, MeanParamDens
     double precision, dimension(:, :), allocatable :: xPoints;
-    integer         , dimension(:)   , allocatable :: nSubDPoints
-    integer         , dimension(:)   , allocatable :: mapGlob2Sub
+    integer         , dimension(:)   , allocatable :: nSubDPoints;
     real            , dimension(:)   , allocatable :: avgProp;
     character(len=110) , dimension(:), allocatable :: HDF5NameList
 !    real :: varMu, varLambda, varDens
@@ -75,200 +78,243 @@ subroutine Define_Arrays(Tdomain, rg)
 
 !!! Attribute elastic properties from material !!!
 
-    !          print*,'   sur proc ',rg,' flag gradient ',Tdomain%logicD%grad_bassin
-
     if( Tdomain%earthchunk_isInit/=0) then
         call load_model(Tdomain%earthchunk_file, Tdomain%earthchunk_delta_lon, Tdomain%earthchunk_delta_lat)
     endif
 
 
-	allocate (nSubDPoints(0:Tdomain%n_mat - 1))
-	allocate (avgProp(0:2))
-	allocate (HDF5NameList(0:Tdomain%n_mat-1))
-	HDF5NameList = "not_Used"
+
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!General initialization!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	write(*,*) ">>>>General initialization"
+	nProp        =  3
+	allocate(avgProp(0:nProp-1)) !Obs: should have nProp declared before
+	allocate(nSubDPoints(0:Tdomain%n_mat - 1))
+	allocate(HDF5NameList(0:Tdomain%n_mat-1))
+	HDF5NameList(:) = "not_Used"
+
+	write(*,*) "Tdomain%subD_exist = ", Tdomain%subD_exist
 
 	do mat = 0, Tdomain%n_mat - 1
+	    write(*,*) "Subdomain = ", mat
+	    !call dispCarvalhol(Tdomain%sSubdomain(mat)%elemList(:), "Tdomain%sSubdomain(mat)%elemList(:)")
+	    write(*,*) "Tdomain%sSubdomain(mat)%nElem = ", Tdomain%sSubdomain(mat)%nElem
 
-    	ngllx = Tdomain%sSubDomain(mat)%NGLLx
-    	nglly = Tdomain%sSubDomain(mat)%NGLLy
-    	ngllz = Tdomain%sSubDomain(mat)%NGLLz
+		!Creating subdomain communicators
+		key = 1
+		if(Tdomain%subD_exist(mat)) key = 0
+		call MPI_COMM_SPLIT (Tdomain%communicateur, key, rg, Tdomain%subDComm(mat), code) !Creating subD communicator
+		write(*,*) "Tdomain%subDComm(", mat, ") = ", Tdomain%subDComm(mat)
 
-    	!Initialize Mask (for subdomain localization)
-    	allocate(Tdomain%sSubDomain(mat)%globCoordMask(0:size(Tdomain%GlobCoord,1)-1,  &
-    			         	 					       0:size(Tdomain%GlobCoord,2)-1))
+	    !Initializing random subdomain specifics
+	    if(Tdomain%sSubDomain(mat)%material_type == "R" .and. &
+	       Tdomain%subD_exist(mat)) then
 
-    	Tdomain%sSubDomain(mat)%globCoordMask(:,:) = .false.
+	        allocate(Tdomain%sSubDomain(mat)%MinBound(0:2))
+	        allocate(Tdomain%sSubDomain(mat)%MaxBound(0:2))
+	        !Initialize extremes (for comparison)
 
-		!Initializing random subdomain specifics
-    	if(Tdomain%sSubDomain(mat)%material_type == "R") then
+	        n = Tdomain%sSubDomain(mat)%elemList(0)
+	        ipoint = Tdomain%specel(n)%Iglobnum(0,0,0)
+	        Tdomain%sSubDomain(mat)%MinBound = [Tdomain%GlobCoord(0,ipoint), &
+	            								Tdomain%GlobCoord(1,ipoint), &
+	            								Tdomain%GlobCoord(2,ipoint)]
+	        Tdomain%sSubDomain(mat)%MaxBound = Tdomain%sSubDomain(mat)%MinBound
+	    	write(*,*) "Tdomain%sSubDomain(", mat, ")%MinBound = ", Tdomain%sSubDomain(mat)%MinBound
+	    	write(*,*) "Tdomain%sSubDomain(", mat, ")%MaxBound = ", Tdomain%sSubDomain(mat)%MaxBound
+	    end if
 
-			allocate(Tdomain%sSubDomain(mat)%MinBound(1:3))
-			allocate(Tdomain%sSubDomain(mat)%MaxBound(1:3))
-			!Initialize extremes (for comparison)
-			n = Tdomain%sSubDomain(mat)%elemList(0)
-			ipoint = Tdomain%specel(n)%Iglobnum(0,0,0)
-			Tdomain%sSubDomain(mat)%MinBound = [Tdomain%GlobCoord(0,ipoint), &
-												Tdomain%GlobCoord(1,ipoint), &
-												Tdomain%GlobCoord(2,ipoint)]
-			Tdomain%sSubDomain(mat)%MaxBound = Tdomain%sSubDomain(mat)%MinBound
-    	end if
+	    !Building Mask and Extremes
+	    allocate(Tdomain%sSubDomain(mat)%globCoordMask(0:size(Tdomain%GlobCoord,1)-1,  &
+	        	 0:size(Tdomain%GlobCoord,2)-1))
+	    Tdomain%sSubDomain(mat)%globCoordMask(:,:) = .false.
 
-		!Building Mask and Extremes
-		do m = 0, Tdomain%sSubDomain(mat)%nElem - 1
-    		n = Tdomain%sSubDomain(mat)%elemList(m)
-            do i = 0, ngllx-1
-                do j = 0, nglly-1
-                    do k = 0, ngllz-1
-                        ipoint = Tdomain%specel(n)%Iglobnum(i,j,k)
-                        !Mask
-                        Tdomain%sSubDomain(mat)%globCoordMask(:,ipoint) = .true.
-						!Extremes
-    					if(Tdomain%sSubDomain(mat)%material_type == "R") then
-                            do coord = 0, 2
-	                            if(Tdomain%GlobCoord(coord,ipoint) < Tdomain%sSubDomain(mat)%MinBound(coord+1)) &
-	                            	Tdomain%sSubDomain(mat)%MinBound(coord+1) = Tdomain%GlobCoord(coord,ipoint)
-	                            if(Tdomain%GlobCoord(coord,ipoint) > Tdomain%sSubDomain(mat)%MaxBound(coord+1)) &
-	                            	Tdomain%sSubDomain(mat)%MaxBound(coord+1) = Tdomain%GlobCoord(coord,ipoint)
-                            end do
-                        end if
-                    end do
-                end do
-            end do !END Loop over GLLs
-		end do !END Loop over subdomain elements
+	    ngllx = Tdomain%sSubDomain(mat)%NGLLx
+	    nglly = Tdomain%sSubDomain(mat)%NGLLy
+	    ngllz = Tdomain%sSubDomain(mat)%NGLLz
+	    do m = 0, Tdomain%sSubDomain(mat)%nElem - 1
+	        n = Tdomain%sSubDomain(mat)%elemList(m)
+	        do i = 0, ngllx-1
+	            do j = 0, nglly-1
+	                do k = 0, ngllz-1
+	                    ipoint = Tdomain%specel(n)%Iglobnum(i,j,k)
+	                    !Mask
+	                    Tdomain%sSubDomain(mat)%globCoordMask(:,ipoint) = .true.
+	                    !write(*,*) "ipoint = ", ipoint
+	                    !Extremes
+	                    if(Tdomain%sSubDomain(mat)%material_type == "R" .and. &
+	                       Tdomain%subD_exist(mat)) then
+	                    	!write(*,*) "ipoint = ", ipoint
+	                        do coord = 0, 2
+	                            if(Tdomain%GlobCoord(coord,ipoint) < Tdomain%sSubDomain(mat)%MinBound(coord)) &
+	                                Tdomain%sSubDomain(mat)%MinBound(coord) = Tdomain%GlobCoord(coord,ipoint)
+	                            if(Tdomain%GlobCoord(coord,ipoint) > Tdomain%sSubDomain(mat)%MaxBound(coord)) &
+	                                Tdomain%sSubDomain(mat)%MaxBound(coord) = Tdomain%GlobCoord(coord,ipoint)
+	                        end do
+	                    end if
+	                end do
+	            end do
+	    	end do !END Loop over GLLs
+	    end do !END Loop over subdomain elements
 
-		!Building properties files
+		if(Tdomain%sSubDomain(mat)%material_type == "R" .and. &
+	       Tdomain%subD_exist(mat)) then
 
-		write(*,*) "mat = ", mat
-		!call dispCarvalhol(Tdomain%sSubdomain(mat)%elemList(:), "Tdomain%sSubdomain(mat)%elemList(:)")
-    	write(*,*) "Tdomain%sSubdomain(mat)%nElem = ", Tdomain%sSubdomain(mat)%nElem
+	   	end if
 
-		!Allocating Properties and local Coordinates (xPoints)
-		nSubDPoints(mat) = count(Tdomain%sSubDomain(mat)%globCoordMask(0,:)) !Identifier of number of points to the XMF file
+	    !General subdomain data
+	    nSubDPoints(mat) = count(Tdomain%sSubDomain(mat)%globCoordMask(0,:)) !Identifier of number of points to the XMF file
 		allocate(Tdomain%sSubDomain(mat)%Prop(0:nSubDPoints(mat)-1, 0:2)) !Subdomain properties Matrix ((:,0) = Dens, (:,1) = Lambda, (:,2) = Mu) per proc
-		allocate(xPoints (0:nSubDPoints(mat)-1, 0:size(Tdomain%GlobCoord, 1)-1)) !Subdomain coordinates ((:,0) = X, (:,1) = Y, (:,2) = Z) per proc
 
-		xPoints = transpose(reshape(pack(Tdomain%GlobCoord(:,:), mask = Tdomain%sSubDomain(mat)%globCoordMask(:,:)), &
-				                           shape = [3, nSubDPoints(mat)]))
-		avgProp = [Tdomain%sSubDomain(mat)%Ddensity, &
-				   Tdomain%sSubDomain(mat)%DLambda,  &
-				   Tdomain%sSubDomain(mat)%DMu]
-		nProp =  3
+	    if(Tdomain%sSubdomain(mat)%material_type == "R" .and. &
+	       Tdomain%subD_exist(mat)) then
 
-		if(Tdomain%sSubdomain(mat)%material_type == "R") then
+	            !Establishing the global extremes for each subdomain
+	            write(*,*)"..%MinBoundGlob Before   = ", Tdomain%sSubDomain(mat)%MinBound
+	            write(*,*)"..%MaxBoundGlob Before   = ", Tdomain%sSubDomain(mat)%MaxBound
+	            tempMin = Tdomain%sSubDomain(mat)%MinBound
+	            tempMax = Tdomain%sSubDomain(mat)%MaxBound
 
-			!Establishing the global extremes for each subdomain
-			!write(*,*)"..%MinBound   = ", Tdomain%sSubDomain(mat)%MinBound
-			!write(*,*)"..%MaxBound   = ", Tdomain%sSubDomain(mat)%MaxBound
-			tempMin = Tdomain%sSubDomain(mat)%MinBound
-			tempMax = Tdomain%sSubDomain(mat)%MaxBound
+	            call MPI_ALLREDUCE(tempMin,                                &
+	                Tdomain%sSubDomain(mat)%MinBound,       &
+	                size(Tdomain%sSubDomain(mat)%MinBound), &
+	                MPI_DOUBLE_PRECISION, MPI_MIN,          &
+	                Tdomain%subDComm(mat) ,code)
+	            call MPI_ALLREDUCE(tempMax,                                &
+	                Tdomain%sSubDomain(mat)%MaxBound,       &
+	                size(Tdomain%sSubDomain(mat)%MaxBound), &
+	                MPI_DOUBLE_PRECISION, MPI_MAX,          &
+	                Tdomain%subDComm(mat) ,code)
+	            write(*,*)"..%MinBoundGlob After = ", Tdomain%sSubDomain(mat)%MinBound
+	            write(*,*)"..%MaxBoundGlob After = ", Tdomain%sSubDomain(mat)%MaxBound
 
-			call MPI_ALLREDUCE(tempMin,                                &
-							   Tdomain%sSubDomain(mat)%MinBound,       &
-							   size(Tdomain%sSubDomain(mat)%MinBound), &
-							   MPI_DOUBLE_PRECISION, MPI_MIN,          &
-							   Tdomain%communicateur ,code)
-			call MPI_ALLREDUCE(tempMax,                                &
-							   Tdomain%sSubDomain(mat)%MaxBound,       &
-							   size(Tdomain%sSubDomain(mat)%MaxBound), &
-							   MPI_DOUBLE_PRECISION, MPI_MAX,          &
-							   Tdomain%communicateur ,code)
-			!write(*,*)"..%MinBoundGlob   = ", Tdomain%sSubDomain(mat)%MinBound
-			!write(*,*)"..%MaxBoundGlob   = ", Tdomain%sSubDomain(mat)%MaxBound
-
-			!Choosing the seed for properties field creation
-			call random_seed(size = n)
-          	allocate(Tdomain%sSubdomain(mat)%chosenSeed(n))
-			if(rg == 0) call calculate_random_seed(Tdomain%sSubdomain(mat)%chosenSeed)
-			call MPI_BCAST (Tdomain%sSubdomain(mat)%chosenSeed,             &
-					  	  	size(Tdomain%sSubdomain(mat)%chosenSeed),       &
-							MPI_INTEGER, 0, Tdomain%communicateur, code)
-
-
-			!Creating the random field (Prop: (:,0) = Dens, (:,1) = Lambda, (:,2) = Mu)
-			if(rg == 0) write(*,*) "CREATING STANDARD GAUSSIAN FIELD"
-			if(rg == 0) write(*,*) "corrL                = ", Tdomain%sSubDomain(mat)%corrL
-			if(rg == 0) write(*,*) "corrMod              = ", Tdomain%sSubDomain(mat)%corrMod
-			if(rg == 0) write(*,*) "Lambda - prop(0:10, 0)  = ", Tdomain%sSubDomain(mat)%prop(0:10, 0)
-			if(rg == 0) write(*,*) "chosenSeed           = ", Tdomain%sSubDomain(mat)%chosenSeed
-			if(rg == 0) write(*,*) "MinBound             = ", Tdomain%sSubDomain(mat)%MinBound
-			if(rg == 0) write(*,*) "MaxBound             = ", Tdomain%sSubDomain(mat)%MaxBound
-
-			call createStandardGaussianFieldUnstruct (xPoints(:, :),                      &
-			    									  Tdomain%sSubDomain(mat)%corrL,      &
-			    									  Tdomain%sSubDomain(mat)%corrMod,    &
-			    									  nProp,                              &
-			    									  Tdomain%sSubDomain(mat)%Prop(:, 0:nProp-1), &
-			    									  Tdomain%sSubDomain(mat)%chosenSeed, &
-			    									  Tdomain%sSubDomain(mat)%MinBound,   &
-			    									  Tdomain%sSubDomain(mat)%MaxBound,   &
-			    									  Tdomain%communicateur)
-
-			!Transfoming Stantard Gaussian Field
-		    if(rg == 0) write(*,*) "TRANFORMING STANDARD GAUSSIAN FIELD"
-		    i = 0
-		    if(rg == 0) write(*,*) "Dens------------ "
-		    if(rg == 0) write(*,*) "margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
-		    if(rg == 0) write(*,*) "average      = ", avgProp(i)
-		    if(rg == 0) write(*,*) "variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
-		    i = 1
-		    if(rg == 0) write(*,*) "Lambda----------- "
-		    if(rg == 0) write(*,*) "margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
-		    if(rg == 0) write(*,*) "average      = ", avgProp(i)
-		    if(rg == 0) write(*,*) "variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
-		    i = 2
-		    if(rg == 0) write(*,*) "Mu--------------- "
-		    if(rg == 0) write(*,*) "margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
-		    if(rg == 0) write(*,*) "average      = ", avgProp(i)
-		    if(rg == 0) write(*,*) "variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
-
-			do i = 0, nProp - 1
-				if(Tdomain%sSubDomain(mat)%varProp(i) > 0) then
-					call multiVariateTransformation (Tdomain%sSubDomain(mat)%margiFirst(i), &
-												 	 avgProp(i),                            &
-												 	 Tdomain%sSubDomain(mat)%varProp(i),    &
-												 	 Tdomain%sSubDomain(mat)%prop(:, i:i))
-				else
-					Tdomain%sSubDomain(mat)%prop(:, i) = avgProp(i)
-				end if
-			end do
-
-			if(rg == 0) call dispCarvalhol(Tdomain%sSubDomain(mat)%prop(0:20,0), "RandDens"  , "F30.5")
-			if(rg == 0) call dispCarvalhol(Tdomain%sSubDomain(mat)%prop(0:20,1), "RandLambda", "F30.5")
-			if(rg == 0) call dispCarvalhol(Tdomain%sSubDomain(mat)%prop(0:20,2), "RandMu"    , "F30.5")
-
-		else !Not random material
-			do i = 0, nProp - 1
-				Tdomain%sSubDomain(mat)%prop(:,i) = avgProp(i)
-			end do
+	            !Choosing the seed for properties field creation
+				rgSubD  = -1
+	            call random_seed(size = n)
+	            allocate(Tdomain%sSubdomain(mat)%chosenSeed(n))
+				call MPI_COMM_RANK  (Tdomain%subDComm(mat) ,rgSubD, code)
+	            if(rgSubD == 0) call calculate_random_seed(Tdomain%sSubdomain(mat)%chosenSeed)
+	            call MPI_BCAST (Tdomain%sSubdomain(mat)%chosenSeed,             &
+	                size(Tdomain%sSubdomain(mat)%chosenSeed),       &
+	                MPI_INTEGER, 0, Tdomain%subDComm(mat), code)
+	            write(*,*)"..%chosenSeed   = ", Tdomain%sSubdomain(mat)%chosenSeed
 		end if
+	end do !END Loop over subdomains
 
-		!Writes a file *.h5 for every proc/material
-		!write(*,*) "Before HDF5 creation"
-		call write_ResultHDF5Unstruct_MPI(xPoints, Tdomain%sSubDomain(mat)%prop, "MonoProc", &
-										  rg, "./prop", &
-    									  Tdomain%communicateur, ["_proc", "_subD"], [rg, mat], HDF5NameList(mat))
-    	write(*,*) "After HDF5 creation"
-    	deallocate(xPoints)
+	!CONFIRMED
 
-	end do !END Loop over subdomains (mat)
-
-	!Writing XMF File
-	!write(*,*) "Before XMF creation"
-	if(rg == 0) write(*,*) "HDF5NameList in rang 0 = ", HDF5NameList
-	call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, "MonoProc-byProc-", rg, "./prop", &
-    					 Tdomain%communicateur, ".", ["Density","Lambda","Mu"], byProc = .true.)
-	call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, "MonoProc-bySubD-", rg, "./prop", &
-    					 Tdomain%communicateur, ".", ["Density","Lambda","Mu"], byProc = .false.)
-  	write(*,*) "After XMF creation"
-	if(allocated(HDF5NameList)) deallocate (HDF5NameList)
-	if(allocated(nSubDPoints))  deallocate (nSubDPoints)
-	if(allocated(avgProp))      deallocate(avgProp)
-	!write(*,*) "After deallocation"
-
-	!Applying properties on non-PML
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!Building and applying non-PMLs properties!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	write(*,*) ">>>>Building and applying non-PMLs properties"
 	do mat = 0, Tdomain%n_mat - 1
-		if(Tdomain%sSubDomain(mat)%material_type /= "P") then
 
+		if(Tdomain%not_PML_List(mat).and.(.not.Tdomain%subD_exist(mat))) then
+
+			allocate(xPoints (0:-1, 0:2))
+	        write(*,*) "Before HDF5 creation"
+	        call write_ResultHDF5Unstruct_MPI(xPoints, Tdomain%sSubDomain(mat)%prop, trim(procFileName), &
+	            rg, trim(h5folder), &
+	            Tdomain%communicateur, ["_proc", "_subD"], [rg, mat], HDF5NameList(mat))
+	        write(*,*) "After HDF5 creation"
+	        deallocate(xPoints)
+
+
+	    else if(Tdomain%not_PML_List(mat).and.Tdomain%subD_exist(mat)) then
+
+			!Allocating Local Coordinates (xPoints)
+			write(*,*) ">>>>Allocating Local Coordinates (xPoints)"
+	        allocate(xPoints (0:nSubDPoints(mat)-1, 0:size(Tdomain%GlobCoord, 1)-1)) !Subdomain coordinates ((:,0) = X, (:,1) = Y, (:,2) = Z) per proc
+	        xPoints = transpose(reshape(pack(Tdomain%GlobCoord(:,:), mask = Tdomain%sSubDomain(mat)%globCoordMask(:,:)), &
+	            						shape = [3, nSubDPoints(mat)]))
+	        avgProp = [Tdomain%sSubDomain(mat)%Ddensity, &
+	            	   Tdomain%sSubDomain(mat)%DLambda,  &
+	            	   Tdomain%sSubDomain(mat)%DMu]
+
+	        if(Tdomain%sSubdomain(mat)%material_type == "R") then
+				write(*,*) "mat ", mat, " is a random material"
+	            !Creating the random field (Prop: (:,0) = Dens, (:,1) = Lambda, (:,2) = Mu)
+	            if(rg == 0) write(*,*) "CREATING STANDARD GAUSSIAN FIELD"
+	            if(rg == 0) write(*,*) "corrL                = ", Tdomain%sSubDomain(mat)%corrL
+	            if(rg == 0) write(*,*) "corrMod              = ", Tdomain%sSubDomain(mat)%corrMod
+	            if(rg == 0) write(*,*) "Nmc (nProp)          = ", nProp
+	            if(rg == 0) write(*,*) "chosenSeed           = ", Tdomain%sSubDomain(mat)%chosenSeed
+	            if(rg == 0) write(*,*) "MinBound             = ", Tdomain%sSubDomain(mat)%MinBound
+	            if(rg == 0) write(*,*) "MaxBound             = ", Tdomain%sSubDomain(mat)%MaxBound
+	            if(rg == 0) write(*,*) "allocated(xPoints)   = ", allocated(xPoints)
+	            if(rg == 0) write(*,*) "allocated(Tdomain%sSubDomain(mat)%Prop)   = ", allocated(Tdomain%sSubDomain(mat)%Prop)
+
+	            call createStandardGaussianFieldUnstruct (xPoints(:, :),                      &
+	                Tdomain%sSubDomain(mat)%corrL,      &
+	                Tdomain%sSubDomain(mat)%corrMod,    &
+	                nProp,                              &
+	                Tdomain%sSubDomain(mat)%Prop(:, 0:nProp-1), &
+	                Tdomain%sSubDomain(mat)%chosenSeed, &
+	                Tdomain%sSubDomain(mat)%MinBound,   &
+	                Tdomain%sSubDomain(mat)%MaxBound,   &
+	                Tdomain%communicateur)
+
+	            !Transfoming Stantard Gaussian Field
+	            if(rg == 0) write(*,*) "TRANFORMING STANDARD GAUSSIAN FIELD"
+	            i = 0
+	            if(rg == 0) write(*,*) "Dens------------ "
+	            if(rg == 0) write(*,*) "margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
+	            if(rg == 0) write(*,*) "average      = ", avgProp(i)
+	            if(rg == 0) write(*,*) "variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
+	            i = 1
+	            if(rg == 0) write(*,*) "Lambda----------- "
+	            if(rg == 0) write(*,*) "margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
+	            if(rg == 0) write(*,*) "average      = ", avgProp(i)
+	            if(rg == 0) write(*,*) "variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
+	            i = 2
+	            if(rg == 0) write(*,*) "Mu--------------- "
+	            if(rg == 0) write(*,*) "margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
+	            if(rg == 0) write(*,*) "average      = ", avgProp(i)
+	            if(rg == 0) write(*,*) "variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
+
+
+
+	            do i = 0, nProp - 1
+	            	!write(*,*) ">>> Applying variation on prop ", i
+	            	!write(*,*) ">>> allocated(avgProp) ", allocated(avgProp)
+	            	!write(*,*) ">>> allocated(Tdomain%sSubDomain(mat)%varProp) ", allocated(Tdomain%sSubDomain(mat)%varProp)
+	            	!write(*,*) ">>> allocated(Tdomain%sSubDomain(mat)%Prop) ", allocated(Tdomain%sSubDomain(mat)%Prop)
+	            	!write(*,*) ">>> allocated(Tdomain%sSubDomain(mat)%margiFirst) ", allocated(Tdomain%sSubDomain(mat)%margiFirst)
+	                if(Tdomain%sSubDomain(mat)%varProp(i) > 0) then
+	                    call multiVariateTransformation (Tdomain%sSubDomain(mat)%margiFirst(i), &
+	                        avgProp(i),                            &
+	                        Tdomain%sSubDomain(mat)%varProp(i),    &
+	                        Tdomain%sSubDomain(mat)%Prop(:, i:i))
+	                else
+	                    Tdomain%sSubDomain(mat)%prop(:, i) = avgProp(i)
+	                end if
+	            end do
+	            write(*,*) ">>> END Applying variation on properties"
+
+	            !if(rg == 0) call dispCarvalhol(Tdomain%sSubDomain(mat)%prop(0:10,0), "RandDens"  , "F30.5")
+	            !if(rg == 0) call dispCarvalhol(Tdomain%sSubDomain(mat)%prop(0:10,1), "RandLambda", "F30.5")
+	            !if(rg == 0) call dispCarvalhol(Tdomain%sSubDomain(mat)%prop(0:10,2), "RandMu"    , "F30.5")
+
+	        else !Not random materia or PML
+	        	write(*,*) "mat ", mat, " is another non-PML material"
+	            do i = 0, nProp - 1
+	                Tdomain%sSubDomain(mat)%prop(:,i) = avgProp(i)
+	            end do
+	        end if
+
+	        !Writes a file *.h5 for every proc/material
+	        write(*,*) "Before HDF5 creation"
+	        call write_ResultHDF5Unstruct_MPI(xPoints, Tdomain%sSubDomain(mat)%prop, trim(procFileName), &
+	            rg, trim(h5folder), &
+	            Tdomain%communicateur, ["_proc", "_subD"], [rg, mat], HDF5NameList(mat))
+	        write(*,*) "After HDF5 creation"
+	        deallocate(xPoints)
+
+			!Applying properties on non-PML-----------------------------------------------
+			write(*,*) "Applying properties on non-PML"
     		ngllx = Tdomain%sSubDomain(mat)%NGLLx
     		nglly = Tdomain%sSubDomain(mat)%NGLLy
     		ngllz = Tdomain%sSubDomain(mat)%NGLLz
@@ -277,12 +323,7 @@ subroutine Define_Arrays(Tdomain, rg)
 			do m = 0, Tdomain%sSubDomain(mat)%nElem - 1
 	    		n = Tdomain%sSubDomain(mat)%elemList(m)
 
-
-	        !        il faut avoir passe avant de courant.f90 pour avoir le bon pas de temps
-	        !          print*," valeur du pas de temps ",Tdomain%sSubdomain(mat)%Dt
-
 	        !    integration de la prise en compte du gradient de proprietes
-
 				select case( Tdomain%sSubDomain(mat)%material_definition)
 		            case( MATERIAL_CONSTANT )
 		                !    on copie toujours le materiau de base
@@ -429,59 +470,158 @@ subroutine Define_Arrays(Tdomain, rg)
 		                endif
 
 		            case( MATERIAL_RANDOM )
+		            	write(*,*) "Material Random"
 		                Tdomain%specel(n)%Kappa   = Tdomain%sSubDomain(mat)%DKappa
-		                Tdomain%specel(n)%Density = Tdomain%sSubDomain(mat)%Ddensity !Only for testing
-		                Tdomain%specel(n)%Lambda  = Tdomain%sSubDomain(mat)%DLambda !Only for testing
-		                Tdomain%specel(n)%Mu      = Tdomain%sSubDomain(mat)%DMu !Only for Testing
+		                !Tdomain%specel(n)%Density = Tdomain%sSubDomain(mat)%Ddensity !Only for testing
+		                !Tdomain%specel(n)%Lambda  = Tdomain%sSubDomain(mat)%DLambda !Only for testing
+		                !Tdomain%specel(n)%Mu      = Tdomain%sSubDomain(mat)%DMu !Only for Testing
 
-
-		                !Aplying the calculated field to the Matrix
-		                !if (.not.Tdomain%specel(n)%PML) then
-		!                    !write(*,*) "Element ", n, "RAND"
-		!                    !Aplying the random field to non-PMLs
 		                do i = 0, ngllx-1
 		                    do j = 0, nglly-1
 		                        do k = 0, ngllz-1
 
 		                        	ipoint  = Tdomain%specel(n)%Iglobnum(i,j,k)
-		                        	RFpoint = count(Tdomain%sSubDomain(mat)%globCoordMask(0,0:ipoint) - 1
+		                        	write(*,*) "ipoint = ", ipoint
+		                        	RFpoint = count(Tdomain%sSubDomain(mat)%globCoordMask(0,0:ipoint)) - 1
+		                        	write(*,*) "RFpoint = ", RFpoint
+		                        	write(*,*) "size(Tdomain%sSubDomain(mat)%prop) = ", size(Tdomain%sSubDomain(mat)%prop)
 	                                Tdomain%specel(n)%Density(i,j,k) = Tdomain%sSubDomain(mat)%prop(RFpoint, 0)
 	                                Tdomain%specel(n)%Lambda(i,j,k)  = Tdomain%sSubDomain(mat)%prop(RFpoint, 1)
 	                                Tdomain%specel(n)%Mu(i,j,k)      = Tdomain%sSubDomain(mat)%prop(RFpoint, 2)
 		                        end do
 		                    end do
 		                end do
-				end select !END select by "Tdomain%sSubDomain(mat)%material_definition"
-			end do !END Loop over subdomain elements
-		end if !Non PML condition
-	end do !END Loop over subdomains
+				end select
+				!END select by "Tdomain%sSubDomain(mat)%material_definition"
+			end do
+			!END Loop over subdomain elements
+		end if
+		!Non-PML condition
+	end do
+	!END Loop over subdomains (for Non-PMLs)
 
-	!Aplying Properties on PMLS
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!Building and applying PMLs properties!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	write(*,*) ">>>>Building and applying PMLs properties"
 	do mat = 0, Tdomain%n_mat - 1
 
-		if(Tdomain%sSubDomain(mat)%material_type == "P") then
+		if((.not. Tdomain%not_PML_List(mat)).and.(.not.Tdomain%subD_exist(mat))) then
+			allocate(xPoints (0:-1, 0:2))
+	        write(*,*) "Before HDF5 creation"
+	        call write_ResultHDF5Unstruct_MPI(xPoints, Tdomain%sSubDomain(mat)%prop, trim(procFileName), &
+	            rg, trim(h5folder), &
+	            Tdomain%communicateur, ["_proc", "_subD"], [rg, mat], HDF5NameList(mat))
+	        write(*,*) "After HDF5 creation"
+	        deallocate(xPoints)
+
+	    else if((.not. Tdomain%not_PML_List(mat)).and.Tdomain%subD_exist(mat)) then
 	    	ngllx = Tdomain%sSubDomain(mat)%NGLLx
 	    	nglly = Tdomain%sSubDomain(mat)%NGLLy
 	    	ngllz = Tdomain%sSubDomain(mat)%NGLLz
 	    	Tdomain%sSubDomain(mat)%material_definition = MATERIAL_RANDOM !Tests
 
+	        !On the lower bound initialization
+	        LimPML1         = 0
+	        LimPML2         = 0
+	        LimPML3         = 0
+			!To the upper bound transformation
+	        if (Tdomain%sSubDomain(mat)%Left)    LimPML1 = ngllx-1
+	        if (Tdomain%sSubDomain(mat)%Forward) LimPML2 = nglly-1
+	        if (Tdomain%sSubDomain(mat)%Down)    LimPML3 = ngllz-1
+
+	    	!START Find associated material----------------------------------------
+	    	!Interne GLL points
+	    	imx = (ngllx-1)/2
+		    imy = (nglly-1)/2
+		    imz = (ngllz-1)/2
+
+			!Face X oriented
+			if  (     Tdomain%sSubDomain(mat)%Px .and. &
+    		 		.not.Tdomain%sSubDomain(mat)%Py .and. &
+    				.not.Tdomain%sSubDomain(mat)%Pz) then
+    				imx = LimPML1
+			!Face Y oriented
+            elseif (.not.Tdomain%sSubDomain(mat)%Px .and. &
+                         Tdomain%sSubDomain(mat)%Py .and. &
+                    .not.Tdomain%sSubDomain(mat)%Pz) then
+                    imy = LimPML2
+            !Face Z oriented
+            elseif (.not.Tdomain%sSubDomain(mat)%Px .and. &
+                    .not.Tdomain%sSubDomain(mat)%Py .and. &
+                         Tdomain%sSubDomain(mat)%Pz) then
+                    imz = LimPML3
+
+            !Line in XY
+            elseif (     Tdomain%sSubDomain(mat)%Px  .and. &
+                   (     Tdomain%sSubDomain(mat)%Py) .and. &
+                   (.not.Tdomain%sSubDomain(mat)%Pz)) then
+					imx = LimPML1
+					imy = LimPML2
+
+            !Line in YZ
+            elseif (.not.Tdomain%sSubDomain(mat)%Px  .and. &
+                   (     Tdomain%sSubDomain(mat)%Py) .and. &
+                   (     Tdomain%sSubDomain(mat)%Pz)) then
+					imy = LimPML2
+					imz = LimPML3
+            !Line in ZX
+            elseif (     Tdomain%sSubDomain(mat)%Px  .and. &
+                   (.not.Tdomain%sSubDomain(mat)%Py) .and. &
+                   (     Tdomain%sSubDomain(mat)%Pz)) then
+                   imz = LimPML3
+                   imx = LimPML1
+
+            !Point
+            elseif (  Tdomain%sSubDomain(mat)%Px  .and. &
+                   (  Tdomain%sSubDomain(mat)%Py) .and. &
+                   (  Tdomain%sSubDomain(mat)%Pz)) then
+                   imx = LimPML1
+				   imy = LimPML2
+				   imz = LimPML3
+
+            !Undefined PML
+            else
+            	write(*,*) "ERROR in PML definition (directions), check 'material.input'"
+            	write(*,*) "Tdomain%sSubDomain(", mat, ")%Px = ", Tdomain%sSubDomain(mat)%Px
+            	write(*,*) "Tdomain%sSubDomain(", mat, ")%Py = ", Tdomain%sSubDomain(mat)%Py
+            	write(*,*) "Tdomain%sSubDomain(", mat, ")%Pz = ", Tdomain%sSubDomain(mat)%Pz
+            	call MPI_ABORT(Tdomain%communicateur, error, code)
+            end if
+
+		    imn    = Tdomain%sSubDomain(mat)%elemList(0)
+		    ipoint = Tdomain%specel(imn)%Iglobnum(imx,imy,imz)
+
+		    !Obs: LIMITATION: how to deal with internal corners?
+		    do i = 0, Tdomain%n_mat - 1
+		    	if(Tdomain%not_PML_List(i) .and. &
+		    	   Tdomain%sSubDomain(i)%globCoordMask(0,ipoint)) then
+		    		assocMat = i
+		    		write(*,*) "mat      = ",mat
+		    		write(*,*) "assocMat = ",assocMat
+		    		!exit
+		    	end if
+		    end do
+
+
+			!END Find associated material----------------------------------------
+
+			!START Calculate Average Property----------------------------------------
 			do m = 0, Tdomain%sSubDomain(mat)%nElem - 1
 	    		n = Tdomain%sSubDomain(mat)%elemList(m)
 				select case( Tdomain%sSubDomain(mat)%material_definition)
 					case( MATERIAL_CONSTANT, MATERIAL_EARTHCHUNK, MATERIAL_GRADIENT, MATERIAL_RANDOM)
 
 		                Tdomain%specel(n)%Kappa   = Tdomain%sSubDomain(mat)%DKappa
-		                Tdomain%specel(n)%Density = Tdomain%sSubDomain(mat)%Ddensity !Only for testing
-		                Tdomain%specel(n)%Lambda  = Tdomain%sSubDomain(mat)%DLambda !Only for testing
-		                Tdomain%specel(n)%Mu      = Tdomain%sSubDomain(mat)%DMu !Only for Testing
+		                !Tdomain%specel(n)%Density = Tdomain%sSubDomain(mat)%Ddensity !Only for testing
+		                !Tdomain%specel(n)%Lambda  = Tdomain%sSubDomain(mat)%DLambda !Only for testing
+		                !Tdomain%specel(n)%Mu      = Tdomain%sSubDomain(mat)%DMu !Only for Testing
 
 	                    !write(*,*) "Element ", n, "RAND PML"
 	                    MeanParamMu     = 0
 	                    MeanParamLambda = 0
 	                    MeanParamDens   = 0
-	                    LimPML1         = 0 !On the lower bound initialization
-	                    LimPML2         = 0 !On the lower bound initialization
-	                    LimPML3         = 0 !On the lower bound initialization
 	                    gllMult         = 1
 
 	                    !Face X oriented
@@ -490,15 +630,14 @@ subroutine Define_Arrays(Tdomain, rg)
 	                         .not.Tdomain%sSubDomain(mat)%Pz) then
 
 	                        gllMult = nglly*ngllz
-	                        if (Tdomain%sSubDomain(mat)%Left) LimPML1 = ngllx-1
 	                        do j = 0, nglly-1
 	                            do k = 0, ngllz-1
 	                                !if(ipoint > size(randMu, 1)) write (*,*) "ERROR ipoint = ", ipoint, "and size(randMu. 1) = ", size(randMu, 1)
 	                                ipoint          = Tdomain%specel(n)%Iglobnum(LimPML1,j,k)
-	                                RFpoint         = count(Tdomain%sSubDomain(mat)%globCoordMask(0,0:ipoint) - 1
-	                                MeanParamDens   = MeanParamDens   + Tdomain%sSubDomain(mat)%prop(RFpoint, 0)
-	                                MeanParamLambda = MeanParamLambda + Tdomain%sSubDomain(mat)%prop(RFpoint, 1)
-	                                MeanParamMu     = MeanParamMu     + Tdomain%sSubDomain(mat)%prop(RFpoint, 2)
+	                                RFpoint         = count(Tdomain%sSubDomain(assocMat)%globCoordMask(0,0:ipoint)) - 1
+	                                MeanParamDens   = MeanParamDens   + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 0)
+	                                MeanParamLambda = MeanParamLambda + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 1)
+	                                MeanParamMu     = MeanParamMu     + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 2)
 	                            enddo
 	                        enddo
 
@@ -508,15 +647,14 @@ subroutine Define_Arrays(Tdomain, rg)
 	                            .not.Tdomain%sSubDomain(mat)%Pz) then
 
 	                        gllMult = ngllx*ngllz
-	                        if (Tdomain%sSubDomain(mat)%Forward) LimPML1 = nglly-1
 	                        do i = 0, ngllx-1
 	                            do k = 0, ngllz-1
 	                                !if(ipoint > size(randMu, 1)) write (*,*) "ERROR ipoint = ", ipoint, "and size(randMu. 1) = ", size(randMu, 1)
-	                                ipoint          = Tdomain%specel(n)%Iglobnum(i, LimPML1, k)
-	                                RFpoint         = count(Tdomain%sSubDomain(mat)%globCoordMask(0,0:ipoint) - 1
-	                                MeanParamDens   = MeanParamDens   + Tdomain%sSubDomain(mat)%prop(RFpoint, 0)
-	                                MeanParamLambda = MeanParamLambda + Tdomain%sSubDomain(mat)%prop(RFpoint, 1)
-	                                MeanParamMu     = MeanParamMu     + Tdomain%sSubDomain(mat)%prop(RFpoint, 2)
+	                                ipoint          = Tdomain%specel(n)%Iglobnum(i, LimPML2, k)
+	                                RFpoint         = count(Tdomain%sSubDomain(assocMat)%globCoordMask(0,0:ipoint)) - 1
+	                                MeanParamDens   = MeanParamDens   + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 0)
+	                                MeanParamLambda = MeanParamLambda + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 1)
+	                                MeanParamMu     = MeanParamMu     + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 2)
 	                            enddo
 	                        enddo
 
@@ -526,15 +664,14 @@ subroutine Define_Arrays(Tdomain, rg)
 	                                 Tdomain%sSubDomain(mat)%Pz) then
 
 	                        gllMult = nglly*ngllx
-	                        if (Tdomain%sSubDomain(mat)%Down) LimPML1 = ngllz-1
 	                        do i = 0, ngllx-1
 	                            do j = 0, nglly-1
 	                                !if(ipoint > size(randMu, 1)) write (*,*) "ERROR ipoint = ", ipoint, "and size(randMu. 1) = ", size(randMu, 1)
-	                                ipoint          = Tdomain%specel(n)%Iglobnum(i,j,LimPML1)
-	                                RFpoint         = count(Tdomain%sSubDomain(mat)%globCoordMask(0,0:ipoint) - 1
-	                                MeanParamDens   = MeanParamDens   + Tdomain%sSubDomain(mat)%prop(RFpoint, 0)
-	                                MeanParamLambda = MeanParamLambda + Tdomain%sSubDomain(mat)%prop(RFpoint, 1)
-	                                MeanParamMu     = MeanParamMu     + Tdomain%sSubDomain(mat)%prop(RFpoint, 2)
+	                                ipoint          = Tdomain%specel(n)%Iglobnum(i,j,LimPML3)
+	                                RFpoint         = count(Tdomain%sSubDomain(assocMat)%globCoordMask(0,0:ipoint)) - 1
+	                                MeanParamDens   = MeanParamDens   + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 0)
+	                                MeanParamLambda = MeanParamLambda + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 1)
+	                                MeanParamMu     = MeanParamMu     + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 2)
 	                            enddo
 	                        enddo
 
@@ -544,15 +681,13 @@ subroutine Define_Arrays(Tdomain, rg)
 	                           (.not.Tdomain%sSubDomain(mat)%Pz)) then
 
 	                        gllMult = ngllz
-	                        if (Tdomain%sSubDomain(mat)%Left)    LimPML1 = ngllx-1
-	                        if (Tdomain%sSubDomain(mat)%Forward) LimPML2 = nglly-1
 	                        do k = 0, ngllz-1
 	                            !if(ipoint > size(randMu, 1)) write (*,*) "ERROR ipoint = ", ipoint, "and size(randMu. 1) = ", size(randMu, 1)
 	                            ipoint          = Tdomain%specel(n)%Iglobnum(LimPML1,LimPML2,k)
-	                            RFpoint         = count(Tdomain%sSubDomain(mat)%globCoordMask(0,0:ipoint) - 1
-	                            MeanParamDens   = MeanParamDens   + Tdomain%sSubDomain(mat)%prop(RFpoint, 0)
-	                            MeanParamLambda = MeanParamLambda + Tdomain%sSubDomain(mat)%prop(RFpoint, 1)
-	                            MeanParamMu     = MeanParamMu     + Tdomain%sSubDomain(mat)%prop(RFpoint, 2)
+	                            RFpoint         = count(Tdomain%sSubDomain(assocMat)%globCoordMask(0,0:ipoint)) - 1
+	                            MeanParamDens   = MeanParamDens   + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 0)
+	                            MeanParamLambda = MeanParamLambda + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 1)
+	                            MeanParamMu     = MeanParamMu     + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 2)
 	                        enddo
 
 	                    !Line in YZ
@@ -561,15 +696,13 @@ subroutine Define_Arrays(Tdomain, rg)
 	                           (     Tdomain%sSubDomain(mat)%Pz)) then
 
 	                        gllMult = ngllx
-	                        if (Tdomain%sSubDomain(mat)%Forward) LimPML1 = nglly-1
-	                        if (Tdomain%sSubDomain(mat)%Down)    LimPML2 = ngllz-1
 	                        do i = 0, ngllx-1
 	                            !if(ipoint > size(randMu, 1)) write (*,*) "ERROR ipoint = ", ipoint, "and size(randMu. 1) = ", size(randMu, 1)
-	                            ipoint          = Tdomain%specel(n)%Iglobnum(i, LimPML1,LimPML2)
-	                            RFpoint         = count(Tdomain%sSubDomain(mat)%globCoordMask(0,0:ipoint) - 1
-	                            MeanParamDens   = MeanParamDens   + Tdomain%sSubDomain(mat)%prop(RFpoint, 0)
-	                            MeanParamLambda = MeanParamLambda + Tdomain%sSubDomain(mat)%prop(RFpoint, 1)
-	                            MeanParamMu     = MeanParamMu     + Tdomain%sSubDomain(mat)%prop(RFpoint, 2)
+	                            ipoint          = Tdomain%specel(n)%Iglobnum(i, LimPML2,LimPML3)
+	                            RFpoint         = count(Tdomain%sSubDomain(assocMat)%globCoordMask(0,0:ipoint)) - 1
+	                            MeanParamDens   = MeanParamDens   + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 0)
+	                            MeanParamLambda = MeanParamLambda + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 1)
+	                            MeanParamMu     = MeanParamMu     + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 2)
 	                        enddo
 
 	                    !Line in ZX
@@ -578,14 +711,12 @@ subroutine Define_Arrays(Tdomain, rg)
 	                           (     Tdomain%sSubDomain(mat)%Pz)) then
 
 	                        gllMult = nglly
-	                        if (Tdomain%sSubDomain(mat)%Down)    LimPML1 = ngllz-1
-	                        if (Tdomain%sSubDomain(mat)%Left)    LimPML2 = ngllx-1
 	                        do j = 0, nglly-1
-	                            ipoint          = Tdomain%specel(n)%Iglobnum(LimPML2, j,LimPML1)
-	                            RFpoint         = count(Tdomain%sSubDomain(mat)%globCoordMask(0,0:ipoint) - 1
-	                            MeanParamDens   = MeanParamDens   + Tdomain%sSubDomain(mat)%prop(RFpoint, 0)
-	                            MeanParamLambda = MeanParamLambda + Tdomain%sSubDomain(mat)%prop(RFpoint, 1)
-	                            MeanParamMu     = MeanParamMu     + Tdomain%sSubDomain(mat)%prop(RFpoint, 2)
+	                            ipoint          = Tdomain%specel(n)%Iglobnum(LimPML1, j,LimPML3)
+	                            RFpoint         = count(Tdomain%sSubDomain(assocMat)%globCoordMask(0,0:ipoint)) - 1
+	                            MeanParamDens   = MeanParamDens   + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 0)
+	                            MeanParamLambda = MeanParamLambda + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 1)
+	                            MeanParamMu     = MeanParamMu     + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 2)
 	                        enddo
 
 	                    !Point
@@ -594,15 +725,11 @@ subroutine Define_Arrays(Tdomain, rg)
 	                           (  Tdomain%sSubDomain(mat)%Pz)) then
 
 	                        gllMult = 1
-	                        if (Tdomain%sSubDomain(mat)%Left)    LimPML1 = ngllx-1
-	                        if (Tdomain%sSubDomain(mat)%Forward) LimPML2 = nglly-1
-	                        if (Tdomain%sSubDomain(mat)%Down)    LimPML3 = ngllz-1
-
 	                        ipoint          = Tdomain%specel(n)%Iglobnum(LimPML1, LimPML2,LimPML3)
-	                        RFpoint         = count(Tdomain%sSubDomain(mat)%globCoordMask(0,0:ipoint) - 1
-	                        MeanParamDens   = MeanParamDens   + Tdomain%sSubDomain(mat)%prop(RFpoint, 0)
-	                        MeanParamLambda = MeanParamLambda + Tdomain%sSubDomain(mat)%prop(RFpoint, 1)
-	                        MeanParamMu     = MeanParamMu     + Tdomain%sSubDomain(mat)%prop(RFpoint, 2)
+	                        RFpoint         = count(Tdomain%sSubDomain(assocMat)%globCoordMask(0,0:ipoint)) - 1
+	                        MeanParamDens   = MeanParamDens   + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 0)
+	                        MeanParamLambda = MeanParamLambda + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 1)
+	                        MeanParamMu     = MeanParamMu     + Tdomain%sSubDomain(assocMat)%prop(RFpoint, 2)
 
 	                    !Undefined PML
 	                    else
@@ -613,16 +740,84 @@ subroutine Define_Arrays(Tdomain, rg)
 	                    	call MPI_ABORT(Tdomain%communicateur, error, code)
 	                    end if
 
-	                    Tdomain%specel(n)%Mu(:,:,:)      = MeanParamMu/dble(gllMult)
-	                    Tdomain%specel(n)%Lambda(:,:,:)  = MeanParamLambda/dble(gllMult)
+	                    !Putting the properties on the subdomain
+	                    do i = 0, ngllx-1
+	                    	do j = 0, nglly-1
+	                        	do k = 0, ngllz-1
+	                        		ipoint  = Tdomain%specel(n)%Iglobnum(i,j,k)
+	                    			RFpoint = count(Tdomain%sSubDomain(mat)%globCoordMask(0,0:ipoint)) - 1
+	                    			Tdomain%sSubDomain(mat)%Prop(RFpoint, 0) = MeanParamDens/dble(gllMult)
+	                    			Tdomain%sSubDomain(mat)%Prop(RFpoint, 1) = MeanParamLambda/dble(gllMult)
+	                    			Tdomain%sSubDomain(mat)%Prop(RFpoint, 2) = MeanParamMu/dble(gllMult)
+	                    		end do
+	                    	end do
+	                    end do
+
+						!Putting the properties on the element
 	                    Tdomain%specel(n)%Density(:,:,:) = MeanParamDens/dble(gllMult)
+	                    Tdomain%specel(n)%Lambda(:,:,:)  = MeanParamLambda/dble(gllMult)
+	                    Tdomain%specel(n)%Mu(:,:,:)      = MeanParamMu/dble(gllMult)
 
 				end select !END select by "Tdomain%sSubDomain(mat)%material_definition"
-			end do !END Loop over subdomain elements
-		end if !PML condition
-	end do !END Loop over subdomains
 
-	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!From here no modification caused by Random Fields integration on this file
+			!Writing PMLs Properties on h5 file
+			allocate(xPoints (0:nSubDPoints(mat)-1, 0:size(Tdomain%GlobCoord, 1)-1)) !Subdomain coordinates ((:,0) = X, (:,1) = Y, (:,2) = Z) per proc
+			xPoints = transpose(reshape(pack(Tdomain%GlobCoord(:,:), mask = Tdomain%sSubDomain(mat)%globCoordMask(:,:)), &
+				                           	shape = [3, nSubDPoints(mat)]))
+			!Writes a file *.h5 for every proc/material
+			!write(*,*) "Before HDF5 creation"
+			call write_ResultHDF5Unstruct_MPI(xPoints, Tdomain%sSubDomain(mat)%prop, trim(procFileName), &
+										  	rg, trim(h5folder), &
+    										  Tdomain%communicateur, ["_proc", "_subD"], [rg, mat], HDF5NameList(mat))
+    		!write(*,*) "After HDF5 PML creation"
+    		deallocate(xPoints)
+			end do !END Loop over subdomain elements
+			!END Calculate Average Property----------------------------------------
+		end if
+		!PML condition
+	end do !END Loop over subdomains (for PMLs)
+
+
+	!Printing for verification
+	do n = 0,Tdomain%n_elem-1
+		write(*,*) ""
+		write(*,*) "ELEM ", n
+		write(*,*) "Dens = ", Tdomain%specel(n)%Density
+		write(*,*) "Lamb = ", Tdomain%specel(n)%Lambda
+		write(*,*) "Mu   = ", Tdomain%specel(n)%Mu
+	end do
+
+    !Deallocating
+	if (allocated(xPoints))  deallocate(xPoints)
+
+	do mat = 0, Tdomain%n_mat - 1
+	    if (allocated(Tdomain%sSubDomain(mat)%prop))          deallocate(Tdomain%sSubDomain(mat)%prop)
+	    if (allocated(Tdomain%sSubDomain(mat)%margiFirst))    deallocate(Tdomain%sSubDomain(mat)%margiFirst)
+	    if (allocated(Tdomain%sSubDomain(mat)%MinBound))      deallocate(Tdomain%sSubDomain(mat)%MinBound)
+	    if (allocated(Tdomain%sSubDomain(mat)%MaxBound))      deallocate(Tdomain%sSubDomain(mat)%MaxBound)
+	    if (allocated(Tdomain%sSubDomain(mat)%chosenSeed))    deallocate(Tdomain%sSubDomain(mat)%chosenSeed)
+	    if (allocated(Tdomain%sSubDomain(mat)%corrL))         deallocate(Tdomain%sSubDomain(mat)%corrL)
+	    !To discuss deallocation of the above
+	    if (allocated(Tdomain%sSubDomain(mat)%globCoordMask)) deallocate(Tdomain%sSubDomain(mat)%globCoordMask)
+	    if (allocated(Tdomain%sSubdomain(mat)%elemList))      deallocate(Tdomain%sSubdomain(mat)%elemList)
+	end do
+
+	!Writing XMF File
+	!write(*,*) "Before XMF creation"
+	if(rg == 0) write(*,*) "HDF5NameList in rang 0 = ", HDF5NameList
+	if(rg == 0) call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, trim(string_join(procFileName,"-byProc-")), rg, trim(XMFfolder), &
+    					 Tdomain%communicateur, trim(h5_to_xmf), ["Density","Lambda","Mu"], byProc = .true.)
+	if(rg == 0) call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, trim(string_join(procFileName,"-bySubD-")), rg, trim(XMFfolder), &
+    					 Tdomain%communicateur, trim(h5_to_xmf), ["Density","Lambda","Mu"], byProc = .false.)
+  	!if(rg == 0) write(*,*) "After XMF creation"
+
+	if(allocated(HDF5NameList)) deallocate (HDF5NameList)
+	if(allocated(nSubDPoints))  deallocate (nSubDPoints)
+	if(allocated(avgProp))      deallocate(avgProp)
+	!write(*,*) "After deallocation"
+
+
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!From here on no modification caused by Random Fields integration on this file
 
     do n = 0,Tdomain%n_elem-1
         mat = Tdomain%specel(n)%mat_index
@@ -796,22 +991,6 @@ subroutine Define_Arrays(Tdomain, rg)
 
 
     enddo ! end of the loop upon elements
-
-    !Deallocating
-	if (allocated(xPoints))        deallocate(xPoints)
-
-
-	do mat = 0, Tdomain%n_mat - 1
-	    if (allocated(Tdomain%sSubDomain(mat)%prop))          deallocate(Tdomain%sSubDomain(mat)%prop)
-	    if (allocated(Tdomain%sSubDomain(mat)%margiFirst))    deallocate(Tdomain%sSubDomain(mat)%margiFirst)
-	    if (allocated(Tdomain%sSubDomain(mat)%MinBound))      deallocate(Tdomain%sSubDomain(mat)%MinBound)
-	    if (allocated(Tdomain%sSubDomain(mat)%MaxBound))      deallocate(Tdomain%sSubDomain(mat)%MaxBound)
-	    if (allocated(Tdomain%sSubDomain(mat)%chosenSeed))    deallocate(Tdomain%sSubDomain(mat)%chosenSeed)
-	    if (allocated(Tdomain%sSubDomain(mat)%corrL))         deallocate(Tdomain%sSubDomain(mat)%corrL)
-	    !To discuss deallocation of the above
-	    if (allocated(Tdomain%sSubDomain(mat)%globCoordMask)) deallocate(Tdomain%sSubDomain(mat)%globCoordMask)
-	    if (allocated(Tdomain%sSubdomain(mat)%elemList))      deallocate(Tdomain%sSubdomain(mat)%elemList)
-	end do
 
     if( Tdomain%earthchunk_isInit/=0) then
         ! call clean_model()

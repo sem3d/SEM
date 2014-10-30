@@ -373,6 +373,13 @@ subroutine read_mesh_file_h5(Tdomain, rg)
     	Tdomain%sSubdomain(mat)%elemList(Tdomain%sSubdomain(mat)%nElem) = i
     	Tdomain%sSubdomain(mat)%nElem = Tdomain%sSubdomain(mat)%nElem + 1
     enddo
+    !Defining existing subdomain list in each domain
+    allocate (Tdomain%subD_exist(0:Tdomain%n_mat-1))
+    allocate (Tdomain%subDComm(0:Tdomain%n_mat - 1))
+    Tdomain%subD_exist(:) = .true.
+    do mat=0,Tdomain%n_mat-1
+    	if(Tdomain%sSubdomain(mat)%nElem == 0) Tdomain%subD_exist(mat) = .false.
+    enddo
 
     deallocate(itemp2)
     ! Read elements definitions

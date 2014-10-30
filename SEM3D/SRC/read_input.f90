@@ -301,9 +301,11 @@ subroutine read_material_file(Tdomain, rg)
         stop
     endif
 
-    Tdomain%any_PML    = .false.
-    Tdomain%any_FPML   = .false.
-    Tdomain%any_Random = .false.
+    allocate(Tdomain%not_PML_List(0:Tdomain%n_mat-1))
+    Tdomain%any_PML      = .false.
+    Tdomain%any_FPML     = .false.
+    Tdomain%any_Random   = .false.
+    Tdomain%not_PML_List = .true.
 
     do i = 0,Tdomain%n_mat-1
         read(13,*) Tdomain%sSubDomain(i)%material_type, &
@@ -337,6 +339,7 @@ subroutine read_material_file(Tdomain, rg)
         if (Tdomain%sSubDomain(i)%material_type == "P" .or. Tdomain%sSubDomain(i)%material_type == "L")  then
             Tdomain%sSubDomain(i)%wpml = npml
             npml = npml + 1
+            Tdomain%not_PML_List(i) = .false.
         endif
 
         if (Tdomain%sSubDomain(i)%material_type == "R") then
