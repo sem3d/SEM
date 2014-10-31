@@ -73,10 +73,11 @@ subroutine  sem()
     real(kind=4), parameter :: display_iter_time = 5.
     integer :: interrupt, rg, code, protection
 
-    display_iter = 1
-    call MPI_Init(ierr)
     pid = getpid()
     !write(*,*) "SEM2D[", pid, "] : Demarrage."
+
+    display_iter = 1
+    call MPI_Init(ierr)
 
 #ifdef COUPLAGE
     call MPI_Comm_Rank (MPI_COMM_WORLD, global_rank, ierr)
@@ -227,8 +228,6 @@ subroutine  sem()
     if(info_capteur /= 0) then
         Tdomain%bCapteur = .FALSE.
         sortie_capteur = .FALSE.
-        sortie_capteur_vitesse = .FALSE.
-        sortie_capteur_depla = .FALSE.
         sortie_capteur_deformation = .FALSE.
     endif
 

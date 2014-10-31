@@ -84,6 +84,7 @@ subroutine ReceiverPosition(Tdomain)
             enddo
         enddo
 
+	Tdomain%sReceiver(nrec)%located_here = .false.
         if (Tdomain%n_nodes == 4) then
             inner = .false.
             do n = 0,nind-1
@@ -102,10 +103,7 @@ subroutine ReceiverPosition(Tdomain)
                     Tdomain%sReceiver(nrec)%Xrec, Tdomain%sReceiver(nrec)%Zrec, &
                     xi1, eta1, inosol)
 
-                if (inosol) then
-                    !              write (*,*)  "Receiver",nrec, " is not in the processor" , Tdomain%Mpi_var%my_rank
-                    Tdomain%sReceiver(nrec)%located_here = .false.
-                else
+                if (.not. inosol) then
                     write (*,*)  "Receiver",nrec, " is in the processor" , Tdomain%Mpi_var%my_rank
                     write (*,*) "At the location (Element, xi,eta) : "
                     write (*,*) nreceiv (0), xi1, eta1
@@ -129,11 +127,7 @@ subroutine ReceiverPosition(Tdomain)
                     xi1, eta1, inosol)
                 if (.not. inosol) exit do11_n
             enddo do11_n
-            if (inosol) then
-                Tdomain%sReceiver(nrec)%located_here = .false.
-                !	  write (*,*)  "Receiver",nrec, " is not in the processor" , Tdomain%Mpi_var%my_rank
-
-            else
+            if (.not. inosol) then
                 write (*,*)  "Receiver",nrec, " is in the processor" , Tdomain%Mpi_var%my_rank
                 Tdomain%sReceiver(nrec)%located_here = .true.
                 Tdomain%sReceiver(nrec)%nr = nreceiv (n)
@@ -186,12 +180,13 @@ subroutine save_trace (Tdomain, it)
     type (domain), intent (INOUT) :: Tdomain
     integer, intent (IN) :: it
 
-    integer :: ir, nr, i,j, ngllx, ngllz, nsta, ncache
+    integer :: ir, nr, i,j, ngllx, ngllz, nsta, ncache, ind
     real :: dum0, dum1
     real, dimension (:,:,:), allocatable :: Field
 
     ncache = mod(it, NCAPT_CACHE)
     nsta = Tdomain%n_receivers
+    ind = 0
     do ir = 0, nsta-1
         if (Tdomain%sReceiver(ir)%located_here) then
             nr = Tdomain%sReceiver(ir)%nr
@@ -209,9 +204,9 @@ subroutine save_trace (Tdomain, it)
                     dum1 = dum1 + Tdomain%sReceiver(ir)%Interp_Coeff(i,j) * Field(i,j,1)
                 enddo
             enddo
-            Tdomain%Store_Trace(0,ir,ncache) = dum0
-            Tdomain%Store_Trace(1,ir,ncache) = dum1
-
+            Tdomain%Store_Trace(0,ind,ncache) = dum0
+            Tdomain%Store_Trace(1,ind,ncache) = dum1
+	    ind = ind + 1
             deallocate (Field)
         endif
     enddo
@@ -232,16 +227,16 @@ subroutine dump_trace (Tdomain)
 
     type(Domain), intent (IN) :: Tdomain
 
-    integer :: i, it, it0, it1
+    integer :: i, it, it0, it1, ind
     character(Len=MAX_FILE_SIZE) :: fnamef
     real :: rtime
 
     !dumping the traces
-    print *, Tdomain%MPI_var%my_rank
+    !print *, Tdomain%MPI_var%my_rank
     it1 = Tdomain%TimeD%ntime
     it0 = NCAPT_CACHE*(Tdomain%TimeD%ntime/NCAPT_CACHE)
-
-    write(*,*) "Receivers out:", it0, it1
+    ind = 0
+    !write(*,*) "Receivers out:", it0, it1
 
     do i = 0,Tdomain%n_receivers-1
         if (Tdomain%sReceiver(i)%located_here) then
@@ -249,10 +244,11 @@ subroutine dump_trace (Tdomain)
             open (31,file=fnamef, status="unknown", form="formatted", position="append")
             rtime=it0*Tdomain%TimeD%dtmin
             do it = it0, it1
-                write (31,*) rtime,Tdomain%Store_Trace(0,i,it-it0), Tdomain%Store_Trace (1,i,it-it0)
+                write (31,*) rtime,Tdomain%Store_Trace(0,ind,it-it0), Tdomain%Store_Trace (1,ind,it-it0)
                 rtime = rtime + Tdomain%TimeD%dtmin
             enddo
             close (31)
+	    ind = ind + 1
         endif
     enddo
     return

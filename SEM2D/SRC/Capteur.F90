@@ -55,7 +55,7 @@ module mCapteur
 
     integer,parameter  :: fileIdCapteur=200  ! id fichier capteur
     logical            :: sortie_capteur
-    logical            :: sortie_capteur_deformation, sortie_capteur_vitesse, sortie_capteur_depla
+    logical            :: sortie_capteur_deformation
 
 contains
 
@@ -241,21 +241,22 @@ contains
         ! liste initialement vide
         nullify(listeCapteur)
 
+	call semname_read_capteurs(trim(Tdomain%station_file),fnamef)
         !controle d'existence du fichier
-        INQUIRE(File=trim(Tdomain%station_file),Exist=status)
+        INQUIRE(File=trim(fnamef),Exist=status)
         info_capteur=0 !!Gsa
         if ( .not.status ) then
-            write (*,*)"fichier introuvable :",trim(Tdomain%station_file)
+            write (*,*)"fichier introuvable :",trim(fnamef)
             !!      stop
             info_capteur=1
             return
         endif
 
-        open(UNIT=fileIdCapteur,IOSTAT=CodeErreur,FILE=trim(Tdomain%station_file),FORM='formatted',STATUS='old',ACTION='read')
+        open(UNIT=fileIdCapteur,IOSTAT=CodeErreur,FILE=trim(fnamef),FORM='formatted',STATUS='old',ACTION='read')
         if (CodeErreur .ne.0 ) print*,'Ouverture du fichier Capteur  :CodeErreur=',CodeErreur
 
 
-
+	
         do ! while (.not.eof(fileIdCapteur))
 
 
@@ -519,8 +520,6 @@ contains
 
 
         sortie_capteur_deformation = .FALSE.
-        sortie_capteur_vitesse     = .FALSE.
-        sortie_capteur_depla     = .FALSE.
         sortie_capteur             = .FALSE.
 
         ! boucle sur les capteurs
@@ -533,8 +532,6 @@ contains
                 sortie_capteur = .TRUE.
 
                 if (capteur%grandeur.eq."DEFORMATION") sortie_capteur_deformation = .TRUE.
-                if (capteur%grandeur.eq."VITESSE")     sortie_capteur_vitesse     = .TRUE.
-                if (capteur%grandeur.eq."DEPLA")     sortie_capteur_depla     = .TRUE.
 
             endif
 

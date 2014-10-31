@@ -169,6 +169,7 @@ contains
             read*, nfile
             n_blocks = nfile   ! number of materials
             allocate(unv_files(0:nfile-1))
+            call mat_table_construct(tabmat)
             call lec_init_unv(unv_files)
 
             n_nods = 8

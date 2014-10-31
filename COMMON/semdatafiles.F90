@@ -74,6 +74,14 @@ contains
         if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_logs))
     end subroutine create_sem_output_directories
 
+    subroutine semname_read_capteurs(file,fnamef)
+        implicit none
+        character(Len=*),intent(in) :: file
+        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
+
+        fnamef = pjoin(path_param, file)
+    end subroutine semname_read_capteurs
+
     subroutine semname_dir_capteurs(dirname)
         implicit none
         character(Len=MAX_FILE_SIZE), intent(out) :: dirname
