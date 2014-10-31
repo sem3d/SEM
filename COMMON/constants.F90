@@ -36,6 +36,7 @@ MODULE constants
     integer, parameter :: MATERIAL_CONSTANT   = 1
     integer, parameter :: MATERIAL_GRADIENT   = 2
     integer, parameter :: MATERIAL_EARTHCHUNK = 3
+    integer, parameter :: MATERIAL_PREM       = 4
 
 
 CONTAINS

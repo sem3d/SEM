@@ -491,6 +491,11 @@ contains
 
         !- we consider each processor, and create all structures for the meshfiles
         call system("rm -f mesh4spec.????.h5")
+
+
+        meshfilename(1:12) = "mesh4spec.h5"
+        call write_global_mesh_file_h5(meshfilename, n_points, n_elem, n_nods, Gcoord, Ipointer, material );
+
         meshfilename(1:10) = "mesh4spec."
 
         !-------------------------------------------------
@@ -1069,6 +1074,47 @@ contains
         enddo
         close(11)
     end subroutine write_mesh_file_txt
+
+
+   subroutine write_global_mesh_file_h5(meshfilename, n_points, n_elem, &
+        n_nods, Gcoord, Ipointer, material)
+        use hdf5
+        use sem_hdf5
+        implicit none
+        character(len=*),intent(in) :: meshfilename
+        integer, intent(in)          :: n_nods, n_points, n_elem
+        real, intent(in), dimension(0:n_points-1,0:2)      :: Gcoord
+        integer, intent(in), dimension(0:n_nods-1,0:n_elem-1) :: Ipointer
+        integer, intent(in), dimension(0:n_elem-1) :: material
+
+        integer :: hdferr, i
+        integer(HID_T) :: fid
+        integer, dimension(0:7,0:n_elem-1) :: Ipointer_vertices
+
+
+        call init_hdf5()
+        call h5fcreate_f(meshfilename, H5F_ACC_TRUNC_F, fid, hdferr)
+
+        call write_attr_int(fid, "n_vertices", n_points)
+        call write_attr_int(fid, "n_elements", n_elem)
+
+        call write_dataset(fid, "local_nodes", transpose(Gcoord), hdferr)
+
+        do i=0,n_elem-1
+            Ipointer_vertices(0:7, i) = Ipointer(0:7, i)
+        enddo
+
+        call write_dataset(fid, "elements", Ipointer_vertices, hdferr)
+
+        call write_dataset(fid, "material", material, hdferr)
+
+
+        call h5fclose_f(fid, hdferr)
+
+
+    end subroutine write_global_mesh_file_h5
+
+
 
     subroutine write_mesh_file_h5(meshfilename,solid_fluid,all_fluid,Neumann_present, &
         n_elem,n_points,n_points_local,n_blocks,n_edges,n_faces,n_nods,n_vertices, &

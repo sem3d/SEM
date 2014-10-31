@@ -589,7 +589,11 @@ subroutine read_input (Tdomain, rg, code)
     Tdomain%logicD%run_restart = config%prorep .ne. 0
     Tdomain%TimeD%iter_reprise = config%prorep_restart_iter
     Tdomain%TimeD%ncheck = config%prorep_iter ! frequence de sauvegarde
-    Tdomain%station_file = fromcstr(config%station_file)
+
+    if(Tdomain%logicD%save_trace) then
+        Tdomain%station_file = fromcstr(config%station_file)
+    end if
+
     Tdomain%TimeD%ntrace = config%traces_interval ! XXX
     Tdomain%traces_format = config%traces_format
     Tdomain%TimeD%time_snapshots = config%snap_interval
@@ -656,11 +660,19 @@ subroutine read_input (Tdomain, rg, code)
 
 
     if( config%material_present == 1) then
-        Tdomain%earthchunk_file = fromcstr(config%model_file)
-        Tdomain%earthchunk_delta_lon = config%delta_lon
-        Tdomain%earthchunk_delta_lat = config%delta_lat
 
-        if( config%material_type == MATERIAL_EARTHCHUNK ) Tdomain%aniso=.true.
+        select case (config%material_type)
+
+        case (MATERIAL_PREM)
+            Tdomain%aniso=.true.
+        case (MATERIAL_EARTHCHUNK)
+            Tdomain%earthchunk_isInit=1
+            Tdomain%aniso=.true.
+            Tdomain%earthchunk_file = fromcstr(config%model_file)
+            Tdomain%earthchunk_delta_lon = config%delta_lon
+            Tdomain%earthchunk_delta_lat = config%delta_lat
+
+        end select
 
         do imat=0,Tdomain%n_mat-1
             Tdomain%sSubDomain(imat)%material_definition = config%material_type

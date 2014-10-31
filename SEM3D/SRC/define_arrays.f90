@@ -24,14 +24,16 @@ contains
 
 subroutine Define_Arrays(Tdomain)
     use constants
-    use read_model_earthchunk
+    use model_earthchunk
+    use model_prem
+    implicit none
 
     type (domain), intent (INOUT), target :: Tdomain
     integer :: n, mat
     real, dimension(:,:,:), allocatable :: Whei
 
     if( Tdomain%earthchunk_isInit/=0) then
-        call load_model(Tdomain%earthchunk_file, Tdomain%earthchunk_delta_lon, Tdomain%earthchunk_delta_lat)
+        call load_earthchunk(Tdomain%earthchunk_file, Tdomain%earthchunk_delta_lon, Tdomain%earthchunk_delta_lat)
     endif
     do n = 0,Tdomain%n_elem-1
        mat = Tdomain%specel(n)%mat_index
@@ -51,7 +53,7 @@ subroutine Define_Arrays(Tdomain)
     ! Here we have local mass matrix (not assembled) on elements and
     ! each of faces, edges, vertices containing assembled (on local processor only) mass matrix
     if( Tdomain%earthchunk_isInit/=0) then
-        ! call clean_model()
+         call clean_earthchunk()
     endif
     !- defining Neumann properties (Btn: the complete normal term, ponderated
     !      by Gaussian weights)
@@ -258,6 +260,9 @@ subroutine init_material_properties(Tdomain, specel, mat)
      !    si le flag gradient est actif alors on peut changer les proprietes
   case( MATERIAL_EARTHCHUNK )
      call initialize_material_earthchunk(specel, mat, Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
+
+ case( MATERIAL_PREM )
+     call initialize_material_prem(specel, mat, Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
 
   case( MATERIAL_GRADIENT )
      !    on copie toujours le materiau de base

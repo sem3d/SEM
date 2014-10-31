@@ -1,7 +1,9 @@
-module read_model_earthchunk
+module model_earthchunk
     implicit none
 
-    real, parameter :: Earth_radius=6371000.d0, Pi = 3.141592653, Pi180 = Pi/180.0, mille=1000.0
+    real, parameter ::  mille=1000.0
+!Earth_radius=6371000.d0
+
 
     type :: OneModel
         real, dimension(:,:), allocatable :: param
@@ -9,44 +11,16 @@ module read_model_earthchunk
 
 
     integer :: n_lat, n_lon
-    real :: lon_min=360, lon_max=0, lat_min=90, lat_max=-90, lat_delta, lon_delta, max_depth
+    real :: lon_min=360, lon_max=0, lat_min=90, lat_max=-90, lat_delta, lon_delta, max_depth, lat_center=0, lon_center=0
+    real :: Earth_radius=6371000.d0
     type(OneModel), allocatable, dimension(:) :: value_pt
     logical :: is_modelOpenQ=.false.
 
 
+    private :: getIndiceFromLonLat, checkRangeLonLat, getPtNearDepth, prem_aniso
+
 
 contains
-
-! #######################################################
-    subroutine sph2cart(r, lon, lat, x, y, z)
-        implicit none
-        real, intent(in) :: r, lon, lat
-        real, intent(out) :: x, y, z
-        real :: colatRad, lonRad
-        colatRad = (90.0-lat)*Pi180
-        lonRad = lon*Pi180
-
-        x = r * sin(colatRad) * sin(lonRad)
-        y = r * sin(colatRad) * cos(lonRad)
-        z = r * cos(colatRad)
-
-
-    end subroutine sph2cart
-
-
-! #######################################################
-    subroutine cart2sph(x, y, z, r, lon, lat)
-        implicit none
-        real, intent(in) :: x, y, z
-        real, intent(out) :: r, lon, lat
-
-        r = sqrt(x**2+y**2+z**2)
-
-        lat = 90.0-acos(z/r)/Pi180
-
-        lon = atan2(y,x)/Pi180
-
-    end subroutine cart2sph
 
 ! #######################################################
     integer function getIndiceFromLonLat(lon, lat)
@@ -135,7 +109,7 @@ contains
 
 
     ! #######################################################
-    subroutine get_value_aniso (r, lon, lat, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu)
+    subroutine get_value_earthchunk(r, lon, lat, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu)
 
         implicit none
 
@@ -238,23 +212,26 @@ contains
         Gc=0.d0; Gs=0.d0; Hc=0.d0; Hs=0.d0; Bc=0.d0; Bs=0.d0; Ec=0.d0; Es=0.d0
 
 
-    end subroutine get_value_aniso    
+    end subroutine get_value_earthchunk
 
 
 
 
 ! #######################################################
-    subroutine load_model(filename, delta_lon, delta_lat)
+    subroutine load_earthchunk(filename, delta_lon, delta_lat)
         implicit none
         character(len=*), intent(in) :: filename
         real, intent(in) :: delta_lon, delta_lat
         integer :: ios, ilayer, n_lonlatPt, ipt, indice, npts, n
-        real ::  lon, lat
+        real ::  lon, lat, rtmp
         real, dimension(1:9) :: tmp_param
+        character(len=*), parameter :: file_transform='earthchunk_transform.txt'
+        character(len=20) :: buffer
 
+        ios=0
         open(11, file=filename, form="formatted", status="old", iostat=ios)
         if( ios /= 0) then
-            write(*,*) "File not open"
+            write(*,*) "Model file not open"
             return
         endif
 
@@ -322,13 +299,48 @@ contains
             max_depth = max(max_depth, value_pt(indice)%param(npts,1))
 
         enddo
+        close(11)
+
+
+        lat_center=0
+        lon_center=0
+
+        ios=0
+
+        open(11, file=file_transform, form="formatted", status="old", iostat=ios)
+        if( ios /= 0) then
+            write(*,*) "Transform file not open => (lon,lat) center is (0,0)"
+            return
+        endif
+
+        do
+            read(11,*,IOSTAT=ios) buffer, rtmp
+            if( ios /= 0) then
+                exit
+            endif
+                
+            if( buffer == 'lon_center' ) then
+                lon_center = rtmp
+            else if( buffer == 'lat_center') then
+                lat_center = rtmp
+            else if( buffer == 'earth_radius') then
+                Earth_radius = rtmp
+            endif
+
+        enddo
+
+!                write(*,*) "Reading transform :", lon_center, lat_center
+
+        close(11)
 
 
 
-    end subroutine load_model
+
+
+    end subroutine load_earthchunk
 
 ! #######################################################
-    subroutine clean_model
+    subroutine clean_earthchunk
         integer :: npts,i
 
         npts = size(value_pt)
@@ -340,7 +352,7 @@ contains
         deallocate(value_pt)
 
 
-    end subroutine clean_model
+    end subroutine clean_earthchunk
 
 ! #######################################################
     subroutine prem_aniso(x0,rho,vpv,vph,vsv,vsh,eta,Qmu)
@@ -453,4 +465,4 @@ contains
         end subroutine prem_aniso
 
 
-end module read_model_earthchunk
+end module model_earthchunk
