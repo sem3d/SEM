@@ -362,7 +362,7 @@ subroutine allocate_domain (Tdomain)
      enddo
      do n = 0, Tdomain%n_vertex-1
         i = Tdomain%sVertex(n)%Valence
-        allocate (Tdomain%sVertex(n)%MatLambda (0:(2*i-1),0:(2*i-1)))
+        allocate (Tdomain%sVertex(n)%Kinv(0:(2*i-1),0:(2*i-1)))
         allocate (Tdomain%sVertex(n)%smbrLambda(0:(2*i-1)))
         allocate (Tdomain%sVertex(n)%Lambda (0:(2*i-1)))
      enddo

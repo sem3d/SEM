@@ -592,11 +592,22 @@ subroutine define_arrays(Tdomain)
         if(Tdomain%Specel(n)%Type_DG .EQ. GALERKIN_HDG_RP) &
             call compute_MatPen(Tdomain%Specel(n))
     enddo
+
     ! Calcul des matrices de coefficients CA^-1 et ED^-1 pour HDG en semi-implicite
     if (Tdomain%Specel(n)%Type_timeInteg .EQ. TIME_INTEG_NEWMARK_PMC) then
         do n = 0, Tdomain%n_elem-1
             call compute_CAinv(Tdomain%Specel(n))
             call compute_EDinv(Tdomain%Specel(n))
+            call build_K_on_face(Tdomain,n)
+            call build_K_on_vertex(Tdomain,n)
+        enddo
+        ! Inversion des matrices K sur les faces
+        do nf = 0, Tdomain%n_face-1
+            call invert_K_face(Tdomain%sFace(nf))
+        enddo
+        ! Inversion des matrices K sur les vertexs
+        do n = 0, Tdomain%n_vertex-1
+            call invert_K_vertex(Tdomain%sVertex(n))
         enddo
     endif
 

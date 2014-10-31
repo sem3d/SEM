@@ -196,7 +196,7 @@ contains
 
         type (Element), intent (INOUT)   :: Elem
         real, intent(IN) :: Dt
-        integer :: imin, imax, ngx, ngz
+        integer :: imin, imax, ngx, ngz, nc, n1, n2
         real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1,0:1) :: matD
         real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: det, tmp
 
@@ -213,14 +213,11 @@ contains
         matD(:,0,1) = Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,2)
         matD(:,1,0) = matD(:,0,1)
         ! Couplage aux coins :
-        matD(0,:,:) = matD(0,:,:) + matD(2*ngx+ngz,:,:)
-        matD(2*ngx+ngz,:,:) = matD(0,:,:)
-        matD(ngx-1,:,:) = matD(ngx-1,:,:) + matD(ngx,:,:)
-        matD(ngx,:,:)   = matD(ngx-1,:,:)
-        matD(ngx+ngz-1,:,:)   = matD(ngx+ngz-1,:,:) + matD(2*ngx+ngz-1,:,:)
-        matD(2*ngx+ngz-1,:,:) = matD(ngx+ngz-1,:,:)
-        matD(ngx+ngz,:,:)       = matD(ngx+ngz,:,:) + matD(2*(ngx+ngz)-1,:,:)
-        matD(2*(ngx+ngz)-1,:,:) = matD(ngx+ngz,:,:)
+        do nc=0,3
+            call get_gll_arround_corner(Elem,nc,n1,n2)
+            matD(n1,:,:) = matD(n1,:,:) + matD(n2,:,:)
+            matD(n2,:,:) = matD(n1,:,:)
+        enddo
 
         ! Termes provenant de la matrice de masse :
         ! Bottom face :
@@ -324,6 +321,112 @@ contains
         enddo
 
     end subroutine build_K_on_face
+
+
+    ! ###########################################################
+    !>
+    !! \brief This subroutine sends the contributions of a given element
+    !! Elem to the K-matrices of its neighbouring vertices.
+    !! (for the system on Lagrange multiplicators K * Lambda = R)
+    !! It suitable for Hybridizable Discontinuous Galerkin elements only,
+    !! and only for a semi-implicit time scheme.
+    !! \param type (domain), intent (INOUT) Tdomain
+    !<
+    subroutine build_K_on_vertex(Tdomain, nelem)
+
+        implicit none
+        type (domain), intent (INOUT) :: Tdomain
+        integer, intent(IN) :: nelem
+        real, dimension(0:2,0:1) :: C1, C2
+        real, dimension(0:1,0:1) :: E1, E2, K12, K21
+        type(element), pointer :: Elem
+        integer :: nf, nface, i, imin, imax, n1, n2, nv, pos1, pos2
+
+        Elem => Tdomain%specel(nelem)
+
+        ! Termes diagonaux intervenant dans les systemes aux vertexs :
+        do nf=0,3
+            nface = Elem%Near_Face(nf)
+            call get_iminimax(Elem,nf,imin,imax)
+            n1 = Elem%Near_Vertex(nf)
+            n2 = Elem%Near_Vertex(mod(nf+1,4))
+            ! Position dans les matrices des vertexs :
+            pos1 = Elem%pos_corner_in_VertMat(nf,1)
+            pos2 = Elem%pos_corner_in_VertMat(mod(nf+1,4),0)
+            ! Termes diagonaux des matrices sur les vertexs :
+            Tdomain%sVertex(n1)%Kinv(pos1:pos1+1,pos1:pos1+1) = K(imin,0:1,0:1)
+            Tdomain%sVertex(n2)%Kinv(pos2:pos2+1,pos2:pos2+1) = K(imax,0:1,0:1)
+        enddo
+
+        ! Termes extra-diagonaux correspondant aux coins :
+        C1 = 0. ; C2 = 0. ; E1 = 0. ; E2 = 0.
+        do i=0,3 ! i_eme coin
+            nv = Elem%Near_Vertex(i)
+            call get_gll_arround_corner(Elem,i,n1,n2)
+            ! Computation of C matrices at the 2 sides of the corner
+            C1(0,0) = Elem%Coeff_integr_Faces(n1)*Elem%normal_nodes(n1,0)
+            C1(1,1) = Elem%Coeff_integr_Faces(n1)*Elem%normal_nodes(n1,1)
+            C1(2,0) = Elem%Coeff_integr_Faces(n1)*Elem%normal_nodes(n1,1)
+            C1(2,1) = Elem%Coeff_integr_Faces(n1)*Elem%normal_nodes(n1,0)
+            C2(0,0) = Elem%Coeff_integr_Faces(n2)*Elem%normal_nodes(n2,0)
+            C2(1,1) = Elem%Coeff_integr_Faces(n2)*Elem%normal_nodes(n2,1)
+            C2(2,0) = Elem%Coeff_integr_Faces(n2)*Elem%normal_nodes(n2,1)
+            C2(2,1) = Elem%Coeff_integr_Faces(n2)*Elem%normal_nodes(n2,0)
+            ! Computation of C matrices at the 2 sides of the corner
+            E1(0,0) = Elem%Coeff_integr_Faces(n1)*Elem%MatPen(n1,0)
+            E1(0,1) = Elem%Coeff_integr_Faces(n1)*Elem%MatPen(n1,2)
+            E1(1,0) = Elem%Coeff_integr_Faces(n1)*Elem%MatPen(n1,2)
+            E1(1,1) = Elem%Coeff_integr_Faces(n1)*Elem%MatPen(n1,1)
+            E2(0,0) = Elem%Coeff_integr_Faces(n2)*Elem%MatPen(n2,0)
+            E2(0,1) = Elem%Coeff_integr_Faces(n2)*Elem%MatPen(n2,2)
+            E2(1,0) = Elem%Coeff_integr_Faces(n2)*Elem%MatPen(n2,2)
+            E2(1,1) = Elem%Coeff_integr_Faces(n2)*Elem%MatPen(n2,1)
+            ! Computation of the 2 cross-terms K12 and K21
+            K12(:,:) = MATMUL(Elem%CAinv(n1,:,:),C2(:,:))
+            K21(:,:) = MATMUL(Elem%CAinv(n2,:,:),C1(:,:))
+            K12(:,:) = K12(:,:) - MATMUL(Elem%EDinv(n1,:,:),E2(:,:))
+            K21(:,:) = K21(:,:) - MATMUL(Elem%EDinv(n2,:,:),E1(:,:))
+            ! Envoi des matrices K12 et K21 sur la matrice du vertex
+            pos1 = Elem%pos_corner_in_VertMat(i,0) ; pos2 = Elem%pos_corner_in_VertMat(i,1)
+            Tdomain%sVertex(nv)%Kinv(pos1:pos1+1,pos2:pos2+1) = K12(:,:)
+            Tdomain%sVertex(nv)%Kinv(pos2:pos2+1,pos1:pos1+1) = K21(:,:)
+        enddo
+
+    end subroutine build_K_on_vertex
+
+
+    ! ###########################################################
+    !>
+    !! \brief This subroutine get the local numerotation of gll nodes
+    !! around a given corner nc of an element Elem.
+    !! Note that the "corner" nc corresponds to the vertex Near_Vertx(nc)
+    !! \param type (element), intent (INOUT) Elem
+    !! \param integer, intent (IN)  nc
+    !! \param integer, intent (OUt) n1, n2
+    !<
+    subroutine get_gll_arround_corner(Elem,nc,n1,n2)
+
+        implicit none
+        type (Element), intent (IN) :: Elem
+        integer, intent(IN)  :: nc
+        integer, intent(OUT) :: n1, n2
+
+        select case (nc)
+        case(0)
+            n1 = 2*Elem%ngllx + Elem%ngllz
+            n2 = 0
+        case(1)
+            n1 = Elem%ngllx-1
+            n2 = Elem%ngllx
+        case(2)
+            n1 = Elem%ngllx+Elem%ngllz-1
+            n2 = 2*Elem%ngllx+Elem%ngllz-1
+        case(3)
+            n1 = Elem%ngllx+Elem%ngllz
+            n2 = 2*(Elem%ngllx+Elem%ngllz)-1
+        end select
+
+    end subroutine get_gll_arround_corner
 
 end module scompute_coeff_HDG
 !! Local Variables:

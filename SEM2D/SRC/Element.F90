@@ -56,6 +56,7 @@ module selement
        real, dimension(:,:), allocatable :: Normal_nodes
        real, dimension(:,:), allocatable :: MatPen, TracFace, Vhat
        real, dimension(:,:,:), allocatable :: CAinv, EDinv
+       integer, dimension (0:3,0:1) :: pos_corner_in_VertMat
 
     end type element
 
