@@ -1,4 +1,4 @@
-!>
+!> -*- coding: utf-8 -*-
 !!\file save_checkpoint.F90
 !!\brief Contient la subroutine save_checkpoint.
 !!\author
@@ -8,7 +8,9 @@
 !<
 
 !>
-!! \brief La routine save_checkpoint() assure la sauvegarde des champs (force,vitesse,...). Cette sauvegarde permet une reprise éventuelle.
+!! \brief La routine save_checkpoint() assure la sauvegarde des champs
+!! (force,vitesse,...). Cette sauvegarde permet une reprise
+!! Ã©ventuelle.
 !!
 !! \param type (domain), intent (INOUT) Tdomain
 !! \param integer, intent (IN) it
@@ -76,7 +78,6 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
         commande="cp -R "//trim(adjustl(dir_traces))//" "//dir_prot
         call system(trim(commande))
     endif
-
     call MPI_Barrier (Tdomain%communicateur, ierr)
 
     open (61,file=prot_file,status="unknown",form="formatted")
