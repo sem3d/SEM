@@ -253,12 +253,12 @@ subroutine RUN_PREPARED(Tdomain)
 
 !- allocation of different fields' sizes
     if (rg == 0) write (*,*) "--> ALLOCATING FIELDS"
-    call allocate_domain(Tdomain, rg)
+    call allocate_domain(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
 
 !- elementary properties (mass matrices, PML factors,..)
     if (rg == 0) write (*,*) "--> COMPUTING MASS MATRIX AND INTERNAL FORCES COEFFICIENTS "
-    call define_arrays(Tdomain, rg)
+    call define_arrays(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
 
 !- anelastic properties

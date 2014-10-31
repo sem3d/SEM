@@ -22,12 +22,11 @@ module mdefinitions
     private :: Comm_Mass_Complete, Comm_Mass_Complete_PML, Comm_Normal_Neumann
 contains
 
-subroutine Define_Arrays(Tdomain, rg)
+subroutine Define_Arrays(Tdomain)
     use constants
     use read_model_earthchunk
 
     type (domain), intent (INOUT), target :: Tdomain
-    integer, intent(IN) :: rg
     integer :: n, mat
     real, dimension(:,:,:), allocatable :: Whei
 
@@ -61,7 +60,7 @@ subroutine Define_Arrays(Tdomain, rg)
     endif
 
     call init_solid_fluid_interface(Tdomain)
-    call assemble_mass_matrices(Tdomain, rg)
+    call assemble_mass_matrices(Tdomain)
     call finalize_pml_properties(Tdomain)
     call inverse_mass_mat(Tdomain)
 
@@ -113,11 +112,10 @@ subroutine init_solid_fluid_interface(Tdomain)
     endif
 end subroutine init_solid_fluid_interface
 
-subroutine assemble_mass_matrices(Tdomain, rg)
+subroutine assemble_mass_matrices(Tdomain)
     use assembly, only : get_mass_elem2face, get_mass_elem2edge, get_mass_elem2vertex
     use scommutils, only : Comm_Mass_Face, Comm_Mass_Edge, Comm_Mass_Vertex
     type (domain), intent (INOUT), target :: Tdomain
-    integer, intent(in) :: rg
     !
     integer :: n, i, j, ne, nv, ngll1
     integer :: ngll_tot, ngllPML_tot, ngllNeu
@@ -142,7 +140,7 @@ subroutine assemble_mass_matrices(Tdomain, rg)
             call Comm_Normal_Neumann(n,Tdomain)
         enddo
 
-        call exchange_sem(Tdomain, rg)
+        call exchange_sem(Tdomain)
 
         ! now: assemblage on external faces, edges and vertices
         do n = 0,Tdomain%n_proc-1

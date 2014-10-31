@@ -43,12 +43,12 @@ contains
 !    end subroutine exchange_sem_wait_1d
 
 
-    subroutine exchange_sem(Tdomain, rg)
+    subroutine exchange_sem(Tdomain)
         use sdomain
         use mpi
         implicit none
         type(domain), intent(inout) :: Tdomain
-        integer, intent(in) :: rg
+        integer :: rg
         integer :: n, k
         integer :: other, ierr
         integer, dimension(Tdomain%n_proc) :: send_req, recv_req, send_pml_req, recv_pml_req
@@ -57,6 +57,7 @@ contains
         !write(*,*) "COMM 1"
         !- now we can exchange (communication global arrays)
         n = Tdomain%n_proc
+        rg = Tdomain%rank
         send_req = MPI_REQUEST_NULL
         recv_req = MPI_REQUEST_NULL
         send_pml_req = MPI_REQUEST_NULL
@@ -95,12 +96,12 @@ contains
 
     end subroutine exchange_sem
 
-    subroutine exchange_sem_forces(Tdomain, rg)
+    subroutine exchange_sem_forces(Tdomain)
         use sdomain
         use mpi
         implicit none
         type(domain), intent(inout) :: Tdomain
-        integer, intent(in) :: rg
+        integer :: rg
         integer :: n
         integer :: other, ierr
         integer, dimension(0:Tdomain%n_proc) :: req_s_f, req_r_f, req_s_pml, req_r_pml
@@ -110,6 +111,7 @@ contains
         !write(*,*) "ENTER Exchange sem forces", rg
         !- now we can exchange (communication global arrays)
         n = Tdomain%n_proc
+        rg = Tdomain%rank
         req_s_f = MPI_REQUEST_NULL
         req_r_f = MPI_REQUEST_NULL
         req_s_fl = MPI_REQUEST_NULL
@@ -160,12 +162,12 @@ contains
         !write(*,*) "END Exchange sem forces", rg
     end subroutine exchange_sem_forces
 
-    subroutine exchange_sem_forces_StoF(Tdomain, rg)
+    subroutine exchange_sem_forces_StoF(Tdomain)
         use sdomain
         use mpi
         implicit none
         type(domain), intent(inout) :: Tdomain
-        integer, intent(in) :: rg
+        integer :: rg
         integer :: n
         integer :: other, ierr
         integer, dimension(Tdomain%n_proc) :: req_s, req_r, req_s_pml,req_r_pml
@@ -173,6 +175,7 @@ contains
         integer, dimension(MPI_STATUS_SIZE,Tdomain%n_proc) :: statuses
         !- now we can exchange (communication global arrays)
         n = Tdomain%n_proc
+        rg = Tdomain%rank
         req_s = MPI_REQUEST_NULL
         req_r = MPI_REQUEST_NULL
         req_s_pml = MPI_REQUEST_NULL
@@ -202,12 +205,12 @@ contains
 
     end subroutine exchange_sem_forces_StoF
 
-    subroutine exchange_sem_forces_FtoS(Tdomain, rg)
+    subroutine exchange_sem_forces_FtoS(Tdomain)
         use sdomain
         use mpi
         implicit none
         type(domain), intent(inout) :: Tdomain
-        integer, intent(in) :: rg
+        integer :: rg
         integer :: n
         integer :: other, ierr
         integer, dimension(0:Tdomain%n_proc) :: req_s, req_r, req_s_pml,req_r_pml
@@ -215,6 +218,7 @@ contains
         integer, dimension(MPI_STATUS_SIZE,Tdomain%n_proc) :: statuses
         !- now we can exchange (communication global arrays)
         n = Tdomain%n_proc
+        rg = Tdomain%rank
         req_s = MPI_REQUEST_NULL
         req_r = MPI_REQUEST_NULL
         req_s_pml = MPI_REQUEST_NULL

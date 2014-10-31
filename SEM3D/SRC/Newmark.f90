@@ -26,7 +26,6 @@ subroutine Newmark(Tdomain,ntime)
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: ntime
-    integer :: rg
     integer :: n, mat,code
     integer :: nf, ne, nv
     integer :: nf_aus, ne_aus, nv_aus
@@ -108,7 +107,7 @@ subroutine Newmark(Tdomain,ntime)
             call Comm_Forces_PML_Complete(n,Tdomain)
         end do
 
-        call exchange_sem_forces(Tdomain, rg)
+        call exchange_sem_forces(Tdomain)
 
         ! now: assemblage on external faces, edges and vertices
         do n = 0,Tdomain%n_proc-1
@@ -182,7 +181,7 @@ subroutine Newmark(Tdomain,ntime)
     !- solid -> fluid coupling (normal dot velocity)
     if(Tdomain%logicD%SF_local_present)then
         call SF_solid_values_saving(Tdomain)
-        call StoF_coupling(Tdomain,rg)
+        call StoF_coupling(Tdomain)
     end if
 
 
@@ -191,12 +190,12 @@ subroutine Newmark(Tdomain,ntime)
 
     if(Tdomain%logicD%SF_local_present)then
         !- fluid -> solid coupling (pressure times velocity)
-        call FtoS_coupling(Tdomain,rg)
+        call FtoS_coupling(Tdomain)
         !- recorrecting on solid faces, edges and vertices
         call Newmark_recorrect_solid(Tdomain)
     end if
 
-    if (rg==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
+    if (Tdomain%rank==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
 
     return
 

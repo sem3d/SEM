@@ -1,4 +1,4 @@
-subroutine StoF_coupling(Tdomain,rg)
+subroutine StoF_coupling(Tdomain)
     ! from solid to fluid: velocity (dot) normal
     use sdomain
     use mpi
@@ -6,7 +6,6 @@ subroutine StoF_coupling(Tdomain,rg)
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
-    integer, intent(in)   :: rg
     integer  :: n,nf,ne,nv,nfs,ngll1,ngll2,ngll,i,j,nnf,nne,nnv,orient_e,    &
         code,ngllSF,ngllSF_PML
     real, dimension(:,:,:), allocatable  :: VelocFace
@@ -112,7 +111,7 @@ subroutine StoF_coupling(Tdomain,rg)
             call Comm_Forces_Complete_StoF_PML(n,Tdomain)
         end do
         ! now we can exchange force values with other procs
-        call exchange_sem_forces_StoF(Tdomain,rg)
+        call exchange_sem_forces_StoF(Tdomain)
 
         ! assemblage on external GLLs
         do n = 0,Tdomain%n_proc-1
@@ -175,7 +174,7 @@ subroutine StoF_coupling(Tdomain,rg)
 end subroutine StoF_coupling
 !----------------------------------------------------------------
 !----------------------------------------------------------------
-subroutine FtoS_coupling(Tdomain,rg)
+subroutine FtoS_coupling(Tdomain)
     ! from fluid to solid: normal times pressure (= -rho . VelPhi)
     use sdomain
     use mpi
@@ -183,7 +182,6 @@ subroutine FtoS_coupling(Tdomain,rg)
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
-    integer, intent(in)   :: rg
     integer  :: n,nf,ne,nv,nff,ngll1,ngll2,ngll,i,j,k,nnf,nne,nnv,orient_e,    &
         n_rings,shift,I_give_to,I_take_from,code,which_elem,ngllSF,ngllSF_PML
     integer, dimension(MPI_STATUS_SIZE)   :: statut
@@ -291,7 +289,7 @@ subroutine FtoS_coupling(Tdomain,rg)
             call Comm_Forces_Complete_FtoS_PML(n,Tdomain)
         end do
         ! now we can exchange force values with proc n
-        call exchange_sem_forces_FtoS(Tdomain,rg)
+        call exchange_sem_forces_FtoS(Tdomain)
         ! assemblage on external GLLs
         do n = 0,Tdomain%n_proc-1
             ngllSF = 0 ; ngllSF_PML = 0

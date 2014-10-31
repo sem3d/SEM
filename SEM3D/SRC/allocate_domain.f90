@@ -16,10 +16,9 @@ module sdomain_alloc
     use sdomain
     implicit none
 contains
-subroutine allocate_domain (Tdomain, rg)
+subroutine allocate_domain (Tdomain)
 
     type(domain), intent (INOUT) :: Tdomain
-    integer, intent (IN) :: rg
     integer :: n,nf,ne,nv,ngllx,nglly,ngllz,ngll1,ngll2,ngll
     integer :: n_solid
 
@@ -584,7 +583,7 @@ subroutine allocate_domain (Tdomain, rg)
     !------------------------
     if(Tdomain%n_proc > 1)then
         do n = 0,Tdomain%n_proc-1
-            call allocate_comm_proc (Tdomain, rg, n)
+            call allocate_comm_proc (Tdomain, n)
         enddo
     else
         Tdomain%sComm(0)%ngll = 0
@@ -596,9 +595,8 @@ subroutine allocate_domain (Tdomain, rg)
     return
 end subroutine allocate_domain
 
-    subroutine allocate_comm_proc(Tdomain, rg, n)
+    subroutine allocate_comm_proc(Tdomain, n)
         type(domain), intent (INOUT) :: Tdomain
-        integer, intent (IN) :: rg
         integer :: n,nf,ne,nv,i,ngll1,ngll2,   &
             ngll,ngllPML,ngllSO,ngllNeu,ngllSF,ngllSF_PML,ngll_F,ngllPML_F
             ngll = 0
