@@ -57,40 +57,31 @@ subroutine Newmark_PMC (Tdomain,Dt)
 
         ! Send informations on vertices
         do n=0,Tdomain%n_face-1
-            do i=0,1
-                smbr = ...
-                nv   = Tdomain%sFace(n)%Near_Vertex(i)
-                pos  = Tdomain%sFace(n)%pos_in_VertMat(i)
-                Tdomain%sVertex(nv)%smbrLambda((2*pos):(2*pos+1)) = smbr
-            enddo
+            
         enddo
 
         ! Solve linear systems on the vertices
         do n=0,Tdomain%n_vertex-1
-            call solve_gradient_conjugue()
+            call solve_lambda_vertex(Tdomain%Vertex(n))
         enddo
 
-        ! Constructing the Lambdas on the faces
+        ! Constructing the Lambda (= velocities vhat) on the faces
         do n=0,Tdomain%n_face-1
-            ngll = Tdomain%sFace(n)%ngll
-            ! Faces ends (vertices)
-            do i=0,1
-                nv   = Tdomain%sFace(n)%Near_Vertex(i)
-                pos  = Tdomain%sFace(n)%pos_in_VertMat(i)
-                Tdomain%sFace(n)%Veloc(i*(ngll-1),:) = Tdomain%sVertex(nv)%Lambda((2*pos):(2*pos+1))
-            enddo
-            ! Faces inner nodes
-            do i=1,ngll-1
-                Tdomain%sFace(n)%Veloc(i) = .....
-            enddo
+            ! Get lambda from near vertices
+            call Get_lambda_v2f (Tdomain, n)
+            ! Computes lambda (= Vhat) on Face's inner nodes
+            call compute_Vhat_face (Tdomain%sFace(n))
         enddo
 
-        ! Communication Lamdas from faces to elements
+        ! Local Solvers at element level
         do n=0,Tdomain%n_elem-1
+            ! Communication Lambda from faces to elements
             do nf = 0,3
                 nface = Tdomain%specel(n)%Near_Face(nf)
                 call get_Vhat_f2el(Tdomain,n,nface,nf)
             enddo
+            ! Local Solver
+            call local_solver(Tdomain%specel(n))
         enddo
 
         !!!!!!!!!!!!!  MPI COMMUNICATIONS HERE  !!!!!!!!!!!!!!!!!!!

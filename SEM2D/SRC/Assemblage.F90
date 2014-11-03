@@ -326,6 +326,33 @@ end subroutine Get_Vhat_f2el
 
 
 !>
+!!\brief Subroutine in which the face gets the velocities lambda (lagrange multiplicators)
+!! from the vertices to the Face's ends.
+!!\version 1.0
+!!\date 03/10/2014
+!! This subroutine is used only with HDG elements in a semi-implicit framework
+!<
+subroutine Get_lambda_v2f (Tdomain, nface)
+
+    use sdomain
+    implicit none
+
+    type (domain), intent (INOUT) :: Tdomain
+    integer, intent(in)   :: nface
+    integer               :: i, ngll, nv, pos
+
+    ngll = Tdomain%sFace(nface)%ngll
+
+    do i=0,1
+        nv = Tdomain%sFace(nface)%Near_Vertex(i)
+        pos = Tdomain%sFace(nface)%pos_in_VertMat(i)
+        Tdomain%sFace(nface)%Veloc(i*(ngll-1),:) = Tdomain%sVertex(nv)%Lambda(pos:pos+1)
+    enddo
+
+end subroutine Get_lambda_v2f
+
+
+!>
 !!\brief This Subroutine enforces the Dirichlet Boundary Conditions (Veloc = 0)
 !! in a DG or HDG context, setting the corresponding forces to zero.
 !! Subroutine particularly usefull in a context using PML.

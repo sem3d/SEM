@@ -653,7 +653,6 @@ contains
     end subroutine compute_Kinetic_Energy_F
 
     ! ###########################################################
-
     !>
     !! \brief subroutine compute_Kinv is used for HDG elements only
     !! This subroutine computes the inverse of penalty matrix used on the
@@ -694,6 +693,57 @@ contains
         endif
 
     end subroutine compute_Kinv
+
+    ! ###########################################################
+    !>
+    !! \brief subroutine Invert_F is used for HDG elements only
+    !! This subroutine computes the inverse of the K matrix used to find
+    !! the lagrange parameters (= velocities) lying on faces, solving for
+    !! the matrix system K * Lambda = Smbr.
+    !! This subroutine is used only for HDG in a semi-implicit framework.
+    !! \param type (Face), intent (INOUT) F
+    !<
+    subroutine Invert_K_face (F)
+        implicit none
+
+        type (Face), intent (INOUT) :: F
+        real, dimension(0:F%ngll-1) :: Det, tmp
+
+        Det(:) = F%Kinv(:,0) * F%Kinv(:,1) - (F%Kinv(:,2))**2
+
+        F%Kinv(:,2) =-1/Det(:) * F%Kinv(:,2)
+        tmp(:) = F%Kinv(:,1)
+        F%Kinv(:,1) = 1/Det(:) * F%Kinv(:,0)
+        F%Kinv(:,0) = 1/Det(:) * tmp(:)
+
+    end subroutine Invert_K_face
+
+
+    ! ###########################################################
+    !>
+    !! \brief subroutine compute_Vhat_face is used for HDG elements only.
+    !! This subroutine computes the lagrange parameters (= velocities) lying
+    !! on faces, solving for the matrix system K * Lambda = Smbr.
+    !! It uses the already-inverted matrix K --> Kinv.
+    !! This subroutine is used only for HDG in a semi-implicit framework.
+    !! \param type (Face), intent (INOUT) F
+    !<
+    subroutine compute_Vhat_face (F)
+        implicit none
+
+        type (Face), intent (INOUT) :: F
+
+        ! La second membre "smbr" du systeme K * Lambda = Smbr est aussocie aux tractions
+        F%Veloc(:,0) = F%Kinv(:,0)*F%Traction(:,0) + F%Kinv(:,2)*F%Traction(:,1)
+        F%Veloc(:,1) = F%Kinv(:,2)*F%Traction(:,0) + F%Kinv(:,1)*F%Traction(:,1)
+        F%Traction = 0.
+        ! Treatment of boundary faces
+        if (F%reflex) then
+            F%Veloc(:,:) = 0.
+        endif
+
+    end subroutine Compute_Vhat_face
+
 
     ! ###########################################################
 

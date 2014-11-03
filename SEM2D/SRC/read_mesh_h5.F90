@@ -260,7 +260,7 @@ subroutine set_vertex_valence(Tdomain)
     implicit none
     type (domain), intent (INOUT) :: Tdomain
 
-    integer :: nv, nf, val, i
+    integer :: nv, nf, val, i, nel
 
     do nv=0,Tdomain%n_vertex-1
         Tdomain%sVertex(nv)%Valence = 0
@@ -281,6 +281,11 @@ subroutine set_vertex_valence(Tdomain)
         Tdomain%sVertex(nv)%Near_Face(:) = -1
     enddo
 
+    ! Creation, pour chaque face, du vecteur pos_in_VertMat qui stocke,
+    ! en 1ere coordonnee, la position dans le systeme matriciel du vertex Near_Vertex(0)
+    ! du glln situe sur Near_Vertex(0), mais appartenant a la face courante. De meme, la
+    ! deuxieme coordonnee de pos_in_VertMat correspond a la position du glln sur Near_Vertex(1)
+    ! dans le systeme matriciel du vertex Near_Vertex(1)...
     do nf=0,Tdomain%n_face-1
         nv = Tdomain%sFace(nf)%Near_Vertex(0)
         i = 0
@@ -297,6 +302,33 @@ subroutine set_vertex_valence(Tdomain)
         enddo
         Tdomain%sVertex(nv)%Near_Face(i) = nf
         Tdomain%sFace(nf)%pos_in_VertMat(1) = i
+    enddo
+
+    ! Creation du vecteur Element%pos_corner_in_VertMat qui associe au i-eme coin
+    ! (correspondant au i_eme vertex de Element%Near_Vertex(:)) de l'element courant
+    ! les position des deux glln des bouts des deux faces adjacentes a ce coin.
+    do nel=0,Tdomain%n_elem-1
+        do i=0,3  ! i-eme coin de l'element
+            nv  = Tdomain%specel(nel)%Near_Vertex(i)
+            nf1 = Tdomain%specel(nel)%Near_Face(modulo(i-1,3))
+            nf2 = Tdomain%specel(nel)%Near_Face(i)
+            ! Pour le bout de la premiere face adjacente au coin
+            if(Tdomain%sface(nf1)%Near_Vertex(0) == nv) then
+                pos = Tdomain%sface(nf1)%pos_in_VertMat(0)
+                Tdomain%specel(nel)%pos_corner_in_VertMat(i,0) = pos
+            else
+                pos = Tdomain%sface(nf1)%pos_in_VertMat(1)
+                Tdomain%specel(nel)%pos_corner_in_VertMat(i,0) = pos
+            endif
+            ! Pour le bout de la deuxieme face adjacente au coin
+            if(Tdomain%sface(nf2)%Near_Vertex(0) == nv) then
+                pos = Tdomain%sface(nf2)%pos_in_VertMat(0)
+                Tdomain%specel(nel)%pos_corner_in_VertMat(i,1) = pos
+            else
+                pos = Tdomain%sface(nf2)%pos_in_VertMat(1)
+                Tdomain%specel(nel)%pos_corner_in_VertMat(i,1) = pos
+            endif
+        enddo
     enddo
 
 end subroutine set_vertex_valence

@@ -238,7 +238,7 @@ contains
         matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(12,0,0:ngz-1)*Elem%Density(0,0:ngz-1)
 
         ! Inversion de la matrice D sur tous les noeuds de bord :
-        det(:) = matD(:,0,0) * matD(:,1,1) - matD(:,1,0) * matD(:,1,0)
+        det(:) = matD(:,0,0) * matD(:,1,1) - matD(:,0,1) * matD(:,1,0)
         tmp(:) = matD(:,0,0)
         matD(:,0,0) = 1./det(:)  * matD(:,1,1)
         matD(:,1,1) = 1./det(:)  * tmp(:)

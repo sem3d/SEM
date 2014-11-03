@@ -28,7 +28,6 @@ module svertices
        integer :: valence
        real,   dimension (:), allocatable :: Vect_RK
        integer,dimension (:), allocatable :: Near_Face
-       logical,dimension (:), allocatable :: NearFaceEnd_is1st_glln
        real, dimension (:,:), allocatable :: Kinv
        real,   dimension (:), allocatable :: SmbrLambda
        real,   dimension (:), allocatable :: Lambda
