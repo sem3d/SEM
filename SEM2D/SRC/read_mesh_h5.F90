@@ -276,6 +276,8 @@ subroutine set_vertex_valence(Tdomain)
     do nv=0,Tdomain%n_vertex-1
         val = Tdomain%sVertex(nv)%Valence
         allocate(Tdomain%sVertex(nv)%Near_Face(0:val-1))
+        allocate(Tdomain%sVertex(nv)%NearFaceEnd_is1st_glln(0:val-1))
+        NearFaceEnd_is1st_glln(:) = .false.
         Tdomain%sVertex(nv)%Near_Face(:) = -1
     enddo
 
