@@ -115,6 +115,7 @@ set(SEM3D_SOURCES ${SEM3D_SOURCES_F}
     ${PRJ}/SRC/compute_iso_Q.c
     ${PRJ}/SRC/constant_Q2_sub.c
     ${PRJ}/SRC/iso_Q2_sub.c
+    ${PRJ}/SRC/nrutil_ansi.c
     ${PRJ}/SRC/nrutil.c
 )
 
@@ -147,6 +148,7 @@ add_executable(test_Q_coeffs ${PRJ}/TESTS/UNITS/test_Q_coeffs.c
       ${PRJ}/SRC/compute_iso_Q.c
       ${PRJ}/SRC/constant_Q2_sub.c
       ${PRJ}/SRC/iso_Q2_sub.c
+      ${PRJ}/SRC/nrutil_ansi.c
       ${PRJ}/SRC/nrutil.c
 )
 
