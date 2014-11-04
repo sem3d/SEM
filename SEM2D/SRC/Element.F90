@@ -602,6 +602,59 @@ contains
 
     ! ###########################################################
     !>
+    !! \brief This subroutine computes the "internal forces" terms for the equations
+    !! of evolution of strains (in a "weak" form), and the equation of evolution of
+    !! velocities (in a "strong" form i.e after anothe integration by part).
+    !! It is suitable for Hybridizable Discontinuous Galerkin elements only,
+    !! and used in a framework of semi-implicit time scheme.
+    !!
+    !! \param type (Element), intent (INOUT) Elem
+    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
+    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTprime
+    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hprimez
+    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
+    !<
+    subroutine  compute_InternalForces_HDG (Elem,hprime,hTprime,hprimez,hTprimez)
+      implicit none
+
+      type (Element), intent (INOUT) :: Elem
+      real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime , hTprime
+      real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
+      real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: aux1, aux2
+
+      aux1 = Elem%Acoeff(:,:,0)*Elem%Veloc(:,:,0)
+      aux2 = Elem%Acoeff(:,:,1)*Elem%Veloc(:,:,0)
+      Elem%Forces(:,:,0) = - MATMUL(hprime,aux1) - MATMUL(aux2,hTprimez)
+
+      aux1 = Elem%Acoeff(:,:,2)*Elem%Veloc(:,:,1)
+      aux2 = Elem%Acoeff(:,:,3)*Elem%Veloc(:,:,1)
+      Elem%Forces(:,:,1) = - MATMUL(hprime,aux1) - MATMUL(aux2,hTprimez)
+
+      aux1 = Elem%Acoeff(:,:,0)*Elem%Veloc(:,:,1) + Elem%Acoeff(:,:,2)*Elem%Veloc(:,:,0)
+      aux2 = Elem%Acoeff(:,:,1)*Elem%Veloc(:,:,1) + Elem%Acoeff(:,:,3)*Elem%Veloc(:,:,0)
+      Elem%Forces(:,:,2) = -0.5 * (MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez))
+
+      aux1 = (Elem%Acoeff(:,:,4) + Elem%Acoeff(:,:,5)) * MATMUL(hTprime,Elem%Strain(:,:,0)) &
+           + Elem%Acoeff(:,:,4) * MATMUL(hTprime,Elem%Strain(:,:,1)) &
+           + Elem%Acoeff(:,:,7) * MATMUL(hTprime,Elem%Strain(:,:,2))
+      aux2 = (Elem%Acoeff(:,:,8) + Elem%Acoeff(:,:,9)) * MATMUL(Elem%Strain(:,:,0),hprimez) &
+           + Elem%Acoeff(:,:,8) * MATMUL(Elem%Strain(:,:,1),hprimez) &
+           + Elem%Acoeff(:,:,11)* MATMUL(Elem%Strain(:,:,2),hprimez)
+      Elem%Forces(:,:,3) = aux1 + aux2
+
+      aux1 = (Elem%Acoeff(:,:,7) + Elem%Acoeff(:,:,6)) * MATMUL(hTprime,Elem%Strain(:,:,1)) &
+           + Elem%Acoeff(:,:,6) * MATMUL(hTprime,Elem%Strain(:,:,0)) &
+           + Elem%Acoeff(:,:,5) * MATMUL(hTprime,Elem%Strain(:,:,2))
+      aux2 = (Elem%Acoeff(:,:,11) + Elem%Acoeff(:,:,10)) * MATMUL(Elem%Strain(:,:,1),hprimez) &
+           + Elem%Acoeff(:,:,10)* MATMUL(Elem%Strain(:,:,0),hprimez) &
+           + Elem%Acoeff(:,:,9) * MATMUL(Elem%Strain(:,:,2),hprimez)
+      Elem%Forces(:,:,4) = aux1 + aux2
+
+    end subroutine compute_InternalForces_HDG
+
+
+    ! ###########################################################
+    !>
     !! \brief Thus subroutine is used in a Runge-Kutta 4 framework :
     !! It updates the variables for each of the 5 steps of the LSERK4 time scheme.
     !! For continuous Galerkin elements, velocities and displacements are updated ;
@@ -1253,6 +1306,65 @@ contains
 
     end subroutine compute_Traces
 
+    ! ###########################################################
+    !>
+    !! \brief This subroutine adds to the second member (i.e the forces) of the
+    !!  system we solve, the terms comming from the previous time-step.
+    !! \param type (Element), intent (INOUT) Elem
+    !!
+    !<
+    subroutine  add_previous_state2forces (Elem,Dt)
+        implicit none
+
+        type (Element), intent (INOUT)   :: Elem
+        real, intent (IN)                :: Dt
+
+        Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + 1./Dt * Elem%Acoeff(:,:,12)*Elem%Strain0(:,:,0)
+        Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + 1./Dt * Elem%Acoeff(:,:,12)*Elem%Strain0(:,:,1)
+        Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + 1./Dt * Elem%Acoeff(:,:,12)*Elem%Strain0(:,:,2)
+        Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + 1./Dt * Elem%Acoeff(:,:,12)*Elem%Density(:,:)*Elem%Veloc0(:,:,0)
+        Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + 1./Dt * Elem%Acoeff(:,:,12)*Elem%Density(:,:)*Elem%Veloc0(:,:,1)
+
+    end subroutine add_previous_state2forces
+
+
+    ! ###########################################################
+    !>
+    !! \brief This subroutine computes the second members "R" of the system
+    !! K*Lambda = R on the Lagrange multiplicators (= Vhat) living on the faces.
+    !! R is the computed on each external node of the current element, and is stored
+    !! on the variable Elem%TracFace because indeed, R is homogeneous to a traction.
+    !! This Subroutine is suitable for Hybridizable Discontinuous Galerkin elements
+    !! only, and only in a framework of semi-implicit time-scheme.
+    !! \param type (Element), intent (INOUT) Elem
+    !!
+    !<
+    subroutine  compute_smbr_R (Elem)
+        implicit none
+
+        type (Element), intent (INOUT)   :: Elem
+        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:4) :: smbr
+        integer    :: imin, imax, ngx, ngz
+        ngx = Elem%ngllx ; ngz = Elem%ngllz
+
+        ! Storing the Forces in the array smbr :
+        call get_iminimax(Elem,0,imin,imax)
+        smbr(imin:imax,0:4) = Elem%Forces(0:ngx-1,0,0:4)
+        call get_iminimax(Elem,1,imin,imax)
+        smbr(imin:imax,0:4) = Elem%Forces(ngx-1,0:ngz-1,0:4)
+        call get_iminimax(Elem,2,imin,imax)
+        smbr(imin:imax,0:4) = Elem%Forces(0:ngx-1,ngz-1,0:4)
+        call get_iminimax(Elem,3,imin,imax)
+        smbr(imin:imax,0:4) = Elem%Forces(0,0:ngz-1,0:4)
+
+        ! Building R = L - CAinv * Forces_strain + EDinv * Forces_Veloc
+        ! L is for Neumann boundary conditions. So far L = 0.
+        Elem%TracFace(:,0) = -Elem%CAinv(:,0,0)*smbr(:,0)-Elem%CAinv(:,0,1)*smbr(:,1)-Elem%CAinv(:,0,2)*smbr(:,2)&
+                             +Elem%EDinv(:,0,0)*smbr(:,3)+Elem%EDinv(:,0,1)*smbr(:,4)
+        Elem%TracFace(:,1) = -Elem%CAinv(:,1,0)*smbr(:,0)-Elem%CAinv(:,1,1)*smbr(:,1)-Elem%CAinv(:,1,2)*smbr(:,2)&
+                             +Elem%EDinv(:,1,0)*smbr(:,3)+Elem%EDinv(:,1,1)*smbr(:,4)
+
+    end subroutine compute_smbr_R
 
 ! ###########################################################
 !>

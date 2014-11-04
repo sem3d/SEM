@@ -51,13 +51,24 @@ subroutine Newmark_PMC (Tdomain,Dt)
 
     do while (iter<n_it_max)
 
+        ! Building second members (= forces) of systems.
         do n=0,Tdomain%n_elem-1
-            call compute_internal_forces ()
+            mat = Tdomain%specel(n)%mat_index
+            call compute_InternalForces_HDG  (Tdomain%specel(n), &
+              Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimex, &
+              Tdomain%sSubDomain(mat)%hprimez,Tdomain%sSubDomain(mat)%hTprimez)
+            call add_previous_state2forces (Tdomain%specel(n))
         enddo
 
-        ! Send informations on vertices
-        do n=0,Tdomain%n_face-1
-            
+        ! External Forces computation
+        call Compute_External_Forces(Tdomain,timelocal)
+
+        ! Compute second member "R" of the Lagrange multiplicator system
+        do n=0,Tdomain%n_elem-1
+            ! Compute current element contribution to R
+            call compute_smbr_R(Tdomain%specel(n))
+            ! Assembles R on the faces and vertices
+            call get_R_el2fv(Tdomain,n)
         enddo
 
         ! Solve linear systems on the vertices
