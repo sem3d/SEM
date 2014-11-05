@@ -41,6 +41,11 @@ MODULE constants
 
 CONTAINS
 
+
+    subroutine unused(var)
+        real :: var
+        var = var
+    end subroutine unused
 END MODULE constants
 !! Local Variables:
 !! mode: f90
