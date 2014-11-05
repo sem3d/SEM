@@ -27,16 +27,16 @@ void compute_iso_q_(T1,T2,n,Q_mu,tau_mu,tau_sigma)
     f1 = 1.0/(*T1);
     f2 = 1.0/(*T2);
     if (f2 < f1) {
-	printf("*T2 > *T1\n"); 
+	printf("Error in Attenuation parameters: T2 > T1\n");
 	exit(1);
     }
-    if (*Q_mu < 0.0) {
-	printf("Q < 0\n");
+    if (*Q_mu <= 0.0) {
+	printf("Error in Attenuation parameters: Q <= 0\n");
 	exit(1);
     }
 
-    if (*n < 1) { 
-	printf("n < 1\n");
+    if (*n < 1) {
+	printf("Error in Attenuation parameters: n < 1\n");
 	exit(1);
     }
     tau_s = dvector(1, *n);
@@ -45,7 +45,7 @@ void compute_iso_q_(T1,T2,n,Q_mu,tau_mu,tau_sigma)
     for (i = 1; i <= *n; i++) {
 	/* difference fortran / c pour les tableaux: */
 	tau_mu   [i-1]=tau_e[i];
-	tau_sigma[i-1]=tau_s[i];    
+	tau_sigma[i-1]=tau_s[i];
     }
     free_dvector(tau_s, 1, *n);
     free_dvector(tau_e, 1, *n);

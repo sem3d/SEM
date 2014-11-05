@@ -33,15 +33,15 @@ void iso_Q2_sub(f1, f2, n, Q, tau_s, tau_e)
     void            free_dvector(), free_dmatrix();
 							    
     if (f2 < f1) {
-	printf("T2 > T1\n");
+	printf("Error in Attenuation parameters: T2 > T1\n");
 	exit(1);
     }
-    if (Q < 0.0) {
-	printf("Q < 0\n");
+    if (Q <= 0.0) {
+	printf("Error in Attenuation parameters: Q <= 0\n");
 	exit(1);
     }
     if (n < 1) {
-	printf("n < 1\n");
+	printf("Error in Attenuation parameters: n < 1\n");
 	exit(1);
     }
     y = dvector(1, 3);
