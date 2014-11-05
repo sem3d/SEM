@@ -283,6 +283,8 @@ subroutine read_mesh_file_h5(Tdomain, rg)
     use mpi
     use hdf5
     use sem_hdf5
+    use sem_c_bindings
+    use semdatafiles, only : MAX_FILE_SIZE
     implicit none
     !
     type(domain), intent(inout) :: Tdomain
@@ -298,14 +300,17 @@ subroutine read_mesh_file_h5(Tdomain, rg)
     !real,    allocatable, dimension(:)   :: rtemp
     character(len=10) :: proc_grp
     integer, allocatable, dimension(:)   :: nb_elems_per_proc
+    character(Len=MAX_FILE_SIZE) :: fname
     !
     call init_hdf5()
     !
-    call h5fopen_f(trim(adjustl(Tdomain%mesh_file))//".h5", H5F_ACC_RDONLY_F, fid, hdferr)
-    if (hdferr/=0) then
-        write (*,*) "Process ",rg, " can't open his mesh_file ", Tdomain%mesh_file
+    fname = trim(adjustl(Tdomain%mesh_file))//".h5"
+    if (sem_check_file(trim(fname))==0) then
+        write (*,*) "Process ",rg, " can't open his mesh_file ", trim(fname)
         stop
     endif
+
+    call h5fopen_f(trim(fname), H5F_ACC_RDONLY_F, fid, hdferr)
     !
     !-- Reading mesh properties
     call read_attr_int(fid, "ndim", Tdomain%n_dime)

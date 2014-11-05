@@ -1,5 +1,5 @@
 /*
-  Outils divers pour éviter les appels 'system' depuis fortran
+  Outils divers pour Ã©viter les appels 'system' depuis fortran
   mkdir, ...
 */
 
@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <stdio.h>
+#include <unistd.h>
 
 int sem_mkdir_c(const char* path)
 {
@@ -25,6 +26,12 @@ int sem_mkdir_c(const char* path)
     return 0;
 }
 
+int sem_check_file_c(const char* path)
+{
+    int ret = access(path, R_OK);
+    if (ret==0) return 1;
+    return 0;
+}
 
 
 // Local Variables:
