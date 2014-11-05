@@ -1,5 +1,5 @@
 1
-S  6300.00  2500.00   2800. 5   5    5  0.000005 0. 0.
+S  6300.00  2500.00   2800. 5   5    5  0.000005 1000. 1000.
 # PML properties
 # Filtering? npow,Apow,X?,left?,Y?,Forwrd?,Z?,down?,cutoff freq
 
