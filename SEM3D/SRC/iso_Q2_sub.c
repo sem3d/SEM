@@ -144,6 +144,9 @@ void            initiso(f1, f2, n, Q, x1, x2, y)
 	}
     } else {
 	q = 1.0 / Q;
+	y[1] = 1. ;
+	y[2] =  2.*q/(1. - q ) ;
+	y[3] = 0. ;
 	exp1 = log10(f1);
 	exp2 = log10(f2);
 	expo=(exp1+exp2)/2.0;
