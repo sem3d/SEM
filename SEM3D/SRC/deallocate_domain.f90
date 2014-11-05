@@ -7,7 +7,7 @@
 !!
 !<
 
-subroutine deallocate_domain (Tdomain, rg)
+subroutine deallocate_domain (Tdomain)
 
     ! Modified by Gaetano Festa 25/02/2005
     ! Modified by Paul Cupillard 08/12/2005
@@ -18,11 +18,10 @@ subroutine deallocate_domain (Tdomain, rg)
     implicit none
 
     type(domain), intent (INOUT):: Tdomain
-    integer, intent (IN) :: rg
-
-
+    integer :: rg
     integer :: n
 
+    rg = Tdomain%rank
 
     deallocate (Tdomain%GlobCoord)
     deallocate (Tdomain%Coord_Nodes)

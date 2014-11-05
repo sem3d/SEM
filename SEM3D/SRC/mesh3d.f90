@@ -278,7 +278,7 @@ subroutine read_mesh_file(Tdomain, rg)
     write(*,*) "Mesh read correctly for proc #", rg
 end subroutine read_mesh_file
 
-subroutine read_mesh_file_h5(Tdomain, rg)
+subroutine read_mesh_file_h5(Tdomain)
     use sdomain
     use mpi
     use hdf5
@@ -288,7 +288,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
     implicit none
     !
     type(domain), intent(inout) :: Tdomain
-    integer, intent(in)         :: rg
+    integer :: rg
     integer :: i,j
     logical :: neumann_log
     !
@@ -301,6 +301,8 @@ subroutine read_mesh_file_h5(Tdomain, rg)
     character(len=10) :: proc_grp
     integer, allocatable, dimension(:)   :: nb_elems_per_proc
     character(Len=MAX_FILE_SIZE) :: fname
+    !
+    rg = Tdomain%rank
     !
     call init_hdf5()
     !

@@ -191,7 +191,7 @@ subroutine RUN_PREPARED(Tdomain)
 
 !- reading external data: run parameters (geometry, materials, time evolution,..)
     if(rg == 0) write(*,*) "--> READING INPUT PARAMETERS AND DATA"
-    call read_input(Tdomain, rg, code)
+    call read_input(Tdomain, code)
 
 !- Create subdomains communicators
     group = rg/Tdomain%ngroup

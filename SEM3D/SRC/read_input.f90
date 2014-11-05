@@ -26,15 +26,17 @@ module semconfig
 contains
 
 
-subroutine read_gradient_desc(Tdomain, rg)
+subroutine read_gradient_desc(Tdomain)
     use sdomain
     use semdatafiles
     use mpi
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    integer, intent(in)         :: rg
+    integer :: rg
     integer :: i,j
+
+    rg = Tdomain%rank
 
     open(12,file=Tdomain%file_bassin,action="read",status="old")
     !   x_type 0 : on impose un materiau homogene dans chaque sous domaine
@@ -156,14 +158,13 @@ end subroutine echo_input_params
 
 
 
-subroutine finalize_mesh_connectivity(Tdomain, rg)
+subroutine finalize_mesh_connectivity(Tdomain)
     use sdomain
     use semdatafiles
     use mpi
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    integer, intent(in)         :: rg
     integer :: i, j, k, n, nf, nnf, mat, ne, nv, nne, nnv
     integer :: n_aus
 
@@ -268,19 +269,20 @@ subroutine finalize_mesh_connectivity(Tdomain, rg)
 
 end subroutine finalize_mesh_connectivity
 
-subroutine read_material_file(Tdomain, rg)
+subroutine read_material_file(Tdomain)
     use sdomain
     use semdatafiles
     use mpi
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    integer, intent(in)         :: rg
     character(Len=MAX_FILE_SIZE) :: fnamef
     integer :: i, j, n_aus, npml, mat, ne, nf
     logical, dimension(:), allocatable :: L_Face, L_Edge
     real :: dtmin
+    integer :: rg
 
+    rg = Tdomain%rank
     npml = 0
     allocate(Tdomain%sSubdomain(0:Tdomain%n_mat-1))
 
@@ -483,12 +485,11 @@ end function is_in_box
 !>
 ! Selectionne les elements pour les inclure ou non dans les snapshots
 !<
-subroutine select_output_elements(Tdomain, rg, config)
+subroutine select_output_elements(Tdomain, config)
     use sdomain
     implicit none
     type(domain), intent(inout)  :: Tdomain
     type(sem_config), intent(in) :: config
-    integer, intent(in) :: rg
 
     type(sem_snapshot_cond), pointer :: selection
     integer :: n, i, ipoint
@@ -527,7 +528,7 @@ subroutine select_output_elements(Tdomain, rg, config)
 
 end subroutine select_output_elements
 
-subroutine read_input (Tdomain, rg, code)
+subroutine read_input (Tdomain, code)
     use sdomain
     use semdatafiles
     use mpi
@@ -536,14 +537,14 @@ subroutine read_input (Tdomain, rg, code)
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    integer, intent(in)          :: rg
     integer, intent(out)         :: code
     character(Len=MAX_FILE_SIZE) :: fnamef
     type(sem_config)             :: config
     logical                      :: logic_scheme
     integer                      :: imat
+    integer                      :: rg
 
-
+    rg = Tdomain%rank
 
     call semname_file_input_spec(fnamef)
 
@@ -639,16 +640,13 @@ subroutine read_input (Tdomain, rg, code)
     ! Create sources from C structures
     call create_sem_sources(Tdomain, config)
 
-    !call echo_input_params(Tdomain, rg)
-
     !- Parametrage super object desactive
     Tdomain%logicD%super_object_local_present = .false.
 
-    call read_mesh_file_h5(Tdomain, rg)
+    call read_mesh_file_h5(Tdomain)
 
-    !write(*,*) rg, "Reading materials"
     !---   Properties of materials.
-    call read_material_file(Tdomain, rg)
+    call read_material_file(Tdomain)
 
     ! Material Earthchunk
 
@@ -683,15 +681,10 @@ subroutine read_input (Tdomain, rg, code)
         enddo
     endif
 
-
     write(*,*) rg, "Reading materials done"
 
-
-    call finalize_mesh_connectivity(Tdomain, rg)
-
-    !write(*,*) rg, "Finalize done"
-
-    call select_output_elements(Tdomain, rg, config)
+    call finalize_mesh_connectivity(Tdomain)
+    call select_output_elements(Tdomain, config)
 
 end subroutine read_input
 
