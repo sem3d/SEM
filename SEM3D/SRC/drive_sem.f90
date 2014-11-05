@@ -156,6 +156,7 @@ end subroutine INIT_MESSAGE
 subroutine RUN_PREPARED(Tdomain)
     use sdomain
     use sdomain_alloc
+    use attenuation
     use mCapteur
     use semdatafiles
     use mpi
