@@ -373,7 +373,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
     ! Faces and elements properties related to faces
     call read_dataset(fid, "faces", itemp2)
     call read_dataset(fid, "faces_map", itemp2b)
-    
+
     allocate(Tdomain%sFace(0:Tdomain%n_face-1))
     do i=0,Tdomain%n_face-1
         call init_face(Tdomain%sFace(i))
@@ -387,7 +387,7 @@ subroutine read_mesh_file_h5(Tdomain, rg)
     ! Edges
     call read_dataset(fid, "edges", itemp2)
     call read_dataset(fid, "edges_map", itemp2b)
-    
+
     allocate(Tdomain%sEdge(0:Tdomain%n_edge-1))
     do i=0,Tdomain%n_edge-1
         call init_edge(Tdomain%sEdge(i))
@@ -657,3 +657,8 @@ end subroutine read_mesh_file_h5
 
 
 end module mesh3d
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent : !!

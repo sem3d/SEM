@@ -44,9 +44,10 @@ contains
     !subroutine Prediction_Edge_Veloc (E, alpha, bega, dt)
     subroutine Prediction_Edge_Veloc (E,dt)
         implicit none
-
         type (Edge), intent (INOUT) :: E
         real, intent(in) :: dt
+
+        if (.false.) call unused(dt) ! suppress warning
 
         E%Forces(:,:) = E%Displ(:,:)
         E%V0(:,:) = E%Veloc(:,:)
@@ -58,9 +59,10 @@ contains
     !------------------------------------------------------------------
     subroutine Prediction_Edge_VelPhi(E,dt)
         implicit none
-
         type(Edge), intent(inout) :: E
         real, intent(in) :: dt
+
+        if (.false.) call unused(dt) ! suppress warning
 
         E%VelPhi0(:) = E%VelPhi(:)
         E%ForcesFl(:) = E%Phi(:)
@@ -71,11 +73,11 @@ contains
     ! ###########################################################
     subroutine Correction_Edge_Veloc (E, dt)
         implicit none
-
         type(Edge), intent(inout) :: E
         real, intent (in) :: dt
         integer :: i, ngll, j
 
+        if (.false.) call unused(dt) ! suppress warning
 
         ngll = E%ngll
 

@@ -1004,7 +1004,7 @@ contains
         implicit none
         type(Tcapteur) :: capteur
         real xi_min, xi_max, xi0, eta0, eta_min, eta_max, xitrouve, etatrouve
-        real P(4,0:1), xtrouve, ytrouve, dxi, deta, coord(0:3,0:1), xtrouve_def, ytrouve_def, xitrouve_def, etatrouve_def
+        real P(4,0:1), dxi, deta, coord(0:3,0:1), xitrouve_def, etatrouve_def
         real dist_def, dist, dist_k
         real xi, eta
         real eps
@@ -1013,7 +1013,8 @@ contains
         logical interieur
         integer, parameter :: n_itmax=2000
         integer i_sens
-        !! attention si le point du capteur se trouve partage entre plusieurs elements (sommets, face ou aretes)
+        !! attention si le point du capteur se trouve partage entre
+        !! plusieurs elements (sommets, face ou aretes)
         !! identifiation
 
         xi_min = -1.  !bornes min et max de la zone d'etude dans le carre de reference
@@ -1027,11 +1028,6 @@ contains
         eta0 = eta_min
         i_sens = 1 !sens de parcours non continu
 
-        !  print *,'coord de la maille pour capteur',coord(0,:)
-        !  print *,'coord de la maille pour capteur',coord(1,:)
-        !  print *,'coord de la maille pour capteur',coord(2,:)
-        !  print *,'coord de la maille pour capteur',coord(3,:)
-        !  do while(dist_def > eps) !precedemment
         do while((dist_def > eps) .AND. (n_it<n_itmax))
             n_it = n_it +1
             !on subdivise la zone en 4 sous-zones d'etude
@@ -1059,12 +1055,9 @@ contains
                             !on teste si P(k) correspond au capteur. Si oui on sort
                             !
                             if(dist_k < eps) then
-                                xtrouve_def = P(k,0)
-                                ytrouve_def = P(k,1)
                                 xitrouve_def = xi
                                 etatrouve_def = eta
-                                print *,'xtrouve ytrouve',xtrouve_def,ytrouve_def,xitrouve_def,&
-                                    etatrouve_def,n_it
+                                print *,'xtrouve ytrouve',P(k,0),P(k,1),xi,eta,n_it
                                 return
                             endif
 
@@ -1073,8 +1066,6 @@ contains
                             if(abs(dist - dist_k) < eps) then
                                 xitrouve = xi
                                 etatrouve = eta
-                                xtrouve = P(k,0)
-                                ytrouve =  P(k,1)
                             endif
 
                         enddo
@@ -1089,8 +1080,6 @@ contains
                         eta_max = eta0 + deta
                         xitrouve_def = xitrouve
                         etatrouve_def = etatrouve
-                        xtrouve_def = xtrouve
-                        ytrouve_def = ytrouve
                         dist_def = dist
                     endif
                 enddo

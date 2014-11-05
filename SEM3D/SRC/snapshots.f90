@@ -40,7 +40,7 @@ contains
             end do
             allocate(all_data(0:dim1-1,0:ntot_nodes-1))
         end if
-        
+
         call MPI_Gatherv(data, dim1*dim2, MPI_DOUBLE_PRECISION, all_data, counts, displs, &
             MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
         if (Tdomain%output_rank==0) then
@@ -88,7 +88,7 @@ contains
             end do
             allocate(all_data_1d(0:ntot_nodes-1))
         end if
-        
+
         call MPI_Gatherv(press, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
             MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
         if (Tdomain%output_rank==0) then
@@ -281,7 +281,7 @@ contains
         integer :: n, i, j, k, ngllx, nglly, ngllz, ig, gn, ne
         !
         integer :: group, count
-        integer :: status, ierr
+        integer :: ierr
 
         group = Tdomain%rank/Tdomain%ngroup
 
@@ -316,13 +316,13 @@ contains
         end if
 
         call MPI_Allgather(nnodes, 1, MPI_INTEGER, Tdomain%output_nodes, 1, MPI_INTEGER, Tdomain%comm_output, ierr)
-        
+
         count = 0
         do i=0,Tdomain%nb_output_procs-1
             Tdomain%output_nodes_offset(i) = count
             count = count + Tdomain%output_nodes(i)
         end do
-            
+
     end subroutine compute_saved_elements
 
     subroutine create_dir_sorties(Tdomain, isort)
@@ -377,7 +377,7 @@ contains
         call compute_saved_elements(Tdomain, irenum, nnodes)
 
         call write_global_nodes(Tdomain, fid, irenum, nnodes)
-        
+
         call write_elem_connectivity(Tdomain, fid, irenum)
 
         call write_constant_fields(Tdomain, fid, irenum, nnodes)
@@ -518,7 +518,7 @@ contains
         integer :: i, j, k, n
         integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
         integer :: nnodes, group, nnodes_tot
-        
+
 
         call create_dir_sorties(Tdomain, isort)
 
@@ -742,7 +742,7 @@ contains
         real, dimension(:),allocatable :: mass, jac
         integer :: ngllx, nglly, ngllz, idx
         integer :: i, j, k, n, nnodes_tot
-        
+
 
         allocate(mass(0:nnodes-1))
         allocate(jac(0:nnodes-1))
@@ -809,3 +809,8 @@ contains
     end subroutine write_constant_fields
 
 end module msnapshots
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent : !!

@@ -40,6 +40,7 @@ subroutine SourcePosition(Tdomain)
 
     do nsour = 0, Tdomain%n_source -1
         Dmin = 1e10
+        nmin = 0
         ! Find the nearest point (gauss node) to the source
         do n = 0,Tdomain%n_glob_points-1
 
