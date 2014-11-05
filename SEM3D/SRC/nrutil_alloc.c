@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <stdlib.h>
-#define NR_END 1
+#define NR_END 0 /* 1 was in the original file (this may mask some crash related to alloc / dealloc by allocating more than needed) */
 #define FREE_ARG char*
 
 void nrerror(char error_text[])
