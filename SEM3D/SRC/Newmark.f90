@@ -100,9 +100,9 @@ subroutine Newmark(Tdomain,ntime)
 
 
     ! MPI communications
-    if(Tdomain%n_proc > 1)then
+    if(Tdomain%nb_procs > 1)then
         ! from external faces, edges and vertices to Communication global arrays
-        do n = 0,Tdomain%n_proc-1
+        do n = 0,Tdomain%nb_procs-1
             call Comm_Forces_Complete(n,Tdomain)
             call Comm_Forces_PML_Complete(n,Tdomain)
         end do
@@ -110,7 +110,7 @@ subroutine Newmark(Tdomain,ntime)
         call exchange_sem_forces(Tdomain)
 
         ! now: assemblage on external faces, edges and vertices
-        do n = 0,Tdomain%n_proc-1
+        do n = 0,Tdomain%nb_procs-1
             ngll = 0
             ngll_F = 0
             ngllPML = 0

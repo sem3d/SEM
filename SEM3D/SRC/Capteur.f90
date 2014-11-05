@@ -748,7 +748,7 @@ contains
 
         rg = Tdomain%rank
         ! tableau de correspondance
-        allocate(recvbuf(4*Tdomain%n_proc))
+        allocate(recvbuf(4*Tdomain%nb_procs))
         sendbuf=0.
         recvbuf=0.
 
@@ -798,7 +798,7 @@ contains
                 recvbuf(4) = grandeur(3,1)
 
                 ! et ensuite avec les infos des autres proc
-                do iproc=1,Tdomain%n_proc-1
+                do iproc=1,Tdomain%nb_procs-1
                     borneInf = 4*iproc+1
                     tag = 100*(iproc+1)+capteur%numero
 
@@ -809,7 +809,7 @@ contains
                 ! les comm st bloquantes, ici, on a forcement le tableau recvbuf complet
                 ! on recherche le pdg le + proche et ses valeurs associees dans recvbuf
                 ! le resultat est stocke dans recvbuf(1:3)
-                do iproc=1,Tdomain%n_proc-1
+                do iproc=1,Tdomain%nb_procs-1
                     borneInf = 4*iproc+1
                     if (recvbuf(borneInf).lt.recvbuf(1)) then
                         recvbuf(1)=recvbuf(borneInf)

@@ -133,10 +133,10 @@ subroutine assemble_mass_matrices(Tdomain)
     !----------------------------------------------------------
     !- MPI communications: assemblage between procs
     !----------------------------------------------------------
-    if(Tdomain%n_proc > 1)then
+    if(Tdomain%nb_procs > 1)then
         !-------------------------------------------------
         !- from external faces, edges and vertices to Communication global arrays
-        do n = 0,Tdomain%n_proc-1
+        do n = 0,Tdomain%nb_procs-1
             call Comm_Mass_Complete(n,Tdomain)
             call Comm_Mass_Complete_PML(n,Tdomain)
             call Comm_Normal_Neumann(n,Tdomain)
@@ -145,7 +145,7 @@ subroutine assemble_mass_matrices(Tdomain)
         call exchange_sem(Tdomain)
 
         ! now: assemblage on external faces, edges and vertices
-        do n = 0,Tdomain%n_proc-1
+        do n = 0,Tdomain%nb_procs-1
             ngll_tot = 0
             ngllPML_tot = 0
             ngllNeu = 0

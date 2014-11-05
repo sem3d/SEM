@@ -353,7 +353,7 @@ contains
         integer :: hdferr, code, ierr
         integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
         integer :: nnodes
-        integer, dimension(0:Tdomain%n_proc-1) :: nodes_per_proc
+        integer, dimension(0:Tdomain%nb_procs-1) :: nodes_per_proc
         integer :: group
 
         rg = Tdomain%rank
@@ -609,9 +609,9 @@ contains
         type(domain), intent(in) :: Tdomain
         integer :: n_procs, nelem, n_groups
         character (len=MAX_FILE_SIZE) :: fnamef
-        integer, dimension(0:Tdomain%n_proc-1), intent(in) :: nodes_per_proc
+        integer, dimension(0:Tdomain%nb_procs-1), intent(in) :: nodes_per_proc
         integer :: group
-        n_procs = Tdomain%n_proc
+        n_procs = Tdomain%nb_procs
         n_groups = (n_procs+Tdomain%ngroup-1)/Tdomain%ngroup
         nelem = Tdomain%n_elem
         call semname_xdmf_master(fnamef)

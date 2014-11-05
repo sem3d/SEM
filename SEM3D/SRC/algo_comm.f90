@@ -13,7 +13,7 @@ contains
 !        integer :: other, ierr, n
 !
 !        !- now we can exchange (communication global arrays)
-!        n = Tdomain%n_proc
+!        n = Tdomain%nb_procs
 !        vector%send_reqs = MPI_REQUEST_NULL
 !        vector%recv_reqs = MPI_REQUEST_NULL
 !
@@ -35,11 +35,11 @@ contains
 !        implicit none
 !        type(domain), intent(inout) :: Tdomain
 !        type(comm_vector_1d), intent(inout) :: vector
-!        integer, dimension(MPI_STATUS_SIZE, Tdomain%n_proc) :: statuses
+!        integer, dimension(MPI_STATUS_SIZE, Tdomain%nb_procs) :: statuses
 !        integer :: ierr
 !
-!        call MPI_Waitall(Tdomain%n_proc, vector%recv_reqs, statuses, ierr)
-!        call MPI_Waitall(Tdomain%n_proc, vector%send_reqs, statuses, ierr)
+!        call MPI_Waitall(Tdomain%nb_procs, vector%recv_reqs, statuses, ierr)
+!        call MPI_Waitall(Tdomain%nb_procs, vector%send_reqs, statuses, ierr)
 !    end subroutine exchange_sem_wait_1d
 
 
@@ -51,12 +51,12 @@ contains
         integer :: rg
         integer :: n, k
         integer :: other, ierr
-        integer, dimension(Tdomain%n_proc) :: send_req, recv_req, send_pml_req, recv_pml_req
+        integer, dimension(Tdomain%nb_procs) :: send_req, recv_req, send_pml_req, recv_pml_req
         integer, parameter :: tag=101, tag_pml=102
-        integer, dimension(MPI_STATUS_SIZE,Tdomain%n_proc) :: statuses
+        integer, dimension(MPI_STATUS_SIZE,Tdomain%nb_procs) :: statuses
         !write(*,*) "COMM 1"
         !- now we can exchange (communication global arrays)
-        n = Tdomain%n_proc
+        n = Tdomain%nb_procs
         rg = Tdomain%rank
         send_req = MPI_REQUEST_NULL
         recv_req = MPI_REQUEST_NULL
@@ -89,10 +89,10 @@ contains
         enddo
 
         !write(*,*) "COMM done 1"
-        call MPI_Waitall(Tdomain%n_proc, recv_req, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, send_req, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, send_pml_req, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, recv_pml_req, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, recv_req, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, send_req, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, send_pml_req, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, recv_pml_req, statuses, ierr)
 
     end subroutine exchange_sem
 
@@ -104,13 +104,13 @@ contains
         integer :: rg
         integer :: n
         integer :: other, ierr
-        integer, dimension(0:Tdomain%n_proc) :: req_s_f, req_r_f, req_s_pml, req_r_pml
-        integer, dimension(0:Tdomain%n_proc) :: req_s_fl, req_r_fl, req_s_fpml, req_r_fpml
+        integer, dimension(0:Tdomain%nb_procs) :: req_s_f, req_r_f, req_s_pml, req_r_pml
+        integer, dimension(0:Tdomain%nb_procs) :: req_s_fl, req_r_fl, req_s_fpml, req_r_fpml
         integer, parameter :: tag_sl=101, tag_fl=102, tag_pml=103, tag_fpml=104
-        integer, dimension(MPI_STATUS_SIZE,Tdomain%n_proc) :: statuses
+        integer, dimension(MPI_STATUS_SIZE,Tdomain%nb_procs) :: statuses
         !write(*,*) "ENTER Exchange sem forces", rg
         !- now we can exchange (communication global arrays)
-        n = Tdomain%n_proc
+        n = Tdomain%nb_procs
         rg = Tdomain%rank
         req_s_f = MPI_REQUEST_NULL
         req_r_f = MPI_REQUEST_NULL
@@ -151,14 +151,14 @@ contains
         enddo
         !write(*,*) "WAIT Exchange sem forces", rg
 
-        call MPI_Waitall(Tdomain%n_proc, req_s_f, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, req_r_f, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, req_s_fl, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, req_r_fl, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, req_s_pml, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, req_r_pml, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, req_s_fpml, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, req_r_fpml, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, req_s_f, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, req_r_f, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, req_s_fl, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, req_r_fl, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, req_s_pml, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, req_r_pml, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, req_s_fpml, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, req_r_fpml, statuses, ierr)
         !write(*,*) "END Exchange sem forces", rg
     end subroutine exchange_sem_forces
 
@@ -170,11 +170,11 @@ contains
         integer :: rg
         integer :: n
         integer :: other, ierr
-        integer, dimension(Tdomain%n_proc) :: req_s, req_r, req_s_pml,req_r_pml
+        integer, dimension(Tdomain%nb_procs) :: req_s, req_r, req_s_pml,req_r_pml
         integer, parameter :: tag_sf = 301, tag_sf_pml = 302
-        integer, dimension(MPI_STATUS_SIZE,Tdomain%n_proc) :: statuses
+        integer, dimension(MPI_STATUS_SIZE,Tdomain%nb_procs) :: statuses
         !- now we can exchange (communication global arrays)
-        n = Tdomain%n_proc
+        n = Tdomain%nb_procs
         rg = Tdomain%rank
         req_s = MPI_REQUEST_NULL
         req_r = MPI_REQUEST_NULL
@@ -198,10 +198,10 @@ contains
             endif
         enddo
 
-        call MPI_Waitall(Tdomain%n_proc, req_s, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, req_r, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, req_s_pml, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, req_r_pml, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, req_s, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, req_r, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, req_s_pml, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, req_r_pml, statuses, ierr)
 
     end subroutine exchange_sem_forces_StoF
 
@@ -213,11 +213,11 @@ contains
         integer :: rg
         integer :: n
         integer :: other, ierr
-        integer, dimension(0:Tdomain%n_proc) :: req_s, req_r, req_s_pml,req_r_pml
+        integer, dimension(0:Tdomain%nb_procs) :: req_s, req_r, req_s_pml,req_r_pml
         integer, parameter :: tag = 101
-        integer, dimension(MPI_STATUS_SIZE,Tdomain%n_proc) :: statuses
+        integer, dimension(MPI_STATUS_SIZE,Tdomain%nb_procs) :: statuses
         !- now we can exchange (communication global arrays)
-        n = Tdomain%n_proc
+        n = Tdomain%nb_procs
         rg = Tdomain%rank
         req_s = MPI_REQUEST_NULL
         req_r = MPI_REQUEST_NULL
@@ -241,10 +241,10 @@ contains
 
         enddo
 
-        call MPI_Waitall(Tdomain%n_proc, req_s, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, req_r, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, req_s_pml, statuses, ierr)
-        call MPI_Waitall(Tdomain%n_proc, req_r_pml, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, req_s, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, req_r, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, req_s_pml, statuses, ierr)
+        call MPI_Waitall(Tdomain%nb_procs, req_r_pml, statuses, ierr)
 
     end subroutine exchange_sem_forces_FtoS
 

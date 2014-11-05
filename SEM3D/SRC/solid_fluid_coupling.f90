@@ -105,8 +105,8 @@ subroutine StoF_coupling(Tdomain)
 
 
     ! now we can exchange values for SF sides on different procs
-    if(Tdomain%n_proc > 1)then
-        do n = 0,Tdomain%n_proc-1
+    if(Tdomain%nb_procs > 1)then
+        do n = 0,Tdomain%nb_procs-1
             call Comm_Forces_Complete_StoF(n,Tdomain)
             call Comm_Forces_Complete_StoF_PML(n,Tdomain)
         end do
@@ -114,7 +114,7 @@ subroutine StoF_coupling(Tdomain)
         call exchange_sem_forces_StoF(Tdomain)
 
         ! assemblage on external GLLs
-        do n = 0,Tdomain%n_proc-1
+        do n = 0,Tdomain%nb_procs-1
             ngllSF = 0 ; ngllSF_PML = 0
             call Comm_Forces_FaceSF_StoF(Tdomain,n,ngllSF,ngllSF_PML)
             call Comm_Forces_EdgeSF_StoF(Tdomain,n,ngllSF,ngllSF_PML)
@@ -283,15 +283,15 @@ subroutine FtoS_coupling(Tdomain)
 
 
     ! now we can exchange values for SF sides on different procs
-    if(Tdomain%n_proc > 1)then
-        do n = 0,Tdomain%n_proc-1
+    if(Tdomain%nb_procs > 1)then
+        do n = 0,Tdomain%nb_procs-1
             call Comm_Forces_Complete_FtoS(n,Tdomain)
             call Comm_Forces_Complete_FtoS_PML(n,Tdomain)
         end do
         ! now we can exchange force values with proc n
         call exchange_sem_forces_FtoS(Tdomain)
         ! assemblage on external GLLs
-        do n = 0,Tdomain%n_proc-1
+        do n = 0,Tdomain%nb_procs-1
             ngllSF = 0 ; ngllSF_PML = 0
             call Comm_Forces_FaceSF_FtoS(Tdomain,n,ngllSF,ngllSF_PML)
             call Comm_Forces_EdgeSF_FtoS(Tdomain,n,ngllSF,ngllSF_PML)

@@ -581,8 +581,8 @@ subroutine allocate_domain (Tdomain)
     !------------------------
     ! Inter-proc communications
     !------------------------
-    if(Tdomain%n_proc > 1)then
-        do n = 0,Tdomain%n_proc-1
+    if(Tdomain%nb_procs > 1)then
+        do n = 0,Tdomain%nb_procs-1
             call allocate_comm_proc (Tdomain, n)
         enddo
     else

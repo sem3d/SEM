@@ -30,7 +30,7 @@ subroutine SourcePosition (Tdomain,rg)
     real, dimension(:,:), allocatable :: coord
 
 
-    allocate (distance(0:Tdomain%n_proc-1))
+    allocate (distance(0:Tdomain%nb_procs-1))
 
 
     do n_src = 0, Tdomain%n_source-1
@@ -145,7 +145,7 @@ subroutine SourcePosition (Tdomain,rg)
         ! On trouve le processeur qui contient la src
         call mpi_allgather(dmin,1,mpi_double_precision,distance,1,mpi_double_precision,Tdomain%communicateur,code)
         dmin = 10000000
-        do i = 0,Tdomain%n_proc-1
+        do i = 0,Tdomain%nb_procs-1
             if (distance(i) < dmin) then
                 dmin = distance(i)
                 Tdomain%sSource(n_src)%proc = i

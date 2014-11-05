@@ -18,7 +18,7 @@ subroutine ReceiverExactPosition (Tdomain,rg)
     real, dimension(:,:), allocatable :: coord
 
 
-    allocate (distance(0:Tdomain%n_proc-1))
+    allocate (distance(0:Tdomain%nb_procs-1))
     allocate (coord(0:Tdomain%n_nodes-1,0:2))
 
     do n_rcp = 0, Tdomain%n_receivers-1
@@ -72,7 +72,7 @@ subroutine ReceiverExactPosition (Tdomain,rg)
 
         ! Processor containing the rcp
         call mpi_allgather(dmin,1,mpi_double_precision,distance,1,mpi_double_precision,mpi_comm_world,code)
-        do i = 0,Tdomain%n_proc-1
+        do i = 0,Tdomain%nb_procs-1
             if (distance(i) <= dmin) then
                 dmin = distance(i)
                 Tdomain%sReceiver(n_rcp)%proc = i

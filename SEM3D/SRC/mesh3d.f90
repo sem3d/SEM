@@ -12,7 +12,7 @@ subroutine read_mesh_file_h5(Tdomain)
     implicit none
     !
     type(domain), intent(inout) :: Tdomain
-    integer :: rg
+    integer :: rg, num_processors
     integer :: i,j
     logical :: neumann_log
     !
@@ -46,7 +46,7 @@ subroutine read_mesh_file_h5(Tdomain)
     call read_attr_bool(fid, "neumann_present_loc", Tdomain%logicD%Neumann_local_present)
     call read_attr_bool(fid, "curve", Tdomain%curve)
     call read_attr_bool(fid, "solid_fluid_loc", Tdomain%logicD%SF_local_present)
-    call read_attr_int(fid, "n_processors", Tdomain%n_proc)
+    call read_attr_int(fid, "n_processors", num_processors)
     call read_attr_int(fid, "n_materials", Tdomain%n_mat)
     call read_attr_int(fid, "n_elements",  Tdomain%n_elem)
     call read_attr_int(fid, "n_faces",     Tdomain%n_face)
@@ -56,6 +56,11 @@ subroutine read_mesh_file_h5(Tdomain)
     if(Tdomain%n_dime /=3)   &
         stop "No general code for the time being: only 3D propagation"
     !
+    if(Tdomain%nb_procs/=num_processors) then
+        write(*,*) "Mesh file for rank",rg,"has incoherent number of processors"
+        write(*,*) "you should check you meshfiles in sem/*"
+        stop 1
+    endif
     !
     if(neumann_log .neqv. Tdomain%logicD%Neumann) then
         write(*,*) rg,"neumann (input.spec)=",Tdomain%logicD%Neumann
@@ -229,8 +234,8 @@ subroutine read_mesh_file_h5(Tdomain)
     end if
 
     ! Interproc communications
-    allocate (Tdomain%sComm(0:Tdomain%n_proc-1))
-    do i = 0,Tdomain%n_proc-1
+    allocate (Tdomain%sComm(0:Tdomain%nb_procs-1))
+    do i = 0,Tdomain%nb_procs-1
         write(proc_grp,"(a,I4.4)") "Proc", i
         call h5gopen_f(fid, trim(adjustl(proc_grp)), proc_id, hdferr)
         call read_attr_int(proc_id, "n_faces", Tdomain%sComm(i)%nb_faces)
@@ -367,12 +372,12 @@ subroutine read_mesh_file_h5(Tdomain)
             write(*,*) "  --> Propagation in solid media."
         end if
     end if
-    allocate(nb_elems_per_proc(0:8*((Tdomain%n_proc-1)/8+1)))
+    allocate(nb_elems_per_proc(0:8*((Tdomain%nb_procs-1)/8+1)))
     nb_elems_per_proc = 0
     call MPI_Gather(Tdomain%n_elem, 1, MPI_INTEGER, nb_elems_per_proc, 1, MPI_INTEGER, 0, Tdomain%communicateur, ierr)
     if (rg==0) then
         write(*,*) "Mesh read correctly, elements per proc:"
-        do i=0,Tdomain%n_proc-1,8
+        do i=0,Tdomain%nb_procs-1,8
             write(*,'(I5.5,a,8I6)') i, ":", nb_elems_per_proc(i:i+7)
         end do
     end if
