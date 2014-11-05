@@ -35,6 +35,10 @@ subroutine Define_Arrays(Tdomain)
     endif
     do n = 0,Tdomain%n_elem-1
        mat = Tdomain%specel(n)%mat_index
+       if ( mat < 0 .or. mat >= Tdomain%n_mat ) then
+          print*, "ERROR : inconsistent material index = ", mat
+          stop
+       end if
        !!! Attribute elastic properties from material !!!
        ! Sets Lambda, Mu, Qmu, ... from mat
        call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
@@ -271,22 +275,14 @@ subroutine init_material_properties(Tdomain, specel, mat)
      endif
   end select
 
-  !je sais pas trop ce que tout ça fait
-
-  if (Tdomain%aniso) then
-  else
-     if ((.not. specel%PML) .and. (Tdomain%n_sls>0))  then
-        !   specel%Kappa = mat%DKappa
-     endif
-  endif
-
-  !  modif mariotti fevrier 2007 cea
   if ((.not. specel%PML) .and. (Tdomain%n_sls>0))  then
-     if (Tdomain%aniso) then
-        specel%sl%Q = mat%Qmu
-     else
-        specel%sl%Qs = mat%Qmu
-        specel%sl%Qp = mat%Qpression
+     if(specel%solid) then
+        if (Tdomain%aniso) then
+           specel%sl%Q = mat%Qmu
+        else
+           specel%sl%Qs = mat%Qmu
+           specel%sl%Qp = mat%Qpression
+        endif
      endif
   endif
 end subroutine init_material_properties
