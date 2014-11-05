@@ -18,10 +18,8 @@ subroutine deallocate_domain (Tdomain)
     implicit none
 
     type(domain), intent (INOUT):: Tdomain
-    integer :: rg
-    integer :: n
 
-    rg = Tdomain%rank
+    integer :: n
 
     deallocate (Tdomain%GlobCoord)
     deallocate (Tdomain%Coord_Nodes)
@@ -33,13 +31,14 @@ subroutine deallocate_domain (Tdomain)
         deallocate (Tdomain%specel(n)%Control_Nodes)
         deallocate (Tdomain%specel(n)%Jacob)
         if (Tdomain%TimeD%velocity_scheme) then
-            deallocate (Tdomain%specel(n)%sl%Veloc )
-            !  modif mariotti fevrier 2007 cea capteur displ
-            deallocate (Tdomain%specel(n)%sl%Displ)
-
-            deallocate (Tdomain%specel(n)%sl%Accel)
-            deallocate (Tdomain%specel(n)%sl%V0 )
-            deallocate (Tdomain%specel(n)%sl%Forces)
+            if(Tdomain%specel(n)%solid) then
+                deallocate (Tdomain%specel(n)%sl%Veloc )
+                !  modif mariotti fevrier 2007 cea capteur displ
+                deallocate (Tdomain%specel(n)%sl%Displ)
+                deallocate (Tdomain%specel(n)%sl%Accel)
+                deallocate (Tdomain%specel(n)%sl%V0 )
+                deallocate (Tdomain%specel(n)%sl%Forces)
+            end if
             if (Tdomain%specel(n)%PML) then
                 !  modif mariotti fevrier 2007 cea
                 deallocate (Tdomain%specel(n)%Lambda)
@@ -119,15 +118,15 @@ subroutine deallocate_domain (Tdomain)
     enddo
 
     do n = 0, Tdomain%n_face-1
-        deallocate (Tdomain%sFace(n)%MassMat)
-        deallocate (Tdomain%sFace(n)%Veloc)
-
-        !  modif mariotti fevrier 2007 cea capteur displ
-        deallocate (Tdomain%sFace(n)%Displ)
-
-        deallocate (Tdomain%sFace(n)%Forces)
-        deallocate (Tdomain%sFace(n)%Accel)
-        deallocate (Tdomain%sFace(n)%V0)
+        if(Tdomain%sFace(n)%solid) then
+            deallocate (Tdomain%sFace(n)%MassMat)
+            deallocate (Tdomain%sFace(n)%Veloc)
+            !  modif mariotti fevrier 2007 cea capteur displ
+            deallocate (Tdomain%sFace(n)%Displ)
+            deallocate (Tdomain%sFace(n)%Forces)
+            deallocate (Tdomain%sFace(n)%Accel)
+            deallocate (Tdomain%sFace(n)%V0)
+        end if
         if (Tdomain%sFace(n)%PML) then
             deallocate (Tdomain%sFace(n)%spml%Forces1)
             deallocate (Tdomain%sFace(n)%spml%Forces2)
@@ -138,21 +137,19 @@ subroutine deallocate_domain (Tdomain)
             deallocate (Tdomain%sFace(n)%spml%DumpVx)
             deallocate (Tdomain%sFace(n)%spml%DumpVy)
             deallocate (Tdomain%sFace(n)%spml%DumpVz)
-        else
-            !  modif mariotti fevrier 2007 cea capteur displ
-            !        deallocate (Tdomain%sFace(n)%Displ)
         endif
     enddo
 
     do n = 0,Tdomain%n_edge-1
-        deallocate (Tdomain%sEdge(n)%MassMat)
-        deallocate (Tdomain%sEdge(n)%Veloc)
-        !  modif mariotti fevrier 2007 cea capteur displ
-        deallocate (Tdomain%sEdge(n)%Displ)
-
-        deallocate (Tdomain%sEdge(n)%Forces)
-        deallocate (Tdomain%sEdge(n)%Accel)
-        deallocate (Tdomain%sEdge(n)%V0)
+        if(Tdomain%sEdge(n)%solid) then
+            deallocate (Tdomain%sEdge(n)%MassMat)
+            deallocate (Tdomain%sEdge(n)%Veloc)
+            !  modif mariotti fevrier 2007 cea capteur displ
+            deallocate (Tdomain%sEdge(n)%Displ)
+            deallocate (Tdomain%sEdge(n)%Forces)
+            deallocate (Tdomain%sEdge(n)%Accel)
+            deallocate (Tdomain%sEdge(n)%V0)
+        end if
         if (Tdomain%sEdge(n)%PML) then
             deallocate (Tdomain%sEdge(n)%spml%Forces1)
             deallocate (Tdomain%sEdge(n)%spml%Forces2)
@@ -163,9 +160,6 @@ subroutine deallocate_domain (Tdomain)
             deallocate (Tdomain%sEdge(n)%spml%DumpVx)
             deallocate (Tdomain%sEdge(n)%spml%DumpVy)
             deallocate (Tdomain%sEdge(n)%spml%DumpVz)
-        else
-            !  modif mariotti fevrier 2007 cea capteur displ
-            !        deallocate (Tdomain%sEdge(n)%Displ)
         endif
     enddo
 
@@ -215,7 +209,7 @@ subroutine deallocate_domain (Tdomain)
     deallocate (Tdomain%sSubdomain)
 
     do n = 0, Tdomain%n_source-1
-        if (rg==Tdomain%sSource(n)%proc) then
+        if (Tdomain%rank==Tdomain%sSource(n)%proc) then
             if (Tdomain%sSource(n)%i_type_source==2) deallocate (Tdomain%sSource(n)%coeff)
             if (Tdomain%sSource(n)%i_time_function==3) deallocate (Tdomain%sSource(n)%timefunc)
         endif
