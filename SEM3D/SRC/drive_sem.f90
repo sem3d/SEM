@@ -42,7 +42,6 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     integer, dimension(3) :: tab
     integer :: min_rank_glob_sem
 #endif
-
     call MPI_Init (ierr)
 
 !----------------------------------------------------------------------------------------------!
@@ -699,6 +698,12 @@ end subroutine END_SEM
 subroutine START_SEM(rg)
     implicit none
     integer, intent(in) :: rg
+    ! Ce fichier sert d'indicateur de fin de calcul
+    ! Si en fin de run on trouve :
+    !   -1 : il y a eu un crash/stop ou erreur avant la fin
+    !    0 : le calcul s'est bien passe et est fini
+    !    1 : le calcul doit repartir en reprise pour continuer
+    !
     if (rg==0) then
         open (111,file = "fin_sem", status="REPLACE")
         write(111,*) -1
