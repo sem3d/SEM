@@ -66,7 +66,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/read_restart.f90
     ${PRJ}/SRC/save_checkpoint.f90
     ${PRJ}/SRC/second_fields.f90
-    ${PRJ}/SRC/set_attenuation_aniso_param.f90
     ${PRJ}/SRC/set_attenuation_param.f90
     ${PRJ}/SRC/shape8.f90
     ${PRJ}/SRC/shape27.f90
