@@ -1,0 +1,21 @@
+#!/bin/bash
+
+#PBS -S /bin/bash
+#PBS -N TEST3D_1-mesh
+#PBS -o output_prepro.txt
+#PBS -j oe
+#PBS -l walltime=00:05:00
+#PBS -l select=1:ncpus=1
+#PBS -q iceq
+#PBS -M lucianopaludo123@gmail.com
+
+# chargement des modules
+module load intel-compiler/14.0.0
+module load intel-mkl/11.1.0
+module load intel-mpi/4.0.0.028
+module load hdf5/1.8.12
+
+# On se place dans le repertoire depuis lequel le job a ete soumis
+cd $PBS_O_WORKDIR
+
+$HOME/workspace/SEM_RF2/build/MESH/mesher < mesh.input
