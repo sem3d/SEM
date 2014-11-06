@@ -165,7 +165,7 @@ subroutine finalize_mesh_connectivity(Tdomain, rg)
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in)         :: rg
-    integer :: i, j, k, n, nf, nnf, mat, ne, nv, nne, nnv
+    integer :: i, j, k, n, nf, nnf, mat, ne, nv, nne, nnv, m
     integer :: n_aus
 
 
@@ -235,6 +235,35 @@ subroutine finalize_mesh_connectivity(Tdomain, rg)
                 Tdomain%sVertex(nnv)%fluid_dirich = .true.
             end if
         end do
+
+!		!Faces
+!		do nf = 0, 5
+!			nnf = Tdomain%specel(n)%Near_Faces(nf)
+!			if(nnf == 2 .or. nnf == 3 .or. nnf == 5) then
+!				Tdomain%sFace(nnf)%mat_list(0) = mat
+!			else(nnf == 0 .or. nnf == 1 .or. nnf == 4) then
+!				Tdomain%sFace(nnf)%mat_list(1) = mat
+!			end if
+!		end do
+!		!Edges
+!    	do ne = 0, 11
+!        	nne = Tdomain%specel(n)%Near_edges(ne)
+!			if(nne == 0 .or. nne == 3 .or. nne == 6) then
+!				Tdomain%sEdge(nne)%mat_list(0) = mat
+!			else if (nne == 1 .or. nne == 2 .or. nne == 4) then
+!				Tdomain%sEdge(nne)%mat_list(1) = mat
+!			else if (nne == 7 .or. nne == 8 .or. nne == 9) then
+!				Tdomain%sEdge(nne)%mat_list(2) = mat
+!			else if (nne == 5 .or. nne == 10 .or. nne == 11) then
+!				Tdomain%sEdge(nne)%mat_list(3) = mat
+!			end if
+!    	end do
+!		!Vertex
+!    	do nv = 0, 7
+!        	nnv = Tdomain%specel(n)%Near_Vertices(nv)
+!			Tdomain%sVertex(nnv)%mat_list(nnv) = mat
+!    	end do
+
     end do
 
     !- Neumann local properties
@@ -278,7 +307,7 @@ subroutine read_material_file(Tdomain, rg)
     type(domain), intent(inout) :: Tdomain
     integer, intent(in)         :: rg
     character(Len=MAX_FILE_SIZE) :: fnamef
-    integer :: i, j, n_aus, npml, mat, ne, nf, nRandom
+    integer :: i, j, n_aus, npml, mat, ne, nf, nRandom, assocMat
     logical, dimension(:), allocatable :: L_Face, L_Edge
     real :: dtmin
 
@@ -333,6 +362,8 @@ subroutine read_material_file(Tdomain, rg)
             write (*,*) 'Qmu      :', Tdomain%sSubDomain(i)%Qmu
         endif
 
+        Tdomain%sSubdomain(i)%assocMat = i
+
         call Lame_coefficients (Tdomain%sSubDomain(i))
 !        if(rg==0) &
 !            print*,' lame ',Tdomain%sSubDomain(i)%DMu,Tdomain%sSubDomain(i)%DLambda ,Tdomain%sSubDomain(i)%DKappa
@@ -350,11 +381,11 @@ subroutine read_material_file(Tdomain, rg)
     enddo 
 
     if(npml > 0) then
+    	write (*,*) "!!WARNING change on 'material.input', put associated material after PML existing definition', "
         Tdomain%any_PML = .true.
         read(13,*); read(13,*)
         do i = 0,Tdomain%n_mat-1
-            if(Tdomain%sSubdomain(i)%material_type == "P" .or.     &
-                Tdomain%sSubDomain(i)%material_type == "L") then
+            if(.not. Tdomain%not_PML_List(i)) then
                 read(13,*) Tdomain%sSubdomain(i)%Filtering, &
                 		   Tdomain%sSubdomain(i)%npow,      &
                     	   Tdomain%sSubdomain(i)%Apow,      &
@@ -364,7 +395,8 @@ subroutine read_material_file(Tdomain, rg)
                     	   Tdomain%sSubdomain(i)%Forward,   &
                     	   Tdomain%sSubdomain(i)%Pz,        &
                     	   Tdomain%sSubdomain(i)%Down,      &
-                    	   Tdomain%sSubdomain(i)%freq
+                    	   Tdomain%sSubdomain(i)%freq,      &
+                    	   Tdomain%sSubdomain(i)%assocMat
                   if(Tdomain%sSubdomain(i)%Filtering) Tdomain%any_FPML = .true.
             endif
         enddo
@@ -391,6 +423,20 @@ subroutine read_material_file(Tdomain, rg)
                     	   Tdomain%sSubdomain(i)%varProp(1),    &
                 		   Tdomain%sSubdomain(i)%margiFirst(2), &
                     	   Tdomain%sSubdomain(i)%varProp(2)
+            endif
+        enddo
+        do i = 0,Tdomain%n_mat-1
+        	assocMat = Tdomain%sSubdomain(i)%assocMat
+            if((.not. Tdomain%not_PML_List(i))                                 &
+                .and. Tdomain%sSubdomain(assocMat)%material_type == "R") then
+            	allocate(Tdomain%sSubdomain(i)%corrL(0:2))
+            	allocate(Tdomain%sSubdomain(i)%varProp(0:2))
+            	allocate(Tdomain%sSubdomain(i)%margiFirst(0:2))
+
+                Tdomain%sSubdomain(i)%corrMod       = Tdomain%sSubdomain(assocMat)%corrMod
+                Tdomain%sSubdomain(i)%corrL(:)      = Tdomain%sSubdomain(assocMat)%corrL(:)
+                Tdomain%sSubdomain(i)%margiFirst(:) = Tdomain%sSubdomain(assocMat)%margiFirst(:)
+                Tdomain%sSubdomain(i)%varProp(:)    = Tdomain%sSubdomain(assocMat)%varProp(:)
             endif
         enddo
     endif
@@ -721,7 +767,6 @@ subroutine read_input (Tdomain, rg, code)
             Tdomain%sSubDomain(imat)%material_definition = MATERIAL_CONSTANT
         enddo
     endif
-
 
     write(*,*) rg, "Reading materials done"
 

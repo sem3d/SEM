@@ -1,6 +1,6 @@
 !>
 !!\file Face.f90
-!!\brief Gère les faces des éléments.
+!!\brief Gï¿½re les faces des ï¿½lï¿½ments.
 !!\author
 !!\version 1.0
 !!\date 10/03/2009
@@ -24,6 +24,7 @@ module sfaces
        logical :: PML, Abs, FPML
        integer :: ngll1, ngll2, dir, Which_Elem, mat_index
        integer, dimension (:), allocatable :: FaceNum
+       !integer, dimension (0:1) :: mat_list = -1
        integer, dimension (:,:), allocatable :: Iglobnum_Face
        real, dimension (:,:), allocatable  :: MassMat
        real, dimension (:,:,:), allocatable :: Forces, Displ, Veloc, Accel, V0

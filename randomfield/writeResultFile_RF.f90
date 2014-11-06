@@ -80,11 +80,11 @@ contains
         character (len=12) :: numberStr, rangStr;
         double precision, dimension(:,:), allocatable :: grid_data
 
-		if(rang == 0) then
-      	  	write(*,*) "";
-       		write(*,*) "------------START Writing result HDF5 file (MPI)-----------------------";
-      	 	write(*,*) "";
-      	end if
+!		if(rang == 0) then
+!      	  	write(*,*) "";
+!       		write(*,*) "------------START Writing result HDF5 file (MPI)-----------------------";
+!      	 	write(*,*) "";
+!      	end if
 
       	!if(rang == 0) then
       		!write (*,*) "lbound(xPoints) = ", lbound(xPoints)
@@ -97,15 +97,11 @@ contains
       		!call dispCarvalhol(randField(:,:), "randField(:,:)", "F30.5")
       	!end if
 
-      	!if(rang == 0) write(*,*) "WRITE Flag 1"
 
 		effectComm = communicator
-
-		!if(rang == 0) write(*,*) "WRITE Flag 2"
-
-	    nDim         = size(xPoints , 2)
-	    nPoints      = size(randField, 1)
-	    Nmc          = size(randField, 2)
+	    nDim       = size(xPoints , 2)
+	    nPoints    = size(randField, 1)
+	    Nmc        = size(randField, 2)
 
 		!Creating file name
 		if(.not. present(labels)) then
@@ -115,38 +111,28 @@ contains
 	    else
 	    	fileHDF5Name = fileName
 	    	do i = 1, size(labels)
-	    		!if(rang == 0) write(*,*) "WRITE Flag 2.5"
 	    		fileHDF5Name =  string_join(fileHDF5Name,stringNumb_join(labels(i), indexes(i)))
 	    	end do
 	    end if
 
 	    fileHDF5Name = string_join(fileHDF5Name,".h5")
-
-	    fullPath = string_join(folderPath,"/"//fileHDF5Name)
-
-		!if(rang == 0) write(*,*) "WRITE Flag 3"
-        if(rang == 0) write(*,*) "fileHDF5Name in rang 0", fileHDF5Name
-        if(rang == 0) write(*,*) "fullPath for HDF5 file in rang 0", fullPath
+	    fullPath     = string_join(folderPath,"/"//fileHDF5Name)
 
 
         if (nDim > 3) then
         	write(*,*) "Dimension exceeds 3, HDF file won't be created"
         else
 
-			if(rang == 0) write(*,*) ">>>>>>>>> Opening file";
+			!if(rang == 0) write(*,*) ">>>>>>>>> Opening file";
         	allocate (grid_data(3, nPoints)) !3 lines to put X, Y and Z
         	grid_data = 0;
         	grid_data(1:nDim, :) = transpose(xPoints)
 	        call h5open_f(error) ! Initialize FORTRAN interface.
 	        call h5fcreate_f(fullPath, H5F_ACC_TRUNC_F, file_id, error) ! Create a new file using default properties.
 
-			if(rang == 0) write(*,*) ">>>>>>>>> Creating Coordinates dataset 'XYZ table'";
+			!if(rang == 0) write(*,*) ">>>>>>>>> Creating Coordinates dataset 'XYZ table'";
 
 	        dims = shape(grid_data)
-	        !write(*,*) "dims   = ", dims
-	        !write(*,*) dsetXYZ
-
-			!write(coordName,'(2A)') "XYZ-proc_", trim(rangStr)
 			write(coordName,'(A)') "XYZ"
 			!if(Nmc < 11) write(*,*) "coordName = ", coordName
 
@@ -163,7 +149,6 @@ contains
 			if(rang == 0) write(*,*) ">>>>>>>>> Creating Quantities dataset 'random field'";
 	        dims(1) = size(randField,1)
 	        dims(2) = 1 !One random field in each dataset
-			!write(*,*) "dims   = ", dims;
 
 			do i = 1, Nmc
 				write(numberStr,'(I)'  ) i
@@ -183,8 +168,6 @@ contains
 	        call h5fclose_f(file_id, error) ! Close the file.
 	        call h5close_f(error) ! Close FORTRAN interface.
 
-	        !call writeXMF_RF_MPI(randField, fileHDF5Name, fileName, rang, effectComm)
-
         end if
 
 		if(present(HDF5Name)) HDF5Name = fileHDF5Name
@@ -200,14 +183,14 @@ contains
 
 !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    subroutine writeXMF_RF_MPI(nSamples, HDF5nameList, nElemList, fileName, rang, folderPath, &
+    subroutine writeXMF_RF_MPI(nSamples, HDF5nameList, nPointList, fileName, rang, folderPath, &
     						   communicator, HDF5relativePath, attName, byProc)
         implicit none
 
         !INPUTS
         integer                           , intent(in) :: nSamples;
         character(len=*), dimension(1:)   , intent(in) :: HDF5nameList;
-        integer         , dimension(1:)   , intent(in) :: nElemList;
+        integer         , dimension(1:)   , intent(in) :: nPointList;
         character(len=*)                  , intent(in) :: filename;
         integer                           , intent(in) :: rang;
         character(len=*)                  , intent(in) :: folderPath
@@ -217,50 +200,45 @@ contains
         logical                           , optional  , intent(in) :: byProc !To divise the mesh by proc and not by subdomain
 
 		!LOCAL VARIABLES
-        integer             :: Nmc, i, j, file, nElem, nb_procs, code;
+        integer             :: Nmc, i, j, file, nb_procs, code;
         integer             :: effectComm
         character (len=110) :: fileXMFName, fullPathXMF, effecHDF5path;
         character (len=35)  :: eventName, meshName;
-        !character (len=12)  :: numberStr, nElemStr
-        !character (len=12)  :: NmcStr;
         character (len=50) , dimension(:), allocatable :: effectAttName;
-        integer            , dimension(:), allocatable :: all_nElemList
+        integer            , dimension(:), allocatable :: all_nPointList
         character (len=110), dimension(:), allocatable :: all_HDF5nameList
-        !character (len=12) , dimension(:), allocatable :: all_nElemStr
 
         effectComm = communicator
 
-        if(rang == 0) then
-        	write(*,*) "";
-        	write(*,*) "------------START Writing result XMF file-----------------------";
-        	write(*,*) "";
-        end if
+!        if(rang == 0) then
+!        	write(*,*) "";
+!        	write(*,*) "------------START Writing result XMF file-----------------------";
+!        	write(*,*) "";
+!        end if
 
 		call MPI_COMM_SIZE(effectComm, nb_procs, code)
 
-!        nElem   = size(randField, 1)
-!		write(nElemStr,'(I)') nElem
-!		nElemStr = adjustL(nElemStr)
-
 		if(rang == 0) then
-			allocate(all_nElemList(nb_procs*size(HDF5nameList)))
+			allocate(all_nPointList(nb_procs*size(HDF5nameList)))
 			allocate(all_HDF5nameList(nb_procs*size(HDF5nameList)))
 		end if
 
-		call MPI_GATHER(nElemList    , size(nElemList), MPI_INTEGER,     &
-		                all_nElemList, size(nElemList), MPI_INTEGER,     &
-		                 0           , effectComm    , code)
+		call MPI_GATHER(nPointList    , size(nPointList), MPI_INTEGER,     &
+		                all_nPointList, size(nPointList), MPI_INTEGER,     &
+		                 0         , effectComm    , code)
 
 		call MPI_GATHER(HDF5nameList    , len(HDF5nameList)*size(HDF5nameList), MPI_CHARACTER,     &
 		                all_HDF5nameList, len(HDF5nameList)*size(HDF5nameList), MPI_CHARACTER,     &
 		                 0              , effectComm       , code)
+
+		write(*,*) "all_HDF5nameList = ", all_HDF5nameList
 
 		if(rang == 0) then
 			!Common parameters
 			Nmc         = nSamples
 			fileXMFName = string_join(fileName,".xmf")
 			fullPathXMF = string_join(folderPath, "/"//fileXMFName)
-			if(rang == 0) write(*,*) "all_nElemList in rang 0 = ", all_nElemList
+			if(rang == 0) write(*,*) "all_nPointList in rang 0 = ", all_nPointList
 			if(rang == 0) write(*,*) "all_HDF5nameList in rang 0 = ", all_HDF5nameList
 			write(*,*) "fileXMFName = ", fileXMFName
 			write(*,*) "fullPathXMF = ", fullPathXMF
@@ -280,11 +258,6 @@ contains
         	else
         		effecHDF5path = "./"
         	end if
-
-			!Adjusting strings
-			!write(NmcStr,'(I)'  ) Nmc
-			!NmcStr       = adjustL(NmcStr)
-			!all_nElemStr = adjustL(all_nElemStr)
 
 			!Building file
 	        file=21;
@@ -308,17 +281,17 @@ contains
 						!write(*,*) "int((j-1)/size(HDF5nameList) = ",int((j-1)/size(HDF5nameList))
 					end if
 				write (file,'(3A)'     )'   <Grid Name="',trim(meshName),'" GridType="Uniform">' !START Writing the data of one subdomain
-				write (file,'(3A)'     )'    <Topology Type="Polyvertex" NodesPerElements="1" NumberOfElements="',trim(numb2String(all_nElemList(j))),'">'
+				write (file,'(3A)'     )'    <Topology Type="Polyvertex" NodesPerElements="1" NumberOfElements="',trim(numb2String(all_nPointList(j))),'">'
 				write (file,'(A)'      )'    </Topology>'
 				write (file,'(A)'      )'     <Geometry GeometryType="XYZ">'
-				write (file,'(3A)'     )'      <DataItem Name="Coordinates" Format="HDF" DataType="Float" Precision="8" Dimensions="',trim(numb2String(all_nElemList(j))), ' 3">'
+				write (file,'(3A)'     )'      <DataItem Name="Coordinates" Format="HDF" DataType="Float" Precision="8" Dimensions="',trim(numb2String(all_nPointList(j))), ' 3">'
 				write (file,'(4A)'     )'     	  ',trim(effecHDF5path),trim(all_HDF5nameList(j)),':/XYZ'
 				write (file,'(A)'      )'      </DataItem>'
 				write (file,'(A)'      )'    </Geometry>'
 
 				do i = 1, Nmc
 				write (file,'(3A)'     )'     <Attribute Name="',trim(effectAttName(i)),'" Center="Node" AttributeType="Scalar">'
-				write (file,'(3A)'     )'      <DataItem Format="HDF" DataType="Float" Precision="8" Dimensions="',trim(numb2String(all_nElemList(j))),'">'
+				write (file,'(3A)'     )'      <DataItem Format="HDF" DataType="Float" Precision="8" Dimensions="',trim(numb2String(all_nPointList(j))),'">'
 				write (file,'(5A)'     )'          ',trim(effecHDF5path),trim(all_HDF5nameList(j)),":/", trim(stringNumb_join("RF_", i))
 				write (file,'(A)'      )'       </DataItem>'
 				write (file,'(A)'      )'     </Attribute>'
@@ -335,13 +308,13 @@ contains
         end if
 
 		if(rang == 0) then
+			deallocate(all_nPointList)
 			deallocate(all_HDF5nameList)
-			!deallocate(all_nElemStr)
 			deallocate(effectAttName)
 
-        	write(*,*) "";
-        	write(*,*) "------------END Writing result XMF file-----------------------";
-        	write(*,*) "";
+!        	write(*,*) "";
+!        	write(*,*) "------------END Writing result XMF file-----------------------";
+!        	write(*,*) "";
         end if
 
     end subroutine writeXMF_RF_MPI

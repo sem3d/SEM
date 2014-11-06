@@ -79,7 +79,6 @@ contains
 			effectComm = MPI_COMM_WORLD
 		end if
 
-		!write(*,*) "Flag1 inside"
 		!Normalization
 		allocate (xPointsNorm (size(xPoints,1), size(xPoints,2)))
 		xPointsNorm = xPoints
@@ -93,7 +92,6 @@ contains
 		allocate(kNStep (nDim));
 		allocate(kDelta (nDim));
 
-		!write(*,*) "Flag2 inside"
 
 		if((present(MinBound) .and. (.not.present(MaxBound))) .or. &
 		   (present(MaxBound) .and. (.not.present(MinBound)))) then
@@ -107,8 +105,8 @@ contains
         allocate(xMinGlob(nDim))
         allocate(xMaxGlob(nDim))
 		if(.not.present(MinBound)) then
-			call set_Extremes(xPointsNorm, xMinGlob, xMaxGlob)
 			write(*,*) "Min bound not present, the extremes will be calculated automatically"
+			call set_Extremes(xPointsNorm, xMinGlob, xMaxGlob)
 		else
 			!write(*,*) "lbound(MinBound) = ", lbound(MinBound)
 			!write(*,*) "ubound(MinBound) = ", ubound(MinBound)
@@ -124,20 +122,15 @@ contains
 			end do
 		end if
 
-		!write(*,*) "Flag3"
-
 		call set_kMaxND(corrMod, kMax) !Defining kMax according to corrMod
 		kDelta  = 2*pi/(periodMult*(xMaxGlob - xMinGlob)) !Delta min in between two wave numbers to avoid periodicity
 		kNStep  = kAdjust*(ceiling(kMax/kDelta) + 1);
 		kNTotal = product(kNStep);
 
-		!write(*,*) "Flag4"
-
-		if(rang == 0) write(*,*) "Nmc     = ", Nmc
-		if(rang == 0) write(*,*) "kNTotal = ", kNTotal
-		if(rang == 0) write(*,*) "kDelta  = ", kDelta
-		if(rang == 0) write(*,*) "kNStep  = ", kNStep
-		!if(rang == 0) write(*,*) "xPointsNorm(1:100, 1)  = ", xPointsNorm(1:100, 1)
+		!if(rang == 0) write(*,*) "Nmc     = ", Nmc
+		!if(rang == 0) write(*,*) "kNTotal = ", kNTotal
+		!if(rang == 0) write(*,*) "kDelta  = ", kDelta
+		!if(rang == 0) write(*,*) "kNStep  = ", kNStep
 
 		if(kNTotal < 1) then
 			write(*,*) "ERROR - In 'createStandardGaussianFieldUnstruct': kNTotal should be a positive integer (possibly a truncation problem)"

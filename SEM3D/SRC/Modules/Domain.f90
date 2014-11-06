@@ -55,6 +55,7 @@ module sdomain
        type(vertex)   , dimension (:), pointer :: sVertex
        type(subdomain), dimension (:), pointer :: sSubDomain
 
+
        logical :: any_PML, curve, any_FPML, aniso, any_Random
 
        integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers, n_proc

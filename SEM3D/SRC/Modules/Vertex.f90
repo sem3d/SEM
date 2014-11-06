@@ -24,6 +24,7 @@ module svertices
 
     type :: vertex
        integer  :: mat_index
+       !integer, dimension (0:7) :: mat_list = -1
        logical :: PML, Abs, FPML
        integer :: Iglobnum_Vertex, global_numbering
        real :: MassMat

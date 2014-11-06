@@ -30,6 +30,7 @@ module ssubdomains
         integer          :: material_definition
         !Modification to accept random media
 		character(len = 15) :: corrMod
+		integer             :: assocMat = -1
         integer             :: nElem = 0 !number of elements in each subdomain (by proc) - mesh3d.f90(362)
         integer            , dimension(:)   , allocatable :: elemList !List of elements in "Tdomain%specel(:)" that belong to this subdomain (by proc)
 		character(len = 30), dimension(:)   , allocatable :: margiFirst
@@ -38,7 +39,6 @@ module ssubdomains
         logical            , dimension(:,:) , allocatable :: globCoordMask
     	real               , dimension(:)   , allocatable :: corrL
         real               , dimension(:)   , allocatable :: MinBound, MaxBound
-        real               , dimension(:, :), allocatable :: prop !Properties
 
     end type Subdomain
 
