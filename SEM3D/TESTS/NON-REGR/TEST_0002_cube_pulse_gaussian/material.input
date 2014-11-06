@@ -56,3 +56,5 @@ F 2 10. T T F T T T 0. 0
 F 2 10. F T F T T T 0. 0
 # Random fields properties
 # corrMod, corrLX, corrLY, corrLZ, margiFirstDens, varDens, margiFirstLambda, varLambda, margiFirstMu, varMu
+gaussian   200.00   200.00  200.00   lognormal     1000.00     lognormal      5000000.00  lognormal   5000000.00 
+

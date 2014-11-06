@@ -27,7 +27,7 @@ P  6300.00  2500.00   2800. 5   7    7  0.000005 0. 0.
 P  6300.00  2500.00   2800. 7   5    7  0.000005 0. 0.
 P  6300.00  2500.00   2800. 5   5    7  0.000005 0. 0.
 # PML properties
-# Filtering? npow,Apow,X?,left?,Y?,Forwrd?,Z?,down?,cutoff freq, PML Associated Material(Numbering starts in 0)
+# Filtering? npow,Apow,X?,left?,Y?,Forwrd?,Z?,down?,cutoff freq, Associated Material(Starting in 0)
 F 2 10. T T T T F F 0. 0
 F 2 10. T F T T F F 0. 0
 F 2 10. T F T F F F 0. 0
