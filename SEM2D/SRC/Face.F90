@@ -40,7 +40,7 @@ module sfaces
        real, dimension (:,:), allocatable :: Vect_RK
        ! HDG
        real, dimension (:,:), allocatable :: Normal_Nodes
-       real, dimension (:,:), allocatable :: Kinv, Traction
+       real, dimension (:,:), allocatable :: Kinv, Traction, Smbr
        integer, dimension (0:1) :: pos_in_VertMat
        logical :: is_computed, changing_media
 
@@ -733,10 +733,10 @@ contains
 
         type (Face), intent (INOUT) :: F
 
-        ! La second membre "smbr" du systeme K * Lambda = Smbr est aussocie aux tractions
-        F%Veloc(:,0) = F%Kinv(:,0)*F%Traction(:,0) + F%Kinv(:,2)*F%Traction(:,1)
-        F%Veloc(:,1) = F%Kinv(:,2)*F%Traction(:,0) + F%Kinv(:,1)*F%Traction(:,1)
-        F%Traction = 0.
+        ! La second membre "smbr" du systeme K * Lambda = Smbr est homgene aux tractions
+        F%Veloc(:,0) = F%Kinv(:,0)*F%Smbr(:,0) + F%Kinv(:,2)*F%Smbr(:,1)
+        F%Veloc(:,1) = F%Kinv(:,2)*F%Smbr(:,0) + F%Kinv(:,1)*F%Smbr(:,1)
+        F%Smbr = 0.
         ! Treatment of boundary faces
         if (F%reflex) then
             F%Veloc(:,:) = 0.

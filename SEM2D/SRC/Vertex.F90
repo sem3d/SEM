@@ -9,6 +9,7 @@
 
 module svertices
 
+    use smat_solver
     ! Modified by Gaetano 01/06/05
 
     type :: vertex
@@ -28,9 +29,9 @@ module svertices
        integer :: valence
        real,   dimension (:), allocatable :: Vect_RK
        integer,dimension (:), allocatable :: Near_Face
-       real, dimension (:,:), allocatable :: Kinv
+       real, dimension (:,:), allocatable :: Kmat
        real,   dimension (:), allocatable :: SmbrLambda
-       real,   dimension (:), allocatable :: Lambda
+       real,   dimension (:), allocatable :: Lambda, K_up
 
     end type vertex
 
@@ -253,6 +254,67 @@ contains
                                       +Vel_half(1)*Vel_half(1))
 
     end subroutine compute_Kinetic_Energy_V
+
+
+    ! ############################################################
+    !>
+    !! \brief This subroutine performs the cholesky factorisation of the
+    !! matrix K defined at the vertex. So it is not really an inversion!
+    !! \param type (Vertex), intent (INOUT) V
+    !! \param real, intent (INOUT) E_kin
+    !<
+    subroutine  invert_K_vertex(V)
+        implicit none
+
+        type (Vertex), intent (INOUT) :: V
+        integer                       :: n, INFO, i, imin, imax
+        n = 2 * V%Valence
+
+        ! On range dans K_up les colonnes successives de V%Kmat
+        imin = 1
+        do i=0,n-1
+            imax = imin + i
+            V%K_up(imin:imax) = V%Kmat(i,0:i)
+            imin = imax +1
+        enddo
+
+        ! Appel de la routine Lapack pour factorisation Cholesky
+        call SPPTRF( 'U', n, V%K_up, INFO)
+
+        if (INFO .NE. 0) STOP "Factorisation of vertex matrix not successfull"
+
+    end subroutine invert_K_vertex
+
+
+    ! ############################################################
+    !>
+    !! \brief This subroutine solves a linear system K * Lambda = smbrLambda
+    !! using a previously done cholesky factorisation K into U**T*U.
+    !! The upper triangular matrix U is stored colomnwise into the vector K_up.
+    !! \param type (Vertex), intent (INOUT) V
+    !! \param real, intent (INOUT) E_kin
+    !<
+    subroutine  solve_lambda_vertex(V)
+        implicit none
+
+        type (Vertex), intent (INOUT)  :: V
+        real, dimension(1:2*V%Valence) :: rhs
+        integer                        :: n, INFO
+        n = 2 * V%Valence
+
+        ! Changing Right Hand Side numbering to use Lapack routine
+        rhs(1:n) = V%smbrLambda(0:n-1)
+        call SPPTRS( 'U', n, 1, V%K_up, rhs, n, INFO )
+
+        ! If any error :
+        if (INFO .NE. 0) STOP "Inversion of vertex matrix not successfull"
+
+        ! Assigning the solution to V%Lambda
+        V%Lambda(0:n-1) = rhs(1:n)
+        V%SmbrLambda(:) = 0.
+
+    end subroutine solve_lambda_vertex
+
 
     ! ############################################################
 

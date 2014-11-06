@@ -24,7 +24,7 @@ subroutine Runge_Kutta4 (Tdomain, dt)
     real,    intent(in)   :: dt
 
     ! local variables
-    integer :: i, n, mat, nf, nv, ngx, ngz
+    integer :: i, n, mat, nf, ngx, ngz
     integer :: tag_send, tag_receive, i_send, ierr, i_proc
     integer, dimension (MPI_STATUS_SIZE) :: status
     integer               :: nface,  type_DG

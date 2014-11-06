@@ -260,7 +260,7 @@ subroutine set_vertex_valence(Tdomain)
     implicit none
     type (domain), intent (INOUT) :: Tdomain
 
-    integer :: nv, nf, val, i, nel
+    integer :: nv, nf, nf1, nf2, val, i, nel, pos
 
     do nv=0,Tdomain%n_vertex-1
         Tdomain%sVertex(nv)%Valence = 0
@@ -268,16 +268,14 @@ subroutine set_vertex_valence(Tdomain)
 
     do nf=0,Tdomain%n_face-1
         nv = Tdomain%sFace(nf)%Near_Vertex(0)
-        Tdomain%sVertex(nv)%Valence += 1
+        Tdomain%sVertex(nv)%Valence = Tdomain%sVertex(nv)%Valence + 1
         nv = Tdomain%sFace(nf)%Near_Vertex(1)
-        Tdomain%sVertex(nv)%Valence += 1
+        Tdomain%sVertex(nv)%Valence = Tdomain%sVertex(nv)%Valence + 1
     enddo
 
     do nv=0,Tdomain%n_vertex-1
         val = Tdomain%sVertex(nv)%Valence
         allocate(Tdomain%sVertex(nv)%Near_Face(0:val-1))
-        allocate(Tdomain%sVertex(nv)%NearFaceEnd_is1st_glln(0:val-1))
-        NearFaceEnd_is1st_glln(:) = .false.
         Tdomain%sVertex(nv)%Near_Face(:) = -1
     enddo
 

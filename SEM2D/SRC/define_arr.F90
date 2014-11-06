@@ -18,6 +18,7 @@
 subroutine define_arrays(Tdomain)
 
     use sdomain
+    use scompute_coeff_HDG
     use mpi
 
     implicit none
@@ -28,7 +29,7 @@ subroutine define_arrays(Tdomain)
     integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf,npow,powOmc,nface
     integer :: i_send, n_face_pointed, i_proc, nv, i_stock, tag_send, tag_receive, ierr
     integer ,  dimension (MPI_STATUS_SIZE) :: status
-    real :: vp,ri,rj,dx,LocMassmat_Vertex,Apow,OmegaCprime,PI,Omega_c,dxdxi,dzdeta
+    real :: vp,ri,rj,dx,LocMassmat_Vertex,Apow,OmegaCprime,PI,Omega_c,dxdxi,dzdeta, Dt
     real, external :: pow
     real, dimension (:), allocatable :: LocMassMat1D, LocMassMat1D_Down, Send_bt, Receive_Bt
     real, dimension (:,:), allocatable :: xix,etax, xiz,etaz,Jac, Rlam,Rmu,RKmod,Whei,Id,wx, wz
@@ -594,10 +595,12 @@ subroutine define_arrays(Tdomain)
     enddo
 
     ! Calcul des matrices de coefficients CA^-1 et ED^-1 pour HDG en semi-implicite
-    if (Tdomain%Specel(n)%Type_timeInteg .EQ. TIME_INTEG_NEWMARK_PMC) then
+    if (Tdomain%Type_timeInteg .EQ. TIME_INTEG_NEWMARK_PMC) then
         do n = 0, Tdomain%n_elem-1
-            call compute_CAinv(Tdomain%Specel(n))
-            call compute_EDinv(Tdomain%Specel(n))
+            mat = Tdomain%Specel(n)%mat_index
+            Dt  = Tdomain%sSubDomain(mat)%Dt
+            call compute_CAinv(Tdomain%Specel(n),Dt)
+            call compute_EDinv(Tdomain%Specel(n),Dt)
             call build_K_on_face(Tdomain,n)
             call build_K_on_vertex(Tdomain,n)
         enddo

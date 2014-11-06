@@ -21,29 +21,27 @@ subroutine Newmark_PMC (Tdomain,Dt)
     real,    intent(in)   :: dt
 
     ! local variables
-    integer :: i,j,n,np, ngllx, ngllz, mat, nelem,nf, w_face, nv_aus, nf_aus, nv, pos, iter
-    integer :: n_face_pointed, tag_send, tag_receive, i_send, i_stock, ngll, ierr, i_proc
-    integer, dimension (MPI_STATUS_SIZE) :: status
-    real :: bega, gam1,alpha,dt
-
-    real, dimension (:,:), allocatable :: Vxloc, Vzloc
-    real, dimension (:,:), allocatable :: Smooth
-
+    integer :: n, mat, nf, nface, iter, n_it_max
+    real :: bega, gam1, alpha, timelocal
+    !integer, dimension (MPI_STATUS_SIZE) :: status
 
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a
     ! Time staggered Stress-Velocity formulation inside PML
     alpha =Tdomain%TimeD%alpha
     bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
     gam1 = 1. / Tdomain%TimeD%gamma
-    n_it_max = 5
+    n_it_max = 3
+    timelocal = Tdomain%TimeD%rtime + Dt
 
     ! Predictor Phase
 
     do n=0,Tdomain%n_elem-1
-        ! Dans le tableau Vect_RK sont stockes les deformations et vitesses de l'instant tn
-        Elem%S0(:,:,:) = Elem%Strain(:,:,:)
-        Elem%V0(:,:,:) = Elem%Veloc(:,:,:)
-        call Prediction_Elem_NPMC (Tdomain%specel(n))
+        ! On calcul la prediction :
+        mat = Tdomain%specel(n)%mat_index
+        Tdomain%specel(n)%Strain0(:,:,:) = Tdomain%specel(n)%Strain(:,:,:)
+        Tdomain%specel(n)%V0(:,:,:)      = Tdomain%specel(n)%Veloc (:,:,:)
+        call Prediction_Elem_NPMC (Tdomain%specel(n), Tdomain%sSubDomain(mat)%hTprimex, &
+                                   Tdomain%sSubDomain(mat)%hprimez, Dt)
     enddo
 
     ! Multicorrector phase :
@@ -57,7 +55,7 @@ subroutine Newmark_PMC (Tdomain,Dt)
             call compute_InternalForces_HDG  (Tdomain%specel(n), &
               Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimex, &
               Tdomain%sSubDomain(mat)%hprimez,Tdomain%sSubDomain(mat)%hTprimez)
-            call add_previous_state2forces (Tdomain%specel(n))
+            call add_previous_state2forces (Tdomain%specel(n), Dt)
         enddo
 
         ! External Forces computation
@@ -73,7 +71,7 @@ subroutine Newmark_PMC (Tdomain,Dt)
 
         ! Solve linear systems on the vertices
         do n=0,Tdomain%n_vertex-1
-            call solve_lambda_vertex(Tdomain%Vertex(n))
+            call solve_lambda_vertex(Tdomain%sVertex(n))
         enddo
 
         ! Constructing the Lambda (= velocities vhat) on the faces
@@ -83,6 +81,8 @@ subroutine Newmark_PMC (Tdomain,Dt)
             ! Computes lambda (= Vhat) on Face's inner nodes
             call compute_Vhat_face (Tdomain%sFace(n))
         enddo
+
+        !!!!!!!!!!!!!  MPI COMMUNICATIONS HERE  !!!!!!!!!!!!!!!!!!!
 
         ! Local Solvers at element level
         do n=0,Tdomain%n_elem-1
@@ -95,21 +95,14 @@ subroutine Newmark_PMC (Tdomain,Dt)
             call local_solver(Tdomain%specel(n))
         enddo
 
-        !!!!!!!!!!!!!  MPI COMMUNICATIONS HERE  !!!!!!!!!!!!!!!!!!!
-
-        ! Solveurs locaux : gets Veloc and Strain from Lambda
-        do n=0,Tdomain%n_elem-1
-            ! Solveur Local
-            ! Solveur Local
-        enddo
         iter = iter+1
     enddo
 
 
     return
-end subroutine Newmark_DG
+end subroutine Newmark_PMC
 
-end module snewmark_dg
+end module snewmark_pmc
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

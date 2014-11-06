@@ -29,6 +29,7 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/capteurs_veloc.F90
     ${PRJ}/SRC/check_inputs_and_mesh.F90
     ${PRJ}/SRC/compute_coeff_flux.F90
+    ${PRJ}/SRC/compute_coeff_HDG.F90
     ${PRJ}/SRC/compute_GLL.F90
     ${PRJ}/SRC/Compute_external_forces.F90
     ${PRJ}/SRC/courant.F90

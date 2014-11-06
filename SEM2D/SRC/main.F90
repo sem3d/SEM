@@ -43,7 +43,7 @@ subroutine  sem()
 #ifdef COUPLAGE
     use scouplage
 #endif
-    use snewmark_dg
+    use snewmark_pmc
     use srungekutta
 
     implicit none
@@ -284,7 +284,7 @@ subroutine  sem()
         else if (Tdomain%type_timeInteg==TIME_INTEG_RK4) then
             call Runge_Kutta4(Tdomain, Tdomain%TimeD%dtmin)
         else if (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC) then
-            call Newmark_DG(Tdomain)
+            call Newmark_PMC(Tdomain, Tdomain%TimeD%dtmin)
         endif
 
         if (ntime==Tdomain%TimeD%NtimeMax-1) then

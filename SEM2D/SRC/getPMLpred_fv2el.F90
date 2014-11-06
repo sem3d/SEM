@@ -148,17 +148,16 @@ subroutine get_PMLprediction_fv2el (Tdomain,n,Vxloc,Vzloc,ngllx,ngllz,alpha, beg
 end subroutine get_PMLprediction_fv2el
 
 
-subroutine get_simpler (Tdomain,n,Vxloc,Vzloc,ngllx,ngllz,dt)
+subroutine get_simpler (Tdomain,n,Vxloc,Vzloc,ngllx,ngllz)
 
     ! Modified by S Terrana 09/09/2014
     use sdomain
     implicit none
     type (Domain), intent (IN) :: Tdomain
     integer, intent (IN) :: n, ngllx,ngllz
-    real, intent(IN) :: dt
     real, dimension (0:ngllx-1,0:ngllz-1), intent(INOUT) :: Vxloc,Vzloc
 
-    integer :: nf,i,nv
+    integer :: nf,nv
 
     nf = Tdomain%specel(n)%near_face(0)
     Vxloc(1:ngllx-2,0) = Tdomain%sFace(nf)%Veloc(:,0)

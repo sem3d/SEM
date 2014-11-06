@@ -50,7 +50,7 @@ module selement
        integer :: type_DG
        logical :: acoustic
        real, dimension (:),    allocatable :: Coeff_Integr_Faces
-       real, dimension(:,:,:), allocatable :: Strain
+       real, dimension(:,:,:), allocatable :: Strain, Strain0
        real, dimension(:,:,:), allocatable :: Vect_RK, Psi_RK, StressSMBR
        ! HDG
        real, dimension(:,:), allocatable :: Normal_nodes
@@ -113,21 +113,21 @@ contains
     !! \param type (Element), intent (INOUT) Elem
     !! \param real, intent (IN) dt
     !<
-    subroutine Prediction_Elem_NPMC (Elem, hTmat, hmatz, Dt)
+    subroutine Prediction_Elem_NPMC (Elem, hTprimex, hprimez, Dt)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) ::  hTmat
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hmatz
+        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprimex
+        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
         real, intent (IN) :: Dt
 
-        Elem%Strain(:,:,0) = Elem%S0(:,:,0) + 0.5 * Dt * &
+        Elem%Strain(:,:,0) = Elem%Strain0(:,:,0) + 0.5 * Dt * &
                             (Elem%InvGrad(:,:,0,0) * MATMUL(hTprimex,Elem%Veloc(:,:,0)+Elem%V0(:,:,0)) &
                             +Elem%InvGrad(:,:,0,1) * MATMUL(Elem%Veloc(:,:,0)+Elem%V0(:,:,0),hprimez))
-        Elem%Strain(:,:,1) = Elem%S0(:,:,1) + 0.5 * Dt * &
+        Elem%Strain(:,:,1) = Elem%Strain0(:,:,1) + 0.5 * Dt * &
                             (Elem%InvGrad(:,:,1,0) * MATMUL(hTprimex,Elem%Veloc(:,:,1)+Elem%V0(:,:,1)) &
                             +Elem%InvGrad(:,:,1,1) * MATMUL(Elem%Veloc(:,:,1)+Elem%V0(:,:,1),hprimez))
-        Elem%Strain(:,:,2) = Elem%S0(:,:,1) + 0.25 * Dt * &
+        Elem%Strain(:,:,2) = Elem%Strain0(:,:,1) + 0.25 * Dt * &
                             (Elem%InvGrad(:,:,0,0) * MATMUL(hTprimex,Elem%Veloc(:,:,1)+Elem%V0(:,:,1)) &
                             +Elem%InvGrad(:,:,0,1) * MATMUL(Elem%Veloc(:,:,1)+Elem%V0(:,:,1),hprimez)  &
                             +Elem%InvGrad(:,:,1,0) * MATMUL(hTprimex,Elem%Veloc(:,:,0)+Elem%V0(:,:,0)) &
@@ -1319,11 +1319,11 @@ contains
         type (Element), intent (INOUT)   :: Elem
         real, intent (IN)                :: Dt
 
-        Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + 1./Dt * Elem%Acoeff(:,:,12)*Elem%Strain0(:,:,0)
-        Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + 1./Dt * Elem%Acoeff(:,:,12)*Elem%Strain0(:,:,1)
-        Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + 1./Dt * Elem%Acoeff(:,:,12)*Elem%Strain0(:,:,2)
-        Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + 1./Dt * Elem%Acoeff(:,:,12)*Elem%Density(:,:)*Elem%Veloc0(:,:,0)
-        Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + 1./Dt * Elem%Acoeff(:,:,12)*Elem%Density(:,:)*Elem%Veloc0(:,:,1)
+        Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Strain0(:,:,0)
+        Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Strain0(:,:,1)
+        Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Strain0(:,:,2)
+        Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Density(:,:)*Elem%V0(:,:,0)
+        Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Density(:,:)*Elem%V0(:,:,1)
 
     end subroutine add_previous_state2forces
 
@@ -1366,39 +1366,100 @@ contains
 
     end subroutine compute_smbr_R
 
-! ###########################################################
-!>
-!!\brief Subroutine that computes the "imin" and "imax" indexes  which corresponds to the
-!! begining and the end of the arrays that contain data for the local face "w_face" of element "Elem".
-!!\version 1.0
-!!\date 03/04/2014
-!! This subroutine is used with DG and HDG elements.
-!<
-subroutine get_iminimax (Elem,w_face,imin,imax)
+    ! ###########################################################
+    !>
+    !! \brief This subroutine computes computes the local fields of the current element
+    !! Elem%Veloc, and Elem%Strain from the previous state V0 and Strain0, and from
+    !! the traces Vhat (= Lagrange multiplicators).
+    !! This Subroutine is suitable for Hybridizable Discontinuous Galerkin elements
+    !! only, and only in a framework of semi-implicit time-scheme.
+    !! \param type (Element), intent (INOUT) Elem
+    !!
+    !<
+    subroutine  local_solver (Elem)
+        implicit none
 
-    implicit none
+        type (Element), intent (INOUT)   :: Elem
 
-    type(element), intent(IN) :: Elem
-    integer, intent (IN)      :: w_face
-    integer, intent(INOUT)    :: imin
-    integer, intent(INOUT)    :: imax
+        ! First step : traces terms are computed using the subroutine compute_traces
+        ! and setting the former tractions TracFace to 0
+        Elem%TracFace = 0.
+        call compute_Traces (Elem)
 
-    select case (w_face)
-    case(0)
-        imin = 0
-        imax = Elem%ngllx-1
-    case(1)
-        imin = Elem%ngllx
-        imax = Elem%ngllx   + Elem%ngllz-1
-    case(2)
-        imin = Elem%ngllx   + Elem%ngllz
-        imax = 2*Elem%ngllx + Elem%ngllz-1
-    case(3)
-        imin = 2*Elem%ngllx + Elem%ngllz
-        imax = 2*Elem%ngllx + 2*Elem%ngllz -1
-    end select
+        ! second step : the Mass matrices are inverted
+        call inversion_massmat(Elem)
 
-end subroutine get_iminimax
+        ! Last step : updates of Velocities and strains
+
+    end subroutine local_solver
+
+    ! ###########################################################
+    !>
+    !!\brief Subroutine that computes the "imin" and "imax" indexes  which corresponds to the
+    !! begining and the end of the arrays that contain data for the local face "w_face" of element "Elem".
+    !!\version 1.0
+    !!\date 03/04/2014
+    !! This subroutine is used with DG and HDG elements.
+    !<
+    subroutine get_iminimax (Elem,w_face,imin,imax)
+
+        implicit none
+
+        type(element), intent(IN) :: Elem
+        integer, intent (IN)      :: w_face
+        integer, intent(INOUT)    :: imin
+        integer, intent(INOUT)    :: imax
+
+        select case (w_face)
+        case(0)
+            imin = 0
+            imax = Elem%ngllx-1
+        case(1)
+            imin = Elem%ngllx
+            imax = Elem%ngllx   + Elem%ngllz-1
+        case(2)
+            imin = Elem%ngllx   + Elem%ngllz
+            imax = 2*Elem%ngllx + Elem%ngllz-1
+        case(3)
+            imin = 2*Elem%ngllx + Elem%ngllz
+            imax = 2*Elem%ngllx + 2*Elem%ngllz -1
+        end select
+
+    end subroutine get_iminimax
+
+
+    ! ###########################################################
+    !>
+    !! \brief This subroutine gets the local numerotation of gll nodes
+    !! around a given corner nc of an element Elem.
+    !! Note that the "corner" nc corresponds to the vertex Near_Vertx(nc)
+    !! \param type (element), intent (INOUT) Elem
+    !! \param integer, intent (IN)  nc
+    !! \param integer, intent (OUt) n1, n2
+    !<
+    subroutine get_gll_arround_corner(Elem,nc,n1,n2)
+
+        implicit none
+        type (Element), intent (IN) :: Elem
+        integer, intent(IN)  :: nc
+        integer, intent(OUT) :: n1, n2
+
+        select case (nc)
+        case(0)
+            n1 = 2*Elem%ngllx + Elem%ngllz
+            n2 = 0
+        case(1)
+            n1 = Elem%ngllx-1
+            n2 = Elem%ngllx
+        case(2)
+            n1 = Elem%ngllx+Elem%ngllz-1
+            n2 = 2*Elem%ngllx+Elem%ngllz-1
+        case(3)
+            n1 = Elem%ngllx+Elem%ngllz
+            n2 = 2*(Elem%ngllx+Elem%ngllz)-1
+        end select
+
+    end subroutine get_gll_arround_corner
 
 ! ###########################################################
 

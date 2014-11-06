@@ -46,7 +46,7 @@ subroutine random_mesh_deformation(Tdomain)
 
     ! Local declarations
     integer :: i, n1, n2
-    real    :: Lc, d, x, y, xnew, ynew, harv1, harv2, x_al, y_al
+    real    :: Lc, d, x, y, xnew, ynew, harv1, harv2
 
     ! Computes caracteristical length from the first element of the domain
     n1 = Tdomain%specel(0)%Control_Nodes(0)

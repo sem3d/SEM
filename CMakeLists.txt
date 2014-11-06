@@ -60,6 +60,7 @@ set(SEM_SRC
   ${SEMCOMMON}/invert_3d.F90
   ${SEMCOMMON}/pol_force.F90
   ${SEMCOMMON}/lagrange_prop.f90
+  ${SEMCOMMON}/mat_symposdef_solver.F90 
   ${SEMCOMMON}/pow.F90
   ${SEMCOMMON}/pointlist.f90
   ${SEMCOMMON}/sem_hdf5.f90

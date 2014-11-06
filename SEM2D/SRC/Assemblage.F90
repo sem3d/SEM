@@ -219,7 +219,7 @@ end subroutine Get_flux_f2el
 !!\date 18/11/2013
 !! This subroutine is used only with HDG elements
 !<
-subroutine Get_traction_el2f (Tdomain, nelem, nface, w_face, timelocal)
+subroutine Get_traction_el2f (Tdomain, nelem, nface, w_face)
 
     use sdomain
     use ssources
@@ -230,12 +230,12 @@ subroutine Get_traction_el2f (Tdomain, nelem, nface, w_face, timelocal)
     integer, intent(in)   :: nelem
     integer, intent(in)   :: nface
     integer, intent(in)   :: w_face
-    real,   intent (in)    :: timelocal
+    !real,   intent (in)   :: timelocal
 
     ! local variables
-    integer :: ngll, ngllx, ngllz, i, imin, imax, np
+    integer :: ngll, ngllx, ngllz, i, imin, imax
     logical :: coherency
-    real, dimension(:,:), allocatable :: Fext
+    !real, dimension(:,:), allocatable :: Fext
 
     ngll  = Tdomain%sFace(nface)%ngll
     ngllx = Tdomain%specel(nelem)%ngllx
@@ -255,32 +255,32 @@ subroutine Get_traction_el2f (Tdomain, nelem, nface, w_face, timelocal)
     end if
 
     ! Ajout des sources surfaciques pour les problemes de Riemann autour des elements sources
-    if (Tdomain%specel(nelem)%is_source) then
-        allocate(Fext(0:ngll-1,0:1))
-        select case(w_face)
-        case(0)
-            Fext(0:ngll-1,0) =  CompSource(Tdomain%sSource(0),timelocal) &
-                              * Tdomain%sSource(0)%Elem(0)%ExtForce(0:ngllx-1,0,0)
-            Fext(0:ngll-1,1) =  CompSource(Tdomain%sSource(0),timelocal) &
-                              * Tdomain%sSource(0)%Elem(0)%ExtForce(0:ngllx-1,0,1)
-        case(1)
-            Fext(0:ngll-1,0) =  CompSource(Tdomain%sSource(0),timelocal) &
-                              * Tdomain%sSource(0)%Elem(0)%ExtForce(ngllx-1,0:ngllz-1,0)
-            Fext(0:ngll-1,1) =  CompSource(Tdomain%sSource(0),timelocal) &
-                              * Tdomain%sSource(0)%Elem(0)%ExtForce(ngllx-1,0:ngllz-1,1)
-        case(2)
-            Fext(0:ngll-1,0) =  CompSource(Tdomain%sSource(0),timelocal) &
-                              * Tdomain%sSource(0)%Elem(0)%ExtForce(0:ngllx-1,ngllz-1,0)
-            Fext(0:ngll-1,1) =  CompSource(Tdomain%sSource(0),timelocal) &
-                              * Tdomain%sSource(0)%Elem(0)%ExtForce(0:ngllx-1,ngllz-1,1)
-        case(3)
-            Fext(0:ngll-1,0) =  CompSource(Tdomain%sSource(0),timelocal) &
-                              * Tdomain%sSource(0)%Elem(0)%ExtForce(0,0:ngllz-1,0)
-            Fext(0:ngll-1,1) =  CompSource(Tdomain%sSource(0),timelocal) &
-                              * Tdomain%sSource(0)%Elem(0)%ExtForce(0,0:ngllz-1,1)
-        end select
-        !Tdomain%sFace(nface)%Traction = Tdomain%sFace(nface)%Traction - 0.005 * Fext
-    endif
+    !if (Tdomain%specel(nelem)%is_source) then
+    !    allocate(Fext(0:ngll-1,0:1))
+    !    select case(w_face)
+    !    case(0)
+    !        Fext(0:ngll-1,0) =  CompSource(Tdomain%sSource(0),timelocal) &
+    !                          * Tdomain%sSource(0)%Elem(0)%ExtForce(0:ngllx-1,0,0)
+    !        Fext(0:ngll-1,1) =  CompSource(Tdomain%sSource(0),timelocal) &
+    !                          * Tdomain%sSource(0)%Elem(0)%ExtForce(0:ngllx-1,0,1)
+    !    case(1)
+    !        Fext(0:ngll-1,0) =  CompSource(Tdomain%sSource(0),timelocal) &
+    !                          * Tdomain%sSource(0)%Elem(0)%ExtForce(ngllx-1,0:ngllz-1,0)
+    !        Fext(0:ngll-1,1) =  CompSource(Tdomain%sSource(0),timelocal) &
+    !                          * Tdomain%sSource(0)%Elem(0)%ExtForce(ngllx-1,0:ngllz-1,1)
+    !    case(2)
+    !        Fext(0:ngll-1,0) =  CompSource(Tdomain%sSource(0),timelocal) &
+    !                          * Tdomain%sSource(0)%Elem(0)%ExtForce(0:ngllx-1,ngllz-1,0)
+    !        Fext(0:ngll-1,1) =  CompSource(Tdomain%sSource(0),timelocal) &
+    !                          * Tdomain%sSource(0)%Elem(0)%ExtForce(0:ngllx-1,ngllz-1,1)
+    !    case(3)
+    !        Fext(0:ngll-1,0) =  CompSource(Tdomain%sSource(0),timelocal) &
+    !                          * Tdomain%sSource(0)%Elem(0)%ExtForce(0,0:ngllz-1,0)
+    !        Fext(0:ngll-1,1) =  CompSource(Tdomain%sSource(0),timelocal) &
+    !                          * Tdomain%sSource(0)%Elem(0)%ExtForce(0,0:ngllz-1,1)
+    !    end select
+    !    Tdomain%sFace(nface)%Traction = Tdomain%sFace(nface)%Traction - 0.005 * Fext
+    !endif
     return
 
 end subroutine Get_traction_el2f
@@ -323,6 +323,56 @@ subroutine Get_Vhat_f2el (Tdomain, nelem, nface, w_face)
     endif
 
 end subroutine Get_Vhat_f2el
+
+
+!>
+!!\brief Subroutine in which the element elem sends its contribution to the
+!! second member R (= tractions)of the system K*Lambda = R (for lagrange multiplicators)
+!! to its neighbouring faces and vertices.
+!!\version 1.0
+!!\date 03/10/2014
+!! This subroutine is used only with HDG elements in a semi-implicit framework
+!<
+subroutine Get_R_el2fv (Tdomain, nelem)
+
+    use sdomain
+    implicit none
+
+    type (domain), intent (INOUT) :: Tdomain
+    integer, intent(IN)    :: nelem
+    integer                :: imin, imax, i, nv, w_face, nface, ngll, pos1, pos2, n1, n2
+    type(element), pointer :: Elem
+    logical :: coherency
+    Elem => Tdomain%specel(nelem)
+
+    ! Send R from current element to its neghbouring faces
+    do w_face=0,3
+        call get_iminimax(Tdomain%specel(nelem),w_face,imin,imax)
+        nface = Elem%Near_Face(w_face)
+        ngll  = Tdomain%sFace(nface)%ngll
+        coherency = Tdomain%sFace(nface)%coherency
+        if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
+            Tdomain%sFace(nface)%smbr(:,0:1) = Tdomain%sFace(nface)%smbr(:,0:1) + Elem%TracFace(imin:imax,0:1)
+        else
+            do i=0,ngll-1
+                Tdomain%sFace(nface)%smbr(i,0:1) = Tdomain%sFace(nface)%smbr(i,0:1) + Elem%TracFace(imax-i,0:1)
+            enddo
+        endif
+    enddo
+
+    ! Send R from current element to its neghbouring vertices
+    do i=0,3
+        nv = Elem%Near_Vertex(i)
+        call get_gll_arround_corner(Elem,i,n1,n2)
+        pos1 = Elem%pos_corner_in_VertMat(i,0)
+        pos2 = Elem%pos_corner_in_VertMat(i,1)
+        Tdomain%sVertex(nv)%smbrLambda(pos1:pos1+1) = Tdomain%sVertex(nv)%smbrLambda(pos1:pos1+1) &
+                                                    + Elem%TracFace(n1,0:1)
+        Tdomain%sVertex(nv)%smbrLambda(pos2:pos2+1) = Tdomain%sVertex(nv)%smbrLambda(pos2:pos2+1) &
+                                                    + Elem%TracFace(n2,0:1)
+    enddo
+
+end subroutine Get_R_el2fv
 
 
 !>
@@ -407,7 +457,7 @@ subroutine enforce_diriclet_corners_vhat (Tdomain, nelem)
 
     type (domain), intent (INOUT) :: Tdomain
     integer, intent(in)   :: nelem
-    integer :: i, nface, ngllx, ngllz, nglltot, imin, imax, index1, index2
+    integer :: i, nface, ngllx, ngllz, nglltot, index1, index2
     logical :: is_refl
 
     ngllx = Tdomain%specel(nelem)%ngllx

@@ -354,8 +354,8 @@ contains
             pos1 = Elem%pos_corner_in_VertMat(nf,1)
             pos2 = Elem%pos_corner_in_VertMat(mod(nf+1,4),0)
             ! Termes diagonaux des matrices sur les vertexs :
-            Tdomain%sVertex(n1)%Kinv(pos1:pos1+1,pos1:pos1+1) = K(imin,0:1,0:1)
-            Tdomain%sVertex(n2)%Kinv(pos2:pos2+1,pos2:pos2+1) = K(imax,0:1,0:1)
+            !Tdomain%sVertex(n1)%Kmat(pos1:pos1+1,pos1:pos1+1) = K(imin,0:1,0:1)
+            !Tdomain%sVertex(n2)%Kmat(pos2:pos2+1,pos2:pos2+1) = K(imax,0:1,0:1)
         enddo
 
         ! Termes extra-diagonaux correspondant aux coins :
@@ -388,45 +388,14 @@ contains
             K21(:,:) = K21(:,:) - MATMUL(Elem%EDinv(n2,:,:),E1(:,:))
             ! Envoi des matrices K12 et K21 sur la matrice du vertex
             pos1 = Elem%pos_corner_in_VertMat(i,0) ; pos2 = Elem%pos_corner_in_VertMat(i,1)
-            Tdomain%sVertex(nv)%Kinv(pos1:pos1+1,pos2:pos2+1) = K12(:,:)
-            Tdomain%sVertex(nv)%Kinv(pos2:pos2+1,pos1:pos1+1) = K21(:,:)
+            Tdomain%sVertex(nv)%Kmat(pos1:pos1+1,pos2:pos2+1) = K12(:,:)
+            Tdomain%sVertex(nv)%Kmat(pos2:pos2+1,pos1:pos1+1) = K21(:,:)
         enddo
 
     end subroutine build_K_on_vertex
 
+    ! ############################################################
 
-    ! ###########################################################
-    !>
-    !! \brief This subroutine get the local numerotation of gll nodes
-    !! around a given corner nc of an element Elem.
-    !! Note that the "corner" nc corresponds to the vertex Near_Vertx(nc)
-    !! \param type (element), intent (INOUT) Elem
-    !! \param integer, intent (IN)  nc
-    !! \param integer, intent (OUt) n1, n2
-    !<
-    subroutine get_gll_arround_corner(Elem,nc,n1,n2)
-
-        implicit none
-        type (Element), intent (IN) :: Elem
-        integer, intent(IN)  :: nc
-        integer, intent(OUT) :: n1, n2
-
-        select case (nc)
-        case(0)
-            n1 = 2*Elem%ngllx + Elem%ngllz
-            n2 = 0
-        case(1)
-            n1 = Elem%ngllx-1
-            n2 = Elem%ngllx
-        case(2)
-            n1 = Elem%ngllx+Elem%ngllz-1
-            n2 = 2*Elem%ngllx+Elem%ngllz-1
-        case(3)
-            n1 = Elem%ngllx+Elem%ngllz
-            n2 = 2*(Elem%ngllx+Elem%ngllz)-1
-        end select
-
-    end subroutine get_gll_arround_corner
 
 end module scompute_coeff_HDG
 !! Local Variables:
