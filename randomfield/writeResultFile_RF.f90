@@ -146,7 +146,7 @@ contains
 
 	        deallocate (grid_data)
 
-			if(rang == 0) write(*,*) ">>>>>>>>> Creating Quantities dataset 'random field'";
+			!if(rang == 0) write(*,*) ">>>>>>>>> Creating Quantities dataset 'random field'";
 	        dims(1) = size(randField,1)
 	        dims(2) = 1 !One random field in each dataset
 
@@ -164,7 +164,7 @@ contains
 		        call h5sclose_f(dspace_id, error) ! Terminate access to the data space.
 		    end do
 
-			if(rang == 0) write(*,*) ">>>>>>>>> Closing file";
+			!if(rang == 0) write(*,*) ">>>>>>>>> Closing file";
 	        call h5fclose_f(file_id, error) ! Close the file.
 	        call h5close_f(error) ! Close FORTRAN interface.
 
@@ -172,11 +172,11 @@ contains
 
 		if(present(HDF5Name)) HDF5Name = fileHDF5Name
 
-		if(rang == 0) then
-        	write(*,*) "";
-        	write(*,*) "------------END Writing result HDF5 file (MPI)-----------------------";
-       		write(*,*) "";
-       	end if
+!		if(rang == 0) then
+!        	write(*,*) "";
+!        	write(*,*) "------------END Writing result HDF5 file (MPI)-----------------------";
+!       		write(*,*) "";
+!       	end if
 
     end subroutine write_ResultHDF5Unstruct_MPI
 
@@ -231,17 +231,17 @@ contains
 		                all_HDF5nameList, len(HDF5nameList)*size(HDF5nameList), MPI_CHARACTER,     &
 		                 0              , effectComm       , code)
 
-		write(*,*) "all_HDF5nameList = ", all_HDF5nameList
+		!write(*,*) "all_HDF5nameList = ", all_HDF5nameList
 
 		if(rang == 0) then
 			!Common parameters
 			Nmc         = nSamples
 			fileXMFName = string_join(fileName,".xmf")
 			fullPathXMF = string_join(folderPath, "/"//fileXMFName)
-			if(rang == 0) write(*,*) "all_nPointList in rang 0 = ", all_nPointList
-			if(rang == 0) write(*,*) "all_HDF5nameList in rang 0 = ", all_HDF5nameList
-			write(*,*) "fileXMFName = ", fileXMFName
-			write(*,*) "fullPathXMF = ", fullPathXMF
+			!if(rang == 0) write(*,*) "all_nPointList in rang 0 = ", all_nPointList
+			!if(rang == 0) write(*,*) "all_HDF5nameList in rang 0 = ", all_HDF5nameList
+			if(rang == 0) write(*,*) "fileXMFName = ", fileXMFName
+			if(rang == 0) write(*,*) "fullPathXMF = ", fullPathXMF
 
 			!Optional inputs
 			allocate(effectAttName(Nmc))

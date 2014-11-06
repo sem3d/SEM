@@ -91,7 +91,7 @@ subroutine Define_Arrays(Tdomain, rg)
 
 
 
-	write(*,*) ">>>>General initialization"
+	if(rg == 0) write(*,*) ">>>>General initialization"
 	nProp        =  3
 	allocate(avgProp(0:nProp-1)) !Obs: should have nProp declared before
 	allocate(nSubDPoints(0:Tdomain%n_mat - 1))
@@ -244,17 +244,16 @@ subroutine Define_Arrays(Tdomain, rg)
 	!Building and applying properties per subdomain!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-
-	write(*,*) ">>>>Building and applying properties per subdomain"
+	if(rg == 0) write(*,*) ">>>>Building and applying properties per subdomain"
+!	write(*,*) ">>>>Building and applying properties per subdomain"
 	do mat = 0, Tdomain%n_mat - 1
-		write(*,*) ""
-		write(*,*) ""
-		write(*,*) "///////////MATERIAL ", mat, " in rang ", rg
-		write(*,*) "                  Type: ", Tdomain%sSubdomain(mat)%material_type
-		write(*,*) "    Number of Elements: ", size(Tdomain%sSubDomain(mat)%elemList)
-		write(*,*) "Associated to material: ", Tdomain%sSubdomain(mat)%assocMat
-		write(*,*) "  Present in this proc? ", Tdomain%subD_exist(mat)
-		write(*,*) ""
+		if(rg == 0) write(*,*) ""
+		if(rg == 0) write(*,*) "///////////MATERIAL ", mat, " in rang ", rg
+		if(rg == 0) write(*,*) "                  Type: ", Tdomain%sSubdomain(mat)%material_type
+		if(rg == 0) write(*,*) "Associated to material: ", Tdomain%sSubdomain(mat)%assocMat
+		!if(rg == 0) write(*,*) "    Number of Elements: ", size(Tdomain%sSubDomain(mat)%elemList)
+		!if(rg == 0) write(*,*) "  Present in this proc? ", Tdomain%subD_exist(mat)
+		!if(rg == 0) write(*,*) ""
 
 		if(.not.Tdomain%subD_exist(mat)) then
 
@@ -270,7 +269,8 @@ subroutine Define_Arrays(Tdomain, rg)
 
 	    else
 			!Allocating Local Coordinates (xPoints)
-			write(*,*) ">>>>Allocating Local Coordinates (xPoints) and properties (prop)"
+			if(rg == 0) write(*,*) ">>>>Allocating Local Coordinates (xPoints) and properties (prop)"
+!			write(*,*) ">>>>Allocating Local Coordinates (xPoints) and properties (prop)"
 	        allocate(xPoints (0:nSubDPoints(mat)-1, 0:size(Tdomain%GlobCoord, 1)-1)) !Subdomain coordinates ((:,0) = X, (:,1) = Y, (:,2) = Z) per proc
 	        allocate(prop(0:nSubDPoints(mat)-1, 0:nProp-1)) !Subdomain properties Matrix ((:,0) = Dens, (:,1) = Lambda, (:,2) = Mu) per proc
 
@@ -295,7 +295,7 @@ subroutine Define_Arrays(Tdomain, rg)
 	!////////////////////
 
 	        if(Tdomain%sSubdomain(assocMat)%material_type == "R") then
-				write(*,*) ">>>>Creating Standard Gaussian Field"
+				if(rg == 0) write(*,*) ">>>>Creating Standard Gaussian Field"
 
 		        !Building properties
 	            !if(rg == 0) write(*,*) "CREATING STANDARD GAUSSIAN FIELD"
@@ -325,7 +325,7 @@ subroutine Define_Arrays(Tdomain, rg)
 		        	!write(*,*) "prop BEFORE TRANSFORMATION = ", prop(:,0)
 
 	            	!////////Transfoming Stantard Gaussian Field
-	            	write(*,*) ">>>>Transforming Standard Gaussian Field"
+	            	if(rg == 0) write(*,*) ">>>>Transforming Standard Gaussian Field"
 
 	            	!i = 0
 	            	!if(rg == 0) write(*,*) "Dens------------ "
@@ -368,54 +368,54 @@ subroutine Define_Arrays(Tdomain, rg)
 					vertex_XYZ = .false.
 					PML_Mask(:,:) = .false.
 
-					write(*,*) ">>>>Defining PML orientation"
+					!write(*,*) ">>>>Defining PML orientation"
 					!/////////////Defining PML orientation
 					!Face X oriented
 					if  (        Tdomain%sSubDomain(mat)%Px   .and. &
 		    		 	   (.not.Tdomain%sSubDomain(mat)%Py)  .and. &
 		    			   (.not.Tdomain%sSubDomain(mat)%Pz)) then
 		    				face_X = .true.
-		    				write(*,*) "face_X"
+		    				!write(*,*) "face_X"
 					!Face Y oriented
 		            elseif ((.not.Tdomain%sSubDomain(mat)%Px)  .and. &
 		                          Tdomain%sSubDomain(mat)%Py   .and. &
 		                    (.not.Tdomain%sSubDomain(mat)%Pz)) then
 		                    face_Y = .true.
-		                    write(*,*) "face_Y"
+		                    !write(*,*) "face_Y"
 		            !Face Z oriented
 		            elseif ((.not.Tdomain%sSubDomain(mat)%Px) .and. &
 		                    (.not.Tdomain%sSubDomain(mat)%Py) .and. &
 		                          Tdomain%sSubDomain(mat)%Pz) then
 		                    face_Z = .true.
-		                    write(*,*) "face_Z"
+		                    !write(*,*) "face_Z"
 
 		            !Edge in XY
 		            elseif (     Tdomain%sSubDomain(mat)%Px  .and. &
 		                   (     Tdomain%sSubDomain(mat)%Py) .and. &
 		                   (.not.Tdomain%sSubDomain(mat)%Pz)) then
 							edge_XY = .true.
-							write(*,*) "edge_XY"
+							!write(*,*) "edge_XY"
 
 		            !Edge in YZ
 		            elseif ((.not.Tdomain%sSubDomain(mat)%Px) .and. &
 		                   (      Tdomain%sSubDomain(mat)%Py) .and. &
 		                   (      Tdomain%sSubDomain(mat)%Pz)) then
 							edge_YZ = .true.
-							write(*,*) "edge_YZ"
+							!write(*,*) "edge_YZ"
 
 		            !Edge in ZX
 		            elseif (      Tdomain%sSubDomain(mat)%Px   .and. &
 		                   ((.not.Tdomain%sSubDomain(mat)%Py)) .and. &
 		                   (      Tdomain%sSubDomain(mat)%Pz)) then
 		                   edge_ZX = .true.
-		                   write(*,*) "edge_ZX"
+		                   !write(*,*) "edge_ZX"
 
 		            !Vertex in XYZ
 		            elseif (  Tdomain%sSubDomain(mat)%Px   .and. &
 		                   (  Tdomain%sSubDomain(mat)%Py)  .and. &
 		                   (  Tdomain%sSubDomain(mat)%Pz)) then
 						   vertex_XYZ = .true.
-	                       write(*,*) "vertex_XYZ"
+	                       !write(*,*) "vertex_XYZ"
 		            !Undefined PML
 		            else
 		            	write(*,*) "ERROR in mat ", mat, " (PML) definition (directions), check 'material.input'"
@@ -435,21 +435,21 @@ subroutine Define_Arrays(Tdomain, rg)
 	        		if (Tdomain%sSubDomain(mat)%Forward) LimPML2 = nglly-1
 	        		if (Tdomain%sSubDomain(mat)%Down)    LimPML3 = ngllz-1
 
-	        		if (Tdomain%sSubDomain(mat)%Left) then
-	        			write(*,*) "Left"
-	        		else
-	        			write(*,*) "Right"
-	        		end if
-	        		if (Tdomain%sSubDomain(mat)%Forward) then
-	        			write(*,*) "Forward"
-	        		else
-	        			write(*,*) "Backward"
-	        		end if
-	        		if (Tdomain%sSubDomain(mat)%Down) then
-	        			write(*,*) "Down"
-	        		else
-	        			write(*,*) "Up"
-	        		end if
+!	        		if (Tdomain%sSubDomain(mat)%Left) then
+!	        			write(*,*) "Left"
+!	        		else
+!	        			write(*,*) "Right"
+!	        		end if
+!	        		if (Tdomain%sSubDomain(mat)%Forward) then
+!	        			write(*,*) "Forward"
+!	        		else
+!	        			write(*,*) "Backward"
+!	        		end if
+!	        		if (Tdomain%sSubDomain(mat)%Down) then
+!	        			write(*,*) "Down"
+!	        		else
+!	        			write(*,*) "Up"
+!	        		end if
 
 	    			do m = 0, Tdomain%sSubDomain(mat)%nElem - 1
 	        			n = Tdomain%sSubDomain(mat)%elemList(m)
@@ -515,7 +515,7 @@ subroutine Define_Arrays(Tdomain, rg)
                     !Loop over subdomain elements
                     end do
 
-					write(*,*) ">>>>Creating Stantard Random Field (PML)"
+					if(rg == 0) write(*,*) ">>>>Creating Stantard Random Field (PML)"
 					!Creating PML properties
 					allocate(xPointsPML (0:count(PML_Mask(0,:))-1, 0:size(Tdomain%GlobCoord, 1)-1))
 					allocate(propPML    (0:count(PML_Mask(0,:))-1, 0:nProp-1))
@@ -540,7 +540,7 @@ subroutine Define_Arrays(Tdomain, rg)
 			        !write(*,*) "propPML BEFORE TRANSFORMATION = ", propPML(:,0)
 
 		            !////////Transfoming Stantard Gaussian Field
-		            write(*,*) ">>>>Transforming Stantard Random Field (PML)"
+		            if(rg == 0) write(*,*) ">>>>Transforming Stantard Random Field (PML)"
 		            !i = 0
 		            !if(rg == 0) write(*,*) "Dens------------ "
 		            !if(rg == 0) write(*,*) "margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
@@ -573,7 +573,7 @@ subroutine Define_Arrays(Tdomain, rg)
 
 	            	!// Propagating Properties over the PML
 
-	            	write(*,*) ">>>>Propagating Properties over the PML"
+	            	if(rg == 0) write(*,*) ">>>>Propagating Properties over the PML"
 
 	    			do m = 0, Tdomain%sSubDomain(mat)%nElem - 1
 	        			n = Tdomain%sSubDomain(mat)%elemList(m)
@@ -871,7 +871,7 @@ subroutine Define_Arrays(Tdomain, rg)
 	!//////////////////// CASE MATERIAL_CONSTANT AND OTHERS
 	!////////////////////
 	        else
-	        	write(*,*) ">>>>Building constant properties"
+	        	if(rg == 0) write(*,*) ">>>>Building constant properties"
 	            do i = 0, nProp - 1
 	                prop(:,i) = avgProp(i)
 	            end do
@@ -880,7 +880,7 @@ subroutine Define_Arrays(Tdomain, rg)
 	!////////////////////
 	!//////////////////// APPLYING PROPERTIES TO THE ELEMENTS
 	!////////////////////
-			write(*,*) ">>>>Applying calculated properties"
+			if(rg == 0) write(*,*) ">>>>Applying calculated properties"
 			do m = 0, Tdomain%sSubDomain(mat)%nElem - 1
 		    	n = Tdomain%sSubDomain(mat)%elemList(m)
 				do i = 0, ngllx-1
@@ -904,7 +904,7 @@ subroutine Define_Arrays(Tdomain, rg)
 	!////////////////////
 	!//////////////////// WRITING .h5 file
 	!////////////////////
-		write(*,*) ">>>>>Writing .h5 file"
+		if(rg == 0) write(*,*) ">>>>>Writing .h5 file"
 		call write_ResultHDF5Unstruct_MPI(xPoints, prop, trim(procFileName), &
 										  rg, trim(h5folder), &
 	    								  Tdomain%communicateur, ["_proc", "_subD"], [rg, mat], HDF5NameList(mat))
@@ -928,7 +928,7 @@ subroutine Define_Arrays(Tdomain, rg)
 !	end do
 
 	!Writing XMF File
-	write(*,*) ">>>>Writing XMF file"
+	if(rg == 0) write(*,*) ">>>>Writing XMF file"
 	!write(*,*) "HDF5NameList in rang ", rg, " = ", HDF5NameList
 	call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, trim(string_join(procFileName,"-byProc-")), rg, trim(XMFfolder), &
     					 Tdomain%communicateur, trim(h5_to_xmf), ["Density","Lambda","Mu"], byProc = .true.)

@@ -381,7 +381,7 @@ subroutine read_material_file(Tdomain, rg)
     enddo 
 
     if(npml > 0) then
-    	write (*,*) "!!WARNING change on 'material.input', put associated material after PML existing definition', "
+    	if(rg==0) write (*,*) "!!WARNING change on 'material.input', put associated material after PML existing definition', "
         Tdomain%any_PML = .true.
         read(13,*); read(13,*)
         do i = 0,Tdomain%n_mat-1
