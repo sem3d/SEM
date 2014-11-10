@@ -148,7 +148,7 @@ subroutine read_EpsilonVol(Tdomain, elem_id)
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
 
-        if ( .not. Tdomain%specel(n)%PML ) then
+        if ( Tdomain%specel(n)%solid .and. ( .not. Tdomain%specel(n)%PML ) ) then
             do k = 0,ngllz-1
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
@@ -209,7 +209,7 @@ subroutine read_EpsilonDev(Tdomain, elem_id)
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
 
-        if ( .not. Tdomain%specel(n)%PML ) then
+        if ( Tdomain%specel(n)%solid .and. ( .not. Tdomain%specel(n)%PML ) ) then
             do k = 0,ngllz-1
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
@@ -313,17 +313,17 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
             do k = 0,ngllz-1
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
-                        Tdomain%specel(n)%slpml%Veloc1(i,j,k,0) = veloc(idx+0)
-                        Tdomain%specel(n)%slpml%Veloc1(i,j,k,1) = veloc(idx+1)
-                        Tdomain%specel(n)%slpml%Veloc1(i,j,k,2) = veloc(idx+2)
+                        Tdomain%specel(n)%flpml%Veloc1(i,j,k,0) = veloc(idx+0)
+                        Tdomain%specel(n)%flpml%Veloc1(i,j,k,1) = veloc(idx+1)
+                        Tdomain%specel(n)%flpml%Veloc1(i,j,k,2) = veloc(idx+2)
                         idx = idx + 3
-                        Tdomain%specel(n)%slpml%Veloc2(i,j,k,0) = veloc(idx+0)
-                        Tdomain%specel(n)%slpml%Veloc2(i,j,k,1) = veloc(idx+1)
-                        Tdomain%specel(n)%slpml%Veloc2(i,j,k,2) = veloc(idx+2)
+                        Tdomain%specel(n)%flpml%Veloc2(i,j,k,0) = veloc(idx+0)
+                        Tdomain%specel(n)%flpml%Veloc2(i,j,k,1) = veloc(idx+1)
+                        Tdomain%specel(n)%flpml%Veloc2(i,j,k,2) = veloc(idx+2)
                         idx = idx + 3
-                        Tdomain%specel(n)%slpml%Veloc3(i,j,k,0) = veloc(idx+0)
-                        Tdomain%specel(n)%slpml%Veloc3(i,j,k,1) = veloc(idx+1)
-                        Tdomain%specel(n)%slpml%Veloc3(i,j,k,2) = veloc(idx+2)
+                        Tdomain%specel(n)%flpml%Veloc3(i,j,k,0) = veloc(idx+0)
+                        Tdomain%specel(n)%flpml%Veloc3(i,j,k,1) = veloc(idx+1)
+                        Tdomain%specel(n)%flpml%Veloc3(i,j,k,2) = veloc(idx+2)
                         idx = idx + 3
                     end do
                 end do
