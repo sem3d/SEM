@@ -211,7 +211,7 @@ contains
         matD(:,0,0) = Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,0)
         matD(:,1,1) = Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,1)
         matD(:,0,1) = Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,2)
-        matD(:,1,0) = matD(:,0,1)
+        matD(:,1,0) = Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,2)
         ! Couplage aux coins :
         do nc=0,3
             call get_gll_arround_corner(Elem,nc,n1,n2)
@@ -222,20 +222,20 @@ contains
         ! Termes provenant de la matrice de masse :
         ! Bottom face :
         call get_iminimax(Elem,0,imin,imax)
-        matD(imin:imax,0,0) = matD(imin:imax,0,0) + 1./Dt*Elem%Acoeff(12,0:ngx-1,0)*Elem%Density(0:ngx-1,0)
-        matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(12,0:ngx-1,0)*Elem%Density(0:ngx-1,0)
+        matD(imin:imax,0,0) = matD(imin:imax,0,0) + 1./Dt*Elem%Acoeff(0:ngx-1,0,12)*Elem%Density(0:ngx-1,0)
+        matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(0:ngx-1,0,12)*Elem%Density(0:ngx-1,0)
         ! Right face :
         call get_iminimax(Elem,1,imin,imax)
-        matD(imin:imax,0,0) = matD(imin:imax,0,0) + 1./Dt*Elem%Acoeff(12,ngx-1,0:ngz-1)*Elem%Density(ngx-1,0:ngz-1)
-        matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(12,ngx-1,0:ngz-1)*Elem%Density(ngx-1,0:ngz-1)
+        matD(imin:imax,0,0) = matD(imin:imax,0,0) + 1./Dt*Elem%Acoeff(ngx-1,0:ngz-1,12)*Elem%Density(ngx-1,0:ngz-1)
+        matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(ngx-1,0:ngz-1,12)*Elem%Density(ngx-1,0:ngz-1)
         ! Top Face :
         call get_iminimax(Elem,2,imin,imax)
-        matD(imin:imax,0,0) = matD(imin:imax,0,0) + 1./Dt*Elem%Acoeff(12,0:ngx-1,ngz-1)*Elem%Density(0:ngx-1,ngz-1)
-        matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(12,0:ngx-1,ngz-1)*Elem%Density(0:ngx-1,ngz-1)
+        matD(imin:imax,0,0) = matD(imin:imax,0,0) + 1./Dt*Elem%Acoeff(0:ngx-1,ngz-1,12)*Elem%Density(0:ngx-1,ngz-1)
+        matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(0:ngx-1,ngz-1,12)*Elem%Density(0:ngx-1,ngz-1)
         ! Left Face :
         call get_iminimax(Elem,3,imin,imax)
-        matD(imin:imax,0,0) = matD(imin:imax,0,0) + 1./Dt*Elem%Acoeff(12,0,0:ngz-1)*Elem%Density(0,0:ngz-1)
-        matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(12,0,0:ngz-1)*Elem%Density(0,0:ngz-1)
+        matD(imin:imax,0,0) = matD(imin:imax,0,0) + 1./Dt*Elem%Acoeff(0,0:ngz-1,12)*Elem%Density(0,0:ngz-1)
+        matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(0,0:ngz-1,12)*Elem%Density(0,0:ngz-1)
 
         ! Inversion de la matrice D sur tous les noeuds de bord :
         det(:) = matD(:,0,0) * matD(:,1,1) - matD(:,0,1) * matD(:,1,0)
@@ -270,7 +270,7 @@ contains
         real, dimension(2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:1,0:1) :: CtAC, EtDE, G
         real, dimension(2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:2) :: K
         type(element), pointer :: Elem
-        integer :: nf, nface, i, imin, imax
+        integer :: nf, nface, i, imin, imax, n1, n2, pos1, pos2
         logical :: coherency
 
         Elem => Tdomain%specel(nelem)
@@ -320,14 +320,38 @@ contains
             endif
         enddo
 
+        ! Termes diagonaux seulement intervenant dans les systemes aux vertexs :
+        do nf=0,3
+            nface = Elem%Near_Face(nf)
+            call get_iminimax(Elem,nf,imin,imax)
+            n1 = Elem%Near_Vertex(nf)
+            n2 = Elem%Near_Vertex(mod(nf+1,4))
+            ! Position dans les matrices des vertexs :
+            pos1 = Elem%pos_corner_in_VertMat(nf,1)
+            pos2 = Elem%pos_corner_in_VertMat(mod(nf+1,4),0)
+            ! Termes diagonaux des matrices sur les vertexs :
+            Tdomain%sVertex(n1)%Kmat(pos1,pos1)     = K(imin,0)
+            Tdomain%sVertex(n1)%Kmat(pos1,pos1+1)   = K(imin,2)
+            Tdomain%sVertex(n1)%Kmat(pos1+1,pos1)   = K(imin,2)
+            Tdomain%sVertex(n1)%Kmat(pos1+1,pos1+1) = K(imin,1)
+            Tdomain%sVertex(n2)%Kmat(pos2,pos2)     = K(imax,0)
+            Tdomain%sVertex(n2)%Kmat(pos2,pos2+1)   = K(imax,2)
+            Tdomain%sVertex(n2)%Kmat(pos2+1,pos2)   = K(imax,2)
+            Tdomain%sVertex(n2)%Kmat(pos2+1,pos2+1) = K(imax,1)
+            !Tdomain%sVertex(n1)%Kmat(pos1:pos1+1,pos1:pos1+1) = K(imin,0:1,0:1)
+            !Tdomain%sVertex(n2)%Kmat(pos2:pos2+1,pos2:pos2+1) = K(imax,0:1,0:1)
+        enddo
+
     end subroutine build_K_on_face
 
 
     ! ###########################################################
     !>
     !! \brief This subroutine sends the contributions of a given element
-    !! Elem to the K-matrices of its neighbouring vertices.
-    !! (for the system on Lagrange multiplicators K * Lambda = R)
+    !! Elem to the K-matrices of its neighbouring vertices. It actually
+    !! computes the non-diagonal terms only. Diagonal terms have been already
+    !! dealt with subroutine build_K_on_face.
+    !! (K refers to the system on Lagrange multiplicators K * Lambda = R)
     !! It suitable for Hybridizable Discontinuous Galerkin elements only,
     !! and only for a semi-implicit time scheme.
     !! \param type (domain), intent (INOUT) Tdomain
@@ -340,23 +364,9 @@ contains
         real, dimension(0:2,0:1) :: C1, C2
         real, dimension(0:1,0:1) :: E1, E2, K12, K21
         type(element), pointer :: Elem
-        integer :: nf, nface, i, imin, imax, n1, n2, nv, pos1, pos2
+        integer :: i, nv, n1, n2, pos1, pos2
 
         Elem => Tdomain%specel(nelem)
-
-        ! Termes diagonaux intervenant dans les systemes aux vertexs :
-        do nf=0,3
-            nface = Elem%Near_Face(nf)
-            call get_iminimax(Elem,nf,imin,imax)
-            n1 = Elem%Near_Vertex(nf)
-            n2 = Elem%Near_Vertex(mod(nf+1,4))
-            ! Position dans les matrices des vertexs :
-            pos1 = Elem%pos_corner_in_VertMat(nf,1)
-            pos2 = Elem%pos_corner_in_VertMat(mod(nf+1,4),0)
-            ! Termes diagonaux des matrices sur les vertexs :
-            !Tdomain%sVertex(n1)%Kmat(pos1:pos1+1,pos1:pos1+1) = K(imin,0:1,0:1)
-            !Tdomain%sVertex(n2)%Kmat(pos2:pos2+1,pos2:pos2+1) = K(imax,0:1,0:1)
-        enddo
 
         ! Termes extra-diagonaux correspondant aux coins :
         C1 = 0. ; C2 = 0. ; E1 = 0. ; E2 = 0.

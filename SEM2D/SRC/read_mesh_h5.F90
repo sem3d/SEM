@@ -287,19 +287,19 @@ subroutine set_vertex_valence(Tdomain)
     do nf=0,Tdomain%n_face-1
         nv = Tdomain%sFace(nf)%Near_Vertex(0)
         i = 0
-        do while (Tdomain%sVertex(nv)%Near_Face(i) < 0)
+        do while (Tdomain%sVertex(nv)%Near_Face(i) .GE. 0)
             i = i+1
         enddo
         Tdomain%sVertex(nv)%Near_Face(i) = nf
-        Tdomain%sFace(nf)%pos_in_VertMat(0) = i
+        Tdomain%sFace(nf)%pos_in_VertMat(0) = 2*i
 
         nv = Tdomain%sFace(nf)%Near_Vertex(1)
         i = 0
-        do while (Tdomain%sVertex(nv)%Near_Face(i) < 0)
+        do while (Tdomain%sVertex(nv)%Near_Face(i) .GE. 0)
             i = i+1
         enddo
         Tdomain%sVertex(nv)%Near_Face(i) = nf
-        Tdomain%sFace(nf)%pos_in_VertMat(1) = i
+        Tdomain%sFace(nf)%pos_in_VertMat(1) = 2*i
     enddo
 
     ! Creation du vecteur Element%pos_corner_in_VertMat qui associe au i-eme coin
