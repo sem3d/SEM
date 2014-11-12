@@ -236,7 +236,7 @@ subroutine  sem()
     if (Tdomain%logicD%save_snapshots .or. Tdomain%logicD%save_deformation) then
         Tdomain%timeD%nsnap = int(Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin)
         if (Tdomain%timeD%nsnap == 0) Tdomain%timeD%nsnap = 1
-        write(*,*) "Snapshot every ", Tdomain%timeD%nsnap, " iterations"
+        if (rg==0) write(*,*) "Snapshot every ", Tdomain%timeD%nsnap, " iterations"
     endif
 
 
@@ -331,7 +331,7 @@ subroutine  sem()
                     " temps : ",Tdomain%TimeD%rtime
             endif
 #endif
-            if (rg==0) write(*,*) "Snapshot iteration=", ntime, " tps=", Tdomain%TimeD%rtime
+            if (rg==0) write(*,*) "Snapshot:",isort," iteration=", ntime, " tps=", Tdomain%TimeD%rtime
 
             call save_field_h5(Tdomain, rg, isort)
 

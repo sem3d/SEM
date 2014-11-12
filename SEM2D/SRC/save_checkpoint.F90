@@ -55,7 +55,6 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
     if (rg == 0) then
 
         call semname_protection_iter_dir(it,dir_prot)
-        ! creation du repertoire data/sem/Protection_<it> (par le proc le plus rapide)
         ierr = sem_mkdir(trim(adjustl(dir_prot)))
 
         Tdomain%TimeD%prot_m2 = Tdomain%TimeD%prot_m1
