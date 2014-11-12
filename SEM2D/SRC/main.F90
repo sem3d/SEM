@@ -18,17 +18,23 @@ program main
     character(Len=MAX_FILE_SIZE),parameter :: p_results = "./res"
     character(Len=MAX_FILE_SIZE),parameter :: p_data = "."
     character(Len=MAX_FILE_SIZE),parameter :: p_prot = "./prot"
-
 #ifndef COUPLAGE
-    call init_sem_path(p_param, p_traces, p_results, p_data, p_prot)
+    logical, parameter :: couplage = .false.
 #else
-    call init_mka3d_path()
+    logical, parameter :: couplage = .true.
 #endif
-    call sem()
+
+    if (.not. couplage) then
+        call init_sem_path(p_param, p_traces, p_results, p_data, p_prot)
+    else
+        call init_mka3d_path()
+    endif
+
+    call sem(couplage)
 
 end program main
 
-subroutine  sem()
+subroutine  sem(couplage)
     use sdomain
     use mCapteur
     use semdatafiles
@@ -40,11 +46,10 @@ subroutine  sem()
     use treceivers
     use sglobal_energy
     use snewmark
-#ifdef COUPLAGE
     use scouplage
-#endif
     implicit none
 
+    logical, intent(in) :: couplage
     type (domain), target  :: Tdomain
     integer :: ntime,i_snap, ierr
     integer :: isort
@@ -54,8 +59,7 @@ subroutine  sem()
     integer :: getpid, pid
 
 #ifdef COUPLAGE
-    integer :: finSem
-    integer :: tag, MaxNgParFace
+    integer :: tag
     integer, dimension (MPI_STATUS_SIZE) :: status
     integer, dimension(3) :: flags_synchro ! fin/protection/sortie
     integer, dimension(3) :: tab
@@ -76,6 +80,7 @@ subroutine  sem()
     pid = getpid()
     !write(*,*) "SEM2D[", pid, "] : Demarrage."
 
+    Tdomain%couplage = couplage
     display_iter = 1
     call MPI_Init(ierr)
 
@@ -194,16 +199,16 @@ subroutine  sem()
 
     isort = 1
 
-#ifdef COUPLAGE
-    if (rg == 0) write(6,'(A)') 'Methode de couplage Mka3D/SEM2D 4: Peigne de points d''interpolation, en vitesses, systeme lineaire sur la vitesse,', &
-        ' contraintes discontinues pour les ddl de couplage'
+    if (couplage) then
+        if (rg == 0) write(6,'(A)') 'Methode de couplage Mka3D/SEM2D 4: ', &
+            'Peigne de points d''interpolation, en vitesses, systeme lineaire sur la vitesse, ', &
+            'contraintes discontinues pour les ddl de couplage'
 
-    call initialisation_couplage(Tdomain, MaxNgParFace)
-    finSem=0
+        call initialisation_couplage(Tdomain)
 
-    ! recalcul du nbre d'iteration max
-    Tdomain%TimeD%ntimeMax = int (Tdomain%TimeD%Duration/Tdomain%TimeD%dtmin)
-#endif
+        ! recalcul du nbre d'iteration max
+        Tdomain%TimeD%ntimeMax = int (Tdomain%TimeD%Duration/Tdomain%TimeD%dtmin)
+    endif
 
 
 
@@ -242,16 +247,15 @@ subroutine  sem()
 
     i_snap =1;
 
-#ifdef COUPLAGE
-    if(Tdomain%TimeD%iter_reprise>0) then
-        ntime = Tdomain%TimeD%iter_reprise
-    else
-        ntime = 0
+    if (couplage) then
+        if(Tdomain%TimeD%iter_reprise>0) then
+            ntime = Tdomain%TimeD%iter_reprise
+        else
+            ntime = 0
+        endif
+        call reception_surface_part_mka(Tdomain)
+        call reception_nouveau_pdt_sem(Tdomain)
     endif
-
-    call reception_surface_part_mka(Tdomain)
-    call reception_nouveau_pdt_sem(Tdomain)
-#endif
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -324,14 +328,7 @@ subroutine  sem()
 
         if (i_snap == 0 .or. sortie_capteur) then
 
-
-#ifdef COUPLAGE
-            if (rg == 0.and.i_snap == 0 .and. display_iter==1) then
-                write(*,'(a35,i8.8,a8,f10.5)') "SEM : sortie resultats iteration : ",ntime, &
-                    " temps : ",Tdomain%TimeD%rtime
-            endif
-#endif
-            if (rg==0) write(*,*) "Snapshot:",isort," iteration=", ntime, " tps=", Tdomain%TimeD%rtime
+            if (rg==0 .and. display_iter==1) write(*,*) "Snapshot:",isort," iteration=", ntime, " tps=", Tdomain%TimeD%rtime
 
             call save_field_h5(Tdomain, rg, isort)
 
@@ -363,7 +360,6 @@ subroutine  sem()
             isort=isort+1  ! a faire avant le save_checkpoint
         endif
 #ifdef COUPLAGE
-
         ! remise a zero dans tous les cas des forces Mka sur les faces
         do n = 0, Tdomain%n_face-1
             Tdomain%sFace(n)%ForcesMka = 0
@@ -372,7 +368,6 @@ subroutine  sem()
         do n = 0, Tdomain%n_vertex-1
             Tdomain%sVertex(n)%ForcesMka = 0
         enddo
-
 #endif
 
         ! sortie des quantites demandees par les capteur
@@ -407,12 +402,10 @@ subroutine  sem()
     endif
 
 
-#ifdef COUPLAGE
-    ! on quitte directement SEM, la fin du parallelisme est geree par le main.C de la maquette
-#else
-    call MPI_Finalize  (ierr)
-    if (rg == 0) write (*,*) "Execution completed"
-#endif
+    if (.not. couplage) then
+        call MPI_Finalize  (ierr)
+        if (rg == 0) write (*,*) "Execution completed"
+    endif
     if (rg == 0) close(78)
 
 end subroutine sem

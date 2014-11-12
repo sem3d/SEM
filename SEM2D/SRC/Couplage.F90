@@ -105,7 +105,7 @@ contains
     !! nombre de particules de couplage, les mailles couplées,...
     !! \param type (domain), intent(INOUT) Tdomain
     !<
-    subroutine initialisation_couplage(Tdomain, MaxNgparFace)
+    subroutine initialisation_couplage(Tdomain)
         type (domain), intent(INOUT)  :: Tdomain
         integer :: i
         integer :: tag,ierr

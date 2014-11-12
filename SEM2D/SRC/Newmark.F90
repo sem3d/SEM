@@ -194,7 +194,7 @@ subroutine Newmark (Tdomain)
 
 
         ! AJOUT DES FORCES MKA3D
-#ifdef COUPLAGE
+if (Tdomain%couplage) then
         if (Tdomain%TimeD%ntime>0) then
             call calcul_couplage_force(Tdomain,Tdomain%TimeD%ntime)
         endif
@@ -218,7 +218,7 @@ subroutine Newmark (Tdomain)
             Tdomain%sVertex(nv)%Forces(0:1) = Tdomain%sVertex(nv)%ForcesMka(0:1) + Tdomain%sVertex(nv)%Forces(0:1)
         enddo
 
-#endif
+endif
 
 
 
