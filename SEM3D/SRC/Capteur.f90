@@ -318,6 +318,12 @@ contains
                 write(*,*) "capteur : ",dimCapteur," ", capteur%nom
                 write(*,*) "- freq = ", capteur%frequence
                 write(*,*) "- pos = ", capteur%Coord
+                ! Tests:
+                if (capteur%frequence<1) then
+                    write(*,*) "ERREUR: la periode de sous-echantillonage du capteur est nulle"
+                    write(*,*) "        Il faut entrer un nombre d'iteration >0 pour le parametre FREQ"
+                    stop 1
+                endif
             end if
 
             capteur%suivant=>listeCapteur
