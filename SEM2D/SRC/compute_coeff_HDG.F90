@@ -267,8 +267,8 @@ contains
         implicit none
         type (domain), intent (INOUT) :: Tdomain
         integer, intent(IN) :: nelem
-        real, dimension(2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:1,0:1) :: CtAC, EtDE, G
-        real, dimension(2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:2) :: K
+        real, dimension(0:2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:1,0:1) :: CtAC, EtDE, G
+        real, dimension(0:2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:2) :: K
         type(element), pointer :: Elem
         integer :: nf, nface, i, imin, imax, n1, n2, pos1, pos2
         logical :: coherency
@@ -282,7 +282,7 @@ contains
                                                    +Elem%CAinv(:,0,2)*Elem%Normal_Nodes(:,0))
         CtAC(:,1,0) = Elem%Coeff_integr_Faces(:) * (Elem%CAinv(:,1,0)*Elem%Normal_Nodes(:,0) &
                                                    +Elem%CAinv(:,1,2)*Elem%Normal_Nodes(:,1))
-        CtAC(:,0,1) = Elem%Coeff_integr_Faces(:) * (Elem%CAinv(:,1,1)*Elem%Normal_Nodes(:,1) &
+        CtAC(:,1,1) = Elem%Coeff_integr_Faces(:) * (Elem%CAinv(:,1,1)*Elem%Normal_Nodes(:,1) &
                                                    +Elem%CAinv(:,1,2)*Elem%Normal_Nodes(:,0))
 
         ! Calcul du terme Et*Dinv*E qui contribue a la matrice K
@@ -292,7 +292,7 @@ contains
                                                    +Elem%EDinv(:,0,1)*Elem%MatPen(:,1))
         EtDE(:,1,0) = Elem%Coeff_integr_Faces(:) * (Elem%EDinv(:,1,0)*Elem%MatPen(:,0) &
                                                    +Elem%EDinv(:,1,1)*Elem%MatPen(:,2))
-        EtDE(:,0,1) = Elem%Coeff_integr_Faces(:) * (Elem%EDinv(:,1,0)*Elem%MatPen(:,2) &
+        EtDE(:,1,1) = Elem%Coeff_integr_Faces(:) * (Elem%EDinv(:,1,0)*Elem%MatPen(:,2) &
                                                    +Elem%EDinv(:,1,1)*Elem%MatPen(:,1))
 
         ! Calcul du terme G qui contribue e la matrice K
@@ -303,8 +303,8 @@ contains
 
         ! Addition de toutes les contributions pour la matrice K : (etant sym, elle n'a que 3 composantes)
         K(:,0) = CtAC(:,0,0) - EtDE(:,0,0) + G(:,0,0)
-        K(:,1) = CtAC(:,0,1) - EtDE(:,0,1) + G(:,0,1)
-        K(:,2) = CtAC(:,1,1) - EtDE(:,1,1) + G(:,1,1)
+        K(:,1) = CtAC(:,1,1) - EtDE(:,1,1) + G(:,1,1)
+        K(:,2) = CtAC(:,0,1) - EtDE(:,0,1) + G(:,0,1)
 
         ! Envoi des matrices sur les faces :
         do nf=0,3

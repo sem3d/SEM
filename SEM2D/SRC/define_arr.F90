@@ -596,6 +596,11 @@ subroutine define_arrays(Tdomain)
 
     ! Calcul des matrices de coefficients CA^-1 et ED^-1 pour HDG en semi-implicite
     if (Tdomain%Type_timeInteg .EQ. TIME_INTEG_NEWMARK_PMC) then
+        ! Remise a zero des matrices Face%Kinv
+        do nf = 0, Tdomain%n_face-1
+            Tdomain%sFace(nf)%Kinv(:,:) = 0.
+        enddo
+        ! Calcul des matrices elementaires pour chaque elem
         do n = 0, Tdomain%n_elem-1
             mat = Tdomain%Specel(n)%mat_index
             Dt  = Tdomain%sSubDomain(mat)%Dt
