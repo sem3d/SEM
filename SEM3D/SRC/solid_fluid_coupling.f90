@@ -106,19 +106,19 @@ subroutine StoF_coupling(Tdomain)
 
     ! now we can exchange values for SF sides on different procs
     if(Tdomain%nb_procs > 1)then
-        do n = 0,Tdomain%nb_procs-1
-            call Comm_Forces_Complete_StoF(n,Tdomain)
-            call Comm_Forces_Complete_StoF_PML(n,Tdomain)
+        do n = 0,Tdomain%tot_comm_proc-1
+            call Comm_Forces_Complete_StoF(Tdomain%sComm(n),Tdomain)
+            call Comm_Forces_Complete_StoF_PML(Tdomain%sComm(n),Tdomain)
         end do
         ! now we can exchange force values with other procs
         call exchange_sem_forces_StoF(Tdomain)
 
         ! assemblage on external GLLs
-        do n = 0,Tdomain%nb_procs-1
+        do n = 0,Tdomain%tot_comm_proc-1
             ngllSF = 0 ; ngllSF_PML = 0
-            call Comm_Forces_FaceSF_StoF(Tdomain,n,ngllSF,ngllSF_PML)
-            call Comm_Forces_EdgeSF_StoF(Tdomain,n,ngllSF,ngllSF_PML)
-            call Comm_Forces_VertexSF_StoF(Tdomain,n,ngllSF,ngllSF_PML)
+            call Comm_Forces_FaceSF_StoF(Tdomain,Tdomain%sComm(n),ngllSF,ngllSF_PML)
+            call Comm_Forces_EdgeSF_StoF(Tdomain,Tdomain%sComm(n),ngllSF,ngllSF_PML)
+            call Comm_Forces_VertexSF_StoF(Tdomain,Tdomain%sComm(n),ngllSF,ngllSF_PML)
             if(ngllSF /= Tdomain%sComm(n)%ngllSF) stop "PB in counting SF GLL nodes."
         enddo
     end if
@@ -284,18 +284,18 @@ subroutine FtoS_coupling(Tdomain)
 
     ! now we can exchange values for SF sides on different procs
     if(Tdomain%nb_procs > 1)then
-        do n = 0,Tdomain%nb_procs-1
-            call Comm_Forces_Complete_FtoS(n,Tdomain)
-            call Comm_Forces_Complete_FtoS_PML(n,Tdomain)
+        do n = 0,Tdomain%tot_comm_proc-1
+            call Comm_Forces_Complete_FtoS(Tdomain%sComm(n),Tdomain)
+            call Comm_Forces_Complete_FtoS_PML(Tdomain%sComm(n),Tdomain)
         end do
         ! now we can exchange force values with proc n
         call exchange_sem_forces_FtoS(Tdomain)
         ! assemblage on external GLLs
-        do n = 0,Tdomain%nb_procs-1
+        do n = 0,Tdomain%tot_comm_proc-1
             ngllSF = 0 ; ngllSF_PML = 0
-            call Comm_Forces_FaceSF_FtoS(Tdomain,n,ngllSF,ngllSF_PML)
-            call Comm_Forces_EdgeSF_FtoS(Tdomain,n,ngllSF,ngllSF_PML)
-            call Comm_Forces_VertexSF_FtoS(Tdomain,n,ngllSF,ngllSF_PML)
+            call Comm_Forces_FaceSF_FtoS(Tdomain,Tdomain%sComm(n),ngllSF,ngllSF_PML)
+            call Comm_Forces_EdgeSF_FtoS(Tdomain,Tdomain%sComm(n),ngllSF,ngllSF_PML)
+            call Comm_Forces_VertexSF_FtoS(Tdomain,Tdomain%sComm(n),ngllSF,ngllSF_PML)
             if(ngllSF /= Tdomain%sComm(n)%ngllSF) stop "PB in counting SF GLL nodes."
         enddo
 
@@ -363,222 +363,223 @@ subroutine FtoS_coupling(Tdomain)
 end subroutine FtoS_coupling
 !----------------------------------------------------------------
 !----------------------------------------------------------------
-subroutine Comm_Forces_Complete_StoF(n,Tdomain)
+subroutine Comm_Forces_Complete_StoF(io_comm,Tdomain)
     use sdomain
+    use scomm
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    integer, intent(in)   :: n
+    type(comm), intent(inout) :: io_comm
     integer  :: ngllSF,i,j,k,nf,ne,nv
 
 
     ngllSF = 0
     ! faces
-    do i = 0,Tdomain%sComm(n)%SF_nf_shared-1
-        nf = Tdomain%sComm(n)%SF_faces_shared(i)
+    do i = 0,io_comm%SF_nf_shared-1
+        nf = io_comm%SF_faces_shared(i)
         do j = 1,Tdomain%SF%SF_Face(nf)%ngll2-2
             do k = 1,Tdomain%SF%SF_Face(nf)%ngll1-2
-                Tdomain%sComm(n)%GiveForcesSF_StoF(ngllSF) = Tdomain%SF%SF_Face(nf)%Vn(k,j)
+                io_comm%GiveForcesSF_StoF(ngllSF) = Tdomain%SF%SF_Face(nf)%Vn(k,j)
                 ngllSF = ngllSF + 1
             enddo
         enddo
     enddo
     ! edges
-    do i = 0,Tdomain%sComm(n)%SF_ne_shared-1
-        ne = Tdomain%sComm(n)%SF_edges_shared(i)
+    do i = 0,io_comm%SF_ne_shared-1
+        ne = io_comm%SF_edges_shared(i)
         do j = 1,Tdomain%SF%SF_Edge(ne)%ngll-2
-            Tdomain%sComm(n)%GiveForcesSF_StoF(ngllSF) = Tdomain%SF%SF_Edge(ne)%Vn(j)
+            io_comm%GiveForcesSF_StoF(ngllSF) = Tdomain%SF%SF_Edge(ne)%Vn(j)
             ngllSF = ngllSF + 1
         enddo
     enddo
     ! vertices
-    do i = 0,Tdomain%sComm(n)%SF_nv_shared-1
-        nv =  Tdomain%sComm(n)%SF_vertices_shared(i)
-        Tdomain%sComm(n)%GiveForcesSF_StoF(ngllSF) = Tdomain%SF%SF_Vertex(nv)%Vn
+    do i = 0,io_comm%SF_nv_shared-1
+        nv =  io_comm%SF_vertices_shared(i)
+        io_comm%GiveForcesSF_StoF(ngllSF) = Tdomain%SF%SF_Vertex(nv)%Vn
         ngllSF = ngllSF + 1
     enddo
 
-    if(ngllSF /= Tdomain%sComm(n)%ngllSF) stop "Bad counting of SF nodes."
+    if(ngllSF /= io_comm%ngllSF) stop "Bad counting of SF nodes."
 
     return
 end subroutine Comm_Forces_Complete_StoF
 !----------------------------------------------------------------
 !----------------------------------------------------------------
-subroutine Comm_Forces_Complete_StoF_PML(n,Tdomain)
+subroutine Comm_Forces_Complete_StoF_PML(io_comm,Tdomain)
     use sdomain
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    integer, intent(in)   :: n
+    type(comm), intent(inout) :: io_comm
     integer  :: ngllSF_PML,i,j,k,nf,ne,nv
 
 
     ngllSF_PML = 0
     ! faces
-    do i = 0,Tdomain%sComm(n)%SF_nf_shared-1
-        nf = Tdomain%sComm(n)%SF_faces_shared(i)
+    do i = 0,io_comm%SF_nf_shared-1
+        nf = io_comm%SF_faces_shared(i)
         if(Tdomain%SF%SF_Face(nf)%PML)then
             do j = 1,Tdomain%SF%SF_Face(nf)%ngll2-2
                 do k = 1,Tdomain%SF%SF_Face(nf)%ngll1-2
-                    Tdomain%sComm(n)%GiveForcesSF_StoF_PML(ngllSF_PML,1) = Tdomain%SF%SF_Face(nf)%Vn1(k,j)
-                    Tdomain%sComm(n)%GiveForcesSF_StoF_PML(ngllSF_PML,2) = Tdomain%SF%SF_Face(nf)%Vn2(k,j)
-                    Tdomain%sComm(n)%GiveForcesSF_StoF_PML(ngllSF_PML,3) = Tdomain%SF%SF_Face(nf)%Vn3(k,j)
+                    io_comm%GiveForcesSF_StoF_PML(ngllSF_PML,1) = Tdomain%SF%SF_Face(nf)%Vn1(k,j)
+                    io_comm%GiveForcesSF_StoF_PML(ngllSF_PML,2) = Tdomain%SF%SF_Face(nf)%Vn2(k,j)
+                    io_comm%GiveForcesSF_StoF_PML(ngllSF_PML,3) = Tdomain%SF%SF_Face(nf)%Vn3(k,j)
                     ngllSF_PML = ngllSF_PML + 1
                 enddo
             enddo
         end if
     enddo
     ! edges
-    do i = 0,Tdomain%sComm(n)%SF_ne_shared-1
-        ne = Tdomain%sComm(n)%SF_edges_shared(i)
+    do i = 0,io_comm%SF_ne_shared-1
+        ne = io_comm%SF_edges_shared(i)
         if(Tdomain%SF%SF_Edge(ne)%PML)then
             do j = 1,Tdomain%SF%SF_Edge(ne)%ngll-2
-                Tdomain%sComm(n)%GiveForcesSF_StoF_PML(ngllSF_PML,1) = Tdomain%SF%SF_Edge(ne)%Vn1(j)
-                Tdomain%sComm(n)%GiveForcesSF_StoF_PML(ngllSF_PML,2) = Tdomain%SF%SF_Edge(ne)%Vn2(j)
-                Tdomain%sComm(n)%GiveForcesSF_StoF_PML(ngllSF_PML,3) = Tdomain%SF%SF_Edge(ne)%Vn3(j)
+                io_comm%GiveForcesSF_StoF_PML(ngllSF_PML,1) = Tdomain%SF%SF_Edge(ne)%Vn1(j)
+                io_comm%GiveForcesSF_StoF_PML(ngllSF_PML,2) = Tdomain%SF%SF_Edge(ne)%Vn2(j)
+                io_comm%GiveForcesSF_StoF_PML(ngllSF_PML,3) = Tdomain%SF%SF_Edge(ne)%Vn3(j)
                 ngllSF_PML = ngllSF_PML + 1
             enddo
         end if
     enddo
     ! vertices
-    do i = 0,Tdomain%sComm(n)%SF_nv_shared-1
-        nv =  Tdomain%sComm(n)%SF_vertices_shared(i)
+    do i = 0,io_comm%SF_nv_shared-1
+        nv =  io_comm%SF_vertices_shared(i)
         if(Tdomain%SF%SF_Vertex(nv)%PML)then
-            Tdomain%sComm(n)%GiveForcesSF_StoF_PML(ngllSF_PML,1) = Tdomain%SF%SF_Vertex(nv)%Vn1
-            Tdomain%sComm(n)%GiveForcesSF_StoF_PML(ngllSF_PML,2) = Tdomain%SF%SF_Vertex(nv)%Vn2
-            Tdomain%sComm(n)%GiveForcesSF_StoF_PML(ngllSF_PML,3) = Tdomain%SF%SF_Vertex(nv)%Vn3
+            io_comm%GiveForcesSF_StoF_PML(ngllSF_PML,1) = Tdomain%SF%SF_Vertex(nv)%Vn1
+            io_comm%GiveForcesSF_StoF_PML(ngllSF_PML,2) = Tdomain%SF%SF_Vertex(nv)%Vn2
+            io_comm%GiveForcesSF_StoF_PML(ngllSF_PML,3) = Tdomain%SF%SF_Vertex(nv)%Vn3
             ngllSF_PML = ngllSF_PML + 1
         end if
     enddo
 
-    if(ngllSF_PML /= Tdomain%sComm(n)%ngllSF_PML) stop "Bad counting of SF_PML nodes."
+    if(ngllSF_PML /= io_comm%ngllSF_PML) stop "Bad counting of SF_PML nodes."
 
     return
 end subroutine Comm_Forces_Complete_StoF_PML
 !----------------------------------------------------------------
 !----------------------------------------------------------------
-subroutine Comm_Forces_Complete_FtoS(n,Tdomain)
+subroutine Comm_Forces_Complete_FtoS(io_comm,Tdomain)
     use sdomain
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    integer, intent(in)   :: n
+    type(comm), intent(inout) :: io_comm
     integer  :: ngllSF,i,j,k,nf,ne,nv
 
     ngllSF = 0
     ! faces
-    do i = 0,Tdomain%sComm(n)%SF_nf_shared-1
-        nf = Tdomain%sComm(n)%SF_faces_shared(i)
+    do i = 0,io_comm%SF_nf_shared-1
+        nf = io_comm%SF_faces_shared(i)
         do j = 1,Tdomain%SF%SF_Face(nf)%ngll2-2
             do k = 1,Tdomain%SF%SF_Face(nf)%ngll1-2
-                Tdomain%sComm(n)%GiveForcesSF_FtoS(ngllSF,0:2) = Tdomain%SF%SF_Face(nf)%pn(k,j,0:2)
+                io_comm%GiveForcesSF_FtoS(ngllSF,0:2) = Tdomain%SF%SF_Face(nf)%pn(k,j,0:2)
                 ngllSF = ngllSF + 1
             enddo
         enddo
     enddo
     ! edges
-    do i = 0,Tdomain%sComm(n)%SF_ne_shared-1
-        ne = Tdomain%sComm(n)%SF_edges_shared(i)
+    do i = 0,io_comm%SF_ne_shared-1
+        ne = io_comm%SF_edges_shared(i)
         do j = 1,Tdomain%SF%SF_Edge(ne)%ngll-2
-            Tdomain%sComm(n)%GiveForcesSF_FtoS(ngllSF,0:2) = Tdomain%SF%SF_Edge(ne)%pn(j,0:2)
+            io_comm%GiveForcesSF_FtoS(ngllSF,0:2) = Tdomain%SF%SF_Edge(ne)%pn(j,0:2)
             ngllSF = ngllSF + 1
         enddo
     enddo
     ! vertices
-    do i = 0,Tdomain%sComm(n)%SF_nv_shared-1
-        nv =  Tdomain%sComm(n)%SF_vertices_shared(i)
-        Tdomain%sComm(n)%GiveForcesSF_FtoS(ngllSF,0:2) = Tdomain%SF%SF_Vertex(nv)%pn(0:2)
+    do i = 0,io_comm%SF_nv_shared-1
+        nv =  io_comm%SF_vertices_shared(i)
+        io_comm%GiveForcesSF_FtoS(ngllSF,0:2) = Tdomain%SF%SF_Vertex(nv)%pn(0:2)
         ngllSF = ngllSF + 1
     enddo
 
-    if(ngllSF /= Tdomain%sComm(n)%ngllSF) stop "Bad counting of SF nodes."
+    if(ngllSF /= io_comm%ngllSF) stop "Bad counting of SF nodes."
 
     return
 end subroutine Comm_Forces_Complete_FtoS
 !----------------------------------------------------------------
 !----------------------------------------------------------------
-subroutine Comm_Forces_Complete_FtoS_PML(n,Tdomain)
+subroutine Comm_Forces_Complete_FtoS_PML(io_comm,Tdomain)
     use sdomain
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    integer, intent(in)   :: n
+    type(comm), intent(inout) :: io_comm
     integer  :: ngllSF_PML,i,j,k,nf,ne,nv
 
 
     ngllSF_PML = 0
     ! faces
-    do i = 0,Tdomain%sComm(n)%SF_nf_shared-1
-        nf = Tdomain%sComm(n)%SF_faces_shared(i)
+    do i = 0,io_comm%SF_nf_shared-1
+        nf = io_comm%SF_faces_shared(i)
         if(Tdomain%SF%SF_Face(nf)%PML)then
             do j = 1,Tdomain%SF%SF_Face(nf)%ngll2-2
                 do k = 1,Tdomain%SF%SF_Face(nf)%ngll1-2
-                    Tdomain%sComm(n)%GiveForcesSF_FtoS_PML(ngllSF_PML,1,0:2) = Tdomain%SF%SF_Face(nf)%pn1(k,j,0:2)
-                    Tdomain%sComm(n)%GiveForcesSF_FtoS_PML(ngllSF_PML,2,0:2) = Tdomain%SF%SF_Face(nf)%pn2(k,j,0:2)
-                    Tdomain%sComm(n)%GiveForcesSF_FtoS_PML(ngllSF_PML,3,0:2) = Tdomain%SF%SF_Face(nf)%pn3(k,j,0:2)
+                    io_comm%GiveForcesSF_FtoS_PML(ngllSF_PML,1,0:2) = Tdomain%SF%SF_Face(nf)%pn1(k,j,0:2)
+                    io_comm%GiveForcesSF_FtoS_PML(ngllSF_PML,2,0:2) = Tdomain%SF%SF_Face(nf)%pn2(k,j,0:2)
+                    io_comm%GiveForcesSF_FtoS_PML(ngllSF_PML,3,0:2) = Tdomain%SF%SF_Face(nf)%pn3(k,j,0:2)
                     ngllSF_PML = ngllSF_PML + 1
                 enddo
             enddo
         end if
     enddo
     ! edges
-    do i = 0,Tdomain%sComm(n)%SF_ne_shared-1
-        ne = Tdomain%sComm(n)%SF_edges_shared(i)
+    do i = 0,io_comm%SF_ne_shared-1
+        ne = io_comm%SF_edges_shared(i)
         if(Tdomain%SF%SF_Edge(ne)%PML)then
             do j = 1,Tdomain%SF%SF_Edge(ne)%ngll-2
-                Tdomain%sComm(n)%GiveForcesSF_FtoS_PML(ngllSF_PML,1,0:2) = Tdomain%SF%SF_Edge(ne)%pn1(j,0:2)
-                Tdomain%sComm(n)%GiveForcesSF_FtoS_PML(ngllSF_PML,2,0:2) = Tdomain%SF%SF_Edge(ne)%pn2(j,0:2)
-                Tdomain%sComm(n)%GiveForcesSF_FtoS_PML(ngllSF_PML,3,0:2) = Tdomain%SF%SF_Edge(ne)%pn3(j,0:2)
+                io_comm%GiveForcesSF_FtoS_PML(ngllSF_PML,1,0:2) = Tdomain%SF%SF_Edge(ne)%pn1(j,0:2)
+                io_comm%GiveForcesSF_FtoS_PML(ngllSF_PML,2,0:2) = Tdomain%SF%SF_Edge(ne)%pn2(j,0:2)
+                io_comm%GiveForcesSF_FtoS_PML(ngllSF_PML,3,0:2) = Tdomain%SF%SF_Edge(ne)%pn3(j,0:2)
                 ngllSF_PML = ngllSF_PML + 1
             enddo
         end if
     enddo
     ! vertices
-    do i = 0,Tdomain%sComm(n)%SF_nv_shared-1
-        nv =  Tdomain%sComm(n)%SF_vertices_shared(i)
+    do i = 0,io_comm%SF_nv_shared-1
+        nv =  io_comm%SF_vertices_shared(i)
         if(Tdomain%SF%SF_Vertex(nv)%PML)then
-            Tdomain%sComm(n)%GiveForcesSF_FtoS_PML(ngllSF_PML,1,0:2) = Tdomain%SF%SF_Vertex(nv)%pn1(0:2)
-            Tdomain%sComm(n)%GiveForcesSF_FtoS_PML(ngllSF_PML,2,0:2) = Tdomain%SF%SF_Vertex(nv)%pn2(0:2)
-            Tdomain%sComm(n)%GiveForcesSF_FtoS_PML(ngllSF_PML,3,0:2) = Tdomain%SF%SF_Vertex(nv)%pn3(0:2)
+            io_comm%GiveForcesSF_FtoS_PML(ngllSF_PML,1,0:2) = Tdomain%SF%SF_Vertex(nv)%pn1(0:2)
+            io_comm%GiveForcesSF_FtoS_PML(ngllSF_PML,2,0:2) = Tdomain%SF%SF_Vertex(nv)%pn2(0:2)
+            io_comm%GiveForcesSF_FtoS_PML(ngllSF_PML,3,0:2) = Tdomain%SF%SF_Vertex(nv)%pn3(0:2)
             ngllSF_PML = ngllSF_PML + 1
         end if
     enddo
 
-    if(ngllSF_PML /= Tdomain%sComm(n)%ngllSF_PML) stop "Bad counting of SF_PML nodes."
+    if(ngllSF_PML /= io_comm%ngllSF_PML) stop "Bad counting of SF_PML nodes."
 
     return
 end subroutine Comm_Forces_Complete_FtoS_PML
 !----------------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------------
-subroutine Comm_Forces_FaceSF_StoF(Tdomain,n,ngllSF,ngllSF_PML)
+subroutine Comm_Forces_FaceSF_StoF(Tdomain,io_comm,ngllSF,ngllSF_PML)
     use sdomain
     use scommutils
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    integer, intent(in) :: n
+    type(comm), intent(inout) :: io_comm
     integer, intent(inout) :: ngllSF,ngllSF_PML
     integer :: ngll1,ngll2,nf,nnf,orient_f
 
 
-    do nf = 0,Tdomain%sComm(n)%SF_nf_shared-1
-        nnf = Tdomain%sComm(n)%SF_faces_shared(nf)
+    do nf = 0,io_comm%SF_nf_shared-1
+        nnf = io_comm%SF_faces_shared(nf)
         ngll1 = Tdomain%SF%SF_Face(nnf)%ngll1
         ngll2 = Tdomain%SF%SF_Face(nnf)%ngll2
         orient_f = Tdomain%SF%SF_Face(nnf)%Orient_Face
         call Comm_Face_ScalarProperty(ngll1,ngll2,orient_f,                          &
-            Tdomain%sComm(n)%TakeForcesSF_StoF(ngllSF:ngllSF+(ngll1-2)*(ngll2-2)-1),  &
+            io_comm%TakeForcesSF_StoF(ngllSF:ngllSF+(ngll1-2)*(ngll2-2)-1),  &
             Tdomain%SF%SF_Face(nnf)%Vn(1:ngll1-2,1:ngll2-2))
         ngllSF = ngllSF+(ngll1-2)*(ngll2-2)
         if(Tdomain%SF%SF_Face(nnf)%PML)then
             call Comm_Face_ScalarProperty(ngll1,ngll2,orient_f,                                   &
-                Tdomain%sComm(n)%TakeForcesSF_StoF_PML(ngllSF_PML:ngllSF_PML+(ngll1-2)*(ngll2-2)-1,1),  &
+                io_comm%TakeForcesSF_StoF_PML(ngllSF_PML:ngllSF_PML+(ngll1-2)*(ngll2-2)-1,1),  &
                 Tdomain%SF%SF_Face(nnf)%Vn1(1:ngll1-2,1:ngll2-2))
             call Comm_Face_ScalarProperty(ngll1,ngll2,orient_f,                                   &
-                Tdomain%sComm(n)%TakeForcesSF_StoF_PML(ngllSF_PML:ngllSF_PML+(ngll1-2)*(ngll2-2)-1,2),  &
+                io_comm%TakeForcesSF_StoF_PML(ngllSF_PML:ngllSF_PML+(ngll1-2)*(ngll2-2)-1,2),  &
                 Tdomain%SF%SF_Face(nnf)%Vn2(1:ngll1-2,1:ngll2-2))
             call Comm_Face_ScalarProperty(ngll1,ngll2,orient_f,                                   &
-                Tdomain%sComm(n)%TakeForcesSF_StoF_PML(ngllSF_PML:ngllSF_PML+(ngll1-2)*(ngll2-2)-1,3),  &
+                io_comm%TakeForcesSF_StoF_PML(ngllSF_PML:ngllSF_PML+(ngll1-2)*(ngll2-2)-1,3),  &
                 Tdomain%SF%SF_Face(nnf)%Vn3(1:ngll1-2,1:ngll2-2))
             ngllSF_PML = ngllSF_PML+(ngll1-2)*(ngll2-2)
         end if
@@ -590,35 +591,35 @@ subroutine Comm_Forces_FaceSF_StoF(Tdomain,n,ngllSF,ngllSF_PML)
 end subroutine Comm_Forces_FaceSF_StoF
 !----------------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------------
-subroutine Comm_Forces_FaceSF_FtoS(Tdomain,n,ngllSF,ngllSF_PML)
+subroutine Comm_Forces_FaceSF_FtoS(Tdomain,io_comm,ngllSF,ngllSF_PML)
     use sdomain
     use scommutils
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    integer, intent(in) :: n
+    type(comm), intent(inout) :: io_comm
     integer, intent(inout) :: ngllSF,ngllSF_PML
     integer :: ngll1,ngll2,nf,nnf,orient_f
 
 
-    do nf = 0,Tdomain%sComm(n)%SF_nf_shared-1
-        nnf = Tdomain%sComm(n)%SF_faces_shared(nf)
+    do nf = 0,io_comm%SF_nf_shared-1
+        nnf = io_comm%SF_faces_shared(nf)
         ngll1 = Tdomain%SF%SF_Face(nnf)%ngll1
         ngll2 = Tdomain%SF%SF_Face(nnf)%ngll2
         orient_f = Tdomain%SF%SF_Face(nnf)%Orient_Face
         call Comm_Face_VectorProperty(ngll1,ngll2,orient_f,                          &
-            Tdomain%sComm(n)%TakeForcesSF_FtoS(ngllSF:ngllSF+(ngll1-2)*(ngll2-2)-1,0:2),  &
+            io_comm%TakeForcesSF_FtoS(ngllSF:ngllSF+(ngll1-2)*(ngll2-2)-1,0:2),  &
             Tdomain%SF%SF_Face(nnf)%pn(1:ngll1-2,1:ngll2-2,0:2))
         ngllSF = ngllSF+(ngll1-2)*(ngll2-2)
         if(Tdomain%SF%SF_Face(nnf)%PML)then
             call Comm_Face_VectorProperty(ngll1,ngll2,orient_f,                                   &
-                Tdomain%sComm(n)%TakeForcesSF_FtoS_PML(ngllSF_PML:ngllSF_PML+(ngll1-2)*(ngll2-2)-1,1,0:2),  &
+                io_comm%TakeForcesSF_FtoS_PML(ngllSF_PML:ngllSF_PML+(ngll1-2)*(ngll2-2)-1,1,0:2),  &
                 Tdomain%SF%SF_Face(nnf)%pn1(1:ngll1-2,1:ngll2-2,0:2))
             call Comm_Face_VectorProperty(ngll1,ngll2,orient_f,                                   &
-                Tdomain%sComm(n)%TakeForcesSF_FtoS_PML(ngllSF_PML:ngllSF_PML+(ngll1-2)*(ngll2-2)-1,2,0:2),  &
+                io_comm%TakeForcesSF_FtoS_PML(ngllSF_PML:ngllSF_PML+(ngll1-2)*(ngll2-2)-1,2,0:2),  &
                 Tdomain%SF%SF_Face(nnf)%pn2(1:ngll1-2,1:ngll2-2,0:2))
             call Comm_Face_VectorProperty(ngll1,ngll2,orient_f,                                   &
-                Tdomain%sComm(n)%TakeForcesSF_FtoS_PML(ngllSF_PML:ngllSF_PML+(ngll1-2)*(ngll2-2)-1,3,0:2),  &
+                io_comm%TakeForcesSF_FtoS_PML(ngllSF_PML:ngllSF_PML+(ngll1-2)*(ngll2-2)-1,3,0:2),  &
                 Tdomain%SF%SF_Face(nnf)%pn3(1:ngll1-2,1:ngll2-2,0:2))
             ngllSF_PML = ngllSF_PML+(ngll1-2)*(ngll2-2)
         end if
@@ -630,33 +631,33 @@ subroutine Comm_Forces_FaceSF_FtoS(Tdomain,n,ngllSF,ngllSF_PML)
 end subroutine Comm_Forces_FaceSF_FtoS
 !----------------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------------
-subroutine Comm_Forces_EdgeSF_StoF(Tdomain,n,ngllSF,ngllSF_PML)
+subroutine Comm_Forces_EdgeSF_StoF(Tdomain,io_comm,ngllSF,ngllSF_PML)
     use sdomain
     use scommutils
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    integer, intent(in) :: n
+    type(comm), intent(inout) :: io_comm
     integer, intent(inout) :: ngllSF,ngllSF_PML
     integer :: ngll1,ne,nne,orient_e
 
-    do ne = 0,Tdomain%sComm(n)%SF_ne_shared-1
-        nne = Tdomain%sComm(n)%SF_edges_shared(ne)
+    do ne = 0,io_comm%SF_ne_shared-1
+        nne = io_comm%SF_edges_shared(ne)
         ngll1 = Tdomain%SF%SF_Edge(nne)%ngll
-        orient_e = Tdomain%sComm(n)%SF_mapping_edges_shared(ne)
+        orient_e = io_comm%SF_mapping_edges_shared(ne)
         call Comm_Edge_ScalarProperty(ngll1,orient_e,                    &
-            Tdomain%sComm(n)%TakeForcesSF_StoF(ngllSF:ngllSF+ngll1-3),  &
+            io_comm%TakeForcesSF_StoF(ngllSF:ngllSF+ngll1-3),  &
             Tdomain%SF%SF_Edge(nne)%Vn(:))
         ngllSF = ngllSF+ngll1-2
         if(Tdomain%SF%SF_Edge(nne)%PML)then
             call Comm_Edge_ScalarProperty(ngll1,orient_e,                    &
-                Tdomain%sComm(n)%TakeForcesSF_StoF_PML(ngllSF_PML:ngllSF_PML+ngll1-3,1),  &
+                io_comm%TakeForcesSF_StoF_PML(ngllSF_PML:ngllSF_PML+ngll1-3,1),  &
                 Tdomain%SF%SF_Edge(nne)%Vn1(:))
             call Comm_Edge_ScalarProperty(ngll1,orient_e,                    &
-                Tdomain%sComm(n)%TakeForcesSF_StoF_PML(ngllSF_PML:ngllSF_PML+ngll1-3,2),  &
+                io_comm%TakeForcesSF_StoF_PML(ngllSF_PML:ngllSF_PML+ngll1-3,2),  &
                 Tdomain%SF%SF_Edge(nne)%Vn2(:))
             call Comm_Edge_ScalarProperty(ngll1,orient_e,                    &
-                Tdomain%sComm(n)%TakeForcesSF_StoF_PML(ngllSF_PML:ngllSF_PML+ngll1-3,3),  &
+                io_comm%TakeForcesSF_StoF_PML(ngllSF_PML:ngllSF_PML+ngll1-3,3),  &
                 Tdomain%SF%SF_Edge(nne)%Vn3(:))
             ngllSF_PML = ngllSF_PML+ngll1-2
         end if
@@ -666,33 +667,33 @@ subroutine Comm_Forces_EdgeSF_StoF(Tdomain,n,ngllSF,ngllSF_PML)
 end subroutine Comm_Forces_EdgeSF_StoF
 !------------------------------------------------------------------------------------
 !------------------------------------------------------------------------------------
-subroutine Comm_Forces_EdgeSF_FtoS(Tdomain,n,ngllSF,ngllSF_PML)
+subroutine Comm_Forces_EdgeSF_FtoS(Tdomain,io_comm,ngllSF,ngllSF_PML)
     use sdomain
     use scommutils
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    integer, intent(in) :: n
+    type(comm), intent(inout) :: io_comm
     integer, intent(inout) :: ngllSF,ngllSF_PML
     integer :: ngll1,ne,nne,orient_e
 
-    do ne = 0,Tdomain%sComm(n)%SF_ne_shared-1
-        nne = Tdomain%sComm(n)%SF_edges_shared(ne)
+    do ne = 0,io_comm%SF_ne_shared-1
+        nne = io_comm%SF_edges_shared(ne)
         ngll1 = Tdomain%SF%SF_Edge(nne)%ngll
-        orient_e = Tdomain%sComm(n)%SF_mapping_edges_shared(ne)
+        orient_e = io_comm%SF_mapping_edges_shared(ne)
         call Comm_Edge_VectorProperty(ngll1,orient_e,                    &
-            Tdomain%sComm(n)%TakeForcesSF_FtoS(ngllSF:ngllSF+ngll1-3,0:2),  &
+            io_comm%TakeForcesSF_FtoS(ngllSF:ngllSF+ngll1-3,0:2),  &
             Tdomain%SF%SF_Edge(nne)%pn(:,0:2))
         ngllSF = ngllSF+ngll1-2
         if(Tdomain%SF%SF_Edge(nne)%PML)then
             call Comm_Edge_VectorProperty(ngll1,orient_e,                    &
-                Tdomain%sComm(n)%TakeForcesSF_FtoS_PML(ngllSF_PML:ngllSF_PML+ngll1-3,1,0:2),  &
+                io_comm%TakeForcesSF_FtoS_PML(ngllSF_PML:ngllSF_PML+ngll1-3,1,0:2),  &
                 Tdomain%SF%SF_Edge(nne)%pn1(:,0:2))
             call Comm_Edge_VectorProperty(ngll1,orient_e,                    &
-                Tdomain%sComm(n)%TakeForcesSF_FtoS_PML(ngllSF_PML:ngllSF_PML+ngll1-3,2,0:2),  &
+                io_comm%TakeForcesSF_FtoS_PML(ngllSF_PML:ngllSF_PML+ngll1-3,2,0:2),  &
                 Tdomain%SF%SF_Edge(nne)%pn2(:,0:2))
             call Comm_Edge_VectorProperty(ngll1,orient_e,                    &
-                Tdomain%sComm(n)%TakeForcesSF_FtoS_PML(ngllSF_PML:ngllSF_PML+ngll1-3,3,0:2),  &
+                io_comm%TakeForcesSF_FtoS_PML(ngllSF_PML:ngllSF_PML+ngll1-3,3,0:2),  &
                 Tdomain%SF%SF_Edge(nne)%pn3(:,0:2))
             ngllSF_PML = ngllSF_PML+ngll1-2
         end if
@@ -703,28 +704,28 @@ subroutine Comm_Forces_EdgeSF_FtoS(Tdomain,n,ngllSF,ngllSF_PML)
 end subroutine Comm_Forces_EdgeSF_FtoS
 !-------------------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------------------
-subroutine Comm_Forces_VertexSF_StoF(Tdomain,n,ngllSF,ngllSF_PML)
+subroutine Comm_Forces_VertexSF_StoF(Tdomain,io_comm,ngllSF,ngllSF_PML)
 
     use sdomain
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    integer, intent(in) :: n
+    type(comm), intent(inout) :: io_comm
     integer, intent(inout) :: ngllSF,ngllSF_PML
     integer :: i,nv
 
 
-    do i = 0,Tdomain%sComm(n)%SF_nv_shared-1
-        nv = Tdomain%sComm(n)%SF_vertices_shared(i)
-        Tdomain%SF%SF_Vertex(nv)%Vn = Tdomain%SF%SF_Vertex(nv)%Vn + Tdomain%sComm(n)%TakeForcesSF_StoF(ngllSF)
+    do i = 0,io_comm%SF_nv_shared-1
+        nv = io_comm%SF_vertices_shared(i)
+        Tdomain%SF%SF_Vertex(nv)%Vn = Tdomain%SF%SF_Vertex(nv)%Vn + io_comm%TakeForcesSF_StoF(ngllSF)
         ngllSF = ngllSF + 1
         if(Tdomain%SF%SF_Vertex(nv)%PML)then
             Tdomain%SF%SF_Vertex(nv)%Vn1 = Tdomain%SF%SF_Vertex(nv)%Vn1 +   &
-                Tdomain%sComm(n)%TakeForcesSF_StoF_PML(ngllSF_PML,1)
+                io_comm%TakeForcesSF_StoF_PML(ngllSF_PML,1)
             Tdomain%SF%SF_Vertex(nv)%Vn2 = Tdomain%SF%SF_Vertex(nv)%Vn2 +   &
-                Tdomain%sComm(n)%TakeForcesSF_StoF_PML(ngllSF_PML,2)
+                io_comm%TakeForcesSF_StoF_PML(ngllSF_PML,2)
             Tdomain%SF%SF_Vertex(nv)%Vn3 = Tdomain%SF%SF_Vertex(nv)%Vn3 +   &
-                Tdomain%sComm(n)%TakeForcesSF_StoF_PML(ngllSF_PML,3)
+                io_comm%TakeForcesSF_StoF_PML(ngllSF_PML,3)
             ngllSF_PML = ngllSF_PML + 1
         end if
     enddo
@@ -733,28 +734,28 @@ subroutine Comm_Forces_VertexSF_StoF(Tdomain,n,ngllSF,ngllSF_PML)
 end subroutine Comm_Forces_VertexSF_StoF
 !-------------------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------------------
-subroutine Comm_Forces_VertexSF_FtoS(Tdomain,n,ngllSF,ngllSF_PML)
+subroutine Comm_Forces_VertexSF_FtoS(Tdomain,io_comm,ngllSF,ngllSF_PML)
 
     use sdomain
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    integer, intent(in) :: n
+    type(comm), intent(inout) :: io_comm
     integer, intent(inout) :: ngllSF,ngllSF_PML
     integer :: i,nv
 
 
-    do i = 0,Tdomain%sComm(n)%SF_nv_shared-1
-        nv =  Tdomain%sComm(n)%SF_vertices_shared(i)
-        Tdomain%SF%SF_Vertex(nv)%pn(0:2) = Tdomain%SF%SF_Vertex(nv)%pn(0:2) + Tdomain%sComm(n)%TakeForcesSF_FtoS(ngllSF,0:2)
+    do i = 0,io_comm%SF_nv_shared-1
+        nv =  io_comm%SF_vertices_shared(i)
+        Tdomain%SF%SF_Vertex(nv)%pn(0:2) = Tdomain%SF%SF_Vertex(nv)%pn(0:2) + io_comm%TakeForcesSF_FtoS(ngllSF,0:2)
         ngllSF = ngllSF + 1
         if(Tdomain%SF%SF_Vertex(nv)%PML)then
             Tdomain%SF%SF_Vertex(nv)%pn1(0:2) = Tdomain%SF%SF_Vertex(nv)%pn1(0:2) +   &
-                Tdomain%sComm(n)%TakeForcesSF_FtoS_PML(ngllSF_PML,1,0:2)
+                io_comm%TakeForcesSF_FtoS_PML(ngllSF_PML,1,0:2)
             Tdomain%SF%SF_Vertex(nv)%pn2(0:2) = Tdomain%SF%SF_Vertex(nv)%pn2(0:2) +   &
-                Tdomain%sComm(n)%TakeForcesSF_FtoS_PML(ngllSF_PML,2,0:2)
+                io_comm%TakeForcesSF_FtoS_PML(ngllSF_PML,2,0:2)
             Tdomain%SF%SF_Vertex(nv)%pn3(0:2) = Tdomain%SF%SF_Vertex(nv)%pn3(0:2) +   &
-                Tdomain%sComm(n)%TakeForcesSF_FtoS_PML(ngllSF_PML,3,0:2)
+                io_comm%TakeForcesSF_FtoS_PML(ngllSF_PML,3,0:2)
             ngllSF_PML = ngllSF_PML + 1
         end if
     enddo

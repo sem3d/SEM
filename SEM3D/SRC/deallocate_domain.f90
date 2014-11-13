@@ -183,7 +183,7 @@ subroutine deallocate_domain (Tdomain)
         endif
     enddo
 
-    do n = 0,Tdomain%nb_procs-1
+    do n = 0,Tdomain%tot_comm_proc-1
         if (Tdomain%sComm(n)%ngll>0) then
             deallocate (Tdomain%sComm(n)%GiveForces)
             deallocate (Tdomain%sComm(n)%TakeForces)

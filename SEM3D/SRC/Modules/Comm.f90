@@ -19,6 +19,8 @@ module scomms
     end type comm_vector_2d
 
     type :: comm
+       ! Numero du proc avec qui on communique
+       integer :: dest
 
        integer :: nb_faces, nb_edges, nb_vertices, nb_edges_so,nb_vertices_so,    &
            nb_edges_neu,nb_vertices_neu,ngllSO,ngll_F,ngllPML_F,ngllPML_tot

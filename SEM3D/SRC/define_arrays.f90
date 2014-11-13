@@ -140,23 +140,23 @@ subroutine assemble_mass_matrices(Tdomain)
     if(Tdomain%nb_procs > 1)then
         !-------------------------------------------------
         !- from external faces, edges and vertices to Communication global arrays
-        do n = 0,Tdomain%nb_procs-1
-            call Comm_Mass_Complete(n,Tdomain)
-            call Comm_Mass_Complete_PML(n,Tdomain)
-            call Comm_Normal_Neumann(n,Tdomain)
+        do n = 0,Tdomain%tot_comm_proc-1
+            call Comm_Mass_Complete(Tdomain%sComm(n),Tdomain)
+            call Comm_Mass_Complete_PML(Tdomain%sComm(n),Tdomain)
+            call Comm_Normal_Neumann(Tdomain%sComm(n),Tdomain)
         enddo
 
         call exchange_sem(Tdomain)
 
         ! now: assemblage on external faces, edges and vertices
-        do n = 0,Tdomain%nb_procs-1
+        do n = 0,Tdomain%tot_comm_proc-1
             ngll_tot = 0
             ngllPML_tot = 0
             ngllNeu = 0
 
-            call Comm_Mass_Face(Tdomain,n,ngll_tot,ngllPML_tot)
-            call Comm_Mass_Edge(Tdomain,n,ngll_tot,ngllPML_tot)
-            call Comm_Mass_Vertex(Tdomain,n,ngll_tot,ngllPML_tot)
+            call Comm_Mass_Face(Tdomain,Tdomain%sComm(n),ngll_tot,ngllPML_tot)
+            call Comm_Mass_Edge(Tdomain,Tdomain%sComm(n),ngll_tot,ngllPML_tot)
+            call Comm_Mass_Vertex(Tdomain,Tdomain%sComm(n),ngll_tot,ngllPML_tot)
 
             ! Neumann
             do i = 0,Tdomain%sComm(n)%Neu_ne_shared-1
@@ -987,66 +987,66 @@ subroutine define_FPML_DumpEnd(dir,ngllx,nglly,ngllz,DumpV,Iv)
 end subroutine define_FPML_DumpEnd
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
-subroutine Comm_Mass_Complete(n,Tdomain)
+subroutine Comm_Mass_Complete(io_comm,Tdomain)
     use sdomain
     implicit none
 
-    integer, intent(in)  :: n
+    type(comm), intent(inout)  :: io_comm
     type(domain), intent(inout) :: Tdomain
     integer  :: i,j,k,ngll,nf,ne,nv
 
     ngll = 0
     ! faces
-    do i = 0,Tdomain%sComm(n)%nb_faces-1
-        nf = Tdomain%sComm(n)%faces(i)
+    do i = 0,io_comm%nb_faces-1
+        nf = io_comm%faces(i)
         do j = 1,Tdomain%sFace(nf)%ngll2-2
             do k = 1,Tdomain%sFace(nf)%ngll1-2
-                Tdomain%sComm(n)%Give(ngll) = Tdomain%sFace(nf)%MassMat(k,j)
+                io_comm%Give(ngll) = Tdomain%sFace(nf)%MassMat(k,j)
                 ngll = ngll + 1
             enddo
         enddo
     enddo
     ! edges
-    do i = 0,Tdomain%sComm(n)%nb_edges-1
-        ne = Tdomain%sComm(n)%edges(i)
+    do i = 0,io_comm%nb_edges-1
+        ne = io_comm%edges(i)
         do j = 1,Tdomain%sEdge(ne)%ngll-2
-            Tdomain%sComm(n)%Give(ngll) = Tdomain%sEdge(ne)%MassMat(j)
+            io_comm%Give(ngll) = Tdomain%sEdge(ne)%MassMat(j)
             ngll = ngll + 1
         enddo
     enddo
     ! vertices
-    do i = 0,Tdomain%sComm(n)%nb_vertices-1
-        nv =  Tdomain%sComm(n)%vertices(i)
-        Tdomain%sComm(n)%Give(ngll) = Tdomain%svertex(nv)%MassMat
+    do i = 0,io_comm%nb_vertices-1
+        nv =  io_comm%vertices(i)
+        io_comm%Give(ngll) = Tdomain%svertex(nv)%MassMat
         ngll = ngll + 1
     enddo
 
-    if(ngll /= Tdomain%sComm(n)%ngll_tot) &
+    if(ngll /= io_comm%ngll_tot) &
         stop "Incompatibility in mass transmission between procs."
 
 end subroutine Comm_Mass_Complete
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
-subroutine Comm_Mass_Complete_PML(n,Tdomain)
+subroutine Comm_Mass_Complete_PML(io_comm,Tdomain)
     use sdomain
     implicit none
 
-    integer, intent(in)  :: n
+    type (comm), intent(inout) :: io_comm
     type(domain), intent(inout) :: Tdomain
     integer  :: i,j,k,ngllPML,nf,ne,nv
 
     ngllPML = 0
     ! faces
-    do i = 0,Tdomain%sComm(n)%nb_faces-1
-        nf = Tdomain%sComm(n)%faces(i)
+    do i = 0,io_comm%nb_faces-1
+        nf = io_comm%faces(i)
         if(Tdomain%sFace(nf)%PML)then
             do j = 1,Tdomain%sFace(nf)%ngll2-2
                 do k = 1,Tdomain%sFace(nf)%ngll1-2
-                    Tdomain%sComm(n)%GivePML(ngllPML,0:2) = Tdomain%sFace(nf)%spml%DumpMass(k,j,0:2)
+                    io_comm%GivePML(ngllPML,0:2) = Tdomain%sFace(nf)%spml%DumpMass(k,j,0:2)
                     if(Tdomain%any_FPML)then
-                        Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%sFace(nf)%spml%Ivx(k,j)
-                        Tdomain%sComm(n)%GivePML(ngllPML,4) = Tdomain%sFace(nf)%spml%Ivy(k,j)
-                        Tdomain%sComm(n)%GivePML(ngllPML,5) = Tdomain%sFace(nf)%spml%Ivz(k,j)
+                        io_comm%GivePML(ngllPML,3) = Tdomain%sFace(nf)%spml%Ivx(k,j)
+                        io_comm%GivePML(ngllPML,4) = Tdomain%sFace(nf)%spml%Ivy(k,j)
+                        io_comm%GivePML(ngllPML,5) = Tdomain%sFace(nf)%spml%Ivz(k,j)
                     endif
                     ngllPML = ngllPML + 1
                 enddo
@@ -1054,63 +1054,63 @@ subroutine Comm_Mass_Complete_PML(n,Tdomain)
         endif
     enddo
     ! edges
-    do i = 0,Tdomain%sComm(n)%nb_edges-1
-        ne = Tdomain%sComm(n)%edges(i)
+    do i = 0,io_comm%nb_edges-1
+        ne = io_comm%edges(i)
         if(Tdomain%sEdge(ne)%PML)then
             do j = 1,Tdomain%sEdge(ne)%ngll-2
-                Tdomain%sComm(n)%GivePML(ngllPML,0:2) = Tdomain%sEdge(ne)%spml%DumpMass(j,0:2)
+                io_comm%GivePML(ngllPML,0:2) = Tdomain%sEdge(ne)%spml%DumpMass(j,0:2)
                 if(Tdomain%any_FPML)then
-                    Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%sEdge(ne)%spml%Ivx(j)
-                    Tdomain%sComm(n)%GivePML(ngllPML,4) = Tdomain%sEdge(ne)%spml%Ivy(j)
-                    Tdomain%sComm(n)%GivePML(ngllPML,5) = Tdomain%sEdge(ne)%spml%Ivz(j)
+                    io_comm%GivePML(ngllPML,3) = Tdomain%sEdge(ne)%spml%Ivx(j)
+                    io_comm%GivePML(ngllPML,4) = Tdomain%sEdge(ne)%spml%Ivy(j)
+                    io_comm%GivePML(ngllPML,5) = Tdomain%sEdge(ne)%spml%Ivz(j)
                 endif
                 ngllPML = ngllPML + 1
             enddo
         endif
     enddo
-    do i = 0,Tdomain%sComm(n)%nb_vertices-1
-        nv = Tdomain%sComm(n)%vertices(i)
+    do i = 0,io_comm%nb_vertices-1
+        nv = io_comm%vertices(i)
         if(Tdomain%sVertex(nv)%PML)then
-            Tdomain%sComm(n)%GivePML(ngllPML,0:2) = Tdomain%sVertex(nv)%spml%DumpMass(0:2)
+            io_comm%GivePML(ngllPML,0:2) = Tdomain%sVertex(nv)%spml%DumpMass(0:2)
             if(Tdomain%any_FPML)then
-                Tdomain%sComm(n)%GivePML(ngllPML,3) = Tdomain%sVertex(nv)%spml%Ivx(0)
-                Tdomain%sComm(n)%GivePML(ngllPML,4) = Tdomain%sVertex(nv)%spml%Ivy(0)
-                Tdomain%sComm(n)%GivePML(ngllPML,5) = Tdomain%sVertex(nv)%spml%Ivz(0)
+                io_comm%GivePML(ngllPML,3) = Tdomain%sVertex(nv)%spml%Ivx(0)
+                io_comm%GivePML(ngllPML,4) = Tdomain%sVertex(nv)%spml%Ivy(0)
+                io_comm%GivePML(ngllPML,5) = Tdomain%sVertex(nv)%spml%Ivz(0)
             endif
             ngllPML = ngllPML + 1
         endif
     enddo
 
-    if(ngllPML /= Tdomain%sComm(n)%ngllPML_tot) &
+    if(ngllPML /= io_comm%ngllPML_tot) &
         stop "Incompatibility in mass transmission between procs."
 
 end subroutine Comm_Mass_Complete_PML
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
-subroutine Comm_Normal_Neumann(n,Tdomain)
+subroutine Comm_Normal_Neumann(io_comm,Tdomain)
     use sdomain
     implicit none
 
-    integer, intent(in)  :: n
+    type(comm), intent(inout) :: io_comm
     type(domain), intent(inout) :: Tdomain
     integer  :: i,j,ngllneu,ne,nv
 
     ngllNeu = 0
 
-    do i = 0,Tdomain%sComm(n)%Neu_ne_shared-1
-        ne = Tdomain%sComm(n)%Neu_edges_shared(i)
+    do i = 0,io_comm%Neu_ne_shared-1
+        ne = io_comm%Neu_edges_shared(i)
         do j = 1,Tdomain%Neumann%Neu_Edge(ne)%ngll-2
-            Tdomain%sComm(n)%GiveNeu(ngllNeu,0:2) = Tdomain%Neumann%Neu_Edge(ne)%BtN(j,0:2)
+            io_comm%GiveNeu(ngllNeu,0:2) = Tdomain%Neumann%Neu_Edge(ne)%BtN(j,0:2)
             ngllNeu = ngllNeu + 1
         enddo
     enddo
-    do i = 0,Tdomain%sComm(n)%Neu_nv_shared-1
-        nv = Tdomain%sComm(n)%Neu_vertices_shared(i)
-        Tdomain%sComm(n)%GiveNeu(ngllNeu,0:2) = Tdomain%Neumann%Neu_Vertex(nv)%BtN(0:2)
+    do i = 0,io_comm%Neu_nv_shared-1
+        nv = io_comm%Neu_vertices_shared(i)
+        io_comm%GiveNeu(ngllNeu,0:2) = Tdomain%Neumann%Neu_Vertex(nv)%BtN(0:2)
         ngllNeu = ngllNeu + 1
     enddo
 
-    if(ngllNeu /= Tdomain%sComm(n)%ngllNeu) &
+    if(ngllNeu /= io_comm%ngllNeu) &
         stop "Incompatibility in Neumann normal transmission between procs."
 
 end subroutine Comm_Normal_Neumann

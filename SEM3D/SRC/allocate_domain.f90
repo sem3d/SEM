@@ -581,24 +581,26 @@ subroutine allocate_domain (Tdomain)
     !------------------------
     ! Inter-proc communications
     !------------------------
-    if(Tdomain%nb_procs > 1)then
-        do n = 0,Tdomain%nb_procs-1
-            call allocate_comm_proc (Tdomain, n)
+    if(Tdomain%tot_comm_proc > 0)then
+        do n = 0,Tdomain%tot_comm_proc-1
+            call allocate_comm_proc (Tdomain, Tdomain%sComm(n))
         enddo
     else
-        Tdomain%sComm(0)%ngll = 0
-        Tdomain%sComm(0)%ngllPML = 0
-        Tdomain%sComm(0)%ngllSO = 0
-        Tdomain%sComm(0)%ngllPML_F = 0
+!        Tdomain%sComm(0)%ngll = 0
+!        Tdomain%sComm(0)%ngllPML = 0
+!        Tdomain%sComm(0)%ngllSO = 0
+!        Tdomain%sComm(0)%ngllPML_F = 0
     endif
 
     return
 end subroutine allocate_domain
 
-    subroutine allocate_comm_proc(Tdomain, n)
+    subroutine allocate_comm_proc(Tdomain, io_comm)
         type(domain), intent (INOUT) :: Tdomain
-        integer :: n,nf,ne,nv,i,ngll1,ngll2,   &
+        type(comm), intent(inout) :: io_comm
+        integer :: nf,ne,nv,i,ngll1,ngll2,   &
             ngll,ngllPML,ngllSO,ngllNeu,ngllSF,ngllSF_PML,ngll_F,ngllPML_F
+
             ngll = 0
             ngll_F = 0
             ngllPML = 0
@@ -607,8 +609,8 @@ end subroutine allocate_domain
             ngllNeu = 0
             ngllSF = 0
             ngllSF_PML = 0
-            do i = 0,Tdomain%sComm(n)%nb_faces-1
-                nf = Tdomain%sComm(n)%faces(i)
+            do i = 0,io_comm%nb_faces-1
+                nf = io_comm%faces(i)
                 ngll1 = Tdomain%sFace(nf)%ngll1 ; ngll2 = Tdomain%sFace(nf)%ngll2
                 if(Tdomain%sFace(nf)%solid)then  ! solid face
                     ngll = ngll + (ngll1-2)*(ngll2-2)
@@ -622,8 +624,8 @@ end subroutine allocate_domain
                     endif
                 end if
             enddo
-            do i = 0,Tdomain%sComm(n)%nb_edges-1
-                ne = Tdomain%sComm(n)%edges(i)
+            do i = 0,io_comm%nb_edges-1
+                ne = io_comm%edges(i)
                 if(Tdomain%sEdge(ne)%solid)then  ! solid edge
                     ngll = ngll + Tdomain%sEdge(ne)%ngll-2
                     if(Tdomain%sEdge(ne)%PML) then
@@ -636,8 +638,8 @@ end subroutine allocate_domain
                     endif
                 end if
             enddo
-            do i = 0,Tdomain%sComm(n)%nb_vertices-1
-                nv = Tdomain%sComm(n)%vertices(i)
+            do i = 0,io_comm%nb_vertices-1
+                nv = io_comm%vertices(i)
                 if(Tdomain%sVertex(nv)%solid)then  ! solid vertex
                     ngll = ngll + 1
                     if(Tdomain%sVertex(nv)%PML) then
@@ -651,29 +653,29 @@ end subroutine allocate_domain
                 end if
             enddo
             ! Neumann
-            do i = 0,Tdomain%sComm(n)%Neu_ne_shared-1
-                ne = Tdomain%sComm(n)%Neu_edges_shared(i)
+            do i = 0,io_comm%Neu_ne_shared-1
+                ne = io_comm%Neu_edges_shared(i)
                 ngllNeu = ngllNeu + Tdomain%Neumann%Neu_Edge(ne)%ngll-2
             enddo
-            do i = 0,Tdomain%sComm(n)%Neu_nv_shared-1
+            do i = 0,io_comm%Neu_nv_shared-1
                 ngllNeu = ngllNeu + 1
             enddo
             ! Solid/fluid
-            do i = 0,Tdomain%sComm(n)%SF_nf_shared-1
-                nf = Tdomain%sComm(n)%SF_faces_shared(i)
+            do i = 0,io_comm%SF_nf_shared-1
+                nf = io_comm%SF_faces_shared(i)
                 ngll1 = Tdomain%SF%SF_Face(nf)%ngll1; ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
                 ngllSF = ngllSF + (ngll1-2)*(ngll2-2)
                 if(Tdomain%SF%SF_Face(nf)%PML) ngllSF_PML =     &
                     ngllSF_PML+(ngll1-2)*(ngll2-2)
             enddo
-            do i = 0,Tdomain%sComm(n)%SF_ne_shared-1
-                ne = Tdomain%sComm(n)%SF_edges_shared(i)
+            do i = 0,io_comm%SF_ne_shared-1
+                ne = io_comm%SF_edges_shared(i)
                 ngllSF = ngllSF + Tdomain%SF%SF_Edge(ne)%ngll-2
                 if(Tdomain%SF%SF_Edge(ne)%PML) ngllSF_PML =     &
                     ngllSF_PML+Tdomain%SF%SF_Edge(ne)%ngll-2
             enddo
-            do i = 0,Tdomain%sComm(n)%SF_nv_shared-1
-                nv = Tdomain%sComm(n)%SF_vertices_shared(i)
+            do i = 0,io_comm%SF_nv_shared-1
+                nv = io_comm%SF_vertices_shared(i)
                 ngllSF = ngllSF + 1
                 if(Tdomain%SF%SF_Vertex(nv)%PML) ngllSF_PML = ngllSF_PML+1
             enddo
@@ -681,64 +683,64 @@ end subroutine allocate_domain
             ! allocations for inter-proc communications
             ! for mass communications
             if(ngll+ngll_F > 0)then
-                allocate(Tdomain%sComm(n)%Give(0:ngll+ngll_F-1))
-                allocate(Tdomain%sComm(n)%Take(0:ngll+ngll_F-1))
+                allocate(io_comm%Give(0:ngll+ngll_F-1))
+                allocate(io_comm%Take(0:ngll+ngll_F-1))
             end if
             if(ngllPML+ngllPML_F > 0)then
                 if(Tdomain%any_FPML)then
-                    allocate(Tdomain%sComm(n)%GivePML(0:ngllPML+ngllPML_F-1,0:5))
-                    allocate(Tdomain%sComm(n)%TakePML(0:ngllPML+ngllPML_F-1,0:5))
+                    allocate(io_comm%GivePML(0:ngllPML+ngllPML_F-1,0:5))
+                    allocate(io_comm%TakePML(0:ngllPML+ngllPML_F-1,0:5))
                 else
-                    allocate(Tdomain%sComm(n)%GivePML(0:ngllPML+ngllPML_F-1,0:2))
-                    allocate(Tdomain%sComm(n)%TakePML(0:ngllPML+ngllPML_F-1,0:2))
+                    allocate(io_comm%GivePML(0:ngllPML+ngllPML_F-1,0:2))
+                    allocate(io_comm%TakePML(0:ngllPML+ngllPML_F-1,0:2))
                 end if
             end if
             ! solid
             if(ngll > 0)then
-                allocate(Tdomain%sComm(n)%GiveForces(0:ngll-1,0:2))
-                allocate(Tdomain%sComm(n)%TakeForces(0:ngll-1,0:2))
+                allocate(io_comm%GiveForces(0:ngll-1,0:2))
+                allocate(io_comm%TakeForces(0:ngll-1,0:2))
             endif
             if(ngllPML > 0)then
-                allocate(Tdomain%sComm(n)%GiveForcesPML(0:ngllPML-1,1:3,0:2))
-                allocate(Tdomain%sComm(n)%TakeForcesPML(0:ngllPML-1,1:3,0:2))
+                allocate(io_comm%GiveForcesPML(0:ngllPML-1,1:3,0:2))
+                allocate(io_comm%TakeForcesPML(0:ngllPML-1,1:3,0:2))
             endif
             ! fluid
             if(ngll_F > 0)then
-                allocate(Tdomain%sComm(n)%GiveForcesFl(0:ngll_F-1))
-                allocate(Tdomain%sComm(n)%TakeForcesFl(0:ngll_F-1))
+                allocate(io_comm%GiveForcesFl(0:ngll_F-1))
+                allocate(io_comm%TakeForcesFl(0:ngll_F-1))
             endif
             if(ngllPML_F > 0)then
-                allocate(Tdomain%sComm(n)%GiveForcesPMLFl(0:ngllPML_F-1,1:3))
-                allocate(Tdomain%sComm(n)%TakeForcesPMLFl(0:ngllPML_F-1,1:3))
+                allocate(io_comm%GiveForcesPMLFl(0:ngllPML_F-1,1:3))
+                allocate(io_comm%TakeForcesPMLFl(0:ngllPML_F-1,1:3))
             endif
             ! Neumann
             if(ngllNeu > 0)then
-                allocate(Tdomain%sComm(n)%GiveNeu(0:ngllNeu-1,0:2))
-                allocate(Tdomain%sComm(n)%TakeNeu(0:ngllNeu-1,0:2))
+                allocate(io_comm%GiveNeu(0:ngllNeu-1,0:2))
+                allocate(io_comm%TakeNeu(0:ngllNeu-1,0:2))
             endif
             ! solid-fluid interface
             if(ngllSF > 0)then
-                allocate(Tdomain%sComm(n)%GiveForcesSF_FtoS(0:ngllSF-1,0:2))
-                allocate(Tdomain%sComm(n)%TakeForcesSF_FtoS(0:ngllSF-1,0:2))
-                allocate(Tdomain%sComm(n)%GiveForcesSF_StoF(0:ngllSF-1))
-                allocate(Tdomain%sComm(n)%TakeForcesSF_StoF(0:ngllSF-1))
+                allocate(io_comm%GiveForcesSF_FtoS(0:ngllSF-1,0:2))
+                allocate(io_comm%TakeForcesSF_FtoS(0:ngllSF-1,0:2))
+                allocate(io_comm%GiveForcesSF_StoF(0:ngllSF-1))
+                allocate(io_comm%TakeForcesSF_StoF(0:ngllSF-1))
             endif
             if(ngllSF_PML > 0)then
-                allocate(Tdomain%sComm(n)%GiveForcesSF_FtoS_PML(0:ngllSF_PML-1,1:3,0:2))
-                allocate(Tdomain%sComm(n)%TakeForcesSF_FtoS_PML(0:ngllSF_PML-1,1:3,0:2))
-                allocate(Tdomain%sComm(n)%GiveForcesSF_StoF_PML(0:ngllSF_PML-1,1:3))
-                allocate(Tdomain%sComm(n)%TakeForcesSF_StoF_PML(0:ngllSF_PML-1,1:3))
+                allocate(io_comm%GiveForcesSF_FtoS_PML(0:ngllSF_PML-1,1:3,0:2))
+                allocate(io_comm%TakeForcesSF_FtoS_PML(0:ngllSF_PML-1,1:3,0:2))
+                allocate(io_comm%GiveForcesSF_StoF_PML(0:ngllSF_PML-1,1:3))
+                allocate(io_comm%TakeForcesSF_StoF_PML(0:ngllSF_PML-1,1:3))
             endif
 
-            Tdomain%sComm(n)%ngll = ngll
-            Tdomain%sComm(n)%ngll_F = ngll_F
-            Tdomain%sComm(n)%ngll_tot = ngll+ngll_F
-            Tdomain%sComm(n)%ngllPML = ngllPML
-            Tdomain%sComm(n)%ngllPML_F = ngllPML_F
-            Tdomain%sComm(n)%ngllPML_tot = ngllPML+ngllPML_F
-            Tdomain%sComm(n)%ngllNeu = ngllNeu
-            Tdomain%sComm(n)%ngllSF = ngllSF
-            Tdomain%sComm(n)%ngllSF_PML = ngllSF_PML
+            io_comm%ngll = ngll
+            io_comm%ngll_F = ngll_F
+            io_comm%ngll_tot = ngll+ngll_F
+            io_comm%ngllPML = ngllPML
+            io_comm%ngllPML_F = ngllPML_F
+            io_comm%ngllPML_tot = ngllPML+ngllPML_F
+            io_comm%ngllNeu = ngllNeu
+            io_comm%ngllSF = ngllSF
+            io_comm%ngllSF_PML = ngllSF_PML
 
         end subroutine allocate_comm_proc
 end module sdomain_alloc

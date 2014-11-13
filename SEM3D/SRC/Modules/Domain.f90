@@ -37,6 +37,8 @@ module sdomain
        integer, dimension(:), allocatable :: output_nodes, output_nodes_offset, output_elems
        ! Nombre de process par sorties pour le reassemblage
        integer :: ngroup
+       ! Nombre de processeur avec qui on communique (size(sComm))
+       integer :: tot_comm_proc
        ! En mode couplage : Rg du superviseur dans le communicateur global
        integer :: master_superviseur
 

@@ -1158,6 +1158,9 @@ contains
         integer :: hdferr
         character(Len=20) :: proc_grp
         !
+        integer :: tot_proc ! Number of proc communicating with this file
+        logical :: has_comm_proc ! indicates we have communications with another proc
+        !
         curve = .false.
         !
         call init_hdf5()
@@ -1262,10 +1265,24 @@ contains
         end if
 
         ! Communications
+        tot_proc = 0
         do n=0,nproc-1
-            write(proc_grp,"(a,I4.4)") "Proc", n
+            has_comm_proc = (shared%nf(n)/=0 .or. shared%ne(n)/=0 .or. shared%nv(n)/=0)
+            if (SF%present_local) then
+                has_comm_proc = has_comm_proc .or. (SF%nf_shared(n)/=0)
+                has_comm_proc = has_comm_proc .or. (SF%ne_shared(n)/=0)
+                has_comm_proc = has_comm_proc .or. (SF%nv_shared(n)/=0)
+            end if
+            if (Neu%present_local) then
+                has_comm_proc = has_comm_proc .or. (Neu%ne_shared(n)/=0)
+                has_comm_proc = has_comm_proc .or. (Neu%nv_shared(n)/=0)
+            end if
+            if (.not. has_comm_proc) cycle
+            write(proc_grp,"(a,I4.4)") "Proc", tot_proc
+            tot_proc = tot_proc + 1
             call h5gcreate_f(fid, trim(adjustl(proc_grp)), proc_id, hdferr, 0_SIZE_T)
 
+            call write_attr_int(proc_id, "proc_dest", n)
             call write_attr_int(proc_id, "n_faces", shared%nf(n))
             call write_attr_int(proc_id, "n_edges", shared%ne(n))
             call write_attr_int(proc_id, "n_vertices", shared%nv(n))
@@ -1307,6 +1324,7 @@ contains
             call h5gclose_f(proc_id, hdferr)
         end do
 
+        call write_attr_int(fid, "tot_comm_proc", tot_proc)
 
         call h5fclose_f(fid, hdferr)
 

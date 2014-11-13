@@ -234,10 +234,13 @@ subroutine read_mesh_file_h5(Tdomain)
     end if
 
     ! Interproc communications
+    Tdomain%tot_comm_proc = 0
+    call read_attr_int(fid, "tot_comm_proc", Tdomain%tot_comm_proc)
     allocate (Tdomain%sComm(0:Tdomain%nb_procs-1))
-    do i = 0,Tdomain%nb_procs-1
+    do i = 0,Tdomain%tot_comm_proc-1
         write(proc_grp,"(a,I4.4)") "Proc", i
         call h5gopen_f(fid, trim(adjustl(proc_grp)), proc_id, hdferr)
+        call read_attr_int(proc_id, "proc_dest", Tdomain%sComm(i)%dest)
         call read_attr_int(proc_id, "n_faces", Tdomain%sComm(i)%nb_faces)
         call read_attr_int(proc_id, "n_edges", Tdomain%sComm(i)%nb_edges)
         call read_attr_int(proc_id, "n_vertices", Tdomain%sComm(i)%nb_vertices)

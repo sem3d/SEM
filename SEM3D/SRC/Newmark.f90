@@ -102,22 +102,22 @@ subroutine Newmark(Tdomain,ntime)
     ! MPI communications
     if(Tdomain%nb_procs > 1)then
         ! from external faces, edges and vertices to Communication global arrays
-        do n = 0,Tdomain%nb_procs-1
-            call Comm_Forces_Complete(n,Tdomain)
-            call Comm_Forces_PML_Complete(n,Tdomain)
+        do n = 0,Tdomain%tot_comm_proc-1
+            call Comm_Forces_Complete(Tdomain%sComm(n),Tdomain)
+            call Comm_Forces_PML_Complete(Tdomain%sComm(n),Tdomain)
         end do
 
         call exchange_sem_forces(Tdomain)
 
         ! now: assemblage on external faces, edges and vertices
-        do n = 0,Tdomain%nb_procs-1
+        do n = 0,Tdomain%tot_comm_proc-1
             ngll = 0
             ngll_F = 0
             ngllPML = 0
             ngllPML_F = 0
-            call Comm_Forces_Face  (Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
-            call Comm_Forces_Edge  (Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
-            call Comm_Forces_Vertex(Tdomain,n,ngll,ngll_F,ngllPML,ngllPML_F)
+            call Comm_Forces_Face  (Tdomain,Tdomain%sComm(n),ngll,ngll_F,ngllPML,ngllPML_F)
+            call Comm_Forces_Edge  (Tdomain,Tdomain%sComm(n),ngll,ngll_F,ngllPML,ngllPML_F)
+            call Comm_Forces_Vertex(Tdomain,Tdomain%sComm(n),ngll,ngll_F,ngllPML,ngllPML_F)
         enddo
 
     endif  ! if nproc > 1
@@ -619,57 +619,57 @@ subroutine inside_proc_forces(Tdomain)
 end subroutine inside_proc_forces
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
-subroutine Comm_Forces_Complete(n,Tdomain)
+subroutine Comm_Forces_Complete(io_comm,Tdomain)
     use sdomain
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    integer, intent(in)   :: n
+    type(comm), intent(inout) :: io_comm
     integer  :: ngll,ngll_F,i,j,k,nf,ne,nv
 
     ngll = 0 ; ngll_F = 0
     ! faces
-    do i = 0,Tdomain%sComm(n)%nb_faces-1
-        nf = Tdomain%sComm(n)%faces(i)
+    do i = 0,io_comm%nb_faces-1
+        nf = io_comm%faces(i)
         if(Tdomain%sFace(nf)%solid)then
             do j = 1,Tdomain%sFace(nf)%ngll2-2
                 do k = 1,Tdomain%sFace(nf)%ngll1-2
-                    Tdomain%sComm(n)%GiveForces(ngll,0:2) = Tdomain%sFace(nf)%Forces(k,j,0:2)
+                    io_comm%GiveForces(ngll,0:2) = Tdomain%sFace(nf)%Forces(k,j,0:2)
                     ngll = ngll + 1
                 enddo
             enddo
         else
             do j = 1,Tdomain%sFace(nf)%ngll2-2
                 do k = 1,Tdomain%sFace(nf)%ngll1-2
-                    Tdomain%sComm(n)%GiveForcesFl(ngll_F) = Tdomain%sFace(nf)%ForcesFl(k,j)
+                    io_comm%GiveForcesFl(ngll_F) = Tdomain%sFace(nf)%ForcesFl(k,j)
                     ngll_F = ngll_F + 1
                 enddo
             enddo
         end if
     enddo
     ! edges
-    do i = 0,Tdomain%sComm(n)%nb_edges-1
-        ne = Tdomain%sComm(n)%edges(i)
+    do i = 0,io_comm%nb_edges-1
+        ne = io_comm%edges(i)
         if(Tdomain%sEdge(ne)%solid)then
             do j = 1,Tdomain%sEdge(ne)%ngll-2
-                Tdomain%sComm(n)%GiveForces(ngll,0:2) = Tdomain%sEdge(ne)%Forces(j,0:2)
+                io_comm%GiveForces(ngll,0:2) = Tdomain%sEdge(ne)%Forces(j,0:2)
                 ngll = ngll + 1
             enddo
         else
             do j = 1,Tdomain%sEdge(ne)%ngll-2
-                Tdomain%sComm(n)%GiveForcesFl(ngll_F) = Tdomain%sEdge(ne)%ForcesFl(j)
+                io_comm%GiveForcesFl(ngll_F) = Tdomain%sEdge(ne)%ForcesFl(j)
                 ngll_F = ngll_F + 1
             enddo
         end if
     enddo
     ! vertices
-    do i = 0,Tdomain%sComm(n)%nb_vertices-1
-        nv =  Tdomain%sComm(n)%vertices(i)
+    do i = 0,io_comm%nb_vertices-1
+        nv =  io_comm%vertices(i)
         if(Tdomain%sVertex(nv)%solid)then
-            Tdomain%sComm(n)%GiveForces(ngll,0:2) = Tdomain%sVertex(nv)%Forces(0:2)
+            io_comm%GiveForces(ngll,0:2) = Tdomain%sVertex(nv)%Forces(0:2)
             ngll = ngll + 1
         else
-            Tdomain%sComm(n)%GiveForcesFl(ngll_F) = Tdomain%sVertex(nv)%ForcesFl
+            io_comm%GiveForcesFl(ngll_F) = Tdomain%sVertex(nv)%ForcesFl
             ngll_F = ngll_F + 1
         end if
     enddo
@@ -678,35 +678,35 @@ subroutine Comm_Forces_Complete(n,Tdomain)
 end subroutine Comm_Forces_Complete
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
-subroutine Comm_Forces_PML_Complete(n,Tdomain)
+subroutine Comm_Forces_PML_Complete(io_comm,Tdomain)
     use sdomain
     implicit none
 
+    type(comm), intent(inout) :: io_comm
     type(domain), intent(inout)  :: Tdomain
-    integer, intent(in)   :: n
     integer  :: ngllPML,ngllPML_F,i,j,k,nf,ne,nv
 
     ngllPML = 0 ; ngllPML_F = 0
 
     ! faces
-    do i = 0,Tdomain%sComm(n)%nb_faces-1
-        nf = Tdomain%sComm(n)%faces(i)
+    do i = 0,io_comm%nb_faces-1
+        nf = io_comm%faces(i)
         if(Tdomain%sFace(nf)%PML)then
             if(Tdomain%sFace(nf)%solid)then
                 do j = 1,Tdomain%sFace(nf)%ngll2-2
                     do k = 1,Tdomain%sFace(nf)%ngll1-2
-                        Tdomain%sComm(n)%GiveForcesPML(ngllPML,1,0:2) = Tdomain%sFace(nf)%spml%Forces1(k,j,0:2)
-                        Tdomain%sComm(n)%GiveForcesPML(ngllPML,2,0:2) = Tdomain%sFace(nf)%spml%Forces2(k,j,0:2)
-                        Tdomain%sComm(n)%GiveForcesPML(ngllPML,3,0:2) = Tdomain%sFace(nf)%spml%Forces3(k,j,0:2)
+                        io_comm%GiveForcesPML(ngllPML,1,0:2) = Tdomain%sFace(nf)%spml%Forces1(k,j,0:2)
+                        io_comm%GiveForcesPML(ngllPML,2,0:2) = Tdomain%sFace(nf)%spml%Forces2(k,j,0:2)
+                        io_comm%GiveForcesPML(ngllPML,3,0:2) = Tdomain%sFace(nf)%spml%Forces3(k,j,0:2)
                         ngllPML = ngllPML + 1
                     enddo
                 enddo
             else
                 do j = 1,Tdomain%sFace(nf)%ngll2-2
                     do k = 1,Tdomain%sFace(nf)%ngll1-2
-                        Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,1) = Tdomain%sFace(nf)%spml%ForcesFl1(k,j)
-                        Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,2) = Tdomain%sFace(nf)%spml%ForcesFl2(k,j)
-                        Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,3) = Tdomain%sFace(nf)%spml%ForcesFl3(k,j)
+                        io_comm%GiveForcesPMLFl(ngllPML_F,1) = Tdomain%sFace(nf)%spml%ForcesFl1(k,j)
+                        io_comm%GiveForcesPMLFl(ngllPML_F,2) = Tdomain%sFace(nf)%spml%ForcesFl2(k,j)
+                        io_comm%GiveForcesPMLFl(ngllPML_F,3) = Tdomain%sFace(nf)%spml%ForcesFl3(k,j)
                         ngllPML_F = ngllPML_F + 1
                     enddo
                 enddo
@@ -714,39 +714,39 @@ subroutine Comm_Forces_PML_Complete(n,Tdomain)
         endif
     enddo
     ! edges
-    do i = 0,Tdomain%sComm(n)%nb_edges-1
-        ne = Tdomain%sComm(n)%edges(i)
+    do i = 0,io_comm%nb_edges-1
+        ne = io_comm%edges(i)
         if(Tdomain%sEdge(ne)%PML)then
             if(Tdomain%sEdge(ne)%solid)then
                 do j = 1,Tdomain%sEdge(ne)%ngll-2
-                    Tdomain%sComm(n)%GiveForcesPML(ngllPML,1,0:2) = Tdomain%sEdge(ne)%spml%Forces1(j,0:2)
-                    Tdomain%sComm(n)%GiveForcesPML(ngllPML,2,0:2) = Tdomain%sEdge(ne)%spml%Forces2(j,0:2)
-                    Tdomain%sComm(n)%GiveForcesPML(ngllPML,3,0:2) = Tdomain%sEdge(ne)%spml%Forces3(j,0:2)
+                    io_comm%GiveForcesPML(ngllPML,1,0:2) = Tdomain%sEdge(ne)%spml%Forces1(j,0:2)
+                    io_comm%GiveForcesPML(ngllPML,2,0:2) = Tdomain%sEdge(ne)%spml%Forces2(j,0:2)
+                    io_comm%GiveForcesPML(ngllPML,3,0:2) = Tdomain%sEdge(ne)%spml%Forces3(j,0:2)
                     ngllPML = ngllPML + 1
                 enddo
             else
                 do j = 1,Tdomain%sEdge(ne)%ngll-2
-                    Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,1) = Tdomain%sEdge(ne)%spml%ForcesFl1(j)
-                    Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,2) = Tdomain%sEdge(ne)%spml%ForcesFl2(j)
-                    Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,3) = Tdomain%sEdge(ne)%spml%ForcesFl3(j)
+                    io_comm%GiveForcesPMLFl(ngllPML_F,1) = Tdomain%sEdge(ne)%spml%ForcesFl1(j)
+                    io_comm%GiveForcesPMLFl(ngllPML_F,2) = Tdomain%sEdge(ne)%spml%ForcesFl2(j)
+                    io_comm%GiveForcesPMLFl(ngllPML_F,3) = Tdomain%sEdge(ne)%spml%ForcesFl3(j)
                     ngllPML_F = ngllPML_F + 1
                 enddo
             end if
         endif
     enddo
     ! vertices
-    do i = 0,Tdomain%sComm(n)%nb_vertices-1
-        nv =  Tdomain%sComm(n)%vertices(i)
+    do i = 0,io_comm%nb_vertices-1
+        nv =  io_comm%vertices(i)
         if(Tdomain%sVertex(nv)%PML)then
             if(Tdomain%sVertex(nv)%solid)then
-                Tdomain%sComm(n)%GiveForcesPML(ngllPML,1,0:2) = Tdomain%sVertex(nv)%spml%Forces1(0:2)
-                Tdomain%sComm(n)%GiveForcesPML(ngllPML,2,0:2) = Tdomain%sVertex(nv)%spml%Forces2(0:2)
-                Tdomain%sComm(n)%GiveForcesPML(ngllPML,3,0:2) = Tdomain%sVertex(nv)%spml%Forces3(0:2)
+                io_comm%GiveForcesPML(ngllPML,1,0:2) = Tdomain%sVertex(nv)%spml%Forces1(0:2)
+                io_comm%GiveForcesPML(ngllPML,2,0:2) = Tdomain%sVertex(nv)%spml%Forces2(0:2)
+                io_comm%GiveForcesPML(ngllPML,3,0:2) = Tdomain%sVertex(nv)%spml%Forces3(0:2)
                 ngllPML = ngllPML + 1
             else
-                Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,1) = Tdomain%sVertex(nv)%spml%ForcesFl1
-                Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,2) = Tdomain%sVertex(nv)%spml%ForcesFl2
-                Tdomain%sComm(n)%GiveForcesPMLFl(ngllPML_F,3) = Tdomain%sVertex(nv)%spml%ForcesFl3
+                io_comm%GiveForcesPMLFl(ngllPML_F,1) = Tdomain%sVertex(nv)%spml%ForcesFl1
+                io_comm%GiveForcesPMLFl(ngllPML_F,2) = Tdomain%sVertex(nv)%spml%ForcesFl2
+                io_comm%GiveForcesPMLFl(ngllPML_F,3) = Tdomain%sVertex(nv)%spml%ForcesFl3
                 ngllPML_F = ngllPML_F + 1
             end if
         endif
