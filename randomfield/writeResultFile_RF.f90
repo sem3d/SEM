@@ -80,11 +80,11 @@ contains
         character (len=12) :: numberStr, rangStr;
         double precision, dimension(:,:), allocatable :: grid_data
 
-!		if(rang == 0) then
-!      	  	write(*,*) "";
-!       		write(*,*) "------------START Writing result HDF5 file (MPI)-----------------------";
-!      	 	write(*,*) "";
-!      	end if
+		if(rang == 0) then
+      	  	write(*,*) "";
+       		write(*,*) "------------START Writing result HDF5 file (MPI)-----------------------";
+      	 	write(*,*) "";
+      	end if
 
       	!if(rang == 0) then
       		!write (*,*) "lbound(xPoints) = ", lbound(xPoints)
@@ -96,7 +96,6 @@ contains
       		!call dispCarvalhol(xPoints(:,:)  , "xPoints(:,:)"  , "F30.5")
       		!call dispCarvalhol(randField(:,:), "randField(:,:)", "F30.5")
       	!end if
-
 
 		effectComm = communicator
 	    nDim       = size(xPoints , 2)
@@ -118,7 +117,6 @@ contains
 	    fileHDF5Name = string_join(fileHDF5Name,".h5")
 	    fullPath     = string_join(folderPath,"/"//fileHDF5Name)
 
-
         if (nDim > 3) then
         	write(*,*) "Dimension exceeds 3, HDF file won't be created"
         else
@@ -130,7 +128,7 @@ contains
 	        call h5open_f(error) ! Initialize FORTRAN interface.
 	        call h5fcreate_f(fullPath, H5F_ACC_TRUNC_F, file_id, error) ! Create a new file using default properties.
 
-			!if(rang == 0) write(*,*) ">>>>>>>>> Creating Coordinates dataset 'XYZ table'";
+			if(rang == 0) write(*,*) ">>>>>>>>> Creating Coordinates dataset 'XYZ table'";
 
 	        dims = shape(grid_data)
 			write(coordName,'(A)') "XYZ"
@@ -146,7 +144,7 @@ contains
 
 	        deallocate (grid_data)
 
-			!if(rang == 0) write(*,*) ">>>>>>>>> Creating Quantities dataset 'random field'";
+			if(rang == 0) write(*,*) ">>>>>>>>> Creating Quantities dataset 'random field'";
 	        dims(1) = size(randField,1)
 	        dims(2) = 1 !One random field in each dataset
 

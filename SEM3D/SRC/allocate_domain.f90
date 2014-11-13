@@ -22,7 +22,18 @@ subroutine allocate_domain (Tdomain, rg)
     integer :: n,nf,ne,nv,i,ngllx,nglly,ngllz,ngll1,ngll2,   &
         ngll,ngllPML,ngllSO,ngllNeu,ngllSF,ngllSF_PML,ngll_F,ngllPML_F
     integer :: n_solid
+    integer :: mat, randSize, assocMat
 
+	do mat = 0,Tdomain%n_mat-1
+		assocMat = Tdomain%sSubdomain(mat)%assocMat
+		if(      Tdomain%sSubDomain(assocMat)%material_type == "R"  &
+		   .and. Tdomain%subD_exist(mat)) then
+		    call random_seed(size = randSize)
+			allocate(Tdomain%sSubdomain(mat)%chosenSeed(randSize))
+			allocate(Tdomain%sSubDomain(mat)%MinBound(0:2))
+			allocate(Tdomain%sSubDomain(mat)%MaxBound(0:2))
+		end if
+	end do
 
     do n = 0,Tdomain%n_elem-1
 

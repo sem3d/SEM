@@ -36,11 +36,11 @@ contains
 
         !INPUT
         integer                       , intent(in)           :: pos;
-        double precision, dimension(:), intent(in)           :: qmax;
-        double precision, dimension(:), intent(in), optional :: qmin;
-        integer,          dimension(:), intent(in)           :: nStep;
+        double precision, dimension(1:), intent(in)           :: qmax;
+        double precision, dimension(1:), intent(in), optional :: qmin;
+        integer,          dimension(1:), intent(in)           :: nStep;
         !OUTPUT
-        double precision, dimension(:), intent(out) :: pVec;
+        double precision, dimension(1:), intent(out) :: pVec;
         !LOCAL VARIABLES
         integer :: i, j;
         integer :: seedStep, nDim;
@@ -74,8 +74,8 @@ contains
 
         !INPUT
         integer                       , intent(in)    :: rang, nb_procs;
-        double precision, dimension(:), intent(inout) :: xMax;
-        double precision, dimension(:), intent(inout) :: xMin;
+        double precision, dimension(1:), intent(inout) :: xMax;
+        double precision, dimension(1:), intent(inout) :: xMin;
         !OUTPUT
 
         !LOCAL VARIABLES
@@ -163,7 +163,7 @@ contains
         implicit none
 
         !INPUT
-        double precision, dimension(:), intent(in)    :: xMinLoc, xMaxLoc;
+        double precision, dimension(1:), intent(in)    :: xMinLoc, xMaxLoc;
         !OUTPUT
         double precision, dimension(:), allocatable, intent(out) :: xMinGlob, xMaxGlob;
         !LOCAL
@@ -209,7 +209,7 @@ contains
 
         integer :: clock
         integer, dimension(:), allocatable :: seed
-        integer, dimension(:), optional, intent(in) :: seedIn
+        integer, dimension(1:), optional, intent(in) :: seedIn
 
 		if(.not. present(seedIn)) then
 	        call calculate_random_seed(seed)
@@ -254,7 +254,7 @@ contains
 
         !INPUT
         integer,               intent(in) :: axis, nPlane
-        integer, dimension(:), intent(in) :: nStep;
+        integer, dimension(1:), intent(in) :: nStep;
 
         !OUTPUT
         integer, intent(out) :: beg, step, end;

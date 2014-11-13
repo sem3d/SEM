@@ -49,6 +49,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     integer :: interrupt, ierr
     logical :: sortie_capteur
     integer :: group, subgroup
+    integer :: key, mat
 
     call MPI_Init (ierr)
 
@@ -148,7 +149,11 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     call MPI_Comm_split(MPI_COMM_WORLD, group, subgroup, Tdomain%comm_output, ierr)
     call MPI_Comm_Size (Tdomain%comm_output, Tdomain%nb_output_procs,  code)
     call MPI_Comm_Rank (Tdomain%comm_output, Tdomain%output_rank, code)
-
+	do mat = 0, Tdomain%n_mat - 1
+		key = 1
+		if(Tdomain%subD_exist(mat)) key = 0
+		call MPI_COMM_SPLIT (Tdomain%communicateur, key, rg, Tdomain%subDComm(mat), code) !Creating materials communicator
+	end do
 
     !- eventual plane wave (transmission process: Bielak & Cristiano 1984)
     if (Tdomain%logicD%super_object_local_present) then
@@ -174,6 +179,9 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     if (rg == 0) write (*,*) "Defining a global numbering for the collocation points"
     call global_numbering (Tdomain,rg)
     call MPI_BARRIER(Tdomain%communicateur, code)
+
+    !- Coordinates mask creation
+
 
     !- geometrical properties for integrals' calculations
     if (rg == 0) write (*,*) "Computing shape functions and their derivatives"

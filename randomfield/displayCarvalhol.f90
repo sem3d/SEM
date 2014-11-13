@@ -10,7 +10,9 @@ module displayCarvalhol
 		                 Disp1Dint,    &
 		                 Disp2Dint,    &
 		                 Disp1Dchar,   &
-		                 Disp2Dchar
+		                 Disp2Dchar,   &
+		                 Disp1Dbool,   &
+		                 Disp2Dbool
 	end interface DispCarvalhol
 
 contains
@@ -120,6 +122,41 @@ contains
 
 
     end subroutine DispScalDble
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+    subroutine Disp1Dbool(vector, title, format, nColumns, mpi, comm)
+        ! Displays 1D Matrix (Vector)
+
+		implicit none
+
+        !INPUT
+        logical,             dimension(:)          , intent(in) :: vector
+        character (len=*),                 optional, intent(in) :: title, format
+        integer,                           optional, intent(in) :: nColumns
+        logical                          , optional, intent(in) :: mpi
+        integer                          , optional, intent(in) :: comm
+
+        !LOCAL VARIABLES
+        logical, dimension(:,:), allocatable :: matrix2d
+        integer :: effectComm
+
+        if(present(comm))       effectComm = comm
+        if(.not. present(comm)) effectComm = MPI_COMM_WORLD
+
+		allocate(matrix2D(size(vector),1));
+		matrix2d(:,1) = vector;
+
+		if(present(mpi)) then
+			call Disp2Dbool(matrix2D, title, format, nColumns, mpi, effectComm);
+		else
+			call Disp2Dbool(matrix2D, title, format, nColumns);
+		end if
+
+		deallocate(matrix2D);
+
+    end subroutine Disp1Dbool
 
 !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -434,6 +471,78 @@ contains
 		end if
 
     end subroutine Disp2Dchar
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+    subroutine Disp2Dbool(matrix2D, title, format, nColumns, mpi, comm)
+        ! Displays 2D Matrix, "div" columns at a time
+
+		implicit none
+
+		!INPUT
+        logical, dimension(:, :),          intent(in) :: matrix2D
+        character (len=*),                 optional, intent(in) :: title, format
+        integer,                           optional, intent(in) :: nColumns
+        logical                          , optional, intent(in) :: mpi
+        integer                          , optional, intent(in) :: comm
+
+        !LOCAL VARIABLES
+        integer            :: k, j, div;
+        double precision   :: tol;
+		character (len=40) :: doubleFmt;
+		character (len=10) :: tempFmt;
+		integer            :: effectComm
+
+        if(present(comm))       effectComm = comm
+        if(.not. present(comm)) effectComm = MPI_COMM_WORLD
+
+
+		if(present(mpi)) then
+			if(mpi) call Ordering_MPI_Start(effectComm)
+		end if
+
+		!write(*,*) "Inside Disp2Ddble"
+
+		if(present(format))                     tempFmt = format;
+		if(present(nColumns).and.nColumns.gt.0)     div = nColumns;
+		if(.not.present(format))    tempFmt = "L";
+		if(.not.present(nColumns))  div = 15;
+		write(doubleFmt, fmt="(I3, A)") div, tempFmt;
+
+		write(*,*) ""
+		if(present(title)) write(*,*) "/////// ", title, " ///////";
+
+		tol = 1E-10;
+
+        write(*,*) ""
+        do k=1, size(matrix2D,2)/div
+            write(*,*)
+            write(*,fmt="(A,I3,A,I3)") "Columns", (k-1)*div+1, " to ", k*div ;
+            write(*,*)
+            do j= lbound(matrix2D,1), ubound(matrix2D,1)
+                write(*,fmt="(I4, A, ("//doubleFmt//"))") j,"->",matrix2D(j,(k-1)*div+1:k*div)
+            enddo
+        enddo
+
+        if ((DBLE(size(matrix2D,2))/DBLE(div))-size(matrix2D,2)/div > tol) then
+            write(*,*)
+            write(*,fmt="(A,I3,A,I3)") "Columns", (k-1)*div+1, " to ", ubound(matrix2D,2);
+            write(*,*)
+
+            do j= lbound(matrix2D,1), ubound(matrix2D,1)
+                write(*,fmt="(I4, A, ("//doubleFmt//"))") j,"->",matrix2D(j,(k-1)*div+1:)
+            enddo
+        end if
+
+        write(*,*)
+
+        if(present(mpi)) then
+			if(mpi) call Ordering_MPI_End(effectComm)
+		end if
+
+    end subroutine Disp2Dbool
+
 
 !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
