@@ -308,7 +308,7 @@ subroutine set_vertex_valence(Tdomain)
     do nel=0,Tdomain%n_elem-1
         do i=0,3  ! i-eme coin de l'element
             nv  = Tdomain%specel(nel)%Near_Vertex(i)
-            nf1 = Tdomain%specel(nel)%Near_Face(modulo(i-1,3))
+            nf1 = Tdomain%specel(nel)%Near_Face(mod(i+3,4))
             nf2 = Tdomain%specel(nel)%Near_Face(i)
             ! Pour le bout de la premiere face adjacente au coin
             if(Tdomain%sface(nf1)%Near_Vertex(0) == nv) then

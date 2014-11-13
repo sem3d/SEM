@@ -703,14 +703,24 @@ contains
     !! This subroutine is used only for HDG in a semi-implicit framework.
     !! \param type (Face), intent (INOUT) F
     !<
-    subroutine Invert_K_face (F)
+    subroutine Invert_K_face (F, n)
         implicit none
 
         type (Face), intent (INOUT) :: F
+        integer,     intent (IN)    :: n
         real, dimension(0:F%ngll-1) :: Det, tmp
+        integer                     :: i
 
         Det(:) = F%Kinv(:,0) * F%Kinv(:,1) - (F%Kinv(:,2))**2
 
+        ! Check positive-definiteness of matrices on Faces
+        do i=0,F%ngll-1
+            if ((F%Kinv(i,0) .LE. 0.) .OR. (Det(i) .LE. 0.)) then
+                write(*,*) "Matrix not positive definite on face ", n, "and node ", i
+                STOP "Matrix should be sym def pos on faces. End of computation."
+            endif
+        enddo
+        ! Compute inverse of matrices :
         F%Kinv(:,2) =-1/Det(:) * F%Kinv(:,2)
         tmp(:) = F%Kinv(:,1)
         F%Kinv(:,1) = 1/Det(:) * F%Kinv(:,0)

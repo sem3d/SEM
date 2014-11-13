@@ -263,10 +263,11 @@ contains
     !! \param type (Vertex), intent (INOUT) V
     !! \param real, intent (INOUT) E_kin
     !<
-    subroutine  invert_K_vertex(V)
+    subroutine  invert_K_vertex(V,nv)
         implicit none
 
         type (Vertex), intent (INOUT) :: V
+        integer,       intent (IN)    :: nv
         integer                       :: n, INFO, i, imin, imax
         n = 2 * V%Valence
 
@@ -281,7 +282,10 @@ contains
         ! Appel de la routine Lapack pour factorisation Cholesky
         call SPPTRF( 'U', n, V%K_up, INFO)
 
-        if (INFO .NE. 0) STOP "Factorisation of vertex matrix not successfull"
+        if (INFO .NE. 0) then
+            WRITE(*,*) "Factorisation vertex matrix not successfull for vertex  ",nv," rank mat ",n
+            STOP "Factorisation of vertex matrix not successfull. End of Program"
+        endif
 
     end subroutine invert_K_vertex
 

@@ -1376,10 +1376,11 @@ contains
     !! \param type (Element), intent (INOUT) Elem
     !!
     !<
-    subroutine  local_solver (Elem)
+    subroutine  local_solver (Elem, Dt)
         implicit none
 
-        type (Element), intent (INOUT)   :: Elem
+        type (Element), intent (INOUT) :: Elem
+        real,           intent (IN)    :: Dt
 
         ! First step : traces terms are computed using the subroutine compute_traces
         ! and setting the former tractions TracFace to 0
@@ -1390,6 +1391,9 @@ contains
         call inversion_massmat(Elem)
 
         ! Last step : updates of Velocities and strains
+        Elem%Forces(:,:,:) = Dt * Elem%Forces(:,:,:)
+        Elem%Strain(:,:,:) = Elem%Strain0(:,:,:) + Elem%Forces(:,:,0:2)
+        Elem%Veloc (:,:,:) = Elem%V0(:,:,:)      + Elem%Forces(:,:,3:4)
 
     end subroutine local_solver
 

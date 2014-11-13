@@ -36,7 +36,7 @@ subroutine Newmark_PMC (Tdomain,Dt)
     ! Predictor Phase
 
     do n=0,Tdomain%n_elem-1
-        ! On calcul la prediction :
+        ! Computation of the  prediction :
         mat = Tdomain%specel(n)%mat_index
         Tdomain%specel(n)%Strain0(:,:,:) = Tdomain%specel(n)%Strain(:,:,:)
         Tdomain%specel(n)%V0(:,:,:)      = Tdomain%specel(n)%Veloc (:,:,:)
@@ -92,7 +92,7 @@ subroutine Newmark_PMC (Tdomain,Dt)
                 call get_Vhat_f2el(Tdomain,n,nface,nf)
             enddo
             ! Local Solver
-            call local_solver(Tdomain%specel(n))
+            call local_solver(Tdomain%specel(n),Dt)
         enddo
 
         iter = iter+1
