@@ -241,7 +241,7 @@ contains
         ! liste initialement vide
         nullify(listeCapteur)
 
-	call semname_read_capteurs(trim(Tdomain%station_file),fnamef)
+        call semname_read_capteurs(trim(Tdomain%station_file),fnamef)
         !controle d'existence du fichier
         INQUIRE(File=trim(fnamef),Exist=status)
         info_capteur=0 !!Gsa

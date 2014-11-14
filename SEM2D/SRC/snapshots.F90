@@ -109,8 +109,8 @@ contains
         do n = 0, Tdomain%n_glob_points-1
             if (irenum(n)>=0) then
                 nodes(0,irenum(n)) = Tdomain%GlobCoord(0,n)
-		nodes(1,irenum(n)) = Tdomain%GlobCoord(1,n)
-		nodes(2,irenum(n)) = 0.
+                nodes(1,irenum(n)) = Tdomain%GlobCoord(1,n)
+                nodes(2,irenum(n)) = 0.
             end if
         end do
 
@@ -146,7 +146,7 @@ contains
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             ngll(1,k) = Tdomain%specel(n)%ngllx
             ngll(2,k) = Tdomain%specel(n)%ngllz
-	    ngll(3,k) = 0
+            ngll(3,k) = 0
             ! Max number of global points (can count elem vertices twice)
             nglobnum = nglobnum + ngll(1,k)*ngll(2,k)
             ! Number of subelements
@@ -155,7 +155,7 @@ contains
         enddo
         nb_elem = k
         !! Nombre de points de gauss par element
-	dims(1) = 3
+        dims(1) = 3
         dims(2) = nb_elem
         call create_dset_2d(fid, "NGLL", H5T_STD_I16LE, dims(1), dims(2), ngll_id)
         call h5dwrite_f(ngll_id, H5T_NATIVE_INTEGER, ngll, dims, hdferr)

@@ -365,7 +365,7 @@ contains
     !! \param real, intent (IN) dt
     !! \param real, intent (IN) alpha
     !<
-    subroutine Prediction_Elem_PML_Veloc(Elem,bega,dt,hprimex,Hprimey,Hprimez,rg,n)
+    subroutine Prediction_Elem_PML_Veloc(Elem,bega,dt,hprimex,Hprimey,Hprimez)
 
         implicit none
 
@@ -374,7 +374,6 @@ contains
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprimex
         real, dimension (0:Elem%nglly-1, 0:Elem%nglly-1), intent (IN) :: hprimey
         real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
-        integer, intent (IN) :: rg, n
 
         real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVx_dxi,dVx_deta,dVx_dzeta, &
             dVy_dxi,dVy_deta,dVy_dzeta, dVz_dxi,dVz_deta,dVz_dzeta
@@ -516,7 +515,7 @@ contains
     !! \param real, intent (IN) alpha
     !! \param real, intent (IN) fil
     !<
-    subroutine Prediction_Elem_FPML_Veloc(Elem,bega,dt,hprimex,Hprimey,Hprimez,rg,n,fil)
+    subroutine Prediction_Elem_FPML_Veloc(Elem,bega,dt,hprimex,Hprimey,Hprimez,fil)
 
         implicit none
 
@@ -525,12 +524,11 @@ contains
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprimex
         real, dimension (0:Elem%nglly-1, 0:Elem%nglly-1), intent (IN) :: hprimey
         real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
-        integer, intent (IN) :: rg, n
 
         real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVx_dxi,dVx_deta,dVx_dzeta, &
             dVy_dxi,dVy_deta,dVy_dzeta, dVz_dxi,dVz_deta,dVz_dzeta, Stress_ausiliar
 
-        integer :: m1, m2,m3 ,n_z
+        integer :: m1, m2,m3
         real :: fil2
 
 

@@ -1150,11 +1150,11 @@ contains
         type(shared_info), intent(in) :: shared
         !
         logical :: curve
-        integer :: n_dim, i, i_count, n, ne, nv, nf, nel
+        integer :: i, i_count, n, nel
         integer(HSIZE_T), dimension(2) :: dims
         real, allocatable, dimension(:,:) :: rtemp2
         integer, allocatable, dimension(:,:) :: itemp2
-        integer(HID_T) :: dset_id, fid, proc_id
+        integer(HID_T) :: fid, proc_id
         integer :: hdferr
         character(Len=20) :: proc_grp
         !

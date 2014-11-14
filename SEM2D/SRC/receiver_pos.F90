@@ -84,7 +84,7 @@ subroutine ReceiverPosition(Tdomain)
             enddo
         enddo
 
-	Tdomain%sReceiver(nrec)%located_here = .false.
+        Tdomain%sReceiver(nrec)%located_here = .false.
         if (Tdomain%n_nodes == 4) then
             inner = .false.
             do n = 0,nind-1
@@ -206,7 +206,7 @@ subroutine save_trace (Tdomain, it)
             enddo
             Tdomain%Store_Trace(0,ind,ncache) = dum0
             Tdomain%Store_Trace(1,ind,ncache) = dum1
-	    ind = ind + 1
+            ind = ind + 1
             deallocate (Field)
         endif
     enddo
@@ -248,7 +248,7 @@ subroutine dump_trace (Tdomain)
                 rtime = rtime + Tdomain%TimeD%dtmin
             enddo
             close (31)
-	    ind = ind + 1
+            ind = ind + 1
         endif
     enddo
     return
