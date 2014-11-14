@@ -89,9 +89,6 @@ subroutine Define_Arrays(Tdomain, rg)
 	allocate(nSubDPoints(0:Tdomain%n_mat - 1))
 	allocate(HDF5NameList(0:Tdomain%n_mat-1))
 	HDF5NameList(:) = "not_Used"
-	write(*,*) "Tdomain%logicD%run_restart = ", Tdomain%logicD%run_restart
-
-	!Defining masks (for every subdomain) and extremes (for "R" subdomains)
 
 	!Building subdomain masks and counting number of points per subdomain
 	do mat = 0, Tdomain%n_mat - 1
@@ -162,7 +159,7 @@ subroutine Define_Arrays(Tdomain, rg)
     		ngllx    = Tdomain%sSubDomain(mat)%NGLLx
     		nglly    = Tdomain%sSubDomain(mat)%NGLLy
     		ngllz    = Tdomain%sSubDomain(mat)%NGLLz
-    		prop     = -1 !For tests, should be deleted in the future
+    		!prop     = -1 !For tests, should be deleted in the future
 
 	!////////////////////
 	!//////////////////// CASE R

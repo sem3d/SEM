@@ -289,6 +289,7 @@ contains
         integer          :: i, j, k, m, nDim, N;
         integer          :: xNTotal, kNTotal, rNTotal;
         integer          :: nb_procs, rang, code, error;
+        integer          :: pointsPerCorrl
         double precision :: Sk, deltaKprod, step;
         double precision :: pi = 3.1415926535898, zero = 0d0;
 
@@ -361,16 +362,18 @@ contains
 		kNStep  = kAdjust*(ceiling(kMax/kDelta) + 1);
 		kNTotal = product(kNStep);
 
-		N         = size(xPoints,1)
-		rMax(1)   = sqrt(sum((xMaxGlob - xMinGlob)**2))
-		rNTotal   = ceiling(sqrt(dble(N)))
+		!N         = size(xPoints,1)
+		pointsPerCorrl = 10
+		rMax(1)        = sqrt(sum((xMaxGlob - xMinGlob)**2))
+		N              = ceiling(rMax(1) * dble(pointsPerCorrl))
+		rNTotal        = ceiling(sqrt(dble(N)))
 
-		if(rang == 0) write(*,*) "N       = ", N;
-		if(rang == 0) write(*,*) "rMax(1) = ",rMax(1);
-		if(rang == 0) write(*,*) "rNTotal = ",rNTotal;
-		if(rang == 0) write(*,*) "size(xPoints,1) = ",size(xPoints,1);
-		if(rang == 0) write(*,*) "size(xPoints,2) = ",size(xPoints,2);
-		!call dispCarvalhol(xPoints, "xPoints")
+!		if(rang == 0) write(*,*) "N       = ", N;
+!		if(rang == 0) write(*,*) "rMax(1) = ",rMax(1);
+!		if(rang == 0) write(*,*) "rNTotal = ",rNTotal;
+!		if(rang == 0) write(*,*) "size(xPoints,1) = ",size(xPoints,1);
+!		if(rang == 0) write(*,*) "size(xPoints,2) = ",size(xPoints,2);
+!		call dispCarvalhol(xPoints, "xPoints")
 		!Random Field
 
 		randField  = 0;
@@ -389,8 +392,8 @@ contains
 			allocate(gammaN      (rNTotal));
 			do k = 1, Nmc
 				if(effectCalc(k)) then
-					if(rang == 0) write(*,*) "k = ",k;
-					write(*,*) "rNTotal = ",rNTotal;
+					!if(rang == 0) write(*,*) "k = ",k;
+					!write(*,*) "rNTotal = ",rNTotal;
 					call random_number(psiN(:))
 					call random_number(thetaN(:))
 					call random_number(gammaN(:))
@@ -416,16 +419,16 @@ contains
 			end do
 
 		else if (nDim == 3) then
-			write(*,*) "nDim = 3 !!!"
-			write(*,*) "k = ",k;
+			!write(*,*) "nDim = 3 !!!"
+			!write(*,*) "k = ",k;
 			allocate(psiN   (rNTotal));
 			allocate(thetaN (rNTotal));
 			allocate(phiN   (rNTotal));
 			allocate(gammaN (rNTotal));
 			do k = 1, Nmc
 				if(effectCalc(k)) then
-					write(*,*) "k = ",k;
-					write(*,*) "rNTotal = ",rNTotal;
+					!write(*,*) "k = ",k;
+					!write(*,*) "rNTotal = ",rNTotal;
 					call random_number(phiN(:))
 					call random_number(thetaN(:))
 					call random_number(gammaN(:))
@@ -437,7 +440,7 @@ contains
 					gammaN = 2*pi*gammaN
 
 					do j = 1, rNTotal
-						write(*,*) "j = ", j
+						!write(*,*) "j = ", j
 						rVec           = [cos(thetaN(j))*sin(phiN(j)) * j*step, &
 						                  sin(thetaN(j))*sin(phiN(j)) * j*step, &
 						                  cos(phiN(j))                * j*step]
