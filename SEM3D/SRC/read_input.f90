@@ -422,7 +422,8 @@ subroutine read_material_file(Tdomain, rg)
                 		   Tdomain%sSubdomain(i)%margiFirst(1), &
                     	   Tdomain%sSubdomain(i)%varProp(1),    &
                 		   Tdomain%sSubdomain(i)%margiFirst(2), &
-                    	   Tdomain%sSubdomain(i)%varProp(2)
+                    	   Tdomain%sSubdomain(i)%varProp(2),    &
+                    	   Tdomain%sSubdomain(i)%seedStart
             endif
         enddo
         do i = 0,Tdomain%n_mat-1
@@ -440,8 +441,6 @@ subroutine read_material_file(Tdomain, rg)
             endif
         enddo
     endif
-
-
 
     close(13)
   

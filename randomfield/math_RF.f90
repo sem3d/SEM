@@ -223,26 +223,33 @@ contains
 
 !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	subroutine calculate_random_seed(seed)
+	subroutine calculate_random_seed(seed, seedStart)
 
-           implicit none
+        implicit none
+		!INPUT
+		integer, optional, intent(in) :: seedStart
+		!OUTPUT
+        integer, dimension(:), allocatable, intent(out) :: seed
+		!LOCAL
+        integer :: i
+        integer :: n
+        integer :: clock, tempClock
 
-           integer :: i
-           integer :: n
-           integer :: clock, tempClock
-           integer, dimension(:), allocatable, intent(out) :: seed
+        if(.not.allocated(seed)) then
+        	call random_seed(size = n)
+        	allocate(seed(n))
+        end if
+        call system_clock(COUNT=clock)
+        tempClock = clock
+        do while (clock == tempClock)
+        	call system_clock(COUNT=clock)
+        end do
 
-           if(.not.allocated(seed)) then
-           		call random_seed(size = n)
-           		allocate(seed(n))
-           end if
-           call system_clock(COUNT=clock)
-           tempClock = clock
-           do while (clock == tempClock)
-          		call system_clock(COUNT=clock)
-           end do
-           !write (*,*) "clock = ", clock
-           seed = clock + 37 * (/ (i - 1, i = 1, n) /)
+        if(present(seedStart)) then
+        	seed = 72 + seedStart*18 + 37*(/ (i - 1, i = 1, n) /)
+        else
+        	seed = clock + 37*(/ (i - 1, i = 1, n) /)
+        end if
 
 	end subroutine calculate_random_seed
 
