@@ -290,7 +290,7 @@ contains
         integer          :: xNTotal, kNTotal, rNTotal;
         integer          :: nb_procs, rang, code, error;
         integer          :: pointsPerCorrl
-        double precision :: Sk, deltaKprod, step;
+        double precision :: Sk, deltaKprod, step, rCrit;
         double precision :: pi = 3.1415926535898, zero = 0d0;
 
 		call MPI_COMM_SIZE(MPI_COMM_WORLD, nb_procs, code)
@@ -363,10 +363,13 @@ contains
 		kNTotal = product(kNStep);
 
 		!N         = size(xPoints,1)
+		!TODO look at this criteria closely
 		pointsPerCorrl = 10
 		rMax(1)        = sqrt(sum((xMaxGlob - xMinGlob)**2))
 		N              = ceiling(rMax(1) * dble(pointsPerCorrl))
-		rNTotal        = ceiling(sqrt(dble(N)))
+		rCrit          = maxval(xMaxGlob - xMinGlob)
+		rNTotal        = pointsPerCorrl * rCrit * (rMax(1)/rCrit)
+		!rNTotal        = ceiling(sqrt(dble(N)))
 
 !		if(rang == 0) write(*,*) "N       = ", N;
 !		if(rang == 0) write(*,*) "rMax(1) = ",rMax(1);
@@ -377,7 +380,8 @@ contains
 		!Random Field
 
 		randField  = 0;
-		step       = rMax(1)/sqrt(dble(N))
+		step       = rMax(1)/rNTotal
+		!step       = rMax(1)/sqrt(dble(N))
 
 		!Initializing the seed
 		if(present(chosenSeed)) then
