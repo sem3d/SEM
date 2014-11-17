@@ -4,7 +4,7 @@
 
 \date 6/12/2008
 \author George
-\version \verbatim $Id: fis.c 10796 2011-09-23 21:33:09Z karypis $ \endverbatim
+\version \verbatim $Id: fis.c 11075 2011-11-11 22:31:52Z karypis $ \endverbatim
 */
 
 #include <GKlib.h>
@@ -100,8 +100,8 @@ static char shorthelpstr[][100] = {
 void print_init_info(params_t *params, gk_csr_t *mat);
 void print_final_info(params_t *params);
 params_t *parse_cmdline(int argc, char *argv[]);
-void print_an_itemset(void *stateptr, ssize_t nitems, ssize_t *itemind, 
-                      ssize_t ntrans, ssize_t *tranind);
+void print_an_itemset(void *stateptr, int nitems, int *itemind, 
+                      int ntrans, int *tranind);
 
 
 /*************************************************************************/
@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
   params->nitemsets = 0;
 
   /* read the data */
-  mat = gk_csr_ReadCluto(params->filename);
+  mat = gk_csr_Read(params->filename, GK_CSR_FMT_CLUTO, 1, 1);
   gk_csr_CreateIndex(mat, GK_CSR_COL);
 
   /* read the column labels */
@@ -133,7 +133,8 @@ int main(int argc, char *argv[])
   else {
     fpin = gk_fopen(params->clabelfile, "r", "main: fpin");
     for (i=0; i<mat->ncols; i++) {
-      fgets(line, 8192, fpin);
+      if (fgets(line, 8192, fpin) == NULL)
+        errexit("Failed on fgets.\n");
       params->clabels[i] = gk_strdup(gk_strtprune(line, " \n\t"));
     }
     gk_fclose(fpin);
@@ -161,7 +162,7 @@ void print_init_info(params_t *params, gk_csr_t *mat)
   printf("*******************************************************************************\n");
   printf(" fis\n\n");
   printf("Matrix Information ---------------------------------------------------------\n");
-  printf(" input file=%s, [%zd, %zd, %zd]\n", 
+  printf(" input file=%s, [%d, %d, %zd]\n", 
       params->filename, mat->nrows, mat->ncols, mat->rowptr[mat->nrows]);
 
   printf("\n");
@@ -264,8 +265,8 @@ params_t *parse_cmdline(int argc, char *argv[])
 /*************************************************************************/
 /*! This is the callback function for the itemset discovery routine */
 /*************************************************************************/
-void print_an_itemset(void *stateptr, ssize_t nitems, ssize_t *itemids, 
-                      ssize_t ntrans, ssize_t *transids)
+void print_an_itemset(void *stateptr, int nitems, int *itemids, int ntrans, 
+         int *transids)
 {
   ssize_t i;
   params_t *params;
@@ -274,12 +275,12 @@ void print_an_itemset(void *stateptr, ssize_t nitems, ssize_t *itemids,
   params->nitemsets++;
 
   if (!params->silent) {
-    printf("%4zd %4zd %4zd => ", params->nitemsets, nitems, ntrans);
+    printf("%4zd %4d %4d => ", params->nitemsets, nitems, ntrans);
     for (i=0; i<nitems; i++)
       printf(" %s", params->clabels[itemids[i]]);
     printf("\n");
     for (i=0; i<ntrans; i++)
-      printf(" %zd\n", transids[i]);
+      printf(" %d\n", transids[i]);
     printf("\n");
   }
 }

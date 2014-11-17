@@ -8,7 +8,7 @@
  * Started 8/28/94
  * George
  *
- * $Id: ndmetis.c 10567 2011-07-13 16:17:07Z karypis $
+ * $Id: ndmetis.c 13900 2013-03-24 15:27:07Z karypis $
  *
  */
 
@@ -63,6 +63,7 @@ int main(int argc, char *argv[])
   options[METIS_OPTION_RTYPE]    = params->rtype;
   options[METIS_OPTION_DBGLVL]   = params->dbglvl;
   options[METIS_OPTION_UFACTOR]  = params->ufactor;
+  options[METIS_OPTION_NO2HOP]   = params->no2hop;
   options[METIS_OPTION_COMPRESS] = params->compress;
   options[METIS_OPTION_CCORDER]  = params->ccorder;
   options[METIS_OPTION_SEED]     = params->seed;
@@ -126,9 +127,10 @@ void NDPrintInfo(params_t *params, graph_t *graph)
       ctypenames[params->ctype], rtypenames[params->rtype], 
       iptypenames[params->iptype], params->seed, params->dbglvl);
 
-  printf(" ufactor=%.3f, pfactor=%.2f, ccorder=%s, compress=%s, , nooutput=%s\n",
+  printf(" ufactor=%.3f, pfactor=%.2f, no2hop=%s, ccorder=%s, compress=%s, , nooutput=%s\n",
       I2RUBFACTOR(params->ufactor), 
       0.1*params->pfactor,
+      (params->no2hop   ? "YES" : "NO"), 
       (params->ccorder  ? "YES" : "NO"), 
       (params->compress ? "YES" : "NO"), 
       (params->nooutput ? "YES" : "NO")

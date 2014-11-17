@@ -7,7 +7,7 @@
  * Started 2/15/98
  * George
  *
- * $Id: mcutil.c 10154 2011-06-09 21:27:35Z karypis $
+ * $Id: mcutil.c 13901 2013-03-24 16:17:03Z karypis $
  *
  */
 
@@ -29,6 +29,7 @@ int rvecle(idx_t n, real_t *x, real_t *y)
   return  1;
 }
 
+
 /*************************************************************************/
 /*! This function compares two vectors x & y and returns true 
     if \forall i, x[i] >= y[i].
@@ -44,6 +45,7 @@ int rvecge(idx_t n, real_t *x, real_t *y)
   return  1;
 }
 
+
 /*************************************************************************/
 /*! This function compares vectors x1+x2 against y and returns true 
     if \forall i, x1[i]+x2[i] <= y[i]. 
@@ -58,6 +60,7 @@ int rvecsumle(idx_t n, real_t *x1, real_t *x2, real_t *y)
 
   return 1;
 }
+
 
 /*************************************************************************/
 /*! This function returns max_i(x[i]-y[i]) */
@@ -90,6 +93,7 @@ int ivecle(idx_t n, idx_t *x, idx_t *z)
   return  1;
 }
 
+
 /*************************************************************************/
 /*! This function returns true if \forall i, x[i] >= z[i]. */
 /**************************************************************************/
@@ -102,6 +106,7 @@ int ivecge(idx_t n, idx_t *x, idx_t *z)
 
   return  1;
 }
+
 
 /*************************************************************************/
 /*! This function returns true if \forall i, a*x[i]+y[i] <= z[i]. */
@@ -116,6 +121,7 @@ int ivecaxpylez(idx_t n, idx_t a, idx_t *x, idx_t *y, idx_t *z)
   return  1;
 }
 
+
 /*************************************************************************/
 /*! This function returns true if \forall i, a*x[i]+y[i] >= z[i]. */
 /**************************************************************************/
@@ -128,7 +134,6 @@ int ivecaxpygez(idx_t n, idx_t a, idx_t *x, idx_t *y, idx_t *z)
 
   return  1;
 }
-
 
 
 /*************************************************************************/

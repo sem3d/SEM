@@ -8,14 +8,14 @@
  * Started 8/27/94
  * George
  *
- * $Id: defs.h 10943 2011-10-26 12:29:10Z karypis $
+ * $Id: defs.h 13933 2013-03-29 22:20:46Z karypis $
  *
  */
 
 #ifndef _LIBMETIS_DEFS_H_
 #define _LIBMETIS_DEFS_H_
 
-#define METISTITLE              "METIS 5.0 Copyright 1998-11, Regents of the University of Minnesota\n"
+#define METISTITLE              "METIS 5.0 Copyright 1998-13, Regents of the University of Minnesota\n"
 #define MAXLINE			1280000
 
 #define LTERM			(void **) 0	/* List terminator for gk_free() */
@@ -42,8 +42,8 @@
 
 #define UNMATCHED		-1
 
-#define LARGENIPARTS		6	/* Number of random initial partitions */
-#define SMALLNIPARTS		3	/* Number of random initial partitions */
+#define LARGENIPARTS		7	/* Number of random initial partitions */
+#define SMALLNIPARTS		5	/* Number of random initial partitions */
 
 #define COARSEN_FRACTION	0.85	/* Node reduction between succesive coarsening levels */
 

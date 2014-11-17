@@ -8,7 +8,7 @@
  * Started 8/28/94
  * George
  *
- * $Id: gpmetis.c 10567 2011-07-13 16:17:07Z karypis $
+ * $Id: gpmetis.c 13900 2013-03-24 15:27:07Z karypis $
  *
  */
 
@@ -77,6 +77,7 @@ int main(int argc, char *argv[])
   options[METIS_OPTION_CTYPE]   = params->ctype;
   options[METIS_OPTION_IPTYPE]  = params->iptype;
   options[METIS_OPTION_RTYPE]   = params->rtype;
+  options[METIS_OPTION_NO2HOP]  = params->no2hop;
   options[METIS_OPTION_MINCONN] = params->minconn;
   options[METIS_OPTION_CONTIG]  = params->contig;
   options[METIS_OPTION_SEED]    = params->seed;
@@ -169,9 +170,10 @@ void GPPrintInfo(params_t *params, graph_t *graph)
       ptypenames[params->ptype], objtypenames[params->objtype], ctypenames[params->ctype], 
       rtypenames[params->rtype], iptypenames[params->iptype]);
 
-  printf(" dbglvl=%"PRIDX", ufactor=%.3f, minconn=%s, contig=%s, nooutput=%s\n",
+  printf(" dbglvl=%"PRIDX", ufactor=%.3f, no2hop=%s, minconn=%s, contig=%s, nooutput=%s\n",
       params->dbglvl,
       I2RUBFACTOR(params->ufactor),
+      (params->no2hop   ? "YES" : "NO"), 
       (params->minconn  ? "YES" : "NO"), 
       (params->contig   ? "YES" : "NO"),
       (params->nooutput ? "YES" : "NO")
