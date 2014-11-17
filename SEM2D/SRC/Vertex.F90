@@ -298,10 +298,11 @@ contains
     !! \param type (Vertex), intent (INOUT) V
     !! \param real, intent (INOUT) E_kin
     !<
-    subroutine  solve_lambda_vertex(V)
+    subroutine  solve_lambda_vertex(V, nv)
         implicit none
 
         type (Vertex), intent (INOUT)  :: V
+        integer,       intent (IN)     :: nv
         real, dimension(1:2*V%Valence) :: rhs
         integer                        :: n, INFO
         n = 2 * V%Valence
@@ -315,12 +316,52 @@ contains
 
         ! Assigning the solution to V%Lambda
         V%Lambda(0:n-1) = rhs(1:n)
+        call check_system_inversion(V, nv)
         V%SmbrLambda(:) = 0.
+
+        ! Setting velocities to zero in case of reflective BC :
+        if (V%reflex) V%Lambda(:) = 0.
 
     end subroutine solve_lambda_vertex
 
 
     ! ############################################################
+    !>
+    !! \brief This subroutine checks the inversion of linear system :
+    !! K * Lambda = smbrLambda
+    !! \param type (Vertex), intent (INOUT) V
+    !! \param real, intent (INOUT) E_kin
+    !<
+    subroutine  check_system_inversion (V, nv)
+        implicit none
+
+        type (Vertex), intent (INOUT)  :: V
+        integer,       intent (IN)     :: nv
+        integer                        :: n, i, j
+        real                           :: tol, res, max1, test
+
+        n = 2 * V%Valence
+        tol = 1.E-12
+
+        do i=0,n-1
+            res = 0.
+            do j=0,n-1
+                res = res + V%Kmat(i,j)*V%Lambda(j)
+            enddo
+            max1 = max(abs(res),abs(V%SmbrLambda(i)))
+            if (max1 .GT. 0.) then
+                test = abs(res - V%SmbrLambda(i))/max1
+                if (test .GT. tol) then
+                    write(*,*) "Problem in solving system on vertex ",nv," on line :", i," error :",test
+                    !STOP "End of computation"
+                endif
+            endif
+        enddo
+
+    end subroutine check_system_inversion
+
+    ! ############################################################
+
 
 end module svertices
 !! Local Variables:

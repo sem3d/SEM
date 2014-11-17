@@ -43,8 +43,6 @@ subroutine Newmark_PMC (Tdomain,Dt)
         ! Computation of the  prediction :
         Tdomain%specel(n)%Strain0(:,:,:) = Tdomain%specel(n)%Strain(:,:,:)
         Tdomain%specel(n)%V0(:,:,:)      = Tdomain%specel(n)%Veloc (:,:,:)
-        Tdomain%specel(n)%Strain(:,:,:) = 0.
-        Tdomain%specel(n)%Veloc (:,:,:) = 0.
         !mat = Tdomain%specel(n)%mat_index
         !call Prediction_Elem_NPMC (Tdomain%specel(n), Tdomain%sSubDomain(mat)%hTprimex, &
         !                           Tdomain%sSubDomain(mat)%hprimez, Dt)
@@ -57,8 +55,13 @@ subroutine Newmark_PMC (Tdomain,Dt)
 
         ! Prediction Phase :
         do n=0,Tdomain%n_elem-1
-            Tdomain%specel(n)%Strain(:,:,:) = 0.5 * (Tdomain%specel(n)%Strain0(:,:,:)+ Tdomain%specel(n)%Strain(:,:,:))
-            Tdomain%specel(n)%Veloc (:,:,:) = 0.5 * (Tdomain%specel(n)%V0(:,:,:)     + Tdomain%specel(n)%Veloc (:,:,:))
+            if (iter == 0) then
+                Tdomain%specel(n)%Strain = 0.5 * Tdomain%specel(n)%Strain0
+                Tdomain%specel(n)%Veloc  = 0.5 * Tdomain%specel(n)%V0
+            else
+                Tdomain%specel(n)%Strain = 0.5 * (Tdomain%specel(n)%Strain0 + Tdomain%specel(n)%Strain)
+                Tdomain%specel(n)%Veloc  = 0.5 * (Tdomain%specel(n)%V0      + Tdomain%specel(n)%Veloc )
+            endif
         enddo
 
         ! Building second members (= forces) of systems.
@@ -83,15 +86,15 @@ subroutine Newmark_PMC (Tdomain,Dt)
 
         ! Solve linear systems on the vertices
         do n=0,Tdomain%n_vertex-1
-            call solve_lambda_vertex(Tdomain%sVertex(n))
+            call solve_lambda_vertex(Tdomain%sVertex(n),n)
         enddo
 
         ! Constructing the Lambda (= velocities vhat) on the faces
         do n=0,Tdomain%n_face-1
-            ! Get lambda from near vertices
-            call Get_lambda_v2f (Tdomain, n)
             ! Computes lambda (= Vhat) on Face's inner nodes
             call compute_Vhat_face (Tdomain%sFace(n))
+            ! Get lambda from near vertices
+            call Get_lambda_v2f (Tdomain, n)
         enddo
 
         !!!!!!!!!!!!!  MPI COMMUNICATIONS HERE  !!!!!!!!!!!!!!!!!!!

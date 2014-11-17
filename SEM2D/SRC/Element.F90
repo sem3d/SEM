@@ -1008,7 +1008,7 @@ contains
          enddo
       else
          do i = 0,2
-            Elem%Forces(:,:,i) = Elem%Acoeff(:,:,12) * Elem%Forces(:,:,i)
+            Elem%Forces(:,:,i) = 1./Elem%Acoeff(:,:,12) * Elem%Forces(:,:,i)
          enddo
          do i = 3,4
             Elem%Forces(:,:,i) = Elem%MassMat(:,:) * Elem%Forces(:,:,i)
@@ -1090,7 +1090,7 @@ contains
 
         EMat = Elem%Strain(:,:,0)*sigma11 + 2.*Elem%Strain(:,:,2)*sigma12 &
              + Elem%Strain(:,:,1)*sigma22
-        EMat = EMat * 1. / Elem%Acoeff(:,:,12)  ! Pour multiplier par Jac*wx*wz
+        EMat = EMat * Elem%Acoeff(:,:,12)  ! Pour multiplier par Jac*wx*wz
         E_elas = 0.5 * sum(EMat)
 
   end subroutine compute_Elastic_Energy_DG
@@ -1392,8 +1392,8 @@ contains
 
         ! Last step : updates of Velocities and strains
         Elem%Forces(:,:,:) = Dt * Elem%Forces(:,:,:)
-        Elem%Strain(:,:,:) = Dt * Elem%Forces(:,:,0:2)
-        Elem%Veloc (:,:,:) = Dt * Elem%Forces(:,:,3:4)
+        Elem%Strain(:,:,:) = Elem%Forces(:,:,0:2)
+        Elem%Veloc (:,:,:) = Elem%Forces(:,:,3:4)
 
     end subroutine local_solver
 

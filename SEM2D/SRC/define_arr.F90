@@ -696,7 +696,7 @@ subroutine define_arrays(Tdomain)
         else
             ! Discontinuous Galerkin Case : Mass Mat do NOT need to be resized
             Tdomain%specel(n)%MassMat = 1. / Tdomain%specel(n)%MassMat
-            Tdomain%specel(n)%Acoeff(:,:,12) = 1. / Tdomain%specel(n)%Acoeff(:,:,12)
+            !Tdomain%specel(n)%Acoeff(:,:,12) = 1. / Tdomain%specel(n)%Acoeff(:,:,12)
         endif
     enddo
 
