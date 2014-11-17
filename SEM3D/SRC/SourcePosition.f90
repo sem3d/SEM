@@ -28,6 +28,8 @@ subroutine SourcePosition (Tdomain,rg)
     real, dimension(:), allocatable :: distance
     real, dimension(0:2,0:2) :: LocInvGrad
     real, dimension(:,:), allocatable :: coord
+    real, parameter :: DISTMAX=10000000
+    integer :: src_proc
 
 
     allocate (distance(0:Tdomain%nb_procs-1))
@@ -79,7 +81,7 @@ subroutine SourcePosition (Tdomain,rg)
         endif
 
         ! On trouve le noeud le plus proche de la src
-        dmin = 1000000
+        dmin = DISTMAX
         do i = 0,Tdomain%n_glob_nodes-1
             d = sqrt((Tdomain%Coord_nodes(0,i)-xs)**2 + (Tdomain%Coord_nodes(1,i)-ys)**2 + (Tdomain%Coord_nodes(2,i)-zs)**2)
             if (d <= dmin) then
@@ -103,7 +105,7 @@ subroutine SourcePosition (Tdomain,rg)
             enddo
         enddo
 
-        dmin = 1000000
+        dmin = DISTMAX
         do i = 0,n_around_elem-1
             ngllx = Tdomain%specel(el_around_node(i))%ngllx
             nglly = Tdomain%specel(el_around_node(i))%nglly
@@ -144,13 +146,24 @@ subroutine SourcePosition (Tdomain,rg)
         enddo
         ! On trouve le processeur qui contient la src
         call mpi_allgather(dmin,1,mpi_double_precision,distance,1,mpi_double_precision,Tdomain%communicateur,code)
-        dmin = 10000000
+        dmin = DISTMAX
+        src_proc = -1
         do i = 0,Tdomain%nb_procs-1
             if (distance(i) < dmin) then
                 dmin = distance(i)
-                Tdomain%sSource(n_src)%proc = i
+                src_proc = i
             endif
         enddo
+        write(*,*) "Found source on proc", src_proc
+        if (src_proc==-1) then
+            if (rg==0) then
+                write(*,*) "A source doesn't appear to be on any processor"
+                write(*,*) "Please verify that the source location is within the computation domain"
+                write(*,*) "And the source type (solid, or fluid) is in accordance with its location"
+            end if
+            stop 1
+        endif
+        Tdomain%sSource(n_src)%proc = src_proc
 
 
         if (rg==Tdomain%sSource(n_src)%proc) then
