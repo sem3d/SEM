@@ -27,27 +27,39 @@ subroutine Newmark_PMC (Tdomain,Dt)
 
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a
     ! Time staggered Stress-Velocity formulation inside PML
+    ! #################################################### !
+    ! NO NO NO !!! SO FAR IT IS A SIMPLE MIDPOINT METHOD !!!
+    ! #################################################### !
+
     alpha =Tdomain%TimeD%alpha
     bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
     gam1 = 1. / Tdomain%TimeD%gamma
     n_it_max = 3
     timelocal = Tdomain%TimeD%rtime + Dt
 
-    ! Predictor Phase
 
+    ! Initialization Phase
     do n=0,Tdomain%n_elem-1
         ! Computation of the  prediction :
-        mat = Tdomain%specel(n)%mat_index
         Tdomain%specel(n)%Strain0(:,:,:) = Tdomain%specel(n)%Strain(:,:,:)
         Tdomain%specel(n)%V0(:,:,:)      = Tdomain%specel(n)%Veloc (:,:,:)
-        call Prediction_Elem_NPMC (Tdomain%specel(n), Tdomain%sSubDomain(mat)%hTprimex, &
-                                   Tdomain%sSubDomain(mat)%hprimez, Dt)
+        Tdomain%specel(n)%Strain(:,:,:) = 0.
+        Tdomain%specel(n)%Veloc (:,:,:) = 0.
+        !mat = Tdomain%specel(n)%mat_index
+        !call Prediction_Elem_NPMC (Tdomain%specel(n), Tdomain%sSubDomain(mat)%hTprimex, &
+        !                           Tdomain%sSubDomain(mat)%hprimez, Dt)
     enddo
 
-    ! Multicorrector phase :
+    ! Midpoint method :
     iter= 0
 
     do while (iter<n_it_max)
+
+        ! Prediction Phase :
+        do n=0,Tdomain%n_elem-1
+            Tdomain%specel(n)%Strain(:,:,:) = 0.5 * (Tdomain%specel(n)%Strain0(:,:,:)+ Tdomain%specel(n)%Strain(:,:,:))
+            Tdomain%specel(n)%Veloc (:,:,:) = 0.5 * (Tdomain%specel(n)%V0(:,:,:)     + Tdomain%specel(n)%Veloc (:,:,:))
+        enddo
 
         ! Building second members (= forces) of systems.
         do n=0,Tdomain%n_elem-1

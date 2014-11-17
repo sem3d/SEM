@@ -1392,8 +1392,8 @@ contains
 
         ! Last step : updates of Velocities and strains
         Elem%Forces(:,:,:) = Dt * Elem%Forces(:,:,:)
-        Elem%Strain(:,:,:) = Elem%Strain0(:,:,:) + Elem%Forces(:,:,0:2)
-        Elem%Veloc (:,:,:) = Elem%V0(:,:,:)      + Elem%Forces(:,:,3:4)
+        Elem%Strain(:,:,:) = Dt * Elem%Forces(:,:,0:2)
+        Elem%Veloc (:,:,:) = Dt * Elem%Forces(:,:,3:4)
 
     end subroutine local_solver
 
