@@ -54,7 +54,7 @@ module selement
        real, dimension(:,:,:), allocatable :: Vect_RK, Psi_RK, StressSMBR
        ! HDG
        real, dimension(:,:), allocatable :: Normal_nodes
-       real, dimension(:,:), allocatable :: MatPen, TracFace, Vhat
+       real, dimension(:,:), allocatable :: MatPen, TracFace, Vhat, Dinv
        real, dimension(:,:,:), allocatable :: CAinv, EDinv
        integer, dimension (0:3,0:1) :: pos_corner_in_VertMat
 
@@ -632,7 +632,7 @@ contains
 
       aux1 = Elem%Acoeff(:,:,0)*Elem%Veloc(:,:,1) + Elem%Acoeff(:,:,2)*Elem%Veloc(:,:,0)
       aux2 = Elem%Acoeff(:,:,1)*Elem%Veloc(:,:,1) + Elem%Acoeff(:,:,3)*Elem%Veloc(:,:,0)
-      Elem%Forces(:,:,2) = -0.5 * (MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez))
+      Elem%Forces(:,:,2) = - (MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez))
 
       aux1 = (Elem%Acoeff(:,:,4) + Elem%Acoeff(:,:,5)) * MATMUL(hTprime,Elem%Strain(:,:,0)) &
            + Elem%Acoeff(:,:,4) * MATMUL(hTprime,Elem%Strain(:,:,1)) &
@@ -1269,7 +1269,7 @@ contains
         Elem%TracFace(:,0) = Elem%TracFace(:,0) * Elem%Coeff_Integr_Faces(:)
         Elem%TracFace(:,1) = Elem%TracFace(:,1) * Elem%Coeff_Integr_Faces(:)
 
-        Vhatxz(:) = 0.5 * ( Elem%Vhat(:,0) * Elem%Normal_Nodes(:,1) &
+        Vhatxz(:) =  ( Elem%Vhat(:,0) * Elem%Normal_Nodes(:,1) &
                           + Elem%Vhat(:,1) * Elem%Normal_Nodes(:,0))* Elem%Coeff_Integr_Faces(:)
         Vhatx(:) = Elem%Vhat(:,0) * Elem%Normal_Nodes(:,0) * Elem%Coeff_Integr_Faces(:)
         Vhatz(:) = Elem%Vhat(:,1) * Elem%Normal_Nodes(:,1) * Elem%Coeff_Integr_Faces(:)
@@ -1368,6 +1368,58 @@ contains
 
     ! ###########################################################
     !>
+    !! \brief This subroutine performs the local inversion :
+    !! | A  0 | (Strain)     ( Smbr_e )
+    !! |      | (      )  =  (        )
+    !! | 0  D | (Veloc )     ( Smbr_v )
+    !! This Subroutine is suitable for Hybridizable Discontinuous Galerkin elements
+    !! only, and only in a framework of semi-implicit time-scheme.
+    !! \param type (Element), intent (INOUT) Elem
+    !!
+    !<
+    subroutine  inversion_local_solver (Elem,Dt)
+        implicit none
+
+        type (Element), intent (INOUT) :: Elem
+        real,           intent (IN)    :: Dt
+        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1) :: smbr, res
+        integer                        :: ngx, ngz, imin, imax
+        ngx = Elem%ngllx ; ngz = Elem%ngllz
+
+        ! Inversion for strains :
+        Elem%Forces(:,:,0) =   Dt / Elem%Acoeff(:,:,12) * Elem%Forces(:,:,0)
+        Elem%Forces(:,:,1) =   Dt / Elem%Acoeff(:,:,12) * Elem%Forces(:,:,1)
+        Elem%Forces(:,:,2) =0.5*Dt/ Elem%Acoeff(:,:,12) * Elem%Forces(:,:,2)
+        ! Inversion for velocities :
+        Elem%Forces(1:ngx-2,1:ngz-2,3) = Dt * Elem%MassMat(1:ngx-2,1:ngz-2) * Elem%Forces(1:ngx-2,1:ngz-2,3)
+        Elem%Forces(1:ngx-2,1:ngz-2,4) = Dt * Elem%MassMat(1:ngx-2,1:ngz-2) * Elem%Forces(1:ngx-2,1:ngz-2,4)
+        ! Storing the Forces in the array smbr :
+        call get_iminimax(Elem,0,imin,imax)
+        smbr(imin:imax,0:1) = Elem%Forces(0:ngx-1,0,3:4)
+        call get_iminimax(Elem,1,imin,imax)
+        smbr(imin:imax,0:1) = Elem%Forces(ngx-1,0:ngz-1,3:4)
+        call get_iminimax(Elem,2,imin,imax)
+        smbr(imin:imax,0:1) = Elem%Forces(0:ngx-1,ngz-1,3:4)
+        call get_iminimax(Elem,3,imin,imax)
+        smbr(imin:imax,0:1) = Elem%Forces(0,0:ngz-1,3:4)
+        ! Performing D^-1 * smbr :
+        res(:,0) = Elem%Dinv(:,0)*smbr(:,0) + Elem%Dinv(:,2)*smbr(:,1)
+        res(:,1) = Elem%Dinv(:,2)*smbr(:,0) + Elem%Dinv(:,1)*smbr(:,1)
+        ! Assigning solution to ext nodes of Elem%Forces :
+        call get_iminimax(Elem,0,imin,imax)
+        Elem%Forces(0:ngx-1,0,3:4)     = res(imin:imax,0:1)
+        call get_iminimax(Elem,1,imin,imax)
+        Elem%Forces(ngx-1,0:ngz-1,3:4) = res(imin:imax,0:1)
+        call get_iminimax(Elem,2,imin,imax)
+        Elem%Forces(0:ngx-1,ngz-1,3:4) = res(imin:imax,0:1)
+        call get_iminimax(Elem,3,imin,imax)
+        Elem%Forces(0,0:ngz-1,3:4)     = res(imin:imax,0:1)
+
+    end subroutine inversion_local_solver
+
+
+    ! ###########################################################
+    !>
     !! \brief This subroutine computes computes the local fields of the current element
     !! Elem%Veloc, and Elem%Strain from the previous state V0 and Strain0, and from
     !! the traces Vhat (= Lagrange multiplicators).
@@ -1388,10 +1440,10 @@ contains
         call compute_Traces (Elem)
 
         ! second step : the Mass matrices are inverted
-        call inversion_massmat(Elem)
+        call inversion_local_solver(Elem, Dt)
 
         ! Last step : updates of Velocities and strains
-        Elem%Forces(:,:,:) = Dt * Elem%Forces(:,:,:)
+        !Elem%Forces(:,:,:) = Dt * Elem%Forces(:,:,:)
         Elem%Strain(:,:,:) = Elem%Forces(:,:,0:2)
         Elem%Veloc (:,:,:) = Elem%Forces(:,:,3:4)
 

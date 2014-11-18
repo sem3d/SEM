@@ -359,6 +359,7 @@ subroutine allocate_domain (Tdomain)
         allocate (Tdomain%specel(n)%Strain0(0:ngllx-1,0:ngllz-1,0:2))
         allocate (Tdomain%specel(n)%CAinv(0:2*(ngllx+ngllz)-1,0:1,0:2))
         allocate (Tdomain%specel(n)%EDinv(0:2*(ngllx+ngllz)-1,0:1,0:1))
+        allocate (Tdomain%specel(n)%Dinv (0:2*(ngllx+ngllz)-1,0:2))
      enddo
      do n = 0, Tdomain%n_vertex-1
         i = Tdomain%sVertex(n)%Valence
@@ -366,6 +367,8 @@ subroutine allocate_domain (Tdomain)
         allocate (Tdomain%sVertex(n)%smbrLambda(0:(2*i-1)))
         allocate (Tdomain%sVertex(n)%Lambda (0:(2*i-1)))
         allocate (Tdomain%sVertex(n)%K_up (1:2*i*(2*i+1)/2))
+        Tdomain%sVertex(n)%smbrLambda = 0.
+        Tdomain%sVertex(n)%Kmat = 0.
      enddo
      do n = 0, Tdomain%n_face-1
          ngll = Tdomain%sFace(n)%ngll

@@ -711,7 +711,7 @@ contains
         real, dimension(0:F%ngll-1) :: Det, tmp
         integer                     :: i
 
-        Det(:) = F%Kinv(:,0) * F%Kinv(:,1) - (F%Kinv(:,2))**2
+        Det(:) = F%Kinv(:,0) * F%Kinv(:,1) - (F%Kinv(:,2)*F%Kinv(:,2))
 
         ! Check positive-definiteness of matrices on Faces
         do i=0,F%ngll-1
@@ -721,10 +721,10 @@ contains
             endif
         enddo
         ! Compute inverse of matrices :
-        F%Kinv(:,2) =-1/Det(:) * F%Kinv(:,2)
+        F%Kinv(:,2) =-1./Det(:) * F%Kinv(:,2)
         tmp(:) = F%Kinv(:,1)
-        F%Kinv(:,1) = 1/Det(:) * F%Kinv(:,0)
-        F%Kinv(:,0) = 1/Det(:) * tmp(:)
+        F%Kinv(:,1) = 1./Det(:) * F%Kinv(:,0)
+        F%Kinv(:,0) = 1./Det(:) * tmp(:)
 
     end subroutine Invert_K_face
 

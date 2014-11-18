@@ -245,6 +245,11 @@ contains
         matD(:,0,1) = -1./det(:) * matD(:,0,1)
         matD(:,1,0) = -1./det(:) * matD(:,1,0)
 
+        ! Stockage de la matrice D^-1 :
+        Elem%Dinv(:,0) = matD(:,0,0)
+        Elem%Dinv(:,1) = matD(:,1,1)
+        Elem%Dinv(:,2) = matD(:,0,1)
+
         ! Calcul du produit matriciel E * D^-1 :
         Elem%EDinv(:,0,0) = Elem%Coeff_Integr_Faces(:) * (Elem%MatPen(:,0)*matD(:,0,0)+Elem%MatPen(:,2)*matD(:,1,0))
         Elem%EDinv(:,0,1) = Elem%Coeff_Integr_Faces(:) * (Elem%MatPen(:,0)*matD(:,0,1)+Elem%MatPen(:,2)*matD(:,1,1))

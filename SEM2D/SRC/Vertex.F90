@@ -308,6 +308,7 @@ contains
         n = 2 * V%Valence
 
         ! Changing Right Hand Side numbering to use Lapack routine
+        V%Lambda = 0.
         rhs(1:n) = V%smbrLambda(0:n-1)
         call SPPTRS( 'U', n, 1, V%K_up, rhs, n, INFO )
 
@@ -341,7 +342,7 @@ contains
         real                           :: tol, res, max1, test
 
         n = 2 * V%Valence
-        tol = 1.E-12
+        tol = 1.E-11
 
         do i=0,n-1
             res = 0.
