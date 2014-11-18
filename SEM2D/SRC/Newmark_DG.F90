@@ -34,7 +34,7 @@ subroutine Newmark_PMC (Tdomain,Dt)
     alpha =Tdomain%TimeD%alpha
     bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
     gam1 = 1. / Tdomain%TimeD%gamma
-    n_it_max = 3
+    n_it_max = 4
     timelocal = Tdomain%TimeD%rtime + Dt
 
 

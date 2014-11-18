@@ -124,7 +124,7 @@ subroutine Runge_Kutta4 (Tdomain, dt)
                      call get_Vhat_f2el(Tdomain,n,nface,nf)
                  enddo
                  !if(Tdomain%specel(n)%ADEPML) call enforce_diriclet_corners_vhat(Tdomain,n)
-                 call Compute_Traces (Tdomain%specel(n))
+                 call Compute_Traces (Tdomain%specel(n),.true.)
              elseif (type_DG==GALERKIN_DG_WEAK .OR. type_DG==GALERKIN_DG_STRONG) then
                  do nf = 0,3        ! Computation of the fluxes
                      nface = Tdomain%specel(n)%Near_Face(nf)

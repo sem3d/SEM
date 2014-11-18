@@ -1252,13 +1252,16 @@ contains
     !! \param type (Element), intent (INOUT) Elem
     !!
     !<
-    subroutine  compute_Traces (Elem)
+    subroutine  compute_Traces (Elem, is_half)
         implicit none
 
         type (Element), intent (INOUT)   :: Elem
+        logical,        intent (IN)      :: is_half
         real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: Vhatx,Vhatz,Vhatxz
         integer    :: imin, imax, ngx, ngz
-        ngx = Elem%ngllx ; ngz = Elem%ngllz
+        real       :: demi
+        ngx = Elem%ngllx ; ngz = Elem%ngllz ; demi = 1.
+        if (is_half) demi = 0.5
 
         ! Adding contribution of Vhat on the trace Traction :
         Elem%TracFace(:,0) = Elem%TracFace(:,0) + Elem%MatPen(:,0)*Elem%Vhat(:,0) &
@@ -1269,8 +1272,8 @@ contains
         Elem%TracFace(:,0) = Elem%TracFace(:,0) * Elem%Coeff_Integr_Faces(:)
         Elem%TracFace(:,1) = Elem%TracFace(:,1) * Elem%Coeff_Integr_Faces(:)
 
-        Vhatxz(:) =  ( Elem%Vhat(:,0) * Elem%Normal_Nodes(:,1) &
-                          + Elem%Vhat(:,1) * Elem%Normal_Nodes(:,0))* Elem%Coeff_Integr_Faces(:)
+        Vhatxz(:) = demi * ( Elem%Vhat(:,0) * Elem%Normal_Nodes(:,1) &
+                           + Elem%Vhat(:,1) * Elem%Normal_Nodes(:,0))* Elem%Coeff_Integr_Faces(:)
         Vhatx(:) = Elem%Vhat(:,0) * Elem%Normal_Nodes(:,0) * Elem%Coeff_Integr_Faces(:)
         Vhatz(:) = Elem%Vhat(:,1) * Elem%Normal_Nodes(:,1) * Elem%Coeff_Integr_Faces(:)
 
@@ -1321,7 +1324,7 @@ contains
 
         Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Strain0(:,:,0)
         Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Strain0(:,:,1)
-        Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Strain0(:,:,2)
+        Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + 2./Dt * Elem%Acoeff(:,:,12) * Elem%Strain0(:,:,2)
         Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Density(:,:)*Elem%V0(:,:,0)
         Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Density(:,:)*Elem%V0(:,:,1)
 
@@ -1437,7 +1440,7 @@ contains
         ! First step : traces terms are computed using the subroutine compute_traces
         ! and setting the former tractions TracFace to 0
         Elem%TracFace = 0.
-        call compute_Traces (Elem)
+        call compute_Traces (Elem, .false.)
 
         ! second step : the Mass matrices are inverted
         call inversion_local_solver(Elem, Dt)
