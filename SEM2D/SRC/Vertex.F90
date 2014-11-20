@@ -339,10 +339,10 @@ contains
         type (Vertex), intent (INOUT)  :: V
         integer,       intent (IN)     :: nv
         integer                        :: n, i, j
-        real                           :: tol, res, max1, test
+        real                           :: tol, res, max1, test, min1
 
         n = 2 * V%Valence
-        tol = 1.E-11
+        tol = 1.E-10
 
         do i=0,n-1
             res = 0.
@@ -350,7 +350,8 @@ contains
                 res = res + V%Kmat(i,j)*V%Lambda(j)
             enddo
             max1 = max(abs(res),abs(V%SmbrLambda(i)))
-            if (max1 .GT. 0.) then
+            min1 = min(abs(res),abs(V%SmbrLambda(i)))
+            if ((max1 .GT. 0.).AND.(min1 .NE. 0.)) then
                 test = abs(res - V%SmbrLambda(i))/max1
                 if (test .GT. tol) then
                     write(*,*) "Problem in solving system on vertex ",nv," on line :", i," error :",test

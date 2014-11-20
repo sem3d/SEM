@@ -14,6 +14,7 @@ module ssources
     type :: elem_source
        integer :: nr
        real :: eta,xi
+       real :: invE,nu
        real, dimension (0:1,0:1) :: Scoeff
        real, dimension (:,:,:), pointer :: ExtForce
     end type elem_source

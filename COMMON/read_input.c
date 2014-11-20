@@ -47,12 +47,13 @@ int expect_source_type(yyscan_t scanner, int* type)
     if (!expect_eq(scanner)) return 0;
     tok = skip_blank(scanner);
     if (tok!=K_ID) goto error;
-    if (cmp(scanner,"pulse"))      { *type = 1; return 1; }
-    if (cmp(scanner,"impulse"))    { *type = 1; return 1; }
-    if (cmp(scanner,"moment"))     { *type = 2; return 1; }
-    if (cmp(scanner,"fluidpulse")) { *type = 3; return 1; }
-    if (cmp(scanner,"dirac_proj")) { *type = 4; return 1; }
-    if (cmp(scanner,"gaussian"))   { *type = 5; return 1; }
+    if (cmp(scanner,"pulse"))        { *type = 1; return 1; }
+    if (cmp(scanner,"impulse"))      { *type = 1; return 1; }
+    if (cmp(scanner,"moment"))       { *type = 2; return 1; }
+    if (cmp(scanner,"fluidpulse"))   { *type = 3; return 1; }
+    if (cmp(scanner,"dirac_proj"))   { *type = 4; return 1; }
+    if (cmp(scanner,"gaussian"))     { *type = 5; return 1; }
+    if (cmp(scanner,"strain_source")){ *type = 6; return 1; }
 error:
     msg_err(scanner, "Expected pulse|impulse|moment|fluidpulse|dirac_proj");
     return 0;
@@ -98,9 +99,10 @@ int expect_type_integration(yyscan_t scanner, int* type)
     if (!expect_eq(scanner)) return 0;
     tok = skip_blank(scanner);
     if (tok!=K_ID) goto error;
-    if (cmp(scanner,"Newmark"))   { *type = 0; return 1; }
-    if (cmp(scanner,"RK4"))       { *type = 1; return 1; }
-    if (cmp(scanner,"Newmark_PMC")){ *type = 2; return 1; }
+    if (cmp(scanner,"Newmark"))         { *type = 0; return 1; }
+    if (cmp(scanner,"RK4"))             { *type = 1; return 1; }
+    if (cmp(scanner,"Newmark_PMC"))     { *type = 2; return 1; }
+    if (cmp(scanner,"Newmark_PMC_expl")){ *type = 3; return 1; }
 error:
     msg_err(scanner, "Expected Newmark|RK4|Newmark_PMC");
     return 0;

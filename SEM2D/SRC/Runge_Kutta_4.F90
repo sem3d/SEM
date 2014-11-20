@@ -121,8 +121,8 @@ subroutine Runge_Kutta4 (Tdomain, dt)
                  do nf = 0,3        ! Computation of the Velocities Traces
                      nface = Tdomain%specel(n)%Near_Face(nf)
                      call Compute_Vhat(Tdomain%sFace(nface))
-                     call get_Vhat_f2el(Tdomain,n,nface,nf)
                  enddo
+                 call get_Vhat_f2el(Tdomain,n)
                  !if(Tdomain%specel(n)%ADEPML) call enforce_diriclet_corners_vhat(Tdomain,n)
                  call Compute_Traces (Tdomain%specel(n),.true.)
              elseif (type_DG==GALERKIN_DG_WEAK .OR. type_DG==GALERKIN_DG_STRONG) then

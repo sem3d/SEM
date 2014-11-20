@@ -17,10 +17,12 @@ subroutine check_inputs_and_mesh(Tdomain)
 
     type(domain), intent(inout)  :: Tdomain
 
-    if ((Tdomain%type_timeInteg .NE. TIME_INTEG_NEWMARK) .AND. &
-        (Tdomain%type_timeInteg .NE. TIME_INTEG_RK4)     .AND. &
-        (Tdomain%type_timeInteg .NE. TIME_INTEG_NEWMARK_PMC)) then
-        STOP "This choice for time_integ does not exist. Please choose RK4, Newmark or Newmark_DG"
+    if ((Tdomain%type_timeInteg .NE. TIME_INTEG_NEWMARK)     .AND. &
+        (Tdomain%type_timeInteg .NE. TIME_INTEG_RK4)         .AND. &
+        (Tdomain%type_timeInteg .NE. TIME_INTEG_NEWMARK_PMC) .AND. &
+        (Tdomain%type_timeInteg .NE. TIME_INTEG_NEWMARK_PMC_EXPL)) then
+        WRITE (*,*) "This choice for time integration does not exist !!!!!"
+        STOP "Please choose RK4, Newmark, Newmark_PMC, or Newmark_PMC_expl"
     endif
 
     if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_NEWMARK) .AND. &
@@ -28,10 +30,17 @@ subroutine check_inputs_and_mesh(Tdomain)
         STOP "Error : For Newmark, only continuous Galerkin is available"
     endif
 
-    !if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_RK4) .AND. &
-    !    (Tdomain%type_elem .EQ. GALERKIN_CONT)) then
-    !    STOP "Error : For RK4, only discontinuous Galerkin methods are available"
-    !endif
+    if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_NEWMARK_PMC) .AND. &
+        (Tdomain%type_elem .NE. GALERKIN_HDG_RP)) then
+        WRITE (*,*) "This choice of element for Newmark Predictor Multi Corrector is not available"
+        STOP "Error : Please choose dg_type = hdg_rp if you want to use Newmark_PMC"
+    endif
+
+    if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_NEWMARK_PMC_EXPL) .AND. &
+        (Tdomain%type_elem .NE. GALERKIN_HDG_RP)) then
+        WRITE (*,*) "This choice of element for Newmark Predictor Multi Corrector Explicit is not available"
+        STOP "Error : Please choose dg_type = hdg_rp if you want to use Newmark_PMC_expl"
+    endif
 
     if ((Tdomain%type_bc==DG_BC_FREE) .AND. (Tdomain%type_flux==FLUX_CENTERED)) then
         STOP "FREE Surface not implemented for Centered flux"

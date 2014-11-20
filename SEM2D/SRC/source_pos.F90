@@ -124,6 +124,8 @@ subroutine SourcePosition(Tdomain)
                     call source_excit_moment(Tdomain, Tdomain%sSource(nsour))
                 else if (Tdomain%sSource(nsour)%i_type_source  == 4) then ! Dirac projected
                     call source_dirac_projected(Tdomain, Tdomain%sSource(nsour))
+                else if (Tdomain%sSource(nsour)%i_type_source  == 6) then ! Source on strain equation
+                    call source_excit_strain(Tdomain, Tdomain%sSource(nsour))
                 endif
             endif
 
@@ -193,7 +195,7 @@ subroutine source_excit_pulse(Tdomain, src)
     type(Subdomain), pointer :: mat
     type(Source), intent(inout) :: src
     integer :: n, i, j, ngllx, ngllz, nmat, nnelem
-    real :: weta, wxi
+    real :: weta, wxi, invE, nu
 
     do n = 0, src%ine-1
         nnelem = src%Elem(n)%nr
@@ -213,6 +215,44 @@ subroutine source_excit_pulse(Tdomain, src)
     enddo
 
 end subroutine source_excit_pulse
+
+
+! Following subroutine added for testing JP proposition
+subroutine source_excit_strain(Tdomain, src)
+    use sdomain
+    use ssources
+    use ssubdomains
+    implicit none
+    type(Domain), intent(inout) :: Tdomain
+    type(Subdomain), pointer :: mat
+    type(Source), intent(inout) :: src
+    integer :: n, i, j, ngllx, ngllz, nmat, nnelem
+    real :: weta, wxi, invE, nu
+
+    do n = 0, src%ine-1
+        nnelem = src%Elem(n)%nr
+        nmat = Tdomain%specel(nnelem)%mat_index
+        mat => Tdomain%sSubdomain(nmat)
+        ngllx = mat%ngllx
+        ngllz = mat%ngllz
+        ! Computing parameters for the compliance matrix :
+        invE = (mat%Dlambda + mat%Dmu) / (mat%Dmu*(3.*mat%Dlambda + 2.*mat%Dmu))
+        nu   =  mat%Dlambda / (2.*mat%Dmu + 2.*mat%Dlambda)
+        src%Elem(n)%invE = invE
+        src%Elem(n)%nu   = nu
+        allocate  (src%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
+        do j = 0,ngllz-1
+            call pol_lagrange (ngllz, mat%GLLcz, j, src%Elem(n)%eta,weta)
+            do i = 0,ngllx-1
+                call pol_lagrange (ngllx, mat%GLLcx, i, src%Elem(n)%xi, wxi )
+                src%Elem(n)%ExtForce (i,j,0) = wxi*weta*src%dir(1)
+                src%Elem(n)%ExtForce (i,j,1) = wxi*weta*src%dir(2)
+            enddo
+        enddo
+    enddo
+
+end subroutine source_excit_strain
+
 
 subroutine source_excit_moment(Tdomain, src)
     use sdomain

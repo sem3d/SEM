@@ -293,34 +293,35 @@ end subroutine Get_traction_el2f
 !!\date 03/04/2014
 !! This subroutine is used only with HDG elements
 !<
-subroutine Get_Vhat_f2el (Tdomain, nelem, nface, w_face)
+subroutine Get_Vhat_f2el (Tdomain, nelem)
 
     use sdomain
     implicit none
 
     type (domain), intent (INOUT) :: Tdomain
     integer, intent(in)   :: nelem
-    integer, intent(in)   :: nface
-    integer, intent(in)   :: w_face
+    integer               :: nface, w_face
 
     ! local variables
     integer :: ngll, ngllx, ngllz, i, imin, imax
     logical :: coherency
 
-    ngll  = Tdomain%sFace(nface)%ngll
     ngllx = Tdomain%specel(nelem)%ngllx
     ngllz = Tdomain%specel(nelem)%ngllz
-    coherency = Tdomain%sFace(nface)%coherency
 
-    call get_iminimax(Tdomain%specel(nelem),w_face,imin,imax)
-
-    if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
-        Tdomain%specel(nelem)%Vhat(imin:imax,:)  = Tdomain%sFace(nface)%Veloc(:,:)
-    else
-        do i=0,ngll-1
-            Tdomain%specel(nelem)%Vhat(imax-i,:) = Tdomain%sFace(nface)%Veloc(i,:)
-        enddo
-    endif
+    do w_face=0,3
+        nface = Tdomain%specel(nelem)%Near_Face(w_face)
+        coherency = Tdomain%sFace(nface)%coherency
+        ngll  = Tdomain%sFace(nface)%ngll
+        call get_iminimax(Tdomain%specel(nelem),w_face,imin,imax)
+        if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
+            Tdomain%specel(nelem)%Vhat(imin:imax,:)  = Tdomain%sFace(nface)%Veloc(:,:)
+        else
+            do i=0,ngll-1
+                Tdomain%specel(nelem)%Vhat(imax-i,:) = Tdomain%sFace(nface)%Veloc(i,:)
+            enddo
+        endif
+    enddo
 
 end subroutine Get_Vhat_f2el
 

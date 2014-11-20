@@ -376,6 +376,12 @@ subroutine allocate_domain (Tdomain)
          allocate  (Tdomain%sFace(n)%Smbr(0:ngll-1,0:1))
          Tdomain%sFace(n)%Smbr = 0.
      enddo
+  else if (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC_EXPL) then
+     do n = 0, Tdomain%n_elem-1
+        ngllx = Tdomain%specel(n)%ngllx
+        ngllz = Tdomain%specel(n)%ngllz
+        allocate (Tdomain%specel(n)%Strain0(0:ngllx-1,0:ngllz-1,0:2))
+    enddo
   endif
 
   ! Special addition for Lamb test : A SUPPRIMER !!!!!!!!

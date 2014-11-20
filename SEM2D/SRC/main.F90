@@ -285,6 +285,8 @@ subroutine  sem()
             call Runge_Kutta4(Tdomain, Tdomain%TimeD%dtmin)
         else if (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC) then
             call Newmark_PMC(Tdomain, Tdomain%TimeD%dtmin)
+        else if (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC_EXPL) then
+            call Newmark_PMC_explicit(Tdomain, Tdomain%TimeD%dtmin)
         endif
 
         if (ntime==Tdomain%TimeD%NtimeMax-1) then

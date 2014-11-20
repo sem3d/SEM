@@ -3,7 +3,7 @@
 !!\brief Computes the external Forces (i.e. the source of the seism)
 !!\version 1.0
 !!\date 20/11/2013
-!! This algorithm contains the part of the previous Newmark routine 
+!! This algorithm contains the part of the previous Newmark routine
 !! which was calculating the external forces.
 !<
 subroutine Compute_external_forces (Tdomain,timelocal)
@@ -31,7 +31,7 @@ subroutine Compute_external_forces (Tdomain,timelocal)
             do j = 0,ngllz-1
                 do i = 0,ngllx-1
                     do np = 0,1
-                        Fext(np) =  CompSource (Tdomain%sSource(n),timelocal) * Tdomain%sSource(n)%Elem(ns)%ExtForce(i,j,np)
+                        Fext(np) = CompSource (Tdomain%sSource(n),timelocal) * Tdomain%sSource(n)%Elem(ns)%ExtForce(i,j,np)
                         Tdomain%specel(ncc)%Forces(i,j,np+nDG) = Tdomain%specel(ncc)%Forces(i,j,np+nDG) + Fext(np)
                     enddo
                     ! Sortie pour la force externe

@@ -21,7 +21,7 @@ subroutine Newmark_PMC (Tdomain,Dt)
     real,    intent(in)   :: dt
 
     ! local variables
-    integer :: n, mat, nf, nface, iter, n_it_max
+    integer :: n, mat, iter, n_it_max
     real :: bega, gam1, alpha, timelocal
     !integer, dimension (MPI_STATUS_SIZE) :: status
 
@@ -35,7 +35,7 @@ subroutine Newmark_PMC (Tdomain,Dt)
     bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
     gam1 = 1. / Tdomain%TimeD%gamma
     n_it_max = 4
-    timelocal = Tdomain%TimeD%rtime + Dt
+    timelocal = Tdomain%TimeD%rtime + 1.*Dt
 
 
     ! Initialization Phase
@@ -102,10 +102,7 @@ subroutine Newmark_PMC (Tdomain,Dt)
         ! Local Solvers at element level
         do n=0,Tdomain%n_elem-1
             ! Communication Lambda from faces to elements
-            do nf = 0,3
-                nface = Tdomain%specel(n)%Near_Face(nf)
-                call get_Vhat_f2el(Tdomain,n,nface,nf)
-            enddo
+            call get_Vhat_f2el(Tdomain,n)
             ! Local Solver
             call local_solver(Tdomain%specel(n),Dt)
         enddo
@@ -116,6 +113,105 @@ subroutine Newmark_PMC (Tdomain,Dt)
 
     return
 end subroutine Newmark_PMC
+
+
+
+!>
+!!\brief This Subroutine performs a midpoint method for advancing in time
+!! using an explicit approach, contrary to the previous one.
+!!\version 1.0
+!!\date 20/11/2014
+!! This subroutine is used only HDG elements
+!! \param type (Domain), intent (INOUT) Tdomain
+!! \param real         , intent (IN)    Dt
+!<
+subroutine Newmark_PMC_explicit (Tdomain,Dt)
+
+    implicit none
+    type (domain), intent (INOUT) :: Tdomain
+    real,    intent(in)   :: dt
+
+    ! local variables
+    integer :: n, mat, iter, n_it_max, nf, nface
+    real :: bega, gam1, alpha, timelocal
+    !integer, dimension (MPI_STATUS_SIZE) :: status
+
+
+    alpha =Tdomain%TimeD%alpha
+    bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
+    gam1 = 1. / Tdomain%TimeD%gamma
+    n_it_max = 4
+    timelocal = Tdomain%TimeD%rtime + 1.*Dt
+
+
+    ! Initialization Phase
+    do n=0,Tdomain%n_elem-1
+        ! Computation of the  prediction :
+        Tdomain%specel(n)%Strain0(:,:,:) = Tdomain%specel(n)%Strain(:,:,:)
+        Tdomain%specel(n)%V0(:,:,:)      = Tdomain%specel(n)%Veloc (:,:,:)
+    enddo
+
+    ! Midpoint method :
+    iter= 0
+
+    do while (iter<n_it_max)
+
+        ! Prediction Phase :
+        do n=0,Tdomain%n_elem-1
+            if (iter == 0) then
+                Tdomain%specel(n)%Strain = 0.5 * Tdomain%specel(n)%Strain0
+                Tdomain%specel(n)%Veloc  = 0.5 * Tdomain%specel(n)%V0
+            else
+                Tdomain%specel(n)%Strain = 0.5 * (Tdomain%specel(n)%Strain0 + Tdomain%specel(n)%Strain)
+                Tdomain%specel(n)%Veloc  = 0.5 * (Tdomain%specel(n)%V0      + Tdomain%specel(n)%Veloc )
+            endif
+        enddo
+
+        ! Building second members (= forces) of systems.
+        do n=0,Tdomain%n_elem-1
+            mat = Tdomain%specel(n)%mat_index
+            call compute_InternalForces_DG_Weak(Tdomain%specel(n), &
+                Tdomain%sSubDomain(mat)%hprimex, &
+                Tdomain%sSubDomain(mat)%hTprimez)
+            call compute_TracFace (Tdomain%specel(n))
+        enddo
+
+        ! External Forces computation
+        call Compute_External_Forces(Tdomain,timelocal)
+
+        ! Calcul des fluxs
+        do n = 0, Tdomain%n_elem-1
+            do nf = 0,3
+                nface  = Tdomain%specel(n)%Near_Face(nf)
+                call get_traction_el2f(Tdomain,n,nface,nf,timelocal)
+            enddo
+        enddo
+
+        ! Constructing the Lambda (= velocities vhat) on the faces
+        do n=0,Tdomain%n_elem-1
+            do nf = 0,3        ! Computation of the Velocities Traces
+                nface = Tdomain%specel(n)%Near_Face(nf)
+                call Compute_Vhat(Tdomain%sFace(nface))
+            enddo
+            call get_Vhat_f2el(Tdomain,n)
+            call Compute_Traces (Tdomain%specel(n),.true.)
+            if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,n)
+            ! Add previous state to forces :
+            call add_previous_state2forces (Tdomain%specel(n),Dt)
+            Tdomain%specel(n)%Forces(:,:,2) = Tdomain%specel(n)%Forces(:,:,2) &
+                                    - 1./Dt * Tdomain%specel(n)%Acoeff(:,:,12) * Tdomain%specel(n)%Strain0(:,:,2)
+            call inversion_massmat(Tdomain%specel(n))
+            Tdomain%specel(n)%Strain(:,:,:) = Dt * Tdomain%specel(n)%Forces(:,:,0:2)
+            Tdomain%specel(n)%Veloc (:,:,:) = Dt * Tdomain%specel(n)%Forces(:,:,3:4)
+        enddo
+
+        iter = iter+1
+    enddo
+
+
+    return
+end subroutine Newmark_PMC_explicit
+
 
 end module snewmark_pmc
 !! Local Variables:

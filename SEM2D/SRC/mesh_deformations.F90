@@ -19,10 +19,10 @@ subroutine rotate_mesh(Tdomain)
     real    :: xc, yc, theta, x, y, xnew, ynew, PI
 
     ! Parameters for the rotation (center coordinates and angle)
-    xc = 1250.
-    yc = 1250.
+    xc = 550.
+    yc = 550.
     PI = 4.D0*DATAN(1.D0)
-    theta = PI/4.
+    theta = PI/6.
 
     do i=0,Tdomain%n_glob_nodes-1
         x = Tdomain%Coord_nodes(0,i)

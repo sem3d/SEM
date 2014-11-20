@@ -30,6 +30,7 @@ MODULE constants
     integer, parameter :: TIME_INTEG_NEWMARK=0
     integer, parameter :: TIME_INTEG_RK4=1
     integer, parameter :: TIME_INTEG_NEWMARK_PMC=2
+    integer, parameter :: TIME_INTEG_NEWMARK_PMC_EXPL=3
     integer, parameter :: GALERKIN_CONT=0
     integer, parameter :: GALERKIN_DG_STRONG=1
     integer, parameter :: GALERKIN_DG_WEAK=2
