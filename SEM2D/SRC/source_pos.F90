@@ -195,7 +195,7 @@ subroutine source_excit_pulse(Tdomain, src)
     type(Subdomain), pointer :: mat
     type(Source), intent(inout) :: src
     integer :: n, i, j, ngllx, ngllz, nmat, nnelem
-    real :: weta, wxi, invE, nu
+    real :: weta, wxi
 
     do n = 0, src%ine-1
         nnelem = src%Elem(n)%nr
@@ -226,6 +226,7 @@ subroutine source_excit_strain(Tdomain, src)
     type(Domain), intent(inout) :: Tdomain
     type(Subdomain), pointer :: mat
     type(Source), intent(inout) :: src
+    real, dimension(0:1, 0:1)   :: M
     integer :: n, i, j, ngllx, ngllz, nmat, nnelem
     real :: weta, wxi, invE, nu
 
@@ -235,18 +236,20 @@ subroutine source_excit_strain(Tdomain, src)
         mat => Tdomain%sSubdomain(nmat)
         ngllx = mat%ngllx
         ngllz = mat%ngllz
+        M = src%moment
         ! Computing parameters for the compliance matrix :
         invE = (mat%Dlambda + mat%Dmu) / (mat%Dmu*(3.*mat%Dlambda + 2.*mat%Dmu))
         nu   =  mat%Dlambda / (2.*mat%Dmu + 2.*mat%Dlambda)
         src%Elem(n)%invE = invE
         src%Elem(n)%nu   = nu
-        allocate  (src%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
+        allocate  (src%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:2))
         do j = 0,ngllz-1
             call pol_lagrange (ngllz, mat%GLLcz, j, src%Elem(n)%eta,weta)
             do i = 0,ngllx-1
                 call pol_lagrange (ngllx, mat%GLLcx, i, src%Elem(n)%xi, wxi )
-                src%Elem(n)%ExtForce (i,j,0) = wxi*weta*src%dir(1)
-                src%Elem(n)%ExtForce (i,j,1) = wxi*weta*src%dir(2)
+                src%Elem(n)%ExtForce (i,j,0) = wxi*weta*invE*(M(0,0)-nu*M(1,1))
+                src%Elem(n)%ExtForce (i,j,1) = wxi*weta*invE*(M(1,1)-nu*M(0,0))
+                src%Elem(n)%ExtForce (i,j,2) = wxi*weta*invE*(1.+nu)*M(0,1)
             enddo
         enddo
     enddo

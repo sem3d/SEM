@@ -24,20 +24,29 @@ subroutine Compute_external_forces (Tdomain,timelocal)
             if ( Tdomain%specel(ncc)%Type_DG == GALERKIN_CONT) then
                 nDG = 0
             else ! In DG case, the forces has to be put in Forces(:,:,3:4)
-                ! instead of Forces(:,:,0:1) ... nDG is then computed here to shift Forces
                 nDG = 3
             endif
-
-            do j = 0,ngllz-1
-                do i = 0,ngllx-1
-                    do np = 0,1
-                        Fext(np) = CompSource (Tdomain%sSource(n),timelocal) * Tdomain%sSource(n)%Elem(ns)%ExtForce(i,j,np)
-                        Tdomain%specel(ncc)%Forces(i,j,np+nDG) = Tdomain%specel(ncc)%Forces(i,j,np+nDG) + Fext(np)
+            if (Tdomain%sSource(n)%i_type_source  == 6) then ! Special sources on the strain equation.
+                do j = 0,ngllz-1
+                    do i = 0,ngllx-1
+                        do np = 0,2
+                            Fext(np) = CompSource (Tdomain%sSource(n),timelocal) &
+                                     * Tdomain%sSource(n)%Elem(ns)%ExtForce(i,j,np)
+                            Tdomain%specel(ncc)%Forces(i,j,np) = Tdomain%specel(ncc)%Forces(i,j,np) + Fext(np)
+                        enddo
                     enddo
-                    ! Sortie pour la force externe
-                    !if ((Fext(0).NE.0.) .OR. (Fext(1).NE.0.)) write(90,*) timelocal, Fext(0)
                 enddo
-            enddo
+            else ! Usual sources added on the velocity equation.
+                do j = 0,ngllz-1
+                    do i = 0,ngllx-1
+                        do np = 0,1
+                            Fext(np) = CompSource (Tdomain%sSource(n),timelocal) &
+                                     * Tdomain%sSource(n)%Elem(ns)%ExtForce(i,j,np)
+                        Tdomain%specel(ncc)%Forces(i,j,np+nDG) = Tdomain%specel(ncc)%Forces(i,j,np+nDG) + Fext(np)
+                        enddo
+                    enddo
+                enddo
+            endif
         enddo
     enddo
 
