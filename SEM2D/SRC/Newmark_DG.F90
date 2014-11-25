@@ -35,7 +35,7 @@ subroutine Newmark_PMC (Tdomain,Dt)
     bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
     gam1 = 1. / Tdomain%TimeD%gamma
     n_it_max = 4
-    timelocal = Tdomain%TimeD%rtime + 1.*Dt
+    timelocal = Tdomain%TimeD%rtime + 0.5*Dt
 
 
     ! Initialization Phase
@@ -55,13 +55,13 @@ subroutine Newmark_PMC (Tdomain,Dt)
 
         ! Prediction Phase :
         do n=0,Tdomain%n_elem-1
-            if (iter == 0) then
-                Tdomain%specel(n)%Strain = 0.5 * Tdomain%specel(n)%Strain0
-                Tdomain%specel(n)%Veloc  = 0.5 * Tdomain%specel(n)%V0
-            else
+            !if (iter == 0) then
+            !    Tdomain%specel(n)%Strain = 0.5 * Tdomain%specel(n)%Strain0
+            !    Tdomain%specel(n)%Veloc  = 0.5 * Tdomain%specel(n)%V0
+            !else
                 Tdomain%specel(n)%Strain = 0.5 * (Tdomain%specel(n)%Strain0 + Tdomain%specel(n)%Strain)
                 Tdomain%specel(n)%Veloc  = 0.5 * (Tdomain%specel(n)%V0      + Tdomain%specel(n)%Veloc )
-            endif
+            !endif
         enddo
 
         ! Building second members (= forces) of systems.
@@ -141,7 +141,7 @@ subroutine Newmark_PMC_explicit (Tdomain,Dt)
     bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
     gam1 = 1. / Tdomain%TimeD%gamma
     n_it_max = 4
-    timelocal = Tdomain%TimeD%rtime + 1.*Dt
+    timelocal = Tdomain%TimeD%rtime + 0.5*Dt
 
 
     ! Initialization Phase
