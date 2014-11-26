@@ -6,10 +6,17 @@ subroutine build_coord_mask(Tdomain, mat)
     type(domain), intent(inout), target :: Tdomain
     integer              :: ngllx, nglly, ngllz
     integer              :: m, n, i, j, k, coord, mat, ipoint
+    integer              :: error, code
 
-	if(.not.allocated(Tdomain%sSubDomain(mat)%globCoordMask))                          &
-		allocate(Tdomain%sSubDomain(mat)%globCoordMask(0:size(Tdomain%GlobCoord,1)-1,  &
-	        	 									   0:size(Tdomain%GlobCoord,2)-1))
+!	if(.not.allocated(Tdomain%sSubDomain(mat)%globCoordMask))                          &
+!		allocate(Tdomain%sSubDomain(mat)%globCoordMask(0:size(Tdomain%GlobCoord,1)-1,  &
+!	        	 									   0:size(Tdomain%GlobCoord,2)-1))
+	if(.not.allocated(Tdomain%sSubDomain(mat)%globCoordMask)) then
+		write(*,*) "!!!ERROR: In 'build_coord_mask', globCoordMask was not allocated"
+		write(*,*) "mat = ", mat
+		call MPI_ABORT(Tdomain%communicateur, error, code)
+	end if
+
     Tdomain%sSubDomain(mat)%globCoordMask(:,:) = .false.
     !write(*,*)"...%globCoordMask(:,:) = BEFORE", Tdomain%sSubDomain(mat)%globCoordMask(:,:)
 

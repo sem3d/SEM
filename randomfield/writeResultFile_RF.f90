@@ -57,7 +57,7 @@ contains
         character (len=*)                , intent(in) :: filename;
         integer                          , intent(in) :: rang;
         character(len=*)                 , intent(in) :: folderPath
-        integer              , optional  , intent(in) :: communicator
+        integer                          , intent(in) :: communicator
         character(len=*) , dimension(1:), optional  , intent(in) :: labels
         integer          , dimension(1:), optional  , intent(in) :: indexes
 
@@ -78,13 +78,13 @@ contains
         integer :: nDim, Nmc, nPoints, i
         integer :: effectComm
         character (len=12) :: numberStr, rangStr;
-        double precision, dimension(:,:), allocatable :: grid_data
+        !double precision, dimension(:,:), allocatable :: grid_data
 
-!		if(rang == 0) then
-!      	  	write(*,*) "";
-!       		write(*,*) "------------START Writing result HDF5 file (MPI)-----------------------";
-!      	 	write(*,*) "";
-!      	end if
+		if(rang == 0) then
+      	  	write(*,*) "";
+       		write(*,*) "------------START Writing result HDF5 file (MPI)-----------------------";
+      	 	write(*,*) "";
+      	end if
 
       	!if(rang == 0) then
       		!write (*,*) "lbound(xPoints) = ", lbound(xPoints)
@@ -98,11 +98,16 @@ contains
       	!end if
 
 		effectComm = communicator
-	    nDim       = size(xPoints , 2)
+	    nDim       = size(xPoints , 1)
 	    nPoints    = size(randField, 1)
 	    Nmc        = size(randField, 2)
 
 		!Creating file name
+		!write(*,*) "fileName = ", fileName
+		!write(*,*) "labels = ", labels
+		!write(*,*) "indexes = ", indexes
+		!write(*,*) "folderPath = ", folderPath
+
 		if(.not. present(labels)) then
 			write(rangStr,'(I)'  ) rang
 			rangStr      = adjustL(rangStr)
@@ -114,35 +119,32 @@ contains
 	    	end do
 	    end if
 
+		!write(*,*) "fileHDF5Name = ", fileHDF5Name
+
 	    fileHDF5Name = string_join(fileHDF5Name,".h5")
 	    fullPath     = string_join(folderPath,"/"//fileHDF5Name)
+
+	    !write(*,*) "'inside write HDF5' -- fileHDF5Name = ", fileHDF5Name
 
         if (nDim > 3) then
         	write(*,*) "Dimension exceeds 3, HDF file won't be created"
         else
 
 			!if(rang == 0) write(*,*) ">>>>>>>>> Opening file";
-        	allocate (grid_data(3, nPoints)) !3 lines to put X, Y and Z
-        	grid_data = 0;
-        	grid_data(1:nDim, :) = transpose(xPoints)
 	        call h5open_f(error) ! Initialize FORTRAN interface.
 	        call h5fcreate_f(fullPath, H5F_ACC_TRUNC_F, file_id, error) ! Create a new file using default properties.
 
 			!if(rang == 0) write(*,*) ">>>>>>>>> Creating Coordinates dataset 'XYZ table'";
 
-	        dims = shape(grid_data)
+	        dims = shape(xPoints)
 			write(coordName,'(A)') "XYZ"
-			!if(Nmc < 11) write(*,*) "coordName = ", coordName
-
 	        call h5screate_simple_f(rank, dims, dspace_id, error) ! Create the dataspace (dspace_id).
 	        call h5dcreate_f(file_id, coordName, H5T_NATIVE_DOUBLE,  &
 	                         dspace_id, dset_id, error) ! Create the dataset with default properties (dset_id).
-
-	 		call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, grid_data, dims, error) ! Write the dataset.
+	 		call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, &
+	 		                xPoints, dims, error) ! Write the dataset.
 	        call h5dclose_f(dset_id, error) ! End access to the dataset and release resources used by it.
 	        call h5sclose_f(dspace_id, error) ! Terminate access to the data space.
-
-	        deallocate (grid_data)
 
 			!if(rang == 0) write(*,*) ">>>>>>>>> Creating Quantities dataset 'random field'";
 	        dims(1) = size(randField,1)
@@ -152,6 +154,7 @@ contains
 				write(numberStr,'(I)'  ) i
 				numberStr = adjustL(numberStr)
 				write(eventName,'(2A)') "RF_", trim(numberStr)
+				!write(*,*) "i = ", i
 				!if(Nmc < 11) write(*,*) "eventName = ", eventName
 
 		        call h5screate_simple_f(rank, dims, dspace_id, error) ! Create the dataspace (dspace_id).
@@ -168,25 +171,31 @@ contains
 
         end if
 
-		if(present(HDF5Name)) HDF5Name = fileHDF5Name
+		!write(*,*) "fileHDF5Name = ", fileHDF5Name
+		if(present(HDF5Name)) then
+			HDF5Name = trim(adjustL(fileHDF5Name))
+			HDF5Name = adjustL(HDF5Name)
+			!write(*,*) "'inside write HDF5' -- HDF5Name = "
+			write(*,*) HDF5Name
+		end if
 
-!		if(rang == 0) then
-!        	write(*,*) "";
-!        	write(*,*) "------------END Writing result HDF5 file (MPI)-----------------------";
-!       		write(*,*) "";
-!       	end if
+		if(rang == 0) then
+        	write(*,*) "";
+        	write(*,*) "------------END Writing result HDF5 file (MPI)-----------------------";
+       		write(*,*) "";
+       	end if
 
     end subroutine write_ResultHDF5Unstruct_MPI
 
 
 !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    subroutine writeXMF_RF_MPI(nSamples, HDF5nameList, nPointList, fileName, rang, folderPath, &
+    subroutine writeXMF_RF_MPI(nSamples, HDF5nameList, nPointList, nDim, fileName, rang, folderPath, &
     						   communicator, HDF5relativePath, attName, byProc)
         implicit none
 
         !INPUTS
-        integer                           , intent(in) :: nSamples;
+        integer                           , intent(in) :: nSamples, nDim;
         character(len=*), dimension(1:)   , intent(in) :: HDF5nameList;
         integer         , dimension(1:)   , intent(in) :: nPointList;
         character(len=*)                  , intent(in) :: filename;
@@ -208,17 +217,23 @@ contains
 
         effectComm = communicator
 
-!        if(rang == 0) then
-!        	write(*,*) "";
-!        	write(*,*) "------------START Writing result XMF file-----------------------";
-!        	write(*,*) "";
-!        end if
+        if(rang == 0) then
+        	write(*,*) "";
+        	write(*,*) "------------START Writing result XMF file-----------------------";
+        	write(*,*) "";
+        end if
 
 		call MPI_COMM_SIZE(effectComm, nb_procs, code)
+
+		!Common parameters
+		Nmc         = nSamples
+		!write(*,*) "rang = ", rang
+		!write(*,*) "HDF5nameList = ", HDF5nameList
 
 		if(rang == 0) then
 			allocate(all_nPointList(nb_procs*size(HDF5nameList)))
 			allocate(all_HDF5nameList(nb_procs*size(HDF5nameList)))
+			allocate(effectAttName(Nmc))
 		end if
 
 		call MPI_GATHER(nPointList    , size(nPointList), MPI_INTEGER,     &
@@ -229,28 +244,30 @@ contains
 		                all_HDF5nameList, len(HDF5nameList)*size(HDF5nameList), MPI_CHARACTER,     &
 		                 0              , effectComm       , code)
 
+		!write(*,*) "all_nPointList   = ", all_nPointList
 		!write(*,*) "all_HDF5nameList = ", all_HDF5nameList
 
-		if(rang == 0) then
-			!Common parameters
-			Nmc         = nSamples
+		if(rang == 0 .and. (nDim == 2 .or. nDim == 3)) then
+
 			fileXMFName = string_join(fileName,".xmf")
 			fullPathXMF = string_join(folderPath, "/"//fileXMFName)
 			!if(rang == 0) write(*,*) "all_nPointList in rang 0 = ", all_nPointList
 			!if(rang == 0) write(*,*) "all_HDF5nameList in rang 0 = ", all_HDF5nameList
 			if(rang == 0) write(*,*) "fileXMFName = ", fileXMFName
 			if(rang == 0) write(*,*) "fullPathXMF = ", fullPathXMF
-
 			!Optional inputs
-			allocate(effectAttName(Nmc))
-        	if(present(attName) .and. (size(attName)==Nmc)) then
-        		effectAttName = attName
+			!write(*,*) "treating attName"
+        	if(present(attName)) then
+        		if (size(attName)==Nmc) then
+        			effectAttName = attName
+        		end if
         	else
         		do i = 1, Nmc
         			effectAttName(i) = stringNumb_join("RF_", i)
         		end do
         	end if
 
+			!write(*,*) "treating HDF5relativePath"
         	if(present(HDF5relativePath)) then
         		effecHDF5path = string_join(HDF5relativePath, "/")
         	else
@@ -259,7 +276,7 @@ contains
 
 			!Building file
 	        file=21;
-
+			!write(*,*) "Flag 2"
 	        open (unit = file , file = fullPathXMF, action = 'write')
 
 				write (file,'(A)'      )'<?xml version="1.0" ?>'
@@ -278,11 +295,18 @@ contains
 						!write(*,*) "        size(HDF5nameList) = ",size(HDF5nameList)
 						!write(*,*) "int((j-1)/size(HDF5nameList) = ",int((j-1)/size(HDF5nameList))
 					end if
+					!write(*,*) "size(all_HDF5nameList) = ", size(all_HDF5nameList)
+					!write(*,*) "trim(effecHDF5path) = ", trim(effecHDF5path)
+					!write(*,*) "trim(all_HDF5nameList(j)) = ", trim(all_HDF5nameList(j))
+					!write(*,*) "'     	  ',trim(effecHDF5path),trim(all_HDF5nameList(j)),':/XYZ'= ", '     	  ',trim(effecHDF5path),trim(all_HDF5nameList(j)),':/XYZ'
 				write (file,'(3A)'     )'   <Grid Name="',trim(meshName),'" GridType="Uniform">' !START Writing the data of one subdomain
 				write (file,'(3A)'     )'    <Topology Type="Polyvertex" NodesPerElements="1" NumberOfElements="',trim(numb2String(all_nPointList(j))),'">'
 				write (file,'(A)'      )'    </Topology>'
+				if(nDim == 2) &
+				write (file,'(A)'      )'     <Geometry GeometryType="XY">'
+				if(nDim == 3) &
 				write (file,'(A)'      )'     <Geometry GeometryType="XYZ">'
-				write (file,'(3A)'     )'      <DataItem Name="Coordinates" Format="HDF" DataType="Float" Precision="8" Dimensions="',trim(numb2String(all_nPointList(j))), ' 3">'
+				write (file,'(5A)'     )'      <DataItem Name="Coordinates" Format="HDF" DataType="Float" Precision="8" Dimensions="',trim(numb2String(all_nPointList(j))), ' ',trim(numb2String(nDim))  ,'">'
 				write (file,'(4A)'     )'     	  ',trim(effecHDF5path),trim(all_HDF5nameList(j)),':/XYZ'
 				write (file,'(A)'      )'      </DataItem>'
 				write (file,'(A)'      )'    </Geometry>'
@@ -303,16 +327,18 @@ contains
 				write (file,'(A)'      )'</Xdmf>'
 
 	        close(file)
+	    else if(rang == 0) then
+			write(*,*) "No XDMF Model prepared for this dimension"
+			write(*,*) "The file won't be created"
         end if
 
 		if(rang == 0) then
 			deallocate(all_nPointList)
 			deallocate(all_HDF5nameList)
 			deallocate(effectAttName)
-
-!        	write(*,*) "";
-!        	write(*,*) "------------END Writing result XMF file-----------------------";
-!        	write(*,*) "";
+        	write(*,*) "";
+        	write(*,*) "------------END Writing result XMF file-----------------------";
+        	write(*,*) "";
         end if
 
     end subroutine writeXMF_RF_MPI

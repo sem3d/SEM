@@ -118,10 +118,10 @@ contains
         implicit none
 
         !INPUT
-        double precision, dimension(:, :), intent(in) :: xPoints;
-        integer         , optional       , intent(in) :: communicator
+        double precision, dimension(1:, 1:), intent(in) :: xPoints;
+        integer         , optional         , intent(in) :: communicator
         !OUTPUT
-        double precision, dimension(:), allocatable, intent(out) :: xMinGlob, xMaxGlob;
+        double precision, dimension(1:), intent(out) :: xMinGlob, xMaxGlob;
         !LOCAL
         integer :: code, nDim, i;
         double precision, dimension(:), allocatable :: xMinLoc, xMaxLoc;
@@ -135,20 +135,27 @@ contains
 			effectComm = MPI_COMM_WORLD
 		end if
 
-        nDim = size(xPoints, 2)
+        nDim = size(xPoints, 1)
 
-        allocate(xMinLoc(nDim))
+		allocate(xMinLoc(nDim))
         allocate(xMaxLoc(nDim))
 
-        xMinLoc = minval(xPoints, 1)
-        xMaxLoc = maxval(xPoints, 1)
+       	xMinLoc = minval(xPoints, 2)
+        xMaxLoc = maxval(xPoints, 2)
+
+        !call dispCarvalhol(xMinLoc, "xMinLoc")
+        !call dispCarvalhol(xMaxLoc, "xMaxLoc")
 
 		do i = 1, nDim
+			!write(*,*) "i = ", i
         	call MPI_ALLREDUCE (xMinLoc(i), xMinGlob(i), 1, MPI_DOUBLE_PRECISION, &
         						MPI_MIN, effectComm, code)
         	call MPI_ALLREDUCE (xMaxLoc(i), xMaxGlob(i), 1, MPI_DOUBLE_PRECISION, &
         						MPI_MAX, effectComm, code)
         end do
+
+        !call dispCarvalhol(xMinGlob, "xMinGlob")
+        !call dispCarvalhol(xMaxGlob, "xMaxGlob")
 
         deallocate(xMinLoc)
         deallocate(xMaxLoc)
@@ -302,39 +309,44 @@ contains
 		double precision :: tolerance = 1.0d-6, increment;
 
 		!Matrix of distances between points: distMatrix (point 1, point 2, dimension)
-		nDim        = size(xPoints, 2)
-		nPoints     = size(xPoints, 1)
+		nDim        = size(xPoints, 1)
+		nPoints     = size(xPoints, 2)
 		deltaMatrix = 0;
 
 		allocate(minMask    (nPoints))
-		allocate(uniqMask   (nPoints, nDim))
+		allocate(uniqMask   (nDim, nPoints))
 
-		!Buildin the unicity mask
+		!call DispCarvalhol(transpose(xPoints),"transpose(xPoints)", nColumns = 15)
+
+		!Building the unicity mask
 		do i = 1, nDim
-			uniqMask(:,i) = .true.
+			uniqMask(i,:) = .true.
 			do j = 1, nPoints
-				if(uniqMask(j,i)) then
+				if(uniqMask(i,j)) then
 					do k = j + 1, nPoints
-						if(xPoints(k, i) == xPoints(j, i)) then
-							uniqMask(k,i) = .false.
+						if(xPoints(i, k) == xPoints(i, j)) then
+							uniqMask(i,k) = .false.
 						end if
 					end do
 				end if
 			end do
 		end do
 
+		!call DispCarvalhol(transpose(uniqMask(:,1:20)),"transpose(uniqMask(:,1:20))", nColumns = 15)
+		!call DispCarvalhol(transpose(uniqMask(:,:)),"transpose(uniqMask(:,:))", nColumns = 15)
+
 		!Building the delta matrix
 		deltaMatrix = 0
 		do i = 1, nDim
-			minMask  = uniqMask(:,i)
+			minMask  = uniqMask(i,:)
 			nFactors = count(minMask)
 			do j = 1, nFactors - 1
-				pos          = minloc(xPoints(:,i), dim = 1, mask = minMask)
+				pos          = minloc(xPoints(i,:), dim = 1, mask = minMask)
 				minMask(pos) = .false.
-				posNeigh     = minloc(xPoints(:,i), dim = 1, mask = minMask)
-				increment    = (xPoints(posNeigh,i) - xPoints(pos,i)) / 2
-				deltaMatrix(pos     , i) = deltaMatrix(pos     , i) + increment
-				deltaMatrix(posNeigh, i) = deltaMatrix(posNeigh, i) + increment
+				posNeigh     = minloc(xPoints(i,:), dim = 1, mask = minMask)
+				increment    = (xPoints(i, posNeigh) - xPoints(i, pos)) / 2
+				deltaMatrix(i, pos)      = deltaMatrix(i, pos     ) + increment
+				deltaMatrix(i, posNeigh) = deltaMatrix(i, posNeigh) + increment
 
 				!!Supposing the extremes symetrics
 				!if (pos == 1) deltaMatrix(pos     , i) = deltaMatrix(pos     , i) + increment
@@ -342,15 +354,17 @@ contains
 			end do
 		end do
 
+		!call DispCarvalhol(deltaMatrix,"deltaMatrix", nColumns = 15)
+
 		!Filling the rest o the delta matrix (repeated values)
 		do i = 1, nDim
-			uniqMask(:,i) = .true.
+			uniqMask(i, :) = .true.
 			do j = 1, nPoints
-				if(uniqMask(j,i)) then
+				if(uniqMask(i, j)) then
 					do k = j + 1, nPoints
-						if(xPoints(k, i) == xPoints(j, i)) then
-							deltaMatrix(k,i) = deltaMatrix(j,i)
-							uniqMask(k,i) = .false.
+						if(xPoints(i, k) == xPoints(i, j)) then
+							deltaMatrix(i,k) = deltaMatrix(i,j)
+							uniqMask(i,k) = .false.
 						end if
 					end do
 				end if
@@ -358,8 +372,8 @@ contains
 		end do
 
 
-		deallocate(minMask)
-		deallocate(uniqMask)
+		if(allocated(minMask))  deallocate(minMask)
+		if(allocated(uniqMask)) deallocate(uniqMask)
 
     end subroutine set_DeltaMatrix
 
@@ -378,12 +392,13 @@ contains
 		!LOCAL VARIABLES
 		integer          :: i, nDim, nPoints;
 
-		nDim        = size(xPoints, 2)
-		nPoints     = size(xPoints, 1)
+		nDim    = size(xPoints, 1)
+		nPoints = size(xPoints, 2)
 
 		!Building the distance Matrix
 		do i = 1, nPoints
-			distMatrix(:, i, :) = xPoints;
+			!write(*,*) "i = ", i
+			distMatrix(i, :, :) = transpose(xPoints);
 		end do
 		do i = 1, nDim
 			distMatrix(:, :, i) = transpose(distMatrix(:, :, i)) - distMatrix(:, :, i)

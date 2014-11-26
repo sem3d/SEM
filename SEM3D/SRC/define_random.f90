@@ -224,12 +224,13 @@ contains
     !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-	subroutine build_random_properties(Tdomain, rg, mat, xPoints, prop)
+	subroutine build_random_properties(Tdomain, rg, mat, xPoints, prop, method)
 	    implicit none
 	    !INPUT
 	    type(domain)    , intent(inout), target :: Tdomain
 	    integer         , intent(in)            :: rg, mat
 	    real            , intent(in),   dimension(0:, 0:) :: xPoints;
+	    integer         , intent(in),   optional          :: method
 	    !OUTPUT
 	    real        , intent(out), dimension(0:, 0:) :: prop !Properties
 	    !LOCAL
@@ -239,6 +240,7 @@ contains
 	    integer :: error, code
 	    integer :: LimPML1, LimPML2, LimPML3
 	    integer :: nProp = 3
+	    integer :: effecMethod
 	    logical, dimension(:), allocatable :: calculate
 	    logical :: face_X, face_Y, face_Z, edge_XY, edge_YZ, edge_ZX, vertex_XYZ
     	real, dimension(0:2) :: pointProp, avgProp;
@@ -251,6 +253,17 @@ contains
     	do i = 0, nProp - 1
             if(Tdomain%sSubDomain(mat)%varProp(i) <= 0) calculate(i) = .false.
     	end do
+
+    	effecMethod = 1;
+    	if (present(method)) then
+    		if((method > 0) .and. (method<3)) then
+    			effecMethod = method
+    		else
+    			effecMethod = 1
+    			write(*,*) "WARNING! The chosen method is not an avaiable choice - method = ", method
+    			write(*,*) "         The method was automatically setted - method = ", effecMethod
+    		end if
+    	end if
 
 	    avgProp = [Tdomain%sSubDomain(mat)%Ddensity, &
 	               Tdomain%sSubDomain(mat)%DLambda,  &
@@ -274,29 +287,39 @@ contains
 			!write(*,*) "Material ", mat, " is not a PML"
             !write(*,*) "prop BEFORE RANDOM FIELD CREATION = ", prop(:,0)
 
-!            call createStandardGaussianFieldUnstruct (&
-!                xPoints(:, :),                        &
-!                Tdomain%sSubDomain(mat)%corrL,        &
-!                Tdomain%sSubDomain(mat)%corrMod,      &
-!                nProp,                                &
-!                prop(:, :),                           &
-!                Tdomain%sSubDomain(mat)%chosenSeed,   &
-!                Tdomain%sSubDomain(mat)%MinBound,     &
-!                Tdomain%sSubDomain(mat)%MaxBound,     &
-!                Tdomain%communicateur,                &
-!                calculate)
+			select case(effecMethod)
+				case( 1 ) !Victor
+					write(*,*) "Victor's method"
+		            call createStandardGaussianFieldUnstructVictor(&
+		                 xPoints(:, :),                            &
+		                 Tdomain%sSubDomain(mat)%corrL,            &
+		                 Tdomain%sSubDomain(mat)%corrMod,          &
+		                 nProp,                                    &
+		                 prop(:, :),                               &
+		                 Tdomain%sSubDomain(mat)%chosenSeed,       &
+		                 Tdomain%sSubDomain(mat)%MinBound,         &
+		                 Tdomain%sSubDomain(mat)%MaxBound,         &
+		                 Tdomain%communicateur,                    &
+		                 calculate)
 
-            call createStandardGaussianFieldUnstructVictor(&
-                 xPoints(:, :),                            &
-                 Tdomain%sSubDomain(mat)%corrL,            &
-                 Tdomain%sSubDomain(mat)%corrMod,          &
-                 nProp,                                    &
-                 prop(:, :),                               &
-                 Tdomain%sSubDomain(mat)%chosenSeed,       &
-                 Tdomain%sSubDomain(mat)%MinBound,         &
-                 Tdomain%sSubDomain(mat)%MaxBound,         &
-                 Tdomain%communicateur,                    &
-                 calculate)
+		       case( 2 ) !Shinozuka
+		       		write(*,*) "Shinozuka's method"
+		            call createStandardGaussianFieldUnstructShinozuka (&
+		                xPoints(:, :),                                 &
+		                Tdomain%sSubDomain(mat)%corrL,        		   &
+		                Tdomain%sSubDomain(mat)%corrMod,      		   &
+		                nProp,                                		   &
+		                prop(:, :),                           		   &
+		                Tdomain%sSubDomain(mat)%chosenSeed,   		   &
+		                Tdomain%sSubDomain(mat)%MinBound,     		   &
+		                Tdomain%sSubDomain(mat)%MaxBound,     		   &
+		                Tdomain%communicateur,                		   &
+		                calculate)
+
+				case default
+					write(*,*) "ERROR! The chosen method is not an avaiable choice"
+					call MPI_ABORT(Tdomain%communicateur, error, code)
+            end select
 
 			!call dispCarvalhol(prop, "prop GAUSS", "F30.10")
         	!////////Transfoming Stantard Gaussian Field
@@ -489,37 +512,46 @@ contains
 
 			if(rg == 0) write(*,*) ">>>>Creating Stantard Random Field (PML)"
 			!Creating PML properties
-			allocate(xPointsPML (0:count(PML_Mask(0,:))-1, 0:size(Tdomain%GlobCoord, 1)-1))
+			allocate(xPointsPML (0:size(Tdomain%GlobCoord, 1)-1, 0:count(PML_Mask(0,:))-1))
 			allocate(propPML    (0:count(PML_Mask(0,:))-1, 0:nProp-1))
 			propPML    = -1
-			xPointsPML = transpose(reshape(pack(Tdomain%GlobCoord(:,:), mask = PML_Mask(:,:)), &
-        						   shape = [3, count(PML_Mask(0,:))]))
+			xPointsPML = (reshape(pack(Tdomain%GlobCoord(:,:), mask = PML_Mask(:,:)), &
+        						  shape = [3, count(PML_Mask(0,:))]))
 
         	!write(*,*) "propPML BEFORE RANDOM FIELD CREATION = ", propPML(:,0)
+			select case(effecMethod)
+				case( 1 ) !Victor
+					write(*,*) "Victor's method"
+		            call createStandardGaussianFieldUnstructVictor(&
+		                 xPointsPML(:, :),                         &
+		                 Tdomain%sSubDomain(mat)%corrL,            &
+		                 Tdomain%sSubDomain(mat)%corrMod,          &
+		                 nProp,                                    &
+		                 propPML(:, :),                            &
+		                 Tdomain%sSubDomain(mat)%chosenSeed,       &
+		                 Tdomain%sSubDomain(mat)%MinBound,         &
+		                 Tdomain%sSubDomain(mat)%MaxBound,         &
+		                 Tdomain%communicateur,                    &
+		                 calculate)
 
-!        	call createStandardGaussianFieldUnstruct (&
-!                  xPointsPML(:, :),                   &
-!                  Tdomain%sSubDomain(mat)%corrL,      &
-!                  Tdomain%sSubDomain(mat)%corrMod,    &
-!                  nProp,                              &
-!                  propPML(:, :),                      &
-!                  Tdomain%sSubDomain(mat)%chosenSeed, &
-!                  Tdomain%sSubDomain(mat)%MinBound,   &
-!                  Tdomain%sSubDomain(mat)%MaxBound,   &
-!                  Tdomain%communicateur)
+		       case( 2 ) !Shinozuka
+		       		write(*,*) "Shinozuka's method"
+		            call createStandardGaussianFieldUnstructShinozuka(&
+		                 xPointsPML(:, :),                   		  &
+		                 Tdomain%sSubDomain(mat)%corrL,      		  &
+		                 Tdomain%sSubDomain(mat)%corrMod,    		  &
+		                 nProp,                              		  &
+		                 propPML(:, :),                      		  &
+		                 Tdomain%sSubDomain(mat)%chosenSeed, 		  &
+		                 Tdomain%sSubDomain(mat)%MinBound,   		  &
+		                 Tdomain%sSubDomain(mat)%MaxBound,   		  &
+		                 Tdomain%communicateur,              	   	  &
+		                 calculate)
 
-            call createStandardGaussianFieldUnstructVictor(&
-                 xPointsPML(:, :),                            &
-                 Tdomain%sSubDomain(mat)%corrL,            &
-                 Tdomain%sSubDomain(mat)%corrMod,          &
-                 nProp,                                    &
-                 propPML(:, :),                               &
-                 Tdomain%sSubDomain(mat)%chosenSeed,       &
-                 Tdomain%sSubDomain(mat)%MinBound,         &
-                 Tdomain%sSubDomain(mat)%MaxBound,         &
-                 Tdomain%communicateur,                    &
-                 calculate)
-
+				case default
+					write(*,*) "ERROR! The chosen method is not an avaiable choice"
+					call MPI_ABORT(Tdomain%communicateur, error, code)
+            end select
             deallocate(xPointsPML)
 	        !write(*,*) "propPML BEFORE TRANSFORMATION = ", propPML(:,0)
 
@@ -690,6 +722,71 @@ contains
         deallocate(calculate)
 
 	end subroutine build_random_properties
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+	subroutine read_random_properties(Tdomain, rg, mat, prop,  &
+    								  fileName, folderPath, labels, indexes)
+
+		use sem_hdf5
+		use hdf5
+
+	    implicit none
+	    !INPUT
+	    type(domain)    , intent(inout), target :: Tdomain
+	    integer         , intent(in)            :: rg, mat
+        character (len=*)                , intent(in) :: filename;
+        character(len=*)                 , intent(in) :: folderPath
+        character(len=*) , dimension(1:), optional  , intent(in) :: labels
+        integer          , dimension(1:), optional  , intent(in) :: indexes
+	    !OUTPUT
+	    real        , intent(out), dimension(0:, 0:) :: prop !Properties
+	    !LOCAL
+    	character (len=12) :: numberStr, rangStr;
+    	character(len=110) :: fileHDF5Name, fullPath !File name
+    	integer            :: i, error
+    	integer(HID_T)     :: file_id
+    	real,    allocatable, dimension(:,:) :: rtemp2
+
+    	write(*,*) "Reading properties from file"
+
+		if(.not. present(labels)) then
+			write(rangStr,'(I)'  ) rg
+			rangStr      = adjustL(rangStr)
+	        fileHDF5Name = trim(fileName)//"-proc"//trim(rangStr)//".h5"
+	    else
+	    	fileHDF5Name = fileName
+	    	do i = 1, size(labels)
+	    		fileHDF5Name =  string_join(fileHDF5Name,stringNumb_join(labels(i), indexes(i)))
+	    	end do
+	    end if
+
+	    fileHDF5Name = string_join(fileHDF5Name,".h5")
+	    fullPath     = string_join(folderPath,"/"//fileHDF5Name)
+
+	    write(*,*) "fileHDF5Name =",fileHDF5Name
+	    write(*,*) "fullPath =",fullPath
+
+	    file_id = 12
+	    call h5open_f(error) ! Initialize FORTRAN interface.
+	    call h5fopen_f(trim(fullPath), H5F_ACC_RDONLY_F, file_id, error)
+		do i = 0, size(prop, 2)-1
+			write(*,*) "i = ", i
+			write(*,*) "fullPath = ", fullPath
+			write(*,*) "trim(stringNumb_join('RF_',i+1)) = ", trim(stringNumb_join("RF_",i+1))
+			call read_dataset(file_id, trim(stringNumb_join("RF_",i+1)), rtemp2)
+			!call dispCarvalhol(rtemp2, "rtemp2", "F30.10")
+			prop(:,i:i) = rtemp2(:,:)
+
+			deallocate(rtemp2)
+		end do
+	    call h5fclose_f(file_id, error) ! Close the file.
+	    call h5close_f(error) ! Close FORTRAN interface.
+
+	end subroutine read_random_properties
 
 
 !TRASH-------------------------

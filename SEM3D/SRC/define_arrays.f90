@@ -69,6 +69,7 @@ subroutine Define_Arrays(Tdomain, rg)
     real            , dimension(:)   , allocatable :: avgProp;
     double precision, dimension(:, :), allocatable :: prop !Properties
     character(len=110) , dimension(:), allocatable :: HDF5NameList
+    integer                                        :: randMethod = 1 !1 for Victor's method, 2 for Shinozuka's
 
 	!END Modif Random Field
 
@@ -92,9 +93,13 @@ subroutine Define_Arrays(Tdomain, rg)
 
 	!Building subdomain masks and counting number of points per subdomain
 	do mat = 0, Tdomain%n_mat - 1
+		allocate(Tdomain%sSubDomain(mat)%globCoordMask(0:size(Tdomain%GlobCoord,1)-1,  &
+	        	 									   0:size(Tdomain%GlobCoord,2)-1))
 		call build_coord_mask(Tdomain, mat)
 	    nSubDPoints(mat) = count(Tdomain%sSubDomain(mat)%globCoordMask(0,:)) !Identifier of number of points to the XMF file
 	end do
+
+	!call dispCarvalhol(Tdomain%sSubDomain(0)%globCoordMask(:,:), "Tdomain%sSubDomain(0)%globCoordMask(:,:)")
 
 	if(Tdomain%any_Random) call define_random_subdomains(Tdomain, rg)
 
@@ -129,7 +134,8 @@ subroutine Define_Arrays(Tdomain, rg)
 	if(rg == 0) write(*,*) ">>>>Building and applying properties per subdomain"
 
 
-!	write(*,*) ">>>>Building and applying properties per subdomain"
+
+	!write(*,*) ">>>>Building and applying properties per subdomain"
 	do mat = 0, Tdomain%n_mat - 1
 		if(rg == 0) write(*,*) ""
 		if(rg == 0) write(*,*) "///////////MATERIAL ", mat, " in rang ", rg
@@ -146,12 +152,12 @@ subroutine Define_Arrays(Tdomain, rg)
 
 	    else
 			if(rg == 0) write(*,*) ">>>>Allocating Local Coordinates (xPoints) and properties (prop)"
-	        allocate(xPoints (0:nSubDPoints(mat)-1, 0:size(Tdomain%GlobCoord, 1)-1)) !Subdomain coordinates ((:,0) = X, (:,1) = Y, (:,2) = Z) per proc
+	        allocate(xPoints (0:size(Tdomain%GlobCoord, 1)-1, 0:nSubDPoints(mat)-1)) !Subdomain coordinates ((:,0) = X, (:,1) = Y, (:,2) = Z) per proc
 	        allocate(prop(0:nSubDPoints(mat)-1, 0:nProp-1)) !Subdomain properties Matrix ((:,0) = Dens, (:,1) = Lambda, (:,2) = Mu) per proc
 
-	        xPoints = transpose(reshape(pack(Tdomain%GlobCoord(:,:), &
-	        							mask = Tdomain%sSubDomain(mat)%globCoordMask(:,:)), &
-	            						shape = [3, nSubDPoints(mat)]))
+	        xPoints = reshape(pack(Tdomain%GlobCoord(:,:), &
+	        					   mask = Tdomain%sSubDomain(mat)%globCoordMask(:,:)), &
+	            			  shape = [3, nSubDPoints(mat)])
 	        avgProp = [Tdomain%sSubDomain(mat)%Ddensity, &
 	            	   Tdomain%sSubDomain(mat)%DLambda,  &
 	            	   Tdomain%sSubDomain(mat)%DMu]
@@ -166,8 +172,13 @@ subroutine Define_Arrays(Tdomain, rg)
 	!////////////////////
 
 	        if(Tdomain%sSubdomain(assocMat)%material_type == "R") then
-	        	call build_random_properties(Tdomain, rg, mat, xPoints, prop)
-
+	        	if(.not. Tdomain%logicD%run_restart) then
+	        		call build_random_properties(Tdomain, rg, mat, xPoints, prop, randMethod) !1 for Victor's method, 2 for Shinozuka's
+				else
+					call read_random_properties(Tdomain, rg, mat, prop, &
+					                            trim(procFileName), trim(h5folder), &
+					                            ["_proc", "_subD"], [rg, mat])
+				end if
 	!////////////////////
 	!//////////////////// CASE MATERIAL_EARTHCHUNK AND MATERIAL_GRADIENT (TO BE REMODELED)
 	!////////////////////
@@ -391,16 +402,16 @@ subroutine Define_Arrays(Tdomain, rg)
 	!Writing XMF File
 	if(rg == 0) write(*,*) ">>>>Writing XMF file"
 	!write(*,*) "HDF5NameList in rang ", rg, " = ", HDF5NameList
-	call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, trim(string_join(procFileName,"-byProc-")), rg, trim(XMFfolder), &
+	call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, Tdomain%n_dime, trim(string_join(procFileName,"-byProc-")), rg, trim(XMFfolder), &
     					 Tdomain%communicateur, trim(h5_to_xmf), ["Density","Lambda","Mu"], byProc = .true.)
-	call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, trim(string_join(procFileName,"-bySubD-")), rg, trim(XMFfolder), &
+	call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, Tdomain%n_dime, trim(string_join(procFileName,"-bySubD-")), rg, trim(XMFfolder), &
     					 Tdomain%communicateur, trim(h5_to_xmf), ["Density","Lambda","Mu"], byProc = .false.)
   	!if(rg == 0) write(*,*) "After XMF creation"
-
-	!Converting "R" subdomains to "S" subdomains (same treatement from now on)
-	do mat = 0, Tdomain%n_mat - 1
-		if(Tdomain%sSubdomain(mat)%material_type == "R") Tdomain%sSubdomain(mat)%material_type = "S"
-	end do
+!
+!	!Converting "R" subdomains to "S" subdomains (same treatement from now on)
+!	do mat = 0, Tdomain%n_mat - 1
+!		if(Tdomain%sSubdomain(mat)%material_type == "R") Tdomain%sSubdomain(mat)%material_type = "S"
+!	end do
 
 !	!Printing for verification
 !	do n = 0,Tdomain%n_elem-1

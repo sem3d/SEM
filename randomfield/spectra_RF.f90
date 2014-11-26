@@ -43,6 +43,43 @@ contains
 !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+    subroutine set_rMax(corrMod, rMax, corrL);
+    	!INPUT
+        character (len=15),                intent(in) :: corrMod;
+        double precision,   dimension(:),  intent(in), optional :: corrL;
+
+        !OUTPUT
+        double precision, dimension(:),   intent(out) :: rMax;
+
+        !LOCAL VARIABLES
+        double precision :: pi = 3.1415926535898
+        integer          :: i
+        double precision, dimension(:), allocatable:: corrL_effec
+
+        allocate(corrL_effec (size(rMax)))
+
+		if (present(corrL)) corrL_effec = corrL
+		if (.not. present(corrL)) corrL_effec = 1
+!        do i = 1, 100
+!        	kMax = i/10.0 * corrL(:)
+!        	write(*,*) "kMax = ", kMax
+!        	write(*,*) "Spectrum = ", get_SpectrumND(kMax, corrMod, corrL)
+!        	call DispCarvalhol (kMax, "kMax")
+!        	call DispCarvalhol (get_SpectrumND(kMax, corrMod, corrL), "Spectrum")
+!        end do
+
+    	select case(corrMod)
+   				case("gaussian")
+				rMax(:) = 2*pi*corrL_effec(:); !CRITERIA STILL TO BE TESTED
+   		end select
+
+   		deallocate(corrL_effec)
+
+    end subroutine set_rMax
+
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
     subroutine set_kSign(kSign);
     	!INPUT and OUTPUT
         double precision,   dimension(:, :), intent(inout) :: kSign;
@@ -100,8 +137,12 @@ contains
 
 				!MEU
 				Sk = exp(-dot_product(kVector**2, corrL_effec**2)/(4.0d0*pi)); !Amplitude part "product(corrL)" is external to the function
+				!write(*,*) "Sk = ", Sk
+				!write(*,*) "kVector = ", kVector
 
         end select
+
+        deallocate(corrL_effec)
 
     end function get_SpectrumND
 

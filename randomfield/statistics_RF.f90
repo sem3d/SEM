@@ -40,8 +40,8 @@ contains
 
 		Nmc          = size(randField, 2)
 		nPoints      = size(randField, 1)
-		nDim         = size(xPoints, 2)
-		xNTotal  	 = size(xPoints, 1)
+		nDim         = size(xPoints, 1)
+		xNTotal  	 = size(xPoints, 2)
 		globalAvg    = -1.0d0
 		globalStdDev = -1.0d0
 
@@ -62,7 +62,7 @@ contains
 		end if
 
 		!Calculating Correlation Length (should be reformulated to take advantage of matrix symmetry)
-		call set_CorrelationLengthUnstruct(randField, xPoints, procCorrL)
+!		call set_CorrelationLengthUnstruct(randField, xPoints, procCorrL)
 
 		!Setting variables to calculate Average and Standard Deviation (by event and global)
 		sumRF(:)       = sum( randField    , dim = 1)
@@ -84,7 +84,7 @@ contains
 			globalAvg    = sum(totalSumRF)/dble(xNTotal*nb_procs*Nmc);
 			globalStdDev = sqrt(sum(totalSumRFsquare)/dble(xNTotal*Nmc*nb_procs) &
 		              	   - (globalAvg)**2)
-		    globalCorrL  = globalCorrL / nb_procs
+		    !globalCorrL  = globalCorrL / nb_procs
 
 		    !call DispCarvalhol(evntAvg   , "evntAvg")
 		    !call DispCarvalhol(evntStdDev, "evntStdDev")
@@ -116,22 +116,22 @@ contains
 		double precision :: tolerance = 1.0d-6;
 
 		Nmc     = size(randField, 2)
-		nPoints = size(xPoints, 1)
-		nDim    = size(xPoints, 2)
+		nPoints = size(xPoints, 2)
+		nDim    = size(xPoints, 1)
 
 		allocate(covMatrix(nPoints, nPoints))
 		allocate(sumOthers(nPoints, nPoints))
-		allocate(deltaMatrix(nPoints, nDim))
+		allocate(deltaMatrix(nDim, nPoints))
 		allocate(distMatrix(nPoints, nPoints, nDim))
 
 		call set_CovMatrix(randField, covMatrix)
 		call set_DeltaMatrix(xPoints, deltaMatrix)
 		call set_DistMatrix(xPoints, distMatrix)
 
-		!call DispCarvalhol(xPoints,"xPoints")
-		!call DispCarvalhol(covMatrix,"covMatrix", nColumns = 15)
-		!call DispCarvalhol(distMatrix,"distMatrix", nColumns = 15)
-		!call DispCarvalhol(deltaMatrix,"deltaMatrix", nColumns = 15)
+!		call DispCarvalhol(xPoints,"xPoints")
+!		call DispCarvalhol(covMatrix,"covMatrix", nColumns = 15)
+!		call DispCarvalhol(deltaMatrix,"deltaMatrix", nColumns = 15)
+!		call DispCarvalhol(distMatrix,"distMatrix", nColumns = 15)
 
 		do i = 1, nDim
 			!write(*,*) "nDim = ", i, "-------------------------"
@@ -147,19 +147,19 @@ contains
 
 			!call DispCarvalhol(sumOthers,"sumOthers BEFORE")
 			do j = 1, nPoints
-				sumOthers(:,j) = deltaMatrix(j, i) * sumOthers(:,j)
+				sumOthers(:,j) = deltaMatrix(i, j) * sumOthers(:,j)
 			end do
 			!call DispCarvalhol(sumOthers,"sumOthers AFTER")
 
 			procCorrL(i) = sum(sumOthers)/sqrt(dble(nFactors))
 		end do
+!
+!		call DispCarvalhol(procCorrL,"procCorrL")
 
-		!call DispCarvalhol(procCorrL,"procCorrL")
-
-		deallocate(distMatrix)
-		deallocate(covMatrix)
-		deallocate(deltaMatrix)
-		deallocate(sumOthers)
+		if(allocated(distMatrix))  deallocate(distMatrix)
+		if(allocated(covMatrix))   deallocate(covMatrix)
+		if(allocated(deltaMatrix)) deallocate(deltaMatrix)
+		if(allocated(sumOthers))   deallocate(sumOthers)
 
 	end subroutine set_CorrelationLengthUnstruct
 

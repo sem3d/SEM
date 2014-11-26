@@ -90,11 +90,7 @@ contains
         case(13)
             !Double-M wavelet (Al Shaer et al 2008)
             CompSource = DM(time, Sour%tau_b,Sour%Q,Sour%X,Sour%Y,Sour%L,Sour%v,Sour%d,Sour%a)
-open(171,file='compsource.txt',action='write')
-write(171,*)'eu existo e estou me fazendo'
-write(171,*)Sour%tau_b,Sour%Q,Sour%X,Sour%Y,Sour%L,Sour%v,Sour%d,Sour%a
-write(171,*)CompSource
-close(171)
+
         end select
         CompSource = CompSource*Sour%amplitude_factor
         return
@@ -306,15 +302,7 @@ close(171)
         ! DoubleM (Al Shaer et al 2008)
         real, intent(in) :: time, tau,Q,X,Y,L,v,d,a
 
-open(155,file='source.txt',action='write')
-
-write(155,*)tau,Q,X,Y,L,v,d,a
-write(155,*)'eu existo e estou me fazendo'
-
         DM = Q*Y/2*((X)**(((v*(time-tau)-a)**2/d**2))+(X)**(((v*(time-tau)-a-L)**2/d**2)))
-write(155,*)time,DM
-
-close(155)
 
         return
     end function DM
