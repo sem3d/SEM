@@ -171,20 +171,16 @@ subroutine Define_Arrays(Tdomain, rg)
 	!//////////////////// CASE R
 	!////////////////////
 
-	        if(Tdomain%sSubdomain(assocMat)%material_type == "R") then
-	        	if(.not. Tdomain%logicD%run_restart) then
-	        		call build_random_properties(Tdomain, rg, mat, xPoints, prop, randMethod) !1 for Victor's method, 2 for Shinozuka's
-				else
-					call read_random_properties(Tdomain, rg, mat, prop, &
-					                            trim(procFileName), trim(h5folder), &
-					                            ["_proc", "_subD"], [rg, mat])
-				end if
+	        if(Tdomain%sSubdomain(assocMat)%material_type == "R" .and. (.not. Tdomain%logicD%run_restart)) then
+	        	call build_random_properties(Tdomain, rg, mat, xPoints, prop, randMethod) !1 for Victor's method, 2 for Shinozuka's
+
 	!////////////////////
 	!//////////////////// CASE MATERIAL_EARTHCHUNK AND MATERIAL_GRADIENT (TO BE REMODELED)
 	!////////////////////
 
-	        else if (Tdomain%sSubDomain(mat)%material_definition == MATERIAL_EARTHCHUNK .or. &
-	        		 Tdomain%sSubDomain(mat)%material_definition == MATERIAL_GRADIENT) then
+	        else if ((Tdomain%sSubDomain(mat)%material_definition == MATERIAL_EARTHCHUNK .or. &
+	        		  Tdomain%sSubDomain(mat)%material_definition == MATERIAL_GRADIENT)       &
+	        		 .and. (.not. Tdomain%logicD%run_restart)) then
 				write(*,*) "WARNING material definition is 'MATERIAL_EARTHCHUNK' or 'MATERIAL_GRADIENT', not tested after random material integration"
 				do m = 0, Tdomain%sSubDomain(mat)%nElem - 1
 		    		n = Tdomain%sSubDomain(mat)%elemList(m)
@@ -354,11 +350,18 @@ subroutine Define_Arrays(Tdomain, rg)
 	!////////////////////
 	!//////////////////// CASE MATERIAL_CONSTANT AND OTHERS
 	!////////////////////
-	        else
+	        else if (.not. Tdomain%logicD%run_restart) then
 	        	if(rg == 0) write(*,*) ">>>>Building constant properties"
 	            do i = 0, nProp - 1
 	                prop(:,i) = avgProp(i)
 	            end do
+	!////////////////////
+	!//////////////////// CASE MATERIAL READ FROM FILE
+	!////////////////////
+	 		else if (Tdomain%logicD%run_restart) then
+				call read_properties_from_file(Tdomain, rg, mat, prop, &
+					                        trim(procFileName), trim(h5folder), &
+					                        ["_proc", "_subD"], [rg, mat])
 			end if
 
 	!////////////////////

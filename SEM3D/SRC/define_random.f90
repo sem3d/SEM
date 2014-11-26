@@ -728,8 +728,8 @@ contains
     !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-	subroutine read_random_properties(Tdomain, rg, mat, prop,  &
-    								  fileName, folderPath, labels, indexes)
+	subroutine read_properties_from_file(Tdomain, rg, mat, prop,  &
+    								     fileName, folderPath, labels, indexes)
 
 		use sem_hdf5
 		use hdf5
@@ -786,7 +786,7 @@ contains
 	    call h5fclose_f(file_id, error) ! Close the file.
 	    call h5close_f(error) ! Close FORTRAN interface.
 
-	end subroutine read_random_properties
+	end subroutine read_properties_from_file
 
 
 !TRASH-------------------------
