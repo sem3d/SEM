@@ -22,7 +22,7 @@ subroutine Newmark_PMC (Tdomain,Dt)
 
     ! local variables
     integer :: n, mat, iter, n_it_max
-    real :: bega, gam1, alpha, timelocal
+    real :: timelocal
     !integer, dimension (MPI_STATUS_SIZE) :: status
 
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a
@@ -31,19 +31,13 @@ subroutine Newmark_PMC (Tdomain,Dt)
     ! NO NO NO !!! SO FAR IT IS A SIMPLE MIDPOINT METHOD !!!
     ! #################################################### !
 
-    alpha =Tdomain%TimeD%alpha
-    bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
-    gam1 = 1. / Tdomain%TimeD%gamma
     n_it_max = 4
-    timelocal = Tdomain%TimeD%rtime + 0.5*Dt
-
 
     ! Initialization Phase
     do n=0,Tdomain%n_elem-1
         ! Computation of the  prediction :
         Tdomain%specel(n)%Strain0(:,:,:) = Tdomain%specel(n)%Strain(:,:,:)
         Tdomain%specel(n)%V0(:,:,:)      = Tdomain%specel(n)%Veloc (:,:,:)
-        !mat = Tdomain%specel(n)%mat_index
         !call Prediction_Elem_NPMC (Tdomain%specel(n), Tdomain%sSubDomain(mat)%hTprimex, &
         !                           Tdomain%sSubDomain(mat)%hprimez, Dt)
     enddo
@@ -53,15 +47,17 @@ subroutine Newmark_PMC (Tdomain,Dt)
 
     do while (iter<n_it_max)
 
+        ! Local time is tn for the first step, and tn+1/2 for the next ones
+        if (iter==0) then
+            timelocal = Tdomain%TimeD%rtime
+        else
+            timelocal = Tdomain%TimeD%rtime + 0.5*Dt
+        endif
+
         ! Prediction Phase :
         do n=0,Tdomain%n_elem-1
-            !if (iter == 0) then
-            !    Tdomain%specel(n)%Strain = 0.5 * Tdomain%specel(n)%Strain0
-            !    Tdomain%specel(n)%Veloc  = 0.5 * Tdomain%specel(n)%V0
-            !else
-                Tdomain%specel(n)%Strain = 0.5 * (Tdomain%specel(n)%Strain0 + Tdomain%specel(n)%Strain)
-                Tdomain%specel(n)%Veloc  = 0.5 * (Tdomain%specel(n)%V0      + Tdomain%specel(n)%Veloc )
-            !endif
+            Tdomain%specel(n)%Strain = 0.5 * (Tdomain%specel(n)%Strain0 + Tdomain%specel(n)%Strain)
+            Tdomain%specel(n)%Veloc  = 0.5 * (Tdomain%specel(n)%V0      + Tdomain%specel(n)%Veloc )
         enddo
 
         ! Building second members (= forces) of systems.
@@ -133,16 +129,10 @@ subroutine Newmark_PMC_explicit (Tdomain,Dt)
 
     ! local variables
     integer :: n, mat, iter, n_it_max, nf, nface
-    real :: bega, gam1, alpha, timelocal
+    real :: timelocal
     !integer, dimension (MPI_STATUS_SIZE) :: status
 
-
-    alpha =Tdomain%TimeD%alpha
-    bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
-    gam1 = 1. / Tdomain%TimeD%gamma
     n_it_max = 4
-    timelocal = Tdomain%TimeD%rtime + 0.5*Dt
-
 
     ! Initialization Phase
     do n=0,Tdomain%n_elem-1
@@ -156,15 +146,17 @@ subroutine Newmark_PMC_explicit (Tdomain,Dt)
 
     do while (iter<n_it_max)
 
+        ! Local time is tn for the first step, and tn+1/2 for the next ones
+        if (iter==0) then
+            timelocal = Tdomain%TimeD%rtime
+        else
+            timelocal = Tdomain%TimeD%rtime + 0.5*Dt
+        endif
+
         ! Prediction Phase :
         do n=0,Tdomain%n_elem-1
-            if (iter == 0) then
-                Tdomain%specel(n)%Strain = 0.5 * Tdomain%specel(n)%Strain0
-                Tdomain%specel(n)%Veloc  = 0.5 * Tdomain%specel(n)%V0
-            else
-                Tdomain%specel(n)%Strain = 0.5 * (Tdomain%specel(n)%Strain0 + Tdomain%specel(n)%Strain)
-                Tdomain%specel(n)%Veloc  = 0.5 * (Tdomain%specel(n)%V0      + Tdomain%specel(n)%Veloc )
-            endif
+            Tdomain%specel(n)%Strain = 0.5 * (Tdomain%specel(n)%Strain0 + Tdomain%specel(n)%Strain)
+            Tdomain%specel(n)%Veloc  = 0.5 * (Tdomain%specel(n)%V0      + Tdomain%specel(n)%Veloc )
         enddo
 
         ! Building second members (= forces) of systems.
