@@ -101,10 +101,27 @@ int expect_type_integration(yyscan_t scanner, int* type)
     if (tok!=K_ID) goto error;
     if (cmp(scanner,"Newmark"))         { *type = 0; return 1; }
     if (cmp(scanner,"RK4"))             { *type = 1; return 1; }
-    if (cmp(scanner,"Newmark_PMC"))     { *type = 2; return 1; }
-    if (cmp(scanner,"Newmark_PMC_expl")){ *type = 3; return 1; }
+    if (cmp(scanner,"Midpoint"))        { *type = 2; return 1; }
+    if (cmp(scanner,"Newmark_PMC"))     { *type = 3; return 1; }
 error:
-    msg_err(scanner, "Expected Newmark|RK4|Newmark_PMC");
+    msg_err(scanner, "Expected Newmark|RK4|Midpoint|Newmark_PMC");
+    return 0;
+}
+
+
+int expect_type_implicitness(yyscan_t scanner, int* type)
+{
+    int tok;
+    int len;
+
+    if (!expect_eq(scanner)) return 0;
+    tok = skip_blank(scanner);
+    if (tok!=K_ID) goto error;
+    if (cmp(scanner,"explicit"))         { *type = 0; return 1; }
+    if (cmp(scanner,"semi_implicit"))    { *type = 1; return 1; }
+    if (cmp(scanner,"implicit"))         { *type = 2; return 1; }
+error:
+    msg_err(scanner, "Expected explicit|semi_implicit|implicit");
     return 0;
 }
 
@@ -212,6 +229,7 @@ int expect_time_scheme(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"beta")) err=expect_eq_float(scanner, &config->beta,1);
 	else if (cmp(scanner,"gamma")) err=expect_eq_float(scanner, &config->gamma,1);
 	else if (cmp(scanner,"courant")) err=expect_eq_float(scanner, &config->courant,1);
+	else if (cmp(scanner,"implicitness")) err=expect_type_implicitness(scanner, &config->implicitness);
 	else if (cmp(scanner,"type_time_integration")) err=expect_type_integration(scanner, &config->type_timeinteg);
 
 	if (!expect_eos(scanner)) { return 0; }

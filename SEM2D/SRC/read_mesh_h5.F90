@@ -184,7 +184,7 @@ subroutine read_mesh_h5(tDomain)
 
     call coherency_mesh_h5(Tdomain)
 
-    if (Tdomain%type_timeInteg == TIME_INTEG_NEWMARK_PMC) &
+    if (Tdomain%Implicitness == TIME_INTEG_SEMI_IMPLICIT) &
         call set_Vertex_Valence (Tdomain)
 
     call read_material_file(Tdomain)

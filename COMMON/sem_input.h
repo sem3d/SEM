@@ -38,6 +38,7 @@ typedef struct {
     char* run_name;
     // Integration
     int type_timeinteg;
+    int implicitness;
     int accel_scheme;
     int veloc_scheme;
     double sim_time;

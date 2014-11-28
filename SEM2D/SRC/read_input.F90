@@ -88,6 +88,7 @@ subroutine read_input (Tdomain)
 
     Tdomain%Title_simulation = fromcstr(config%run_name)
     Tdomain%Type_TimeInteg = config%type_timeinteg
+    Tdomain%Implicitness   = config%implicitness
     Tdomain%TimeD%acceleration_scheme = config%accel_scheme .ne. 0
     Tdomain%TimeD%velocity_scheme = config%veloc_scheme .ne. 0
     Tdomain%TimeD%duration = config%sim_time

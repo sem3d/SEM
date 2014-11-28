@@ -12,6 +12,7 @@ module sem_c_config
 
        !! Integration
        integer(C_INT) :: type_timeinteg
+       integer(C_INT) :: implicitness
        integer(C_INT) :: accel_scheme
        integer(C_INT) :: veloc_scheme
        real(C_DOUBLE) :: sim_time

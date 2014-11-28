@@ -73,7 +73,7 @@ subroutine  sem()
     real(kind=4), dimension(2) :: tarray
     real(kind=4) :: tref, t_fin, t_ini
     real(kind=4), parameter :: display_iter_time = 5.
-    integer :: interrupt, rg, code, protection
+    integer :: interrupt, rg, code, protection, n_it_max
 
     display_iter = 1
     call MPI_Init(ierr)
@@ -199,6 +199,12 @@ subroutine  sem()
     ! initialisation des temps
     Tdomain%TimeD%rtime = 0
     Tdomain%TimeD%NtimeMin = 0
+    ! Nombre d'iterations pour schemas en temps iteratifs
+    if (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT) then
+        n_it_max = 2
+    elseif (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC) then
+        n_it_max = 4
+    endif
 
     isort = 1
 
@@ -283,10 +289,13 @@ subroutine  sem()
             call Newmark (Tdomain)
         else if (Tdomain%type_timeInteg==TIME_INTEG_RK4) then
             call Runge_Kutta4(Tdomain, Tdomain%TimeD%dtmin)
-        else if (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC) then
-            call Newmark_PMC(Tdomain, Tdomain%TimeD%dtmin)
-        else if (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC_EXPL) then
-            call Newmark_PMC_explicit(Tdomain, Tdomain%TimeD%dtmin)
+        else if (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT .OR. &
+                 Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC) then
+            if (Tdomain%Implicitness==TIME_INTEG_EXPLICIT) then
+                call Newmark_PMC_explicit(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
+            elseif (Tdomain%Implicitness==TIME_INTEG_SEMI_IMPLICIT) then
+                call Newmark_PMC(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
+            endif
         endif
 
         if (ntime==Tdomain%TimeD%NtimeMax-1) then

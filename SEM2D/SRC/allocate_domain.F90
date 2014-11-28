@@ -352,7 +352,7 @@ subroutine allocate_domain (Tdomain)
            Tdomain%svertex(n)%Vect_RK = 0.
         endif
      enddo
-  else if (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC) then
+  else if (Tdomain%Implicitness==TIME_INTEG_SEMI_IMPLICIT) then
      do n = 0, Tdomain%n_elem-1
         ngllx = Tdomain%specel(n)%ngllx
         ngllz = Tdomain%specel(n)%ngllz
@@ -376,7 +376,8 @@ subroutine allocate_domain (Tdomain)
          allocate  (Tdomain%sFace(n)%Smbr(0:ngll-1,0:1))
          Tdomain%sFace(n)%Smbr = 0.
      enddo
-  else if (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC_EXPL) then
+  else if (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT .OR. &
+           Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC ) then
      do n = 0, Tdomain%n_elem-1
         ngllx = Tdomain%specel(n)%ngllx
         ngllz = Tdomain%specel(n)%ngllz

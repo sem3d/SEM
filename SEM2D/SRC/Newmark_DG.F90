@@ -14,24 +14,18 @@ module snewmark_pmc
     implicit none
 contains
 
-subroutine Newmark_PMC (Tdomain,Dt)
+subroutine Newmark_PMC (Tdomain,Dt,n_it_max)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
     real,    intent(in)   :: dt
+    integer, intent(in)   :: n_it_max
 
     ! local variables
-    integer :: n, mat, iter, n_it_max
+    integer :: n, mat, iter
     real :: timelocal
-    !integer, dimension (MPI_STATUS_SIZE) :: status
 
-    ! Predictor-MultiCorrector Newmark Velocity Scheme within a
-    ! Time staggered Stress-Velocity formulation inside PML
-    ! #################################################### !
-    ! NO NO NO !!! SO FAR IT IS A SIMPLE MIDPOINT METHOD !!!
-    ! #################################################### !
-
-    n_it_max = 4
+    ! Predictor-MultiCorrector Newmark Veloci
 
     ! Initialization Phase
     do n=0,Tdomain%n_elem-1
@@ -121,18 +115,17 @@ end subroutine Newmark_PMC
 !! \param type (Domain), intent (INOUT) Tdomain
 !! \param real         , intent (IN)    Dt
 !<
-subroutine Newmark_PMC_explicit (Tdomain,Dt)
+subroutine Newmark_PMC_explicit (Tdomain,Dt,n_it_max)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
     real,    intent(in)   :: dt
+    integer, intent(in)   :: n_it_max
+
 
     ! local variables
-    integer :: n, mat, iter, n_it_max, nf, nface
+    integer :: n, mat, iter, nf, nface
     real :: timelocal
-    !integer, dimension (MPI_STATUS_SIZE) :: status
-
-    n_it_max = 4
 
     ! Initialization Phase
     do n=0,Tdomain%n_elem-1

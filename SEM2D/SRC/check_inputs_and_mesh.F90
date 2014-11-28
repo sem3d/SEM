@@ -17,10 +17,20 @@ subroutine check_inputs_and_mesh(Tdomain)
 
     type(domain), intent(inout)  :: Tdomain
 
+    if (Tdomain%Implicitness .EQ. TIME_INTEG_IMPLICIT) then
+        STOP "ERROR : Implicit methods not yet implemented. Please choose explicit|semi_implicit"
+    endif
+
+    if((Tdomain%Implicitness .EQ. TIME_INTEG_IMPLICIT) .AND. .NOT. &
+      ((Tdomain%type_timeInteg .NE. TIME_INTEG_NEWMARK_PMC) .OR. &
+       (Tdomain%type_timeInteg .NE. TIME_INTEG_MIDPOINT)))  then
+        STOP "ERROR : Semi-Implicit methods are implemented only for midpoint or Newmark_PMC time integration."
+    endif
+
     if ((Tdomain%type_timeInteg .NE. TIME_INTEG_NEWMARK)     .AND. &
         (Tdomain%type_timeInteg .NE. TIME_INTEG_RK4)         .AND. &
-        (Tdomain%type_timeInteg .NE. TIME_INTEG_NEWMARK_PMC) .AND. &
-        (Tdomain%type_timeInteg .NE. TIME_INTEG_NEWMARK_PMC_EXPL)) then
+        (Tdomain%type_timeInteg .NE. TIME_INTEG_MIDPOINT) .AND. &
+        (Tdomain%type_timeInteg .NE. TIME_INTEG_NEWMARK_PMC)) then
         WRITE (*,*) "This choice for time integration does not exist !!!!!"
         STOP "Please choose RK4, Newmark, Newmark_PMC, or Newmark_PMC_expl"
     endif
@@ -36,10 +46,16 @@ subroutine check_inputs_and_mesh(Tdomain)
         STOP "Error : Please choose dg_type = hdg_rp if you want to use Newmark_PMC"
     endif
 
-    if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_NEWMARK_PMC_EXPL) .AND. &
+    if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_NEWMARK_PMC) .AND. &
         (Tdomain%type_elem .NE. GALERKIN_HDG_RP)) then
         WRITE (*,*) "This choice of element for Newmark Predictor Multi Corrector Explicit is not available"
-        STOP "Error : Please choose dg_type = hdg_rp if you want to use Newmark_PMC_expl"
+        STOP "Error : Please choose dg_type = hdg_rp if you want to use Newmark_PMC"
+    endif
+
+    if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_MIDPOINT) .AND. &
+        (Tdomain%type_elem .NE. GALERKIN_HDG_RP)) then
+        WRITE (*,*) "This choice of element for the Midpoint time integration is not available"
+        STOP "Error : Please choose dg_type = hdg_rp if you want to use Midpoint"
     endif
 
     if ((Tdomain%type_bc==DG_BC_FREE) .AND. (Tdomain%type_flux==FLUX_CENTERED)) then

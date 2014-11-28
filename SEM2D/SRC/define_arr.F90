@@ -595,7 +595,7 @@ subroutine define_arrays(Tdomain)
     enddo
 
     ! Calcul des matrices de coefficients CA^-1 et ED^-1 pour HDG en semi-implicite
-    if (Tdomain%Type_timeInteg .EQ. TIME_INTEG_NEWMARK_PMC) then
+    if (Tdomain%Implicitness == TIME_INTEG_SEMI_IMPLICIT) then
         ! Remise a zero des matrices Face%Kinv
         do nf = 0, Tdomain%n_face-1
             Tdomain%sFace(nf)%Kinv(:,:) = 0.
