@@ -20,59 +20,96 @@ contains
     !! \brief This subroutine computes the Penalization Matrix MatPen
     !! of an element on each external node of the element.
     !! It suitable for Hybridizable Discontinuous Galerkin elements only.
+    !! IMPORTANT NOTE : TO OBTAIN THE WILCOX'S METHOD'S RESULTS USING HDG,
+    !! THE Elem%MatPen SHOULD NEVER BE COMPUTED USING THE ACOUSTIC FORMULA.
     !! \param type (Element), intent (INOUT) Elem
     !!
     !<
-    subroutine  compute_MatPen (Elem)
+    subroutine  compute_MatPen (Tdomain,nelem)
 
-        type (Element), intent (INOUT)   :: Elem
-        real, dimension (0:Elem%ngllx-1) :: Zp_x, Zs_x
-        real, dimension (0:Elem%ngllz-1) :: Zp_z, Zs_z
-        integer    :: imin, imax, ngllx, ngllz
+        type (Domain), intent (INOUT) :: Tdomain
+        integer,       intent (IN)    :: nelem
+        type(element), pointer :: Elem
+        real, dimension (0:Tdomain%specel(nelem)%ngllx-1) :: Zp_x, Zs_x
+        real, dimension (0:Tdomain%specel(nelem)%ngllz-1) :: Zp_z, Zs_z
+        integer    :: imin, imax, ngllx, ngllz, nf
 
+        Elem => Tdomain%specel(nelem)
         ngllx = Elem%ngllx ; ngllz = Elem%ngllz
 
         ! Bottom Face :
         call get_iminimax(Elem,0,imin,imax)
+        nf = Elem%Near_Face(0)
         Zp_x(:) = sqrt(Elem%Density(0:ngllx-1,0) *(Elem%Lambda(0:ngllx-1,0)+2.*Elem%Mu(0:ngllx-1,0)))
         Zs_x(:) = sqrt(Elem%Density(0:ngllx-1,0) * Elem%Mu(0:ngllx-1,0))
-        Elem%MatPen(imin:imax,0) = Zp_x(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
-                                 + Zs_x(:)*Elem%Normal_Nodes(imin:imax,1)**2
-        Elem%MatPen(imin:imax,1) = Zs_x(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
-                                 + Zp_x(:)*Elem%Normal_Nodes(imin:imax,1)**2
-        Elem%MatPen(imin:imax,2) =(Zp_x(:)-Zs_x(:))*Elem%Normal_Nodes(imin:imax,0) *Elem%Normal_Nodes(imin:imax,1)
+        if (Elem%Acoustic .AND. (.NOT. Tdomain%sFace(nf)%changing_media)) then
+            Elem%MatPen(imin:imax,0) = Zp_x(:)
+            Elem%MatPen(imin:imax,1) = Zp_x(:)
+            Elem%MatPen(imin:imax,2) = 0.
+        else
+            Elem%MatPen(imin:imax,0) = Zp_x(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
+                                     + Zs_x(:)*Elem%Normal_Nodes(imin:imax,1)**2
+            Elem%MatPen(imin:imax,1) = Zs_x(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
+                                     + Zp_x(:)*Elem%Normal_Nodes(imin:imax,1)**2
+            Elem%MatPen(imin:imax,2) =(Zp_x(:)-Zs_x(:))*Elem%Normal_Nodes(imin:imax,0) &
+                                     * Elem%Normal_Nodes(imin:imax,1)
+        endif
 
         ! Right Face :
         call get_iminimax(Elem,1,imin,imax)
+        nf = Elem%Near_Face(1)
         Zp_z(:) = sqrt(Elem%Density(ngllx-1,0:ngllz-1) * (Elem%Lambda(ngllx-1,0:ngllz-1) &
                                                          + 2.*Elem%Mu(ngllx-1,0:ngllz-1)))
         Zs_z(:) = sqrt(Elem%Density(ngllx-1,0:ngllz-1) *  Elem%Mu(ngllx-1,0:ngllz-1))
-        Elem%MatPen(imin:imax,0) = Zp_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
-                                 + Zs_z(:)*Elem%Normal_Nodes(imin:imax,1)**2
-        Elem%MatPen(imin:imax,1) = Zs_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
-                                 + Zp_z(:)*Elem%Normal_Nodes(imin:imax,1)**2
-        Elem%MatPen(imin:imax,2) =(Zp_z(:)-Zs_z(:))*Elem%Normal_Nodes(imin:imax,0) *Elem%Normal_Nodes(imin:imax,1)
+        if (Elem%Acoustic .AND. (.NOT. Tdomain%sFace(nf)%changing_media)) then
+            Elem%MatPen(imin:imax,0) = Zp_z(:)
+            Elem%MatPen(imin:imax,1) = Zp_z(:)
+            Elem%MatPen(imin:imax,2) = 0.
+        else
+            Elem%MatPen(imin:imax,0) = Zp_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
+                                     + Zs_z(:)*Elem%Normal_Nodes(imin:imax,1)**2
+            Elem%MatPen(imin:imax,1) = Zs_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
+                                     + Zp_z(:)*Elem%Normal_Nodes(imin:imax,1)**2
+            Elem%MatPen(imin:imax,2) =(Zp_z(:)-Zs_z(:))*Elem%Normal_Nodes(imin:imax,0) &
+                                     * Elem%Normal_Nodes(imin:imax,1)
+        endif
 
         ! Top Face :
         call get_iminimax(Elem,2,imin,imax)
+        nf = Elem%Near_Face(2)
         Zp_x(:) = sqrt(Elem%Density(0:ngllx-1,ngllz-1) * (Elem%Lambda(0:ngllx-1,ngllz-1) &
                                                          + 2.*Elem%Mu(0:ngllx-1,ngllz-1)))
         Zs_x(:) = sqrt(Elem%Density(0:ngllx-1,ngllz-1) *  Elem%Mu(0:ngllx-1,ngllz-1))
-        Elem%MatPen(imin:imax,0) = Zp_x(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
-                                 + Zs_x(:)*Elem%Normal_Nodes(imin:imax,1)**2
-        Elem%MatPen(imin:imax,1) = Zs_x(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
-                                 + Zp_x(:)*Elem%Normal_Nodes(imin:imax,1)**2
-        Elem%MatPen(imin:imax,2) =(Zp_x(:)-Zs_x(:))*Elem%Normal_Nodes(imin:imax,0) *Elem%Normal_Nodes(imin:imax,1)
+        if (Elem%Acoustic .AND. (.NOT. Tdomain%sFace(nf)%changing_media)) then
+            Elem%MatPen(imin:imax,0) = Zp_x(:)
+            Elem%MatPen(imin:imax,1) = Zp_x(:)
+            Elem%MatPen(imin:imax,2) = 0.
+        else
+            Elem%MatPen(imin:imax,0) = Zp_x(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
+                                     + Zs_x(:)*Elem%Normal_Nodes(imin:imax,1)**2
+            Elem%MatPen(imin:imax,1) = Zs_x(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
+                                     + Zp_x(:)*Elem%Normal_Nodes(imin:imax,1)**2
+            Elem%MatPen(imin:imax,2) =(Zp_x(:)-Zs_x(:))*Elem%Normal_Nodes(imin:imax,0) &
+                                     * Elem%Normal_Nodes(imin:imax,1)
+        endif
 
         ! Left Face :
         call get_iminimax(Elem,3,imin,imax)
+        nf = Elem%Near_Face(3)
         Zp_z(:) = sqrt(Elem%Density(0,0:ngllz-1) *(Elem%Lambda(0,0:ngllz-1)+2.*Elem%Mu(0,0:ngllz-1)))
         Zs_z(:) = sqrt(Elem%Density(0,0:ngllz-1) * Elem%Mu(0,0:ngllz-1))
-        Elem%MatPen(imin:imax,0) = Zp_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
-                                 + Zs_z(:)*Elem%Normal_Nodes(imin:imax,1)**2
-        Elem%MatPen(imin:imax,1) = Zs_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
-                                 + Zp_z(:)*Elem%Normal_Nodes(imin:imax,1)**2
-        Elem%MatPen(imin:imax,2) =(Zp_z(:)-Zs_z(:))*Elem%Normal_Nodes(imin:imax,0) *Elem%Normal_Nodes(imin:imax,1)
+        if (Elem%Acoustic .AND. (.NOT. Tdomain%sFace(nf)%changing_media)) then
+            Elem%MatPen(imin:imax,0) = Zp_z(:)
+            Elem%MatPen(imin:imax,1) = Zp_z(:)
+            Elem%MatPen(imin:imax,2) = 0.
+        else
+            Elem%MatPen(imin:imax,0) = Zp_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
+                                     + Zs_z(:)*Elem%Normal_Nodes(imin:imax,1)**2
+            Elem%MatPen(imin:imax,1) = Zs_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
+                                     + Zp_z(:)*Elem%Normal_Nodes(imin:imax,1)**2
+            Elem%MatPen(imin:imax,2) =(Zp_z(:)-Zs_z(:))*Elem%Normal_Nodes(imin:imax,0) &
+                                     * Elem%Normal_Nodes(imin:imax,1)
+        endif
 
     end subroutine compute_MatPen
 

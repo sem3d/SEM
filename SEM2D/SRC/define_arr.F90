@@ -591,7 +591,7 @@ subroutine define_arrays(Tdomain)
     ! Calcul des matrices de Penalisation pour les elements HDG
     do n = 0, Tdomain%n_elem-1
         if(Tdomain%Specel(n)%Type_DG .EQ. GALERKIN_HDG_RP) &
-            call compute_MatPen(Tdomain%Specel(n))
+            call compute_MatPen(Tdomain, n)
     enddo
 
     ! Calcul des matrices de coefficients CA^-1 et ED^-1 pour HDG en semi-implicite
