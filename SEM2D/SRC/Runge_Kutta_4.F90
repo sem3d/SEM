@@ -132,15 +132,15 @@ subroutine Runge_Kutta4 (Tdomain, dt)
                      call get_flux_f2el(Tdomain,n,nface,nf)
                  enddo
              endif
-             if(Tdomain%specel(n)%ADEPML) call add_Psi4PML(Tdomain%specel(n))
+             if(Tdomain%specel(n)%ADEPML) call add_Psi4PML(Tdomain%specel(n),.true.)
              if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,n)
              call inversion_massmat(Tdomain%specel(n))
-             if(Tdomain%specel(n)%ADEPML) call update_Psi_RK4(Tdomain%specel(n), &
+             if(Tdomain%specel(n)%ADEPML) call update_Psi_ADEPML(Tdomain%specel(n), &
                                                               Tdomain%sSubDomain(mat)%hprimex,  &
                                                               Tdomain%sSubDomain(mat)%hTprimex, &
                                                               Tdomain%sSubDomain(mat)%hprimez,  &
                                                               Tdomain%sSubDomain(mat)%hTprimez, &
-                                                              coeffs(1),coeffs(2),dt)
+                                                              coeffs(1),coeffs(2),dt,TIME_INTEG_RK4)
              call update_Elem_RK4 (Tdomain%specel(n),coeffs(1),coeffs(2),dt)
           endif
        enddo

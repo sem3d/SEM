@@ -87,6 +87,7 @@ subroutine allocate_domain (Tdomain)
          allocate (Tdomain%specel(n)%PsiSzzz(0:ngllx-1,0:ngllz-1))
          allocate (Tdomain%specel(n)%PsiSxzx(0:ngllx-1,0:ngllz-1))
          allocate (Tdomain%specel(n)%PsiSxzz(0:ngllx-1,0:ngllz-1))
+         allocate (Tdomain%specel(n)%Psi_store(0:ngllx-1,0:ngllz-1,0:7))
          Tdomain%specel(n)%Stress   = 0.
          Tdomain%specel(n)%Acoeff   = 0.
          Tdomain%specel(n)%Ax       = 0.
@@ -103,6 +104,7 @@ subroutine allocate_domain (Tdomain)
          Tdomain%specel(n)%PsiSzzz  = 0.
          Tdomain%specel(n)%PsiSxzx  = 0.
          Tdomain%specel(n)%PsiSxzz  = 0.
+         Tdomain%specel(n)%Psi_store = 0.
      elseif (Tdomain%specel(n)%PML ) then
          allocate (Tdomain%specel(n)%Stress (  0:ngllx-1, 0:ngllz-1, 0:2 ))
          allocate (Tdomain%specel(n)%Forces1 (0:ngllx-1,0:ngllz-1,0:1) )
@@ -334,10 +336,6 @@ subroutine allocate_domain (Tdomain)
            allocate (Tdomain%specel(n)%Vect_RK(0:ngllx-1,0:ngllz-1,0:4))
         endif
         Tdomain%specel(n)%Vect_RK = 0.
-        if (Tdomain%specel(n)%ADEPML) then
-            allocate (Tdomain%specel(n)%Psi_RK(0:ngllx-1,0:ngllz-1,0:7))
-            Tdomain%specel(n)%Psi_RK = 0.
-        endif
      enddo
      do n = 0, Tdomain%n_face-1
         ngll = Tdomain%sFace(n)%ngll

@@ -51,7 +51,7 @@ module selement
        logical :: acoustic
        real, dimension (:),    allocatable :: Coeff_Integr_Faces
        real, dimension(:,:,:), allocatable :: Strain, Strain0
-       real, dimension(:,:,:), allocatable :: Vect_RK, Psi_RK, StressSMBR
+       real, dimension(:,:,:), allocatable :: Vect_RK, Psi_store, StressSMBR
        ! HDG
        real, dimension(:,:), allocatable :: Normal_nodes
        real, dimension(:,:), allocatable :: MatPen, TracFace, Vhat, Dinv
@@ -697,20 +697,74 @@ contains
     !! for the ADE-PML in case of DG or HDG.
     !! \param type (Element), intent (INOUT) Elem
     !<
-    subroutine  add_Psi4PML (Elem)
+    subroutine  add_Psi4PML (Elem, is_half)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
+        logical,        intent (IN)    :: is_half
+        real       :: demi
+
+        demi = 1.
+        if (is_half) demi = 0.5
 
         Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + Elem%PsiVxx(:,:)
         Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + Elem%PsiVzz(:,:)
-        Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + 0.5 * (Elem%PsiVxz(:,:) + Elem%PsiVzx(:,:))
+        Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + demi * (Elem%PsiVxz(:,:) + Elem%PsiVzx(:,:))
         Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + Elem%PsiSxxx(:,:) + Elem%PsiSxzz(:,:)
         Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + Elem%PsiSxzx(:,:) + Elem%PsiSzzz(:,:)
 
         return
     end subroutine add_Psi4PML
 
+    ! ###########################################################
+    !>
+    !! \brief Initialize the memory variables Psi for ADE-PML in a context
+    !! of a predictor-corrector-like time scheme.
+    !! USED ONLY for the ADE-PML in case of DG or HDG.
+    !! \param type (Element), intent (INOUT) Elem
+    !<
+    subroutine  initialize_Psi (Elem)
+        implicit none
+
+        type (Element), intent (INOUT) :: Elem
+
+        Elem%Psi_store(:,:,0) = Elem%PsiSxxx(:,:)
+        Elem%Psi_store(:,:,1) = Elem%PsiSzzz(:,:)
+        Elem%Psi_store(:,:,2) = Elem%PsiSxzx(:,:)
+        Elem%Psi_store(:,:,3) = Elem%PsiSxzz(:,:)
+        Elem%Psi_store(:,:,4) = Elem%PsiVxx(:,:)
+        Elem%Psi_store(:,:,5) = Elem%PsiVxz(:,:)
+        Elem%Psi_store(:,:,6) = Elem%PsiVzx(:,:)
+        Elem%Psi_store(:,:,7) = Elem%PsiVzz(:,:)
+
+        return
+    end subroutine initialize_Psi
+
+    ! ###########################################################
+    !>
+    !! \brief This subroutine computes the predictors at tn+1/2 of the
+    !! second members of the Psi evolutions equations for ADE-PML in a context
+    !! of a predictor-corrector-like time scheme. The predictor here is
+    !! simply Psi(tn+1/2) = 1/2 * (Psi(tn) + Psi(tn+1)).
+    !! USED ONLY for the ADE-PML in case of DG or HDG.
+    !! \param type (Element), intent (INOUT) Elem
+    !<
+    subroutine  Prediction_Psi (Elem)
+        implicit none
+
+        type (Element), intent (INOUT) :: Elem
+
+        Elem%PsiSxxx(:,:) = 0.5 * (Elem%Psi_store(:,:,0) + Elem%PsiSxxx(:,:))
+        Elem%PsiSzzz(:,:) = 0.5 * (Elem%Psi_store(:,:,1) + Elem%PsiSzzz(:,:))
+        Elem%PsiSxzx(:,:) = 0.5 * (Elem%Psi_store(:,:,2) + Elem%PsiSxzx(:,:))
+        Elem%PsiSxzz(:,:) = 0.5 * (Elem%Psi_store(:,:,3) + Elem%PsiSxzz(:,:))
+        Elem%PsiVxx(:,:)  = 0.5 * (Elem%Psi_store(:,:,4) + Elem%PsiVxx(:,:))
+        Elem%PsiVxz(:,:)  = 0.5 * (Elem%Psi_store(:,:,5) + Elem%PsiVxz(:,:))
+        Elem%PsiVzx(:,:)  = 0.5 * (Elem%Psi_store(:,:,6) + Elem%PsiVzx(:,:))
+        Elem%PsiVzz(:,:)  = 0.5 * (Elem%Psi_store(:,:,7) + Elem%PsiVzz(:,:))
+
+        return
+    end subroutine Prediction_Psi
 
     ! ###########################################################
     !>
@@ -725,7 +779,7 @@ contains
     !! \param real, intent (IN) coeff2
     !! \param real, intent (IN) Dt
     !<
-    subroutine  update_Psi_RK4 (Elem,hprime,hTprime,hprimez,hTprimez,coeff1,coeff2,Dt)
+    subroutine  update_Psi_ADEPML (Elem,hprime,hTprime,hprimez,hTprimez,coeff1,coeff2,Dt,time_integ)
         implicit none
 
         type(Element), intent (INOUT) :: Elem
@@ -734,6 +788,7 @@ contains
         real, intent(IN) :: coeff1
         real, intent(IN) :: coeff2
         real, intent(IN) :: Dt
+        integer, intent(IN) :: time_integ
         real, dimension(0:Elem%ngllx-1,0:Elem%ngllz-1,0:7) :: smbr
         real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: VxNx, VxNz, VzNx, VzNz
         integer          :: imin, imax, ngx, ngz
@@ -821,18 +876,32 @@ contains
         smbr(0,0:ngz-1,7) = smbr(0,0:ngz-1,7) - Elem%Az(0,0:ngz-1) * VzNz(imin:imax)
         endif
 
-        ! UPDATING in time using usual LSERK4
-        Elem%Psi_RK(:,:,:)  = coeff1 * Elem%Psi_RK(:,:,:) + Dt*smbr(:,:,:)
-        Elem%PsiSxxx(:,:) = Elem%PsiSxxx(:,:) + coeff2 * Elem%Psi_RK(:,:,0)
-        Elem%PsiSzzz(:,:) = Elem%PsiSzzz(:,:) + coeff2 * Elem%Psi_RK(:,:,1)
-        Elem%PsiSxzx(:,:) = Elem%PsiSxzx(:,:) + coeff2 * Elem%Psi_RK(:,:,2)
-        Elem%PsiSxzz(:,:) = Elem%PsiSxzz(:,:) + coeff2 * Elem%Psi_RK(:,:,3)
-        Elem%PsiVxx(:,:)  = Elem%PsiVxx (:,:) + coeff2 * Elem%Psi_RK(:,:,4)
-        Elem%PsiVxz(:,:)  = Elem%PsiVxz (:,:) + coeff2 * Elem%Psi_RK(:,:,5)
-        Elem%PsiVzx(:,:)  = Elem%PsiVzx (:,:) + coeff2 * Elem%Psi_RK(:,:,6)
-        Elem%PsiVzz(:,:)  = Elem%PsiVzz (:,:) + coeff2 * Elem%Psi_RK(:,:,7)
+        if (time_integ == TIME_INTEG_RK4) then
+            ! UPDATING in time using usual LSERK4
+            Elem%Psi_store(:,:,:)  = coeff1 * Elem%Psi_store(:,:,:) + Dt*smbr(:,:,:)
+            Elem%PsiSxxx(:,:) = Elem%PsiSxxx(:,:) + coeff2 * Elem%Psi_store(:,:,0)
+            Elem%PsiSzzz(:,:) = Elem%PsiSzzz(:,:) + coeff2 * Elem%Psi_store(:,:,1)
+            Elem%PsiSxzx(:,:) = Elem%PsiSxzx(:,:) + coeff2 * Elem%Psi_store(:,:,2)
+            Elem%PsiSxzz(:,:) = Elem%PsiSxzz(:,:) + coeff2 * Elem%Psi_store(:,:,3)
+            Elem%PsiVxx(:,:)  = Elem%PsiVxx (:,:) + coeff2 * Elem%Psi_store(:,:,4)
+            Elem%PsiVxz(:,:)  = Elem%PsiVxz (:,:) + coeff2 * Elem%Psi_store(:,:,5)
+            Elem%PsiVzx(:,:)  = Elem%PsiVzx (:,:) + coeff2 * Elem%Psi_store(:,:,6)
+            Elem%PsiVzz(:,:)  = Elem%PsiVzz (:,:) + coeff2 * Elem%Psi_store(:,:,7)
+        else
+            ! Adding PML terms to the Elem%Forces
+            call add_Psi4PML (Elem, .false.)
+            ! UPDATING in time for midpoint or Newmark Predictors-multicorrectors schemes
+            Elem%PsiSxxx(:,:) = Elem%Psi_store(:,:,0) + Dt * smbr(:,:,0)
+            Elem%PsiSzzz(:,:) = Elem%Psi_store(:,:,1) + Dt * smbr(:,:,1)
+            Elem%PsiSxzx(:,:) = Elem%Psi_store(:,:,2) + Dt * smbr(:,:,2)
+            Elem%PsiSxzz(:,:) = Elem%Psi_store(:,:,3) + Dt * smbr(:,:,3)
+            Elem%PsiVxx(:,:)  = Elem%Psi_store(:,:,4) + Dt * smbr(:,:,4)
+            Elem%PsiVxz(:,:)  = Elem%Psi_store(:,:,5) + Dt * smbr(:,:,5)
+            Elem%PsiVzx(:,:)  = Elem%Psi_store(:,:,6) + Dt * smbr(:,:,6)
+            Elem%PsiVzz(:,:)  = Elem%Psi_store(:,:,7) + Dt * smbr(:,:,7)
+        endif
 
-    end subroutine update_Psi_RK4
+    end subroutine update_Psi_ADEPML
 
     ! ###########################################################
     !>

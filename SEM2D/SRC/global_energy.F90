@@ -31,13 +31,13 @@ contains
         if (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK) then
             call global_energy (Tdomain)
 
-        else if (Tdomain%type_timeInteg==TIME_INTEG_RK4) then
+        else !if (Tdomain%type_timeInteg==TIME_INTEG_RK4) then
             do n = 0, Tdomain%n_elem-1
                 type_DG = Tdomain%specel(n)%Type_DG
                 mat = Tdomain%specel(n)%mat_index
                 if (.not. Tdomain%specel(n)%PML) then
                     if (type_DG .EQ. GALERKIN_CONT) then
-                        call get_Displ_fv2el (Tdomain,n)
+                        ! call get_Displ_fv2el (Tdomain,n) ! <-- ATTENTION ! : Recuperer dplcmt avant calcul
                         call compute_Elastic_Energy(Tdomain%specel(n),Tdomain%sSubDomain(mat)%hTprimex,&
                             Tdomain%sSubDomain(mat)%hprimez, E_el)
                         call compute_Kinetic_Energy (Tdomain%specel(n), Dt, E_k)
