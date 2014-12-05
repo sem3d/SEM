@@ -428,6 +428,10 @@ subroutine START_SEM(Tdomain)
         close(111)
     end if
 
+    Tdomain%TimeD%prot_m2 = -1
+    Tdomain%TimeD%prot_m1 = -1
+    Tdomain%TimeD%prot_m0 = -1
+
 end subroutine START_SEM
 
 subroutine END_SEM(Tdomain, ntime)
