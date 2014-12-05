@@ -32,7 +32,7 @@ subroutine Newmark_PMC (Tdomain,Dt,n_it_max)
         ! Computation of the  prediction :
         Tdomain%specel(n)%Strain0(:,:,:) = Tdomain%specel(n)%Strain(:,:,:)
         Tdomain%specel(n)%V0(:,:,:)      = Tdomain%specel(n)%Veloc (:,:,:)
-        if (Tdomain%specel(n)%ADEPML) call initialize_Psi(Tdomain%specel(n))
+        if (Tdomain%specel(n)%PML) call initialize_Psi(Tdomain%specel(n))
     enddo
 
     ! Midpoint method :
@@ -51,7 +51,7 @@ subroutine Newmark_PMC (Tdomain,Dt,n_it_max)
         do n=0,Tdomain%n_elem-1
             Tdomain%specel(n)%Strain = 0.5 * (Tdomain%specel(n)%Strain0 + Tdomain%specel(n)%Strain)
             Tdomain%specel(n)%Veloc  = 0.5 * (Tdomain%specel(n)%V0      + Tdomain%specel(n)%Veloc )
-            if (Tdomain%specel(n)%ADEPML) call Prediction_Psi(Tdomain%specel(n))
+            !if (Tdomain%specel(n)%ADEPML) call Prediction_Psi(Tdomain%specel(n))
         enddo
 
         ! Building second members (= forces) of systems.
@@ -61,10 +61,8 @@ subroutine Newmark_PMC (Tdomain,Dt,n_it_max)
               Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimex, &
               Tdomain%sSubDomain(mat)%hprimez,Tdomain%sSubDomain(mat)%hTprimez)
             call add_previous_state2forces (Tdomain%specel(n), Dt)
-            if (Tdomain%specel(n)%ADEPML) call update_Psi_ADEPML(Tdomain%specel(n), &
-                                Tdomain%sSubDomain(mat)%hprimex, Tdomain%sSubDomain(mat)%hTprimex, &
-                                Tdomain%sSubDomain(mat)%hprimez, Tdomain%sSubDomain(mat)%hTprimez, &
-                                0., 0., Dt, TIME_INTEG_MIDPOINT)
+            if (Tdomain%specel(n)%PML) call update_Psi_ADEPML(Tdomain%specel(n), &
+                            Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimez, Dt)
         enddo
 
         ! External Forces computation
@@ -136,7 +134,7 @@ subroutine Newmark_PMC_explicit (Tdomain,Dt,n_it_max)
         ! Computation of the  prediction :
         Tdomain%specel(n)%Strain0(:,:,:) = Tdomain%specel(n)%Strain(:,:,:)
         Tdomain%specel(n)%V0(:,:,:)      = Tdomain%specel(n)%Veloc (:,:,:)
-        if (Tdomain%specel(n)%ADEPML) call initialize_Psi(Tdomain%specel(n))
+        if (Tdomain%specel(n)%PML) call initialize_Psi(Tdomain%specel(n))
     enddo
 
     ! Midpoint method :
@@ -155,7 +153,7 @@ subroutine Newmark_PMC_explicit (Tdomain,Dt,n_it_max)
         do n=0,Tdomain%n_elem-1
             Tdomain%specel(n)%Strain = 0.5 * (Tdomain%specel(n)%Strain0 + Tdomain%specel(n)%Strain)
             Tdomain%specel(n)%Veloc  = 0.5 * (Tdomain%specel(n)%V0      + Tdomain%specel(n)%Veloc )
-            if (Tdomain%specel(n)%ADEPML) call Prediction_Psi(Tdomain%specel(n))
+            !if (Tdomain%specel(n)%ADEPML) call Prediction_Psi(Tdomain%specel(n))
         enddo
 
         ! Building second members (= forces) of systems.
@@ -165,10 +163,8 @@ subroutine Newmark_PMC_explicit (Tdomain,Dt,n_it_max)
                 Tdomain%sSubDomain(mat)%hprimex, &
                 Tdomain%sSubDomain(mat)%hTprimez)
             call compute_TracFace (Tdomain%specel(n))
-            if (Tdomain%specel(n)%ADEPML) call update_Psi_ADEPML(Tdomain%specel(n), &
-                Tdomain%sSubDomain(mat)%hprimex, Tdomain%sSubDomain(mat)%hTprimex, &
-                Tdomain%sSubDomain(mat)%hprimez, Tdomain%sSubDomain(mat)%hTprimez, &
-                0., 0., Dt, TIME_INTEG_MIDPOINT)
+            if (Tdomain%specel(n)%PML) call update_Psi_ADEPML(Tdomain%specel(n), &
+                            Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimez, Dt)
         enddo
 
         ! External Forces computation
@@ -195,6 +191,7 @@ subroutine Newmark_PMC_explicit (Tdomain,Dt,n_it_max)
             call add_previous_state2forces (Tdomain%specel(n),Dt)
             Tdomain%specel(n)%Forces(:,:,2) = Tdomain%specel(n)%Forces(:,:,2) &
                                     - 1./Dt * Tdomain%specel(n)%Acoeff(:,:,12) * Tdomain%specel(n)%Strain0(:,:,2)
+            if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,n)
             call inversion_massmat(Tdomain%specel(n))
             Tdomain%specel(n)%Strain(:,:,:) = Dt * Tdomain%specel(n)%Forces(:,:,0:2)
             Tdomain%specel(n)%Veloc (:,:,:) = Dt * Tdomain%specel(n)%Forces(:,:,3:4)

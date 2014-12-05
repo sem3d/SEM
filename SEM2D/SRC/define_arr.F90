@@ -97,59 +97,61 @@ subroutine define_arrays(Tdomain)
         Rmu  = Tdomain%specel(n)%Mu
         RKmod = Rlam + 2. * Rmu
         Tdomain%specel(n)%MassMat  = Whei*Tdomain%specel(n)%Density*Jac
-        CG_RK4 = (Tdomain%type_timeInteg == TIME_INTEG_RK4) .and. &
-                 (Tdomain%specel(n)%Type_DG==GALERKIN_CONT)
+!        CG_RK4 = (Tdomain%type_timeInteg == TIME_INTEG_RK4) .and. &
+!                 (Tdomain%specel(n)%Type_DG==GALERKIN_CONT)
 
-        if (((.not. Tdomain%specel(n)%PML) .or. Tdomain%specel(n)%ADEPML) .and. &
-             (.not. CG_RK4)) then
-           if((Tdomain%specel(n)%Type_DG==GALERKIN_DG_STRONG).OR. &
-               (Tdomain%specel(n)%Type_DG==GALERKIN_DG_WEAK) .OR. &
-               (Tdomain%specel(n)%Type_DG==GALERKIN_HDG_RP) ) then ! Discontinuous Galerkin
-              Tdomain%specel(n)%Acoeff(:,:,0) = Whei*xix*Jac
-              Tdomain%specel(n)%Acoeff(:,:,1) = Whei*etax*Jac
-              Tdomain%specel(n)%Acoeff(:,:,2) = Whei*xiz*Jac
-              Tdomain%specel(n)%Acoeff(:,:,3) = Whei*etaz*Jac
-              Tdomain%specel(n)%Acoeff(:,:,4) = Whei*xix*Rlam*Jac
-              Tdomain%specel(n)%Acoeff(:,:,5) = 2.*Whei*xix*Rmu*Jac
-              Tdomain%specel(n)%Acoeff(:,:,6) = Whei*xiz*Rlam*Jac
-              Tdomain%specel(n)%Acoeff(:,:,7) = 2.*Whei*xiz*Rmu*Jac
-              Tdomain%specel(n)%Acoeff(:,:,8) = Whei*etax*Rlam*Jac
-              Tdomain%specel(n)%Acoeff(:,:,9) = 2.*Whei*etax*Rmu*Jac
-              Tdomain%specel(n)%Acoeff(:,:,10)= Whei*etaz*Rlam*Jac
-              Tdomain%specel(n)%Acoeff(:,:,11)= 2.*Whei*etaz*Rmu*Jac
-              Tdomain%specel(n)%Acoeff(:,:,12)= Whei*Jac
-           else if (Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then ! Continuous Galerkin (usual SEM)
-              Tdomain%specel(n)%Acoeff(:,:,0) = -Whei*(RKmod*xix**2+Rmu*xiz**2) *Jac
-              Tdomain%specel(n)%Acoeff(:,:,1) = -Whei*(RKmod*xix*etax+Rmu*  xiz*etaz)*Jac
-              Tdomain%specel(n)%Acoeff(:,:,2) = -Whei*(Rlam+Rmu)*xix*xiz*Jac
-              Tdomain%specel(n)%Acoeff(:,:,3) = -Whei*(Rlam*xix*etaz+Rmu*xiz*etax)*Jac
-              Tdomain%specel(n)%Acoeff(:,:,4) = -Whei*(RKmod*etax**2+Rmu*etaz**2)*Jac
-              Tdomain%specel(n)%Acoeff(:,:,5) = -Whei*(Rlam*etax*xiz+Rmu*etaz*xix)*Jac
-              Tdomain%specel(n)%Acoeff(:,:,6) = -Whei*(Rlam+Rmu)*etaz*etax*Jac
-              Tdomain%specel(n)%Acoeff(:,:,7) = -Whei*(RKmod*xiz**2+Rmu*xix**2)*Jac
-              Tdomain%specel(n)%Acoeff(:,:,8) = -Whei*(RKmod*xiz*etaz+Rmu*xix*etax)*Jac
-              Tdomain%specel(n)%Acoeff(:,:,9) = -Whei*(RKmod*etaz**2+Rmu* etax**2)*Jac
-           end if
-        else
-            Tdomain%specel(n)%Acoeff(:,:,0) = Rkmod*xix
-            Tdomain%specel(n)%Acoeff(:,:,1) = Rkmod*etax
-            Tdomain%specel(n)%Acoeff(:,:,2) = Rlam * xiz
-            Tdomain%specel(n)%Acoeff(:,:,3) = Rlam *etaz
-            Tdomain%specel(n)%Acoeff(:,:,4) = Rlam*xix
-            Tdomain%specel(n)%Acoeff(:,:,5) = Rlam*etax
-            Tdomain%specel(n)%Acoeff(:,:,6) = Rkmod * xiz
-            Tdomain%specel(n)%Acoeff(:,:,7) = Rkmod *etaz
-            Tdomain%specel(n)%Acoeff(:,:,8) = Rmu*xiz
-            Tdomain%specel(n)%Acoeff(:,:,9) = Rmu*etaz
-            Tdomain%specel(n)%Acoeff(:,:,10) = Rmu * xix
-            Tdomain%specel(n)%Acoeff(:,:,11) = Rmu *etax
-            Tdomain%specel(n)%Acoeff(:,:,12) = -Whei*xix*Jac
-            Tdomain%specel(n)%Acoeff(:,:,13) = -Whei*etax*Jac
-            Tdomain%specel(n)%Acoeff(:,:,14) = -Whei * xiz*Jac
-            Tdomain%specel(n)%Acoeff(:,:,15) = -Whei *etaz*Jac
-            if (Tdomain%specel(n)%CPML) then
-                Tdomain%specel(n)%Acoeff(:,:,16) = Whei * Jac
-                Tdomain%specel(n)%Acoeff(:,:,17) = 1./(Whei*Jac)
+!        if (((.not. Tdomain%specel(n)%PML) .or. Tdomain%specel(n)%ADEPML) .and. &
+!             (.not. CG_RK4)) then
+!           if((Tdomain%specel(n)%Type_DG==GALERKIN_DG_STRONG).OR. &
+!               (Tdomain%specel(n)%Type_DG==GALERKIN_DG_WEAK) .OR. &
+!               (Tdomain%specel(n)%Type_DG==GALERKIN_HDG_RP) ) then ! Discontinuous Galerkin
+        if(Tdomain%specel(n)%Type_DG .NE. GALERKIN_CONT) then ! Discontinuous Galerkin
+            Tdomain%specel(n)%Acoeff(:,:,0) = Whei*xix*Jac
+            Tdomain%specel(n)%Acoeff(:,:,1) = Whei*etax*Jac
+            Tdomain%specel(n)%Acoeff(:,:,2) = Whei*xiz*Jac
+            Tdomain%specel(n)%Acoeff(:,:,3) = Whei*etaz*Jac
+            Tdomain%specel(n)%Acoeff(:,:,4) = Whei*xix*Rlam*Jac
+            Tdomain%specel(n)%Acoeff(:,:,5) = 2.*Whei*xix*Rmu*Jac
+            Tdomain%specel(n)%Acoeff(:,:,6) = Whei*xiz*Rlam*Jac
+            Tdomain%specel(n)%Acoeff(:,:,7) = 2.*Whei*xiz*Rmu*Jac
+            Tdomain%specel(n)%Acoeff(:,:,8) = Whei*etax*Rlam*Jac
+            Tdomain%specel(n)%Acoeff(:,:,9) = 2.*Whei*etax*Rmu*Jac
+            Tdomain%specel(n)%Acoeff(:,:,10)= Whei*etaz*Rlam*Jac
+            Tdomain%specel(n)%Acoeff(:,:,11)= 2.*Whei*etaz*Rmu*Jac
+            Tdomain%specel(n)%Acoeff(:,:,12)= Whei*Jac
+        else ! Continuous Galerkin (usual SEM) without PML
+            if (.NOT. Tdomain%specel(n)%PML) then
+                Tdomain%specel(n)%Acoeff(:,:,0) = -Whei*(RKmod*xix**2+Rmu*xiz**2) *Jac
+                Tdomain%specel(n)%Acoeff(:,:,1) = -Whei*(RKmod*xix*etax+Rmu*  xiz*etaz)*Jac
+                Tdomain%specel(n)%Acoeff(:,:,2) = -Whei*(Rlam+Rmu)*xix*xiz*Jac
+                Tdomain%specel(n)%Acoeff(:,:,3) = -Whei*(Rlam*xix*etaz+Rmu*xiz*etax)*Jac
+                Tdomain%specel(n)%Acoeff(:,:,4) = -Whei*(RKmod*etax**2+Rmu*etaz**2)*Jac
+                Tdomain%specel(n)%Acoeff(:,:,5) = -Whei*(Rlam*etax*xiz+Rmu*etaz*xix)*Jac
+                Tdomain%specel(n)%Acoeff(:,:,6) = -Whei*(Rlam+Rmu)*etaz*etax*Jac
+                Tdomain%specel(n)%Acoeff(:,:,7) = -Whei*(RKmod*xiz**2+Rmu*xix**2)*Jac
+                Tdomain%specel(n)%Acoeff(:,:,8) = -Whei*(RKmod*xiz*etaz+Rmu*xix*etax)*Jac
+                Tdomain%specel(n)%Acoeff(:,:,9) = -Whei*(RKmod*etaz**2+Rmu* etax**2)*Jac
+            else
+                Tdomain%specel(n)%Acoeff(:,:,0) = Rkmod*xix
+                Tdomain%specel(n)%Acoeff(:,:,1) = Rkmod*etax
+                Tdomain%specel(n)%Acoeff(:,:,2) = Rlam * xiz
+                Tdomain%specel(n)%Acoeff(:,:,3) = Rlam *etaz
+                Tdomain%specel(n)%Acoeff(:,:,4) = Rlam*xix
+                Tdomain%specel(n)%Acoeff(:,:,5) = Rlam*etax
+                Tdomain%specel(n)%Acoeff(:,:,6) = Rkmod * xiz
+                Tdomain%specel(n)%Acoeff(:,:,7) = Rkmod *etaz
+                Tdomain%specel(n)%Acoeff(:,:,8) = Rmu*xiz
+                Tdomain%specel(n)%Acoeff(:,:,9) = Rmu*etaz
+                Tdomain%specel(n)%Acoeff(:,:,10) = Rmu * xix
+                Tdomain%specel(n)%Acoeff(:,:,11) = Rmu *etax
+                Tdomain%specel(n)%Acoeff(:,:,12) = -Whei*xix*Jac
+                Tdomain%specel(n)%Acoeff(:,:,13) = -Whei*etax*Jac
+                Tdomain%specel(n)%Acoeff(:,:,14) = -Whei * xiz*Jac
+                Tdomain%specel(n)%Acoeff(:,:,15) = -Whei *etaz*Jac
+                if (Tdomain%specel(n)%CPML) then
+                    Tdomain%specel(n)%Acoeff(:,:,16) = Whei * Jac
+                    Tdomain%specel(n)%Acoeff(:,:,17) = 1./(Whei*Jac)
+                endif
             endif
         endif
 
@@ -160,7 +162,7 @@ subroutine define_arrays(Tdomain)
             ! PowOmc is the exponent of the power law of decreasing Omega_c (pulsation de coupure)
             ! in the PML. Usually, Omega_C obbey to a law Omega_c(x) = 2*pi*freq_c (1-(x/L)^{powOmc})
             ! powOmc is set to 1 because it produces better absorbtion on the cases we have studied.
-            powOmc = 1
+            powOmc = 0
             if (Tdomain%sSubDomain(mat)%Px) then
                 ! Computation of dx : the horizontal length of the PML element
                 idef = Tdomain%specel(n)%Iglobnum (0,0); dx = Tdomain%GlobCoord (0,idef)
@@ -293,7 +295,7 @@ subroutine define_arrays(Tdomain)
 
             elseif (Tdomain%specel(n)%CPML .OR. Tdomain%specel(n)%ADEPML) then
                 if (Tdomain%sSubDomain(mat)%Px) then
-                    if (Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
+                    if (Tdomain%specel(n)%CPML) then
                         Tdomain%specel(n)%Bx(:,:) = exp(-(wx(:,:) + OmegaCutx(:,:)) * Tdomain%sSubdomain(mat)%Dt)
                         Tdomain%specel(n)%Ax(:,:) = wx(:,:) *  (Tdomain%specel(n)%Bx(:,:) - Id(:,:)) / (wx(:,:) + OmegaCutx(:,:))
                         if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Ax(:,:) = Tdomain%specel(n)%Bx (:,:) - Id(:,:)
@@ -306,7 +308,7 @@ subroutine define_arrays(Tdomain)
                     endif
                endif
                if (Tdomain%sSubDomain(mat)%Pz) then
-                   if (Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
+                   if (Tdomain%specel(n)%CPML) then
                        Tdomain%specel(n)%Bz(:,:) = exp(-(wz(:,:) + OmegaCutz(:,:)) * Tdomain%sSubdomain(mat)%Dt)
                        Tdomain%specel(n)%Az(:,:) = wz(:,:) *  (Tdomain%specel(n)%Bz(:,:) - Id(:,:)) / (wz(:,:) + OmegaCutz(:,:))
                        if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Az(:,:) = Tdomain%specel(n)%Bz (:,:) - Id(:,:)
