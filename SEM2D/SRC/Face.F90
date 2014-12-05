@@ -40,7 +40,7 @@ module sfaces
        real, dimension (:,:), allocatable :: Vect_RK
        ! HDG
        real, dimension (:,:), allocatable :: Normal_Nodes
-       real, dimension (:,:), allocatable :: Kinv, Traction, Smbr
+       real, dimension (:,:), allocatable :: Kinv, Traction, Smbr, InvMatPen
        integer, dimension (0:1) :: pos_in_VertMat
        logical :: is_computed, changing_media
 
@@ -210,7 +210,7 @@ contains
   !! These velocities are to be understood in a HDG framework
   !! and are the unknowns at the interface.
   !! These velocities are computec multiplying the tractions F%TracFace
-  !! by the inverse penalization matrix F%Kinv.
+  !! by the inverse penalization matrix F%InvMatPen.
   !! \param type (Face), intent (INOUT) F
   !<
   subroutine Compute_Vhat (F)
@@ -219,8 +219,8 @@ contains
       type (Face), intent (INOUT) :: F
 
       if (.NOT. F%is_computed) then
-          F%Veloc(:,0) = - F%Kinv(:,0)*F%Traction(:,0) - F%Kinv(:,2)*F%Traction(:,1)
-          F%Veloc(:,1) = - F%Kinv(:,2)*F%Traction(:,0) - F%Kinv(:,1)*F%Traction(:,1)
+          F%Veloc(:,0) = - F%InvMatPen(:,0)*F%Traction(:,0) - F%InvMatPen(:,2)*F%Traction(:,1)
+          F%Veloc(:,1) = - F%InvMatPen(:,2)*F%Traction(:,0) - F%InvMatPen(:,1)*F%Traction(:,1)
           F%Traction = 0.
           F%is_computed = .TRUE.
           ! Treatment of boundary faces
@@ -654,12 +654,12 @@ contains
 
     ! ###########################################################
     !>
-    !! \brief subroutine compute_Kinv is used for HDG elements only
+    !! \brief subroutine compute_InvMatPen is used for HDG elements only
     !! This subroutine computes the inverse of penalty matrix used on the
     !! traces for HDG methods.
     !! \param type (Face), intent (INOUT) F
     !<
-    subroutine compute_Kinv (F)
+    subroutine compute_InvMatPen (F)
         implicit none
 
         type (Face), intent (INOUT) :: F
@@ -679,20 +679,20 @@ contains
 
         if (.not. is_acoustic) then
            invDet(:) = 1. / ((Zp_m(:)+Zp_p(:))*(Zs_m(:)+Zs_p(:)))
-           F%Kinv(:,0) = invDet(:) * ((Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,0)**2 &
+           F%InvMatPen(:,0) = invDet(:) * ((Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,0)**2 &
                                           +(Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,1)**2)
-           F%Kinv(:,1) = invDet(:) * ((Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,0)**2 &
+           F%InvMatPen(:,1) = invDet(:) * ((Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,0)**2 &
                                           +(Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,1)**2)
-           F%Kinv(:,2) =-invDet(:) * ((Zp_m(:)+Zp_p(:)) - (Zs_m(:)+Zs_p(:))) &
+           F%InvMatPen(:,2) =-invDet(:) * ((Zp_m(:)+Zp_p(:)) - (Zs_m(:)+Zs_p(:))) &
                                         * F%Normal_nodes(:,0) * F%Normal_nodes(:,1)
         else ! acoustic case
            invDet(:) = 1. / (Zp_m(:)+Zp_p(:))
-           F%Kinv(:,0) = invDet(:)
-           F%Kinv(:,1) = invDet(:)
-           F%Kinv(:,2) = 0.
+           F%InvMatPen(:,0) = invDet(:)
+           F%InvMatPen(:,1) = invDet(:)
+           F%InvMatPen(:,2) = 0.
         endif
 
-    end subroutine compute_Kinv
+    end subroutine compute_InvMatPen
 
     ! ###########################################################
     !>

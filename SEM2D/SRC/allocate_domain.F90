@@ -214,9 +214,9 @@ subroutine allocate_domain (Tdomain)
      elseif (Tdomain%sFace(n)%type_Flux .EQ. FLUX_HDG ) then
          deallocate(Tdomain%sFace(n)%Veloc)
          allocate (Tdomain%sFace(n)%Veloc(0:ngll-1,0:1))
-         allocate (Tdomain%sFace(n)%Kinv (0:ngll-1,0:2))
+         allocate (Tdomain%sFace(n)%InvMatPen(0:ngll-1,0:2))
          allocate (Tdomain%sFace(n)%Traction(0:ngll-1,0:1))
-         Tdomain%sFace(n)%Kinv = 0
+         Tdomain%sFace(n)%InvMatPen = 0
          Tdomain%sFace(n)%Traction  = 0
          Tdomain%sFace(n)%Veloc = 0
      endif
@@ -370,9 +370,11 @@ subroutine allocate_domain (Tdomain)
      enddo
      do n = 0, Tdomain%n_face-1
          ngll = Tdomain%sFace(n)%ngll
-         deallocate(Tdomain%sFace(n)%Traction)
          allocate  (Tdomain%sFace(n)%Smbr(0:ngll-1,0:1))
+         allocate  (Tdomain%sFace(n)%Kinv(0:ngll-1,0:2))
          Tdomain%sFace(n)%Smbr = 0.
+         !deallocate(Tdomain%sFace(n)%Traction)
+         !deallocate(Tdomain%sFace(n)%InvMatPen)
      enddo
   else if (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT .OR. &
            Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC ) then

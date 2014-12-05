@@ -578,7 +578,7 @@ subroutine define_arrays(Tdomain)
        if(Tdomain%sFace(nf)%type_Flux .EQ. FLUX_GODUNOV) then
            call coeffs_flux_godunov(Tdomain,nf)
        elseif(Tdomain%sFace(nf)%type_Flux .EQ. FLUX_HDG) then
-           call compute_Kinv (Tdomain%sFace(nf))
+           call compute_InvMatPen (Tdomain%sFace(nf))
        endif
     enddo
     ! Prolongement par continuite des proprietes du milieu pour surface libre ou absorbante
@@ -598,10 +598,6 @@ subroutine define_arrays(Tdomain)
 
     ! Calcul des matrices de coefficients CA^-1 et ED^-1 pour HDG en semi-implicite
     if (Tdomain%Implicitness == TIME_INTEG_SEMI_IMPLICIT) then
-        ! Remise a zero des matrices Face%Kinv
-        do nf = 0, Tdomain%n_face-1
-            Tdomain%sFace(nf)%Kinv(:,:) = 0.
-        enddo
         ! Calcul des matrices elementaires pour chaque elem
         do n = 0, Tdomain%n_elem-1
             mat = Tdomain%Specel(n)%mat_index

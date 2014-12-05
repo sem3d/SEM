@@ -37,6 +37,8 @@ subroutine Newmark_PMC (Tdomain,Dt,n_it_max)
 
     ! Midpoint method :
     iter= 0
+    call Newmark_PMC_Explicit (Tdomain,Dt,1) ! <---- A SUPPRIMER
+    iter = 1                                 ! <---- A SUPPRIMER
 
     do while (iter<n_it_max)
 

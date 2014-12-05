@@ -132,12 +132,12 @@ contains
             Tdomain%sface(nface)%Mu_p     = Tdomain%sface(nface)%Mu_m
             Tdomain%sface(nface)%Lambda_p = Tdomain%sface(nface)%Lambda_m
             Tdomain%sface(nface)%Rho_p    = Tdomain%sface(nface)%Rho_m
-            call compute_Kinv(Tdomain%sFace(nface))
+            call compute_InvMatPen(Tdomain%sFace(nface))
         elseif(Tdomain%sface(nface)%freesurf) then
             Tdomain%sface(nface)%Mu_p     = 0.
             Tdomain%sface(nface)%Lambda_p = 0.
             Tdomain%sface(nface)%Rho_p    = 0.
-            call compute_Kinv(Tdomain%sFace(nface))
+            call compute_InvMatPen(Tdomain%sFace(nface))
         endif
 
     end subroutine coeffs_freesurf_abs_HDG
