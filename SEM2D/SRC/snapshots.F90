@@ -285,8 +285,8 @@ contains
                     idx = irenum(Tdomain%specel(n)%Iglobnum(i,k))
                     valence(idx) = valence(idx)+1
                     displ(0:1,idx) = field_displ(i,k,:)
-                    veloc(0:1,idx) = veloc(:,idx)+field_veloc(i,k,:)
-                    accel(0:1,idx) = accel(:,idx)+field_accel(i,k,:)
+                    veloc(0:1,idx) = veloc(0:1,idx)+field_veloc(i,k,:)
+                    accel(0:1,idx) = accel(0:1,idx)+field_accel(i,k,:)
                 end do
             end do
         end do
