@@ -59,15 +59,8 @@ subroutine  sem(couplage)
     integer :: getpid, pid
 
 #ifdef COUPLAGE
-    integer :: tag
-    integer, dimension (MPI_STATUS_SIZE) :: status
-    integer, dimension(3) :: flags_synchro ! fin/protection/sortie
-    integer, dimension(3) :: tab
-
-    integer :: global_rank, global_nb_proc, worldgroup, intergroup
-    integer :: m_localComm, comm_super_mka
     integer :: n
-    integer :: min_rank_glob_sem
+    integer, dimension(3) :: flags_synchro ! fin/protection/sortie
 #else
     real(kind=8) :: remaining_time
 #endif
@@ -82,60 +75,10 @@ subroutine  sem(couplage)
 
     Tdomain%couplage = couplage
     display_iter = 1
-    call MPI_Init(ierr)
-
-#ifdef COUPLAGE
-    call MPI_Comm_Rank (MPI_COMM_WORLD, global_rank, ierr)
-    call MPI_Comm_size(MPI_COMM_WORLD, global_nb_proc, ierr)
-    call MPI_Comm_split(MPI_COMM_WORLD, 2, Tdomain%Mpi_var%my_rank, m_localComm, ierr)
-    call MPI_Comm_Rank (m_localComm, Tdomain%Mpi_var%my_rank, ierr)
-    call MPI_Comm_size(m_localComm, Tdomain%Mpi_var%n_proc, ierr)
-
-    Tdomain%communicateur=m_localComm
-    Tdomain%communicateur_global=MPI_COMM_WORLD
-    Tdomain%master_superviseur=0
-
-    !! Reception des infos du superviseur
-    tag=8000000+global_rank
-    call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
-
-    !! Reception des infos de mka
-    tag=8100000+global_rank
-    call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
-
-    !! On cherche le global rank minimal des procs sem
-    call MPI_Reduce(global_rank, min_rank_glob_sem, 1, MPI_INTEGER, MPI_MIN, 0, m_localComm, ierr)
-
-    !! Envoi des infos de couplage
-    if (Tdomain%Mpi_var%my_rank == 0) then
-        tab(1) = global_rank
-        tab(2) = Tdomain%Mpi_var%n_proc
-        tab(3) = min_rank_glob_sem
-        do n=1, global_nb_proc
-            tag=8200000+n
-            call MPI_Send(tab, 3, MPI_INTEGER, n-1, tag, MPI_COMM_WORLD, ierr)
-        enddo
-    endif
-
-    !! Reception des infos de sem
-    tag=8200000+global_rank+1
-    call MPI_Recv(tab, 3, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
-
-    call MPI_Comm_group(MPI_COMM_WORLD, worldgroup, ierr)
-    call MPI_Group_incl(worldgroup, 2, tab, intergroup, ierr)
-    call MPI_Comm_create(MPI_COMM_WORLD, intergroup, comm_super_mka, ierr)
-
-#else
-    call MPI_Comm_Rank (MPI_COMM_WORLD, Tdomain%Mpi_var%my_rank, ierr)
-    call MPI_Comm_Size (MPI_COMM_WORLD, Tdomain%Mpi_var%n_proc,  ierr)
-    Tdomain%communicateur=MPI_COMM_WORLD
-    Tdomain%communicateur_global=MPI_COMM_WORLD
-#endif
-
-    rg = Tdomain%Mpi_var%my_rank
 
     call START_SEM(Tdomain)
 
+    rg = Tdomain%Mpi_var%my_rank
     if (rg == 0) call create_sem_output_directories()
     call MPI_Barrier (Tdomain%communicateur, ierr)
 
@@ -413,9 +356,70 @@ end subroutine sem
 
 subroutine START_SEM(Tdomain)
     use sdomain
+    use mpi
     implicit none
-    type(domain), intent(in) :: Tdomain
-    integer :: rg
+    type(domain), intent(inout) :: Tdomain
+    integer :: rg, ierr
+    integer :: global_rank, global_nb_proc
+#ifdef COUPLAGE
+    integer :: worldgroup, intergroup
+    integer, dimension (MPI_STATUS_SIZE) :: status
+    integer :: m_localComm, comm_super_mka
+    integer :: min_rank_glob_sem
+    integer :: n, tag
+    integer, dimension(3) :: tab
+#endif
+
+    call MPI_Init(ierr)
+    call MPI_Comm_Rank (MPI_COMM_WORLD, global_rank, ierr)
+    call MPI_Comm_size (MPI_COMM_WORLD, global_nb_proc, ierr)
+
+#ifdef COUPLAGE
+    call MPI_Comm_split(MPI_COMM_WORLD, 2, Tdomain%Mpi_var%my_rank, m_localComm, ierr)
+    call MPI_Comm_Rank (m_localComm, Tdomain%Mpi_var%my_rank, ierr)
+    call MPI_Comm_size (m_localComm, Tdomain%Mpi_var%n_proc, ierr)
+
+    Tdomain%communicateur=m_localComm
+    Tdomain%communicateur_global=MPI_COMM_WORLD
+    Tdomain%master_superviseur=0
+
+    !! Reception des infos du superviseur
+    tag=8000000+global_rank
+    call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
+
+    !! Reception des infos de mka
+    tag=8100000+global_rank
+    call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
+
+    !! On cherche le global rank minimal des procs sem
+    call MPI_Reduce(global_rank, min_rank_glob_sem, 1, MPI_INTEGER, MPI_MIN, 0, m_localComm, ierr)
+
+    !! Envoi des infos de couplage
+    if (Tdomain%Mpi_var%my_rank == 0) then
+        tab(1) = global_rank
+        tab(2) = Tdomain%Mpi_var%n_proc
+        tab(3) = min_rank_glob_sem
+        do n=1, global_nb_proc
+            tag=8200000+n
+            call MPI_Send(tab, 3, MPI_INTEGER, n-1, tag, MPI_COMM_WORLD, ierr)
+        enddo
+    endif
+
+    !! Reception des infos de sem
+    tag=8200000+global_rank+1
+    call MPI_Recv(tab, 3, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
+
+    call MPI_Comm_group(MPI_COMM_WORLD, worldgroup, ierr)
+    call MPI_Group_incl(worldgroup, 2, tab, intergroup, ierr)
+    call MPI_Comm_create(MPI_COMM_WORLD, intergroup, comm_super_mka, ierr)
+
+#else
+    Tdomain%Mpi_var%my_rank = global_rank
+    Tdomain%Mpi_var%n_proc = global_nb_proc
+    Tdomain%communicateur=MPI_COMM_WORLD
+    Tdomain%communicateur_global=MPI_COMM_WORLD
+#endif
+
     rg = Tdomain%Mpi_var%my_rank
 
     if (rg==0) then
