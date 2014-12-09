@@ -359,9 +359,9 @@ subroutine Define_Arrays(Tdomain, rg)
 	!//////////////////// CASE MATERIAL READ FROM FILE
 	!////////////////////
 	 		else if (Tdomain%logicD%run_restart) then
-				call read_properties_from_file(Tdomain, rg, mat, prop, &
-					                        trim(procFileName), trim(h5folder), &
-					                        ["_proc", "_subD"], [rg, mat])
+				call read_properties_from_file(Tdomain, rg, mat, prop,             &
+					                           trim(procFileName), trim(h5folder), &
+					                           ["_proc", "_subD"], [rg, mat])
 			end if
 
 	!////////////////////
