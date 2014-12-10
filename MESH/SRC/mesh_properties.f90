@@ -1881,39 +1881,39 @@ contains
     ! lateral PMLs
         if(present(pml_bool) .and. pml_bool == 1)then
             do i = 0,nmat-1
-                write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,VRAI,FAUX,FAUX,k
-                write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,VRAI,FAUX,FAUX,k
-                write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,FAUX,FAUX,FAUX,k
-                write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,FAUX,FAUX,FAUX,k
-                write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,VRAI,VRAI,FAUX,FAUX,k
-                write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,FAUX,VRAI,FAUX,FAUX,k
-                write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,VRAI,FAUX,FAUX,FAUX,k
-                write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,FAUX,VRAI,FAUX,FAUX,k
+                write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,VRAI,FAUX,FAUX,k,i
+                write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,VRAI,FAUX,FAUX,k,i
+                write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,FAUX,FAUX,FAUX,k,i
+                write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,FAUX,FAUX,FAUX,k,i
+                write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,VRAI,VRAI,FAUX,FAUX,k,i
+                write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,FAUX,VRAI,FAUX,FAUX,k,i
+                write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,VRAI,FAUX,FAUX,FAUX,k,i
+                write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,FAUX,VRAI,FAUX,FAUX,k,i
             end do
         end if
      ! bottom PMLs
         if(present(pml_b) .and. pml_b == 1)then
-                write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,VRAI,VRAI,VRAI,k
-                write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,VRAI,VRAI,VRAI,k
-                write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,FAUX,VRAI,VRAI,k
-                write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,FAUX,VRAI,VRAI,k
-                write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,VRAI,VRAI,VRAI,VRAI,k
-                write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,FAUX,VRAI,VRAI,VRAI,k
-                write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,VRAI,FAUX,VRAI,VRAI,k
-                write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,FAUX,VRAI,VRAI,VRAI,k
-                write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,FAUX,VRAI,VRAI,VRAI,k
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,VRAI,VRAI,VRAI,k,nmat-1
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,VRAI,VRAI,VRAI,k,nmat-1
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,FAUX,VRAI,VRAI,k,nmat-1
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,FAUX,VRAI,VRAI,k,nmat-1
+            write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,VRAI,VRAI,VRAI,VRAI,k,nmat-1
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,FAUX,VRAI,VRAI,VRAI,k,nmat-1
+            write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,VRAI,FAUX,VRAI,VRAI,k,nmat-1
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,FAUX,VRAI,VRAI,VRAI,k,nmat-1
+            write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,FAUX,VRAI,VRAI,VRAI,k,nmat-1
         end if
       ! top PMLs
         if(present(pml_t) .and. pml_t == 1)then
-                write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,VRAI,VRAI,FAUX,k
-                write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,VRAI,VRAI,FAUX,k
-                write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,FAUX,VRAI,FAUX,k
-                write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,FAUX,VRAI,FAUX,k
-                write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,VRAI,VRAI,VRAI,FAUX,k
-                write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,FAUX,VRAI,VRAI,FAUX,k
-                write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,VRAI,FAUX,VRAI,FAUX,k
-                write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,FAUX,VRAI,VRAI,FAUX,k
-                write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,FAUX,VRAI,VRAI,FAUX,k
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,VRAI,VRAI,FAUX,k,0
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,VRAI,VRAI,FAUX,k,0
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,FAUX,VRAI,FAUX,k,0
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,FAUX,VRAI,FAUX,k,0
+            write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,VRAI,VRAI,VRAI,FAUX,k,0
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,FAUX,VRAI,VRAI,FAUX,k,0
+            write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,VRAI,FAUX,VRAI,FAUX,k,0
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,FAUX,VRAI,VRAI,FAUX,k,0
+            write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,FAUX,VRAI,VRAI,FAUX,k,0
         end if
      
 
