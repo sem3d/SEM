@@ -21,6 +21,18 @@ subroutine allocate_domain (Tdomain)
     type(domain), intent (INOUT) :: Tdomain
     integer :: n,nf,ne,nv,ngllx,nglly,ngllz,ngll1,ngll2,ngll
     integer :: n_solid
+    integer :: mat, randSize, assocMat
+
+    do mat = 0,Tdomain%n_mat-1
+        assocMat = Tdomain%sSubdomain(mat)%assocMat
+        if(      Tdomain%sSubDomain(assocMat)%material_type == "R"  &
+           .and. Tdomain%subD_exist(mat)) then
+            call random_seed(size = randSize)
+            allocate(Tdomain%sSubdomain(mat)%chosenSeed(randSize))
+            allocate(Tdomain%sSubDomain(mat)%MinBound(0:2))
+            allocate(Tdomain%sSubDomain(mat)%MaxBound(0:2))
+        end if
+    end do
 
     do n = 0,Tdomain%n_elem-1
 
@@ -30,11 +42,11 @@ subroutine allocate_domain (Tdomain)
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
 
-        allocate(Tdomain%specel(n)%Density(0:ngllx-1,0:nglly-1,0:ngllz-1))
-        allocate(Tdomain%specel(n)%MassMat(0:ngllx-1,0:nglly-1,0:ngllz-1))
-        allocate(Tdomain%specel(n)%Lambda(0:ngllx-1,0:nglly-1,0:ngllz-1))
-        allocate(Tdomain%specel(n)%Mu(0:ngllx-1,0:nglly-1, 0:ngllz-1))
-        allocate(Tdomain%specel(n)%Kappa (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+        allocate(Tdomain%specel(n)%Density(0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+        allocate(Tdomain%specel(n)%MassMat(0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+        allocate(Tdomain%specel(n)%Lambda (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+        allocate(Tdomain%specel(n)%Mu     (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+        allocate(Tdomain%specel(n)%Kappa  (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
 
         if(Tdomain%specel(n)%PML)then ! PML Common parts
             allocate(Tdomain%specel(n)%xpml)

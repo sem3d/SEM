@@ -121,8 +121,11 @@ int expect_source_func(yyscan_t scanner, int* type)
     if (cmp(scanner,"square"))       { *type = 8; return 1; }
     if (cmp(scanner,"tanh"))         { *type = 9; return 1; }
     if (cmp(scanner,"ricker_fl"))    { *type =10; return 1; }
+    if (cmp(scanner,"triangle"))     { *type =11; return 1; }
+    if (cmp(scanner,"hsf"))          { *type =12; return 1; }
+    if (cmp(scanner,"dm"))           { *type =13; return 1; }
 error:
-    msg_err(scanner, "Expected gaussian|ricker|tf_heaviside|gabor|file|spice_bench|sinus|square|tanh|ricker_fl");
+    msg_err(scanner, "Expected gaussian|ricker|tf_heaviside|gabor|file|spice_bench|sinus|square|tanh|ricker_fl|triangle|hsf");
     return 0;
 }
 
@@ -165,6 +168,14 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"gamma")) err=expect_eq_float(scanner, &source->gamma, 1);
 	else if (cmp(scanner,"time_file")) err=expect_eq_string(scanner, &source->time_file,1);
 	else if (cmp(scanner,"amplitude")) err=expect_eq_float(scanner, &source->amplitude, 1);
+        else if (cmp(scanner,"Q")) err=expect_eq_float(scanner, &source->Q, 1);
+        else if (cmp(scanner,"Y")) err=expect_eq_float(scanner, &source->Y, 1);
+        else if (cmp(scanner,"X")) err=expect_eq_float(scanner, &source->X, 1);
+        else if (cmp(scanner,"L")) err=expect_eq_float(scanner, &source->L, 1);
+        else if (cmp(scanner,"v")) err=expect_eq_float(scanner, &source->v, 1);
+        else if (cmp(scanner,"d")) err=expect_eq_float(scanner, &source->d, 1);
+        else if (cmp(scanner,"a")) err=expect_eq_float(scanner, &source->a, 1);
+
 
 	if (err<=0) return 0;
 	if (!expect_eos(scanner)) { return 0; }

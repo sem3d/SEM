@@ -2,4 +2,6 @@
 S  6300.00  2500.00   2800. 4   4    4  0.000005 0. 0.
 S  5000.00  3500.00   2200. 4   4    4  0.000005 0. 0.
 # PML properties
-# Filtering? npow,Apow,X?,left?,Y?,Forwrd?,Z?,down?,cutoff freq
+# Filtering? npow,Apow,X?,left?,Y?,Forwrd?,Z?,down?,cutoff freq, Associated Material(Starting in 0)
+# Random fields properties
+# corrMod, corrLX, corrLY, corrLZ, margiFirstDens, varDens, margiFirstLambda, varLambda, margiFirstMu, varMu

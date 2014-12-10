@@ -18,7 +18,7 @@ module ssources
        integer :: i_type_source, i_time_function, elem, proc
        integer, dimension(0:2) :: gll
        real, dimension(0:2) :: dir
-       real :: tau_b,cutoff_freq
+       real :: tau_b,cutoff_freq,Q,X,Y,L,v,d,a
        real :: radius,realcolat,reallong,refcolat,reflong
        real :: amplitude_factor
 
@@ -81,6 +81,16 @@ contains
         case (10)
             ! Square. Param : ts, gamma
             CompSource = Ricker_fl(time, Sour%tau_b, Sour%cutoff_freq)
+        case (11)
+            ! fonction de triangle
+            CompSource = Triangle(time, Sour%tau_b)
+        case (12)
+            ! Heaviside Step Function (Kausel-2006)
+            CompSource = HSF(time, Sour%tau_b)
+        case(13)
+            !Double-M wavelet (Al Shaer et al 2008)
+            CompSource = DM(time, Sour%tau_b,Sour%Q,Sour%X,Sour%Y,Sour%L,Sour%v,Sour%d,Sour%a)
+
         end select
         CompSource = CompSource*Sour%amplitude_factor
         return
@@ -243,6 +253,62 @@ contains
     !! \param real tau
     !! \param real f0
     !<
+
+
+
+
+    real function Triangle (time,tau)
+        implicit none
+        !
+    
+         real, intent(in) :: time, tau
+
+         !! tau = coefficient of pression
+
+         if ( time < 0.005 ) then
+              Triangle = - time * tau * ( 1e10 )
+         elseif ( time < 0.01 ) then
+              Triangle = - ( -time + 0.01 ) * tau * ( 1e10 )
+         else
+              Triangle = 0.
+         endif
+        
+         return
+    end function Triangle
+
+   ! ###############################################################################
+
+    real function HSF (time, tau)
+        implicit none
+        ! HEAVISIDE STEP FUNCTION (KAUSEL-2006)
+        real, intent(in) :: time, tau
+        
+        if ( time < 0.00000001 ) then
+            HSF =0.
+        endif
+        if ( time == 0. ) then
+            HSF = -0.5 * tau
+        endif
+        if ( time > 0.00000001 ) then
+            HSF = -1 * tau
+        endif
+        return
+    end function HSF
+ 
+
+
+    real function DM (time, tau,Q,X,Y,L,v,d,a)
+        implicit none
+        ! DoubleM (Al Shaer et al 2008)
+        real, intent(in) :: time, tau,Q,X,Y,L,v,d,a
+
+        DM = Q*Y/2*((X)**(((v*(time-tau)-a)**2/d**2))+(X)**(((v*(time-tau)-a-L)**2/d**2)))
+
+        return
+    end function DM
+    
+    ! ############################################################################
+
     real function Ricker (time,tau,f0)
         implicit none
         !

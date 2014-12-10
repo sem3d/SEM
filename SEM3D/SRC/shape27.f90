@@ -40,7 +40,7 @@ subroutine shape27(Tdomain)
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
-        mat = Tdomain%specel(n)%mat_index
+        mat   = Tdomain%specel(n)%mat_index
 
         allocate (Tdomain%specel(n)%Jacob(0:ngllx-1,0:nglly-1,0:ngllz-1) )
         allocate (Tdomain%specel(n)%InvGrad(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:2) )

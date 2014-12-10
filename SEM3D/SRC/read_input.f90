@@ -49,6 +49,7 @@ subroutine read_gradient_desc(Tdomain)
             write(*,*) ' gradient uniquement pour z entre ', Tdomain%sBassin%zmin,'  et ', Tdomain%sBassin%zmax
         endif
     endif
+
     !   nombre de colonnes
     read(12,*) Tdomain%sBassin%n_colonne
     allocate(Tdomain%sBassin%x_coord(0:Tdomain%sBassin%n_colonne))
@@ -165,7 +166,7 @@ subroutine finalize_mesh_connectivity(Tdomain)
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    integer :: i, j, k, n, nf, nnf, mat, ne, nv, nne, nnv
+    integer :: i, j, k, n, nf, nnf, mat, ne, nv, nne, nnv, m
     integer :: n_aus
 
 
@@ -235,6 +236,35 @@ subroutine finalize_mesh_connectivity(Tdomain)
                 Tdomain%sVertex(nnv)%fluid_dirich = .true.
             end if
         end do
+
+!		!Faces
+!		do nf = 0, 5
+!			nnf = Tdomain%specel(n)%Near_Faces(nf)
+!			if(nnf == 2 .or. nnf == 3 .or. nnf == 5) then
+!				Tdomain%sFace(nnf)%mat_list(0) = mat
+!			else(nnf == 0 .or. nnf == 1 .or. nnf == 4) then
+!				Tdomain%sFace(nnf)%mat_list(1) = mat
+!			end if
+!		end do
+!		!Edges
+!    	do ne = 0, 11
+!        	nne = Tdomain%specel(n)%Near_edges(ne)
+!			if(nne == 0 .or. nne == 3 .or. nne == 6) then
+!				Tdomain%sEdge(nne)%mat_list(0) = mat
+!			else if (nne == 1 .or. nne == 2 .or. nne == 4) then
+!				Tdomain%sEdge(nne)%mat_list(1) = mat
+!			else if (nne == 7 .or. nne == 8 .or. nne == 9) then
+!				Tdomain%sEdge(nne)%mat_list(2) = mat
+!			else if (nne == 5 .or. nne == 10 .or. nne == 11) then
+!				Tdomain%sEdge(nne)%mat_list(3) = mat
+!			end if
+!    	end do
+!		!Vertex
+!    	do nv = 0, 7
+!        	nnv = Tdomain%specel(n)%Near_Vertices(nv)
+!			Tdomain%sVertex(nnv)%mat_list(nnv) = mat
+!    	end do
+
     end do
 
     !- Neumann local properties
@@ -277,14 +307,15 @@ subroutine read_material_file(Tdomain)
 
     type(domain), intent(inout) :: Tdomain
     character(Len=MAX_FILE_SIZE) :: fnamef
-    integer :: i, j, n_aus, npml, mat, ne, nf
+    integer :: i, j, n_aus, npml, mat, ne, nf, nRandom, assocMat
     logical, dimension(:), allocatable :: L_Face, L_Edge
     real :: dtmin
     integer :: rg
 
     rg = Tdomain%rank
     npml = 0
-    allocate(Tdomain%sSubdomain(0:Tdomain%n_mat-1))
+    nRandom = 0
+    !allocate(Tdomain%sSubdomain(0:Tdomain%n_mat-1)) !Changed to mesh3d.f90 line 337
 
     call semname_read_inputmesh_parametrage(Tdomain%material_file,fnamef)
     open (13, file=fnamef, status="old", form="formatted")
@@ -296,60 +327,125 @@ subroutine read_material_file(Tdomain)
         stop "Incompatibility between the mesh file and the material file for n_mat"
     endif
 
-
-
     if (Tdomain%aniso) then
         print *,"The code can't put anisotropy in a homogeneous media"
         stop
     endif
+
+    allocate(Tdomain%not_PML_List(0:Tdomain%n_mat-1))
+    Tdomain%any_PML      = .false.
+    Tdomain%any_FPML     = .false.
+    Tdomain%any_Random   = .false.
+    Tdomain%not_PML_List = .true.
+
     do i = 0,Tdomain%n_mat-1
-        read(13,*) Tdomain%sSubDomain(i)%material_type, Tdomain%sSubDomain(i)%Pspeed, &
-            Tdomain%sSubDomain(i)%Sspeed, Tdomain%sSubDomain(i)%dDensity,      &
-            Tdomain%sSubDomain(i)%NGLLx, Tdomain%sSubDomain(i)%NGLLy, Tdomain%sSubDomain(i)%NGLLz, &
-            Tdomain%sSubDomain(i)%Dt, Tdomain%sSubDomain(i)%Qpression,  Tdomain%sSubDomain(i)%Qmu
+        read(13,*) Tdomain%sSubDomain(i)%material_type, &
+        	       Tdomain%sSubDomain(i)%Pspeed,        &
+            	   Tdomain%sSubDomain(i)%Sspeed,        &
+            	   Tdomain%sSubDomain(i)%dDensity,      &
+            	   Tdomain%sSubDomain(i)%NGLLx,         &
+            	   Tdomain%sSubDomain(i)%NGLLy,         &
+            	   Tdomain%sSubDomain(i)%NGLLz,         &
+            	   Tdomain%sSubDomain(i)%Dt,            &
+            	   Tdomain%sSubDomain(i)%Qpression,     &
+            	   Tdomain%sSubDomain(i)%Qmu
 
         Tdomain%sSubdomain(i)%Filtering = .false.
 
         if(rg==0 .and. .false.) then
             write (*,*) 'Material :', i
-            write (*,*) 'type:', Tdomain%sSubDomain(i)%material_type
-            write (*,*) 'Pspeed:', Tdomain%sSubDomain(i)%Pspeed
-            write (*,*) 'Sspeed:', Tdomain%sSubDomain(i)%Sspeed
-            write (*,*) 'Density:', Tdomain%sSubDomain(i)%dDensity
-            write (*,*) 'NGLL:', Tdomain%sSubDomain(i)%NGLLx, Tdomain%sSubDomain(i)%NGLLy, Tdomain%sSubDomain(i)%NGLLz
-            write (*,*) 'Dt:', Tdomain%sSubDomain(i)%Dt
-            write (*,*) 'Qp:', Tdomain%sSubDomain(i)%Qpression
-            write (*,*) 'Qmu:', Tdomain%sSubDomain(i)%Qmu
+            write (*,*) 'type     :', Tdomain%sSubDomain(i)%material_type
+            write (*,*) 'Pspeed   :', Tdomain%sSubDomain(i)%Pspeed
+            write (*,*) 'Sspeed   :', Tdomain%sSubDomain(i)%Sspeed
+            write (*,*) 'Density  :', Tdomain%sSubDomain(i)%dDensity
+            write (*,*) 'NGLL     :', Tdomain%sSubDomain(i)%NGLLx, Tdomain%sSubDomain(i)%NGLLy, Tdomain%sSubDomain(i)%NGLLz
+            write (*,*) 'Dt       :', Tdomain%sSubDomain(i)%Dt
+            write (*,*) 'Qp       :', Tdomain%sSubDomain(i)%Qpression
+            write (*,*) 'Qmu      :', Tdomain%sSubDomain(i)%Qmu
         endif
 
+        Tdomain%sSubdomain(i)%assocMat = i
+
         call Lame_coefficients (Tdomain%sSubDomain(i))
-        if(rg==0) &
-            print*,' lame ',Tdomain%sSubDomain(i)%DMu,Tdomain%sSubDomain(i)%DLambda ,Tdomain%sSubDomain(i)%DKappa
+!        if(rg==0) &
+!            print*,' lame ',Tdomain%sSubDomain(i)%DMu,Tdomain%sSubDomain(i)%DLambda ,Tdomain%sSubDomain(i)%DKappa
         if (Tdomain%sSubDomain(i)%material_type == "P" .or. Tdomain%sSubDomain(i)%material_type == "L")  then
             Tdomain%sSubDomain(i)%wpml = npml
             npml = npml + 1
+            Tdomain%not_PML_List(i) = .false.
         endif
-    enddo
 
-    Tdomain%any_PML = .false.
-    Tdomain%any_FPML = .false.
+        if (Tdomain%sSubDomain(i)%material_type == "R") then
+        	nRandom = nRandom + 1
+        end if
+
+       write(1,*)Tdomain%sSubDomain(i)%wpml 
+    enddo 
+
     if(npml > 0) then
+    	if(rg==0) write (*,*) "!!WARNING change on 'material.input', put associated material after PML existing definition', "
         Tdomain%any_PML = .true.
         read(13,*); read(13,*)
         do i = 0,Tdomain%n_mat-1
-            if(Tdomain%sSubdomain(i)%material_type == "P" .or.     &
-                Tdomain%sSubDomain(i)%material_type == "L") then
-                read(13,*) Tdomain%sSubdomain(i)%Filtering, Tdomain%sSubdomain(i)%npow,    &
-                    Tdomain%sSubdomain(i)%Apow, Tdomain%sSubdomain(i)%Px,                  &
-                    Tdomain%sSubdomain(i)%Left, Tdomain%sSubdomain(i)%Py,                  &
-                    Tdomain%sSubdomain(i)%Forward, Tdomain%sSubdomain(i)%Pz,               &
-                    Tdomain%sSubdomain(i)%Down, Tdomain%sSubdomain(i)%freq
-                if(Tdomain%sSubdomain(i)%Filtering) Tdomain%any_FPML = .true.
+            if(.not. Tdomain%not_PML_List(i)) then
+                read(13,*) Tdomain%sSubdomain(i)%Filtering, &
+                		   Tdomain%sSubdomain(i)%npow,      &
+                    	   Tdomain%sSubdomain(i)%Apow,      &
+                    	   Tdomain%sSubdomain(i)%Px,        &
+                    	   Tdomain%sSubdomain(i)%Left,      &
+                    	   Tdomain%sSubdomain(i)%Py,        &
+                    	   Tdomain%sSubdomain(i)%Forward,   &
+                    	   Tdomain%sSubdomain(i)%Pz,        &
+                    	   Tdomain%sSubdomain(i)%Down,      &
+                    	   Tdomain%sSubdomain(i)%freq,      &
+                    	   Tdomain%sSubdomain(i)%assocMat
+                  if(Tdomain%sSubdomain(i)%Filtering) Tdomain%any_FPML = .true.
             endif
         enddo
     endif
-    close(13)
 
+    if(nRandom > 0) then
+        Tdomain%any_Random = .true.
+        read(13,*); read(13,*)
+        do i = 0,Tdomain%n_mat-1
+        	!write(*,*) "Reading Random Material (", i, ")"
+            if(Tdomain%sSubdomain(i)%material_type == "R") then
+            	allocate(Tdomain%sSubdomain(i)%corrL(0:2))
+            	allocate(Tdomain%sSubdomain(i)%varProp(0:2))
+            	allocate(Tdomain%sSubdomain(i)%margiFirst(0:2))
+            	!write(*,*) "Allocation finished"
+            	!corrMod, corrLX, corrLY, corrLZ, margiFirstDens, varDens, margiFirstLambda, varLambda, margiFirstMu, varMu
+                read(13,*) Tdomain%sSubdomain(i)%corrMod,       &
+                    	   Tdomain%sSubdomain(i)%corrL(0),      &
+                    	   Tdomain%sSubdomain(i)%corrL(1),      &
+                    	   Tdomain%sSubdomain(i)%corrL(2),      &
+                		   Tdomain%sSubdomain(i)%margiFirst(0), &
+                    	   Tdomain%sSubdomain(i)%varProp(0),    &
+                		   Tdomain%sSubdomain(i)%margiFirst(1), &
+                    	   Tdomain%sSubdomain(i)%varProp(1),    &
+                		   Tdomain%sSubdomain(i)%margiFirst(2), &
+                    	   Tdomain%sSubdomain(i)%varProp(2),    &
+                    	   Tdomain%sSubdomain(i)%seedStart
+            endif
+        enddo
+        do i = 0,Tdomain%n_mat-1
+        	assocMat = Tdomain%sSubdomain(i)%assocMat
+            if((.not. Tdomain%not_PML_List(i))                                 &
+                .and. Tdomain%sSubdomain(assocMat)%material_type == "R") then
+            	allocate(Tdomain%sSubdomain(i)%corrL(0:2))
+            	allocate(Tdomain%sSubdomain(i)%varProp(0:2))
+            	allocate(Tdomain%sSubdomain(i)%margiFirst(0:2))
+
+                Tdomain%sSubdomain(i)%corrMod       = Tdomain%sSubdomain(assocMat)%corrMod
+                Tdomain%sSubdomain(i)%corrL(:)      = Tdomain%sSubdomain(assocMat)%corrL(:)
+                Tdomain%sSubdomain(i)%margiFirst(:) = Tdomain%sSubdomain(assocMat)%margiFirst(:)
+                Tdomain%sSubdomain(i)%varProp(:)    = Tdomain%sSubdomain(assocMat)%varProp(:)
+            endif
+        enddo
+    endif
+
+    close(13)
+  
     !- GLL properties in elements, on faces, edges.
     allocate(L_Face(0:Tdomain%n_face-1))
     L_Face = .true.
@@ -444,6 +540,14 @@ subroutine create_sem_sources(Tdomain, config)
         Tdomain%Ssource(nsrc)%fh = src%band  ! func=3
         Tdomain%Ssource(nsrc)%gamma = src%gamma ! func=4
         Tdomain%Ssource(nsrc)%ts = src%ts   ! func=4
+        Tdomain%Ssource(nsrc)%Q = src%Q
+        Tdomain%Ssource(nsrc)%Y = src%Y
+        Tdomain%Ssource(nsrc)%X = src%X
+        Tdomain%Ssource(nsrc)%L = src%L
+        Tdomain%Ssource(nsrc)%v = src%v
+        Tdomain%Ssource(nsrc)%a = src%a
+        Tdomain%Ssource(nsrc)%d = src%d
+
         ! Comportement Spacial
         ! i_type_source==1
         ndir = sqrt(src%dir(1)**2 + src%dir(2)**2 + src%dir(3)**2)
@@ -553,32 +657,28 @@ subroutine read_input (Tdomain, code)
     if (code/=1) then
         stop 1
     endif
-    if (rg==0) call dump_config(config)
+    if (rg==0) call dump_config(config) !Print of configuration on the screen
 
     ! On copie les parametres renvoyes dans la structure C
-    Tdomain%Title_simulation = fromcstr(config%run_name)
+    Tdomain%Title_simulation          = fromcstr(config%run_name)
     Tdomain%TimeD%acceleration_scheme = config%accel_scheme .ne. 0
-    Tdomain%TimeD%velocity_scheme = config%veloc_scheme .ne. 0
-    Tdomain%TimeD%duration = config%sim_time
-    Tdomain%TimeD%alpha = config%alpha
-    Tdomain%TimeD%beta = config%beta
-    Tdomain%TimeD%gamma = config%gamma
-    Tdomain%TimeD%courant = config%courant
-
-    Tdomain%mesh_file = fromcstr(config%mesh_file)
-    call semname_read_input_meshfile(rg,Tdomain%mesh_file,fnamef)
-    Tdomain%mesh_file = fnamef
-    Tdomain%aniso = config%anisotropy .ne. 0
-    Tdomain%material_file = fromcstr(config%mat_file)
-    Tdomain%logicD%save_trace = config%save_traces .ne. 0
+    Tdomain%TimeD%velocity_scheme     = config%veloc_scheme .ne. 0
+    Tdomain%TimeD%duration            = config%sim_time
+    Tdomain%TimeD%alpha               = config%alpha
+    Tdomain%TimeD%beta                = config%beta
+    Tdomain%TimeD%gamma               = config%gamma
+    Tdomain%TimeD%courant             = config%courant
+    Tdomain%mesh_file                 = fromcstr(config%mesh_file)
+    call semname_read_input_meshfile(rg,Tdomain%mesh_file,fnamef) !indicates the path to the mesh file for this proc"
+    Tdomain%mesh_file             = fnamef
+    Tdomain%aniso                 = config%anisotropy .ne. 0
+    Tdomain%material_file         = fromcstr(config%mat_file)
+    Tdomain%logicD%save_trace     = config%save_traces .ne. 0
     Tdomain%logicD%save_snapshots = config%save_snap .ne. 0
-    Tdomain%ngroup = config%n_group_outputs
-    ! MODIF ICI: energie? deformation?..
-    !Tdomain%logicD%save_energy = !?
-    Tdomain%logicD%save_restart = config%prorep_iter .ne. 0
-    ! MPML
-    Tdomain%logicD%MPML = .false.
-    Tdomain%MPML_coeff = config%mpml
+    Tdomain%ngroup                = config%n_group_outputs
+    Tdomain%logicD%save_restart   = config%prorep_iter .ne. 0
+    Tdomain%logicD%MPML           = .false.
+    Tdomain%MPML_coeff            = config%mpml
     if (config%mpml/=0) then
         Tdomain%logicD%MPML = .true.
     end if
@@ -589,29 +689,29 @@ subroutine read_input (Tdomain, code)
     !Tdomain%logicD%run_echo
     Tdomain%logicD%run_restart = config%prorep .ne. 0
     Tdomain%TimeD%iter_reprise = config%prorep_restart_iter
-    Tdomain%TimeD%ncheck = config%prorep_iter ! frequence de sauvegarde
+    Tdomain%TimeD%ncheck       = config%prorep_iter ! frequence de sauvegarde
 
     if(Tdomain%logicD%save_trace) then
         Tdomain%station_file = fromcstr(config%station_file)
     end if
 
-    Tdomain%TimeD%ntrace = config%traces_interval ! XXX
-    Tdomain%traces_format = config%traces_format
+    Tdomain%TimeD%ntrace        = config%traces_interval ! XXX
+    Tdomain%traces_format       = config%traces_format
     Tdomain%TimeD%time_snapshots = config%snap_interval
-    logic_scheme = Tdomain%TimeD%acceleration_scheme .neqv. Tdomain%TimeD%velocity_scheme
+    logic_scheme                 = Tdomain%TimeD%acceleration_scheme .neqv. Tdomain%TimeD%velocity_scheme
     if(.not. logic_scheme) then
         stop "Both acceleration and velocity schemes: no compatibility, chose only one."
     end if
 
     ! Amortissement
-    Tdomain%n_sls = config%nsolids
-    Tdomain%T1_att = config%atn_band(1)
-    Tdomain%T2_att = config%atn_band(2)
+    Tdomain%n_sls     = config%nsolids
+    Tdomain%T1_att    = config%atn_band(1)
+    Tdomain%T2_att    = config%atn_band(2)
     Tdomain%T0_modele = config%atn_period
     if (rg==0) then
-        write(*,*) "Attenuation SLS=", Tdomain%n_sls
-        write(*,*) "         period=", Tdomain%T0_modele
-        write(*,*) "           band=", Tdomain%T1_att, Tdomain%T2_att
+        write(*,*) "Attenuation SLS =", Tdomain%n_sls
+        write(*,*) "         period =", Tdomain%T0_modele
+        write(*,*) "           band =", Tdomain%T1_att, Tdomain%T2_att
     end if
 
 
@@ -631,11 +731,6 @@ subroutine read_input (Tdomain, code)
     Tdomain%Neumann%Neu_Param%ys = config%neu_C(2)
     Tdomain%Neumann%Neu_Param%zs = config%neu_C(3)
     Tdomain%Neumann%Neu_Param%f0 = config%neu_f0
-
-
-
-
-
 
     ! Create sources from C structures
     call create_sem_sources(Tdomain, config)

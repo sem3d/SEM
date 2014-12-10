@@ -18,7 +18,8 @@ module sedges
 
        logical :: PML, Abs, FPML
 
-       integer :: ngll,mat_index
+       integer :: ngll, mat_index
+       !integer, dimension (0:3) :: mat_list = -1
        integer, dimension (:), allocatable :: Iglobnum_Edge,EdgeNum
        !integer, dimension (:), allocatable :: Which_Elem,Which_EdgeinElem
 

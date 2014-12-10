@@ -23,6 +23,8 @@ module semdatafiles
     character(Len=MAX_FILE_SIZE) :: path_data
     character(Len=MAX_FILE_SIZE) :: path_prot
     character(Len=MAX_FILE_SIZE) :: path_logs
+    character(Len=MAX_FILE_SIZE) :: path_prop
+    character(Len=MAX_FILE_SIZE) :: path_prop_h5
 contains
 
     function pjoin(s1, s2)
@@ -47,19 +49,24 @@ contains
         path_logs = "./listings"
     end subroutine init_mka3d_path
 
-    subroutine init_sem_path(param, traces, results, data, prorep)
+    subroutine init_sem_path(param, traces, results, data, prorep, properties, properties_h5)
         character(Len=MAX_FILE_SIZE), intent(in) :: param
         character(Len=MAX_FILE_SIZE), intent(in) :: traces
         character(Len=MAX_FILE_SIZE), intent(in) :: results
         character(Len=MAX_FILE_SIZE), intent(in) :: data
         character(Len=MAX_FILE_SIZE), intent(in) :: prorep
+        character(Len=MAX_FILE_SIZE), intent(in) :: properties
+        character(Len=MAX_FILE_SIZE), intent(in) :: properties_h5
 
-        path_param = param
-        path_traces = traces
+        path_param   = param
+        path_traces  = traces
         path_results = results
-        path_data = data
-        path_prot = prorep
-        path_logs = "."
+        path_data    = data
+        path_prot    = prorep
+        path_logs    = "."
+        path_prop    = properties
+        path_prop_h5 = properties_h5
+
     end subroutine init_sem_path
 
     subroutine create_sem_output_directories()
@@ -72,6 +79,10 @@ contains
         if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_prot))
         ierr = sem_mkdir(trim(adjustl(path_logs)))
         if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_logs))
+        ierr = sem_mkdir(trim(adjustl(path_prop)))
+        if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_prop))
+        ierr = sem_mkdir(trim(adjustl(path_prop_h5)))
+        if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_prop_h5))
     end subroutine create_sem_output_directories
 
     subroutine semname_read_capteurs(file,fnamef)

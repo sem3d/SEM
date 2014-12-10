@@ -31,6 +31,7 @@ contains
         integer, allocatable, dimension(:)  :: ind_mat, n_elem_mat, nlay
         real      :: xmin,xmax,ymin,ymax,zmin,zmax,step_x,step_y,step_z,   &
             xminref,xmaxref,yminref,ymaxref,zminref,zmaxref
+        integer :: n_mate
         character(len=30)    :: cubitmesh
         character(len=60), dimension(:), allocatable  :: unv_files
 
@@ -89,7 +90,6 @@ contains
             !- PML materials added
             call nature_elem(Ipointer,xco,yco,zco,size(tabmat),Material,xminref,    &
                 xmaxref,yminref,ymaxref,zminref,zmaxref,pml_b,pml_t,pml_bottom,thick)
-
 
             !- Cubit file
         case(2)
@@ -172,10 +172,11 @@ contains
             call mat_table_construct(tabmat)
             call lec_init_unv(unv_files)
 
+            n_mate = size(tabmat,1)
             n_nods = 8
             if (.true.) then
                 if (choice==3) then
-                    call lec_unv_v2(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks)
+                    call lec_unv_v2(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks, n_mate)
                 else
                     call lec_hdf5(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks)
                 endif
@@ -1544,6 +1545,7 @@ contains
                     end do
                 end do
             end do
+
             !- co-ordinates
             aux_pt = 0
             do nz = 0,nelemz
@@ -1734,8 +1736,6 @@ contains
                 end if
             end if
 
-
-            !write(*,*) 'Elem:', n, ' mat=', Mat(n), 'ctr=', bary
         end do
 
     end subroutine nature_elem

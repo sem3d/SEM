@@ -114,6 +114,12 @@ contains
                     Face%Forces(i,j,0) = -vel_i(i,j,0)*Face%Btn(i,j,0)
                     Face%Forces(i,j,1) = -vel_i(i,j,1)*Face%Btn(i,j,1)
                     Face%Forces(i,j,2) = -vel_i(i,j,2)*Face%Btn(i,j,2)
+                
+            !    case('S')
+            !        ! Pour le case de source surfacique
+            !        Face%Forces(i,j,0) = triangle(dt)*Face%Btn(i,j,0)
+            !        Face%Forces(i,j,1) = triangle(dt)*Face%Btn(i,j,1)
+            !        Face%Forces(i,j,2) = triangle(dt)*Face%Btn(i,j,2) 
 
                 end select
             enddo
@@ -183,6 +189,12 @@ contains
                 Edge%Forces(i,0) = -vel_i(i,0)*Edge%Btn(i,0)
                 Edge%Forces(i,1) = -vel_i(i,1)*Edge%Btn(i,1)
                 Edge%Forces(i,2) = -vel_i(i,2)*Edge%Btn(i,2)
+            
+         !   case('S')
+         !       ! Pour la source surfacique
+         !       Edge%Forces(i,0) = triangle(dt)*Edge%Btn(i,0)
+         !       Edge%Forces(i,1) = triangle(dt)*Edge%Btn(i,1)
+         !       Edge%Forces(i,2) = triangle(dt)*Edge%Btn(i,2)
 
             end select
         enddo
@@ -250,6 +262,14 @@ contains
             Vertex%Forces(0) = -vel_i(0)*Vertex%Btn(0)
             Vertex%Forces(1) = -vel_i(1)*Vertex%Btn(1)
             Vertex%Forces(2) = -vel_i(2)*Vertex%Btn(2)
+
+
+        ! case('S')
+                ! Pour la source surfacique
+        !    Vertex%Forces(0) = triangle(dt)*Vertex%Btn(0)
+        !    Vertex%Forces(1) = triangle(dt)*Vertex%Btn(1)
+        !    Vertex%Forces(2) = triangle(dt)*Vertex%Btn(2)
+
 
         end select
 

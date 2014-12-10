@@ -19,10 +19,12 @@ subroutine deallocate_domain (Tdomain)
 
     type(domain), intent (INOUT):: Tdomain
 
-    integer :: n
+    integer :: n, code
 
     deallocate (Tdomain%GlobCoord)
     deallocate (Tdomain%Coord_Nodes)
+    if(allocated(Tdomain%not_PML_List)) deallocate (Tdomain%not_PML_List)
+    if(allocated(Tdomain%subD_exist)) deallocate (Tdomain%subD_exist)
 
     do n = 0,Tdomain%n_elem-1
         deallocate (Tdomain%specel(n)%Density)
@@ -228,8 +230,11 @@ subroutine deallocate_domain (Tdomain)
         deallocate (Tdomain%sSubdomain(n)%GLLwx)
         deallocate (Tdomain%sSubdomain(n)%hprimex)
         deallocate (Tdomain%sSubdomain(n)%hTprimex)
+
+		if(allocated(Tdomain%subDComm)) call MPI_COMM_FREE (Tdomain%subDComm(n),code)
     enddo
 
+    if(allocated(Tdomain%subDComm)) deallocate (Tdomain%subDComm)
     deallocate (Tdomain%sSubdomain)
 
     do n = 0, Tdomain%n_source-1

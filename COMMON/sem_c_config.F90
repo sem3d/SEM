@@ -92,6 +92,13 @@ module sem_c_config
        real(C_DOUBLE) :: gamma
        real(C_DOUBLE) :: amplitude
        type(C_PTR) :: time_file
+       real(C_DOUBLE) :: Q
+       real(C_DOUBLE) :: X
+       real(C_DOUBLE) :: Y
+       real(C_DOUBLE) :: L
+       real(C_DOUBLE) :: v
+       real(C_DOUBLE) :: d
+       real(C_DOUBLE) :: a
     end type sem_source
 
     type, bind(c) :: sem_snapshot_cond

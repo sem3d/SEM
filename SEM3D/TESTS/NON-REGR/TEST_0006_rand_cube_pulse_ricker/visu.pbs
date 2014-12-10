@@ -1,0 +1,10 @@
+#!/bin/sh
+#PBS -l select=1:ncpus=4
+#PBS -l walltime=2:00:00
+#PBS -N visu -e error
+#PBS -o output
+#PBS -q visuq
+#PBS -M angkeara.svay@ecp.fr
+#PBS -I
+set -x
+cd ${PBS_O_WORKDIR}

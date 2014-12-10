@@ -24,7 +24,7 @@ subroutine shape8(Tdomain,rank)
     !    der_dy_dxi,der_dy_deta,der_dy_dzeta,der_dz_dxi,der_dz_deta,der_dz_dzeta
 
 
-    allocate(Tdomain%GlobCoord(0:2,0:Tdomain%n_glob_points-1))
+    allocate(Tdomain%GlobCoord(0:2,0:Tdomain%n_glob_points-1)) !Tdomain%n_glob_points is the number of degrees of fredom
 
     do n = 0,Tdomain%n_elem-1
 
@@ -185,7 +185,9 @@ subroutine shape8(Tdomain,rank)
 
     ! Obtention of a positive Jacobian.
     do n = 0,Tdomain%n_elem - 1
-        ngllx = Tdomain%specel(n)%ngllx ; nglly = Tdomain%specel(n)%nglly ; ngllz = Tdomain%specel(n)%ngllz
+        ngllx = Tdomain%specel(n)%ngllx;
+        nglly = Tdomain%specel(n)%nglly;
+        ngllz = Tdomain%specel(n)%ngllz;
         do k = 0,ngllz - 1
             do j = 0,nglly - 1
                 do i = 0,ngllx - 1
@@ -193,6 +195,9 @@ subroutine shape8(Tdomain,rank)
                 enddo
             enddo
         enddo
+        !OBS: could be rewriten
+        !Tdomain%specel(n)%Jacob(:,:,:) = abs(Tdomain%specel(n)%Jacob(:,:,:))
+        !Keeping only the loop over the elements (n)
     enddo
 
 
