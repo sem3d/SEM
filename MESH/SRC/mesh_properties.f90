@@ -25,11 +25,10 @@ contains
         character, dimension(:), allocatable, intent(out)              :: tabmat
         real, allocatable, dimension(:), intent(out)   :: xco,yco,zco
         real, allocatable, dimension(:)   :: thick,z_dep
-        logical   :: strat_bool
         integer   :: choice, i_ex, idummy,icount,iunit, nfile, i, j, n,    &
-                     mesh_type,i_err,pml_b, pml_t, pml_bottom, n_mat_tot,nmatref
+            mesh_type,pml_b, pml_t, pml_bottom, n_mat_tot,nmatref
         integer, allocatable, dimension(:)  :: ind_mat, n_elem_mat, nlay
-        real      :: xmin,xmax,ymin,ymax,zmin,zmax,step_x,step_y,step_z,   &
+        real      :: xmin,xmax,ymin,ymax,zmin,zmax,step_x,step_y,   &
             xminref,xmaxref,yminref,ymaxref,zminref,zmaxref
         integer :: n_mate
         character(len=30)    :: cubitmesh
@@ -59,15 +58,15 @@ contains
         end do
 
         select case(choice)
-            case(1)  ! mesh created on the fly
-           ! general information input file 
-           !- construction of the material table
+        case(1)  ! mesh created on the fly
+            ! general information input file 
+            !- construction of the material table
             call  create_model_ondafly(n_mat_tot,tabmat,pml_b,pml_t,pml_bottom,   &
-                                   xmin,xmax,step_x,ymin,ymax,step_y,zmax,mesh_type,nlay,thick)
-        write(*,*)
-        write(*,*) "************************************************"
-        write(*,*) "  --> Construction of the material table: OK."
-           
+                xmin,xmax,step_x,ymin,ymax,step_y,zmax,mesh_type,nlay,thick)
+            write(*,*)
+            write(*,*) "************************************************"
+            write(*,*) "  --> Construction of the material table: OK."
+
             call init_ondafly(xmin,xmax,ymin,ymax,zmax,xminref,xmaxref,   &
                 yminref,ymaxref,zminref,zmaxref, step_x,step_y,  &
                 mesh_type,n_nods,n_points,n_elem,pml_b,   &
@@ -101,7 +100,7 @@ contains
             write(*,*) "    --> Warning: there must be no empty line in the Cubit file (depending on the version)"
             write(*,*) "    --> Warning 2: file mater.in must be in the directory to construct material table."
             write(*,*)
-          ! construction of the material table
+            ! construction of the material table
             call mat_table_construct(tabmat)
             write(*,*) "  --> Name of the Cubit file:"
             read(*,*) cubitmesh
@@ -209,7 +208,7 @@ contains
             deallocate(unv_files)
 
         case(5)
-            
+
             call init_earthchunk(earthchunk)
 
             n_points = earthchunk%total_pt
@@ -1260,9 +1259,9 @@ contains
     !-------------------------------------------------------------------------------
     !-------------------------------------------------------------------------------
     subroutine create_model_ondafly(n_mat_tot,mattab,pml_bool,pml_top,pml_bottom,   &
-                                   xmin,xmax,step_x,ymin,ymax,step_y,zmax,mesh_type,nlay,thick)
-      ! reads 'mat.dat' with info related to construction of a simple model on
-      ! the fly 
+        xmin,xmax,step_x,ymin,ymax,step_y,zmax,mesh_type,nlay,thick)
+        ! reads 'mat.dat' with info related to construction of a simple model on
+        ! the fly 
         implicit none
         integer, intent(out)  :: n_mat_tot,pml_bool,pml_top,pml_bottom,mesh_type
         character, allocatable, dimension(:),intent(out) :: mattab
@@ -1287,17 +1286,17 @@ contains
         write(*,*) "      2- the material file 'mater.in'"
         write(*,*)
 
-       
+
         open(10,file="mater.in",action="read",status="old",iostat=i_err)
         if(i_err > 0) stop "File 'mater.in' not found in the working directory"
         read(10,*) n_mat
         allocate(rho(0:n_mat-1),pvel(0:n_mat-1),svel(0:n_mat-1),qp(0:n_mat-1),  &
-                 qs(0:n_mat-1),ngll(0:n_mat-1),matarray(0:n_mat-1))
+            qs(0:n_mat-1),ngll(0:n_mat-1),matarray(0:n_mat-1))
         do i = 0,n_mat-1
             read(10,*) matarray(i),pvel(i),svel(i),rho(i),ngll(i),tr,tr,tr,qp(i),qs(i)
         end do
         close(10)
-         
+
 
         open(10,file="mat.dat",action="read",status="old",iostat=i_err)
         if(i_err > 0) stop "File 'mat.dat' not found in the working directory"
@@ -1317,7 +1316,7 @@ contains
             print*,"  --> Stratified medium."
             strat_bool = .true.
         end if
-    !  PMLs
+        !  PMLs
         read(10,*) pml_bool
         if(pml_bool /= 0 .and. pml_bool /= 1) stop "In mesh2spec: PML or not?"
         if(pml_bool == 1)then   ! PMLs added
@@ -1343,18 +1342,18 @@ contains
             write(*,*) "       Ok? (type enter if..)"
             read*
         end if
-     ! number of control nodes
+        ! number of control nodes
         read(10,*) mesh_type
         close(10)
 
-     ! material file created
+        ! material file created
         allocate(mattab(0:n_mat_tot-1))
 
         call mat_table_construct_ondafly(n_mat,n_mat_tot,matarray,mattab,pml_bool,pml_top,pml_bottom)
 
         if(pml_bool == 1)then
             call write_mater_ondafly(n_mat,mattab,pvel,svel,rho,ngll,qp,qs,pml_bool,   &
-                                     pml_top,pml_bottom,ngllPML)
+                pml_top,pml_bottom,ngllPML)
         else
             call write_mater_ondafly(n_mat,mattab,pvel,svel,rho,ngll,qp,qs)
         end if
@@ -1396,21 +1395,21 @@ contains
         end do
         if(size(mattab) == nmat) return
         do i = 0,nmat-1
-           if(mattab(i) == 'F') mattab(icount:icount+7) = 'L' 
-           if(mattab(i) == 'S') mattab(icount:icount+7) = 'P' 
-           icount = icount + 8
+            if(mattab(i) == 'F') mattab(icount:icount+7) = 'L' 
+            if(mattab(i) == 'S') mattab(icount:icount+7) = 'P' 
+            icount = icount + 8
         end do
-       
+
         if(pml_b == 1)then
-           if(mattab(nmat-1) == 'F') mattab(icount:icount+8) = 'L' 
-           if(mattab(nmat-1) == 'S') mattab(icount:icount+8) = 'P' 
-           icount = icount + 9
+            if(mattab(nmat-1) == 'F') mattab(icount:icount+8) = 'L' 
+            if(mattab(nmat-1) == 'S') mattab(icount:icount+8) = 'P' 
+            icount = icount + 9
         end if
 
         if(pml_t == 1)then
-           if(mattab(0) == 'F') mattab(icount:icount+8) = 'L' 
-           if(mattab(0) == 'S') mattab(icount:icount+8) = 'P' 
-           icount = icount + 9
+            if(mattab(0) == 'F') mattab(icount:icount+8) = 'L' 
+            if(mattab(0) == 'S') mattab(icount:icount+8) = 'P' 
+            icount = icount + 9
         end if
 
 
@@ -1419,7 +1418,7 @@ contains
     !--------------------------------------------------------------------
 
     subroutine init_ondafly(xmin,xmax,ymin,ymax,zmax,xminref,xmaxref,yminref,ymaxref,zminref,zmaxref,    &
-       step_x,step_y,mesh_type,nnods,npts,nelem,pml_b,pml_t,pml_bott,nlay,thick,z_dep)
+        step_x,step_y,mesh_type,nnods,npts,nelem,pml_b,pml_t,pml_bott,nlay,thick,z_dep)
 
         implicit none
         integer, intent(in)  :: pml_b,pml_t,pml_bott
@@ -1490,7 +1489,7 @@ contains
             zminref = z_dep(0)
         end if
 
-       !- changes in lengths if PMLs added:
+        !- changes in lengths if PMLs added:
         if(pml_b == 1)then
             xmin = xmin-step_x ; xmax = xmax+step_x
             ymin = ymin-step_y ; ymax = ymax+step_y
@@ -1627,7 +1626,7 @@ contains
             yminref,ymaxref,zminref,zmaxref
         real, dimension(0:),intent(in)   :: thick
         integer, intent(inout)  :: mat(0:)
-        integer               :: i,j,n,nelem,i_z,ind_pml
+        integer               :: i,j,n,nelem,ind_pml
         real                  :: coord(0:7,0:2), bary(0:2), z(0:size(thick))
 
         nelem = size(Ipoint,2)
@@ -1648,9 +1647,9 @@ contains
             end do
             call barycentre(coord,bary)
 
-         ! eventual bottom and top PMLs 
+            ! eventual bottom and top PMLs 
             if(bary(2) > zmaxref) then   ! top PMLs
-                 if(bary(1) < yminref)then
+                if(bary(1) < yminref)then
                     if(bary(0) < xminref)then
                         Mat(n) = nmat-9
                     else if(bary(0) > xmaxref)then
@@ -1677,7 +1676,7 @@ contains
                 end if
             end if
             if(bary(2) < zminref) then   ! bottom PMLs
-                 if(bary(1) < yminref)then
+                if(bary(1) < yminref)then
                     if(bary(0) < xminref)then
                         Mat(n) = nmat-9-ind_pml
                     else if(bary(0) > xmaxref)then
@@ -1703,7 +1702,7 @@ contains
                     end if
                 end if
             end if
-            
+
             if(bary(2) < zmaxref .and. bary(2) > zminref)then
                 do j = 0,size(z)-1
                     if(bary(2) < z(j) .and. bary(2) > z(j+1)) exit 
@@ -1763,10 +1762,10 @@ contains
         real, dimension(0:nmat-1), intent(in)  :: vp,vs,rho,qp,qs
         integer, dimension(0:nmat-1), intent(in)  :: ngll
         integer, intent(in),optional     :: pml_bool,pml_t,pml_b,ngll_PML
-        integer                 :: i,j,icount
+        integer                 :: i,icount
         real  :: tr
         character(len=*), parameter  :: FMT1="(a1,2x,f9.3,2x,f9.3,2x,f9.3,2x,3(i2,2x),f8.5,2x,f8.3,2x,f8.3)"
-        character(len=*), parameter  :: FMT2="(l1,1x,i2,1x,f5.2,1x,6(l1,1x),f5.2)"
+        character(len=*), parameter  :: FMT2="(l1,1x,i2,1x,f5.2,1x,6(l1,1x),f5.2,i3)"
         real, parameter  :: a = 10d0, k =0d0
         integer, parameter  :: n = 2
         logical, parameter   :: VRAI = .true. , FAUX = .false.
@@ -1776,109 +1775,109 @@ contains
 
         open(10,file="material.input",action="write",status="replace")
         write(10,*) size(mattab)
-   !  physical layers
+        !  physical layers
         do i = 0,nmat-1
             write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll(i),   &
-                                ngll(i),tr,qp(i),qs(i)
+                ngll(i),tr,qp(i),qs(i)
             icount = icount+1
         end do
 
-   ! lateral PMLs
+        ! lateral PMLs
         if(present(pml_bool) .and. pml_bool == 1)then
             do i = 0,nmat-1
                 write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                                ngll(i),tr,qp(i),qs(i)
+                    ngll(i),tr,qp(i),qs(i)
                 icount = icount+1
                 write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                                ngll(i),tr,qp(i),qs(i)
+                    ngll(i),tr,qp(i),qs(i)
                 icount = icount+1
                 write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                                ngll(i),tr,qp(i),qs(i)
+                    ngll(i),tr,qp(i),qs(i)
                 icount = icount+1
                 write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                                ngll(i),tr,qp(i),qs(i)
+                    ngll(i),tr,qp(i),qs(i)
                 icount = icount+1
                 write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
-                                ngll(i),tr,qp(i),qs(i)
+                    ngll(i),tr,qp(i),qs(i)
                 icount = icount+1
                 write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
-                                ngll(i),tr,qp(i),qs(i)
+                    ngll(i),tr,qp(i),qs(i)
                 icount = icount+1
                 write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
-                                ngll(i),tr,qp(i),qs(i)
+                    ngll(i),tr,qp(i),qs(i)
                 icount = icount+1
                 write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
-                                ngll(i),tr,qp(i),qs(i)
+                    ngll(i),tr,qp(i),qs(i)
                 icount = icount+1
 
             end do
         end if
-   ! bottom PMLs
+        ! bottom PMLs
         if(present(pml_b) .and. pml_b == 1)then
             i = nmat-1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                                ngll_PML,tr,qp(i),qs(i)
-                icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                                ngll_PML,tr,qp(i),qs(i)
-                icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                                ngll_PML,tr,qp(i),qs(i)
-                icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                                ngll_PML,tr,qp(i),qs(i)
-                icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
-                                ngll_PML,tr,qp(i),qs(i)
-                icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
-                                ngll_PML,tr,qp(i),qs(i)
-                icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
-                                ngll_PML,tr,qp(i),qs(i)
-                icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
-                                ngll_PML,tr,qp(i),qs(i)
-                icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll(i),   &
-                                ngll_PML,tr,qp(i),qs(i)
-                icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll(i),   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
         end if
-   ! top PMLs
+        ! top PMLs
         if(present(pml_t) .and. pml_t == 1)then
             i = 0
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                                ngll_PML,tr,qp(i),qs(i)
-                icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                                ngll_PML,tr,qp(i),qs(i)
-                icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                                ngll_PML,tr,qp(i),qs(i)
-                icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
-                                ngll_PML,tr,qp(i),qs(i)
-                icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
-                                ngll_PML,tr,qp(i),qs(i)
-                icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
-                                ngll_PML,tr,qp(i),qs(i)
-                icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
-                                ngll_PML,tr,qp(i),qs(i)
-                icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
-                                ngll_PML,tr,qp(i),qs(i)
-                icount = icount+1
-                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll(i),   &
-                                ngll_PML,tr,qp(i),qs(i)
-                icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll(i),   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
         end if
 
-  !! lines dedicated to PMLs
+        !! lines dedicated to PMLs
         write(10,*) ; write(10,*)
-    ! lateral PMLs
+        ! lateral PMLs
         if(present(pml_bool) .and. pml_bool == 1)then
             do i = 0,nmat-1
                 write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,VRAI,FAUX,FAUX,k,i
@@ -1891,7 +1890,7 @@ contains
                 write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,FAUX,VRAI,FAUX,FAUX,k,i
             end do
         end if
-     ! bottom PMLs
+        ! bottom PMLs
         if(present(pml_b) .and. pml_b == 1)then
             write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,VRAI,VRAI,VRAI,k,nmat-1
             write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,VRAI,VRAI,VRAI,k,nmat-1
@@ -1903,7 +1902,7 @@ contains
             write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,FAUX,VRAI,VRAI,VRAI,k,nmat-1
             write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,FAUX,VRAI,VRAI,VRAI,k,nmat-1
         end if
-      ! top PMLs
+        ! top PMLs
         if(present(pml_t) .and. pml_t == 1)then
             write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,VRAI,VRAI,FAUX,k,0
             write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,VRAI,VRAI,FAUX,k,0
@@ -1915,7 +1914,7 @@ contains
             write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,FAUX,VRAI,VRAI,FAUX,k,0
             write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,FAUX,VRAI,VRAI,FAUX,k,0
         end if
-     
+
 
         close(10)
 
