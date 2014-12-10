@@ -231,10 +231,14 @@ subroutine deallocate_domain (Tdomain)
         deallocate (Tdomain%sSubdomain(n)%hprimex)
         deallocate (Tdomain%sSubdomain(n)%hTprimex)
 
-		if(allocated(Tdomain%subDComm)) call MPI_COMM_FREE (Tdomain%subDComm(n),code)
+        if (Tdomain%any_Random) then
+            call MPI_COMM_FREE (Tdomain%subDComm(n),code)
+        end if
     enddo
 
-    if(allocated(Tdomain%subDComm)) deallocate (Tdomain%subDComm)
+    if (Tdomain%any_Random) then
+        if(allocated(Tdomain%subDComm)) deallocate (Tdomain%subDComm)
+    end if
     deallocate (Tdomain%sSubdomain)
 
     do n = 0, Tdomain%n_source-1
