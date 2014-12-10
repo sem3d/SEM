@@ -17,19 +17,6 @@ endif(HDF5_DIR)
 
 set(SEMDIR ${PROJECT_SOURCE_DIR})
 
-add_library(randomfield
-  ${SEMDIR}/randomfield/displayCarvalhol.f90
-  ${SEMDIR}/randomfield/math_RF.f90
-  ${SEMDIR}/randomfield/obsolete_RF.f90
-  ${SEMDIR}/randomfield/randomFieldND.f90
-  ${SEMDIR}/randomfield/readFile_RF.f90
-  ${SEMDIR}/randomfield/spectra_RF.f90
-  ${SEMDIR}/randomfield/statistics_RF.f90
-  ${SEMDIR}/randomfield/writeResultFile_RF.f90
-)
-
-set_target_properties(randomfield PROPERTIES Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/libs)
-
 find_package(HDF5 REQUIRED C Fortran)
 add_definitions(-DUSE_HDF5)
 include_directories(${HDF5_FORTRAN_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} ${HDF5_INCLUDE_DIR})
@@ -128,8 +115,25 @@ endif(CEAUSER)
 
 message("SEMLIBS: '${SEM_EXTRA_LIBS}'")
 
+set(SEMLIBDIR ${PROJECT_BINARY_DIR}/libs)
+#SEM COMMON LIBRARY
+add_library(semcommon ${SEM_SRC} ${SEM_SRC_C})
+set_target_properties(semcommon PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR})
+
 #RANDOM FIELD LIBRARY
-set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} randomfield)
+add_library(randomfield
+  ${SEMDIR}/randomfield/displayCarvalhol.f90
+  ${SEMDIR}/randomfield/math_RF.f90
+  ${SEMDIR}/randomfield/obsolete_RF.f90
+  ${SEMDIR}/randomfield/randomFieldND.f90
+  ${SEMDIR}/randomfield/readFile_RF.f90
+  ${SEMDIR}/randomfield/spectra_RF.f90
+  ${SEMDIR}/randomfield/statistics_RF.f90
+  ${SEMDIR}/randomfield/writeResultFile_RF.f90
+)
+set_target_properties(randomfield PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR})
+add_dependencies(randomfield semcommon)
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} randomfield semcommon)
 
 
 add_subdirectory(SEM2D)

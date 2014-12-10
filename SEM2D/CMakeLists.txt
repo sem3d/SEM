@@ -4,8 +4,7 @@ ENABLE_LANGUAGE(Fortran)
 
 set(PRJ ${PROJECT_SOURCE_DIR})
 
-set(SEM2D_SOURCES_F
-    ${SEM_SRC}
+set(SEM2D_SOURCES
     ${PRJ}/SRC/Element.F90
     ${PRJ}/SRC/Face.F90
     ${PRJ}/SRC/Vertex.F90
@@ -56,9 +55,6 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/main.F90
 )
 
-set(SEM2D_SOURCES ${SEM2D_SOURCES_F}
-  ${SEM_SRC_C}
-)
 
 
 if(OPT_MPI)
@@ -67,6 +63,7 @@ if(OPT_MPI)
   set_target_properties(sem2d_cpl PROPERTIES
 				  COMPILE_DEFINITIONS COUPLAGE
 				  COMPILE_FLAGS -I${PROJECT_BINARY_DIR}/cpl
+				  COMPILE_FLAGS -I${SEMLIBDIR}
                               	  Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/cpl)
   install(TARGETS sem2d_cpl DESTINATION bin)
 else(OPT_MPI)
@@ -78,6 +75,7 @@ target_link_libraries(sem2d.exe ${SEM_EXTRA_LIBS})
 
 set_target_properties(sem2d.exe PROPERTIES
 				COMPILE_FLAGS -I${PROJECT_BINARY_DIR}/ncpl
+				COMPILE_FLAGS -I${SEMLIBDIR}
                               	Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/ncpl)
 
 install(TARGETS sem2d.exe DESTINATION bin)

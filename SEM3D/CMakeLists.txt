@@ -5,7 +5,6 @@ ENABLE_LANGUAGE(Fortran)
 set(PRJ ${PROJECT_SOURCE_DIR})
 
 set(SEM3D_SOURCES_F
-    ${SEM_SRC}
     ${PRJ}/SRC/geometrical_prop.f90
     ${PRJ}/SRC/Modules/Element.f90
     ${PRJ}/SRC/Modules/Face.f90
@@ -114,7 +113,6 @@ set(SEM3D_SOURCES_F
 #endif(NOT USE_MKL)
 
 set(SEM3D_SOURCES ${SEM3D_SOURCES_F}
-    ${SEM_SRC_C}
     ${PRJ}/SRC/compute_constant_Q.c
     ${PRJ}/SRC/compute_iso_Q.c
     ${PRJ}/SRC/constant_Q2_sub.c
@@ -134,6 +132,7 @@ if(OPT_MPI)
   set_target_properties(sem3d_cpl PROPERTIES 
                               COMPILE_DEFINITIONS COUPLAGE
                               COMPILE_FLAGS -I${PROJECT_BINARY_DIR}/cpl
+                              COMPILE_FLAGS -I${SEMLIBDIR}
                               Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/cpl)
 else(OPT_MPI)
   set(SEM3D_SOURCES ${SEM3D_SOURCES} ${FTM_SOURCES})
@@ -143,6 +142,7 @@ add_executable(sem3d.exe  ${PRJ}/SRC/main.F90 ${SEM3D_SOURCES})
 target_link_libraries(sem3d.exe ${SEM_EXTRA_LIBS})
 set_target_properties(sem3d.exe PROPERTIES 
                                 COMPILE_FLAGS -I${PROJECT_BINARY_DIR}/ncpl
+				COMPILE_FLAGS -I${SEMLIBDIR}
                                 Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/ncpl)
 install(TARGETS sem3d.exe RUNTIME DESTINATION bin)
 
