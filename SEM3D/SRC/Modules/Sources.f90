@@ -99,7 +99,6 @@ contains
 
     real function Source_Spice_Bench(time, Sour)
         implicit none
-        ! only a Ricker for the time being.
         type(source), intent(in) :: Sour
         real, intent(in) :: time
         !
@@ -122,7 +121,6 @@ contains
 
     real function Source_tanh(time, Sour)
         implicit none
-        ! only a Ricker for the time being.
         type(source), intent(in) :: Sour
         real, intent(in) :: time
         !
@@ -157,7 +155,6 @@ contains
 
     real function Source_sinewave(time, Sour)
         implicit none
-        ! only a Ricker for the time being.
         type(source), intent(in) :: Sour
         real, intent(in) :: time
         !
