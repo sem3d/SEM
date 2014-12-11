@@ -386,24 +386,24 @@ subroutine allocate_domain (Tdomain)
   endif
 
   ! Special addition for Lamb test : A SUPPRIMER !!!!!!!!
-  do n=0,Tdomain%n_face-1
-      i = Tdomain%sFace(n)%Near_Vertex(0)
-      j = Tdomain%sFace(n)%Near_Vertex(1)
-      i = Tdomain%sVertex(i)%Glob_numbering
-      j = Tdomain%sVertex(j)%Glob_numbering
-      if (Tdomain%coord_nodes(1,i)==0. .and. Tdomain%coord_nodes(1,j)==0. &
-          .and. Tdomain%sFace(n)%Reflex ) then
-          Tdomain%sFace(n)%freesurf = .true.
-          Tdomain%sFace(n)%Abs      = .false.
-          Tdomain%sFace(n)%Reflex   = .false.
-          i = Tdomain%sFace(n)%Near_Vertex(0)
-          j = Tdomain%sFace(n)%Near_Vertex(1)
-          Tdomain%sVertex(i)%Abs      = .false.
-          Tdomain%sVertex(i)%Reflex   = .false.
-          Tdomain%sVertex(j)%Abs      = .false.
-          Tdomain%sVertex(j)%Reflex   = .false.
-      endif
-  enddo
+  !do n=0,Tdomain%n_face-1
+  !    i = Tdomain%sFace(n)%Near_Vertex(0)
+  !    j = Tdomain%sFace(n)%Near_Vertex(1)
+  !    i = Tdomain%sVertex(i)%Glob_numbering
+  !    j = Tdomain%sVertex(j)%Glob_numbering
+  !    if (Tdomain%coord_nodes(1,i)==0. .and. Tdomain%coord_nodes(1,j)==0. &
+  !        .and. Tdomain%sFace(n)%Reflex ) then
+  !        Tdomain%sFace(n)%freesurf = .true.
+  !        Tdomain%sFace(n)%Abs      = .false.
+  !        Tdomain%sFace(n)%Reflex   = .false.
+  !        i = Tdomain%sFace(n)%Near_Vertex(0)
+  !        j = Tdomain%sFace(n)%Near_Vertex(1)
+  !        Tdomain%sVertex(i)%Abs      = .false.
+  !        Tdomain%sVertex(i)%Reflex   = .false.
+  !        Tdomain%sVertex(j)%Abs      = .false.
+  !        Tdomain%sVertex(j)%Reflex   = .false.
+  !    endif
+  !enddo
   !!! FIN A SUPPRIMER !!!!!!!!
 
   return

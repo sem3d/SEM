@@ -46,7 +46,7 @@ subroutine Newmark_PMC (Tdomain,Dt,n_it_max)
         if (iter==0) then
             timelocal = Tdomain%TimeD%rtime
         else
-            timelocal = Tdomain%TimeD%rtime + 0.5*Dt
+            timelocal = Tdomain%TimeD%rtime + Dt
         endif
 
         ! Prediction Phase :
@@ -148,7 +148,7 @@ subroutine Newmark_PMC_explicit (Tdomain,Dt,n_it_max)
         if (iter==0) then
             timelocal = Tdomain%TimeD%rtime
         else
-            timelocal = Tdomain%TimeD%rtime + 0.5*Dt
+            timelocal = Tdomain%TimeD%rtime + Dt
         endif
 
         ! Prediction Phase :
