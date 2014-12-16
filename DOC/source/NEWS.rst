@@ -34,11 +34,15 @@ Version 2014.xx
 
   - mauvais calcul dans partial_deriv
 
+  - fin de calcul pour différents cas (S-F, S-F avec attenuation). 
+
 - Performance
 
   - regroupement des sorties par groupes de processeurs (option ``group_outputs``)
 
   - SEM2D, sauvegarde par blocs des capteurs.
+
+  - Format HDF5 pour les capteurs
 
   - Optimisation mailleur 3D pour les gros cas (LG)
 
