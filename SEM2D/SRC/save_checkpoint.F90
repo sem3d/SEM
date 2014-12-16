@@ -48,7 +48,6 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
     call MPI_Barrier (Tdomain%communicateur, ierr)
 
 
-    call semname_protection_iter_rank_file(it,rg,prot_file)
 
 
     ! recherche et destruction au fur et a mesure des anciennes prots
@@ -56,7 +55,9 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
 
         call semname_protection_iter_dir(it,dir_prot)
         ierr = sem_mkdir(trim(adjustl(dir_prot)))
-
+        if (ierr/=0) then
+            write(*,*) "Erreur creating dir:", trim(adjustl(dir_prot))
+        endif
         Tdomain%TimeD%prot_m2 = Tdomain%TimeD%prot_m1
         Tdomain%TimeD%prot_m1 = Tdomain%TimeD%prot_m0
         Tdomain%TimeD%prot_m0 = it
@@ -79,6 +80,7 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
     endif
     call MPI_Barrier (Tdomain%communicateur, ierr)
 
+    call semname_protection_iter_rank_file(it,rg,prot_file)
     open (61,file=prot_file,status="unknown",form="formatted")
     write(61,*) rtime,dtmin
     write(61,*) it,isort
