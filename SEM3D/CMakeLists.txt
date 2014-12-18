@@ -47,18 +47,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/define_planew_properties.f90
     ${PRJ}/SRC/double_couple.f90
     ${PRJ}/SRC/forces_int.f90
-#    ${PRJ}/SRC/get_Displ_Edge2Elem.f90
-#    ${PRJ}/SRC/get_Displ_Face2Elem.f90
-#    ${PRJ}/SRC/get_Displ_Vertex2Elem.f90
-#    ${PRJ}/SRC/get_Forces_Elem2Edge.f90
-#    ${PRJ}/SRC/get_Forces_Elem2Face.f90
-#    ${PRJ}/SRC/get_Forces_Elem2Vertex.f90
-#    ${PRJ}/SRC/get_Mass_Elem2Edge.f90
-#    ${PRJ}/SRC/get_Mass_Elem2Face.f90
-#    ${PRJ}/SRC/get_Mass_Elem2Vertex.f90
-#    ${PRJ}/SRC/getPMLpred_e2el.f90
-#    ${PRJ}/SRC/getPMLpred_f2el.f90
-#    ${PRJ}/SRC/getPMLpred_v2el.f90
     ${PRJ}/SRC/global_numbering.f90
     ${PRJ}/SRC/read_input.f90
     ${PRJ}/SRC/mesh3d.f90
@@ -72,13 +60,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/ondelette.f90
     ${PRJ}/SRC/define_random.f90
     ${PRJ}/SRC/build_coord_mask.f90
-
-#    ${PRJ}/SRC/get_VectProperty_Edge2Elem.f90
-#    ${PRJ}/SRC/get_VectProperty_Elem2Edge.f90
-#    ${PRJ}/SRC/get_VectProperty_Elem2Face.f90
-#    ${PRJ}/SRC/get_VectProperty_Elem2Vertex.f90
-#    ${PRJ}/SRC/get_VectProperty_Face2Elem.f90
-#    ${PRJ}/SRC/get_VectProperty_Vertex2Elem.f90
 
     ${PRJ}/SRC/get_ScalarProperty_Edge2Elem.f90
     ${PRJ}/SRC/get_ScalarProperty_Elem2Edge.f90
@@ -95,11 +76,11 @@ set(SEM3D_SOURCES_F
 
     ${PRJ}/SRC/snapshots.f90
 
-	${PRJ}/SRC/earth_models/earth_transform.f90
-	${PRJ}/SRC/earth_models/material_earthchunk.f90
-	${PRJ}/SRC/earth_models/material_prem.f90
-	${PRJ}/SRC/earth_models/model_earthchunk.f90
-	${PRJ}/SRC/earth_models/model_prem.f90
+    ${PRJ}/SRC/earth_models/earth_transform.f90
+    ${PRJ}/SRC/earth_models/material_earthchunk.f90
+    ${PRJ}/SRC/earth_models/material_prem.f90
+    ${PRJ}/SRC/earth_models/model_earthchunk.f90
+    ${PRJ}/SRC/earth_models/model_prem.f90
 	
 )
 
