@@ -19,23 +19,20 @@ module sedges
        logical :: PML, Abs, FPML
 
        integer :: ngll, mat_index
-       !integer, dimension (0:3) :: mat_list = -1
        integer, dimension (:), allocatable :: Iglobnum_Edge,EdgeNum
-       !integer, dimension (:), allocatable :: Which_Elem,Which_EdgeinElem
 
        real, dimension (:), allocatable  :: MassMat
        real, dimension (:,:), allocatable :: Forces, Displ, Veloc, Accel, V0
-       ! solid-fluid
+
+       !! solid-fluid
        logical  :: solid, fluid_dirich
        real, dimension(:), allocatable :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
 
        type(edge_pml), pointer :: spml
-#ifdef COUPLAGE
-       real, dimension (:,:), allocatable :: ForcesMka
-       !     integer, dimension (:,:), allocatable :: FlagMka
-       real, dimension (:), allocatable :: tsurfsem
-#endif
 
+       !! Couplage Externe
+       real, dimension (:,:), allocatable :: ForcesExt
+       real, dimension (:), allocatable :: tsurfsem
 
     end type edge
 

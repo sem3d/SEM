@@ -242,8 +242,8 @@ subroutine allocate_domain (Tdomain)
             allocate(Tdomain%sFace(n)%Forces(1:ngll1-2,1:ngll2-2,0:2))
 
 #ifdef COUPLAGE
-            allocate (Tdomain%sFace(n)%ForcesMka(1:ngll1-2,1:ngll2-2,0:2 ) )
-            Tdomain%sFace(n)%ForcesMka = 0.
+            allocate (Tdomain%sFace(n)%ForcesExt(1:ngll1-2,1:ngll2-2,0:2 ) )
+            Tdomain%sFace(n)%ForcesExt = 0.
             !        allocate (Tdomain%sFace(n)%FlagMka(1:ngll1-2,1:ngll2-2,0:2 ) )
             !        Tdomain%sFace(n)%FlagMka = 0
             allocate (Tdomain%sFace(n)%tsurfsem(1:ngll1-2,1:ngll2-2 ) )
@@ -420,8 +420,8 @@ subroutine allocate_domain (Tdomain)
         !Gsa Ipsis 3D
 #ifdef COUPLAGE
 
-        allocate (Tdomain%sEdge(n)%ForcesMka(1:ngll-2,0:2) )
-        Tdomain%sEdge(n)%ForcesMka = 0
+        allocate (Tdomain%sEdge(n)%ForcesExt(1:ngll-2,0:2) )
+        Tdomain%sEdge(n)%ForcesExt = 0
         !        allocate (Tdomain%sEdge(n)%FlagMka(1:ngll-2,0:2) )
         !        Tdomain%sEdge(n)%FlagMka = 0
         allocate (Tdomain%sEdge(n)%tsurfsem(1:ngll-2) )
@@ -439,8 +439,8 @@ subroutine allocate_domain (Tdomain)
             Tdomain%sVertex(n)%V0 = 0d0
             Tdomain%sVertex(n)%Forces = 0d0
 #ifdef COUPLAGE
-            allocate (Tdomain%sVertex(n)%ForcesMka(0:2) )
-            Tdomain%sVertex(n)%ForcesMka = 0
+            allocate (Tdomain%sVertex(n)%ForcesExt(0:2) )
+            Tdomain%sVertex(n)%ForcesExt = 0
             Tdomain%sVertex(n)%tsurfsem = 0.
 #endif
 

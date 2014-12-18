@@ -119,7 +119,7 @@ message("SEMLIBS: '${SEM_EXTRA_LIBS}'")
 set(SEMLIBDIR ${PROJECT_BINARY_DIR}/libs)
 #SEM COMMON LIBRARY
 add_library(semcommon ${SEM_SRC} ${SEM_SRC_C})
-set_target_properties(semcommon PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR})
+set_target_properties(semcommon PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/common)
 
 #RANDOM FIELD LIBRARY
 add_library(randomfield
@@ -132,7 +132,7 @@ add_library(randomfield
   ${SEMDIR}/randomfield/statistics_RF.f90
   ${SEMDIR}/randomfield/writeResultFile_RF.f90
 )
-set_target_properties(randomfield PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR})
+set_target_properties(randomfield PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/common)
 add_dependencies(randomfield semcommon)
 set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} randomfield semcommon)
 

@@ -1,16 +1,10 @@
 !>
 !!\file Face.f90
-!!\brief G�re les faces des �l�ments.
-!!\author
-!!\version 1.0
-!!\date 10/03/2009
+!!\brief Gère les faces des éléments.
 !!
 !<
 
 module sfaces
-
-    ! Modified by Gaetano Festa 24/2/2005
-    ! Modified by Paul Cupillard 06/11/2005
 
     type :: face_pml
        real, dimension (:,:,:), allocatable :: Forces1, Forces2, Forces3, Veloc1, Veloc2, Veloc3
@@ -24,19 +18,20 @@ module sfaces
        logical :: PML, Abs, FPML
        integer :: ngll1, ngll2, dir, Which_Elem, mat_index
        integer, dimension (:), allocatable :: FaceNum
-       !integer, dimension (0:1) :: mat_list = -1
        integer, dimension (:,:), allocatable :: Iglobnum_Face
        real, dimension (:,:), allocatable  :: MassMat
        real, dimension (:,:,:), allocatable :: Forces, Displ, Veloc, Accel, V0
-       ! solid-fluid
+
+       !! solid-fluid
        logical :: solid, fluid_dirich
        real, dimension(:,:), allocatable :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
-       ! pml
+
+       !! pml
        type(face_pml), pointer :: spml
-#ifdef COUPLAGE
-       real, dimension (:,:,:), allocatable :: ForcesMka
+
+       !! Couplage Externe
+       real, dimension (:,:,:), allocatable :: ForcesExt
        real, dimension (:,:), allocatable :: tsurfsem
-#endif
     end type face
 
 contains

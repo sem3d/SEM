@@ -173,10 +173,7 @@ contains
         integer :: numFace,numElem,mat
         integer :: iface, bufsize,decal,nbchamps
         integer :: Ngauss, MaxNgParFace, gl_MaxNgParFace, gl_MaxNgParDir !, iout
-        !    real :: Xpdc, Ypdc, Zpdc, xi, eta, psi, outx, outy, outz, temp
-        real :: xi, eta, psi, outx, outy, outz
-        !    real :: eta2
-        real :: duration_mka3d
+        real :: outx, outy, outz
         logical :: dejaPresent
 
         integer, dimension (MPI_STATUS_SIZE) :: status
@@ -190,9 +187,8 @@ contains
 
         real, dimension(3) :: tmp
         integer numlocal, nb_point_de_couplage, itmp
-        integer i1, j1, i2, j2
-        integer, parameter :: ndim=128
-        integer gl_ndim_stock, gl_Ngauss
+!        integer, parameter :: ndim=128
+        integer gl_Ngauss
 
         real,dimension (:), pointer :: dmin_couplage
 
@@ -529,7 +525,7 @@ contains
 !!!!  * Reception depuis le superviseur des "forces imposees" = forces calculees aux points de Gauss apres resolution du systeme lineaire
 !!!!  * Calcul des surfaces liees aux points de Gauss en utilisant la differentielle de la fonction d'interpolation
 !!!!  * (qui transforme l'element de reference Sem en element courant) - On n'utilise pas le Jacobien ( ca y ressemble)
-!!!!  * Affectation des forces imposees aux variables ForcesMka des aretes, faces, sommets de la surface de couplage
+!!!!  * Affectation des forces imposees aux variables ForcesExt des aretes, faces, sommets de la surface de couplage
 !!!!
 !!!!
 !!!! --------------------------------------------------
@@ -624,7 +620,7 @@ contains
                         tsurf = Tdomain%sFace(numface)%tsurfsem(i,j)
                     endif
                     !                    tsurf = surface_gll(Tdomain, mat, numElem, numlocal, i, j)
-                    Tdomain%sFace(numface)%ForcesMka(i,j,:) = tsurf*force_impose(:, position+i + j*ngll1)
+                    Tdomain%sFace(numface)%ForcesExt(i,j,:) = tsurf*force_impose(:, position+i + j*ngll1)
                     !                    Tdomain%sFace(numface)%FlagMka(i,j,:) = 1
                 enddo
             enddo
@@ -664,18 +660,18 @@ contains
                     force(:) = force_impose(:,position + ind1 + ind2*ngll1)
 
                     if(Tdomain%specel(numElem)%Orient_Edges(numloc_edge) == 0 ) then
-                        Tdomain%sEdge(numEdge)%ForcesMka(j,:) = Tdomain%sEdge(numEdge)%ForcesMka(j,:) + tsurf*force
+                        Tdomain%sEdge(numEdge)%ForcesExt(j,:) = Tdomain%sEdge(numEdge)%ForcesExt(j,:) + tsurf*force
                         !                        Tdomain%sEdge(numEdge)%FlagMka(j,:) = 1
                     elseif (Tdomain%specel(numElem)%Orient_Edges(numloc_edge) == 1 ) then
                         select case (numloc_edge)
                         case (0,2,5,9)
-                            Tdomain%sEdge(numEdge)%ForcesMka(ngllx-1-j,:) = Tdomain%sEdge(numEdge)%ForcesMka(ngllx-1-j,:) + tsurf*force
+                            Tdomain%sEdge(numEdge)%ForcesExt(ngllx-1-j,:) = Tdomain%sEdge(numEdge)%ForcesExt(ngllx-1-j,:) + tsurf*force
                             !                            Tdomain%sEdge(numEdge)%FlagMka(ngllx-1-j,:) = 1
                         case (1,3,8,11)
-                            Tdomain%sEdge(numEdge)%ForcesMka(nglly-1-j,:) = Tdomain%sEdge(numEdge)%ForcesMka(nglly-1-j,:) + tsurf*force
+                            Tdomain%sEdge(numEdge)%ForcesExt(nglly-1-j,:) = Tdomain%sEdge(numEdge)%ForcesExt(nglly-1-j,:) + tsurf*force
                             !                            Tdomain%sEdge(numEdge)%FlagMka(nglly-1-j,:) = 1
                         case (4,6,7,10)
-                            Tdomain%sEdge(numEdge)%ForcesMka(ngllz-1-j,:) = Tdomain%sEdge(numEdge)%ForcesMka(ngllz-1-j,:) + tsurf*force
+                            Tdomain%sEdge(numEdge)%ForcesExt(ngllz-1-j,:) = Tdomain%sEdge(numEdge)%ForcesExt(ngllz-1-j,:) + tsurf*force
                             !                            Tdomain%sEdge(numEdge)%FlagMka(ngllz-1-j,:) = 1
                         end select
                     else
@@ -735,7 +731,7 @@ contains
 
                 force(:) = force_impose(:,position + ind1 + ind2*ngll1)
 
-                Tdomain%sVertex(node(i))%ForcesMka(:) = Tdomain%sVertex(node(i))%ForcesMka + tsurf*force
+                Tdomain%sVertex(node(i))%ForcesExt(:) = Tdomain%sVertex(node(i))%ForcesExt + tsurf*force
                 !                Tdomain%sVertex(node(i))%FlagMka(:) = 1
 
             enddo !fin boucle sur les 4 noeuds de la face de couplage

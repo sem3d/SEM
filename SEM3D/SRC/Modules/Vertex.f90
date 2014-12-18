@@ -1,16 +1,10 @@
 !>
 !!\file Vertex.f90
 !!\brief Assure la gestion des Vertex.
-!!\author
-!!\version 1.0
-!!\date 10/03/2009
 !!
 !<
 
 module svertices
-
-    ! Modified by Gaetano 31/01/2005
-    ! Modified by Paul 06/11/2005
 
     type :: vertex_pml
        real, dimension(0:2) :: Forces1, Forces2, Forces3
@@ -24,20 +18,20 @@ module svertices
 
     type :: vertex
        integer  :: mat_index
-       !integer, dimension (0:7) :: mat_list = -1
        logical :: PML, Abs, FPML
        integer :: Iglobnum_Vertex, global_numbering
        real :: MassMat
        real, dimension(0:2) :: Forces, Displ, Veloc, Accel, V0
-       ! solid-fluid
+
+       !! solid-fluid
        logical :: solid, fluid_dirich
        real :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
 
        type(vertex_pml), pointer :: spml
-#ifdef COUPLAGE
-       real, dimension (:), allocatable :: ForcesMka
+
+       !! Couplage Externe
+       real, dimension (:), allocatable :: ForcesExt
        real :: tsurfsem
-#endif
 
     end type vertex
 

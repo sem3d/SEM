@@ -614,15 +614,15 @@ subroutine MKA_COUPLING_OUT(Tdomain,ntime,interrupt,protection,i_snap)
     !- reinitializations of coupling fields
     ! remise a zero dans tous les cas des forces Mka sur les faces
     do n = 0, Tdomain%n_face-1
-        Tdomain%sFace(n)%ForcesMka = 0.
+        Tdomain%sFace(n)%ForcesExt = 0.
     enddo
     ! remise a zero dans tous les cas des forces Mka sur les vertex
     do n = 0, Tdomain%n_vertex-1
-        Tdomain%sVertex(n)%ForcesMka = 0.
+        Tdomain%sVertex(n)%ForcesExt = 0.
     enddo
     ! remise a zero dans tous les cas des forces Mka sur les Edges
     do n = 0, Tdomain%n_edge-1
-        Tdomain%sEdge(n)%ForcesMka = 0.
+        Tdomain%sEdge(n)%ForcesExt = 0.
     enddo
 
 end subroutine MKA_COUPLING_OUT

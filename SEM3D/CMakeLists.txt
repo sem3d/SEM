@@ -15,13 +15,11 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/Subdomains.f90
     ${PRJ}/SRC/Modules/Fault.f90
     ${PRJ}/SRC/Modules/Domain.f90
-    ${PRJ}/SRC/Modules/Couplage.f90
     ${PRJ}/SRC/Modules/solid_fluid.f90
     ${PRJ}/SRC/orientation.f90
     ${PRJ}/SRC/assembly.f90
     ${PRJ}/SRC/Capteur.f90
     ${PRJ}/SRC/comm_utils.f90
-    ${PRJ}/SRC/Newmark.f90
     ${PRJ}/SRC/solid_fluid_coupling.f90
     ${PRJ}/SRC/PML_def.f90
     ${PRJ}/SRC/SourcePosition.f90
@@ -31,7 +29,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/PlaneW.f90
     ${PRJ}/SRC/Modules/Surface.f90
     ${PRJ}/SRC/Modules/tensor_util.f90
-    ${PRJ}/SRC/allocate_domain.f90
     ${PRJ}/SRC/attenuation_aniso_update.f90
     ${PRJ}/SRC/attenuation_update.f90
     ${PRJ}/SRC/calcul_forces.f90
@@ -41,7 +38,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/calcul_forces_fluid.f90
     ${PRJ}/SRC/compute_GLL.f90
     ${PRJ}/SRC/courant.f90
-    ${PRJ}/SRC/deallocate_domain.f90
     ${PRJ}/SRC/define_arrays.f90
     ${PRJ}/SRC/define_Neumann_properties.f90
     ${PRJ}/SRC/define_planew_properties.f90
@@ -56,7 +52,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/set_attenuation_param.f90
     ${PRJ}/SRC/shape8.f90
     ${PRJ}/SRC/shape27.f90
-    ${PRJ}/SRC/drive_sem.f90
     ${PRJ}/SRC/ondelette.f90
     ${PRJ}/SRC/define_random.f90
     ${PRJ}/SRC/build_coord_mask.f90
@@ -103,29 +98,41 @@ set(SEM3D_SOURCES ${SEM3D_SOURCES_F}
     ${PRJ}/SRC/nrutil.c
 )
 
+# Sources qui dependent du flag COUPLAGE
+set(SEM3D_SOURCES_CPL
+    ${PRJ}/SRC/Modules/Couplage.f90
+    ${PRJ}/SRC/Newmark.f90
+    ${PRJ}/SRC/deallocate_domain.f90
+    ${PRJ}/SRC/allocate_domain.f90
+    ${PRJ}/SRC/drive_sem.f90
+    ${PRJ}/SRC/main.F90
+    )
+
+add_library(sem3dcommon ${SEM3D_SOURCES})
+set_target_properties(sem3dcommon PROPERTIES
+				  COMPILE_FLAGS "-I${SEMLIBDIR}/sem3d -I${SEMLIBDIR}/common"
+                                  Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/sem3d)
 
 if(OPT_MPI)
   #set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
   # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
   # c++ et ne link pas semx.exe
 
-  add_executable(sem3d_cpl ${PRJ}/SRC/main.F90 ${SEM3D_SOURCES})
-  target_link_libraries(sem3d_cpl ${SEM_EXTRA_LIBS})
-  set_target_properties(sem3d_cpl PROPERTIES 
-                              COMPILE_DEFINITIONS COUPLAGE
-                              COMPILE_FLAGS -I${PROJECT_BINARY_DIR}/cpl
-                              COMPILE_FLAGS -I${SEMLIBDIR}
-                              Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/cpl)
+  add_executable(sem3d_cpl ${SEM3D_SOURCES_CPL})
+  target_link_libraries(sem3d_cpl sem3dcommon ${SEM_EXTRA_LIBS})
+  set_target_properties(sem3d_cpl PROPERTIES
+                                  COMPILE_DEFINITIONS COUPLAGE
+				  COMPILE_FLAGS "-I${SEMLIBDIR}/cpl3d -I${SEMLIBDIR}/sem3d -I${SEMLIBDIR}/common"
+				  Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/cpl3d)
 else(OPT_MPI)
   set(SEM3D_SOURCES ${SEM3D_SOURCES} ${FTM_SOURCES})
 endif(OPT_MPI)
 
-add_executable(sem3d.exe  ${PRJ}/SRC/main.F90 ${SEM3D_SOURCES})
-target_link_libraries(sem3d.exe ${SEM_EXTRA_LIBS})
+add_executable(sem3d.exe  ${SEM3D_SOURCES_CPL})
+target_link_libraries(sem3d.exe sem3dcommon ${SEM_EXTRA_LIBS})
 set_target_properties(sem3d.exe PROPERTIES 
-                                COMPILE_FLAGS -I${PROJECT_BINARY_DIR}/ncpl
-				COMPILE_FLAGS -I${SEMLIBDIR}
-                                Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/ncpl)
+				COMPILE_FLAGS "-I${SEMLIBDIR}/ncpl3d -I${SEMLIBDIR}/sem3d -I${SEMLIBDIR}/common"
+                                Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/ncpl3d)
 install(TARGETS sem3d.exe RUNTIME DESTINATION bin)
 
 
@@ -140,6 +147,7 @@ add_executable(test_Q_coeffs ${PRJ}/TESTS/UNITS/test_Q_coeffs.c
 
 target_link_libraries(test_Q_coeffs m)
 
-add_executable(test_pointlist ${PRJ}/TESTS/UNITS/test_pointlist.f90
+add_executable(test_pointlist
+  ${PRJ}/TESTS/UNITS/test_pointlist.f90
   ${SEMCOMMON}/pointlist.f90
 )

@@ -78,7 +78,7 @@ subroutine Newmark(Tdomain,ntime)
         ngll2 = Tdomain%sFace(nf)%ngll2
         do j=1,ngll2-2
             do i=1,ngll1-2
-                Tdomain%sFace(nf)%Forces(i,j,0:2) = Tdomain%sFace(nf)%ForcesMka(i,j,0:2) + Tdomain%sFace(nf)%Forces(i,j,0:2)
+                Tdomain%sFace(nf)%Forces(i,j,0:2) = Tdomain%sFace(nf)%ForcesExt(i,j,0:2) + Tdomain%sFace(nf)%Forces(i,j,0:2)
             enddo
         enddo
 
@@ -88,13 +88,13 @@ subroutine Newmark(Tdomain,ntime)
     do nf = 0, Tdomain%n_edge-1
         ngll = Tdomain%sEdge(nf)%ngll
         do i=1,ngll-2
-            Tdomain%sEdge(nf)%Forces(i,0:2) = Tdomain%sEdge(nf)%ForcesMka(i,0:2) + Tdomain%sEdge(nf)%Forces(i,0:2)
+            Tdomain%sEdge(nf)%Forces(i,0:2) = Tdomain%sEdge(nf)%ForcesExt(i,0:2) + Tdomain%sEdge(nf)%Forces(i,0:2)
         enddo
     enddo
 
     ! pour prendre en compte les forces imposee lors du couplage avec mka sur les points de gauss des vertex
     do nv = 0, Tdomain%n_vertex-1
-        Tdomain%sVertex(nv)%Forces(0:2) = Tdomain%sVertex(nv)%ForcesMka(0:2) + Tdomain%sVertex(nv)%Forces(0:2)
+        Tdomain%sVertex(nv)%Forces(0:2) = Tdomain%sVertex(nv)%ForcesExt(0:2) + Tdomain%sVertex(nv)%Forces(0:2)
     enddo
 #endif
 
