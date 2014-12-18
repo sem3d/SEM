@@ -24,21 +24,21 @@ module ssubdomains
         real, dimension (:), pointer :: GLLcy, GLLpoly, GLLwy
         real, dimension (:,:), pointer :: hprimey, hTprimey
         real, dimension (:), pointer :: GLLcz, GLLpolz, GLLwz
-		real, dimension (:,:), pointer :: hprimez, hTprimez
+        real, dimension (:,:), pointer :: hprimez, hTprimez
 
         character(len=1) :: material_type
         integer          :: material_definition
         !Modification to accept random media
-		character(len = 15) :: corrMod
-		integer             :: assocMat = -1
-		integer             :: seedStart
+        character(len = 15) :: corrMod
+        integer             :: assocMat = -1
+        integer             :: seedStart
         integer             :: nElem = 0 !number of elements in each subdomain (by proc) - mesh3d.f90(362)
         integer            , dimension(:)   , allocatable :: elemList !List of elements in "Tdomain%specel(:)" that belong to this subdomain (by proc)
-		character(len = 30), dimension(:)   , allocatable :: margiFirst
+        character(len = 30), dimension(:)   , allocatable :: margiFirst
         real               , dimension(:)   , allocatable :: varProp
         integer            , dimension(:)   , allocatable :: chosenSeed
         logical            , dimension(:,:) , allocatable :: globCoordMask
-    	real               , dimension(:)   , allocatable :: corrL
+        real               , dimension(:)   , allocatable :: corrL
         real               , dimension(:)   , allocatable :: MinBound, MaxBound
 
     end type Subdomain
@@ -65,5 +65,10 @@ end module ssubdomains
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!
