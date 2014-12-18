@@ -352,49 +352,8 @@ contains
                     open(fileId,file=trim(fnamef),status="replace",form="formatted")
                     close(fileId)
 
-                elseif (Tdomain%logicD%run_restart.and. rg==0) then ! c'est une reprise, il faut se repositionner
-                    ! au bon endroit dans le fichier de capteur pour le completer ensuite a chaque iteration
-                    ! INUTILE ?
-                    !                if (capteur%grandeur.eq."DEFORMATION") then ! lecture du fichier de deformation
-                    !
-                    !                    call semname_capteur_type(capteur%nom,"_deformation",fnamef)
-                    !                    open(fileId,file=trim(fnamef),status="old",form="formatted")
-                    !                    do i=1,Tdomain%TimeD%NtimeMin
-                    !                        read(fileId,*,END=998)
-                    !                    enddo
-                    !                    endfile(fileId)
-                    !998                 continue ! on a atteint la fin de fichier prematurement
-                    !                    close(fileId)
-                    !                endif
-                    !
-                    !                if (capteur%grandeur.eq."VITESSE") then ! lecture du fichier de vitesse
-                    !
-                    !                    call semname_capteur_type(capteur%nom,"_vitesse",fnamef)
-                    !                    !     print*,"capteur.f90, pt 2 - vitesse"    ,Tdomain%TimeD%NtimeMin, trim(fnamef)
-                    !                    !     print*,"capteur.f90, pt 2 - vitesse 2",fileId,fnamef,rg
-                    !                    open(fileId,file=trim(fnamef),status="old",form="formatted")
-                    !                    do i=1,Tdomain%TimeD%NtimeMin
-                    !                        read(fileId,*,END=999)
-                    !                    enddo
-                    !                    endfile(fileId)
-                    !999                 continue ! on a atteint la fin de fichier prematurement
-                    !                    close(fileId)
-                    !                endif
-                    !
-                    !                if (capteur%grandeur.eq."DEPLA") then ! lecture du fichier de deplacements
-                    !
-                    !                    call semname_capteur_type(capteur%nom,"_depla",fnamef)
-                    !                    !     print*,"capteur.f90, pt 2 - vitesse"    ,Tdomain%TimeD%NtimeMin, trim(fnamef)
-                    !                    !     print*,"capteur.f90, pt 2 - vitesse 2",fileId,fnamef,rg
-                    !                    open(fileId,file=trim(fnamef),status="old",form="formatted")
-                    !                    do i=1,Tdomain%TimeD%NtimeMin
-                    !                        read(fileId,*,END=997)
-                    !                    enddo
-                    !                    endfile(fileId)
-                    !997                 continue ! on a atteint la fin de fichier prematurement
-                    !                    close(fileId)
-                    !                endif
-
+                elseif (Tdomain%logicD%run_restart.and. rg==0) then
+                    ! c'est une reprise, il faut se repositionner
                 endif ! fin du test run vs reprise
             endif
 
@@ -1007,33 +966,39 @@ contains
     !! alors le capteur est sur une face, arete ou sur un sommet
     !!
     subroutine trouve_capteur(Tdomain, capteur, n_el, xi, eta, zeta)
-
+        use mshape8
+        use mshape27
         implicit none
         type (domain), INTENT(INOUT)  :: Tdomain
-        type(Tcapteur) :: capteur
-        integer :: n_el
-        real :: xi, eta, zeta
+        type(Tcapteur), intent(inout) :: capteur
+        integer, intent(out) :: n_el
+        double precision, intent(out) :: xi, eta, zeta
         !
         integer :: rg
         integer :: ipoint
-        integer :: i, n
+        integer :: i, n, idx
         real    :: dist
-        integer P(0:7)
-        real coor(0:7,0:2)
+        double precision :: xc, yc, zc
+        double precision, allocatable, dimension(:,:) ::  coord
         real eps
-        logical dans_maille
+        logical :: dans_maille
         integer i_sens
 
+        allocate(coord(0:2,0:Tdomain%n_nodes-1))
+        xc = capteur%coord(1)
+        yc = capteur%coord(2)
+        zc = capteur%coord(3)
         eps=1.e-4
         rg = Tdomain%rank
         n_el = -1
         i_sens = 0 !sens de parcours continu
         do n=0,Tdomain%n_elem-1
+            ! XXX Todo 27 noeuds
             ipoint = Tdomain%specel(n)%Control_Nodes(0) !!premier noeud de la maille n
 
-            dist = (capteur%coord(1) - Tdomain%Coord_Nodes(0,ipoint))**2 + &
-                (capteur%coord(2) - Tdomain%Coord_Nodes(1,ipoint))**2 + &
-                (capteur%coord(3) - Tdomain%Coord_Nodes(2,ipoint))**2
+            dist = (xc - Tdomain%Coord_Nodes(0,ipoint))**2 + &
+                (yc - Tdomain%Coord_Nodes(1,ipoint))**2 + &
+                (zc - Tdomain%Coord_Nodes(2,ipoint))**2
             dist = sqrt(dist)
 
             if(dist> Tdomain%specel(n)%dist_max) then
@@ -1041,23 +1006,27 @@ contains
                 cycle
             else
                 !maille retenue
-                P(0:7) = Tdomain%specel(n)%Control_Nodes(0:7)
-
-                do i=0,7
-                    coor(i,0:2) = Tdomain%Coord_Nodes(0:2,P(i))
+                do i=0,Tdomain%n_nodes-1
+                    idx = Tdomain%specel(n)%Control_Nodes(i)
+                    coord(0:2,i) = Tdomain%Coord_Nodes(0:2,idx)
                 enddo
+                if (Tdomain%n_nodes==27) then
+                    call shape27_global2local(coord, xc, yc, zc, xi, eta, zeta)
+                else if (Tdomain%n_nodes==8) then
+                    call shape8_global2local(coord, xc, yc, zc, xi, eta, zeta)
+                endif
 
-                dans_maille = test_contour_capteur(coor, capteur, i_sens)
+                dans_maille = .true.
+                if (xi<-1 .or. eta<-1 .or. zeta<-1) dans_maille = .false.
+                if (xi>1 .or. eta>1 .or. zeta>1) dans_maille = .false.
 
-                if( dans_maille) then
+                if (dans_maille) then
                     !! on peut retenir cette maille et calculer xi, eta
                     !! si le capteur est sur une face ou un sommet, il suffit de garder une maille et de faire l'interpolation.
                     !! quel que soit l'element on obtiendra la bonne valeur
-                    write(6,*) 'on retient la maille',n,capteur%coord(1:3)
-                    call calc_xi_eta_zeta_capteur(capteur, coor, xi, eta, zeta)
+                    write(*,*) 'Capteur trouve dans maille ',n,capteur%coord(1:3), xi,eta,zeta
                     n_el = n
                     capteur%numproc = rg
-                    print *,'Arrivee a return'
                     return
                 else
                     cycle

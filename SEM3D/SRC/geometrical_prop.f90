@@ -121,19 +121,23 @@ contains
     end function der_dz_dzeta
     !------------------------------------------------------------------------
     !------------------------------------------------------------------------
-    subroutine normal_face(dir,ngllx,nglly,ngllz,ngll1,ngll2,x,y,z,GLLcx,GLLcy,GLLcz,normal)
+    subroutine normal_face(dir,ngllx,nglly,ngllz,ngll1,ngll2,coord,GLLcx,GLLcy,GLLcz,normal)
         ! determines the normal to a given face
         implicit none
         integer, intent(in)   :: dir,ngll1,ngll2,ngllx,nglly,ngllz
-        real, dimension(0:7), intent(in)  :: x,y,z
+        real, dimension(0:2,0:7), intent(in)  :: coord
         real, dimension(0:ngllx-1), intent(in)  :: GLLcx
         real, dimension(0:nglly-1), intent(in)  :: GLLcy
         real, dimension(0:ngllz-1), intent(in)  :: GLLcz
         real, dimension(0:ngll1-1,0:ngll2-1,0:2), intent(out)  :: normal
+        !
         integer   :: i,j
         real      :: xi,eta,zeta
-        real, dimension(0:2)  :: n1,n2
-
+        real, dimension(0:2) :: n1,n2
+        real, dimension(0:7) :: x,y,z
+        x = coord(0,:)
+        y = coord(1,:)
+        z = coord(2,:)
         ! loop on GLL points of the face
         do j = 0,ngll2-1
             do i = 0,ngll1-1
@@ -150,6 +154,8 @@ contains
                     eta = GLLcy(i) ; zeta = GLLcz(j) ; xi = -1d0
                 case(5)
                     xi = GLLcx(i) ; eta = GLLcy(j) ; zeta = 1d0
+                case default
+                    stop 1
                 end select
                 call normal_vector_def(dir,x,y,z,xi,eta,zeta,n1,n2)
                 ! normal = cross product of n1 and n2
@@ -179,6 +185,8 @@ contains
         case(2,4)  ! n1 = dX/deta , n2= dX/dzeta
             n1(0) = der_dx_deta(x,xi,zeta) ; n1(1) = der_dy_deta(y,xi,zeta) ; n1(2) = der_dz_deta(z,xi,zeta)
             n2(0) = der_dx_dzeta(x,xi,eta) ; n2(1) = der_dy_dzeta(y,xi,eta) ; n2(2) = der_dz_dzeta(z,xi,eta)
+        case default
+            stop 1
         end select
 
     end subroutine normal_vector_def

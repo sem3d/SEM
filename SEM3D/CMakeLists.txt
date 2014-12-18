@@ -60,6 +60,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/ondelette.f90
     ${PRJ}/SRC/define_random.f90
     ${PRJ}/SRC/build_coord_mask.f90
+    ${PRJ}/SRC/find_location.f90
 
     ${PRJ}/SRC/get_ScalarProperty_Edge2Elem.f90
     ${PRJ}/SRC/get_ScalarProperty_Elem2Edge.f90

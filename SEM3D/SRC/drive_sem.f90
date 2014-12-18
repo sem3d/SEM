@@ -164,6 +164,8 @@ subroutine RUN_PREPARED(Tdomain)
     use semconfig !< pour config C
     use sem_c_bindings
     use mdefinitions
+    use mshape8
+    use mshape27
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -229,12 +231,14 @@ subroutine RUN_PREPARED(Tdomain)
 !- geometrical properties for integrals' calculations
     if (rg == 0) write (*,*) "--> COMPUTING SHAPE FUNCTIONS AND THEIR DERIVATIVES"
     if (Tdomain%n_nodes == 8) then
-        call shape8(Tdomain,rg)   ! Linear interpolation
-    else if (Tdomain%n_nodes == 20) then
-        write (*,*) "    -> 20 control points not yet implemented in the code. Wait for an upgrade"
-        stop
+        ! Linear interpolation
+        call shape8_init(Tdomain)
+    else if (Tdomain%n_nodes == 27) then
+        ! Quadratic interpolation
+        call shape27_init(TDomain)
     else
-        call shape27(TDomain)   ! Quadratic interpolation
+        write (*,*) Tdomain%n_nodes, "control points not yet implemented in the code. Wait for an upgrade"
+        stop
     endif
     call MPI_Barrier(Tdomain%communicateur,code)
 

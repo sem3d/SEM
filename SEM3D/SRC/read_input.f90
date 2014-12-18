@@ -166,7 +166,7 @@ contains
         implicit none
 
         type(domain), intent(inout) :: Tdomain
-        integer :: i, j, k, n, nf, nnf, mat, ne, nv, nne, nnv, m
+        integer :: i, j, k, n, nf, nnf, mat, ne, nv, nne, nnv
         integer :: n_aus
 
 
