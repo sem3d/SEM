@@ -836,8 +836,7 @@ contains
             outx = Tdomain%sSubdomain(mat)%GLLwy(i)
             outz = Tdomain%sSubdomain(mat)%GLLwz(j)
         end select
-        !dsurf = calcule_dsurf(Tdomain, xi, eta, zeta, numElem, numlocal)
-        dsurf = calcule_surf2(Tdomain, numElem, numlocal)*.25
+        dsurf = calcule_surf(Tdomain, numElem, numlocal)*.25
         surface_gll = dsurf*outx*outz
 
     end function surface_gll
@@ -851,12 +850,12 @@ contains
         w(3) =   u(1)*v(2) - u(2)*v(1)
     end subroutine cross_
 
-    function calcule_surf2(Tdomain, numElem, numlocal)
+    function calcule_surf(Tdomain, numElem, numlocal)
         type (domain), intent(IN)  :: Tdomain
         integer, intent(IN) ::  numlocal, numElem
         real,dimension(3, 0:7) :: X
         real,dimension(3) :: a, b, c, d, u, v
-        real :: calcule_surf2
+        real :: calcule_surf
         integer :: i, i_aux
 
         !! recuperation des coordonnees des sommets de la maille Sem contenant la face de couplage
@@ -907,127 +906,8 @@ contains
         call cross_(a, b, u)
         call cross_(c, d, v)
         u = (u+v)/2.
-        calcule_surf2 = sqrt( u(1)**2+u(2)**2+u(3)**2 )
-    end function calcule_surf2
-
-    function calcule_dsurf(Tdomain, xi, eta, zeta, numElem, numlocal)
-
-        type (domain), intent(IN)  :: Tdomain
-        integer, intent(IN) ::  numlocal, numElem
-        real, intent(IN) :: eta, xi, zeta
-        real, dimension (0:2,0:2) :: LocInvGrad
-        real,dimension(0:7) :: x,y, z
-        real calcule_dsurf
-        integer i, i_aux
-
-        !! recuperation des coordonnees des sommets de la maille Sem contenant la face de couplage
-        do i=0,7
-            i_aux = Tdomain%specel(numElem)%Control_Nodes(i)
-            x(i) = Tdomain%Coord_Nodes(0,i_aux)
-            y(i) = Tdomain%Coord_Nodes(1,i_aux)
-            z(i) = Tdomain%Coord_Nodes(2,i_aux)
-        enddo
-
-
-        select case (numlocal)
-        case(0)
-!!! Computation of the derivative matrix, dx_(jj)/dxi_(ii) !!!
-            !
-            LocInvGrad(0,0) = 0.25 * ((x(1)-x(0))*(1-eta) + (x(2)-x(3))*(1+eta) )  ! dx/dxi1
-            LocInvGrad(0,1) = 0.25 * ((y(1)-y(0))*(1-eta) + (y(2)-y(3))*(1+eta) ) ! dy/dxi1
-            LocInvGrad(0,2) = 0.25 * ((z(1)-z(0))*(1-eta) + (z(2)-z(3))*(1+eta) ) ! dz/dxi1
-
-            LocInvGrad(1,0) = 0.25 * ((x(3)-x(0))*(1-xi) + (x(2)-x(1))*(1+xi))     ! dx/dxi2
-            LocInvGrad(1,1) = 0.25 * ((y(3)-y(0))*(1-xi) + (y(2)-y(1))*(1+xi))   ! dy/dxi2
-            LocInvGrad(1,2) = 0.25 * ((z(3)-z(0))*(1-xi) + (z(2)-z(1))*(1+xi))   ! dz/dxi2i
-
-            !
-            calcule_dsurf = (LocInvGrad(0,1) * LocInvGrad(1,2) - LocInvGrad(0,2) * LocInvGrad(1,1) )**2 + &
-                (LocInvGrad(0,2) * LocInvGrad(1,0) - LocInvGrad(0,0) * LocInvGrad(1,2) )**2 + &
-                (LocInvGrad(0,0) * LocInvGrad(1,1) - LocInvGrad(0,1) * LocInvGrad(1,0) )**2
-            calcule_dsurf = sqrt(calcule_dsurf)
-
-        case(5)
-!!! Computation of the derivative matrix, dx_(jj)/dxi_(ii) !!!
-            !
-            LocInvGrad(0,0) = 0.25 * ((x(5)-x(4))*(1-eta) + (x(6)-x(7))*(1+eta) )  ! dx/dxi1
-            LocInvGrad(0,1) = 0.25 * ((y(5)-y(4))*(1-eta) + (y(6)-y(7))*(1+eta) ) ! dy/dxi1
-            LocInvGrad(0,2) = 0.25 * ((z(5)-z(4))*(1-eta) + (z(6)-z(7))*(1+eta) ) ! dz/dxi1
-
-            LocInvGrad(1,0) = 0.25 * ((x(7)-x(4))*(1-xi) + (x(6)-x(5))*(1+xi))     ! dx/dxi2
-            LocInvGrad(1,1) = 0.25 * ((y(7)-y(4))*(1-xi) + (y(6)-y(5))*(1+xi))   ! dy/dxi2
-            LocInvGrad(1,2) = 0.25 * ((z(7)-z(4))*(1-xi) + (z(6)-z(5))*(1+xi))   ! dz/dxi2
-            !
-            calcule_dsurf = (LocInvGrad(0,1) * LocInvGrad(1,2) - LocInvGrad(0,2) * LocInvGrad(1,1) )**2 + &
-                (LocInvGrad(0,2) * LocInvGrad(1,0) - LocInvGrad(0,0) * LocInvGrad(1,2) )**2 + &
-                (LocInvGrad(0,0) * LocInvGrad(1,1) - LocInvGrad(0,1) * LocInvGrad(1,0) )**2
-            calcule_dsurf = sqrt(calcule_dsurf)
-        case  (1)
-!!! Computation of the derivative matrix, dx_(jj)/dxi_(ii) !!!
-            !
-            LocInvGrad(0,0) = 0.25 * ((x(1)-x(0))*(1-zeta) + (x(5)-x(4))*(1+zeta))  ! dx/dxi1
-            LocInvGrad(0,1) = 0.25 * ((y(1)-y(0))*(1-zeta) + (y(5)-y(4))*(1+zeta))  ! dy/dxi1
-            LocInvGrad(0,2) = 0.25 * ((z(1)-z(0))*(1-zeta) + (z(5)-z(4))*(1+zeta))  ! dz/dxi1
-
-            LocInvGrad(2,0) = 0.25 * ((x(4)-x(0))*(1-xi) + (x(5)-x(1))*(1+xi) )      ! dx/dxi3
-            LocInvGrad(2,1) = 0.25 * ((y(4)-y(0))*(1-xi) + (y(5)-y(1))*(1+xi) )      ! dy/dxi3
-            LocInvGrad(2,2) = 0.25 * ((z(4)-z(0))*(1-xi) + (z(5)-z(1))*(1+xi) )      ! dz/dxi3
-
-            !
-            calcule_dsurf = (LocInvGrad(0,1) * LocInvGrad(2,2) - LocInvGrad(0,2) * LocInvGrad(2,1) )**2 + &
-                (LocInvGrad(0,2) * LocInvGrad(2,0) - LocInvGrad(0,0) * LocInvGrad(2,2) )**2 + &
-                (LocInvGrad(0,0) * LocInvGrad(2,1) - LocInvGrad(0,1) * LocInvGrad(2,0) )**2
-            calcule_dsurf = sqrt(calcule_dsurf)
-        case(3)
-!!! Computation of the derivative matrix, dx_(jj)/dxi_(ii) !!!
-            !
-            LocInvGrad(0,0) = 0.25 * ((x(3)-x(2))*(1-zeta) + (x(7)-x(6))*(1+zeta))  ! dx/dxi1
-            LocInvGrad(0,1) = 0.25 * ((y(3)-y(2))*(1-zeta) + (y(7)-y(6))*(1+zeta))  ! dy/dxi1
-            LocInvGrad(0,2) = 0.25 * ((z(3)-z(2))*(1-zeta) + (z(7)-z(6))*(1+zeta))  ! dz/dxi1
-
-            LocInvGrad(2,0) = 0.25 * ((x(6)-x(2))*(1-xi) + (x(7)-x(3))*(1+xi) )      ! dx/dxi3
-            LocInvGrad(2,1) = 0.25 * ((y(6)-y(2))*(1-xi) + (y(7)-y(3))*(1+xi) )      ! dy/dxi3
-            LocInvGrad(2,2) = 0.25 * ((z(6)-z(2))*(1-xi) + (z(7)-z(3))*(1+xi) )      ! dz/dxi3
-            !
-            calcule_dsurf = (LocInvGrad(0,1) * LocInvGrad(2,2) - LocInvGrad(0,2) * LocInvGrad(2,1) )**2 + &
-                (LocInvGrad(0,2) * LocInvGrad(2,0) - LocInvGrad(0,0) * LocInvGrad(2,2) )**2 + &
-                (LocInvGrad(0,0) * LocInvGrad(2,1) - LocInvGrad(0,1) * LocInvGrad(2,0) )**2
-            calcule_dsurf = sqrt(calcule_dsurf)
-        case(2)
-!!! Computation of the derivative matrix, dx_(jj)/dxi_(ii) !!!
-            !
-            LocInvGrad(1,0) = 0.25 *( (x(2) - x(1))*(1-zeta) + (x(6)-x(5))*(1+zeta) )     ! dx/dxi2
-            LocInvGrad(1,1) = 0.25 *( (y(2) - y(1))*(1-zeta) + (y(6)-y(5))*(1+zeta) )     ! dy/dxi2
-            LocInvGrad(1,2) = 0.25 *( (z(2) - z(1))*(1-zeta) + (z(6)-z(5))*(1+zeta) )     ! dz/dxi2
-
-            LocInvGrad(2,0) = 0.25 *(  (x(5) - x(1))*(1-eta) + (x(6)-x(2))*(1+eta) )       ! dx/dxi3
-            LocInvGrad(2,1) = 0.25 *(  (y(5) - y(1))*(1-eta) + (y(6)-y(2))*(1+eta) )       ! dy/dxi3
-            LocInvGrad(2,2) = 0.25 *(  (z(5) - z(1))*(1-eta) + (z(6)-z(2))*(1+eta) )       ! dz/dxi3
-            !
-            calcule_dsurf = (LocInvGrad(1,1) * LocInvGrad(2,2) - LocInvGrad(1,2) * LocInvGrad(2,1) )**2 + &
-                (LocInvGrad(1,2) * LocInvGrad(2,0) - LocInvGrad(1,0) * LocInvGrad(2,2) )**2 + &
-                (LocInvGrad(1,0) * LocInvGrad(2,1) - LocInvGrad(1,1) * LocInvGrad(2,0) )**2
-            calcule_dsurf = sqrt(calcule_dsurf)
-        case(4)
-!!! Computation of the derivative matrix, dx_(jj)/dxi_(ii) !!!
-            !
-            LocInvGrad(1,0) = 0.25 *( (x(3) - x(0))*(1-zeta) + (x(7)-x(4))*(1+zeta) )     ! dx/dxi2
-            LocInvGrad(1,1) = 0.25 *( (y(3) - y(0))*(1-zeta) + (y(7)-y(4))*(1+zeta) )     ! dy/dxi2
-            LocInvGrad(1,2) = 0.25 *( (z(3) - z(0))*(1-zeta) + (z(7)-z(4))*(1+zeta) )     ! dz/dxi2
-
-            LocInvGrad(2,0) = 0.25 *(  (x(4) - x(0))*(1-eta) + (x(7)-x(3))*(1+eta) )       ! dx/dxi3
-            LocInvGrad(2,1) = 0.25 *(  (y(4) - y(0))*(1-eta) + (y(7)-y(3))*(1+eta) )       ! dy/dxi3
-            LocInvGrad(2,2) = 0.25 *(  (z(4) - z(0))*(1-eta) + (z(7)-z(3))*(1+eta) )       ! dz/dxi3
-            !
-            calcule_dsurf = (LocInvGrad(1,1) * LocInvGrad(2,2) - LocInvGrad(1,2) * LocInvGrad(2,1) )**2 + &
-                (LocInvGrad(1,2) * LocInvGrad(2,0) - LocInvGrad(1,0) * LocInvGrad(2,2) )**2 + &
-                (LocInvGrad(1,0) * LocInvGrad(2,1) - LocInvGrad(1,1) * LocInvGrad(2,0) )**2
-            calcule_dsurf = sqrt(calcule_dsurf)
-
-        end select
-
-    end function calcule_dsurf
-
+        calcule_surf = sqrt( u(1)**2+u(2)**2+u(3)**2 )
+    end function calcule_surf
 
     !>
     !! \brief Remplissage de la structure face_couplage
