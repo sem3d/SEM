@@ -279,7 +279,7 @@ subroutine RUN_PREPARED(Tdomain)
 !- eventual classical seismic point sources: their spatial and temporal properties
     if (Tdomain%logicD%any_source) then
         if (rg == 0) write (*,*) "--> COMPUTING SOURCE PARAMETERS "
-        call SourcePosition (Tdomain, rg)
+        call SourcePosition (Tdomain)
         call double_couple (Tdomain, rg)
         call source_excit(Tdomain,rg)
         call def_timefunc (Tdomain, rg)

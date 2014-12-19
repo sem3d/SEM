@@ -16,7 +16,6 @@ module ssources
        ! xxx
        character(len = 30)  :: time_file
        integer :: i_type_source, i_time_function, elem, proc
-       integer, dimension(0:2) :: gll
        real, dimension(0:2) :: dir
        real :: tau_b,cutoff_freq,Q,X,Y,L,v,d,a
        real :: radius,realcolat,reallong,refcolat,reflong

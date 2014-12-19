@@ -179,20 +179,18 @@ contains
                 zeta  = -1.
                 n_el = -1
                 call trouve_capteur(Tdomain, capteur, n_el, xi, eta, zeta)
-
-                val(1) = xi
-                val(2) = eta
-                val(3) = zeta
-
-                call MPI_AllReduce(capteur%numproc, numproc_max, 1, MPI_INTEGER, MPI_MAX, Tdomain%communicateur, ierr)
+                call MPI_AllReduce(capteur%numproc, numproc_max, 1, MPI_INTEGER, &
+                    MPI_MAX, Tdomain%communicateur, ierr)
 
                 ! attention si le capteur est partage par plusieurs procs. On choisit le proc de num max
                 capteur%numproc = numproc_max
                 if(rg==numproc_max) then
+                    write(*,"(A,A,A,I5,A,I6,A,F8.4,A,F8.4,A,F8.4)") "Capteur", trim(capteur%nom), &
+                        " on proc ", rg, " in elem ", n_el, " at ", xi, ",", eta, ",", zeta
                     capteur%n_el = n_el ! uniquement pour l'affichage dans le fichier *position
-                    capteur%xi = xi !val0(1)
-                    capteur%eta = eta !val0(2)
-                    capteur%zeta = zeta !val0(3)
+                    capteur%xi = xi
+                    capteur%eta = eta
+                    capteur%zeta = zeta
 
                 end if
                 !! on reattribue au proc son numero d'element initial
@@ -968,344 +966,42 @@ contains
     subroutine trouve_capteur(Tdomain, capteur, n_el, xi, eta, zeta)
         use mshape8
         use mshape27
+        use mlocations3d
         implicit none
         type (domain), INTENT(INOUT)  :: Tdomain
         type(Tcapteur), intent(inout) :: capteur
         integer, intent(out) :: n_el
         double precision, intent(out) :: xi, eta, zeta
         !
-        integer :: rg
-        integer :: ipoint
-        integer :: i, n, idx
-        real    :: dist
+        integer :: i
         double precision :: xc, yc, zc
-        double precision, allocatable, dimension(:,:) ::  coord
-        real eps
-        logical :: dans_maille
-        integer i_sens
+        logical :: inside
+        integer :: nmax
+        integer, parameter :: NMAXEL=20
+        integer, dimension(NMAXEL) :: elems
+        double precision, dimension(0:2,NMAXEL) :: coordloc
 
-        allocate(coord(0:2,0:Tdomain%n_nodes-1))
         xc = capteur%coord(1)
         yc = capteur%coord(2)
         zc = capteur%coord(3)
-        eps=1.e-4
-        rg = Tdomain%rank
-        n_el = -1
-        i_sens = 0 !sens de parcours continu
-        do n=0,Tdomain%n_elem-1
-            ! XXX Todo 27 noeuds
-            ipoint = Tdomain%specel(n)%Control_Nodes(0) !!premier noeud de la maille n
-
-            dist = (xc - Tdomain%Coord_Nodes(0,ipoint))**2 + &
-                (yc - Tdomain%Coord_Nodes(1,ipoint))**2 + &
-                (zc - Tdomain%Coord_Nodes(2,ipoint))**2
-            dist = sqrt(dist)
-
-            if(dist> Tdomain%specel(n)%dist_max) then
-                !          print*,'dist',dist,n,Tdomain%specel(n)%dist_max
-                cycle
-            else
-                !maille retenue
-                do i=0,Tdomain%n_nodes-1
-                    idx = Tdomain%specel(n)%Control_Nodes(i)
-                    coord(0:2,i) = Tdomain%Coord_Nodes(0:2,idx)
-                enddo
-                if (Tdomain%n_nodes==27) then
-                    call shape27_global2local(coord, xc, yc, zc, xi, eta, zeta)
-                else if (Tdomain%n_nodes==8) then
-                    call shape8_global2local(coord, xc, yc, zc, xi, eta, zeta)
-                endif
-
-                dans_maille = .true.
-                if (xi<-1 .or. eta<-1 .or. zeta<-1) dans_maille = .false.
-                if (xi>1 .or. eta>1 .or. zeta>1) dans_maille = .false.
-
-                if (dans_maille) then
-                    !! on peut retenir cette maille et calculer xi, eta
-                    !! si le capteur est sur une face ou un sommet, il suffit de garder une maille et de faire l'interpolation.
-                    !! quel que soit l'element on obtiendra la bonne valeur
-                    write(*,*) 'Capteur trouve dans maille ',n,capteur%coord(1:3), xi,eta,zeta
-                    n_el = n
-                    capteur%numproc = rg
-                    return
-                else
-                    cycle
-
-                endif
-            endif
-        enddo
-
-        if(n_el/=-1) then
-            write(6,*) 'xi,eta,zeta trouves pour le capteur ',capteur%nom,' de positions ',capteur%coord(1), capteur%coord(2), capteur%coord(3),&
-                ' sont' ,  xi, eta, zeta, 'dans l element ',n_el,' pour le proc ',rg
-        endif
-
-
-    end subroutine trouve_capteur
-
-
-    !!
-    !! calcul des abscisses curvilignes du cpateur
-    !! processus de dichotomie
-    !!
-    subroutine calc_xi_eta_zeta_capteur(capteur, coord, xitrouve_def, etatrouve_def, zetatrouve_def)
-
-        implicit none
-        type(Tcapteur) :: capteur
-        real xi_min, xi_max, xi0, eta0, eta_min, eta_max, zeta0, zeta_min, zeta_max
-        real P(8,0:2), dxi, deta, dzeta, coord(0:7,0:2)
-        real xfact
-        real xtrouve_def, ytrouve_def, ztrouve_def, xitrouve_def, etatrouve_def, zetatrouve_def
-        real dist, dist_P
-        real xi, eta, zeta
-        real eps,dorder
-        integer i, j, k, im, il, in, idim, npts
-        integer n_it
-        logical interieur
-        integer, parameter :: n_itmax=20
-        integer i_sens
-
-
-   !---- solution tolerance
-        eps = 1.e-6 !tolerance pour accepter la solution
-      !- order of magnitude for the element size
-        dorder = max (sqrt((coord(0,0)-coord(6,0))**2 + (coord(0,1)-coord(6,1))**2 + (coord(0,2)-coord(6,2))**2), &
-                      sqrt((coord(1,0)-coord(7,0))**2 + (coord(1,1)-coord(7,1))**2 +(coord(1,2)-coord(7,2))**2), &
-                      sqrt((coord(2,0)-coord(4,0))**2 + (coord(2,1)-coord(4,1))**2 +(coord(2,2)-coord(4,2))**2), &
-                      sqrt((coord(3,0)-coord(5,0))**2+(coord(3,1)-coord(5,1))**2+(coord(3,2)-coord(5,2))**2))             
-       !- rescaled small epsilon
-        eps = eps*dorder
-       
-
-        xi_min = -1.  !bornes min et max de la zone d'etude dans le carre de reference
-        xi_max = 1.   !on coupe en 2 dans chaque direction la zone d'etude
-        eta_min = -1.
-        eta_max = 1.
-        zeta_min = -1.
-        zeta_max = 1.
-
-        !!  eps = 1.e-6 !tolerance pour accepter la solution !!trop grand pour un cas
-        eps = 1.e-6 !tolerance pour accepter la solution
-        n_it = 0  !nombre d'iterations
-        xi0 = xi_min
-        eta0 = eta_min
-        zeta0 = zeta_min
-        i_sens = 1 !sens de parcours non continu
-
-        !!  print *,'coord de la maille pour capteur',coord(0,:)
-        !!  print *,'coord de la maille pour capteur',coord(1,:)
-        !!  print *,'coord de la maille pour capteur',coord(2,:)
-        !!  print *,'coord de la maille pour capteur',coord(3,:)
-        !!  print *,'coord de la maille pour capteur',coord(4,:)
-        !!  print *,'coord de la maille pour capteur',coord(5,:)
-        !!  print *,'coord de la maille pour capteur',coord(6,:)
-        !!  print *,'coord de la maille pour capteur',coord(7,:)
-        !  do while(dist_def > eps) !precedemment
-        dist = huge(1.)
-        do while((dist > eps) .AND. (n_it<n_itmax))
-            n_it = n_it +1
-            !on subdivise la zone en 4 sous-zones d'etude
-            do in=0,1
-                do im=0,1
-                    do il=0,1
-                        dxi = (xi_max - xi_min)/2.
-                        deta = (eta_max - eta_min)/2.
-                        dzeta = (zeta_max - zeta_min)/2.
-                        !     on elargit un peu le domaine pour ne pas passer a cote de certains points critiques
-                        xfact = 1. !01
-                        dxi   = xfact*dxi
-                        deta  = xfact*deta
-                        dzeta = xfact*dzeta
-                        !
-                        xi0 = xi_min + il*dxi
-                        eta0 = eta_min + im*deta
-                        zeta0 = zeta_min + in*dzeta
-                        npts = 0
-                        !Dans les boucles sur i, j et k, on definit les points P
-                        do k=0,1
-                            do j=0,1
-                                do i=0,1
-                                    xi = xi0 + i*dxi
-                                    eta = eta0 + j*deta
-                                    zeta = zeta0 + k*dzeta
-                                    npts = npts + 1
-                                    do idim=0,2
-                                        P(npts,idim)=  0.125 * ( coord(0,idim)*(1.-xi)*(1.-eta)*(1.-zeta) + coord(1,idim)*(1.+xi)*(1.-eta)*(1.-zeta) + &
-                                            coord(2,idim)*(1.+xi)*(1.+eta)*(1.-zeta) + coord(3,idim)*(1.-xi)*(1.+eta)*(1.-zeta)  + &
-                                            coord(4,idim)*(1.-xi)*(1.-eta)*(1.+zeta) + coord(5,idim)*(1.+xi)*(1.-eta)*(1.+zeta) + &
-                                            coord(6,idim)*(1.+xi)*(1.+eta)*(1.+zeta) + coord(7,idim)*(1.-xi)*(1.+eta)*(1.+zeta) )
-                                    enddo
-
-                                    dist_P = 0.
-                                    do idim=0,2
-                                        dist_P = dist_P + (P(npts,idim) - capteur%coord(idim+1))**2
-                                    enddo
-                                    dist_P = sqrt(dist_P)
-                                    !                     print*,' dist_P ',dist_P
-                                    !
-                                    !on teste si P(npts) correspond au capteur. Si oui on sort
-                                    !
-                                    if(dist_P < dist) then
-                                        ! on conserve ce point
-                                        xtrouve_def = P(npts,0)
-                                        ytrouve_def = P(npts,1)
-                                        ztrouve_def = P(npts,2)
-                                        !    modif complementaire a xfact
-                                        if ( xi < -1. ) xi = -1.
-                                        if ( xi > 1. )  xi = 1.
-                                        if ( eta < -1. ) eta = -1.
-                                        if ( eta > 1. )  eta = 1.
-                                        if ( zeta < -1. ) zeta = -1.
-                                        if ( zeta > 1. )  zeta = 1.
-                                        !   fin modif
-                                        xitrouve_def = xi
-                                        etatrouve_def = eta
-                                        zetatrouve_def = zeta
-                                        dist = dist_P
-                                    endif
-                                    if(dist < eps) then
-                                        write(*,*) 'Capteur:', capteur%nom
-                                        write(*,"(a,G12.5,a,G12.5,a,G12.5)") '--- XYZ: ', xtrouve_def,' ',ytrouve_def,' ',ztrouve_def
-                                        write(*,"(a,G12.5,a,G12.5,a,G12.5)") '--- LOC: ', xitrouve_def,' ',etatrouve_def,' ',zetatrouve_def
-                                        write(*,"(a,I5.5,a,G12.5)") '--- ITER:', n_it, ' DIST:', dist
-                                        return
-                                    endif
-                                enddo
-                            enddo
-                        enddo
-                        !! on teste si le capteur est a l'interieur du contour forme des points P
-                        !! si oui on conserve xi, eta et on reduit la region
-                        interieur = test_contour_capteur(P, capteur, i_sens)
-                        if(interieur) then
-                            xi_min = xi0
-                            xi_max = xi0 + dxi
-                            eta_min = eta0
-                            eta_max = eta0 + deta
-                            zeta_min = zeta0
-                            zeta_max = zeta0 + dzeta
-                        endif
-                    enddo
-                enddo
-            enddo
-        enddo
-
-        write(*,*) 'Capteur:', capteur%nom, 'PAS DE CONVERGENCE'
-        write(*,"(a,G12.5,a,G12.5,a,G12.5)") '--- XYZ: ', xtrouve_def,' ',ytrouve_def,' ',ztrouve_def
-        write(*,"(a,G12.5,a,G12.5,a,G12.5)") '--- LOC: ', xitrouve_def,' ',etatrouve_def,' ',zetatrouve_def
-        write(*,"(a,I5.5,a,G12.5)") '--- ITER:', n_it, ' DIST:', dist
-
-    end subroutine calc_xi_eta_zeta_capteur
-
-
-    logical function test_contour_capteur(P, capteur, i_sens)
-
-!!!!  Description: on teste si le point du capteur est a l'interieur du volume defini par les points P.
-!!!!  Si le capteur est sur une face, une arete ou sur un sommet, renvoie true
-!!!!  * attention : le sens de parcours dans la face n'est pas continu
-!!!!
-!!!!  Historique: 03/10 - Gsa Ipsis - Creation
-!!!! --------------------------------------------------
-
-        implicit none
-        type(Tcapteur) :: capteur
-        real P(0:7,0:2)
-        real coord(0:3,0:2)
-        real, parameter :: eps = 1.e-4
-        integer i, idim, iface
-        integer, parameter :: n_faces=6
-        integer, parameter :: n_nodes=8
-        real, dimension(0:2) :: pg, vn, v
-        integer i_sens
-        integer,dimension(0:5,0:3) :: NOEUD_FACE !Gsa
-
-        test_contour_capteur = .true.
-
-        !tableau de correspondance num_local de face/numero des noeuds de l'element
-
-        if (i_sens==0) then
-            NOEUD_FACE(0,:) = (/ 0, 1, 2, 3 /) !face 0 - k=0
-            NOEUD_FACE(1,:) = (/ 0, 1, 5, 4 /) !face 1 - j=0
-            NOEUD_FACE(2,:) = (/ 1, 2, 6, 5 /) !face 2 - i=n-1
-            NOEUD_FACE(3,:) = (/ 3, 2, 6, 7 /) !face 3 - j=n-1
-            NOEUD_FACE(4,:) = (/ 0, 3, 7, 4 /) !face 4 - i=0
-            NOEUD_FACE(5,:) = (/ 4, 5, 6, 7 /) !face 5 - k=n-1
-        elseif (i_sens==1) then
-            NOEUD_FACE(0,:) = (/ 0, 1, 3, 2 /) !face 0 - k=0
-            NOEUD_FACE(1,:) = (/ 0, 1, 5, 4 /) !face 1 - j=0
-            NOEUD_FACE(2,:) = (/ 2, 0, 4, 6 /) !face 2 - i=n-1
-            NOEUD_FACE(3,:) = (/ 2, 3, 7, 6 /) !face 3 - j=n-1
-            NOEUD_FACE(4,:) = (/ 3, 1, 5, 7 /) !face 4 - i=0
-            NOEUD_FACE(5,:) = (/ 4, 5, 7, 6 /) !face 5 - k=n-1
-        else
-            stop "Internal Error in test_contour_capteur"
-        endif
-
-        pg = 0.  ! centre de gravite de la maille
-        do i=0,n_nodes-1
-            do idim=0,2
-                pg(idim) = pg(idim) + P(i,idim)
-            enddo
-        enddo
-        pg = pg/n_nodes
-
-!!!!  write(6,*) 'Barycentre' ,pg
-        do iface=0,n_faces-1
-            do i=0,3
-                do idim=0,2
-                    coord(i,idim) = P(NOEUD_FACE(iface,i),idim)
-                enddo
-            enddo
-
-            !calcul de la normale de la face
-            vn(0) = (coord(1,1) - coord(0,1) ) * (coord(3,2) - coord(0,2) ) &
-                - (coord(1,2) - coord(0,2) ) * (coord(3,1) - coord(0,1) )
-            vn(1) = (coord(1,2) - coord(0,2) ) * (coord(3,0) - coord(0,0) ) &
-                - (coord(1,0) - coord(0,0) ) * (coord(3,2) - coord(0,2) )
-            vn(2) = (coord(1,0) - coord(0,0) ) * (coord(3,1) - coord(0,1) ) &
-                - (coord(1,1) - coord(0,1) ) * (coord(3,0) - coord(0,0) )
-
-            !verification de l'orientation de la normale de la face
-            if(dot_product(vn, pg - coord(0,:)) > 0.) vn = -vn
-            !normalisation de la normale
-            if(abs(dot_product(vn,vn)) < 1.e-30) then !! attention on eleve au carre - la precision est petite
-                print *,'Pb normale de face nulle - Arret',vn
-                write(50,*) 'Pb normale de face nulle - Arret'
-                print*,' isens ',i_sens
-                print*,' capteur coord ',capteur%coord(1),capteur%coord(2),capteur%coord(3)
-                print*,' noeudelement0 ',P(0,0),P(0,1),P(0,2)
-                print*,' noeudelement1 ',P(1,0),P(1,1),P(1,2)
-                print*,' noeudelement2 ',P(2,0),P(2,1),P(2,2)
-                print*,' noeudelement3 ',P(3,0),P(3,1),P(3,2)
-                print*,' noeudelement4 ',P(4,0),P(4,1),P(4,2)
-                print*,' noeudelement5 ',P(5,0),P(5,1),P(5,2)
-                print*,' noeudelement6 ',P(6,0),P(6,1),P(6,2)
-                print*,' noeudelement7 ',P(7,0),P(7,1),P(7,2)
-                print*,' noeudface0 ',coord(0,0),coord(0,1),coord(0,2)
-                print*,' noeudface1 ',coord(1,0),coord(1,1),coord(1,2)
-                print*,' noeudface2 ',coord(2,0),coord(2,1),coord(2,2)
-                print*,' noeudface3 ',coord(3,0),coord(3,1),coord(3,2)
-                print*,' vn ',vn(0),vn(1),vn(2)
-                stop
-            else
-                vn = vn / sqrt(dot_product(vn,vn))
-            endif
-
-            do idim=0,2
-                v(idim) = capteur%coord(idim+1) - coord(0,idim)
-            enddo
-
-            if(dot_product(vn, v)>0.) then
-                test_contour_capteur = .false.
-                !!        print *,'test faux'
+        nmax = NMAXEL
+        call find_location(Tdomain, xc, yc, zc, nmax, elems, coordloc)
+        do i=1,nmax
+            inside = .true.
+            xi   = coordloc(0,i)
+            eta  = coordloc(1,i)
+            zeta = coordloc(2,i)
+            if (xi<-1 .or. eta<-1 .or. zeta<-1) inside = .false.
+            if (xi>1 .or. eta>1 .or. zeta>1) inside = .false.
+            if (inside) then
+                n_el = elems(i)
+                capteur%numproc = Tdomain%rank
                 return
-            endif
-        enddo
-
-        !!  print *,'test vrai'
+            end if
+        end do
+        n_el = -1
         return
-    end function test_contour_capteur
-
-
+    end subroutine trouve_capteur
 
 end module Mcapteur
 !! Local Variables:

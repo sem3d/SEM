@@ -114,7 +114,6 @@ contains
         gnorm = vdot(dim, grad, grad)
         old_gnorm = gnorm
         do i=1, maxiter
-            write(*,*) gnorm, xout, grad
             if (gnorm<gtol) exit
             call line_search(dim, nn, args0, args1, fun, xout, sdir, alpha)
             xout = xout + alpha * pgrad

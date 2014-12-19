@@ -4,7 +4,7 @@
 !!
 !!
 !<
-module mlocations
+module mlocations3d
     use sdomain
     use mshape8
     use mshape27
@@ -23,39 +23,57 @@ contains
         double precision, intent(in) :: x0, y0, z0
         integer, intent(inout) :: nmax
         integer, dimension(nmax) :: elems
-        integer, dimension(0:2,nmax) :: localcoord
+        double precision, dimension(0:2,nmax) :: localcoord
         !
-        integer :: n, nnodes, i, k
+        integer :: n, nnodes, i, j, k
         double precision :: mindist, dist
-        double precision :: best_node
+        integer :: best_node
         double precision, dimension(0:2) :: p
+        double precision :: xi, eta, zeta
+        double precision, allocatable, dimension(:,:) :: coord
         !! Find the closest node
         nnodes = Tdomain%n_nodes
+        allocate(coord(0:2, 0:nnodes-1))
         best_node = 0
         mindist = 1d100
         do n = 0, Tdomain%n_glob_nodes-1
-            p = Tdomain%GlobCoord(:,n)
+            p = Tdomain%Coord_Nodes(:, n)
             dist = (p(0)-x0)**2 + (p(1)-y0)**2 + (p(2)-z0)**2
             if (dist<mindist) then
                 best_node = n
-                dist = mindist
+                mindist = dist
             end if
         end do
         !! Now find all the elements in contact with the best_node
         k = 0
         do n = 0, Tdomain%n_elem-1
             do i = 0,nnodes-1
-                if (Tdomain%specel(n)%Control_Nodes(i)==best_node) then
-                    k = k+1
-                    elems(k) = n
-                    if (k>=nmax) exit
+                if (Tdomain%specel(n)%Control_Nodes(i)/=best_node) cycle
+                !!
+                k = k+1
+                if (k>=nmax) exit
+                elems(k) = n
+                ! Compute local coordinates for the node
+                do j = 0, nnodes-1
+                    coord(0:2, j) = Tdomain%Coord_Nodes(0:2, Tdomain%specel(n)%Control_Nodes(j))
+                enddo
+                if (nnodes==8) then
+                    call shape8_global2local(coord, x0, y0, z0, xi, eta, zeta)
+                else
+                    call shape27_global2local(coord, x0, y0, z0, xi, eta, zeta)
                 end if
+                localcoord(0,k) = xi
+                localcoord(1,k) = eta
+                localcoord(2,k) = zeta
             end do
+            if (k>=nmax) exit
         end do
-        
+        !!
+        if (k<=nmax) nmax = k
+        deallocate(coord)
     end subroutine find_location
 
-end module mlocations
+end module mlocations3d
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
