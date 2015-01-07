@@ -120,11 +120,16 @@ subroutine Runge_Kutta4 (Tdomain, dt)
              if (type_DG==GALERKIN_HDG_RP) then
                  do nf = 0,3        ! Computation of the Velocities Traces
                      nface = Tdomain%specel(n)%Near_Face(nf)
-                     call Compute_Vhat(Tdomain%sFace(nface))
+                     if (Tdomain%sFace(nface)%CG_HDG_interf) then
+                        call get_Vhat_from_Continuous(Tdomain,n,nface)
+                     else
+                        call Compute_Vhat(Tdomain%sFace(nface))
+                     endif
                  enddo
                  call get_Vhat_f2el(Tdomain,n)
                  !if(Tdomain%specel(n)%ADEPML) call enforce_diriclet_corners_vhat(Tdomain,n)
                  call Compute_Traces (Tdomain%specel(n),.true.)
+                 call Give_Flux_2_Continuous(Tdomain,n)
              elseif (type_DG==GALERKIN_DG_WEAK .OR. type_DG==GALERKIN_DG_STRONG) then
                  do nf = 0,3        ! Computation of the fluxes
                      nface = Tdomain%specel(n)%Near_Face(nf)
@@ -146,7 +151,8 @@ subroutine Runge_Kutta4 (Tdomain, dt)
        enddo
 
        ! Updates of faces and vertices if continuous elements
-       if(Tdomain%type_elem==GALERKIN_CONT) call Update_FV_RK4 (Tdomain,coeffs(1),coeffs(2),dt)
+       !if(Tdomain%type_elem==GALERKIN_CONT) call Update_FV_RK4 (Tdomain,coeffs(1),coeffs(2),dt)
+       call Update_FV_RK4 (Tdomain,coeffs(1),coeffs(2),dt)
 
     enddo ! End loop RK4
 

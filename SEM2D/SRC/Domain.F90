@@ -141,8 +141,12 @@ subroutine read_material_file(Tdomain)
             npml = npml + 1
         endif
         ! Pour l'instant, on a un seul type de Flux et d'Elements pour TOUT le domaine
-        Tdomain%sSubDomain(i)%type_DG   = Tdomain%type_Elem
-        Tdomain%sSubDomain(i)%type_Flux = Tdomain%type_Flux
+        !Tdomain%sSubDomain(i)%type_DG   = Tdomain%type_Elem
+        !Tdomain%sSubDomain(i)%type_Flux = Tdomain%type_Flux
+        Tdomain%sSubDomain(1)%type_DG   = 0 ! <---- A SUPPRIMER !!!!!!
+        Tdomain%sSubDomain(1)%type_Flux = 0 ! <---- A SUPPRIMER !!!!!!
+        Tdomain%sSubDomain(0)%type_DG   = 3 ! <---- A SUPPRIMER !!!!!!
+        Tdomain%sSubDomain(0)%type_Flux = 4 ! <---- A SUPPRIMER !!!!!!
     enddo
     Tdomain%any_PML  = .false.
     if (npml > 0 ) then

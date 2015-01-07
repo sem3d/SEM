@@ -286,6 +286,71 @@ subroutine Get_traction_el2f (Tdomain, nelem, nface, w_face)
 end subroutine Get_traction_el2f
 
 !>
+!!\brief Subroutine that assign to nface%Veloc, the velocities comming from
+!! the continuous Galerkin part of the domain. This subroutine is used in a
+!! framework of coupling CG with HDG, and only called for faces at the interface.
+!!\version 1.0
+!!\date 17/12/2014
+!! This subroutine is used only with HDG elements
+!<
+subroutine Get_Vhat_from_Continuous (Tdomain, nface)
+
+    use sdomain
+    use constants
+    implicit none
+
+    type (domain), intent (INOUT) :: Tdomain
+    integer, intent(in)   :: nface
+    integer               :: nv0, nv1, ngll
+
+    ngll = Tdomain%sface(nface)%ngll
+    nv0  = Tdomain%sface(nface)%Near_Vertex(0)
+    nv1  = Tdomain%sface(nface)%Near_Vertex(1)
+
+    Tdomain%sface(nface)%Veloc(0,:)      = Tdomain%svertex(nv0)%Veloc(:)
+    Tdomain%sface(nface)%Veloc(ngll-1,:) = Tdomain%svertex(nv1)%Veloc(:)
+
+end subroutine Get_Vhat_from_Continuous
+
+
+!>
+!!\brief Subroutine that assign to Faces and vertices at a Continuous-Discontinuous
+!! Galerkin interface, the fluxes (tractions) computed from
+!! the discontinuous Galerkin part of the domain. This subroutine is used in a
+!! framework of coupling CG with HDG, and only called for faces at the interface.
+!!\version 1.0
+!!\date 17/12/2014
+!! This subroutine is used only with HDG elements
+!<
+subroutine Give_Flux_2_Continuous (Tdomain, nelem)
+
+    use sdomain
+    use constants
+    implicit none
+
+    type (domain), intent (INOUT) :: Tdomain
+    integer, intent(in)   :: nelem
+    integer               :: nv0, nv1, ngll, w_face, nface, imin, imax
+
+
+    do w_face=0,3
+       nface = Tdomain%specel(nelem)%Near_Face(w_face)
+       if (Tdomain%sFace(nface)%CG_HDG_interf) then
+          ngll = Tdomain%sface(nface)%ngll
+          nv0  = Tdomain%sface(nface)%Near_Vertex(0)
+          nv1  = Tdomain%sface(nface)%Near_Vertex(1)
+          call get_iminimax(Tdomain%specel(nelem),w_face,imin,imax)
+          Tdomain%sface(nface)%Forces(1:ngll-2,:) = Tdomain%sface(nface)%Forces(1:ngll-2,:) &
+                                                  - Tdomain%specel(nelem)%TracFace(imin+1:imax-1,:)
+          Tdomain%sVertex(nv0)%Forces(:) = Tdomain%sVertex(nv0)%Forces(:) - Tdomain%specel(nelem)%TracFace(imin,:)
+          Tdomain%sVertex(nv1)%Forces(:) = Tdomain%sVertex(nv1)%Forces(:) - Tdomain%specel(nelem)%TracFace(imax,:)
+          ! ATTENTION : TRAITER LE CAS COHERENCY = FALSE
+       endif
+    enddo
+
+end subroutine Give_Flux_2_Continuous
+
+!>
 !!\brief Subroutine that sent the traces of velocities "Vhat" computed on a face
 !! "nface" to the neighboring element "nelem" dealing with the problems of coherency.
 !! Be carreful : here the wheight for integrals are not taked into account.

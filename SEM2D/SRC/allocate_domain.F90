@@ -274,6 +274,29 @@ subroutine allocate_domain (Tdomain)
      Tdomain%sVertex(j)%abs    = Tdomain%sFace(n)%abs
      Tdomain%sVertex(i)%reflex = Tdomain%sFace(n)%reflex
      Tdomain%sVertex(j)%reflex = Tdomain%sFace(n)%reflex
+
+     ! Putting a flag for Continuous-Discontinuous interface :
+     i = Tdomain%sFace(n)%Near_Element(0)
+     j = Tdomain%sFace(n)%Near_Element(1)
+     if ( (j.NE.-1) .AND. (Tdomain%specel(i)%type_DG .NE. Tdomain%specel(j)%type_DG)) then
+        Tdomain%sFace(n)%CG_HDG_interf = .true.
+        write(*,*) "Changing CG-HDG for face : ",n
+        deallocate(Tdomain%sFace(n)%Veloc)
+        allocate(Tdomain%sFace(n)%Veloc(0:ngll-1,0:1))
+        if (.not. allocated(Tdomain%sFace(n)%InvMatPen)) allocate (Tdomain%sFace(n)%InvMatPen(0:ngll-1,0:2))
+        if (.not. allocated(Tdomain%sFace(n)%Traction))  allocate (Tdomain%sFace(n)%Traction(0:ngll-1,0:1))
+        Tdomain%sFace(n)%Veloc = 0.
+        Tdomain%sFace(n)%Traction = 0.
+        Tdomain%sFace(n)%InvMatPen= 0.
+        Tdomain%sFace(n)%type_DG = GALERKIN_CONT
+        Tdomain%sFace(n)%type_Flux = FLUX_NONE
+        i = Tdomain%sFace(n)%Near_Vertex(0)
+        j = Tdomain%sFace(n)%Near_Vertex(1)
+        Tdomain%sVertex(i)%Type_DG = GALERKIN_CONT
+        Tdomain%sVertex(j)%Type_DG = GALERKIN_CONT
+     else
+        Tdomain%sFace(n)%CG_HDG_interf = .false.
+     endif
   enddo
 
   do n = 0, Tdomain%n_vertex-1

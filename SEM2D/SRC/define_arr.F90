@@ -120,7 +120,7 @@ subroutine define_arrays(Tdomain)
             Tdomain%specel(n)%Acoeff(:,:,11)= 2.*Whei*etaz*Rmu*Jac
             Tdomain%specel(n)%Acoeff(:,:,12)= Whei*Jac
         else ! Continuous Galerkin (usual SEM) without PML
-            if (.NOT. Tdomain%specel(n)%PML) then
+            if ((.NOT. Tdomain%specel(n)%PML) .AND. (.NOT. Tdomain%type_timeInteg == TIME_INTEG_RK4)) then
                 Tdomain%specel(n)%Acoeff(:,:,0) = -Whei*(RKmod*xix**2+Rmu*xiz**2) *Jac
                 Tdomain%specel(n)%Acoeff(:,:,1) = -Whei*(RKmod*xix*etax+Rmu*  xiz*etaz)*Jac
                 Tdomain%specel(n)%Acoeff(:,:,2) = -Whei*(Rlam+Rmu)*xix*xiz*Jac

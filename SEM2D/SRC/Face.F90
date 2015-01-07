@@ -42,7 +42,7 @@ module sfaces
        real, dimension (:,:), allocatable :: Normal_Nodes
        real, dimension (:,:), allocatable :: Kinv, Traction, Smbr, InvMatPen
        integer, dimension (0:1) :: pos_in_VertMat
-       logical :: is_computed, changing_media
+       logical :: is_computed, changing_media, CG_HDG_interf
 
     end type face
 
