@@ -30,7 +30,8 @@ Le code :program:`SEM3D` nécessite deux (ou trois) outils externes pour sa comp
 
 - une librairie :program:`MPI` (:program:`OpenMPI` recommandée, mais :program:`Mpich` ou :program:`Intel MPI` doivent être compatibles).
 
-La génération de cette documentation nécessite de plus l'outil :program:`sphinx`
+La génération de cette documentation nécessite de plus l'outil :program:`sphinx` ( http://www.sphinx.org ).
+
 
 Compilation
 ===========
@@ -248,3 +249,16 @@ Il y a encore plusieurs erreurs classiques :
     disparu est n'est plus dans la librairie de support de
     Intel 11. Donc à l'édition de lien le symbole utilisé par la
     librairie hdf5 ne sera plus présent.
+
+
+Création de la documentation
+============================
+
+Si :program:`sphinx` et :program:`latex` sont installés correctement, la documentation (ce fichier)
+se génère par la commande ::
+
+ $ cd ${SOURCE_SEM}/DOC
+ $ make latexpdf  # pour la version PDF
+ $ make html      # pour la version HTML
+
+

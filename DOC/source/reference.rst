@@ -7,3 +7,4 @@ Guide de référence
 .. toctree::
 
    format_input.rst
+   format_mesh_hdf5.rst

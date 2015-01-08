@@ -280,16 +280,7 @@ utilisable par SEM. On peut lui fournir différents formats :
   d'extension ``.unv``, contenant des hexaèdre pour la 3D.
 
 - Un maillage au format *HDF5*, spécifique, dont la structure est
-  décrite en détail dans _`Format HDF5`, contenant 3 tables :
-
-  - ``Elements`` : un tableau de NE x 8 entiers de 0 à (NN-1) faisant
-    référence aux noeuds.
-
-  - ``Nodes`` ; un tableau de NN x 3 de rééls, les coordonnées des
-    noeuds
-
-  - ``Mat`` : un tableau de NE entiers, contenant le numéro matériau à
-    associer à chaque maille.
+  décrite en détail dans :ref:`Format HDF5`.
 
 - Le quatrième format est simplement la description d'un maillage
   cartésien, pour lequel on entre manuellement les coordonnées et la
