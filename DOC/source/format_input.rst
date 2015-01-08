@@ -349,9 +349,9 @@ Le ficheir ``capteurs.dat`` contient ::
   COORDZ  0.0
   TYPE_CALCUL INTERP
 
-oú ``NOM_CAPTURE`` est le nom de le capture, ``FREQ`` est la fréquence de aquisition,
-``GRANDEUR`` peux etrê le déplacement (``DEPLA``) ou vitesse (``VITESSE``), 
-``COORDX COORDY COORDZZ`` sont les coordones de le capture. 
+avec  ``NOM_CAPTURE`` est le nom de le capture, ``FREQ`` est la fréquence de aquisition,
+      ``GRANDEUR`` peux etrê le déplacement (``DEPLA``) ou vitesse (``VITESSE``), 
+      ``COORDX COORDY COORDZZ`` sont les coordones de le capture. 
 
 Format de mat.dat
 ==================
@@ -386,16 +386,62 @@ Le fichier ``mater.in`` décrit combien de matériels ont dans le model ::
   1
   S  6300.00  2500.00   2800. 5   5    5  0.000005 630. 250.
 
-oú le premiere cifre est combien de matériels ont dans le model. La deuxieme ligne
-décrit le type de material (``S`` material solide et ``F`` material fluide), après il y a
-le vitesse de propagation de la onde de pression, vitesse de la onde
+ `1` est le nombre de matériaux dans le model.
+La deuxième ligne décrit le type de matériau (``S`` matériau solide et ``F`` matériau fluide).Pour chaque matériau, on déclare successivement, la vitesse de propagation de l'onde de pression, vitesse de l'onde de cisaillement, la densité du matériau, le numbre de ggl dans les trois directions( ``x``, ``y`` et ``z``), le pas de temps (ignoré dans la version actuelle) et les atténuations des ondes P et S. 
 
 
 Format de material.input
 ========================
 
-Format de material.input
-========================
+Le fichier ``material.input`` est créé automatiquement pour le cas avec une maillage automatique.
 
+Pour le cas où la maillage est pas automatique le ficher doit etrê contenir::
 
+  22
+  P 0380 150 1900 05 05 07 0.000005 0 0
+  P 1100 180 1900 05 05 07 0.000005 0 0
+  P 1100 180 1900 07 05 07 0.000005 0 0
+  P 1100 180 1900 07 07 07 0.000005 0 0
+  P 1100 180 1900 05 07 07 0.000005 0 0
+  P 1100 180 1900 07 07 07 0.000005 0 0
+  P 1100 180 1900 07 05 07 0.000005 0 0
+  S 0380 150 1900 05 05 05 0.000005 0 0
+  S 1100 180 1900 05 05 05 0.000005 0 0
+  P 1100 180 1900 07 05 05 0.000005 0 0
+  P 1100 180 1900 07 07 05 0.000005 0 0
+  P 1100 180 1900 05 07 05 0.000005 0 0
+  P 1100 180 1900 07 07 05 0.000005 0 0
+  P 1100 180 1900 07 05 05 0.000005 0 0
+  P 0380 150 1900 05 05 07 0.000005 0 0
+  P 1100 180 1900 05 05 07 0.000005 0 0
+  P 1100 180 1900 07 05 07 0.000005 0 0
+  P 1100 180 1900 07 07 07 0.000005 0 0
+  P 1100 180 1900 05 07 07 0.000005 0 0
+  P 1100 180 1900 07 07 07 0.000005 0 0
+  P 1100 180 1900 07 05 07 0.000005 0 0
+  S 2000 900 1900 05 05 05 0.000005 0 0
+  # PML properties
+  # Filtering? npow,Apow1 X+X-Y+Y-Z+Z-
+  F 2 10. F F F F T T 0.
+  F 2 10. F F F F T T 0.
+  F 2 10. T T F F T T 0.
+  F 2 10. T T T T T T 0.
+  F 2 10. F F T T T T 0.
+  F 2 10. T F T T T T 0.
+  F 2 10. T F F F T T 0.
+  F 2 10. T T F F F F 0.
+  F 2 10. T T T T F F 0.
+  F 2 10. F F T T F F 0.
+  F 2 10. T F T T F F 0.
+  F 2 10. T F F F F F 0.
+  F 2 10. F F F F T F 0.
+  F 2 10. F F F F T F 0.
+  F 2 10. T T F F T F 0.
+  F 2 10. T T T T T F 0.
+  F 2 10. F F T T T F 0.
+  F 2 10. T F T T T F 0.
+  F 2 10. T F F F T F 0. 
 
+Les definitions de ``T`` et ``F`` sont pour definir les directions de attenuation de la PML. Trois couples de deux 
+drapeaux T ou F (pour True False) indiquant si la PML attenue dans les directions X, Y et Z respectivement 
+(premier flag du couple) et dans le sens positif (T) ou négatif de l'axe.
