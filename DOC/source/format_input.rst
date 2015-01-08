@@ -4,10 +4,10 @@
 Description des paramètres de SEM3D
 ===================================
 
-Format
-======
+Format de input.spec
+====================
 
-Le format de fichier SEM3D a été changé pour plus de souplesse et pour
+Le format de fichier input.spec a été changé pour plus de souplesse et pour
 éviter des erreurs de saisie.
 
 Le nouveau format de fichier est de la forme suivante (exemple) ::
@@ -29,9 +29,10 @@ souligné (``_``).
 Les sections peuvent apparaître plusieurs fois (par exemple la section ``source``).
 
 Les paramètres peuvent apparaître dans un ordre quelconque au sein d'une section (ou du corps
-principal). Un paramètre valide peut-être ignoré si il n'est pas activé par un autre paramètre :
-par exemple on peut désactiver les snapshots, tout en laissant le paramètre nombre d'itération
-entre snapshot.
+principal), parce contre le parametre ``dim`` doit etrê OBLIGATOIRE declare avant les outres
+pour valider les tailles des vecteur. Un paramètre valide peut-être ignoré si il n'est pas 
+activé par un autre paramètre :par exemple on peut désactiver les snapshots, tout en laissant 
+le paramètre nombre d'itération entre snapshot.
 
 Les mots-clef pouvant être utilisés dans le fichier (niveau 0, hors toute section) sont décrits ici :
 
@@ -117,6 +118,13 @@ ts                réel     --                 Un offset de temps :math:`t_0`
 gamma             réel     --
 time_file         chaîne   --                 Fichier contenant la source
 amplitude         réel     --                 Facteur multiplicatif appliqué à la source temporelle
+Q                 réel     --                 
+Y                 réel     --                 
+X                 réel     --                  
+L                 réel     --                 
+v                 réel     --                 
+d                 réel     --                 
+a                 réel     --                 
 ================  =======  =================  =================================================================
 
 Note:
@@ -171,7 +179,7 @@ Autre exemple : ::
 Cette description va simplement exclure les matériaux 5, 6 et 7 des sorties.
 
 Exemple
-=======
+:::::::
 
 Le fichier suivant correspond à celui d'un cas test : ::
 
@@ -182,6 +190,7 @@ Le fichier suivant correspond à celui d'un cas test : ::
   sim_time = 1.0;
   mesh_file = "mesh4spec"; # input mesh file
   mat_file = "material.input";
+  dim = 3;
   
   snapshots {
     save_snap = true;
@@ -218,7 +227,7 @@ Le fichier suivant correspond à celui d'un cas test : ::
 
 
 Les sources
-===========
+:::::::::::
 
 Les formes d'ondes temporelles des sources sont décrites ci-dessous. Les
 paramètres sont décrits dans la section ``source``. Certains sont calculés :
@@ -293,9 +302,20 @@ Les fonctions temporelles sont:
 
      f(t) = \frac{\exp(2.*\gamma*(x-t_0))-1.}{\exp(2.*\gamma*(x-t_0))+1}+\frac{\exp(2.*\gamma*(t_0+\tau-x))-1.}{\exp(2.*\gamma*(t_0+\tau-x))+1}
 
+- ``tanh``: Une tangente hyperbolique
+
+ .. math::
+
+    f(t) = \frack{1}{2}\tanh(\gamma*(t-t_0)+1)
+
+- ``dm``: M function
+
+ ..math::
+
+   f(t) = \frac{Q*Y}{2}*(X^(/frac{v*(t-t_0)-a}{d^2})+X^(/frac{v*(t-t_0)-a-L}{d^2})) 
 
 Atténuation
-===========
+:::::::::::
 
 Le mécanisme d'atténuation est décrit en deux endroits :
 
@@ -311,3 +331,71 @@ N fréquences choisies dans la bande spécifiée.  Le paramètre
 periode indiquée.
 
 Le code n'applique pas d'atténuation si ``nsolids=0``.
+
+Format de capteurs.dat
+==================
+
+Le ficheir ``capteurs.dat`` contient ::
+
+  TITRE1
+  TITRE2
+  NOM_CAPTEUR u0
+  FREQ   1
+  RAYON       0
+  OPERATION   MOY
+  GRANDEUR    DEPLA
+  COORDX  0.0
+  COORDY  0.0
+  COORDZ  0.0
+  TYPE_CALCUL INTERP
+
+oú ``NOM_CAPTURE`` est le nom de le capture, ``FREQ`` est la fréquence de aquisition,
+``GRANDEUR`` peux etrê le déplacement (``DEPLA``) ou vitesse (``VITESSE``), 
+``COORDX COORDY COORDZZ`` sont les coordones de le capture. 
+
+Format de mat.dat
+==================
+
+Cette fichier est juste pour le cas oú le maillage est realise pour le ``mesher`` 
+automatique.
+Le fichier ``mat.dat`` doit contenir (les commentaires, après le *#*
+sont facultatifs) ::
+
+  -100.    # xmin
+  500.     # xmax
+  50.      # xstep
+  -100.    # ymin
+  500.     # ymax
+  50.      # ystep
+  500.     # zmax
+  1        # nb. of layers
+  600. 12  # upper layer: thickness and nb of steps
+  1  # PMLs? 0: no, 1: yes
+  1 1  # PMLs on top? at the bottom? (0: no, 1: yes)
+  5   # nb of GLL nodes in the PML
+  1   # 8 or 27 control points for elements (1 or 2)
+
+- Choix de 8 noeuds par maille : 1 (Les mailles quadratiques à 27
+  noeuds sont en développement)
+
+Format de mater.in
+==================
+
+Le fichier ``mater.in`` décrit combien de matériels ont dans le model :: 
+
+  1
+  S  6300.00  2500.00   2800. 5   5    5  0.000005 630. 250.
+
+oú le premiere cifre est combien de matériels ont dans le model. La deuxieme ligne
+décrit le type de material (``S`` material solide et ``F`` material fluide), après il y a
+le vitesse de propagation de la onde de pression, vitesse de la onde
+
+
+Format de material.input
+========================
+
+Format de material.input
+========================
+
+
+
