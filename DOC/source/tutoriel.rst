@@ -401,45 +401,128 @@ tables de paramètres.
 Exemples de modélisation avec SEM3D
 ===================================
 
-
-Maillage uniforme avec PML
+Problème de soide stratifié fluide avec PML en demi-espace
 --------------------------
 
-On commence par un premier exemple de grille cartésienne avec une
-source ponctuelle.
+On présente ici un cas test en expliquant tous les paramètres entrés et les mots clés pour lancer des calculs avec SEM3D. Il s'agit d'un cas de surface libre (demi espace) avec le sol stratifié et fluide entouré par des PMLs.
 
-Le fichier ``mat.dat`` doit contenir (les commentaires, après le *#*
-sont facultatifs) ::
+Pour préparer le lancement d'un calcul SEM, dans le répertoir du cas, il faut avoir 6 fichiers qui sont mesh.input, mat.dat*, mater.in, material.input**, input.spec, capteur.dat.
 
-  1  # number of non PML materials
-  F  # Milieu stratifié F: non T: oui
-  1  # PMLs? 0: no, 1: yes
-  1 1  # PMLs on top? at the bottom? (0: no, 1: yes)
-  S
+* Le fichier "mat.dat" n'est nécessaire quand dans le cas du maillage automatique. Pour le cas du maillage externe comme UNV,..., ce fichier n'est plus nécessaire.
 
-On lance l'exécutable ``mesher``, et on lui indique les informations
-suivantes :
+** Le fichier "material.input' n'est pas nécessaire quand dans le cas du maillage automatique car ce fichier va être créer automatiquement au moment de la création du maillage.
 
-- Nombre de processeurs : 4
+La description de chaque fichier est la suivante:
 
-- Construction du modèle matériaux et maillage : 1 (Oui)
+1) mesh.input : il indique le nombre de processeurs, et le type de maillage a être générer. Ce fichier doit contenir:
 
-- Choix d'une grille : 1 (On the fly : sur la mouche)
+8   #nombre de processeurs
+1   #type de maillage
+    # 1 : on the fly 
+    # 2 : Abaqus par Cubit
+    # 3 : fichier UNV
+    # 4 : HDF5 Hex8
+    # 5 : Earth Chunk
 
-- Saisie des coordonnées et taille de maille : 
 
-  - X : -100, 500
-  - Y : -100, 500
-  - Z : -100, 500
+2) mat.dat : il présente la géométrie du maillage (automatique). Pour le cas test présenté ici, on est dans le cas de demi espace. Ce fichier doit contenir:
 
-  - DX, DY, DZ : 50
+-100.    # xmin
+500.     # xmax
+50.      # xstep
+-100.    # ymin
+500.     # ymax
+50.      # ystep
+500.     # zmax
+3       # nb. of layers
+300 6   # upper layer: thickness and nb of steps
+300 6   # midle layer: thickness and nb of steps
+300 6   # lower layer: thickness and nb of steps
+1   # PMLs? 0: no, 1: yes
+0 1   # PMLs on top? at the bottom? (0: no, 1: yes)
+5   # nb of GLL nodes in the PML
+1   # 8 or 27 control points for elements (1 or 2)
 
-- Choix de 8 noeuds par maille : 1 (Les mailles quadratiques à 27
-  noeuds sont en développement)
+3) mater.in : il décrire le nombre du couches du milieu et les propriétés du matériaux. Le mesher va utiliser ce fichier pour générer le fichier "material.input" dans le cas du maillage automatique. Ce fichier doit contenir:
 
-L'outil va alors générer 4 fichiers nommés ``mesh4spec.000N.h5``
-(N=0,1,2,3) contenant les maillages et informations de communication
-des 4 partitions.
+3   # nombre de couches
+F  6300.00    00.00    1.0  5   5    5  0.000005 630. 250.
+S  6300.00  2500.00   2800. 5   5    5  0.000005 630. 250.
+S  5000.00  2000.00   2000. 5   5    5  0.000005 630. 250.
+# Type de milieu, Vp, Vs, Rho, N-GLLx, N-GLLy, N-GLLz, dt, Qp, Qs
+
+# Type de milieu : (S:Solide, F:Fluide)
+# Vp et Vs : Vitesse de propagation des ondes P et S
+# Rho : Masse Volumique
+# N-GLLx, N-GLLy, N-GLLz : Nombre de points GLL dans les trois directions (N-GLLy est ignoré en 2D)
+# dt : Pas de temps (pour l'instant, il est ignoré)
+# Qp et Gs : Facteurs de qualité d'atténuation des ondes P et S
+
+4) material.input : Ce fichier va être créé par le mesher au moment de la génération du maillage. Il décrit toutes les propriétés des matéiaux, les PMLs et les directions de PMLs.
+
+5) input.spec : Ce fichier décrit le chargement, limite le temps de simulation, et choisit la taille du milieu a être sauve garder dans le résultat. Il doit contenir:
+
+# -*- mode: perl -*-
+run_name = "Cube_PML";
+
+# duration of the run
+sim_time = 5.0;
+mesh_file = "mesh4spec"; # input mesh file
+mat_file = "material.input";
+dim=3;
+
+snapshots {
+    save_snap = true;
+    snap_interval = 0.01;
+    deselect all;
+    select box = -100 -100  100 500 500 150;
+    select box = -100  100 -100 500 150 500;
+    select box =  100 -100 -100 150 500 500;
+};
+
+# Description des capteurs
+save_traces = true;
+station_file = "capteurs.dat";
+traces_format=hdf5;
+
+
+# Fichier protection reprise
+prorep=false;
+prorep_iter=1000;
+restart_iter=370;
+
+
+# introduce a source
+source {
+    # coordinates of the sources ((x,y,z) or (lat,long,R) if rotundity is considered)
+    coords = 25. 25. 0.;
+    # the numbers before the labels are here to help convert from previous input.spec format
+    # Type (1.Impulse, 2.moment Tensor, 3.fluidpulse)
+    type = impulse;
+    # Direction 0.x,1.y ou 2.z (only for Impulse)
+    dir = 1. 0. 0.;
+    # Function 1.gaussian,2.ricker,3.tf_heaviside,4.gabor,5.file,6.spice_bench,7.sinus
+    func = ricker;
+    tau = 0.4;
+    freq = 3.;   # source main frequency / cutoff frequency
+};
+
+time_scheme {
+    accel_scheme = false;  # Acceleration scheme for Newmark
+    veloc_scheme = true;   # Velocity scheme for Newmark
+    alpha = 0.5;           # alpha (Newmark parameter)
+    beta = -0.5;           # beta (Newmark parameter)
+    gamma = 1;             # gamma (Newmark parameter)
+    courant=0.2;
+};
+
+amortissement {
+    nsolids = 0;           # number of solids for attenuation (0 if no attenuation)
+    atn_band = 10  0.05;   # attenuation period band
+    atn_period = 0.2;      # model period 
+};
+
+6) capteur.dat : il selectionne les points pour présenter les résultats sous la forme de tableau. Les résultats que nous pouvons sortir sous la forme de tableau sont la vitesse, le déplacement et l'accélération.
 
 Lancement du cas
 ----------------
