@@ -306,7 +306,7 @@ Les fonctions temporelles sont:
 
  .. math::
 
-    f(t) = \frack{1}{2}\tanh(\gamma*(t-t_0)+1)
+    f(t) = \frac{1}{2}\tanh(\gamma*(t-t_0)+1)
 
 - ``dm``: M function
 
