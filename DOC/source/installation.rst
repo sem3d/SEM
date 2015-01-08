@@ -57,7 +57,7 @@ Préparation de la compilation
 La préparation se fait à l'aide de la commande suivante ::
 
   $ cd sem_build
-  $ ccmake ../sem_src
+  $ ccmake ../sem_src : assissatnt de configuration permettant de générer les`` Makefile``. Il va chercher le ``CMakeLists.txt``. 
 
 ``ccmake`` est une commande interactive de :program:`CMake` permettant de
 paramétrer la compilation. Le paramétrage s'effectue en deux étapes :
@@ -77,6 +77,13 @@ paramétrer la compilation. Le paramétrage s'effectue en deux étapes :
   debuggage avec :program:`ifort`).
 
   Lorsqu'on change des variables, il faut reconfigurer (touche ``c``).
+
+  Après chaque configuration, on affiche les variables avancées (touche ``t``).
+
+  Il faut vérifier que : - CMAKE_Fortran_COMPILER = ifort
+                         - CMAKE_Fortran_FLAGS = -lhdf5
+                         - OPT_MPI = ON
+
 
 - La seconde étape, la génération des fichiers ``Makefile`` ne peut se faire que si
   l'option ``g`` (*generate and exit*) apparait dans
@@ -245,8 +252,8 @@ Il y a encore plusieurs erreurs classiques :
     Par exemple: je compile hdf5 avec icc 10. qui utilise des
     fonctions provenant de la librairie de support du compilateur
     10.0. Et plus tard je compile *et* je link SEM avec
-    icc/ifort 11. Entre temps la fonction utilisée par intel 10. à
-    disparu est n'est plus dans la librairie de support de
+    icc/ifort 11. Entre temps la fonction utilisée par intel 10. a
+    disparu et n'est plus dans la librairie de support de
     Intel 11. Donc à l'édition de lien le symbole utilisé par la
     librairie hdf5 ne sera plus présent.
 
