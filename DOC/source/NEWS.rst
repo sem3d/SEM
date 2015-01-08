@@ -1,9 +1,9 @@
 .. -*- coding: utf-8; mode:rst -*-
 
-NEWS
-====
+Version 2015.xx
+---------------
 
-Version 2014.xx
+Version 2015.01
 ---------------
 
 - Partitionneur 2D / C++ (LA)
@@ -25,6 +25,8 @@ Version 2014.xx
 - Mailleur et SEM3D :
 
   - condition de type dirichlet (P=0) pour les fluides (LG)
+
+- Génération de champs aléatoires de propriétés pour les paramètres de Lamé
 
 - Corrections de bug
 
@@ -239,64 +241,4 @@ Autres :
 
 - (:program:`SEM3D`) : le code a été factorisé (suppression des duplications,
   réorganisations, simplifications) en plusieurs endroits.
-
-Evolutions futures
-~~~~~~~~~~~~~~~~~~
-
-Certaines fonctionnalités sont prévues (voire déjà disponibles dans le code) mais
-n'ont pas encore été finalisées, intégrées ou correctement testées :
-
-- Description de gradient de propriétés dans les matériaux. Le code de la version CEA
-  a été intégré, mais la description des matériaux dans le fichier de configuration
-  n'a pas encore été effectuée.
-
-  La nouvelle description des gradients et le nouveau format du fichier matériaux
-  seront développés dans une future version.
-
-- Description des conditions de Neumann. Le code existe, il n'a pas été testé. Il sera intégré
-  dans le fichier de configuration au nouveau format dans une prochaine version.
-
-- Description des capteurs : la prochaine version utilisera une syntaxe semblable à celle du
-  fichier ``input.spec`` pour la description des capteurs.
-
-- Anisotropie : le code pour gérer des matériaux anisotropes existe,
-  mais il n'y a rien dans la syntaxe actuelle du fichier de
-  description des matériaux qui permette de définir un milieu
-  anisotrope. Là encore, cela sera intégré dans la prochaine version
-  lors de la refonte du fichier de description des matériaux.
-
-
-
-Notes importantes
-~~~~~~~~~~~~~~~~~
-
-Le code source est versionné avec :program:`Git` et livré dans une archive contenant :
-
-- SEM version 3D
-
-- SEM version 2D
-
-- MESH : un outil de préparation de maillages 3D pour :program:`SEM3D` (l'équivalent
-  2D sera intégré dans une prochaine version).
-
-- La librairie :program:`HDF5` est devenue une dépendance obligatoire (
-  `www.hdfgroup.org <http://www.hdfgroup.org>`_ ).
-
-  Cette librairie permet le stockage efficace de gros volume de
-  données. Son utilisation permet le posttraitement immédiat des
-  snapshot avec Paraview ou Ensight. Les données produites sont
-  également lisibles facilement avec Matlab et Python.
-
-- Le schéma en temps a été simplifié (Les paramètres beta/gamma de
-  l'algorithme de Newmark ne sont plus modifiables).
-
-  Ils pourront être réintroduits une fois réglé le problème de
-  synchronisation avec les forces de couplage externes.
-
-- Bien que les deux méthodes continuent de coéxister, le calcul des
-  forces utilisant le tableau ``Acoeff`` a été désactivé dans cette
-  version. Le code est plus lisible mais moins rapide.
-
-  On étudiera comment obtenir le meilleur des deux méthodes dans une
-  prochaine version.
 

@@ -27,7 +27,7 @@ d'outils *meshtools*.
 Les équations du mouvement
 --------------------------
 
-SEM résoud la propagation d'onde élastique dans un milieu décrit par l'équation
+SEM résout la propagation d'onde élastique dans un milieu décrit par l'équation
 locale du mouvement reliant le déplacement :math:`u` en chaque point matériel, les
 contraintes :math:`\sigma` et les forces extérieures :math:`\vec{f}` :
 
@@ -43,7 +43,7 @@ considérés isotropes.  Le code est prévu pour gérer les milieux
 anisotropes, mais il n'existe pas de manière simple de gérer la mise
 en données.
 
-Dans le domaine fluide, on résoud :
+Dans le domaine fluide, on résout :
 
 .. math::
 
@@ -55,16 +55,17 @@ Dans le domaine fluide, on résoud :
 Formulation éléments finis
 --------------------------
 
-SEM est un code éléments finis, basé sur une formulation spectrale
-(d'où son nom). Le champ de déplacement :math:`u` est décrit dans
+SEM est un code éléments finis, basé sur une formulation spectrale ([COH02]_), qui lui donne son nom. Le champ de déplacement :math:`u` est décrit dans
 chaque élément, ou maille, sur une base de polynômes de Lagrange
 d'ordre N (N défini comme paramètre).
+
+.. [COH02] Cohen, G. (2002). Higher-Order Numerical Methods for Transient Wave Equations. Springer.
 
 Méthode spectrale
 ~~~~~~~~~~~~~~~~~
 
 Pour obtenir une convergence spectrale, ces polynômes de Lagrange sont
-définis sur les points de Gauss-Lobato-Legendre (GLL) de chaque
+définis sur les points de Gauss-Lobatto-Legendre (GLL) de chaque
 éléments (voir :ref:`fig-gll`).
 
 .. _fig-gll:
@@ -180,14 +181,14 @@ Conditions de bord
 
 La condition naturelle d'un bord en élément fini est d'être une
 surface libre, donc réfléchissante pour les ondes. Pour simuler des
-milieux ouverts, SEM implémente un type d'élément dit PML (Perfectly
-Matched Layer) pour simuler un milieu ouvert infini en bordure d'un
-domaine.
+milieux ouverts, SEM implémente un type d'élément dit *Couche Parfaitement Absorbante* (en anglais: *Perfectly
+Matched Layer*, ou PML) pour simuler un milieu ouvert infini en bordure d'un
+domaine ([BER94]_, [FES05]_).
 
 Intégration temporelle
 ----------------------
 
-Le schéma d'intégration est un schéma de Newmark explicite.
+Le schéma d'intégration est un schéma de Newmark explicite ([NEW59]_, [HUG87]_, [SIM92]_).
 
 
 Le pas de temps d'intégration dans SEM est calculé automatiquement à
@@ -202,10 +203,16 @@ Attention:
    Des mailles trop petites, ou des vitesses de propagation trop
    importantes vont faire chuter le pas de temps.
 
+.. [NEW59] Newmark, N. M. (1959). A method of computation for structural dynamics, *J. Eng. Mech., ASCE 85*, 67-94.
+
+.. [HUG87] Hughes, T. J. R. (1987). The finite element method, linear static and dynamic finite element analysis. Englewood Cliffs, NJ : Prentice-Hall International.
+
+.. [SIM92] Simo, J. C. (1992). Algorithms for static and dynamic multiplicative plasticity that preserve the classical return mapping schemes of the infinitesimal theory. *Comp. Meth. Appl. Mech. Eng. 99*, 61–112.
+
 Résolution spatiale
 -------------------
 
-Le maillage doit également être suffisement résolu pour capturer les
+Le maillage doit également être suffisamment résolu pour capturer les
 fréquences spatiales du signal que l'on veut propager. On considère
 que 10 points GLL par longueur d'onde sont suffisant.
 
