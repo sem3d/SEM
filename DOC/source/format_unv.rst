@@ -1,10 +1,11 @@
 
-=========================================================================================================
+=============================================
 Annexe: Description des Datasets UNV reconnus
+=============================================
 
 
 source: http://www.sdrl.uc.edu/universal-file-formats-for-modal-analysis-testing-1/file-format-storehouse
-=========================================================================================================
+
 
 Chaque bloc d'information (ensemble de données) est délimitée par une chaîne
 de séparateur, complètement  sauf la colonne 5 et 6, contenant '' -1 ''.
@@ -208,136 +209,136 @@ une ligne de délimitation contenant ''-1'' dans la colonne 5 et 6.
   Status: Current
   Owner:  Simulation
   Revision Date: 24-April-2002
------------------------------------------------------------------------
-
-Record 1:        FORMAT(8I10)
-                 Field 1       -- group number
-                 Field 2       -- active constraint set no. for group
-                 Field 3       -- active restraint set no. for group
-                 Field 4       -- active load set no. for group
-                 Field 5       -- active dof set no. for group
-                 Field 6       -- active temperature set no. for group
-                 Field 7       -- active contact set no. for group
-               **Field 8       -- number of entities in group**
-
-Record 2:        FORMAT(20A2)
-                 Field 1       -- group name **(PhysicalVolume - PhysicalSurface)**
-
-Record 3-N:      FORMAT(8I10)
-                 Field 1       -- entity type code
-                 Field 2       -- entity tag
-                 Field 3       -- entity node leaf id.
-                 Field 4       -- entity component/ ham id.
-                 Field 5       -- entity type code
-                 Field 6       -- entity tag
-                 Field 7       -- entity node leaf id.
-                 Field 8       -- entity component/ ham id.
-
-Repeat record 3 for all entities as defined by record 1, field 8.
-Records 1 thru n are repeated for each group in the model.
-Entity node leaf id. and the component/ ham id. are zero for all
-entities except "reference point", "reference point series"
-and "coordinate system".
-
-          Permanent group entity type codes
-
-    Entity Type Code        Entity Description
-
-           1                coordinate system
-           2                data surface thickness
-           3                force on point
-           4                force on edge
-           5                traction on face
-           6                pressure on face
-           7                nodes
-           8                finite elements
-           9                dof sets, dof entities
-          10                constraint sets, coupled dofs
-          11                constraint sets, mpc equations
-          12                restraint sets, nodal displacements
-          13                restraint sets, nodal temperatures
-          14                load sets, nodal forces
-          15                load sets, nodal temperatures
-          16                load sets, nodal heat sources/sinks
-          17                load sets, face pressures
-          18                load sets, edge pressures
-          19                load sets, face heat fluxes
-          20                load sets, edge heat fluxes
-          21                load sets, face heat convections
-          22                load sets, edge heat convections
-          23                load sets, face heat radiations
-          24                load sets, edge heat radiations
-          25                load sets, element heat generations
-          26                load sets, beam temperatures
-          27                trace lines
-          28                beam force
-          29                beam distributed load
-          30                data surface
-          31                data curve
-          32                displacement on point (restraint)
-          33                displacement on edge (restraint)
-          34                displacement on surface (restraint)
-          35                temperature on point (restraint)
-          36                temperature on edge (restraint) 
-          37                temperature on face (restraint)
-          38                temperature on point (temperature)
-          39                temperature on edge (temperature)
-          40                temperature on face (temperature)
-          41                heat source on point
-          42                heat flux on edge
-          43                convection on edge
-          44                radiation on edge
-          45                heat flux on face
-          46                convection on face
-          47                radiation on face
-          48                geometry contact region
-          49                fe contact region
-          50                contact pair
-          51                kinematic dof on point
-          52                kinematic dof on edge
-          53                kinematic dof on face
-          54                element definition
-          55                anchor node
-          56                edge dependancy mesh definition
-          57                fem point connector
-          58                fem area connector
-          59                vertex
-          60                edge
-          61                face
-          62                region
-          63                wireframe connector
-          64                wireframe curve
-          65                wireframe section
-          66                wireframe region
-          67                reference point
-          68                reference point series
-          69                centerpoint
-
-Example:
-
-  2477
-    -1
-    -1
-         0         0         0         0         0         0         0         1
-PhysicalSurface0
-         8        33         0         0
-         1         0         0         0         0         0         0         1
-PhysicalSurface1
-         8        38         0         0
-         2         0         0         0         0         0         0         1
-PhysicalSurface2
-         8        38         0         0
-         3         0         0         0         0         0         0         1
-PhysicalSurface3
-         8        43         0         0
-    -1
-         0         0         0         0         0         0         0         1
-PhysicalVolume0
-         8        44         0         0
-         1         0         0         0         0         0         0         1
-PhysicalVolume1
-         8        45         0         0
--1
-
------------------------------------------------------------------------
+  -----------------------------------------------------------------------
+  
+  Record 1:        FORMAT(8I10)
+                   Field 1       -- group number
+                   Field 2       -- active constraint set no. for group
+                   Field 3       -- active restraint set no. for group
+                   Field 4       -- active load set no. for group
+                   Field 5       -- active dof set no. for group
+                   Field 6       -- active temperature set no. for group
+                   Field 7       -- active contact set no. for group
+                 **Field 8       -- number of entities in group**
+  
+  Record 2:        FORMAT(20A2)
+                   Field 1       -- group name **(PhysicalVolume - PhysicalSurface)**
+  
+  Record 3-N:      FORMAT(8I10)
+                   Field 1       -- entity type code
+                   Field 2       -- entity tag
+                   Field 3       -- entity node leaf id.
+                   Field 4       -- entity component/ ham id.
+                   Field 5       -- entity type code
+                   Field 6       -- entity tag
+                   Field 7       -- entity node leaf id.
+                   Field 8       -- entity component/ ham id.
+  
+  Repeat record 3 for all entities as defined by record 1, field 8.
+  Records 1 thru n are repeated for each group in the model.
+  Entity node leaf id. and the component/ ham id. are zero for all
+  entities except "reference point", "reference point series"
+  and "coordinate system".
+  
+            Permanent group entity type codes
+  
+      Entity Type Code        Entity Description
+  
+             1                coordinate system
+             2                data surface thickness
+             3                force on point
+             4                force on edge
+             5                traction on face
+             6                pressure on face
+             7                nodes
+             8                finite elements
+             9                dof sets, dof entities
+            10                constraint sets, coupled dofs
+            11                constraint sets, mpc equations
+            12                restraint sets, nodal displacements
+            13                restraint sets, nodal temperatures
+            14                load sets, nodal forces
+            15                load sets, nodal temperatures
+            16                load sets, nodal heat sources/sinks
+            17                load sets, face pressures
+            18                load sets, edge pressures
+            19                load sets, face heat fluxes
+            20                load sets, edge heat fluxes
+            21                load sets, face heat convections
+            22                load sets, edge heat convections
+            23                load sets, face heat radiations
+            24                load sets, edge heat radiations
+            25                load sets, element heat generations
+            26                load sets, beam temperatures
+            27                trace lines
+            28                beam force
+            29                beam distributed load
+            30                data surface
+            31                data curve
+            32                displacement on point (restraint)
+            33                displacement on edge (restraint)
+            34                displacement on surface (restraint)
+            35                temperature on point (restraint)
+            36                temperature on edge (restraint) 
+            37                temperature on face (restraint)
+            38                temperature on point (temperature)
+            39                temperature on edge (temperature)
+            40                temperature on face (temperature)
+            41                heat source on point
+            42                heat flux on edge
+            43                convection on edge
+            44                radiation on edge
+            45                heat flux on face
+            46                convection on face
+            47                radiation on face
+            48                geometry contact region
+            49                fe contact region
+            50                contact pair
+            51                kinematic dof on point
+            52                kinematic dof on edge
+            53                kinematic dof on face
+            54                element definition
+            55                anchor node
+            56                edge dependancy mesh definition
+            57                fem point connector
+            58                fem area connector
+            59                vertex
+            60                edge
+            61                face
+            62                region
+            63                wireframe connector
+            64                wireframe curve
+            65                wireframe section
+            66                wireframe region
+            67                reference point
+            68                reference point series
+            69                centerpoint
+  
+  Example:
+  
+    2477
+      -1
+      -1
+           0         0         0         0         0         0         0         1
+  PhysicalSurface0
+           8        33         0         0
+           1         0         0         0         0         0         0         1
+  PhysicalSurface1
+           8        38         0         0
+           2         0         0         0         0         0         0         1
+  PhysicalSurface2
+           8        38         0         0
+           3         0         0         0         0         0         0         1
+  PhysicalSurface3
+           8        43         0         0
+      -1
+           0         0         0         0         0         0         0         1
+  PhysicalVolume0
+           8        44         0         0
+           1         0         0         0         0         0         0         1
+  PhysicalVolume1
+           8        45         0         0
+  -1
+  
+  -----------------------------------------------------------------------
 

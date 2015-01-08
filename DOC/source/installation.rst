@@ -268,4 +268,7 @@ se génère par la commande ::
  $ make latexpdf  # pour la version PDF
  $ make html      # pour la version HTML
 
+Les fichiers produits sont écrits dans les répertoires ::
 
+  ${SOURCE_SEM}/DOC/build/latex/SEM.pdf
+  ${SOURCE_SEM}/DOC/build/html/index.html
