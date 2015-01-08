@@ -277,7 +277,21 @@ utilisable par SEM. On peut lui fournir différents formats :
 - Un maillage au format *Abacus* (d'extension ``.aba``)
 
 - Un maillage au format *UNV*, (aussi connu sous le nom *IDEAS*)
-  d'extension ``.unv``, contenant des hexaèdre pour la 3D.
+  d'extension ``.unv``.  Les *UNiVersal files* (les detailles dans 
+  les annexes) sont des fichiers en ASCII qui peuvent être utilisés
+  pour stocker des informations sélectionnées à partir d'un fichier
+  de modèle. Blocs d'information appelés *datasets*  constituent la
+  structure de base d'un fichier universel. 
+  SEM peut lire les blocs suivantes:
+    - Dataset **2411**: noeuds avec leurs coordonnées 3D;
+    - Dataset **2412**: éléments finis (2D et 3D) avec leur connectivité
+                        nodale;
+    - Dataset **2477**: *Groupes physiques* (*PhysicalVolume* et
+                       *PhysicalSurface*) ils sont des ensembles
+                       d'éléments finis avec les mêmes propriétés
+                       (par exemple des éléments finis à l'intérieur
+                       de le même materiau, les surfaces physiques
+                       à être affectés avec des conditions limites).
 
 - Un maillage au format *HDF5*, spécifique, dont la structure est
   décrite en détail dans _`Format HDF5`, contenant 3 tables :
