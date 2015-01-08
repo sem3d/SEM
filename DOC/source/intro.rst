@@ -50,3 +50,11 @@ Exemple des notations utilisées dans ce document :
 Parfois le programme et sa commande Unix ont le même nom, on essaira de faire la distinction, par exemple :
 
 "Pour configurer un programme utilisant :program:`CMake` il faut taper la commande ``cmake``."
+
+
+Quoi de neuf
+------------
+
+.. toctree::
+
+   NEWS.rst

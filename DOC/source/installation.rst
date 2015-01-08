@@ -30,6 +30,7 @@ Le code :program:`SEM3D` nécessite deux (ou trois) outils externes pour sa comp
 
 - une librairie :program:`MPI` (:program:`OpenMPI` recommandée, mais :program:`Mpich` ou :program:`Intel MPI` doivent être compatibles).
 
+La génération de cette documentation nécessite de plus l'outil :program:`sphinx`
 
 Compilation
 ===========

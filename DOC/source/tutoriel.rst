@@ -408,7 +408,7 @@ sont facultatifs) ::
 On lance l'exécutable ``mesher``, et on lui indique les informations
 suivantes :
 
-- Nombre de procésseurs : 4
+- Nombre de processeurs : 4
 
 - Construction du modèle matériaux et maillage : 1 (Oui)
 

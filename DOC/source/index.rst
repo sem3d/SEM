@@ -11,11 +11,10 @@ Documentation SEM IPG-CEA
    :maxdepth: 2
 
    intro.rst
-   NEWS.rst
-   tutoriel.rst
-   format_input.rst
    installation.rst
-   git.rst
+   tutoriel.rst
+   reference.rst
+   developpement.rst
 
 
 ..  ==================
