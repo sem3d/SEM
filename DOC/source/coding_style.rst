@@ -38,7 +38,7 @@ Chaque développeur est invité, s'il le peut, à suivre les règles suivantes :
 
 #. Vérifier qu'un pointeur est valide avant de l'utiliser. Si le pointeur est invalide, arrêter le programme et afficher un message d'erreur. Par exemple, en fortran : ::
 
-   if ( .not. allocated ( ptr ) ) stop 'ERREUR - NomDeLaSubroutine : données invalides'
+     if ( .not. allocated ( ptr ) ) stop 'ERREUR - NomDeLaSubroutine : données invalides'
 
 #. En fortran, utiliser des fonctions / routines préférenciellement placées dans des modules. Le compilateur fortran ne fait pas de vérification sur les arguments (type, nombre) lorsqu'il compile une fonction / routine qui n'est pas placée dans un module
 

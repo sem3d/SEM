@@ -58,7 +58,7 @@ Quoi de neuf
    NEWS.rst
 
 Evolutions futures
-------------
+------------------
 
 Certaines fonctionnalités sont prévues (voire déjà disponibles dans le code) mais
 n'ont pas encore été finalisées, intégrées ou correctement testées :
@@ -85,7 +85,7 @@ n'ont pas encore été finalisées, intégrées ou correctement testées :
 
 
 Notes importantes
-------------
+-----------------
 
 Le code source est versionné avec :program:`Git` et livré dans une archive contenant :
 
