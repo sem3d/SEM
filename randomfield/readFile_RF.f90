@@ -2,17 +2,17 @@ module readFile_RF
     use displayCarvalhol
 
     interface read_DataTable
-		module procedure read_DataTable_DbleVec,  &
-		                 read_DataTable_DbleScal, &
-		                 read_DataTable_IntVec,   &
-		                 read_DataTable_IntScal,  &
-		                 read_DataTable_CharVec,  &
-		                 read_DataTable_CharScal
-	end interface read_DataTable
+       module procedure read_DataTable_DbleVec,  &
+           read_DataTable_DbleScal, &
+           read_DataTable_IntVec,   &
+           read_DataTable_IntScal,  &
+           read_DataTable_CharVec,  &
+           read_DataTable_CharScal
+    end interface read_DataTable
 
 contains
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
     subroutine set_DataTable(path, dataTable, commentDef, tagIDDef, wordsMax, tagPatternMax)
         implicit none
 
@@ -31,8 +31,8 @@ contains
         integer            :: fileID, contentSize, unitTags;
         character (len=50) :: empty='';
         integer            :: i, j, stat, wdMax, conStart, commentCount,   &
-                              tagCount, tagTotal, blankTotal,ratioTagData,         &
-                              dataRow, dataColumn, dataCount,dataTotal, tagPatMax;
+            tagCount, tagTotal, blankTotal,ratioTagData,         &
+            dataRow, dataColumn, dataCount,dataTotal, tagPatMax;
         logical            :: posTaken, dataPassed, labelPassed;
         character          :: comment, tagID;
         character (len=50), dimension(40)               :: foundedTags
@@ -40,7 +40,7 @@ contains
         character (len=50), dimension(:),   allocatable :: contentVector;
 
 
-		!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Treating optional arguments
+        !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Treating optional arguments
         if(.not.present(commentDef))    comment   = '!'
         if     (present(commentDef))    comment   = commentDef
         if(.not.present(tagIDDef))      tagID     = '$'
@@ -50,27 +50,27 @@ contains
         if     (present(wordsMax))      wdMax     = wordsMax
         if(.not.present(wordsMax))      wdMax     = 1000
 
-		!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Putting all the data in a vector (for accessibility)
-		fileID      = 2;
-		stat        = 0;
+        !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Putting all the data in a vector (for accessibility)
+        fileID      = 2;
+        stat        = 0;
 
         open (unit = fileID , file = path, action = 'read')
-        	contentSize = 0
-        	allocate (contentVector(wdMax)) !Limitation about the number of words the file can have
-        	contentVector = "notUsed"
-        	do while(stat.eq.0)
-        		contentSize = contentSize + 1
-        		!write(*,*) "contentVector = ", contentVector
-       			read(fileID, fmt=*,IOSTAT = stat) contentVector(1:contentSize)
-       			rewind(fileID);
-       			!write(*,*) "stat", stat
-       		end do
-			contentSize = contentSize - 1
-			deallocate (contentVector)
-			allocate (contentVector(contentSize))
-			rewind(fileID);
-       		read(fileID, fmt=*,IOSTAT = stat) contentVector(:)
-       		!write(*,*) "contentVector = ", contentVector
+        contentSize = 0
+        allocate (contentVector(wdMax)) !Limitation about the number of words the file can have
+        contentVector = "notUsed"
+        do while(stat.eq.0)
+            contentSize = contentSize + 1
+            !write(*,*) "contentVector = ", contentVector
+            read(fileID, fmt=*,IOSTAT = stat) contentVector(1:contentSize)
+            rewind(fileID);
+            !write(*,*) "stat", stat
+        end do
+        contentSize = contentSize - 1
+        deallocate (contentVector)
+        allocate (contentVector(contentSize))
+        rewind(fileID);
+        read(fileID, fmt=*,IOSTAT = stat) contentVector(:)
+        !write(*,*) "contentVector = ", contentVector
         close(fileID)
 
         conStart     = 1
@@ -78,29 +78,29 @@ contains
 
         !write(*,*) "contentVector = ", contentVector
         do i = 1, size(contentVector) !Treating comments between (!comment!)
-        	if(contentVector(i)(1:1) == comment) then
-        		commentCount = commentCount + 1
-        		if (mod(commentCount,2) == 0) then
-        			contentVector(conStart:i-1) = ""
-        			contentVector(i) = contentVector(i)(2:)
-        		else
-        			conStart = i
-        		end if
-        	end if
-        	j = len(trim(contentVector(i)))
-        	if(contentVector(i)(j:j) == comment .and. j>1) then
-        		commentCount = commentCount + 1
-        		if (mod(commentCount,2) == 0) then
-        			contentVector(conStart:i) = ""
-        		else
-        			conStart = i
-        		end if
-        	end if
+            if(contentVector(i)(1:1) == comment) then
+                commentCount = commentCount + 1
+                if (mod(commentCount,2) == 0) then
+                    contentVector(conStart:i-1) = ""
+                    contentVector(i) = contentVector(i)(2:)
+                else
+                    conStart = i
+                end if
+            end if
+            j = len(trim(contentVector(i)))
+            if(contentVector(i)(j:j) == comment .and. j>1) then
+                commentCount = commentCount + 1
+                if (mod(commentCount,2) == 0) then
+                    contentVector(conStart:i) = ""
+                else
+                    conStart = i
+                end if
+            end if
         end do
         if (mod(commentCount,2) == 1) contentVector(conStart:) = "" !Treating final comment
-!        write(*,*) "contentVector = ", contentVector
+        !        write(*,*) "contentVector = ", contentVector
 
-		!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Starting data treatment
+        !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Starting data treatment
         blankTotal  = 0;
         dataTotal   = 0;
         foundedTags = 'notUsed';
@@ -109,9 +109,9 @@ contains
         tagTotal    = 0;
         unitTags    = 0;
 
-       !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>First loop: finding tags and counting data
+        !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>First loop: finding tags and counting data
         do i = 1, size(contentVector)
-!            nLines = nLines+1;
+            !            nLines = nLines+1;
             if (contentVector(i)(1:1).eq.tagID) then !If a tag i founded
                 posTaken = .FALSE.
                 do j = 1, size(foundedTags) !Founding tag position
@@ -141,17 +141,17 @@ contains
         !write(*,*) "tagTotal             = ", tagTotal;
         !write(*,*) "blank/comment Total  = ", blankTotal;
 
-		if(dataTotal == 0 .or. tagTotal == 0) then
-        	write(*,*) "ERROR! In set_DataTable, no tags and/or data bad conditioned "
+        if(dataTotal == 0 .or. tagTotal == 0) then
+            write(*,*) "ERROR! In set_DataTable, no tags and/or data bad conditioned "
             stop "ERROR! In set_DataTable, no tags and/or data bad conditioned ";
         else if((tagTotal-unitTags) == 0) then
-!        	write(*,*) "Only unit data"
-        	ratioTagData = 1;
+            !            write(*,*) "Only unit data"
+            ratioTagData = 1;
         else if(mod((dataTotal-unitTags),(tagTotal-unitTags)) == 0) then
             ratioTagData = (dataTotal-unitTags)/(tagTotal-unitTags);
             !write(*,*) "ratioTagData         = ", ratioTagData;
         else
-        	write(*,*) "ERROR! In set_DataTable, Tags and data dimensions don't match "
+            write(*,*) "ERROR! In set_DataTable, Tags and data dimensions don't match "
             stop "ERROR! In set_DataTable, Tags and data dimensions don't match ";
         endif
 
@@ -195,7 +195,7 @@ contains
                 enddo
 
             else if ((.not.((contentVector(i)(1:1) == comment) .or. (contentVector(i)(1:1) == empty)))&
-            		  .and.labelPassed.eqv..TRUE.) then
+                .and.labelPassed.eqv..TRUE.) then
 
                 dataPassed = .TRUE.;
                 dataCount  = dataCount + 1;
@@ -213,239 +213,239 @@ contains
         enddo
 
         do i = 1, tagTotal !Putting the headers
-        	if(foundedTags(i)(2:2) == tagID) then
-        		dataTable(1,i) = foundedTags(i)(3:); !Jumping the "$$"
-        	else
-        		dataTable(1,i) = foundedTags(i)(2:); !Jumping the "$"
-        	end if
+            if(foundedTags(i)(2:2) == tagID) then
+                dataTable(1,i) = foundedTags(i)(3:); !Jumping the "$$"
+            else
+                dataTable(1,i) = foundedTags(i)(2:); !Jumping the "$"
+            end if
         end do
 
     end subroutine set_DataTable
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	subroutine read_DataTable_DbleVec(dataTable, tagName, dataDestination)
-		implicit none
-		!INPUT
-		character(len=*), dimension(:,:), intent(in)  :: dataTable
-		character(len=*),                 intent(in)  :: tagName
-		!OUTPUT
-		double precision, dimension(:),   intent(out), allocatable :: dataDestination
-		!LOCAL VARIABLES
-		integer :: i, stat
-		logical :: tagFounded
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    subroutine read_DataTable_DbleVec(dataTable, tagName, dataDestination)
+        implicit none
+        !INPUT
+        character(len=*), dimension(:,:), intent(in)  :: dataTable
+        character(len=*),                 intent(in)  :: tagName
+        !OUTPUT
+        double precision, dimension(:),   intent(out), allocatable :: dataDestination
+        !LOCAL VARIABLES
+        integer :: i, stat
+        logical :: tagFounded
 
-		allocate(dataDestination(size(dataTable,1)-1))
+        allocate(dataDestination(size(dataTable,1)-1))
 
-		tagFounded = .FALSE.
-		stat       = -1
+        tagFounded = .FALSE.
+        stat       = -1
 
-		do i = 1, size(dataTable,2)
-			if (trim(dataTable(1,i)) == tagName) then
-				read(dataTable(2:,i), fmt=*, IOSTAT = stat) dataDestination
-				tagFounded = .TRUE.
-				exit
-			end if
-		end do
+        do i = 1, size(dataTable,2)
+            if (trim(dataTable(1,i)) == tagName) then
+                read(dataTable(2:,i), fmt=*, IOSTAT = stat) dataDestination
+                tagFounded = .TRUE.
+                exit
+            end if
+        end do
 
-		if(stat /= 0) then
-			write(*,*) "ERROR! in -read_DataTable_DbleVec- read failed (check types and Tag name)"
-	        stop "ERROR! in -read_DataTable_DbleVec- read failed (check types and Tag name)"
-		end if
+        if(stat /= 0) then
+            write(*,*) "ERROR! in -read_DataTable_DbleVec- read failed (check types and Tag name)"
+            stop "ERROR! in -read_DataTable_DbleVec- read failed (check types and Tag name)"
+        end if
 
-		if(.not.tagFounded) then
-			write(*,*) "ERROR! in -read_DataTable- TAG not founded"
-	        stop "ERROR! in -read_DataTable- TAG not founded"
-		end if
+        if(.not.tagFounded) then
+            write(*,*) "ERROR! in -read_DataTable- TAG not founded"
+            stop "ERROR! in -read_DataTable- TAG not founded"
+        end if
 
-	end subroutine read_DataTable_DbleVec
+    end subroutine read_DataTable_DbleVec
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	subroutine read_DataTable_IntVec(dataTable, tagName, dataDestination)
-		implicit none
-		!INPUT
-		character(len=*), dimension(:,:), intent(in)  :: dataTable
-		character(len=*),                 intent(in)  :: tagName
-		!OUTPUT
-		integer,          dimension(:),   intent(out), allocatable :: dataDestination
-		!LOCAL VARIABLES
-		integer :: i, stat
-		logical :: tagFounded
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    subroutine read_DataTable_IntVec(dataTable, tagName, dataDestination)
+        implicit none
+        !INPUT
+        character(len=*), dimension(:,:), intent(in)  :: dataTable
+        character(len=*),                 intent(in)  :: tagName
+        !OUTPUT
+        integer,          dimension(:),   intent(out), allocatable :: dataDestination
+        !LOCAL VARIABLES
+        integer :: i, stat
+        logical :: tagFounded
 
-		allocate(dataDestination(size(dataTable,1)-1))
+        allocate(dataDestination(size(dataTable,1)-1))
 
-		tagFounded = .FALSE.
-		stat       = -1
+        tagFounded = .FALSE.
+        stat       = -1
 
-		do i = 1, size(dataTable,2)
-			if (trim(dataTable(1,i)) == tagName) then
-				read(dataTable(2:,i), fmt=*, IOSTAT = stat) dataDestination
-				tagFounded = .TRUE.
-				exit
-			end if
-		end do
+        do i = 1, size(dataTable,2)
+            if (trim(dataTable(1,i)) == tagName) then
+                read(dataTable(2:,i), fmt=*, IOSTAT = stat) dataDestination
+                tagFounded = .TRUE.
+                exit
+            end if
+        end do
 
-		if(stat /= 0) then
-			write(*,*) "ERROR! in -read_DataTable_IntVec- read failed (check types and Tag name)"
-	        stop "ERROR! in -read_DataTable_IntVec- read failed (check types and Tag name)"
-		end if
+        if(stat /= 0) then
+            write(*,*) "ERROR! in -read_DataTable_IntVec- read failed (check types and Tag name)"
+            stop "ERROR! in -read_DataTable_IntVec- read failed (check types and Tag name)"
+        end if
 
-		if(.not.tagFounded) then
-			write(*,*) "ERROR! in -read_DataTable- TAG not founded"
-	        stop "ERROR! in -read_DataTable- TAG not founded"
-		end if
+        if(.not.tagFounded) then
+            write(*,*) "ERROR! in -read_DataTable- TAG not founded"
+            stop "ERROR! in -read_DataTable- TAG not founded"
+        end if
 
-	end subroutine read_DataTable_IntVec
+    end subroutine read_DataTable_IntVec
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	subroutine read_DataTable_CharVec(dataTable, tagName, dataDestination)
-		implicit none
-		!INPUT
-		character(len=*), dimension(:,:), intent(in)  :: dataTable
-		character(len=*),                 intent(in)  :: tagName
-		!OUTPUT
-		character(len=*), dimension(:),   intent(out), allocatable :: dataDestination
-		!LOCAL VARIABLES
-		integer :: i, stat
-		logical :: tagFounded
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    subroutine read_DataTable_CharVec(dataTable, tagName, dataDestination)
+        implicit none
+        !INPUT
+        character(len=*), dimension(:,:), intent(in)  :: dataTable
+        character(len=*),                 intent(in)  :: tagName
+        !OUTPUT
+        character(len=*), dimension(:),   intent(out), allocatable :: dataDestination
+        !LOCAL VARIABLES
+        integer :: i, stat
+        logical :: tagFounded
 
-		allocate(dataDestination(size(dataTable,1)-1))
+        allocate(dataDestination(size(dataTable,1)-1))
 
-		tagFounded = .FALSE.
-		stat       = -1
+        tagFounded = .FALSE.
+        stat       = -1
 
-		do i = 1, size(dataTable,2)
-			if (trim(dataTable(1,i)) == tagName) then
-				read(dataTable(2:,i), fmt=*, IOSTAT = stat) dataDestination
-				tagFounded = .TRUE.
-				exit
-			end if
-		end do
+        do i = 1, size(dataTable,2)
+            if (trim(dataTable(1,i)) == tagName) then
+                read(dataTable(2:,i), fmt=*, IOSTAT = stat) dataDestination
+                tagFounded = .TRUE.
+                exit
+            end if
+        end do
 
-		if(stat /= 0) then
-			write(*,*) "ERROR! in -read_DataTable_CharVec- read failed (check types and Tag name)"
-	        stop "ERROR! in -read_DataTable_CharVec- read failed (check types and Tag name)"
-		end if
+        if(stat /= 0) then
+            write(*,*) "ERROR! in -read_DataTable_CharVec- read failed (check types and Tag name)"
+            stop "ERROR! in -read_DataTable_CharVec- read failed (check types and Tag name)"
+        end if
 
-		if(.not.tagFounded) then
-			write(*,*) "ERROR! in -read_DataTable- TAG not founded"
-	        stop "ERROR! in -read_DataTable- TAG not founded"
-		end if
+        if(.not.tagFounded) then
+            write(*,*) "ERROR! in -read_DataTable- TAG not founded"
+            stop "ERROR! in -read_DataTable- TAG not founded"
+        end if
 
-	end subroutine read_DataTable_CharVec
+    end subroutine read_DataTable_CharVec
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	subroutine read_DataTable_DbleScal(dataTable, tagName, dataDestination)
-		implicit none
-		!INPUT
-		character(len=*), dimension(:,:), intent(in)  :: dataTable
-		character(len=*),                 intent(in)  :: tagName
-		!OUTPUT
-		double precision,                intent(out)  :: dataDestination
-		!LOCAL VARIABLES
-		integer :: i, stat
-		logical :: tagFounded
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    subroutine read_DataTable_DbleScal(dataTable, tagName, dataDestination)
+        implicit none
+        !INPUT
+        character(len=*), dimension(:,:), intent(in)  :: dataTable
+        character(len=*),                 intent(in)  :: tagName
+        !OUTPUT
+        double precision,                intent(out)  :: dataDestination
+        !LOCAL VARIABLES
+        integer :: i, stat
+        logical :: tagFounded
 
-		tagFounded = .FALSE.
-		stat       = -1
+        tagFounded = .FALSE.
+        stat       = -1
 
-		do i = 1, size(dataTable,2)
-			if (trim(dataTable(1,i)) == tagName) then
-				read(dataTable(2,i), fmt=*, IOSTAT = stat) dataDestination
-				tagFounded = .TRUE.
-				exit
-			end if
-		end do
+        do i = 1, size(dataTable,2)
+            if (trim(dataTable(1,i)) == tagName) then
+                read(dataTable(2,i), fmt=*, IOSTAT = stat) dataDestination
+                tagFounded = .TRUE.
+                exit
+            end if
+        end do
 
-		if(stat /= 0) then
-			write(*,*) "ERROR! in -read_DataTable_DbleScal- read failed (check types and Tag name)"
-	        stop "ERROR! in -read_DataTable_DbleScal- read failed (check types and Tag name)"
-		end if
+        if(stat /= 0) then
+            write(*,*) "ERROR! in -read_DataTable_DbleScal- read failed (check types and Tag name)"
+            stop "ERROR! in -read_DataTable_DbleScal- read failed (check types and Tag name)"
+        end if
 
-		if(.not.tagFounded) then
-			write(*,*) "ERROR! in -read_DataTable- TAG not founded"
-	        stop "ERROR! in -read_DataTable- TAG not founded"
-		end if
+        if(.not.tagFounded) then
+            write(*,*) "ERROR! in -read_DataTable- TAG not founded"
+            stop "ERROR! in -read_DataTable- TAG not founded"
+        end if
 
-	end subroutine read_DataTable_DbleScal
+    end subroutine read_DataTable_DbleScal
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	subroutine read_DataTable_IntScal(dataTable, tagName, dataDestination)
-		implicit none
-		!INPUT
-		character(len=*), dimension(:,:), intent(in)  :: dataTable
-		character(len=*),                 intent(in)  :: tagName
-		!OUTPUT
-		integer,                         intent(out)  :: dataDestination
-		!LOCAL VARIABLES
-		integer :: i, stat
-		logical :: tagFounded
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    subroutine read_DataTable_IntScal(dataTable, tagName, dataDestination)
+        implicit none
+        !INPUT
+        character(len=*), dimension(:,:), intent(in)  :: dataTable
+        character(len=*),                 intent(in)  :: tagName
+        !OUTPUT
+        integer,                         intent(out)  :: dataDestination
+        !LOCAL VARIABLES
+        integer :: i, stat
+        logical :: tagFounded
 
-		tagFounded = .FALSE.
-		stat       = -1
+        tagFounded = .FALSE.
+        stat       = -1
 
-		do i = 1, size(dataTable,2)
-			if (trim(dataTable(1,i)) == tagName) then
-				read(dataTable(2,i), fmt=*, IOSTAT = stat) dataDestination
-				tagFounded = .TRUE.
-				exit
-			end if
-		end do
+        do i = 1, size(dataTable,2)
+            if (trim(dataTable(1,i)) == tagName) then
+                read(dataTable(2,i), fmt=*, IOSTAT = stat) dataDestination
+                tagFounded = .TRUE.
+                exit
+            end if
+        end do
 
-		if(stat /= 0) then
-			write(*,*) "ERROR! in -read_DataTable_IntScal- read failed (check types and Tag name)"
-	        stop "ERROR! in -read_DataTable_IntScal- read failed (check types and Tag name)"
-		end if
+        if(stat /= 0) then
+            write(*,*) "ERROR! in -read_DataTable_IntScal- read failed (check types and Tag name)"
+            stop "ERROR! in -read_DataTable_IntScal- read failed (check types and Tag name)"
+        end if
 
-		if(.not.tagFounded) then
-			write(*,*) "ERROR! in -read_DataTable- TAG not founded"
-	        stop "ERROR! in -read_DataTable- TAG not founded"
-		end if
+        if(.not.tagFounded) then
+            write(*,*) "ERROR! in -read_DataTable- TAG not founded"
+            stop "ERROR! in -read_DataTable- TAG not founded"
+        end if
 
-	end subroutine read_DataTable_IntScal
+    end subroutine read_DataTable_IntScal
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	subroutine read_DataTable_CharScal(dataTable, tagName, dataDestination)
-		implicit none
-		!INPUT
-		character(len=*), dimension(:,:), intent(in)  :: dataTable
-		character(len=*),                 intent(in)  :: tagName
-		!OUTPUT
-		character(len=*),                 intent(out)  :: dataDestination
-		!LOCAL VARIABLES
-		integer :: i, stat
-		logical :: tagFounded
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    subroutine read_DataTable_CharScal(dataTable, tagName, dataDestination)
+        implicit none
+        !INPUT
+        character(len=*), dimension(:,:), intent(in)  :: dataTable
+        character(len=*),                 intent(in)  :: tagName
+        !OUTPUT
+        character(len=*),                 intent(out)  :: dataDestination
+        !LOCAL VARIABLES
+        integer :: i, stat
+        logical :: tagFounded
 
-		tagFounded = .FALSE.
-		stat       = -1
+        tagFounded = .FALSE.
+        stat       = -1
 
-		do i = 1, size(dataTable,2)
-			if (trim(dataTable(1,i)) == tagName) then
-				read(dataTable(2,i), fmt=*, IOSTAT = stat) dataDestination
-				tagFounded = .TRUE.
-				exit
-			end if
-		end do
+        do i = 1, size(dataTable,2)
+            if (trim(dataTable(1,i)) == tagName) then
+                read(dataTable(2,i), fmt=*, IOSTAT = stat) dataDestination
+                tagFounded = .TRUE.
+                exit
+            end if
+        end do
 
-		if(stat /= 0) then
-			write(*,*) "ERROR! in -read_DataTable_CharScal- read failed (check types)"
-	        stop "ERROR! in -read_DataTable_CharScal- read failed (check types)"
-		end if
+        if(stat /= 0) then
+            write(*,*) "ERROR! in -read_DataTable_CharScal- read failed (check types)"
+            stop "ERROR! in -read_DataTable_CharScal- read failed (check types)"
+        end if
 
-		if(.not.tagFounded) then
-			write(*,*) "ERROR! in -read_DataTable- TAG not founded"
-	        stop "ERROR! in -read_DataTable- TAG not founded"
-		end if
+        if(.not.tagFounded) then
+            write(*,*) "ERROR! in -read_DataTable- TAG not founded"
+            stop "ERROR! in -read_DataTable- TAG not founded"
+        end if
 
-	end subroutine read_DataTable_CharScal
+    end subroutine read_DataTable_CharScal
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
     function modCyclic(dividend,divisor) result(cyclicRest)
         implicit none
         integer :: dividend, divisor, cyclicRest
@@ -458,3 +458,13 @@ contains
     end function modCyclic
 
 end module readFile_RF
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent : !!

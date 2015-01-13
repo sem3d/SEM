@@ -1,13 +1,13 @@
 module spectra_RF
-	use displayCarvalhol
-	use math_RF
+    use displayCarvalhol
+    use math_RF
 contains
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
 
     subroutine set_kMaxND(corrMod, kMax, corrL);
-    	!INPUT
+        !INPUT
         character (len=15),                intent(in) :: corrMod;
         double precision,   dimension(:),  intent(in), optional :: corrL;
 
@@ -21,30 +21,30 @@ contains
 
         allocate(corrL_effec (size(kMax)))
 
-		if (present(corrL)) corrL_effec = corrL
-		if (.not. present(corrL)) corrL_effec = 1
-!        do i = 1, 100
-!        	kMax = i/10.0 * corrL(:)
-!        	write(*,*) "kMax = ", kMax
-!        	write(*,*) "Spectrum = ", get_SpectrumND(kMax, corrMod, corrL)
-!        	call DispCarvalhol (kMax, "kMax")
-!        	call DispCarvalhol (get_SpectrumND(kMax, corrMod, corrL), "Spectrum")
-!        end do
+        if (present(corrL)) corrL_effec = corrL
+        if (.not. present(corrL)) corrL_effec = 1
+        !        do i = 1, 100
+        !            kMax = i/10.0 * corrL(:)
+        !            write(*,*) "kMax = ", kMax
+        !            write(*,*) "Spectrum = ", get_SpectrumND(kMax, corrMod, corrL)
+        !            call DispCarvalhol (kMax, "kMax")
+        !            call DispCarvalhol (get_SpectrumND(kMax, corrMod, corrL), "Spectrum")
+        !        end do
 
-    	select case(corrMod)
-   				case("gaussian")
-				kMax(:) = 2*pi*corrL_effec(:); !CRITERIA STILL TO BE TESTED
-   		end select
+        select case(corrMod)
+        case("gaussian")
+            kMax(:) = 2*pi*corrL_effec(:); !CRITERIA STILL TO BE TESTED
+        end select
 
-   		deallocate(corrL_effec)
+        deallocate(corrL_effec)
 
     end subroutine set_kMaxND
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
 
     subroutine set_rMax(corrMod, rMax, corrL);
-    	!INPUT
+        !INPUT
         character (len=15),                intent(in) :: corrMod;
         double precision,   dimension(:),  intent(in), optional :: corrL;
 
@@ -58,50 +58,50 @@ contains
 
         allocate(corrL_effec (size(rMax)))
 
-		if (present(corrL)) corrL_effec = corrL
-		if (.not. present(corrL)) corrL_effec = 1
-!        do i = 1, 100
-!        	kMax = i/10.0 * corrL(:)
-!        	write(*,*) "kMax = ", kMax
-!        	write(*,*) "Spectrum = ", get_SpectrumND(kMax, corrMod, corrL)
-!        	call DispCarvalhol (kMax, "kMax")
-!        	call DispCarvalhol (get_SpectrumND(kMax, corrMod, corrL), "Spectrum")
-!        end do
+        if (present(corrL)) corrL_effec = corrL
+        if (.not. present(corrL)) corrL_effec = 1
+        !        do i = 1, 100
+        !            kMax = i/10.0 * corrL(:)
+        !            write(*,*) "kMax = ", kMax
+        !            write(*,*) "Spectrum = ", get_SpectrumND(kMax, corrMod, corrL)
+        !            call DispCarvalhol (kMax, "kMax")
+        !            call DispCarvalhol (get_SpectrumND(kMax, corrMod, corrL), "Spectrum")
+        !        end do
 
-    	select case(corrMod)
-   				case("gaussian")
-				rMax(:) = 2*pi*corrL_effec(:); !CRITERIA STILL TO BE TESTED
-   		end select
+        select case(corrMod)
+        case("gaussian")
+            rMax(:) = 2*pi*corrL_effec(:); !CRITERIA STILL TO BE TESTED
+        end select
 
-   		deallocate(corrL_effec)
+        deallocate(corrL_effec)
 
     end subroutine set_rMax
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
 
     subroutine set_kSign(kSign);
-    	!INPUT and OUTPUT
+        !INPUT and OUTPUT
         double precision,   dimension(:, :), intent(inout) :: kSign;
 
         !LOCAL VARIABLES
         integer:: i, j, pos, seedStep;
 
-		nDim = size(kSign, 2);
+        nDim = size(kSign, 2);
 
-		kSign(:,:) = 1d0
+        kSign(:,:) = 1d0
 
-		do i = 2, nDim
-			do j = 1, size(kSign,1)
-			    seedStep = 2**(nDim-i);
-				pos      = cyclicMod(int((j-0.9)/seedStep), 2)
-				if (mod(pos,2) == 1) kSign(j,i) = -1d0
-			end do
-		end do
+        do i = 2, nDim
+            do j = 1, size(kSign,1)
+                seedStep = 2**(nDim-i);
+                pos      = cyclicMod(int((j-0.9)/seedStep), 2)
+                if (mod(pos,2) == 1) kSign(j,i) = -1d0
+            end do
+        end do
     end subroutine set_kSign
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
 
     function get_SpectrumND(kVector, corrMod, corrL) result (Sk)
         ! Return Spectrum from a chosen correlation model
@@ -123,22 +123,22 @@ contains
 
         allocate(corrL_effec (size(kVector)))
 
-		if (present(corrL)) corrL_effec = corrL
-		if (.not. present(corrL)) corrL_effec = 1
+        if (present(corrL)) corrL_effec = corrL
+        if (.not. present(corrL)) corrL_effec = 1
 
         Sk = 0;
         nDim = size(kVector)
 
         select case(corrMod)
-            case("gaussian")
+        case("gaussian")
 
-				!REGIS
-				!Sk  = exp(-dot_product((kVector**2),(corrL_effec**2))/(4.0d0)); !Amplitude part "product(corrL)" is external to the function
+            !REGIS
+            !Sk  = exp(-dot_product((kVector**2),(corrL_effec**2))/(4.0d0)); !Amplitude part "product(corrL)" is external to the function
 
-				!MEU
-				Sk = exp(-dot_product(kVector**2, corrL_effec**2)/(4.0d0*pi)); !Amplitude part "product(corrL)" is external to the function
-				!write(*,*) "Sk = ", Sk
-				!write(*,*) "kVector = ", kVector
+            !MEU
+            Sk = exp(-dot_product(kVector**2, corrL_effec**2)/(4.0d0*pi)); !Amplitude part "product(corrL)" is external to the function
+            !write(*,*) "Sk = ", Sk
+            !write(*,*) "kVector = ", kVector
 
         end select
 
@@ -147,3 +147,13 @@ contains
     end function get_SpectrumND
 
 end module spectra_RF
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
