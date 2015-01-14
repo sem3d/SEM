@@ -25,12 +25,13 @@ subroutine allocate_domain (Tdomain)
 
     do mat = 0,Tdomain%n_mat-1
         assocMat = Tdomain%sSubdomain(mat)%assocMat
-        if(      Tdomain%sSubDomain(assocMat)%material_type == "R"  &
-           .and. Tdomain%subD_exist(mat)) then
-            call random_seed(size = randSize)
-            allocate(Tdomain%sSubdomain(mat)%chosenSeed(randSize))
-            allocate(Tdomain%sSubDomain(mat)%MinBound(0:2))
-            allocate(Tdomain%sSubDomain(mat)%MaxBound(0:2))
+        if(Tdomain%sSubDomain(assocMat)%material_type == "R") then
+            if (Tdomain%subD_exist(mat)) then
+                call random_seed(size = randSize)
+                allocate(Tdomain%sSubdomain(mat)%chosenSeed(randSize))
+                allocate(Tdomain%sSubDomain(mat)%MinBound(0:2))
+                allocate(Tdomain%sSubDomain(mat)%MaxBound(0:2))
+            end if
         end if
     end do
 

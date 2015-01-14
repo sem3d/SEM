@@ -10,7 +10,6 @@ set(SEM2D_SOURCES
     ${PRJ}/SRC/Vertex.F90
     ${PRJ}/SRC/Sources.F90
     ${PRJ}/SRC/TimeP.F90
-    ${PRJ}/SRC/orientation.F90
     ${PRJ}/SRC/logical_input.F90
     ${PRJ}/SRC/Subdomains.F90
     ${PRJ}/SRC/Receivers.F90
@@ -18,6 +17,7 @@ set(SEM2D_SOURCES
     ${PRJ}/SRC/mpi_list.F90
     ${PRJ}/SRC/communicating_wall.F90
     ${PRJ}/SRC/Domain.F90
+    ${PRJ}/SRC/orientation.F90
     ${PRJ}/SRC/Capteur.F90
     ${PRJ}/SRC/Couplage.F90
     ${PRJ}/SRC/Newmark.F90
@@ -37,17 +37,17 @@ set(SEM2D_SOURCES
     ${PRJ}/SRC/global_numbering.F90
     ${PRJ}/SRC/snapshots.F90
     ${PRJ}/SRC/read_input.F90
+    ${PRJ}/SRC/shape4.F90
+    ${PRJ}/SRC/shape8.F90
+    ${PRJ}/SRC/receiver_pos.F90
     ${PRJ}/SRC/read_mesh.F90
     ${PRJ}/SRC/read_mesh_h5.F90
     ${PRJ}/SRC/read_restart.F90
-    ${PRJ}/SRC/receiver_pos.F90
     ${PRJ}/SRC/save_checkpoint.F90
     ${PRJ}/SRC/save_deformation.F90
     ${PRJ}/SRC/save_fault_trace.F90
     ${PRJ}/SRC/save_vorticity.F90
     ${PRJ}/SRC/savefield.F90
-    ${PRJ}/SRC/shape4.F90
-    ${PRJ}/SRC/shape8.F90
     ${PRJ}/SRC/smoothing_exp.F90
     ${PRJ}/SRC/source_pos.F90
     ${PRJ}/SRC/verify_in_quad.F90

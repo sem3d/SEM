@@ -1,10 +1,9 @@
-subroutine define_Neumann_properties(Tdomain,rank)
+subroutine define_Neumann_properties(Tdomain)
 
     use sdomain
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    integer, intent(in)  :: rank
     integer :: ngll,ngll1,ngll2,nf,ne,nv,nf_aus
 
     ! allocations for faces, edges and vertices

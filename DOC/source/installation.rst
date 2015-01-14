@@ -161,7 +161,14 @@ Dans l'ordre :
 
 4. Regarder ci-dessous si c'est un problème courant
 
+5. Eviter de faire une première compilation en mode parallèle [#]_
 
+.. [#] ``cmake`` détecte les dépendances entre modules lors de la
+   compilation. Normalement l'ordre de compilation des modules permet
+   de générer les modules nécessaires pour compiler une première fois
+   séquentiellement. Ensuite, chaque recompilation met à jour les
+   dépendances.
+   
 Plusieurs problèmes peuvent survenir lors de la compilation, et/ou l'édition de lien de SEM.
 
 Pour les résoudre il faut avant tout comprendre le processus de compilation :

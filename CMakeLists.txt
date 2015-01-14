@@ -20,7 +20,8 @@ set(SEMDIR ${PROJECT_SOURCE_DIR})
 find_package(HDF5 REQUIRED C Fortran)
 add_definitions(-DUSE_HDF5)
 include_directories(${HDF5_FORTRAN_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} ${HDF5_INCLUDE_DIR})
-include_directories(${HDF5_INCLUDE_DIR} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP} ${PROJECT_BINARY_DIR}/libs)
+include_directories(${HDF5_INCLUDE_DIR} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP})
+include_directories(${PROJECT_BINARY_DIR}/libs/common)
 
 if (OPT_MPI OR HDF5_IS_PARALLEL)
     set(MPI_COMPILER mpif90)
@@ -126,9 +127,9 @@ add_library(randomfield
   ${SEMDIR}/randomfield/displayCarvalhol.f90
   ${SEMDIR}/randomfield/math_RF.f90
   ${SEMDIR}/randomfield/obsolete_RF.f90
+  ${SEMDIR}/randomfield/spectra_RF.f90
   ${SEMDIR}/randomfield/randomFieldND.f90
   ${SEMDIR}/randomfield/readFile_RF.f90
-  ${SEMDIR}/randomfield/spectra_RF.f90
   ${SEMDIR}/randomfield/statistics_RF.f90
   ${SEMDIR}/randomfield/writeResultFile_RF.f90
 )

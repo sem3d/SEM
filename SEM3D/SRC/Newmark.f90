@@ -1,11 +1,8 @@
 !>
 !!\file Newmark.f90
 !!\brief Algorithme de Newmark
-!!\author
-!!\version 1.0
-!!\date 10/03/2009
-!! La routine Newmark assure la r�solution des �quations via un algorithme de predicteur-multi-correcteur
-!! des vitesses avec une formulation contrainte-vitesse d�cal�e en temps dans les PML.
+!! La routine Newmark assure la résolution des équations via un algorithme de predicteur-multi-correcteur
+!! des vitesses avec une formulation contrainte-vitesse décalée en temps dans les PML.
 !<
 
 subroutine Newmark(Tdomain,ntime)
@@ -26,7 +23,7 @@ subroutine Newmark(Tdomain,ntime)
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: ntime
-    integer :: n, mat,code
+    integer :: n, mat
     integer :: nf, ne, nv
     integer :: nf_aus, ne_aus, nv_aus
     integer :: ngll, ngll1, ngll2, ngllPML, ngll_F, ngllPML_F

@@ -44,8 +44,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/double_couple.f90
     ${PRJ}/SRC/forces_int.f90
     ${PRJ}/SRC/global_numbering.f90
-    ${PRJ}/SRC/read_input.f90
     ${PRJ}/SRC/mesh3d.f90
+    ${PRJ}/SRC/read_input.f90
     ${PRJ}/SRC/read_restart.f90
     ${PRJ}/SRC/save_checkpoint.f90
     ${PRJ}/SRC/second_fields.f90
@@ -148,6 +148,6 @@ add_executable(test_Q_coeffs ${PRJ}/TESTS/UNITS/test_Q_coeffs.c
 target_link_libraries(test_Q_coeffs m)
 
 add_executable(test_pointlist
-  ${PRJ}/TESTS/UNITS/test_pointlist.f90
   ${SEMCOMMON}/pointlist.f90
+  ${PRJ}/TESTS/UNITS/test_pointlist.f90
 )

@@ -214,7 +214,7 @@ subroutine RUN_PREPARED(Tdomain)
 !- eventual Neumann boundary conditions
     if (Tdomain%logicD%neumann_local_present) then
         if (rg == 0) write(*,*) "--> DEFINING NEUMANN PROPERTIES"
-        call define_Neumann_properties(Tdomain,rg)
+        call define_Neumann_properties(Tdomain)
     endif
     call MPI_Barrier(Tdomain%communicateur, code)
 

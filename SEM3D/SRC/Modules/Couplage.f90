@@ -337,8 +337,8 @@ contains
                     do iface=1,tabNbFace(i+1)
                         face_couplage(iface+decal)%face   = buf(1+NbChamps*(iface-1))
                         face_couplage(iface+decal)%proc   = buf(2+NbChamps*(iface-1))
-                        face_couplage(iface+decal)%ngll1   = buf(3+NbChamps*(iface-1))
-                        face_couplage(iface+decal)%ngll2   = buf(4+NbChamps*(iface-1))
+                        face_couplage(iface+decal)%ngll1  = buf(3+NbChamps*(iface-1))
+                        face_couplage(iface+decal)%ngll2  = buf(4+NbChamps*(iface-1))
                         do j=0,3
                             face_couplage(iface+decal)%noeud(j) = buf(5+j+NbChamps*(iface-1))
                         enddo
