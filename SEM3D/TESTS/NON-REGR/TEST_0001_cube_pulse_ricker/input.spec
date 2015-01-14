@@ -57,3 +57,9 @@ amortissement {
     atn_band = 10  0.05;   # attenuation period band
     atn_period = 0.2;      # model period 
 };
+
+capteurs "UU" {
+    type = points;
+    file = "stations.txt";
+    period = 1;
+};

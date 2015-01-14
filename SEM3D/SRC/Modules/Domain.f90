@@ -21,6 +21,7 @@ module sdomain
     use sbassin
     use solid_fluid
     use semdatafiles
+    use sem_c_config
 
     type :: domain
        integer :: communicateur !<<< Communicator including all SEM processors
@@ -84,7 +85,8 @@ module sdomain
        real :: MPML_coeff
 
        !real, dimension(:, :), allocatable :: Mu, Lambda, Dens
-
+       ! Configuration parameters as returned from read_input.c
+       type(sem_config) :: config
     end type domain
 
 contains

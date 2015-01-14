@@ -40,6 +40,38 @@ typedef struct snapshot_cond {
     int material;
 } snapshot_cond_t;
 
+// Structure regroupant les parametres d'une section station
+// Transformee ensuite en une liste de station_def_t
+typedef struct station_section_t {
+    /// Type de definition : 0 fichier points, 1 ligne
+    int type;
+    /// Nombre de stations le long de P0-P1 et P0-P2
+    int count[2];
+    /// Periode d'aquisition (en nombre de pas de temps)
+    int period;
+    /// Def par ligne ou plan: P0(x0,y0,z0)
+    double p0[3];
+    /// Def par ligne ou plan: P1(x1,y1,z1)
+    double p1[3];
+    /// Def par plan: P2(x2,y2,z2)
+    double p2[3];
+    /// Fichier de points (type=0)
+    char* point_file;
+    /// Section name
+    char* section_name;
+} station_section_t;
+
+// Structure de definition des stations
+typedef struct station_def_t {
+    struct station_def_t* next;
+    /// Def par ligne: P0(x0,y0,z0)
+    double coords[3];
+    /// Fichier de points (type=0)
+    char* name;
+    /// Periode d'aquisition (en nombre de pas de temps)
+    int period;
+} station_def_t;
+
 typedef struct {
     char* run_name;
     // Integration
@@ -107,6 +139,8 @@ typedef struct {
     double delta_lon;
     double delta_lat;
 
+    // Station definition
+    station_def_t* stations;
 } sem_config_t;
 
 
@@ -118,16 +152,18 @@ static inline int cmp(yyscan_t scanner, const char* str)
 }
 
 int eval_bool(yyscan_t scanner, int* val);
-void msg_err(yyscan_t scanner, const char* msgerr);
+void msg_err(yyscan_t scanner, const char* msgerr, ...);
 int skip_blank(yyscan_t scanner);
 int expect_eq(yyscan_t scanner);
 int expect_eq_bool(yyscan_t scanner, int* bools, int nexpected);
 int expect_eq_float(yyscan_t scanner, double* vals, int nexpected);
 int expect_int(yyscan_t scanner, int* vals, int nexpected);
 int expect_eq_int(yyscan_t scanner, int* vals, int nexpected);
+int expect_string(yyscan_t scanner, char** str, int nexpected);
 int expect_eq_string(yyscan_t scanner, char** str, int nexpected);
 int expect_eos(yyscan_t scanner);
 
+int sem_check_file_c(const char* path);
 
 #endif
 // Local Variables:

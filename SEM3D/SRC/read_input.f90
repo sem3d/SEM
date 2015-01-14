@@ -637,13 +637,12 @@ contains
         use semdatafiles
         use mpi
         use constants
-
+        use mcapteur
         implicit none
 
         type(domain), intent(inout)  :: Tdomain
         integer, intent(out)         :: code
         character(Len=MAX_FILE_SIZE) :: fnamef
-        type(sem_config)             :: config
         logical                      :: logic_scheme
         integer                      :: imat
         integer                      :: rg
@@ -652,34 +651,34 @@ contains
 
         call semname_file_input_spec(fnamef)
 
-        call read_sem_config(config, trim(fnamef)//C_NULL_CHAR, code)
+        call read_sem_config(Tdomain%config, trim(fnamef)//C_NULL_CHAR, code)
 
         if (code/=1) then
             stop 1
         endif
-        if (rg==0) call dump_config(config) !Print of configuration on the screen
+        if (rg==0) call dump_config(Tdomain%config) !Print of configuration on the screen
 
         ! On copie les parametres renvoyes dans la structure C
-        Tdomain%Title_simulation          = fromcstr(config%run_name)
-        Tdomain%TimeD%acceleration_scheme = config%accel_scheme .ne. 0
-        Tdomain%TimeD%velocity_scheme     = config%veloc_scheme .ne. 0
-        Tdomain%TimeD%duration            = config%sim_time
-        Tdomain%TimeD%alpha               = config%alpha
-        Tdomain%TimeD%beta                = config%beta
-        Tdomain%TimeD%gamma               = config%gamma
-        Tdomain%TimeD%courant             = config%courant
-        Tdomain%mesh_file                 = fromcstr(config%mesh_file)
+        Tdomain%Title_simulation          = fromcstr(Tdomain%config%run_name)
+        Tdomain%TimeD%acceleration_scheme = Tdomain%config%accel_scheme .ne. 0
+        Tdomain%TimeD%velocity_scheme     = Tdomain%config%veloc_scheme .ne. 0
+        Tdomain%TimeD%duration            = Tdomain%config%sim_time
+        Tdomain%TimeD%alpha               = Tdomain%config%alpha
+        Tdomain%TimeD%beta                = Tdomain%config%beta
+        Tdomain%TimeD%gamma               = Tdomain%config%gamma
+        Tdomain%TimeD%courant             = Tdomain%config%courant
+        Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)
         call semname_read_input_meshfile(rg,Tdomain%mesh_file,fnamef) !indicates the path to the mesh file for this proc"
         Tdomain%mesh_file             = fnamef
-        Tdomain%aniso                 = config%anisotropy .ne. 0
-        Tdomain%material_file         = fromcstr(config%mat_file)
-        Tdomain%logicD%save_trace     = config%save_traces .ne. 0
-        Tdomain%logicD%save_snapshots = config%save_snap .ne. 0
-        Tdomain%ngroup                = config%n_group_outputs
-        Tdomain%logicD%save_restart   = config%prorep_iter .ne. 0
+        Tdomain%aniso                 = Tdomain%config%anisotropy .ne. 0
+        Tdomain%material_file         = fromcstr(Tdomain%config%mat_file)
+        Tdomain%logicD%save_trace     = Tdomain%config%save_traces .ne. 0
+        Tdomain%logicD%save_snapshots = Tdomain%config%save_snap .ne. 0
+        Tdomain%ngroup                = Tdomain%config%n_group_outputs
+        Tdomain%logicD%save_restart   = Tdomain%config%prorep_iter .ne. 0
         Tdomain%logicD%MPML           = .false.
-        Tdomain%MPML_coeff            = config%mpml
-        if (config%mpml/=0) then
+        Tdomain%MPML_coeff            = Tdomain%config%mpml
+        if (Tdomain%config%mpml/=0) then
             Tdomain%logicD%MPML = .true.
         end if
         Tdomain%logicD%grad_bassin = .false.
@@ -687,27 +686,23 @@ contains
         !Tdomain%logicD%run_exec
         !Tdomain%logicD%run_debug
         !Tdomain%logicD%run_echo
-        Tdomain%logicD%run_restart = config%prorep .ne. 0
-        Tdomain%TimeD%iter_reprise = config%prorep_restart_iter
-        Tdomain%TimeD%ncheck       = config%prorep_iter ! frequence de sauvegarde
+        Tdomain%logicD%run_restart = Tdomain%config%prorep .ne. 0
+        Tdomain%TimeD%iter_reprise = Tdomain%config%prorep_restart_iter
+        Tdomain%TimeD%ncheck       = Tdomain%config%prorep_iter ! frequence de sauvegarde
 
-        if(Tdomain%logicD%save_trace) then
-            Tdomain%station_file = fromcstr(config%station_file)
-        end if
-
-        Tdomain%TimeD%ntrace        = config%traces_interval ! XXX
-        Tdomain%traces_format       = config%traces_format
-        Tdomain%TimeD%time_snapshots = config%snap_interval
+        Tdomain%TimeD%ntrace        = Tdomain%config%traces_interval ! XXX
+        Tdomain%traces_format       = Tdomain%config%traces_format
+        Tdomain%TimeD%time_snapshots = Tdomain%config%snap_interval
         logic_scheme                 = Tdomain%TimeD%acceleration_scheme .neqv. Tdomain%TimeD%velocity_scheme
         if(.not. logic_scheme) then
             stop "Both acceleration and velocity schemes: no compatibility, chose only one."
         end if
 
         ! Amortissement
-        Tdomain%n_sls     = config%nsolids
-        Tdomain%T1_att    = config%atn_band(1)
-        Tdomain%T2_att    = config%atn_band(2)
-        Tdomain%T0_modele = config%atn_period
+        Tdomain%n_sls     = Tdomain%config%nsolids
+        Tdomain%T1_att    = Tdomain%config%atn_band(1)
+        Tdomain%T2_att    = Tdomain%config%atn_band(2)
+        Tdomain%T0_modele = Tdomain%config%atn_period
         if (rg==0) then
             write(*,*) "Attenuation SLS =", Tdomain%n_sls
             write(*,*) "         period =", Tdomain%T0_modele
@@ -716,24 +711,24 @@ contains
 
 
         ! Neumann boundary conditions? If yes: geometrical properties read in the mesh files.
-        Tdomain%logicD%Neumann = config%neu_present /= 0
+        Tdomain%logicD%Neumann = Tdomain%config%neu_present /= 0
         Tdomain%Neumann%Neu_Param%what_bc = 'S'
-        Tdomain%Neumann%Neu_Param%mat_index = config%neu_mat
-        if (config%neu_type==1) then
+        Tdomain%Neumann%Neu_Param%mat_index = Tdomain%config%neu_mat
+        if (Tdomain%config%neu_type==1) then
             Tdomain%Neumann%Neu_Param%wtype = 'P'
         else
             Tdomain%Neumann%Neu_Param%wtype = 'S'
         end if
-        Tdomain%Neumann%Neu_Param%lx = config%neu_L(1)
-        Tdomain%Neumann%Neu_Param%ly = config%neu_L(2)
-        Tdomain%Neumann%Neu_Param%lz = config%neu_L(3)
-        Tdomain%Neumann%Neu_Param%xs = config%neu_C(1)
-        Tdomain%Neumann%Neu_Param%ys = config%neu_C(2)
-        Tdomain%Neumann%Neu_Param%zs = config%neu_C(3)
-        Tdomain%Neumann%Neu_Param%f0 = config%neu_f0
+        Tdomain%Neumann%Neu_Param%lx = Tdomain%config%neu_L(1)
+        Tdomain%Neumann%Neu_Param%ly = Tdomain%config%neu_L(2)
+        Tdomain%Neumann%Neu_Param%lz = Tdomain%config%neu_L(3)
+        Tdomain%Neumann%Neu_Param%xs = Tdomain%config%neu_C(1)
+        Tdomain%Neumann%Neu_Param%ys = Tdomain%config%neu_C(2)
+        Tdomain%Neumann%Neu_Param%zs = Tdomain%config%neu_C(3)
+        Tdomain%Neumann%Neu_Param%f0 = Tdomain%config%neu_f0
 
         ! Create sources from C structures
-        call create_sem_sources(Tdomain, config)
+        call create_sem_sources(Tdomain, Tdomain%config)
 
         !- Parametrage super object desactive
         Tdomain%logicD%super_object_local_present = .false.
@@ -746,29 +741,29 @@ contains
         ! Material Earthchunk
 
         Tdomain%earthchunk_isInit=0
-        if( config%material_type == MATERIAL_EARTHCHUNK) then
+        if( Tdomain%config%material_type == MATERIAL_EARTHCHUNK) then
             Tdomain%earthchunk_isInit=1
 
         endif
 
 
-        if( config%material_present == 1) then
+        if( Tdomain%config%material_present == 1) then
 
-            select case (config%material_type)
+            select case (Tdomain%config%material_type)
 
             case (MATERIAL_PREM)
                 Tdomain%aniso=.true.
             case (MATERIAL_EARTHCHUNK)
                 Tdomain%earthchunk_isInit=1
                 Tdomain%aniso=.true.
-                Tdomain%earthchunk_file = fromcstr(config%model_file)
-                Tdomain%earthchunk_delta_lon = config%delta_lon
-                Tdomain%earthchunk_delta_lat = config%delta_lat
+                Tdomain%earthchunk_file = fromcstr(Tdomain%config%model_file)
+                Tdomain%earthchunk_delta_lon = Tdomain%config%delta_lon
+                Tdomain%earthchunk_delta_lat = Tdomain%config%delta_lat
 
             end select
 
             do imat=0,Tdomain%n_mat-1
-                Tdomain%sSubDomain(imat)%material_definition = config%material_type
+                Tdomain%sSubDomain(imat)%material_definition = Tdomain%config%material_type
             enddo
         else
             do imat=0,Tdomain%n_mat-1
@@ -779,7 +774,7 @@ contains
         write(*,*) rg, "Reading materials done"
 
         call finalize_mesh_connectivity(Tdomain)
-        call select_output_elements(Tdomain, config)
+        call select_output_elements(Tdomain, Tdomain%config)
 
     end subroutine read_input
 

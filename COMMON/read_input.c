@@ -286,6 +286,22 @@ error:
     return 0;
 }
 
+int expect_station_type(yyscan_t scanner, int* type) {
+    int tok;
+    int len;
+
+    if (!expect_eq(scanner)) return 0;
+    tok = skip_blank(scanner);
+    if (tok!=K_ID) goto error;
+    if (cmp(scanner,"points"))  { *type = 1; return 1; }
+    if (cmp(scanner,"line"))    { *type = 2; return 1; }
+    if (cmp(scanner,"plane"))   { *type = 3; return 1; }
+    if (cmp(scanner,"single"))  { *type = 4; return 1; }
+error:
+    msg_err(scanner, "Expected points|line|plane");
+    return 0;
+}
+
 int expect_materials(yyscan_t scanner, sem_config_t* config)
 {
     int tok, err;
@@ -406,6 +422,104 @@ int expect_snapshots(yyscan_t scanner, sem_config_t* config)
     return 1;
 }
 
+int generate_stations_points(yyscan_t scanner, sem_config_t* config, station_section_t* stations)
+{
+    FILE* f;
+    station_def_t *old, *stat;
+    /* read station coordinates from file specified in point_file,
+       the names are generated from section_name_%04d */
+    int i, k = 0;
+    if (!stations->point_file) {
+	msg_err(scanner, "You must specify a 'file' for stations of type 'point' in section station\n");
+	return 0;
+    }
+    if (!sem_check_file_c(stations->point_file)) {
+	msg_err(scanner, "The file '%s' is not readable in section station %s\n",
+		stations->point_file, stations->section_name);
+	return 0;
+    }
+    f = fopen(stations->point_file, "r");
+    double x[3] = {0.,0.,0.};
+    int lstat = strlen(stations->section_name);
+    int dim = config->dim;
+    while(1) {
+	int count;
+	if (dim==2) count = fscanf(f, "%lf %lf\n", &x[0], &x[1]);
+	else count = fscanf(f, "%lf %lf %lf\n", &x[0], &x[1], &x[2]);
+	if (count!=dim) break;
+	stat = (station_def_t*)malloc(sizeof(station_def_t));
+	for(i=0;i<3;++i) stat->coords[i] = x[i];
+	stat->name = (char*)malloc( lstat+10 );
+	snprintf(stat->name, lstat+10, "%s_%04d", stations->section_name, k);
+	stat->period = stations->period;
+	stat->next = config->stations;
+	config->stations = stat;
+	k = k + 1;
+    }
+    return 1;
+}
+
+int generate_stations_line(yyscan_t scanner, sem_config_t* config, station_section_t* stations)
+{
+    return 1;
+}
+
+int generate_stations_plane(yyscan_t scanner, sem_config_t* config, station_section_t* stations)
+{
+    return 1;
+
+}
+
+int generate_stations_single(yyscan_t scanner, sem_config_t* config, station_section_t* stations)
+{
+    return 1;
+}
+
+int expect_capteurs(yyscan_t scanner, sem_config_t* config)
+{
+    int tok, err;
+    station_section_t stations;
+    int dim = config->dim;
+    memset(&stations, 0, sizeof(stations));
+    // Default values
+    stations.period = 1;
+
+    err=expect_string(scanner, &stations.section_name, 1);
+    if (err==0) { msg_err(scanner, "Expecting a name after 'capteurs'"); return 0; }
+    tok = skip_blank(scanner);
+    if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
+    do {
+	tok = skip_blank(scanner);
+	if (tok!=K_ID) break;
+	if (cmp(scanner,"type")) err=expect_station_type(scanner, &stations.type);
+	if (cmp(scanner,"count")) err=expect_eq_int(scanner, &stations.count[0], 1);
+	if (cmp(scanner,"counti")) err=expect_eq_int(scanner, &stations.count[0], 1);
+	if (cmp(scanner,"countj")) err=expect_eq_int(scanner, &stations.count[1], 1);
+	if (cmp(scanner,"coords")) err=expect_eq_float(scanner, &stations.p0[0], 3);
+	if (cmp(scanner,"period")) err=expect_eq_int(scanner, &stations.period, 1);
+	if (cmp(scanner,"point0")) err=expect_eq_float(scanner, &stations.p0[0], dim);
+	if (cmp(scanner,"point1")) err=expect_eq_float(scanner, &stations.p1[0], dim);
+	if (cmp(scanner,"point2")) err=expect_eq_float(scanner, &stations.p2[0], dim);
+	if (cmp(scanner,"file")) err=expect_eq_string(scanner, &stations.point_file, 1);
+
+	if (!expect_eos(scanner)) { return 0; }
+    } while(1);
+    if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
+
+    switch(stations.type) {
+    case 1:
+	return generate_stations_points(scanner, config, &stations);
+    case 2:
+	return generate_stations_line(scanner, config, &stations);
+    case 3:
+	return generate_stations_plane(scanner, config, &stations);
+    case 4:
+	return generate_stations_single(scanner, config, &stations);
+    default:
+	msg_err(scanner, "Unknown station type");
+	return 0;
+    }
+}
 
 
 int parse_input_spec(yyscan_t scanner, sem_config_t* config)
@@ -442,6 +556,7 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"traces_format")) err=expect_file_format(scanner, &config->traces_format);
 	else if (cmp(scanner,"verbose_level")) err=expect_eq_int(scanner, &config->verbose_level,1);
 	else if (cmp(scanner,"pml_infos")) err=expect_pml_infos(scanner, config);
+	else if (cmp(scanner,"capteurs")) err=expect_capteurs(scanner, config);
 	// useless (yet or ever)
 	else if (cmp(scanner,"anisotropy")) err=expect_eq_bool(scanner, &config->anisotropy, 1);
 	else if (cmp(scanner,"gradient")) err=expect_gradient_desc(scanner, config);
@@ -467,6 +582,7 @@ void init_sem_config(sem_config_t* cfg)
     cfg->ngll = 5;
     cfg->fmax = 1.0;
     cfg->material_type = 1;
+    cfg->stations = NULL;
 }
 
 

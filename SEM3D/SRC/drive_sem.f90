@@ -376,7 +376,8 @@ subroutine RUN_INIT_INTERACT(Tdomain,isort)
 
 !- eventual outputs at receivers, and their properties
     info_capteur = 0
-    if(Tdomain%logicD%save_trace) call read_capteur(Tdomain, info_capteur)
+    if(Tdomain%logicD%save_trace) call create_capteurs(Tdomain)
+
     if(info_capteur /= 0) Tdomain%logicD%save_trace = .false.
 
 end subroutine RUN_INIT_INTERACT

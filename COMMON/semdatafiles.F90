@@ -99,10 +99,13 @@ contains
         dirname = path_traces
     end subroutine semname_dir_capteurs
 
-    subroutine semname_tracefile_h5(fname)
+    subroutine semname_tracefile_h5(rank, fname)
         implicit none
+        integer, intent(in) :: rank
         character(Len=MAX_FILE_SIZE), intent(out) :: fname
-        fname = pjoin(path_traces,"capteurs.h5")
+        character(Len=MAX_FILE_SIZE) :: temp
+        write(temp,"(a9,I4.4,a3)") "capteurs.",rank,".h5"
+        fname = pjoin(path_traces,temp)
     end subroutine semname_tracefile_h5
 
     !!fichier capteur 2d 3d
