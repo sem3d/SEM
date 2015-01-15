@@ -284,7 +284,7 @@ contains
             mat = el%mat_index
             call pressure_solid(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
                  Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
-                 el%InvGrad,displ, el%Lambda, el%Mu,field)
+                 el%InvGrad, displ, el%Lambda, el%Mu,field)
             deallocate(displ)
         else ! liquid
             field(1:nx-2,1:ny-2,1:nz-2) = el%fl%VelPhi(:,:,:)

@@ -329,6 +329,7 @@ contains
             allocate(fieldU(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
             allocate(fieldV(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
             allocate(fieldA(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+            allocate(fieldP(0:ngllx-1,0:nglly-1,0:ngllz-1))
             mat = Tdomain%specel(n_el)%mat_index
             do i = 0,ngllx - 1
                 call  pol_lagrange(ngllx,Tdomain%sSubdomain(mat)%GLLcx,i,xi,outx(i))
@@ -360,6 +361,7 @@ contains
             deallocate(fieldU)
             deallocate(fieldV)
             deallocate(fieldA)
+            deallocate(fieldP)
             i = capteur%icache+1
             capteur%valuecache(1,i) = Tdomain%TimeD%rtime
             capteur%valuecache(2:11,i) = grandeur(:)
