@@ -21,7 +21,7 @@ module mCapteur
     public :: save_capteur, evalueSortieCapteur, flushAllCapteurs, create_capteurs
     private ::  flushCapteur
 
-    integer, parameter :: CAPT_DIM=10
+    integer, parameter :: CAPT_DIM=11
     type :: tCapteur
         type(tCapteur),pointer :: suivant ! pour passer au capteur suivant
         integer :: periode          ! frequence de captation des grandeur
@@ -298,9 +298,9 @@ contains
 
         integer :: i, j, k
 
-        real, dimension(9) :: grandeur
+        real, dimension(10) :: grandeur
         real, dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
-
+        real, dimension(:,:,:), allocatable :: fieldP
         integer :: n_el, ngllx, nglly, ngllz, mat
         real :: xi, eta, zeta, weight
         real, dimension(:), allocatable :: outx, outy, outz
@@ -342,6 +342,7 @@ contains
             call gather_elem_displ(Tdomain, n_el, fieldU)
             call gather_elem_veloc(Tdomain, n_el, fieldV)
             call gather_elem_accel(Tdomain, n_el, fieldA)
+            call gather_elem_press(Tdomain, n_el, fieldP)
             do i = 0,ngllx - 1
                 do j = 0,nglly - 1
                     do k = 0,ngllz - 1
@@ -349,6 +350,7 @@ contains
                         grandeur(1:3) = grandeur(1:3) + weight*fieldU(i,j,k,:)
                         grandeur(4:6) = grandeur(4:6) + weight*fieldV(i,j,k,:)
                         grandeur(7:9) = grandeur(7:9) + weight*fieldA(i,j,k,:)
+                        grandeur(10 ) = grandeur( 10) + weight*fieldP(i,j,k)
                     enddo
                 enddo
             enddo
@@ -360,7 +362,7 @@ contains
             deallocate(fieldA)
             i = capteur%icache+1
             capteur%valuecache(1,i) = Tdomain%TimeD%rtime
-            capteur%valuecache(2:10,i) = grandeur(:)
+            capteur%valuecache(2:11,i) = grandeur(:)
             capteur%icache = i
         endif
 
