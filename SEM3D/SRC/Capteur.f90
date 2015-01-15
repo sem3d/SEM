@@ -67,7 +67,6 @@ contains
         else
             traces_h5_created = .true.
         endif
-        write(*,*) "CREATE CAPTEURS..."
         do while (C_ASSOCIATED(station_next))
             call c_f_pointer(station_next, station_ptr)
             xc = station_ptr%coords(1)
@@ -81,7 +80,6 @@ contains
             call MPI_AllReduce(numproc, numproc_max, 1, MPI_INTEGER, &
                 MPI_MAX, Tdomain%communicateur, ierr)
 
-            write(*,*) "CPT:", xc, yc, zc, n_el, Tdomain%rank, numproc_max
             ! attention si le capteur est partage par plusieurs procs. On choisit le proc de num max
             if(Tdomain%rank==numproc_max) then
                 allocate(capteur)
@@ -97,7 +95,7 @@ contains
                 capteur%icache = 0
                 capteur%suivant => listeCapteur
                 listeCapteur => capteur
-                write(*,"(A,A,A,I5,A,I6,A,F8.4,A,F8.4,A,F8.4)") "Capteur", trim(capteur%nom), &
+                write(*,"(A,A,A,I5,A,I6,A,F8.4,A,F8.4,A,F8.4)") "Capteur:", trim(capteur%nom), &
                     " on proc ", Tdomain%rank, " in elem ", n_el, " at ", xi, ",", eta, ",", zeta
             end if
 
@@ -265,11 +263,9 @@ contains
         integer :: j
         character(len=MAX_FILE_SIZE) :: fnamef
 
-        if (rg/=0) return
-
         if (capteur%icache==0) return
 
-        call semname_capteur_type(capteur%nom,"_uva",fnamef)
+        call semname_capteur_type(capteur%nom,".txt",fnamef)
 
         open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
         do j=1,capteur%icache
@@ -397,7 +393,6 @@ contains
             xi   = coordloc(0,i)
             eta  = coordloc(1,i)
             zeta = coordloc(2,i)
-            write(*,*) "xi,eta,zeta", xi, eta, zeta
             if (xi<-1 .or. eta<-1 .or. zeta<-1) inside = .false.
             if (xi>1 .or. eta>1 .or. zeta>1) inside = .false.
             if (inside) then
