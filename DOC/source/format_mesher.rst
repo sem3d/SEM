@@ -24,10 +24,12 @@ sont facultatifs) ::
              ... from zmax, 12 elements are created backwards over 600. m => zmin = -100
   100. 1   # lower layer: thickness and nb of steps       ...
              ... from upper layer, 1 element is created backwards over 100. m => zmin = -200
-  1        # PMLs? 0: no, 1: yes
-  1 1      # PMLs on top? at the bottom? (0: no, 1: yes)
+  1        # PMLs on X / Y ? 0: no, 1: yes => PML on X and Y (at left and rigth for each direction)
+  1 1      # PMLs on Z     ? on top ? at the bottom ? (0: no, 1: yes)
   5        # nb of GLL nodes in the PML
   1        # 8 or 27 control points for elements (1 or 2)
+
+Note : après la ligne qui définit le nombre de couches, il doit y avoir autant de lignes que de couches.
 
 - Choix de 8 noeuds par maille : 1 (Les mailles quadratiques à 27
   noeuds sont en développement)
