@@ -57,7 +57,9 @@ Préparation de la compilation
 La préparation se fait à l'aide de la commande suivante ::
 
   $ cd sem_build
-  $ ccmake ../sem_src : assissatnt de configuration permettant de générer les`` Makefile``. Il va chercher le ``CMakeLists.txt``. 
+  # Génération des Makefile à partir de CMakeLists.txt
+  $ ccmake ../sem_src
+
 
 ``ccmake`` est une commande interactive de :program:`CMake` permettant de
 paramétrer la compilation. Le paramétrage s'effectue en deux étapes :

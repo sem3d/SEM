@@ -8,7 +8,7 @@ Documentation SEM IPG-CEA
 =========================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    intro.rst
    installation.rst
