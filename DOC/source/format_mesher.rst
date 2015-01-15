@@ -8,8 +8,7 @@ Format des fichiers matériau
 Format de mat.dat
 =================
 
-Cette fichier est juste pour le cas oú le maillage est realise pour le ``mesher`` 
-automatique.
+Ce fichier est seulement nécessaire dans le cas où le maillage est realisé par le mailleur automatique.
 Le fichier ``mat.dat`` doit contenir (les commentaires, après le *#*
 sont facultatifs) ::
 
@@ -20,12 +19,15 @@ sont facultatifs) ::
   500.     # ymax
   50.      # ystep
   500.     # zmax
-  1        # nb. of layers
-  600. 12  # upper layer: thickness and nb of steps
-  1  # PMLs? 0: no, 1: yes
-  1 1  # PMLs on top? at the bottom? (0: no, 1: yes)
-  5   # nb of GLL nodes in the PML
-  1   # 8 or 27 control points for elements (1 or 2)
+  2        # nb. of layers : i-th layer associated to i-th material (defined in mater.in)
+  600. 12  # upper layer: thickness and nb of steps       ...
+             ... from zmax, 12 elements are created backwards over 600. m => zmin = -100
+  100. 1   # lower layer: thickness and nb of steps       ...
+             ... from upper layer, 1 element is created backwards over 100. m => zmin = -200
+  1        # PMLs? 0: no, 1: yes
+  1 1      # PMLs on top? at the bottom? (0: no, 1: yes)
+  5        # nb of GLL nodes in the PML
+  1        # 8 or 27 control points for elements (1 or 2)
 
 - Choix de 8 noeuds par maille : 1 (Les mailles quadratiques à 27
   noeuds sont en développement)
@@ -33,18 +35,18 @@ sont facultatifs) ::
 Format de mater.in
 ==================
 
-Le fichier ``mater.in`` décrit combien de matériels ont dans le model :: 
+Le fichier ``mater.in`` décrit combien de matériaux sont utilisés dans le modèle :: 
 
   1
   S  6300.00  2500.00   2800. 5   5    5  0.000005 630. 250.
 
- `1` est le nombre de matériaux dans le model.
+ `1` est le nombre de matériaux dans le modèle.
 
 La deuxième ligne décrit le type de matériau (``S`` matériau solide et
 ``F`` matériau fluide).Pour chaque matériau, on déclare
 successivement, la vitesse de propagation de l'onde de pression,
-vitesse de l'onde de cisaillement, la densité du matériau, le numbre
-de ggl dans les trois directions( ``x``, ``y`` et ``z``), le pas de
+vitesse de l'onde de cisaillement, la densité du matériau, le nombre
+de gll dans les trois directions( ``x``, ``y`` et ``z``), le pas de
 temps (ignoré dans la version actuelle) et les atténuations des ondes
 P et S.
 
@@ -56,7 +58,7 @@ Format de material.input
 
 Le fichier ``material.input`` est créé automatiquement pour le cas avec un maillage automatique.
 
-Pour le cas où le maillage n'est pas automatique le ficher doit contenir ::
+Pour le cas où le maillage n'est pas automatique, le ficher doit contenir ::
 
   22
   P 0380 150 1900 05 05 07 0.000005 0 0
