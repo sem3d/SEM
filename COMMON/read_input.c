@@ -492,10 +492,8 @@ int expect_capteurs(yyscan_t scanner, sem_config_t* config)
 	tok = skip_blank(scanner);
 	if (tok!=K_ID) break;
 	if (cmp(scanner,"type")) err=expect_station_type(scanner, &stations.type);
-	if (cmp(scanner,"count")) err=expect_eq_int(scanner, &stations.count[0], 1);
 	if (cmp(scanner,"counti")) err=expect_eq_int(scanner, &stations.count[0], 1);
 	if (cmp(scanner,"countj")) err=expect_eq_int(scanner, &stations.count[1], 1);
-	if (cmp(scanner,"coords")) err=expect_eq_float(scanner, &stations.p0[0], 3);
 	if (cmp(scanner,"period")) err=expect_eq_int(scanner, &stations.period, 1);
 	if (cmp(scanner,"point0")) err=expect_eq_float(scanner, &stations.p0[0], dim);
 	if (cmp(scanner,"point1")) err=expect_eq_float(scanner, &stations.p1[0], dim);
