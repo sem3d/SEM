@@ -146,11 +146,12 @@ contains
                     DZX,DZY,DZZ, &
                     Elem%Mu, Elem%Kappa, &
                     m1,m2,m3, n_solid, &
-                                !     Elem%onemSbeta, &
                     Elem%sl%R_xx_, Elem%sl%R_yy_, &
                     Elem%sl%R_xy_, Elem%sl%R_xz_, Elem%sl%R_yz_, &
-                                !      Elem%onemPbeta, &
-                    Elem%sl%R_vol_)
+                    Elem%sl%R_vol_, &
+                    Elem%sl%onemSbeta, &
+                    Elem%sl%onemPbeta &
+                    )
                 !                             Elem%Mu, Elem%Lambda, &
                 !                             m1,m2,m3, n_solid, &
                 !                             Elem%onemSbeta, Elem%R_xx_, Elem%R_yy_, &
