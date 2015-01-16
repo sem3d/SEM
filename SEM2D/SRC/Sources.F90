@@ -45,7 +45,7 @@ contains
         CompSource = 0.
         select case (Sour%i_time_function)
         case (1)
-            CompSource = Gaussian (time,Sour%tau_b)
+            CompSource = Gaussian (time,Sour%tau_b,Sour%cutoff_freq)
         case (2)
             CompSource = Ricker (time,Sour%tau_b,Sour%cutoff_freq)
         case (3)
@@ -57,17 +57,23 @@ contains
     end function CompSource
 
     !>
-    !! \fn function Gaussian (time, tau)
+    !! \fn function Gaussian (time, tau, f0)
     !! \brief
     !!
     !! \param real time
     !! \param real tau
+    !! \param real f0
     !<
-    real function Gaussian (time, tau)
+    real function Gaussian (time, tau, f0)
 
-        real :: tau,time
+        real :: tau,time,f0
+        real :: sigma,pi
 
-        Gaussian = -(time-tau) * exp (-(time-tau)**2/tau**2)
+        pi = Acos(-1.)
+        sigma = pi * f0 * (time - tau )
+        sigma = sigma **2
+
+        Gaussian = (time-tau) * exp (-sigma)
 
         return
     end function Gaussian
