@@ -481,18 +481,18 @@ subroutine finalize_pml_properties(Tdomain)
         ngllz = Tdomain%specel(n)%ngllz
 
         if(Tdomain%specel(n)%PML)then   ! dumped masses in PML
-            call define_PML_DumpEnd(n,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
+            call define_PML_DumpEnd(ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
                 Tdomain%specel(n)%xpml%DumpMass(:,:,:,0),Tdomain%specel(n)%xpml%DumpVx)
-            call define_PML_DumpEnd(n,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
+            call define_PML_DumpEnd(ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
                 Tdomain%specel(n)%xpml%DumpMass(:,:,:,1),Tdomain%specel(n)%xpml%DumpVy)
-            call define_PML_DumpEnd(n,ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
+            call define_PML_DumpEnd(ngllx,nglly,ngllz,Tdomain%specel(n)%MassMat,   &
                 Tdomain%specel(n)%xpml%DumpMass(:,:,:,2),Tdomain%specel(n)%xpml%DumpVz)
             if(Tdomain%specel(n)%FPML)then
-                call define_FPML_DumpEnd(0,ngllx,nglly,ngllz,&
+                call define_FPML_DumpEnd(ngllx,nglly,ngllz,&
                     Tdomain%specel(n)%xpml%DumpVx,Tdomain%specel(n)%slpml%Ivx)
-                call define_FPML_DumpEnd(1,ngllx,nglly,ngllz,&
+                call define_FPML_DumpEnd(ngllx,nglly,ngllz,&
                     Tdomain%specel(n)%xpml%DumpVy,Tdomain%specel(n)%slpml%Ivy)
-                call define_FPML_DumpEnd(2,ngllx,nglly,ngllz,&
+                call define_FPML_DumpEnd(ngllx,nglly,ngllz,&
                     Tdomain%specel(n)%xpml%DumpVz,Tdomain%specel(n)%slpml%Ivz)
             end if
             deallocate(Tdomain%specel(n)%xpml%DumpMass)
@@ -952,8 +952,8 @@ subroutine define_PML_DumpInit(ngllx,nglly,ngllz,dt,freq,alpha,MassMat,DumpS,Dum
 end subroutine define_PML_DumpInit
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
-subroutine define_PML_DumpEnd(n,ngllx,nglly,ngllz,Massmat,DumpMass,DumpV)
-    integer, intent(in)   :: ngllx,nglly,ngllz,n
+subroutine define_PML_DumpEnd(ngllx,nglly,ngllz,Massmat,DumpMass,DumpV)
+    integer, intent(in)   :: ngllx,nglly,ngllz
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: MassMat
     real, dimension(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1), intent(out) :: DumpV
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: DumpMass
@@ -970,10 +970,10 @@ subroutine define_PML_DumpEnd(n,ngllx,nglly,ngllz,Massmat,DumpMass,DumpV)
 end subroutine define_PML_DumpEnd
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
-subroutine define_FPML_DumpEnd(dir,ngllx,nglly,ngllz,DumpV,Iv)
+subroutine define_FPML_DumpEnd(ngllx,nglly,ngllz,DumpV,Iv)
 
     implicit none
-    integer, intent(in)   :: dir,ngllx,nglly,ngllz
+    integer, intent(in)   :: ngllx,nglly,ngllz
     real, dimension(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1), intent(in) :: DumpV
     real, dimension(:,:,:), allocatable, intent(inout) :: Iv
     real, dimension(1:ngllx-2,1:nglly-2,1:ngllz-2)  :: LocIv

@@ -28,7 +28,7 @@ contains
         logical, intent(IN) :: aniso
         logical, intent(IN) :: solid   ! flag : solid or fluid element?
 
-        integer :: n_z, m1,m2,m3, i,j,k
+        integer :: m1,m2,m3, i,j,k
         real :: epsilon_trace_over_3
         real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) ::  DXX,DXY,DXZ, &
             DYX,DYY,DYZ, &

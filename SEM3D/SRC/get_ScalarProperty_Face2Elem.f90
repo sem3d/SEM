@@ -8,7 +8,6 @@ subroutine get_ScalarProperty_Face2Elem(nf,orient_f,ngllx,nglly,ngllz,ngll1,ngll
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(inout) :: prop_elem
     real, dimension(1:ngll1-2,1:ngll2-2), intent(in) :: prop_face
     integer, dimension(0:6)  :: index_elem_f
-    integer  :: i
 
 
     ! search for the relevant indices

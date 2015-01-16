@@ -88,7 +88,7 @@ contains
             end do
             allocate(all_data_1d(0:ntot_nodes-1))
         end if
-
+        ! PRESSION
         call MPI_Gatherv(press, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
             MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
         if (Tdomain%output_rank==0) then
@@ -106,6 +106,7 @@ contains
             end do
             allocate(all_data_2d(0:2,0:ntot_nodes-1))
         end if
+        ! VELOCITY
         call MPI_Gatherv(veloc, 3*dim2, MPI_DOUBLE_PRECISION, all_data_2d, counts, displs, &
             MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
         if (Tdomain%output_rank==0) then
@@ -115,6 +116,7 @@ contains
             call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_2d, dims, hdferr)
             call h5dclose_f(dset_id, hdferr)
         end if
+        ! DISPLACEMENT
         call MPI_Gatherv(displ, 3*dim2, MPI_DOUBLE_PRECISION, all_data_2d, counts, displs, &
             MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
         if (Tdomain%output_rank==0) then
@@ -124,6 +126,7 @@ contains
             call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_2d, dims, hdferr)
             call h5dclose_f(dset_id, hdferr)
         end if
+        ! ACCELERATION
         call MPI_Gatherv(accel, 3*dim2, MPI_DOUBLE_PRECISION, all_data_2d, counts, displs, &
             MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
         if (Tdomain%output_rank==0) then
@@ -680,19 +683,19 @@ contains
             write(61,"(a,I4.4,a)") 'geometry',group,'.h5:/Nodes'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Geometry>'
-
+            ! DISPL
             write(61,"(a,I9,a)") '<Attribute Name="Displ" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
             write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
             write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/displ'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Attribute>'
-
+            ! VELOC
             write(61,"(a,I9,a)") '<Attribute Name="Veloc" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
             write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
             write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/veloc'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Attribute>'
-
+            ! ACCEL
             write(61,"(a,I9,a)") '<Attribute Name="Accel" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
             write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
             write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/accel'
@@ -704,18 +707,21 @@ contains
             write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/press'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Attribute>'
-
+            ! DOMAIN
             write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar" Dimensions="1">'
             write(61,"(a,I4,a)") '<DataItem Format="XML" Datatype="Int"  Dimensions="1">',group,'</DataItem>'
             write(61,"(a)") '</Attribute>'
+            ! MAT
             write(61,"(a,I9,a)") '<Attribute Name="Mat" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
             write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
                 '"]/DataItem[@Name="Mat"]</DataItem>'
             write(61,"(a)") '</Attribute>'
+            ! PROC
             write(61,"(a,I9,a)") '<Attribute Name="Proc" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
             write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
                 '"]/DataItem[@Name="Proc"]</DataItem>'
             write(61,"(a)") '</Attribute>'
+            ! MASS
             write(61,"(a,I9,a)") '<Attribute Name="Mass" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
             write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
                 '"]/DataItem[@Name="Mass"]</DataItem>'

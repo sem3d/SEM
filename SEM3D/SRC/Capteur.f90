@@ -84,7 +84,7 @@ contains
             if(Tdomain%rank==numproc_max) then
                 allocate(capteur)
                 nom = fromcstr(station_ptr%name)
-                capteur%nom = nom        ! ses caracteristiques par defaut
+                capteur%nom = nom(1:20)     ! ses caracteristiques par defaut
                 capteur%periode = station_ptr%period
                 capteur%coord(:) = station_ptr%coords
                 capteur%xi = xi
@@ -238,7 +238,7 @@ contains
             ! boucle sur les capteurs
             capteur=>listeCapteur
             do while (associated(capteur))
-                call flushCapteur(capteur,Tdomain%rank)
+                call flushCapteur(capteur)
                 capteur=>capteur%suivant
             enddo
         else
@@ -254,9 +254,8 @@ contains
         end if
     end subroutine flushAllCapteurs
 
-    subroutine flushCapteur(capteur, rg)
+    subroutine flushCapteur(capteur)
         implicit none
-        integer, intent(in) :: rg
         type(tCapteur),pointer :: capteur
         !
         integer, parameter :: fileId=123
@@ -269,7 +268,7 @@ contains
 
         open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
         do j=1,capteur%icache
-            write(fileId,'(10(1X,E16.8E3))') capteur%valuecache(:,j)
+            write(fileId,'(11(1X,E16.8E3))') capteur%valuecache(:,j)
         end do
         close(fileId)
         capteur%icache = 0
@@ -294,7 +293,7 @@ contains
 
         integer :: i, j, k
 
-        real, dimension(10) :: grandeur
+        real, dimension(CAPT_DIM-1) :: grandeur
         real, dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real, dimension(:,:,:), allocatable :: fieldP
         integer :: n_el, ngllx, nglly, ngllz, mat
