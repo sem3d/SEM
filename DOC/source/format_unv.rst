@@ -10,7 +10,9 @@ source: http://www.sdrl.uc.edu/universal-file-formats-for-modal-analysis-testing
 Chaque bloc d'information (ensemble de données) est délimitée par une chaîne
 de séparateur, complètement  sauf la colonne 5 et 6, contenant '' -1 ''.
 
-.. figure:: images/unv_fig001.png
+.. _fig-unv_fig001:
+
+.. figure:: ../figures/unv_fig001.png
    :scale: 50
    :align: center
 

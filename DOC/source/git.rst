@@ -19,7 +19,9 @@ Les commandes de ce tutoriel concerne la version unix, mais sont
 
     gitk --all &
 
-.. figure:: images/git_fig010.png
+.. _fig-git-fig010:
+
+.. figure:: ../figures/git_fig010.png
    :scale: 50
    :align: center
 

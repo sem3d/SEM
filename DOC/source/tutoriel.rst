@@ -204,7 +204,7 @@ domaine ([BER94]_, [FES05]_). :ref:`PML_schema` montre le mécanisme d'attenuati
 
 .. _PML_schema:
 
-.. figure:: ../figures/	PML_fig001.png
+.. figure:: ../figures/PML_fig001.png
    :scale: 40%
    :align: center
 
@@ -244,7 +244,7 @@ par la grille numérique, la frontière inférieure du modèle devrait être sit
 
 PML filtrante (FPML)
 ......................
-Dans le domaine fréquentiel, on peut déplacér le pôle de la transformation \tilde{x}=x+\frac{\Sigma\left( x \right)}{i \omega} le long
+Dans le domaine fréquentiel, on peut déplacer le pôle de la transformation \tilde{x}=x+\frac{\Sigma\left( x \right)}{i \omega} le long
 de l'axe imaginaire, en remplaçant la transformation par:
 
 ..math::
@@ -273,8 +273,8 @@ Pour :math:`\omega \to 0` et :math:`\frac{k_{x}}{\omega}` fini, les parties rée
 conduisant à un régime élastique. Pour :math:`\omega \to \infty`, la partie réelle tend vers :math:`1`, 
 alors que la partie imaginaire disparaît: on retrouve asymptotiquement une PML standard. 
 En regardant la partie réelle, cette couche ressemble à un milieu élastique à basses fréquences
-et à une couche dissipative pour des fréquences plus élevées, la transition étant décrite par un filtre passebas
-avec une fréquence de coupure autour de :math:`\omega_{c}`. Pour :math:`\omega = \frac{\oemga_{c}}{2}, on assure une absorption d'environ
+et à une couche dissipative pour des fréquences plus élevées, la transition étant décrite par un filtre passe-bas
+avec une fréquence de coupure autour de :math:`\omega_{c}`. Pour :math:`\omega = \frac{\omega_{c}}{2}, on assure une absorption d'environ
 :math:`\frac{1}{\sqrt{2}}` celle d'une PML standard. D'un autre côté, la partie imaginaire a un maximum pour :math:`\omega=\omega_{c}`
 correspondant aussi à un décalage de phase maximum si :math:`\Sigma > 2 \pi`. Pour une fréquence de coupure égale
 au quart ou à la moitié de la fréquence de la source, on peut considérer que les FPML ont presque le même
@@ -297,7 +297,7 @@ partir du nombre de Courant :math:`\mathcal{C}<1` (paramètre de configuration) 
 
    \Delta t = \mathcal{C} \frac{\min \Delta{x_{GLL}}}{V_{max}}
 
-où :math:`\Delta{x_{GLL}}` est la distance minimum entre deux points GLL et :math:`V_{max}` la vitesse maximum des materiaux considérés dans le modèle.
+où :math:`\Delta{x_{GLL}}` est la distance minimum entre deux points GLL et :math:`V_{max}` la vitesse maximum des matériaux considérés dans le modèle.
    
 Attention:
 
@@ -328,7 +328,7 @@ doublement les coûts de calcul :
 - le pas de temps est proportionnel à :math:`\frac{1}{\min \Delta x}`,
   le pas d'espace :math:`\min \Delta x` diminuant avec l'ordre des
   éléments (On voit sur :ref:`fig-gll` comment les points de Gauss se
-  ressèrent vers les bords avec l'augmentation de l'ordre.
+  resserrent vers les bords avec l'augmentation de l'ordre.
 
 Atténuation
 -----------
