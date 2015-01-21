@@ -445,60 +445,12 @@ les fichiers nécéssaires à son exécution. L'arborescence doit être la suiva
   Ce fichier contient la description de chaque matériau : :math:`\rho, V_p, V_s`, un nombre
   de points GLL par direction de la maille de référence.
 
-  Le format du fichier est le suivant :
-  
-  - la première ligne contient le nomnbre de milieux décrits
-  
-  - Une ligne par milieu, contenant :
-  
-    - le type de milieu (Solide, Fluide, PML solide (P)m PML fluide (L) )
-  
-    - Les vitesses d'ondes P, et S
-  
-    - La densité
-  
-    - L'ordre des éléments en X, Y, Z (Y est ignoré en 2D)
-  
-    - Un pas de temps (ignoré dans la version actuelle)
-  
-    - Les attenuations d'ondes P et S
-  
-  - 2 lignes de commentaires
-  
-  - Pour chaque milieu de type PML (donc P ou L), une ligne indiquant les directions d'atténuation,
-    et le type d'attenuation :
-  
-    - Un caractère pour le type de PML (filtrante (T), ou standard (F))
-  
-    - paramètres n et A pour les PML filtrantes
-  
-    - 3 couples de deux drapeaux T ou F (pour True False) indiquant si la PML attenue dans
-      les directions X, Y et Z respectivement (premier flag du couple) et dans le sens positif (T)
-      ou négatif de l'axe.
-  
-    - La fréquence de coupure en cas de PML filtrante
-  
-  Exemple ::
-  
-    27
-    S  6300.00  2500.00   2800. 5   5    5  0.000005 0. 0.
-    P  6300.00  2500.00   2800. 7   7    5  0.000005 0. 0.
-    P  6300.00  2500.00   2800. 7   7    5  0.000005 0. 0.
-    # PML properties
-    # Filtering? npow,Apow,X?,left?,Y?,Forwrd?,Z?,down?,cutoff freq
-    F 2 10. T T T T F F 0.
-    F 2 10. T F T T F F 0.
-
 ``capteurs.dat`` :
 
   Contient une description des sorties capteurs souhaitées.
 
-Le fichier ``input.spec`` est décrit en détail dans la section
+Les fichieres ``input.spec``, ``material.input`` et ``capteurs.dat`` sont décrit en détail dans la section
 _`Description des paramètres de SEM3D`.
-
-Des exemples de fichiers `material.input` et `capteurs.dat` sont
-disponibles dans les tests du code. Ces derniers sont de simples
-tables de paramètres.
 
 
 Exemples de modélisation avec SEM3D
