@@ -27,7 +27,7 @@ d'outils *meshtools*.
 Les équations du mouvement
 --------------------------
 
-SEM résout la propagation d'onde élastique dans un milieu décrit par l'équation
+SEM résoud la propagation d'onde élastique dans un milieu décrit par l'équation
 locale du mouvement reliant le déplacement :math:`u` en chaque point matériel, les
 contraintes :math:`\sigma` et les forces extérieures :math:`\vec{f}` :
 
@@ -38,26 +38,40 @@ contraintes :math:`\sigma` et les forces extérieures :math:`\vec{f}` :
 Avec en élasticité linéaire : :math:`\sigma=C:\nabla{}u`, où :math:`C` est le
 tenseur élastique d'ordre 4.
 
+Dans le domaine solide, on résoud les deux équations suivantes:
+
+.. math::
+
+   \frac{\partial^2 \phi}{\partial t^2}-c_{P}^{2} \Delta \phi = 0
+
+   \frac{\partial^2 \mathbf{\psi}}{\partial t^2}-c_{S}^{2} \Delta\mathbf{\psi} = 0  
+
+   c_{P}=\sqrt{\frac{\lambda+2\mu}{\rho}} et c_{S}=\sqrt{\frac{\mu}{\rho}}
+
+où :math: `\phi` et :math: `\psi` sont les potentiels scalaire et vectoriel du champ de déplacement.
+:math: `\lambda` et :math: `\mu` sont les coefficients de Lamé.
+:math: `c_{P}` et :math: `c_{S}` sont respectivement les vitesses des ondes de pression et de cisaillement.
+
 Pour l'instant les milieux de propagations décrits dans SEM sont
 considérés isotropes.  Le code est prévu pour gérer les milieux
 anisotropes, mais il n'existe pas de manière simple de gérer la mise
 en données.
 
-Dans le domaine fluide, on résout :
+Dans le domaine fluide (hypothèse du fluide parfait) , on résoud :
 
 .. math::
 
-   \frac{1}{\kappa}\frac{\partial^2 (\rho\phi)}{\partial t^2} = \nabla.v + ext
+   \frac{1}{\kappa}\frac{\partial^2 (\rho\phi)}{\partial t^2} = \nabla.v + f_{ext}
 
    v = \frac{1}{\rho}\nabla(\rho\phi)
 
-
+où :math: `v` c'est le champ de vitesse du fluide, :math: `\rho` la masse volumique, :math: `\phi` un potentiel scalaire et :math: `f_{ext}` la source extérieure, et :math: `\kappa` le module d'incompressibilité. 
+  
 Formulation éléments finis
 --------------------------
 
 SEM est un code éléments finis, basé sur une formulation spectrale ([COH02]_), qui lui donne son nom. Le champ de déplacement :math:`u` est décrit dans
-chaque élément, ou maille, sur une base de polynômes de Lagrange
-d'ordre N (N défini comme paramètre).
+chaque élément, ou maille, sur une base de polynômes de Lagrange d'ordre N (N défini comme paramètre).
 
 .. [COH02] Cohen, G. (2002). Higher-Order Numerical Methods for Transient Wave Equations. Springer.
 
@@ -179,11 +193,96 @@ support.
 Conditions de bord
 ------------------
 
+PML classique
+..................
+
 La condition naturelle d'un bord en élément fini est d'être une
 surface libre, donc réfléchissante pour les ondes. Pour simuler des
 milieux ouverts, SEM implémente un type d'élément dit *Couche Parfaitement Absorbante* (en anglais: *Perfectly
 Matched Layer*, ou PML) pour simuler un milieu ouvert infini en bordure d'un
-domaine ([BER94]_, [FES05]_).
+domaine ([BER94]_, [FES05]_). :ref:`PML_schema` montre le mécanisme d'attenuation des ondes.
+
+.. _PML_schema:
+
+.. figure:: ../figures/	PML_fig001.png
+   :scale: 40%
+   :align: center
+
+   Un schéma simple d'un domaine numérique pour la propagation des ondes élastiques en présence d'une surface libre et de PML. Une onde de volume est toujours atténuée en pénétrant une PML. Les ondes de surface décroissent exponentiellement lorsqu'elles entrent dans des PML latérales, mais l'atténuation disparaît lorsqu'elles pénètrent la PML inférieure.
+
+Dans le domaine fréquentiel, une PML correspond à un prolongement de l'espace des coordonnées réelles dans le plan complexe. Ce prolongement est obtenu par le changement de coordonnées suivant (Teixeira and Chew, 1999):
+
+.. math:: 
+
+   \tilde{x}=x+\frac{\Sigma\left( x \right)}{i \omega}
+
+où :math: `\omega` est la fréquence angulaire et :math: `\Sigma\left( x \right)` une fonction arbitraire de :math:`x`, qui croît régulièrement de l'interface
+avec le milieu vers le frontière externe de la couche. Une onde plane écrite sous la forme:
+
+.. math::
+
+   \mathbf{\Phi}\left( x,z,t\right)=mathbf{A}e^{i\left(\omega t -k_{x}x -k_{z}z \right)}
+
+est transformée dans la région de la PML en:
+
+.. math::
+
+   \mathbf{\tilde{\Phi}}\left( x,z,t\right)=\mathbf{\Phi}\left( x,z,t\right) e^{-\frac{k_{x}}{\omega}\Sigma}
+
+avec une décroissante exponentielle indépendante de la fréquence, à cause du rapport :math:`\frac{k_{x}}{\omega}`. Le même 
+comportement s'applique dans la direction :math:`z`.
+
+Maintenant, considérons la décomposition en ondes planes d'une onde de Rayleigh se déplaçant le long d'une surface libre {:math:`z=z_{max}`}: 
+La dépendance selon x de cette onde ayant les mêmes caractéristiques que celles des ondes de volume, elle obéit à la même loi de décroissance 
+de l'equation précédente lorsqu'elle entre dans une PML le long de la direction :math:`x`. De plus, elle préserve la signature d'une onde de surface, soit un mouvement caractérisé par une décroissance exponentielle avec la profondeur et une polarisation elliptique rétrograde dans le plan
+de propagation en surface et prograde en profondeur. L'onde évanescente peut également interagir avec la frontière inférieure du modèle, lorsque la dimension
+verticale est comparable avec la plus grande longueur d'onde propagée dans le milieu élastique (:ref:`PML_schema`). 
+Pour des simulations très longues, comme peuvent le demander des études de réponse sismique dans
+des bassins sédimentaires où le signal reste piégé, l'instabilité générée dans les PML pollue le signal
+partout dans le volume. Une solution est d'allonger en profondeur le modèle. Si :math:`\lambda` est la plus grande longueur d'onde des ondes de Rayleigh propagée
+par la grille numérique, la frontière inférieure du modèle devrait être située à environ 2-3 `\lambda` pour éviter toute interférence avec l'onde de surface qui se propage.
+
+PML filtrante (FPML)
+......................
+Dans le domaine fréquentiel, on peut déplacér le pôle de la transformation \tilde{x}=x+\frac{\Sigma\left( x \right)}{i \omega} le long
+de l'axe imaginaire, en remplaçant la transformation par:
+
+..math::
+
+    \tilde{x}=x+\frac{\Sigma\left( x \right)}{i \omega + \omega_{c}}
+
+En utilisant cette transformation l'onde de volume décroît dans les PML selon la formule suivante:
+
+..math::
+
+    \mathbf{\tilde{\Phi}}\left( x,z,t\right)=\mathbf{\Phi}\left( x,z,t\right) e^{-\frac{k_{x}}{\omega}\frac{\omega^{2}-i \omega\omega_{c}}{\omega^{2}+\omega^{2}_{c}}\Sigma}
+
+La décroissance exponentielle devient maintenant dépendante de la fréquence par le facteur :math:`\frac{\omega^{2}-i \omega\omega_{c}}{\omega^{2}+\omega^{2}_{c}}`.
+Sa partie réelle contribue au changement d'amplitude de la décroissance, alors que sa partie imaginaire
+est responsable d'un décalage en temps qui dépend également de :math:`\Sigma` (:ref:PML_filt).
+
+.. _PML_filt:
+
+.. figure:: ../figures/PML_fig002.png
+   :scale: 40%
+   :align: center
+
+   Parties réelle et imaginaire du coefficient de décroissance, représenté en fonction de :math:`\frac{\omega}{\omega_{c}}`.
+
+Pour :math:`\omega \to 0` et :math:`\frac{k_{x}}{\omega}` fini, les parties réelles et imaginaires tendent vers :math:`0`,
+conduisant à un régime élastique. Pour :math:`\omega \to \infty`, la partie réelle tend vers :math:`1`, 
+alors que la partie imaginaire disparaît: on retrouve asymptotiquement une PML standard. 
+En regardant la partie réelle, cette couche ressemble à un milieu élastique à basses fréquences
+et à une couche dissipative pour des fréquences plus élevées, la transition étant décrite par un filtre passebas
+avec une fréquence de coupure autour de :math:`\omega_{c}`. Pour :math:`\omega = \frac{\oemga_{c}}{2}, on assure une absorption d'environ
+:math:`\frac{1}{\sqrt{2}}` celle d'une PML standard. D'un autre côté, la partie imaginaire a un maximum pour :math:`\omega=\omega_{c}`
+correspondant aussi à un décalage de phase maximum si :math:`\Sigma > 2 \pi`. Pour une fréquence de coupure égale
+au quart ou à la moitié de la fréquence de la source, on peut considérer que les FPML ont presque le même
+comportement que des PML standard pour des ondes de volume. Le terme de correction par rapport à une
+PML classique est un terme de convolution en temps, correspondant à un filtre passe-bas de Butterworth
+agissant sur le champ propagé. Des PML filtrantes d'ordre élevé peuvent être ainsi construites à partir
+de fonctions de transfert d'ordre élevé de filtres de Butterworth pour une absorption plus efficace. Les
+FPML augmentent ainsi le nombre de variables à stocker.
 
 Intégration temporelle
 ----------------------
@@ -191,13 +290,15 @@ Intégration temporelle
 Le schéma d'intégration est un schéma de Newmark explicite ([NEW59]_, [HUG87]_, [SIM92]_).
 
 
-Le pas de temps d'intégration dans SEM est calculé automatiquement à
+Le pas de temps d'intégration :math:`\Delta t` dans SEM est calculé automatiquement à
 partir du nombre de Courant :math:`\mathcal{C}<1` (paramètre de configuration) selon :
 
 .. math::
 
-   \Delta t = \mathcal{C} \frac{\min \Delta{x}}{\max Velocity}
+   \Delta t = \mathcal{C} \frac{\min \Delta{x_{GLL}}}{V_{max}}
 
+où :math:`\Delta{x_{GLL}}` est la distance minimum entre deux points GLL et :math:`V_{max}` la vitesse maximum des materiaux considérés dans le modèle.
+   
 Attention:
 
    Des mailles trop petites, ou des vitesses de propagation trop
