@@ -11,7 +11,7 @@ Ce chapitre présente la chaine de calcul SEM, insistant plus
 particulièrement sur SEM3D.
 
 La chaîne logicielle SEM contient le code de simulation (``sem2d.exe``
-et ``sem3d.exe``, ainsi qu'un outil de partitionnement et préparation
+et ``sem3d.exe``, ainsi qu'un outil de partition et préparation
 de maillage ``mesher``).
 
 L'outil ``mesher`` permet de partitionner des maillages complexes au
@@ -27,7 +27,7 @@ d'outils *meshtools*.
 Les équations du mouvement
 --------------------------
 
-SEM résoud la propagation d'onde élastique dans un milieu décrit par l'équation
+SEM résout la propagation d'onde élastique dans un milieu décrit par l'équation
 locale du mouvement reliant le déplacement :math:`u` en chaque point matériel, les
 contraintes :math:`\sigma` et les forces extérieures :math:`\vec{f}` :
 
@@ -38,7 +38,7 @@ contraintes :math:`\sigma` et les forces extérieures :math:`\vec{f}` :
 Avec en élasticité linéaire : :math:`\sigma=C:\nabla{}u`, où :math:`C` est le
 tenseur élastique d'ordre 4.
 
-Dans le domaine solide, on résoud les deux équations suivantes:
+Dans le domaine solide, on résout les deux équations suivantes:
 
 .. math::
 
@@ -57,7 +57,7 @@ considérés isotropes.  Le code est prévu pour gérer les milieux
 anisotropes, mais il n'existe pas de manière simple de gérer la mise
 en données.
 
-Dans le domaine fluide (hypothèse du fluide parfait) , on résoud :
+Dans le domaine fluide (hypothèse du fluide parfait) , on résout :
 
 .. math::
 
@@ -385,8 +385,8 @@ utilisable par SEM. On peut lui fournir différents formats :
 - Un maillage au format *Abacus* (d'extension ``.aba``)
 
 - Un maillage au format *UNV*, (aussi connu sous le nom *IDEAS*)
-  d'extension ``.unv``.  Les *UNiVersal files* (les detailles dans 
-  les annexes) sont des fichiers en ASCII qui peuvent être utilisés
+  d'extension ``.unv``.  Les *UNiVersal files* (voir les details dans 
+  les annexes) sont des fichiers ASCII qui peuvent être utilisés
   pour stocker des informations sélectionnées à partir d'un fichier
   de modèle. Blocs d'information appelés *datasets*  constituent la
   structure de base d'un fichier universel. 
@@ -400,7 +400,7 @@ utilisable par SEM. On peut lui fournir différents formats :
     - Dataset **2477** : *Groupes physiques* (*PhysicalVolume* et
       *PhysicalSurface*) ils sont des ensembles d'éléments finis avec
       les mêmes propriétés (par exemple des éléments finis à l'intérieur
-      de le même materiau, les surfaces physiques à être affectés avec
+      de le même matériau, les surfaces physiques à être affectés avec
       des conditions limites).
 
 - Un maillage au format *HDF5*, spécifique, dont la structure est
@@ -413,7 +413,7 @@ utilisable par SEM. On peut lui fournir différents formats :
 
 L'outil mailleur, en plus de ses entrées en ligne de commande,
 s'appuie sur un fichier externe ``mat.dat``, donnant quelques
-informations sur le maillage à générer : nombre de matériaus, présence
+informations sur le maillage à générer : nombre de matériaux, présence
 d'éléments PML, type de matériau (solide ou fluide).
 
 
@@ -421,7 +421,7 @@ Préparation d'un cas de calcul
 ------------------------------
 
 Pour lancer un calcul SEM, il faut se placer dans le répertoire du cas et y placer
-les fichiers nécéssaires à son exécution. L'arborescence doit être la suivante ::
+les fichiers nécessaires à son exécution. L'arborescence doit être la suivante ::
 
   CAS/
   |- input.spec
@@ -447,7 +447,7 @@ les fichiers nécéssaires à son exécution. L'arborescence doit être la suiva
 
   Le format du fichier est le suivant :
   
-  - la première ligne contient le nomnbre de milieux décrits
+  - la première ligne contient le nombre de milieux décrits
   
   - Une ligne par milieu, contenant :
   
@@ -472,7 +472,7 @@ les fichiers nécéssaires à son exécution. L'arborescence doit être la suiva
   
     - paramètres n et A pour les PML filtrantes
   
-    - 3 couples de deux drapeaux T ou F (pour True False) indiquant si la PML attenue dans
+    - 3 couples de deux drapeaux T ou F (pour True False) indiquant si la PML atténue dans
       les directions X, Y et Z respectivement (premier flag du couple) et dans le sens positif (T)
       ou négatif de l'axe.
   
@@ -512,7 +512,7 @@ et les mots clés pour lancer des calculs avec SEM3D. Il s'agit d'un
 cas de surface libre (demi espace) avec le sol stratifié et fluide
 entouré par des PMLs.
 
-Pour préparer le lancement d'un calcul SEM, dans le répertoir du cas,
+Pour préparer le lancement d'un calcul SEM, dans le répertoire du cas,
 il faut avoir 6 fichiers qui sont mesh.input, mat.dat [#]_, mater.in,
 material.input [#]_, input.spec, capteur.dat.
 
@@ -561,7 +561,7 @@ La description de chaque fichier est la suivante:
      1   # 8 or 27 control points for elements (1 or 2)
 
 3) :file:`mater.in` : il décrire le nombre du couches du milieu et les
-   propriétés du matériaux. Le mesher va utiliser ce fichier pour
+   propriétés du matériaux. Le mailleur va utiliser ce fichier pour
    générer le fichier "material.input" dans le cas du maillage
    automatique. Ce fichier doit contenir ::
 
@@ -578,9 +578,9 @@ La description de chaque fichier est la suivante:
      # dt : Pas de temps (pour l'instant, il est ignoré)
      # Qp et Gs : Facteurs de qualité d'atténuation des ondes P et S
 
-4) :file:`material.input` : Ce fichier va être créé par le mesher au moment de
+4) :file:`material.input` : Ce fichier va être créé par le mailleur au moment de
    la génération du maillage. Il décrit toutes les propriétés des
-   matéiaux, les PMLs et les directions de PMLs.
+   matériaux, les PMLs et les directions de PMLs.
 
 5) :file:`input.spec` : Ce fichier décrit le chargement, limite le temps de
    simulation, et choisit la taille du milieu a être sauve garder dans
@@ -646,7 +646,7 @@ La description de chaque fichier est la suivante:
          atn_period = 0.2;      # model period 
      };
 
-6) :file:`capteur.dat` : il selectionne les points pour présenter les
+6) :file:`capteur.dat` : il sélectionne les points pour présenter les
    résultats sous la forme de tableau. Les résultats que nous pouvons
    sortir sous la forme de tableau sont la vitesse, le déplacement et
    l'accélération.
@@ -718,12 +718,12 @@ Les étapes de construction sont les suivantes :
 
 - Création d'une grille cartésienne dans la projection souhaitée (*mt_grid*)
 
-- (optionel) Création de grilles supplémentaires pour mailler des couches en profondeur épousant la topographie
+- (optionnel) Création de grilles supplémentaires pour mailler des couches en profondeur épousant la topographie
   de surface (*utilisateur*)
 
 - Génération du maillage et du fichier matériau associé (*mt_topo*)
 
-- Partitionnement du maillage (*mesher*)
+- Partition du maillage (*mesher*)
 
 
 Nous allons traiter un exemple de génération de maillage à partir d'un fichier srtm ::
