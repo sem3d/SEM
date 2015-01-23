@@ -8,15 +8,15 @@ module writeResultFile_RF
 
     interface write_ResultHDF5
         module procedure write_ResultHDF5Structured,   &
-                         write_ResultHDF5Unstruct_MPI
+            write_ResultHDF5Unstruct_MPI
                          !write_ResultHDF5Unstruct
     end interface write_ResultHDF5
 
 contains
 
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     subroutine write_ResultHDF5Structured(xMin, xMax, xNStep, randField, fileName, rang)
 
         implicit none
@@ -38,7 +38,7 @@ contains
         allocate(xPoints(nPoints, nDim))
 
         do i = 1, nPoints
-                call get_Permutation(i, xMax, xNStep, xPoints(i,:), xMin);
+            call get_Permutation(i, xMax, xNStep, xPoints(i,:), xMin);
         end do
 
         !call write_ResultHDF5Unstruct_MPI(xPoints, randField, fileName, rang)
@@ -46,10 +46,10 @@ contains
 
     end subroutine write_ResultHDF5Structured
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     subroutine write_ResultHDF5Unstruct_MPI(xPoints, randField, fileName, rang, folderPath, &
-                                            communicator, labels, indexes, HDF5Name)
+        communicator, labels, indexes, HDF5Name)
         implicit none
 
         !INPUTS
@@ -66,7 +66,7 @@ contains
 
         !HDF5 VARIABLES
         character(len=110)             :: fileHDF5Name, fullPath !File name
-        character(len=30)              :: eventName, coordName;  !Dataset names
+        character(len=30)              :: eventName, coordName;        !Dataset names
         integer(HID_T)                 :: file_id       !File identifier
         integer(HID_T)                 :: dset_id       !Dataset identifier
         integer(HID_T)                 :: dspace_id     !Dataspace identifier
@@ -80,11 +80,11 @@ contains
         character (len=12) :: numberStr, rangStr;
         !double precision, dimension(:,:), allocatable :: grid_data
 
-        if(rang == 0) then
-                write(*,*) "";
-               write(*,*) "------------START Writing result HDF5 file (MPI)-----------------------";
-               write(*,*) "";
-          end if
+        !        if(rang == 0) then
+        !                write(*,*) "";
+        !               write(*,*) "------------START Writing result HDF5 file (MPI)-----------------------";
+        !               write(*,*) "";
+        !          end if
 
           !if(rang == 0) then
               !write (*,*) "lbound(xPoints) = ", lbound(xPoints)
@@ -140,9 +140,9 @@ contains
             write(coordName,'(A)') "XYZ"
             call h5screate_simple_f(rank, dims, dspace_id, error) ! Create the dataspace (dspace_id).
             call h5dcreate_f(file_id, coordName, H5T_NATIVE_DOUBLE,  &
-                             dspace_id, dset_id, error) ! Create the dataset with default properties (dset_id).
-             call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, &
-                             xPoints, dims, error) ! Write the dataset.
+                dspace_id, dset_id, error) ! Create the dataset with default properties (dset_id).
+            call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, &
+                xPoints, dims, error) ! Write the dataset.
             call h5dclose_f(dset_id, error) ! End access to the dataset and release resources used by it.
             call h5sclose_f(dspace_id, error) ! Terminate access to the data space.
 
@@ -159,7 +159,7 @@ contains
 
                 call h5screate_simple_f(rank, dims, dspace_id, error) ! Create the dataspace (dspace_id).
                 call h5dcreate_f(file_id, eventName, H5T_NATIVE_DOUBLE,  &
-                                 dspace_id, dset_id, error) ! Create the dataset with default properties (dset_id).
+                    dspace_id, dset_id, error) ! Create the dataset with default properties (dset_id).
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, randField(:,i), dims, error) ! Write the dataset.
                 call h5dclose_f(dset_id, error) ! End access to the dataset and release resources used by it.
                 call h5sclose_f(dspace_id, error) ! Terminate access to the data space.
@@ -179,23 +179,24 @@ contains
             write(*,*) HDF5Name
         end if
 
-        if(rang == 0) then
-            write(*,*) "";
-            write(*,*) "------------END Writing result HDF5 file (MPI)-----------------------";
-               write(*,*) "";
-           end if
+    !        if(rang == 0) then
+    !            write(*,*) "";
+    !            write(*,*) "------------END Writing result HDF5 file (MPI)-----------------------";
+    !            write(*,*) "";
+    !        end if
 
     end subroutine write_ResultHDF5Unstruct_MPI
 
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    subroutine writeXMF_RF_MPI(nSamples, HDF5nameList, nPointList, nDim, fileName, rang, folderPath, &
-                               communicator, HDF5relativePath, attName, byProc)
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    subroutine writeXMF_RF_MPI(nSamples, HDF5nameList, nPointList, mask, nDim, fileName, rang, folderPath, &
+        communicator, HDF5relativePath, attName, byProc)
         implicit none
 
         !INPUTS
         integer                           , intent(in) :: nSamples, nDim;
+        logical         , dimension(:)    , intent(in) :: mask
         character(len=*), dimension(1:)   , intent(in) :: HDF5nameList;
         integer         , dimension(1:)   , intent(in) :: nPointList;
         character(len=*)                  , intent(in) :: filename;
@@ -214,6 +215,7 @@ contains
         character (len=50) , dimension(:), allocatable :: effectAttName;
         integer            , dimension(:), allocatable :: all_nPointList
         character (len=110), dimension(:), allocatable :: all_HDF5nameList
+        logical            , dimension(:), allocatable :: all_mask
 
         effectComm = communicator
 
@@ -233,19 +235,25 @@ contains
         if(rang == 0) then
             allocate(all_nPointList(nb_procs*size(HDF5nameList)))
             allocate(all_HDF5nameList(nb_procs*size(HDF5nameList)))
+            allocate(all_mask(nb_procs*size(mask)))
             allocate(effectAttName(Nmc))
         end if
 
         call MPI_GATHER(nPointList    , size(nPointList), MPI_INTEGER,     &
                         all_nPointList, size(nPointList), MPI_INTEGER,     &
-                         0         , effectComm    , code)
+                        0         , effectComm    , code)
 
         call MPI_GATHER(HDF5nameList    , len(HDF5nameList)*size(HDF5nameList), MPI_CHARACTER,     &
                         all_HDF5nameList, len(HDF5nameList)*size(HDF5nameList), MPI_CHARACTER,     &
-                         0              , effectComm       , code)
+                        0              , effectComm       , code)
+
+        call MPI_GATHER(mask    , size(mask), MPI_LOGICAL,     &
+                        all_mask, size(mask), MPI_LOGICAL,     &
+                        0      , effectComm       , code)
 
         !write(*,*) "all_nPointList   = ", all_nPointList
         !write(*,*) "all_HDF5nameList = ", all_HDF5nameList
+        !write(*,*) "all_mask = ", all_mask
 
         if(rang == 0 .and. (nDim == 2 .or. nDim == 3)) then
 
@@ -279,52 +287,53 @@ contains
             !write(*,*) "Flag 2"
             open (unit = file , file = fullPathXMF, action = 'write')
 
-                write (file,'(A)'      )'<?xml version="1.0" ?>'
-                write (file,'(A)'      )'<Xdmf Version="2.0">'
-                write (file,'(A)'      )' <Domain>'
-                write (file,'(A)'      )'  <Grid CollectionType="Spatial" GridType="Collection">' !Opens the Collection
+            write (file,'(A)'      )'<?xml version="1.0" ?>'
+            write (file,'(A)'      )'<Xdmf Version="2.0">'
+            write (file,'(A)'      )' <Domain>'
+            write (file,'(A)'      )'  <Grid CollectionType="Spatial" GridType="Collection">' !Opens the Collection
 
-                do j = 1, size(all_HDF5nameList)
+            do j = 1, size(all_HDF5nameList)
+                if(all_mask(j)) then
                     !write(numberStr,'(I)'  ) j
                     !numberStr = adjustL(numberStr)
                     !write(meshName,'(2A)' ) "meshRF_", trim(adjustL(numberStr))
-                    meshName = stringNumb_join("Subdomain_", j-1)
+                    meshName = trim(stringNumb_join("SubD_", mod(j-1,size(HDF5nameList))))//&
+                               trim(stringNumb_join("Proc_", int((j-1)/size(HDF5nameList))))
                     if(present(byProc)) then
                         if(byProc) meshName = stringNumb_join("Proc_", int((j-1)/size(HDF5nameList)))
                         !write(*,*) "                       j-1 = ",j-1
                         !write(*,*) "        size(HDF5nameList) = ",size(HDF5nameList)
                         !write(*,*) "int((j-1)/size(HDF5nameList) = ",int((j-1)/size(HDF5nameList))
                     end if
-                    !write(*,*) "size(all_HDF5nameList) = ", size(all_HDF5nameList)
-                    !write(*,*) "trim(effecHDF5path) = ", trim(effecHDF5path)
-                    !write(*,*) "trim(all_HDF5nameList(j)) = ", trim(all_HDF5nameList(j))
-                    !write(*,*) "'           ',trim(effecHDF5path),trim(all_HDF5nameList(j)),':/XYZ'= ", '           ',trim(effecHDF5path),trim(all_HDF5nameList(j)),':/XYZ'
-                write (file,'(3A)'     )'   <Grid Name="',trim(meshName),'" GridType="Uniform">' !START Writing the data of one subdomain
-                write (file,'(3A)'     )'    <Topology Type="Polyvertex" NodesPerElements="1" NumberOfElements="',trim(numb2String(all_nPointList(j))),'">'
-                write (file,'(A)'      )'    </Topology>'
-                if(nDim == 2) &
-                write (file,'(A)'      )'     <Geometry GeometryType="XY">'
-                if(nDim == 3) &
-                write (file,'(A)'      )'     <Geometry GeometryType="XYZ">'
-                write (file,'(5A)'     )'      <DataItem Name="Coordinates" Format="HDF" DataType="Float" Precision="8" Dimensions="',trim(numb2String(all_nPointList(j))), ' ',trim(numb2String(nDim))  ,'">'
-                write (file,'(4A)'     )'           ',trim(effecHDF5path),trim(all_HDF5nameList(j)),':/XYZ'
-                write (file,'(A)'      )'      </DataItem>'
-                write (file,'(A)'      )'    </Geometry>'
+                        !write(*,*) "size(all_HDF5nameList) = ", size(all_HDF5nameList)
+                        !write(*,*) "trim(effecHDF5path) = ", trim(effecHDF5path)
+                        !write(*,*) "trim(all_HDF5nameList(j)) = ", trim(all_HDF5nameList(j))
+                        !write(*,*) "'           ',trim(effecHDF5path),trim(all_HDF5nameList(j)),':/XYZ'= ", '           ',trim(effecHDF5path),trim(all_HDF5nameList(j)),':/XYZ'
+                    write (file,'(3A)'     )'   <Grid Name="',trim(meshName),'" GridType="Uniform">' !START Writing the data of one subdomain
+                    write (file,'(3A)'     )'    <Topology Type="Polyvertex" NodesPerElements="1" NumberOfElements="',trim(numb2String(all_nPointList(j))),'">'
+                    write (file,'(A)'      )'    </Topology>'
+                    if(nDim == 2) write (file,'(A)'      )'     <Geometry GeometryType="XY">'
+                    if(nDim == 3) write (file,'(A)'      )'     <Geometry GeometryType="XYZ">'
+                    write (file,'(5A)'     )'      <DataItem Name="Coordinates" Format="HDF" DataType="Float" Precision="8" Dimensions="',trim(numb2String(all_nPointList(j))), ' ',trim(numb2String(nDim))  ,'">'
+                    write (file,'(4A)'     )'           ',trim(effecHDF5path),trim(all_HDF5nameList(j)),':/XYZ'
+                    write (file,'(A)'      )'      </DataItem>'
+                    write (file,'(A)'      )'    </Geometry>'
 
-                do i = 1, Nmc
-                write (file,'(3A)'     )'     <Attribute Name="',trim(effectAttName(i)),'" Center="Node" AttributeType="Scalar">'
-                write (file,'(3A)'     )'      <DataItem Format="HDF" DataType="Float" Precision="8" Dimensions="',trim(numb2String(all_nPointList(j))),'">'
-                write (file,'(5A)'     )'          ',trim(effecHDF5path),trim(all_HDF5nameList(j)),":/", trim(stringNumb_join("RF_", i))
-                write (file,'(A)'      )'       </DataItem>'
-                write (file,'(A)'      )'     </Attribute>'
-                end do
+                    do i = 1, Nmc
+                        write (file,'(3A)'     )'     <Attribute Name="',trim(effectAttName(i)),'" Center="Node" AttributeType="Scalar">'
+                        write (file,'(3A)'     )'      <DataItem Format="HDF" DataType="Float" Precision="8" Dimensions="',trim(numb2String(all_nPointList(j))),'">'
+                        write (file,'(5A)'     )'          ',trim(effecHDF5path),trim(all_HDF5nameList(j)),":/", trim(stringNumb_join("RF_", i))
+                        write (file,'(A)'      )'       </DataItem>'
+                        write (file,'(A)'      )'     </Attribute>'
+                    end do
 
-                write (file,'(A)'      )'   </Grid>' !END Writing the data of one subdomain
-                end do !END Loop Over Subdomains
+                    write (file,'(A)'      )'   </Grid>' !END Writing the data of one subdomain
+                end if
+            end do !END Loop Over HDF5 names
 
-                write (file,'(A)'      )'  </Grid>' !Closes the Collection
-                write (file,'(A)'      )' </Domain>'
-                write (file,'(A)'      )'</Xdmf>'
+            write (file,'(A)'      )'  </Grid>' !Closes the Collection
+            write (file,'(A)'      )' </Domain>'
+            write (file,'(A)'      )'</Xdmf>'
 
             close(file)
         else if(rang == 0) then
@@ -343,11 +352,11 @@ contains
 
     end subroutine writeXMF_RF_MPI
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     subroutine writeResultFileND(corrMod, corrL, xMax, xPeriod,   &
-                                 kMax, xNStep, kNStep, randField, &
-                                 average, stdDeviation, averageCorrL, fileName, time)
+        kMax, xNStep, kNStep, randField, &
+        average, stdDeviation, averageCorrL, fileName, time)
 
         implicit none
         !INPUT
@@ -423,19 +432,19 @@ contains
             write (file,"("//titleFmt//","//"(t25,2F25.16)"//")") "", average(i), stdDeviation(i);
         end do
 
-!        write (file, *) "STATISTICS - GLOBAL";
-!        write (file, *) "";
-!        write (file,"("//titleFmt//","//"(t25, F25.16)"//")") "average = ",   calculateAverage(average)
-!        write (file,"("//titleFmt//","//"(t25, F25.16)"//")") "stdDeviation = ", calculateAverage(stdDeviation);
-!        write (file,"("//titleFmt//","//dimFmt//")") "avgCorrL = ", averageCorrL;
+        !        write (file, *) "STATISTICS - GLOBAL";
+        !        write (file, *) "";
+        !        write (file,"("//titleFmt//","//"(t25, F25.16)"//")") "average = ",   calculateAverage(average)
+        !        write (file,"("//titleFmt//","//"(t25, F25.16)"//")") "stdDeviation = ", calculateAverage(stdDeviation);
+        !        write (file,"("//titleFmt//","//dimFmt//")") "avgCorrL = ", averageCorrL;
 
         if(present(time)) write (file,"("//titleFmt//","//"(t25, F25.16)"//")") "Total time (s) = ", time;
         close(file)
 
     end subroutine writeResultFileND
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     subroutine write_MatlabTable(randField, filename)
 
         implicit none
@@ -468,8 +477,8 @@ contains
 
     end subroutine write_MatlabTable
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     function string_join(string1, string2) result(stringTot)
 
         implicit none
@@ -486,8 +495,8 @@ contains
 
     end function string_join
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     subroutine jump_To_Line(fileUnit, line)
 
         implicit none
@@ -503,8 +512,8 @@ contains
 
     end subroutine jump_To_Line
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     function stringNumb_join(string, number) result(stringTot)
 
         implicit none
@@ -528,8 +537,8 @@ contains
 
     end function
 
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     function numb2String(number) result(stringTot)
 
         implicit none

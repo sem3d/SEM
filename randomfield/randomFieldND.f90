@@ -180,12 +180,12 @@ contains
         kNStep  = kAdjust*(ceiling(kMax/kDelta) + 1);
         kNTotal = product(kNStep);
 
-        if(rang == 0) write(*,*) "Nmc     = ", Nmc
-        if(rang == 0) write(*,*) "kNTotal = ", kNTotal
-        if(rang == 0) write(*,*) "kDelta  = ", kDelta
-        if(rang == 0) write(*,*) "kNStep  = ", kNStep
-        if(rang == 0) write(*,*) "xMinGlob  = ", xMinGlob
-        if(rang == 0) write(*,*) "xMaxGlob  = ", xMaxGlob
+        !if(rang == 0) write(*,*) "Nmc     = ", Nmc
+        !if(rang == 0) write(*,*) "kNTotal = ", kNTotal
+        !if(rang == 0) write(*,*) "kDelta  = ", kDelta
+        !if(rang == 0) write(*,*) "kNStep  = ", kNStep
+        !if(rang == 0) write(*,*) "xMinGlob  = ", xMinGlob
+        !if(rang == 0) write(*,*) "xMaxGlob  = ", xMaxGlob
 
         if(kNTotal < 1) then
             write(*,*) "ERROR - In 'createStandardGaussianFieldUnstruct': kNTotal should be a positive integer (possibly a truncation problem)"
@@ -310,8 +310,8 @@ contains
         nDim    = size(xPoints, 1);
         xNTotal = size(xPoints, 2);
 
-        write(*,*) "nDim =", nDim
-        write(*,*) "xNTotal =", xNTotal
+        !write(*,*) "nDim =", nDim
+        !write(*,*) "xNTotal =", xNTotal
         !call dispCarvalhol(xPoints, "xPoints")
 
         allocate(xPointsNorm (nDim, xNTotal))
@@ -358,8 +358,8 @@ contains
         end if
         !!
 
-        write(*,*) "xMaxGlob = ", xMaxGlob;
-        write(*,*) "xMinGlob = ", xMinGlob;
+        !write(*,*) "xMaxGlob = ", xMaxGlob;
+        !write(*,*) "xMinGlob = ", xMinGlob;
 
 
         !Setting kMax e kStep
@@ -377,10 +377,10 @@ contains
         randField = 0;
         step      = rMax(1)/dble(rNTotal)
 
-        if(rang == 0) write(*,*) "rMax(1) = ",rMax(1);
-        if(rang == 0) write(*,*) "rNTotal = ",rNTotal;
-        if(rang == 0) write(*,*) "rDelta  = ",rDelta;
-        if(rang == 0) write(*,*) "step    = ",step;
+        !if(rang == 0) write(*,*) "rMax(1) = ",rMax(1);
+        !if(rang == 0) write(*,*) "rNTotal = ",rNTotal;
+        !if(rang == 0) write(*,*) "rDelta  = ",rDelta;
+        !if(rang == 0) write(*,*) "step    = ",step;
 
         !Initializing the seed
         !call calculate_random_seed(testSeed, 0)!TEST

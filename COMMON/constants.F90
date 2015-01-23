@@ -25,7 +25,8 @@ MODULE constants
     ! Constantes physiques
 
     ! Parametres systemes
-    integer, parameter :: MAX_INT = 2147483647
+    integer     , parameter :: MAX_INT = 2147483647
+    real(KIND=8), parameter :: MAX_DOUBLE = 1.79769313486231570e+307
 
     ! Parametres algorithmes & code
 
