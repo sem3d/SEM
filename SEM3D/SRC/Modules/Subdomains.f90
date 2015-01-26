@@ -32,12 +32,12 @@ module ssubdomains
         character(len = 15) :: corrMod
         integer             :: assocMat = -1
         integer             :: seedStart
-        integer             :: nElem = 0 !number of elements in each subdomain (by proc) - mesh3d.f90(362)
-        integer            , dimension(:)   , allocatable :: elemList !List of elements in "Tdomain%specel(:)" that belong to this subdomain (by proc)
+        !integer             :: nElem = 0 !number of elements in each subdomain (by proc) - mesh3d.f90(362)
+        !integer            , dimension(:)   , allocatable :: elemList !List of elements in "Tdomain%specel(:)" that belong to this subdomain (by proc)
+        !logical            , dimension(:,:) , allocatable :: globCoordMask
         character(len = 30), dimension(:)   , allocatable :: margiFirst
         real               , dimension(:)   , allocatable :: varProp
         integer            , dimension(:)   , allocatable :: chosenSeed
-        logical            , dimension(:,:) , allocatable :: globCoordMask
         real               , dimension(:)   , allocatable :: corrL
         real               , dimension(:)   , allocatable :: MinBound, MaxBound
 
