@@ -176,7 +176,7 @@ contains
             HDF5Name = trim(adjustL(fileHDF5Name))
             HDF5Name = adjustL(HDF5Name)
             !write(*,*) "'inside write HDF5' -- HDF5Name = "
-            write(*,*) HDF5Name
+            !write(*,*) HDF5Name
         end if
 
     !        if(rang == 0) then
@@ -219,11 +219,11 @@ contains
 
         effectComm = communicator
 
-        if(rang == 0) then
-            write(*,*) "";
-            write(*,*) "------------START Writing result XMF file-----------------------";
-            write(*,*) "";
-        end if
+!        if(rang == 0) then
+!            write(*,*) "";
+!            write(*,*) "------------START Writing result XMF file-----------------------";
+!            write(*,*) "";
+!        end if
 
         call MPI_COMM_SIZE(effectComm, nb_procs, code)
 
@@ -294,6 +294,7 @@ contains
 
             do j = 1, size(all_HDF5nameList)
                 if(all_mask(j)) then
+                    write(*,*) trim(all_HDF5nameList(j))
                     !write(numberStr,'(I)'  ) j
                     !numberStr = adjustL(numberStr)
                     !write(meshName,'(2A)' ) "meshRF_", trim(adjustL(numberStr))
@@ -345,9 +346,9 @@ contains
             deallocate(all_nPointList)
             deallocate(all_HDF5nameList)
             deallocate(effectAttName)
-            write(*,*) "";
-            write(*,*) "------------END Writing result XMF file-----------------------";
-            write(*,*) "";
+!            write(*,*) "";
+!            write(*,*) "------------END Writing result XMF file-----------------------";
+!            write(*,*) "";
         end if
 
     end subroutine writeXMF_RF_MPI

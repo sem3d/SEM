@@ -175,6 +175,7 @@ subroutine RUN_PREPARED(Tdomain)
     type(domain), intent(inout) :: Tdomain
     integer :: rg
     integer :: code, i, ierr, group, subgroup
+    integer :: mat
 
     rg = Tdomain%rank
     if(rg == 0) print*
@@ -243,9 +244,28 @@ subroutine RUN_PREPARED(Tdomain)
     endif
     call MPI_Barrier(Tdomain%communicateur,code)
 
+ ! - defining random subdomains
+    if(Tdomain%any_Random .and. (.not.Tdomain%logicD%run_restart)) then
+        if(rg == 0) write(*,*) "--> DEFINING RANDOM SUBDOMAINS"
+        call define_random_subdomains(Tdomain, rg)
+    end if
+
  !- writing properties files
     if (rg == 0) write (*,*) "--> WRITING PROPERTIES FILES"
-    call create_prop_files (Tdomain, rg)
+    if(Tdomain%logicD%run_restart) then
+        if (rg == 0) write (*,*) " Warning!! This is a reprise, properties are expected to be on the 'prop' folder (it won't be rewriten)"
+    else
+        call create_prop_files (Tdomain, rg)
+    end if
+
+ ! - changing "material_type" of random subdomains
+    do mat = 0, Tdomain%n_mat - 1
+        if(Tdomain%sSubDomain(mat)%material_type == "R") Tdomain%sSubDomain(mat)%material_type = "S"
+    end do
+    !OBS: in the future, after writing properties files for non-homogeneous media
+    !we could redefine the "material_type" according only to its behaviour for calculations
+    !it would ease syntax
+    !Ex: S for solid, F for fluid, P for solid PML, L for fluid PML
 
  !- timestep value - > Courant, or Courant -> timestep
     if (rg == 0) write (*,*) "--> COMPUTING COURANT PARAMETER"

@@ -428,20 +428,6 @@ contains
                         Tdomain%sSubdomain(i)%seedStart
                 endif
             enddo
-            do i = 0,Tdomain%n_mat-1
-                assocMat = Tdomain%sSubdomain(i)%assocMat
-                if((.not. Tdomain%not_PML_List(i))                                 &
-                    .and. Tdomain%sSubdomain(assocMat)%material_type == "R") then
-                    allocate(Tdomain%sSubdomain(i)%corrL(0:2))
-                    allocate(Tdomain%sSubdomain(i)%varProp(0:2))
-                    allocate(Tdomain%sSubdomain(i)%margiFirst(0:2))
-
-                    Tdomain%sSubdomain(i)%corrMod       = Tdomain%sSubdomain(assocMat)%corrMod
-                    Tdomain%sSubdomain(i)%corrL(:)      = Tdomain%sSubdomain(assocMat)%corrL(:)
-                    Tdomain%sSubdomain(i)%margiFirst(:) = Tdomain%sSubdomain(assocMat)%margiFirst(:)
-                    Tdomain%sSubdomain(i)%varProp(:)    = Tdomain%sSubdomain(assocMat)%varProp(:)
-                endif
-            enddo
         endif
 
         close(13)

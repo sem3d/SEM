@@ -29,6 +29,7 @@ MODULE constants
     real(KIND=8), parameter :: MAX_DOUBLE = 1.79769313486231570e+307
 
     ! Parametres algorithmes & code
+    integer, parameter :: nProp = 3
 
     ! Les fichiers capteurs sont ecrits toutes les NCAPT_CACHE sorties
     integer, parameter :: NCAPT_CACHE=100

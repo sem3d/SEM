@@ -7,6 +7,9 @@ module define_random
     use displayCarvalhol
     use writeResultFile_RF
 
+    implicit none
+
+
 contains
     !---------------------------------------------------------------------------
     !---------------------------------------------------------------------------
@@ -21,7 +24,7 @@ contains
         integer     , intent(in)  :: rg
 
         !LOCAL
-        integer :: mat, assocMat
+        integer :: mat, assocMat, i
         integer :: seedSize
 
         call random_seed(size = seedSize)
@@ -31,23 +34,67 @@ contains
             if(Tdomain%sSubDomain(mat)%material_type == "R") then
                 allocate(Tdomain%sSubdomain(mat)%chosenSeed(seedSize))
                 call define_random_seed(Tdomain, rg, mat)
+                if(rg == 0) then
+                    write(*,*) ""
+                    write(*,*) "Material ", mat, " (random)"
+
+                    write(*,*) " INPUTS:"
+                    write(*,*) "  corrL        = ", Tdomain%sSubDomain(mat)%corrL
+                    write(*,*) "  corrMod      = ", Tdomain%sSubDomain(mat)%corrMod
+                    i = 0
+                    write(*,*) "  Dens------------ "
+                    write(*,*) "   average      = ", Tdomain%sSubDomain(mat)%Ddensity
+                    write(*,*) "   variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
+                    write(*,*) "   margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
+                    i = 1
+                    write(*,*) "  Lambda----------- "
+                    write(*,*) "   average      = ", Tdomain%sSubDomain(mat)%DLambda
+                    write(*,*) "   variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
+                    write(*,*) "   margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
+                    i = 2
+                    write(*,*) "  Mu--------------- "
+                    write(*,*) "   average      = ", Tdomain%sSubDomain(mat)%DMu
+                    write(*,*) "   variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
+                    write(*,*) "   margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
+
+                    write(*,*) " COMPUTED:"
+                    write(*,*) "  chosenSeed   = ", Tdomain%sSubDomain(mat)%chosenSeed
+                    write(*,*) "  MinBound     = ", Tdomain%sSubDomain(mat)%MinBound
+                    write(*,*) "  MaxBound     = ", Tdomain%sSubDomain(mat)%MaxBound
+                    write(*,*) ""
+                end if
             end if
         end do
 
-        !PMLS
+        !Propagating properties to PMLS
         do mat = 0, Tdomain%n_mat - 1
             assocMat = Tdomain%sSubDomain(mat)%assocMat
 
             if(.not. (Tdomain%not_PML_List(mat))                    .and. &
                 Tdomain%sSubdomain(assocMat)%material_type == "R" ) then !PMLs associated to random subdomains
+                allocate(Tdomain%sSubdomain(mat)%varProp(0:nProp-1))
+                allocate(Tdomain%sSubdomain(mat)%corrL(0:nProp-1))
+                allocate(Tdomain%sSubdomain(mat)%margiFirst(0:nProp-1))
                 allocate(Tdomain%sSubdomain(mat)%chosenSeed(seedSize))
+                !Min/Max Bounds already allocated in mesh3d.f90
+                Tdomain%sSubDomain(mat)%Ddensity      = Tdomain%sSubDomain(assocMat)%Ddensity
+                Tdomain%sSubDomain(mat)%DLambda       = Tdomain%sSubDomain(assocMat)%DLambda
+                Tdomain%sSubDomain(mat)%DMu           = Tdomain%sSubDomain(assocMat)%DMu
+                Tdomain%sSubDomain(mat)%varProp       = Tdomain%sSubDomain(assocMat)%varProp
+                Tdomain%sSubdomain(mat)%corrMod       = Tdomain%sSubdomain(assocMat)%corrMod
+                Tdomain%sSubdomain(mat)%corrL(:)      = Tdomain%sSubdomain(assocMat)%corrL(:)
+                Tdomain%sSubdomain(mat)%margiFirst(:) = Tdomain%sSubdomain(assocMat)%margiFirst(:)
                 Tdomain%sSubdomain(mat)%chosenSeed(:) = Tdomain%sSubdomain(assocMat)%chosenSeed(:)
                 Tdomain%sSubdomain(mat)%MinBound(:)   = Tdomain%sSubdomain(assocMat)%MinBound(:)
                 Tdomain%sSubdomain(mat)%MaxBound(:)   = Tdomain%sSubdomain(assocMat)%MaxBound(:)
+
+                !if(rg == 0) write(*,*) ""
+                if(rg == 0) write(*,*) "Material ", mat, " is a random PML linked to material ", assocMat
             end if
             !write(*,*) "Chosen seed mat ", mat, "= ", Tdomain%sSubdomain(mat)%chosenSeed(:)
         end do
 
+        if(rg == 0) write(*,*) ""
 
     end subroutine define_random_subdomains
 
@@ -102,6 +149,8 @@ contains
         nglly    = Tdomain%sSubDomain(mat)%NGLLy
         ngllz    = Tdomain%sSubDomain(mat)%NGLLz
 
+        !call dispCarvalhol(prop(1:20,:), "prop(1:20,:) GAUSS", "F30.10")
+
 !        if(rg == 0) write(*,*) ">>>>Creating Standard Gaussian Field mat = ", mat
 !        if(rg == 0) write(*,*) "corrL                = ", Tdomain%sSubDomain(mat)%corrL
 !        if(rg == 0) write(*,*) "corrMod              = ", Tdomain%sSubDomain(mat)%corrMod
@@ -114,7 +163,7 @@ contains
 
         select case(effecMethod)
         case( 1 ) !Victor
-            write(*,*) "Victor's method"
+            !write(*,*) "Victor's method"
             call createStandardGaussianFieldUnstructVictor(&
                 Tdomain%GlobCoord(:, :),                   &
                 Tdomain%sSubDomain(mat)%corrL,             &
@@ -128,7 +177,7 @@ contains
                 calculate)
 
         case( 2 ) !Shinozuka
-            write(*,*) "Shinozuka's method"
+            !write(*,*) "Shinozuka's method"
             call createStandardGaussianFieldUnstructShinozuka (&
                 Tdomain%GlobCoord,                             &
                 Tdomain%sSubDomain(mat)%corrL,                 &
@@ -214,7 +263,7 @@ contains
         allocate(pointProp(0:size(prop,2)-1))
 
         !Propagating Properties over the PML
-        if(rg == 0) write(*,*) ">>>>Propagating Properties over the PML"
+        !if(rg == 0) write(*,*) "  Propagating Properties over the PML"
 
         do n = 0, Tdomain%n_elem-1
             mat_index = Tdomain%specel(n)%mat_index
@@ -385,7 +434,6 @@ contains
         call MPI_BCAST (Tdomain%sSubdomain(mat)%chosenSeed,             &
             size(Tdomain%sSubdomain(mat)%chosenSeed),       &
             MPI_INTEGER, 0, Tdomain%communicateur, code)
-        write(*,*)"rg = ", rg, "..%chosenSeed   = ", Tdomain%sSubdomain(mat)%chosenSeed
     end subroutine define_random_seed
 
     !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

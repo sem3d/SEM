@@ -113,7 +113,7 @@ contains
         double precision, dimension(:), allocatable :: dgemm_mult;
         !integer, dimension(:), allocatable :: testSeed!TEST
 
-        write(*,*) "INSIDE 'createStandardGaussianFieldUnstructShinozuka'"
+        !write(*,*) "INSIDE 'createStandardGaussianFieldUnstructShinozuka'"
 
         call MPI_COMM_SIZE(MPI_COMM_WORLD, nb_procs, code)
         call MPI_COMM_RANK(MPI_COMM_WORLD, rang, code)
@@ -244,7 +244,7 @@ contains
             end if
         end do
 
-        if(rang == 0) write(*,*) "Spectra (Sk) cut in: ", Sk
+        !if(rang == 0) write(*,*) "Spectra (Sk) cut in: ", Sk
 
         randField(:,:) = 2*sqrt(product(deltaK)/((2*pi)**(nDim))) &
             * randField(:,:) !Obs: sqrt(product(corrL)) is not needed because of normalization
@@ -302,7 +302,7 @@ contains
         !integer, dimension(:), allocatable :: testSeed!TEST
 
 
-        write(*,*) "INSIDE 'createStandardGaussianFieldUnstructVictor'"
+        !write(*,*) "INSIDE 'createStandardGaussianFieldUnstructVictor'"
 
         call MPI_COMM_SIZE(MPI_COMM_WORLD, nb_procs, code)
         call MPI_COMM_RANK(MPI_COMM_WORLD, rang, code)
@@ -470,7 +470,7 @@ contains
             call MPI_ABORT(MPI_COMM_WORLD, error, code)
         end if
 
-        if(rang == 0) write(*,*) "Spectra (Sk) cut in: ", Sk
+        !if(rang == 0) write(*,*) "Spectra (Sk) cut in: ", Sk
 
         randField(:,:) = sqrt((1.0d0)/((2.0d0*pi)**(nDim)))&
             * randField(:,:)

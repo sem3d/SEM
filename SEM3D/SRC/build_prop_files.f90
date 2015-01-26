@@ -17,7 +17,6 @@ module build_prop_files
     character(len=50) :: h5folder  = "./prop/h5", &
                          XMFfolder = "./prop", &
                          h5_to_xmf = "./h5"
-    integer, parameter :: nProp = 3
 
 contains
 !---------------------------------------------------------------------------
@@ -46,16 +45,10 @@ contains
 	    allocate(nSubDPoints(0:Tdomain%n_mat-1))
 	    HDF5NameList(:) = "not_Used"
 
-	    !Defining random subdomains
-	    if(rg == 0) write(*,*) ""
-	    if(rg == 0) write(*,*) "--> Defining random subdomains"
-	    if(rg == 0) write(*,*) ""
-	    if(Tdomain%any_Random) call define_random_subdomains(Tdomain, rg)
-
-        !Writing files
+        !Writing hdf5 files
+        if(rg == 0) write(*,*) "  Writing hdf5 files"
 	    do mat = 0, Tdomain%n_mat - 1
-            !Writing hdf5 file
-            write(*,*) "Material ", mat, " is of type ", Tdomain%sSubDomain(mat)%material_type
+            !write(*,*) "Material ", mat, " is of type ", Tdomain%sSubDomain(mat)%material_type
 	        if(propOnFile(Tdomain, mat)) then
                 assocMat = Tdomain%sSubdomain(mat)%assocMat
                 avgProp  = [Tdomain%sSubDomain(mat)%Ddensity, &
@@ -77,31 +70,30 @@ contains
         end do
 
         !Writing XMF File
-        if(rg == 0) write(*,*) ">>>>Writing XMF file"
+        if(rg == 0) write(*,*) "  Writing XMF file"
         !write(*,*) "HDF5NameList in rang ", rg, " = ", HDF5NameList
         nSubDPoints(:) = size(Tdomain%GlobCoord,2)
         call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, Tdomain%subD_exist, Tdomain%n_dime, &
-                             trim(string_join(procFileName,"-TO_READ-")), rg, trim(XMFfolder),     &
+                             trim(string_join(procFileName,"-TO_READ")), rg, trim(XMFfolder),     &
                              Tdomain%communicateur, trim(h5_to_xmf),                               &
                              ["Density","Lambda","Mu"])
 
         !Deallocating
-        if(rg == 0) write(*,*) "-> Deallocating"
+        !if(rg == 0) write(*,*) "-> Deallocating"
         if(allocated(prop))         deallocate(prop)
         if(allocated(HDF5NameList)) deallocate(HDF5NameList)
         if(allocated(nSubDPoints))  deallocate(nSubDPoints)
         if(allocated(avgProp))      deallocate(avgProp)
 
+        !Deallocating arrays associated to random properties
         do mat = 0, Tdomain%n_mat - 1
+            if (allocated(Tdomain%sSubdomain(mat)%varProp))       deallocate(Tdomain%sSubdomain(mat)%varProp)
+            if (allocated(Tdomain%sSubDomain(mat)%corrL))         deallocate(Tdomain%sSubDomain(mat)%corrL)
             if (allocated(Tdomain%sSubDomain(mat)%margiFirst))    deallocate(Tdomain%sSubDomain(mat)%margiFirst)
             if (allocated(Tdomain%sSubDomain(mat)%MinBound))      deallocate(Tdomain%sSubDomain(mat)%MinBound)
             if (allocated(Tdomain%sSubDomain(mat)%MaxBound))      deallocate(Tdomain%sSubDomain(mat)%MaxBound)
             if (allocated(Tdomain%sSubDomain(mat)%chosenSeed))    deallocate(Tdomain%sSubDomain(mat)%chosenSeed)
-            if (allocated(Tdomain%sSubDomain(mat)%corrL))         deallocate(Tdomain%sSubDomain(mat)%corrL)
         end do
-
-
-        !write(*,*) "After deallocation"
 
     end subroutine create_prop_files
 
@@ -242,8 +234,6 @@ contains
         integer         , dimension(:)   , allocatable :: nSubDPoints;
         character(len=110) , dimension(:), allocatable :: HDF5NameList
 
-
-
         allocate(prop(0:size(Tdomain%GlobCoord,2)-1, 0:nProp-1)) !Subdomain properties Matrix ((:,0) = Dens, (:,1) = Lambda, (:,2) = Mu) per proc
         prop = -1
 
@@ -256,6 +246,7 @@ contains
         HDF5NameList(:) = "not_Used"
         nSubDPoints(:)  = 0
 
+        if(rg == 0) write(*,*) ">>>>Writing visualization hdf5 files"
         do mat = 0, Tdomain%n_mat - 1
             globCoordMask(:,:) = .false.
             propMask(:,:)      = .false.
@@ -284,7 +275,6 @@ contains
 
             nSubDPoints(mat) = count(globCoordMask(0,:))
 
-            if(rg == 0) write(*,*) ">>>>Writing visualization HDF5 file"
             call write_ResultHDF5Unstruct_MPI(                                      &
                                          reshape(pack(Tdomain%GlobCoord(:,:),       &
                                                  mask = globCoordMask(:,:)),        &
@@ -298,15 +288,16 @@ contains
         end do
 
         !Writing XMF File
-        if(rg == 0) write(*,*) ">>>>Writing visualization XMF file"
+        if(rg == 0) write(*,*) "  Writing visualization XMF file"
         call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, Tdomain%subD_exist, Tdomain%n_dime, &
-                             trim(string_join(procFileName,"-TO_VIEW-")), rg, trim(XMFfolder),     &
+                             trim(string_join(procFileName,"-TO_VIEW")), rg, trim(XMFfolder),     &
                              Tdomain%communicateur, trim(h5_to_xmf),                               &
                              ["Density","Lambda","Mu"])
 
         deallocate(prop)
         deallocate(HDF5NameList)
         deallocate(globCoordMask)
+        deallocate(propMask)
         deallocate(nSubDPoints)
 
     end subroutine create_prop_visu_files
