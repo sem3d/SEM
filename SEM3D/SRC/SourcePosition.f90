@@ -66,7 +66,7 @@ subroutine SourcePosition (Tdomain)
         call MPI_AllReduce(Tdomain%sSource(n_src)%proc, src_proc, 1, MPI_INTEGER, &
                            MPI_MAX, Tdomain%communicateur, ierr)
 
-        write(*,*) "Found source on proc", src_proc
+        if (rg==0) write(*,*) "Found source on proc", src_proc
         if (src_proc==-1) then
             if (rg==0) then
                 write(*,*) "A source doesn't appear to be on any processor"

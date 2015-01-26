@@ -771,7 +771,7 @@ contains
             enddo
         endif
 
-        write(*,*) rg, "Reading materials done"
+        !write(*,*) rg, "Reading materials done"
 
         call finalize_mesh_connectivity(Tdomain)
         call select_output_elements(Tdomain, Tdomain%config)
