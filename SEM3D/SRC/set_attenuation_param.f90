@@ -81,9 +81,6 @@ contains
 
                             Q_mu = Tdomain%specel(n)%sl%Qs(i,j,k)
                             Q_kappa = Tdomain%specel(n)%sl%Qp(i,j,k)
-                            !- from Qs to gammas
-                            Q_mu = 20d0
-                            Q_kappa = 100d0
 
                             if (Q_mu .ne. Q_mu_old) then
                                 call inv_gamma_Q_const(n_solid,n_freq_q,Q_mu,omega_Q,omega_tau_s,agamma_mu)
