@@ -145,7 +145,7 @@ Mot-clef          Type     Valeur par défaut  Description
 ================  =======  =================  ===========================================================
 nsolids           entier   0                  Nombre de mécanismes. 0 signifie désactivation.
 atn_band          réel(2)  n/a                Période max et min à atténuer
-atn_period        réel     n/a                Période centrale (un mécanisme aura cette valeur centrale)
+atn_period        réel     n/a                Période de définition de Qp et Qs
 ================  =======  =================  ===========================================================
 
 Paramétrage de l'atténuation
@@ -154,15 +154,17 @@ Paramétrage de l'atténuation
 Le mécanisme d'atténuation est décrit en deux endroits :
 
 - Le fichier de description des matériaux contient les paramètres :math:`Q_P` et :math:`Q_S` du
-  milieu.
+  milieu. (XXX: en fait Qkappa et Qmu ?)
 
 - Le fichier ``input.spec`` contient la section ``amortissement`` décrite ci-dessus.
 
 L'atténuation est modélisée par N filtres (``nsolids``) sur une bande
 de fréquences décrite par ``atn_band``. Les N filtres sont centrés sur
-N fréquences choisies dans la bande spécifiée.  Le paramètre
-``atn_period`` garanti qu'un filtre est choisi spécifiquement sur la
-periode indiquée.
+N fréquences choisies dans la bande spécifiée. 
+
+Le paramètre ``atn_period`` spécifie la période pour laquelle les
+valeurs de :math:`Q_P` et :math:`Q_S` sont spécifiées dans le fichier
+matériau.
 
 Le code n'applique pas d'atténuation si ``nsolids=0``.
 

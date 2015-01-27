@@ -632,8 +632,10 @@ Nous allons traiter un exemple de génération de maillage à partir d'un fichie
   # On convertit le fichier au format hdf5 (lat/lon)
   $ mt_import -s topo_srtm.h5 srtm_56_01.tif
   # On projete une grille de 30x30 mailles de 1000x1000 m de cote d'origine 58N 96E dans la projection aeqd
-  $ mt_grid --vx=1000,0 --vy=0,1000 -g 30,30 -p "+proj=aeqd +lat_0=58.0 +lon_0=96.0" -n surf topo_srtm.h5 grid.h5
-  $ mt_grid --vx=500,0 --vy=0,500 -g 300,300 -p "+proj=aeqd +lat_0=58.0 +lon_0=96.0" -n surf topo.h5 grid.h5
+  $ mt_grid --vx=1000,0 --vy=0,1000 -g 30,30 -p "+proj=aeqd +lat_0=58.0 +lon_0=96.0" \
+            -n surf topo_srtm.h5 grid.h5
+  $ mt_grid --vx=500,0 --vy=0,500 -g 300,300 -p "+proj=aeqd +lat_0=58.0 +lon_0=96.0" \
+            -n surf topo.h5 grid.h5
   # Le fichier contenant la grille est utilise pour creer un maillage
   $ mt_topo --npml=1 --profile=mesh.profile --mat=input_material.dat grid.h5 mesh_sem.h5
   # on renomme le fichier materiau (pour l'outil mesher)
@@ -648,6 +650,41 @@ Nous allons traiter un exemple de génération de maillage à partir d'un fichie
   $ mv mesh4spec.0* sem/
   # Lancement du cas sem
   $ mpirun -n 256 sem3d.exe
+
+Modification d'une surface
+--------------------------
+
+Les surfaces sont générées dans le fichier ``grid.h5`` par ``mt_grid`` ci-dessus.
+
+Ce sont des datasets HDF5 que l'on peut manipuler en python ainsi :
+
+1. Lancement de python ::
+
+   $ python
+
+2. Lecture ::
+
+    >>> import h5py
+    >>> from numpy import *
+    >>> f = h5py.File("grid.h5")
+    >>> X = f["surf"]["X"][...]
+    >>> Y = f["surf"]["Y"][...]
+    >>> Z = f["surf"]["Z"][...]
+
+3. Modification (exemple on multiplie par une fonction) ::
+
+    >>> xs = 0.
+    >>> ys = 0.
+    >>> r0 = 5000.
+    >>> kr = 10.
+    >>> kz = tanh( r0 - kr*((X-xs)**2 + (Y-ys)**2) )
+    >>> f["surf"]["Z"][...] = kz*Z
+
+4. Fermeture du fichier ::
+
+    >>> f.close()
+
+
 
 Modification de l'association des matériaux
 -------------------------------------------
