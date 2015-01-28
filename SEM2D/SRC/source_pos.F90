@@ -238,8 +238,10 @@ subroutine source_excit_strain(Tdomain, src)
         ngllz = mat%ngllz
         M = src%moment
         ! Computing parameters for the compliance matrix :
-        invE = (mat%Dlambda + mat%Dmu) / (mat%Dmu*(3.*mat%Dlambda + 2.*mat%Dmu))
-        nu   =  mat%Dlambda / (2.*mat%Dmu + 2.*mat%Dlambda)
+        !invE = (mat%Dlambda + mat%Dmu) / (mat%Dmu*(3.*mat%Dlambda + 2.*mat%Dmu))
+        !nu   =  mat%Dlambda / (2.*mat%Dmu + 2.*mat%Dlambda)
+        invE = 1. ! A SUPPRIMER !!!!!!
+        nu   = 0. ! A SUPPRIMER !!!!!!
         src%Elem(n)%invE = invE
         src%Elem(n)%nu   = nu
         allocate  (src%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:2))
