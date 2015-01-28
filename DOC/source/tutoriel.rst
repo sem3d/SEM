@@ -48,9 +48,9 @@ Dans le domaine solide, on résout les deux équations suivantes:
 
    c_{P}=\sqrt{\frac{\lambda+2\mu}{\rho}} et c_{S}=\sqrt{\frac{\mu}{\rho}}
 
-où :math: `\phi` et :math: `\psi` sont les potentiels scalaire et vectoriel du champ de déplacement.
-:math: `\lambda` et :math: `\mu` sont les coefficients de Lamé.
-:math: `c_{P}` et :math: `c_{S}` sont respectivement les vitesses des ondes de pression et de cisaillement.
+où :math:`\phi` et :math:`\psi` sont les potentiels scalaire et vectoriel du champ de déplacement.
+:math:`\lambda` et :math:`\mu` sont les coefficients de Lamé.
+:math:`c_{P}` et :math:`c_{S}` sont respectivement les vitesses des ondes de pression et de cisaillement.
 
 Pour l'instant les milieux de propagations décrits dans SEM sont
 considérés isotropes.  Le code est prévu pour gérer les milieux
@@ -65,7 +65,7 @@ Dans le domaine fluide (hypothèse du fluide parfait) , on résout :
 
    v = \frac{1}{\rho}\nabla(\rho\phi)
 
-où :math: `v` c'est le champ de vitesse du fluide, :math: `\rho` la masse volumique, :math: `\phi` un potentiel scalaire et :math: `f_{ext}` la source extérieure, et :math: `\kappa` le module d'incompressibilité. 
+où :math:`v` c'est le champ de vitesse du fluide, :math:`\rho` la masse volumique, :math:`\phi` un potentiel scalaire et :math:`f_{ext}` la source extérieure, et :math:`\kappa` le module d'incompressibilité. 
   
 Formulation éléments finis
 --------------------------
@@ -216,12 +216,12 @@ Dans le domaine fréquentiel, une PML correspond à un prolongement de l'espace 
 
    \tilde{x}=x+\frac{\Sigma\left( x \right)}{i \omega}
 
-où :math: `\omega` est la fréquence angulaire et :math: `\Sigma\left( x \right)` une fonction arbitraire de :math:`x`, qui croît régulièrement de l'interface
+où :math:`\omega` est la fréquence angulaire et :math:`\Sigma\left( x \right)` une fonction arbitraire de :math:`x`, qui croît régulièrement de l'interface
 avec le milieu vers le frontière externe de la couche. Une onde plane écrite sous la forme:
 
 .. math::
 
-   \mathbf{\Phi}\left( x,z,t\right)=mathbf{A}e^{i\left(\omega t -k_{x}x -k_{z}z \right)}
+   \mathbf{\Phi}\left( x,z,t\right)=\mathbf{A}e^{i\left(\omega t -k_{x}x -k_{z}z \right)}
 
 est transformée dans la région de la PML en:
 
@@ -244,16 +244,16 @@ par la grille numérique, la frontière inférieure du modèle devrait être sit
 
 PML filtrante (FPML)
 ......................
-Dans le domaine fréquentiel, on peut déplacer le pôle de la transformation \tilde{x}=x+\frac{\Sigma\left( x \right)}{i \omega} le long
+Dans le domaine fréquentiel, on peut déplacer le pôle de la transformation :math:`\tilde{x}=x+\frac{\Sigma\left( x \right)}{i \omega}` le long
 de l'axe imaginaire, en remplaçant la transformation par:
 
-..math::
+.. math::
 
     \tilde{x}=x+\frac{\Sigma\left( x \right)}{i \omega + \omega_{c}}
 
 En utilisant cette transformation l'onde de volume décroît dans les PML selon la formule suivante:
 
-..math::
+.. math::
 
     \mathbf{\tilde{\Phi}}\left( x,z,t\right)=\mathbf{\Phi}\left( x,z,t\right) e^{-\frac{k_{x}}{\omega}\frac{\omega^{2}-i \omega\omega_{c}}{\omega^{2}+\omega^{2}_{c}}\Sigma}
 
@@ -274,7 +274,7 @@ conduisant à un régime élastique. Pour :math:`\omega \to \infty`, la partie r
 alors que la partie imaginaire disparaît: on retrouve asymptotiquement une PML standard. 
 En regardant la partie réelle, cette couche ressemble à un milieu élastique à basses fréquences
 et à une couche dissipative pour des fréquences plus élevées, la transition étant décrite par un filtre passe-bas
-avec une fréquence de coupure autour de :math:`\omega_{c}`. Pour :math:`\omega = \frac{\omega_{c}}{2}, on assure une absorption d'environ
+avec une fréquence de coupure autour de :math:`\omega_{c}`. Pour :math:`\omega = \frac{\omega_{c}}{2}`, on assure une absorption d'environ
 :math:`\frac{1}{\sqrt{2}}` celle d'une PML standard. D'un autre côté, la partie imaginaire a un maximum pour :math:`\omega=\omega_{c}`
 correspondant aussi à un décalage de phase maximum si :math:`\Sigma > 2 \pi`. Pour une fréquence de coupure égale
 au quart ou à la moitié de la fréquence de la source, on peut considérer que les FPML ont presque le même
