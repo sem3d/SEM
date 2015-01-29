@@ -666,6 +666,15 @@ contains
         Tdomain%TimeD%alpha               = Tdomain%config%alpha
         Tdomain%TimeD%beta                = Tdomain%config%beta
         Tdomain%TimeD%gamma               = Tdomain%config%gamma
+        if (rg==0) then
+            if (Tdomain%TimeD%alpha /= 0.5 .or. Tdomain%TimeD%beta /= 0.5 .or. Tdomain%TimeD%gamma /= 1.) then
+                write(*,*) "***WARNING*** : Les parametres alpha,beta,gamma sont ignores dans cette version"
+                write(*,*) "***WARNING*** : on prend: alpha=0.5, beta=0.5, gamma=1"
+            endif
+        end if
+        Tdomain%TimeD%alpha = 0.5
+        Tdomain%TimeD%beta = 0.5
+        Tdomain%TimeD%gamma = 1.
         Tdomain%TimeD%courant             = Tdomain%config%courant
         Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)
         call semname_read_input_meshfile(rg,Tdomain%mesh_file,fnamef) !indicates the path to the mesh file for this proc"

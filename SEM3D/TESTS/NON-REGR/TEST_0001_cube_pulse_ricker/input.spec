@@ -47,7 +47,7 @@ time_scheme {
     accel_scheme = false;  # Acceleration scheme for Newmark
     veloc_scheme = true;   # Velocity scheme for Newmark
     alpha = 0.5;           # alpha (Newmark parameter)
-    beta = -0.5;           # beta (Newmark parameter)
+    beta = 0.5;           # beta (Newmark parameter)
     gamma = 1;             # gamma (Newmark parameter)
     courant=0.2;
 };
