@@ -461,17 +461,62 @@ int generate_stations_points(yyscan_t scanner, sem_config_t* config, station_sec
 
 int generate_stations_line(yyscan_t scanner, sem_config_t* config, station_section_t* stations)
 {
+    station_def_t *stat;
+    int count = stations->count[0];
+    int lstat = strlen(stations->section_name);
+    for(int k=0;k<count;++k) {
+        stat = (station_def_t*)malloc(sizeof(station_def_t));
+        double alpha = (double)k/(double)(count-1);
+        for(i=0;i<3;++i) {
+            stat->coords[i] = (1.-alpha)*stations->p0[i] + alpha*stations->p1[i];
+        }
+	stat->name = (char*)malloc( lstat+10 );
+	snprintf(stat->name, lstat+10, "%s_%04d", stations->section_name, k);
+        strcpy(stat->name, stations->section_name);
+        stat->period = stations->period;
+        stat->next = config->stations;
+        config->stations = stat;
+    }
     return 1;
 }
 
 int generate_stations_plane(yyscan_t scanner, sem_config_t* config, station_section_t* stations)
 {
+    station_def_t *stat;
+    int counti = stations->count[0];
+    int countj = stations->count[1];
+    int lstat = strlen(stations->section_name);
+    for(int kj=0;k<countj;++k) {
+        for(int ki=0;k<counti;++k) {
+            stat = (station_def_t*)malloc(sizeof(station_def_t));
+            double ai = (double)ki/(double)(counti-1);
+            double aj = (double)kj/(double)(countj-1);
+            for(i=0;i<3;++i) {
+                stat->coords[i] = (1. - ai - aj)*stations->p0[i]
+                    + ai*stations->p1[i] + aj*stations->p2[i];
+            }
+            stat->name = (char*)malloc( lstat+10 );
+            snprintf(stat->name, lstat+10, "%s_%04d_%04d", stations->section_name, ki, kj);
+            strcpy(stat->name, stations->section_name);
+            stat->period = stations->period;
+            stat->next = config->stations;
+            config->stations = stat;
+        }
+    }
     return 1;
-
 }
 
 int generate_stations_single(yyscan_t scanner, sem_config_t* config, station_section_t* stations)
 {
+    station_def_t *stat;
+    int lstat = strlen(stations->section_name);
+    stat = (station_def_t*)malloc(sizeof(station_def_t));
+    for(i=0;i<3;++i) stat->coords[i] = stations->p0[i];
+    stat->name = (char*)malloc( lstat+1 );
+    strcpy(stat->name, stations->section_name);
+    stat->period = stations->period;
+    stat->next = config->stations;
+    config->stations = stat;
     return 1;
 }
 
