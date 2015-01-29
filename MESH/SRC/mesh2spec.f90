@@ -360,9 +360,8 @@ contains
             end do
 
             !- if Solid-Fluid: doubled nodes -> change of indices
-            call indices_modif(n_nods,n_SF_nodes,SF_n_global_faces,Nodes_on_SF,    &
-                SF_global_faces,Ipointer)
-
+            call indices_modif(n_nods,n_SF_nodes,SF_n_global_vertices,Nodes_on_SF,    &
+                               SF_global_vertices,Ipointer,initnode,elem_solid)
 
             !- which procs do SF vertices belong to?
             call SF_vertices_proc_belong(nproc,SF_n_global_vertices,part,    &
@@ -872,31 +871,43 @@ contains
 
         !---------------------------------------------------------------------
         !-------------------------------------------------------------------
-        subroutine indices_modif(n_nods,n_SF_nodes,SF_n_global_faces,Nodes_on_SF,    &
-            SF_global_faces,Ipointer)
+        subroutine indices_modif(n_nods,n_SF_nodes,SF_n_global_vertices,Nodes_on_SF,    &
+            SF_global_vertices,Ipointer,initnode,elem_solid)
 
             implicit none
-            integer, intent(in)   :: n_nods,n_SF_nodes,SF_n_global_faces
+            integer, intent(in)   :: n_SF_nodes,SF_n_global_vertices,n_nods
             integer, dimension(0:n_SF_nodes-1,0:1), intent(in)  :: Nodes_on_SF
-            type(SF_face), dimension(0:SF_n_global_faces-1), intent(in) ::   &
-                SF_global_faces
+            type(SF_vertex), dimension(0:SF_n_global_vertices-1), intent(in) ::   &
+                SF_global_vertices
             integer, dimension(0:,0:), intent(inout)   :: Ipointer
+            type(near_node), dimension(0:), intent(in)  ::  initnode
+            logical, dimension(0:), intent(in)  :: elem_solid
+            integer   :: i,j,n,nf,nel,nv,ns
+            type(near_entity), pointer  :: near_neighb => NULL()            
 
-            integer   :: i,j,n,nf
-
-            do nf = 0, SF_n_global_faces-1
-                n = SF_global_faces(nf)%elem(0)
-                do i = 0,n_nods-1
-                    do j = 0, n_SF_nodes-1
-                        if(Ipointer(i,n) == Nodes_on_SF(j,0))then
-                            Ipointer(i,n) = Nodes_on_SF(j,1)
-                            exit
-                        end if
+            do nv = 0,SF_n_global_vertices-1
+                ns = SF_global_vertices(nv)%node(1)  ! solid node
+                near_neighb => initnode(ns)%ptr
+                do while(associated(near_neighb))
+                    nel = near_neighb%elem
+                    if(elem_solid(nel))then
+                        near_neighb => near_neighb%pt
+                        cycle
+                    end if
+                    do i = 0,n_nods-1
+                        do j = 0, n_SF_nodes-1
+                            if(Ipointer(i,nel) == Nodes_on_SF(j,0))then
+                                Ipointer(i,nel) = Nodes_on_SF(j,1)
+                                exit
+                            end if
+                        end do
                     end do
+                    near_neighb => near_neighb%pt
                 end do
             end do
 
         end subroutine indices_modif
+
         !-----------------------------------------
 
     end subroutine gen_mesh
