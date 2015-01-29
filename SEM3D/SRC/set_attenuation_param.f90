@@ -15,7 +15,7 @@
 !-------------------------------------------------------------------
 module attenuation
     use sdomain
-     use constants, only : M_PI
+    use constants, only : M_PI
     implicit none
 contains
 
@@ -81,10 +81,8 @@ contains
 
                             Q_mu = Tdomain%specel(n)%sl%Qs(i,j,k)
                             Q_kappa = Tdomain%specel(n)%sl%Qp(i,j,k)
-                            !- from Qs to gammas
-                            Q_mu = 20d0
-                            Q_kappa = 100d0
 
+                            !- from Qs to gammas
                             if (Q_mu .ne. Q_mu_old) then
                                 call inv_gamma_Q_const(n_solid,n_freq_q,Q_mu,omega_Q,omega_tau_s,agamma_mu)
                                 Q_mu_old = Q_mu
@@ -125,8 +123,6 @@ contains
                                 Tdomain%specel(n)%sl%betaval_P(:,i,j,k),                   &
                                 Tdomain%specel(n)%sl%gammaval_P(:,i,j,k))
 
-!                            call RK4_attenu_coefficients(n_solid,dt,omega_tau_s,agamma_kappa,   &
-!                                factor_commonP,alphavalP,betavalP,gammavalP)
 
                         enddo
                     enddo
@@ -193,10 +189,14 @@ contains
         real, intent(in) :: fmin,fmax
         real, dimension(0:nval-1), intent(out) :: omega
         integer   :: i
-
-        do i = 0,nval-1
-            omega(i) = 2d0*M_PI*fmin*(fmax/fmin)**(i/(nval-1d0))
-        end do
+        
+        if(nval == 1)then
+            omega(0) = dsqrt(fmin*fmax)
+        else
+            do i = 0,nval-1
+                omega(i) = 2d0*M_PI*fmin*(fmax/fmin)**(i/(nval-1d0))
+            end do
+        end if
 
     end subroutine freq_sampl
     !----------------------------------------------------------------------
@@ -227,7 +227,7 @@ contains
         data_vec(0:) = 1d0/Qref
         call cg_inv(n_freq_q,n_solid,Amat(0:,0:),data_vec(0:),agamma(0:))
 
-        call cg_inv(n_solid,n_solid,MATMUL(TRANSPOSE(Amat(0:,0:)),Amat(0:,0:)),MATMUL(TRANSPOSE(Amat(0:,0:)),data_vec(0:)),agamma(0:))
+!        call cg_inv(n_solid,n_solid,MATMUL(TRANSPOSE(Amat(0:,0:)),Amat(0:,0:)),MATMUL(TRANSPOSE(Amat(0:,0:)),data_vec(0:)),agamma(0:))
 
         !- values of gamma physically correct? (they must be positive)
         do ns = 0,n_solid-1
@@ -299,7 +299,6 @@ contains
         real, dimension(0:n_sol-1), intent(in) :: omega_s,agamma
         integer  :: ns
         real :: theta_1,theta_2,R,ws,r_m_part,omega_r
-        real, parameter  :: M_PI = 3.141592d0
 
         ws = 2d0*M_PI*f_source
 
@@ -313,7 +312,7 @@ contains
         !   and procedure to get M_relaxed in Liu, Anderson and Kanamori (1976) or M_unrelaxed in Peyrusse et al.
         !- note that in Liu et al. this is not a GZB that is dealt
 
-        !- (1/v(omega)) = real part (density/M(omega)^0.5)
+        !- (1/v(omega)) = real part (density/M(omega))^0.5)
         theta_1 = 1d0 ; theta_2 = 0d0 ; R = 0d0
 
         do ns = 0,n_sol-1
