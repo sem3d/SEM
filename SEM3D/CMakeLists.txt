@@ -129,16 +129,6 @@ set_target_properties(sem3d.exe PROPERTIES
 install(TARGETS sem3d.exe RUNTIME DESTINATION bin)
 
 
-add_executable(test_Q_coeffs ${PRJ}/TESTS/UNITS/test_Q_coeffs.c
-      ${PRJ}/SRC/compute_constant_Q.c
-      ${PRJ}/SRC/compute_iso_Q.c
-      ${PRJ}/SRC/constant_Q2_sub.c
-      ${PRJ}/SRC/iso_Q2_sub.c
-      ${PRJ}/SRC/nrutil_alloc.c
-      ${PRJ}/SRC/nrutil.c
-)
-
-target_link_libraries(test_Q_coeffs m)
 
 add_executable(test_pointlist
   ${SEMCOMMON}/pointlist.f90
