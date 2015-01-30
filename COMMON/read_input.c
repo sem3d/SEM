@@ -464,7 +464,9 @@ int generate_stations_line(yyscan_t scanner, sem_config_t* config, station_secti
     station_def_t *stat;
     int count = stations->count[0];
     int lstat = strlen(stations->section_name);
-    for(int k=0;k<count;++k) {
+    int k,i;
+
+    for(k=0;k<count;++k) {
         stat = (station_def_t*)malloc(sizeof(station_def_t));
         double alpha = (double)k/(double)(count-1);
         for(i=0;i<3;++i) {
@@ -486,8 +488,10 @@ int generate_stations_plane(yyscan_t scanner, sem_config_t* config, station_sect
     int counti = stations->count[0];
     int countj = stations->count[1];
     int lstat = strlen(stations->section_name);
-    for(int kj=0;k<countj;++k) {
-        for(int ki=0;k<counti;++k) {
+    int i, ki, kj;
+
+    for(kj=0;kj<countj;++kj) {
+        for(ki=0;ki<counti;++ki) {
             stat = (station_def_t*)malloc(sizeof(station_def_t));
             double ai = (double)ki/(double)(counti-1);
             double aj = (double)kj/(double)(countj-1);
@@ -510,6 +514,8 @@ int generate_stations_single(yyscan_t scanner, sem_config_t* config, station_sec
 {
     station_def_t *stat;
     int lstat = strlen(stations->section_name);
+    int i;
+
     stat = (station_def_t*)malloc(sizeof(station_def_t));
     for(i=0;i<3;++i) stat->coords[i] = stations->p0[i];
     stat->name = (char*)malloc( lstat+1 );
