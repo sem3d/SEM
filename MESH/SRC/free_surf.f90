@@ -26,41 +26,33 @@ contains
         integer :: i,j,k,n,nel,num,ok,neighbor,ind_elem
         integer, dimension(0:3)  ::  corner
 
-        do nel = 0,n_elem-1
+        find_el: do nel = 0,n_elem-1
             elem_fluid_free(nel) = .false.
             if(elem_solid(nel) .or. (dxadj(nel+1)- dxadj(nel) == 6))then
-                cycle   ! solid element, or each face sees another element
+                cycle find_el   ! solid element, or each face sees another element
             end if
+            ! now we look if the face #5 is free
+            call face2corner(Ipointer(0:,nel),5,corner)
+            find0 : do i = dxadj(nel),dxadj(nel+1)-1
+                neighbor = dxadjncy(i)
+                find1 : do j = 0,3   ! does the face belong to this neighbour?
+                    num = corner(j)
+                    ok = 0
+                    find2 : do k = 0,7
+                        if(Ipointer(k,neighbor) == num)then
+                            ok = 1
+                            exit find2
+                        endif
+                    enddo find2
+                    if(ok == 0) exit find1   ! face not shared with this neighbor
+                    if(j == 3) then
+                        cycle find_el  ! a neighbor found: not a free surface
+                    end if
+                end do find1
+            end do find0
+            ! no neighbor for the face #5: it'a a free face, Dirichlet condition
             elem_fluid_free(nel) = .true.
-        end do
-
-        !   find_el: do nel = 0,n_elem-1
-        !            elem_fluid_free(nel) = .false.
-        !            if(elem_solid(nel) .or. (dxadj(nel+1)- dxadj(nel) == 6))then
-        !                cycle find_el   ! solid element, or each face sees another element
-        !            end if
-        !          ! now we look if the face #5 is free
-        !            call face2corner(Ipointer(0:,nel),5,corner)
-        !        find0 : do i = dxadj(nel),dxadj(nel+1)-1
-        !                    neighbor = dxadjncy(i)
-        !            find1 : do j = 0,3   ! does the face belong to this neighbour?
-        !                 num = corner(j)
-        !                 ok = 0
-        !                 find2 : do k = 0,7
-        !                     if(Ipointer(k,neighbor) == num)then
-        !                         ok = 1
-        !                         exit find2
-        !                     endif
-        !                 enddo find2
-        !                 if(ok == 0) exit find1   ! face not shared with this neighbor
-        !                 if(j == 3) then
-        !                   cycle find_el  ! a neighbor found: not a free surface
-        !                 end if
-        !                end do find1
-        !              end do find0
-        !              ! no neighbor for the face #5: it'a a free face, Dirichlet condition
-        !              elem_fluid_free(nel) = .true.
-        !          end do find_el
+        end do find_el
 
     end subroutine find_fluid_elem_freesurf
 
