@@ -219,9 +219,7 @@ contains
 
         !-----------------------------------------------------------------------
         !-  PARTITIONING:
-        !--    here we use the METIS library (perhaps try Scotch later), v.4.0.3
-        !--    Eventually: upgrade to Metis 5.0, but the syntax has changed --
-
+        !--    here we use the METIS library
         call part_mesh_3D(n_nods,n_elem,n_points,Ipointer,nproc,dxadj,dxadjncy,part)
         write(*,*) "  --> Partition done."
 
@@ -1249,27 +1247,19 @@ contains
             else
                 itemp2(1,i) = 0
             end if
-            !write(*,*) "all_fluid = ", all_fluid
-            !write(*,*) "solid_fluid = ", solid_fluid
 
-            ! PARTIE QUE JAI COMMENTE POUR LE CAS SANS PML
-
-            !if (all_fluid .OR. solid_fluid) then
-            !    write(*,*) "      nel = ", nel
-            !    write(*,*) "elem_fluid_dirich(nel) = ", elem_fluid_dirich
-            !    write(*,*) "      --- Flag 3 ---"
-            !    if (elem_fluid_dirich(nel)) then
-            !        itemp2(2,i) = 1
-            !    else
-            !        itemp2(2,i) = 0
-            !    end if
-            !else
-            !    itemp2(2,i) = 0
-
-            ! END OF PARTIE QUE JAI COMMENTE POUR LE CAS SANS PML
-
-            itemp2(2,i) = 0
-            !end if
+            if (all_fluid .OR. solid_fluid) then
+!                write(*,*) "      nel = ", nel
+!                write(*,*) "elem_fluid_dirich(nel) = ", elem_fluid_dirich
+!                write(*,*) "      --- Flag 3 ---"
+                if (elem_fluid_dirich(nel)) then
+                    itemp2(2,i) = 1
+                else
+                    itemp2(2,i) = 0
+                end if
+            else
+                itemp2(2,i) = 0
+            end if
            ! write(*,*) "      --- Flag 4 ---"
         end do
         !write(*,*) "      --- before 4 ---"
@@ -1383,5 +1373,10 @@ end module mesh2spec
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!
