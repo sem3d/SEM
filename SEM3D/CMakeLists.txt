@@ -89,14 +89,7 @@ set(SEM3D_SOURCES_F
 #)
 #endif(NOT USE_MKL)
 
-set(SEM3D_SOURCES ${SEM3D_SOURCES_F}
-    ${PRJ}/SRC/compute_constant_Q.c
-    ${PRJ}/SRC/compute_iso_Q.c
-    ${PRJ}/SRC/constant_Q2_sub.c
-    ${PRJ}/SRC/iso_Q2_sub.c
-    ${PRJ}/SRC/nrutil_alloc.c
-    ${PRJ}/SRC/nrutil.c
-)
+set(SEM3D_SOURCES ${SEM3D_SOURCES_F})
 
 # Sources qui dependent du flag COUPLAGE
 set(SEM3D_SOURCES_CPL
