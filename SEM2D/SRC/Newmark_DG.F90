@@ -37,8 +37,8 @@ subroutine Newmark_PMC (Tdomain,Dt,n_it_max)
 
     ! Midpoint method :
     iter= 0
-    !call Newmark_PMC_Explicit (Tdomain,Dt,1) ! <---- A SUPPRIMER
-    !iter = 1                                 ! <---- A SUPPRIMER
+    call Newmark_PMC_Explicit (Tdomain,Dt,1) ! <---- A SUPPRIMER
+    iter = 1                                 ! <---- A SUPPRIMER
 
     do while (iter<n_it_max)
 
@@ -62,6 +62,7 @@ subroutine Newmark_PMC (Tdomain,Dt,n_it_max)
             call compute_InternalForces_HDG  (Tdomain%specel(n), &
               Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimex, &
               Tdomain%sSubDomain(mat)%hprimez,Tdomain%sSubDomain(mat)%hTprimez)
+            call add_tau_v (Tdomain%specel(n))
             call add_previous_state2forces (Tdomain%specel(n), Dt)
             if (Tdomain%specel(n)%PML) call update_Psi_ADEPML(Tdomain%specel(n), &
                             Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimez, Dt)

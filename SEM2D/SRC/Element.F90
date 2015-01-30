@@ -1454,6 +1454,55 @@ contains
     ! ###########################################################
     !>
     !! \brief This subroutine adds to the second member (i.e the forces) of the
+    !!  system we solve, the terms comming from Int(tau*v*w dS)
+    !! \param type (Element), intent (INOUT) Elem
+    !!
+    !<
+    subroutine  add_tau_v (Elem)
+        implicit none
+
+        type (Element), intent (INOUT) :: Elem
+        integer                        :: ngx, ngz, imin, imax
+        ngx = Elem%ngllx ; ngz = Elem%ngllz
+
+        call get_iminimax(Elem,0,imin,imax)
+        Elem%Forces(0:ngx-1,0,3) = Elem%Forces(0:ngx-1,0,3) - Elem%Coeff_Integr_Faces(imin:imax) * &
+                                 ( Elem%MatPen(imin:imax,0) * Elem%Veloc(0:ngx-1,0,0) &
+                                 + Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngx-1,0,1))
+        Elem%Forces(0:ngx-1,0,4) = Elem%Forces(0:ngx-1,0,4) - Elem%Coeff_Integr_Faces(imin:imax) * &
+                                 ( Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngx-1,0,0) &
+                                 + Elem%MatPen(imin:imax,1) * Elem%Veloc(0:ngx-1,0,1))
+
+        call get_iminimax(Elem,1,imin,imax)
+        Elem%Forces(ngx-1,0:ngz-1,3) = Elem%Forces(ngx-1,0:ngz-1,3) - Elem%Coeff_Integr_Faces(imin:imax) * &
+                                 ( Elem%MatPen(imin:imax,0) * Elem%Veloc(ngx-1,0:ngz-1,0) &
+                                 + Elem%MatPen(imin:imax,2) * Elem%Veloc(ngx-1,0:ngz-1,1))
+        Elem%Forces(ngx-1,0:ngz-1,4) = Elem%Forces(ngx-1,0:ngz-1,4) - Elem%Coeff_Integr_Faces(imin:imax) * &
+                                 ( Elem%MatPen(imin:imax,2) * Elem%Veloc(ngx-1,0:ngz-1,0) &
+                                 + Elem%MatPen(imin:imax,1) * Elem%Veloc(ngx-1,0:ngz-1,1))
+
+        call get_iminimax(Elem,2,imin,imax)
+        Elem%Forces(0:ngx-1,ngz-1,3) = Elem%Forces(0:ngx-1,ngz-1,3) - Elem%Coeff_Integr_Faces(imin:imax) * &
+                                 ( Elem%MatPen(imin:imax,0) * Elem%Veloc(0:ngx-1,ngz-1,0) &
+                                 + Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngx-1,ngz-1,1))
+        Elem%Forces(0:ngx-1,ngz-1,4) = Elem%Forces(0:ngx-1,ngz-1,4) - Elem%Coeff_Integr_Faces(imin:imax) * &
+                                 ( Elem%MatPen(imin:imax,2) * Elem%Veloc(0:ngx-1,ngz-1,0) &
+                                 + Elem%MatPen(imin:imax,1) * Elem%Veloc(0:ngx-1,ngz-1,1))
+
+        call get_iminimax(Elem,3,imin,imax)
+        Elem%Forces(0,0:ngz-1,3) = Elem%Forces(0,0:ngz-1,3) - Elem%Coeff_Integr_Faces(imin:imax) * &
+                                 ( Elem%MatPen(imin:imax,0) * Elem%Veloc(0,0:ngz-1,0) &
+                                 + Elem%MatPen(imin:imax,2) * Elem%Veloc(0,0:ngz-1,1))
+        Elem%Forces(0,0:ngz-1,4) = Elem%Forces(0,0:ngz-1,4) - Elem%Coeff_Integr_Faces(imin:imax) * &
+                                 ( Elem%MatPen(imin:imax,2) * Elem%Veloc(0,0:ngz-1,0) &
+                                 + Elem%MatPen(imin:imax,1) * Elem%Veloc(0,0:ngz-1,1))
+
+    end subroutine add_tau_v
+
+
+    ! ###########################################################
+    !>
+    !! \brief This subroutine adds to the second member (i.e the forces) of the
     !!  system we solve, the terms comming from the previous time-step.
     !! \param type (Element), intent (INOUT) Elem
     !!
@@ -1527,38 +1576,43 @@ contains
 
         type (Element), intent (INOUT) :: Elem
         real,           intent (IN)    :: Dt
-        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1) :: smbr, res
-        integer                        :: ngx, ngz, imin, imax
-        ngx = Elem%ngllx ; ngz = Elem%ngllz
+!        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1) :: smbr, res
+!        integer                        :: ngx, ngz, imin, imax
+!        ngx = Elem%ngllx ; ngz = Elem%ngllz
 
         ! Inversion for strains :
         Elem%Forces(:,:,0) =   Dt / Elem%Acoeff(:,:,12) * Elem%Forces(:,:,0)
         Elem%Forces(:,:,1) =   Dt / Elem%Acoeff(:,:,12) * Elem%Forces(:,:,1)
         Elem%Forces(:,:,2) =0.5*Dt/ Elem%Acoeff(:,:,12) * Elem%Forces(:,:,2)
         ! Inversion for velocities :
-        Elem%Forces(1:ngx-2,1:ngz-2,3) = Dt * Elem%MassMat(1:ngx-2,1:ngz-2) * Elem%Forces(1:ngx-2,1:ngz-2,3)
-        Elem%Forces(1:ngx-2,1:ngz-2,4) = Dt * Elem%MassMat(1:ngx-2,1:ngz-2) * Elem%Forces(1:ngx-2,1:ngz-2,4)
-        ! Storing the Forces in the array smbr :
-        call get_iminimax(Elem,0,imin,imax)
-        smbr(imin:imax,0:1) = Elem%Forces(0:ngx-1,0,3:4)
-        call get_iminimax(Elem,1,imin,imax)
-        smbr(imin:imax,0:1) = Elem%Forces(ngx-1,0:ngz-1,3:4)
-        call get_iminimax(Elem,2,imin,imax)
-        smbr(imin:imax,0:1) = Elem%Forces(0:ngx-1,ngz-1,3:4)
-        call get_iminimax(Elem,3,imin,imax)
-        smbr(imin:imax,0:1) = Elem%Forces(0,0:ngz-1,3:4)
-        ! Performing D^-1 * smbr :
-        res(:,0) = Elem%Dinv(:,0)*smbr(:,0) + Elem%Dinv(:,2)*smbr(:,1)
-        res(:,1) = Elem%Dinv(:,2)*smbr(:,0) + Elem%Dinv(:,1)*smbr(:,1)
-        ! Assigning solution to ext nodes of Elem%Forces :
-        call get_iminimax(Elem,0,imin,imax)
-        Elem%Forces(0:ngx-1,0,3:4)     = res(imin:imax,0:1)
-        call get_iminimax(Elem,1,imin,imax)
-        Elem%Forces(ngx-1,0:ngz-1,3:4) = res(imin:imax,0:1)
-        call get_iminimax(Elem,2,imin,imax)
-        Elem%Forces(0:ngx-1,ngz-1,3:4) = res(imin:imax,0:1)
-        call get_iminimax(Elem,3,imin,imax)
-        Elem%Forces(0,0:ngz-1,3:4)     = res(imin:imax,0:1)
+        Elem%Forces(:,:,3) = Dt * Elem%MassMat(:,:) * Elem%Forces(:,:,3)
+        Elem%Forces(:,:,4) = Dt * Elem%MassMat(:,:) * Elem%Forces(:,:,4)
+
+        ! FOLLOWING PART USED IF THE TERM int(tau*v*w) IS TAKEN IMPLICIT
+        ! Inversion for velocities :
+!        Elem%Forces(1:ngx-2,1:ngz-2,3) = Dt * Elem%MassMat(1:ngx-2,1:ngz-2) * Elem%Forces(1:ngx-2,1:ngz-2,3)
+!        Elem%Forces(1:ngx-2,1:ngz-2,4) = Dt * Elem%MassMat(1:ngx-2,1:ngz-2) * Elem%Forces(1:ngx-2,1:ngz-2,4)
+!        ! Storing the Forces in the array smbr :
+!        call get_iminimax(Elem,0,imin,imax)
+!        smbr(imin:imax,0:1) = Elem%Forces(0:ngx-1,0,3:4)
+!        call get_iminimax(Elem,1,imin,imax)
+!        smbr(imin:imax,0:1) = Elem%Forces(ngx-1,0:ngz-1,3:4)
+!        call get_iminimax(Elem,2,imin,imax)
+!        smbr(imin:imax,0:1) = Elem%Forces(0:ngx-1,ngz-1,3:4)
+!        call get_iminimax(Elem,3,imin,imax)
+!        smbr(imin:imax,0:1) = Elem%Forces(0,0:ngz-1,3:4)
+!        ! Performing D^-1 * smbr :
+!        res(:,0) = Elem%Dinv(:,0)*smbr(:,0) + Elem%Dinv(:,2)*smbr(:,1)
+!        res(:,1) = Elem%Dinv(:,2)*smbr(:,0) + Elem%Dinv(:,1)*smbr(:,1)
+!        ! Assigning solution to ext nodes of Elem%Forces :
+!        call get_iminimax(Elem,0,imin,imax)
+!        Elem%Forces(0:ngx-1,0,3:4)     = res(imin:imax,0:1)
+!        call get_iminimax(Elem,1,imin,imax)
+!        Elem%Forces(ngx-1,0:ngz-1,3:4) = res(imin:imax,0:1)
+!        call get_iminimax(Elem,2,imin,imax)
+!        Elem%Forces(0:ngx-1,ngz-1,3:4) = res(imin:imax,0:1)
+!        call get_iminimax(Elem,3,imin,imax)
+!        Elem%Forces(0,0:ngz-1,3:4)     = res(imin:imax,0:1)
 
     end subroutine inversion_local_solver
 

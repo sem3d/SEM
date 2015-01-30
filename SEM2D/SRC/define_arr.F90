@@ -35,7 +35,6 @@ subroutine define_arrays(Tdomain)
     real, dimension (:,:), allocatable :: xix,etax, xiz,etaz,Jac, Rlam,Rmu,RKmod,Whei,Id,wx, wz
     real, dimension (:,:), allocatable :: LocMassMat,OmegaCutx,OmegaCutz,du_du_x,du_du_z
     real, dimension (:,:), allocatable :: duux,duuz,wx_prime,wz_prime
-    logical  :: CG_RK4
 
     ! Gaetano Festa, modified 01/06/2004
     ! Modification (MPI) 13/10/2005

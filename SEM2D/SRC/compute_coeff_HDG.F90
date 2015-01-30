@@ -255,6 +255,7 @@ contains
             matD(n1,:,:) = matD(n1,:,:) + matD(n2,:,:)
             matD(n2,:,:) = matD(n1,:,:)
         enddo
+        matD = 0.
 
         ! Termes provenant de la matrice de masse :
         ! Bottom face :

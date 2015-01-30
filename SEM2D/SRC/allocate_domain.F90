@@ -390,11 +390,13 @@ subroutine allocate_domain (Tdomain)
         allocate (Tdomain%sVertex(n)%K_up (1:2*i*(2*i+1)/2))
         Tdomain%sVertex(n)%smbrLambda = 0.
         Tdomain%sVertex(n)%Kmat = 0.
+        Tdomain%sVertex(n)%K_up = 0.
      enddo
      do n = 0, Tdomain%n_face-1
          ngll = Tdomain%sFace(n)%ngll
          allocate  (Tdomain%sFace(n)%Smbr(0:ngll-1,0:1))
          allocate  (Tdomain%sFace(n)%Kinv(0:ngll-1,0:2))
+         Tdomain%sFace(n)%Kinv = 0.
          Tdomain%sFace(n)%Smbr = 0.
          !deallocate(Tdomain%sFace(n)%Traction)
          !deallocate(Tdomain%sFace(n)%InvMatPen)
