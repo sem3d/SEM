@@ -103,7 +103,7 @@ Pour le cas où le maillage n'est pas automatique le ficher doit contenir ::
   F 2 10. T F T T T F 0.
   F 2 10. T F F F T F 0. 
 
- Le format du fichier est le suivant :
+-  Le format du fichier est le suivant :
   
   - la première ligne contient le nomnbre de milieux décrits
   

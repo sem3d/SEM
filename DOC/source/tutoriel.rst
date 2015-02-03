@@ -38,20 +38,6 @@ contraintes :math:`\sigma` et les forces extérieures :math:`\vec{f}` :
 Avec en élasticité linéaire : :math:`\sigma=C:\nabla{}u`, où :math:`C` est le
 tenseur élastique d'ordre 4.
 
-Dans le domaine solide, on résout les deux équations suivantes:
-
-.. math::
-
-   \frac{\partial^2 \phi}{\partial t^2}-c_{P}^{2} \Delta \phi = 0
-
-   \frac{\partial^2 \mathbf{\psi}}{\partial t^2}-c_{S}^{2} \Delta\mathbf{\psi} = 0  
-
-   c_{P}=\sqrt{\frac{\lambda+2\mu}{\rho}} et c_{S}=\sqrt{\frac{\mu}{\rho}}
-
-où :math:`\phi` et :math:`\psi` sont les potentiels scalaire et vectoriel du champ de déplacement.
-:math:`\lambda` et :math:`\mu` sont les coefficients de Lamé.
-:math:`c_{P}` et :math:`c_{S}` sont respectivement les vitesses des ondes de pression et de cisaillement.
-
 Pour l'instant les milieux de propagations décrits dans SEM sont
 considérés isotropes.  Le code est prévu pour gérer les milieux
 anisotropes, mais il n'existe pas de manière simple de gérer la mise
@@ -210,7 +196,7 @@ domaine ([BER94]_, [FES05]_). :ref:`PML_schema` montre le mécanisme d'attenuati
 
    Un schéma simple d'un domaine numérique pour la propagation des ondes élastiques en présence d'une surface libre et de PML. Une onde de volume est toujours atténuée en pénétrant une PML. Les ondes de surface décroissent exponentiellement lorsqu'elles entrent dans des PML latérales, mais l'atténuation disparaît lorsqu'elles pénètrent la PML inférieure.
 
-Dans le domaine fréquentiel, une PML correspond à un prolongement de l'espace des coordonnées réelles dans le plan complexe. Ce prolongement est obtenu par le changement de coordonnées suivant (Teixeira and Chew, 1999):
+Dans le domaine fréquentiel, une PML correspond à un prolongement de l'espace des coordonnées réelles dans le plan complexe. Ce prolongement est obtenu par le changement de coordonnées suivant [FES05]_:
 
 .. math:: 
 
@@ -385,8 +371,8 @@ utilisable par SEM. On peut lui fournir différents formats :
 - Un maillage au format *Abacus* (d'extension ``.aba``)
 
 - Un maillage au format *UNV*, (aussi connu sous le nom *IDEAS*)
-  d'extension ``.unv``.  Les *UNiVersal files* (voir les details dans 
-  les annexes) sont des fichiers ASCII qui peuvent être utilisés
+  d'extension ``.unv``.  Les *UNiVersal files* (source: http://www.sdrl.uc.edu/universal-file-formats-for-modal-analysis-testing-1/file-format-storehouse)
+  sont des fichiers ASCII qui peuvent être utilisés
   pour stocker des informations sélectionnées à partir d'un fichier
   de modèle. Blocs d'information appelés *datasets*  constituent la
   structure de base d'un fichier universel. 
@@ -397,7 +383,7 @@ utilisable par SEM. On peut lui fournir différents formats :
     - Dataset **2412** : éléments finis (2D et 3D) avec leur connectivité
       nodale;
 
-    - Dataset **2477** : *Groupes physiques* (*PhysicalVolume* et
+    - Dataset **2477 ou 2467** : *Groupes physiques* (*PhysicalVolume* et
       *PhysicalSurface*) ils sont des ensembles d'éléments finis avec
       les mêmes propriétés (par exemple des éléments finis à l'intérieur
       de le même matériau, les surfaces physiques à être affectés avec
