@@ -11,7 +11,7 @@ Ce chapitre présente la chaine de calcul SEM, insistant plus
 particulièrement sur SEM3D.
 
 La chaîne logicielle SEM contient le code de simulation (``sem2d.exe``
-et ``sem3d.exe``, ainsi qu'un outil de partitionnement et préparation
+et ``sem3d.exe``, ainsi qu'un outil de partition et préparation
 de maillage ``mesher``).
 
 L'outil ``mesher`` permet de partitionner des maillages complexes au
@@ -27,7 +27,7 @@ d'outils *meshtools*.
 Les équations du mouvement
 --------------------------
 
-SEM résoud la propagation d'onde élastique dans un milieu décrit par l'équation
+SEM résout la propagation d'onde élastique dans un milieu décrit par l'équation
 locale du mouvement reliant le déplacement :math:`u` en chaque point matériel, les
 contraintes :math:`\sigma` et les forces extérieures :math:`\vec{f}` :
 
@@ -38,7 +38,7 @@ contraintes :math:`\sigma` et les forces extérieures :math:`\vec{f}` :
 Avec en élasticité linéaire : :math:`\sigma=C:\nabla{}u`, où :math:`C` est le
 tenseur élastique d'ordre 4.
 
-Dans le domaine solide, on résoud les deux équations suivantes:
+Dans le domaine solide, on résout les deux équations suivantes:
 
 .. math::
 
@@ -48,16 +48,16 @@ Dans le domaine solide, on résoud les deux équations suivantes:
 
    c_{P}=\sqrt{\frac{\lambda+2\mu}{\rho}} et c_{S}=\sqrt{\frac{\mu}{\rho}}
 
-où :math: `\phi` et :math: `\psi` sont les potentiels scalaire et vectoriel du champ de déplacement.
-:math: `\lambda` et :math: `\mu` sont les coefficients de Lamé.
-:math: `c_{P}` et :math: `c_{S}` sont respectivement les vitesses des ondes de pression et de cisaillement.
+où :math:`\phi` et :math:`\psi` sont les potentiels scalaire et vectoriel du champ de déplacement.
+:math:`\lambda` et :math:`\mu` sont les coefficients de Lamé.
+:math:`c_{P}` et :math:`c_{S}` sont respectivement les vitesses des ondes de pression et de cisaillement.
 
 Pour l'instant les milieux de propagations décrits dans SEM sont
 considérés isotropes.  Le code est prévu pour gérer les milieux
 anisotropes, mais il n'existe pas de manière simple de gérer la mise
 en données.
 
-Dans le domaine fluide (hypothèse du fluide parfait) , on résoud :
+Dans le domaine fluide (hypothèse du fluide parfait) , on résout :
 
 .. math::
 
@@ -65,7 +65,7 @@ Dans le domaine fluide (hypothèse du fluide parfait) , on résoud :
 
    v = \frac{1}{\rho}\nabla(\rho\phi)
 
-où :math: `v` c'est le champ de vitesse du fluide, :math: `\rho` la masse volumique, :math: `\phi` un potentiel scalaire et :math: `f_{ext}` la source extérieure, et :math: `\kappa` le module d'incompressibilité. 
+où :math:`v` c'est le champ de vitesse du fluide, :math:`\rho` la masse volumique, :math:`\phi` un potentiel scalaire et :math:`f_{ext}` la source extérieure, et :math:`\kappa` le module d'incompressibilité. 
   
 Formulation éléments finis
 --------------------------
@@ -216,12 +216,12 @@ Dans le domaine fréquentiel, une PML correspond à un prolongement de l'espace 
 
    \tilde{x}=x+\frac{\Sigma\left( x \right)}{i \omega}
 
-où :math: `\omega` est la fréquence angulaire et :math: `\Sigma\left( x \right)` une fonction arbitraire de :math:`x`, qui croît régulièrement de l'interface
+où :math:`\omega` est la fréquence angulaire et :math:`\Sigma\left( x \right)` une fonction arbitraire de :math:`x`, qui croît régulièrement de l'interface
 avec le milieu vers le frontière externe de la couche. Une onde plane écrite sous la forme:
 
 .. math::
 
-   \mathbf{\Phi}\left( x,z,t\right)=mathbf{A}e^{i\left(\omega t -k_{x}x -k_{z}z \right)}
+   \mathbf{\Phi}\left( x,z,t\right)=\mathbf{A}e^{i\left(\omega t -k_{x}x -k_{z}z \right)}
 
 est transformée dans la région de la PML en:
 
@@ -244,16 +244,16 @@ par la grille numérique, la frontière inférieure du modèle devrait être sit
 
 PML filtrante (FPML)
 ......................
-Dans le domaine fréquentiel, on peut déplacer le pôle de la transformation \tilde{x}=x+\frac{\Sigma\left( x \right)}{i \omega} le long
+Dans le domaine fréquentiel, on peut déplacer le pôle de la transformation :math:`\tilde{x}=x+\frac{\Sigma\left( x \right)}{i \omega}` le long
 de l'axe imaginaire, en remplaçant la transformation par:
 
-..math::
+.. math::
 
     \tilde{x}=x+\frac{\Sigma\left( x \right)}{i \omega + \omega_{c}}
 
 En utilisant cette transformation l'onde de volume décroît dans les PML selon la formule suivante:
 
-..math::
+.. math::
 
     \mathbf{\tilde{\Phi}}\left( x,z,t\right)=\mathbf{\Phi}\left( x,z,t\right) e^{-\frac{k_{x}}{\omega}\frac{\omega^{2}-i \omega\omega_{c}}{\omega^{2}+\omega^{2}_{c}}\Sigma}
 
@@ -274,7 +274,7 @@ conduisant à un régime élastique. Pour :math:`\omega \to \infty`, la partie r
 alors que la partie imaginaire disparaît: on retrouve asymptotiquement une PML standard. 
 En regardant la partie réelle, cette couche ressemble à un milieu élastique à basses fréquences
 et à une couche dissipative pour des fréquences plus élevées, la transition étant décrite par un filtre passe-bas
-avec une fréquence de coupure autour de :math:`\omega_{c}`. Pour :math:`\omega = \frac{\omega_{c}}{2}, on assure une absorption d'environ
+avec une fréquence de coupure autour de :math:`\omega_{c}`. Pour :math:`\omega = \frac{\omega_{c}}{2}`, on assure une absorption d'environ
 :math:`\frac{1}{\sqrt{2}}` celle d'une PML standard. D'un autre côté, la partie imaginaire a un maximum pour :math:`\omega=\omega_{c}`
 correspondant aussi à un décalage de phase maximum si :math:`\Sigma > 2 \pi`. Pour une fréquence de coupure égale
 au quart ou à la moitié de la fréquence de la source, on peut considérer que les FPML ont presque le même
@@ -385,8 +385,8 @@ utilisable par SEM. On peut lui fournir différents formats :
 - Un maillage au format *Abacus* (d'extension ``.aba``)
 
 - Un maillage au format *UNV*, (aussi connu sous le nom *IDEAS*)
-  d'extension ``.unv``.  Les *UNiVersal files* (les detailles dans 
-  les annexes) sont des fichiers en ASCII qui peuvent être utilisés
+  d'extension ``.unv``.  Les *UNiVersal files* (voir les details dans 
+  les annexes) sont des fichiers ASCII qui peuvent être utilisés
   pour stocker des informations sélectionnées à partir d'un fichier
   de modèle. Blocs d'information appelés *datasets*  constituent la
   structure de base d'un fichier universel. 
@@ -400,7 +400,7 @@ utilisable par SEM. On peut lui fournir différents formats :
     - Dataset **2477** : *Groupes physiques* (*PhysicalVolume* et
       *PhysicalSurface*) ils sont des ensembles d'éléments finis avec
       les mêmes propriétés (par exemple des éléments finis à l'intérieur
-      de le même materiau, les surfaces physiques à être affectés avec
+      de le même matériau, les surfaces physiques à être affectés avec
       des conditions limites).
 
 - Un maillage au format *HDF5*, spécifique, dont la structure est
@@ -413,7 +413,7 @@ utilisable par SEM. On peut lui fournir différents formats :
 
 L'outil mailleur, en plus de ses entrées en ligne de commande,
 s'appuie sur un fichier externe ``mat.dat``, donnant quelques
-informations sur le maillage à générer : nombre de matériaus, présence
+informations sur le maillage à générer : nombre de matériaux, présence
 d'éléments PML, type de matériau (solide ou fluide).
 
 
@@ -421,7 +421,7 @@ Préparation d'un cas de calcul
 ------------------------------
 
 Pour lancer un calcul SEM, il faut se placer dans le répertoire du cas et y placer
-les fichiers nécéssaires à son exécution. L'arborescence doit être la suivante ::
+les fichiers nécessaires à son exécution. L'arborescence doit être la suivante ::
 
   CAS/
   |- input.spec
@@ -445,60 +445,12 @@ les fichiers nécéssaires à son exécution. L'arborescence doit être la suiva
   Ce fichier contient la description de chaque matériau : :math:`\rho, V_p, V_s`, un nombre
   de points GLL par direction de la maille de référence.
 
-  Le format du fichier est le suivant :
-  
-  - la première ligne contient le nomnbre de milieux décrits
-  
-  - Une ligne par milieu, contenant :
-  
-    - le type de milieu (Solide, Fluide, PML solide (P)m PML fluide (L) )
-  
-    - Les vitesses d'ondes P, et S
-  
-    - La densité
-  
-    - L'ordre des éléments en X, Y, Z (Y est ignoré en 2D)
-  
-    - Un pas de temps (ignoré dans la version actuelle)
-  
-    - Les attenuations d'ondes P et S
-  
-  - 2 lignes de commentaires
-  
-  - Pour chaque milieu de type PML (donc P ou L), une ligne indiquant les directions d'atténuation,
-    et le type d'attenuation :
-  
-    - Un caractère pour le type de PML (filtrante (T), ou standard (F))
-  
-    - paramètres n et A pour les PML filtrantes
-  
-    - 3 couples de deux drapeaux T ou F (pour True False) indiquant si la PML attenue dans
-      les directions X, Y et Z respectivement (premier flag du couple) et dans le sens positif (T)
-      ou négatif de l'axe.
-  
-    - La fréquence de coupure en cas de PML filtrante
-  
-  Exemple ::
-  
-    27
-    S  6300.00  2500.00   2800. 5   5    5  0.000005 0. 0.
-    P  6300.00  2500.00   2800. 7   7    5  0.000005 0. 0.
-    P  6300.00  2500.00   2800. 7   7    5  0.000005 0. 0.
-    # PML properties
-    # Filtering? npow,Apow,X?,left?,Y?,Forwrd?,Z?,down?,cutoff freq
-    F 2 10. T T T T F F 0.
-    F 2 10. T F T T F F 0.
-
 ``capteurs.dat`` :
 
   Contient une description des sorties capteurs souhaitées.
 
-Le fichier ``input.spec`` est décrit en détail dans la section
+Les fichieres ``input.spec``, ``material.input`` et ``capteurs.dat`` sont décrit en détail dans la section
 _`Description des paramètres de SEM3D`.
-
-Des exemples de fichiers `material.input` et `capteurs.dat` sont
-disponibles dans les tests du code. Ces derniers sont de simples
-tables de paramètres.
 
 
 Exemples de modélisation avec SEM3D
@@ -512,7 +464,7 @@ et les mots clés pour lancer des calculs avec SEM3D. Il s'agit d'un
 cas de surface libre (demi espace) avec le sol stratifié et fluide
 entouré par des PMLs.
 
-Pour préparer le lancement d'un calcul SEM, dans le répertoir du cas,
+Pour préparer le lancement d'un calcul SEM, dans le répertoire du cas,
 il faut avoir 6 fichiers qui sont mesh.input, mat.dat [#]_, mater.in,
 material.input [#]_, input.spec, capteur.dat.
 
@@ -561,7 +513,7 @@ La description de chaque fichier est la suivante:
      1   # 8 or 27 control points for elements (1 or 2)
 
 3) :file:`mater.in` : il décrire le nombre du couches du milieu et les
-   propriétés du matériaux. Le mesher va utiliser ce fichier pour
+   propriétés du matériaux. Le mailleur va utiliser ce fichier pour
    générer le fichier "material.input" dans le cas du maillage
    automatique. Ce fichier doit contenir ::
 
@@ -578,9 +530,9 @@ La description de chaque fichier est la suivante:
      # dt : Pas de temps (pour l'instant, il est ignoré)
      # Qp et Gs : Facteurs de qualité d'atténuation des ondes P et S
 
-4) :file:`material.input` : Ce fichier va être créé par le mesher au moment de
+4) :file:`material.input` : Ce fichier va être créé par le mailleur au moment de
    la génération du maillage. Il décrit toutes les propriétés des
-   matéiaux, les PMLs et les directions de PMLs.
+   matériaux, les PMLs et les directions de PMLs.
 
 5) :file:`input.spec` : Ce fichier décrit le chargement, limite le temps de
    simulation, et choisit la taille du milieu a être sauve garder dans
@@ -646,7 +598,7 @@ La description de chaque fichier est la suivante:
          atn_period = 0.2;      # model period 
      };
 
-6) :file:`capteur.dat` : il selectionne les points pour présenter les
+6) :file:`capteur.dat` : il sélectionne les points pour présenter les
    résultats sous la forme de tableau. Les résultats que nous pouvons
    sortir sous la forme de tableau sont la vitesse, le déplacement et
    l'accélération.
@@ -718,12 +670,12 @@ Les étapes de construction sont les suivantes :
 
 - Création d'une grille cartésienne dans la projection souhaitée (*mt_grid*)
 
-- (optionel) Création de grilles supplémentaires pour mailler des couches en profondeur épousant la topographie
+- (optionnel) Création de grilles supplémentaires pour mailler des couches en profondeur épousant la topographie
   de surface (*utilisateur*)
 
 - Génération du maillage et du fichier matériau associé (*mt_topo*)
 
-- Partitionnement du maillage (*mesher*)
+- Partition du maillage (*mesher*)
 
 
 Nous allons traiter un exemple de génération de maillage à partir d'un fichier srtm ::

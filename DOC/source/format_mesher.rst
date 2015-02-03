@@ -103,6 +103,35 @@ Pour le cas où le maillage n'est pas automatique le ficher doit contenir ::
   F 2 10. T F T T T F 0.
   F 2 10. T F F F T F 0. 
 
-Les lettres ``T`` et ``F`` (True et False) sont utilisées pour définir les directions de l'atténuation de la PML. Trois couples de deux 
-drapeaux T ou F indiquant si la PML attenue dans les directions X, Y et Z respectivement 
-(premier flag du couple) et dans le sens positif (T) ou négatif de l'axe.
+ Le format du fichier est le suivant :
+  
+  - la première ligne contient le nomnbre de milieux décrits
+  
+  - Une ligne par milieu, contenant :
+  
+    - le type de milieu (Solide, Fluide, PML solide (P)m PML fluide (L) )
+  
+    - Les vitesses d'ondes P, et S
+  
+    - La densité
+  
+    - L'ordre des éléments en X, Y, Z (Y est ignoré en 2D)
+  
+    - Un pas de temps (ignoré dans la version actuelle)
+  
+    - Les attenuations d'ondes P et S
+  
+  - 2 lignes de commentaires
+  
+  - Pour chaque milieu de type PML (donc P ou L), une ligne indiquant les directions d'atténuation,
+    et le type d'attenuation :
+  
+    - Un caractère pour le type de PML (filtrante (T), ou standard (F))
+  
+    - paramètres n et A pour les PML filtrantes
+  
+    - 3 couples de deux drapeaux T ou F (pour True False) indiquant si la PML attenue dans
+      les directions X, Y et Z respectivement (premier flag du couple) et dans le sens positif (T)
+      ou négatif de l'axe.
+  
+    - La fréquence de coupure en cas de PML filtrante

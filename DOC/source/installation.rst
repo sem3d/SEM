@@ -78,27 +78,6 @@ paramétrer la compilation. Le paramétrage s'effectue en deux étapes :
   (sans optimisation et sans debuggage avec :program:`gcc`, optimisé sans
   debuggage avec :program:`ifort`).
 
-  Lorsqu'on change des variables, il faut reconfigurer (touche ``c``).
-
-  Après chaque configuration, on affiche les variables avancées (touche ``t``).
-
-  Il faut vérifier que : - CMAKE_Fortran_COMPILER = ifort
-                         - CMAKE_Fortran_FLAGS = -lhdf5
-                         - OPT_MPI = ON
-
-
-- La seconde étape, la génération des fichiers ``Makefile`` ne peut se faire que si
-  l'option ``g`` (*generate and exit*) apparait dans
-  l'interface. Cette option n'apparait que si la dernière étape de
-  configuration n'a pas modifié de variables.
-
-  En effet, il se peut qu'une reconfiguration change d'autres
-  variables (lorsqu'on change le compilateur par exemple), il faut
-  alors lancer la configuration une seconde fois.
-
-  Lorsque l'étape de configuration ne modifie aucune variable, on peut
-  générer les Makefile (touche ``g``).
-
 Compilation
 -----------
 

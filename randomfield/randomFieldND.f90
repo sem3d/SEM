@@ -113,7 +113,7 @@ contains
         double precision, dimension(:), allocatable :: dgemm_mult;
         !integer, dimension(:), allocatable :: testSeed!TEST
 
-        write(*,*) "INSIDE 'createStandardGaussianFieldUnstructShinozuka'"
+        !write(*,*) "INSIDE 'createStandardGaussianFieldUnstructShinozuka'"
 
         call MPI_COMM_SIZE(MPI_COMM_WORLD, nb_procs, code)
         call MPI_COMM_RANK(MPI_COMM_WORLD, rang, code)
@@ -180,12 +180,12 @@ contains
         kNStep  = kAdjust*(ceiling(kMax/kDelta) + 1);
         kNTotal = product(kNStep);
 
-        if(rang == 0) write(*,*) "Nmc     = ", Nmc
-        if(rang == 0) write(*,*) "kNTotal = ", kNTotal
-        if(rang == 0) write(*,*) "kDelta  = ", kDelta
-        if(rang == 0) write(*,*) "kNStep  = ", kNStep
-        if(rang == 0) write(*,*) "xMinGlob  = ", xMinGlob
-        if(rang == 0) write(*,*) "xMaxGlob  = ", xMaxGlob
+        !if(rang == 0) write(*,*) "Nmc     = ", Nmc
+        !if(rang == 0) write(*,*) "kNTotal = ", kNTotal
+        !if(rang == 0) write(*,*) "kDelta  = ", kDelta
+        !if(rang == 0) write(*,*) "kNStep  = ", kNStep
+        !if(rang == 0) write(*,*) "xMinGlob  = ", xMinGlob
+        !if(rang == 0) write(*,*) "xMaxGlob  = ", xMaxGlob
 
         if(kNTotal < 1) then
             write(*,*) "ERROR - In 'createStandardGaussianFieldUnstruct': kNTotal should be a positive integer (possibly a truncation problem)"
@@ -244,7 +244,7 @@ contains
             end if
         end do
 
-        if(rang == 0) write(*,*) "Spectra (Sk) cut in: ", Sk
+        !if(rang == 0) write(*,*) "Spectra (Sk) cut in: ", Sk
 
         randField(:,:) = 2*sqrt(product(deltaK)/((2*pi)**(nDim))) &
             * randField(:,:) !Obs: sqrt(product(corrL)) is not needed because of normalization
@@ -302,7 +302,7 @@ contains
         !integer, dimension(:), allocatable :: testSeed!TEST
 
 
-        write(*,*) "INSIDE 'createStandardGaussianFieldUnstructVictor'"
+        !write(*,*) "INSIDE 'createStandardGaussianFieldUnstructVictor'"
 
         call MPI_COMM_SIZE(MPI_COMM_WORLD, nb_procs, code)
         call MPI_COMM_RANK(MPI_COMM_WORLD, rang, code)
@@ -310,8 +310,8 @@ contains
         nDim    = size(xPoints, 1);
         xNTotal = size(xPoints, 2);
 
-        write(*,*) "nDim =", nDim
-        write(*,*) "xNTotal =", xNTotal
+        !write(*,*) "nDim =", nDim
+        !write(*,*) "xNTotal =", xNTotal
         !call dispCarvalhol(xPoints, "xPoints")
 
         allocate(xPointsNorm (nDim, xNTotal))
@@ -358,8 +358,8 @@ contains
         end if
         !!
 
-        write(*,*) "xMaxGlob = ", xMaxGlob;
-        write(*,*) "xMinGlob = ", xMinGlob;
+        !write(*,*) "xMaxGlob = ", xMaxGlob;
+        !write(*,*) "xMinGlob = ", xMinGlob;
 
 
         !Setting kMax e kStep
@@ -377,10 +377,10 @@ contains
         randField = 0;
         step      = rMax(1)/dble(rNTotal)
 
-        if(rang == 0) write(*,*) "rMax(1) = ",rMax(1);
-        if(rang == 0) write(*,*) "rNTotal = ",rNTotal;
-        if(rang == 0) write(*,*) "rDelta  = ",rDelta;
-        if(rang == 0) write(*,*) "step    = ",step;
+        !if(rang == 0) write(*,*) "rMax(1) = ",rMax(1);
+        !if(rang == 0) write(*,*) "rNTotal = ",rNTotal;
+        !if(rang == 0) write(*,*) "rDelta  = ",rDelta;
+        !if(rang == 0) write(*,*) "step    = ",step;
 
         !Initializing the seed
         !call calculate_random_seed(testSeed, 0)!TEST
@@ -470,7 +470,7 @@ contains
             call MPI_ABORT(MPI_COMM_WORLD, error, code)
         end if
 
-        if(rang == 0) write(*,*) "Spectra (Sk) cut in: ", Sk
+        !if(rang == 0) write(*,*) "Spectra (Sk) cut in: ", Sk
 
         randField(:,:) = sqrt((1.0d0)/((2.0d0*pi)**(nDim)))&
             * randField(:,:)

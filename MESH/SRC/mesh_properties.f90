@@ -168,7 +168,7 @@ contains
             read*, nfile
             n_blocks = nfile   ! number of materials
             allocate(unv_files(0:nfile-1))
-            call mat_table_construct(tabmat)
+            call mat_table_construct_unv(tabmat)
             call lec_init_unv(unv_files)
 
             n_mate = size(tabmat,1)
@@ -1377,6 +1377,24 @@ contains
         close(10)
 
     end subroutine mat_table_construct
+    !--------------------------------------------------------------------
+    !--------------------------------------------------------------------
+    !-------------------------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------------------------
+    subroutine mat_table_construct_unv(mattab)
+        !- obtention of the material table array: important for the fluid/solid interfaces in mesh2spec
+        character, dimension(:), allocatable, intent(inout)  :: mattab
+        integer                 :: i,nblock
+
+        open(10,file="material.input",action="read",status="old")
+        read(10,*) nblock
+        allocate(mattab(0:nblock-1))
+        do i = 0,size(mattab)-1
+            read(10,"(a1)") mattab(i)
+        end do
+        close(10)
+
+    end subroutine mat_table_construct_unv
     !--------------------------------------------------------------------
     !--------------------------------------------------------------------
     subroutine mat_table_construct_ondafly(nmat,nmat_tot,matarray,mattab,pml_bool,pml_t,pml_b)
