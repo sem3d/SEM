@@ -410,7 +410,7 @@ contains
         integer, dimension( MPI_STATUS_SIZE ) :: status
         integer :: nbBitesInt, seedSize
 
-        if(.not.(Tdomain%sSubDomain(mat)%material_type == "R" .and. Tdomain%subD_exist(mat))) then
+        if(.not.(Tdomain%sSubDomain(mat)%material_type == "R")) then
             write(*,*) "!!!ERROR:'define_random_seed' was called wrongly"
             write(*,*) "Rang =", rg, "mat = ", mat
             write(*,*) "material_type =", Tdomain%sSubDomain(mat)%material_type, ", existence = ", Tdomain%subD_exist(mat)

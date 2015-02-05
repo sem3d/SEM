@@ -322,8 +322,7 @@ contains
         authorization = .false.
 
         if(Tdomain%subD_exist(mat)) then
-            if(Tdomain%sSubDomain(assocMat)%material_type == "R" .or. &
-               Tdomain%sSubDomain(assocMat)%material_type == "S") then
+            if(Tdomain%sSubDomain(assocMat)%material_type == "R") then
                authorization = .true.
             end if
         end if
