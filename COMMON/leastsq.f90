@@ -63,14 +63,14 @@ contains
         ! Very simple line search that chooses between 0.1 x alpha and 2 x alpha
         alphamin = alpha
         fmin = 1d100
-        r = 0.1
-        do while (r<2.0)
+        r = 0.05
+        do while (r<1.1)
             val = fun(dim, nn, x0+r*alpha*dir, args0, args1)
             if (val<fmin) then
                 fmin = val
                 alphamin = r*alpha
             end if
-            r = r + 0.1
+            r = r + 0.05
         end do
         alpha = alphamin
     end subroutine line_search

@@ -297,9 +297,13 @@ contains
         integer, intent(in) :: dim, nn
         double precision, dimension(0:dim-1), intent(in) :: x, xref
         double precision, dimension(0:dim-1,0:nn-1), intent(in) :: nodes
-        double precision :: xa, ya, za
+        double precision :: xa, ya, za, xrx, xry, xrz
         call shape27_local2global(nodes, x(0), x(1), x(2), xa, ya, za)
-        shape27_min = (xa-xref(0))**2 + (ya-xref(1))**2 + (za-xref(2))**2
+        xrx = 1d0/max(abs(xref(0)),1d0)
+        xry = 1d0/max(abs(xref(1)),1d0)
+        xrz = 1d0/max(abs(xref(2)),1d0)
+        shape27_min =  (xrx*(xa-xref(0)))**2 + (xry*(ya-xref(1)))**2 + (xrz*(za-xref(2)))**2
+ !       write(*,*) "minfun=", shape27_min, " at ", x(0), x(1), x(2)
     end function shape27_min
     !---------------------------------------------------------------------------
     subroutine shape27_mingrad(dim, nn, x, nodes, xref, grad)
@@ -308,12 +312,18 @@ contains
         double precision, dimension(0:dim-1,0:nn-1), intent(in) :: nodes
         double precision, dimension(0:dim-1), intent(out) :: grad
         double precision, dimension(0:dim-1,0:dim-1) :: jac
-        double precision :: xa, ya, za
+        double precision :: xa, ya, za, xrx, xry, xrz, fval
         call shape27_local2global(nodes, x(0), x(1), x(2), xa, ya, za)
         call shape27_local2jacob(nodes, x(0), x(1), x(2), jac)
-        grad(0) = 2*(jac(0,0)*(xa-xref(0))+jac(0,1)*(ya-xref(1))+jac(0,2)*(za-xref(2)))
-        grad(1) = 2*(jac(1,0)*(xa-xref(0))+jac(1,1)*(ya-xref(1))+jac(1,2)*(za-xref(2)))
-        grad(2) = 2*(jac(2,0)*(xa-xref(0))+jac(2,1)*(ya-xref(1))+jac(2,2)*(za-xref(2)))
+        xrx = 1d0/max(xref(0)**2,1d0)
+        xry = 1d0/max(xref(1)**2,1d0)
+        xrz = 1d0/max(xref(2)**2,1d0)
+        grad(0) = 2*(jac(0,0)*xrx*(xa-xref(0))+jac(0,1)*xry*(ya-xref(1))+jac(0,2)*xrz*(za-xref(2)))
+        grad(1) = 2*(jac(1,0)*xrx*(xa-xref(0))+jac(1,1)*xry*(ya-xref(1))+jac(1,2)*xrz*(za-xref(2)))
+        grad(2) = 2*(jac(2,0)*xrx*(xa-xref(0))+jac(2,1)*xry*(ya-xref(1))+jac(2,2)*xrz*(za-xref(2)))
+!        write(*,*) "dminfun/dx=", grad(0)
+!        write(*,*) "dminfun/dy=", grad(1)
+!        write(*,*) "dminfun/dz=", grad(2)
     end subroutine shape27_mingrad
     !---------------------------------------------------------------------------
     subroutine shape27_global2local(coord, xa, ya, za, xi, eta, zeta)
@@ -330,7 +340,7 @@ contains
         xref(0) = xa
         xref(1) = ya
         xref(2) = za
-        call minimize_cg(3, 27, xin, coord, xref, shape27_min, shape27_mingrad, 0.001D0, xout, niter)
+        call minimize_cg(3, 27, xin, coord, xref, shape27_min, shape27_mingrad, 0.1D0, xout, niter)
         xi = xout(0)
         eta = xout(1)
         zeta = xout(2)
