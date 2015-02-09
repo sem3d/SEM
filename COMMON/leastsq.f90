@@ -105,7 +105,9 @@ contains
         !
         integer, parameter :: maxiter=1000
         double precision, parameter :: gtol=1e-20
+        logical :: ok
 
+        ok = .true.
         alpha = alpha0
         xout = x0
         call gradfun(dim, nn, xout, args0, args1, grad)
@@ -115,6 +117,14 @@ contains
         old_gnorm = gnorm
         do i=1, maxiter
             if (gnorm<gtol) exit
+            if (xout(0)<-1.1 .or. xout(1)<1.1 .or. xout(2)<1.1) then
+                ok = .false.
+                exit
+            endif
+            if (xout(0)>1.1 .or. xout(1)>1.1 .or. xout(2)>1.1) then
+                ok = .false.
+                exit
+            endif
             call line_search(dim, nn, args0, args1, fun, xout, sdir, alpha)
             xout = xout + alpha * pgrad
             call gradfun(dim, nn, xout, args0, args1, grad)
@@ -130,7 +140,11 @@ contains
             pgrad = -grad
             gnorm = vdot(dim, grad, grad)
         end do
-        niter = i
+        if (ok) then
+            niter = i
+        else
+            niter = -1
+        end if
     end subroutine minimize_cg
 
     subroutine cg_inv(m,n,Amat,dataval,model_val)

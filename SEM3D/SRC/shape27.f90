@@ -281,7 +281,7 @@ contains
         !
         double precision :: f
         integer :: i, j
-        !- computation of the derivative matrix, dx_(jj)/dxi_(ii)
+        !- computation of the derivative matrix, J(i,j)= dx_(jj)/dxi_(ii)
         jac = 0.
         do i = 0,26
             do j = 0,2
@@ -355,14 +355,16 @@ contains
         nit = i
     end subroutine simple_newton
 
-    subroutine shape27_global2local(coord, xa, ya, za, xi, eta, zeta)
+    subroutine shape27_global2local(coord, xa, ya, za, xi, eta, zeta, ok)
         use mleastsq
         double precision, dimension(0:2,0:26), intent(in)  :: coord
         double precision, intent(in) :: xa, ya, za
         double precision, intent(out) :: xi, eta, zeta
+        logical, intent(out) :: ok
         !
         integer :: niter
         double precision, dimension(0:2) :: xin, xout, xref
+        ok = .true.
         xin(0) = 0.
         xin(1) = 0.
         xin(2) = 0.
@@ -371,7 +373,7 @@ contains
         xref(2) = za
         !call minimize_cg(3, 27, xin, coord, xref, shape27_min, shape27_mingrad, 0.1D0, xout, niter)
         call simple_newton(coord, xref, xin, xout, niter)
-        call minimize_cg(3, 27, xin, coord, xref, shape27_min, shape27_mingrad, 0.1D0, xout, niter)
+        if (niter==1000 .or. niter<0) ok=.false.
         xi = xout(0)
         eta = xout(1)
         zeta = xout(2)
