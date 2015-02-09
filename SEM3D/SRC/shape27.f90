@@ -326,9 +326,38 @@ contains
 !        write(*,*) "dminfun/dz=", grad(2)
     end subroutine shape27_mingrad
     !---------------------------------------------------------------------------
+
+    subroutine simple_newton(nodes, xref, xin, xout, nit)
+        double precision, dimension(0:2), intent(in) :: xref, xin
+        double precision, dimension(0:2), intent(out) :: xout
+        integer, intent(out) :: nit
+        double precision, dimension(0:2,0:26), intent(in) :: nodes
+        double precision, dimension(0:2,0:2) :: jac
+        double precision, dimension(0:2) :: x
+        double precision :: xa, ya, za, err, Det
+        integer, parameter :: niter=1000
+        integer :: i
+        xout = xin
+        do i=1,niter
+            call shape27_local2global(nodes, xout(0), xout(1), xout(2), xa, ya, za)
+            call shape27_local2jacob(nodes, xout(0), xout(1), xout(2), Jac)
+            call invert_3d (Jac, Det)
+            xa = xref(0)-xa
+            ya = xref(1)-ya
+            za = xref(2)-za
+            x(0) = Jac(0,0)*xa + Jac(1,0)*ya + Jac(2,0)*za
+            x(1) = Jac(0,1)*xa + Jac(1,1)*ya + Jac(2,1)*za
+            x(2) = Jac(0,2)*xa + Jac(1,2)*ya + Jac(2,2)*za
+            err = x(0)**2+x(1)**2+x(2)**2
+            if (err<1e-12) exit
+            xout = xout + x
+        end do
+        nit = i
+    end subroutine simple_newton
+
     subroutine shape27_global2local(coord, xa, ya, za, xi, eta, zeta)
         use mleastsq
-        double precision, dimension(0:2,0:7), intent(in)  :: coord
+        double precision, dimension(0:2,0:26), intent(in)  :: coord
         double precision, intent(in) :: xa, ya, za
         double precision, intent(out) :: xi, eta, zeta
         !
@@ -340,6 +369,8 @@ contains
         xref(0) = xa
         xref(1) = ya
         xref(2) = za
+        !call minimize_cg(3, 27, xin, coord, xref, shape27_min, shape27_mingrad, 0.1D0, xout, niter)
+        call simple_newton(coord, xref, xin, xout, niter)
         call minimize_cg(3, 27, xin, coord, xref, shape27_min, shape27_mingrad, 0.1D0, xout, niter)
         xi = xout(0)
         eta = xout(1)
