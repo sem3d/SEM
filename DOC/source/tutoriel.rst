@@ -245,12 +245,12 @@ En utilisant cette transformation l'onde de volume décroît dans les PML selon 
 
 La décroissance exponentielle devient maintenant dépendante de la fréquence par le facteur :math:`\frac{\omega^{2}-i \omega\omega_{c}}{\omega^{2}+\omega^{2}_{c}}`.
 Sa partie réelle contribue au changement d'amplitude de la décroissance, alors que sa partie imaginaire
-est responsable d'un décalage en temps qui dépend également de :math:`\Sigma` (:ref:PML_filt).
+est responsable d'un décalage en temps qui dépend également de :math:`\Sigma` :ref:`PML_filt`
 
 .. _PML_filt:
 
 .. figure:: ../figures/PML_fig002.png
-   :scale: 40%
+   :scale: 80%
    :align: center
 
    Parties réelle et imaginaire du coefficient de décroissance, représenté en fonction de :math:`\frac{\omega}{\omega_{c}}`.
