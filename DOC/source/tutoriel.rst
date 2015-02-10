@@ -435,6 +435,10 @@ les fichiers nécessaires à son exécution. L'arborescence doit être la suivan
 
   Contient une description des sorties capteurs souhaitées.
 
+``mesh4spec.*``
+
+  Les fichiers sont créé automatiquement pour les outil de maillage.
+
 Les fichieres ``input.spec``, ``material.input`` et ``capteurs.dat`` sont décrit en détail dans la section
 _`Description des paramètres de SEM3D`.
 
