@@ -117,7 +117,7 @@ contains
         old_gnorm = gnorm
         do i=1, maxiter
             if (gnorm<gtol) exit
-            if (xout(0)<-1.1 .or. xout(1)<1.1 .or. xout(2)<1.1) then
+            if (xout(0)<-1.1 .or. xout(1)<-1.1 .or. xout(2)<-1.1) then
                 ok = .false.
                 exit
             endif
