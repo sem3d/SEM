@@ -23,7 +23,7 @@ subroutine Newmark (Tdomain)
     integer :: ns, ncc,i,j,n,np, ngllx, ngllz, mat, nelem,nf, w_face, nv_aus, nf_aus, nv
     integer :: n_face_pointed, tag_send, tag_receive, i_send, i_stock, ngll, ierr, i_proc
     integer, dimension (MPI_STATUS_SIZE) :: status
-    real :: bega, gam1,alpha,dt
+    real :: bega, gam1, alpha, dt, timelocal
 
     real, dimension (0:1) :: V_free_vertex
     real, dimension (:,:), allocatable :: Vxloc, Vzloc, V_free
@@ -104,24 +104,10 @@ subroutine Newmark (Tdomain)
         enddo
 
 
-
         ! External Forces
-        do n = 0, Tdomain%n_source-1
-            do ns =0, Tdomain%sSource(n)%ine-1
-                ncc = Tdomain%sSource(n)%Elem(ns)%nr
-                ngllx = Tdomain%specel(ncc)%ngllx; ngllz = Tdomain%specel(ncc)%ngllz
+        timelocal =Tdomain%TimeD%rtime + 0.5*Tdomain%TimeD%dtmin
+        call Compute_external_forces (Tdomain,timelocal)
 
-                do j = 0,ngllz-1
-                    do i = 0,ngllx-1
-                        do np = 0,1
-                            Tdomain%specel(ncc)%Forces(i,j,np) = Tdomain%specel(ncc)%Forces(i,j,np) +   &
-                                CompSource (Tdomain%sSource(n),Tdomain%TimeD%rtime)*  Tdomain%sSource(n)%Elem(ns)%ExtForce(i,j,np)
-                        enddo
-                    enddo
-                enddo
-
-            enddo
-        enddo
 
         ! Communication of Forces
 

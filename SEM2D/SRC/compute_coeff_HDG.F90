@@ -218,6 +218,8 @@ contains
         Elem%CAinv(imin:imax,1,2) = (Elem%Mu(0,0:ngz-1)) &
                                   * Dt / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,1,2)
 
+        Elem%CAinv(:,:,:) = 0.5 * Elem%CAinv(:,:,:)
+
     end subroutine compute_CAinv
 
     ! ###########################################################
@@ -274,6 +276,8 @@ contains
         call get_iminimax(Elem,3,imin,imax)
         matD(imin:imax,0,0) = matD(imin:imax,0,0) + 1./Dt*Elem%Acoeff(0,0:ngz-1,12)*Elem%Density(0,0:ngz-1)
         matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(0,0:ngz-1,12)*Elem%Density(0,0:ngz-1)
+
+        matD(:,:,:) = 2. * matD(:,:,:)
 
         ! Inversion de la matrice D sur tous les noeuds de bord :
         det(:) = matD(:,0,0) * matD(:,1,1) - matD(:,0,1) * matD(:,1,0)

@@ -292,15 +292,19 @@ subroutine  sem()
         else if (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT .OR. &
                  Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC) then
             if (Tdomain%Implicitness==TIME_INTEG_EXPLICIT) then
-                call Newmark_PMC_explicit(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
+                call PMC_explicit(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
             elseif (Tdomain%Implicitness==TIME_INTEG_SEMI_IMPLICIT) then
-                call Newmark_PMC(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
+                !call PMC_splitted(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
+                call Midpoint_Implicit(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
             endif
         endif
 
         if (ntime==Tdomain%TimeD%NtimeMax-1) then
             interrupt=1
         endif
+
+        ! incrementation du pas de temps
+        Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
 
 #ifdef COUPLAGE
         call envoi_vitesse_mka(Tdomain, ntime) !! syst. lineaire vitesse
@@ -348,7 +352,7 @@ subroutine  sem()
             protection = 1
         end if
 
-        if (Tdomain%bCapteur) call evalueSortieCapteur(ntime)
+        if (Tdomain%bCapteur) call evalueSortieCapteur(ntime+1)
 
         if (i_snap == 0 .or. sortie_capteur) then
 
@@ -379,15 +383,12 @@ subroutine  sem()
         endif
 
 
-        !if(Tdomain%LogicD%CompEnerg) call global_energy_generalized(Tdomain)
-
-
         ! sortie des  ...
-        if (Tdomain%logicD%save_fault_trace.and.i_snap==0) call save_fault_trace (Tdomain, ntime)
+        if (Tdomain%logicD%save_fault_trace.and.i_snap==0) call save_fault_trace (Tdomain, ntime+1)
 
 
         ! sauvegarde des vitesses ?
-        if (Tdomain%logicD%save_trace) call save_trace(Tdomain, ntime)
+        if (Tdomain%logicD%save_trace) call save_trace(Tdomain, ntime+1)
 
 
         if (i_snap==0) then
@@ -420,10 +421,7 @@ subroutine  sem()
         endif
 
         ! incrementation du pas de temps
-        Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
-
-        ! Sorties des Capteurs :
-        !call capteurs_veloc (Tdomain,Tdomain%TimeD%rtime)
+        !Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
 
     enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
