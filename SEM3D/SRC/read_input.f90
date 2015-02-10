@@ -551,7 +551,7 @@ contains
             ! Comportement Spacial
             ! i_type_source==1
             ndir = sqrt(src%dir(1)**2 + src%dir(2)**2 + src%dir(3)**2)
-            Tdomain%Ssource(nsrc)%dir(0:2) = src%dir(1:3)/ndir
+            if (ndir>0) Tdomain%Ssource(nsrc)%dir(0:2) = src%dir(1:3)/ndir
 
             ! i_type_source==2
             Tdomain%Ssource(nsrc)%Moment(0,0) = src%moments(1)
