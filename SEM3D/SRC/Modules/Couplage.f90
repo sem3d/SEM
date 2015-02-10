@@ -167,33 +167,26 @@ contains
         integer, intent(out) :: MaxNgParDir
         !
         integer :: rg, nb_procs
-        integer :: i,j,k,l,ipoint
+        integer :: i,j,l
         integer :: tag,ierr
-        integer :: ngll1, np, ngll2, ngll  !, ngllx, ngllz,
-        integer :: numFace,numElem,mat
+        integer :: np, ngll  !, ngllx, ngllz,
+        integer :: numFace
         integer :: iface, bufsize,decal,nbchamps
         integer :: Ngauss, MaxNgParFace, gl_MaxNgParFace, gl_MaxNgParDir !, iout
-        real :: outx, outy, outz
         logical :: dejaPresent
 
         integer, dimension (MPI_STATUS_SIZE) :: status
 
         integer, dimension(:),pointer:: tabNbFace
         integer,dimension(Tdomain%nb_procs) :: displs1, count1
-        integer,dimension(Tdomain%nb_procs) :: displs2, count2
         integer,dimension(5) :: ibuf
         real, dimension (:),pointer :: buf
-        real,dimension(0:7) :: x, y, z
 
-        real, dimension(3) :: tmp
-        integer numlocal, nb_point_de_couplage, itmp
-!        integer, parameter :: ndim=128
+        integer nb_point_de_couplage
         integer gl_Ngauss
 
         real,dimension (:), pointer :: dmin_couplage
 
-        integer ik, jk
-        character(MAX_FILE_SIZE) s1 !Gsa
 
         rg = Tdomain%rank
         nb_procs = Tdomain%nb_procs
@@ -335,12 +328,12 @@ contains
                     call MPI_RECV(buf,bufsize, MPI_DOUBLE_PRECISION, i,tag, Tdomain%communicateur, status,ierr)
 
                     do iface=1,tabNbFace(i+1)
-                        face_couplage(iface+decal)%face   = buf(1+NbChamps*(iface-1))
-                        face_couplage(iface+decal)%proc   = buf(2+NbChamps*(iface-1))
-                        face_couplage(iface+decal)%ngll1  = buf(3+NbChamps*(iface-1))
-                        face_couplage(iface+decal)%ngll2  = buf(4+NbChamps*(iface-1))
+                        face_couplage(iface+decal)%face   = int(buf(1+NbChamps*(iface-1)))
+                        face_couplage(iface+decal)%proc   = int(buf(2+NbChamps*(iface-1)))
+                        face_couplage(iface+decal)%ngll1  = int(buf(3+NbChamps*(iface-1)))
+                        face_couplage(iface+decal)%ngll2  = int(buf(4+NbChamps*(iface-1)))
                         do j=0,3
-                            face_couplage(iface+decal)%noeud(j) = buf(5+j+NbChamps*(iface-1))
+                            face_couplage(iface+decal)%noeud(j) = int(buf(5+j+NbChamps*(iface-1)))
                         enddo
                         do l=0,2
                             do j=0,3
