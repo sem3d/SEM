@@ -405,6 +405,34 @@ contains
         grad(2) = 2*(jac(2,0)*(xa-xref(0))+jac(2,1)*(ya-xref(1))+jac(2,2)*(za-xref(2)))
     end subroutine shape8_mingrad
     !---------------------------------------------------------------------------
+    subroutine simple_newton_8(nodes, xref, xin, xout, nit)
+        double precision, dimension(0:2), intent(in) :: xref, xin
+        double precision, dimension(0:2), intent(out) :: xout
+        integer, intent(out) :: nit
+        double precision, dimension(0:2,0:7), intent(in) :: nodes
+        double precision, dimension(0:2,0:2) :: jac
+        double precision, dimension(0:2) :: x
+        double precision :: xa, ya, za, err, Det
+        integer, parameter :: niter=1000
+        integer :: i
+        xout = xin
+        do i=1,niter
+            call shape8_local2global(nodes, xout(0), xout(1), xout(2), xa, ya, za)
+            call shape8_local2jacob(nodes, xout(0), xout(1), xout(2), Jac)
+            call invert_3d (Jac, Det)
+            xa = xref(0)-xa
+            ya = xref(1)-ya
+            za = xref(2)-za
+            x(0) = Jac(0,0)*xa + Jac(1,0)*ya + Jac(2,0)*za
+            x(1) = Jac(0,1)*xa + Jac(1,1)*ya + Jac(2,1)*za
+            x(2) = Jac(0,2)*xa + Jac(1,2)*ya + Jac(2,2)*za
+            err = x(0)**2+x(1)**2+x(2)**2
+            if (err<1e-12) exit
+            xout = xout + x
+        end do
+        nit = i
+    end subroutine simple_newton_8
+    !---------------------------------------------------------------------------
     subroutine shape8_global2local(coord, xa, ya, za, xi, eta, zeta, ok)
         use mleastsq
         double precision, dimension(0:2,0:7), intent(in)  :: coord
@@ -422,6 +450,7 @@ contains
         xref(1) = ya
         xref(2) = za
         call minimize_cg(3, 8, xin, coord, xref, shape8_min, shape8_mingrad, 0.001D0, xout, niter)
+        call simple_newton_8(coord, xref, xin, xout, niter)
         if (niter==1000 .or. niter<0) ok=.false.
         xi = xout(0)
         eta = xout(1)

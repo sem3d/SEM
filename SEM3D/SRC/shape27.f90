@@ -326,8 +326,7 @@ contains
 !        write(*,*) "dminfun/dz=", grad(2)
     end subroutine shape27_mingrad
     !---------------------------------------------------------------------------
-
-    subroutine simple_newton(nodes, xref, xin, xout, nit)
+    subroutine simple_newton_27(nodes, xref, xin, xout, nit)
         double precision, dimension(0:2), intent(in) :: xref, xin
         double precision, dimension(0:2), intent(out) :: xout
         integer, intent(out) :: nit
@@ -353,8 +352,8 @@ contains
             xout = xout + x
         end do
         nit = i
-    end subroutine simple_newton
-
+    end subroutine simple_newton_27
+    !---------------------------------------------------------------------------
     subroutine shape27_global2local(coord, xa, ya, za, xi, eta, zeta, ok)
         use mleastsq
         double precision, dimension(0:2,0:26), intent(in)  :: coord
@@ -372,7 +371,7 @@ contains
         xref(1) = ya
         xref(2) = za
         !call minimize_cg(3, 27, xin, coord, xref, shape27_min, shape27_mingrad, 0.1D0, xout, niter)
-        call simple_newton(coord, xref, xin, xout, niter)
+        call simple_newton_27(coord, xref, xin, xout, niter)
         if (niter==1000 .or. niter<0) ok=.false.
         xi = xout(0)
         eta = xout(1)
