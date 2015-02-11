@@ -26,6 +26,7 @@ subroutine SourcePosition (Tdomain)
     integer, parameter :: NMAXEL=20
     integer, dimension(NMAXEL) :: elems
     double precision, dimension(0:2,NMAXEL) :: coordloc
+    double precision, parameter :: EPS = 1D-13
     logical :: inside
 
     rg = Tdomain%rank
@@ -46,8 +47,8 @@ subroutine SourcePosition (Tdomain)
             xi   = coordloc(0,i)
             eta  = coordloc(1,i)
             zeta = coordloc(2,i)
-            if (xi<-1 .or. eta<-1 .or. zeta<-1) inside = .false.
-            if (xi>1 .or. eta>1 .or. zeta>1) inside = .false.
+            if (xi<(-1-EPS) .or. eta<(-1-EPS) .or. zeta<(-1-EPS)) inside = .false.
+            if (xi>(1+EPS) .or. eta>(1+EPS) .or. zeta>(1+EPS)) inside = .false.
             if (inside) then
                 n_el = elems(i)
                 exit
