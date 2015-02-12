@@ -6,8 +6,8 @@ subroutine StoF_coupling(Tdomain)
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
-    integer  :: n,nf,ne,nv,nfs,ngll1,ngll2,ngll,i,j,nnf,nne,nnv,orient_e,    &
-        code,ngllSF,ngllSF_PML
+    integer  :: n,nf,ne,nv,nfs,ngll1,ngll2,ngll,i,nnf,nne,nnv,orient_e,    &
+        ngllSF,ngllSF_PML
     real, dimension(:,:,:), allocatable  :: VelocFace
 
     ! init.
@@ -182,10 +182,8 @@ subroutine FtoS_coupling(Tdomain)
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
-    integer  :: n,nf,ne,nv,nff,ngll1,ngll2,ngll,i,j,k,nnf,nne,nnv,orient_e,    &
-        n_rings,shift,I_give_to,I_take_from,code,which_elem,ngllSF,ngllSF_PML
-    integer, dimension(MPI_STATUS_SIZE)   :: statut
-    integer, parameter   :: etiquette = 100
+    integer  :: n,nf,ne,nv,nff,ngll1,ngll2,ngll,i,nnf,nne,nnv,orient_e,    &
+        ngllSF,ngllSF_PML
     real, dimension(:,:), allocatable  :: PressFace
 
     ! init.

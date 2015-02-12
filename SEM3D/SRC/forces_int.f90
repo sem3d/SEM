@@ -28,7 +28,7 @@ contains
         logical, intent(IN) :: aniso
         logical, intent(IN) :: solid   ! flag : solid or fluid element?
 
-        integer :: n_z, m1,m2,m3, i,j,k
+        integer :: m1,m2,m3, i,j,k
         real :: epsilon_trace_over_3
         real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) ::  DXX,DXY,DXZ, &
             DYX,DYY,DYZ, &
@@ -146,11 +146,12 @@ contains
                     DZX,DZY,DZZ, &
                     Elem%Mu, Elem%Kappa, &
                     m1,m2,m3, n_solid, &
-                                !     Elem%onemSbeta, &
                     Elem%sl%R_xx_, Elem%sl%R_yy_, &
                     Elem%sl%R_xy_, Elem%sl%R_xz_, Elem%sl%R_yz_, &
-                                !      Elem%onemPbeta, &
-                    Elem%sl%R_vol_)
+                    Elem%sl%R_vol_, &
+                    Elem%sl%onemSbeta, &
+                    Elem%sl%onemPbeta &
+                    )
                 !                             Elem%Mu, Elem%Lambda, &
                 !                             m1,m2,m3, n_solid, &
                 !                             Elem%onemSbeta, Elem%R_xx_, Elem%R_yy_, &

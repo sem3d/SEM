@@ -380,6 +380,8 @@ subroutine read_Faces(Tdomain, face_id)
                     Tdomain%sFace(n)%Displ(i,j,2) = displ(idx2+2)
                     idx2 = idx2 + 3
                 else
+                    ! For solid fluid coupling, we need v0 = veloc at restart
+                    Tdomain%sFace(n)%V0 = Tdomain%sFace(n)%Veloc
                     Tdomain%sFace(n)%spml%Veloc1(i,j,0) = veloc1(idx3+0)
                     Tdomain%sFace(n)%spml%Veloc1(i,j,1) = veloc1(idx3+1)
                     Tdomain%sFace(n)%spml%Veloc1(i,j,2) = veloc1(idx3+2)
@@ -467,6 +469,8 @@ subroutine read_Edges(Tdomain, edge_id)
                 Tdomain%sEdge(n)%Displ(i,2) = displ(idx2+2)
                 idx2 = idx2 + 3
             else
+                ! For solid fluid coupling, we need v0 = veloc at restart
+                Tdomain%sEdge(n)%V0 = Tdomain%sEdge(n)%Veloc
                 Tdomain%sEdge(n)%spml%Veloc1(i,0) = veloc1(idx3+0)
                 Tdomain%sEdge(n)%spml%Veloc1(i,1) = veloc1(idx3+1)
                 Tdomain%sEdge(n)%spml%Veloc1(i,2) = veloc1(idx3+2)
@@ -549,6 +553,8 @@ subroutine read_Vertices(Tdomain, vertex_id)
             Tdomain%sVertex(n)%Displ(2) = displ(idx2+2)
             idx2 = idx2 + 3
         else
+            ! For solid fluid coupling, we need v0 = veloc at restart
+            Tdomain%sVertex(n)%V0 = Tdomain%sVertex(n)%Veloc
             Tdomain%sVertex(n)%spml%Veloc1(0) = veloc1(idx3+0)
             Tdomain%sVertex(n)%spml%Veloc1(1) = veloc1(idx3+1)
             Tdomain%sVertex(n)%spml%Veloc1(2) = veloc1(idx3+2)

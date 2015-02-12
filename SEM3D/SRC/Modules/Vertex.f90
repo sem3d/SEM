@@ -202,36 +202,7 @@ contains
 
         return
     end subroutine Correction_Vertex_FPML_Veloc
-    ! ###########################################################
 
-    subroutine get_vel_vertex(V,Vfree,dt,logic)
-        implicit none
-
-        type (Vertex), intent (IN) :: V
-        real, dimension (0:2), intent (INOUT) :: Vfree
-        logical, intent (IN) :: logic
-        real, intent(IN) :: dt
-
-        if (.not. V%PML) then
-
-            if (logic) then
-                Vfree(0:2) = Vfree(0:2) -  ( V%V0(0:2) + dt*V%MassMat*V%Forces(0:2) )
-            else
-                Vfree(0:2) =  V%V0(0:2) + dt*V%MassMat*V%Forces(0:2)
-            endif
-
-        else
-
-            if (logic) then
-                Vfree(0:2) = Vfree(0:2) - (V%spml%DumpVz(0) * V%spml%Veloc3(0:2) + dt * V%spml%DumpVz(1) * V%spml%Forces3(0:2) )
-            else
-                Vfree(0:2) =  V%spml%DumpVz(0) * V%spml%Veloc3(0:2) + dt * V%spml%DumpVz(1) * V%spml%Forces3(0:2)
-            endif
-
-        endif
-
-        return
-    end subroutine get_vel_vertex
     ! ###########################################################
 
     subroutine init_vertex(ve)

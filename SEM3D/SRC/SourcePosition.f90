@@ -54,7 +54,8 @@ subroutine SourcePosition (Tdomain)
             end if
         end do
         ! On ignore une source fluide dans le domaine solide
-        if(Tdomain%sSource(n_src)%i_type_source == 3 .and. Tdomain%specel(i)%solid) n_el = -1
+        if(Tdomain%sSource(n_src)%i_type_source == 3 .and.       Tdomain%specel(i)%solid) n_el = -1
+        if(Tdomain%sSource(n_src)%i_type_source /= 3 .and. .not. Tdomain%specel(i)%solid) n_el = -1
 
         Tdomain%Ssource(n_src)%elem = n_el
         if (n_el/=-1) then
@@ -66,7 +67,7 @@ subroutine SourcePosition (Tdomain)
         call MPI_AllReduce(Tdomain%sSource(n_src)%proc, src_proc, 1, MPI_INTEGER, &
                            MPI_MAX, Tdomain%communicateur, ierr)
 
-        write(*,*) "Found source on proc", src_proc
+        if (rg==0) write(*,*) "Found source on proc", src_proc
         if (src_proc==-1) then
             if (rg==0) then
                 write(*,*) "A source doesn't appear to be on any processor"

@@ -203,65 +203,6 @@ contains
         return
     end subroutine Correction_Edge_FPML_Veloc
 
-    ! ############################################
-
-    subroutine get_vel_edge (E, Vfree, ngll, dt, logic, orient)
-        implicit none
-
-        integer, intent (IN) :: ngll, orient
-        real, intent (IN) :: dt
-        type (Edge), intent (IN) :: E
-        real, dimension (1:ngll-2,0:2), intent (INOUT) :: Vfree
-        logical, intent (IN) :: logic
-
-        integer :: i,j
-
-        if (.not. E%PML) then
-
-            if (logic) then
-                if ( orient ==0 ) then
-                    do i = 0,2
-                        Vfree(1:ngll-2,i) = Vfree(1:ngll-2,i) - ( E%V0(1:ngll-2,i) + dt*E%MassMat(1:ngll-2)*E%Forces(1:ngll-2,i) )
-                    enddo
-                else
-                    do i = 0,2
-                        do j = 1, ngll-2
-                            Vfree(j,i) = Vfree(j,i) - ( E%V0(ngll-1-j,i) + dt*E%MassMat(ngll-1-j)*E%Forces(ngll-1-j,i) )
-                        enddo
-                    enddo
-                endif
-            else
-                do i = 0,2
-                    Vfree(1:ngll-2,i) =  E%V0(1:ngll-2,i) + dt*E%MassMat(1:ngll-2)*E%Forces(1:ngll-2,i)
-                enddo
-            endif
-
-        else
-
-            if (logic) then
-                if ( orient ==0 ) then
-                    do i = 0,2
-                        Vfree(1:ngll-2,i) = Vfree(1:ngll-2,i) - ( E%spml%DumpVz(1:ngll-2,0) * E%spml%Veloc3(1:ngll-2,i) &
-                            + dt * E%spml%DumpVz(1:ngll-2,1) * E%spml%Forces3(1:ngll-2,i) )
-                    enddo
-                else
-                    do i = 0,2
-                        do j = 1, ngll-2
-                            Vfree(j,i) = Vfree(j,i) - ( E%spml%DumpVz(ngll-1-j,0) * E%spml%Veloc3(ngll-1-j,i) + dt * E%spml%DumpVz(ngll-1-j,1) * E%spml%Forces3(ngll-1-j,i) )
-                        enddo
-                    enddo
-                endif
-            else
-                do i = 0,2
-                    Vfree(1:ngll-2,i) =  E%spml%DumpVz(1:ngll-2,0) * E%spml%Veloc3(1:ngll-2,i) + dt * E%spml%DumpVz(1:ngll-2,1) * E%spml%Forces3(1:ngll-2,i)
-                enddo
-            endif
-
-        endif
-
-        return
-    end subroutine get_vel_edge
-
     ! ###########################################################
     subroutine init_edge(ed)
         type(Edge), intent(inout) :: ed

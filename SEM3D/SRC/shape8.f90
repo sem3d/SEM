@@ -405,14 +405,16 @@ contains
         grad(2) = 2*(jac(2,0)*(xa-xref(0))+jac(2,1)*(ya-xref(1))+jac(2,2)*(za-xref(2)))
     end subroutine shape8_mingrad
     !---------------------------------------------------------------------------
-    subroutine shape8_global2local(coord, xa, ya, za, xi, eta, zeta)
+    subroutine shape8_global2local(coord, xa, ya, za, xi, eta, zeta, ok)
         use mleastsq
         double precision, dimension(0:2,0:7), intent(in)  :: coord
         double precision, intent(in) :: xa, ya, za
         double precision, intent(out) :: xi, eta, zeta
+        logical, intent(out) :: ok
         !
         integer :: niter
         double precision, dimension(0:2) :: xin, xout, xref
+        ok = .true.
         xin(0) = 0.
         xin(1) = 0.
         xin(2) = 0.
@@ -420,6 +422,7 @@ contains
         xref(1) = ya
         xref(2) = za
         call minimize_cg(3, 8, xin, coord, xref, shape8_min, shape8_mingrad, 0.001D0, xout, niter)
+        if (niter==1000 .or. niter<0) ok=.false.
         xi = xout(0)
         eta = xout(1)
         zeta = xout(2)

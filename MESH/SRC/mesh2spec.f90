@@ -219,9 +219,7 @@ contains
 
         !-----------------------------------------------------------------------
         !-  PARTITIONING:
-        !--    here we use the METIS library (perhaps try Scotch later), v.4.0.3
-        !--    Eventually: upgrade to Metis 5.0, but the syntax has changed --
-
+        !--    here we use the METIS library
         call part_mesh_3D(n_nods,n_elem,n_points,Ipointer,nproc,dxadj,dxadjncy,part)
         write(*,*) "  --> Partition done."
 
@@ -360,9 +358,8 @@ contains
             end do
 
             !- if Solid-Fluid: doubled nodes -> change of indices
-            call indices_modif(n_nods,n_SF_nodes,SF_n_global_faces,Nodes_on_SF,    &
-                SF_global_faces,Ipointer)
-
+            call indices_modif(n_nods,n_SF_nodes,SF_n_global_vertices,Nodes_on_SF,    &
+                               SF_global_vertices,Ipointer,initnode,elem_solid)
 
             !- which procs do SF vertices belong to?
             call SF_vertices_proc_belong(nproc,SF_n_global_vertices,part,    &
@@ -872,31 +869,43 @@ contains
 
         !---------------------------------------------------------------------
         !-------------------------------------------------------------------
-        subroutine indices_modif(n_nods,n_SF_nodes,SF_n_global_faces,Nodes_on_SF,    &
-            SF_global_faces,Ipointer)
+        subroutine indices_modif(n_nods,n_SF_nodes,SF_n_global_vertices,Nodes_on_SF,    &
+            SF_global_vertices,Ipointer,initnode,elem_solid)
 
             implicit none
-            integer, intent(in)   :: n_nods,n_SF_nodes,SF_n_global_faces
+            integer, intent(in)   :: n_SF_nodes,SF_n_global_vertices,n_nods
             integer, dimension(0:n_SF_nodes-1,0:1), intent(in)  :: Nodes_on_SF
-            type(SF_face), dimension(0:SF_n_global_faces-1), intent(in) ::   &
-                SF_global_faces
+            type(SF_vertex), dimension(0:SF_n_global_vertices-1), intent(in) ::   &
+                SF_global_vertices
             integer, dimension(0:,0:), intent(inout)   :: Ipointer
+            type(near_node), dimension(0:), intent(in)  ::  initnode
+            logical, dimension(0:), intent(in)  :: elem_solid
+            integer   :: i,j,n,nf,nel,nv,ns
+            type(near_entity), pointer  :: near_neighb => NULL()            
 
-            integer   :: i,j,n,nf
-
-            do nf = 0, SF_n_global_faces-1
-                n = SF_global_faces(nf)%elem(0)
-                do i = 0,n_nods-1
-                    do j = 0, n_SF_nodes-1
-                        if(Ipointer(i,n) == Nodes_on_SF(j,0))then
-                            Ipointer(i,n) = Nodes_on_SF(j,1)
-                            exit
-                        end if
+            do nv = 0,SF_n_global_vertices-1
+                ns = SF_global_vertices(nv)%node(1)  ! solid node
+                near_neighb => initnode(ns)%ptr
+                do while(associated(near_neighb))
+                    nel = near_neighb%elem
+                    if(elem_solid(nel))then
+                        near_neighb => near_neighb%pt
+                        cycle
+                    end if
+                    do i = 0,n_nods-1
+                        do j = 0, n_SF_nodes-1
+                            if(Ipointer(i,nel) == Nodes_on_SF(j,0))then
+                                Ipointer(i,nel) = Nodes_on_SF(j,1)
+                                exit
+                            end if
+                        end do
                     end do
+                    near_neighb => near_neighb%pt
                 end do
             end do
 
         end subroutine indices_modif
+
         !-----------------------------------------
 
     end subroutine gen_mesh
@@ -1238,27 +1247,19 @@ contains
             else
                 itemp2(1,i) = 0
             end if
-            !write(*,*) "all_fluid = ", all_fluid
-            !write(*,*) "solid_fluid = ", solid_fluid
 
-            ! PARTIE QUE JAI COMMENTE POUR LE CAS SANS PML
-
-            !if (all_fluid .OR. solid_fluid) then
-            !    write(*,*) "      nel = ", nel
-            !    write(*,*) "elem_fluid_dirich(nel) = ", elem_fluid_dirich
-            !    write(*,*) "      --- Flag 3 ---"
-            !    if (elem_fluid_dirich(nel)) then
-            !        itemp2(2,i) = 1
-            !    else
-            !        itemp2(2,i) = 0
-            !    end if
-            !else
-            !    itemp2(2,i) = 0
-
-            ! END OF PARTIE QUE JAI COMMENTE POUR LE CAS SANS PML
-
-            itemp2(2,i) = 0
-            !end if
+            if (all_fluid .OR. solid_fluid) then
+!                write(*,*) "      nel = ", nel
+!                write(*,*) "elem_fluid_dirich(nel) = ", elem_fluid_dirich
+!                write(*,*) "      --- Flag 3 ---"
+                if (elem_fluid_dirich(nel)) then
+                    itemp2(2,i) = 1
+                else
+                    itemp2(2,i) = 0
+                end if
+            else
+                itemp2(2,i) = 0
+            end if
            ! write(*,*) "      --- Flag 4 ---"
         end do
         !write(*,*) "      --- before 4 ---"
@@ -1372,5 +1373,10 @@ end module mesh2spec
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!

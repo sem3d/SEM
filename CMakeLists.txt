@@ -97,6 +97,9 @@ endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 
 set(SEM_EXTRA_LIBS)
 
+# NETLIB/MKL
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} netlib)
+
 # HDF5
 set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
 
@@ -137,7 +140,7 @@ set_target_properties(randomfield PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDI
 add_dependencies(randomfield semcommon)
 set(SEM_EXTRA_LIBS randomfield semcommon ${SEM_EXTRA_LIBS})
 
-
+add_subdirectory(COMMON/netlib)
 add_subdirectory(SEM2D)
 add_subdirectory(SEM3D)
 add_subdirectory(MESH)

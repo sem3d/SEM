@@ -26,6 +26,7 @@ subroutine init_protection(Tdomain, it, prot_file)
 
     call semname_protection_iter_rank_file(it,rg,prot_file)
 
+    call MPI_Barrier(Tdomain%communicateur, ierr)
 
     ! recherche et destruction au fur et a mesure des anciennes prots
     if (rg == 0) then

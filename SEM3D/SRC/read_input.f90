@@ -537,7 +537,7 @@ contains
             ! Comportement Spacial
             ! i_type_source==1
             ndir = sqrt(src%dir(1)**2 + src%dir(2)**2 + src%dir(3)**2)
-            Tdomain%Ssource(nsrc)%dir(0:2) = src%dir(1:3)/ndir
+            if (ndir>0) Tdomain%Ssource(nsrc)%dir(0:2) = src%dir(1:3)/ndir
 
             ! i_type_source==2
             Tdomain%Ssource(nsrc)%Moment(0,0) = src%moments(1)
@@ -652,6 +652,15 @@ contains
         Tdomain%TimeD%alpha               = Tdomain%config%alpha
         Tdomain%TimeD%beta                = Tdomain%config%beta
         Tdomain%TimeD%gamma               = Tdomain%config%gamma
+        if (rg==0) then
+            if (Tdomain%TimeD%alpha /= 0.5 .or. Tdomain%TimeD%beta /= 0.5 .or. Tdomain%TimeD%gamma /= 1.) then
+                write(*,*) "***WARNING*** : Les parametres alpha,beta,gamma sont ignores dans cette version"
+                write(*,*) "***WARNING*** : on prend: alpha=0.5, beta=0.5, gamma=1"
+            endif
+        end if
+        Tdomain%TimeD%alpha = 0.5
+        Tdomain%TimeD%beta = 0.5
+        Tdomain%TimeD%gamma = 1.
         Tdomain%TimeD%courant             = Tdomain%config%courant
         Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)
         call semname_read_input_meshfile(rg,Tdomain%mesh_file,fnamef) !indicates the path to the mesh file for this proc"
@@ -757,7 +766,7 @@ contains
             enddo
         endif
 
-        write(*,*) rg, "Reading materials done"
+        !write(*,*) rg, "Reading materials done"
 
         call finalize_mesh_connectivity(Tdomain)
         call select_output_elements(Tdomain, Tdomain%config)

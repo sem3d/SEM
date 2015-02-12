@@ -383,13 +383,15 @@ subroutine RUN_INIT_INTERACT(Tdomain,isort)
         !! Il faudra ajouter la gravite ici #ifdef COUPLAGE
         call read_restart(Tdomain, rg, isort)
         call MPI_Barrier(Tdomain%communicateur,code)
-        if(rg == 0) write (*,*) "--> RESTARTING ON ALL CPUs"
-        open(78,file=fnamef,status="unknown",position="append")
+        if(rg == 0) then
+            write (*,*) "--> RESTARTING ON ALL CPUs"
+            open(78,file=fnamef,status="unknown",position="append")
+        end if
     else
-        ! Sauvegarde des donnees de post-traitement
-        open(78,file=fnamef,status="unknown",position="rewind")
         ! on supprime tous les fichiers et repertoire de protection
         if(rg == 0) then
+            ! Sauvegarde des donnees de post-traitement
+            open(78,file=fnamef,status="unknown",position="rewind")
             call system('rm -Rf '//path_prot)
             ierr = sem_mkdir(path_prot)
         end if

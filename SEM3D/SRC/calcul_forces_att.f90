@@ -8,7 +8,7 @@
 !<
 subroutine calcul_forces_att(Fox,Foy,Foz, xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3, &
     dx,dy,dz, jac, poidsx,poidsy,poidsz, DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
-    mu_,ka_, ngllx,nglly,ngllz, n_solid, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_,R_vol_)
+    mu_,ka_, ngllx,nglly,ngllz, n_solid, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_,R_vol_,onemSbeta,onemPbeta)
     use sdomain
 
     implicit none
@@ -19,7 +19,8 @@ subroutine calcul_forces_att(Fox,Foy,Foz, xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3, &
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: xi1,xi2,xi3, et1,et2,et3, &
         ga1,ga2,ga3, jac, mu_,ka_, &
         DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
-    !! real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: onemSbeta, onemPbeta_  !!initial
+
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: onemSbeta, onemPbeta
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: Fox,Foz,Foy
     real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: dx
     real, dimension(0:nglly-1,0:nglly-1), intent(in) :: dy
@@ -40,11 +41,11 @@ subroutine calcul_forces_att(Fox,Foy,Foz, xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3, &
 
 
     xmu(:,:,:) = mu_(:,:,:)
-    !  modif mariotti fevrier 2007 cea
-    !xmu(:,:,:) = xmu(:,:,:) * onemSbeta_(:,:,:)
+    !  mu_relaxed -> mu_unrelaxed
+    xmu(:,:,:) = xmu(:,:,:) * onemSbeta(:,:,:)
     xkappa(:,:,:) = ka_(:,:,:)
-    !  modif mariotti fevrier 2007 cea
-    !xkappa(:,:,:) = xkappa(:,:,:) * onemPbeta_(:,:,:)
+    !  kappa_relaxed -> kappa_unrelaxed
+    xkappa(:,:,:) = xkappa(:,:,:) * onemPbeta(:,:,:)
     x2mu(:,:,:) = 2. * xmu(:,:,:)
 
     do k = 0,ngllz-1

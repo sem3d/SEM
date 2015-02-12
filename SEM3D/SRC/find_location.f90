@@ -31,6 +31,7 @@ contains
         double precision, dimension(0:2) :: p
         double precision :: xi, eta, zeta
         double precision, allocatable, dimension(:,:) :: coord
+        logical :: ok
         !! Find the closest node
         nnodes = Tdomain%n_nodes
         allocate(coord(0:2, 0:nnodes-1))
@@ -50,21 +51,23 @@ contains
             do i = 0,nnodes-1
                 if (Tdomain%specel(n)%Control_Nodes(i)/=best_node) cycle
                 !!
-                k = k+1
-                if (k>=nmax) exit
-                elems(k) = n
                 ! Compute local coordinates for the node
                 do j = 0, nnodes-1
                     coord(0:2, j) = Tdomain%Coord_Nodes(0:2, Tdomain%specel(n)%Control_Nodes(j))
                 enddo
                 if (nnodes==8) then
-                    call shape8_global2local(coord, x0, y0, z0, xi, eta, zeta)
+                    call shape8_global2local(coord, x0, y0, z0, xi, eta, zeta, ok)
                 else
-                    call shape27_global2local(coord, x0, y0, z0, xi, eta, zeta)
+                    call shape27_global2local(coord, x0, y0, z0, xi, eta, zeta, ok)
                 end if
-                localcoord(0,k) = xi
-                localcoord(1,k) = eta
-                localcoord(2,k) = zeta
+                if (ok) then
+                    k = k+1
+                    elems(k) = n
+                    localcoord(0,k) = xi
+                    localcoord(1,k) = eta
+                    localcoord(2,k) = zeta
+                endif
+                if (k>=nmax) exit
             end do
             if (k>=nmax) exit
         end do
