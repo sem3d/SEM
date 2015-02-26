@@ -201,9 +201,9 @@ subroutine  sem()
     Tdomain%TimeD%NtimeMin = 0
     ! Nombre d'iterations pour schemas en temps iteratifs
     if (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT) then
-        n_it_max = 2
+        n_it_max = 1
     elseif (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC) then
-        n_it_max = 4
+        n_it_max = 3
     endif
 
     isort = 1
@@ -292,10 +292,10 @@ subroutine  sem()
         else if (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT .OR. &
                  Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC) then
             if (Tdomain%Implicitness==TIME_INTEG_EXPLICIT) then
-                call PMC_explicit(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
+                call Midpoint_impl_expl(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
             elseif (Tdomain%Implicitness==TIME_INTEG_SEMI_IMPLICIT) then
                 !call PMC_splitted(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
-                call Midpoint_Implicit(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
+                call Midpoint_impl_semi_impl(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
             endif
         endif
 

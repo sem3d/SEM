@@ -17,15 +17,15 @@ contains
 
 
 !>
-!!\brief This Subroutine performs a Predictor MultiCorrector (PMC)
-!! method for advancing in time using an explicit approach.
+!!\brief This Subroutine performs an iterative Implicit Midpoint time integration
+!! The second member is computed at tn+1/2 using an iterative EXPLICIT approach.
 !!\version 1.0
 !!\date 20/11/2014
 !! This subroutine is used only HDG elements
 !! \param type (Domain), intent (INOUT) Tdomain
 !! \param real         , intent (IN)    Dt
 !<
-subroutine PMC_explicit (Tdomain,Dt,n_it_max)
+subroutine Midpoint_impl_expl (Tdomain,Dt,n_it_max)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
@@ -38,51 +38,41 @@ subroutine PMC_explicit (Tdomain,Dt,n_it_max)
 
     ! Initialization Phase
     do n=0,Tdomain%n_elem-1
-        ! Computation of the  prediction :
+        ! Initialization of variables at tn :
         Tdomain%specel(n)%Strain0(:,:,:) = Tdomain%specel(n)%Strain(:,:,:)
         Tdomain%specel(n)%V0(:,:,:)      = Tdomain%specel(n)%Veloc (:,:,:)
         if (Tdomain%specel(n)%PML) call initialize_Psi(Tdomain%specel(n))
     enddo
 
+    ! Initial Predictor phase.
+    timelocal = Tdomain%TimeD%rtime
+    call Forward_Euler_Resolution (Tdomain,timelocal,0.5*Dt)
+
     iter= 0
-
+    timelocal = Tdomain%TimeD%rtime + 0.5*Dt
     do while (iter<n_it_max)
-
-        ! Local time is tn for the first step, and tn+1/2 for the next ones
-        if (iter==0) then
-            timelocal = Tdomain%TimeD%rtime
-        else
-            timelocal = Tdomain%TimeD%rtime + 0.5*Dt
-        endif
-
-        ! Prediction Phase :
-        do n=0,Tdomain%n_elem-1
-            Tdomain%specel(n)%Strain = 0.5 * (Tdomain%specel(n)%Strain0 + Tdomain%specel(n)%Strain)
-            Tdomain%specel(n)%Veloc  = 0.5 * (Tdomain%specel(n)%V0      + Tdomain%specel(n)%Veloc )
-            !if (Tdomain%specel(n)%ADEPML) call Prediction_Psi(Tdomain%specel(n))
-        enddo
-
         ! Explicit resolution phase
-        call Forward_Euler_Resolution (Tdomain,timelocal,Dt)
-
+        call Forward_Euler_Resolution (Tdomain,timelocal,0.5*Dt)
         iter = iter+1
     enddo
 
+    ! Final Midpoint Evaluation using the values at tn+1/2 converged
+    call Forward_Euler_Resolution(Tdomain,timelocal,Dt)
 
     return
-end subroutine PMC_explicit
+end subroutine Midpoint_impl_expl
 
 
 !>
-!!\brief This Subroutine performs a midpoint method for advancing in time.
-!! The second member is computed at tn+1/2 using an iterative implicit approach.
+!!\brief This Subroutine performs an iterative Implicit Midpoint time integration
+!! The second member is computed at tn+1/2 using an iterative SEMI-IMPLICIT approach.
 !!\version 1.0
 !!\date 20/11/2014
 !! This subroutine is used only HDG elements
 !! \param type (Domain), intent (INOUT) Tdomain
 !! \param real         , intent (IN)    Dt
 !<
-subroutine Midpoint_Implicit (Tdomain,Dt,n_it_max)
+subroutine Midpoint_impl_semi_impl (Tdomain,Dt,n_it_max)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
@@ -95,20 +85,20 @@ subroutine Midpoint_Implicit (Tdomain,Dt,n_it_max)
 
     ! Initialization Phase
     do n=0,Tdomain%n_elem-1
-        ! Computation of the  prediction :
+        ! Initialization of variables at tn :
         Tdomain%specel(n)%Strain0(:,:,:) = Tdomain%specel(n)%Strain(:,:,:)
         Tdomain%specel(n)%V0(:,:,:)      = Tdomain%specel(n)%Veloc (:,:,:)
-        !if (Tdomain%specel(n)%PML) call initialize_Psi(Tdomain%specel(n))
+        if (Tdomain%specel(n)%PML) call initialize_Psi(Tdomain%specel(n))
     enddo
 
     ! Initial Predictor phase.
-    iter = 0
     timelocal = Tdomain%TimeD%rtime
     call Forward_Euler_Resolution(Tdomain,timelocal,0.5*Dt)
-    iter = 1
-    timelocal = Tdomain%TimeD%rtime + 0.5*Dt
 
+    iter = 0
+    timelocal = Tdomain%TimeD%rtime + 0.5*Dt
     do while (iter<n_it_max)
+        ! Semi-Implicit resolution phase
         call Semi_Implicit_Resolution (Tdomain,timelocal,0.5*Dt)
         iter = iter+1
     enddo
@@ -117,7 +107,7 @@ subroutine Midpoint_Implicit (Tdomain,Dt,n_it_max)
     call Forward_Euler_Resolution(Tdomain,timelocal,Dt)
 
     return
-end subroutine Midpoint_Implicit
+end subroutine Midpoint_impl_semi_impl
 
 
 !>
@@ -178,7 +168,7 @@ subroutine PMC_splitted (Tdomain,Dt,n_it_max)
         do n=0,Tdomain%n_elem-1
             Tdomain%specel(n)%Strain = 0.5 * (Tdomain%specel(n)%Strain0 + Tdomain%specel(n)%Strain)
             Tdomain%specel(n)%Veloc  = 0.5 * (Tdomain%specel(n)%V0      + Tdomain%specel(n)%Veloc )
-            if (Tdomain%specel(n)%ADEPML) call Prediction_Psi(Tdomain%specel(n))
+            !if (Tdomain%specel(n)%ADEPML) call Prediction_Psi(Tdomain%specel(n))
         enddo
 
         ! Semi-Iplicit Resolution Phase

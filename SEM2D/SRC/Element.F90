@@ -750,32 +750,6 @@ contains
 
     ! ###########################################################
     !>
-    !! \brief This subroutine computes the predictors at tn+1/2 of the
-    !! second members of the Psi evolutions equations for ADE-PML in a context
-    !! of a predictor-corrector-like time scheme. The predictor here is
-    !! simply Psi(tn+1/2) = 1/2 * (Psi(tn) + Psi(tn+1)).
-    !! USED ONLY for the ADE-PML in case of DG or HDG.
-    !! \param type (Element), intent (INOUT) Elem
-    !<
-    subroutine  Prediction_Psi (Elem)
-        implicit none
-
-        type (Element), intent (INOUT) :: Elem
-
-        Elem%PsiSxxx(:,:) = 0.5 * (Elem%Psi_store(:,:,0) + Elem%PsiSxxx(:,:))
-        Elem%PsiSzzz(:,:) = 0.5 * (Elem%Psi_store(:,:,1) + Elem%PsiSzzz(:,:))
-        Elem%PsiSxzx(:,:) = 0.5 * (Elem%Psi_store(:,:,2) + Elem%PsiSxzx(:,:))
-        Elem%PsiSxzz(:,:) = 0.5 * (Elem%Psi_store(:,:,3) + Elem%PsiSxzz(:,:))
-        Elem%PsiVxx(:,:)  = 0.5 * (Elem%Psi_store(:,:,4) + Elem%PsiVxx(:,:))
-        Elem%PsiVxz(:,:)  = 0.5 * (Elem%Psi_store(:,:,5) + Elem%PsiVxz(:,:))
-        Elem%PsiVzx(:,:)  = 0.5 * (Elem%Psi_store(:,:,6) + Elem%PsiVzx(:,:))
-        Elem%PsiVzz(:,:)  = 0.5 * (Elem%Psi_store(:,:,7) + Elem%PsiVzz(:,:))
-
-        return
-    end subroutine Prediction_Psi
-
-    ! ###########################################################
-    !>
     !! \brief Thus subroutine is used in a ADE-PML framework :
     !! the memory terms PsiS*** and PsiV*** are updated for the next iteration.
     !! In a RK4 framework, the ADE for the Psi variables is solved using RK4,
