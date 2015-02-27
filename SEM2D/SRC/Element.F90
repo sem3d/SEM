@@ -697,30 +697,17 @@ contains
     !! for the ADE-PML in case of DG or HDG.
     !! \param type (Element), intent (INOUT) Elem
     !<
-    subroutine  add_Psi4PML (Elem, is_half)
+    subroutine  add_Psi4PML (Elem)
         implicit none
 
         type (Element), intent (INOUT) :: Elem
-        logical,        intent (IN)    :: is_half
-        real       :: demi
 
-        demi = 1.
-        if (is_half) demi = 0.5
-            Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + Elem%PsiVxx(:,:)
-            Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + Elem%PsiVzz(:,:)
-            Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + demi * (Elem%PsiVxz(:,:) + Elem%PsiVzx(:,:))
-            Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + Elem%PsiSxxx(:,:) + Elem%PsiSxzz(:,:)
-            Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + Elem%PsiSxzx(:,:) + Elem%PsiSzzz(:,:)
-        !else
-        !    Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + 0.5 * (Elem%Psi_store(:,:,4) + Elem%PsiVxx(:,:))
-        !    Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + 0.5 * (Elem%Psi_store(:,:,7) + Elem%PsiVzz(:,:))
-        !    Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + 0.5 * (Elem%Psi_store(:,:,5) + Elem%PsiVxz(:,:))&
-        !                                            + 0.5 * (Elem%Psi_store(:,:,6) + Elem%PsiVzx(:,:))
-        !    Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + 0.5 * (Elem%Psi_store(:,:,0) + Elem%PsiSxxx(:,:))&
-        !                                            + 0.5 * (Elem%Psi_store(:,:,3) + Elem%PsiSxzz(:,:))
-        !    Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + 0.5 * (Elem%Psi_store(:,:,2) + Elem%PsiSxzx(:,:))&
-        !                                            + 0.5 * (Elem%Psi_store(:,:,1) + Elem%PsiSzzz(:,:))
-        !endif
+        Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + Elem%PsiVxx(:,:)
+        Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + Elem%PsiVzz(:,:)
+        Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + 0.5 * (Elem%PsiVxz(:,:) + Elem%PsiVzx(:,:))
+        Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + Elem%PsiSxxx(:,:) + Elem%PsiSxzz(:,:)
+        Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + Elem%PsiSxzx(:,:) + Elem%PsiSzzz(:,:)
+
         return
     end subroutine add_Psi4PML
 
@@ -761,101 +748,19 @@ contains
     !! \param real, intent (IN) coeff2
     !! \param real, intent (IN) Dt
     !<
-    subroutine  update_Psi_ADEPML_RK4 (Elem,hprime,hTprime,hprimez,hTprimez,coeff1,coeff2,Dt)
+    subroutine  update_Psi_ADEPML_RK4 (Elem,hTprime,hprimez,coeff1,coeff2,Dt)
         implicit none
 
         type(Element), intent (INOUT) :: Elem
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime, hTprime
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
+        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
         real, intent(IN) :: coeff1
         real, intent(IN) :: coeff2
         real, intent(IN) :: Dt
         real, dimension(0:Elem%ngllx-1,0:Elem%ngllz-1,0:7) :: smbr
-        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: VxNx, VxNz, VzNx, VzNz
-        integer          :: imin, imax, ngx, ngz
-        logical          :: usingVhat
-        ngx = Elem%ngllx ; ngz = Elem%ngllz
-        usingVhat = .false.
 
-        ! Defining Second Member of time evolution equation for the Psi
-        ! Second member for Stresses memory variables
-        smbr(:,:,0) = - Elem%Bx(:,:) * Elem%PsiSxxx(:,:) - Elem%Ax(:,:) * &
-                      ((Elem%Acoeff(:,:,4) + Elem%Acoeff(:,:,5)) * MATMUL(HTprime,Elem%Strain(:,:,0)) &
-                      + Elem%Acoeff(:,:,4) * MATMUL(HTprime,Elem%Strain(:,:,1)) &
-                      +(Elem%Acoeff(:,:,8) + Elem%Acoeff(:,:,9)) * MATMUL(Elem%Strain(:,:,0),Hprimez) &
-                      + Elem%Acoeff(:,:,8) * MATMUL(Elem%Strain(:,:,1),Hprimez))
-        smbr(:,:,1) = - Elem%Bz(:,:) * Elem%PsiSzzz(:,:) - Elem%Az(:,:) * &
-                      ((Elem%Acoeff(:,:,6) + Elem%Acoeff(:,:,7)) * MATMUL(HTprime,Elem%Strain(:,:,1)) &
-                      + Elem%Acoeff(:,:,6) * MATMUL(HTprime,Elem%Strain(:,:,0)) &
-                      +(Elem%Acoeff(:,:,10) + Elem%Acoeff(:,:,11)) * MATMUL(Elem%Strain(:,:,1),Hprimez) &
-                      + Elem%Acoeff(:,:,10) * MATMUL(Elem%Strain(:,:,0),Hprimez))
-        smbr(:,:,2) = - Elem%Bx(:,:) * Elem%PsiSxzx(:,:) - Elem%Ax(:,:) * &
-                      ( Elem%Acoeff(:,:,5) * MATMUL(HTprime,Elem%Strain(:,:,2)) &
-                      + Elem%Acoeff(:,:,9) * MATMUL(Elem%Strain(:,:,2),Hprimez))
-        smbr(:,:,3) = - Elem%Bz(:,:) * Elem%PsiSxzz(:,:) - Elem%Az(:,:) * &
-                      ( Elem%Acoeff(:,:,7) * MATMUL(HTprime,Elem%Strain(:,:,2)) &
-                      + Elem%Acoeff(:,:,11) * MATMUL(Elem%Strain(:,:,2),Hprimez))
-        ! Second member for Velocities memory variables
-        if (.not. usingVhat) then
-        smbr(:,:,4) = - Elem%Bx(:,:) * Elem%PsiVxx(:,:) - Elem%Ax(:,:) * &
-                      ( Elem%Acoeff(:,:,0) * MATMUL(HTprime,Elem%Veloc(:,:,0)) &
-                      + Elem%Acoeff(:,:,1) * MATMUL(Elem%Veloc(:,:,0),Hprimez))
-        smbr(:,:,5) = - Elem%Bz(:,:) * Elem%PsiVxz(:,:) - Elem%Az(:,:) * &
-                      ( Elem%Acoeff(:,:,2) * MATMUL(HTprime,Elem%Veloc(:,:,0)) &
-                      + Elem%Acoeff(:,:,3) * MATMUL(Elem%Veloc(:,:,0),Hprimez))
-        smbr(:,:,6) = - Elem%Bx(:,:) * Elem%PsiVzx(:,:) - Elem%Ax(:,:) * &
-                      ( Elem%Acoeff(:,:,0) * MATMUL(HTprime,Elem%Veloc(:,:,1)) &
-                      + Elem%Acoeff(:,:,1) * MATMUL(Elem%Veloc(:,:,1),Hprimez))
-        smbr(:,:,7) = - Elem%Bz(:,:) * Elem%PsiVzz(:,:) - Elem%Az(:,:) * &
-                      ( Elem%Acoeff(:,:,2) * MATMUL(HTprime,Elem%Veloc(:,:,1)) &
-                      + Elem%Acoeff(:,:,3) * MATMUL(Elem%Veloc(:,:,1),Hprimez))
-        else ! Case Vhat is used to update the PsiV**
-        smbr(:,:,4) = - Elem%Bx(:,:) * Elem%PsiVxx(:,:) &
-                      + Elem%Ax_prime(:,:) * Elem%Veloc(:,:,0) &
-                      + MATMUL(Hprime,Elem%Veloc(:,:,0)*Elem%Ax(:,:)*Elem%Acoeff(:,:,0)) &
-                      + MATMUL(Elem%Veloc(:,:,0)*Elem%Ax(:,:)*Elem%Acoeff(:,:,1),HTprimez)
-        smbr(:,:,5) = - Elem%Bz(:,:) * Elem%PsiVxz(:,:) &
-                      + Elem%Az_prime(:,:) * Elem%Veloc(:,:,0) &
-                      + MATMUL(Hprime,Elem%Veloc(:,:,0)*Elem%Az(:,:)*Elem%Acoeff(:,:,2)) &
-                      + MATMUL(Elem%Veloc(:,:,0)*Elem%Az(:,:)*Elem%Acoeff(:,:,3),HTprimez)
-        smbr(:,:,6) = - Elem%Bx(:,:) * Elem%PsiVzx(:,:) &
-                      + Elem%Ax_prime (:,:) * Elem%Veloc(:,:,1) &
-                      + MATMUL(Hprime,Elem%Veloc(:,:,1)*Elem%Ax(:,:)*Elem%Acoeff(:,:,0)) &
-                      + MATMUL(Elem%Veloc(:,:,1)*Elem%Ax(:,:)*Elem%Acoeff(:,:,1),HTprimez)
-        smbr(:,:,7) = - Elem%Bz(:,:) * Elem%PsiVzz(:,:) &
-                      + Elem%Az_prime(:,:) * Elem%Veloc(:,:,1) &
-                      + MATMUL(Hprime,Elem%Veloc(:,:,1)*Elem%Az(:,:)*Elem%Acoeff(:,:,2)) &
-                      + MATMUL(Elem%Veloc(:,:,1)*Elem%Az(:,:)*Elem%Acoeff(:,:,3),HTprimez)
-        ! Adding the traces computed from Vhat
-        VxNx(:) = Elem%Vhat(:,0) * Elem%Normal_Nodes(:,0) * Elem%Coeff_integr_Faces(:)
-        VxNz(:) = Elem%Vhat(:,0) * Elem%Normal_Nodes(:,1) * Elem%Coeff_integr_Faces(:)
-        VzNx(:) = Elem%Vhat(:,1) * Elem%Normal_Nodes(:,0) * Elem%Coeff_integr_Faces(:)
-        VzNz(:) = Elem%Vhat(:,1) * Elem%Normal_Nodes(:,1) * Elem%Coeff_integr_Faces(:)
-        ! For the Bottom Face :
-        call get_iminimax(Elem,0,imin,imax)
-        smbr(0:ngx-1,0,4) = smbr(0:ngx-1,0,4) - Elem%Ax(0:ngx-1,0) * VxNx(imin:imax)
-        smbr(0:ngx-1,0,5) = smbr(0:ngx-1,0,5) - Elem%Az(0:ngx-1,0) * VxNz(imin:imax)
-        smbr(0:ngx-1,0,6) = smbr(0:ngx-1,0,6) - Elem%Ax(0:ngx-1,0) * VzNx(imin:imax)
-        smbr(0:ngx-1,0,7) = smbr(0:ngx-1,0,7) - Elem%Az(0:ngx-1,0) * VzNz(imin:imax)
-        ! For the right Face :
-        call get_iminimax(Elem,1,imin,imax)
-        smbr(ngx-1,0:ngz-1,4) = smbr(ngx-1,0:ngz-1,4) - Elem%Ax(ngx-1,0:ngz-1) * VxNx(imin:imax)
-        smbr(ngx-1,0:ngz-1,5) = smbr(ngx-1,0:ngz-1,5) - Elem%Az(ngx-1,0:ngz-1) * VxNz(imin:imax)
-        smbr(ngx-1,0:ngz-1,6) = smbr(ngx-1,0:ngz-1,6) - Elem%Ax(ngx-1,0:ngz-1) * VzNx(imin:imax)
-        smbr(ngx-1,0:ngz-1,7) = smbr(ngx-1,0:ngz-1,7) - Elem%Az(ngx-1,0:ngz-1) * VzNz(imin:imax)
-        ! For the Top Face :
-        call get_iminimax(Elem,2,imin,imax)
-        smbr(0:ngx-1,ngz-1,4) = smbr(0:ngx-1,ngz-1,4) - Elem%Ax(0:ngx-1,ngz-1) * VxNx(imin:imax)
-        smbr(0:ngx-1,ngz-1,5) = smbr(0:ngx-1,ngz-1,5) - Elem%Az(0:ngx-1,ngz-1) * VxNz(imin:imax)
-        smbr(0:ngx-1,ngz-1,6) = smbr(0:ngx-1,ngz-1,6) - Elem%Ax(0:ngx-1,ngz-1) * VzNx(imin:imax)
-        smbr(0:ngx-1,ngz-1,7) = smbr(0:ngx-1,ngz-1,7) - Elem%Az(0:ngx-1,ngz-1) * VzNz(imin:imax)
-        ! For the Left Face :
-        call get_iminimax(Elem,3,imin,imax)
-        smbr(0,0:ngz-1,4) = smbr(0,0:ngz-1,4) - Elem%Ax(0,0:ngz-1) * VxNx(imin:imax)
-        smbr(0,0:ngz-1,5) = smbr(0,0:ngz-1,5) - Elem%Az(0,0:ngz-1) * VxNz(imin:imax)
-        smbr(0,0:ngz-1,6) = smbr(0,0:ngz-1,6) - Elem%Ax(0,0:ngz-1) * VzNx(imin:imax)
-        smbr(0,0:ngz-1,7) = smbr(0,0:ngz-1,7) - Elem%Az(0,0:ngz-1) * VzNz(imin:imax)
-        endif
+        ! Compute second member of memory variables evolution equation
+        call compute_smbr_ADEPML (Elem,hTprime,hprimez,smbr)
 
         ! UPDATING in time using usual LSERK4
         Elem%Psi_store(:,:,:)  = coeff1 * Elem%Psi_store(:,:,:) + Dt*smbr(:,:,:)
@@ -891,37 +796,8 @@ contains
         real, intent(IN) :: Dt
         real, dimension(0:Elem%ngllx-1,0:Elem%ngllz-1,0:7) :: smbr
 
-        ! Defining Second Member of time evolution equation for the Psi
-        ! Second member for Stresses memory variables
-        smbr(:,:,0) = - Elem%Bx(:,:) * Elem%Psi_store(:,:,0) - Elem%Ax(:,:) * &
-                      ((Elem%Acoeff(:,:,4) + Elem%Acoeff(:,:,5)) * MATMUL(HTprime,Elem%Strain(:,:,0)) &
-                      + Elem%Acoeff(:,:,4) * MATMUL(HTprime,Elem%Strain(:,:,1)) &
-                      +(Elem%Acoeff(:,:,8) + Elem%Acoeff(:,:,9)) * MATMUL(Elem%Strain(:,:,0),Hprimez) &
-                      + Elem%Acoeff(:,:,8) * MATMUL(Elem%Strain(:,:,1),Hprimez))
-        smbr(:,:,1) = - Elem%Bz(:,:) * Elem%Psi_store(:,:,1) - Elem%Az(:,:) * &
-                      ((Elem%Acoeff(:,:,6) + Elem%Acoeff(:,:,7)) * MATMUL(HTprime,Elem%Strain(:,:,1)) &
-                      + Elem%Acoeff(:,:,6) * MATMUL(HTprime,Elem%Strain(:,:,0)) &
-                      +(Elem%Acoeff(:,:,10) + Elem%Acoeff(:,:,11)) * MATMUL(Elem%Strain(:,:,1),Hprimez) &
-                      + Elem%Acoeff(:,:,10) * MATMUL(Elem%Strain(:,:,0),Hprimez))
-        smbr(:,:,2) = - Elem%Bx(:,:) * Elem%Psi_store(:,:,2) - Elem%Ax(:,:) * &
-                      ( Elem%Acoeff(:,:,5) * MATMUL(HTprime,Elem%Strain(:,:,2)) &
-                      + Elem%Acoeff(:,:,9) * MATMUL(Elem%Strain(:,:,2),Hprimez))
-        smbr(:,:,3) = - Elem%Bz(:,:) * Elem%Psi_store(:,:,3) - Elem%Az(:,:) * &
-                      ( Elem%Acoeff(:,:,7) * MATMUL(HTprime,Elem%Strain(:,:,2)) &
-                      + Elem%Acoeff(:,:,11) * MATMUL(Elem%Strain(:,:,2),Hprimez))
-        ! Second member for Velocities memory variables
-        smbr(:,:,4) = - Elem%Bx(:,:) * Elem%Psi_store(:,:,4) - Elem%Ax(:,:) * &
-                      ( Elem%Acoeff(:,:,0) * MATMUL(HTprime,Elem%Veloc(:,:,0)) &
-                      + Elem%Acoeff(:,:,1) * MATMUL(Elem%Veloc(:,:,0),Hprimez))
-        smbr(:,:,5) = - Elem%Bz(:,:) * Elem%Psi_store(:,:,5) - Elem%Az(:,:) * &
-                      ( Elem%Acoeff(:,:,2) * MATMUL(HTprime,Elem%Veloc(:,:,0)) &
-                      + Elem%Acoeff(:,:,3) * MATMUL(Elem%Veloc(:,:,0),Hprimez))
-        smbr(:,:,6) = - Elem%Bx(:,:) * Elem%Psi_store(:,:,6) - Elem%Ax(:,:) * &
-                      ( Elem%Acoeff(:,:,0) * MATMUL(HTprime,Elem%Veloc(:,:,1)) &
-                      + Elem%Acoeff(:,:,1) * MATMUL(Elem%Veloc(:,:,1),Hprimez))
-        smbr(:,:,7) = - Elem%Bz(:,:) * Elem%Psi_store(:,:,7) - Elem%Az(:,:) * &
-                      ( Elem%Acoeff(:,:,2) * MATMUL(HTprime,Elem%Veloc(:,:,1)) &
-                      + Elem%Acoeff(:,:,3) * MATMUL(Elem%Veloc(:,:,1),Hprimez))
+        ! Compute second member of memory variables evolution equation
+        call compute_smbr_ADEPML (Elem,hTprime,hprimez,smbr)
 
         ! UPDATING in time for midpoint or Newmark Predictors-multicorrectors schemes
         if (Elem%ADEPML) then
@@ -946,9 +822,63 @@ contains
         endif
 
         ! Adding PML terms to the Elem%Forces
-        call add_Psi4PML (Elem, .false.)
+        call add_Psi4PML (Elem)
 
     end subroutine update_Psi_ADEPML
+
+
+    ! ###########################################################
+    !>
+    !! \brief Thus subroutine is used in a ADE-PML framework :
+    !! It computes the second member of memory variables evolution equation.
+    !! \param type (Element), intent (INOUT) Elem
+    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
+    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1, 0:7), intent (IN) :: smbr
+    !<
+    subroutine  compute_smbr_ADEPML (Elem,hTprime,hprimez,smbr)
+        implicit none
+
+        type(Element), intent (IN) :: Elem
+        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
+        real, dimension (0:Elem%ngllx-1,0:Elem%ngllz-1,0:7), intent (INOUT) :: smbr
+
+        ! Defining Second Member of time evolution equation for the Psi
+        ! Second member for Stresses memory variables
+        smbr(:,:,0) = - Elem%Bx(:,:) * Elem%PsiSxxx(:,:) - Elem%Ax(:,:) * &
+                      ((Elem%Acoeff(:,:,4) + Elem%Acoeff(:,:,5)) * MATMUL(HTprime,Elem%Strain(:,:,0)) &
+                      + Elem%Acoeff(:,:,4) * MATMUL(HTprime,Elem%Strain(:,:,1)) &
+                      +(Elem%Acoeff(:,:,8) + Elem%Acoeff(:,:,9)) * MATMUL(Elem%Strain(:,:,0),Hprimez) &
+                      + Elem%Acoeff(:,:,8) * MATMUL(Elem%Strain(:,:,1),Hprimez))
+        smbr(:,:,1) = - Elem%Bz(:,:) * Elem%PsiSzzz(:,:) - Elem%Az(:,:) * &
+                      ((Elem%Acoeff(:,:,6) + Elem%Acoeff(:,:,7)) * MATMUL(HTprime,Elem%Strain(:,:,1)) &
+                      + Elem%Acoeff(:,:,6) * MATMUL(HTprime,Elem%Strain(:,:,0)) &
+                      +(Elem%Acoeff(:,:,10) + Elem%Acoeff(:,:,11)) * MATMUL(Elem%Strain(:,:,1),Hprimez) &
+                      + Elem%Acoeff(:,:,10) * MATMUL(Elem%Strain(:,:,0),Hprimez))
+        smbr(:,:,2) = - Elem%Bx(:,:) * Elem%PsiSxzx(:,:) - Elem%Ax(:,:) * &
+                      ( Elem%Acoeff(:,:,5) * MATMUL(HTprime,Elem%Strain(:,:,2)) &
+                      + Elem%Acoeff(:,:,9) * MATMUL(Elem%Strain(:,:,2),Hprimez))
+        smbr(:,:,3) = - Elem%Bz(:,:) * Elem%PsiSxzz(:,:) - Elem%Az(:,:) * &
+                      ( Elem%Acoeff(:,:,7) * MATMUL(HTprime,Elem%Strain(:,:,2)) &
+                      + Elem%Acoeff(:,:,11) * MATMUL(Elem%Strain(:,:,2),Hprimez))
+        ! Second member for Velocities memory variables
+        smbr(:,:,4) = - Elem%Bx(:,:) * Elem%PsiVxx(:,:) - Elem%Ax(:,:) * &
+                      ( Elem%Acoeff(:,:,0) * MATMUL(HTprime,Elem%Veloc(:,:,0)) &
+                      + Elem%Acoeff(:,:,1) * MATMUL(Elem%Veloc(:,:,0),Hprimez))
+        smbr(:,:,5) = - Elem%Bz(:,:) * Elem%PsiVxz(:,:) - Elem%Az(:,:) * &
+                      ( Elem%Acoeff(:,:,2) * MATMUL(HTprime,Elem%Veloc(:,:,0)) &
+                      + Elem%Acoeff(:,:,3) * MATMUL(Elem%Veloc(:,:,0),Hprimez))
+        smbr(:,:,6) = - Elem%Bx(:,:) * Elem%PsiVzx(:,:) - Elem%Ax(:,:) * &
+                      ( Elem%Acoeff(:,:,0) * MATMUL(HTprime,Elem%Veloc(:,:,1)) &
+                      + Elem%Acoeff(:,:,1) * MATMUL(Elem%Veloc(:,:,1),Hprimez))
+        smbr(:,:,7) = - Elem%Bz(:,:) * Elem%PsiVzz(:,:) - Elem%Az(:,:) * &
+                      ( Elem%Acoeff(:,:,2) * MATMUL(HTprime,Elem%Veloc(:,:,1)) &
+                      + Elem%Acoeff(:,:,3) * MATMUL(Elem%Veloc(:,:,1),Hprimez))
+
+        return
+
+    end subroutine compute_smbr_ADEPML
 
     ! ###########################################################
     !>

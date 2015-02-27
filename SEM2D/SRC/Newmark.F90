@@ -20,7 +20,7 @@ subroutine Newmark (Tdomain)
     type (domain), intent (INOUT) :: Tdomain
 
     ! local variables
-    integer :: ns, ncc,i,j,n,np, ngllx, ngllz, mat, nelem,nf, w_face, nv_aus, nf_aus, nv
+    integer :: ns, ncc, i, j, n, ngllx, ngllz, mat, nelem, nf, w_face, nv_aus, nf_aus, nv
     integer :: n_face_pointed, tag_send, tag_receive, i_send, i_stock, ngll, ierr, i_proc
     integer, dimension (MPI_STATUS_SIZE) :: status
     real :: bega, gam1, alpha, dt, timelocal
