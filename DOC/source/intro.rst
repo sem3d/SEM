@@ -117,4 +117,9 @@ Le code source est versionné avec :program:`Git` et livré dans une archive con
   On étudiera comment obtenir le meilleur des deux méthodes dans une
   prochaine version.
 
+Programmes similaires
+---------------------
 
+`SPECFEM3D` (`SPECFEM3D <https://geodynamics.org/cig/software/specfem3d/>`_ )
+
+`SPEED` (`SPEED <https://mox.polimi.it/speed/SPEED/Home.html>`_)

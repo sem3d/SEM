@@ -769,3 +769,19 @@ On peut cependant aller plus loin et modifier le maillage généré avec quelque
   >>> fmesh["/Mat"] = mat
   # Fin
   >>> fmesh.close()
+
+==================
+Gestion des tests
+==================
+
+Il y a un outil qui gère le lancement des tests et la génération d'un
+rapport de test. \\
+Il n’est pas spécifique à SEM. Par contre, des développements
+spécifiques ont été fait pour traiter plus particulièrement
+les sorties de les codes SEM2D et SEM3D.\\
+La documentation Validationtools.pdf [disponible dans le répertoire
+$Valid-tools/doc/source$]décrit en détails l'organisation et la
+construction des tests, la structure du rapport de test,la création
+d'un jeu de tests, les données d'entrée que l'auteur d'un cas test
+devra fournir pour s'intégrer correctement dans cette infrastructure
+voire les routines de support spécifiques à certains codes.
