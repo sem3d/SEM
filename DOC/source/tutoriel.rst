@@ -249,7 +249,7 @@ est responsable d'un décalage en temps qui dépend également de :math:`\Sigma`
 
 .. _PML_filt:
 
-.. figure:: ..figures/PML_fig002.png
+.. figure:: ../figures/PML_fig002.png
    :scale: 80%
    :align: center
 
