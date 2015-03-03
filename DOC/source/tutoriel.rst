@@ -415,8 +415,7 @@ les fichiers nécessaires à son exécution. L'arborescence doit être la suivan
   |- sem/
   |  |- mesh4spec.0000
   |  |- ...
-  |  |- mesh4spec.NNNN
-  |- capteurs.dat
+  |  |- mesh4spec.NNNN  
 
 ``input.spec`` :
 
@@ -430,10 +429,6 @@ les fichiers nécessaires à son exécution. L'arborescence doit être la suivan
 
   Ce fichier contient la description de chaque matériau : :math:`\rho, V_p, V_s`, un nombre
   de points GLL par direction de la maille de référence.
-
-``capteurs.dat`` :
-
-  Contient une description des sorties capteurs souhaitées.
 
 ``mesh4spec.*``
 
@@ -588,10 +583,13 @@ La description de chaque fichier est la suivante:
          atn_period = 0.2;      # model period 
      };
 
-6) :file:`capteur.dat` : il sélectionne les points pour présenter les
-   résultats sous la forme de tableau. Les résultats que nous pouvons
-   sortir sous la forme de tableau sont la vitesse, le déplacement et
-   l'accélération.
+     capteurs "ligne" {
+     type = line;
+     counti = 50;
+     point0 = 0. 0. 0.;
+     point1 = 0. 5000. 0.;
+     periode = 1;
+     };
 
 Lancement du cas
 ----------------

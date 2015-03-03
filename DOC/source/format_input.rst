@@ -87,6 +87,15 @@ Le fichier suivant correspond à celui d'un cas test : ::
     gamma = 1;             # gamma (Newmark parameter)
   };
 
+  capteurs "ligne" {
+    type = line;
+    counti = 50;
+    point0 = 0. 0. 0.;
+    point1 = 0. 5000. 0.;
+    periode = 1;
+  };
+
+
 
 Section globale
 ===============
@@ -371,7 +380,7 @@ suivants ::
 
   capteurs "ligne" {
     type = line;
-    count = 50;
+    counti = 50;
     point0 = 0. 0. 0.;
     point1 = 0. 5000. 0.;
     periode = 1;
