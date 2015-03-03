@@ -249,7 +249,7 @@ est responsable d'un décalage en temps qui dépend également de :math:`\Sigma`
 
 .. _PML_filt:
 
-.. figure:: ../figures/PML_fig002.png
+.. figure:: ..figures/PML_fig002.png
    :scale: 80%
    :align: center
 
@@ -268,7 +268,12 @@ comportement que des PML standard pour des ondes de volume. Le terme de correcti
 PML classique est un terme de convolution en temps, correspondant à un filtre passe-bas de Butterworth
 agissant sur le champ propagé. Des PML filtrantes d'ordre élevé peuvent être ainsi construites à partir
 de fonctions de transfert d'ordre élevé de filtres de Butterworth pour une absorption plus efficace. Les
-FPML augmentent ainsi le nombre de variables à stocker.
+FPML augmentent ainsi le nombre de variables à stocker.\\
+
+\underline {Remarque Importante} : 
+Dans la version actuelle de SEM, les directions d'atténuation des PMLs doivent être alignées avec les axes globaux du modèle.\\
+Donc, il faudra que toutes les faces des PMLs soient parfaitement planes.
+
 
 Intégration temporelle
 ----------------------
