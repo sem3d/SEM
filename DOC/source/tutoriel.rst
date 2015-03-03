@@ -417,9 +417,9 @@ les fichiers nécessaires à son exécution. L'arborescence doit être la suivan
   |  |- ...
   |  |- mesh4spec.NNNN  
 
-``input.spec`` :
+``input.spec``:
 
-  Ce fichier contient la configuration du code :
+  Ce fichier contient la configuration du code (voir :ref:`input.spec`):
   - paramètres d'intégration temporelle, temps physique du calcul,
   - description de la ou des sources,
   - description des sorties capteurs,
@@ -428,13 +428,13 @@ les fichiers nécessaires à son exécution. L'arborescence doit être la suivan
 ``material.input`` :
 
   Ce fichier contient la description de chaque matériau : :math:`\rho, V_p, V_s`, un nombre
-  de points GLL par direction de la maille de référence.
+  de points GLL par direction de la maille de référence (voir :ref:`material.input`).
 
 ``mesh4spec.*``
 
-  Les fichiers sont créé automatiquement pour les outil de maillage.
+  Les fichiers sont créé automatiquement pour les outil de maillage (voir :ref:`Format HDF5`).
 
-Les fichieres ``input.spec``, ``material.input`` et ``capteurs.dat`` sont décrit en détail dans la section
+Les fichieres ``input.spec`` et ``material.input`` sont décrit en détail dans la section
 _`Description des paramètres de SEM3D`.
 
 

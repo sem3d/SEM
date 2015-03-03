@@ -4,6 +4,7 @@
 Format des fichiers matériau
 ============================
 
+.. _material.input: 
 
 Format de mat.dat
 =================

@@ -4,6 +4,7 @@
 Format de input.spec
 ====================
 
+.. _input.spec:
 
 Syntaxe du fichier
 ==================
