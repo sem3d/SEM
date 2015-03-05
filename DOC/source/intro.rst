@@ -120,6 +120,15 @@ Le code source est versionné avec :program:`Git` et livré dans une archive con
 Programmes similaires
 ---------------------
 
-`SPECFEM3D` (`SPECFEM3D <https://geodynamics.org/cig/software/specfem3d/>`_ )
+`SPECFEM3D <https://geodynamics.org/cig/software/specfem3d/>`_ [KOM02]_
 
-`SPEED` (`SPEED <https://mox.polimi.it/speed/SPEED/Home.html>`_)
+`SPEED <https://mox.polimi.it/speed/SPEED/Home.html>`_ [MAZ13]_
+
+`Necktar++ <http://www.nektar.info/>`_ [CAN15]_
+
+.. [KOM02] Komatitsch D. (2002). The Spectral-Element Method, Beowulf Computing, and Global Seismology. *Science 298*, 5599.
+
+.. [MAZ13] Mazzieri I., M. Stupazzini, R. Guidotti and C. Smerzini (2013). SPEED: SPectral Elements in Elastodynamics with Discontinuous Galerkin: a non-conforming approach for 3D multi-scale problems. *Int. J. Numer. Meth. Eng. 12*, 991-1010.
+
+.. [CAN15] Cantwell C. D., D. Moxey, et al. (2015). Nektar++: An open-source spectral/hphp element framework. *Comp. Phys. Comm.*. In press.
+
