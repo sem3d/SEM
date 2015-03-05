@@ -416,7 +416,7 @@ subroutine allocate_domain (Tdomain)
   !    j = Tdomain%sFace(n)%Near_Vertex(1)
   !    i = Tdomain%sVertex(i)%Glob_numbering
   !    j = Tdomain%sVertex(j)%Glob_numbering
-  !    if (Tdomain%coord_nodes(1,i)==0. .and. Tdomain%coord_nodes(1,j)==0. &
+  !    if (abs(Tdomain%coord_nodes(1,i)) .LT. 1.E-7 .and. abs(Tdomain%coord_nodes(1,j)) .LT. 1.E-7 &
   !        .and. Tdomain%sFace(n)%Reflex ) then
   !        Tdomain%sFace(n)%freesurf = .true.
   !        Tdomain%sFace(n)%Abs      = .false.
@@ -427,6 +427,14 @@ subroutine allocate_domain (Tdomain)
   !        Tdomain%sVertex(i)%Reflex   = .false.
   !        Tdomain%sVertex(j)%Abs      = .false.
   !        Tdomain%sVertex(j)%Reflex   = .false.
+  !    endif
+  !enddo
+  !do n=0,Tdomain%n_face-1  ! Traitement pour les coins
+  !    if (Tdomain%sFace(n)%Reflex) then
+  !        i = Tdomain%sFace(n)%Near_Vertex(0)
+  !        j = Tdomain%sFace(n)%Near_Vertex(1)
+  !        Tdomain%sVertex(i)%Reflex   = .true.
+  !        Tdomain%sVertex(j)%Reflex   = .true.
   !    endif
   !enddo
   !!! FIN A SUPPRIMER !!!!!!!!

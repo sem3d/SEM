@@ -201,9 +201,9 @@ subroutine  sem()
     Tdomain%TimeD%NtimeMin = 0
     ! Nombre d'iterations pour schemas en temps iteratifs
     if (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT) then
-        n_it_max = 1
+        n_it_max = 0
     elseif (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC) then
-        n_it_max = 3
+        n_it_max = 2
     endif
 
     isort = 1
@@ -352,7 +352,7 @@ subroutine  sem()
             protection = 1
         end if
 
-        if (Tdomain%bCapteur) call evalueSortieCapteur(ntime+1)
+        if (Tdomain%bCapteur) call evalueSortieCapteur(ntime)
 
         if (i_snap == 0 .or. sortie_capteur) then
 
@@ -384,11 +384,11 @@ subroutine  sem()
 
 
         ! sortie des  ...
-        if (Tdomain%logicD%save_fault_trace.and.i_snap==0) call save_fault_trace (Tdomain, ntime+1)
+        if (Tdomain%logicD%save_fault_trace.and.i_snap==0) call save_fault_trace (Tdomain, ntime)
 
 
         ! sauvegarde des vitesses ?
-        if (Tdomain%logicD%save_trace) call save_trace(Tdomain, ntime+1)
+        if (Tdomain%logicD%save_trace) call save_trace(Tdomain, ntime)
 
 
         if (i_snap==0) then
