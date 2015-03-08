@@ -270,10 +270,7 @@ agissant sur le champ propagé. Des PML filtrantes d'ordre élevé peuvent être
 de fonctions de transfert d'ordre élevé de filtres de Butterworth pour une absorption plus efficace. Les
 FPML augmentent ainsi le nombre de variables à stocker.\\
 
-\underline {Remarque Importante} : 
-Dans la version actuelle de SEM, les directions d'atténuation des PMLs doivent être alignées avec les axes globaux du modèle.\\
-Donc, il faudra que toutes les faces des PMLs soient parfaitement planes.
-
+Remarque Importante : dans la version actuelle de SEM, les directions d'atténuation des PMLs doivent être alignées avec les axes globaux du modèle. Cela implique entre autres que les faces des PMLs doivent être parfaitement planes. Ceci sera amené à évoluer.
 
 Intégration temporelle
 ----------------------
@@ -288,7 +285,7 @@ partir du nombre de Courant :math:`\mathcal{C}<1` (paramètre de configuration) 
 
    \Delta t = \mathcal{C} \frac{\min \Delta{x_{GLL}}}{V_{max}}
 
-où :math:`\Delta{x_{GLL}}` est la distance minimum entre deux points GLL et :math:`V_{max}` la vitesse maximum des matériaux considérés dans le modèle.
+où :math:`\min 	\Delta{x_{GLL}}` est la distance minimum entre deux points GLL et :math:`V_{max}` la vitesse maximum des matériaux considérés dans le modèle.
    
 Attention:
 
@@ -319,7 +316,7 @@ doublement les coûts de calcul :
 - le pas de temps est proportionnel à :math:`\frac{1}{\min \Delta x}`,
   le pas d'espace :math:`\min \Delta x` diminuant avec l'ordre des
   éléments (On voit sur :ref:`fig-gll` comment les points de Gauss se
-  resserrent vers les bords avec l'augmentation de l'ordre.
+  resserrent vers les bords avec l'augmentation de l'ordre).
 
 Atténuation
 -----------
@@ -516,7 +513,8 @@ La description de chaque fichier est la suivante:
      # Type de milieu : (S:Solide, F:Fluide)
      # Vp et Vs : Vitesse de propagation des ondes P et S
      # Rho : Masse Volumique
-     # N-GLLx, N-GLLy, N-GLLz : Nombre de points GLL dans les trois directions (N-GLLy est ignoré en 2D)
+     # N-GLLx, N-GLLy, N-GLLz : Nombre de points GLL dans les 
+     #                    trois directions (N-GLLy est ignoré en 2D)
      # dt : Pas de temps (pour l'instant, il est ignoré)
      # Qp et Gs : Facteurs de qualité d'atténuation des ondes P et S
 
@@ -560,15 +558,18 @@ La description de chaque fichier est la suivante:
      
      # introduce a source
      source {
-         # coordinates of the sources ((x,y,z) or (lat,long,R) if rotundity is considered)
+         # coordinates of the sources ((x,y,z) or (lat,long,R) 
+         #                            if rotundity is considered)
          coords = 25. 25. 0.;
-         # the numbers before the labels are here to help convert from previous input.spec format
+         # the numbers before the labels are here to help convert  
+         #                            from previous input.spec format
          # Type (1.Impulse, 2.moment Tensor, 3.fluidpulse)
          type = impulse;
          # Direction 0.x,1.y ou 2.z (only for Impulse)
          dir = 1. 0. 0.;
-         # Function 1.gaussian,2.ricker,3.tf_heaviside,4.gabor,5.file,6.spice_bench,7.sinus
-         func = ricker;
+         # Function 1.gaussian, 2.ricker, 3.tf_heaviside, 4.gabor,  
+         #                               5.file,6.spice_bench,7.sinus
+         func = ricker; 
          tau = 0.4;
          freq = 3.;   # source main frequency / cutoff frequency
      };
@@ -583,7 +584,8 @@ La description de chaque fichier est la suivante:
      };
      
      amortissement {
-         nsolids = 0;           # number of solids for attenuation (0 if no attenuation)
+         nsolids = 0;           # number of solids for attenuation  
+                                #                (0 if no attenuation)
          atn_band = 10  0.05;   # attenuation period band
          atn_period = 0.2;      # model period 
      };
@@ -677,13 +679,17 @@ Nous allons traiter un exemple de génération de maillage à partir d'un fichie
   $ unzip srtm_56_01.zip
   # On convertit le fichier au format hdf5 (lat/lon)
   $ mt_import -s topo_srtm.h5 srtm_56_01.tif
-  # On projete une grille de 30x30 mailles de 1000x1000 m de cote d'origine 58N 96E dans la projection aeqd
-  $ mt_grid --vx=1000,0 --vy=0,1000 -g 30,30 -p "+proj=aeqd +lat_0=58.0 +lon_0=96.0" \
-            -n surf topo_srtm.h5 grid.h5
-  $ mt_grid --vx=500,0 --vy=0,500 -g 300,300 -p "+proj=aeqd +lat_0=58.0 +lon_0=96.0" \
-            -n surf topo.h5 grid.h5
+  # On projete une grille de 30x30 mailles de 1000x1000 m de cote  
+  #                            d'origine 58N 96E dans la projection aeqd
+  $ mt_grid --vx=1000,0 --vy=0,1000 -g 30,30 -p \
+           "+proj=aeqd +lat_0=58.0 +lon_0=96.0" \
+                   -n surf topo_srtm.h5 grid.h5
+  $ mt_grid --vx=500,0 --vy=0,500 -g 300,300 -p \
+            "+proj=aeqd +lat_0=58.0 +lon_0=96.0" \
+                        -n surf topo.h5 grid.h5
   # Le fichier contenant la grille est utilise pour creer un maillage
-  $ mt_topo --npml=1 --profile=mesh.profile --mat=input_material.dat grid.h5 mesh_sem.h5
+  $ mt_topo --npml=1 --profile=mesh.profile \
+         —mat=input_material.dat grid.h5 mesh_sem.h5
   # on renomme le fichier materiau (pour l'outil mesher)
   $ cp mesh_sem.h5.mat material.input
   $ mesher

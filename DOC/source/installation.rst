@@ -28,7 +28,7 @@ Le code :program:`SEM3D` nécessite deux (ou trois) outils externes pour sa comp
   Les scripts de configurations :program:`CMake` de :program:`SEM` utilise la commande
   ``h5cc -show`` pour détecter le paramètrage de la librairie :program:`HDF5`.
 
-- une librairie :program:`MPI` (:program:`OpenMPI` recommandée, mais :program:`Mpich`, :program:`Intel MPI` ou :program: `SGI-MPT` doivent être compatibles).
+- une librairie :program:`MPI` (:program:`OpenMPI` recommandée, mais :program:`Mpich`, :program:`Intel MPI` ou :program:`SGI-MPT` doivent être compatibles).
 
 La génération de cette documentation nécessite de plus l'outil :program:`sphinx` ( http://sphinx-doc.org/ ).
 
