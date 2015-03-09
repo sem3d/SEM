@@ -212,7 +212,8 @@ subroutine save_trace (Tdomain, it)
 
             allocate (Field(0:ngllx-1,0:ngllz-1,0:1))
 
-            call gather_elem_veloc(Tdomain, nr, Field)
+            !call gather_elem_veloc(Tdomain, nr, Field)
+            Field = Tdomain%specel(nr)%Veloc !!! A SUPPRIMER !!!
 
             do j = 0,ngllz-1
                 do i =0,ngllx -1

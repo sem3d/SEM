@@ -203,7 +203,7 @@ subroutine  sem()
     if (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT) then
         n_it_max = 0
     elseif (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC) then
-        n_it_max = 2
+        n_it_max = 1
     endif
 
     isort = 1
