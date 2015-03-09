@@ -163,8 +163,8 @@ contains
             ! UNV files
         case(3,4)
             write(*,*) "****************************************"
-            write(*,*) "  --> Ideas files to be read (.unv)"
-            write(*,*) "    --> How many .unv files ? "
+            write(*,*) "  --> files to be read"
+            write(*,*) "    --> How many files ?"
             read*, nfile
             n_blocks = nfile   ! number of materials
             allocate(unv_files(0:nfile-1))
@@ -173,38 +173,15 @@ contains
 
             n_mate = size(tabmat,1)
             n_nods = 8
-            if (.true.) then
-                if (choice==3) then
-                    call lec_unv_v2(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks, n_mate)
-                else
-                    call lec_hdf5(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks)
-                endif
-                !stop 1
+            if (choice==3) then
+                call lec_unv(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks, n_mate)
             else
-                allocate(n_elem_mat(0:n_blocks-1))
-                call lec_unv_struct(unv_files,n_points,n_elem_mat,n_elem)
-                write(*,*) " Number of control points, elements, materials: ",      &
-                    n_points, n_elem, n_blocks
-                !- co-ordinates of control points
-                allocate(xco(0:n_points-1),yco(0:n_points-1),zco(0:n_points-1))
-                !- general index for each control point of an element
-                allocate(Ipointer(0:n_nods-1,0:n_elem-1))
-                allocate(Material(0:n_elem-1))
-                icount = 0
-                do i = 0,n_blocks-1
-                    do n = 0,n_elem_mat(i)-1
-                        Material(icount) = i
-                        icount = icount+1
-                    end do
-                end do
+                call lec_hdf5(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks)
+            endif
 
-                call lec_unv_final(unv_files,n_elem_mat,xco,yco,zco,Ipointer)
-                deallocate(n_elem_mat)
-            end if
-
-            write(*,*) "****************************************"
-            write(*,*) "  - END of .unv files READING -"
-            write(*,*) "****************************************"
+            write(*,*) "***********************************"
+            write(*,*) "  - END of files READING -"
+            write(*,*) "***********************************"
             deallocate(unv_files)
 
         case(5)
