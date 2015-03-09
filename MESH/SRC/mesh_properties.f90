@@ -163,8 +163,8 @@ contains
             ! UNV files
         case(3,4)
             write(*,*) "****************************************"
-            write(*,*) "  --> Ideas files to be read (.unv)"
-            write(*,*) "    --> How many .unv files ? "
+            write(*,*) "  --> files to be read"
+            write(*,*) "    --> How many files ?"
             read*, nfile
             n_blocks = nfile   ! number of materials
             allocate(unv_files(0:nfile-1))
@@ -179,9 +179,9 @@ contains
                 call lec_hdf5(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks)
             endif
 
-            write(*,*) "****************************************"
-            write(*,*) "  - END of .unv files READING -"
-            write(*,*) "****************************************"
+            write(*,*) "***********************************"
+            write(*,*) "  - END of files READING -"
+            write(*,*) "***********************************"
             deallocate(unv_files)
 
         case(5)

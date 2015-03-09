@@ -354,16 +354,25 @@ contains
         real, allocatable, dimension(:,:) :: coords
         integer, allocatable, dimension(:,:) :: elems
         integer, allocatable, dimension(:) :: mat
+        logical :: h8exist, h27exist
 
         call init_hdf5()
         ! Supporte un seul fichier
         call h5fopen_f(unv_files(0), H5F_ACC_RDONLY_F, fid, hdferr)
-        !open(10,file=unv_files(i),status="old",position="rewind",action="read",iostat=ios)
-        call read_dataset(fid, "Nodes", coords)
+        call read_dataset(fid, "/Nodes", coords)
         n_points = size(coords,2)
         write(*,*) "Coords", n_points, " x ", size(coords,1)
-        call read_dataset(fid, "Mat", mat)
-        call read_dataset(fid, "Elements", elems)
+        call h5lexists_f(fid, "/Sem3D/Hexa8",  h8exist,  hdferr)
+        call h5lexists_f(fid, "/Sem3D/Hexa27", h27exist, hdferr)
+        if (h8exist) then
+            call read_dataset(fid, "/Sem3D/Mat",   mat)
+            call read_dataset(fid, "/Sem3D/Hexa8", elems)
+        else if (h27exist) then
+            call read_dataset(fid, "/Sem3D/Mat",    mat)
+            call read_dataset(fid, "/Sem3D/Hexa27", elems)
+        else
+            write(*,*) "ERROR : lec_hdf5 can not find elements"
+        endif
         n_elem = size(elems,2)
         write(*,*) "Elem", n_elem, " x ", size(elems,1)
         write(*,*) "Indexes:", minval(elems), " -> ", maxval(elems)
