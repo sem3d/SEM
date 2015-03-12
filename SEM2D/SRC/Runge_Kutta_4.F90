@@ -24,14 +24,13 @@ subroutine Runge_Kutta4 (Tdomain, dt)
     real,    intent(in)   :: dt
 
     ! local variables
-    integer :: i, n, mat, nf, ngx, ngz
+    integer :: i, n, mat, ngx, ngz
     integer :: tag_send, tag_receive, i_send, ierr, i_proc
     integer, dimension (MPI_STATUS_SIZE) :: status
     integer               :: nface,  type_DG
     real                  :: timelocal
     real, dimension(3)    :: coeffs
     real, dimension (:,:), allocatable :: Vxloc, Vzloc
-    logical :: acoustic
 
 
     do i = 1,5
@@ -43,6 +42,22 @@ subroutine Runge_Kutta4 (Tdomain, dt)
           type_DG = Tdomain%specel(n)%Type_DG
           mat = Tdomain%specel(n)%mat_index
           select case (type_DG)
+          case(GALERKIN_CONT) ! Continuous Galerkin
+             ngx = Tdomain%specel(n)%ngllx
+             ngz = Tdomain%specel(n)%ngllz
+             allocate (Vxloc(0:ngx-1, 0:ngz-1))
+             allocate (Vzloc(0:ngx-1, 0:ngz-1))
+             call get_PMLprediction_fv2el (Tdomain,n,Vxloc,vzloc,ngx,ngz,0.5,0.5,dt)
+             call compute_2ndMember_Veloc_Stress(Tdomain%specel(n), Vxloc, Vzloc, &
+                                                 Tdomain%sSubDomain(mat)%hprimex, &
+                                                 Tdomain%sSubDomain(mat)%hTprimex, &
+                                                 Tdomain%sSubDomain(mat)%hprimez, &
+                                                 Tdomain%sSubDomain(mat)%hTprimez)
+             deallocate (VxLoc, Vzloc)
+         case(GALERKIN_HDG_RP)   ! Hybridizable Discontinuous Galerkin
+             call compute_InternalForces_DG_Weak(Tdomain%specel(n), &
+                                                 Tdomain%sSubDomain(mat)%hprimex, &
+                                                 Tdomain%sSubDomain(mat)%hTprimez)
           case(GALERKIN_DG_STRONG) ! Discontinuous Galerkin Strong Formulation
              call compute_InternalForces_DG_Strong(Tdomain%specel(n), &
                                                    Tdomain%sSubDomain(mat)%hTprimex, &
@@ -51,49 +66,27 @@ subroutine Runge_Kutta4 (Tdomain, dt)
              call compute_InternalForces_DG_Weak(Tdomain%specel(n), &
                                                  Tdomain%sSubDomain(mat)%hprimex, &
                                                  Tdomain%sSubDomain(mat)%hTprimez)
-         case(GALERKIN_HDG_RP)   ! Hybridizable Discontinuous Galerkin
-             call compute_InternalForces_DG_Weak(Tdomain%specel(n), &
-                                                 Tdomain%sSubDomain(mat)%hprimex, &
-                                                 Tdomain%sSubDomain(mat)%hTprimez)
-             call compute_TracFace (Tdomain%specel(n))
-          case(GALERKIN_CONT) ! Continuous Galerkin
-             ngx = Tdomain%specel(n)%ngllx
-             ngz = Tdomain%specel(n)%ngllz
-             allocate (Vxloc(0:ngx-1, 0:ngz-1))
-             allocate (Vzloc(0:ngx-1, 0:ngz-1))
-             !call get_simpler (Tdomain,n,Vxloc,vzloc,ngx,ngz,dt)
-             call get_PMLprediction_fv2el (Tdomain,n,Vxloc,vzloc,ngx,ngz,0.5,0.5,dt)
-             call compute_2ndMember_Veloc_Stress(Tdomain%specel(n), Vxloc, Vzloc, &
-                                                 Tdomain%sSubDomain(mat)%hprimex, &
-                                                 Tdomain%sSubDomain(mat)%hTprimex, &
-                                                 Tdomain%sSubDomain(mat)%hprimez, &
-                                                 Tdomain%sSubDomain(mat)%hTprimez)
-             deallocate (VxLoc, Vzloc)
-             !call get_RealDispl_fv2el (Tdomain,n)
-             !call compute_InternalForces_Elem(Tdomain%specel(n), &
-             !                                 Tdomain%sSubDomain(mat)%hprimex, &
-             !                                 Tdomain%sSubDomain(mat)%hTprimex, &
-             !                                 Tdomain%sSubDomain(mat)%hprimez, &
-             !                                 Tdomain%sSubDomain(mat)%hTprimez)
           end select
+          if(Tdomain%specel(n)%ADEPML) call add_Psi4PML(Tdomain%specel(n))
        enddo
 
        ! External Forces computation
        call Compute_External_Forces(Tdomain,timelocal)
 
-       ! Calcul des fluxs / Assemblage des forces
+       ! Envoi des informations sur les faces
        do n = 0, Tdomain%n_elem-1
           type_DG = Tdomain%specel(n)%Type_DG
-           do nf = 0,3
-              nface  = Tdomain%specel(n)%Near_Face(nf)
-              if(type_DG == GALERKIN_CONT) then
-                  call Assemblage(Tdomain,n,nface,nf)
-              elseif(type_DG == GALERKIN_HDG_RP) then
-                  call get_traction_el2f(Tdomain,n,nface,nf,timelocal)
-              else  ! Usual Discontinuous Galerkin
-                  call get_data_el2f(Tdomain,n,nface,nf)
-              endif
-           enddo
+          select case (type_DG)
+          case (GALERKIN_CONT)
+              call Assemblage(Tdomain,n)
+          case (GALERKIN_HDG_RP)
+              call compute_TracFace (Tdomain%specel(n))
+              call get_traction_el2f(Tdomain,n)
+          case (GALERKIN_DG_STRONG)
+              call get_data_el2f(Tdomain,n)
+          case (GALERKIN_DG_WEAK)
+              call get_data_el2f(Tdomain,n)
+          end select
        enddo
 
        ! Communications MPI
@@ -109,47 +102,47 @@ subroutine Runge_Kutta4 (Tdomain, dt)
           call Assign_recv_data(TDomain,i_proc)
        enddo
 
+       ! Face resolutions
+       do nface = 0,Tdomain%n_face-1
+           type_DG = Tdomain%sface(nface)%Type_DG
+           select case (type_DG)
+           case (GALERKIN_HDG_RP)
+               call Compute_Vhat(Tdomain%sFace(nface))
+           case(GALERKIN_DG_STRONG)
+               call Compute_Flux_DGweak(Tdomain%sFace(nface))
+           case(GALERKIN_DG_WEAK)
+               call Compute_Flux_DGweak(Tdomain%sFace(nface))
+           end select
+       enddo
+
+       ! Send Informations back from faces to elements
+       do n = 0, Tdomain%n_elem-1
+           type_DG = Tdomain%specel(n)%Type_DG
+           select case (type_DG)
+           case (GALERKIN_HDG_RP)
+               call get_Vhat_f2el(Tdomain,n)
+               call Compute_Traces (Tdomain%specel(n),.true.)
+               if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,n)
+           case(GALERKIN_DG_STRONG)
+               call get_flux_f2el(Tdomain,n)
+           case(GALERKIN_DG_WEAK)
+               call get_flux_f2el(Tdomain,n)
+           end select
+       enddo
+
+       ! Update elements
        do n = 0, Tdomain%n_elem-1
           mat = Tdomain%specel(n)%mat_index
           type_DG = Tdomain%specel(n)%Type_DG
-          if (type_DG==GALERKIN_CONT) then  ! Continuous Galerkin
-             call inversion_massmat(Tdomain%specel(n))
-             call update_Elem_RK4 (Tdomain%specel(n),coeffs(1),coeffs(2),dt)
-          else                  ! Discontinuous Galerkin
-             acoustic = Tdomain%specel(n)%Acoustic
-             if (type_DG==GALERKIN_HDG_RP) then
-                 do nf = 0,3        ! Computation of the Velocities Traces
-                     nface = Tdomain%specel(n)%Near_Face(nf)
-                     if (Tdomain%sFace(nface)%CG_HDG_interf) then
-                        call get_Vhat_from_Continuous(Tdomain,n,nface)
-                     else
-                        call Compute_Vhat(Tdomain%sFace(nface))
-                     endif
-                 enddo
-                 call get_Vhat_f2el(Tdomain,n)
-                 !if(Tdomain%specel(n)%ADEPML) call enforce_diriclet_corners_vhat(Tdomain,n)
-                 call Compute_Traces (Tdomain%specel(n),.true.)
-                 call Give_Flux_2_Continuous(Tdomain,n)
-             elseif (type_DG==GALERKIN_DG_WEAK .OR. type_DG==GALERKIN_DG_STRONG) then
-                 do nf = 0,3        ! Computation of the fluxes
-                     nface = Tdomain%specel(n)%Near_Face(nf)
-                     call Compute_Flux(Tdomain%sFace(nface),n,type_DG,acoustic)
-                     call get_flux_f2el(Tdomain,n,nface,nf)
-                 enddo
-             endif
-             if(Tdomain%specel(n)%ADEPML) call add_Psi4PML(Tdomain%specel(n))
-             if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,n)
-             call inversion_massmat(Tdomain%specel(n))
-             if(Tdomain%specel(n)%ADEPML) call update_Psi_ADEPML_RK4(Tdomain%specel(n), &
+          call inversion_massmat(Tdomain%specel(n))
+          if(Tdomain%specel(n)%ADEPML) call update_Psi_ADEPML_RK4(Tdomain%specel(n), &
                                                               Tdomain%sSubDomain(mat)%hTprimex, &
                                                               Tdomain%sSubDomain(mat)%hprimez,  &
                                                               coeffs(1),coeffs(2),dt)
-             call update_Elem_RK4 (Tdomain%specel(n),coeffs(1),coeffs(2),dt)
-          endif
+          call update_Elem_RK4 (Tdomain%specel(n),coeffs(1),coeffs(2),dt)
        enddo
 
-       ! Updates of faces and vertices if continuous elements
-       !if(Tdomain%type_elem==GALERKIN_CONT) call Update_FV_RK4 (Tdomain,coeffs(1),coeffs(2),dt)
+       ! Update Faces and Vertices (for CG only)
        call Update_FV_RK4 (Tdomain,coeffs(1),coeffs(2),dt)
 
     enddo ! End loop RK4
@@ -218,7 +211,6 @@ subroutine Runge_Kutta4 (Tdomain, dt)
           ! RK4 Updates of velocities and displacements
           Tdomain%sface(n)%Vect_RK = coeff1 * Tdomain%sface(n)%Vect_RK + Dt * Tdomain%sface(n)%Forces(:,0:1)
           Tdomain%sface(n)%Veloc   = Tdomain%sface(n)%Veloc + coeff2 * Tdomain%sface(n)%Vect_RK(:,0:1)
-          Tdomain%sface(n)%is_computed = .false.
           !Tdomain%sface(n)%Displ   = Tdomain%sface(n)%Displ + coeff2 * Tdomain%sface(n)%Vect_RK(:,2:3)
           !Tdomain%sface(n)%Vect_RK(:,2:3) = coeff1 * Tdomain%sface(n)%Vect_RK(:,2:3) + Dt * Tdomain%sface(n)%Veloc (:,0:1)
        endif
@@ -232,7 +224,7 @@ subroutine Runge_Kutta4 (Tdomain, dt)
           ! RK4 Updates of velocities and displacements
           Tdomain%sVertex(n)%Vect_RK = coeff1 * Tdomain%sVertex(n)%Vect_RK + Dt * Tdomain%sVertex(n)%Forces
           Tdomain%sVertex(n)%Veloc   = Tdomain%sVertex(n)%Veloc + coeff2 * Tdomain%sVertex(n)%Vect_RK(0:1)
-          Tdomain%sVertex(n)%is_computed = .false.
+          Tdomain%sVertex(n)%Forces  = 0.
           !Tdomain%sVertex(n)%Displ   = Tdomain%sVertex(n)%Displ + coeff2 * Tdomain%sVertex(n)%Vect_RK(2:3)
           !Tdomain%sVertex(n)%Vect_RK(2:3) = coeff1 * Tdomain%sVertex(n)%Vect_RK(2:3) + Dt * Tdomain%sVertex(n)%Veloc
        endif

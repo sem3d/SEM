@@ -285,10 +285,7 @@ subroutine Forward_Euler_Resolution (Tdomain,timelocal,Dt)
 
     ! Calcul des fluxs
     do n = 0, Tdomain%n_elem-1
-        do nf = 0,3
-            nface  = Tdomain%specel(n)%Near_Face(nf)
-            call get_traction_el2f(Tdomain,n,nface,nf,timelocal)
-        enddo
+        call get_traction_el2f(Tdomain,n)
     enddo
 
     ! Constructing the Lambda (= velocities vhat) on the faces

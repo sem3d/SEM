@@ -258,6 +258,7 @@ contains
         allocate(press(0:nnodes-1))
         allocate(rotat(0:nnodes-1))
         allocate(valence(0:nnodes-1))
+        allocate(field_rotat(0:0,0:0)) ! Pour eviter warning faux positif du compilo.
 
         ngllx = 0
         ngllz = 0

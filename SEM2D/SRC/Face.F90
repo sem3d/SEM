@@ -35,14 +35,14 @@ module sfaces
        real, dimension (:), allocatable :: Normal
        real, dimension (:), allocatable :: k0,k1,Zp_p,Zp_m,Zs_p,Zs_m
        real, dimension (:), allocatable :: Mu_p, Mu_m, Lambda_p, Lambda_m, Rho_m, Rho_p
-       real, dimension (:,:), allocatable :: Flux, Veloc_p,Veloc_m,Strain_p,Strain_m
+       real, dimension (:,:), allocatable :: Flux, Veloc_p,Veloc_m,Strain_p,Strain_m, Flux_p
        real, dimension (:,:), allocatable :: r1, r2, r3  ! EigenVectors for DG Godunov
        real, dimension (:,:), allocatable :: Vect_RK
        ! HDG
        real, dimension (:,:), allocatable :: Normal_Nodes
        real, dimension (:,:), allocatable :: Kinv, Traction, Smbr, InvMatPen
        integer, dimension (0:1) :: pos_in_VertMat
-       logical :: is_computed, changing_media, CG_HDG_interf
+       logical :: is_computed, changing_media, CG_HDG_interf, acoustic
 
     end type face
 
@@ -84,15 +84,6 @@ contains
     ! --------- CENTERED FLUX -----------
     if (F%Type_Flux == FLUX_CENTERED) then
 
-        !if(F%is_computed) then
-        ! Case the flux has been already computed
-        !if(DG_type==GALERKIN_DG_WEAK) then
-        !F%Flux = -F%Flux
-        !elseif (DG_type==GALERKIN_DG_STRONG) then
-        !F%Flux = F%Flux
-        !endif
-        !F%is_computed = .FALSE.
-        !else
         if (DG_type==GALERKIN_DG_WEAK) then
             F_minus = compute_trace_F(F,bool_side)
             F%Flux = 0.5* (F_minus - compute_trace_F(F,.NOT.bool_side))
@@ -189,19 +180,90 @@ contains
                 if (DG_type==GALERKIN_DG_STRONG) F%Flux(:,:) = F_minus(:,:)
             endif
         endif
-        ! Treating Absorbing Boundary Conditions
-        ! Basee sur la supposition " Flux sur les caracteistiques sortantes est nul"
-        ! Cela se traduit par fixer F%veloc_p = 0 et F%strain_p = 0 tout le long de la simu.
-        ! Il n'y a donc aucun traitement specifique a realiser pour les Absorbing BC.
-        !if(F%Abs) then
-        !    if (DG_type==GALERKIN_DG_WEAK) then
-        !        F%Flux = compute_trace_F(F,bool_side)
-        !    elseif (DG_type==GALERKIN_DG_STRONG) then
-        !        F%Flux = 0.
-        !    endif
-        !endif
     endif
-  end subroutine Compute_Flux
+end subroutine Compute_Flux
+
+  ! ############################################################
+  !>
+  !! \brief Compute the flux for Element E at the face F
+  !!  Several different fluxs are available :
+  !!  Type_Flux = 1 : Centered Flux
+  !!  Type_Flux = 2 : Godunov Flux
+  !!
+  !! \param type (Face), intent (INOUT) F
+  !<
+
+  subroutine Compute_Flux_DGweak (F)
+    implicit none
+
+    type (Face), intent (INOUT)      :: F
+
+    ! local variables
+    integer                          :: i
+    real, dimension (0:F%ngll-1,0:1) :: Stress_jump
+    real, dimension (0:F%ngll-1,0:1) :: Veloc_jump
+    real, dimension (0:F%ngll-1,0:4) :: F_minus
+    real, dimension (0:F%ngll-1)     :: coeff_p
+
+    ! --------- CENTERED FLUX -----------
+    if (F%Type_Flux == FLUX_CENTERED) then
+        F_minus = compute_trace_F(F,.true.)
+        F%Flux = 0.5* (F_minus - compute_trace_F(F,.false.))
+        if(F%Abs) then
+            F%Flux = compute_trace_F(F,.true.)
+        endif
+
+    ! -------- GODUNOV FLUX ----------
+    else if (F%Type_Flux == FLUX_GODUNOV) then
+        Stress_jump = compute_stress_jump(F)
+        Veloc_jump(:,:) = F%Veloc_m(:,:) - F%Veloc_p(:,:)
+        call check_r1(F,.true.)
+        if (F%freesurf) then
+            Veloc_jump(:,:)  = 0.
+            Stress_jump(:,:) = 2. * Stress_jump(:,:)
+        endif
+        coeff_p(:) = Stress_jump(:,0) * F%Normal(0) + Stress_jump(:,1) * F%Normal(1) &
+                   + F%Zp_p(:) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
+        if (.NOT. F%acoustic) then
+            F%r2 = compute_r(F,Stress_jump,.true.)
+            F%r3 = compute_r(F,Veloc_jump, .true.)
+            do i=0,F%ngll-1
+                F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:) - F%k1(i)*F%r2(i,:) - F%Zs_p(i)*F%k1(i)*F%r3(i,:)
+            enddo
+        else ! Acoustic case
+            do i=0,F%ngll-1
+                F%Flux(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:)
+            enddo
+        endif
+        F_minus = compute_trace_F(F,.true.)
+        F%Flux(:,:) = F%Flux(:,:) + F_minus(:,:)
+
+        ! Comptute a second flux Face%Flux_p if the interface is elastic-acoustic
+        if(F%changing_media) then
+            Veloc_jump(:,:) = - Veloc_jump(:,:)
+            call check_r1(F,.false.)
+            coeff_p(:) = -Stress_jump(:,0) * F%Normal(0) - Stress_jump(:,1) * F%Normal(1) &
+                    - F%Zp_m(:) * (F%Normal(0)*Veloc_jump(:,0) + F%Normal(1)*Veloc_jump(:,1))
+            if (F%acoustic) then ! Plus side is elastic
+                F%r2 = compute_r(F,Stress_jump,.false.)
+                F%r3 = compute_r(F,Veloc_jump, .false.)
+                do i=0,F%ngll-1
+                    F%Flux_p(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:) - F%k1(i)*F%r2(i,:) - F%Zs_m(i)*F%k1(i)*F%r3(i,:)
+                enddo
+            else ! Plus side is acoustic
+                do i=0,F%ngll-1
+                    F%Flux_p(i,:) = coeff_p(i)*F%k0(i)*F%r1(i,:)
+                enddo
+            endif
+            F_minus = compute_trace_F(F,.false.)
+            F%Flux_p(:,:) = F%Flux_p(:,:) + F_minus(:,:)
+        endif
+
+        if (F%Reflex) F%Flux(:,:) = 0.
+
+    endif
+
+    end subroutine Compute_Flux_DGweak
 
 
   ! ############################################################
@@ -218,21 +280,12 @@ contains
       implicit none
       type (Face), intent (INOUT) :: F
 
-      if (.NOT. F%is_computed) then
-          F%Veloc(:,0) = - F%InvMatPen(:,0)*F%Traction(:,0) - F%InvMatPen(:,2)*F%Traction(:,1)
-          F%Veloc(:,1) = - F%InvMatPen(:,2)*F%Traction(:,0) - F%InvMatPen(:,1)*F%Traction(:,1)
-          F%Traction = 0.
-          F%is_computed = .TRUE.
-          ! Treatment of boundary faces
-          if (F%freesurf) F%is_computed = .FALSE.
-          if (F%Abs) F%is_computed = .FALSE.
-          if (F%reflex) then
-             F%Veloc(:,:) = 0.
-             F%is_computed = .FALSE.
-          endif
-      else
-          F%is_computed = .FALSE.
-      endif
+      F%Veloc(:,0) = - F%InvMatPen(:,0)*F%Traction(:,0) - F%InvMatPen(:,2)*F%Traction(:,1)
+      F%Veloc(:,1) = - F%InvMatPen(:,2)*F%Traction(:,0) - F%InvMatPen(:,1)*F%Traction(:,1)
+      F%Traction = 0.
+
+      ! Treatment of boundary faces
+      if (F%reflex) F%Veloc(:,:) = 0.
 
   end subroutine Compute_Vhat
 
@@ -479,7 +532,7 @@ contains
     !! is from the Face.
     !!
     !! \param type (Face), intent (IN) F
-    !! \param logical, intent (IN) bool_size
+    !! \param logical, intent (IN) bool_side
     !<
 
     subroutine check_r1 (F,bool_side)

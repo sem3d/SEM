@@ -70,6 +70,10 @@ subroutine check_inputs_and_mesh(Tdomain)
         STOP "If you want to use Continuous Galerkin elements, please choose Flux NONE"
     endif
 
+    if ((Tdomain%type_elem == GALERKIN_CONT) .AND. (Tdomain%type_bc .NE. DG_BC_REFL)) then
+        STOP "If you want to use Continuous Galerkin elements, please choose Reflexing Boundary Condition"
+    endif
+
     if ((Tdomain%type_bc.NE.DG_BC_FREE) .AND. &
         (Tdomain%type_bc.NE.DG_BC_ABS) .AND. &
         (Tdomain%type_bc.NE.DG_BC_REFL))then

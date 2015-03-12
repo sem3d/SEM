@@ -2,51 +2,46 @@
 !!\file Assemblage.F90
 !!\brief Contains subroutines for assembling forces and distributing
 !! forces and displacements over the neighboring elements of a face
-!!\version 1.0
+!!\version 2.0
 !!\date 15/11/2013
+!! Revision complete 10/03/2015
 !! This algorithm come from a part of the previous Newmark routine
 !! with several modifications.
 !<
-subroutine Assemblage (Tdomain, nelem, nface, w_face)
+subroutine Assemblage (Tdomain, nelem)
 
   use sdomain
 
   implicit none
   type (domain), intent (INOUT) :: Tdomain
   integer, intent(in)   :: nelem
-  integer, intent(in)   :: nface
-  integer, intent(in)   :: w_face
+  integer               :: nface, nf
   logical               :: coherency
-  integer               :: vertex0, ngllx, ngllz
+  integer               :: nv, ngllx, ngllz
 
   ngllx =  Tdomain%specel(nelem)%ngllx
   ngllz =  Tdomain%specel(nelem)%ngllz
-  coherency = Tdomain%sFace(nface)%coherency
 
-  ! Assemblage of the forces on the Face nface coming from element nelem
-  if (nelem==Tdomain%sFace(nface)%Near_Element(0)) then
-     call getInternalF_el2f (Tdomain,nelem,nface,w_face,.true.)
-  else
-     call getInternalF_el2f (Tdomain,nelem,nface,w_face,coherency)
-  endif
+  do nf=0,3
+      nface = Tdomain%specel(nelem)%Near_Face(nf)
+      coherency = Tdomain%sFace(nface)%coherency
+      ! Assemblage of the forces on the Face nface coming from element nelem
+      if (nelem==Tdomain%sFace(nface)%Near_Element(0)) then
+          call getInternalF_el2f (Tdomain,nelem,nface,nf,.true.)
+      else
+          call getInternalF_el2f (Tdomain,nelem,nface,nf,coherency)
+      endif
+  enddo
+
   ! Assemblage of the forces of the first of the two vertexes of nface
-  vertex0 = Tdomain%specel(nelem)%Near_Vertex(w_face)
-
-  if (.not. Tdomain%sVertex(vertex0)%is_computed) then
-     Tdomain%sVertex(vertex0)%Forces = 0.
-     Tdomain%sVertex(vertex0)%is_computed = .true.
-  endif
-
-  select case (w_face)
-  case(0)
-     Tdomain%sVertex(vertex0)%Forces = Tdomain%sVertex(vertex0)%Forces + Tdomain%specel(nelem)%Forces(0,0,0:1)
-  case(1)
-     Tdomain%sVertex(vertex0)%Forces = Tdomain%sVertex(vertex0)%Forces + Tdomain%specel(nelem)%Forces(ngllx-1,0,0:1)
-  case(2)
-     Tdomain%sVertex(vertex0)%Forces = Tdomain%sVertex(vertex0)%Forces + Tdomain%specel(nelem)%Forces(ngllx-1,ngllz-1,0:1)
-  case(3)
-     Tdomain%sVertex(vertex0)%Forces = Tdomain%sVertex(vertex0)%Forces + Tdomain%specel(nelem)%Forces(0,ngllz-1,0:1)
-  end select
+  nv = Tdomain%specel(nelem)%Near_Vertex(0)
+  Tdomain%sVertex(nv)%Forces = Tdomain%sVertex(nv)%Forces + Tdomain%specel(nelem)%Forces(0,0,0:1)
+  nv = Tdomain%specel(nelem)%Near_Vertex(1)
+  Tdomain%sVertex(nv)%Forces = Tdomain%sVertex(nv)%Forces + Tdomain%specel(nelem)%Forces(ngllx-1,0,0:1)
+  nv = Tdomain%specel(nelem)%Near_Vertex(2)
+  Tdomain%sVertex(nv)%Forces = Tdomain%sVertex(nv)%Forces + Tdomain%specel(nelem)%Forces(ngllx-1,ngllz-1,0:1)
+  nv = Tdomain%specel(nelem)%Near_Vertex(3)
+  Tdomain%sVertex(nv)%Forces = Tdomain%sVertex(nv)%Forces + Tdomain%specel(nelem)%Forces(0,ngllz-1,0:1)
 
 end subroutine Assemblage
 
@@ -58,156 +53,163 @@ end subroutine Assemblage
 !!\date 18/11/2013
 !! This subroutine is used only with DG elements
 !<
-subroutine Get_data_el2f (Tdomain, nelem, nface, w_face)
+subroutine Get_data_el2f (Tdomain, nelem)
 
   use sdomain
   implicit none
 
   type (domain), intent (INOUT) :: Tdomain
   integer, intent(in)   :: nelem
-  integer, intent(in)   :: nface
-  integer, intent(in)   :: w_face
 
   ! local variables
-  integer :: ngll, ngllx, ngllz, i
+  integer :: ngll, ngllx, ngllz, i, nface, w_face
   logical :: coherency
 
-  ngll  = Tdomain%sFace(nface)%ngll
   ngllx = Tdomain%specel(nelem)%ngllx
   ngllz = Tdomain%specel(nelem)%ngllz
-  coherency = Tdomain%sFace(nface)%coherency
 
-  if (Tdomain%sFace(nface)%Near_Element(0)==nelem) then
-     if (w_face == 0 ) then
-        Tdomain%sFace(nface)%Veloc_m  = Tdomain%specel(nelem)%Veloc (0:ngll-1,0,0:1)
-        Tdomain%sFace(nface)%Strain_m = Tdomain%specel(nelem)%Strain(0:ngll-1,0,0:2)
-     else if (w_face == 1 ) then
-        Tdomain%sFace(nface)%Veloc_m  = Tdomain%specel(nelem)%Veloc (ngllx-1,0:ngll-1,0:1)
-        Tdomain%sFace(nface)%Strain_m = Tdomain%specel(nelem)%Strain(ngllx-1,0:ngll-1,0:2)
-     else if (w_face == 2 ) then
-        Tdomain%sFace(nface)%Veloc_m  = Tdomain%specel(nelem)%Veloc (0:ngll-1,ngllz-1,0:1)
-        Tdomain%sFace(nface)%Strain_m = Tdomain%specel(nelem)%Strain(0:ngll-1,ngllz-1,0:2)
-     else
-        Tdomain%sFace(nface)%Veloc_m  = Tdomain%specel(nelem)%Veloc (0,0:ngll-1,0:1)
-        Tdomain%sFace(nface)%Strain_m = Tdomain%specel(nelem)%Strain(0,0:ngll-1,0:2)
-     endif
-  else if (coherency) then
-     if (w_face == 0 ) then
-        Tdomain%sFace(nface)%Veloc_p  = Tdomain%specel(nelem)%Veloc (0:ngll-1,0,0:1)
-        Tdomain%sFace(nface)%Strain_p = Tdomain%specel(nelem)%Strain(0:ngll-1,0,0:2)
-     else if (w_face == 1 ) then
-        Tdomain%sFace(nface)%Veloc_p  = Tdomain%specel(nelem)%Veloc (ngllx-1,0:ngll-1,0:1)
-        Tdomain%sFace(nface)%Strain_p = Tdomain%specel(nelem)%Strain(ngllx-1,0:ngll-1,0:2)
-     else if (w_face == 2 ) then
-        Tdomain%sFace(nface)%Veloc_p  = Tdomain%specel(nelem)%Veloc (0:ngll-1,ngllz-1,0:1)
-        Tdomain%sFace(nface)%Strain_p = Tdomain%specel(nelem)%Strain(0:ngll-1,ngllz-1,0:2)
-     else
-        Tdomain%sFace(nface)%Veloc_p  = Tdomain%specel(nelem)%Veloc (0,0:ngll-1,0:1)
-        Tdomain%sFace(nface)%Strain_p = Tdomain%specel(nelem)%Strain(0,0:ngll-1,0:2)
-     end if
-  else
-     if (w_face == 0 ) then
-        do i=0,ngll-1
-           Tdomain%sFace(nface)%Veloc_p(i,0:1)  = Tdomain%specel(nelem)%Veloc (ngll-1-i,0,0:1)
-           Tdomain%sFace(nface)%Strain_p(i,0:2) = Tdomain%specel(nelem)%Strain(ngll-1-i,0,0:2)
-        end do
-     else if (w_face == 1 ) then
-        do i=0,ngll-1
-           Tdomain%sFace(nface)%Veloc_p(i,0:1)  = Tdomain%specel(nelem)%Veloc (ngllx-1,ngll-1-i,0:1)
-           Tdomain%sFace(nface)%Strain_p(i,0:2) = Tdomain%specel(nelem)%Strain(ngllx-1,ngll-1-i,0:2)
-        end do
-     else if (w_face == 2 ) then
-        do i=0,ngll-1
-           Tdomain%sFace(nface)%Veloc_p(i,0:1)  = Tdomain%specel(nelem)%Veloc (ngll-1-i,ngllz-1,0:1)
-           Tdomain%sFace(nface)%Strain_p(i,0:2) = Tdomain%specel(nelem)%Strain(ngll-1-i,ngllz-1,0:2)
-        end do
-     else
-        do i=0,ngll-1
-           Tdomain%sFace(nface)%Veloc_p(i,0:1)  = Tdomain%specel(nelem)%Veloc (0,ngll-1-i,0:1)
-           Tdomain%sFace(nface)%Strain_p(i,0:2) = Tdomain%specel(nelem)%Strain(0,ngll-1-i,0:2)
-        end do
-     endif
-  end if
+  do w_face=0,3
+      nface = Tdomain%specel(nelem)%Near_Face(w_face)
+      ngll  = Tdomain%sFace(nface)%ngll
+      coherency = Tdomain%sFace(nface)%coherency
+      if (Tdomain%sFace(nface)%Near_Element(0)==nelem) then
+          if (w_face == 0 ) then
+              Tdomain%sFace(nface)%Veloc_m  = Tdomain%specel(nelem)%Veloc (0:ngll-1,0,0:1)
+              Tdomain%sFace(nface)%Strain_m = Tdomain%specel(nelem)%Strain(0:ngll-1,0,0:2)
+          else if (w_face == 1 ) then
+              Tdomain%sFace(nface)%Veloc_m  = Tdomain%specel(nelem)%Veloc (ngllx-1,0:ngll-1,0:1)
+              Tdomain%sFace(nface)%Strain_m = Tdomain%specel(nelem)%Strain(ngllx-1,0:ngll-1,0:2)
+          else if (w_face == 2 ) then
+              Tdomain%sFace(nface)%Veloc_m  = Tdomain%specel(nelem)%Veloc (0:ngll-1,ngllz-1,0:1)
+              Tdomain%sFace(nface)%Strain_m = Tdomain%specel(nelem)%Strain(0:ngll-1,ngllz-1,0:2)
+          else
+              Tdomain%sFace(nface)%Veloc_m  = Tdomain%specel(nelem)%Veloc (0,0:ngll-1,0:1)
+              Tdomain%sFace(nface)%Strain_m = Tdomain%specel(nelem)%Strain(0,0:ngll-1,0:2)
+          endif
+      else if (coherency) then
+          if (w_face == 0 ) then
+              Tdomain%sFace(nface)%Veloc_p  = Tdomain%specel(nelem)%Veloc (0:ngll-1,0,0:1)
+              Tdomain%sFace(nface)%Strain_p = Tdomain%specel(nelem)%Strain(0:ngll-1,0,0:2)
+          else if (w_face == 1 ) then
+              Tdomain%sFace(nface)%Veloc_p  = Tdomain%specel(nelem)%Veloc (ngllx-1,0:ngll-1,0:1)
+              Tdomain%sFace(nface)%Strain_p = Tdomain%specel(nelem)%Strain(ngllx-1,0:ngll-1,0:2)
+          else if (w_face == 2 ) then
+              Tdomain%sFace(nface)%Veloc_p  = Tdomain%specel(nelem)%Veloc (0:ngll-1,ngllz-1,0:1)
+              Tdomain%sFace(nface)%Strain_p = Tdomain%specel(nelem)%Strain(0:ngll-1,ngllz-1,0:2)
+          else
+              Tdomain%sFace(nface)%Veloc_p  = Tdomain%specel(nelem)%Veloc (0,0:ngll-1,0:1)
+              Tdomain%sFace(nface)%Strain_p = Tdomain%specel(nelem)%Strain(0,0:ngll-1,0:2)
+          end if
+      else
+          if (w_face == 0 ) then
+              do i=0,ngll-1
+                  Tdomain%sFace(nface)%Veloc_p(i,0:1)  = Tdomain%specel(nelem)%Veloc (ngll-1-i,0,0:1)
+                  Tdomain%sFace(nface)%Strain_p(i,0:2) = Tdomain%specel(nelem)%Strain(ngll-1-i,0,0:2)
+              end do
+          else if (w_face == 1 ) then
+              do i=0,ngll-1
+                  Tdomain%sFace(nface)%Veloc_p(i,0:1)  = Tdomain%specel(nelem)%Veloc (ngllx-1,ngll-1-i,0:1)
+                  Tdomain%sFace(nface)%Strain_p(i,0:2) = Tdomain%specel(nelem)%Strain(ngllx-1,ngll-1-i,0:2)
+              end do
+          else if (w_face == 2 ) then
+              do i=0,ngll-1
+                  Tdomain%sFace(nface)%Veloc_p(i,0:1)  = Tdomain%specel(nelem)%Veloc (ngll-1-i,ngllz-1,0:1)
+                  Tdomain%sFace(nface)%Strain_p(i,0:2) = Tdomain%specel(nelem)%Strain(ngll-1-i,ngllz-1,0:2)
+              end do
+          else
+              do i=0,ngll-1
+                  Tdomain%sFace(nface)%Veloc_p(i,0:1)  = Tdomain%specel(nelem)%Veloc (0,ngll-1-i,0:1)
+                  Tdomain%sFace(nface)%Strain_p(i,0:2) = Tdomain%specel(nelem)%Strain(0,ngll-1-i,0:2)
+              end do
+          endif
+      end if
+  enddo
   return
 
 end subroutine Get_data_el2f
 
 
 !>
-!!\brief Subroutine that sent the fluxes computed on a face "nface" to the neighboring
-!! element "nelem" taking into account the problems of coherency and weighting with the
+!!\brief This Subroutine, for an element nelem, sends the numerical fluxes
+!! computed on its neighboring faces to update the forces of the current element.
+!! It takes into account the problems of coherency and weighting with the
 !! right wheight for approximating the integral.
 !!\version 1.0
 !!\date 20/11/2013
 !! This subroutine is used only with DG elements
 !<
-subroutine Get_flux_f2el (Tdomain, nelem, nface, w_face)
+subroutine Get_flux_f2el (Tdomain, nelem)
 
   use sdomain
   implicit none
 
   type (domain), intent (INOUT) :: Tdomain
   integer, intent(in)   :: nelem
-  integer, intent(in)   :: nface
-  integer, intent(in)   :: w_face
 
   ! local variables
-  integer :: ngll, ngllx, ngllz, i, imin, imax
+  real, dimension (:,:), allocatable :: Flux
+  integer :: ngll, ngllx, ngllz, i, imin, imax, nface, nf
+  type(element), pointer :: Elem
   logical :: coherency
 
-  ngll  = Tdomain%sFace(nface)%ngll
-  ngllx = Tdomain%specel(nelem)%ngllx
-  ngllz = Tdomain%specel(nelem)%ngllz
-  coherency = Tdomain%sFace(nface)%coherency
+  Elem => Tdomain%specel(nelem)
+  ngllx = Elem%ngllx
+  ngllz = Elem%ngllz
 
-  call get_iminimax(Tdomain%specel(nelem),w_face,imin,imax)
+  do nf = 0,3
+      nface = Elem%Near_Face(nf)
+      coherency = Tdomain%sFace(nface)%coherency
+      ngll  = Tdomain%sFace(nface)%ngll
+      allocate(Flux(0:ngll-1,0:4))
+      call get_iminimax(Elem,nf,imin,imax)
 
-  if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
-     if (w_face == 0 ) then
-        do i=0,ngll-1
-           Tdomain%specel(nelem)%Forces(i,0,0:4) = Tdomain%specel(nelem)%Forces(i,0,0:4) - &
-               Tdomain%sFace(nface)%Flux(i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(imin+i)
-        enddo
-     else if (w_face == 1 ) then
-         do i=0,ngll-1
-             Tdomain%specel(nelem)%Forces(ngllx-1,i,0:4) = Tdomain%specel(nelem)%Forces(ngllx-1,i,0:4) - &
-               Tdomain%sFace(nface)%Flux(i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(imin+i)
-         enddo
-     else if (w_face == 2 ) then
-         do i=0,ngll-1
-             Tdomain%specel(nelem)%Forces(i,ngllz-1,0:4) = Tdomain%specel(nelem)%Forces(i,ngllz-1,0:4) - &
-               Tdomain%sFace(nface)%Flux(i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(imin+i)
-         enddo
-     else
-         do i=0,ngll-1
-             Tdomain%specel(nelem)%Forces(0,i,0:4) = Tdomain%specel(nelem)%Forces(0,i,0:4) - &
-               Tdomain%sFace(nface)%Flux(i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(imin+i)
-         enddo
-     endif
-  else
-     if (w_face == 0 ) then
-        do i=0,ngll-1
-           Tdomain%specel(nelem)%Forces(i,0,0:4) = Tdomain%specel(nelem)%Forces(i,0,0:4) - &
-               Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(imin+i)
-        enddo
-     else if (w_face == 1 ) then
-        do i=0,ngll-1
-           Tdomain%specel(nelem)%Forces(ngllx-1,i,0:4) = Tdomain%specel(nelem)%Forces(ngllx-1,i,0:4) - &
-               Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(imin+i)
-        enddo
-     else if (w_face == 2 ) then
-        do i=0,ngll-1
-           Tdomain%specel(nelem)%Forces(i,ngllz-1,0:4) = Tdomain%specel(nelem)%Forces(i,ngllz-1,0:4) - &
-               Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(imin+i)
-        enddo
-     else
-        do i=0,ngll-1
-           Tdomain%specel(nelem)%Forces(0,i,0:4) = Tdomain%specel(nelem)%Forces(0,i,0:4) - &
-               Tdomain%sFace(nface)%Flux(ngll-1-i,0:4) * Tdomain%specel(nelem)%Coeff_Integr_Faces(imin+i)
-        enddo
-     endif
-  endif
+      if (Tdomain%sFace(nface)%Near_Element(0)==nelem) then
+          do i=0,ngll-1
+              Flux(i,:) =  Tdomain%sFace(nface)%Flux(i,:)*Elem%Coeff_Integr_Faces(imin+i)
+          enddo
+      else ! nelem is Near_Element(1)
+          if (coherency .AND. (.NOT. Tdomain%sFace(nface)%changing_media)) then
+              do i=0,ngll-1
+                  Flux(i,:) = -Tdomain%sFace(nface)%Flux(i,:)*Elem%Coeff_Integr_Faces(imin+i)
+              enddo
+          else if ((.NOT. coherency) .AND. (.NOT. Tdomain%sFace(nface)%changing_media)) then
+              do i=0,ngll-1
+                  Flux(i,:) = -Tdomain%sFace(nface)%Flux(ngll-1-i,:)*Elem%Coeff_Integr_Faces(imin+i)
+              enddo
+          else if (coherency .AND. Tdomain%sFace(nface)%changing_media) then
+              do i=0,ngll-1
+                  Flux(i,:) = Tdomain%sFace(nface)%Flux_p(i,:)*Elem%Coeff_Integr_Faces(imin+i)
+              enddo
+          else if ((.NOT. coherency) .AND. Tdomain%sFace(nface)%changing_media) then
+              do i=0,ngll-1
+                  Flux(i,:) = Tdomain%sFace(nface)%Flux_p(ngll-1-i,:)*Elem%Coeff_Integr_Faces(imin+i)
+              enddo
+          endif
+      endif
 
+      select case(nf)
+      case(0) ! Bottom Face
+          do i=0,ngll-1
+              Tdomain%specel(nelem)%Forces(i,0,:) = Tdomain%specel(nelem)%Forces(i,0,:) - Flux(i,:)
+          enddo
+      case(1) ! Right Face
+          do i=0,ngll-1
+              Tdomain%specel(nelem)%Forces(ngllx-1,i,:) = Tdomain%specel(nelem)%Forces(ngllx-1,i,:) - Flux(i,:)
+          enddo
+      case(2) ! Top Face
+          do i=0,ngll-1
+              Tdomain%specel(nelem)%Forces(i,ngllz-1,:) = Tdomain%specel(nelem)%Forces(i,ngllz-1,:) - Flux(i,:)
+          enddo
+      case(3) ! Left Face
+          do i=0,ngll-1
+              Tdomain%specel(nelem)%Forces(0,i,:) = Tdomain%specel(nelem)%Forces(0,i,:) - Flux(i,:)
+          enddo
+      end select
+  deallocate (Flux)
+  enddo
+
+  ! Dirichlet Boundary conditions (if any)
+  if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,nelem)
 
 end subroutine Get_flux_f2el
 
@@ -219,7 +221,7 @@ end subroutine Get_flux_f2el
 !!\date 18/11/2013
 !! This subroutine is used only with HDG elements
 !<
-subroutine Get_traction_el2f (Tdomain, nelem, nface, w_face)
+subroutine Get_traction_el2f (Tdomain, nelem)
 
     use sdomain
     use ssources
@@ -228,31 +230,29 @@ subroutine Get_traction_el2f (Tdomain, nelem, nface, w_face)
 
     type (domain), intent (INOUT) :: Tdomain
     integer, intent(in)   :: nelem
-    integer, intent(in)   :: nface
-    integer, intent(in)   :: w_face
-    !real,   intent (in)   :: timelocal
 
     ! local variables
-    integer :: ngll, ngllx, ngllz, i, imin, imax
+    integer :: ngll, ngllx, ngllz, i, imin, imax, nface, nf
     logical :: coherency
-    !real, dimension(:,:), allocatable :: Fext
 
-    ngll  = Tdomain%sFace(nface)%ngll
     ngllx = Tdomain%specel(nelem)%ngllx
     ngllz = Tdomain%specel(nelem)%ngllz
-    coherency  = Tdomain%sFace(nface)%coherency
 
-    call get_iminimax(Tdomain%specel(nelem),w_face,imin,imax)
-
-    if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
-        Tdomain%sFace(nface)%Traction = Tdomain%sFace(nface)%Traction &
-                                      + Tdomain%specel(nelem)%TracFace(imin:imax,0:1)
-    else ! Case coherency = false
-        do i=0,ngll-1
-            Tdomain%sFace(nface)%Traction(i,0:1) = Tdomain%sFace(nface)%Traction(i,0:1) &
-                                                 + Tdomain%specel(nelem)%TracFace(imax-i,0:1)
-        end do
-    end if
+    do nf = 0,3
+        nface = Tdomain%specel(nelem)%Near_Face(nf)
+        ngll  = Tdomain%sFace(nface)%ngll
+        coherency  = Tdomain%sFace(nface)%coherency
+        call get_iminimax(Tdomain%specel(nelem),nf,imin,imax)
+        if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
+            Tdomain%sFace(nface)%Traction = Tdomain%sFace(nface)%Traction &
+                                          + Tdomain%specel(nelem)%TracFace(imin:imax,0:1)
+        else ! Case coherency = false
+            do i=0,ngll-1
+                Tdomain%sFace(nface)%Traction(i,0:1) = Tdomain%sFace(nface)%Traction(i,0:1) &
+                                                     + Tdomain%specel(nelem)%TracFace(imax-i,0:1)
+            end do
+        end if
+    enddo
 
     ! Ajout des sources surfaciques pour les problemes de Riemann autour des elements sources
     !if (Tdomain%specel(nelem)%is_source) then

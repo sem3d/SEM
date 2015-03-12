@@ -202,6 +202,7 @@ subroutine allocate_domain (Tdomain)
          allocate (Tdomain%sFace(n)%Zp_p(0:ngll-1))
          allocate (Tdomain%sFace(n)%Zs_m(0:ngll-1))
          allocate (Tdomain%sFace(n)%Zs_p(0:ngll-1))
+         if (Tdomain%sFace(n)%changing_media) allocate (Tdomain%sFace(n)%Flux_p(0:ngll-1,0:4))
          Tdomain%sFace(n)%k0 = 0
          Tdomain%sFace(n)%k1 = 0
          Tdomain%sFace(n)%r1 = 0
@@ -274,7 +275,6 @@ subroutine allocate_domain (Tdomain)
      Tdomain%sVertex(j)%abs    = Tdomain%sFace(n)%abs
      Tdomain%sVertex(i)%reflex = Tdomain%sFace(n)%reflex
      Tdomain%sVertex(j)%reflex = Tdomain%sFace(n)%reflex
-
      ! Putting a flag for Continuous-Discontinuous interface :
      i = Tdomain%sFace(n)%Near_Element(0)
      j = Tdomain%sFace(n)%Near_Element(1)
