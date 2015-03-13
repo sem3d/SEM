@@ -275,7 +275,7 @@ contains
     end subroutine shape27_local2global
     !---------------------------------------------------------------------------
     subroutine shape27_local2jacob(coord, xi, eta, zeta, jac)
-        double precision, dimension(0:2,0:7), intent(in)  :: coord
+        double precision, dimension(0:2,0:26), intent(in)  :: coord
         double precision, intent(in) :: xi, eta, zeta
         double precision, dimension(0:2,0:2), intent(out) :: jac
         !
