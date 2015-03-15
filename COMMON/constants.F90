@@ -38,6 +38,7 @@ MODULE constants
     integer, parameter :: GALERKIN_DG_STRONG=1
     integer, parameter :: GALERKIN_DG_WEAK=2
     integer, parameter :: GALERKIN_HDG_RP=3
+    integer, parameter :: COUPLE_CG_HDG=4
     integer, parameter :: FLUX_NONE=0
     integer, parameter :: FLUX_CENTERED=1
     integer, parameter :: FLUX_GODUNOV=2

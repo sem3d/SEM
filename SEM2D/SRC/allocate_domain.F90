@@ -24,7 +24,7 @@ subroutine allocate_domain (Tdomain)
 
   type(domain), intent (INOUT):: Tdomain
 
-  integer :: n,ngllx,ngllz,ngll,i,j
+  integer :: n,ngllx,ngllz,ngll,i,j,imin,imax
 
   do n=0,Tdomain%n_elem-1
      ngllx = Tdomain%specel(n)%ngllx
@@ -279,23 +279,27 @@ subroutine allocate_domain (Tdomain)
      i = Tdomain%sFace(n)%Near_Element(0)
      j = Tdomain%sFace(n)%Near_Element(1)
      if ( (j.NE.-1) .AND. (Tdomain%specel(i)%type_DG .NE. Tdomain%specel(j)%type_DG)) then
-        Tdomain%sFace(n)%CG_HDG_interf = .true.
         write(*,*) "Changing CG-HDG for face : ",n
-        deallocate(Tdomain%sFace(n)%Veloc)
-        allocate(Tdomain%sFace(n)%Veloc(0:ngll-1,0:1))
+        deallocate(Tdomain%sFace(n)%Veloc,Tdomain%sFace(n)%Forces)
+        allocate(Tdomain%sFace(n)%Veloc (0:ngll-1,0:1))
+        allocate(Tdomain%sFace(n)%Forces(0:ngll-1,0:1))
         if (.not. allocated(Tdomain%sFace(n)%InvMatPen)) allocate (Tdomain%sFace(n)%InvMatPen(0:ngll-1,0:2))
         if (.not. allocated(Tdomain%sFace(n)%Traction))  allocate (Tdomain%sFace(n)%Traction(0:ngll-1,0:1))
         Tdomain%sFace(n)%Veloc = 0.
         Tdomain%sFace(n)%Traction = 0.
         Tdomain%sFace(n)%InvMatPen= 0.
-        Tdomain%sFace(n)%type_DG = GALERKIN_CONT
+        Tdomain%sFace(n)%type_DG = COUPLE_CG_HDG
         Tdomain%sFace(n)%type_Flux = FLUX_NONE
         i = Tdomain%sFace(n)%Near_Vertex(0)
         j = Tdomain%sFace(n)%Near_Vertex(1)
         Tdomain%sVertex(i)%Type_DG = GALERKIN_CONT
         Tdomain%sVertex(j)%Type_DG = GALERKIN_CONT
-     else
-        Tdomain%sFace(n)%CG_HDG_interf = .false.
+        ! Coefficients of integration on face
+        j = Tdomain%sFace(n)%Near_Element(0)
+        i = Tdomain%sFace(n)%Which_Face(0)
+        allocate(Tdomain%sFace(n)%Coeff_Integr(0:ngll-1))
+        call get_iminimax(Tdomain%specel(j),i,imin,imax)
+        Tdomain%sFace(n)%Coeff_Integr(:) = Tdomain%specel(j)%Coeff_Integr_Faces(imin:imax)
      endif
   enddo
 
@@ -362,7 +366,8 @@ subroutine allocate_domain (Tdomain)
      enddo
      do n = 0, Tdomain%n_face-1
         ngll = Tdomain%sFace(n)%ngll
-        if (Tdomain%sface(n)%Type_DG == GALERKIN_CONT) then
+        if (Tdomain%sface(n)%Type_DG == GALERKIN_CONT .OR. &
+            Tdomain%sface(n)%Type_DG == COUPLE_CG_HDG) then
            allocate (Tdomain%sface(n)%Vect_RK(1:ngll-2,0:1))
            Tdomain%sface(n)%Vect_RK = 0.
         endif

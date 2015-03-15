@@ -172,7 +172,7 @@ contains
 
         ! local variables
 
-        integer :: i_aus,n, mat,ngllx,ngllz,i,j,ipoint,imin,imax
+        integer :: i_aus,n,mat,ngllx,ngllz,i,j,ipoint,imin,imax
         real :: x0,x1,x2,x3,z0,z1,z2,z3,xi,eta,xp,zp, Jac
         real, dimension (0:1,0:1) :: LocInvGrad
         integer :: nf
@@ -262,6 +262,7 @@ contains
                 call compute_normals(Tdomain,nf)
             end if
         end do
+
 
         ! Compute Normals for Elements HDG :
         do n=0,Tdomain%n_elem-1

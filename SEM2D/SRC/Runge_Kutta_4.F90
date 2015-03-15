@@ -112,6 +112,8 @@ subroutine Runge_Kutta4 (Tdomain, dt)
                call Compute_Flux_DGweak(Tdomain%sFace(nface))
            case(GALERKIN_DG_WEAK)
                call Compute_Flux_DGweak(Tdomain%sFace(nface))
+           case(COUPLE_CG_HDG)
+               call Compute_Flux_Coupling(Tdomain%sFace(nface))
            end select
        enddo
 
@@ -199,17 +201,20 @@ subroutine Runge_Kutta4 (Tdomain, dt)
     real, intent(IN) :: coeff2
     real, intent(IN) :: Dt
     ! local variables
-    integer :: n, type_DG
+    integer :: n, type_DG, ngll
 
     do n=0, Tdomain%n_face-1
+       ngll = Tdomain%sface(n)%ngll
        type_DG = Tdomain%sface(n)%Type_DG
-       if (type_DG == GALERKIN_CONT) then
+       if (type_DG == GALERKIN_CONT .OR. type_DG == COUPLE_CG_HDG) then
+          ! Sends the forces from face to vertex if the face is coupling CG-HDG
+          if (type_DG == COUPLE_CG_HDG) call get_veloc_v2f (Tdomain, n)
           ! Inversion of Mass Matrix to get 2nd member of velocity equation
-          Tdomain%sface(n)%Forces(:,0)  = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(:,0)
-          Tdomain%sface(n)%Forces(:,1)  = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(:,1)
+          Tdomain%sface(n)%Forces(1:ngll-2,0)  = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(1:ngll-2,0)
+          Tdomain%sface(n)%Forces(1:ngll-2,1)  = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(1:ngll-2,1)
           if (Tdomain%sface(n)%reflex) Tdomain%sface(n)%Forces = 0.
           ! RK4 Updates of velocities and displacements
-          Tdomain%sface(n)%Vect_RK = coeff1 * Tdomain%sface(n)%Vect_RK + Dt * Tdomain%sface(n)%Forces(:,0:1)
+          Tdomain%sface(n)%Vect_RK = coeff1 * Tdomain%sface(n)%Vect_RK + Dt * Tdomain%sface(n)%Forces(1:ngll-2,0:1)
           Tdomain%sface(n)%Veloc   = Tdomain%sface(n)%Veloc + coeff2 * Tdomain%sface(n)%Vect_RK(:,0:1)
           !Tdomain%sface(n)%Displ   = Tdomain%sface(n)%Displ + coeff2 * Tdomain%sface(n)%Vect_RK(:,2:3)
           !Tdomain%sface(n)%Vect_RK(:,2:3) = coeff1 * Tdomain%sface(n)%Vect_RK(:,2:3) + Dt * Tdomain%sface(n)%Veloc (:,0:1)

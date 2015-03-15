@@ -33,7 +33,7 @@ module sfaces
 
        ! DG
        real, dimension (:), allocatable :: Normal
-       real, dimension (:), allocatable :: k0,k1,Zp_p,Zp_m,Zs_p,Zs_m
+       real, dimension (:), allocatable :: k0,k1,Zp_p,Zp_m,Zs_p,Zs_m, Coeff_Integr
        real, dimension (:), allocatable :: Mu_p, Mu_m, Lambda_p, Lambda_m, Rho_m, Rho_p
        real, dimension (:,:), allocatable :: Flux, Veloc_p,Veloc_m,Strain_p,Strain_m, Flux_p
        real, dimension (:,:), allocatable :: r1, r2, r3  ! EigenVectors for DG Godunov
@@ -42,7 +42,7 @@ module sfaces
        real, dimension (:,:), allocatable :: Normal_Nodes
        real, dimension (:,:), allocatable :: Kinv, Traction, Smbr, InvMatPen
        integer, dimension (0:1) :: pos_in_VertMat
-       logical :: is_computed, changing_media, CG_HDG_interf, acoustic
+       logical :: is_computed, changing_media, acoustic
 
     end type face
 
@@ -288,6 +288,36 @@ end subroutine Compute_Flux
       if (F%reflex) F%Veloc(:,:) = 0.
 
   end subroutine Compute_Vhat
+
+
+  ! ############################################################
+  !>
+  !! \brief Compute the term of flux for the interface of coupling CG-DG.
+  !! The final term computed here is " sigma(n) - tau*(V-Vhat) ". The part
+  !! "sigma(n) - tau*V" has been previously computed by subroutine compute_TracFace
+  !! and is stored in Face%Traction. Here is just computed the part "tau*Vhat".
+  !! It will be used later as a Neumann boundary condition for the Continuous
+  !! Galerkin side.
+  !! Be carefull : here Face%InvMatPen is the penalization matrix NOT inverted.
+  !! \param type (Face), intent (INOUT) F
+  !<
+  subroutine Compute_Flux_Coupling (F)
+
+      implicit none
+      type (Face), intent (INOUT) :: F
+
+      F%Traction(:,0) =  F%Traction(:,0) + (F%InvMatPen(:,0)*F%Veloc(:,0) + F%InvMatPen(:,2)*F%Veloc(:,1))
+      F%Traction(:,1) =  F%Traction(:,1) + (F%InvMatPen(:,2)*F%Veloc(:,0) + F%InvMatPen(:,1)*F%Veloc(:,1))
+
+      ! Adding The traction to the forces
+      F%Forces(:,0) = F%Forces(:,0) + F%Coeff_Integr(:) * F%Traction(:,0)
+      F%Forces(:,1) = F%Forces(:,1) + F%Coeff_Integr(:) * F%Traction(:,1)
+
+      F%Traction(:,:) = 0.
+
+  end subroutine Compute_Flux_Coupling
+
+
 
     ! ############################################################
     !>
@@ -745,6 +775,9 @@ end subroutine Compute_Flux
            F%InvMatPen(:,2) = 0.
         endif
 
+        ! If the face is couplic CG with HDG, the matrix InvMatPen is not inverted :
+        if (F%Type_DG == COUPLE_CG_HDG) call Invert_K_face (F)
+
     end subroutine compute_InvMatPen
 
     ! ###########################################################
@@ -756,11 +789,10 @@ end subroutine Compute_Flux
     !! This subroutine is used only for HDG in a semi-implicit framework.
     !! \param type (Face), intent (INOUT) F
     !<
-    subroutine Invert_K_face (F, n)
+    subroutine Invert_K_face (F)
         implicit none
 
         type (Face), intent (INOUT) :: F
-        integer,     intent (IN)    :: n
         real, dimension(0:F%ngll-1) :: Det, tmp
         integer                     :: i
 
@@ -769,7 +801,7 @@ end subroutine Compute_Flux
         ! Check positive-definiteness of matrices on Faces
         do i=0,F%ngll-1
             if ((F%Kinv(i,0) .LE. 0.) .OR. (Det(i) .LE. 0.)) then
-                write(*,*) "Matrix not positive definite on face ", n, "and node ", i
+                write(*,*) "Matrix not positive definite on current face and for node ", i
                 STOP "Matrix should be sym def pos on faces. End of computation."
             endif
         enddo

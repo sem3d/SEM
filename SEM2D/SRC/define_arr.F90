@@ -608,7 +608,7 @@ subroutine define_arrays(Tdomain)
         enddo
         ! Inversion des matrices K sur les faces
         do nf = 0, Tdomain%n_face-1
-            call invert_K_face(Tdomain%sFace(nf),nf)
+            call invert_K_face(Tdomain%sFace(nf))
         enddo
         ! Inversion des matrices K sur les vertexs
         do n = 0, Tdomain%n_vertex-1
