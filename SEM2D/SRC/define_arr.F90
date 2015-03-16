@@ -346,14 +346,16 @@ subroutine define_arrays(Tdomain)
         n_elem = Tdomain%sFace(nf)%Near_element(0)
         w_face = Tdomain%sFace(nf)%Which_face(0)
         ! Assemblage des masses sur les Faces
-        call getMass_element2face (Tdomain,n_elem,nf,w_face,.true.)
+        if (Tdomain%specel(n_elem)%type_DG == GALERKIN_CONT) &
+            call getMass_element2face (Tdomain,n_elem,nf,w_face,.true.)
         if (Tdomain%sFace(nf)%PML .and. (.not.Tdomain%sFace(nf)%CPML) .and. &
            (.not.Tdomain%sFace(nf)%ADEPML)) call getDumpMass_element2face (Tdomain,n_elem,nf,w_face,.true.)
         if (Tdomain%sFace(nf)%FPML) call getIv_element2face (Tdomain,n_elem,nf,w_face,.true.)
         n_elem = Tdomain%sFace(nf)%Near_element(1)
         if (n_elem > -1) then
             w_face = Tdomain%sFace(nf)%Which_face(1)
-            call getMass_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
+            if (Tdomain%specel(n_elem)%type_DG == GALERKIN_CONT) &
+                call getMass_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
             if (Tdomain%sFace(nf)%PML .and. (.not.Tdomain%sFace(nf)%CPML) .and. &
                (.not.Tdomain%sFace(nf)%ADEPML)) call getDumpMass_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
             if (Tdomain%sFace(nf)%FPML ) call getIv_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
@@ -362,6 +364,7 @@ subroutine define_arrays(Tdomain)
 
     ! Assemblage des masses sur les vertexes
     do n = 0, Tdomain%n_elem -1
+      if (Tdomain%specel(n)%type_DG == GALERKIN_CONT) then
         ngllx = Tdomain%specel(n)%ngllx; ngllz = Tdomain%specel(n)%ngllz
         nv_aus = Tdomain%specel(n)%Near_Vertex(0)
         Tdomain%sVertex(nv_aus)%MassMat = Tdomain%sVertex(nv_aus)%MassMat + Tdomain%specel(n)%MassMat(0,0)
@@ -399,6 +402,7 @@ subroutine define_arrays(Tdomain)
             Tdomain%sVertex(nv_aus)%Ivx(0) = Tdomain%sVertex(nv_aus)%Ivx(0)+ Tdomain%specel(n)%Ivx(0,ngllz-1)
             Tdomain%sVertex(nv_aus)%Ivz(0) = Tdomain%sVertex(nv_aus)%Ivz(0) + Tdomain%specel(n)%Ivz(0,ngllz-1)
         endif
+      endif
     enddo
 
     !################  Communications between processors  ###################

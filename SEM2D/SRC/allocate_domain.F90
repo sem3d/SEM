@@ -289,7 +289,7 @@ subroutine allocate_domain (Tdomain)
         Tdomain%sFace(n)%Traction = 0.
         Tdomain%sFace(n)%InvMatPen= 0.
         Tdomain%sFace(n)%type_DG = COUPLE_CG_HDG
-        Tdomain%sFace(n)%type_Flux = FLUX_NONE
+        Tdomain%sFace(n)%type_Flux = FLUX_HDG
         i = Tdomain%sFace(n)%Near_Vertex(0)
         j = Tdomain%sFace(n)%Near_Vertex(1)
         Tdomain%sVertex(i)%Type_DG = GALERKIN_CONT
