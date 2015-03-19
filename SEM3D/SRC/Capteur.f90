@@ -57,6 +57,7 @@ contains
         character(Len=MAX_FILE_SIZE) :: nom
         double precision :: xc, yc, zc, xi, eta, zeta
         integer :: numproc, numproc_max, ierr, n_el
+        character(len=MAX_FILE_SIZE) :: fnamef
         !
         station_next = Tdomain%config%stations
         nullify(listeCapteur)
@@ -97,6 +98,15 @@ contains
                 listeCapteur => capteur
                 write(*,"(A,A,A,I5,A,I6,A,F8.4,A,F8.4,A,F8.4)") "Capteur:", trim(capteur%nom), &
                     " on proc ", Tdomain%rank, " in elem ", n_el, " at ", xi, ",", eta, ",", zeta
+
+                ! si c'est un nouveau run, suppression de l'eventuel fichier de sortie des capteurs
+                if (Tdomain%traces_format == 1) then
+                    if ( .not.Tdomain%logicD%run_restart) then
+                        call semname_capteur_type(capteur%nom,".txt",fnamef)
+                        open(123,file=trim(fnamef),status="replace",form="formatted")
+                        close(123)
+                    end if
+                end if
             end if
 
             station_next = station_ptr%next
