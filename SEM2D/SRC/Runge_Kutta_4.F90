@@ -47,7 +47,7 @@ subroutine Runge_Kutta4 (Tdomain, dt)
              ngz = Tdomain%specel(n)%ngllz
              allocate (Vxloc(0:ngx-1, 0:ngz-1))
              allocate (Vzloc(0:ngx-1, 0:ngz-1))
-             call get_PMLprediction_fv2el (Tdomain,n,Vxloc,vzloc,ngx,ngz,0.5,0.5,dt)
+             call get_veloc_fv2el (Tdomain,n,Vxloc,vzloc,ngx,ngz)
              call compute_2ndMember_Veloc_Stress(Tdomain%specel(n), Vxloc, Vzloc, &
                                                  Tdomain%sSubDomain(mat)%hprimex, &
                                                  Tdomain%sSubDomain(mat)%hTprimex, &
@@ -208,16 +208,16 @@ subroutine Runge_Kutta4 (Tdomain, dt)
        type_DG = Tdomain%sface(n)%Type_DG
        if (type_DG == GALERKIN_CONT .OR. type_DG == COUPLE_CG_HDG) then
           ! Sends the forces from face to vertex if the face is coupling CG-HDG
-          if (type_DG == COUPLE_CG_HDG) call get_veloc_v2f (Tdomain, n)
+          if (type_DG == COUPLE_CG_HDG) call get_forces_f2v (Tdomain, n)
           ! Inversion of Mass Matrix to get 2nd member of velocity equation
-          Tdomain%sface(n)%Forces(1:ngll-2,0)  = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(1:ngll-2,0)
-          Tdomain%sface(n)%Forces(1:ngll-2,1)  = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(1:ngll-2,1)
+          Tdomain%sface(n)%Forces(1:ngll-2,0) = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(1:ngll-2,0)
+          Tdomain%sface(n)%Forces(1:ngll-2,1) = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(1:ngll-2,1)
           if (Tdomain%sface(n)%reflex) Tdomain%sface(n)%Forces = 0.
           ! RK4 Updates of velocities and displacements
           Tdomain%sface(n)%Vect_RK = coeff1 * Tdomain%sface(n)%Vect_RK + Dt * Tdomain%sface(n)%Forces(1:ngll-2,0:1)
-          Tdomain%sface(n)%Veloc   = Tdomain%sface(n)%Veloc + coeff2 * Tdomain%sface(n)%Vect_RK(:,0:1)
-          !Tdomain%sface(n)%Displ   = Tdomain%sface(n)%Displ + coeff2 * Tdomain%sface(n)%Vect_RK(:,2:3)
-          !Tdomain%sface(n)%Vect_RK(:,2:3) = coeff1 * Tdomain%sface(n)%Vect_RK(:,2:3) + Dt * Tdomain%sface(n)%Veloc (:,0:1)
+          Tdomain%sface(n)%Veloc(1:ngll-2,:) = Tdomain%sface(n)%Veloc(1:ngll-2,:) &
+                                             + coeff2 * Tdomain%sface(n)%Vect_RK(:,0:1)
+          Tdomain%sface(n)%Forces(:,:) = 0.
        endif
     enddo
     do n=0, Tdomain%n_vertex-1
@@ -230,8 +230,6 @@ subroutine Runge_Kutta4 (Tdomain, dt)
           Tdomain%sVertex(n)%Vect_RK = coeff1 * Tdomain%sVertex(n)%Vect_RK + Dt * Tdomain%sVertex(n)%Forces
           Tdomain%sVertex(n)%Veloc   = Tdomain%sVertex(n)%Veloc + coeff2 * Tdomain%sVertex(n)%Vect_RK(0:1)
           Tdomain%sVertex(n)%Forces  = 0.
-          !Tdomain%sVertex(n)%Displ   = Tdomain%sVertex(n)%Displ + coeff2 * Tdomain%sVertex(n)%Vect_RK(2:3)
-          !Tdomain%sVertex(n)%Vect_RK(2:3) = coeff1 * Tdomain%sVertex(n)%Vect_RK(2:3) + Dt * Tdomain%sVertex(n)%Veloc
        endif
     enddo
 

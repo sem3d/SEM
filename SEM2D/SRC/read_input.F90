@@ -163,6 +163,7 @@ subroutine read_input (Tdomain)
 
     Tdomain%bMailUnv = .false.
     Tdomain%bCapteur = .false.
+    Tdomain%logicD%save_restart = .false.
     ! conversion dun maillage unv en maillage sem
     !read (11,*) Tdomain%bMailUnv
 

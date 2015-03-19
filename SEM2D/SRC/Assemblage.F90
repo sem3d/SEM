@@ -313,12 +313,8 @@ subroutine get_veloc_v2f (Tdomain, nface)
     ! Assemblage des Veloc et des Forces sur la Face
     nv = Tdomain%sFace(nface)%Near_Vertex(0)
     Tdomain%sFace(nface)%Veloc (0,:) = Tdomain%sVertex(nv)%Veloc(:)
-    Tdomain%sFace(nface)%Forces(0,:) = Tdomain%sVertex(nv)%Forces(:)
-    !Tdomain%sVertex(nv)%Forces(:) = 0.
     nv = Tdomain%sFace(nface)%Near_Vertex(1)
     Tdomain%sFace(nface)%Veloc (ngll-1,:) = Tdomain%sVertex(nv)%Veloc(:)
-    Tdomain%sFace(nface)%Forces(ngll-1,:) = Tdomain%sVertex(nv)%Forces(:)
-    !Tdomain%sVertex(nv)%Forces(:) = 0.
 
 end subroutine get_veloc_v2f
 

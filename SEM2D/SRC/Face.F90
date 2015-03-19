@@ -310,8 +310,8 @@ end subroutine Compute_Flux
       F%Traction(:,1) =  F%Traction(:,1) + (F%InvMatPen(:,2)*F%Veloc(:,0) + F%InvMatPen(:,1)*F%Veloc(:,1))
 
       ! Adding The traction to the forces
-      F%Forces(:,0) = F%Forces(:,0) + F%Coeff_Integr(:) * F%Traction(:,0)
-      F%Forces(:,1) = F%Forces(:,1) + F%Coeff_Integr(:) * F%Traction(:,1)
+      F%Forces(:,0) = F%Forces(:,0) - F%Coeff_Integr(:) * F%Traction(:,0)
+      F%Forces(:,1) = F%Forces(:,1) - F%Coeff_Integr(:) * F%Traction(:,1)
 
       F%Traction(:,:) = 0.
 
@@ -775,8 +775,15 @@ end subroutine Compute_Flux
            F%InvMatPen(:,2) = 0.
         endif
 
-        ! If the face is couplic CG with HDG, the matrix InvMatPen is not inverted :
-        if (F%Type_DG == COUPLE_CG_HDG) call Invert_K_face (F)
+        ! If the face is couplic CG with HDG, the matrix InvMatPen is NOT inverted :
+        if (F%Type_DG == COUPLE_CG_HDG) then
+            F%InvMatPen(:,0) = (Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,0)**2 &
+                             + (Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,1)**2
+            F%InvMatPen(:,1) = (Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,0)**2 &
+                             + (Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,1)**2
+            F%InvMatPen(:,2) =((Zp_m(:)+Zp_p(:)) - (Zs_m(:)+Zs_p(:))) &
+                             * F%Normal_nodes(:,0) * F%Normal_nodes(:,1)
+        endif
 
     end subroutine compute_InvMatPen
 

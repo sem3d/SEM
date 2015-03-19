@@ -148,51 +148,89 @@ subroutine get_PMLprediction_fv2el (Tdomain,n,Vxloc,Vzloc,ngllx,ngllz,alpha, beg
 end subroutine get_PMLprediction_fv2el
 
 
-subroutine get_simpler (Tdomain,n,Vxloc,Vzloc,ngllx,ngllz)
+subroutine get_Veloc_fv2el (Tdomain,nelem,Vxloc,Vzloc,ngllx,ngllz)
 
     ! Modified by S Terrana 09/09/2014
     use sdomain
     implicit none
     type (Domain), intent (IN) :: Tdomain
-    integer, intent (IN) :: n, ngllx,ngllz
+    integer, intent (IN) :: nelem, ngllx,ngllz
     real, dimension (0:ngllx-1,0:ngllz-1), intent(INOUT) :: Vxloc,Vzloc
+    logical :: coherency
+    integer :: nface, nv, i
 
-    integer :: nf,nv
+    ! %%%%%%%%%%% Recup Veloc from Faces %%%%%%%%%%%%%
+    ! Bottom Face :
+    nface     = Tdomain%specel(nelem)%near_face(0)
+    coherency = Tdomain%sFace (nface)%coherency
+    if (nelem==Tdomain%sFace(nface)%Near_Element(0) .OR. coherency) then
+        Vxloc(1:ngllx-2,0) = Tdomain%sFace(nface)%Veloc(1:ngllx-2,0)
+        Vzloc(1:ngllx-2,0) = Tdomain%sFace(nface)%Veloc(1:ngllx-2,1)
+    else
+        do i=1,ngllx-2
+            Vxloc(i,0) = Tdomain%sFace(nface)%Veloc(ngllx-1-i,0)
+            Vzloc(i,0) = Tdomain%sFace(nface)%Veloc(ngllx-1-i,1)
+        enddo
+    endif
 
-    nf = Tdomain%specel(n)%near_face(0)
-    Vxloc(1:ngllx-2,0) = Tdomain%sFace(nf)%Veloc(:,0)
-    Vzloc(1:ngllx-2,0) = Tdomain%sFace(nf)%Veloc(:,1)
+    ! Right Face :
+    nface     = Tdomain%specel(nelem)%near_face(1)
+    coherency = Tdomain%sFace (nface)%coherency
+    if (nelem==Tdomain%sFace(nface)%Near_Element(0) .OR. coherency) then
+        Vxloc(ngllx-1,1:ngllz-2) = Tdomain%sFace(nface)%Veloc(1:ngllz-2,0)
+        Vzloc(ngllx-1,1:ngllz-2) = Tdomain%sFace(nface)%Veloc(1:ngllz-2,1)
+    else
+        do i=1,ngllz-2
+            Vxloc(ngllx-1,i) = Tdomain%sFace(nface)%Veloc(ngllz-1-i,0)
+            Vzloc(ngllx-1,i) = Tdomain%sFace(nface)%Veloc(ngllz-1-i,1)
+        enddo
+    endif
 
-    nf = Tdomain%specel(n)%near_face(1)
-    Vxloc(ngllx-1,1:ngllz-2) = Tdomain%sFace(nf)%Veloc(:,0)
-    Vzloc(ngllx-1,1:ngllz-2) = Tdomain%sFace(nf)%Veloc(:,1)
+    ! Top Face :
+    nface     = Tdomain%specel(nelem)%near_face(2)
+    coherency = Tdomain%sFace (nface)%coherency
+    if (nelem==Tdomain%sFace(nface)%Near_Element(0) .OR. coherency) then
+        Vxloc(1:ngllx-2,ngllz-1) = Tdomain%sFace(nface)%Veloc(1:ngllx-2,0)
+        Vzloc(1:ngllx-2,ngllz-1) = Tdomain%sFace(nface)%Veloc(1:ngllx-2,1)
+    else
+        do i=1,ngllx-2
+            Vxloc(i,ngllz-1) = Tdomain%sFace(nface)%Veloc(ngllx-1-i,0)
+            Vzloc(i,ngllz-1) = Tdomain%sFace(nface)%Veloc(ngllx-1-i,1)
+        enddo
+    endif
 
-    nf = Tdomain%specel(n)%near_face(2)
-    Vxloc(1:ngllx-2,ngllz-1) = Tdomain%sFace(nf)%Veloc(:,0)
-    Vzloc(1:ngllx-2,ngllz-1) = Tdomain%sFace(nf)%Veloc(:,1)
+    ! Left Face :
+    nface     = Tdomain%specel(nelem)%near_face(3)
+    coherency = Tdomain%sFace (nface)%coherency
+    if (nelem==Tdomain%sFace(nface)%Near_Element(0) .OR. coherency) then
+        Vxloc(0,1:ngllz-2) = Tdomain%sFace(nface)%Veloc(1:ngllz-2,0)
+        Vzloc(0,1:ngllz-2) = Tdomain%sFace(nface)%Veloc(1:ngllz-2,1)
+    else
+        do i=1,ngllz-2
+            Vxloc(0,i) = Tdomain%sFace(nface)%Veloc(ngllz-1-i,0)
+            Vzloc(0,i) = Tdomain%sFace(nface)%Veloc(ngllz-1-i,1)
+        enddo
+    endif
 
-    nf = Tdomain%specel(n)%near_face(3)
-    Vxloc(0,1:ngllz-2) = Tdomain%sFace(nf)%Veloc(:,0)
-    Vzloc(0,1:ngllz-2) = Tdomain%sFace(nf)%Veloc(:,1)
-
-    nv = Tdomain%specel(n)%near_Vertex(0)
+    ! %%%%%%%% Recup Veloc from Vertices %%%%%%%%
+    nv = Tdomain%specel(nelem)%near_Vertex(0)
     Vxloc(0,0) = Tdomain%sVertex(nv)%Veloc(0)
     Vzloc(0,0) = Tdomain%sVertex(nv)%Veloc(1)
 
-    nv = Tdomain%specel(n)%near_Vertex(1)
+    nv = Tdomain%specel(nelem)%near_Vertex(1)
     Vxloc(ngllx-1,0) = Tdomain%sVertex(nv)%Veloc(0)
     Vzloc(ngllx-1,0) = Tdomain%sVertex(nv)%Veloc(1)
 
-    nv = Tdomain%specel(n)%near_Vertex(2)
+    nv = Tdomain%specel(nelem)%near_Vertex(2)
     Vxloc(ngllx-1,ngllz-1) = Tdomain%sVertex(nv)%Veloc(0)
     Vzloc(ngllx-1,ngllz-1) = Tdomain%sVertex(nv)%Veloc(1)
 
-    nv = Tdomain%specel(n)%near_Vertex(3)
+    nv = Tdomain%specel(nelem)%near_Vertex(3)
     Vxloc(0,ngllz-1) = Tdomain%sVertex(nv)%Veloc(0)
     Vzloc(0,ngllz-1) = Tdomain%sVertex(nv)%Veloc(1)
 
     return
-end subroutine get_simpler
+end subroutine get_Veloc_fv2el
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
