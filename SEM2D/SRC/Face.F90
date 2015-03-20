@@ -26,10 +26,7 @@ module sfaces
        real, dimension (:,:), allocatable :: ForcesMka
 #endif
 
-       logical :: coherency, PML, Abs, FPML, CPML, ADEPML, freesurf, reflex
-
-       real, dimension (:), allocatable :: Ivx, Ivz
-       real, dimension (:,:), allocatable :: Iveloc1, Iveloc2
+       logical :: coherency, PML, Abs, CPML, ADEPML, freesurf, reflex
 
        ! DG
        real, dimension (:), allocatable :: Normal
@@ -329,7 +326,6 @@ end subroutine Compute_Flux
     !! \param real, intent (IN) dt
     !! \param real, intent (IN) alpha
     !<
-
     !  subroutine Prediction_Face_Veloc (F,alpha,bega, dt)
     subroutine Prediction_Face_Veloc (F)
         implicit none
@@ -337,15 +333,12 @@ end subroutine Compute_Flux
         type (Face), intent (INOUT) :: F
         !real, intent (IN) :: bega,  alpha ,dt
 
-        !  test mariotti
-        !     F%Forces = F%Displ + dt * F%Veloc + dt**2 * (0.5 - bega) * F%Accel
-        !     F%V0 = F%Veloc
-        !     F%Forces = alpha * F%Forces + (1-alpha) * F%Displ
         F%Forces = F%Displ
         F%V0 = F%Veloc
 
         return
     end subroutine Prediction_Face_Veloc
+
 
     ! ###########################################################
     !>
@@ -357,8 +350,6 @@ end subroutine Compute_Flux
     !! \param real, intent (IN) gam1
     !! \param real, intent (IN) dt
     !<
-
-
     !  subroutine Correction_Face_Veloc (F, ngll, bega, gam1,dt)
     subroutine Correction_Face_Veloc (F, ngll, dt)
         implicit none
@@ -379,16 +370,8 @@ end subroutine Compute_Flux
             F%Forces(:,i) = masse(:)  * F%Forces(:,i)
         enddo
 
-        !   ancienne version
-        !      do i = 0,1
-        !          F%Forces(:,i) = F%MassMat(:)  * F%Forces(:,i)
-        !      enddo
-        !  fin test modif
         if (F%Abs .or. F%reflex) F%Forces = 0
-        !  test mariotti
-        !      F%Veloc  = F%v0+ dt * F%Forces
-        !      F%Accel  = F%Accel + gam1 /dt * (F%Veloc-F%V0)
-        !      F%Displ  =  F%Displ + bega * dt * (F%Veloc+F%V0)
+
         F%Veloc  = F%v0+ dt * F%Forces
         F%Accel  = (F%Veloc-F%V0)/dt
         F%Displ  =  F%Displ + dt * F%Veloc
@@ -459,52 +442,6 @@ end subroutine Compute_Flux
     end subroutine Correction_Face_CPML_Veloc
 
     ! ###########################################################
-    !>
-    !! \brief
-    !!
-    !! \param type (Face toto), intent (INOUT) F
-    !! \param real, intent (IN toto) dt
-    !! \param real, intent (IN toto) fil
-    !<
-
-
-    subroutine Correction_Face_FPML_Veloc (F, dt, fil)
-        implicit none
-
-        type (Face), intent (INOUT) :: F
-        real, intent (IN) ::  dt, fil
-
-        integer :: i
-        real :: fil2
-        real, dimension (1:F%ngll-2) :: Ausiliar_Velocity
-
-
-        fil2 = fil**2
-        F%V0 = F%Veloc
-
-        if  (F%Abs .or. F%reflex) then
-            F%Veloc1 = 0; F%Veloc2 = 0; F%Veloc = 0
-        else
-
-            do i = 0,1
-                Ausiliar_Velocity = F%Veloc1(:,i)
-                F%Veloc1(:,i) = F%DumpVx(:,0) * F%Veloc1(:,i) + dt * &
-                    F%DumpVx(:,1)*F%Forces1(:,i) + F%Ivx * F%Iveloc1(:,i)
-                F%Iveloc1(:,i) = Fil2 * F%Iveloc1(:,i) + 0.5 * (1.-Fil2) *  &
-                    (Ausiliar_Velocity + F%Veloc1(:,i) )
-
-                Ausiliar_Velocity = F%Veloc2(:,i)
-                F%Veloc2(:,i) =F%DumpVz(:,0) * F%Veloc2(:,i) + Dt * &
-                    F%DumpVz(:,1)*F%Forces2(:,i) + F%Ivz * F%IVeloc2(:,i)
-                F%Iveloc2(:,i) = Fil2 * F%Iveloc2(:,i) + 0.5 * (1.-Fil2) * &
-                    (Ausiliar_Velocity + F%Veloc2(:,i) )
-            enddo
-            F%Veloc = F%Veloc1 + F%Veloc2
-        endif
-
-        return
-    end subroutine Correction_Face_FPML_Veloc
-    ! ###########################################################
 
     !>
     !! \brief
@@ -515,8 +452,6 @@ end subroutine Compute_Flux
     !! \param logical, intent (IN) logic
     !! \param logical, intent (IN) logic2
     !<
-
-
     subroutine get_vfree_face (F,Vfree, ngll, logic,logic2)
         implicit none
 
@@ -525,8 +460,6 @@ end subroutine Compute_Flux
         real, dimension (1:ngll-2,0:1), intent (INOUT) :: Vfree
         logical, intent (IN) :: logic , logic2
         real, dimension (1:ngll-2) :: masse
-
-
         integer :: i,j
 
         do i=1,ngll-2

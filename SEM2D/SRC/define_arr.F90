@@ -96,14 +96,7 @@ subroutine define_arrays(Tdomain)
         Rmu  = Tdomain%specel(n)%Mu
         RKmod = Rlam + 2. * Rmu
         Tdomain%specel(n)%MassMat  = Whei*Tdomain%specel(n)%Density*Jac
-!        CG_RK4 = (Tdomain%type_timeInteg == TIME_INTEG_RK4) .and. &
-!                 (Tdomain%specel(n)%Type_DG==GALERKIN_CONT)
 
-!        if (((.not. Tdomain%specel(n)%PML) .or. Tdomain%specel(n)%ADEPML) .and. &
-!             (.not. CG_RK4)) then
-!           if((Tdomain%specel(n)%Type_DG==GALERKIN_DG_STRONG).OR. &
-!               (Tdomain%specel(n)%Type_DG==GALERKIN_DG_WEAK) .OR. &
-!               (Tdomain%specel(n)%Type_DG==GALERKIN_HDG_RP) ) then ! Discontinuous Galerkin
         if(Tdomain%specel(n)%Type_DG .NE. GALERKIN_CONT) then ! Discontinuous Galerkin
             Tdomain%specel(n)%Acoeff(:,:,0) = Whei*xix*Jac
             Tdomain%specel(n)%Acoeff(:,:,1) = Whei*etax*Jac
@@ -263,36 +256,8 @@ subroutine define_arrays(Tdomain)
                 wz = 0.
             endif
             Id = 1
-            ! Strong formulation for stresses
-            if (Tdomain%specel(n)%FPML) then
 
-                Tdomain%specel(n)%DumpSx(:,:,1) = (1.+Tdomain%sSubdomain(mat)%k) * Id(:,:) + 0.5 * Tdomain%sSubdomain(mat)%Dt * &
-                    wx(:,:) * Tdomain%sSubdomain(mat)%freq
-                Tdomain%specel(n)%DumpSx (:,:,1) = 1./ Tdomain%specel(n)%DumpSx (:,:,1)
-                Tdomain%specel(n)%DumpSx (:,:,0) = ((1+Tdomain%sSubdomain(mat)%k) * Id(:,:) - Tdomain%sSubdomain(mat)%Dt * 0.5 * &
-                    wx(:,:) * Tdomain%sSubdomain(mat)%freq) *  Tdomain%specel(n)%DumpSx(:,:,1)
-                Tdomain%specel(n)%DumpMass(:,:,0) =  Tdomain%specel(n)%Density * Whei * Jac * wx * &
-                    ( Tdomain%sSubdomain(mat)%Dt * 0.5 * Tdomain%sSubdomain(mat)%freq + Tdomain%sSubdomain(mat)%k)
-                Tdomain%specel(n)%DumpMass(:,:,1) =   Tdomain%specel(n)%Density * Whei *  Jac * wx * &
-                    (Tdomain%sSubdomain(mat)%k  - Tdomain%sSubdomain(mat)%Dt * 0.5 *  Tdomain%sSubdomain(mat)%freq)
-
-                Tdomain%specel(n)%DumpSz(:,:,1) = (1+Tdomain%sSubdomain(mat)%k) * Id(:,:) + 0.5 * Tdomain%sSubdomain(mat)%Dt * &
-                    wz(:,:) * Tdomain%sSubdomain(mat)%freq
-                Tdomain%specel(n)%DumpSz (:,:,1) = 1./ Tdomain%specel(n)%DumpSz (:,:,1)
-                Tdomain%specel(n)%DumpSz (:,:,0) = ((1+Tdomain%sSubdomain(mat)%k) * Id(:,:) - Tdomain%sSubdomain(mat)%Dt * 0.5 *  &
-                    wz(:,:) * Tdomain%sSubdomain(mat)%freq) * Tdomain%specel(n)%DumpSz(:,:,1)
-                Tdomain%specel(n)%DumpMass(:,:,2) =  Tdomain%specel(n)%Density * Whei *  Jac * wz * &
-                    ( Tdomain%sSubdomain(mat)%Dt * 0.5 * Tdomain%sSubdomain(mat)%freq + Tdomain%sSubdomain(mat)%k )
-                Tdomain%specel(n)%DumpMass(:,:,3) = Tdomain%specel(n)%Density * Whei  * Jac * wz * &
-                    (Tdomain%sSubdomain(mat)%k  - Tdomain%sSubdomain(mat)%Dt * 0.5 *   Tdomain%sSubdomain(mat)%freq)
-
-                Tdomain%specel(n)%Isx=Tdomain%sSubdomain(mat)%Dt*wx*Tdomain%sSubdomain(mat)%freq*Tdomain%specel(n)%DumpSx(:,:,1)
-                Tdomain%specel(n)%Isz=Tdomain%sSubdomain(mat)%Dt*wz*Tdomain%sSubdomain(mat)%freq*Tdomain%specel(n)%DumpSz(:,:,1)
-
-                Tdomain%specel(n)%Ivx=Tdomain%specel(n)%Density*Whei*Tdomain%sSubdomain(mat)%Dt*wx*Jac*Tdomain%sSubdomain(mat)%freq
-                Tdomain%specel(n)%Ivz=Tdomain%specel(n)%Density*Whei*Tdomain%sSubdomain(mat)%Dt*wz*Jac*Tdomain%sSubdomain(mat)%freq
-
-            elseif (Tdomain%specel(n)%CPML .OR. Tdomain%specel(n)%ADEPML) then
+            if (Tdomain%specel(n)%CPML .OR. Tdomain%specel(n)%ADEPML) then
                 if (Tdomain%sSubDomain(mat)%Px) then
                     if (Tdomain%specel(n)%CPML) then
                         Tdomain%specel(n)%Bx(:,:) = exp(-(wx(:,:) + OmegaCutx(:,:)) * Tdomain%sSubdomain(mat)%Dt)
@@ -332,7 +297,6 @@ subroutine define_arrays(Tdomain)
                 Tdomain%specel(n)%DumpMass(:,:,1) = 0.5 * Tdomain%specel(n)%Density * Whei * Tdomain%sSubdomain(mat)%Dt * wz * Jac
             endif
 
-
         endif
         deallocate(xix,xiz,etax,etaz,Id,wx,wz,OmegaCutx,OmegaCutz,du_du_x,du_du_z, &
                    duux,duuz,wx_prime,wz_prime,Whei,RKmod,Jac,Rmu,Rlam)
@@ -350,7 +314,6 @@ subroutine define_arrays(Tdomain)
             call getMass_element2face (Tdomain,n_elem,nf,w_face,.true.)
         if (Tdomain%sFace(nf)%PML .and. (.not.Tdomain%sFace(nf)%CPML) .and. &
            (.not.Tdomain%sFace(nf)%ADEPML)) call getDumpMass_element2face (Tdomain,n_elem,nf,w_face,.true.)
-        if (Tdomain%sFace(nf)%FPML) call getIv_element2face (Tdomain,n_elem,nf,w_face,.true.)
         n_elem = Tdomain%sFace(nf)%Near_element(1)
         if (n_elem > -1) then
             w_face = Tdomain%sFace(nf)%Which_face(1)
@@ -358,7 +321,6 @@ subroutine define_arrays(Tdomain)
                 call getMass_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
             if (Tdomain%sFace(nf)%PML .and. (.not.Tdomain%sFace(nf)%CPML) .and. &
                (.not.Tdomain%sFace(nf)%ADEPML)) call getDumpMass_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
-            if (Tdomain%sFace(nf)%FPML ) call getIv_element2face (Tdomain,n_elem,nf,w_face,Tdomain%sFace(nf)%coherency)
         endif
     enddo
 
@@ -370,18 +332,12 @@ subroutine define_arrays(Tdomain)
         Tdomain%sVertex(nv_aus)%MassMat = Tdomain%sVertex(nv_aus)%MassMat + Tdomain%specel(n)%MassMat(0,0)
         if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML))    &
             Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:)+ Tdomain%specel(n)%DumpMass(0,0,:)
-        if (Tdomain%sVertex(nv_aus)%FPML) then
-            Tdomain%sVertex(nv_aus)%Ivx(0) = Tdomain%sVertex(nv_aus)%Ivx(0)+ Tdomain%specel(n)%Ivx(0,0)
-            Tdomain%sVertex(nv_aus)%Ivz(0) = Tdomain%sVertex(nv_aus)%Ivz(0) + Tdomain%specel(n)%Ivz(0,0)
         endif
 
         nv_aus = Tdomain%specel(n)%Near_Vertex(1)
         Tdomain%sVertex(nv_aus)%MassMat = Tdomain%sVertex(nv_aus)%MassMat + Tdomain%specel(n)%MassMat(ngllx-1,0)
         if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML))    &
             Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:)+ Tdomain%specel(n)%DumpMass(ngllx-1,0,:)
-        if (Tdomain%sVertex(nv_aus)%FPML) then
-            Tdomain%sVertex(nv_aus)%Ivx(0) = Tdomain%sVertex(nv_aus)%Ivx(0)+ Tdomain%specel(n)%Ivx(ngllx-1,0)
-            Tdomain%sVertex(nv_aus)%Ivz(0) = Tdomain%sVertex(nv_aus)%Ivz(0) + Tdomain%specel(n)%Ivz(ngllx-1,0)
         endif
 
         nv_aus = Tdomain%specel(n)%Near_Vertex(2)
@@ -389,18 +345,12 @@ subroutine define_arrays(Tdomain)
         if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML))   &
             Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:) + &
             Tdomain%specel(n)%DumpMass(ngllx-1,ngllz-1,:)
-        if (Tdomain%sVertex(nv_aus)%FPML) then
-            Tdomain%sVertex(nv_aus)%Ivx(0) = Tdomain%sVertex(nv_aus)%Ivx(0)+ Tdomain%specel(n)%Ivx(ngllx-1,ngllz-1)
-            Tdomain%sVertex(nv_aus)%Ivz(0) = Tdomain%sVertex(nv_aus)%Ivz(0) + Tdomain%specel(n)%Ivz(ngllx-1,ngllz-1)
         endif
 
         nv_aus = Tdomain%specel(n)%Near_Vertex(3)
         Tdomain%sVertex(nv_aus)%MassMat = Tdomain%sVertex(nv_aus)%MassMat + Tdomain%specel(n)%MassMat(0,ngllz-1)
         if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML))    &
             Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:)+ Tdomain%specel(n)%DumpMass(0,ngllz-1,:)
-        if (Tdomain%sVertex(nv_aus)%FPML) then
-            Tdomain%sVertex(nv_aus)%Ivx(0) = Tdomain%sVertex(nv_aus)%Ivx(0)+ Tdomain%specel(n)%Ivx(0,ngllz-1)
-            Tdomain%sVertex(nv_aus)%Ivz(0) = Tdomain%sVertex(nv_aus)%Ivz(0) + Tdomain%specel(n)%Ivz(0,ngllz-1)
         endif
       endif
     enddo
@@ -649,31 +599,7 @@ subroutine define_arrays(Tdomain)
                 allocate (Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2) )
                 Tdomain%specel(n)%MassMat =  LocMassMat
             else
-                if (Tdomain%specel(n)%FPML) then
-                    LocMassMat(:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2)
-                    Tdomain%specel(n)%DumpVx (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,0)
-                    Tdomain%specel(n)%DumpVx (:,:,1) = 1./ Tdomain%specel(n)%DumpVx (:,:,1)
-                    Tdomain%specel(n)%DumpVx(:,:,0) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,1)
-                    Tdomain%specel(n)%DumpVx (:,:,0) = Tdomain%specel(n)%DumpVx (:,:,0) * Tdomain%specel(n)%DumpVx (:,:,1)
-
-                    Tdomain%specel(n)%DumpVz (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,2)
-                    Tdomain%specel(n)%DumpVz (:,:,1) = 1./ Tdomain%specel(n)%DumpVz (:,:,1)
-                    Tdomain%specel(n)%DumpVz(:,:,0) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,3)
-                    Tdomain%specel(n)%DumpVz (:,:,0) =    Tdomain%specel(n)%DumpVz (:,:,0) *   Tdomain%specel(n)%DumpVz (:,:,1)
-                    deallocate (Tdomain%specel(n)%MassMat) ; deallocate (Tdomain%specel(n)%DumpMass)
-                    allocate (Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2) )
-                    Tdomain%specel(n)%MassMat =  LocMassMat
-                    LocMassMat = Tdomain%specel(n)%Ivx(1:ngllx-2,1:ngllz-2)
-                    deallocate (Tdomain%specel(n)%Ivx)
-                    allocate (Tdomain%specel(n)%Ivx(1:ngllx-2,1:ngllz-2) )
-                    Tdomain%specel(n)%Ivx = LocMassMat *  Tdomain%specel(n)%DumpVx (:,:,1)
-                    LocMassMat = Tdomain%specel(n)%Ivz(1:ngllx-2,1:ngllz-2)
-                    deallocate (Tdomain%specel(n)%Ivz)
-                    allocate (Tdomain%specel(n)%Ivz(1:ngllx-2,1:ngllz-2) )
-                    Tdomain%specel(n)%Ivz = LocMassMat * Tdomain%specel(n)%DumpVz (:,:,1)
-
-                elseif (.not.Tdomain%specel(n)%CPML) then
-
+                if (.not.Tdomain%specel(n)%CPML) then
                     LocMassMat(:,:) = Tdomain%specel(n)%MassMat(1:ngllx-2,1:ngllz-2)
                     Tdomain%specel(n)%DumpVx (:,:,1) = LocMassMat + Tdomain%specel(n)%DumpMass(1:ngllx-2,1:ngllz-2,0)
                     Tdomain%specel(n)%DumpVx (:,:,1) = 1./ Tdomain%specel(n)%DumpVx (:,:,1)

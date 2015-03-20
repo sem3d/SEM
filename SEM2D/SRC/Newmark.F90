@@ -52,11 +52,7 @@ subroutine Newmark (Tdomain)
                 allocate (Vxloc(0:ngllx-1, 0:ngllz-1))
                 allocate (Vzloc(0:ngllx-1, 0:ngllz-1))
                 call get_PMLprediction_fv2el (Tdomain,n,Vxloc,vzloc,ngllx,ngllz,alpha, bega,dt)
-                if (Tdomain%specel(n)%FPML) then
-                    call Prediction_Elem_FPML_Veloc  (Tdomain%specel(n),alpha, bega, dt,Vxloc,Vzloc, &
-                        Tdomain%sSubDomain(mat)%hPrimez, Tdomain%sSubDomain(mat)%hTPrimex, &
-                        Tdomain%sSubDomain(mat)%freq)
-                elseif (Tdomain%specel(n)%CPML) then
+                if (Tdomain%specel(n)%CPML) then
                     call Prediction_Elem_CPML_Veloc  (Tdomain%specel(n),alpha, bega, dt,Vxloc,Vzloc, &
                         Tdomain%sSubDomain(mat)%hPrimez, Tdomain%sSubDomain(mat)%hTPrimex)
                 else
@@ -479,9 +475,7 @@ subroutine Newmark (Tdomain)
             if (.not. Tdomain%specel(n)%PML) then
                 call Correction_Elem_Veloc (Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt)
             else
-                if (Tdomain%specel(n)%FPML) then
-                    call Correction_Elem_FPML_Veloc (Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt, Tdomain%sSubdomain(mat)%freq)
-                elseif (Tdomain%specel(n)%CPML) then
+                if (Tdomain%specel(n)%CPML) then
                     Tdomain%specel(n)%V0 = Tdomain%specel(n)%Veloc
                     call Correction_Elem_Veloc (Tdomain%specel(n),Tdomain%sSubDomain(mat)%Dt)
                 else
@@ -495,9 +489,7 @@ subroutine Newmark (Tdomain)
             if (.not. Tdomain%sFace(nf)%PML) then
                 call Correction_Face_Veloc (Tdomain%sFace(nf),Tdomain%sFace(nf)%ngll, Tdomain%sSubDomain(mat)%Dt)
             else
-                if (Tdomain%sFace(nf)%FPML) then
-                    call Correction_Face_FPML_Veloc (Tdomain%sFace(nf),Tdomain%sSubDomain(mat)%Dt, Tdomain%sSubDomain(mat)%freq)
-                elseif (Tdomain%sFace(nf)%CPML) then
+                if (Tdomain%sFace(nf)%CPML) then
                     call Correction_Face_CPML_Veloc (Tdomain%sFace(nf), Tdomain%sSubDomain(mat)%Dt)
                 else
                     call Correction_Face_PML_Veloc (Tdomain%sFace(nf),Tdomain%sSubDomain(mat)%Dt)
@@ -510,9 +502,7 @@ subroutine Newmark (Tdomain)
             if (.not. Tdomain%sVertex(nv)%PML) then
                 call Correction_Vertex_Veloc (Tdomain%sVertex(nv), Tdomain%sSubDomain(mat)%Dt)
             else
-                if (Tdomain%sVertex(nv)%FPML) then
-                    call Correction_Vertex_FPML_Veloc (Tdomain%sVertex(nv),Tdomain%sSubDomain(mat)%Dt, Tdomain%sSubdomain(mat)%freq)
-                elseif (Tdomain%sVertex(nv)%CPML) then
+                if (Tdomain%sVertex(nv)%CPML) then
                     call Correction_Vertex_CPML_Veloc (Tdomain%sVertex(nv), Tdomain%sSubDomain(mat)%Dt)
                 else
                     call Correction_Vertex_PML_Veloc (Tdomain%sVertex(nv),Tdomain%sSubDomain(mat)%Dt)

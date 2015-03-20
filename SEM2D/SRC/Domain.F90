@@ -141,12 +141,13 @@ subroutine read_material_file(Tdomain)
             npml = npml + 1
         endif
         ! Pour l'instant, on a un seul type de Flux et d'Elements pour TOUT le domaine
-        !Tdomain%sSubDomain(i)%type_DG   = Tdomain%type_Elem
-        !Tdomain%sSubDomain(i)%type_Flux = Tdomain%type_Flux
-        Tdomain%sSubDomain(1)%type_DG   = 0 ! <---- A SUPPRIMER !!!!!!
-        Tdomain%sSubDomain(1)%type_Flux = 0 ! <---- A SUPPRIMER !!!!!!
-        Tdomain%sSubDomain(0)%type_DG   = 3 ! <---- A SUPPRIMER !!!!!!
-        Tdomain%sSubDomain(0)%type_Flux = 4 ! <---- A SUPPRIMER !!!!!!
+        Tdomain%sSubDomain(i)%type_DG   = Tdomain%type_Elem
+        Tdomain%sSubDomain(i)%type_Flux = Tdomain%type_Flux
+        ! POUR COUPLAGE CG-DG
+        !Tdomain%sSubDomain(1)%type_DG   = 0 ! <---- A SUPPRIMER !!!!!!
+        !Tdomain%sSubDomain(1)%type_Flux = 0 ! <---- A SUPPRIMER !!!!!!
+        !Tdomain%sSubDomain(0)%type_DG   = 3 ! <---- A SUPPRIMER !!!!!!
+        !Tdomain%sSubDomain(0)%type_Flux = 4 ! <---- A SUPPRIMER !!!!!!
     enddo
     Tdomain%any_PML  = .false.
     if (npml > 0 ) then
@@ -157,7 +158,7 @@ subroutine read_material_file(Tdomain)
                 read (13,*) Tdomain%sSubdomain(i)%Filtering,  Tdomain%sSubdomain(i)%npow, Tdomain%sSubdomain(i)%Apow, &
                     Tdomain%sSubdomain(i)%Px, Tdomain%sSubdomain(i)%Left, Tdomain%sSubdomain(i)%Pz,  &
                     Tdomain%sSubdomain(i)%Down, Tdomain%sSubdomain(i)%freq, Tdomain%sSubdomain(i)%k
-                ! Warning : The variable "Filtering" is no longer used : the kind of PML|FPML|CPML is
+                ! Warning : The variable "Filtering" is no longer used : the kind of PML|FPML|CPML|ADEPML is
                 ! assigned directly in the file : input.spec :
                 Tdomain%sSubdomain(i)%pml_type = Tdomain%pml_type
             endif

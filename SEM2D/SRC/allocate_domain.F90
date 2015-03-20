@@ -118,28 +118,13 @@ subroutine allocate_domain (Tdomain)
          allocate (Tdomain%specel(n)%DumpSz (0:ngllx-1,0:ngllz-1,0:1) )
          allocate (Tdomain%specel(n)%DumpVx (1:ngllx-2,1:ngllz-2,0:1) )
          allocate (Tdomain%specel(n)%DumpVz (1:ngllx-2,1:ngllz-2,0:1) )
+         allocate (Tdomain%specel(n)%DumpMass(0:ngllx-1,0:ngllz-1,0:1))
          Tdomain%specel(n)%Stress = 0.
          Tdomain%specel(n)%Veloc1 = 0.
          Tdomain%specel(n)%Veloc2 = 0.
          Tdomain%specel(n)%Stress1 = 0.
          Tdomain%specel(n)%Stress2 = 0.
-         if (Tdomain%specel(n)%FPML) then
-             allocate (Tdomain%specel(n)%Isx(0:ngllx-1,0:ngllz-1))
-             allocate (Tdomain%specel(n)%Isz(0:ngllx-1,0:ngllz-1))
-             allocate (Tdomain%specel(n)%Ivx(0:ngllx-1,0:ngllz-1))
-             allocate (Tdomain%specel(n)%Ivz(0:ngllx-1,0:ngllz-1))
-             allocate (Tdomain%specel(n)%IStress1(0:ngllx-1,0:ngllz-1,0:2))
-             allocate (Tdomain%specel(n)%IStress2(0:ngllx-1,0:ngllz-1,0:2))
-             allocate (Tdomain%specel(n)%IVeloc1(1:ngllx-2,1:ngllz-2,0:1))
-             allocate (Tdomain%specel(n)%IVeloc2(1:ngllx-2,1:ngllz-2,0:1))
-             allocate (Tdomain%specel(n)%DumpMass(0:ngllx-1,0:ngllz-1,0:3))
-             Tdomain%specel(n)%IStress1 = 0.
-             Tdomain%specel(n)%IStress2 = 0.
-             Tdomain%specel(n)%IVeloc1 = 0.
-             Tdomain%specel(n)%IVeloc2 = 0.
-         else
-             allocate (Tdomain%specel(n)%DumpMass(0:ngllx-1,0:ngllz-1,0:1))
-         endif
+         Tdomain%specel(n)%DumpMass= 0.
      else ! Case Element is not PML
          if(Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
              allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:15))
@@ -229,23 +214,9 @@ subroutine allocate_domain (Tdomain)
          allocate (Tdomain%sFace(n)%Veloc2 (1:ngll-2,0:1) )
          allocate (Tdomain%sFace(n)%DumpVx (1:ngll-2,0:1) )
          allocate (Tdomain%sFace(n)%DumpVz (1:ngll-2,0:1) )
-
+         allocate (Tdomain%sFace(n)%DumpMass(1:ngll-2,0:1))
          Tdomain%sFace(n)%Veloc1 = 0.
          Tdomain%sFace(n)%Veloc2 = 0.
-
-         if (Tdomain%sFace(n)%FPML) then
-             allocate (Tdomain%sFace(n)%Ivx(1:ngll-2))
-             allocate (Tdomain%sFace(n)%Ivz(1:ngll-2))
-             allocate (Tdomain%sFace(n)%IVeloc1(1:ngll-2,0:1))
-             allocate (Tdomain%sFace(n)%IVeloc2(1:ngll-2,0:1))
-             allocate (Tdomain%sFace(n)%DumpMass(1:ngll-2,0:3))
-             Tdomain%sFace(n)%IVeloc1 = 0.
-             Tdomain%sFace(n)%IVeloc2 = 0.
-             Tdomain%sFace(n)%Ivx = 0.
-             Tdomain%sFace(n)%Ivz = 0.
-         else
-             allocate (Tdomain%sFace(n)%DumpMass(1:ngll-2,0:1))
-         endif
          Tdomain%sFace(n)%DumpMass = 0.
      endif
 
@@ -328,20 +299,9 @@ subroutine allocate_domain (Tdomain)
          allocate (Tdomain%sVertex(n)%Veloc2 (0:1) )
          allocate (Tdomain%sVertex(n)%DumpVx (0:1) )
          allocate (Tdomain%sVertex(n)%DumpVz (0:1) )
+         allocate (Tdomain%sVertex(n)%DumpMass(0:1))
          Tdomain%sVertex(n)%Veloc1 = 0
          Tdomain%sVertex(n)%Veloc2 = 0
-
-         if (Tdomain%sFace(n)%FPML) then
-             allocate (Tdomain%sVertex(n)%Ivx(0:0))
-             allocate (Tdomain%sVertex(n)%Ivz(0:0))
-             allocate (Tdomain%sVertex(n)%IVeloc1(0:1))
-             allocate (Tdomain%sVertex(n)%IVeloc2(0:1))
-             allocate (Tdomain%sVertex(n)%DumpMass(0:1))
-             Tdomain%sVertex(n)%IVeloc1 = 0.
-             Tdomain%sVertex(n)%IVeloc2 = 0.
-         else
-             allocate (Tdomain%sVertex(n)%DumpMass(0:1))
-         endif
          Tdomain%sVertex(n)%DumpMass = 0
      endif
  enddo

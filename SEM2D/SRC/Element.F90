@@ -33,12 +33,7 @@ module selement
        real, dimension (:,:,:), allocatable :: DumpMass
        real, dimension (:,:,:), allocatable :: DumpSx,DumpSz,DumpVx,DumpVz
 
-       ! FPML allocation
-       logical :: FPML
-       real, dimension (:,:), allocatable ::  Isx, Isz, Ivx, Ivz
-       real, dimension (:,:,:), allocatable :: Istress1, IStress2, Iveloc1, Iveloc2
-
-       ! CPML allocation
+       ! CPML/ADEPML allocation
        logical :: CPML, ADEPML
        real, dimension (:,:), allocatable :: Ax, Bx, Az, Bz, Ax_prime, Az_prime
        real, dimension (:,:), allocatable :: PsiVxx, PsiVxz, PsiVzx, PsiVzz
@@ -68,8 +63,9 @@ contains
 
         el%mat_index=-1
         el%PML = .false.
+        el%CPML = .false.
+        el%ADEPML = .false.
         el%OUTPUT = .true.
-        el%FPML = .false.
         el%dist_max = 0.0
         el%type_DG = GALERKIN_CONT
 
@@ -95,45 +91,12 @@ contains
         integer :: ngllx, ngllz
 
         ngllx = Elem%ngllx ; ngllz = Elem%ngllz
-        !  test mariotti
-        !     Elem%Forces(1:ngllx-2,1:ngllz-2,0:1) = Elem%Displ + dt * Elem%Veloc + dt**2 * (0.5 - bega) * Elem%Accel
-        !     Elem%V0 = Elem%Veloc
-        !     Elem%Forces(1:ngllx-2,1:ngllz-2,0:1) = alpha * Elem%Forces(1:ngllx-2,1:ngllz-2,0:1) + (1-alpha) * Elem%Displ
+
         Elem%Forces(1:ngllx-2,1:ngllz-2,0:1) = Elem%Displ
         Elem%V0 = Elem%Veloc
 
         return
     end subroutine Prediction_Elem_Veloc
-
-
-    ! ############################################################
-    !>
-    !! \brief
-    !!
-    !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (IN) dt
-    !<
-    subroutine Prediction_Elem_NPMC (Elem, hTprimex, hprimez, Dt)
-        implicit none
-
-        type (Element), intent (INOUT) :: Elem
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprimex
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
-        real, intent (IN) :: Dt
-
-        Elem%Strain(:,:,0) = Elem%Strain0(:,:,0) + 0.5 * Dt * &
-                            (Elem%InvGrad(:,:,0,0) * MATMUL(hTprimex,Elem%Veloc(:,:,0)+Elem%V0(:,:,0)) &
-                            +Elem%InvGrad(:,:,0,1) * MATMUL(Elem%Veloc(:,:,0)+Elem%V0(:,:,0),hprimez))
-        Elem%Strain(:,:,1) = Elem%Strain0(:,:,1) + 0.5 * Dt * &
-                            (Elem%InvGrad(:,:,1,0) * MATMUL(hTprimex,Elem%Veloc(:,:,1)+Elem%V0(:,:,1)) &
-                            +Elem%InvGrad(:,:,1,1) * MATMUL(Elem%Veloc(:,:,1)+Elem%V0(:,:,1),hprimez))
-        Elem%Strain(:,:,2) = Elem%Strain0(:,:,1) + 0.25 * Dt * &
-                            (Elem%InvGrad(:,:,0,0) * MATMUL(hTprimex,Elem%Veloc(:,:,1)+Elem%V0(:,:,1)) &
-                            +Elem%InvGrad(:,:,0,1) * MATMUL(Elem%Veloc(:,:,1)+Elem%V0(:,:,1),hprimez)  &
-                            +Elem%InvGrad(:,:,1,0) * MATMUL(hTprimex,Elem%Veloc(:,:,0)+Elem%V0(:,:,0)) &
-                            +Elem%InvGrad(:,:,1,1) * MATMUL(Elem%Veloc(:,:,0)+Elem%V0(:,:,0),hprimez))
-        return
-    end subroutine Prediction_Elem_NPMC
 
 
     ! ###########################################################
@@ -145,8 +108,6 @@ contains
     !! \param real, intent (IN) gam1
     !! \param real, intent (IN) dt
     !<
-
-
     !  subroutine Correction_Elem_Veloc (Elem, bega, gam1,dt)
     subroutine Correction_Elem_Veloc (Elem, dt)
         implicit none
@@ -154,20 +115,13 @@ contains
         type (Element), intent (INOUT) :: Elem
         !real, intent (IN) :: bega, gam1
         real, intent (IN) :: dt
-
         integer :: ngllx, ngllz,i
 
-        ! test
-
         ngllx = Elem%ngllx ; ngllz = Elem%ngllz
+
         do i = 0,1
             Elem%Forces(1:ngllx-2,1:ngllz-2,i) = Elem%MassMat(:,:)  * Elem%Forces(1:ngllx-2,1:ngllz-2,i)
         enddo
-        !       print*,' valeur Mass apres ',Elem%Forces(1,1,0)
-        !  test mariotti
-        !      Elem%Veloc(:,:,:)  = Elem%v0(:,:,:)+ dt * Elem%Forces(1:ngllx-2,1:ngllz-2,:)
-        !      Elem%Accel  = Elem%Accel + gam1 /dt * (Elem%Veloc-Elem%V0)
-        !      Elem%Displ = Elem%Displ + bega *dt * (Elem%Veloc+Elem%V0)
         Elem%Veloc(:,:,:)  = Elem%v0(:,:,:)+ dt * Elem%Forces(1:ngllx-2,1:ngllz-2,:)
         Elem%Accel  = (Elem%Veloc-Elem%V0)/dt
         Elem%Displ = Elem%Displ + dt * Elem%Veloc
@@ -205,49 +159,6 @@ contains
         return
     end subroutine Correction_Elem_PML_Veloc
 
-    ! ###########################################################
-    !>
-    !! \brief
-    !!
-    !! \param type (Element), intent (INOUT) Elem
-    !! \param real, intent (IN) dt
-    !! \param real, intent (IN) fil
-    !<
-
-
-    subroutine Correction_Elem_FPML_Veloc (Elem, dt, fil)
-        implicit none
-
-        type (Element), intent (INOUT) :: Elem
-        real, intent (IN) ::  dt, fil
-
-        integer :: ngllx, ngllz,i
-        real :: fil2
-        real, dimension (1:Elem%ngllx-2,1:Elem%ngllz-2) :: Ausiliar_Velocity
-
-        ngllx = Elem%ngllx; ngllz=Elem%ngllz
-        fil2 = fil**2
-
-        do i = 0,1
-            Ausiliar_Velocity = Elem%Veloc1(:,:,i)
-            Elem%Veloc1(:,:,i) = Elem%DumpVx(:,:,0) * Elem%Veloc1(:,:,i) + dt * &
-                Elem%DumpVx(:,:,1)*Elem%Forces1(1:ngllx-2,1:ngllz-2,i) + Elem%Ivx * Elem%Iveloc1(:,:,i)
-            Elem%Iveloc1(:,:,i) = Fil2 * Elem%Iveloc1(:,:,i) + 0.5 * (1.-Fil2) *  &
-                (Ausiliar_Velocity + Elem%Veloc1(:,:,i) )
-
-            Ausiliar_Velocity = Elem%Veloc2(:,:,i)
-            Elem%Veloc2(:,:,i) =Elem%DumpVz(:,:,0) * Elem%Veloc2(:,:,i) + Dt * &
-                Elem%DumpVz(:,:,1)*Elem%Forces2(1:ngllx-2,1:ngllz-2,i) + Elem%Ivz * Elem%IVeloc2(:,:,i)
-            Elem%Iveloc2(:,:,i) = Fil2 * Elem%Iveloc2(:,:,i) + 0.5 * (1.-Fil2) * &
-                (Ausiliar_Velocity + Elem%Veloc2(:,:,i) )
-        enddo
-
-        Elem%V0 = Elem%Veloc
-        Elem%Veloc = Elem%Veloc1 + Elem%Veloc2
-
-        return
-    end subroutine Correction_Elem_FPML_Veloc
-
 
     ! ###########################################################
     !>
@@ -262,8 +173,6 @@ contains
     !! \param real, intent (IN) dt
     !! \param real, intent (IN) alpha
     !<
-
-
     subroutine Prediction_Elem_PML_Veloc (Elem,alpha, bega, dt,Vxloc,Vzloc,Hmatz, HTmat)
         implicit none
 
@@ -281,112 +190,36 @@ contains
 
         !Elem%Stress0 = Elem%Stress
 
-        VxLoc(1:ngllx-2,1:ngllz-2)  = (0.5+alpha) * Elem%Veloc(:,:,0) + dt *(0.5-bega) *Elem%Accel(:,:,0) + (0.5-alpha) * Elem%V0(:,:,0)
-        VzLoc(1:ngllx-2,1:ngllz-2)  =(0.5+alpha) * Elem%Veloc(:,:,1) + dt *(0.5-bega) *Elem%Accel(:,:,1)+ (0.5-alpha) * Elem%V0(:,:,1)
-
+        VxLoc(1:ngllx-2,1:ngllz-2)  = (0.5+alpha) * Elem%Veloc(:,:,0) + dt *(0.5-bega)*Elem%Accel(:,:,0) &
+                                    + (0.5-alpha) * Elem%V0(:,:,0)
+        VzLoc(1:ngllx-2,1:ngllz-2)  = (0.5+alpha) * Elem%Veloc(:,:,1) + dt *(0.5-bega)*Elem%Accel(:,:,1) &
+                                    + (0.5-alpha) * Elem%V0(:,:,1)
 
         s0 = MATMUL (HTmat,VxLoc)
         s2 = MATMUL (HTmat,VzLoc)
         s1 = MATMUL (VxLoc,Hmatz)
         s3 = MATMUL (VzLoc,Hmatz)
 
-        Elem%Stress1(:,:,0) = Elem%DumpSx(:,:,0) * Elem%Stress1(:,:,0) + Elem%DumpSx(:,:,1) * Dt * (Elem%Acoeff(:,:,0) * s0 + &
-            Elem%Acoeff(:,:,2) * s2 )
-        Elem%Stress2(:,:,0) =  Elem%DumpSz(:,:,0) * Elem%Stress2(:,:,0) + Elem%DumpSz(:,:,1) * Dt * (Elem%Acoeff(:,:,3) * s3 + &
-            Elem%Acoeff(:,:,1)* s1 )
+        Elem%Stress1(:,:,0) = Elem%DumpSx(:,:,0) * Elem%Stress1(:,:,0) &
+                            + Elem%DumpSx(:,:,1) * Dt * (Elem%Acoeff(:,:,0)*s0 + Elem%Acoeff(:,:,2)*s2)
+        Elem%Stress2(:,:,0) = Elem%DumpSz(:,:,0) * Elem%Stress2(:,:,0) &
+                            + Elem%DumpSz(:,:,1) * Dt * (Elem%Acoeff(:,:,3)*s3 + Elem%Acoeff(:,:,1)*s1)
 
-        Elem%Stress1(:,:,1) = Elem%DumpSx(:,:,0) * Elem%Stress1(:,:,1) + Elem%DumpSx(:,:,1) * Dt * (Elem%Acoeff(:,:,4) * s0 + &
-            Elem%Acoeff(:,:,6) * s2 )
-        Elem%Stress2(:,:,1) =  Elem%DumpSz(:,:,0) * Elem%Stress2(:,:,1) + Elem%DumpSz(:,:,1) * Dt *( Elem%Acoeff(:,:,7) * s3 + &
-            Elem%Acoeff(:,:,5) * s1 )
+        Elem%Stress1(:,:,1) = Elem%DumpSx(:,:,0) * Elem%Stress1(:,:,1) &
+                            + Elem%DumpSx(:,:,1) * Dt * (Elem%Acoeff(:,:,4)*s0 + Elem%Acoeff(:,:,6)*s2)
+        Elem%Stress2(:,:,1) = Elem%DumpSz(:,:,0) * Elem%Stress2(:,:,1) &
+                            + Elem%DumpSz(:,:,1) * Dt * (Elem%Acoeff(:,:,7)*s3 + Elem%Acoeff(:,:,5)*s1)
 
-        Elem%Stress1(:,:,2) = Elem%DumpSx(:,:,0) * Elem%Stress1(:,:,2) + Elem%DumpSx(:,:,1) * Dt * (Elem%Acoeff(:,:,10) * s2 + &
-            Elem%Acoeff(:,:,8) * s0)
-        Elem%Stress2(:,:,2) =  Elem%DumpSz(:,:,0) * Elem%Stress2(:,:,2) + Elem%DumpSz(:,:,1) * Dt * (Elem%Acoeff(:,:,9) * s1 + &
-            Elem%Acoeff(:,:,11) * s3 )
+        Elem%Stress1(:,:,2) = Elem%DumpSx(:,:,0) * Elem%Stress1(:,:,2) &
+                            + Elem%DumpSx(:,:,1) * Dt * (Elem%Acoeff(:,:,10)*s2 + Elem%Acoeff(:,:,8)*s0)
+        Elem%Stress2(:,:,2) = Elem%DumpSz(:,:,0) * Elem%Stress2(:,:,2) &
+                            + Elem%DumpSz(:,:,1) * Dt * (Elem%Acoeff(:,:,9)*s1 + Elem%Acoeff(:,:,11)*s3)
 
         Elem%Stress = Elem%Stress1 + Elem%Stress2
         !Elem%Stress = alpha  * Elem%Stress + (1-alpha) * Elem%Stress0
         return
     end subroutine Prediction_Elem_PML_Veloc
 
-    ! ###########################################################
-    !>
-    !! \brief
-    !!
-    !! \param type (Element), intent (INOUT) Elem
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTmat
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hmatz
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) Vxloc
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) Vzloc
-    !! \param real, intent (IN) bega
-    !! \param real, intent (IN) dt
-    !! \param real, intent (IN) alpha
-    !! \param real, intent (IN) fil
-    !<
-
-
-    subroutine Prediction_Elem_FPML_Veloc (Elem,alpha, bega, dt,Vxloc,Vzloc,Hmatz, HTmat,fil)
-        implicit none
-
-        type (Element), intent (INOUT) :: Elem
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) ::  hTmat
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hmatz
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT)  ::Vxloc, Vzloc
-        real, intent (IN) :: bega, dt, alpha, fil
-
-        real :: fil2
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: s0,s1,s2,s3, Stress_ausiliar
-
-        integer :: ngllx, ngllz
-
-        ngllx = Elem%ngllx; ngllz = Elem%ngllz
-        fil2 = fil**2
-
-        !Elem%Stress0 = Elem%Stress
-
-        VxLoc(1:ngllx-2,1:ngllz-2)  = (0.5+alpha) * Elem%Veloc(:,:,0) + dt *(0.5-bega) *Elem%Accel(:,:,0) + (0.5-alpha) * Elem%V0(:,:,0)
-        VzLoc(1:ngllx-2,1:ngllz-2)  =(0.5+alpha) * Elem%Veloc(:,:,1) + dt *(0.5-bega) *Elem%Accel(:,:,1)+ (0.5-alpha) * Elem%V0(:,:,1)
-
-
-        s0 = MATMUL (HTmat,VxLoc)
-        s2 = MATMUL (HTmat,VzLoc)
-        s1 = MATMUL (VxLoc,Hmatz)
-        s3 = MATMUL (VzLoc,Hmatz)
-
-        Stress_Ausiliar = Elem%Stress1(:,:,0)
-        Elem%Stress1(:,:,0) = Elem%DumpSx(:,:,0) * Elem%Stress1(:,:,0) + Elem%DumpSx(:,:,1) * Dt * (Elem%Acoeff(:,:,0) * s0 + &
-            Elem%Acoeff(:,:,2) * s2 ) + Elem%Isx * Elem%Istress1(:,:,0)
-        Elem%Istress1 (:,:,0) =  Fil2 * Elem%Istress1 (:,:,0) + 0.5 * (1.-Fil2) * (Elem%Stress1(:,:,0) + Stress_Ausiliar)
-
-        Stress_Ausiliar = Elem%Stress2(:,:,0)
-        Elem%Stress2(:,:,0) =  Elem%DumpSz(:,:,0) * Elem%Stress2(:,:,0) + Elem%DumpSz(:,:,1) * Dt * (Elem%Acoeff(:,:,3) * s3 + &
-            Elem%Acoeff(:,:,1)* s1 )  + Elem%Isz * Elem%Istress2(:,:,0)
-        Elem%Istress2 (:,:,0) =  Fil2 * Elem%Istress2 (:,:,0) + 0.5 * (1.-Fil2) * (Elem%Stress2(:,:,0) + Stress_Ausiliar)
-
-        Stress_Ausiliar = Elem%Stress1(:,:,1)
-        Elem%Stress1(:,:,1) = Elem%DumpSx(:,:,0) * Elem%Stress1(:,:,1) + Elem%DumpSx(:,:,1) * Dt * (Elem%Acoeff(:,:,4) * s0 + &
-            Elem%Acoeff(:,:,6) * s2 ) + Elem%Isx * Elem%Istress1(:,:,1)
-        Elem%Istress1 (:,:,1) =  Fil2 * Elem%Istress1 (:,:,1) + 0.5 * (1.-Fil2) * (Elem%Stress1(:,:,1) + Stress_Ausiliar)
-
-        Stress_Ausiliar = Elem%Stress2(:,:,1)
-        Elem%Stress2(:,:,1) =  Elem%DumpSz(:,:,0) * Elem%Stress2(:,:,1) + Elem%DumpSz(:,:,1) * Dt *( Elem%Acoeff(:,:,7) * s3 + &
-            Elem%Acoeff(:,:,5) * s1 ) + Elem%Isz * Elem%Istress2(:,:,1)
-        Elem%Istress2 (:,:,1) =  Fil2 * Elem%Istress2 (:,:,1) + 0.5 * (1.-Fil2) * (Elem%Stress2(:,:,1) + Stress_Ausiliar)
-
-        Stress_Ausiliar = Elem%Stress1(:,:,2)
-        Elem%Stress1(:,:,2) = Elem%DumpSx(:,:,0) * Elem%Stress1(:,:,2) + Elem%DumpSx(:,:,1) * Dt * (Elem%Acoeff(:,:,10) * s2 + &
-            Elem%Acoeff(:,:,8) * s0) + Elem%Isx * Elem%Istress1(:,:,2)
-        Elem%Istress1 (:,:,2) =  Fil2 * Elem%Istress1 (:,:,2) + 0.5 * (1.-Fil2) * (Elem%Stress1(:,:,2) + Stress_Ausiliar)
-
-        Stress_Ausiliar = Elem%Stress2(:,:,2)
-        Elem%Stress2(:,:,2) =  Elem%DumpSz(:,:,0) * Elem%Stress2(:,:,2) + Elem%DumpSz(:,:,1) * Dt * (Elem%Acoeff(:,:,9) * s1 + &
-            Elem%Acoeff(:,:,11) * s3 ) + Elem%Isz * Elem%Istress2(:,:,2)
-        Elem%Istress2 (:,:,2) =  Fil2 * Elem%Istress2 (:,:,2) + 0.5 * (1.-Fil2) * (Elem%Stress2(:,:,2) + Stress_Ausiliar)
-
-        Elem%Stress = Elem%Stress1 + Elem%Stress2
-        return
-    end subroutine Prediction_Elem_FPML_Veloc
 
     ! ###########################################################
     !>
@@ -470,7 +303,7 @@ contains
         type (Element), intent (INOUT) :: Elem
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime, hTprime
         real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
-        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1) :: Uxloc, Uzloc, dUx_dxi, dUx_deta,  dUz_dxi, dUz_deta, s0
+        real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1) :: Uxloc, Uzloc, dUx_dxi, dUx_deta, dUz_dxi, dUz_deta, s0
 
         Uxloc =Elem%Forces (:,:,0)
         Uzloc = Elem%Forces (:,:,1)
