@@ -330,27 +330,34 @@ subroutine define_arrays(Tdomain)
         ngllx = Tdomain%specel(n)%ngllx; ngllz = Tdomain%specel(n)%ngllz
         nv_aus = Tdomain%specel(n)%Near_Vertex(0)
         Tdomain%sVertex(nv_aus)%MassMat = Tdomain%sVertex(nv_aus)%MassMat + Tdomain%specel(n)%MassMat(0,0)
-        if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML))    &
-            Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:)+ Tdomain%specel(n)%DumpMass(0,0,:)
+        if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML) &
+                                        .and. (.not.Tdomain%sVertex(nv_aus)%ADEPML)) then
+            Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:) &
+                                                + Tdomain%specel(n)%DumpMass(0,0,:)
         endif
 
         nv_aus = Tdomain%specel(n)%Near_Vertex(1)
         Tdomain%sVertex(nv_aus)%MassMat = Tdomain%sVertex(nv_aus)%MassMat + Tdomain%specel(n)%MassMat(ngllx-1,0)
-        if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML))    &
-            Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:)+ Tdomain%specel(n)%DumpMass(ngllx-1,0,:)
+        if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML) &
+                                        .and. (.not.Tdomain%sVertex(nv_aus)%ADEPML)) then
+            Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:) &
+                                                + Tdomain%specel(n)%DumpMass(ngllx-1,0,:)
         endif
 
         nv_aus = Tdomain%specel(n)%Near_Vertex(2)
         Tdomain%sVertex(nv_aus)%MassMat = Tdomain%sVertex(nv_aus)%MassMat + Tdomain%specel(n)%MassMat(ngllx-1,ngllz-1)
-        if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML))   &
-            Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:) + &
-            Tdomain%specel(n)%DumpMass(ngllx-1,ngllz-1,:)
+        if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML) &
+                                        .and. (.not.Tdomain%sVertex(nv_aus)%ADEPML)) then
+            Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:) &
+                                                + Tdomain%specel(n)%DumpMass(ngllx-1,ngllz-1,:)
         endif
 
         nv_aus = Tdomain%specel(n)%Near_Vertex(3)
         Tdomain%sVertex(nv_aus)%MassMat = Tdomain%sVertex(nv_aus)%MassMat + Tdomain%specel(n)%MassMat(0,ngllz-1)
-        if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML))    &
-            Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:)+ Tdomain%specel(n)%DumpMass(0,ngllz-1,:)
+        if (Tdomain%sVertex(nv_aus)%PML .and. (.not.Tdomain%sVertex(nv_aus)%CPML) &
+                                        .and. (.not.Tdomain%sVertex(nv_aus)%ADEPML)) then
+            Tdomain%sVertex(nv_aus)%DumpMass(:) = Tdomain%sVertex(nv_aus)%DumpMass(:) &
+                                                + Tdomain%specel(n)%DumpMass(0,ngllz-1,:)
         endif
       endif
     enddo
@@ -631,19 +638,6 @@ subroutine define_arrays(Tdomain)
         if (Tdomain%sFace(nf)%PML ) then
             if (Tdomain%sFace(nf)%CPML .OR. Tdomain%sFace(nf)%ADEPML) then
                Tdomain%sFace(nf)%MassMat = 1./ Tdomain%sFace(nf)%MassMat
-            elseif (Tdomain%sFace(nf)%FPML) then
-                Tdomain%sFace(nf)%DumpVx (:,1) =  Tdomain%sFace(nf)%MassMat + Tdomain%sFace(nf)%DumpMass(:,0)
-                Tdomain%sFace(nf)%DumpVx (:,1) = 1./Tdomain%sFace(nf)%DumpVx (:,1)
-                Tdomain%sFace(nf)%DumpVx (:,0) =  Tdomain%sFace(nf)%MassMat + Tdomain%sFace(nf)%DumpMass(:,1)
-                Tdomain%sFace(nf)%DumpVx (:,0) = Tdomain%sFace(nf)%DumpVx (:,0) *  Tdomain%sFace(nf)%DumpVx (:,1)
-
-                Tdomain%sFace(nf)%DumpVz (:,1) =  Tdomain%sFace(nf)%MassMat + Tdomain%sFace(nf)%DumpMass(:,2)
-                Tdomain%sFace(nf)%DumpVz (:,1) = 1./Tdomain%sFace(nf)%DumpVz (:,1)
-                Tdomain%sFace(nf)%DumpVz (:,0) =  Tdomain%sFace(nf)%MassMat + Tdomain%sFace(nf)%DumpMass(:,3)
-                Tdomain%sFace(nf)%DumpVz (:,0) = Tdomain%sFace(nf)%DumpVz (:,0) *  Tdomain%sFace(nf)%DumpVz (:,1)
-                Tdomain%sFace(nf)%Ivx = Tdomain%sFace(nf)%Ivx * Tdomain%sFace(nf)%DumpVx(:,1)
-                Tdomain%sFace(nf)%Ivz = Tdomain%sFace(nf)%Ivz * Tdomain%sFace(nf)%DumpVz(:,1)
-                deallocate (Tdomain%sFace(nf)%DumpMass)
             else ! Normal PML
                 Tdomain%sFace(nf)%DumpVx (:,1) =  Tdomain%sFace(nf)%MassMat + Tdomain%sFace(nf)%DumpMass(:,0)
                 Tdomain%sFace(nf)%DumpVx (:,1) = 1./Tdomain%sFace(nf)%DumpVx (:,1)
@@ -665,20 +659,6 @@ subroutine define_arrays(Tdomain)
         if (Tdomain%sVertex(nv_aus)%PML) then
             if (tdomain%sVertex(nv_aus)%CPML) then
                 Tdomain%sVertex(nv_aus)%MassMat = 1./Tdomain%sVertex(nv_aus)%MassMat
-            elseif (tdomain%sVertex(nv_aus)%FPML) then
-                Tdomain%sVertex(nv_aus)%DumpVx (1) =  Tdomain%sVertex(nv_aus)%MassMat + Tdomain%sVertex(nv_aus)%DumpMass(0)
-                Tdomain%sVertex(nv_aus)%DumpVx (1) = 1./Tdomain%sVertex(nv_aus)%DumpVx (1)
-                Tdomain%sVertex(nv_aus)%DumpVx (0) =  Tdomain%sVertex(nv_aus)%MassMat + Tdomain%sVertex(nv_aus)%DumpMass(1)
-                Tdomain%sVertex(nv_aus)%DumpVx (0) = Tdomain%sVertex(nv_aus)%DumpVx (0) *  Tdomain%sVertex(nv_aus)%DumpVx (1)
-
-                Tdomain%sVertex(nv_aus)%DumpVz (1) =  Tdomain%sVertex(nv_aus)%MassMat + Tdomain%sVertex(nv_aus)%DumpMass(2)
-                Tdomain%sVertex(nv_aus)%DumpVz (1) = 1./Tdomain%sVertex(nv_aus)%DumpVz (1)
-                Tdomain%sVertex(nv_aus)%DumpVz (0) =  Tdomain%sVertex(nv_aus)%MassMat + Tdomain%sVertex(nv_aus)%DumpMass(3)
-                Tdomain%sVertex(nv_aus)%DumpVz (0) = Tdomain%sVertex(nv_aus)%DumpVz (0) *  Tdomain%sVertex(nv_aus)%DumpVz (1)
-                Tdomain%sVertex(nv_aus)%Ivx(0) = Tdomain%sVertex(nv_aus)%Ivx(0) * Tdomain%sVertex(nv_aus)%DumpVx(1)
-                Tdomain%sVertex(nv_aus)%Ivz(0) = Tdomain%sVertex(nv_aus)%Ivz(0) * Tdomain%sVertex(nv_aus)%DumpVz(1)
-
-                deallocate (Tdomain%sVertex(nv_aus)%DumpMass)
             else ! usual PML
                 Tdomain%sVertex(nv_aus)%DumpVx (1) =  Tdomain%sVertex(nv_aus)%MassMat + Tdomain%sVertex(nv_aus)%DumpMass(0)
                 Tdomain%sVertex(nv_aus)%DumpVx (1) = 1./Tdomain%sVertex(nv_aus)%DumpVx (1)
