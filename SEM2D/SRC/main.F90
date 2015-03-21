@@ -354,6 +354,10 @@ subroutine  sem()
 
         if (Tdomain%bCapteur) call evalueSortieCapteur(ntime)
 
+        if (mod(ntime,100)==0) then
+            if(Tdomain%LogicD%CompEnerg) call global_energy_generalized(Tdomain)
+        endif
+
         if (i_snap == 0 .or. sortie_capteur) then
 
 
@@ -368,7 +372,7 @@ subroutine  sem()
             call save_field_h5(Tdomain, rg, isort)
 
             ! Sortie Energie totale du systeme
-            if(Tdomain%LogicD%CompEnerg) call global_energy_generalized(Tdomain)
+            !if(Tdomain%LogicD%CompEnerg) call global_energy_generalized(Tdomain)
 
         endif
 

@@ -267,7 +267,7 @@ subroutine Forward_Euler_Resolution (Tdomain,timelocal,Dt)
     real,    intent(in)   :: timelocal,dt
 
     ! local variables
-    integer :: n, mat, nf, nface
+    integer :: n, mat, nface
 
     ! Building second members (= forces) of systems.
     do n=0,Tdomain%n_elem-1
@@ -283,17 +283,18 @@ subroutine Forward_Euler_Resolution (Tdomain,timelocal,Dt)
     ! External Forces computation
     call Compute_External_Forces(Tdomain,timelocal)
 
-    ! Calcul des fluxs
+    ! Calcul et envoi tractions sur faces
     do n = 0, Tdomain%n_elem-1
         call get_traction_el2f(Tdomain,n)
     enddo
 
+    ! Calcul des Vhat sur les faces
+    do nface = 0, Tdomain%n_face-1
+        call Compute_Vhat(Tdomain%sFace(nface))
+    enddo
+
     ! Constructing the Lambda (= velocities vhat) on the faces
     do n=0,Tdomain%n_elem-1
-        do nf = 0,3        ! Computation of the Velocities Traces
-            nface = Tdomain%specel(n)%Near_Face(nf)
-            call Compute_Vhat(Tdomain%sFace(nface))
-        enddo
         call get_Vhat_f2el(Tdomain,n)
         call Compute_Traces (Tdomain%specel(n),.true.)
         if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,n)
