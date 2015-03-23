@@ -7,7 +7,7 @@ Prise en main de SEM3D
 Introduction
 ============
 
-Ce chapitre présente la chaine de calcul SEM, insistant plus
+Ce chapitre présente la chaîne de calcul SEM, insistant plus
 particulièrement sur SEM3D.
 
 La chaîne logicielle SEM contient le code de simulation (``sem2d.exe``
@@ -35,7 +35,7 @@ contraintes :math:`\sigma` et les forces extérieures :math:`\vec{f}` :
 
    \rho \frac{\partial^2 u}{\partial t^2} = \nabla.\sigma + \vec{f}
 
-Avec en élasticité linéaire : :math:`\sigma=C:\nabla{}u`, où :math:`C` est le
+Avec, en élasticité linéaire : :math:`\sigma=C:\nabla{}u`, où :math:`C` est le
 tenseur élastique d'ordre 4.
 
 Pour l'instant les milieux de propagations décrits dans SEM sont
@@ -66,7 +66,7 @@ Méthode spectrale
 
 Pour obtenir une convergence spectrale, ces polynômes de Lagrange sont
 définis sur les points de Gauss-Lobatto-Legendre (GLL) de chaque
-éléments (voir :ref:`fig-gll`).
+élément (voir :ref:`fig-gll`).
 
 .. _fig-gll:
 
@@ -75,7 +75,7 @@ définis sur les points de Gauss-Lobatto-Legendre (GLL) de chaque
    :align: center
 
    Position des points de Gauss-Lobato-Legendre sur un élément 2D d'ordre 9
-   
+
 
 Les éléments traités sont des quadrangles en 2D et des Hexaèdres en
 3D. Si :math:`\Phi_i(x)` est le polynôme de Lagrange valant 1 au point
@@ -146,8 +146,8 @@ de tous les éléments).
 
 .. math::
 
-   \forall w = \sum_{i=1}^N w_i \Phi_i, w_i \in \mathbf{R}, 
-   \sum_{i,j} w_i.\rho \frac{\partial^2 u_j}{\partial t^2}\int \Phi_i\Phi_j \vec{dx} = 
+   \forall w = \sum_{i=1}^N w_i \Phi_i, w_i \in \mathbf{R},
+   \sum_{i,j} w_i.\rho \frac{\partial^2 u_j}{\partial t^2}\int \Phi_i\Phi_j \vec{dx} =
      \sum w_i.u_j.\int (\nabla.(C:\nabla{}\Phi_j) + f_j\Phi_j).\Phi_i \vec{dx}
 
 Cette dernière équation apparaît alors sous la forme classique de
@@ -167,19 +167,19 @@ u_j}{\partial t^2}` .
 
 Les produits scalaires entre fonctions :math:`\Phi_i` qui ne partagent
 pas le même élément support sont nuls par construction. Mais au sein
-d'un éléments, les polynômes de Lagrange ne sont pas orthogonaux. La
+d'un élément, les polynômes de Lagrange ne sont pas orthogonaux. La
 méthode SEM utilise astucieusement une quadrature basée sur les mêmes
 points de Gauss que les noeuds de définitions des fonctions de
 base. Cela introduit bien sûr une approximation de l'intégrale, mais
 le résultat est que le produit scalaire discret utilisé rend
-orthogonale les fonctions :math:`\Phi_i` ayant le même élément
+orthogonales les fonctions :math:`\Phi_i` ayant le même élément
 support.
 
 
 Conditions de bord
 ------------------
 
-La condition naturelle d'un bord en élément fini est d'être une
+La condition naturelle d'un bord en éléments finis est d'être une
 surface libre, donc réfléchissante pour les ondes. Pour simuler des
 milieux ouverts, SEM implémente un type d'élément dit *Couche Parfaitement Absorbante* (en anglais: *Perfectly
 Matched Layer*, ou PML) pour simuler un milieu ouvert infini en bordure d'un
@@ -214,7 +214,7 @@ Résolution spatiale
 
 Le maillage doit également être suffisamment résolu pour capturer les
 fréquences spatiales du signal que l'on veut propager. On considère
-que 10 points GLL par longueur d'onde sont suffisant.
+que 10 points GLL par longueur d'onde sont suffisants.
 
 Augmenter l'ordre des éléments est donc un moyen d'obtenir une
 résolution spatiale correcte avec un maillage donné. La convergence
@@ -243,7 +243,7 @@ Description des sorties
 Les résultats de simulation peuvent être obtenus sous deux formes :
 
 - Des instantanés (*snapshot*) des champs obtenus sur tous les points GLL, ou sur
-  un sous-partie, à une fréquence données. Ces sorties sont en général
+  une sous-partie, à une fréquence donnée. Ces sorties sont en général
   assez lourdes et ne peuvent être trop fréquentes.
 
 - Des sorties *capteurs*, pour un ou plusieurs points du maillage, on
@@ -273,22 +273,22 @@ Présentation des outils
 
 Deux exécutables sont impliqués directement dans l'utilisation de SEM :
 
-- ``mesher`` et ``sem3d.exe`` pour le cas 3D,
+- :program:`mesher` et :program:`sem3d.exe` pour le cas 3D,
 
-- ``sem2d.exe`` pour le cas 2D, il n'existe pas encore d'outil de
+- :program:`sem2d.exe` pour le cas 2D, il n'existe pas encore d'outil de
   partitionnement simple à utiliser.
 
-``mesher`` transforme un maillage d'entrée en un maillage partitionné
+:program:`mesher` transforme un maillage d'entrée en un maillage partitionné
 utilisable par SEM. On peut lui fournir différents formats :
 
-- Un maillage au format *Abacus* (d'extension ``.aba``)
+- Un maillage au format *Abaqus* (d'extension ``.aba``)
 
 - Un maillage au format *UNV*, (aussi connu sous le nom *IDEAS*)
-  d'extension ``.unv``.  Les *UNiVersal files* (les detailles dans 
+  d'extension ``.unv``.  Les *UNiVersal files* (les detailles dans
   les annexes) sont des fichiers en ASCII qui peuvent être utilisés
   pour stocker des informations sélectionnées à partir d'un fichier
   de modèle. Blocs d'information appelés *datasets*  constituent la
-  structure de base d'un fichier universel. 
+  structure de base d'un fichier universel.
   SEM peut lire les blocs suivantes:
 
     - Dataset **2411** : noeuds avec leurs coordonnées 3D;
@@ -303,16 +303,16 @@ utilisable par SEM. On peut lui fournir différents formats :
       des conditions limites).
 
 - Un maillage au format *HDF5*, spécifique, dont la structure est
-  décrite en détail dans :ref:`Format HDF5`.
+  décrite en détails dans :ref:`Format HDF5`.
 
 - Le quatrième format est simplement la description d'un maillage
   cartésien, pour lequel on entre manuellement les coordonnées et la
   subdivision de la grille souhaitée.
 
 
-L'outil mailleur, en plus de ses entrées en ligne de commande,
+L'outil :program:`mesher`, en plus de ses entrées en ligne de commande,
 s'appuie sur un fichier externe ``mat.dat``, donnant quelques
-informations sur le maillage à générer : nombre de matériaus, présence
+informations sur le maillage à générer : nombre de matériaux, présence
 d'éléments PML, type de matériau (solide ou fluide).
 
 
@@ -331,7 +331,7 @@ les fichiers nécéssaires à son exécution. L'arborescence doit être la suiva
   |  |- mesh4spec.NNNN
   |- capteurs.dat
 
-``input.spec`` :
+:file:`input.spec` :
 
   Ce fichier contient la configuration du code :
   - paramètres d'intégration temporelle, temps physique du calcul,
@@ -339,63 +339,66 @@ les fichiers nécéssaires à son exécution. L'arborescence doit être la suiva
   - description des sorties capteurs,
   - description des sorties snapshots.
 
-``material.input`` :
+:file:`material.input` :
 
   Ce fichier contient la description de chaque matériau : :math:`\rho, V_p, V_s`, un nombre
   de points GLL par direction de la maille de référence.
 
   Le format du fichier est le suivant :
-  
-  - la première ligne contient le nomnbre de milieux décrits
-  
+
+  - la première ligne contient le nombre de milieux décrits
+
   - Une ligne par milieu, contenant :
-  
+
     - le type de milieu (Solide, Fluide, PML solide (P)m PML fluide (L) )
-  
+
     - Les vitesses d'ondes P, et S
-  
+
     - La densité
-  
+
     - L'ordre des éléments en X, Y, Z (Y est ignoré en 2D)
-  
+
     - Un pas de temps (ignoré dans la version actuelle)
-  
-    - Les attenuations d'ondes P et S
-  
+
+    - Les atténuations d'ondes P et S par les paramètres :math:`Q_\kappa` et :math:`Q_\mu`.
+
   - 2 lignes de commentaires
-  
+
   - Pour chaque milieu de type PML (donc P ou L), une ligne indiquant les directions d'atténuation,
-    et le type d'attenuation :
-  
+    et le type d'atténuation :
+
     - Un caractère pour le type de PML (filtrante (T), ou standard (F))
-  
+
     - paramètres n et A pour les PML filtrantes
-  
+
     - 3 couples de deux drapeaux T ou F (pour True False) indiquant si la PML attenue dans
       les directions X, Y et Z respectivement (premier flag du couple) et dans le sens positif (T)
       ou négatif de l'axe.
-  
+
     - La fréquence de coupure en cas de PML filtrante
-  
+
   Exemple ::
-  
+
     27
-    S  6300.00  2500.00   2800. 5   5    5  0.000005 0. 0.
-    P  6300.00  2500.00   2800. 7   7    5  0.000005 0. 0.
-    P  6300.00  2500.00   2800. 7   7    5  0.000005 0. 0.
+    S  6300.00  2500.00   2800. 5   5    5  0.000005 600. 300.
+    P  6300.00  2500.00   2800. 7   7    5  0.000005   0.   0.
+    P  6300.00  2500.00   2800. 7   7    5  0.000005   0.   0.
     # PML properties
     # Filtering? npow,Apow,X?,left?,Y?,Forwrd?,Z?,down?,cutoff freq
     F 2 10. T T T T F F 0.
     F 2 10. T F T T F F 0.
 
-``capteurs.dat`` :
+:file:`capteurs.dat` :
 
-  Contient une description des sorties capteurs souhaitées.
+  Contient les coordonnées X Y Z des capteurs, un capteur sur chaque ligne,
+  pour les capteurs de type "points". Les noms des capteurs produits
+  sont le nom de la section suivi du numéro de la ligne du capteur
+  (commençant à zéro).
 
-Le fichier ``input.spec`` est décrit en détail dans la section
+Le fichier :file:`input.spec` est décrit en détails dans la section
 _`Description des paramètres de SEM3D`.
 
-Des exemples de fichiers `material.input` et `capteurs.dat` sont
+Des exemples de fichiers :file:`material.input` et :file:`capteurs.dat` sont
 disponibles dans les tests du code. Ces derniers sont de simples
 tables de paramètres.
 
@@ -407,11 +410,11 @@ Problème de solide stratifié fluide avec PML en demi-espace
 -----------------------------------------------------------
 
 On présente ici un cas test en expliquant tous les paramètres entrés
-et les mots clés pour lancer des calculs avec SEM3D. Il s'agit d'un
+et les mots clés utilisés pour lancer des calculs avec SEM3D. Il s'agit d'un
 cas de surface libre (demi espace) avec le sol stratifié et fluide
 entouré par des PMLs.
 
-Pour préparer le lancement d'un calcul SEM, dans le répertoir du cas,
+Pour préparer le lancement d'un calcul SEM, dans le répertoire du cas,
 il faut avoir 6 fichiers qui sont mesh.input, mat.dat [#]_, mater.in,
 material.input [#]_, input.spec, capteur.dat.
 
@@ -430,17 +433,19 @@ La description de chaque fichier est la suivante:
 
      8   #nombre de processeurs
      1   #type de maillage
-         # 1 : on the fly 
+         # 1 : on the fly
          # 2 : Abaqus par Cubit
          # 3 : fichier UNV
          # 4 : HDF5 Hex8
          # 5 : Earth Chunk
 
-.. [#] Attention ce n'est pas exactement un fichier d'entrée, c'est un fichier qui contient ce que le :program:`mesher`
-       doit avoir sur son entrée standard (ie le fichier doit être redirigé sur l'entrée de  :program:`mesher`
+.. [#] Attention ce n'est pas exactement un fichier d'entrée, c'est un
+       fichier qui contient ce que le :program:`mesher` doit avoir sur
+       son entrée standard (ie le fichier doit être redirigé sur
+       l'entrée de :program:`mesher`)
 
 2) :file:`mat.dat` : il présente la géométrie du maillage (automatique). Pour
-   le cas test présenté ici, on est dans le cas de demi espace. Ce
+   le cas test présenté ici, on est dans le cas d'un demi-espace. Ce
    fichier doit contenir ::
 
      -100.    # xmin
@@ -459,25 +464,25 @@ La description de chaque fichier est la suivante:
      5   # nb of GLL nodes in the PML
      1   # 8 or 27 control points for elements (1 or 2)
 
-3) :file:`mater.in` : il décrire le nombre du couches du milieu et les
-   propriétés du matériaux. Le mesher va utiliser ce fichier pour
-   générer le fichier "material.input" dans le cas du maillage
+3) :file:`mater.in` : il décrit le nombre de couches du milieu et les
+   propriétés du matériaux. Le :program:`mesher` va utiliser ce fichier pour
+   générer le fichier :file:`material.input` dans le cas du maillage
    automatique. Ce fichier doit contenir ::
 
      3   # nombre de couches
      F  6300.00    00.00    1.0  5   5    5  0.000005 630. 250.
      S  6300.00  2500.00   2800. 5   5    5  0.000005 630. 250.
      S  5000.00  2000.00   2000. 5   5    5  0.000005 630. 250.
-     # Type de milieu, Vp, Vs, Rho, N-GLLx, N-GLLy, N-GLLz, dt, Qp, Qs
-     
+     # Type de milieu, Vp, Vs, Rho, N-GLLx, N-GLLy, N-GLLz, dt, Qk, Qmu
+
      # Type de milieu : (S:Solide, F:Fluide)
      # Vp et Vs : Vitesse de propagation des ondes P et S
      # Rho : Masse Volumique
      # N-GLLx, N-GLLy, N-GLLz : Nombre de points GLL dans les trois directions (N-GLLy est ignoré en 2D)
      # dt : Pas de temps (pour l'instant, il est ignoré)
-     # Qp et Gs : Facteurs de qualité d'atténuation des ondes P et S
+     # Qk et Qmu : Facteurs de qualité d'atténuation des ondes P et S
 
-4) :file:`material.input` : Ce fichier va être créé par le mesher au moment de
+4) :file:`material.input` : Ce fichier va être créé par le :program:`mesher` au moment de
    la génération du maillage. Il décrit toutes les propriétés des
    matéiaux, les PMLs et les directions de PMLs.
 
@@ -487,13 +492,13 @@ La description de chaque fichier est la suivante:
 
      # -*- mode: perl -*-
      run_name = "Cube_PML";
-     
+
      # duration of the run
      sim_time = 5.0;
      mesh_file = "mesh4spec"; # input mesh file
      mat_file = "material.input";
      dim=3;
-     
+
      snapshots {
          save_snap = true;
          snap_interval = 0.01;
@@ -502,19 +507,24 @@ La description de chaque fichier est la suivante:
          select box = -100  100 -100 500 150 500;
          select box =  100 -100 -100 150 500 500;
      };
-     
+
      # Description des capteurs
      save_traces = true;
-     station_file = "capteurs.dat";
      traces_format=hdf5;
-     
-     
+
+     capteurs "A" {
+       type = points;
+       file = "capteurs.dat";
+       period = 10;
+     };
+
+
      # Fichier protection reprise
      prorep=false;
      prorep_iter=1000;
      restart_iter=370;
-     
-     
+
+
      # introduce a source
      source {
          # coordinates of the sources ((x,y,z) or (lat,long,R) if rotundity is considered)
@@ -529,20 +539,20 @@ La description de chaque fichier est la suivante:
          tau = 0.4;
          freq = 3.;   # source main frequency / cutoff frequency
      };
-     
+
      time_scheme {
          accel_scheme = false;  # Acceleration scheme for Newmark
          veloc_scheme = true;   # Velocity scheme for Newmark
-         alpha = 0.5;           # alpha (Newmark parameter)
-         beta = -0.5;           # beta (Newmark parameter)
-         gamma = 1;             # gamma (Newmark parameter)
-         courant=0.2;
+         alpha   = 0.5;           # alpha (Newmark parameter)
+         beta    = 0.5;           # beta (Newmark parameter)
+         gamma   = 1;             # gamma (Newmark parameter)
+         courant = 0.2;
      };
-     
+
      amortissement {
          nsolids = 0;           # number of solids for attenuation (0 if no attenuation)
          atn_band = 10  0.05;   # attenuation period band
-         atn_period = 0.2;      # model period 
+         atn_period = 0.2;      # model period
      };
 
 6) :file:`capteur.dat` : il selectionne les points pour présenter les
@@ -554,8 +564,8 @@ Lancement du cas
 ----------------
 
 Il faut d'abord préparer le répertoire du CAS : y copier les fichiers
-``input.spec``, ``material.input``, ``capteurs.dat``, et placer les fichiers
-``mesh4spec.NNNN`` dans le sous-répertoire ``sem/``.
+:file:`input.spec`, :file:`material.input`, :file:`capteurs.dat`, et placer les fichiers
+:file:`mesh4spec.NNNN` dans le sous-répertoire ``sem/``.
 
 On doit obtenir l'arborescence suivante ::
 
@@ -654,7 +664,7 @@ Nous allons traiter un exemple de génération de maillage à partir d'un fichie
 Modification d'une surface
 --------------------------
 
-Les surfaces sont générées dans le fichier ``grid.h5`` par ``mt_grid`` ci-dessus.
+Les surfaces sont générées dans le fichier :file:`grid.h5` par :program:`mt_grid` ci-dessus.
 
 Ce sont des datasets HDF5 que l'on peut manipuler en python ainsi :
 
@@ -689,7 +699,7 @@ Ce sont des datasets HDF5 que l'on peut manipuler en python ainsi :
 Modification de l'association des matériaux
 -------------------------------------------
 
-L'outil ``mt_topo`` via le fichier de profil vertical (option ``--profile``) applique une description
+L'outil :program:`mt_topo` via le fichier de profil vertical (option ``--profile``) applique une description
 de milieu homogène par couche de mailles (pas de variation en X et Y).
 
 On peut cependant aller plus loin et modifier le maillage généré avec quelques lignes de script python ::

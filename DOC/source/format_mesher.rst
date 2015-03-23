@@ -49,8 +49,8 @@ La deuxième ligne décrit le type de matériau (``S`` matériau solide et
 successivement, la vitesse de propagation de l'onde de pression,
 vitesse de l'onde de cisaillement, la densité du matériau, le nombre
 de gll dans les trois directions( ``x``, ``y`` et ``z``), le pas de
-temps (ignoré dans la version actuelle) et les atténuations des ondes
-P et S.
+temps (ignoré dans la version actuelle) et les paramètres :math:`Q_\kappa` et :math:`Q_\mu`
+pour l'atténuation des ondes P et S.
 
 
 Format de material.input

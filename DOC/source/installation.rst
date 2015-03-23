@@ -25,7 +25,7 @@ Le code :program:`SEM3D` nécessite deux (ou trois) outils externes pour sa comp
   d'installation, c'est à dire le chemin contenant :file:`bin/`,
   :file:`include/`, etc...
 
-  Les scripts de configurations :program:`CMake` de :program:`SEM` utilise la commande
+  Les scripts de configuration :program:`CMake` de :program:`SEM` utilise la commande
   ``h5cc -show`` pour détecter le paramètrage de la librairie :program:`HDF5`.
 
 - une librairie :program:`MPI` (:program:`OpenMPI` recommandée, mais :program:`Mpich` ou :program:`Intel MPI` doivent être compatibles).
@@ -89,7 +89,7 @@ paramétrer la compilation. Le paramétrage s'effectue en deux étapes :
 
 - La seconde étape, la génération des fichiers ``Makefile`` ne peut se faire que si
   l'option ``g`` (*generate and exit*) apparait dans
-  l'interface. Cette option n'apparait que si la dernière étape de
+  l'interface. Cette option n'apparaît que si la dernière étape de
   configuration n'a pas modifié de variables.
 
   En effet, il se peut qu'une reconfiguration change d'autres
@@ -231,7 +231,7 @@ Il y a encore plusieurs erreurs classiques :
 - La librairie n'est pas trouvée :
 
   Il faut inclure la librairie dans la compilation. Dans ``cmake`` ce
-  sont les variables ``*_LDFLAGS`` ou ``*LIBRARIES`` qui contrôle
+  sont les variables ``*_LDFLAGS`` ou ``*LIBRARIES`` qui contrôlent
   cette partie de la procédure. On peut ajouter le chemin complet
   d'une librairie, ou les options ``-L/chemin -lnom_de_lib``.
 
