@@ -1270,10 +1270,11 @@ contains
     !! \param type (Element), intent (INOUT) Elem
     !!
     !<
-    subroutine  compute_smbr_R (Elem)
+    subroutine  compute_smbr_R (Elem,Dt)
         implicit none
 
         type (Element), intent (INOUT)   :: Elem
+        real, intent (IN) :: Dt
         real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:4) :: smbr
         integer    :: imin, imax, ngx, ngz
         ngx = Elem%ngllx ; ngz = Elem%ngllz
@@ -1294,6 +1295,7 @@ contains
                              +Elem%EDinv(:,0,0)*smbr(:,3)+Elem%EDinv(:,0,1)*smbr(:,4)
         Elem%TracFace(:,1) = -Elem%CAinv(:,1,0)*smbr(:,0)-Elem%CAinv(:,1,1)*smbr(:,1)-Elem%CAinv(:,1,2)*smbr(:,2)&
                              +Elem%EDinv(:,1,0)*smbr(:,3)+Elem%EDinv(:,1,1)*smbr(:,4)
+        Elem%TracFace(:,:) = Dt * Elem%TracFace(:,:)
 
     end subroutine compute_smbr_R
 

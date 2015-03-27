@@ -151,12 +151,15 @@ contains
     !! It suitable for Hybridizable Discontinuous Galerkin elements only.
     !! \param type (Element), intent (INOUT) Elem
     !<
-    subroutine  compute_CAinv (Elem, Dt)
+    subroutine  compute_CAinv (Elem)
 
         type (Element), intent (INOUT) :: Elem
-        real, intent(IN) :: Dt
+        !real, intent(IN) :: Dt
+        real :: Dt
         integer :: imin, imax, ngx, ngz
+
         ngx = Elem%ngllx ; ngz = Elem%ngllz
+        Dt = 1.
 
         Elem%CAinv(:,0,0) = Elem%Coeff_Integr_Faces(:) * Elem%Normal_Nodes(:,0)
         Elem%CAinv(:,0,1) = Elem%Coeff_Integr_Faces(:) * Elem%Normal_Nodes(:,0)
@@ -218,7 +221,7 @@ contains
         Elem%CAinv(imin:imax,1,2) = (Elem%Mu(0,0:ngz-1)) &
                                   * Dt / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,1,2)
 
-        Elem%CAinv(:,:,:) = 0.5 * Elem%CAinv(:,:,:)
+        !Elem%CAinv(:,:,:) = 0.5 * Elem%CAinv(:,:,:)
 
     end subroutine compute_CAinv
 
@@ -231,14 +234,16 @@ contains
     !! It suitable for Hybridizable Discontinuous Galerkin elements only.
     !! \param type (Element), intent (INOUT) Elem
     !<
-    subroutine  compute_EDinv (Elem, Dt)
+    subroutine  compute_EDinv (Elem)
 
         type (Element), intent (INOUT)   :: Elem
-        real, intent(IN) :: Dt
+        !real, intent(IN) :: Dt
+        real :: Dt
         integer :: imin, imax, ngx, ngz, nc, n1, n2
         real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1,0:1) :: matD
         real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: det, tmp
 
+        Dt = 1.
         ngx = Elem%ngllx ; ngz = Elem%ngllz
 
         ! Calcul de la matrice D :
@@ -277,7 +282,7 @@ contains
         matD(imin:imax,0,0) = matD(imin:imax,0,0) + 1./Dt*Elem%Acoeff(0,0:ngz-1,12)*Elem%Density(0,0:ngz-1)
         matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(0,0:ngz-1,12)*Elem%Density(0,0:ngz-1)
 
-        matD(:,:,:) = 2. * matD(:,:,:)
+        !matD(:,:,:) = 2. * matD(:,:,:)
 
         ! Inversion de la matrice D sur tous les noeuds de bord :
         det(:) = matD(:,0,0) * matD(:,1,1) - matD(:,0,1) * matD(:,1,0)
@@ -309,13 +314,14 @@ contains
     !! It suitable for Hybridizable Discontinuous Galerkin elements only.
     !! \param type (domain), intent (INOUT) Tdomain
     !<
-    subroutine build_K_on_face(Tdomain, nelem)
+    subroutine build_K_on_face(Tdomain, nelem, Dt)
 
         implicit none
         type (domain), intent (INOUT) :: Tdomain
         integer, intent(IN) :: nelem
+        real,    intent(IN) :: Dt
         real, dimension(0:2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:1,0:1) :: CtAC, EtDE, G
-        real, dimension(0:2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:2) :: K
+        real, dimension(0:2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:2) :: K, K_05dt
         type(element), pointer :: Elem
         integer :: nf, nface, i, imin, imax, n1, n2, nv, pos1, pos2
         logical :: coherency
@@ -349,9 +355,15 @@ contains
         G(:,1,1) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,1)
 
         ! Addition de toutes les contributions pour la matrice K : (etant sym, elle n'a que 3 composantes)
-        K(:,0) = CtAC(:,0,0) - EtDE(:,0,0) + G(:,0,0)
-        K(:,1) = CtAC(:,1,1) - EtDE(:,1,1) + G(:,1,1)
-        K(:,2) = CtAC(:,0,1) - EtDE(:,0,1) + G(:,0,1)
+        K(:,0) = Dt * (CtAC(:,0,0) - EtDE(:,0,0)) + G(:,0,0)
+        K(:,1) = Dt * (CtAC(:,1,1) - EtDE(:,1,1)) + G(:,1,1)
+        K(:,2) = Dt * (CtAC(:,0,1) - EtDE(:,0,1)) + G(:,0,1)
+        K_05dt(:,0) = 0.5*Dt * (CtAC(:,0,0) - EtDE(:,0,0)) + G(:,0,0)
+        K_05dt(:,1) = 0.5*Dt * (CtAC(:,1,1) - EtDE(:,1,1)) + G(:,1,1)
+        K_05dt(:,2) = 0.5*Dt * (CtAC(:,0,1) - EtDE(:,0,1)) + G(:,0,1)
+
+        !K(:,0) = G(:,0,0) ; K(:,1) = G(:,1,1) ; K(:,2) = G(:,0,1)
+        !K_05dt(:,0) = G(:,0,0) ; K_05dt(:,1) = G(:,1,1) ; K_05dt(:,2) = G(:,0,1)
 
         ! Envoi des matrices sur les faces :
         do nf=0,3
@@ -360,9 +372,11 @@ contains
             coherency  = Tdomain%sFace(nface)%coherency
             if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
                 Tdomain%sFace(nface)%Kinv(:,:) = Tdomain%sFace(nface)%Kinv(:,:) + K(imin:imax,:)
+                Tdomain%sFace(nface)%Kinv_05dt(:,:) = Tdomain%sFace(nface)%Kinv_05dt(:,:) + K_05dt(imin:imax,:)
             else
                 do i=0,Tdomain%sFace(nface)%ngll-1
                     Tdomain%sFace(nface)%Kinv(i,:) = Tdomain%sFace(nface)%Kinv(i,:) + K(imax-i,:)
+                    Tdomain%sFace(nface)%Kinv_05dt(i,:) = Tdomain%sFace(nface)%Kinv_05dt(i,:) + K_05dt(imax-i,:)
                 end do
             endif
         enddo
@@ -385,6 +399,15 @@ contains
             Tdomain%sVertex(nv)%Kmat(pos2+1,pos2+1) = Tdomain%sVertex(nv)%Kmat(pos2+1,pos2+1)+ K(n2,1)
             !Tdomain%sVertex(n1)%Kmat(pos1:pos1+1,pos1:pos1+1) = K(imin,0:1,0:1)
             !Tdomain%sVertex(n2)%Kmat(pos2:pos2+1,pos2:pos2+1) = K(imax,0:1,0:1)
+            ! Pour matrices de demi pas de temps 05 * dt
+        Tdomain%sVertex(nv)%Kmat_05dt(pos1,pos1)     = Tdomain%sVertex(nv)%Kmat_05dt(pos1,pos1)    + K_05dt(n1,0)
+        Tdomain%sVertex(nv)%Kmat_05dt(pos1,pos1+1)   = Tdomain%sVertex(nv)%Kmat_05dt(pos1,pos1+1)  + K_05dt(n1,2)
+        Tdomain%sVertex(nv)%Kmat_05dt(pos1+1,pos1)   = Tdomain%sVertex(nv)%Kmat_05dt(pos1+1,pos1)  + K_05dt(n1,2)
+        Tdomain%sVertex(nv)%Kmat_05dt(pos1+1,pos1+1) = Tdomain%sVertex(nv)%Kmat_05dt(pos1+1,pos1+1)+ K_05dt(n1,1)
+        Tdomain%sVertex(nv)%Kmat_05dt(pos2,pos2)     = Tdomain%sVertex(nv)%Kmat_05dt(pos2,pos2)    + K_05dt(n2,0)
+        Tdomain%sVertex(nv)%Kmat_05dt(pos2,pos2+1)   = Tdomain%sVertex(nv)%Kmat_05dt(pos2,pos2+1)  + K_05dt(n2,2)
+        Tdomain%sVertex(nv)%Kmat_05dt(pos2+1,pos2)   = Tdomain%sVertex(nv)%Kmat_05dt(pos2+1,pos2)  + K_05dt(n2,2)
+        Tdomain%sVertex(nv)%Kmat_05dt(pos2+1,pos2+1) = Tdomain%sVertex(nv)%Kmat_05dt(pos2+1,pos2+1)+ K_05dt(n2,1)
         enddo
 
     end subroutine build_K_on_face
@@ -401,11 +424,12 @@ contains
     !! and only for a semi-implicit time scheme.
     !! \param type (domain), intent (INOUT) Tdomain
     !<
-    subroutine build_K_on_vertex(Tdomain, nelem)
+    subroutine build_K_on_vertex(Tdomain, nelem, Dt)
 
         implicit none
         type (domain), intent (INOUT) :: Tdomain
         integer, intent(IN) :: nelem
+        real,    intent(IN) :: Dt
         real, dimension(0:2,0:1) :: C1, C2
         real, dimension(0:1,0:1) :: E1, E2, K12, K21
         type(element), pointer :: Elem
@@ -443,8 +467,10 @@ contains
             K21(:,:) = K21(:,:) - MATMUL(Elem%EDinv(n2,:,:),E1(:,:))
             ! Envoi des matrices K12 et K21 sur la matrice du vertex
             pos1 = Elem%pos_corner_in_VertMat(i,0) ; pos2 = Elem%pos_corner_in_VertMat(i,1)
-            Tdomain%sVertex(nv)%Kmat(pos1:pos1+1,pos2:pos2+1) = K12(:,:)
-            Tdomain%sVertex(nv)%Kmat(pos2:pos2+1,pos1:pos1+1) = K21(:,:)
+            Tdomain%sVertex(nv)%Kmat(pos1:pos1+1,pos2:pos2+1) = Dt * K12(:,:)
+            Tdomain%sVertex(nv)%Kmat(pos2:pos2+1,pos1:pos1+1) = Dt * K21(:,:)
+            Tdomain%sVertex(nv)%Kmat_05dt(pos1:pos1+1,pos2:pos2+1) = 0.5*Dt * K12(:,:)
+            Tdomain%sVertex(nv)%Kmat_05dt(pos2:pos2+1,pos1:pos1+1) = 0.5*Dt * K21(:,:)
         enddo
 
     end subroutine build_K_on_vertex

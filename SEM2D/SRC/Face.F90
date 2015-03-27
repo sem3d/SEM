@@ -37,7 +37,7 @@ module sfaces
        real, dimension (:,:), allocatable :: Vect_RK
        ! HDG
        real, dimension (:,:), allocatable :: Normal_Nodes
-       real, dimension (:,:), allocatable :: Kinv, Traction, Smbr, InvMatPen
+       real, dimension (:,:), allocatable :: Kinv, Traction, Smbr, InvMatPen, Kinv_05dt
        integer, dimension (0:1) :: pos_in_VertMat
        logical :: is_computed, changing_media, acoustic
 
@@ -737,11 +737,10 @@ end subroutine Compute_Flux
         integer                     :: i
 
         Det(:) = F%Kinv(:,0) * F%Kinv(:,1) - (F%Kinv(:,2)*F%Kinv(:,2))
-
         ! Check positive-definiteness of matrices on Faces
         do i=0,F%ngll-1
             if ((F%Kinv(i,0) .LE. 0.) .OR. (Det(i) .LE. 0.)) then
-                write(*,*) "Matrix not positive definite on current face and for node ", i
+                write(*,*) "Matrix Kinv not positive definite on current face and for node ", i
                 STOP "Matrix should be sym def pos on faces. End of computation."
             endif
         enddo
@@ -750,6 +749,22 @@ end subroutine Compute_Flux
         tmp(:) = F%Kinv(:,1)
         F%Kinv(:,1) = 1./Det(:) * F%Kinv(:,0)
         F%Kinv(:,0) = 1./Det(:) * tmp(:)
+
+        ! Inversion matrix for 0.5 dt step
+
+        Det(:) = F%Kinv_05dt(:,0) * F%Kinv_05dt(:,1) - (F%Kinv_05dt(:,2)*F%Kinv_05dt(:,2))
+        ! Check positive-definiteness of matrices on Faces
+        do i=0,F%ngll-1
+            if ((F%Kinv_05dt(i,0) .LE. 0.) .OR. (Det(i) .LE. 0.)) then
+                write(*,*) "Matrix Kinv_05dt not positive definite on current face and for node ", i
+                STOP "Matrix should be sym def pos on faces. End of computation."
+            endif
+        enddo
+        ! Compute inverse of matrices :
+        F%Kinv_05dt(:,2) =-1./Det(:) * F%Kinv_05dt(:,2)
+        tmp(:) = F%Kinv_05dt(:,1)
+        F%Kinv_05dt(:,1) = 1./Det(:) * F%Kinv_05dt(:,0)
+        F%Kinv_05dt(:,0) = 1./Det(:) * tmp(:)
 
     end subroutine Invert_K_face
 
@@ -763,15 +778,23 @@ end subroutine Compute_Flux
     !! This subroutine is used only for HDG in a semi-implicit framework.
     !! \param type (Face), intent (INOUT) F
     !<
-    subroutine compute_Vhat_face (F)
+    subroutine compute_Vhat_face (F, is_demi_dt)
         implicit none
 
         type (Face), intent (INOUT) :: F
+        logical,     intent (IN)    :: is_demi_dt
 
-        ! La second membre "smbr" du systeme K * Lambda = Smbr est homgene aux tractions
-        F%Veloc(:,0) = F%Kinv(:,0)*F%Smbr(:,0) + F%Kinv(:,2)*F%Smbr(:,1)
-        F%Veloc(:,1) = F%Kinv(:,2)*F%Smbr(:,0) + F%Kinv(:,1)*F%Smbr(:,1)
+        if (is_demi_dt .EQV. HALF_DT) then
+            ! La second membre "smbr" du systeme K * Lambda = Smbr est homgene aux tractions
+            F%Veloc(:,0) = F%Kinv_05dt(:,0)*F%Smbr(:,0) + F%Kinv_05dt(:,2)*F%Smbr(:,1)
+            F%Veloc(:,1) = F%Kinv_05dt(:,2)*F%Smbr(:,0) + F%Kinv_05dt(:,1)*F%Smbr(:,1)
+        else
+            ! La second membre "smbr" du systeme K * Lambda = Smbr est homgene aux tractions
+            F%Veloc(:,0) = F%Kinv(:,0)*F%Smbr(:,0) + F%Kinv(:,2)*F%Smbr(:,1)
+            F%Veloc(:,1) = F%Kinv(:,2)*F%Smbr(:,0) + F%Kinv(:,1)*F%Smbr(:,1)
+        endif
         F%Smbr = 0.
+
         ! Treatment of boundary faces
         if (F%reflex) then
             F%Veloc(:,:) = 0.

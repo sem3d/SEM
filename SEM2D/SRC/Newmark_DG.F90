@@ -10,6 +10,7 @@
 module snewmark_pmc
     use sdomain
     use scouplage
+    use constants
     use mpi
     implicit none
 contains
@@ -81,7 +82,7 @@ subroutine Midpoint_impl_semi_impl (Tdomain,Dt,n_it_max)
 
     ! local variables
     integer :: n, iter
-    real :: timelocal
+    real    :: timelocal
 
     ! Initialization Phase
     do n=0,Tdomain%n_elem-1
@@ -99,12 +100,13 @@ subroutine Midpoint_impl_semi_impl (Tdomain,Dt,n_it_max)
     timelocal = Tdomain%TimeD%rtime + 0.5*Dt
     do while (iter<n_it_max)
         ! Semi-Implicit resolution phase
-        call Semi_Implicit_Resolution (Tdomain,timelocal,0.5*Dt)
+        call Semi_Implicit_Resolution (Tdomain,timelocal,0.5*Dt,HALF_DT)
         iter = iter+1
     enddo
 
     ! Final Midpoint Evaluation using the values at tn+1/2 converged
-    call Forward_Euler_Resolution(Tdomain,timelocal,Dt)
+    !call Forward_Euler_Resolution(Tdomain,timelocal,Dt)
+    call Semi_Implicit_Resolution (Tdomain,timelocal,Dt,FULL_DT)
 
     return
 end subroutine Midpoint_impl_semi_impl
@@ -172,7 +174,7 @@ subroutine PMC_splitted (Tdomain,Dt,n_it_max)
         enddo
 
         ! Semi-Iplicit Resolution Phase
-        call Semi_Implicit_Resolution (Tdomain,timelocal,Dt)
+        call Semi_Implicit_Resolution (Tdomain,timelocal,Dt,HALF_DT)
 
         iter = iter+1
     enddo
@@ -191,11 +193,12 @@ end subroutine PMC_splitted
 !! \param type (Domain), intent (INOUT) Tdomain
 !! \param real         , intent (IN)    Dt
 !<
-subroutine Semi_Implicit_Resolution (Tdomain,timelocal,Dt)
+subroutine Semi_Implicit_Resolution (Tdomain,timelocal,Dt,demi_dt)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
     real,    intent(in)   :: timelocal,dt
+    logical, intent(in)   :: demi_dt
 
     ! local variables
     integer :: n, mat
@@ -218,20 +221,20 @@ subroutine Semi_Implicit_Resolution (Tdomain,timelocal,Dt)
     ! Compute second member "R" of the Lagrange multiplicator system
     do n=0,Tdomain%n_elem-1
         ! Compute current element contribution to R
-        call compute_smbr_R(Tdomain%specel(n))
+        call compute_smbr_R(Tdomain%specel(n),Dt)
         ! Assembles R on the faces and vertices
         call get_R_el2fv(Tdomain,n)
     enddo
 
     ! Solve linear systems on the vertices
     do n=0,Tdomain%n_vertex-1
-        call solve_lambda_vertex(Tdomain%sVertex(n),n)
+        call solve_lambda_vertex(Tdomain%sVertex(n),n,demi_dt)
     enddo
 
     ! Constructing the Lambda (= velocities vhat) on the faces
     do n=0,Tdomain%n_face-1
         ! Computes lambda (= Vhat) on Face's inner nodes
-        call compute_Vhat_face (Tdomain%sFace(n))
+        call compute_Vhat_face (Tdomain%sFace(n),demi_dt)
         ! Get lambda from near vertices
         call Get_lambda_v2f (Tdomain, n)
     enddo
@@ -242,6 +245,7 @@ subroutine Semi_Implicit_Resolution (Tdomain,timelocal,Dt)
     do n=0,Tdomain%n_elem-1
         ! Communication Lambda from faces to elements
         call get_Vhat_f2el(Tdomain,n)
+        !if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,n)
         ! Local Solver
         call local_solver(Tdomain%specel(n),Dt)
     enddo
