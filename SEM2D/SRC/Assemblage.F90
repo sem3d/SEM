@@ -386,6 +386,45 @@ subroutine Get_Vhat_f2el (Tdomain, nelem)
 
 end subroutine Get_Vhat_f2el
 
+!>
+!!\brief Subroutine that sent the traces of velocities "V0" computed on a face
+!! "nface" to the neighboring element "nelem" dealing with the problems of coherency.
+!! Be carreful : here the wheight for integrals are not taked into account.
+!!\version 1.0
+!!\date 03/04/2014
+!! This subroutine is used only with HDG elements
+!<
+subroutine Get_V0_f2el (Tdomain, nelem)
+
+    use sdomain
+    implicit none
+
+    type (domain), intent (INOUT) :: Tdomain
+    integer, intent(in)   :: nelem
+    integer               :: nface, w_face
+
+    ! local variables
+    integer :: ngll, ngllx, ngllz, i, imin, imax
+    logical :: coherency
+
+    ngllx = Tdomain%specel(nelem)%ngllx
+    ngllz = Tdomain%specel(nelem)%ngllz
+
+    do w_face=0,3
+        nface = Tdomain%specel(nelem)%Near_Face(w_face)
+        coherency = Tdomain%sFace(nface)%coherency
+        ngll  = Tdomain%sFace(nface)%ngll
+        call get_iminimax(Tdomain%specel(nelem),w_face,imin,imax)
+        if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
+            Tdomain%specel(nelem)%Vhat(imin:imax,:)  = 0.5 *Tdomain%sFace(nface)%V0(:,:)
+        else
+            do i=0,ngll-1
+                Tdomain%specel(nelem)%Vhat(imax-i,:) = 0.5 * Tdomain%sFace(nface)%V0(i,:)
+            enddo
+        endif
+    enddo
+
+end subroutine Get_V0_f2el
 
 !>
 !!\brief Subroutine in which the element elem sends its contribution to the

@@ -321,7 +321,7 @@ contains
         integer, intent(IN) :: nelem
         real,    intent(IN) :: Dt
         real, dimension(0:2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:1,0:1) :: CtAC, EtDE, G
-        real, dimension(0:2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:2) :: K, K_05dt
+        real, dimension(0:2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:2) :: K
         type(element), pointer :: Elem
         integer :: nf, nface, i, imin, imax, n1, n2, nv, pos1, pos2
         logical :: coherency
@@ -358,12 +358,9 @@ contains
         K(:,0) = Dt * (CtAC(:,0,0) - EtDE(:,0,0)) + G(:,0,0)
         K(:,1) = Dt * (CtAC(:,1,1) - EtDE(:,1,1)) + G(:,1,1)
         K(:,2) = Dt * (CtAC(:,0,1) - EtDE(:,0,1)) + G(:,0,1)
-        K_05dt(:,0) = 0.5*Dt * (CtAC(:,0,0) - EtDE(:,0,0)) + G(:,0,0)
-        K_05dt(:,1) = 0.5*Dt * (CtAC(:,1,1) - EtDE(:,1,1)) + G(:,1,1)
-        K_05dt(:,2) = 0.5*Dt * (CtAC(:,0,1) - EtDE(:,0,1)) + G(:,0,1)
 
-        !K(:,0) = G(:,0,0) ; K(:,1) = G(:,1,1) ; K(:,2) = G(:,0,1)
-        !K_05dt(:,0) = G(:,0,0) ; K_05dt(:,1) = G(:,1,1) ; K_05dt(:,2) = G(:,0,1)
+        ! Calcul simplifie de la matrice K sur les faces :
+        K(:,0) = G(:,0,0) ; K(:,1) = G(:,1,1) ; K(:,2) = G(:,0,1)
 
         ! Envoi des matrices sur les faces :
         do nf=0,3
@@ -372,11 +369,9 @@ contains
             coherency  = Tdomain%sFace(nface)%coherency
             if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
                 Tdomain%sFace(nface)%Kinv(:,:) = Tdomain%sFace(nface)%Kinv(:,:) + K(imin:imax,:)
-                Tdomain%sFace(nface)%Kinv_05dt(:,:) = Tdomain%sFace(nface)%Kinv_05dt(:,:) + K_05dt(imin:imax,:)
             else
                 do i=0,Tdomain%sFace(nface)%ngll-1
                     Tdomain%sFace(nface)%Kinv(i,:) = Tdomain%sFace(nface)%Kinv(i,:) + K(imax-i,:)
-                    Tdomain%sFace(nface)%Kinv_05dt(i,:) = Tdomain%sFace(nface)%Kinv_05dt(i,:) + K_05dt(imax-i,:)
                 end do
             endif
         enddo
@@ -399,15 +394,14 @@ contains
             Tdomain%sVertex(nv)%Kmat(pos2+1,pos2+1) = Tdomain%sVertex(nv)%Kmat(pos2+1,pos2+1)+ K(n2,1)
             !Tdomain%sVertex(n1)%Kmat(pos1:pos1+1,pos1:pos1+1) = K(imin,0:1,0:1)
             !Tdomain%sVertex(n2)%Kmat(pos2:pos2+1,pos2:pos2+1) = K(imax,0:1,0:1)
-            ! Pour matrices de demi pas de temps 05 * dt
-        Tdomain%sVertex(nv)%Kmat_05dt(pos1,pos1)     = Tdomain%sVertex(nv)%Kmat_05dt(pos1,pos1)    + K_05dt(n1,0)
-        Tdomain%sVertex(nv)%Kmat_05dt(pos1,pos1+1)   = Tdomain%sVertex(nv)%Kmat_05dt(pos1,pos1+1)  + K_05dt(n1,2)
-        Tdomain%sVertex(nv)%Kmat_05dt(pos1+1,pos1)   = Tdomain%sVertex(nv)%Kmat_05dt(pos1+1,pos1)  + K_05dt(n1,2)
-        Tdomain%sVertex(nv)%Kmat_05dt(pos1+1,pos1+1) = Tdomain%sVertex(nv)%Kmat_05dt(pos1+1,pos1+1)+ K_05dt(n1,1)
-        Tdomain%sVertex(nv)%Kmat_05dt(pos2,pos2)     = Tdomain%sVertex(nv)%Kmat_05dt(pos2,pos2)    + K_05dt(n2,0)
-        Tdomain%sVertex(nv)%Kmat_05dt(pos2,pos2+1)   = Tdomain%sVertex(nv)%Kmat_05dt(pos2,pos2+1)  + K_05dt(n2,2)
-        Tdomain%sVertex(nv)%Kmat_05dt(pos2+1,pos2)   = Tdomain%sVertex(nv)%Kmat_05dt(pos2+1,pos2)  + K_05dt(n2,2)
-        Tdomain%sVertex(nv)%Kmat_05dt(pos2+1,pos2+1) = Tdomain%sVertex(nv)%Kmat_05dt(pos2+1,pos2+1)+ K_05dt(n2,1)
+            Tdomain%sVertex(nv)%Kmat_05dt(pos1,pos1)     = Tdomain%sVertex(nv)%Kmat_05dt(pos1,pos1)    + K(n1,0)
+            Tdomain%sVertex(nv)%Kmat_05dt(pos1,pos1+1)   = Tdomain%sVertex(nv)%Kmat_05dt(pos1,pos1+1)  + K(n1,2)
+            Tdomain%sVertex(nv)%Kmat_05dt(pos1+1,pos1)   = Tdomain%sVertex(nv)%Kmat_05dt(pos1+1,pos1)  + K(n1,2)
+            Tdomain%sVertex(nv)%Kmat_05dt(pos1+1,pos1+1) = Tdomain%sVertex(nv)%Kmat_05dt(pos1+1,pos1+1)+ K(n1,1)
+            Tdomain%sVertex(nv)%Kmat_05dt(pos2,pos2)     = Tdomain%sVertex(nv)%Kmat_05dt(pos2,pos2)    + K(n2,0)
+            Tdomain%sVertex(nv)%Kmat_05dt(pos2,pos2+1)   = Tdomain%sVertex(nv)%Kmat_05dt(pos2,pos2+1)  + K(n2,2)
+            Tdomain%sVertex(nv)%Kmat_05dt(pos2+1,pos2)   = Tdomain%sVertex(nv)%Kmat_05dt(pos2+1,pos2)  + K(n2,2)
+            Tdomain%sVertex(nv)%Kmat_05dt(pos2+1,pos2+1) = Tdomain%sVertex(nv)%Kmat_05dt(pos2+1,pos2+1)+ K(n2,1)
         enddo
 
     end subroutine build_K_on_face

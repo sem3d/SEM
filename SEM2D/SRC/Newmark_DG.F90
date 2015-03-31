@@ -91,6 +91,10 @@ subroutine Midpoint_impl_semi_impl (Tdomain,Dt,n_it_max)
         Tdomain%specel(n)%V0(:,:,:)      = Tdomain%specel(n)%Veloc (:,:,:)
         if (Tdomain%specel(n)%PML) call initialize_Psi(Tdomain%specel(n))
     enddo
+    do n=0,Tdomain%n_face-1
+        ! Initialization of traces at tn :
+        Tdomain%sFace(n)%V0(:,:) = Tdomain%sFace(n)%Veloc(:,:)
+    enddo
 
     ! Initial Predictor phase.
     timelocal = Tdomain%TimeD%rtime
@@ -105,8 +109,8 @@ subroutine Midpoint_impl_semi_impl (Tdomain,Dt,n_it_max)
     enddo
 
     ! Final Midpoint Evaluation using the values at tn+1/2 converged
-    !call Forward_Euler_Resolution(Tdomain,timelocal,Dt)
-    call Semi_Implicit_Resolution (Tdomain,timelocal,Dt,FULL_DT)
+    call Forward_Euler_Resolution(Tdomain,timelocal,Dt)
+    !call Semi_Implicit_Resolution_tnplus1 (Tdomain,timelocal,Dt,HALF_DT)
 
     return
 end subroutine Midpoint_impl_semi_impl
@@ -125,7 +129,7 @@ end subroutine Midpoint_impl_semi_impl
 !! \param real         , intent (IN)    Dt
 !! \param integer      , intent (IN)    n_it_max
 !<
-subroutine PMC_splitted (Tdomain,Dt,n_it_max)
+subroutine Midpoint_Test(Tdomain,Dt,n_it_max)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
@@ -136,12 +140,6 @@ subroutine PMC_splitted (Tdomain,Dt,n_it_max)
     integer :: n, iter
     real :: timelocal
 
-    ! Predictor-MultiCorrector Newmark Velocity
-
-    !!!!!!!!!!!!!!!!!!         ATTENTION        !!!!!!!!!!!!!!!!!!
-    !!!! Pour utiliser cet algo, il faut multiplier Dt par 2. !!!!
-    !!!! dans les matrices de masse de compute_coeff_HDG.F90  !!!!
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     ! Initialization Phase
     do n=0,Tdomain%n_elem-1
@@ -150,38 +148,37 @@ subroutine PMC_splitted (Tdomain,Dt,n_it_max)
         Tdomain%specel(n)%V0(:,:,:)      = Tdomain%specel(n)%Veloc (:,:,:)
         if (Tdomain%specel(n)%PML) call initialize_Psi(Tdomain%specel(n))
     enddo
+    do n=0,Tdomain%n_face-1
+        Tdomain%sFace(n)%V0 = Tdomain%sFace(n)%Veloc
+    enddo
 
     ! Midpoint method :
     iter= 0
     timelocal = Tdomain%TimeD%rtime
-    call Forward_Euler_Resolution(Tdomain,timelocal,Dt)
-    iter = 1                                 ! <---- A SUPPRIMER
+    call Forward_Euler_Resolution(Tdomain,timelocal,0.5*Dt)
+
+    timelocal = Tdomain%TimeD%rtime + 0.5*Dt
 
     do while (iter<n_it_max)
 
-        ! Local time is tn for the first step, and tn+1/2 for the next ones
-        if (iter==0) then
-            timelocal = Tdomain%TimeD%rtime
-        else
-            timelocal = Tdomain%TimeD%rtime + Dt
+        ! Prediction Phase :
+        if (iter > 0) then
+            do n=0,Tdomain%n_elem-1
+                Tdomain%specel(n)%Strain = 0.5 * (Tdomain%specel(n)%Strain0 + Tdomain%specel(n)%Strain)
+                Tdomain%specel(n)%Veloc  = 0.5 * (Tdomain%specel(n)%V0      + Tdomain%specel(n)%Veloc )
+                !if (Tdomain%specel(n)%ADEPML) call Prediction_Psi(Tdomain%specel(n))
+            enddo
         endif
 
-        ! Prediction Phase :
-        do n=0,Tdomain%n_elem-1
-            Tdomain%specel(n)%Strain = 0.5 * (Tdomain%specel(n)%Strain0 + Tdomain%specel(n)%Strain)
-            Tdomain%specel(n)%Veloc  = 0.5 * (Tdomain%specel(n)%V0      + Tdomain%specel(n)%Veloc )
-            !if (Tdomain%specel(n)%ADEPML) call Prediction_Psi(Tdomain%specel(n))
-        enddo
-
         ! Semi-Iplicit Resolution Phase
-        call Semi_Implicit_Resolution (Tdomain,timelocal,Dt,HALF_DT)
+        call Semi_Implicit_Resolution_tnplus1 (Tdomain,timelocal,Dt,HALF_DT)
 
         iter = iter+1
     enddo
 
-
     return
-end subroutine PMC_splitted
+end subroutine Midpoint_Test
+
 
 
 !>
@@ -234,7 +231,7 @@ subroutine Semi_Implicit_Resolution (Tdomain,timelocal,Dt,demi_dt)
     ! Constructing the Lambda (= velocities vhat) on the faces
     do n=0,Tdomain%n_face-1
         ! Computes lambda (= Vhat) on Face's inner nodes
-        call compute_Vhat_face (Tdomain%sFace(n),demi_dt)
+        call compute_Vhat_face (Tdomain%sFace(n))
         ! Get lambda from near vertices
         call Get_lambda_v2f (Tdomain, n)
     enddo
@@ -289,12 +286,12 @@ subroutine Forward_Euler_Resolution (Tdomain,timelocal,Dt)
 
     ! Calcul et envoi tractions sur faces
     do n = 0, Tdomain%n_elem-1
-        call get_traction_el2f(Tdomain,n)
+        call get_traction_el2f(Tdomain,n) !!! <-- DECOMMENTER !!!
     enddo
 
     ! Calcul des Vhat sur les faces
     do nface = 0, Tdomain%n_face-1
-        call Compute_Vhat(Tdomain%sFace(nface))
+        call Compute_Vhat(Tdomain%sFace(nface)) !!! <-- DECOMMENTER !!!
     enddo
 
     ! Constructing the Lambda (= velocities vhat) on the faces
@@ -314,6 +311,80 @@ subroutine Forward_Euler_Resolution (Tdomain,timelocal,Dt)
 
     return
 end subroutine Forward_Euler_Resolution
+
+
+!>
+!!\brief This Subroutine performs a midpoint method for advancing in time
+!! using an explicit approach, contrary to the previous one.
+!!\version 1.0
+!!\date 20/11/2014
+!! This subroutine is used only HDG elements
+!! \param type (Domain), intent (INOUT) Tdomain
+!! \param real         , intent (IN)    Dt
+!<
+subroutine Semi_Implicit_Resolution_tnplus1 (Tdomain,timelocal,Dt,demi_dt)
+
+    implicit none
+    type (domain), intent (INOUT) :: Tdomain
+    real,    intent(in)   :: timelocal,dt
+    logical, intent(in)   :: demi_dt
+
+    ! local variables
+    integer :: n, mat
+
+    ! Building second members (= forces) of systems.
+    do n=0,Tdomain%n_elem-1
+        mat = Tdomain%specel(n)%mat_index
+        call compute_InternalForces_HDG  (Tdomain%specel(n), &
+            Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimex, &
+            Tdomain%sSubDomain(mat)%hprimez,Tdomain%sSubDomain(mat)%hTprimez)
+        call add_tau_v (Tdomain%specel(n))
+        call add_previous_state2forces (Tdomain%specel(n), Dt)
+        if (Tdomain%specel(n)%PML) call update_Psi_ADEPML(Tdomain%specel(n), &
+            Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimez, Dt)
+        call Get_V0_f2el (Tdomain, n) !!!! <-- MODIF !!!
+        Tdomain%specel(n)%TracFace(:,:) = 0.       !!!! <-- MODIF !!!
+        call compute_Traces (Tdomain%specel(n), .false.) !!!! <-- MODIF !!!
+    enddo
+
+    ! External Forces computation
+    call Compute_External_Forces(Tdomain,timelocal)
+
+    ! Compute second member "R" of the Lagrange multiplicator system
+    do n=0,Tdomain%n_elem-1
+        ! Compute current element contribution to R
+        call compute_smbr_R(Tdomain%specel(n),Dt)
+        ! Assembles R on the faces and vertices
+        call get_R_el2fv(Tdomain,n)
+    enddo
+
+    ! Solve linear systems on the vertices
+    do n=0,Tdomain%n_vertex-1
+        call solve_lambda_vertex(Tdomain%sVertex(n),n,demi_dt)
+    enddo
+
+    ! Constructing the Lambda (= velocities vhat) on the faces
+    do n=0,Tdomain%n_face-1
+        ! Computes lambda (= Vhat) on Face's inner nodes
+        call compute_Vhat_face (Tdomain%sFace(n))
+        ! Get lambda from near vertices
+        call Get_lambda_v2f (Tdomain, n)
+    enddo
+
+!!!!!!!!!!!!!  MPI COMMUNICATIONS HERE  !!!!!!!!!!!!!!!!!!!
+
+    ! Local Solvers at element level
+    do n=0,Tdomain%n_elem-1
+        ! Communication Lambda from faces to elements
+        call get_Vhat_f2el(Tdomain,n)
+        Tdomain%specel(n)%Vhat = 0.5 * Tdomain%specel(n)%Vhat
+        !if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,n)
+        ! Local Solver
+        call local_solver(Tdomain%specel(n),Dt)
+    enddo
+
+    return
+end subroutine Semi_Implicit_Resolution_tnplus1
 
 
 end module snewmark_pmc

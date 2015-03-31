@@ -294,7 +294,7 @@ subroutine  sem()
             if (Tdomain%Implicitness==TIME_INTEG_EXPLICIT) then
                 call Midpoint_impl_expl(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
             elseif (Tdomain%Implicitness==TIME_INTEG_SEMI_IMPLICIT) then
-                !call PMC_splitted(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
+                !call Midpoint_test(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
                 call Midpoint_impl_semi_impl(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
             endif
         endif
