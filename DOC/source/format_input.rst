@@ -38,7 +38,7 @@ pour valider les tailles des vecteurs.
 
 Un paramètre valide peut-être ignoré si il n'est pas activé par un
 autre paramètre : par exemple on peut désactiver les snapshots, tout en
-laissant le paramètre nombre d'itération entre snapshot.
+laissant le paramètre nombre d'itérations entre snapshot.
 
 Exemple
 -------
@@ -401,7 +401,7 @@ Description des type de capteurs :
 
 - ``points`` : Une liste de points, définis dans un fichier spécifié par le mot-clef ``file``
 
-- ``single`` : Le plus simple, définit par le mot clef ``point0``, son nom sera le nom de la section.
+- ``single`` : Le plus simple, défini par le mot clef ``point0``, son nom sera le nom de la section.
 
 - ``line`` : Définit :math:`N_i` capteurs sur le segment :math:`[P_0, P_1]`. Un numéro leur est attribué
   leur nom est préfixé du nom de la section

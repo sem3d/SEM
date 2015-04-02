@@ -19,10 +19,10 @@ format abaqus, UNV ou encore un format spécifique simple (équivalent
 du format UNV dans un fichier HDF5).
 
 Outre la paramétrisation du code SEM3D, la plus grosse difficulté dans
-l'utilisation du code concerne la création des maillages, qui doit être
-effectuée par des outils spécialisés comme Cubit. Pour des maillages
-simples : stratifiés, avec topographie, on peut utiliser la suite
-d'outils *meshtools*.
+l'utilisation du code concerne la création des maillages, qui doit
+être effectuée par des outils spécialisés comme Cubit. Pour des
+maillages simples stratifiés, avec éventuellement une
+topographie, on peut utiliser la suite d'outils *meshtools*.
 
 Les équations du mouvement
 --------------------------
@@ -484,11 +484,11 @@ La description de chaque fichier est la suivante:
 
 4) :file:`material.input` : Ce fichier va être créé par le :program:`mesher` au moment de
    la génération du maillage. Il décrit toutes les propriétés des
-   matéiaux, les PMLs et les directions de PMLs.
+   matériaux, les PMLs et les directions de PMLs.
 
 5) :file:`input.spec` : Ce fichier décrit le chargement, limite le temps de
-   simulation, et choisit la taille du milieu a être sauve garder dans
-   le résultat. Il doit contenir ::
+   simulation, et spécifie les zones du maillage à sauvegarder dans
+   les fichiers résultat. Il doit contenir ::
 
      # -*- mode: perl -*-
      run_name = "Cube_PML";

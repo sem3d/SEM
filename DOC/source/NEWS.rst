@@ -3,9 +3,12 @@
 Version 2015.02.0
 -----------------
 
-- Partitionneur 2D / C++ (LA)
+Ci-dessous sont recensées les nouveautés et modifications apportées
+depuis la dernière version :
 
-- Entrees/sorties HDF5 pour SEM2D, sauvegarde de l'accélération dans les snapshots (LA)
+- Développement d'un partitionneur pour SEM 2D / C++ (LA)
+
+- Entrées/sorties HDF5 pour SEM2D, sauvegarde de l'accélération dans les snapshots (LA)
 
 - Nouvelle option (``dim``) obligatoire, permet :
 
