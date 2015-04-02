@@ -51,7 +51,10 @@ subroutine SourcePosition (Tdomain)
             if (xi>(1+EPS) .or. eta>(1+EPS) .or. zeta>(1+EPS)) inside = .false.
             if (inside) then
                 n_el = elems(i)
+                write(*,*) "Source candidate: proc=",rg, " elem=",elems(i), "at:", xi, eta, zeta
                 exit
+            else
+                write(*,*) "Rejected candidate: proc=",rg," elem=",elems(i), "at:", xi, eta, zeta
             end if
         end do
         ! On ignore une source fluide dans le domaine solide
