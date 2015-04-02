@@ -224,11 +224,11 @@ contains
         enddo
 
         ! Appel de la routine Lapack pour factorisation Cholesky
-        call SPPTRF( 'U', n, V%K_up, INFO)
-        if (INFO .NE. 0) then
-            WRITE(*,*) "Factorisation vertex matrix not successfull for vertex  ",nv," rank mat ",n
-            STOP "Factorisation of vertex matrix not successfull. End of Program"
-        endif
+        !call SPPTRF( 'U', n, V%K_up, INFO)
+        !if (INFO .NE. 0) then
+        !    WRITE(*,*) "Factorisation vertex matrix not successfull for vertex  ",nv," rank mat ",n
+        !    STOP "Factorisation of vertex matrix not successfull. End of Program"
+        !endif
         call SPPTRF( 'U', n, V%K_up_05dt, INFO)
         if (INFO .NE. 0) then
             WRITE(*,*) "Factorisation vertex matrix not successfull for vertex  ",nv," rank mat ",n
@@ -294,7 +294,7 @@ contains
         integer,       intent (IN)     :: nv
         real, dimension(0:2*V%Valence-1,0:2*V%Valence-1), intent (IN) :: Mat
         integer                        :: n, i, j
-        real                           :: tol, res, max1, test
+        real                           :: tol, res, ratio
 
         n = 2 * V%Valence
         tol = 1.E-10
@@ -304,11 +304,16 @@ contains
             do j=0,n-1
                 res = res + Mat(i,j)*V%Lambda(j)
             enddo
-            max1 = max(abs(res),abs(V%SmbrLambda(i)))
-            if (max1 .GT. 1.E-24) then
-                test = abs(res - V%SmbrLambda(i))/abs(V%SmbrLambda(i))
-                if (test .GT. tol) then
-                    write(*,*) "Problem in solving system on vertex ",nv," on line :", i," error :",test
+            if (abs(V%SmbrLambda(i)) .LT. 1.E-24) then
+                if (abs(res) .GT. 1.E-24) &
+                    write(*,*) "Problem-type 0 in solving system on vertex ",nv," on line :", i
+            elseif (abs(res) .LT. 1.E-24) then
+                if (abs(V%SmbrLambda(i)) .GT. 1.E-24) &
+                    write(*,*) "Problem-type 1 in solving system on vertex ",nv," on line :", i
+            else
+                ratio = abs((res - V%SmbrLambda(i)) / V%SmbrLambda(i))
+                if (ratio .GT. tol) then
+                    write(*,*) "Problem in solving system on vertex ",nv," on line :", i," error :",ratio
                     !STOP "End of computation"
                 endif
             endif
