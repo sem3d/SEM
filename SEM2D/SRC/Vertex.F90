@@ -218,8 +218,8 @@ contains
         imin = 1
         do i=0,n-1
             imax = imin + i
-            V%K_up(imin:imax) = V%Kmat(i,0:i)
-            V%K_up_05dt(imin:imax) = V%Kmat_05dt(i,0:i)
+            V%K_up(imin:imax) = V%Kmat(0:i,i)
+            V%K_up_05dt(imin:imax) = V%Kmat_05dt(0:i,i)
             imin = imax +1
         enddo
 
