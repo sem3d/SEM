@@ -160,7 +160,6 @@ contains
 !        if(rg == 0) write(*,*) "MaxBound             = ", Tdomain%sSubDomain(mat)%MaxBound
 
         !call dispCarvalhol(prop(1:20,:), "prop(1:20,:) RAW", "F30.10")
-
         select case(effecMethod)
         case( 1 ) !Victor
             !write(*,*) "Victor's method"

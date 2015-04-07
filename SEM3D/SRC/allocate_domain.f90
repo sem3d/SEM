@@ -229,7 +229,6 @@ subroutine allocate_domain (Tdomain)
         end if
     enddo
 
-
     do n = 0, Tdomain%n_face-1
         ngll1 = Tdomain%sFace(n)%ngll1; ngll2 = Tdomain%sFace(n)%ngll2
         if(Tdomain%sFace(n)%solid)then    ! SOLID PART

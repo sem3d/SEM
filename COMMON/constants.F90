@@ -40,7 +40,7 @@ MODULE constants
     integer, parameter :: MATERIAL_GRADIENT   = 2
     integer, parameter :: MATERIAL_EARTHCHUNK = 3
     integer, parameter :: MATERIAL_PREM       = 4
-    integer, parameter :: MATERIAL_RANDOM     = 5
+    integer, parameter :: MATERIAL_MULTIPLE     = 5
 
 
 CONTAINS

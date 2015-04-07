@@ -258,15 +258,6 @@ subroutine RUN_PREPARED(Tdomain)
         call create_prop_files (Tdomain, rg)
     end if
 
- ! - changing "material_type" of random subdomains
-    do mat = 0, Tdomain%n_mat - 1
-        if(Tdomain%sSubDomain(mat)%material_type == "R") Tdomain%sSubDomain(mat)%material_type = "S"
-    end do
-    !OBS: in the future, after writing properties files for non-homogeneous media
-    !we could redefine the "material_type" according only to its behaviour for calculations
-    !it would ease syntax
-    !Ex: S for solid, F for fluid, P for solid PML, L for fluid PML
-
  !- timestep value - > Courant, or Courant -> timestep
     if (rg == 0) write (*,*) "--> COMPUTING COURANT PARAMETER"
     call compute_Courant(Tdomain,rg)
@@ -279,7 +270,6 @@ subroutine RUN_PREPARED(Tdomain)
     endif
     call MPI_Barrier(Tdomain%communicateur,code)
 
-
  !- allocation of different fields' sizes
     if (rg == 0) write (*,*) "--> ALLOCATING FIELDS"
     call allocate_domain(Tdomain)
@@ -290,9 +280,14 @@ subroutine RUN_PREPARED(Tdomain)
     call define_arrays(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
 
- !- applying properties files (put it on define arrays)
-    if (rg == 0) write (*,*) "--> APPLYING PROPERTIES FILES "
-    call apply_prop_files (Tdomain, rg)
+ ! - changing "material_type" of random subdomains
+    do mat = 0, Tdomain%n_mat - 1
+        if(Tdomain%sSubDomain(mat)%material_type == "R") Tdomain%sSubDomain(mat)%material_type = "S"
+    end do
+    !OBS: in the future, after writing properties files for non-homogeneous media
+    !we could redefine the "material_type" according only to its behaviour for calculations
+    !it would ease syntax
+    !Ex: S for solid, F for fluid, P for solid PML, L for fluid PML
 
  !- creating properties visualization files
     if (rg == 0) write (*,*) "--> CREATING PROPERTIES VISUALIZATION FILES "

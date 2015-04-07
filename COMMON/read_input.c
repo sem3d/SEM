@@ -168,13 +168,13 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"gamma")) err=expect_eq_float(scanner, &source->gamma, 1);
 	else if (cmp(scanner,"time_file")) err=expect_eq_string(scanner, &source->time_file,1);
 	else if (cmp(scanner,"amplitude")) err=expect_eq_float(scanner, &source->amplitude, 1);
-        else if (cmp(scanner,"Q")) err=expect_eq_float(scanner, &source->Q, 1);
-        else if (cmp(scanner,"Y")) err=expect_eq_float(scanner, &source->Y, 1);
-        else if (cmp(scanner,"X")) err=expect_eq_float(scanner, &source->X, 1);
-        else if (cmp(scanner,"L")) err=expect_eq_float(scanner, &source->L, 1);
-        else if (cmp(scanner,"v")) err=expect_eq_float(scanner, &source->v, 1);
-        else if (cmp(scanner,"d")) err=expect_eq_float(scanner, &source->d, 1);
-        else if (cmp(scanner,"a")) err=expect_eq_float(scanner, &source->a, 1);
+    else if (cmp(scanner,"Q")) err=expect_eq_float(scanner, &source->Q, 1);
+    else if (cmp(scanner,"Y")) err=expect_eq_float(scanner, &source->Y, 1);
+    else if (cmp(scanner,"X")) err=expect_eq_float(scanner, &source->X, 1);
+    else if (cmp(scanner,"L")) err=expect_eq_float(scanner, &source->L, 1);
+    else if (cmp(scanner,"v")) err=expect_eq_float(scanner, &source->v, 1);
+    else if (cmp(scanner,"d")) err=expect_eq_float(scanner, &source->d, 1);
+    else if (cmp(scanner,"a")) err=expect_eq_float(scanner, &source->a, 1);
 
 
 	if (err<=0) return 0;
@@ -281,8 +281,9 @@ int expect_material_type(yyscan_t scanner, int* type) {
     if (cmp(scanner,"gradient"))  { *type = 2; return 1; }
     if (cmp(scanner,"earthchunk")){ *type = 3; return 1; }
     if (cmp(scanner,"prem"))      { *type = 4; return 1; }
+    if (cmp(scanner,"multiple"))    { *type = 5; return 1; }
 error:
-    msg_err(scanner, "Expected constant|gradient|earthchunk|prem");
+    msg_err(scanner, "Expected constant|gradient|earthchunk|prem|multiple");
     return 0;
 }
 
@@ -328,9 +329,6 @@ int expect_materials(yyscan_t scanner, sem_config_t* config)
         return 0;
     }
     return 1;
-
-
-
 }
 
 

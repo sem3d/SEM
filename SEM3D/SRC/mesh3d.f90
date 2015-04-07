@@ -20,6 +20,7 @@ subroutine read_mesh_file_h5(Tdomain)
     !
     integer(HID_T) :: fid, proc_id
     integer :: hdferr, ierr
+    integer :: code
     integer, allocatable, dimension(:,:) :: itemp2, itemp2b
     integer, allocatable, dimension(:)   :: itemp, itempb
     real,    allocatable, dimension(:,:) :: rtemp2
@@ -27,6 +28,7 @@ subroutine read_mesh_file_h5(Tdomain)
     character(len=10) :: proc_grp
     integer, allocatable, dimension(:)   :: nb_elems_per_proc
     character(Len=MAX_FILE_SIZE) :: fname
+    double precision, dimension(:), allocatable :: tempGlobMin, tempGlobMax
     !
     rg = Tdomain%rank
     !
@@ -150,8 +152,21 @@ subroutine read_mesh_file_h5(Tdomain)
                 Tdomain%sSubDomain(mat)%MinBound(k) = Tdomain%Coord_nodes(k, nod)
             end do
         end do
-
     end do
+
+    allocate(tempGlobMin(0:Tdomain%n_dime -1))
+    allocate(tempGlobMax(0:Tdomain%n_dime -1))
+    do mat = 0, Tdomain%n_mat - 1
+        do k = 0, Tdomain%n_dime -1
+            call MPI_ALLREDUCE(Tdomain%sSubDomain(mat)%MinBound(k),tempGlobMin(k),1,MPI_DOUBLE_PRECISION,MPI_MIN,Tdomain%communicateur,code)
+            call MPI_ALLREDUCE(Tdomain%sSubDomain(mat)%MaxBound(k),tempGlobMax(k),1,MPI_DOUBLE_PRECISION,MPI_MAX,Tdomain%communicateur,code)
+            Tdomain%sSubDomain(mat)%MinBound(k) = tempGlobMin(k)
+            Tdomain%sSubDomain(mat)%MaxBound(k) = tempGlobMax(k)
+        end do
+    end do
+    deallocate(tempGlobMin)
+    deallocate(tempGlobMax)
+
     deallocate(itemp2)
 
     !do mat = 0, Tdomain%n_mat-1

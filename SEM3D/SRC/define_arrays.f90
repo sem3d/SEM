@@ -26,15 +26,31 @@ subroutine Define_Arrays(Tdomain)
     use constants
     use model_earthchunk
     use model_prem
+    use build_prop_files
     implicit none
 
     type (domain), intent (INOUT), target :: Tdomain
     integer :: n, mat
     real, dimension(:,:,:), allocatable :: Whei
+    integer :: rg
+
+    rg = Tdomain%rank
 
     if( Tdomain%earthchunk_isInit/=0) then
         call load_earthchunk(Tdomain%earthchunk_file, Tdomain%earthchunk_delta_lon, Tdomain%earthchunk_delta_lat)
     endif
+
+    !Apllying properties that were written on files
+    do mat = 0 , Tdomain%n_mat-1
+        if (.not. Tdomain%subD_exist(mat)) cycle
+        if (propOnFile(Tdomain, mat)) then
+            !- applying properties files (put it on define arrays)
+            if (rg == 0) write (*,*) "--> APPLYING PROPERTIES FILES "
+            call apply_prop_files (Tdomain, rg)
+        end if
+    end do
+
+    !Applying properties by element (properties written on file won't be overwritten)
     do n = 0,Tdomain%n_elem-1
        mat = Tdomain%specel(n)%mat_index
        if ( mat < 0 .or. mat >= Tdomain%n_mat ) then
@@ -43,7 +59,11 @@ subroutine Define_Arrays(Tdomain)
        end if
        !!! Attribute elastic properties from material !!!
        ! Sets Lambda, Mu, Qmu, ... from mat
-       call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
+       call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat), mat)
+    end do
+
+    !Computing Mass Matrix
+    do n = 0,Tdomain%n_elem-1
        ! Compute MassMat and Whei (with allocation)
        call init_local_mass_mat(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat),Whei)
        ! Compute Acoeff (for PML)
@@ -54,6 +74,7 @@ subroutine Define_Arrays(Tdomain)
        end if
        deallocate(Whei)
     enddo
+
     ! Here we have local mass matrix (not assembled) on elements and
     ! each of faces, edges, vertices containing assembled (on local processor only) mass matrix
     if( Tdomain%earthchunk_isInit/=0) then
@@ -239,20 +260,23 @@ subroutine inverse_mass_mat(Tdomain)
 end subroutine inverse_mass_mat
 
 
-subroutine init_material_properties(Tdomain, specel, mat)
+subroutine init_material_properties(Tdomain, specel, mat, matId)
+
+  implicit none
   type (domain), intent (INOUT), target :: Tdomain
   type (element), intent(inout) :: specel
   type (subdomain), intent(in) :: mat
   !
   integer :: ngllx, nglly, ngllz
+
+  integer, intent(in) :: matId
+
   !
   ngllx = specel%ngllx
   nglly = specel%nglly
   ngllz = specel%ngllz
 
   !    integration de la prise en compte du gradient de proprietes
-
-
 
   select case( mat%material_definition)
   case( MATERIAL_CONSTANT )
@@ -278,6 +302,17 @@ subroutine init_material_properties(Tdomain, specel, mat)
      if ( Tdomain%logicD%grad_bassin ) then
         call initialize_material_gradient(Tdomain, specel, mat)
      endif
+
+  case( MATERIAL_MULTIPLE )
+    !Don`t do anything, the basic properties were initialized by file
+
+    if(materialIsConstant(Tdomain, matId)) then
+      specel%Density = mat%Ddensity
+      specel%Lambda = mat%DLambda
+      specel%Kappa = mat%DKappa
+      specel%Mu = mat%DMu
+    end if
+
   end select
 
   if ((.not. specel%PML) .and. (Tdomain%n_sls>0))  then
@@ -1167,6 +1202,34 @@ subroutine define_PML_Vertex_DumpEnd(Massmat,DumpMass,DumpV)
     return
 
 end subroutine define_PML_Vertex_DumpEnd
+
+!---------------------------------------------------------------------------
+!---------------------------------------------------------------------------
+!---------------------------------------------------------------------------
+!---------------------------------------------------------------------------
+    function materialIsConstant(Tdomain, mat) result(authorization)
+
+        !INPUTS
+        type (domain), intent (in), target :: Tdomain
+        integer, intent(in) :: mat
+
+        !OUTPUT
+        logical :: authorization
+
+        !LOCAL
+        integer :: assocMat
+
+        assocMat = Tdomain%sSubdomain(mat)%assocMat
+        authorization = .false.
+
+
+        if(Tdomain%sSubDomain(assocMat)%material_type == "S" .or. &
+           Tdomain%sSubDomain(assocMat)%material_type == "L") then
+            authorization = .true.
+        end if
+
+    end function
+
 end module mdefinitions
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------

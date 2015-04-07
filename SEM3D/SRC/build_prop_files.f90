@@ -113,7 +113,6 @@ contains
         double precision, dimension(:, :, :), allocatable :: propMatrix !Properties
         allocate(propMatrix(0:size(Tdomain%GlobCoord,2)-1, 0:nProp-1, 0:Tdomain%n_mat-1))
 
-        propMatrix = -1
 
         !Reading files and putting it on a matrix
         do mat = 0, Tdomain%n_mat-1
@@ -235,7 +234,6 @@ contains
         character(len=110) , dimension(:), allocatable :: HDF5NameList
 
         allocate(prop(0:size(Tdomain%GlobCoord,2)-1, 0:nProp-1)) !Subdomain properties Matrix ((:,0) = Dens, (:,1) = Lambda, (:,2) = Mu) per proc
-        prop = -1
 
         !Creating  visualization files (by subdomain)
         allocate(HDF5NameList(0:Tdomain%n_mat - 1))
