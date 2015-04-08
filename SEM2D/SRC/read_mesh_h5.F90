@@ -329,6 +329,11 @@ subroutine set_vertex_valence(Tdomain)
         enddo
     enddo
 
+    ! Deallocate the unused Face%Near_Face
+    do nv=0,Tdomain%n_vertex-1
+        deallocate(Tdomain%sVertex(nv)%Near_Face)
+    enddo
+
 end subroutine set_vertex_valence
 
 !! Local Variables:
