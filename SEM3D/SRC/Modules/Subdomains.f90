@@ -13,7 +13,7 @@ module ssubdomains
 
         logical :: Filtering, Px, Py, Pz, Left, Forward, Down
 
-        integer :: NGLLx, NGLLy, NGLLz, wpml, npow
+        integer :: NGLLx, NGLLy, NGLLz, npow
 
         !  modif mariotti fevrier 2007 cea
         ! Qmu en plus

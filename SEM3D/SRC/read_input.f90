@@ -370,16 +370,15 @@ contains
             !        if(rg==0) &
             !            print*,' lame ',Tdomain%sSubDomain(i)%DMu,Tdomain%sSubDomain(i)%DLambda ,Tdomain%sSubDomain(i)%DKappa
             if (Tdomain%sSubDomain(i)%material_type == "P" .or. Tdomain%sSubDomain(i)%material_type == "L")  then
-                Tdomain%sSubDomain(i)%wpml = npml
                 npml = npml + 1
                 Tdomain%not_PML_List(i) = .false.
+            else
             endif
 
             if (Tdomain%sSubDomain(i)%material_type == "R") then
                 nRandom = nRandom + 1
             end if
 
-            write(1,*)Tdomain%sSubDomain(i)%wpml
         enddo
 
         if(npml > 0) then

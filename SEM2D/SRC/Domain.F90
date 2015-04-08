@@ -129,10 +129,8 @@ subroutine read_material_file(Tdomain)
             Tdomain%sSubDomain(i)%NGLLx, n_aus, Tdomain%sSubDomain(i)%NGLLz, Tdomain%sSubDomain(i)%Dt, &
             Qp, Qs
         Tdomain%sSubDomain(i)%n_loc_dim = 2
-        Tdomain%sSubdomain(i)%wpml = -1
         if ( Tdomain%sSubDomain(i)%NGLLx == Tdomain%sSubDomain(i)%NGLLz)  Tdomain%sSubDomain(i)%n_loc_dim = 1
         if (Tdomain%sSubDomain(i)%material_type == "P" )  then
-            Tdomain%sSubDomain(i)%wpml = npml
             npml = npml + 1
         endif
     enddo
