@@ -577,16 +577,20 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
     type(comm_vector), intent(inout) :: comm_data
     integer, intent(in) :: nddlsol, nddlsolpml, nddlfluid, nddlfluidpml
 
-    integer :: n,nproc,nsol,nsolpml,nflu,nflupml
+    integer :: n,ncomm,nsol,nsolpml,nflu,nflupml
     integer :: i,j,k,nf,ne,nv,idx,ngll1,ngll2
 
     ! Remplissage des IGive et ITake
-    if(Tdomain%nb_procs > 1)then
-        call allocate_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, &
-                                  nddlfluid, nddlfluidpml)
+    if(Tdomain%nb_procs < 2)then
+        Comm_data%ncomm = 0
+        return
+    endif
+
+    call allocate_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, &
+        nddlfluid, nddlfluidpml)
 
         do n = 0,Comm_data%ncomm-1
-            nproc = Comm_data%Data(n)%dest
+            ncomm = Comm_data%Data(n)%ncomm
             nsol = 0
             nsolpml = 0
             nflu = 0
@@ -594,8 +598,8 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
 
             ! Remplissage des Igive
             ! Faces
-            do i = 0,Tdomain%sComm(nproc)%nb_faces-1
-                nf = Tdomain%sComm(nproc)%faces(i)
+            do i = 0,Tdomain%sComm(ncomm)%nb_faces-1
+                nf = Tdomain%sComm(ncomm)%faces(i)
                 if (Tdomain%sFace(nf)%solid) then
                     if (Tdomain%sFace(nf)%PML) then
                         do j = 1,Tdomain%sFace(nf)%ngll2-2
@@ -636,8 +640,8 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
             enddo
 
             ! Edges
-            do i = 0,Tdomain%sComm(nproc)%nb_edges-1
-                ne = Tdomain%sComm(nproc)%edges(i)
+            do i = 0,Tdomain%sComm(ncomm)%nb_edges-1
+                ne = Tdomain%sComm(ncomm)%edges(i)
                 if (Tdomain%sEdge(ne)%solid) then
                     if (Tdomain%sEdge(ne)%PML) then
                         do j = 1,Tdomain%sEdge(ne)%ngll-2
@@ -670,8 +674,8 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
             enddo
 
             ! Vertices
-            do i = 0,Tdomain%sComm(nproc)%nb_vertices-1
-                nv =  Tdomain%sComm(nproc)%vertices(i)
+            do i = 0,Tdomain%sComm(ncomm)%nb_vertices-1
+                nv =  Tdomain%sComm(ncomm)%vertices(i)
                 idx = Tdomain%sVertex(nv)%Renum
                 if (Tdomain%svertex(nv)%solid) then
                     if (Tdomain%svertex(nv)%PML) then
@@ -699,12 +703,12 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
             nflupml = 0
             ! Remplissage des ITake
             ! Faces
-            do i = 0,Tdomain%sComm(nproc)%nb_faces-1
-                nf = Tdomain%sComm(nproc)%faces(i)
+            do i = 0,Tdomain%sComm(ncomm)%nb_faces-1
+                nf = Tdomain%sComm(ncomm)%faces(i)
                 ngll1 = Tdomain%sFace(nf)%ngll1
                 ngll2 = Tdomain%sFace(nf)%ngll2
 
-                if ( Tdomain%sComm(nproc)%orient_faces(i) == 0 ) then
+                if ( Tdomain%sComm(ncomm)%orient_faces(i) == 0 ) then
                     if (Tdomain%sFace(nf)%solid) then ! solide
                         if (Tdomain%sFace(nf)%PML) then
                             do j = 1,ngll2-2
@@ -743,7 +747,7 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
                         endif
                     endif
 
-                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 1 ) then
+                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 1 ) then
                     if (Tdomain%sFace(nf)%solid) then ! solide
                         if (Tdomain%sFace(nf)%PML) then
                             do j = 1,ngll2-2
@@ -782,7 +786,7 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
                         endif
                     endif
 
-                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 2 ) then
+                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 2 ) then
                     if (Tdomain%sFace(nf)%solid) then ! solide
                         if (Tdomain%sFace(nf)%PML) then
                             do j = 1,ngll2-2
@@ -821,7 +825,7 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
                         endif
                     endif
 
-                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 3 ) then
+                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 3 ) then
                     if (Tdomain%sFace(nf)%solid) then ! solide
                         if (Tdomain%sFace(nf)%PML) then
                             do j = 1,ngll2-2
@@ -860,7 +864,7 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
                         endif
                     endif
 
-                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 4 ) then
+                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 4 ) then
                     if (Tdomain%sFace(nf)%solid) then ! solide
                         if (Tdomain%sFace(nf)%PML) then
                             do j = 1,ngll1-2
@@ -899,7 +903,7 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
                         endif
                     endif
 
-                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 5 ) then
+                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 5 ) then
                     if (Tdomain%sFace(nf)%solid) then ! solide
                         if (Tdomain%sFace(nf)%PML) then
                             do j = 1,ngll1-2
@@ -938,7 +942,7 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
                         endif
                     endif
 
-                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 6 ) then
+                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 6 ) then
                     if (Tdomain%sFace(nf)%solid) then ! solide
                         if (Tdomain%sFace(nf)%PML) then
                             do j = 1,ngll1-2
@@ -977,7 +981,7 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
                         endif
                     endif
 
-                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 7 ) then
+                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 7 ) then
                     if (Tdomain%sFace(nf)%solid) then ! solide
                         if (Tdomain%sFace(nf)%PML) then
                             do j = 1,ngll1-2
@@ -1019,11 +1023,11 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
             enddo            
 
             ! Edges
-            do i = 0,Tdomain%sComm(nproc)%nb_edges-1
-                ne = Tdomain%sComm(nproc)%edges(i)
+            do i = 0,Tdomain%sComm(ncomm)%nb_edges-1
+                ne = Tdomain%sComm(ncomm)%edges(i)
                 ngll1 = Tdomain%sEdge(ne)%ngll
 
-                if ( Tdomain%sComm(nproc)%orient_edges(i) == 0 ) then
+                if ( Tdomain%sComm(ncomm)%orient_edges(i) == 0 ) then
                     if (Tdomain%sEdge(ne)%solid) then
                         if (Tdomain%sEdge(ne)%PML) then
                             do j = 1,ngll1-2
@@ -1054,7 +1058,7 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
                         endif
                     endif
 
-                else if ( Tdomain%sComm(nproc)%orient_edges(i) == 1 ) then
+                else if ( Tdomain%sComm(ncomm)%orient_edges(i) == 1 ) then
                     if (Tdomain%sEdge(ne)%solid) then
                         if (Tdomain%sEdge(ne)%PML) then
                             do j = 1,ngll1-2
@@ -1088,8 +1092,8 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
             enddo
 
             ! Vertices
-            do i = 0,Tdomain%sComm(nproc)%nb_vertices-1
-                nv =  Tdomain%sComm(nproc)%vertices(i)
+            do i = 0,Tdomain%sComm(ncomm)%nb_vertices-1
+                nv =  Tdomain%sComm(ncomm)%vertices(i)
                 idx = Tdomain%sVertex(nv)%Renum
                 if (Tdomain%sVertex(nv)%solid) then
                     if (Tdomain%sVertex(nv)%PML) then
@@ -1110,7 +1114,6 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
                 endif
             enddo
         enddo
-    endif
 
 end subroutine prepare_comm_vector
 
@@ -1126,7 +1129,7 @@ subroutine allocate_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlflui
     integer :: n, nf, ne, nv, i, temp
 
     n_comm = 0
-    do n = 0,Tdomain%nb_procs-1
+    do n = 0,Tdomain%tot_comm_proc-1
         if (Tdomain%sComm(n)%nb_faces > 0 .OR. &
             Tdomain%sComm(n)%nb_edges > 0 .OR. &
             Tdomain%sComm(n)%nb_vertices > 0) then
@@ -1140,7 +1143,7 @@ subroutine allocate_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlflui
     Comm_data%ncomm = n_comm
 
     n_comm = 0
-    do n = 0,Tdomain%nb_procs-1
+    do n = 0,Tdomain%tot_comm_proc-1
         if (Tdomain%sComm(n)%nb_faces < 1 .AND. &
             Tdomain%sComm(n)%nb_edges < 1 .AND. &
             Tdomain%sComm(n)%nb_vertices < 1) cycle
@@ -1207,7 +1210,8 @@ subroutine allocate_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlflui
         n_data = nddlsol*nsol+nddlsolpml*nsolpml+nddlfluid*nflu+nddlfluidpml*nflupml
         ! Initialisation et allocation de Comm_vector_DumpMassAndMMSP
         Comm_data%Data(n_comm)%src = Tdomain%rank
-        Comm_data%Data(n_comm)%dest = n
+        Comm_data%Data(n_comm)%dest = Tdomain%sComm(n)%dest
+        Comm_data%Data(n_comm)%ncomm = n
         Comm_data%Data(n_comm)%ndata = n_data
         Comm_data%Data(n_comm)%nsol = nsol
         Comm_data%Data(n_comm)%nsolpml = nsolpml
@@ -1239,21 +1243,25 @@ subroutine prepare_comm_vector_SF(Tdomain,ngll,renumSF,comm_data)
     integer, intent(in) :: ngll
     integer, intent(in), dimension(0:ngll-1,0:2) :: renumSF
 
-    integer :: n,nproc,nSF
+    integer :: n,ncomm,nSF
     integer :: i,j,k,nf,ne,nv,idx,ngll1,ngll2, m, idx2, nb
 
     ! Remplissage des IGive et ITake
-    if(Tdomain%nb_procs > 1)then
-        call allocate_comm_vector_SF(Tdomain, comm_data)
+    if(Tdomain%nb_procs < 2)then
+        comm_data%ncomm = 0
+        return
+    endif
+
+    call allocate_comm_vector_SF(Tdomain, comm_data)
 
         do n = 0,Comm_data%ncomm-1
-            nproc = Comm_data%Data(n)%dest
+            ncomm = Comm_data%Data(n)%ncomm
             nSF = 0
             nb = 0
 
             ! Remplissage des Igive
             ! Faces
-            do i = 0,Tdomain%sComm(nproc)%SF_nf_shared-1
+            do i = 0,Tdomain%sComm(ncomm)%SF_nf_shared-1
                 do j = 1,Tdomain%sFace(nf)%ngll2-2
                     do k = 1,Tdomain%sFace(nf)%ngll1-2
                         Comm_data%Data(n)%IGiveS(nSF) = Tdomain%SF%SF_Face(i)%IG(k,j,2) ! on donne le solide
@@ -1263,7 +1271,7 @@ subroutine prepare_comm_vector_SF(Tdomain,ngll,renumSF,comm_data)
             enddo
 
             ! Edges
-            do i = 0,Tdomain%sComm(nproc)%SF_ne_shared-1
+            do i = 0,Tdomain%sComm(ncomm)%SF_ne_shared-1
                 do j = 1,Tdomain%sEdge(ne)%ngll-2
                     Comm_data%Data(n)%IGiveS(nSF) = Tdomain%SF%SF_Edge(i)%IG(j,2) ! on donne le solide
                     nSF = nSF + 1
@@ -1271,7 +1279,7 @@ subroutine prepare_comm_vector_SF(Tdomain,ngll,renumSF,comm_data)
             enddo
 
             ! Vertices
-            do i = 0,Tdomain%sComm(nproc)%SF_nv_shared-1
+            do i = 0,Tdomain%sComm(ncomm)%SF_nv_shared-1
                 Comm_data%Data(n)%IGiveS(nSF) = Tdomain%SF%SF_Vertex(i)%IG(2) ! on donne le solide
                 nSF = nSF + 1
             enddo
@@ -1281,12 +1289,12 @@ subroutine prepare_comm_vector_SF(Tdomain,ngll,renumSF,comm_data)
             nSF = 0
             ! Remplissage des ITake
             ! Faces
-            do i = 0,Tdomain%sComm(nproc)%SF_nf_shared-1
-                nf = Tdomain%sComm(nproc)%SF_faces_shared(i)
+            do i = 0,Tdomain%sComm(ncomm)%SF_nf_shared-1
+                nf = Tdomain%sComm(ncomm)%SF_faces_shared(i)
                 ngll1 = Tdomain%sFace(nf)%ngll1
                 ngll2 = Tdomain%sFace(nf)%ngll2
 
-                if ( Tdomain%sComm(nproc)%orient_faces(i) == 0 ) then
+                if ( Tdomain%sComm(ncomm)%orient_faces(i) == 0 ) then
                     do j = 1,ngll2-2
                         do k = 1,ngll1-2
                             idx = Tdomain%sFace(nf)%Iglobnum_Face(k,j)
@@ -1295,7 +1303,7 @@ subroutine prepare_comm_vector_SF(Tdomain,ngll,renumSF,comm_data)
                         enddo
                     enddo
 
-                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 1 ) then
+                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 1 ) then
                     do j = 1,ngll2-2
                         do k = 1,ngll1-2
                             idx = Tdomain%sFace(nf)%Iglobnum_Face(ngll1-1-k,j)
@@ -1304,7 +1312,7 @@ subroutine prepare_comm_vector_SF(Tdomain,ngll,renumSF,comm_data)
                         enddo
                     enddo
 
-                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 2 ) then
+                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 2 ) then
                    do j = 1,ngll2-2
                         do k = 1,ngll1-2
                             idx = Tdomain%sFace(nf)%Iglobnum_Face(k,ngll2-1-j)
@@ -1313,7 +1321,7 @@ subroutine prepare_comm_vector_SF(Tdomain,ngll,renumSF,comm_data)
                         enddo
                     enddo
 
-                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 3 ) then
+                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 3 ) then
                     do j = 1,ngll2-2
                         do k = 1,ngll1-2
                             idx = Tdomain%sFace(nf)%Iglobnum_Face(ngll1-1-k,ngll2-1-j)
@@ -1322,7 +1330,7 @@ subroutine prepare_comm_vector_SF(Tdomain,ngll,renumSF,comm_data)
                         enddo
                     enddo
 
-                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 4 ) then
+                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 4 ) then
                     do j = 1,ngll1-2
                         do k = 1,ngll2-2
                             idx = Tdomain%sFace(nf)%Iglobnum_Face(j,k)
@@ -1331,7 +1339,7 @@ subroutine prepare_comm_vector_SF(Tdomain,ngll,renumSF,comm_data)
                         enddo
                     enddo
 
-                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 5 ) then
+                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 5 ) then
                     do j = 1,ngll1-2
                         do k = 1,ngll2-2
                             idx = Tdomain%sFace(nf)%Iglobnum_Face(ngll1-1-j,k)
@@ -1340,7 +1348,7 @@ subroutine prepare_comm_vector_SF(Tdomain,ngll,renumSF,comm_data)
                         enddo
                     enddo
 
-                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 6 ) then
+                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 6 ) then
                     do j = 1,ngll1-2
                         do k = 1,ngll2-2
                             idx = Tdomain%sFace(nf)%Iglobnum_Face(j,ngll2-1-k)
@@ -1349,7 +1357,7 @@ subroutine prepare_comm_vector_SF(Tdomain,ngll,renumSF,comm_data)
                         enddo
                     enddo
 
-                else if ( Tdomain%sComm(nproc)%orient_faces(i) == 7 ) then
+                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 7 ) then
                     do j = 1,ngll1-2
                         do k = 1,ngll2-2
                             idx = Tdomain%sFace(nf)%Iglobnum_Face(ngll1-1-j,ngll2-1-k)
@@ -1358,21 +1366,21 @@ subroutine prepare_comm_vector_SF(Tdomain,ngll,renumSF,comm_data)
                         enddo
                     enddo
                 endif ! orient_f
-            enddo            
+            enddo
 
             ! Edges
-            do i = 0,Tdomain%sComm(nproc)%SF_ne_shared-1
-                ne = Tdomain%sComm(nproc)%SF_edges_shared(i)
+            do i = 0,Tdomain%sComm(ncomm)%SF_ne_shared-1
+                ne = Tdomain%sComm(ncomm)%SF_edges_shared(i)
                 ngll1 = Tdomain%sEdge(ne)%ngll
 
-                if ( Tdomain%sComm(nproc)%orient_edges(i) == 0 ) then
+                if ( Tdomain%sComm(ncomm)%orient_edges(i) == 0 ) then
                     do j = 1,ngll1-2
                         idx = Tdomain%sEdge(ne)%Iglobnum_Edge(j)
                         Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
                         nSF = nSF + 1
                     enddo
 
-                else if ( Tdomain%sComm(nproc)%orient_edges(i) == 1 ) then
+                else if ( Tdomain%sComm(ncomm)%orient_edges(i) == 1 ) then
                     do j = 1,ngll1-2
                         idx = Tdomain%sEdge(ne)%Iglobnum_Edge(ngll1-1-j)
                         Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
@@ -1382,14 +1390,13 @@ subroutine prepare_comm_vector_SF(Tdomain,ngll,renumSF,comm_data)
             enddo
 
             ! Vertices
-            do i = 0,Tdomain%sComm(nproc)%SF_nv_shared-1
-                nv =  Tdomain%sComm(nproc)%SF_vertices_shared(i)
+            do i = 0,Tdomain%sComm(ncomm)%SF_nv_shared-1
+                nv =  Tdomain%sComm(ncomm)%SF_vertices_shared(i)
                 idx = Tdomain%sVertex(nv)%Iglobnum_Vertex
                 Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
                 nSF = nSF + 1
             enddo
-        enddo 
-    endif
+        enddo
 
 end subroutine prepare_comm_vector_SF
 
@@ -1403,7 +1410,7 @@ subroutine allocate_comm_vector_SF(Tdomain, comm_data)
     integer :: n, nf, ne, nv, i
 
     n_comm = 0
-    do n = 0,Tdomain%nb_procs-1
+    do n = 0,Tdomain%tot_comm_proc-1
         if (Tdomain%sComm(n)%SF_nf_shared > 0 .OR. &
             Tdomain%sComm(n)%SF_ne_shared > 0 .OR. &
             Tdomain%sComm(n)%SF_nv_shared > 0) then
@@ -1417,7 +1424,7 @@ subroutine allocate_comm_vector_SF(Tdomain, comm_data)
     Comm_data%ncomm = n_comm
 
     n_comm = 0
-    do n = 0,Tdomain%nb_procs-1
+    do n = 0,Tdomain%tot_comm_proc-1
         if (Tdomain%sComm(n)%SF_nf_shared < 1 .AND. &
             Tdomain%sComm(n)%SF_ne_shared < 1 .AND. &
             Tdomain%sComm(n)%SF_nv_shared < 1) cycle
@@ -1444,7 +1451,8 @@ subroutine allocate_comm_vector_SF(Tdomain, comm_data)
 
         ! Initialisation et allocation de Comm_vector
         Comm_data%Data(n_comm)%src = Tdomain%rank
-        Comm_data%Data(n_comm)%dest = n
+        Comm_data%Data(n_comm)%dest = Tdomain%sComm(n)%dest
+        Comm_data%Data(n_comm)%ncomm = n
         Comm_data%Data(n_comm)%ndata = n_data
         allocate(Comm_data%Data(n_comm)%Give(0:n_data-1))
         allocate(Comm_data%Data(n_comm)%Take(0:n_data-1))

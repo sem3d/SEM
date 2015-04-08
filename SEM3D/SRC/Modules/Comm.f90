@@ -12,6 +12,7 @@ module scomms
        integer :: nsol, nsolpml, nflu, nflupml ! Nombre de point de gauss a echanger pour chaque domaine
        ! si on echange 4 ddl pour solpml et 2 pour sol alors ndata=2*nsol+4*nsolpml...
        integer :: src, dest
+       integer :: ncomm ! bookeeping numero de la structure comm associee
        real, dimension(:), allocatable :: Give, Take
        integer, dimension(:), allocatable :: IGiveS, IGiveSPML, IGiveF, IGiveFPML
        integer, dimension(:), allocatable :: ITakeS, ITakeSPML, ITakeF, ITakeFPML
