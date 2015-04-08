@@ -415,6 +415,83 @@ subroutine allocate_domain (Tdomain)
         enddo
 
     end if
+
+    ! Allocation et initialisation de Tdomain%champs0 et champs1 pour les solides
+    if (Tdomain%ngll_s /= 0) then
+        allocate(Tdomain%champs0%Forces(0:Tdomain%ngll_s-1,0:2))
+        allocate(Tdomain%champs0%Depla(0:Tdomain%ngll_s-1,0:2))
+        allocate(Tdomain%champs0%Veloc(0:Tdomain%ngll_s-1,0:2))
+        allocate(Tdomain%champs1%Forces(0:Tdomain%ngll_s-1,0:2))
+        allocate(Tdomain%champs1%Depla(0:Tdomain%ngll_s-1,0:2))
+        allocate(Tdomain%champs1%Veloc(0:Tdomain%ngll_s-1,0:2))
+
+        Tdomain%champs0%Forces = 0d0
+        Tdomain%champs0%Depla = 0d0
+        Tdomain%champs0%Veloc = 0d0
+
+        ! Allocation de Tdomain%MassMatSol pour les solides
+        allocate(Tdomain%MassMatSol(0:Tdomain%ngll_s-1))
+        Tdomain%MassMatSol = 0d0
+    endif
+
+    ! Allocation et initialisation de Tdomain%champs0 pour les PML solides
+    if (Tdomain%ngll_pmls /= 0) then
+        allocate(Tdomain%champs1%ForcesPML(0:Tdomain%ngll_pmls-1,0:2))
+        allocate(Tdomain%champs0%VelocPML(0:Tdomain%ngll_pmls-1,0:2))
+        allocate(Tdomain%champs0%DumpV(0:Tdomain%ngll_pmls-1,0:1))
+        Tdomain%champs1%ForcesPML = 0d0
+        Tdomain%champs0%VelocPML = 0d0
+        Tdomain%champs0%DumpV = 0d0
+
+        ! Allocation de Tdomain%MassMatSolPml pour les PML solides
+        allocate(Tdomain%MassMatSolPml(0:Tdomain%ngll_pmls-1))
+        Tdomain%MassMatSolPml = 0d0
+
+        allocate(Tdomain%DumpMass(0:Tdomain%ngll_pmls-1))
+        Tdomain%DumpMass = 0d0
+    endif
+
+    ! Allocation et initialisation de Tdomain%champs0 et champs1 pour les fluides
+    if (Tdomain%ngll_f /= 0) then
+        allocate(Tdomain%champs0%ForcesFl(0:Tdomain%ngll_f-1))
+        allocate(Tdomain%champs0%Phi(0:Tdomain%ngll_f-1))
+        allocate(Tdomain%champs0%VelPhi(0:Tdomain%ngll_f-1))
+        allocate(Tdomain%champs1%ForcesFl(0:Tdomain%ngll_f-1))
+        allocate(Tdomain%champs1%Phi(0:Tdomain%ngll_f-1))
+        allocate(Tdomain%champs1%VelPhi(0:Tdomain%ngll_f-1))
+
+        Tdomain%champs0%ForcesFl = 0d0
+        Tdomain%champs0%Phi = 0d0
+        Tdomain%champs0%VelPhi = 0d0
+
+        ! Allocation et Initialisation de Fluid_dirich
+        ! permet d'annuler VelPhi sur les faces libres dans Newmark_corrector
+        allocate(Tdomain%champs0%Fluid_dirich(0:Tdomain%ngll_f-1))
+        Tdomain%champs0%Fluid_dirich = 1.0
+        do n = 0,Tdomain%n_elem-1
+            if (Tdomain%specel(n)%fluid_dirich) then
+                ngllx = Tdomain%specel(n)%ngllx
+                nglly = Tdomain%specel(n)%nglly
+                ngllz = Tdomain%specel(n)%ngllz
+                do j = 0,nglly-1
+                    do i = 0,ngllx-1
+                        Tdomain%champs0%Fluid_dirich(Tdomain%specel(n)%IFlu(i,j,ngllz-1)) = 0.
+                    enddo
+                enddo
+            endif
+        enddo
+
+        ! Allocation de Tdomain%MassMatFlu pour les fluides
+        allocate(Tdomain%MassMatFlu(0:Tdomain%ngll_f-1))
+        Tdomain%MassMatFlu = 0d0
+    endif
+
+    ! Allocation et initialisation des champs pour le couplage solide / fluide
+    if (Tdomain%logicD%SF_local_present)then
+        allocate(Tdomain%champs0%Save_forces(0:Tdomain%SF%ngll-1,0:2))
+        allocate(Tdomain%champs0%Save_depla(0:Tdomain%SF%ngll-1,0:2))
+    endif
+
     return
 end subroutine allocate_domain
 
