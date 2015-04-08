@@ -58,6 +58,7 @@ subroutine Newmark(Tdomain,rg,ntime)
     end if
 
 #ifdef COUPLAGE
+#if 0
     if (ntime>0) then
         call calcul_couplage_force(Tdomain, ntime, rg)
     endif
@@ -95,6 +96,7 @@ subroutine Newmark(Tdomain,rg,ntime)
     do nv = 0, Tdomain%n_vertex-1
         Tdomain%sVertex(nv)%Forces(0:2) = Tdomain%sVertex(nv)%ForcesMka(0:2) + Tdomain%sVertex(nv)%Forces(0:2)
     enddo
+#endif
 #endif
 
 
