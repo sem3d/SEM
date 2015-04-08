@@ -14,7 +14,7 @@ subroutine read_mesh_file_h5(Tdomain)
     !
     type(domain), intent(inout) :: Tdomain
     integer :: rg, num_processors
-    integer :: i,j, mat
+    integer :: i,j
     logical :: neumann_log
     !
     integer(HID_T) :: fid, proc_id
@@ -95,31 +95,8 @@ subroutine read_mesh_file_h5(Tdomain)
         Tdomain%specel(i)%solid = itemp2(2,i+1) .ne. 0
         Tdomain%specel(i)%fluid_dirich = itemp2(3,i+1) .ne. 0
         Tdomain%specel(i)%OUTPUT = .true.
-        Tdomain%sSubdomain(itemp2(1,i+1))%nElem = 1 + Tdomain%sSubdomain(itemp2(1,i+1))%nElem !Counting number of elements by subdomain per proc
     enddo
     deallocate(itemp2)
-
-    if (Tdomain%any_Random) then
-        !Building element list in each subdomain
-        do i=0,Tdomain%n_mat-1
-            allocate (Tdomain%sSubdomain(i)%elemList(0:Tdomain%sSubdomain(i)%nElem-1))
-            Tdomain%sSubdomain(i)%elemList(:) = -1 !-1 to detect errors
-            Tdomain%sSubdomain(i)%nElem       = 0 !Using to count the elements in the next loop
-        enddo
-        do i=0,Tdomain%n_elem-1
-            mat = Tdomain%specel(i)%mat_index
-            Tdomain%sSubdomain(mat)%elemList(Tdomain%sSubdomain(mat)%nElem) = i
-            Tdomain%sSubdomain(mat)%nElem = Tdomain%sSubdomain(mat)%nElem + 1
-        enddo
-
-        !Defining existing subdomain list in each domain
-        allocate (Tdomain%subD_exist(0:Tdomain%n_mat-1))
-        allocate (Tdomain%subDComm(0:Tdomain%n_mat - 1))
-        Tdomain%subD_exist(:) = .true.
-        do mat=0,Tdomain%n_mat-1
-            if(Tdomain%sSubdomain(mat)%nElem == 0) Tdomain%subD_exist(mat) = .false.
-        enddo
-    end if
 
     ! Read elements definitions
     ! n_nodes : number of control nodes (8 or 27)
