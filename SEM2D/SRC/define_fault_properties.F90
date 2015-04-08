@@ -273,7 +273,7 @@ subroutine define_fault_properties (Tdomain)
                         read (24,*) b
                         read (24,*) Deltau_res
                         do j = n_begin, n_end
-
+                            ! XXX c1 et s1 ne sont pas definis... ?
                             if (c1*s1*(sigma3-sigma1) > 0.) then
                                 Tdomain%sFault(nf)%fFace(j)%tau0 = (1.+tau0_percentage)*Tdomain%sFault(nf)%fFace(j)%sigma0 * mus
                             else

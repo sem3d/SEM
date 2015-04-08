@@ -620,6 +620,7 @@ END MODULE BLAS
 !! show-trailing-whitespace: t
 !! f90-do-indent: 4
 !! f90-if-indent: 4
+!! f90-type-indent: 4
 !! f90-program-indent: 4
 !! f90-continuation-indent: 4
 !! End:

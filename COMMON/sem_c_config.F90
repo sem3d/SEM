@@ -74,10 +74,11 @@ module sem_c_config
        real(C_DOUBLE) :: delta_lon
        real(C_DOUBLE) :: delta_lat
 
+       type(C_PTR)    :: stations
     end type sem_config
 
 
-    ! Ce type doit correspondre au type source_t du module read_input.c **a l'ordre pres**
+    ! Ce type doit correspondre au type source_t de sem_input.h **a l'ordre pres**
     type, bind(c) :: sem_source
        type(C_PTR) :: next
        real(C_DOUBLE), dimension(3) :: coords;
@@ -92,7 +93,22 @@ module sem_c_config
        real(C_DOUBLE) :: gamma
        real(C_DOUBLE) :: amplitude
        type(C_PTR) :: time_file
+       real(C_DOUBLE) :: Q
+       real(C_DOUBLE) :: X
+       real(C_DOUBLE) :: Y
+       real(C_DOUBLE) :: L
+       real(C_DOUBLE) :: v
+       real(C_DOUBLE) :: d
+       real(C_DOUBLE) :: a
     end type sem_source
+
+    ! ce type doit correspondre au type station_def_t de sem_input.h **a l'ordre pres**
+    type, bind(c) :: sem_station
+       type(C_PTR) :: next
+       real(C_DOUBLE), dimension(3) :: coords;
+       type(C_PTR)    :: name
+       integer(C_INT) :: period
+    end type sem_station
 
     type, bind(c) :: sem_snapshot_cond
        type(C_PTR) :: next

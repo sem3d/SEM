@@ -7,22 +7,26 @@
 !!
 !<
 
-subroutine init_protection(Tdomain, it, rg, prot_file)
+subroutine init_protection(Tdomain, it, prot_file)
     use sdomain
     use semdatafiles
     use mpi
     use sem_c_config, only : sem_mkdir
     implicit none
     type (domain), intent (INOUT):: Tdomain
-    integer, intent (IN) :: it, rg
+    integer, intent (IN) :: it
+    integer :: rg
     character (len=MAX_FILE_SIZE), INTENT(OUT) :: prot_file
     character (len=MAX_FILE_SIZE) :: dir_prot, dir_prot_prev, times_file
     character (len=MAX_FILE_SIZE) :: dir_traces, dir_prot_traces
     character (len=MAX_FILE_SIZE) :: commande
     integer :: ierr
 
+    rg = Tdomain%rank
+
     call semname_protection_iter_rank_file(it,rg,prot_file)
 
+    call MPI_Barrier(Tdomain%communicateur, ierr)
 
     ! recherche et destruction au fur et a mesure des anciennes prots
     if (rg == 0) then
@@ -847,7 +851,7 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
 end subroutine write_Veloc_Fluid_PML
 
 
-subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, isort)
+subroutine save_checkpoint (Tdomain, rtime, it, dtmin, isort)
     use sdomain
     use HDF5
     use sem_hdf5
@@ -855,7 +859,7 @@ subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, isort)
     implicit none
 
     type (domain), intent (INOUT):: Tdomain
-    integer, intent (IN) :: it, rg, isort
+    integer, intent (IN) :: it, isort
     real, intent (IN) :: rtime, dtmin
     character (len=MAX_FILE_SIZE) :: fnamef
     ! HDF5 stuff
@@ -864,11 +868,14 @@ subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, isort)
     integer :: nelem
     integer(kind=4), dimension (12) :: offset
     integer(HSIZE_T), dimension(2) :: off_dims
+    integer :: rg
+
+    rg = Tdomain%rank
 
     if (rg == 0) then
         write (*,'(A44,I8,A1,f10.6)') "--> SEM : protection at iteration and time :",it," ",rtime
     endif
-    call init_protection(Tdomain, it, rg, fnamef)
+    call init_protection(Tdomain, it, fnamef)
 
     nelem = Tdomain%n_elem
 

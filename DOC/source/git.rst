@@ -141,6 +141,8 @@ Commandes utiles pour les commit
 
     git commit –m  "Modif sur fichier "
 
+  Il est recommendé de faire un commit pour figer un ensemble de modifications cohérentes (développement spécifique, bug, mise à jour de la documentation, ...). Si plusieurs types de modifications ont été faites, il est préférable de faire plusieurs commits.
+
 - Pour modifier le message d’un commit ::
 
     git commit --amend –m " Message "

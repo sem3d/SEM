@@ -13,7 +13,6 @@
 !! \param type (domain), intent (INOUT) TDomain
 !! \param integer, intent (IN) it
 !! \param integer, intent (IN) i_snap
-!! \param logical sortie_capteur_vitesse
 !<
 
 subroutine savefield (Tdomain,it,sortie_capteur,i_snap,nom_grandeur,nom_dir_sorties)

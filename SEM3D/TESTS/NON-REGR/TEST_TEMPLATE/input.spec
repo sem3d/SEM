@@ -2,7 +2,7 @@
 run_name = "%(name)s";
 
 # duration of the run
-sim_time = 5.0;
+sim_time = %(sim_time)f;
 mesh_file = "mesh4spec"; # input mesh file
 mat_file = "material.input";
 dim=3;
@@ -53,7 +53,7 @@ time_scheme {
 };
 
 amortissement {
-    nsolids = 0;           # number of solids for attenuation (0 if no attenuation)
+    nsolids = %(nsolids)d;           # number of solids for attenuation (0 if no attenuation)
     atn_band = 10  0.05;   # attenuation period band
     atn_period = 0.2;      # model period 
 };

@@ -22,10 +22,13 @@ if(HDF5_DIR)
 set(CMAKE_MODULE_PATH ${HDF5_DIR} ${CMAKE_MODULE_PATH})
 endif(HDF5_DIR)
 
+set(SEMDIR ${PROJECT_SOURCE_DIR})
+
 find_package(HDF5 REQUIRED C Fortran)
 add_definitions(-DUSE_HDF5)
 include_directories(${HDF5_FORTRAN_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} ${HDF5_INCLUDE_DIR})
 include_directories(${HDF5_INCLUDE_DIR} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP})
+include_directories(${PROJECT_BINARY_DIR}/libs/common)
 
 if (OPT_MPI OR HDF5_IS_PARALLEL)
     set(MPI_COMPILER mpif90)
@@ -50,10 +53,8 @@ else (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 endif (NOT BUILD_WITH_MKA)
 
-
 add_definitions(-DMKA3D)
 
-set(SEMDIR ${PROJECT_SOURCE_DIR})
 set(SEMCOMMON ${SEMDIR}/COMMON)
 
 set(SEM_SRC
@@ -71,6 +72,7 @@ set(SEM_SRC
   ${SEMCOMMON}/pointlist.f90
   ${SEMCOMMON}/sem_hdf5.f90
   ${SEMCOMMON}/blas.F90
+  ${SEMCOMMON}/leastsq.f90
 )
 
 set(SEM_SRC_C
@@ -83,8 +85,6 @@ set(SEM_SRC_C
 
 find_library(CEAUSER cea_user PATHS /usr/local/sr/lib)
 
-
-
 if(CEAUSER STREQUAL "CEAUSER-NOTFOUND")
 set(SEM_SRC ${SEM_SRC}
   ${SEMCOMMON}/stub_tremain.F90
@@ -93,7 +93,7 @@ endif(CEAUSER STREQUAL "CEAUSER-NOTFOUND")
 
 
 set(FTM_SOURCES ${SEMCOMMON}/libmpi_fantome.f90)
-
+# This command is used to find a library. A cache entry named by <VAR> is created to store the result of this command. If the library is found the result is stored in the variable and the search will not be repeated unless the variable is cleared. If nothing is found, the re
 # On veut compiler les .f90 avec le preprocesseur cpp
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
   set_source_files_properties(${SEM3D_SOURCES_F} ${FTM_SOURCES} PROPERTIES COMPILE_FLAGS "-fpp")
@@ -103,6 +103,9 @@ endif (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 
 
 set(SEM_EXTRA_LIBS)
+
+# NETLIB/MKL
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} netlib)
 
 # HDF5
 set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
@@ -124,7 +127,27 @@ endif(CEAUSER)
 
 message("SEMLIBS: '${SEM_EXTRA_LIBS}'")
 
+set(SEMLIBDIR ${PROJECT_BINARY_DIR}/libs)
+#SEM COMMON LIBRARY
+add_library(semcommon ${SEM_SRC} ${SEM_SRC_C})
+set_target_properties(semcommon PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/common)
 
+#RANDOM FIELD LIBRARY
+add_library(randomfield
+  ${SEMDIR}/randomfield/displayCarvalhol.f90
+  ${SEMDIR}/randomfield/math_RF.f90
+  ${SEMDIR}/randomfield/obsolete_RF.f90
+  ${SEMDIR}/randomfield/spectra_RF.f90
+  ${SEMDIR}/randomfield/randomFieldND.f90
+  ${SEMDIR}/randomfield/readFile_RF.f90
+  ${SEMDIR}/randomfield/statistics_RF.f90
+  ${SEMDIR}/randomfield/writeResultFile_RF.f90
+)
+set_target_properties(randomfield PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/common)
+add_dependencies(randomfield semcommon)
+set(SEM_EXTRA_LIBS randomfield semcommon ${SEM_EXTRA_LIBS})
+
+add_subdirectory(COMMON/netlib)
 add_subdirectory(SEM2D)
 add_subdirectory(SEM3D)
 add_subdirectory(MESH)

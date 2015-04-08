@@ -1,4 +1,4 @@
-!>
+!> -*- coding: utf-8 -*-
 !!\file save_checkpoint.F90
 !!\brief Contient la subroutine save_checkpoint.
 !!\author
@@ -8,7 +8,9 @@
 !<
 
 !>
-!! \brief La routine save_checkpoint() assure la sauvegarde des champs (force,vitesse,...). Cette sauvegarde permet une reprise éventuelle.
+!! \brief La routine save_checkpoint() assure la sauvegarde des champs
+!! (force,vitesse,...). Cette sauvegarde permet une reprise
+!! Ã©ventuelle.
 !!
 !! \param type (domain), intent (INOUT) Tdomain
 !! \param integer, intent (IN) it
@@ -46,16 +48,16 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
     call MPI_Barrier (Tdomain%communicateur, ierr)
 
 
-    call semname_protection_iter_rank_file(it,rg,prot_file)
 
 
     ! recherche et destruction au fur et a mesure des anciennes prots
     if (rg == 0) then
 
         call semname_protection_iter_dir(it,dir_prot)
-        ! creation du repertoire data/sem/Protection_<it> (par le proc le plus rapide)
         ierr = sem_mkdir(trim(adjustl(dir_prot)))
-
+        if (ierr/=0) then
+            write(*,*) "Erreur creating dir:", trim(adjustl(dir_prot))
+        endif
         Tdomain%TimeD%prot_m2 = Tdomain%TimeD%prot_m1
         Tdomain%TimeD%prot_m1 = Tdomain%TimeD%prot_m0
         Tdomain%TimeD%prot_m0 = it
@@ -76,8 +78,9 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
         commande="cp -R "//trim(adjustl(dir_traces))//" "//dir_prot
         call system(trim(commande))
     endif
+    call MPI_Barrier (Tdomain%communicateur, ierr)
 
-
+    call semname_protection_iter_rank_file(it,rg,prot_file)
     open (61,file=prot_file,status="unknown",form="formatted")
     write(61,*) rtime,dtmin
     write(61,*) it,isort

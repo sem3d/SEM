@@ -22,20 +22,25 @@ module mdefinitions
 
 contains
 
-subroutine Define_Arrays(Tdomain, rg)
+subroutine Define_Arrays(Tdomain)
     use constants
-    use read_model_earthchunk
+    use model_earthchunk
+    use model_prem
+    implicit none
 
     type (domain), intent (INOUT), target :: Tdomain
-    integer, intent(IN) :: rg
     integer :: n, mat
     real, dimension(:,:,:), allocatable :: Whei
 
     if( Tdomain%earthchunk_isInit/=0) then
-        call load_model(Tdomain%earthchunk_file, Tdomain%earthchunk_delta_lon, Tdomain%earthchunk_delta_lat)
+        call load_earthchunk(Tdomain%earthchunk_file, Tdomain%earthchunk_delta_lon, Tdomain%earthchunk_delta_lat)
     endif
     do n = 0,Tdomain%n_elem-1
        mat = Tdomain%specel(n)%mat_index
+       if ( mat < 0 .or. mat >= Tdomain%n_mat ) then
+          print*, "ERROR : inconsistent material index = ", mat
+          stop
+       end if
        !!! Attribute elastic properties from material !!!
        ! Sets Lambda, Mu, Qmu, ... from mat
        call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
@@ -52,7 +57,7 @@ subroutine Define_Arrays(Tdomain, rg)
     ! Here we have local mass matrix (not assembled) on elements and
     ! each of faces, edges, vertices containing assembled (on local processor only) mass matrix
     if( Tdomain%earthchunk_isInit/=0) then
-        ! call clean_model()
+         call clean_earthchunk()
     endif
     !- defining Neumann properties (Btn: the complete normal term, ponderated
     !      by Gaussian weights)
@@ -61,7 +66,7 @@ subroutine Define_Arrays(Tdomain, rg)
     endif
 
     call init_solid_fluid_interface(Tdomain)
-    call assemble_mass_matrices(Tdomain, rg)
+    call assemble_mass_matrices(Tdomain)
     call finalize_pml_properties(Tdomain)
     call inverse_mass_mat(Tdomain)
 
@@ -113,11 +118,9 @@ subroutine init_solid_fluid_interface(Tdomain)
     endif
 end subroutine init_solid_fluid_interface
 
-
-subroutine assemble_mass_matrices(Tdomain, rg)
+subroutine assemble_mass_matrices(Tdomain)
     implicit none
     type (domain), intent (INOUT), target :: Tdomain
-    integer, intent(in) :: rg
 
     integer :: n, indsol, indpml, nsol, nsolpml
     integer :: i,j,k,nf,ne,nv,idx
@@ -215,6 +218,7 @@ subroutine assemble_mass_matrices(Tdomain, rg)
         end do
     end if
 
+    !!! XXXXXXXXX QUID echange PML->SOLIDE inter CPU... ?
     return
 end subroutine assemble_mass_matrices
 !---------------------------------------------------------------------------------------
@@ -257,6 +261,9 @@ subroutine init_material_properties(Tdomain, specel, mat)
   case( MATERIAL_EARTHCHUNK )
      call initialize_material_earthchunk(specel, mat, Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
 
+ case( MATERIAL_PREM )
+     call initialize_material_prem(specel, mat, Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
+
   case( MATERIAL_GRADIENT )
      !    on copie toujours le materiau de base
      specel%Density = mat%Ddensity
@@ -269,22 +276,14 @@ subroutine init_material_properties(Tdomain, specel, mat)
      endif
   end select
 
-  !je sais pas trop ce que tout ça fait
-
-  if (Tdomain%aniso) then
-  else
-     if ((.not. specel%PML) .and. (Tdomain%n_sls>0))  then
-        !   specel%Kappa = mat%DKappa
-     endif
-  endif
-
-  !  modif mariotti fevrier 2007 cea
   if ((.not. specel%PML) .and. (Tdomain%n_sls>0))  then
-     if (Tdomain%aniso) then
-        specel%sl%Q = mat%Qmu
-     else
-        specel%sl%Qs = mat%Qmu
-        specel%sl%Qp = mat%Qpression
+     if(specel%solid) then
+        if (Tdomain%aniso) then
+           specel%sl%Q = mat%Qmu
+        else
+           specel%sl%Qs = mat%Qmu
+           specel%sl%Qp = mat%Qpression
+        endif
      endif
   endif
 end subroutine init_material_properties
@@ -939,6 +938,8 @@ subroutine define_PML_DumpInit(ngllx,nglly,ngllz,dt,freq,alpha,&
     return
 end subroutine define_PML_DumpInit
 
+!----------------------------------------------------------------------------------
+!----------------------------------------------------------------------------------
 subroutine assemble_DumpMass(Tdomain,specel)
     type(domain), intent(inout) :: Tdomain
     type (element), intent(inout) :: specel
@@ -983,7 +984,6 @@ subroutine define_PML_DumpEnd(ngll_pmls,Massmat,DumpMass,DumpV)
 end subroutine define_PML_DumpEnd
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
-
 subroutine define_FPML_DumpEnd(ngllx,nglly,ngllz,DumpV,Iv)
 
     implicit none
@@ -999,35 +999,6 @@ subroutine define_FPML_DumpEnd(ngllx,nglly,ngllz,DumpV,Iv)
     return
 
 end subroutine define_FPML_DumpEnd
-!----------------------------------------------------------------------------------
-!----------------------------------------------------------------------------------
-subroutine Comm_Normal_Neumann(n,Tdomain)
-    use sdomain
-    implicit none
-
-    integer, intent(in)  :: n
-    type(domain), intent(inout) :: Tdomain
-    integer  :: i,j,ngllneu,ne,nv
-
-    ngllNeu = 0
-
-    do i = 0,Tdomain%sComm(n)%Neu_ne_shared-1
-        ne = Tdomain%sComm(n)%Neu_edges_shared(i)
-        do j = 1,Tdomain%Neumann%Neu_Edge(ne)%ngll-2
-            Tdomain%sComm(n)%GiveNeu(ngllNeu,0:2) = Tdomain%Neumann%Neu_Edge(ne)%BtN(j,0:2)
-            ngllNeu = ngllNeu + 1
-        enddo
-    enddo
-    do i = 0,Tdomain%sComm(n)%Neu_nv_shared-1
-        nv = Tdomain%sComm(n)%Neu_vertices_shared(i)
-        Tdomain%sComm(n)%GiveNeu(ngllNeu,0:2) = Tdomain%Neumann%Neu_Vertex(nv)%BtN(0:2)
-        ngllNeu = ngllNeu + 1
-    enddo
-
-    if(ngllNeu /= Tdomain%sComm(n)%ngllNeu) &
-        stop "Incompatibility in Neumann normal transmission between procs."
-
-end subroutine Comm_Normal_Neumann
 end module mdefinitions
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------

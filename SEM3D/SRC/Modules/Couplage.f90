@@ -151,7 +151,7 @@ contains
     !<
 
 
-    subroutine initialisation_couplage(Tdomain, rg, MaxNgParDir, nb_procs)
+    subroutine initialisation_couplage(Tdomain, MaxNgParDir)
 
 !!!!  Description: Initialisation du couplage pour Sem3d
 !!!!
@@ -164,42 +164,32 @@ contains
 !!!!
 !!!! --------------------------------------------------
         type (domain), intent(INOUT)  :: Tdomain
-
-        integer, intent(in) :: rg, nb_procs
         integer, intent(out) :: MaxNgParDir
-        integer :: i,j,k,l,ipoint
+        !
+        integer :: rg, nb_procs
+        integer :: i,j,l
         integer :: tag,ierr
-        integer :: ngll1, np, ngll2, ngll  !, ngllx, ngllz,
-        integer :: numFace,numElem,mat
+        integer :: np, ngll  !, ngllx, ngllz,
+        integer :: numFace
         integer :: iface, bufsize,decal,nbchamps
         integer :: Ngauss, MaxNgParFace, gl_MaxNgParFace, gl_MaxNgParDir !, iout
-        !    real :: Xpdc, Ypdc, Zpdc, xi, eta, psi, outx, outy, outz, temp
-        real :: xi, eta, psi, outx, outy, outz
-        !    real :: eta2
-        real :: duration_mka3d
         logical :: dejaPresent
 
         integer, dimension (MPI_STATUS_SIZE) :: status
 
         integer, dimension(:),pointer:: tabNbFace
-        integer,dimension(nb_procs) :: displs1, count1
-        integer,dimension(nb_procs) :: displs2, count2
+        integer,dimension(Tdomain%nb_procs) :: displs1, count1
         integer,dimension(5) :: ibuf
         real, dimension (:),pointer :: buf
-        real,dimension(0:7) :: x, y, z
 
-        real, dimension(3) :: tmp
-        integer numlocal, nb_point_de_couplage, itmp
-        integer i1, j1, i2, j2
-        integer, parameter :: ndim=128
-        integer gl_ndim_stock, gl_Ngauss
+        integer nb_point_de_couplage
+        integer gl_Ngauss
 
         real,dimension (:), pointer :: dmin_couplage
 
-        integer ik, jk
-        character(MAX_FILE_SIZE) s1 !Gsa
 
-
+        rg = Tdomain%rank
+        nb_procs = Tdomain%nb_procs
         ! envoi du pas de temps sem
         if (rg == 0) then
             tag=500000
@@ -307,7 +297,7 @@ contains
 
         ! remplissage de la structure face_couplage
 
-        call remplit_face_couplage(Tdomain, rg, MaxNgParFace, MaxNgParDir)
+        call remplit_face_couplage(Tdomain, MaxNgParFace, MaxNgParDir)
 
         !Il faut transmettre gl_MaxNgPardir a tous les procs car mpi_scatterv l'utilise
         call MPI_AllReduce (MaxNgParDir, gl_MaxNgParDir, 1, MPI_INTEGER, MPI_MAX, Tdomain%communicateur, ierr)
@@ -338,12 +328,12 @@ contains
                     call MPI_RECV(buf,bufsize, MPI_DOUBLE_PRECISION, i,tag, Tdomain%communicateur, status,ierr)
 
                     do iface=1,tabNbFace(i+1)
-                        face_couplage(iface+decal)%face   = buf(1+NbChamps*(iface-1))
-                        face_couplage(iface+decal)%proc   = buf(2+NbChamps*(iface-1))
-                        face_couplage(iface+decal)%ngll1   = buf(3+NbChamps*(iface-1))
-                        face_couplage(iface+decal)%ngll2   = buf(4+NbChamps*(iface-1))
+                        face_couplage(iface+decal)%face   = int(buf(1+NbChamps*(iface-1)))
+                        face_couplage(iface+decal)%proc   = int(buf(2+NbChamps*(iface-1)))
+                        face_couplage(iface+decal)%ngll1  = int(buf(3+NbChamps*(iface-1)))
+                        face_couplage(iface+decal)%ngll2  = int(buf(4+NbChamps*(iface-1)))
                         do j=0,3
-                            face_couplage(iface+decal)%noeud(j) = buf(5+j+NbChamps*(iface-1))
+                            face_couplage(iface+decal)%noeud(j) = int(buf(5+j+NbChamps*(iface-1)))
                         enddo
                         do l=0,2
                             do j=0,3
@@ -513,7 +503,7 @@ contains
     !<
 
 
-    subroutine calcul_couplage_force(Tdomain,ntime,rg)
+    subroutine calcul_couplage_force(Tdomain,ntime)
 
 !!!!  Description: Calcul des forces aux points de Gauss apres resolution du systeme lineaire (faite par le Superviseur)
 !!!!
@@ -528,7 +518,7 @@ contains
 !!!!  * Reception depuis le superviseur des "forces imposees" = forces calculees aux points de Gauss apres resolution du systeme lineaire
 !!!!  * Calcul des surfaces liees aux points de Gauss en utilisant la differentielle de la fonction d'interpolation
 !!!!  * (qui transforme l'element de reference Sem en element courant) - On n'utilise pas le Jacobien ( ca y ressemble)
-!!!!  * Affectation des forces imposees aux variables ForcesMka des aretes, faces, sommets de la surface de couplage
+!!!!  * Affectation des forces imposees aux variables ForcesExt des aretes, faces, sommets de la surface de couplage
 !!!!
 !!!!
 !!!! --------------------------------------------------
@@ -537,7 +527,6 @@ contains
 
         type (domain), intent(INOUT)  :: Tdomain
         integer, intent(IN) :: ntime
-        integer, intent(IN) :: rg ! rank
 
         integer :: i,j, numElem,numFace, mat
         integer :: ngll, ngllx, nglly, ngllz
@@ -556,7 +545,8 @@ contains
         real, dimension(comm_couplage%m_dim, comm_couplage%m_local_ngauss) :: force_impose
 
         !   flag pour sauvegarder la surface tsurf
-        integer :: sauvetsurf ;
+        integer :: sauvetsurf
+
         sauvetsurf = 1
         if ( .not.Tdomain%logicD%run_restart) then
             if ( ntime .gt. 1 ) then
@@ -567,12 +557,11 @@ contains
                 sauvetsurf = 0
             endif
         endif
-        !           print*,'rg  ntime sauvetsurf ',rg,'iter ',ntime,sauvetsurf
 
         ! RECEPTION DES FORCES DU SUPERVISEUR
 
         ! reception du vecteur force appliquees au pt de gauss de sem, solution du systeme resolu par le superviseur
-        tag=1500000+10000*rg+ntime
+        tag=1500000+10000*Tdomain%rank + ntime
         call MPI_RECV (force_impose,comm_couplage%m_dim*comm_couplage%m_local_ngauss, MPI_DOUBLE_PRECISION,&
             Tdomain%master_superviseur,tag, Tdomain%communicateur_global, status, ierr )
 
@@ -624,7 +613,7 @@ contains
                         tsurf = Tdomain%sFace(numface)%tsurfsem(i,j)
                     endif
                     !                    tsurf = surface_gll(Tdomain, mat, numElem, numlocal, i, j)
-                    Tdomain%sFace(numface)%ForcesMka(i,j,:) = tsurf*force_impose(:, position+i + j*ngll1)
+                    Tdomain%sFace(numface)%ForcesExt(i,j,:) = tsurf*force_impose(:, position+i + j*ngll1)
                     !                    Tdomain%sFace(numface)%FlagMka(i,j,:) = 1
                 enddo
             enddo
@@ -664,18 +653,18 @@ contains
                     force(:) = force_impose(:,position + ind1 + ind2*ngll1)
 
                     if(Tdomain%specel(numElem)%Orient_Edges(numloc_edge) == 0 ) then
-                        Tdomain%sEdge(numEdge)%ForcesMka(j,:) = Tdomain%sEdge(numEdge)%ForcesMka(j,:) + tsurf*force
+                        Tdomain%sEdge(numEdge)%ForcesExt(j,:) = Tdomain%sEdge(numEdge)%ForcesExt(j,:) + tsurf*force
                         !                        Tdomain%sEdge(numEdge)%FlagMka(j,:) = 1
                     elseif (Tdomain%specel(numElem)%Orient_Edges(numloc_edge) == 1 ) then
                         select case (numloc_edge)
                         case (0,2,5,9)
-                            Tdomain%sEdge(numEdge)%ForcesMka(ngllx-1-j,:) = Tdomain%sEdge(numEdge)%ForcesMka(ngllx-1-j,:) + tsurf*force
+                            Tdomain%sEdge(numEdge)%ForcesExt(ngllx-1-j,:) = Tdomain%sEdge(numEdge)%ForcesExt(ngllx-1-j,:) + tsurf*force
                             !                            Tdomain%sEdge(numEdge)%FlagMka(ngllx-1-j,:) = 1
                         case (1,3,8,11)
-                            Tdomain%sEdge(numEdge)%ForcesMka(nglly-1-j,:) = Tdomain%sEdge(numEdge)%ForcesMka(nglly-1-j,:) + tsurf*force
+                            Tdomain%sEdge(numEdge)%ForcesExt(nglly-1-j,:) = Tdomain%sEdge(numEdge)%ForcesExt(nglly-1-j,:) + tsurf*force
                             !                            Tdomain%sEdge(numEdge)%FlagMka(nglly-1-j,:) = 1
                         case (4,6,7,10)
-                            Tdomain%sEdge(numEdge)%ForcesMka(ngllz-1-j,:) = Tdomain%sEdge(numEdge)%ForcesMka(ngllz-1-j,:) + tsurf*force
+                            Tdomain%sEdge(numEdge)%ForcesExt(ngllz-1-j,:) = Tdomain%sEdge(numEdge)%ForcesExt(ngllz-1-j,:) + tsurf*force
                             !                            Tdomain%sEdge(numEdge)%FlagMka(ngllz-1-j,:) = 1
                         end select
                     else
@@ -735,7 +724,7 @@ contains
 
                 force(:) = force_impose(:,position + ind1 + ind2*ngll1)
 
-                Tdomain%sVertex(node(i))%ForcesMka(:) = Tdomain%sVertex(node(i))%ForcesMka + tsurf*force
+                Tdomain%sVertex(node(i))%ForcesExt(:) = Tdomain%sVertex(node(i))%ForcesExt + tsurf*force
                 !                Tdomain%sVertex(node(i))%FlagMka(:) = 1
 
             enddo !fin boucle sur les 4 noeuds de la face de couplage
@@ -840,8 +829,7 @@ contains
             outx = Tdomain%sSubdomain(mat)%GLLwy(i)
             outz = Tdomain%sSubdomain(mat)%GLLwz(j)
         end select
-        !dsurf = calcule_dsurf(Tdomain, xi, eta, zeta, numElem, numlocal)
-        dsurf = calcule_surf2(Tdomain, numElem, numlocal)*.25
+        dsurf = calcule_surf(Tdomain, numElem, numlocal)*.25
         surface_gll = dsurf*outx*outz
 
     end function surface_gll
@@ -855,12 +843,12 @@ contains
         w(3) =   u(1)*v(2) - u(2)*v(1)
     end subroutine cross_
 
-    function calcule_surf2(Tdomain, numElem, numlocal)
+    function calcule_surf(Tdomain, numElem, numlocal)
         type (domain), intent(IN)  :: Tdomain
         integer, intent(IN) ::  numlocal, numElem
         real,dimension(3, 0:7) :: X
         real,dimension(3) :: a, b, c, d, u, v
-        real :: calcule_surf2
+        real :: calcule_surf
         integer :: i, i_aux
 
         !! recuperation des coordonnees des sommets de la maille Sem contenant la face de couplage
@@ -911,127 +899,8 @@ contains
         call cross_(a, b, u)
         call cross_(c, d, v)
         u = (u+v)/2.
-        calcule_surf2 = sqrt( u(1)**2+u(2)**2+u(3)**2 )
-    end function calcule_surf2
-
-    function calcule_dsurf(Tdomain, xi, eta, zeta, numElem, numlocal)
-
-        type (domain), intent(IN)  :: Tdomain
-        integer, intent(IN) ::  numlocal, numElem
-        real, intent(IN) :: eta, xi, zeta
-        real, dimension (0:2,0:2) :: LocInvGrad
-        real,dimension(0:7) :: x,y, z
-        real calcule_dsurf
-        integer i, i_aux
-
-        !! recuperation des coordonnees des sommets de la maille Sem contenant la face de couplage
-        do i=0,7
-            i_aux = Tdomain%specel(numElem)%Control_Nodes(i)
-            x(i) = Tdomain%Coord_Nodes(0,i_aux)
-            y(i) = Tdomain%Coord_Nodes(1,i_aux)
-            z(i) = Tdomain%Coord_Nodes(2,i_aux)
-        enddo
-
-
-        select case (numlocal)
-        case(0)
-!!! Computation of the derivative matrix, dx_(jj)/dxi_(ii) !!!
-            !
-            LocInvGrad(0,0) = 0.25 * ((x(1)-x(0))*(1-eta) + (x(2)-x(3))*(1+eta) )  ! dx/dxi1
-            LocInvGrad(0,1) = 0.25 * ((y(1)-y(0))*(1-eta) + (y(2)-y(3))*(1+eta) ) ! dy/dxi1
-            LocInvGrad(0,2) = 0.25 * ((z(1)-z(0))*(1-eta) + (z(2)-z(3))*(1+eta) ) ! dz/dxi1
-
-            LocInvGrad(1,0) = 0.25 * ((x(3)-x(0))*(1-xi) + (x(2)-x(1))*(1+xi))     ! dx/dxi2
-            LocInvGrad(1,1) = 0.25 * ((y(3)-y(0))*(1-xi) + (y(2)-y(1))*(1+xi))   ! dy/dxi2
-            LocInvGrad(1,2) = 0.25 * ((z(3)-z(0))*(1-xi) + (z(2)-z(1))*(1+xi))   ! dz/dxi2i
-
-            !
-            calcule_dsurf = (LocInvGrad(0,1) * LocInvGrad(1,2) - LocInvGrad(0,2) * LocInvGrad(1,1) )**2 + &
-                (LocInvGrad(0,2) * LocInvGrad(1,0) - LocInvGrad(0,0) * LocInvGrad(1,2) )**2 + &
-                (LocInvGrad(0,0) * LocInvGrad(1,1) - LocInvGrad(0,1) * LocInvGrad(1,0) )**2
-            calcule_dsurf = sqrt(calcule_dsurf)
-
-        case(5)
-!!! Computation of the derivative matrix, dx_(jj)/dxi_(ii) !!!
-            !
-            LocInvGrad(0,0) = 0.25 * ((x(5)-x(4))*(1-eta) + (x(6)-x(7))*(1+eta) )  ! dx/dxi1
-            LocInvGrad(0,1) = 0.25 * ((y(5)-y(4))*(1-eta) + (y(6)-y(7))*(1+eta) ) ! dy/dxi1
-            LocInvGrad(0,2) = 0.25 * ((z(5)-z(4))*(1-eta) + (z(6)-z(7))*(1+eta) ) ! dz/dxi1
-
-            LocInvGrad(1,0) = 0.25 * ((x(7)-x(4))*(1-xi) + (x(6)-x(5))*(1+xi))     ! dx/dxi2
-            LocInvGrad(1,1) = 0.25 * ((y(7)-y(4))*(1-xi) + (y(6)-y(5))*(1+xi))   ! dy/dxi2
-            LocInvGrad(1,2) = 0.25 * ((z(7)-z(4))*(1-xi) + (z(6)-z(5))*(1+xi))   ! dz/dxi2
-            !
-            calcule_dsurf = (LocInvGrad(0,1) * LocInvGrad(1,2) - LocInvGrad(0,2) * LocInvGrad(1,1) )**2 + &
-                (LocInvGrad(0,2) * LocInvGrad(1,0) - LocInvGrad(0,0) * LocInvGrad(1,2) )**2 + &
-                (LocInvGrad(0,0) * LocInvGrad(1,1) - LocInvGrad(0,1) * LocInvGrad(1,0) )**2
-            calcule_dsurf = sqrt(calcule_dsurf)
-        case  (1)
-!!! Computation of the derivative matrix, dx_(jj)/dxi_(ii) !!!
-            !
-            LocInvGrad(0,0) = 0.25 * ((x(1)-x(0))*(1-zeta) + (x(5)-x(4))*(1+zeta))  ! dx/dxi1
-            LocInvGrad(0,1) = 0.25 * ((y(1)-y(0))*(1-zeta) + (y(5)-y(4))*(1+zeta))  ! dy/dxi1
-            LocInvGrad(0,2) = 0.25 * ((z(1)-z(0))*(1-zeta) + (z(5)-z(4))*(1+zeta))  ! dz/dxi1
-
-            LocInvGrad(2,0) = 0.25 * ((x(4)-x(0))*(1-xi) + (x(5)-x(1))*(1+xi) )      ! dx/dxi3
-            LocInvGrad(2,1) = 0.25 * ((y(4)-y(0))*(1-xi) + (y(5)-y(1))*(1+xi) )      ! dy/dxi3
-            LocInvGrad(2,2) = 0.25 * ((z(4)-z(0))*(1-xi) + (z(5)-z(1))*(1+xi) )      ! dz/dxi3
-
-            !
-            calcule_dsurf = (LocInvGrad(0,1) * LocInvGrad(2,2) - LocInvGrad(0,2) * LocInvGrad(2,1) )**2 + &
-                (LocInvGrad(0,2) * LocInvGrad(2,0) - LocInvGrad(0,0) * LocInvGrad(2,2) )**2 + &
-                (LocInvGrad(0,0) * LocInvGrad(2,1) - LocInvGrad(0,1) * LocInvGrad(2,0) )**2
-            calcule_dsurf = sqrt(calcule_dsurf)
-        case(3)
-!!! Computation of the derivative matrix, dx_(jj)/dxi_(ii) !!!
-            !
-            LocInvGrad(0,0) = 0.25 * ((x(3)-x(2))*(1-zeta) + (x(7)-x(6))*(1+zeta))  ! dx/dxi1
-            LocInvGrad(0,1) = 0.25 * ((y(3)-y(2))*(1-zeta) + (y(7)-y(6))*(1+zeta))  ! dy/dxi1
-            LocInvGrad(0,2) = 0.25 * ((z(3)-z(2))*(1-zeta) + (z(7)-z(6))*(1+zeta))  ! dz/dxi1
-
-            LocInvGrad(2,0) = 0.25 * ((x(6)-x(2))*(1-xi) + (x(7)-x(3))*(1+xi) )      ! dx/dxi3
-            LocInvGrad(2,1) = 0.25 * ((y(6)-y(2))*(1-xi) + (y(7)-y(3))*(1+xi) )      ! dy/dxi3
-            LocInvGrad(2,2) = 0.25 * ((z(6)-z(2))*(1-xi) + (z(7)-z(3))*(1+xi) )      ! dz/dxi3
-            !
-            calcule_dsurf = (LocInvGrad(0,1) * LocInvGrad(2,2) - LocInvGrad(0,2) * LocInvGrad(2,1) )**2 + &
-                (LocInvGrad(0,2) * LocInvGrad(2,0) - LocInvGrad(0,0) * LocInvGrad(2,2) )**2 + &
-                (LocInvGrad(0,0) * LocInvGrad(2,1) - LocInvGrad(0,1) * LocInvGrad(2,0) )**2
-            calcule_dsurf = sqrt(calcule_dsurf)
-        case(2)
-!!! Computation of the derivative matrix, dx_(jj)/dxi_(ii) !!!
-            !
-            LocInvGrad(1,0) = 0.25 *( (x(2) - x(1))*(1-zeta) + (x(6)-x(5))*(1+zeta) )     ! dx/dxi2
-            LocInvGrad(1,1) = 0.25 *( (y(2) - y(1))*(1-zeta) + (y(6)-y(5))*(1+zeta) )     ! dy/dxi2
-            LocInvGrad(1,2) = 0.25 *( (z(2) - z(1))*(1-zeta) + (z(6)-z(5))*(1+zeta) )     ! dz/dxi2
-
-            LocInvGrad(2,0) = 0.25 *(  (x(5) - x(1))*(1-eta) + (x(6)-x(2))*(1+eta) )       ! dx/dxi3
-            LocInvGrad(2,1) = 0.25 *(  (y(5) - y(1))*(1-eta) + (y(6)-y(2))*(1+eta) )       ! dy/dxi3
-            LocInvGrad(2,2) = 0.25 *(  (z(5) - z(1))*(1-eta) + (z(6)-z(2))*(1+eta) )       ! dz/dxi3
-            !
-            calcule_dsurf = (LocInvGrad(1,1) * LocInvGrad(2,2) - LocInvGrad(1,2) * LocInvGrad(2,1) )**2 + &
-                (LocInvGrad(1,2) * LocInvGrad(2,0) - LocInvGrad(1,0) * LocInvGrad(2,2) )**2 + &
-                (LocInvGrad(1,0) * LocInvGrad(2,1) - LocInvGrad(1,1) * LocInvGrad(2,0) )**2
-            calcule_dsurf = sqrt(calcule_dsurf)
-        case(4)
-!!! Computation of the derivative matrix, dx_(jj)/dxi_(ii) !!!
-            !
-            LocInvGrad(1,0) = 0.25 *( (x(3) - x(0))*(1-zeta) + (x(7)-x(4))*(1+zeta) )     ! dx/dxi2
-            LocInvGrad(1,1) = 0.25 *( (y(3) - y(0))*(1-zeta) + (y(7)-y(4))*(1+zeta) )     ! dy/dxi2
-            LocInvGrad(1,2) = 0.25 *( (z(3) - z(0))*(1-zeta) + (z(7)-z(4))*(1+zeta) )     ! dz/dxi2
-
-            LocInvGrad(2,0) = 0.25 *(  (x(4) - x(0))*(1-eta) + (x(7)-x(3))*(1+eta) )       ! dx/dxi3
-            LocInvGrad(2,1) = 0.25 *(  (y(4) - y(0))*(1-eta) + (y(7)-y(3))*(1+eta) )       ! dy/dxi3
-            LocInvGrad(2,2) = 0.25 *(  (z(4) - z(0))*(1-eta) + (z(7)-z(3))*(1+eta) )       ! dz/dxi3
-            !
-            calcule_dsurf = (LocInvGrad(1,1) * LocInvGrad(2,2) - LocInvGrad(1,2) * LocInvGrad(2,1) )**2 + &
-                (LocInvGrad(1,2) * LocInvGrad(2,0) - LocInvGrad(1,0) * LocInvGrad(2,2) )**2 + &
-                (LocInvGrad(1,0) * LocInvGrad(2,1) - LocInvGrad(1,1) * LocInvGrad(2,0) )**2
-            calcule_dsurf = sqrt(calcule_dsurf)
-
-        end select
-
-    end function calcule_dsurf
-
+        calcule_surf = sqrt( u(1)**2+u(2)**2+u(3)**2 )
+    end function calcule_surf
 
     !>
     !! \brief Remplissage de la structure face_couplage
@@ -1040,12 +909,11 @@ contains
     !!
     !<
 
-    subroutine remplit_face_couplage(Tdomain, rg, MaxNgParFace, MaxNgParDir)
+    subroutine remplit_face_couplage(Tdomain, MaxNgParFace, MaxNgParDir)
 
         use ref_orient
 
         type (domain), intent(IN)  :: Tdomain
-        integer, intent(in) :: rg
         integer, intent(out) :: MaxNgParFace, MaxNgParDir
         integer :: numFace, numElem, ngll1, ngll2, numlocal
         integer :: i, iface, j, iel, k
@@ -1060,7 +928,7 @@ contains
             MaxNgParDir = max(max(MaxNgParDir,ngll1),ngll2)
 
             face_couplage(iface)%face   = numFace
-            face_couplage(iface)%proc   = rg
+            face_couplage(iface)%proc   = Tdomain%rank
             face_couplage(iface)%ngll1   = ngll1  !3D Gsa
             face_couplage(iface)%ngll2   = ngll2  !3D Gsa
 
@@ -1208,19 +1076,17 @@ contains
     !!
     !<
 
-    subroutine reception_surface_part_mka(Tdomain, rg)
+    subroutine reception_surface_part_mka(Tdomain)
         use sdomain
         implicit none
 
         type (domain), intent(IN)  :: Tdomain
-        integer, intent(IN) :: rg
         integer, dimension (MPI_STATUS_SIZE) :: status
         integer :: tag, ierr
 
-
         ! a faire une seule fois
         if(comm_couplage%m_nb_point_de_couplage > 0) then
-            tag = 510000 + 1000*rg + 1
+            tag = 510000 + 1000*Tdomain%rank + 1
             call MPI_RECV (comm_couplage%m_surf_part,comm_couplage%m_nb_point_de_couplage, &
                 MPI_DOUBLE_PRECISION, Tdomain%master_superviseur, &
                 tag, Tdomain%communicateur_global, status, ierr )
@@ -1241,14 +1107,13 @@ contains
 !!!! Simple recuperation des vitesses aux points de Gauss
 !!!! Envoi des donnees au Superviseur
 !!!! --------------------------------------------------
-    subroutine envoi_vitesse_mka(Tdomain,ntime,rg)
+    subroutine envoi_vitesse_mka(Tdomain,ntime)
 
         use ref_orient
 
         type (domain), intent(INOUT)  :: Tdomain
         integer, intent(IN) :: ntime
 
-        integer :: rg
         integer :: tag, ierr
         integer :: i,j,numElem, numFace, numlocal, mat
         integer :: ngll
@@ -1364,19 +1229,17 @@ contains
     end subroutine envoi_vitesse_mka
 
 
-    subroutine reception_nouveau_pdt_sem(Tdomain, rg)
+    subroutine reception_nouveau_pdt_sem(Tdomain)
 
         use sdomain
         implicit none
-
-        integer, intent(IN) :: rg
         type (Domain), intent (INOUT) :: Tdomain
         integer :: n, mat
         real dtsem
         integer :: tag,ierr
         integer, dimension (MPI_STATUS_SIZE) :: status
 
-        tag = 4100000+10000*rg
+        tag = 4100000+10000*Tdomain%rank
         call MPI_RECV(dtsem, 1, MPI_DOUBLE_PRECISION, Tdomain%master_superviseur,tag, &
             Tdomain%communicateur_global, status,ierr)
 

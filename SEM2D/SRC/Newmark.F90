@@ -146,7 +146,7 @@ subroutine Newmark (Tdomain)
 
         do nv = 0, Tdomain%n_vertex-1
             Tdomain%sVertex(nv)%Forces= 0
-            if (Tdomain%sVertex(nv)%PML .AND. .NOT. Tdomain%sFace(nf)%CPML) then
+            if (Tdomain%sVertex(nv)%PML .AND. .NOT. Tdomain%sVertex(nv)%CPML) then
                 Tdomain%sVertex(nv)%Forces1= 0;    Tdomain%sVertex(nv)%Forces2= 0
             endif
         enddo
@@ -160,7 +160,7 @@ subroutine Newmark (Tdomain)
             nv = Tdomain%specel(n)%Near_Vertex(0)
             Tdomain%sVertex(nv)%Forces(0:1) = Tdomain%sVertex(nv)%Forces(0:1) + Tdomain%specel(n)%Forces(0,0,0:1)
 
-            if (Tdomain%sVertex(nv)%PML .AND. .NOT. Tdomain%sFace(nf)%CPML) then
+            if (Tdomain%sVertex(nv)%PML .AND. .NOT. Tdomain%sVertex(nv)%CPML) then
                 Tdomain%sVertex(nv)%Forces1(0:1) = Tdomain%sVertex(nv)%Forces1(0:1) + Tdomain%specel(n)%Forces1(0,0,0:1)
                 Tdomain%sVertex(nv)%Forces2(0:1) = Tdomain%sVertex(nv)%Forces2(0:1) + Tdomain%specel(n)%Forces2(0,0,0:1)
             endif
@@ -168,21 +168,21 @@ subroutine Newmark (Tdomain)
 
             nv = Tdomain%specel(n)%Near_Vertex(1)
             Tdomain%sVertex(nv)%Forces(0:1) = Tdomain%sVertex(nv)%Forces(0:1) + Tdomain%specel(n)%Forces(ngllx-1,0,0:1)
-            if (Tdomain%sVertex(nv)%PML .AND. .NOT. Tdomain%sFace(nf)%CPML) then
+            if (Tdomain%sVertex(nv)%PML .AND. .NOT. Tdomain%sVertex(nv)%CPML) then
                 Tdomain%sVertex(nv)%Forces1(0:1) = Tdomain%sVertex(nv)%Forces1(0:1) + Tdomain%specel(n)%Forces1(ngllx-1,0,0:1)
                 Tdomain%sVertex(nv)%Forces2(0:1) = Tdomain%sVertex(nv)%Forces2(0:1) + Tdomain%specel(n)%Forces2(ngllx-1,0,0:1)
             endif
 
             nv = Tdomain%specel(n)%Near_Vertex(2)
             Tdomain%sVertex(nv)%Forces(0:1) = Tdomain%sVertex(nv)%Forces(0:1) + Tdomain%specel(n)%Forces(ngllx-1,ngllz-1,0:1)
-            if (Tdomain%sVertex(nv)%PML .AND. .NOT. Tdomain%sFace(nf)%CPML) then
+            if (Tdomain%sVertex(nv)%PML .AND. .NOT. Tdomain%sVertex(nv)%CPML) then
                 Tdomain%sVertex(nv)%Forces1(0:1) = Tdomain%sVertex(nv)%Forces1(0:1) + Tdomain%specel(n)%Forces1(ngllx-1,ngllz-1,0:1)
                 Tdomain%sVertex(nv)%Forces2(0:1) = Tdomain%sVertex(nv)%Forces2(0:1) + Tdomain%specel(n)%Forces2(ngllx-1,ngllz-1,0:1)
             endif
 
             nv = Tdomain%specel(n)%Near_Vertex(3)
             Tdomain%sVertex(nv)%Forces(0:1) = Tdomain%sVertex(nv)%Forces(0:1) + Tdomain%specel(n)%Forces(0,ngllz-1,0:1)
-            if (Tdomain%sVertex(nv)%PML .AND. .NOT. Tdomain%sFace(nf)%CPML) then
+            if (Tdomain%sVertex(nv)%PML .AND. .NOT. Tdomain%sVertex(nv)%CPML) then
                 Tdomain%sVertex(nv)%Forces1(0:1) = Tdomain%sVertex(nv)%Forces1(0:1) + Tdomain%specel(n)%Forces1(0,ngllz-1,0:1)
                 Tdomain%sVertex(nv)%Forces2(0:1) = Tdomain%sVertex(nv)%Forces2(0:1) + Tdomain%specel(n)%Forces2(0,ngllz-1,0:1)
             endif
@@ -194,7 +194,7 @@ subroutine Newmark (Tdomain)
 
 
         ! AJOUT DES FORCES MKA3D
-#ifdef COUPLAGE
+if (Tdomain%couplage) then
         if (Tdomain%TimeD%ntime>0) then
             call calcul_couplage_force(Tdomain,Tdomain%TimeD%ntime)
         endif
@@ -218,7 +218,7 @@ subroutine Newmark (Tdomain)
             Tdomain%sVertex(nv)%Forces(0:1) = Tdomain%sVertex(nv)%ForcesMka(0:1) + Tdomain%sVertex(nv)%Forces(0:1)
         enddo
 
-#endif
+endif
 
 
 

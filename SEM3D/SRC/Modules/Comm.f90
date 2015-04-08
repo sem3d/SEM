@@ -37,39 +37,22 @@ module scomms
 !     end type comm_vector_2d
 
     type :: comm
+       ! Numero du proc avec qui on communique
+       integer :: dest
 
        integer :: nb_faces, nb_edges, nb_vertices, nb_edges_so,nb_vertices_so,    &
            nb_edges_neu,nb_vertices_neu,ngllSO
-#if ! NEW_GLOBAL_METHOD
-       integer :: ngll_F,ngllPML_F,ngllPML_tot
-#endif
        integer, dimension(:), pointer :: faces, edges, vertices, edges_SO, vertices_SO,edges_Neu, vertices_Neu
        integer, dimension(:), pointer :: orient_faces, orient_edges, orient_edges_SO, orient_edges_Neu
-#if ! NEW_GLOBAL_METHOD
-       ! Solide
-       integer :: ngll_tot
-       real, dimension(:), pointer :: Give, Take
-       real, dimension(:,:), pointer :: GivePML, TakePML
-#endif
        real, dimension(:), pointer :: GiveForcesSF_StoF, TakeForcesSF_StoF
        real, dimension(:,:), pointer :: GiveSO, TakeSO
        real, dimension(:,:), pointer :: GiveNeu, TakeNeu
        real, dimension(:,:), pointer :: GiveSF, TakeSF
 
-#if ! NEW_GLOBAL_METHOD
-       integer :: ngll ! *0:2
-       real, dimension(:,:), pointer :: GiveForces, TakeForces
-       integer :: ngllPML ! *1:3*0:2
-#endif
        real, dimension(:,:,:), pointer :: GiveForcesPML, TakeForcesPML,   &
                                         GiveForcesSF_FtoS_PML,TakeForcesSF_FtoS_PML
        real, dimension(:,:), pointer :: GiveForcesSF_FtoS, TakeForcesSF_FtoS,  &
                                         GiveForcesSF_StoF_PML,TakeForcesSF_StoF_PML
-#if ! NEW_GLOBAL_METHOD
-       ! fluid communications
-       real, dimension(:,:), pointer :: GiveForcesPMLFl, TakeForcesPMLFl
-       real, dimension(:), pointer :: GiveForcesFl, TakeForcesFl
-#endif
        ! Solid-fluid communication properties
        integer  :: SF_nf_shared, SF_ne_shared, SF_nv_shared, ngllSF, ngllSF_PML
        integer, dimension(:), pointer  :: SF_faces_shared, SF_edges_shared,      &

@@ -219,10 +219,8 @@ contains
         integer, dimension(:), allocatable, intent(out)   ::  SF_object_n_faces
         integer, intent(out)   :: SF_n_global_faces
 
-        integer   :: i,j,k,l,n,nf,nn,nnn,ok,num,neighbor_edge,neighbor_face
-        integer, dimension(0:1)  :: corner_edge
-        integer, dimension(0:3)  :: corner, corner_fl, neighbor_corner,  &
-            corner_s,edge_fl,edge_s
+        integer   :: j,k,n,nf,nn,nnn,ok,num,neighbor_face
+        integer, dimension(0:3)  :: corner, corner_fl, neighbor_corner
 
         SF_n_global_faces = 0
         write(*,*) "  --> Construction of Solid-Fluid objects."
@@ -501,7 +499,7 @@ contains
         type(SF_vertex), dimension(0:SF_n_global_vertices-1), intent(inout) ::  &
             SF_global_vertices
 
-        integer   :: i,nf,ns,js,jf,k,proc,nel
+        integer   :: i,ns,js,jf,k,nel
         integer, dimension(0:15)  :: tr_procf,tr_procs
         type(near_entity), pointer  :: near_neighb => NULL()
 
@@ -562,7 +560,7 @@ contains
             SF_edges_near_elem
         type(near_entity), pointer   :: near_neighb => NULL()
 
-        integer   :: i,j,n,nv0,nv1,jf,js,nf,nel
+        integer   :: i,n,jf,js,nel
         integer, dimension(0:15)   :: tr_procs,tr_procf
 
         do i = 0,SF_n_global_edges-1
@@ -626,7 +624,7 @@ contains
             SF_global_edges
 
         logical, dimension(:), allocatable   :: Lproc_solid,Lproc_fluid
-        integer   :: i,j,k,ind,nv0,nv1,n,np,nel,num,ok,n_proct,n_procf,n_procs
+        integer   :: i,j,k,ind,nv0,nv1,n,np,nel,num,ok,n_procf,n_procs
         integer, dimension(0:1)  :: npf,nps,e_neighbor_corner
         type(near_entity), pointer   :: near_neighb => NULL()
 
@@ -728,7 +726,7 @@ contains
         integer, dimension(0:SF_n_faces-1), intent(out) :: SF_face_orient, &
             SF_local_to_global_faces
         type(process_obj), dimension(0:), intent(inout)  :: MemorySF_F
-        integer :: i,j,k,nf,nel,nnf,num,n
+        integer :: j,k,nf,nel,nnf,num,n
 
         SF_nf_shared(0:) = 0
         SF_face_orient(0:) = -1
@@ -807,7 +805,7 @@ contains
         integer, dimension(0:nproc-1), intent(out)   :: SF_ne_shared
         integer, dimension(0:SF_n_edges-1), intent(out) :: SF_mapping_edges
         type(process_obj), dimension(0:), intent(inout)  :: MemorySF_E
-        integer :: i,j,k,nf,nel,nnf,num,n,ns,nes,ne,n0,n1,nns,nv0,nels,   &
+        integer :: i,j,nnf,num,n,ns,nes,ne,n0,n1,nns,nv0,nels,   &
             indf,inds,indgen,o_indf,o_inds,o_indgen
         logical   ::  orient_fluid,orient_solid,orient_fluid_loc,orient_solid_loc,  &
             orient_o_proc_fluid,orient_o_proc_solid
@@ -917,7 +915,7 @@ contains
         integer, dimension(0:,0:), intent(out)   :: SF_vertices_shared
         integer, dimension(0:nproc-1), intent(out)   :: SF_nv_shared
         type(process_obj), dimension(0:), intent(inout)  :: MemorySF_V
-        integer :: i,j,k,nf,nel,nnf,num,n,ns,nes,ne,n0,n1,nns,nv0,nels,  &
+        integer :: i,j,nf,nnf,num,ns,nns,  &
             indf,inds,indgen,o_indf,o_inds,o_indgen
 
         SF_vertices(0:,0:) = -1

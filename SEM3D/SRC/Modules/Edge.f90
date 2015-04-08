@@ -25,12 +25,10 @@ module sedges
        logical  :: solid, fluid_dirich
 
        type(edge_pml), pointer :: spml
-#ifdef COUPLAGE
-       real, dimension (:,:), allocatable :: ForcesMka
-       !     integer, dimension (:,:), allocatable :: FlagMka
-       real, dimension (:), allocatable :: tsurfsem
-#endif
 
+       !! Couplage Externe
+       real, dimension (:,:), allocatable :: ForcesExt
+       real, dimension (:), allocatable :: tsurfsem
 
     end type edge
 

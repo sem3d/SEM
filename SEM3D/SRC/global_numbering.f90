@@ -1,19 +1,19 @@
 !>
 !!\file global_numbering.f90
-!!\brief Assure la correspondance entre les différentes numérotations.
+!!\brief Assure la correspondance entre les diffï¿½rentes numï¿½rotations.
 !!
 !<
 
 
 !>
-!! Définition de Iglobnum et  renvoi du nombre total de ddl: elements, faces, aretes, sommets
+!! Dï¿½finition de Iglobnum et  renvoi du nombre total de ddl: elements, faces, aretes, sommets
 !!
 !<
 module mrenumber
   public :: global_numbering
   private :: populate_index_SF,renum_element, renum_face, renum_edge,renum_vertex
 contains
-subroutine global_numbering(Tdomain,rank)
+subroutine global_numbering(Tdomain)
 
     ! routine different from the 2D case. Everything is independently numbered, here (inner
     !      points in elements, on faces, edges and vertices). And then associated in
@@ -23,7 +23,6 @@ subroutine global_numbering(Tdomain,rank)
     use sdomain
     use mindex
     implicit none
-    integer, intent(in)  :: rank
     type(domain), intent (inout) :: Tdomain
     integer :: n, icount, i, j, k, ngllx, nglly, ngllz, nf, nnf, ne, nne, nv, ngll1, ngll2,   &
         orient_f, orient_e, ngll, nnv
@@ -39,6 +38,7 @@ subroutine global_numbering(Tdomain,rank)
     logical :: saut
 
 
+	!Elements Inner GLL points
     icount = 0
     abscount = 0
 
@@ -58,7 +58,7 @@ subroutine global_numbering(Tdomain,rank)
         enddo
     enddo
 
-
+	!Faces Inner GLL points
     do n = 0,Tdomain%n_face-1
         ngllx = Tdomain%sFace(n)%ngll1
         nglly = Tdomain%sFace(n)%ngll2
@@ -75,6 +75,7 @@ subroutine global_numbering(Tdomain,rank)
         endif
     enddo
 
+	!Edges Inner GLL points
     do n = 0,Tdomain%n_edge-1
         ngllx = Tdomain%sEdge(n)%ngll
         allocate(Tdomain%sEdge(n)%Iglobnum_Edge(1:ngllx-2))
@@ -88,6 +89,7 @@ subroutine global_numbering(Tdomain,rank)
         endif
     enddo
 
+	!Corner GLL points
     do n = 0,Tdomain%n_vertex-1
         Tdomain%sVertex(n)%Iglobnum_Vertex = icount
         icount = icount + 1
@@ -98,18 +100,15 @@ subroutine global_numbering(Tdomain,rank)
 
     Tdomain%nbOuterPMLNodes = abscount
     allocate(Tdomain%OuterPMLNodes(0:Tdomain%nbOuterPMLNodes-1))
-
     ! total number of GLL points (= degrees of freedom)
     Tdomain%n_glob_points = icount
 
-
-    ! recollecting at the element level, from faces, edges and vertices.
-
+    !Recollecting at the element level, from faces, edges and vertices.
     do n = 0,Tdomain%n_elem-1
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
-        ! taking information from faces
+        !Taking information from faces
         do nf = 0,5
             orient_f = Tdomain%specel(n)%Orient_Faces(nf)
             nnf = Tdomain%specel(n)%Near_Faces(nf)
@@ -119,10 +118,11 @@ subroutine global_numbering(Tdomain,rank)
             select case(orient_f)
             case(0,1,2,3)
                 if(nf == 2 .or. nf == 4)then
-                    Tdomain%specel(n)%Iglobnum(index_elem_f(0),                       &
+                    Tdomain%specel(n)%Iglobnum(                             &
+                        index_elem_f(0),                                    &
                         index_elem_f(1):index_elem_f(2):index_elem_f(3),    &
-                        index_elem_f(4):index_elem_f(5):index_elem_f(6)) =  &
-                        Tdomain%sFace(nnf)%Iglobnum_Face(1:ngll1-2,1:ngll2-2)
+                        index_elem_f(4):index_elem_f(5):index_elem_f(6))    &
+                        = Tdomain%sFace(nnf)%Iglobnum_Face(1:ngll1-2,1:ngll2-2)
                 else if(nf == 1 .or. nf == 3)then
                     Tdomain%specel(n)%Iglobnum(index_elem_f(1):index_elem_f(2):index_elem_f(3), &
                         index_elem_f(0),                                              &
@@ -133,7 +133,6 @@ subroutine global_numbering(Tdomain,rank)
                         index_elem_f(4):index_elem_f(5):index_elem_f(6),    &
                         index_elem_f(0)) =                                  &
                         Tdomain%sFace(nnf)%Iglobnum_Face(1:ngll1-2,1:ngll2-2)
-
                 end if
             case(4,5,6,7)
                 if(nf == 2 .or. nf == 4)then
@@ -158,7 +157,7 @@ subroutine global_numbering(Tdomain,rank)
         end do
 
 
-        ! taking information from edges
+        !Taking information from edges
         do ne = 0,11
             orient_e = Tdomain%specel(n)%Orient_Edges(ne)
             nne = Tdomain%specel(n)%Near_Edges(ne)
@@ -180,7 +179,7 @@ subroutine global_numbering(Tdomain,rank)
             end select
         end do
 
-        ! taking information from vertices
+        !Taking information from vertices
         do nv = 0,7
             nnv = Tdomain%specel(n)%Near_Vertices(nv)
             call ind_elem_vertex(nv,ngllx,nglly,ngllz,index_elem_v)
@@ -396,12 +395,12 @@ subroutine global_numbering(Tdomain,rank)
                 ngllz = Tdomain%specel(n)%ngllz
 
                 !write(*,*) "DEBUG: rank, which_elem fluide", rank, n, dir
-                call populate_index_SF(rank, 1, Tdomain%SF%ngll, dir, ngllx, nglly, ngllz, &
+                call populate_index_SF(Tdomain%rank, 1, Tdomain%SF%ngll, dir, ngllx, nglly, ngllz, &
                                        Tdomain%specel(n)%IFlu,  &
                                        Tdomain%specel(n)%IGlobnum, kl, &
                                        Tdomain%n_glob_points, renumSF, Tdomain%SF%SF_Face(nf)%I_sf)
             else
-                write(*,*) "ZZZZZZ Face fluide sur autre proc", rank, nf, Tdomain%SF%SF_Face(nf)%Face(1) 
+                write(*,*) "ZZZZZZ Face fluide sur autre proc", Tdomain%rank, nf, Tdomain%SF%SF_Face(nf)%Face(1) 
                 saut = .true.
             end if
 
@@ -415,12 +414,12 @@ subroutine global_numbering(Tdomain,rank)
                 ngllz = Tdomain%specel(n)%ngllz
 
                 !write(*,*) "DEBUG: rank, which_elem solide", rank, n, dir
-                call populate_index_SF(rank, 2, Tdomain%SF%ngll, dir, ngllx, nglly, ngllz, &
+                call populate_index_SF(Tdomain%rank, 2, Tdomain%SF%ngll, dir, ngllx, nglly, ngllz, &
                                        Tdomain%specel(n)%ISol,  &
                                        Tdomain%specel(n)%IGlobnum, ks, &
                                        Tdomain%n_glob_points, renumSF, Tdomain%SF%SF_Face(nf)%I_sf)
             else
-                write(*,*) "ZZZZZZ Face solide sur autre proc", rank, nf, Tdomain%SF%SF_Face(nf)%Face(0)
+                write(*,*) "ZZZZZZ Face solide sur autre proc", Tdomain%rank, nf, Tdomain%SF%SF_Face(nf)%Face(0)
                 saut = .true.
             end if
 
@@ -555,8 +554,8 @@ subroutine global_numbering(Tdomain,rank)
         endif
     enddo
 
-    call prepare_comm_vector(Tdomain,rank,Tdomain%Comm_data, 3, 9, 1, 3)
-    call prepare_comm_vector_SF(Tdomain,rank,Tdomain%n_glob_points,renumSF,Tdomain%Comm_SolFlu)
+    call prepare_comm_vector(Tdomain,Tdomain%Comm_data, 3, 9, 1, 3)
+    call prepare_comm_vector_SF(Tdomain,Tdomain%n_glob_points,renumSF,Tdomain%Comm_SolFlu)
 !     call debug_comm_vector(Tdomain, rank, 0, 1, Tdomain%Comm_data)
 !     call debug_comm_vector(Tdomain, rank, 0, 2, Tdomain%Comm_data)
 !     call debug_comm_vector(Tdomain, rank, 0, 3, Tdomain%Comm_data)
@@ -570,21 +569,20 @@ subroutine global_numbering(Tdomain,rank)
     return
 end subroutine global_numbering
 
-subroutine prepare_comm_vector(Tdomain,rank,comm_data, nddlsol, nddlsolpml, nddlfluid, nddlfluidpml)
+subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid, nddlfluidpml)
     use sdomain
     implicit none
 
     type(domain), intent (inout) :: Tdomain
     type(comm_vector), intent(inout) :: comm_data
     integer, intent(in) :: nddlsol, nddlsolpml, nddlfluid, nddlfluidpml
-    integer, intent(in) :: rank
 
     integer :: n,nproc,nsol,nsolpml,nflu,nflupml
     integer :: i,j,k,nf,ne,nv,idx,ngll1,ngll2
 
     ! Remplissage des IGive et ITake
-    if(Tdomain%n_proc > 1)then
-        call allocate_comm_vector(Tdomain,rank, comm_data, nddlsol, nddlsolpml, &
+    if(Tdomain%nb_procs > 1)then
+        call allocate_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, &
                                   nddlfluid, nddlfluidpml)
 
         do n = 0,Comm_data%ncomm-1
@@ -1111,25 +1109,24 @@ subroutine prepare_comm_vector(Tdomain,rank,comm_data, nddlsol, nddlsolpml, nddl
                     endif
                 endif
             enddo
-        enddo 
+        enddo
     endif
 
 end subroutine prepare_comm_vector
 
 
-subroutine allocate_comm_vector(Tdomain,rank, comm_data, nddlsol, nddlsolpml, nddlfluid, nddlfluidpml)
+subroutine allocate_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid, nddlfluidpml)
     use sdomain
     implicit none
 
     type(domain), intent (inout) :: Tdomain
     type(comm_vector), intent(inout) :: comm_data
     integer, intent(in) :: nddlsol, nddlsolpml, nddlfluid, nddlfluidpml
-    integer, intent(in) :: rank
     integer :: n_data, n_comm, nsol, nsolpml, nflu, nflupml
     integer :: n, nf, ne, nv, i, temp
 
     n_comm = 0
-    do n = 0,Tdomain%n_proc-1
+    do n = 0,Tdomain%nb_procs-1
         if (Tdomain%sComm(n)%nb_faces > 0 .OR. &
             Tdomain%sComm(n)%nb_edges > 0 .OR. &
             Tdomain%sComm(n)%nb_vertices > 0) then
@@ -1143,7 +1140,7 @@ subroutine allocate_comm_vector(Tdomain,rank, comm_data, nddlsol, nddlsolpml, nd
     Comm_data%ncomm = n_comm
 
     n_comm = 0
-    do n = 0,Tdomain%n_proc-1
+    do n = 0,Tdomain%nb_procs-1
         if (Tdomain%sComm(n)%nb_faces < 1 .AND. &
             Tdomain%sComm(n)%nb_edges < 1 .AND. &
             Tdomain%sComm(n)%nb_vertices < 1) cycle
@@ -1209,7 +1206,7 @@ subroutine allocate_comm_vector(Tdomain,rank, comm_data, nddlsol, nddlsolpml, nd
 
         n_data = nddlsol*nsol+nddlsolpml*nsolpml+nddlfluid*nflu+nddlfluidpml*nflupml
         ! Initialisation et allocation de Comm_vector_DumpMassAndMMSP
-        Comm_data%Data(n_comm)%src = rank
+        Comm_data%Data(n_comm)%src = Tdomain%rank
         Comm_data%Data(n_comm)%dest = n
         Comm_data%Data(n_comm)%ndata = n_data
         Comm_data%Data(n_comm)%nsol = nsol
@@ -1233,21 +1230,21 @@ subroutine allocate_comm_vector(Tdomain,rank, comm_data, nddlsol, nddlsolpml, nd
     return
 end subroutine allocate_comm_vector
 
-subroutine prepare_comm_vector_SF(Tdomain,rank,ngll,renumSF,comm_data)
+subroutine prepare_comm_vector_SF(Tdomain,ngll,renumSF,comm_data)
     use sdomain
     implicit none
 
     type(domain), intent (inout) :: Tdomain
     type(comm_vector), intent(inout) :: comm_data
-    integer, intent(in) :: rank, ngll
+    integer, intent(in) :: ngll
     integer, intent(in), dimension(0:ngll-1,0:2) :: renumSF
 
     integer :: n,nproc,nSF
     integer :: i,j,k,nf,ne,nv,idx,ngll1,ngll2, m, idx2, nb
 
     ! Remplissage des IGive et ITake
-    if(Tdomain%n_proc > 1)then
-        call allocate_comm_vector_SF(Tdomain,rank, comm_data)
+    if(Tdomain%nb_procs > 1)then
+        call allocate_comm_vector_SF(Tdomain, comm_data)
 
         do n = 0,Comm_data%ncomm-1
             nproc = Comm_data%Data(n)%dest
@@ -1279,7 +1276,7 @@ subroutine prepare_comm_vector_SF(Tdomain,rank,ngll,renumSF,comm_data)
                 nSF = nSF + 1
             enddo
 
-            write(*,*) "GGGGG rank,n,nb", rank, n, nb
+            write(*,*) "GGGGG rank,n,nb", Tdomain%rank, n, nb
 
             nSF = 0
             ! Remplissage des ITake
@@ -1396,18 +1393,17 @@ subroutine prepare_comm_vector_SF(Tdomain,rank,ngll,renumSF,comm_data)
 
 end subroutine prepare_comm_vector_SF
 
-subroutine allocate_comm_vector_SF(Tdomain, rank, comm_data)
+subroutine allocate_comm_vector_SF(Tdomain, comm_data)
     use sdomain
     implicit none
 
     type(domain), intent (inout) :: Tdomain
     type(comm_vector), intent(inout) :: comm_data
-    integer, intent(in) :: rank
     integer :: n_data, n_comm, nSF
     integer :: n, nf, ne, nv, i
 
     n_comm = 0
-    do n = 0,Tdomain%n_proc-1
+    do n = 0,Tdomain%nb_procs-1
         if (Tdomain%sComm(n)%SF_nf_shared > 0 .OR. &
             Tdomain%sComm(n)%SF_ne_shared > 0 .OR. &
             Tdomain%sComm(n)%SF_nv_shared > 0) then
@@ -1421,7 +1417,7 @@ subroutine allocate_comm_vector_SF(Tdomain, rank, comm_data)
     Comm_data%ncomm = n_comm
 
     n_comm = 0
-    do n = 0,Tdomain%n_proc-1
+    do n = 0,Tdomain%nb_procs-1
         if (Tdomain%sComm(n)%SF_nf_shared < 1 .AND. &
             Tdomain%sComm(n)%SF_ne_shared < 1 .AND. &
             Tdomain%sComm(n)%SF_nv_shared < 1) cycle
@@ -1447,7 +1443,7 @@ subroutine allocate_comm_vector_SF(Tdomain, rank, comm_data)
         n_data = nSF
 
         ! Initialisation et allocation de Comm_vector
-        Comm_data%Data(n_comm)%src = rank
+        Comm_data%Data(n_comm)%src = Tdomain%rank
         Comm_data%Data(n_comm)%dest = n
         Comm_data%Data(n_comm)%ndata = n_data
         allocate(Comm_data%Data(n_comm)%Give(0:n_data-1))
@@ -1676,14 +1672,16 @@ subroutine renum_vertex(Iglobnum, idx, renum, isPML)
     return
 end subroutine renum_vertex
 
-subroutine debug_comm_vector(Tdomain, rank, src, dest, commvec)
+subroutine debug_comm_vector(Tdomain, src, dest, commvec)
     use sdomain
     implicit none
     type(domain), intent(in) :: Tdomain
-    integer, intent(in) :: rank, src, dest
+    integer, intent(in) :: src, dest
     type(comm_vector), intent(in) :: commvec
     !
-    integer :: i,k
+    integer :: i,k,rank
+
+    rank = Tdomain%rank
 
     do i=0, commvec%ncomm-1
         if (commvec%Data(i)%src/=src .or. commvec%Data(i)%dest/=dest) cycle

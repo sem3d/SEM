@@ -14,20 +14,41 @@ module mesh_earthchunk
 
 contains
 
-    subroutine sph2cart(r, lon, lat, x, y, z)
+    subroutine sph2cart(r, theta, phi, x, y, z)
         implicit none
-        real, intent(in) :: r, lon, lat
+        real, intent(in) :: r, theta, phi
         real, intent(out) :: x, y, z
-        real :: colatRad, lonRad
-        colatRad = (90.0-lat)*Pi180
-        lonRad = lon*Pi180
 
-        x = r * sin(colatRad) * sin(lonRad)
-        y = r * sin(colatRad) * cos(lonRad)
-        z = r * cos(colatRad)
-
+        x = r * sin(theta) * cos(phi)
+        y = r * sin(theta) * sin(phi)
+        z = r * cos(theta)
 
     end subroutine sph2cart
+
+    subroutine loc2cart_regsem(r, alpha, beta, x, y, z)
+        implicit none
+        real, intent(in) :: r, alpha, beta
+        real, intent(out) :: x, y, z
+        real :: a, b, d
+
+        a = tan(alpha)
+        b = tan(beta)
+        d = sqrt(1.0+a*a+b*b)
+        x = r*a/d
+        y = r*b/d
+        z = r/d
+    end subroutine loc2cart_regsem
+
+    subroutine loc2cart(r, alpha, beta, x, y, z)
+        implicit none
+        real, intent(in) :: r, alpha, beta
+        real, intent(out) :: x, y, z
+
+        x = r*sin(alpha)
+        y = r*sin(beta)
+        z = sqrt(r*r - x*x - y*y)
+
+    end subroutine loc2cart
 
 
     function find_nextdepth(curDepth, delta_angle, ratio) result(z)
@@ -68,6 +89,12 @@ contains
         chunk%delta_lon = (chunk%npt_lon-1) * chunk%step_lonlat
         chunk%delta_lat = (chunk%npt_lat-1) * chunk%step_lonlat
 
+
+        open(11, file="earthchunk_transform.txt", form="formatted")
+        write(11,*) "lon_center", chunk%lon_center
+        write(11,*) "lat_center", chunk%lat_center
+        write(11,*) "earth_radius", Earth_radius
+        close(11)
 
 
         countPt=0
@@ -141,24 +168,7 @@ contains
 
 
 
-    subroutine defineRotation(lon, lat, mat)
-        real, intent(in) :: lon, lat
-        real, dimension(0:2,0:2) :: mat
-        real :: theta, phi
 
-        theta = lat*Pi180
-        phi = lon*Pi180
-        mat(0,0) = cos(phi)
-        mat(0,1) = sin(phi)*cos(theta)
-        mat(0,2) = -sin(phi)*sin(theta)
-        mat(1,0) = -sin(phi)
-        mat(1,1) = cos(phi)*cos(theta)
-        mat(1,2) = -cos(phi)*sin(theta)
-        mat(2,0) = 0
-        mat(2,1) = sin(theta)
-        mat(2,2) = cos(theta)
-
-    end subroutine defineRotation
 
 
     subroutine create_earthchunk(chunk, pml_b, nmat, xp, yp, zp, Ipoint, mat)
@@ -170,25 +180,21 @@ contains
         integer :: nelemx, nelemy, nelemz, iex, iey, iez, ix, iy, iz, indice, dX, dXY
         real :: curDepth, curX, curY, x, y, z
         real, dimension(0:2,0:2) :: rotToRealChunk
-!        real :: refX, refY, sizeChunk
         type(EarthChunk_t), intent(in) :: chunk
 
-
-        call defineRotation(chunk%lon_center, chunk%lat_center, rotToRealChunk)
-
-
-
         indice=0
-        do iz=0,chunk%npt_z-1
+        do iz=chunk%npt_z-1,0,-1
+        !do iz=0,chunk%npt_z-1
             curDepth = chunk%z_depth(iz)
             do iy=0, chunk%npt_lon-1
                 curY = - chunk%delta_lon/2 + iy*chunk%step_lonlat
                 do ix=0, chunk%npt_lat-1
                     curX = - chunk%delta_lat/2 + ix*chunk%step_lonlat
-                    call sph2cart(Earth_radius-curDepth, curY, curX, x, y, z)
-                    xp(indice) = x * rotToRealChunk(0,0) + y * rotToRealChunk(0,1) + z * rotToRealChunk(0,2)
-                    yp(indice) = x * rotToRealChunk(1,0) + y * rotToRealChunk(1,1) + z * rotToRealChunk(1,2)
-                    zp(indice) = x * rotToRealChunk(2,0) + y * rotToRealChunk(2,1) + z * rotToRealChunk(2,2)
+                    call loc2cart_regsem(Earth_radius-curDepth, curX*Pi180, curY*Pi180, x, y, z)
+                    !call loc2cart(Earth_radius-curDepth, curX*Pi180, curY*Pi180, x, y, z)
+                    xp(indice) = x
+                    yp(indice) = y
+                    zp(indice) = z
                     indice = indice+1
                 end do
             end do
@@ -267,7 +273,8 @@ contains
 
                     mat(indice) = nmat-1
 
-                    if( iez == nelemz-1) then
+                    !if( iez == nelemz-1) then
+                    if( iez == 0) then
                         mat(indice) = nmat+16
                         if( iex==0 ) then
                             mat(indice) = nmat+15
@@ -307,6 +314,7 @@ contains
                     else if( iey== nelemy-1) then
                         mat(indice) = nmat+6
                     end if
+
 
                     indice = indice+1
                 end do

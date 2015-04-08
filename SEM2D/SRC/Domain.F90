@@ -26,13 +26,13 @@ module sdomain
 
 
     type :: domain
-
+       ! Communicateur pour tous les processus SEM
        integer :: communicateur
-#ifdef MKA3D
+       ! Communicateurs utilises uniquement pour le couplage
        integer :: communicateur_global
        integer :: master_superviseur
-#endif
-
+       logical :: couplage
+       !
        integer :: n_elem, n_face, n_vertex, n_source,n_glob_nodes, n_line ,n_receivers
        integer :: n_nodes, n_mat,n_glob_points, n_super_object, n_fault, n_communications
        integer :: pml_type   ! Type of PML used (if any)

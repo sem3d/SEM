@@ -1,14 +1,11 @@
 !>
 !!\file Newmark.f90
 !!\brief Algorithme de Newmark
-!!\author
-!!\version 1.0
-!!\date 10/03/2009
-!! La routine Newmark assure la r�solution des �quations via un algorithme de predicteur-multi-correcteur
-!! des vitesses avec une formulation contrainte-vitesse d�cal�e en temps dans les PML.
+!! La routine Newmark assure la résolution des équations via un algorithme de predicteur-multi-correcteur
+!! des vitesses avec une formulation contrainte-vitesse décalée en temps dans les PML.
 !<
 
-subroutine Newmark(Tdomain,rg,ntime)
+subroutine Newmark(Tdomain,ntime)
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a
     ! Time staggered Stress-Velocity formulation inside PML
     use sdomain
@@ -26,9 +23,8 @@ subroutine Newmark(Tdomain,rg,ntime)
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    integer, intent(in) :: rg,ntime
-
-    integer :: n, mat,code
+    integer, intent(in) :: ntime
+    integer :: n, mat
     integer :: nf, ne, nv
     integer :: nf_aus, ne_aus, nv_aus
     integer :: ngll, ngll1, ngll2, ngllPML, ngll_F, ngllPML_F
@@ -54,13 +50,13 @@ subroutine Newmark(Tdomain,rg,ntime)
 
     ! External Forces
     if(Tdomain%logicD%any_source)then
-        call external_forces(Tdomain,Tdomain%TimeD%rtime,ntime,rg,Tdomain%champs1)
+        call external_forces(Tdomain,Tdomain%TimeD%rtime,ntime,Tdomain%champs1)
     end if
 
 #ifdef COUPLAGE
 #if 0
     if (ntime>0) then
-        call calcul_couplage_force(Tdomain, ntime, rg)
+        call calcul_couplage_force(Tdomain, ntime)
     endif
 
     !Gsa Ipsis (tout le passage)
@@ -78,7 +74,7 @@ subroutine Newmark(Tdomain,rg,ntime)
         ngll2 = Tdomain%sFace(nf)%ngll2
         do j=1,ngll2-2
             do i=1,ngll1-2
-                Tdomain%sFace(nf)%Forces(i,j,0:2) = Tdomain%sFace(nf)%ForcesMka(i,j,0:2) + Tdomain%sFace(nf)%Forces(i,j,0:2)
+                Tdomain%sFace(nf)%Forces(i,j,0:2) = Tdomain%sFace(nf)%ForcesExt(i,j,0:2) + Tdomain%sFace(nf)%Forces(i,j,0:2)
             enddo
         enddo
 
@@ -88,20 +84,20 @@ subroutine Newmark(Tdomain,rg,ntime)
     do nf = 0, Tdomain%n_edge-1
         ngll = Tdomain%sEdge(nf)%ngll
         do i=1,ngll-2
-            Tdomain%sEdge(nf)%Forces(i,0:2) = Tdomain%sEdge(nf)%ForcesMka(i,0:2) + Tdomain%sEdge(nf)%Forces(i,0:2)
+            Tdomain%sEdge(nf)%Forces(i,0:2) = Tdomain%sEdge(nf)%ForcesExt(i,0:2) + Tdomain%sEdge(nf)%Forces(i,0:2)
         enddo
     enddo
 
     ! pour prendre en compte les forces imposee lors du couplage avec mka sur les points de gauss des vertex
     do nv = 0, Tdomain%n_vertex-1
-        Tdomain%sVertex(nv)%Forces(0:2) = Tdomain%sVertex(nv)%ForcesMka(0:2) + Tdomain%sVertex(nv)%Forces(0:2)
+        Tdomain%sVertex(nv)%Forces(0:2) = Tdomain%sVertex(nv)%ForcesExt(0:2) + Tdomain%sVertex(nv)%Forces(0:2)
     enddo
 #endif
 #endif
 
 
     ! MPI communications
-    call comm_forces(Tdomain,rg)
+    call comm_forces(Tdomain)
 
     ! Neumann B.C.: associated forces
     if(Tdomain%logicD%neumann_local_present)then
@@ -192,20 +188,19 @@ subroutine Newmark(Tdomain,rg,ntime)
                                        Tdomain%champs0%Depla)
     end if
 
-    if (rg==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
+    if (Tdomain%rank==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
 
     return
 
 end subroutine Newmark
 !---------------------------------------------------------------------------------------
 !---------------------------------------------------------------------------------------
-subroutine comm_forces(Tdomain,rg)
+subroutine comm_forces(Tdomain)
     use sdomain
     use scomm
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
-    integer, intent(in)  :: rg
 
     integer :: n, i, j, k, m, idx
 
@@ -473,20 +468,20 @@ subroutine internal_forces(Tdomain,champs1)
 end subroutine internal_forces
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
-subroutine external_forces(Tdomain,timer,ntime,rank,champs1)
+subroutine external_forces(Tdomain,timer,ntime,champs1)
     use sdomain
     use schamps
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    integer, intent(in)  :: rank, ntime
+    integer, intent(in)  :: ntime
     real, intent(in)  :: timer
     type(champs), intent(inout)  :: champs1
-    integer  :: ns,nel,i_dir, i,j,k
+    integer  :: ns,nel,i_dir, i,j,k, idx
     real :: t, ft
 
     do ns = 0, Tdomain%n_source-1
-        if(rank == Tdomain%sSource(ns)%proc)then
+        if(Tdomain%rank == Tdomain%sSource(ns)%proc)then
             nel = Tdomain%Ssource(ns)%elem
 
             !  vieille version:
@@ -506,7 +501,8 @@ subroutine external_forces(Tdomain,timer,ntime,rank,champs1)
                     do k = 0,Tdomain%specel(nel)%ngllz-1
                         do j = 0,Tdomain%specel(nel)%nglly-1
                             do i = 0,Tdomain%specel(nel)%ngllx-1
-                                champs1%Forces(Tdomain%specel(nel)%Isol(i,j,k),i_dir) = champs1%Forces(Tdomain%specel(nel)%Isol(i,j,k),i_dir) + &
+                                idx = Tdomain%specel(nel)%Isol(i,j,k)
+                                champs1%Forces(idx, i_dir) = champs1%Forces(idx, i_dir) + &
                                     ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
                             enddo
                         enddo
@@ -516,7 +512,8 @@ subroutine external_forces(Tdomain,timer,ntime,rank,champs1)
                 do k = 0,Tdomain%specel(nel)%ngllz-1
                     do j = 0,Tdomain%specel(nel)%nglly-1
                         do i = 0,Tdomain%specel(nel)%ngllx-1
-                            champs1%ForcesFl(Tdomain%specel(nel)%Iflu(i,j,k)) = champs1%ForcesFl(Tdomain%specel(nel)%Iflu(i,j,k)) +    &
+                            idx = Tdomain%specel(nel)%Iflu(i,j,k)
+                            champs1%ForcesFl(idx) = champs1%ForcesFl(idx) +    &
                                 ft*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
                         enddo
                     enddo

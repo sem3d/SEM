@@ -8,7 +8,7 @@
  * Started 10/2/97
  * George
  *
- * $Id: rename.h 10565 2011-07-13 16:07:36Z karypis $
+ * $Id: rename.h 13933 2013-03-29 22:20:46Z karypis $
  *
  */
 
@@ -35,6 +35,9 @@
 #define CoarsenGraph			libmetis__CoarsenGraph
 #define Match_RM                        libmetis__Match_RM
 #define Match_SHEM                      libmetis__Match_SHEM
+#define Match_2Hop                      libmetis__Match_2Hop
+#define Match_2HopAny                   libmetis__Match_2HopAny
+#define Match_2HopAll                   libmetis__Match_2HopAll
 #define PrintCGraphStats                libmetis__PrintCGraphStats
 #define CreateCoarseGraph		libmetis__CreateCoarseGraph
 #define CreateCoarseGraphNoMask		libmetis__CreateCoarseGraphNoMask
@@ -144,8 +147,9 @@
 
 /* mesh.c */
 #define CreateGraphDual                 libmetis__CreateGraphDual
-#define CreateGraphNodal                libmetis__CreateGraphNodal
 #define FindCommonElements              libmetis__FindCommonElements
+#define CreateGraphNodal                libmetis__CreateGraphNodal
+#define FindCommonNodes                 libmetis__FindCommonNodes
 #define CreateMesh                      libmetis__CreateMesh
 #define InitMesh                        libmetis__InitMesh
 #define FreeMesh                        libmetis__FreeMesh

@@ -121,8 +121,11 @@ int expect_source_func(yyscan_t scanner, int* type)
     if (cmp(scanner,"square"))       { *type = 8; return 1; }
     if (cmp(scanner,"tanh"))         { *type = 9; return 1; }
     if (cmp(scanner,"ricker_fl"))    { *type =10; return 1; }
+    if (cmp(scanner,"triangle"))     { *type =11; return 1; }
+    if (cmp(scanner,"hsf"))          { *type =12; return 1; }
+    if (cmp(scanner,"dm"))           { *type =13; return 1; }
 error:
-    msg_err(scanner, "Expected gaussian|ricker|tf_heaviside|gabor|file|spice_bench|sinus|square|tanh|ricker_fl");
+    msg_err(scanner, "Expected gaussian|ricker|tf_heaviside|gabor|file|spice_bench|sinus|square|tanh|ricker_fl|triangle|hsf");
     return 0;
 }
 
@@ -165,6 +168,14 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"gamma")) err=expect_eq_float(scanner, &source->gamma, 1);
 	else if (cmp(scanner,"time_file")) err=expect_eq_string(scanner, &source->time_file,1);
 	else if (cmp(scanner,"amplitude")) err=expect_eq_float(scanner, &source->amplitude, 1);
+        else if (cmp(scanner,"Q")) err=expect_eq_float(scanner, &source->Q, 1);
+        else if (cmp(scanner,"Y")) err=expect_eq_float(scanner, &source->Y, 1);
+        else if (cmp(scanner,"X")) err=expect_eq_float(scanner, &source->X, 1);
+        else if (cmp(scanner,"L")) err=expect_eq_float(scanner, &source->L, 1);
+        else if (cmp(scanner,"v")) err=expect_eq_float(scanner, &source->v, 1);
+        else if (cmp(scanner,"d")) err=expect_eq_float(scanner, &source->d, 1);
+        else if (cmp(scanner,"a")) err=expect_eq_float(scanner, &source->a, 1);
+
 
 	if (err<=0) return 0;
 	if (!expect_eos(scanner)) { return 0; }
@@ -268,9 +279,26 @@ int expect_material_type(yyscan_t scanner, int* type) {
     if (tok!=K_ID) goto error;
     if (cmp(scanner,"constant"))  { *type = 1; return 1; }
     if (cmp(scanner,"gradient"))  { *type = 2; return 1; }
-    if (cmp(scanner,"earthchunk"))      { *type = 3; return 1; }
+    if (cmp(scanner,"earthchunk")){ *type = 3; return 1; }
+    if (cmp(scanner,"prem"))      { *type = 4; return 1; }
 error:
-    msg_err(scanner, "Expected constant|gradient|earthchunk");
+    msg_err(scanner, "Expected constant|gradient|earthchunk|prem");
+    return 0;
+}
+
+int expect_station_type(yyscan_t scanner, int* type) {
+    int tok;
+    int len;
+
+    if (!expect_eq(scanner)) return 0;
+    tok = skip_blank(scanner);
+    if (tok!=K_ID) goto error;
+    if (cmp(scanner,"points"))  { *type = 1; return 1; }
+    if (cmp(scanner,"line"))    { *type = 2; return 1; }
+    if (cmp(scanner,"plane"))   { *type = 3; return 1; }
+    if (cmp(scanner,"single"))  { *type = 4; return 1; }
+error:
+    msg_err(scanner, "Expected points|line|plane");
     return 0;
 }
 
@@ -295,8 +323,8 @@ int expect_materials(yyscan_t scanner, sem_config_t* config)
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
 
-    if (config->material_type!=1 && config->model_file==NULL) {
-        msg_err(scanner, "In section material, you need to specify a model_file for type!=constant");
+    if (config->material_type==3 && config->model_file==NULL) {
+        msg_err(scanner, "In section material, you need to specify a model_file for type==earthchunk");
         return 0;
     }
     return 1;
@@ -394,6 +422,153 @@ int expect_snapshots(yyscan_t scanner, sem_config_t* config)
     return 1;
 }
 
+int generate_stations_points(yyscan_t scanner, sem_config_t* config, station_section_t* stations)
+{
+    FILE* f;
+    station_def_t *old, *stat;
+    /* read station coordinates from file specified in point_file,
+       the names are generated from section_name_%04d */
+    int i, k = 0;
+    if (!stations->point_file) {
+	msg_err(scanner, "You must specify a 'file' for stations of type 'point' in section station\n");
+	return 0;
+    }
+    if (!sem_check_file_c(stations->point_file)) {
+	msg_err(scanner, "The file '%s' is not readable in section station %s\n",
+		stations->point_file, stations->section_name);
+	return 0;
+    }
+    f = fopen(stations->point_file, "r");
+    double x[3] = {0.,0.,0.};
+    int lstat = strlen(stations->section_name);
+    int dim = config->dim;
+    while(1) {
+	int count;
+	if (dim==2) count = fscanf(f, "%lf %lf\n", &x[0], &x[1]);
+	else count = fscanf(f, "%lf %lf %lf\n", &x[0], &x[1], &x[2]);
+	if (count!=dim) break;
+	stat = (station_def_t*)malloc(sizeof(station_def_t));
+	for(i=0;i<3;++i) stat->coords[i] = x[i];
+	stat->name = (char*)malloc( lstat+10 );
+	snprintf(stat->name, lstat+10, "%s_%04d", stations->section_name, k);
+	stat->period = stations->period;
+	stat->next = config->stations;
+	config->stations = stat;
+	k = k + 1;
+    }
+    return 1;
+}
+
+int generate_stations_line(yyscan_t scanner, sem_config_t* config, station_section_t* stations)
+{
+    station_def_t *stat;
+    int count = stations->count[0];
+    int lstat = strlen(stations->section_name);
+    int k,i;
+
+    for(k=0;k<count;++k) {
+        stat = (station_def_t*)malloc(sizeof(station_def_t));
+        double alpha = (double)k/(double)(count-1);
+        for(i=0;i<3;++i) {
+            stat->coords[i] = (1.-alpha)*stations->p0[i] + alpha*stations->p1[i];
+        }
+	stat->name = (char*)malloc( lstat+10 );
+	snprintf(stat->name, lstat+10, "%s_%04d", stations->section_name, k);
+        strcpy(stat->name, stations->section_name);
+        stat->period = stations->period;
+        stat->next = config->stations;
+        config->stations = stat;
+    }
+    return 1;
+}
+
+int generate_stations_plane(yyscan_t scanner, sem_config_t* config, station_section_t* stations)
+{
+    station_def_t *stat;
+    int counti = stations->count[0];
+    int countj = stations->count[1];
+    int lstat = strlen(stations->section_name);
+    int i, ki, kj;
+
+    for(kj=0;kj<countj;++kj) {
+        for(ki=0;ki<counti;++ki) {
+            stat = (station_def_t*)malloc(sizeof(station_def_t));
+            double ai = (double)ki/(double)(counti-1);
+            double aj = (double)kj/(double)(countj-1);
+            for(i=0;i<3;++i) {
+                stat->coords[i] = (1. - ai - aj)*stations->p0[i]
+                    + ai*stations->p1[i] + aj*stations->p2[i];
+            }
+            stat->name = (char*)malloc( lstat+10 );
+            snprintf(stat->name, lstat+10, "%s_%04d_%04d", stations->section_name, ki, kj);
+            strcpy(stat->name, stations->section_name);
+            stat->period = stations->period;
+            stat->next = config->stations;
+            config->stations = stat;
+        }
+    }
+    return 1;
+}
+
+int generate_stations_single(yyscan_t scanner, sem_config_t* config, station_section_t* stations)
+{
+    station_def_t *stat;
+    int lstat = strlen(stations->section_name);
+    int i;
+
+    stat = (station_def_t*)malloc(sizeof(station_def_t));
+    for(i=0;i<3;++i) stat->coords[i] = stations->p0[i];
+    stat->name = (char*)malloc( lstat+1 );
+    strcpy(stat->name, stations->section_name);
+    stat->period = stations->period;
+    stat->next = config->stations;
+    config->stations = stat;
+    return 1;
+}
+
+int expect_capteurs(yyscan_t scanner, sem_config_t* config)
+{
+    int tok, err;
+    station_section_t stations;
+    int dim = config->dim;
+    memset(&stations, 0, sizeof(stations));
+    // Default values
+    stations.period = 1;
+
+    err=expect_string(scanner, &stations.section_name, 1);
+    if (err==0) { msg_err(scanner, "Expecting a name after 'capteurs'"); return 0; }
+    tok = skip_blank(scanner);
+    if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
+    do {
+	tok = skip_blank(scanner);
+	if (tok!=K_ID) break;
+	if (cmp(scanner,"type")) err=expect_station_type(scanner, &stations.type);
+	if (cmp(scanner,"counti")) err=expect_eq_int(scanner, &stations.count[0], 1);
+	if (cmp(scanner,"countj")) err=expect_eq_int(scanner, &stations.count[1], 1);
+	if (cmp(scanner,"period")) err=expect_eq_int(scanner, &stations.period, 1);
+	if (cmp(scanner,"point0")) err=expect_eq_float(scanner, &stations.p0[0], dim);
+	if (cmp(scanner,"point1")) err=expect_eq_float(scanner, &stations.p1[0], dim);
+	if (cmp(scanner,"point2")) err=expect_eq_float(scanner, &stations.p2[0], dim);
+	if (cmp(scanner,"file")) err=expect_eq_string(scanner, &stations.point_file, 1);
+
+	if (!expect_eos(scanner)) { return 0; }
+    } while(1);
+    if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
+
+    switch(stations.type) {
+    case 1:
+	return generate_stations_points(scanner, config, &stations);
+    case 2:
+	return generate_stations_line(scanner, config, &stations);
+    case 3:
+	return generate_stations_plane(scanner, config, &stations);
+    case 4:
+	return generate_stations_single(scanner, config, &stations);
+    default:
+	msg_err(scanner, "Unknown station type");
+	return 0;
+    }
+}
 
 
 int parse_input_spec(yyscan_t scanner, sem_config_t* config)
@@ -430,6 +605,7 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"traces_format")) err=expect_file_format(scanner, &config->traces_format);
 	else if (cmp(scanner,"verbose_level")) err=expect_eq_int(scanner, &config->verbose_level,1);
 	else if (cmp(scanner,"pml_infos")) err=expect_pml_infos(scanner, config);
+	else if (cmp(scanner,"capteurs")) err=expect_capteurs(scanner, config);
 	// useless (yet or ever)
 	else if (cmp(scanner,"anisotropy")) err=expect_eq_bool(scanner, &config->anisotropy, 1);
 	else if (cmp(scanner,"gradient")) err=expect_gradient_desc(scanner, config);
@@ -455,6 +631,7 @@ void init_sem_config(sem_config_t* cfg)
     cfg->ngll = 5;
     cfg->fmax = 1.0;
     cfg->material_type = 1;
+    cfg->stations = NULL;
 }
 
 

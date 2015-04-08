@@ -1,16 +1,10 @@
 !>
 !!\file Vertex.f90
 !!\brief Assure la gestion des Vertex.
-!!\author
-!!\version 1.0
-!!\date 10/03/2009
 !!
 !<
 
 module svertices
-
-    ! Modified by Gaetano 31/01/2005
-    ! Modified by Paul 06/11/2005
 
     type :: vertex_pml
        real, dimension (:), allocatable :: Iveloc1, Iveloc2, Iveloc3
@@ -27,10 +21,10 @@ module svertices
        ! solid-fluid
        logical :: solid, fluid_dirich
        type(vertex_pml), pointer :: spml
-#ifdef COUPLAGE
-       real, dimension (:), allocatable :: ForcesMka
+
+       !! Couplage Externe
+       real, dimension (:), allocatable :: ForcesExt
        real :: tsurfsem
-#endif
 
     end type vertex
 

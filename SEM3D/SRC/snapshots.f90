@@ -39,7 +39,7 @@ contains
             end do
             allocate(all_data(0:dim1-1,0:ntot_nodes-1))
         end if
-        
+
         call MPI_Gatherv(data, dim1*dim2, MPI_DOUBLE_PRECISION, all_data, counts, displs, &
             MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
         if (Tdomain%output_rank==0) then
@@ -87,7 +87,7 @@ contains
             end do
             allocate(all_data_1d(0:ntot_nodes-1))
         end if
-        
+        ! PRESSION
         call MPI_Gatherv(press, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
             MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
         if (Tdomain%output_rank==0) then
@@ -105,6 +105,7 @@ contains
             end do
             allocate(all_data_2d(0:2,0:ntot_nodes-1))
         end if
+        ! VELOCITY
         call MPI_Gatherv(veloc, 3*dim2, MPI_DOUBLE_PRECISION, all_data_2d, counts, displs, &
             MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
         if (Tdomain%output_rank==0) then
@@ -114,6 +115,7 @@ contains
             call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_2d, dims, hdferr)
             call h5dclose_f(dset_id, hdferr)
         end if
+        ! DISPLACEMENT
         call MPI_Gatherv(displ, 3*dim2, MPI_DOUBLE_PRECISION, all_data_2d, counts, displs, &
             MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
         if (Tdomain%output_rank==0) then
@@ -123,6 +125,7 @@ contains
             call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_2d, dims, hdferr)
             call h5dclose_f(dset_id, hdferr)
         end if
+        ! ACCELERATION
         call MPI_Gatherv(accel, 3*dim2, MPI_DOUBLE_PRECISION, all_data_2d, counts, displs, &
             MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
         if (Tdomain%output_rank==0) then
@@ -336,22 +339,23 @@ contains
         end if
 
         call MPI_Allgather(nnodes, 1, MPI_INTEGER, Tdomain%output_nodes, 1, MPI_INTEGER, Tdomain%comm_output, ierr)
-        
+
         count = 0
         do i=0,Tdomain%nb_output_procs-1
             Tdomain%output_nodes_offset(i) = count
             count = count + Tdomain%output_nodes(i)
         end do
-            
+
     end subroutine compute_saved_elements
 
-    subroutine create_dir_sorties(Tdomain, rg, isort)
+    subroutine create_dir_sorties(Tdomain, isort)
         implicit none
         type (domain), intent (IN):: Tdomain
-        integer,intent(in) :: isort, rg
+        integer,intent(in) :: isort
         character(Len=MAX_FILE_SIZE) :: temp
-        integer :: code, ierr
+        integer :: code, ierr, rg
 
+        rg = Tdomain%rank
         if (rg==0) then
             call semname_snap_result_dir(isort, temp)
             ierr = sem_mkdir(trim(adjustl(temp)))
@@ -363,19 +367,20 @@ contains
     !! Ecrit la geometrie pour les sorties dans un fichier HDF5
     !! Le format est destine a etre relu par paraview / xdmf
     !<
-    subroutine write_snapshot_geom(Tdomain, rg)
+    subroutine write_snapshot_geom(Tdomain)
         implicit none
         type (domain), intent (INOUT):: Tdomain
-        integer, intent(in) :: rg
+        integer :: rg
         character (len=MAX_FILE_SIZE) :: fnamef
         integer(HID_T) :: fid
         integer :: hdferr, code, ierr
         integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
         integer :: nnodes
-        integer, dimension(0:Tdomain%n_proc-1) :: nodes_per_proc
+        integer, dimension(0:Tdomain%nb_procs-1) :: nodes_per_proc
         integer :: group
         integer, dimension(:), allocatable :: domains
 
+        rg = Tdomain%rank
         group = rg/Tdomain%ngroup
 
         call init_hdf5()
@@ -395,9 +400,9 @@ contains
 
         call compute_saved_elements(Tdomain, irenum, nnodes, domains)
 
-        call write_global_nodes(Tdomain, rg, fid, irenum, nnodes)
-        
-        call write_elem_connectivity(Tdomain, rg, fid, irenum)
+        call write_global_nodes(Tdomain, fid, irenum, nnodes)
+
+        call write_elem_connectivity(Tdomain, fid, irenum)
 
         call write_constant_fields(Tdomain, fid, irenum, nnodes, domains)
 
@@ -410,11 +415,11 @@ contains
     end subroutine write_snapshot_geom
 
 
-    subroutine write_global_nodes(Tdomain, rg, fid, irenum, nnodes)
+    subroutine write_global_nodes(Tdomain, fid, irenum, nnodes)
         implicit none
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: fid
-        integer, intent(in) :: rg, nnodes
+        integer, intent(in) :: nnodes
         integer, dimension(:), intent(in), allocatable :: irenum
         !
         real, dimension(:,:), allocatable :: nodes
@@ -432,12 +437,11 @@ contains
         deallocate(nodes)
     end subroutine write_global_nodes
 
-    subroutine write_elem_connectivity(Tdomain, rg, fid, irenum)
+    subroutine write_elem_connectivity(Tdomain, fid, irenum)
         implicit none
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: fid
         integer, dimension(:), intent(in), allocatable :: irenum
-        integer, intent(in) :: rg
         !
         integer :: ngllx, nglly, ngllz
         integer(HSIZE_T), dimension(2) :: dims
@@ -494,7 +498,7 @@ contains
                         data(7,count) = ioffset+irenum(Tdomain%specel(n)%Iglobnum(i+1,j+1,k+1))
                         data(8,count) = ioffset+irenum(Tdomain%specel(n)%Iglobnum(i+0,j+1,k+1))
                         mat(count) = Tdomain%specel(n)%mat_index
-                        proc(count) = rg
+                        proc(count) = Tdomain%rank
                         count=count+1
                     end do
                 end do
@@ -521,10 +525,10 @@ contains
         deallocate(data)
     end subroutine write_elem_connectivity
 
-    subroutine save_field_h5(Tdomain, rg, isort)
+    subroutine save_field_h5(Tdomain, isort)
         implicit none
         type (domain), intent (INOUT):: Tdomain
-        integer, intent(in) :: rg, isort
+        integer, intent(in) :: isort
         !
         character (len=MAX_FILE_SIZE) :: fnamef
         integer(HID_T) :: fid
@@ -545,9 +549,11 @@ contains
         type(Element), pointer :: el
         type(subdomain), pointer :: sub_dom_mat
 
-        call create_dir_sorties(Tdomain, rg, isort)
+
+        call create_dir_sorties(Tdomain, isort)
 
         call compute_saved_elements(Tdomain, irenum, nnodes, domains)
+
 
         allocate(displ(0:2,0:nnodes-1))
         allocate(veloc(0:2,0:nnodes-1))
@@ -663,7 +669,7 @@ contains
         enddo
 
         if (Tdomain%output_rank==0) then
-            group = rg/Tdomain%ngroup
+            group = Tdomain%rank/Tdomain%ngroup
             call semname_snap_result_file(group, isort, fnamef)
             call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
         else
@@ -690,9 +696,9 @@ contains
         type(domain), intent(in) :: Tdomain
         integer :: n_procs, nelem, n_groups
         character (len=MAX_FILE_SIZE) :: fnamef
-        integer, dimension(0:Tdomain%n_proc-1), intent(in) :: nodes_per_proc
-        integer :: rg
-        n_procs = Tdomain%n_proc
+        integer, dimension(0:Tdomain%nb_procs-1), intent(in) :: nodes_per_proc
+        integer :: group
+        n_procs = Tdomain%nb_procs
         n_groups = (n_procs+Tdomain%ngroup-1)/Tdomain%ngroup
         nelem = Tdomain%n_elem
         call semname_xdmf_master(fnamef)
@@ -704,8 +710,8 @@ contains
         write(61,"(a)") '<Domain>'
         write(61,"(a)") '<Grid CollectionType="Spatial" GridType="Collection">'
         !!! XXX: recuperer le nom par semname_*
-        do rg=0,n_groups-1
-            write(61,"(a,I4.4,a)") '<xi:include href="mesh.',rg,'.xmf"/>'
+        do group=0,n_groups-1
+            write(61,"(a,I4.4,a)") '<xi:include href="mesh.',group,'.xmf"/>'
         end do
 
         !do rg=0,n_procs-1
@@ -720,15 +726,15 @@ contains
 
     end subroutine write_master_xdmf
 
-    subroutine write_xdmf(Tdomain, rg, isort, nnodes)
+    subroutine write_xdmf(Tdomain, group, isort, nnodes)
         implicit none
         type (domain), intent (IN):: Tdomain
-        integer, intent(in) :: rg, isort, nnodes
+        integer, intent(in) :: group, isort, nnodes
         !
         character (len=MAX_FILE_SIZE) :: fnamef
         integer :: i, nn, ne
         real :: time
-        call semname_xdmf(rg, fnamef)
+        call semname_xdmf(group, fnamef)
 
         nn = nnodes
         ne = Tdomain%n_hexa
@@ -737,72 +743,76 @@ contains
         end if
         open (61,file=fnamef,status="unknown",form="formatted")
         write(61,"(a)") '<?xml version="1.0" ?>'
-        write(61,"(a,I4.4,a)") '<Grid CollectionType="Temporal" GridType="Collection" Name="space.',rg,'">'
-        write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Mat" Format="HDF" Datatype="Int"  Dimensions="',ne, &
-            '">geometry',rg,'.h5:/Material</DataItem>'
-        write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Proc" Format="HDF" Datatype="Int"  Dimensions="',ne, &
-            '">geometry',rg,'.h5:/Proc</DataItem>'
+        write(61,"(a,I4.4,a)") '<Grid CollectionType="Temporal" GridType="Collection" Name="space.',group,'">'
+        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Mat" Format="HDF" Datatype="Int"  Dimensions="',ne, &
+            '">geometry',group,'.h5:/Material</DataItem>'
+        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Proc" Format="HDF" Datatype="Int"  Dimensions="',ne, &
+            '">geometry',group,'.h5:/Proc</DataItem>'
 
-        write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Mass" Format="HDF" Datatype="Int"  Dimensions="',nn, &
-            '">geometry',rg,'.h5:/Mass</DataItem>'
-        write(61,"(a,I8,a,I4.4,a)") '<DataItem Name="Jac" Format="HDF" Datatype="Int"  Dimensions="',nn, &
-            '">geometry',rg,'.h5:/Jac</DataItem>'
+        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Mass" Format="HDF" Datatype="Int"  Dimensions="',nn, &
+            '">geometry',group,'.h5:/Mass</DataItem>'
+        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Jac" Format="HDF" Datatype="Int"  Dimensions="',nn, &
+            '">geometry',group,'.h5:/Jac</DataItem>'
         time = 0
         do i=1,isort
-            write(61,"(a,I4.4,a,I4.4,a)") '<Grid Name="mesh.',i,'.',rg,'">'
+            write(61,"(a,I4.4,a,I4.4,a)") '<Grid Name="mesh.',i,'.',group,'">'
             write(61,"(a,F20.10,a)") '<Time Value="', time,'"/>'
-            write(61,"(a,I8,a)") '<Topology Type="Hexahedron" NumberOfElements="',ne,'">'
-            write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Int" Dimensions="',ne,' 8">'
-            write(61,"(a,I4.4,a)") 'geometry',rg,'.h5:/Elements'
+            write(61,"(a,I9,a)") '<Topology Type="Hexahedron" NumberOfElements="',ne,'">'
+            write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Int" Dimensions="',ne,' 8">'
+            write(61,"(a,I4.4,a)") 'geometry',group,'.h5:/Elements'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Topology>'
             write(61,"(a)") '<Geometry Type="XYZ">'
-            write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
-            write(61,"(a,I4.4,a)") 'geometry',rg,'.h5:/Nodes'
+            write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
+            write(61,"(a,I4.4,a)") 'geometry',group,'.h5:/Nodes'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Geometry>'
-
-            write(61,"(a,I8,a)") '<Attribute Name="Displ" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
-            write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
-            write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/displ'
+            ! DISPL
+            write(61,"(a,I9,a)") '<Attribute Name="Displ" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
+            write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
+            write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/displ'
+            write(61,"(a)") '</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            ! VELOC
+            write(61,"(a,I9,a)") '<Attribute Name="Veloc" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
+            write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
+            write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/veloc'
+            write(61,"(a)") '</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            ! ACCEL
+            write(61,"(a,I9,a)") '<Attribute Name="Accel" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
+            write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
+            write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/accel'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Attribute>'
 
-            write(61,"(a,I8,a)") '<Attribute Name="Veloc" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
-            write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
-            write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/veloc'
+            write(61,"(a,I9,a)") '<Attribute Name="Pressure" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+            write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+            write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/press'
+
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Attribute>'
-
-            write(61,"(a,I8,a)") '<Attribute Name="Accel" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
-            write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
-            write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/accel'
-            write(61,"(a)") '</DataItem>'
-            write(61,"(a)") '</Attribute>'
-
-            write(61,"(a,I8,a)") '<Attribute Name="Pressure" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-            write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
-            write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/press'
-            write(61,"(a)") '</DataItem>'
-            write(61,"(a)") '</Attribute>'
-
+            ! DOMAIN
             write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar" Dimensions="1">'
-            write(61,"(a,I4,a)") '<DataItem Format="XML" Datatype="Int"  Dimensions="1">',rg,'</DataItem>'
+            write(61,"(a,I4,a)") '<DataItem Format="XML" Datatype="Int"  Dimensions="1">',group,'</DataItem>'
             write(61,"(a)") '</Attribute>'
-            write(61,"(a,I8,a)") '<Attribute Name="Mat" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
-            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',rg, &
+            ! MAT
+            write(61,"(a,I9,a)") '<Attribute Name="Mat" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
+            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
                 '"]/DataItem[@Name="Mat"]</DataItem>'
             write(61,"(a)") '</Attribute>'
-            write(61,"(a,I8,a)") '<Attribute Name="Proc" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
-            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',rg, &
+            ! PROC
+            write(61,"(a,I9,a)") '<Attribute Name="Proc" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
+            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
                 '"]/DataItem[@Name="Proc"]</DataItem>'
             write(61,"(a)") '</Attribute>'
-            write(61,"(a,I8,a)") '<Attribute Name="Mass" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',rg, &
+            ! MASS
+            write(61,"(a,I9,a)") '<Attribute Name="Mass" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
                 '"]/DataItem[@Name="Mass"]</DataItem>'
             write(61,"(a)") '</Attribute>'
-            write(61,"(a,I8,a)") '<Attribute Name="Jac" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
-            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',rg, &
+            write(61,"(a,I9,a)") '<Attribute Name="Jac" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
                 '"]/DataItem[@Name="Jac"]</DataItem>'
             write(61,"(a)") '</Attribute>'
             write(61,"(a)") '</Grid>'
@@ -825,7 +835,7 @@ contains
         integer :: ngllx, nglly, ngllz, idx
         integer :: i, j, k, n, nnodes_tot
         integer :: domain_type
-        
+
 
         allocate(mass(0:nnodes-1))
         allocate(jac(0:nnodes-1))
@@ -905,3 +915,13 @@ contains
     end subroutine write_constant_fields
 
 end module msnapshots
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent : !!

@@ -8,14 +8,13 @@ Documentation SEM IPG-CEA
 =========================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    intro.rst
-   NEWS.rst
-   tutoriel.rst
-   format_input.rst
    installation.rst
-   git.rst
+   tutoriel.rst
+   reference.rst
+   developpement.rst
 
 
 ..  ==================

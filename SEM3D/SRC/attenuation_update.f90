@@ -30,8 +30,6 @@ subroutine attenuation_update(epsilondev_xx_,epsilondev_yy_, &
     real, dimension(0:n_solid-1,0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: factor_common_3_, &
         alphaval_3_,betaval_3_,gammaval_3_
 
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: factorS_loc,alphavalS_loc,betavalS_loc,gammavalS_loc,Sn,Snp1
-    integer :: i_sls
     !    partie isotrope
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: kappa_
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(inout) :: epsilonvol_,epsilonvol_loc
@@ -39,76 +37,84 @@ subroutine attenuation_update(epsilondev_xx_,epsilondev_yy_, &
     real, dimension(0:n_solid-1,0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: factor_common_P_, &
         alphaval_P_,betaval_P_,gammaval_P_
 
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: factorP_loc,alphavalP_loc,betavalP_loc,gammavalP_loc,Pn,Pnp1
+    integer :: i_sls,i,j,k
+    real :: factorS_loc,alphavalS_loc,betavalS_loc,gammavalS_loc,Sn,Snp1
+    real :: factorP_loc,alphavalP_loc,betavalP_loc,gammavalP_loc,Pn,Pnp1
+
+    do k = 0, ngllz - 1
+        do j = 0, nglly - 1
+            do i = 0, ngllx-1
+                do i_sls = 0,n_solid-1
+
+                    ! get coefficients for that standard linear solid
+                    factorS_loc   = mu_(i,j,k) *factor_common_3_(i_sls,i,j,k)
+                    alphavalS_loc = alphaval_3_(i_sls,i,j,k)
+                    betavalS_loc  = betaval_3_(i_sls,i,j,k)
+                    gammavalS_loc = gammaval_3_(i_sls,i,j,k)
+
+                    ! get coefficients for that standard linear solid
+                    factorP_loc   = kappa_(i,j,k) *factor_common_P_(i_sls,i,j,k)
+                    alphavalP_loc = alphaval_P_(i_sls,i,j,k)
+                    betavalP_loc  = betaval_P_(i_sls,i,j,k)
+                    gammavalP_loc = gammaval_P_(i_sls,i,j,k)
+
+                    !  terme volumique
+                    Pn   = factorP_loc * epsilonvol_(i,j,k)
+                    Pnp1 = factorP_loc * epsilonvol_loc(i,j,k)
+                    R_vol_(i_sls,i,j,k) = alphavalP_loc * R_vol_(i_sls,i,j,k)  &
+                        + betavalP_loc*Pn+gammavalP_loc*Pnp1
 
 
-    do i_sls = 0,n_solid-1
+                    !     termes deviatoires
+                    ! term in xx
+                    Sn    = factorS_loc * epsilondev_xx_(i,j,k)
+                    Snp1  = factorS_loc * epsilondev_xx_loc(i,j,k)
+                    R_xx_(i_sls,i,j,k) = alphavalS_loc * R_xx_(i_sls,i,j,k)  &
+                        + betavalS_loc*Sn+gammavalS_loc*Snp1
 
-        ! get coefficients for that standard linear solid
-        factorS_loc  (:,:,:) = mu_(:,:,:) *factor_common_3_(i_sls,:,:,:)
-        alphavalS_loc(:,:,:) = alphaval_3_(i_sls,:,:,:)
-        betavalS_loc (:,:,:) = betaval_3_(i_sls,:,:,:)
-        gammavalS_loc(:,:,:) = gammaval_3_(i_sls,:,:,:)
+                    ! term in yy
+                    Sn    = factorS_loc  * epsilondev_yy_(i,j,k)
+                    Snp1  = factorS_loc  * epsilondev_yy_loc(i,j,k)
+                    R_yy_(i_sls,i,j,k) = alphavalS_loc * R_yy_(i_sls,i,j,k)  &
+                        + betavalS_loc*Sn+gammavalS_loc*Snp1
 
-        ! get coefficients for that standard linear solid
-        factorP_loc  (:,:,:) = kappa_(:,:,:) *factor_common_P_(i_sls,:,:,:)
-        alphavalP_loc(:,:,:) = alphaval_P_(i_sls,:,:,:)
-        betavalP_loc (:,:,:) = betaval_P_(i_sls,:,:,:)
-        gammavalP_loc(:,:,:) = gammaval_P_(i_sls,:,:,:)
+                    ! term in xy
+                    Sn    = factorS_loc  * epsilondev_xy_(i,j,k)
+                    Snp1  = factorS_loc  * epsilondev_xy_loc(i,j,k)
+                    R_xy_(i_sls,i,j,k) = alphavalS_loc * R_xy_(i_sls,i,j,k) &
+                        + betavalS_loc*Sn+gammavalS_loc*Snp1
 
-        !  terme volumique
-        Pn  (:,:,:)  = factorP_loc(:,:,:) * epsilonvol_(:,:,:)
-        Pnp1(:,:,:)  = factorP_loc(:,:,:) * epsilonvol_loc(:,:,:)
-        R_vol_(i_sls,:,:,:) = alphavalP_loc(:,:,:) * R_vol_(i_sls,:,:,:)  &
-            + betavalP_loc(:,:,:)*Pn(:,:,:)+gammavalP_loc(:,:,:)*Pnp1(:,:,:)
+                    ! term in xz
+                    Sn    = factorS_loc * epsilondev_xz_(i,j,k)
+                    Snp1  = factorS_loc * epsilondev_xz_loc(i,j,k)
+                    R_xz_(i_sls,i,j,k) = alphavalS_loc * R_xz_(i_sls,i,j,k) &
+                        + betavalS_loc*Sn+gammavalS_loc*Snp1
 
+                    ! term in yz
+                    Sn    = factorS_loc * epsilondev_yz_(i,j,k)
+                    Snp1  = factorS_loc * epsilondev_yz_loc(i,j,k)
+                    R_yz_(i_sls,i,j,k) = alphavalS_loc * R_yz_(i_sls,i,j,k)  &
+                        + betavalS_loc*Sn+gammavalS_loc*Snp1
 
-        !     termes deviatoires
-        ! term in xx
-        Sn  (:,:,:)  = factorS_loc(:,:,:) * epsilondev_xx_(:,:,:)
-        Snp1(:,:,:)  = factorS_loc(:,:,:) * epsilondev_xx_loc(:,:,:)
-        R_xx_(i_sls,:,:,:) = alphavalS_loc(:,:,:) * R_xx_(i_sls,:,:,:)  &
-            + betavalS_loc(:,:,:)*Sn(:,:,:)+gammavalS_loc(:,:,:)*Snp1(:,:,:)
+                enddo   ! end of loop on memory variables
 
-        ! term in yy
-        Sn  (:,:,:)  = factorS_loc(:,:,:)  * epsilondev_yy_(:,:,:)
-        Snp1(:,:,:)  = factorS_loc(:,:,:)  * epsilondev_yy_loc(:,:,:)
-        R_yy_(i_sls,:,:,:) = alphavalS_loc(:,:,:) * R_yy_(i_sls,:,:,:)  &
-            + betavalS_loc(:,:,:)*Sn(:,:,:)+gammavalS_loc(:,:,:)*Snp1(:,:,:)
+                ! a la fin on stocke la deformation deviatorique pour le prochain
+                ! pas de temps de la mise a jour de Runge-Kutta faite ci-dessus
 
-        ! term in xy
-        Sn  (:,:,:)  = factorS_loc(:,:,:)  * epsilondev_xy_(:,:,:)
-        Snp1(:,:,:)  = factorS_loc(:,:,:)  * epsilondev_xy_loc(:,:,:)
-        R_xy_(i_sls,:,:,:) = alphavalS_loc(:,:,:) * R_xy_(i_sls,:,:,:) &
-            + betavalS_loc(:,:,:)*Sn(:,:,:)+gammavalS_loc(:,:,:)*Snp1(:,:,:)
+                ! save deviatoric strain for Runge-Kutta scheme
 
-        ! term in xz
-        Sn  (:,:,:)  = factorS_loc(:,:,:) * epsilondev_xz_(:,:,:)
-        Snp1(:,:,:)  = factorS_loc(:,:,:) * epsilondev_xz_loc(:,:,:)
-        R_xz_(i_sls,:,:,:) = alphavalS_loc(:,:,:) * R_xz_(i_sls,:,:,:) &
-            + betavalS_loc(:,:,:)*Sn(:,:,:)+gammavalS_loc(:,:,:)*Snp1(:,:,:)
+                !     partie deviatoire
+                epsilondev_xx_(i,j,k) = epsilondev_xx_loc(i,j,k)
+                epsilondev_yy_(i,j,k) = epsilondev_yy_loc(i,j,k)
+                epsilondev_xy_(i,j,k) = epsilondev_xy_loc(i,j,k)
+                epsilondev_xz_(i,j,k) = epsilondev_xz_loc(i,j,k)
+                epsilondev_yz_(i,j,k) = epsilondev_yz_loc(i,j,k)
+                !   partie isotrope
+                epsilonvol_(i,j,k) = epsilonvol_loc(i,j,k)
 
-        ! term in yz
-        Sn  (:,:,:)  = factorS_loc(:,:,:) * epsilondev_yz_(:,:,:)
-        Snp1(:,:,:)  = factorS_loc(:,:,:) * epsilondev_yz_loc(:,:,:)
-        R_yz_(i_sls,:,:,:) = alphavalS_loc(:,:,:) * R_yz_(i_sls,:,:,:)  &
-            + betavalS_loc(:,:,:)*Sn(:,:,:)+gammavalS_loc(:,:,:)*Snp1(:,:,:)
-
-    enddo   ! end of loop on memory variables
-
-    ! a la fin on stocke la deformation deviatorique pour le prochain
-    ! pas de temps de la mise a jour de Runge-Kutta faite ci-dessus
-
-    ! save deviatoric strain for Runge-Kutta scheme
-
-    !     partie deviatoire
-    epsilondev_xx_(:,:,:) = epsilondev_xx_loc(:,:,:)
-    epsilondev_yy_(:,:,:) = epsilondev_yy_loc(:,:,:)
-    epsilondev_xy_(:,:,:) = epsilondev_xy_loc(:,:,:)
-    epsilondev_xz_(:,:,:) = epsilondev_xz_loc(:,:,:)
-    epsilondev_yz_(:,:,:) = epsilondev_yz_loc(:,:,:)
-    !   partie isotrope
-    epsilonvol_(:,:,:) = epsilonvol_loc(:,:,:)
+            end do
+        end do
+    end do
 
 end subroutine attenuation_update
 !! Local Variables:

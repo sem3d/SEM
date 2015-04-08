@@ -25,6 +25,7 @@ MODULE constants
     ! Constantes physiques
 
     ! Parametres systemes
+    integer, parameter :: MAX_INT = 2147483647
 
     ! Parametres algorithmes & code
 
@@ -36,6 +37,8 @@ MODULE constants
     integer, parameter :: MATERIAL_CONSTANT   = 1
     integer, parameter :: MATERIAL_GRADIENT   = 2
     integer, parameter :: MATERIAL_EARTHCHUNK = 3
+    integer, parameter :: MATERIAL_PREM       = 4
+    integer, parameter :: MATERIAL_RANDOM     = 5
 
     ! DOMAINS (par ordre de priorite pour les sauvegardes)
     integer, parameter :: DM_SOLID = 4
@@ -44,6 +47,11 @@ MODULE constants
     integer, parameter :: DM_FLUID_PML = 1
 CONTAINS
 
+
+    subroutine unused(var)
+        real :: var
+        var = var
+    end subroutine unused
 END MODULE constants
 !! Local Variables:
 !! mode: f90

@@ -8,7 +8,7 @@
  * Started 8/28/94
  * George
  *
- * $Id: io.c 10569 2011-07-13 16:25:38Z karypis $
+ * $Id: io.c 11932 2012-05-10 18:18:23Z dominique $
  *
  */
 
@@ -392,8 +392,12 @@ void ReadTPwgts(params_t *params, idx_t ncon)
             (params->tpwgts[i*ncon+j] < 0 ? awgt : params->tpwgts[i*ncon+j]);
     }
   }
-
+  #ifdef HAVE_GETLINE
+  free(line);
+  line = NULL; /* set to null to match behavior of gk_free() */
+  #else
   gk_free((void *)&line, LTERM);
+  #endif
 }
 
 

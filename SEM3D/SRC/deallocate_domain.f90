@@ -7,7 +7,7 @@
 !!
 !<
 
-subroutine deallocate_domain (Tdomain, rg)
+subroutine deallocate_domain (Tdomain)
 
     ! Modified by Gaetano Festa 25/02/2005
     ! Modified by Paul Cupillard 08/12/2005
@@ -18,14 +18,13 @@ subroutine deallocate_domain (Tdomain, rg)
     implicit none
 
     type(domain), intent (INOUT):: Tdomain
-    integer, intent (IN) :: rg
 
-
-    integer :: n
-
+    integer :: n, code
 
     deallocate (Tdomain%GlobCoord)
     deallocate (Tdomain%Coord_Nodes)
+    if(allocated(Tdomain%not_PML_List)) deallocate (Tdomain%not_PML_List)
+    if(allocated(Tdomain%subD_exist)) deallocate (Tdomain%subD_exist)
 
     do n = 0,Tdomain%n_elem-1
         deallocate (Tdomain%specel(n)%Density)
@@ -53,6 +52,12 @@ subroutine deallocate_domain (Tdomain, rg)
                     deallocate (Tdomain%specel(n)%slpml%Forces2)
                     deallocate (Tdomain%specel(n)%slpml%Forces3)
                 endif
+                deallocate (Tdomain%specel(n)%xpml%DumpSx)
+                deallocate (Tdomain%specel(n)%xpml%DumpSy)
+                deallocate (Tdomain%specel(n)%xpml%DumpSz)
+                deallocate (Tdomain%specel(n)%xpml%DumpVx)
+                deallocate (Tdomain%specel(n)%xpml%DumpVy)
+                deallocate (Tdomain%specel(n)%xpml%DumpVz)
             else
                 if (Tdomain%aniso) then
                     if (Tdomain%specel(n)%solid) deallocate (Tdomain%specel(n)%sl%Cij)
@@ -66,7 +71,7 @@ subroutine deallocate_domain (Tdomain, rg)
                     deallocate (Tdomain%specel(n)%Kappa)
                     deallocate (Tdomain%specel(n)%Mu)
                 endif
-                if (Tdomain%n_sls>0) then
+                if (Tdomain%specel(n)%solid .and. Tdomain%n_sls>0) then
                     if (Tdomain%aniso) then
                         deallocate (Tdomain%specel(n)%sl%Q)
                     else
@@ -100,9 +105,13 @@ subroutine deallocate_domain (Tdomain, rg)
 
             endif
         endif
-        if (.not. Tdomain%specel(n)%PML) then ! TODO: why not PML?
-            deallocate (Tdomain%specel(n)%InvGrad)     !purge fuites memoire Gsa
-        endif
+        deallocate (Tdomain%specel(n)%InvGrad)     !purge fuites memoire Gsa
+        if(Tdomain%specel(n)%solid) then
+            deallocate (Tdomain%specel(n)%sl)
+            if (Tdomain%specel(n)%PML) then
+                deallocate(Tdomain%specel(n)%slpml)
+            endif
+        end if
     enddo
 
     do n = 0, Tdomain%n_face-1
@@ -113,20 +122,6 @@ subroutine deallocate_domain (Tdomain, rg)
         endif
     enddo
 
-    do n = 0,Tdomain%n_edge-1
-    enddo
-#if ! NEW_GLOBAL_METHOD
-    do n = 0,Tdomain%n_proc-1
-        if (Tdomain%sComm(n)%ngll>0) then
-            deallocate (Tdomain%sComm(n)%GiveForces)
-            deallocate (Tdomain%sComm(n)%TakeForces)
-        endif
-        if (Tdomain%sComm(n)%ngllPML>0) then
-            deallocate (Tdomain%sComm(n)%GiveForcesPML)
-            deallocate (Tdomain%sComm(n)%TakeForcesPML)
-        endif
-    enddo
-#endif
     !purge -fuites memoire
     deallocate (Tdomain%sComm)
 
@@ -158,12 +153,19 @@ subroutine deallocate_domain (Tdomain, rg)
         deallocate (Tdomain%sSubdomain(n)%GLLwx)
         deallocate (Tdomain%sSubdomain(n)%hprimex)
         deallocate (Tdomain%sSubdomain(n)%hTprimex)
+
+        if (Tdomain%any_Random) then
+            call MPI_COMM_FREE (Tdomain%subDComm(n),code)
+        end if
     enddo
 
+    if (Tdomain%any_Random) then
+        if(allocated(Tdomain%subDComm)) deallocate (Tdomain%subDComm)
+    end if
     deallocate (Tdomain%sSubdomain)
 
     do n = 0, Tdomain%n_source-1
-        if (rg==Tdomain%sSource(n)%proc) then
+        if (Tdomain%rank==Tdomain%sSource(n)%proc) then
             if (Tdomain%sSource(n)%i_type_source==2) deallocate (Tdomain%sSource(n)%coeff)
             if (Tdomain%sSource(n)%i_time_function==3) deallocate (Tdomain%sSource(n)%timefunc)
         endif
@@ -176,15 +178,15 @@ subroutine deallocate_domain (Tdomain, rg)
 #ifdef COUPLAGE
     !purge - fuites memoire
     do n = 0, Tdomain%n_face-1
-        deallocate (Tdomain%sFace(n)%ForcesMka)
+        deallocate (Tdomain%sFace(n)%ForcesExt)
         deallocate (Tdomain%sFace(n)%tsurfsem)
     enddo
     do n = 0, Tdomain%n_edge-1
-        deallocate (Tdomain%sEdge(n)%ForcesMka)
+        deallocate (Tdomain%sEdge(n)%ForcesExt)
         deallocate (Tdomain%sEdge(n)%tsurfsem)
     enddo
     do n = 0, Tdomain%n_vertex-1
-        deallocate (Tdomain%sVertex(n)%ForcesMka)
+        deallocate (Tdomain%sVertex(n)%ForcesExt)
     enddo
 #endif
 

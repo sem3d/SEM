@@ -1,16 +1,10 @@
 !>
 !!\file Face.f90
-!!\brief Gère les faces des éléments.
-!!\author
-!!\version 1.0
-!!\date 10/03/2009
+!!\brief GÃ¨re les faces des Ã©lÃ©ments.
 !!
 !<
 
 module sfaces
-
-    ! Modified by Gaetano Festa 24/2/2005
-    ! Modified by Paul Cupillard 06/11/2005
 
     type :: face_pml
        real, dimension (:,:,:), allocatable :: IVeloc1, IVeloc2, IVeloc3
@@ -28,10 +22,10 @@ module sfaces
        logical :: solid, fluid_dirich
        ! pml
        type(face_pml), pointer :: spml
-#ifdef COUPLAGE
-       real, dimension (:,:,:), allocatable :: ForcesMka
+
+       !! Couplage Externe
+       real, dimension (:,:,:), allocatable :: ForcesExt
        real, dimension (:,:), allocatable :: tsurfsem
-#endif
     end type face
 
 contains

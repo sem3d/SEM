@@ -292,4 +292,39 @@ contains
         end if
     end subroutine gather_elem_accel
 
+
+    subroutine gather_elem_press(Tdomain, nel, field)
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: nel
+        real, dimension(0:,0:,0:), intent(out) :: field
+        real, dimension(:,:,:,:), allocatable :: displ
+        type(element), pointer :: el
+        type(face), pointer :: fc
+        type(edge), pointer :: ed
+        type(vertex), pointer :: vx
+        integer :: nx, ny, nz, i, mat
+        nx = Tdomain%specel(nel)%ngllx
+        ny = Tdomain%specel(nel)%nglly
+        nz = Tdomain%specel(nel)%ngllz
+        el => Tdomain%specel(nel)
+        if (el%solid) then
+            allocate(displ(0:nx-1,0:ny-1,0:nz-1,0:2))
+            call gather_elem_displ(Tdomain, nel, displ)
+            call pressure_solid(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
+                 Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
+                 el%InvGrad, displ, el%Lambda, el%Mu,field)
+            deallocate(displ)
+        else ! liquid
+            do k=0,nz-1
+                do j=0,ny-1
+                    do i=0,nx-1
+                        ind = el%IFlu(i,j,k)
+                        field(i,j,k) = -Tdomain%champs0%VelPhi(ind)
+                    enddo
+                enddo
+            enddo
+        end if
+
+    end subroutine gather_elem_press
+
 end module mfields

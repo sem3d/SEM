@@ -1,0 +1,11 @@
+
+
+Bug probable communication des matrices de masse dans
+le cas ou un element solide proc 0 en contact avec un element solide PML proc1
+voir si on peut faire les communications avec la numerotation globale
+
+
+Bug probable reintroduit avec le %V0 qui est non initialise dans le cas des PMLs
+voir read_restart, save_checkpoint qui sauvegardait V0 pour Face/Edge/Vertex
+
+

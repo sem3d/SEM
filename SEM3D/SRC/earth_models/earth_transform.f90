@@ -1,0 +1,52 @@
+module earth_transform
+    implicit none
+
+    real, parameter :: Earth_radius=6371000.d0, Pi = 3.141592653, Pi180 = Pi/180.0
+
+contains
+
+    subroutine getRotMat_loc2glob(lon, lat, M)
+        real, intent(in) :: lon, lat
+        real, intent(out), dimension(3,3) :: M
+
+        real :: theta, phi
+
+        theta = (90.0-lat)*Pi180
+        phi = lon*Pi180
+        M(1,1) = -cos(theta)*cos(phi)
+        M(1,2) = -sin(phi)
+        M(1,3) = sin(theta)*cos(phi)
+        M(2,1) = -cos(theta)*sin(phi)
+        M(2,2) = cos(phi)
+        M(2,3) = sin(theta)*sin(phi)
+        M(3,1) = sin(theta)
+        M(3,2) = 0
+        M(3,3) = cos(theta)
+
+
+       ! M(1,1) = cos(theta)*cos(phi)
+       ! M(1,2) = -sin(phi)
+       ! M(1,3) = sin(theta)*cos(phi)
+       ! M(2,1) = cos(theta)*sin(phi)
+       ! M(2,2) = cos(phi)
+       ! M(2,3) = sin(theta)*sin(phi)
+       ! M(3,1) = -sin(theta)
+       ! M(3,2) = 0
+       ! M(3,3) = cos(theta)
+
+    end subroutine getRotMat_loc2glob
+
+    subroutine cart2sph(x, y, z, r, theta, phi)
+        real, intent(in) :: x, y, z
+        real, intent(out) :: r, theta, phi
+
+        r = sqrt(x*x+y*y+z*z)
+        theta = acos(z/r)
+        phi = atan2(y,x)
+    end subroutine cart2sph
+
+
+
+
+end module earth_transform
+

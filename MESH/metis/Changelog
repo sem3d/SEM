@@ -1,4 +1,33 @@
 
+metis-5.1.0
+------------------------------------------------------------------------
+r13937 | karypis | 2013-03-29 23:08:21 -0500 (Fri, 29 Mar 2013) 
+
+- Further extended the 2-hop coarsening scheme introduced in 5.0.2 for
+  for graphs with highly variable degree distribution (e.g., power-law). 
+  This coarsening scheme is automatically used when the standard 
+  1-hop-based scheme leaves a large fraction of the vertices of the 
+  graph unmatched. It leads to better quality partitionings, lower 
+  memory utilization, and faster execution time. In principle, this 
+  scheme will never be triggered for graphs/matrices appearing in 
+  scientific computations derived from FE meshes. However, if you 
+  notice that the quality of the solutions is significantly worse, 
+  this 2-hop matching can be turned off by using the '-no2hop' command 
+  line option and the associated options[] parameter (as described 
+  in the manual).
+- Fixed 0/1 numbering issue with mesh partitioning routines (flyspray 
+   issue #109)
+
+
+metis-5.0.3
+------------------------------------------------------------------------
+r13822 | karypis | 2013-03-11 14:40:11 -0500 (Mon, 11 Mar 2013)
+
+- Fixed the bug that was introduced in 5.x for creating nodal graphs
+  from meshes (flyspray issue #107).
+- Changed the license to Apache Version 2.
+
+
 metis-5.0.2
 ------------------------------------------------------------------------
 r10974 | karypis | 2011-10-29 18:24:32 -0500 (Sat, 29 Oct 2011)

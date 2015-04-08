@@ -151,7 +151,7 @@ subroutine read_EpsilonVol(Tdomain, elem_id)
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
 
-        if ( .not. Tdomain%specel(n)%PML ) then
+        if ( Tdomain%specel(n)%solid .and. ( .not. Tdomain%specel(n)%PML ) ) then
             do k = 0,ngllz-1
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
@@ -212,7 +212,7 @@ subroutine read_EpsilonDev(Tdomain, elem_id)
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
 
-        if ( .not. Tdomain%specel(n)%PML ) then
+        if ( Tdomain%specel(n)%solid .and. ( .not. Tdomain%specel(n)%PML ) ) then
             do k = 0,ngllz-1
                 do j = 0,nglly-1
                     do i = 0,ngllx-1

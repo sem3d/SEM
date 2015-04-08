@@ -101,6 +101,7 @@ contains
     end function is_in_the_list
     !-------------------------------------------------
     subroutine entity_sort(ptr)
+        ! sort the linked list of entities
         implicit none
         type(near_entity), pointer    :: ptr
         type(near_entity), pointer    :: ptloc1, ptloc2, ptrinit
@@ -182,6 +183,9 @@ contains
     end subroutine entity_intersect
     !------------------------------------------------
     subroutine find_near_elem(Ipoint,tab_ptr_node,tab_ptr_elem)
+        ! tab_ptr_node: array of elements in contact with this node (size=number of nodes)
+        ! tab_ptr_elem: array of elements in contact with another element (via vertice,edge, or face) (size=nelem)
+        ! This routine computes tab_ptr_elem from tab_ptr_node
         implicit none
         integer, dimension(0:,0:), intent(in)         :: Ipoint
         type(near_node), dimension(0:), intent(in)    :: tab_ptr_node

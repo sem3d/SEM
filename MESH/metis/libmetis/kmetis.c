@@ -6,7 +6,7 @@
 \date   Started 7/28/1997
 \author George  
 \author Copyright 1997-2011, Regents of the University of Minnesota 
-\version\verbatim $Id: kmetis.c 10567 2011-07-13 16:17:07Z karypis $ \endverbatim
+\version\verbatim $Id: kmetis.c 13905 2013-03-25 13:21:20Z karypis $ \endverbatim
 */
 
 #include "metislib.h"
@@ -165,7 +165,6 @@ idx_t MlevelKWayPartitioning(ctrl_t *ctrl, graph_t *graph, idx_t *part)
 }
 
 
-
 /*************************************************************************/
 /*! This function computes the initial k-way partitioning using PMETIS 
 */
@@ -180,6 +179,7 @@ void InitKWayPartitioning(ctrl_t *ctrl, graph_t *graph)
   METIS_SetDefaultOptions(options);
   options[METIS_OPTION_NITER]   = 10;
   options[METIS_OPTION_OBJTYPE] = METIS_OBJTYPE_CUT;
+  options[METIS_OPTION_NO2HOP]  = ctrl->no2hop;
 
 
   ubvec = rmalloc(graph->ncon, "InitKWayPartitioning: ubvec");
