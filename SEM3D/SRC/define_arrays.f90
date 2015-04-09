@@ -40,17 +40,29 @@ subroutine Define_Arrays(Tdomain)
         call load_earthchunk(Tdomain%earthchunk_file, Tdomain%earthchunk_delta_lon, Tdomain%earthchunk_delta_lat)
     endif
 
+    !Applying properties by element (properties written on file won't be overwritten)
+!    do n = 0,Tdomain%n_elem-1
+!       mat = Tdomain%specel(n)%mat_index
+!       if ( mat < 0 .or. mat >= Tdomain%n_mat ) then
+!          print*, "ERROR : inconsistent material index = ", mat
+!          stop
+!       end if
+!       !!! Attribute elastic properties from material !!!
+!       ! Sets Lambda, Mu, Qmu, ... from mat
+!       call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat), mat)
+!    end do
+
     !Apllying properties that were written on files
     do mat = 0 , Tdomain%n_mat-1
         if (.not. Tdomain%subD_exist(mat)) cycle
         if (propOnFile(Tdomain, mat)) then
-            !- applying properties files (put it on define arrays)
+            !- applying properties files
             if (rg == 0) write (*,*) "--> APPLYING PROPERTIES FILES "
             call apply_prop_files (Tdomain, rg)
         end if
     end do
 
-    !Applying properties by element (properties written on file won't be overwritten)
+    !Computing Mass Matrix
     do n = 0,Tdomain%n_elem-1
        mat = Tdomain%specel(n)%mat_index
        if ( mat < 0 .or. mat >= Tdomain%n_mat ) then
@@ -60,10 +72,6 @@ subroutine Define_Arrays(Tdomain)
        !!! Attribute elastic properties from material !!!
        ! Sets Lambda, Mu, Qmu, ... from mat
        call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat), mat)
-    end do
-
-    !Computing Mass Matrix
-    do n = 0,Tdomain%n_elem-1
        ! Compute MassMat and Whei (with allocation)
        call init_local_mass_mat(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat),Whei)
        ! Compute Acoeff (for PML)
