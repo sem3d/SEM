@@ -221,8 +221,6 @@ contains
         Elem%CAinv(imin:imax,1,2) = (Elem%Mu(0,0:ngz-1)) &
                                   * Dt / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,1,2)
 
-        !Elem%CAinv(:,:,:) = 0.5 * Elem%CAinv(:,:,:)
-
     end subroutine compute_CAinv
 
     ! ###########################################################
@@ -234,16 +232,14 @@ contains
     !! It suitable for Hybridizable Discontinuous Galerkin elements only.
     !! \param type (Element), intent (INOUT) Elem
     !<
-    subroutine  compute_EDinv (Elem)
+    subroutine  compute_EDinv (Elem, Dt)
 
         type (Element), intent (INOUT)   :: Elem
-        !real, intent(IN) :: Dt
-        real :: Dt
+        real, intent(IN) :: Dt
         integer :: imin, imax, ngx, ngz, nc, n1, n2
         real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1,0:1) :: matD
         real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: det, tmp
 
-        Dt = 1.
         ngx = Elem%ngllx ; ngz = Elem%ngllz
 
         ! Calcul de la matrice D :
@@ -252,10 +248,10 @@ contains
         ! est en effet dedoublee. Du coup les 2 entres de D pour un coin ont la meme valeur.
 
         ! Termes provenant du terme tau=matpen
-        matD(:,0,0) = Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,0)
-        matD(:,1,1) = Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,1)
-        matD(:,0,1) = Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,2)
-        matD(:,1,0) = Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,2)
+        matD(:,0,0) = 0.5*Dt * Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,0)
+        matD(:,1,1) = 0.5*Dt * Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,1)
+        matD(:,0,1) = 0.5*Dt * Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,2)
+        matD(:,1,0) = 0.5*Dt * Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,2)
         ! Couplage aux coins :
         do nc=0,3
             call get_gll_arround_corner(Elem,nc,n1,n2)
@@ -267,22 +263,20 @@ contains
         ! Termes provenant de la matrice de masse :
         ! Bottom face :
         call get_iminimax(Elem,0,imin,imax)
-        matD(imin:imax,0,0) = matD(imin:imax,0,0) + 1./Dt*Elem%Acoeff(0:ngx-1,0,12)*Elem%Density(0:ngx-1,0)
-        matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(0:ngx-1,0,12)*Elem%Density(0:ngx-1,0)
+        matD(imin:imax,0,0) = matD(imin:imax,0,0) + Elem%Acoeff(0:ngx-1,0,12)*Elem%Density(0:ngx-1,0)
+        matD(imin:imax,1,1) = matD(imin:imax,1,1) + Elem%Acoeff(0:ngx-1,0,12)*Elem%Density(0:ngx-1,0)
         ! Right face :
         call get_iminimax(Elem,1,imin,imax)
-        matD(imin:imax,0,0) = matD(imin:imax,0,0) + 1./Dt*Elem%Acoeff(ngx-1,0:ngz-1,12)*Elem%Density(ngx-1,0:ngz-1)
-        matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(ngx-1,0:ngz-1,12)*Elem%Density(ngx-1,0:ngz-1)
+        matD(imin:imax,0,0) = matD(imin:imax,0,0) + Elem%Acoeff(ngx-1,0:ngz-1,12)*Elem%Density(ngx-1,0:ngz-1)
+        matD(imin:imax,1,1) = matD(imin:imax,1,1) + Elem%Acoeff(ngx-1,0:ngz-1,12)*Elem%Density(ngx-1,0:ngz-1)
         ! Top Face :
         call get_iminimax(Elem,2,imin,imax)
-        matD(imin:imax,0,0) = matD(imin:imax,0,0) + 1./Dt*Elem%Acoeff(0:ngx-1,ngz-1,12)*Elem%Density(0:ngx-1,ngz-1)
-        matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(0:ngx-1,ngz-1,12)*Elem%Density(0:ngx-1,ngz-1)
+        matD(imin:imax,0,0) = matD(imin:imax,0,0) + Elem%Acoeff(0:ngx-1,ngz-1,12)*Elem%Density(0:ngx-1,ngz-1)
+        matD(imin:imax,1,1) = matD(imin:imax,1,1) + Elem%Acoeff(0:ngx-1,ngz-1,12)*Elem%Density(0:ngx-1,ngz-1)
         ! Left Face :
         call get_iminimax(Elem,3,imin,imax)
-        matD(imin:imax,0,0) = matD(imin:imax,0,0) + 1./Dt*Elem%Acoeff(0,0:ngz-1,12)*Elem%Density(0,0:ngz-1)
-        matD(imin:imax,1,1) = matD(imin:imax,1,1) + 1./Dt*Elem%Acoeff(0,0:ngz-1,12)*Elem%Density(0,0:ngz-1)
-
-        !matD(:,:,:) = 2. * matD(:,:,:)
+        matD(imin:imax,0,0) = matD(imin:imax,0,0) + Elem%Acoeff(0,0:ngz-1,12)*Elem%Density(0,0:ngz-1)
+        matD(imin:imax,1,1) = matD(imin:imax,1,1) + Elem%Acoeff(0,0:ngz-1,12)*Elem%Density(0,0:ngz-1)
 
         ! Inversion de la matrice D sur tous les noeuds de bord :
         det(:) = matD(:,0,0) * matD(:,1,1) - matD(:,0,1) * matD(:,1,0)

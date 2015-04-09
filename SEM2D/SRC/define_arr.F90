@@ -563,7 +563,7 @@ subroutine define_arrays(Tdomain)
             mat = Tdomain%Specel(n)%mat_index
             Dt  = Tdomain%sSubDomain(mat)%Dt
             call compute_CAinv(Tdomain%Specel(n))
-            call compute_EDinv(Tdomain%Specel(n))
+            call compute_EDinv(Tdomain%Specel(n),Dt)
             call build_K_on_face(Tdomain,n,Dt)
             call build_K_on_vertex(Tdomain,n,Dt)
         enddo

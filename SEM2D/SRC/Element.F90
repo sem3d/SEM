@@ -1341,8 +1341,8 @@ contains
 !        call get_iminimax(Elem,3,imin,imax)
 !        smbr(imin:imax,0:1) = Elem%Forces(0,0:ngz-1,3:4)
 !        ! Performing D^-1 * smbr :
-!        res(:,0) = Elem%Dinv(:,0)*smbr(:,0) + Elem%Dinv(:,2)*smbr(:,1)
-!        res(:,1) = Elem%Dinv(:,2)*smbr(:,0) + Elem%Dinv(:,1)*smbr(:,1)
+!        res(:,0) = Dt * (Elem%Dinv(:,0)*smbr(:,0) + Elem%Dinv(:,2)*smbr(:,1))
+!        res(:,1) = Dt * (Elem%Dinv(:,2)*smbr(:,0) + Elem%Dinv(:,1)*smbr(:,1))
 !        ! Assigning solution to ext nodes of Elem%Forces :
 !        call get_iminimax(Elem,0,imin,imax)
 !        Elem%Forces(0:ngx-1,0,3:4)     = res(imin:imax,0:1)
