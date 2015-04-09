@@ -9,3 +9,5 @@ Bug probable reintroduit avec le %V0 qui est non initialise dans le cas des PMLs
 voir read_restart, save_checkpoint qui sauvegardait V0 pour Face/Edge/Vertex
 
 
+optim newmark, voir si on peut vectoriser correction/prediction
+

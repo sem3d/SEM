@@ -402,10 +402,8 @@ subroutine Newmark_Corrector(Tdomain,champs1)
 
     ! Si il existe des éléments solide
     if (Tdomain%ngll_s /= 0) then
-        do n = 0,Tdomain%ngll_s-1
-            do i_dir = 0,2
-                Tdomain%champs0%Forces(n,i_dir) = champs1%Forces(n,i_dir) * Tdomain%MassMatSol(n)
-            enddo
+        do i_dir = 0,2
+            Tdomain%champs0%Forces(:,i_dir) = champs1%Forces(:,i_dir) * Tdomain%MassMatSol(:)
         enddo
         Tdomain%champs0%Veloc = Tdomain%champs0%Veloc + Tdomain%TimeD%dtmin * Tdomain%champs0%Forces
         Tdomain%champs0%Depla = Tdomain%champs0%Depla + Tdomain%TimeD%dtmin * Tdomain%champs0%Veloc
