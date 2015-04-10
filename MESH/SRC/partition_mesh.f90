@@ -25,9 +25,9 @@ contains
         implicit none
         integer, intent(in)                            :: n_nodes,n_elem, nproc, n_points
         integer, intent(in), dimension(0:n_nodes-1,0:n_elem-1) :: Ipoint
-        integer, dimension(0:8*n_elem-1),target        :: eind
-        integer, dimension(0:n_elem),target            :: eptr
-        integer, dimension(0:n_elem-1)                 :: vwgt, vsize
+        integer, dimension(:), allocatable :: eind
+        integer, dimension(:), allocatable :: eptr
+        integer, dimension(:), allocatable :: vwgt, vsize
         integer   :: i,n,idummy
         ! Metis'variables
         integer  :: edgecut
@@ -39,6 +39,11 @@ contains
         integer, pointer, dimension(:) :: dxadj, dxadjncy
         real(kind=4), dimension(nproc) :: tpwgts
         real(kind=4), dimension(ncon) :: ubvec
+
+        allocate(eind(0:8*n_elem-1))
+        allocate(eptr(0:n_elem))
+        allocate(vwgt(0:n_elem))
+        allocate(vsize(0:n_elem))
 
         write(*,*)
         write(*,*) "****************************************"
@@ -75,7 +80,7 @@ contains
             call METIS_PartGraphKway(n_elem,ncon,dxadj,dxadjncy,    &
                 vwgt, vsize, adjwgt, nproc, tpwgts, ubvec, options, edgecut, procs)
         end if
-
+        deallocate(eind, eptr, vwgt, vsize)
     end subroutine part_mesh_3D
     !------------------------------------------------------------------
 end module partition_mesh
