@@ -314,10 +314,10 @@ subroutine global_numbering(Tdomain)
     Tdomain%nbInterfSolPml = 0
     if (Tdomain%any_PML) then
         nbPtInterfSolPml = 0
-        ! On cré l'interface de couplage Sol/PML
+        ! On crÃ©Ã© l'interface de couplage Sol/PML
         do n = 0,Tdomain%n_glob_points-1
             if (renumS(n) > -1 .and. renumSpml(n) > -1) then
-                ! On se trouve à l'interface Sol/PML : on compte le nombre de points à l'interface
+                ! On se trouve áº§ l'interface Sol/PML : on compte le nombre de points Ã  l'interface
                 nbPtInterfSolPml = nbPtInterfSolPml + 1
             endif
         enddo
@@ -326,7 +326,7 @@ subroutine global_numbering(Tdomain)
         i = 0
         do n = 0,Tdomain%n_glob_points-1
             if (renumS(n) > -1 .and. renumSpml(n) > -1) then
-                ! On se trouve à l'interface Sol/PML :
+                ! On se trouve Ã  l'interface Sol/PML :
                 Tdomain%InterfSolPml(i,0) = renumS(n)
                 Tdomain%InterfSolPml(i,1) = renumSpml(n)
                 !write(*,*) "n,idx sol, idx pml : ", n, renumS(n), renumSpml(n)
