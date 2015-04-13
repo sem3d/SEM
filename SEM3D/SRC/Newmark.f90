@@ -358,7 +358,7 @@ subroutine Newmark_Predictor(Tdomain,champs1)
                         ! TODO
                     else
                         call Prediction_Elem_PML_Veloc(Tdomain%specel(nel), bega, dt, &
-                                                         Tdomain%sSubDomain(mat)%hTPrimex, &
+                                                         Tdomain%sSubDomain(mat)%hPrimex, &
                                                          Tdomain%sSubDomain(mat)%hPrimey, &
                                                          Tdomain%sSubDomain(mat)%hprimez, &
                                                          Tdomain%ngll_pmls, &
