@@ -1,12 +1,12 @@
 !>
 !!\file global_numbering.f90
-!!\brief Assure la correspondance entre les diff�rentes num�rotations.
+!!\brief Assure la correspondance entre les différentes numérotations.
 !!
 !<
 
 
 !>
-!! D�finition de Iglobnum et  renvoi du nombre total de ddl: elements, faces, aretes, sommets
+!! Définition de Iglobnum et  renvoi du nombre total de ddl: elements, faces, aretes, sommets
 !!
 !<
 module mrenumber
@@ -1856,5 +1856,6 @@ end module mrenumber
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!
