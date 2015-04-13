@@ -311,6 +311,7 @@ subroutine global_numbering(Tdomain)
         endif
     enddo
 
+    Tdomain%nbInterfSolPml = 0
     if (Tdomain%any_PML) then
         nbPtInterfSolPml = 0
         ! On cré l'interface de couplage Sol/PML
