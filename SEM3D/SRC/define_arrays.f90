@@ -479,15 +479,6 @@ subroutine finalize_pml_properties(Tdomain)
             ! Compute DumpV
             call define_PML_DumpEnd(Tdomain%ngll_pmls, Tdomain%MassMatSolPml, &
                 Tdomain%DumpMass, Tdomain%champs0%DumpV)
-
-!            if(specel%FPML)then
-!                call define_FPML_DumpEnd(ngllx,nglly,ngllz, &
-!                    specel%xpml%DumpVx,specel%slpml%Ivx)
-!                call define_FPML_DumpEnd(ngllx,nglly,ngllz, &
-!                    specel%xpml%DumpVy,specel%slpml%Ivy)
-!                call define_FPML_DumpEnd(ngllx,nglly,ngllz, &
-!                    specel%xpml%DumpVz,specel%slpml%Ivz)
-!            end if
             deallocate(Tdomain%specel(n)%xpml%DumpMass)
         end if
      end do
