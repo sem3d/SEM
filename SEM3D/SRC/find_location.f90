@@ -66,6 +66,8 @@ contains
                     localcoord(0,k) = xi
                     localcoord(1,k) = eta
                     localcoord(2,k) = zeta
+                else
+                    write(*,*) "find_location failed:", xi, eta, zeta, ok
                 endif
                 if (k>=nmax) exit
             end do

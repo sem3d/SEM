@@ -45,7 +45,7 @@ contains
         type (Edge), intent (INOUT) :: E
         real, intent(in) :: dt
 
-        if (.false.) call unused(dt) ! suppress warning
+        !if (.false.) call unused(dt) ! suppress warning
 
         E%Forces(:,:) = E%Displ(:,:)
         E%V0(:,:) = E%Veloc(:,:)
@@ -60,7 +60,7 @@ contains
         type(Edge), intent(inout) :: E
         real, intent(in) :: dt
 
-        if (.false.) call unused(dt) ! suppress warning
+        !if (.false.) call unused(dt) ! suppress warning
 
         E%VelPhi0(:) = E%VelPhi(:)
         E%ForcesFl(:) = E%Phi(:)
@@ -75,7 +75,7 @@ contains
         real, intent (in) :: dt
         integer :: i, ngll, j
 
-        if (.false.) call unused(dt) ! suppress warning
+        !if (.false.) call unused(dt) ! suppress warning
 
         ngll = E%ngll
 

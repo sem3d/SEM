@@ -9,8 +9,8 @@ Format de input.spec
 Syntaxe du fichier
 ==================
 
-Le format de fichier input.spec a été changé pour plus de souplesse et pour
-éviter des erreurs de saisie.
+Le format de fichier :file:`input.spec` a été changé depuis la version 2012, pour plus de
+souplesse et pour éviter des erreurs de saisie.
 
 Le nouveau format de fichier est de la forme suivante (exemple) ::
 
@@ -21,11 +21,11 @@ Le nouveau format de fichier est de la forme suivante (exemple) ::
   };
   mot_clef3 = v1 v2 v3; # un vecteur de valeurs
 
-Les valeurs sont des entiers, des flottants, des booléens, des chaines
+Les valeurs sont des entiers, des flottants, des booléens, des chaînes
 ou des mot-clefs.
 
-Une chaine est une suite de caractères entre guillemets (``"``), un
-mot clef est une suite de caractères alphanumeriques commençant par
+Une chaîne est une suite de caractères entre guillemets (``"``), un
+mot clef est une suite de caractères alphanumériques commençant par
 une lettre, et comportant des lettres, des chiffres ou le caractère
 souligné (``_``).
 
@@ -39,7 +39,7 @@ pour valider les tailles des vecteurs.
 
 Un paramètre valide peut-être ignoré si il n'est pas activé par un
 autre paramètre : par exemple on peut désactiver les snapshots, tout en
-laissant le paramètre nombre d'itération entre snapshot.
+laissant le paramètre nombre d'itérations entre snapshot.
 
 Exemple
 -------
@@ -63,8 +63,13 @@ Le fichier suivant correspond à celui d'un cas test : ::
     select box = -10 -10 -10 10 10 10;
   };
   save_traces = true;
-  # Fichier de description des capteurs
-  station_file = "file_station";
+
+  capteurs "AB" {
+    type = points;
+    # Fichier de description des capteurs
+    file = "file_station";
+    period = 2; # Une iteration sur 2
+  };
   
   
   source {                 # introduce a source
@@ -84,7 +89,7 @@ Le fichier suivant correspond à celui d'un cas test : ::
     accel_scheme = false;  # Acceleration scheme for Newmark
     veloc_scheme = true;   # Velocity scheme for Newmark
     alpha = 0.5;           # alpha (Newmark parameter)
-    beta = -0.5;           # beta (Newmark parameter)
+    beta  = 0.5;           # beta (Newmark parameter)
     gamma = 1;             # gamma (Newmark parameter)
   };
 
@@ -114,9 +119,9 @@ ngll              entier   5                  (futur) nombre de points de gauss 
 dim               entier   obligatoire        Spécifie si le calcul est 2D ou 3D.
 mat_file          chaîne   "material.input"   Nom du fichier de description des matériaux
 mesh_file         chaîne   "mesh4spec"        Nom de base des fichiers maillage
-mpml_atn_param    réel     0.0                Coéfficient d'amortissement MPML (et activation MPML si non nul)
+mpml_atn_param    réel     0.0                Coefficient d'amortissement MPML (et activation MPML si non nul)
 prorep            bool     false              Reprise d'un calcul précédent
-prorep_iter       entier   n/a                Intervale entre 2 protections (ou 0 pour désactiver)
+prorep_iter       entier   n/a                Interval entre 2 protections (ou 0 pour désactiver)
 restart_iter      entier   n/a                Numéro de la protection pour reprendre le calcul
 run_name          chaîne   ""                 Titre de la simulation
 snapshots         section  n/a                Description des paramètres de sauvegarde des snapshots
@@ -163,18 +168,18 @@ Paramétrage de l'atténuation
 
 Le mécanisme d'atténuation est décrit en deux endroits :
 
-- Le fichier de description des matériaux contient les paramètres :math:`Q_P` et :math:`Q_S` du
-  milieu. (XXX: en fait Qkappa et Qmu ?)
+- Le fichier de description des matériaux contient les paramètres :math:`Q_\kappa` et :math:`Q_\mu` du
+  milieu.
 
 - Le fichier ``input.spec`` contient la section ``amortissement`` décrite ci-dessus.
 
-L'atténuation est modélisée par N filtres (``nsolids``) sur une bande
-de fréquences décrite par ``atn_band``. Les N filtres sont centrés sur
+L'atténuation est modélisée par N mécanismes (``nsolids``) sur une bande
+de fréquences décrite par ``atn_band``. Les N mécanismes sont centrés sur
 N fréquences choisies dans la bande spécifiée. 
 
 Le paramètre ``atn_period`` spécifie la période pour laquelle les
-valeurs de :math:`Q_P` et :math:`Q_S` sont spécifiées dans le fichier
-matériau.
+valeurs de :math:`V_p` et :math:`V_s` sont exactement celles
+spécifiées dans le fichier matériau.
 
 Le code n'applique pas d'atténuation si ``nsolids=0``.
 
@@ -404,15 +409,21 @@ point2               coordonnées   --                 Point 2 (:math:`P_2`)
 
 Description des type de capteurs :
 
-- ``point`` : Le plus simple, définit par le mot clef ``point0``, son nom sera le nom de la section.
+- ``points`` : Une liste de points, définis dans un fichier spécifié par le mot-clef ``file``
 
-- ``line`` : Définit :math:`N_i` capteurs sur le segment :math:`[P_0 P_1]`. Un numéro leur est attribué
+- ``single`` : Le plus simple, défini par le mot clef ``point0``, son nom sera le nom de la section.
+
+- ``line`` : Définit :math:`N_i` capteurs sur le segment :math:`[P_0, P_1]`. Un numéro leur est attribué
   leur nom est préfixé du nom de la section
 
-- ``plane`` : Définit :math:`N_i \times N_j` capteurs sur le parallélépipède :math:`(P_0 P_1 P_2)`.
-  Un numéro leur est attribué leur nom est préfixé du nom de la section.
+- ``plane`` : Définit :math:`N_i \times N_j` capteurs sur le
+  parallélépipède définit par les deux vecteurs :math:`\overrightarrow{P_0{}P_1}`
+  et :math:`\overrightarrow{P_0{}P_2}`.  Un numéro leur est attribué. Leur nom est
+  préfixé du nom de la section.
 
-  Pour ``i`` variant de 0 à :math:`N_i` et ``j`` variant de 0 à :math:`N_j`, , alors les coordonnées des points sont :
-  :math:`P_{ij} = P_0  + \frac{i}{N_i-1} \overrightarrow{P_0 P_1} + \frac{j}{N_j-1} \overrightarrow{P_0 P_2}`
+  Pour ``i`` variant de 0 à :math:`N_i-1` et ``j`` variant de 0 à
+  :math:`N_j-1`, alors les coordonnées des points sont : :math:`P_{ij}
+  = P_0 + \frac{i}{N_i-1} \overrightarrow{P_0 P_1} + \frac{j}{N_j-1}
+  \overrightarrow{P_0 P_2}`
 
 

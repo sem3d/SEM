@@ -370,16 +370,15 @@ contains
             !        if(rg==0) &
             !            print*,' lame ',Tdomain%sSubDomain(i)%DMu,Tdomain%sSubDomain(i)%DLambda ,Tdomain%sSubDomain(i)%DKappa
             if (Tdomain%sSubDomain(i)%material_type == "P" .or. Tdomain%sSubDomain(i)%material_type == "L")  then
-                Tdomain%sSubDomain(i)%wpml = npml
                 npml = npml + 1
                 Tdomain%not_PML_List(i) = .false.
+            else
             endif
 
             if (Tdomain%sSubDomain(i)%material_type == "R") then
                 nRandom = nRandom + 1
             end if
 
-            write(1,*)Tdomain%sSubDomain(i)%wpml
         enddo
 
         if(npml > 0) then
@@ -405,6 +404,26 @@ contains
         endif
 
         if(nRandom > 0) then
+            !Building element list in each subdomain
+            do i=0,Tdomain%n_mat-1
+                allocate (Tdomain%sSubdomain(i)%elemList(0:Tdomain%sSubdomain(i)%nElem-1))
+                Tdomain%sSubdomain(i)%elemList(:) = -1 !-1 to detect errors
+                Tdomain%sSubdomain(i)%nElem       = 0 !Using to count the elements in the next loop
+            enddo
+            do i=0,Tdomain%n_elem-1
+                mat = Tdomain%specel(i)%mat_index
+                Tdomain%sSubdomain(mat)%elemList(Tdomain%sSubdomain(mat)%nElem) = i
+                Tdomain%sSubdomain(mat)%nElem = Tdomain%sSubdomain(mat)%nElem + 1
+            enddo
+
+            !Defining existing subdomain list in each domain
+            allocate (Tdomain%subD_exist(0:Tdomain%n_mat-1))
+            allocate (Tdomain%subDComm(0:Tdomain%n_mat - 1))
+            Tdomain%subD_exist(:) = .true.
+            do mat=0,Tdomain%n_mat-1
+                if(Tdomain%sSubdomain(mat)%nElem == 0) Tdomain%subD_exist(mat) = .false.
+            enddo
+
             Tdomain%any_Random = .true.
             read(13,*); read(13,*)
             do i = 0,Tdomain%n_mat-1
@@ -495,6 +514,7 @@ contains
         endif
         if(rg==0) &
             print *,'ntimemax',Tdomain%TimeD%ntimeMax,Tdomain%TimeD%Duration,dtmin
+
 
     end subroutine read_material_file
 
@@ -728,6 +748,7 @@ contains
         !- Parametrage super object desactive
         Tdomain%logicD%super_object_local_present = .false.
 
+        !---   Reading mesh file
         call read_mesh_file_h5(Tdomain)
 
         !---   Properties of materials.

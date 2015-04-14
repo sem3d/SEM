@@ -1,14 +1,18 @@
+.. -*- coding: utf-8 -*-
 
 =============================================
 Annexe: Description des Datasets UNV reconnus
 =============================================
 
 
-source: http://www.sdrl.uc.edu/universal-file-formats-for-modal-analysis-testing-1/file-format-storehouse
+source:
+
+  http://www.sdrl.uc.edu/universal-file-formats-for-modal-analysis-testing-1/file-format-storehouse
 
 
-Chaque bloc d'information (ensemble de données) est délimitée par une chaîne
-de séparateur, complètement  sauf la colonne 5 et 6, contenant '' -1 ''.
+Chaque bloc d'information (ensemble de données) est délimité par une 
+contenant '' -1 '' en colonne 5 et 6 (le lecteur de SEM ignore la position tant
+qu'il trouve une seul valeur -1 dans la ligne).
 
 .. _fig-unv_fig001:
 
@@ -16,8 +20,8 @@ de séparateur, complètement  sauf la colonne 5 et 6, contenant '' -1 ''.
    :scale: 50
    :align: center
 
-Le corps de chaque dataset contient des données qui sont dépendante du
-meme dataset. L'enregistrement final de l'ensemble de données contient
+Le corps de chaque dataset contient des données qui sont dépendantes du
+même dataset. L'enregistrement final de l'ensemble de données contient
 une ligne de délimitation contenant ''-1'' dans la colonne 5 et 6.
 
 **Dataset 2411** ::

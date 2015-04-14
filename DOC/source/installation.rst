@@ -25,7 +25,7 @@ Le code :program:`SEM3D` nécessite deux (ou trois) outils externes pour sa comp
   d'installation, c'est à dire le chemin contenant :file:`bin/`,
   :file:`include/`, etc...
 
-  Les scripts de configurations :program:`CMake` de :program:`SEM` utilise la commande
+  Les scripts de configuration :program:`CMake` de :program:`SEM` utilisent la commande
   ``h5cc -show`` pour détecter le paramètrage de la librairie :program:`HDF5`.
 
 - une librairie :program:`MPI` (:program:`OpenMPI` recommandée, mais :program:`Mpich`, :program:`Intel MPI` ou :program:`SGI-MPT` doivent être compatibles).
@@ -78,6 +78,27 @@ paramétrer la compilation. Le paramétrage s'effectue en deux étapes :
   (sans optimisation et sans debuggage avec :program:`gcc`, optimisé sans
   debuggage avec :program:`ifort`).
 
+  Lorsqu'on change des variables, il faut reconfigurer (touche ``c``).
+
+  Après chaque configuration, on affiche les variables avancées (touche ``t``).
+
+  Il faut vérifier que : - CMAKE_Fortran_COMPILER = ifort
+                         - CMAKE_Fortran_FLAGS = -lhdf5
+                         - OPT_MPI = ON
+
+
+- La seconde étape, la génération des fichiers ``Makefile`` ne peut se faire que si
+  l'option ``g`` (*generate and exit*) apparait dans
+  l'interface. Cette option n'apparaît que si la dernière étape de
+  configuration n'a pas modifié de variables.
+
+  En effet, il se peut qu'une reconfiguration change d'autres
+  variables (lorsqu'on change le compilateur par exemple), il faut
+  alors lancer la configuration une seconde fois.
+
+  Lorsque l'étape de configuration ne modifie aucune variable, on peut
+  générer les Makefile (touche ``g``).
+
 Compilation
 -----------
 
@@ -123,7 +144,7 @@ Lancement du générateur de maillage : ::
   $ cd rep_du_cas
   $ ${chemin_build}/MESH/mesher
 
-Ou en mode automatique avec les saisies clavier enregistrées dans le fichier ``mesh.input`` (c'est le cas des cas tests présent avec les sources de SEM) : ::
+Ou en mode automatique avec les saisies clavier enregistrées dans le fichier ``mesh.input`` (c'est le cas des cas tests présents avec les sources de SEM) : ::
 
   $ cd rep_du_cas
   $ ${chemin_build}/MESH/mesher < mesh.input
@@ -136,7 +157,7 @@ Dans l'ordre :
 
 1. Lire le message d'erreur
 
-2. Déterminer si il s'agit d'une erreur de compilation ou d'une erreur d'édition de lien
+2. Déterminer s'il s'agit d'une erreur de compilation ou d'une erreur d'édition de lien
 
 3. **Relire le message d'erreur** et **tout** le message...
 
@@ -199,7 +220,7 @@ Pour les résoudre il faut avant tout comprendre le processus de compilation :
         compiler SEM avec gfortran 4.8 et lui faire utiliser une
         librairie compilée avec gfortran 4.7
 
-Après la compilation vient l'édition de lien, c'est le moment ou l'on
+Après la compilation vient l'édition de lien, c'est le moment où l'on
 assemble les fichiers ``.o`` pour en faire un exécutable. Cela
 consiste principalement à relier les appels de fonctions externes à
 une unité avec leurs définitions dans une autre unité ou dans une
@@ -210,12 +231,12 @@ Il y a encore plusieurs erreurs classiques :
 - La librairie n'est pas trouvée :
 
   Il faut inclure la librairie dans la compilation. Dans ``cmake`` ce
-  sont les variables ``*_LDFLAGS`` ou ``*LIBRARIES`` qui contrôle
+  sont les variables ``*_LDFLAGS`` ou ``*LIBRARIES`` qui contrôlent
   cette partie de la procédure. On peut ajouter le chemin complet
   d'une librairie, ou les options ``-L/chemin -lnom_de_lib``.
 
   Si le linker indique qu'il ne trouve pas une librairie, c'est que
-  celle-ci lui à été désignée : donc soit une option ``-lnom_de_lib``
+  celle-ci lui a été désignée : donc soit une option ``-lnom_de_lib``
   existe mais aucun fichier ``libnom_de_lib.so`` n'est présent dans
   les chemins fournis au linker, soit une librairie utilisée indique
   qu'elle dépend d'une autre librairie introuvable.
@@ -232,10 +253,11 @@ Il y a encore plusieurs erreurs classiques :
     passé, mais le nombre de fonction MPI étant limité, on va finir
     par les avoir toutes émulées).
 
-  - Le plus souvent, cela vient d'une librairie qui dépend d'une autre librairie, qui ne spécifie pas
-    ses dépendances (car ce n'est pas obligatoire pour une librairie).
+  - Le plus souvent, cela vient d'une librairie qui dépend d'une autre
+    librairie, qui ne spécifie pas ses dépendances (car ce n'est pas
+    obligatoire pour une librairie).
 
-    C'est le cas avec les librairies de support du compilateur intel.
+    C'est le cas avec les librairies de support du compilateur Intel.
 
     Par exemple: je compile hdf5 avec icc 10. qui utilise des
     fonctions provenant de la librairie de support du compilateur

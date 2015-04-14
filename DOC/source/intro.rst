@@ -8,10 +8,21 @@ Introduction
 SEM est un code de propagation d'onde sismique, en 2D et 3D, fondé sur la méthode
 des éléments spectraux ([PRI94]_, [FAC97]_, [KOM98]_, [SER98]_, [KOM99]_).
 
-Cette version prend en compte la propagation dans des milieux (élastique ou fluide, isotrope, anisotrope ou aléatoire) hétérogènes à géométrie complexe (topographie de surface, interfaces). Les conditions d'absorption en bord de domaine utilisent la méthode *Perfectly Matched Layer (PML)* ([BER94]_, [FES05]_).
+Cette version prend en compte la propagation dans des milieux
+hétérogènes à géométrie complexe (topographie de surface, interfaces),
+de type :
 
-Un outil de prétraitement permet de convertir et partitionner (avec :program:`Metis`) des maillages au format :program:`Abaqus`
-ou :program:`Ideas` (UNV), ou de créer des maillages cartésiens structurés.
+- solide : élastique ou viscoélastique,  isotrope ou anisotrope, aléatoire ou non,
+
+- ou fluide.
+
+Les conditions d'absorption en bord de domaine utilisent la méthode
+*Perfectly Matched Layer (PML)* ([BER94]_, [FES05]_).
+
+Un outil de prétraitement permet de convertir et partitionner (avec
+:program:`Metis`) des maillages au format :program:`Abaqus` ou
+:program:`Ideas` (UNV), ou de créer des maillages cartésiens
+structurés.
 
 Le code est écrit majoritairement en Fortran 90. Il utilise les librairies `BLAS <http://www.netlib.org/>`_, `MPI <http://www.openmpi.org>`_, et `HDF5 <http://www.hdfgroup.org>`_.
 
@@ -72,9 +83,6 @@ n'ont pas encore été finalisées, intégrées ou correctement testées :
 
 - Description des conditions de Neumann. Le code existe, il n'a pas été testé. Il sera intégré
   dans le fichier de configuration au nouveau format dans une prochaine version.
-
-- Description des capteurs : la prochaine version utilisera une syntaxe semblable à celle du
-  fichier ``input.spec`` pour la description des capteurs.
 
 - Anisotropie : le code pour gérer des matériaux anisotropes existe,
   mais il n'y a rien dans la syntaxe actuelle du fichier de

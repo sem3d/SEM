@@ -16,7 +16,9 @@ module mCapteur
     use sem_hdf5
     use sem_c_config
     use constants, only : NCAPT_CACHE
-    implicit none
+    use mshape8
+    use mshape27
+        implicit none
 
     public :: save_capteur, evalueSortieCapteur, flushAllCapteurs, create_capteurs
     private ::  flushCapteur
@@ -56,7 +58,9 @@ contains
         type(sem_station), pointer :: station_ptr
         character(Len=MAX_FILE_SIZE) :: nom
         double precision :: xc, yc, zc, xi, eta, zeta
-        integer :: numproc, numproc_max, ierr, n_el
+        character(len=MAX_FILE_SIZE) :: fnamef
+        integer :: numproc, numproc_max, ierr, n_el, n_eln, i
+        double precision, allocatable, dimension(:,:) :: coordl
         !
         station_next = Tdomain%config%stations
         nullify(listeCapteur)
@@ -73,12 +77,45 @@ contains
             yc = station_ptr%coords(2)
             zc = station_ptr%coords(3)
             numproc = -1
-            call trouve_capteur(Tdomain, xc, yc, zc, n_el, xi, eta, zeta)
+            call trouve_capteur(Tdomain, xc, yc, zc, n_el, n_eln, xi, eta, zeta)
+            ! Cas ou le capteur est dans le maillage
             if (n_el/=-1) then
                 numproc = Tdomain%rank
             end if
             call MPI_AllReduce(numproc, numproc_max, 1, MPI_INTEGER, &
                 MPI_MAX, Tdomain%communicateur, ierr)
+            ! Cas ou le capteur est en dehors du maillage mais < abs(1.1)
+            if (numproc_max==-1) then
+                n_el = n_eln
+                if (n_el/=-1) then
+                    numproc = Tdomain%rank
+                end if
+                call MPI_AllReduce(numproc, numproc_max, 1, MPI_INTEGER, &
+                    MPI_MAX, Tdomain%communicateur, ierr)
+                ! Re-calcul des coordonnees globales de la station apres
+                ! modification des coordonnes locales
+                if (n_el/=-1) then
+                    allocate(coordl(0:2, 0:Tdomain%n_nodes-1))
+                    do i = 0, Tdomain%n_nodes-1
+                       coordl(0:2, i) = Tdomain%Coord_Nodes(0:2, Tdomain%specel(n_el)%Control_Nodes(i))
+                    enddo
+                    if (Tdomain%n_nodes==8) then
+                        call shape8_local2global(coordl, xi, eta, zeta, xc, yc, zc)
+                    else
+                        call shape27_local2global(coordl, xi, eta, zeta, xc, yc, zc)
+                    end if
+                    deallocate(coordl)
+                end if
+            end if
+            ! Cas ou le capteur est completement en dehors du maillage
+            if (numproc_max==-1) then
+                if (Tdomain%rank==0) then
+                    write(*,*) "One of the station doesn't appear to be on any processor"
+                    write(*,*) "Please verify that the station location is within the computation domain"
+                end if
+                stop 1
+            end if
+
 
             ! attention si le capteur est partage par plusieurs procs. On choisit le proc de num max
             if(Tdomain%rank==numproc_max) then
@@ -86,7 +123,9 @@ contains
                 nom = fromcstr(station_ptr%name)
                 capteur%nom = nom(1:20)     ! ses caracteristiques par defaut
                 capteur%periode = station_ptr%period
-                capteur%coord(:) = station_ptr%coords
+                capteur%coord(1) = xc
+                capteur%coord(2) = yc
+                capteur%coord(3) = zc
                 capteur%xi = xi
                 capteur%eta = eta
                 capteur%zeta = zeta
@@ -97,6 +136,15 @@ contains
                 listeCapteur => capteur
                 write(*,"(A,A,A,I5,A,I6,A,F8.4,A,F8.4,A,F8.4)") "Capteur:", trim(capteur%nom), &
                     " on proc ", Tdomain%rank, " in elem ", n_el, " at ", xi, ",", eta, ",", zeta
+
+                ! si c'est un nouveau run, suppression de l'eventuel fichier de sortie des capteurs
+                if (Tdomain%traces_format == 1) then
+                    if ( .not.Tdomain%logicD%run_restart) then
+                        call semname_capteur_type(capteur%nom,".txt",fnamef)
+                        open(123,file=trim(fnamef),status="replace",form="formatted")
+                        close(123)
+                    end if
+                end if
             end if
 
             station_next = station_ptr%next
@@ -368,14 +416,14 @@ contains
     !!on identifie la maille dans laquelle se trouve le capteur. Il peut y en avoir plusieurs,
     !! alors le capteur est sur une face, arete ou sur un sommet
     !!
-    subroutine trouve_capteur(Tdomain, xc, yc, zc, n_el, xi, eta, zeta)
+    subroutine trouve_capteur(Tdomain, xc, yc, zc, n_el, n_eln, xi, eta, zeta)
         use mshape8
         use mshape27
         use mlocations3d
         implicit none
         type (domain), INTENT(INOUT)  :: Tdomain
         double precision, intent(in) :: xc, yc, zc
-        integer, intent(out) :: n_el
+        integer, intent(out) :: n_el, n_eln
         double precision, intent(out) :: xi, eta, zeta
         !
         integer :: i
@@ -384,10 +432,13 @@ contains
         integer, parameter :: NMAXEL=20
         integer, dimension(NMAXEL) :: elems
         double precision, dimension(0:2,NMAXEL) :: coordloc
-        double precision, parameter :: EPS = 1D-13
+        double precision, parameter :: EPS = 1D-13, EPSN = 0.1D0
 
         nmax = NMAXEL
         call find_location(Tdomain, xc, yc, zc, nmax, elems, coordloc)
+        n_el = -1
+        n_eln = -1
+        ! Cas ou la station est dans le maillage
         do i=1,nmax
             inside = .true.
             xi   = coordloc(0,i)
@@ -400,7 +451,28 @@ contains
                 return
             end if
         end do
-        n_el = -1
+        ! Cas ou la station est en dehors du maillage mais < abs(1.1)
+        do i=1,nmax
+            xi   = coordloc(0,i)
+            eta  = coordloc(1,i)
+            zeta = coordloc(2,i)
+            if (abs(xi)<(1+EPS) .and. abs(eta)<(1+EPS) .and. abs(zeta)<(1+EPSN)) then
+                if (zeta<0) zeta = -1.D0
+                if (zeta>0) zeta = 1.D0
+                n_eln = elems(i)
+                return
+            else if (abs(xi)<(1+EPS) .and. abs(eta)<(1+EPSN) .and. abs(zeta)<(1+EPS)) then
+                if (eta<0) eta = -1.D0
+                if (eta>0) eta = 1.D0
+                n_eln = elems(i)
+                return
+            else if (abs(xi)<(1+EPSN) .and. abs(eta)<(1+EPS) .and. abs(zeta)<(1+EPS)) then
+                if (xi<0) xi = -1.D0
+                if (xi>0) xi = 1.D0
+                n_eln = elems(i)
+                return
+            end if
+        end do
         return
     end subroutine trouve_capteur
 

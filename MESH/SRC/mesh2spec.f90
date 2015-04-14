@@ -1116,9 +1116,9 @@ contains
 
         integer :: hdferr, i
         integer(HID_T) :: fid
-        integer, dimension(0:7,0:n_elem-1) :: Ipointer_vertices
+        integer, dimension(:,:), allocatable :: Ipointer_vertices
 
-
+        allocate(Ipointer_vertices(0:7,0:n_elem-1))
         call init_hdf5()
         call h5fcreate_f(meshfilename, H5F_ACC_TRUNC_F, fid, hdferr)
 
@@ -1138,7 +1138,7 @@ contains
 
         call h5fclose_f(fid, hdferr)
 
-
+        deallocate(Ipointer_vertices)
     end subroutine write_global_mesh_file_h5
 
 
