@@ -251,10 +251,10 @@ subroutine renumber_domains(Tdomain, renumS, renumF, renumSpml, renumFpml)
     use mindex
     implicit none
     type(domain), intent (inout) :: Tdomain
-    integer, dimension (:), allocatable, intent(inout) :: renumS, renumF, renumSpml, renumFpml
+    integer, dimension (:), intent(inout) :: renumS, renumF, renumSpml, renumFpml
 
     integer :: n,  i, ngllx, nglly, ngllz
-    integer :: idxS, idxF, idxSpml, idxFpml, idxSF
+    integer :: idxS, idxF, idxSpml, idxFpml, idxSF, idx
     integer :: nbPtInterfSolPml
     !
     ! Renumerotation
@@ -267,7 +267,7 @@ subroutine renumber_domains(Tdomain, renumS, renumF, renumSpml, renumFpml)
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
-        if (Tdomain%specel(n)%solid)then
+        if (Tdomain%specel(n)%Solid)then
             ! Element solide avec ou sans PML
             allocate(Tdomain%specel(n)%ISol(0:ngllx-1,0:nglly-1,0:ngllz-1))
             Tdomain%specel(n)%ISol(:,:,:) = -1
@@ -1668,7 +1668,7 @@ subroutine renum_element(ngllx, nglly, ngllz, Iglobnum, Irenum, idx, renum, isPM
     integer, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Iglobnum
     integer, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: Irenum
     integer, intent (inout) :: idx
-    integer, dimension (:), allocatable, intent (inout) :: renum
+    integer, dimension (:), intent (inout) :: renum
     logical, intent(in) :: isPML
 
     integer :: i, j, k, num, ind, ddl
@@ -1703,7 +1703,7 @@ subroutine renum_face(ngllx, nglly, Iglobnum, idx, renum, isPML)
     integer, intent(in) :: ngllx, nglly
     integer, dimension(1:ngllx-2,1:nglly-2), intent(in) :: Iglobnum
     integer, intent (inout) :: idx
-    integer, dimension (:), allocatable, intent (inout) :: renum
+    integer, dimension (:), intent (inout) :: renum
     logical, intent(in) :: isPML
 
     integer :: i, j, ind, ddl
@@ -1733,7 +1733,7 @@ subroutine renum_edge(ngllx, Iglobnum, idx, renum, isPML)
     integer, intent(in) :: ngllx
     integer, dimension(1:ngllx-2), intent(in) :: Iglobnum
     integer, intent (inout) :: idx
-    integer, dimension (:), allocatable, intent (inout) :: renum
+    integer, dimension (:), intent (inout) :: renum
     logical, intent(in) :: isPML
 
     integer :: i, ind, ddl
@@ -1760,7 +1760,7 @@ subroutine renum_vertex(Iglobnum, idx, renum, isPML)
 
     integer, intent(in) :: Iglobnum
     integer, intent (inout) :: idx
-    integer, dimension (:), allocatable, intent (inout) :: renum
+    integer, dimension (:), intent (inout) :: renum
     logical, intent(in) :: isPML
 
     integer :: ddl
