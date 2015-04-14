@@ -249,7 +249,8 @@ contains
         real, dimension (0:ngll-1,0:2), intent (INOUT) :: Forces
 
         integer :: m1, m2, m3, n_z, ind, i, j, k
-        real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: s0,s1
+        real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: s0, s1
+        real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1, 0:2) :: Forces1, Forces2, Forces3
 
 
         m1 = Elem%ngllx;  m2 = Elem%nglly;  m3 = Elem%ngllz
@@ -257,65 +258,66 @@ contains
         s0 = Elem%sl%Acoeff(:,:,:,27) * Elem%slpml%Diagonal_Stress(:,:,:,0) + Elem%sl%Acoeff(:,:,:,28) * Elem%slpml%residual_Stress(:,:,:,0) + &
             Elem%sl%Acoeff(:,:,:,29) * Elem%slpml%residual_Stress(:,:,:,1)
         call DGEMM ( 'N', 'N', m1, m2*m3, m1, 1., hprimex, m1, s0(:,:,:), m1, 0., s1, m1 )
-        Elem%slpml%Forces1(:,:,:,0) = s1
+        Forces1(:,:,:,0) = s1
 
         s0 = Elem%sl%Acoeff(:,:,:,30) * Elem%slpml%Diagonal_Stress(:,:,:,0) + Elem%sl%Acoeff(:,:,:,31) * Elem%slpml%residual_Stress(:,:,:,0) + &
             Elem%sl%Acoeff(:,:,:,32) * Elem%slpml%residual_Stress(:,:,:,1)
         do n_z = 0,m3-1
             call DGEMM ( 'N', 'N', m1, m2, m2, 1.,s0(0,0,n_z), m1, htprimey ,m2, 0., s1(0,0,n_z),m1 )
         enddo
-        Elem%slpml%Forces2(:,:,:,0) = s1
+        Forces2(:,:,:,0) = s1
 
         s0 = Elem%sl%Acoeff(:,:,:,33) * Elem%slpml%Diagonal_Stress(:,:,:,0) + Elem%sl%Acoeff(:,:,:,34) * Elem%slpml%residual_Stress(:,:,:,0) + &
             Elem%sl%Acoeff(:,:,:,35) * Elem%slpml%residual_Stress(:,:,:,1)
 
         call DGEMM ( 'N', 'N', m1*m2, m3, m3, 1., s0(:,:,:), m1*m2, htprimez ,m3, 0., s1, m1*m2 )
-        Elem%slpml%Forces3(:,:,:,0) = s1
+        Forces3(:,:,:,0) = s1
 
         s0 = Elem%sl%Acoeff(:,:,:,27) * Elem%slpml%residual_Stress(:,:,:,0) + Elem%sl%Acoeff(:,:,:,28) * Elem%slpml%Diagonal_Stress(:,:,:,1) + &
             Elem%sl%Acoeff(:,:,:,29) * Elem%slpml%residual_Stress(:,:,:,2)
         call DGEMM ( 'N', 'N', m1, m2*m3, m1, 1., hprimex, m1,s0(:,:,:) ,m1, 0., s1, m1 )
-        Elem%slpml%Forces1(:,:,:,1) = s1
+        Forces1(:,:,:,1) = s1
 
         s0 = Elem%sl%Acoeff(:,:,:,30) * Elem%slpml%residual_Stress(:,:,:,0) + Elem%sl%Acoeff(:,:,:,31) * Elem%slpml%Diagonal_Stress(:,:,:,1) + &
             Elem%sl%Acoeff(:,:,:,32) * Elem%slpml%residual_Stress(:,:,:,2)
         do n_z = 0,m3-1
             call DGEMM ( 'N', 'N', m1, m2, m2, 1.,s0(0,0,n_z), m1, htprimey ,m2, 0., s1(0,0,n_z),m1 )
         enddo
-        Elem%slpml%Forces2(:,:,:,1) = s1
+        Forces2(:,:,:,1) = s1
 
         s0 = Elem%sl%Acoeff(:,:,:,33) * Elem%slpml%residual_Stress(:,:,:,0) + Elem%sl%Acoeff(:,:,:,34) * Elem%slpml%Diagonal_Stress(:,:,:,1) + &
             Elem%sl%Acoeff(:,:,:,35) * Elem%slpml%residual_Stress(:,:,:,2)
 
         call DGEMM ( 'N', 'N', m1*m2, m3, m3, 1., s0(:,:,:), m1*m2, htprimez ,m3, 0., s1, m1*m2 )
-        Elem%slpml%Forces3(:,:,:,1) = s1
+        Forces3(:,:,:,1) = s1
 
 
         s0 = Elem%sl%Acoeff(:,:,:,27) * Elem%slpml%residual_Stress(:,:,:,1) + Elem%sl%Acoeff(:,:,:,28) * Elem%slpml%residual_Stress(:,:,:,2) + &
             Elem%sl%Acoeff(:,:,:,29) * Elem%slpml%Diagonal_Stress(:,:,:,2)
         call DGEMM ( 'N', 'N', m1, m2*m3, m1, 1., hprimex, m1,s0(:,:,:) ,m1, 0., s1, m1 )
-        Elem%slpml%Forces1(:,:,:,2) = s1
+        Forces1(:,:,:,2) = s1
 
         s0 = Elem%sl%Acoeff(:,:,:,30) * Elem%slpml%residual_Stress(:,:,:,1) + Elem%sl%Acoeff(:,:,:,31) * Elem%slpml%residual_Stress(:,:,:,2) + &
             Elem%sl%Acoeff(:,:,:,32) * Elem%slpml%Diagonal_Stress(:,:,:,2)
         do n_z = 0,m3-1
             call DGEMM ( 'N', 'N', m1, m2, m2, 1.,s0(0,0,n_z), m1, htprimey ,m2, 0., s1(0,0,n_z),m1 )
         enddo
-        Elem%slpml%Forces2(:,:,:,2) = s1
+        Forces2(:,:,:,2) = s1
 
         s0 = Elem%sl%Acoeff(:,:,:,33) * Elem%slpml%residual_Stress(:,:,:,1) + Elem%sl%Acoeff(:,:,:,34) * Elem%slpml%residual_Stress(:,:,:,2) + &
             Elem%sl%Acoeff(:,:,:,35) * Elem%slpml%Diagonal_Stress(:,:,:,2)
 
         call DGEMM ( 'N', 'N', m1*m2, m3, m3, 1., s0(:,:,:), m1*m2, htprimez ,m3, 0., s1, m1*m2 )
-        Elem%slpml%Forces3(:,:,:,2) = s1
+        Forces3(:,:,:,2) = s1
 
+        ! Assemblage
         do k = 0,m3-1
             do j = 0,m2-1
                 do i = 0,m1-1
                     ind = Elem%slpml%ISolPml(i,j,k)
-                    Forces(ind,:) = Forces(ind,:)+Elem%slpml%Forces1(i,j,k,:)
-                    Forces(ind+1,:) = Forces(ind+1,:)+Elem%slpml%Forces2(i,j,k,:)
-                    Forces(ind+2,:) = Forces(ind+2,:)+Elem%slpml%Forces3(i,j,k,:)
+                    Forces(ind+0,:) = Forces(ind+0,:) + Forces1(i,j,k,:)
+                    Forces(ind+1,:) = Forces(ind+1,:) + Forces2(i,j,k,:)
+                    Forces(ind+2,:) = Forces(ind+2,:) + Forces3(i,j,k,:)
                 enddo
             enddo
         enddo
