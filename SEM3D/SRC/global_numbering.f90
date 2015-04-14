@@ -37,10 +37,10 @@ subroutine global_numbering(Tdomain)
     allocate(renumSpml(0:Tdomain%n_glob_points-1))
     allocate(renumFpml(0:Tdomain%n_glob_points-1))
     allocate(renumSF(0:Tdomain%n_glob_points-1,0:2))
-    renumS(:) = -1
-    renumF(:) = -1
-    renumSpml(:) = -1
-    renumFpml(:) = -1
+    renumS = -1
+    renumF = -1
+    renumSpml = -1
+    renumFpml = -1
     renumSF = -1
 
     ! Create individual numbering for each sub(physical) domain
@@ -251,11 +251,12 @@ subroutine renumber_domains(Tdomain, renumS, renumF, renumSpml, renumFpml)
     use mindex
     implicit none
     type(domain), intent (inout) :: Tdomain
-    integer, dimension (:), intent(inout) :: renumS, renumF, renumSpml, renumFpml
+    integer, dimension(0:), intent(inout) :: renumS, renumF, renumSpml, renumFpml
 
-    integer :: n,  i, ngllx, nglly, ngllz
-    integer :: idxS, idxF, idxSpml, idxFpml, idxSF, idx
-    integer :: nbPtInterfSolPml
+    integer :: n,  i, j
+    integer :: ngllx, nglly, ngllz
+    integer :: idxS, idxF, idxSpml, idxFpml, idxSF
+    integer :: nbPtInterfSolPml, nbPtInterfFluPml
     !
     ! Renumerotation
     idxS = 0
@@ -370,25 +371,47 @@ subroutine renumber_domains(Tdomain, renumS, renumF, renumSpml, renumFpml)
     enddo
 
     Tdomain%nbInterfSolPml = 0
+    Tdomain%nbInterfFluPml = 0
     if (Tdomain%any_PML) then
         nbPtInterfSolPml = 0
+        nbPtInterfFluPml = 0
         ! On créé l'interface de couplage Sol/PML
         do n = 0,Tdomain%n_glob_points-1
             if (renumS(n) > -1 .and. renumSpml(n) > -1) then
                 ! On se trouve ầ l'interface Sol/PML : on compte le nombre de points à l'interface
+                write(*,*) "S/PML:", n, renumS(n), renumSpml(n)
                 nbPtInterfSolPml = nbPtInterfSolPml + 1
+            endif
+            if (renumF(n) > -1 .and. renumFpml(n) > -1) then
+                ! On se trouve ầ l'interface Flu/PML : on compte le nombre de points à l'interface
+                nbPtInterfFluPml = nbPtInterfFluPml + 1
+            endif
+            ! On Elimine les cas tordus (maille pml fluide en contact avec solide et vice-versa)
+            if ((renumF(n) > -1) .and. (renumSpml(n) > -1) .and. (renumFpml(n)==-1)) then
+                stop "Erreur maille pml solide en face d'une maille fluide"
+            endif
+            if ((renumS(n) > -1) .and. (renumFpml(n) > -1) .and. (renumSpml(n)==-1)) then
+                stop "Erreur maille pml fluide en face d'une maille solide"
             endif
         enddo
         Tdomain%nbInterfSolPml = nbPtInterfSolPml
+        Tdomain%nbInterfFluPml = nbPtInterfFluPml
         allocate(Tdomain%InterfSolPml(0:nbPtInterfSolPml-1,0:1))
+        allocate(Tdomain%InterfFluPml(0:nbPtInterfFluPml-1,0:1))
         i = 0
+        j = 0
         do n = 0,Tdomain%n_glob_points-1
             if (renumS(n) > -1 .and. renumSpml(n) > -1) then
                 ! On se trouve à l'interface Sol/PML :
                 Tdomain%InterfSolPml(i,0) = renumS(n)
                 Tdomain%InterfSolPml(i,1) = renumSpml(n)
-                !write(*,*) "n,idx sol, idx pml : ", n, renumS(n), renumSpml(n)
                 i = i + 1
+            endif
+            if (renumF(n) > -1 .and. renumFpml(n) > -1) then
+                ! On se trouve à l'interface Sol/PML :
+                Tdomain%InterfFluPml(j,0) = renumF(n)
+                Tdomain%InterfFluPml(j,1) = renumFpml(n)
+                j = j + 1
             endif
         enddo
     endif
@@ -406,7 +429,7 @@ subroutine renumber_sf_coupling(Tdomain, renumSF)
     use mindex
     implicit none
     type(domain), intent (inout) :: Tdomain
-    integer, dimension (:,:), intent(inout) :: renumSF
+    integer, dimension (0:,0:), intent(inout) :: renumSF
     !
     integer :: n, i, j, k, ngllx, nglly, ngllz, nf, nnf,  ngll1, ngll2
     integer :: idx,   dir, ks, kl
@@ -525,7 +548,7 @@ subroutine renumber_pml_domain(Tdomain, renumS, renumF, renumSpml, renumFpml)
     use mindex
     implicit none
     type(domain), intent (inout) :: Tdomain
-    integer, dimension (:), intent(in) :: renumS, renumF, renumSpml, renumFpml
+    integer, dimension (0:), intent(in) :: renumS, renumF, renumSpml, renumFpml
     integer :: n, i, j, ngll1, ngll2
 
     integer :: idxSpml, idxFpml
@@ -1668,7 +1691,7 @@ subroutine renum_element(ngllx, nglly, ngllz, Iglobnum, Irenum, idx, renum, isPM
     integer, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Iglobnum
     integer, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: Irenum
     integer, intent (inout) :: idx
-    integer, dimension (:), intent (inout) :: renum
+    integer, dimension(0:), intent (inout) :: renum
     logical, intent(in) :: isPML
 
     integer :: i, j, k, num, ind, ddl
@@ -1703,7 +1726,7 @@ subroutine renum_face(ngllx, nglly, Iglobnum, idx, renum, isPML)
     integer, intent(in) :: ngllx, nglly
     integer, dimension(1:ngllx-2,1:nglly-2), intent(in) :: Iglobnum
     integer, intent (inout) :: idx
-    integer, dimension (:), intent (inout) :: renum
+    integer, dimension(0:), intent (inout) :: renum
     logical, intent(in) :: isPML
 
     integer :: i, j, ind, ddl
@@ -1733,7 +1756,7 @@ subroutine renum_edge(ngllx, Iglobnum, idx, renum, isPML)
     integer, intent(in) :: ngllx
     integer, dimension(1:ngllx-2), intent(in) :: Iglobnum
     integer, intent (inout) :: idx
-    integer, dimension (:), intent (inout) :: renum
+    integer, dimension(0:), intent (inout) :: renum
     logical, intent(in) :: isPML
 
     integer :: i, ind, ddl
@@ -1760,7 +1783,7 @@ subroutine renum_vertex(Iglobnum, idx, renum, isPML)
 
     integer, intent(in) :: Iglobnum
     integer, intent (inout) :: idx
-    integer, dimension (:), intent (inout) :: renum
+    integer, dimension(0:), intent (inout) :: renum
     logical, intent(in) :: isPML
 
     integer :: ddl

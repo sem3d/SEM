@@ -102,6 +102,10 @@ module sdomain
        integer :: nbInterfSolPml ! nombre de points de gauss à l'interface Solide / PML
        integer, dimension(:,:), allocatable :: InterfSolPml ! dimension(0:nbInterfSolPml-1,0:1), 0 Sol, 1 PML
 
+       ! Interface Fluide / PML
+       integer :: nbInterfFluPml ! nombre de points de gauss à l'interface Solide / PML
+       integer, dimension(:,:), allocatable :: InterfFluPml ! dimension(0:nbInterfFluPml-1,0:1), 0 Flu, 1 PML
+
        ! Faces externes PML
        ! Permet par exemple de mettre a 0 le champs de vitesse pour certaines face, edge, vertex PML
        integer, dimension(:), allocatable :: OuterSPMLNodes
