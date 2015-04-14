@@ -55,9 +55,6 @@ subroutine deallocate_domain (Tdomain)
                 deallocate (Tdomain%specel(n)%xpml%DumpSx)
                 deallocate (Tdomain%specel(n)%xpml%DumpSy)
                 deallocate (Tdomain%specel(n)%xpml%DumpSz)
-                deallocate (Tdomain%specel(n)%xpml%DumpVx)
-                deallocate (Tdomain%specel(n)%xpml%DumpVy)
-                deallocate (Tdomain%specel(n)%xpml%DumpVz)
             else
                 if (Tdomain%aniso) then
                     if (Tdomain%specel(n)%solid) deallocate (Tdomain%specel(n)%sl%Cij)

@@ -34,7 +34,7 @@ module selement
 
     type :: element_pml
         real, dimension(:,:,:,:), allocatable :: DumpSx,DumpSy,DumpSz
-        real, dimension(:,:,:,:), allocatable :: DumpVx,DumpVy,DumpVz, DumpMass
+        real, dimension(:,:,:,:), allocatable :: DumpMass
     end type element_pml
 
     type :: element_solid_pml
