@@ -25,8 +25,8 @@ contains
         implicit none
         integer, intent(in)                            :: n_nodes,n_elem, nproc, n_points
         integer, intent(in), dimension(0:n_nodes-1,0:n_elem-1) :: Ipoint
-        integer, dimension(:), allocatable :: eind
-        integer, dimension(:), allocatable :: eptr
+        integer, dimension(:), allocatable, target :: eind
+        integer, dimension(:), allocatable, target :: eptr
         integer, dimension(:), allocatable :: vwgt, vsize
         integer   :: i,n,idummy
         ! Metis'variables
