@@ -38,6 +38,7 @@ module selement
     end type element_pml
 
     type :: element_solid_pml
+       integer, dimension (:,:,:), allocatable :: ISolPml
        ! TODO move pml related data here
        real, dimension(:,:,:,:), allocatable :: Diagonal_Stress1, Diagonal_Stress2, Diagonal_Stress3
        real, dimension(:,:,:,:), allocatable :: Residual_Stress1, Residual_Stress2, Residual_Stress3
@@ -51,7 +52,6 @@ module selement
        real, dimension(:,:,:,:), allocatable :: DumpMass
        real, dimension(:,:,:,:), allocatable :: Diagonal_Stress, Residual_Stress
        real, dimension(:,:), allocatable :: Normales, Inv_Normales
-       integer, dimension (:,:,:), allocatable :: ISolPml
     end type element_solid_pml
 
     type :: element_fluid_pml

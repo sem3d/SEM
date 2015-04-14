@@ -12,7 +12,10 @@
 module mrenumber
   public :: global_numbering
   private :: populate_index_SF,renum_element, renum_face, renum_edge,renum_vertex
+  private :: renumber_domains, renumber_sf_coupling, renumber_pml_domain
+  private :: prepare_comm_vector, prepare_comm_vector_SF
 contains
+
 subroutine global_numbering(Tdomain)
 
     ! routine different from the 2D case. Everything is independently numbered, here (inner
@@ -20,6 +23,48 @@ subroutine global_numbering(Tdomain)
     !      the "Iglobnum" field = global number of each GLL point.
 
 
+    use sdomain
+    implicit none
+    type(domain), intent (inout) :: Tdomain
+    integer, dimension (:), allocatable :: renumS, renumF, renumSpml, renumFpml
+    integer, dimension (:,:), allocatable :: renumSF
+
+    ! Create a unique gll number per node location
+    call renumber_global_gll_nodes(Tdomain)
+
+    allocate(renumS(0:Tdomain%n_glob_points-1))
+    allocate(renumF(0:Tdomain%n_glob_points-1))
+    allocate(renumSpml(0:Tdomain%n_glob_points-1))
+    allocate(renumFpml(0:Tdomain%n_glob_points-1))
+    allocate(renumSF(0:Tdomain%n_glob_points-1,0:2))
+    renumS(:) = -1
+    renumF(:) = -1
+    renumSpml(:) = -1
+    renumFpml(:) = -1
+    renumSF = -1
+
+    ! Create individual numbering for each sub(physical) domain
+    call renumber_domains(Tdomain, renumS, renumF, renumSpml, renumFpml)
+    ! Create numbering for Solid-Fluid interface
+    call renumber_sf_coupling(Tdomain, renumSF)
+    !
+    call renumber_pml_domain(Tdomain, renumS, renumF, renumSpml, renumFpml)
+    ! Compute index of glls that participate in communications
+    call prepare_comm_vector(Tdomain,Tdomain%Comm_data, 3, 9, 1, 3)
+    call prepare_comm_vector_SF(Tdomain,Tdomain%n_glob_points,renumSF,Tdomain%Comm_SolFlu)
+!     call debug_comm_vector(Tdomain, rank, 0, 1, Tdomain%Comm_data)
+!     call debug_comm_vector(Tdomain, rank, 0, 2, Tdomain%Comm_data)
+!     call debug_comm_vector(Tdomain, rank, 0, 3, Tdomain%Comm_data)
+!     call debug_comm_vector(Tdomain, rank, 3, 0, Tdomain%Comm_data)
+
+    deallocate(renumS)
+    deallocate(renumSpml)
+    deallocate(renumF)
+    deallocate(renumFpml)
+
+end subroutine global_numbering
+
+subroutine renumber_global_gll_nodes(Tdomain)
     use sdomain
     use mindex
     implicit none
@@ -29,18 +74,13 @@ subroutine global_numbering(Tdomain)
     integer, dimension(0:6)  :: index_elem_f
     integer, dimension(0:4)  :: index_elem_e
     integer, dimension(0:2)  :: index_elem_v
-
-    integer :: idx, idxS, idxF, idxSpml, idxFpml, idxSF, dir, ks, kl
-    integer :: nbPtInterfSolPml, abscount, nproc, sol, flu
-    integer, dimension (:), allocatable :: renumS, renumF, renumSpml, renumFpml
-    integer, dimension (:,:), allocatable :: renumSF
-    integer :: nsol, nsolpml, nflu, nflupml
-    logical :: saut
-
+    ! Counts PML glls with abs flag in solid or fluid
+    integer :: solid_abs_count, fluid_abs_count
 
 	!Elements Inner GLL points
     icount = 0
-    abscount = 0
+    solid_abs_count = 0
+    fluid_abs_count = 0
 
     do n = 0,Tdomain%n_elem-1
         ngllx = Tdomain%specel(n)%ngllx
@@ -71,7 +111,11 @@ subroutine global_numbering(Tdomain)
             enddo
         enddo
         if (Tdomain%sFace(n)%Abs .and. Tdomain%sFace(n)%PML) then
-            abscount = abscount + (ngllx-2) * (nglly-2)
+            if (Tdomain%sFace(n)%Solid) then
+                solid_abs_count = solid_abs_count + (ngllx-2) * (nglly-2)
+            else
+                fluid_abs_count = fluid_abs_count + (ngllx-2) * (nglly-2)
+            endif
         endif
     enddo
 
@@ -85,7 +129,11 @@ subroutine global_numbering(Tdomain)
             icount = icount + 1
         enddo
         if (Tdomain%sEdge(n)%Abs .and. Tdomain%sEdge(n)%PML) then
-            abscount = abscount + ngllx - 2
+            if (Tdomain%sEdge(n)%Solid) then
+                solid_abs_count = solid_abs_count + (ngllx-2)
+            else
+                fluid_abs_count = fluid_abs_count + (ngllx-2)
+            endif
         endif
     enddo
 
@@ -94,12 +142,18 @@ subroutine global_numbering(Tdomain)
         Tdomain%sVertex(n)%Iglobnum_Vertex = icount
         icount = icount + 1
         if (Tdomain%sVertex(n)%Abs .and. Tdomain%sVertex(n)%PML) then
-            abscount = abscount + 1
+            if (Tdomain%sVertex(n)%Solid) then
+                solid_abs_count = solid_abs_count + 1
+            else
+                fluid_abs_count = fluid_abs_count + 1
+            endif
         endif
     enddo
 
-    Tdomain%nbOuterPMLNodes = abscount
-    allocate(Tdomain%OuterPMLNodes(0:Tdomain%nbOuterPMLNodes-1))
+    Tdomain%nbOuterSPMLNodes = solid_abs_count
+    Tdomain%nbOuterFPMLNodes = fluid_abs_count
+    allocate(Tdomain%OuterSPMLNodes(0:Tdomain%nbOuterSPMLNodes-1))
+    allocate(Tdomain%OuterFPMLNodes(0:Tdomain%nbOuterFPMLNodes-1))
     ! total number of GLL points (= degrees of freedom)
     Tdomain%n_glob_points = icount
 
@@ -189,17 +243,21 @@ subroutine global_numbering(Tdomain)
 
     enddo    ! end of the loop onto elements
 
+end subroutine renumber_global_gll_nodes
+
+
+subroutine renumber_domains(Tdomain, renumS, renumF, renumSpml, renumFpml)
+    use sdomain
+    use mindex
+    implicit none
+    type(domain), intent (inout) :: Tdomain
+    integer, dimension (:), allocatable, intent(inout) :: renumS, renumF, renumSpml, renumFpml
+
+    integer :: n,  i, ngllx, nglly, ngllz
+    integer :: idxS, idxF, idxSpml, idxFpml, idxSF
+    integer :: nbPtInterfSolPml
+    !
     ! Renumerotation
-    allocate(renumS(0:Tdomain%n_glob_points-1))
-    allocate(renumF(0:Tdomain%n_glob_points-1))
-    allocate(renumSpml(0:Tdomain%n_glob_points-1))
-    allocate(renumFpml(0:Tdomain%n_glob_points-1))
-    allocate(renumSF(0:Tdomain%n_glob_points-1,0:2))
-    renumS(:) = -1
-    renumF(:) = -1
-    renumSpml(:) = -1
-    renumFpml(:) = -1
-    renumSF = -1
     idxS = 0
     idxF = 0
     idxSpml = 0
@@ -340,6 +398,20 @@ subroutine global_numbering(Tdomain)
     Tdomain%ngll_pmls = idxSpml
     Tdomain%ngll_pmlf = idxFpml
 
+end subroutine renumber_domains
+
+
+subroutine renumber_sf_coupling(Tdomain, renumSF)
+    use sdomain
+    use mindex
+    implicit none
+    type(domain), intent (inout) :: Tdomain
+    integer, dimension (:,:), intent(inout) :: renumSF
+    !
+    integer :: n, i, j, k, ngllx, nglly, ngllz, nf, nnf,  ngll1, ngll2
+    integer :: idx,   dir, ks, kl
+    integer :: sol, flu
+    logical :: saut
     !! Couplage solide/fluide
     !! On liste les numeraux globaux des points de gauss concernant les faces de couplage S/F
     if(Tdomain%logicD%SF_local_present)then
@@ -396,7 +468,7 @@ subroutine global_numbering(Tdomain)
                 ngllz = Tdomain%specel(n)%ngllz
 
                 !write(*,*) "DEBUG: rank, which_elem fluide", rank, n, dir
-                call populate_index_SF(Tdomain%rank, 1, Tdomain%SF%ngll, dir, ngllx, nglly, ngllz, &
+                call populate_index_SF(1, dir, ngllx, nglly, ngllz, &
                                        Tdomain%specel(n)%IFlu,  &
                                        Tdomain%specel(n)%IGlobnum, kl, &
                                        Tdomain%n_glob_points, renumSF, Tdomain%SF%SF_Face(nf)%I_sf)
@@ -415,7 +487,7 @@ subroutine global_numbering(Tdomain)
                 ngllz = Tdomain%specel(n)%ngllz
 
                 !write(*,*) "DEBUG: rank, which_elem solide", rank, n, dir
-                call populate_index_SF(Tdomain%rank, 2, Tdomain%SF%ngll, dir, ngllx, nglly, ngllz, &
+                call populate_index_SF(2, dir, ngllx, nglly, ngllz, &
                                        Tdomain%specel(n)%ISol,  &
                                        Tdomain%specel(n)%IGlobnum, ks, &
                                        Tdomain%n_glob_points, renumSF, Tdomain%SF%SF_Face(nf)%I_sf)
@@ -445,33 +517,55 @@ subroutine global_numbering(Tdomain)
         end do
     endif ! fin traitement couplage Solide / Fluide
 
-    abscount = 0
+end subroutine renumber_sf_coupling
+
+
+subroutine renumber_pml_domain(Tdomain, renumS, renumF, renumSpml, renumFpml)
+    use sdomain
+    use mindex
+    implicit none
+    type(domain), intent (inout) :: Tdomain
+    integer, dimension (:), intent(in) :: renumS, renumF, renumSpml, renumFpml
+    integer :: n, i, j, ngll1, ngll2
+
+    integer :: idxSpml, idxFpml
+    integer :: solid_abs_count, fluid_abs_count
+
+    solid_abs_count = 0
+    fluid_abs_count = 0
     do n = 0,Tdomain%n_face-1
-        ngllx = Tdomain%sFace(n)%ngll1
-        nglly = Tdomain%sFace(n)%ngll2
+        ngll1 = Tdomain%sFace(n)%ngll1
+        ngll2 = Tdomain%sFace(n)%ngll2
         if (Tdomain%sFace(n)%Abs .and. Tdomain%sFace(n)%PML) then
-            do j = 1,nglly-2
-                do i = 1,ngllx-2
-                    idxSpml = renumSpml(Tdomain%sFace(n)%Iglobnum_Face(i,j))
-                    if (idxSpml .EQ. -1) stop "Unexpected non pml outer Face !"
-                    Tdomain%OuterPMLNodes(abscount) = idxSpml
-                    abscount = abscount + 1
+            do j = 1,ngll2-2
+                do i = 1,ngll1-2
+                    if (Tdomain%sFace(n)%Solid) then
+                        idxSpml = renumSpml(Tdomain%sFace(n)%Iglobnum_Face(i,j))
+                        if (idxSpml .EQ. -1) stop "Unexpected non pml outer Face !"
+                        Tdomain%OuterSPMLNodes(solid_abs_count) = idxSpml
+                        solid_abs_count = solid_abs_count + 1
+                    else
+                        idxFpml = renumFpml(Tdomain%sFace(n)%Iglobnum_Face(i,j))
+                        if (idxFpml .EQ. -1) stop "Unexpected non pml outer Face !"
+                        Tdomain%OuterFPMLNodes(fluid_abs_count) = idxFpml
+                        fluid_abs_count = fluid_abs_count + 1
+                    endif
                 enddo
             enddo
         endif
 
-        allocate(Tdomain%sFace(n)%Renum(1:ngllx-2,1:nglly-2))
+        allocate(Tdomain%sFace(n)%Renum(1:ngll1-2,1:ngll2-2))
         if (Tdomain%sFace(n)%solid) then
             if (Tdomain%sFace(n)%PML) then
-                do j = 1,nglly-2
-                    do i = 1,ngllx-2
+                do j = 1,ngll2-2
+                    do i = 1,ngll1-2
                         Tdomain%sFace(n)%Renum(i,j) = renumSpml(Tdomain%sFace(n)%Iglobnum_Face(i,j))
                         if (Tdomain%sFace(n)%Renum(i,j) < 0) stop "Error renumbering SOLID PML faces"
                     enddo
                 enddo
             else
-                do j = 1,nglly-2
-                    do i = 1,ngllx-2
+                do j = 1,ngll2-2
+                    do i = 1,ngll1-2
                         Tdomain%sFace(n)%Renum(i,j) = renumS(Tdomain%sFace(n)%Iglobnum_Face(i,j))
                         if (Tdomain%sFace(n)%Renum(i,j) < 0) stop "Error renumbering SOLID faces"
                     enddo
@@ -479,15 +573,15 @@ subroutine global_numbering(Tdomain)
             endif
         else
             if (Tdomain%sFace(n)%PML) then
-                do j = 1,nglly-2
-                    do i = 1,ngllx-2
+                do j = 1,ngll2-2
+                    do i = 1,ngll1-2
                         Tdomain%sFace(n)%Renum(i,j) = renumFpml(Tdomain%sFace(n)%Iglobnum_Face(i,j))
                         if (Tdomain%sFace(n)%Renum(i,j) < 0) stop "Error renumbering FLUID PML faces"
                     enddo
                 enddo
             else
-                do j = 1,nglly-2
-                    do i = 1,ngllx-2
+                do j = 1,ngll2-2
+                    do i = 1,ngll1-2
                         Tdomain%sFace(n)%Renum(i,j) = renumF(Tdomain%sFace(n)%Iglobnum_Face(i,j))
                         if (Tdomain%sFace(n)%Renum(i,j) < 0) stop "Error renumbering FLUID faces"
                     enddo
@@ -497,35 +591,42 @@ subroutine global_numbering(Tdomain)
     enddo
 
     do n = 0,Tdomain%n_edge-1
-        ngllx = Tdomain%sEdge(n)%ngll
+        ngll1 = Tdomain%sEdge(n)%ngll
         if (Tdomain%sEdge(n)%Abs .and. Tdomain%sEdge(n)%PML) then
-            do i = 1,ngllx-2
-                idxSpml = renumSpml(Tdomain%sEdge(n)%Iglobnum_Edge(i))
-                if (idxSpml .EQ. -1) stop "Unexpected non pml outer Edge !"
-                Tdomain%OuterPMLNodes(abscount) = idxSpml
-                abscount = abscount + 1
+            do i = 1,ngll1-2
+                if (Tdomain%sEdge(n)%Solid) then
+                    idxSpml = renumSpml(Tdomain%sEdge(n)%Iglobnum_Edge(i))
+                    if (idxSpml .EQ. -1) stop "Unexpected non pml outer Edge !"
+                    Tdomain%OuterSPMLNodes(solid_abs_count) = idxSpml
+                    solid_abs_count = solid_abs_count + 1
+                else
+                    idxFpml = renumFpml(Tdomain%sEdge(n)%Iglobnum_Edge(i))
+                    if (idxFpml .EQ. -1) stop "Unexpected non pml outer Edge !"
+                    Tdomain%OuterFPMLNodes(fluid_abs_count) = idxFpml
+                    fluid_abs_count = fluid_abs_count + 1
+                endif
             enddo
         endif
 
-        allocate(Tdomain%sEdge(n)%Renum(1:ngllx-2))
+        allocate(Tdomain%sEdge(n)%Renum(1:ngll1-2))
         Tdomain%sEdge(n)%Renum(:) = -1
         if (Tdomain%sEdge(n)%solid) then
             if (Tdomain%sEdge(n)%PML) then
-                do i = 1,ngllx-2
+                do i = 1,ngll1-2
                     Tdomain%sEdge(n)%Renum(i) = renumSpml(Tdomain%sEdge(n)%Iglobnum_Edge(i))
                 enddo
             else
-                do i = 1,ngllx-2
+                do i = 1,ngll1-2
                     Tdomain%sEdge(n)%Renum(i) = renumS(Tdomain%sEdge(n)%Iglobnum_Edge(i))
                 enddo
             endif
         else
             if (Tdomain%sEdge(n)%PML) then
-                do i = 1,ngllx-2
+                do i = 1,ngll1-2
                     Tdomain%sEdge(n)%Renum(i) = renumFpml(Tdomain%sEdge(n)%Iglobnum_Edge(i))
                 enddo
             else
-                do i = 1,ngllx-2
+                do i = 1,ngll1-2
                     Tdomain%sEdge(n)%Renum(i) = renumF(Tdomain%sEdge(n)%Iglobnum_Edge(i))
                 enddo
             endif
@@ -534,10 +635,17 @@ subroutine global_numbering(Tdomain)
 
     do n = 0,Tdomain%n_vertex-1
         if (Tdomain%sVertex(n)%Abs .and. Tdomain%sVertex(n)%PML) then
-            idxSpml = renumSpml(Tdomain%sVertex(n)%Iglobnum_Vertex)
-            if (idxSpml .EQ. -1) stop "Unexpected non pml outer Vertex !"
-            Tdomain%OuterPMLNodes(abscount) = idxSpml
-            abscount = abscount + 1
+            if (Tdomain%sVertex(n)%solid) then
+                idxSpml = renumSpml(Tdomain%sVertex(n)%Iglobnum_Vertex)
+                if (idxSpml .EQ. -1) stop "Unexpected non pml outer Vertex !"
+                Tdomain%OuterSPMLNodes(solid_abs_count) = idxSpml
+                solid_abs_count = solid_abs_count + 1
+            else
+                idxFpml = renumFpml(Tdomain%sVertex(n)%Iglobnum_Vertex)
+                if (idxFpml .EQ. -1) stop "Unexpected non pml outer Vertex !"
+                Tdomain%OuterFPMLNodes(fluid_abs_count) = idxFpml
+                fluid_abs_count = fluid_abs_count + 1
+            endif
         endif
 
         if (Tdomain%sVertex(n)%solid) then
@@ -555,20 +663,8 @@ subroutine global_numbering(Tdomain)
         endif
     enddo
 
-    call prepare_comm_vector(Tdomain,Tdomain%Comm_data, 3, 9, 1, 3)
-    call prepare_comm_vector_SF(Tdomain,Tdomain%n_glob_points,renumSF,Tdomain%Comm_SolFlu)
-!     call debug_comm_vector(Tdomain, rank, 0, 1, Tdomain%Comm_data)
-!     call debug_comm_vector(Tdomain, rank, 0, 2, Tdomain%Comm_data)
-!     call debug_comm_vector(Tdomain, rank, 0, 3, Tdomain%Comm_data)
-!     call debug_comm_vector(Tdomain, rank, 3, 0, Tdomain%Comm_data)
-
-    deallocate(renumS)
-    deallocate(renumSpml)
-    deallocate(renumF)
-    deallocate(renumFpml)
-
     return
-end subroutine global_numbering
+end subroutine renumber_pml_domain
 
 subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid, nddlfluidpml)
     use sdomain
@@ -1245,7 +1341,7 @@ subroutine prepare_comm_vector_SF(Tdomain,ngll,renumSF,comm_data)
     integer, intent(in), dimension(0:ngll-1,0:2) :: renumSF
 
     integer :: n,ncomm,nSF
-    integer :: i,j,k,nf,ne,nv,idx,ngll1,ngll2, m, idx2, nb
+    integer :: i,j,k,nf,ne,nv,idx,ngll1,ngll2, nb
 
     ! Remplissage des IGive et ITake
     if(Tdomain%nb_procs < 2)then
@@ -1263,6 +1359,7 @@ subroutine prepare_comm_vector_SF(Tdomain,ngll,renumSF,comm_data)
             ! Remplissage des Igive
             ! Faces
             do i = 0,Tdomain%sComm(ncomm)%SF_nf_shared-1
+                nf = Tdomain%sComm(ncomm)%SF_faces_shared(i)
                 do j = 1,Tdomain%sFace(nf)%ngll2-2
                     do k = 1,Tdomain%sFace(nf)%ngll1-2
                         Comm_data%Data(n)%IGiveS(nSF) = Tdomain%SF%SF_Face(i)%IG(k,j,2) ! on donne le solide
@@ -1273,6 +1370,7 @@ subroutine prepare_comm_vector_SF(Tdomain,ngll,renumSF,comm_data)
 
             ! Edges
             do i = 0,Tdomain%sComm(ncomm)%SF_ne_shared-1
+                ne = Tdomain%sComm(ncomm)%SF_edges_shared(i)
                 do j = 1,Tdomain%sEdge(ne)%ngll-2
                     Comm_data%Data(n)%IGiveS(nSF) = Tdomain%SF%SF_Edge(i)%IG(j,2) ! on donne le solide
                     nSF = nSF + 1
@@ -1466,11 +1564,11 @@ subroutine allocate_comm_vector_SF(Tdomain, comm_data)
     return
 end subroutine allocate_comm_vector_SF
 
-subroutine populate_index_SF(rank, sf, ngll,dir,ngllx,nglly,ngllz, &
+subroutine populate_index_SF(sf, dir,ngllx,nglly,ngllz, &
                              ISolFlu, IGlobnum,k,nglobpoints,renumSF, Isf)
     implicit none
 
-    integer, intent(in) :: rank, sf, ngll, dir, ngllx, nglly, ngllz, nglobpoints
+    integer, intent(in) :: sf, dir, ngllx, nglly, ngllz, nglobpoints
     integer, intent(in), dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: ISolFlu
     integer, intent(in), dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: IGlobnum
     integer, intent(inout) :: k

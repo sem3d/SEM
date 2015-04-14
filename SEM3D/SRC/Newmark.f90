@@ -341,11 +341,18 @@ subroutine Newmark_Predictor(Tdomain,champs1)
             Tdomain%champs0%VelocPML(indpml+2,:) = 0.
         enddo
 
-        do n = 0, Tdomain%nbOuterPMLNodes-1
-            indpml = Tdomain%OuterPMLNodes(n)
+        do n = 0, Tdomain%nbOuterSPMLNodes-1
+            indpml = Tdomain%OuterSPMLNodes(n)
             Tdomain%champs0%VelocPML(indpml,:) = 0.
             Tdomain%champs0%VelocPML(indpml+1,:) = 0.
             Tdomain%champs0%VelocPML(indpml+2,:) = 0.
+        enddo
+
+        do n = 0, Tdomain%nbOuterFPMLNodes-1
+            indpml = Tdomain%OuterFPMLNodes(n)
+            !Tdomain%champs0%VelPhiPML(indpml,:) = 0.
+            !Tdomain%champs0%VelPhiPML(indpml+1,:) = 0.
+            !Tdomain%champs0%VelPhiPML(indpml+2,:) = 0.
         enddo
 
         do nel = 0,Tdomain%n_elem-1
@@ -383,13 +390,15 @@ subroutine Newmark_Corrector(Tdomain,champs1)
     type(domain), intent(inout)   :: Tdomain
     type(champs), intent(in)   :: champs1
     integer  :: n, i_dir
+    double precision :: dt
 
+    dt = Tdomain%TimeD%dtmin
     ! Si il existe des éléments PML solide
     if (Tdomain%ngll_pmls /= 0) then
         do i_dir = 0,2
             Tdomain%champs0%VelocPML(:,i_dir) = Tdomain%champs0%DumpV(:,0) * &
                                                 Tdomain%champs0%VelocPML(:,i_dir) + &
-                                                Tdomain%TimeD%dtmin * &
+                                                dt * &
                                                 Tdomain%champs0%DumpV(:,1) * &
                                                 champs1%ForcesPML(:,i_dir)
         enddo
@@ -397,7 +406,12 @@ subroutine Newmark_Corrector(Tdomain,champs1)
     endif
 
     ! Si il existe des éléments PML fluide
-    if (Tdomain%ngll_pmls /= 0) then
+    if (Tdomain%ngll_pmlf /= 0) then
+!        Tdomain%champs0%VelPhiPML(:,i_dir) = Tdomain%champs0%DumpV(:,0) * &
+!            Tdomain%champs0%VelPhiPML(:,i_dir) + &
+!            dt * &
+!            Tdomain%champs0%DumpV(:,1) * &
+!            champs1%ForcesFlPML(:,i_dir)
     endif
 
     ! Si il existe des éléments solide
@@ -405,15 +419,15 @@ subroutine Newmark_Corrector(Tdomain,champs1)
         do i_dir = 0,2
             Tdomain%champs0%Forces(:,i_dir) = champs1%Forces(:,i_dir) * Tdomain%MassMatSol(:)
         enddo
-        Tdomain%champs0%Veloc = Tdomain%champs0%Veloc + Tdomain%TimeD%dtmin * Tdomain%champs0%Forces
-        Tdomain%champs0%Depla = Tdomain%champs0%Depla + Tdomain%TimeD%dtmin * Tdomain%champs0%Veloc
+        Tdomain%champs0%Veloc = Tdomain%champs0%Veloc + dt * Tdomain%champs0%Forces
+        Tdomain%champs0%Depla = Tdomain%champs0%Depla + dt * Tdomain%champs0%Veloc
     endif
 
     ! Si il existe des éléments fluide
     if (Tdomain%ngll_f /= 0) then
         Tdomain%champs0%ForcesFl = champs1%ForcesFl * Tdomain%MassMatFlu
-        Tdomain%champs0%VelPhi = (Tdomain%champs0%VelPhi + Tdomain%TimeD%dtmin * Tdomain%champs0%ForcesFl) * Tdomain%champs0%Fluid_dirich
-        Tdomain%champs0%Phi = Tdomain%champs0%Phi + Tdomain%TimeD%dtmin * Tdomain%champs0%VelPhi
+        Tdomain%champs0%VelPhi = (Tdomain%champs0%VelPhi + dt * Tdomain%champs0%ForcesFl) * Tdomain%champs0%Fluid_dirich
+        Tdomain%champs0%Phi = Tdomain%champs0%Phi + dt * Tdomain%champs0%VelPhi
     endif
 
     return

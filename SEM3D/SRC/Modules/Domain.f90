@@ -104,8 +104,9 @@ module sdomain
 
        ! Faces externes PML
        ! Permet par exemple de mettre a 0 le champs de vitesse pour certaines face, edge, vertex PML
-       integer, dimension(:), allocatable :: OuterPMLNodes
-       integer :: nbOuterPMLNodes
+       integer, dimension(:), allocatable :: OuterSPMLNodes
+       integer, dimension(:), allocatable :: OuterFPMLNodes
+       integer :: nbOuterSPMLNodes, nbOuterFPMLNodes
 
         ! Communication
         type(comm_vector) :: Comm_data      ! Comm mass et forces
