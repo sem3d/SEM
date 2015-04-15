@@ -324,7 +324,7 @@ subroutine write_VelPhi123(Tdomain, nmax, elem_id)
     integer(HID_T) :: dset_id1, dset_id2, dset_id3
     integer(kind=4), intent(IN) :: nmax
 
-    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
+    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr, id
     real(kind=8), dimension(1:nmax) :: data1, data2, data3
     integer(HSIZE_T), dimension(1) :: dims
 
@@ -353,9 +353,10 @@ subroutine write_VelPhi123(Tdomain, nmax, elem_id)
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
-                        data1(idx) = Tdomain%specel(n)%flpml%VelPhi1(i,j,k)
-                        data2(idx) = Tdomain%specel(n)%flpml%VelPhi2(i,j,k)
-                        data3(idx) = Tdomain%specel(n)%flpml%VelPhi3(i,j,k)
+                        id = Tdomain%specel(n)%flpml%IFluPML(i,j,k)
+                        data1(idx) = Tdomain%champs0%fpml_VelPhi(id+0)
+                        data2(idx) = Tdomain%champs0%fpml_VelPhi(id+1)
+                        data3(idx) = Tdomain%champs0%fpml_VelPhi(id+2)
                         idx = idx + 1
                     enddo
                 enddo
@@ -806,7 +807,7 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
     integer(HSIZE_T), dimension(1) :: dims
     integer :: id
 
-    call create_dset(elem_id, "Veloc_Fl", H5T_IEEE_F64LE, nmax, dset_id)
+    call create_dset(elem_id, "Veloc_Fl_PML", H5T_IEEE_F64LE, nmax, dset_id)
     if(nmax <= 0)then
         call h5dclose_f(dset_id, hdferr)
         return
@@ -828,18 +829,17 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
-                        id = Tdomain%specel(n)%slpml%ISolPML(i,j,k)
-                        data(idx+ 0) = Tdomain%champs0%VelocPML(id,0)
-                        data(idx+ 1) = Tdomain%champs0%VelocPML(id,1)
-                        data(idx+ 2) = Tdomain%champs0%VelocPML(id,2)
+                        data(idx+ 0) = Tdomain%specel(n)%flpml%Veloc1(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%flpml%Veloc1(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%flpml%Veloc1(i,j,k,2)
                         idx = idx + 3
-                        data(idx+ 0) = Tdomain%champs0%VelocPML(id+1,0)
-                        data(idx+ 1) = Tdomain%champs0%VelocPML(id+1,1)
-                        data(idx+ 2) = Tdomain%champs0%VelocPML(id+1,2)
+                        data(idx+ 0) = Tdomain%specel(n)%flpml%Veloc2(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%flpml%Veloc2(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%flpml%Veloc2(i,j,k,2)
                         idx = idx + 3
-                        data(idx+ 0) = Tdomain%champs0%VelocPML(id+2,0)
-                        data(idx+ 1) = Tdomain%champs0%VelocPML(id+2,1)
-                        data(idx+ 2) = Tdomain%champs0%VelocPML(id+2,2)
+                        data(idx+ 0) = Tdomain%specel(n)%flpml%Veloc3(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%flpml%Veloc3(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%flpml%Veloc3(i,j,k,2)
                         idx = idx + 3
                     enddo
                 enddo

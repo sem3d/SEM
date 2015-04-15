@@ -79,7 +79,7 @@ subroutine read_VelPhi(Tdomain, elem_id)
     integer(HID_T), intent(IN) :: elem_id
     double precision, allocatable, dimension(:) :: velphi, velphi1, velphi2, velphi3, phi
     integer :: idx1, idx2, idx3, ngllx, nglly, ngllz
-    integer :: n, i, j, k
+    integer :: n, i, j, k, id
 
 
     call read_dset_1d_real(elem_id, "VelPhi", velphi)
@@ -105,9 +105,10 @@ subroutine read_VelPhi(Tdomain, elem_id)
                         Tdomain%champs0%Phi(Tdomain%specel(n)%IFlu(i,j,k)) = phi(idx2)
                         idx2 = idx2 + 1
                     else
-                        Tdomain%specel(n)%flpml%VelPhi1(i,j,k) = velphi1(idx3)
-                        Tdomain%specel(n)%flpml%VelPhi2(i,j,k) = velphi2(idx3)
-                        Tdomain%specel(n)%flpml%VelPhi3(i,j,k) = velphi3(idx3)
+                        id = Tdomain%specel(n)%flpml%IFluPML(i,j,k)
+                        Tdomain%champs0%fpml_VelPhi(id+0) = velphi1(idx3)
+                        Tdomain%champs0%fpml_VelPhi(id+1) = velphi2(idx3)
+                        Tdomain%champs0%fpml_VelPhi(id+2) = velphi3(idx3)
                         idx3 = idx3 + 1
                     end if
                 end do
@@ -305,7 +306,7 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
     integer :: n, i, j, k
     integer :: id
 
-    call read_dset_1d_real(elem_id, "Veloc_Fl", veloc)
+    call read_dset_1d_real(elem_id, "Veloc_Fl_PML", veloc)
     idx = 1
     do n = 0,Tdomain%n_elem-1
         if(Tdomain%specel(n)%solid) cycle
@@ -318,17 +319,17 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
                         id = Tdomain%specel(n)%slpml%ISolPML(i,j,k)
-                        Tdomain%champs0%VelocPML(id,0) = veloc(idx+0)
-                        Tdomain%champs0%VelocPML(id,1) = veloc(idx+1)
-                        Tdomain%champs0%VelocPML(id,2) = veloc(idx+2)
+                        Tdomain%specel(n)%flpml%Veloc1(i,j,k,0) = veloc(idx+0)
+                        Tdomain%specel(n)%flpml%Veloc1(i,j,k,1) = veloc(idx+1)
+                        Tdomain%specel(n)%flpml%Veloc1(i,j,k,2) = veloc(idx+2)
                         idx = idx + 3
-                        Tdomain%champs0%VelocPML(id+1,0) = veloc(idx+0)
-                        Tdomain%champs0%VelocPML(id+1,1) = veloc(idx+1)
-                        Tdomain%champs0%VelocPML(id+1,2) = veloc(idx+2)
+                        Tdomain%specel(n)%flpml%Veloc2(i,j,k,0) = veloc(idx+0)
+                        Tdomain%specel(n)%flpml%Veloc2(i,j,k,1) = veloc(idx+1)
+                        Tdomain%specel(n)%flpml%Veloc2(i,j,k,2) = veloc(idx+2)
                         idx = idx + 3
-                        Tdomain%champs0%VelocPML(id+2,0) = veloc(idx+0)
-                        Tdomain%champs0%VelocPML(id+2,1) = veloc(idx+1)
-                        Tdomain%champs0%VelocPML(id+2,2) = veloc(idx+2)
+                        Tdomain%specel(n)%flpml%Veloc3(i,j,k,0) = veloc(idx+0)
+                        Tdomain%specel(n)%flpml%Veloc3(i,j,k,1) = veloc(idx+1)
+                        Tdomain%specel(n)%flpml%Veloc3(i,j,k,2) = veloc(idx+2)
                         idx = idx + 3
                     end do
                 end do

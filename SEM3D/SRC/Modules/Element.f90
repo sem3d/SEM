@@ -42,24 +42,21 @@ module selement
        ! TODO move pml related data here
        real, dimension(:,:,:,:), allocatable :: Diagonal_Stress1, Diagonal_Stress2, Diagonal_Stress3
        real, dimension(:,:,:,:), allocatable :: Residual_Stress1, Residual_Stress2, Residual_Stress3
-       real, dimension(:,:,:,:), allocatable :: Forces1,Forces2,Forces3
        ! FPML
        real, dimension(:,:,:), allocatable :: Isx, Isy, Isz
        real, dimension(:,:,:), allocatable :: Ivx, Ivy, Ivz
        real, dimension(:,:,:,:), allocatable :: Iveloc1, Iveloc2, Iveloc3
        real, dimension(:,:,:,:), allocatable :: I_Diagonal_Stress1, I_Diagonal_Stress2, I_Diagonal_Stress3
        real, dimension(:,:,:,:), allocatable :: I_Residual_Stress1, I_Residual_Stress2
-       real, dimension(:,:,:,:), allocatable :: DumpMass
        real, dimension(:,:,:,:), allocatable :: Diagonal_Stress, Residual_Stress
        real, dimension(:,:), allocatable :: Normales, Inv_Normales
     end type element_solid_pml
 
     type :: element_fluid_pml
         integer, dimension (:,:,:), allocatable :: IFluPml
-        real, dimension(:,:,:,:), allocatable :: Veloc
-        real, dimension(:,:,:,:), allocatable :: Veloc1,Veloc2,Veloc3
-        real, dimension(:,:,:), allocatable :: ForcesFl1,ForcesFl2,ForcesFl3
-        real, dimension(:,:,:), allocatable :: VelPhi1,VelPhi2,VelPhi3
+        real, dimension(:,:,:,:), allocatable :: Veloc1,Veloc2,Veloc3,Veloc
+!        real, dimension(:,:,:), allocatable :: ForcesFl1,ForcesFl2,ForcesFl3
+!        real, dimension(:,:,:), allocatable :: VelPhi1,VelPhi2,VelPhi3
     end type element_fluid_pml
 
     type :: element
@@ -326,6 +323,154 @@ contains
     end subroutine compute_InternalForces_PML_Elem
     !------------------------------------------------------------------------------------------------
     !------------------------------------------------------------------------------------------------
+    subroutine Prediction_Elem_PML_VelPhi(Elem,bega,dt,hprimex,Hprimey,Hprimez, ngll_pmlf, fpml_VelPhi, fpml_Forces)
+        ! same as previously, but for fluid part
+        implicit none
+
+        type(Element), intent(inout) :: Elem
+        real, intent(in) :: bega, dt
+        real, dimension(0:Elem%ngllx-1,0:Elem%ngllx-1), intent(in) :: hprimex
+        real, dimension(0:Elem%nglly-1,0:Elem%nglly-1), intent(in) :: hprimey
+        real, dimension(0:Elem%ngllz-1,0:Elem%ngllz-1), intent(in) :: hprimez
+        integer, intent(in) :: ngll_pmlf
+        real, dimension (0:ngll_pmlf-1), intent (IN) :: fpml_VelPhi
+        real, dimension (0:ngll_pmlf-1), intent (IN) :: fpml_Forces
+        !
+        real, dimension(0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVelPhi_dxi,dVelPhi_deta,dVelPhi_dzeta
+        integer :: m1, m2, m3
+        integer :: i, j, k, ind
+        real, dimension(:,:,:), allocatable :: VelPhi
+
+        m1 = Elem%ngllx ; m2 = Elem%nglly ; m3 = Elem%ngllz
+
+        allocate(VelPhi(0:m1-1,0:m2-1,0:m3-1))
+        ! prediction in the element
+        ! We do the sum V1+V2+V3 and F1+F2+F3 here
+        do k = 0,m3-1
+            do j = 0,m2-1
+                do i = 0,m1-1
+                    ind = Elem%flpml%IFluPml(i,j,k)
+                    VelPhi(i,j,k) = fpml_VelPhi(ind)+fpml_VelPhi(ind+1)+fpml_VelPhi(ind+2) &
+                        + dt*(0.5-bega)*(fpml_Forces(ind)+fpml_Forces(ind+1)+fpml_Forces(ind+2))
+                enddo
+            enddo
+        enddo
+
+
+        ! d(rho*Phi)_d(xi,eta,zeta)
+        call elem_part_deriv(m1,m2,m3,hprimex,hprimey,hprimez,VelPhi(:,:,:), &
+            dVelPhi_dxi,dVelPhi_deta,dVelPhi_dzeta)
+
+        ! prediction for (physical) velocity (which is the equivalent of a stress, here)
+        ! V_x^x
+        Elem%flpml%Veloc1(:,:,:,0) = Elem%xpml%DumpSx(:,:,:,0) * Elem%flpml%Veloc1(:,:,:,0) + Elem%xpml%DumpSx(:,:,:,1) * Dt *  &
+            (Elem%fl%Acoeff(:,:,:,0) * dVelPhi_dxi + Elem%fl%Acoeff(:,:,:,1) * dVelPhi_deta + Elem%fl%Acoeff(:,:,:,2) * dVelPhi_dzeta)
+        ! V_x^y
+        Elem%flpml%Veloc2(:,:,:,0) = Elem%xpml%DumpSy(:,:,:,0) * Elem%flpml%Veloc2(:,:,:,0)
+        ! V_x^z
+        Elem%flpml%Veloc3(:,:,:,0) = Elem%xpml%DumpSz(:,:,:,0) * Elem%flpml%Veloc3(:,:,:,0)
+        ! V_y^x
+        Elem%flpml%Veloc1(:,:,:,1) = Elem%xpml%DumpSx(:,:,:,0) * Elem%flpml%Veloc1(:,:,:,1)
+        ! V_y^y
+        Elem%flpml%Veloc2(:,:,:,1) = Elem%xpml%DumpSy(:,:,:,0) * Elem%flpml%Veloc2(:,:,:,1) + Elem%xpml%DumpSy(:,:,:,1) * Dt *  &
+            (Elem%fl%Acoeff(:,:,:,3) * dVelPhi_dxi + Elem%fl%Acoeff(:,:,:,4) * dVelPhi_deta + Elem%fl%Acoeff(:,:,:,5) * dVelPhi_dzeta)
+        ! V_y^z
+        Elem%flpml%Veloc3(:,:,:,1) = Elem%xpml%DumpSz(:,:,:,0) * Elem%flpml%Veloc3(:,:,:,1)
+        ! V_z^x
+        Elem%flpml%Veloc1(:,:,:,2) = Elem%xpml%DumpSx(:,:,:,0) * Elem%flpml%Veloc1(:,:,:,2)
+        ! V_z^y
+        Elem%flpml%Veloc2(:,:,:,2) = Elem%xpml%DumpSy(:,:,:,0) * Elem%flpml%Veloc2(:,:,:,2)
+        ! V_z^z
+        Elem%flpml%Veloc3(:,:,:,2) = Elem%xpml%DumpSz(:,:,:,0) * Elem%flpml%Veloc3(:,:,:,2) + Elem%xpml%DumpSz(:,:,:,1) * Dt *  &
+            (Elem%fl%Acoeff(:,:,:,6) * dVelPhi_dxi + Elem%fl%Acoeff(:,:,:,7) * dVelPhi_deta + Elem%fl%Acoeff(:,:,:,8) * dVelPhi_dzeta)
+
+        ! total velocity vector after dumping = sum of splitted parts
+        Elem%flpml%Veloc(:,:,:,:) = Elem%flpml%Veloc1(:,:,:,:) + Elem%flpml%Veloc2(:,:,:,:) + Elem%flpml%Veloc3(:,:,:,:)
+
+        return
+    end subroutine Prediction_Elem_PML_VelPhi
+    !------------------------------------------------------------------------------------------------
+    !------------------------------------------------------------------------------------------------
+    subroutine compute_InternalForces_PML_Elem_Fl(Elem,hprimex,hTprimey,htprimez, ngll, fpml_Forces)
+
+        implicit none
+
+        type(Element), intent(inout) :: Elem
+        real, dimension(0:Elem%ngllx-1,0:Elem%ngllx-1), intent(in) :: hprimex
+        real, dimension(0:Elem%nglly-1,0:Elem%nglly-1), intent(in) :: hTprimey
+        real, dimension(0:Elem%ngllz-1,0:Elem%ngllz-1), intent(in) :: hTprimez
+        integer, intent(in) :: ngll
+        real, dimension(0:ngll-1), intent(inout) :: fpml_Forces
+        !
+        integer :: m1, m2, m3, n_z
+        integer :: i, j, k, ind
+        real, dimension(0:Elem%ngllx-1,0:Elem%nglly-1,0:Elem%ngllz-1)  :: s0,s1
+        real, dimension(0:Elem%ngllx-1,0:Elem%nglly-1,0:Elem%ngllz-1)  :: ForcesFl1, ForcesFl2, ForcesFl3
+
+        m1 = Elem%ngllx ; m2 = Elem%nglly ; m3 = Elem%ngllz
+
+        s0 = 0d0 ; s1 = 0d0
+
+
+        ! forces associated to V_x
+        s0 = Elem%fl%Acoeff(:,:,:,9) * Elem%flpml%Veloc(:,:,:,0)
+        call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,s0(:,:,:),m1,0.,s1,m1)
+        ForcesFl1 = s1
+
+        s0 = Elem%fl%Acoeff(:,:,:,10) * Elem%flpml%Veloc(:,:,:,0)
+        do n_z = 0,m3-1
+            call DGEMM('N','N',m1,m2,m2,1.,s0(0,0,n_z),m1, htprimey,m2,0.,s1(0,0,n_z),m1)
+        enddo
+        ForcesFl1 = s1+ForcesFl1
+
+        s0 = Elem%fl%Acoeff(:,:,:,11) * Elem%flpml%Veloc(:,:,:,0)
+        call DGEMM('N','N',m1*m2,m3,m3,1.,s0(:,:,:),m1*m2,htprimez,m3,0.,s1,m1*m2)
+        ForcesFl1 = s1+ForcesFl1
+
+        ! forces associated to V_y
+        s0 = Elem%fl%Acoeff(:,:,:,12) * Elem%flpml%Veloc(:,:,:,1)
+        call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,s0(:,:,:),m1,0.,s1,m1)
+        ForcesFl2 = s1
+
+        s0 = Elem%fl%Acoeff(:,:,:,13) * Elem%flpml%Veloc(:,:,:,1)
+        do n_z = 0,m3-1
+            call DGEMM('N','N',m1,m2,m2,1.,s0(0,0,n_z),m1, htprimey,m2,0.,s1(0,0,n_z),m1)
+        enddo
+        ForcesFl2 = s1+ForcesFl2
+
+        s0 = Elem%fl%Acoeff(:,:,:,14) * Elem%flpml%Veloc(:,:,:,1)
+        call DGEMM('N','N',m1*m2,m3,m3,1.,s0(:,:,:),m1*m2,htprimez,m3,0.,s1,m1*m2)
+        ForcesFl2 = s1+ForcesFl2
+
+        ! forces associated to V_z
+        s0 = Elem%fl%Acoeff(:,:,:,15) * Elem%flpml%Veloc(:,:,:,2)
+        call DGEMM('N','N',m1,m2*m3,m1,1.,hprimex,m1,s0(:,:,:),m1,0.,s1,m1)
+        ForcesFl3 = s1
+
+        s0 = Elem%fl%Acoeff(:,:,:,16) * Elem%flpml%Veloc(:,:,:,2)
+        do n_z = 0,m3-1
+            call DGEMM('N','N',m1,m2,m2,1.,s0(0,0,n_z),m1, htprimey,m2,0.,s1(0,0,n_z),m1)
+        enddo
+        ForcesFl3 = s1+ForcesFl3
+
+        s0 = Elem%fl%Acoeff(:,:,:,17) * Elem%flpml%Veloc(:,:,:,2)
+        call DGEMM('N','N',m1*m2,m3,m3,1.,s0(:,:,:),m1*m2,htprimez,m3,0.,s1,m1*m2)
+        ForcesFl3 = s1+ForcesFl3
+
+        ! Assemblage
+        do k = 0,m3-1
+            do j = 0,m2-1
+                do i = 0,m1-1
+                    ind = Elem%flpml%IFluPml(i,j,k)
+                    fpml_Forces(ind+0) = fpml_Forces(ind+0) + ForcesFl1(i,j,k)
+                    fpml_Forces(ind+1) = fpml_Forces(ind+1) + ForcesFl2(i,j,k)
+                    fpml_Forces(ind+2) = fpml_Forces(ind+2) + ForcesFl3(i,j,k)
+                enddo
+            enddo
+        enddo
+
+        return
+    end subroutine compute_InternalForces_PML_Elem_Fl
 
 
     subroutine init_element(el)

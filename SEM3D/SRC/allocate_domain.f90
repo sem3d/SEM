@@ -21,7 +21,7 @@ subroutine allocate_domain (Tdomain)
     type(domain), intent (INOUT) :: Tdomain
     integer :: n,nf,ne,nv,i,j,k,ngllx,nglly,ngllz,ngll1,ngll2,   &
         ngll,ngllPML,ngllSO,ngllNeu,ngllSF,ngllSF_PML,ngll_F,ngllPML_F
-    integer :: n_solid
+    integer :: n_solid, idx
     integer :: mat, randSize, assocMat
 
     do mat = 0,Tdomain%n_mat-1
@@ -174,19 +174,10 @@ subroutine allocate_domain (Tdomain)
                     allocate(Tdomain%specel(n)%flpml%Veloc1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%flpml%Veloc2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%flpml%Veloc3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%flpml%VelPhi1(1:ngllx-2,1:nglly-2,1:ngllz-2))
-                    allocate(Tdomain%specel(n)%flpml%VelPhi2(1:ngllx-2,1:nglly-2,1:ngllz-2))
-                    allocate(Tdomain%specel(n)%flpml%VelPhi3(1:ngllx-2,1:nglly-2,1:ngllz-2))
-                    allocate(Tdomain%specel(n)%flpml%ForcesFl1(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                    allocate(Tdomain%specel(n)%flpml%ForcesFl2(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                    allocate(Tdomain%specel(n)%flpml%ForcesFl3(0:ngllx-1,0:nglly-1,0:ngllz-1))
                     Tdomain%specel(n)%flpml%Veloc = 0d0
                     Tdomain%specel(n)%flpml%Veloc1 = 0d0
                     Tdomain%specel(n)%flpml%Veloc2 = 0d0
                     Tdomain%specel(n)%flpml%Veloc3 = 0d0
-                    Tdomain%specel(n)%flpml%VelPhi1 = 0d0
-                    Tdomain%specel(n)%flpml%VelPhi2 = 0d0
-                    Tdomain%specel(n)%flpml%VelPhi3 = 0d0
                 else
                     allocate(Tdomain%specel(n)%fl%Acoeff(0:ngllx-1,0:nglly-1,0:ngllz-1,0:5))
                 endif
@@ -466,21 +457,41 @@ subroutine allocate_domain (Tdomain)
         allocate(Tdomain%champs0%Fluid_dirich(0:Tdomain%ngll_f-1))
         Tdomain%champs0%Fluid_dirich = 1.0
         do n = 0,Tdomain%n_elem-1
-            if (Tdomain%specel(n)%fluid_dirich) then
-                ngllx = Tdomain%specel(n)%ngllx
-                nglly = Tdomain%specel(n)%nglly
-                ngllz = Tdomain%specel(n)%ngllz
-                do j = 0,nglly-1
-                    do i = 0,ngllx-1
-                        Tdomain%champs0%Fluid_dirich(Tdomain%specel(n)%IFlu(i,j,ngllz-1)) = 0.
-                    enddo
+            if (Tdomain%specel(n)%Solid) cycle
+            if (Tdomain%specel(n)%PML) cycle
+            if (.not. Tdomain%specel(n)%fluid_dirich) cycle
+            ngllx = Tdomain%specel(n)%ngllx
+            nglly = Tdomain%specel(n)%nglly
+            ngllz = Tdomain%specel(n)%ngllz
+            do j = 0,nglly-1
+                do i = 0,ngllx-1
+                    idx = Tdomain%specel(n)%IFlu(i,j,ngllz-1)
+                    if (idx==-1) stop "Error"
+                    Tdomain%champs0%Fluid_dirich(idx) = 0.
                 enddo
-            endif
+            enddo
         enddo
 
         ! Allocation de Tdomain%MassMatFlu pour les fluides
         allocate(Tdomain%MassMatFlu(0:Tdomain%ngll_f-1))
         Tdomain%MassMatFlu = 0d0
+    endif
+
+    ! Allocation et initialisation de Tdomain%champs0 pour les PML fluides
+    if (Tdomain%ngll_pmlf /= 0) then
+        allocate(Tdomain%champs1%fpml_Forces(0:Tdomain%ngll_pmlf-1))
+        allocate(Tdomain%champs0%fpml_VelPhi(0:Tdomain%ngll_pmlf-1))
+        allocate(Tdomain%champs0%fpml_DumpV(0:Tdomain%ngll_pmlf-1,0:1))
+        Tdomain%champs1%fpml_Forces = 0d0
+        Tdomain%champs0%fpml_VelPhi = 0d0
+        Tdomain%champs0%fpml_DumpV = 0d0
+
+        ! Allocation de Tdomain%MassMatSolPml pour les PML solides
+        allocate(Tdomain%MassMatFluPml(0:Tdomain%ngll_pmlf-1))
+        Tdomain%MassMatFluPml = 0d0
+
+        allocate(Tdomain%fpml_DumpMass(0:Tdomain%ngll_pmlf-1))
+        Tdomain%fpml_DumpMass = 0d0
     endif
 
     ! Allocation et initialisation des champs pour le couplage solide / fluide

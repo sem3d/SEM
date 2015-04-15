@@ -884,14 +884,17 @@ contains
                 do k = 0,ngllz-1
                     do j = 0,nglly-1
                         do i = 0,ngllx-1
-                            !TODO
-                            stop "TODO : assemblage de la masse mat pour PML fluide !"
+                            idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                            if (domains(idx)==domain_type) then
+                                mass(idx) = Tdomain%MassMatFluPML(Tdomain%specel(n)%flpml%IFluPML(i,j,k))
+                            endif
                         end do
                     end do
                 end do
             end select
         enddo
-        if (Tdomain%any_PML) deallocate(Tdomain%MassMatSolPml)
+        if (Tdomain%ngll_pmls>0) deallocate(Tdomain%MassMatSolPml)
+        if (Tdomain%ngll_pmlf>0) deallocate(Tdomain%MassMatFluPml)
         ! jac
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle

@@ -261,7 +261,7 @@ subroutine init_material_properties(Tdomain, specel, mat)
   case( MATERIAL_EARTHCHUNK )
      call initialize_material_earthchunk(specel, mat, Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
 
- case( MATERIAL_PREM )
+  case( MATERIAL_PREM )
      call initialize_material_prem(specel, mat, Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
 
   case( MATERIAL_GRADIENT )
@@ -477,9 +477,14 @@ subroutine finalize_pml_properties(Tdomain)
 
         if(Tdomain%specel(n)%PML)then   ! dumped masses in PML
             ! Compute DumpV
-            call define_PML_DumpEnd(Tdomain%ngll_pmls, Tdomain%MassMatSolPml, &
-                Tdomain%DumpMass, Tdomain%champs0%DumpV)
-            deallocate(Tdomain%specel(n)%xpml%DumpMass)
+            if (Tdomain%specel(n)%Solid) then
+                call define_PML_DumpEnd(Tdomain%ngll_pmls, Tdomain%MassMatSolPml, &
+                    Tdomain%DumpMass, Tdomain%champs0%DumpV)
+            else
+                call define_PML_DumpEnd(Tdomain%ngll_pmlf, Tdomain%MassMatFluPml, &
+                    Tdomain%fpml_DumpMass, Tdomain%champs0%fpml_DumpV)
+            endif
+                deallocate(Tdomain%specel(n)%xpml%DumpMass)
         end if
      end do
 end subroutine finalize_pml_properties
@@ -520,9 +525,10 @@ subroutine init_local_mass_mat(Tdomain, specel, mat, Whei)
                     Tdomain%MassMatSolPml(ind+1) = Tdomain%MassMatSolPml(ind)
                     Tdomain%MassMatSolPml(ind+2) = Tdomain%MassMatSolPml(ind)
                 else
-                    !todo
-                    !Tdomain%MassMatFlu(specel%Iflu(i,j,k)) = Tdomain%MassMatFlu(specel%Iflu(i,j,k)) &
-                    !    + specel%MassMat(i,j,k)
+                    ind = specel%flpml%IFluPml(i,j,k)
+                    Tdomain%MassMatFluPml(ind) = Tdomain%MassMatFluPml(ind) + specel%MassMat(i,j,k)
+                    Tdomain%MassMatFluPml(ind+1) = Tdomain%MassMatFluPml(ind)
+                    Tdomain%MassMatFluPml(ind+2) = Tdomain%MassMatFluPml(ind)
                 endif
             enddo
         enddo
@@ -946,10 +952,9 @@ subroutine assemble_DumpMass(Tdomain,specel)
                             Tdomain%DumpMass(specel%slpml%ISolPml(i,j,k)+m) &
                             + specel%xpml%DumpMass(i,j,k,m)
                     else
-                        !todo
-                        !Tdomain%DumpMass(specel%flpml%IFluPml(i,j,k),:) = &
-                        !    Tdomain%DumpMass(specel%flpml%IFluPml(i,j,k),:) &
-                        !    + specel%xpml%DumpMass(i,j,k,:)
+                        Tdomain%fpml_DumpMass(specel%flpml%IFluPml(i,j,k)+m) = &
+                            Tdomain%fpml_DumpMass(specel%flpml%IFluPml(i,j,k)+m) &
+                            + specel%xpml%DumpMass(i,j,k,m)
                     endif
                 enddo
             enddo
@@ -960,11 +965,11 @@ subroutine assemble_DumpMass(Tdomain,specel)
 end subroutine assemble_DumpMass
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
-subroutine define_PML_DumpEnd(ngll_pmls,Massmat,DumpMass,DumpV)
+subroutine define_PML_DumpEnd(ngll,Massmat,DumpMass,DumpV)
     implicit none
-    integer, intent(in)   :: ngll_pmls
-    real, dimension(0:ngll_pmls-1), intent(in) :: MassMat, DumpMass
-    real, dimension(0:ngll_pmls-1,0:1), intent(out) :: DumpV
+    integer, intent(in)   :: ngll
+    real, dimension(0:ngll-1), intent(in) :: MassMat, DumpMass
+    real, dimension(0:ngll-1,0:1), intent(out) :: DumpV
     
     DumpV(:,1) = MassMat(:) + DumpMass(:)
     DumpV(:,1) = 1d0/DumpV(:,1)

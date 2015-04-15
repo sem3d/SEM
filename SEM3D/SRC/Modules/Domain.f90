@@ -96,7 +96,7 @@ module sdomain
        ! MassMat pour elements solide, fluide, solide pml et fluide pml
        real, dimension(:), allocatable :: MassMatSol, MassMatFlu
        real, dimension(:), allocatable :: MassMatSolPml, MassMatFluPml
-       real, dimension(:), allocatable :: DumpMass
+       real, dimension(:), allocatable :: DumpMass, fpml_DumpMass
 
        ! Interface Solide / PML
        integer :: nbInterfSolPml ! nombre de points de gauss à l'interface Solide / PML

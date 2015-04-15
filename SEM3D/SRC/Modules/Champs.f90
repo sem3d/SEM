@@ -24,10 +24,14 @@ module schamps
         real, dimension(:), allocatable :: Phi
         real, dimension(:), allocatable :: VelPhi
 
+        !! Fluide PML
+        real, dimension(:), allocatable   :: fpml_Forces
+        real, dimension(:), allocatable   :: fpml_VelPhi
+        real, dimension(:,:), allocatable :: fpml_DumpV
+
         ! Champs rempli de 0. et de 1. pour annuler VelPhi sur faces libres
         real, dimension(:), allocatable :: Fluid_dirich
 
-        !! Fluide PML
 
         !! Couplage solide / fluide
         real, dimension(:,:), allocatable :: Save_forces

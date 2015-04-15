@@ -379,7 +379,6 @@ subroutine renumber_domains(Tdomain, renumS, renumF, renumSpml, renumFpml)
         do n = 0,Tdomain%n_glob_points-1
             if (renumS(n) > -1 .and. renumSpml(n) > -1) then
                 ! On se trouve ầ l'interface Sol/PML : on compte le nombre de points à l'interface
-                write(*,*) "S/PML:", n, renumS(n), renumSpml(n)
                 nbPtInterfSolPml = nbPtInterfSolPml + 1
             endif
             if (renumF(n) > -1 .and. renumFpml(n) > -1) then
