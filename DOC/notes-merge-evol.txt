@@ -9,5 +9,32 @@ Bug probable reintroduit avec le %V0 qui est non initialise dans le cas des PMLs
 voir read_restart, save_checkpoint qui sauvegardait V0 pour Face/Edge/Vertex
 
 
-optim newmark, voir si on peut vectoriser correction/prediction
+optim:
+
+- newmark, voir si on peut vectoriser correction/prediction
+
+- Champs: inverser coords pour avoir x,y,z en premier ? A tester
+
+Reorg:
+
+- Faire 4 structures S,F,SPML,FPML pour chacun des groupes de donnees :
+  Data : param fixe par element
+  Field : Param variables
+
+  Au lieu d'avoir champ->s_forces champs->f_velphi on a champs->sol->forces ...
+  Idem pour les donnees de Tdomain :
+
+  Tdomain->s_data->MassMat
+  Tdomain->f_data->MassMat ...
+
+  On renomme les ISol,IFlu,... de element pour en avoir qu'un seul
+
+  les data peuvent contenir les données stockee dans les elements actuellement
+  avec un index calculé : specel(n)%Lambda(i,j,k) ---> data_s->lambda(i,j,k,n)
+
+Ensuite on peut separer les calculs par domaines également pour ameliorer la localite memoire.
+pour les cas couples.
+
+Voir si on peut ameliorer globalnumbering pour que les num gll des faces/edges/vertex soient
+plus localises sur les elements.
 
