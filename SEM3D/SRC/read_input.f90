@@ -405,24 +405,24 @@ contains
 
         if(nRandom > 0) then
             !Building element list in each subdomain
-            do i=0,Tdomain%n_mat-1
-                allocate (Tdomain%sSubdomain(i)%elemList(0:Tdomain%sSubdomain(i)%nElem-1))
-                Tdomain%sSubdomain(i)%elemList(:) = -1 !-1 to detect errors
-                Tdomain%sSubdomain(i)%nElem       = 0 !Using to count the elements in the next loop
-            enddo
-            do i=0,Tdomain%n_elem-1
-                mat = Tdomain%specel(i)%mat_index
-                Tdomain%sSubdomain(mat)%elemList(Tdomain%sSubdomain(mat)%nElem) = i
-                Tdomain%sSubdomain(mat)%nElem = Tdomain%sSubdomain(mat)%nElem + 1
-            enddo
+      !      do i=0,Tdomain%n_mat-1
+      !          allocate (Tdomain%sSubdomain(i)%elemList(0:Tdomain%sSubdomain(i)%nElem-1))
+      !          Tdomain%sSubdomain(i)%elemList(:) = -1 !-1 to detect errors
+      !          Tdomain%sSubdomain(i)%nElem       = 0 !Using to count the elements in the next loop
+      !      enddo
+      !      do i=0,Tdomain%n_elem-1
+      !          mat = Tdomain%specel(i)%mat_index
+      !          Tdomain%sSubdomain(mat)%elemList(Tdomain%sSubdomain(mat)%nElem) = i
+      !          Tdomain%sSubdomain(mat)%nElem = Tdomain%sSubdomain(mat)%nElem + 1
+      !      enddo
 
-            !Defining existing subdomain list in each domain
-            allocate (Tdomain%subD_exist(0:Tdomain%n_mat-1))
-            allocate (Tdomain%subDComm(0:Tdomain%n_mat - 1))
-            Tdomain%subD_exist(:) = .true.
-            do mat=0,Tdomain%n_mat-1
-                if(Tdomain%sSubdomain(mat)%nElem == 0) Tdomain%subD_exist(mat) = .false.
-            enddo
+      !      !Defining existing subdomain list in each domain
+      !      allocate (Tdomain%subD_exist(0:Tdomain%n_mat-1))
+      !      allocate (Tdomain%subDComm(0:Tdomain%n_mat - 1))
+      !      Tdomain%subD_exist(:) = .true.
+      !      do mat=0,Tdomain%n_mat-1
+      !          if(Tdomain%sSubdomain(mat)%nElem == 0) Tdomain%subD_exist(mat) = .false.
+      !      enddo
 
             Tdomain%any_Random = .true.
             read(13,*); read(13,*)
