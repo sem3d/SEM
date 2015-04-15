@@ -237,11 +237,10 @@ subroutine comm_forces(Tdomain)
             ! Domain FLUID PML
             do i=0,Tdomain%Comm_data%Data(n)%nflupml-1
                 idx = Tdomain%Comm_data%Data(n)%IGiveFPML(i)
-                !TODO
-!                 do j=0,2
-!                     Tdomain%Comm_data%Data(n)%Give(k) = Tdomain%champs1%ForcesFLPML(idx+j)
-!                     k=k+1
-!                 enddo
+                do j=0,2
+                    Tdomain%Comm_data%Data(n)%Give(k) = Tdomain%champs1%fpml_Forces(idx+j)
+                    k=k+1
+                enddo
             end do
 
             Tdomain%Comm_data%Data(n)%nsend = k
@@ -286,12 +285,11 @@ subroutine comm_forces(Tdomain)
             ! Domain FLUID PML
             do i=0,Tdomain%Comm_data%Data(n)%nflupml-1
                 idx = Tdomain%Comm_data%Data(n)%ITakeFPML(i)
-                !TODO
-!                 do j=0,2
-!                     Tdomain%champs1%ForcesFLPML(idx+j) = Tdomain%champs1%ForcesFLPML(idx+j) + &
-!                                                          Tdomain%Comm_data%Data(n)%Take(k)
-!                     k=k+1
-!                 enddo
+                do j=0,2
+                    Tdomain%champs1%fpml_Forces(idx+j) = Tdomain%champs1%fpml_Forces(idx+j) + &
+                        Tdomain%Comm_data%Data(n)%Take(k)
+                    k=k+1
+                 enddo
             end do
         end do
     endif
