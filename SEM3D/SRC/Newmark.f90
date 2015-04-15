@@ -374,8 +374,8 @@ subroutine Newmark_Predictor(Tdomain,champs1)
         ! Elements solide pml
     if (Tdomain%ngll_pmlf /= 0) then
         champs1%fpml_Forces = 0.
-        do n = 0,Tdomain%nbInterfSolPml-1
-            ! Couplage à l'interface solide / PML
+        do n = 0,Tdomain%nbInterfFluPml-1
+            ! Couplage à l'interface fluide / PML
             indflu = Tdomain%InterfFluPml(n,0)
             indpml = Tdomain%InterfFluPml(n,1)
             Tdomain%champs0%fpml_VelPhi(indpml) = Tdomain%champs0%VelPhi(indflu)
@@ -479,7 +479,7 @@ subroutine internal_forces(Tdomain,champs1)
 
     type(domain), intent(inout)  :: Tdomain
     type(champs), intent(inout) :: champs1
-    integer  :: n,mat, indsol, indpml
+    integer  :: n,mat, indsol, indflu, indpml
 
     do n = 0,Tdomain%n_elem-1
         mat = Tdomain%specel(n)%mat_index
@@ -511,6 +511,17 @@ subroutine internal_forces(Tdomain,champs1)
                                        champs1%ForcesPML(indpml,:) + &
                                        champs1%ForcesPML(indpml+1,:) + &
                                        champs1%ForcesPML(indpml+2,:)
+        enddo
+    endif
+    ! Couplage interface fluid / PML
+    if (Tdomain%ngll_pmlf > 0) then
+        do n = 0,Tdomain%nbInterfFluPml-1
+            indflu = Tdomain%InterfFluPml(n,0)
+            indpml = Tdomain%InterfFluPml(n,1)
+            champs1%ForcesFl(indflu) = champs1%ForcesFl(indflu) + &
+                                       champs1%fpml_Forces(indpml) + &
+                                       champs1%fpml_Forces(indpml+1) + &
+                                       champs1%fpml_Forces(indpml+2)
         enddo
     endif
 

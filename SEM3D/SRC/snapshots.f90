@@ -606,7 +606,6 @@ contains
             case (DM_SOLID_PML)
                 field_displ = 0
                 call gather_field_pml(el, field_veloc, Tdomain%champs0%VelocPML, el%slpml%IsolPML)
-                !call gather_field_pml(el, field_accel, Tdomain%champs1%ForcesPML, el%slpml%IsolPML)
                 field_accel = 0
                 field_press = 0
             case (DM_FLUID)
@@ -623,8 +622,11 @@ contains
             case (DM_FLUID_PML)
                 field_displ = 0
                 field_veloc = 0
-                field_accel = 0
-                field_press = 0
+                call gather_field_fpml(el, field_vphi, Tdomain%champs0%fpml_Velphi, el%flpml%IFluPML)
+                call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex,              &
+                            sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
+                            el%InvGrad,el%density,field_vphi,field_accel)
+                field_press = -field_vphi
             end select
 
             do k = 0,ngllz-1

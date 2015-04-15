@@ -133,6 +133,24 @@ contains
         enddo
     end subroutine gather_field_pml
 
+    subroutine gather_field_fpml(el, field, src_field, inum)
+        type(element), intent(in), pointer :: el
+        real, dimension(0:,0:,0:), intent(out) :: field
+        real, dimension(0:), intent(in) :: src_field
+        integer, dimension(0:,0:,0:), intent(in) :: inum
+        !
+        integer :: i,j,k
+
+        do k=0,el%ngllz-1
+            do j=0,el%nglly-1
+                do i=0,el%ngllx-1
+                    ind = inum(i,j,k)
+                    field(i,j,k) = src_field(ind) + src_field(ind+1) + src_field(ind+2)
+                enddo
+            enddo
+        enddo
+    end subroutine gather_field_fpml
+
     subroutine gather_field_fluid(el, field, src_field, inum)
         type(element), intent(in), pointer :: el
         real, dimension(0:,0:,0:), intent(out) :: field

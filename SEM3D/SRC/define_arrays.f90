@@ -137,6 +137,17 @@ subroutine assemble_mass_matrices(Tdomain)
         Tdomain%MassMatSolPml(indpml+2) = Mass
     enddo
 
+    ! Couplage à l'interface fluid / PML
+    do n = 0,Tdomain%nbInterfFluPml-1
+        indsol = Tdomain%InterfFluPml(n,0)
+        indpml = Tdomain%InterfFluPml(n,1)
+        Mass = Tdomain%MassMatFlu(indsol) + Tdomain%MassMatFluPml(indpml)
+        Tdomain%MassMatFlu(indsol) = Mass
+        Tdomain%MassMatFluPml(indpml+0) = Mass
+        Tdomain%MassMatFluPml(indpml+1) = Mass
+        Tdomain%MassMatFluPml(indpml+2) = Mass
+    enddo
+
     if(Tdomain%Comm_data%ncomm > 0)then
         do n = 0,Tdomain%Comm_data%ncomm-1
             ! Domain SOLID
@@ -167,8 +178,10 @@ subroutine assemble_mass_matrices(Tdomain)
             ! Domain FLUID PML
             do i=0,Tdomain%Comm_data%Data(n)%nflupml-1
                 idx = Tdomain%Comm_data%Data(n)%IGiveFPML(i)
-                !TODO
-                Tdomain%Comm_data%Data(n)%Give(k) = Tdomain%MassMatFluPml(idx)
+                Tdomain%Comm_data%Data(n)%Give(k+0) = Tdomain%fpml_DumpMass(idx)
+                Tdomain%Comm_data%Data(n)%Give(k+1) = Tdomain%fpml_DumpMass(idx+1)
+                Tdomain%Comm_data%Data(n)%Give(k+2) = Tdomain%fpml_DumpMass(idx+2)
+                Tdomain%Comm_data%Data(n)%Give(k+3) = Tdomain%MassMatFluPml(idx)
                 k=k+1
             end do
 
@@ -231,6 +244,7 @@ subroutine inverse_mass_mat(Tdomain)
     if (Tdomain%ngll_s /= 0)    Tdomain%MassMatSol(:) = 1d0/Tdomain%MassMatSol(:)
     if (Tdomain%ngll_f /= 0)    Tdomain%MassMatFlu(:) = 1d0/Tdomain%MassMatFlu(:)
     if (Tdomain%ngll_pmls /= 0) Tdomain%MassMatSolPml(:) = 1d0/Tdomain%MassMatSolPml(:)
+    if (Tdomain%ngll_pmlf /= 0) Tdomain%MassMatFluPml(:) = 1d0/Tdomain%MassMatFluPml(:)
 
 end subroutine inverse_mass_mat
 
@@ -508,12 +522,11 @@ subroutine init_local_mass_mat(Tdomain, specel, mat, Whei)
            if(specel%solid)then
               specel%MassMat(i,j,k) = Whei(i,j,k)*specel%Density(i,j,k)*specel%Jacob(i,j,k)
            else   ! fluid case: inertial term ponderation by the inverse of the bulk modulus
-              specel%MassMat(i,j,k) = Whei(i,j,k)*specel%Jacob(i,j,k)/specel%Lambda(i,j,k)
+               specel%MassMat(i,j,k) = Whei(i,j,k)*specel%Jacob(i,j,k)/specel%Lambda(i,j,k)
            end if
         enddo
      enddo
   enddo
-
   if(specel%PML)then ! PML part
     do k = 0,specel%ngllz-1
         do j = 0,specel%nglly-1
