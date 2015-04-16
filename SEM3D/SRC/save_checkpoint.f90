@@ -150,54 +150,29 @@ subroutine compute_save_offsets(Tdomain, offset)
     end do
 end subroutine compute_save_offsets
 
-subroutine write_Veloc(Tdomain, nmax, elem_id)
+subroutine write_Veloc(Tdomain, gp)
     use sdomain, only : domain
-    use sem_hdf5, only : create_dset
     use HDF5
     implicit none
-    type (domain), intent (IN):: Tdomain
-    integer(HID_T), intent(IN) :: elem_id
-    integer(HID_T) :: dset_id
-    integer(kind=4), intent(IN) :: nmax
+    type (domain),  intent(IN)     :: Tdomain
+    integer(HID_T), intent(IN)     :: gp
 
-    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
-    real(kind=8), dimension(1:nmax) :: data
-    integer(HSIZE_T), dimension(1) :: dims
-    integer :: id
+    integer(HID_T)                 :: dspc, dset
+    integer(HSIZE_T), dimension(2) :: ddims
+    integer                        :: hdferr
 
-
-    call create_dset(elem_id, "Veloc", H5T_IEEE_F64LE, nmax, dset_id)
-    if(nmax <= 0)then  ! all fluid simulation
-        call h5dclose_f(dset_id, hdferr)
-        return
-    end if
-    dims(1) = nmax
-    idx = 1
-    do n = 0,Tdomain%n_elem-1
-        if(.not. Tdomain%specel(n)%solid) cycle
-        if(Tdomain%specel(n)%PML) cycle
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
-
-        do k = 1,ngllz-2
-            do j = 1,nglly-2
-                do i = 1,ngllx-2
-                    if (idx.gt.nmax) then
-                        write(*,*) "Erreur fatale sauvegarde des protections"
-                        stop 1
-                    end if
-                    id = Tdomain%specel(n)%ISol(i,j,k)
-                    data(idx+0) = Tdomain%champs0%Veloc(id,0)
-                    data(idx+1) = Tdomain%champs0%Veloc(id,1)
-                    data(idx+2) = Tdomain%champs0%Veloc(id,2)
-                    idx = idx + 3
-                enddo
-            enddo
-        enddo
-    enddo
-    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
-    call h5dclose_f(dset_id, hdferr)
+    ddims(1) = size(Tdomain%champs0%Veloc,1)
+    ddims(2) = size(Tdomain%champs0%Veloc,2)
+    call h5screate_simple_f(2, ddims, dspc, hdferr)
+    if (hdferr .ne. 0) stop "write_Veloc : screate KO"
+    call h5dcreate_f(gp, "Veloc", H5T_IEEE_F64LE, dspc, dset, hdferr)
+    if (hdferr .ne. 0) stop "write_Veloc : dcreate KO"
+    call h5dwrite_f(dset, H5T_NATIVE_DOUBLE, Tdomain%champs0%Veloc, ddims, hdferr)
+    if (hdferr .ne. 0) stop "write_Veloc : dwrite KO"
+    call h5dclose_f(dset, hdferr)
+    if (hdferr .ne. 0) stop "write_Veloc : dclose KO"
+    call h5sclose_f(dspc, hdferr)
+    if (hdferr .ne. 0) stop "write_Veloc : sclose KO"
 end subroutine write_Veloc
 
 subroutine write_VelPhi(Tdomain, nmax, elem_id)
@@ -371,57 +346,30 @@ subroutine write_VelPhi123(Tdomain, nmax, elem_id)
     call h5dclose_f(dset_id3, hdferr)
 end subroutine write_VelPhi123
 
-
-
-subroutine write_Disp(Tdomain, nmax, elem_id)
+subroutine write_Disp(Tdomain, gp)
     use sdomain, only : domain
-    use sem_hdf5, only : create_dset
     use HDF5
     implicit none
-    type (domain), intent (IN):: Tdomain
-    integer(HID_T), intent(IN) :: elem_id
-    integer(HID_T) :: dset_id
-    integer(kind=4), intent(IN) :: nmax
-    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
-    real(kind=8), dimension(1:nmax) :: data
-    integer(HSIZE_T), dimension(1) :: dims
-    integer :: id
+    type (domain),  intent(IN)     :: Tdomain
+    integer(HID_T), intent(IN)     :: gp
 
-    call create_dset(elem_id, "Displ", H5T_IEEE_F64LE, nmax, dset_id)
-    if(nmax <= 0)then
-        call h5dclose_f(dset_id, hdferr)
-        return
-    end if
-    dims(1) = nmax
-    idx = 1
-    do n = 0,Tdomain%n_elem-1
-        if(.not. Tdomain%specel(n)%solid) cycle
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
+    integer(HID_T)                 :: dspc, dset
+    integer(HSIZE_T), dimension(2) :: ddims
+    integer                        :: hdferr
 
-        if ( .not. Tdomain%specel(n)%PML ) then
-            do k = 1,ngllz-2
-                do j = 1,nglly-2
-                    do i = 1,ngllx-2
-                        if (idx.gt.nmax) then
-                            write(*,*) "Erreur fatale sauvegarde des protections"
-                            stop 1
-                        end if
-                        id = Tdomain%specel(n)%ISol(i,j,k)
-                        data(idx+0) = Tdomain%champs0%Depla(id,0)
-                        data(idx+1) = Tdomain%champs0%Depla(id,1)
-                        data(idx+2) = Tdomain%champs0%Depla(id,2)
-                        idx = idx + 3
-                    enddo
-                enddo
-            enddo
-        end if
-    enddo
-    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
-    call h5dclose_f(dset_id, hdferr)
+    ddims(1) = size(Tdomain%champs0%Depla,1)
+    ddims(2) = size(Tdomain%champs0%Depla,2)
+    call h5screate_simple_f(2, ddims, dspc, hdferr)
+    if (hdferr .ne. 0) stop "write_Disp : screate KO"
+    call h5dcreate_f(gp, "Displ", H5T_IEEE_F64LE, dspc, dset, hdferr)
+    if (hdferr .ne. 0) stop "write_Disp : dcreate KO"
+    call h5dwrite_f(dset, H5T_NATIVE_DOUBLE, Tdomain%champs0%Depla, ddims, hdferr)
+    if (hdferr .ne. 0) stop "write_Disp : dwrite KO"
+    call h5dclose_f(dset, hdferr)
+    if (hdferr .ne. 0) stop "write_Disp : dclose KO"
+    call h5sclose_f(dspc, hdferr)
+    if (hdferr .ne. 0) stop "write_Disp : sclose KO"
 end subroutine write_Disp
-
 
 subroutine write_Phi(Tdomain, nmax, elem_id)
     use sdomain, only : domain
@@ -905,11 +853,11 @@ subroutine save_checkpoint (Tdomain, rtime, it, dtmin, isort)
     call write_attr_int(fid, "iteration", it)
     call write_attr_int(fid, "isort", isort)
     !write(*,*) "DBG: Write veloc"
-    call write_Veloc(Tdomain, offset(1), elem_id)
+    call write_Veloc(Tdomain, elem_id)
     !write(*,*) "DBG: Write veloc PML"
     call write_Veloc123(Tdomain, offset(2), elem_id)
     !write(*,*) "DBG: Write disp"
-    call write_Disp(Tdomain, offset(3), elem_id)
+    call write_Disp(Tdomain, elem_id)
     !write(*,*) "DBG: Write espvol"
     call write_EpsilonVol(Tdomain, offset(4), elem_id)
     !write(*,*) "DBG: Write rvol"
