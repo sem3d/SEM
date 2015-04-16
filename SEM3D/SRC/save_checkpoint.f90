@@ -65,7 +65,7 @@ subroutine compute_save_offsets(Tdomain, offset)
     implicit none
     type (domain), intent (IN):: Tdomain
     integer(kind=4), intent(out), dimension (12) :: offset
-    integer :: n,ngllx,nglly,ngllz,ngll,ngll1,ngll2,n_solid
+    integer :: n,ngllx,nglly,ngllz,ngll,ngll2,n_solid
 
     ! Calcul des offsets de positions dans les tableaux
     n_solid = Tdomain%n_sls
@@ -805,7 +805,6 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
     integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
     real(kind=8), dimension(1:nmax) :: data
     integer(HSIZE_T), dimension(1) :: dims
-    integer :: id
 
     call create_dset(elem_id, "Veloc_Fl_PML", H5T_IEEE_F64LE, nmax, dset_id)
     if(nmax <= 0)then
