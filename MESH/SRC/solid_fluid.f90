@@ -88,7 +88,7 @@ contains
         any_f = .false. ; all_f = .true. ; s_f = .false.
         do i = 0, nmat-1
             if(mattab(i) == 'F' .or. mattab(i) == 'L') any_f = .true. 
-            if(mattab(i) == 'S' .or. mattab(i) == 'P') all_f = .false. 
+            if(mattab(i) == 'S' .or. mattab(i) == 'P' .or. mattab(i) == 'R') all_f = .false.
         end do
 
         !-
