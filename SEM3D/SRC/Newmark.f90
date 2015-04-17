@@ -369,7 +369,7 @@ subroutine Newmark_Predictor(Tdomain,champs1)
         enddo
     endif
 
-        ! Elements solide pml
+    ! Elements fluide pml
     if (Tdomain%ngll_pmlf /= 0) then
         champs1%fpml_Forces = 0.
         do n = 0,Tdomain%nbInterfFluPml-1

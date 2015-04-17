@@ -577,39 +577,27 @@ subroutine renumber_pml_domain(Tdomain, renumS, renumF, renumSpml, renumFpml)
         endif
 
         allocate(Tdomain%sFace(n)%Renum(1:ngll1-2,1:ngll2-2))
-        if (Tdomain%sFace(n)%solid) then
-            if (Tdomain%sFace(n)%PML) then
-                do j = 1,ngll2-2
-                    do i = 1,ngll1-2
+        do j = 1,ngll2-2
+            do i = 1,ngll1-2
+                if (Tdomain%sFace(n)%solid) then
+                    if (Tdomain%sFace(n)%PML) then
                         Tdomain%sFace(n)%Renum(i,j) = renumSpml(Tdomain%sFace(n)%Iglobnum_Face(i,j))
                         if (Tdomain%sFace(n)%Renum(i,j) < 0) stop "Error renumbering SOLID PML faces"
-                    enddo
-                enddo
-            else
-                do j = 1,ngll2-2
-                    do i = 1,ngll1-2
+                    else
                         Tdomain%sFace(n)%Renum(i,j) = renumS(Tdomain%sFace(n)%Iglobnum_Face(i,j))
                         if (Tdomain%sFace(n)%Renum(i,j) < 0) stop "Error renumbering SOLID faces"
-                    enddo
-                enddo
-            endif
-        else
-            if (Tdomain%sFace(n)%PML) then
-                do j = 1,ngll2-2
-                    do i = 1,ngll1-2
+                    endif
+                else
+                    if (Tdomain%sFace(n)%PML) then
                         Tdomain%sFace(n)%Renum(i,j) = renumFpml(Tdomain%sFace(n)%Iglobnum_Face(i,j))
                         if (Tdomain%sFace(n)%Renum(i,j) < 0) stop "Error renumbering FLUID PML faces"
-                    enddo
-                enddo
-            else
-                do j = 1,ngll2-2
-                    do i = 1,ngll1-2
+                    else
                         Tdomain%sFace(n)%Renum(i,j) = renumF(Tdomain%sFace(n)%Iglobnum_Face(i,j))
                         if (Tdomain%sFace(n)%Renum(i,j) < 0) stop "Error renumbering FLUID faces"
-                    enddo
-                enddo
-            endif
-        endif
+                    endif
+                endif
+            enddo
+        enddo
     enddo
 
     do n = 0,Tdomain%n_edge-1
@@ -632,27 +620,21 @@ subroutine renumber_pml_domain(Tdomain, renumS, renumF, renumSpml, renumFpml)
 
         allocate(Tdomain%sEdge(n)%Renum(1:ngll1-2))
         Tdomain%sEdge(n)%Renum(:) = -1
-        if (Tdomain%sEdge(n)%solid) then
-            if (Tdomain%sEdge(n)%PML) then
-                do i = 1,ngll1-2
+        do i = 1,ngll1-2
+            if (Tdomain%sEdge(n)%solid) then
+                if (Tdomain%sEdge(n)%PML) then
                     Tdomain%sEdge(n)%Renum(i) = renumSpml(Tdomain%sEdge(n)%Iglobnum_Edge(i))
-                enddo
-            else
-                do i = 1,ngll1-2
+                else
                     Tdomain%sEdge(n)%Renum(i) = renumS(Tdomain%sEdge(n)%Iglobnum_Edge(i))
-                enddo
-            endif
-        else
-            if (Tdomain%sEdge(n)%PML) then
-                do i = 1,ngll1-2
-                    Tdomain%sEdge(n)%Renum(i) = renumFpml(Tdomain%sEdge(n)%Iglobnum_Edge(i))
-                enddo
+                endif
             else
-                do i = 1,ngll1-2
+                if (Tdomain%sEdge(n)%PML) then
+                    Tdomain%sEdge(n)%Renum(i) = renumFpml(Tdomain%sEdge(n)%Iglobnum_Edge(i))
+                else
                     Tdomain%sEdge(n)%Renum(i) = renumF(Tdomain%sEdge(n)%Iglobnum_Edge(i))
-                enddo
+                endif
             endif
-        endif
+        enddo
     enddo
 
     do n = 0,Tdomain%n_vertex-1
@@ -719,77 +701,53 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
             ! Faces
             do i = 0,Tdomain%sComm(ncomm)%nb_faces-1
                 nf = Tdomain%sComm(ncomm)%faces(i)
-                if (Tdomain%sFace(nf)%solid) then
-                    if (Tdomain%sFace(nf)%PML) then
-                        do j = 1,Tdomain%sFace(nf)%ngll2-2
-                            do k = 1,Tdomain%sFace(nf)%ngll1-2
-                                idx = Tdomain%sFace(nf)%Renum(k,j)
+                do j = 1,Tdomain%sFace(nf)%ngll2-2
+                    do k = 1,Tdomain%sFace(nf)%ngll1-2
+                        idx = Tdomain%sFace(nf)%Renum(k,j)
+                        if (Tdomain%sFace(nf)%solid) then
+                            if (Tdomain%sFace(nf)%PML) then
                                 Comm_data%Data(n)%IGiveSPML(nsolpml) = idx
                                 nsolpml = nsolpml + 1
-                            end do
-                        end do
-                    else
-                        do j = 1,Tdomain%sFace(nf)%ngll2-2
-                            do k = 1,Tdomain%sFace(nf)%ngll1-2
-                                idx = Tdomain%sFace(nf)%Renum(k,j)
+                            else
                                 Comm_data%Data(n)%IGiveS(nsol) = idx
                                 nsol = nsol + 1
-                            end do
-                        end do
-                    endif
-                else ! Fluid
-                    if (Tdomain%sFace(nf)%PML) then
-                        do j = 1,Tdomain%sFace(nf)%ngll2-2
-                            do k = 1,Tdomain%sFace(nf)%ngll1-2
-                                idx = Tdomain%sFace(nf)%Renum(k,j)
+                            endif
+                        else ! Fluid
+                            if (Tdomain%sFace(nf)%PML) then
                                 Comm_data%Data(n)%IGiveFPML(nflupml) = idx
                                 nflupml = nflupml + 1
-                            end do
-                        end do
-                    else
-                        do j = 1,Tdomain%sFace(nf)%ngll2-2
-                            do k = 1,Tdomain%sFace(nf)%ngll1-2
-                                idx = Tdomain%sFace(nf)%Renum(k,j)
+                            else
                                 Comm_data%Data(n)%IGiveF(nflu) = idx
                                 nflu = nflu + 1
-                            end do
-                        end do
-                    endif
-                endif
+                            endif
+                        endif
+                    end do
+                end do
             enddo
 
             ! Edges
             do i = 0,Tdomain%sComm(ncomm)%nb_edges-1
                 ne = Tdomain%sComm(ncomm)%edges(i)
-                if (Tdomain%sEdge(ne)%solid) then
-                    if (Tdomain%sEdge(ne)%PML) then
-                        do j = 1,Tdomain%sEdge(ne)%ngll-2
-                            idx = Tdomain%sEdge(ne)%Renum(j)
+                do j = 1,Tdomain%sEdge(ne)%ngll-2
+                    idx = Tdomain%sEdge(ne)%Renum(j)
+                    if (Tdomain%sEdge(ne)%solid) then
+                        if (Tdomain%sEdge(ne)%PML) then
                             Comm_data%Data(n)%IGiveSPML(nsolpml) = idx
                             nsolpml = nsolpml + 1
-                        enddo
-                    else
-                        do j = 1,Tdomain%sEdge(ne)%ngll-2
-                            idx = Tdomain%sEdge(ne)%Renum(j)
+                        else
                             Comm_data%Data(n)%IGiveS(nsol) = idx
                             nsol = nsol + 1
-                        enddo
-                    endif
-                else ! Fluid
-                    if (Tdomain%sEdge(ne)%PML) then
-                        do j = 1,Tdomain%sEdge(ne)%ngll-2
-                            idx = Tdomain%sEdge(ne)%Renum(j)
+                        endif
+                    else ! Fluid
+                        if (Tdomain%sEdge(ne)%PML) then
                             Comm_data%Data(n)%IGiveFPML(nflupml) = idx
                             nflupml = nflupml + 1
-                        enddo
-                    else
-                        do j = 1,Tdomain%sEdge(ne)%ngll-2
-                            idx = Tdomain%sEdge(ne)%Renum(j)
+                        else
                             Comm_data%Data(n)%IGiveF(nflu) = idx
                             nflu = nflu + 1
-                        enddo
+                        endif
                     endif
-                endif
+                enddo
             enddo
 
             ! Vertices
@@ -828,318 +786,215 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
                 ngll2 = Tdomain%sFace(nf)%ngll2
 
                 if ( Tdomain%sComm(ncomm)%orient_faces(i) == 0 ) then
-                    if (Tdomain%sFace(nf)%solid) then ! solide
-                        if (Tdomain%sFace(nf)%PML) then
-                            do j = 1,ngll2-2
-                                do k = 1,ngll1-2
+                    do j = 1,ngll2-2
+                        do k = 1,ngll1-2
+                            if (Tdomain%sFace(nf)%solid) then ! solide
+                                if (Tdomain%sFace(nf)%PML) then
                                     idx = Tdomain%sFace(nf)%Renum(k,j)
                                     Comm_data%Data(n)%ITakeSPML(nsolpml) = idx
                                     nsolpml = nsolpml + 1
-                                enddo
-                            enddo
-                        else
-                            do j = 1,ngll2-2
-                                do k = 1,ngll1-2
+                                else
                                     idx = Tdomain%sFace(nf)%Renum(k,j)
                                     Comm_data%Data(n)%ITakeS(nsol) = idx
                                     nsol = nsol + 1
-                                enddo
-                            enddo
-                        endif
-                    else ! fluide
-                        if (Tdomain%sFace(nf)%PML) then
-                            do j = 1,ngll2-2
-                                do k = 1,ngll1-2
+                                endif
+                            else ! fluide
+                                if (Tdomain%sFace(nf)%PML) then
                                     idx = Tdomain%sFace(nf)%Renum(k,j)
                                     Comm_data%Data(n)%ITakeFPML(nflupml) = idx
                                     nflupml = nflupml + 1
-                                enddo
-                            enddo
-                        else
-                            do j = 1,ngll2-2
-                                do k = 1,ngll1-2
+                                else
                                     idx = Tdomain%sFace(nf)%Renum(k,j)
                                     Comm_data%Data(n)%ITakeF(nflu) = idx
                                     nflu = nflu + 1
-                                enddo
-                            enddo
-                        endif
-                    endif
-
+                                endif
+                            endif
+                        enddo
+                    enddo
                 else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 1 ) then
-                    if (Tdomain%sFace(nf)%solid) then ! solide
-                        if (Tdomain%sFace(nf)%PML) then
-                            do j = 1,ngll2-2
-                                do k = 1,ngll1-2
+                    do j = 1,ngll2-2
+                        do k = 1,ngll1-2
+                            if (Tdomain%sFace(nf)%solid) then ! solide
+                                if (Tdomain%sFace(nf)%PML) then
                                     idx = Tdomain%sFace(nf)%Renum(ngll1-1-k,j)
                                     Comm_data%Data(n)%ITakeSPML(nsolpml) = idx
                                     nsolpml = nsolpml + 1
-                                enddo
-                            enddo
-                        else
-                            do j = 1,ngll2-2
-                                do k = 1,ngll1-2
+                                else
                                     idx = Tdomain%sFace(nf)%Renum(ngll1-1-k,j)
                                     Comm_data%Data(n)%ITakeS(nsol) = idx
                                     nsol = nsol + 1
-                                enddo
-                            enddo
-                        endif
-                    else ! fluide
-                        if (Tdomain%sFace(nf)%PML) then
-                            do j = 1,ngll2-2
-                                do k = 1,ngll1-2
+                                endif
+                            else ! fluide
+                                if (Tdomain%sFace(nf)%PML) then
                                     idx = Tdomain%sFace(nf)%Renum(ngll1-1-k,j)
                                     Comm_data%Data(n)%ITakeFPML(nflupml) = idx
                                     nflupml = nflupml + 1
-                                enddo
-                            enddo
-                        else
-                            do j = 1,ngll2-2
-                                do k = 1,ngll1-2
+                                else
                                     idx = Tdomain%sFace(nf)%Renum(ngll1-1-k,j)
                                     Comm_data%Data(n)%ITakeF(nflu) = idx
                                     nflu = nflu + 1
-                                enddo
-                            enddo
-                        endif
-                    endif
-
+                                endif
+                            endif
+                        enddo
+                    enddo
                 else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 2 ) then
-                    if (Tdomain%sFace(nf)%solid) then ! solide
-                        if (Tdomain%sFace(nf)%PML) then
-                            do j = 1,ngll2-2
-                                do k = 1,ngll1-2
+                    do j = 1,ngll2-2
+                        do k = 1,ngll1-2
+                            if (Tdomain%sFace(nf)%solid) then ! solide
+                                if (Tdomain%sFace(nf)%PML) then
                                     idx = Tdomain%sFace(nf)%Renum(k,ngll2-1-j)
                                     Comm_data%Data(n)%ITakeSPML(nsolpml) = idx
                                     nsolpml = nsolpml + 1
-                                enddo
-                            enddo
-                        else
-                            do j = 1,ngll2-2
-                                do k = 1,ngll1-2
+                                else
                                     idx = Tdomain%sFace(nf)%Renum(k,ngll2-1-j)
                                     Comm_data%Data(n)%ITakeS(nsol) = idx
                                     nsol = nsol + 1
-                                enddo
-                            enddo
-                        endif
-                    else ! fluide
-                        if (Tdomain%sFace(nf)%PML) then
-                            do j = 1,ngll2-2
-                                do k = 1,ngll1-2
+                                endif
+                            else ! fluide
+                                if (Tdomain%sFace(nf)%PML) then
                                     idx = Tdomain%sFace(nf)%Renum(k,ngll2-1-j)
                                     Comm_data%Data(n)%ITakeFPML(nflupml) = idx
                                     nflupml = nflupml + 1
-                                enddo
-                            enddo
-                        else
-                            do j = 1,ngll2-2
-                                do k = 1,ngll1-2
+                                else
                                     idx = Tdomain%sFace(nf)%Renum(k,ngll2-1-j)
                                     Comm_data%Data(n)%ITakeF(nflu) = idx
                                     nflu = nflu + 1
-                                enddo
-                            enddo
-                        endif
-                    endif
-
+                                endif
+                            endif
+                        enddo
+                    enddo
                 else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 3 ) then
-                    if (Tdomain%sFace(nf)%solid) then ! solide
-                        if (Tdomain%sFace(nf)%PML) then
-                            do j = 1,ngll2-2
-                                do k = 1,ngll1-2
+                    do j = 1,ngll2-2
+                        do k = 1,ngll1-2
+                            if (Tdomain%sFace(nf)%solid) then ! solide
+                                if (Tdomain%sFace(nf)%PML) then
                                     idx = Tdomain%sFace(nf)%Renum(ngll1-1-k,ngll2-1-j)
                                     Comm_data%Data(n)%ITakeSPML(nsolpml) = idx
                                     nsolpml = nsolpml + 1
-                                enddo
-                            enddo
-                        else
-                            do j = 1,ngll2-2
-                                do k = 1,ngll1-2
+                                else
                                     idx = Tdomain%sFace(nf)%Renum(ngll1-1-k,ngll2-1-j)
                                     Comm_data%Data(n)%ITakeS(nsol) = idx
                                     nsol = nsol + 1
-                                enddo
-                            enddo
-                        endif
-                    else ! fluide
-                        if (Tdomain%sFace(nf)%PML) then
-                            do j = 1,ngll2-2
-                                do k = 1,ngll1-2
+                                endif
+                            else ! fluide
+                                if (Tdomain%sFace(nf)%PML) then
                                     idx = Tdomain%sFace(nf)%Renum(ngll1-1-k,ngll2-1-j)
                                     Comm_data%Data(n)%ITakeFPML(nflupml) = idx
                                     nflupml = nflupml + 1
-                                enddo
-                            enddo
-                        else
-                            do j = 1,ngll2-2
-                                do k = 1,ngll1-2
+                                else
                                     idx = Tdomain%sFace(nf)%Renum(ngll1-1-k,ngll2-1-j)
                                     Comm_data%Data(n)%ITakeF(nflu) = idx
                                     nflu = nflu + 1
-                                enddo
-                            enddo
-                        endif
-                    endif
-
+                                endif
+                            endif
+                        enddo
+                    enddo
                 else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 4 ) then
-                    if (Tdomain%sFace(nf)%solid) then ! solide
-                        if (Tdomain%sFace(nf)%PML) then
-                            do j = 1,ngll1-2
-                                do k = 1,ngll2-2
+                    do j = 1,ngll1-2
+                        do k = 1,ngll2-2
+                            if (Tdomain%sFace(nf)%solid) then ! solide
+                                if (Tdomain%sFace(nf)%PML) then
                                     idx = Tdomain%sFace(nf)%Renum(j,k)
                                     Comm_data%Data(n)%ITakeSPML(nsolpml) = idx
                                     nsolpml = nsolpml + 1
-                                enddo
-                            enddo
-                        else
-                            do j = 1,ngll1-2
-                                do k = 1,ngll2-2
+                                else
                                     idx = Tdomain%sFace(nf)%Renum(j,k)
                                     Comm_data%Data(n)%ITakeS(nsol) = idx
                                     nsol = nsol + 1
-                                enddo
-                            enddo
-                        endif
-                    else ! fluide
-                        if (Tdomain%sFace(nf)%PML) then
-                            do j = 1,ngll1-2
-                                do k = 1,ngll2-2
+                                endif
+                            else ! fluide
+                                if (Tdomain%sFace(nf)%PML) then
                                     idx = Tdomain%sFace(nf)%Renum(j,k)
                                     Comm_data%Data(n)%ITakeFPML(nflupml) = idx
                                     nflupml = nflupml + 1
-                                enddo
-                            enddo
-                        else
-                            do j = 1,ngll1-2
-                                do k = 1,ngll2-2
+                                else
                                     idx = Tdomain%sFace(nf)%Renum(j,k)
                                     Comm_data%Data(n)%ITakeF(nflu) = idx
                                     nflu = nflu + 1
-                                enddo
-                            enddo
-                        endif
-                    endif
-
+                                endif
+                            endif
+                        enddo
+                    enddo
                 else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 5 ) then
-                    if (Tdomain%sFace(nf)%solid) then ! solide
-                        if (Tdomain%sFace(nf)%PML) then
-                            do j = 1,ngll1-2
-                                do k = 1,ngll2-2
+                    do j = 1,ngll1-2
+                        do k = 1,ngll2-2
+                            if (Tdomain%sFace(nf)%solid) then ! solide
+                                if (Tdomain%sFace(nf)%PML) then
                                     idx = Tdomain%sFace(nf)%Renum(ngll1-1-j,k)
                                     Comm_data%Data(n)%ITakeSPML(nsolpml) = idx
                                     nsolpml = nsolpml + 1
-                                enddo
-                            enddo
-                        else
-                            do j = 1,ngll1-2
-                                do k = 1,ngll2-2
+                                else
                                     idx = Tdomain%sFace(nf)%Renum(ngll1-1-j,k)
                                     Comm_data%Data(n)%ITakeS(nsol) = idx
                                     nsol = nsol + 1
-                                enddo
-                            enddo
-                        endif
-                    else ! fluide
-                        if (Tdomain%sFace(nf)%PML) then
-                            do j = 1,ngll1-2
-                                do k = 1,ngll2-2
+                                endif
+                            else ! fluide
+                                if (Tdomain%sFace(nf)%PML) then
                                     idx = Tdomain%sFace(nf)%Renum(ngll1-1-j,k)
                                     Comm_data%Data(n)%ITakeFPML(nflupml) = idx
                                     nflupml = nflupml + 1
-                                enddo
-                            enddo
-                        else
-                            do j = 1,ngll1-2
-                                do k = 1,ngll2-2
+                                else
                                     idx = Tdomain%sFace(nf)%Renum(ngll1-1-j,k)
                                     Comm_data%Data(n)%ITakeF(nflu) = idx
                                     nflu = nflu + 1
-                                enddo
-                            enddo
-                        endif
-                    endif
-
+                                endif
+                            endif
+                        enddo
+                    enddo
                 else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 6 ) then
-                    if (Tdomain%sFace(nf)%solid) then ! solide
-                        if (Tdomain%sFace(nf)%PML) then
-                            do j = 1,ngll1-2
-                                do k = 1,ngll2-2
+                    do j = 1,ngll1-2
+                        do k = 1,ngll2-2
+                            if (Tdomain%sFace(nf)%solid) then ! solide
+                                if (Tdomain%sFace(nf)%PML) then
                                     idx = Tdomain%sFace(nf)%Renum(j,ngll2-1-k)
                                     Comm_data%Data(n)%ITakeSPML(nsolpml) = idx
                                     nsolpml = nsolpml + 1
-                                enddo
-                            enddo
-                        else
-                            do j = 1,ngll1-2
-                                do k = 1,ngll2-2
+                                else
                                     idx = Tdomain%sFace(nf)%Renum(j,ngll2-1-k)
                                     Comm_data%Data(n)%ITakeS(nsol) = idx
                                     nsol = nsol + 1
-                                enddo
-                            enddo
-                        endif
-                    else ! fluide
-                        if (Tdomain%sFace(nf)%PML) then
-                            do j = 1,ngll1-2
-                                do k = 1,ngll2-2
+                                endif
+                            else ! fluide
+                                if (Tdomain%sFace(nf)%PML) then
                                     idx = Tdomain%sFace(nf)%Renum(j,ngll2-1-k)
                                     Comm_data%Data(n)%ITakeFPML(nflupml) = idx
                                     nflupml = nflupml + 1
-                                enddo
-                            enddo
-                        else
-                            do j = 1,ngll1-2
-                                do k = 1,ngll2-2
+                                else
                                     idx = Tdomain%sFace(nf)%Renum(j,ngll2-1-k)
                                     Comm_data%Data(n)%ITakeF(nflu) = idx
                                     nflu = nflu + 1
-                                enddo
-                            enddo
-                        endif
-                    endif
-
+                                endif
+                            endif
+                        enddo
+                    enddo
                 else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 7 ) then
-                    if (Tdomain%sFace(nf)%solid) then ! solide
-                        if (Tdomain%sFace(nf)%PML) then
-                            do j = 1,ngll1-2
-                                do k = 1,ngll2-2
+                    do j = 1,ngll1-2
+                        do k = 1,ngll2-2
+                            if (Tdomain%sFace(nf)%solid) then ! solide
+                                if (Tdomain%sFace(nf)%PML) then
                                     idx = Tdomain%sFace(nf)%Renum(ngll1-1-j,ngll2-1-k)
                                     Comm_data%Data(n)%ITakeSPML(nsolpml) = idx
                                     nsolpml = nsolpml + 1
-                                enddo
-                            enddo
-                        else
-                            do j = 1,ngll1-2
-                                do k = 1,ngll2-2
+                                else
                                     idx = Tdomain%sFace(nf)%Renum(ngll1-1-j,ngll2-1-k)
                                     Comm_data%Data(n)%ITakeS(nsol) = idx
                                     nsol = nsol + 1
-                                enddo
-                            enddo
-                        endif
-                    else ! fluide
-                        if (Tdomain%sFace(nf)%PML) then
-                            do j = 1,ngll1-2
-                                do k = 1,ngll2-2
+                                endif
+                            else ! fluide
+                                if (Tdomain%sFace(nf)%PML) then
                                     idx = Tdomain%sFace(nf)%Renum(ngll1-1-j,ngll2-1-k)
                                     Comm_data%Data(n)%ITakeFPML(nflupml) = idx
                                     nflupml = nflupml + 1
-                                enddo
-                            enddo
-                        else
-                            do j = 1,ngll1-2
-                                do k = 1,ngll2-2
+                                else
                                     idx = Tdomain%sFace(nf)%Renum(ngll1-1-j,ngll2-1-k)
                                     Comm_data%Data(n)%ITakeF(nflu) = idx
                                     nflu = nflu + 1
-                                enddo
-                            enddo
-                        endif
-                    endif
+                                endif
+                            endif
+                        enddo
+                    enddo
                 endif ! orient_f
-            enddo            
+            enddo
 
             ! Edges
             do i = 0,Tdomain%sComm(ncomm)%nb_edges-1
@@ -1147,66 +1002,53 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
                 ngll1 = Tdomain%sEdge(ne)%ngll
 
                 if ( Tdomain%sComm(ncomm)%orient_edges(i) == 0 ) then
-                    if (Tdomain%sEdge(ne)%solid) then
-                        if (Tdomain%sEdge(ne)%PML) then
-                            do j = 1,ngll1-2
+                    do j = 1,ngll1-2
+                        if (Tdomain%sEdge(ne)%solid) then
+                            if (Tdomain%sEdge(ne)%PML) then
                                 idx = Tdomain%sEdge(ne)%Renum(j)
                                 Comm_data%Data(n)%ITakeSPML(nsolpml) = idx
                                 nsolpml = nsolpml + 1
-                            enddo
-                        else
-                            do j = 1,ngll1-2
+                            else
                                 idx = Tdomain%sEdge(ne)%Renum(j)
                                 Comm_data%Data(n)%ITakeS(nsol) = idx
                                 nsol = nsol + 1
-                            enddo
-                        endif
-                    else
-                        if (Tdomain%sEdge(ne)%PML) then
-                            do j = 1,ngll1-2
+                            endif
+                        else
+                            if (Tdomain%sEdge(ne)%PML) then
                                 idx = Tdomain%sEdge(ne)%Renum(j)
                                 Comm_data%Data(n)%ITakeFPML(nflupml) = idx
                                 nflupml = nflupml + 1
-                            enddo
-                        else
-                            do j = 1,ngll1-2
+                            else
                                 idx = Tdomain%sEdge(ne)%Renum(j)
                                 Comm_data%Data(n)%ITakeF(nflu) = idx
                                 nflu = nflu + 1
-                            enddo
+                            endif
                         endif
-                    endif
-
+                    enddo
                 else if ( Tdomain%sComm(ncomm)%orient_edges(i) == 1 ) then
-                    if (Tdomain%sEdge(ne)%solid) then
-                        if (Tdomain%sEdge(ne)%PML) then
-                            do j = 1,ngll1-2
+                    do j = 1,ngll1-2
+                        if (Tdomain%sEdge(ne)%solid) then
+                            if (Tdomain%sEdge(ne)%PML) then
                                 idx = Tdomain%sEdge(ne)%Renum(ngll1-1-j)
                                 Comm_data%Data(n)%ITakeSPML(nsolpml) = idx
                                 nsolpml = nsolpml + 1
-                            enddo
-                        else
-                            do j = 1,ngll1-2
+                            else
                                 idx = Tdomain%sEdge(ne)%Renum(ngll1-1-j)
                                 Comm_data%Data(n)%ITakeS(nsol) = idx
                                 nsol = nsol + 1
-                            enddo
-                        endif
-                    else
-                        if (Tdomain%sEdge(ne)%PML) then
-                            do j = 1,ngll1-2
+                            endif
+                        else
+                            if (Tdomain%sEdge(ne)%PML) then
                                 idx = Tdomain%sEdge(ne)%Renum(ngll1-1-j)
                                 Comm_data%Data(n)%ITakeFPML(nflupml) = idx
                                 nflupml = nflupml + 1
-                            enddo
-                        else
-                            do j = 1,ngll1-2
+                            else
                                 idx = Tdomain%sEdge(ne)%Renum(ngll1-1-j)
                                 Comm_data%Data(n)%ITakeF(nflu) = idx
                                 nflu = nflu + 1
-                            enddo
+                            endif
                         endif
-                    endif
+                    enddo
                 endif ! orient_edges
             enddo
 

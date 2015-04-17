@@ -16,7 +16,7 @@ module scomms
        real, dimension(:), allocatable :: Give, Take
        integer, dimension(:), allocatable :: IGiveS, IGiveSPML, IGiveF, IGiveFPML
        integer, dimension(:), allocatable :: ITakeS, ITakeSPML, ITakeF, ITakeFPML
-    end type
+    end type exchange_vector
 
     type :: comm_vector
        integer :: ncomm
