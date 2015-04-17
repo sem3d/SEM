@@ -880,7 +880,7 @@ contains
             integer, dimension(0:,0:), intent(inout)   :: Ipointer
             type(near_node), dimension(0:), intent(in)  ::  initnode
             logical, dimension(0:), intent(in)  :: elem_solid
-            integer   :: i,j,n,nf,nel,nv,ns
+            integer   :: i,j,nel,nv,ns
             type(near_entity), pointer  :: near_neighb => NULL()            
 
             do nv = 0,SF_n_global_vertices-1
