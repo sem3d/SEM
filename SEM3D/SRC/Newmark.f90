@@ -265,6 +265,7 @@ end subroutine comm_forces
 subroutine Newmark_Predictor(Tdomain,champs1)
     use schamps
     use sdomain
+    use forces_aniso, only : pred_flu_pml
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
@@ -347,13 +348,15 @@ subroutine Newmark_Predictor(Tdomain,champs1)
                 if (Tdomain%specel(nel)%FPML) then
                     ! TODO
                 else
-                    call Prediction_Elem_PML_VelPhi(Tdomain%specel(nel), bega, dt, &
-                        Tdomain%sSubDomain(mat)%hPrimex, &
-                        Tdomain%sSubDomain(mat)%hPrimey, &
-                        Tdomain%sSubDomain(mat)%hprimez, &
-                        Tdomain%ngll_pmlf, &
-                        Tdomain%champs0%fpml_VelPhi, &
-                        Tdomain%champs1%fpml_Forces)
+                    call pred_flu_pml(Tdomain%specel(nel), bega, dt, Tdomain%sSubDomain(mat), &
+                        Tdomain%champs0, Tdomain%champs1)
+!                    call Prediction_Elem_PML_VelPhi(Tdomain%specel(nel), bega, dt, &
+!                        Tdomain%sSubDomain(mat)%hPrimex, &
+!                        Tdomain%sSubDomain(mat)%hPrimey, &
+!                        Tdomain%sSubDomain(mat)%hprimez, &
+!                        Tdomain%ngll_pmlf, &
+!                        Tdomain%champs0%fpml_VelPhi, &
+!                        Tdomain%champs1%fpml_Forces)
                 endif
             endif
         enddo
@@ -469,9 +472,10 @@ subroutine internal_forces(Tdomain,champs1)
                     Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimey, &
                     Tdomain%sSubDomain(mat)%hTprimez, Tdomain%ngll_pmls, champs1%ForcesPML)
             else
-                call compute_InternalForces_PML_Elem_Fl(Tdomain%specel(n),                &
-                    Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimey, &
-                    Tdomain%sSubDomain(mat)%hTprimez, Tdomain%ngll_pmlf, champs1%fpml_Forces)
+                call forces_int_flu_pml(Tdomain%specel(n), Tdomain%sSubDomain(mat),champs1)
+!                call compute_InternalForces_PML_Elem_Fl(Tdomain%specel(n),                &
+!                    Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimey, &
+!                    Tdomain%sSubDomain(mat)%hTprimez, Tdomain%ngll_pmlf, champs1%fpml_Forces)
             endif
         endif
     enddo

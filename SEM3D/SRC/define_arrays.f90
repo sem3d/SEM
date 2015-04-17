@@ -424,8 +424,13 @@ subroutine init_pml_properties(Tdomain,specel,mat,Whei)
      endif
      deallocate(wx,wy,wz)
 
-
-  deallocate(RKmod)
+     !! XXX
+     if (.not. specel%solid) then
+         specel%xpml%DumpSx(:,:,:,1) = specel%xpml%DumpSx(:,:,:,1) / specel%Density
+         specel%xpml%DumpSy(:,:,:,1) = specel%xpml%DumpSy(:,:,:,1) / specel%Density
+         specel%xpml%DumpSz(:,:,:,1) = specel%xpml%DumpSz(:,:,:,1) / specel%Density
+     end if
+     deallocate(RKmod)
 
 end subroutine init_pml_properties
 
