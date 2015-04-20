@@ -304,15 +304,14 @@ contains
     end subroutine forces_int_flu_pml
 
 
-    subroutine pred_flu_pml(Elem, bega, dt, mat, champs0, champs1)
+    subroutine pred_flu_pml(Elem, mat, dt, champs1)
         ! same as previously, but for fluid part
         implicit none
 
         type(Element), intent(inout) :: Elem
         type (subdomain), intent(IN) :: mat
-        type(champs), intent(in) :: champs0
         type(champs), intent(inout) :: champs1
-        real, intent(in) :: bega, dt
+        real, intent(in) :: dt
         !
         real, dimension(0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVelPhi_dx, dVelPhi_dy, dVelPhi_dz
         integer :: m1, m2, m3
@@ -328,15 +327,12 @@ contains
             do j = 0,m2-1
                 do i = 0,m1-1
                     ind = Elem%flpml%IFluPml(i,j,k)
-                    VelPhi(i,j,k) = champs0%fpml_VelPhi(ind)+ &
-                        champs0%fpml_VelPhi(ind+1)+champs0%fpml_VelPhi(ind+2) &
-                        + dt*(0.5-bega)*(champs1%fpml_Forces(ind)+&
-                        champs1%fpml_Forces(ind+1)+champs1%fpml_Forces(ind+2))
+                    VelPhi(i,j,k) = champs1%fpml_VelPhi(ind)+ &
+                        champs1%fpml_VelPhi(ind+1)+champs1%fpml_VelPhi(ind+2)
                 enddo
             enddo
         enddo
         ! XXX DumpS{xyz}(:,:,:,1) doit etre multiplie par 1/density
-
         ! d(rho*Phi)_d(xi,eta,zeta)
         call physical_part_deriv(m1,m2,m3,mat%htprimex,mat%hprimey,mat%hprimez,Elem%InvGrad, &
             VelPhi(:,:,:), dVelPhi_dx, dVelPhi_dy, dVelPhi_dz)
@@ -357,7 +353,6 @@ contains
         ! V_z^z
         Elem%flpml%Veloc(:,:,:,2) = Elem%xpml%DumpSz(:,:,:,0) * Elem%flpml%Veloc(:,:,:,2) + &
             Elem%xpml%DumpSz(:,:,:,1) * Dt * dVelPhi_dz
-
         return
     end subroutine Pred_Flu_Pml
 
