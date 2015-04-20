@@ -150,31 +150,6 @@ subroutine compute_save_offsets(Tdomain, offset)
     end do
 end subroutine compute_save_offsets
 
-subroutine write_Veloc(Tdomain, gp)
-    use sdomain, only : domain
-    use HDF5
-    implicit none
-    type (domain),  intent(IN)     :: Tdomain
-    integer(HID_T), intent(IN)     :: gp
-
-    integer(HID_T)                 :: dspc, dset
-    integer(HSIZE_T), dimension(2) :: ddims
-    integer                        :: hdferr
-
-    ddims(1) = size(Tdomain%champs0%Veloc,1)
-    ddims(2) = size(Tdomain%champs0%Veloc,2)
-    call h5screate_simple_f(2, ddims, dspc, hdferr)
-    if (hdferr .ne. 0) stop "write_Veloc : screate KO"
-    call h5dcreate_f(gp, "Veloc", H5T_IEEE_F64LE, dspc, dset, hdferr)
-    if (hdferr .ne. 0) stop "write_Veloc : dcreate KO"
-    call h5dwrite_f(dset, H5T_NATIVE_DOUBLE, Tdomain%champs0%Veloc, ddims, hdferr)
-    if (hdferr .ne. 0) stop "write_Veloc : dwrite KO"
-    call h5dclose_f(dset, hdferr)
-    if (hdferr .ne. 0) stop "write_Veloc : dclose KO"
-    call h5sclose_f(dspc, hdferr)
-    if (hdferr .ne. 0) stop "write_Veloc : sclose KO"
-end subroutine write_Veloc
-
 subroutine write_VelPhi(Tdomain, nmax, elem_id)
     use sdomain, only : domain
     use sem_hdf5, only : create_dset
@@ -345,31 +320,6 @@ subroutine write_VelPhi123(Tdomain, nmax, elem_id)
     call h5dclose_f(dset_id2, hdferr)
     call h5dclose_f(dset_id3, hdferr)
 end subroutine write_VelPhi123
-
-subroutine write_Disp(Tdomain, gp)
-    use sdomain, only : domain
-    use HDF5
-    implicit none
-    type (domain),  intent(IN)     :: Tdomain
-    integer(HID_T), intent(IN)     :: gp
-
-    integer(HID_T)                 :: dspc, dset
-    integer(HSIZE_T), dimension(2) :: ddims
-    integer                        :: hdferr
-
-    ddims(1) = size(Tdomain%champs0%Depla,1)
-    ddims(2) = size(Tdomain%champs0%Depla,2)
-    call h5screate_simple_f(2, ddims, dspc, hdferr)
-    if (hdferr .ne. 0) stop "write_Disp : screate KO"
-    call h5dcreate_f(gp, "Displ", H5T_IEEE_F64LE, dspc, dset, hdferr)
-    if (hdferr .ne. 0) stop "write_Disp : dcreate KO"
-    call h5dwrite_f(dset, H5T_NATIVE_DOUBLE, Tdomain%champs0%Depla, ddims, hdferr)
-    if (hdferr .ne. 0) stop "write_Disp : dwrite KO"
-    call h5dclose_f(dset, hdferr)
-    if (hdferr .ne. 0) stop "write_Disp : dclose KO"
-    call h5sclose_f(dspc, hdferr)
-    if (hdferr .ne. 0) stop "write_Disp : sclose KO"
-end subroutine write_Disp
 
 subroutine write_Phi(Tdomain, nmax, elem_id)
     use sdomain, only : domain
@@ -852,12 +802,10 @@ subroutine save_checkpoint (Tdomain, rtime, it, dtmin, isort)
     call write_attr_real(fid, "dtmin", dtmin)
     call write_attr_int(fid, "iteration", it)
     call write_attr_int(fid, "isort", isort)
-    !write(*,*) "DBG: Write veloc"
-    call write_Veloc(Tdomain, elem_id)
+    call write_dataset(elem_id, "Veloc", Tdomain%champs0%Veloc)
+    call write_dataset(elem_id, "Displ", Tdomain%champs0%Depla)
     !write(*,*) "DBG: Write veloc PML"
     call write_Veloc123(Tdomain, offset(2), elem_id)
-    !write(*,*) "DBG: Write disp"
-    call write_Disp(Tdomain, elem_id)
     !write(*,*) "DBG: Write espvol"
     call write_EpsilonVol(Tdomain, offset(4), elem_id)
     !write(*,*) "DBG: Write rvol"
