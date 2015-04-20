@@ -1125,15 +1125,15 @@ contains
         call write_attr_int(fid, "n_vertices", n_points)
         call write_attr_int(fid, "n_elements", n_elem)
 
-        call write_dataset(fid, "local_nodes", transpose(Gcoord), hdferr)
+        call write_dataset(fid, "local_nodes", transpose(Gcoord))
 
         do i=0,n_elem-1
             Ipointer_vertices(0:7, i) = Ipointer(0:7, i)
         enddo
 
-        call write_dataset(fid, "elements", Ipointer_vertices, hdferr)
+        call write_dataset(fid, "elements", Ipointer_vertices)
 
-        call write_dataset(fid, "material", material, hdferr)
+        call write_dataset(fid, "material", material)
 
 
         call h5fclose_f(fid, hdferr)
@@ -1229,7 +1229,7 @@ contains
             i_count = node_loc2glob(n)
             rtemp2(0:2,n) = Gcoord(i_count,0:2)
         enddo
-        call write_dataset(fid, "local_nodes", rtemp2, hdferr)
+        call write_dataset(fid, "local_nodes", rtemp2)
         deallocate(rtemp2)
         !write(*,*) "      --- before 2---"
         ! Material table and solid fluid flag
@@ -1263,44 +1263,44 @@ contains
            ! write(*,*) "      --- Flag 4 ---"
         end do
         !write(*,*) "      --- before 4 ---"
-        call write_dataset(fid, "material", itemp2, hdferr)
+        call write_dataset(fid, "material", itemp2)
         !write(*,*) "      --- before 5---"
         deallocate(itemp2)
 
 
         ! Global node indexes per element
-        call write_dataset(fid, "elements", Ipointer_local, hdferr)
+        call write_dataset(fid, "elements", Ipointer_local)
         !write(*,*) "      --- before 6 ---"
         !Faces
-        call write_dataset(fid, "faces", transpose(faces), hdferr)
-        call write_dataset(fid, "faces_map", transpose(mapping_faces), hdferr)
+        call write_dataset(fid, "faces", transpose(faces))
+        call write_dataset(fid, "faces_map", transpose(mapping_faces))
         !write(*,*) "      --- before 7 ---"
         !Edges
-        call write_dataset(fid, "edges", transpose(edges), hdferr)
-        call write_dataset(fid, "edges_map", transpose(mapping_edges), hdferr)
+        call write_dataset(fid, "edges", transpose(edges))
+        call write_dataset(fid, "edges_map", transpose(mapping_edges))
        ! write(*,*) "      --- before 8 ---"
         ! Vertices
-        call write_dataset(fid, "vertices", transpose(vertices), hdferr)
-        call write_dataset(fid, "vertices_to_global", vertex_to_glob(0:n_vertices-1), hdferr)
+        call write_dataset(fid, "vertices", transpose(vertices))
+        call write_dataset(fid, "vertices_to_global", vertex_to_glob(0:n_vertices-1))
         !write(*,*) "      --- BEFORE  ---"
         if (solid_fluid .and. SF%present_local) then
-            call write_dataset(fid, "sf_face_near_edges", transpose(SF%Face_Near_Edges), hdferr)
-            call write_dataset(fid, "sf_face_near_edges_orient", transpose(SF%Face_Near_Edges_Orient), hdferr)
-            call write_dataset(fid, "sf_face_near_vertices", transpose(SF%Face_Near_Vertices), hdferr)
-            call write_dataset(fid, "sf_face_glob_interface", transpose(SF%faces), hdferr)
-            call write_dataset(fid, "sf_face_orient", SF%face_orient, hdferr)
-            call write_dataset(fid, "sf_edge_glob_interface", transpose(SF%edges), hdferr)
-            call write_dataset(fid, "sf_edge_orient", SF%mapping_edges, hdferr)
-            call write_dataset(fid, "sf_vertex_glob_interface", transpose(SF%vertices), hdferr)
+            call write_dataset(fid, "sf_face_near_edges", transpose(SF%Face_Near_Edges))
+            call write_dataset(fid, "sf_face_near_edges_orient", transpose(SF%Face_Near_Edges_Orient))
+            call write_dataset(fid, "sf_face_near_vertices", transpose(SF%Face_Near_Vertices))
+            call write_dataset(fid, "sf_face_glob_interface", transpose(SF%faces))
+            call write_dataset(fid, "sf_face_orient", SF%face_orient)
+            call write_dataset(fid, "sf_edge_glob_interface", transpose(SF%edges))
+            call write_dataset(fid, "sf_edge_orient", SF%mapping_edges)
+            call write_dataset(fid, "sf_vertex_glob_interface", transpose(SF%vertices))
         end if
 
         if (Neumann_present .and. Neu%present_local) then
-            call write_dataset(fid, "neu_face_near_edges", transpose(Neu%Face_Near_Edges), hdferr)
-            call write_dataset(fid, "neu_face_near_edges_orient", transpose(Neu%Face_Near_Edges_Orient), hdferr)
-            call write_dataset(fid, "neu_face_near_vertices", transpose(Neu%Face_Near_Vertices), hdferr)
-            call write_dataset(fid, "neu_face_glob_interface", Neu%faces, hdferr)
-            call write_dataset(fid, "neu_edge_glob_interface", Neu%edges, hdferr)
-            call write_dataset(fid, "neu_vertex_glob_interface", Neu%vertices, hdferr)
+            call write_dataset(fid, "neu_face_near_edges", transpose(Neu%Face_Near_Edges))
+            call write_dataset(fid, "neu_face_near_edges_orient", transpose(Neu%Face_Near_Edges_Orient))
+            call write_dataset(fid, "neu_face_near_vertices", transpose(Neu%Face_Near_Vertices))
+            call write_dataset(fid, "neu_face_glob_interface", Neu%faces)
+            call write_dataset(fid, "neu_edge_glob_interface", Neu%edges)
+            call write_dataset(fid, "neu_vertex_glob_interface", Neu%vertices)
 
         end if
 
@@ -1344,22 +1344,22 @@ contains
             endif
 
 
-            call write_dataset(proc_id, "faces", shared%faces(n,0:shared%nf(n)-1), hdferr)
-            call write_dataset(proc_id, "faces_map", shared%mapping_faces(n,0:shared%nf(n)-1), hdferr)
-            call write_dataset(proc_id, "edges", shared%edges(n,0:shared%ne(n)-1), hdferr)
-            call write_dataset(proc_id, "edges_map", shared%mapping_edges(n,0:shared%ne(n)-1), hdferr)
-            call write_dataset(proc_id, "vertices", shared%vertices(n,0:shared%nv(n)-1), hdferr)
+            call write_dataset(proc_id, "faces", shared%faces(n,0:shared%nf(n)-1))
+            call write_dataset(proc_id, "faces_map", shared%mapping_faces(n,0:shared%nf(n)-1))
+            call write_dataset(proc_id, "edges", shared%edges(n,0:shared%ne(n)-1))
+            call write_dataset(proc_id, "edges_map", shared%mapping_edges(n,0:shared%ne(n)-1))
+            call write_dataset(proc_id, "vertices", shared%vertices(n,0:shared%nv(n)-1))
 
             if (SF%present_local) then
-                call write_dataset(proc_id, "sf_faces", SF%faces_shared(n,0:SF%nf_shared(n)-1), hdferr)
-                call write_dataset(proc_id, "sf_edges", SF%edges_shared(n,0:SF%ne_shared(n)-1), hdferr)
-                call write_dataset(proc_id, "sf_edges_map", SF%mapping_edges_shared(n,0:SF%ne_shared(n)-1), hdferr)
-                call write_dataset(proc_id, "sf_vertices", SF%vertices_shared(n,0:SF%nv_shared(n)-1), hdferr)
+                call write_dataset(proc_id, "sf_faces", SF%faces_shared(n,0:SF%nf_shared(n)-1))
+                call write_dataset(proc_id, "sf_edges", SF%edges_shared(n,0:SF%ne_shared(n)-1))
+                call write_dataset(proc_id, "sf_edges_map", SF%mapping_edges_shared(n,0:SF%ne_shared(n)-1))
+                call write_dataset(proc_id, "sf_vertices", SF%vertices_shared(n,0:SF%nv_shared(n)-1))
             end if
             if(Neu%present_local)then
-                call write_dataset(proc_id, "neu_edges", Neu%edges_shared(n,0:Neu%ne_shared(n)-1), hdferr)
-                call write_dataset(proc_id, "neu_edges_map", Neu%mapping_edges_shared(n,0:Neu%ne_shared(n)-1), hdferr)
-                call write_dataset(proc_id, "neu_vertices", Neu%vertices_shared(n,0:Neu%nv_shared(n)-1), hdferr)
+                call write_dataset(proc_id, "neu_edges", Neu%edges_shared(n,0:Neu%ne_shared(n)-1))
+                call write_dataset(proc_id, "neu_edges_map", Neu%mapping_edges_shared(n,0:Neu%ne_shared(n)-1))
+                call write_dataset(proc_id, "neu_vertices", Neu%vertices_shared(n,0:Neu%nv_shared(n)-1))
             end if
             call h5gclose_f(proc_id, hdferr)
         end do

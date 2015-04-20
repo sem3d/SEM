@@ -4,56 +4,6 @@
 !!
 !! Gère la reprise de Sem3d
 
-subroutine read_Veloc(Tdomain, gp)
-    use sdomain, only : domain
-    use HDF5
-    implicit none
-    type (domain),  intent(INOUT)  :: Tdomain
-    integer(HID_T), intent(IN)     :: gp
-
-    integer(HID_T)                 :: dspc, dset
-    integer(HSIZE_T), dimension(2) :: ddims, mddims
-    integer                        :: hdferr
-
-    call h5dopen_f(gp, "Veloc", dset, hdferr)
-    if (hdferr .ne. 0) stop "read_Veloc : dopen KO"
-    call h5dget_space_f(dset, dspc, hdferr)
-    if (hdferr .ne. 0) stop "read_Veloc : dgetspace KO"
-    call h5sget_simple_extent_dims_f(dspc, ddims, mddims, hdferr)
-    if (hdferr .ne. 2) stop "read_Veloc : sgetdim KO"
-    call h5dread_f(dset, H5T_NATIVE_DOUBLE, Tdomain%champs0%Veloc, ddims, hdferr)
-    if (hdferr .ne. 0) stop "read_Veloc : dread KO"
-    call h5dclose_f(dset, hdferr)
-    if (hdferr .ne. 0) stop "read_Veloc : dclose KO"
-    call h5sclose_f(dspc, hdferr)
-    if (hdferr .ne. 0) stop "read_Veloc : sclose KO"
-end subroutine read_Veloc
-
-subroutine read_Displ(Tdomain, gp)
-    use sdomain, only : domain
-    use HDF5
-    implicit none
-    type (domain),  intent(INOUT)  :: Tdomain
-    integer(HID_T), intent(IN)     :: gp
-
-    integer(HID_T)                 :: dspc, dset
-    integer(HSIZE_T), dimension(2) :: ddims, mddims
-    integer                        :: hdferr
-
-    call h5dopen_f(gp, "Displ", dset, hdferr)
-    if (hdferr .ne. 0) stop "read_Displ : dopen KO"
-    call h5dget_space_f(dset, dspc, hdferr)
-    if (hdferr .ne. 0) stop "read_Displ : dgetspace KO"
-    call h5sget_simple_extent_dims_f(dspc, ddims, mddims, hdferr)
-    if (hdferr .ne. 2) stop "read_Displ : sgetdim KO"
-    call h5dread_f(dset, H5T_NATIVE_DOUBLE, Tdomain%champs0%Depla, ddims, hdferr)
-    if (hdferr .ne. 0) stop "read_Displ : dread KO"
-    call h5dclose_f(dset, hdferr)
-    if (hdferr .ne. 0) stop "read_Displ : dclose KO"
-    call h5sclose_f(dspc, hdferr)
-    if (hdferr .ne. 0) stop "read_Displ : sclose KO"
-end subroutine read_Displ
-
 subroutine read_VelPhi(Tdomain, elem_id)
     use sdomain
     use HDF5
@@ -369,8 +319,8 @@ subroutine read_restart (Tdomain,rg, isort)
         write (*,'(A40,I8,A1,f10.6)') "SEM : REPRISE a iteration et tps:", it," ",rtime
     endif
 
-    call read_Veloc(Tdomain, elem_id)
-    call read_Displ(Tdomain, elem_id)
+    call read_dataset(elem_id, "Veloc", Tdomain%champs0%Veloc, ibase=0)
+    call read_dataset(elem_id, "Displ", Tdomain%champs0%Depla, ibase=0)
     call read_VelPhi(Tdomain, elem_id)
     call read_EpsilonVol(Tdomain, elem_id)
     call read_EpsilonDev(Tdomain, elem_id)
