@@ -4,60 +4,6 @@
 !!
 !! Gère la reprise de Sem3d
 
-subroutine read_VelPhi(Tdomain, elem_id)
-    use sdomain
-    use HDF5
-    use sem_hdf5, only : read_dset_1d_real
-    implicit none
-    type (domain), intent (INOUT):: Tdomain
-    integer(HID_T), intent(IN) :: elem_id
-    double precision, allocatable, dimension(:) :: velphi, velphi1, velphi2, velphi3, phi
-    integer :: idx1, idx2, idx3, ngllx, nglly, ngllz
-    integer :: n, i, j, k, id
-
-
-    call read_dset_1d_real(elem_id, "VelPhi", velphi)
-    call read_dset_1d_real(elem_id, "VelPhi1", velphi1)
-    call read_dset_1d_real(elem_id, "VelPhi2", velphi2)
-    call read_dset_1d_real(elem_id, "VelPhi3", velphi3)
-    call read_dset_1d_real(elem_id, "Phi", phi)
-    idx1 = 1
-    idx2 = 1
-    idx3 = 1
-    do n = 0,Tdomain%n_elem-1
-        if(Tdomain%specel(n)%solid) cycle
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
-
-        do k = 1,ngllz-2
-            do j = 1,nglly-2
-                do i = 1,ngllx-2
-                    Tdomain%champs0%VelPhi(Tdomain%specel(n)%IFlu(i,j,k)) = velphi(idx1)
-                    idx1 = idx1 + 1
-                    if ( .not. Tdomain%specel(n)%PML ) then
-                        Tdomain%champs0%Phi(Tdomain%specel(n)%IFlu(i,j,k)) = phi(idx2)
-                        idx2 = idx2 + 1
-                    else
-                        id = Tdomain%specel(n)%flpml%IFluPML(i,j,k)
-                        Tdomain%champs0%fpml_VelPhi(id+0) = velphi1(idx3)
-                        Tdomain%champs0%fpml_VelPhi(id+1) = velphi2(idx3)
-                        Tdomain%champs0%fpml_VelPhi(id+2) = velphi3(idx3)
-                        idx3 = idx3 + 1
-                    end if
-                end do
-            end do
-        end do
-    end do
-    deallocate(velphi)
-    deallocate(velphi1)
-    deallocate(velphi2)
-    deallocate(velphi3)
-    deallocate(phi)
-end subroutine read_VelPhi
-
-
-
 subroutine read_EpsilonVol(Tdomain, elem_id)
     use sdomain
     use HDF5
@@ -319,9 +265,20 @@ subroutine read_restart (Tdomain,rg, isort)
         write (*,'(A40,I8,A1,f10.6)') "SEM : REPRISE a iteration et tps:", it," ",rtime
     endif
 
-    call read_dataset(elem_id, "Veloc", Tdomain%champs0%Veloc, ibase=0)
-    call read_dataset(elem_id, "Displ", Tdomain%champs0%Depla, ibase=0)
-    call read_VelPhi(Tdomain, elem_id)
+    if (Tdomain%ngll_s.gt.0) then
+        call read_dataset(elem_id, "sl_Veloc", Tdomain%champs0%Veloc, ibase=0)
+        call read_dataset(elem_id, "sl_Displ", Tdomain%champs0%Depla, ibase=0)
+    end if
+    if (Tdomain%ngll_f.gt.0) then
+        call read_dataset(elem_id, "fl_VelPhi", Tdomain%champs0%VelPhi, ibase=0)
+        call read_dataset(elem_id, "fl_Phi", Tdomain%champs0%Phi, ibase=0)
+    end if
+    if (Tdomain%ngll_pmls.gt.0) then
+        call read_dataset(elem_id, "spml_Veloc", Tdomain%champs0%VelocPML, ibase=0)
+    end if
+    if (Tdomain%ngll_pmlf.gt.0) then
+        call read_dataset(elem_id, "fpml_VelPhi", Tdomain%champs0%fpml_VelPhi, ibase=0)
+    end if
     call read_EpsilonVol(Tdomain, elem_id)
     call read_EpsilonDev(Tdomain, elem_id)
     call read_Stress(Tdomain, elem_id)

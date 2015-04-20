@@ -184,15 +184,25 @@ contains
         !
         integer(HID_T) :: dset_id, space_id
         integer(HSIZE_T), dimension(1) :: dims, maxdims
-        integer :: hdferr
+        integer :: hdferr, i0
+        i0 = 1
+        if (present(ibase)) then
+          i0 = ibase
+        end if
 
         call h5dopen_f(parent, name, dset_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_1d_real : h5dopen KO"
         call h5dget_space_f(dset_id, space_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_1d_real : h5dgetspace KO"
         call h5sget_simple_extent_dims_f(space_id, dims, maxdims, hdferr)
-        allocate(data(1:dims(1)))
+        if (hdferr .ne. 1) stop "read_dset_1d_real : h5sgetdim KO"
+        allocate(data(i0:dims(1)+i0-1))
         call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_1d_real : h5dread KO"
         call h5dclose_f(dset_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_1d_real : h5dclose KO"
         call h5sclose_f(space_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_1d_real : h5sclose KO"
     end subroutine read_dset_1d_real
 
     subroutine read_dset_1d_int(parent, name, data, ibase)
@@ -204,15 +214,25 @@ contains
         !
         integer(HID_T) :: dset_id, space_id
         integer(HSIZE_T), dimension(1) :: dims, maxdims
-        integer :: hdferr
+        integer :: hdferr, i0
+        i0 = 1
+        if (present(ibase)) then
+          i0 = ibase
+        end if
 
         call h5dopen_f(parent, name, dset_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_1d_int : h5dopen KO"
         call h5dget_space_f(dset_id, space_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_1d_int : h5dgetspace KO"
         call h5sget_simple_extent_dims_f(space_id, dims, maxdims, hdferr)
-        allocate(data(1:dims(1)))
+        if (hdferr .ne. 1) stop "read_dset_1d_int : h5sgetdim KO"
+        allocate(data(i0:dims(1)+i0-1))
         call h5dread_f(dset_id, H5T_NATIVE_INTEGER, data, dims, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_1d_int : h5dread KO"
         call h5dclose_f(dset_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_1d_int : h5dclose KO"
         call h5sclose_f(space_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_1d_int : h5sclose KO"
     end subroutine read_dset_1d_int
 
 
@@ -257,18 +277,28 @@ contains
         !
         integer(HID_T) :: dset_id, space_id
         integer(HSIZE_T), dimension(2) :: dims, maxdims
-        integer :: hdferr
+        integer :: hdferr, i0, i1
+        i0 = 1
+        i1 = 1
+        if (present(ibase)) then
+          i0 = ibase
+          i1 = ibase
+        end if
 
         call h5dopen_f(parent, name, dset_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_2d_int : h5dopen KO"
         call h5dget_space_f(dset_id, space_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_2d_int : h5dgetspace KO"
         call h5sget_simple_extent_dims_f(space_id, dims, maxdims, hdferr)
-        allocate(data(1:dims(1),1:dims(2)))
+        if (hdferr .ne. 2) stop "read_dset_2d_int : h5sgetdim KO"
+        allocate(data(i0:dims(1)+i0-1, i1:dims(2)+i1-1))
         call h5dread_f(dset_id, H5T_NATIVE_INTEGER, data, dims, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_2d_int : h5dread KO"
         call h5dclose_f(dset_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_2d_int : h5dclose KO"
         call h5sclose_f(space_id, hdferr)
+        if (hdferr .ne. 0) stop "read_dset_2d_int : h5sclose KO"
     end subroutine read_dset_2d_int
-
-
 
     subroutine write_attr_int(dset, attr, value)
         use HDF5
@@ -400,7 +430,9 @@ contains
         dims(1) = size(arr,1)
         call create_dset(parent, name, H5T_IEEE_F64LE, dims(1), dset_id)
         call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, arr, dims, hdferr)
+        if (hdferr .ne. 0) stop "write_dataset_d1 : h5dwrite KO"
         call h5dclose_f(dset_id, hdferr)
+        if (hdferr .ne. 0) stop "write_dataset_d1 : h5dclose KO"
     end subroutine write_dataset_d1
 
     subroutine write_dataset_d2(parent, name, arr)
@@ -435,7 +467,9 @@ contains
         dims(1) = size(arr,1)
         call create_dset(parent, name, H5T_STD_I32LE, dims(1), dset_id)
         call h5dwrite_f(dset_id, H5T_NATIVE_INTEGER, arr, dims, hdferr)
+        if (hdferr .ne. 0) stop "write_dataset_i1 : h5dwrite KO"
         call h5dclose_f(dset_id, hdferr)
+        if (hdferr .ne. 0) stop "write_dataset_i1 : h5dclose KO"
     end subroutine write_dataset_i1
 
     subroutine write_dataset_i2(parent, name, arr)
@@ -452,7 +486,9 @@ contains
         dims(2) = size(arr,2)
         call create_dset_2d_i8(parent, name, H5T_STD_I32LE, dims(1), dims(2), dset_id)
         call h5dwrite_f(dset_id, H5T_NATIVE_INTEGER, arr, dims, hdferr)
+        if (hdferr .ne. 0) stop "write_dataset_i2 : h5dwrite KO"
         call h5dclose_f(dset_id, hdferr)
+        if (hdferr .ne. 0) stop "write_dataset_i2 : h5dclose KO"
     end subroutine write_dataset_i2
 
     subroutine append_dataset_2d_r(dset_id, arr, hdferr)
