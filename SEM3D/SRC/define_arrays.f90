@@ -182,7 +182,7 @@ subroutine assemble_mass_matrices(Tdomain)
                 Tdomain%Comm_data%Data(n)%Give(k+1) = Tdomain%fpml_DumpMass(idx+1)
                 Tdomain%Comm_data%Data(n)%Give(k+2) = Tdomain%fpml_DumpMass(idx+2)
                 Tdomain%Comm_data%Data(n)%Give(k+3) = Tdomain%MassMatFluPml(idx)
-                k=k+1
+                k=k+4
             end do
 
             Tdomain%Comm_data%Data(n)%nsend = k
@@ -224,9 +224,13 @@ subroutine assemble_mass_matrices(Tdomain)
             ! Domain FLUID PML
             do i=0,Tdomain%Comm_data%Data(n)%nflupml-1
                 idx = Tdomain%Comm_data%Data(n)%ITakeFPML(i)
-                !TODO
-                Tdomain%MassMatFluPml(idx) = Tdomain%MassMatFluPml(idx) + Tdomain%Comm_data%Data(n)%Take(k)
-                k=k+1
+                Tdomain%fpml_DumpMass(idx+0) = Tdomain%fpml_DumpMass(idx+0) + Tdomain%Comm_data%Data(n)%Take(k+0)
+                Tdomain%fpml_DumpMass(idx+1) = Tdomain%fpml_DumpMass(idx+1) + Tdomain%Comm_data%Data(n)%Take(k+1)
+                Tdomain%fpml_DumpMass(idx+2) = Tdomain%fpml_DumpMass(idx+2) + Tdomain%Comm_data%Data(n)%Take(k+2)
+                Tdomain%MassMatFluPml(idx+0) = Tdomain%MassMatFluPml(idx+0) + Tdomain%Comm_data%Data(n)%Take(k+3)
+                Tdomain%MassMatFluPml(idx+1) = Tdomain%MassMatFluPml(idx+1) + Tdomain%Comm_data%Data(n)%Take(k+3)
+                Tdomain%MassMatFluPml(idx+2) = Tdomain%MassMatFluPml(idx+2) + Tdomain%Comm_data%Data(n)%Take(k+3)
+                k=k+4
             end do
         end do
     end if
@@ -956,10 +960,10 @@ subroutine assemble_DumpMass(Tdomain,specel)
 
     integer :: i,j,k,m
 
-    do m = 0,2
-        do k = 0,specel%ngllz-1
-            do j = 0,specel%nglly-1
-                do i = 0,specel%ngllx-1
+    do k = 0,specel%ngllz-1
+        do j = 0,specel%nglly-1
+            do i = 0,specel%ngllx-1
+                do m = 0,2
                     if (specel%solid) then
                         Tdomain%DumpMass(specel%slpml%ISolPml(i,j,k)+m) = &
                             Tdomain%DumpMass(specel%slpml%ISolPml(i,j,k)+m) &
