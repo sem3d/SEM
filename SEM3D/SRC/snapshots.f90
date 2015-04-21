@@ -621,7 +621,10 @@ contains
                 field_press = -field_vphi
             case (DM_FLUID_PML)
                 field_displ = 0
-                field_veloc = 0
+                call gather_field_fpml(el, field_phi, Tdomain%champs0%fpml_Phi, el%flpml%IFluPML)
+                call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex,              &
+                            sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
+                            el%InvGrad,el%density,field_phi,field_veloc)
                 call gather_field_fpml(el, field_vphi, Tdomain%champs0%fpml_Velphi, el%flpml%IFluPML)
                 call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex,              &
                             sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
@@ -751,10 +754,12 @@ contains
         write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Proc" Format="HDF" Datatype="Int"  Dimensions="',ne, &
             '">geometry',group,'.h5:/Proc</DataItem>'
 
-        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Mass" Format="HDF" Datatype="Int"  Dimensions="',nn, &
+        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Mass" Format="HDF" Datatype="Float" Precision="8"  Dimensions="',nn, &
             '">geometry',group,'.h5:/Mass</DataItem>'
-        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Jac" Format="HDF" Datatype="Int"  Dimensions="',nn, &
+        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Jac" Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn, &
             '">geometry',group,'.h5:/Jac</DataItem>'
+        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Dom" Format="HDF" Datatype="Int"  Dimensions="',nn, &
+            '">geometry',group,'.h5:/Dom</DataItem>'
         time = 0
         do i=1,isort
             write(61,"(a,I4.4,a,I4.4,a)") '<Grid Name="mesh.',i,'.',group,'">'
@@ -816,6 +821,10 @@ contains
             write(61,"(a,I9,a)") '<Attribute Name="Jac" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
             write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
                 '"]/DataItem[@Name="Jac"]</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            write(61,"(a,I9,a)") '<Attribute Name="Dom" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
+                '"]/DataItem[@Name="Dom"]</DataItem>'
             write(61,"(a)") '</Attribute>'
             write(61,"(a)") '</Grid>'
             ! XXX inexact pour l'instant
@@ -915,6 +924,7 @@ contains
 
         call grp_write_real_1d(Tdomain, fid, "Mass", nnodes, mass, nnodes_tot)
         call grp_write_real_1d(Tdomain, fid, "Jac", nnodes, jac, nnodes_tot)
+        call grp_write_int_1d(Tdomain, fid, "Dom", nnodes, domains, nnodes_tot)
         deallocate(mass,jac)
 
     end subroutine write_constant_fields
