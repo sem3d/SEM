@@ -1451,7 +1451,7 @@ contains
                 n_z = n_z-1 
             end do
         end do
-        if(pml_b == 1)then
+        if(pml_bott == 1)then
             z_dep(0) = z_dep(1)-step_max
         end if
 
@@ -1460,7 +1460,7 @@ contains
         xminref = xmin ; xmaxref = xmax
         yminref = ymin ; ymaxref = ymax
         zmaxref = zmax
-        if(pml_b == 1)then
+        if(pml_bott == 1)then
             zminref = z_dep(1)
         else
             zminref = z_dep(0)
