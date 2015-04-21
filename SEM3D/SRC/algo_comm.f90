@@ -11,7 +11,7 @@ contains
         type(comm_vector), intent(inout) :: vector
 
         integer, dimension(MPI_STATUS_SIZE,vector%ncomm) :: statuses
-        integer :: dest, src, ierr, n, i
+        integer :: dest, src, ierr, i
 
         !- now we can exchange (communication global arrays)
         vector%send_reqs = MPI_REQUEST_NULL

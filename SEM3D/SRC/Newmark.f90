@@ -24,9 +24,8 @@ subroutine Newmark(Tdomain,ntime)
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: ntime
-    integer :: n, mat
-    integer :: nf, ne, nv
-    integer :: nf_aus, ne_aus, nv_aus
+    integer :: nv
+    integer :: nv_aus
     integer :: ngll, ngll1, ngll2, ngllPML, ngll_F, ngllPML_F
     integer, parameter :: etiquette = 100
 #ifdef COUPLAGE

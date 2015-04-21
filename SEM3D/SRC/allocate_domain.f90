@@ -19,8 +19,7 @@ contains
 subroutine allocate_domain (Tdomain)
 
     type(domain), intent (INOUT) :: Tdomain
-    integer :: n,nf,ne,nv,i,j,k,ngllx,nglly,ngllz,ngll1,ngll2,   &
-        ngll,ngllPML,ngllSO,ngllNeu,ngllSF,ngllSF_PML,ngll_F,ngllPML_F
+    integer :: n,nf,ne,nv,i,j,k,ngllx,nglly,ngllz,ngll1,ngll2,ngll
     integer :: n_solid, idx
     integer :: mat, randSize, assocMat
 

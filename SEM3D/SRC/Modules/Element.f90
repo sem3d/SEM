@@ -67,7 +67,7 @@ module selement
        integer, dimension (0:11) :: Near_Edges, Orient_Edges
        integer, dimension (0:7) :: Near_Vertices
 
-       integer, dimension (:,:,:), allocatable :: Iglobnum,Num
+       integer, dimension (:,:,:), allocatable :: Iglobnum
        real, dimension (:,:,:), allocatable :: Jacob
        real, dimension(:,:,:,:,:), allocatable :: InvGrad
        real, dimension (:,:,:), allocatable :: Density, MassMat
