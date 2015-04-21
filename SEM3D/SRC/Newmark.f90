@@ -446,6 +446,7 @@ subroutine Newmark_Corrector(Tdomain,champs1)
             dt * &
             Tdomain%champs0%fpml_DumpV(:,1) * &
             champs1%fpml_Forces(:)
+        Tdomain%champs0%fpml_Phi = Tdomain%champs0%fpml_Phi + dt*Tdomain%champs0%fpml_VelPhi
     endif
 
     ! Si il existe des éléments solide

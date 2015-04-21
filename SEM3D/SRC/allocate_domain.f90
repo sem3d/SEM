@@ -481,9 +481,11 @@ subroutine allocate_domain (Tdomain)
     if (Tdomain%ngll_pmlf /= 0) then
         allocate(Tdomain%champs1%fpml_Forces(0:Tdomain%ngll_pmlf-1))
         allocate(Tdomain%champs0%fpml_VelPhi(0:Tdomain%ngll_pmlf-1))
+        allocate(Tdomain%champs0%fpml_Phi(0:Tdomain%ngll_pmlf-1))
         allocate(Tdomain%champs0%fpml_DumpV(0:Tdomain%ngll_pmlf-1,0:1))
         Tdomain%champs1%fpml_Forces = 0d0
         Tdomain%champs0%fpml_VelPhi = 0d0
+        Tdomain%champs0%fpml_Phi = 0d0
         Tdomain%champs0%fpml_DumpV = 0d0
 
         ! Allocation de Tdomain%MassMatSolPml pour les PML solides

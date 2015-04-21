@@ -26,6 +26,7 @@ module schamps
 
         !! Fluide PML
         real, dimension(:), allocatable   :: fpml_Forces
+        real, dimension(:), allocatable   :: fpml_Phi
         real, dimension(:), allocatable   :: fpml_VelPhi
         real, dimension(:,:), allocatable :: fpml_DumpV
 
