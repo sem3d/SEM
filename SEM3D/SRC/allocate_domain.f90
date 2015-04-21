@@ -454,8 +454,8 @@ subroutine allocate_domain (Tdomain)
 
         ! Allocation et Initialisation de Fluid_dirich
         ! permet d'annuler VelPhi sur les faces libres dans Newmark_corrector
-        allocate(Tdomain%champs0%Fluid_dirich(0:Tdomain%ngll_f-1))
-        Tdomain%champs0%Fluid_dirich = 1.0
+        allocate(Tdomain%fl_dirich(0:Tdomain%ngll_f-1))
+        Tdomain%fl_dirich = 1.0
         do n = 0,Tdomain%n_elem-1
             if (Tdomain%specel(n)%Solid) cycle
             if (Tdomain%specel(n)%PML) cycle
@@ -467,7 +467,7 @@ subroutine allocate_domain (Tdomain)
                 do i = 0,ngllx-1
                     idx = Tdomain%specel(n)%IFlu(i,j,ngllz-1)
                     if (idx==-1) stop "Error"
-                    Tdomain%champs0%Fluid_dirich(idx) = 0.
+                    Tdomain%fl_dirich(idx) = 0.
                 enddo
             enddo
         enddo
@@ -494,6 +494,28 @@ subroutine allocate_domain (Tdomain)
 
         allocate(Tdomain%fpml_DumpMass(0:Tdomain%ngll_pmlf-1))
         Tdomain%fpml_DumpMass = 0d0
+
+        ! Allocation et Initialisation de Fluid_dirich
+        ! permet d'annuler VelPhi sur les faces libres dans Newmark_corrector
+        allocate(Tdomain%fpml_dirich(0:Tdomain%ngll_pmlf-1))
+        Tdomain%fpml_dirich = 1.0
+        do n = 0,Tdomain%n_elem-1
+            if (Tdomain%specel(n)%Solid) cycle
+            if (.not. Tdomain%specel(n)%PML) cycle
+            if (.not. Tdomain%specel(n)%fluid_dirich) cycle
+            ngllx = Tdomain%specel(n)%ngllx
+            nglly = Tdomain%specel(n)%nglly
+            ngllz = Tdomain%specel(n)%ngllz
+            do j = 0,nglly-1
+                do i = 0,ngllx-1
+                    idx = Tdomain%specel(n)%flpml%IFluPml(i,j,ngllz-1)
+                    if (idx==-1) stop "Error"
+                    Tdomain%fpml_dirich(idx+0) = 0.
+                    Tdomain%fpml_dirich(idx+1) = 0.
+                    Tdomain%fpml_dirich(idx+2) = 0.
+                enddo
+            enddo
+        enddo
     endif
 
     ! Allocation et initialisation des champs pour le couplage solide / fluide

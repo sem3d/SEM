@@ -98,6 +98,9 @@ module sdomain
        real, dimension(:), allocatable :: MassMatSolPml, MassMatFluPml
        real, dimension(:), allocatable :: DumpMass, fpml_DumpMass
 
+       ! Condition de dirichlet fluide et fluide PML
+        real, dimension(:), allocatable :: fl_dirich, fpml_dirich
+
        ! Interface Solide / PML
        integer :: nbInterfSolPml ! nombre de points de gauss à l'interface Solide / PML
        integer, dimension(:,:), allocatable :: InterfSolPml ! dimension(0:nbInterfSolPml-1,0:1), 0 Sol, 1 PML

@@ -30,10 +30,6 @@ module schamps
         real, dimension(:), allocatable   :: fpml_VelPhi
         real, dimension(:,:), allocatable :: fpml_DumpV
 
-        ! Champs rempli de 0. et de 1. pour annuler VelPhi sur faces libres
-        real, dimension(:), allocatable :: Fluid_dirich
-
-
         !! Couplage solide / fluide
         real, dimension(:,:), allocatable :: Save_forces
         real, dimension(:,:), allocatable :: Save_depla
