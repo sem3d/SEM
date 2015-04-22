@@ -38,3 +38,5 @@ pour les cas couples.
 Voir si on peut ameliorer globalnumbering pour que les num gll des faces/edges/vertex soient
 plus localises sur les elements.
 
+
+kill Tdomain%curve
