@@ -50,7 +50,7 @@ subroutine global_numbering(Tdomain)
     !
     call renumber_pml_domain(Tdomain, renumS, renumF, renumSpml, renumFpml)
     ! Compute index of glls that participate in communications
-    call prepare_comm_vector(Tdomain,Tdomain%Comm_data, 3, 9, 1, 3)
+    call prepare_comm_vector(Tdomain,Tdomain%Comm_data, 3, 9, 1, 4)
     call prepare_comm_vector_SF(Tdomain,Tdomain%n_glob_points,renumSF,Tdomain%Comm_SolFlu)
 !     call debug_comm_vector(Tdomain, rank, 0, 1, Tdomain%Comm_data)
 !     call debug_comm_vector(Tdomain, rank, 0, 2, Tdomain%Comm_data)
