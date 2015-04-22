@@ -25,7 +25,7 @@ subroutine calcul_forces_aniso_att(Fox,Foy,Foz, invgrad, &
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) ::  jac, mu_,la_, &
         DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
         onemSbeta_
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:2), intent(in) :: invgrad
+    real, dimension(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: invgrad
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: Fox,Foz,Foy
     real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: dx
     real, dimension(0:nglly-1,0:nglly-1), intent(in) :: dy
@@ -121,15 +121,15 @@ subroutine calcul_forces_aniso_att(Fox,Foy,Foz, invgrad, &
                     sxz = sxz - R_xz_(i_sls,i,j,k)
                     syz = syz - R_yz_(i_sls,i,j,k)
                 enddo
-                xi1 = Invgrad(i,j,k,0,0)
-                xi2 = Invgrad(i,j,k,1,0)
-                xi3 = Invgrad(i,j,k,2,0)
-                et1 = Invgrad(i,j,k,0,1)
-                et2 = Invgrad(i,j,k,1,1)
-                et3 = Invgrad(i,j,k,2,1)
-                ga1 = Invgrad(i,j,k,0,2)
-                ga2 = Invgrad(i,j,k,1,2)
-                ga3 = Invgrad(i,j,k,2,2)
+                xi1 = Invgrad(0,0,i,j,k)
+                xi2 = Invgrad(1,0,i,j,k)
+                xi3 = Invgrad(2,0,i,j,k)
+                et1 = Invgrad(0,1,i,j,k)
+                et2 = Invgrad(1,1,i,j,k)
+                et3 = Invgrad(2,1,i,j,k)
+                ga1 = Invgrad(0,2,i,j,k)
+                ga2 = Invgrad(1,2,i,j,k)
+                ga3 = Invgrad(2,2,i,j,k)
                 !
                 !=====================
                 !       FX

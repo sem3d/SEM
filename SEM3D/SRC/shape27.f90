@@ -48,7 +48,7 @@ contains
             mat   = Tdomain%specel(n)%mat_index
 
             allocate (Tdomain%specel(n)%Jacob(0:ngllx-1,0:nglly-1,0:ngllz-1) )
-            allocate (Tdomain%specel(n)%InvGrad(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:2) )
+            allocate (Tdomain%specel(n)%InvGrad(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1) )
 
             do k = 0,ngllz - 1
                 zeta =  Tdomain%sSubdomain(mat)%GLLcz (k)
@@ -65,7 +65,7 @@ contains
                         call shape27_local2jacob(coord, xi, eta, zeta, LocInvGrad)
                         call invert_3d (LocInvGrad, Jac)
                         Tdomain%specel(n)%Jacob(i,j,k) = Jac
-                        Tdomain%specel(n)%InvGrad (i,j,k,0:2,0:2) = LocInvGrad(0:2,0:2)
+                        Tdomain%specel(n)%InvGrad(0:2,0:2,i,j,k) = LocInvGrad(0:2,0:2)
                     enddo
                 enddo
             enddo

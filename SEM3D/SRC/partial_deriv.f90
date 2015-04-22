@@ -5,7 +5,6 @@
 module deriv3d
 
 contains
-#if 1
     subroutine elem_part_deriv(ngllx,nglly,ngllz,hprimex,hprimey,hprimez,Scalp,    &
         dScalp_dxi,dScalp_deta,dScalp_dzeta)
         !- partial derivatives of the scalar property Scalp, with respect to xi,eta,zeta
@@ -62,7 +61,7 @@ contains
         real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: hTprimex
         real, dimension(0:nglly-1,0:nglly-1), intent(in) :: hprimey
         real, dimension(0:ngllz-1,0:ngllz-1), intent(in) :: hprimez
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:2), intent(in) :: InvGrad
+        real, dimension(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: InvGrad
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Scalp
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: dS_dx,dS_dy,dS_dz
 
@@ -96,7 +95,7 @@ contains
         real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: hTprimex
         real, dimension(0:nglly-1,0:nglly-1), intent(in) :: hprimey
         real, dimension(0:ngllz-1,0:ngllz-1), intent(in) :: hprimez
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:2), intent(in) :: InvGrad
+        real, dimension(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: InvGrad
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Scalp
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: dS_dx,dS_dy,dS_dz
         real :: dS_dxi, dS_deta, dS_dzeta
@@ -120,12 +119,12 @@ contains
                         dS_dzeta = dS_dzeta + Scalp(I,J,L)*hprimez(L,K)
                     END DO
                     !- in the physical domain
-                    dS_dx(I,J,K) = dS_dxi*InvGrad(I,J,K,0,0) + dS_deta*InvGrad(I,J,K,0,1) +  &
-                        dS_dzeta*InvGrad(I,J,K,0,2)
-                    dS_dy(I,J,K) = dS_dxi*InvGrad(I,J,K,1,0) + dS_deta*InvGrad(I,J,K,1,1) +  &
-                        dS_dzeta*InvGrad(I,J,K,1,2)
-                    dS_dz(I,J,K) = dS_dxi*InvGrad(I,J,K,2,0) + dS_deta*InvGrad(I,J,K,2,1) +  &
-                        dS_dzeta*InvGrad(I,J,K,2,2)
+                    dS_dx(I,J,K) = dS_dxi*InvGrad(0,0,I,J,K) + dS_deta*InvGrad(0,1,I,J,K) +  &
+                        dS_dzeta*InvGrad(0,2,I,J,K)
+                    dS_dy(I,J,K) = dS_dxi*InvGrad(1,0,I,J,K) + dS_deta*InvGrad(1,1,I,J,K) +  &
+                        dS_dzeta*InvGrad(1,2,I,J,K)
+                    dS_dz(I,J,K) = dS_dxi*InvGrad(2,0,I,J,K) + dS_deta*InvGrad(2,1,I,J,K) +  &
+                        dS_dzeta*InvGrad(2,2,I,J,K)
                 END DO
             END DO
         END DO
@@ -139,7 +138,7 @@ contains
         real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hTprimex
         real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprimey
         real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprimez
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:2), intent(in) :: InvGrad
+        real, dimension(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: InvGrad
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: dS_dx,dS_dy,dS_dz
         real :: dS_dxi, dS_deta, dS_dzeta
@@ -159,12 +158,12 @@ contains
                         dS_dzeta = dS_dzeta + Scalp(I,J,L)*hprimez(L,K)
                     END DO
                     !- in the physical domain
-                    dS_dx(I,J,K) = dS_dxi*InvGrad(I,J,K,0,0) + dS_deta*InvGrad(I,J,K,0,1) +  &
-                        dS_dzeta*InvGrad(I,J,K,0,2)
-                    dS_dy(I,J,K) = dS_dxi*InvGrad(I,J,K,1,0) + dS_deta*InvGrad(I,J,K,1,1) +  &
-                        dS_dzeta*InvGrad(I,J,K,1,2)
-                    dS_dz(I,J,K) = dS_dxi*InvGrad(I,J,K,2,0) + dS_deta*InvGrad(I,J,K,2,1) +  &
-                        dS_dzeta*InvGrad(I,J,K,2,2)
+                    dS_dx(I,J,K) = dS_dxi*InvGrad(0,0,I,J,K) + dS_deta*InvGrad(0,1,I,J,K) +  &
+                        dS_dzeta*InvGrad(0,2,I,J,K)
+                    dS_dy(I,J,K) = dS_dxi*InvGrad(1,0,I,J,K) + dS_deta*InvGrad(1,1,I,J,K) +  &
+                        dS_dzeta*InvGrad(1,2,I,J,K)
+                    dS_dz(I,J,K) = dS_dxi*InvGrad(2,0,I,J,K) + dS_deta*InvGrad(2,1,I,J,K) +  &
+                        dS_dzeta*InvGrad(2,2,I,J,K)
                 END DO
             END DO
         END DO
@@ -178,7 +177,7 @@ contains
         real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hTprimex
         real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprimey
         real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprimez
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:2), intent(in) :: InvGrad
+        real, dimension(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: InvGrad
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: dS_dx,dS_dy,dS_dz
         real :: dS_dxi, dS_deta, dS_dzeta
@@ -198,12 +197,12 @@ contains
                         dS_dzeta = dS_dzeta + Scalp(I,J,L)*hprimez(L,K)
                     END DO
                     !- in the physical domain
-                    dS_dx(I,J,K) = dS_dxi*InvGrad(I,J,K,0,0) + dS_deta*InvGrad(I,J,K,0,1) +  &
-                        dS_dzeta*InvGrad(I,J,K,0,2)
-                    dS_dy(I,J,K) = dS_dxi*InvGrad(I,J,K,1,0) + dS_deta*InvGrad(I,J,K,1,1) +  &
-                        dS_dzeta*InvGrad(I,J,K,1,2)
-                    dS_dz(I,J,K) = dS_dxi*InvGrad(I,J,K,2,0) + dS_deta*InvGrad(I,J,K,2,1) +  &
-                        dS_dzeta*InvGrad(I,J,K,2,2)
+                    dS_dx(I,J,K) = dS_dxi*InvGrad(0,0,I,J,K) + dS_deta*InvGrad(0,1,I,J,K) +  &
+                        dS_dzeta*InvGrad(0,2,I,J,K)
+                    dS_dy(I,J,K) = dS_dxi*InvGrad(1,0,I,J,K) + dS_deta*InvGrad(1,1,I,J,K) +  &
+                        dS_dzeta*InvGrad(1,2,I,J,K)
+                    dS_dz(I,J,K) = dS_dxi*InvGrad(2,0,I,J,K) + dS_deta*InvGrad(2,1,I,J,K) +  &
+                        dS_dzeta*InvGrad(2,2,I,J,K)
                 END DO
             END DO
         END DO
@@ -217,7 +216,7 @@ contains
         real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hTprimex
         real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprimey
         real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprimez
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:2), intent(in) :: InvGrad
+        real, dimension(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: InvGrad
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: dS_dx,dS_dy,dS_dz
         real :: dS_dxi, dS_deta, dS_dzeta
@@ -237,12 +236,12 @@ contains
                         dS_dzeta = dS_dzeta + Scalp(I,J,L)*hprimez(L,K)
                     END DO
                     !- in the physical domain
-                    dS_dx(I,J,K) = dS_dxi*InvGrad(I,J,K,0,0) + dS_deta*InvGrad(I,J,K,0,1) +  &
-                        dS_dzeta*InvGrad(I,J,K,0,2)
-                    dS_dy(I,J,K) = dS_dxi*InvGrad(I,J,K,1,0) + dS_deta*InvGrad(I,J,K,1,1) +  &
-                        dS_dzeta*InvGrad(I,J,K,1,2)
-                    dS_dz(I,J,K) = dS_dxi*InvGrad(I,J,K,2,0) + dS_deta*InvGrad(I,J,K,2,1) +  &
-                        dS_dzeta*InvGrad(I,J,K,2,2)
+                    dS_dx(I,J,K) = dS_dxi*InvGrad(0,0,I,J,K) + dS_deta*InvGrad(0,1,I,J,K) +  &
+                        dS_dzeta*InvGrad(0,2,I,J,K)
+                    dS_dy(I,J,K) = dS_dxi*InvGrad(1,0,I,J,K) + dS_deta*InvGrad(1,1,I,J,K) +  &
+                        dS_dzeta*InvGrad(1,2,I,J,K)
+                    dS_dz(I,J,K) = dS_dxi*InvGrad(2,0,I,J,K) + dS_deta*InvGrad(2,1,I,J,K) +  &
+                        dS_dzeta*InvGrad(2,2,I,J,K)
                 END DO
             END DO
         END DO
@@ -256,7 +255,7 @@ contains
         real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hTprimex
         real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprimey
         real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprimez
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:2), intent(in) :: InvGrad
+        real, dimension(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: InvGrad
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: dS_dx,dS_dy,dS_dz
         real :: dS_dxi, dS_deta, dS_dzeta
@@ -276,78 +275,16 @@ contains
                         dS_dzeta = dS_dzeta + Scalp(I,J,L)*hprimez(L,K)
                     END DO
                     !- in the physical domain
-                    dS_dx(I,J,K) = dS_dxi*InvGrad(I,J,K,0,0) + dS_deta*InvGrad(I,J,K,0,1) +  &
-                        dS_dzeta*InvGrad(I,J,K,0,2)
-                    dS_dy(I,J,K) = dS_dxi*InvGrad(I,J,K,1,0) + dS_deta*InvGrad(I,J,K,1,1) +  &
-                        dS_dzeta*InvGrad(I,J,K,1,2)
-                    dS_dz(I,J,K) = dS_dxi*InvGrad(I,J,K,2,0) + dS_deta*InvGrad(I,J,K,2,1) +  &
-                        dS_dzeta*InvGrad(I,J,K,2,2)
+                    dS_dx(I,J,K) = dS_dxi*InvGrad(0,0,I,J,K) + dS_deta*InvGrad(0,1,I,J,K) +  &
+                        dS_dzeta*InvGrad(0,2,I,J,K)
+                    dS_dy(I,J,K) = dS_dxi*InvGrad(1,0,I,J,K) + dS_deta*InvGrad(1,1,I,J,K) +  &
+                        dS_dzeta*InvGrad(1,2,I,J,K)
+                    dS_dz(I,J,K) = dS_dxi*InvGrad(2,0,I,J,K) + dS_deta*InvGrad(2,1,I,J,K) +  &
+                        dS_dzeta*InvGrad(2,2,I,J,K)
                 END DO
             END DO
         END DO
     end subroutine physical_part_deriv_888
-
-#else
-
-    subroutine physical_part_deriv(ngllx,nglly,ngllz,hprimex,hprimey,hprimez,InvGrad,   &
-        Scalp,dScalp_dx,dScalp_dy,dScalp_dz)
-        !- partial derivatives in the (x,y,z) space, of the scalar Scalp
-        implicit none
-        integer, intent(in)  :: ngllx,nglly,ngllz
-        real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: hTprimex
-        real, dimension(0:nglly-1,0:nglly-1), intent(in) :: hprimey
-        real, dimension(0:ngllz-1,0:ngllz-1), intent(in) :: hprimez
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Scalp
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:2), intent(in) :: InvGrad
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: dScalp_dx,dScalp_dy,dScalp_dz
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: dScalp_dxi,dScalp_deta,dScalp_dzeta
-
-        !- in the reference element
-        call elem_part_deriv(ngllx,nglly,ngllz,hprimex,hprimey,hprimez,Scalp,    &
-            dScalp_dxi,dScalp_deta,dScalp_dzeta)
-
-        !- in the physical domain
-        ! dScalp_dX
-        dScalp_dx(:,:,:) = dScalp_dxi(:,:,:)*InvGrad(:,:,:,0,0) + dScalp_deta(:,:,:)*InvGrad(:,:,:,0,1) +  &
-            dScalp_dzeta(:,:,:)*InvGrad(:,:,:,0,2)
-        ! dScalp_dY
-        dScalp_dy(:,:,:) = dScalp_dxi(:,:,:)*InvGrad(:,:,:,1,0) + dScalp_deta(:,:,:)*InvGrad(:,:,:,1,1) +  &
-            dScalp_dzeta(:,:,:)*InvGrad(:,:,:,1,2)
-        ! dScalp_dZ
-        dScalp_dz(:,:,:) = dScalp_dxi(:,:,:)*InvGrad(:,:,:,2,0) + dScalp_deta(:,:,:)*InvGrad(:,:,:,2,1) +  &
-            dScalp_dzeta(:,:,:)*InvGrad(:,:,:,2,2)
-
-
-
-    end subroutine physical_part_deriv
-
-    subroutine elem_part_deriv(ngllx,nglly,ngllz,hprimex,hprimey,hprimez,Scalp,    &
-        dScalp_dxi,dScalp_deta,dScalp_dzeta)
-        !- partial derivatives of the scalar property Scalp, with respect to xi,eta,zeta
-        use blas
-        implicit none
-        integer, intent(in)  :: ngllx,nglly,ngllz
-        real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: hTprimex
-        real, dimension(0:nglly-1,0:nglly-1), intent(in) :: hprimey
-        real, dimension(0:ngllz-1,0:ngllz-1), intent(in) :: hprimez
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Scalp
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: dScalp_dxi,dScalp_deta,dScalp_dzeta
-        integer   :: n_z
-
-        ! d(Scalp)_dxi
-        call DGEMM('T','N',ngllx,nglly*ngllz,ngllx,1.0,hprimex,ngllx,Scalp(:,:,:),ngllx,0.0,dScalp_dxi,ngllx)
-
-        ! d(Scalp)_deta
-        do n_z = 0,ngllz-1
-            call DGEMM('N','N',ngllx,nglly,nglly,1.0,Scalp(:,:,n_z),ngllx,hprimey,nglly,0.0,dScalp_deta(:,:,n_z),ngllx)
-        enddo
-        ! d(Scalp)_dzeta
-        call DGEMM('N','N',ngllx*nglly,ngllz,ngllz,1.0,Scalp(:,:,:),ngllx*nglly,hprimez,ngllz,0.0,dScalp_dzeta,ngllx*nglly)
-
-
-    end subroutine elem_part_deriv
-
-#endif
 end module deriv3d
 
 !! Local Variables:

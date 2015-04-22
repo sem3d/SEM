@@ -41,7 +41,7 @@ contains
             mat = Tdomain%specel(n)%mat_index
 
             allocate(Tdomain%specel(n)%Jacob(0:ngllx-1,0:nglly-1,0:ngllz-1))
-            allocate(Tdomain%specel(n)%InvGrad(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:2))
+            allocate(Tdomain%specel(n)%InvGrad(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1))
 
             ! coordinates of GLL points, and values of Jacobian and dX_dxi at each GLL point.
             do k = 0,ngllz-1
@@ -63,7 +63,7 @@ contains
                         call invert_3d(LocInvGrad,Jac)
 
                         Tdomain%specel(n)%Jacob(i,j,k) = Jac
-                        Tdomain%specel(n)%InvGrad(i,j,k,0:2,0:2) = LocInvGrad(0:2,0:2)
+                        Tdomain%specel(n)%InvGrad(0:2,0:2,i,j,k) = LocInvGrad(0:2,0:2)
 
                     enddo
                 enddo

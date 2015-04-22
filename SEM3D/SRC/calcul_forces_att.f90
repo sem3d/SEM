@@ -20,7 +20,7 @@ subroutine calcul_forces_att(Fox,Foy,Foz, invgrad, &
     integer, intent(in) :: ngllx,nglly,ngllz, n_solid
     real, dimension(0:n_solid-1,0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: R_vol_,R_xx_,R_yy_
     real, dimension(0:n_solid-1,0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: R_xy_,R_xz_,R_yz_
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:2), intent(in) :: invgrad
+    real, dimension(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: invgrad
 
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: jac, mu_,ka_, DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
 
@@ -93,15 +93,15 @@ subroutine calcul_forces_att(Fox,Foy,Foz, invgrad, &
                 syy = syy - stt + xpression
                 szz = szz - stt + xpression
 
-                xi1 = Invgrad(i,j,k,0,0)
-                xi2 = Invgrad(i,j,k,1,0)
-                xi3 = Invgrad(i,j,k,2,0)
-                et1 = Invgrad(i,j,k,0,1)
-                et2 = Invgrad(i,j,k,1,1)
-                et3 = Invgrad(i,j,k,2,1)
-                ga1 = Invgrad(i,j,k,0,2)
-                ga2 = Invgrad(i,j,k,1,2)
-                ga3 = Invgrad(i,j,k,2,2)
+                xi1 = Invgrad(0,0,i,j,k)
+                xi2 = Invgrad(1,0,i,j,k)
+                xi3 = Invgrad(2,0,i,j,k)
+                et1 = Invgrad(0,1,i,j,k)
+                et2 = Invgrad(1,1,i,j,k)
+                et3 = Invgrad(2,1,i,j,k)
+                ga1 = Invgrad(0,2,i,j,k)
+                ga2 = Invgrad(1,2,i,j,k)
+                ga3 = Invgrad(2,2,i,j,k)
 
                 !
                 !=====================

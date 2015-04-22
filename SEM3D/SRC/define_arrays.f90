@@ -282,17 +282,17 @@ subroutine init_element_acoeff(Tdomain,specel,mat,whei)
   allocate(zetaz(0:ngllx-1,0:nglly-1,0:ngllz-1))
   allocate(RKmod(0:ngllx-1,0:nglly-1,0:ngllz-1))
 
-  xix = specel%InvGrad(:,:,:,0,0)
-  xiy = specel%InvGrad(:,:,:,1,0)
-  xiz = specel%InvGrad(:,:,:,2,0)
+  xix = specel%InvGrad(0,0,:,:,:)
+  xiy = specel%InvGrad(1,0,:,:,:)
+  xiz = specel%InvGrad(2,0,:,:,:)
 
-  etax = specel%InvGrad(:,:,:,0,1)
-  etay = specel%InvGrad(:,:,:,1,1)
-  etaz = specel%InvGrad(:,:,:,2,1)
+  etax = specel%InvGrad(0,1,:,:,:)
+  etay = specel%InvGrad(1,1,:,:,:)
+  etaz = specel%InvGrad(2,1,:,:,:)
 
-  zetax = specel%InvGrad(:,:,:,0,2)
-  zetay = specel%InvGrad(:,:,:,1,2)
-  zetaz = specel%InvGrad(:,:,:,2,2)
+  zetax = specel%InvGrad(0,2,:,:,:)
+  zetay = specel%InvGrad(1,2,:,:,:)
+  zetaz = specel%InvGrad(2,2,:,:,:)
 
   RKmod = specel%Lambda + 2. * specel%Mu
 

@@ -243,9 +243,9 @@ contains
                     sum_vz = 0d0
                     do l = 0,m1-1
                         acoeff = - mat%hprimex(i,l)*mat%GLLwx(l)*mat%GLLwy(j)*mat%GLLwz(k)*Elem%Jacob(l,j,k)
-                        sum_vx = sum_vx + acoeff*Elem%InvGrad(l,j,k,0,0)*Elem%flpml%Veloc(l,j,k,0)
-                        sum_vy = sum_vy + acoeff*Elem%InvGrad(l,j,k,1,0)*Elem%flpml%Veloc(l,j,k,1)
-                        sum_vz = sum_vz + acoeff*Elem%InvGrad(l,j,k,2,0)*Elem%flpml%Veloc(l,j,k,2)
+                        sum_vx = sum_vx + acoeff*Elem%InvGrad(0,0,l,j,k)*Elem%flpml%Veloc(l,j,k,0)
+                        sum_vy = sum_vy + acoeff*Elem%InvGrad(1,0,l,j,k)*Elem%flpml%Veloc(l,j,k,1)
+                        sum_vz = sum_vz + acoeff*Elem%InvGrad(2,0,l,j,k)*Elem%flpml%Veloc(l,j,k,2)
                     end do
                     ForcesFl(0,i,j,k) = sum_vx
                     ForcesFl(1,i,j,k) = sum_vy
@@ -259,9 +259,9 @@ contains
                     do i=0,m1-1
                         ind = Elem%flpml%IFluPml(i,j,k)
                         acoeff = - mat%hprimey(j,l)*mat%GLLwx(i)*mat%GLLwy(l)*mat%GLLwz(k)*Elem%Jacob(i,l,k)
-                        sum_vx = acoeff*Elem%InvGrad(i,l,k,0,1)*Elem%flpml%Veloc(i,l,k,0)
-                        sum_vy = acoeff*Elem%InvGrad(i,l,k,1,1)*Elem%flpml%Veloc(i,l,k,1)
-                        sum_vz = acoeff*Elem%InvGrad(i,l,k,2,1)*Elem%flpml%Veloc(i,l,k,2)
+                        sum_vx = acoeff*Elem%InvGrad(0,1,i,l,k)*Elem%flpml%Veloc(i,l,k,0)
+                        sum_vy = acoeff*Elem%InvGrad(1,1,i,l,k)*Elem%flpml%Veloc(i,l,k,1)
+                        sum_vz = acoeff*Elem%InvGrad(2,1,i,l,k)*Elem%flpml%Veloc(i,l,k,2)
                         ForcesFl(0,i,j,k) = ForcesFl(0,i,j,k) + sum_vx
                         ForcesFl(1,i,j,k) = ForcesFl(1,i,j,k) + sum_vy
                         ForcesFl(2,i,j,k) = ForcesFl(2,i,j,k) + sum_vz
@@ -276,9 +276,9 @@ contains
                     do i=0,m1-1
                         ind = Elem%flpml%IFluPml(i,j,k)
                         acoeff = - mat%hprimez(k,l)*mat%GLLwx(i)*mat%GLLwy(j)*mat%GLLwz(l)*Elem%Jacob(i,j,l)
-                        sum_vx = acoeff*Elem%InvGrad(i,j,l,0,2)*Elem%flpml%Veloc(i,j,l,0)
-                        sum_vy = acoeff*Elem%InvGrad(i,j,l,1,2)*Elem%flpml%Veloc(i,j,l,1)
-                        sum_vz = acoeff*Elem%InvGrad(i,j,l,2,2)*Elem%flpml%Veloc(i,j,l,2)
+                        sum_vx = acoeff*Elem%InvGrad(0,2,i,j,l)*Elem%flpml%Veloc(i,j,l,0)
+                        sum_vy = acoeff*Elem%InvGrad(1,2,i,j,l)*Elem%flpml%Veloc(i,j,l,1)
+                        sum_vz = acoeff*Elem%InvGrad(2,2,i,j,l)*Elem%flpml%Veloc(i,j,l,2)
                         ForcesFl(0,i,j,k) = ForcesFl(0,i,j,k) + sum_vx
                         ForcesFl(1,i,j,k) = ForcesFl(1,i,j,k) + sum_vy
                         ForcesFl(2,i,j,k) = ForcesFl(2,i,j,k) + sum_vz
@@ -447,17 +447,17 @@ contains
                     sum_vz = 0d0
                     do l = 0,m1-1
                         acoeff = - mat%hprimex(i,l)*mat%GLLwx(l)*mat%GLLwy(j)*mat%GLLwz(k)*Elem%Jacob(l,j,k)
-                        sum_vx = sum_vx + acoeff*Elem%InvGrad(l,j,k,0,0)*Elem%slpml%Diagonal_Stress(l,j,k,0)
-                        sum_vx = sum_vx + acoeff*Elem%InvGrad(l,j,k,1,0)*Elem%slpml%Residual_Stress(l,j,k,0)
-                        sum_vx = sum_vx + acoeff*Elem%InvGrad(l,j,k,2,0)*Elem%slpml%Residual_Stress(l,j,k,1)
+                        sum_vx = sum_vx + acoeff*Elem%InvGrad(0,0,l,j,k)*Elem%slpml%Diagonal_Stress(l,j,k,0)
+                        sum_vx = sum_vx + acoeff*Elem%InvGrad(1,0,l,j,k)*Elem%slpml%Residual_Stress(l,j,k,0)
+                        sum_vx = sum_vx + acoeff*Elem%InvGrad(2,0,l,j,k)*Elem%slpml%Residual_Stress(l,j,k,1)
 
-                        sum_vy = sum_vy + acoeff*Elem%InvGrad(l,j,k,0,0)*Elem%slpml%Residual_Stress(l,j,k,0)
-                        sum_vy = sum_vy + acoeff*Elem%InvGrad(l,j,k,1,0)*Elem%slpml%Diagonal_Stress(l,j,k,1)
-                        sum_vy = sum_vy + acoeff*Elem%InvGrad(l,j,k,2,0)*Elem%slpml%Residual_Stress(l,j,k,2)
+                        sum_vy = sum_vy + acoeff*Elem%InvGrad(0,0,l,j,k)*Elem%slpml%Residual_Stress(l,j,k,0)
+                        sum_vy = sum_vy + acoeff*Elem%InvGrad(1,0,l,j,k)*Elem%slpml%Diagonal_Stress(l,j,k,1)
+                        sum_vy = sum_vy + acoeff*Elem%InvGrad(2,0,l,j,k)*Elem%slpml%Residual_Stress(l,j,k,2)
 
-                        sum_vz = sum_vz + acoeff*Elem%InvGrad(l,j,k,0,0)*Elem%slpml%Residual_Stress(l,j,k,1)
-                        sum_vz = sum_vz + acoeff*Elem%InvGrad(l,j,k,1,0)*Elem%slpml%Residual_Stress(l,j,k,2)
-                        sum_vz = sum_vz + acoeff*Elem%InvGrad(l,j,k,2,0)*Elem%slpml%Diagonal_Stress(l,j,k,2)
+                        sum_vz = sum_vz + acoeff*Elem%InvGrad(0,0,l,j,k)*Elem%slpml%Residual_Stress(l,j,k,1)
+                        sum_vz = sum_vz + acoeff*Elem%InvGrad(1,0,l,j,k)*Elem%slpml%Residual_Stress(l,j,k,2)
+                        sum_vz = sum_vz + acoeff*Elem%InvGrad(2,0,l,j,k)*Elem%slpml%Diagonal_Stress(l,j,k,2)
                     end do
                     Forces1(0,i,j,k) = sum_vx
                     Forces1(1,i,j,k) = sum_vy
@@ -472,17 +472,17 @@ contains
                 do j = 0,m2-1
                     do i=0,m1-1
                         acoeff = - mat%hprimey(j,l)*mat%GLLwx(i)*mat%GLLwy(l)*mat%GLLwz(k)*Elem%Jacob(i,l,k)
-                        sum_vx = acoeff*(Elem%InvGrad(i,l,k,0,1)*Elem%slpml%Diagonal_Stress(i,l,k,0) + &
-                                         Elem%InvGrad(i,l,k,1,1)*Elem%slpml%Residual_Stress(i,l,k,0) + &
-                                         Elem%InvGrad(i,l,k,2,1)*Elem%slpml%Residual_Stress(i,l,k,1))
+                        sum_vx = acoeff*(Elem%InvGrad(0,1,i,l,k)*Elem%slpml%Diagonal_Stress(i,l,k,0) + &
+                                         Elem%InvGrad(1,1,i,l,k)*Elem%slpml%Residual_Stress(i,l,k,0) + &
+                                         Elem%InvGrad(2,1,i,l,k)*Elem%slpml%Residual_Stress(i,l,k,1))
 
-                        sum_vy = acoeff*(Elem%InvGrad(i,l,k,0,1)*Elem%slpml%Residual_Stress(i,l,k,0) + &
-                                         Elem%InvGrad(i,l,k,1,1)*Elem%slpml%Diagonal_Stress(i,l,k,1) + &
-                                         Elem%InvGrad(i,l,k,2,1)*Elem%slpml%Residual_Stress(i,l,k,2))
+                        sum_vy = acoeff*(Elem%InvGrad(0,1,i,l,k)*Elem%slpml%Residual_Stress(i,l,k,0) + &
+                                         Elem%InvGrad(1,1,i,l,k)*Elem%slpml%Diagonal_Stress(i,l,k,1) + &
+                                         Elem%InvGrad(2,1,i,l,k)*Elem%slpml%Residual_Stress(i,l,k,2))
 
-                        sum_vz = acoeff*(Elem%InvGrad(i,l,k,0,1)*Elem%slpml%Residual_Stress(i,l,k,1) + &
-                                         Elem%InvGrad(i,l,k,1,1)*Elem%slpml%Residual_Stress(i,l,k,2) + &
-                                         Elem%InvGrad(i,l,k,2,1)*Elem%slpml%Diagonal_Stress(i,l,k,2))
+                        sum_vz = acoeff*(Elem%InvGrad(0,1,i,l,k)*Elem%slpml%Residual_Stress(i,l,k,1) + &
+                                         Elem%InvGrad(1,1,i,l,k)*Elem%slpml%Residual_Stress(i,l,k,2) + &
+                                         Elem%InvGrad(2,1,i,l,k)*Elem%slpml%Diagonal_Stress(i,l,k,2))
                         Forces2(0,i,j,k) = Forces2(0,i,j,k) + sum_vx
                         Forces2(1,i,j,k) = Forces2(1,i,j,k) + sum_vy
                         Forces2(2,i,j,k) = Forces2(2,i,j,k) + sum_vz
@@ -497,17 +497,17 @@ contains
                 do j = 0,m2-1
                     do i=0,m1-1
                         acoeff = - mat%hprimez(k,l)*mat%GLLwx(i)*mat%GLLwy(j)*mat%GLLwz(l)*Elem%Jacob(i,j,l)
-                        sum_vx = acoeff*(Elem%InvGrad(i,j,l,0,2)*Elem%slpml%Diagonal_Stress(i,j,l,0) + &
-                                         Elem%InvGrad(i,j,l,1,2)*Elem%slpml%Residual_Stress(i,j,l,0) + &
-                                         Elem%InvGrad(i,j,l,2,2)*Elem%slpml%Residual_Stress(i,j,l,1))
+                        sum_vx = acoeff*(Elem%InvGrad(0,2,i,j,l)*Elem%slpml%Diagonal_Stress(i,j,l,0) + &
+                                         Elem%InvGrad(1,2,i,j,l)*Elem%slpml%Residual_Stress(i,j,l,0) + &
+                                         Elem%InvGrad(2,2,i,j,l)*Elem%slpml%Residual_Stress(i,j,l,1))
 
-                        sum_vy = acoeff*(Elem%InvGrad(i,j,l,0,2)*Elem%slpml%Residual_Stress(i,j,l,0) + &
-                                         Elem%InvGrad(i,j,l,1,2)*Elem%slpml%Diagonal_Stress(i,j,l,1) + &
-                                         Elem%InvGrad(i,j,l,2,2)*Elem%slpml%Residual_Stress(i,j,l,2))
+                        sum_vy = acoeff*(Elem%InvGrad(0,2,i,j,l)*Elem%slpml%Residual_Stress(i,j,l,0) + &
+                                         Elem%InvGrad(1,2,i,j,l)*Elem%slpml%Diagonal_Stress(i,j,l,1) + &
+                                         Elem%InvGrad(2,2,i,j,l)*Elem%slpml%Residual_Stress(i,j,l,2))
 
-                        sum_vz = acoeff*(Elem%InvGrad(i,j,l,0,2)*Elem%slpml%Residual_Stress(i,j,l,1) + &
-                                         Elem%InvGrad(i,j,l,1,2)*Elem%slpml%Residual_Stress(i,j,l,2) + &
-                                         Elem%InvGrad(i,j,l,2,2)*Elem%slpml%Diagonal_Stress(i,j,l,2))
+                        sum_vz = acoeff*(Elem%InvGrad(0,2,i,j,l)*Elem%slpml%Residual_Stress(i,j,l,1) + &
+                                         Elem%InvGrad(1,2,i,j,l)*Elem%slpml%Residual_Stress(i,j,l,2) + &
+                                         Elem%InvGrad(2,2,i,j,l)*Elem%slpml%Diagonal_Stress(i,j,l,2))
                         Forces3(0,i,j,k) = Forces3(0,i,j,k) + sum_vx
                         Forces3(1,i,j,k) = Forces3(1,i,j,k) + sum_vy
                         Forces3(2,i,j,k) = Forces3(2,i,j,k) + sum_vz

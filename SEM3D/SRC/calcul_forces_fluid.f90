@@ -11,7 +11,7 @@ subroutine calcul_forces_fluid(FFl,invgrad,      &
     implicit none
 
     integer, intent(in) :: ngllx,nglly,ngllz
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:2), intent(in) :: invgrad
+    real, dimension(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: invgrad
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: jac,dens_, dPhiX,dPhiY,dPhiZ
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: FFl
     real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: hTprimex
@@ -43,15 +43,15 @@ subroutine calcul_forces_fluid(FFl,invgrad,      &
                 sy = xdens(i,j,k)*dPhiY(i,j,k)
                 sz = xdens(i,j,k)*dPhiZ(i,j,k)
 
-                xi1 = Invgrad(i,j,k,0,0)
-                xi2 = Invgrad(i,j,k,1,0)
-                xi3 = Invgrad(i,j,k,2,0)
-                et1 = Invgrad(i,j,k,0,1)
-                et2 = Invgrad(i,j,k,1,1)
-                et3 = Invgrad(i,j,k,2,1)
-                ga1 = Invgrad(i,j,k,0,2)
-                ga2 = Invgrad(i,j,k,1,2)
-                ga3 = Invgrad(i,j,k,2,2)
+                xi1 = Invgrad(0,0,i,j,k)
+                xi2 = Invgrad(1,0,i,j,k)
+                xi3 = Invgrad(2,0,i,j,k)
+                et1 = Invgrad(0,1,i,j,k)
+                et2 = Invgrad(1,1,i,j,k)
+                et3 = Invgrad(2,1,i,j,k)
+                ga1 = Invgrad(0,2,i,j,k)
+                ga2 = Invgrad(1,2,i,j,k)
+                ga3 = Invgrad(2,2,i,j,k)
 
                 !=====================
                 !       F1 
