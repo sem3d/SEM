@@ -397,6 +397,7 @@ subroutine allocate_domain (Tdomain)
     if (Tdomain%ngll_pmls /= 0) then
         allocate(Tdomain%champs1%ForcesPML(0:Tdomain%ngll_pmls-1,0:2))
         allocate(Tdomain%champs0%VelocPML(0:Tdomain%ngll_pmls-1,0:2))
+        allocate(Tdomain%champs1%VelocPML(0:Tdomain%ngll_pmls-1,0:2))
         allocate(Tdomain%champs0%DumpV(0:Tdomain%ngll_pmls-1,0:1))
         Tdomain%champs1%ForcesPML = 0d0
         Tdomain%champs0%VelocPML = 0d0

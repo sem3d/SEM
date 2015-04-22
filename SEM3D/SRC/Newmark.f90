@@ -301,28 +301,29 @@ subroutine Newmark_Predictor(Tdomain,champs1)
             Tdomain%champs0%VelocPML(indpml+1,:) = 0.
             Tdomain%champs0%VelocPML(indpml+2,:) = 0.
         enddo
-
-        do nel = 0,Tdomain%n_elem-1
-            if (.not. Tdomain%specel(nel)%Solid) cycle
-            if (.not. Tdomain%specel(nel)%PML) cycle
-
-            mat = Tdomain%specel(nel)%mat_index
-            if (Tdomain%curve) then
-                ! TODO
-            else
-                if (Tdomain%specel(nel)%FPML) then
-                    ! TODO
-                else
-                    call Prediction_Elem_PML_Veloc(Tdomain%specel(nel), bega, dt, &
-                        Tdomain%sSubDomain(mat)%hPrimex, &
-                        Tdomain%sSubDomain(mat)%hPrimey, &
-                        Tdomain%sSubDomain(mat)%hprimez, &
-                        Tdomain%ngll_pmls, &
-                        Tdomain%champs0%VelocPML, &
-                        Tdomain%champs1%ForcesPML)
-                endif
-            endif
-        enddo
+        ! XXX Newmark bug? champs%ForcesPML -> Accel ?
+        champs1%VelocPML = Tdomain%champs0%VelocPML + dt*(0.5-bega)*champs1%ForcesPML
+!        do nel = 0,Tdomain%n_elem-1
+!            if (.not. Tdomain%specel(nel)%Solid) cycle
+!            if (.not. Tdomain%specel(nel)%PML) cycle
+!
+!            mat = Tdomain%specel(nel)%mat_index
+!            if (Tdomain%curve) then
+!                ! TODO
+!            else
+!                if (Tdomain%specel(nel)%FPML) then
+!                    ! TODO
+!                else
+!                    call Prediction_Elem_PML_Veloc(Tdomain%specel(nel), bega, dt, &
+!                        Tdomain%sSubDomain(mat)%hPrimex, &
+!                        Tdomain%sSubDomain(mat)%hPrimey, &
+!                        Tdomain%sSubDomain(mat)%hprimez, &
+!                        Tdomain%ngll_pmls, &
+!                        Tdomain%champs0%VelocPML, &
+!                        Tdomain%champs1%ForcesPML)
+!                endif
+!            endif
+!        enddo
     endif
 
     ! Elements fluide pml
@@ -471,9 +472,12 @@ subroutine internal_forces(Tdomain,champs1)
                 Tdomain%specel(n)%solid, champs1)
         else ! PML
             if (Tdomain%specel(n)%solid)then
-                call compute_InternalForces_PML_Elem(Tdomain%specel(n),                &
-                    Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimey, &
-                    Tdomain%sSubDomain(mat)%hTprimez, Tdomain%ngll_pmls, champs1%ForcesPML)
+                call pred_sol_pml(Tdomain%specel(n), Tdomain%sSubDomain(mat),Tdomain%TimeD%dtmin, &
+                    champs1)
+                call forces_int_sol_pml(Tdomain%specel(n), Tdomain%sSubDomain(mat), champs1)
+!                call compute_InternalForces_PML_Elem(Tdomain%specel(n),                &
+!                    Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimey, &
+!                    Tdomain%sSubDomain(mat)%hTprimez, Tdomain%ngll_pmls, champs1%ForcesPML)
             else
 
                 call pred_flu_pml(Tdomain%specel(n), Tdomain%sSubDomain(mat),Tdomain%TimeD%dtmin, &
