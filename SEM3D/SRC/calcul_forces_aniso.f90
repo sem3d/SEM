@@ -7,7 +7,7 @@
 !!
 !<
 
-subroutine calcul_forces_aniso(Fox,Foy,Foz, xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3, &
+subroutine calcul_forces_aniso(Fox,Foy,Foz, invgrad, &
     dx,dy,dz, jac, poidsx,poidsy,poidsz, DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
     Cij, ngllx,nglly,ngllz)
 
@@ -17,9 +17,8 @@ subroutine calcul_forces_aniso(Fox,Foy,Foz, xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3,
 
     integer, intent(in) :: ngllx,nglly,ngllz
     real, dimension(0:20, 0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Cij
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: xi1,xi2,xi3, et1,et2,et3, &
-        ga1,ga2,ga3, jac, &
-        DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:2), intent(in) :: invgrad
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,jac
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: Fox,Foz,Foy
     real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: dx
     real, dimension(0:nglly-1,0:nglly-1), intent(in) :: dy
@@ -29,6 +28,7 @@ subroutine calcul_forces_aniso(Fox,Foy,Foz, xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3,
     real, dimension(0:ngllz-1), intent(in) :: poidsz
 
     integer :: i,j,k,l
+    real :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
     real :: sxx,sxy,sxz,syy,syz,szz,t4,F1,F2,F3
     real :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
@@ -83,54 +83,40 @@ subroutine calcul_forces_aniso(Fox,Foy,Foz, xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3,
                 sxz=sxz/s2
                 sxy=sxy/s2
 
+                xi1 = Invgrad(i,j,k,0,0)
+                xi2 = Invgrad(i,j,k,1,0)
+                xi3 = Invgrad(i,j,k,2,0)
+                et1 = Invgrad(i,j,k,0,1)
+                et2 = Invgrad(i,j,k,1,1)
+                et3 = Invgrad(i,j,k,2,1)
+                ga1 = Invgrad(i,j,k,0,2)
+                ga2 = Invgrad(i,j,k,1,2)
+                ga3 = Invgrad(i,j,k,2,2)
+
                 !
                 !=====================
                 !       FX
                 !=====================
                 !
-                xt1 = sxx * xi1(i,j,k)
-                xt2 = sxx * et1(i,j,k)
-                xt3 = sxx * ga1(i,j,k)
-                !---
-                xt1 = xt1 + sxy * xi2(i,j,k)
-                xt2 = xt2 + sxy * et2(i,j,k)
-                xt3 = xt3 + sxy * ga2(i,j,k)
-                !---
-                xt1 = xt1 + sxz * xi3(i,j,k)
-                xt2 = xt2 + sxz * et3(i,j,k)
-                xt3 = xt3 + sxz * ga3(i,j,k)
+                xt1 = sxx * xi1 + sxy * xi2 + sxz * xi3
+                xt2 = sxx * et1 + sxy * et2 + sxz * et3
+                xt3 = sxx * ga1 + sxy * ga2 + sxz * ga3
                 !
                 !=====================
                 !       FY
                 !=====================
                 !
-                xt5 = syy * xi2(i,j,k)
-                xt6 = syy * et2(i,j,k)
-                xt7 = syy * ga2(i,j,k)
-                !---
-                xt5 = xt5 + sxy * xi1(i,j,k)
-                xt6 = xt6 + sxy * et1(i,j,k)
-                xt7 = xt7 + sxy * ga1(i,j,k)
-                !---
-                xt5 = xt5 + syz * xi3(i,j,k)
-                xt6 = xt6 + syz * et3(i,j,k)
-                xt7 = xt7 + syz * ga3(i,j,k)
+                xt5 = syy * xi2 + sxy * xi1 + syz * xi3
+                xt6 = syy * et2 + sxy * et1 + syz * et3
+                xt7 = syy * ga2 + sxy * ga1 + syz * ga3
                 !
                 !=====================
                 !       FZ
                 !=====================
                 !
-                xt8  = szz * xi3(i,j,k)
-                xt9  = szz * et3(i,j,k)
-                xt10 = szz * ga3(i,j,k)
-                !---
-                xt8  = xt8  + sxz * xi1(i,j,k)
-                xt9  = xt9  + sxz * et1(i,j,k)
-                xt10 = xt10 + sxz * ga1(i,j,k)
-                !---
-                xt8  = xt8  + syz * xi2(i,j,k)
-                xt9  = xt9  + syz * et2(i,j,k)
-                xt10 = xt10 + syz * ga2(i,j,k)
+                xt8  = szz * xi3 + sxz * xi1 + syz * xi2
+                xt9  = szz * et3 + sxz * et1 + syz * et2
+                xt10 = szz * ga3 + sxz * ga1 + syz * ga2
                 !---
 
                 !

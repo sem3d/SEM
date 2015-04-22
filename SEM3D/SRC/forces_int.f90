@@ -80,15 +80,7 @@ contains
         if (aniso) then
             if (n_solid>0) then
                 call calcul_forces_aniso_att(Fox,Foy,Foz, &
-                    Elem%Invgrad(:,:,:,0,0), &
-                    Elem%Invgrad(:,:,:,1,0), &
-                    Elem%Invgrad(:,:,:,2,0), &
-                    Elem%Invgrad(:,:,:,0,1), &
-                    Elem%Invgrad(:,:,:,1,1), &
-                    Elem%Invgrad(:,:,:,2,1), &
-                    Elem%Invgrad(:,:,:,0,2), &
-                    Elem%Invgrad(:,:,:,1,2), &
-                    Elem%Invgrad(:,:,:,2,2), &
+                    Elem%Invgrad, &
                     htprimex, htprimey, htprimez, &
                     Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
@@ -110,15 +102,7 @@ contains
                 !      deallocate(epsilonvol_loc)
             else
                 call calcul_forces_aniso(Fox,Foy,Foz,  &
-                    Elem%Invgrad(:,:,:,0,0), &
-                    Elem%Invgrad(:,:,:,1,0), &
-                    Elem%Invgrad(:,:,:,2,0), &
-                    Elem%Invgrad(:,:,:,0,1), &
-                    Elem%Invgrad(:,:,:,1,1), &
-                    Elem%Invgrad(:,:,:,2,1), &
-                    Elem%Invgrad(:,:,:,0,2), &
-                    Elem%Invgrad(:,:,:,1,2), &
-                    Elem%Invgrad(:,:,:,2,2), &
+                    Elem%Invgrad, &
                     htprimex, htprimey, htprimez, &
                     Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
@@ -130,15 +114,7 @@ contains
         else
             if (n_solid>0) then
                 call calcul_forces_att(Fox,Foy,Foz, &
-                    Elem%Invgrad(:,:,:,0,0), &
-                    Elem%Invgrad(:,:,:,1,0), &
-                    Elem%Invgrad(:,:,:,2,0), &
-                    Elem%Invgrad(:,:,:,0,1), &
-                    Elem%Invgrad(:,:,:,1,1), &
-                    Elem%Invgrad(:,:,:,2,1), &
-                    Elem%Invgrad(:,:,:,0,2), &
-                    Elem%Invgrad(:,:,:,1,2), &
-                    Elem%Invgrad(:,:,:,2,2), &
+                    Elem%Invgrad, &
                     htprimex, htprimey, htprimez, &
                     Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
@@ -171,15 +147,7 @@ contains
                 deallocate(epsilonvol_loc)
             else
                 call calcul_forces(Fox,Foy,Foz,  &
-                    Elem%Invgrad(:,:,:,0,0), &
-                    Elem%Invgrad(:,:,:,1,0), &
-                    Elem%Invgrad(:,:,:,2,0), &
-                    Elem%Invgrad(:,:,:,0,1), &
-                    Elem%Invgrad(:,:,:,1,1), &
-                    Elem%Invgrad(:,:,:,2,1), &
-                    Elem%Invgrad(:,:,:,0,2), &
-                    Elem%Invgrad(:,:,:,1,2), &
-                    Elem%Invgrad(:,:,:,2,2), &
+                    Elem%Invgrad, &
                     htprimex, htprimey, htprimez, &
                     Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
@@ -204,15 +172,7 @@ contains
 
             ! internal forces
             call calcul_forces_fluid(Fo_Fl,                &
-                         Elem%Invgrad(:,:,:,0,0), &
-                         Elem%Invgrad(:,:,:,1,0), &
-                         Elem%Invgrad(:,:,:,2,0), &
-                         Elem%Invgrad(:,:,:,0,1), &
-                         Elem%Invgrad(:,:,:,1,1), &
-                         Elem%Invgrad(:,:,:,2,1), &
-                         Elem%Invgrad(:,:,:,0,2), &
-                         Elem%Invgrad(:,:,:,1,2), &
-                         Elem%Invgrad(:,:,:,2,2), &
+                         Elem%Invgrad, &
                          htprimex,htprimey,htprimez, &
                          Elem%Jacob,mat%GLLwx,mat%GLLwy,mat%GLLwz, &
                          dPhiX,dPhiY,dPhiZ,       &

@@ -1,4 +1,4 @@
-subroutine calcul_forces_fluid(FFl,xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3,      &
+subroutine calcul_forces_fluid(FFl,invgrad,      &
     hTprimex,hTprimey,hTprimez,jac,wheix,wheiy,wheiz,  &
     dPhiX,dPhiY,dPhiZ,dens_,ngllx,nglly,ngllz)
 
@@ -7,9 +7,8 @@ subroutine calcul_forces_fluid(FFl,xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3,      &
     implicit none
 
     integer, intent(in) :: ngllx,nglly,ngllz
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: xi1,xi2,xi3, et1,et2,et3, &
-        ga1,ga2,ga3, jac,dens_,   &
-        dPhiX,dPhiY,dPhiZ
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:2), intent(in) :: invgrad
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: jac,dens_, dPhiX,dPhiY,dPhiZ
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: FFl
     real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: hTprimex
     real, dimension(0:nglly-1,0:nglly-1), intent(in) :: hTprimey
@@ -18,6 +17,7 @@ subroutine calcul_forces_fluid(FFl,xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3,      &
     real, dimension(0:nglly-1), intent(in) :: wheiy
     real, dimension(0:ngllz-1), intent(in) :: wheiz
 
+    real :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
     integer :: i,j,k,l
     real :: sx,sy,sz,t4,F1
     real :: t41,t11,t51,t12,t61,t13
@@ -39,18 +39,27 @@ subroutine calcul_forces_fluid(FFl,xi1,xi2,xi3,et1,et2,et3,ga1,ga2,ga3,      &
                 sy = xdens(i,j,k)*dPhiY(i,j,k)
                 sz = xdens(i,j,k)*dPhiZ(i,j,k)
 
+                xi1 = Invgrad(i,j,k,0,0)
+                xi2 = Invgrad(i,j,k,1,0)
+                xi3 = Invgrad(i,j,k,2,0)
+                et1 = Invgrad(i,j,k,0,1)
+                et2 = Invgrad(i,j,k,1,1)
+                et3 = Invgrad(i,j,k,2,1)
+                ga1 = Invgrad(i,j,k,0,2)
+                ga2 = Invgrad(i,j,k,1,2)
+                ga3 = Invgrad(i,j,k,2,2)
 
                 !=====================
                 !       F1 
-                xt1 = sx*xi1(i,j,k) + sy*xi2(i,j,k) + sz*xi3(i,j,k)
+                xt1 = sx*xi1 + sy*xi2 + sz*xi3
 
                 !=====================
                 !       F2 
-                xt6 = sx*et1(i,j,k) + sy*et2(i,j,k) + sz*et3(i,j,k)
+                xt6 = sx*et1 + sy*et2 + sz*et3
 
                 !=====================
                 !       F3 
-                xt10 = sx*ga1(i,j,k) + sy*ga2(i,j,k) + sz*ga3(i,j,k)
+                xt10 = sx*ga1 + sy*ga2 + sz*ga3
 
                 !
                 !- Multiply par Jacobian and weight
