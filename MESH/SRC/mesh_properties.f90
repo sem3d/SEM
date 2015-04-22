@@ -1360,8 +1360,8 @@ contains
         !- obtention of the material table array: important for the fluid/solid interfaces in mesh2spec
         !     (case where mesh built on the fly)
         !- construction of the "material.input" file directly used in SEM3D
-        character, dimension(0:), intent(in)   :: matarray
-        character, dimension(0:), intent(out)  :: mattab
+        character, dimension(0:nmat-1), intent(in)   :: matarray
+        character, dimension(0:nmat_tot-1), intent(out)  :: mattab
         integer, intent(in)     :: nmat,nmat_tot,pml_bool,pml_t,pml_b
         integer                 :: i,icount
 
@@ -1711,7 +1711,6 @@ contains
                     end if
                 end if
             end if
-
         end do
 
     end subroutine nature_elem
@@ -1760,7 +1759,8 @@ contains
         end do
 
         ! lateral PMLs
-        if(present(pml_bool) .and. pml_bool == 1)then
+        if(present(pml_bool)) then
+        if (pml_bool == 1) then
             do i = 0,nmat-1
                 write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
                     ngll(i),tr,qp(i),qs(i)
@@ -1786,8 +1786,8 @@ contains
                 write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
                     ngll(i),tr,qp(i),qs(i)
                 icount = icount+1
-
             end do
+        end if
         end if
         ! bottom PMLs
         if(present(pml_b) .and. pml_b == 1)then
