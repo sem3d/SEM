@@ -317,9 +317,6 @@ contains
         real, dimension(0:,0:,0:), intent(out) :: field
         real, dimension(:,:,:,:), allocatable :: displ
         type(element), pointer :: el
-        type(face), pointer :: fc
-        type(edge), pointer :: ed
-        type(vertex), pointer :: vx
         integer :: nx, ny, nz, i, mat
         nx = Tdomain%specel(nel)%ngllx
         ny = Tdomain%specel(nel)%nglly

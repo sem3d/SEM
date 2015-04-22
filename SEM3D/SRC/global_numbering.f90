@@ -690,7 +690,7 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
     call allocate_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, &
         nddlfluid, nddlfluidpml)
 
-        do n = 0,Comm_data%ncomm-1
+    do n = 0,Comm_data%ncomm-1
             ncomm = Comm_data%Data(n)%ncomm
             nsol = 0
             nsolpml = 0
