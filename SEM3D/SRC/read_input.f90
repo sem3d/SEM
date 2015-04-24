@@ -212,29 +212,29 @@ contains
                 Tdomain%sFace(nnf)%mat_index = mat
                 Tdomain%sFace(nnf)%solid = Tdomain%specel(n)%solid
                 Tdomain%sFace(nnf)%fluid_dirich = .false.
-                if(Tdomain%specel(n)%fluid_dirich .and. (nf == 5))then
-                    Tdomain%sFace(nnf)%fluid_dirich = .true.
-                end if
+              ! if(Tdomain%specel(n)%fluid_dirich .and. (nf == 5))then
+              !     Tdomain%sFace(nnf)%fluid_dirich = .true.
+              !  end if
             end do
             do ne = 0,11
                 nne = Tdomain%specel(n)%Near_edges(ne)
                 Tdomain%sEdge(nne)%mat_index = mat
                 Tdomain%sEdge(nne)%solid = Tdomain%specel(n)%solid
                 Tdomain%sEdge(nne)%fluid_dirich = .false.
-                if(Tdomain%specel(n)%fluid_dirich .and.   &
-                    ((ne == 5).or.(ne == 8).or.(ne == 9).or.(ne == 11)))then
-                    Tdomain%sEdge(nne)%fluid_dirich = .true.
-                end if
+               ! if(Tdomain%specel(n)%fluid_dirich .and.   &
+               !    ((ne == 5).or.(ne == 8).or.(ne == 9).or.(ne == 11)))then
+               !    Tdomain%sEdge(nne)%fluid_dirich = .true.
+               ! end if
             end do
             do nv = 0,7
                 nnv = Tdomain%specel(n)%Near_Vertices(nv)
                 Tdomain%sVertex(nnv)%mat_index = mat
                 Tdomain%sVertex(nnv)%solid = Tdomain%specel(n)%solid
                 Tdomain%sVertex(nnv)%fluid_dirich = .false.
-                if(Tdomain%specel(n)%fluid_dirich .and.   &
-                    ((nv == 4).or.(nv == 5).or.(nv == 6).or.(nv == 7)))then
-                    Tdomain%sVertex(nnv)%fluid_dirich = .true.
-                end if
+               ! if(Tdomain%specel(n)%fluid_dirich .and.   &
+               !    ((nv == 4).or.(nv == 5).or.(nv == 6).or.(nv == 7)))then
+               !   Tdomain%sVertex(nnv)%fluid_dirich = .true.
+               ! end if
             end do
 
             !        !Faces
