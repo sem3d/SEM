@@ -265,6 +265,7 @@ contains
             V%Lambda(0:n-1) = rhs(1:n)
             call check_system_inversion(V, V%Kmat_05dt, nv)
         else
+            STOP "ERROR : Vertex Matrix with full DT has not been inverted"
             call SPPTRS( 'U', n, 1, V%K_up, rhs, n, INFO )
             V%Lambda(0:n-1) = rhs(1:n)
             call check_system_inversion(V, V%Kmat, nv)

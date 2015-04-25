@@ -203,10 +203,13 @@ subroutine Semi_Implicit_Resolution (Tdomain,timelocal,Dt,demi_dt)
     ! Building second members (= forces) of systems.
     do n=0,Tdomain%n_elem-1
         mat = Tdomain%specel(n)%mat_index
+        !call compute_InternalForces_DG_Weak(Tdomain%specel(n), &
+        !                                    Tdomain%sSubDomain(mat)%hprimex, &
+        !                                    Tdomain%sSubDomain(mat)%hTprimez)
         call compute_InternalForces_HDG  (Tdomain%specel(n), &
             Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimex, &
             Tdomain%sSubDomain(mat)%hprimez,Tdomain%sSubDomain(mat)%hTprimez)
-        call add_tau_v (Tdomain%specel(n))
+        !call add_tau_v (Tdomain%specel(n))
         call add_previous_state2forces (Tdomain%specel(n), Dt)
         if (Tdomain%specel(n)%PML) call update_Psi_ADEPML(Tdomain%specel(n), &
             Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimez, Dt)
@@ -338,7 +341,7 @@ subroutine Semi_Implicit_Resolution_tnplus1 (Tdomain,timelocal,Dt,demi_dt)
         call compute_InternalForces_HDG  (Tdomain%specel(n), &
             Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimex, &
             Tdomain%sSubDomain(mat)%hprimez,Tdomain%sSubDomain(mat)%hTprimez)
-        call add_tau_v (Tdomain%specel(n))
+        !call add_tau_v (Tdomain%specel(n))
         call add_previous_state2forces (Tdomain%specel(n), Dt)
         if (Tdomain%specel(n)%PML) call update_Psi_ADEPML(Tdomain%specel(n), &
             Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimez, Dt)

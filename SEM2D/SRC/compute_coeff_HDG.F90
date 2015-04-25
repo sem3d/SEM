@@ -258,7 +258,7 @@ contains
             matD(n1,:,:) = matD(n1,:,:) + matD(n2,:,:)
             matD(n2,:,:) = matD(n1,:,:)
         enddo
-        matD = 0.
+        !matD = 0.
 
         ! Termes provenant de la matrice de masse :
         ! Bottom face :
@@ -298,6 +298,49 @@ contains
         Elem%EDinv(:,1,1) = Elem%Coeff_Integr_Faces(:) * (Elem%MatPen(:,2)*matD(:,0,1)+Elem%MatPen(:,1)*matD(:,1,1))
 
     end subroutine compute_EDinv
+
+    ! ###########################################################
+    !>
+    !! \brief This subroutine computes the local matrix E.J which
+    !! will be used to build the system on Lagrange multiplicators K * Lambda = R
+    !! Indeed E.J is usefull for computing both K and R.
+    !! Note that J = D^-1 . C . A^-1 and therefore, E.J = EDinv.CAinv.
+    !! Moreover, E.J will stored such as CAinv = CAinv + E;J.
+    !! This matrix is defined for each node lying on the element border.
+    !! It suitable for Hybridizable Discontinuous Galerkin elements only,
+    !! with a semi-implicit time scheme strategy.
+    !! \param type (Element), intent (INOUT) Elem
+    !<
+    subroutine compute_EJ (Elem)
+
+        type (Element), intent (INOUT)   :: Elem
+        integer :: i, ngx, ngz, nc, n1, n2
+        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1,0:2) :: CAinv_tmp
+        real, dimension(0:1,0:2) :: EJ
+
+        ngx = Elem%ngllx ; ngz = Elem%ngllz
+
+        ! Calcul de la matrice  CAinv_tmp :
+        ! Attention la matrice CAinv_tmp ne devrait pas etre dedoublee aux noeuds des coin
+        ! Ici cependant elle est dedoublee car il faudra la multiplier avec E qui, elle,
+        ! est en effet dedoublee. Du coup les 2 entres de CAinv_tmp pour un coin ont la meme valeur,
+        ! qui est la somme des contributions des deux normales au coin.
+
+        ! Termes provenant du terme tau=matpen
+        CAinv_tmp = Elem%CAinv
+        ! Couplage aux coins :
+        do nc=0,3
+            call get_gll_arround_corner(Elem,nc,n1,n2)
+            CAinv_tmp(n1,:,:) = CAinv_tmp(n1,:,:) + CAinv_tmp(n2,:,:)
+            CAinv_tmp(n2,:,:) = CAinv_tmp(n1,:,:)
+        enddo
+
+        do i=0,(2*(ngx+ngz)-1)
+            EJ(:,:) = MATMUL(Elem%EDinv(i,:,:),CAinv_tmp(i,:,:))
+            Elem%CAinv(i,:,:) = Elem%CAinv(i,:,:) + EJ(:,:)
+        enddo
+
+    end subroutine compute_EJ
 
     ! ###########################################################
     !>
@@ -349,12 +392,12 @@ contains
         G(:,1,1) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,1)
 
         ! Addition de toutes les contributions pour la matrice K : (etant sym, elle n'a que 3 composantes)
-        K(:,0) = Dt * (CtAC(:,0,0) - EtDE(:,0,0)) + G(:,0,0)
-        K(:,1) = Dt * (CtAC(:,1,1) - EtDE(:,1,1)) + G(:,1,1)
-        K(:,2) = Dt * (CtAC(:,0,1) - EtDE(:,0,1)) + G(:,0,1)
+        K(:,0) = 0.5*Dt * (CtAC(:,0,0) - EtDE(:,0,0)) + G(:,0,0)
+        K(:,1) = 0.5*Dt * (CtAC(:,1,1) - EtDE(:,1,1)) + G(:,1,1)
+        K(:,2) = 0.5*Dt * (CtAC(:,0,1) - EtDE(:,0,1)) + G(:,0,1)
 
         ! Calcul simplifie de la matrice K sur les faces :
-        K(:,0) = G(:,0,0) ; K(:,1) = G(:,1,1) ; K(:,2) = G(:,0,1)
+        !K(:,0) = G(:,0,0) ; K(:,1) = G(:,1,1) ; K(:,2) = G(:,0,1)
 
         ! Envoi des matrices sur les faces :
         do nf=0,3
