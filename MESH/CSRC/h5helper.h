@@ -1,3 +1,7 @@
+/* This file is part of SEM                                                */
+/*                                                                         */
+/* Copyright CEA, ECP, IPGP                                                */
+/*                                                                         */
 //
 
 #ifndef _H5HELPER_H_
@@ -136,10 +140,11 @@ static inline void h5h_write_dset(hid_t parent, const char* name, int d0, int* a
 #undef _MAX
 
 #endif
-// Local Variables:
-// mode: c++
-// coding: utf-8
-// c-file-style: "stroustrup"
-// show-trailing-whitespace: t
-// End:
-/* vim: set sw=4 ts=8 tw=80 smartindent */
+
+/* Local Variables:                                                        */
+/* mode: c++                                                               */
+/* show-trailing-whitespace: t                                             */
+/* coding: utf-8                                                           */
+/* c-file-style: "stroustrup"                                              */
+/* End:                                                                    */
+/* vim: set sw=4 ts=8 et tw=80 smartindent :                               */

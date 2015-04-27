@@ -1,3 +1,7 @@
+/* This file is part of SEM                                                */
+/*                                                                         */
+/* Copyright CEA, ECP, IPGP                                                */
+/*                                                                         */
 
 #include <cstdio>
 #include <cstdlib>
@@ -558,9 +562,11 @@ int main(int argc, char** argv)
 	mesh.write_proc_file(fname, k);
     }
 }
-// Local Variables:
-// mode: c++
-// c-file-style:"stroustrup"
-// show-trailing-whitespace: t
-// End:
-/* vim: set sw=4 ts=4 et tw=80 smartindent :*/
+
+/* Local Variables:                                                        */
+/* mode: c++                                                               */
+/* show-trailing-whitespace: t                                             */
+/* coding: utf-8                                                           */
+/* c-file-style: "stroustrup"                                              */
+/* End:                                                                    */
+/* vim: set sw=4 ts=8 et tw=80 smartindent :                               */

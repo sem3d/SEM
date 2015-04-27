@@ -1,3 +1,7 @@
+/* This file is part of SEM                                                */
+/*                                                                         */
+/* Copyright CEA, ECP, IPGP                                                */
+/*                                                                         */
 /*
    Interface avec getrlimit pour SEM
 */
@@ -27,8 +31,11 @@ void tremain_c(double* res)
         tremain(res);
 }
 #endif
-// Local Variables:
-// mode: c++
-// c-file-style:"stroustrup"
-// End:
-/* vim: set sw=4 ts=4 et tw=80 smartindent :*/
+
+/* Local Variables:                                                        */
+/* mode: c++                                                               */
+/* show-trailing-whitespace: t                                             */
+/* coding: utf-8                                                           */
+/* c-file-style: "stroustrup"                                              */
+/* End:                                                                    */
+/* vim: set sw=4 ts=8 et tw=80 smartindent :                               */

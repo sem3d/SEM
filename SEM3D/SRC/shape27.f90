@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !! \file shape27.f90
 !! \brief
@@ -379,13 +383,15 @@ contains
     end subroutine shape27_global2local
 
 end module mshape27
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
 !! f90-do-indent: 4
 !! f90-if-indent: 4
 !! f90-type-indent: 4
 !! f90-program-indent: 4
 !! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

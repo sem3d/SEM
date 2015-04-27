@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !! \file SourcePosition.f90
 !! \brief
@@ -58,8 +62,10 @@ subroutine SourcePosition (Tdomain)
             end if
         end do
         ! On ignore une source fluide dans le domaine solide
-        if(Tdomain%sSource(n_src)%i_type_source == 3 .and.       Tdomain%specel(i)%solid) n_el = -1
-        if(Tdomain%sSource(n_src)%i_type_source /= 3 .and. .not. Tdomain%specel(i)%solid) n_el = -1
+        if (n_el/=-1) then
+            if(Tdomain%sSource(n_src)%i_type_source == 3 .and.       Tdomain%specel(elems(i))%solid) n_el = -1
+            if(Tdomain%sSource(n_src)%i_type_source /= 3 .and. .not. Tdomain%specel(elems(i))%solid) n_el = -1
+        endif
 
         Tdomain%Ssource(n_src)%elem = n_el
         if (n_el/=-1) then
@@ -101,8 +107,16 @@ subroutine SourcePosition (Tdomain)
         endif
     enddo
 end subroutine SourcePosition
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :
+

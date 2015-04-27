@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file Newmark.f90
 !!\brief Algorithme de Newmark
@@ -330,7 +334,7 @@ subroutine Newmark_Predictor(Tdomain,champs1)
     if (Tdomain%ngll_pmls /= 0) then
         champs1%ForcesPML = 0.
         do n = 0,Tdomain%nbInterfSolPml-1
-            ! Couplage à l'interface solide / PML
+            ! Couplage Ã  l'interface solide / PML
             indsol = Tdomain%InterfSolPml(n,0)
             indpml = Tdomain%InterfSolPml(n,1)
             Tdomain%champs0%VelocPML(indpml,:) = Tdomain%champs0%Veloc(indsol,:)
@@ -365,7 +369,7 @@ subroutine Newmark_Predictor(Tdomain,champs1)
     if (Tdomain%ngll_pmlf /= 0) then
         champs1%fpml_Forces = 0.
         do n = 0,Tdomain%nbInterfFluPml-1
-            ! Couplage à l'interface fluide / PML
+            ! Couplage Ã  l'interface fluide / PML
             indflu = Tdomain%InterfFluPml(n,0)
             indpml = Tdomain%InterfFluPml(n,1)
             Tdomain%champs0%fpml_VelPhi(indpml) = Tdomain%champs0%VelPhi(indflu)
@@ -412,7 +416,7 @@ subroutine Newmark_Corrector(Tdomain,champs1)
     double precision :: dt
 
     dt = Tdomain%TimeD%dtmin
-    ! Si il existe des éléments PML solide
+    ! Si il existe des Ã©lÃ©ments PML solides
     if (Tdomain%ngll_pmls /= 0) then
         do i_dir = 0,2
             Tdomain%champs0%VelocPML(:,i_dir) = Tdomain%champs0%DumpV(:,0) * &
@@ -430,7 +434,7 @@ subroutine Newmark_Corrector(Tdomain,champs1)
         enddo
     endif
 
-    ! Si il existe des éléments PML fluide
+    ! Si il existe des Ã©lÃ©ments PML fluides
     if (Tdomain%ngll_pmlf /= 0) then
         Tdomain%champs0%fpml_VelPhi(:) = Tdomain%champs0%fpml_DumpV(:,0) * &
             Tdomain%champs0%fpml_VelPhi(:) + &
@@ -448,7 +452,7 @@ subroutine Newmark_Corrector(Tdomain,champs1)
         Tdomain%champs0%fpml_Phi = Tdomain%champs0%fpml_Phi + dt*Tdomain%champs0%fpml_VelPhi
     endif
 
-    ! Si il existe des éléments solide
+    ! Si il existe des Ã©lÃ©ments solides
     if (Tdomain%ngll_s /= 0) then
         do i_dir = 0,2
             Tdomain%champs0%Forces(:,i_dir) = champs1%Forces(:,i_dir) * Tdomain%MassMatSol(:)
@@ -457,7 +461,7 @@ subroutine Newmark_Corrector(Tdomain,champs1)
         Tdomain%champs0%Depla = Tdomain%champs0%Depla + dt * Tdomain%champs0%Veloc
     endif
 
-    ! Si il existe des éléments fluide
+    ! Si il existe des Ã©lÃ©ments fluides
     if (Tdomain%ngll_f /= 0) then
         Tdomain%champs0%ForcesFl = champs1%ForcesFl * Tdomain%MassMatFlu
         Tdomain%champs0%VelPhi = (Tdomain%champs0%VelPhi + dt * Tdomain%champs0%ForcesFl) * Tdomain%fl_dirich
@@ -583,8 +587,15 @@ subroutine external_forces(Tdomain,timer,ntime,champs1)
 
     return
 end subroutine external_forces
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

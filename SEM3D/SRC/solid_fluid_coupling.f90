@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !----------------------------------------------------------------
 !----------------------------------------------------------------
 subroutine StoF_coupling(Tdomain,ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_IGlobFlu, Veloc, BtN, ForcesFl)
@@ -164,3 +168,15 @@ subroutine Newmark_recorrect_solid(ngll_sol, SF_ngll, dt, SF_IGlobSol, MassMatSo
     enddo
 
 end subroutine Newmark_recorrect_solid
+
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent :
