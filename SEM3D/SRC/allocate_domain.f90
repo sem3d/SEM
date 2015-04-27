@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file allocate_domain.f90
 !!\brief G�re l'allocation des domaines.
@@ -757,8 +761,15 @@ end subroutine allocate_domain
 
         end subroutine allocate_comm_proc
 end module sdomain_alloc
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

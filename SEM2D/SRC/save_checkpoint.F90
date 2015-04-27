@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !> -*- coding: utf-8 -*-
 !!\file save_checkpoint.F90
 !!\brief Contient la subroutine save_checkpoint.
@@ -170,8 +174,15 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
 
     return
 end subroutine save_checkpoint
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

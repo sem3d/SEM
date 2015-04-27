@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file verify_in_quad.F90
 !!\brief Contient principalement la subroutine verify_in_quad.
@@ -83,8 +87,15 @@ subroutine two_area (x1,y1,x2,y2,x3,y3,A)
     A = x1*(y2-y3)+x2*(y3-y1)+x3*(y1-y2)
     return
 end subroutine two_area
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :
