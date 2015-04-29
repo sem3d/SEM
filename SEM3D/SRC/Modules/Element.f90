@@ -4,7 +4,7 @@
 !!
 !>
 !!\file Element.f90
-!!\brief contient les méthodes qui assure la gestion du type Element.
+!!\brief contient les mÃ©thodes qui assure la gestion du type Element.
 !!\author
 !!\version 1.0
 !!\date 10/03/2009
@@ -59,8 +59,6 @@ module selement
     type :: element_fluid_pml
         integer, dimension (:,:,:), allocatable :: IFluPml
         real, dimension(:,:,:,:), allocatable :: Veloc1,Veloc2,Veloc3,Veloc
-!        real, dimension(:,:,:), allocatable :: ForcesFl1,ForcesFl2,ForcesFl3
-!        real, dimension(:,:,:), allocatable :: VelPhi1,VelPhi2,VelPhi3
     end type element_fluid_pml
 
     type :: element

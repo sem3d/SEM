@@ -40,3 +40,24 @@ plus localises sur les elements.
 
 
 kill Tdomain%curve
+
+
+
+modules/warning
+
+compilation -Wall,
+
+suppression des warnings :
+ - unused variables
+ - initialized/unused
+
+modules :
+
+  nommage : nom module == nom fichier
+  split     modname_def  modname_alg lorsque besoin de separer structure et fct cause dep croisee
+  comm : simplifier exchange_vector (ou pas) :
+     type(exchange_vector):: Give, Take, IGive, ITake, src, dest, dim
+
+   comm_vector:
+      dimension(:) :: Data
+      dimension(:), exchange_vector :: comms

@@ -164,9 +164,7 @@ subroutine Newmark(Tdomain,ntime)
 
     !- solid -> fluid coupling (normal dot velocity)
     if(Tdomain%logicD%SF_local_present)then
-        call StoF_coupling(Tdomain, Tdomain%ngll_s, Tdomain%ngll_f, Tdomain%SF%ngll, Tdomain%SF%SF_IGlobSol, &
-            Tdomain%SF%SF_IGlobFlu, Tdomain%champs0%Veloc, &
-            Tdomain%SF%SF_BtN, Tdomain%champs1%ForcesFl)
+        call StoF_coupling(Tdomain, Tdomain%champs0%Veloc, Tdomain%SF%SF_BtN, Tdomain%champs1%ForcesFl)
     end if
 
 
@@ -175,10 +173,7 @@ subroutine Newmark(Tdomain,ntime)
 
     if(Tdomain%logicD%SF_local_present)then
         !- fluid -> solid coupling (pressure times velocity)
-        call FtoS_coupling(Tdomain, Tdomain%ngll_s, Tdomain%ngll_f, Tdomain%SF%ngll, &
-                             Tdomain%SF%SF_IGlobSol, Tdomain%SF%SF_IGlobFlu, &
-                             Tdomain%SF%SF_BtN, Tdomain%champs0%VelPhi, &
-                             Tdomain%champs0%Forces)
+        call FtoS_coupling(Tdomain, Tdomain%SF%SF_BtN, Tdomain%champs0%VelPhi, Tdomain%champs0%Forces)
     end if
     call Newmark_Corrector_Solid(Tdomain,Tdomain%champs1)
 

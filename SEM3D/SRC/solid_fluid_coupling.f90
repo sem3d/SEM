@@ -4,27 +4,30 @@
 !!
 !----------------------------------------------------------------
 !----------------------------------------------------------------
-subroutine StoF_coupling(Tdomain,ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_IGlobFlu, Veloc, BtN, ForcesFl)
+subroutine StoF_coupling(Tdomain, Veloc, BtN, ForcesFl)
     ! from solid to fluid: velocity (dot) normal
     use sdomain
     use scomm
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    integer, intent(in) :: ngll_sol, ngll_flu, SF_ngll
-    integer, intent(in), dimension(0:SF_ngll-1) :: SF_IGlobSol, SF_IGlobFlu
-    real, intent(in), dimension(0:ngll_sol-1,0:2) :: Veloc
-    real, intent(in), dimension(0:SF_ngll-1,0:2) :: BtN
-    real, intent(inout), dimension(0:ngll_flu-1) :: ForcesFl
+    integer:: ngll_sf
+    real, intent(in), dimension(0:Tdomain%ngll_s-1,0:2) :: Veloc
+    real, intent(in), dimension(0:Tdomain%SF%ngll-1,0:2) :: BtN
+    real, intent(inout), dimension(0:Tdomain%ngll_f-1) :: ForcesFl
     integer  :: i,j,k,n,idx
-    real, dimension(0:SF_ngll-1) :: vn
+    real, dimension(0:Tdomain%SF%ngll-1) :: vn
+
+    ngll_sf = Tdomain%SF%ngll
 
     vn(:) = 0d0
-    do i = 0,SF_ngll-1
-        if (SF_IGlobSol(i) < 0) cycle ! solid face not on this proc
-        do j = 0,2
-            vn(i) = vn(i) + (BtN(i,j) * Veloc(SF_IGlobSol(i),j))
-        enddo
+    do i = 0,ngll_sf-1
+        idx = Tdomain%sf%SF_IGlobSol(i)
+        if (idx >= 0) then
+            do j = 0,2
+                vn(i) = vn(i) + (BtN(i,j) * Veloc(idx,j))
+            enddo
+        end if
     enddo
 
     if (Tdomain%Comm_SolFlu%ncomm > 0)then
@@ -53,35 +56,37 @@ subroutine StoF_coupling(Tdomain,ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_IG
         enddo
     endif
 
-    do i = 0,SF_ngll-1
-        if (SF_IGlobFlu(i) < 0) cycle ! fluid face not on this proc
-        ForcesFl(SF_IGlobFlu(i)) = ForcesFl(SF_IGlobFlu(i)) + vn(i)
+    do i = 0,ngll_sf-1
+        idx = TDomain%SF%SF_IGlobFlu(i)
+        if (idx >= 0) then
+            ForcesFl(idx) = ForcesFl(idx) + vn(i)
+        end if
     enddo
 
 end subroutine StoF_coupling
 !----------------------------------------------------------------
 !----------------------------------------------------------------
-subroutine FtoS_coupling(Tdomain,ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_IGlobFlu, BtN, &
-    VelPhi, Forces)
+subroutine FtoS_coupling(Tdomain, BtN, VelPhi, Forces)
     ! from fluid to solid: normal times pressure (= -rho . VelPhi)
     use sdomain
     use scomm
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    integer, intent(in) :: ngll_sol, ngll_flu, SF_ngll
-    integer, intent(in), dimension(0:SF_ngll-1) :: SF_IGlobSol, SF_IGlobFlu
-    real, intent(in), dimension(0:SF_ngll-1,0:2) :: BtN
-    real, intent(in), dimension(0:ngll_flu-1) :: VelPhi
-    real, intent(inout), dimension(0:ngll_sol-1,0:2) :: Forces
-
+    real, intent(in), dimension(0:Tdomain%SF%ngll-1,0:2) :: BtN
+    real, intent(in), dimension(0:Tdomain%ngll_f-1) :: VelPhi
+    real, intent(inout), dimension(0:Tdomain%ngll_f-1,0:2) :: Forces
+    !
+    integer :: ngll_sf
     integer  :: i,j,k,n,idx
-    real, dimension(0:SF_ngll-1) :: pn
+    real, dimension(0:Tdomain%SF%ngll-1) :: pn
 
+    ngll_sf = Tdomain%SF%ngll
     pn(:) = 0d0
-    do i = 0,SF_ngll-1
+    do i = 0,ngll_sf-1
+        idx = Tdomain%SF%SF_IGlobFlu(i)
         do j = 0,2
-            pn(i) = pn(i) + (BtN(i,j) * VelPhi(SF_IGlobFlu(i)))
+            pn(i) = pn(i) + (BtN(i,j) * VelPhi(idx))
         enddo
     enddo
 
@@ -111,9 +116,10 @@ subroutine FtoS_coupling(Tdomain,ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_IG
         enddo
     endif
 
-    do j = 0,2
-        do i = 0,SF_ngll-1
-            Forces(SF_IGlobSol(i),j) = Forces(SF_IGlobSol(i),j) + pn(i)
+    do i = 0,ngll_sf-1
+        idx = Tdomain%SF%SF_IGlobSol(i)
+        do j = 0,2
+            Forces(idx,j) = Forces(idx,j) + pn(i)
         enddo
     enddo
 
