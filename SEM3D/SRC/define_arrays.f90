@@ -88,37 +88,6 @@ subroutine init_solid_fluid_interface(Tdomain)
     if(Tdomain%logicD%SF_local_present)then
         !  Btn: the complete normal term, ponderated by GLL weights
         call define_Face_SF(Tdomain)
-        ! density (which links VelPhi and pressure)
-        do nf = 0,Tdomain%SF%SF_n_faces-1
-            nnf = Tdomain%SF%SF_Face(nf)%Face(0)
-            if(nnf < 0) cycle
-            n = Tdomain%sFace(nnf)%which_elem
-            dir = Tdomain%sFace(nnf)%dir
-            ngll1 = Tdomain%SF%SF_Face(nf)%ngll1
-            ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
-            ngllx = Tdomain%specel(n)%ngllx
-            nglly = Tdomain%specel(n)%nglly
-            ngllz = Tdomain%specel(n)%ngllz
-            if(dir == 0)then
-                Tdomain%SF%SF_Face(nf)%density(0:ngll1-1,0:ngll2-1) =    &
-                    Tdomain%specel(n)%density(0:ngllx-1,0:nglly-1,0)
-            else if(dir == 1)then
-                Tdomain%SF%SF_Face(nf)%density(0:ngll1-1,0:ngll2-1) =    &
-                    Tdomain%specel(n)%density(0:ngllx-1,0,0:ngllz-1)
-            else if(dir == 2)then
-                Tdomain%SF%SF_Face(nf)%density(0:ngll1-1,0:ngll2-1) =    &
-                    Tdomain%specel(n)%density(ngllx-1,0:nglly-1,0:ngllz-1)
-            else if(dir == 3)then
-                Tdomain%SF%SF_Face(nf)%density(0:ngll1-1,0:ngll2-1) =    &
-                    Tdomain%specel(n)%density(0:ngllx-1,nglly-1,0:ngllz-1)
-            else if(dir == 4)then
-                Tdomain%SF%SF_Face(nf)%density(0:ngll1-1,0:ngll2-1) =    &
-                    Tdomain%specel(n)%density(0,0:nglly-1,0:ngllz-1)
-            else if(dir == 5)then
-                Tdomain%SF%SF_Face(nf)%density(0:ngll1-1,0:ngll2-1) =    &
-                    Tdomain%specel(n)%density(0:ngllx-1,0:nglly-1,ngllz-1)
-            end if
-        end do
     endif
 end subroutine init_solid_fluid_interface
 
@@ -130,7 +99,7 @@ subroutine assemble_mass_matrices(Tdomain)
     integer :: i,j,k,nf,ne,nv,idx
     real :: Mass
 
-    ! Couplage à l'interface solide / PML
+    ! Couplage Ã  l'interface solide / PML
     do n = 0,Tdomain%nbInterfSolPml-1
         indsol = Tdomain%InterfSolPml(n,0)
         indpml = Tdomain%InterfSolPml(n,1)
@@ -141,7 +110,7 @@ subroutine assemble_mass_matrices(Tdomain)
         Tdomain%MassMatSolPml(indpml+2) = Mass
     enddo
 
-    ! Couplage à l'interface fluid / PML
+    ! Couplage Ã  l'interface fluid / PML
     do n = 0,Tdomain%nbInterfFluPml-1
         indsol = Tdomain%InterfFluPml(n,0)
         indpml = Tdomain%InterfFluPml(n,1)

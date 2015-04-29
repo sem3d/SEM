@@ -30,10 +30,6 @@ module schamps
         real, dimension(:), allocatable   :: fpml_VelPhi
         real, dimension(:,:), allocatable :: fpml_DumpV
 
-        !! Couplage solide / fluide
-        real, dimension(:,:), allocatable :: Save_forces
-        real, dimension(:,:), allocatable :: Save_depla
-
     end type champs
 
 end module schamps

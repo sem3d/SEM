@@ -318,40 +318,8 @@ subroutine allocate_domain (Tdomain)
             ngll1 = Tdomain%SF%SF_Face(nf)%ngll1
             ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
             allocate(Tdomain%SF%SF_Face(nf)%BtN(0:ngll1-1,0:ngll2-1,0:2))
-            allocate(Tdomain%SF%SF_Face(nf)%density(0:ngll1-1,0:ngll2-1))
             Tdomain%SF%SF_Face(nf)%BtN = 0d0
-            Tdomain%SF%SF_Face(nf)%density = 0d0
-            allocate(Tdomain%SF%SF_Face(nf)%pn(0:ngll1-1,0:ngll2-1,0:2))
-            allocate(Tdomain%SF%SF_Face(nf)%vn(0:ngll1-1,0:ngll2-1))
-            allocate(Tdomain%SF%SF_Face(nf)%save_forces(1:ngll1-2,1:ngll2-2,0:2))
-            Tdomain%SF%SF_Face(nf)%pn = 0d0
-            Tdomain%SF%SF_Face(nf)%Vn = 0d0
-            Tdomain%SF%SF_Face(nf)%save_forces = 0d0
-            if(Tdomain%SF%SF_Face(nf)%PML)then
-                allocate(Tdomain%SF%SF_Face(nf)%pn1(0:ngll1-1,0:ngll2-1,0:2))
-                allocate(Tdomain%SF%SF_Face(nf)%pn2(0:ngll1-1,0:ngll2-1,0:2))
-                allocate(Tdomain%SF%SF_Face(nf)%pn3(0:ngll1-1,0:ngll2-1,0:2))
-                allocate(Tdomain%SF%SF_Face(nf)%vn1(0:ngll1-1,0:ngll2-1))
-                allocate(Tdomain%SF%SF_Face(nf)%vn2(0:ngll1-1,0:ngll2-1))
-                allocate(Tdomain%SF%SF_Face(nf)%vn3(0:ngll1-1,0:ngll2-1))
-                allocate(Tdomain%SF%SF_Face(nf)%save_veloc1(1:ngll1-2,1:ngll2-2,0:2))
-                allocate(Tdomain%SF%SF_Face(nf)%save_veloc2(1:ngll1-2,1:ngll2-2,0:2))
-                allocate(Tdomain%SF%SF_Face(nf)%save_veloc3(1:ngll1-2,1:ngll2-2,0:2))
-                Tdomain%SF%SF_Face(nf)%pn1 = 0d0
-                Tdomain%SF%SF_Face(nf)%pn2 = 0d0
-                Tdomain%SF%SF_Face(nf)%pn3 = 0d0
-                Tdomain%SF%SF_Face(nf)%Vn1 = 0d0
-                Tdomain%SF%SF_Face(nf)%Vn2 = 0d0
-                Tdomain%SF%SF_Face(nf)%Vn3 = 0d0
-                Tdomain%SF%SF_Face(nf)%save_veloc1 = 0d0
-                Tdomain%SF%SF_Face(nf)%save_veloc2 = 0d0
-                Tdomain%SF%SF_Face(nf)%save_veloc3 = 0d0
-            else
-                allocate(Tdomain%SF%SF_Face(nf)%save_displ(1:ngll1-2,1:ngll2-2,0:2))
-                Tdomain%SF%SF_Face(nf)%save_displ = 0d0
-            end if
         end do
-        
 
         do ne = 0,Tdomain%SF%SF_n_edges-1
             ngll = Tdomain%SF%SF_Edge(ne)%ngll
@@ -519,12 +487,6 @@ subroutine allocate_domain (Tdomain)
                 enddo
             enddo
         enddo
-    endif
-
-    ! Allocation et initialisation des champs pour le couplage solide / fluide
-    if (Tdomain%logicD%SF_local_present)then
-        allocate(Tdomain%champs0%Save_forces(0:Tdomain%SF%ngll-1,0:2))
-        allocate(Tdomain%champs0%Save_depla(0:Tdomain%SF%ngll-1,0:2))
     endif
 
     return

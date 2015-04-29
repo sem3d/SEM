@@ -164,10 +164,6 @@ subroutine Newmark(Tdomain,ntime)
 
     !- solid -> fluid coupling (normal dot velocity)
     if(Tdomain%logicD%SF_local_present)then
-        call SF_solid_values_saving(Tdomain%ngll_s, Tdomain%SF%ngll, Tdomain%SF%SF_IGlobSol, &
-                                      Tdomain%champs1%Forces, Tdomain%champs1%Depla, &
-                                      Tdomain%champs0%Save_forces, &
-                                      Tdomain%champs0%Save_depla)
         call StoF_coupling(Tdomain, Tdomain%ngll_s, Tdomain%ngll_f, Tdomain%SF%ngll, Tdomain%SF%SF_IGlobSol, &
             Tdomain%SF%SF_IGlobFlu, Tdomain%champs0%Veloc, &
             Tdomain%SF%SF_BtN, Tdomain%champs1%ForcesFl)
@@ -175,21 +171,16 @@ subroutine Newmark(Tdomain,ntime)
 
 
     !- correction phase
-    call Newmark_Corrector(Tdomain,Tdomain%champs1)
+    call Newmark_Corrector_Fluid(Tdomain,Tdomain%champs1)
 
     if(Tdomain%logicD%SF_local_present)then
         !- fluid -> solid coupling (pressure times velocity)
         call FtoS_coupling(Tdomain, Tdomain%ngll_s, Tdomain%ngll_f, Tdomain%SF%ngll, &
                              Tdomain%SF%SF_IGlobSol, Tdomain%SF%SF_IGlobFlu, &
-                             Tdomain%SF%SF_BtN, Tdomain%champs0%Save_forces, &
-                             Tdomain%champs0%Save_depla, Tdomain%champs0%VelPhi, &
-                             Tdomain%champs0%Forces, Tdomain%champs0%Depla)
-        !- recorrecting on solid faces
-        call Newmark_recorrect_solid(Tdomain%ngll_s, Tdomain%SF%ngll, Tdomain%TimeD%dtmin, &
-                                       Tdomain%SF%SF_IGlobSol, Tdomain%MassMatSol, &
-                                       Tdomain%champs0%Forces, Tdomain%champs0%Veloc, &
-                                       Tdomain%champs0%Depla)
+                             Tdomain%SF%SF_BtN, Tdomain%champs0%VelPhi, &
+                             Tdomain%champs0%Forces)
     end if
+    call Newmark_Corrector_Solid(Tdomain,Tdomain%champs1)
 
     if (Tdomain%rank==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
 
@@ -405,7 +396,46 @@ subroutine Newmark_Predictor(Tdomain,champs1)
 end subroutine Newmark_Predictor
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
-subroutine Newmark_Corrector(Tdomain,champs1)
+subroutine Newmark_Corrector_Fluid(Tdomain,champs1)
+    use sdomain
+    use schamps
+    implicit none
+
+    type(domain), intent(inout)   :: Tdomain
+    type(champs), intent(in)   :: champs1
+    integer  :: n, i_dir, indpml
+    double precision :: dt
+
+    dt = Tdomain%TimeD%dtmin
+    ! Si il existe des éléments PML fluides
+    if (Tdomain%ngll_pmlf /= 0) then
+        Tdomain%champs0%fpml_VelPhi(:) = Tdomain%champs0%fpml_DumpV(:,0) * &
+            Tdomain%champs0%fpml_VelPhi(:) + &
+            dt * &
+            Tdomain%champs0%fpml_DumpV(:,1) * &
+            champs1%fpml_Forces(:)*Tdomain%fpml_dirich
+        do n = 0, Tdomain%nbOuterFPMLNodes-1
+            indpml = Tdomain%OuterFPMLNodes(n)
+            Tdomain%champs0%fpml_VelPhi(indpml) = 0.
+            Tdomain%champs0%fpml_VelPhi(indpml+1) = 0.
+            Tdomain%champs0%fpml_VelPhi(indpml+2) = 0.
+        enddo
+
+
+        Tdomain%champs0%fpml_Phi = Tdomain%champs0%fpml_Phi + dt*Tdomain%champs0%fpml_VelPhi
+    endif
+    ! Si il existe des éléments fluides
+    if (Tdomain%ngll_f /= 0) then
+        Tdomain%champs0%ForcesFl = champs1%ForcesFl * Tdomain%MassMatFlu
+        Tdomain%champs0%VelPhi = (Tdomain%champs0%VelPhi + dt * Tdomain%champs0%ForcesFl) * Tdomain%fl_dirich
+        Tdomain%champs0%Phi = Tdomain%champs0%Phi + dt * Tdomain%champs0%VelPhi
+    endif
+
+    return
+end subroutine Newmark_Corrector_Fluid
+!-----------------------------------------------------------------------------
+!-----------------------------------------------------------------------------
+subroutine Newmark_Corrector_Solid(Tdomain,champs1)
     use sdomain
     use schamps
     implicit none
@@ -434,24 +464,6 @@ subroutine Newmark_Corrector(Tdomain,champs1)
         enddo
     endif
 
-    ! Si il existe des éléments PML fluides
-    if (Tdomain%ngll_pmlf /= 0) then
-        Tdomain%champs0%fpml_VelPhi(:) = Tdomain%champs0%fpml_DumpV(:,0) * &
-            Tdomain%champs0%fpml_VelPhi(:) + &
-            dt * &
-            Tdomain%champs0%fpml_DumpV(:,1) * &
-            champs1%fpml_Forces(:)*Tdomain%fpml_dirich
-        do n = 0, Tdomain%nbOuterFPMLNodes-1
-            indpml = Tdomain%OuterFPMLNodes(n)
-            Tdomain%champs0%fpml_VelPhi(indpml) = 0.
-            Tdomain%champs0%fpml_VelPhi(indpml+1) = 0.
-            Tdomain%champs0%fpml_VelPhi(indpml+2) = 0.
-        enddo
-
-
-        Tdomain%champs0%fpml_Phi = Tdomain%champs0%fpml_Phi + dt*Tdomain%champs0%fpml_VelPhi
-    endif
-
     ! Si il existe des éléments solides
     if (Tdomain%ngll_s /= 0) then
         do i_dir = 0,2
@@ -460,16 +472,8 @@ subroutine Newmark_Corrector(Tdomain,champs1)
         Tdomain%champs0%Veloc = Tdomain%champs0%Veloc + dt * Tdomain%champs0%Forces
         Tdomain%champs0%Depla = Tdomain%champs0%Depla + dt * Tdomain%champs0%Veloc
     endif
-
-    ! Si il existe des éléments fluides
-    if (Tdomain%ngll_f /= 0) then
-        Tdomain%champs0%ForcesFl = champs1%ForcesFl * Tdomain%MassMatFlu
-        Tdomain%champs0%VelPhi = (Tdomain%champs0%VelPhi + dt * Tdomain%champs0%ForcesFl) * Tdomain%fl_dirich
-        Tdomain%champs0%Phi = Tdomain%champs0%Phi + dt * Tdomain%champs0%VelPhi
-    endif
-
     return
-end subroutine Newmark_Corrector
+end subroutine Newmark_Corrector_Solid
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
 subroutine internal_forces(Tdomain,champs1)

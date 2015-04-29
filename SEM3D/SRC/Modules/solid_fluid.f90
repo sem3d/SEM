@@ -19,9 +19,7 @@ module solid_fluid
        integer                 :: Orient_Face
        integer                 :: ngll1,ngll2,dir
        logical                 :: PML
-       real, allocatable, dimension(:,:,:) :: normal,BtN,pn,save_forces,save_displ,    &
-                                              pn1,pn2,pn3,save_veloc1,save_veloc2,save_veloc3
-       real, allocatable, dimension(:,:) :: vn, density,vn1,vn2,vn3
+       real, allocatable, dimension(:,:,:) :: normal, BtN
        ! Assigns a unique (assembled, shared with edge, vertices) index to solid-fluid glls
        integer, allocatable, dimension(:,:) :: I_sf
        integer, allocatable, dimension(:,:,:) :: IG

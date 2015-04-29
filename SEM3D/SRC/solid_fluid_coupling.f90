@@ -61,7 +61,8 @@ subroutine StoF_coupling(Tdomain,ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_IG
 end subroutine StoF_coupling
 !----------------------------------------------------------------
 !----------------------------------------------------------------
-subroutine FtoS_coupling(Tdomain,ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_IGlobFlu, BtN, Save_forces, Save_depla, VelPhi, Forces, Depla)
+subroutine FtoS_coupling(Tdomain,ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_IGlobFlu, BtN, &
+    VelPhi, Forces)
     ! from fluid to solid: normal times pressure (= -rho . VelPhi)
     use sdomain
     use scomm
@@ -70,9 +71,9 @@ subroutine FtoS_coupling(Tdomain,ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_IG
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: ngll_sol, ngll_flu, SF_ngll
     integer, intent(in), dimension(0:SF_ngll-1) :: SF_IGlobSol, SF_IGlobFlu
-    real, intent(in), dimension(0:SF_ngll-1,0:2) :: Save_forces, Save_depla, BtN
+    real, intent(in), dimension(0:SF_ngll-1,0:2) :: BtN
     real, intent(in), dimension(0:ngll_flu-1) :: VelPhi
-    real, intent(inout), dimension(0:ngll_sol-1,0:2) :: Forces, Depla
+    real, intent(inout), dimension(0:ngll_sol-1,0:2) :: Forces
 
     integer  :: i,j,k,n,idx
     real, dimension(0:SF_ngll-1) :: pn
@@ -112,62 +113,13 @@ subroutine FtoS_coupling(Tdomain,ngll_sol, ngll_flu, SF_ngll, SF_IGlobSol, SF_IG
 
     do j = 0,2
         do i = 0,SF_ngll-1
-            Forces(SF_IGlobSol(i),j) = Save_forces(i,j) + pn(i)
-            Depla(SF_IGlobSol(i),j) = Save_depla(i,j)
+            Forces(SF_IGlobSol(i),j) = Forces(SF_IGlobSol(i),j) + pn(i)
         enddo
     enddo
 
 end subroutine FtoS_coupling
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
-subroutine SF_solid_values_saving(ngll_sol, SF_ngll, SF_IGlobSol, Forces, Depla, Save_forces, Save_depla)
-    ! saves values of fields Forces, Displ on the solid side of a SF object -
-    !    for they are flushed in the 1st correction phase
-    implicit none
-
-    integer, intent(in) :: ngll_sol, SF_ngll
-    integer, dimension(0:SF_ngll-1), intent(in) :: SF_IGlobSol
-    real, dimension(0:ngll_sol-1,0:2), intent(in) :: Forces, Depla
-    real, dimension(0:SF_ngll-1,0:2), intent(inout) :: Save_forces, Save_depla
-    integer  :: i,idx
-    
-    do i = 0, SF_ngll-1
-        idx = SF_IGlobSol(i)
-        if (idx /= -1) then
-            Save_forces(i,:) = Forces(SF_IGlobSol(i),:)
-            Save_depla(i,:) = Depla(SF_IGlobSol(i),:)
-        else
-            Save_forces(i,:) = 0.
-            Save_depla(i,:) = 0.
-        endif
-    enddo
-
-    return
-end subroutine SF_solid_values_saving
-!-----------------------------------------------------------------------------
-!-----------------------------------------------------------------------------
-!-----------------------------------------------------------------------------
-!-----------------------------------------------------------------------------
-subroutine Newmark_recorrect_solid(ngll_sol, SF_ngll, dt, SF_IGlobSol, MassMatSol, Forces, Veloc, Depla)
-    implicit none
-
-    integer, intent(in) :: ngll_sol, SF_ngll
-    real, intent(in) :: dt
-    integer, intent(in), dimension(0:SF_ngll-1) :: SF_IGlobSol
-    real, intent(in), dimension(0:ngll_sol-1) :: MassMatSol
-    real, intent(inout), dimension(0:ngll_sol-1,0:2) :: Forces, Veloc, Depla
-    integer  :: i,j,n
-    
-    do j = 0,2
-        do n = 0,SF_ngll-1
-            i = SF_IGlobSol(n)
-            Forces(i,j) = Forces(i,j) * MassMatSol(i)
-            Veloc(i,j) = Veloc(i,j) + dt * Forces(i,j)
-            Depla(i,j) = Depla(i,j) + dt * Veloc(i,j)
-        enddo
-    enddo
-
-end subroutine Newmark_recorrect_solid
 
 !! Local Variables:
 !! mode: f90
