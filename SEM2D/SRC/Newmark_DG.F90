@@ -245,7 +245,7 @@ subroutine Semi_Implicit_Resolution (Tdomain,timelocal,Dt,demi_dt)
     do n=0,Tdomain%n_elem-1
         ! Communication Lambda from faces to elements
         call get_Vhat_f2el(Tdomain,n)
-        !if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,n)
+        if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,n)
         ! Local Solver
         call local_solver(Tdomain%specel(n),Dt)
     enddo
@@ -341,7 +341,7 @@ subroutine Semi_Implicit_Resolution_tnplus1 (Tdomain,timelocal,Dt,demi_dt)
         call compute_InternalForces_HDG  (Tdomain%specel(n), &
             Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimex, &
             Tdomain%sSubDomain(mat)%hprimez,Tdomain%sSubDomain(mat)%hTprimez)
-        !call add_tau_v (Tdomain%specel(n))
+        call add_tau_v0 (Tdomain%specel(n))
         call add_previous_state2forces (Tdomain%specel(n), Dt)
         if (Tdomain%specel(n)%PML) call update_Psi_ADEPML(Tdomain%specel(n), &
             Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimez, Dt)
@@ -381,7 +381,7 @@ subroutine Semi_Implicit_Resolution_tnplus1 (Tdomain,timelocal,Dt,demi_dt)
         ! Communication Lambda from faces to elements
         call get_Vhat_f2el(Tdomain,n)
         Tdomain%specel(n)%Vhat = 0.5 * Tdomain%specel(n)%Vhat
-        !if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,n)
+        if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,n)
         ! Local Solver
         call local_solver(Tdomain%specel(n),Dt)
     enddo

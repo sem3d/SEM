@@ -1236,6 +1236,54 @@ contains
 
     end subroutine add_tau_v
 
+        ! ###########################################################
+    !>
+    !! \brief This subroutine adds to the second member (i.e the forces) of the
+    !!  system we solve, the terms comming from Int(tau*v*w dS)
+    !! \param type (Element), intent (INOUT) Elem
+    !!
+    !<
+    subroutine  add_tau_v0 (Elem)
+        implicit none
+
+        type (Element), intent (INOUT) :: Elem
+        integer                        :: ngx, ngz, imin, imax
+        ngx = Elem%ngllx ; ngz = Elem%ngllz
+
+        call get_iminimax(Elem,0,imin,imax)
+        Elem%Forces(0:ngx-1,0,3) = Elem%Forces(0:ngx-1,0,3) - 0.5*Elem%Coeff_Integr_Faces(imin:imax) * &
+                                 ( Elem%MatPen(imin:imax,0) * Elem%V0(0:ngx-1,0,0) &
+                                 + Elem%MatPen(imin:imax,2) * Elem%V0(0:ngx-1,0,1))
+        Elem%Forces(0:ngx-1,0,4) = Elem%Forces(0:ngx-1,0,4) - 0.5*Elem%Coeff_Integr_Faces(imin:imax) * &
+                                 ( Elem%MatPen(imin:imax,2) * Elem%V0(0:ngx-1,0,0) &
+                                 + Elem%MatPen(imin:imax,1) * Elem%V0(0:ngx-1,0,1))
+
+        call get_iminimax(Elem,1,imin,imax)
+        Elem%Forces(ngx-1,0:ngz-1,3) = Elem%Forces(ngx-1,0:ngz-1,3) - 0.5*Elem%Coeff_Integr_Faces(imin:imax) * &
+                                 ( Elem%MatPen(imin:imax,0) * Elem%V0(ngx-1,0:ngz-1,0) &
+                                 + Elem%MatPen(imin:imax,2) * Elem%V0(ngx-1,0:ngz-1,1))
+        Elem%Forces(ngx-1,0:ngz-1,4) = Elem%Forces(ngx-1,0:ngz-1,4) - 0.5*Elem%Coeff_Integr_Faces(imin:imax) * &
+                                 ( Elem%MatPen(imin:imax,2) * Elem%V0(ngx-1,0:ngz-1,0) &
+                                 + Elem%MatPen(imin:imax,1) * Elem%V0(ngx-1,0:ngz-1,1))
+
+        call get_iminimax(Elem,2,imin,imax)
+        Elem%Forces(0:ngx-1,ngz-1,3) = Elem%Forces(0:ngx-1,ngz-1,3) - 0.5*Elem%Coeff_Integr_Faces(imin:imax) * &
+                                 ( Elem%MatPen(imin:imax,0) * Elem%V0(0:ngx-1,ngz-1,0) &
+                                 + Elem%MatPen(imin:imax,2) * Elem%V0(0:ngx-1,ngz-1,1))
+        Elem%Forces(0:ngx-1,ngz-1,4) = Elem%Forces(0:ngx-1,ngz-1,4) - 0.5*Elem%Coeff_Integr_Faces(imin:imax) * &
+                                 ( Elem%MatPen(imin:imax,2) * Elem%V0(0:ngx-1,ngz-1,0) &
+                                 + Elem%MatPen(imin:imax,1) * Elem%V0(0:ngx-1,ngz-1,1))
+
+        call get_iminimax(Elem,3,imin,imax)
+        Elem%Forces(0,0:ngz-1,3) = Elem%Forces(0,0:ngz-1,3) - 0.5*Elem%Coeff_Integr_Faces(imin:imax) * &
+                                 ( Elem%MatPen(imin:imax,0) * Elem%V0(0,0:ngz-1,0) &
+                                 + Elem%MatPen(imin:imax,2) * Elem%V0(0,0:ngz-1,1))
+        Elem%Forces(0,0:ngz-1,4) = Elem%Forces(0,0:ngz-1,4) - 0.5*Elem%Coeff_Integr_Faces(imin:imax) * &
+                                 ( Elem%MatPen(imin:imax,2) * Elem%V0(0,0:ngz-1,0) &
+                                 + Elem%MatPen(imin:imax,1) * Elem%V0(0,0:ngz-1,1))
+
+    end subroutine add_tau_v0
+
 
     ! ###########################################################
     !>
