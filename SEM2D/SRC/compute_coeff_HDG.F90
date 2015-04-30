@@ -337,7 +337,7 @@ contains
 
         do i=0,(2*(ngx+ngz)-1)
             EJ(:,:) = MATMUL(Elem%EDinv(i,:,:),CAinv_tmp(i,:,:))
-            Elem%CAinv(i,:,:) = Elem%CAinv(i,:,:) + EJ(:,:)
+            Elem%CAinv(i,:,:) = Elem%CAinv(i,:,:) - EJ(:,:)
         enddo
 
     end subroutine compute_EJ
