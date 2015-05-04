@@ -369,7 +369,7 @@ subroutine allocate_domain (Tdomain)
          !deallocate(Tdomain%sFace(n)%InvMatPen)
      enddo
   else if (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT .OR. &
-           Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC ) then
+           Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT_ITER ) then
      do n = 0, Tdomain%n_elem-1
         ngllx = Tdomain%specel(n)%ngllx
         ngllz = Tdomain%specel(n)%ngllz

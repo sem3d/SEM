@@ -102,9 +102,9 @@ int expect_type_integration(yyscan_t scanner, int* type)
     if (cmp(scanner,"Newmark"))         { *type = 0; return 1; }
     if (cmp(scanner,"RK4"))             { *type = 1; return 1; }
     if (cmp(scanner,"Midpoint"))        { *type = 2; return 1; }
-    if (cmp(scanner,"Newmark_PMC"))     { *type = 3; return 1; }
+    if (cmp(scanner,"Midpoint_iter"))   { *type = 3; return 1; }
 error:
-    msg_err(scanner, "Expected Newmark|RK4|Midpoint|Newmark_PMC");
+    msg_err(scanner, "Expected Newmark|RK4|Midpoint|Midpoint_iter");
     return 0;
 }
 

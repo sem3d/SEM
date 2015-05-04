@@ -22,7 +22,7 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/Capteur.F90
     ${PRJ}/SRC/Couplage.F90
     ${PRJ}/SRC/Newmark.F90
-    ${PRJ}/SRC/Newmark_DG.F90
+    ${PRJ}/SRC/Midpoint.F90
     ${PRJ}/SRC/PML_def.F90
     ${PRJ}/SRC/allocate_domain.F90
     ${PRJ}/SRC/Assemblage.F90

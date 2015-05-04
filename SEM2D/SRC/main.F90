@@ -43,7 +43,7 @@ subroutine  sem()
 #ifdef COUPLAGE
     use scouplage
 #endif
-    use snewmark_pmc
+    use smidpoint
     use srungekutta
 
     implicit none
@@ -202,7 +202,7 @@ subroutine  sem()
     ! Nombre d'iterations pour schemas en temps iteratifs
     if (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT) then
         n_it_max = 0
-    elseif (Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC) then
+    elseif (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT_ITER) then
         n_it_max = 2
     endif
 
@@ -290,7 +290,7 @@ subroutine  sem()
         else if (Tdomain%type_timeInteg==TIME_INTEG_RK4) then
             call Runge_Kutta4(Tdomain, Tdomain%TimeD%dtmin)
         else if (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT .OR. &
-                 Tdomain%type_timeInteg==TIME_INTEG_NEWMARK_PMC) then
+                 Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT_ITER) then
             if (Tdomain%Implicitness==TIME_INTEG_EXPLICIT) then
                 call Midpoint_impl_expl(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
             elseif (Tdomain%Implicitness==TIME_INTEG_SEMI_IMPLICIT) then

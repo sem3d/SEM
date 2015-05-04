@@ -1,13 +1,15 @@
 !>
 !!\file Newmark.F90
-!!\brief Algorithme de Newmark en cas de presence d'elements Galerkin Discontinu.
+!!\brief Algorithmes de type midpoint avec une approche Galerkin Discontinu (HDG).
 !!\version 1.0
 !!\date 10/03/2009
-!! La routine Newmark assure la résolution des équations via un algorithme de predicteur-multi-correcteur
-!! des vitesses avec une formulation contrainte-vitesse décalée en temps dans les PML.
+!! La routine Midpoint assure l'intégration en temps via un des algorithmes Midpoint
+!! qui peuvent etre iteratifs, ou en une seule passe. Les contraintes aux surfaces peuvent
+!! etre prises en compte de facon implicites ou explicites, ce qui donne les differents
+!! algorithmes et routines ci-dessous.
 !<
 
-module snewmark_pmc
+module smidpoint
     use sdomain
     use scouplage
     use constants
@@ -388,7 +390,7 @@ subroutine Semi_Implicit_Resolution_tnplus1 (Tdomain,timelocal,Dt)
 end subroutine Semi_Implicit_Resolution_tnplus1
 
 
-end module snewmark_pmc
+end module smidpoint
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

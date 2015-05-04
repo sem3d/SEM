@@ -22,17 +22,17 @@ subroutine check_inputs_and_mesh(Tdomain)
     endif
 
     if((Tdomain%Implicitness .EQ. TIME_INTEG_IMPLICIT) .AND. .NOT. &
-      ((Tdomain%type_timeInteg .NE. TIME_INTEG_NEWMARK_PMC) .OR. &
+      ((Tdomain%type_timeInteg .NE. TIME_INTEG_MIDPOINT_ITER) .OR. &
        (Tdomain%type_timeInteg .NE. TIME_INTEG_MIDPOINT)))  then
-        STOP "ERROR : Semi-Implicit methods are implemented only for midpoint or Newmark_PMC time integration."
+        STOP "ERROR : Semi-Implicit methods are implemented only for midpoint time integration."
     endif
 
     if ((Tdomain%type_timeInteg .NE. TIME_INTEG_NEWMARK)     .AND. &
         (Tdomain%type_timeInteg .NE. TIME_INTEG_RK4)         .AND. &
         (Tdomain%type_timeInteg .NE. TIME_INTEG_MIDPOINT) .AND. &
-        (Tdomain%type_timeInteg .NE. TIME_INTEG_NEWMARK_PMC)) then
+        (Tdomain%type_timeInteg .NE. TIME_INTEG_MIDPOINT_ITER)) then
         WRITE (*,*) "This choice for time integration does not exist !!!!!"
-        STOP "Please choose RK4, Newmark, Newmark_PMC, or Newmark_PMC_expl"
+        STOP "Please choose RK4, Newmark, Midpoint, or Midpoint_iter"
     endif
 
     if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_NEWMARK) .AND. &
@@ -40,16 +40,16 @@ subroutine check_inputs_and_mesh(Tdomain)
         STOP "Error : For Newmark, only continuous Galerkin is available"
     endif
 
-    if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_NEWMARK_PMC) .AND. &
+    if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_MIDPOINT_ITER) .AND. &
         (Tdomain%type_elem .NE. GALERKIN_HDG_RP)) then
-        WRITE (*,*) "This choice of element for Newmark Predictor Multi Corrector is not available"
-        STOP "Error : Please choose dg_type = hdg_rp if you want to use Newmark_PMC"
+        WRITE (*,*) "This choice of element for iterative Midpoint is not available"
+        STOP "Error : Please choose dg_type = hdg_rp if you want to use Midpoint_iter"
     endif
 
-    if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_NEWMARK_PMC) .AND. &
+    if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_MIDPOINT_ITER) .AND. &
         (Tdomain%type_elem .NE. GALERKIN_HDG_RP)) then
-        WRITE (*,*) "This choice of element for Newmark Predictor Multi Corrector Explicit is not available"
-        STOP "Error : Please choose dg_type = hdg_rp if you want to use Newmark_PMC"
+        WRITE (*,*) "This choice of element for Iterative Midpoint is not available"
+        STOP "Error : Please choose dg_type = hdg_rp if you want to use Midpoint_iter"
     endif
 
     if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_MIDPOINT) .AND. &
