@@ -154,12 +154,9 @@ contains
     subroutine  compute_CAinv (Elem)
 
         type (Element), intent (INOUT) :: Elem
-        !real, intent(IN) :: Dt
-        real :: Dt
         integer :: imin, imax, ngx, ngz
 
         ngx = Elem%ngllx ; ngz = Elem%ngllz
-        Dt = 1.
 
         Elem%CAinv(:,0,0) = Elem%Coeff_Integr_Faces(:) * Elem%Normal_Nodes(:,0)
         Elem%CAinv(:,0,1) = Elem%Coeff_Integr_Faces(:) * Elem%Normal_Nodes(:,0)
@@ -170,56 +167,56 @@ contains
 
         call get_iminimax(Elem,0,imin,imax)
         Elem%CAinv(imin:imax,0,0) = (Elem%Lambda(0:ngx-1,0) + 2*Elem%Mu(0:ngx-1,0)) &
-                                  * Dt / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,0,0)
+                                   / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,0,0)
         Elem%CAinv(imin:imax,0,1) = (Elem%Lambda(0:ngx-1,0)) &
-                                  * Dt / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,0,1)
+                                   / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,0,1)
         Elem%CAinv(imin:imax,0,2) = (Elem%Mu(0:ngx-1,0)) &
-                                  * Dt / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,0,2)
+                                   / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,0,2)
         Elem%CAinv(imin:imax,1,0) = (Elem%Lambda(0:ngx-1,0)) &
-                                  * Dt / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,1,0)
+                                   / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,1,0)
         Elem%CAinv(imin:imax,1,1) = (Elem%Lambda(0:ngx-1,0) + 2*Elem%Mu(0:ngx-1,0)) &
-                                  * Dt / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,1,1)
+                                   / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,1,1)
         Elem%CAinv(imin:imax,1,2) = (Elem%Mu(0:ngx-1,0)) &
-                                  * Dt / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,1,2)
+                                   / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,1,2)
         call get_iminimax(Elem,1,imin,imax)
         Elem%CAinv(imin:imax,0,0) = (Elem%Lambda(ngx-1,0:ngz-1) + 2*Elem%Mu(ngx-1,0:ngz-1)) &
-                                  * Dt / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,0,0)
+                                   / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,0,0)
         Elem%CAinv(imin:imax,0,1) = (Elem%Lambda(ngx-1,0:ngz-1)) &
-                                  * Dt / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,0,1)
+                                   / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,0,1)
         Elem%CAinv(imin:imax,0,2) = (Elem%Mu(ngx-1,0:ngz-1)) &
-                                  * Dt / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,0,2)
+                                   / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,0,2)
         Elem%CAinv(imin:imax,1,0) = (Elem%Lambda(ngx-1,0:ngz-1)) &
-                                  * Dt / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,1,0)
+                                   / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,1,0)
         Elem%CAinv(imin:imax,1,1) = (Elem%Lambda(ngx-1,0:ngz-1) + 2*Elem%Mu(ngx-1,0:ngz-1)) &
-                                  * Dt / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,1,1)
+                                   / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,1,1)
         Elem%CAinv(imin:imax,1,2) = (Elem%Mu(ngx-1,0:ngz-1)) &
-                                  * Dt / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,1,2)
+                                   / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,1,2)
         call get_iminimax(Elem,2,imin,imax)
         Elem%CAinv(imin:imax,0,0) = (Elem%Lambda(0:ngx-1,ngz-1) + 2*Elem%Mu(0:ngx-1,ngz-1)) &
-                                  * Dt / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,0,0)
+                                   / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,0,0)
         Elem%CAinv(imin:imax,0,1) = (Elem%Lambda(0:ngx-1,ngz-1)) &
-                                  * Dt / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,0,1)
+                                   / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,0,1)
         Elem%CAinv(imin:imax,0,2) = (Elem%Mu(0:ngx-1,ngz-1)) &
-                                  * Dt / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,0,2)
+                                   / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,0,2)
         Elem%CAinv(imin:imax,1,0) = (Elem%Lambda(0:ngx-1,ngz-1)) &
-                                  * Dt / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,1,0)
+                                   / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,1,0)
         Elem%CAinv(imin:imax,1,1) = (Elem%Lambda(0:ngx-1,ngz-1) + 2*Elem%Mu(0:ngx-1,ngz-1)) &
-                                  * Dt / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,1,1)
+                                   / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,1,1)
         Elem%CAinv(imin:imax,1,2) = (Elem%Mu(0:ngx-1,ngz-1)) &
-                                  * Dt / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,1,2)
+                                   / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,1,2)
         call get_iminimax(Elem,3,imin,imax)
         Elem%CAinv(imin:imax,0,0) = (Elem%Lambda(0,0:ngz-1) + 2*Elem%Mu(0,0:ngz-1)) &
-                                  * Dt / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,0,0)
+                                   / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,0,0)
         Elem%CAinv(imin:imax,0,1) = (Elem%Lambda(0,0:ngz-1)) &
-                                  * Dt / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,0,1)
+                                   / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,0,1)
         Elem%CAinv(imin:imax,0,2) = (Elem%Mu(0,0:ngz-1)) &
-                                  * Dt / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,0,2)
+                                   / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,0,2)
         Elem%CAinv(imin:imax,1,0) = (Elem%Lambda(0,0:ngz-1)) &
-                                  * Dt / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,1,0)
+                                   / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,1,0)
         Elem%CAinv(imin:imax,1,1) = (Elem%Lambda(0,0:ngz-1) + 2*Elem%Mu(0,0:ngz-1)) &
-                                  * Dt / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,1,1)
+                                   / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,1,1)
         Elem%CAinv(imin:imax,1,2) = (Elem%Mu(0,0:ngz-1)) &
-                                  * Dt / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,1,2)
+                                   / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,1,2)
 
     end subroutine compute_CAinv
 
@@ -431,14 +428,6 @@ contains
             Tdomain%sVertex(nv)%Kmat(pos2+1,pos2+1) = Tdomain%sVertex(nv)%Kmat(pos2+1,pos2+1)+ K(n2,1)
             !Tdomain%sVertex(n1)%Kmat(pos1:pos1+1,pos1:pos1+1) = K(imin,0:1,0:1)
             !Tdomain%sVertex(n2)%Kmat(pos2:pos2+1,pos2:pos2+1) = K(imax,0:1,0:1)
-            Tdomain%sVertex(nv)%Kmat_05dt(pos1,pos1)     = Tdomain%sVertex(nv)%Kmat_05dt(pos1,pos1)    + K(n1,0)
-            Tdomain%sVertex(nv)%Kmat_05dt(pos1,pos1+1)   = Tdomain%sVertex(nv)%Kmat_05dt(pos1,pos1+1)  + K(n1,2)
-            Tdomain%sVertex(nv)%Kmat_05dt(pos1+1,pos1)   = Tdomain%sVertex(nv)%Kmat_05dt(pos1+1,pos1)  + K(n1,2)
-            Tdomain%sVertex(nv)%Kmat_05dt(pos1+1,pos1+1) = Tdomain%sVertex(nv)%Kmat_05dt(pos1+1,pos1+1)+ K(n1,1)
-            Tdomain%sVertex(nv)%Kmat_05dt(pos2,pos2)     = Tdomain%sVertex(nv)%Kmat_05dt(pos2,pos2)    + K(n2,0)
-            Tdomain%sVertex(nv)%Kmat_05dt(pos2,pos2+1)   = Tdomain%sVertex(nv)%Kmat_05dt(pos2,pos2+1)  + K(n2,2)
-            Tdomain%sVertex(nv)%Kmat_05dt(pos2+1,pos2)   = Tdomain%sVertex(nv)%Kmat_05dt(pos2+1,pos2)  + K(n2,2)
-            Tdomain%sVertex(nv)%Kmat_05dt(pos2+1,pos2+1) = Tdomain%sVertex(nv)%Kmat_05dt(pos2+1,pos2+1)+ K(n2,1)
         enddo
 
     end subroutine build_K_on_face
@@ -498,10 +487,8 @@ contains
             K21(:,:) = K21(:,:) - MATMUL(Elem%EDinv(n2,:,:),E1(:,:))
             ! Envoi des matrices K12 et K21 sur la matrice du vertex
             pos1 = Elem%pos_corner_in_VertMat(i,0) ; pos2 = Elem%pos_corner_in_VertMat(i,1)
-            Tdomain%sVertex(nv)%Kmat(pos1:pos1+1,pos2:pos2+1) = Dt * K12(:,:)
-            Tdomain%sVertex(nv)%Kmat(pos2:pos2+1,pos1:pos1+1) = Dt * K21(:,:)
-            Tdomain%sVertex(nv)%Kmat_05dt(pos1:pos1+1,pos2:pos2+1) = 0.5*Dt * K12(:,:)
-            Tdomain%sVertex(nv)%Kmat_05dt(pos2:pos2+1,pos1:pos1+1) = 0.5*Dt * K21(:,:)
+            Tdomain%sVertex(nv)%Kmat(pos1:pos1+1,pos2:pos2+1) = 0.5*Dt * K12(:,:)
+            Tdomain%sVertex(nv)%Kmat(pos2:pos2+1,pos1:pos1+1) = 0.5*Dt * K21(:,:)
         enddo
 
     end subroutine build_K_on_vertex

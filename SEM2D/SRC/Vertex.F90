@@ -29,9 +29,9 @@ module svertices
        integer :: valence
        real,   dimension (:), allocatable :: Vect_RK
        integer,dimension (:), allocatable :: Near_Face
-       real, dimension (:,:), allocatable :: Kmat, Kmat_05dt
+       real, dimension (:,:), allocatable :: Kmat
        real,   dimension (:), allocatable :: SmbrLambda
-       real,   dimension (:), allocatable :: Lambda, K_up, K_up_05dt
+       real,   dimension (:), allocatable :: Lambda, K_up
 
     end type vertex
 
@@ -219,17 +219,11 @@ contains
         do i=0,n-1
             imax = imin + i
             V%K_up(imin:imax) = V%Kmat(0:i,i)
-            V%K_up_05dt(imin:imax) = V%Kmat_05dt(0:i,i)
             imin = imax +1
         enddo
 
         ! Appel de la routine Lapack pour factorisation Cholesky
-        !call SPPTRF( 'U', n, V%K_up, INFO)
-        !if (INFO .NE. 0) then
-        !    WRITE(*,*) "Factorisation vertex matrix not successfull for vertex  ",nv," rank mat ",n
-        !    STOP "Factorisation of vertex matrix not successfull. End of Program"
-        !endif
-        call SPPTRF( 'U', n, V%K_up_05dt, INFO)
+        call SPPTRF( 'U', n, V%K_up, INFO)
         if (INFO .NE. 0) then
             WRITE(*,*) "Factorisation vertex matrix not successfull for vertex  ",nv," rank mat ",n
             STOP "Factorisation of vertex matrix not successfull. End of Program"
@@ -246,12 +240,11 @@ contains
     !! \param type (Vertex), intent (INOUT) V
     !! \param real, intent (INOUT) E_kin
     !<
-    subroutine  solve_lambda_vertex(V, nv, demi_dt)
+    subroutine  solve_lambda_vertex(V, nv)
         implicit none
 
         type (Vertex), intent (INOUT)  :: V
         integer,       intent (IN)     :: nv
-        logical,       intent (IN)     :: demi_dt
         real, dimension(1:2*V%Valence) :: rhs
         integer                        :: n, INFO
         n = 2 * V%Valence
@@ -260,16 +253,10 @@ contains
         V%Lambda = 0.
         rhs(1:n) = V%smbrLambda(0:n-1)
 
-        if (demi_dt .EQV. HALF_DT) then
-            call SPPTRS( 'U', n, 1, V%K_up_05dt, rhs, n, INFO )
-            V%Lambda(0:n-1) = rhs(1:n)
-            call check_system_inversion(V, V%Kmat_05dt, nv)
-        else
-            STOP "ERROR : Vertex Matrix with full DT has not been inverted"
-            call SPPTRS( 'U', n, 1, V%K_up, rhs, n, INFO )
-            V%Lambda(0:n-1) = rhs(1:n)
-            call check_system_inversion(V, V%Kmat, nv)
-        endif
+        call SPPTRS( 'U', n, 1, V%K_up, rhs, n, INFO )
+        V%Lambda(0:n-1) = rhs(1:n)
+        call check_system_inversion(V, V%Kmat, nv)
+
         ! If any error :
         if (INFO .NE. 0) STOP "Inversion of vertex matrix not successfull"
 
