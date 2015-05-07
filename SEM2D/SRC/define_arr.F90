@@ -529,31 +529,29 @@ subroutine define_arrays(Tdomain)
     do n = 0,Tdomain%n_elem-1
         do nf=0,3
             nface = Tdomain%specel(n)%Near_Face(nf)
-            if(Tdomain%Specel(n)%Type_DG .NE. GALERKIN_CONT) &
+            if((Tdomain%Specel(n)%Type_DG == GALERKIN_DG_WEAK) .OR. &
+               (Tdomain%Specel(n)%Type_DG == GALERKIN_DG_STRONG)) &
                  call get_MuLambdaRho_el2f(Tdomain,n,nface)
         enddo
     enddo
     ! Calcul des coefficients pour les Fluxs Godunov (DG ou HDG)
     do nf = 0, Tdomain%n_face-1
-       if(Tdomain%sFace(nf)%type_Flux .EQ. FLUX_GODUNOV) then
+       if(Tdomain%sFace(nf)%type_Flux .EQ. FLUX_GODUNOV) &
            call coeffs_flux_godunov(Tdomain,nf)
-       elseif(Tdomain%sFace(nf)%type_Flux .EQ. FLUX_HDG) then
-           call compute_InvMatPen (Tdomain%sFace(nf))
-       endif
     enddo
     ! Prolongement par continuite des proprietes du milieu pour surface libre ou absorbante
     do nf = 0, Tdomain%n_face-1
         if(Tdomain%sFace(nf)%freesurf .OR. Tdomain%sFace(nf)%abs) then
             if(Tdomain%sFace(nf)%Type_Flux .EQ. FLUX_GODUNOV) &
                 call coeffs_freesurf_abs(Tdomain,nf)
-            if(Tdomain%sFace(nf)%Type_Flux .EQ. FLUX_HDG) &
-                call coeffs_freesurf_abs_HDG(Tdomain,nf)
         endif
     enddo
     ! Calcul des matrices de Penalisation pour les elements HDG
     do n = 0, Tdomain%n_elem-1
-        if(Tdomain%Specel(n)%Type_DG .EQ. GALERKIN_HDG_RP) &
+        if(Tdomain%Specel(n)%Type_DG .EQ. GALERKIN_HDG_RP) then
             call compute_MatPen(Tdomain, n)
+            call build_K_Expl(Tdomain, n)
+        endif
     enddo
 
     ! Calcul des matrices de coefficients CA^-1 et ED^-1 pour HDG en semi-implicite
@@ -568,15 +566,20 @@ subroutine define_arrays(Tdomain)
             call build_K_on_face(Tdomain,n,Dt)
             call build_K_on_vertex(Tdomain,n,Dt)
         enddo
-        ! Inversion des matrices K sur les faces
-        do nf = 0, Tdomain%n_face-1
-            call invert_K_face(Tdomain%sFace(nf))
-        enddo
         ! Inversion des matrices K sur les vertexs
         do n = 0, Tdomain%n_vertex-1
             call invert_K_vertex(Tdomain%sVertex(n),n)
         enddo
+        do nf = 0, Tdomain%n_face-1
+            call invert_K_face(Tdomain%sFace(nf))
+        enddo
     endif
+
+    ! Inversion des matrices K sur les faces pour explicit
+    do nf = 0, Tdomain%n_face-1
+        if (Tdomain%sFace(nf)%type_Flux .EQ. FLUX_HDG) &
+            call invert_K_face_Expl(Tdomain%sFace(nf))
+    enddo
 
     ! Preparing and allocating vectors to be exchanged at each time-step
     do i_proc = 0, Tdomain%n_communications-1

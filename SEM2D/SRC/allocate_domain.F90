@@ -40,9 +40,9 @@ subroutine allocate_domain (Tdomain)
          allocate (Tdomain%specel(n)%Accel(1:ngllx-2,1:ngllz-2,0:1))
          allocate (Tdomain%specel(n)%V0(1:ngllx-2,1:ngllz-2, 0:1))
          allocate (Tdomain%specel(n)%Forces(0:ngllx-1,0:ngllz-1,0:1))
+         Tdomain%specel(n)%Accel = 0
      else ! Discontinuous case
          allocate (Tdomain%specel(n)%Veloc (0:ngllx-1,0:ngllz-1, 0:1))
-         allocate (Tdomain%specel(n)%Accel(0:ngllx-1,0:ngllz-1,0:1))
          allocate (Tdomain%specel(n)%V0(  0:ngllx-1, 0:ngllz-1, 0:1 ) )
          allocate (Tdomain%specel(n)%Forces(0:ngllx-1,0:ngllz-1,0:4))
          allocate (Tdomain%specel(n)%Strain(0:ngllx-1,0:ngllz-1,0:2))
@@ -63,7 +63,6 @@ subroutine allocate_domain (Tdomain)
      Tdomain%specel(n)%Displ = 0.
      Tdomain%specel(n)%Veloc = 0
      Tdomain%specel(n)%Forces = 0
-     Tdomain%specel(n)%Accel = 0
      Tdomain%specel(n)%V0 = 0
 
      if(Tdomain%specel(n)%CPML .OR. Tdomain%specel(n)%ADEPML) then
@@ -148,34 +147,12 @@ subroutine allocate_domain (Tdomain)
      allocate (Tdomain%sFace(n)%Accel(1:ngll-2, 0:1))
      allocate (Tdomain%sFace(n)%V0( 1:ngll-2, 0:1 ) )
      allocate (Tdomain%sFace(n)%Displ( 1:ngll-2, 0:1 ) )
-     allocate (Tdomain%sFace(n)%Flux(0:ngll-1, 0:4 ) )
-     allocate (Tdomain%sFace(n)%Veloc_p(0:ngll-1, 0:1))
-     allocate (Tdomain%sFace(n)%Veloc_m(0:ngll-1, 0:1))
-     allocate (Tdomain%sFace(n)%Strain_p(0:ngll-1, 0:2))
-     allocate (Tdomain%sFace(n)%Strain_m(0:ngll-1, 0:2))
-     allocate (Tdomain%sFace(n)%Mu_p(0:ngll-1))
-     allocate (Tdomain%sFace(n)%Mu_m(0:ngll-1))
-     allocate (Tdomain%sFace(n)%Lambda_p(0:ngll-1))
-     allocate (Tdomain%sFace(n)%Lambda_m(0:ngll-1))
-     allocate (Tdomain%sFace(n)%Rho_p(0:ngll-1))
-     allocate (Tdomain%sFace(n)%Rho_m(0:ngll-1))
      Tdomain%sFace(n)%MassMat = 0
      Tdomain%sFace(n)%Veloc = 0
      Tdomain%sFace(n)%Accel = 0
      Tdomain%sFace(n)%V0 = 0
      Tdomain%sFace(n)%Displ = 0
      Tdomain%sFace(n)%Forces= 0
-     Tdomain%sFace(n)%Flux  = 0
-     Tdomain%sFace(n)%Veloc_p = 0
-     Tdomain%sFace(n)%Veloc_m = 0
-     Tdomain%sFace(n)%Strain_p = 0
-     Tdomain%sFace(n)%Strain_m = 0
-     Tdomain%sFace(n)%Mu_p = 0
-     Tdomain%sFace(n)%Mu_m = 0
-     Tdomain%sFace(n)%Lambda_p = 0
-     Tdomain%sFace(n)%Lambda_m = 0
-     Tdomain%sFace(n)%Rho_p = 0
-     Tdomain%sFace(n)%Rho_m = 0
      if (Tdomain%sFace(n)%type_Flux .EQ. FLUX_GODUNOV ) then !
          ! Allocation coefficients for Godunov Fluxes
          allocate (Tdomain%sFace(n)%k0(0:ngll-1))
@@ -187,6 +164,17 @@ subroutine allocate_domain (Tdomain)
          allocate (Tdomain%sFace(n)%Zp_p(0:ngll-1))
          allocate (Tdomain%sFace(n)%Zs_m(0:ngll-1))
          allocate (Tdomain%sFace(n)%Zs_p(0:ngll-1))
+         allocate (Tdomain%sFace(n)%Flux(0:ngll-1, 0:4 ) )
+         allocate (Tdomain%sFace(n)%Veloc_p(0:ngll-1, 0:1))
+         allocate (Tdomain%sFace(n)%Veloc_m(0:ngll-1, 0:1))
+         allocate (Tdomain%sFace(n)%Strain_p(0:ngll-1, 0:2))
+         allocate (Tdomain%sFace(n)%Strain_m(0:ngll-1, 0:2))
+         allocate (Tdomain%sFace(n)%Mu_p(0:ngll-1))
+         allocate (Tdomain%sFace(n)%Mu_m(0:ngll-1))
+         allocate (Tdomain%sFace(n)%Lambda_p(0:ngll-1))
+         allocate (Tdomain%sFace(n)%Lambda_m(0:ngll-1))
+         allocate (Tdomain%sFace(n)%Rho_p(0:ngll-1))
+         allocate (Tdomain%sFace(n)%Rho_m(0:ngll-1))
          if (Tdomain%sFace(n)%changing_media) allocate (Tdomain%sFace(n)%Flux_p(0:ngll-1,0:4))
          Tdomain%sFace(n)%k0 = 0
          Tdomain%sFace(n)%k1 = 0
@@ -197,14 +185,25 @@ subroutine allocate_domain (Tdomain)
          Tdomain%sFace(n)%Zp_p = 0
          Tdomain%sFace(n)%Zs_m = 0
          Tdomain%sFace(n)%Zs_p = 0
+         Tdomain%sFace(n)%Flux  = 0
+         Tdomain%sFace(n)%Veloc_p = 0
+         Tdomain%sFace(n)%Veloc_m = 0
+         Tdomain%sFace(n)%Strain_p = 0
+         Tdomain%sFace(n)%Strain_m = 0
+         Tdomain%sFace(n)%Mu_p = 0
+         Tdomain%sFace(n)%Mu_m = 0
+         Tdomain%sFace(n)%Lambda_p = 0
+         Tdomain%sFace(n)%Lambda_m = 0
+         Tdomain%sFace(n)%Rho_p = 0
+         Tdomain%sFace(n)%Rho_m = 0
      elseif (Tdomain%sFace(n)%type_Flux .EQ. FLUX_HDG ) then
-         deallocate(Tdomain%sFace(n)%Veloc,Tdomain%sFace(n)%V0)
+         deallocate(Tdomain%sFace(n)%Veloc,Tdomain%sFace(n)%V0,Tdomain%sFace(n)%Accel)
          allocate (Tdomain%sFace(n)%Veloc(0:ngll-1,0:1))
-         allocate (Tdomain%sFace(n)%InvMatPen(0:ngll-1,0:2))
-         allocate (Tdomain%sFace(n)%Traction(0:ngll-1,0:1))
+         allocate (Tdomain%sFace(n)%KinvExpl(0:ngll-1,0:2))
+         allocate (Tdomain%sFace(n)%SmbrTrac(0:ngll-1,0:1))
          allocate (Tdomain%sFace(n)%V0(0:ngll-1,0:1))
-         Tdomain%sFace(n)%InvMatPen = 0
-         Tdomain%sFace(n)%Traction  = 0
+         Tdomain%sFace(n)%KinvExpl = 0
+         Tdomain%sFace(n)%SmbrTrac = 0
          Tdomain%sFace(n)%Veloc = 0
          Tdomain%sFace(n)%V0 = 0
      endif
@@ -256,11 +255,11 @@ subroutine allocate_domain (Tdomain)
         deallocate(Tdomain%sFace(n)%Veloc,Tdomain%sFace(n)%Forces)
         allocate(Tdomain%sFace(n)%Veloc (0:ngll-1,0:1))
         allocate(Tdomain%sFace(n)%Forces(0:ngll-1,0:1))
-        if (.not. allocated(Tdomain%sFace(n)%InvMatPen)) allocate (Tdomain%sFace(n)%InvMatPen(0:ngll-1,0:2))
-        if (.not. allocated(Tdomain%sFace(n)%Traction))  allocate (Tdomain%sFace(n)%Traction(0:ngll-1,0:1))
+        !if (.not. allocated(Tdomain%sFace(n)%InvMatPen)) allocate (Tdomain%sFace(n)%InvMatPen(0:ngll-1,0:2))
+        !if (.not. allocated(Tdomain%sFace(n)%Traction))  allocate (Tdomain%sFace(n)%Traction(0:ngll-1,0:1))
         Tdomain%sFace(n)%Veloc = 0.
-        Tdomain%sFace(n)%Traction = 0.
-        Tdomain%sFace(n)%InvMatPen= 0.
+        !Tdomain%sFace(n)%Traction = 0.
+        !Tdomain%sFace(n)%InvMatPen= 0.
         Tdomain%sFace(n)%type_DG = COUPLE_CG_HDG
         Tdomain%sFace(n)%type_Flux = FLUX_HDG
         i = Tdomain%sFace(n)%Near_Vertex(0)
@@ -349,6 +348,11 @@ subroutine allocate_domain (Tdomain)
         allocate (Tdomain%specel(n)%EDinv(0:2*(ngllx+ngllz)-1,0:1,0:1))
         allocate (Tdomain%specel(n)%Dinv (0:2*(ngllx+ngllz)-1,0:2))
      enddo
+     do n = 0, Tdomain%n_face-1
+         ngll = Tdomain%sFace(n)%ngll
+         allocate (Tdomain%sFace(n)%Kinv(0:ngll-1,0:2))
+         Tdomain%sFace(n)%Kinv = 0.
+     enddo
      do n = 0, Tdomain%n_vertex-1
         i = Tdomain%sVertex(n)%Valence
         allocate (Tdomain%sVertex(n)%Kmat(0:(2*i-1),0:(2*i-1)))
@@ -358,15 +362,6 @@ subroutine allocate_domain (Tdomain)
         Tdomain%sVertex(n)%smbrLambda = 0.
         Tdomain%sVertex(n)%Kmat = 0.
         Tdomain%sVertex(n)%K_up = 0.
-     enddo
-     do n = 0, Tdomain%n_face-1
-         ngll = Tdomain%sFace(n)%ngll
-         allocate  (Tdomain%sFace(n)%Smbr(0:ngll-1,0:1))
-         allocate  (Tdomain%sFace(n)%Kinv(0:ngll-1,0:2))
-         Tdomain%sFace(n)%Kinv = 0.
-         Tdomain%sFace(n)%Smbr = 0.
-         !deallocate(Tdomain%sFace(n)%Traction)
-         !deallocate(Tdomain%sFace(n)%InvMatPen)
      enddo
   else if (Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT .OR. &
            Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT_ITER ) then

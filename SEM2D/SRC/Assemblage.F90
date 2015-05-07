@@ -238,23 +238,28 @@ subroutine Get_traction_el2f (Tdomain, nelem)
 
     ! local variables
     integer :: ngll, ngllx, ngllz, i, imin, imax, nface, nf
+    type(element), pointer :: Elem
     logical :: coherency
 
-    ngllx = Tdomain%specel(nelem)%ngllx
-    ngllz = Tdomain%specel(nelem)%ngllz
+    Elem => Tdomain%specel(nelem)
+    ngllx = Elem%ngllx
+    ngllz = Elem%ngllz
+
+    ! Wheiting Faces Tractions
+    Elem%TracFace(:,0) = Elem%TracFace(:,0) * Elem%Coeff_Integr_Faces(:)
+    Elem%TracFace(:,1) = Elem%TracFace(:,1) * Elem%Coeff_Integr_Faces(:)
 
     do nf = 0,3
-        nface = Tdomain%specel(nelem)%Near_Face(nf)
+        nface = Elem%Near_Face(nf)
         ngll  = Tdomain%sFace(nface)%ngll
         coherency  = Tdomain%sFace(nface)%coherency
-        call get_iminimax(Tdomain%specel(nelem),nf,imin,imax)
+        call get_iminimax(Elem,nf,imin,imax)
         if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
-            Tdomain%sFace(nface)%Traction = Tdomain%sFace(nface)%Traction &
-                                          + Tdomain%specel(nelem)%TracFace(imin:imax,0:1)
+            Tdomain%sFace(nface)%SmbrTrac = Tdomain%sFace(nface)%SmbrTrac - Elem%TracFace(imin:imax,0:1)
         else ! Case coherency = false
             do i=0,ngll-1
-                Tdomain%sFace(nface)%Traction(i,0:1) = Tdomain%sFace(nface)%Traction(i,0:1) &
-                                                     + Tdomain%specel(nelem)%TracFace(imax-i,0:1)
+                Tdomain%sFace(nface)%SmbrTrac(i,0:1) = Tdomain%sFace(nface)%SmbrTrac(i,0:1) &
+                                                     - Elem%TracFace(imax-i,0:1)
             end do
         end if
     enddo
@@ -453,10 +458,12 @@ subroutine Get_R_el2fv (Tdomain, nelem)
         ngll  = Tdomain%sFace(nface)%ngll
         coherency = Tdomain%sFace(nface)%coherency
         if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
-            Tdomain%sFace(nface)%smbr(:,0:1) = Tdomain%sFace(nface)%smbr(:,0:1) + Elem%TracFace(imin:imax,0:1)
+            Tdomain%sFace(nface)%smbrTrac(:,0:1) = Tdomain%sFace(nface)%smbrTrac(:,0:1) &
+                                                 + Elem%TracFace(imin:imax,0:1)
         else
             do i=0,ngll-1
-                Tdomain%sFace(nface)%smbr(i,0:1) = Tdomain%sFace(nface)%smbr(i,0:1) + Elem%TracFace(imax-i,0:1)
+                Tdomain%sFace(nface)%smbrTrac(i,0:1) = Tdomain%sFace(nface)%smbrTrac(i,0:1) &
+                                                     + Elem%TracFace(imax-i,0:1)
             enddo
         endif
     enddo
@@ -472,6 +479,7 @@ subroutine Get_R_el2fv (Tdomain, nelem)
         Tdomain%sVertex(nv)%smbrLambda(pos2:pos2+1) = Tdomain%sVertex(nv)%smbrLambda(pos2:pos2+1) &
                                                     + Elem%TracFace(n2,0:1)
     enddo
+    Elem%TracFace(0,0) = 0.
 
 end subroutine Get_R_el2fv
 

@@ -113,34 +113,49 @@ contains
 
     end subroutine compute_MatPen
 
+
     ! ###########################################################
     !>
-    !! \brief coeff_freesurf extends the Mu, Lambda, mass, from
-    !! the interior side of a face to its exterior side. Used for the faces where
-    !! a "free surface" or an "absorbing" boundary condition is applied.
-    !!  Used principaly for HDG.
-    !! \param type (Domain), intent (INOUT) Tdomain
-    !! \param integer, intent (IN) nface
+    !! \brief This subroutine computes the "G-part" of matrix K on a given face
+    !! (for the system on Lagrange multiplicators K * Lambda = R)
+    !! on the interiors nodes of the face only. It computes matrix G at
+    !! elementary level, and then dend its contributiuon to neighbour faces.
+    !! It suitable for Hybridizable Discontinuous Galerkin elements only.
+    !! \param type (domain), intent (INOUT) Tdomain
+    !! \param integer, intent (IN) nelem
     !<
-    subroutine coeffs_freesurf_abs_HDG(Tdomain,nface)
-        use sdomain
+    subroutine build_K_expl(Tdomain, nelem)
+
         implicit none
-        type (Domain), intent (INOUT) :: Tdomain
-        integer, intent (IN) :: nface
+        type (domain), intent (INOUT) :: Tdomain
+        integer, intent(IN) :: nelem
+        real, dimension(0:2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:2) :: G
+        type(element), pointer :: Elem
+        integer :: nf, nface, i, imin, imax
+        logical :: coherency
 
-        if (Tdomain%sface(nface)%Abs) then
-            Tdomain%sface(nface)%Mu_p     = Tdomain%sface(nface)%Mu_m
-            Tdomain%sface(nface)%Lambda_p = Tdomain%sface(nface)%Lambda_m
-            Tdomain%sface(nface)%Rho_p    = Tdomain%sface(nface)%Rho_m
-            call compute_InvMatPen(Tdomain%sFace(nface))
-        elseif(Tdomain%sface(nface)%freesurf) then
-            Tdomain%sface(nface)%Mu_p     = 0.
-            Tdomain%sface(nface)%Lambda_p = 0.
-            Tdomain%sface(nface)%Rho_p    = 0.
-            call compute_InvMatPen(Tdomain%sFace(nface))
-        endif
+        Elem => Tdomain%specel(nelem)
 
-    end subroutine coeffs_freesurf_abs_HDG
+        ! Calcul du terme G qui contribue e la matrice K
+        G(:,0) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,0)
+        G(:,1) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,1)
+        G(:,2) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,2)
+
+        ! Envoi des matrices sur les faces :
+        do nf=0,3
+            nface = Elem%Near_Face(nf)
+            call get_iminimax(Elem,nf,imin,imax)
+            coherency  = Tdomain%sFace(nface)%coherency
+            if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
+                Tdomain%sFace(nface)%KinvExpl(:,:) = Tdomain%sFace(nface)%KinvExpl(:,:) + G(imin:imax,:)
+            else
+                do i=0,Tdomain%sFace(nface)%ngll-1
+                    Tdomain%sFace(nface)%KinvExpl(i,:) = Tdomain%sFace(nface)%KinvExpl(i,:) + G(imax-i,:)
+                end do
+            endif
+        enddo
+
+    end subroutine build_K_expl
 
     ! ###########################################################
     !>
@@ -354,7 +369,7 @@ contains
         type (domain), intent (INOUT) :: Tdomain
         integer, intent(IN) :: nelem
         real,    intent(IN) :: Dt
-        real, dimension(0:2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:1,0:1) :: CtAC, EtDE, G
+        real, dimension(0:2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:1,0:1) :: CtAC, EtDE
         real, dimension(0:2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:2) :: K
         type(element), pointer :: Elem
         integer :: nf, nface, i, imin, imax, n1, n2, nv, pos1, pos2
@@ -382,19 +397,10 @@ contains
         EtDE(:,1,1) = Elem%Coeff_integr_Faces(:) * (Elem%EDinv(:,1,0)*Elem%MatPen(:,2) &
                                                    +Elem%EDinv(:,1,1)*Elem%MatPen(:,1))
 
-        ! Calcul du terme G qui contribue e la matrice K
-        G(:,0,0) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,0)
-        G(:,0,1) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,2)
-        G(:,1,0) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,2)
-        G(:,1,1) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,1)
-
         ! Addition de toutes les contributions pour la matrice K : (etant sym, elle n'a que 3 composantes)
-        K(:,0) = 0.5*Dt * (CtAC(:,0,0) - EtDE(:,0,0)) + G(:,0,0)
-        K(:,1) = 0.5*Dt * (CtAC(:,1,1) - EtDE(:,1,1)) + G(:,1,1)
-        K(:,2) = 0.5*Dt * (CtAC(:,0,1) - EtDE(:,0,1)) + G(:,0,1)
-
-        ! Calcul simplifie de la matrice K sur les faces :
-        !K(:,0) = G(:,0,0) ; K(:,1) = G(:,1,1) ; K(:,2) = G(:,0,1)
+        K(:,0) = 0.5*Dt * (CtAC(:,0,0) - EtDE(:,0,0)) + Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,0)
+        K(:,1) = 0.5*Dt * (CtAC(:,1,1) - EtDE(:,1,1)) + Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,1)
+        K(:,2) = 0.5*Dt * (CtAC(:,0,1) - EtDE(:,0,1)) + Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,2)
 
         ! Envoi des matrices sur les faces :
         do nf=0,3

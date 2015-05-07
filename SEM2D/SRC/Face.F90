@@ -37,7 +37,7 @@ module sfaces
        real, dimension (:,:), allocatable :: Vect_RK
        ! HDG
        real, dimension (:,:), allocatable :: Normal_Nodes
-       real, dimension (:,:), allocatable :: Kinv, Traction, Smbr, InvMatPen
+       real, dimension (:,:), allocatable :: Kinv, KinvExpl, SmbrTrac
        integer, dimension (0:1) :: pos_in_VertMat
        logical :: is_computed, changing_media, acoustic
 
@@ -265,30 +265,6 @@ end subroutine Compute_Flux
 
   ! ############################################################
   !>
-  !! \brief Compute the traces of velocity on the Face. Stored in F%Veloc.
-  !! These velocities are to be understood in a HDG framework
-  !! and are the unknowns at the interface.
-  !! These velocities are computec multiplying the tractions F%TracFace
-  !! by the inverse penalization matrix F%InvMatPen.
-  !! \param type (Face), intent (INOUT) F
-  !<
-  subroutine Compute_Vhat (F)
-
-      implicit none
-      type (Face), intent (INOUT) :: F
-
-      F%Veloc(:,0) = - F%InvMatPen(:,0)*F%Traction(:,0) - F%InvMatPen(:,2)*F%Traction(:,1)
-      F%Veloc(:,1) = - F%InvMatPen(:,2)*F%Traction(:,0) - F%InvMatPen(:,1)*F%Traction(:,1)
-      F%Traction = 0.
-
-      ! Treatment of boundary faces
-      if (F%reflex) F%Veloc(:,:) = 0.
-
-  end subroutine Compute_Vhat
-
-
-  ! ############################################################
-  !>
   !! \brief Compute the term of flux for the interface of coupling CG-DG.
   !! The final term computed here is " sigma(n) - tau*(V-Vhat) ". The part
   !! "sigma(n) - tau*V" has been previously computed by subroutine compute_TracFace
@@ -303,14 +279,15 @@ end subroutine Compute_Flux
       implicit none
       type (Face), intent (INOUT) :: F
 
-      F%Traction(:,0) =  F%Traction(:,0) + (F%InvMatPen(:,0)*F%Veloc(:,0) + F%InvMatPen(:,2)*F%Veloc(:,1))
-      F%Traction(:,1) =  F%Traction(:,1) + (F%InvMatPen(:,2)*F%Veloc(:,0) + F%InvMatPen(:,1)*F%Veloc(:,1))
+      !################ DESACTIVATED IN MAY 2015 #####################!
+      !F%Traction(:,0) =  F%Traction(:,0) + (F%InvMatPen(:,0)*F%Veloc(:,0) + F%InvMatPen(:,2)*F%Veloc(:,1))
+      !F%Traction(:,1) =  F%Traction(:,1) + (F%InvMatPen(:,2)*F%Veloc(:,0) + F%InvMatPen(:,1)*F%Veloc(:,1))
 
       ! Adding The traction to the forces
-      F%Forces(:,0) = F%Forces(:,0) - F%Coeff_Integr(:) * F%Traction(:,0)
-      F%Forces(:,1) = F%Forces(:,1) - F%Coeff_Integr(:) * F%Traction(:,1)
+      !F%Forces(:,0) = F%Forces(:,0) - F%Coeff_Integr(:) * F%Traction(:,0)
+      !F%Forces(:,1) = F%Forces(:,1) - F%Coeff_Integr(:) * F%Traction(:,1)
 
-      F%Traction(:,:) = 0.
+      !F%Traction(:,:) = 0.
 
   end subroutine Compute_Flux_Coupling
 
@@ -668,57 +645,6 @@ end subroutine Compute_Flux
 
     end subroutine compute_Kinetic_Energy_F
 
-    ! ###########################################################
-    !>
-    !! \brief subroutine compute_InvMatPen is used for HDG elements only
-    !! This subroutine computes the inverse of penalty matrix used on the
-    !! traces for HDG methods.
-    !! \param type (Face), intent (INOUT) F
-    !<
-    subroutine compute_InvMatPen (F)
-        implicit none
-
-        type (Face), intent (INOUT) :: F
-        real, dimension(0:F%ngll-1) :: invDet, Zp_m, Zp_p, Zs_m, Zs_p
-        logical                     :: is_acoustic
-
-        Zp_m(:) = sqrt(F%Rho_m(:) * (F%Lambda_m(:) + 2.* F%Mu_m(:)))
-        Zp_p(:) = sqrt(F%Rho_p(:) * (F%Lambda_p(:) + 2.* F%Mu_p(:)))
-        Zs_m(:) = sqrt(F%Rho_m(:) * F%Mu_m(:))
-        Zs_p(:) = sqrt(F%Rho_p(:) * F%Mu_p(:))
-
-        if ((F%Mu_p(0) == 0.) .and. (F%Mu_m(0) == 0.)) then
-           is_acoustic = .true.
-        else
-           is_acoustic = .false.
-        endif
-
-        if (.not. is_acoustic) then
-           invDet(:) = 1. / ((Zp_m(:)+Zp_p(:))*(Zs_m(:)+Zs_p(:)))
-           F%InvMatPen(:,0) = invDet(:) * ((Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,0)**2 &
-                                          +(Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,1)**2)
-           F%InvMatPen(:,1) = invDet(:) * ((Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,0)**2 &
-                                          +(Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,1)**2)
-           F%InvMatPen(:,2) =-invDet(:) * ((Zp_m(:)+Zp_p(:)) - (Zs_m(:)+Zs_p(:))) &
-                                        * F%Normal_nodes(:,0) * F%Normal_nodes(:,1)
-        else ! acoustic case
-           invDet(:) = 1. / (Zp_m(:)+Zp_p(:))
-           F%InvMatPen(:,0) = invDet(:)
-           F%InvMatPen(:,1) = invDet(:)
-           F%InvMatPen(:,2) = 0.
-        endif
-
-        ! If the face is couplic CG with HDG, the matrix InvMatPen is NOT inverted :
-        if (F%Type_DG == COUPLE_CG_HDG) then
-            F%InvMatPen(:,0) = (Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,0)**2 &
-                             + (Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,1)**2
-            F%InvMatPen(:,1) = (Zs_m(:)+Zs_p(:)) * F%Normal_nodes(:,0)**2 &
-                             + (Zp_m(:)+Zp_p(:)) * F%Normal_nodes(:,1)**2
-            F%InvMatPen(:,2) =((Zp_m(:)+Zp_p(:)) - (Zs_m(:)+Zs_p(:))) &
-                             * F%Normal_nodes(:,0) * F%Normal_nodes(:,1)
-        endif
-
-    end subroutine compute_InvMatPen
 
     ! ###########################################################
     !>
@@ -752,6 +678,37 @@ end subroutine Compute_Flux
 
     end subroutine Invert_K_face
 
+    ! ###########################################################
+    !>
+    !! \brief subroutine Invert_K_face_Expl is used for HDG elements only
+    !! This subroutine computes the inverse of the K matrix used to find
+    !! the lagrange parameters (= velocities) lying on faces, solving for
+    !! the matrix system K * Lambda = Smbr on an EXPLICIT TIME SCHEME.
+    !! This subroutine is used only for HDG in a semi-implicit framework.
+    !! \param type (Face), intent (INOUT) F
+    !<
+    subroutine Invert_K_face_Expl (F)
+        implicit none
+
+        type (Face), intent (INOUT) :: F
+        real, dimension(0:F%ngll-1) :: Det, tmp
+        integer                     :: i
+
+        Det(:) = F%KinvExpl(:,0) * F%KinvExpl(:,1) - (F%KinvExpl(:,2)*F%KinvExpl(:,2))
+        ! Check positive-definiteness of matrices on Faces
+        do i=0,F%ngll-1
+            if ((F%KinvExpl(i,0) .LE. 0.) .OR. (Det(i) .LE. 0.)) then
+                write(*,*) "Matrix KinvExpl not positive definite on current face and for node ", i
+                STOP "Matrix should be sym def pos on faces. End of computation."
+            endif
+        enddo
+        ! Compute inverse of matrices :
+        F%KinvExpl(:,2) =-1./Det(:) * F%KinvExpl(:,2)
+        tmp(:) = F%KinvExpl(:,1)
+        F%KinvExpl(:,1) = 1./Det(:) * F%KinvExpl(:,0)
+        F%KinvExpl(:,0) = 1./Det(:) * tmp(:)
+
+    end subroutine Invert_K_face_Expl
 
     ! ###########################################################
     !>
@@ -768,10 +725,10 @@ end subroutine Compute_Flux
         type (Face), intent (INOUT) :: F
 
         ! La second membre "smbr" du systeme K * Lambda = Smbr est homgene aux tractions
-        F%Veloc(:,0) = F%Kinv(:,0)*F%Smbr(:,0) + F%Kinv(:,2)*F%Smbr(:,1)
-        F%Veloc(:,1) = F%Kinv(:,2)*F%Smbr(:,0) + F%Kinv(:,1)*F%Smbr(:,1)
+        F%Veloc(:,0) = F%Kinv(:,0)*F%SmbrTrac(:,0) + F%Kinv(:,2)*F%SmbrTrac(:,1)
+        F%Veloc(:,1) = F%Kinv(:,2)*F%SmbrTrac(:,0) + F%Kinv(:,1)*F%SmbrTrac(:,1)
 
-        F%Smbr = 0.
+        F%SmbrTrac = 0.
 
         ! Treatment of boundary faces
         if (F%reflex) then
@@ -779,6 +736,34 @@ end subroutine Compute_Flux
         endif
 
     end subroutine Compute_Vhat_face
+
+    ! ###########################################################
+    !>
+    !! \brief subroutine compute_Vhat_face is used for HDG elements only.
+    !! This subroutine computes the lagrange parameters (= velocities) lying
+    !! on faces, solving for the matrix system K * Lambda = Smbr.
+    !! It uses the already-inverted matrix K --> Kinv.
+    !! FOR EXPLICIT TRACE COMPUTATION !!!
+    !! This subroutine is used only for HDG in a semi-implicit framework.
+    !! \param type (Face), intent (INOUT) F
+    !<
+    subroutine compute_Vhat_face_Expl (F)
+        implicit none
+
+        type (Face), intent (INOUT) :: F
+
+        ! La second membre "smbr" du systeme K * Lambda = Smbr est homgene aux tractions
+        F%Veloc(:,0) = F%KinvExpl(:,0)*F%SmbrTrac(:,0) + F%KinvExpl(:,2)*F%SmbrTrac(:,1)
+        F%Veloc(:,1) = F%KinvExpl(:,2)*F%SmbrTrac(:,0) + F%KinvExpl(:,1)*F%SmbrTrac(:,1)
+
+        F%SmbrTrac = 0.
+
+        ! Treatment of boundary faces
+        if (F%reflex) then
+            F%Veloc(:,:) = 0.
+        endif
+
+    end subroutine Compute_Vhat_face_Expl
 
 
     ! ###########################################################

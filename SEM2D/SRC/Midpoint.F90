@@ -295,7 +295,7 @@ subroutine Forward_Euler_Resolution (Tdomain,timelocal,Dt)
 
     ! Calcul des Vhat sur les faces
     do nface = 0, Tdomain%n_face-1
-        call Compute_Vhat(Tdomain%sFace(nface)) !!! <-- DECOMMENTER !!!
+        call Compute_Vhat_Face_Expl(Tdomain%sFace(nface)) !!! <-- DECOMMENTER !!!
     enddo
 
     ! Constructing the Lambda (= velocities vhat) on the faces

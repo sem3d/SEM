@@ -1143,14 +1143,12 @@ contains
         if (is_half) demi = 0.5
 
         ! Adding contribution of Vhat on the trace Traction :
-        Elem%TracFace(:,0) = Elem%TracFace(:,0) + Elem%MatPen(:,0)*Elem%Vhat(:,0) &
-                                                + Elem%MatPen(:,2)*Elem%Vhat(:,1)
-        Elem%TracFace(:,1) = Elem%TracFace(:,1) + Elem%MatPen(:,2)*Elem%Vhat(:,0) &
-                                                + Elem%MatPen(:,1)*Elem%Vhat(:,1)
-        ! Weights for lineic integrals computation :
-        Elem%TracFace(:,0) = Elem%TracFace(:,0) * Elem%Coeff_Integr_Faces(:)
-        Elem%TracFace(:,1) = Elem%TracFace(:,1) * Elem%Coeff_Integr_Faces(:)
+        Elem%TracFace(:,0) = Elem%TracFace(:,0) + Elem%Coeff_Integr_Faces(:) * &
+                            (Elem%MatPen(:,0)*Elem%Vhat(:,0) + Elem%MatPen(:,2)*Elem%Vhat(:,1))
+        Elem%TracFace(:,1) = Elem%TracFace(:,1) + Elem%Coeff_Integr_Faces(:) * &
+                            (Elem%MatPen(:,2)*Elem%Vhat(:,0) + Elem%MatPen(:,1)*Elem%Vhat(:,1))
 
+        ! Preparing traces for the strain equation :
         Vhatxz(:) = demi * ( Elem%Vhat(:,0) * Elem%Normal_Nodes(:,1) &
                            + Elem%Vhat(:,1) * Elem%Normal_Nodes(:,0))* Elem%Coeff_Integr_Faces(:)
         Vhatx(:) = Elem%Vhat(:,0) * Elem%Normal_Nodes(:,0) * Elem%Coeff_Integr_Faces(:)

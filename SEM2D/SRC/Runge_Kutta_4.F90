@@ -107,7 +107,7 @@ subroutine Runge_Kutta4 (Tdomain, dt)
            type_DG = Tdomain%sface(nface)%Type_DG
            select case (type_DG)
            case (GALERKIN_HDG_RP)
-               call Compute_Vhat(Tdomain%sFace(nface))
+               call Compute_Vhat_Face_Expl(Tdomain%sFace(nface))
            case(GALERKIN_DG_STRONG)
                call Compute_Flux_DGweak(Tdomain%sFace(nface))
            case(GALERKIN_DG_WEAK)
