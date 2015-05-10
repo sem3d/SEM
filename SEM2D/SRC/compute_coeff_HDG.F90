@@ -111,6 +111,29 @@ contains
                                      * Elem%Normal_Nodes(imin:imax,1)
         endif
 
+        ! DEBUT A SUPPRIMER
+        nf = Elem%Near_Face(0)
+        if (Tdomain%sFace(nf)%Freesurf) then
+            call get_iminimax(Elem,0,imin,imax)
+            Elem%MatPen(imin:imax,:) = 1. * Elem%MatPen(imin:imax,:)
+        endif
+        nf = Elem%Near_Face(1)
+        if (Tdomain%sFace(nf)%Freesurf) then
+            call get_iminimax(Elem,1,imin,imax)
+            Elem%MatPen(imin:imax,:) = 1. * Elem%MatPen(imin:imax,:)
+        endif
+        nf = Elem%Near_Face(2)
+        if (Tdomain%sFace(nf)%Freesurf) then
+            call get_iminimax(Elem,2,imin,imax)
+            Elem%MatPen(imin:imax,:) = 1. * Elem%MatPen(imin:imax,:)
+        endif
+        nf = Elem%Near_Face(3)
+        if (Tdomain%sFace(nf)%Freesurf) then
+            call get_iminimax(Elem,3,imin,imax)
+            Elem%MatPen(imin:imax,:) = 1. * Elem%MatPen(imin:imax,:)
+        endif
+        ! FIN A SUPPRIMER
+
     end subroutine compute_MatPen
 
 

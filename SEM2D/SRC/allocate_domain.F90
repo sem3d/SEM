@@ -175,7 +175,7 @@ subroutine allocate_domain (Tdomain)
          allocate (Tdomain%sFace(n)%Lambda_m(0:ngll-1))
          allocate (Tdomain%sFace(n)%Rho_p(0:ngll-1))
          allocate (Tdomain%sFace(n)%Rho_m(0:ngll-1))
-         if (Tdomain%sFace(n)%changing_media) allocate (Tdomain%sFace(n)%Flux_p(0:ngll-1,0:4))
+         allocate (Tdomain%sFace(n)%Flux_p(0:ngll-1,0:4))
          Tdomain%sFace(n)%k0 = 0
          Tdomain%sFace(n)%k1 = 0
          Tdomain%sFace(n)%r1 = 0
@@ -196,6 +196,7 @@ subroutine allocate_domain (Tdomain)
          Tdomain%sFace(n)%Lambda_m = 0
          Tdomain%sFace(n)%Rho_p = 0
          Tdomain%sFace(n)%Rho_m = 0
+         Tdomain%sFace(n)%Flux_p = 0
      elseif (Tdomain%sFace(n)%type_Flux .EQ. FLUX_HDG ) then
          deallocate(Tdomain%sFace(n)%Veloc,Tdomain%sFace(n)%V0,Tdomain%sFace(n)%Accel)
          allocate (Tdomain%sFace(n)%Veloc(0:ngll-1,0:1))

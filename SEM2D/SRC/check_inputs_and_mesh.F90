@@ -62,10 +62,6 @@ subroutine check_inputs_and_mesh(Tdomain)
         STOP "FREE Surface not implemented for Centered flux"
     endif
 
-    if ((Tdomain%type_bc==DG_BC_REFL) .AND. (Tdomain%type_elem == GALERKIN_DG_STRONG)) then
-        STOP "The DG on Strong form cannot match with a reflective Boundary Condition"
-    endif
-
     if ((Tdomain%type_elem == GALERKIN_CONT) .AND. (Tdomain%type_flux .NE. FLUX_NONE)) then
         STOP "If you want to use Continuous Galerkin elements, please choose Flux NONE"
     endif

@@ -220,6 +220,83 @@ end subroutine Get_flux_f2el
 
 
 !>
+!!\brief This Subroutine, for an element nelem, sends the numerical fluxes
+!! computed on its neighboring faces to update the forces of the current element,
+!! If current element is DG strong.
+!! It takes into account the problems of coherency and weighting with the
+!! right wheight for approximating the integral.
+!!\version 1.0
+!!\date 20/11/2013
+!! This subroutine is used only with DG-Strong elements
+!<
+subroutine Get_flux_f2el_DGstrong (Tdomain, nelem)
+
+  use sdomain
+  implicit none
+
+  type (domain), intent (INOUT) :: Tdomain
+  integer, intent(in)   :: nelem
+
+  ! local variables
+  real, dimension (:,:), allocatable :: Flux
+  integer :: ngll, ngllx, ngllz, i, imin, imax, nface, nf
+  type(element), pointer :: Elem
+  logical :: coherency
+
+  Elem => Tdomain%specel(nelem)
+  ngllx = Elem%ngllx
+  ngllz = Elem%ngllz
+
+  do nf = 0,3
+      nface = Elem%Near_Face(nf)
+      coherency = Tdomain%sFace(nface)%coherency
+      ngll  = Tdomain%sFace(nface)%ngll
+      allocate(Flux(0:ngll-1,0:4))
+      call get_iminimax(Elem,nf,imin,imax)
+
+      if (Tdomain%sFace(nface)%Near_Element(0)==nelem) then
+          do i=0,ngll-1
+              Flux(i,:) =  Tdomain%sFace(nface)%Flux(i,:)*Elem%Coeff_Integr_Faces(imin+i)
+          enddo
+      else ! nelem is Near_Element(1)
+          if (coherency) then
+              do i=0,ngll-1
+                  Flux(i,:) = Tdomain%sFace(nface)%Flux_p(i,:)*Elem%Coeff_Integr_Faces(imin+i)
+              enddo
+          else
+              do i=0,ngll-1
+                  Flux(i,:) = Tdomain%sFace(nface)%Flux_p(ngll-1-i,:)*Elem%Coeff_Integr_Faces(imin+i)
+              enddo
+          endif
+      endif
+
+      select case(nf)
+      case(0) ! Bottom Face
+          do i=0,ngll-1
+              Tdomain%specel(nelem)%Forces(i,0,:) = Tdomain%specel(nelem)%Forces(i,0,:) - Flux(i,:)
+          enddo
+      case(1) ! Right Face
+          do i=0,ngll-1
+              Tdomain%specel(nelem)%Forces(ngllx-1,i,:) = Tdomain%specel(nelem)%Forces(ngllx-1,i,:) - Flux(i,:)
+          enddo
+      case(2) ! Top Face
+          do i=0,ngll-1
+              Tdomain%specel(nelem)%Forces(i,ngllz-1,:) = Tdomain%specel(nelem)%Forces(i,ngllz-1,:) - Flux(i,:)
+          enddo
+      case(3) ! Left Face
+          do i=0,ngll-1
+              Tdomain%specel(nelem)%Forces(0,i,:) = Tdomain%specel(nelem)%Forces(0,i,:) - Flux(i,:)
+          enddo
+      end select
+  deallocate (Flux)
+  enddo
+
+  ! Dirichlet Boundary conditions (if any)
+  if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,nelem)
+
+end subroutine Get_flux_f2el_DGstrong
+
+!>
 !!\brief Subroutine that shares the traction from an element
 !! "nelem" to its face "nface" taking into account the problems of coherency.
 !!\version 1.0
