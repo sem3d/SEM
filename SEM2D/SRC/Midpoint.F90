@@ -49,18 +49,21 @@ subroutine Midpoint_impl_expl (Tdomain,Dt,n_it_max)
 
     ! Initial Predictor phase.
     timelocal = Tdomain%TimeD%rtime
-    call Forward_Euler_Resolution (Tdomain,timelocal,0.5*Dt)
+    call Forward_Euler_Resolution (Tdomain,timelocal,0.5*Dt,NOT_COMPUTE_VHAT)
 
     iter= 0
     timelocal = Tdomain%TimeD%rtime + 0.5*Dt
     do while (iter<n_it_max)
         ! Explicit resolution phase
-        call Forward_Euler_Resolution (Tdomain,timelocal,0.5*Dt)
+        call Forward_Euler_Resolution (Tdomain,timelocal,0.5*Dt,COMPUTE_VHAT)
         iter = iter+1
     enddo
 
     ! Final Midpoint Evaluation using the values at tn+1/2 converged
-    call Forward_Euler_Resolution(Tdomain,timelocal,Dt)
+    call Forward_Euler_Resolution(Tdomain,timelocal,Dt,COMPUTE_VHAT)
+
+    ! Obtaining Vhat on faces at tn+1
+    call get_vhat_from_current_state(Tdomain)
 
     return
 end subroutine Midpoint_impl_expl
@@ -100,7 +103,7 @@ subroutine Midpoint_impl_semi_impl (Tdomain,Dt,n_it_max)
 
     ! Initial Predictor phase.
     timelocal = Tdomain%TimeD%rtime
-    call Forward_Euler_Resolution(Tdomain,timelocal,0.5*Dt)
+    call Forward_Euler_Resolution(Tdomain,timelocal,0.5*Dt,NOT_COMPUTE_VHAT)
 
     iter = 0
     timelocal = Tdomain%TimeD%rtime + 0.5*Dt
@@ -111,8 +114,10 @@ subroutine Midpoint_impl_semi_impl (Tdomain,Dt,n_it_max)
     enddo
 
     ! Final Midpoint Evaluation using the values at tn+1/2 converged
-    call Forward_Euler_Resolution(Tdomain,timelocal,Dt)
-    !call Semi_Implicit_Resolution_tnplus1 (Tdomain,timelocal,Dt)
+    call Forward_Euler_Resolution(Tdomain,timelocal,Dt,COMPUTE_VHAT)
+
+    ! Obtaining Vhat on faces at tn+1
+    call get_vhat_from_current_state(Tdomain)
 
     return
 end subroutine Midpoint_impl_semi_impl
@@ -157,7 +162,7 @@ subroutine Midpoint_Test(Tdomain,Dt,n_it_max)
     ! Midpoint method :
     iter= 0
     timelocal = Tdomain%TimeD%rtime
-    call Forward_Euler_Resolution(Tdomain,timelocal,0.5*Dt)
+    call Forward_Euler_Resolution(Tdomain,timelocal,0.5*Dt,NOT_COMPUTE_VHAT)
 
     timelocal = Tdomain%TimeD%rtime + 0.5*Dt
 
@@ -177,6 +182,7 @@ subroutine Midpoint_Test(Tdomain,Dt,n_it_max)
 
         iter = iter+1
     enddo
+    !call get_vhat_from_current_state(Tdomain)
 
     return
 end subroutine Midpoint_Test
@@ -204,9 +210,6 @@ subroutine Semi_Implicit_Resolution (Tdomain,timelocal,Dt)
     ! Building second members (= forces) of systems.
     do n=0,Tdomain%n_elem-1
         mat = Tdomain%specel(n)%mat_index
-        !call compute_InternalForces_DG_Weak(Tdomain%specel(n), &
-        !                                    Tdomain%sSubDomain(mat)%hprimex, &
-        !                                    Tdomain%sSubDomain(mat)%hTprimez)
         call compute_InternalForces_HDG  (Tdomain%specel(n), &
             Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimex, &
             Tdomain%sSubDomain(mat)%hprimez,Tdomain%sSubDomain(mat)%hTprimez)
@@ -263,13 +266,15 @@ end subroutine Semi_Implicit_Resolution
 !!\date 20/11/2014
 !! This subroutine is used only HDG elements
 !! \param type (Domain), intent (INOUT) Tdomain
-!! \param real         , intent (IN)    Dt
+!! \param real         , intent (IN)    timelocal,Dt
+!! \param logical      , intent (IN)    Vhat_computed
 !<
-subroutine Forward_Euler_Resolution (Tdomain,timelocal,Dt)
+subroutine Forward_Euler_Resolution (Tdomain,timelocal,Dt,computeVhat)
 
     implicit none
     type (domain), intent (INOUT) :: Tdomain
     real,    intent(in)   :: timelocal,dt
+    logical, intent(in)   :: computeVhat
 
     ! local variables
     integer :: n, mat, nface
@@ -280,7 +285,8 @@ subroutine Forward_Euler_Resolution (Tdomain,timelocal,Dt)
         call compute_InternalForces_DG_Weak(Tdomain%specel(n), &
             Tdomain%sSubDomain(mat)%hprimex, &
             Tdomain%sSubDomain(mat)%hTprimez)
-        call compute_TracFace (Tdomain%specel(n))
+        if (computeVhat) &
+            call compute_TracFace (Tdomain%specel(n))
         if (Tdomain%specel(n)%PML) call update_Psi_ADEPML(Tdomain%specel(n), &
             Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimez, Dt)
     enddo
@@ -288,15 +294,17 @@ subroutine Forward_Euler_Resolution (Tdomain,timelocal,Dt)
     ! External Forces computation
     call Compute_External_Forces(Tdomain,timelocal)
 
-    ! Calcul et envoi tractions sur faces
-    do n = 0, Tdomain%n_elem-1
-        call get_traction_el2f(Tdomain,n) !!! <-- DECOMMENTER !!!
-    enddo
-
-    ! Calcul des Vhat sur les faces
-    do nface = 0, Tdomain%n_face-1
-        call Compute_Vhat_Face_Expl(Tdomain%sFace(nface)) !!! <-- DECOMMENTER !!!
-    enddo
+    ! Calcul de la trace des vitesses Vhat
+    if (computeVhat) then
+        ! Envoi tractions sur faces
+        do n = 0, Tdomain%n_elem-1
+            call get_traction_el2f(Tdomain,n)
+        enddo
+        ! Calcul des Vhat sur les faces
+        do nface = 0, Tdomain%n_face-1
+            call Compute_Vhat_Face_Expl(Tdomain%sFace(nface))
+        enddo
+    endif
 
     ! Constructing the Lambda (= velocities vhat) on the faces
     do n=0,Tdomain%n_elem-1
@@ -389,6 +397,33 @@ subroutine Semi_Implicit_Resolution_tnplus1 (Tdomain,timelocal,Dt)
     return
 end subroutine Semi_Implicit_Resolution_tnplus1
 
+
+!>
+!!\brief This Subroutine performs Vhat, the computation of the traces
+!! velocities on the faces, from the current state of each elements.
+!!\version 1.0
+!!\date 10/05/2015
+!! This subroutine is used only HDG elements
+!! \param type (Domain), intent (INOUT) Tdomain
+!<
+subroutine get_vhat_from_current_state(Tdomain)
+
+    implicit none
+    type (domain), intent (INOUT) :: Tdomain
+
+    ! local variables
+    integer :: n, nface
+
+    do n=0,Tdomain%n_elem-1
+        call compute_TracFace (Tdomain%specel(n))
+        call get_traction_el2f(Tdomain,n)
+    enddo
+    ! Calcul des Vhat sur les faces
+    do nface = 0, Tdomain%n_face-1
+        call Compute_Vhat_Face_Expl(Tdomain%sFace(nface))
+    enddo
+
+end subroutine get_vhat_from_current_state
 
 end module smidpoint
 !! Local Variables:
