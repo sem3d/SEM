@@ -252,6 +252,9 @@ contains
         call create_dset(fid, "pressure", H5T_IEEE_F64LE, nnodes, press_id)
         call create_dset(fid, "rotat", H5T_IEEE_F64LE, nnodes, rotat_id)
 
+        ! Constroction des Vhat continus au niveau des Vertexs (stockes dans Vertex%V0)
+        call project_Vhat_Vertex(Tdomain)
+
         allocate(displ(0:2,0:nnodes-1))
         allocate(veloc(0:2,0:nnodes-1))
         allocate(accel(0:2,0:nnodes-1))
@@ -284,7 +287,7 @@ contains
             endif
 
             call gather_elem_displ(Tdomain, n, field_displ)
-            call gather_elem_veloc(Tdomain, n, field_veloc)
+            call gather_elem_veloc(Tdomain, n, field_veloc, .true.)
             call gather_elem_accel(Tdomain, n, field_accel)
             call compute_rotational(Tdomain,n,ngllx,ngllz,field_veloc,field_rotat)
 

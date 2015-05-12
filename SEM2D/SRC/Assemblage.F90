@@ -675,6 +675,70 @@ subroutine enforce_diriclet_corners_vhat (Tdomain, nelem)
 
 end subroutine enforce_diriclet_corners_vhat
 
+!>
+!!\brief This Subroutine assembles the velocities Vhat
+!! at the vertices in order to perform a projection
+!! of discontinuous Vhat to a continuous space of traces at vertices.
+!!\version 1.0
+!!\date 12/05/2015
+!! This subroutine is used only with DG and HDG elements
+!<
+subroutine project_Vhat_Vertex (Tdomain)
+
+    use sdomain
+    implicit none
+
+    type (domain), intent (INOUT) :: Tdomain
+    integer :: n, nv0, nv1, ngll
+
+    do n=0,Tdomain%n_vertex
+        Tdomain%sVertex(n)%V0 = 0.
+    enddo
+
+    do n=0,Tdomain%n_face
+        ngll = Tdomain%sFace(n)%ngll
+        nv0  = Tdomain%sFace(n)%Near_Vertex(0) ; nv1 = Tdomain%sFace(n)%Near_Vertex(1)
+        Tdomain%sVertex(nv0)%V0 = Tdomain%sVertex(nv0)%V0 + Tdomain%sVertex(nv0)%CoeffAssem * &
+                                  Tdomain%sFace(n)%Veloc(0,:) * Tdomain%sFace(n)%Coeff_Integr_Ends(0)
+        Tdomain%sVertex(nv1)%V0 = Tdomain%sVertex(nv1)%V0 + Tdomain%sVertex(nv1)%CoeffAssem * &
+                                  Tdomain%sFace(n)%Veloc(ngll-1,:) * Tdomain%sFace(n)%Coeff_Integr_Ends(1)
+    enddo
+
+end subroutine project_Vhat_Vertex
+
+!>
+!!\brief This Subroutine assembles the coefficients of integration
+!! at the vertices. These coefficients will be later used for projection
+!! of discontinuous Vhat to a continuous space of traces at vertices.
+!!\version 1.0
+!!\date 12/05/2015
+!! This subroutine is used only with HDG elements
+!<
+subroutine assemble_coeffs_proj_Vhat (Tdomain)
+
+    use sdomain
+    implicit none
+
+    type (domain), intent (INOUT) :: Tdomain
+    integer :: n, nv0, nv1, ngll
+
+    do n=0,Tdomain%n_vertex
+        Tdomain%sVertex(n)%CoeffAssem = 0.
+    enddo
+
+    do n=0,Tdomain%n_face
+        ngll = Tdomain%sFace(n)%ngll
+        nv0  = Tdomain%sFace(n)%Near_Vertex(0) ; nv1 = Tdomain%sFace(n)%Near_Vertex(1)
+        Tdomain%sVertex(nv0)%CoeffAssem = Tdomain%sVertex(nv0)%CoeffAssem + Tdomain%sFace(n)%Coeff_Integr_Ends(0)
+        Tdomain%sVertex(nv1)%CoeffAssem = Tdomain%sVertex(nv1)%CoeffAssem + Tdomain%sFace(n)%Coeff_Integr_Ends(1)
+    enddo
+
+    do n=0,Tdomain%n_vertex
+        Tdomain%sVertex(n)%CoeffAssem = 1./Tdomain%sVertex(n)%CoeffAssem
+    enddo
+
+end subroutine assemble_coeffs_proj_Vhat
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

@@ -7,10 +7,11 @@
 module sreceivers
     type :: receiver
 
-       logical :: located_here
-       integer :: Nr
+       logical :: located_here, on_vertex
+       integer :: Nr, Nv
        real :: xRec, zRec,xi,eta
        real, dimension(:,:), pointer :: Interp_coeff
+       integer, dimension(:) :: near_faces
        character(Len=100) :: name
     end type receiver
 

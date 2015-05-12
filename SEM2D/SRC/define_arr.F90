@@ -581,6 +581,9 @@ subroutine define_arrays(Tdomain)
             call invert_K_face_Expl(Tdomain%sFace(nf))
     enddo
 
+    ! Coefficients pour visualisation des vertexs (HDG)
+    call assemble_coeffs_proj_Vhat (Tdomain)
+
     ! Preparing and allocating vectors to be exchanged at each time-step
     do i_proc = 0, Tdomain%n_communications-1
         nv_aus = Tdomain%sWall(i_proc)%n_points

@@ -30,7 +30,7 @@ module sfaces
 
        ! DG
        real, dimension (:), allocatable :: Normal
-       real, dimension (:), allocatable :: k0,k1,Zp_p,Zp_m,Zs_p,Zs_m, Coeff_Integr
+       real, dimension (:), allocatable :: k0,k1,Zp_p,Zp_m,Zs_p,Zs_m
        real, dimension (:), allocatable :: Mu_p, Mu_m, Lambda_p, Lambda_m, Rho_m, Rho_p
        real, dimension (:,:), allocatable :: Flux, Veloc_p,Veloc_m,Strain_p,Strain_m, Flux_p
        real, dimension (:,:), allocatable :: r1, r2, r3  ! EigenVectors for DG Godunov
@@ -38,6 +38,7 @@ module sfaces
        ! HDG
        real, dimension (:,:), allocatable :: Normal_Nodes
        real, dimension (:,:), allocatable :: Kinv, KinvExpl, SmbrTrac
+       real, dimension (0:1)    :: Coeff_integr_ends
        integer, dimension (0:1) :: pos_in_VertMat
        logical :: is_computed, changing_media, acoustic
 

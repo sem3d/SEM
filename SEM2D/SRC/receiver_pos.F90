@@ -123,6 +123,8 @@ subroutine ReceiverPosition(Tdomain)
                     Tdomain%sReceiver(nrec)%eta = eta1
                 endif
             end if
+            call check_receiver_on_vertex(Tdomain,nrec)
+
         else if (Tdomain%n_nodes == 8 ) then
             dximax = 2./nimax; detamax = 2./njmax
             do11_n : do n = 0,nind-1
@@ -212,8 +214,8 @@ subroutine save_trace (Tdomain, it)
 
             allocate (Field(0:ngllx-1,0:ngllz-1,0:1))
 
-            !call gather_elem_veloc(Tdomain, nr, Field)
-            Field = Tdomain%specel(nr)%Veloc !!! A SUPPRIMER !!!
+            call gather_elem_veloc(Tdomain, nr, Field, .false.)
+            !Field = Tdomain%specel(nr)%Veloc !!! A SUPPRIMER !!!
 
             do j = 0,ngllz-1
                 do i =0,ngllx -1
@@ -221,6 +223,10 @@ subroutine save_trace (Tdomain, it)
                     dum1 = dum1 + Tdomain%sReceiver(ir)%Interp_Coeff(i,j) * Field(i,j,1)
                 enddo
             enddo
+
+            if (Tdomain%sReceiver(ir)%on_vertex) &
+                call build_vertex_vhat_for_receiver(Tdomain, ir, dum0, dum1)
+
             Tdomain%Store_Trace(0,ir,ncache) = dum0
             Tdomain%Store_Trace(1,ir,ncache) = dum1
 
@@ -299,6 +305,89 @@ subroutine read_receiver_file(Tdomain)
 
 end subroutine read_receiver_file
 
+
+subroutine check_receiver_on_vertex(Tdomain,nrec)
+
+    implicit none
+    use sdomain
+
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in)         :: nrec
+    type(element), pointer      :: Elem
+    integer, dimension(:)       :: near_faces_tmp
+    integer :: nv, n, i
+    real    :: tol
+    tol = 1.E-10 ; nv = -1 ; i=0
+    Elem=> Tdomain%specel(Tdomain%sReceiver(nrec)%nr)
+    Tdomain%sReceiver(nrec)%on_vertex = .false.
+
+    if (abs(Tdomain%sReceiver(nrec)%Zrec + 1.) .LE. tol) then
+        if (abs(Tdomain%sReceiver(nrec)%Xrec + 1.) .LE. tol) then
+            nv = Elem%Near_Vertex(0)
+            write (*,*) "Receiver relocated on node : ", nv
+        else if (abs(Tdomain%sReceiver(nrec)%Xrec - 1.) .LE. tol) then
+            nv = Elem%Near_Vertex(1)
+            write (*,*) "Receiver relocated on node : ", nv
+        endif
+    else if (abs(Tdomain%sReceiver(nrec)%Zrec - 1.) .LE. tol) then
+        if (abs(Tdomain%sReceiver(nrec)%Xrec + 1.) .LE. tol) then
+            nv = Elem%Near_Vertex(3)
+            write (*,*) "Receiver relocated on node : ", nv
+        else if (abs(Tdomain%sReceiver(nrec)%Xrec - 1.) .LE. tol) then
+            nv = Elem%Near_Vertex(2)
+            write (*,*) "Receiver relocated on node : ", nv
+        endif
+    endif
+
+    if (nv .GE. 0) then
+        Tdomain%sReceiver(nrec)%on_vertex = .true.
+        Tdomain%sReceiver(nrec)%Nv = nv
+        allocate (near_faces_tmp(0:20))
+        near_faces_tmp (:) = -1
+        do n = 0,Tdomain%n_face
+            if (nv == Tdomain%sFace(n)%Near_Vertex(0) .OR. nv == Tdomain%sFace(n)%Near_Vertex(1)) then
+                near_faces_tmp(i) = n
+                i = i+1
+            endif
+        enddo
+        allocate (Tdomain%sReceiver(nrec)%near_faces(0:i-1))
+        Tdomain%sReceiver(nrec)%near_faces(0:i-1) = near_faces_tmp(0:i-1)
+        deallocate(near_faces_tmp)
+    endif
+
+end subroutine check_receiver_on_vertex
+
+
+subroutine build_vertex_vhat_for_receiver(Tdomain, nrec, dum0, dum1)
+
+    implicit none
+    use sdomain
+
+    type(domain), intent(inout) :: Tdomain
+    integer, intent(in)         :: nrec
+    real, intent(inout)         :: dum0, dum1
+    integer :: n, nv, nface, ngll
+
+    nv = Tdomain%sReceiver(nrec)%Nv
+    Tdomain%sVertex(Nv)%V0 = 0.
+    dum0 = 0 ; dum1 = 0.
+
+    do n=0,size(Tdomain%sReceiver(nrec)%near_faces)-1
+        nface = Tdomain%sReceiver(nrec)%near_faces(n)
+        ngll  =  Tdomain%sFace(nface)%ngll
+        if (nv == Tdomain%sFace(nface)%NearVertex(0)) then
+            Tdomain%sVertex(Nv)%V0 = Tdomain%sVertex(Nv)%V0 &
+                                   + Tdomain%sFace(nface)%Veloc(0) * Tdomain%sFace(nface)%Coeff_Integr_ends(0)
+        else
+            Tdomain%sVertex(Nv)%V0 = Tdomain%sVertex(Nv)%V0 &
+                                   + Tdomain%sFace(nface)%Veloc(ngll-1) * Tdomain%sFace(nface)%Coeff_Integr_ends(1)
+        endif
+    enddo
+    Tdomain%sVertex(Nv)%V0 = Tdomain%sVertex(Nv)%V0 * Tdomain%sVertex(Nv)%CoeffAssem
+    dum0 = Tdomain%sVertex(Nv)%V0(0)
+    dum1 = Tdomain%sVertex(Nv)%V0(1)
+
+end subroutine build_vertex_vhat_for_receiver
 
 end module treceivers
 !! Local Variables:

@@ -230,30 +230,49 @@ contains
                     Tdomain%specel(n)%Jacob (i,j) = Jac
                 enddo
             enddo
+
             ! Computation of coefficients of integration for element boundaries
-            !if (Tdomain%specel(n)%Type_DG .NE. GALERKIN_CONT) then
-                allocate(Tdomain%specel(n)%Coeff_Integr_Faces(0:2*(ngllx+ngllz)-1))
-                ! Bottom boundary :
-                imin = 0 ; imax = ngllx-1
-                nf = Tdomain%specel(n)%Near_Face(0)
-                call compute_Jacobian_1D(Tdomain,nf,Jac1D)
-                Tdomain%specel(n)%Coeff_Integr_Faces(imin:imax) = Tdomain%sSubdomain(mat)%GLLwx(:) * Jac1D
-                ! Right boundary :
-                imin = imax+1 ; imax = imax + ngllz
-                nf = Tdomain%specel(n)%Near_Face(1)
-                call compute_Jacobian_1D(Tdomain,nf,Jac1D)
-                Tdomain%specel(n)%Coeff_Integr_Faces(imin:imax) = Tdomain%sSubdomain(mat)%GLLwz(:) * Jac1D
-                ! Top boundary :
-                imin = imax+1 ; imax = imax + ngllx
-                nf = Tdomain%specel(n)%Near_Face(2)
-                call compute_Jacobian_1D(Tdomain,nf,Jac1D)
-                Tdomain%specel(n)%Coeff_Integr_Faces(imin:imax) = Tdomain%sSubdomain(mat)%GLLwx(:) * Jac1D
-                ! Left boundary :
-                imin = imax+1 ; imax = imax + ngllz
-                nf = Tdomain%specel(n)%Near_Face(3)
-                call compute_Jacobian_1D(Tdomain,nf,Jac1D)
-                Tdomain%specel(n)%Coeff_Integr_Faces(imin:imax) = Tdomain%sSubdomain(mat)%GLLwz(:) * Jac1D
-            !endif
+            allocate(Tdomain%specel(n)%Coeff_Integr_Faces(0:2*(ngllx+ngllz)-1))
+
+            ! Bottom boundary :
+            imin = 0 ; imax = ngllx-1
+            nf = Tdomain%specel(n)%Near_Face(0)
+            call compute_Jacobian_1D(Tdomain,nf,Jac1D)
+            Tdomain%specel(n)%Coeff_Integr_Faces(imin:imax) = Tdomain%sSubdomain(mat)%GLLwx(:) * Jac1D
+            if (Tdomain%sFace(nf)%Near_Element(0) == n) then
+                Tdomain%sFace(nf)%Coeff_Integr_Ends(0) = Tdomain%specel(n)%Coeff_Integr_Faces(imin)
+                Tdomain%sFace(nf)%Coeff_Integr_Ends(1) = Tdomain%specel(n)%Coeff_Integr_Faces(imax)
+            endif
+
+            ! Right boundary :
+            imin = imax+1 ; imax = imax + ngllz
+            nf = Tdomain%specel(n)%Near_Face(1)
+            call compute_Jacobian_1D(Tdomain,nf,Jac1D)
+            Tdomain%specel(n)%Coeff_Integr_Faces(imin:imax) = Tdomain%sSubdomain(mat)%GLLwz(:) * Jac1D
+            if (Tdomain%sFace(nf)%Near_Element(0) == n) then
+                Tdomain%sFace(nf)%Coeff_Integr_Ends(0) = Tdomain%specel(n)%Coeff_Integr_Faces(imin)
+                Tdomain%sFace(nf)%Coeff_Integr_Ends(1) = Tdomain%specel(n)%Coeff_Integr_Faces(imax)
+            endif
+
+            ! Top boundary :
+            imin = imax+1 ; imax = imax + ngllx
+            nf = Tdomain%specel(n)%Near_Face(2)
+            call compute_Jacobian_1D(Tdomain,nf,Jac1D)
+            Tdomain%specel(n)%Coeff_Integr_Faces(imin:imax) = Tdomain%sSubdomain(mat)%GLLwx(:) * Jac1D
+            if (Tdomain%sFace(nf)%Near_Element(0) == n) then
+                Tdomain%sFace(nf)%Coeff_Integr_Ends(0) = Tdomain%specel(n)%Coeff_Integr_Faces(imin)
+                Tdomain%sFace(nf)%Coeff_Integr_Ends(1) = Tdomain%specel(n)%Coeff_Integr_Faces(imax)
+            endif
+
+            ! Left boundary :
+            imin = imax+1 ; imax = imax + ngllz
+            nf = Tdomain%specel(n)%Near_Face(3)
+            call compute_Jacobian_1D(Tdomain,nf,Jac1D)
+            Tdomain%specel(n)%Coeff_Integr_Faces(imin:imax) = Tdomain%sSubdomain(mat)%GLLwz(:) * Jac1D
+            if (Tdomain%sFace(nf)%Near_Element(0) == n) then
+                Tdomain%sFace(nf)%Coeff_Integr_Ends(0) = Tdomain%specel(n)%Coeff_Integr_Faces(imin)
+                Tdomain%sFace(nf)%Coeff_Integr_Ends(1) = Tdomain%specel(n)%Coeff_Integr_Faces(imax)
+            endif
         enddo
 
         ! Compute Normals for Faces with DG :

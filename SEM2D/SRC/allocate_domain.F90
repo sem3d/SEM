@@ -270,9 +270,7 @@ subroutine allocate_domain (Tdomain)
         ! Coefficients of integration on face
         j = Tdomain%sFace(n)%Near_Element(0)
         i = Tdomain%sFace(n)%Which_Face(0)
-        allocate(Tdomain%sFace(n)%Coeff_Integr(0:ngll-1))
         call get_iminimax(Tdomain%specel(j),i,imin,imax)
-        Tdomain%sFace(n)%Coeff_Integr(:) = Tdomain%specel(j)%Coeff_Integr_Faces(imin:imax)
      endif
   enddo
 

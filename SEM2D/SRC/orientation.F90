@@ -146,11 +146,12 @@ contains
 
     end subroutine gather_elem_displ
 
-    subroutine gather_elem_veloc(Tdomain, nel, field)
+    subroutine gather_elem_veloc(Tdomain, nel, field, is_snapshot)
         implicit none
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: nel
         real, dimension(0:,0:,0:), intent(out) :: field
+        logical, intent(in) :: is_snapshot
         type(element), pointer :: el
         type(face), pointer :: fc
         type(vertex), pointer :: vx
@@ -187,15 +188,31 @@ contains
             vx => Tdomain%sVertex(el%Near_Vertex(3))
             field(0,nz-1,:) = vx%Veloc
         else if (el%Type_DG==GALERKIN_HDG_RP) then
-            do i=0,3
-                fc => Tdomain%sFace(el%Near_Face(i))
-                orient = fc%coherency .or. fc%near_element(0) == nel
-                call get_VectProperty_FullFace2Elem(i, orient, nx, nz, fc%ngll, fc%Veloc, field)
-            end do
-            field(0,0,:)       = 0.5 * field(0,0,:)
-            field(nx-1,0,:)    = 0.5 * field(nx-1,0,:)
-            field(nx-1,nz-1,:) = 0.5 * field(nx-1,nz-1,:)
-            field(0,nz-1,:)    = 0.5 * field(0,nz-1,:)
+            if (is_snapshot) then !! Partie appelee pour les Snapshots (Vhat projetee sur espace continu)
+                do i=0,3
+                    fc => Tdomain%sFace(el%Near_Face(i))
+                    orient = fc%coherency .or. fc%near_element(0) == nel
+                    call get_VectProperty_Face2Elem(i, orient, nx, nz, fc%ngll, fc%Veloc, field)
+                end do
+                vx => Tdomain%sVertex(el%Near_Vertex(0))
+                field(0,0,:) = vx%V0
+                vx => Tdomain%sVertex(el%Near_Vertex(1))
+                field(nx-1,0,:) = vx%V0
+                vx => Tdomain%sVertex(el%Near_Vertex(2))
+                field(nx-1,nz-1,:) = vx%V0
+                vx => Tdomain%sVertex(el%Near_Vertex(3))
+                field(0,nz-1,:) = vx%V0
+            else !! Partie appelee pour les sorties capteurs (pas de projestion de Vhat)
+                do i=0,3
+                    fc => Tdomain%sFace(el%Near_Face(i))
+                    orient = fc%coherency .or. fc%near_element(0) == nel
+                    call get_VectProperty_FullFace2Elem(i, orient, nx, nz, fc%ngll, fc%Veloc, field)
+                end do
+                field(0,0,:)       = 0.5 * field(0,0,:)
+                field(nx-1,0,:)    = 0.5 * field(nx-1,0,:)
+                field(nx-1,nz-1,:) = 0.5 * field(nx-1,nz-1,:)
+                field(0,nz-1,:)    = 0.5 * field(0,nz-1,:)
+            endif
         end if
     end subroutine gather_elem_veloc
 

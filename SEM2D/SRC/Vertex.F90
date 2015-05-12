@@ -17,7 +17,7 @@ module svertices
 
        logical :: PML, Abs, reflex, CPML, ADEPML, is_computed
        integer :: Glob_Numbering, mat_index, Type_DG
-       real :: MassMat
+       real :: MassMat, CoeffAssem
        real, dimension (:), allocatable :: DumpMass, DumpVx, DumpVz, Forces1, Forces2, Veloc1, Veloc2
        real, dimension (:), allocatable :: Displ, Veloc, Forces, Accel, V0
        real, dimension (:), allocatable :: Double_Value
