@@ -691,17 +691,17 @@ subroutine project_Vhat_Vertex (Tdomain)
     type (domain), intent (INOUT) :: Tdomain
     integer :: n, nv0, nv1, ngll
 
-    do n=0,Tdomain%n_vertex
+    do n=0,Tdomain%n_vertex-1
         Tdomain%sVertex(n)%V0 = 0.
     enddo
 
-    do n=0,Tdomain%n_face
+    do n=0,Tdomain%n_face-1
         ngll = Tdomain%sFace(n)%ngll
         nv0  = Tdomain%sFace(n)%Near_Vertex(0) ; nv1 = Tdomain%sFace(n)%Near_Vertex(1)
-        Tdomain%sVertex(nv0)%V0 = Tdomain%sVertex(nv0)%V0 + Tdomain%sVertex(nv0)%CoeffAssem * &
-                                  Tdomain%sFace(n)%Veloc(0,:) * Tdomain%sFace(n)%Coeff_Integr_Ends(0)
-        Tdomain%sVertex(nv1)%V0 = Tdomain%sVertex(nv1)%V0 + Tdomain%sVertex(nv1)%CoeffAssem * &
-                                  Tdomain%sFace(n)%Veloc(ngll-1,:) * Tdomain%sFace(n)%Coeff_Integr_Ends(1)
+        Tdomain%sVertex(nv0)%V0(:) = Tdomain%sVertex(nv0)%V0(:) + Tdomain%sVertex(nv0)%CoeffAssem * &
+                                     Tdomain%sFace(n)%Coeff_Integr_Ends(0) *Tdomain%sFace(n)%Veloc(0,:)
+        Tdomain%sVertex(nv1)%V0(:) = Tdomain%sVertex(nv1)%V0(:) + Tdomain%sVertex(nv1)%CoeffAssem * &
+                                     Tdomain%sFace(n)%Coeff_Integr_Ends(1) * Tdomain%sFace(n)%Veloc(ngll-1,:)
     enddo
 
 end subroutine project_Vhat_Vertex
@@ -722,18 +722,18 @@ subroutine assemble_coeffs_proj_Vhat (Tdomain)
     type (domain), intent (INOUT) :: Tdomain
     integer :: n, nv0, nv1, ngll
 
-    do n=0,Tdomain%n_vertex
+    do n=0,Tdomain%n_vertex-1
         Tdomain%sVertex(n)%CoeffAssem = 0.
     enddo
 
-    do n=0,Tdomain%n_face
+    do n=0,Tdomain%n_face-1
         ngll = Tdomain%sFace(n)%ngll
         nv0  = Tdomain%sFace(n)%Near_Vertex(0) ; nv1 = Tdomain%sFace(n)%Near_Vertex(1)
         Tdomain%sVertex(nv0)%CoeffAssem = Tdomain%sVertex(nv0)%CoeffAssem + Tdomain%sFace(n)%Coeff_Integr_Ends(0)
         Tdomain%sVertex(nv1)%CoeffAssem = Tdomain%sVertex(nv1)%CoeffAssem + Tdomain%sFace(n)%Coeff_Integr_Ends(1)
     enddo
 
-    do n=0,Tdomain%n_vertex
+    do n=0,Tdomain%n_vertex-1
         Tdomain%sVertex(n)%CoeffAssem = 1./Tdomain%sVertex(n)%CoeffAssem
     enddo
 

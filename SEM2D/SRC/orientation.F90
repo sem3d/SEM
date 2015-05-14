@@ -192,7 +192,8 @@ contains
                 do i=0,3
                     fc => Tdomain%sFace(el%Near_Face(i))
                     orient = fc%coherency .or. fc%near_element(0) == nel
-                    call get_VectProperty_Face2Elem(i, orient, nx, nz, fc%ngll, fc%Veloc, field)
+                    !call get_VectProperty_Face2Elem(i, orient, nx, nz, fc%ngll, fc%Veloc, field)
+                    call get_VectProperty_FullFace2Elem(i, orient, nx, nz, fc%ngll, fc%Veloc, field)
                 end do
                 vx => Tdomain%sVertex(el%Near_Vertex(0))
                 field(0,0,:) = vx%V0

@@ -11,7 +11,7 @@ module sreceivers
        integer :: Nr, Nv
        real :: xRec, zRec,xi,eta
        real, dimension(:,:), pointer :: Interp_coeff
-       integer, dimension(:) :: near_faces
+       integer, dimension(:), allocatable :: near_faces
        character(Len=100) :: name
     end type receiver
 

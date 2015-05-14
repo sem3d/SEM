@@ -32,7 +32,7 @@ contains
         type(element), pointer :: Elem
         real, dimension (0:Tdomain%specel(nelem)%ngllx-1) :: Zp_x, Zs_x
         real, dimension (0:Tdomain%specel(nelem)%ngllz-1) :: Zp_z, Zs_z
-        integer    :: imin, imax, ngllx, ngllz, nf
+        integer    :: imin, imax, ngllx, ngllz, nf, i
 
         Elem => Tdomain%specel(nelem)
         ngllx = Elem%ngllx ; ngllz = Elem%ngllz
@@ -111,28 +111,28 @@ contains
                                      * Elem%Normal_Nodes(imin:imax,1)
         endif
 
-        ! DEBUT A SUPPRIMER
-        nf = Elem%Near_Face(0)
-        if (Tdomain%sFace(nf)%Freesurf) then
-            call get_iminimax(Elem,0,imin,imax)
-            Elem%MatPen(imin:imax,:) = 1. * Elem%MatPen(imin:imax,:)
-        endif
-        nf = Elem%Near_Face(1)
-        if (Tdomain%sFace(nf)%Freesurf) then
-            call get_iminimax(Elem,1,imin,imax)
-            Elem%MatPen(imin:imax,:) = 1. * Elem%MatPen(imin:imax,:)
-        endif
-        nf = Elem%Near_Face(2)
-        if (Tdomain%sFace(nf)%Freesurf) then
-            call get_iminimax(Elem,2,imin,imax)
-            Elem%MatPen(imin:imax,:) = 1. * Elem%MatPen(imin:imax,:)
-        endif
-        nf = Elem%Near_Face(3)
-        if (Tdomain%sFace(nf)%Freesurf) then
-            call get_iminimax(Elem,3,imin,imax)
-            Elem%MatPen(imin:imax,:) = 1. * Elem%MatPen(imin:imax,:)
-        endif
-        ! FIN A SUPPRIMER
+        !!!!!!!!!!!!!! DEBUT A SUPPRIMER
+        do i=0,3
+           nf = Elem%Near_Face(i)
+           if (Tdomain%sFace(nf)%Freesurf) then
+              call get_iminimax(Elem,i,imin,imax)
+              Elem%MatPen(imin:imax,:) = 1. * Elem%MatPen(imin:imax,:)
+           endif
+           !if ((nf == 612) .OR. (nf == 662) .OR. (nf == 663) .OR. (nf == 660)) then
+           !   call get_iminimax(Elem,i,imin,imax)
+           !   Elem%MatPen(imin:imax,:) = 1000. * Elem%MatPen(imin:imax,:)
+           !endif
+        enddo
+        !if (nelem == Tdomain%sSource(0)%Elem(0)%nr) then
+        !   Elem%MatPen(:,:) = 1000. * Elem%MatPen(:,:)
+        !endif
+        !i = Tdomain%sSource(0)%Elem(0)%nr
+        !if ((nelem == i-26) .OR. (nelem == i-25) .OR. (nelem == i-24) .OR. &
+        !    (nelem == i+1 ) .OR. (nelem == i   ) .OR. (nelem == i-1 ) .OR. &
+        !    (nelem == i+26) .OR. (nelem == i+25) .OR. (nelem == i+24)) then
+        !   Elem%MatPen(:,:) = 5. * Elem%MatPen(:,:)
+        !endif
+        !!!!!!!!!!!!!! FIN A SUPPRIMER
 
     end subroutine compute_MatPen
 

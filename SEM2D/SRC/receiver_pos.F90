@@ -224,7 +224,7 @@ subroutine save_trace (Tdomain, it)
                 enddo
             enddo
 
-            if (Tdomain%sReceiver(ir)%on_vertex) &
+            if (Tdomain%sReceiver(ir)%on_vertex .AND. Tdomain%specel(nr)%type_dg == GALERKIN_HDG_RP) &
                 call build_vertex_vhat_for_receiver(Tdomain, ir, dum0, dum1)
 
             Tdomain%Store_Trace(0,ir,ncache) = dum0
@@ -308,43 +308,44 @@ end subroutine read_receiver_file
 
 subroutine check_receiver_on_vertex(Tdomain,nrec)
 
-    implicit none
     use sdomain
+    implicit none
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in)         :: nrec
     type(element), pointer      :: Elem
-    integer, dimension(:)       :: near_faces_tmp
+    integer, dimension(:), allocatable :: near_faces_tmp
     integer :: nv, n, i
     real    :: tol
     tol = 1.E-10 ; nv = -1 ; i=0
     Elem=> Tdomain%specel(Tdomain%sReceiver(nrec)%nr)
     Tdomain%sReceiver(nrec)%on_vertex = .false.
 
-    if (abs(Tdomain%sReceiver(nrec)%Zrec + 1.) .LE. tol) then
-        if (abs(Tdomain%sReceiver(nrec)%Xrec + 1.) .LE. tol) then
+    if (abs(Tdomain%sReceiver(nrec)%eta + 1.) .LE. tol) then
+        if (abs(Tdomain%sReceiver(nrec)%xi + 1.) .LE. tol) then
             nv = Elem%Near_Vertex(0)
-            write (*,*) "Receiver relocated on node : ", nv
-        else if (abs(Tdomain%sReceiver(nrec)%Xrec - 1.) .LE. tol) then
+            write (*,*) "Receiver relocated on Vertex : ", nv
+        else if (abs(Tdomain%sReceiver(nrec)%xi - 1.) .LE. tol) then
             nv = Elem%Near_Vertex(1)
-            write (*,*) "Receiver relocated on node : ", nv
+            write (*,*) "Receiver relocated on Vertex : ", nv
         endif
-    else if (abs(Tdomain%sReceiver(nrec)%Zrec - 1.) .LE. tol) then
-        if (abs(Tdomain%sReceiver(nrec)%Xrec + 1.) .LE. tol) then
+    else if (abs(Tdomain%sReceiver(nrec)%eta - 1.) .LE. tol) then
+        if (abs(Tdomain%sReceiver(nrec)%xi + 1.) .LE. tol) then
             nv = Elem%Near_Vertex(3)
-            write (*,*) "Receiver relocated on node : ", nv
-        else if (abs(Tdomain%sReceiver(nrec)%Xrec - 1.) .LE. tol) then
+            write (*,*) "Receiver relocated on Vertex : ", nv
+        else if (abs(Tdomain%sReceiver(nrec)%xi - 1.) .LE. tol) then
             nv = Elem%Near_Vertex(2)
-            write (*,*) "Receiver relocated on node : ", nv
+            write (*,*) "Receiver relocated on Vertex : ", nv
         endif
     endif
 
     if (nv .GE. 0) then
         Tdomain%sReceiver(nrec)%on_vertex = .true.
+        write (*,*) "If HDG : Vertex-Projection mode activated for receiver : ", nrec
         Tdomain%sReceiver(nrec)%Nv = nv
         allocate (near_faces_tmp(0:20))
         near_faces_tmp (:) = -1
-        do n = 0,Tdomain%n_face
+        do n = 0,Tdomain%n_face-1
             if (nv == Tdomain%sFace(n)%Near_Vertex(0) .OR. nv == Tdomain%sFace(n)%Near_Vertex(1)) then
                 near_faces_tmp(i) = n
                 i = i+1
@@ -360,8 +361,8 @@ end subroutine check_receiver_on_vertex
 
 subroutine build_vertex_vhat_for_receiver(Tdomain, nrec, dum0, dum1)
 
-    implicit none
     use sdomain
+    implicit none
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in)         :: nrec
@@ -375,12 +376,12 @@ subroutine build_vertex_vhat_for_receiver(Tdomain, nrec, dum0, dum1)
     do n=0,size(Tdomain%sReceiver(nrec)%near_faces)-1
         nface = Tdomain%sReceiver(nrec)%near_faces(n)
         ngll  =  Tdomain%sFace(nface)%ngll
-        if (nv == Tdomain%sFace(nface)%NearVertex(0)) then
+        if (nv == Tdomain%sFace(nface)%Near_Vertex(0)) then
             Tdomain%sVertex(Nv)%V0 = Tdomain%sVertex(Nv)%V0 &
-                                   + Tdomain%sFace(nface)%Veloc(0) * Tdomain%sFace(nface)%Coeff_Integr_ends(0)
+                + Tdomain%sFace(nface)%Veloc(0,:) * Tdomain%sFace(nface)%Coeff_Integr_ends(0)
         else
             Tdomain%sVertex(Nv)%V0 = Tdomain%sVertex(Nv)%V0 &
-                                   + Tdomain%sFace(nface)%Veloc(ngll-1) * Tdomain%sFace(nface)%Coeff_Integr_ends(1)
+                + Tdomain%sFace(nface)%Veloc(ngll-1,:) * Tdomain%sFace(nface)%Coeff_Integr_ends(1)
         endif
     enddo
     Tdomain%sVertex(Nv)%V0 = Tdomain%sVertex(Nv)%V0 * Tdomain%sVertex(Nv)%CoeffAssem
