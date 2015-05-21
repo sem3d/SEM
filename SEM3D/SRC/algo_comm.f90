@@ -3,6 +3,14 @@
 !! Copyright CEA, ECP, IPGP
 !!
 module scomm
+    implicit none
+    interface comm_give_data
+        module procedure comm_give_data_1, comm_give_data_n1, comm_give_data_n2
+    end interface comm_give_data
+
+    interface comm_take_data
+        module procedure comm_take_data_1, comm_take_data_n1, comm_take_data_n2
+    end interface comm_take_data
 
 contains
 
@@ -37,6 +45,103 @@ contains
         call MPI_Waitall(vector%ncomm, vector%send_reqs, statuses, ierr)
 
     end subroutine exchange_sem_var
+
+    subroutine comm_give_data_1(give, igive, data, pos)
+        real, dimension(0:), intent(inout) :: give
+        real, dimension(0:), intent(in)  :: data
+        integer, dimension(0:), intent(in) :: igive
+        integer, intent(inout) :: pos
+        !
+        integer :: i
+        do i=0,size(igive)-1
+            give(pos) = data(igive(i))
+            pos = pos + 1
+        end do
+    end subroutine comm_give_data_1
+
+    subroutine comm_give_data_n1(give, igive, data, pos, dim)
+        real, dimension(0:), intent(inout) :: give
+        real, dimension(0:), intent(in)  :: data
+        integer, dimension(0:), intent(in) :: igive
+        integer, intent(inout) :: pos
+        integer, intent(in) :: dim
+        !
+        integer :: i, j
+        do i=0,size(igive)-1
+            do j=0,dim-1
+                give(pos) = data(igive(i)+j)
+                pos = pos + 1
+            end do
+        end do
+    end subroutine comm_give_data_n1
+
+    subroutine comm_give_data_n2(give, igive, data, pos, dim)
+        real, dimension(0:), intent(inout) :: give
+        real, dimension(0:,0:), intent(in)  :: data
+        integer, dimension(0:), intent(in) :: igive
+        integer, intent(inout) :: pos
+        integer, intent(in) :: dim
+        !
+        integer :: i, j, k
+        do i=0,size(igive)-1
+            do j=0,dim-1
+                do k=0,size(data,2)-1
+                    give(pos) = data(igive(i)+j, k)
+                    pos = pos + 1
+                end do
+            end do
+        end do
+    end subroutine comm_give_data_n2
+
+    subroutine comm_take_data_1(take, itake, data, pos)
+        real, dimension(0:), intent(in) :: take
+        integer, dimension(0:), intent(in) :: itake
+        real, dimension(0:), intent(inout)  :: data
+        integer, intent(inout) :: pos
+        !
+        integer :: i, idx
+        do i=0,size(itake)-1
+            idx = itake(i)
+            data(idx) = data(idx) + take(pos)
+            pos = pos + 1
+        end do
+    end subroutine comm_take_data_1
+
+    subroutine comm_take_data_n1(take, itake, data, pos, dim)
+        real, dimension(0:), intent(in) :: take
+        integer, dimension(0:), intent(in) :: itake
+        real, dimension(0:), intent(inout)  :: data
+        integer, intent(inout) :: pos
+        integer, intent(in) :: dim
+        !
+        integer :: i, j, idx
+        do i=0,size(itake)-1
+            idx = itake(i)
+            do j=0,dim-1
+                data(idx+j) = data(idx+j) + take(pos)
+                pos = pos + 1
+            end do
+        end do
+    end subroutine comm_take_data_n1
+
+    subroutine comm_take_data_n2(take, itake, data, pos, dim)
+        real, dimension(0:), intent(in) :: take
+        integer, dimension(0:), intent(in) :: itake
+        real, dimension(0:,0:), intent(inout)  :: data
+        integer, intent(inout) :: pos
+        integer, intent(in) :: dim
+        !
+        integer :: i, j, k, idx
+        do i=0,size(itake)-1
+            idx = itake(i)
+            do j=0,dim-1
+                do k=0,size(data,2)-1
+                    data(idx+j,k) = data(idx+j,k) + take(pos)
+                    pos = pos + 1
+                end do
+            end do
+        end do
+    end subroutine comm_take_data_n2
 
 end module scomm
 

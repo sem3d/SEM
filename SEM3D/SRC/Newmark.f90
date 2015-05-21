@@ -18,7 +18,7 @@ subroutine Newmark(Tdomain,ntime)
 #endif
     use mcapteur
     use mpi
-    use scomm
+    use scomm, only : exchange_sem_var, comm_give_data, comm_take_data
     use scommutils
     use orientation
     use assembly
@@ -191,50 +191,30 @@ subroutine comm_forces(Tdomain)
 
     type(domain), intent(inout)   :: Tdomain
 
-    integer :: n, i, j, k, m, idx
+    integer :: n, k
 
     if(Tdomain%Comm_data%ncomm > 0)then
         do n = 0,Tdomain%Comm_data%ncomm-1
             ! Domain SOLID
             k = 0
-            do i=0,Tdomain%Comm_data%Data(n)%nsol-1
-                idx = Tdomain%Comm_data%Data(n)%IGiveS(i)
-                do j=0,2
-                    Tdomain%Comm_data%Data(n)%Give(k) = Tdomain%champs1%Forces(idx,j)
-                    k=k+1
-                enddo
-            end do
+            call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%champs1%Forces, k, 1)
 
             ! Domain SOLID PML
-            do i=0,Tdomain%Comm_data%Data(n)%nsolpml-1
-                idx = Tdomain%Comm_data%Data(n)%IGiveSPML(i)
-                do j=0,2
-                    do m=0,2
-                        Tdomain%Comm_data%Data(n)%Give(k) = Tdomain%champs1%ForcesPML(idx+j,m)
-                        k=k+1
-                    enddo
-                enddo
-            end do
+            call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%champs1%ForcesPML, k, 3)
 
             ! Domain FLUID
-            do i=0,Tdomain%Comm_data%Data(n)%nflu-1
-                idx = Tdomain%Comm_data%Data(n)%IGiveF(i)
-                Tdomain%Comm_data%Data(n)%Give(k) = Tdomain%champs1%ForcesFl(idx)
-                k=k+1
-            end do
+            call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%champs1%ForcesFl, k)
 
             ! Domain FLUID PML
-            do i=0,Tdomain%Comm_data%Data(n)%nflupml-1
-                idx = Tdomain%Comm_data%Data(n)%IGiveFPML(i)
-                do j=0,2
-                    Tdomain%Comm_data%Data(n)%Give(k) = Tdomain%champs1%fpml_Forces(idx+j)
-                    k=k+1
-                enddo
-            end do
+            call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%champs1%fpml_Forces, k, 3)
 
             Tdomain%Comm_data%Data(n)%nsend = k
         end do
-        
+
         ! Exchange
         call exchange_sem_var(Tdomain, 104, Tdomain%Comm_data)
 
@@ -242,44 +222,20 @@ subroutine comm_forces(Tdomain)
         do n = 0,Tdomain%Comm_data%ncomm-1
             ! Domain SOLID
             k = 0
-            do i=0,Tdomain%Comm_data%Data(n)%nsol-1
-                idx = Tdomain%Comm_data%Data(n)%ITakeS(i)
-                do j=0,2
-                    Tdomain%champs1%Forces(idx,j) = Tdomain%champs1%Forces(idx,j) + &
-                                                    Tdomain%Comm_data%Data(n)%Take(k)
-                    k = k + 1
-                enddo
-            end do
+            call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                Tdomain%Comm_data%Data(n)%ITakeS, Tdomain%champs1%Forces, k, 1)
 
             ! Domain SOLID PML
-            do i=0,Tdomain%Comm_data%Data(n)%nsolpml-1
-                idx = Tdomain%Comm_data%Data(n)%ITakeSPML(i)
-                do j=0,2
-                    do m=0,2
-                        Tdomain%champs1%ForcesPML(idx+j,m) = Tdomain%champs1%ForcesPML(idx+j,m) + &
-                                                             Tdomain%Comm_data%Data(n)%Take(k)
-                        k=k+1
-                    enddo
-                enddo
-            end do
+            call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                Tdomain%Comm_data%Data(n)%ITakeSPML, Tdomain%champs1%ForcesPML, k, 3)
 
             ! Domain FLUID
-            do i=0,Tdomain%Comm_data%Data(n)%nflu-1
-                idx = Tdomain%Comm_data%Data(n)%ITakeF(i)
-                Tdomain%champs1%ForcesFl(idx) = Tdomain%champs1%ForcesFl(idx) + &
-                                                Tdomain%Comm_data%Data(n)%Take(k)
-                k=k+1
-            end do
+            call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                Tdomain%Comm_data%Data(n)%ITakeF, Tdomain%champs1%ForcesFl, k)
 
             ! Domain FLUID PML
-            do i=0,Tdomain%Comm_data%Data(n)%nflupml-1
-                idx = Tdomain%Comm_data%Data(n)%ITakeFPML(i)
-                do j=0,2
-                    Tdomain%champs1%fpml_Forces(idx+j) = Tdomain%champs1%fpml_Forces(idx+j) + &
-                        Tdomain%Comm_data%Data(n)%Take(k)
-                    k=k+1
-                 enddo
-            end do
+            call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                Tdomain%Comm_data%Data(n)%ITakeFPML, Tdomain%champs1%fpml_Forces, k, 3)
         end do
     endif
 

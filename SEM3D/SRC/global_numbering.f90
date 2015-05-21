@@ -54,7 +54,7 @@ subroutine global_numbering(Tdomain)
     !
     call renumber_pml_domain(Tdomain, renumS, renumF, renumSpml, renumFpml)
     ! Compute index of glls that participate in communications
-    call prepare_comm_vector(Tdomain,Tdomain%Comm_data, 3, 9, 1, 4)
+    call prepare_comm_vector(Tdomain,Tdomain%Comm_data)
     call prepare_comm_vector_SF(Tdomain,Tdomain%n_glob_points,renumSF,Tdomain%Comm_SolFlu)
 !     call debug_comm_vector(Tdomain, rank, 0, 1, Tdomain%Comm_data)
 !     call debug_comm_vector(Tdomain, rank, 0, 2, Tdomain%Comm_data)
@@ -674,13 +674,12 @@ subroutine renumber_pml_domain(Tdomain, renumS, renumF, renumSpml, renumFpml)
     return
 end subroutine renumber_pml_domain
 
-subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid, nddlfluidpml)
+subroutine prepare_comm_vector(Tdomain,comm_data)
     use sdomain
     implicit none
 
     type(domain), intent (inout) :: Tdomain
     type(comm_vector), intent(inout) :: comm_data
-    integer, intent(in) :: nddlsol, nddlsolpml, nddlfluid, nddlfluidpml
 
     integer :: n,ncomm,nsol,nsolpml,nflu,nflupml
     integer :: i,j,k,nf,ne,nv,idx,ngll1,ngll2
@@ -691,8 +690,7 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
         return
     endif
 
-    call allocate_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, &
-        nddlfluid, nddlfluidpml)
+    call allocate_comm_vector(Tdomain,comm_data)
 
     do n = 0,Comm_data%ncomm-1
             ncomm = Comm_data%Data(n)%ncomm
@@ -1083,13 +1081,12 @@ subroutine prepare_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid
 end subroutine prepare_comm_vector
 
 
-subroutine allocate_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlfluid, nddlfluidpml)
+subroutine allocate_comm_vector(Tdomain,comm_data)
     use sdomain
     implicit none
 
     type(domain), intent (inout) :: Tdomain
     type(comm_vector), intent(inout) :: comm_data
-    integer, intent(in) :: nddlsol, nddlsolpml, nddlfluid, nddlfluidpml
     integer :: n_data, n_comm, nsol, nsolpml, nflu, nflupml
     integer :: n, nf, ne, nv, i, temp
 
@@ -1172,7 +1169,12 @@ subroutine allocate_comm_vector(Tdomain,comm_data, nddlsol, nddlsolpml, nddlflui
             endif
         enddo
 
-        n_data = nddlsol*nsol+nddlsolpml*nsolpml+nddlfluid*nflu+nddlfluidpml*nflupml
+        ! the size of data items (nddlxxx) is for communication from comm_forces
+        ! the amount of data exchanged from define_arrays is different but lower for now:
+        ! eg: DumpMass and MassMatSolPml acount for 6 real, compared to 9 for forcesPml
+        ! for fluid we need only 4 during computation but 6 for mass exchange (but only
+        ! to simplify code since 2 are really needed)
+        n_data = 3*nsol+9*nsolpml+1*nflu+6*nflupml
         ! Initialisation et allocation de Comm_vector_DumpMassAndMMSP
         Comm_data%Data(n_comm)%src = Tdomain%rank
         Comm_data%Data(n_comm)%dest = Tdomain%sComm(n)%dest

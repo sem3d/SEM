@@ -125,42 +125,28 @@ subroutine assemble_mass_matrices(Tdomain)
         do n = 0,Tdomain%Comm_data%ncomm-1
             ! Domain SOLID
             k = 0
-            do i=0,Tdomain%Comm_data%Data(n)%nsol-1
-                idx = Tdomain%Comm_data%Data(n)%IGiveS(i)
-                Tdomain%Comm_data%Data(n)%Give(k) = Tdomain%MassMatSol(idx)
-                k=k+1
-            end do
+            call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%MassMatSol, k)
 
             ! Domain SOLID PML
-            do i=0,Tdomain%Comm_data%Data(n)%nsolpml-1
-                idx = Tdomain%Comm_data%Data(n)%IGiveSPML(i)
-                Tdomain%Comm_data%Data(n)%Give(k+0) = Tdomain%DumpMass(idx)
-                Tdomain%Comm_data%Data(n)%Give(k+1) = Tdomain%DumpMass(idx+1)
-                Tdomain%Comm_data%Data(n)%Give(k+2) = Tdomain%DumpMass(idx+2)
-                Tdomain%Comm_data%Data(n)%Give(k+3) = Tdomain%MassMatSolPml(idx)
-                k=k+4
-            end do
+            call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%DumpMass, k, 3)
+            call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%MassMatSolPml, k, 3)
 
             ! Domain FLUID
-            do i=0,Tdomain%Comm_data%Data(n)%nflu-1
-                idx = Tdomain%Comm_data%Data(n)%IGiveF(i)
-                Tdomain%Comm_data%Data(n)%Give(k) = Tdomain%MassMatFlu(idx)
-                k=k+1
-            end do
+            call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%MassMatFlu, k)
 
             ! Domain FLUID PML
-            do i=0,Tdomain%Comm_data%Data(n)%nflupml-1
-                idx = Tdomain%Comm_data%Data(n)%IGiveFPML(i)
-                Tdomain%Comm_data%Data(n)%Give(k+0) = Tdomain%fpml_DumpMass(idx)
-                Tdomain%Comm_data%Data(n)%Give(k+1) = Tdomain%fpml_DumpMass(idx+1)
-                Tdomain%Comm_data%Data(n)%Give(k+2) = Tdomain%fpml_DumpMass(idx+2)
-                Tdomain%Comm_data%Data(n)%Give(k+3) = Tdomain%MassMatFluPml(idx)
-                k=k+4
-            end do
+            call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpml_DumpMass, k, 3)
+            call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%MassMatFluPml, k, 3)
 
             Tdomain%Comm_data%Data(n)%nsend = k
         end do
-        
+
         ! Exchange
         call exchange_sem_var(Tdomain, 103, Tdomain%Comm_data)
 
@@ -168,43 +154,24 @@ subroutine assemble_mass_matrices(Tdomain)
         do n = 0,Tdomain%Comm_data%ncomm-1
             ! Domain SOLID
             k = 0
-            do i=0,Tdomain%Comm_data%Data(n)%nsol-1
-                idx = Tdomain%Comm_data%Data(n)%ITakeS(i)
-                Tdomain%MassMatSol(idx) = Tdomain%MassMatSol(idx) + &
-                                          Tdomain%Comm_data%Data(n)%Take(k)
-                k = k + 1
-            end do
+            call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                Tdomain%Comm_data%Data(n)%ITakeS, Tdomain%MassMatSol, k)
 
             ! Domain SOLID PML
-            do i=0,Tdomain%Comm_data%Data(n)%nsolpml-1
-                idx = Tdomain%Comm_data%Data(n)%ITakeSPML(i)
-                Tdomain%DumpMass(idx+0) = Tdomain%DumpMass(idx+0) + Tdomain%Comm_data%Data(n)%Take(k+0)
-                Tdomain%DumpMass(idx+1) = Tdomain%DumpMass(idx+1) + Tdomain%Comm_data%Data(n)%Take(k+1)
-                Tdomain%DumpMass(idx+2) = Tdomain%DumpMass(idx+2) + Tdomain%Comm_data%Data(n)%Take(k+2)
-                Tdomain%MassMatSolPml(idx+0) = Tdomain%MassMatSolPml(idx+0) + Tdomain%Comm_data%Data(n)%Take(k+3)
-                Tdomain%MassMatSolPml(idx+1) = Tdomain%MassMatSolPml(idx+1) + Tdomain%Comm_data%Data(n)%Take(k+3)
-                Tdomain%MassMatSolPml(idx+2) = Tdomain%MassMatSolPml(idx+2) + Tdomain%Comm_data%Data(n)%Take(k+3)
-                k = k + 4
-            end do
+            call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                Tdomain%Comm_data%Data(n)%ITakeSPML, Tdomain%DumpMass, k, 3)
+            call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                Tdomain%Comm_data%Data(n)%ITakeSPML, Tdomain%MassMatSolPml, k, 3)
 
             ! Domain FLUID
-            do i=0,Tdomain%Comm_data%Data(n)%nflu-1
-                idx = Tdomain%Comm_data%Data(n)%ITakeF(i)
-                Tdomain%MassMatFlu(idx) = Tdomain%MassMatFlu(idx) + Tdomain%Comm_data%Data(n)%Take(k)
-                k=k+1
-            end do
+            call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                Tdomain%Comm_data%Data(n)%ITakeF,  Tdomain%MassMatFlu, k, 1)
 
             ! Domain FLUID PML
-            do i=0,Tdomain%Comm_data%Data(n)%nflupml-1
-                idx = Tdomain%Comm_data%Data(n)%ITakeFPML(i)
-                Tdomain%fpml_DumpMass(idx+0) = Tdomain%fpml_DumpMass(idx+0) + Tdomain%Comm_data%Data(n)%Take(k+0)
-                Tdomain%fpml_DumpMass(idx+1) = Tdomain%fpml_DumpMass(idx+1) + Tdomain%Comm_data%Data(n)%Take(k+1)
-                Tdomain%fpml_DumpMass(idx+2) = Tdomain%fpml_DumpMass(idx+2) + Tdomain%Comm_data%Data(n)%Take(k+2)
-                Tdomain%MassMatFluPml(idx+0) = Tdomain%MassMatFluPml(idx+0) + Tdomain%Comm_data%Data(n)%Take(k+3)
-                Tdomain%MassMatFluPml(idx+1) = Tdomain%MassMatFluPml(idx+1) + Tdomain%Comm_data%Data(n)%Take(k+3)
-                Tdomain%MassMatFluPml(idx+2) = Tdomain%MassMatFluPml(idx+2) + Tdomain%Comm_data%Data(n)%Take(k+3)
-                k=k+4
-            end do
+            call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                Tdomain%Comm_data%Data(n)%ITakeFPML, Tdomain%fpml_DumpMass, k, 3)
+            call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                Tdomain%Comm_data%Data(n)%ITakeFPML, Tdomain%MassMatFluPml, k, 3)
         end do
     end if
 
