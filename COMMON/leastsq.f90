@@ -181,24 +181,26 @@ contains
             sigma(i,i)=si(i)
         end do
 
-        !! verif
-        !    allocate(mat_verif(m,n))
-        !    mat_verif=matmul(U,matmul(sigma,VT))
-        !   do i=1,m
-        !     do j=1,n
-        !      print*,i,j,Amat(i-1,j-1),mat_verif(i,j)
-        !     end do
-        !   end do
 
         !! list of singular values and ratio to the highest
-        open(10,file="singval.out",status="replace",action="write")
-        write(10,*) "-----------------------------------------"
-        write(10,*) "Singular values and ratio to the highest:"
-        write(10,*) "----------------------------------------"
-        do i=1,size(si)
-            write(10,*) si(i),si(i)/maxval(si)
-        end do
-        close(10)
+        if (.false.) then ! USE ONLY FOR DEBUG, CAN'T WORK WELL ON MULTIPLE PROCESSORS
+            !! verif
+            !allocate(mat_verif(m,n))
+            !mat_verif=matmul(U,matmul(sigma,VT))
+            !do i=1,m
+            !    do j=1,n
+            !        print*,i,j,Amat(i-1,j-1),mat_verif(i,j)
+            !    end do
+            !end do
+            open(10,file="singval.out",status="replace",action="write")
+            write(10,*) "-----------------------------------------"
+            write(10,*) "Singular values and ratio to the highest:"
+            write(10,*) "----------------------------------------"
+            do i=1,size(si)
+                write(10,*) si(i),si(i)/maxval(si)
+            end do
+            close(10)
+        end if
 
         where(abs(si/maxval(si))<1d-10)
             si = 0d0
