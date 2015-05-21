@@ -4,7 +4,7 @@
 !!
 !>
 !!\file Capteur.f90
-!!\brief Permet de manipuler les quantités associées aux capteurs.
+!!\brief Permet de manipuler les quantitÃ©s associÃ©es aux capteurs.
 !!\author
 !!\version 1.0
 !!\date 10/03/2009
@@ -164,6 +164,7 @@ contains
         logical, intent(out) :: sortie_capteur
         type(tCapteur),pointer :: capteur
 
+        sortie_capteur = .FALSE.
         ! boucle sur les capteurs
         capteur=>listeCapteur
 
