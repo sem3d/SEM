@@ -173,7 +173,7 @@ subroutine Newmark(Tdomain,ntime)
 
     if(Tdomain%logicD%SF_local_present)then
         !- fluid -> solid coupling (pressure times velocity)
-        call FtoS_coupling(Tdomain, Tdomain%SF%SF_BtN, Tdomain%champs0%VelPhi, Tdomain%champs0%Forces)
+        call FtoS_coupling(Tdomain, Tdomain%SF%SF_BtN, Tdomain%champs0%VelPhi, Tdomain%champs1%Forces)
     end if
     call Newmark_Corrector_Solid(Tdomain,Tdomain%champs1)
 

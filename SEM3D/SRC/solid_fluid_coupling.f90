@@ -79,14 +79,14 @@ subroutine FtoS_coupling(Tdomain, BtN, VelPhi, Forces)
     !
     integer :: ngll_sf
     integer  :: i,j,k,n,idx
-    real, dimension(0:Tdomain%SF%ngll-1) :: pn
+    real, dimension(0:2, 0:Tdomain%SF%ngll-1) :: pn
 
     ngll_sf = Tdomain%SF%ngll
-    pn(:) = 0d0
+    pn = 0d0
     do i = 0,ngll_sf-1
         idx = Tdomain%SF%SF_IGlobFlu(i)
         do j = 0,2
-            pn(i) = pn(i) + (BtN(i,j) * VelPhi(idx))
+            pn(j,i) = - (BtN(i,j) * VelPhi(idx))
         enddo
     enddo
 
@@ -96,8 +96,10 @@ subroutine FtoS_coupling(Tdomain, BtN, VelPhi, Forces)
             k = 0
             do i=0,Tdomain%Comm_SolFlu%Data(n)%ndata-1
                 idx = Tdomain%Comm_SolFlu%Data(n)%IGiveS(i)
-                Tdomain%Comm_SolFlu%Data(n)%Give(k) = pn(idx)
-                k=k+1
+                Tdomain%Comm_SolFlu%Data(n)%Give(k+0) = pn(0,idx)
+                Tdomain%Comm_SolFlu%Data(n)%Give(k+1) = pn(1,idx)
+                Tdomain%Comm_SolFlu%Data(n)%Give(k+2) = pn(2,idx)
+                k=k+3
             end do
             Tdomain%Comm_SolFlu%Data(n)%nsend = k
         enddo
@@ -110,8 +112,10 @@ subroutine FtoS_coupling(Tdomain, BtN, VelPhi, Forces)
             k = 0
             do i=0,Tdomain%Comm_SolFlu%Data(n)%ndata-1
                 idx = Tdomain%Comm_SolFlu%Data(n)%ITakeS(i)
-                pn(idx) = pn(idx) + Tdomain%Comm_SolFlu%Data(n)%Take(k)
-                k=k+1
+                pn(0,idx) = pn(0,idx) + Tdomain%Comm_SolFlu%Data(n)%Take(k+0)
+                pn(1,idx) = pn(1,idx) + Tdomain%Comm_SolFlu%Data(n)%Take(k+1)
+                pn(2,idx) = pn(2,idx) + Tdomain%Comm_SolFlu%Data(n)%Take(k+2)
+                k=k+3
             enddo
         enddo
     endif
@@ -119,7 +123,7 @@ subroutine FtoS_coupling(Tdomain, BtN, VelPhi, Forces)
     do i = 0,ngll_sf-1
         idx = Tdomain%SF%SF_IGlobSol(i)
         do j = 0,2
-            Forces(idx,j) = Forces(idx,j) + pn(i)
+            Forces(idx,j) = Forces(idx,j) + pn(j,i)
         enddo
     enddo
 
