@@ -6,6 +6,7 @@ program SEM3D
     use mpi
     use semdatafiles
     use drive_sem
+    use stat
 
     character(Len=MAX_FILE_SIZE),parameter :: p_param = "."
     character(Len=MAX_FILE_SIZE),parameter :: p_traces = "./traces"
@@ -17,17 +18,18 @@ program SEM3D
 
     integer :: ierr, rg
 
+    call stat_init()
     call init_sem_path(p_param, p_traces, p_results, p_data, p_prot, p_prop, p_prop_h5)
 
     call sem(-1, MPI_COMM_WORLD, MPI_COMM_WORLD)
 
-    call MPI_Comm_Rank (MPI_COMM_WORLD, rg, ierr)
-
     ! synchro pour s'assurer que le message s'affiche lorsque tout le monde a bien termine
     call MPI_Barrier(MPI_COMM_WORLD, ierr)
+    call MPI_Comm_Rank (MPI_COMM_WORLD, rg, ierr)
     if (rg==0) then
         write (*,*) "fin du calcul sur processeurs "
     end if
+    call stat_finalize()
     call mpi_finalize(ierr)
 
 end program SEM3D

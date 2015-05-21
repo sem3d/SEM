@@ -62,6 +62,7 @@ contains
     subroutine exchange_sem_forces(Tdomain)
         use sdomain
         use mpi
+        use stat
         implicit none
         type(domain), intent(inout) :: Tdomain
         integer :: rg
@@ -114,6 +115,7 @@ contains
         enddo
         !write(*,*) "WAIT Exchange sem forces", rg
 
+        call stat_starttick()
         call MPI_Waitall(Tdomain%tot_comm_proc, req_s_f, statuses, ierr)
         call MPI_Waitall(Tdomain%tot_comm_proc, req_r_f, statuses, ierr)
         call MPI_Waitall(Tdomain%tot_comm_proc, req_s_fl, statuses, ierr)
@@ -123,6 +125,7 @@ contains
         call MPI_Waitall(Tdomain%tot_comm_proc, req_s_fpml, statuses, ierr)
         call MPI_Waitall(Tdomain%tot_comm_proc, req_r_fpml, statuses, ierr)
         !write(*,*) "END Exchange sem forces", rg
+        call stat_stoptick('wait')
     end subroutine exchange_sem_forces
 
     subroutine exchange_sem_forces_StoF(Tdomain)

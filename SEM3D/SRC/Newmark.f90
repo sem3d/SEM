@@ -22,6 +22,7 @@ subroutine Newmark(Tdomain,ntime)
     use scommutils
     use orientation
     use assembly
+    use stat
 
     implicit none
 
@@ -46,12 +47,16 @@ subroutine Newmark(Tdomain,ntime)
     call Newmark_Predictor(Tdomain)
 
     !- Solution phase
+    call stat_starttick()
     call internal_forces(Tdomain)
+    call stat_stoptick('fint')
 
 
     ! External Forces
     if(Tdomain%logicD%any_source)then
+        call stat_starttick()
         call external_forces(Tdomain,Tdomain%TimeD%rtime,ntime)
+        call stat_stoptick('fext')
     end if
 
     ! Communication of Forces within a single process
@@ -102,15 +107,18 @@ subroutine Newmark(Tdomain,ntime)
 
     ! MPI communications
     if(Tdomain%nb_procs > 1)then
+        call stat_starttick()
         ! from external faces, edges and vertices to Communication global arrays
         do n = 0,Tdomain%tot_comm_proc-1
             call Comm_Forces_Complete(Tdomain%sComm(n),Tdomain)
             call Comm_Forces_PML_Complete(Tdomain%sComm(n),Tdomain)
         end do
+        call stat_stoptick('give')
 
         call exchange_sem_forces(Tdomain)
 
         ! now: assemblage on external faces, edges and vertices
+        call stat_starttick()
         do n = 0,Tdomain%tot_comm_proc-1
             ngll = 0
             ngll_F = 0
@@ -120,6 +128,7 @@ subroutine Newmark(Tdomain,ntime)
             call Comm_Forces_Edge  (Tdomain,Tdomain%sComm(n),ngll,ngll_F,ngllPML,ngllPML_F)
             call Comm_Forces_Vertex(Tdomain,Tdomain%sComm(n),ngll,ngll_F,ngllPML,ngllPML_F)
         enddo
+        call stat_stoptick('take')
 
     endif  ! if nproc > 1
 

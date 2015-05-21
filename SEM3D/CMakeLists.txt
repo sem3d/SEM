@@ -5,6 +5,7 @@ ENABLE_LANGUAGE(Fortran)
 set(PRJ ${PROJECT_SOURCE_DIR})
 
 set(SEM3D_SOURCES_F
+    ${PRJ}/SRC/stat.f90
     ${PRJ}/SRC/geometrical_prop.f90
     ${PRJ}/SRC/Modules/Element.f90
     ${PRJ}/SRC/Modules/Face.f90
