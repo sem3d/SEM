@@ -55,10 +55,7 @@ subroutine SourcePosition (Tdomain)
             if (xi>(1+EPS) .or. eta>(1+EPS) .or. zeta>(1+EPS)) inside = .false.
             if (inside) then
                 n_el = elems(i)
-                write(*,*) "Source candidate: proc=",rg, " elem=",elems(i), "at:", xi, eta, zeta
                 exit
-            else
-                write(*,*) "Rejected candidate: proc=",rg," elem=",elems(i), "at:", xi, eta, zeta
             end if
         end do
         ! On ignore une source fluide dans le domaine solide
@@ -77,10 +74,9 @@ subroutine SourcePosition (Tdomain)
         call MPI_AllReduce(Tdomain%sSource(n_src)%proc, src_proc, 1, MPI_INTEGER, &
                            MPI_MAX, Tdomain%communicateur, ierr)
 
-        if (rg==0) write(*,*) "Found source on proc", src_proc
         if (src_proc==-1) then
             if (rg==0) then
-                write(*,*) "A source doesn't appear to be on any processor"
+                write(*,*) "The source at (", xs, ys, zs, ") doesn't appear to be on any processor"
                 write(*,*) "Please verify that the source location is within the computation domain"
                 write(*,*) "And the source type (solid, or fluid) is in accordance with its location"
             end if
@@ -100,6 +96,7 @@ subroutine SourcePosition (Tdomain)
             Tdomain%sSource(n_src)%refcoord(0) = xi
             Tdomain%sSource(n_src)%refcoord(1) = eta
             Tdomain%sSource(n_src)%refcoord(2) = zeta
+            write(*,*) "Found source", n_src, "on proc", src_proc
             write(*,*) "Source local coordinates:", Tdomain%sSource(n_src)%refcoord
             write(*,*) "From position", xs, ys, zs
             call invert_3d (LocInvGrad, R)
