@@ -50,6 +50,8 @@ subroutine global_numbering(Tdomain)
 
     ! Create individual numbering for each sub(physical) domain
     call renumber_domains(Tdomain, renumS, renumF, renumSpml, renumFpml)
+    ! Reorder domain nodes to improve locality in memory (avoid cache misses)
+    call reorder_domains(Tdomain,renumS,renumF,renumSpml,renumFpml)
     ! Create numbering for Solid-Fluid interface
     call renumber_sf_coupling(Tdomain, renumSF, renumSFpml)
     !
@@ -598,7 +600,7 @@ subroutine renumber_pml_domain(Tdomain, renumS, renumF, renumSpml, renumFpml)
     integer, dimension (0:), intent(in) :: renumS, renumF, renumSpml, renumFpml
     integer :: n, i, j, ngll1, ngll2
 
-    integer :: idxSpml, idxFpml
+    integer :: gidx, idxSpml, idxFpml
     integer :: solid_abs_count, fluid_abs_count
 
     solid_abs_count = 0
@@ -627,20 +629,21 @@ subroutine renumber_pml_domain(Tdomain, renumS, renumF, renumSpml, renumFpml)
         allocate(Tdomain%sFace(n)%Renum(1:ngll1-2,1:ngll2-2))
         do j = 1,ngll2-2
             do i = 1,ngll1-2
+                gidx = Tdomain%sFace(n)%Iglobnum_Face(i,j)
                 if (Tdomain%sFace(n)%solid) then
                     if (Tdomain%sFace(n)%PML) then
-                        Tdomain%sFace(n)%Renum(i,j) = renumSpml(Tdomain%sFace(n)%Iglobnum_Face(i,j))
+                        Tdomain%sFace(n)%Renum(i,j) = renumSpml(gidx)
                         if (Tdomain%sFace(n)%Renum(i,j) < 0) stop "Error renumbering SOLID PML faces"
                     else
-                        Tdomain%sFace(n)%Renum(i,j) = renumS(Tdomain%sFace(n)%Iglobnum_Face(i,j))
+                        Tdomain%sFace(n)%Renum(i,j) = renumS(gidx)
                         if (Tdomain%sFace(n)%Renum(i,j) < 0) stop "Error renumbering SOLID faces"
                     endif
                 else
                     if (Tdomain%sFace(n)%PML) then
-                        Tdomain%sFace(n)%Renum(i,j) = renumFpml(Tdomain%sFace(n)%Iglobnum_Face(i,j))
+                        Tdomain%sFace(n)%Renum(i,j) = renumFpml(gidx)
                         if (Tdomain%sFace(n)%Renum(i,j) < 0) stop "Error renumbering FLUID PML faces"
                     else
-                        Tdomain%sFace(n)%Renum(i,j) = renumF(Tdomain%sFace(n)%Iglobnum_Face(i,j))
+                        Tdomain%sFace(n)%Renum(i,j) = renumF(gidx)
                         if (Tdomain%sFace(n)%Renum(i,j) < 0) stop "Error renumbering FLUID faces"
                     endif
                 endif
@@ -1898,6 +1901,186 @@ subroutine renumSolFlu(Tdomain)
 
     return
 end subroutine renumSolFlu
+
+subroutine reorder_domains(Tdomain, renumS, renumF, renumSpml, renumFpml)
+    use sdomain
+    implicit none
+    type(domain), intent (inout) :: Tdomain
+    integer, dimension(0:), intent(inout) :: renumS, renumF, renumSpml, renumFpml
+    !
+    integer, dimension(:), allocatable :: renumS_reorder, renumF_reorder, renumSpml_reorder, renumFpml_reorder
+    integer n, i, j, k
+    integer ind, oindS, oindSpml, oindF, oindFpml
+    integer ngllx, nglly, ngllz
+
+    ! Initialize new order : set new order to -1
+
+    allocate(renumS_reorder(0:Tdomain%n_glob_points-1))
+    allocate(renumF_reorder(0:Tdomain%n_glob_points-1))
+    allocate(renumSpml_reorder(0:Tdomain%n_glob_points-1))
+    allocate(renumFpml_reorder(0:Tdomain%n_glob_points-1))
+    renumS_reorder(:)   =-1
+    renumF_reorder(:)   =-1
+    renumSpml_reorder(:)=-1
+    renumFpml_reorder(:)=-1
+    oindS    = 0 ! Ordered index
+    oindSpml = 0 ! Ordered index
+    oindF    = 0 ! Ordered index
+    oindFpml = 0 ! Ordered index
+
+    ! Reorder over elements
+
+    do n = 0,Tdomain%n_elem-1
+        ngllx = Tdomain%specel(n)%ngllx
+        nglly = Tdomain%specel(n)%nglly
+        ngllz = Tdomain%specel(n)%ngllz
+        do k = 0,ngllz-1
+            do j = 0,nglly-1
+                do i = 0,ngllx-1
+                    ind = Tdomain%specel(n)%Iglobnum(i,j,k)
+                    if (Tdomain%specel(n)%solid .and. (.not. Tdomain%specel(n)%pml)) then
+                        if (renumS_reorder(ind) == -1) then
+                            renumS_reorder(ind) = oindS
+                            oindS = oindS+1
+                        end if
+                    else if (Tdomain%specel(n)%solid .and. Tdomain%specel(n)%pml) then
+                        if (renumSpml_reorder(ind) == -1) then
+                            renumSpml_reorder(ind) = oindSpml
+                            oindSpml = oindSpml+3
+                        end if
+                    else if ((.not. Tdomain%specel(n)%solid) .and. (.not. Tdomain%specel(n)%pml)) then
+                        if (renumF_reorder(ind) == -1) then
+                            renumF_reorder(ind) = oindF
+                            oindF = oindF+1
+                        end if
+                    else
+                        if (renumFpml_reorder(ind) == -1) then
+                            renumFpml_reorder(ind) = oindFpml
+                            oindFpml = oindFpml+3
+                        end if
+                    end if
+                end do
+            end do
+        end do
+    end do
+
+    ! Reorder over faces
+
+    do n = 0, Tdomain%n_face-1
+        ngllx = Tdomain%sFace(n)%ngll1
+        nglly = Tdomain%sFace(n)%ngll2
+        do j = 1,nglly-2
+            do i = 1,ngllx-2
+                ind = Tdomain%sFace(n)%Iglobnum_Face(i,j)
+                if (Tdomain%sFace(n)%solid .and. (.not. Tdomain%sFace(n)%pml)) then
+                    if (renumS_reorder(ind) == -1) then
+                        renumS_reorder(ind) = oindS
+                        oindS = oindS+1
+                    end if
+                else if (Tdomain%sFace(n)%solid .and. Tdomain%sFace(n)%pml) then
+                    if (renumSpml_reorder(ind) == -1) then
+                        renumSpml_reorder(ind) = oindSpml
+                        oindSpml = oindSpml+3
+                    end if
+                else if ((.not. Tdomain%sFace(n)%solid) .and. (.not. Tdomain%sFace(n)%pml)) then
+                    if (renumF_reorder(ind) == -1) then
+                        renumF_reorder(ind) = oindF
+                        oindF = oindF+1
+                    end if
+                else
+                    if (renumFpml_reorder(ind) == -1) then
+                        renumFpml_reorder(ind) = oindFpml
+                        oindFpml = oindFpml+3
+                    end if
+                end if
+            enddo
+        enddo
+    end do
+
+    ! Reorder over edges
+
+    do n = 0, Tdomain%n_edge-1
+        ngllx = Tdomain%sEdge(n)%ngll
+        do i = 1,ngllx-2
+            ind = Tdomain%sEdge(n)%Iglobnum_Edge(i)
+            if (Tdomain%sEdge(n)%solid .and. (.not. Tdomain%sEdge(n)%pml)) then
+                if (renumS_reorder(ind) == -1) then
+                    renumS_reorder(ind) = oindS
+                    oindS = oindS+1
+                end if
+            else if (Tdomain%sEdge(n)%solid .and. Tdomain%sEdge(n)%pml) then
+                if (renumSpml_reorder(ind) == -1) then
+                    renumSpml_reorder(ind) = oindSpml
+                    oindSpml = oindSpml+3
+                end if
+            else if ((.not. Tdomain%sEdge(n)%solid) .and. (.not. Tdomain%sEdge(n)%pml)) then
+                if (renumF_reorder(ind) == -1) then
+                    renumF_reorder(ind) = oindF
+                    oindF = oindF+1
+                end if
+            else
+                if (renumFpml_reorder(ind) == -1) then
+                    renumFpml_reorder(ind) = oindFpml
+                    oindFpml = oindFpml+3
+                end if
+            end if
+        enddo
+    end do
+
+    ! Reorder over vertices
+
+    do n = 0, Tdomain%n_vertex-1
+        ind = Tdomain%sVertex(n)%Iglobnum_Vertex
+        if (Tdomain%sVertex(n)%solid .and. (.not. Tdomain%sVertex(n)%pml)) then
+            if (renumS_reorder(ind) == -1) then
+                renumS_reorder(ind) = oindS
+                oindS = oindS+1
+            end if
+        else if (Tdomain%sVertex(n)%solid .and. Tdomain%sVertex(n)%pml) then
+            if (renumSpml_reorder(ind) == -1) then
+                renumSpml_reorder(ind) = oindSpml
+                oindSpml = oindSpml+3
+            end if
+        else if ((.not. Tdomain%sVertex(n)%solid) .and. (.not. Tdomain%sVertex(n)%pml)) then
+            if (renumF_reorder(ind) == -1) then
+                renumF_reorder(ind) = oindF
+                oindF = oindF+1
+            end if
+        else
+            if (renumFpml_reorder(ind) == -1) then
+                renumFpml_reorder(ind) = oindFpml
+                oindFpml = oindFpml+3
+            end if
+        end if
+    end do
+
+    ! Replace old order by new order
+
+    do n = 0,Tdomain%n_glob_points-1
+        ! Check all nodes are re-numbered
+        if (      renumS_reorder(n)    == -1 &
+            .and. renumF_reorder(n)    == -1 &
+            .and. renumSpml_reorder(n) == -1 &
+            .and. renumFpml_reorder(n) == -1) stop "reorder_domains : KO renum"
+        if (renumS_reorder(n)   ==-1 .and. renumS(n)   /=-1) stop "reorder_domains1 S   : ko"
+        if (renumF_reorder(n)   ==-1 .and. renumF(n)   /=-1) stop "reorder_domains1 F   : ko"
+        if (renumSpml_reorder(n)==-1 .and. renumSpml(n)/=-1) stop "reorder_domains1 Spml: ko"
+        if (renumFpml_reorder(n)==-1 .and. renumFpml(n)/=-1) stop "reorder_domains1 Fpml: ko"
+        if (renumS_reorder(n)   /=-1 .and. renumS(n)   ==-1) stop "reorder_domains2 S   : ko"
+        if (renumF_reorder(n)   /=-1 .and. renumF(n)   ==-1) stop "reorder_domains2 F   : ko"
+        if (renumSpml_reorder(n)/=-1 .and. renumSpml(n)==-1) stop "reorder_domains2 Spml: ko"
+        if (renumFpml_reorder(n)/=-1 .and. renumFpml(n)==-1) stop "reorder_domains2 Fpml: ko"
+
+        renumS(n)=renumS_reorder(n)
+        renumF(n)=renumF_reorder(n)
+        renumSpml(n)=renumSpml_reorder(n)
+        renumFpml(n)=renumFpml_reorder(n)
+    end do
+    deallocate(renumS_reorder)
+    deallocate(renumF_reorder)
+    deallocate(renumSpml_reorder)
+    deallocate(renumFpml_reorder)
+end subroutine reorder_domains
 
 end module mrenumber
 !! Local Variables:
