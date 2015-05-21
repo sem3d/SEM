@@ -478,7 +478,6 @@ int generate_stations_line(yyscan_t scanner, sem_config_t* config, station_secti
         }
 	stat->name = (char*)malloc( lstat+10 );
 	snprintf(stat->name, lstat+10, "%s_%04d", stations->section_name, k);
-        strcpy(stat->name, stations->section_name);
         stat->period = stations->period;
         stat->next = config->stations;
         config->stations = stat;
@@ -505,7 +504,6 @@ int generate_stations_plane(yyscan_t scanner, sem_config_t* config, station_sect
             }
             stat->name = (char*)malloc( lstat+10 );
             snprintf(stat->name, lstat+10, "%s_%04d_%04d", stations->section_name, ki, kj);
-            strcpy(stat->name, stations->section_name);
             stat->period = stations->period;
             stat->next = config->stations;
             config->stations = stat;

@@ -17,6 +17,8 @@ contains
     subroutine exchange_sem_var(Tdomain, tag, vector)
         use sdomain
         use mpi
+        use stat, only : stat_starttick, stat_stoptick
+
         implicit none
         type(domain), intent(inout) :: Tdomain
         integer, intent(in) :: tag
@@ -41,8 +43,10 @@ contains
                            vector%recv_reqs(i), ierr)
         enddo
 
+        call stat_starttick()
         call MPI_Waitall(vector%ncomm, vector%recv_reqs, statuses, ierr)
         call MPI_Waitall(vector%ncomm, vector%send_reqs, statuses, ierr)
+        call stat_stoptick('wait')
 
     end subroutine exchange_sem_var
 

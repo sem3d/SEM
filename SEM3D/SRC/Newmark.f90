@@ -23,6 +23,7 @@ subroutine Newmark(Tdomain,ntime)
     use orientation
     use assembly
     use schamps
+    use stat, only : stat_starttick, stat_stoptick
 
     implicit none
 
@@ -48,12 +49,16 @@ subroutine Newmark(Tdomain,ntime)
     call Newmark_Predictor(Tdomain,Tdomain%champs1)
 
     !- Solution phase
+    call stat_starttick()
     call internal_forces(Tdomain,Tdomain%champs1)
+    call stat_stoptick('fint')
 
 
     ! External Forces
     if(Tdomain%logicD%any_source)then
+        call stat_starttick()
         call external_forces(Tdomain,Tdomain%TimeD%rtime,ntime,Tdomain%champs1)
+        call stat_stoptick('fext')
     end if
 
 #ifdef COUPLAGE
@@ -194,6 +199,7 @@ subroutine comm_forces(Tdomain)
     integer :: n, k
 
     if(Tdomain%Comm_data%ncomm > 0)then
+        call stat_starttick()
         do n = 0,Tdomain%Comm_data%ncomm-1
             ! Domain SOLID
             k = 0
@@ -214,11 +220,13 @@ subroutine comm_forces(Tdomain)
 
             Tdomain%Comm_data%Data(n)%nsend = k
         end do
+        call stat_stoptick('give')
 
         ! Exchange
         call exchange_sem_var(Tdomain, 104, Tdomain%Comm_data)
 
         ! Take
+        call stat_starttick()
         do n = 0,Tdomain%Comm_data%ncomm-1
             ! Domain SOLID
             k = 0
@@ -237,6 +245,7 @@ subroutine comm_forces(Tdomain)
             call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                 Tdomain%Comm_data%Data(n)%ITakeFPML, Tdomain%champs1%fpml_Forces, k, 3)
         end do
+        call stat_stoptick('take')
     endif
 
     return
