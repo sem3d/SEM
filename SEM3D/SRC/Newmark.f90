@@ -192,6 +192,7 @@ end subroutine Newmark
 subroutine comm_forces(Tdomain)
     use sdomain
     use scomm
+    use stat, only : stat_starttick, stat_stoptick
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
