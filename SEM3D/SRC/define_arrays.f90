@@ -17,8 +17,6 @@ module mdefinitions
     implicit none
 
     public :: define_arrays
-    private :: define_Acoeff_iso, define_Acoeff_fluid
-    private :: define_Acoeff_PML_iso, define_Acoeff_PML_fluid
     private :: define_alpha_PML
     private :: define_PML_DumpInit, define_PML_DumpEnd
     private :: assemble_DumpMass
@@ -50,8 +48,6 @@ subroutine Define_Arrays(Tdomain)
        call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
        ! Compute MassMat and Whei (with allocation)
        call init_local_mass_mat(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat),Whei)
-       ! Compute Acoeff (for PML)
-       call init_element_acoeff(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat),Whei)
        ! Computes DumpS, DumpMass (local),and for FPML :  Iv and Is
        if (Tdomain%specel(n)%PML) then
           call init_pml_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat),Whei)
@@ -255,82 +251,6 @@ subroutine init_material_properties(Tdomain, specel, mat)
 end subroutine init_material_properties
 
 
-subroutine init_element_acoeff(Tdomain,specel,mat,whei)
-  type (domain), intent (INOUT), target :: Tdomain
-  type (element), intent(inout) :: specel
-  type (subdomain), intent(in) :: mat
-  real, dimension(:,:,:), allocatable, intent(in) :: Whei
-  !
-  integer :: ngllx, nglly, ngllz
-  real, dimension(:,:,:), allocatable :: xix,xiy,xiz
-  real, dimension(:,:,:), allocatable :: etax,etay,etaz
-  real, dimension(:,:,:), allocatable :: zetax,zetay,zetaz
-  real, dimension(:,:,:), allocatable :: RKmod
-
-  ngllx = specel%ngllx
-  nglly = specel%nglly
-  ngllz = specel%ngllz
-
-  allocate(xix(0:ngllx-1,0:nglly-1,0:ngllz-1))
-  allocate(xiy(0:ngllx-1,0:nglly-1,0:ngllz-1))
-  allocate(xiz(0:ngllx-1,0:nglly-1,0:ngllz-1))
-  allocate(etax(0:ngllx-1,0:nglly-1,0:ngllz-1))
-  allocate(etay(0:ngllx-1,0:nglly-1,0:ngllz-1))
-  allocate(etaz(0:ngllx-1,0:nglly-1,0:ngllz-1))
-  allocate(zetax(0:ngllx-1,0:nglly-1,0:ngllz-1))
-  allocate(zetay(0:ngllx-1,0:nglly-1,0:ngllz-1))
-  allocate(zetaz(0:ngllx-1,0:nglly-1,0:ngllz-1))
-  allocate(RKmod(0:ngllx-1,0:nglly-1,0:ngllz-1))
-
-  xix = specel%InvGrad(0,0,:,:,:)
-  xiy = specel%InvGrad(1,0,:,:,:)
-  xiz = specel%InvGrad(2,0,:,:,:)
-
-  etax = specel%InvGrad(0,1,:,:,:)
-  etay = specel%InvGrad(1,1,:,:,:)
-  etaz = specel%InvGrad(2,1,:,:,:)
-
-  zetax = specel%InvGrad(0,2,:,:,:)
-  zetay = specel%InvGrad(1,2,:,:,:)
-  zetaz = specel%InvGrad(2,2,:,:,:)
-
-  RKmod = specel%Lambda + 2. * specel%Mu
-
-  !- verif. for fluid part
-  if(.not. specel%solid .and. maxval(specel%Mu) > 1.d-5) stop "Fluid element with a non null shear modulus."
-
-
-  !- parts of the internal forces terms: Acoeff; to be compared to
-  !  general expressions = products of material properties and nabla operators
-
-  if(.not. specel%PML .and. .false.)then
-      ! On n'utilise pas les Acoef pour l'instant
-      if(specel%solid)then
-          call define_Acoeff_iso(ngllx,nglly,ngllz,Rkmod,specel%Mu,specel%Lambda,xix,xiy,xiz,    &
-              etax,etay,etaz,zetax,zetay,zetaz,Whei,specel%Jacob,specel%sl%Acoeff)
-      else   ! fluid case
-          call define_Acoeff_fluid(ngllx,nglly,ngllz,specel%Density,xix,xiy,xiz,    &
-              etax,etay,etaz,zetax,zetay,zetaz,Whei,specel%Jacob,specel%fl%Acoeff)
-      end if
-  endif
-
-  if(specel%PML)then   ! PML case: valid for solid and fluid parts
-     if(specel%solid)then
-        call define_Acoeff_PML_iso(ngllx,nglly,ngllz,Rkmod,specel%Mu,specel%Lambda, &
-             xix,xiy,xiz,    &
-             etax,etay,etaz, &
-             zetax,zetay,zetaz, &
-             Whei,specel%Jacob,specel%sl%Acoeff)
-     else  ! fluid case
-        call define_Acoeff_PML_fluid(ngllx,nglly,ngllz,specel%Density, &
-             xix,xiy,xiz,    &
-             etax,etay,etaz, &
-             zetax,zetay,zetaz,&
-             Whei,specel%Jacob,specel%fl%Acoeff)
-     end if
-  end if
-  deallocate(xix,xiy,xiz,etax,etay,etaz,zetax,zetay,zetaz,RKmod)
-end subroutine init_element_acoeff
 
 subroutine init_pml_properties(Tdomain,specel,mat,Whei)
     type (domain), intent (INOUT), target :: Tdomain
@@ -655,166 +575,6 @@ subroutine initialize_material_gradient(Tdomain, specel, mat)
   !    fin modification des proprietes des couches de materiaux
 end subroutine initialize_material_gradient
 
-!---------------------------------------------------------------------------------------
-subroutine define_Acoeff_iso(ngllx,nglly,ngllz,Rkmod,Rmu,Rlam, &
-     xix,xiy,xiz, &
-     etax,etay,etaz, &
-     zetax,zetay,zetaz, &
-     Whei,Jac,Acoeff)
-    integer, intent(in)  :: ngllx,nglly,ngllz
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Rkmod,Rmu,Rlam,  &
-        xix,xiy,xiz,etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:44), intent(out) :: Acoeff
-
-    Acoeff(:,:,:,0) = -Whei*(RKmod*xix**2+Rmu*(xiy**2+xiz**2))*Jac
-    Acoeff(:,:,:,1) = -Whei*(RKmod*xix*etax+Rmu*(xiy*etay+xiz*etaz))*Jac
-    Acoeff(:,:,:,2) = -Whei*(RKmod*xix*zetax+Rmu*(xiy*zetay+xiz*zetaz))*Jac
-    Acoeff(:,:,:,3) = -Whei*(Rlam+Rmu)*xix*xiy*Jac
-    Acoeff(:,:,:,4) = -Whei*(Rlam*xix*etay+Rmu*xiy*etax)*Jac
-    Acoeff(:,:,:,5) = -Whei*(Rlam*xix*zetay+Rmu*xiy*zetax)*Jac
-    Acoeff(:,:,:,6) = -Whei*(Rlam+Rmu)*xix*xiz*Jac
-    Acoeff(:,:,:,7) = -Whei*(Rlam*xix*etaz+Rmu*xiz*etax)*Jac
-    Acoeff(:,:,:,8) = -Whei*(Rlam*xix*zetaz+rmu*xiz*zetax)*Jac
-    Acoeff(:,:,:,9) = -Whei*(RKmod*etax**2+Rmu*(etay**2+etaz**2))*Jac
-    Acoeff(:,:,:,10) = -Whei*(RKmod*etax*zetax+Rmu*(etay*zetay+etaz*zetaz))*Jac
-    Acoeff(:,:,:,11) = -Whei*(Rlam*etax*xiy+Rmu*etay*xix)*Jac
-    Acoeff(:,:,:,12) = -Whei*(Rlam+Rmu)*etay*etax*Jac
-    Acoeff(:,:,:,13) = -Whei*(Rlam*etax*zetay+Rmu*etay*zetax)*Jac
-    Acoeff(:,:,:,14) = -Whei*(Rlam*etax*xiz+Rmu*etaz*xix)*Jac
-    Acoeff(:,:,:,15) = -Whei*(Rlam+Rmu)*etaz*etax*Jac
-    Acoeff(:,:,:,16) = -Whei*(Rlam*etax*zetaz+Rmu*etaz*zetax)*Jac
-    Acoeff(:,:,:,17) = -Whei*(RKmod*zetax**2+Rmu*(zetay**2+zetaz**2))*Jac
-    Acoeff(:,:,:,18) = -Whei*(Rlam*zetax*xiy+Rmu*zetay*xix)*Jac
-    Acoeff(:,:,:,19) = -Whei*(Rlam*zetax*etay+Rmu*zetay*etax)*Jac
-    Acoeff(:,:,:,20) = -Whei*(Rlam+Rmu)*zetax*zetay*Jac
-    Acoeff(:,:,:,21) = -Whei*(Rlam*zetax*xiz+Rmu*zetaz*xix)*Jac
-    Acoeff(:,:,:,22) = -Whei*(Rlam*zetax*etaz+Rmu*zetaz*etax)*Jac
-    Acoeff(:,:,:,23) = -Whei*(Rlam+Rmu)*zetax*zetaz*Jac
-    Acoeff(:,:,:,24) = -Whei*(RKmod*xiy**2+Rmu*(xix**2+xiz**2))*Jac
-    Acoeff(:,:,:,25) = -Whei*(RKmod*xiy*etay+Rmu*(xix*etax+xiz*etaz))*Jac
-    Acoeff(:,:,:,26) = -Whei*(RKmod*xiy*zetay+Rmu*(xix*zetax+xiz*zetaz))*Jac
-    Acoeff(:,:,:,27) = -Whei*(Rlam+Rmu)*xiy*xiz*Jac
-    Acoeff(:,:,:,28) = -Whei*(Rlam*etaz*xiy+Rmu*etay*xiz)*Jac
-    Acoeff(:,:,:,29) = -Whei*(Rlam*zetaz*xiy+Rmu*zetay*xiz)*Jac
-    Acoeff(:,:,:,30) = -Whei*(RKmod*etay**2+Rmu*(etax**2+etaz**2))*Jac
-    Acoeff(:,:,:,31) = -Whei*(RKmod*zetay*etay+Rmu*(zetax*etax+zetaz*etaz))*Jac
-    Acoeff(:,:,:,32) = -Whei*(Rlam*etay*xiz+Rmu*etaz*xiy)*Jac
-    Acoeff(:,:,:,33) = -Whei*(Rlam+Rmu)*etay*etaz*Jac
-    Acoeff(:,:,:,34) = -Whei*(Rlam*zetaz*etay+Rmu*zetay*etaz)*Jac
-    Acoeff(:,:,:,35) = -Whei*(RKmod*zetay**2+Rmu*(zetax**2+zetaz**2))*Jac
-    Acoeff(:,:,:,36) = -Whei*(Rlam*xiz*zetay+Rmu*xiy*zetaz)*Jac
-    Acoeff(:,:,:,37) = -Whei*(Rlam*zetay*etaz+Rmu*zetaz*etay)*Jac
-    Acoeff(:,:,:,38) = -Whei*(Rlam+Rmu)*zetay*zetaz*Jac
-    Acoeff(:,:,:,39) = -Whei*(RKmod*xiz**2+Rmu*(xix**2+xiy**2))*Jac
-    Acoeff(:,:,:,40) = -Whei*(RKmod*xiz*etaz+Rmu*(xix*etax+xiy*etay))*Jac
-    Acoeff(:,:,:,41) = -Whei*(RKmod*xiz*zetaz+Rmu*(xix*zetax+xiy*zetay))*Jac
-    Acoeff(:,:,:,42) = -Whei*(RKmod*etaz**2+Rmu*(etax**2+etay**2))*Jac
-    Acoeff(:,:,:,43) = -Whei*(RKmod*zetaz*etaz+Rmu*(zetax*etax+zetay*etay))*Jac
-    Acoeff(:,:,:,44) = -Whei*(RKmod*zetaz**2+Rmu*(zetax**2+zetay**2))*Jac
-
-    return
-
-end subroutine define_Acoeff_iso
-!---------------------------------------------------------------------------------------
-!---------------------------------------------------------------------------------------
-subroutine define_Acoeff_fluid(ngllx,nglly,ngllz,Density,xix,xiy,xiz,    &
-    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Acoeff)
-    integer, intent(in)  :: ngllx,nglly,ngllz
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Density,  &
-        xix,xiy,xiz,etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:5), intent(out) :: Acoeff
-
-    Acoeff(:,:,:,0) = -Whei*(xix**2+xiy**2+xiz**2)*Jac/density
-    Acoeff(:,:,:,1) = -Whei*(xix*etax+xiy*etay+xiz*etaz)*Jac/density
-    Acoeff(:,:,:,2) = -Whei*(xix*zetax+xiy*zetay+xiz*zetaz)*Jac/density
-    Acoeff(:,:,:,3) = -Whei*(etax**2+etay**2+etaz**2)*Jac/density
-    Acoeff(:,:,:,4) = -Whei*(etax*zetax+etay*zetay+etaz*zetaz)*Jac/density
-    Acoeff(:,:,:,5) = -Whei*(zetax**2+zetay**2+zetaz**2)*Jac/density
-
-
-end subroutine define_Acoeff_fluid
-!---------------------------------------------------------------------------------------
-!---------------------------------------------------------------------------------------
-subroutine define_Acoeff_PML_iso(ngllx,nglly,ngllz,Rkmod,Rmu,Rlam,xix,xiy,xiz,    &
-    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Acoeff)
-    integer, intent(in)  :: ngllx,nglly,ngllz
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Rkmod,Rmu,Rlam,  &
-        xix,xiy,xiz,etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:35), intent(out) :: Acoeff
-
-
-    Acoeff(:,:,:,0) = RKmod *xix
-    Acoeff(:,:,:,1) = RKmod *etax
-    Acoeff(:,:,:,2) = RKmod *zetax
-    Acoeff(:,:,:,3) = RLam *xiy
-    Acoeff(:,:,:,4) = RLam *etay
-    Acoeff(:,:,:,5) = RLam *zetay
-    Acoeff(:,:,:,6) = RLam *xiz
-    Acoeff(:,:,:,7) = RLam *etaz
-    Acoeff(:,:,:,8) = RLam *zetaz
-    Acoeff(:,:,:,9) = RLam *xix
-    Acoeff(:,:,:,10) = RLam *etax
-    Acoeff(:,:,:,11) = RLam *zetax
-    Acoeff(:,:,:,12) = RKmod *xiy
-    Acoeff(:,:,:,13) = RKmod *etay
-    Acoeff(:,:,:,14) = RKmod *zetay
-    Acoeff(:,:,:,15) = RKmod *xiz
-    Acoeff(:,:,:,16) = RKmod *etaz
-    Acoeff(:,:,:,17) = RKmod *zetaz
-    Acoeff(:,:,:,18) = RMu *xix
-    Acoeff(:,:,:,19) = RMu *etax
-    Acoeff(:,:,:,20) = RMu *zetax
-    Acoeff(:,:,:,21) = RMu *xiy
-    Acoeff(:,:,:,22) = RMu *etay
-    Acoeff(:,:,:,23) = RMu *zetay
-    Acoeff(:,:,:,24) = RMu *xiz
-    Acoeff(:,:,:,25) = RMu *etaz
-    Acoeff(:,:,:,26) = RMu *zetaz
-    Acoeff(:,:,:,27) = -Whei * xix * Jac
-    Acoeff(:,:,:,28) = -Whei * xiy * Jac
-    Acoeff(:,:,:,29) = -Whei * xiz * Jac
-    Acoeff(:,:,:,30) = -Whei * etax * Jac
-    Acoeff(:,:,:,31) = -Whei * etay * Jac
-    Acoeff(:,:,:,32) = -Whei * etaz * Jac
-    Acoeff(:,:,:,33) = -Whei * zetax * Jac
-    Acoeff(:,:,:,34) = -Whei * zetay * Jac
-    Acoeff(:,:,:,35) = -Whei * zetaz * Jac
-
-    return
-
-end subroutine define_Acoeff_PML_iso
-!------------------------------------------------------------------------------
-!------------------------------------------------------------------------------
-subroutine define_Acoeff_PML_fluid(ngllx,nglly,ngllz,density,xix,xiy,xiz,    &
-    etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac,Acoeff)
-    integer, intent(in)  :: ngllx,nglly,ngllz
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: density,  &
-        xix,xiy,xiz,etax,etay,etaz,zetax,zetay,zetaz,Whei,Jac
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:17), intent(out) :: Acoeff
-
-
-    Acoeff(:,:,:,0) = xix(:,:,:)/density(:,:,:)
-    Acoeff(:,:,:,1) = etax(:,:,:)/density(:,:,:)
-    Acoeff(:,:,:,2) = zetax(:,:,:)/density(:,:,:)
-    Acoeff(:,:,:,3) = xiy(:,:,:)/density(:,:,:)
-    Acoeff(:,:,:,4) = etay(:,:,:)/density(:,:,:)
-    Acoeff(:,:,:,5) = zetay(:,:,:)/density(:,:,:)
-    Acoeff(:,:,:,6) = xiz(:,:,:)/density(:,:,:)
-    Acoeff(:,:,:,7) = etaz(:,:,:)/density(:,:,:)
-    Acoeff(:,:,:,8) = zetaz(:,:,:)/density(:,:,:)
-    Acoeff(:,:,:,9) = -whei(:,:,:)*xix(:,:,:)*Jac(:,:,:)
-    Acoeff(:,:,:,10) = -whei(:,:,:)*etax(:,:,:)*Jac(:,:,:)
-    Acoeff(:,:,:,11) = -whei(:,:,:)*zetax(:,:,:)*Jac(:,:,:)
-    Acoeff(:,:,:,12) = -whei(:,:,:)*xiy(:,:,:)*Jac(:,:,:)
-    Acoeff(:,:,:,13) = -whei(:,:,:)*etay(:,:,:)*Jac(:,:,:)
-    Acoeff(:,:,:,14) = -whei(:,:,:)*zetay(:,:,:)*Jac(:,:,:)
-    Acoeff(:,:,:,15) = -whei(:,:,:)*xiz(:,:,:)*Jac(:,:,:)
-    Acoeff(:,:,:,16) = -whei(:,:,:)*etaz(:,:,:)*Jac(:,:,:)
-    Acoeff(:,:,:,17) = -whei(:,:,:)*zetaz(:,:,:)*Jac(:,:,:)
-
-    return
-
-end subroutine define_Acoeff_PML_fluid
 !-------------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------------
 subroutine define_alpha_PML(lattenu,dir,ldir_attenu,ngllx,nglly,ngllz,ngll,n_pts,   &

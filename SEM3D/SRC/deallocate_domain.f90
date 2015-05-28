@@ -44,7 +44,6 @@ subroutine deallocate_domain (Tdomain)
                 deallocate (Tdomain%specel(n)%Mu)
 
                 if (Tdomain%specel(n)%solid) then
-                    deallocate (Tdomain%specel(n)%sl%Acoeff)
                     deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress)
                     deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress1)
                     deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress2)

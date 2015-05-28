@@ -65,7 +65,6 @@ subroutine allocate_domain (Tdomain)
             allocate(Tdomain%specel(n)%sl)
             if(Tdomain%TimeD%velocity_scheme)then
                 if(Tdomain%specel(n)%PML)then
-                    allocate(Tdomain%specel(n)%sl%Acoeff(0:ngllx-1,0:nglly-1,0:ngllz-1,0:35))
                     allocate(Tdomain%specel(n)%slpml%Diagonal_Stress(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%slpml%Diagonal_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%slpml%Diagonal_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
@@ -113,13 +112,6 @@ subroutine allocate_domain (Tdomain)
                         allocate (Tdomain%specel(n)%slpml%Inv_Normales (0:2, 0:2))
                     endif
                 else ! PML
-                    !  modif mariotti fevrier 2007 cea
-                    !          allocate (Tdomain%specel(n)%Displ (1:ngllx-2, 1:nglly-2, 1:ngllz-2, 0:2))
-                    !          Tdomain%specel(n)%Displ = 0
-                    !  modif mariotti fevrier 2007 cea capteur displ
-                    !          allocate (Tdomain%specel(n)%Acoeff (0:ngllx-1, 0:nglly-1, 0:ngllz-1, 0:44))
-                    !          allocate (Tdomain%specel(n)%Displ (1:ngllx-2, 1:nglly-2, 1:ngllz-2, 0:2))
-                    !          Tdomain%specel(n)%Displ = 0
                     if (Tdomain%aniso) then
                         allocate (Tdomain%specel(n)%sl%Cij (0:20, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
                     endif
@@ -172,7 +164,6 @@ subroutine allocate_domain (Tdomain)
             allocate(Tdomain%specel(n)%fl)
             if(Tdomain%TimeD%velocity_scheme)then
                 if(Tdomain%specel(n)%PML)then
-                    allocate(Tdomain%specel(n)%fl%Acoeff(0:ngllx-1,0:nglly-1,0:ngllz-1,0:17))
                     allocate(Tdomain%specel(n)%flpml%Veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%flpml%Veloc1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     allocate(Tdomain%specel(n)%flpml%Veloc2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
@@ -181,8 +172,6 @@ subroutine allocate_domain (Tdomain)
                     Tdomain%specel(n)%flpml%Veloc1 = 0d0
                     Tdomain%specel(n)%flpml%Veloc2 = 0d0
                     Tdomain%specel(n)%flpml%Veloc3 = 0d0
-                else
-                    allocate(Tdomain%specel(n)%fl%Acoeff(0:ngllx-1,0:nglly-1,0:ngllz-1,0:5))
                 endif
             endif
 
