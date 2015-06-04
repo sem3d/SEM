@@ -52,9 +52,16 @@ module solid_fluid
 
     ! general SF object
     type :: SF_object
-       integer  :: SF_n_faces, SF_n_edges, SF_n_vertices, ngll
-       integer, allocatable, dimension(:) :: SF_IGlobSol, SF_IGlobFlu
-       integer, allocatable, dimension(:,:) :: SF_IGlob ! 0 fluid, 1 solid, 2 index of shared gll
+        integer  :: SF_n_faces, SF_n_edges, SF_n_vertices
+        integer  :: ngll, ngll_pml
+       integer, allocatable, dimension(:) :: SF_IGlobSol, SF_IGlobSol_pml
+       integer, allocatable, dimension(:) :: SF_IGlobFlu, SF_IGlobFlu_pml
+       ! SF_IGlob(idx,0) (resp. 1) contient pour le pt idx d'interf solid fluid l'index correspondant dans
+       ! le domaine fluide (resp. solide) -1 si le point n'existe pas sur le proc. Dans ce cas
+       ! SF_IGlob(idx,2) contient le numero du pt d'interface
+       integer, allocatable, dimension(:,:) :: SF_IGlob     ! 0 fluid, 1 solid, 2 index of shared gll
+       ! Idem SF_IGlob mais pour les domaines PML
+       integer, allocatable, dimension(:,:) :: SF_IGlob_pml ! 0 fluid, 1 solid, 2 index of shared gll
        real, allocatable, dimension(:,:) :: SF_BtN
        type(face_SF), dimension(:), pointer  :: SF_face
        type(edge_SF), dimension(:), pointer  :: SF_edge

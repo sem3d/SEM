@@ -129,20 +129,24 @@ subroutine assemble_mass_matrices(Tdomain)
                 Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%MassMatSol, k)
 
             ! Domain SOLID PML
-            call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%DumpMass, k, 3)
-            call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%MassMatSolPml, k, 3)
+            if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
+                call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                    Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%DumpMass, k, 3)
+                call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                    Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%MassMatSolPml, k, 3)
+            end if
 
             ! Domain FLUID
             call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
                 Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%MassMatFlu, k)
 
             ! Domain FLUID PML
-            call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpml_DumpMass, k, 3)
-            call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%MassMatFluPml, k, 3)
+            if (Tdomain%Comm_data%Data(n)%nflupml>0) then
+                call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                    Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpml_DumpMass, k, 3)
+                call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                    Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%MassMatFluPml, k, 3)
+            end if
 
             Tdomain%Comm_data%Data(n)%nsend = k
         end do
@@ -158,20 +162,24 @@ subroutine assemble_mass_matrices(Tdomain)
                 Tdomain%Comm_data%Data(n)%ITakeS, Tdomain%MassMatSol, k)
 
             ! Domain SOLID PML
-            call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                Tdomain%Comm_data%Data(n)%ITakeSPML, Tdomain%DumpMass, k, 3)
-            call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                Tdomain%Comm_data%Data(n)%ITakeSPML, Tdomain%MassMatSolPml, k, 3)
+            if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
+                call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                    Tdomain%Comm_data%Data(n)%ITakeSPML, Tdomain%DumpMass, k, 3)
+                call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                    Tdomain%Comm_data%Data(n)%ITakeSPML, Tdomain%MassMatSolPml, k, 3)
+            end if
 
             ! Domain FLUID
             call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                 Tdomain%Comm_data%Data(n)%ITakeF,  Tdomain%MassMatFlu, k, 1)
 
             ! Domain FLUID PML
-            call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                Tdomain%Comm_data%Data(n)%ITakeFPML, Tdomain%fpml_DumpMass, k, 3)
-            call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                Tdomain%Comm_data%Data(n)%ITakeFPML, Tdomain%MassMatFluPml, k, 3)
+            if (Tdomain%Comm_data%Data(n)%nflupml>0) then
+                call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                    Tdomain%Comm_data%Data(n)%ITakeFPML, Tdomain%fpml_DumpMass, k, 3)
+                call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                    Tdomain%Comm_data%Data(n)%ITakeFPML, Tdomain%MassMatFluPml, k, 3)
+            end if
         end do
     end if
 

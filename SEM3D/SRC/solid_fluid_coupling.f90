@@ -4,28 +4,46 @@
 !!
 !----------------------------------------------------------------
 !----------------------------------------------------------------
-subroutine StoF_coupling(Tdomain, Veloc, BtN, ForcesFl)
+subroutine StoF_coupling(Tdomain, BtN, champs0, champs1)
     ! from solid to fluid: velocity (dot) normal
     use sdomain
     use scomm
+    use schamps
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    integer:: ngll_sf
-    real, intent(in), dimension(0:Tdomain%ngll_s-1,0:2) :: Veloc
     real, intent(in), dimension(0:Tdomain%SF%ngll-1,0:2) :: BtN
-    real, intent(inout), dimension(0:Tdomain%ngll_f-1) :: ForcesFl
+    type(champs), intent(in) :: champs0
+    type(champs), intent(inout) :: champs1
+    !
+    integer:: ngll_sf, ngll_sf_pml
     integer  :: i,j,k,n,idx
     real, dimension(0:Tdomain%SF%ngll-1) :: vn
+    real, dimension(0:Tdomain%SF%ngll_pml-1) :: vn1, vn2, vn3
 
     ngll_sf = Tdomain%SF%ngll
+    ngll_sf_pml = Tdomain%SF%ngll_pml
 
     vn(:) = 0d0
     do i = 0,ngll_sf-1
         idx = Tdomain%sf%SF_IGlobSol(i)
         if (idx >= 0) then
             do j = 0,2
-                vn(i) = vn(i) + (BtN(i,j) * Veloc(idx,j))
+                vn(i) = vn(i) + (BtN(i,j) * champs0%Veloc(idx,j))
+            enddo
+        end if
+    enddo
+    vn1 = 0.
+    vn2 = 0.
+    vn3 = 0.
+    do i = 0,ngll_sf_pml-1
+        idx = Tdomain%sf%SF_IGlobSol_pml(i)
+        if (idx >= 0) then
+            !! sum veloc1+veloc2+veloc3
+            do j = 0,2
+                vn1(i) = vn1(i) + (BtN(i,j) * champs0%VelocPML(idx+0,j))
+                vn2(i) = vn2(i) + (BtN(i,j) * champs0%VelocPML(idx+1,j))
+                vn3(i) = vn3(i) + (BtN(i,j) * champs0%VelocPML(idx+2,j))
             enddo
         end if
     enddo
@@ -59,14 +77,23 @@ subroutine StoF_coupling(Tdomain, Veloc, BtN, ForcesFl)
     do i = 0,ngll_sf-1
         idx = TDomain%SF%SF_IGlobFlu(i)
         if (idx >= 0) then
-            ForcesFl(idx) = ForcesFl(idx) + vn(i)
+            champs1%ForcesFl(idx) = champs1%ForcesFl(idx) + vn(i)
+        end if
+    enddo
+
+    do i = 0,ngll_sf_pml-1
+        idx = TDomain%SF%SF_IGlobFlu_pml(i)
+        if (idx >= 0) then
+            champs1%fpml_Forces(idx+0) = champs1%fpml_Forces(idx+0) + vn1(i)
+            champs1%fpml_Forces(idx+1) = champs1%fpml_Forces(idx+1) + vn2(i)
+            champs1%fpml_Forces(idx+2) = champs1%fpml_Forces(idx+2) + vn3(i)
         end if
     enddo
 
 end subroutine StoF_coupling
 !----------------------------------------------------------------
 !----------------------------------------------------------------
-subroutine FtoS_coupling(Tdomain, BtN, VelPhi, Forces)
+subroutine FtoS_coupling(Tdomain, BtN, champs0, champs1)
     ! from fluid to solid: normal times pressure (= -rho . VelPhi)
     use sdomain
     use scomm
@@ -74,20 +101,36 @@ subroutine FtoS_coupling(Tdomain, BtN, VelPhi, Forces)
 
     type(domain), intent(inout) :: Tdomain
     real, intent(in), dimension(0:Tdomain%SF%ngll-1,0:2) :: BtN
-    real, intent(in), dimension(0:Tdomain%ngll_f-1) :: VelPhi
-    real, intent(inout), dimension(0:Tdomain%ngll_f-1,0:2) :: Forces
+    type(champs), intent(in) :: champs0
+    type(champs), intent(inout) :: champs1
     !
-    integer :: ngll_sf
+    integer :: ngll_sf, ngll_sf_pml
     integer  :: i,j,k,n,idx
-    real, dimension(0:2, 0:Tdomain%SF%ngll-1) :: pn
+    real, dimension(0:2, 0:Tdomain%SF%ngll-1) :: pn, pn1, pn2, pn3
 
     ngll_sf = Tdomain%SF%ngll
+    ngll_sf_pml = Tdomain%SF%ngll_pml
     pn = 0d0
     do i = 0,ngll_sf-1
         idx = Tdomain%SF%SF_IGlobFlu(i)
-        do j = 0,2
-            pn(j,i) = - (BtN(i,j) * VelPhi(idx))
-        enddo
+        if (idx >= 0) then
+            do j = 0,2
+                pn(j,i) = - (BtN(i,j) * champs0%VelPhi(idx))
+            enddo
+        end if
+    enddo
+    pn1 = 0d0
+    pn2 = 0d0
+    pn3 = 0d0
+    do i = 0,ngll_sf_pml-1
+        idx = Tdomain%SF%SF_IGlobFlu_pml(i)
+        if (idx >= 0) then
+            do j = 0,2
+                pn1(j,i) =  - (BtN(i,j) * champs0%fpml_VelPhi(idx+0))
+                pn2(j,i) =  - (BtN(i,j) * champs0%fpml_VelPhi(idx+1))
+                pn3(j,i) =  - (BtN(i,j) * champs0%fpml_VelPhi(idx+2))
+            enddo
+        end if
     enddo
 
     if (Tdomain%Comm_SolFlu%ncomm > 0)then
@@ -122,9 +165,21 @@ subroutine FtoS_coupling(Tdomain, BtN, VelPhi, Forces)
 
     do i = 0,ngll_sf-1
         idx = Tdomain%SF%SF_IGlobSol(i)
-        do j = 0,2
-            Forces(idx,j) = Forces(idx,j) + pn(j,i)
-        enddo
+        if (idx >= 0) then
+            do j = 0,2
+                champs1%Forces(idx,j) = champs1%Forces(idx,j) + pn(j,i)
+            enddo
+        end if
+    enddo
+    do i = 0,ngll_sf_pml-1
+        idx = Tdomain%SF%SF_IGlobSol_pml(i)
+        if (idx >= 0) then
+            do j = 0,2
+                champs1%ForcesPML(idx+0,j) = champs1%ForcesPML(idx+0,j) + pn1(j,i)
+                champs1%ForcesPML(idx+1,j) = champs1%ForcesPML(idx+1,j) + pn2(j,i)
+                champs1%ForcesPML(idx+2,j) = champs1%ForcesPML(idx+2,j) + pn3(j,i)
+            enddo
+        end if
     enddo
 
 end subroutine FtoS_coupling

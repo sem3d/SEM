@@ -169,7 +169,7 @@ subroutine Newmark(Tdomain,ntime)
 
     !- solid -> fluid coupling (normal dot velocity)
     if(Tdomain%logicD%SF_local_present)then
-        call StoF_coupling(Tdomain, Tdomain%champs0%Veloc, Tdomain%SF%SF_BtN, Tdomain%champs1%ForcesFl)
+        call StoF_coupling(Tdomain, Tdomain%SF%SF_BtN, Tdomain%champs0, Tdomain%champs1)
     end if
 
 
@@ -178,7 +178,7 @@ subroutine Newmark(Tdomain,ntime)
 
     if(Tdomain%logicD%SF_local_present)then
         !- fluid -> solid coupling (pressure times velocity)
-        call FtoS_coupling(Tdomain, Tdomain%SF%SF_BtN, Tdomain%champs0%VelPhi, Tdomain%champs1%Forces)
+        call FtoS_coupling(Tdomain, Tdomain%SF%SF_BtN, Tdomain%champs0, Tdomain%champs1)
     end if
     call Newmark_Corrector_Solid(Tdomain,Tdomain%champs1)
 
@@ -208,17 +208,20 @@ subroutine comm_forces(Tdomain)
                 Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%champs1%Forces, k, 1)
 
             ! Domain SOLID PML
-            call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%champs1%ForcesPML, k, 3)
+            if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
+                call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                    Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%champs1%ForcesPML, k, 3)
+            end if
 
             ! Domain FLUID
             call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
                 Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%champs1%ForcesFl, k)
 
             ! Domain FLUID PML
-            call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%champs1%fpml_Forces, k, 3)
-
+            if (Tdomain%Comm_data%Data(n)%nflupml>0) then
+                call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
+                    Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%champs1%fpml_Forces, k, 3)
+            end if
             Tdomain%Comm_data%Data(n)%nsend = k
         end do
         call stat_stoptick('give')
@@ -235,16 +238,20 @@ subroutine comm_forces(Tdomain)
                 Tdomain%Comm_data%Data(n)%ITakeS, Tdomain%champs1%Forces, k, 1)
 
             ! Domain SOLID PML
-            call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                Tdomain%Comm_data%Data(n)%ITakeSPML, Tdomain%champs1%ForcesPML, k, 3)
+            if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
+                call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                    Tdomain%Comm_data%Data(n)%ITakeSPML, Tdomain%champs1%ForcesPML, k, 3)
+            end if
 
             ! Domain FLUID
             call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                 Tdomain%Comm_data%Data(n)%ITakeF, Tdomain%champs1%ForcesFl, k)
 
             ! Domain FLUID PML
-            call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                Tdomain%Comm_data%Data(n)%ITakeFPML, Tdomain%champs1%fpml_Forces, k, 3)
+            if (Tdomain%Comm_data%Data(n)%nflupml>0) then
+                call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
+                    Tdomain%Comm_data%Data(n)%ITakeFPML, Tdomain%champs1%fpml_Forces, k, 3)
+            end if
         end do
         call stat_stoptick('take')
     endif

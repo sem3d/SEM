@@ -31,7 +31,7 @@ subroutine global_numbering(Tdomain)
     implicit none
     type(domain), intent (inout) :: Tdomain
     integer, dimension (:), allocatable :: renumS, renumF, renumSpml, renumFpml
-    integer, dimension (:,:), allocatable :: renumSF
+    integer, dimension (:,:), allocatable :: renumSF, renumSFpml
 
     ! Create a unique gll number per node location
     call renumber_global_gll_nodes(Tdomain)
@@ -41,6 +41,7 @@ subroutine global_numbering(Tdomain)
     allocate(renumSpml(0:Tdomain%n_glob_points-1))
     allocate(renumFpml(0:Tdomain%n_glob_points-1))
     allocate(renumSF(0:Tdomain%n_glob_points-1,0:2))
+    allocate(renumSFpml(0:Tdomain%n_glob_points-1,0:2))
     renumS = -1
     renumF = -1
     renumSpml = -1
@@ -50,7 +51,7 @@ subroutine global_numbering(Tdomain)
     ! Create individual numbering for each sub(physical) domain
     call renumber_domains(Tdomain, renumS, renumF, renumSpml, renumFpml)
     ! Create numbering for Solid-Fluid interface
-    call renumber_sf_coupling(Tdomain, renumSF)
+    call renumber_sf_coupling(Tdomain, renumSF, renumSFpml)
     !
     call renumber_pml_domain(Tdomain, renumS, renumF, renumSpml, renumFpml)
     ! Compute index of glls that participate in communications
@@ -427,25 +428,31 @@ subroutine renumber_domains(Tdomain, renumS, renumF, renumSpml, renumFpml)
 end subroutine renumber_domains
 
 
-subroutine renumber_sf_coupling(Tdomain, renumSF)
+subroutine renumber_sf_coupling(Tdomain, renumSF, renumSFpml)
     use sdomain
     use mindex
     implicit none
     type(domain), intent (inout) :: Tdomain
-    integer, dimension (0:,0:), intent(inout) :: renumSF
+    integer, dimension (0:,0:), intent(inout) :: renumSF, renumSFpml
     !
-    integer :: n, i, j, k, ngllx, nglly, ngllz, nf, nnf,  ngll1, ngll2
-    integer :: idx,   dir, ks, kl
+    integer :: n, i, j, ngllx, nglly, ngllz, nf, nnf,  ngll1, ngll2
+    ! Comptage des pts d'interface qui ont les deux interfaces presentes (k,k_pml)
+    ! ou au moins le solide (ks, ks_pml), au moins le fluide (kl, kl_pml)
+    integer :: k, k_pml, ks, ks_pml, kl, kl_pml
+    integer :: idx,   dir
     integer :: sol, flu
     logical :: saut
-    !! Couplage solide/fluide
+    !! Couplage solide/fluide et solide_pml/fluide_pml
     !! On liste les numeraux globaux des points de gauss concernant les faces de couplage S/F
     if(Tdomain%logicD%SF_local_present)then
         call renumSolFlu(Tdomain)
 
         k = 0
+        k_pml = 0
         allocate(Tdomain%SF%SF_IGlob(0:Tdomain%SF%ngll-1,0:2))
         Tdomain%SF%SF_IGlob = -2
+        allocate(Tdomain%SF%SF_IGlob_pml(0:Tdomain%SF%ngll_pml-1,0:2))
+        Tdomain%SF%SF_IGlob_pml = -2
         do nf = 0,Tdomain%SF%SF_n_faces-1
             ngll1 = Tdomain%SF%SF_Face(nf)%ngll1
             ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
@@ -457,27 +464,33 @@ subroutine renumber_sf_coupling(Tdomain, renumSF)
                     endif
                     flu = Tdomain%SF%SF_Face(nf)%IG(i,j,1)
                     sol = Tdomain%SF%SF_Face(nf)%IG(i,j,2)
-                    Tdomain%SF%SF_IGlob(idx,0) = flu
-                    Tdomain%SF%SF_IGlob(idx,1) = sol
-                    if (flu == -1 .or. sol == -1) then
-                        ! Index of interface Sol/Flu
-                        Tdomain%SF%SF_IGlob(idx,2) = k
-                        !Comm_data%Data(n)%IGiveS(k)=idx
-                        k = k + 1
-                    endif
+                    if (Tdomain%SF%SF_Face(nf)%PML) then
+                        Tdomain%SF%SF_IGlob_pml(idx,0) = flu
+                        Tdomain%SF%SF_IGlob_pml(idx,1) = sol
+                        if (flu == -1 .or. sol == -1) then
+                            ! Index of interface Sol/Flu
+                            Tdomain%SF%SF_IGlob_pml(idx,2) = k_pml
+                            k_pml = k_pml + 1
+                        endif
+                    else
+                        Tdomain%SF%SF_IGlob(idx,0) = flu
+                        Tdomain%SF%SF_IGlob(idx,1) = sol
+                        if (flu == -1 .or. sol == -1) then
+                            ! Index of interface Sol/Flu
+                            Tdomain%SF%SF_IGlob(idx,2) = k
+                            k = k + 1
+                        endif
+                    end if
                 enddo
             enddo
         enddo
 
-
-
-
-
-
         ! On peuple le tableau d'indice des ngll de couplage en fonction des direcions des faces
         k = 0
         ks = 0
+        ks_pml = 0
         kl = 0
+        kl_pml = 0
         saut = .false.
         do nf = 0,Tdomain%SF%SF_n_faces-1
             ngll1 = Tdomain%SF%SF_Face(nf)%ngll1
@@ -493,11 +506,18 @@ subroutine renumber_sf_coupling(Tdomain, renumSF)
                 nglly = Tdomain%specel(n)%nglly
                 ngllz = Tdomain%specel(n)%ngllz
 
-                !write(*,*) "DEBUG: rank, which_elem fluide", rank, n, dir
-                call populate_index_SF(1, dir, ngllx, nglly, ngllz, &
-                                       Tdomain%specel(n)%IFlu,  &
-                                       Tdomain%specel(n)%IGlobnum, kl, &
-                                       Tdomain%n_glob_points, renumSF, Tdomain%SF%SF_Face(nf)%I_sf)
+                if (Tdomain%SF%SF_Face(nf)%PML) then
+!                    write(*,*) nf,":PML",kl_pml
+                    call populate_index_SF(1, dir, ngllx, nglly, ngllz, &
+                        Tdomain%specel(n)%flpml%IFluPml,  &
+                        Tdomain%specel(n)%IGlobnum, kl_pml, &
+                        Tdomain%n_glob_points, renumSFpml, Tdomain%SF%SF_Face(nf)%I_sf)
+                else
+                    call populate_index_SF(1, dir, ngllx, nglly, ngllz, &
+                        Tdomain%specel(n)%IFlu,  &
+                        Tdomain%specel(n)%IGlobnum, kl, &
+                        Tdomain%n_glob_points, renumSF, Tdomain%SF%SF_Face(nf)%I_sf)
+                end if
             else
                 write(*,*) "ZZZZZZ Face fluide sur autre proc", Tdomain%rank, nf, Tdomain%SF%SF_Face(nf)%Face(1) 
                 saut = .true.
@@ -512,11 +532,17 @@ subroutine renumber_sf_coupling(Tdomain, renumSF)
                 nglly = Tdomain%specel(n)%nglly
                 ngllz = Tdomain%specel(n)%ngllz
 
-                !write(*,*) "DEBUG: rank, which_elem solide", rank, n, dir
-                call populate_index_SF(2, dir, ngllx, nglly, ngllz, &
-                                       Tdomain%specel(n)%ISol,  &
-                                       Tdomain%specel(n)%IGlobnum, ks, &
-                                       Tdomain%n_glob_points, renumSF, Tdomain%SF%SF_Face(nf)%I_sf)
+                if (Tdomain%SF%SF_Face(nf)%PML) then
+                    call populate_index_SF(2, dir, ngllx, nglly, ngllz, &
+                        Tdomain%specel(n)%slpml%ISolPml,  &
+                        Tdomain%specel(n)%IGlobnum, ks_pml, &
+                        Tdomain%n_glob_points, renumSFpml, Tdomain%SF%SF_Face(nf)%I_sf)
+                else
+                    call populate_index_SF(2, dir, ngllx, nglly, ngllz, &
+                        Tdomain%specel(n)%ISol,  &
+                        Tdomain%specel(n)%IGlobnum, ks, &
+                        Tdomain%n_glob_points, renumSF, Tdomain%SF%SF_Face(nf)%I_sf)
+                end if
             else
                 write(*,*) "ZZZZZZ Face solide sur autre proc", Tdomain%rank, nf, Tdomain%SF%SF_Face(nf)%Face(0)
                 saut = .true.
@@ -527,6 +553,9 @@ subroutine renumber_sf_coupling(Tdomain, renumSF)
                 ks = k
                 kl = k
                 saut = .false.
+                k_pml = max(ks_pml,kl_pml)
+                ks_pml = k_pml
+                kl_pml = k_pml
             endif
         enddo
 
@@ -541,6 +570,21 @@ subroutine renumber_sf_coupling(Tdomain, renumSF)
             Tdomain%SF%SF_IGlobFlu(k) = renumSF(k,1)
             Tdomain%SF%SF_IGlobSol(k) = renumSF(k,2)
         end do
+        !
+        k_pml = max(ks_pml,kl_pml)
+        Tdomain%SF%ngll_pml = k_pml
+        allocate(Tdomain%SF%SF_IGlobSol_pml(0:k_pml-1))
+        allocate(Tdomain%SF%SF_IGlobFlu_pml(0:k_pml-1))
+        Tdomain%SF%SF_IGlobSol_pml = -1
+        Tdomain%SF%SF_IGlobFlu_pml = -1
+        do k=0,Tdomain%SF%ngll_pml-1
+            Tdomain%SF%SF_IGlobFlu_pml(k) = renumSFpml(k,1)
+            Tdomain%SF%SF_IGlobSol_pml(k) = renumSFpml(k,2)
+            write(*,*) k,"-> S=", renumSFpml(k,2), "F=", renumSFpml(k,1)
+        end do
+
+
+        write (*,*) "NGLL SF=", Tdomain%SF%ngll, " SF-PML=", Tdomain%SF%ngll_pml
     endif ! fin traitement couplage Solide / Fluide
 
 end subroutine renumber_sf_coupling
@@ -1220,152 +1264,169 @@ subroutine prepare_comm_vector_SF(Tdomain,ngll,renumSF,comm_data)
     endif
 
     call allocate_comm_vector_SF(Tdomain, comm_data)
+    
+    do n = 0,Comm_data%ncomm-1
+        ncomm = Comm_data%Data(n)%ncomm
+        nSF = 0
+        nb = 0
 
-        do n = 0,Comm_data%ncomm-1
-            ncomm = Comm_data%Data(n)%ncomm
-            nSF = 0
-            nb = 0
-
-            ! Remplissage des Igive
-            ! Faces
-            do i = 0,Tdomain%sComm(ncomm)%SF_nf_shared-1
-                nf = Tdomain%sComm(ncomm)%SF_faces_shared(i)
-                do j = 1,Tdomain%sFace(nf)%ngll2-2
-                    do k = 1,Tdomain%sFace(nf)%ngll1-2
-                        Comm_data%Data(n)%IGiveS(nSF) = Tdomain%SF%SF_Face(i)%IG(k,j,2) ! on donne le solide
-                        nSF = nSF + 1
-                    end do
-                end do
-            enddo
-
-            ! Edges
-            do i = 0,Tdomain%sComm(ncomm)%SF_ne_shared-1
-                ne = Tdomain%sComm(ncomm)%SF_edges_shared(i)
-                do j = 1,Tdomain%sEdge(ne)%ngll-2
-                    Comm_data%Data(n)%IGiveS(nSF) = Tdomain%SF%SF_Edge(i)%IG(j,2) ! on donne le solide
+        ! Remplissage des Igive
+        ! Faces
+        do i = 0,Tdomain%sComm(ncomm)%SF_nf_shared-1
+            nf = Tdomain%sComm(ncomm)%SF_faces_shared(i)
+            do j = 1,Tdomain%sFace(nf)%ngll2-2
+                do k = 1,Tdomain%sFace(nf)%ngll1-2
+                    idx = Tdomain%SF%SF_Face(i)%IG(k,j,0) ! on donne l'index interne sf
+                    write(*,*) nSF, "(f):", idx
+                    Comm_data%Data(n)%IGiveS(nSF) = idx
                     nSF = nSF + 1
-                enddo
-            enddo
+                end do
+            end do
+        enddo
 
-            ! Vertices
-            do i = 0,Tdomain%sComm(ncomm)%SF_nv_shared-1
-                Comm_data%Data(n)%IGiveS(nSF) = Tdomain%SF%SF_Vertex(i)%IG(2) ! on donne le solide
-                nSF = nSF + 1
-            enddo
-
-            write(*,*) "GGGGG rank,n,nb", Tdomain%rank, n, nb
-
-            nSF = 0
-            ! Remplissage des ITake
-            ! Faces
-            do i = 0,Tdomain%sComm(ncomm)%SF_nf_shared-1
-                nf = Tdomain%sComm(ncomm)%SF_faces_shared(i)
-                ngll1 = Tdomain%sFace(nf)%ngll1
-                ngll2 = Tdomain%sFace(nf)%ngll2
-
-                if ( Tdomain%sComm(ncomm)%orient_faces(i) == 0 ) then
-                    do j = 1,ngll2-2
-                        do k = 1,ngll1-2
-                            idx = Tdomain%sFace(nf)%Iglobnum_Face(k,j)
-                            Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
-                            nSF = nSF + 1
-                        enddo
-                    enddo
-
-                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 1 ) then
-                    do j = 1,ngll2-2
-                        do k = 1,ngll1-2
-                            idx = Tdomain%sFace(nf)%Iglobnum_Face(ngll1-1-k,j)
-                            Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
-                            nSF = nSF + 1
-                        enddo
-                    enddo
-
-                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 2 ) then
-                   do j = 1,ngll2-2
-                        do k = 1,ngll1-2
-                            idx = Tdomain%sFace(nf)%Iglobnum_Face(k,ngll2-1-j)
-                            Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
-                            nSF = nSF + 1
-                        enddo
-                    enddo
-
-                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 3 ) then
-                    do j = 1,ngll2-2
-                        do k = 1,ngll1-2
-                            idx = Tdomain%sFace(nf)%Iglobnum_Face(ngll1-1-k,ngll2-1-j)
-                            Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
-                            nSF = nSF + 1
-                        enddo
-                    enddo
-
-                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 4 ) then
-                    do j = 1,ngll1-2
-                        do k = 1,ngll2-2
-                            idx = Tdomain%sFace(nf)%Iglobnum_Face(j,k)
-                            Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
-                            nSF = nSF + 1
-                        enddo
-                    enddo
-
-                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 5 ) then
-                    do j = 1,ngll1-2
-                        do k = 1,ngll2-2
-                            idx = Tdomain%sFace(nf)%Iglobnum_Face(ngll1-1-j,k)
-                            Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
-                            nSF = nSF + 1
-                        enddo
-                    enddo
-
-                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 6 ) then
-                    do j = 1,ngll1-2
-                        do k = 1,ngll2-2
-                            idx = Tdomain%sFace(nf)%Iglobnum_Face(j,ngll2-1-k)
-                            Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
-                            nSF = nSF + 1
-                        enddo
-                    enddo
-
-                else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 7 ) then
-                    do j = 1,ngll1-2
-                        do k = 1,ngll2-2
-                            idx = Tdomain%sFace(nf)%Iglobnum_Face(ngll1-1-j,ngll2-1-k)
-                            Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
-                            nSF = nSF + 1
-                        enddo
-                    enddo
-                endif ! orient_f
-            enddo
-
-            ! Edges
-            do i = 0,Tdomain%sComm(ncomm)%SF_ne_shared-1
-                ne = Tdomain%sComm(ncomm)%SF_edges_shared(i)
-                ngll1 = Tdomain%sEdge(ne)%ngll
-
-                if ( Tdomain%sComm(ncomm)%orient_edges(i) == 0 ) then
-                    do j = 1,ngll1-2
-                        idx = Tdomain%sEdge(ne)%Iglobnum_Edge(j)
-                        Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
-                        nSF = nSF + 1
-                    enddo
-
-                else if ( Tdomain%sComm(ncomm)%orient_edges(i) == 1 ) then
-                    do j = 1,ngll1-2
-                        idx = Tdomain%sEdge(ne)%Iglobnum_Edge(ngll1-1-j)
-                        Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
-                        nSF = nSF + 1
-                    enddo
-                endif ! orient_edges
-            enddo
-
-            ! Vertices
-            do i = 0,Tdomain%sComm(ncomm)%SF_nv_shared-1
-                nv =  Tdomain%sComm(ncomm)%SF_vertices_shared(i)
-                idx = Tdomain%sVertex(nv)%Iglobnum_Vertex
-                Comm_data%Data(n)%ITakeS(nSF) = renumSF(idx,0)
+        ! Edges
+        do i = 0,Tdomain%sComm(ncomm)%SF_ne_shared-1
+            ne = Tdomain%sComm(ncomm)%SF_edges_shared(i)
+            do j = 1,Tdomain%sEdge(ne)%ngll-2
+                idx = Tdomain%SF%SF_Edge(i)%IG(j,0) ! on donne l'index interne sf
+                write(*,*) nSF, "(e):", idx
+                Comm_data%Data(n)%IGiveS(nSF) = idx
                 nSF = nSF + 1
             enddo
         enddo
+
+        ! Vertices
+        do i = 0,Tdomain%sComm(ncomm)%SF_nv_shared-1
+            idx = Tdomain%SF%SF_Vertex(i)%IG(0) ! on donne l'index interne sf
+            write(*,*) nSF, "(v):", idx
+            Comm_data%Data(n)%IGiveS(nSF) = idx
+            nSF = nSF + 1
+        enddo
+
+        write(*,*) "GGGGG rank,n,nb", Tdomain%rank, n, nSF
+
+        nSF = 0
+        ! Remplissage des ITake
+        ! Faces
+        do i = 0,Tdomain%sComm(ncomm)%SF_nf_shared-1
+            nf = Tdomain%sComm(ncomm)%SF_faces_shared(i)
+            ngll1 = Tdomain%sFace(nf)%ngll1
+            ngll2 = Tdomain%sFace(nf)%ngll2
+
+            if ( Tdomain%sComm(ncomm)%orient_faces(i) == 0 ) then
+                do j = 1,ngll2-2
+                    do k = 1,ngll1-2
+                        idx = Tdomain%SF%SF_Face(i)%IG(k,j,0)
+                        !idx = Tdomain%sFace(nf)%Iglobnum_Face(k,j)
+                        Comm_data%Data(n)%ITakeS(nSF) = idx
+                        nSF = nSF + 1
+                    enddo
+                enddo
+
+            else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 1 ) then
+                do j = 1,ngll2-2
+                    do k = 1,ngll1-2
+                        idx = Tdomain%SF%SF_Face(i)%IG(ngll1-1-k,j,0)
+                        !idx = Tdomain%sFace(nf)%Iglobnum_Face(ngll1-1-k,j)
+                        Comm_data%Data(n)%ITakeS(nSF) = idx
+                        nSF = nSF + 1
+                    enddo
+                enddo
+
+            else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 2 ) then
+                do j = 1,ngll2-2
+                    do k = 1,ngll1-2
+                        idx = Tdomain%SF%SF_Face(i)%IG(k,ngll2-1-j,0)
+                        !idx = Tdomain%sFace(nf)%Iglobnum_Face(k,ngll2-1-j)
+                        Comm_data%Data(n)%ITakeS(nSF) = idx
+                        nSF = nSF + 1
+                    enddo
+                enddo
+
+            else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 3 ) then
+                do j = 1,ngll2-2
+                    do k = 1,ngll1-2
+                        idx = Tdomain%SF%SF_Face(i)%IG(ngll1-1-k,ngll2-1-j,0)
+                        !idx = Tdomain%sFace(nf)%Iglobnum_Face(ngll1-1-k,ngll2-1-j)
+                        Comm_data%Data(n)%ITakeS(nSF) = idx
+                        nSF = nSF + 1
+                    enddo
+                enddo
+
+            else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 4 ) then
+                do j = 1,ngll1-2
+                    do k = 1,ngll2-2
+                        idx = Tdomain%SF%SF_Face(i)%IG(j,k,0)
+                        !idx = Tdomain%sFace(nf)%Iglobnum_Face(j,k)
+                        Comm_data%Data(n)%ITakeS(nSF) = idx
+                        nSF = nSF + 1
+                    enddo
+                enddo
+
+            else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 5 ) then
+                do j = 1,ngll1-2
+                    do k = 1,ngll2-2
+                        idx = Tdomain%SF%SF_Face(i)%IG(ngll1-1-j,k,0)
+                        !idx = Tdomain%sFace(nf)%Iglobnum_Face(ngll1-1-j,k)
+                        Comm_data%Data(n)%ITakeS(nSF) = idx
+                        nSF = nSF + 1
+                    enddo
+                enddo
+
+            else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 6 ) then
+                do j = 1,ngll1-2
+                    do k = 1,ngll2-2
+                        idx = Tdomain%SF%SF_Face(i)%IG(j,ngll2-1-k,0)
+                        !idx = Tdomain%sFace(nf)%Iglobnum_Face(j,ngll2-1-k)
+                        Comm_data%Data(n)%ITakeS(nSF) = idx
+                        nSF = nSF + 1
+                    enddo
+                enddo
+
+            else if ( Tdomain%sComm(ncomm)%orient_faces(i) == 7 ) then
+                do j = 1,ngll1-2
+                    do k = 1,ngll2-2
+                        idx = Tdomain%SF%SF_Face(i)%IG(ngll1-1-j,ngll2-1-k,0)
+                        !idx = Tdomain%sFace(nf)%Iglobnum_Face(ngll1-1-j,ngll2-1-k)
+                        Comm_data%Data(n)%ITakeS(nSF) = idx
+                        nSF = nSF + 1
+                    enddo
+                enddo
+            endif ! orient_f
+        enddo
+
+        ! Edges
+        do i = 0,Tdomain%sComm(ncomm)%SF_ne_shared-1
+            ne = Tdomain%sComm(ncomm)%SF_edges_shared(i)
+            ngll1 = Tdomain%sEdge(ne)%ngll
+
+            if ( Tdomain%sComm(ncomm)%orient_edges(i) == 0 ) then
+                do j = 1,ngll1-2
+                    idx = Tdomain%SF%SF_Edge(i)%IG(j,0)
+                    !idx = Tdomain%sEdge(ne)%Iglobnum_Edge(j)
+                    Comm_data%Data(n)%ITakeS(nSF) = idx
+                    nSF = nSF + 1
+                enddo
+
+            else if ( Tdomain%sComm(ncomm)%orient_edges(i) == 1 ) then
+                do j = 1,ngll1-2
+                    idx = Tdomain%SF%SF_Edge(i)%IG(ngll1-1-j,0)
+                    !idx = Tdomain%sEdge(ne)%Iglobnum_Edge(ngll1-1-j)
+                    Comm_data%Data(n)%ITakeS(nSF) = idx
+                    nSF = nSF + 1
+                enddo
+            endif ! orient_edges
+        enddo
+
+        ! Vertices
+        do i = 0,Tdomain%sComm(ncomm)%SF_nv_shared-1
+            nv =  Tdomain%sComm(ncomm)%SF_vertices_shared(i)
+            idx = Tdomain%SF%SF_Vertex(i)%IG(0)
+            !idx = Tdomain%sVertex(nv)%Iglobnum_Vertex
+            Comm_data%Data(n)%ITakeS(nSF) = idx
+            nSF = nSF + 1
+        enddo
+    enddo
 
 end subroutine prepare_comm_vector_SF
 
@@ -1423,8 +1484,8 @@ subroutine allocate_comm_vector_SF(Tdomain, comm_data)
         Comm_data%Data(n_comm)%dest = Tdomain%sComm(n)%dest
         Comm_data%Data(n_comm)%ncomm = n
         Comm_data%Data(n_comm)%ndata = n_data
-        allocate(Comm_data%Data(n_comm)%Give(0:n_data-1))
-        allocate(Comm_data%Data(n_comm)%Take(0:n_data-1))
+        allocate(Comm_data%Data(n_comm)%Give(0:3*n_data-1))
+        allocate(Comm_data%Data(n_comm)%Take(0:3*n_data-1))
         allocate(Comm_data%Data(n_comm)%IGiveS(0:n_data-1))
         allocate(Comm_data%Data(n_comm)%ITakeS(0:n_data-1))
 
@@ -1707,13 +1768,20 @@ subroutine renumSolFlu(Tdomain)
 
     type(domain), intent (inout) :: Tdomain
 
-    integer :: i,j,k,nf,ne,nv,ngll,ngll1,ngll2,nff,nfs,nne,nnv
+    integer :: i,j,nf,ne,nv,ngll,ngll1,ngll2,nff,nfs,nne,nnv
     integer :: orient_e, orient_f
+    integer :: num, num_pml
 
-    k = 0
+    num = 0
+    num_pml = 0
     do nv = 0,Tdomain%SF%SF_n_vertices-1
-        Tdomain%SF%SF_Vertex(nv)%IG(0) = k
-        k = k + 1
+        if (Tdomain%SF%SF_Vertex(nv)%PML) then
+            Tdomain%SF%SF_Vertex(nv)%IG(0) = num_pml
+            num_pml = num_pml + 1
+        else
+            Tdomain%SF%SF_Vertex(nv)%IG(0) = num
+            num = num + 1
+        end if
     end do
 
     do ne = 0,Tdomain%SF%SF_n_edges-1
@@ -1721,8 +1789,13 @@ subroutine renumSolFlu(Tdomain)
         allocate(Tdomain%SF%SF_Edge(ne)%IG(1:ngll-2,0:2))
         Tdomain%SF%SF_Edge(ne)%IG = -1
         do i=1,ngll-2
-            Tdomain%SF%SF_Edge(ne)%IG(i,0) = k
-            k = k +1
+            if (Tdomain%SF%SF_Edge(ne)%PML) then
+                Tdomain%SF%SF_Edge(ne)%IG(i,0) = num_pml
+                num_pml = num_pml +1
+            else
+                Tdomain%SF%SF_Edge(ne)%IG(i,0) = num
+                num = num +1
+            end if
         end do
     end do
 
@@ -1734,8 +1807,13 @@ subroutine renumSolFlu(Tdomain)
         Tdomain%SF%SF_Face(nf)%IG = -1
         do i=1,ngll1-2
             do j=1,ngll2-2
-                Tdomain%SF%SF_Face(nf)%IG(i,j,0) = k
-                k = k +1
+                if (Tdomain%SF%SF_Face(nf)%PML) then
+                    Tdomain%SF%SF_Face(nf)%IG(i,j,0) = num_pml
+                    num_pml = num_pml + 1
+                else
+                    Tdomain%SF%SF_Face(nf)%IG(i,j,0) = num
+                    num = num + 1
+                endif
             end do
         end do
         do i = 0,3
@@ -1752,7 +1830,8 @@ subroutine renumSolFlu(Tdomain)
     end do
     !! Here we have Tdomain%SF%SF_Face(nf)%IG(:,:,0) that contains unique shared numbering of each SF nodes
 
-    Tdomain%SF%ngll = k
+    Tdomain%SF%ngll = num
+    Tdomain%SF%ngll_pml = num_pml
 
     !! Fluide
     do nf = 0,Tdomain%SF%SF_n_faces-1
