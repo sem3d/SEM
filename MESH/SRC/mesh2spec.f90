@@ -224,7 +224,7 @@ contains
         !-----------------------------------------------------------------------
         !-  PARTITIONING:
         !--    here we use the METIS library
-        call part_mesh_3D(n_nods,n_elem,n_points,Ipointer,nproc,dxadj,dxadjncy,part)
+        call part_mesh_3D(n_nods,n_elem,n_points,Ipointer,nproc,dxadj,dxadjncy,part, Material, tabmat)
         write(*,*) "  --> Partition done."
 
         allocate(elem_near_proc(0:n_elem-1))

@@ -25,25 +25,35 @@ module partition_mesh
 contains
 
     !-----------------------------------------------------
-    subroutine part_mesh_3D(n_nodes, n_elem, n_points, Ipoint, nproc, dxadj, dxadjncy, procs)
+    subroutine part_mesh_3D(n_nodes, n_elem, n_points, Ipoint, nproc, dxadj, dxadjncy, procs, &
+        material, tabmat)
         implicit none
         integer, intent(in)                            :: n_nodes,n_elem, nproc, n_points
         integer, intent(in), dimension(0:n_nodes-1,0:n_elem-1) :: Ipoint
+        integer, allocatable, dimension(:), intent(out)  :: procs
+        integer, intent(in), dimension(0:) :: material
+        character, intent(in), dimension(0:) :: tabmat
+        !
         integer, dimension(:), allocatable, target :: eind
         integer, dimension(:), allocatable, target :: eptr
         integer, dimension(:), allocatable :: vwgt, vsize
         integer   :: i,n,idummy
+        character :: etype
         ! Metis'variables
         integer  :: edgecut
-        integer, parameter  ::  etype = 3, numflag = 0, wgtflag = 0, ncon = 1
+        integer, parameter  ::  numflag = 0, wgtflag = 0, ncon = 1
         integer, dimension(METIS_NOPTIONS) :: options
         integer, allocatable, dimension(:) :: adjwgt
-        integer, allocatable, dimension(:), intent(out)  :: procs
         type(c_ptr) :: dxadj_p, dxadjncy_p
         integer, pointer, dimension(:) :: dxadj, dxadjncy
         real(kind=4), dimension(nproc) :: tpwgts
         real(kind=4), dimension(ncon) :: ubvec
+        integer :: nsol, nflu, nspml, nfpml
 
+        nsol = 0
+        nflu = 0
+        nspml = 0
+        nfpml = 0
         allocate(eind(0:8*n_elem-1))
         allocate(eptr(0:n_elem))
         allocate(vwgt(0:n_elem))
@@ -77,13 +87,38 @@ contains
         else
             allocate(adjwgt(0:dxadj(n_elem+1)-1))
             adjwgt = 1
-            vwgt = 1
+            do n = 0, n_elem-1
+                etype = tabmat(Material(n))
+                vwgt(n)=0
+                select case (etype)
+                case('S')
+                    vwgt(n) = 3
+                    nsol = nsol+1
+                case('F')
+                    vwgt(n) = 1
+                    nflu = nflu+1
+                case ('P')
+                    vwgt(n) = 9
+                    nspml = nspml+1
+                case ('L')
+                    vwgt(n) = 3
+                    nfpml = nfpml+1
+                end select
+                if (vwgt(n)==0) then
+                    write(*,*) "Erreur: elem",n, Material(n), tabmat(Material(n))
+                end if
+            end do
             vsize = 1
             tpwgts = real(1./nproc,kind=4)
             ubvec = real(1.001,kind=4)
             call METIS_PartGraphKway(n_elem,ncon,dxadj,dxadjncy,    &
                 vwgt, vsize, adjwgt, nproc, tpwgts, ubvec, options, edgecut, procs)
         end if
+        write(*,*) "Found:"
+        write(*,*) nsol, "Sol"
+        write(*,*) nflu, "Flu"
+        write(*,*) nspml, "Sol PML"
+        write(*,*) nfpml, "Flu PML"
         deallocate(eind, eptr, vwgt, vsize)
     end subroutine part_mesh_3D
     !------------------------------------------------------------------
