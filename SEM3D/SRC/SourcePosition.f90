@@ -83,7 +83,7 @@ subroutine SourcePosition (Tdomain)
             stop 1
         endif
 
-        if (rg==Tdomain%sSource(n_src)%proc) then
+        if (rg==src_proc) then
             n_el = Tdomain%sSource(n_src)%elem
             do j = 0, nnodes-1
                 coord(0:2, j) = Tdomain%Coord_Nodes(0:2, Tdomain%specel(n_el)%Control_Nodes(j))
