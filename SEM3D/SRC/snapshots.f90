@@ -651,23 +651,23 @@ contains
                     enddo
                 enddo
             enddo
-            call gather_elem_displ(Tdomain, n, field_displ)
-            call gather_elem_veloc(Tdomain, n, field_veloc)
-            call gather_elem_accel(Tdomain, n, field_accel)
-            !call gather_elem_press(Tdomain, n, field_press)
-
-            do k = 0,ngllz-1
-                do j = 0,nglly-1
-                    do i = 0,ngllx-1
-                        idx = irenum(el%Iglobnum(i,j,k))
-                        valence(idx) = valence(idx)+1
-                        displ(:,idx) = field_displ(i,j,k,:)
-                        veloc(:,idx) = veloc(:,idx) + field_veloc(i,j,k,:)
-                        accel(:,idx) = accel(:,idx) + field_accel(i,j,k,:)
-                        press(idx) = field_press(i,j,k)
-                    enddo
-                enddo
-            enddo
+!            call gather_elem_displ(Tdomain, n, field_displ)
+!            call gather_elem_veloc(Tdomain, n, field_veloc)
+!            call gather_elem_accel(Tdomain, n, field_accel)
+!            !call gather_elem_press(Tdomain, n, field_press)
+!
+!            do k = 0,ngllz-1
+!                do j = 0,nglly-1
+!                    do i = 0,ngllx-1
+!                        idx = irenum(el%Iglobnum(i,j,k))
+!                        valence(idx) = valence(idx)+1
+!                        displ(:,idx) = field_displ(i,j,k,:)
+!                        veloc(:,idx) = veloc(:,idx) + field_veloc(i,j,k,:)
+!                        accel(:,idx) = accel(:,idx) + field_accel(i,j,k,:)
+!                        press(idx) = field_press(i,j,k)
+!                    enddo
+!                enddo
+!            enddo
         enddo
 
         ! normalization
