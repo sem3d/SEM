@@ -76,7 +76,6 @@ contains
                 enddo
             enddo
         endif
-
         if (aniso) then
             if (n_solid>0) then
                 call calcul_forces_aniso_att(Fox,Foy,Foz, &
