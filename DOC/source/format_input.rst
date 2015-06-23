@@ -376,10 +376,10 @@ suivants ::
 
   capteurs "ligne" {
     type = line;
-    count = 50;
+    counti = 50;
     point0 = 0. 0. 0.;
     point1 = 0. 5000. 0.;
-    periode = 1;
+    period = 1;
   };
 
 Les mots-clefs admissibles dans une section ``capteurs`` sont :
