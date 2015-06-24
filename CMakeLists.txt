@@ -6,13 +6,6 @@ ENABLE_LANGUAGE(C Fortran)
 ENABLE_TESTING()
 
 
-option(OPT_NEW_GLOBAL_METHOD "Utilisation de champs globaux")
-if (OPT_NEW_GLOBAL_METHOD)
-    add_definitions(-DNEW_GLOBAL_METHOD=1)
-else(OPT_NEW_GLOBAL_METHOD)
-    add_definitions(-DNEW_GLOBAL_METHOD=0)
-endif (OPT_NEW_GLOBAL_METHOD)
-
 if (NOT BUILD_WITH_MKA)
 # Hors mka il faut chercher MPI et HDF5 ici
 option(OPT_MPI "Compilation en mode MPI")
