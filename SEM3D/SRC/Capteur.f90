@@ -15,15 +15,16 @@ module mCapteur
     use mfields
     use sem_hdf5
     use sem_c_config
-    use constants, only : NCAPT_CACHE
+    use constants, only : NCAPT_CACHE, M_1_3
     use mshape8
     use mshape27
-        implicit none
+    implicit none
 
     public :: save_capteur, evalueSortieCapteur, flushAllCapteurs, create_capteurs
     private ::  flushCapteur
-
-    integer, parameter :: CAPT_DIM=18
+    ! start modifs
+    integer, parameter :: CAPT_DIM=24
+    ! end modifs
     type :: tCapteur
         type(tCapteur),pointer :: suivant ! pour passer au capteur suivant
         integer :: periode          ! frequence de captation des grandeur
@@ -34,7 +35,7 @@ module mCapteur
         real :: xi, eta, zeta ! abscisses curvilignes pour le capteur en cas d'interpolation (type_calcul=1)
         integer :: numproc               ! numero du proc localisant le capteur
         integer :: icache
-        ! DIM: Solide : 1(t)+3(u)+3(v)+3(a)+1(p)+1(eps_vol)+6(eps_dev)
+        ! DIM: Solide : 1(t)+3(u)+3(v)+3(a)+1(p)+1(eps_vol)+6(eps_dev)+6(sig_dev)
         !      Fluide : 1(t)+???
         real, dimension(CAPT_DIM, NCAPT_CACHE) :: valuecache
     end type tCapteur
@@ -316,7 +317,9 @@ contains
 
         open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
         do j=1,capteur%icache
-            write(fileId,'(18(1X,E16.8E3))') capteur%valuecache(:,j)
+        ! start modifs
+            write(fileId,'(24(1X,E16.8E3))') capteur%valuecache(:,j)
+            ! end modifs
         end do
         close(fileId)
         capteur%icache = 0
@@ -350,12 +353,18 @@ contains
         real, dimension(:,:,:), allocatable :: DZX, DZY, DZZ
         real  :: eps_vol, eps_dev_xx, eps_dev_yy, eps_dev_zz, &
             eps_dev_xy, eps_dev_xz, eps_dev_yz
+        real  :: sig_dev_xx, sig_dev_yy, sig_dev_zz, &
+            sig_dev_xy, sig_dev_xz, sig_dev_yz
+
         real, dimension (:,:), allocatable  :: htprimex, hprimey, hprimez
         ! end modifs
-        integer :: n_el, ngllx, nglly, ngllz, mat
+        integer :: n_el, ngllx, nglly, ngllz, mat, n_solid
         real :: xi, eta, zeta, weight
         real, dimension(:), allocatable :: outx, outy, outz
-
+        ! start modifs
+        logical :: aniso, solid
+        real :: xmu, xlambda, xkappa, x2mu, xlambda2mu, onemSbeta, onemPbeta
+        ! end modifs
         rg = Tdomain%rank
 
         ! ETAPE 0 : initialisations
@@ -380,7 +389,6 @@ contains
             allocate(fieldV(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
             allocate(fieldA(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
             allocate(fieldP(0:ngllx-1,0:nglly-1,0:ngllz-1))
-            ! start modif
             allocate(DXX(0:ngllx-1,0:nglly-1,0:ngllz-1))
             allocate(DXY(0:ngllx-1,0:nglly-1,0:ngllz-1))
             allocate(DXZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
@@ -393,8 +401,9 @@ contains
             allocate(hTprimex(0:ngllx-1,0:ngllx-1))
             allocate(hprimey(0:nglly-1,0:nglly-1))
             allocate(hprimez(0:ngllz-1,0:ngllz-1))
+
+            mat=Tdomain%specel(n_el)%mat_index
             ! end modif
-            mat = Tdomain%specel(n_el)%mat_index
 
             do i = 0,ngllx - 1
                 call  pol_lagrange(ngllx,Tdomain%sSubdomain(mat)%GLLcx,i,xi,outx(i))
@@ -411,10 +420,14 @@ contains
             call gather_elem_press(Tdomain, n_el, fieldP)
 
             ! start modif
+            solid=Tdomain%specel(n_el)%solid
+            n_solid=Tdomain%n_sls
             hTprimex=Tdomain%sSubDomain(mat)%hTprimex
             hprimey=Tdomain%sSubDomain(mat)%hprimey
             hprimez=Tdomain%sSubDomain(mat)%hprimez
-            if(Tdomain%specel(n_el)%solid .and. (.not. Tdomain%specel(n_el)%PML))then   ! SOLID PART OF THE DOMAIN
+            aniso=Tdomain%aniso
+
+            if((solid) .and. (.not. Tdomain%specel(n_el)%PML))then   ! SOLID PART OF THE DOMAIN
                 call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,0),DXX,DYX,DZX)
                 call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,1),DXY,DYY,DZY)
                 call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
@@ -426,6 +439,13 @@ contains
             eps_dev_xy = 0
             eps_dev_xz = 0
             eps_dev_yz = 0
+
+            sig_dev_xx = 0
+            sig_dev_yy = 0
+            sig_dev_zz = 0
+            sig_dev_xy = 0
+            sig_dev_xz = 0
+            sig_dev_yz = 0
             ! end modif
 
             do i = 0,ngllx - 1
@@ -437,22 +457,50 @@ contains
                         grandeur(7:9) = grandeur(7:9) + weight*fieldA(i,j,k,:)
                         grandeur(10 ) = grandeur( 10) + weight*fieldP(i,j,k)
                         ! start modif
-                        if (Tdomain%specel(n_el)%solid .and. (.not. Tdomain%specel(n_el)%PML)) then
+                        if ((solid) .and. (.not. Tdomain%specel(n_el)%PML)) then
                             eps_vol = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
-                            eps_dev_xx = DXX(i,j,k) - eps_vol * 0.333333333333333333333333333333d0
-                            eps_dev_yy = DYY(i,j,k) - eps_vol * 0.333333333333333333333333333333d0
-                            eps_dev_zz = DZZ(i,j,k) - eps_vol * 0.333333333333333333333333333333d0
+                            eps_dev_xx = DXX(i,j,k) - eps_vol * M_1_3
+                            eps_dev_yy = DYY(i,j,k) - eps_vol * M_1_3
+                            eps_dev_zz = DZZ(i,j,k) - eps_vol * M_1_3
                             eps_dev_xy = 0.5 * (DXY(i,j,k) + DYX(i,j,k))
                             eps_dev_xz = 0.5 * (DZX(i,j,k) + DXZ(i,j,k))
                             eps_dev_yz = 0.5 * (DZY(i,j,k) + DYZ(i,j,k))
+                            if (aniso) then
+                            else
+                                xmu     = Tdomain%specel(n_el)%Mu(i,j,k)
+                                xlambda = Tdomain%specel(n_el)%Lambda(i,j,k)
+                                xkappa  = Tdomain%specel(n_el)%Kappa(i,j,k)
+
+                                if (n_solid>0) then
+                                    onemSbeta=Tdomain%specel(n_el)%sl%onemSbeta(i,j,k)
+                                    onemPbeta=Tdomain%specel(n_el)%sl%onemPbeta(i,j,k)
+                                    !  mu_relaxed -> mu_unrelaxed
+                                    xmu    = xmu * onemSbeta
+                                    !  kappa_relaxed -> kappa_unrelaxed
+                                    xkappa = xkappa * onemPbeta
+                                endif
+                                x2mu       = 2. * xmu
+                                xlambda2mu = xlambda + x2mu
+
+                                sig_dev_xx = xlambda2mu * DXX(i,j,k) + xlambda * (DYY(i,j,k) + DZZ(i,j,k))
+                                sig_dev_yy = xlambda2mu * DYY(i,j,k) + xlambda * (DXX(i,j,k) + DZZ(i,j,k))
+                                sig_dev_zz = xlambda2mu * DZZ(i,j,k) + xlambda * (DXX(i,j,k) + DYY(i,j,k))
+                                sig_dev_xy = xmu * (DXY(i,j,k) + DYX(i,j,k))
+                                sig_dev_xz = xmu * (DXZ(i,j,k) + DZX(i,j,k))
+                                sig_dev_yz = xmu * (DYZ(i,j,k) + DZY(i,j,k))
+                            endif
                         endif
-                        grandeur(11:17) = grandeur (11:17) + (/weight*eps_vol, weight*eps_dev_xx, &
-                              weight*eps_dev_yy, weight*eps_dev_zz, &
-                              weight*eps_dev_xy, weight*eps_dev_xz, weight*eps_dev_yz /)
+                        grandeur(11:23) = grandeur (11:23) + (/weight*eps_vol, &
+                              weight*eps_dev_xx, weight*eps_dev_yy, weight*eps_dev_zz, &
+                              weight*eps_dev_xy, weight*eps_dev_xz, weight*eps_dev_yz, &
+                              weight*sig_dev_xx, weight*sig_dev_yy, weight*sig_dev_zz, &
+                              weight*sig_dev_xy, weight*sig_dev_xz, weight*sig_dev_yz/)
                         ! end modif
                     enddo
                 enddo
             enddo
+
+
 
             deallocate(outx)
             deallocate(outy)
@@ -461,9 +509,24 @@ contains
             deallocate(fieldV)
             deallocate(fieldA)
             deallocate(fieldP)
+            if (allocated(DXX)) deallocate(DXX)
+            if (allocated(DXY)) deallocate(DXY)
+            if (allocated(DXZ)) deallocate(DXZ)
+            if (allocated(DYX)) deallocate(DYX)
+            if (allocated(DYY)) deallocate(DYY)
+            if (allocated(DYZ)) deallocate(DYZ)
+            if (allocated(DZX)) deallocate(DZX)
+            if (allocated(DZY)) deallocate(DZY)
+            if (allocated(DZZ)) deallocate(DZZ)
+            if (allocated(hTprimex)) deallocate(hTprimex)
+            if (allocated(hprimey)) deallocate(hprimey)
+            if (allocated(hprimez)) deallocate(hprimez)
+
             i = capteur%icache+1
             capteur%valuecache(1,i) = Tdomain%TimeD%rtime
-            capteur%valuecache(2:18,i) = grandeur(:)
+            ! start modifs
+            capteur%valuecache(2:24,i) = grandeur(:)
+            ! end modifs
             capteur%icache = i
         endif
 
