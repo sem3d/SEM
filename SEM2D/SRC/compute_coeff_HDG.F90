@@ -524,6 +524,38 @@ contains
 
     ! ############################################################
 
+    subroutine modify_atmospheric_rho(Tdomain, nelem)
+
+        implicit none
+        type (domain), intent (INOUT) :: Tdomain
+        integer, intent(IN) :: nelem
+        type(element), pointer :: Elem
+        real    :: rho0, rho, kappa, zp, z0, zmax, cp, c0, cmax
+        integer :: i, j, ipoint
+
+        Elem => Tdomain%specel(nelem)
+        rho0  = Elem%Density(0,0)
+        kappa = Elem%Lambda(0,0)
+        zmax = 5000.
+        cmax = 550.
+        z0 = 2400.
+        c0 = sqrt(kappa/rho0)
+
+        if (Elem%acoustic) then
+            do j = 0,Elem%ngllz-1
+                do i = 0,Elem%ngllx-1
+                    ipoint = Elem%Iglobnum(i,j)
+                    zp = Tdomain%GlobCoord(1,ipoint)
+                    ! Loi de celerite pour l'altitude zp
+                    cp = c0 + (zp - z0)**2 / (zmax - z0)**2 * (cmax - c0)
+                    ! Densite correspondante :
+                    rho = kappa / cp**2
+                    Elem%Density(i,j) = rho
+                enddo
+            enddo
+        end if
+
+    end subroutine modify_atmospheric_rho
 
 end module scompute_coeff_HDG
 !! Local Variables:

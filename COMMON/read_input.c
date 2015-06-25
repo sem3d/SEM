@@ -525,6 +525,7 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	if (cmp(scanner,"amortissement")) err=expect_amortissement(scanner, config);
 	else if (cmp(scanner,"fmax")) err=expect_eq_float(scanner, &config->fmax,1);
 	else if (cmp(scanner,"ngll")) err=expect_eq_int(scanner, &config->ngll,1);
+	else if (cmp(scanner,"lamb_test")) err=expect_eq_bool(scanner, &config->is_lamb_test,1);
 	else if (cmp(scanner,"dim")) {
 	    err=expect_eq_int(scanner, &config->dim,1);
 	    if (err!=0) { err = check_dimension(scanner, config); }

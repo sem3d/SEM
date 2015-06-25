@@ -371,34 +371,35 @@ subroutine allocate_domain (Tdomain)
     enddo
   endif
 
-  ! Special addition for Lamb test : A SUPPRIMER !!!!!!!!
-  !do n=0,Tdomain%n_face-1
-  !    i = Tdomain%sFace(n)%Near_Vertex(0)
-  !    j = Tdomain%sFace(n)%Near_Vertex(1)
-  !    i = Tdomain%sVertex(i)%Glob_numbering
-  !    j = Tdomain%sVertex(j)%Glob_numbering
-  !    if (abs(Tdomain%coord_nodes(1,i)) .LT. 1.E-7 .and. abs(Tdomain%coord_nodes(1,j)) .LT. 1.E-7 &
-  !        .and. Tdomain%sFace(n)%Reflex ) then
-  !        Tdomain%sFace(n)%freesurf = .true.
-  !        Tdomain%sFace(n)%Abs      = .false.
-  !        Tdomain%sFace(n)%Reflex   = .false.
-  !        i = Tdomain%sFace(n)%Near_Vertex(0)
-  !        j = Tdomain%sFace(n)%Near_Vertex(1)
-  !        Tdomain%sVertex(i)%Abs      = .false.
-  !        Tdomain%sVertex(i)%Reflex   = .false.
-  !        Tdomain%sVertex(j)%Abs      = .false.
-  !        Tdomain%sVertex(j)%Reflex   = .false.
-  !    endif
-  !enddo
-  !do n=0,Tdomain%n_face-1  ! Traitement pour les coins
-  !    if (Tdomain%sFace(n)%Reflex) then
-  !        i = Tdomain%sFace(n)%Near_Vertex(0)
-  !        j = Tdomain%sFace(n)%Near_Vertex(1)
-  !        Tdomain%sVertex(i)%Reflex   = .true.
-  !        Tdomain%sVertex(j)%Reflex   = .true.
-  !    endif
-  !enddo
-  !!! FIN A SUPPRIMER !!!!!!!!
+  ! Special addition for Lamb test :
+  if (Tdomain%LogicD%Lamb_test) then
+      do n=0,Tdomain%n_face-1
+          i = Tdomain%sFace(n)%Near_Vertex(0)
+          j = Tdomain%sFace(n)%Near_Vertex(1)
+          i = Tdomain%sVertex(i)%Glob_numbering
+          j = Tdomain%sVertex(j)%Glob_numbering
+          if (abs(Tdomain%coord_nodes(1,i)) .LT. 1.E-7 .and. abs(Tdomain%coord_nodes(1,j)) .LT. 1.E-7 &
+              .and. Tdomain%sFace(n)%Reflex ) then
+              Tdomain%sFace(n)%freesurf = .true.
+              Tdomain%sFace(n)%Abs      = .false.
+              Tdomain%sFace(n)%Reflex   = .false.
+              i = Tdomain%sFace(n)%Near_Vertex(0)
+              j = Tdomain%sFace(n)%Near_Vertex(1)
+              Tdomain%sVertex(i)%Abs      = .false.
+              Tdomain%sVertex(i)%Reflex   = .false.
+              Tdomain%sVertex(j)%Abs      = .false.
+              Tdomain%sVertex(j)%Reflex   = .false.
+          endif
+      enddo
+      do n=0,Tdomain%n_face-1  ! Traitement pour les coins
+          if (Tdomain%sFace(n)%Reflex) then
+              i = Tdomain%sFace(n)%Near_Vertex(0)
+              j = Tdomain%sFace(n)%Near_Vertex(1)
+              Tdomain%sVertex(i)%Reflex   = .true.
+              Tdomain%sVertex(j)%Reflex   = .true.
+          endif
+      enddo
+  endif
 
   return
 end subroutine allocate_domain

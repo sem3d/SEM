@@ -57,6 +57,7 @@ typedef struct {
     char* mat_file;
     int nsources;
     source_t *source;
+    int is_lamb_test;
 
     // Capteurs
     int save_traces;

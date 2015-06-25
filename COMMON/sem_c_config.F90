@@ -31,6 +31,7 @@ module sem_c_config
        type(C_PTR)    :: mat_file
        integer(C_INT) :: nsources
        type(C_PTR)    :: source
+       integer(C_INT) :: is_lamb_test
 
        !! Capteurs
        integer(C_INT) :: save_traces

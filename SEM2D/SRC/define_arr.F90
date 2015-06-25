@@ -59,6 +59,9 @@ subroutine define_arrays(Tdomain)
             enddo
         enddo
 
+        ! For Atmospheric Waveguide :
+        !call modify_atmospheric_rho(Tdomain,n)
+
         allocate (xix (0:ngllx-1,0:ngllz-1))
         allocate (xiz (0:ngllx-1,0:ngllz-1))
         allocate (etax (0:ngllx-1,0:ngllz-1))
