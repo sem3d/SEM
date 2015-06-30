@@ -184,6 +184,27 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
     return 1;
 }
 
+
+
+////start modifs
+//int expect_variables(yyscan_t scanner, sem_config_t* config)
+//{
+//    int tok, err;
+//
+//    tok = skip_blank(scanner);
+//    if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected {'"); return 0; }
+//    do {
+//    	tok = skip_blank(scanner);
+//    	if (tok!=K_ID) break;
+//
+//    	if (cmp(scanner,"variables")) err=expect_()
+//    }while(1)
+//}
+////end modifs
+
+
+
+
 int expect_time_scheme(yyscan_t scanner, sem_config_t* config)
 {
     int tok, err;

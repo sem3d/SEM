@@ -59,7 +59,7 @@ contains
 
     subroutine grp_write_fields(Tdomain, parent_id, dim2, displ, veloc, accel, press, &
         eps_vol, eps_dev_xx, eps_dev_yy, eps_dev_zz, eps_dev_xy, eps_dev_xz, eps_dev_yz, &
-        sig_dev_xx, sig_dev_yy, sig_dev_zz, sig_dev_xy, sig_dev_xz, sig_dev_yz, ntot_nodes)
+        sig_dev_xx, sig_dev_yy, sig_dev_zz, sig_dev_xy, sig_dev_xz, sig_dev_yz, P_energy, S_energy, ntot_nodes)
 
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: parent_id
@@ -69,7 +69,7 @@ contains
         real, dimension(0:dim2-1), intent(in) :: eps_vol, eps_dev_xx, eps_dev_yy, eps_dev_zz, &
             eps_dev_xy, eps_dev_xz, eps_dev_yz
         real, dimension(0:dim2-1), intent(in) :: sig_dev_xx, sig_dev_yy, sig_dev_zz, sig_dev_xy, &
-            sig_dev_xz, sig_dev_yz
+            sig_dev_xz, sig_dev_yz, P_energy, S_energy
         integer, intent(out) :: ntot_nodes
         !
         integer(HID_T) :: dset_id
@@ -223,7 +223,24 @@ contains
             call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
             call h5dclose_f(dset_id, hdferr)
         end if
-
+        ! P_ENERGY
+        call MPI_Gatherv(P_energy, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
+            MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+        if (Tdomain%output_rank==0) then
+            dims(1) = ntot_nodes
+            call create_dset(parent_id, "P_energy", H5T_IEEE_F32LE, dims(1), dset_id)
+            call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
+            call h5dclose_f(dset_id, hdferr)
+        end if
+        ! S_ENERGY
+        call MPI_Gatherv(S_energy, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
+            MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+        if (Tdomain%output_rank==0) then
+            dims(1) = ntot_nodes
+            call create_dset(parent_id, "S_energy", H5T_IEEE_F32LE, dims(1), dset_id)
+            call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
+            call h5dclose_f(dset_id, hdferr)
+        end if
         ! 3D FIELDS
         if (Tdomain%output_rank==0) then
             do n=0, Tdomain%nb_output_procs-1
@@ -661,6 +678,7 @@ contains
             eps_dev_xy, eps_dev_xz, eps_dev_yz
         real, dimension(:), allocatable     :: sig_dev_xx, sig_dev_yy, sig_dev_zz, sig_dev_xy, &
             sig_dev_xz, sig_dev_yz
+        real, dimension(:), allocatable     :: P_energy, S_energy
         ! end modif
 
         call create_dir_sorties(Tdomain, isort)
@@ -799,9 +817,12 @@ contains
         allocate(sig_dev_xz(0:nnodes-1))
         allocate(sig_dev_yz(0:nnodes-1))
 
+        allocate(P_energy(0:nnodes-1))
+        allocate(S_energy(0:nnodes-1))
+
         call compute_stress_strain(Tdomain, irenum, eps_vol, eps_dev_xx, eps_dev_yy, eps_dev_zz, &
             eps_dev_xy, eps_dev_xz, eps_dev_yz, sig_dev_xx, sig_dev_yy, sig_dev_zz, &
-            sig_dev_xy, sig_dev_xz, sig_dev_yz)
+            sig_dev_xy, sig_dev_xz, sig_dev_yz, P_energy, S_energy)
         ! end modif
 
         ! normalization
@@ -823,7 +844,8 @@ contains
         endif
         call grp_write_fields(Tdomain, fid, nnodes, displ, veloc, accel, press, &
             eps_vol, eps_dev_xx, eps_dev_yy, eps_dev_zz, eps_dev_xy, eps_dev_xz, eps_dev_yz, &
-             sig_dev_xx, sig_dev_yy, sig_dev_zz, sig_dev_xy, sig_dev_xz, sig_dev_yz, nnodes_tot)
+             sig_dev_xx, sig_dev_yy, sig_dev_zz, sig_dev_xy, sig_dev_xz, sig_dev_yz, P_energy, &
+             S_energy, nnodes_tot)
 
         if (Tdomain%output_rank==0) then
             call h5fclose_f(fid, hdferr)
@@ -831,7 +853,7 @@ contains
         endif
         deallocate(displ,veloc,accel,press,valence, &
             eps_vol, eps_dev_xx, eps_dev_yy, eps_dev_zz, eps_dev_xy, eps_dev_xz, eps_dev_yz, &
-            sig_dev_xx, sig_dev_yy, sig_dev_zz, sig_dev_xy, sig_dev_xz, sig_dev_yz)
+            sig_dev_xx, sig_dev_yy, sig_dev_zz, sig_dev_xy, sig_dev_xz, sig_dev_yz, P_energy, S_energy)
 
         if (allocated(field_displ)) deallocate(field_displ)
         if (allocated(field_veloc)) deallocate(field_veloc)
@@ -960,6 +982,7 @@ contains
             write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_vol'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Attribute>'
+            ! start modifs
             ! EPS_DEV_XX
             write(61,"(a,I9,a)") '<Attribute Name="eps_dev_xx" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
             write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
@@ -1032,6 +1055,20 @@ contains
             write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/sig_dev_yz'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Attribute>'
+            ! P_ENERGY
+            write(61,"(a,I9,a)") '<Attribute Name="P_energy" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+            write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+            write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/P_energy'
+            write(61,"(a)") '</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            ! S_ENERGY
+            write(61,"(a,I9,a)") '<Attribute Name="S_energy" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+            write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+            write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/S_energy'
+            write(61,"(a)") '</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            ! end modifs
+
             ! DOMAIN
             write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar" Dimensions="1">'
             write(61,"(a,I4,a)") '<DataItem Format="XML" Datatype="Int"  Dimensions="1">',group,'</DataItem>'
@@ -1141,7 +1178,7 @@ contains
 
     subroutine compute_stress_strain(Tdomain, irenum, eps_vol, eps_dev_xx, eps_dev_yy, eps_dev_zz, &
         eps_dev_xy, eps_dev_xz, eps_dev_yz, sig_dev_xx, sig_dev_yy, sig_dev_zz, &
-        sig_dev_xy, sig_dev_xz, sig_dev_yz)
+        sig_dev_xy, sig_dev_xz, sig_dev_yz, P_energy, S_energy)
 
         type(domain), intent(in) :: Tdomain
 
@@ -1154,9 +1191,11 @@ contains
             eps_dev_xy, eps_dev_xz, eps_dev_yz
         real, dimension(:), allocatable, intent(INOUT) :: sig_dev_xx, sig_dev_yy, sig_dev_zz, &
             sig_dev_xy, sig_dev_xz, sig_dev_yz
+        real, dimension(:), allocatable, intent(INOUT) :: P_energy, S_energy
         integer, dimension(:), allocatable, intent(IN) :: irenum
         logical :: aniso, solid
         real :: xmu, xlambda, xkappa, x2mu, xlambda2mu, onemSbeta, onemPbeta
+        real :: eps_trace
 
         ngllx = 0
         nglly = 0
@@ -1229,10 +1268,11 @@ contains
 
                         if ((solid) .and. (.not. Tdomain%specel(n)%PML)) then
                             ! strain tensor
-                            eps_vol(idx)    = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
-                            eps_dev_xx(idx) = DXX(i,j,k) - eps_vol(idx) * M_1_3
-                            eps_dev_yy(idx) = DYY(i,j,k) - eps_vol(idx) * M_1_3
-                            eps_dev_zz(idx) = DZZ(i,j,k) - eps_vol(idx) * M_1_3
+                            eps_trace       = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
+                            eps_vol(idx)    = eps_trace
+                            eps_dev_xx(idx) = DXX(i,j,k) - eps_trace * M_1_3
+                            eps_dev_yy(idx) = DYY(i,j,k) - eps_trace * M_1_3
+                            eps_dev_zz(idx) = DZZ(i,j,k) - eps_trace * M_1_3
                             eps_dev_xy(idx) = 0.5 * (DXY(i,j,k) + DYX(i,j,k))
                             eps_dev_xz(idx) = 0.5 * (DZX(i,j,k) + DXZ(i,j,k))
                             eps_dev_yz(idx) = 0.5 * (DZY(i,j,k) + DYZ(i,j,k))
@@ -1261,6 +1301,16 @@ contains
                                 sig_dev_xy(idx) = xmu * (DXY(i,j,k) + DYX(i,j,k))
                                 sig_dev_xz(idx) = xmu * (DXZ(i,j,k) + DZX(i,j,k))
                                 sig_dev_yz(idx) = xmu * (DYZ(i,j,k) + DZY(i,j,k))
+
+                                P_energy(idx) = .5 * xlambda2mu * eps_trace**2
+                                S_energy(idx) = xmu * ((DXX(i,j,k) - eps_trace)**2 + &
+                                                       (DYY(i,j,k) - eps_trace)**2 + &
+                                                       (DZZ(i,j,k) - eps_trace)**2 + &
+                                                        DXY(i,j,k)**2 + DYX(i,j,k)**2 + &
+                                                        DXZ(i,j,k)**2 + DZX(i,j,k)**2 + &
+                                                        DYZ(i,j,k)**2 + DZY(i,j,k)**2)
+
+
                             endif
                         else
                             eps_vol(idx) = 0
@@ -1276,6 +1326,9 @@ contains
                             sig_dev_xy(idx) = 0
                             sig_dev_xz(idx) = 0
                             sig_dev_yz(idx) = 0
+                            P_energy(idx)   = 0
+                            S_energy(idx)   = 0
+
                         endif
                     end do
                 end do

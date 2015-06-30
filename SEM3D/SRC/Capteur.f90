@@ -23,7 +23,7 @@ module mCapteur
     public :: save_capteur, evalueSortieCapteur, flushAllCapteurs, create_capteurs
     private ::  flushCapteur
     ! start modifs
-    integer, parameter :: CAPT_DIM=24
+    integer, parameter :: CAPT_DIM=26
     ! end modifs
     type :: tCapteur
         type(tCapteur),pointer :: suivant ! pour passer au capteur suivant
@@ -35,7 +35,7 @@ module mCapteur
         real :: xi, eta, zeta ! abscisses curvilignes pour le capteur en cas d'interpolation (type_calcul=1)
         integer :: numproc               ! numero du proc localisant le capteur
         integer :: icache
-        ! DIM: Solide : 1(t)+3(u)+3(v)+3(a)+1(p)+1(eps_vol)+6(eps_dev)+6(sig_dev)
+        ! DIM: Solide : 1(t)+3(u)+3(v)+3(a)+1(p)+1(eps_vol)+6(eps_dev)+6(sig_dev)+2(P-S energy)
         !      Fluide : 1(t)+???
         real, dimension(CAPT_DIM, NCAPT_CACHE) :: valuecache
     end type tCapteur
@@ -318,7 +318,7 @@ contains
         open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
         do j=1,capteur%icache
         ! start modifs
-            write(fileId,'(24(1X,E16.8E3))') capteur%valuecache(:,j)
+            write(fileId,'(26(1X,E16.8E3))') capteur%valuecache(:,j)
             ! end modifs
         end do
         close(fileId)
@@ -355,6 +355,7 @@ contains
             eps_dev_xy, eps_dev_xz, eps_dev_yz
         real  :: sig_dev_xx, sig_dev_yy, sig_dev_zz, &
             sig_dev_xy, sig_dev_xz, sig_dev_yz
+        real  :: P_energy, S_energy
 
         real, dimension (:,:), allocatable  :: htprimex, hprimey, hprimez
         ! end modifs
@@ -363,7 +364,7 @@ contains
         real, dimension(:), allocatable :: outx, outy, outz
         ! start modifs
         logical :: aniso, solid
-        real :: xmu, xlambda, xkappa, x2mu, xlambda2mu, onemSbeta, onemPbeta
+        real :: xmu, xlambda, xkappa, x2mu, xlambda2mu, onemSbeta, onemPbeta, eps_trace
         ! end modifs
         rg = Tdomain%rank
 
@@ -446,6 +447,10 @@ contains
             sig_dev_xy = 0
             sig_dev_xz = 0
             sig_dev_yz = 0
+
+            P_energy = 0
+            S_energy = 0
+
             ! end modif
 
             do i = 0,ngllx - 1
@@ -458,7 +463,8 @@ contains
                         grandeur(10 ) = grandeur( 10) + weight*fieldP(i,j,k)
                         ! start modif
                         if ((solid) .and. (.not. Tdomain%specel(n_el)%PML)) then
-                            eps_vol = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
+                            eps_trace = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
+                            eps_vol = eps_trace
                             eps_dev_xx = DXX(i,j,k) - eps_vol * M_1_3
                             eps_dev_yy = DYY(i,j,k) - eps_vol * M_1_3
                             eps_dev_zz = DZZ(i,j,k) - eps_vol * M_1_3
@@ -488,6 +494,15 @@ contains
                                 sig_dev_xy = xmu * (DXY(i,j,k) + DYX(i,j,k))
                                 sig_dev_xz = xmu * (DXZ(i,j,k) + DZX(i,j,k))
                                 sig_dev_yz = xmu * (DYZ(i,j,k) + DZY(i,j,k))
+
+                                P_energy = .5 * xlambda2mu * eps_trace**2
+                                S_energy = xmu * ((DXX(i,j,k) - eps_trace)**2 + &
+                                                       (DYY(i,j,k) - eps_trace)**2 + &
+                                                       (DZZ(i,j,k) - eps_trace)**2 + &
+                                                        DXY(i,j,k)**2 + DYX(i,j,k)**2 + &
+                                                        DXZ(i,j,k)**2 + DZX(i,j,k)**2 + &
+                                                        DYZ(i,j,k)**2 + DZY(i,j,k)**2)
+
                             endif
                         endif
                         grandeur(11:23) = grandeur (11:23) + (/weight*eps_vol, &
@@ -525,7 +540,7 @@ contains
             i = capteur%icache+1
             capteur%valuecache(1,i) = Tdomain%TimeD%rtime
             ! start modifs
-            capteur%valuecache(2:24,i) = grandeur(:)
+            capteur%valuecache(2:26,i) = grandeur(:)
             ! end modifs
             capteur%icache = i
         endif
