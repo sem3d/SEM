@@ -195,6 +195,9 @@ contains
                 i = i + 1
             end if
         end do
+
+        write(*,*) "source_file"
+
     end function Source_File
 
     subroutine read_source_file(Sour)
@@ -207,6 +210,7 @@ contains
 
         i = 0 ; nb_time_step = 0
         ! count
+
         open(10,file=Sour%time_file,action="read",status="old")
         do
             read(10,*,end=100) tr, trr
@@ -215,6 +219,7 @@ contains
 100     close(10)
         ! nombre de donnees en entree pour la source
         nb_time_step = i
+        write(*,*) Sour%time_file , nb_time_step
         allocate(Sour%time(0:nb_time_step-1),Sour%ampli(0:nb_time_step-1))
 
         open(10,file=Sour%time_file,action="read",status="old")

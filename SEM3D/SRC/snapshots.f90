@@ -1250,8 +1250,6 @@ contains
             hprimey=Tdomain%sSubDomain(mat_idx)%hprimey
             hprimez=Tdomain%sSubDomain(mat_idx)%hprimez
             aniso=Tdomain%aniso
-            WRITE(*,*) SOLID
-            WRITE(*,*) M_1_3
 
             ! displacement gradient
             if((solid) .and. (.not. Tdomain%specel(n)%PML))then
