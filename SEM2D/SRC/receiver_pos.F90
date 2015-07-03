@@ -194,6 +194,7 @@ end subroutine ReceiverPosition
 subroutine save_trace (Tdomain, it)
     use sdomain
     use orientation
+    use constants
     implicit none
 
     type (domain), intent (INOUT) :: Tdomain
@@ -215,7 +216,8 @@ subroutine save_trace (Tdomain, it)
             allocate (Field(0:ngllx-1,0:ngllz-1,0:1))
 
             call gather_elem_veloc(Tdomain, nr, Field, .false.)
-            !Field = Tdomain%specel(nr)%Veloc !!! A SUPPRIMER !!!
+            if (Tdomain%type_timeInteg == TIME_INTEG_RK4) &
+                Field = Tdomain%specel(nr)%Veloc
 
             do j = 0,ngllz-1
                 do i =0,ngllx -1
