@@ -51,6 +51,7 @@ contains
         real, intent(in) :: time
 
         CompSource = 0d0
+
         select case (Sour%i_time_function)
         case (1)
             CompSource = Gaussian (time, Sour%ts, Sour%tau_b)
@@ -63,7 +64,7 @@ contains
             CompSource = Gabor (time,Sour%tau_b,Sour%cutoff_freq,Sour%gamma,Sour%ts)
         case (5)
             !   modif pour benchmark can2
-            CompSource = Source_File (time,Sour%tau_b,Sour)
+            CompSource = Source_File (time,Sour%amplitude_factor,Sour)
             !   modif pour benchmark can2
         case (6)
             ! Source benchmark spice M0*(1-(1+(t/T)**gamma)exp(-(t/T)**gamma)) avec T=1/freq
@@ -180,23 +181,22 @@ contains
         end if
         i = 0
         iflag = 0
+
         do  while( iflag == 0 )
             if(tt >= Sour%time(i) .and. tt < Sour%time(i+1) )then
                 Source_File = Sour%ampli(i) +            &
                     (tt-Sour%time(i))*(Sour%ampli(i+1)-Sour%ampli(i))/(Sour%time(i+1)-Sour%time(i))
                 Source_File = Source_File * tau
                 iflag = 1
-                !print*,'source5 fichier ',Source_File,tau,' temps ',tt
-                !      print*,' interval ',i,i+1
-                !      print*,' '
+!                print*,'source5 fichier ',Source_File,tau,' temps ',tt
+!                print*,' interval ',i,i+1
                 return
             else
-                !            print*,' iflag ',iflag ,i
+!                print*,' iflag ',iflag ,i
                 i = i + 1
             end if
         end do
 
-        write(*,*) "source_file"
 
     end function Source_File
 
@@ -219,7 +219,7 @@ contains
 100     close(10)
         ! nombre de donnees en entree pour la source
         nb_time_step = i
-        write(*,*) Sour%time_file , nb_time_step
+
         allocate(Sour%time(0:nb_time_step-1),Sour%ampli(0:nb_time_step-1))
 
         open(10,file=Sour%time_file,action="read",status="old")

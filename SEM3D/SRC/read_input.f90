@@ -574,6 +574,7 @@ contains
             nsrc = nsrc + 1
             Tdomain%logicD%any_source = .true.
             call c_f_pointer(src%next, src)
+
         end do
 
 
