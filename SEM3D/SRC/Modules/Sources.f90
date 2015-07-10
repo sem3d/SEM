@@ -13,25 +13,43 @@ module ssources
     implicit none
 
     type :: Source
-       ! xxx
-       character(len = 30)  :: time_file
-       integer :: i_type_source, i_time_function, elem, proc
-       real, dimension(0:2) :: dir
+
+       ! GENERAL PARAMETERS (see SourcePosition.f90-Source.f90)
+       integer                              :: proc                      ! source belonging processor
+       integer                              :: elem                      ! source belonging elem
+       integer                              :: i_type_source             ! source type (solid pulse-moment-fluid pulse)
+
+       ! SPATIAL PARAMETERS
+       real, dimension(0:2)                 :: refcoord                  ! local coordinates (master element)
+       real, dimension(0:2)                 :: dir                       ! source direction
+       real                                 :: Xsource, YSource, Zsource ! source coordinates
+       real                                 :: amplitude_factor          ! amplitude factor
+
+       ! TIME PARAMETERS
+       real                                 :: ts                        ! time shift
+       integer                              :: i_time_function           ! source type (ricker, gabor, etc.)
+
+       ! MOMENT SOURCE
+       real, dimension(0:2,0:2)             :: InvGrad                   ! Inverse Jacobian
+       real, dimension(0:2,0:2)             :: Moment                    ! Moment tensor
+       real, dimension (:,:,:,:), pointer   :: coeff                     ! weight coefficient
+
+       ! SOURCE FROM EXTERNAL FILE
+       character(len = 30)                  :: time_file                 ! file name of external source
+
+
        real :: tau_b,cutoff_freq,Q,X,Y,L,v,d,a
        real :: radius,realcolat,reallong,refcolat,reflong
-       real :: amplitude_factor
 
        !   ajout de parametres pour definir Gabor signal source de type 4
        !   ajout de gamma et ts
-       real ::  gamma, ts
+       real ::  gamma
 
-       real :: Xsource,YSource,Zsource
+
 
        real, dimension(0:3) :: fh
-       real, dimension(0:2) :: refcoord
+
        real, dimension(:), pointer :: timefunc
-       real, dimension(0:2,0:2) :: Moment, InvGrad
-       real, dimension (:,:,:,:), pointer :: coeff
        real, dimension(:), pointer :: ampli, time
        real, allocatable, dimension(:,:,:,:) :: ExtForce
     end type Source
