@@ -540,8 +540,8 @@ contains
             Tdomain%Ssource(nsrc)%i_type_source = src%type
             Tdomain%Ssource(nsrc)%amplitude_factor = src%amplitude
             if (src%func .eq. 5) then
-            Tdomain%Ssource(nsrc)%time_file = fromcstr(src%time_file)
-            end
+                Tdomain%Ssource(nsrc)%time_file = fromcstr(src%time_file)
+            end if
             ! Comportement temporel
             Tdomain%Ssource(nsrc)%i_time_function = src%func
             Tdomain%Ssource(nsrc)%cutoff_freq = src%freq ! func=2,4
@@ -550,6 +550,7 @@ contains
             Tdomain%Ssource(nsrc)%gamma = src%gamma ! func=4
             Tdomain%Ssource(nsrc)%ts = src%ts   ! func=4
             Tdomain%Ssource(nsrc)%Q = src%Q
+            write(*,*) Tdomain%Ssource(nsrc)%time_file
             Tdomain%Ssource(nsrc)%Y = src%Y
             Tdomain%Ssource(nsrc)%X = src%X
             Tdomain%Ssource(nsrc)%L = src%L

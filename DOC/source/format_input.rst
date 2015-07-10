@@ -215,16 +215,16 @@ tau               réel     --                 Un temps caractéristique :math:`
 freq              réel     --                 Une fréquence :math:`f_c`
 band              réel(4)  --                 Description des bornes :math:`f_1,f_2,f_3,f_4` pour tf_heaviside
 ts                réel     --                 Un offset de temps :math:`t_0`
-gamma             réel     --
-time_file         chaîne   --                 Fichier contenant la source
+gamma             réel     --                 Paramétre pour décrir les fonctions 
+time_file         chaîne   --                 Fichier contenant la source ``gabor``, ``square``, ``tanh``
 amplitude         réel     --                 Facteur multiplicatif appliqué à la source temporelle
-Q                 réel     --                 
-Y                 réel     --                 
-X                 réel     --                  
-L                 réel     --                 
-v                 réel     --                 
-d                 réel     --                 
-a                 réel     --                 
+Q                 réel     --                 Amplitude de la charge mobile
+Y                 réel     --                 Paramètre lié au sol pour la charge mobile
+X                 réel     --                 Paramètre lié au sol pour la charge mobile 
+L                 réel     --                 Longuer critique pour la charge mobile
+v                 réel     --                 Vitesse de la charge mobile
+d                 réel     --                 Distance entre les deux charges mobiles
+a                 réel     --                 Distance critique entre les deux charges mobiles
 ================  =======  =================  =================================================================
 
 Note:
@@ -261,11 +261,29 @@ Les fonctions temporelles sont:
 
      f(t) = -2 (t-t_0) \exp\left(-\frac{(t-t_0)^2}{\tau^2}\right)
 
+.. _fig-source-gauss:
+
+.. figure:: ../figures/gaussian_tau.eps
+   :scale: 40
+   :align: left 
+.. figure:: ../figures/gaussian_t0.eps
+   :scale: 40
+   :align: right
+
 - ``ricker`` :
 
   .. math::
 
      f(t) = \left(1 - 2 \left(\pi \frac{t-\tau}{T_c}\right)^2\right) \exp\left(-\left(\pi \frac{t-\tau}{T_c}\right)^2\right)
+
+.. _fig-source-ricker:
+
+.. figure:: ../figures/ricker_tc.eps
+   :scale: 40
+   :align: left 
+.. figure:: ../figures/ricker_tau.eps
+   :scale: 40
+   :align: right
 
 - ``tf_heaviside`` :
 
@@ -281,6 +299,13 @@ Les fonctions temporelles sont:
              &   & \frac{1}{2}\left(1+\cos\left(\pi\frac{f-f_2}{f_2-f_1}\right)\right) \text{ if } f_1 < f < f_2
      \end{eqnarray}
 
+.. _fig-source-heaviside:
+
+.. figure:: ../figures/heaviside_freq.eps
+   :scale: 40
+   :align: center
+
+
 - ``gabor`` :
 
   .. math::
@@ -288,6 +313,24 @@ Les fonctions temporelles sont:
      \sigma(t) = 2\pi f_c (t-t_0)
 
      f(t) = \exp(-\left(\frac{\sigma(t)}{\gamma}\right)^2) \cos(\sigma(t)+\omega) \tau
+
+.. _fig-source-gabor:
+
+.. figure:: ../figures/gabor_fc.eps
+   :scale: 40
+   :align: left
+.. figure:: ../figures/gabor_gamma.eps
+   :scale: 40
+   :align: right
+.. figure:: ../figures/gabor_omega.eps
+   :scale: 40
+   :align: left
+.. figure:: ../figures/gabor_tau.eps
+   :scale: 40
+   :align: left
+.. figure:: ../figures/gabor_t0.eps
+   :scale: 40
+   :align: right
 
 - ``file`` : Les données sont lues dans un fichier indiqué par le paramètre ``time_file``
 
@@ -297,11 +340,27 @@ Les fonctions temporelles sont:
 
      f(t) = 1 - (1+\frac{t}{T_c})\exp(-\frac{t}{T_c})
 
+.. _fig-source-spice_bench:
+
+.. figure:: ../figures/spice_bench_tc.eps
+   :scale: 40
+   :align: center
+
+
 - ``sinus`` :
 
   .. math::
 
      f(t) = \sin(2\pi f_c (t-t_0))
+
+.. _fig-source-sinus:
+
+.. figure:: ../figures/sinus_fc.eps
+   :scale: 40
+   :align: left
+.. figure:: ../figures/sinus_t0.eps
+   :scale: 40
+   :align: right
 
 
 - ``square`` : Un carré *arrondi*
@@ -310,11 +369,33 @@ Les fonctions temporelles sont:
 
      f(t) = \frac{\exp(2.*\gamma*(x-t_0))-1.}{\exp(2.*\gamma*(x-t_0))+1}+\frac{\exp(2.*\gamma*(t_0+\tau-x))-1.}{\exp(2.*\gamma*(t_0+\tau-x))+1}
 
+.. _fig-source-square:
+
+.. figure:: ../figures/square_gamma.eps
+   :scale: 40
+   :align: left
+.. figure:: ../figures/square_tau.eps
+   :scale: 40
+   :align: right
+.. figure:: ../figures/square_t0.eps
+   :scale: 40
+   :align: right
+
 - ``tanh``: Une tangente hyperbolique
 
   .. math::
 
      f(t) = \frac{1}{2}\tanh(\gamma*(t-t_0)+1)
+
+.. _fig-source-tanh:
+
+.. figure:: ../figures/tanh_gamma.eps
+   :scale: 40
+   :align: left
+.. figure:: ../figures/tanh_t0.eps
+   :scale: 40
+   :align: right
+
 
 - ``dm``: M function
 

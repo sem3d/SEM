@@ -133,7 +133,7 @@ contains
             !- Nature of nodes
             do n = 0, size(elems)-1
                 imat = mater(n)
-                if(mattab(imat) == 'S' .or. mattab(imat) == 'P')then
+                if(mattab(imat) == 'S' .or. mattab(imat) == 'P' .or. mattab(imat) == 'R' )then
                     code = 1   ! solid
                 else
                     code = 0   ! liquid
@@ -142,6 +142,7 @@ contains
                 do i = 0, n_nodes-1
                     j = Ipointer(i,n)
                     if(nods(j) == code .or. nods(j) == -1)then
+                    !if(nods(j) == code)then
                         nods(j) = code
                     else
                         nods(j) = 2   ! solid-fluid node
@@ -276,6 +277,7 @@ contains
                                         SF_object_n_faces(n) = SF_object_n_faces(n)+1
                                         SF_object_n_faces(nn) = SF_object_n_faces(nn)+1
                                         SF_n_global_faces = SF_n_global_faces+1
+                                        !SF_n_global_faces = SF_object_n_faces(n)
                                     end if
                                 end do search1
                             end if
@@ -286,8 +288,10 @@ contains
                 end do
             end if
         end do
+        !write(*,*) "    --> Nb of SF_object_n_faces:", SF_object_n_faces
 
     end subroutine SF_object_construct
+
     !------------------------------------------------------
     subroutine SF_global_faces_construct(n_elem, SF_n_global_faces,      &
         SF_object,SF_object_face,SF_object_n_faces,  &
@@ -327,6 +331,7 @@ contains
                 end do
             end if
         end do
+
     end subroutine SF_global_faces_construct
     !------------------------------------------------------
     !------------------------------------------------------
