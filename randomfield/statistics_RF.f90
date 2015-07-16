@@ -28,7 +28,6 @@ contains
 
         !OUTPUT
         double precision, dimension(:), allocatable, intent(out) :: evntAvg, evntStdDev;
-        !double precision                           , intent(out) :: globalAvg, globalStdDev;
 
         !LOCAL VARIABLES
         double precision, dimension(:)   , allocatable :: avg;
@@ -38,10 +37,6 @@ contains
         integer :: i, j, code, nb_procs;
 
         Nmc          = size(randField, 2)
-        !nPoints      = size(randField, 1)
-        !xNTotal       = size(randField, 1)
-        !globalAvg    = -1.0d0
-        !globalStdDev = -1.0d0
 
         call MPI_COMM_SIZE(MPI_COMM_WORLD, nb_procs, code)
 
@@ -50,18 +45,12 @@ contains
         allocate(sumRFsquare(Nmc))
         allocate (evntAvg(Nmc))
         allocate (evntStdDev(Nmc))
-        !allocate(procCorrL(nDim));
         if(rang == 0) then
             allocate (totalSumRF(Nmc))
             allocate (totalSumRFsquare(Nmc))
             totalSumRF = -1.0d0
             totalSumRFsquare = -1.0d0
-
-            !allocate(globalCorrL(nDim));
         end if
-
-        !Calculating Correlation Length (should be reformulated to take advantage of matrix symmetry)
-        !        call set_CorrelationLengthUnstruct(randField, xPoints, procCorrL)
 
         !Setting variables to calculate Average and Standard Deviation (by event and global)
         sumRF(:)       = sum( randField    , dim = 1)
@@ -74,26 +63,11 @@ contains
         call MPI_REDUCE(size(randField, 1), xNTotal, 1, MPI_INTEGER, &
                         MPI_SUM, 0, MPI_COMM_WORLD, code)
 
-
-!        call MPI_REDUCE(procCorrL, globalCorrL, nDim, MPI_DOUBLE_PRECISION, &
-!            MPI_SUM, 0, MPI_COMM_WORLD, code)
-
         if(rang == 0) then
             !by Event
             evntAvg      = totalSumRF/dble(xNTotal);
             evntStdDev   = sqrt(totalSumRFsquare/dble(xNTotal) &
                 - (evntAvg)**2)
-            !Global
-!            globalAvg    = sum(totalSumRF)/dble(xNTotal*nb_procs*Nmc);
-!            globalStdDev = sqrt(sum(totalSumRFsquare)/dble(xNTotal*Nmc*nb_procs) &
-!                - (globalAvg)**2)
-            !globalCorrL  = globalCorrL / nb_procs
-
-            !call DispCarvalhol(evntAvg   , "evntAvg")
-            !call DispCarvalhol(evntStdDev, "evntStdDev")
-            !write(*,*) "globalAvg    = ", globalAvg
-            !write(*,*) "globalStdDev = ", globalStdDev
-
         end if
 
         call MPI_BCAST (evntAvg, Nmc, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, code)
