@@ -177,9 +177,9 @@ program main_RandomField
 
 		!Calculating Statistics
 		if(rang == 0) write(*,*) ">>>>>>>>> Calculating Statistics MPI (unstructured)";
-		call set_Statistics_MPI(randField, xPoints, rang,             &
-							 	evntAvg, evntStdDev, procCorrL,       &
-							 	globalAvg, globalStdDev, globalCorrL)
+!		call set_Statistics_MPI(randField, xPoints, rang,             &
+!							 	evntAvg, evntStdDev, procCorrL,       &
+!							 	globalAvg, globalStdDev, globalCorrL)
 
 		!Writing results and comparison statistics (To be deleted)
 		if(rang == 0) write(*,*) ">>>>>>>>> Calculating Comparison Statistics (unstructured)";

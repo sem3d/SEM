@@ -220,7 +220,7 @@ contains
                 Tdomain%sSubDomain(mat)%margiFirst(i), &
                 avgProp(i),                            &
                 Tdomain%sSubDomain(mat)%varProp(i),    &
-                prop(:, i:i))
+                prop(:, i:i), Tdomain%n_dime)
         end do
 
         !call dispCarvalhol(prop(1:20,:), "prop(1:20,:) TRANSF", "F30.10")

@@ -6,6 +6,7 @@ module randomFieldND
     use obsolete_RF
     use mpi
     use blas
+    use statistics_RF
     interface createRandomField
        module procedure createRandomFieldUnstruct,   &
            createRandomFieldStructured
@@ -40,20 +41,24 @@ contains
 
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
-    subroutine multiVariateTransformation (margiFirst, fieldAvg, fieldVar, randField)
+    subroutine multiVariateTransformation (margiFirst, fieldAvg, fieldVar, randField, nDim)
 
         implicit none
 
         !INPUT
         character (len=*), intent(in) :: margiFirst;
         double precision , intent(in) :: fieldAvg, fieldVar;
+        integer          , intent(in) :: nDim
 
         !OUTPUT (IN)
         double precision, dimension(1:, 1:), intent(inout) :: randField;
 
         !LOCAL VARIABLES
         double precision :: normalVar, normalAvg
-        integer          :: error, code, i
+        integer          :: error, code, i, rang
+        double precision, dimension(:), allocatable :: evntAvg, evntStdDev;
+
+        call MPI_COMM_RANK(MPI_COMM_WORLD, rang, code)
 
         select case (margiFirst)
         case("gaussian")
@@ -69,12 +74,23 @@ contains
             normalAvg = log(fieldAvg) - normalVar/2
         end select
 
+        !Putting mean to 0 and stdDev to one
+        call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim)
+        do i = 1, size(randField, 2)
+            randField(:,i) = (randField(:,i)-evntAvg(i))/evntStdDev(i)
+        end do
+        !call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim)
+
+        !Modifying Field Mean and Variance
         randField(:,:) = randField(:,:) * sqrt(normalVar) &
             + normalAvg;
 
         if (margiFirst == "lognormal") then
             randField(:,:) = exp(randField(:,:))
         end if
+
+        if (allocated(evntAvg)) deallocate(evntAvg)
+        if (allocated(evntStdDev)) deallocate(evntStdDev)
 
     end subroutine multiVariateTransformation
 
