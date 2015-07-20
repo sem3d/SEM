@@ -25,7 +25,7 @@ subroutine global_numbering ( Tdomain )
     type(domain), target, intent (INOUT) :: Tdomain
 
     ! Local variables
-    integer :: n,nel,icount, i,j,ii,jj,nrx,nrz,ngllx,ngllz
+    integer :: n,nel,nv,icount,i,j,ii,jj,nrx,nrz,ngllx,ngllz
     integer ::nface_0, nface_1, nface_2, nface_3
     integer ::nvertex_0, nvertex_1, nvertex_2, nvertex_3
     integer :: nf0,nf1,nf2,nf3,wf0,wf1,wf2,wf3
@@ -58,9 +58,10 @@ subroutine global_numbering ( Tdomain )
     ! -----------------------------------------------------------------------------
 
     nel = Tdomain%n_elem
-    allocate (LogPointer(0:Tdomain%n_vertex-1))
-    allocate (NumElement(0:Tdomain%n_vertex-1))
-    allocate (WhichVertex(0:Tdomain%n_vertex-1))
+    nv = Tdomain%n_vertex
+    allocate(LogPointer(0:nv-1))
+    allocate(NumElement(0:nv-1))
+    allocate(WhichVertex(0:nv-1))
     LogPointer = .true.; NumElement = -100; WhichVertex = -100
 
     icount = 0
@@ -108,6 +109,13 @@ subroutine global_numbering ( Tdomain )
         nvertex_1 = Tdomain%specel(n)%near_vertex(1)
         nvertex_2 = Tdomain%specel(n)%near_vertex(2)
         nvertex_3 = Tdomain%specel(n)%near_vertex(3)
+        if (nvertex_0 < 0 .or. nvertex_0 >= nv .or. &
+            nvertex_1 < 0 .or. nvertex_1 >= nv .or. &
+            nvertex_2 < 0 .or. nvertex_2 >= nv .or. &
+            nvertex_3 < 0 .or. nvertex_3 >= nv ) then
+            write(*,*) "nvertex_0 ", nvertex_0, "nvertex_1 ", nvertex_1, "nvertex_2 ", nvertex_2, "nvertex_3 ", nvertex_3, ", nv ", nv
+            stop "ERROR - global_numbering : near vertex index KO (bad value)"
+        end if
 
         lvertex_0 = .false. ;    lvertex_1 = .false.;    lvertex_2 = .false.;    lvertex_3 = .false.
 
@@ -157,6 +165,15 @@ subroutine global_numbering ( Tdomain )
                             Tdomain%specel(n)%Iglobnum(i,j) = icount
                             icount = icount + 1
                         else
+                            if (ne0 == -100 .or. ne0 < 0 .or. ne0 >= nel) then
+                                write(*,*) "ne0 ", ne0
+                                stop "ERROR - global_numbering : numelem KO (bad init)"
+                            end if
+                            if (wv0 == -100 .or. wv0 < 0 .or. wv0 >= nv) then
+                                write(*,*) "wv0 ", wv0, ", nv ", nv
+                                stop "ERROR - global_numbering : whichvertex KO (bad init)"
+                            end if
+
                             call  Vertex_indexing_ij(ii,jj,wv0,ne0,Tdomain)
                             Tdomain%specel(n)%Iglobnum(i,j) = Tdomain%specel(ne0)%Iglobnum(ii,jj)
                         endif
@@ -165,6 +182,15 @@ subroutine global_numbering ( Tdomain )
                             Tdomain%specel(n)%Iglobnum(i,j) = icount
                             icount = icount + 1
                         else
+                            if (ne1 == -100 .or. ne1 < 0 .or. ne1 >= nel) then
+                                write(*,*) "ne1 ", ne1
+                                stop "ERROR - global_numbering : numelem KO (bad init)"
+                            end if
+                            if (wv1 == -100 .or. wv1 < 0 .or. wv1 >= nv) then
+                                write(*,*) "wv1 ", wv1, ", nv ", nv
+                                stop "ERROR - global_numbering : whichvertex KO (bad init)"
+                            end if
+
                             call  Vertex_indexing_ij(ii,jj,wv1,ne1,Tdomain)
                             Tdomain%specel(n)%Iglobnum(i,j) = Tdomain%specel(ne1)%Iglobnum(ii,jj)
                         endif
@@ -209,6 +235,15 @@ subroutine global_numbering ( Tdomain )
                             Tdomain%specel(n)%Iglobnum(i,j) = icount
                             icount = icount + 1
                         else
+                            if (ne3 == -100 .or. ne3 < 0 .or. ne3 >= nel) then
+                                write(*,*) "ne3 ", ne3
+                                stop "ERROR - global_numbering : numelem KO (bad init)"
+                            end if
+                            if (wv3 == -100 .or. wv3 < 0 .or. wv3 >= nv) then
+                                write(*,*) "wv3 ", wv3, ", nv ", nv
+                                stop "ERROR - global_numbering : whichvertex KO (bad init)"
+                            end if
+
                             call  Vertex_indexing_ij(ii,jj,wv3,ne3,Tdomain)
                             Tdomain%specel(n)%Iglobnum(i,j) = Tdomain%specel(ne3)%Iglobnum(ii,jj)
                         endif
@@ -217,6 +252,15 @@ subroutine global_numbering ( Tdomain )
                             Tdomain%specel(n)%Iglobnum(i,j) = icount
                             icount = icount + 1
                         else
+                            if (ne2 == -100 .or. ne2 < 0 .or. ne2 >= nel) then
+                                write(*,*) "ne2 ", ne2
+                                stop "ERROR - global_numbering : numelem KO (bad init)"
+                            end if
+                            if (wv2 == -100 .or. wv2 < 0 .or. wv2 >= nv) then
+                                write(*,*) "wv2 ", wv2, ", nv ", nv
+                                stop "ERROR - global_numbering : whichvertex KO (bad init)"
+                            end if
+
                             call  Vertex_indexing_ij(ii,jj,wv2,ne2,Tdomain)
                             Tdomain%specel(n)%Iglobnum(i,j) = Tdomain%specel(ne2)%Iglobnum(ii,jj)
                         endif

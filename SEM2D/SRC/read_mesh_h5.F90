@@ -137,12 +137,12 @@ subroutine read_mesh_h5(tDomain)
     enddo
     deallocate(itemp2)
 
-
+    call read_dataset(fid, "vertices_globnum", itemp1)
     allocate (Tdomain%svertex(0:Tdomain%n_vertex-1))
     do i = 0, Tdomain%n_vertex-1
-        !!! TODO shape8
-        Tdomain%svertex(i)%Glob_numbering = i
+        Tdomain%svertex(i)%Glob_numbering = itemp1(i+1) ! shape8 : glob_num != i (shape4 : glob_num == i)
     enddo
+    deallocate(itemp1)
 
     !! TODO COMMUNICATIONS
     call read_attr_int(fid, "n_communications", Tdomain%n_communications)
@@ -208,6 +208,21 @@ subroutine coherency_mesh_h5(Tdomain)
         e0 = Tdomain%sFace(i)%Near_Element(0)
         w_face0 = Tdomain%sFace(i)%Which_face(0)
 
+        ! Checks : vertices may only be a subset of nodes (Q8)
+        if (v0 < 0 .or. v0 >= Tdomain%n_vertex) then
+            write(*,*) "face = ", i, ", v0 = ", v0, ", Tdomain%n_vertex = ", Tdomain%n_vertex
+            stop "ERROR - coherency_mesh_h5 : v0 KO"
+        end if
+        if (v1 < 0 .or. v1 >= Tdomain%n_vertex) then
+            write(*,*) "face = ", i, ", v1 = ", v1, ", Tdomain%n_vertex = ", Tdomain%n_vertex
+            stop "ERROR - coherency_mesh_h5 : v1 KO"
+        end if
+        if (e0 < 0 .or. e0 >= Tdomain%n_elem) then
+            write(*,*) "face = ", i, ", e0 = ", e0, ", Tdomain%n_elem = ", Tdomain%n_elem
+            stop "ERROR - coherency_mesh_h5 : e0 KO"
+        end if
+
+        ! First, re-orient face according to near element : follow ...%Near_Element(0)
         if (w_face0 == 0 .or. w_face0 == 3 ) then
             if (Tdomain%specel(e0)%Control_Nodes(0) /= Tdomain%sVertex(v0)%Glob_numbering)  then
                 Tdomain%sFace(i)%Near_vertex(0) = v1
@@ -218,13 +233,16 @@ subroutine coherency_mesh_h5(Tdomain)
                 Tdomain%sFace(i)%Near_vertex(0) = v1
                 Tdomain%sFace(i)%Near_vertex(1) = v0
             endif
-        else
+        else if (w_face0 == 2 ) then
             if (Tdomain%specel(e0)%Control_Nodes(3) /= Tdomain%sVertex(v0)%Glob_numbering)  then
                 Tdomain%sFace(i)%Near_vertex(0) = v1
                 Tdomain%sFace(i)%Near_vertex(1) = v0
             endif
+        else
+            stop "ERROR - coherency_mesh_h5 : invalid face configuration KO"
         endif
 
+        ! Then, define coherency between face and the "second near" element
         v0 = Tdomain%sFace(i)%Near_Vertex(0)
         v1 = Tdomain%sFace(i)%Near_Vertex(1)
         e0 = Tdomain%sFace(i)%Near_Element(0)
