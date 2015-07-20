@@ -21,6 +21,7 @@ module svertices
        real, dimension (:), allocatable :: DumpMass, DumpVx, DumpVz, Forces1, Forces2, Veloc1, Veloc2
        real, dimension (:), allocatable :: Displ, Veloc, Forces, Accel, V0
        real, dimension (:), allocatable :: Double_Value
+       integer :: Iglobnum_Vertex
 
 #ifdef MKA3D
        real, dimension (:), allocatable :: ForcesMka

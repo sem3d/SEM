@@ -21,6 +21,7 @@ module sfaces
        real, dimension (:,:), allocatable :: Veloc, Displ, Accel, V0, Forces
        real, dimension (:,:), allocatable :: Veloc1, Veloc2, Forces1, Forces2
        real, dimension (:,:), allocatable :: DumpMass, DumpVx, DumpVz
+       integer, dimension (:), allocatable :: Iglobnum_Face
 
 #ifdef MKA3D
        real, dimension (:,:), allocatable :: ForcesMka
