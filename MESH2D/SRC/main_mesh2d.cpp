@@ -591,7 +591,6 @@ void Mesh2D::write_proc_file(const string& fname, const int t, int rk)
     write_dset_2d_i(fid, "faces_vertex", 2, info.m_edges_vertices);
     vector<int> vgn;
     for(map<int,int>::const_iterator it = info.m_vert_map.begin(); it != info.m_vert_map.end(); it++) {
-        printf("%d -> %d\n", it->first, it->second);
         vgn.push_back(it->first);
     }
     write_dset_1d_i(fid, "vertices_globnum", vgn);
