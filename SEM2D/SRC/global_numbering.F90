@@ -24,9 +24,6 @@ subroutine global_numbering ( Tdomain )
 
     integer :: icount, n, ngllx, ngllz, i, k, ngll, v0, v1, nf
 
-    logical :: goDie ! Debug
-    goDie=.false.
-
     ! Corner GLL points
     icount = 0
     do n = 0,Tdomain%n_vertex-1
@@ -82,42 +79,10 @@ subroutine global_numbering ( Tdomain )
                 Tdomain%specel(n)%Iglobnum(ngllx-1,k) = Tdomain%sFace(nf)%Iglobnum_Face(ngllz-1-k)
             end do
         else
-            if ( Tdomain%specel(n)%Iglobnum(ngllx-1,0) /= Tdomain%sFace(nf)%Iglobnum_Face(0) ) then
-                do k = 0,ngllz-1
-                    do i = 0,ngllx-1
-                        write(*,'(i6)', advance='no') Tdomain%specel(n)%Iglobnum(i,k)
-                    enddo
-                    write(*,*) " "
-                enddo
-                write(*,*) "---------"
-                write(*,*) Tdomain%sFace(nf)%Iglobnum_Face
-                write(*,*) "---------"
-                write(*,*) n, " : ", Tdomain%sFace(nf)%Near_Element , Tdomain%sFace(nf)%coherency
-                write(*,*) "---------"
-                write(*,*) Tdomain%sFace(nf)%which_face
-
-                stop "global_numbering KO"
-                goDie=.true.
-            endif
+            if ( Tdomain%specel(n)%Iglobnum(ngllx-1,0) /= Tdomain%sFace(nf)%Iglobnum_Face(0) ) stop "global_numbering KO"
             do k = 0, ngllz-1
                 Tdomain%specel(n)%Iglobnum(ngllx-1,k) = Tdomain%sFace(nf)%Iglobnum_Face(k)
             end do
-            if ( goDie ) then
-                do k = 0,ngllz-1
-                    do i = 0,ngllx-1
-                        write(*,'(i6)', advance='no') Tdomain%specel(n)%Iglobnum(i,k)
-                    enddo
-                    write(*,*) " "
-                enddo
-                write(*,*) "---------"
-                write(*,*) Tdomain%sFace(nf)%Iglobnum_Face
-                write(*,*) "---------"
-                write(*,*) n, " : ", Tdomain%sFace(nf)%Near_Element , Tdomain%sFace(nf)%coherency
-                write(*,*) "---------"
-                write(*,*) Tdomain%sFace(nf)%which_face
-
-                stop "global_numbering KO"
-            endif
         endif
         ! Face 2 : k = ngllz-1
         nf = Tdomain%specel(n)%Near_Face(2)
@@ -148,20 +113,8 @@ subroutine global_numbering ( Tdomain )
             end do
         endif
     enddo
-    Tdomain%n_glob_points = icount
 
-    ! Debug
-    do n = 0,Tdomain%n_elem-1
-        write(*,*) " ================= ", n
-        ngllx = Tdomain%specel(n)%ngllx
-        ngllz = Tdomain%specel(n)%ngllz
-        do k = 0,ngllz-1
-            do i = 0,ngllx-1
-                write(*,'(i6)', advance='no') Tdomain%specel(n)%Iglobnum(i,k)
-            enddo
-            write(*,*) " "
-        enddo
-    enddo
+    Tdomain%n_glob_points = icount
 end subroutine global_numbering
 
 !! Local Variables:
