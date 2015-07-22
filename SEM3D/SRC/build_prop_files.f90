@@ -32,7 +32,7 @@ contains
     	!LOCAL
         integer :: code, error, coord
         integer :: mat, assocMat, n
-        integer :: randMethod = 1 !1 for Victor's method, 2 for Shinozuka's
+        integer :: randMethod = 1 !1 for Isotropic method, 2 for Shinozuka's
         real               , dimension(:)   , allocatable :: avgProp;
         integer            , dimension(:)   , allocatable :: nSubDPoints;
         double precision   , dimension(:, :), allocatable :: prop !Properties

@@ -289,9 +289,9 @@ subroutine RUN_PREPARED(Tdomain)
     !it would ease syntax
     !Ex: S for solid, F for fluid, P for solid PML, L for fluid PML
 
- !- creating properties visualization files
-    if (rg == 0) write (*,*) "--> CREATING PROPERTIES VISUALIZATION FILES "
-    call create_prop_visu_files (Tdomain, rg)
+! !- creating properties visualization files
+!    if (rg == 0) write (*,*) "--> CREATING PROPERTIES VISUALIZATION FILES "
+!    call create_prop_visu_files (Tdomain, rg)
 
  !- anelastic properties
     if (Tdomain%n_sls>0) then

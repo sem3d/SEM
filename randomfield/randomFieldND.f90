@@ -74,12 +74,24 @@ contains
             normalAvg = log(fieldAvg) - normalVar/2
         end select
 
+        if(rang==0) then
+                write(*,*) "Before stdGauss Fitting"
+                write(*,*) "evntAvg BEFORE = ", evntAvg
+                write(*,*) "evntVar BEFORE = ", evntStdDev**2
+        end if
+
         !Putting mean to 0 and stdDev to 1
         call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim)
         do i = 1, size(randField, 2)
             randField(:,i) = (randField(:,i)-evntAvg(i))/evntStdDev(i)
         end do
         !call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim)
+
+        if(rang==0) then
+                write(*,*) "Before lognormal transform"
+                write(*,*) "minval BEFORE= ", minval(randField,1)
+                write(*,*) "maxval BEFORE= ", maxval(randField,1)
+        end if
 
         !Modifying Field Mean and Variance
         randField(:,:) = randField(:,:) * sqrt(normalVar) &
@@ -89,28 +101,34 @@ contains
             randField(:,:) = exp(randField(:,:))
         end if
 
-        if(.false.) then
-            !Putting mean to the demanded value and seeing the diference
-            call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim)
-            if(rang==0) then
-                write(*,*) "WARNING!! forcing Average and Mean, it can deform the pdf"
-                write(*,*) "evntAvg BEFORE = ", evntAvg
-                write(*,*) "      delta(%) = ", (evntAvg-fieldAvg)/fieldAvg
-                write(*,*) "evntVar BEFORE = ", evntStdDev**2
-                write(*,*) "      delta(%) = ", (evntStdDev**2-fieldVar)/fieldVar
-            end if
-            do i = 1, size(randField, 2)
-                randField(:,i) = (randField(:,i)-evntAvg(i))* sqrt(fieldVar) /evntStdDev(i) + fieldAvg
-            end do
-            call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim)
-            if(rang==0) then
-                write(*,*) "evntAvg AFTER = ", evntAvg
-                write(*,*) "     delta(%) = ", (evntAvg-fieldAvg)/fieldAvg
-                write(*,*) "evntVar AFTER = ", evntStdDev**2
-                write(*,*) "     delta(%) = ", (evntStdDev**2-fieldVar)/fieldVar
-            end if
-
+        if(rang==0) then
+                write(*,*) "After lognormal transform"
+                write(*,*) "minval AFTER = ", minval(randField,1)
+                write(*,*) "maxval AFTER = ", maxval(randField,1)
         end if
+
+!        if(.false.) then
+!            !Putting mean to the demanded value and seeing the diference
+!            call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim)
+!            if(rang==0) then
+!                write(*,*) "WARNING!! forcing Average and Mean, it can deform the pdf"
+!                write(*,*) "evntAvg BEFORE = ", evntAvg
+!                write(*,*) "      delta(%) = ", (evntAvg-fieldAvg)/fieldAvg
+!                write(*,*) "evntVar BEFORE = ", evntStdDev**2
+!                write(*,*) "      delta(%) = ", (evntStdDev**2-fieldVar)/fieldVar
+!            end if
+!            do i = 1, size(randField, 2)
+!                randField(:,i) = (randField(:,i)-evntAvg(i))* sqrt(fieldVar) /evntStdDev(i) + fieldAvg
+!            end do
+!            call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim)
+!            if(rang==0) then
+!                write(*,*) "evntAvg AFTER = ", evntAvg
+!                write(*,*) "     delta(%) = ", (evntAvg-fieldAvg)/fieldAvg
+!                write(*,*) "evntVar AFTER = ", evntStdDev**2
+!                write(*,*) "     delta(%) = ", (evntStdDev**2-fieldVar)/fieldVar
+!            end if
+!
+!        end if
 
         if (allocated(evntAvg)) deallocate(evntAvg)
         if (allocated(evntStdDev)) deallocate(evntStdDev)
