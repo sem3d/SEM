@@ -251,7 +251,7 @@ subroutine RUN_PREPARED(Tdomain)
     end if
 
  !- writing properties files
-    if (rg == 0) write (*,*) "--> WRITING PROPERTIES FILES"
+    if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
     if(Tdomain%logicD%run_restart) then
         if (rg == 0) write (*,*) " Warning!! This is a reprise, properties are expected to be on the 'prop' folder (it won't be rewriten)"
     else

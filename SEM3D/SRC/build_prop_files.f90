@@ -46,10 +46,11 @@ contains
 	    HDF5NameList(:) = "not_Used"
 
         !Writing hdf5 files
-        if(rg == 0) write(*,*) "  Writing hdf5 files"
+
 	    do mat = 0, Tdomain%n_mat - 1
             !write(*,*) "Material ", mat, " is of type ", Tdomain%sSubDomain(mat)%material_type
 	        if(propOnFile(Tdomain, mat)) then
+	            if(rg == 0) write(*,*) "  Material ", mat, " will have properties on file"
                 assocMat = Tdomain%sSubdomain(mat)%assocMat
                 avgProp  = [Tdomain%sSubDomain(mat)%Ddensity, &
                             Tdomain%sSubDomain(mat)%DLambda,  &
@@ -61,8 +62,10 @@ contains
                     prop(:,1) = avgProp(1)
                     prop(:,2) = avgProp(2)
                 else if(Tdomain%sSubDomain(assocMat)%material_type == "R") then
+                    if(rg == 0) write(*,*) "  Generating Random Properties"
                     call build_random_properties(Tdomain, rg, mat, prop, randMethod)
                 end if
+                if(rg == 0) write(*,*) "  Writing hdf5 files"
                 call write_ResultHDF5Unstruct_MPI(Tdomain%GlobCoord, prop, trim(procFileName)//"_read", &
                                                   rg, trim(h5folder), Tdomain%communicateur,   &
                                                   ["_proc", "_subD"], [rg, mat], HDF5NameList(mat))

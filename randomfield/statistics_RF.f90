@@ -27,7 +27,7 @@ contains
         integer                          , intent(in) :: rang, nDim;
 
         !OUTPUT
-        double precision, dimension(:), allocatable, intent(out) :: evntAvg, evntStdDev;
+        double precision, dimension(:), intent(out) :: evntAvg, evntStdDev;
 
         !LOCAL VARIABLES
         double precision, dimension(:)   , allocatable :: avg;
@@ -36,15 +36,21 @@ contains
         integer :: Nmc, nPoints, xNTotal;
         integer :: i, j, code, nb_procs;
 
-        Nmc          = size(randField, 2)
+!        if(rang == 0) write(*,*) "        rang = ", rang
+!        if(rang == 0) write(*,*) "        evntAvg = ", evntAvg
+!        if(rang == 0) write(*,*) "        evntStdDev = ", evntStdDev
+!        if(rang == 0) write(*,*) "        nDim = ", nDim
+
+        Nmc = size(randField, 2)
+
+!        if(rang == 0) write(*,*) "        Nmc = ", Nmc
 
         call MPI_COMM_SIZE(MPI_COMM_WORLD, nb_procs, code)
 
         !Allocating
         allocate(sumRF(Nmc))
         allocate(sumRFsquare(Nmc))
-        allocate (evntAvg(Nmc))
-        allocate (evntStdDev(Nmc))
+
         if(rang == 0) then
             allocate (totalSumRF(Nmc))
             allocate (totalSumRFsquare(Nmc))
@@ -55,6 +61,9 @@ contains
         !Setting variables to calculate Average and Standard Deviation (by event and global)
         sumRF(:)       = sum( randField    , dim = 1)
         sumRFsquare(:) = sum((randField)**2, dim = 1)
+
+!        if(rang == 0) write(*,*) "        sumRF = ", sumRF
+!        if(rang == 0) write(*,*) "        sumRFsquare = ", sumRFsquare
 
         call MPI_REDUCE(sumRF, totalSumRF, Nmc, MPI_DOUBLE_PRECISION, &
             MPI_SUM, 0, MPI_COMM_WORLD, code)
@@ -68,6 +77,8 @@ contains
             evntAvg      = totalSumRF/dble(xNTotal);
             evntStdDev   = sqrt(totalSumRFsquare/dble(xNTotal) &
                 - (evntAvg)**2)
+!            if(rang == 0) write(*,*) "        evntAvg      = ", evntAvg
+!            if(rang == 0) write(*,*) "        evntStdDev   = ", evntStdDev
         end if
 
         call MPI_BCAST (evntAvg, Nmc, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, code)

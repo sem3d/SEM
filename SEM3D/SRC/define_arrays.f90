@@ -53,11 +53,11 @@ subroutine Define_Arrays(Tdomain)
 !    end do
 
     !Apllying properties that were written on files
+    if (rg == 0) write (*,*) "--> APPLYING PROPERTIES FILES "
     do mat = 0 , Tdomain%n_mat-1
         if (.not. Tdomain%subD_exist(mat)) cycle
         if (propOnFile(Tdomain, mat)) then
             !- applying properties files
-            if (rg == 0) write (*,*) "--> APPLYING PROPERTIES FILES "
             call apply_prop_files (Tdomain, rg)
         end if
     end do
