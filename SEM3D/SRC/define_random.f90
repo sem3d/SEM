@@ -122,12 +122,13 @@ contains
         integer :: effecMethod
         logical, dimension(:), allocatable :: calculate
         real, dimension(0:2) :: pointProp, avgProp;
+        integer :: contrib
 
         !Defining which properties will be calculated
         allocate(calculate(0:nProp-1))
         calculate(:) = .true.
         do i = 0, nProp - 1
-            if(Tdomain%sSubDomain(mat)%varProp(i) <= 0) calculate(i) = .false.
+            if(Tdomain%sSubDomain(mat)%varProp(i) <= 0 .or. (.not. Tdomain%subD_exist(mat))) calculate(i) = .false.
         end do
 
         effecMethod = 1;
@@ -220,15 +221,19 @@ contains
 
         if(rg == 0) write(*,*) " "
         if(rg == 0) write(*,*) "        Multi-Variate Transformation"
-        do i = 0, nProp - 1
+        if(rg == 0) write(*,*) "        	MATERIAL -----!!!!!!!! ,", mat
+	do i = 0, nProp - 1
             if(rg == 0 .and. i == 0) write(*,*) "Dens------------- "
             if(rg == 0 .and. i == 1) write(*,*) "Lambda----------- "
             if(rg == 0 .and. i == 2) write(*,*) "Mu--------------- "
+
+            contrib = 0
+	    if(Tdomain%subD_exist(mat)) contrib = 1
             call multiVariateTransformation (          &
                 Tdomain%sSubDomain(mat)%margiFirst(i), &
                 avgProp(i),                            &
                 Tdomain%sSubDomain(mat)%varProp(i),    &
-                prop(:, i:i), Tdomain%n_dime)
+                prop(:, i:i), Tdomain%n_dime, Tdomain%communicateur, contrib)
         end do
 
         if(.not. Tdomain%not_PML_List(mat)) then !Random PML

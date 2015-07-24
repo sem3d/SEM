@@ -46,7 +46,7 @@ contains
 	    HDF5NameList(:) = "not_Used"
 
         !Writing hdf5 files
-
+            if(rg == 0) write(*,*)
 	    do mat = 0, Tdomain%n_mat - 1
             !write(*,*) "Material ", mat, " is of type ", Tdomain%sSubDomain(mat)%material_type
 	        if(propOnFile(Tdomain, mat)) then
@@ -55,6 +55,7 @@ contains
                 avgProp  = [Tdomain%sSubDomain(mat)%Ddensity, &
                             Tdomain%sSubDomain(mat)%DLambda,  &
                             Tdomain%sSubDomain(mat)%DMu]
+
 	            !write(*,*) "-> Writing file for material", mat, "( ", assocMat,") in proc ", rg
                 if(Tdomain%sSubDomain(assocMat)%material_type == "S".or. &
                    Tdomain%sSubDomain(assocMat)%material_type == "P") then
@@ -322,11 +323,11 @@ contains
         assocMat = Tdomain%sSubdomain(mat)%assocMat
         authorization = .false.
 
-        if(Tdomain%subD_exist(mat)) then
+        !if(Tdomain%subD_exist(mat)) then
             if(Tdomain%sSubDomain(assocMat)%material_type == "R") then
                authorization = .true.
             end if
-        end if
+        !end if
 
     end function
 

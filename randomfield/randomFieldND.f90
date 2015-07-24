@@ -41,14 +41,14 @@ contains
 
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
-    subroutine multiVariateTransformation (margiFirst, fieldAvg, fieldVar, randField, nDim)
+    subroutine multiVariateTransformation (margiFirst, fieldAvg, fieldVar, randField, nDim, comm, contrib)
 
         implicit none
 
         !INPUT
         character (len=*), intent(in) :: margiFirst;
         double precision , intent(in) :: fieldAvg, fieldVar;
-        integer          , intent(in) :: nDim
+        integer          , intent(in) :: nDim, comm, contrib
 
         !OUTPUT (IN)
         double precision, dimension(1:, 1:), intent(inout) :: randField;
@@ -63,7 +63,7 @@ contains
         allocate (evntAvg(Nmc))
         allocate (evntStdDev(Nmc))
 
-        call MPI_COMM_RANK(MPI_COMM_WORLD, rang, code)
+        call MPI_COMM_RANK(comm, rang, code)
 
 !        write(*,*) "        First Order Marginal = ", margiFirst
 !        write(*,*) "                req average  = ", fieldAvg
@@ -77,7 +77,7 @@ contains
             if(fieldAvg <= 0) then
                 write(*,*) ""
                 write(*,*) "ERROR - when using lognormal fieldAvg should be a positive number greater than 0.001"
-                call MPI_ABORT(MPI_COMM_WORLD, error, code)
+                call MPI_ABORT(comm, error, code)
             end if
             normalVar = log(1 + fieldVar/(fieldAvg**2))
             normalAvg = log(fieldAvg) - normalVar/2
@@ -86,7 +86,7 @@ contains
 
         !Putting mean to 0 and stdDev to 1
         if(rang==0) write(*,*) "        Fitting Statistics"
-        call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim)
+        call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim, comm, contrib)
 
         if(rang==0) then
                 write(*,*) " "
@@ -97,10 +97,10 @@ contains
 
         do i = 1, Nmc
 !            write(*,*) " i = ", i
-            randField(:,i) = (randField(:,i)-evntAvg(i))/evntStdDev(i)
+            if(contrib == 1) randField(:,i) = (randField(:,i)-evntAvg(i))/evntStdDev(i)
         end do
 
-        call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim)
+        call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim, comm, contrib)
         if(rang==0) then
 !                write(*,*) "  ", evntAvg
                 write(*,*) "AFTER stdGauss Fitting"
@@ -117,14 +117,14 @@ contains
 
         !Modifying Field Mean and Variance
         if(rang==0) write(*,*) "        Tranforming First-Order Marginal"
-        randField(:,:) = randField(:,:) * sqrt(normalVar) &
+        if(contrib == 1) randField(:,:) = randField(:,:) * sqrt(normalVar) &
             + normalAvg;
 
         if (margiFirst == "lognormal") then
-            randField(:,:) = exp(randField(:,:))
+            if(contrib == 1) randField(:,:) = exp(randField(:,:))
         end if
 
-        call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim)
+        call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim, comm, contrib)
         if(rang==0) then
 !                write(*,*) "  ", evntAvg
                 write(*,*) "First Order Marginal = ", margiFirst

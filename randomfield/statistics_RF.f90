@@ -19,12 +19,12 @@ contains
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
     subroutine set_StatisticsUnstruct_MPI(randField, rang, &
-                                          evntAvg, evntStdDev, nDim)
+                                          evntAvg, evntStdDev, nDim, comm, contrib)
         implicit none
 
         !INPUT
         double precision, dimension(:, :), intent(in) :: randField;
-        integer                          , intent(in) :: rang, nDim;
+        integer                          , intent(in) :: rang, nDim, comm, contrib;
 
         !OUTPUT
         double precision, dimension(:), intent(out) :: evntAvg, evntStdDev;
@@ -33,19 +33,21 @@ contains
         double precision, dimension(:)   , allocatable :: avg;
         double precision, dimension(:),    allocatable :: sumRF, sumRFsquare, &
             totalSumRF, totalSumRFsquare;
-        integer :: Nmc, nPoints, xNTotal;
+        integer :: Nmc, nPoints, xNTotal, xNEffect;
         integer :: i, j, code, nb_procs;
 
-!        if(rang == 0) write(*,*) "        rang = ", rang
-!        if(rang == 0) write(*,*) "        evntAvg = ", evntAvg
-!        if(rang == 0) write(*,*) "        evntStdDev = ", evntStdDev
-!        if(rang == 0) write(*,*) "        nDim = ", nDim
+        if(rang == 0) write(*,*) "        rang = ", rang
+        if(rang == 0) write(*,*) "        evntAvg = ", evntAvg
+        if(rang == 0) write(*,*) "        evntStdDev = ", evntStdDev
+        if(rang == 0) write(*,*) "        nDim = ", nDim
 
         Nmc = size(randField, 2)
 
-!        if(rang == 0) write(*,*) "        Nmc = ", Nmc
+	write(*,*) "RANG = ", rang
 
-        call MPI_COMM_SIZE(MPI_COMM_WORLD, nb_procs, code)
+        if(rang == 0) write(*,*) "        Nmc = ", Nmc
+
+        call MPI_COMM_SIZE(comm, nb_procs, code)
 
         !Allocating
         allocate(sumRF(Nmc))
@@ -59,30 +61,36 @@ contains
         end if
 
         !Setting variables to calculate Average and Standard Deviation (by event and global)
-        sumRF(:)       = sum( randField    , dim = 1)
-        sumRFsquare(:) = sum((randField)**2, dim = 1)
+        sumRF(:) = 0
+        sumRFsquare(:) = 0
+        if(contrib == 1) sumRF(:)       = sum( randField    , dim = 1)
+        if(contrib == 1) sumRFsquare(:) = sum((randField)**2, dim = 1)
 
-!        if(rang == 0) write(*,*) "        sumRF = ", sumRF
-!        if(rang == 0) write(*,*) "        sumRFsquare = ", sumRFsquare
+        if(rang == 0) write(*,*) "        sumRF = ", sumRF
+        if(rang == 0) write(*,*) "        sumRFsquare = ", sumRFsquare
 
+        xNEffect = 0
+        if(contrib == 1) xNEffect = size(randField, 1)
         call MPI_REDUCE(sumRF, totalSumRF, Nmc, MPI_DOUBLE_PRECISION, &
-            MPI_SUM, 0, MPI_COMM_WORLD, code)
+            MPI_SUM, 0, comm, code)
         call MPI_REDUCE(sumRFsquare, totalSumRFsquare, Nmc, MPI_DOUBLE_PRECISION, &
-            MPI_SUM, 0, MPI_COMM_WORLD, code)
-        call MPI_REDUCE(size(randField, 1), xNTotal, 1, MPI_INTEGER, &
-                        MPI_SUM, 0, MPI_COMM_WORLD, code)
+            MPI_SUM, 0, comm, code)
+        call MPI_REDUCE(xNEffect, xNTotal, 1, MPI_INTEGER, &
+                        MPI_SUM, 0, comm, code)
 
         if(rang == 0) then
             !by Event
             evntAvg      = totalSumRF/dble(xNTotal);
             evntStdDev   = sqrt(totalSumRFsquare/dble(xNTotal) &
                 - (evntAvg)**2)
-!            if(rang == 0) write(*,*) "        evntAvg      = ", evntAvg
-!            if(rang == 0) write(*,*) "        evntStdDev   = ", evntStdDev
+            if(rang == 0) write(*,*) "        evntAvg      = ", evntAvg
+            if(rang == 0) write(*,*) "        evntStdDev   = ", evntStdDev
         end if
 
-        call MPI_BCAST (evntAvg, Nmc, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, code)
-        call MPI_BCAST (evntStdDev, Nmc, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, code)
+        if(rang == 0) write(*,*) "BEFORE BDCST" 
+        call MPI_BCAST (evntAvg, Nmc, MPI_DOUBLE_PRECISION, 0, comm, code)
+        call MPI_BCAST (evntStdDev, Nmc, MPI_DOUBLE_PRECISION, 0, comm, code)
+        if(rang == 0) write(*,*) "AFTER BDCST"
 
         if(allocated(sumRF))       deallocate(sumRF)
         if(allocated(sumRFsquare)) deallocate(sumRFsquare)
