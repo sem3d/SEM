@@ -246,7 +246,7 @@ subroutine dump_trace (Tdomain)
         if (Tdomain%sReceiver(i)%located_here) then
             call semname_capteur_type(Tdomain%sReceiver(i)%name, ".vel", fnamef)
             open (31,file=fnamef, status="unknown", form="formatted", position="append")
-            rtime=it0*Tdomain%TimeD%dtmin
+            rtime=(it0+1)*Tdomain%TimeD%dtmin
             do it = it0, it1
                 write (31,*) rtime,Tdomain%Store_Trace(0,ind,it-it0), Tdomain%Store_Trace (1,ind,it-it0)
                 rtime = rtime + Tdomain%TimeD%dtmin

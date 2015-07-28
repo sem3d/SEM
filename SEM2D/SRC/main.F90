@@ -227,6 +227,9 @@ subroutine  sem(couplage)
             interrupt=1
         endif
 
+        ! incrementation du pas de temps
+        Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
+
 #ifdef COUPLAGE
         call envoi_vitesse_mka(Tdomain) !! syst. lineaire vitesse
 
@@ -331,10 +334,6 @@ subroutine  sem(couplage)
             print*,"Arret de SEM, iteration=", ntime
             exit
         endif
-
-        ! incrementation du pas de temps
-        Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
-
 
     enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
