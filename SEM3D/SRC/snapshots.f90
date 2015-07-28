@@ -1268,9 +1268,9 @@ contains
                             ! strain tensor
                             eps_trace       = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
                             eps_vol(idx)    = eps_trace
-                            eps_dev_xx(idx) = DXX(i,j,k) - eps_trace * M_1_3
-                            eps_dev_yy(idx) = DYY(i,j,k) - eps_trace * M_1_3
-                            eps_dev_zz(idx) = DZZ(i,j,k) - eps_trace * M_1_3
+                            eps_dev_xx(idx) = DXX(i,j,k) - eps_trace / 3
+                            eps_dev_yy(idx) = DYY(i,j,k) - eps_trace / 3
+                            eps_dev_zz(idx) = DZZ(i,j,k) - eps_trace / 3
                             eps_dev_xy(idx) = 0.5 * (DXY(i,j,k) + DYX(i,j,k))
                             eps_dev_xz(idx) = 0.5 * (DZX(i,j,k) + DXZ(i,j,k))
                             eps_dev_yz(idx) = 0.5 * (DZY(i,j,k) + DYZ(i,j,k))
@@ -1301,9 +1301,9 @@ contains
                                 sig_dev_yz(idx) = xmu * (DYZ(i,j,k) + DZY(i,j,k))
 
                                 P_energy(idx) = .5 * xlambda2mu * eps_trace**2
-                                S_energy(idx) = xmu * ((DXX(i,j,k) - eps_trace)**2 + &
-                                                       (DYY(i,j,k) - eps_trace)**2 + &
-                                                       (DZZ(i,j,k) - eps_trace)**2 + &
+                                S_energy(idx) = xmu * ((DXX(i,j,k) - eps_trace/ 3)**2 + &
+                                                       (DYY(i,j,k) - eps_trace/ 3)**2 + &
+                                                       (DZZ(i,j,k) - eps_trace/ 3)**2 + &
                                                         DXY(i,j,k)**2 + DYX(i,j,k)**2 + &
                                                         DXZ(i,j,k)**2 + DZX(i,j,k)**2 + &
                                                         DYZ(i,j,k)**2 + DZY(i,j,k)**2)
