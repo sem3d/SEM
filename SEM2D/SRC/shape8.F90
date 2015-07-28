@@ -22,6 +22,7 @@ contains
 
         use sdomain
         use semdatafiles
+        use shape_lin ! compute_normals as quad4
 
         implicit none
 
@@ -128,6 +129,7 @@ contains
 
         ! Testing if the normals are defined for all the faces
         do n=0,Tdomain%n_face-1
+            call compute_normals(Tdomain,n)
             ngllx =  Tdomain%sFace(n)%ngll
             do i=0,ngllx-1
                 if((Tdomain%sFace(n)%Normal_Nodes(i,0).EQ.0.) .AND. (Tdomain%sFace(n)%Normal_Nodes(i,1).EQ.0.)) then
