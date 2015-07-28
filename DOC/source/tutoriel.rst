@@ -28,15 +28,15 @@ Les équations du mouvement
 --------------------------
 
 SEM résout la propagation d'onde élastique dans un milieu décrit par l'équation
-locale du mouvement reliant le déplacement :math:`u` en chaque point matériel, les
-contraintes :math:`\sigma` et les forces extérieures :math:`\vec{f}` :
+locale du mouvement reliant le déplacement :math:`\mathbf{u}` en chaque point matériel, les
+contraintes :math:`\sigma` et les forces extérieures :math:`\mathbf{f}` :
 
 .. math::
 
-   \rho \frac{\partial^2 u}{\partial t^2} = \nabla.\sigma + \vec{f}
+   \rho \frac{\partial^2 \mathbf{u}}{\partial t^2} = div \left( \sigma \right) + \mathbf{f}
 
-Avec, en élasticité linéaire : :math:`\sigma=C:\nabla{}u`, où :math:`C` est le
-tenseur élastique d'ordre 4.
+Avec, en élasticité linéaire : :math:` \sigma = C : Du`, où :math:`C` est le
+tenseur élastique d'ordre 4 et :math:`Du` le gradient du champs de déplacement.
 
 Pour l'instant les milieux de propagations décrits dans SEM sont
 considérés isotropes.  Le code est prévu pour gérer les milieux
@@ -47,16 +47,17 @@ Dans le domaine fluide (hypothèse du fluide parfait) , on résout :
 
 .. math::
 
-   \frac{1}{\kappa}\frac{\partial^2 (\rho\phi)}{\partial t^2} = \nabla.v + f_{ext}
+   \frac{1}{\kappa}\frac{\partial^2 (\rho\phi)}{\partial t^2} = div \left( \mathbf{v} \right) + f
 
-   v = \frac{1}{\rho}\nabla(\rho\phi)
+   \mathbf{v} = \frac{1}{\rho}\nabla(\rho\phi)
 
-où :math:`v` c'est le champ de vitesse du fluide, :math:`\rho` la masse volumique, :math:`\phi` un potentiel scalaire et :math:`f_{ext}` la source extérieure, et :math:`\kappa` le module d'incompressibilité. 
+où :math:`\mathbf{v}` c'est le champ de vitesse du fluide, :math:`\rho` la masse volumique, :math:`\phi` un potentiel
+scalaire et :math:`f` la source extérieure, et :math:`\kappa` le module d'incompressibilité. 
   
 Formulation éléments finis
 --------------------------
 
-SEM est un code éléments finis, basé sur une formulation spectrale ([COH02]_), qui lui donne son nom. Le champ de déplacement :math:`u` est décrit dans
+SEM est un code éléments finis, basé sur une formulation spectrale ([COH02]_), qui lui donne son nom. Le champ de déplacement :math:`\mathbf{u}` est décrit dans
 chaque élément, ou maille, sur une base de polynômes de Lagrange d'ordre N (N défini comme paramètre).
 
 .. [COH02] Cohen, G. (2002). Higher-Order Numerical Methods for Transient Wave Equations. Springer.
@@ -78,18 +79,18 @@ définis sur les points de Gauss-Lobatto-Legendre (GLL) de chaque
 
 
 Les éléments traités sont des quadrangles en 2D et des Hexaèdres en
-3D. Si :math:`\Phi_i(x)` est le polynôme de Lagrange valant 1 au point
-GLL :math:`x_i`, le champ de déplacement :math:`u(x,y,z)` de l'élément
-s'exprime sur la base tensorisée :math:`\Phi \otimes \Phi \otimes
-\Phi` :
+3D. Si :math:`\phi_i(x)` est le polynôme de Lagrange valant 1 au point
+GLL :math:`x = x_i`, le champ de déplacement dans la direction :math:`r`, 
+:math:`\mathbf{u}_r(x,y,z)` de l'élément s'exprime sur la base tensorisée 
+:math:`\phi_i\left( x\right) \otimes \phi_j\left( y\right) \otimes \phi_k\left( z\right)` :
 
 .. math::
 
-   u(x,y,z) = \sum_{i,j,k} U_{i,j,k}.\Phi_i(x).\Phi_j(y).\Phi_k(z)
+   u_r(x,y,z) = \sum_{i,j,k} U_r(i,j,k) \phi_i(x) \phi_j(y) \phi_k(z)
 
 Ainsi, sur un élément d'ordre 5, la composante *x* du champ de
 déplacement, est décrite par un vecteur de 125 éléments
-:math:`U_{i,j,k}` .
+:math:`\mathbf{U}_{i,j,k}` .
 
 La figure :ref:`pollag` montre la forme des polynômes de Lagrange d'ordre 9, la base tensorisée
 de dimension 2D est représentée :ref:`fig-ref-2d`
@@ -121,8 +122,8 @@ Enfin, dans ce qui précède, on a présenté la formulation de manière
 simplifiée, sur des mailles cubiques, alignées en *x,y,z*. En pratique
 SEM peut gérer un maillage hexaédrique quelconque (mais conforme),
 composé de mailles parallélépipédiques. Dans chaque élément le code se
-ramène à une base locale :math:`\phi_i(x).\phi_j(y).\phi_k(z)` par
-changement de variable de la fonction de base :math:`\Phi` depuis la
+ramène à une base locale :math:`\phi_i(x) \phi_j(y) \phi_k(z)` par
+changement de variable de la fonction de base :math:`\phi` depuis la
 maille vers un élément de référence sur le segment [-1.,1.] .
 
 Matrice de masse diagonale
@@ -138,44 +139,123 @@ scalaire dans :math:`\mathcal{L}^2`)
 
 .. math::
 
-   \forall w \in \mathcal{L}^2, \int w.\rho \frac{\partial^2 u}{\partial t^2}\vec{dx} = \int w.(\nabla.(C:\nabla{}u) + \vec{f}).\vec{dx}
+   \forall \mathbf{w} \in \mathcal{L}^2, \int \mathbf{w}.\rho 
+   \frac{\partial^2 u}{\partial t^2}dV = 
+   \int \mathbf{w}.(div \left( C:\nabla{}u \right) + \mathbf{f})dV
 
 En exprimant *w* et *u* sur la même base discrète
-:math:`\Phi_i(x,y,z)` (ici *i* indexe **toutes** les fonctions de base
+:math:`\phi_i(x,y,z)` (ici *i* indexe **toutes** les fonctions de base
 de tous les éléments).
 
 .. math::
 
-   \forall w = \sum_{i=1}^N w_i \Phi_i, w_i \in \mathbf{R},
-   \sum_{i,j} w_i.\rho \frac{\partial^2 u_j}{\partial t^2}\int \Phi_i\Phi_j \vec{dx} =
-     \sum w_i.u_j.\int (\nabla.(C:\nabla{}\Phi_j) + f_j\Phi_j).\Phi_i \vec{dx}
+   \forall w = \sum_{i=1}^N w_i \phi_i, w_i \in \mathbf{R},
+   \sum_{i,j} w_i \rho \frac{\partial^2 u_j}{\partial t^2}\int \phi_i\phi_j dV =
+     \sum w_i u_j.\int (div(C:\nabla{}\phi_j) + f_j\phi_j) \phi_i dV
 
 Cette dernière équation apparaît alors sous la forme classique de
-l'approximation de Galerkin : :math:`a(u,w) = f(w)` avec :math:`a` une
+l'approximation de Galerkin : :math:`a(\mathbf{u},\mathbf{w}) = f(\mathbf{w})` avec :math:`a` une
 forme bilinéaire.
 
 On arrive à l'équation matricielle suivante :
 
 .. math::
 
-    M.\frac{\partial^2 U}{\partial t^2} + K.U = F
+    \mathcal{M}.\frac{\partial^2 \mathbf{u}}{\partial t^2} + \mathcal{F}^{int}
+    \left( \mathbf{u} \right) = \mathcal{F}^{ext}
 
 Sans aller jusqu'au bout des développements, on voit qu'il apparaît une
-matrice :math:`M_{i,j}=\int \Phi_i\Phi_j\vec{dx}`, que l'on doit
+matrice :math:`\mathcal{M}_{i,j}= \int \phi_i \phi_j dV`, que l'on doit
 inverser si on veut obtenir une expression de :math:`\frac{\partial^2
 u_j}{\partial t^2}` .
 
-Les produits scalaires entre fonctions :math:`\Phi_i` qui ne partagent
+Les produits scalaires entre fonctions :math:`\phi_i` qui ne partagent
 pas le même élément support sont nuls par construction. Mais au sein
 d'un élément, les polynômes de Lagrange ne sont pas orthogonaux. La
 méthode SEM utilise astucieusement une quadrature basée sur les mêmes
 points de Gauss que les noeuds de définitions des fonctions de
 base. Cela introduit bien sûr une approximation de l'intégrale, mais
 le résultat est que le produit scalaire discret utilisé rend
-orthogonales les fonctions :math:`\Phi_i` ayant le même élément
+orthogonales les fonctions :math:`\phi_i` ayant le même élément
 support.
 
+Chemin d'intégration numérique
+------------------------------
 
+La periode de temps d'intérêt est discretisée par petits intervalles :math:`\Delta t`. On 
+appels :math:`\mathbf{u}_{n}`, :math:`\mathbf{v}_{n}` et :math:`\mathbf{a}_{n}` respectivement
+déplacement, vitesse et accélération au temps :math:`t_{n}`.  
+On considère trois paramètres d'integration :math:`\alpha, \beta, \gamma \in \left[ 0;1\right]` 
+et on force l'equation d'équilibre discretisée au temps :math:`t_{n+\alpha}` sur la forme ([KOM99]_):
+        
+.. math::
+
+    \frac{1}{\Delta t}\mathcal{M} \left[ \mathbf{v}_{n+1} - \mathbf{v}_{n} \right] = 
+    \mathcal{F}_{n+\alpha}^{ext} - \mathcal{F}^{int}\left( \mathbf{u}_{n+\alpha}, \mathbf{v}_{n+\alpha} \right)
+
+.. math::
+    
+    \mathbf{u}_{n+\alpha} = \alpha \mathbf{u}_{n+1} + \left( 1 - \alpha \right) \mathbf{u}_{n}
+ 
+.. math::
+
+    \mathcal{F}_{n+\alpha}^{ext} = \alpha \mathcal{F}_{n+1}^{ext} + \left( 1 - \alpha \right) \mathcal{F}_{n+1}^{ext}
+
+.. math::
+    
+    \mathbf{u}_{n+1} = \mathbf{u}_{n} + \Delta t \left[ \left( 1 - \frac{\beta}{\gamma} \right)
+    \mathbf{v}_{n} + \frac{\beta}{\gamma} \mathbf{v}_{n+1} \right] + \Delta t^2 \left( \frac{1}{2} 
+    - \frac{\beta}{\gamma}\right) \mathbf{a}_{n}
+
+.. math::
+
+    \mathbf{a}_{n+1} = \frac{1}{\gamma \Delta t} \left[ \mathbf{v}_{n+1} - \mathbf{v}_{n} \right] +
+    \left( 1 - \frac{1}{\gamma} \right) \mathbf{a}_{n}
+
+Simo et al. ([SIM92]_) ont montré que l'ensemble des paramètres :math:`\alpha=\frac{\beta}{\gamma} = \frac{1}{2}` conserves 
+l'energie et moments lineaire et angulaire totales. Ce chemin est indépendant de l'accélération et accuré au deuxieme 
+ordre.
+
+On peux voir cette formulation comme un chemin de type Newmark predicteur-multicorrecteur.
+
+Prediction (:math:`^p`) :
+
+.. math::
+    
+    \mathbf{u}_{n+1}^p = \mathbf{u}_{n} + \Delta t \left( 1 - \frac{\beta}{\gamma} \right)
+    \mathbf{v}_{n} + \Delta t^2 \left( \frac{1}{2} - \frac{\beta}{\gamma} \right) \mathbf{a}_{n}
+
+.. math::
+
+    \mathbf{v}_{n+1}^p = 0
+
+.. math::
+
+    \mathbf{a}_{n+1}^p = \left( 1 - \frac{1}{\gamma} \right) \mathbf{a}_{n} - \frac{1}{\gamma \Delta t} \mathbf{v}_{n}
+
+Solution :
+
+.. math::
+
+   \frac{1}{\Delta t}\mathcal{M} \mathbf{\Delta v}^p = \mathcal{F}_{n+\alpha}^{ext} - \mathcal{F}^{int} 
+   \left( \mathbf{u}_{n+\alpha}^p, \mathbf{v}_{n+\alpha}^p \right) - \frac{1}{\Delta t}\mathcal{M} 
+   \left[ \mathbf{v}_{n+1}^p - \mathbf{v}_{n} \right]
+
+Correction (:math:`^c`) :
+
+.. math::
+
+    \mathbf{v}_{n+1}^c = \mathbf{v}_{n+1}^p + \mathbf{\Delta v}^p
+
+.. math::
+
+    \mathbf{u}_{n+1}^c = \mathbf{u}_{n+1}^p + \frac{\beta \Delta t}{\gamma} \mathbf{v}_{n+1}^c
+
+.. math::
+
+    \mathbf{a}_{n+1}^c = \mathbf{a}_{n+1}^p - \frac{1}{\gamma \Delta t} \mathbf{v}_{n+1}^c
+
+    
 Conditions de bord
 ------------------
 
@@ -297,6 +377,8 @@ Attention:
 .. [HUG87] Hughes, T. J. R. (1987). The finite element method, linear static and dynamic finite element analysis. Englewood Cliffs, NJ : Prentice-Hall International.
 
 .. [SIM92] Simo, J. C. (1992). Algorithms for static and dynamic multiplicative plasticity that preserve the classical return mapping schemes of the infinitesimal theory. *Comp. Meth. Appl. Mech. Eng. 99*, 61–112.
+
+   [KOM99] Komatitsch, D. et al. (1999). Introduction to the spectral-element method for three dimensional seismic wave propagation. Geophys. J. Int. 139(3), 806-822.
 
 Résolution spatiale
 -------------------
