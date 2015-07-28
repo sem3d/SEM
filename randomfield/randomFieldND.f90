@@ -6,6 +6,7 @@ module randomFieldND
     use obsolete_RF
     use mpi
     use blas
+    use statistics_RF
     interface createRandomField
        module procedure createRandomFieldUnstruct,   &
            createRandomFieldStructured
@@ -40,20 +41,33 @@ contains
 
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
-    subroutine multiVariateTransformation (margiFirst, fieldAvg, fieldVar, randField)
+    subroutine multiVariateTransformation (margiFirst, fieldAvg, fieldVar, randField, nDim, comm, contrib)
 
         implicit none
 
         !INPUT
         character (len=*), intent(in) :: margiFirst;
         double precision , intent(in) :: fieldAvg, fieldVar;
+        integer          , intent(in) :: nDim, comm, contrib
 
         !OUTPUT (IN)
         double precision, dimension(1:, 1:), intent(inout) :: randField;
 
         !LOCAL VARIABLES
         double precision :: normalVar, normalAvg
-        integer          :: error, code, i
+        integer          :: error, code, i, rang, Nmc
+        double precision, dimension(:), allocatable :: evntAvg, evntStdDev;
+
+
+        Nmc = size(randField, 2)
+        allocate (evntAvg(Nmc))
+        allocate (evntStdDev(Nmc))
+
+        call MPI_COMM_RANK(comm, rang, code)
+
+!        write(*,*) "        First Order Marginal = ", margiFirst
+!        write(*,*) "                req average  = ", fieldAvg
+!        write(*,*) "                req variance = ", fieldVar
 
         select case (margiFirst)
         case("gaussian")
@@ -63,18 +77,98 @@ contains
             if(fieldAvg <= 0) then
                 write(*,*) ""
                 write(*,*) "ERROR - when using lognormal fieldAvg should be a positive number greater than 0.001"
-                call MPI_ABORT(MPI_COMM_WORLD, error, code)
+                call MPI_ABORT(comm, error, code)
             end if
             normalVar = log(1 + fieldVar/(fieldAvg**2))
             normalAvg = log(fieldAvg) - normalVar/2
         end select
 
-        randField(:,:) = randField(:,:) * sqrt(normalVar) &
+
+        !Putting mean to 0 and stdDev to 1
+        if(rang==0) write(*,*) "        Fitting Statistics"
+        call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim, comm, contrib)
+
+        if(rang==0) then
+                write(*,*) " "
+                write(*,*) "BEFORE stdGauss Fitting"
+                write(*,*) "    evntAvg = ", evntAvg
+                write(*,*) "    evntVar = ", evntStdDev**2
+        end if
+
+        do i = 1, Nmc
+!            write(*,*) " i = ", i
+            if(contrib == 1) randField(:,i) = (randField(:,i)-evntAvg(i))/evntStdDev(i)
+        end do
+
+        call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim, comm, contrib)
+        if(rang==0) then
+!                write(*,*) "  ", evntAvg
+                write(*,*) "AFTER stdGauss Fitting"
+                write(*,*) "    evntAvg = ", evntAvg
+                write(*,*) "    evntVar = ", evntStdDev**2
+                write(*,*) " "
+        end if
+
+!        if(rang==0) then
+!                write(*,*) "Before lognormal transform"
+!                write(*,*) "minval BEFORE= ", minval(randField,1)
+!                write(*,*) "maxval BEFORE= ", maxval(randField,1)
+!        end if
+
+        !Modifying Field Mean and Variance
+        if(rang==0) write(*,*) "        Tranforming First-Order Marginal"
+        if(contrib == 1) randField(:,:) = randField(:,:) * sqrt(normalVar) &
             + normalAvg;
 
         if (margiFirst == "lognormal") then
-            randField(:,:) = exp(randField(:,:))
+            if(contrib == 1) randField(:,:) = exp(randField(:,:))
         end if
+
+        call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim, comm, contrib)
+        if(rang==0) then
+!                write(*,*) "  ", evntAvg
+                write(*,*) "First Order Marginal = ", margiFirst
+                write(*,*) "   req average  = ", fieldAvg
+                write(*,*) "   req variance = ", fieldVar
+                write(*,*) "FINAL Statistics"
+                write(*,*) "    evntAvg = ", evntAvg
+                write(*,*) "    evntVar = ", evntStdDev**2
+                write(*,*) " "
+        end if
+
+!        if(rang==0) write(*,*) "END multiVariateTransformation"
+
+!        if(rang==0) then
+!                write(*,*) "After lognormal transform"
+!                write(*,*) "minval AFTER = ", minval(randField,1)
+!                write(*,*) "maxval AFTER = ", maxval(randField,1)
+!        end if
+
+!        if(.false.) then
+!            !Putting mean to the demanded value and seeing the diference
+!            call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim)
+!            if(rang==0) then
+!                write(*,*) "WARNING!! forcing Average and Mean, it can deform the pdf"
+!                write(*,*) "evntAvg BEFORE = ", evntAvg
+!                write(*,*) "      delta(%) = ", (evntAvg-fieldAvg)/fieldAvg
+!                write(*,*) "evntVar BEFORE = ", evntStdDev**2
+!                write(*,*) "      delta(%) = ", (evntStdDev**2-fieldVar)/fieldVar
+!            end if
+!            do i = 1, size(randField, 2)
+!                randField(:,i) = (randField(:,i)-evntAvg(i))* sqrt(fieldVar) /evntStdDev(i) + fieldAvg
+!            end do
+!            call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim)
+!            if(rang==0) then
+!                write(*,*) "evntAvg AFTER = ", evntAvg
+!                write(*,*) "     delta(%) = ", (evntAvg-fieldAvg)/fieldAvg
+!                write(*,*) "evntVar AFTER = ", evntStdDev**2
+!                write(*,*) "     delta(%) = ", (evntStdDev**2-fieldVar)/fieldVar
+!            end if
+!
+!        end if
+
+        if (allocated(evntAvg)) deallocate(evntAvg)
+        if (allocated(evntStdDev)) deallocate(evntStdDev)
 
     end subroutine multiVariateTransformation
 

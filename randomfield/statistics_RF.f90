@@ -18,80 +18,79 @@ contains
 
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
-    subroutine set_StatisticsUnstruct_MPI(randField, xPoints, rang, &
-        evntAvg, evntStdDev, procCorrL,             &
-        globalAvg, globalStdDev, globalCorrL)
+    subroutine set_StatisticsUnstruct_MPI(randField, rang, &
+                                          evntAvg, evntStdDev, nDim, comm, contrib)
         implicit none
 
         !INPUT
-        double precision, dimension(:, :), intent(in) :: randField, xPoints;
-        integer                          , intent(in) :: rang;
+        double precision, dimension(:, :), intent(in) :: randField;
+        integer                          , intent(in) :: rang, nDim, comm, contrib;
 
         !OUTPUT
-        double precision, dimension(:), allocatable, intent(out) :: evntAvg, evntStdDev, procCorrL, globalCorrL;
-        double precision                           , intent(out) :: globalAvg, globalStdDev;
+        double precision, dimension(:), intent(out) :: evntAvg, evntStdDev;
 
         !LOCAL VARIABLES
         double precision, dimension(:)   , allocatable :: avg;
         double precision, dimension(:),    allocatable :: sumRF, sumRFsquare, &
             totalSumRF, totalSumRFsquare;
-        integer :: Nmc, nPoints, nDim, xNTotal;
+        integer :: Nmc, nPoints, xNTotal, xNEffect;
         integer :: i, j, code, nb_procs;
 
-        Nmc          = size(randField, 2)
-        nPoints      = size(randField, 1)
-        nDim         = size(xPoints, 1)
-        xNTotal       = size(xPoints, 2)
-        globalAvg    = -1.0d0
-        globalStdDev = -1.0d0
+        if(rang == 0) write(*,*) "        rang = ", rang
+        if(rang == 0) write(*,*) "        evntAvg = ", evntAvg
+        if(rang == 0) write(*,*) "        evntStdDev = ", evntStdDev
+        if(rang == 0) write(*,*) "        nDim = ", nDim
 
-        call MPI_COMM_SIZE(MPI_COMM_WORLD, nb_procs, code)
+        Nmc = size(randField, 2)
+
+	write(*,*) "RANG = ", rang
+
+        if(rang == 0) write(*,*) "        Nmc = ", Nmc
+
+        call MPI_COMM_SIZE(comm, nb_procs, code)
 
         !Allocating
         allocate(sumRF(Nmc))
         allocate(sumRFsquare(Nmc))
-        allocate(procCorrL(nDim));
+
         if(rang == 0) then
             allocate (totalSumRF(Nmc))
             allocate (totalSumRFsquare(Nmc))
             totalSumRF = -1.0d0
             totalSumRFsquare = -1.0d0
-            allocate (evntAvg(Nmc))
-            allocate (evntStdDev(Nmc))
-            allocate(globalCorrL(nDim));
         end if
 
-        !Calculating Correlation Length (should be reformulated to take advantage of matrix symmetry)
-        !        call set_CorrelationLengthUnstruct(randField, xPoints, procCorrL)
-
         !Setting variables to calculate Average and Standard Deviation (by event and global)
-        sumRF(:)       = sum( randField    , dim = 1)
-        sumRFsquare(:) = sum((randField)**2, dim = 1)
+        sumRF(:) = 0
+        sumRFsquare(:) = 0
+        if(contrib == 1) sumRF(:)       = sum( randField    , dim = 1)
+        if(contrib == 1) sumRFsquare(:) = sum((randField)**2, dim = 1)
 
+        if(rang == 0) write(*,*) "        sumRF = ", sumRF
+        if(rang == 0) write(*,*) "        sumRFsquare = ", sumRFsquare
+
+        xNEffect = 0
+        if(contrib == 1) xNEffect = size(randField, 1)
         call MPI_REDUCE(sumRF, totalSumRF, Nmc, MPI_DOUBLE_PRECISION, &
-            MPI_SUM, 0, MPI_COMM_WORLD, code)
+            MPI_SUM, 0, comm, code)
         call MPI_REDUCE(sumRFsquare, totalSumRFsquare, Nmc, MPI_DOUBLE_PRECISION, &
-            MPI_SUM, 0, MPI_COMM_WORLD, code)
-        call MPI_REDUCE(procCorrL, globalCorrL, nDim, MPI_DOUBLE_PRECISION, &
-            MPI_SUM, 0, MPI_COMM_WORLD, code)
+            MPI_SUM, 0, comm, code)
+        call MPI_REDUCE(xNEffect, xNTotal, 1, MPI_INTEGER, &
+                        MPI_SUM, 0, comm, code)
 
         if(rang == 0) then
             !by Event
-            evntAvg      = totalSumRF/dble(xNTotal*nb_procs);
-            evntStdDev   = sqrt(totalSumRFsquare/dble(xNTotal*nb_procs) &
+            evntAvg      = totalSumRF/dble(xNTotal);
+            evntStdDev   = sqrt(totalSumRFsquare/dble(xNTotal) &
                 - (evntAvg)**2)
-            !Global
-            globalAvg    = sum(totalSumRF)/dble(xNTotal*nb_procs*Nmc);
-            globalStdDev = sqrt(sum(totalSumRFsquare)/dble(xNTotal*Nmc*nb_procs) &
-                - (globalAvg)**2)
-            !globalCorrL  = globalCorrL / nb_procs
-
-            !call DispCarvalhol(evntAvg   , "evntAvg")
-            !call DispCarvalhol(evntStdDev, "evntStdDev")
-            !write(*,*) "globalAvg    = ", globalAvg
-            !write(*,*) "globalStdDev = ", globalStdDev
-
+            if(rang == 0) write(*,*) "        evntAvg      = ", evntAvg
+            if(rang == 0) write(*,*) "        evntStdDev   = ", evntStdDev
         end if
+
+        if(rang == 0) write(*,*) "BEFORE BDCST" 
+        call MPI_BCAST (evntAvg, Nmc, MPI_DOUBLE_PRECISION, 0, comm, code)
+        call MPI_BCAST (evntStdDev, Nmc, MPI_DOUBLE_PRECISION, 0, comm, code)
+        if(rang == 0) write(*,*) "AFTER BDCST"
 
         if(allocated(sumRF))       deallocate(sumRF)
         if(allocated(sumRFsquare)) deallocate(sumRFsquare)

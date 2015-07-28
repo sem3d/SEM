@@ -122,12 +122,13 @@ contains
         integer :: effecMethod
         logical, dimension(:), allocatable :: calculate
         real, dimension(0:2) :: pointProp, avgProp;
+        integer :: contrib
 
         !Defining which properties will be calculated
         allocate(calculate(0:nProp-1))
         calculate(:) = .true.
         do i = 0, nProp - 1
-            if(Tdomain%sSubDomain(mat)%varProp(i) <= 0) calculate(i) = .false.
+            if(Tdomain%sSubDomain(mat)%varProp(i) <= 0 .or. (.not. Tdomain%subD_exist(mat))) calculate(i) = .false.
         end do
 
         effecMethod = 1;
@@ -160,9 +161,12 @@ contains
 !        if(rg == 0) write(*,*) "MaxBound             = ", Tdomain%sSubDomain(mat)%MaxBound
 
         !call dispCarvalhol(prop(1:20,:), "prop(1:20,:) RAW", "F30.10")
+
+        if(rg == 0) write(*,*) " "
+        if(rg == 0) write(*,*) "    Generating Standard Gaussian Field"
         select case(effecMethod)
         case( 1 ) !Victor
-            !write(*,*) "Victor's method"
+            if(rg == 0) write(*,*) "        Isotropic method"
             call createStandardGaussianFieldUnstructVictor(&
                 Tdomain%GlobCoord(:, :),                   &
                 Tdomain%sSubDomain(mat)%corrL,             &
@@ -176,7 +180,7 @@ contains
                 calculate)
 
         case( 2 ) !Shinozuka
-            !write(*,*) "Shinozuka's method"
+            if(rg == 0) write(*,*) "        Shinozuka's method"
             call createStandardGaussianFieldUnstructShinozuka (&
                 Tdomain%GlobCoord,                             &
                 Tdomain%sSubDomain(mat)%corrL,                 &
@@ -215,17 +219,26 @@ contains
 !        if(rg == 0) write(*,*) "average      = ", avgProp(i)
 !        if(rg == 0) write(*,*) "variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
 
-        do i = 0, nProp - 1
+        if(rg == 0) write(*,*) " "
+        if(rg == 0) write(*,*) "        Multi-Variate Transformation"
+        if(rg == 0) write(*,*) "        	MATERIAL -----!!!!!!!! ,", mat
+	do i = 0, nProp - 1
+            if(rg == 0 .and. i == 0) write(*,*) "Dens------------- "
+            if(rg == 0 .and. i == 1) write(*,*) "Lambda----------- "
+            if(rg == 0 .and. i == 2) write(*,*) "Mu--------------- "
+
+            contrib = 0
+	    if(Tdomain%subD_exist(mat)) contrib = 1
             call multiVariateTransformation (          &
                 Tdomain%sSubDomain(mat)%margiFirst(i), &
                 avgProp(i),                            &
                 Tdomain%sSubDomain(mat)%varProp(i),    &
-                prop(:, i:i))
+                prop(:, i:i), Tdomain%n_dime, Tdomain%communicateur, contrib)
         end do
 
-        !call dispCarvalhol(prop(1:20,:), "prop(1:20,:) TRANSF", "F30.10")
-
         if(.not. Tdomain%not_PML_List(mat)) then !Random PML
+            if(rg == 0) write(*,*) " "
+            if(rg == 0) write(*,*) "        Propagating PML Properties"
             call propagate_PML_properties(Tdomain, rg, prop)
         end if
 

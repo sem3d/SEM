@@ -550,7 +550,6 @@ contains
             Tdomain%Ssource(nsrc)%gamma = src%gamma ! func=4
             Tdomain%Ssource(nsrc)%ts = src%ts   ! func=4
             Tdomain%Ssource(nsrc)%Q = src%Q
-            write(*,*) Tdomain%Ssource(nsrc)%time_file
             Tdomain%Ssource(nsrc)%Y = src%Y
             Tdomain%Ssource(nsrc)%X = src%X
             Tdomain%Ssource(nsrc)%L = src%L
