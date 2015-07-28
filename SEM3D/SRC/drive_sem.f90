@@ -251,7 +251,7 @@ subroutine RUN_PREPARED(Tdomain)
     end if
 
  !- writing properties files
-    if (rg == 0) write (*,*) "--> WRITING PROPERTIES FILES"
+    if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
     if(Tdomain%logicD%run_restart) then
         if (rg == 0) write (*,*) " Warning!! This is a reprise, properties are expected to be on the 'prop' folder (it won't be rewriten)"
     else
@@ -289,9 +289,9 @@ subroutine RUN_PREPARED(Tdomain)
     !it would ease syntax
     !Ex: S for solid, F for fluid, P for solid PML, L for fluid PML
 
- !- creating properties visualization files
-    if (rg == 0) write (*,*) "--> CREATING PROPERTIES VISUALIZATION FILES "
-    call create_prop_visu_files (Tdomain, rg)
+! !- creating properties visualization files
+!    if (rg == 0) write (*,*) "--> CREATING PROPERTIES VISUALIZATION FILES "
+!    call create_prop_visu_files (Tdomain, rg)
 
  !- anelastic properties
     if (Tdomain%n_sls>0) then
