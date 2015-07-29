@@ -540,7 +540,10 @@ void Mesh2D::partition_metis(int nproc)
     eind.resize(4*ne);
     for(int i=0;i<ne;++i) {
         eptr[i] = 4*i;
-        for(int k=0;k<m_quads[i]->get_nb_nodes();++k) eind[4*i+k] = m_quads[i]->get_node_id(k);
+        for(int k=0;k<m_quads[i]->get_nb_nodes();++k) {
+            if (m_quads[i]->is_intermediate_node(k)) continue; // For topology construction, rely on principal nodes only
+            eind[4*i+k] = m_quads[i]->get_node_id(k);
+        }
     }
     eptr[ne]=4*ne;
     METIS_MeshToDual(&ne, &nn, &eptr[0], &eind[0], &ncommon, &numflag, &xadj, &adjncy);
