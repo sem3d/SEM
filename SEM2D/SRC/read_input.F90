@@ -107,7 +107,7 @@ subroutine read_input (Tdomain)
     Tdomain%logicD%Lamb_test = config%is_lamb_test .ne. 0
     Tdomain%logicD%run_restart = config%prorep .ne. 0
     Tdomain%logicD%compEnerg = config%comp_energ .ne. 0
-    Tdomain%TimeD%iter_reprise = config%prorep_iter
+    Tdomain%TimeD%iter_reprise = config%prorep_restart_iter
     Tdomain%TimeD%ncheck = config%prorep_iter ! frequence de sauvegarde
     Tdomain%station_file = fromcstr(config%station_file)
     !Tdomain%TimeD%ntrace = config%traces_interval ! XXX

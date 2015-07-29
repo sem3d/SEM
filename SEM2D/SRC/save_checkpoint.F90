@@ -31,7 +31,8 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
     ! local variables
     integer :: n,ngllx,ngllz,i,j,ngll,ierr
     character (len=MAX_FILE_SIZE) :: prot_file
-    character (len=MAX_FILE_SIZE) :: dir_prot, dir_prot_prev, times_file, dir_traces
+    character (len=MAX_FILE_SIZE) :: dir_prot, dir_prot_prev, times_file
+    character (len=MAX_FILE_SIZE) :: dir_traces, dir_prot_traces
     character (len=100) :: commande
 
     integer :: rg
@@ -73,7 +74,8 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
 
         ! copie du repertoire des sorties capteurs sem dans le rep de protection
         call semname_dir_capteurs(dir_traces)
-        commande="cp -R "//trim(adjustl(dir_traces))//" "//dir_prot
+        call semname_protection_iter_dir_capteurs(it,dir_prot_traces)
+        commande="cp -R "//trim(adjustl(dir_traces))//" "//dir_prot_traces
         call system(trim(commande))
     endif
 
