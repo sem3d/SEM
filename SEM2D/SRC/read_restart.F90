@@ -16,8 +16,6 @@ subroutine read_restart (Tdomain,isort)
     ! local variables
     character (len=MAX_FILE_SIZE) :: file_prot
     integer :: n,ngllx,ngllz,i,j,ngll
-    character (len=100) :: commande
-    character (len=6) :: sit !Gsa
 
     call init_restart(Tdomain%communicateur,Tdomain%Mpi_var%my_rank,Tdomain%TimeD%iter_reprise,file_prot)
     open (61,file=file_prot,status="unknown",form="formatted")
@@ -115,13 +113,7 @@ subroutine read_restart (Tdomain,isort)
     enddo
     close(61)
 
-    if (Tdomain%MPI_var%my_rank == 0) then  !!GSa 11/2009
-        write(sit,'(I6)') Tdomain%TimeD%prot_m0
-        commande='find ./ProRep/sem -name "Prot*" ! -name "Prot*'//trim(adjustl(sit))//'*" -exec rm -fr  {} \; '
-        ! on supprime les fichiers et repertoire de protection autres que celui contenant prot_m0
-        !!   write(6,*) 'commande',commande
-        call system(commande)
-    endif
+    call clean_prot(Tdomain%TimeD%prot_m0, Tdomain%MPI_var%my_rank)
 
     return
 end subroutine read_restart
