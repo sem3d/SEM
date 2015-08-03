@@ -107,6 +107,9 @@ typedef struct {
     int n_snap_cond;
     snapshot_cond_t* snapshot_selection;
     int comp_energ;
+    // START MODIFS - FILIPPO 07/15
+    int out_variables[9];
+    // END MODIFS - FILIPPO 07/15
 
     // Protection reprise
     int prorep;
@@ -141,6 +144,9 @@ typedef struct {
 
     // Station definition
     station_def_t* stations;
+
+
+
 } sem_config_t;
 
 

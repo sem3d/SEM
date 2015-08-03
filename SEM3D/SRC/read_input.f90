@@ -656,6 +656,7 @@ contains
         logical                      :: logic_scheme
         integer                      :: imat
         integer                      :: rg
+        integer                      :: nReqOut
 
         rg = Tdomain%rank
 
@@ -685,6 +686,15 @@ contains
         Tdomain%TimeD%alpha = 0.5
         Tdomain%TimeD%beta = 0.5
         Tdomain%TimeD%gamma = 1.
+
+        ! START MODIFS - FILIPPO 07/15
+        write(*,*) "OUT_VARIABLES: ", Tdomain%config%out_variables
+        Tdomain%out_variables(0:8) = Tdomain%config%out_variables
+        Tdomain%nReqOut = sum(Tdomain%out_variables(0:3)) + 3*sum(Tdomain%out_variables(4:6)) + 6*sum(Tdomain%out_variables(7:8))
+        write(*,*) "OUT_VARIABLES: ", Tdomain%out_variables(0:8)
+        write(*,*) "sizeof...", size(Tdomain%out_variables)
+        ! END MODIFS - FILIPPO 07/15
+
         Tdomain%TimeD%courant             = Tdomain%config%courant
         Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)
         call semname_read_input_meshfile(rg,Tdomain%mesh_file,fnamef) !indicates the path to the mesh file for this proc"

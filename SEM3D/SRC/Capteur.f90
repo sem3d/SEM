@@ -37,7 +37,10 @@ module mCapteur
         integer :: icache
         ! DIM: Solide : 1(t)+3(u)+3(v)+3(a)+1(p)+1(eps_vol)+6(eps_dev)+6(sig_dev)+2(P-S energy)
         !      Fluide : 1(t)+???
-        real, dimension(CAPT_DIM, NCAPT_CACHE) :: valuecache
+!        real, dimension(CAPT_DIM, NCAPT_CACHE) :: valuecache
+        ! START MODIFS - FILIPPO 07/15
+        real, dimension(:,:), allocatable :: valuecache
+        ! END MODIFS - FILIPPO 07/15
     end type tCapteur
 
     integer           :: dimCapteur        ! nombre total de capteurs
@@ -60,9 +63,10 @@ contains
         character(Len=MAX_FILE_SIZE) :: nom
         double precision :: xc, yc, zc, xi, eta, zeta
         character(len=MAX_FILE_SIZE) :: fnamef
-        integer :: numproc, numproc_max, ierr, n_el, n_eln, i
+        integer :: numproc, numproc_max, ierr, n_el, n_eln, i, n_out
         double precision, allocatable, dimension(:,:) :: coordl
-        !
+
+
         station_next = Tdomain%config%stations
         nullify(listeCapteur)
 
@@ -98,7 +102,7 @@ contains
                 if (n_el/=-1) then
                     allocate(coordl(0:2, 0:Tdomain%n_nodes-1))
                     do i = 0, Tdomain%n_nodes-1
-                       coordl(0:2, i) = Tdomain%Coord_Nodes(0:2, Tdomain%specel(n_el)%Control_Nodes(i))
+                        coordl(0:2, i) = Tdomain%Coord_Nodes(0:2, Tdomain%specel(n_el)%Control_Nodes(i))
                     enddo
                     if (Tdomain%n_nodes==8) then
                         call shape8_local2global(coordl, xi, eta, zeta, xc, yc, zc)
@@ -121,8 +125,15 @@ contains
             ! attention si le capteur est partage par plusieurs procs. On choisit le proc de num max
             if(Tdomain%rank==numproc_max) then
                 allocate(capteur)
+                
+                ! START MODIFS - FILIPPO 07/15
+                n_out = Tdomain%nReqOut                
+                if (.not.allocated(capteur%valuecache)) allocate(capteur%valuecache(1:n_out+1,NCAPT_CACHE))
+                write(*,*) "create_capteur: ", n_out, size(capteur%valuecache,1)
+                ! END MODIFS - FILIPPO 07/15
                 nom = fromcstr(station_ptr%name)
                 capteur%nom = nom(1:20)     ! ses caracteristiques par defaut
+                write(*,*) "create_capteur: NAME=>", capteur%nom
                 capteur%periode = station_ptr%period
                 capteur%coord(1) = xc
                 capteur%coord(2) = yc
@@ -163,7 +174,11 @@ contains
 
         ! boucle sur les capteurs
         capteur=>listeCapteur
-
+        ! START MODIFS - FILIPPO 07/15
+        write(*,*) "evalueSortieCapteur: NAME=> ", capteur%nom
+        write(*,*) "evalueSortieCapteur: ", allocated(capteur%valuecache)
+        write(*,*) "evalueSortieCapteur: SIZE=> ", size(capteur%valuecache,1)
+        ! END MODIFS - FILIPPO 07/15
         do while (associated(capteur))
             if (mod(it,capteur%periode)==0) then ! on fait la sortie
                 sortie_capteur = .TRUE.
@@ -195,9 +210,12 @@ contains
 
         do_flush = .false.
         ! boucle sur les capteurs
+
+
         capteur=>listeCapteur
         do while (associated(capteur))
-
+            write(*,*) "save_capteur: ", allocated(capteur%valuecache)
+            write(*,*) "save_capteur: SIZE=> ", size(capteur%valuecache,1)
             if (mod(ntime, capteur%periode)==0) then ! on fait la sortie
                 call sortieGrandeurCapteur_interp(Tdomain, capteur)
                 if (capteur%icache==NCAPT_CACHE) do_flush = .true.
@@ -310,15 +328,17 @@ contains
         integer, parameter :: fileId=123
         integer :: j
         character(len=MAX_FILE_SIZE) :: fnamef
-
+        character(len=20) :: sizeChar
+        write(*, *) size(capteur%valuecache)
         if (capteur%icache==0) return
 
         call semname_capteur_type(capteur%nom,".txt",fnamef)
 
         open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
         do j=1,capteur%icache
-        ! start modifs
-            write(fileId,'(26(1X,E16.8E3))') capteur%valuecache(:,j)
+            ! start modifs
+            write(sizeChar, *) size(capteur%valuecache)
+            write(fileId,'('//trim(sizeChar)//'(1X,E16.8E3))') capteur%valuecache(:,j)
             ! end modifs
         end do
         close(fileId)
@@ -344,32 +364,40 @@ contains
 
         integer :: i, j, k
 
-        real, dimension(CAPT_DIM-1) :: grandeur
         real, dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real, dimension(:,:,:), allocatable :: fieldP
-        ! start modifs
-        real, dimension(:,:,:), allocatable :: DXX, DXY, DXZ
-        real, dimension(:,:,:), allocatable :: DYX, DYY, DYZ
-        real, dimension(:,:,:), allocatable :: DZX, DZY, DZZ
-        real  :: eps_vol, eps_dev_xx, eps_dev_yy, eps_dev_zz, &
-            eps_dev_xy, eps_dev_xz, eps_dev_yz
-        real  :: sig_dev_xx, sig_dev_yy, sig_dev_zz, &
-            sig_dev_xy, sig_dev_xz, sig_dev_yz
-        real  :: P_energy, S_energy
-
-        real, dimension (:,:), allocatable  :: htprimex, hprimey, hprimez
-        ! end modifs
         integer :: n_el, ngllx, nglly, ngllz, mat, n_solid
         real :: xi, eta, zeta, weight
         real, dimension(:), allocatable :: outx, outy, outz
-        ! start modifs
+
+        ! START MODIFS - FILIPPO 07/15
+
+        real, dimension(:,:,:), allocatable :: DXX, DXY, DXZ
+        real, dimension(:,:,:), allocatable :: DYX, DYY, DYZ
+        real, dimension(:,:,:), allocatable :: DZX, DZY, DZZ
+        real, dimension (:,:), allocatable  :: htprimex, hprimey, hprimez
+        real  :: eps_dev_xx, eps_dev_yy, eps_dev_zz, &
+                 eps_dev_xy, eps_dev_xz, eps_dev_yz
+        real  :: sig_dev_xx, sig_dev_yy, sig_dev_zz, &
+                 sig_dev_xy, sig_dev_xz, sig_dev_yz
+        real  :: eps_vol,    P_energy,   S_energy
+        
         logical :: aniso, solid
         real :: xmu, xlambda, xkappa, x2mu, xlambda2mu, onemSbeta, onemPbeta, eps_trace
-        ! end modifs
+        
+        real,    dimension(:), allocatable :: grandeur
+        integer, dimension(0:8)   :: out_variables, offset
+        integer                 :: flag_gradU, n_out
+        
+        write(*,*) "sortieGrandeurCapteur_interp: NAME=> ", capteur%nom
+        write(*,*) "sortieGrandeurCapteur_interp: ", allocated(capteur%valuecache)
+        write(*,*) "sortieGrandeurCapteur_interp: SIZE=> ", size(capteur%valuecache,1)
+
+        ! END MODIFS - FILIPPO 07/15
+        
         rg = Tdomain%rank
 
         ! ETAPE 0 : initialisations
-        grandeur(:)=0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
 
         ! Recuperation du numero de la maille Sem et des abscisses
         n_el = capteur%n_el
@@ -377,7 +405,34 @@ contains
         eta = capteur%eta
         zeta = capteur%zeta
 
-        ! ETAPE 1 : interpolations
+        ! START MODIFS - FILIPPO 07/15
+        out_variables(0:8) = Tdomain%out_variables(0:8)
+        write(*,*) "out_variables: ", out_variables(0:8)
+        flag_gradU = sum(out_variables(0:2:1)) + sum(out_variables(7:8:1))
+        write(*,*) "flag_gradU: ", flag_gradU
+
+        n_out = Tdomain%nReqOut
+        offset   = 0;
+        
+        do i = 0,size(out_variables)-2
+            if (out_variables(i) == 1) then
+                    if (i .le. 3) then
+                        offset(i+1) = offset(i) + 1
+                    else if ((i .gt. 3) .and. (i .le. 6)) then
+                        offset(i+1) = offset(i) + 3
+                    else if (i .gt. 6) then
+                        offset(i+1) = offset(i) + 6
+                    end if
+            else
+                offset(i+1) = offset(i)
+            end if
+        end do
+        
+        write(*,*) "sortieGrandeurCapteur_interp: OFFSET=>", offset
+        
+        allocate(grandeur(0:n_out-1))
+        grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
+        ! END MODIFS - FILIPPO 07/15
 
         if((n_el/=-1) .AND. (capteur%numproc==rg)) then
             ngllx = Tdomain%specel(n_el)%ngllx
@@ -386,25 +441,49 @@ contains
             allocate(outx(0:ngllx-1))
             allocate(outy(0:nglly-1))
             allocate(outz(0:ngllz-1))
-            allocate(fieldU(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-            allocate(fieldV(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-            allocate(fieldA(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-            allocate(fieldP(0:ngllx-1,0:nglly-1,0:ngllz-1))
-            allocate(DXX(0:ngllx-1,0:nglly-1,0:ngllz-1))
-            allocate(DXY(0:ngllx-1,0:nglly-1,0:ngllz-1))
-            allocate(DXZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
-            allocate(DYX(0:ngllx-1,0:nglly-1,0:ngllz-1))
-            allocate(DYY(0:ngllx-1,0:nglly-1,0:ngllz-1))
-            allocate(DYZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
-            allocate(DZX(0:ngllx-1,0:nglly-1,0:ngllz-1))
-            allocate(DZY(0:ngllx-1,0:nglly-1,0:ngllz-1))
-            allocate(DZZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
-            allocate(hTprimex(0:ngllx-1,0:ngllx-1))
-            allocate(hprimey(0:nglly-1,0:nglly-1))
-            allocate(hprimez(0:ngllz-1,0:ngllz-1))
 
-            mat=Tdomain%specel(n_el)%mat_index
-            ! end modif
+
+            ! START MODIFS - FILIPPO 07/15
+
+            if ((flag_gradU .ge. 1) .or. (out_variables(4) == 1)) then
+                allocate(fieldU(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                call gather_elem_displ(Tdomain, n_el, fieldU)
+            end if
+
+            if (flag_gradU .ge. 1) then
+                allocate(DXX(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(DXY(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(DXZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(DYX(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(DYY(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(DYZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(DZX(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(DZY(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(DZZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(hTprimex(0:ngllx-1,0:ngllx-1))
+                allocate(hprimey(0:nglly-1,0:nglly-1))
+                allocate(hprimez(0:ngllz-1,0:ngllz-1))
+                mat=Tdomain%specel(n_el)%mat_index
+                hTprimex=Tdomain%sSubDomain(mat)%hTprimex
+                hprimey=Tdomain%sSubDomain(mat)%hprimey
+                hprimez=Tdomain%sSubDomain(mat)%hprimez
+            end if
+
+            if (out_variables(5) == 1) then
+                allocate(fieldV(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                call gather_elem_veloc(Tdomain, n_el, fieldV)
+            end if
+
+            if (out_variables(6) == 1) then
+                allocate(fieldA(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                call gather_elem_accel(Tdomain, n_el, fieldA)
+            end if
+
+            if (out_variables(3) == 1) then
+                allocate(fieldP(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                call gather_elem_press(Tdomain, n_el, fieldP)
+            end if
+            ! END MODIFS - FILIPPO 07/15
 
             do i = 0,ngllx - 1
                 call  pol_lagrange(ngllx,Tdomain%sSubdomain(mat)%GLLcx,i,xi,outx(i))
@@ -415,64 +494,96 @@ contains
             do k = 0,ngllz - 1
                 call  pol_lagrange(ngllz,Tdomain%sSubdomain(mat)%GLLcz,k,zeta,outz(k))
             end do
-            call gather_elem_displ(Tdomain, n_el, fieldU)
-            call gather_elem_veloc(Tdomain, n_el, fieldV)
-            call gather_elem_accel(Tdomain, n_el, fieldA)
-            call gather_elem_press(Tdomain, n_el, fieldP)
 
-            ! start modif
+            ! START MODIFS - FILIPPO 07/15
             solid=Tdomain%specel(n_el)%solid
             n_solid=Tdomain%n_sls
-            hTprimex=Tdomain%sSubDomain(mat)%hTprimex
-            hprimey=Tdomain%sSubDomain(mat)%hprimey
-            hprimez=Tdomain%sSubDomain(mat)%hprimez
             aniso=Tdomain%aniso
 
-            if((solid) .and. (.not. Tdomain%specel(n_el)%PML))then   ! SOLID PART OF THE DOMAIN
+            if((solid) .and. (.not. Tdomain%specel(n_el)%PML) .and. (flag_gradU .ge. 1)) then   ! SOLID PART OF THE DOMAIN
                 call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,0),DXX,DYX,DZX)
                 call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,1),DXY,DYY,DZY)
                 call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
             endif
-            eps_vol = 0
-            eps_dev_xx = 0
-            eps_dev_yy = 0
-            eps_dev_zz = 0
-            eps_dev_xy = 0
-            eps_dev_xz = 0
-            eps_dev_yz = 0
 
-            sig_dev_xx = 0
-            sig_dev_yy = 0
-            sig_dev_zz = 0
-            sig_dev_xy = 0
-            sig_dev_xz = 0
-            sig_dev_yz = 0
+            if (out_variables(0) == 1) then
+                P_energy = 0
+            end if
 
-            P_energy = 0
-            S_energy = 0
+            if (out_variables(1) == 1) then
+                S_energy = 0
+            end if
 
-            ! end modif
+            if (out_variables(2) == 1) then
+                eps_vol = 0
+            end if
+
+            if (out_variables(7) == 1) then
+                eps_dev_xx = 0
+                eps_dev_yy = 0
+                eps_dev_zz = 0
+                eps_dev_xy = 0
+                eps_dev_xz = 0
+                eps_dev_yz = 0
+            end if
+
+            if (out_variables(8) == 1) then
+                sig_dev_xx = 0
+                sig_dev_yy = 0
+                sig_dev_zz = 0
+                sig_dev_xy = 0
+                sig_dev_xz = 0
+                sig_dev_yz = 0
+            end if
+            ! END MODIFS - FILIPPO 07/15
 
             do i = 0,ngllx - 1
                 do j = 0,nglly - 1
                     do k = 0,ngllz - 1
                         weight = outx(i)*outy(j)*outz(k)
-                        grandeur(1:3) = grandeur(1:3) + weight*fieldU(i,j,k,:)
-                        grandeur(4:6) = grandeur(4:6) + weight*fieldV(i,j,k,:)
-                        grandeur(7:9) = grandeur(7:9) + weight*fieldA(i,j,k,:)
-                        grandeur(10 ) = grandeur( 10) + weight*fieldP(i,j,k)
-                        ! start modif
-                        if ((solid) .and. (.not. Tdomain%specel(n_el)%PML)) then
+
+                        ! START MODIFS - FILIPPO 07/15
+
+                        if (out_variables(4) == 1) then
+                            grandeur(offset(4):offset(4)+2) &
+                                = grandeur(offset(4):offset(4)+2) + weight*fieldU(i,j,k,:)
+                        end if
+
+                        if (out_variables(5) == 1) then
+                            grandeur(offset(5):offset(5)+2) &
+                                = grandeur(offset(5):offset(5)+2) + weight*fieldV(i,j,k,:)
+                        end if
+
+                        if (out_variables(6) == 1) then
+                            grandeur(offset(6):offset(6)+2) &
+                                = grandeur(offset(6):offset(6)+2) + weight*fieldA(i,j,k,:)
+                        end if
+
+                        if (out_variables(3) == 1) then
+                            grandeur(offset(3)) &
+                                = grandeur(offset(3)) + weight*fieldP(i,j,k)
+                        end if
+
+                        if ((solid) .and. (.not. Tdomain%specel(n_el)%PML) .and. (flag_gradU .ge. 1)) then
+
                             eps_trace = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
-                            eps_vol = eps_trace
-                            eps_dev_xx = DXX(i,j,k) - eps_vol / 3
-                            eps_dev_yy = DYY(i,j,k) - eps_vol / 3
-                            eps_dev_zz = DZZ(i,j,k) - eps_vol / 3
-                            eps_dev_xy = 0.5 * (DXY(i,j,k) + DYX(i,j,k))
-                            eps_dev_xz = 0.5 * (DZX(i,j,k) + DXZ(i,j,k))
-                            eps_dev_yz = 0.5 * (DZY(i,j,k) + DYZ(i,j,k))
+
+                            if (out_variables(2) == 1) then
+                                eps_vol = eps_trace
+                            end if
+
+                            if (out_variables(7) ==1) then
+                                eps_dev_xx = DXX(i,j,k) - eps_trace / 3
+                                eps_dev_yy = DYY(i,j,k) - eps_trace / 3
+                                eps_dev_zz = DZZ(i,j,k) - eps_trace / 3
+                                eps_dev_xy = 0.5 * (DXY(i,j,k) + DYX(i,j,k))
+                                eps_dev_xz = 0.5 * (DZX(i,j,k) + DXZ(i,j,k))
+                                eps_dev_yz = 0.5 * (DZY(i,j,k) + DYZ(i,j,k))
+                            end if
+
                             if (aniso) then
                             else
+
                                 xmu     = Tdomain%specel(n_el)%Mu(i,j,k)
                                 xlambda = Tdomain%specel(n_el)%Lambda(i,j,k)
                                 xkappa  = Tdomain%specel(n_el)%Kappa(i,j,k)
@@ -488,42 +599,68 @@ contains
                                 x2mu       = 2. * xmu
                                 xlambda2mu = xlambda + x2mu
 
-                                sig_dev_xx = xlambda2mu * DXX(i,j,k) + xlambda * (DYY(i,j,k) + DZZ(i,j,k))
-                                sig_dev_yy = xlambda2mu * DYY(i,j,k) + xlambda * (DXX(i,j,k) + DZZ(i,j,k))
-                                sig_dev_zz = xlambda2mu * DZZ(i,j,k) + xlambda * (DXX(i,j,k) + DYY(i,j,k))
-                                sig_dev_xy = xmu * (DXY(i,j,k) + DYX(i,j,k))
-                                sig_dev_xz = xmu * (DXZ(i,j,k) + DZX(i,j,k))
-                                sig_dev_yz = xmu * (DYZ(i,j,k) + DZY(i,j,k))
+                                if (out_variables(8) == 1) then
+                                    sig_dev_xx = x2mu * (DXX(i,j,k) - eps_trace /3)
+                                    sig_dev_yy = x2mu * (DYY(i,j,k) - eps_trace /3)
+                                    sig_dev_zz = x2mu * (DZZ(i,j,k) - eps_trace /3)
+                                    sig_dev_xy = xmu * (DXY(i,j,k) + DYX(i,j,k))
+                                    sig_dev_xz = xmu * (DXZ(i,j,k) + DZX(i,j,k))
+                                    sig_dev_yz = xmu * (DYZ(i,j,k) + DZY(i,j,k))
+                                end if
 
-                                P_energy = .5 * xlambda2mu * eps_trace**2
-                                S_energy = xmu * ((DXX(i,j,k) - eps_trace/ 3)**2 + &
-                                                       (DYY(i,j,k) - eps_trace/ 3)**2 + &
-                                                       (DZZ(i,j,k) - eps_trace/ 3)**2 + &
-                                                        DXY(i,j,k)**2 + DYX(i,j,k)**2 + &
-                                                        DXZ(i,j,k)**2 + DZX(i,j,k)**2 + &
-                                                        DYZ(i,j,k)**2 + DZY(i,j,k)**2)
+                                if (out_variables(0) == 1) then
+                                    P_energy = .5 * xlambda2mu * eps_trace**2
+                                end if
+
+                                if (out_variables(1) == 1) then
+                                    S_energy = xmu * ((DXX(i,j,k) - eps_trace/ 3)**2 &
+                                        + (DYY(i,j,k) - eps_trace/ 3)**2 &
+                                        + (DZZ(i,j,k) - eps_trace/ 3)**2 &
+                                        + DXY(i,j,k)**2 + DYX(i,j,k)**2 &
+                                        + DXZ(i,j,k)**2 + DZX(i,j,k)**2 &
+                                        + DYZ(i,j,k)**2 + DZY(i,j,k)**2)
+                                end if
 
                             endif
                         endif
-                        grandeur(11:23) = grandeur (11:23) + (/weight*eps_vol, &
-                              weight*eps_dev_xx, weight*eps_dev_yy, weight*eps_dev_zz, &
-                              weight*eps_dev_xy, weight*eps_dev_xz, weight*eps_dev_yz, &
-                              weight*sig_dev_xx, weight*sig_dev_yy, weight*sig_dev_zz, &
-                              weight*sig_dev_xy, weight*sig_dev_xz, weight*sig_dev_yz/)
-                        ! end modif
+
+                        if (out_variables(0) == 1) then
+                            grandeur (offset(0)) = grandeur (offset(0)) + weight*P_energy
+                        end if
+                        
+                        if (out_variables(1) == 1) then
+                            grandeur (offset(1)) = grandeur (offset(1)) + weight*S_energy
+                        end if
+                        
+                        if (out_variables(2) == 1) then
+                            grandeur (offset(2)) = grandeur (offset(2)) + weight*eps_vol
+                        end if
+
+                        if (out_variables(7) == 1) then
+                            grandeur (offset(7):offset(7)+5) = grandeur (offset(7):offset(7)+5) &
+                            + (/weight*eps_dev_xx, weight*eps_dev_yy, weight*eps_dev_zz, &
+                                weight*eps_dev_xy, weight*eps_dev_xz, weight*eps_dev_yz/)
+                        end if
+
+                        if (out_variables(8) == 1) then
+                            grandeur (offset(8):offset(8)+5) = grandeur (offset(8):offset(8)+5) &
+                            + (/weight*sig_dev_xx, weight*sig_dev_yy, weight*sig_dev_zz, &
+                                weight*sig_dev_xy, weight*sig_dev_xz, weight*sig_dev_yz/)
+                        end if
+                        ! END MODIFS - FILIPPO 07/15
                     enddo
                 enddo
             enddo
-
-
+            
+            write(*,*) "sortieGrandeurCapteur_interp:  GRANDEUR=>", grandeur
 
             deallocate(outx)
             deallocate(outy)
             deallocate(outz)
-            deallocate(fieldU)
-            deallocate(fieldV)
-            deallocate(fieldA)
-            deallocate(fieldP)
+            if (allocated(fieldU)) deallocate(fieldU)
+            if (allocated(fieldV)) deallocate(fieldV)
+            if (allocated(fieldA)) deallocate(fieldA)
+            if (allocated(fieldP)) deallocate(fieldP)
             if (allocated(DXX)) deallocate(DXX)
             if (allocated(DXY)) deallocate(DXY)
             if (allocated(DXZ)) deallocate(DXZ)
@@ -539,10 +676,12 @@ contains
 
             i = capteur%icache+1
             capteur%valuecache(1,i) = Tdomain%TimeD%rtime
-            ! start modifs
-            capteur%valuecache(2:26,i) = grandeur(:)
-            ! end modifs
+            ! START MODIFS - FILIPPO 07/15
+            capteur%valuecache(2:n_out+1,i) = grandeur(:)
+            if(allocated(grandeur)) deallocate(grandeur)
+            ! END MODIFS - FILIPPO 07/15
             capteur%icache = i
+            
         endif
 
     end subroutine sortieGrandeurCapteur_interp

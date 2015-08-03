@@ -144,6 +144,7 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
     init_source(source);
 
     source->next = config->source;
+
     config->source = source;
     config->nsources ++;
     if (!check_dimension(scanner, config)) return 0;
@@ -184,26 +185,36 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
     return 1;
 }
 
+// START MODIFS FILIPPO 07/15
+int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
+{
+	int tok, err;
 
+	tok = skip_blank(scanner);
+	if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
+	do {
+    tok = skip_blank(scanner);
 
-////start modifs
-//int expect_variables(yyscan_t scanner, sem_config_t* config)
-//{
-//    int tok, err;
-//
-//    tok = skip_blank(scanner);
-//    if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected {'"); return 0; }
-//    do {
-//    	tok = skip_blank(scanner);
-//    	if (tok!=K_ID) break;
-//
-//    	if (cmp(scanner,"variables")) err=expect_()
-//    }while(1)
-//}
-////end modifs
+	if (tok!=K_ID) break;
+        
+        if (cmp(scanner,"enP")) err=expect_eq_int(scanner, &(config->out_variables[0]),1);
+	else if (cmp(scanner,"enS")) err=expect_eq_int(scanner, &(config->out_variables[1]),1);
+        else if (cmp(scanner,"evol")) err=expect_eq_int(scanner, &(config->out_variables[2]),1);
+        else if (cmp(scanner,"pre")) err=expect_eq_int(scanner, &(config->out_variables[3]),1);
+        else if (cmp(scanner,"dis")) err=expect_eq_int(scanner, &(config->out_variables[4]),1);
+	else if (cmp(scanner,"vel")) err=expect_eq_int(scanner, &(config->out_variables[5]),1);
+	else if (cmp(scanner,"acc")) err=expect_eq_int(scanner, &(config->out_variables[6]),1);
+	else if (cmp(scanner,"edev")) err=expect_eq_int(scanner, &(config->out_variables[7]),1);
+	else if (cmp(scanner,"sdev")) err=expect_eq_int(scanner, &(config->out_variables[8]),1);
 
+	if (err<=0) return 0;
+	if (!expect_eos(scanner)) { return 0; }
+    } while(1);
 
-
+    if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
+    return 1;
+}
+// END MODIFS FILIPPO 07/15
 
 int expect_time_scheme(yyscan_t scanner, sem_config_t* config)
 {
@@ -630,10 +641,14 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"gradient")) err=expect_gradient_desc(scanner, config);
 	else if (cmp(scanner,"model")) err=expect_eq_model(scanner, &config->model);
 	else if (cmp(scanner,"neumann")) err=expect_neumann(scanner, config);
+	// START MODIFS - FILIPPO 07/15
+	else if (cmp(scanner,"out_variables")) err=expect_eq_outvar(scanner, config);
+	// END MODIFS - FILIPPO 07/15
+
+
 
 	//Material
 	if (cmp(scanner,"material")) err=expect_materials(scanner, config);
-
 
 	if (err==0) { printf("ERR01\n"); return 0;}
 	if (!expect_eos(scanner)) { return 0; }
@@ -651,6 +666,8 @@ void init_sem_config(sem_config_t* cfg)
     cfg->fmax = 1.0;
     cfg->material_type = 1;
     cfg->stations = NULL;
+    memset(cfg->out_variables, 1, 9*sizeof(int));
+
 }
 
 
@@ -679,7 +696,12 @@ void dump_config(sem_config_t* cfg)
     printf("Fichier stations: '%s'\n", cfg->station_file);
     printf("Snap interval : %lf\n", cfg->snap_interval);
     printf("Snap selection : %p\n", cfg->snapshot_selection);
-
+    // START MODIFS - FILIPPO 07/15
+    printf("out variables : (%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", \
+    				cfg->out_variables[0], cfg->out_variables[1], cfg->out_variables[2],\
+    				cfg->out_variables[3], cfg->out_variables[4], cfg->out_variables[5],\
+    				cfg->out_variables[6], cfg->out_variables[7], cfg->out_variables[8]);
+	// END MODIFS - FILIPPO 07/15
     printf("Neu present : %d\n", cfg->neu_present);
     printf("Neu type    : %d\n", cfg->neu_type);
     printf("Neu mat     : %d\n", cfg->neu_mat);
