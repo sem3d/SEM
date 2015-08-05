@@ -35,12 +35,8 @@ module mCapteur
         real :: xi, eta, zeta ! abscisses curvilignes pour le capteur en cas d'interpolation (type_calcul=1)
         integer :: numproc               ! numero du proc localisant le capteur
         integer :: icache
-        ! DIM: Solide : 1(t)+3(u)+3(v)+3(a)+1(p)+1(eps_vol)+6(eps_dev)+6(sig_dev)+2(P-S energy)
-        !      Fluide : 1(t)+???
-!        real, dimension(CAPT_DIM, NCAPT_CACHE) :: valuecache
-        ! START MODIFS - FILIPPO 07/15
         real, dimension(:,:), allocatable :: valuecache
-        ! END MODIFS - FILIPPO 07/15
+
     end type tCapteur
 
     integer           :: dimCapteur        ! nombre total de capteurs
@@ -126,14 +122,11 @@ contains
             if(Tdomain%rank==numproc_max) then
                 allocate(capteur)
                 
-                ! START MODIFS - FILIPPO 07/15
                 n_out = Tdomain%nReqOut                
                 if (.not.allocated(capteur%valuecache)) allocate(capteur%valuecache(1:n_out+1,NCAPT_CACHE))
-                write(*,*) "create_capteur: ", n_out, size(capteur%valuecache,1)
-                ! END MODIFS - FILIPPO 07/15
+
                 nom = fromcstr(station_ptr%name)
                 capteur%nom = nom(1:20)     ! ses caracteristiques par defaut
-                write(*,*) "create_capteur: NAME=>", capteur%nom
                 capteur%periode = station_ptr%period
                 capteur%coord(1) = xc
                 capteur%coord(2) = yc
@@ -174,11 +167,7 @@ contains
 
         ! boucle sur les capteurs
         capteur=>listeCapteur
-        ! START MODIFS - FILIPPO 07/15
-        write(*,*) "evalueSortieCapteur: NAME=> ", capteur%nom
-        write(*,*) "evalueSortieCapteur: ", allocated(capteur%valuecache)
-        write(*,*) "evalueSortieCapteur: SIZE=> ", size(capteur%valuecache,1)
-        ! END MODIFS - FILIPPO 07/15
+
         do while (associated(capteur))
             if (mod(it,capteur%periode)==0) then ! on fait la sortie
                 sortie_capteur = .TRUE.
@@ -214,8 +203,6 @@ contains
 
         capteur=>listeCapteur
         do while (associated(capteur))
-            write(*,*) "save_capteur: ", allocated(capteur%valuecache)
-            write(*,*) "save_capteur: SIZE=> ", size(capteur%valuecache,1)
             if (mod(ntime, capteur%periode)==0) then ! on fait la sortie
                 call sortieGrandeurCapteur_interp(Tdomain, capteur)
                 if (capteur%icache==NCAPT_CACHE) do_flush = .true.
@@ -370,8 +357,6 @@ contains
         real :: xi, eta, zeta, weight
         real, dimension(:), allocatable :: outx, outy, outz
 
-        ! START MODIFS - FILIPPO 07/15
-
         real, dimension(:,:,:), allocatable :: DXX, DXY, DXZ
         real, dimension(:,:,:), allocatable :: DYX, DYY, DYZ
         real, dimension(:,:,:), allocatable :: DZX, DZY, DZZ
@@ -386,15 +371,9 @@ contains
         real :: xmu, xlambda, xkappa, x2mu, xlambda2mu, onemSbeta, onemPbeta, eps_trace
         
         real,    dimension(:), allocatable :: grandeur
-        integer, dimension(0:8)   :: out_variables, offset
+        integer, dimension(0:8) :: out_variables, offset
         integer                 :: flag_gradU, n_out
-        
-        write(*,*) "sortieGrandeurCapteur_interp: NAME=> ", capteur%nom
-        write(*,*) "sortieGrandeurCapteur_interp: ", allocated(capteur%valuecache)
-        write(*,*) "sortieGrandeurCapteur_interp: SIZE=> ", size(capteur%valuecache,1)
 
-        ! END MODIFS - FILIPPO 07/15
-        
         rg = Tdomain%rank
 
         ! ETAPE 0 : initialisations
@@ -405,34 +384,30 @@ contains
         eta = capteur%eta
         zeta = capteur%zeta
 
-        ! START MODIFS - FILIPPO 07/15
+
         out_variables(0:8) = Tdomain%out_variables(0:8)
-        write(*,*) "out_variables: ", out_variables(0:8)
         flag_gradU = sum(out_variables(0:2:1)) + sum(out_variables(7:8:1))
-        write(*,*) "flag_gradU: ", flag_gradU
+
+        offset   = 0
 
         n_out = Tdomain%nReqOut
-        offset   = 0;
-        
+
         do i = 0,size(out_variables)-2
             if (out_variables(i) == 1) then
-                    if (i .le. 3) then
-                        offset(i+1) = offset(i) + 1
-                    else if ((i .gt. 3) .and. (i .le. 6)) then
-                        offset(i+1) = offset(i) + 3
-                    else if (i .gt. 6) then
-                        offset(i+1) = offset(i) + 6
-                    end if
+                if (i .le. 3) then
+                    offset(i+1) = offset(i) + 1
+                else if ((i .gt. 3) .and. (i .le. 6)) then
+                    offset(i+1) = offset(i) + 3
+                else if (i .gt. 6) then
+                    offset(i+1) = offset(i) + 6
+                end if
             else
                 offset(i+1) = offset(i)
             end if
         end do
-        
-        write(*,*) "sortieGrandeurCapteur_interp: OFFSET=>", offset
-        
+
         allocate(grandeur(0:n_out-1))
         grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
-        ! END MODIFS - FILIPPO 07/15
 
         if((n_el/=-1) .AND. (capteur%numproc==rg)) then
             ngllx = Tdomain%specel(n_el)%ngllx
@@ -441,9 +416,6 @@ contains
             allocate(outx(0:ngllx-1))
             allocate(outy(0:nglly-1))
             allocate(outz(0:ngllz-1))
-
-
-            ! START MODIFS - FILIPPO 07/15
 
             if ((flag_gradU .ge. 1) .or. (out_variables(4) == 1)) then
                 allocate(fieldU(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
@@ -483,7 +455,6 @@ contains
                 allocate(fieldP(0:ngllx-1,0:nglly-1,0:ngllz-1))
                 call gather_elem_press(Tdomain, n_el, fieldP)
             end if
-            ! END MODIFS - FILIPPO 07/15
 
             do i = 0,ngllx - 1
                 call  pol_lagrange(ngllx,Tdomain%sSubdomain(mat)%GLLcx,i,xi,outx(i))
@@ -495,7 +466,6 @@ contains
                 call  pol_lagrange(ngllz,Tdomain%sSubdomain(mat)%GLLcz,k,zeta,outz(k))
             end do
 
-            ! START MODIFS - FILIPPO 07/15
             solid=Tdomain%specel(n_el)%solid
             n_solid=Tdomain%n_sls
             aniso=Tdomain%aniso
@@ -535,14 +505,11 @@ contains
                 sig_dev_xz = 0
                 sig_dev_yz = 0
             end if
-            ! END MODIFS - FILIPPO 07/15
 
             do i = 0,ngllx - 1
                 do j = 0,nglly - 1
                     do k = 0,ngllz - 1
                         weight = outx(i)*outy(j)*outz(k)
-
-                        ! START MODIFS - FILIPPO 07/15
 
                         if (out_variables(4) == 1) then
                             grandeur(offset(4):offset(4)+2) &
@@ -600,9 +567,9 @@ contains
                                 xlambda2mu = xlambda + x2mu
 
                                 if (out_variables(8) == 1) then
-                                    sig_dev_xx = x2mu * (DXX(i,j,k) - eps_trace /3)
-                                    sig_dev_yy = x2mu * (DYY(i,j,k) - eps_trace /3)
-                                    sig_dev_zz = x2mu * (DZZ(i,j,k) - eps_trace /3)
+                                    sig_dev_xx = x2mu * (DXX(i,j,k) - eps_trace * M_1_3)
+                                    sig_dev_yy = x2mu * (DYY(i,j,k) - eps_trace * M_1_3)
+                                    sig_dev_zz = x2mu * (DZZ(i,j,k) - eps_trace * M_1_3)
                                     sig_dev_xy = xmu * (DXY(i,j,k) + DYX(i,j,k))
                                     sig_dev_xz = xmu * (DXZ(i,j,k) + DZX(i,j,k))
                                     sig_dev_yz = xmu * (DYZ(i,j,k) + DZY(i,j,k))
@@ -613,12 +580,12 @@ contains
                                 end if
 
                                 if (out_variables(1) == 1) then
-                                    S_energy = xmu * ((DXX(i,j,k) - eps_trace/ 3)**2 &
-                                        + (DYY(i,j,k) - eps_trace/ 3)**2 &
-                                        + (DZZ(i,j,k) - eps_trace/ 3)**2 &
-                                        + DXY(i,j,k)**2 + DYX(i,j,k)**2 &
-                                        + DXZ(i,j,k)**2 + DZX(i,j,k)**2 &
-                                        + DYZ(i,j,k)**2 + DZY(i,j,k)**2)
+                                    S_energy =  xmu/2 * ( DXY(i,j,k)**2 + DYX(i,j,k)**2 &
+                                             +   DXZ(i,j,k)**2 + DZX(i,j,k)**2 &
+                                             +   DYZ(i,j,k)**2 + DZY(i,j,k)**2 &
+                                             - 2 * DXY(i,j,k) * DYX(i,j,k)     &
+                                             - 2 * DXZ(i,j,k) * DZX(i,j,k)     &
+                                             - 2 * DYZ(i,j,k) * DZY(i,j,k))
                                 end if
 
                             endif
@@ -647,13 +614,10 @@ contains
                             + (/weight*sig_dev_xx, weight*sig_dev_yy, weight*sig_dev_zz, &
                                 weight*sig_dev_xy, weight*sig_dev_xz, weight*sig_dev_yz/)
                         end if
-                        ! END MODIFS - FILIPPO 07/15
                     enddo
                 enddo
             enddo
             
-            write(*,*) "sortieGrandeurCapteur_interp:  GRANDEUR=>", grandeur
-
             deallocate(outx)
             deallocate(outy)
             deallocate(outz)
@@ -676,10 +640,8 @@ contains
 
             i = capteur%icache+1
             capteur%valuecache(1,i) = Tdomain%TimeD%rtime
-            ! START MODIFS - FILIPPO 07/15
             capteur%valuecache(2:n_out+1,i) = grandeur(:)
             if(allocated(grandeur)) deallocate(grandeur)
-            ! END MODIFS - FILIPPO 07/15
             capteur%icache = i
             
         endif

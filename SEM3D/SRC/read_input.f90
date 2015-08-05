@@ -686,14 +686,13 @@ contains
         Tdomain%TimeD%alpha = 0.5
         Tdomain%TimeD%beta = 0.5
         Tdomain%TimeD%gamma = 1.
-
-        ! START MODIFS - FILIPPO 07/15
-        write(*,*) "OUT_VARIABLES: ", Tdomain%config%out_variables
+        ! OUTPUT FIELDS
         Tdomain%out_variables(0:8) = Tdomain%config%out_variables
+        if (sum(Tdomain%out_variables(0:8)) == 0) then
+            Tdomain%out_variables(3) = 1
+            Tdomain%out_variables(5) = 1
+        end if
         Tdomain%nReqOut = sum(Tdomain%out_variables(0:3)) + 3*sum(Tdomain%out_variables(4:6)) + 6*sum(Tdomain%out_variables(7:8))
-        write(*,*) "OUT_VARIABLES: ", Tdomain%out_variables(0:8)
-        write(*,*) "sizeof...", size(Tdomain%out_variables)
-        ! END MODIFS - FILIPPO 07/15
 
         Tdomain%TimeD%courant             = Tdomain%config%courant
         Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)
@@ -711,10 +710,6 @@ contains
             Tdomain%logicD%MPML = .true.
         end if
         Tdomain%logicD%grad_bassin = .false.
-        !Tdomain%logicD%plot_grid
-        !Tdomain%logicD%run_exec
-        !Tdomain%logicD%run_debug
-        !Tdomain%logicD%run_echo
         Tdomain%logicD%run_restart = Tdomain%config%prorep .ne. 0
         Tdomain%TimeD%iter_reprise = Tdomain%config%prorep_restart_iter
         Tdomain%TimeD%ncheck       = Tdomain%config%prorep_iter ! frequence de sauvegarde
