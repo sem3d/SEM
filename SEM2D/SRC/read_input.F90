@@ -40,7 +40,11 @@ subroutine create_sem2d_sources(Tdomain, config)
         ! i_type_source==1
         ! DIR = Z OR y -> y
         ndir = sqrt(src%dir(1)**2 + src%dir(2)**2)
-        Tdomain%Ssource(nsrc)%dir = src%dir(1:2)/ndir
+        if (abs(ndir) .gt. 1.e-12) then ! dir not used if moment
+            Tdomain%Ssource(nsrc)%dir = src%dir(1:2)/ndir ! avoid FPE, NaNs...
+        else
+            Tdomain%Ssource(nsrc)%dir = src%dir(1:2)
+        end if
         ! i_type_source==2
         Tdomain%Ssource(nsrc)%Moment(0,0) = src%moments(1)
         Tdomain%Ssource(nsrc)%Moment(1,1) = src%moments(2)
