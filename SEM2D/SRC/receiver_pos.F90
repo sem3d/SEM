@@ -124,7 +124,6 @@ subroutine ReceiverPosition(Tdomain)
                 endif
             end if
             call check_receiver_on_vertex(Tdomain,nrec)
-
         else if (Tdomain%n_nodes == 8 ) then
             dximax = 2./nimax; detamax = 2./njmax
             do11_n : do n = 0,nind-1
@@ -151,6 +150,7 @@ subroutine ReceiverPosition(Tdomain)
                 Tdomain%sReceiver(nrec)%eta = eta1
                 write (*,*) "At the location (Element, xi,eta) : ",xi1, eta1
             endif
+            call check_receiver_on_vertex(Tdomain,nrec)
         endif
         if (Tdomain%sReceiver(nrec)%located_here) then
             nnelem = Tdomain%sReceiver(nrec)%nr

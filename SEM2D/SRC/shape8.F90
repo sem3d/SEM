@@ -22,7 +22,6 @@ contains
 
         use sdomain
         use semdatafiles
-        use shape_lin ! compute_normals as quad4
 
         implicit none
 
@@ -72,45 +71,7 @@ contains
 
                     Tdomain%GlobCoord (0,ipoint) = xp;   Tdomain%GlobCoord (1,ipoint) = zp
 
-                    !     Computation of the derivative matrix, dx_(jj)/dxi_(ii) : more precisely we have :
-                    !  LocInvGrad(0,0) = dx/dxi  ;  LocInvGrad(1,0) = dx/deta
-                    !  LocInvGrad(0,1) = dz/dxi  ;  LocInvGrad(1,1) = dz/deta
-
-                    LocInvGrad(0,0) = 0.25 * (xc(0) *(1-eta)*(2*xi+eta) &
-                        +xc(1) *(1-eta)*(2*xi-eta) &
-                        +xc(2) *(1+eta)*(2*xi+eta) &
-                        +xc(3) *(1+eta)*(2*xi-eta)) &
-                        -xc(4) * xi*(1-eta) &
-                        -xc(6) * xi*(1+eta) &
-                        +0.5* (xc(5)-xc(7))* (1-eta**2)
-                    LocInvGrad(1,0) = 0.25 * (xc(0) *(1-xi)*(2*eta+xi) &
-                        -xc(1) *(1+xi)*(xi-2*eta) &
-                        +xc(2) *(1+xi)*(2*eta+xi) &
-                        -xc(3) *(1-xi)*(xi-2*eta)) &
-                        -xc(5) *eta*(1+xi) &
-                        -xc(7) *eta*(1-xi) &
-                        +0.5* (xc(6)-xc(4))* (1-xi**2)
-                    LocInvGrad(0,1) = 0.25 * (zc(0) *(1-eta)*(2*xi+eta) &
-                        +zc(1) *(1-eta)*(2*xi-eta) &
-                        +zc(2) *(1+eta)*(2*xi+eta) &
-                        +zc(3) *(1+eta)*(2*xi-eta)) &
-                        -zc(4) * xi*(1-eta) &
-                        -zc(6) *xi *(1+eta) &
-                        +0.5* (zc(5)-zc(7))* (1-eta**2)
-                    LocInvGrad(1,1) = 0.25 * (zc(0) *(1-xi)*(2*eta+xi) &
-                        -zc(1) *(1+xi)*(xi-2*eta) &
-                        +zc(2) *(1+xi)*(2*eta+xi) &
-                        -zc(3) *(1-xi)*(xi-2*eta)) &
-                        -zc(5) *eta*(1+xi) &
-                        -zc(7) *eta *(1-xi) &
-                        +0.5* (zc(6)-zc(4))* (1-xi**2)
-
-                    !  Creation of the normal if the node is on an element side
-
-                    if ((i.EQ.0) .OR. (j.EQ.0) .OR. (i.EQ.ngllx-1) .OR. (j.EQ.ngllz-1)) then
-                        ! call buildNormal(Tdomain,LocInvGrad,n,i,j)
-                    end if
-
+                    call shape8_compute_jacobian(LocInvGrad, xc, zc, xi, eta)
                     call invert2 (LocInvGrad, Jac )
 
                     !  Computation of the local Jacobian and inversion of the Jacobian Matrix
@@ -119,6 +80,7 @@ contains
                     Tdomain%specel(n)%Jacob (i,j) = Jac
                 enddo
             enddo
+            call buildNormal(Tdomain,n)
         enddo
 
         if (Tdomain%logicD%super_object_local_present) then
@@ -127,20 +89,50 @@ contains
             end do
         endif
 
-        ! Testing if the normals are defined for all the faces
-        do n=0,Tdomain%n_face-1
-            call compute_normals(Tdomain,n)
-            ngllx =  Tdomain%sFace(n)%ngll
-            do i=0,ngllx-1
-                if((Tdomain%sFace(n)%Normal_Nodes(i,0).EQ.0.) .AND. (Tdomain%sFace(n)%Normal_Nodes(i,1).EQ.0.)) then
-                    STOP "The Normal of the faces are not Computed Properly"
-                endif
-            end do
-        end do
-
         return
     end subroutine shape8
 
+    subroutine shape8_compute_jacobian(LocInvGrad, xc, zc, xi, eta)
+        implicit none
+
+        real, dimension (0:1,0:1) :: LocInvGrad
+        real, dimension(0:7) :: xc, zc
+        real :: xi,eta
+
+        ! Computation of the derivative matrix, dx_(jj)/dxi_(ii) : more precisely we have :
+        !   LocInvGrad(0,0) = dx/dxi;  LocInvGrad(1,0) = dx/deta
+        !   LocInvGrad(0,1) = dz/dxi;  LocInvGrad(1,1) = dz/deta
+
+        LocInvGrad(0,0) = 0.25 * (xc(0) *(1-eta)*(2*xi+eta) &
+            +xc(1) *(1-eta)*(2*xi-eta) &
+            +xc(2) *(1+eta)*(2*xi+eta) &
+            +xc(3) *(1+eta)*(2*xi-eta)) &
+            -xc(4) * xi*(1-eta) &
+            -xc(6) * xi*(1+eta) &
+            +0.5* (xc(5)-xc(7))* (1-eta**2)
+        LocInvGrad(1,0) = 0.25 * (xc(0) *(1-xi)*(2*eta+xi) &
+            -xc(1) *(1+xi)*(xi-2*eta) &
+            +xc(2) *(1+xi)*(2*eta+xi) &
+            -xc(3) *(1-xi)*(xi-2*eta)) &
+            -xc(5) *eta*(1+xi) &
+            -xc(7) *eta*(1-xi) &
+            +0.5* (xc(6)-xc(4))* (1-xi**2)
+        LocInvGrad(0,1) = 0.25 * (zc(0) *(1-eta)*(2*xi+eta) &
+            +zc(1) *(1-eta)*(2*xi-eta) &
+            +zc(2) *(1+eta)*(2*xi+eta) &
+            +zc(3) *(1+eta)*(2*xi-eta)) &
+            -zc(4) * xi*(1-eta) &
+            -zc(6) *xi *(1+eta) &
+            +0.5* (zc(5)-zc(7))* (1-eta**2)
+        LocInvGrad(1,1) = 0.25 * (zc(0) *(1-xi)*(2*eta+xi) &
+            -zc(1) *(1+xi)*(xi-2*eta) &
+            +zc(2) *(1+xi)*(2*eta+xi) &
+            -zc(3) *(1-xi)*(xi-2*eta)) &
+            -zc(5) *eta*(1+xi) &
+            -zc(7) *eta *(1-xi) &
+            +0.5* (zc(6)-zc(4))* (1-xi**2)
+
+    end subroutine shape8_compute_jacobian
 
     subroutine shape8_manage_super_object(Tdomain, n)
         use sdomain
@@ -282,72 +274,142 @@ contains
 
 !##########################################
 
-    subroutine buildNormal(Tdomain,LocInvGrad,n_elem,i,j)
+    subroutine buildNormal(Tdomain,n_elem)
 
         use sdomain
 
         implicit none
 
+        ! subroutine arguments
         type(domain),target, intent (INOUT) :: Tdomain
-        real, dimension (0:1,0:1), intent (IN) :: LocInvGrad
-        integer, intent (IN) :: n_elem, i, j
+        integer, intent (IN) :: n_elem
 
         ! local variables
-        integer :: ngllx, ngllz, nf
-        real    :: tx, tz, nx, nz, norm_n
+        real, dimension (0:1,0:1) :: LocInvGrad
+        real, dimension(0:7) :: xc, zc
+        integer :: i, j, i_aus, ngllx, ngllz, npg, k, mat, nf
+        real    :: eta, xi, tx, tz, nx, nz, n_norm, w
 
+        ! allocate space to store normals of each gauss point of each face of the element
+        if (n_elem .lt. 0 .or. n_elem .ge. Tdomain%n_elem) stop "shape8 - buildNormal : invalid element"
         ngllx = Tdomain%specel(n_elem)%ngllx
         ngllz = Tdomain%specel(n_elem)%ngllz
+        npg = 2*(ngllx+ngllz) ! number of gauss points over all element faces
+        if (.not. allocated(Tdomain%specel(n_elem)%Normal_Nodes))       allocate(Tdomain%specel(n_elem)%Normal_Nodes(0:npg-1,0:1))
+        if (.not. allocated(Tdomain%specel(n_elem)%Coeff_Integr_Faces)) allocate(Tdomain%specel(n_elem)%Coeff_Integr_Faces(0:npg-1))
 
-        if(i.EQ.0) then ! local face 3
-            nf = Tdomain%specel(n_elem)%Near_Face(3)
-            if(Tdomain%sface(nf)%Near_Element(0) .EQ. n_elem) then
-                ! Tangent from derivatives along eta
-                tx = LocInvGrad(1,0) ; tz = LocInvGrad(1,1)
-                ! Normal build from tangent
-                nx = -tz ; nz = tx
-                norm_n = sqrt(nx**2 + nz**2)
-                Tdomain%sFace(nf)%Normal_Nodes(j,0) = nx / norm_n
-                Tdomain%sFace(nf)%Normal_Nodes(j,1) = nz / norm_n
-            end if
-        else if (i.EQ.ngllx-1) then ! local face 1
-            nf = Tdomain%specel(n_elem)%Near_Face(1)
-            if(Tdomain%sface(nf)%Near_Element(0) .EQ. n_elem) then
-                ! Tangent from derivatives along eta
-                tx = LocInvGrad(1,0) ; tz = LocInvGrad(1,1)
-                ! Normal build from tangent
-                nx = tz ; nz = -tx
-                norm_n = sqrt(nx**2 + nz**2)
-                Tdomain%sFace(nf)%Normal_Nodes(j,0) = nx / norm_n
-                Tdomain%sFace(nf)%Normal_Nodes(j,1) = nz / norm_n
-            end if
-        end if
+        ! initialization
+        mat = Tdomain%specel(n_elem)%mat_index
+        k = 0 ! k scans gauss points face by face (with respect to each face order)
+        do i=0,7
+            i_aus = Tdomain%specel(n_elem)%Control_Nodes(i)
+            xc(i) = Tdomain%Coord_Nodes(0,i_aus)
+            zc(i) = Tdomain%Coord_Nodes(1,i_aus)
+        end do
 
-        if(j.EQ.0) then ! local face 0
+        ! face 0
+        j = 0
+        do i = 0, ngllx - 1
+            ! Tangent from derivatives along xi
+            xi  = Tdomain%sSubdomain(mat)%GLLcx(i)
+            eta = Tdomain%sSubdomain(mat)%GLLcz(j)
+            call shape8_compute_jacobian(LocInvGrad, xc, zc, xi, eta)
+            tx = LocInvGrad(0, 0) ! dx/dxi
+            tz = LocInvGrad(0, 1) ! dz/dxi
+            ! Normal build from tangent
+            nx = tz ; nz = -tx
+            n_norm = sqrt(nx**2 + nz**2)
+            if (abs(n_norm) .le. 1.e-12) stop "buildNormal KO Face 0"
+            ! Store normal at gauss point
+            Tdomain%specel(n_elem)%Normal_Nodes(k, 0) = nx / n_norm
+            Tdomain%specel(n_elem)%Normal_Nodes(k, 1) = nz / n_norm
+            ! Impact surfacic integral (normal estimation)
+            w = Tdomain%sSubdomain(mat)%GLLwx(i)
+            Tdomain%specel(n_elem)%Coeff_Integr_Faces(k) = w * n_norm
             nf = Tdomain%specel(n_elem)%Near_Face(0)
-            if(Tdomain%sface(nf)%Near_Element(0) .EQ. n_elem) then
-                ! Tangent from derivatives along eta
-                tx = LocInvGrad(0,0) ; tz = LocInvGrad(0,1)
-                ! Normal build from tangent
-                nx = tz ; nz = -tx
-                norm_n = sqrt(nx**2 + nz**2)
-                Tdomain%sFace(nf)%Normal_Nodes(i,0) = nx / norm_n
-                Tdomain%sFace(nf)%Normal_Nodes(i,1) = nz / norm_n
-            end if
-        else if (j.EQ.ngllz-1) then ! local face 2
-            nf = Tdomain%specel(n_elem)%Near_Face(2)
-            if(Tdomain%sface(nf)%Near_Element(0) .EQ. n_elem) then
-                ! Tangent from derivatives along eta
-                tx = LocInvGrad(0,0) ; tz = LocInvGrad(0,1)
-                ! Normal build from tangent
-                nx = -tz ; nz = tx
-                norm_n = sqrt(nx**2 + nz**2)
-                Tdomain%sFace(nf)%Normal_Nodes(i,0) = nx / norm_n
-                Tdomain%sFace(nf)%Normal_Nodes(i,1) = nz / norm_n
-            end if
-        end if
+            if (i ==       0) Tdomain%sface(nf)%Coeff_Integr_Ends(0) = Tdomain%specel(n_elem)%Coeff_Integr_Faces(k)
+            if (i == ngllx-1) Tdomain%sface(nf)%Coeff_Integr_Ends(1) = Tdomain%specel(n_elem)%Coeff_Integr_Faces(k)
+            ! Go to next gauss point
+            k = k+1
+        end do
 
-        return
+        ! face 1
+        i = ngllx - 1
+        do j = 0, ngllz - 1
+            ! Tangent from derivatives along eta
+            xi  = Tdomain%sSubdomain(mat)%GLLcx(i)
+            eta = Tdomain%sSubdomain(mat)%GLLcz(j)
+            call shape8_compute_jacobian(LocInvGrad, xc, zc, xi, eta)
+            tx = LocInvGrad(1, 0) ! dx/deta
+            tz = LocInvGrad(1, 1) ! dz/deta
+            ! Normal build from tangent
+            nx = tz ; nz = -tx
+            n_norm = sqrt(nx**2 + nz**2)
+            if (abs(n_norm) .le. 1.e-12) stop "buildNormal KO Face 1"
+            ! Store normal at gauss point
+            Tdomain%specel(n_elem)%Normal_Nodes(k, 0) = nx / n_norm
+            Tdomain%specel(n_elem)%Normal_Nodes(k, 1) = nz / n_norm
+            ! Impact surfacic integral (normal estimation)
+            w = Tdomain%sSubdomain(mat)%GLLwz(j)
+            Tdomain%specel(n_elem)%Coeff_Integr_Faces(k) = w * n_norm
+            nf = Tdomain%specel(n_elem)%Near_Face(1)
+            if (j ==       0) Tdomain%sface(nf)%Coeff_Integr_Ends(0) = Tdomain%specel(n_elem)%Coeff_Integr_Faces(k)
+            if (j == ngllz-1) Tdomain%sface(nf)%Coeff_Integr_Ends(1) = Tdomain%specel(n_elem)%Coeff_Integr_Faces(k)
+            ! Go to next gauss point
+            k = k+1
+        end do
+
+        ! face 2
+        j = ngllz - 1
+        do i = 0, ngllx - 1
+            ! Tangent from derivatives along eta
+            xi  = Tdomain%sSubdomain(mat)%GLLcx(i)
+            eta = Tdomain%sSubdomain(mat)%GLLcz(j)
+            call shape8_compute_jacobian(LocInvGrad, xc, zc, xi, eta)
+            tx = LocInvGrad(0, 0) ! dx/dxi
+            tz = LocInvGrad(0, 1) ! dz/dxi
+            ! Normal build from tangent
+            nx = -tz ; nz = tx
+            n_norm = sqrt(nx**2 + nz**2)
+            if (abs(n_norm) .le. 1.e-12) stop "buildNormal KO Face 2"
+            ! Store normal at gauss point
+            Tdomain%specel(n_elem)%Normal_Nodes(k, 0) = nx / n_norm
+            Tdomain%specel(n_elem)%Normal_Nodes(k, 1) = nz / n_norm
+            ! Impact surfacic integral (normal estimation)
+            w = Tdomain%sSubdomain(mat)%GLLwx(i)
+            Tdomain%specel(n_elem)%Coeff_Integr_Faces(k) = w * n_norm
+            nf = Tdomain%specel(n_elem)%Near_Face(2)
+            if (i ==       0) Tdomain%sface(nf)%Coeff_Integr_Ends(0) = Tdomain%specel(n_elem)%Coeff_Integr_Faces(k)
+            if (i == ngllx-1) Tdomain%sface(nf)%Coeff_Integr_Ends(1) = Tdomain%specel(n_elem)%Coeff_Integr_Faces(k)
+            ! Go to next gauss point
+            k = k+1
+        end do
+
+        ! face 3
+        i = 0
+        do j = 0, ngllz - 1
+            ! Tangent from derivatives along eta
+            xi  = Tdomain%sSubdomain(mat)%GLLcx(i)
+            eta = Tdomain%sSubdomain(mat)%GLLcz(j)
+            call shape8_compute_jacobian(LocInvGrad, xc, zc, xi, eta)
+            tx = LocInvGrad(1, 0) ! dx/deta
+            tz = LocInvGrad(1, 1) ! dz/deta
+            ! Normal build from tangent
+            nx = -tz ; nz = tx
+            n_norm = sqrt(nx**2 + nz**2)
+            if (abs(n_norm) .le. 1.e-12) stop "buildNormal KO Face 3"
+            ! Store normal at gauss point
+            Tdomain%specel(n_elem)%Normal_Nodes(k, 0) = nx / n_norm
+            Tdomain%specel(n_elem)%Normal_Nodes(k, 1) = nz / n_norm
+            ! Impact surfacic integral (normal estimation)
+            w = Tdomain%sSubdomain(mat)%GLLwz(j)
+            Tdomain%specel(n_elem)%Coeff_Integr_Faces(k) = w * n_norm
+            nf = Tdomain%specel(n_elem)%Near_Face(3)
+            if (j ==       0) Tdomain%sface(nf)%Coeff_Integr_Ends(0) = Tdomain%specel(n_elem)%Coeff_Integr_Faces(k)
+            if (j == ngllz-1) Tdomain%sface(nf)%Coeff_Integr_Ends(1) = Tdomain%specel(n_elem)%Coeff_Integr_Faces(k)
+            ! Go to next gauss point
+            k = k+1
+        end do
     end subroutine buildNormal
 
     subroutine shape8_global_coord(xq, zq, xi, eta, x, z)

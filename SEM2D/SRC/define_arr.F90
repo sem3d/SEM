@@ -639,7 +639,11 @@ subroutine define_arrays(Tdomain)
             !ac if (.not. Tdomain%logicD%save_deformation)  deallocate (Tdomain%specel(n)%InvGrad)
         else
             ! Discontinuous Galerkin Case : Mass Mat do NOT need to be resized
-            Tdomain%specel(n)%MassMat = 1. / Tdomain%specel(n)%MassMat
+            do j = 0,ngllz-1
+                do i = 0,ngllx-1
+                    if (abs(Tdomain%specel(n)%MassMat(i, j)) .gt. 1.e-12) Tdomain%specel(n)%MassMat(i, j) = 1./Tdomain%specel(n)%MassMat(i, j) ! Avoid NaN
+                enddo
+            enddo
             !Tdomain%specel(n)%Acoeff(:,:,12) = 1. / Tdomain%specel(n)%Acoeff(:,:,12)
         endif
     enddo
@@ -661,7 +665,9 @@ subroutine define_arrays(Tdomain)
                 deallocate (Tdomain%sFace(nf)%DumpMass)
             endif
         else
-            Tdomain%sFace(nf)%MassMat = 1./ Tdomain%sFace(nf)%MassMat
+            do n=1, Tdomain%sFace(nf)%ngll-2
+                if (abs(Tdomain%sFace(nf)%MassMat(n)) .gt. 1.e-12) Tdomain%sFace(nf)%MassMat(n) = 1./ Tdomain%sFace(nf)%MassMat(n) ! Avoid NaN
+            end do
         endif
     enddo
 
@@ -682,7 +688,7 @@ subroutine define_arrays(Tdomain)
                 deallocate (Tdomain%sVertex(nv_aus)%DumpMass)
             endif
         else
-            Tdomain%sVertex(nv_aus)%MassMat = 1./Tdomain%sVertex(nv_aus)%MassMat
+            if (abs(Tdomain%sVertex(nv_aus)%MassMat) .gt. 1.e-12) Tdomain%sVertex(nv_aus)%MassMat = 1./Tdomain%sVertex(nv_aus)%MassMat ! Avoid NaN
         endif
     enddo
 
