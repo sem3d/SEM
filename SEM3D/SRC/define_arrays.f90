@@ -52,15 +52,16 @@ contains
         !       call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat), mat)
         !    end do
 
-        !Apllying properties that were written on files
+     !Apllying properties that were written on files
         do mat = 0 , Tdomain%n_mat-1
             if (.not. Tdomain%subD_exist(mat)) cycle
             if (propOnFile(Tdomain, mat)) then
+                if (rg == 0) write (*,*) "--> APPLYING PROPERTIES FILES "
                 !- applying properties files
-               ! if (rg == 0) write (*,*) "--> APPLYING PROPERTIES FILES "
                 call apply_prop_files (Tdomain, rg)
             end if
         end do
+
 
         !Computing Mass Matrix
         do n = 0,Tdomain%n_elem-1
@@ -287,7 +288,7 @@ contains
           !    integration de la prise en compte du gradient de proprietes
         !write(*,*) mat%material_definition
         select case( mat%material_definition)
-            case( MATERIAL_CONSTANT, MATERIAL_MULTIPLE )
+            case( MATERIAL_CONSTANT )
                 !    on copie toujours le materiau de base
                 !if (.not.materialIsConstant(Tdomain, matId)) then
                    ! write(*,*) "Material ", matId, " will be read from file"
@@ -313,6 +314,15 @@ contains
                 if ( Tdomain%logicD%grad_bassin ) then
                     call initialize_material_gradient(Tdomain, specel, mat)
                 endif
+
+            case( MATERIAL_MULTIPLE )
+            !Don`t do anything, the basic properties were initialized by file
+                if(materialIsConstant(Tdomain, matId)) then
+                    specel%Density = mat%Ddensity
+                    specel%Lambda = mat%DLambda
+                    specel%Kappa = mat%DKappa
+                    specel%Mu = mat%DMu
+                end if
 
         end select
 
