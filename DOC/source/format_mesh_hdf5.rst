@@ -19,7 +19,7 @@ La structure sous-jacente est un fichier au format HDF5. Ce fichier doit conteni
 
   Ainsi le noeud 5 est au-dessus du noeud 1, le 6 au dessus du 2, etc...
 
-- ``Nodes`` ; un tableau de ( NN x 3 ) rééls : les coordonnées des
+- ``Nodes`` ; un tableau de ( NN x 3 ) réels : les coordonnées des
   noeuds
 
 - ``Mat`` : un tableau de NE x 2 entiers. Le premier entier détermine le numéro du matériau à
@@ -46,7 +46,7 @@ Voici ci dessous un exemple de script Python qui permet de créer un cube ::
 	[1,1,1],
 	[0,1,1]], float)
    fmesh["/Nodes"] = nodes
-   # On cree le tableau contenant les elements (ici 1 seul)
+   # On crée le tableau contenant les elements (ici 1 seul)
    elems = np.zeros( (1,8), int)
    elems[0,:] = (0,1,2,3,4,5,6,7)
    fmesh["/Elements"] = elems

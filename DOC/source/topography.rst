@@ -27,7 +27,7 @@ Les étapes de construction sont les suivantes :
 
 Nous allons traiter un exemple de génération de maillage à partir d'un fichier srtm ::
 
-  # On decompresse le fichier srtm
+  # On décompresse le fichier srtm
   $ unzip srtm_56_01.zip
   # On convertit le fichier au format hdf5 (lat/lon)
   $ mt_import -s topo_srtm.h5 srtm_56_01.tif

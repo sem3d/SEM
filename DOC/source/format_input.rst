@@ -34,7 +34,7 @@ sections ``source`` ou ``capteurs``).
 
 Les paramètres peuvent apparaître dans un ordre quelconque au sein
 d'une section (ou du corps principal), *à l'exception du paramètre*
-``dim`` qui doit être **obligatoirement** declaré avant les autres
+``dim`` qui doit être **obligatoirement** déclaré avant les autres
 pour valider les tailles des vecteurs.
 
 Un paramètre valide peut-être ignoré si il n'est pas activé par un
@@ -215,13 +215,13 @@ tau               réel     --                 Un temps caractéristique :math:`
 freq              réel     --                 Une fréquence :math:`f_c`
 band              réel(4)  --                 Description des bornes :math:`f_1,f_2,f_3,f_4` pour tf_heaviside
 ts                réel     --                 Un offset de temps :math:`t_0`
-gamma             réel     --                 Paramétre pour décrir les fonctions 
+gamma             réel     --                 Paramètre pour décrire les fonctions 
 time_file         chaîne   --                 Fichier contenant la source ``gabor``, ``square``, ``tanh``
 amplitude         réel     --                 Facteur multiplicatif appliqué à la source temporelle
 Q                 réel     --                 Amplitude de la charge mobile
 Y                 réel     --                 Paramètre lié au sol pour la charge mobile
 X                 réel     --                 Paramètre lié au sol pour la charge mobile 
-L                 réel     --                 Longuer critique pour la charge mobile
+L                 réel     --                 Longueur critique pour la charge mobile
 v                 réel     --                 Vitesse de la charge mobile
 d                 réel     --                 Distance entre les deux charges mobiles
 a                 réel     --                 Distance critique entre les deux charges mobiles
@@ -415,7 +415,7 @@ Mot-clef             Type          Valeur par défaut  Description
 save_snap            bool          false              Sauvegarde des snapshots
 save_interval        réel          --                 Interval (temps physique) de sauvegarde des snapshots
 select               voir note     --                 Sélection des éléments à inclure dans les snapshots
-deselect             voir note     --                 Désélection des éléments à inclure dans les snapshots
+deselect             voir note     --                 Dé-sélection des éléments à inclure dans les snapshots
 group_outputs        entier        32                 Écriture d'un fichier sortie par *group_outputs* processeurs
 output_total_energy  bool                             2D uniquement, calcul de l'énergie totale
 ===================  ============  =================  ============================================================
@@ -440,7 +440,7 @@ Ainsi : ::
   select material = 1;
   selec box = -500 -10 -10 500 10 10;
 
-Va déselectionner tous les éléments, puis resélectionner tous les éléments ayant le matériau 1,
+Va désélectionner tous les éléments, puis resélectionner tous les éléments ayant le matériau 1,
 ainsi que tous les éléments dont le centre se situe dans la boite spécifiée.
 
 Autre exemple : ::

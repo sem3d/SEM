@@ -7,16 +7,16 @@ Exemple ::
   
   format = txt; # ou hdf5
 
-  # 4 Capteurs specifies par leurs coordonnees
-  # Les sorties sont nommees pts0001 .. pts0004
+  # 4 Capteurs specifiés par leurs coordonnées
+  # Les sorties sont nommées pts0001 .. pts0004
   capteur "pts" {
     type = points;
     count = 4;
     coords = "fichier_coords.txt";
     periode = 1;
   };
-  # 50 Capteurs, sur une ligne specifiee par ses deux extremites.
-  # Les sorties sont nommees line0001 .. line0050
+  # 50 Capteurs, sur une ligne spécifiée par ses deux extrémités.
+  # Les sorties sont nommées line0001 .. line0050
   capteur "line" {
     type = line;
     count = 50;
@@ -28,13 +28,13 @@ Exemple ::
   # Non implemente :
   capteur nom_capteur {
     coords = 0. 0. 0.;
-    ligne = from 0. 0. 0. to 1. 1. 1. with 10; # Defini 10 capteurs entre les deux coords
+    ligne = from 0. 0. 0. to 1. 1. 1. with 10; # Défini 10 capteurs entre les deux coords
     periode = 10; # default 1, intervalle entre 2 sauvegardes
     rayon = 10; # default 0 : pt de gauss le plus proche
     operation = avg; # kw: min, max, avg, gauss, interp
     grandeurs = vel acc pression; # possibles: vel acc pression depla deformation contrainte
   };
-  ligne = from 0. 0. 0. to 1. 1. 1. with 10; # Defini 10 capteurs entre les deux coords
+  ligne = from 0. 0. 0. to 1. 1. 1. with 10; # Défini 10 capteurs entre les deux coords
     periode = 10; # default 1, intervalle entre 2 sauvegardes
     rayon = 10; # default 0 : pt de gauss le plus proche
     operation = avg; # kw: min, max, avg, gauss, interp
@@ -43,7 +43,7 @@ Exemple ::
 
 
 
-Format du fichier de description des materiaux
+Format du fichier de description des matériaux
 ==============================================
 
 Exemple ::
@@ -61,7 +61,7 @@ Exemple ::
     };
 
     gradient {
-      plane = ax+by+cz+d; # defini le plan 0, le plan 1 est implicitement defini parallele avec (d+1) comme offset
+      plane = ax+by+cz+d; # défini le plan 0, le plan 1 est implicitement défini parallèle avec (d+1) comme offset
       z0 = 1000;
       z1 = 0;
     };

@@ -19,7 +19,7 @@ de type :
 Les conditions d'absorption en bord de domaine utilisent la méthode
 *Perfectly Matched Layer (PML)* ([BER94]_, [FES05]_).
 
-Un outil de prétraitement permet de convertir et partitionner (avec
+Un outil de pré-traitement permet de convertir et partitionner (avec
 :program:`Metis`) des maillages au format :program:`Abaqus` ou
 :program:`Ideas` (UNV), ou de créer des maillages cartésiens
 structurés.
@@ -56,7 +56,7 @@ Exemple des notations utilisées dans ce document :
 
 - Une variable d'environnement : :envvar:`HDF5_ROOT`
 
-Parfois le programme et sa commande Unix ont le même nom, on essaira de faire la distinction, par exemple :
+Parfois le programme et sa commande Unix ont le même nom, on essaiera de faire la distinction, par exemple :
 
 "Pour configurer un programme utilisant :program:`CMake` il faut taper la commande ``cmake``."
 

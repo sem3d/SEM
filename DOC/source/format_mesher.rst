@@ -9,7 +9,7 @@ Format des fichiers matériau
 Format de mat.dat
 =================
 
-Ce fichier est seulement nécessaire dans le cas où le maillage est realisé par le mailleur automatique.
+Ce fichier est seulement nécessaire dans le cas où le maillage est réalisé par le mailleur automatique.
 Le fichier ``mat.dat`` doit contenir (les commentaires, après le *#*
 sont facultatifs) ::
 
@@ -49,7 +49,7 @@ La deuxième ligne décrit le type de matériau (``S`` matériau solide et
 ``F`` matériau fluide).Pour chaque matériau, on déclare
 successivement, la vitesse de propagation de l'onde de pression,
 vitesse de l'onde de cisaillement, la densité du matériau, le nombre
-de gll dans les trois directions( ``x``, ``y`` et ``z``), le pas de
+de GLLs dans les trois directions( ``x``, ``y`` et ``z``), le pas de
 temps (ignoré dans la version actuelle) et les paramètres :math:`Q_\kappa` et :math:`Q_\mu`
 pour l'atténuation des ondes P et S.
 
@@ -110,7 +110,7 @@ Pour le cas où le maillage n'est pas automatique, le ficher doit contenir ::
 
 -  Le format du fichier est le suivant :
   
-  - la première ligne contient le nomnbre de milieux décrits
+  - la première ligne contient le nombre de milieux décrits
   
   - Une ligne par milieu, contenant :
   
@@ -135,7 +135,7 @@ Pour le cas où le maillage n'est pas automatique, le ficher doit contenir ::
   
     - paramètres n et A pour les PML filtrantes
   
-    - 3 couples de deux drapeaux T ou F (pour True False) indiquant si la PML attenue dans
+    - 3 couples de deux drapeaux T ou F (pour True False) indiquant si la PML atténue dans
       les directions X, Y et Z respectivement (premier flag du couple) et dans le sens positif (T)
       ou négatif de l'axe.
   

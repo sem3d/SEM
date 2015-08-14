@@ -75,7 +75,7 @@ définis sur les points de Gauss-Lobatto-Legendre (GLL) de chaque
    :scale: 40%
    :align: center
 
-   Position des points de Gauss-Lobato-Legendre sur un élément 2D d'ordre 9
+   Position des points de Gauss-Lobatto-Legendre sur un élément 2D d'ordre 9
 
 
 Les éléments traités sont des quadrangles en 2D et des Hexaèdres en
@@ -182,11 +182,11 @@ support.
 Chemin d'intégration numérique
 ------------------------------
 
-La periode de temps d'intérêt est discretisée par petits intervalles :math:`\Delta t`. On 
+La période de temps d'intérêt est discrétisée par petits intervalles :math:`\Delta t`. On 
 appels :math:`\mathbf{u}_{n}`, :math:`\mathbf{v}_{n}` et :math:`\mathbf{a}_{n}` respectivement
 déplacement, vitesse et accélération au temps :math:`t_{n}`.  
 On considère trois paramètres d'integration :math:`\alpha, \beta, \gamma \in \left[ 0;1\right]` 
-et on force l'equation d'équilibre discretisée au temps :math:`t_{n+\alpha}` sur la forme ([KOM99]_):
+et on force l'equation d'équilibre discrétisée au temps :math:`t_{n+\alpha}` sur la forme ([KOM99]_):
         
 .. math::
 
@@ -212,11 +212,9 @@ et on force l'equation d'équilibre discretisée au temps :math:`t_{n+\alpha}` s
     \mathbf{a}_{n+1} = \frac{1}{\gamma \Delta t} \left[ \mathbf{v}_{n+1} - \mathbf{v}_{n} \right] +
     \left( 1 - \frac{1}{\gamma} \right) \mathbf{a}_{n}
 
-Simo et al. ([SIM92]_) ont montré que l'ensemble des paramètres :math:`\alpha=\frac{\beta}{\gamma} = \frac{1}{2}` conserves 
-l'energie et moments lineaire et angulaire totales. Ce chemin est indépendant de l'accélération et accuré au deuxieme 
-ordre.
+Simo et al. [SIM92]_ ont montré que le choix de paramètres :math:`\alpha=\frac{\beta}{\gamma} = \frac{1}{2}` conserve les énergie et moment linéaire et angulaire totaux. Ce chemin est indépendant de l'accélération et précis au deuxième ordre.
 
-On peux voir cette formulation comme un chemin de type Newmark predicteur-multicorrecteur.
+On peux voir cette formulation comme un chemin de type Newmark prédicteur-multicorrecteur.
 
 Prediction (:math:`^p`) :
 
@@ -264,7 +262,7 @@ PML classique
 
 La condition naturelle d'un bord en élément fini est d'être une
 surface libre, donc réfléchissante pour les ondes. Pour simuler des
-milieux ouverts, SEM implémente un type d'élément dit *Couche Parfaitement Absorbante* (en anglais: *Perfectly
+milieux ouverts, SEM utilise un type d'élément dit *Couche Parfaitement Absorbante* (en anglais: *Perfectly
 Matched Layer*, ou PML) pour simuler un milieu ouvert infini en bordure d'un
 domaine ([BER94]_, [FES05]_). :ref:`PML_schema` montre le mécanisme d'attenuation des ondes.
 
@@ -436,7 +434,7 @@ Pour les instantanés, il existe un mécanisme de sélection de mailles
 qui permet de ne sauvegarder qu'une partie du maillage. Cependant on
 ne peut sélectionner que des mailles complètes (donc avec tous ses
 points GLL), et pour l'instant, on ne peut pas, sauf en
-post-traitement, réinterpoler les fonctions de formes sur un maillage
+post-traitement, re-interpoler les fonctions de formes sur un maillage
 plus grossier.
 
 Présentation des outils
@@ -541,7 +539,7 @@ les fichiers nécessaires à son exécution. L'arborescence doit être la suivan
 
     - paramètres n et A pour les PML filtrantes
 
-    - 3 couples de deux drapeaux T ou F (pour True False) indiquant si la PML attenue dans
+    - 3 couples de deux drapeaux T ou F (pour True False) indiquant si la PML atténue dans
       les directions X, Y et Z respectivement (premier flag du couple) et dans le sens positif (T)
       ou négatif de l'axe.
 
@@ -585,7 +583,7 @@ entouré par des PMLs.
 
 Pour préparer le lancement d'un calcul SEM, dans le répertoire du cas,
 il faut avoir 6 fichiers qui sont mesh.input, mat.dat [#]_, mater.in,
-material.input [#]_, input.spec, capteur.dat.
+material.input [#]_, input.spec, capteurs.dat.
 
 .. [#] Le fichier "mat.dat" n'est nécessaire quand dans le cas du
        maillage automatique. Pour le cas d'un maillage externe comme
@@ -765,7 +763,7 @@ Les résultats sont de deux sortes :
 
 - Des instantanés (mot-clef *snapshot* du fichier de config)
   sauvegardés dans le répertoire ``res/`` : les sorties sont au format
-  HDF5, directement visualisables avec **paraview**, ou ensight en
+  HDF5, directement visibles avec **paraview**, ou ensight en
   ouvrant le fichier ``.xmf`` associé (Format XDMF).
 
 - Des sorties capteurs, au format texte ou hdf5 (paramétrable par
@@ -814,7 +812,7 @@ Les étapes de construction sont les suivantes :
 
 Nous allons traiter un exemple de génération de maillage à partir d'un fichier srtm ::
 
-  # On decompresse le fichier srtm
+  # On décompresse le fichier srtm
   $ unzip srtm_56_01.zip
   # On convertit le fichier au format hdf5 (lat/lon)
   $ mt_import -s topo_srtm.h5 srtm_56_01.tif
