@@ -101,6 +101,18 @@ Le fichier suivant correspond à celui d'un cas test : ::
     periode = 1;
   };
 
+  # champs à sortir dans les snapshots et dans les traces
+  out_variables {
+    enP =  0 ;
+    enS =  0 ;
+    evol = 1 ;
+    pre =  0 ;
+    dis  = 0 ;
+    vel  = 0 ;
+    acc  = 0 ;
+    edev = 0 ;
+    sdev = 0 ;
+  };
 
 
 Section globale
@@ -138,6 +150,7 @@ model             section                     (futur: non utilisé)
 neumann           section                     (futur: non utilisé)
 verbose_level     entier
 capteurs          section                     Définition d'un ensemble de capteurs
+out_variables     section  pre/vel sorties    Nom de champs à sortir en output (snapshots/traces).
 ================  =======  =================  ================================================================
 
 Les paramètres suivants sont reconnus mais non utilisés dans cette version :
@@ -263,12 +276,9 @@ Les fonctions temporelles sont:
 
 .. _fig-source-gauss:
 
-.. figure:: ../figures/gaussian_tau.eps
-   :scale: 40
-   :align: left 
-.. figure:: ../figures/gaussian_t0.eps
-   :scale: 40
-   :align: right
+.. figure:: ../figures/gaussian.eps
+   :scale: 60
+   :align: center
 
 - ``ricker`` :
 
@@ -278,12 +288,9 @@ Les fonctions temporelles sont:
 
 .. _fig-source-ricker:
 
-.. figure:: ../figures/ricker_tc.eps
-   :scale: 40
-   :align: left 
-.. figure:: ../figures/ricker_tau.eps
-   :scale: 40
-   :align: right
+.. figure:: ../figures/ricker.eps
+   :scale: 60
+   :align: center 
 
 - ``tf_heaviside`` :
 
@@ -302,7 +309,7 @@ Les fonctions temporelles sont:
 .. _fig-source-heaviside:
 
 .. figure:: ../figures/heaviside_freq.eps
-   :scale: 40
+   :scale: 60
    :align: center
 
 
@@ -316,21 +323,12 @@ Les fonctions temporelles sont:
 
 .. _fig-source-gabor:
 
-.. figure:: ../figures/gabor_fc.eps
-   :scale: 40
-   :align: left
-.. figure:: ../figures/gabor_gamma.eps
-   :scale: 40
-   :align: right
-.. figure:: ../figures/gabor_omega.eps
-   :scale: 40
-   :align: left
-.. figure:: ../figures/gabor_tau.eps
-   :scale: 40
-   :align: left
-.. figure:: ../figures/gabor_t0.eps
-   :scale: 40
-   :align: right
+.. figure:: ../figures/gabor_1.eps
+   :scale: 60
+   :align: center
+.. figure:: ../figures/gabor_2.eps
+   :scale: 60
+   :align: center
 
 - ``file`` : Les données sont lues dans un fichier indiqué par le paramètre ``time_file``
 
@@ -342,8 +340,8 @@ Les fonctions temporelles sont:
 
 .. _fig-source-spice_bench:
 
-.. figure:: ../figures/spice_bench_tc.eps
-   :scale: 40
+.. figure:: ../figures/spice_bench.eps
+   :scale: 60
    :align: center
 
 
@@ -355,13 +353,9 @@ Les fonctions temporelles sont:
 
 .. _fig-source-sinus:
 
-.. figure:: ../figures/sinus_fc.eps
-   :scale: 40
-   :align: left
-.. figure:: ../figures/sinus_t0.eps
-   :scale: 40
-   :align: right
-
+.. figure:: ../figures/sinus.eps
+   :scale: 60
+   :align: center
 
 - ``square`` : Un carré *arrondi*
  
@@ -371,15 +365,9 @@ Les fonctions temporelles sont:
 
 .. _fig-source-square:
 
-.. figure:: ../figures/square_gamma.eps
-   :scale: 40
-   :align: left
-.. figure:: ../figures/square_tau.eps
-   :scale: 40
-   :align: right
-.. figure:: ../figures/square_t0.eps
-   :scale: 40
-   :align: right
+.. figure:: ../figures/square.eps
+   :scale: 60
+   :align: center
 
 - ``tanh``: Une tangente hyperbolique
 
@@ -389,12 +377,9 @@ Les fonctions temporelles sont:
 
 .. _fig-source-tanh:
 
-.. figure:: ../figures/tanh_gamma.eps
-   :scale: 40
-   :align: left
-.. figure:: ../figures/tanh_t0.eps
-   :scale: 40
-   :align: right
+.. figure:: ../figures/tanh.eps
+   :scale: 60
+   :align: center
 
 
 - ``dm``: M function
@@ -507,4 +492,22 @@ Description des type de capteurs :
   = P_0 + \frac{i}{N_i-1} \overrightarrow{P_0 P_1} + \frac{j}{N_j-1}
   \overrightarrow{P_0 P_2}`
 
+Section ``out_variables``
+==================
+
+Chaque mot-clé est associé à un domaine spécifique requis comme sortie (snapshots / traces). Champs de sortie par défaut (lorsque tous les mots clés sont mis à 0) sont ceux de pression et de vitesse.
+
+================  =======  =================  =================================================================
+Mot-clef          Type     Valeur par défaut  Description
+================  =======  =================  =================================================================
+enP               bool     0                  énergie ondes P
+enS               bool     0                  énergie ondes S
+evol              bool     0                  déformation volumétrique
+pre               bool     1                  pression
+dis               bool     0                  vecteur des déplacements
+vel               bool     1                  vecteur des vitesses
+acc               bool     0                  vecteur des accélérations
+edev              bool     0                  tenseur des déformations déviatoriques
+sdev              bool     0                  tenseur des contraintes déviatoriques
+================  =======  =================  =================================================================
 
