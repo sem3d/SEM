@@ -738,7 +738,14 @@ contains
         allocate(sig_dev_xz(0:nnodes-1))
         allocate(sig_dev_yz(0:nnodes-1))
         allocate(valence(0:nnodes-1))
-
+        
+        if (out_variables(3) == 1) then ! pressure
+            press(:,:) = 0
+        end if
+        
+        if (out_variables(4) == 1) then ! displacement
+            displ(:,:) = 0
+        end if
         if (out_variables(5) == 1) then ! velocity
             veloc(:,:) = 0
         end if
@@ -873,7 +880,24 @@ contains
                             if ((solid) .and. (.not. Tdomain%specel(n)%PML)) then
 
                                 eps_trace = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
-
+                                
+                                if (aniso) then
+                                else
+                                    xmu     = Tdomain%specel(n)%Mu(i,j,k)
+                                    xlambda = Tdomain%specel(n)%Lambda(i,j,k)
+                                    xkappa  = Tdomain%specel(n)%Kappa(i,j,k)
+                                    if (n_solid>0) then
+                                       onemSbeta=Tdomain%specel(n)%sl%onemSbeta(i,j,k)
+                                       onemPbeta=Tdomain%specel(n)%sl%onemPbeta(i,j,k)
+                                       !  mu_relaxed -> mu_unrelaxed
+                                       xmu    = xmu * onemSbeta
+                                       !  kappa_relaxed -> kappa_unrelaxed
+                                       xkappa = xkappa * onemPbeta
+                                    endif
+                                    x2mu       = 2. * xmu
+                                    xlambda2mu = xlambda + x2mu
+                                end if
+                                
                                 if (out_variables(0) == 1) then ! P_energy
                                     P_energy(idx) = .5 * xlambda2mu * eps_trace**2
                                 end if
@@ -904,21 +928,7 @@ contains
 
                                     if (aniso) then
                                     else
-                                        xmu     = Tdomain%specel(n)%Mu(i,j,k)
-                                        xlambda = Tdomain%specel(n)%Lambda(i,j,k)
-                                        xkappa  = Tdomain%specel(n)%Kappa(i,j,k)
-
-                                        if (n_solid>0) then
-                                            onemSbeta=Tdomain%specel(n)%sl%onemSbeta(i,j,k)
-                                            onemPbeta=Tdomain%specel(n)%sl%onemPbeta(i,j,k)
-                                            !  mu_relaxed -> mu_unrelaxed
-                                            xmu    = xmu * onemSbeta
-                                            !  kappa_relaxed -> kappa_unrelaxed
-                                            xkappa = xkappa * onemPbeta
-                                        endif
-                                        x2mu       = 2. * xmu
-                                        xlambda2mu = xlambda + x2mu
-
+                                        
                                         sig_dev_xx(idx) = x2mu * (DXX(i,j,k) - eps_trace * M_1_3)
                                         sig_dev_yy(idx) = x2mu * (DYY(i,j,k) - eps_trace * M_1_3)
                                         sig_dev_zz(idx) = x2mu * (DZZ(i,j,k) - eps_trace * M_1_3)
