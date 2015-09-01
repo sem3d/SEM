@@ -740,7 +740,7 @@ contains
         allocate(valence(0:nnodes-1))
         
         if (out_variables(3) == 1) then ! pressure
-            press(:,:) = 0
+            press(:) = 0
         end if
         
         if (out_variables(4) == 1) then ! displacement
@@ -995,17 +995,6 @@ contains
         else
             fid = -1
         endif
-
-        write(*,*) allocated(displ)
-        write(*,*) allocated(eps_vol)
-        write(*,*) allocated(eps_dev_xx)
-        write(*,*) allocated(eps_dev_yy)
-        write(*,*) allocated(eps_dev_zz)
-        write(*,*) allocated(eps_dev_xy)
-        write(*,*) allocated(eps_dev_xz)
-        write(*,*) allocated(eps_dev_yz)
-        write(*,*) allocated(P_energy)
-        write(*,*) allocated(S_energy)
 
         call grp_write_fields(Tdomain, fid, nnodes, out_variables, displ, veloc, accel, press, &
             eps_vol, eps_dev_xx, eps_dev_yy, eps_dev_zz, eps_dev_xy, eps_dev_xz, eps_dev_yz, &

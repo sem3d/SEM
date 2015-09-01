@@ -1917,8 +1917,8 @@ contains
 
         !! Lines dedicated to Random Field
         write(10,*) ; write(10,*)
+        count_matR = 0
         do j = 0,nmat-1
-            count_matR = 0
             if(mattab(j)=='R') then
                 open(20,file="mater.in",action="read",status="old")
                 read(20,*) nblock
