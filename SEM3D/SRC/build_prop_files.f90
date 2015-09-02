@@ -80,7 +80,7 @@ contains
         call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, Tdomain%subD_exist, Tdomain%n_dime, &
                              trim(string_join(procFileName,"-TO_READ")), rg, trim(XMFfolder),     &
                              Tdomain%communicateur, trim(h5_to_xmf),                               &
-                             ["Density","Lambda","Mu"])
+                             ["Density","Lambda ","Mu     "])
 
         !Deallocating
         !if(rg == 0) write(*,*) "-> Deallocating"
@@ -188,7 +188,7 @@ contains
         !write(*,*) "Reading properties from file"
 
         if(.not. present(labels)) then
-            write(rangStr,'(I)'  ) rg
+            write(rangStr,'(I100)'  ) rg
             rangStr      = adjustL(rangStr)
             fileHDF5Name = trim(fileName)//"-proc"//trim(rangStr)//".h5"
         else
@@ -294,7 +294,7 @@ contains
         call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, Tdomain%subD_exist, Tdomain%n_dime, &
                              trim(string_join(procFileName,"-TO_VIEW")), rg, trim(XMFfolder),     &
                              Tdomain%communicateur, trim(h5_to_xmf),                               &
-                             ["Density","Lambda","Mu"])
+                             ["Density","Lambda ","Mu     "])
 
         deallocate(prop)
         deallocate(HDF5NameList)
