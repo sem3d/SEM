@@ -32,10 +32,13 @@ target_link_libraries(mesher metis ${SEM_EXTRA_LIBS} )
 
 install(TARGETS mesher DESTINATION bin)
 
-add_executable(cmesh
-  ${PRJ}/CSRC/main.cpp
+add_executable(sem_part_grid
+  ${PRJ}/CSRC/main_grid.cpp
   ${PRJ}/CSRC/mesh.cpp
-)
+  )
+
+
+
 include_directories(BEFORE ${PRJ}/CSRC ${PRJ}/metis/include)
-target_link_libraries(cmesh metis ${SEM_EXTRA_LIBS})
+target_link_libraries(sem_part_grid metis ${SEM_EXTRA_LIBS})
 
