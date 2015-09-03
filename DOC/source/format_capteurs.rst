@@ -7,38 +7,21 @@ Exemple ::
   
   format = txt; # ou hdf5
 
-  # 4 Capteurs specifies par leurs coordonnees
+  # 4 Capteurs specifies par leurs coordonnees dans le fichier spécifié
   # Les sorties sont nommees pts0001 .. pts0004
   capteur "pts" {
     type = points;
-    count = 4;
     coords = "fichier_coords.txt";
-    periode = 1;
+    period = 1;
   };
   # 50 Capteurs, sur une ligne specifiee par ses deux extremites.
   # Les sorties sont nommees line0001 .. line0050
   capteur "line" {
     type = line;
-    count = 50;
+    counti = 50;
     point0 = 0. 0. 0.;
     point1 = 0. 5000. 0.;
-    periode = 1;
-  };
-
-  # Non implemente :
-  capteur nom_capteur {
-    coords = 0. 0. 0.;
-    ligne = from 0. 0. 0. to 1. 1. 1. with 10; # Defini 10 capteurs entre les deux coords
-    periode = 10; # default 1, intervalle entre 2 sauvegardes
-    rayon = 10; # default 0 : pt de gauss le plus proche
-    operation = avg; # kw: min, max, avg, gauss, interp
-    grandeurs = vel acc pression; # possibles: vel acc pression depla deformation contrainte
-  };
-  ligne = from 0. 0. 0. to 1. 1. 1. with 10; # Defini 10 capteurs entre les deux coords
-    periode = 10; # default 1, intervalle entre 2 sauvegardes
-    rayon = 10; # default 0 : pt de gauss le plus proche
-    operation = avg; # kw: min, max, avg, gauss, interp
-    grandeurs = vel acc pression; # possibles: vel acc pression depla deformation contrainte
+    period = 1;
   };
 
 
