@@ -132,26 +132,34 @@ subroutine PML_definition (Tdomain)
     do n = 0, Tdomain%n_face-1
         if (.not. Tdomain%sFace(n)%PML) then
             nv = Tdomain%sFace(n)%Near_Vertex(0)
+            if (nv<0 .or. nv >=Tdomain%n_vertex) stop "ERROR - PML_def : invalid near_vertex"
             Logical_PML_Vertices(nv) = .false.
             nv = Tdomain%sFace(n)%Near_Vertex(1)
+            if (nv<0 .or. nv >=Tdomain%n_vertex) stop "ERROR - PML_def : invalid near_vertex"
             Logical_PML_Vertices(nv) = .false.
         endif
         if (.not. Tdomain%sFace(n)%FPML) then
             nv = Tdomain%sFace(n)%Near_Vertex(0)
+            if (nv<0 .or. nv >=Tdomain%n_vertex) stop "ERROR - PML_def : invalid near_vertex"
             Logical_FPML_Vertices(nv) = .false.
             nv = Tdomain%sFace(n)%Near_Vertex(1)
+            if (nv<0 .or. nv >=Tdomain%n_vertex) stop "ERROR - PML_def : invalid near_vertex"
             Logical_FPML_Vertices(nv) = .false.
         endif
         if (.not. Tdomain%sFace(n)%CPML) then
             nv = Tdomain%sFace(n)%Near_Vertex(0)
+            if (nv<0 .or. nv >=Tdomain%n_vertex) stop "ERROR - PML_def : invalid near_vertex"
             Logical_CPML_Vertices(nv) = .false.
             nv = Tdomain%sFace(n)%Near_Vertex(1)
+            if (nv<0 .or. nv >=Tdomain%n_vertex) stop "ERROR - PML_def : invalid near_vertex"
             Logical_CPML_Vertices(nv) = .false.
         endif
         if (Tdomain%sFace(n)%Abs) then
             nv = Tdomain%sFace(n)%Near_Vertex(0)
+            if (nv<0 .or. nv >=Tdomain%n_vertex) stop "ERROR - PML_def : invalid near_vertex"
             Logical_Abs_Vertices(nv) = .true.
             nv = Tdomain%sFace(n)%Near_Vertex(1)
+            if (nv<0 .or. nv >=Tdomain%n_vertex) stop "ERROR - PML_def : invalid near_vertex"
             Logical_Abs_Vertices(nv) = .true.
         endif
 

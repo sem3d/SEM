@@ -102,7 +102,7 @@ subroutine  sem(couplage)
     if (rg == 0) write (*,*) "Define a global numbering for the collocation points"
     call global_numbering (Tdomain)
 
-    if (rg == 0) write (*,*) "Computing shape functions within thier derivatives"
+    if (rg == 0) write (*,'(x,a,i1,a)') "Computing shape",Tdomain%n_nodes," functions within thier derivatives"
     if  (Tdomain%n_nodes == 4) then
         call shape4(TDomain)   ! Linear interpolation
     else if (Tdomain%n_nodes == 8) then
@@ -227,6 +227,9 @@ subroutine  sem(couplage)
             interrupt=1
         endif
 
+        ! incrementation du pas de temps
+        Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
+
 #ifdef COUPLAGE
         call envoi_vitesse_mka(Tdomain) !! syst. lineaire vitesse
 
@@ -331,10 +334,6 @@ subroutine  sem(couplage)
             print*,"Arret de SEM, iteration=", ntime
             exit
         endif
-
-        ! incrementation du pas de temps
-        Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
-
 
     enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
