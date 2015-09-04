@@ -617,12 +617,48 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	//Material
 	if (cmp(scanner,"material")) err=expect_materials(scanner, config);
 
+	// Making compatible with START MODIFS - FILIPPO 07/15 (carvalhol
+	else if (cmp(scanner,"out_variables")) err=expect_eq_outvar(scanner, config);
+	// Making compatible with END MODIFS - FILIPPO 07/15 (carvalhol)
+
 
 	if (err==0) { printf("ERR01\n"); return 0;}
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
     return 1;
 }
+
+// Making compatible with START MODIFS - FILIPPO 07/15 (carvalhol)
+int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
+{
+	int tok, err;
+	int foo;
+
+	tok = skip_blank(scanner);
+	if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
+	do {
+    tok = skip_blank(scanner);
+
+	if (tok!=K_ID) break;
+
+        if (cmp(scanner,"enP")) err=expect_eq_int(scanner, &foo, 1);
+	else if (cmp(scanner,"enS")) err=expect_eq_int(scanner, &foo, 1);
+        else if (cmp(scanner,"evol")) err=expect_eq_int(scanner, &foo, 1);
+        else if (cmp(scanner,"pre")) err=expect_eq_int(scanner, &foo, 1);
+        else if (cmp(scanner,"dis")) err=expect_eq_int(scanner, &foo, 1);
+	else if (cmp(scanner,"vel")) err=expect_eq_int(scanner, &foo, 1);
+	else if (cmp(scanner,"acc")) err=expect_eq_int(scanner, &foo, 1);
+	else if (cmp(scanner,"edev")) err=expect_eq_int(scanner, &foo, 1);
+	else if (cmp(scanner,"sdev")) err=expect_eq_int(scanner, &foo, 1);
+
+	if (err<=0) return 0;
+	if (!expect_eos(scanner)) { return 0; }
+    } while(1);
+
+    if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
+    return 1;
+}
+// Making compatible with END MODIFS - FILIPPO 07/15 (carvalhol)
 
 void init_sem_config(sem_config_t* cfg)
 {
