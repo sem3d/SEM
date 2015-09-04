@@ -8,11 +8,10 @@
 #include <string>
 #include <vector>
 #include <map>
-#define OMPI_SKIP_MPICXX
-#include <hdf5.h>
 #include <cassert>
 #include <unistd.h>
 #include "metis.h"
+#include "h5helper.h"
 
 using std::string;
 using std::vector;
@@ -333,142 +332,10 @@ void Mesh2D::gather_proc_info(MeshProcInfo& info, int rk)
     }
 }
 
-int read_attr_int(hid_t dset_id, const char* attrname)
-{
-    hsize_t dims[1] = {1,};
-    int res;
-    hid_t attid = H5Aopen(dset_id, attrname, H5P_DEFAULT);
-    //hid_t spcid = H5Aget_space(attid);
-    //TODO check dims of attr
-    H5Aread(attid, H5T_NATIVE_INT, &res);
-    H5Aclose(attid);
-    return res;
-}
-
-void write_attr_int(hid_t dset_id, const char* attrname, int val)
-{
-    hsize_t dims[1] = {1,};
-    hid_t spcid = H5Screate(H5S_SCALAR);
-    hid_t attid = H5Acreate2(dset_id, attrname, H5T_STD_I64LE, spcid, H5P_DEFAULT, H5P_DEFAULT);
-
-    //TODO check dims of attr
-    H5Awrite(attid, H5T_NATIVE_INT, &val);
-    H5Aclose(attid);
-    H5Sclose(spcid);
-}
-
-int get_dset1d_size(hid_t dset_id)
-{
-    hsize_t dims[1], maxdims[1];
-    hid_t space_id = H5Dget_space(dset_id);
-    int ndims = H5Sget_simple_extent_ndims(space_id);
-    assert(ndims==1);
-    H5Sget_simple_extent_dims(space_id, dims, maxdims);
-    H5Sclose(space_id);
-    return dims[0];
-}
-
-void get_dset2d_size(hid_t dset_id, hsize_t& d1, hsize_t& d2)
-{
-    hsize_t dims[2], maxdims[2];
-    hid_t space_id = H5Dget_space(dset_id);
-    int ndims = H5Sget_simple_extent_ndims(space_id);
-    assert(ndims==1 || ndims==2);
-    H5Sget_simple_extent_dims(space_id, dims, maxdims);
-    H5Sclose(space_id);
-    d1 = (ndims == 1) ?       1 : dims[0];
-    d2 = (ndims == 1) ? dims[0] : dims[1];
-}
-
-void read_dset_2d_d(hid_t g, const char* dname, vector<double>& v, vector<double>& w)
-{
-    hid_t dset_id = H5Dopen2(g, dname, H5P_DEFAULT);
-    hsize_t dim1 = -1, dim2 = -1;
-    get_dset2d_size(dset_id, dim1, dim2);
-
-    v.resize(dim1); w.resize(dim1);
-    hid_t memspace_id = H5Screate_simple(1, &dim1, NULL);
-    hsize_t startmem[1] = {0}; hsize_t countmem[1] = {dim1};
-    H5Sselect_hyperslab(memspace_id, H5S_SELECT_SET, startmem, NULL, countmem, NULL);
-
-    hid_t filespace_id = H5Dget_space(dset_id);
-    hsize_t countfile[2] = {dim1, 1}; hsize_t startfile[2] = {0, 0};
-    H5Sselect_hyperslab(filespace_id, H5S_SELECT_SET, startfile, NULL, countfile, NULL); // Get X, mask Y
-    H5Dread(dset_id, H5T_NATIVE_DOUBLE, memspace_id, filespace_id, H5P_DEFAULT, &v[0]);
-    startfile[1] = 1;
-    H5Sselect_hyperslab(filespace_id, H5S_SELECT_SET, startfile, NULL, countfile, NULL); // Get Y, mask X
-    H5Dread(dset_id, H5T_NATIVE_DOUBLE, memspace_id, filespace_id, H5P_DEFAULT, &w[0]);
-
-    H5Sclose(memspace_id);
-    H5Sclose(filespace_id);
-    H5Dclose(dset_id);
-}
-
-void read_dset_1d_i(hid_t g, const char* dname, vector<int>& v)
-{
-    hid_t dset_id;
-    int dim;
-    dset_id = H5Dopen2(g, dname, H5P_DEFAULT);
-    dim = get_dset1d_size(dset_id);
-    v.resize(dim);
-    H5Dread(dset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &v[0]);
-    H5Dclose(dset_id);
-}
-
-void write_dset_1d_i(hid_t file_id, const char* dname, const vector<int>& v)
-{
-    hsize_t dims[1];
-    herr_t  status;
-    hid_t   dset_id;
-    hid_t   dspc_id;
-
-    if (H5Lexists(file_id, dname, H5P_DEFAULT)) {
-        dset_id = H5Dopen(file_id, dname, H5P_DEFAULT);
-        // TODO Check size coherency
-    } else {
-        /* Create the data space for the dataset. */
-        dims[0] = v.size();
-        dspc_id = H5Screate_simple(1, dims, NULL);
-        dset_id = H5Dcreate2(file_id, dname, H5T_STD_I32LE, dspc_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        status = H5Sclose(dspc_id);
-    }
-    H5Dwrite(dset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &v[0]);
-    status = H5Dclose(dset_id);
-}
-
-void write_dset_2d_i(hid_t file_id, const char* dname, int d2, const vector<int>& v)
-{
-    hsize_t     dims[2];
-    herr_t      status;
-
-    /* Create the data space for the dataset. */
-    dims[0] = v.size()/d2;
-    dims[1] = d2;
-    hid_t dataspace_id = H5Screate_simple(2, dims, NULL);
-    hid_t dataset_id = H5Dcreate2(file_id, dname, H5T_STD_I32LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    H5Dwrite(dataset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &v[0]);
-    status = H5Dclose(dataset_id);
-    status = H5Sclose(dataspace_id);
-}
-
-void write_dset_2d_r(hid_t file_id, const char* dname, int d2, const vector<double>& v)
-{
-    hsize_t     dims[2];
-    herr_t      status;
-
-    /* Create the data space for the dataset. */
-    dims[0] = v.size()/d2;
-    dims[1] = d2;
-    hid_t dataspace_id = H5Screate_simple(2, dims, NULL);
-    hid_t dataset_id = H5Dcreate2(file_id, dname, H5T_IEEE_F64LE, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    H5Dwrite(dataset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &v[0]);
-    status = H5Dclose(dataset_id);
-    status = H5Sclose(dataspace_id);
-}
 
 void read_nodes(hid_t g, vector<double>& x, vector<double>& y)
 {
-    read_dset_2d_d(g, "/Nodes", x, y);
+    h5h_read_dset_2d_d(g, "/Nodes", x, y);
 }
 
 void read_quads(hid_t g, vector<Quad*>& v, vector<double>& x, vector<double>& y, int& t)
@@ -478,7 +345,7 @@ void read_quads(hid_t g, vector<Quad*>& v, vector<double>& x, vector<double>& y,
     if     (H5Lexists(g, "/Sem2D/Quad4", H5P_DEFAULT)) {dset_id=H5Dopen2(g, "/Sem2D/Quad4", H5P_DEFAULT); t=4;}
     else if(H5Lexists(g, "/Sem2D/Quad8", H5P_DEFAULT)) {dset_id=H5Dopen2(g, "/Sem2D/Quad8", H5P_DEFAULT); t=8;}
     else   {printf("ERR: only Quad4 and Quad8 are supported\n"); exit(1);}
-    get_dset2d_size(dset_id, n0, n1);
+    h5h_get_dset2d_size(dset_id, n0, n1);
     assert(t == n1);
     int* quads = new int[n0*n1];
     H5Dread(dset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, quads);
@@ -493,7 +360,7 @@ void read_quads(hid_t g, vector<Quad*>& v, vector<double>& x, vector<double>& y,
 
 void read_mat(hid_t g, vector<int>& m)
 {
-    read_dset_1d_i(g, "/Sem2D/Mat", m);
+    h5h_read_dset_1d_i(g, "/Sem2D/Mat", m);
 }
 
 void Mesh2D::read_mesh(const string& fname, int& t)
@@ -564,7 +431,7 @@ void Mesh2D::partition_metis(int nproc)
 void Mesh2D::write_proc_field(const string& fname)
 {
     hid_t file_id = H5Fopen(fname.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-    write_dset_1d_i(file_id, "Proc", m_procs);
+    h5h_write_dset(file_id, "Proc", m_procs);
     H5Fclose(file_id);
 }
 
@@ -580,31 +447,31 @@ void Mesh2D::write_proc_file(const string& fname, const int t, int rk)
 
     MeshProcInfo info(t);
     gather_proc_info(info, rk);
-    write_attr_int(fid, "ndim", 2);
+    h5h_write_attr_int(fid, "ndim", 2);
     //m_nprocs=1;
-    write_attr_int(fid, "n_processors", m_nprocs);
-    write_attr_int(fid, "n_materials", m_mat_max+1);
-    write_attr_int(fid, "n_elements", info.n_elements());
-    write_attr_int(fid, "n_edges", info.n_edges());
-    write_attr_int(fid, "n_vertices", info.n_vertices());
-    write_dset_2d_r(fid, "nodes", 2, info.m_nodes);
-    write_dset_2d_i(fid, "material", 3, info.m_material);
-    write_dset_2d_i(fid, "elements", info.m_npq, info.m_quadnodes);
-    write_dset_2d_i(fid, "edges", 4, info.m_edges);
+    h5h_write_attr_int(fid, "n_processors", m_nprocs);
+    h5h_write_attr_int(fid, "n_materials", m_mat_max+1);
+    h5h_write_attr_int(fid, "n_elements", info.n_elements());
+    h5h_write_attr_int(fid, "n_edges", info.n_edges());
+    h5h_write_attr_int(fid, "n_vertices", info.n_vertices());
+    h5h_write_dset_2d(fid, "nodes", 2, info.m_nodes);
+    h5h_write_dset_2d(fid, "material", 3, info.m_material);
+    h5h_write_dset_2d(fid, "elements", info.m_npq, info.m_quadnodes);
+    h5h_write_dset_2d(fid, "edges", 4, info.m_edges);
     // With linear Quad, vertices==elements
-    write_dset_2d_i(fid, "vertices", 4, info.m_quadvertices);
-    write_dset_2d_i(fid, "faces_elem", 2, info.m_edges_elems);
-    write_dset_2d_i(fid, "faces_which", 2, info.m_edges_local);
-    write_dset_2d_i(fid, "faces_vertex", 2, info.m_edges_vertices);
+    h5h_write_dset_2d(fid, "vertices", 4, info.m_quadvertices);
+    h5h_write_dset_2d(fid, "faces_elem", 2, info.m_edges_elems);
+    h5h_write_dset_2d(fid, "faces_which", 2, info.m_edges_local);
+    h5h_write_dset_2d(fid, "faces_vertex", 2, info.m_edges_vertices);
     vector<int> vgn;
     for(map<int,int>::const_iterator it = info.m_vert_map.begin(); it != info.m_vert_map.end(); it++) {
         vgn.push_back(it->first);
     }
-    write_dset_1d_i(fid, "vertices_globnum", vgn);
+    h5h_write_dset(fid, "vertices_globnum", vgn);
 
     int n_comm = info.m_comm.size();
     //n_comm = 0;
-    write_attr_int(fid, "n_communications", n_comm);
+    h5h_write_attr_int(fid, "n_communications", n_comm);
     map<int,Comm_proc>::const_iterator it;
     int comm_count=0;
     for(it=info.m_comm.begin();it!=info.m_comm.end();++it) {
@@ -613,10 +480,10 @@ void Mesh2D::write_proc_file(const string& fname, const int t, int rk)
         const Comm_proc& comm = it->second;
         hid_t grp = H5Gcreate(fid, grp_name, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-        write_attr_int(grp, "processor", it->first);
-        write_dset_1d_i(grp, "vertices", comm.m_vertices);
-        write_dset_1d_i(grp, "edges", comm.m_edges);
-        write_dset_1d_i(grp, "coherency", comm.m_coherency);
+        h5h_write_attr_int(grp, "processor", it->first);
+        h5h_write_dset(grp, "vertices", comm.m_vertices);
+        h5h_write_dset(grp, "edges", comm.m_edges);
+        h5h_write_dset(grp, "coherency", comm.m_coherency);
         H5Gclose(grp);
         comm_count++;
     }

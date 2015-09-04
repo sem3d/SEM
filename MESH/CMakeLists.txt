@@ -2,7 +2,7 @@ PROJECT(mesher)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 ENABLE_LANGUAGE(Fortran)
 set(PRJ ${PROJECT_SOURCE_DIR})
-
+set(BASE ${CMAKE_SOURCE_DIR})
 add_subdirectory(metis)
 
 set(MESH_SRC
@@ -33,6 +33,7 @@ target_link_libraries(mesher metis ${SEM_EXTRA_LIBS} )
 install(TARGETS mesher DESTINATION bin)
 
 add_executable(sem_part_grid
+  ${SEMCOMMON}/h5helper.cpp
   ${PRJ}/CSRC/main_grid.cpp
   ${PRJ}/CSRC/mesh_h5_output.cpp
   ${PRJ}/CSRC/mesh.cpp
@@ -46,5 +47,6 @@ add_executable(sem_part_grid
 
 
 include_directories(BEFORE ${PRJ}/CSRC ${PRJ}/metis/include)
+include_directories(${BASE}/COMMON)
 target_link_libraries(sem_part_grid metis ${SEM_EXTRA_LIBS})
 

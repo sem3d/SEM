@@ -40,21 +40,21 @@ void output_mesh_part_h5(MeshPart& loc, Mesh3D& mesh)
     h5h_create_attr(fid, "curve", false);
 
     mesh.get_local_nodes(loc, tmpd);
-    h5h_write_dset(fid, "local_nodes", loc.n_nodes(), 3, &tmpd[0]);
+    h5h_write_dset_2d(fid, "local_nodes", loc.n_nodes(), 3, &tmpd[0]);
 
     mesh.get_local_material(loc, tmpi);
-    h5h_write_dset(fid, "material", loc.n_elems(), 2, &tmpi[0]);
+    h5h_write_dset_2d(fid, "material", loc.n_elems(), 2, &tmpi[0]);
 
     mesh.get_local_elements(loc, tmpi);
-    h5h_write_dset(fid, "elements", loc.n_elems(), 8, &tmpi[0]);
+    h5h_write_dset_2d(fid, "elements", loc.n_elems(), 8, &tmpi[0]);
     //
-    h5h_write_dset(fid, "faces", loc.n_elems(), 6, &loc.faces[0]);
-    h5h_write_dset(fid, "faces_map", loc.n_elems(), 6, &loc.faces_orient[0]);
+    h5h_write_dset_2d(fid, "faces", loc.n_elems(), 6, &loc.faces[0]);
+    h5h_write_dset_2d(fid, "faces_map", loc.n_elems(), 6, &loc.faces_orient[0]);
     //
-    h5h_write_dset(fid, "edges", loc.n_elems(), 12, &loc.edges[0]);
-    h5h_write_dset(fid, "edges_map", loc.n_elems(), 12, &loc.edges_orient[0]);
+    h5h_write_dset_2d(fid, "edges", loc.n_elems(), 12, &loc.edges[0]);
+    h5h_write_dset_2d(fid, "edges_map", loc.n_elems(), 12, &loc.edges_orient[0]);
     //
-    h5h_write_dset(fid, "vertices", loc.n_elems(), 8, &loc.vertices[0]);
+    h5h_write_dset_2d(fid, "vertices", loc.n_elems(), 8, &loc.vertices[0]);
     h5h_write_dset(fid, "vertices_to_global", loc.n_l2g.size(), &loc.n_l2g[0]);
     //
     H5Fclose(fid);
