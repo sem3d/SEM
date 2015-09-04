@@ -89,36 +89,7 @@ subroutine allocate_domain (Tdomain)
                     Tdomain%specel(n)%slpml%Residual_Stress1 = 0d0
                     Tdomain%specel(n)%slpml%Residual_Stress2 = 0d0
                     Tdomain%specel(n)%slpml%Residual_Stress3 = 0d0
-                    if(Tdomain%specel(n)%FPML)then
-                        allocate(Tdomain%specel(n)%slpml%Isx(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(Tdomain%specel(n)%slpml%Isy(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(Tdomain%specel(n)%slpml%Isz(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(Tdomain%specel(n)%slpml%Ivx(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(Tdomain%specel(n)%slpml%Ivy(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(Tdomain%specel(n)%slpml%Ivz(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(Tdomain%specel(n)%slpml%I_Diagonal_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                        allocate(Tdomain%specel(n)%slpml%I_Diagonal_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                        allocate(Tdomain%specel(n)%slpml%I_Diagonal_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                        allocate(Tdomain%specel(n)%slpml%I_Residual_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                        allocate(Tdomain%specel(n)%slpml%I_Residual_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                        allocate(Tdomain%specel(n)%slpml%IVeloc1(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                        allocate(Tdomain%specel(n)%slpml%IVeloc2(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                        allocate(Tdomain%specel(n)%slpml%IVeloc3(1:ngllx-2,1:nglly-2,1:ngllz-2,0:2))
-                        Tdomain%specel(n)%slpml%I_Diagonal_Stress1 = 0.
-                        Tdomain%specel(n)%slpml%I_Diagonal_Stress2 = 0.
-                        Tdomain%specel(n)%slpml%I_Diagonal_Stress3 = 0.
-                        Tdomain%specel(n)%slpml%I_Residual_Stress1 = 0.
-                        Tdomain%specel(n)%slpml%I_Residual_Stress2 = 0.
-                        Tdomain%specel(n)%slpml%IVeloc1 = 0.
-                        Tdomain%specel(n)%slpml%IVeloc2 = 0.
-                        Tdomain%specel(n)%slpml%IVeloc3 = 0.
-                    endif ! FPML
 
-
-                    if (Tdomain%curve) then
-                        allocate (Tdomain%specel(n)%slpml%Normales (0:2, 0:2))
-                        allocate (Tdomain%specel(n)%slpml%Inv_Normales (0:2, 0:2))
-                    endif
                 else ! PML
                     if (Tdomain%aniso) then
                         allocate (Tdomain%specel(n)%sl%Cij (0:20, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
@@ -190,40 +161,14 @@ subroutine allocate_domain (Tdomain)
         ngll1 = Tdomain%sFace(n)%ngll1; ngll2 = Tdomain%sFace(n)%ngll2
         if(Tdomain%sFace(n)%solid)then    ! SOLID PART
 #ifdef COUPLAGE
-            allocate (Tdomain%sFace(n)%ForcesExt(1:ngll1-2,1:ngll2-2,0:2 ) )
-            Tdomain%sFace(n)%ForcesExt = 0.
+            !allocate (Tdomain%sFace(n)%ForcesExt(1:ngll1-2,1:ngll2-2,0:2 ) )
+            !Tdomain%sFace(n)%ForcesExt = 0.
             !        allocate (Tdomain%sFace(n)%FlagMka(1:ngll1-2,1:ngll2-2,0:2 ) )
             !        Tdomain%sFace(n)%FlagMka = 0
-            allocate (Tdomain%sFace(n)%tsurfsem(1:ngll1-2,1:ngll2-2 ) )
-            Tdomain%sFace(n)%tsurfsem = 0.
+            !allocate (Tdomain%sFace(n)%tsurfsem(1:ngll1-2,1:ngll2-2 ) )
+            !Tdomain%sFace(n)%tsurfsem = 0.
 #endif
-            if(Tdomain%sFace(n)%PML)then
-                allocate(Tdomain%sFace(n)%spml)
-                if(Tdomain%sFace(n)%FPML)then
-                    allocate(Tdomain%sFace(n)%spml%Ivx(1:ngll1-2,1:ngll2-1))
-                    allocate(Tdomain%sFace(n)%spml%Ivy(1:ngll1-2,1:ngll2-1))
-                    allocate(Tdomain%sFace(n)%spml%Ivz(1:ngll1-2,1:ngll2-1))
-                    allocate(Tdomain%sFace(n)%spml%IVeloc1(1:ngll1-2,1:ngll2-1,0:2))
-                    allocate(Tdomain%sFace(n)%spml%IVeloc2(1:ngll1-2,1:ngll2-1,0:2))
-                    allocate(Tdomain%sFace(n)%spml%IVeloc3(1:ngll1-2,1:ngll2-1,0:2))
-                    Tdomain%sFace(n)%spml%IVeloc1 = 0.
-                    Tdomain%sFace(n)%spml%IVeloc2 = 0.
-                    Tdomain%sFace(n)%spml%IVeloc3 = 0.
-                    Tdomain%sFace(n)%spml%Ivx = 0.
-                    Tdomain%sFace(n)%spml%Ivy = 0.
-                    Tdomain%sFace(n)%spml%Ivz = 0.
-                endif
-
-
-            else
-                !  modif mariotti fevrier 2007 cea capteur displ
-                !       allocate (Tdomain%sFace(n)%Displ (1:ngll1-2, 1:ngll2-2, 0:2))
-                !       Tdomain%sFace(n)%Displ = 0
-            endif
         else   ! FLUID PART
-            if(Tdomain%sFace(n)%PML)then
-                allocate(Tdomain%sFace(n)%spml)
-            endif
         endif
     enddo
 
@@ -232,40 +177,18 @@ subroutine allocate_domain (Tdomain)
     do n = 0,Tdomain%n_edge-1
         ngll = Tdomain%sEdge(n)%ngll
         if(Tdomain%sEdge(n)%solid)then   ! SOLID PART
-            if(Tdomain%sEdge(n)%PML)then
-                allocate(Tdomain%sEdge(n)%spml)
-                if(Tdomain%sEdge(n)%FPML)then
-                    allocate(Tdomain%sEdge(n)%spml%Ivx(1:ngll-2))
-                    allocate(Tdomain%sEdge(n)%spml%Ivy(1:ngll-2))
-                    allocate(Tdomain%sEdge(n)%spml%Ivz(1:ngll-2))
-                    allocate(Tdomain%sEdge(n)%spml%IVeloc1(1:ngll-2,0:2))
-                    allocate(Tdomain%sEdge(n)%spml%IVeloc2(1:ngll-2,0:2))
-                    allocate(Tdomain%sEdge(n)%spml%IVeloc3(1:ngll-2,0:2))
-                    Tdomain%sEdge(n)%spml%IVeloc1 = 0.
-                    Tdomain%sEdge(n)%spml%IVeloc2 = 0.
-                    Tdomain%sEdge(n)%spml%IVeloc3 = 0.
-                    Tdomain%sEdge(n)%spml%Ivx = 0.
-                    Tdomain%sEdge(n)%spml%Ivy = 0.
-                    Tdomain%sEdge(n)%spml%Ivz = 0.
-                endif
-
-            endif
         else   ! FLUID PART
-            if(Tdomain%sEdge(n)%PML)then
-                allocate(Tdomain%sEdge(n)%spml)
-            endif
 
         endif
 
-        !Gsa Ipsis 3D
 #ifdef COUPLAGE
 
-        allocate (Tdomain%sEdge(n)%ForcesExt(1:ngll-2,0:2) )
-        Tdomain%sEdge(n)%ForcesExt = 0
+ !       allocate (Tdomain%sEdge(n)%ForcesExt(1:ngll-2,0:2) )
+!        Tdomain%sEdge(n)%ForcesExt = 0
         !        allocate (Tdomain%sEdge(n)%FlagMka(1:ngll-2,0:2) )
         !        Tdomain%sEdge(n)%FlagMka = 0
-        allocate (Tdomain%sEdge(n)%tsurfsem(1:ngll-2) )
-        Tdomain%sEdge(n)%tsurfsem = 0.
+ !       allocate (Tdomain%sEdge(n)%tsurfsem(1:ngll-2) )
+ !       Tdomain%sEdge(n)%tsurfsem = 0.
 #endif
 
     enddo
@@ -279,28 +202,7 @@ subroutine allocate_domain (Tdomain)
             Tdomain%sVertex(n)%tsurfsem = 0.
 #endif
 
-            if(Tdomain%sVertex(n)%PML)then
-                allocate(Tdomain%sVertex(n)%spml)
-                if(Tdomain%sVertex(n)%FPML)then
-                    allocate(Tdomain%sVertex(n)%spml%IVeloc1(0:2))
-                    allocate(Tdomain%sVertex(n)%spml%IVeloc2(0:2))
-                    allocate(Tdomain%sVertex(n)%spml%IVeloc3(0:2))
-                    allocate(Tdomain%sVertex(n)%spml%Ivx(0:0))
-                    allocate(Tdomain%sVertex(n)%spml%Ivy(0:0))
-                    allocate(Tdomain%sVertex(n)%spml%Ivz(0:0))
-                    Tdomain%sVertex(n)%spml%IVeloc1 = 0d0
-                    Tdomain%sVertex(n)%spml%IVeloc2 = 0d0
-                    Tdomain%sVertex(n)%spml%IVeloc3 = 0d0
-                    Tdomain%sVertex(n)%spml%Ivx = 0d0
-                    Tdomain%sVertex(n)%spml%Ivy = 0d0
-                    Tdomain%sVertex(n)%spml%Ivz = 0d0
-                endif
-            else
-            endif
         else   ! FLUID PART
-            if(Tdomain%sVertex(n)%PML)then
-                allocate(Tdomain%sVertex(n)%spml)
-            endif
         endif
     enddo
 

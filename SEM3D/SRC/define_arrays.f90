@@ -20,7 +20,6 @@ module mdefinitions
     private :: define_alpha_PML
     private :: define_PML_DumpInit, define_PML_DumpEnd
     private :: assemble_DumpMass
-    private :: define_FPML_DumpInit, define_FPML_DumpEnd
 
 contains
 
@@ -352,18 +351,6 @@ subroutine init_pml_properties(Tdomain,specel,mat,Whei)
 
      call assemble_DumpMass(Tdomain,specel)
 
-     if(specel%FPML)then
-        ! Compute Is(xyz) and Iv(xyz)
-        call define_FPML_DumpInit(ngllx,nglly,ngllz,mat%Dt,        &
-             mat%freq,wx,specel%MassMat, &
-             specel%xpml%DumpSx,specel%slpml%Isx,specel%slpml%Ivx)
-        call define_FPML_DumpInit(ngllx,nglly,ngllz,mat%Dt,        &
-             mat%freq,wy,specel%MassMat,             &
-             specel%xpml%DumpSy,specel%slpml%Isy,specel%slpml%Ivy)
-        call define_FPML_DumpInit(ngllx,nglly,ngllz,mat%Dt,        &
-             mat%freq,wz,specel%MassMat,             &
-             specel%xpml%DumpSz,specel%slpml%Isz,specel%slpml%Ivz)
-     endif
      deallocate(wx,wy,wz)
 
      !! XXX
@@ -644,24 +631,6 @@ subroutine define_alpha_PML(lattenu,dir,ldir_attenu,ngllx,nglly,ngllz,ngll,n_pts
 end subroutine define_alpha_PML
 !----------------------------------------------------------------------------------
 !----------------------------------------------------------------------------------
-subroutine define_FPML_DumpInit(ngllx,nglly,ngllz,dt,freq,alpha,MassMat,  &
-    DumpS,Is,Iv)
-    !- defining parameters related to stresses and mass matrix elements, in the case of
-    !    a FPML, along a given splitted direction:
-    integer, intent(in)  :: ngllx,nglly,ngllz
-    real, intent(in) :: dt, freq
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: alpha
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: MassMat
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1), intent(in) :: DumpS
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: Is,Iv
-
-    Is(:,:,:) = dt*alpha(:,:,:)*freq*DumpS(:,:,:,1)
-    Iv(:,:,:) = MassMat(:,:,:)*Dt*alpha(:,:,:)*freq
-    return
-
-end subroutine define_FPML_DumpInit
-!----------------------------------------------------------------------------------
-!----------------------------------------------------------------------------------
 subroutine define_PML_DumpInit(ngllx,nglly,ngllz,dt,freq,alpha,&
                                  MassMat,DumpS,DumpMass)
     !- defining parameters related to stresses and mass matrix elements, in the case of
@@ -728,23 +697,6 @@ subroutine define_PML_DumpEnd(ngll,Massmat,DumpMass,DumpV)
 
     return
 end subroutine define_PML_DumpEnd
-!----------------------------------------------------------------------------------
-!----------------------------------------------------------------------------------
-subroutine define_FPML_DumpEnd(ngllx,nglly,ngllz,DumpV,Iv)
-
-    implicit none
-    integer, intent(in)   :: ngllx,nglly,ngllz
-    real, dimension(1:ngllx-2,1:nglly-2,1:ngllz-2,0:1), intent(in) :: DumpV
-    real, dimension(:,:,:), allocatable, intent(inout) :: Iv
-    real, dimension(1:ngllx-2,1:nglly-2,1:ngllz-2)  :: LocIv
-
-    LocIv = Iv(1:ngllx-2,1:nglly-2,1:ngllz-2)
-    deallocate(Iv)
-    allocate(Iv(1:ngllx-2,1:nglly-2,1:ngllz-2))
-    Iv = LocIv*DumpV(:,:,:,1)
-    return
-
-end subroutine define_FPML_DumpEnd
 
 !---------------------------------------------------------------------------
 !---------------------------------------------------------------------------
@@ -775,9 +727,6 @@ function materialIsConstant(Tdomain, mat) result(authorization)
     end if
 
 end function
-
-
-
 
 end module mdefinitions
 !----------------------------------------------------------------------------------

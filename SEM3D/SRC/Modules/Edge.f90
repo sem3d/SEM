@@ -10,11 +10,6 @@
 
 module sedges
 
-    type :: edge_pml
-       real, dimension (:,:), allocatable :: IVeloc1, Iveloc2, Iveloc3
-       real, dimension (:), allocatable :: Ivx, Ivy, Ivz
-
-    end type edge_pml
     type :: edge
 
        logical :: PML, Abs, FPML
@@ -22,17 +17,16 @@ module sedges
        integer :: ngll,mat_index
        integer, dimension (:), allocatable :: Iglobnum_Edge
 
-       ! Lien entre ngll et numérotation des champs globaux
+       ! Lien entre ngll et numÃ©rotation des champs globaux
        integer, dimension (:), allocatable :: Renum
 
        ! solid-fluid
        logical  :: solid, fluid_dirich
 
-       type(edge_pml), pointer :: spml
 
        !! Couplage Externe
-       real, dimension (:,:), allocatable :: ForcesExt
-       real, dimension (:), allocatable :: tsurfsem
+!       real, dimension (:,:), allocatable :: ForcesExt
+!       real, dimension (:), allocatable :: tsurfsem
 
     end type edge
 
