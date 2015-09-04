@@ -39,14 +39,17 @@ add_executable(sem_part_grid
   ${PRJ}/CSRC/mesh.cpp
   )
 
-#add_executable(sem_part_h5
-#  ${PRJ}/CSRC/main_h5.cpp
-#  ${PRJ}/CSRC/mesh.cpp
-#  )
+add_executable(sem_part_h5
+  ${SEMCOMMON}/h5helper.cpp
+  ${PRJ}/CSRC/main_h5.cpp
+  ${PRJ}/CSRC/mesh_h5_output.cpp
+  ${PRJ}/CSRC/mesh.cpp
+  )
 
 
 
 include_directories(BEFORE ${PRJ}/CSRC ${PRJ}/metis/include)
 include_directories(${BASE}/COMMON)
 target_link_libraries(sem_part_grid metis ${SEM_EXTRA_LIBS})
+target_link_libraries(sem_part_h5 metis ${SEM_EXTRA_LIBS})
 

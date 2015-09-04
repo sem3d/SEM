@@ -335,7 +335,7 @@ void Mesh2D::gather_proc_info(MeshProcInfo& info, int rk)
 
 void read_nodes(hid_t g, vector<double>& x, vector<double>& y)
 {
-    h5h_read_dset_2d_d(g, "/Nodes", x, y);
+    h5h_read_dset_Nx2(g, "/Nodes", x, y);
 }
 
 void read_quads(hid_t g, vector<Quad*>& v, vector<double>& x, vector<double>& y, int& t)
@@ -360,7 +360,7 @@ void read_quads(hid_t g, vector<Quad*>& v, vector<double>& x, vector<double>& y,
 
 void read_mat(hid_t g, vector<int>& m)
 {
-    h5h_read_dset_1d_i(g, "/Sem2D/Mat", m);
+    h5h_read_dset(g, "/Sem2D/Mat", m);
 }
 
 void Mesh2D::read_mesh(const string& fname, int& t)

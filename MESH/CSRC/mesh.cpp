@@ -7,6 +7,7 @@
 #include "mesh.h"
 #include "metis.h"
 #include <map>
+#include <cstdlib>
 
 using std::map;
 using std::multimap;
@@ -394,6 +395,10 @@ void Mesh3D::compute_local_connectivity(MeshPart& loc)
     }
 }
 
+int Mesh3D::read_materials(const std::string& str)
+{
+    m_materials.push_back(Material());
+}
 
 int Mesh3D::add_material()
 {
@@ -436,6 +441,45 @@ void Mesh3D::get_local_elements(MeshPart& loc, std::vector<int>& tmp)
 	    tmp.push_back(ln);
 	}
     }
+}
+
+void Mesh3D::read_mesh_file(const std::string& fname)
+{
+    hid_t file_id = H5Fopen(fname.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+
+    h5h_read_dset_Nx3(file_id, "/Nodes", m_xco, m_yco, m_zco);
+
+    hid_t dset_id;
+    hsize_t n0, n1;
+    if (H5Lexists(file_id, "/Sem3D/Hexa8", H5P_DEFAULT)) {
+        read_mesh_hexa8(file_id);
+    } else if (H5Lexists(file_id, "/Sem3D/Hexa27", H5P_DEFAULT)) {
+        read_mesh_hexa27(file_id);
+    }
+    else {
+        printf("ERR: only Quad4 and Quad8 are supported\n");
+        exit(1);
+    }
+
+    h5h_read_dset(file_id, "/Sem3D/Mat", m_mat);
+}
+
+void Mesh3D::read_mesh_hexa8(hid_t file_id)
+{
+    int nel, nnodes;
+    h5h_read_dset_2d(file_id, "/Sem3D/Hexa8", nel, nnodes, m_elems);
+    n_ctl_nodes = 8;
+    if (nnodes!=8) {
+        printf("Error: dataset /Sem/Hexa8 is not of size NEL*8\n");
+        exit(1);
+    }
+    for(int k=0;k<nel;++k) {
+        m_elems_offs.push_back(8*(k+1));
+    }
+}
+
+void Mesh3D::read_mesh_hexa27(hid_t file_id)
+{
 }
 
 

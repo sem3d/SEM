@@ -7,10 +7,11 @@
 #define _MESH_H_
 
 #include <vector>
+#include <string>
 #include <cstdio>
 #include <map>
 #include "material.h"
-
+#include "h5helper.h"
 
 template <int N>
 struct Elem {
@@ -189,6 +190,11 @@ public:
     int add_node(double x, double y, double z);
     int add_elem(int mat_idx, const HexElem& el);
     int add_material(); // Aucune propriete pour l'instant
+
+    int read_materials(const std::string& fname);
+    void read_mesh_file(const std::string& fname);
+
+
     void partition_mesh(int n_procs);
 
     int elem_part(int iel) { return m_procs[iel]; }
@@ -211,6 +217,7 @@ public:
     int n_points;
     int n_neu;
     int n_PW;
+    int n_ctl_nodes; ///< Number of control nodes per element (8 or 27)
 
     int *m_xadj, *m_adjncy;
 
@@ -240,6 +247,8 @@ protected:
     /// if true returns the local face number of el1 and their relative orientation
     bool shared_face(int el0, int nf0, int el1, FaceDesc& other);
 
+    void read_mesh_hexa8(hid_t fid);
+    void read_mesh_hexa27(hid_t fid);
 };
 
 

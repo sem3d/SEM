@@ -222,7 +222,7 @@ void h5h_get_dset2d_size(hid_t dset_id, hsize_t& d1, hsize_t& d2)
     d2 = (ndims == 1) ? dims[0] : dims[1];
 }
 
-void h5h_read_dset_2d_d(hid_t g, const char* dname, vector<double>& v, vector<double>& w)
+void h5h_read_dset_Nx2(hid_t g, const char* dname, vector<double>& v, vector<double>& w)
 {
     hid_t dset_id = H5Dopen2(g, dname, H5P_DEFAULT);
     hsize_t dim1 = -1, dim2 = -1;
@@ -246,7 +246,38 @@ void h5h_read_dset_2d_d(hid_t g, const char* dname, vector<double>& v, vector<do
     H5Dclose(dset_id);
 }
 
-void h5h_read_dset_1d_i(hid_t g, const char* dname, vector<int>& v)
+void h5h_read_dset_Nx3(hid_t g, const char* dname, vector<double>& u, vector<double>& v, vector<double>& w)
+{
+    hid_t dset_id = H5Dopen2(g, dname, H5P_DEFAULT);
+    hsize_t dim1 = -1, dim2 = -1;
+    h5h_get_dset2d_size(dset_id, dim1, dim2);
+
+    u.resize(dim1);
+    v.resize(dim1);
+    w.resize(dim1);
+    hid_t memspace_id = H5Screate_simple(1, &dim1, NULL);
+    hsize_t startmem[1] = {0}; hsize_t countmem[1] = {dim1};
+    H5Sselect_hyperslab(memspace_id, H5S_SELECT_SET, startmem, NULL, countmem, NULL);
+
+    hid_t filespace_id = H5Dget_space(dset_id);
+    hsize_t countfile[2] = {dim1, 1}; hsize_t startfile[2] = {0, 0};
+
+    H5Sselect_hyperslab(filespace_id, H5S_SELECT_SET, startfile, NULL, countfile, NULL); // Get X, mask Y
+    H5Dread(dset_id, H5T_NATIVE_DOUBLE, memspace_id, filespace_id, H5P_DEFAULT, &u[0]);
+
+    startfile[1] = 1;
+    H5Sselect_hyperslab(filespace_id, H5S_SELECT_SET, startfile, NULL, countfile, NULL); // Get Y, mask X
+    H5Dread(dset_id, H5T_NATIVE_DOUBLE, memspace_id, filespace_id, H5P_DEFAULT, &v[0]);
+
+    startfile[1] = 2;
+    H5Sselect_hyperslab(filespace_id, H5S_SELECT_SET, startfile, NULL, countfile, NULL); // Get Y, mask X
+    H5Dread(dset_id, H5T_NATIVE_DOUBLE, memspace_id, filespace_id, H5P_DEFAULT, &w[0]);
+
+    H5Sclose(memspace_id);
+    H5Sclose(filespace_id);
+    H5Dclose(dset_id);
+}
+void h5h_read_dset(hid_t g, const char* dname, vector<int>& v)
 {
     hid_t dset_id;
     int dim;
@@ -254,6 +285,34 @@ void h5h_read_dset_1d_i(hid_t g, const char* dname, vector<int>& v)
     dim = h5h_get_dset1d_size(dset_id);
     v.resize(dim);
     H5Dread(dset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &v[0]);
+    H5Dclose(dset_id);
+}
+
+void h5h_read_dset_2d(hid_t g, const char* dname, int& d0, int& d1, vector<double>& data)
+{
+    hid_t dset_id;
+    hsize_t dim0, dim1;
+    int dim;
+    dset_id = H5Dopen2(g, dname, H5P_DEFAULT);
+    h5h_get_dset2d_size(dset_id, dim0, dim1);
+    d0 = dim0;
+    d1 = dim1;
+    data.resize(dim0*dim1);
+    H5Dread(dset_id, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &data[0]);
+    H5Dclose(dset_id);
+}
+
+void h5h_read_dset_2d(hid_t g, const char* dname, int& d0, int& d1, vector<int>& data)
+{
+    hid_t dset_id;
+    hsize_t dim0, dim1;
+    int dim;
+    dset_id = H5Dopen2(g, dname, H5P_DEFAULT);
+    h5h_get_dset2d_size(dset_id, dim0, dim1);
+    d0 = dim0;
+    d1 = dim1;
+    data.resize(dim0*dim1);
+    H5Dread(dset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &data[0]);
     H5Dclose(dset_id);
 }
 
