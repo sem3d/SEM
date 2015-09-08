@@ -205,7 +205,7 @@ subroutine save_trace (Tdomain, it)
         endif
     enddo
 
-    if (ncache == NCAPT_CACHE-1) then
+    if (ncache == NCAPT_CACHE-1 .or. it == Tdomain%TimeD%NtimeMax-1) then
         call dump_trace(Tdomain)
     end if
 

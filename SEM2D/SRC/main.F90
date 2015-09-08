@@ -343,13 +343,10 @@ subroutine  sem(couplage)
 
     call END_SEM(Tdomain, ntime)
 
-    if (Tdomain%logicD%save_trace) call dump_trace(Tdomain)
-
     if (Tdomain%bCapteur) then
         deallocate(Tdomain%GrandeurDeformation)
         deallocate(Tdomain%GrandeurVitesse)
     endif
-
 
     if (.not. couplage) then
         call MPI_Finalize  (ierr)
