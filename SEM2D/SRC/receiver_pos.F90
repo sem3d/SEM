@@ -221,24 +221,30 @@ subroutine dump_trace (Tdomain)
 
     type(Domain), intent (IN) :: Tdomain
 
-    integer :: i, it, it0, it1, ind
+    integer :: i, it, it0, it1, ind, ncache, i_err
     character(Len=MAX_FILE_SIZE) :: fnamef
     real :: rtime
 
     !dumping the traces
-    !print *, Tdomain%MPI_var%my_rank
-    it1 = Tdomain%TimeD%ntime
     it0 = NCAPT_CACHE*(Tdomain%TimeD%ntime/NCAPT_CACHE)
+    if (Tdomain%logicD%run_restart .and. (Tdomain%TimeD%ntime - Tdomain%TimeD%iter_reprise) < NCAPT_CACHE) then
+        it0 = Tdomain%TimeD%iter_reprise+1 ! if restart, start dump from restart iteration (not from last NCAPT_CACHE block)
+    end if
+    it1 = Tdomain%TimeD%ntime
     ind = 0
-    !write(*,*) "Receivers out:", it0, it1
 
     do i = 0,Tdomain%n_receivers-1
         if (Tdomain%sReceiver(i)%located_here) then
             call semname_capteur_type(Tdomain%sReceiver(i)%name, ".vel", fnamef)
-            open (31,file=fnamef, status="unknown", form="formatted", position="append")
+            open (31, file=trim(fnamef), action="write", form="formatted", position="append", iostat=i_err)
+            if (i_err .ne. 0) stop "open trace file KO"
             rtime=(it0+1)*Tdomain%TimeD%dtmin
             do it = it0, it1
-                write (31,*) rtime,Tdomain%Store_Trace(0,ind,it-it0), Tdomain%Store_Trace (1,ind,it-it0)
+                ncache=it-it0
+                if (Tdomain%logicD%run_restart .and. (Tdomain%TimeD%ntime - Tdomain%TimeD%iter_reprise) < NCAPT_CACHE) then
+                    ncache = mod(it,NCAPT_CACHE) ! if restart, start dump from restart iteration (not from last NCAPT_CACHE block)
+                end if
+                write(31,*) rtime, Tdomain%Store_Trace(0,ind,ncache), Tdomain%Store_Trace(1,ind,ncache)
                 rtime = rtime + Tdomain%TimeD%dtmin
             enddo
             close (31)
