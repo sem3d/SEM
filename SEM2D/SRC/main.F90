@@ -211,6 +211,7 @@ subroutine  sem(couplage)
     ! BOUCLE DE CALCUL EN TEMPS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     call dtime(tarray, tref)
+    protection = 0
     interrupt = 0
     do ntime= Tdomain%TimeD%NtimeMin, Tdomain%TimeD%NtimeMax-1
 
