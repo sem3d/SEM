@@ -37,7 +37,6 @@ subroutine ReceiverPosition(Tdomain)
     real :: eta1,xi1
     real :: outx,outz,dximax, detamax
     real, dimension (0:7) :: xc,zc
-    character(Len=MAX_FILE_SIZE) :: fnamef
 
     logical :: inosol,inner
 
@@ -165,15 +164,6 @@ subroutine ReceiverPosition(Tdomain)
         allocate (Tdomain%Store_Trace(0:1,0:i-1,0:NCAPT_CACHE-1))
     endif
     return
-    ! Initialisation
-    do i = 0,Tdomain%n_receivers-1
-        if (Tdomain%sReceiver(i)%located_here) then
-            call semname_capteur_type(Tdomain%sReceiver(i)%name, "vel", fnamef)
-            open (31,file=fnamef, form="formatted", status="replace")
-            close (31)
-        endif
-    enddo
-    ! restart procedure will recover the original file content later
 end subroutine ReceiverPosition
 
 subroutine save_trace (Tdomain, it)
