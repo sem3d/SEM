@@ -417,6 +417,7 @@ contains
             ngllx = Tdomain%specel(n_el)%ngllx
             nglly = Tdomain%specel(n_el)%nglly
             ngllz = Tdomain%specel(n_el)%ngllz
+            mat=Tdomain%specel(n_el)%mat_index
             allocate(outx(0:ngllx-1))
             allocate(outy(0:nglly-1))
             allocate(outz(0:ngllz-1))
@@ -439,7 +440,6 @@ contains
                 allocate(hTprimex(0:ngllx-1,0:ngllx-1))
                 allocate(hprimey(0:nglly-1,0:nglly-1))
                 allocate(hprimez(0:ngllz-1,0:ngllz-1))
-                mat=Tdomain%specel(n_el)%mat_index
                 hTprimex=Tdomain%sSubDomain(mat)%hTprimex
                 hprimey=Tdomain%sSubDomain(mat)%hprimey
                 hprimez=Tdomain%sSubDomain(mat)%hprimez
