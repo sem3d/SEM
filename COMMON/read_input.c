@@ -644,12 +644,7 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"gradient")) err=expect_gradient_desc(scanner, config);
 	else if (cmp(scanner,"model")) err=expect_eq_model(scanner, &config->model);
 	else if (cmp(scanner,"neumann")) err=expect_neumann(scanner, config);
-	// START MODIFS - FILIPPO 07/15
 	else if (cmp(scanner,"out_variables")) err=expect_eq_outvar(scanner, config);
-	// END MODIFS - FILIPPO 07/15
-
-
-
 	//Material
 	if (cmp(scanner,"material")) err=expect_materials(scanner, config);
 
