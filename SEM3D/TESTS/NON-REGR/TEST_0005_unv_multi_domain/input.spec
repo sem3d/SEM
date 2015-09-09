@@ -7,8 +7,10 @@ mesh_file = "mesh4spec"; # input mesh file
 mat_file = "material.input";
 dim=3;
 
+snapshots {
 save_snap = true;
 snap_interval = 0.02;
+};
 
 # Description des capteurs
 save_traces = true;

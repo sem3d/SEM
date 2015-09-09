@@ -216,29 +216,29 @@ contains
                 Tdomain%sFace(nnf)%mat_index = mat
                 Tdomain%sFace(nnf)%solid = Tdomain%specel(n)%solid
                 Tdomain%sFace(nnf)%fluid_dirich = .false.
-                if(Tdomain%specel(n)%fluid_dirich .and. (nf == 5))then
-                    Tdomain%sFace(nnf)%fluid_dirich = .true.
-                end if
+              ! if(Tdomain%specel(n)%fluid_dirich .and. (nf == 5))then
+              !     Tdomain%sFace(nnf)%fluid_dirich = .true.
+              !  end if
             end do
             do ne = 0,11
                 nne = Tdomain%specel(n)%Near_edges(ne)
                 Tdomain%sEdge(nne)%mat_index = mat
                 Tdomain%sEdge(nne)%solid = Tdomain%specel(n)%solid
                 Tdomain%sEdge(nne)%fluid_dirich = .false.
-                if(Tdomain%specel(n)%fluid_dirich .and.   &
-                    ((ne == 5).or.(ne == 8).or.(ne == 9).or.(ne == 11)))then
-                    Tdomain%sEdge(nne)%fluid_dirich = .true.
-                end if
+               ! if(Tdomain%specel(n)%fluid_dirich .and.   &
+               !    ((ne == 5).or.(ne == 8).or.(ne == 9).or.(ne == 11)))then
+               !    Tdomain%sEdge(nne)%fluid_dirich = .true.
+               ! end if
             end do
             do nv = 0,7
                 nnv = Tdomain%specel(n)%Near_Vertices(nv)
                 Tdomain%sVertex(nnv)%mat_index = mat
                 Tdomain%sVertex(nnv)%solid = Tdomain%specel(n)%solid
                 Tdomain%sVertex(nnv)%fluid_dirich = .false.
-                if(Tdomain%specel(n)%fluid_dirich .and.   &
-                    ((nv == 4).or.(nv == 5).or.(nv == 6).or.(nv == 7)))then
-                    Tdomain%sVertex(nnv)%fluid_dirich = .true.
-                end if
+               ! if(Tdomain%specel(n)%fluid_dirich .and.   &
+               !    ((nv == 4).or.(nv == 5).or.(nv == 6).or.(nv == 7)))then
+               !   Tdomain%sVertex(nnv)%fluid_dirich = .true.
+               ! end if
             end do
 
             !        !Faces
@@ -409,24 +409,24 @@ contains
 
         if(nRandom > 0) then
             !Building element list in each subdomain
-            do i=0,Tdomain%n_mat-1
-                allocate (Tdomain%sSubdomain(i)%elemList(0:Tdomain%sSubdomain(i)%nElem-1))
-                Tdomain%sSubdomain(i)%elemList(:) = -1 !-1 to detect errors
-                Tdomain%sSubdomain(i)%nElem       = 0 !Using to count the elements in the next loop
-            enddo
-            do i=0,Tdomain%n_elem-1
-                mat = Tdomain%specel(i)%mat_index
-                Tdomain%sSubdomain(mat)%elemList(Tdomain%sSubdomain(mat)%nElem) = i
-                Tdomain%sSubdomain(mat)%nElem = Tdomain%sSubdomain(mat)%nElem + 1
-            enddo
+      !      do i=0,Tdomain%n_mat-1
+      !          allocate (Tdomain%sSubdomain(i)%elemList(0:Tdomain%sSubdomain(i)%nElem-1))
+      !          Tdomain%sSubdomain(i)%elemList(:) = -1 !-1 to detect errors
+      !          Tdomain%sSubdomain(i)%nElem       = 0 !Using to count the elements in the next loop
+      !      enddo
+      !      do i=0,Tdomain%n_elem-1
+      !          mat = Tdomain%specel(i)%mat_index
+      !          Tdomain%sSubdomain(mat)%elemList(Tdomain%sSubdomain(mat)%nElem) = i
+      !          Tdomain%sSubdomain(mat)%nElem = Tdomain%sSubdomain(mat)%nElem + 1
+      !      enddo
 
-            !Defining existing subdomain list in each domain
-            allocate (Tdomain%subD_exist(0:Tdomain%n_mat-1))
-            allocate (Tdomain%subDComm(0:Tdomain%n_mat - 1))
-            Tdomain%subD_exist(:) = .true.
-            do mat=0,Tdomain%n_mat-1
-                if(Tdomain%sSubdomain(mat)%nElem == 0) Tdomain%subD_exist(mat) = .false.
-            enddo
+      !      !Defining existing subdomain list in each domain
+      !      allocate (Tdomain%subD_exist(0:Tdomain%n_mat-1))
+      !      allocate (Tdomain%subDComm(0:Tdomain%n_mat - 1))
+      !      Tdomain%subD_exist(:) = .true.
+      !      do mat=0,Tdomain%n_mat-1
+      !          if(Tdomain%sSubdomain(mat)%nElem == 0) Tdomain%subD_exist(mat) = .false.
+      !      enddo
 
             Tdomain%any_Random = .true.
             read(13,*); read(13,*)
@@ -449,20 +449,6 @@ contains
                         Tdomain%sSubdomain(i)%margiFirst(2), &
                         Tdomain%sSubdomain(i)%varProp(2),    &
                         Tdomain%sSubdomain(i)%seedStart
-                endif
-            enddo
-            do i = 0,Tdomain%n_mat-1
-                assocMat = Tdomain%sSubdomain(i)%assocMat
-                if((.not. Tdomain%not_PML_List(i))                                 &
-                    .and. Tdomain%sSubdomain(assocMat)%material_type == "R") then
-                    allocate(Tdomain%sSubdomain(i)%corrL(0:2))
-                    allocate(Tdomain%sSubdomain(i)%varProp(0:2))
-                    allocate(Tdomain%sSubdomain(i)%margiFirst(0:2))
-
-                    Tdomain%sSubdomain(i)%corrMod       = Tdomain%sSubdomain(assocMat)%corrMod
-                    Tdomain%sSubdomain(i)%corrL(:)      = Tdomain%sSubdomain(assocMat)%corrL(:)
-                    Tdomain%sSubdomain(i)%margiFirst(:) = Tdomain%sSubdomain(assocMat)%margiFirst(:)
-                    Tdomain%sSubdomain(i)%varProp(:)    = Tdomain%sSubdomain(assocMat)%varProp(:)
                 endif
             enddo
         endif
@@ -557,7 +543,9 @@ contains
             Tdomain%Ssource(nsrc)%Zsource = src%coords(3)
             Tdomain%Ssource(nsrc)%i_type_source = src%type
             Tdomain%Ssource(nsrc)%amplitude_factor = src%amplitude
-            Tdomain%Ssource(nsrc)%time_file = fromcstr(src%time_file)
+            if (src%func .eq. 5) then
+                Tdomain%Ssource(nsrc)%time_file = fromcstr(src%time_file)
+            end if
             ! Comportement temporel
             Tdomain%Ssource(nsrc)%i_time_function = src%func
             Tdomain%Ssource(nsrc)%cutoff_freq = src%freq ! func=2,4
@@ -592,6 +580,7 @@ contains
             nsrc = nsrc + 1
             Tdomain%logicD%any_source = .true.
             call c_f_pointer(src%next, src)
+
         end do
 
 
@@ -671,6 +660,7 @@ contains
         logical                      :: logic_scheme
         integer                      :: imat
         integer                      :: rg
+        integer                      :: nReqOut
 
         rg = Tdomain%rank
 
@@ -700,6 +690,14 @@ contains
         Tdomain%TimeD%alpha = 0.5
         Tdomain%TimeD%beta = 0.5
         Tdomain%TimeD%gamma = 1.
+        ! OUTPUT FIELDS
+        Tdomain%out_variables(0:8) = Tdomain%config%out_variables
+        if (sum(Tdomain%out_variables(0:8)) == 0) then
+            Tdomain%out_variables(3) = 1
+            Tdomain%out_variables(5) = 1
+        end if
+        Tdomain%nReqOut = sum(Tdomain%out_variables(0:3)) + 3*sum(Tdomain%out_variables(4:6)) + 6*sum(Tdomain%out_variables(7:8))
+
         Tdomain%TimeD%courant             = Tdomain%config%courant
         Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)
         call semname_read_input_meshfile(rg,Tdomain%mesh_file,fnamef) !indicates the path to the mesh file for this proc"
@@ -716,10 +714,6 @@ contains
             Tdomain%logicD%MPML = .true.
         end if
         Tdomain%logicD%grad_bassin = .false.
-        !Tdomain%logicD%plot_grid
-        !Tdomain%logicD%run_exec
-        !Tdomain%logicD%run_debug
-        !Tdomain%logicD%run_echo
         Tdomain%logicD%run_restart = Tdomain%config%prorep .ne. 0
         Tdomain%TimeD%iter_reprise = Tdomain%config%prorep_restart_iter
         Tdomain%TimeD%ncheck       = Tdomain%config%prorep_iter ! frequence de sauvegarde

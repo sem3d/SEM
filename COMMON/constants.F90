@@ -25,13 +25,15 @@ MODULE constants
     real(KIND=8), parameter :: M_2_SQRTPI = 1.12837916709551257390D0 ! 2/sqrt(pi)
     real(KIND=8), parameter :: M_SQRT2 = 1.41421356237309504880D0    ! sqrt(2)
     real(KIND=8), parameter :: M_SQRT1_2 = 0.70710678118654752440D0  ! 1/sqrt(2)
-
+    real(KIND=8), parameter :: M_1_3 =     0.33333333333333333333D0 ! 1/3
     ! Constantes physiques
 
     ! Parametres systemes
-    integer, parameter :: MAX_INT = 2147483647
+    integer     , parameter :: MAX_INT = 2147483647
+    real(KIND=8), parameter :: MAX_DOUBLE = 1.79769313486231570e+307
 
     ! Parametres algorithmes & code
+    integer, parameter :: nProp = 3
 
     ! Les fichiers capteurs sont ecrits toutes les NCAPT_CACHE sorties
     integer, parameter :: NCAPT_CACHE=100
@@ -42,7 +44,7 @@ MODULE constants
     integer, parameter :: MATERIAL_GRADIENT   = 2
     integer, parameter :: MATERIAL_EARTHCHUNK = 3
     integer, parameter :: MATERIAL_PREM       = 4
-    integer, parameter :: MATERIAL_RANDOM     = 5
+    integer, parameter :: MATERIAL_MULTIPLE     = 5
 
 
 CONTAINS

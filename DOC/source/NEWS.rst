@@ -26,7 +26,7 @@ depuis la dernière version :
 
 - Mailleur et SEM3D :
 
-  - condition de type dirichlet (P=0) pour les fluides (LG)
+  - condition de type Dirichlet (P=0) pour les fluides (LG)
 
 - Génération de champs aléatoires de propriétés pour les paramètres de Lamé (RC, ECP)
 
@@ -68,7 +68,7 @@ Version 2013.12
 - Nouvelles fonctions d'évolution temporelle des sources (square, tanh, ...)
 
 - La limite maximum du nombre de processeurs gérés par le mailleur est
-  portée à 8192 (1024 précédement). La consommation mémoire excessive
+  portée à 8192 (1024 précédemment). La consommation mémoire excessive
   (en nombre de processeurs * nombre de mailles) est résolue. On a
   maintenant une consommation proportionnelle à : nombre de mailles x
   nombre de processeurs voisins.

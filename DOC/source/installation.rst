@@ -7,7 +7,7 @@ Installation du code SEM3D
 ==========================
 
 
-Prérequis
+Pre-requis
 =========
 
 Le code :program:`SEM3D` nécessite deux (ou trois) outils externes pour sa compilation :
@@ -26,11 +26,11 @@ Le code :program:`SEM3D` nécessite deux (ou trois) outils externes pour sa comp
   :file:`include/`, etc...
 
   Les scripts de configuration :program:`CMake` de :program:`SEM` utilisent la commande
-  ``h5cc -show`` pour détecter le paramètrage de la librairie :program:`HDF5`.
+  ``h5cc -show`` pour détecter le paramétrage de la librairie :program:`HDF5`.
 
-- une librairie :program:`MPI` (:program:`OpenMPI` recommandée, mais :program:`Mpich` ou :program:`Intel MPI` doivent être compatibles).
+- une librairie :program:`MPI` (:program:`OpenMPI` recommandée, mais :program:`Mpich`, :program:`Intel MPI` ou :program:`SGI-MPT` doivent être compatibles).
 
-La génération de cette documentation nécessite de plus l'outil :program:`sphinx` ( http://www.sphinx.org ).
+La génération de cette documentation nécessite de plus l'outil :program:`sphinx` ( http://sphinx-doc.org/ ).
 
 
 Compilation
@@ -119,7 +119,7 @@ Quelques variantes :
 
 La compilation produit plusieurs exécutables :
 
-- ``build_src/SEM2D/sem2d.exe`` : Code SEM2D.
+- ``build_src/SEM2D/sem2d.exe`` : Code :program:`SEM2D`.
 
 - ``build_src/SEM3D/sem3d.exe`` : Code :program:`SEM3D`.
 
@@ -183,8 +183,8 @@ Pour les résoudre il faut avant tout comprendre le processus de compilation :
   compilation sont :
 
   - Un compilateur non testé : Fortran est un langage très mal
-    normalisé, ``gfortran`` est souvant plus strict que ``ifort``,
-    certaines formulation vont compiler avec l'un et pas avec l'aure.
+    normalisé, ``gfortran`` est souvent plus strict que ``ifort``,
+    certaines formulation vont compiler avec l'un et pas avec l'autre.
 
     Exemple notoire : ifort accepte une structure ``allocatable``
     comme membre d'une autre structure alors que gfortran va exiger un
@@ -215,7 +215,7 @@ Pour les résoudre il faut avant tout comprendre le processus de compilation :
         Fortran 77) va compiler mais produire des erreurs lors de
         l'exécution.
 
-      - Plus génant, gfortran est incapable d'utiliser un module
+      - Plus gênant, gfortran est incapable d'utiliser un module
         produit par une version majeur différente : on ne peut pas
         compiler SEM avec gfortran 4.8 et lui faire utiliser une
         librairie compilée avec gfortran 4.7

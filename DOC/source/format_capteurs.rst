@@ -7,15 +7,15 @@ Exemple ::
   
   format = txt; # ou hdf5
 
-  # 4 Capteurs specifies par leurs coordonnees dans le fichier spécifié
-  # Les sorties sont nommees pts0001 .. pts0004
+  # 4 Capteurs specifiés par leurs coordonnées
+  # Les sorties sont nommées pts0001 .. pts0004
   capteur "pts" {
     type = points;
     coords = "fichier_coords.txt";
     period = 1;
   };
-  # 50 Capteurs, sur une ligne specifiee par ses deux extremites.
-  # Les sorties sont nommees line0001 .. line0050
+  # 50 Capteurs, sur une ligne spécifiée par ses deux extrémités.
+  # Les sorties sont nommées line0001 .. line0050
   capteur "line" {
     type = line;
     counti = 50;
@@ -25,8 +25,7 @@ Exemple ::
   };
 
 
-
-Format du fichier de description des materiaux
+Format du fichier de description des matériaux
 ==============================================
 
 Exemple ::
@@ -44,7 +43,7 @@ Exemple ::
     };
 
     gradient {
-      plane = ax+by+cz+d; # defini le plan 0, le plan 1 est implicitement defini parallele avec (d+1) comme offset
+      plane = ax+by+cz+d; # défini le plan 0, le plan 1 est implicitement défini parallèle avec (d+1) comme offset
       z0 = 1000;
       z1 = 0;
     };

@@ -34,13 +34,13 @@ Chaque développeur est invité, s'il le peut, à suivre les règles suivantes :
 
    #. Ajouter ensuite l'allocation du pointeur (typiquement dans allocate_domain:allocate_domain.f90)
 
-   #. Utiliser le pointeur (dans le code éxecuté entre allocate_domain et deallocate_domain)
+   #. Utiliser le pointeur (dans le code exécuté entre allocate_domain et deallocate_domain)
 
 #. Vérifier qu'un pointeur est valide avant de l'utiliser. Si le pointeur est invalide, arrêter le programme et afficher un message d'erreur. Par exemple, en fortran : ::
 
      if ( .not. allocated ( ptr ) ) stop 'ERREUR - NomDeLaSubroutine : données invalides'
 
-#. En fortran, utiliser des fonctions / routines préférenciellement placées dans des modules. Le compilateur fortran ne fait pas de vérification sur les arguments (type, nombre) lorsqu'il compile une fonction / routine qui n'est pas placée dans un module
+#. En fortran, utiliser des fonctions / routines préférentiellement placées dans des modules. Le compilateur fortran ne fait pas de vérification sur les arguments (type, nombre) lorsqu'il compile une fonction / routine qui n'est pas placée dans un module
 
 #. En fortran, utiliser ``implicit none`` dans les fonctions / routines
 
@@ -48,7 +48,7 @@ Chaque développeur est invité, s'il le peut, à suivre les règles suivantes :
 
 #. Choisir des noms clairs et explicites pour nommer les fonctions / routines
 
-#. Limiter la taille (2 écrans maximum) de chaque fonction / routine. Redécouper une fonction / routine si elle devient trop grande
+#. Limiter la taille (2 écrans maximum) de chaque fonction / routine. Re-découper une fonction / routine si elle devient trop grande
 
 #. Initialiser chaque variable (et pointeur) avant de l'utiliser
 

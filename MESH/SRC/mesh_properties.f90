@@ -172,7 +172,7 @@ contains
             read*, nfile
             n_blocks = nfile   ! number of materials
             allocate(unv_files(0:nfile-1))
-            call mat_table_construct(tabmat)
+            call mat_table_construct_unv(tabmat)
             call lec_init_unv(unv_files)
 
             n_mate = size(tabmat,1)
@@ -1360,6 +1360,24 @@ contains
     end subroutine mat_table_construct
     !--------------------------------------------------------------------
     !--------------------------------------------------------------------
+    !-------------------------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------------------------
+    subroutine mat_table_construct_unv(mattab)
+        !- obtention of the material table array: important for the fluid/solid interfaces in mesh2spec
+        character, dimension(:), allocatable, intent(inout)  :: mattab
+        integer                 :: i,nblock
+
+        open(10,file="material.input",action="read",status="old")
+        read(10,*) nblock
+        allocate(mattab(0:nblock-1))
+        do i = 0,size(mattab)-1
+            read(10,"(a1)") mattab(i)
+        end do
+        close(10)
+
+    end subroutine mat_table_construct_unv
+    !--------------------------------------------------------------------
+    !--------------------------------------------------------------------
     subroutine mat_table_construct_ondafly(nmat,nmat_tot,matarray,mattab,pml_bool,pml_t,pml_b)
         !- obtention of the material table array: important for the fluid/solid interfaces in mesh2spec
         !     (case where mesh built on the fly)
@@ -1377,19 +1395,19 @@ contains
         if(size(mattab) == nmat) return
         do i = 0,nmat-1
             if(mattab(i) == 'F') mattab(icount:icount+7) = 'L' 
-            if(mattab(i) == 'S') mattab(icount:icount+7) = 'P' 
+            if(mattab(i) == 'S' .or. mattab(i) == 'R') mattab(icount:icount+7) = 'P'
             icount = icount + 8
         end do
 
         if(pml_b == 1)then
             if(mattab(nmat-1) == 'F') mattab(icount:icount+8) = 'L' 
-            if(mattab(nmat-1) == 'S') mattab(icount:icount+8) = 'P' 
+            if(mattab(nmat-1) == 'S' .or. mattab(nmat-1) == 'R') mattab(icount:icount+8) = 'P'
             icount = icount + 9
         end if
 
         if(pml_t == 1)then
             if(mattab(0) == 'F') mattab(icount:icount+8) = 'L' 
-            if(mattab(0) == 'S') mattab(icount:icount+8) = 'P' 
+            if(mattab(0) == 'S' .or. mattab(0) == 'R') mattab(icount:icount+8) = 'P'
             icount = icount + 9
         end if
 
@@ -1751,6 +1769,11 @@ contains
         integer, parameter  :: n = 2
         logical, parameter   :: VRAI = .true. , FAUX = .false.
 
+        integer :: nblock,j,jj,count_matR
+        integer :: seed
+        character(len=10) :: corr, marga,margb,margc
+        real(kind=8) :: lx,ly,lz,sigma2a,sigma2b,sigma2c
+
         icount = 0
         tr = 0.0001d0
 
@@ -1896,6 +1919,22 @@ contains
             write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,FAUX,VRAI,VRAI,FAUX,k,0
         end if
 
+        !! Lines dedicated to Random Field
+        write(10,*) ; write(10,*)
+        count_matR = 0
+        do j = 0,nmat-1
+            if(mattab(j)=='R') then
+                open(20,file="mater.in",action="read",status="old")
+                read(20,*) nblock
+                do jj = 0,(nblock+1+count_matR)
+                    read(20,*)
+                end do
+                read(20,*)  corr, lx, ly, lz, marga ,sigma2a, margb ,sigma2b, margc ,sigma2c,seed
+                write(10,*) corr, lx, ly, lz, marga ,sigma2a, margb ,sigma2b, margc ,sigma2c,seed
+                count_matR = count_matR + 1
+                close(20)
+            end if
+        end do
 
         close(10)
 
