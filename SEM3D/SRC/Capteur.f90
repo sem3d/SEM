@@ -321,7 +321,7 @@ contains
         integer :: j
         character(len=MAX_FILE_SIZE) :: fnamef
         character(len=20) :: sizeChar
-        write(*, *) size(capteur%valuecache)
+
         if (capteur%icache==0) return
 
         call semname_capteur_type(capteur%nom,".txt",fnamef)
