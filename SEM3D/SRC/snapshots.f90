@@ -958,10 +958,10 @@ contains
                         idx = irenum(el%Iglobnum(i,j,k))
                         if (domains(idx)==domain_type) then
                             valence(idx) = valence(idx)+1
-                            out_fields%displ(:,idx) = field_displ(i,j,k,:)
-                            out_fields%veloc(:,idx) = out_fields%veloc(:,idx) + field_veloc(i,j,k,:)
-                            out_fields%accel(:,idx) = out_fields%accel(:,idx) + field_accel(i,j,k,:)
-                            out_fields%press(idx) = field_press(i,j,k)
+                            if (out_variables(OUT_DEPLA)==1) out_fields%displ(:,idx) = field_displ(i,j,k,:)
+                            if (out_variables(OUT_VITESSE)==1) out_fields%veloc(:,idx) = out_fields%veloc(:,idx) + field_veloc(i,j,k,:)
+                            if (out_variables(OUT_ACCEL)==1) out_fields%accel(:,idx) = out_fields%accel(:,idx) + field_accel(i,j,k,:)
+                            if (out_variables(OUT_PRESSION)==1) out_fields%press(idx) = field_press(i,j,k)
 
                             if (flag_gradU .ge. 1) then
                                 eps_trace = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
