@@ -55,7 +55,7 @@ contains
 
     subroutine physical_part_deriv(ngllx,nglly,ngllz,hTprimex,hprimey,hprimez,InvGrad, &
         Scalp, dS_dx,dS_dy,dS_dz)
-        !- partial derivatives of the scalar property Scalp, with respect to xi,eta,zeta
+        !- partial derivatives of the scalar property Scalp, with respect to x,y,z
         implicit none
         integer, intent(in)  :: ngllx,nglly,ngllz
         real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: hTprimex

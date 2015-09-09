@@ -4,6 +4,7 @@
 Format de input.spec
 ====================
 
+.. _input.spec:
 
 Syntaxe du fichier
 ==================
@@ -33,7 +34,7 @@ sections ``source`` ou ``capteurs``).
 
 Les paramètres peuvent apparaître dans un ordre quelconque au sein
 d'une section (ou du corps principal), *à l'exception du paramètre*
-``dim`` qui doit être **obligatoirement** declaré avant les autres
+``dim`` qui doit être **obligatoirement** déclaré avant les autres
 pour valider les tailles des vecteurs.
 
 Un paramètre valide peut-être ignoré si il n'est pas activé par un
@@ -92,6 +93,27 @@ Le fichier suivant correspond à celui d'un cas test : ::
     gamma = 1;             # gamma (Newmark parameter)
   };
 
+  capteurs "ligne" {
+    type = line;
+    counti = 50;
+    point0 = 0. 0. 0.;
+    point1 = 0. 5000. 0.;
+    periode = 1;
+  };
+
+  # champs à sortir dans les snapshots et dans les traces
+  out_variables {
+    enP =  0 ;
+    enS =  0 ;
+    evol = 1 ;
+    pre =  0 ;
+    dis  = 0 ;
+    vel  = 0 ;
+    acc  = 0 ;
+    edev = 0 ;
+    sdev = 0 ;
+  };
+
 
 Section globale
 ===============
@@ -128,6 +150,7 @@ model             section                     (futur: non utilisé)
 neumann           section                     (futur: non utilisé)
 verbose_level     entier
 capteurs          section                     Définition d'un ensemble de capteurs
+out_variables     section  pre/vel sorties    Nom de champs à sortir en output (snapshots/traces).
 ================  =======  =================  ================================================================
 
 Les paramètres suivants sont reconnus mais non utilisés dans cette version :
@@ -205,16 +228,16 @@ tau               réel     --                 Un temps caractéristique :math:`
 freq              réel     --                 Une fréquence :math:`f_c`
 band              réel(4)  --                 Description des bornes :math:`f_1,f_2,f_3,f_4` pour tf_heaviside
 ts                réel     --                 Un offset de temps :math:`t_0`
-gamma             réel     --
-time_file         chaîne   --                 Fichier contenant la source
+gamma             réel     --                 Paramètre pour décrire les fonctions 
+time_file         chaîne   --                 Fichier contenant la source ``gabor``, ``square``, ``tanh``
 amplitude         réel     --                 Facteur multiplicatif appliqué à la source temporelle
-Q                 réel     --                 
-Y                 réel     --                 
-X                 réel     --                  
-L                 réel     --                 
-v                 réel     --                 
-d                 réel     --                 
-a                 réel     --                 
+Q                 réel     --                 Amplitude de la charge mobile
+Y                 réel     --                 Paramètre lié au sol pour la charge mobile
+X                 réel     --                 Paramètre lié au sol pour la charge mobile 
+L                 réel     --                 Longueur critique pour la charge mobile
+v                 réel     --                 Vitesse de la charge mobile
+d                 réel     --                 Distance entre les deux charges mobiles
+a                 réel     --                 Distance critique entre les deux charges mobiles
 ================  =======  =================  =================================================================
 
 Note:
@@ -251,11 +274,23 @@ Les fonctions temporelles sont:
 
      f(t) = -2 (t-t_0) \exp\left(-\frac{(t-t_0)^2}{\tau^2}\right)
 
+.. _fig-source-gauss:
+
+.. figure:: ../figures/gaussian.eps
+   :scale: 60
+   :align: center
+
 - ``ricker`` :
 
   .. math::
 
      f(t) = \left(1 - 2 \left(\pi \frac{t-\tau}{T_c}\right)^2\right) \exp\left(-\left(\pi \frac{t-\tau}{T_c}\right)^2\right)
+
+.. _fig-source-ricker:
+
+.. figure:: ../figures/ricker.eps
+   :scale: 60
+   :align: center 
 
 - ``tf_heaviside`` :
 
@@ -271,6 +306,13 @@ Les fonctions temporelles sont:
              &   & \frac{1}{2}\left(1+\cos\left(\pi\frac{f-f_2}{f_2-f_1}\right)\right) \text{ if } f_1 < f < f_2
      \end{eqnarray}
 
+.. _fig-source-heaviside:
+
+.. figure:: ../figures/heaviside_freq.eps
+   :scale: 60
+   :align: center
+
+
 - ``gabor`` :
 
   .. math::
@@ -278,6 +320,15 @@ Les fonctions temporelles sont:
      \sigma(t) = 2\pi f_c (t-t_0)
 
      f(t) = \exp(-\left(\frac{\sigma(t)}{\gamma}\right)^2) \cos(\sigma(t)+\omega) \tau
+
+.. _fig-source-gabor:
+
+.. figure:: ../figures/gabor_1.eps
+   :scale: 60
+   :align: center
+.. figure:: ../figures/gabor_2.eps
+   :scale: 60
+   :align: center
 
 - ``file`` : Les données sont lues dans un fichier indiqué par le paramètre ``time_file``
 
@@ -287,12 +338,24 @@ Les fonctions temporelles sont:
 
      f(t) = 1 - (1+\frac{t}{T_c})\exp(-\frac{t}{T_c})
 
+.. _fig-source-spice_bench:
+
+.. figure:: ../figures/spice_bench.eps
+   :scale: 60
+   :align: center
+
+
 - ``sinus`` :
 
   .. math::
 
      f(t) = \sin(2\pi f_c (t-t_0))
 
+.. _fig-source-sinus:
+
+.. figure:: ../figures/sinus.eps
+   :scale: 60
+   :align: center
 
 - ``square`` : Un carré *arrondi*
  
@@ -300,11 +363,24 @@ Les fonctions temporelles sont:
 
      f(t) = \frac{\exp(2.*\gamma*(x-t_0))-1.}{\exp(2.*\gamma*(x-t_0))+1}+\frac{\exp(2.*\gamma*(t_0+\tau-x))-1.}{\exp(2.*\gamma*(t_0+\tau-x))+1}
 
+.. _fig-source-square:
+
+.. figure:: ../figures/square.eps
+   :scale: 60
+   :align: center
+
 - ``tanh``: Une tangente hyperbolique
 
   .. math::
 
      f(t) = \frac{1}{2}\tanh(\gamma*(t-t_0)+1)
+
+.. _fig-source-tanh:
+
+.. figure:: ../figures/tanh.eps
+   :scale: 60
+   :align: center
+
 
 - ``dm``: M function
 
@@ -324,7 +400,7 @@ Mot-clef             Type          Valeur par défaut  Description
 save_snap            bool          false              Sauvegarde des snapshots
 save_interval        réel          --                 Interval (temps physique) de sauvegarde des snapshots
 select               voir note     --                 Sélection des éléments à inclure dans les snapshots
-deselect             voir note     --                 Désélection des éléments à inclure dans les snapshots
+deselect             voir note     --                 Dé-sélection des éléments à inclure dans les snapshots
 group_outputs        entier        32                 Écriture d'un fichier sortie par *group_outputs* processeurs
 output_total_energy  bool                             2D uniquement, calcul de l'énergie totale
 ===================  ============  =================  ============================================================
@@ -349,7 +425,7 @@ Ainsi : ::
   select material = 1;
   selec box = -500 -10 -10 500 10 10;
 
-Va déselectionner tous les éléments, puis resélectionner tous les éléments ayant le matériau 1,
+Va désélectionner tous les éléments, puis resélectionner tous les éléments ayant le matériau 1,
 ainsi que tous les éléments dont le centre se situe dans la boite spécifiée.
 
 Autre exemple : ::
@@ -416,4 +492,22 @@ Description des type de capteurs :
   = P_0 + \frac{i}{N_i-1} \overrightarrow{P_0 P_1} + \frac{j}{N_j-1}
   \overrightarrow{P_0 P_2}`
 
+Section ``out_variables``
+==================
+
+Chaque mot-clé est associé à un domaine spécifique requis comme sortie (snapshots / traces). Champs de sortie par défaut (lorsque tous les mots clés sont mis à 0) sont ceux de pression et de vitesse.
+
+================  =======  =================  =================================================================
+Mot-clef          Type     Valeur par défaut  Description
+================  =======  =================  =================================================================
+enP               bool     0                  énergie ondes P
+enS               bool     0                  énergie ondes S
+evol              bool     0                  déformation volumétrique
+pre               bool     1                  pression
+dis               bool     0                  vecteur des déplacements
+vel               bool     1                  vecteur des vitesses
+acc               bool     0                  vecteur des accélérations
+edev              bool     0                  tenseur des déformations déviatoriques
+sdev              bool     0                  tenseur des contraintes déviatoriques
+================  =======  =================  =================================================================
 

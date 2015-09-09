@@ -173,6 +173,7 @@ subroutine RUN_PREPARED(Tdomain)
     use mdefinitions
     use mshape8
     use mshape27
+    use build_prop_files
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -181,6 +182,7 @@ subroutine RUN_PREPARED(Tdomain)
     type(domain), intent(inout) :: Tdomain
     integer :: rg
     integer :: code, i, ierr, group, subgroup
+    integer :: mat
 
     rg = Tdomain%rank
     if(rg == 0) print*
@@ -198,11 +200,11 @@ subroutine RUN_PREPARED(Tdomain)
     ! Read_input peut avoir besoin du repertoire de logs
     call MPI_Barrier(Tdomain%communicateur, code)
 
-!- reading external data: run parameters (geometry, materials, time evolution,..)
+ !- reading external data: run parameters (geometry, materials, time evolution,..)
     if(rg == 0) write(*,*) "--> READING INPUT PARAMETERS AND DATA"
     call read_input(Tdomain, code)
 
-!- Create subdomains communicators
+ !- Create subdomains communicators
     group = rg/Tdomain%ngroup
     subgroup = mod(rg,Tdomain%ngroup)
     call MPI_Comm_split(Tdomain%communicateur, group, subgroup, Tdomain%comm_output, ierr)
@@ -210,7 +212,7 @@ subroutine RUN_PREPARED(Tdomain)
     call MPI_Comm_rank(Tdomain%comm_output, Tdomain%output_rank, code)
 
 
-!- eventual plane wave (transmission process: Bielak & Cristiano 1984)
+ !- eventual plane wave (transmission process: Bielak & Cristiano 1984)
     if (Tdomain%logicD%super_object_local_present) then
         if (Tdomain%super_object_type == "P") then
             if(rg == 0) write(*,*) "--> DEFINING PLANE WAVE PROPERTIES"
@@ -218,14 +220,14 @@ subroutine RUN_PREPARED(Tdomain)
         endif
     endif
 
-!- eventual Neumann boundary conditions
+ !- eventual Neumann boundary conditions
     if (Tdomain%logicD%neumann_local_present) then
         if (rg == 0) write(*,*) "--> DEFINING NEUMANN PROPERTIES"
         call define_Neumann_properties(Tdomain)
     endif
     call MPI_Barrier(Tdomain%communicateur, code)
 
-!- discretization (collocation) points' properties
+ !- discretization (collocation) points' properties
     if (rg == 0) write (*,*) "--> COMPUTING GAUSS-LOBATTO-LEGENDRE PROPERTIES"
     call compute_GLL(Tdomain)
     call MPI_Barrier(Tdomain%communicateur, code)
@@ -242,7 +244,7 @@ subroutine RUN_PREPARED(Tdomain)
     call global_numbering (Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
 
-!- geometrical properties for integrals' calculations
+ !- geometrical properties for integrals' calculations
     if (rg == 0) write (*,*) "--> COMPUTING SHAPE FUNCTIONS AND THEIR DERIVATIVES"
     if (Tdomain%n_nodes == 8) then
         ! Linear interpolation
@@ -256,7 +258,21 @@ subroutine RUN_PREPARED(Tdomain)
     endif
     call MPI_Barrier(Tdomain%communicateur,code)
 
-!- timestep value - > Courant, or Courant -> timestep
+ ! - defining random subdomains
+    if(Tdomain%any_Random .and. (.not.Tdomain%logicD%run_restart)) then
+        if(rg == 0) write(*,*) "--> DEFINING RANDOM SUBDOMAINS"
+        call define_random_subdomains(Tdomain, rg)
+    end if
+
+ !- writing properties files
+    if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
+    if(Tdomain%logicD%run_restart) then
+        if (rg == 0) write (*,*) " Warning!! This is a reprise, properties are expected to be on the 'prop' folder (it won't be rewriten)"
+    else
+        call create_prop_files (Tdomain, rg)
+    end if
+
+ !- timestep value - > Courant, or Courant -> timestep
     if (rg == 0) write (*,*) "--> COMPUTING COURANT PARAMETER"
     call compute_Courant(Tdomain,rg)
     call MPI_Barrier(Tdomain%communicateur,code)
@@ -266,12 +282,25 @@ subroutine RUN_PREPARED(Tdomain)
     call allocate_domain(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
 
-!- elementary properties (mass matrices, PML factors,..)
+ !- elementary properties (mass matrices, PML factors,..)
     if (rg == 0) write (*,*) "--> COMPUTING MASS MATRIX AND INTERNAL FORCES COEFFICIENTS "
     call define_arrays(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
 
-!- anelastic properties
+ ! - changing "material_type" of random subdomains
+    do mat = 0, Tdomain%n_mat - 1
+        if(Tdomain%sSubDomain(mat)%material_type == "R") Tdomain%sSubDomain(mat)%material_type = "S"
+    end do
+    !OBS: in the future, after writing properties files for non-homogeneous media
+    !we could redefine the "material_type" according only to its behaviour for calculations
+    !it would ease syntax
+    !Ex: S for solid, F for fluid, P for solid PML, L for fluid PML
+
+! !- creating properties visualization files
+!    if (rg == 0) write (*,*) "--> CREATING PROPERTIES VISUALIZATION FILES "
+!    call create_prop_visu_files (Tdomain, rg)
+
+ !- anelastic properties
     if (Tdomain%n_sls>0) then
         if (Tdomain%aniso) then
             if (rg == 0) write (*,*) "--> COMPUTING ANISOTROPIC ATTENUATION FEATURES"
@@ -282,7 +311,7 @@ subroutine RUN_PREPARED(Tdomain)
         endif
     endif
 
-!- eventual classical seismic point sources: their spatial and temporal properties
+ !- eventual classical seismic point sources: their spatial and temporal properties
     if (Tdomain%logicD%any_source) then
         if (rg == 0) write (*,*) "--> COMPUTING SOURCE PARAMETERS "
         call SourcePosition (Tdomain)
@@ -298,8 +327,8 @@ subroutine RUN_PREPARED(Tdomain)
         end do
     endif
 
-!- time: initializations. Eventual changes if restarting from a checkpoint (see
-!         routine  RUN_INIT_INTERACT)
+ !- time: initializations. Eventual changes if restarting from a checkpoint (see
+ !         routine  RUN_INIT_INTERACT)
     Tdomain%TimeD%rtime = 0
     Tdomain%TimeD%NtimeMin = 0
     call MPI_Barrier(Tdomain%communicateur,code)
@@ -546,8 +575,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !---------------------------------------------------------!
         if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) &
             call OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
-
-
+              
 !---------------------------------------------------------!
     !- RECEIVERS'OUTPUTS
 !---------------------------------------------------------!

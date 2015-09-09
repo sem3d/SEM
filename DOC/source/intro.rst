@@ -19,7 +19,7 @@ de type :
 Les conditions d'absorption en bord de domaine utilisent la méthode
 *Perfectly Matched Layer (PML)* ([BER94]_, [FES05]_).
 
-Un outil de prétraitement permet de convertir et partitionner (avec
+Un outil de pré-traitement permet de convertir et partitionner (avec
 :program:`Metis`) des maillages au format :program:`Abaqus` ou
 :program:`Ideas` (UNV), ou de créer des maillages cartésiens
 structurés.
@@ -56,7 +56,7 @@ Exemple des notations utilisées dans ce document :
 
 - Une variable d'environnement : :envvar:`HDF5_ROOT`
 
-Parfois le programme et sa commande Unix ont le même nom, on essaira de faire la distinction, par exemple :
+Parfois le programme et sa commande Unix ont le même nom, on essaiera de faire la distinction, par exemple :
 
 "Pour configurer un programme utilisant :program:`CMake` il faut taper la commande ``cmake``."
 
@@ -125,4 +125,18 @@ Le code source est versionné avec :program:`Git` et livré dans une archive con
   On étudiera comment obtenir le meilleur des deux méthodes dans une
   prochaine version.
 
+Programmes similaires
+---------------------
+
+`SPECFEM3D <https://geodynamics.org/cig/software/specfem3d/>`_ [KOM02]_
+
+`SPEED <https://mox.polimi.it/speed/SPEED/Home.html>`_ [MAZ13]_
+
+`Necktar++ <http://www.nektar.info/>`_ [CAN15]_
+
+.. [KOM02] Komatitsch D. (2002). The Spectral-Element Method, Beowulf Computing, and Global Seismology. *Science 298*, 5599.
+
+.. [MAZ13] Mazzieri I., M. Stupazzini, R. Guidotti and C. Smerzini (2013). SPEED: SPectral Elements in Elastodynamics with Discontinuous Galerkin: a non-conforming approach for 3D multi-scale problems. *Int. J. Numer. Meth. Eng. 12*, 991-1010.
+
+.. [CAN15] Cantwell C. D., D. Moxey, et al. (2015). Nektar++: An open-source spectral/hphp element framework. *Comp. Phys. Comm.*. In press.
 

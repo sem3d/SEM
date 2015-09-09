@@ -56,15 +56,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/shape27.f90
     ${PRJ}/SRC/ondelette.f90
     ${PRJ}/SRC/define_random.f90
-    ${PRJ}/SRC/build_coord_mask.f90
+    ${PRJ}/SRC/build_prop_files.f90
     ${PRJ}/SRC/find_location.f90
-
-#    ${PRJ}/SRC/get_ScalarProperty_Edge2Elem.f90
-#    ${PRJ}/SRC/get_ScalarProperty_Elem2Edge.f90
-#    ${PRJ}/SRC/get_ScalarProperty_Elem2Face.f90
-#    ${PRJ}/SRC/get_ScalarProperty_Elem2Vertex.f90
-#    ${PRJ}/SRC/get_ScalarProperty_Face2Elem.f90
-#    ${PRJ}/SRC/get_ScalarProperty_Vertex2Elem.f90
 
     ${PRJ}/SRC/indexation.f90
     ${PRJ}/SRC/algo_comm.f90

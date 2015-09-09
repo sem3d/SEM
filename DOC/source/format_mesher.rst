@@ -4,11 +4,12 @@
 Format des fichiers matériau
 ============================
 
+.. _material.input: 
 
 Format de mat.dat
 =================
 
-Ce fichier est seulement nécessaire dans le cas où le maillage est realisé par le mailleur automatique.
+Ce fichier est seulement nécessaire dans le cas où le maillage est réalisé par le mailleur automatique.
 Le fichier ``mat.dat`` doit contenir (les commentaires, après le *#*
 sont facultatifs) ::
 
@@ -48,7 +49,7 @@ La deuxième ligne décrit le type de matériau (``S`` matériau solide et
 ``F`` matériau fluide).Pour chaque matériau, on déclare
 successivement, la vitesse de propagation de l'onde de pression,
 vitesse de l'onde de cisaillement, la densité du matériau, le nombre
-de gll dans les trois directions( ``x``, ``y`` et ``z``), le pas de
+de GLLs dans les trois directions( ``x``, ``y`` et ``z``), le pas de
 temps (ignoré dans la version actuelle) et les paramètres :math:`Q_\kappa` et :math:`Q_\mu`
 pour l'atténuation des ondes P et S.
 
@@ -107,6 +108,35 @@ Pour le cas où le maillage n'est pas automatique, le ficher doit contenir ::
   F 2 10. T F T T T F 0.
   F 2 10. T F F F T F 0. 
 
-Les lettres ``T`` et ``F`` (True et False) sont utilisées pour définir les directions de l'atténuation de la PML. Trois couples de deux 
-drapeaux T ou F indiquant si la PML attenue dans les directions X, Y et Z respectivement 
-(premier flag du couple) et dans le sens positif (T) ou négatif de l'axe.
+-  Le format du fichier est le suivant :
+  
+  - la première ligne contient le nombre de milieux décrits
+  
+  - Une ligne par milieu, contenant :
+  
+    - le type de milieu (Solide, Fluide, PML solide (P)m PML fluide (L) )
+  
+    - Les vitesses d'ondes P, et S
+  
+    - La densité
+  
+    - L'ordre des éléments en X, Y, Z (Y est ignoré en 2D)
+  
+    - Un pas de temps (ignoré dans la version actuelle)
+  
+    - Les attenuations d'ondes P et S
+  
+  - 2 lignes de commentaires
+  
+  - Pour chaque milieu de type PML (donc P ou L), une ligne indiquant les directions d'atténuation,
+    et le type d'attenuation :
+  
+    - Un caractère pour le type de PML (filtrante (T), ou standard (F))
+  
+    - paramètres n et A pour les PML filtrantes
+  
+    - 3 couples de deux drapeaux T ou F (pour True False) indiquant si la PML atténue dans
+      les directions X, Y et Z respectivement (premier flag du couple) et dans le sens positif (T)
+      ou négatif de l'axe.
+  
+    - La fréquence de coupure en cas de PML filtrante

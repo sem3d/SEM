@@ -69,7 +69,7 @@ subroutine SourcePosition (Tdomain)
             Tdomain%sSource(n_src)%proc = rg
         else
             Tdomain%sSource(n_src)%proc = -1
-        end if
+        end if        
         ! On trouve le processeur qui contient la src
         call MPI_AllReduce(Tdomain%sSource(n_src)%proc, src_proc, 1, MPI_INTEGER, &
                            MPI_MAX, Tdomain%communicateur, ierr)

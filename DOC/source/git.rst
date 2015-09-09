@@ -19,7 +19,9 @@ Les commandes de ce tutoriel concerne la version unix, mais sont
 
     gitk --all &
 
-.. figure:: images/git_fig010.png
+.. _fig-git-fig010:
+
+.. figure:: ../figures/git_fig010.png
    :scale: 50
    :align: center
 
@@ -62,7 +64,7 @@ Pour partager des sources avec d'autres développeurs, il faut commencer par fai
 
 Ensuite entre deux répertoires on utilise les commandes ``git push/pull/fetch``
 
-Si on veut une utilisation qui "ressemble" à l'utilisation de :program:`subversion` il faut créer un *repository* central (*ie* un dépot
+Si on veut une utilisation qui "ressemble" à l'utilisation de :program:`subversion` il faut créer un *repository* central (*ie* un dépôt
 de sources) avec ``git clone --bare``
 
 Donc si on part de l'exemple ci-dessus en supposant que le *repository* initial se trouve dans ::
@@ -141,7 +143,7 @@ Commandes utiles pour les commit
 
     git commit –m  "Modif sur fichier "
 
-  Il est recommendé de faire un commit pour figer un ensemble de modifications cohérentes (développement spécifique, bug, mise à jour de la documentation, ...). Si plusieurs types de modifications ont été faites, il est préférable de faire plusieurs commits.
+  Il est recommandé de faire un commit pour figer un ensemble de modifications cohérentes (développement spécifique, bug, mise à jour de la documentation, ...). Si plusieurs types de modifications ont été faites, il est préférable de faire plusieurs commits.
 
 - Pour modifier le message d’un commit ::
 
@@ -153,7 +155,7 @@ Commandes pour modifier un commit
 
 On peut avoir besoin de modifier un commit : par exemple pour le
 fusionner avec un autre, pour modifier son message ou pour le découper
-en plusieur parties.
+en plusieurs parties.
 
 - Pour modifier un commit, à savoir changer son message ou le
   fusionner avec un autre, il faut remonter dans l’historique (ici on
@@ -162,10 +164,10 @@ en plusieur parties.
     git rebase –i HEAD~2
 
   Cette commande va présenter dans un éditeur de texte (variable :envvar:`EDITOR`) la liste des *commits*
-  sélectionnés avec en regard une action à effecturer (par défaut : ``apply``, c'est à dire appliquer le *commit*).
+  sélectionnés avec en regard une action à effectuer (par défaut : ``apply``, c'est à dire appliquer le *commit*).
 
   Si on sauvegarde le fichier sans le modifier, la commande va
-  simplement réappliquer les *commits* dans le même ordre.
+  simplement appliquer de nouveau les *commits* dans le même ordre.
 
   On peut déplacer des lignes, dans ce cas l'ordre d'application
   change.
@@ -176,10 +178,10 @@ en plusieur parties.
 
   Pour supprimer un *commit* il suffit de supprimer la ligne qui lui correspond dans le fichier.
 
-  Lorsqu'on sauvegarde et quitte l'éditeur, l'outil va éxecuter les commandes du fichier dans l'ordre.
+  Lorsqu'on sauvegarde et quitte l'éditeur, l'outil va exécuter les commandes du fichier dans l'ordre.
 
   Si des *commits* ont la commande ``edit``, ou s'ils ne s'appliquent
-  pas correctement à cause d'une édition précédante ou d'un changement
+  pas correctement à cause d'une édition précédente ou d'un changement
   d'ordre, l'outil s'arrête et rend la main à l'utilisateur qui peut
   modifier les fichiers concernés, valider et/ou ajouter des *commits*
   avec les commandes ``git add ...; git commit``.

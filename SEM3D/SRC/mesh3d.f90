@@ -14,15 +14,17 @@ subroutine read_mesh_file_h5(Tdomain)
     use sem_c_bindings
     use displayCarvalhol
     use semdatafiles, only : MAX_FILE_SIZE
+    use constants
     implicit none
     !
     type(domain), intent(inout) :: Tdomain
     integer :: rg, num_processors
-    integer :: i,j
+    integer :: i, j, k, mat, nod
     logical :: neumann_log
     !
     integer(HID_T) :: fid, proc_id
     integer :: hdferr, ierr
+    integer :: code
     integer, allocatable, dimension(:,:) :: itemp2, itemp2b
     integer, allocatable, dimension(:)   :: itemp, itempb
     real,    allocatable, dimension(:,:) :: rtemp2
@@ -30,6 +32,7 @@ subroutine read_mesh_file_h5(Tdomain)
     character(len=10) :: proc_grp
     integer, allocatable, dimension(:)   :: nb_elems_per_proc
     character(Len=MAX_FILE_SIZE) :: fname
+    double precision, dimension(:), allocatable :: tempGlobMin, tempGlobMax
     !
     rg = Tdomain%rank
     !
@@ -73,8 +76,15 @@ subroutine read_mesh_file_h5(Tdomain)
         stop "Introduction of Neumann B.C.: mesh and input files not in coincidence."
     endif
 
-    !Subdomains allocation
+    !Subdomains allocation and Min/Max bounds initialization
     allocate(Tdomain%sSubdomain(0:Tdomain%n_mat-1))
+    do i = 0, Tdomain%n_mat-1
+        allocate(Tdomain%sSubDomain(i)%MinBound(0:Tdomain%n_dime-1))
+        allocate(Tdomain%sSubDomain(i)%MaxBound(0:Tdomain%n_dime-1))
+
+        Tdomain%sSubDomain(i)%MinBound = MAX_DOUBLE
+        Tdomain%sSubDomain(i)%MaxBound = -MAX_DOUBLE
+    end do
 
     ! Global nodes' coordinates for each proc.
     call read_dataset(fid, "local_nodes", rtemp2)
@@ -87,20 +97,44 @@ subroutine read_mesh_file_h5(Tdomain)
 
     ! Elements (material and solid or fluid and if fluid: Dirichlet boundary?)
     call read_dataset(fid, "material", itemp2)
+
     if (Tdomain%n_elem /= size(itemp2,2)) then
         write(*,*) "N_elem:", Tdomain%n_elem
         write(*,*) "itemp:", size(itemp2,1), size(itemp2,2)
         stop "Incoherent number of elements"
     end if
+
     allocate(Tdomain%specel(0:Tdomain%n_elem-1))
+    allocate (Tdomain%subD_exist(0:Tdomain%n_mat-1))
+    Tdomain%subD_exist(:) = .false.
+
     do i=0,Tdomain%n_elem-1
         call init_element(Tdomain%specel(i))
         Tdomain%specel(i)%mat_index = itemp2(1,i+1)
         Tdomain%specel(i)%solid = itemp2(2,i+1) .ne. 0
         Tdomain%specel(i)%fluid_dirich = itemp2(3,i+1) .ne. 0
         Tdomain%specel(i)%OUTPUT = .true.
-    enddo
+        Tdomain%subD_exist(itemp2(1,i+1)) = .true.
+        !Tdomain%sSubdomain(itemp2(1,i+1))%nElem = 1 + Tdomain%sSubdomain(itemp2(1,i+1))%nElem !Counting number of elements by subdomain per proc
+    end do
+
     deallocate(itemp2)
+
+!    if (Tdomain%any_Random) then
+!        !Building element list in each subdomain
+!        do i=0,Tdomain%n_mat-1
+!            allocate (Tdomain%sSubdomain(i)%elemList(0:Tdomain%sSubdomain(i)%nElem-1))
+!            Tdomain%sSubdomain(i)%elemList(:) = -1 !-1 to detect errors
+!            Tdomain%sSubdomain(i)%nElem       = 0 !Using to count the elements in the next loop
+!        enddo
+!        do i=0,Tdomain%n_elem-1
+!            mat = Tdomain%specel(i)%mat_index
+!            Tdomain%sSubdomain(mat)%elemList(Tdomain%sSubdomain(mat)%nElem) = i
+!            Tdomain%sSubdomain(mat)%nElem = Tdomain%sSubdomain(mat)%nElem + 1
+!        enddo
+!
+!        allocate (Tdomain%subDComm(0:Tdomain%n_mat - 1))
+!    end if
 
     ! Read elements definitions
     ! n_nodes : number of control nodes (8 or 27)
@@ -109,8 +143,41 @@ subroutine read_mesh_file_h5(Tdomain)
     do i = 0, Tdomain%n_elem-1
         allocate(Tdomain%specel(i)%Control_Nodes(0:Tdomain%n_nodes-1))
         Tdomain%specel(i)%Control_Nodes(0:Tdomain%n_nodes-1) = itemp2(:,i+1)
-    enddo
+        mat = Tdomain%specel(i)%mat_index
+
+        do j = 0, Tdomain%n_nodes-1
+            nod = Tdomain%specel(i)%Control_Nodes(j)
+            do k = 0, Tdomain%n_dime-1
+                !Max
+                if(Tdomain%Coord_nodes(k, nod) > Tdomain%sSubDomain(mat)%MaxBound(k)) &
+                Tdomain%sSubDomain(mat)%MaxBound(k) = Tdomain%Coord_nodes(k, nod)
+                !Min
+                if(Tdomain%Coord_nodes(k, nod) < Tdomain%sSubDomain(mat)%MinBound(k)) &
+                Tdomain%sSubDomain(mat)%MinBound(k) = Tdomain%Coord_nodes(k, nod)
+            end do
+        end do
+    end do
+
+    allocate(tempGlobMin(0:Tdomain%n_dime -1))
+    allocate(tempGlobMax(0:Tdomain%n_dime -1))
+    do mat = 0, Tdomain%n_mat - 1
+        do k = 0, Tdomain%n_dime -1
+            call MPI_ALLREDUCE(Tdomain%sSubDomain(mat)%MinBound(k),tempGlobMin(k),1,MPI_DOUBLE_PRECISION,MPI_MIN,Tdomain%communicateur,code)
+            call MPI_ALLREDUCE(Tdomain%sSubDomain(mat)%MaxBound(k),tempGlobMax(k),1,MPI_DOUBLE_PRECISION,MPI_MAX,Tdomain%communicateur,code)
+            Tdomain%sSubDomain(mat)%MinBound(k) = tempGlobMin(k)
+            Tdomain%sSubDomain(mat)%MaxBound(k) = tempGlobMax(k)
+        end do
+    end do
+    deallocate(tempGlobMin)
+    deallocate(tempGlobMax)
+
     deallocate(itemp2)
+
+    !do mat = 0, Tdomain%n_mat-1
+    !    write(*,*) "Mat ", mat
+    !    write(*,*) "max = ", Tdomain%sSubDomain(mat)%MaxBound
+    !    write(*,*) "min = ", Tdomain%sSubDomain(mat)%MinBound
+    !end do
 
     ! Faces and elements properties related to faces
     call read_dataset(fid, "faces", itemp2)
