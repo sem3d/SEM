@@ -397,7 +397,20 @@ void Mesh3D::compute_local_connectivity(MeshPart& loc)
 
 int Mesh3D::read_materials(const std::string& str)
 {
-    m_materials.push_back(Material());
+    FILE* f = fopen(str.c_str(), "r");
+    int nmats;
+    char type;
+    double vs, vp, rho;
+    int ngllx, nglly, ngllz;
+    double dt, Qp, Qmu;
+
+    fscanf(f, "%d", &nmats);
+    for(int k=0;k<nmats;++k) {
+        fscanf(f, "%c %lf %lf %lf %d %d %d %lf %lf %lf",
+               &type, &vs, &vp, &rho, &ngllx, &nglly, &ngllz,
+               &dt, &Qp, &Qmu);
+        m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx, nglly, ngllz));
+    }
 }
 
 int Mesh3D::add_material()
@@ -480,6 +493,17 @@ void Mesh3D::read_mesh_hexa8(hid_t file_id)
 
 void Mesh3D::read_mesh_hexa27(hid_t file_id)
 {
+}
+
+void Mesh3D::build_vertex_to_elem_map()
+{
+    int nel = n_elems();
+    m_vertex_to_elem.init(nel);
+    for(int i=0;i<nel;++i) {
+        for(int k=m_elems_offs[i];k<m_elems_offs[i+1];++k) {
+            m_vertex_to_elem.add_link(m_elems[k], i);
+        }
+    }
 }
 
 

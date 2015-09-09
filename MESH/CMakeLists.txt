@@ -44,6 +44,7 @@ add_executable(sem_part_h5
   ${PRJ}/CSRC/main_h5.cpp
   ${PRJ}/CSRC/mesh_h5_output.cpp
   ${PRJ}/CSRC/mesh.cpp
+  ${PRJ}/CSRC/meshpart.cpp
   )
 
 

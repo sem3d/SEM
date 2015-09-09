@@ -10,6 +10,8 @@
 #include "material.h"
 #include "mesh.h"
 #include "mesh_h5_output.h"
+#include "meshpart.h"
+
 using namespace std;
 
 
@@ -29,17 +31,16 @@ int main(int argc, char**argv)
     mesh.read_materials("material.input");
     mesh.read_mesh_file(argv[2]);
     mesh.partition_mesh(NPROCS);
+    mesh.build_vertex_to_elem_map();
 
     for(int part=0;part<NPROCS;++part) {
-	MeshPart loc;
-	mesh.compute_local_part(part, loc);
-	output_mesh_part_h5(loc, mesh);
-	output_mesh_part_xmf(loc, mesh);
+	Mesh3DPart loc(mesh, part);
+
+	loc.compute_part();
+	loc.output_mesh_part();
+	loc.output_mesh_part_xmf();
     }
     output_all_meshes_xmf(NPROCS);
-    for(int part=0;part<NPROCS;++part) {
-	output_mesh_part_h5_comm(part, mesh);
-    }
 }
 
 /* Local Variables:                                                        */

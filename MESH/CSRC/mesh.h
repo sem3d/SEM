@@ -12,6 +12,7 @@
 #include <map>
 #include "material.h"
 #include "h5helper.h"
+#include "vertex_elem_map.h"
 
 template <int N>
 struct Elem {
@@ -117,6 +118,7 @@ struct shared_part_t
     std::vector<int> edges_orient;
 };
 
+
 /**
   This class holds the parts of a mesh
   local to one processor
@@ -133,6 +135,8 @@ public:
     int n_nodes()    { return n_l2g.size(); }
 
     int global_node_idx(int k) { return n_l2g[k]; }
+
+
 public:
     int part;
     int n_elems_per_proc;
@@ -179,13 +183,13 @@ public:
 	m_elems_offs.push_back(0);
     }
 
-    int n_nodes() { return m_elems.size(); }
-    int n_vertices() { return m_xco.size(); }
-    int n_elems() { return m_mat.size(); }
-    int n_parts() { return n_procs; }
-    int n_materials() { return m_materials.size(); }
+    int n_nodes()     const { return m_elems.size(); }
+    int n_vertices()  const { return m_xco.size(); }
+    int n_elems()     const { return m_mat.size(); }
+    int n_parts()     const { return n_procs; }
+    int n_materials() const { return m_materials.size(); }
 
-    int nodes_per_elem() { return 8; }
+    int nodes_per_elem() const { return 8; }
 
     int add_node(double x, double y, double z);
     int add_elem(int mat_idx, const HexElem& el);
@@ -197,7 +201,7 @@ public:
 
     void partition_mesh(int n_procs);
 
-    int elem_part(int iel) { return m_procs[iel]; }
+    int elem_part(int iel) const { return m_procs[iel]; }
 
     void compute_local_part(int part, MeshPart& loc);
 
@@ -211,6 +215,19 @@ public:
     int n_shared_edges() const { return -1; }
     int n_shared_vertices() const { return -1; }
 
+    void get_elem_nodes(int el, int nodes[8]) {
+        int off = m_elems_offs[el];
+        for(int k=0;k<7;++k) nodes[k] = m_elems[off+k];
+    }
+    /// Returns domain number for an element:
+    /// for now domain number == domain type:
+    /// 1: fluid pml
+    /// 2: solid pml
+    /// 3: fluid
+    /// 4: solid
+    int get_elem_domain(int el) const {
+        return m_materials[el].domain();
+    }
 public:
     // attributes
     int n_procs;
@@ -230,6 +247,8 @@ public:
     std::map< ordered_edge_t, edge_t > m_edge_map; // Maps edges' vertices to edge definition
     std::multimap<int,int> m_elem_proc_map;
     std::map<std::pair<int,int>, shared_part_t> m_shared;
+    VertexElemMap  m_vertex_to_elem;
+    void build_vertex_to_elem_map();
 protected:
     std::vector<int> m_procs; ///< size=n_elems; elem->proc association
 
