@@ -264,15 +264,15 @@ subroutine RUN_PREPARED(Tdomain)
         call define_random_subdomains(Tdomain, rg)
     end if
 
- !- writing properties files
-    if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
-    if(Tdomain%logicD%run_restart) then
-        if (rg == 0) write (*,*) " Warning!! This is a reprise, properties are expected to be on the 'prop' folder (it won't be rewriten)"
-    else
-        call create_prop_files (Tdomain, rg)
+    !- writing properties files
+    ! TODO: Make sure this isn't called if we don't need it !!!
+    if (.false.) then
+        if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
+        if(.not. Tdomain%logicD%run_restart) then
+            call create_prop_files (Tdomain, rg)
+        end if
     end if
-
- !- timestep value - > Courant, or Courant -> timestep
+    !- timestep value - > Courant, or Courant -> timestep
     if (rg == 0) write (*,*) "--> COMPUTING COURANT PARAMETER"
     call compute_Courant(Tdomain,rg)
     call MPI_Barrier(Tdomain%communicateur,code)
