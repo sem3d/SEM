@@ -692,10 +692,6 @@ contains
         Tdomain%TimeD%gamma = 1.
         ! OUTPUT FIELDS
         Tdomain%out_variables(0:8) = Tdomain%config%out_variables
-        if (sum(Tdomain%out_variables(0:8)) == 0) then
-            Tdomain%out_variables(3) = 1
-            Tdomain%out_variables(5) = 1
-        end if
         Tdomain%nReqOut = sum(Tdomain%out_variables(0:3)) + 3*sum(Tdomain%out_variables(4:6)) + 6*sum(Tdomain%out_variables(7:8))
 
         Tdomain%TimeD%courant             = Tdomain%config%courant

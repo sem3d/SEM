@@ -189,36 +189,37 @@ int expect_source(yyscan_t scanner, sem_config_t* config)
     return 1;
 }
 
-// START MODIFS FILIPPO 07/15
 int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
 {
-	int tok, err;
+    int tok, err, k;
 
-	tok = skip_blank(scanner);
-	if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
-	do {
+    for(k=0;k<9;++k) {
+        config->out_variables[k] = 0;
+    }
     tok = skip_blank(scanner);
+    if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
+    do {
+        tok = skip_blank(scanner);
 
-	if (tok!=K_ID) break;
-        
+        if (tok!=K_ID) break;
+
         if (cmp(scanner,"enP")) err=expect_eq_int(scanner, &(config->out_variables[0]),1);
-	else if (cmp(scanner,"enS")) err=expect_eq_int(scanner, &(config->out_variables[1]),1);
+        else if (cmp(scanner,"enS")) err=expect_eq_int(scanner, &(config->out_variables[1]),1);
         else if (cmp(scanner,"evol")) err=expect_eq_int(scanner, &(config->out_variables[2]),1);
         else if (cmp(scanner,"pre")) err=expect_eq_int(scanner, &(config->out_variables[3]),1);
         else if (cmp(scanner,"dis")) err=expect_eq_int(scanner, &(config->out_variables[4]),1);
-	else if (cmp(scanner,"vel")) err=expect_eq_int(scanner, &(config->out_variables[5]),1);
-	else if (cmp(scanner,"acc")) err=expect_eq_int(scanner, &(config->out_variables[6]),1);
-	else if (cmp(scanner,"edev")) err=expect_eq_int(scanner, &(config->out_variables[7]),1);
-	else if (cmp(scanner,"sdev")) err=expect_eq_int(scanner, &(config->out_variables[8]),1);
+        else if (cmp(scanner,"vel")) err=expect_eq_int(scanner, &(config->out_variables[5]),1);
+        else if (cmp(scanner,"acc")) err=expect_eq_int(scanner, &(config->out_variables[6]),1);
+        else if (cmp(scanner,"edev")) err=expect_eq_int(scanner, &(config->out_variables[7]),1);
+        else if (cmp(scanner,"sdev")) err=expect_eq_int(scanner, &(config->out_variables[8]),1);
 
-	if (err<=0) return 0;
-	if (!expect_eos(scanner)) { return 0; }
+        if (err<=0) return 0;
+        if (!expect_eos(scanner)) { return 0; }
     } while(1);
 
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
     return 1;
 }
-// END MODIFS FILIPPO 07/15
 
 int expect_time_scheme(yyscan_t scanner, sem_config_t* config)
 {
@@ -668,7 +669,15 @@ void init_sem_config(sem_config_t* cfg)
     cfg->fmax = 1.0;
     cfg->material_type = 1;
     cfg->stations = NULL;
-    memset(cfg->out_variables, 1, 9*sizeof(int));
+    cfg->out_variables[0] = 0; // Energy P
+    cfg->out_variables[1] = 0; // Energy S
+    cfg->out_variables[2] = 0; // Eps vol
+    cfg->out_variables[3] = 1; // Pression
+    cfg->out_variables[4] = 1; // Deplacement
+    cfg->out_variables[5] = 1; // Vitesse
+    cfg->out_variables[6] = 1; // Accel
+    cfg->out_variables[7] = 0; // Deformation Dev
+    cfg->out_variables[8] = 0; // Contrainte Dev
 
 }
 
