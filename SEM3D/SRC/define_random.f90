@@ -92,10 +92,8 @@ contains
                 Tdomain%sSubdomain(mat)%MinBound(:)   = Tdomain%sSubdomain(assocMat)%MinBound(:)
                 Tdomain%sSubdomain(mat)%MaxBound(:)   = Tdomain%sSubdomain(assocMat)%MaxBound(:)
 
-                !if(rg == 0) write(*,*) ""
                 if(rg == 0) write(*,*) "Material ", mat, " is a random PML linked to material ", assocMat
             end if
-            !write(*,*) "Chosen seed mat ", mat, "= ", Tdomain%sSubdomain(mat)%chosenSeed(:)
         end do
 
         if(rg == 0) write(*,*) ""
@@ -118,14 +116,13 @@ contains
         real        , intent(out), dimension(0:, 0:) :: prop !Properties
         !LOCAL
         integer :: ngllx,nglly,ngllz, assocMat
-        integer :: iPoint, RFpoint
+        integer :: iPoint
         integer :: i, j, k, m, n !counters
         integer :: error, code
-        integer :: LimPML1, LimPML2, LimPML3
         integer :: nProp = 3
         integer :: effecMethod
         logical, dimension(:), allocatable :: calculate
-        real, dimension(0:2) :: pointProp, avgProp;
+        real, dimension(0:2) :: avgProp;
         integer :: contrib
 
         !Defining which properties will be calculated
@@ -147,92 +144,59 @@ contains
         end if
 
         avgProp = [Tdomain%sSubDomain(mat)%Ddensity, &
-                   Tdomain%sSubDomain(mat)%DLambda,  &
-                   Tdomain%sSubDomain(mat)%DMu]
+            Tdomain%sSubDomain(mat)%DLambda,  &
+            Tdomain%sSubDomain(mat)%DMu]
         assocMat = Tdomain%sSubdomain(mat)%assocMat
         ngllx    = Tdomain%sSubDomain(mat)%NGLLx
         nglly    = Tdomain%sSubDomain(mat)%NGLLy
         ngllz    = Tdomain%sSubDomain(mat)%NGLLz
 
-        !call dispCarvalhol(prop(1:20,:), "prop(1:20,:) GAUSS", "F30.10")
-
-!        if(rg == 0) write(*,*) ">>>>Creating Standard Gaussian Field mat = ", mat
-!        if(rg == 0) write(*,*) "corrL                = ", Tdomain%sSubDomain(mat)%corrL
-!        if(rg == 0) write(*,*) "corrMod              = ", Tdomain%sSubDomain(mat)%corrMod
-!        if(rg == 0) write(*,*) "Nmc (nProp)          = ", nProp
-!        if(rg == 0) write(*,*) "chosenSeed           = ", Tdomain%sSubDomain(mat)%chosenSeed
-!        if(rg == 0) write(*,*) "MinBound             = ", Tdomain%sSubDomain(mat)%MinBound
-!        if(rg == 0) write(*,*) "MaxBound             = ", Tdomain%sSubDomain(mat)%MaxBound
-
-        !call dispCarvalhol(prop(1:20,:), "prop(1:20,:) RAW", "F30.10")
-
         if(rg == 0) write(*,*) " "
         if(rg == 0) write(*,*) "    Generating Standard Gaussian Field"
         select case(effecMethod)
-        case( 1 ) !Victor
-            if(rg == 0) write(*,*) "        Isotropic method"
-            call createStandardGaussianFieldUnstructVictor(&
-                Tdomain%GlobCoord(:, :),                   &
-                Tdomain%sSubDomain(mat)%corrL,             &
-                Tdomain%sSubDomain(mat)%corrMod,           &
-                nProp,                                     &
-                prop(:, :),                                &
-                Tdomain%sSubDomain(mat)%chosenSeed,        &
-                Tdomain%sSubDomain(mat)%MinBound,          &
-                Tdomain%sSubDomain(mat)%MaxBound,          &
-                Tdomain%communicateur,                     &
-                calculate)
+            case( 1 ) !Victor
+                if(rg == 0) write(*,*) "        Isotropic method"
+                call createStandardGaussianFieldUnstructVictor(&
+                    Tdomain%GlobCoord(:, :),                   &
+                    Tdomain%sSubDomain(mat)%corrL,             &
+                    Tdomain%sSubDomain(mat)%corrMod,           &
+                    nProp,                                     &
+                    prop(:, :),                                &
+                    Tdomain%sSubDomain(mat)%chosenSeed,        &
+                    Tdomain%sSubDomain(mat)%MinBound,          &
+                    Tdomain%sSubDomain(mat)%MaxBound,          &
+                    Tdomain%communicateur,                     &
+                    calculate)
 
-        case( 2 ) !Shinozuka
-            if(rg == 0) write(*,*) "        Shinozuka's method"
-            call createStandardGaussianFieldUnstructShinozuka (&
-                Tdomain%GlobCoord,                             &
-                Tdomain%sSubDomain(mat)%corrL,                 &
-                Tdomain%sSubDomain(mat)%corrMod,               &
-                nProp,                                         &
-                prop(:, :),                                    &
-                Tdomain%sSubDomain(mat)%chosenSeed,            &
-                Tdomain%sSubDomain(mat)%MinBound,              &
-                Tdomain%sSubDomain(mat)%MaxBound,              &
-                Tdomain%communicateur,                         &
-                calculate)
+            case( 2 ) !Shinozuka
+                if(rg == 0) write(*,*) "        Shinozuka's method"
+                call createStandardGaussianFieldUnstructShinozuka (&
+                    Tdomain%GlobCoord,                             &
+                    Tdomain%sSubDomain(mat)%corrL,                 &
+                    Tdomain%sSubDomain(mat)%corrMod,               &
+                    nProp,                                         &
+                    prop(:, :),                                    &
+                    Tdomain%sSubDomain(mat)%chosenSeed,            &
+                    Tdomain%sSubDomain(mat)%MinBound,              &
+                    Tdomain%sSubDomain(mat)%MaxBound,              &
+                    Tdomain%communicateur,                         &
+                    calculate)
 
-        case default
-            write(*,*) "ERROR! The chosen method is not an avaiable choice"
-            call MPI_ABORT(Tdomain%communicateur, error, code)
+            case default
+                write(*,*) "ERROR! The chosen method is not an avaiable choice"
+                call MPI_ABORT(Tdomain%communicateur, error, code)
         end select
-
-        !call dispCarvalhol(prop(1:20,:), "prop(1:20,:) GAUSS", "F30.10")
-
-!        !////////Transfoming Stantard Gaussian Field
-!        if(rg == 0) write(*,*) ">>>>Transforming Standard Gaussian Field mat = ", mat
-!
-!        i = 0
-!        if(rg == 0) write(*,*) "Dens------------ "
-!        if(rg == 0) write(*,*) "margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
-!        if(rg == 0) write(*,*) "average      = ", avgProp(i)
-!        if(rg == 0) write(*,*) "variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
-!        i = 1
-!        if(rg == 0) write(*,*) "Lambda----------- "
-!        if(rg == 0) write(*,*) "margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
-!        if(rg == 0) write(*,*) "average      = ", avgProp(i)
-!        if(rg == 0) write(*,*) "variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
-!        i = 2
-!        if(rg == 0) write(*,*) "Mu--------------- "
-!        if(rg == 0) write(*,*) "margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
-!        if(rg == 0) write(*,*) "average      = ", avgProp(i)
-!        if(rg == 0) write(*,*) "variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
 
         if(rg == 0) write(*,*) " "
         if(rg == 0) write(*,*) "        Multi-Variate Transformation"
         if(rg == 0) write(*,*) "        	MATERIAL -----!!!!!!!! ,", mat
-	do i = 0, nProp - 1
+        do i = 0, nProp - 1
             if(rg == 0 .and. i == 0) write(*,*) "Dens------------- "
             if(rg == 0 .and. i == 1) write(*,*) "Lambda----------- "
             if(rg == 0 .and. i == 2) write(*,*) "Mu--------------- "
 
             contrib = 0
-	    if(Tdomain%subD_exist(mat)) contrib = 1
+            if(Tdomain%subD_exist(mat)) contrib = 1
             call multiVariateTransformation (          &
                 Tdomain%sSubDomain(mat)%margiFirst(i), &
                 avgProp(i),                            &
@@ -268,7 +232,7 @@ contains
         real        , intent(inout), dimension(0:, 0:) :: prop !Properties that should be modified
 
         !LOCAL
-        integer :: ngllx,nglly,ngllz, assocMat
+        integer :: ngllx,nglly,ngllz
         integer :: iPoint
         integer :: i, j, k, m, n !counters
         integer :: LimPML1, LimPML2, LimPML3
@@ -279,7 +243,6 @@ contains
         allocate(pointProp(0:size(prop,2)-1))
 
         !Propagating Properties over the PML
-        !if(rg == 0) write(*,*) "  Propagating Properties over the PML"
 
         do n = 0, Tdomain%n_elem-1
             mat_index = Tdomain%specel(n)%mat_index
@@ -314,7 +277,7 @@ contains
                                 end do
                             enddo
                         enddo
-!
+                    !
                     !Face Y oriented
                     case(1)
                         if(verbose) write(*,*) "Face Y oriented"
@@ -334,7 +297,6 @@ contains
                         if(verbose) write(*,*) "Face Z oriented"
                         do i = 0, ngllx-1
                             do j = 0, nglly-1
-                                !if(ipoint > size(randMu, 1)) write (*,*) "ERROR ipoint = ", ipoint, "and size(randMu. 1) = ", size(randMu, 1)
                                 ipoint       = Tdomain%specel(n)%Iglobnum(i,j,LimPML3)
                                 pointProp(:) = prop(ipoint, :)
                                 do k = 0, ngllz-1
@@ -348,7 +310,6 @@ contains
                     case(3)
                         if(verbose) write(*,*) "Edge in XY"
                         do k = 0, ngllz-1
-                            !if(ipoint > size(randMu, 1)) write (*,*) "ERROR ipoint = ", ipoint, "and size(randMu. 1) = ", size(randMu, 1)
                             ipoint       = Tdomain%specel(n)%Iglobnum(LimPML1,LimPML2,k)
                             pointProp(:) = prop(ipoint, :)
                             do i = 0, ngllx-1
@@ -363,7 +324,6 @@ contains
                     case(4)
                         if(verbose) write(*,*) "Edge in YZ"
                         do i = 0, ngllx-1
-                            !if(ipoint > size(randMu, 1)) write (*,*) "ERROR ipoint = ", ipoint, "and size(randMu. 1) = ", size(randMu, 1)
                             ipoint       = Tdomain%specel(n)%Iglobnum(i, LimPML2,LimPML3)
                             pointProp(:) = prop(ipoint, :)
                             do j = 0, nglly-1
@@ -422,9 +382,6 @@ contains
         integer     , intent(in)  :: rg, mat
         !LOCAL
         integer :: code, error
-        integer(kind= MPI_OFFSET_KIND ) :: filePos
-        integer, dimension( MPI_STATUS_SIZE ) :: status
-        integer :: nbBitesInt, seedSize
 
         if(.not.(Tdomain%sSubDomain(mat)%material_type == "R")) then
             write(*,*) "!!!ERROR:'define_random_seed' was called wrongly"
@@ -440,11 +397,6 @@ contains
             else
                 call calculate_random_seed(Tdomain%sSubdomain(mat)%chosenSeed)
             end if
-            !write(*,*) "mat        = ", mat
-            !write(*,*) "nbBitesInt = ", nbBitesInt
-            !write(*,*) "sizeRand   = ", sizeRand
-            !write(*,*) "mat*nbBitesInt*sizeRand = ", mat*nbBitesInt*sizeRand
-            !write(*,*) "...%chosenSeed          = ", Tdomain%sSubdomain(mat)%chosenSeed
         end if
 
         call MPI_BCAST (Tdomain%sSubdomain(mat)%chosenSeed,             &
@@ -470,54 +422,47 @@ contains
         !LOCAL
         integer :: error, code
 
-        !write(*,*) ">>>>Defining PML orientation"
         !/////////////Defining PML orientation
         !Face X oriented
         if  (        Tdomain%sSubDomain(mat)%Px   .and. &
             (.not.Tdomain%sSubDomain(mat)%Py)  .and. &
             (.not.Tdomain%sSubDomain(mat)%Pz)) then
             dir = 0
-            !write(*,*) "face_X"
         !Face Y oriented
         elseif ((.not.Tdomain%sSubDomain(mat)%Px)  .and. &
             Tdomain%sSubDomain(mat)%Py   .and. &
             (.not.Tdomain%sSubDomain(mat)%Pz)) then
             dir = 1
-            !write(*,*) "face_Y"
         !Face Z oriented
         elseif ((.not.Tdomain%sSubDomain(mat)%Px) .and. &
             (.not.Tdomain%sSubDomain(mat)%Py) .and. &
             Tdomain%sSubDomain(mat)%Pz) then
             dir = 2
-            !write(*,*) "face_Z"
 
         !Edge in XY
         elseif (     Tdomain%sSubDomain(mat)%Px  .and. &
             (     Tdomain%sSubDomain(mat)%Py) .and. &
             (.not.Tdomain%sSubDomain(mat)%Pz)) then
             dir = 3
-            !write(*,*) "edge_XY"
 
         !Edge in YZ
         elseif ((.not.Tdomain%sSubDomain(mat)%Px) .and. &
             (      Tdomain%sSubDomain(mat)%Py) .and. &
             (      Tdomain%sSubDomain(mat)%Pz)) then
             dir = 4
-            !write(*,*) "edge_YZ"
 
-       !Edge in ZX
+        !Edge in ZX
         elseif (      Tdomain%sSubDomain(mat)%Px   .and. &
             ((.not.Tdomain%sSubDomain(mat)%Py)) .and. &
             (      Tdomain%sSubDomain(mat)%Pz)) then
             dir = 5
-            !write(*,*) "edge_ZX"
 
-       !Vertex in XYZ
+        !Vertex in XYZ
         elseif (  Tdomain%sSubDomain(mat)%Px   .and. &
             (  Tdomain%sSubDomain(mat)%Py)  .and. &
             (  Tdomain%sSubDomain(mat)%Pz)) then
             dir = 6
-            !write(*,*) "vertex_XYZ"
+
         !Undefined PML
         else
             write(*,*) "ERROR in mat ", mat, " (PML) definition (directions), check 'material.input'"

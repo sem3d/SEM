@@ -9,13 +9,13 @@ module statistics_RF
     use mpi
 
     interface set_Statistics_MPI
-       module procedure set_StatisticsStructured_MPI,   &
-           set_StatisticsUnstruct_MPI
+        module procedure set_StatisticsStructured_MPI,   &
+            set_StatisticsUnstruct_MPI
     end interface set_Statistics_MPI
 
     interface set_CompStatistics
-       module procedure set_CompStatisticsStructured,   &
-           set_CompStatisticsUnstruct
+        module procedure set_CompStatisticsStructured,   &
+            set_CompStatisticsUnstruct
     end interface set_CompStatistics
 
 contains
@@ -23,7 +23,7 @@ contains
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
     subroutine set_StatisticsUnstruct_MPI(randField, rang, &
-                                          evntAvg, evntStdDev, nDim, comm, contrib)
+        evntAvg, evntStdDev, nDim, comm, contrib)
         implicit none
 
         !INPUT
@@ -34,11 +34,10 @@ contains
         double precision, dimension(:), intent(out) :: evntAvg, evntStdDev;
 
         !LOCAL VARIABLES
-        double precision, dimension(:)   , allocatable :: avg;
         double precision, dimension(:),    allocatable :: sumRF, sumRFsquare, &
             totalSumRF, totalSumRFsquare;
-        integer :: Nmc, nPoints, xNTotal, xNEffect;
-        integer :: i, j, code, nb_procs;
+        integer :: Nmc, xNTotal, xNEffect;
+        integer :: code, nb_procs;
 
         if(rang == 0) write(*,*) "        rang = ", rang
         if(rang == 0) write(*,*) "        evntAvg = ", evntAvg
@@ -47,7 +46,7 @@ contains
 
         Nmc = size(randField, 2)
 
-	write(*,*) "RANG = ", rang
+        write(*,*) "RANG = ", rang
 
         if(rang == 0) write(*,*) "        Nmc = ", Nmc
 
@@ -80,7 +79,7 @@ contains
         call MPI_REDUCE(sumRFsquare, totalSumRFsquare, Nmc, MPI_DOUBLE_PRECISION, &
             MPI_SUM, 0, comm, code)
         call MPI_REDUCE(xNEffect, xNTotal, 1, MPI_INTEGER, &
-                        MPI_SUM, 0, comm, code)
+            MPI_SUM, 0, comm, code)
 
         if(rang == 0) then
             !by Event
@@ -184,11 +183,10 @@ contains
         double precision                           , intent(out) :: globalAvg, globalStdDev;
 
         !LOCAL VARIABLES
-        double precision, dimension(:)   , allocatable :: avg;
         double precision, dimension(:),    allocatable :: sumRF, sumRFsquare, &
             totalSumRF, totalSumRFsquare;
         integer :: Nmc, nPoints, nDim, xNTotal;
-        integer :: i, j, code, nb_procs;
+        integer :: code, nb_procs;
 
         Nmc          = size(randField, 2)
         nPoints      = size(randField, 1)
@@ -238,11 +236,6 @@ contains
                 - (globalAvg)**2)
             globalCorrL  = globalCorrL / nb_procs
 
-            !call DispCarvalhol(evntAvg   , "evntAvg")
-            !call DispCarvalhol(evntStdDev, "evntStdDev")
-            !write(*,*) "globalAvg    = ", globalAvg
-            !write(*,*) "globalStdDev = ", globalStdDev
-
         end if
 
         if(allocated(sumRF))       deallocate(sumRF)
@@ -266,7 +259,7 @@ contains
         double precision, dimension(:, :), allocatable :: covMatrix;
         integer :: Nmc, nPoints, nDim, xNTotal;
         integer :: beg, step, end, plane, radius, rStart, rEnd, elemStep, patternStep;
-        integer :: i, j, code, nb_procs;
+        integer :: i, j;
 
         Nmc     = size(randField, 2)
         nPoints = size(randField, 1)
@@ -277,8 +270,6 @@ contains
         call set_CovMatrix(randField, covMatrix)
 
         do i = 1, nDim
-            !if (rang == 0) write(*,*) "Dim = ",   i,"----------------------"
-            !nPlanes = xNTotal/xNStep(i)
             call get_SequenceParam(i, 1, xNStep, beg, elemStep, end) !establishing some reference parameters
             patternStep = end - beg + elemStep
             do j = 1, xNTotal
@@ -294,11 +285,6 @@ contains
                 procCorrL(i) =   procCorrL(i)                                      &
                     - sum(covMatrix(j, rStart:rEnd:step))/2 &
                     + covMatrix(j,j)/2
-
-                !if (rang == 0) write(*,*) ""
-                !if (rang == 0) write(*,*) "Plane = ", plane, "patternStep = ", patternStep
-                !if (rang == 0) write(*,*) j, ">> beg = ", beg, "step  = ", step, "end = ", end
-                !if (rang == 0) write(*,*) "radius ", radius, "Doubles from = ", rStart, "    to ", rEnd
 
             end do
             procCorrL(i) = ((xMax(i)-xMin(i))/xNStep(i))*procCorrL(i)/xNTotal
@@ -359,7 +345,7 @@ contains
         double precision, dimension(:), allocatable, intent(out) :: compEvntAvg, compEvntStdDev, compGlobCorrL;
         double precision, intent(out) :: compGlobAvg, compGlobStdDev;
         !LOCAL VARIABLES
-        integer :: i, Nmc, nPoints,  nDim;
+        integer :: Nmc, nPoints,  nDim;
 
         nPoints = size(all_RandField, 1);
         Nmc     = size(all_RandField, 2);
@@ -393,7 +379,7 @@ contains
         double precision, dimension(:), allocatable, intent(out) :: compEvntAvg, compEvntStdDev, compGlobCorrL;
         double precision, intent(out) :: compGlobAvg, compGlobStdDev;
         !LOCAL VARIABLES
-        integer :: i, Nmc, nPoints,  nDim, nbProcs;
+        integer :: Nmc, nPoints,  nDim, nbProcs;
         integer, dimension(:), allocatable :: totalXNStep;
         double precision, dimension(:), allocatable :: totalXRange, totalXMax, totalXMin;
 
@@ -420,7 +406,6 @@ contains
         totalXRange    = totalXMax - totalXMin
 
         call calculateAverageCorrL(all_RandField, totalXRange, totalXNStep, compGlobCorrL) !To change by set_CorrelationLengthStructured
-        !call set_CorrelationLengthStructured(all_RandField, totalXMax, totalXMin, totalXNStep, compGlobCorrL)
 
         if(allocated(totalXRange)) deallocate(totalXRange);
         if(allocated(totalXNStep)) deallocate(totalXNStep);

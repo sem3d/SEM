@@ -15,50 +15,46 @@ module build_prop_files
 
     character(len=15) :: procFileName = "prop"
     character(len=50) :: h5folder  = "./prop/h5", &
-                         XMFfolder = "./prop", &
-                         h5_to_xmf = "./h5"
+        XMFfolder = "./prop", &
+        h5_to_xmf = "./h5"
 
 contains
-!---------------------------------------------------------------------------
-!---------------------------------------------------------------------------
-!---------------------------------------------------------------------------
-!---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
     subroutine create_prop_files(Tdomain, rg)
 
-		!INPUTS
+        !INPUTS
         type (domain), intent (INOUT), target :: Tdomain
-    	integer      , intent(IN) :: rg
+        integer      , intent(IN) :: rg
 
-    	!LOCAL
-        integer :: code, error, coord
-        integer :: mat, assocMat, n
+        !LOCAL
+        integer :: mat, assocMat
         integer :: randMethod = 1 !1 for Isotropic method, 2 for Shinozuka's
         real               , dimension(:)   , allocatable :: avgProp;
         integer            , dimension(:)   , allocatable :: nSubDPoints;
         double precision   , dimension(:, :), allocatable :: prop !Properties
         character(len=110) , dimension(:)   , allocatable :: HDF5NameList
 
-	    !if(rg == 0) write(*,*) "-> Allocating"
-	    allocate(avgProp(0:nProp-1)) !Obs: should have nProp declared before
-	    allocate(prop(0:size(Tdomain%GlobCoord,2)-1, 0:nProp-1)) !Subdomain properties Matrix ((:,0) = Dens, (:,1) = Lambda, (:,2) = Mu) per proc
-	    allocate(HDF5NameList(0:Tdomain%n_mat-1))
-	    allocate(nSubDPoints(0:Tdomain%n_mat-1))
-	    HDF5NameList(:) = "not_Used"
+        allocate(avgProp(0:nProp-1)) !Obs: should have nProp declared before
+        allocate(prop(0:size(Tdomain%GlobCoord,2)-1, 0:nProp-1)) !Subdomain properties Matrix ((:,0) = Dens, (:,1) = Lambda, (:,2) = Mu) per proc
+        allocate(HDF5NameList(0:Tdomain%n_mat-1))
+        allocate(nSubDPoints(0:Tdomain%n_mat-1))
+        HDF5NameList(:) = "not_Used"
 
         !Writing hdf5 files
-            if(rg == 0) write(*,*)
-	    do mat = 0, Tdomain%n_mat - 1
-            !write(*,*) "Material ", mat, " is of type ", Tdomain%sSubDomain(mat)%material_type
-	        if(propOnFile(Tdomain, mat)) then
-	            if(rg == 0) write(*,*) "  Material ", mat, " will have properties on file"
+        if(rg == 0) write(*,*)
+        do mat = 0, Tdomain%n_mat - 1
+            if(propOnFile(Tdomain, mat)) then
+                if(rg == 0) write(*,*) "  Material ", mat, " will have properties on file"
                 assocMat = Tdomain%sSubdomain(mat)%assocMat
                 avgProp  = [Tdomain%sSubDomain(mat)%Ddensity, &
-                            Tdomain%sSubDomain(mat)%DLambda,  &
-                            Tdomain%sSubDomain(mat)%DMu]
+                    Tdomain%sSubDomain(mat)%DLambda,  &
+                    Tdomain%sSubDomain(mat)%DMu]
 
-	            !write(*,*) "-> Writing file for material", mat, "( ", assocMat,") in proc ", rg
                 if(Tdomain%sSubDomain(assocMat)%material_type == "S".or. &
-                   Tdomain%sSubDomain(assocMat)%material_type == "P") then
+                    Tdomain%sSubDomain(assocMat)%material_type == "P") then
                     prop(:,0) = avgProp(0)
                     prop(:,1) = avgProp(1)
                     prop(:,2) = avgProp(2)
@@ -68,22 +64,20 @@ contains
                 end if
                 if(rg == 0) write(*,*) "  Writing hdf5 files"
                 call write_ResultHDF5Unstruct_MPI(Tdomain%GlobCoord, prop, trim(procFileName)//"_read", &
-                                                  rg, trim(h5folder), Tdomain%communicateur,   &
-                                                  ["_proc", "_subD"], [rg, mat], HDF5NameList(mat))
+                    rg, trim(h5folder), Tdomain%communicateur,   &
+                    ["_proc", "_subD"], [rg, mat], HDF5NameList(mat))
             end if
         end do
 
         !Writing XMF File
         if(rg == 0) write(*,*) "  Writing XMF file"
-        !write(*,*) "HDF5NameList in rang ", rg, " = ", HDF5NameList
         nSubDPoints(:) = size(Tdomain%GlobCoord,2)
         call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, Tdomain%subD_exist, Tdomain%n_dime, &
-                             trim(string_join(procFileName,"-TO_READ")), rg, trim(XMFfolder),     &
-                             Tdomain%communicateur, trim(h5_to_xmf),                               &
-                             ["Density","Lambda ","Mu     "])
+            trim(string_join(procFileName,"-TO_READ")), rg, trim(XMFfolder),     &
+            Tdomain%communicateur, trim(h5_to_xmf),                               &
+            ["Density","Lambda ","Mu     "])
 
         !Deallocating
-        !if(rg == 0) write(*,*) "-> Deallocating"
         if(allocated(prop))         deallocate(prop)
         if(allocated(HDF5NameList)) deallocate(HDF5NameList)
         if(allocated(nSubDPoints))  deallocate(nSubDPoints)
@@ -101,17 +95,16 @@ contains
 
     end subroutine create_prop_files
 
-!---------------------------------------------------------------------------
-!---------------------------------------------------------------------------
-!---------------------------------------------------------------------------
-!---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
     subroutine apply_prop_files(Tdomain, rg)
         !INPUTS
         type (domain), intent (INOUT), target :: Tdomain
         integer      , intent(IN) :: rg
 
         !LOCAL
-        integer :: code, error, coord
         integer :: mat, n, ipoint, i, j, k
         integer :: ngllx,nglly,ngllz
         double precision, dimension(:, :, :), allocatable :: propMatrix !Properties
@@ -123,11 +116,8 @@ contains
             if(propOnFile(Tdomain, mat)) then
 
                 call read_properties_from_file(Tdomain, rg, mat, propMatrix(:,:, mat), &
-                                               trim(procFileName)//"_read", trim(h5folder),     &
-                                               ["_proc", "_subD"], [rg, mat])
-                !call dispCarvalhol(propMatrix(1:10,:, mat),                               &
-                !                   trim(stringNumb_join("propMatrix(1:10,:,", mat*(rg+1))), &
-                !                   "F25.10")
+                    trim(procFileName)//"_read", trim(h5folder),     &
+                    ["_proc", "_subD"], [rg, mat])
             end if
         end do
 
@@ -158,12 +148,12 @@ contains
 
     end subroutine apply_prop_files
 
-!---------------------------------------------------------------------------
-!---------------------------------------------------------------------------
-!---------------------------------------------------------------------------
-!---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
     subroutine read_properties_from_file(Tdomain, rg, mat, prop,  &
-                                         fileName, folderPath, labels, indexes)
+        fileName, folderPath, labels, indexes)
 
         use sem_hdf5
         use hdf5
@@ -179,13 +169,11 @@ contains
         !OUTPUT
         real        , intent(out), dimension(0:, 0:) :: prop !Properties
         !LOCAL
-        character (len=12) :: numberStr, rangStr;
+        character (len=12) :: rangStr;
         character(len=110) :: fileHDF5Name, fullPath !File name
         integer            :: i, error
         integer(HID_T)     :: file_id
         real,    allocatable, dimension(:,:) :: rtemp2
-
-        !write(*,*) "Reading properties from file"
 
         if(.not. present(labels)) then
             write(rangStr,'(I100)'  ) rg
@@ -218,10 +206,10 @@ contains
 
     end subroutine read_properties_from_file
 
-!---------------------------------------------------------------------------
-!---------------------------------------------------------------------------
-!---------------------------------------------------------------------------
-!---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
     subroutine create_prop_visu_files (Tdomain, rg)
 
         !INPUTS
@@ -229,7 +217,6 @@ contains
         integer      , intent(IN) :: rg
 
         !LOCAL
-        integer :: code, error, coord
         integer :: n, ipoint, i, j, k, mat
         integer :: ngllx,nglly,ngllz
         logical         , dimension(:,:) , allocatable :: globCoordMask, propMask
@@ -278,23 +265,23 @@ contains
             nSubDPoints(mat) = count(globCoordMask(0,:))
 
             call write_ResultHDF5Unstruct_MPI(                                      &
-                                         reshape(pack(Tdomain%GlobCoord(:,:),       &
-                                                 mask = globCoordMask(:,:)),        &
-                                                 shape = [3, nSubDPoints(mat)]),    &
-                                         reshape(pack(prop(:,:),                    &
-                                                 mask = propMask(:,:)),             &
-                                                 shape = [nSubDPoints(mat), 3]),    &
-                                         trim(procFileName)//"_view",                &
-                                         rg, trim(h5folder), Tdomain%communicateur, &
-                                         ["_proc", "_subD"], [rg, mat], HDF5NameList(mat))
+                reshape(pack(Tdomain%GlobCoord(:,:),       &
+                mask = globCoordMask(:,:)),        &
+                shape = [3, nSubDPoints(mat)]),    &
+                reshape(pack(prop(:,:),                    &
+                mask = propMask(:,:)),             &
+                shape = [nSubDPoints(mat), 3]),    &
+                trim(procFileName)//"_view",                &
+                rg, trim(h5folder), Tdomain%communicateur, &
+                ["_proc", "_subD"], [rg, mat], HDF5NameList(mat))
         end do
 
         !Writing XMF File
         if(rg == 0) write(*,*) "  Writing visualization XMF file"
         call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, Tdomain%subD_exist, Tdomain%n_dime, &
-                             trim(string_join(procFileName,"-TO_VIEW")), rg, trim(XMFfolder),     &
-                             Tdomain%communicateur, trim(h5_to_xmf),                               &
-                             ["Density","Lambda ","Mu     "])
+            trim(string_join(procFileName,"-TO_VIEW")), rg, trim(XMFfolder),     &
+            Tdomain%communicateur, trim(h5_to_xmf),                               &
+            ["Density","Lambda ","Mu     "])
 
         deallocate(prop)
         deallocate(HDF5NameList)
@@ -304,10 +291,10 @@ contains
 
     end subroutine create_prop_visu_files
 
-!---------------------------------------------------------------------------
-!---------------------------------------------------------------------------
-!---------------------------------------------------------------------------
-!---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
+    !---------------------------------------------------------------------------
     function propOnFile(Tdomain, mat) result(authorization)
 
         !INPUTS
@@ -324,9 +311,9 @@ contains
         authorization = .false.
 
         !if(Tdomain%subD_exist(mat)) then
-            if(Tdomain%sSubDomain(assocMat)%material_type == "R") then
-               authorization = .true.
-            end if
+        if(Tdomain%sSubDomain(assocMat)%material_type == "R") then
+            authorization = .true.
+        end if
         !end if
 
     end function
