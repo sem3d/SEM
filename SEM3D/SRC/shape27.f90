@@ -316,7 +316,7 @@ contains
         double precision, dimension(0:dim-1,0:nn-1), intent(in) :: nodes
         double precision, dimension(0:dim-1), intent(out) :: grad
         double precision, dimension(0:dim-1,0:dim-1) :: jac
-        double precision :: xa, ya, za, xrx, xry, xrz, fval
+        double precision :: xa, ya, za, xrx, xry, xrz
         call shape27_local2global(nodes, x(0), x(1), x(2), xa, ya, za)
         call shape27_local2jacob(nodes, x(0), x(1), x(2), jac)
         xrx = 1d0/max(xref(0)**2,1d0)

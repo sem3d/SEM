@@ -23,7 +23,7 @@ subroutine deallocate_domain (Tdomain)
 
     type(domain), intent (INOUT):: Tdomain
 
-    integer :: n, code
+    integer :: n
 
     deallocate (Tdomain%GlobCoord)
     deallocate (Tdomain%Coord_Nodes)

@@ -311,7 +311,7 @@ contains
 
         type(domain), intent(inout) :: Tdomain
         character(Len=MAX_FILE_SIZE) :: fnamef
-        integer :: i, j, n_aus, npml, mat, ne, nf, nRandom, assocMat
+        integer :: i, j, n_aus, npml, mat, ne, nf, nRandom
         logical, dimension(:), allocatable :: L_Face, L_Edge
         real :: dtmin
         integer :: rg
@@ -660,7 +660,6 @@ contains
         logical                      :: logic_scheme
         integer                      :: imat
         integer                      :: rg
-        integer                      :: nReqOut
 
         rg = Tdomain%rank
 
