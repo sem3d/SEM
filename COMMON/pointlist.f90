@@ -19,6 +19,7 @@
 
 module point_list
 
+    implicit none
     type :: PointEntry
        real :: x,y,z
        integer :: hash
@@ -120,7 +121,7 @@ contains
         type(PointTable), intent(in) :: table
         real, dimension(:,:), allocatable, intent(out) :: array
         !
-        integer :: i
+        integer :: i, empty
         type(PointEntry), pointer :: en
         !
         allocate(array(0:2,0:table%count-1))
