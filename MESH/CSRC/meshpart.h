@@ -20,12 +20,12 @@
 /// The domain to which the face belongs is added as a fifth component
 /// because we want to duplicate the faces across domains (but keep them
 /// oriented in the same manner)
-struct Face {
-    Face( int v[4], int dom ) {
+struct PFace {
+    PFace( int v[4], int dom ) {
         n[4] = dom;
         set_face(v);
     }
-    Face(const Face& fc) { for(int k=0;k<5;++k) n[k]=fc.n[k]; }
+    PFace(const PFace& fc) { for(int k=0;k<5;++k) n[k]=fc.n[k]; }
 
     void set_face(int v[4]) {
         int l=0;
@@ -43,7 +43,7 @@ struct Face {
             l = (l+step)%4;
         }
     }
-    bool operator<(const Face& fc) const {
+    bool operator<(const PFace& fc) const {
 	for(int i=0;i<5;++i) {
 	    if (n[i] < fc.n[i]) return true;
 	    if (n[i] > fc.n[i]) return false;
@@ -55,8 +55,60 @@ protected:
     int n[5];
 };
 
+struct PEdge {
+    PEdge( int v0, int v1, int dom ) {
+        n[2] = dom;
+        set_edge(v0, v1);
+    }
+    PEdge(const PEdge& ed) { for(int k=0;k<3;++k) n[k]=ed.n[k]; }
 
-typedef std::map<Face,int>  face_map_t;
+    void set_edge(int v0, int v1) {
+        if (v0<v1) {
+            n[0] = v0;
+            n[1] = v1;
+        } else {
+            n[0] = v1;
+            n[1] = v0;
+        }
+    }
+    bool operator<(const PEdge& ed) const {
+	for(int i=0;i<3;++i) {
+	    if (n[i] < ed.n[i]) return true;
+	    if (n[i] > ed.n[i]) return false;
+	}
+	return false;
+    }
+protected:
+    int n[5];
+};
+
+typedef std::pair<int,int> PVertex; // pair(ID,Domain)
+
+typedef std::map<PFace,int>  face_map_t;
+typedef std::map<PEdge,int>  edge_map_t;
+typedef std::map<PVertex,int> vertex_map_t;
+
+/** Manages the list of communications with another processor */
+class MeshPartComm
+{
+public:
+    MeshPartComm() {}
+    int m_dest; /// Destination processor
+
+    /// The indices stored are in local numbering
+    /// Before output, the local number must be reordered
+    /// according to a global numbering scheme so that
+    /// each communicating processor sees the items in the
+    /// same order
+    ///
+    /// Note: there will be some duplication since if a face
+    /// is shared, so are its edge and vertices.
+    /// SEM can optimize this by not exchanging already registered
+    /// gll
+    std::vector<int> m_vertices;
+    std::vector<int> m_edges;
+    std::vector<int> m_faces;
+};
 
 /** Manages a part of the mesh on a specific processor */
 class Mesh3DPart {
@@ -70,12 +122,36 @@ public:
     void output_mesh_part();
     void output_mesh_part_xmf();
 
+    // manages local facets
     int add_facet(int n[4], int dom);
+    int add_edge(int v0, int v1, int dom);
+    int add_vertex(int v0, int dom);
+    int add_node(int v0);
+
+    int n_nodes() const    { return m_nodes_to_id.size(); }
+    int n_elems() const    { return m_elems.size(); }
+    int n_faces() const    { return m_face_to_id.size(); }
+    int n_edges() const    { return m_edge_to_id.size(); }
+    int n_vertices() const { return m_vertex_to_id.size(); }
+
+
+    void get_local_nodes(std::vector<double>& nodes) const;
+    void get_local_elements(std::vector<int>& elems) const;
+    void get_local_materials(std::vector<int>& mats) const;
 protected:
     int m_proc;
     const Mesh3D& m_mesh;
 
-    face_map_t m_face_to_face_id;
+    std::vector<int> m_elems; // Local elements
+    std::vector<int> m_elems_faces; // local face number of each local element
+    std::vector<int> m_elems_edges; // local edge number of each local element
+    std::vector<int> m_elems_vertices; // local vertex number of each local element
+    face_map_t m_face_to_id;
+    edge_map_t m_edge_to_id;
+    vertex_map_t m_vertex_to_id;
+
+    std::map<int,MeshPartComm> m_comm;
+    std::map<int,int> m_nodes_to_id;
 
     void handle_local_element(int el);
     void handle_neighbour_element(int el);
