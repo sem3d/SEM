@@ -18,13 +18,13 @@ contains
         ! Fast forward until a specific UNV bloc id is found
         rewind(unit)
         do
-            read(10,*,end=100) str
+            read(unit,*,end=100) str
             if (trim(adjustl(str))/="-1") cycle
-            read(10,*) bloc
+            read(unit,*) bloc
             if (bloc==bloc_id) exit
             ! read until next -1 closing the block d
             do
-                read(10,*,end=100) str
+                read(unit,*,end=100) str
                 if (trim(adjustl(str))=="-1") exit
             end do
         end do
@@ -46,11 +46,11 @@ contains
         max_label = -1
         count = 0
         do
-            read(10,'(A)',end=100) str
+            read(unit,'(A)',end=100) str
             if (trim(adjustl(str))=="-1") exit
             read(str,*) label, exp_coor, disp_coor, color
             !write(*,*) "XXX", label, exp_coor, disp_coor, color
-            read(10,'(A)',end=100) str
+            read(unit,'(A)',end=100) str
             read(str,*)  x,y,z
             min_label = min(label, min_label)
             max_label = max(label, max_label)
@@ -64,14 +64,13 @@ contains
         integer, intent(out) :: count
         integer :: ielem, etype, phys_prop, mat_prop, color, nnodes
         character(len=132)  :: str
-        real :: x,y,z
 
         count = 0
         do
-            read(10,'(A)',end=100) str
+            read(unit,'(A)',end=100) str
             if (trim(adjustl(str))=="-1") exit
             read(str,*) ielem, etype, phys_prop, mat_prop, color, nnodes
-            read(10,'(A)',end=100) str
+            read(unit,'(A)',end=100) str
             count = count + 1
         end do
 100     return
@@ -86,26 +85,26 @@ contains
         character(len=132)  :: str
         integer :: n
         
-        read(10,'(A)',end=100)
-        read(10,'(A)',end=100)
-        read(10,'(A)',end=100)
+        read(unit,'(A)',end=100)
+        read(unit,'(A)',end=100)
+        read(unit,'(A)',end=100)
         count = 0
 
         do
-            read(10,'(A)',end=100)str
+            read(unit,'(A)',end=100)str
             if (trim(adjustl(str))=="-1") exit
             read(str,*) group_number, group_cons, group_res, group_load, group_dof, group_temp, group_cont, group_elem
-            read(10,'(A)',end=100)str
+            read(unit,'(A)',end=100)str
 
             el_group(count) = group_elem
 
             if (mod(group_elem,2)==0) then
                do n = 0, group_elem/2-1
-                  read(10,'(A)',end=100)str
+                  read(unit,'(A)',end=100)str
                end do
             else
                do n = 0,(group_elem+1)/2-1
-                  read(10,'(A)',end=100)str
+                  read(unit,'(A)',end=100)str
                end do
             end if
 
@@ -124,10 +123,10 @@ contains
         character(len=132)  :: str
         real :: x,y,z
         do
-            read(10,'(A)',end=100) str
+            read(unit,'(A)',end=100) str
             if (trim(adjustl(str))=="-1") exit
             read(str,*) label, exp_coor, disp_coor, color
-            read(10,'(A)',end=100) str
+            read(unit,'(A)',end=100) str
             read(str,*)  x,y,z
             call add_point(points, x, y, z, id)
             index_map(label) = id 
@@ -147,10 +146,10 @@ contains
         integer :: i
 
         do
-            read(10,'(A)',end=100) str
+            read(unit,'(A)',end=100) str
             if (trim(adjustl(str))=="-1") exit
             read(str,*) ielem, etype,phys_prop, mat_prop, color, nnodes
-            read(10,'(A)',end=100) str
+            read(unit,'(A)',end=100) str
 
             read(str,*) nodes
             do i=0,7
@@ -173,18 +172,18 @@ contains
         character(len=132)  :: str
         integer :: n , i, k
 
-        read(10,'(A)', end=100) str
-        read(10,'(A)', end=100) str
-        read(10,'(A)', end=100) str
+        read(unit,'(A)', end=100) str
+        read(unit,'(A)', end=100) str
+        read(unit,'(A)', end=100) str
 
         n = 0
         do  
-          read(10,'(A)', end=100) str
+          read(unit,'(A)', end=100) str
             if (trim(adjustl(str))=="-1") exit
-            read(10,'(A)', end=100) str         
+            read(unit,'(A)', end=100) str         
             if (mod(el_group(n),2) == 0) then
                 do i = 0, (el_group(n)/2-1)
-                    read(10,'(A)', end=100) str
+                    read(unit,'(A)', end=100) str
                     read(str,*) type_code1 ,tag1 ,nodeid1 ,num_ele1,type_code2 ,tag2 ,nodeid2 ,num_ele2
                     do k = 0, size(Material,1)-1
                         if (Epointer(k) == tag1 .OR. Epointer(k) == tag2) then
@@ -195,7 +194,7 @@ contains
             else
                 do i = 0, ((el_group(n)+1)/2-1)
                     if ((el_group(n)+1)/2-1 ==  i) then
-                        read(10,'(A)', end=100) str
+                        read(unit,'(A)', end=100) str
                         read(str,*) type_code1 ,tag1 ,nodeid1 ,num_ele1
                         do k = 0, size(Material,1)-1
                             if (Epointer(k) == tag1) then
@@ -203,7 +202,7 @@ contains
                             end if
                         end do
                     else
-                        read(10,'(A)', end=100) str
+                        read(unit,'(A)', end=100) str
                         read(str,*) type_code1 ,tag1 ,nodeid1 ,num_ele1,type_code2 ,tag2 ,nodeid2 ,num_ele2
                         do k = 0, size(Material,1)-1
                             if (Epointer(k) == tag1 .OR. Epointer(k) == tag2) then
@@ -242,8 +241,8 @@ contains
         integer, intent(out) :: n_blocks
         integer, intent(in) :: n_mat
         !
-        integer :: i, nfile, loc_count, matmax, count, eidx, npts, eidx0
-        integer :: min_label, max_label, loc_min_label, loc_max_label
+        integer :: i, nfile, matmax, count, eidx, npts, eidx0
+        integer :: loc_min_label, loc_max_label
         logical :: found
         integer :: ios
         integer, dimension(:), allocatable :: ncount, loc_index, elcount, mat_block

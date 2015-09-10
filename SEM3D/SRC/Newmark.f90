@@ -29,7 +29,6 @@ subroutine Newmark(Tdomain,ntime)
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in) :: ntime
-    integer :: ngll
     integer, parameter :: etiquette = 100
 #ifdef COUPLAGE
     integer :: i,j
@@ -268,7 +267,7 @@ subroutine Newmark_Predictor(Tdomain,champs1)
 
     type(domain), intent(inout)   :: Tdomain
     type(champs), intent(inout) :: champs1
-    integer :: nel, mat, n, indsol, indpml, indflu
+    integer :: n, indsol, indpml, indflu
     real :: bega, dt
 
     bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
@@ -376,7 +375,7 @@ subroutine Newmark_Corrector_Fluid(Tdomain,champs1)
 
     type(domain), intent(inout)   :: Tdomain
     type(champs), intent(in)   :: champs1
-    integer  :: n, i_dir, indpml
+    integer  :: n,  indpml
     double precision :: dt
 
     dt = Tdomain%TimeD%dtmin

@@ -53,7 +53,7 @@ contains
         integer, intent(in) :: indunit
         character(len=70)   :: ligne
         character           :: c
-        integer   :: l,i,n_mat,nn
+        integer   :: l,i,nn
         logical  :: bound_cond
         integer, intent(out) :: n_elem, elem(:), ind_mat(:)
         integer, intent(out) :: n_neu,n_PW

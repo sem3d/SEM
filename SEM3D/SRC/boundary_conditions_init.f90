@@ -535,7 +535,6 @@ subroutine Number_Face2Face(ngll1,ngll2,orient_e,BtNf,BtNe)
     integer, intent(in)   :: ngll1,ngll2,orient_e
     integer, dimension(0:ngll1-1,0:ngll2-1), intent(inout)  :: BtNf
     integer, dimension(1:ngll1-2,1:ngll2-2), intent(in)  :: BtNe
-    integer  :: j
 
 
     select case(orient_e)
