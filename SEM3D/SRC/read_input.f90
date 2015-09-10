@@ -352,7 +352,12 @@ contains
                 Tdomain%sSubDomain(i)%NGLLz,         &
                 Tdomain%sSubDomain(i)%Dt,            &
                 Tdomain%sSubDomain(i)%Qpression,     &
-                Tdomain%sSubDomain(i)%Qmu
+                Tdomain%sSubDomain(i)%Qmu,           &
+                Tdomain%sSubDomain(i)%nl_prop%LMC_prop%sigma_yld &
+                Tdomain%sSubDomain(i)%nl_prop%LMC_prop%C_kin     &
+                Tdomain%sSubDomain(i)%nl_prop%LMC_prop%kapa_kin  &
+                Tdomain%sSubDomain(i)%nl_prop%LMC_prop%b_iso     &
+                Tdomain%sSubDomain(i)%nl_prop%LMC_prop%Rinf_iso
 
             Tdomain%sSubdomain(i)%Filtering = .false.
 
@@ -366,11 +371,19 @@ contains
                 write (*,*) 'Dt       :', Tdomain%sSubDomain(i)%Dt
                 write (*,*) 'Qp       :', Tdomain%sSubDomain(i)%Qpression
                 write (*,*) 'Qmu      :', Tdomain%sSubDomain(i)%Qmu
+                if (Tdomain%nl_flag) then
+                    write (*,*) 'NL_LMC - sigma_yld:' Tdomain%sSubDomain(i)%nl_prop%LMC_prop%sigma_yld
+                    write (*,*) 'NL_LMC - C_kin:' Tdomain%sSubDomain(i)%nl_prop%LMC_prop%C_kin
+                    write (*,*) 'NL_LMC - kapa_kin:' Tdomain%sSubDomain(i)%nl_prop%LMC_prop%kapa_kin
+                    write (*,*) 'NL_LMC - b_iso:' Tdomain%sSubDomain(i)%nl_prop%LMC_prop%b_iso
+                    write (*,*) 'NL_LMC - Rinf:' Tdomain%sSubDomain(i)%nl_prop%LMC_prop%Rinf_iso
+                end if
             endif
 
             Tdomain%sSubdomain(i)%assocMat = i
 
             call Lame_coefficients (Tdomain%sSubDomain(i))
+
             !        if(rg==0) &
             !            print*,' lame ',Tdomain%sSubDomain(i)%DMu,Tdomain%sSubDomain(i)%DLambda ,Tdomain%sSubDomain(i)%DKappa
             if (Tdomain%sSubDomain(i)%material_type == "P" .or. Tdomain%sSubDomain(i)%material_type == "L")  then
@@ -382,7 +395,6 @@ contains
             if (Tdomain%sSubDomain(i)%material_type == "R") then
                 nRandom = nRandom + 1
             end if
-
         enddo
 
         if(npml > 0) then
@@ -681,6 +693,7 @@ contains
         Tdomain%TimeD%alpha               = Tdomain%config%alpha
         Tdomain%TimeD%beta                = Tdomain%config%beta
         Tdomain%TimeD%gamma               = Tdomain%config%gamma
+        Tdomain%nl_flag                   = Tdomain%config%nl_flag
         if (rg==0) then
             if (Tdomain%TimeD%alpha /= 0.5 .or. Tdomain%TimeD%beta /= 0.5 .or. Tdomain%TimeD%gamma /= 1.) then
                 write(*,*) "***WARNING*** : Les parametres alpha,beta,gamma sont ignores dans cette version"

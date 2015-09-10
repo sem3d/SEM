@@ -645,6 +645,8 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"model")) err=expect_eq_model(scanner, &config->model);
 	else if (cmp(scanner,"neumann")) err=expect_neumann(scanner, config);
 	else if (cmp(scanner,"out_variables")) err=expect_eq_outvar(scanner, config);
+	else if (cmp(scanner,"nonlinear")) err=expect_eq_bool(scanner, &config->nl_flag,1);
+
 	//Material
 	if (cmp(scanner,"material")) err=expect_materials(scanner, config);
 
@@ -673,7 +675,7 @@ void init_sem_config(sem_config_t* cfg)
     cfg->out_variables[6] = 1; // Accel
     cfg->out_variables[7] = 0; // Deformation Dev
     cfg->out_variables[8] = 0; // Contrainte Dev
-
+    cfg->nl_flag = 0; // calcul nonlineaire
 }
 
 
@@ -702,13 +704,12 @@ void dump_config(sem_config_t* cfg)
     printf("Fichier stations: '%s'\n", cfg->station_file);
     printf("Snap interval : %lf\n", cfg->snap_interval);
     printf("Snap selection : %p\n", cfg->snapshot_selection);
-    // START MODIFS - FILIPPO 07/15
     printf("out variables : (%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", \
     				cfg->out_variables[0], cfg->out_variables[1], cfg->out_variables[2],\
     				cfg->out_variables[3], cfg->out_variables[4], cfg->out_variables[5],\
     				cfg->out_variables[6], cfg->out_variables[7], cfg->out_variables[8]);
-	// END MODIFS - FILIPPO 07/15
-    printf("Neu present : %d\n", cfg->neu_present);
+    	  ("Calcul nonlineaire: '%d'\n", cfg->nl_flag);printf
+    	  ("Neu present : %d\n", cfg->neu_present);
     printf("Neu type    : %d\n", cfg->neu_type);
     printf("Neu mat     : %d\n", cfg->neu_mat);
 

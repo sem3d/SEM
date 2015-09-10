@@ -222,8 +222,6 @@ subroutine init_material_properties(Tdomain, specel, mat)
 
   !    integration de la prise en compte du gradient de proprietes
 
-
-
   select case( mat%material_definition)
   case( MATERIAL_CONSTANT )
      !    on copie toujours le materiau de base
@@ -231,6 +229,9 @@ subroutine init_material_properties(Tdomain, specel, mat)
      specel%Lambda = mat%DLambda
      specel%Kappa = mat%DKappa
      specel%Mu = mat%DMu
+     ! NONLINEAR PROPERTIES TO BE STORED AT EACH GLL?? NO!
+     ! BUT IF SO: ALLOCATE_DOMAIN=> ALLOCATE FOR EACH ELEMENT
+     ! specel%nl_prop = mat%prop
      !    si le flag gradient est actif alors on peut changer les proprietes
   case( MATERIAL_EARTHCHUNK )
      call initialize_material_earthchunk(specel, mat, Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))

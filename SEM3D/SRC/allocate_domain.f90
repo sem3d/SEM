@@ -4,7 +4,7 @@
 !!
 !>
 !!\file allocate_domain.f90
-!!\brief G�re l'allocation des domaines.
+!!\brief Gére l'allocation des domaines.
 !!\author
 !!\version 1.0
 !!\date 10/03/2009

@@ -47,10 +47,8 @@ module sem_c_config
        type(C_PTR)    :: snapshot_selection
        integer(C_INT) :: comp_energ
 
-       ! START MODIFS - FILIPPO 07/15
        !! Output Variables
        integer(C_INT), dimension(9) :: out_variables
-       ! END MODIFS - FILIPPO 07/15
 
        !! Protection reprise
        integer(C_INT) :: prorep
@@ -82,6 +80,9 @@ module sem_c_config
        type(C_PTR)    :: model_file
        real(C_DOUBLE) :: delta_lon
        real(C_DOUBLE) :: delta_lat
+
+       ! NON LINEAR MATERIALS
+       integer(C_INT) :: nl_flag
 
        type(C_PTR)    :: stations
     end type sem_config

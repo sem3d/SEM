@@ -107,11 +107,11 @@ module sdomain
         real, dimension(:), allocatable :: fl_dirich, fpml_dirich
 
        ! Interface Solide / PML
-       integer :: nbInterfSolPml ! nombre de points de gauss à l'interface Solide / PML
+       integer :: nbInterfSolPml ! nombre de points de gauss ï¿½ l'interface Solide / PML
        integer, dimension(:,:), allocatable :: InterfSolPml ! dimension(0:nbInterfSolPml-1,0:1), 0 Sol, 1 PML
 
        ! Interface Fluide / PML
-       integer :: nbInterfFluPml ! nombre de points de gauss à l'interface Solide / PML
+       integer :: nbInterfFluPml ! nombre de points de gauss ï¿½ l'interface Solide / PML
        integer, dimension(:,:), allocatable :: InterfFluPml ! dimension(0:nbInterfFluPml-1,0:1), 0 Flu, 1 PML
 
        ! Faces externes PML
@@ -126,6 +126,7 @@ module sdomain
 
        ! Configuration parameters as returned from read_input.c
        type(sem_config) :: config
+       logical :: nl_flag
     end type domain
 
 contains
