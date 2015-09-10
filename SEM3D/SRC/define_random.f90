@@ -116,8 +116,7 @@ contains
         real        , intent(out), dimension(0:, 0:) :: prop !Properties
         !LOCAL
         integer :: ngllx,nglly,ngllz, assocMat
-        integer :: iPoint
-        integer :: i, j, k, m, n !counters
+        integer :: i !counter
         integer :: error, code
         integer :: nProp = 3
         integer :: effecMethod
@@ -234,7 +233,7 @@ contains
         !LOCAL
         integer :: ngllx,nglly,ngllz
         integer :: iPoint
-        integer :: i, j, k, m, n !counters
+        integer :: i, j, k, n !counters
         integer :: LimPML1, LimPML2, LimPML3
         integer :: dir, mat_index
         real, dimension(:), allocatable :: pointProp;
