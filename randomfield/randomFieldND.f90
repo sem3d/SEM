@@ -12,36 +12,14 @@ module randomFieldND
     use blas
     use statistics_RF
     interface createRandomField
-       module procedure createRandomFieldUnstruct,   &
-           createRandomFieldStructured
+        module procedure createRandomFieldStructured
     end interface createRandomField
 
     double precision :: periodMult = 1.1 !"range" multiplier
-    double precision :: kAdjust    = 5 !"kNStep minimum" multiplier
-    double precision :: rAdjust    = 5 !"kNStep minimum" multiplier
+    integer :: kAdjust    = 5 !"kNStep minimum" multiplier
+    integer :: rAdjust    = 5 !"kNStep minimum" multiplier
 
 contains
-
-    !-----------------------------------------------------------------------------------------------
-    !-----------------------------------------------------------------------------------------------
-    subroutine createRandomFieldUnstruct(xPoints, corrMod, margiFirst, corrL, fieldAvg, fieldVar, Nmc, randField);
-
-        implicit none
-
-        !INPUT
-        double precision, dimension(:, :), intent(in)    :: xPoints;
-        double precision, dimension(:)   , intent(in)    :: corrL;
-        character (len=*)                , intent(in)    :: corrMod, margiFirst;
-        integer                          , intent(in)    :: Nmc;
-        double precision                 , intent(in)    :: fieldAvg, fieldVar;
-
-        !OUTPUT
-        double precision, dimension(:, :), allocatable, intent(out) :: randField;
-
-        !call createStandardGaussianFieldUnstructShinozuka (xPoints, corrL, corrMod, Nmc, randField)
-        !call multiVariateTransformation (margiFirst, fieldAvg, fieldVar, randField)
-
-    end subroutine createRandomFieldUnstruct
 
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
@@ -62,62 +40,50 @@ contains
         integer          :: error, code, i, rang, Nmc
         double precision, dimension(:), allocatable :: evntAvg, evntStdDev;
 
-
         Nmc = size(randField, 2)
         allocate (evntAvg(Nmc))
         allocate (evntStdDev(Nmc))
 
         call MPI_COMM_RANK(comm, rang, code)
 
-!        write(*,*) "        First Order Marginal = ", margiFirst
-!        write(*,*) "                req average  = ", fieldAvg
-!        write(*,*) "                req variance = ", fieldVar
-
         select case (margiFirst)
-        case("gaussian")
-            normalVar = fieldVar
-            normalAvg = fieldAvg
-        case("lognormal")
-            if(fieldAvg <= 0) then
-                write(*,*) ""
-                write(*,*) "ERROR - when using lognormal fieldAvg should be a positive number greater than 0.001"
-                call MPI_ABORT(comm, error, code)
-            end if
-            normalVar = log(1 + fieldVar/(fieldAvg**2))
-            normalAvg = log(fieldAvg) - normalVar/2
+            case("gaussian")
+                normalVar = fieldVar
+                normalAvg = fieldAvg
+            case("lognormal")
+                if(fieldAvg <= 0) then
+                    write(*,*) ""
+                    write(*,*) "ERROR - when using lognormal fieldAvg should be a positive number greater than 0.001"
+                    call MPI_ABORT(comm, error, code)
+                end if
+                normalVar = log(1 + fieldVar/(fieldAvg**2))
+                normalAvg = log(fieldAvg) - normalVar/2
         end select
-
 
         !Putting mean to 0 and stdDev to 1
         if(rang==0) write(*,*) "        Fitting Statistics"
         call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim, comm, contrib)
 
         if(rang==0) then
-                write(*,*) " "
-                write(*,*) "BEFORE stdGauss Fitting"
-                write(*,*) "    evntAvg = ", evntAvg
-                write(*,*) "    evntVar = ", evntStdDev**2
+            write(*,*) " "
+            write(*,*) "BEFORE stdGauss Fitting"
+            write(*,*) "    evntAvg = ", evntAvg
+            write(*,*) "    evntVar = ", evntStdDev**2
         end if
 
         do i = 1, Nmc
-!            write(*,*) " i = ", i
+            !            write(*,*) " i = ", i
             if(contrib == 1) randField(:,i) = (randField(:,i)-evntAvg(i))/evntStdDev(i)
         end do
 
         call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim, comm, contrib)
         if(rang==0) then
-!                write(*,*) "  ", evntAvg
-                write(*,*) "AFTER stdGauss Fitting"
-                write(*,*) "    evntAvg = ", evntAvg
-                write(*,*) "    evntVar = ", evntStdDev**2
-                write(*,*) " "
+            !                write(*,*) "  ", evntAvg
+            write(*,*) "AFTER stdGauss Fitting"
+            write(*,*) "    evntAvg = ", evntAvg
+            write(*,*) "    evntVar = ", evntStdDev**2
+            write(*,*) " "
         end if
-
-!        if(rang==0) then
-!                write(*,*) "Before lognormal transform"
-!                write(*,*) "minval BEFORE= ", minval(randField,1)
-!                write(*,*) "maxval BEFORE= ", maxval(randField,1)
-!        end if
 
         !Modifying Field Mean and Variance
         if(rang==0) write(*,*) "        Tranforming First-Order Marginal"
@@ -130,46 +96,14 @@ contains
 
         call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim, comm, contrib)
         if(rang==0) then
-!                write(*,*) "  ", evntAvg
-                write(*,*) "First Order Marginal = ", margiFirst
-                write(*,*) "   req average  = ", fieldAvg
-                write(*,*) "   req variance = ", fieldVar
-                write(*,*) "FINAL Statistics"
-                write(*,*) "    evntAvg = ", evntAvg
-                write(*,*) "    evntVar = ", evntStdDev**2
-                write(*,*) " "
+            write(*,*) "First Order Marginal = ", margiFirst
+            write(*,*) "   req average  = ", fieldAvg
+            write(*,*) "   req variance = ", fieldVar
+            write(*,*) "FINAL Statistics"
+            write(*,*) "    evntAvg = ", evntAvg
+            write(*,*) "    evntVar = ", evntStdDev**2
+            write(*,*) " "
         end if
-
-!        if(rang==0) write(*,*) "END multiVariateTransformation"
-
-!        if(rang==0) then
-!                write(*,*) "After lognormal transform"
-!                write(*,*) "minval AFTER = ", minval(randField,1)
-!                write(*,*) "maxval AFTER = ", maxval(randField,1)
-!        end if
-
-!        if(.false.) then
-!            !Putting mean to the demanded value and seeing the diference
-!            call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim)
-!            if(rang==0) then
-!                write(*,*) "WARNING!! forcing Average and Mean, it can deform the pdf"
-!                write(*,*) "evntAvg BEFORE = ", evntAvg
-!                write(*,*) "      delta(%) = ", (evntAvg-fieldAvg)/fieldAvg
-!                write(*,*) "evntVar BEFORE = ", evntStdDev**2
-!                write(*,*) "      delta(%) = ", (evntStdDev**2-fieldVar)/fieldVar
-!            end if
-!            do i = 1, size(randField, 2)
-!                randField(:,i) = (randField(:,i)-evntAvg(i))* sqrt(fieldVar) /evntStdDev(i) + fieldAvg
-!            end do
-!            call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim)
-!            if(rang==0) then
-!                write(*,*) "evntAvg AFTER = ", evntAvg
-!                write(*,*) "     delta(%) = ", (evntAvg-fieldAvg)/fieldAvg
-!                write(*,*) "evntVar AFTER = ", evntStdDev**2
-!                write(*,*) "     delta(%) = ", (evntStdDev**2-fieldVar)/fieldVar
-!            end if
-!
-!        end if
 
         if (allocated(evntAvg)) deallocate(evntAvg)
         if (allocated(evntStdDev)) deallocate(evntStdDev)
@@ -198,7 +132,7 @@ contains
         integer         , dimension(:)  , allocatable :: kNStep;
         double precision, dimension(:)  , allocatable :: kMax;
         double precision, dimension(:,:), allocatable :: kSign, phiN, xPointsNorm;
-        double precision, dimension(:)  , allocatable :: kVec, kVecUnsigned; !Allocated in function
+        double precision, dimension(:)  , allocatable :: kVec, kVecUnsigned;        !Allocated in function
         double precision, dimension(:)  , allocatable :: deltaK, kDelta;
         double precision, dimension(:)  , allocatable :: xMaxGlob, xMinGlob;
         logical         , dimension(:)  , allocatable :: effectCalc;
@@ -206,8 +140,8 @@ contains
         integer          :: i, j, k, m, nDim;
         integer          :: xNTotal, kNTotal;
         integer          :: nb_procs, rang, code, error;
-        double precision :: Sk, deltaKprod;
-        double precision :: pi = 3.1415926535898, zero = 0d0;
+        double precision :: Sk;
+        double precision :: pi = 3.1415926535898;
         double precision, dimension(:), allocatable :: dgemm_mult;
         !integer, dimension(:), allocatable :: testSeed!TEST
 
@@ -306,7 +240,7 @@ contains
 
         randField(:,:) = 0;
         deltaK(:)      = 0;
-        deltaK(:)      = (kMax)/(kNStep-1); !Defines deltaK
+        deltaK(:)      = (kMax)/(kNStep-1);        !Defines deltaK
         call set_kSign(kSign) !Set the sign permutations for kVec
 
         !Initializing the seed
@@ -391,26 +325,18 @@ contains
         logical         , dimension(:)  , allocatable :: effectCalc;
         double precision, dimension(1)                :: rMax
         integer          :: effectComm
-        integer          :: i, j, k, m, nDim;
+        integer          :: i, j, k, nDim;
         integer          :: xNTotal, rNTotal;
         integer          :: nb_procs, rang, code, error;
-        double precision :: Sk, deltaKprod, step, rDelta;
-        double precision :: pi = 3.1415926535898, zero = 0d0;
+        double precision :: Sk, step, rDelta;
+        double precision :: pi = 3.1415926535898;
         double precision, dimension(:), allocatable :: dgemm_mult;
-        !integer, dimension(:), allocatable :: testSeed!TEST
-
-
-        !write(*,*) "INSIDE 'createStandardGaussianFieldUnstructVictor'"
 
         call MPI_COMM_SIZE(MPI_COMM_WORLD, nb_procs, code)
         call MPI_COMM_RANK(MPI_COMM_WORLD, rang, code)
 
         nDim    = size(xPoints, 1);
         xNTotal = size(xPoints, 2);
-
-        !write(*,*) "nDim =", nDim
-        !write(*,*) "xNTotal =", xNTotal
-        !call dispCarvalhol(xPoints, "xPoints")
 
         allocate(xPointsNorm (nDim, xNTotal))
         allocate(rVec   (nDim));
@@ -449,40 +375,21 @@ contains
             call set_Extremes(xPointsNorm, xMinGlob, xMaxGlob, effectComm)
         else
             do i = 1, nDim
-                !write(*,*) "i = ", i
                 xMinGlob(i) = MinBound(i)/corrL(i)
                 xMaxGlob(i) = MaxBound(i)/corrL(i)
             end do
         end if
-        !!
-
-        !write(*,*) "xMaxGlob = ", xMaxGlob;
-        !write(*,*) "xMinGlob = ", xMinGlob;
-
 
         !Setting kMax e kStep
         call set_rMax(corrMod, rMax)
         rDelta  = 2*pi/(periodMult*sqrt(sum((xMaxGlob - xMinGlob)**2))) !Delta min in between two wave numbers to avoid periodicity
         rNTotal = rAdjust*(ceiling(rMax(1)/rDelta) + 1);
 
-        !rNTotal = ceiling(rMax(1) * dble(pointsPerCorrl))
-        !rMax(1)        = sqrt(sum((xMaxGlob - xMinGlob)**2))
-        !rNTotal        = N
-        !rCrit          = maxval(xMaxGlob - xMinGlob)
-        !rNTotal        = ceiling(sqrt(dble(N)))
-
         !Random Field
         randField = 0;
         step      = rMax(1)/dble(rNTotal)
 
-        !if(rang == 0) write(*,*) "rMax(1) = ",rMax(1);
-        !if(rang == 0) write(*,*) "rNTotal = ",rNTotal;
-        !if(rang == 0) write(*,*) "rDelta  = ",rDelta;
-        !if(rang == 0) write(*,*) "step    = ",step;
-
         !Initializing the seed
-        !call calculate_random_seed(testSeed, 0)!TEST
-        !call init_random_seed(testSeed)!TEST
         if(present(chosenSeed)) then
             call init_random_seed(chosenSeed)
         else
@@ -490,13 +397,11 @@ contains
         end if
 
         if (nDim == 2) then
-            allocate(psiN        (rNTotal)); !Out of phase
+            allocate(psiN        (rNTotal));            !Out of phase
             allocate(thetaN      (rNTotal));
             allocate(gammaN      (rNTotal));
             do k = 1, Nmc
                 if(effectCalc(k)) then
-                    !if(rang == 0) write(*,*) "k = ",k;
-                    !write(*,*) "rNTotal = ",rNTotal;
                     call random_number(psiN(:))
                     call random_number(thetaN(:))
                     call random_number(gammaN(:))
@@ -510,7 +415,6 @@ contains
                         Sk             = get_SpectrumND([j*step], corrMod);
                         call DGEMM ( "T", "N", xNTotal, 1, nDim, &
                             1.0d0, xPointsNorm, nDim, rVec, nDim, 0.0d0, dgemm_mult, xNTotal)
-                        !call dispCarvalhol(dgemm_mult(1:20), "dgemm_mult(1:20)")
                         randField(:,k) = sqrt(Sk*j*(step**2)) * gammaN(j) &
                             * cos(                           &
                             dgemm_mult                &
@@ -524,16 +428,12 @@ contains
             end do
 
         else if (nDim == 3) then
-            !write(*,*) "nDim = 3 !!!"
-            !write(*,*) "k = ",k;
             allocate(psiN   (rNTotal));
             allocate(thetaN (rNTotal));
             allocate(phiN   (rNTotal));
             allocate(gammaN (rNTotal));
             do k = 1, Nmc
                 if(effectCalc(k)) then
-                    !write(*,*) "k = ",k;
-                    !write(*,*) "rNTotal = ",rNTotal;
                     call random_number(phiN(:))
                     call random_number(thetaN(:))
                     call random_number(gammaN(:))
@@ -545,7 +445,6 @@ contains
                     gammaN = sqrt(12.0)*(gammaN -0.5d0)
 
                     do j = 1, rNTotal
-                        !write(*,*) "j = ", j
                         rVec           = [cos(thetaN(j))*sin(phiN(j)) * j*step, &
                             sin(thetaN(j))*sin(phiN(j)) * j*step, &
                             cos(phiN(j))                * j*step]
@@ -568,10 +467,7 @@ contains
             call MPI_ABORT(MPI_COMM_WORLD, error, code)
         end if
 
-        !if(rang == 0) write(*,*) "Spectra (Sk) cut in: ", Sk
-
-        randField(:,:) = sqrt((1.0d0)/((2.0d0*pi)**(nDim)))&
-            * randField(:,:)
+        randField(:,:) = sqrt((1.0d0)/((2.0d0*pi)**(nDim))) * randField(:,:)
 
         if(allocated(dgemm_mult))   deallocate(dgemm_mult)
         if(allocated(phiN))         deallocate(phiN);
@@ -606,27 +502,21 @@ contains
         integer         , dimension(:)  , allocatable :: kNStep;
         double precision, dimension(:)  , allocatable :: kMax;
         double precision, dimension(:,:), allocatable :: kSign, phiN;
-        double precision, dimension(:),   allocatable :: xVec, kVec, kVecUnsigned; !Allocated in function
+        double precision, dimension(:),   allocatable :: xVec, kVec, kVecUnsigned;        !Allocated in function
         double precision, dimension(:),   allocatable :: deltaK, angleVec, kDelta;
         double precision, dimension(:)  , allocatable :: xMaxGlob, xMinGlob;
         integer          :: i, j, k, m, nDim;
         integer          :: xNTotal, kNTotal;
-        integer          :: testDim; !Only for tests
         integer          :: nb_procs, rang, code !, xStart, xEnd, sizeUnif, sizeLoc;
-        double precision :: xPerCorrL = 5; !number of points per Correlation Length
+        integer          :: xPerCorrL = 5;        !number of points per Correlation Length
         double precision :: Sk;
-        double precision :: pi = 3.1415926535898, zero = 0d0;
+        double precision :: pi = 3.1415926535898;
 
         call MPI_COMM_SIZE(MPI_COMM_WORLD, nb_procs, code)
         call MPI_COMM_RANK(MPI_COMM_WORLD, rang, code)
 
-        !if(rang == 0) write(*,*) "";
-        !if(rang == 0) write(*,*) "------------START randomFieldND (proc = ", rang, ")---------";
-        !if(rang == 0) write(*,*) "";
-
         nDim = size(xMax,1);
 
-        !if(rang == 0) write(*,*) ">>>>>>>>> Variables initialization: kMax, xNStep and kNStep";
         !Allocating
         allocate(kMax   (nDim));
         allocate(xNStep (nDim));
@@ -643,19 +533,6 @@ contains
         kNStep  = kAdjust*(ceiling(kMax/kDelta) + 1);
         xNTotal = product(xNStep);
         kNTotal = product(kNStep);
-
-        !        if (rang == 0) then
-        !            call DispCarvalhol (xMax, "xMax")
-        !            call DispCarvalhol (xMin, "xMin")
-        !            call DispCarvalhol (corrL, "corrL")
-        !            call DispCarvalhol ((xMax-xMin), "(xMax-xMin)")
-        !            call DispCarvalhol (ceiling((xMax-xMin)/corrL), "ceiling((xMax-xMin)/corrL)")
-        !            call DispCarvalhol (kMax, "kMax")
-        !            call DispCarvalhol (xPeriod, "xPeriod")
-        !            call DispCarvalhol (kNStep, "kNStep")
-        !        end if
-
-
 
         !Random Field
         allocate(randField((xNTotal),Nmc));
@@ -685,7 +562,7 @@ contains
         randField = 0;
         angleVec   = 0;
         deltaK    = 0;
-        deltaK    = (kMax)/(kNStep-1); !Defines deltaK
+        deltaK    = (kMax)/(kNStep-1);        !Defines deltaK
         call set_kSign(kSign)
 
         do k = 1, Nmc
@@ -699,7 +576,7 @@ contains
                     angleVec(:) = 2 * pi * phiN(m, j) !TO VERIFY - Random part of the angle matrix for this k permutation
                     do i = 1, xNTotal
                         call get_Permutation(i, xMax, xNStep, xVec, xMin);
-                        angleVec(i) = angleVec(i) + dot_product(kVec, xVec); !Not-random part of the angle matrix
+                        angleVec(i) = angleVec(i) + dot_product(kVec, xVec);                    !Not-random part of the angle matrix
                     end do
                     angleVec(:)     = sqrt(Sk*2*product(deltaK)) &
                         *cos(angleVec(:))
@@ -721,42 +598,6 @@ contains
             end do
         end if
 
-        !        call DispCarvalhol(xNStep, "xNStep");
-        !        call DispCarvalhol(kNStep, "kNStep");
-        !
-        !
-        !        if (rang == 0) then
-        !            write(*,*) "Permutation X (Nmc = 1), rang ", rang
-        !            do i = 1, xNTotal
-        !                call get_Permutation(i, xMax, xNStep, xVec, xMin);
-        !                write(*,'(I,A,3F10.5)') i, ">", xVec;
-        !            end do
-        !        end if
-        !
-        !        if (rang == 0) then
-        !            call DispCarvalhol(kMax  , "kMax")
-        !            call DispCarvalhol(kNStep, "kNStep")
-        !            write(*,*) "Permutation K (Nmc = 1)"
-        !            do i = 1, kNTotal
-        !            call get_Permutation(i, kMax, kNStep, kVecUnsigned);
-        !                write(*,*) i, ">", kVecUnsigned;
-        !            end do
-        !        end if
-        !
-        !        !Spectrum
-        !        write(*,*) "Spectrum (Nmc = 1)"
-        !        do i = 1, kNTotal
-        !            call get_Permutation(j, kMax, kNStep, kVecUnsigned);
-        !            do m = 1, size(kSign,1)
-        !                kVec           = kVecUnsigned * kSign(m, :)
-        !                Sk             = get_SpectrumND(kVec, corrMod, corrL);
-        !            end do
-        !        end do
-        !
-        !        call DispCarvalhol(randField)
-
-        !---------------------------------------------------
-
         if(allocated(deltaK))       deallocate(deltaK);
         if(allocated(kVecUnsigned)) deallocate(kVecUnsigned);
         if(allocated(kVec))         deallocate(kVec);
@@ -771,10 +612,6 @@ contains
         if(allocated(xMinGlob))     deallocate(xMinGlob);
         if(allocated(kDelta))       deallocate(kDelta);
 
-
-        !if(rang == 0) write(*,*) "";
-        !if(rang == 0) write(*,*) "------------END randomFieldND (proc = ", rang, "---------";
-        !if(rang == 0) write(*,*) "";
     end subroutine createRandomFieldStructured
 
     !-----------------------------------------------------------------------------------------------

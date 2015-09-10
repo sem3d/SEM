@@ -20,24 +20,16 @@ contains
 
         !LOCAL VARIABLES
         double precision :: pi = 3.1415926535898
-        integer          :: i
         double precision, dimension(:), allocatable:: corrL_effec
 
         allocate(corrL_effec (size(kMax)))
 
         if (present(corrL)) corrL_effec = corrL
         if (.not. present(corrL)) corrL_effec = 1
-        !        do i = 1, 100
-        !            kMax = i/10.0 * corrL(:)
-        !            write(*,*) "kMax = ", kMax
-        !            write(*,*) "Spectrum = ", get_SpectrumND(kMax, corrMod, corrL)
-        !            call DispCarvalhol (kMax, "kMax")
-        !            call DispCarvalhol (get_SpectrumND(kMax, corrMod, corrL), "Spectrum")
-        !        end do
 
         select case(corrMod)
-        case("gaussian")
-            kMax(:) = 2*pi*corrL_effec(:); !CRITERIA STILL TO BE TESTED
+            case("gaussian")
+                kMax(:) = 2*pi*corrL_effec(:);        !CRITERIA STILL TO BE TESTED
         end select
 
         deallocate(corrL_effec)
@@ -57,24 +49,16 @@ contains
 
         !LOCAL VARIABLES
         double precision :: pi = 3.1415926535898
-        integer          :: i
         double precision, dimension(:), allocatable:: corrL_effec
 
         allocate(corrL_effec (size(rMax)))
 
         if (present(corrL)) corrL_effec = corrL
         if (.not. present(corrL)) corrL_effec = 1
-        !        do i = 1, 100
-        !            kMax = i/10.0 * corrL(:)
-        !            write(*,*) "kMax = ", kMax
-        !            write(*,*) "Spectrum = ", get_SpectrumND(kMax, corrMod, corrL)
-        !            call DispCarvalhol (kMax, "kMax")
-        !            call DispCarvalhol (get_SpectrumND(kMax, corrMod, corrL), "Spectrum")
-        !        end do
 
         select case(corrMod)
-        case("gaussian")
-            rMax(:) = 2*pi*corrL_effec(:); !CRITERIA STILL TO BE TESTED
+            case("gaussian")
+                rMax(:) = 2*pi*corrL_effec(:);        !CRITERIA STILL TO BE TESTED
         end select
 
         deallocate(corrL_effec)
@@ -120,8 +104,7 @@ contains
         double precision :: Sk;
 
         !LOCAL VARIABLES
-        integer :: j, nDim;
-        double precision, dimension(:), allocatable :: eta;
+        integer :: nDim;
         double precision :: pi = 3.1415926535898
         double precision, dimension(:), allocatable:: corrL_effec
 
@@ -134,15 +117,9 @@ contains
         nDim = size(kVector)
 
         select case(corrMod)
-        case("gaussian")
+            case("gaussian")
 
-            !REGIS
-            !Sk  = exp(-dot_product((kVector**2),(corrL_effec**2))/(4.0d0)); !Amplitude part "product(corrL)" is external to the function
-
-            !MEU
-            Sk = exp(-dot_product(kVector**2, corrL_effec**2)/(4.0d0*pi)); !Amplitude part "product(corrL)" is external to the function
-            !write(*,*) "Sk = ", Sk
-            !write(*,*) "kVector = ", kVector
+                Sk = exp(-dot_product(kVector**2, corrL_effec**2)/(4.0d0*pi));        !Amplitude part "product(corrL)" is external to the function
 
         end select
 
