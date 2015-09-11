@@ -6,13 +6,8 @@
 #ifndef MESH_H5_OUTPUT_H
 #define MESH_H5_OUTPUT_H
 
-class Mesh3D;
-class MeshPart;
 
-void output_mesh_part_h5(MeshPart& loc, Mesh3D& mesh);
-void output_mesh_part_h5_comm(int part, Mesh3D& mesh);
 void output_all_meshes_xmf(int nprocs);
-void output_mesh_part_xmf(MeshPart& loc, Mesh3D& mesh);
 
 #endif
 /* Local Variables:                                                        */

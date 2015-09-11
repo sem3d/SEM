@@ -149,8 +149,8 @@ public:
     void get_local_faces(std::vector<int>& mats) const;
     void get_local_edges(std::vector<int>& mats) const;
 protected:
-    int m_proc;
     const Mesh3D& m_mesh;
+    int m_proc;
 
     std::vector<int> m_elems; // Local elements
     std::vector<int> m_elems_faces; // local face number of each local element

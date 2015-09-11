@@ -36,6 +36,7 @@ add_executable(sem_part_grid
   ${SEMCOMMON}/h5helper.cpp
   ${PRJ}/CSRC/main_grid.cpp
   ${PRJ}/CSRC/mesh_h5_output.cpp
+  ${PRJ}/CSRC/meshpart.cpp
   ${PRJ}/CSRC/mesh.cpp
   )
 

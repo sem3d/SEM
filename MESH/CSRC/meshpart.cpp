@@ -44,7 +44,7 @@ void Mesh3DPart::compute_part()
             handle_neighbour_element(k);
         }
     }
-    printf("Created %d facets\n", m_face_to_id.size());
+    printf("Created %ld facets\n", m_face_to_id.size());
 }
 
 int Mesh3DPart::add_facet(int n[4], int dom)
@@ -168,7 +168,7 @@ void Mesh3DPart::handle_neighbour_element(int el)
         int vertex_id = m_mesh.m_elems[e0+k];
         elems.clear();
         m_mesh.m_vertex_to_elem.vertex_to_elements(vertex_id, elems);
-        for(int n=0;n<elems.size();++n) {
+        for(size_t n=0;n<elems.size();++n) {
             if (m_mesh.elem_part(elems[n])==m_proc) {
                 share_pt[k] = 1;
                 break;
@@ -228,7 +228,7 @@ void Mesh3DPart::get_local_elements(std::vector<int>& elems) const
     std::map<int,int>::const_iterator it;
     elems.resize(m_elems.size()*8);
 
-    for(int k=0;k<m_elems.size();++k) {
+    for(size_t k=0;k<m_elems.size();++k) {
         int el = m_elems[k];
         int e0 = m_mesh.m_elems_offs[el];
         for(int n=0;n<m_mesh.nodes_per_elem();++n) {
@@ -243,7 +243,7 @@ void Mesh3DPart::get_local_materials(std::vector<int>& mats) const
 {
     mats.resize(m_elems.size()*2);
 
-    for(int k=0;k<m_elems.size();++k) {
+    for(size_t k=0;k<m_elems.size();++k) {
         int el = m_elems[k];
         mats[2*k+0] = m_mesh.m_mat[el];
         mats[2*k+1] = 0;
@@ -283,7 +283,6 @@ void Mesh3DPart::get_local_edges(std::vector<int>& edges) const
 
 void Mesh3DPart::output_mesh_part()
 {
-    int i;
     char fname[2048];
     vector<double> tmpd;
     vector<int> tmpi, tmpi1;
@@ -332,7 +331,6 @@ void Mesh3DPart::output_mesh_part()
 
 void Mesh3DPart::output_mesh_part_xmf()
 {
-    int i;
     char fname[2048];
     FILE* f;
 

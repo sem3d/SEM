@@ -6,8 +6,10 @@
 #include <vector>
 #include <cassert>
 #include <cstdio>
+#include <cstdlib>
 #include "material.h"
 #include "mesh.h"
+#include "meshpart.h"
 #include "mesh_h5_output.h"
 using namespace std;
 
@@ -100,22 +102,22 @@ int main(int argc, char**argv)
     desc.pmls.U = false;
     desc.pmls.D = true;
 
-    mesh.add_material();
+    int NPROCS=atoi(argv[1]);
+
+    mesh.read_materials("material.input");
     init_rectangular_mesh(desc, mesh);
-    int NPROCS=2;
 
     mesh.partition_mesh(NPROCS);
+    mesh.build_vertex_to_elem_map();
 
     for(int part=0;part<NPROCS;++part) {
-	MeshPart loc;
-	mesh.compute_local_part(part, loc);
-	output_mesh_part_h5(loc, mesh);
-	output_mesh_part_xmf(loc, mesh);
+	Mesh3DPart loc(mesh, part);
+
+	loc.compute_part();
+	loc.output_mesh_part();
+	loc.output_mesh_part_xmf();
     }
     output_all_meshes_xmf(NPROCS);
-    for(int part=0;part<NPROCS;++part) {
-	output_mesh_part_h5_comm(part, mesh);
-    }
 }
 
 /* Local Variables:                                                        */
