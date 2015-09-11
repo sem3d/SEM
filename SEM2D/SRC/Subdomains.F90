@@ -12,22 +12,7 @@
 !<
 
 module ssubdomains
-    !
-    type LMC_properties
 
-        ! variables d'écrouissage kinematic et isotrope de Lamaitre et Chaboche
-        real :: sigma_yld   ! first yielding limit
-        real :: C_kin       ! variable for kinematic hardening
-        real :: kapa_kin    ! variable for kinematic hardening
-        real :: b_iso       ! variable for isotropic hardening
-        real :: Rinf_iso    ! variable for isotropic hardening
-
-    end type LMC_properties
-    !
-    type nl_properties
-        type(LMC_properties) :: LMC_prop
-    end type nl_properties
-    !
     type Subdomain
 
        integer :: NGLLx, NGLLz, n_loc_dim, npow, pml_type
@@ -41,8 +26,6 @@ module ssubdomains
        logical :: Filtering, Px, Pz, Left, Down
 
        character(len=1) :: material_type
-
-       type(nl_properties) :: nl_prop
 
     end type Subdomain
 

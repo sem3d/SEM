@@ -372,11 +372,11 @@ contains
                 write (*,*) 'Qp       :', Tdomain%sSubDomain(i)%Qpression
                 write (*,*) 'Qmu      :', Tdomain%sSubDomain(i)%Qmu
                 if (Tdomain%nl_flag) then
-                    write (*,*) 'NL_LMC - sigma_yld:' Tdomain%sSubDomain(i)%nl_prop%LMC_prop%sigma_yld
-                    write (*,*) 'NL_LMC - C_kin:' Tdomain%sSubDomain(i)%nl_prop%LMC_prop%C_kin
-                    write (*,*) 'NL_LMC - kapa_kin:' Tdomain%sSubDomain(i)%nl_prop%LMC_prop%kapa_kin
-                    write (*,*) 'NL_LMC - b_iso:' Tdomain%sSubDomain(i)%nl_prop%LMC_prop%b_iso
-                    write (*,*) 'NL_LMC - Rinf:' Tdomain%sSubDomain(i)%nl_prop%LMC_prop%Rinf_iso
+                    write (*,*) 'NL_LMC - sigma_yld:', Tdomain%sSubDomain(i)%nl_prop%LMC_prop%sigma_yld
+                    write (*,*) 'NL_LMC - C_kin:',     Tdomain%sSubDomain(i)%nl_prop%LMC_prop%C_kin
+                    write (*,*) 'NL_LMC - kapa_kin:',  Tdomain%sSubDomain(i)%nl_prop%LMC_prop%kapa_kin
+                    write (*,*) 'NL_LMC - b_iso:',     Tdomain%sSubDomain(i)%nl_prop%LMC_prop%b_iso
+                    write (*,*) 'NL_LMC - Rinf:',      Tdomain%sSubDomain(i)%nl_prop%LMC_prop%Rinf_iso
                 end if
             endif
 

@@ -24,12 +24,10 @@ contains
         real,                 intent(out) :: F_mises     ! Mises yield locus
         real, dimension(0:5), intent(out) :: gradF_mises ! Mises yield locus gradient
 
-        real                 :: Sigma_P
-        real, dimension(0,5) :: Sigma_ij_dev
+        real, dimension(0:5) :: Sigma_ij_dev
         real                 :: tau_eq_mises
-        integer              :: i
 
-        call tensor_components (Sigma_ij, Sigma_P, Sigma_ij_dev)
+        call tensor_components (Sigma_ij, Sigma_ij_dev)
 
         call tau_mises(Sigma_ij-X_ij, tau_eq_mises)
 
@@ -58,14 +56,14 @@ contains
 
     end subroutine
 
-    subroutine tensor_components (Sigma_ij, Sigma_P, Sigma_ij_dev)
+    subroutine tensor_components (Sigma_ij, Sigma_ij_dev)
 
         ! TENSOR COMPONENTS (SPHERICAL AND DEVIATORIC)
 
         implicit none
         real, dimension(0:5), intent(in)  :: Sigma_ij
-        real,                 intent(out) :: Sigma_P
-        real, dimension(0,5), intent(out) :: Sigma_ij_dev
+        real, dimension(0:5), intent(out) :: Sigma_ij_dev
+        real                              :: Sigma_P
 
         Sigma_P           = sum(Sigma_ij(0:2)) * M_1_3
         Sigma_ij_dev(0:5) = Sigma_ij(0:5)
@@ -74,7 +72,7 @@ contains
     end subroutine tensor_components
 
     subroutine check_plasticity (dSigma_ij_trial, Sigma_ij_start, X_ij, R, sigma_yld, &
-                                 st_elp, alpha_elp, Sigma_ij_on_F, F_final)
+                                 st_epl, alpha_elp, Sigma_ij_on_F, F_final)
 
         ! CHECK PLASTIC CONSISTENCY (KKT CONDITIONS)
 
@@ -90,8 +88,8 @@ contains
         real,                 intent(out):: F_final         ! should be -tol < F < tol
         integer,              intent(out):: st_epl          ! elasto-plastic status
 
-        real                             :: F_start     ! Mises yield locus at Sigma_ij_start
-        real, dimension(0:5)             :: gradF_start ! Mises yield locus gradient at Sigma_ij_start
+        real                             :: F_start, F_final_trial
+        real, dimension(0:5)             :: gradF_start, gradF_trial, gradF_final
 
         ! Yield function at Sigma_ij_start
         call mises_yld_locus (Sigma_ij_start, X_ij, R, sigma_yld, F_start, gradF_start)
@@ -106,7 +104,7 @@ contains
             alpha_elp     = 1
             Sigma_ij_on_F = Sigma_ij_start + dSigma_ij_trial
             F_final       = F_final_trial
-            st_elp        = 2
+            st_epl        = 2
 
         elseif ((F_start .lt. -tol) .and. (F_final_trial .gt. -tol)) then  ! ELASTO-PLASTIC LOADING
 
@@ -121,7 +119,7 @@ contains
             alpha_elp     = 1
             Sigma_ij_on_F = Sigma_ij_start + dSigma_ij_trial
             F_final       = F_final_trial
-            st_elp        = 3
+            st_epl        = 3
 
         elseif ((abs(F_start) .le. tol) .and. &
             (10*sum(dSigma_ij_trial*gradF_start) .gt. -tol))           then  ! PLASTIC LOADING
@@ -151,27 +149,27 @@ contains
         real, dimension(0:5), intent(inout) :: X_ij_1               ! starting back stress
         real,                 intent(inout) :: R_1                  ! starting mises radius
         real,                 intent(inout) :: PlastMult_1          ! current plastic multiplier
-        real, dimension(0:5), intent(in) :: dEpsilon_ij_alpha       ! percentage of elastic-plastic strain
-        real,                 intent(in) :: sigma_yld               ! first yield limit
-        real,                 intent(in) :: b_lmc, Rinf_lmc         ! Lamaitre and Chaboche parameters (isotropic hardening)
-        real,                 intent(in) :: C_lmc, kapa_lmc         ! Lamaitre and Chaboche parameters (kinematic hardening)
-        real,                 intent(in) :: mu, lambda              ! elastic parameters
+        real, dimension(0:5), intent(inout) :: dEpsilon_ij_alpha    ! percentage of elastic-plastic strain
+        real,                 intent(in)    :: sigma_yld            ! first yield limit
+        real,                 intent(in)    :: b_lmc, Rinf_lmc      ! Lamaitre and Chaboche parameters (isotropic hardening)
+        real,                 intent(in)    :: C_lmc, kapa_lmc      ! Lamaitre and Chaboche parameters (kinematic hardening)
+        real,                 intent(in)    :: mu, lambda           ! elastic parameters
 
-        real, dimension(0:5)             :: Sigma_ij_0, X_ij_0
-        real                             :: R_0, h_lmc, dPlastMult_0, dPlastMult_1
-        integer                          :: i,j,k
-        integer, parameter               :: N_incr = 30
-        real, dimension(0:5)             :: temp_vec
-        real, dimension(0:2), parameter  :: vec0 = (/ 0.0, 0.0, 0.0 /), &
-            veci = (/ 1.0, 0.0, 0.0 /), &
-            vecj = (/ 0.0, 1.0, 0.0 /), &
-            veck = (/ 0.0, 0.0, 1.0 /)
-        real, dimension(0:5,0:5)         :: DEL_ijhk
-        real, dimension(0:2,0:2)         :: M
+        real, dimension(0:5)                :: Sigma_ij_0, X_ij_0, dX_ij_0, gradF_0, gradF_mises
+        real                                :: R_0, dR_0, dPlastMult_0, dPlastMult_1, F_mises_0, F_mises
+        integer                             :: i,j,k
+        integer, parameter                  :: N_incr = 10
+        real, dimension(0:5)                :: temp_vec
+        real, dimension(0:2), parameter     :: vec0 = (/ 0.0, 0.0, 0.0 /)
+        real, dimension(0:2), parameter     :: veci = (/ 1.0, 0.0, 0.0 /)
+        real, dimension(0:2), parameter     :: vecj = (/ 0.0, 1.0, 0.0 /)
+        real, dimension(0:2), parameter     :: veck = (/ 0.0, 0.0, 1.0 /)
+        real, dimension(0:5,0:5)            :: DEL_ijhk
+        real, dimension(0:2,0:2)            :: M
         real, dimension(0:2,0:2), parameter :: id_matrix = reshape( (/veci,vecj,veck/), (/3,3/) )
 
-        DEL_ijhk(:,:) = 0
-        M(0:2,0:2) = 1
+        DEL_ijhk(:,:)   = 0d0
+        M(0:2,0:2)      = 1
 
         DEL_ijhk(0:2,0:2) = DEL_ijhk(0:2,0:2) + lambda * M + id_matrix * 2 * mu
         DEL_ijhk(3:5,3:5) = DEL_ijhk(3:5,3:5) + id_matrix * mu
@@ -188,8 +186,9 @@ contains
             call mises_yld_locus (Sigma_ij_0, X_ij_0, R_0, sigma_yld, F_mises_0, gradF_0)
 
             ! PLASTIC MULTIPLIER
-            call compute_plastic_modulus(dEpsilon_ij_alpha, Sigma_ij_0, X_ij_0, R_0, sigma_yld, &
-                                          dPlastMult_1, h_lmc)
+            call compute_plastic_modulus(dEpsilon_ij_alpha, Sigma_ij_0, X_ij_0, R_0, mu, lambda, sigma_yld, &
+                                          b_lmc, Rinf_lmc, C_lmc, kapa_lmc, dPlastMult_1)
+
             dPlastMult_0 = dPlastMult_0 + dPlastMult_1
 
             ! HARDENING INCREMENTS
@@ -199,16 +198,17 @@ contains
             R_1    = R_0    + dR_0                          ! isotropic hardening update
             X_ij_1 = X_ij_0 + dX_ij_0                       ! back-stress update
 
-            temp_vec(0,5) = 0d0
+            temp_vec(0:5) = 0d0
 
             do k = 0,5
                 do j = 0,5
-                    temp_vec(j) = temp_vec(j)+DEL_ijhk(j,k)*(dETij_alpha(k) - dPlastMult_1 * gradF_0(k))
+                    temp_vec(j) = temp_vec(j)+DEL_ijhk(j,k)*(dEpsilon_ij_alpha(k) - dPlastMult_1 * gradF_0(k))
                 end do
             end do
 
             ! DRIFT CORRECTION
-            call drift_corr(Sigma_ij_0 + temp_vec, X_ij_1, R_1, sigma_yld, Sigma_ij_1) ! drift correction (radial return)
+            Sigma_ij_0 = Sigma_ij_0 + temp_vec
+            call drift_corr(Sigma_ij_0, X_ij_1, R_1, sigma_yld) ! drift correction (radial return)
 
         end do
 
@@ -217,7 +217,8 @@ contains
 
     end subroutine plastic_corrector
 
-    subroutine compute_plastic_modulus(dEpsilon_ij, Sigma_ij, X_ij, R, sigma_yld, dPlastMult, h_lmc)
+    subroutine compute_plastic_modulus(dEpsilon_ij, Sigma_ij, X_ij, R, mu, lambda, &
+        sigma_yld, b_lmc, Rinf_lmc, C_lmc, kapa_lmc, dPlastMult)
 
         ! HARDENING MODULUS AND PLASTIC MULTIPLIER INCREMENT
 
@@ -226,15 +227,15 @@ contains
         real, dimension(0:5), intent(in) :: Sigma_ij            ! starting stress state
         real, dimension(0:5), intent(in) :: X_ij                ! starting back stress
         real,                 intent(in) :: R                   ! starting mises radius
-        real,                 intent(out):: dPlastMult          ! plastic multiplier increment
         real,                 intent(in) :: b_lmc, Rinf_lmc     ! Lamaitre and Chaboche parameters (isotropic hardening)
         real,                 intent(in) :: C_lmc, kapa_lmc     ! Lamaitre and Chaboche parameters (kinematic hardening)
         real,                 intent(in) :: mu, lambda          ! elastic parameters
-        real,                 intent(in) :: sigma_yld
+        real,                 intent(in) :: sigma_yld           ! first yielding limit
+        real,                 intent(out):: dPlastMult          ! plastic multiplier increment
         real                             :: h_iso, h_kin        ! isotropic and kinematic hardening modula
         real                             :: F_mises
         real, dimension(0:5)             :: gradF_mises
-        real,                 intent(out):: h_lmc               ! total hardening modulus
+        real                             :: h_lmc               ! total hardening modulus
         real, dimension(0:5)             :: temp_vec
         real, dimension(0:2), parameter  :: vec0 = (/ 0.0, 0.0, 0.0 /), &
             veci = (/ 1.0, 0.0, 0.0 /), &
@@ -258,7 +259,7 @@ contains
         h_lmc = h_iso + h_kin
 
         ! PLASTIC MULTIPLIER
-        temp_vec(0,5) = 0d0
+        temp_vec(0:5) = 0d0
         dPlastMult    = 0d0
 
         do k = 0,5
@@ -277,19 +278,21 @@ contains
 
         ! INCREMENTS OF INTRINSIC STATIC VARIABLES
 
-        real, dimension(0:5), intent(in) :: Sigma_ij   ! actual stress state
-        real, dimension(0:5), intent(in) :: X_ij       ! actual back stress state
-        real, dimension(0:5), intent(out):: dX_ij      ! back stress increment
-        real,                 intent(in) :: dPlastMult ! plastic multiplier increment
-        real,                 intent(in) :: R          ! actual mises radius
+        real, dimension(0:5), intent(in) :: Sigma_ij        ! actual stress state
+        real, dimension(0:5), intent(in) :: X_ij            ! actual back stress state
+        real,                 intent(in) :: dPlastMult      ! plastic multiplier increment
+        real,                 intent(in) :: sigma_yld       ! first yielding limit
+        real,                 intent(in) :: R               ! actual mises radius
         real,                 intent(in) :: b_lmc, Rinf_lmc ! Lamaitre and Chaboche parameters (isotropic hardening)
         real,                 intent(in) :: C_lmc, kapa_lmc ! Lamaitre and Chaboche parameters (kinematic hardening)
-        real,                 intent(out):: dR         ! mises radius increment
-        real,                 intent(in) :: sigma_yld
+
+        real,                 intent(out):: dR              ! mises radius increment
+        real, dimension(0:5), intent(out):: dX_ij           ! back stress increment
+
         real                             :: F_mises
         real, dimension(0:5)             :: gradF_mises
         real, dimension(0:5)             :: temp_vec
-        real, dimension(0:5)             :: temp_matrix
+        real, dimension(0:5,0:5)         :: temp_matrix
         real, dimension(0:2), parameter  :: vec0 = (/ 0.0, 0.0, 0.0 /), &
             veci = (/ 1.0, 0.0, 0.0 /), &
             vecj = (/ 0.0, 1.0, 0.0 /), &
@@ -313,22 +316,22 @@ contains
             end do
         end do
 
-        d_Xij = dPlastMult * (2 * temp_vec * C_lmc / 3 - X_ij * kapa_lmc)
+        dX_ij(0:5) = dPlastMult*(2*temp_vec(0:5)*C_lmc/3 - X_ij(0:5)*kapa_lmc)
 
     end subroutine hardening_increments
 
-    subroutine drift_corr(Sigma_ij_0, X_ij, R, sigma_yld, Sigma_ij_1)
+    subroutine drift_corr(Sigma_ij_0, X_ij, R, sigma_yld)
 
         ! DRIFT CORRECTION (RADIAL RETURN)
 
-        real, dimension(0:5), intent(in) :: Sigma_ij_0 ! actual stress state
-        real, dimension(0:5), intent(in) :: X_ij       ! actual back stress state
-        real,                 intent(in) :: R          ! actual mises radius
-        real,                 intent(in) :: sigma_yld
-        real, dimension(0:5), intent(out):: Sigma_ij_1
-        real                             :: F_0, alpha0, F_1, alpha1, dalpha, Sigma_P, err
-        real, dimension(0:5)             :: gradF_0, Sigma_ij_dev_0
-        real, dimension(0:5)             :: gradF_1, Sigma_ij_dev_1
+        real, dimension(0:5), intent(inout) :: Sigma_ij_0 ! actual stress state
+        real, dimension(0:5), intent(in)    :: X_ij       ! actual back stress state
+        real,                 intent(in)    :: R          ! actual mises radius
+        real,                 intent(in)    :: sigma_yld
+        real, dimension(0:5)                :: Sigma_ij_1
+        real                                :: F_0, alpha0, F_1, alpha1, dalpha, err0, err1
+        real, dimension(0:5)                :: gradF_0, Sigma_ij_dev_0
+        real, dimension(0:5)                :: gradF_1, Sigma_ij_dev_1
 
         call mises_yld_locus(Sigma_ij_0, X_ij, R, sigma_yld, F_0, gradF_0)
 
@@ -336,21 +339,21 @@ contains
 
         ! NR algorithm for drift correction (radial return) (see Sloan 1987)
         do
-            call tensor_components(Sigma_ij_0, Sigma_P, Sigma_ij_dev_0)
+            call tensor_components(Sigma_ij_0, Sigma_ij_dev_0)
             call mises_yld_locus(Sigma_ij_0, X_ij, R, sigma_yld, F_1, gradF_1)
             dalpha = -F_1 / DOT_PRODUCT(gradF_1, gradF_0)
             alpha1 = alpha0 + dalpha
             Sigma_ij_1 = Sigma_ij_0 + alpha1 * gradF_0
-            call tensor_components (Sigma_ij_1, Sigma_P, Sigma_ij_dev_1)
+            call tensor_components (Sigma_ij_1, Sigma_ij_dev_1)
 
             call tau_eq_mises((Sigma_ij_dev_1 - Sigma_ij_dev_0), err0)
             call tau_eq_mises((Sigma_ij_dev_0 - X_ij), err1)
 
             err0 = err0/err1
 
-            if (err0 .le. tol) exit
-
             Sigma_ij_0 = Sigma_ij_1
+
+            if (err0 .le. tol) exit
             alpha0 = alpha1
 
         end do
