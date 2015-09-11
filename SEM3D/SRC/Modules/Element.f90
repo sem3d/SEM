@@ -16,6 +16,14 @@ module selement
     use blas
     implicit none
 
+    type nl_prop_lmc
+        real :: b_iso
+        real :: Rinf_iso
+        real :: C_kin
+        real :: kapa_kin
+        real :: sigma_yld
+    end type nl_param_lmc
+
     type :: element_solid
        real, dimension(:,:,:,:), allocatable :: Cij
 
@@ -44,13 +52,7 @@ module selement
        real, dimension(:,:,:,:), allocatable :: Diagonal_Stress1, Diagonal_Stress2, Diagonal_Stress3
        real, dimension(:,:,:,:), allocatable :: Residual_Stress1, Residual_Stress2, Residual_Stress3
        ! FPML
-       real, dimension(:,:,:), allocatable :: Isx, Isy, Isz
-       real, dimension(:,:,:), allocatable :: Ivx, Ivy, Ivz
-       real, dimension(:,:,:,:), allocatable :: Iveloc1, Iveloc2, Iveloc3
-       real, dimension(:,:,:,:), allocatable :: I_Diagonal_Stress1, I_Diagonal_Stress2, I_Diagonal_Stress3
-       real, dimension(:,:,:,:), allocatable :: I_Residual_Stress1, I_Residual_Stress2
        real, dimension(:,:,:,:), allocatable :: Diagonal_Stress, Residual_Stress
-       real, dimension(:,:), allocatable :: Normales, Inv_Normales
     end type element_solid_pml
 
     type :: element_fluid_pml
@@ -60,31 +62,33 @@ module selement
     end type element_fluid_pml
 
     type :: element
-
        integer :: mat_index, ngllx, nglly, ngllz
+       type(element_solid), allocatable :: sl
+       type(element_fluid), allocatable :: fl
+       integer, dimension (:,:,:), allocatable :: ISol, IFlu
+       real, dimension (:,:,:), allocatable :: Jacob
+       real, dimension(:,:,:,:,:), allocatable :: InvGrad
+       real, dimension (:,:,:), allocatable :: Density, MassMat
+       real, dimension (:,:,:), allocatable :: Lambda, Mu, Kappa
+
+       type(element_pml), allocatable :: xpml
+       type(element_solid_pml), allocatable :: slpml
+       type(element_fluid_pml), allocatable :: flpml
+
+       ! Whether this element will be part of snapshot outputs
+       logical :: OUTPUT
+
+       ! These should not be used during the simulation, only at init time
        integer, dimension (:), allocatable :: Control_nodes
        integer, dimension (0:5) :: Near_Faces, Orient_Faces
        integer, dimension (0:11) :: Near_Edges, Orient_Edges
        integer, dimension (0:7) :: Near_Vertices
 
        integer, dimension (:,:,:), allocatable :: Iglobnum
-       real, dimension (:,:,:), allocatable :: Jacob
-       real, dimension(:,:,:,:,:), allocatable :: InvGrad
-       real, dimension (:,:,:), allocatable :: Density, MassMat
-
-       real, dimension (:,:,:), allocatable :: Lambda, Mu, Kappa
        ! flag for PML allocation
        logical :: PML, FPML
        logical  :: solid, fluid_dirich
-       ! Whether this element will be part of snapshot outputs
-       logical :: OUTPUT
 
-       type(element_solid), allocatable :: sl
-       type(element_fluid), allocatable :: fl
-       type(element_pml), allocatable :: xpml
-       type(element_solid_pml), allocatable :: slpml
-       type(element_fluid_pml), allocatable :: flpml
-       integer, dimension (:,:,:), allocatable :: ISol, IFlu
        real :: dist_max !! taille caracteristique de l'element
     end type element
 

@@ -10,6 +10,8 @@
 
 MODULE constants
     IMPLICIT none
+    ! Precision
+    integer, parameter :: FPP=kind(0D0)
     ! Constantes mathematique
     ! Les valeurs suivantes et leurs noms sont tirees de math.h
     real(KIND=8), parameter :: M_E = 2.7182818284590452354D0         ! e

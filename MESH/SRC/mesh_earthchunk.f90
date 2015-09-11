@@ -66,7 +66,7 @@ contains
 
     subroutine init_earthchunk(chunk)
         implicit none
-        real :: delta_lon, delta_lat, step_lonlat, max_depth, curDepth, dTheta
+        real :: delta_lon, delta_lat, step_lonlat, curDepth, dTheta
         integer :: mesh_type, countPt, i
         type(EarthChunk_t), intent(out) :: chunk
 
@@ -183,7 +183,6 @@ contains
         integer, dimension(0:), intent(out) :: mat
         integer :: nelemx, nelemy, nelemz, iex, iey, iez, ix, iy, iz, indice, dX, dXY
         real :: curDepth, curX, curY, x, y, z
-        real, dimension(0:2,0:2) :: rotToRealChunk
         type(EarthChunk_t), intent(in) :: chunk
 
         indice=0

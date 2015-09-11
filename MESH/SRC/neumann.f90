@@ -53,10 +53,8 @@ contains
         type(Neu_Face_type), dimension(:,:), allocatable, intent(out)   ::  Neu_object_Face
         integer, dimension(:), allocatable, intent(out)   ::  Neu_object_n_faces
 
-        integer   :: i,j,k,l,n,nf,nn,nnn,ok,num,neighbor_edge,neighbor_face,node_ref
-        integer, dimension(0:1)  :: corner_edge
-        integer, dimension(0:3)  :: corner, corner_fl, neighbor_corner,  &
-            corner_s,edge_fl,edge_s
+        integer   :: j,k,n,nf,nn,ok,num,node_ref
+        integer, dimension(0:3)  :: corner
         type(near_entity), pointer  :: near_neighb => NULL()
 
         write(*,*) "  --> Construction of Neumann objects."
@@ -348,7 +346,7 @@ contains
 
         logical, dimension(:), allocatable   :: Lproc
         integer   :: i,j,k,nv0,nv1,n,np,nel,num,ok
-        integer, dimension(0:1)  :: npf,nps,e_neighbor_corner
+        integer, dimension(0:1)  :: npf,e_neighbor_corner
         type(near_entity), pointer   :: near_neighb => NULL()
 
         allocate(Lproc(0:nproc-1))
@@ -410,7 +408,7 @@ contains
         integer, dimension(0:Neu_n_faces-1), intent(out)  :: Neu_faces
         integer, dimension(0:Neu_n_faces-1), intent(out) ::             &
             Neu_local_to_global_faces
-        integer :: i,j,k,nf,nel,nnf,num,n
+        integer :: j,nf,nel,nnf,n
 
         j = 0    ! local Neumann faces counting
         do nf = 0,Neu_n_global_faces-1
@@ -445,7 +443,7 @@ contains
             Neu_mapping_edges_shared
         integer, dimension(0:nproc-1), intent(out)   :: Neu_ne_shared
         type(proc_obj), dimension(0:), intent(inout)  :: MemoryNeu
-        integer :: i,j,k,nf,nel,nnf,num,n,ns,nes,ne,n0,n1,nns,nv0,nels
+        integer :: i,j,nnf,num,n,ns,nes,ne,n0,nns,nv0,nels
         logical   ::  orient_proc,orient_o_proc
 
         Neu_edges(0:) = -1
@@ -514,7 +512,7 @@ contains
         integer, dimension(0:,0:), intent(out)   :: Neu_vertices_shared
         integer, dimension(0:nproc-1), intent(out)   :: Neu_nv_shared
         type(proc_obj), dimension(0:), intent(inout)  :: MemoryNeu
-        integer :: i,j,k,nf,nel,nnf,num,n,ns,nes,ne,n0,n1,nns,nv0,nels
+        integer :: i,j,nf,nnf,num
 
         Neu_vertices(0:) = -1
         Neu_nv_shared(0:) = 0

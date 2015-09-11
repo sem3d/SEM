@@ -371,8 +371,7 @@ contains
         integer   :: n,nv,vert,local_n,icount,nel,i,k,num,procrank
         logical, dimension(0:n_vertices-1)  :: L_vertex
         logical, dimension(0:n_proc-1)  :: L_Proc
-        type(near_entity), pointer  :: near_neighb => NULL(),   &
-            o_proc_near_neighb => NULL()
+        type(near_entity), pointer  :: o_proc_near_neighb => NULL()
 
 
         nv_shared = 0

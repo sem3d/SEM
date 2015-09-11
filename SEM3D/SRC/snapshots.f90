@@ -462,7 +462,7 @@ contains
         integer :: n, i, j, k, ngllx, nglly, ngllz, ig, gn, ne
         !
         integer :: count
-        integer :: status, ierr, domain_type
+        integer :: ierr, domain_type
         integer, dimension(:), allocatable, intent(out) :: domains
 
         allocate(irenum(0:Tdomain%n_glob_points-1))
@@ -800,12 +800,11 @@ contains
         integer :: ngllx, nglly, ngllz, idx
         integer :: i, j, k, n
         integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
-        integer :: nnodes, group, nnodes_tot, mat
+        integer :: nnodes, group, nnodes_tot
         integer, dimension(:), allocatable :: domains
         type(Element), pointer :: el
         type(subdomain), pointer :: sub_dom_mat
         type(output_var_t) :: out_fields
-        !integer :: mat_idx,
         integer :: n_solid
 
         real, dimension(:,:,:), allocatable   :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ

@@ -20,7 +20,7 @@ contains
 
         real, intent(in) :: r
         real, intent(out) :: rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu
-        real :: vpv,vph,vsv,vsh,eta_aniso,depth
+        real :: vpv,vph,vsv,vsh,eta_aniso
 
         call prem_aniso(r/Earth_radius,rho,vpv,vph,vsv,vsh,eta_aniso,Qmu)
     

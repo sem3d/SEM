@@ -107,12 +107,12 @@ if(OPT_MPI)
   # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
   # c++ et ne link pas semx.exe
 
-  add_executable(sem3d_cpl ${SEM3D_SOURCES_CPL})
-  target_link_libraries(sem3d_cpl sem3dcommon ${SEM_EXTRA_LIBS})
-  set_target_properties(sem3d_cpl PROPERTIES
-                                  COMPILE_DEFINITIONS COUPLAGE
-				  COMPILE_FLAGS "-I${SEMLIBDIR}/cpl3d -I${SEMLIBDIR}/sem3d -I${SEMLIBDIR}/common"
-				  Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/cpl3d)
+#  add_executable(sem3d_cpl ${SEM3D_SOURCES_CPL})
+#  target_link_libraries(sem3d_cpl sem3dcommon ${SEM_EXTRA_LIBS})
+#  set_target_properties(sem3d_cpl PROPERTIES
+#                                  COMPILE_DEFINITIONS COUPLAGE
+#				  COMPILE_FLAGS "-I${SEMLIBDIR}/cpl3d -I${SEMLIBDIR}/sem3d -I${SEMLIBDIR}/common"
+#				  Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/cpl3d)
 else(OPT_MPI)
   set(SEM3D_SOURCES ${SEM3D_SOURCES} ${FTM_SOURCES})
 endif(OPT_MPI)

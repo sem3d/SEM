@@ -10,26 +10,20 @@
 
 module sfaces
 
-    type :: face_pml
-       real, dimension (:,:,:), allocatable :: IVeloc1, IVeloc2, IVeloc3
-       real, dimension (:,:), allocatable :: Ivx, Ivy, Ivz
-    end type face_pml
 
     type :: face
        logical :: PML, Abs, FPML
        integer :: ngll1, ngll2, dir, Which_Elem, mat_index
        integer, dimension (:,:), allocatable :: Iglobnum_Face
-       ! Lien entre ngll et numérotation des champs globaux
+       ! Lien entre ngll et numÃ©rotation des champs globaux
        integer, dimension (:,:), allocatable :: Renum
 
        ! solid-fluid
        logical :: solid, fluid_dirich
-       ! pml
-       type(face_pml), pointer :: spml
 
        !! Couplage Externe
-       real, dimension (:,:,:), allocatable :: ForcesExt
-       real, dimension (:,:), allocatable :: tsurfsem
+!       real, dimension (:,:,:), allocatable :: ForcesExt
+!       real, dimension (:,:), allocatable :: tsurfsem
     end type face
 
 contains

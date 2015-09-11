@@ -19,7 +19,7 @@ module forces_aniso
 contains
 
     subroutine forces_int(Elem, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
-               n_solid, aniso, solid, champs1)
+               n_solid, aniso, solid, champs1, nl_flag)
 
         type (Element), intent (INOUT) :: Elem
         type (subdomain), intent(IN) :: mat
@@ -44,7 +44,9 @@ contains
         real, dimension(:,:,:), allocatable :: epsilonvol_loc
         real, dimension(:,:,:,:), allocatable :: Depla
         real, dimension(:,:,:), allocatable :: Phi
-
+        integer, intent(in) :: nl_flag
+        real, dimension(:,:,:,:), allocatable :: Sigma_ij_N, Xkin_ij_N
+        real, dimension(:,:,:), allocatable :: Riso_N
 
         m1 = Elem%ngllx;   m2 = Elem%nglly;   m3 = Elem%ngllz
 
@@ -64,6 +66,30 @@ contains
             call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Depla(:,:,:,1),dxy,dyy,dzy)
             call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Depla(:,:,:,2),dxz,dyz,dzz)
             deallocate(Depla)
+
+            if nl_flag then
+                allocate(Sigma_ij_N(0:m1-1,0:m2-1,0:m3-1,0:5))
+                allocate(Xkin_ij_N(0:m1-1,0:m2-1,0:m3-1,0:5))
+                allocate(Riso_N(0:m1-1,0:m2-1,0:m3-1))
+                do i_dir = 0,5
+                    do k = 0,m3-1
+                        do j = 0,m2-1
+                            do i = 0,m1-1
+                                Sigma_ij_N(i,j,k,i_dir) = champs1%Stress(Elem%Isol(i,j,k),i_dir))
+                                Xkin_ij_N(i,j,k,i_dir)  = champs1%Xkin(Elem%Isol(i,j,k,i_dir))
+                            enddo
+                        enddo
+                    enddo
+                enddo
+                do k = 0,m3-1
+                    do j = 0,m2-1
+                        do i = 0,m1-1
+                            Riso_N(i,j,k) = champs1%Riso(Elem%Isol(i,j,k))
+                        enddo
+                    enddo
+                enddo
+            end if
+            ! ! !
 
             if (n_solid>0) then
                 if (aniso) then

@@ -6,6 +6,7 @@ module mfields
     use sdomain
     use orientation
     use deriv3d
+    implicit none
 contains
 
     subroutine fluid_velocity(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,InvGrad,    &
@@ -107,7 +108,7 @@ contains
         real, dimension(0:,0:), intent(in) :: src_field
         integer, dimension(0:,0:,0:), intent(in) :: inum
         !
-        integer :: i,j,k
+        integer :: i,j,k,ind
 
         do k=0,el%ngllz-1
             do j=0,el%nglly-1
@@ -125,7 +126,7 @@ contains
         real, dimension(0:,0:), intent(in) :: src_field
         integer, dimension(0:,0:,0:), intent(in) :: inum
         !
-        integer :: i,j,k
+        integer :: i,j,k,ind
 
         do k=0,el%ngllz-1
             do j=0,el%nglly-1
@@ -143,7 +144,7 @@ contains
         real, dimension(0:), intent(in) :: src_field
         integer, dimension(0:,0:,0:), intent(in) :: inum
         !
-        integer :: i,j,k
+        integer :: i,j,k,ind
 
         do k=0,el%ngllz-1
             do j=0,el%nglly-1
@@ -161,7 +162,7 @@ contains
         real, dimension(0:), intent(in) :: src_field
         integer, dimension(0:,0:,0:), intent(in) :: inum
         !
-        integer :: i,j,k
+        integer :: i,j,k,ind
 
         do k=0,el%ngllz-1
             do j=0,el%nglly-1
@@ -266,6 +267,7 @@ contains
         real, dimension(:,:,:), allocatable :: vphi
         type(element), pointer :: el
         integer :: nx, ny, nz, i, j, k, ind
+        integer :: mat
         nx = Tdomain%specel(nel)%ngllx
         ny = Tdomain%specel(nel)%nglly
         nz = Tdomain%specel(nel)%ngllz
@@ -321,7 +323,8 @@ contains
         real, dimension(0:,0:,0:), intent(out) :: field
         real, dimension(:,:,:,:), allocatable :: displ
         type(element), pointer :: el
-        integer :: nx, ny, nz, i, mat
+        integer :: nx, ny, nz, mat
+        integer :: ind, i, j, k
         nx = Tdomain%specel(nel)%ngllx
         ny = Tdomain%specel(nel)%nglly
         nz = Tdomain%specel(nel)%ngllz

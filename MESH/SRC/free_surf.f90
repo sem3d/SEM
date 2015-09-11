@@ -27,7 +27,7 @@ contains
         logical, dimension(0:), intent(in)  :: elem_solid
         logical, dimension(0:), intent(out)  :: elem_fluid_free
         integer, dimension(0:,0:), intent(in) :: Ipointer
-        integer :: i,j,k,n,nel,num,ok,neighbor,ind_elem
+        integer :: i,j,k,nel,num,ok,neighbor
         integer, dimension(0:3)  ::  corner
 
         find_el: do nel = 0,n_elem-1
