@@ -11,6 +11,15 @@
 #include <map>
 
 
+template<typename T0, typename T1>
+T1 get(const std::map<T0,T1>& m, const T0& key, const T1& def)
+{
+    typename std::map<T0,T1>::const_iterator it;
+    it = m.find(key);
+    if (it!=m.end()) return it->second;
+    return def;
+}
+
 /// Faces are stored as v1 v2 v3 v4, with v1 < v2 < v4
 /// The nodes are consecutive, the direction is determined by the ordering of
 /// the vertex number of the second node ie
@@ -51,7 +60,6 @@ struct PFace {
 	return false;
     }
 
-protected:
     int n[5];
 };
 
@@ -78,8 +86,8 @@ struct PEdge {
 	}
 	return false;
     }
-protected:
-    int n[5];
+
+    int n[3];
 };
 
 typedef std::pair<int,int> PVertex; // pair(ID,Domain)
@@ -138,6 +146,8 @@ public:
     void get_local_nodes(std::vector<double>& nodes) const;
     void get_local_elements(std::vector<int>& elems) const;
     void get_local_materials(std::vector<int>& mats) const;
+    void get_local_faces(std::vector<int>& mats) const;
+    void get_local_edges(std::vector<int>& mats) const;
 protected:
     int m_proc;
     const Mesh3D& m_mesh;

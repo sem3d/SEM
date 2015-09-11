@@ -233,9 +233,7 @@ void Mesh3DPart::get_local_elements(std::vector<int>& elems) const
         int e0 = m_mesh.m_elems_offs[el];
         for(int n=0;n<m_mesh.nodes_per_elem();++n) {
             int gid = m_mesh.m_elems[e0+n];
-            it = m_nodes_to_id.find(gid);
-            assert(it!=m_nodes_to_id.end());
-            int lid = it->second;
+            int lid = get(m_nodes_to_id, gid, -1);
             elems[8*k + n] = lid;
         }
     }
@@ -251,6 +249,36 @@ void Mesh3DPart::get_local_materials(std::vector<int>& mats) const
         mats[2*k+1] = 0;
     }
 
+}
+
+void Mesh3DPart::get_local_faces(std::vector<int>& faces) const
+{
+    faces.resize(m_face_to_id.size()*4);
+    face_map_t::const_iterator it;
+    int fc=0;
+    for(it=m_face_to_id.begin();it!=m_face_to_id.end();++it) {
+        fc = it->second;
+        for(int p=0;p<4;++p) {
+            int gid = it->first.n[p];
+            int lid = get(m_nodes_to_id, gid, -1);
+            faces[4*fc + p] = lid;
+        }
+    }
+}
+
+void Mesh3DPart::get_local_edges(std::vector<int>& edges) const
+{
+    edges.resize(m_edge_to_id.size()*2);
+    edge_map_t::const_iterator it;
+    int ed=0;
+    for(it=m_edge_to_id.begin();it!=m_edge_to_id.end();++it) {
+        ed = it->second;
+        for(int p=0;p<2;++p) {
+            int gid = it->first.n[p];
+            int lid = get(m_nodes_to_id, gid, -1);
+            edges[2*ed + p] = lid;
+        }
+    }
 }
 
 void Mesh3DPart::output_mesh_part()
@@ -281,7 +309,6 @@ void Mesh3DPart::output_mesh_part()
     get_local_nodes(tmpd);
     h5h_write_dset_2d(fid, "local_nodes", n_nodes(), 3, &tmpd[0]);
 
-
     get_local_elements(tmpi);
     h5h_write_dset_2d(fid, "elements", n_elems(), 8, &tmpi[0]);
 
@@ -289,10 +316,12 @@ void Mesh3DPart::output_mesh_part()
     h5h_write_dset_2d(fid, "material", n_elems(), 2, &tmpi[0]);
     //
     h5h_write_dset_2d(fid, "faces", n_elems(), 6, &m_elems_faces[0]);
-    //h5h_write_dset_2d(fid, "faces_map", n_elems(), 6, &faces_orient[0]);
+    get_local_faces(tmpi);
+    h5h_write_dset_2d(fid, "faces_def", n_elems(), 4, &tmpi[0]);
     //
     h5h_write_dset_2d(fid, "edges", n_elems(), 12, &m_elems_edges[0]);
-    //h5h_write_dset_2d(fid, "edges_map", n_elems(), 12, &edges_orient[0]);
+    get_local_edges(tmpi);
+    h5h_write_dset_2d(fid, "edges_def", n_elems(), 2, &tmpi[0]);
     //
     h5h_write_dset_2d(fid, "vertices", n_elems(), 8, &m_elems_vertices[0]);
     //h5h_write_dset(fid, "vertices_to_global", n_l2g.size(), &n_l2g[0]);
@@ -325,6 +354,14 @@ void Mesh3DPart::output_mesh_part_xmf()
     fprintf(f, "        </DataItem>\n");
     fprintf(f, "      </Geometry>\n");
     fprintf(f, "    </Grid>\n");
+/*
+    fprintf(f, "<Attribute Name=\"Mat\" Center=\"Cell\" AttributeType=\"Vector\" Dimensions=\"    44585 3\">");
+    fprintf(f, "<DataItem Format=\"HDF\" Datatype=\"Float\" Precision=\"8\" Dimensions=\"    44585 3\">");
+    fprintf(f, "Rsem0001/sem_field.0000.h5:/displ");
+    fprintf(f, "</DataItem>");
+    fprintf(f, "</Attribute>");
+
+*/
     fprintf(f, "  </Domain>\n");
     fprintf(f, "</Xdmf>\n");
     fclose(f);
