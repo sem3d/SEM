@@ -66,7 +66,10 @@ contains
             if (Tdomain%specel(n)%PML) then
                 call init_pml_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
             end if
+<<<<<<< HEAD
+=======
             deallocate(Whei)
+>>>>>>> b98cc6f48cbe940aeab0cb6a344338d913369010
         enddo
         ! Here we have local mass matrix (not assembled) on elements and
         ! each of faces, edges, vertices containing assembled (on local processor only) mass matrix
