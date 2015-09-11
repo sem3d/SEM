@@ -64,7 +64,7 @@ module sdomain
        type(subdomain), dimension (:), pointer :: sSubDomain
 
 
-       logical :: any_PML, curve, any_FPML, aniso, any_Random
+       logical :: any_PML, curve, any_FPML, aniso, any_Random, any_PropOnFile
 
        integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers
        integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls
@@ -107,11 +107,11 @@ module sdomain
         real, dimension(:), allocatable :: fl_dirich, fpml_dirich
 
        ! Interface Solide / PML
-       integer :: nbInterfSolPml ! nombre de points de gauss à l'interface Solide / PML
+       integer :: nbInterfSolPml ! nombre de points de gauss ï¿½ l'interface Solide / PML
        integer, dimension(:,:), allocatable :: InterfSolPml ! dimension(0:nbInterfSolPml-1,0:1), 0 Sol, 1 PML
 
        ! Interface Fluide / PML
-       integer :: nbInterfFluPml ! nombre de points de gauss à l'interface Solide / PML
+       integer :: nbInterfFluPml ! nombre de points de gauss ï¿½ l'interface Solide / PML
        integer, dimension(:,:), allocatable :: InterfFluPml ! dimension(0:nbInterfFluPml-1,0:1), 0 Flu, 1 PML
 
        ! Faces externes PML

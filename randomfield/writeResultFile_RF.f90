@@ -173,8 +173,8 @@ contains
 
             fileXMFName = string_join(fileName,".xmf")
             fullPathXMF = string_join(folderPath, "/"//fileXMFName)
-            if(rang == 0) write(*,*) "fileXMFName = ", fileXMFName
-            if(rang == 0) write(*,*) "fullPathXMF = ", fullPathXMF
+            !if(rang == 0) write(*,*) "fileXMFName = ", fileXMFName
+            !if(rang == 0) write(*,*) "fullPathXMF = ", fullPathXMF
             !Optional inputs
             if(present(attName)) then
                 if (size(attName)==Nmc) then
@@ -203,7 +203,7 @@ contains
 
             do j = 1, size(all_HDF5nameList)
                 if(all_mask(j)) then
-                    write(*,*) trim(all_HDF5nameList(j))
+                    !write(*,*) trim(all_HDF5nameList(j))
                     meshName = trim(stringNumb_join("SubD_", mod(j-1,size(HDF5nameList))))//&
                         trim(stringNumb_join("Proc_", int((j-1)/size(HDF5nameList))))
                     if(present(byProc)) then
@@ -265,9 +265,9 @@ contains
         character (len=40) :: doubleFmt;
         character (len=50) :: path
 
-        write(*,*) "";
-        write(*,*) "------------START Writing result file-----------------------";
-        write(*,*) "";
+        !write(*,*) "";
+        !write(*,*) "------------START Writing result file-----------------------";
+        !write(*,*) "";
 
         path = trim(adjustL(filename));
 
