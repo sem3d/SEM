@@ -16,13 +16,17 @@ module selement
     use blas
     implicit none
 
-    type nl_prop_lmc
+    type :: lmc_param
         real :: b_iso
         real :: Rinf_iso
         real :: C_kin
         real :: kapa_kin
         real :: sigma_yld
-    end type nl_param_lmc
+    end type lmc_param
+
+    type :: nl_param
+        type(lmc_param) :: lmc_param_el
+    end type nl_param
 
     type :: element_solid
        real, dimension(:,:,:,:), allocatable :: Cij
@@ -35,6 +39,7 @@ module selement
        real, dimension(:,:,:,:), allocatable :: &
            factor_common_3, alphaval_3,betaval_3,gammaval_3, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_, &
            factor_common_P, alphaval_P,betaval_P,gammaval_P, R_vol_
+        type(nl_param) :: nl_param_el
 
     end type element_solid
 

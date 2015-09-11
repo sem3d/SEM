@@ -353,10 +353,10 @@ contains
                 Tdomain%sSubDomain(i)%Dt,            &
                 Tdomain%sSubDomain(i)%Qpression,     &
                 Tdomain%sSubDomain(i)%Qmu,           &
-                Tdomain%sSubDomain(i)%nl_prop%LMC_prop%sigma_yld &
-                Tdomain%sSubDomain(i)%nl_prop%LMC_prop%C_kin     &
-                Tdomain%sSubDomain(i)%nl_prop%LMC_prop%kapa_kin  &
-                Tdomain%sSubDomain(i)%nl_prop%LMC_prop%b_iso     &
+                Tdomain%sSubDomain(i)%nl_prop%LMC_prop%sigma_yld, &
+                Tdomain%sSubDomain(i)%nl_prop%LMC_prop%C_kin,     &
+                Tdomain%sSubDomain(i)%nl_prop%LMC_prop%kapa_kin,  &
+                Tdomain%sSubDomain(i)%nl_prop%LMC_prop%b_iso,     &
                 Tdomain%sSubDomain(i)%nl_prop%LMC_prop%Rinf_iso
 
             Tdomain%sSubdomain(i)%Filtering = .false.
@@ -371,7 +371,7 @@ contains
                 write (*,*) 'Dt       :', Tdomain%sSubDomain(i)%Dt
                 write (*,*) 'Qp       :', Tdomain%sSubDomain(i)%Qpression
                 write (*,*) 'Qmu      :', Tdomain%sSubDomain(i)%Qmu
-                if (Tdomain%nl_flag) then
+                if (Tdomain%nl_flag == 1) then
                     write (*,*) 'NL_LMC - sigma_yld:', Tdomain%sSubDomain(i)%nl_prop%LMC_prop%sigma_yld
                     write (*,*) 'NL_LMC - C_kin:',     Tdomain%sSubDomain(i)%nl_prop%LMC_prop%C_kin
                     write (*,*) 'NL_LMC - kapa_kin:',  Tdomain%sSubDomain(i)%nl_prop%LMC_prop%kapa_kin

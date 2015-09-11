@@ -67,7 +67,7 @@ contains
             call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Depla(:,:,:,2),dxz,dyz,dzz)
             deallocate(Depla)
 
-            if nl_flag then
+            if (nl_flag == 1) then
                 allocate(Sigma_ij_N(0:m1-1,0:m2-1,0:m3-1,0:5))
                 allocate(Xkin_ij_N(0:m1-1,0:m2-1,0:m3-1,0:5))
                 allocate(Riso_N(0:m1-1,0:m2-1,0:m3-1))
@@ -75,8 +75,8 @@ contains
                     do k = 0,m3-1
                         do j = 0,m2-1
                             do i = 0,m1-1
-                                Sigma_ij_N(i,j,k,i_dir) = champs1%Stress(Elem%Isol(i,j,k),i_dir))
-                                Xkin_ij_N(i,j,k,i_dir)  = champs1%Xkin(Elem%Isol(i,j,k,i_dir))
+                                Sigma_ij_N(i,j,k,i_dir) = champs1%Stress(Elem%Isol(i,j,k),i_dir)
+                                Xkin_ij_N(i,j,k,i_dir)  = champs1%Xkin(Elem%Isol(i,j,k),i_dir)
                             enddo
                         enddo
                     enddo
@@ -188,15 +188,35 @@ contains
                     deallocate(epsilondev_xx_loc,epsilondev_yy_loc,epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc)
                     deallocate(epsilonvol_loc)
                 else
-                    call calcul_forces(Fox,Foy,Foz,  &
-                        Elem%Invgrad, &
-                        htprimex, htprimey, htprimez, &
-                        Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
-                        DXX,DXY,DXZ, &
-                        DYX,DYY,DYZ, &
-                        DZX,DZY,DZZ, &
-                        Elem%Mu, Elem%Lambda, &
-                        m1,m2,m3)
+                    if (nl_flag == 1) then
+                        call calcul_forces_el(Fox,Foy,Foz,  &
+                            Elem%Invgrad, &
+                            htprimex, htprimey, htprimez, &
+                            Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
+                            DXX,DXY,DXZ, &
+                            DYX,DYY,DYZ, &
+                            DZX,DZY,DZZ, &
+                            Elem%Mu, Elem%Lambda, &
+                            m1,m2,m3)
+                    else
+                        call calcul_forces_nl(Fox,Foy,Foz,  &
+                            Elem%Invgrad, &
+                            htprimex, htprimey, htprimez, &
+                            Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
+                            DXX,DXY,DXZ, &
+                            DYX,DYY,DYZ, &
+                            DZX,DZY,DZZ, &
+                            Elem%Mu, Elem%Lambda, &
+                            m1,m2,m3, &
+                            Sigma_ij_N, Xkin_ij_N, Riso_N,  &
+                            Elem%sl%nl_param_el%lmc_param_el%sigma_yld, &
+                            Elem%sl%nl_param_el%lmc_param_el%b_iso,    &
+                            Elem%sl%nl_param_el%lmc_param_el%Rinf_iso, &
+                            Elem%sl%nl_param_el%lmc_param_el%C_kin,    &
+                            Elem%sl%nl_param_el%lmc_param_el%kapa_kin)
+                            ! TODO: ASSIGN NL PARAMETERS TO ELEMENTS
+                            deallocate(Sigma_ij_N,Riso_N,Xkin_ij_N)
+                    end if
                 endif
             endif
 
