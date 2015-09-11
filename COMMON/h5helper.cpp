@@ -34,7 +34,7 @@ void h5h_create_attr(hid_t parent, const char* name, double value)
 
 #define _CHUNK_SZ  (256*1024)
 
-hid_t h5h_dset_prop(int d0, int d1)
+hid_t h5h_dset_prop(hsize_t d0, hsize_t d1)
 {
     // heuristic to find a good chunk size of about 256k
     hsize_t chunk[2];
@@ -53,7 +53,7 @@ hid_t h5h_dset_prop(int d0, int d1)
     return prop_id;
 }
 
-hid_t h5h_dset_prop(int d0)
+hid_t h5h_dset_prop(hsize_t d0)
 {
     // heuristic to find a good chunk size of about 256k
     hsize_t chunk[1];
@@ -129,7 +129,6 @@ void h5h_write_dset(hid_t parent, const char* name, int d0, const int* arr)
 void h5h_write_dset(hid_t parent, const char* dname, const vector<int>& v)
 {
     hsize_t dims[1];
-    herr_t  status;
     hid_t   dset_id;
     hid_t   dspc_id;
 
@@ -141,10 +140,10 @@ void h5h_write_dset(hid_t parent, const char* dname, const vector<int>& v)
         dims[0] = v.size();
         dspc_id = H5Screate_simple(1, dims, NULL);
         dset_id = H5Dcreate2(parent, dname, H5T_STD_I32LE, dspc_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        status = H5Sclose(dspc_id);
+        H5Sclose(dspc_id);
     }
     H5Dwrite(dset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, H5P_DEFAULT, &v[0]);
-    status = H5Dclose(dset_id);
+    H5Dclose(dset_id);
 }
 
 
@@ -177,7 +176,7 @@ void h5h_write_dset_2d(hid_t parent, const char* name, int d1, const vector<int>
 
 int h5h_read_attr_int(hid_t dset_id, const char* attrname)
 {
-    hsize_t dims[1] = {1,};
+    //hsize_t dims[1] = {1,};
     int res;
     hid_t attid = H5Aopen(dset_id, attrname, H5P_DEFAULT);
     //hid_t spcid = H5Aget_space(attid);
@@ -189,7 +188,7 @@ int h5h_read_attr_int(hid_t dset_id, const char* attrname)
 
 void h5h_write_attr_int(hid_t dset_id, const char* attrname, int val)
 {
-    hsize_t dims[1] = {1,};
+    //hsize_t dims[1] = {1,};
     hid_t spcid = H5Screate(H5S_SCALAR);
     hid_t attid = H5Acreate2(dset_id, attrname, H5T_STD_I64LE, spcid, H5P_DEFAULT, H5P_DEFAULT);
 
@@ -292,7 +291,7 @@ void h5h_read_dset_2d(hid_t g, const char* dname, int& d0, int& d1, vector<doubl
 {
     hid_t dset_id;
     hsize_t dim0, dim1;
-    int dim;
+
     dset_id = H5Dopen2(g, dname, H5P_DEFAULT);
     h5h_get_dset2d_size(dset_id, dim0, dim1);
     d0 = dim0;
@@ -306,7 +305,7 @@ void h5h_read_dset_2d(hid_t g, const char* dname, int& d0, int& d1, vector<int>&
 {
     hid_t dset_id;
     hsize_t dim0, dim1;
-    int dim;
+
     dset_id = H5Dopen2(g, dname, H5P_DEFAULT);
     h5h_get_dset2d_size(dset_id, dim0, dim1);
     d0 = dim0;

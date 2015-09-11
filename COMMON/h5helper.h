@@ -17,8 +17,8 @@
 void  h5h_create_attr(hid_t parent, const char* name, int value);
 void  h5h_create_attr(hid_t parent, const char* name, double value);
 
-hid_t h5h_dset_prop(int d0, int d1);
-hid_t h5h_dset_prop(int d0);
+hid_t h5h_dset_prop(hsize_t d0, hsize_t d1);
+hid_t h5h_dset_prop(hsize_t d0);
 
 void  h5h_write_dset(hid_t parent, const char* name, int d0, const double* arr);
 void  h5h_write_dset(hid_t parent, const char* name, const std::vector<double>& arr);
