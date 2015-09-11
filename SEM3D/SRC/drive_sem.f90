@@ -258,20 +258,20 @@ subroutine RUN_PREPARED(Tdomain)
     endif
     call MPI_Barrier(Tdomain%communicateur,code)
 
- ! - defining random subdomains
-    if(Tdomain%any_Random .and. (.not.Tdomain%logicD%run_restart)) then
-        if(rg == 0) write(*,*) "--> DEFINING RANDOM SUBDOMAINS"
-        call define_random_subdomains(Tdomain, rg)
-    end if
-
-    !- writing properties files
-    ! TODO: Make sure this isn't called if we don't need it !!!
-    if (.false.) then
-        if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
+    !- Managing properties that should be written on a file
+    if (Tdomain%any_PropOnFile) then
+        ! - defining random subdomains
+        if(Tdomain%any_Random .and. (.not.Tdomain%logicD%run_restart)) then
+            if(rg == 0) write(*,*) "--> DEFINING RANDOM SUBDOMAINS"
+            call define_random_subdomains(Tdomain, rg)
+        end if
+        !- writing properties files (if its not a restart)
         if(.not. Tdomain%logicD%run_restart) then
+            if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
             call create_prop_files (Tdomain, rg)
         end if
     end if
+
     !- timestep value - > Courant, or Courant -> timestep
     if (rg == 0) write (*,*) "--> COMPUTING COURANT PARAMETER"
     call compute_Courant(Tdomain,rg)

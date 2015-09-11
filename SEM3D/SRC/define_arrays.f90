@@ -40,16 +40,17 @@ contains
             call load_earthchunk(Tdomain%earthchunk_file, Tdomain%earthchunk_delta_lon, Tdomain%earthchunk_delta_lat)
         endif
 
-
         !Applying properties that were written on files
-        do mat = 0 , Tdomain%n_mat-1
-            if (.not. Tdomain%subD_exist(mat)) cycle
-            if (propOnFile(Tdomain, mat)) then
-                if (rg == 0) write (*,*) "--> APPLYING PROPERTIES FILES "
-                !- applying properties files
-                call apply_prop_files (Tdomain, rg)
-            end if
-        end do
+        if (Tdomain%any_PropOnFile) then
+            do mat = 0 , Tdomain%n_mat-1
+                if (.not. Tdomain%subD_exist(mat)) cycle
+                if (propOnFile(Tdomain, mat)) then
+                    if (rg == 0) write (*,*) "--> APPLYING PROPERTIES FILES "
+                    !- applying properties files
+                    call apply_prop_files (Tdomain, rg)
+                end if
+            end do
+        end if
 
         do n = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(n)%mat_index
