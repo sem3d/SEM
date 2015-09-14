@@ -10,25 +10,20 @@
 
 module svertices
 
-    type :: vertex_pml
-       real, dimension (:), allocatable :: Iveloc1, Iveloc2, Iveloc3
-       real, dimension (:), allocatable :: Ivx, Ivy, Ivz
-    end type vertex_pml
 
     type :: vertex
        integer  :: mat_index
        logical :: PML, Abs, FPML
        integer :: Iglobnum_Vertex, global_numbering
-       ! Lien entre ngll et numérotation des champs globaux
+       ! Lien entre ngll et numÃ©rotation des champs globaux
        integer :: Renum
 
        ! solid-fluid
        logical :: solid, fluid_dirich
-       type(vertex_pml), pointer :: spml
 
        !! Couplage Externe
-       real, dimension (:), allocatable :: ForcesExt
-       real :: tsurfsem
+!       real, dimension (:), allocatable :: ForcesExt
+!       real :: tsurfsem
 
     end type vertex
 
