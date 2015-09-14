@@ -59,7 +59,20 @@ struct PFace {
 	}
 	return false;
     }
-
+    bool operator=(const PFace& fc) const {
+	for(int i=0;i<5;++i) {
+	    if (n[i] != fc.n[i]) return false;
+	}
+	return true;
+    }
+    /// Same as operator= but ignore domain
+    bool eq_geom(const PFace& fc) const {
+	for(int i=0;i<4;++i) {
+	    if (n[i] != fc.n[i]) return false;
+	}
+	return true;
+    }
+    int domain() const { return n[4]; }
     int n[5];
 };
 
@@ -86,7 +99,20 @@ struct PEdge {
 	}
 	return false;
     }
-
+    bool operator=(const PEdge& ed) const {
+	for(int i=0;i<3;++i) {
+	    if (n[i] != ed.n[i]) return false;
+	}
+	return true;
+    }
+    /// Same as operator= but ignore domain
+    bool eq_geom(const PEdge& ed) const {
+	for(int i=0;i<2;++i) {
+	    if (n[i] != ed.n[i]) return false;
+	}
+	return true;
+    }
+    int domain() const { return n[2]; }
     int n[3];
 };
 
@@ -145,9 +171,17 @@ public:
 
     void get_local_nodes(std::vector<double>& nodes) const;
     void get_local_elements(std::vector<int>& elems) const;
-    void get_local_materials(std::vector<int>& mats) const;
-    void get_local_faces(std::vector<int>& mats) const;
-    void get_local_edges(std::vector<int>& mats) const;
+    void get_local_materials(std::vector<int>& mats, std::vector<int>& doms) const;
+    void get_local_faces(std::vector<int>& faces, std::vector<int>& doms) const;
+    void get_local_edges(std::vector<int>& edges, std::vector<int>& doms) const;
+    void get_face_coupling(int d0, int d1, std::vector<int>& cpl) const;
+    void get_edge_coupling(int d0, int d1, std::vector<int>& cpl) const;
+    void get_vertex_coupling(int d0, int d1, std::vector<int>& cpl) const;
+
+
+    void output_int_scalar(FILE* f, int indent, const char* aname,
+                           const char* atype, int n0, const char* field);
+
 protected:
     const Mesh3D& m_mesh;
     int m_proc;
