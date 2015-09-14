@@ -80,25 +80,26 @@ int Mesh3D::read_materials(const std::string& str)
     FILE* f = fopen(str.c_str(), "r");
     int nmats;
     char type;
+    char *buffer=NULL;
+    size_t linesize=0;
     double vs, vp, rho;
     int ngllx, nglly, ngllz;
     double dt, Qp, Qmu;
 
-    fscanf(f, "%d", &nmats);
+    getline(&buffer, &linesize, f);
+    sscanf(buffer, "%d", &nmats);
     for(int k=0;k<nmats;++k) {
-        fscanf(f, "%c %lf %lf %lf %d %d %d %lf %lf %lf",
-               &type, &vs, &vp, &rho, &ngllx, &nglly, &ngllz,
+        getline(&buffer, &linesize, f);
+        sscanf(buffer, "%c %lf %lf %lf %d %d %d %lf %lf %lf",
+               &type, &vp, &vs, &rho, &ngllx, &nglly, &ngllz,
                &dt, &Qp, &Qmu);
+        printf("Mat: %2ld : %c vp=%lf vs=%lf\n", m_materials.size(), type, vp, vs);
         m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx, nglly, ngllz));
     }
+    free(buffer);
     return nmats;
 }
 
-int Mesh3D::add_material()
-{
-    m_materials.push_back(Material());
-    return m_materials.size()-1;
-}
 
 void Mesh3D::read_mesh_file(const std::string& fname)
 {

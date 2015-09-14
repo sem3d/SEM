@@ -22,6 +22,7 @@ public:
 	       Qpression(101325.),
 	       Qmu(0.) {}
     Material(const Material& mat):m_type(mat.m_type),
+                                  ctype(mat.ctype),
                                   rho(mat.rho),
 				  Pspeed(mat.Pspeed),
 				  Sspeed(mat.Sspeed),
@@ -35,7 +36,7 @@ public:
 
     Material(char type, double Vp, double Vs, double Rho,
              double Qp, double Qmu_, int ngllx, int nglly, int ngllz):
-        rho(Rho), Pspeed(Vp), Sspeed(Vs), Qpression(Qp), Qmu(Qmu_),
+        ctype(type), rho(Rho), Pspeed(Vp), Sspeed(Vs), Qpression(Qp), Qmu(Qmu_),
         m_ngllx(ngllx), m_nglly(nglly), m_ngllz(ngllz) {
         switch (type) {
         case 'P':
@@ -65,8 +66,9 @@ public:
     }
     bool is_fluid() const { return false; }
     int domain() const { return m_type; }
-protected:
+public:
     material_type_t m_type;
+    char ctype;
     double rho;
     double Pspeed;
     double Sspeed;

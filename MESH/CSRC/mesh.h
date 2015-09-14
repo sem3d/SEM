@@ -87,7 +87,6 @@ public:
 
     int add_node(double x, double y, double z);
     int add_elem(int mat_idx, const HexElem& el);
-    int add_material(); // Aucune propriete pour l'instant
 
     int read_materials(const std::string& fname);
     void read_mesh_file(const std::string& fname);
@@ -112,7 +111,9 @@ public:
     /// 3: fluid
     /// 4: solid
     int get_elem_domain(int el) const {
-        return m_materials[el].domain();
+        const Material& mat = m_materials[m_mat[el]];
+        //printf("%d -> %c (%d/%d)\n", el, mat.ctype, m_mat[el], int(m_materials.size()));
+        return mat.domain();
     }
 public:
     // attributes
