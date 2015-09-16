@@ -228,9 +228,6 @@ subroutine  sem(couplage)
             interrupt=1
         endif
 
-        ! incrementation du pas de temps
-        Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
-
 #ifdef COUPLAGE
         call envoi_vitesse_mka(Tdomain) !! syst. lineaire vitesse
 
@@ -336,6 +333,8 @@ subroutine  sem(couplage)
             exit
         endif
 
+        ! incrementation du pas de temps
+        Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
     enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! FIN BOUCLE DE CALCUL EN TEMPS
