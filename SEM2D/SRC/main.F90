@@ -61,19 +61,18 @@ subroutine  sem(couplage)
     integer :: isort
     character(len=MAX_FILE_SIZE) :: fnamef
     integer :: info_capteur
-    real(kind=8), parameter :: max_time_left=900
     integer :: getpid, pid
 
 #ifdef COUPLAGE
     integer :: n
     integer, dimension(3) :: flags_synchro ! fin/protection/sortie
 #else
+    real(kind=8), parameter :: max_time_left=900
     real(kind=8) :: remaining_time
 #endif
     integer :: display_iter !! Indique si on doit faire des sortie lors de cette iteration
     real(kind=4), dimension(2) :: tarray
     real(kind=4) :: tref
-    real(kind=4), parameter :: display_iter_time = 5.
     integer :: interrupt, rg, code, protection
 
     pid = getpid()
