@@ -12,7 +12,7 @@
 !<
 
 module ssubdomains
-
+    implicit none
     type Subdomain
 
         logical :: Filtering, Px, Py, Pz, Left, Forward, Down
@@ -23,11 +23,11 @@ module ssubdomains
         ! Qmu en plus
         real :: Pspeed, Sspeed, Ddensity, Dt, Apow, freq, DLambda, DMu, Qmu, Q
         real :: DKappa, Qpression
-        real, dimension (:), pointer :: GLLcx, GLLpolx, GLLwx
+        real, dimension (:), pointer :: GLLcx, GLLwx
         real, dimension (:,:), pointer :: hprimex, hTprimex
-        real, dimension (:), pointer :: GLLcy, GLLpoly, GLLwy
+        real, dimension (:), pointer :: GLLcy, GLLwy
         real, dimension (:,:), pointer :: hprimey, hTprimey
-        real, dimension (:), pointer :: GLLcz, GLLpolz, GLLwz
+        real, dimension (:), pointer :: GLLcz, GLLwz
         real, dimension (:,:), pointer :: hprimez, hTprimez
 
         character(len=1) :: material_type
