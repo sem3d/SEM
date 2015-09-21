@@ -5,7 +5,6 @@ module build_prop_files
     use constants
     use scomm
     use scommutils
-    use assembly
     use randomFieldND
     use displayCarvalhol
     use writeResultFile_RF

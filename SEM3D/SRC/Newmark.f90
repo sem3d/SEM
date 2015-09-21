@@ -20,8 +20,6 @@ subroutine Newmark(Tdomain,ntime)
     use mpi
     use scomm, only : exchange_sem_var, comm_give_data, comm_take_data
     use scommutils
-    use orientation
-    use assembly
     use schamps
     use stat, only : stat_starttick, stat_stoptick
 

@@ -779,10 +779,8 @@ contains
     end subroutine deallocate_fields
 
     subroutine save_field_h5(Tdomain, isort)
-
         use sdomain
         use forces_aniso
-        use assembly
 
         implicit none
 

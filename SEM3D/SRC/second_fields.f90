@@ -4,7 +4,6 @@
 !!
 module mfields
     use sdomain
-    use orientation
     use deriv3d
     implicit none
 contains
