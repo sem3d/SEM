@@ -65,6 +65,41 @@ contains
 
     end subroutine Lame_coefficients
 
+    logical function is_pml(mat)
+        type(Subdomain), intent(in) :: mat
+
+        is_pml = .false.
+        select case (mat%material_type)
+        case('S')
+            is_pml = .false.
+        case('P')
+            is_pml = .true.
+        case('F')
+            is_pml = .false.
+        case('L')
+            is_pml = .true.
+        end select
+    end function is_pml
+
+    integer function get_domain(mat)
+        use constants
+        implicit none
+        type(Subdomain), intent(in) :: mat
+
+        get_domain = DM_SOLID
+        select case (mat%material_type)
+        case('S')
+            get_domain = DM_SOLID
+        case('P')
+            get_domain = DM_SOLID_PML
+        case('F')
+            get_domain = DM_FLUID
+        case('L')
+            get_domain = DM_FLUID_PML
+        end select
+        return
+    end function get_domain
+
 end module ssubdomains
 
 !! Local Variables:
