@@ -666,6 +666,7 @@ void init_sem_config(sem_config_t* cfg)
     cfg->fmax = 1.0;
     cfg->material_type = 1;
     cfg->stations = NULL;
+
     cfg->out_variables[0] = 0; // Energy P
     cfg->out_variables[1] = 0; // Energy S
     cfg->out_variables[2] = 0; // Eps vol
@@ -708,11 +709,11 @@ void dump_config(sem_config_t* cfg)
     				cfg->out_variables[0], cfg->out_variables[1], cfg->out_variables[2],\
     				cfg->out_variables[3], cfg->out_variables[4], cfg->out_variables[5],\
     				cfg->out_variables[6], cfg->out_variables[7], cfg->out_variables[8]);
-    	  ("Calcul nonlineaire: '%d'\n", cfg->nl_flag);printf
-    	  ("Neu present : %d\n", cfg->neu_present);
+    	  ("Calcul nonlineaire: '%d'\n", cfg->nl_flag);
+    printf("Neu present : %d\n", cfg->neu_present);
     printf("Neu type    : %d\n", cfg->neu_type);
     printf("Neu mat     : %d\n", cfg->neu_mat);
-
+    printf("Nonlinear analysis : %d\n",cfg->nl_flag);
 //    src = cfg->source;
 //    while(src) {
 //	printf("\nSource %d\n--------\n", ksrc);

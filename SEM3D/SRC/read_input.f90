@@ -345,21 +345,34 @@ contains
         Tdomain%not_PML_List = .true.
 
         do i = 0,Tdomain%n_mat-1
-            read(13,*) Tdomain%sSubDomain(i)%material_type, &
-                Tdomain%sSubDomain(i)%Pspeed,        &
-                Tdomain%sSubDomain(i)%Sspeed,        &
-                Tdomain%sSubDomain(i)%dDensity,      &
-                Tdomain%sSubDomain(i)%NGLLx,         &
-                Tdomain%sSubDomain(i)%NGLLy,         &
-                Tdomain%sSubDomain(i)%NGLLz,         &
-                Tdomain%sSubDomain(i)%Dt,            &
-                Tdomain%sSubDomain(i)%Qpression,     &
-                Tdomain%sSubDomain(i)%Qmu,           &
-                Tdomain%sSubDomain(i)%nl_prop%LMC_prop%sigma_yld, &
-                Tdomain%sSubDomain(i)%nl_prop%LMC_prop%C_kin,     &
-                Tdomain%sSubDomain(i)%nl_prop%LMC_prop%kapa_kin,  &
-                Tdomain%sSubDomain(i)%nl_prop%LMC_prop%b_iso,     &
-                Tdomain%sSubDomain(i)%nl_prop%LMC_prop%Rinf_iso
+            if (Tdomain%nl_flag == 1) then
+                read(13,*) Tdomain%sSubDomain(i)%material_type, &
+                    Tdomain%sSubDomain(i)%Pspeed,        &
+                    Tdomain%sSubDomain(i)%Sspeed,        &
+                    Tdomain%sSubDomain(i)%dDensity,      &
+                    Tdomain%sSubDomain(i)%NGLLx,         &
+                    Tdomain%sSubDomain(i)%NGLLy,         &
+                    Tdomain%sSubDomain(i)%NGLLz,         &
+                    Tdomain%sSubDomain(i)%Dt,            &
+                    Tdomain%sSubDomain(i)%Qpression,     &
+                    Tdomain%sSubDomain(i)%Qmu,           &
+                    Tdomain%sSubDomain(i)%nl_prop%LMC_prop%sigma_yld, &
+                    Tdomain%sSubDomain(i)%nl_prop%LMC_prop%C_kin,     &
+                    Tdomain%sSubDomain(i)%nl_prop%LMC_prop%kapa_kin,  &
+                    Tdomain%sSubDomain(i)%nl_prop%LMC_prop%b_iso,     &
+                    Tdomain%sSubDomain(i)%nl_prop%LMC_prop%Rinf_iso
+            else
+                read(13,*) Tdomain%sSubDomain(i)%material_type, &
+                    Tdomain%sSubDomain(i)%Pspeed,        &
+                    Tdomain%sSubDomain(i)%Sspeed,        &
+                    Tdomain%sSubDomain(i)%dDensity,      &
+                    Tdomain%sSubDomain(i)%NGLLx,         &
+                    Tdomain%sSubDomain(i)%NGLLy,         &
+                    Tdomain%sSubDomain(i)%NGLLz,         &
+                    Tdomain%sSubDomain(i)%Dt,            &
+                    Tdomain%sSubDomain(i)%Qpression,     &
+                    Tdomain%sSubDomain(i)%Qmu
+            end if
 
             Tdomain%sSubdomain(i)%Filtering = .false.
 
@@ -431,24 +444,24 @@ contains
 
         if(nRandom > 0) then
             !Building element list in each subdomain
-      !      do i=0,Tdomain%n_mat-1
-      !          allocate (Tdomain%sSubdomain(i)%elemList(0:Tdomain%sSubdomain(i)%nElem-1))
-      !          Tdomain%sSubdomain(i)%elemList(:) = -1 !-1 to detect errors
-      !          Tdomain%sSubdomain(i)%nElem       = 0 !Using to count the elements in the next loop
-      !      enddo
-      !      do i=0,Tdomain%n_elem-1
-      !          mat = Tdomain%specel(i)%mat_index
-      !          Tdomain%sSubdomain(mat)%elemList(Tdomain%sSubdomain(mat)%nElem) = i
-      !          Tdomain%sSubdomain(mat)%nElem = Tdomain%sSubdomain(mat)%nElem + 1
-      !      enddo
+            !      do i=0,Tdomain%n_mat-1
+            !          allocate (Tdomain%sSubdomain(i)%elemList(0:Tdomain%sSubdomain(i)%nElem-1))
+            !          Tdomain%sSubdomain(i)%elemList(:) = -1 !-1 to detect errors
+            !          Tdomain%sSubdomain(i)%nElem       = 0 !Using to count the elements in the next loop
+            !      enddo
+            !      do i=0,Tdomain%n_elem-1
+            !          mat = Tdomain%specel(i)%mat_index
+            !          Tdomain%sSubdomain(mat)%elemList(Tdomain%sSubdomain(mat)%nElem) = i
+            !          Tdomain%sSubdomain(mat)%nElem = Tdomain%sSubdomain(mat)%nElem + 1
+            !      enddo
 
-      !      !Defining existing subdomain list in each domain
-      !      allocate (Tdomain%subD_exist(0:Tdomain%n_mat-1))
-      !      allocate (Tdomain%subDComm(0:Tdomain%n_mat - 1))
-      !      Tdomain%subD_exist(:) = .true.
-      !      do mat=0,Tdomain%n_mat-1
-      !          if(Tdomain%sSubdomain(mat)%nElem == 0) Tdomain%subD_exist(mat) = .false.
-      !      enddo
+            !      !Defining existing subdomain list in each domain
+            !      allocate (Tdomain%subD_exist(0:Tdomain%n_mat-1))
+            !      allocate (Tdomain%subDComm(0:Tdomain%n_mat - 1))
+            !      Tdomain%subD_exist(:) = .true.
+            !      do mat=0,Tdomain%n_mat-1
+            !          if(Tdomain%sSubdomain(mat)%nElem == 0) Tdomain%subD_exist(mat) = .false.
+            !      enddo
 
             Tdomain%any_Random = .true.
             read(13,*); read(13,*)
@@ -651,15 +664,15 @@ contains
                 end do
                 pos = pos/8
                 select case (selection%type)
-                case (1)
-                    ! All
-                    Tdomain%specel(n)%output = sel
-                case (2)
-                    ! Material
-                    if (Tdomain%specel(n)%mat_index == selection%material) Tdomain%specel(n)%output = sel
-                case (3)
-                    ! Box
-                    if (is_in_box(pos, selection%box)) Tdomain%specel(n)%output = sel
+                    case (1)
+                        ! All
+                        Tdomain%specel(n)%output = sel
+                    case (2)
+                        ! Material
+                        if (Tdomain%specel(n)%mat_index == selection%material) Tdomain%specel(n)%output = sel
+                    case (3)
+                        ! Box
+                        if (is_in_box(pos, selection%box)) Tdomain%specel(n)%output = sel
                 end select
 
                 call c_f_pointer(selection%next, selection)
@@ -693,7 +706,7 @@ contains
             stop 1
         endif
         if (rg==0) call dump_config(Tdomain%config) !Print of configuration on the screen
-
+        write(*,*) "present neumann", Tdomain%config%neu_present
         ! On copie les parametres renvoyes dans la structure C
         Tdomain%Title_simulation          = fromcstr(Tdomain%config%run_name)
         Tdomain%TimeD%acceleration_scheme = Tdomain%config%accel_scheme .ne. 0
@@ -755,7 +768,8 @@ contains
             write(*,*) "           band =", Tdomain%T1_att, Tdomain%T2_att
         end if
 
-
+        write(*,*), "first check",Tdomain%logicD%Neumann
+        write(*,*), "second check",Tdomain%config%neu_present
         ! Neumann boundary conditions? If yes: geometrical properties read in the mesh files.
         Tdomain%logicD%Neumann = Tdomain%config%neu_present /= 0
         Tdomain%Neumann%Neu_Param%what_bc = 'S'
@@ -780,6 +794,8 @@ contains
         Tdomain%logicD%super_object_local_present = .false.
 
         !---   Reading mesh file
+        write(*,*), "third check",Tdomain%logicD%Neumann
+        write(*,*), "fourth check",Tdomain%config%neu_present
         call read_mesh_file_h5(Tdomain)
 
         !---   Properties of materials.
@@ -798,14 +814,14 @@ contains
 
             select case (Tdomain%config%material_type)
 
-            case (MATERIAL_PREM)
-                Tdomain%aniso=.true.
-            case (MATERIAL_EARTHCHUNK)
-                Tdomain%earthchunk_isInit=1
-                Tdomain%aniso=.true.
-                Tdomain%earthchunk_file = fromcstr(Tdomain%config%model_file)
-                Tdomain%earthchunk_delta_lon = Tdomain%config%delta_lon
-                Tdomain%earthchunk_delta_lat = Tdomain%config%delta_lat
+                case (MATERIAL_PREM)
+                    Tdomain%aniso=.true.
+                case (MATERIAL_EARTHCHUNK)
+                    Tdomain%earthchunk_isInit=1
+                    Tdomain%aniso=.true.
+                    Tdomain%earthchunk_file = fromcstr(Tdomain%config%model_file)
+                    Tdomain%earthchunk_delta_lon = Tdomain%config%delta_lon
+                    Tdomain%earthchunk_delta_lat = Tdomain%config%delta_lat
 
             end select
 
