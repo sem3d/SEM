@@ -24,14 +24,14 @@ static int RefEdge[12][2] = {
     { 1, 2},
     { 3, 2},
     { 0, 3},
-    { 1, 5},
     { 4, 5},
-    { 0, 4},
-    { 2, 6},
     { 5, 6},
     { 7, 6},
-    { 3, 7},
-    { 4, 7}
+    { 4, 7},
+    { 0, 4},
+    { 1, 5},
+    { 2, 6},
+    { 3, 7}
 };
 
 void Mesh3DPart::compute_part()
@@ -418,7 +418,10 @@ void Mesh3DPart::output_mesh_part()
     h5h_create_attr(fid, "n_sf_vertices", int(tmpi.size()/2) );
     h5h_write_dset_2d(fid, "sf_vertices", tmpi.size()/2, 2, &tmpi[0]);
 
-    //
+    // Write processors communications
+    h5h_create_attr(fid, "tot_comm_proc", (int)m_comm.size());
+
+
     H5Fclose(fid);
 }
 
