@@ -293,10 +293,10 @@ subroutine allocate_domain (Tdomain)
 
     ! Allocation et initialisation de Tdomain%champs0 pour les PML solides
     if (Tdomain%ngll_pmls /= 0) then
-        allocate(Tdomain%champs1%ForcesPML(0:Tdomain%ngll_pmls-1,0:2))
-        allocate(Tdomain%champs0%VelocPML(0:Tdomain%ngll_pmls-1,0:2))
-        allocate(Tdomain%champs1%VelocPML(0:Tdomain%ngll_pmls-1,0:2))
-        allocate(Tdomain%champs0%DumpV(0:Tdomain%ngll_pmls-1,0:1))
+        allocate(Tdomain%champs1%ForcesPML(0:Tdomain%ngll_pmls-1,0:2,0:2))
+        allocate(Tdomain%champs0%VelocPML(0:Tdomain%ngll_pmls-1,0:2,0:2))
+        allocate(Tdomain%champs1%VelocPML(0:Tdomain%ngll_pmls-1,0:2,0:2))
+        allocate(Tdomain%champs0%DumpV(0:Tdomain%ngll_pmls-1,0:1,0:2))
         Tdomain%champs1%ForcesPML = 0d0
         Tdomain%champs0%VelocPML = 0d0
         Tdomain%champs0%DumpV = 0d0
@@ -305,7 +305,7 @@ subroutine allocate_domain (Tdomain)
         allocate(Tdomain%MassMatSolPml(0:Tdomain%ngll_pmls-1))
         Tdomain%MassMatSolPml = 0d0
 
-        allocate(Tdomain%DumpMass(0:Tdomain%ngll_pmls-1))
+        allocate(Tdomain%DumpMass(0:Tdomain%ngll_pmls-1,0:2))
         Tdomain%DumpMass = 0d0
     endif
 
@@ -335,7 +335,7 @@ subroutine allocate_domain (Tdomain)
             ngllz = Tdomain%specel(n)%ngllz
             do j = 0,nglly-1
                 do i = 0,ngllx-1
-                    idx = Tdomain%specel(n)%IFlu(i,j,ngllz-1)
+                    idx = Tdomain%specel(n)%Idom(i,j,ngllz-1)
                     if (idx==-1) stop "Error"
                     Tdomain%fl_dirich(idx) = 0.
                 enddo
@@ -349,11 +349,11 @@ subroutine allocate_domain (Tdomain)
 
     ! Allocation et initialisation de Tdomain%champs0 pour les PML fluides
     if (Tdomain%ngll_pmlf /= 0) then
-        allocate(Tdomain%champs1%fpml_Forces(0:Tdomain%ngll_pmlf-1))
-        allocate(Tdomain%champs0%fpml_VelPhi(0:Tdomain%ngll_pmlf-1))
-        allocate(Tdomain%champs0%fpml_Phi(0:Tdomain%ngll_pmlf-1))
-        allocate(Tdomain%champs1%fpml_VelPhi(0:Tdomain%ngll_pmlf-1))
-        allocate(Tdomain%champs0%fpml_DumpV(0:Tdomain%ngll_pmlf-1,0:1))
+        allocate(Tdomain%champs1%fpml_Forces(0:Tdomain%ngll_pmlf-1,0:2))
+        allocate(Tdomain%champs0%fpml_VelPhi(0:Tdomain%ngll_pmlf-1,0:2))
+        allocate(Tdomain%champs0%fpml_Phi(0:Tdomain%ngll_pmlf-1,0:2))
+        allocate(Tdomain%champs1%fpml_VelPhi(0:Tdomain%ngll_pmlf-1,0:2))
+        allocate(Tdomain%champs0%fpml_DumpV(0:Tdomain%ngll_pmlf-1,0:1,0:2))
         Tdomain%champs1%fpml_Forces = 0d0
         Tdomain%champs0%fpml_VelPhi = 0d0
         Tdomain%champs0%fpml_Phi = 0d0
@@ -363,12 +363,12 @@ subroutine allocate_domain (Tdomain)
         allocate(Tdomain%MassMatFluPml(0:Tdomain%ngll_pmlf-1))
         Tdomain%MassMatFluPml = 0d0
 
-        allocate(Tdomain%fpml_DumpMass(0:Tdomain%ngll_pmlf-1))
+        allocate(Tdomain%fpml_DumpMass(0:Tdomain%ngll_pmlf-1,0:2))
         Tdomain%fpml_DumpMass = 0d0
 
         ! Allocation et Initialisation de Fluid_dirich
         ! permet d'annuler VelPhi sur les faces libres dans Newmark_corrector
-        allocate(Tdomain%fpml_dirich(0:Tdomain%ngll_pmlf-1))
+        allocate(Tdomain%fpml_dirich(0:Tdomain%ngll_pmlf-1,0:2))
         Tdomain%fpml_dirich = 1.0
         do n = 0,Tdomain%n_elem-1
             if (Tdomain%specel(n)%Solid) cycle
@@ -379,11 +379,11 @@ subroutine allocate_domain (Tdomain)
             ngllz = Tdomain%specel(n)%ngllz
             do j = 0,nglly-1
                 do i = 0,ngllx-1
-                    idx = Tdomain%specel(n)%flpml%IFluPml(i,j,ngllz-1)
+                    idx = Tdomain%specel(n)%Idom(i,j,ngllz-1)
                     if (idx==-1) stop "Error"
-                    Tdomain%fpml_dirich(idx+0) = 0.
-                    Tdomain%fpml_dirich(idx+1) = 0.
-                    Tdomain%fpml_dirich(idx+2) = 0.
+                    Tdomain%fpml_dirich(idx,0) = 0.
+                    Tdomain%fpml_dirich(idx,1) = 0.
+                    Tdomain%fpml_dirich(idx,2) = 0.
                 enddo
             enddo
         enddo

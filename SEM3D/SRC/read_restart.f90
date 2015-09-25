@@ -6,7 +6,7 @@
 !!\file read_restart.f90
 !!\brief Contient la subroutine read_restart().
 !!
-!! Gère la reprise de Sem3d
+!! GÃ¨re la reprise de Sem3d
 
 subroutine read_EpsilonVol(Tdomain, elem_id)
     use sdomain
@@ -202,7 +202,7 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
             do k = 0,ngllz-1
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
-                        id = Tdomain%specel(n)%slpml%ISolPML(i,j,k)
+                        id = Tdomain%specel(n)%Idom(i,j,k)
                         Tdomain%specel(n)%flpml%Veloc1(i,j,k,0) = veloc(idx+0)
                         Tdomain%specel(n)%flpml%Veloc1(i,j,k,1) = veloc(idx+1)
                         Tdomain%specel(n)%flpml%Veloc1(i,j,k,2) = veloc(idx+2)

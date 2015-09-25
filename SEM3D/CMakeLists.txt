@@ -128,3 +128,8 @@ add_executable(test_pointlist
   ${SEMCOMMON}/pointlist.f90
   ${PRJ}/TESTS/UNITS/test_pointlist.f90
 )
+
+add_executable(test_index
+      ${PRJ}/SRC/indexation.f90
+      ${PRJ}/TESTS/SRC/test_indexation.f90
+      )

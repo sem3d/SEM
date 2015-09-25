@@ -58,6 +58,7 @@ contains
                         Tdomain%GlobCoord(1,ipoint) = yp
                         Tdomain%GlobCoord(2,ipoint) = zp
 
+                        !write(*,*) n, i, j, k, ipoint, xp, yp, zp
                         call shape8_local2jacob(coord, xi, eta, zeta, LocInvGrad)
 
                         call invert_3d(LocInvGrad,Jac)

@@ -41,9 +41,9 @@ subroutine StoF_coupling(Tdomain, BtN, champs0, champs1)
         if (idx >= 0) then
             !! sum veloc1+veloc2+veloc3
             do j = 0,2
-                vn1(i) = vn1(i) + (BtN(i,j) * champs0%VelocPML(idx+0,j))
-                vn2(i) = vn2(i) + (BtN(i,j) * champs0%VelocPML(idx+1,j))
-                vn3(i) = vn3(i) + (BtN(i,j) * champs0%VelocPML(idx+2,j))
+                vn1(i) = vn1(i) + (BtN(i,j) * champs0%VelocPML(idx,j,0))
+                vn2(i) = vn2(i) + (BtN(i,j) * champs0%VelocPML(idx,j,1))
+                vn3(i) = vn3(i) + (BtN(i,j) * champs0%VelocPML(idx,j,2))
             enddo
         end if
     enddo
@@ -84,9 +84,9 @@ subroutine StoF_coupling(Tdomain, BtN, champs0, champs1)
     do i = 0,ngll_sf_pml-1
         idx = TDomain%SF%SF_IGlobFlu_pml(i)
         if (idx >= 0) then
-            champs1%fpml_Forces(idx+0) = champs1%fpml_Forces(idx+0) + vn1(i)
-            champs1%fpml_Forces(idx+1) = champs1%fpml_Forces(idx+1) + vn2(i)
-            champs1%fpml_Forces(idx+2) = champs1%fpml_Forces(idx+2) + vn3(i)
+            champs1%fpml_Forces(idx,0) = champs1%fpml_Forces(idx,0) + vn1(i)
+            champs1%fpml_Forces(idx,1) = champs1%fpml_Forces(idx,1) + vn2(i)
+            champs1%fpml_Forces(idx,2) = champs1%fpml_Forces(idx,2) + vn3(i)
         end if
     enddo
 
@@ -126,9 +126,9 @@ subroutine FtoS_coupling(Tdomain, BtN, champs0, champs1)
         idx = Tdomain%SF%SF_IGlobFlu_pml(i)
         if (idx >= 0) then
             do j = 0,2
-                pn1(j,i) =  - (BtN(i,j) * champs0%fpml_VelPhi(idx+0))
-                pn2(j,i) =  - (BtN(i,j) * champs0%fpml_VelPhi(idx+1))
-                pn3(j,i) =  - (BtN(i,j) * champs0%fpml_VelPhi(idx+2))
+                pn1(j,i) =  - (BtN(i,j) * champs0%fpml_VelPhi(idx,0))
+                pn2(j,i) =  - (BtN(i,j) * champs0%fpml_VelPhi(idx,1))
+                pn3(j,i) =  - (BtN(i,j) * champs0%fpml_VelPhi(idx,2))
             enddo
         end if
     enddo
@@ -175,9 +175,9 @@ subroutine FtoS_coupling(Tdomain, BtN, champs0, champs1)
         idx = Tdomain%SF%SF_IGlobSol_pml(i)
         if (idx >= 0) then
             do j = 0,2
-                champs1%ForcesPML(idx+0,j) = champs1%ForcesPML(idx+0,j) + pn1(j,i)
-                champs1%ForcesPML(idx+1,j) = champs1%ForcesPML(idx+1,j) + pn2(j,i)
-                champs1%ForcesPML(idx+2,j) = champs1%ForcesPML(idx+2,j) + pn3(j,i)
+                champs1%ForcesPML(idx,j,0) = champs1%ForcesPML(idx,j,0) + pn1(j,i)
+                champs1%ForcesPML(idx,j,1) = champs1%ForcesPML(idx,j,1) + pn2(j,i)
+                champs1%ForcesPML(idx,j,2) = champs1%ForcesPML(idx,j,2) + pn3(j,i)
             enddo
         end if
     enddo

@@ -9,19 +9,21 @@
 !<
 
 module sedges
-
+    implicit none
     type :: edge
 
-       logical :: PML, Abs, FPML
+        integer :: ngll
+        integer :: domain
+        integer, dimension (:), allocatable :: Iglobnum_Edge
+        integer, dimension (:), allocatable :: Idom
+        integer, dimension(0:1) :: inodes
 
-       integer :: ngll,mat_index
-       integer, dimension (:), allocatable :: Iglobnum_Edge
-
-       ! Lien entre ngll et numérotation des champs globaux
-       integer, dimension (:), allocatable :: Renum
-
-       ! solid-fluid
-       logical  :: solid, fluid_dirich
+        ! TODO REMOVE
+        logical :: PML, Abs, FPML ! redondant avec mat_index
+        ! Lien entre ngll et numérotation des champs globaux
+        integer, dimension (:), allocatable :: Renum ! renommage en Igll
+        ! solid-fluid
+        logical  :: solid, fluid_dirich ! redondant avec mat_index
 
 
        !! Couplage Externe
@@ -35,11 +37,13 @@ contains
     ! ###########################################################
     subroutine init_edge(ed)
         type(Edge), intent(inout) :: ed
-
+        !
+        ed%ngll = 0
+        ed%domain = -1
+        !
         ed%PML = .false.
         ed%Abs = .false.
         ed%FPML = .false.
-        ed%ngll = 0
         ed%solid = .true.
     end subroutine init_edge
 

@@ -47,13 +47,18 @@ subroutine read_mesh_file_h5(Tdomain)
     call h5fopen_f(trim(fname), H5F_ACC_RDONLY_F, fid, hdferr)
     !
     !-- Reading mesh properties
-    call read_attr_int (fid, "ndim", Tdomain%n_dime)
-    call read_attr_bool(fid, "solid_fluid", Tdomain%logicD%solid_fluid)
-    call read_attr_bool(fid, "all_fluid", Tdomain%logicD%all_fluid)
-    call read_attr_bool(fid, "neumann_present", neumann_log)
-    call read_attr_bool(fid, "neumann_present_loc", Tdomain%logicD%Neumann_local_present)
-    call read_attr_bool(fid, "curve", Tdomain%curve)
-    call read_attr_bool(fid, "solid_fluid_loc", Tdomain%logicD%SF_local_present)
+    call read_attr_int (fid, "ndims", Tdomain%n_dime)
+    Tdomain%logicD%solid_fluid = .false.
+    Tdomain%logicD%all_fluid = .false.
+    neumann_log = .false.
+    Tdomain%logicD%Neumann_local_present = .false.
+    Tdomain%logicD%SF_local_present = .false.
+!    call read_attr_bool(fid, "solid_fluid", Tdomain%logicD%solid_fluid)
+!    call read_attr_bool(fid, "all_fluid", Tdomain%logicD%all_fluid)
+!    call read_attr_bool(fid, "neumann_present", neumann_log)
+!    call read_attr_bool(fid, "neumann_present_loc", Tdomain%logicD%Neumann_local_present)
+!    call read_attr_bool(fid, "curve", Tdomain%curve)
+!    call read_attr_bool(fid, "solid_fluid_loc", Tdomain%logicD%SF_local_present)
     call read_attr_int(fid, "n_processors", num_processors)
     call read_attr_int(fid, "n_materials", Tdomain%n_mat)
     call read_attr_int(fid, "n_elements",  Tdomain%n_elem)
@@ -93,14 +98,12 @@ subroutine read_mesh_file_h5(Tdomain)
     Tdomain%Coord_nodes = rtemp2
     deallocate(rtemp2)
 
-    !call dispCarvalhol(transpose(Tdomain%Coord_nodes), "transpose(Tdomain%Coord_nodes)")
-
     ! Elements (material and solid or fluid and if fluid: Dirichlet boundary?)
-    call read_dataset(fid, "material", itemp2)
+    call read_dataset(fid, "material", itemp)
 
-    if (Tdomain%n_elem /= size(itemp2,2)) then
+    if (Tdomain%n_elem /= size(itemp)) then
         write(*,*) "N_elem:", Tdomain%n_elem
-        write(*,*) "itemp:", size(itemp2,1), size(itemp2,2)
+        write(*,*) "itemp:", size(itemp)
         stop "Incoherent number of elements"
     end if
 
@@ -110,31 +113,12 @@ subroutine read_mesh_file_h5(Tdomain)
 
     do i=0,Tdomain%n_elem-1
         call init_element(Tdomain%specel(i))
-        Tdomain%specel(i)%mat_index = itemp2(1,i+1)
-        Tdomain%specel(i)%solid = itemp2(2,i+1) .ne. 0
-        Tdomain%specel(i)%fluid_dirich = itemp2(3,i+1) .ne. 0
+        Tdomain%specel(i)%mat_index = itemp(i+1)
         Tdomain%specel(i)%OUTPUT = .true.
-        Tdomain%subD_exist(itemp2(1,i+1)) = .true.
-        !Tdomain%sSubdomain(itemp2(1,i+1))%nElem = 1 + Tdomain%sSubdomain(itemp2(1,i+1))%nElem !Counting number of elements by subdomain per proc
+        Tdomain%subD_exist(itemp(i+1)) = .true.
     end do
 
-    deallocate(itemp2)
-
-!    if (Tdomain%any_Random) then
-!        !Building element list in each subdomain
-!        do i=0,Tdomain%n_mat-1
-!            allocate (Tdomain%sSubdomain(i)%elemList(0:Tdomain%sSubdomain(i)%nElem-1))
-!            Tdomain%sSubdomain(i)%elemList(:) = -1 !-1 to detect errors
-!            Tdomain%sSubdomain(i)%nElem       = 0 !Using to count the elements in the next loop
-!        enddo
-!        do i=0,Tdomain%n_elem-1
-!            mat = Tdomain%specel(i)%mat_index
-!            Tdomain%sSubdomain(mat)%elemList(Tdomain%sSubdomain(mat)%nElem) = i
-!            Tdomain%sSubdomain(mat)%nElem = Tdomain%sSubdomain(mat)%nElem + 1
-!        enddo
-!
-!        allocate (Tdomain%subDComm(0:Tdomain%n_mat - 1))
-!    end if
+    deallocate(itemp)
 
     ! Read elements definitions
     ! n_nodes : number of control nodes (8 or 27)
@@ -162,8 +146,10 @@ subroutine read_mesh_file_h5(Tdomain)
     allocate(tempGlobMax(0:Tdomain%n_dime -1))
     do mat = 0, Tdomain%n_mat - 1
         do k = 0, Tdomain%n_dime -1
-            call MPI_ALLREDUCE(Tdomain%sSubDomain(mat)%MinBound(k),tempGlobMin(k),1,MPI_DOUBLE_PRECISION,MPI_MIN,Tdomain%communicateur,code)
-            call MPI_ALLREDUCE(Tdomain%sSubDomain(mat)%MaxBound(k),tempGlobMax(k),1,MPI_DOUBLE_PRECISION,MPI_MAX,Tdomain%communicateur,code)
+            call MPI_ALLREDUCE(Tdomain%sSubDomain(mat)%MinBound(k),tempGlobMin(k),1, &
+                MPI_DOUBLE_PRECISION,MPI_MIN,Tdomain%communicateur,code)
+            call MPI_ALLREDUCE(Tdomain%sSubDomain(mat)%MaxBound(k),tempGlobMax(k),1, &
+                MPI_DOUBLE_PRECISION,MPI_MAX,Tdomain%communicateur,code)
             Tdomain%sSubDomain(mat)%MinBound(k) = tempGlobMin(k)
             Tdomain%sSubDomain(mat)%MaxBound(k) = tempGlobMax(k)
         end do
@@ -173,53 +159,45 @@ subroutine read_mesh_file_h5(Tdomain)
 
     deallocate(itemp2)
 
-    !do mat = 0, Tdomain%n_mat-1
-    !    write(*,*) "Mat ", mat
-    !    write(*,*) "max = ", Tdomain%sSubDomain(mat)%MaxBound
-    !    write(*,*) "min = ", Tdomain%sSubDomain(mat)%MinBound
-    !end do
-
     ! Faces and elements properties related to faces
     call read_dataset(fid, "faces", itemp2)
-    call read_dataset(fid, "faces_map", itemp2b)
+    call read_dataset(fid, "faces_def", itemp2b)
 
     allocate(Tdomain%sFace(0:Tdomain%n_face-1))
     do i=0,Tdomain%n_face-1
         call init_face(Tdomain%sFace(i))
+        Tdomain%sFace(i)%inodes = itemp2b(:,i+1)
     enddo
     do i = 0, Tdomain%n_elem-1
         Tdomain%specel(i)%Near_Faces(0:5) = itemp2(:,i+1)
-        Tdomain%specel(i)%Orient_Faces(0:5) = itemp2b(:,i+1)
     enddo
     deallocate(itemp2, itemp2b)
 
     ! Edges
     call read_dataset(fid, "edges", itemp2)
-    call read_dataset(fid, "edges_map", itemp2b)
+    call read_dataset(fid, "edges_def", itemp2b)
 
     allocate(Tdomain%sEdge(0:Tdomain%n_edge-1))
     do i=0,Tdomain%n_edge-1
         call init_edge(Tdomain%sEdge(i))
+        Tdomain%sEdge(i)%inodes = itemp2b(:,i+1)
     enddo
     do i = 0, Tdomain%n_elem-1
         Tdomain%specel(i)%Near_Edges(0:11) = itemp2(:,i+1)
-        Tdomain%specel(i)%Orient_Edges(0:11) = itemp2b(:,i+1)
     enddo
     deallocate(itemp2, itemp2b)
 
     ! Vertices
     call read_dataset(fid, "vertices", itemp2)
-    call read_dataset(fid, "vertices_to_global", itemp)
 
     allocate(Tdomain%sVertex(0:Tdomain%n_vertex-1))
     do i=0,Tdomain%n_vertex-1
         call init_vertex(Tdomain%sVertex(i))
-        Tdomain%sVertex(i)%global_numbering = itemp(i+1)
     enddo
     do i = 0,Tdomain%n_elem-1
         Tdomain%specel(i)%Near_Vertices(0:7) = itemp2(:,i+1)
     enddo
-    deallocate(itemp2, itemp)
+    deallocate(itemp2)
 
     ! Solid-fluid properties, eventually
     if(Tdomain%logicD%SF_local_present)then
@@ -313,7 +291,7 @@ subroutine read_mesh_file_h5(Tdomain)
 
     ! Interproc communications
     Tdomain%tot_comm_proc = 0
-    call read_attr_int(fid, "tot_comm_proc", Tdomain%tot_comm_proc)
+    !call read_attr_int(fid, "tot_comm_proc", Tdomain%tot_comm_proc)
     allocate (Tdomain%sComm(0:Tdomain%nb_procs-1))
     do i = 0,Tdomain%tot_comm_proc-1
         write(proc_grp,"(a,I4.4)") "Proc", i

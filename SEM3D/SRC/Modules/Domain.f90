@@ -64,7 +64,7 @@ module sdomain
        type(subdomain), dimension (:), pointer :: sSubDomain
 
 
-       logical :: any_PML, curve, any_FPML, aniso, any_Random
+       logical :: any_PML, any_FPML, aniso, any_Random
 
        integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers
        integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls
@@ -101,17 +101,18 @@ module sdomain
        ! MassMat pour elements solide, fluide, solide pml et fluide pml
        real, dimension(:), allocatable :: MassMatSol, MassMatFlu
        real, dimension(:), allocatable :: MassMatSolPml, MassMatFluPml
-       real, dimension(:), allocatable :: DumpMass, fpml_DumpMass
+       real, dimension(:,:), allocatable :: DumpMass, fpml_DumpMass
 
        ! Condition de dirichlet fluide et fluide PML
-        real, dimension(:), allocatable :: fl_dirich, fpml_dirich
+       real, dimension(:), allocatable :: fl_dirich
+       real, dimension(:,:), allocatable :: fpml_dirich
 
        ! Interface Solide / PML
-       integer :: nbInterfSolPml ! nombre de points de gauss à l'interface Solide / PML
+       integer :: nbInterfSolPml ! nombre de points de gauss Ã  l'interface Solide / PML
        integer, dimension(:,:), allocatable :: InterfSolPml ! dimension(0:nbInterfSolPml-1,0:1), 0 Sol, 1 PML
 
        ! Interface Fluide / PML
-       integer :: nbInterfFluPml ! nombre de points de gauss à l'interface Solide / PML
+       integer :: nbInterfFluPml ! nombre de points de gauss Ã  l'interface Solide / PML
        integer, dimension(:,:), allocatable :: InterfFluPml ! dimension(0:nbInterfFluPml-1,0:1), 0 Flu, 1 PML
 
        ! Faces externes PML

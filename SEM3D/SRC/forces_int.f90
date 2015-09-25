@@ -54,7 +54,7 @@ contains
                 do k = 0,m3-1
                     do j = 0,m2-1
                         do i = 0,m1-1
-                            Depla(i,j,k,i_dir) = champs1%Depla(Elem%Isol(i,j,k),i_dir)
+                            Depla(i,j,k,i_dir) = champs1%Depla(Elem%Idom(i,j,k),i_dir)
                         enddo
                     enddo
                 enddo
@@ -177,9 +177,9 @@ contains
             do k = 0,m3-1
                 do j = 0,m2-1
                     do i = 0,m1-1
-                        champs1%Forces(Elem%Isol(i,j,k),0) = champs1%Forces(Elem%Isol(i,j,k),0)-Fox(i,j,k)
-                        champs1%Forces(Elem%Isol(i,j,k),1) = champs1%Forces(Elem%Isol(i,j,k),1)-Foy(i,j,k)
-                        champs1%Forces(Elem%Isol(i,j,k),2) = champs1%Forces(Elem%Isol(i,j,k),2)-Foz(i,j,k)
+                        champs1%Forces(Elem%Idom(i,j,k),0) = champs1%Forces(Elem%Idom(i,j,k),0)-Fox(i,j,k)
+                        champs1%Forces(Elem%Idom(i,j,k),1) = champs1%Forces(Elem%Idom(i,j,k),1)-Foy(i,j,k)
+                        champs1%Forces(Elem%Idom(i,j,k),2) = champs1%Forces(Elem%Idom(i,j,k),2)-Foz(i,j,k)
                     enddo
                 enddo
             enddo
@@ -192,7 +192,7 @@ contains
             do k = 0,m3-1
                 do j = 0,m2-1
                     do i = 0,m1-1
-                        Phi(i,j,k) = champs1%Phi(Elem%Iflu(i,j,k))
+                        Phi(i,j,k) = champs1%Phi(Elem%Idom(i,j,k))
                     enddo
                 enddo
             enddo
@@ -212,7 +212,7 @@ contains
             do k = 0,m3-1
                 do j = 0,m2-1
                     do i = 0,m1-1
-                       champs1%ForcesFl(Elem%Iflu(i,j,k)) = champs1%ForcesFl(Elem%Iflu(i,j,k))-Fo_Fl(i,j,k)
+                       champs1%ForcesFl(Elem%Idom(i,j,k)) = champs1%ForcesFl(Elem%Idom(i,j,k))-Fo_Fl(i,j,k)
                     enddo
                 enddo
             enddo
@@ -237,7 +237,7 @@ contains
         do k = 0,m3-1
             do j = 0,m2-1
                 do i=0,m1-1
-                    ind = Elem%flpml%IFluPml(i,j,k)
+                    ind = Elem%Idom(i,j,k)
                     sum_vx = 0d0
                     sum_vy = 0d0
                     sum_vz = 0d0
@@ -257,7 +257,7 @@ contains
             do l = 0,m2-1
                 do j = 0,m2-1
                     do i=0,m1-1
-                        ind = Elem%flpml%IFluPml(i,j,k)
+                        ind = Elem%Idom(i,j,k)
                         acoeff = - mat%hprimey(j,l)*mat%GLLwx(i)*mat%GLLwy(l)*mat%GLLwz(k)*Elem%Jacob(i,l,k)
                         sum_vx = acoeff*Elem%InvGrad(0,1,i,l,k)*Elem%flpml%Veloc(i,l,k,0)
                         sum_vy = acoeff*Elem%InvGrad(1,1,i,l,k)*Elem%flpml%Veloc(i,l,k,1)
@@ -274,7 +274,7 @@ contains
             do k = 0,m3-1
                 do j = 0,m2-1
                     do i=0,m1-1
-                        ind = Elem%flpml%IFluPml(i,j,k)
+                        ind = Elem%Idom(i,j,k)
                         acoeff = - mat%hprimez(k,l)*mat%GLLwx(i)*mat%GLLwy(j)*mat%GLLwz(l)*Elem%Jacob(i,j,l)
                         sum_vx = acoeff*Elem%InvGrad(0,2,i,j,l)*Elem%flpml%Veloc(i,j,l,0)
                         sum_vy = acoeff*Elem%InvGrad(1,2,i,j,l)*Elem%flpml%Veloc(i,j,l,1)
@@ -291,11 +291,11 @@ contains
         do k = 0,m3-1
             do j = 0,m2-1
                 do i = 0,m1-1
-                    ind = Elem%flpml%IFluPml(i,j,k)
+                    ind = Elem%Idom(i,j,k)
                     ! We should have atomic adds with openmp // here
-                    champs1%fpml_Forces(ind+0) = champs1%fpml_Forces(ind+0) + ForcesFl(0,i,j,k)
-                    champs1%fpml_Forces(ind+1) = champs1%fpml_Forces(ind+1) + ForcesFl(1,i,j,k)
-                    champs1%fpml_Forces(ind+2) = champs1%fpml_Forces(ind+2) + ForcesFl(2,i,j,k)
+                    champs1%fpml_Forces(ind,0) = champs1%fpml_Forces(ind,0) + ForcesFl(0,i,j,k)
+                    champs1%fpml_Forces(ind,1) = champs1%fpml_Forces(ind,1) + ForcesFl(1,i,j,k)
+                    champs1%fpml_Forces(ind,2) = champs1%fpml_Forces(ind,2) + ForcesFl(2,i,j,k)
                 enddo
             enddo
         enddo
@@ -325,9 +325,10 @@ contains
         do k = 0,m3-1
             do j = 0,m2-1
                 do i = 0,m1-1
-                    ind = Elem%flpml%IFluPml(i,j,k)
-                    VelPhi(i,j,k) = champs1%fpml_VelPhi(ind)+ &
-                        champs1%fpml_VelPhi(ind+1)+champs1%fpml_VelPhi(ind+2)
+                    ind = Elem%Idom(i,j,k)
+                    VelPhi(i,j,k) = champs1%fpml_VelPhi(ind,0) + &
+                        champs1%fpml_VelPhi(ind,1) + &
+                        champs1%fpml_VelPhi(ind,2)
                 enddo
             enddo
         enddo
@@ -377,8 +378,10 @@ contains
             do k = 0,m3-1
                 do j = 0,m2-1
                     do i = 0,m1-1
-                        ind = Elem%slpml%ISolPml(i,j,k)
-                        Veloc(i,j,k,i_dir) = champs1%VelocPML(ind,i_dir)+champs1%VelocPML(ind+1,i_dir)+champs1%VelocPML(ind+2,i_dir)
+                        ind = Elem%Idom(i,j,k)
+                        Veloc(i,j,k,i_dir) = champs1%VelocPML(ind,i_dir,0) + &
+                            champs1%VelocPML(ind,i_dir,1) + &
+                            champs1%VelocPML(ind,i_dir,2)
                     enddo
                 enddo
             enddo
@@ -521,10 +524,10 @@ contains
         do k = 0,m3-1
             do j = 0,m2-1
                 do i = 0,m1-1
-                    ind = Elem%slpml%ISolPml(i,j,k)
-                    champs1%ForcesPML(ind+0,:) = champs1%ForcesPML(ind+0,:) + Forces1(:,i,j,k)
-                    champs1%ForcesPML(ind+1,:) = champs1%ForcesPML(ind+1,:) + Forces2(:,i,j,k)
-                    champs1%ForcesPML(ind+2,:) = champs1%ForcesPML(ind+2,:) + Forces3(:,i,j,k)
+                    ind = Elem%Idom(i,j,k)
+                    champs1%ForcesPML(ind,:,0) = champs1%ForcesPML(ind,:,0) + Forces1(:,i,j,k)
+                    champs1%ForcesPML(ind,:,1) = champs1%ForcesPML(ind,:,1) + Forces2(:,i,j,k)
+                    champs1%ForcesPML(ind,:,2) = champs1%ForcesPML(ind,:,2) + Forces3(:,i,j,k)
                 enddo
             enddo
         enddo

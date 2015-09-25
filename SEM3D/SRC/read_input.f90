@@ -213,7 +213,6 @@ contains
             mat = Tdomain%specel(n)%mat_index
             do nf = 0,5
                 nnf = Tdomain%specel(n)%Near_Faces(nf)
-                Tdomain%sFace(nnf)%mat_index = mat
                 Tdomain%sFace(nnf)%solid = Tdomain%specel(n)%solid
                 Tdomain%sFace(nnf)%fluid_dirich = .false.
               ! if(Tdomain%specel(n)%fluid_dirich .and. (nf == 5))then
@@ -222,7 +221,6 @@ contains
             end do
             do ne = 0,11
                 nne = Tdomain%specel(n)%Near_edges(ne)
-                Tdomain%sEdge(nne)%mat_index = mat
                 Tdomain%sEdge(nne)%solid = Tdomain%specel(n)%solid
                 Tdomain%sEdge(nne)%fluid_dirich = .false.
                ! if(Tdomain%specel(n)%fluid_dirich .and.   &
@@ -232,7 +230,6 @@ contains
             end do
             do nv = 0,7
                 nnv = Tdomain%specel(n)%Near_Vertices(nv)
-                Tdomain%sVertex(nnv)%mat_index = mat
                 Tdomain%sVertex(nnv)%solid = Tdomain%specel(n)%solid
                 Tdomain%sVertex(nnv)%fluid_dirich = .false.
                ! if(Tdomain%specel(n)%fluid_dirich .and.   &
@@ -306,20 +303,19 @@ contains
     subroutine read_material_file(Tdomain)
         use sdomain
         use semdatafiles
+        use orientation
         use mpi
         implicit none
 
         type(domain), intent(inout) :: Tdomain
         character(Len=MAX_FILE_SIZE) :: fnamef
-        integer :: i, j, n_aus, npml, mat, ne, nf, nRandom
-        logical, dimension(:), allocatable :: L_Face, L_Edge
+        integer :: i, n_aus, npml, mat, nRandom
         real :: dtmin
         integer :: rg
 
         rg = Tdomain%rank
         npml = 0
         nRandom = 0
-        !allocate(Tdomain%sSubdomain(0:Tdomain%n_mat-1)) !Changed to mesh3d.f90 line 337
 
         call semname_read_inputmesh_parametrage(Tdomain%material_file,fnamef)
         open (13, file=fnamef, status="old", form="formatted")
@@ -362,7 +358,8 @@ contains
                 write (*,*) 'Pspeed   :', Tdomain%sSubDomain(i)%Pspeed
                 write (*,*) 'Sspeed   :', Tdomain%sSubDomain(i)%Sspeed
                 write (*,*) 'Density  :', Tdomain%sSubDomain(i)%dDensity
-                write (*,*) 'NGLL     :', Tdomain%sSubDomain(i)%NGLLx, Tdomain%sSubDomain(i)%NGLLy, Tdomain%sSubDomain(i)%NGLLz
+                write (*,*) 'NGLL     :', Tdomain%sSubDomain(i)%NGLLx, &
+                    Tdomain%sSubDomain(i)%NGLLy, Tdomain%sSubDomain(i)%NGLLz
                 write (*,*) 'Dt       :', Tdomain%sSubDomain(i)%Dt
                 write (*,*) 'Qp       :', Tdomain%sSubDomain(i)%Qpression
                 write (*,*) 'Qmu      :', Tdomain%sSubDomain(i)%Qmu
@@ -371,8 +368,7 @@ contains
             Tdomain%sSubdomain(i)%assocMat = i
 
             call Lame_coefficients (Tdomain%sSubDomain(i))
-            !        if(rg==0) &
-            !            print*,' lame ',Tdomain%sSubDomain(i)%DMu,Tdomain%sSubDomain(i)%DLambda ,Tdomain%sSubDomain(i)%DKappa
+
             if (Tdomain%sSubDomain(i)%material_type == "P" .or. Tdomain%sSubDomain(i)%material_type == "L")  then
                 npml = npml + 1
                 Tdomain%not_PML_List(i) = .false.
@@ -455,56 +451,20 @@ contains
 
         close(13)
 
+
+        
         !- GLL properties in elements, on faces, edges.
-        allocate(L_Face(0:Tdomain%n_face-1))
-        L_Face = .true.
-        allocate(L_Edge(0:Tdomain%n_edge-1))
-        L_Edge = .true.
         do i = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(i)%mat_index
             Tdomain%specel(i)%ngllx = Tdomain%sSubDomain(mat)%NGLLx
             Tdomain%specel(i)%nglly = Tdomain%sSubDomain(mat)%NGLLy
             Tdomain%specel(i)%ngllz = Tdomain%sSubDomain(mat)%NGLLz
-            do j = 0,5
-                nf = Tdomain%specel(i)%Near_Faces(j)
-                if(L_Face(nf) .and. Tdomain%specel(i)%Orient_Faces(j) == 0)then
-                    L_Face(nf) = .false. !L_Face est pour eviter que l'on modifie plusieurs fois la meme face
-                    if(j == 0 .or. j == 5)then
-                        Tdomain%sFace(nf)%ngll1 = Tdomain%specel(i)%ngllx
-                        Tdomain%sFace(nf)%ngll2 = Tdomain%specel(i)%nglly
-                    else if(j == 1 .or. j == 3)then
-                        Tdomain%sFace(nf)%ngll1 = Tdomain%specel(i)%ngllx
-                        Tdomain%sFace(nf)%ngll2 = Tdomain%specel(i)%ngllz
-                    else
-                        Tdomain%sFace(nf)%ngll1 = Tdomain%specel(i)%nglly
-                        Tdomain%sFace(nf)%ngll2 = Tdomain%specel(i)%ngllz
-                    endif
-                    Tdomain%sFace(nf)%dir = j
-                endif
-            enddo
-            do j = 0,11
-                ne = Tdomain%specel(i)%Near_Edges(j)
-                if(L_Edge(ne) .and. Tdomain%specel(i)%Orient_Edges(j) == 0)then
-                    L_Edge(ne) = .false.
-                    if (j == 0 .or. j == 2 .or. j == 5 .or. j == 9)then
-                        Tdomain%sEdge(ne)%ngll = Tdomain%specel(i)%ngllx
-                    else if (j == 1 .or. j == 3 .or. j == 8 .or. j == 11)then
-                        Tdomain%sEdge(ne)%ngll = Tdomain%specel(i)%nglly
-                    else
-                        Tdomain%sEdge(ne)%ngll = Tdomain%specel(i)%ngllz
-                    endif
-                endif
-            enddo
-        enddo
-        deallocate(L_Face,L_Edge)
+            Tdomain%specel(i)%domain = get_domain(Tdomain%sSubDomain(mat))
+        end do
 
-        ! MODIF to be done here.: Gaetano's formulae are wrong for filtering PMLs
-        do i = 0, Tdomain%n_mat-1
-            if((Tdomain%sSubdomain(i)%material_type == "P" .or.   &
-                Tdomain%sSubdomain(i)%material_type == "L") .and. &
-                Tdomain%sSubdomain(i)%Filtering)                  &
-                Tdomain%sSubdomain(i)%freq = exp(-Tdomain%sSubdomain(i)%freq*Tdomain%sSubdomain(i)%dt/2)
-        enddo
+        call apply_mat_to_faces(Tdomain)
+        call apply_mat_to_edges(Tdomain)
+        call apply_mat_to_vertices(Tdomain)
 
         dtmin = 1e20
         do i = 0,Tdomain%n_mat-1

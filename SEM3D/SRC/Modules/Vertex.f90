@@ -12,14 +12,19 @@ module svertices
 
 
     type :: vertex
-       integer  :: mat_index
-       logical :: PML, Abs, FPML
-       integer :: Iglobnum_Vertex, global_numbering
+       integer :: domain
+       integer :: Iglobnum_Vertex
+       integer :: Idom
+       integer :: inode
+
+       !! TODO: REMOVE
+       integer :: global_numbering
        ! Lien entre ngll et numérotation des champs globaux
        integer :: Renum
 
        ! solid-fluid
        logical :: solid, fluid_dirich
+       logical :: PML, Abs, FPML
 
        !! Couplage Externe
 !       real, dimension (:), allocatable :: ForcesExt
@@ -30,7 +35,9 @@ module svertices
 contains
     subroutine init_vertex(ve)
         type(Vertex), intent(inout) :: ve
-
+        !
+        ve%domain = -1
+        !
         ve%PML = .false.
         ve%Abs = .false.
         ve%FPML = .false.

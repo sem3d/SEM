@@ -15,9 +15,9 @@ module schamps
         real, dimension(:,:), allocatable :: Veloc
 
         !! Solide PML
-        real, dimension(:,:), allocatable :: ForcesPML
-        real, dimension(:,:), allocatable :: VelocPML
-        real, dimension(:,:), allocatable :: DumpV
+        real, dimension(:,:,:), allocatable :: ForcesPML
+        real, dimension(:,:,:), allocatable :: VelocPML
+        real, dimension(:,:,:), allocatable :: DumpV
 
         !! Fluide
         real, dimension(:), allocatable :: ForcesFl
@@ -25,10 +25,10 @@ module schamps
         real, dimension(:), allocatable :: VelPhi
 
         !! Fluide PML
-        real, dimension(:), allocatable   :: fpml_Forces
-        real, dimension(:), allocatable   :: fpml_Phi
-        real, dimension(:), allocatable   :: fpml_VelPhi
-        real, dimension(:,:), allocatable :: fpml_DumpV
+        real, dimension(:,:), allocatable   :: fpml_Forces
+        real, dimension(:,:), allocatable   :: fpml_Phi
+        real, dimension(:,:), allocatable   :: fpml_VelPhi
+        real, dimension(:,:,:), allocatable :: fpml_DumpV
 
     end type champs
 
