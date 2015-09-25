@@ -50,10 +50,11 @@ void init_rectangular_mesh( RectMesh& desc, Mesh3D& mesh)
     int nelemy = int( (desc.ymax-desc.ymin)/desc.ystep );
     int nelemz = int( (desc.zmax-desc.zmin)/desc.zstep );
 
+    printf("Creating grid mesh %d x %d x %d\n", nelemx, nelemy, nelemz );
     // Coordinates
     for(int k=0;k<=nelemz;++k) {
-	for(int j=0;j<=nelemz;++j) {
-	    for(int i=0;i<=nelemz;++i) {
+	for(int j=0;j<=nelemy;++j) {
+	    for(int i=0;i<=nelemx;++i) {
 		mesh.add_node( desc.xmin + i*desc.xstep,
 			       desc.ymin + j*desc.ystep,
 			       desc.zmin + k*desc.zstep );
@@ -63,8 +64,8 @@ void init_rectangular_mesh( RectMesh& desc, Mesh3D& mesh)
     // Elements
     HexElem elem;
     for(int k=0;k<nelemz;++k) {
-	for(int j=0;j<nelemz;++j) {
-	    for(int i=0;i<nelemz;++i) {
+	for(int j=0;j<nelemy;++j) {
+	    for(int i=0;i<nelemx;++i) {
 		elem.v[0] = pointidx(i  ,j  ,k  ,nelemx,nelemy,nelemz);
 		elem.v[1] = pointidx(i+1,j  ,k  ,nelemx,nelemy,nelemz);
 		elem.v[2] = pointidx(i+1,j+1,k  ,nelemx,nelemy,nelemz);
