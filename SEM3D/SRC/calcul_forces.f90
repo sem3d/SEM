@@ -209,8 +209,8 @@ end subroutine calcul_forces_el
 
 subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, &
     dx,dy,dz, jac, poidsx,poidsy,poidsz, DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
-    mu_,la_, ngllx,nglly,ngllz, Sigma_ij_N_el, Xkin_ij_N_el, Riso_N_el, &
-    sigma_yld_el, b_iso_el, Rinf_iso_el, C_kin_el, kapa_kin_el, PlastMult_el)
+    mu_,la_, ngllx,nglly,ngllz, Sigma_ij_N_el, Xkin_ij_N_el, Riso_N_el, PlastMult_N_el, &
+    sigma_yld_el, b_iso_el, Rinf_iso_el, C_kin_el, kapa_kin_el)
 
     use sdomain
     use nonlinear
@@ -229,7 +229,12 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, &
     real, dimension(0:nglly-1), intent(in) :: poidsy
     real, dimension(0:ngllz-1), intent(in) :: poidsz
 
-    integer :: i,j,k,l
+    real, dimension(0:5,0:nglly-1,0:ngllx-1,0:ngllz-1), intent(inout) :: Sigma_ij_N_el, Xkin_ij_N_el
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1),     intent(inout) :: Riso_N_el,     PlastMult_N_el
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: b_iso_el, C_kin_el, kapa_kin_el
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Rinf_iso_el, sigma_yld_el
+
+    integer :: i,j,k,l, st_epl
 
     real :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
     real :: sxx,sxy,sxz,syy,syz,szz,t4,F1,F2,F3
@@ -242,15 +247,8 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, &
     real, dimension(0:nglly-1,0:ngllx-1,0:ngllz-1) :: t2,t6,t9
     real, dimension(0:ngllz-1,0:ngllx-1,0:nglly-1) :: t3,t7,t10
 
-    real, dimension(0:5,0:nglly-1,0:ngllx-1,0:ngllz-1), intent(inout) :: Sigma_ij_N_el, Xkin_ij_N_el
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(inout)     :: Riso_N_el,     PlastMult_el
-
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: b_iso_el, C_kin_el, kapa_kin_el
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Rinf_iso_el, sigma_yld_el
-
-    integer              :: st_epl
     real                 :: Rinf_iso, b_iso, C_kin, kapa_kin, Riso_N, sigma_yld, alpha_elp, PlastMult_N
-    real, dimension(0:5) :: Sigma_ij_on_F, Sigma_ij_start, Sigma_ij_trial, dEpsilon_ij_alpha, Xkin_ij_N
+    real, dimension(0:5) :: Sigma_ij_start, Sigma_ij_trial, dEpsilon_ij_alpha, Xkin_ij_N
 
 
     do k = 0,ngllz-1
@@ -263,50 +261,68 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, &
 
                 ! ELASTIC PREDICTION =>     to be verified
 
-                sxx = xla2mu * DXX(i,j,k) + xla  * ( DYY(i,j,k) + DZZ(i,j,k) )
+                sxx = xla2mu * DXX(i,j,k) + xla  * (DYY(i,j,k) + DZZ(i,j,k))
                 !---
-                sxy = xmu  *( DXY(i,j,k)  + DYX(i,j,k)  )
+                sxy = xmu  *(DXY(i,j,k)  + DYX(i,j,k))
                 !---
-                sxz = xmu * ( DXZ(i,j,k)  + DZX(i,j,k)  )
+                sxz = xmu * (DXZ(i,j,k)  + DZX(i,j,k))
                 !---
-                syy = xla2mu * DYY(i,j,k) + xla  * ( DXX(i,j,k) + DZZ(i,j,k) )
+                syy = xla2mu * DYY(i,j,k) + xla  * (DXX(i,j,k) + DZZ(i,j,k))
                 !---
-                syz = xmu * ( DYZ(i,j,k)  + DZY(i,j,k) )
+                syz = xmu * (DYZ(i,j,k)  + DZY(i,j,k) )
                 !---
-                szz = xla2mu * DZZ(i,j,k) + xla  * ( DXX(i,j,k) + DYY(i,j,k) )
+                szz = xla2mu * DZZ(i,j,k) + xla  * (DXX(i,j,k) + DYY(i,j,k))
                 !---
                 !
                 ! CHECK PLASTICITY
                 !
                 Xkin_ij_N   = Xkin_ij_N_el(0:5,i,j,k)
-                Riso_N      = Riso_N_el(i,j,k)
-                PlastMult_N = PlastMult_el(i,j,k)
+                Riso_N      = Riso_N_el    (i,j,k)
+                PlastMult_N = PlastMult_N_el (i,j,k)
 
-                b_iso       = b_iso_el(i,j,k)
-                C_kin       = C_kin_el(i,j,k)
-                kapa_kin    = kapa_kin_el(i,j,k)
-                Rinf_iso    = Rinf_iso_el(i,j,k)
-                sigma_yld   = sigma_yld_el(i,j,k)
-
+                b_iso       = b_iso_el     (i,j,k)
+                C_kin       = C_kin_el     (i,j,k)
+                kapa_kin    = kapa_kin_el  (i,j,k)
+                Rinf_iso    = Rinf_iso_el  (i,j,k)
+                sigma_yld   = sigma_yld_el (i,j,k)
 
                 Sigma_ij_start = Sigma_ij_N_el(0:5,i,j,k)
                 Sigma_ij_trial = (/ sxx, syy, szz, sxy, sxz, syz /)
 
+                write(*,*) "SXX", SXX
+                write(*,*) "SYY", SYY
+                write(*,*) "SZZ", SZZ
+                write(*,*) "SXY", SXY
+                write(*,*) "SXZ", SXZ
+                write(*,*) "SYZ", SYZ
+
+
                 call check_plasticity (Sigma_ij_trial, Sigma_ij_start, Xkin_ij_N, Riso_N, &
-                    sigma_yld, st_epl, alpha_elp, Sigma_ij_on_F)
+                    sigma_yld, st_epl, alpha_elp)
                 !
                 ! PLASTIC CORRECTION
                 !
                 if (st_epl == 1) then
-
                     dEpsilon_ij_alpha = (1-alpha_elp) * &
                         (/dxx, dyy, dzz, 1/2*(dxy+dyx), 1/2*(dxz+dzx), 1/2*(dyz+dzy) /)
-                    call plastic_corrector(dEpsilon_ij_alpha, Sigma_ij_on_F, Xkin_ij_N, sigma_yld, &
+                    call plastic_corrector(dEpsilon_ij_alpha, Sigma_ij_trial, Xkin_ij_N, sigma_yld, &
                         Riso_N, b_iso, Rinf_iso, C_kin, kapa_kin, xmu, xla, PlastMult_N)
+
+                        sxx = Sigma_ij_trial(0)
+                        syy = Sigma_ij_trial(1)
+                        szz = Sigma_ij_trial(2)
+                        sxy = Sigma_ij_trial(3)
+                        sxz = Sigma_ij_trial(4)
+                        syz = Sigma_ij_trial(5)
+
                 end if
                 !
-                ! UPDATE STRESS STATE
+                ! UPDATE STATE
                 !
+                Sigma_ij_N_el(0:5,i,j,k) = Sigma_ij_trial
+                Xkin_ij_N_el(0:5,i,j,k) = Xkin_ij_N
+                Riso_N_el(i,j,k) = Riso_N
+                PlastMult_N_el(i,j,k) = PlastMult_N
 
                 !
                 xi1 = Invgrad(0,0,i,j,k)

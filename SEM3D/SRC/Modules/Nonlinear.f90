@@ -8,7 +8,7 @@ module nonlinear
 
     use sdomain
     use deriv3d
-    use constants, only : M_1_3, tol
+    use constants
 
 contains
 
@@ -44,7 +44,7 @@ contains
         real,                 intent(out):: tau_eq_mises
         integer                          :: i
 
-        tau_eq_mises = 0d0
+        tau_eq_mises = 0.0d0
         do i = 0, 5
             if (i .le. 2) then
                 tau_eq_mises = tau_eq_mises + (A_ij(i))**2
@@ -65,6 +65,7 @@ contains
         real, dimension(0:5), intent(out) :: Sigma_ij_dev
         real                              :: Sigma_P
 
+
         Sigma_P           = sum(Sigma_ij(0:2)) * M_1_3
         Sigma_ij_dev(0:5) = Sigma_ij(0:5)
         Sigma_ij_dev(0:2) = Sigma_ij_dev(0:2) - Sigma_P
@@ -72,24 +73,25 @@ contains
     end subroutine tensor_components
 
     subroutine check_plasticity (Sigma_ij_trial, Sigma_ij_start, X_ij, R, sigma_yld, &
-        st_epl, alpha_elp, Sigma_ij_on_F)
+        st_epl, alpha_elp)
 
         ! CHECK PLASTIC CONSISTENCY (KKT CONDITIONS)
 
         implicit none
-        real, dimension(0:5), intent(in) :: Sigma_ij_trial ! stress trial increment
-        real, dimension(0:5), intent(in) :: Sigma_ij_start ! initial stress state
-        real, dimension(0:5), intent(in) :: X_ij           ! current back-stress state
-        real,                 intent(in) :: R              ! current yld locus size
-        real,                 intent(in) :: sigma_yld      ! first yield limit
 
-        real, dimension(0:5), intent(out):: Sigma_ij_on_F   ! stress state on F = 0
-        real,                 intent(out):: alpha_elp       ! percentage of elastic strain
-        integer,              intent(out):: st_epl          ! elasto-plastic status
+        real, dimension(0:5), intent(in)    :: Sigma_ij_start ! initial stress state
+        real, dimension(0:5), intent(in)    :: X_ij           ! current back-stress state
+        real,                 intent(in)    :: R              ! current yld locus size
+        real,                 intent(in)    :: sigma_yld      ! first yield limit
+        real, dimension(0:5), intent(inout) :: Sigma_ij_trial ! stress trial increment
 
-        real                             :: F_start    , F_final_trial
-        real, dimension(0:5)             :: gradF_start, gradF_trial
-        real, dimension(0:5)             :: dSigma_ij_trial
+        real,                 intent(out)   :: alpha_elp      ! percentage of elastic strain
+        integer,              intent(inout) :: st_epl         ! elasto-plastic status
+
+        real                                :: F_start, F_final_trial
+        real, dimension(0:5)                :: gradF_start, gradF_trial
+        real, dimension(0:5)                :: dSigma_ij_trial
+
 
         ! Stress trial increment
         dSigma_ij_trial = Sigma_ij_trial - Sigma_ij_start
@@ -105,29 +107,27 @@ contains
         ! KKT condition
         if ((F_start .lt. -tol) .and. (F_final_trial .lt. -tol))      then  ! ELASTIC (UN)- LOADING
 
-            alpha_elp     = 1
-            Sigma_ij_on_F = Sigma_ij_trial
-            st_epl        = 2
+            alpha_elp      = 1
+            st_epl         = 2
 
         elseif ((F_start .lt. -tol) .and. (F_final_trial .gt. -tol)) then  ! ELASTO-PLASTIC LOADING
 
-            alpha_elp     = F_start / (F_start-F_final_trial)
-            Sigma_ij_on_F = Sigma_ij_start + dSigma_ij_trial * alpha_elp
-            st_epl        = 1
+            alpha_elp      = F_start / (F_start-F_final_trial)
+            Sigma_ij_trial = Sigma_ij_start + dSigma_ij_trial * alpha_elp
+            st_epl         = 1
 
         elseif ((abs(F_start) .le. tol) .and. &
             (10*sum(dSigma_ij_trial*gradF_start) .lt. -tol))         then  ! ELASTIC UNLOADING
 
-            alpha_elp     = 1
-            Sigma_ij_on_F = Sigma_ij_trial
-            st_epl        = 3
+            alpha_elp      = 1
+            st_epl         = 3
 
         elseif ((abs(F_start) .le. tol) .and. &
             (10*sum(dSigma_ij_trial*gradF_start) .gt. -tol))         then  ! PLASTIC LOADING
 
-            alpha_elp     = 0
-            Sigma_ij_on_F = Sigma_ij_start
-            st_epl        = 1
+            alpha_elp      = 0
+            Sigma_ij_trial = Sigma_ij_start
+            st_epl         = 1
 
         elseif (F_start .gt. tol)                                    then  ! START OUTSIDE ELASTIC DOMAIN
             write(*,*) "F_start > 0!!"
@@ -139,8 +139,7 @@ contains
     end subroutine check_plasticity
 
     subroutine plastic_corrector (dEpsilon_ij_alpha, Sigma_ij_1, X_ij_1, sigma_yld, &
-        R_1, b_lmc, Rinf_lmc, C_lmc, kapa_lmc, mu, lambda, &
-        PlastMult_1)
+        R_1, b_lmc, Rinf_lmc, C_lmc, kapa_lmc, mu, lambda, PlastMult_1)
 
         ! NR ALGORITHM AND DRIFT CORRECTION
 

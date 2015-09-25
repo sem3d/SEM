@@ -624,6 +624,7 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"mat_file")) err=expect_eq_string(scanner, &config->mat_file,1);
 	else if (cmp(scanner,"mesh_file")) err=expect_eq_string(scanner, &config->mesh_file,1);
 	else if (cmp(scanner,"mpml_atn_param")) err=expect_eq_float(scanner, &config->mpml,1);
+	else if (cmp(scanner,"nonlinear")) err=expect_eq_bool(scanner, &config->nl_flag,1);
 	else if (cmp(scanner,"prorep")) err=expect_eq_bool(scanner, &config->prorep,1);
 	else if (cmp(scanner,"prorep_iter")) err=expect_eq_int(scanner, &config->prorep_iter,1);
 	else if (cmp(scanner,"restart_iter")) err=expect_eq_int(scanner, &config->prorep_restart_iter,1);
@@ -645,8 +646,6 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"model")) err=expect_eq_model(scanner, &config->model);
 	else if (cmp(scanner,"neumann")) err=expect_neumann(scanner, config);
 	else if (cmp(scanner,"out_variables")) err=expect_eq_outvar(scanner, config);
-	else if (cmp(scanner,"nonlinear")) err=expect_eq_bool(scanner, &config->nl_flag,1);
-
 	//Material
 	if (cmp(scanner,"material")) err=expect_materials(scanner, config);
 

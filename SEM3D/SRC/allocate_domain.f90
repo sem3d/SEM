@@ -50,6 +50,8 @@ subroutine allocate_domain (Tdomain)
     do n = 0,Tdomain%n_elem-1
 
         n_solid = Tdomain%n_sls
+        write(*,*) "N SOLIDS: ", n_solid
+        write(*,*) "N ELEMENTS: ", Tdomain%n_elem
 
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
@@ -61,14 +63,6 @@ subroutine allocate_domain (Tdomain)
         allocate(Tdomain%specel(n)%Mu     (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
         allocate(Tdomain%specel(n)%Kappa  (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
 
-        if (Tdomain%nl_flag == 1) then ! NL variables
-            allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%sigma_yld (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-            allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%b_iso     (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-            allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%Rinf_iso  (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-            allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%C_kin     (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-            allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%kapa_kin  (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-        end if
-
         if(Tdomain%specel(n)%PML)then ! PML Common parts
             allocate(Tdomain%specel(n)%xpml)
             allocate(Tdomain%specel(n)%xpml%DumpSx(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
@@ -79,6 +73,15 @@ subroutine allocate_domain (Tdomain)
 
         if(Tdomain%specel(n)%solid)then  ! SOLID PART
             allocate(Tdomain%specel(n)%sl)
+        if ((Tdomain%nl_flag == 1) .and. (.not. Tdomain%specel(n)%PML)) then ! NL variables
+            allocate(Tdomain%specel(n)%sl%nl_param_el)
+            allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el)
+            allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%sigma_yld (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+            allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%b_iso     (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+            allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%Rinf_iso  (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+            allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%C_kin     (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+            allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%kapa_kin  (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+        end if
             if(Tdomain%TimeD%velocity_scheme)then
                 if(Tdomain%specel(n)%PML)then
                     allocate(Tdomain%specel(n)%slpml%Diagonal_Stress(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
@@ -98,7 +101,7 @@ subroutine allocate_domain (Tdomain)
                     Tdomain%specel(n)%slpml%Residual_Stress2 = 0d0
                     Tdomain%specel(n)%slpml%Residual_Stress3 = 0d0
 
-                else ! PML
+                else
                     if (Tdomain%aniso) then
                         allocate (Tdomain%specel(n)%sl%Cij (0:20, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
                     endif
@@ -286,25 +289,30 @@ subroutine allocate_domain (Tdomain)
         allocate(Tdomain%champs0%Forces(0:Tdomain%ngll_s-1,0:2))
         allocate(Tdomain%champs0%Depla(0:Tdomain%ngll_s-1,0:2))
         allocate(Tdomain%champs0%Veloc(0:Tdomain%ngll_s-1,0:2))
-        allocate(Tdomain%champs0%Riso(0:Tdomain%ngll_s-1))
-        allocate(Tdomain%champs0%Stress(0:Tdomain%ngll_s-1,0:5))
-        allocate(Tdomain%champs0%Xkin(0:Tdomain%ngll_s-1,0:5))
 
         allocate(Tdomain%champs1%Forces(0:Tdomain%ngll_s-1,0:2))
         allocate(Tdomain%champs1%Depla(0:Tdomain%ngll_s-1,0:2))
         allocate(Tdomain%champs1%Veloc(0:Tdomain%ngll_s-1,0:2))
-        allocate(Tdomain%champs1%Riso(0:Tdomain%ngll_s-1))
-        allocate(Tdomain%champs1%Stress(0:Tdomain%ngll_s-1,0:5))
-        allocate(Tdomain%champs1%Xkin(0:Tdomain%ngll_s-1,0:5))
+
 
         Tdomain%champs0%Forces = 0d0
         Tdomain%champs0%Depla  = 0d0
         Tdomain%champs0%Veloc  = 0d0
 
-        Tdomain%champs0%Riso   = 0d0
-        Tdomain%champs0%Stress = 0d0
-        Tdomain%champs0%Xkin   = 0d0
-
+        if (Tdomain%nl_flag == 1) then
+            allocate(Tdomain%champs0%Riso(0:Tdomain%ngll_s-1))
+            allocate(Tdomain%champs0%Stress(0:Tdomain%ngll_s-1,0:5))
+            allocate(Tdomain%champs0%Xkin(0:Tdomain%ngll_s-1,0:5))
+            allocate(Tdomain%champs0%PlastMult(0:Tdomain%ngll_s-1))
+            allocate(Tdomain%champs1%Riso(0:Tdomain%ngll_s-1))
+            allocate(Tdomain%champs1%Stress(0:Tdomain%ngll_s-1,0:5))
+            allocate(Tdomain%champs1%Xkin(0:Tdomain%ngll_s-1,0:5))
+            allocate(Tdomain%champs1%PlastMult(0:Tdomain%ngll_s-1))
+            Tdomain%champs0%Riso   = 0d0
+            Tdomain%champs0%Stress = 0d0
+            Tdomain%champs0%Xkin   = 0d0
+            Tdomain%champs0%PlastMult = 0d0
+        end if
 
         ! Allocation de Tdomain%MassMatSol pour les solides
         allocate(Tdomain%MassMatSol(0:Tdomain%ngll_s-1))

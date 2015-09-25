@@ -45,8 +45,8 @@ contains
         real, dimension(:,:,:,:), allocatable :: Depla
         real, dimension(:,:,:), allocatable :: Phi
         integer, intent(in) :: nl_flag
-        real, dimension(:,:,:,:), allocatable :: Sigma_ij_N, Xkin_ij_N
-        real, dimension(:,:,:), allocatable :: Riso_N
+        real, dimension(:,:,:,:), allocatable :: Sigma_ij_N_el, Xkin_ij_N_el
+        real, dimension(:,:,:), allocatable :: Riso_N_el, PlastMult_N_el
 
         m1 = Elem%ngllx;   m2 = Elem%nglly;   m3 = Elem%ngllz
 
@@ -68,15 +68,16 @@ contains
             deallocate(Depla)
 
             if (nl_flag == 1) then
-                allocate(Sigma_ij_N(0:5,0:m1-1,0:m2-1,0:m3-1))
-                allocate(Xkin_ij_N(0:5,0:m1-1,0:m2-1,0:m3-1))
-                allocate(Riso_N(0:m1-1,0:m2-1,0:m3-1))
+                allocate(Sigma_ij_N_el(0:5,0:m1-1,0:m2-1,0:m3-1))
+                allocate(Xkin_ij_N_el(0:5,0:m1-1,0:m2-1,0:m3-1))
+                allocate(Riso_N_el(0:m1-1,0:m2-1,0:m3-1))
+                allocate(PlastMult_N_el(0:m1-1,0:m2-1,0:m3-1))
                 do k = 0,m3-1
                     do j = 0,m2-1
                         do i = 0,m1-1
                             do i_dir = 0,5
-                                Sigma_ij_N(i_dir,i,j,k) = champs1%Stress(Elem%Isol(i,j,k),i_dir)
-                                Xkin_ij_N(i_dir,i,j,k)  = champs1%Xkin(Elem%Isol(i,j,k),i_dir)
+                                Sigma_ij_N_el(i_dir,i,j,k) = champs1%Stress(Elem%Isol(i,j,k),i_dir)
+                                Xkin_ij_N_el(i_dir,i,j,k)  = champs1%Xkin(Elem%Isol(i,j,k),i_dir)
                             enddo
                         enddo
                     enddo
@@ -84,7 +85,8 @@ contains
                 do k = 0,m3-1
                     do j = 0,m2-1
                         do i = 0,m1-1
-                            Riso_N(i,j,k) = champs1%Riso(Elem%Isol(i,j,k))
+                            Riso_N_el(i,j,k)   = champs1%Riso(Elem%Isol(i,j,k))
+                            PlastMult_N_el(i,j,k) = champs1%PlastMult(Elem%Isol(i,j,k))
                         enddo
                     enddo
                 enddo
@@ -201,14 +203,13 @@ contains
                             DZX,DZY,DZZ, &
                             Elem%Mu, Elem%Lambda, &
                             m1,m2,m3, &
-                            Sigma_ij_N, Xkin_ij_N, Riso_N,  &
+                            Sigma_ij_N_el, Xkin_ij_N_el, Riso_N_el,  PlastMult_N_el, &
                             Elem%sl%nl_param_el%lmc_param_el%sigma_yld, &
                             Elem%sl%nl_param_el%lmc_param_el%b_iso,    &
                             Elem%sl%nl_param_el%lmc_param_el%Rinf_iso, &
                             Elem%sl%nl_param_el%lmc_param_el%C_kin,    &
                             Elem%sl%nl_param_el%lmc_param_el%kapa_kin)
-                        ! TODO: ASSIGN NL PARAMETERS TO ELEMENTS
-                        deallocate(Sigma_ij_N,Riso_N,Xkin_ij_N)
+!                        ! TODO: ASSIGN NL PARAMETERS TO ELEMENTS
 
                     else
                         call calcul_forces_el(Fox,Foy,Foz,  &
@@ -230,9 +231,22 @@ contains
                         champs1%Forces(Elem%Isol(i,j,k),0) = champs1%Forces(Elem%Isol(i,j,k),0)-Fox(i,j,k)
                         champs1%Forces(Elem%Isol(i,j,k),1) = champs1%Forces(Elem%Isol(i,j,k),1)-Foy(i,j,k)
                         champs1%Forces(Elem%Isol(i,j,k),2) = champs1%Forces(Elem%Isol(i,j,k),2)-Foz(i,j,k)
+                        if (nl_flag == 1) then
+                            do i_dir = 0,5
+                                champs1%Stress(Elem%Isol(i,j,k),i_dir) = Sigma_ij_N_el(i_dir,i,j,k)
+                                champs1%Xkin(Elem%Isol(i,j,k),i_dir) = Xkin_ij_N_el(i_dir,i,j,k)
+                            end do
+                            champs1%Riso(Elem%Isol(i,j,k)) = Riso_N_el(i,j,k)
+                            champs1%PlastMult(Elem%Isol(i,j,k)) = PlastMult_N_el(i,j,k)
+                        end if
                     enddo
                 enddo
             enddo
+
+            if(allocated(Sigma_ij_N_el))    deallocate(Sigma_ij_N_el)
+            if(allocated(Xkin_ij_N_el))     deallocate(Xkin_ij_N_el)
+            if(allocated(Riso_N_el))        deallocate(Riso_N_el)
+            if(allocated(PlastMult_N_el))   deallocate(PlastMult_N_el)
         !---------------------------------
         else      ! FLUID PART OF THE DOMAIN
             ! d(rho*Phi)_dX

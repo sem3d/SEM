@@ -34,17 +34,15 @@ subroutine Newmark(Tdomain,ntime)
     integer :: i,j
 #endif
 
-
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a
     ! Time staggered Stress-Velocity formulation inside PML
     ! PML needs to be implemented
     if(.not. Tdomain%TimeD%velocity_scheme)   &
         stop "Newmark scheme implemented only in velocity form."
-
-
+    write(*,*) "START-NEWMARK"
     !- Prediction Phase
     call Newmark_Predictor(Tdomain,Tdomain%champs1)
-
+    write(*,*) "PREDICTION OK"
     !- Solution phase
     call stat_starttick()
     call internal_forces(Tdomain,Tdomain%champs1)
@@ -278,6 +276,12 @@ subroutine Newmark_Predictor(Tdomain,champs1)
         champs1%Depla = Tdomain%champs0%Depla
         champs1%Veloc = Tdomain%champs0%Veloc
         champs1%Forces = 0d0
+        if (Tdomain%nl_flag ==1) then
+            champs1%Stress = Tdomain%champs0%Stress
+            champs1%Xkin   = Tdomain%champs0%Xkin
+            champs1%Riso   = Tdomain%champs0%Riso
+            champs1%PlastMult = Tdomain%champs0%PlastMult
+        end if
     endif
 
     ! Elements fluide
@@ -443,6 +447,12 @@ subroutine Newmark_Corrector_Solid(Tdomain,champs1)
         enddo
         Tdomain%champs0%Veloc = Tdomain%champs0%Veloc + dt * Tdomain%champs0%Forces
         Tdomain%champs0%Depla = Tdomain%champs0%Depla + dt * Tdomain%champs0%Veloc
+        if (Tdomain%nl_flag == 1) then
+            Tdomain%champs0%Stress = Tdomain%champs1%Stress
+            Tdomain%champs0%Xkin = Tdomain%champs1%Xkin
+            Tdomain%champs0%Riso = Tdomain%champs1%Riso
+            Tdomain%champs0%PlastMult = Tdomain%champs1%PlastMult
+        end if
     endif
     return
 end subroutine Newmark_Corrector_Solid
@@ -453,6 +463,7 @@ subroutine internal_forces(Tdomain,champs1)
     use sdomain
     use schamps
     use forces_aniso
+    use nonlinear
     implicit none
 
     type(domain), intent(inout)  :: Tdomain

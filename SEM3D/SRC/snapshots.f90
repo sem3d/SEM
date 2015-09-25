@@ -71,7 +71,6 @@ contains
         end if
     end subroutine grp_write_real_2d
 
-
     subroutine grp_write_fields(Tdomain, parent_id, dim2, out_variables, outputs, ntot_nodes)
 
         type (domain), intent (INOUT):: Tdomain
@@ -322,7 +321,6 @@ contains
 
     end subroutine grp_write_fields
 
-
     subroutine grp_write_int_2d(Tdomain, parent_id, name, dim1, dim2, data, ntot_nodes)
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: parent_id
@@ -453,7 +451,6 @@ contains
             deallocate(counts)
         end if
     end subroutine grp_write_real_1d
-
 
     subroutine compute_saved_elements(Tdomain, irenum, nnodes, domains)
         type (domain), intent (INOUT):: Tdomain
@@ -593,7 +590,6 @@ contains
         if (rg==0) call write_master_xdmf(Tdomain, nodes_per_proc)
     end subroutine write_snapshot_geom
 
-
     subroutine write_global_nodes(Tdomain, fid, irenum, nnodes)
         implicit none
         type (domain), intent (INOUT):: Tdomain
@@ -703,7 +699,6 @@ contains
         deallocate(iglobnum)
         deallocate(data)
     end subroutine write_elem_connectivity
-
 
     subroutine allocate_fields(Tdomain, nnodes, out_flags, fields)
         type (domain), intent (INOUT):: Tdomain

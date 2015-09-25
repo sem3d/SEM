@@ -16,7 +16,7 @@ module selement
     use blas
     implicit none
 
-    type :: lmc_param
+    type :: lmc_param ! LAMAITRE & CHABOCHE NONLINEAR PARAMETERS
         real, dimension (:,:,:), allocatable :: b_iso
         real, dimension (:,:,:), allocatable :: Rinf_iso
         real, dimension (:,:,:), allocatable :: C_kin
@@ -24,23 +24,23 @@ module selement
         real, dimension (:,:,:), allocatable :: sigma_yld
     end type lmc_param
 
-    type :: nl_param
-        type(lmc_param) :: lmc_param_el
+    type :: nl_param ! STRUCTURE CONTAINING NL PARAMETER SETS
+        type(lmc_param), allocatable :: lmc_param_el
     end type nl_param
 
     type :: element_solid
-       real, dimension(:,:,:,:), allocatable :: Cij
+        real, dimension(:,:,:,:), allocatable :: Cij
 
-        ! Attenuation
-       real, dimension (:,:,:), allocatable :: Q, Qs, Qp, onemSbeta, onemPbeta, &
-           epsilonvol_, &
-           epsilondev_xx_,epsilondev_yy_,epsilondev_xy_,epsilondev_xz_,epsilondev_yz_
+         ! Attenuation
+        real, dimension (:,:,:), allocatable :: Q, Qs, Qp, onemSbeta, onemPbeta, &
+            epsilonvol_, &
+            epsilondev_xx_,epsilondev_yy_,epsilondev_xy_,epsilondev_xz_,epsilondev_yz_
 
-       real, dimension(:,:,:,:), allocatable :: &
-           factor_common_3, alphaval_3,betaval_3,gammaval_3, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_, &
-           factor_common_P, alphaval_P,betaval_P,gammaval_P, R_vol_
-        type(nl_param) :: nl_param_el
-
+        real, dimension(:,:,:,:), allocatable :: &
+            factor_common_3, alphaval_3,betaval_3,gammaval_3, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_, &
+            factor_common_P, alphaval_P,betaval_P,gammaval_P, R_vol_
+        ! NL PARAMETERS
+        type(nl_param),allocatable :: nl_param_el
     end type element_solid
 
     type :: element_fluid
@@ -52,12 +52,12 @@ module selement
     end type element_pml
 
     type :: element_solid_pml
-       integer, dimension (:,:,:), allocatable :: ISolPml
-       ! TODO move pml related data here
-       real, dimension(:,:,:,:), allocatable :: Diagonal_Stress1, Diagonal_Stress2, Diagonal_Stress3
-       real, dimension(:,:,:,:), allocatable :: Residual_Stress1, Residual_Stress2, Residual_Stress3
-       ! FPML
-       real, dimension(:,:,:,:), allocatable :: Diagonal_Stress, Residual_Stress
+        integer, dimension (:,:,:), allocatable :: ISolPml
+        ! TODO move pml related data here
+        real, dimension(:,:,:,:), allocatable :: Diagonal_Stress1, Diagonal_Stress2, Diagonal_Stress3
+        real, dimension(:,:,:,:), allocatable :: Residual_Stress1, Residual_Stress2, Residual_Stress3
+        ! FPML
+        real, dimension(:,:,:,:), allocatable :: Diagonal_Stress, Residual_Stress
     end type element_solid_pml
 
     type :: element_fluid_pml
@@ -67,34 +67,35 @@ module selement
     end type element_fluid_pml
 
     type :: element
-       integer :: mat_index, ngllx, nglly, ngllz
-       type(element_solid), allocatable :: sl
-       type(element_fluid), allocatable :: fl
-       integer, dimension (:,:,:), allocatable :: ISol, IFlu
-       real, dimension (:,:,:), allocatable :: Jacob
-       real, dimension(:,:,:,:,:), allocatable :: InvGrad
-       real, dimension (:,:,:), allocatable :: Density, MassMat
-       real, dimension (:,:,:), allocatable :: Lambda, Mu, Kappa
+        integer :: mat_index, ngllx, nglly, ngllz
+        type(element_solid), allocatable :: sl
 
-       type(element_pml), allocatable :: xpml
-       type(element_solid_pml), allocatable :: slpml
-       type(element_fluid_pml), allocatable :: flpml
+        type(element_fluid), allocatable :: fl
+        integer, dimension (:,:,:), allocatable :: ISol, IFlu
+        real, dimension (:,:,:), allocatable :: Jacob
+        real, dimension(:,:,:,:,:), allocatable :: InvGrad
+        real, dimension (:,:,:), allocatable :: Density, MassMat
+        real, dimension (:,:,:), allocatable :: Lambda, Mu, Kappa
 
-       ! Whether this element will be part of snapshot outputs
-       logical :: OUTPUT
+        type(element_pml), allocatable :: xpml
+        type(element_solid_pml), allocatable :: slpml
+        type(element_fluid_pml), allocatable :: flpml
 
-       ! These should not be used during the simulation, only at init time
-       integer, dimension (:), allocatable :: Control_nodes
-       integer, dimension (0:5) :: Near_Faces, Orient_Faces
-       integer, dimension (0:11) :: Near_Edges, Orient_Edges
-       integer, dimension (0:7) :: Near_Vertices
+        ! Whether this element will be part of snapshot outputs
+        logical :: OUTPUT
 
-       integer, dimension (:,:,:), allocatable :: Iglobnum
-       ! flag for PML allocation
-       logical :: PML, FPML
-       logical  :: solid, fluid_dirich
+        ! These should not be used during the simulation, only at init time
+        integer, dimension (:), allocatable :: Control_nodes
+        integer, dimension (0:5) :: Near_Faces, Orient_Faces
+        integer, dimension (0:11) :: Near_Edges, Orient_Edges
+        integer, dimension (0:7) :: Near_Vertices
 
-       real :: dist_max !! taille caracteristique de l'element
+        integer, dimension (:,:,:), allocatable :: Iglobnum
+        ! flag for PML allocation
+        logical :: PML, FPML
+        logical  :: solid, fluid_dirich
+
+        real :: dist_max !! taille caracteristique de l'element
     end type element
 
 

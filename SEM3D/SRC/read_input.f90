@@ -361,6 +361,7 @@ contains
                     Tdomain%sSubDomain(i)%nl_prop%LMC_prop%kapa_kin,  &
                     Tdomain%sSubDomain(i)%nl_prop%LMC_prop%b_iso,     &
                     Tdomain%sSubDomain(i)%nl_prop%LMC_prop%Rinf_iso
+
             else
                 read(13,*) Tdomain%sSubDomain(i)%material_type, &
                     Tdomain%sSubDomain(i)%Pspeed,        &
@@ -386,13 +387,6 @@ contains
                 write (*,*) 'Dt       :', Tdomain%sSubDomain(i)%Dt
                 write (*,*) 'Qp       :', Tdomain%sSubDomain(i)%Qpression
                 write (*,*) 'Qmu      :', Tdomain%sSubDomain(i)%Qmu
-                if (Tdomain%nl_flag == 1) then
-                    write (*,*) 'NL_LMC - sigma_yld:', Tdomain%sSubDomain(i)%nl_prop%LMC_prop%sigma_yld
-                    write (*,*) 'NL_LMC - C_kin:',     Tdomain%sSubDomain(i)%nl_prop%LMC_prop%C_kin
-                    write (*,*) 'NL_LMC - kapa_kin:',  Tdomain%sSubDomain(i)%nl_prop%LMC_prop%kapa_kin
-                    write (*,*) 'NL_LMC - b_iso:',     Tdomain%sSubDomain(i)%nl_prop%LMC_prop%b_iso
-                    write (*,*) 'NL_LMC - Rinf:',      Tdomain%sSubDomain(i)%nl_prop%LMC_prop%Rinf_iso
-                end if
             endif
 
             Tdomain%sSubdomain(i)%assocMat = i
@@ -706,7 +700,7 @@ contains
             stop 1
         endif
         if (rg==0) call dump_config(Tdomain%config) !Print of configuration on the screen
-        write(*,*) "present neumann", Tdomain%config%neu_present
+        write(*,*), "first check",Tdomain%config%neu_present
         ! On copie les parametres renvoyes dans la structure C
         Tdomain%Title_simulation          = fromcstr(Tdomain%config%run_name)
         Tdomain%TimeD%acceleration_scheme = Tdomain%config%accel_scheme .ne. 0
@@ -749,8 +743,8 @@ contains
         Tdomain%TimeD%iter_reprise = Tdomain%config%prorep_restart_iter
         Tdomain%TimeD%ncheck       = Tdomain%config%prorep_iter ! frequence de sauvegarde
 
-        Tdomain%TimeD%ntrace        = Tdomain%config%traces_interval ! XXX
-        Tdomain%traces_format       = Tdomain%config%traces_format
+        Tdomain%TimeD%ntrace         = Tdomain%config%traces_interval ! XXX
+        Tdomain%traces_format        = Tdomain%config%traces_format
         Tdomain%TimeD%time_snapshots = Tdomain%config%snap_interval
         logic_scheme                 = Tdomain%TimeD%acceleration_scheme .neqv. Tdomain%TimeD%velocity_scheme
         if(.not. logic_scheme) then
@@ -768,10 +762,10 @@ contains
             write(*,*) "           band =", Tdomain%T1_att, Tdomain%T2_att
         end if
 
-        write(*,*), "first check",Tdomain%logicD%Neumann
-        write(*,*), "second check",Tdomain%config%neu_present
+        write(*,*), "third check",Tdomain%logicD%Neumann
+        write(*,*), "fourth check",Tdomain%config%neu_present
         ! Neumann boundary conditions? If yes: geometrical properties read in the mesh files.
-        Tdomain%logicD%Neumann = Tdomain%config%neu_present /= 0
+        Tdomain%logicD%Neumann = Tdomain%config%neu_present == 1
         Tdomain%Neumann%Neu_Param%what_bc = 'S'
         Tdomain%Neumann%Neu_Param%mat_index = Tdomain%config%neu_mat
         if (Tdomain%config%neu_type==1) then
@@ -794,8 +788,6 @@ contains
         Tdomain%logicD%super_object_local_present = .false.
 
         !---   Reading mesh file
-        write(*,*), "third check",Tdomain%logicD%Neumann
-        write(*,*), "fourth check",Tdomain%config%neu_present
         call read_mesh_file_h5(Tdomain)
 
         !---   Properties of materials.
