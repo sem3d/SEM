@@ -288,15 +288,6 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, &
 
                 Sigma_ij_start = Sigma_ij_N_el(0:5,i,j,k)
                 Sigma_ij_trial = (/ sxx, syy, szz, sxy, sxz, syz /)
-
-                write(*,*) "SXX", SXX
-                write(*,*) "SYY", SYY
-                write(*,*) "SZZ", SZZ
-                write(*,*) "SXY", SXY
-                write(*,*) "SXZ", SXZ
-                write(*,*) "SYZ", SYZ
-
-
                 call check_plasticity (Sigma_ij_trial, Sigma_ij_start, Xkin_ij_N, Riso_N, &
                     sigma_yld, st_epl, alpha_elp)
                 !

@@ -42,7 +42,7 @@ subroutine Newmark(Tdomain,ntime)
     write(*,*) "START-NEWMARK"
     !- Prediction Phase
     call Newmark_Predictor(Tdomain,Tdomain%champs1)
-    write(*,*) "PREDICTION OK"
+
     !- Solution phase
     call stat_starttick()
     call internal_forces(Tdomain,Tdomain%champs1)
@@ -55,7 +55,6 @@ subroutine Newmark(Tdomain,ntime)
         call external_forces(Tdomain,Tdomain%TimeD%rtime,ntime,Tdomain%champs1)
         call stat_stoptick('fext')
     end if
-
 #ifdef COUPLAGE
 #if 0
     if (ntime>0) then
@@ -101,7 +100,6 @@ subroutine Newmark(Tdomain,ntime)
 
     ! MPI communications
     call comm_forces(Tdomain)
-
     ! Neumann B.C.: associated forces
     if(Tdomain%logicD%neumann_local_present)then
 #if 1
@@ -176,7 +174,6 @@ subroutine Newmark(Tdomain,ntime)
         call FtoS_coupling(Tdomain, Tdomain%SF%SF_BtN, Tdomain%champs0, Tdomain%champs1)
     end if
     call Newmark_Corrector_Solid(Tdomain,Tdomain%champs1)
-
     if (Tdomain%rank==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
 
     return

@@ -50,8 +50,6 @@ subroutine allocate_domain (Tdomain)
     do n = 0,Tdomain%n_elem-1
 
         n_solid = Tdomain%n_sls
-        write(*,*) "N SOLIDS: ", n_solid
-        write(*,*) "N ELEMENTS: ", Tdomain%n_elem
 
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly

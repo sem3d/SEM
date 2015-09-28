@@ -570,13 +570,12 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     !- Ici, on a une info globale pour interrupt, protection, i_snap
         if(interrupt > 0) protection = 1
 
-
 !---------------------------------------------------------!
     !- SNAPSHOTS
 !---------------------------------------------------------!
         if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) &
             call OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
-              
+        write(*,*) "after snapshots ok"
 !---------------------------------------------------------!
     !- RECEIVERS'OUTPUTS
 !---------------------------------------------------------!

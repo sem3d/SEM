@@ -106,7 +106,7 @@ contains
         end if
 
         ! P_ENERGY
-        if (out_variables(0) == 1) then
+        if (out_variables(OUT_ENERGYP) == 1) then
             call MPI_Gatherv(outputs%P_energy, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
@@ -117,7 +117,7 @@ contains
             end if
         end if
         ! S_ENERGY
-        if (out_variables(1) == 1) then
+        if (out_variables(OUT_ENERGYS) == 1) then
             call MPI_Gatherv(outputs%S_energy, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
@@ -128,7 +128,7 @@ contains
             end if
         end if
         ! VOL_EPS
-        if (out_variables(2) == 1) then
+        if (out_variables(OUT_EPS_VOL) == 1) then
             call MPI_Gatherv(outputs%eps_vol, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
@@ -139,7 +139,7 @@ contains
             end if
         end if
         ! PRESSION
-        if (out_variables(3) == 1) then
+        if (out_variables(OUT_PRESSION) == 1) then
             call MPI_Gatherv(outputs%press, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
@@ -151,7 +151,7 @@ contains
         end if
 
         ! EPS_DEV
-        if (out_variables(7) == 1) then
+        if (out_variables(OUT_EPS_DEV) == 1) then
             ! EPS_DEV_XX
             call MPI_Gatherv(outputs%eps_dev_xx, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
@@ -209,7 +209,7 @@ contains
         end if
 
         !SIG_DEV
-        if (out_variables(8) == 1) then
+        if (out_variables(OUT_STRESS_DEV) == 1) then
             ! SIG_DEV_XX
             call MPI_Gatherv(outputs%sig_dev_xx, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
@@ -276,7 +276,7 @@ contains
         end if
 
         ! VELOCITY
-        if (out_variables(5) == 1) then
+        if (out_variables(OUT_VITESSE) == 1) then
             call MPI_Gatherv(outputs%veloc, 3*dim2, MPI_DOUBLE_PRECISION, all_data_2d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
@@ -288,7 +288,7 @@ contains
             end if
         end if
         ! DISPLACEMENT
-        if (out_variables(4) == 1) then
+        if (out_variables(OUT_DEPLA) == 1) then
             call MPI_Gatherv(outputs%displ, 3*dim2, MPI_DOUBLE_PRECISION, all_data_2d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
@@ -301,7 +301,7 @@ contains
         end if
 
         ! ACCELERATION
-        if (out_variables(6) == 1) then
+        if (out_variables(OUT_ACCEL) == 1) then
             call MPI_Gatherv(outputs%accel, 3*dim2, MPI_DOUBLE_PRECISION, all_data_2d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
@@ -809,14 +809,14 @@ contains
         integer                 :: flag_gradU
 
         out_variables(0:8) = Tdomain%out_variables(0:8)
-        flag_gradU = sum(out_variables(0:)) + sum(out_variables(7:8))
+        flag_gradU = sum(out_variables(0:2)) + sum(out_variables(7:8))
         n_solid = Tdomain%n_sls
-
         call create_dir_sorties(Tdomain, isort)
 
         call compute_saved_elements(Tdomain, irenum, nnodes, domains)
 
-        call allocate_fields(Tdomain, nnodes, Tdomain%out_variables, out_fields)
+        call allocate_fields(Tdomain, nnodes, out_variables, out_fields)
+
         allocate(valence(0:nnodes-1))
 
         valence(:) = 0
@@ -976,11 +976,11 @@ contains
                                     xlambda2mu = xlambda + x2mu
                                 end if
 
-                                if (out_variables(0) == 1) then ! P_energy
+                                if (out_variables(OUT_ENERGYP) == 1) then ! P_energy
                                     out_fields%P_energy(idx) = .5 * xlambda2mu * eps_trace**2
                                 end if
 
-                                if (out_variables(1) == 1) then ! S_energy
+                                if (out_variables(OUT_ENERGYS) == 1) then ! S_energy
                                     out_fields%S_energy(idx) =  xmu/2 * ( DXY(i,j,k)**2 + DYX(i,j,k)**2 &
                                         + DXZ(i,j,k)**2 + DZX(i,j,k)**2 &
                                         + DYZ(i,j,k)**2 + DZY(i,j,k)**2 &
@@ -989,11 +989,11 @@ contains
                                         - 2 * DYZ(i,j,k) * DZY(i,j,k))
                                 end if
 
-                                if (out_variables(2) == 1) then ! volumetric strain
+                                if (out_variables(OUT_EPS_VOL) == 1) then ! volumetric strain
                                     out_fields%eps_vol(idx)    = eps_trace
                                 end if
 
-                                if (out_variables(7) == 1) then ! deviatoric strain
+                                if (out_variables(OUT_EPS_DEV) == 1) then ! deviatoric strain
                                     out_fields%eps_dev_xx(idx) = DXX(i,j,k) - eps_trace * M_1_3
                                     out_fields%eps_dev_yy(idx) = DYY(i,j,k) - eps_trace * M_1_3
                                     out_fields%eps_dev_zz(idx) = DZZ(i,j,k) - eps_trace * M_1_3
@@ -1002,7 +1002,7 @@ contains
                                     out_fields%eps_dev_yz(idx) = 0.5 * (DZY(i,j,k) + DYZ(i,j,k))
                                 end if
 
-                                if (out_variables(8) == 1) then ! deviatoric stress state
+                                if (out_variables(OUT_STRESS_DEV) == 1) then ! deviatoric stress state
                                     if (Tdomain%aniso) then
                                     else
                                         out_fields%sig_dev_xx(idx) = x2mu * (DXX(i,j,k) - eps_trace * M_1_3)
@@ -1023,8 +1023,12 @@ contains
         ! normalization
         do i = 0,nnodes-1
             if (valence(i)/=0) then
-                out_fields%veloc(0:2,i) = out_fields%veloc(0:2,i)/valence(i)
-                out_fields%accel(0:2,i) = out_fields%accel(0:2,i)/valence(i)
+                if (out_variables(OUT_VITESSE) == 1) then
+                    out_fields%veloc(0:2,i) = out_fields%veloc(0:2,i)/valence(i)
+                end if
+                if (out_variables(OUT_ACCEL) == 1) then
+                    out_fields%accel(0:2,i) = out_fields%accel(0:2,i)/valence(i)
+                end if
             end if
         enddo
 
@@ -1032,6 +1036,7 @@ contains
             group = Tdomain%rank/Tdomain%ngroup
             call semname_snap_result_file(group, isort, fnamef)
             call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
+
         else
             fid = -1
         endif
