@@ -89,10 +89,12 @@ public:
     int add_elem(int mat_idx, const HexElem& el);
 
     int read_materials(const std::string& fname);
+    void write_materials(const std::string& fname);
     void read_mesh_file(const std::string& fname);
 
 
     void partition_mesh(int n_procs);
+    void dump_connectivity(const char* fname);
 
     int elem_part(int iel) const { return m_procs[iel]; }
 

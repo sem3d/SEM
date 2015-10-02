@@ -8,6 +8,7 @@
 #include "metis.h"
 #include <map>
 #include <cstdlib>
+#include <cstring>
 
 using std::map;
 using std::multimap;
@@ -58,10 +59,22 @@ void Mesh3D::partition_mesh(int n_parts)
 
     n_procs = n_parts;
     m_procs.resize(ne);
-
+    m_xadj = 0L;
+    m_adjncy = 0L;
     METIS_MeshToDual(&ne, &nn, &m_elems_offs[0], &m_elems[0],
 		     &ncommon, &numflags, &m_xadj, &m_adjncy);
 
+    dump_connectivity("conn1.dat");
+    // Tentative de reordonnancement des elements pour optimiser la reutilisation de cache
+    // lors de la boucle sur les elements
+//    vector<int> perm, iperm;
+//    perm.resize(ne);
+//    iperm.resize(ne);
+//    METIS_NodeND(&ne, m_xadj, m_adjncy, 0L, 0L, &perm[0], &iperm[0]);
+//    for(int k=0;k<m_xadj[ne];++k) {
+//        m_adjncy[k] = perm[m_adjncy[k]];
+//    }
+//    dump_connectivity("conn2.dat");
     if (n_parts>1) {
         METIS_PartGraphKway(&ne, &ncon, m_xadj, m_adjncy,
                             vwgt, vsize, adjwgt, &n_procs, tpwgts, ubvec,
@@ -71,6 +84,23 @@ void Mesh3D::partition_mesh(int n_parts)
     }
 }
 
+
+void Mesh3D::dump_connectivity(const char* fname)
+{
+    FILE* fmat = fopen(fname, "wb");
+    int ne = n_elems();
+    unsigned char* mat = (unsigned char*)malloc(ne*ne*sizeof(unsigned char));
+    memset(mat, 0, ne*ne);
+    for(int i=0;i<n_elems();++i) {
+        for(int k=m_xadj[i];k<m_xadj[i+1];++k) {
+            int j = m_adjncy[k];
+            mat[i+ne*j] = 1;
+            mat[j+ne*i] = 1;
+        }
+    }
+    fwrite(mat, ne*ne, 1, fmat);
+    fclose(fmat);
+}
 
 
 
@@ -100,6 +130,35 @@ int Mesh3D::read_materials(const std::string& str)
     return nmats;
 }
 
+#define TF(e)  (e ? 'T' : 'F')
+
+void Mesh3D::write_materials(const std::string& str)
+{
+    FILE* f = fopen(str.c_str(), "w");
+    int nmats = m_materials.size();
+    fprintf(f, "%d\n", nmats);
+    for(int k=0;k<nmats;++k) {
+        const Material& mat = m_materials[k];
+        fprintf(f, "%c %lf %lf %lf %d %d %d %lf %lf %lf\n",
+                mat.material_char(),
+                mat.Pspeed, mat.Sspeed, mat.rho,
+                mat.m_ngllx, mat.m_nglly, mat.m_ngllz,
+                0.0, mat.Qpression, mat.Qmu);
+    }
+    fprintf(f, "# PML properties\n");
+    fprintf(f, "# Filtering? npow,Apow,X?,left?,Y?,Forwrd?,Z?,down?,cutoff freq\n");
+    for(int k=0;k<nmats;++k) {
+        const Material& mat = m_materials[k];
+        if (!mat.is_pml()) continue;
+        char px = TF(mat.x_dir!=0);
+        char py = TF(mat.y_dir!=0);
+        char pz = TF(mat.z_dir!=0);
+        char xl = TF(mat.x_dir==-1);
+        char yf = TF(mat.y_dir==-1);
+        char zd = TF(mat.z_dir==-1);
+        fprintf(f, "F 2 10. %c %c %c %c %c %c 0. 0\n", px, xl, py, yf, pz, zd);
+    }
+}
 
 void Mesh3D::read_mesh_file(const std::string& fname)
 {

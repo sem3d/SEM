@@ -178,7 +178,8 @@ public:
     void get_edge_coupling(int d0, int d1, std::vector<int>& cpl) const;
     void get_vertex_coupling(int d0, int d1, std::vector<int>& cpl) const;
 
-
+    // Generic function to write and compute coupling interfaces
+    void write_coupling_interface(hid_t fid, const char* pfx, int d0, int d1);
     void output_int_scalar(FILE* f, int indent, const char* aname,
                            const char* atype, int n0, const char* field);
 

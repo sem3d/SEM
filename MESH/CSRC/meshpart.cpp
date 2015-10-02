@@ -290,9 +290,13 @@ void Mesh3DPart::get_local_edges(std::vector<int>& edges, std::vector<int>& doms
 
 void Mesh3DPart::get_face_coupling(int d0, int d1, std::vector<int>& cpl) const
 {
+    bool swapped=false;
     cpl.clear();
     assert(d0!=d1);
-    if (d0>d1) std::swap(d0,d1);
+    if (d0>d1) {
+        swapped = true; // preserve the domains in the required order
+        std::swap(d0,d1);
+    }
     face_map_t::const_iterator it0, it;
 
     it=m_face_to_id.begin();
@@ -306,16 +310,25 @@ void Mesh3DPart::get_face_coupling(int d0, int d1, std::vector<int>& cpl) const
         // We have two faces equal with different domain, 
         if (it0->first.domain()!=d0) continue;
         if (it->first.domain()!=d1) continue;
-        cpl.push_back(it0->second);
-        cpl.push_back(it->second);
+        if (swapped) {
+            cpl.push_back(it->second);
+            cpl.push_back(it0->second);
+        } else {
+            cpl.push_back(it0->second);
+            cpl.push_back(it->second);
+        }
     }
 }
 
 void Mesh3DPart::get_edge_coupling(int d0, int d1, std::vector<int>& cpl) const
 {
+    bool swapped=false;
     cpl.clear();
     assert(d0!=d1);
-    if (d0>d1) std::swap(d0,d1);
+    if (d0>d1) {
+        swapped = true;
+        std::swap(d0,d1);
+    }
     edge_map_t::const_iterator it0, it;
 
     for(it0=m_edge_to_id.begin();it0!=m_edge_to_id.end();++it0) {
@@ -329,8 +342,13 @@ void Mesh3DPart::get_edge_coupling(int d0, int d1, std::vector<int>& cpl) const
                 ++it;
                 continue;
             }
-            cpl.push_back(it0->second);
-            cpl.push_back(it->second);
+            if (swapped) {
+                cpl.push_back(it->second);
+                cpl.push_back(it0->second);
+            } else {
+                cpl.push_back(it0->second);
+                cpl.push_back(it->second);
+            }
             ++it;
         }
     }
@@ -338,9 +356,13 @@ void Mesh3DPart::get_edge_coupling(int d0, int d1, std::vector<int>& cpl) const
 
 void Mesh3DPart::get_vertex_coupling(int d0, int d1, std::vector<int>& cpl) const
 {
+    bool swapped=false;
     cpl.clear();
     assert(d0!=d1);
-    if (d0>d1) std::swap(d0,d1);
+    if (d0>d1) {
+        swapped = true;
+        std::swap(d0,d1);
+    }
     vertex_map_t::const_iterator it0, it;
 
     for(it0=m_vertex_to_id.begin();it0!=m_vertex_to_id.end();++it0) {
@@ -354,8 +376,13 @@ void Mesh3DPart::get_vertex_coupling(int d0, int d1, std::vector<int>& cpl) cons
                 ++it;
                 continue;
             }
-            cpl.push_back(it0->second);
-            cpl.push_back(it->second);
+            if (swapped) {
+                cpl.push_back(it->second);
+                cpl.push_back(it0->second);
+            } else {
+                cpl.push_back(it0->second);
+                cpl.push_back(it->second);
+            }
             ++it;
         }
     }
@@ -366,6 +393,10 @@ void Mesh3DPart::output_mesh_part()
     char fname[2048];
     vector<double> tmpd;
     vector<int> tmpi, tmpi1;
+    int elem_doms[5] = {0,0,0,0,0};
+    int face_doms[5] = {0,0,0,0,0};
+    int edge_doms[5] = {0,0,0,0,0};
+    int vert_doms[5] = {0,0,0,0,0};
 
     printf("%04d : number of elements = %d\n", m_proc, n_elems());
     snprintf(fname, sizeof(fname), "mesh4spec.%04d.h5", m_proc);
@@ -394,35 +425,84 @@ void Mesh3DPart::output_mesh_part()
     get_local_materials(tmpi,tmpi1);
     h5h_write_dset(fid, "material", n_elems(), &tmpi[0]);
     h5h_write_dset(fid, "domains", n_elems(), &tmpi1[0]);
+    for(int k=0;k<tmpi1.size();++k) {
+        elem_doms[tmpi1[k]]++;
+    }
     //
     h5h_write_dset_2d(fid, "faces", n_elems(), 6, &m_elems_faces[0]);
     get_local_faces(tmpi, tmpi1);
     h5h_write_dset_2d(fid, "faces_def", n_faces(), 4, &tmpi[0]);
     h5h_write_dset(fid, "faces_dom", n_faces(), &tmpi1[0]);
+    for(int k=0;k<tmpi1.size();++k) {
+        face_doms[tmpi1[k]]++;
+    }
     //
     h5h_write_dset_2d(fid, "edges", n_elems(), 12, &m_elems_edges[0]);
     get_local_edges(tmpi, tmpi1);
     h5h_write_dset_2d(fid, "edges_def", n_edges(), 2, &tmpi[0]);
     h5h_write_dset(fid, "edges_dom", n_edges(), &tmpi1[0]);
+    for(int k=0;k<tmpi1.size();++k) {
+        edge_doms[tmpi1[k]]++;
+    }
     //
+    printf("%04d : number of elements = (tot=%d/fpml=%d/spml=%d/fl=%d/sol=%d)\n", m_proc, n_elems(),
+           elem_doms[1],elem_doms[2],elem_doms[3],elem_doms[4]);
+    printf("%04d : number of faces    = (tot=%d/fpml=%d/spml=%d/fl=%d/sol=%d)\n", m_proc, n_faces(),
+           face_doms[1],face_doms[2],face_doms[3],face_doms[4]);
+    printf("%04d : number of edges    = (tot=%d/fpml=%d/spml=%d/fl=%d/sol=%d)\n", m_proc, n_edges(),
+           edge_doms[1],edge_doms[2],edge_doms[3],edge_doms[4]);
     h5h_write_dset_2d(fid, "vertices", n_elems(), 8, &m_elems_vertices[0]);
 
     // Now write out inter-domain coupling
-    get_face_coupling(DM_FLUID, DM_SOLID, tmpi);
-    h5h_create_attr(fid, "n_sf_faces", int(tmpi.size()/2) );
-    h5h_write_dset_2d(fid, "sf_faces", tmpi.size()/2, 2, &tmpi[0]);
-    get_edge_coupling(DM_FLUID, DM_SOLID, tmpi);
-    h5h_create_attr(fid, "n_sf_edges", int(tmpi.size()/2) );
-    h5h_write_dset_2d(fid, "sf_edges", tmpi.size()/2, 2, &tmpi[0]);
-    get_vertex_coupling(DM_FLUID, DM_SOLID, tmpi);
-    h5h_create_attr(fid, "n_sf_vertices", int(tmpi.size()/2) );
-    h5h_write_dset_2d(fid, "sf_vertices", tmpi.size()/2, 2, &tmpi[0]);
+    // Couplage Solide-fluide :
+    write_coupling_interface(fid, "sf", DM_FLUID, DM_SOLID);
+    write_coupling_interface(fid, "fpml", DM_FLUID, DM_FLUID_PML);
+    write_coupling_interface(fid, "spml", DM_SOLID, DM_SOLID_PML);
 
     // Write processors communications
     h5h_create_attr(fid, "tot_comm_proc", (int)m_comm.size());
-
+    for(int k=0;k<(int)m_comm.size();++k) {
+        char gproc[200];
+        snprintf(gproc, 200, "Proc%04d", k);
+        hid_t gid = H5Gcreate(fid, gproc, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        h5h_create_attr(gid, "proc_dest", m_comm[k].m_dest);
+        h5h_create_attr(gid, "n_faces", (int)m_comm[k].m_faces.size());
+        h5h_create_attr(gid, "n_edges", (int)m_comm[k].m_edges.size());
+        h5h_create_attr(gid, "n_vertices", (int)m_comm[k].m_vertices.size());
+        h5h_write_dset(fid, "faces", m_comm[k].m_faces);
+        h5h_write_dset(fid, "edges", m_comm[k].m_faces);
+        h5h_write_dset(fid, "vertices", m_comm[k].m_faces);
+        H5Gclose(gid);
+    }
 
     H5Fclose(fid);
+}
+
+void Mesh3DPart::write_coupling_interface(hid_t fid, const char* pfx, int d0, int d1)
+{
+    vector<int> tmpi;
+    char sface_data[100];
+    char sface_num [100];
+    char sedge_data[100];
+    char sedge_num [100];
+    char svert_data[100];
+    char svert_num [100];
+    snprintf(sface_data, 100, "%s_faces", pfx);
+    snprintf(sface_num , 100, "n_%s_faces", pfx);
+    snprintf(sedge_data, 100, "%s_edges", pfx);
+    snprintf(sedge_num , 100, "n_%s_edges", pfx);
+    snprintf(svert_data, 100, "%s_vertices", pfx);
+    snprintf(svert_num , 100, "n_%s_vertices", pfx);
+
+    get_face_coupling(d0, d1, tmpi);
+    h5h_create_attr(fid, sface_num, int(tmpi.size()/2) );
+    h5h_write_dset_2d(fid, sface_data, tmpi.size()/2, 2, &tmpi[0]);
+    get_edge_coupling(d0, d1, tmpi);
+    h5h_create_attr(fid, sedge_num, int(tmpi.size()/2) );
+    h5h_write_dset_2d(fid, sedge_data, tmpi.size()/2, 2, &tmpi[0]);
+    get_vertex_coupling(d0, d1, tmpi);
+    h5h_create_attr(fid, svert_num, int(tmpi.size()/2) );
+    h5h_write_dset_2d(fid, svert_data, tmpi.size()/2, 2, &tmpi[0]);
 }
 
 void Mesh3DPart::output_int_scalar(FILE* f, int indent, const char* aname, const char* atype, int n0, const char* field)
