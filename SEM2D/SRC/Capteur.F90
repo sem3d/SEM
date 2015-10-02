@@ -1021,6 +1021,8 @@ contains
         !! plusieurs elements (sommets, face ou aretes)
         !! identifiation
 
+        xitrouve  = -2 ! initialisation a une valeur (volontairement) invalide
+        etatrouve = -2 ! initialisation a une valeur (volontairement) invalide
         xi_min = -1.  !bornes min et max de la zone d'etude dans le carre de reference
         xi_max = 1.   !on coupe en 2 dans chaque direction la zone d'etude
         eta_min = -1.
