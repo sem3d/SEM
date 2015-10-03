@@ -875,6 +875,8 @@ contains
                 call gather_field(el, field_displ, Tdomain%champs0%Depla, el%Isol)
                 call gather_field(el, field_veloc, Tdomain%champs0%Veloc, el%Isol)
                 call gather_field(el, field_accel, Tdomain%champs0%Forces, el%Isol)
+                call gather_field(el, field_stress, Tdomain%champs0%Stress, el%Isol)
+                call gather_field(el, field_plastm, Tdomain%champs0%PlastMult, el%Isol)
                 call pressure_solid(ngllx,nglly,ngllz,sub_dom_mat%htprimex,              &
                     sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
                     el%InvGrad,field_displ, el%Lambda, el%Mu, field_press)
