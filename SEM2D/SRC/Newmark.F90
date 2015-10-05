@@ -112,20 +112,18 @@ subroutine Newmark (Tdomain)
         ! External Forces
         localtime = Tdomain%TimeD%rtime + 0.5 * Tdomain%TimeD%dtmin
         do n = 0, Tdomain%n_source-1
-            do ns =0, Tdomain%sSource(n)%ine-1
-                ncc = Tdomain%sSource(n)%Elem(ns)%nr
+            if (Tdomain%sSource(n)%located_here) then
+                ncc = Tdomain%sSource(n)%nr
                 ngllx = Tdomain%specel(ncc)%ngllx; ngllz = Tdomain%specel(ncc)%ngllz
-
                 do j = 0,ngllz-1
                     do i = 0,ngllx-1
                         do np = 0,1
                             Tdomain%specel(ncc)%Forces(i,j,np) = Tdomain%specel(ncc)%Forces(i,j,np) +   &
-                                CompSource (Tdomain%sSource(n),localtime)*  Tdomain%sSource(n)%Elem(ns)%ExtForce(i,j,np)
+                                CompSource(Tdomain%sSource(n),localtime)*Tdomain%sSource(n)%ExtForce(i,j,np)
                         enddo
                     enddo
                 enddo
-
-            enddo
+            endif
         enddo
 
         ! Communication of Forces

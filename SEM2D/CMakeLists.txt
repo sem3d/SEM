@@ -39,6 +39,7 @@ set(SEM2D_SOURCES
     ${PRJ}/SRC/read_input.F90
     ${PRJ}/SRC/shape4.F90
     ${PRJ}/SRC/shape8.F90
+    ${PRJ}/SRC/find_location.F90
     ${PRJ}/SRC/receiver_pos.F90
     ${PRJ}/SRC/read_mesh.F90
     ${PRJ}/SRC/read_mesh_h5.F90
@@ -50,9 +51,7 @@ set(SEM2D_SOURCES
     ${PRJ}/SRC/savefield.F90
     ${PRJ}/SRC/smoothing_exp.F90
     ${PRJ}/SRC/source_pos.F90
-    ${PRJ}/SRC/verify_in_quad.F90
     ${PRJ}/SRC/wall_transfer.F90
-    
 )
 
 add_library(sem2dcommon ${SEM2D_SOURCES})
