@@ -85,7 +85,6 @@ contains
 
     end subroutine pressure_solid
 
-
     subroutine check_field(nel, field, nx, ny, nz)
         integer, intent(in) :: nel, nx, ny, nz
         real, dimension(0:nx-1,0:ny-1,0:nz-1), intent(in) :: field
@@ -192,8 +191,8 @@ contains
                         do i=0,nx-1
                             ind = el%slpml%ISolPML(i,j,k)
                             field(i,j,k,:) = Tdomain%champs0%VelocPml(ind,:) + &
-                                             Tdomain%champs0%VelocPml(ind+1,:) + &
-                                             Tdomain%champs0%VelocPml(ind+2,:)
+                                Tdomain%champs0%VelocPml(ind+1,:) + &
+                                Tdomain%champs0%VelocPml(ind+2,:)
                         enddo
                     enddo
                 enddo
@@ -222,8 +221,8 @@ contains
                 enddo
                 mat = el%mat_index
                 call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
-                            Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
-                            el%InvGrad,el%density,phi,field)
+                    Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
+                    el%InvGrad,el%density,phi,field)
                 deallocate(phi)
             endif
         end if
@@ -279,8 +278,8 @@ contains
                         do i=0,nx-1
                             ind = el%slpml%ISolPML(i,j,k)
                             field(i,j,k,:) = Tdomain%champs1%ForcesPML(ind,:) + &
-                                             Tdomain%champs1%ForcesPML(ind+1,:) + &
-                                             Tdomain%champs1%ForcesPML(ind+2,:)
+                                Tdomain%champs1%ForcesPML(ind+1,:) + &
+                                Tdomain%champs1%ForcesPML(ind+2,:)
                         enddo
                     enddo
                 enddo
@@ -309,8 +308,8 @@ contains
                 enddo
                 mat = el%mat_index
                 call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
-                            Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
-                            el%InvGrad,el%density,vphi,field)
+                    Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
+                    el%InvGrad,el%density,vphi,field)
                 deallocate(vphi)
             endif
         end if
@@ -334,8 +333,8 @@ contains
             mat = el%mat_index
             call gather_elem_displ(Tdomain, nel, displ)
             call pressure_solid(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
-                 Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
-                 el%InvGrad, displ, el%Lambda, el%Mu,field)
+                Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
+                el%InvGrad, displ, el%Lambda, el%Mu,field)
             deallocate(displ)
         else ! liquid
             do k=0,nz-1

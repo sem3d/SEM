@@ -85,7 +85,7 @@ contains
                 do k = 0,m3-1
                     do j = 0,m2-1
                         do i = 0,m1-1
-                            Riso_N_el(i,j,k)   = champs1%Riso(Elem%Isol(i,j,k))
+                            Riso_N_el(i,j,k)      = champs1%Riso(Elem%Isol(i,j,k))
                             PlastMult_N_el(i,j,k) = champs1%PlastMult(Elem%Isol(i,j,k))
                         enddo
                     enddo
@@ -234,10 +234,10 @@ contains
                         if (nl_flag == 1) then
                             do i_dir = 0,5
                                 champs1%Stress(Elem%Isol(i,j,k),i_dir) = Sigma_ij_N_el(i_dir,i,j,k)
-                                champs1%Xkin(Elem%Isol(i,j,k),i_dir) = Xkin_ij_N_el(i_dir,i,j,k)
+                                champs1%Xkin(Elem%Isol(i,j,k),i_dir)   = Xkin_ij_N_el(i_dir,i,j,k)
                             end do
-                            champs1%Riso(Elem%Isol(i,j,k)) = Riso_N_el(i,j,k)
-                            champs1%PlastMult(Elem%Isol(i,j,k)) = PlastMult_N_el(i,j,k)
+                            champs1%Riso(Elem%Isol(i,j,k))      = Riso_N_el(i,j,k)
+                            champs1%Pl_strain(Elem%Isol(i,j,k)) = PlastMult_N_el(i,j,k)
                         end if
                     enddo
                 enddo
