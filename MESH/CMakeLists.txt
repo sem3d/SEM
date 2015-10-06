@@ -26,32 +26,37 @@ set(MESH_SRC
 add_definitions(-DUSE_HDF5)
 include_directories(${HDF5_INCLUDE_DIR_FORTRAN})
 
-add_executable(mesher ${MESH_SRC})
-target_link_libraries(mesher metis ${SEM_EXTRA_LIBS} )
+add_executable(oldmesher ${MESH_SRC})
+target_link_libraries(oldmesher metis ${SEM_EXTRA_LIBS} )
 
 
-install(TARGETS mesher DESTINATION bin)
+install(TARGETS oldmesher DESTINATION bin)
 
-add_executable(sem_part_grid
+add_library(mesh3d
   ${SEMCOMMON}/h5helper.cpp
-  ${PRJ}/CSRC/main_grid.cpp
   ${PRJ}/CSRC/mesh_h5_output.cpp
   ${PRJ}/CSRC/meshpart.cpp
   ${PRJ}/CSRC/mesh.cpp
+  ${PRJ}/CSRC/mesh_grid.cpp
+  )
+add_executable(sem_part_grid
+  ${PRJ}/CSRC/main_grid.cpp
   )
 
 add_executable(sem_part_h5
-  ${SEMCOMMON}/h5helper.cpp
   ${PRJ}/CSRC/main_h5.cpp
-  ${PRJ}/CSRC/mesh_h5_output.cpp
-  ${PRJ}/CSRC/mesh.cpp
-  ${PRJ}/CSRC/meshpart.cpp
+  )
+
+add_executable(mesher
+  ${PRJ}/CSRC/main_mesher.cpp
   )
 
 
 
 include_directories(BEFORE ${PRJ}/CSRC ${PRJ}/metis/include)
 include_directories(${BASE}/COMMON)
-target_link_libraries(sem_part_grid metis ${SEM_EXTRA_LIBS})
-target_link_libraries(sem_part_h5 metis ${SEM_EXTRA_LIBS})
+target_link_libraries(sem_part_grid mesh3d metis ${SEM_EXTRA_LIBS})
+target_link_libraries(sem_part_h5 mesh3d metis ${SEM_EXTRA_LIBS})
+target_link_libraries(mesher mesh3d metis ${SEM_EXTRA_LIBS})
 
+install(TARGETS sem_part_grid sem_part_h5 mesher DESTINATION bin)

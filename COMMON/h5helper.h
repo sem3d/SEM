@@ -13,6 +13,8 @@
 #include <hdf5.h>
 #include <vector>
 
+void h5h_set_errhandler();
+void h5h_restore_errhandler();
 
 void  h5h_create_attr(hid_t parent, const char* name, int value);
 void  h5h_create_attr(hid_t parent, const char* name, double value);

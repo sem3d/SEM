@@ -9,13 +9,16 @@ using std::vector;
 
 
 /// Reference numbering for faces
+/// Faces are defined so that the normal given using the right hand rule
+/// points inside
+/// This definition needs to match indexation.f90
 static FaceDesc RefFace[6] = {
     { {0,1,2,3}, {0, 1, 2, 3} },
-    { {0,1,5,4}, {0, 4, 5, 6} },
-    { {1,2,6,5}, {1, 7, 8, 4} },
+    { {0,4,5,1}, {0, 4, 5, 6} },
+    { {1,5,6,2}, {1, 7, 8, 4} },
     { {3,2,6,7}, {2, 7, 9,10} },
     { {0,3,7,4}, {3,10,11, 6} },
-    { {4,5,6,7}, {5, 8, 9,11} },
+    { {4,7,6,5}, {5, 8, 9,11} },
 };
 
 /// Reference numbering of edges
@@ -47,11 +50,10 @@ void Mesh3DPart::compute_part()
     printf("Created %ld facets\n", m_face_to_id.size());
 }
 
-int Mesh3DPart::add_facet(int n[4], int dom)
+int Mesh3DPart::add_facet(const PFace& facet)
 {
     int nf;
     face_map_t::iterator it;
-    PFace facet(n, dom);
     it = m_face_to_id.find(facet);
     if (it==m_face_to_id.end()) {
         // New face
@@ -63,11 +65,10 @@ int Mesh3DPart::add_facet(int n[4], int dom)
     return nf;
 }
 
-int Mesh3DPart::add_edge(int v0, int v1, int dom)
+int Mesh3DPart::add_edge(const PEdge& edge)
 {
     int ne;
     edge_map_t::iterator it;
-    PEdge edge(v0, v1, dom);
     it = m_edge_to_id.find(edge);
     if (it==m_edge_to_id.end()) {
         // New edge
@@ -79,11 +80,10 @@ int Mesh3DPart::add_edge(int v0, int v1, int dom)
     return ne;
 }
 
-int Mesh3DPart::add_vertex(int v0, int dom)
+int Mesh3DPart::add_vertex(const PVertex& vertex)
 {
     int nv;
     vertex_map_t::iterator it;
-    PVertex vertex(v0, dom);
     it = m_vertex_to_id.find(vertex);
     if (it==m_vertex_to_id.end()) {
         // New vertex
@@ -185,8 +185,10 @@ void Mesh3DPart::handle_neighbour_element(int el)
             contact += share_pt[vx];
         }
         if (contact==4) {
-            int nf = add_facet(n, dom);
-            m_comm[source_proc].m_faces.push_back(nf);
+            PFace fc(n,dom);
+            int nf = add_facet(fc);
+            m_comm[source_proc].m_faces[fc]=nf;
+            //printf("Add face p=%d (%d,%d,%d,%d,%d)\n", source_proc, fc.n[0], fc.n[1], fc.n[2], fc.n[3],fc.n[4]);
         } else if (contact!=0) {
             //printf("!!Face from part %d with %d nodes in contact with part %d\n", source_proc, contact, m_proc);
         }
@@ -196,16 +198,18 @@ void Mesh3DPart::handle_neighbour_element(int el)
         int v1 = RefEdge[ed][1];
         contact = share_pt[v0] + share_pt[v1];
         if (contact==2) {
-            int ne = add_edge(m_mesh.m_elems[e0 + v0], m_mesh.m_elems[e0 + v1], dom);
-            m_comm[source_proc].m_edges.push_back(ne);
+            PEdge ed(m_mesh.m_elems[e0 + v0], m_mesh.m_elems[e0 + v1], dom);
+            int ne = add_edge(ed);
+            m_comm[source_proc].m_edges[ed] = ne;
         } else if (contact!=0) {
             //printf("!!Edge from part %d with %d nodes in contact with part %d\n", source_proc, contact, m_proc);
         }
     }
     for(int vx=0;vx<8;++vx) {
         if (share_pt[vx]==1) {
-            int nv = add_vertex(m_mesh.m_elems[e0 + vx], dom);
-            m_comm[source_proc].m_vertices.push_back(nv);
+            PVertex vert(m_mesh.m_elems[e0 + vx], dom);
+            int nv = add_vertex(vert);
+            m_comm[source_proc].m_vertices[vert] = nv;
         }
     }
 }
@@ -288,10 +292,11 @@ void Mesh3DPart::get_local_edges(std::vector<int>& edges, std::vector<int>& doms
     }
 }
 
-void Mesh3DPart::get_face_coupling(int d0, int d1, std::vector<int>& cpl) const
+void Mesh3DPart::get_face_coupling(int d0, int d1, std::vector<int>& cpl, std::vector<int>& orient) const
 {
     bool swapped=false;
     cpl.clear();
+    orient.clear();
     assert(d0!=d1);
     if (d0>d1) {
         swapped = true; // preserve the domains in the required order
@@ -313,9 +318,13 @@ void Mesh3DPart::get_face_coupling(int d0, int d1, std::vector<int>& cpl) const
         if (swapped) {
             cpl.push_back(it->second);
             cpl.push_back(it0->second);
+            orient.push_back(it->first.orient);
+            orient.push_back(it0->first.orient);
         } else {
             cpl.push_back(it0->second);
             cpl.push_back(it->second);
+            orient.push_back(it0->first.orient);
+            orient.push_back(it->first.orient);
         }
     }
 }
@@ -398,6 +407,8 @@ void Mesh3DPart::output_mesh_part()
     int edge_doms[5] = {0,0,0,0,0};
     int vert_doms[5] = {0,0,0,0,0};
 
+    h5h_set_errhandler();
+
     printf("%04d : number of elements = %d\n", m_proc, n_elems());
     snprintf(fname, sizeof(fname), "mesh4spec.%04d.h5", m_proc);
     hid_t fid = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -455,51 +466,67 @@ void Mesh3DPart::output_mesh_part()
 
     // Now write out inter-domain coupling
     // Couplage Solide-fluide :
-    write_coupling_interface(fid, "sf", DM_FLUID, DM_SOLID);
+    write_coupling_interface(fid, "sf", DM_SOLID, DM_FLUID);
+    write_coupling_interface(fid, "sfpml", DM_SOLID_PML, DM_FLUID_PML);
     write_coupling_interface(fid, "fpml", DM_FLUID, DM_FLUID_PML);
     write_coupling_interface(fid, "spml", DM_SOLID, DM_SOLID_PML);
 
     // Write processors communications
     h5h_create_attr(fid, "tot_comm_proc", (int)m_comm.size());
-    for(int k=0;k<(int)m_comm.size();++k) {
+    std::map<int,MeshPartComm>::const_iterator it;
+    int k=0;
+    std::vector<int> temp;
+    for(it=m_comm.begin();it!=m_comm.end();++it,++k) {
         char gproc[200];
         snprintf(gproc, 200, "Proc%04d", k);
         hid_t gid = H5Gcreate(fid, gproc, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        h5h_create_attr(gid, "proc_dest", m_comm[k].m_dest);
-        h5h_create_attr(gid, "n_faces", (int)m_comm[k].m_faces.size());
-        h5h_create_attr(gid, "n_edges", (int)m_comm[k].m_edges.size());
-        h5h_create_attr(gid, "n_vertices", (int)m_comm[k].m_vertices.size());
-        h5h_write_dset(fid, "faces", m_comm[k].m_faces);
-        h5h_write_dset(fid, "edges", m_comm[k].m_faces);
-        h5h_write_dset(fid, "vertices", m_comm[k].m_faces);
+        h5h_create_attr(gid, "proc_dest", it->first);
+        h5h_create_attr(gid, "n_faces", (int)it->second.m_faces.size());
+        h5h_create_attr(gid, "n_edges", (int)it->second.m_edges.size());
+        h5h_create_attr(gid, "n_vertices", (int)it->second.m_vertices.size());
+        it->second.get_faces(temp);
+        h5h_write_dset(gid, "faces", temp);
+        it->second.get_edges(temp);
+        h5h_write_dset(gid, "edges", temp);
+        it->second.get_vertices(temp);
+        h5h_write_dset(gid, "vertices", temp);
         H5Gclose(gid);
     }
 
     H5Fclose(fid);
 }
 
+void Mesh3DPart::reorder_comm(MeshPartComm& comm)
+{
+}
+
 void Mesh3DPart::write_coupling_interface(hid_t fid, const char* pfx, int d0, int d1)
 {
-    vector<int> tmpi;
+    vector<int> tmpi, tmpo;
     char sface_data[100];
+    char sface_orient[100];
     char sface_num [100];
     char sedge_data[100];
     char sedge_num [100];
     char svert_data[100];
     char svert_num [100];
     snprintf(sface_data, 100, "%s_faces", pfx);
+    snprintf(sface_orient, 100, "%s_orient", pfx);
     snprintf(sface_num , 100, "n_%s_faces", pfx);
     snprintf(sedge_data, 100, "%s_edges", pfx);
     snprintf(sedge_num , 100, "n_%s_edges", pfx);
     snprintf(svert_data, 100, "%s_vertices", pfx);
     snprintf(svert_num , 100, "n_%s_vertices", pfx);
 
-    get_face_coupling(d0, d1, tmpi);
+    get_face_coupling(d0, d1, tmpi, tmpo);
     h5h_create_attr(fid, sface_num, int(tmpi.size()/2) );
     h5h_write_dset_2d(fid, sface_data, tmpi.size()/2, 2, &tmpi[0]);
+    h5h_write_dset_2d(fid, sface_orient, tmpo.size()/2, 2, &tmpo[0]);
+    //
     get_edge_coupling(d0, d1, tmpi);
     h5h_create_attr(fid, sedge_num, int(tmpi.size()/2) );
     h5h_write_dset_2d(fid, sedge_data, tmpi.size()/2, 2, &tmpi[0]);
+    //
     get_vertex_coupling(d0, d1, tmpi);
     h5h_create_attr(fid, svert_num, int(tmpi.size()/2) );
     h5h_write_dset_2d(fid, svert_data, tmpi.size()/2, 2, &tmpi[0]);

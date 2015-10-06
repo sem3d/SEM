@@ -30,11 +30,12 @@ T1 get(const std::map<T0,T1>& m, const T0& key, const T1& def)
 /// because we want to duplicate the faces across domains (but keep them
 /// oriented in the same manner)
 struct PFace {
+    PFace() {}
     PFace( int v[4], int dom ) {
         n[4] = dom;
         set_face(v);
     }
-    PFace(const PFace& fc) { for(int k=0;k<5;++k) n[k]=fc.n[k]; }
+    PFace(const PFace& fc):orient(fc.orient) { for(int k=0;k<5;++k) n[k]=fc.n[k]; }
 
     void set_face(int v[4]) {
         int l=0;
@@ -45,8 +46,13 @@ struct PFace {
         int prev = (l+3)%4;
         int next = (l+1)%4;
         int step;
-        if (v[prev]<v[next]) step=3;
-        else step=1;
+        if (v[prev]<v[next]) {
+            step=3;
+            orient = -1;
+        } else {
+            step=1;
+            orient = 1;
+        }
         for(k=0;k<4;++k) {
             n[k] = v[l];
             l = (l+step)%4;
@@ -74,9 +80,13 @@ struct PFace {
     }
     int domain() const { return n[4]; }
     int n[5];
+    // !! This will be only useful for faces at domain interfaces, otherwise
+    // there is no way to tell which of the two elements sharing the face appears first
+    int orient; // 1 if points inside original element -1 otherwise
 };
 
 struct PEdge {
+    PEdge() {}
     PEdge( int v0, int v1, int dom ) {
         n[2] = dom;
         set_edge(v0, v1);
@@ -126,22 +136,40 @@ typedef std::map<PVertex,int> vertex_map_t;
 class MeshPartComm
 {
 public:
-    MeshPartComm() {}
+    MeshPartComm():m_dest(-1) {
+    }
     int m_dest; /// Destination processor
 
-    /// The indices stored are in local numbering
-    /// Before output, the local number must be reordered
-    /// according to a global numbering scheme so that
-    /// each communicating processor sees the items in the
-    /// same order
-    ///
     /// Note: there will be some duplication since if a face
     /// is shared, so are its edge and vertices.
     /// SEM can optimize this by not exchanging already registered
     /// gll
-    std::vector<int> m_vertices;
-    std::vector<int> m_edges;
-    std::vector<int> m_faces;
+    ///
+    /// we use a map to store the shared face/edge/vertex
+    /// since std::map maintains its keys in order,
+    /// it ensures they are ordered the same way on both cpus
+    vertex_map_t m_vertices;
+    edge_map_t m_edges;
+    face_map_t m_faces;
+
+    void get_faces(std::vector<int>& tmp) const {
+        tmp.clear();
+        for(face_map_t::const_iterator it=m_faces.begin();it!=m_faces.end();++it) {
+            tmp.push_back(it->second);
+        }
+    }
+    void get_edges(std::vector<int>& tmp) const {
+        tmp.clear();
+        for(edge_map_t::const_iterator it=m_edges.begin();it!=m_edges.end();++it) {
+            tmp.push_back(it->second);
+        }
+    }
+    void get_vertices(std::vector<int>& tmp) const {
+        tmp.clear();
+        for(vertex_map_t::const_iterator it=m_vertices.begin();it!=m_vertices.end();++it) {
+            tmp.push_back(it->second);
+        }
+    }
 };
 
 /** Manages a part of the mesh on a specific processor */
@@ -157,9 +185,12 @@ public:
     void output_mesh_part_xmf();
 
     // manages local facets
-    int add_facet(int n[4], int dom);
-    int add_edge(int v0, int v1, int dom);
-    int add_vertex(int v0, int dom);
+    int add_facet(const PFace& facet);
+    int add_edge(const PEdge& edge);
+    int add_vertex(const PVertex& vertex);
+    int add_facet(int n[4], int dom) { PFace facet(n, dom); return add_facet(facet); }
+    int add_edge(int v0, int v1, int dom) { PEdge edge(v0, v1, dom); return add_edge(edge); }
+    int add_vertex(int v0, int dom) { PVertex vertex(v0, dom); return add_vertex(vertex); }
     int add_node(int v0);
 
     int n_nodes() const    { return m_nodes_to_id.size(); }
@@ -174,7 +205,7 @@ public:
     void get_local_materials(std::vector<int>& mats, std::vector<int>& doms) const;
     void get_local_faces(std::vector<int>& faces, std::vector<int>& doms) const;
     void get_local_edges(std::vector<int>& edges, std::vector<int>& doms) const;
-    void get_face_coupling(int d0, int d1, std::vector<int>& cpl) const;
+    void get_face_coupling(int d0, int d1, std::vector<int>& cpl, std::vector<int>& orient) const;
     void get_edge_coupling(int d0, int d1, std::vector<int>& cpl) const;
     void get_vertex_coupling(int d0, int d1, std::vector<int>& cpl) const;
 
@@ -182,7 +213,7 @@ public:
     void write_coupling_interface(hid_t fid, const char* pfx, int d0, int d1);
     void output_int_scalar(FILE* f, int indent, const char* aname,
                            const char* atype, int n0, const char* field);
-
+    void reorder_comm(MeshPartComm& comm);
 protected:
     const Mesh3D& m_mesh;
     int m_proc;
