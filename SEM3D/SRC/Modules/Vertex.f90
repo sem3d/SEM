@@ -16,20 +16,7 @@ module svertices
        integer :: Iglobnum_Vertex
        integer :: Idom
        integer :: inode
-
-       !! TODO: REMOVE
-       integer :: global_numbering
-       ! Lien entre ngll et numérotation des champs globaux
-       integer :: Renum
-
-       ! solid-fluid
-       logical :: solid, fluid_dirich
-       logical :: PML, Abs, FPML
-
-       !! Couplage Externe
-!       real, dimension (:), allocatable :: ForcesExt
-!       real :: tsurfsem
-
+       logical :: Abs
     end type vertex
 
 contains
@@ -37,12 +24,7 @@ contains
         type(Vertex), intent(inout) :: ve
         !
         ve%domain = -1
-        !
-        ve%PML = .false.
         ve%Abs = .false.
-        ve%FPML = .false.
-        ve%solid = .true.
-        ve%global_numbering = -1
         ve%Iglobnum_Vertex = -1
     end subroutine init_vertex
 

@@ -31,6 +31,7 @@ contains
         vector%send_reqs = MPI_REQUEST_NULL
         vector%recv_reqs = MPI_REQUEST_NULL
 
+        call stat_starttick()
         do i = 0,vector%ncomm-1
             dest = vector%Data(i)%dest
             src = vector%Data(i)%src
@@ -43,10 +44,9 @@ contains
                            vector%recv_reqs(i), ierr)
         enddo
 
-        call stat_starttick()
         call MPI_Waitall(vector%ncomm, vector%recv_reqs, statuses, ierr)
         call MPI_Waitall(vector%ncomm, vector%send_reqs, statuses, ierr)
-        call stat_stoptick('wait')
+        call stat_stoptick('comm')
 
     end subroutine exchange_sem_var
 

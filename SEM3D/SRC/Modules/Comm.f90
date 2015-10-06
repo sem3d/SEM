@@ -19,7 +19,6 @@ module scomms
        integer :: ncomm ! bookeeping numero de la structure comm associee
        real, dimension(:), allocatable :: Give, Take
        integer, dimension(:), allocatable :: IGiveS, IGiveSPML, IGiveF, IGiveFPML
-       integer, dimension(:), allocatable :: ITakeS, ITakeSPML, ITakeF, ITakeFPML
     end type exchange_vector
 
     type :: comm_vector

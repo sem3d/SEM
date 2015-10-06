@@ -19,7 +19,7 @@ module mCapteur
     use mfields
     use sem_hdf5
     use sem_c_config
-    use constants, only : NCAPT_CACHE, M_1_3
+    use constants, only : NCAPT_CACHE, M_1_3, DM_SOLID, DM_FLUID, DM_SOLID_PML, DM_FLUID_PML
     use mshape8
     use mshape27
     implicit none
@@ -372,12 +372,13 @@ contains
                  sig_dev_xy, sig_dev_xz, sig_dev_yz
         real  :: eps_vol,    P_energy,   S_energy
         
-        logical :: aniso, solid
+        logical :: aniso
         real :: xmu, xlambda, xkappa, x2mu, xlambda2mu, onemSbeta, onemPbeta, eps_trace
         
         real,    dimension(:), allocatable :: grandeur
         integer, dimension(0:8) :: out_variables, offset
         integer                 :: flag_gradU, n_out
+        integer :: domtype
 
         rg = Tdomain%rank
 
@@ -410,7 +411,7 @@ contains
                 offset(i+1) = offset(i)
             end if
         end do
-
+        write(*,*) "OFFSET:", offset
         allocate(grandeur(0:n_out-1))
         grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
 
@@ -471,11 +472,11 @@ contains
                 call  pol_lagrange(ngllz,Tdomain%sSubdomain(mat)%GLLcz,k,zeta,outz(k))
             end do
 
-            solid=Tdomain%specel(n_el)%solid
+            domtype=Tdomain%specel(n_el)%domain
             n_solid=Tdomain%n_sls
             aniso=Tdomain%aniso
 
-            if((solid) .and. (.not. Tdomain%specel(n_el)%PML) .and. (flag_gradU .ge. 1)) then   ! SOLID PART OF THE DOMAIN
+            if((domtype == DM_SOLID) .and. (flag_gradU .ge. 1)) then   ! SOLID PART OF THE DOMAIN
                 call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,0),DXX,DYX,DZX)
                 call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,1),DXY,DYY,DZY)
                 call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
@@ -536,7 +537,7 @@ contains
                                 = grandeur(offset(3)) + weight*fieldP(i,j,k)
                         end if
 
-                        if ((solid) .and. (.not. Tdomain%specel(n_el)%PML) .and. (flag_gradU .ge. 1)) then
+                        if ((domtype==DM_SOLID) .and. (flag_gradU .ge. 1)) then
 
                             eps_trace = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
 

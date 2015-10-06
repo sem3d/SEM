@@ -16,6 +16,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/logical_input.f90
     ${PRJ}/SRC/Modules/Subdomains.f90
     ${PRJ}/SRC/Modules/Fault.f90
+    ${PRJ}/SRC/Modules/Interface.f90
     ${PRJ}/SRC/Modules/Domain.f90
     ${PRJ}/SRC/Modules/solid_fluid.f90
     ${PRJ}/SRC/orientation.f90

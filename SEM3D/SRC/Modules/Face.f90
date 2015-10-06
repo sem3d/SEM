@@ -20,16 +20,11 @@ module sfaces
         integer, dimension (:,:), allocatable :: Idom
         ! Index dans Tdomain%Coord_nodes des 4 sommets de la face (y compris pour les Hex27)
         integer, dimension(0:3) :: inodes
-        !XXX ? logical :: OUTPUT
 
-       ! TODO remove:
-       logical :: PML, Abs, FPML
-       integer :: dir, Which_Elem
-        ! Lien entre ngll et numérotation des champs globaux
-        integer, dimension (:,:), allocatable :: Renum
-       ! solid-fluid
-       logical :: solid, fluid_dirich
-       !! Couplage Externe
+        ! TODO remove:
+        logical :: Abs
+        integer, dimension(0:1) :: Which_Elem
+        !! Couplage Externe
 !       real, dimension (:,:,:), allocatable :: ForcesExt
 !       real, dimension (:,:), allocatable :: tsurfsem
     end type face
@@ -42,14 +37,8 @@ contains
         fc%domain = -1
         fc%ngll1 = 0
         fc%ngll2 = 0
-
-        !! REMOVE
-        fc%PML = .false.
         fc%Abs = .false.
-        fc%FPML = .false.
-        fc%dir = -1
         fc%Which_Elem = -1
-        fc%solid = .true.
     end subroutine init_face
 
 end module sfaces

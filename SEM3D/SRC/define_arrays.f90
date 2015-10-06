@@ -63,7 +63,7 @@ contains
             ! Compute MassMat and Whei (with allocation)
             call init_local_mass_mat(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat),Whei)
             ! Computes DumpS, DumpMass (local),and for FPML :  Iv and Is
-            if (Tdomain%specel(n)%PML) then
+            if (Tdomain%specel(n)%domain==DM_SOLID_PML .or. Tdomain%specel(n)%domain==DM_FLUID_PML) then
                 call init_pml_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
             end if
             deallocate(Whei)
@@ -93,7 +93,7 @@ contains
         !- defining Solid/Fluid faces'properties
         if(Tdomain%logicD%SF_local_present)then
             !  Btn: the complete normal term, ponderated by GLL weights
-            call define_Face_SF(Tdomain)
+            !call define_Face_SF(Tdomain)
         endif
     end subroutine init_solid_fluid_interface
 
@@ -101,25 +101,33 @@ contains
         implicit none
         type (domain), intent (INOUT), target :: Tdomain
 
-        integer :: n, indsol, indpml
+        integer :: n, indsol, indflu, indpml
         integer :: k
         real :: Mass
 
         ! Couplage à l'interface solide / PML
-        do n = 0,Tdomain%nbInterfSolPml-1
-            indsol = Tdomain%InterfSolPml(n,0)
-            indpml = Tdomain%InterfSolPml(n,1)
+        do n = 0,Tdomain%intSolPml%surf0%nbtot-1
+            indsol = Tdomain%intSolPml%surf0%map(n)
+            indpml = Tdomain%intSolPml%surf1%map(n)
+            if (indsol<0 .or. indsol>=Tdomain%ngll_s) then
+                write(*,*) "Pb indexation Sol"
+                stop 1
+            end if
+            if (indpml<0 .or. indpml>=Tdomain%ngll_pmls) then
+                write(*,*) "Pb indexation Sol-pml"
+                stop 1
+            end if
             Mass = Tdomain%MassMatSol(indsol) + Tdomain%MassMatSolPml(indpml)
             Tdomain%MassMatSol(indsol) = Mass
             Tdomain%MassMatSolPml(indpml) = Mass
         enddo
 
         ! Couplage à l'interface fluid / PML
-        do n = 0,Tdomain%nbInterfFluPml-1
-            indsol = Tdomain%InterfFluPml(n,0)
-            indpml = Tdomain%InterfFluPml(n,1)
-            Mass = Tdomain%MassMatFlu(indsol) + Tdomain%MassMatFluPml(indpml)
-            Tdomain%MassMatFlu(indsol) = Mass
+        do n = 0,Tdomain%intFluPml%surf0%nbtot-1
+            indflu = Tdomain%intFluPml%surf0%map(n)
+            indpml = Tdomain%intFluPml%surf1%map(n)
+            Mass = Tdomain%MassMatFlu(indflu) + Tdomain%MassMatFluPml(indpml)
+            Tdomain%MassMatFlu(indflu) = Mass
             Tdomain%MassMatFluPml(indpml) = Mass
         enddo
 
@@ -161,26 +169,26 @@ contains
                 ! Domain SOLID
                 k = 0
                 call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                    Tdomain%Comm_data%Data(n)%ITakeS, Tdomain%MassMatSol, k)
+                    Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%MassMatSol, k)
 
                 ! Domain SOLID PML
                 if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                        Tdomain%Comm_data%Data(n)%ITakeSPML, Tdomain%DumpMass, k)
+                        Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%DumpMass, k)
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                        Tdomain%Comm_data%Data(n)%ITakeSPML, Tdomain%MassMatSolPml, k)
+                        Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%MassMatSolPml, k)
                 end if
 
                 ! Domain FLUID
                 call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                    Tdomain%Comm_data%Data(n)%ITakeF,  Tdomain%MassMatFlu, k)
+                    Tdomain%Comm_data%Data(n)%IGiveF,  Tdomain%MassMatFlu, k)
 
                 ! Domain FLUID PML
                 if (Tdomain%Comm_data%Data(n)%nflupml>0) then
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                        Tdomain%Comm_data%Data(n)%ITakeFPML, Tdomain%fpml_DumpMass, k)
+                        Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpml_DumpMass, k)
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                        Tdomain%Comm_data%Data(n)%ITakeFPML, Tdomain%MassMatFluPml, k)
+                        Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%MassMatFluPml, k)
                 end if
             end do
         end if
@@ -252,16 +260,15 @@ contains
 
         end select
 
-        if ((.not. specel%PML) .and. (Tdomain%n_sls>0))  then
-            if(specel%solid) then
-                if (Tdomain%aniso) then
-                    specel%sl%Q = mat%Qmu
-                else
-                    specel%sl%Qs = mat%Qmu
-                    specel%sl%Qp = mat%Qpression
-                endif
+        if ((specel%domain==DM_SOLID) .and. (Tdomain%n_sls>0))  then
+            if (Tdomain%aniso) then
+                specel%sl%Q = mat%Qmu
+            else
+                specel%sl%Qs = mat%Qmu
+                specel%sl%Qp = mat%Qpression
             endif
         endif
+
     end subroutine init_material_properties
 
 
@@ -276,7 +283,9 @@ contains
         real, dimension(:,:,:), allocatable :: RKmod
         real, dimension(:,:,:), allocatable :: wx,wy,wz
 
-        if (.not. specel%PML) stop "init_pml_properties should not be called for non-pml element"
+        if (specel%domain/=DM_SOLID_PML .and. specel%domain/=DM_FLUID_PML) then
+            stop "init_pml_properties should not be called for non-pml element"
+        end if
 
         ngllx = specel%ngllx
         nglly = specel%nglly
@@ -339,7 +348,7 @@ contains
         deallocate(wx,wy,wz)
 
         !! XXX
-        if (.not. specel%solid) then
+        if (specel%domain==DM_FLUID_PML) then
             specel%xpml%DumpSx(:,:,:,1) = specel%xpml%DumpSx(:,:,:,1) / specel%Density
             specel%xpml%DumpSy(:,:,:,1) = specel%xpml%DumpSy(:,:,:,1) / specel%Density
             specel%xpml%DumpSz(:,:,:,1) = specel%xpml%DumpSz(:,:,:,1) / specel%Density
@@ -359,17 +368,16 @@ contains
             nglly = Tdomain%specel(n)%nglly
             ngllz = Tdomain%specel(n)%ngllz
 
-            if(Tdomain%specel(n)%PML)then   ! dumped masses in PML
-                ! Compute DumpV
-                if (Tdomain%specel(n)%Solid) then
-                    call define_PML_DumpEnd(Tdomain%ngll_pmls, Tdomain%MassMatSolPml, &
-                        Tdomain%DumpMass, Tdomain%champs0%DumpV)
-                else
-                    call define_PML_DumpEnd(Tdomain%ngll_pmlf, Tdomain%MassMatFluPml, &
-                        Tdomain%fpml_DumpMass, Tdomain%champs0%fpml_DumpV)
-                endif
+            select case (Tdomain%specel(n)%domain)
+            case (DM_SOLID_PML)
+                call define_PML_DumpEnd(Tdomain%ngll_pmls, Tdomain%MassMatSolPml, &
+                    Tdomain%DumpMass, Tdomain%champs0%DumpV)
                 deallocate(Tdomain%specel(n)%xpml%DumpMass)
-            end if
+            case (DM_FLUID_PML)
+                call define_PML_DumpEnd(Tdomain%ngll_pmlf, Tdomain%MassMatFluPml, &
+                    Tdomain%fpml_DumpMass, Tdomain%champs0%fpml_DumpV)
+                deallocate(Tdomain%specel(n)%xpml%DumpMass)
+            end select
         end do
     end subroutine finalize_pml_properties
 
@@ -388,11 +396,13 @@ contains
             do j = 0,specel%nglly-1
                 do i = 0,specel%ngllx-1
                     Whei(i,j,k) = mat%GLLwx(i)*mat%GLLwy(j)*mat%GLLwz(k)
-                    if(specel%solid)then
+                    select case (specel%domain)
+                    case (DM_SOLID,DM_SOLID_PML)
                         specel%MassMat(i,j,k) = Whei(i,j,k)*specel%Density(i,j,k)*specel%Jacob(i,j,k)
-                    else   ! fluid case: inertial term ponderation by the inverse of the bulk modulus
+                    case (DM_FLUID,DM_FLUID_PML)
+                        ! fluid case: inertial term ponderation by the inverse of the bulk modulus
                         specel%MassMat(i,j,k) = Whei(i,j,k)*specel%Jacob(i,j,k)/specel%Lambda(i,j,k)
-                    end if
+                    end select
                 enddo
             enddo
         enddo
@@ -414,7 +424,6 @@ contains
                 enddo
             enddo
         enddo
-        write(*,*)
         !- mass matrix elements
     end subroutine init_local_mass_mat
 
@@ -637,7 +646,7 @@ contains
                 do j = 0,specel%nglly-1
                     do i = 0,specel%ngllx-1
                         ind = specel%Idom(i,j,k)
-                        if (specel%solid) then
+                        if (specel%domain==DM_SOLID_PML) then
                             Tdomain%DumpMass(ind,m) = Tdomain%DumpMass(ind,m) &
                                 + specel%xpml%DumpMass(i,j,k,m)
                         else

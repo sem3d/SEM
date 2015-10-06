@@ -3,8 +3,56 @@
 !! Copyright CEA, ECP, IPGP
 !!
 module mesh3d
-
+    use sdomain
+    implicit none
 contains
+
+    subroutine  read_interface(inter, fid, pfx)
+        use hdf5
+        use sem_hdf5
+        implicit none
+        type(inter_num), intent(inout) :: inter
+        integer(HID_T), intent(in) :: fid
+        character(len=*), intent(in) :: pfx
+        !
+        integer, dimension(:,:), allocatable :: itemp2
+
+        call read_attr_int(fid, "n_"//trim(pfx)//"_faces",    inter%surf0%n_faces)
+        call read_attr_int(fid, "n_"//trim(pfx)//"_edges",    inter%surf0%n_edges)
+        call read_attr_int(fid, "n_"//trim(pfx)//"_vertices", inter%surf0%n_vertices)
+
+        inter%surf1%n_faces = inter%surf0%n_faces
+        inter%surf1%n_edges = inter%surf0%n_edges
+        inter%surf1%n_vertices = inter%surf0%n_vertices
+
+        call allocate_interface(inter)
+
+        if (inter%surf0%n_faces/=0) then
+            call read_dataset(fid, trim(pfx)//"_faces", itemp2)
+            write(*,*) pfx//" Faces:", size(itemp2,1), size(itemp2,2)
+            inter%surf0%if_faces = itemp2(1,:)
+            inter%surf1%if_faces = itemp2(2,:)
+            deallocate(itemp2)
+            call read_dataset(fid, trim(pfx)//"_orient", itemp2)
+            inter%surf0%if_norm = itemp2(1,:)
+            inter%surf1%if_norm = itemp2(2,:)
+            deallocate(itemp2)
+        end if
+        if (inter%surf0%n_edges/=0) then
+            call read_dataset(fid, trim(pfx)//"_edges", itemp2)
+            write(*,*) pfx//" Edges:", size(itemp2,1), size(itemp2,2)
+            inter%surf0%if_edges = itemp2(1,:)
+            inter%surf1%if_edges = itemp2(2,:)
+            deallocate(itemp2)
+        end if
+        if (inter%surf0%n_vertices/=0) then
+            call read_dataset(fid, trim(pfx)//"_vertices", itemp2)
+            write(*,*) pfx//" Vertices:", size(itemp2,1), size(itemp2,2)
+            inter%surf0%if_vertices = itemp2(1,:)
+            inter%surf1%if_vertices = itemp2(2,:)
+            deallocate(itemp2)
+        end if
+    end subroutine read_interface
 
 subroutine read_mesh_file_h5(Tdomain)
     use sdomain
@@ -52,19 +100,20 @@ subroutine read_mesh_file_h5(Tdomain)
     Tdomain%logicD%all_fluid = .false.
     neumann_log = .false.
     Tdomain%logicD%Neumann_local_present = .false.
-    Tdomain%logicD%SF_local_present = .false.
-!    call read_attr_bool(fid, "solid_fluid", Tdomain%logicD%solid_fluid)
-!    call read_attr_bool(fid, "all_fluid", Tdomain%logicD%all_fluid)
-!    call read_attr_bool(fid, "neumann_present", neumann_log)
-!    call read_attr_bool(fid, "neumann_present_loc", Tdomain%logicD%Neumann_local_present)
-!    call read_attr_bool(fid, "curve", Tdomain%curve)
-!    call read_attr_bool(fid, "solid_fluid_loc", Tdomain%logicD%SF_local_present)
     call read_attr_int(fid, "n_processors", num_processors)
     call read_attr_int(fid, "n_materials", Tdomain%n_mat)
     call read_attr_int(fid, "n_elements",  Tdomain%n_elem)
     call read_attr_int(fid, "n_faces",     Tdomain%n_face)
     call read_attr_int(fid, "n_edges",     Tdomain%n_edge)
     call read_attr_int(fid, "n_vertices",  Tdomain%n_vertex)
+    !
+    ! solid - pml interface
+    call init_interface(Tdomain%intSolPml)
+    ! fluid - pml interface
+    call init_interface(Tdomain%intFluPml)
+    ! solid - fluid interface
+    call init_interface(Tdomain%SF%intSolFlu)
+    call init_interface(Tdomain%SF%intSolFluPml)
     !
     if(Tdomain%n_dime /=3)   &
         stop "No general code for the time being: only 3D propagation"
@@ -199,54 +248,18 @@ subroutine read_mesh_file_h5(Tdomain)
     enddo
     deallocate(itemp2)
 
+    call read_interface(Tdomain%intSolPml, fid, "spml")
+    call read_interface(Tdomain%intFluPml, fid, "fpml")
     ! Solid-fluid properties, eventually
-    if(Tdomain%logicD%SF_local_present)then
-        ! Edges and their orientation, for each SF face
-        call read_dataset(fid, "sf_face_near_edges", itemp2)
-        call read_dataset(fid, "sf_face_near_edges_orient", itemp2b)
-        Tdomain%SF%SF_n_faces = size(itemp2,2)
-        allocate(Tdomain%SF%SF_face(0:Tdomain%SF%SF_n_faces-1))
-        do i = 0, Tdomain%SF%SF_n_faces-1
-            Tdomain%SF%SF_face(i)%Near_Edges(0:3) = itemp2(:,i+1)
-            Tdomain%SF%SF_face(i)%Near_Edges_Orient(0:3) = itemp2b(:,i+1)
-        end do
-        deallocate(itemp2, itemp2b)
-        ! Vertices for each SF face
-        call read_dataset(fid, "sf_face_near_vertices", itemp2)
-        do i = 0, Tdomain%SF%SF_n_faces-1
-            Tdomain%SF%SF_face(i)%Near_Vertices(0:3) = itemp2(:,i+1)
-        end do
-        deallocate(itemp2)
-        ! associated fluid (0) and solid (1) faces; orientation Solid/Fluid
-        call read_dataset(fid, "sf_face_glob_interface", itemp2)
-        call read_dataset(fid, "sf_face_orient", itemp)
-        do i = 0, Tdomain%SF%SF_n_faces-1
-            Tdomain%SF%SF_face(i)%Face(0:1) = itemp2(1:2,i+1)
-            Tdomain%SF%SF_face(i)%Orient_Face = itemp(i+1)
-            Tdomain%SF%SF_face(i)%PML = .false.
-        end do
-        deallocate(itemp, itemp2)
-        ! SF edges
-        call read_dataset(fid, "sf_edge_glob_interface", itemp2)
-        call read_dataset(fid, "sf_edge_orient", itemp)
-        Tdomain%SF%SF_n_edges = size(itemp2,2)
-        allocate(Tdomain%SF%SF_edge(0:Tdomain%SF%SF_n_edges-1))
-        do i = 0, Tdomain%SF%SF_n_edges-1
-            Tdomain%SF%SF_edge(i)%Edge(0:1) = itemp2(1:2,i+1)
-            Tdomain%SF%SF_edge(i)%Orient_Edge = itemp(i+1)
-            Tdomain%SF%SF_edge(i)%PML = .false.
-        end do
-        deallocate(itemp, itemp2)
-        ! SF vertices
-        call read_dataset(fid, "sf_vertex_glob_interface", itemp2)
-        Tdomain%SF%SF_n_vertices = size(itemp2, 2)
-        allocate(Tdomain%SF%SF_vertex(0:Tdomain%SF%SF_n_vertices-1))
-        do i = 0, Tdomain%SF%SF_n_vertices-1
-            Tdomain%SF%SF_vertex(i)%Vertex(0:1) = itemp2(1:2,i+1)
-            Tdomain%SF%SF_Vertex(i)%PML = .false.
-        end do
-        deallocate(itemp2)
-    end if
+    call read_interface(Tdomain%SF%intSolFlu, fid, "sf")
+    call read_interface(Tdomain%SF%intSolFluPml, fid, "sfpml")
+    Tdomain%logicD%SF_local_present = ( &
+        Tdomain%SF%intSolFlu%surf0%n_faces + &
+        Tdomain%SF%intSolFlu%surf0%n_edges + &
+        Tdomain%SF%intSolFlu%surf0%n_vertices + &
+        Tdomain%SF%intSolFluPml%surf0%n_faces + &
+        Tdomain%SF%intSolFluPml%surf0%n_edges + &
+        Tdomain%SF%intSolFluPml%surf0%n_vertices) /= 0
 
     ! Neumann B.C. properties, eventually
     if(Tdomain%logicD%Neumann_local_present)then
@@ -291,7 +304,7 @@ subroutine read_mesh_file_h5(Tdomain)
 
     ! Interproc communications
     Tdomain%tot_comm_proc = 0
-    !call read_attr_int(fid, "tot_comm_proc", Tdomain%tot_comm_proc)
+    call read_attr_int(fid, "tot_comm_proc", Tdomain%tot_comm_proc)
     allocate (Tdomain%sComm(0:Tdomain%nb_procs-1))
     do i = 0,Tdomain%tot_comm_proc-1
         write(proc_grp,"(a,I4.4)") "Proc", i
@@ -318,28 +331,21 @@ subroutine read_mesh_file_h5(Tdomain)
         end if
         if(Tdomain%sComm(i)%nb_faces > 0)then
             allocate(Tdomain%sComm(i)%faces(0:Tdomain%sComm(i)%nb_faces-1))
-            allocate(Tdomain%sComm(i)%orient_faces(0:Tdomain%sComm(i)%nb_faces-1))
             call read_dataset(proc_id, "faces", itemp)
-            call read_dataset(proc_id, "faces_map", itempb)
             do j = 0,Tdomain%sComm(i)%nb_faces-1
                 Tdomain%sComm(i)%faces(j)        = itemp(j+1)
-                Tdomain%sComm(i)%orient_faces(j) = itempb(j+1)
             enddo
-            deallocate(itemp, itempb)
+            deallocate(itemp)
         else
             nullify(Tdomain%sComm(i)%faces)
-            nullify(Tdomain%sComm(i)%orient_faces)
         endif
         if(Tdomain%sComm(i)%nb_edges > 0)then
             call read_dataset(proc_id, "edges", itemp)
-            call read_dataset(proc_id, "edges_map", itempb)
             allocate(Tdomain%sComm(i)%edges(0:Tdomain%sComm(i)%nb_edges-1))
-            allocate(Tdomain%sComm(i)%orient_edges(0:Tdomain%sComm(i)%nb_edges-1))
             do j = 0,Tdomain%sComm(i)%nb_edges-1
                 Tdomain%sComm(i)%edges(j) = itemp(j+1)
-                Tdomain%sComm(i)%orient_edges(j) = itempb(j+1)
             enddo
-            deallocate(itemp, itempb)
+            deallocate(itemp)
         else
             nullify(Tdomain%sComm(i)%edges)
             nullify(Tdomain%sComm(i)%orient_edges)

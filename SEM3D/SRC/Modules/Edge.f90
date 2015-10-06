@@ -18,18 +18,7 @@ module sedges
         integer, dimension (:), allocatable :: Idom
         integer, dimension(0:1) :: inodes
 
-        ! TODO REMOVE
-        logical :: PML, Abs, FPML ! redondant avec mat_index
-        ! Lien entre ngll et numérotation des champs globaux
-        integer, dimension (:), allocatable :: Renum ! renommage en Igll
-        ! solid-fluid
-        logical  :: solid, fluid_dirich ! redondant avec mat_index
-
-
-       !! Couplage Externe
-!       real, dimension (:,:), allocatable :: ForcesExt
-!       real, dimension (:), allocatable :: tsurfsem
-
+        logical :: Abs
     end type edge
 
 contains
@@ -40,11 +29,7 @@ contains
         !
         ed%ngll = 0
         ed%domain = -1
-        !
-        ed%PML = .false.
         ed%Abs = .false.
-        ed%FPML = .false.
-        ed%solid = .true.
     end subroutine init_edge
 
 end module sedges

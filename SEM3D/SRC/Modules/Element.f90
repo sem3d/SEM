@@ -80,50 +80,18 @@ module selement
         ! Index of a gll node within the global nodes array
         integer, dimension (:,:,:), allocatable :: Iglobnum
         real :: dist_max !! taille caracteristique de l'element
-
-        !! TODO remove
-        ! flag for PML allocation
-        logical :: PML, FPML
-        logical  :: solid, fluid_dirich
-        integer, dimension (0:5) :: Orient_Faces
-        integer, dimension (0:11) :: Orient_Edges
-
     end type element
 
 contains
-
-    !    integer function get_domain(el)
-    !        use constants
-    !        implicit none
-    !        type(Element), intent(INOUT) :: el
-    !
-    !        if (el%solid) then
-    !            if (el%PML) then
-    !                get_domain = DM_SOLID_PML
-    !            else
-    !                get_domain = DM_SOLID
-    !            endif
-    !        else ! Fluid
-    !            if (el%PML) then
-    !                get_domain = DM_FLUID_PML
-    !            else
-    !                get_domain = DM_FLUID
-    !            endif
-    !        endif
-    !        return
-    !    end function get_domain
-
-
 
     subroutine init_element(el)
         type(element), intent(inout) :: el
 
         el%mat_index=-1
+        el%domain = -1
         el%ngllx=0
         el%nglly=0
         el%ngllz=0
-        el%PML = .false.
-        el%solid = .true.
 
     end subroutine init_element
 

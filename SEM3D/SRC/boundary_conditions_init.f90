@@ -487,45 +487,45 @@ subroutine define_FEV_Neumann(Tdomain)
 end subroutine define_FEV_Neumann
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
-subroutine define_Face_SF(Tdomain)
-    use sdomain
-    implicit none
-
-    type(domain), intent(inout)  :: Tdomain
-    integer :: nf,ngllx,nglly,ngllz,ngll1,ngll2,mat,w_elem,dir
-
-    integer :: i, j, kb
-    Tdomain%SF%SF_BtN(:,:) = 0.
-
-    kb = 0
-    do nf = 0,Tdomain%SF%SF_n_faces-1
-        ngll1 = Tdomain%SF%SF_Face(nf)%ngll1 ; ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
-        if(Tdomain%SF%SF_face(nf)%Face(0) > 0)then
-            w_elem = Tdomain%sFace(Tdomain%SF%SF_face(nf)%Face(0))%which_elem
-        else
-            w_elem = Tdomain%sFace(Tdomain%SF%SF_face(nf)%Face(1))%which_elem
-        end if
-        mat = Tdomain%specel(w_elem)%mat_index
-        ngllx = Tdomain%sSubdomain(mat)%ngllx
-        nglly = Tdomain%sSubdomain(mat)%nglly
-        ngllz = Tdomain%sSubdomain(mat)%ngllz
-        dir = Tdomain%SF%SF_face(nf)%dir
-        call normal_face_weighting(dir,ngllx,nglly,ngllz,     &
-            ngll1,ngll2,Tdomain%SF%SF_face(nf)%normal,Tdomain%sSubdomain(mat)%GLLwx, &
-            Tdomain%sSubdomain(mat)%GLLwy,Tdomain%sSubdomain(mat)%GLLwz,             &
-            Tdomain%SF%SF_Face(nf)%Btn)
-
-
-        ! On calcul le tableau de BtN global
-        do j = 0,ngll2-1
-           do i = 0,ngll1-1
-               kb = Tdomain%SF%SF_Face(nf)%I_sf(i,j)
-               Tdomain%SF%SF_BtN(kb,0:2) = Tdomain%SF%SF_BtN(kb,0:2) + Tdomain%SF%SF_Face(nf)%Btn(i,j,0:2)
-           enddo
-        enddo
-    enddo
-
-end subroutine define_Face_SF
+!subroutine define_Face_SF(Tdomain)
+!    use sdomain
+!    implicit none
+!
+!    type(domain), intent(inout)  :: Tdomain
+!    integer :: nf,ngllx,nglly,ngllz,ngll1,ngll2,mat,w_elem,dir
+!
+!    integer :: i, j, kb
+!    Tdomain%SF%SF_BtN(:,:) = 0.
+!
+!    kb = 0
+!    do nf = 0,Tdomain%SF%SF_n_faces-1
+!        ngll1 = Tdomain%SF%SF_Face(nf)%ngll1 ; ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
+!        if(Tdomain%SF%SF_face(nf)%Face(0) > 0)then
+!            w_elem = Tdomain%sFace(Tdomain%SF%SF_face(nf)%Face(0))%which_elem
+!        else
+!            w_elem = Tdomain%sFace(Tdomain%SF%SF_face(nf)%Face(1))%which_elem
+!        end if
+!        mat = Tdomain%specel(w_elem)%mat_index
+!        ngllx = Tdomain%sSubdomain(mat)%ngllx
+!        nglly = Tdomain%sSubdomain(mat)%nglly
+!        ngllz = Tdomain%sSubdomain(mat)%ngllz
+!        dir = Tdomain%SF%SF_face(nf)%dir
+!        call normal_face_weighting(dir,ngllx,nglly,ngllz,     &
+!            ngll1,ngll2,Tdomain%SF%SF_face(nf)%normal,Tdomain%sSubdomain(mat)%GLLwx, &
+!            Tdomain%sSubdomain(mat)%GLLwy,Tdomain%sSubdomain(mat)%GLLwz,             &
+!            Tdomain%SF%SF_Face(nf)%Btn)
+!
+!
+!        ! On calcul le tableau de BtN global
+!        do j = 0,ngll2-1
+!           do i = 0,ngll1-1
+!               kb = Tdomain%SF%SF_Face(nf)%I_sf(i,j)
+!               Tdomain%SF%SF_BtN(kb,0:2) = Tdomain%SF%SF_BtN(kb,0:2) + Tdomain%SF%SF_Face(nf)%Btn(i,j,0:2)
+!           enddo
+!        enddo
+!    enddo
+!
+!end subroutine define_Face_SF
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 subroutine Number_Face2Face(ngll1,ngll2,orient_e,BtNf,BtNe)

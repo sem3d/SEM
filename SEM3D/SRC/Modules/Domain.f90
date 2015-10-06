@@ -21,13 +21,13 @@ module sdomain
     use ssubdomains
     use splanew
     use sneu
-    use ssurf
     use sbassin
     use solid_fluid
     use semdatafiles
     use schamps
     use sem_c_config
-
+    use sinterface
+    
     type :: domain
        integer :: communicateur !<<< Communicator including all SEM processors
        integer :: rank          !<<< Rank of this process within this communicator
@@ -52,9 +52,7 @@ module sdomain
        type(logical_array) :: logicD
        type(planew)        :: sPlaneW
        type(Neu_object)    :: Neumann
-       type(surf)          :: sSurf
        type(bassin)        :: sBassin
-       type(SF_object)     :: SF
        type(source)   , dimension (:), pointer :: sSource
        type(element)  , dimension (:), pointer :: specel
        type(face)     , dimension (:), pointer :: sFace
@@ -93,7 +91,6 @@ module sdomain
        ! Nombre de gll solide, fluide, pml solide, pml fluide
        integer :: ngll_s, ngll_f, ngll_pmls, ngll_pmlf
 
-
        ! Champs
        type(champs) :: champs0
        type(champs) :: champs1
@@ -108,12 +105,11 @@ module sdomain
        real, dimension(:,:), allocatable :: fpml_dirich
 
        ! Interface Solide / PML
-       integer :: nbInterfSolPml ! nombre de points de gauss à l'interface Solide / PML
-       integer, dimension(:,:), allocatable :: InterfSolPml ! dimension(0:nbInterfSolPml-1,0:1), 0 Sol, 1 PML
-
+       type(inter_num) :: intSolPml
        ! Interface Fluide / PML
-       integer :: nbInterfFluPml ! nombre de points de gauss à l'interface Solide / PML
-       integer, dimension(:,:), allocatable :: InterfFluPml ! dimension(0:nbInterfFluPml-1,0:1), 0 Flu, 1 PML
+       type(inter_num) :: intFluPml
+       ! Interface Fluide / Solide
+       type(SF_object)     :: SF
 
        ! Faces externes PML
        ! Permet par exemple de mettre a 0 le champs de vitesse pour certaines face, edge, vertex PML

@@ -35,21 +35,22 @@ module mindex
         1,1,1, &
         0,1,1 /), (/ 3, 8 /) )
 
+    ! This needs to match RefFace in meshpart.cpp
     integer, parameter, dimension(0:3,0:5) :: face_def = reshape( (/ &
         0, 1, 2, 3, &
-        0, 1, 5, 4, &
-        1, 2, 6, 5, &
+        0, 4, 5, 1, &
+        1, 5, 6, 2, &
         3, 2, 6, 7, &
         0, 3, 7, 4, &
-        4, 5, 6, 7 /), (/ 4, 6 /) )
+        4, 7, 6, 5 /), (/ 4, 6 /) )
 
     integer, parameter, dimension(0:1,0:5) :: face_dir = reshape( (/ &
         0, 1, &  ! x+,y+
+        2, 0, &  ! x+,z+
+        2, 1, &  ! y+,z+
         0, 2, &  ! x+,z+
         1, 2, &  ! y+,z+
-        0, 2, &  ! x+,z+
-        1, 2, &  ! y+,z+
-        0, 1 /), (/ 2, 6 /))
+        1, 0 /), (/ 2, 6 /))
 
     integer, parameter, dimension(0:1,0:11) :: edge_def = reshape( (/ &
         0, 1, &  ! 0
