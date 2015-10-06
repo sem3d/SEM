@@ -207,9 +207,9 @@ end subroutine calcul_forces_el
 
 !
 
-subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, &
-    dx,dy,dz, jac, poidsx,poidsy,poidsz, DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
-    mu_,la_, ngllx,nglly,ngllz, Sigma_ij_N_el, Xkin_ij_N_el, Riso_N_el, PlastMult_N_el, &
+subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poidsy, poidsz, &
+    DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, mu_,la_, ngllx, nglly, ngllz, &
+    EpsPl_ij_N_el, Sigma_ij_N_el, Xkin_ij_N_el, Riso_N_el, &
     sigma_yld_el, b_iso_el, Rinf_iso_el, C_kin_el, kapa_kin_el)
 
     use sdomain
@@ -219,8 +219,8 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, &
 
     integer, intent(in) :: ngllx,nglly,ngllz
     real, dimension(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: invgrad
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: jac, mu_,la_
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in)  :: jac, mu_,la_
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in)  :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: Fox,Foz,Foy
     real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: dx
     real, dimension(0:nglly-1,0:nglly-1), intent(in) :: dy
@@ -229,8 +229,8 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, &
     real, dimension(0:nglly-1), intent(in) :: poidsy
     real, dimension(0:ngllz-1), intent(in) :: poidsz
 
-    real, dimension(0:5,0:nglly-1,0:ngllx-1,0:ngllz-1), intent(inout) :: Sigma_ij_N_el, Xkin_ij_N_el
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1),     intent(inout) :: Riso_N_el,     PlastMult_N_el
+    real, dimension(0:5,0:nglly-1,0:ngllx-1,0:ngllz-1), intent(inout) :: EpsPl_ij_N_el, Sigma_ij_N_el, Xkin_ij_N_el
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1),     intent(inout) :: Riso_N_el
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: b_iso_el, C_kin_el, kapa_kin_el
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Rinf_iso_el, sigma_yld_el
 
@@ -247,8 +247,8 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, &
     real, dimension(0:nglly-1,0:ngllx-1,0:ngllz-1) :: t2,t6,t9
     real, dimension(0:ngllz-1,0:ngllx-1,0:nglly-1) :: t3,t7,t10
 
-    real                 :: Rinf_iso, b_iso, C_kin, kapa_kin, Riso_N, sigma_yld, alpha_elp, PlastMult_N
-    real, dimension(0:5) :: Sigma_ij_start, Sigma_ij_trial, dEpsilon_ij_alpha, Xkin_ij_N
+    real                 :: Rinf_iso, b_iso, C_kin, kapa_kin, Riso_N, sigma_yld, alpha_elp
+    real, dimension(0:5) :: Sigma_ij_start, Sigma_ij_trial, dEpsilon_ij_alpha, Xkin_ij_N, dEpsilon_ij_pl
 
 
     do k = 0,ngllz-1
@@ -278,8 +278,6 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, &
                 !
                 Xkin_ij_N   = Xkin_ij_N_el(0:5,i,j,k)
                 Riso_N      = Riso_N_el    (i,j,k)
-                PlastMult_N = PlastMult_N_el (i,j,k)
-
                 b_iso       = b_iso_el     (i,j,k)
                 C_kin       = C_kin_el     (i,j,k)
                 kapa_kin    = kapa_kin_el  (i,j,k)
@@ -288,16 +286,18 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, &
 
                 Sigma_ij_start = Sigma_ij_N_el(0:5,i,j,k)
                 Sigma_ij_trial = (/ sxx, syy, szz, sxy, sxz, syz /)
+                dEpsilon_ij_pl = 0d0
                 call check_plasticity (Sigma_ij_trial, Sigma_ij_start, Xkin_ij_N, Riso_N, &
                     sigma_yld, st_epl, alpha_elp)
                 !
                 ! PLASTIC CORRECTION
                 !
+
                 if (st_epl == 1) then
                     dEpsilon_ij_alpha = (1-alpha_elp) * &
                         (/dxx, dyy, dzz, 1/2*(dxy+dyx), 1/2*(dxz+dzx), 1/2*(dyz+dzy) /)
                     call plastic_corrector(dEpsilon_ij_alpha, Sigma_ij_trial, Xkin_ij_N, sigma_yld, &
-                        Riso_N, b_iso, Rinf_iso, C_kin, kapa_kin, xmu, xla, PlastMult_N)
+                        Riso_N, b_iso, Rinf_iso, C_kin, kapa_kin, xmu, xla, dEpsilon_ij_pl)
 
                         sxx = Sigma_ij_trial(0)
                         syy = Sigma_ij_trial(1)
@@ -310,10 +310,10 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, &
                 !
                 ! UPDATE STATE
                 !
+                EpsPl_ij_N_el(0:5,i,j,k) = EpsPl_ij_N_el(0:5,i,j,k)+dEpsilon_ij_pl
                 Sigma_ij_N_el(0:5,i,j,k) = Sigma_ij_trial
-                Xkin_ij_N_el(0:5,i,j,k) = Xkin_ij_N
-                Riso_N_el(i,j,k) = Riso_N
-                PlastMult_N_el(i,j,k) = PlastMult_N
+                Xkin_ij_N_el(0:5,i,j,k)  = Xkin_ij_N
+                Riso_N_el(i,j,k)         = Riso_N
 
                 !
                 xi1 = Invgrad(0,0,i,j,k)

@@ -298,18 +298,22 @@ subroutine allocate_domain (Tdomain)
         Tdomain%champs0%Veloc  = 0d0
 
         if (Tdomain%nl_flag == 1) then
-            allocate(Tdomain%champs0%Riso(0:Tdomain%ngll_s-1))
-            allocate(Tdomain%champs0%Stress(0:Tdomain%ngll_s-1,0:5))
-            allocate(Tdomain%champs0%Xkin(0:Tdomain%ngll_s-1,0:5))
-            allocate(Tdomain%champs0%PlastMult(0:Tdomain%ngll_s-1))
-            allocate(Tdomain%champs1%Riso(0:Tdomain%ngll_s-1))
-            allocate(Tdomain%champs1%Stress(0:Tdomain%ngll_s-1,0:5))
-            allocate(Tdomain%champs1%Xkin(0:Tdomain%ngll_s-1,0:5))
-            allocate(Tdomain%champs1%PlastMult(0:Tdomain%ngll_s-1))
-            Tdomain%champs0%Riso   = 0d0
-            Tdomain%champs0%Stress = 0d0
-            Tdomain%champs0%Xkin   = 0d0
-            Tdomain%champs0%PlastMult = 0d0
+
+            allocate(Tdomain%champs0%Epsilon_pl (0:Tdomain%ngll_s-1,0:5))
+            allocate(Tdomain%champs0%Stress     (0:Tdomain%ngll_s-1,0:5))
+            allocate(Tdomain%champs0%Xkin       (0:Tdomain%ngll_s-1,0:5))
+            allocate(Tdomain%champs0%Riso       (0:Tdomain%ngll_s-1))
+
+            allocate(Tdomain%champs1%Epsilon_pl (0:Tdomain%ngll_s-1,0:5))
+            allocate(Tdomain%champs1%Stress     (0:Tdomain%ngll_s-1,0:5))
+            allocate(Tdomain%champs1%Xkin       (0:Tdomain%ngll_s-1,0:5))
+            allocate(Tdomain%champs1%Riso       (0:Tdomain%ngll_s-1))
+
+            Tdomain%champs0%Epsilon_pl = 0d0
+            Tdomain%champs0%Stress     = 0d0
+            Tdomain%champs0%Xkin       = 0d0
+            Tdomain%champs0%Riso       = 0d0
+
         end if
 
         ! Allocation de Tdomain%MassMatSol pour les solides

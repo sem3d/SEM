@@ -139,7 +139,7 @@ contains
     end subroutine check_plasticity
 
     subroutine plastic_corrector (dEpsilon_ij_alpha, Sigma_ij_1, X_ij_1, sigma_yld, &
-        R_1, b_lmc, Rinf_lmc, C_lmc, kapa_lmc, mu, lambda, PlastMult_1)
+        R_1, b_lmc, Rinf_lmc, C_lmc, kapa_lmc, mu, lambda, dEpsilon_ij_pl)
 
         ! NR ALGORITHM AND DRIFT CORRECTION
 
@@ -147,8 +147,8 @@ contains
         real, dimension(0:5), intent(inout) :: Sigma_ij_1           ! starting stress state
         real, dimension(0:5), intent(inout) :: X_ij_1               ! starting back stress
         real,                 intent(inout) :: R_1                  ! starting mises radius
-        real,                 intent(inout) :: PlastMult_1          ! current plastic multiplier
-        real, dimension(0:5), intent(inout) :: dEpsilon_ij_alpha       ! percentage of elastic-plastic strain
+        real, dimension(0:5), intent(inout) :: dEpsilon_ij_alpha    ! percentage of elastic-plastic strain
+        real, dimension(0:5), intent(inout) :: dEpsilon_ij_pl       ! percentage of plastic strain
         real,                 intent(in)    :: sigma_yld            ! first yield limit
         real,                 intent(in)    :: b_lmc, Rinf_lmc      ! Lamaitre and Chaboche parameters (isotropic hardening)
         real,                 intent(in)    :: C_lmc, kapa_lmc      ! Lamaitre and Chaboche parameters (kinematic hardening)
@@ -172,7 +172,6 @@ contains
 
         DEL_ijhk(0:2,0:2) = DEL_ijhk(0:2,0:2) + lambda * M + id_matrix * 2 * mu
         DEL_ijhk(3:5,3:5) = DEL_ijhk(3:5,3:5) + id_matrix * mu
-
         dPlastMult_0      = 0
         dEpsilon_ij_alpha = dEpsilon_ij_alpha/N_incr
 
@@ -188,7 +187,8 @@ contains
             call compute_plastic_modulus(dEpsilon_ij_alpha, Sigma_ij_0, X_ij_0, R_0, mu, lambda, sigma_yld, &
                 b_lmc, Rinf_lmc, C_lmc, kapa_lmc, dPlastMult_1)
 
-            dPlastMult_0 = dPlastMult_0 + dPlastMult_1
+            dPlastMult_0   = dPlastMult_0 + dPlastMult_1
+            dEpsilon_ij_pl = dEpsilon_ij_pl + dPlastMult_1*gradF_0
 
             ! HARDENING INCREMENTS
             call hardening_increments(dPlastMult_1, Sigma_ij_0, R_0, X_ij_0, sigma_yld, &
@@ -210,8 +210,6 @@ contains
             call drift_corr(Sigma_ij_0, X_ij_1, R_1, sigma_yld) ! drift correction (radial return)
 
         end do
-
-        PlastMult_1 = PlastMult_1 + dPlastMult_0
         call mises_yld_locus(Sigma_ij_1, X_ij_1, R_1, sigma_yld, F_mises, gradF_mises)
 
     end subroutine plastic_corrector

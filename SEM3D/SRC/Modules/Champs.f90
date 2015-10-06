@@ -31,10 +31,10 @@ module schamps
         real, dimension(:,:), allocatable :: fpml_DumpV
 
         !! Non Linear
-        real, dimension(:),   allocatable :: PlastMult
-        real, dimension(:),   allocatable :: Riso
         real, dimension(:,:), allocatable :: Stress
+        real, dimension(:,:), allocatable :: Epsilon_pl
         real, dimension(:,:), allocatable :: Xkin
+        real, dimension(:),   allocatable :: Riso
 
     end type champs
 
