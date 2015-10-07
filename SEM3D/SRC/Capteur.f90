@@ -410,7 +410,6 @@ contains
                 offset(i+1) = offset(i)
             end if
         end do
-        write(*,*) "OFFSET:", offset
         allocate(grandeur(0:n_out-1))
         grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
 
