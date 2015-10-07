@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 subroutine normal_face_weighting(dir,ngllx,nglly,ngllz,ngll1,ngll2,normal,   &
     GLLwx,GLLwy,GLLwz,BtN)
     !- determination of the weighted normal term for a given (inter)face
@@ -421,8 +425,7 @@ subroutine define_Face_SF(Tdomain)
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    integer :: nf,ngllx,nglly,ngllz,ngll1,ngll2,mat,i,w_elem
-    real, dimension(:,:,:), allocatable :: Store_Btn
+    integer :: nf,ngllx,nglly,ngllz,ngll1,ngll2,mat,w_elem
 
     do nf = 0,Tdomain%SF%SF_n_faces-1
         ngll1 = Tdomain%SF%SF_Face(nf)%ngll1 ; ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
@@ -442,8 +445,15 @@ subroutine define_Face_SF(Tdomain)
     enddo
 
 end subroutine define_Face_SF
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

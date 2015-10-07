@@ -1,6 +1,10 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file Capteur.f90
-!!\brief Permet de manipuler les quantités associées aux capteurs.
+!!\brief Permet de manipuler les quantitï¿½s associï¿½es aux capteurs.
 !!\author
 !!\version 1.0
 !!\date 10/03/2009
@@ -14,45 +18,29 @@ module mCapteur
     use mpi
     use mfields
     use sem_hdf5
-    use constants, only : NCAPT_CACHE
+    use sem_c_config
+    use constants, only : NCAPT_CACHE, M_1_3
+    use mshape8
+    use mshape27
     implicit none
 
-    public :: read_capteur, save_capteur, evalueSortieCapteur, flushAllCapteurs
-    private :: lireCapteur, capterPointDeGauss, sortirGrandeurSousCapteur, flushCapteur
-
-
-    type :: tPtgauss
-       integer :: num      ! numero du point de Gauss
-       integer :: nel, i,j,k ! Numero de l'element, et numerotation interne du pt de gauss
-       real    :: Coord(3) ! coordonnees du point de gauss
-       real    :: Poids    ! poids du point de Gauss
-       type(tPtGauss),pointer :: suivant  ! point de Gauss suivant
-    end type Tptgauss
-
-
+    public :: save_capteur, evalueSortieCapteur, flushAllCapteurs, create_capteurs
+    private ::  flushCapteur
+    ! start modifs
+    integer, parameter :: CAPT_DIM=26
+    ! end modifs
     type :: tCapteur
+        type(tCapteur),pointer :: suivant ! pour passer au capteur suivant
+        integer :: periode          ! frequence de captation des grandeur
+        real, dimension (3) :: Coord  ! localisation du capteur
+        character(LEN=20) :: nom      ! nom du capteur
+        integer :: n_el ! numero de la maille dans laquelle se trouve le capteur
+        ! si le capteur est partage entre plusieurs mailles, une seule suffit (type_calcul=1)
+        real :: xi, eta, zeta ! abscisses curvilignes pour le capteur en cas d'interpolation (type_calcul=1)
+        integer :: numproc               ! numero du proc localisant le capteur
+        integer :: icache
+        real, dimension(:,:), allocatable :: valuecache
 
-       integer :: numero             ! numero du capteur
-       real :: rayon                 ! rayon d'action du capteur
-       real :: distanceMin           ! distance au pt de Gauss le plus proche
-       integer :: frequence          ! frequence de captation des grandeur
-       real, dimension (3) :: Coord  ! localisation du capteur
-       character(LEN=3) :: operation ! type d operation a mener sur la grandeur
-       character(LEN=50) :: grandeur ! grandeur physique a extraire
-       character(LEN=20) :: nom      ! nom du capteur
-       integer :: nPtGauss           ! nombre de points de Gauss
-       type(tPtgauss),pointer :: listePtGauss ! liste des points de Gauss associe au capteur
-       type(Tcapteur),pointer :: suivant ! pour passer au capteur suivant
-       integer :: type_calcul        ! 0 => pas d'interpolation, recherche du point de Gauss le plus proche,
-       ! 1 => interpolation aux positions du capteur
-       !   (necessite le calcul des abscisses curvilignes dans l'element de reference
-       !     = processus de dichotomie pour trouver (xi,eta,zeta))
-       integer :: n_el ! numero de la maille dans laquelle se trouve le capteur
-       ! si le capteur est partage entre plusieurs mailles, une seule suffit (type_calcul=1)
-       real :: xi, eta, zeta ! abscisses curvilignes pour le capteur en cas d'interpolation (type_calcul=1)
-       integer :: numproc               ! numero du proc localisant le capteur
-       integer :: icache
-       real, dimension(4,NCAPT_CACHE) :: valuecache
     end type tCapteur
 
     integer           :: dimCapteur        ! nombre total de capteurs
@@ -64,49 +52,23 @@ module mCapteur
     logical :: traces_h5_created
 contains
 
-    function grandeur_depla(Tdomain, PtGauss)
-        type(domain), intent(in) :: Tdomain
-        type(tPtgauss), intent(in) :: PtGauss
-        real, dimension(3) :: grandeur_depla
 
-    end function grandeur_depla
-
-    function grandeur_vitesse(Tdomain, PtGauss)
-        type(domain), intent(in) :: Tdomain
-        type(tPtgauss), intent(in) :: PtGauss
-        real, dimension(3) :: grandeur_vitesse
-
-    end function grandeur_vitesse
-
-    !--------------------------------------------------------------
-
-    !>
-    !! \brief La routine read_capteur() permet de charger les caractéristiques des capteurs définies dans les fichiers d'entrée.
-    !! Elle est appelée une seule fois, avant la boucle en temps, afin d'initialiser les capteurs.
-    !! \param type (domain), target Tdomain
-    !<
-    subroutine read_capteur(tDomain, rg, info_capteur)
-
+    subroutine create_capteurs(Tdomain)
         implicit none
-
-        type (domain), target  :: Tdomain
+        type(domain), intent (inout) :: Tdomain
+        !
         type(Tcapteur),pointer :: capteur
-        type(tPtgauss),pointer :: PtGauss
+        type(C_PTR) :: station_next;
+        type(sem_station), pointer :: station_ptr
+        character(Len=MAX_FILE_SIZE) :: nom
+        double precision :: xc, yc, zc, xi, eta, zeta
+        character(len=MAX_FILE_SIZE) :: fnamef
+        integer :: numproc, numproc_max, ierr, n_el, n_eln, i, n_out
+        double precision, allocatable, dimension(:,:) :: coordl
 
-        integer :: rg
-        integer :: ierr, tag
-        integer , dimension  (MPI_STATUS_SIZE) :: status
-        real :: distanceMinMin
-        real,dimension(3) :: val, val0
-        real,dimension(:),allocatable :: sendbuf, recvbuf
-        integer info_capteur, numproc_max
-        real xi, eta, zeta
-        integer n_el
 
-        ! lecture des parametres des capteurs
-
-        !lecture du fichier des capteurs capteurs.dat
-        call lireCapteur(tDomain, rg, info_capteur)
+        station_next = Tdomain%config%stations
+        nullify(listeCapteur)
 
         ! En reprise on ne recree pas le fichier capteur
         if (Tdomain%TimeD%NtimeMin==0) then
@@ -114,403 +76,90 @@ contains
         else
             traces_h5_created = .true.
         endif
-
-        if(info_capteur /= 0) return
-
-        ! creer pour chaque capteur la liste du ou des points de gauss a prendre en compte
-        call capterPointDeGauss(Tdomain%GlobCoord, Tdomain%n_glob_points)
-
-        ! tableau de correspondance pour les com
-        allocate(sendbuf(3*dimCapteur))
-        allocate(recvbuf(3*dimCapteur))
-
-        call dist_max_elem(Tdomain) !!ajout calcul de la distance max entre deux sommets a l'interieur d'une maille
-        !!permet de limiter le nombre de mailles pouvant contenir un capteur
-
-        ! afficher position des points de Gauss pour chaque capteur ?
-        capteur=>listeCapteur
-
-        do while (associated(capteur))
-
-            tag=capteur%numero ! une com par capteur
-
-
-            if(capteur%type_calcul==0) then
-
-                PtGauss=>capteur%listePtGauss
-
-                if (capteur%rayon==0) then ! un seul point de Gauss a ecrire, mais le plus proche de tous
-                    ! tous les proc recupere la distance min du pdg le + proche
-                    call MPI_AllReduce(capteur%distanceMin, distanceMinMin, 1, MPI_DOUBLE_PRECISION, MPI_MIN, Tdomain%communicateur, ierr)
-                    if (ABS(distanceMinMin - capteur%distanceMin) < 1e-5) then ! on est sur le proc qui a le pt de gauss le + proche
-                        val(1) = PtGauss%coord(1) ! coord en x du pdg le plus proche
-                        val(2) = PtGauss%coord(2) ! coord en y du pdg le plus proche
-                        val(3) = PtGauss%coord(3) ! coord en z du pdg le plus proche
-                        write(6,'(A30,I8,A13,I8)') "numero du pdg le plus proche:", PtGauss%num, " sur le proc ", rg
-                        if (rg.EQ.0 ) then ! pdg le plus proche est sur le proc 0
-                            val0(1) = val(1)
-                            val0(2) = val(2)
-                            val0(3) = val(3)
-                        else ! on envoie le pdg le plus proche au proc 0
-                            sendbuf(3*(dimCapteur-1)+1) = val(1)
-                            sendbuf(3*(dimCapteur-1)+2) = val(2)
-                            sendbuf(3*(dimCapteur-1)+3) = val(3)
-                            call MPI_SEND(sendbuf, 3*dimCapteur, MPI_DOUBLE_PRECISION, 0, tag,  Tdomain%communicateur, ierr)
-                        endif
-                    else
-                        if (rg .eq.0 ) then ! proc 0 n'a pas le pdg le + proche et doit donc le recevoir
-
-                            call mpi_recv(recvbuf,3*dimCapteur,MPI_DOUBLE_PRECISION,mpi_any_source,tag, Tdomain%communicateur,status,ierr)
-
-                            val0(1) = recvbuf(3*(dimCapteur-1)+1)
-                            val0(2) = recvbuf(3*(dimCapteur-1)+2)
-                            val0(3) = recvbuf(3*(dimCapteur-1)+3)
-                        endif
-                    endif
-
-                endif
-
-            elseif(capteur%type_calcul==1) then
-                xi = -1.
-                eta = -1.
-                zeta  = -1.
-                n_el = -1
-                call trouve_capteur(Tdomain, rg, capteur, n_el, xi, eta, zeta)
-
-                val(1) = xi
-                val(2) = eta
-                val(3) = zeta
-
-                call MPI_AllReduce(capteur%numproc, numproc_max, 1, MPI_INTEGER, MPI_MAX, Tdomain%communicateur, ierr)
-
-                ! attention si le capteur est partage par plusieurs procs. On choisit le proc de num max
-                capteur%numproc = numproc_max
-                if(rg==numproc_max) then
-                    capteur%n_el = n_el ! uniquement pour l'affichage dans le fichier *position
-                    capteur%xi = xi !val0(1)
-                    capteur%eta = eta !val0(2)
-                    capteur%zeta = zeta !val0(3)
-
+        do while (C_ASSOCIATED(station_next))
+            call c_f_pointer(station_next, station_ptr)
+            xc = station_ptr%coords(1)
+            yc = station_ptr%coords(2)
+            zc = station_ptr%coords(3)
+            numproc = -1
+            call trouve_capteur(Tdomain, xc, yc, zc, n_el, n_eln, xi, eta, zeta)
+            ! Cas ou le capteur est dans le maillage
+            if (n_el/=-1) then
+                numproc = Tdomain%rank
+            end if
+            call MPI_AllReduce(numproc, numproc_max, 1, MPI_INTEGER, &
+                MPI_MAX, Tdomain%communicateur, ierr)
+            ! Cas ou le capteur est en dehors du maillage mais < abs(1.1)
+            if (numproc_max==-1) then
+                n_el = n_eln
+                if (n_el/=-1) then
+                    numproc = Tdomain%rank
                 end if
-                !! on reattribue au proc son numero d'element initial
-            endif
-            capteur=>capteur%suivant
-
-        enddo
-
-        deallocate(sendbuf)
-        deallocate(recvbuf)
-
-    end subroutine read_capteur
-
-
-    !------------------------------------------------------------------------------------------------
-
-    !>
-    !! \brief Lit les caratéristiques des capteurs.
-    !!
-    !! \param type (Domain), intent (IN) Tdomain
-    !<
-    subroutine lireCapteur(Tdomain, rg, info_capteur)
-
-        implicit none
-
-
-        type (Domain), intent (IN) :: Tdomain
-
-        integer            :: CodeErreur,fileId,rg
-        character(LEN=MAX_FILE_SIZE) :: ligne,fnamef
-        logical            :: status
-
-        type(Tcapteur),pointer :: capteur
-        integer info_capteur
-        character(LEN=6) :: char_calcul
-
-        ! Id des fichiers de sortie des capteur
-        fileId=99
-
-        ! nombre de capteurs dans le fichier capteurs.dat
-        dimCapteur=0
-
-        ! liste initialement vide
-        nullify(listeCapteur)
-
-        !controle d'existence du fichier
-        INQUIRE(File=trim(Tdomain%station_file),Exist=status)
-        info_capteur=0
-        if ( .not.status ) then
-            if(rg==0) &
-                write (*,*)"fichier des capteurs introuvable :",trim(Tdomain%station_file)
-            !!      stop
-            info_capteur=1
-            return
-        else
-            if(rg==0) then
-                write(*,*) "Reading file:", trim(adjustl(Tdomain%station_file))
+                call MPI_AllReduce(numproc, numproc_max, 1, MPI_INTEGER, &
+                    MPI_MAX, Tdomain%communicateur, ierr)
+                ! Re-calcul des coordonnees globales de la station apres
+                ! modification des coordonnes locales
+                if (n_el/=-1) then
+                    allocate(coordl(0:2, 0:Tdomain%n_nodes-1))
+                    do i = 0, Tdomain%n_nodes-1
+                        coordl(0:2, i) = Tdomain%Coord_Nodes(0:2, Tdomain%specel(n_el)%Control_Nodes(i))
+                    enddo
+                    if (Tdomain%n_nodes==8) then
+                        call shape8_local2global(coordl, xi, eta, zeta, xc, yc, zc)
+                    else
+                        call shape27_local2global(coordl, xi, eta, zeta, xc, yc, zc)
+                    end if
+                    deallocate(coordl)
+                end if
             end if
-        end if
-
-        open(UNIT=fileIdCapteur,IOSTAT=CodeErreur,FILE=trim(Tdomain%station_file),FORM='formatted',STATUS='old',ACTION='read')
-        if (CodeErreur .ne.0 ) print*,'Pb a l''ouverture du fichier Capteur  :CodeErreur=',CodeErreur
-
-        do ! while (.not.eof(fileIdCapteur))
-
-
-            ! initialisation d un nouveau capteur
-            dimCapteur=dimCapteur+1   ! nbre total de capteur
-            allocate(capteur)
-            capteur%nom = ""         ! ses caracteristiques par defaut
-            capteur%numero = dimCapteur ! numero du capteur
-            capteur%frequence = 10
-            capteur%rayon = 0
-            capteur%operation = ""
-            capteur%grandeur = ""
-            capteur%coord(:) = -1.
-            capteur%n_el = -1
-            capteur%numproc = -1
-            capteur%type_calcul = 1 !mode de calcul du capteur
-            nullify(capteur%listePtGauss)
-            capteur%distanceMin = huge(1.)
-            capteur%nPtGauss = 0  ! initialisation du nombre de points de Gauss a prendre en compte
-            capteur%icache = 0
-            read(fileIdCapteur,'(A)',end=100) ligne ! titre 1
-            read(fileIdCapteur,'(A)',end=100) ligne ! titre 2
-
-
-            ! recuperation du nom du capteur
-            read(fileIdCapteur,'(A)',end=100) ligne
-
-
-            do while (trim(ligne).ne."")
-
-
-                if (ligne(1:11).eq."NOM_CAPTEUR") capteur%nom = trim(ligne(12:100))
-                if (ligne(1:4).eq."FREQ") read(ligne(5:100),*,ERR=201)capteur%frequence
-                if (ligne(1:5).eq."RAYON") read(ligne(6:100),*,ERR=202)capteur%rayon
-                if (ligne(1:9).eq."OPERATION") capteur%operation=trim(adjustl(ligne(10:100)))
-                if (ligne(1:8).eq."GRANDEUR") capteur%grandeur=trim(adjustl(ligne(9:100)))
-                if (ligne(1:6).eq."COORDX") read(ligne(7:100),*,ERR=203) capteur%Coord(1)
-                if (ligne(1:6).eq."COORDY") read(ligne(7:100),*,ERR=204) capteur%Coord(2)
-                if (ligne(1:6).eq."COORDZ") read(ligne(7:100),*,ERR=205) capteur%Coord(3)
-
-                if (ligne(1:11).eq."TYPE_CALCUL") then
-
-                    read(ligne(12:100),'(A6)',ERR=206) char_calcul
-
-                    if(trim(adjustl(char_calcul)) == 'GAUSS') then
-                        capteur%type_calcul = 0
-                    elseif    (trim(adjustl(char_calcul)) == 'INTERP') then
-                        capteur%type_calcul = 1
-                    endif
-
-                endif
-
-                !if (ligne(1:8).eq."MATERIAU") read(ligne(9:100),'(I4)',,ERR=202)capteur%materiau
-
-
-                ! recuperation du nom du capteur
-                read(fileIdCapteur,'(A)',end=50) ligne
-            enddo ! fin de lecture du capteur courant
-
-
-50          if (rg==0) then
-                write(*,*) "capteur : ",dimCapteur," ", capteur%nom
-                write(*,*) "- freq = ", capteur%frequence
-                write(*,*) "- pos = ", capteur%Coord
+            ! Cas ou le capteur est completement en dehors du maillage
+            if (numproc_max==-1) then
+                if (Tdomain%rank==0) then
+                    write(*,*) "One of the station doesn't appear to be on any processor"
+                    write(*,*) "Please verify that the station location is within the computation domain"
+                end if
+                stop 1
             end if
 
-            capteur%suivant=>listeCapteur
-            listeCapteur=>capteur
-            ! si c'est un nouveau run, suppression de l'eventuel fichier de sortie des capteurs
-            if (Tdomain%traces_format == 1) then
-                if ( .not.Tdomain%logicD%run_restart .and. rg==0) then
 
-                    call semname_capteur_type(capteur%nom,"_deformation",fnamef)
+            ! attention si le capteur est partage par plusieurs procs. On choisit le proc de num max
+            if(Tdomain%rank==numproc_max) then
+                allocate(capteur)
+                
+                n_out = Tdomain%nReqOut                
+                if (.not.allocated(capteur%valuecache)) allocate(capteur%valuecache(1:n_out+1,NCAPT_CACHE))
 
-                    open(fileId,file=trim(fnamef),status="replace",form="formatted")
-                    close(fileId)
+                nom = fromcstr(station_ptr%name)
+                capteur%nom = nom(1:20)     ! ses caracteristiques par defaut
+                capteur%periode = station_ptr%period
+                capteur%coord(1) = xc
+                capteur%coord(2) = yc
+                capteur%coord(3) = zc
+                capteur%xi = xi
+                capteur%eta = eta
+                capteur%zeta = zeta
+                capteur%n_el = n_el
+                capteur%numproc = numproc_max
+                capteur%icache = 0
+                capteur%suivant => listeCapteur
+                listeCapteur => capteur
+                write(*,"(A,A,A,I5,A,I6,A,F8.4,A,F8.4,A,F8.4)") "Capteur:", trim(capteur%nom), &
+                    " on proc ", Tdomain%rank, " in elem ", n_el, " at ", xi, ",", eta, ",", zeta
 
-                    call semname_capteur_type(capteur%nom,"_vitesse",fnamef)
+                ! si c'est un nouveau run, suppression de l'eventuel fichier de sortie des capteurs
+                if (Tdomain%traces_format == 1) then
+                    if ( .not.Tdomain%logicD%run_restart) then
+                        call semname_capteur_type(capteur%nom,".txt",fnamef)
+                        open(123,file=trim(fnamef),status="replace",form="formatted")
+                        close(123)
+                    end if
+                end if
+            end if
 
-                    open(fileId,file=trim(fnamef),status="replace",form="formatted")
-                    close(fileId)
+            station_next = station_ptr%next
+        end do
 
-                    call semname_capteur_type(capteur%nom,"_depla",fnamef)
-
-                    open(fileId,file=trim(fnamef),status="replace",form="formatted")
-                    close(fileId)
-
-                    call semname_capteur_type(capteur%nom,"_accel",fnamef)
-
-                    open(fileId,file=trim(fnamef),status="replace",form="formatted")
-                    close(fileId)
-
-                elseif (Tdomain%logicD%run_restart.and. rg==0) then ! c'est une reprise, il faut se repositionner
-                    ! au bon endroit dans le fichier de capteur pour le completer ensuite a chaque iteration
-                    ! INUTILE ?
-                    !                if (capteur%grandeur.eq."DEFORMATION") then ! lecture du fichier de deformation
-                    !
-                    !                    call semname_capteur_type(capteur%nom,"_deformation",fnamef)
-                    !                    open(fileId,file=trim(fnamef),status="old",form="formatted")
-                    !                    do i=1,Tdomain%TimeD%NtimeMin
-                    !                        read(fileId,*,END=998)
-                    !                    enddo
-                    !                    endfile(fileId)
-                    !998                 continue ! on a atteint la fin de fichier prematurement
-                    !                    close(fileId)
-                    !                endif
-                    !
-                    !                if (capteur%grandeur.eq."VITESSE") then ! lecture du fichier de vitesse
-                    !
-                    !                    call semname_capteur_type(capteur%nom,"_vitesse",fnamef)
-                    !                    !     print*,"capteur.f90, pt 2 - vitesse"    ,Tdomain%TimeD%NtimeMin, trim(fnamef)
-                    !                    !     print*,"capteur.f90, pt 2 - vitesse 2",fileId,fnamef,rg
-                    !                    open(fileId,file=trim(fnamef),status="old",form="formatted")
-                    !                    do i=1,Tdomain%TimeD%NtimeMin
-                    !                        read(fileId,*,END=999)
-                    !                    enddo
-                    !                    endfile(fileId)
-                    !999                 continue ! on a atteint la fin de fichier prematurement
-                    !                    close(fileId)
-                    !                endif
-                    !
-                    !                if (capteur%grandeur.eq."DEPLA") then ! lecture du fichier de deplacements
-                    !
-                    !                    call semname_capteur_type(capteur%nom,"_depla",fnamef)
-                    !                    !     print*,"capteur.f90, pt 2 - vitesse"    ,Tdomain%TimeD%NtimeMin, trim(fnamef)
-                    !                    !     print*,"capteur.f90, pt 2 - vitesse 2",fileId,fnamef,rg
-                    !                    open(fileId,file=trim(fnamef),status="old",form="formatted")
-                    !                    do i=1,Tdomain%TimeD%NtimeMin
-                    !                        read(fileId,*,END=997)
-                    !                    enddo
-                    !                    endfile(fileId)
-                    !997                 continue ! on a atteint la fin de fichier prematurement
-                    !                    close(fileId)
-                    !                endif
-
-                endif ! fin du test run vs reprise
-            endif
-
-            cycle
-
-100         exit  ! fin du fichier atteinte
-
-        enddo
-
-        !    print*,"avt fermeture capteur"
-        close(fileIdCapteur)
-
-        dimCapteur=dimCapteur-1
-
-
-        return
-
-
-201     write(*,*)"Erreur (label 201) de format frequence capteur",dimCapteur
-        info_capteur = 0 !! ajout 03/10
-        !!    stop  !!initial
-
-202     write(*,*)"Erreur (label 202) de format rayon capteur",dimCapteur
-        info_capteur = 0 !! ajout 03/10
-        !!    stop !!initial
-
-203     write(*,*)"Erreur (label 203) de format X capteur",dimCapteur
-        info_capteur = 0 !! ajout 03/10
-        !!    stop !!initial
-
-204     write(*,*)"Erreur (label 204) de format Y capteur",dimCapteur
-        info_capteur = 0 !! ajout 03/10
-        !!    stop !!initial
-
-205     write(*,*)"Erreur (label 205) de format Z capteur",dimCapteur
-        info_capteur = 0 !! ajout 03/10
-        !!    stop    !!initial
-
-206     write(*,*)"Erreur (label 206) pour type de calcul du capteur",dimCapteur
-        info_capteur = 0 !! ajout 03/10
-        !!    stop  !!initial
-
-    end subroutine lireCapteur
-
-    !---------------------------------------------------------------------
-    !---------------------------------------------------------------------
-    !>
-    !! \brief Cree pour chaque capteur la liste du ou des points de Gauss à prendre en compte
-    !!
-    !>
-
-    subroutine capterPointDeGauss(coord, npg)
-
-        implicit none
-
-        integer :: npg                  ! nombre de points de gauss
-        real, dimension(3,npg) :: coord ! coordonnees des points de gauss
-
-        integer :: i
-        real    :: dist   ! distance capteur-PtGauss
-
-        type(tCapteur),pointer :: capteur
-        type(tPtgauss),pointer :: PtGauss
-
-        ! boucle sur tous les points de Gauss
-        do i=1,npg
-
-            capteur=>listeCapteur
-
-            ! boucle sur tous les capteurs
-            do while (associated(capteur))
-
-
-                ! distance entre le capteur et le point de Gauss
-                dist = sqrt((coord(1,i) - capteur%coord(1))**2 + (coord(2,i)-capteur%coord(2))**2+ (coord(3,i)-capteur%coord(3))**2)
-
-                if (capteur%rayon.GT.0.) then ! on teste si le point de Gauss est dans le rayon du capteur
-
-                    if (dist.LE.capteur%rayon) then  ! le Pt Gauss est a prendre
-                        allocate(PtGauss)
-                        PtGauss%coord(:) = coord(:,i)
-                        PtGauss%num = i-1
-                        capteur%nPtGauss = capteur%nPtGauss +1
-                        PtGauss%suivant=>capteur%listePtGauss
-                        capteur%listePtGauss=>PtGauss
-                    endif
-
-                else ! on prend le pt de Gauss le plus proche du capteur
-
-                    if (dist.lt.capteur%distanceMin) then ! le pt Gauss devient le pt le plus proche
-                        capteur%distanceMin = dist
-                        allocate(PtGauss)
-                        PtGauss%coord(:) = coord(:,i)
-                        PtGauss%num = i-1
-                        capteur%nPtGauss = 1
-                        nullify(PtGauss%suivant)
-                        capteur%listePtGauss => PtGauss
-                    endif
-
-                endif
-
-                capteur=>capteur%suivant
-
-            enddo
-
-
-        enddo
-
-
-    end subroutine capterPointDeGauss
-
-    !---------------------------------------------------------------------
-    !---------------------------------------------------------------------
-    !>
-    !! \fn subroutine capterPointDeGauss(coord,npg)
-    !! \brief
-    !!
-    !>
-    !! \fn subroutine evalueSortieCapteur(it)
-    !! \brief
-    !!
-    !! \param integer it
-    !<
+    end subroutine create_capteurs
 
 
     subroutine evalueSortieCapteur(it, time, sortie_capteur)
@@ -524,7 +173,7 @@ contains
         capteur=>listeCapteur
 
         do while (associated(capteur))
-            if (mod(it,capteur%frequence)==0) then ! on fait la sortie
+            if (mod(it,capteur%periode)==0) then ! on fait la sortie
                 sortie_capteur = .TRUE.
             endif
 
@@ -541,14 +190,12 @@ contains
     !!
     !! \param type (domain) TDomain
     !<
-
-
-    subroutine save_capteur(Tdomain, ntime, rg)
+    subroutine save_capteur(Tdomain, ntime)
 
 
         implicit none
 
-        integer :: rg, ntime
+        integer :: ntime
         type (domain) :: TDomain
 
         type(tCapteur),pointer :: capteur
@@ -556,21 +203,18 @@ contains
 
         do_flush = .false.
         ! boucle sur les capteurs
+
+
         capteur=>listeCapteur
         do while (associated(capteur))
-
-            if(capteur%type_calcul==0) then
-                call sortirGrandeurSousCapteur(capteur,Tdomain, rg)
-            else
-                call sortieGrandeurCapteur_interp(capteur,Tdomain, ntime, rg)
-            endif
-
-            if (capteur%icache==NCAPT_CACHE) do_flush = .true.
-
+            if (mod(ntime, capteur%periode)==0) then ! on fait la sortie
+                call sortieGrandeurCapteur_interp(Tdomain, capteur)
+                if (capteur%icache==NCAPT_CACHE) do_flush = .true.
+            end if
             capteur=>capteur%suivant
         enddo
 
-        if (do_flush) call flushAllCapteurs(Tdomain,rg)
+        if (do_flush) call flushAllCapteurs(Tdomain)
 
     end subroutine save_capteur
 
@@ -578,13 +222,13 @@ contains
         implicit none
         type(tCapteur),pointer :: capteur
         character(len=40) :: dset_capteur_name
-        dset_capteur_name = trim(adjustl(capteur%nom))//"_"//trim(adjustl(capteur%grandeur))
+        dset_capteur_name = trim(adjustl(capteur%nom)) !//"_"//trim(adjustl(capteur%grandeur))
     end function dset_capteur_name
 
-    subroutine create_traces_h5_skel()
+    subroutine create_traces_h5_skel(Tdomain)
         use HDF5
         implicit none
-        !type (domain) :: TDomain
+        type (domain), intent(inout) :: TDomain
         type(tCapteur),pointer :: capteur
         character (len=MAX_FILE_SIZE) :: fnamef
         character (len=40) :: dname
@@ -592,7 +236,7 @@ contains
         integer :: hdferr
 
         call init_hdf5()
-        call semname_tracefile_h5(fnamef)
+        call semname_tracefile_h5(Tdomain%rank, fnamef)
 
         call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
 
@@ -600,7 +244,8 @@ contains
         do while (associated(capteur))
             dname = dset_capteur_name(capteur)
             write(*,*) "Create dset:", trim(adjustl(dname))
-            call create_dset_2d(fid, trim(adjustl(dname)), H5T_IEEE_F64LE, int(4,HSIZE_T), int(H5S_UNLIMITED_F,HSIZE_T), dset_id)
+            call create_dset_2d(fid, trim(adjustl(dname)), H5T_IEEE_F64LE, &
+                int(CAPT_DIM,HSIZE_T), int(H5S_UNLIMITED_F,HSIZE_T), dset_id)
             call h5dclose_f(dset_id, hdferr)
             capteur=>capteur%suivant
         enddo
@@ -608,16 +253,16 @@ contains
         call h5fclose_f(fid, hdferr)
     end subroutine create_traces_h5_skel
 
-    subroutine append_traces_h5()
+    subroutine append_traces_h5(Tdomain)
         implicit none
-        !type (domain) :: TDomain
+        type (domain), intent(inout) :: TDomain
         type(tCapteur),pointer :: capteur
         character (len=40) :: dname
         character (len=MAX_FILE_SIZE) :: fnamef
         integer(HID_T) :: dset_id, fid
         integer :: hdferr
 
-        call semname_tracefile_h5(fnamef)
+        call semname_tracefile_h5(Tdomain%rank, fnamef)
 
         call h5fopen_f(fnamef, H5F_ACC_RDWR_F, fid, hdferr)
 
@@ -639,13 +284,11 @@ contains
         call h5fclose_f(fid, hdferr)
     end subroutine append_traces_h5
 
-    subroutine flushAllCapteurs(Tdomain, rg)
+    subroutine flushAllCapteurs(Tdomain)
         implicit none
-        integer :: rg
-        type (domain) :: TDomain
+        type (domain), intent(inout) :: TDomain
         type(tCapteur),pointer :: capteur
 
-        !write(*,*) "::::::::::::: TRACES FORMAT ::::", Tdomain%traces_format
         ! Default unspecified value is 'text'
         if (Tdomain%traces_format == 0) Tdomain%traces_format = 1
 
@@ -653,59 +296,41 @@ contains
             ! boucle sur les capteurs
             capteur=>listeCapteur
             do while (associated(capteur))
-                call flushCapteur(capteur,rg)
+                call flushCapteur(capteur)
                 capteur=>capteur%suivant
             enddo
         else
-            if (rg/=0) return
             ! Sauvegarde au format hdf5
-            if (.not. traces_h5_created) then
-                call create_traces_h5_skel()
-                traces_h5_created = .true.
+            if (associated(listeCapteur)) then
+                ! On ne fait rien sur ce proc si on n'a pas de capteur
+                if (.not. traces_h5_created) then
+                    call create_traces_h5_skel(Tdomain)
+                    traces_h5_created = .true.
+                end if
+                call append_traces_h5(Tdomain)
             end if
-            call append_traces_h5()
         end if
     end subroutine flushAllCapteurs
 
-    subroutine flushCapteur(capteur, rg)
+    subroutine flushCapteur(capteur)
         implicit none
-        integer :: rg
         type(tCapteur),pointer :: capteur
+        !
         integer, parameter :: fileId=123
-        integer :: j, imax
+        integer :: j
         character(len=MAX_FILE_SIZE) :: fnamef
-
-        if (rg/=0) return
-
+        character(len=20) :: sizeChar
+        write(*, *) size(capteur%valuecache)
         if (capteur%icache==0) return
 
-        if (trim(capteur%grandeur).eq."DEFORMATION") then
-            call semname_capteur_type(capteur%nom,"_deformation",fnamef)
-            imax = 1
-        endif
-
-        if (trim(capteur%grandeur).eq."VITESSE") then
-            call semname_capteur_type(capteur%nom,"_vitesse",fnamef)
-            imax = 3
-        endif
-
-        if (trim(capteur%grandeur).eq."DEPLA") then
-            call semname_capteur_type(capteur%nom,"_depla",fnamef)
-            imax = 3
-        endif
-
-        if (trim(capteur%grandeur).eq."ACCEL") then
-            call semname_capteur_type(capteur%nom,"_accel",fnamef)
-            imax = 3
-        endif
+        call semname_capteur_type(capteur%nom,".txt",fnamef)
 
         open(fileId,file=trim(fnamef),status="unknown",form="formatted",position="append")
         do j=1,capteur%icache
-            if (imax==1) then
-                write(fileId,'(2(1X,E16.8E3))') capteur%valuecache(1,j), capteur%valuecache(2,j)
-            else
-                write(fileId,'(4(1X,E16.8E3))') capteur%valuecache(1,j), capteur%valuecache(2:4,j)
-            endif
+            ! start modifs
+            write(sizeChar, *) size(capteur%valuecache)
+            write(fileId,'('//trim(sizeChar)//'(1X,E16.8E3))') capteur%valuecache(:,j)
+            ! end modifs
         end do
         close(fileId)
         capteur%icache = 0
@@ -716,178 +341,11 @@ contains
     !---------------------------------------------------------------------
 
 
-    !>
-    !! \fn subroutine sortirGrandeurSousCapteur(capteur,Tdomain)
-    !! \brief
-    !!
-    !! \param type(tCapteur) capteur
-    !! \param type (domain) TDomain
-    !<
-
-
-    subroutine sortirGrandeurSousCapteur(capteur,Tdomain, rg)
-
-        implicit none
-
-        type(tCapteur) :: capteur
-        type (domain) :: TDomain
-
-        integer :: rg
-        integer :: fileId, i, ierr, nPtGaussTotal, tag, borneInf, iproc
-
-        type(tPtGauss),pointer :: PtGauss
-
-        integer , dimension  (MPI_STATUS_SIZE) :: status
-
-        real, dimension(3) :: val0, val
-        real, dimension(:,:), allocatable :: grandeur
-
-        real,dimension(:),allocatable :: recvbuf
-        real,dimension(4) :: sendbuf
-
-        ! tableau de correspondance
-        allocate(recvbuf(4*Tdomain%n_proc))
-        sendbuf=0.
-        recvbuf=0.
-
-        ! ETAPE 0 : initialisations
-        fileId=99 ! id du fichier des sorties capteur
-        allocate (grandeur(3,max(1,capteur%nPtGauss))) ! allocation du tableau de la grandeur restreinte aux pts de Gauss captes
-        grandeur(:,:) = 0.                               ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
-
-
-        ! ETAPE 1 : Recuperation des valeurs de la grandeur pour les pts de Gauss definis par le capteur
-        PtGauss=>capteur%listePtGauss
-        i=0
-        do while (associated(PtGauss))
-
-            i=i+1
-
-            if (trim(capteur%grandeur).eq."VITESSE") then
-                grandeur(:,i) = grandeur_vitesse(Tdomain, PtGauss)
-            endif
-
-            if (trim(capteur%grandeur).eq."DEPLA") then
-                grandeur(:,i) = grandeur_depla(Tdomain, PtGauss)
-            endif
-
-            PtGauss=>PtGauss%suivant ! passage au point de Gauss suivant
-
-        enddo
-
-
-        ! ETAPE 3 : Realisation de l operation stipulee par le capteur
-
-        ! en parallele, la listeCapteur est propre a chaque proc; cela est Ok qd on cherche les points
-        ! de gauss dans un rayon du capteur, chaque proc recupere sur son maillage les pdg compris dans
-        ! le rayon, mais cela pose un pb dans le cas du pdg le plus proche. En effet, pour chaque proc
-        ! il y a un pdg le plus proche du capteur. Reste donc a determiner le + proche de tous !
-
-        if (capteur%rayon.eq.0) then ! on ne retient que la valeur du point le plus proche
-
-
-            !cas du proc 0
-            if (rg.eq.0) then
-
-                ! on remplit recvbuf avec les infos du proc 0
-                recvbuf(1) = capteur%distanceMin
-                recvbuf(2) = grandeur(1,1)
-                recvbuf(3) = grandeur(2,1)
-                recvbuf(4) = grandeur(3,1)
-
-                ! et ensuite avec les infos des autres proc
-                do iproc=1,Tdomain%n_proc-1
-                    borneInf = 4*iproc+1
-                    tag = 100*(iproc+1)+capteur%numero
-
-                    call mpi_recv(recvbuf(borneInf),4,MPI_DOUBLE_PRECISION,iproc,tag, Tdomain%communicateur,status,ierr)
-                enddo
-
-
-                ! les comm st bloquantes, ici, on a forcement le tableau recvbuf complet
-                ! on recherche le pdg le + proche et ses valeurs associees dans recvbuf
-                ! le resultat est stocke dans recvbuf(1:3)
-                do iproc=1,Tdomain%n_proc-1
-                    borneInf = 4*iproc+1
-                    if (recvbuf(borneInf).lt.recvbuf(1)) then
-                        recvbuf(1)=recvbuf(borneInf)
-                        recvbuf(2)=recvbuf(borneInf+1)
-                        recvbuf(3)=recvbuf(borneInf+2)
-                        recvbuf(4)=recvbuf(borneInf+3)
-                    endif
-                enddo
-
-                val0(1)=recvbuf(2)
-                val0(2)=recvbuf(3)
-                val0(3)=recvbuf(4)
-
-            else ! cas des autres procs : on envoie des infos au proc 0
-
-                sendbuf(1)=capteur%distanceMin
-                sendbuf(2) = grandeur(1,1) ! grandeur en x au pdg le plus proche
-                sendbuf(3) = grandeur(2,1) ! grandeur en y au pdg le plus proche
-                sendbuf(4) = grandeur(3,1) ! grandeur en z au pdg le plus proche
-                tag = 100*(rg + 1) + capteur%numero
-
-                call mpi_send(sendbuf,4,MPI_DOUBLE_PRECISION,0,tag, Tdomain%communicateur,ierr)
-            endif
-
-        else ! on est dans le cas d un capteur a rayon d action
-
-            ! CALCUL DE MOYENNE
-            if (capteur%operation.eq."MOY") then
-                val(1:3) = sum(grandeur,dim=2) ! on somme la grandeur sur les pdg du proc courant
-
-                ! on fait la somme total des grandeurs de l'ensemble des procs qu'on ramene sur proc 0
-                call MPI_Reduce (val,val0,3, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
-                ! on recupere sur proc 0 le nombre total de capteurs
-                call MPI_Reduce (capteur%nPtGauss,nPtGaussTotal,1, MPI_INTEGER, MPI_SUM, 0, Tdomain%communicateur, ierr)
-
-                ! on moyenne sur le proc 0
-                if(rg==0) then
-                    val0(:)=val(:)/nPtGaussTotal
-                endif
-
-            endif
-
-            ! CALCUL DU MAX
-            if (capteur%operation.eq."MAX") then
-                val(:) = maxval(grandeur,dim=2)
-                call MPI_Reduce (val, val0,3, MPI_DOUBLE_PRECISION, MPI_MAX,0, Tdomain%communicateur, ierr)
-            endif
-
-
-            ! CALCUL DU MIN
-            if (capteur%operation.eq."MIN") then
-                val(:) = minval(grandeur,dim=2)
-                call MPI_Reduce (val, val0,3, MPI_DOUBLE_PRECISION, MPI_MIN,0, Tdomain%communicateur, ierr)
-            endif
-
-        endif
-
-
-
-        ! ETAPE 4 : Impression du resultat dans le fichier de sortie par le proc 0
-        if(rg==0)then
-            i = capteur%icache+1
-            capteur%valuecache(1,i) = Tdomain%TimeD%rtime
-            capteur%valuecache(2:4,i) = val0(1:3)
-            capteur%icache = i
-        endif
-
-        deallocate(grandeur)
-        deallocate(recvbuf)
-
-
-    end subroutine sortirGrandeurSousCapteur
-
-
-
     !! effectue l'interpolation des grandeurs dans la maille dans laquelle se trouve le capteur
     !! la maille se trouve dans un seul proc
     !! seul le proc gere l'ecriture
     !!
-    subroutine sortieGrandeurCapteur_interp(capteur,Tdomain, ntime, rg)
+    subroutine sortieGrandeurCapteur_interp(Tdomain, capteur)
         use mpi
         implicit none
 
@@ -895,27 +353,34 @@ contains
         type (domain) :: TDomain
         integer :: rg
 
-        integer :: i, j, k, ierr, tag
+        integer :: i, j, k
 
-        integer , dimension  (MPI_STATUS_SIZE) :: status
-        integer request
+        real, dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
+        real, dimension(:,:,:), allocatable :: fieldP
+        integer :: n_el, ngllx, nglly, ngllz, mat, n_solid
+        real :: xi, eta, zeta, weight
+        real, dimension(:), allocatable :: outx, outy, outz
 
-        real, dimension(3) :: grandeur
-        real, dimension(:,:,:,:), allocatable :: field
+        real, dimension(:,:,:), allocatable :: DXX, DXY, DXZ
+        real, dimension(:,:,:), allocatable :: DYX, DYY, DYZ
+        real, dimension(:,:,:), allocatable :: DZX, DZY, DZZ
+        real, dimension (:,:), allocatable  :: htprimex, hprimey, hprimez
+        real  :: eps_dev_xx, eps_dev_yy, eps_dev_zz, &
+                 eps_dev_xy, eps_dev_xz, eps_dev_yz
+        real  :: sig_dev_xx, sig_dev_yy, sig_dev_zz, &
+                 sig_dev_xy, sig_dev_xz, sig_dev_yz
+        real  :: eps_vol,    P_energy,   S_energy
+        
+        logical :: aniso, solid
+        real :: xmu, xlambda, xkappa, x2mu, xlambda2mu, onemSbeta, onemPbeta, eps_trace
+        
+        real,    dimension(:), allocatable :: grandeur
+        integer, dimension(0:8) :: out_variables, offset
+        integer                 :: flag_gradU, n_out
 
-        integer n_el, ngllx, nglly, ngllz, mat
-        real xi, eta, zeta
-        real outx, outy, outz
-
-        integer ntime
-        integer numproc
-
-        ! tableau de correspondance
-        request=MPI_REQUEST_NULL
+        rg = Tdomain%rank
 
         ! ETAPE 0 : initialisations
-        grandeur(:)=0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
-
 
         ! Recuperation du numero de la maille Sem et des abscisses
         n_el = capteur%n_el
@@ -923,412 +388,343 @@ contains
         eta = capteur%eta
         zeta = capteur%zeta
 
-        ! ETAPE 1 : interpolations
 
-        numproc = -1
+        out_variables(0:8) = Tdomain%out_variables(0:8)
+        flag_gradU = sum(out_variables(0:2:1)) + sum(out_variables(7:8:1))
+
+        offset   = 0
+
+        n_out = Tdomain%nReqOut
+
+        do i = 0,size(out_variables)-2
+            if (out_variables(i) == 1) then
+                if (i .le. 3) then
+                    offset(i+1) = offset(i) + 1
+                else if ((i .gt. 3) .and. (i .le. 6)) then
+                    offset(i+1) = offset(i) + 3
+                else if (i .gt. 6) then
+                    offset(i+1) = offset(i) + 6
+                end if
+            else
+                offset(i+1) = offset(i)
+            end if
+        end do
+
+        allocate(grandeur(0:n_out-1))
+        grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
+
         if((n_el/=-1) .AND. (capteur%numproc==rg)) then
             ngllx = Tdomain%specel(n_el)%ngllx
             nglly = Tdomain%specel(n_el)%nglly
             ngllz = Tdomain%specel(n_el)%ngllz
-            mat = Tdomain%specel(n_el)%mat_index
-            allocate(field(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-            if (trim(capteur%grandeur).eq."VITESSE") then
-                call gather_elem_veloc(Tdomain, n_el, field)
-            else if (trim(capteur%grandeur).eq."DEPLA") then
-                call gather_elem_displ(Tdomain, n_el, field)
-            else if (trim(capteur%grandeur).eq."ACCEL") then
-                call gather_elem_accel(Tdomain, n_el, field)
+            mat=Tdomain%specel(n_el)%mat_index
+            allocate(outx(0:ngllx-1))
+            allocate(outy(0:nglly-1))
+            allocate(outz(0:ngllz-1))
+
+            if ((flag_gradU .ge. 1) .or. (out_variables(4) == 1)) then
+                allocate(fieldU(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                call gather_elem_displ(Tdomain, n_el, fieldU)
             end if
+
+            if (flag_gradU .ge. 1) then
+                allocate(DXX(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(DXY(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(DXZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(DYX(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(DYY(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(DYZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(DZX(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(DZY(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(DZZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                allocate(hTprimex(0:ngllx-1,0:ngllx-1))
+                allocate(hprimey(0:nglly-1,0:nglly-1))
+                allocate(hprimez(0:ngllz-1,0:ngllz-1))
+                hTprimex=Tdomain%sSubDomain(mat)%hTprimex
+                hprimey=Tdomain%sSubDomain(mat)%hprimey
+                hprimez=Tdomain%sSubDomain(mat)%hprimez
+            end if
+
+            if (out_variables(5) == 1) then
+                allocate(fieldV(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                call gather_elem_veloc(Tdomain, n_el, fieldV)
+            end if
+
+            if (out_variables(6) == 1) then
+                allocate(fieldA(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                call gather_elem_accel(Tdomain, n_el, fieldA)
+            end if
+
+            if (out_variables(3) == 1) then
+                allocate(fieldP(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                call gather_elem_press(Tdomain, n_el, fieldP)
+            end if
+
+            do i = 0,ngllx - 1
+                call  pol_lagrange(ngllx,Tdomain%sSubdomain(mat)%GLLcx,i,xi,outx(i))
+            end do
+            do j = 0,nglly - 1
+                call  pol_lagrange(nglly,Tdomain%sSubdomain(mat)%GLLcy,j,eta,outy(j))
+            end do
+            do k = 0,ngllz - 1
+                call  pol_lagrange(ngllz,Tdomain%sSubdomain(mat)%GLLcz,k,zeta,outz(k))
+            end do
+
+            solid=Tdomain%specel(n_el)%solid
+            n_solid=Tdomain%n_sls
+            aniso=Tdomain%aniso
+
+            if((solid) .and. (.not. Tdomain%specel(n_el)%PML) .and. (flag_gradU .ge. 1)) then   ! SOLID PART OF THE DOMAIN
+                call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,0),DXX,DYX,DZX)
+                call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,1),DXY,DYY,DZY)
+                call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
+            endif
+
+            if (out_variables(0) == 1) then
+                P_energy = 0
+            end if
+
+            if (out_variables(1) == 1) then
+                S_energy = 0
+            end if
+
+            if (out_variables(2) == 1) then
+                eps_vol = 0
+            end if
+
+            if (out_variables(7) == 1) then
+                eps_dev_xx = 0
+                eps_dev_yy = 0
+                eps_dev_zz = 0
+                eps_dev_xy = 0
+                eps_dev_xz = 0
+                eps_dev_yz = 0
+            end if
+
+            if (out_variables(8) == 1) then
+                sig_dev_xx = 0
+                sig_dev_yy = 0
+                sig_dev_zz = 0
+                sig_dev_xy = 0
+                sig_dev_xz = 0
+                sig_dev_yz = 0
+            end if
+
             do i = 0,ngllx - 1
                 do j = 0,nglly - 1
                     do k = 0,ngllz - 1
-                        call  pol_lagrange (ngllx,Tdomain%sSubdomain(mat)%GLLcx,i,xi,outx)
-                        call  pol_lagrange (nglly,Tdomain%sSubdomain(mat)%GLLcy,j,eta,outy)
-                        call  pol_lagrange (ngllz,Tdomain%sSubdomain(mat)%GLLcz,k,zeta,outz)
+                        weight = outx(i)*outy(j)*outz(k)
 
-                        grandeur(:) = grandeur(:) + outx*outy*outz*field(i,j,k,:)
+                        if (out_variables(4) == 1) then
+                            grandeur(offset(4):offset(4)+2) &
+                                = grandeur(offset(4):offset(4)+2) + weight*fieldU(i,j,k,:)
+                        end if
+
+                        if (out_variables(5) == 1) then
+                            grandeur(offset(5):offset(5)+2) &
+                                = grandeur(offset(5):offset(5)+2) + weight*fieldV(i,j,k,:)
+                        end if
+
+                        if (out_variables(6) == 1) then
+                            grandeur(offset(6):offset(6)+2) &
+                                = grandeur(offset(6):offset(6)+2) + weight*fieldA(i,j,k,:)
+                        end if
+
+                        if (out_variables(3) == 1) then
+                            grandeur(offset(3)) &
+                                = grandeur(offset(3)) + weight*fieldP(i,j,k)
+                        end if
+
+                        if ((solid) .and. (.not. Tdomain%specel(n_el)%PML) .and. (flag_gradU .ge. 1)) then
+
+                            eps_trace = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
+
+                            if (out_variables(2) == 1) then
+                                eps_vol = eps_trace
+                            end if
+
+                            if (out_variables(7) ==1) then
+                                eps_dev_xx = DXX(i,j,k) - eps_trace / 3
+                                eps_dev_yy = DYY(i,j,k) - eps_trace / 3
+                                eps_dev_zz = DZZ(i,j,k) - eps_trace / 3
+                                eps_dev_xy = 0.5 * (DXY(i,j,k) + DYX(i,j,k))
+                                eps_dev_xz = 0.5 * (DZX(i,j,k) + DXZ(i,j,k))
+                                eps_dev_yz = 0.5 * (DZY(i,j,k) + DYZ(i,j,k))
+                            end if
+
+                            if (aniso) then
+                            else
+
+                                xmu     = Tdomain%specel(n_el)%Mu(i,j,k)
+                                xlambda = Tdomain%specel(n_el)%Lambda(i,j,k)
+                                xkappa  = Tdomain%specel(n_el)%Kappa(i,j,k)
+
+                                if (n_solid>0) then
+                                    onemSbeta=Tdomain%specel(n_el)%sl%onemSbeta(i,j,k)
+                                    onemPbeta=Tdomain%specel(n_el)%sl%onemPbeta(i,j,k)
+                                    !  mu_relaxed -> mu_unrelaxed
+                                    xmu    = xmu * onemSbeta
+                                    !  kappa_relaxed -> kappa_unrelaxed
+                                    xkappa = xkappa * onemPbeta
+                                endif
+                                x2mu       = 2. * xmu
+                                xlambda2mu = xlambda + x2mu
+
+                                if (out_variables(8) == 1) then
+                                    sig_dev_xx = x2mu * (DXX(i,j,k) - eps_trace * M_1_3)
+                                    sig_dev_yy = x2mu * (DYY(i,j,k) - eps_trace * M_1_3)
+                                    sig_dev_zz = x2mu * (DZZ(i,j,k) - eps_trace * M_1_3)
+                                    sig_dev_xy = xmu * (DXY(i,j,k) + DYX(i,j,k))
+                                    sig_dev_xz = xmu * (DXZ(i,j,k) + DZX(i,j,k))
+                                    sig_dev_yz = xmu * (DYZ(i,j,k) + DZY(i,j,k))
+                                end if
+
+                                if (out_variables(0) == 1) then
+                                    P_energy = .5 * xlambda2mu * eps_trace**2
+                                end if
+
+                                if (out_variables(1) == 1) then
+                                    S_energy =  xmu/2 * ( DXY(i,j,k)**2 + DYX(i,j,k)**2 &
+                                             +   DXZ(i,j,k)**2 + DZX(i,j,k)**2 &
+                                             +   DYZ(i,j,k)**2 + DZY(i,j,k)**2 &
+                                             - 2 * DXY(i,j,k) * DYX(i,j,k)     &
+                                             - 2 * DXZ(i,j,k) * DZX(i,j,k)     &
+                                             - 2 * DYZ(i,j,k) * DZY(i,j,k))
+                                end if
+
+                            endif
+                        endif
+
+                        if (out_variables(0) == 1) then
+                            grandeur (offset(0)) = grandeur (offset(0)) + weight*P_energy
+                        end if
+                        
+                        if (out_variables(1) == 1) then
+                            grandeur (offset(1)) = grandeur (offset(1)) + weight*S_energy
+                        end if
+                        
+                        if (out_variables(2) == 1) then
+                            grandeur (offset(2)) = grandeur (offset(2)) + weight*eps_vol
+                        end if
+
+                        if (out_variables(7) == 1) then
+                            grandeur (offset(7):offset(7)+5) = grandeur (offset(7):offset(7)+5) &
+                            + (/weight*eps_dev_xx, weight*eps_dev_yy, weight*eps_dev_zz, &
+                                weight*eps_dev_xy, weight*eps_dev_xz, weight*eps_dev_yz/)
+                        end if
+
+                        if (out_variables(8) == 1) then
+                            grandeur (offset(8):offset(8)+5) = grandeur (offset(8):offset(8)+5) &
+                            + (/weight*sig_dev_xx, weight*sig_dev_yy, weight*sig_dev_zz, &
+                                weight*sig_dev_xy, weight*sig_dev_xz, weight*sig_dev_yz/)
+                        end if
                     enddo
                 enddo
             enddo
-            tag = 100*(rg + 1)+capteur%numero
+            
+            deallocate(outx)
+            deallocate(outy)
+            deallocate(outz)
+            if (allocated(fieldU)) deallocate(fieldU)
+            if (allocated(fieldV)) deallocate(fieldV)
+            if (allocated(fieldA)) deallocate(fieldA)
+            if (allocated(fieldP)) deallocate(fieldP)
+            if (allocated(DXX)) deallocate(DXX)
+            if (allocated(DXY)) deallocate(DXY)
+            if (allocated(DXZ)) deallocate(DXZ)
+            if (allocated(DYX)) deallocate(DYX)
+            if (allocated(DYY)) deallocate(DYY)
+            if (allocated(DYZ)) deallocate(DYZ)
+            if (allocated(DZX)) deallocate(DZX)
+            if (allocated(DZY)) deallocate(DZY)
+            if (allocated(DZZ)) deallocate(DZZ)
+            if (allocated(hTprimex)) deallocate(hTprimex)
+            if (allocated(hprimey)) deallocate(hprimey)
+            if (allocated(hprimez)) deallocate(hprimez)
 
-            if (rg/=0) call mpi_Isend(grandeur, 3,MPI_DOUBLE_PRECISION, 0, tag, Tdomain%communicateur, request, ierr)
-            numproc = rg !!numero du proc courant
-            deallocate(field)
+            i = capteur%icache+1
+            capteur%valuecache(1,i) = Tdomain%TimeD%rtime
+            capteur%valuecache(2:n_out+1,i) = grandeur(:)
+            if(allocated(grandeur)) deallocate(grandeur)
+            capteur%icache = i
+            
         endif
-
-        !! Si le capteur est situe sur plusieurs processeurs, on choisit un proc et on envoie les resu au proc 0.
-
-!!!!
-!!!!    ! ETAPE 3 : Realisation de l operation stipulee par le capteur
-!!!!
-!!!!    ! en parallele, la listeCapteur est propre a chaque proc; cela est Ok qd on cherche les points
-!!!!    ! de gauss dans un rayon du capteur, chaque proc recupere sur son maillage les pdg compris dans
-!!!!    ! le rayon, mais cela pose un pb dans le cas du pdg le plus proche. En effet, pour chaque proc
-!!!!    ! il y a un pdg le plus proche du capteur. Reste donc a determiner le + proche de tous !
-!!!!
-        !cas du proc 0
-        if (rg.eq.0) then
-            if((capteur%numproc)>-1) then
-
-                ! et ensuite avec les infos des autres proc
-                tag = 100*(capteur%numproc+1) + capteur%numero
-
-                if (capteur%numproc/=0) call mpi_recv(grandeur,3,MPI_DOUBLE_PRECISION,capteur%numproc,tag, Tdomain%communicateur,status,ierr)
-
-                ! ETAPE 4 : Impression du resultat dans le fichier de sortie par le proc 0
-                i = capteur%icache+1
-                capteur%valuecache(1,i) = Tdomain%TimeD%rtime
-                capteur%valuecache(2:4,i) = grandeur(1:3)
-                capteur%icache = i
-            else
-                if(ntime<= 1) then
-                    write(6,'(A,A,A,1X,I3)') 'Le capteur ',capteur%nom, &
-                        ' n''est pas pris en compte car sur aucun proc',capteur%numproc
-                endif
-            endif
-
-        endif
-
-        call MPI_Wait(request, status, ierr)
 
     end subroutine sortieGrandeurCapteur_interp
 
     !!on identifie la maille dans laquelle se trouve le capteur. Il peut y en avoir plusieurs,
     !! alors le capteur est sur une face, arete ou sur un sommet
     !!
-    subroutine trouve_capteur(Tdomain, rg, capteur, n_el, xi, eta, zeta)
-
+    subroutine trouve_capteur(Tdomain, xc, yc, zc, n_el, n_eln, xi, eta, zeta)
+        use mshape8
+        use mshape27
+        use mlocations3d
         implicit none
         type (domain), INTENT(INOUT)  :: Tdomain
-        integer rg
-        type(Tcapteur) :: capteur
-        integer ipoint
-        integer i, n, n_el
-        real dist
-        integer P(0:7)
-        real coor(0:7,0:2)
-        real eps
-        real xi, eta, zeta
-        logical dans_maille
-        integer i_sens
-        eps=1.e-4
+        double precision, intent(in) :: xc, yc, zc
+        integer, intent(out) :: n_el, n_eln
+        double precision, intent(out) :: xi, eta, zeta
+        !
+        integer :: i
+        logical :: inside
+        integer :: nmax
+        integer, parameter :: NMAXEL=20
+        integer, dimension(NMAXEL) :: elems
+        double precision, dimension(0:2,NMAXEL) :: coordloc
+        double precision, parameter :: EPS = 1D-13, EPSN = 0.1D0
 
+        nmax = NMAXEL
+        call find_location(Tdomain, xc, yc, zc, nmax, elems, coordloc)
         n_el = -1
-        i_sens = 0 !sens de parcours continu
-        do n=0,Tdomain%n_elem-1
-            ipoint = Tdomain%specel(n)%Control_Nodes(0) !!premier noeud de la maille n
-
-            dist = (capteur%coord(1) - Tdomain%Coord_Nodes(0,ipoint))**2 + &
-                (capteur%coord(2) - Tdomain%Coord_Nodes(1,ipoint))**2 + &
-                (capteur%coord(3) - Tdomain%Coord_Nodes(2,ipoint))**2
-            dist = sqrt(dist)
-
-            if(dist> Tdomain%specel(n)%dist_max) then
-                !          print*,'dist',dist,n,Tdomain%specel(n)%dist_max
-                cycle
-            else
-                !maille retenue
-                P(0:7) = Tdomain%specel(n)%Control_Nodes(0:7)
-
-                do i=0,7
-                    coor(i,0:2) = Tdomain%Coord_Nodes(0:2,P(i))
-                enddo
-
-                dans_maille = test_contour_capteur(coor, capteur, i_sens)
-
-                if( dans_maille) then
-                    !! on peut retenir cette maille et calculer xi, eta
-                    !! si le capteur est sur une face ou un sommet, il suffit de garder une maille et de faire l'interpolation.
-                    !! quel que soit l'element on obtiendra la bonne valeur
-                    write(6,*) 'on retient la maille',n,capteur%coord(1:3)
-                    call calc_xi_eta_zeta_capteur(capteur, coor, xi, eta, zeta)
-                    n_el = n
-                    capteur%numproc = rg
-                    print *,'Arrivee a return'
-                    return
-                else
-                    cycle
-
-                endif
-            endif
-        enddo
-
-        if(n_el/=-1) then
-            write(6,*) 'xi,eta,zeta trouves pour le capteur ',capteur%nom,' de positions ',capteur%coord(1), capteur%coord(2), capteur%coord(3),&
-                ' sont' ,  xi, eta, zeta, 'dans l element ',n_el,' pour le proc ',rg
-        endif
-
-
+        n_eln = -1
+        ! Cas ou la station est dans le maillage
+        do i=1,nmax
+            inside = .true.
+            xi   = coordloc(0,i)
+            eta  = coordloc(1,i)
+            zeta = coordloc(2,i)
+            if (xi<(-1-EPS) .or. eta<(-1-EPS) .or. zeta<(-1-EPS)) inside = .false.
+            if (xi>(1+EPS) .or. eta>(1+EPS) .or. zeta>(1+EPS)) inside = .false.
+            if (inside) then
+                n_el = elems(i)
+                return
+            end if
+        end do
+        ! Cas ou la station est en dehors du maillage mais < abs(1.1)
+        do i=1,nmax
+            xi   = coordloc(0,i)
+            eta  = coordloc(1,i)
+            zeta = coordloc(2,i)
+            if (abs(xi)<(1+EPS) .and. abs(eta)<(1+EPS) .and. abs(zeta)<(1+EPSN)) then
+                if (zeta<0) zeta = -1.D0
+                if (zeta>0) zeta = 1.D0
+                n_eln = elems(i)
+                return
+            else if (abs(xi)<(1+EPS) .and. abs(eta)<(1+EPSN) .and. abs(zeta)<(1+EPS)) then
+                if (eta<0) eta = -1.D0
+                if (eta>0) eta = 1.D0
+                n_eln = elems(i)
+                return
+            else if (abs(xi)<(1+EPSN) .and. abs(eta)<(1+EPS) .and. abs(zeta)<(1+EPS)) then
+                if (xi<0) xi = -1.D0
+                if (xi>0) xi = 1.D0
+                n_eln = elems(i)
+                return
+            end if
+        end do
+        return
     end subroutine trouve_capteur
 
-
-    !!
-    !! calcul des abscisses curvilignes du cpateur
-    !! processus de dichotomie
-    !!
-    subroutine calc_xi_eta_zeta_capteur(capteur, coord, xitrouve_def, etatrouve_def, zetatrouve_def)
-
-        implicit none
-        type(Tcapteur) :: capteur
-        real xi_min, xi_max, xi0, eta0, eta_min, eta_max, zeta0, zeta_min, zeta_max
-        real P(8,0:2), dxi, deta, dzeta, coord(0:7,0:2)
-        real xfact
-        real xtrouve_def, ytrouve_def, ztrouve_def, xitrouve_def, etatrouve_def, zetatrouve_def
-        real dist, dist_P
-        real xi, eta, zeta
-        real eps,dorder
-        integer i, j, k, im, il, in, idim, npts
-        integer n_it
-        logical interieur
-        integer, parameter :: n_itmax=20
-        integer i_sens
-
-
-   !---- solution tolerance
-        eps = 1.e-6 !tolerance pour accepter la solution
-      !- order of magnitude for the element size
-        dorder = max (sqrt((coord(0,0)-coord(6,0))**2 + (coord(0,1)-coord(6,1))**2 + (coord(0,2)-coord(6,2))**2), &
-                      sqrt((coord(1,0)-coord(7,0))**2 + (coord(1,1)-coord(7,1))**2 +(coord(1,2)-coord(7,2))**2), &
-                      sqrt((coord(2,0)-coord(4,0))**2 + (coord(2,1)-coord(4,1))**2 +(coord(2,2)-coord(4,2))**2), &
-                      sqrt((coord(3,0)-coord(5,0))**2+(coord(3,1)-coord(5,1))**2+(coord(3,2)-coord(5,2))**2))             
-       !- rescaled small epsilon
-        eps = eps*dorder
-       
-
-        xi_min = -1.  !bornes min et max de la zone d'etude dans le carre de reference
-        xi_max = 1.   !on coupe en 2 dans chaque direction la zone d'etude
-        eta_min = -1.
-        eta_max = 1.
-        zeta_min = -1.
-        zeta_max = 1.
-
-        !!  eps = 1.e-6 !tolerance pour accepter la solution !!trop grand pour un cas
-        eps = 1.e-6 !tolerance pour accepter la solution
-        n_it = 0  !nombre d'iterations
-        xi0 = xi_min
-        eta0 = eta_min
-        zeta0 = zeta_min
-        i_sens = 1 !sens de parcours non continu
-
-        !!  print *,'coord de la maille pour capteur',coord(0,:)
-        !!  print *,'coord de la maille pour capteur',coord(1,:)
-        !!  print *,'coord de la maille pour capteur',coord(2,:)
-        !!  print *,'coord de la maille pour capteur',coord(3,:)
-        !!  print *,'coord de la maille pour capteur',coord(4,:)
-        !!  print *,'coord de la maille pour capteur',coord(5,:)
-        !!  print *,'coord de la maille pour capteur',coord(6,:)
-        !!  print *,'coord de la maille pour capteur',coord(7,:)
-        !  do while(dist_def > eps) !precedemment
-        dist = huge(1.)
-        do while((dist > eps) .AND. (n_it<n_itmax))
-            n_it = n_it +1
-            !on subdivise la zone en 4 sous-zones d'etude
-            do in=0,1
-                do im=0,1
-                    do il=0,1
-                        dxi = (xi_max - xi_min)/2.
-                        deta = (eta_max - eta_min)/2.
-                        dzeta = (zeta_max - zeta_min)/2.
-                        !     on elargit un peu le domaine pour ne pas passer a cote de certains points critiques
-                        xfact = 1. !01
-                        dxi   = xfact*dxi
-                        deta  = xfact*deta
-                        dzeta = xfact*dzeta
-                        !
-                        xi0 = xi_min + il*dxi
-                        eta0 = eta_min + im*deta
-                        zeta0 = zeta_min + in*dzeta
-                        npts = 0
-                        !Dans les boucles sur i, j et k, on definit les points P
-                        do k=0,1
-                            do j=0,1
-                                do i=0,1
-                                    xi = xi0 + i*dxi
-                                    eta = eta0 + j*deta
-                                    zeta = zeta0 + k*dzeta
-                                    npts = npts + 1
-                                    do idim=0,2
-                                        P(npts,idim)=  0.125 * ( coord(0,idim)*(1.-xi)*(1.-eta)*(1.-zeta) + coord(1,idim)*(1.+xi)*(1.-eta)*(1.-zeta) + &
-                                            coord(2,idim)*(1.+xi)*(1.+eta)*(1.-zeta) + coord(3,idim)*(1.-xi)*(1.+eta)*(1.-zeta)  + &
-                                            coord(4,idim)*(1.-xi)*(1.-eta)*(1.+zeta) + coord(5,idim)*(1.+xi)*(1.-eta)*(1.+zeta) + &
-                                            coord(6,idim)*(1.+xi)*(1.+eta)*(1.+zeta) + coord(7,idim)*(1.-xi)*(1.+eta)*(1.+zeta) )
-                                    enddo
-
-                                    dist_P = 0.
-                                    do idim=0,2
-                                        dist_P = dist_P + (P(npts,idim) - capteur%coord(idim+1))**2
-                                    enddo
-                                    dist_P = sqrt(dist_P)
-                                    !                     print*,' dist_P ',dist_P
-                                    !
-                                    !on teste si P(npts) correspond au capteur. Si oui on sort
-                                    !
-                                    if(dist_P < dist) then
-                                        ! on conserve ce point
-                                        xtrouve_def = P(npts,0)
-                                        ytrouve_def = P(npts,1)
-                                        ztrouve_def = P(npts,2)
-                                        !    modif complementaire a xfact
-                                        if ( xi < -1. ) xi = -1.
-                                        if ( xi > 1. )  xi = 1.
-                                        if ( eta < -1. ) eta = -1.
-                                        if ( eta > 1. )  eta = 1.
-                                        if ( zeta < -1. ) zeta = -1.
-                                        if ( zeta > 1. )  zeta = 1.
-                                        !   fin modif
-                                        xitrouve_def = xi
-                                        etatrouve_def = eta
-                                        zetatrouve_def = zeta
-                                        dist = dist_P
-                                    endif
-                                    if(dist < eps) then
-                                        write(*,*) 'Capteur:', capteur%nom
-                                        write(*,"(a,G12.5,a,G12.5,a,G12.5)") '--- XYZ: ', xtrouve_def,' ',ytrouve_def,' ',ztrouve_def
-                                        write(*,"(a,G12.5,a,G12.5,a,G12.5)") '--- LOC: ', xitrouve_def,' ',etatrouve_def,' ',zetatrouve_def
-                                        write(*,"(a,I5.5,a,G12.5)") '--- ITER:', n_it, ' DIST:', dist
-                                        return
-                                    endif
-                                enddo
-                            enddo
-                        enddo
-                        !! on teste si le capteur est a l'interieur du contour forme des points P
-                        !! si oui on conserve xi, eta et on reduit la region
-                        interieur = test_contour_capteur(P, capteur, i_sens)
-                        if(interieur) then
-                            xi_min = xi0
-                            xi_max = xi0 + dxi
-                            eta_min = eta0
-                            eta_max = eta0 + deta
-                            zeta_min = zeta0
-                            zeta_max = zeta0 + dzeta
-                        endif
-                    enddo
-                enddo
-            enddo
-        enddo
-
-        write(*,*) 'Capteur:', capteur%nom, 'PAS DE CONVERGENCE'
-        write(*,"(a,G12.5,a,G12.5,a,G12.5)") '--- XYZ: ', xtrouve_def,' ',ytrouve_def,' ',ztrouve_def
-        write(*,"(a,G12.5,a,G12.5,a,G12.5)") '--- LOC: ', xitrouve_def,' ',etatrouve_def,' ',zetatrouve_def
-        write(*,"(a,I5.5,a,G12.5)") '--- ITER:', n_it, ' DIST:', dist
-
-    end subroutine calc_xi_eta_zeta_capteur
-
-
-    logical function test_contour_capteur(P, capteur, i_sens)
-
-!!!!  Description: on teste si le point du capteur est a l'interieur du volume defini par les points P.
-!!!!  Si le capteur est sur une face, une arete ou sur un sommet, renvoie true
-!!!!  * attention : le sens de parcours dans la face n'est pas continu
-!!!!
-!!!!  Historique: 03/10 - Gsa Ipsis - Creation
-!!!! --------------------------------------------------
-
-        implicit none
-        type(Tcapteur) :: capteur
-        real P(0:7,0:2)
-        real coord(0:3,0:2)
-        real, parameter :: eps = 1.e-4
-        integer i, idim, iface
-        integer, parameter :: n_faces=6
-        integer, parameter :: n_nodes=8
-        real, dimension(0:2) :: pg, vn, v
-        integer i_sens
-        integer,dimension(0:5,0:3) :: NOEUD_FACE !Gsa
-
-        test_contour_capteur = .true.
-
-        !tableau de correspondance num_local de face/numero des noeuds de l'element
-
-        if (i_sens==0) then
-            NOEUD_FACE(0,:) = (/ 0, 1, 2, 3 /) !face 0 - k=0
-            NOEUD_FACE(1,:) = (/ 0, 1, 5, 4 /) !face 1 - j=0
-            NOEUD_FACE(2,:) = (/ 1, 2, 6, 5 /) !face 2 - i=n-1
-            NOEUD_FACE(3,:) = (/ 3, 2, 6, 7 /) !face 3 - j=n-1
-            NOEUD_FACE(4,:) = (/ 0, 3, 7, 4 /) !face 4 - i=0
-            NOEUD_FACE(5,:) = (/ 4, 5, 6, 7 /) !face 5 - k=n-1
-        elseif (i_sens==1) then
-            NOEUD_FACE(0,:) = (/ 0, 1, 3, 2 /) !face 0 - k=0
-            NOEUD_FACE(1,:) = (/ 0, 1, 5, 4 /) !face 1 - j=0
-            NOEUD_FACE(2,:) = (/ 2, 0, 4, 6 /) !face 2 - i=n-1
-            NOEUD_FACE(3,:) = (/ 2, 3, 7, 6 /) !face 3 - j=n-1
-            NOEUD_FACE(4,:) = (/ 3, 1, 5, 7 /) !face 4 - i=0
-            NOEUD_FACE(5,:) = (/ 4, 5, 7, 6 /) !face 5 - k=n-1
-        else
-            stop "Internal Error in test_contour_capteur"
-        endif
-
-        pg = 0.  ! centre de gravite de la maille
-        do i=0,n_nodes-1
-            do idim=0,2
-                pg(idim) = pg(idim) + P(i,idim)
-            enddo
-        enddo
-        pg = pg/n_nodes
-
-!!!!  write(6,*) 'Barycentre' ,pg
-        do iface=0,n_faces-1
-            do i=0,3
-                do idim=0,2
-                    coord(i,idim) = P(NOEUD_FACE(iface,i),idim)
-                enddo
-            enddo
-
-            !calcul de la normale de la face
-            vn(0) = (coord(1,1) - coord(0,1) ) * (coord(3,2) - coord(0,2) ) &
-                - (coord(1,2) - coord(0,2) ) * (coord(3,1) - coord(0,1) )
-            vn(1) = (coord(1,2) - coord(0,2) ) * (coord(3,0) - coord(0,0) ) &
-                - (coord(1,0) - coord(0,0) ) * (coord(3,2) - coord(0,2) )
-            vn(2) = (coord(1,0) - coord(0,0) ) * (coord(3,1) - coord(0,1) ) &
-                - (coord(1,1) - coord(0,1) ) * (coord(3,0) - coord(0,0) )
-
-            !verification de l'orientation de la normale de la face
-            if(dot_product(vn, pg - coord(0,:)) > 0.) vn = -vn
-            !normalisation de la normale
-            if(abs(dot_product(vn,vn)) < 1.e-30) then !! attention on eleve au carre - la precision est petite
-                print *,'Pb normale de face nulle - Arret',vn
-                write(50,*) 'Pb normale de face nulle - Arret'
-                print*,' isens ',i_sens
-                print*,' capteur coord ',capteur%coord(1),capteur%coord(2),capteur%coord(3)
-                print*,' noeudelement0 ',P(0,0),P(0,1),P(0,2)
-                print*,' noeudelement1 ',P(1,0),P(1,1),P(1,2)
-                print*,' noeudelement2 ',P(2,0),P(2,1),P(2,2)
-                print*,' noeudelement3 ',P(3,0),P(3,1),P(3,2)
-                print*,' noeudelement4 ',P(4,0),P(4,1),P(4,2)
-                print*,' noeudelement5 ',P(5,0),P(5,1),P(5,2)
-                print*,' noeudelement6 ',P(6,0),P(6,1),P(6,2)
-                print*,' noeudelement7 ',P(7,0),P(7,1),P(7,2)
-                print*,' noeudface0 ',coord(0,0),coord(0,1),coord(0,2)
-                print*,' noeudface1 ',coord(1,0),coord(1,1),coord(1,2)
-                print*,' noeudface2 ',coord(2,0),coord(2,1),coord(2,2)
-                print*,' noeudface3 ',coord(3,0),coord(3,1),coord(3,2)
-                print*,' vn ',vn(0),vn(1),vn(2)
-                stop
-            else
-                vn = vn / sqrt(dot_product(vn,vn))
-            endif
-
-            do idim=0,2
-                v(idim) = capteur%coord(idim+1) - coord(0,idim)
-            enddo
-
-            if(dot_product(vn, v)>0.) then
-                test_contour_capteur = .false.
-                !!        print *,'test faux'
-                return
-            endif
-        enddo
-
-        !!  print *,'test vrai'
-        return
-    end function test_contour_capteur
-
-
-
 end module Mcapteur
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

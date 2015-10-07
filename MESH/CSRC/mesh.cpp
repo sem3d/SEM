@@ -1,3 +1,7 @@
+/* This file is part of SEM                                                */
+/*                                                                         */
+/* Copyright CEA, ECP, IPGP                                                */
+/*                                                                         */
 
 #include <cstdio>
 #include "mesh.h"
@@ -434,9 +438,11 @@ void Mesh3D::get_local_elements(MeshPart& loc, std::vector<int>& tmp)
     }
 }
 
-// Local Variables:
-// mode: c++
-// c-file-style: "stroustrup"
-// show-trailing-whitespace: t
-// End:
-/* vim: set sw=4 ts=8 tw=80 smartindent */
+
+/* Local Variables:                                                        */
+/* mode: c++                                                               */
+/* show-trailing-whitespace: t                                             */
+/* coding: utf-8                                                           */
+/* c-file-style: "stroustrup"                                              */
+/* End:                                                                    */
+/* vim: set sw=4 ts=8 et tw=80 smartindent :                               */

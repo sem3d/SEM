@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 module msnapshots
     use sdomain
     use hdf5
@@ -81,7 +85,7 @@ contains
         call compute_saved_elements(Tdomain, irenum, nnodes)
 
         call write_global_nodes(Tdomain, fid, irenum, nnodes)
-        
+
         call write_elem_connectivity(Tdomain, fid, irenum)
 
         call write_constant_fields(Tdomain, fid, irenum, nnodes)
@@ -104,15 +108,17 @@ contains
         integer :: n
         integer(HID_T) :: nodes_id
         integer :: hdferr
-        
-        allocate(nodes(2,0:nnodes-1))
+
+        allocate(nodes(0:2,0:nnodes-1))
         do n = 0, Tdomain%n_glob_points-1
             if (irenum(n)>=0) then
-                nodes(:,irenum(n)) = Tdomain%GlobCoord(:,n)
+                nodes(0,irenum(n)) = Tdomain%GlobCoord(0,n)
+                nodes(1,irenum(n)) = Tdomain%GlobCoord(1,n)
+                nodes(2,irenum(n)) = 0.
             end if
         end do
 
-        dims(1) = 2
+        dims(1) = 3
         dims(2) = nnodes
         call create_dset_2d(fid, "Nodes", H5T_IEEE_F64LE, dims(1), dims(2), nodes_id)
         call h5dwrite_f(nodes_id, H5T_NATIVE_DOUBLE, nodes, dims, hdferr)
@@ -131,7 +137,7 @@ contains
         integer(HSIZE_T), dimension(2) :: dims
         integer, dimension(:,:), allocatable :: data
         integer, dimension(:), allocatable :: mat, elem_num, iglobnum
-        integer, dimension(2,0:Tdomain%n_elem-1) :: ngll
+        integer, dimension(3,0:Tdomain%n_elem-1) :: ngll
         integer :: count, ig, nglobnum
         integer :: i, k, n, nb_elem
         integer :: hdferr
@@ -144,6 +150,7 @@ contains
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             ngll(1,k) = Tdomain%specel(n)%ngllx
             ngll(2,k) = Tdomain%specel(n)%ngllz
+            ngll(3,k) = 0
             ! Max number of global points (can count elem vertices twice)
             nglobnum = nglobnum + ngll(1,k)*ngll(2,k)
             ! Number of subelements
@@ -152,9 +159,9 @@ contains
         enddo
         nb_elem = k
         !! Nombre de points de gauss par element
-        call create_dset_2d(fid, "NGLL", H5T_STD_I16LE, 2, nb_elem, ngll_id)
-        dims(1) = 2
+        dims(1) = 3
         dims(2) = nb_elem
+        call create_dset_2d(fid, "NGLL", H5T_STD_I16LE, dims(1), dims(2), ngll_id)
         call h5dwrite_f(ngll_id, H5T_NATIVE_INTEGER, ngll, dims, hdferr)
         call h5dclose_f(ngll_id, hdferr)
 
@@ -231,7 +238,6 @@ contains
         integer :: i, k, n
         integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
         integer :: nnodes
-        
 
         call create_dir_sorties(Tdomain, rg, isort)
         call semname_snap_result_file(rg, isort, fnamef)
@@ -253,7 +259,8 @@ contains
         call create_dset(fid, "rotat", H5T_IEEE_F64LE, nnodes, rotat_id)
 
         ! Constroction des Vhat continus au niveau des Vertexs (stockes dans Vertex%V0)
-        call project_Vhat_Vertex(Tdomain)
+        if (Tdomain%type_elem==GALERKIN_HDG_RP) &
+            call project_Vhat_Vertex(Tdomain)
 
         allocate(displ(0:2,0:nnodes-1))
         allocate(veloc(0:2,0:nnodes-1))
@@ -388,25 +395,25 @@ contains
             write(61,"(a,I4.4,a)") 'geometry',rg,'.h5:/Elements'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Topology>'
-            write(61,"(a)") '<Geometry Type="XY">'
-            write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 2">'
+            write(61,"(a)") '<Geometry Type="XYZ">'
+            write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
             write(61,"(a,I4.4,a)") 'geometry',rg,'.h5:/Nodes'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Geometry>'
 
-            write(61,"(a,I4.4,a)") '<Attribute Name="Displ" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
+            write(61,"(a,I8,a)") '<Attribute Name="Displ" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
             write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
             write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/displ'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Attribute>'
 
-            write(61,"(a,I4.4,a)") '<Attribute Name="Veloc" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
+            write(61,"(a,I8,a)") '<Attribute Name="Veloc" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
             write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
             write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/veloc'
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Attribute>'
 
-            write(61,"(a,I4.4,a)") '<Attribute Name="Accel" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
+            write(61,"(a,I8,a)") '<Attribute Name="Accel" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
             write(61,"(a,I8,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
             write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',rg,'.h5:/accel'
             write(61,"(a)") '</DataItem>'
@@ -422,23 +429,23 @@ contains
             write(61,"(a,I4,a)") '<DataItem Format="XML" Datatype="Int"  Dimensions="1">',rg,'</DataItem>'
             write(61,"(a)") '</Attribute>'
 
-            write(61,"(a,I4.4,a)") '<Attribute Name="Mat" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
+            write(61,"(a,I8,a)") '<Attribute Name="Mat" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
             !write(61,"(a,I8,a,I4.4,a)") '<DataItem Format="HDF" Datatype="Int"  Dimensions="',ne, &
             !    '">geometry',rg,'.h5:/Material</DataItem>'
             write(61,"(a,I4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[',rg+1, &
                 ']/DataItem[@Name="Mat"]</DataItem>'
             write(61,"(a)") '</Attribute>'
-            write(61,"(a,I4.4,a)") '<Attribute Name="Mass" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+            write(61,"(a,I8,a)") '<Attribute Name="Mass" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
             write(61,"(a,I4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[',rg+1, &
                 ']/DataItem[@Name="Mass"]</DataItem>'
 !            write(61,"(a,I8,a,I4.4,a)") '<DataItem Format="HDF" Datatype="Int"  Dimensions="',nn, &
 !                '">geometry',rg,'.h5:/Mass</DataItem>'
             write(61,"(a)") '</Attribute>'
-            write(61,"(a,I4.4,a)") '<Attribute Name="ID" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
+            write(61,"(a,I8,a)") '<Attribute Name="ID" Center="Cell" AttributeType="Scalar" Dimensions="',ne,'">'
             write(61,"(a,I4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[',rg+1, &
                 ']/DataItem[@Name="ID"]</DataItem>'
             write(61,"(a)") '</Attribute>'
-            write(61,"(a,I4.4,a)") '<Attribute Name="Jac" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+            write(61,"(a,I8,a)") '<Attribute Name="Jac" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
             write(61,"(a,I4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[',rg+1, &
                 ']/DataItem[@Name="Jac"]</DataItem>'
 !            write(61,"(a,I8,a,I4.4,a)") '<DataItem Format="HDF" Datatype="Int"  Dimensions="',nn, &
@@ -550,3 +557,15 @@ contains
     end subroutine compute_rotational
 
 end module msnapshots
+
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

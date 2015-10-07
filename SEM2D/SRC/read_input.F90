@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file read_input.F90
 !!\brief Contient la subroutine read_input().
@@ -60,7 +64,7 @@ subroutine create_sem2d_sources(Tdomain, config)
 end subroutine create_sem2d_sources
 
 !>
-!! \brief Assure la lecture des fichiers de données en entrée à partir du fichier Parametrage/sem/input.spec
+!! \brief Assure la lecture des fichiers de donnees en entree a partir du fichier Parametrage/sem/input.spec
 !!
 !! \param type (domain), intent (INOUT) Tdomain
 !<
@@ -273,8 +277,15 @@ subroutine read_input (Tdomain)
 
     return
 end subroutine read_Input
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

@@ -1,6 +1,10 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file Domain.f90
-!!\brief Contient le définition du type domain
+!!\brief Contient le dï¿½finition du type domain
 !!
 !<
 
@@ -21,15 +25,16 @@ module sdomain
     use sbassin
     use solid_fluid
     use semdatafiles
+    use sem_c_config
 
     type :: domain
-
-       ! Communicateur incluant les processeurs SEM uniquement
-       integer :: communicateur
-       ! Hors couplage : communicateur=communicateur_global
-       ! mode couplage : communicateur incluant tous les codes
+       integer :: communicateur !<<< Communicator including all SEM processors
+       integer :: rank          !<<< Rank of this process within this communicator
+       integer :: nb_procs      !<<< Total number of SEM processors
+       ! Without coupling : communicateur=communicateur_global
+       ! With coupling    : communicateur : includes every processes
        integer :: communicateur_global
-       ! Communicateur pour le reassemblage des sorties
+       ! Communicator used for output grouping. Only rank 0 of this comm produces outputs
        integer :: comm_output
        ! Nombre de processeur dans le groupe de communication associe a comm_output
        integer :: nb_output_procs
@@ -37,29 +42,34 @@ module sdomain
        integer, dimension(:), allocatable :: output_nodes, output_nodes_offset, output_elems
        ! Nombre de process par sorties pour le reassemblage
        integer :: ngroup
+       ! Nombre de processeur avec qui on communique (size(sComm))
+       integer :: tot_comm_proc
        ! En mode couplage : Rg du superviseur dans le communicateur global
        integer :: master_superviseur
 
-       type(time) :: TimeD
+       type(time)          :: TimeD
        type(logical_array) :: logicD
-       type(source), dimension (:), pointer :: sSource
-       type(element), dimension(:), pointer :: specel
-       type(face), dimension (:), pointer :: sFace
-       type(comm), dimension (:), pointer :: sComm
-       type(edge), dimension (:), pointer :: sEdge
-       type(vertex), dimension (:), pointer :: sVertex
+       type(planew)        :: sPlaneW
+       type(Neu_object)    :: Neumann
+       type(surf)          :: sSurf
+       type(bassin)        :: sBassin
+       type(SF_object)     :: SF
+       type(source)   , dimension (:), pointer :: sSource
+       type(element)  , dimension (:), pointer :: specel
+       type(face)     , dimension (:), pointer :: sFace
+       type(comm)     , dimension (:), pointer :: sComm
+       type(edge)     , dimension (:), pointer :: sEdge
+       type(vertex)   , dimension (:), pointer :: sVertex
        type(subdomain), dimension (:), pointer :: sSubDomain
-       type (planew) :: sPlaneW
-       type(Neu_object) :: Neumann
-       type (surf) :: sSurf
-       type (bassin) :: sBassin
-       type(SF_object) :: SF
 
-       logical :: any_PML, curve, any_FPML, aniso
 
-       integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers, n_proc
+       logical :: any_PML, curve, any_FPML, aniso, any_Random
+
+       integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers
        integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls
        integer :: n_hexa  !< Nombre de maille hexa ~= (ngllx-1)*(nglly-1)*(ngllz-1)*nelem
+       logical, dimension(:), allocatable :: not_PML_List, subD_exist
+       integer, dimension(:), allocatable :: subDComm
 
        real :: T1_att, T2_att, T0_modele
        real, dimension (0:2,0:2) :: rot
@@ -71,206 +81,21 @@ module sdomain
        character (len=30) :: file_bassin
        character (len=1)  :: Super_object_type
 
-       !!
+       integer, dimension(0:8) :: out_variables
+       integer                 :: nReqOut ! number of required outputs
        integer :: earthchunk_isInit
        character (len=MAX_FILE_SIZE) :: earthchunk_file
        real :: earthchunk_delta_lon, earthchunk_delta_lat
 
        real :: MPML_coeff
 
+       !real, dimension(:, :), allocatable :: Mu, Lambda, Dens
+       ! Configuration parameters as returned from read_input.c
+       type(sem_config) :: config
     end type domain
 
 contains
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    real function Comp_shapefunc(which_nod,xi,eta,zeta)
-
-        integer :: which_nod
-        real :: xi,eta,zeta
-
-        select case (which_nod)
-        case (0)
-            Comp_shapefunc = 0.125 * xi*(xi-1) * eta*(eta-1) * zeta*(zeta-1)
-        case (1)
-            Comp_shapefunc = 0.125 * xi*(xi+1) * eta*(eta-1) * zeta*(zeta-1)
-        case (2)
-            Comp_shapefunc = 0.125 * xi*(xi+1) * eta*(eta+1) * zeta*(zeta-1)
-        case (3)
-            Comp_shapefunc = 0.125 * xi*(xi-1) * eta*(eta+1) * zeta*(zeta-1)
-        case (4)
-            Comp_shapefunc = 0.125 * xi*(xi-1) * eta*(eta-1) * zeta*(zeta+1)
-        case (5)
-            Comp_shapefunc = 0.125 * xi*(xi+1) * eta*(eta-1) * zeta*(zeta+1)
-        case (6)
-            Comp_shapefunc = 0.125 * xi*(xi+1) * eta*(eta+1) * zeta*(zeta+1)
-        case (7)
-            Comp_shapefunc = 0.125 * xi*(xi-1) * eta*(eta+1) * zeta*(zeta+1)
-        case (8)
-            Comp_shapefunc = 0.25 * (1-xi**2) * eta*(eta-1) * zeta*(zeta-1)
-        case (9)
-            Comp_shapefunc = 0.25 * xi*(xi+1) * (1-eta**2) * zeta*(zeta-1)
-        case (10)
-            Comp_shapefunc = 0.25 * (1-xi**2) * eta*(eta+1) * zeta*(zeta-1)
-        case (11)
-            Comp_shapefunc = 0.25 * xi*(xi-1) * (1-eta**2) * zeta*(zeta-1)
-        case (12)
-            Comp_shapefunc = 0.25 * xi*(xi-1) * eta*(eta-1) * (1-zeta**2)
-        case (13)
-            Comp_shapefunc = 0.25 * xi*(xi+1) * eta*(eta-1) * (1-zeta**2)
-        case (14)
-            Comp_shapefunc = 0.25 * xi*(xi+1) * eta*(eta+1) * (1-zeta**2)
-        case (15)
-            Comp_shapefunc = 0.25 * xi*(xi-1) * eta*(eta+1) * (1-zeta**2)
-        case (16)
-            Comp_shapefunc = 0.25 * (1-xi**2) * eta*(eta-1) * zeta*(zeta+1)
-        case (17)
-            Comp_shapefunc = 0.25 * xi*(xi+1) * (1-eta**2) * zeta*(zeta+1)
-        case (18)
-            Comp_shapefunc = 0.25 * (1-xi**2) * eta*(eta+1) * zeta*(zeta+1)
-        case (19)
-            Comp_shapefunc = 0.25 * xi*(xi-1) * (1-eta**2) * zeta*(zeta+1)
-        case(20)
-            Comp_shapefunc = 0.5 * (1-xi**2) * (1-eta**2) * zeta*(zeta-1)
-        case(21)
-            Comp_shapefunc = 0.5 * (1-xi**2) * eta*(eta-1) * (1-zeta**2)
-        case(22)
-            Comp_shapefunc = 0.5 * xi*(xi+1) * (1-eta**2) * (1-zeta**2)
-        case(23)
-            Comp_shapefunc = 0.5 * (1-xi**2) * eta*(eta+1) * (1-zeta**2)
-        case(24)
-            Comp_shapefunc = 0.5 * xi*(xi-1) * (1-eta**2) * (1-zeta**2)
-        case(25)
-            Comp_shapefunc = 0.5 * (1-xi**2) * (1-eta**2) * zeta*(zeta+1)
-        case(26)
-            Comp_shapefunc = (1-xi**2) * (1-eta**2) * (1-zeta**2)
-        end select
-
-        return
-    end function Comp_shapefunc
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    real function Comp_derivshapefunc(which_nod,xi,eta,zeta,compo)
-
-        integer :: which_nod, compo
-        real :: xi,eta,zeta
-
-        real, dimension(0:2) :: df
-
-        select case (which_nod)
-        case (0)
-            df(0) = 0.125 * (2*xi-1) * eta*(eta-1) * zeta*(zeta-1)
-            df(1) = 0.125 * xi*(xi-1) * (2*eta-1) * zeta*(zeta-1)
-            df(2) = 0.125 * xi*(xi-1) * eta*(eta-1) * (2*zeta-1)
-        case (1)
-            df(0) = 0.125 * (2*xi+1) * eta*(eta-1) * zeta*(zeta-1)
-            df(1) = 0.125 * xi*(xi+1) * (2*eta-1) * zeta*(zeta-1)
-            df(2) = 0.125 * xi*(xi+1) * eta*(eta-1) * (2*zeta-1)
-        case (2)
-            df(0) = 0.125 * (2*xi+1) * eta*(eta+1) * zeta*(zeta-1)
-            df(1) = 0.125 * xi*(xi+1) * (2*eta+1) * zeta*(zeta-1)
-            df(2) = 0.125 * xi*(xi+1) * eta*(eta+1) * (2*zeta-1)
-        case (3)
-            df(0) = 0.125 * (2*xi-1) * eta*(eta+1) * zeta*(zeta-1)
-            df(1) = 0.125 * xi*(xi-1) * (2*eta+1) * zeta*(zeta-1)
-            df(2) = 0.125 * xi*(xi-1) * eta*(eta+1) * (2*zeta-1)
-        case (4)
-            df(0) = 0.125 * (2*xi-1) * eta*(eta-1) * zeta*(zeta+1)
-            df(1) = 0.125 * xi*(xi-1) * (2*eta-1) * zeta*(zeta+1)
-            df(2) = 0.125 * xi*(xi-1) * eta*(eta-1) * (2*zeta+1)
-        case (5)
-            df(0) = 0.125 * (2*xi+1) * eta*(eta-1) * zeta*(zeta+1)
-            df(1) = 0.125 * xi*(xi+1) * (2*eta-1) * zeta*(zeta+1)
-            df(2) = 0.125 * xi*(xi+1) * eta*(eta-1) * (2*zeta+1)
-        case (6)
-            df(0) = 0.125 * (2*xi+1) * eta*(eta+1) * zeta*(zeta+1)
-            df(1) = 0.125 * xi*(xi+1) * (2*eta+1) * zeta*(zeta+1)
-            df(2) = 0.125 * xi*(xi+1) * eta*(eta+1) * (2*zeta+1)
-        case (7)
-            df(0) = 0.125 * (2*xi-1) * eta*(eta+1) * zeta*(zeta+1)
-            df(1) = 0.125 * xi*(xi-1) * (2*eta+1) * zeta*(zeta+1)
-            df(2) = 0.125 * xi*(xi-1) * eta*(eta+1) * (2*zeta+1)
-        case (8)
-            df(0) = 0.25 * (-2*xi) * eta*(eta-1) * zeta*(zeta-1)
-            df(1) = 0.25 * (1-xi**2) * (2*eta-1) * zeta*(zeta-1)
-            df(2) = 0.25 * (1-xi**2) * eta*(eta-1) * (2*zeta-1)
-        case (9)
-            df(0) = 0.25 * (2*xi+1) * (1-eta**2) * zeta*(zeta-1)
-            df(1) = 0.25 * xi*(xi+1) * (-2*eta) * zeta*(zeta-1)
-            df(2) = 0.25 * xi*(xi+1) * (1-eta**2) * (2*zeta-1)
-        case (10)
-            df(0) = 0.25 * (-2*xi) * eta*(eta+1) * zeta*(zeta-1)
-            df(1) = 0.25 * (1-xi**2) * (2*eta+1) * zeta*(zeta-1)
-            df(2) = 0.25 * (1-xi**2) * eta*(eta+1) * (2*zeta-1)
-        case (11)
-            df(0) = 0.25 * (2*xi-1) * (1-eta**2) * zeta*(zeta-1)
-            df(1) = 0.25 * xi*(xi-1) * (-2*eta) * zeta*(zeta-1)
-            df(2) = 0.25 * xi*(xi-1) * (1-eta**2) * (2*zeta-1)
-        case (12)
-            df(0) = 0.25 * (2*xi-1) * eta*(eta-1) * (1-zeta**2)
-            df(1) = 0.25 * xi*(xi-1) * (2*eta-1) * (1-zeta**2)
-            df(2) = 0.25 * xi*(xi-1) * eta*(eta-1) * (-2*zeta)
-        case (13)
-            df(0) = 0.25 * (2*xi+1) * eta*(eta-1) * (1-zeta**2)
-            df(1) = 0.25 * xi*(xi+1) * (2*eta-1) * (1-zeta**2)
-            df(2) = 0.25 * xi*(xi+1) * eta*(eta-1) * (-2*zeta)
-        case (14)
-            df(0) = 0.25 * (2*xi+1) * eta*(eta+1) * (1-zeta**2)
-            df(1) = 0.25 * xi*(xi+1) * (2*eta+1) * (1-zeta**2)
-            df(2) = 0.25 * xi*(xi+1) * eta*(eta+1) * (-2*zeta)
-        case (15)
-            df(0) = 0.25 * (2*xi-1) * eta*(eta+1) * (1-zeta**2)
-            df(1) = 0.25 * xi*(xi-1) * (2*eta+1) * (1-zeta**2)
-            df(2) = 0.25 * xi*(xi-1) * eta*(eta+1) * (-2*zeta)
-        case (16)
-            df(0) = 0.25 * (-2*xi) * eta*(eta-1) * zeta*(zeta+1)
-            df(1) = 0.25 * (1-xi**2) * (2*eta-1) * zeta*(zeta+1)
-            df(2) = 0.25 * (1-xi**2) * eta*(eta-1) * (2*zeta+1)
-        case (17)
-            df(0) = 0.25 * (2*xi+1) * (1-eta**2) * zeta*(zeta+1)
-            df(1) = 0.25 * xi*(xi+1) * (-2*eta) * zeta*(zeta+1)
-            df(2) = 0.25 * xi*(xi+1) * (1-eta**2) * (2*zeta+1)
-        case (18)
-            df(0) = 0.25 * (-2*xi) * eta*(eta+1) * zeta*(zeta+1)
-            df(1) = 0.25 * (1-xi**2) * (2*eta+1) * zeta*(zeta+1)
-            df(2) = 0.25 * (1-xi**2) * eta*(eta+1) * (2*zeta+1)
-        case (19)
-            df(0) = 0.25 * (2*xi-1) * (1-eta**2) * zeta*(zeta+1)
-            df(1) = 0.25 * xi*(xi-1) * (-2*eta) * zeta*(zeta+1)
-            df(2) = 0.25 * xi*(xi-1) * (1-eta**2) * (2*zeta+1)
-        case(20)
-            df(0) = 0.5 * (-2*xi) * (1-eta**2) * zeta*(zeta-1)
-            df(1) = 0.5 * (1-xi**2) * (-2*eta) * zeta*(zeta-1)
-            df(2) = 0.5 * (1-xi**2) * (1-eta**2) * (2*zeta-1)
-        case(21)
-            df(0) = 0.5 * (-2*xi) * eta*(eta-1) * (1-zeta**2)
-            df(1) = 0.5 * (1-xi**2) * (2*eta-1) * (1-zeta**2)
-            df(2) = 0.5 * (1-xi**2) * eta*(eta-1) * (-2*zeta)
-        case(22)
-            df(0) = 0.5 * (2*xi+1) * (1-eta**2) * (1-zeta**2)
-            df(1) = 0.5 * xi*(xi+1) * (-2*eta) * (1-zeta**2)
-            df(2) = 0.5 * xi*(xi+1) * (1-eta**2) * (-2*zeta)
-        case(23)
-            df(0) = 0.5 * (-2*xi) * eta*(eta+1) * (1-zeta**2)
-            df(1) = 0.5 * (1-xi**2) * (2*eta+1) * (1-zeta**2)
-            df(2) = 0.5 * (1-xi**2) * eta*(eta+1) * (-2*zeta)
-        case(24)
-            df(0) = 0.5 * (2*xi-1) * (1-eta**2) * (1-zeta**2)
-            df(1) = 0.5 * xi*(xi-1) * (-2*eta) * (1-zeta**2)
-            df(2) = 0.5 * xi*(xi-1) * (1-eta**2) * (-2*zeta)
-        case(25)
-            df(0) = 0.5 * (-2*xi) * (1-eta**2) * zeta*(zeta+1)
-            df(1) = 0.5 * (1-xi**2) * (-2*eta) * zeta*(zeta+1)
-            df(2) = 0.5 * (1-xi**2) * (1-eta**2) * (2*zeta+1)
-        case(26)
-            df(0) = (-2*xi) * (1-eta**2) * (1-zeta**2)
-            df(1) = (1-xi**2) * (-2*eta) * (1-zeta**2)
-            df(2) = (1-xi**2) * (1-eta**2) * (-2*zeta)
-        end select
-
-        Comp_derivshapefunc = df(compo)
-
-        return
-    end function Comp_derivshapefunc
 
     subroutine dist_max_elem(Tdomain)
         implicit none
@@ -301,8 +126,15 @@ contains
 
 
 end module sdomain
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

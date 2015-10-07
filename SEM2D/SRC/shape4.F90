@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file shape4.F90
 !!\brief Contient la subroutine shape4.
@@ -169,11 +173,11 @@ contains
 
         type(domain),target, intent (INOUT) :: Tdomain
 
-
         ! local variables
 
-        integer :: i_aus,n,mat,ngllx,ngllz,i,j,ipoint,imin,imax
-        real :: x0,x1,x2,x3,z0,z1,z2,z3,xi,eta,xp,zp, Jac
+        integer :: i_aus, n, mat, ngllx, ngllz, i, j, ipoint, imin, imax
+        real, dimension(0:1,0:3) :: coord
+        real :: xi, eta, xp, zp, Jac
         real, dimension (0:1,0:1) :: LocInvGrad
         integer :: nf
         real :: Jac1D
@@ -188,10 +192,10 @@ contains
         allocate (Tdomain%GlobCoord(0:1,0:Tdomain%n_glob_points-1))
 
         do n = 0,Tdomain%n_elem - 1
-            i_aus = Tdomain%specel(n)%Control_Nodes(0);  x0 = Tdomain%Coord_Nodes(0,i_aus);  z0 = Tdomain%Coord_Nodes(1,i_aus)
-            i_aus = Tdomain%specel(n)%Control_Nodes(1);  x1 = Tdomain%Coord_Nodes(0,i_aus);  z1 = Tdomain%Coord_Nodes(1,i_aus)
-            i_aus = Tdomain%specel(n)%Control_Nodes(2);  x2 = Tdomain%Coord_Nodes(0,i_aus);  z2 = Tdomain%Coord_Nodes(1,i_aus)
-            i_aus = Tdomain%specel(n)%Control_Nodes(3);  x3 = Tdomain%Coord_Nodes(0,i_aus);  z3 = Tdomain%Coord_Nodes(1,i_aus)
+            i_aus = Tdomain%specel(n)%Control_Nodes(0); coord(0,0) = Tdomain%Coord_Nodes(0,i_aus); coord(1,0) = Tdomain%Coord_Nodes(1,i_aus)
+            i_aus = Tdomain%specel(n)%Control_Nodes(1); coord(0,1) = Tdomain%Coord_Nodes(0,i_aus); coord(1,1) = Tdomain%Coord_Nodes(1,i_aus)
+            i_aus = Tdomain%specel(n)%Control_Nodes(2); coord(0,2) = Tdomain%Coord_Nodes(0,i_aus); coord(1,2) = Tdomain%Coord_Nodes(1,i_aus)
+            i_aus = Tdomain%specel(n)%Control_Nodes(3); coord(0,3) = Tdomain%Coord_Nodes(0,i_aus); coord(1,3) = Tdomain%Coord_Nodes(1,i_aus)
 
             mat = Tdomain%specel(n)%mat_index
             ngllx = Tdomain%specel(n)%ngllx
@@ -201,33 +205,22 @@ contains
             allocate (Tdomain%specel(n)%InvGrad(0:ngllx-1,0:ngllz-1,0:1,0:1) )
 
             do j = 0,ngllz - 1
-
-                eta =   Tdomain%sSubdomain(mat)%GLLcz (j)
-
+                eta = Tdomain%sSubdomain(mat)%GLLcz(j)
                 do i = 0,ngllx - 1
+                    xi = Tdomain%sSubdomain(mat)%GLLcx(i)
 
-                    xi = Tdomain%sSubdomain(mat)%GLLcx (i)
+                    ! Computation of global coordinates
 
+                    call shape4_local2global(coord, xi, eta, xp, zp)
                     ipoint = Tdomain%specel(n)%Iglobnum(i,j)
+                    Tdomain%GlobCoord(0,ipoint) = xp; Tdomain%GlobCoord(1,ipoint) = zp
 
+                    ! Computation of the derivative matrix
 
-                    xp = 0.25 * ( x0 * (1.-xi)*(1.-eta) + x1 * (1.+xi)*(1.-eta) + x2 * (1.+xi)*(1.+eta) + x3 * (1.-xi)*(1.+eta) )
-                    zp = 0.25 * ( z0 * (1.-xi)*(1.-eta) + z1 * (1.+xi)*(1.-eta) + z2 * (1.+xi)*(1.+eta) + z3 * (1.-xi)*(1.+eta) )
-
-                    Tdomain%GlobCoord (0,ipoint) = xp;   Tdomain%GlobCoord (1,ipoint) = zp
-
-                    !         Computation of the derivative matrix, dx_(jj)/dxi_(ii)
-
-                    LocInvGrad(0,0) = 0.25 * ( (x1-x0) * (1-eta) + (x2-x3) * (1+eta) )
-                    LocInvGrad(1,0) = 0.25 * ( (x3-x0) * (1-xi) + (x2-x1) * (1+xi) )
-                    LocInvGrad(0,1) = 0.25 * ( (z1-z0) * (1-eta) + (z2-z3) * (1+eta) )
-                    LocInvGrad(1,1) = 0.25 * ( (z3-z0) * (1-xi) + (z2-z1) * (1+xi) )
-
-                    call invert2 (LocInvGrad, Jac)
-
-                    Tdomain%specel(n)%InvGrad (i,j,0:1,0:1)  = LocInvGrad (0:1,0:1)
-
-                    Tdomain%specel(n)%Jacob (i,j) = Jac
+                    call shape4_local2jacob(coord, xi, eta, LocInvGrad)
+                    call invert2(LocInvGrad, Jac)
+                    Tdomain%specel(n)%InvGrad(i,j,0:1,0:1) = LocInvGrad(0:1,0:1)
+                    Tdomain%specel(n)%Jacob(i,j) = Jac
                 enddo
             enddo
 
@@ -297,7 +290,6 @@ contains
         endif
         return
     end subroutine shape4
-
 
     subroutine shape4_manage_super_object(Tdomain, n)
         use sdomain
@@ -424,71 +416,90 @@ contains
 
     end subroutine shape4_manage_super_object
 
-    subroutine shape4_local_coord(xc, zc, x, z, xi1, eta1, inosol)
-        implicit none
-        real, dimension (0:3), intent(in) :: xc,zc
-        real, intent(in) :: x, z
-        real, intent(out) :: xi1, eta1
-        logical, intent(out) :: inosol
+    subroutine shape4_global2local(coord, xa, za, xi, eta, ok)
+        double precision, dimension(0:1,0:3), intent(in)  :: coord
+        double precision, intent(in) :: xa, za
+        double precision, intent(out) :: xi, eta
+        logical, intent(out) :: ok
         !
+        integer :: niter
+        double precision, dimension(0:1) :: xin, xout, xref
+        ok = .true.
+        xin(0) = 0.
+        xin(1) = 0.
+        xref(0) = xa
+        xref(1) = za
+        call shape4_simple_newton(coord, xref, xin, xout, niter)
+        if (niter==1000 .or. niter<0) ok=.false.
+        xi  = xout(0)
+        eta = xout(1)
+    end subroutine shape4_global2local
+
+    subroutine shape4_simple_newton(nodes, xref, xin, xout, nit)
+        double precision, dimension(0:1,0:3), intent(in) :: nodes
+        double precision, dimension(0:1), intent(in) :: xref, xin
+        double precision, dimension(0:1), intent(out) :: xout
+        integer, intent(out) :: nit
+        !
+        double precision, dimension(0:1,0:1) :: jac
+        double precision, dimension(0:1) :: x
+        double precision :: xa, za, err, Det
+        integer, parameter :: niter=1000
         integer :: i
-        real :: a1, b1, c1, d1
-        real :: a2, b2, c2, d2
-        real :: alpha, beta, gamm, delta
+        xout = xin
+        do i=1,niter
+            call shape4_local2global(nodes, xout(0), xout(1), xa, za)
+            call shape4_local2jacob (nodes, xout(0), xout(1), Jac)
+            call invert2 (Jac, Det)
+            xa = xref(0)-xa
+            za = xref(1)-za
+            x(0) = Jac(0,0)*xa + Jac(1,0)*za
+            x(1) = Jac(0,1)*xa + Jac(1,1)*za
+            err = x(0)**2+x(1)**2
+            if (err<1e-24) exit ! eps^2 with eps=1e-12 : need high precision to recover previous results (basics tests)
+            xout = xout + x
+        end do
+        nit = i
+    end subroutine shape4_simple_newton
 
-        a1 =  4 * x - xc(0) - xc(1) - xc(2) - xc(3)
-        b1 =  xc(0) - xc(1) + xc(3) - xc(2)
-        c1 =  xc(0) + xc(1) - xc(2) - xc(3)
-        d1 = -xc(0) + xc(1) + xc(3) - xc(2)
-        a2 =  4 * z - zc(0) - zc(1) - zc(2) - zc(3)
-        b2 =  zc(0) - zc(1) + zc(3) - zc(2)
-        c2 =  zc(0) + zc(1) - zc(2) - zc(3)
-        d2 = -zc(0) + zc(1) + zc(3) - zc(2)
-        alpha = c1*d2 - d1*c2  ; beta = a1*d2 - b1*c2 + c1*b2 - d1*a2; gamm = a1*b2 - a2*b1
-        if (abs(alpha)<1e-7 ) then
-            eta1 = -gamm/beta
-            if (d2 == 0 .and. b2==0) then
-                xi1 = -(a1 + c1*eta1)/(b1+d1*eta1)
-            else
-                xi1 = -(a2 + c2*eta1)/(b2+d2*eta1)
-            endif
-            inosol = xi1 <=1 .and. xi1>=-1 .and. eta1>=-1 .and. eta1<=1
-            inosol =.not. inosol
-        else
-            delta = beta**2 - 4* alpha*gamm
-            if (delta < 0) then
-                write (*,*)  "No solution for the location"
-                write (*,*) " Return to continue, and Ctrl C to quit"
-                stop
-            endif
-            eta1 = 0.5 * (- beta + sqrt (delta) )/ alpha
-            inosol = .true.
-            if (eta1 <= 1 .and. eta1 >=-1) then
-                xi1 = -(a2 + c2*eta1)/(b2+d2*eta1)
-                if (xi1 <=1 .and. xi1 >= -1) inosol = .false.
-            endif
-            if (inosol) then
-                eta1 =  0.5 * (- beta - sqrt (delta) )/ alpha
-                if (eta1 <= 1 .and. eta1 >=-1) then
-                    xi1 = -(a2 + c2*eta1)/(b2+d2*eta1)
-                    if (xi1 <=1 .and. xi1 >= -1) inosol = .false.
-                endif
-            endif
-        endif
-        if (inosol) then
-            write (*,*)  "No solution found for coordinates    ",x, z
-            write (*,*)  "Within element :"
-            do i=0,3
-                write(*,*) xc(i), zc(i)
-            end do
-            stop
-        endif
+    subroutine shape4_local2global(coord, xi, eta, xa, za)
+        double precision, dimension(0:1,0:3), intent(in) :: coord
+        double precision, intent(in) :: xi, eta
+        double precision, intent(out) :: xa, za
+        !
+        double precision x0, x1, x2, x3, z0, z1, z2, z3 ! Used for clarity (-O2 should be able to optimize this)
+        x0 = coord(0,0); x1 = coord (0,1); x2 = coord (0,2); x3 = coord (0,3);
+        z0 = coord(1,0); z1 = coord (1,1); z2 = coord (1,2); z3 = coord (1,3);
+        !- computation of the global coordinates from the local coordinates
+        xa = 0.25*(x0 * (1.-xi)*(1.-eta) + x1 * (1.+xi)*(1.-eta) + x2 * (1.+xi)*(1.+eta) + x3 * (1.-xi)*(1.+eta))
+        za = 0.25*(z0 * (1.-xi)*(1.-eta) + z1 * (1.+xi)*(1.-eta) + z2 * (1.+xi)*(1.+eta) + z3 * (1.-xi)*(1.+eta))
+    end subroutine shape4_local2global
 
-    end subroutine shape4_local_coord
+    subroutine shape4_local2jacob(coord, xi, eta, jac)
+        double precision, dimension(0:1,0:3), intent(in)  :: coord
+        double precision, intent(in) :: xi, eta
+        double precision, dimension(0:1,0:1), intent(out) :: jac
+        !
+        double precision x0, x1, x2, x3, z0, z1, z2, z3 ! Used for clarity (-O2 should be able to optimize this)
+        x0 = coord(0,0); x1 = coord (0,1); x2 = coord (0,2); x3 = coord (0,3);
+        z0 = coord(1,0); z1 = coord (1,1); z2 = coord (1,2); z3 = coord (1,3);
+        !- computation of the derivative matrix, dx_(jj)/dxi_(ii)
+        jac(0,0) = 0.25*((x1-x0) * (1-eta) + (x2-x3) * (1+eta))
+        jac(1,0) = 0.25*((x3-x0) * (1-xi)  + (x2-x1) * (1+xi) )
+        jac(0,1) = 0.25*((z1-z0) * (1-eta) + (z2-z3) * (1+eta))
+        jac(1,1) = 0.25*((z3-z0) * (1-xi)  + (z2-z1) * (1+xi) )
+    end subroutine shape4_local2jacob
 
 end module shape_lin
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

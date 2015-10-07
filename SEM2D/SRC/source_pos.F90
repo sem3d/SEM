@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file source_pos.F90
 !!\brief Contient la subroutine SourcePosition.
@@ -10,180 +14,75 @@
 subroutine SourcePosition(Tdomain)
 
     use sdomain
-    use shape_lin
-    use shape_quad
+    use mlocations2d
     implicit none
     type (domain), intent (INOUT) :: Tdomain
 
     ! local variables
 
-    integer :: nel,n, nsour,i,j,nmin,nind, mind, idef, nnelem, ipoint
-    integer :: ngllx,ngllz
-    integer, dimension (0:5) :: nsource
-    real :: Dmin, Dist, eta1, xi1
-    real, dimension (0:7) :: xc,zc
-    real, dimension (0:5) :: xis, etas
+    integer, parameter :: NMAXEL=20
+    integer, dimension(NMAXEL) :: elems
+    double precision, dimension(0:1,NMAXEL) :: coordloc
+    double precision, parameter :: EPS = 1D-13
+    integer :: nsour, nmax, i, n_el, n_el_test
+    double precision :: xc, zc, xi, eta
+    logical :: inside, at_least_one_inside
 
-    logical :: inner,inosol
-
-
-    ! ########################################
-    ! Compute the nearest point to the real location of the source in GLL scheme
-    ! Search for the element
-    ! Verify inside which element the source is located
-    !
-    ! major modification  by Gaetano Festa 06/01/2005
-    ! changes for the MPI compatibility 13/10/2005
-    ! ##########################################
-
-    nel = Tdomain%n_elem
+    ! Find the nearest point to the real location of the sources in GLL scheme
 
     do nsour = 0, Tdomain%n_source -1
-        Dmin = 1e10
-        ! Find the nearest point (gauss node) to the source
-        do n = 0,Tdomain%n_glob_points-1
 
-            Dist = (Tdomain%GlobCoord(0,n)-Tdomain%Ssource(nsour)%Xsource)**2  +   &
-                (Tdomain%GlobCoord(1,n)-Tdomain%Ssource(nsour)%Zsource)**2
+        xc = Tdomain%sSource(nsour)%xsource
+        zc = Tdomain%sSource(nsour)%zsource
+        nmax = NMAXEL
 
-            if ( Dist < Dmin ) then
-                nmin = n
-                Dmin = Dist
+        ! Find source location
+        call find_location(Tdomain, xc, zc, nmax, elems, coordloc)
+        at_least_one_inside = .false.
+
+        do i=1,nmax! When the source is in the mesh
+            inside = .true.
+            n_el_test = elems(i)
+            xi   = coordloc(0,i)
+            eta  = coordloc(1,i)
+            if (xi<(-1-EPS) .or. eta<(-1-EPS)) inside = .false.
+            if (xi>( 1+EPS) .or. eta>( 1+EPS)) inside = .false.
+            if (inside) then
+                n_el = n_el_test
+                at_least_one_inside = .true.
             endif
         enddo
 
-        ! Search for the elements containing this point (allow a maximum of 6)
-        nind = 0
-        do n = 0,nel-1
-            Tdomain%specel(n)%is_source = .false.
-            ngllx = Tdomain%specel(n)%ngllx
-            ngllz = Tdomain%specel(n)%ngllz
-            do j = 0,ngllz-1
-                do i = 0,ngllx-1
-                    idef = Tdomain%specel(n)%Iglobnum(i,j)
-                    if (idef == nmin ) then
-                        nsource(nind) = n
-                        nind = nind + 1
-                        if (nind > 6 ) then
-                            write (*,*) "Maximum allowed connection is 6! Some elements have a larger connection"
-                        endif
-                    endif
-                enddo
-            enddo
-        enddo
+        if (at_least_one_inside) then
+            write (*,'(a,i5,a,i4,a,f10.5,a,f10.5,a,i10,a,f20.17,a,f20.17,a)') " Source ", nsour, &
+                 " : found on proc. ", Tdomain%Mpi_var%my_rank, ", (xc, zc) : (", xc, ", ", zc, &
+                 ") <=> (element, xi, eta) : (", n_el, ", ", xi, ", ", eta, ")"
 
-        ! Verify inside which element the source is
-        if (Tdomain%n_nodes == 4) then
-            mind = 0
-            do n = 0, nind-1
-                nnelem = nsource(n)
-                do i=0, 3
-                    ipoint = Tdomain%specel(nnelem)%Control_Nodes(i)
-                    xc(i)= Tdomain%Coord_nodes(0,ipoint)
-                    zc(i)= Tdomain%Coord_nodes(1,ipoint)
-                end do
-                call verify_in_quad (xc,zc, Tdomain%sSource(nsour)%Xsource,  Tdomain%sSource(nsour)%Zsource, inner)
-                if (inner) then
-                    nsource(mind) = nsource (n)
-                    mind = mind + 1
-                endif
-            enddo
-            Tdomain%sSource(nsour)%ine = mind
+            ! Allocation (1 element par source)
+            Tdomain%sSource(nsour)%ine = 1
+            allocate(Tdomain%sSource(nsour)%Elem(0:0))
+            Tdomain%sSource(nsour)%Elem(0)%nr   = n_el
+            Tdomain%sSource(nsour)%Elem(0)%xi   = xi
+            Tdomain%sSource(nsour)%Elem(0)%eta  = eta
+            Tdomain%specel(n_el)%is_source = .true.
 
-            if (mind /=0) then
+            ! Customizing according to source type
 
-                ! Determine xi-eta coordinates
-
-                allocate (Tdomain%sSource(nsour)%Elem (0:mind-1)  )
-                do n = 0,mind-1
-                    nnelem = nsource(n)
-                    do i=0, 3
-                        ipoint = Tdomain%specel(nnelem)%Control_Nodes(i)
-                        xc(i)= Tdomain%Coord_nodes(0,ipoint)
-                        zc(i)= Tdomain%Coord_nodes(1,ipoint)
-                    end do
-                    call shape4_local_coord(xc, zc, Tdomain%sSource(nsour)%Xsource, &
-                        Tdomain%sSource(nsour)%Zsource, xi1, eta1, inosol)
-
-                    if (inosol) then
-                        write(*,*) "Source not found"
-                        stop
-                    else
-                        Tdomain%sSource(nsour)%Elem(n)%nr = nsource (n)
-                        Tdomain%sSource(nsour)%Elem(n)%xi = xi1
-                        Tdomain%sSource(nsour)%Elem(n)%eta = eta1
-                        Tdomain%specel(nsource(n))%is_source = .true.
-                    end if
-                enddo
-
-
-                if (Tdomain%sSource(nsour)%i_type_source == 1) then  ! Pulse directional force
-                    call source_excit_pulse(Tdomain, Tdomain%sSource(nsour))
-                else if (Tdomain%sSource(nsour)%i_type_source  == 2) then ! Moment * Dirac
-                    call calc_shape4_coeffs(Tdomain, Tdomain%sSource(nsour))
-                    call source_excit_moment(Tdomain, Tdomain%sSource(nsour))
-                else if (Tdomain%sSource(nsour)%i_type_source  == 4) then ! Dirac projected
-                    call source_dirac_projected(Tdomain, Tdomain%sSource(nsour))
-                else if (Tdomain%sSource(nsour)%i_type_source  == 6) then ! Source on strain equation
-                    call source_excit_strain(Tdomain, Tdomain%sSource(nsour))
-                endif
+            if (Tdomain%sSource(nsour)%i_type_source == 1) then       ! Pulse directional force
+                call source_excit_pulse(Tdomain, Tdomain%sSource(nsour))
+            else if (Tdomain%sSource(nsour)%i_type_source  == 2) then ! Explosive source diagonal moment considered
+                if (Tdomain%n_nodes == 4) call calc_shape4_coeffs(Tdomain, Tdomain%sSource(nsour))
+                if (Tdomain%n_nodes == 8) call calc_shape8_coeffs(Tdomain, Tdomain%sSource(nsour))
+                call source_excit_moment(Tdomain, Tdomain%sSource(nsour))
+            else if (Tdomain%sSource(nsour)%i_type_source  == 4) then ! Dirac projected
+                call source_dirac_projected(Tdomain, Tdomain%sSource(nsour))
+            else if (Tdomain%sSource(nsour)%i_type_source  == 6) then ! Source on strain equation
+                call source_excit_strain(Tdomain, Tdomain%sSource(nsour))
+            else if  (Tdomain%sSource(nsour)%i_type_source == 5) then
+                call source_space_gaussian(Tdomain, Tdomain%sSource(nsour))
             endif
-
-        else if (Tdomain%n_nodes == 8 ) then
-            mind = 0
-            do n = 0, nind-1
-                nnelem = nsource(n)
-                inner = .false.
-                do i=0, 7
-                    ipoint = Tdomain%specel(nnelem)%Control_Nodes(i)
-                    xc(i)= Tdomain%Coord_nodes(0,ipoint)
-                    zc(i)= Tdomain%Coord_nodes(1,ipoint)
-                end do
-                call shape8_local_coord(xc, zc, Tdomain%sSource(nsour)%Xsource, &
-                    Tdomain%sSource(nsour)%Zsource, xi1, eta1, inosol)
-                if (inosol) then
-                    write(*,*) "Source not found"
-                    stop
-                else
-                    nsource (mind) = nsource (n)
-                    xis(mind) = xi1
-                    etas(mind) = eta1
-                    mind = mind +1
-                endif
-            enddo
-            Tdomain%sSource(nsour)%ine = mind;
-            if ( mind /= 0 ) then
-
-                allocate ( Tdomain%sSource(nsour)%Elem(0:mind-1) )
-                Tdomain%sSource(nsour)%Elem(0:mind-1)%nr = nsource(0:mind-1)
-                Tdomain%sSource(nsour)%Elem(0:mind-1)%xi = xis(0:mind-1)
-                Tdomain%sSource(nsour)%Elem(0:mind-1)%eta = etas(0:mind-1)
-
-                if (Tdomain%sSource(nsour)%i_type_source == 1) then
-                    ! Pulse directional force
-                    call source_excit_pulse(Tdomain, Tdomain%sSource(nsour))
-                else if ( Tdomain%sSource(nsour)%i_type_source == 2) then
-                    ! Explosive source diagonal moment considered
-                    call calc_shape8_coeffs(Tdomain, Tdomain%sSource(nsour))
-                    call source_excit_moment(Tdomain, Tdomain%sSource(nsour))
-                endif
-            endif
-        endif   ! if on nnods
-
-        ! Special treatment for a point source mollified by a Gaussian in space :
-        if (Tdomain%sSource(nsour)%i_type_source == 5) then
-            call source_space_gaussian(Tdomain, Tdomain%sSource(nsour))
-        endif
-
-        if (Tdomain%sSource(nsour)%ine /= 0) then
-            write (*,*) "Source ", nsour , " is in the processor ", Tdomain%Mpi_var%my_rank
-            write (*,*) " Location of the source is (Element, xi,eta) : "
-            do n = 0,Tdomain%sSource(nsour)%ine -1
-                write (*,*) Tdomain%sSource(nsour)%Elem(n)%nr, Tdomain%sSource(nsour)%Elem(n)%xi, Tdomain%sSource(nsour)%Elem(n)%eta
-            enddo
-        endif
-    enddo ! number of sources
-    return
+        end if
+    enddo
 end subroutine SourcePosition
 
 subroutine source_excit_pulse(Tdomain, src)
@@ -537,7 +436,6 @@ subroutine source_space_gaussian(Tdomain, src)
     return
 end subroutine source_space_gaussian
 
-
 ! ############################################################
 
 subroutine calc_shape4_coeffs(Tdomain, src)
@@ -630,6 +528,7 @@ subroutine calc_shape8_coeffs(Tdomain, src)
 end subroutine calc_shape8_coeffs
 
 
+
 subroutine  Gaussian2d(Dist,sigma,res)
 
   implicit none
@@ -646,5 +545,11 @@ end subroutine Gaussian2d
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

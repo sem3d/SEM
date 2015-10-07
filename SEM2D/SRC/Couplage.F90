@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file Couplage.F90
 !!\brief Contient les routines propres au traitement du couplage.
@@ -105,7 +109,7 @@ contains
     !! nombre de particules de couplage, les mailles couplées,...
     !! \param type (domain), intent(INOUT) Tdomain
     !<
-    subroutine initialisation_couplage(Tdomain, MaxNgparFace)
+    subroutine initialisation_couplage(Tdomain)
         type (domain), intent(INOUT)  :: Tdomain
         integer :: i
         integer :: tag,ierr
@@ -726,10 +730,9 @@ contains
 !!!! Envoi des donnees au Superviseur
 !!!! --------------------------------------------------
 
-    subroutine envoi_vitesse_mka(Tdomain,ntime)
+    subroutine envoi_vitesse_mka(Tdomain)
 
         type (domain), intent(INOUT)  :: Tdomain
-        integer, intent(IN) :: ntime
 
         integer :: tag, ierr
         integer :: i,numFace
@@ -863,8 +866,15 @@ contains
 #endif
 
 end module scouplage
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

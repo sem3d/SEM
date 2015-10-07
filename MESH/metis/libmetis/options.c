@@ -5,7 +5,7 @@
   \date   Started 5/12/2011
   \author George  
   \author Copyright 1997-2011, Regents of the University of Minnesota 
-  \version\verbatim $Id: options.c 10492 2011-07-06 09:28:42Z karypis $ \endverbatim
+  \version\verbatim $Id: options.c 13901 2013-03-24 16:17:03Z karypis $ \endverbatim
   */
 
 #include "metislib.h"
@@ -26,13 +26,10 @@ ctrl_t *SetupCtrl(moptype_et optype, idx_t *options, idx_t ncon, idx_t nparts,
 
   switch (optype) {
     case METIS_OP_PMETIS:
-      ctrl->objtype   = GETOPTION(options, METIS_OPTION_OBJTYPE, METIS_OBJTYPE_CUT);
-      ctrl->ctype     = GETOPTION(options, METIS_OPTION_CTYPE,   METIS_CTYPE_SHEM);
-      ctrl->rtype     = METIS_RTYPE_FM;
-      ctrl->ncuts     = GETOPTION(options, METIS_OPTION_NCUTS,   1);
-      ctrl->niter     = GETOPTION(options, METIS_OPTION_NITER,   10);
-      ctrl->seed      = GETOPTION(options, METIS_OPTION_SEED,    -1);
-      ctrl->dbglvl    = GETOPTION(options, METIS_OPTION_DBGLVL,  0);
+      ctrl->objtype = GETOPTION(options, METIS_OPTION_OBJTYPE, METIS_OBJTYPE_CUT);
+      ctrl->rtype   = METIS_RTYPE_FM;
+      ctrl->ncuts   = GETOPTION(options, METIS_OPTION_NCUTS,   1);
+      ctrl->niter   = GETOPTION(options, METIS_OPTION_NITER,   10);
 
       if (ncon == 1) {
         ctrl->iptype    = GETOPTION(options, METIS_OPTION_IPTYPE,  METIS_IPTYPE_GROW);
@@ -49,23 +46,19 @@ ctrl_t *SetupCtrl(moptype_et optype, idx_t *options, idx_t ncon, idx_t nparts,
 
 
     case METIS_OP_KMETIS:
-      ctrl->objtype  = GETOPTION(options, METIS_OPTION_OBJTYPE, METIS_OBJTYPE_CUT);
-      ctrl->ctype    = GETOPTION(options, METIS_OPTION_CTYPE,   METIS_CTYPE_SHEM);
-      ctrl->iptype   = METIS_IPTYPE_METISRB;
-      ctrl->rtype    = METIS_RTYPE_GREEDY;
-      ctrl->ncuts    = GETOPTION(options, METIS_OPTION_NCUTS,   1);
-      ctrl->niter    = GETOPTION(options, METIS_OPTION_NITER,   10);
-      ctrl->ufactor  = GETOPTION(options, METIS_OPTION_UFACTOR, KMETIS_DEFAULT_UFACTOR);
-      ctrl->minconn  = GETOPTION(options, METIS_OPTION_MINCONN, 0);
-      ctrl->contig   = GETOPTION(options, METIS_OPTION_CONTIG,  0);
-      ctrl->seed     = GETOPTION(options, METIS_OPTION_SEED,    -1);
-      ctrl->dbglvl   = GETOPTION(options, METIS_OPTION_DBGLVL,  0);
+      ctrl->objtype = GETOPTION(options, METIS_OPTION_OBJTYPE, METIS_OBJTYPE_CUT);
+      ctrl->iptype  = METIS_IPTYPE_METISRB;
+      ctrl->rtype   = METIS_RTYPE_GREEDY;
+      ctrl->ncuts   = GETOPTION(options, METIS_OPTION_NCUTS,   1);
+      ctrl->niter   = GETOPTION(options, METIS_OPTION_NITER,   10);
+      ctrl->ufactor = GETOPTION(options, METIS_OPTION_UFACTOR, KMETIS_DEFAULT_UFACTOR);
+      ctrl->minconn = GETOPTION(options, METIS_OPTION_MINCONN, 0);
+      ctrl->contig  = GETOPTION(options, METIS_OPTION_CONTIG,  0);
       break;
 
 
     case METIS_OP_OMETIS:
       ctrl->objtype  = GETOPTION(options, METIS_OPTION_OBJTYPE,  METIS_OBJTYPE_NODE);
-      ctrl->ctype    = GETOPTION(options, METIS_OPTION_CTYPE,    METIS_CTYPE_SHEM);
       ctrl->rtype    = GETOPTION(options, METIS_OPTION_RTYPE,    METIS_RTYPE_SEP1SIDED);
       ctrl->iptype   = GETOPTION(options, METIS_OPTION_IPTYPE,   METIS_IPTYPE_EDGE);
       ctrl->nseps    = GETOPTION(options, METIS_OPTION_NSEPS,    1);
@@ -73,8 +66,6 @@ ctrl_t *SetupCtrl(moptype_et optype, idx_t *options, idx_t ncon, idx_t nparts,
       ctrl->ufactor  = GETOPTION(options, METIS_OPTION_UFACTOR,  OMETIS_DEFAULT_UFACTOR);
       ctrl->compress = GETOPTION(options, METIS_OPTION_COMPRESS, 1);
       ctrl->ccorder  = GETOPTION(options, METIS_OPTION_CCORDER,  0);
-      ctrl->seed     = GETOPTION(options, METIS_OPTION_SEED,     -1);
-      ctrl->dbglvl   = GETOPTION(options, METIS_OPTION_DBGLVL,   0);
       ctrl->pfactor  = 0.1*GETOPTION(options, METIS_OPTION_PFACTOR,  0);
 
       ctrl->CoarsenTo = 100;
@@ -84,12 +75,18 @@ ctrl_t *SetupCtrl(moptype_et optype, idx_t *options, idx_t ncon, idx_t nparts,
       gk_errexit(SIGERR, "Unknown optype of %d\n", optype);
   }
 
-  ctrl->numflag  = GETOPTION(options, METIS_OPTION_NUMBERING, 0);
-  ctrl->optype   = optype;
-  ctrl->ncon     = ncon;
-  ctrl->nparts   = nparts;
-  ctrl->maxvwgt  = ismalloc(ncon, 0, "SetupCtrl: maxvwgt");
+  /* common options */
+  ctrl->ctype   = GETOPTION(options, METIS_OPTION_CTYPE, METIS_CTYPE_SHEM);
+  ctrl->no2hop  = GETOPTION(options, METIS_OPTION_NO2HOP, 0);
+  ctrl->seed    = GETOPTION(options, METIS_OPTION_SEED, -1);
+  ctrl->dbglvl  = GETOPTION(options, METIS_OPTION_DBGLVL, 0);
+  ctrl->numflag = GETOPTION(options, METIS_OPTION_NUMBERING, 0);
 
+  /* set non-option information */
+  ctrl->optype  = optype;
+  ctrl->ncon    = ncon;
+  ctrl->nparts  = nparts;
+  ctrl->maxvwgt = ismalloc(ncon, 0, "SetupCtrl: maxvwgt");
 
   /* setup the target partition weights */
   if (ctrl->optype != METIS_OP_OMETIS) {
@@ -107,7 +104,7 @@ ctrl_t *SetupCtrl(moptype_et optype, idx_t *options, idx_t ncon, idx_t nparts,
   else {  /* METIS_OP_OMETIS */
     /* this is required to allow the pijbm to be defined properly for
        the edge-based refinement during initial partitioning */
-    ctrl->tpwgts    = rsmalloc(2, .5,  "SetupCtrl: ctrl->tpwgts");
+    ctrl->tpwgts = rsmalloc(2, .5,  "SetupCtrl: ctrl->tpwgts");
   }
 
 
@@ -239,6 +236,8 @@ void PrintCtrl(ctrl_t *ctrl)
     default:
       printf("Unknown!\n");
   }
+
+  printf("   Perform a 2-hop matching: %s\n", (ctrl->no2hop ? "Yes" : "No"));
 
   printf("   Number of balancing constraints: %"PRIDX"\n", ctrl->ncon);
   printf("   Number of refinement iterations: %"PRIDX"\n", ctrl->niter);

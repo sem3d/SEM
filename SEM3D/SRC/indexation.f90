@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file indexation.f90
 !!\brief calcul de la numerotation des ddl
@@ -19,35 +23,41 @@ contains
         integer, dimension(0:6), intent(out)   :: index_elem
 
         select case(ind_face)
+
+        !On the XY Plane
         case(0)   ! constant z-coordinate : ngll_z=0
             index_elem(0) = 0
             ! only x and y related indices do vary:
             call index_face(ngllx,nglly,orient_face,index_elem(1),index_elem(2),   &
                 index_elem(3),index_elem(4),index_elem(5),index_elem(6))
-        case(1)   ! constant y-coordinate : ngll_y=0
-            index_elem(0) = 0
-            ! only x and z related indices do vary:
-            call index_face(ngllx,ngllz,orient_face,index_elem(1),index_elem(2),   &
+        case(5)   ! constant z-coordinate : ngll_z=ngllz-1
+            index_elem(0) = ngllz-1
+            ! only x and y related indices do vary:
+            call index_face(ngllx,nglly,orient_face,index_elem(1),index_elem(2),   &
                 index_elem(3),index_elem(4),index_elem(5),index_elem(6))
+
+        !On the YZ Plane
         case(2)   ! constant x-coordinate : ngll_x=ngllx-1
             index_elem(0) = ngllx-1
             ! only y and z related indices do vary:
             call index_face(nglly,ngllz,orient_face,index_elem(1),index_elem(2),   &
-                index_elem(3),index_elem(4),index_elem(5),index_elem(6))
-        case(3)   ! constant y-coordinate : ngll_y=nglly-1
-            index_elem(0) = nglly-1
-            ! only x and z related indices do vary:
-            call index_face(ngllx,ngllz,orient_face,index_elem(1),index_elem(2),   &
                 index_elem(3),index_elem(4),index_elem(5),index_elem(6))
         case(4)   ! constant x-coordinate : ngll_x=0
             index_elem(0) = 0
             ! only y and z related indices do vary:
             call index_face(nglly,ngllz,orient_face,index_elem(1),index_elem(2),   &
                 index_elem(3),index_elem(4),index_elem(5),index_elem(6))
-        case(5)   ! constant z-coordinate : ngll_z=ngllz-1
-            index_elem(0) = ngllz-1
-            ! only x and y related indices do vary:
-            call index_face(ngllx,nglly,orient_face,index_elem(1),index_elem(2),   &
+
+        !On the ZX Plane
+        case(1)   ! constant y-coordinate : ngll_y=0
+            index_elem(0) = 0
+            ! only x and z related indices do vary:
+            call index_face(ngllx,ngllz,orient_face,index_elem(1),index_elem(2),   &
+                index_elem(3),index_elem(4),index_elem(5),index_elem(6))
+        case(3)   ! constant y-coordinate : ngll_y=nglly-1
+            index_elem(0) = nglly-1
+            ! only x and z related indices do vary:
+            call index_face(ngllx,ngllz,orient_face,index_elem(1),index_elem(2),   &
                 index_elem(3),index_elem(4),index_elem(5),index_elem(6))
 
         end select
@@ -216,8 +226,15 @@ contains
 end module mindex
 !---------------------------------------------------------------------------
 !-------------------------------------------------------------------------
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

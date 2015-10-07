@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file define_arr.F90
 !!\brief Contient la subroutine define_arrays.
@@ -8,9 +12,9 @@
 !<
 
 !>
-!! \brief La routine define_arrays définit des tableaux concernant les propriétés physiques du matériau.
-!! les propriétés physiques concernées sont : l'élasticité, le tenseur de contraintes, les conditions limites,...
-!! Elle assure également les communications entre processeurs de SEM pour diffuser l'information.
+!! \brief La routine define_arrays definit des tableaux concernant les proprietes physiques du materiau.
+!! les proprietes physiques concernees sont : l'elasticite, le tenseur de contraintes, les conditions limites,...
+!! Elle assure egalement les communications entre processeurs de SEM pour diffuser l'information.
 !! \param type (domain),intent (INOUT), target Tdomain
 !<
 
@@ -639,11 +643,7 @@ subroutine define_arrays(Tdomain)
             !ac if (.not. Tdomain%logicD%save_deformation)  deallocate (Tdomain%specel(n)%InvGrad)
         else
             ! Discontinuous Galerkin Case : Mass Mat do NOT need to be resized
-            do j = 0,ngllz-1
-                do i = 0,ngllx-1
-                    if (abs(Tdomain%specel(n)%MassMat(i, j)) .gt. 1.e-12) Tdomain%specel(n)%MassMat(i, j) = 1./Tdomain%specel(n)%MassMat(i, j) ! Avoid NaN
-                enddo
-            enddo
+            Tdomain%specel(n)%MassMat = 1. / Tdomain%specel(n)%MassMat
             !Tdomain%specel(n)%Acoeff(:,:,12) = 1. / Tdomain%specel(n)%Acoeff(:,:,12)
         endif
     enddo
@@ -665,9 +665,7 @@ subroutine define_arrays(Tdomain)
                 deallocate (Tdomain%sFace(nf)%DumpMass)
             endif
         else
-            do n=1, Tdomain%sFace(nf)%ngll-2
-                if (abs(Tdomain%sFace(nf)%MassMat(n)) .gt. 1.e-12) Tdomain%sFace(nf)%MassMat(n) = 1./ Tdomain%sFace(nf)%MassMat(n) ! Avoid NaN
-            end do
+            Tdomain%sFace(nf)%MassMat = 1./ Tdomain%sFace(nf)%MassMat
         endif
     enddo
 
@@ -688,7 +686,7 @@ subroutine define_arrays(Tdomain)
                 deallocate (Tdomain%sVertex(nv_aus)%DumpMass)
             endif
         else
-            if (abs(Tdomain%sVertex(nv_aus)%MassMat) .gt. 1.e-12) Tdomain%sVertex(nv_aus)%MassMat = 1./Tdomain%sVertex(nv_aus)%MassMat ! Avoid NaN
+            Tdomain%sVertex(nv_aus)%MassMat = 1./Tdomain%sVertex(nv_aus)%MassMat
         endif
     enddo
 
@@ -776,8 +774,15 @@ subroutine define_arrays(Tdomain)
 
     return
 end subroutine define_arrays
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

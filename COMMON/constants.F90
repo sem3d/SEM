@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !! \file constants.F90
 !! \brief Ce module contient les definitions des constantes (math, physique, systeme, parametres) du code
@@ -21,10 +25,12 @@ MODULE constants
     real(KIND=8), parameter :: M_2_SQRTPI = 1.12837916709551257390D0 ! 2/sqrt(pi)
     real(KIND=8), parameter :: M_SQRT2 = 1.41421356237309504880D0    ! sqrt(2)
     real(KIND=8), parameter :: M_SQRT1_2 = 0.70710678118654752440D0  ! 1/sqrt(2)
-
+    real(KIND=8), parameter :: M_1_3 =     0.33333333333333333333D0 ! 1/3
     ! Constantes physiques
 
     ! Parametres systemes
+    integer     , parameter :: MAX_INT = 2147483647
+    real(KIND=8), parameter :: MAX_DOUBLE = 1.79769313486231570e+307
 
     ! Parametres algorithmes & code
     integer, parameter :: TIME_INTEG_NEWMARK=0
@@ -49,6 +55,7 @@ MODULE constants
     integer, parameter :: DG_BC_REFL=2
     logical, parameter :: COMPUTE_VHAT=.true.
     logical, parameter :: NOT_COMPUTE_VHAT=.false.
+    integer, parameter :: nProp = 3
 
     ! Les fichiers capteurs sont ecrits toutes les NCAPT_CACHE sorties
     integer, parameter :: NCAPT_CACHE=100
@@ -59,13 +66,27 @@ MODULE constants
     integer, parameter :: MATERIAL_CONSTANT   = 1
     integer, parameter :: MATERIAL_GRADIENT   = 2
     integer, parameter :: MATERIAL_EARTHCHUNK = 3
+    integer, parameter :: MATERIAL_PREM       = 4
+    integer, parameter :: MATERIAL_MULTIPLE     = 5
 
 
 CONTAINS
 
+
+    subroutine unused(var)
+        real :: var
+        var = var
+    end subroutine unused
 END MODULE constants
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

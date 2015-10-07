@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file read_restart.f90
 !!\brief Contient la subroutine read_restart().
@@ -148,7 +152,7 @@ subroutine read_EpsilonVol(Tdomain, elem_id)
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
 
-        if ( .not. Tdomain%specel(n)%PML ) then
+        if ( Tdomain%specel(n)%solid .and. ( .not. Tdomain%specel(n)%PML ) ) then
             do k = 0,ngllz-1
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
@@ -209,7 +213,7 @@ subroutine read_EpsilonDev(Tdomain, elem_id)
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
 
-        if ( .not. Tdomain%specel(n)%PML ) then
+        if ( Tdomain%specel(n)%solid .and. ( .not. Tdomain%specel(n)%PML ) ) then
             do k = 0,ngllz-1
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
@@ -313,17 +317,17 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
             do k = 0,ngllz-1
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
-                        Tdomain%specel(n)%slpml%Veloc1(i,j,k,0) = veloc(idx+0)
-                        Tdomain%specel(n)%slpml%Veloc1(i,j,k,1) = veloc(idx+1)
-                        Tdomain%specel(n)%slpml%Veloc1(i,j,k,2) = veloc(idx+2)
+                        Tdomain%specel(n)%flpml%Veloc1(i,j,k,0) = veloc(idx+0)
+                        Tdomain%specel(n)%flpml%Veloc1(i,j,k,1) = veloc(idx+1)
+                        Tdomain%specel(n)%flpml%Veloc1(i,j,k,2) = veloc(idx+2)
                         idx = idx + 3
-                        Tdomain%specel(n)%slpml%Veloc2(i,j,k,0) = veloc(idx+0)
-                        Tdomain%specel(n)%slpml%Veloc2(i,j,k,1) = veloc(idx+1)
-                        Tdomain%specel(n)%slpml%Veloc2(i,j,k,2) = veloc(idx+2)
+                        Tdomain%specel(n)%flpml%Veloc2(i,j,k,0) = veloc(idx+0)
+                        Tdomain%specel(n)%flpml%Veloc2(i,j,k,1) = veloc(idx+1)
+                        Tdomain%specel(n)%flpml%Veloc2(i,j,k,2) = veloc(idx+2)
                         idx = idx + 3
-                        Tdomain%specel(n)%slpml%Veloc3(i,j,k,0) = veloc(idx+0)
-                        Tdomain%specel(n)%slpml%Veloc3(i,j,k,1) = veloc(idx+1)
-                        Tdomain%specel(n)%slpml%Veloc3(i,j,k,2) = veloc(idx+2)
+                        Tdomain%specel(n)%flpml%Veloc3(i,j,k,0) = veloc(idx+0)
+                        Tdomain%specel(n)%flpml%Veloc3(i,j,k,1) = veloc(idx+1)
+                        Tdomain%specel(n)%flpml%Veloc3(i,j,k,2) = veloc(idx+2)
                         idx = idx + 3
                     end do
                 end do
@@ -380,6 +384,8 @@ subroutine read_Faces(Tdomain, face_id)
                     Tdomain%sFace(n)%Displ(i,j,2) = displ(idx2+2)
                     idx2 = idx2 + 3
                 else
+                    ! For solid fluid coupling, we need v0 = veloc at restart
+                    Tdomain%sFace(n)%V0 = Tdomain%sFace(n)%Veloc
                     Tdomain%sFace(n)%spml%Veloc1(i,j,0) = veloc1(idx3+0)
                     Tdomain%sFace(n)%spml%Veloc1(i,j,1) = veloc1(idx3+1)
                     Tdomain%sFace(n)%spml%Veloc1(i,j,2) = veloc1(idx3+2)
@@ -467,6 +473,8 @@ subroutine read_Edges(Tdomain, edge_id)
                 Tdomain%sEdge(n)%Displ(i,2) = displ(idx2+2)
                 idx2 = idx2 + 3
             else
+                ! For solid fluid coupling, we need v0 = veloc at restart
+                Tdomain%sEdge(n)%V0 = Tdomain%sEdge(n)%Veloc
                 Tdomain%sEdge(n)%spml%Veloc1(i,0) = veloc1(idx3+0)
                 Tdomain%sEdge(n)%spml%Veloc1(i,1) = veloc1(idx3+1)
                 Tdomain%sEdge(n)%spml%Veloc1(i,2) = veloc1(idx3+2)
@@ -549,6 +557,8 @@ subroutine read_Vertices(Tdomain, vertex_id)
             Tdomain%sVertex(n)%Displ(2) = displ(idx2+2)
             idx2 = idx2 + 3
         else
+            ! For solid fluid coupling, we need v0 = veloc at restart
+            Tdomain%sVertex(n)%V0 = Tdomain%sVertex(n)%Veloc
             Tdomain%sVertex(n)%spml%Veloc1(0) = veloc1(idx3+0)
             Tdomain%sVertex(n)%spml%Veloc1(1) = veloc1(idx3+1)
             Tdomain%sVertex(n)%spml%Veloc1(2) = veloc1(idx3+2)
@@ -656,8 +666,15 @@ subroutine read_restart (Tdomain,rg, isort)
     return
 end subroutine read_restart
 
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

@@ -7,7 +7,7 @@ Installation du code SEM3D
 ==========================
 
 
-Prérequis
+Pre-requis
 =========
 
 Le code :program:`SEM3D` nécessite deux (ou trois) outils externes pour sa compilation :
@@ -25,10 +25,12 @@ Le code :program:`SEM3D` nécessite deux (ou trois) outils externes pour sa comp
   d'installation, c'est à dire le chemin contenant :file:`bin/`,
   :file:`include/`, etc...
 
-  Les scripts de configurations :program:`CMake` de :program:`SEM` utilise la commande
-  ``h5cc -show`` pour détecter le paramètrage de la librairie :program:`HDF5`.
+  Les scripts de configuration :program:`CMake` de :program:`SEM` utilisent la commande
+  ``h5cc -show`` pour détecter le paramétrage de la librairie :program:`HDF5`.
 
-- une librairie :program:`MPI` (:program:`OpenMPI` recommandée, mais :program:`Mpich` ou :program:`Intel MPI` doivent être compatibles).
+- une librairie :program:`MPI` (:program:`OpenMPI` recommandée, mais :program:`Mpich`, :program:`Intel MPI` ou :program:`SGI-MPT` doivent être compatibles).
+
+La génération de cette documentation nécessite de plus l'outil :program:`sphinx` ( http://sphinx-doc.org/ ).
 
 
 Compilation
@@ -55,7 +57,9 @@ Préparation de la compilation
 La préparation se fait à l'aide de la commande suivante ::
 
   $ cd sem_build
+  # Génération des Makefile à partir de CMakeLists.txt
   $ ccmake ../sem_src
+
 
 ``ccmake`` est une commande interactive de :program:`CMake` permettant de
 paramétrer la compilation. Le paramétrage s'effectue en deux étapes :
@@ -76,9 +80,16 @@ paramétrer la compilation. Le paramétrage s'effectue en deux étapes :
 
   Lorsqu'on change des variables, il faut reconfigurer (touche ``c``).
 
+  Après chaque configuration, on affiche les variables avancées (touche ``t``).
+
+  Il faut vérifier que : - CMAKE_Fortran_COMPILER = ifort
+                         - CMAKE_Fortran_FLAGS = -lhdf5
+                         - OPT_MPI = ON
+
+
 - La seconde étape, la génération des fichiers ``Makefile`` ne peut se faire que si
   l'option ``g`` (*generate and exit*) apparait dans
-  l'interface. Cette option n'apparait que si la dernière étape de
+  l'interface. Cette option n'apparaît que si la dernière étape de
   configuration n'a pas modifié de variables.
 
   En effet, il se peut qu'une reconfiguration change d'autres
@@ -108,7 +119,7 @@ Quelques variantes :
 
 La compilation produit plusieurs exécutables :
 
-- ``build_src/SEM2D/sem2d.exe`` : Code SEM2D.
+- ``build_src/SEM2D/sem2d.exe`` : Code :program:`SEM2D`.
 
 - ``build_src/SEM3D/sem3d.exe`` : Code :program:`SEM3D`.
 
@@ -133,9 +144,141 @@ Lancement du générateur de maillage : ::
   $ cd rep_du_cas
   $ ${chemin_build}/MESH/mesher
 
-Ou en mode automatique avec les saisies clavier enregistrées dans le fichier ``mesh.input`` (c'est le cas des cas tests présent avec les sources de SEM) : ::
+Ou en mode automatique avec les saisies clavier enregistrées dans le fichier ``mesh.input`` (c'est le cas des cas tests présents avec les sources de SEM) : ::
 
   $ cd rep_du_cas
   $ ${chemin_build}/MESH/mesher < mesh.input
   
 
+Résolutions des problèmes de compilation
+----------------------------------------
+
+Dans l'ordre :
+
+1. Lire le message d'erreur
+
+2. Déterminer s'il s'agit d'une erreur de compilation ou d'une erreur d'édition de lien
+
+3. **Relire le message d'erreur** et **tout** le message...
+
+4. Regarder ci-dessous si c'est un problème courant
+
+5. Eviter de faire une première compilation en mode parallèle [#]_
+
+.. [#] ``cmake`` détecte les dépendances entre modules lors de la
+   compilation. Normalement l'ordre de compilation des modules permet
+   de générer les modules nécessaires pour compiler une première fois
+   séquentiellement. Ensuite, chaque recompilation met à jour les
+   dépendances.
+   
+Plusieurs problèmes peuvent survenir lors de la compilation, et/ou l'édition de lien de SEM.
+
+Pour les résoudre il faut avant tout comprendre le processus de compilation :
+
+- Chaque fichier source (``.f``, ``.c``, ``.f90``) est transformé par
+  le *compilateur* en un fichier binaire (``.o``).
+
+- En supposant que la version que vous compilez a déjà été compilée
+  par ailleurs, les erreurs qui peuvent survenir lors de la
+  compilation sont :
+
+  - Un compilateur non testé : Fortran est un langage très mal
+    normalisé, ``gfortran`` est souvent plus strict que ``ifort``,
+    certaines formulation vont compiler avec l'un et pas avec l'autre.
+
+    Exemple notoire : ifort accepte une structure ``allocatable``
+    comme membre d'une autre structure alors que gfortran va exiger un
+    ``pointer``
+
+  - L'unité de compilation (fichier .f90 par exemple) utilise un
+    module externe non reconnu.
+
+    Exemple classique : gfortran ne peut pas charger le module mpi ou hdf5.
+
+    plusieurs cas :
+
+    - Le module n'est simplement pas trouvé :
+
+      - il faut d'abord trouver le module (``mpi.mod`` ou ``hdf5.mod``)
+      
+      - puis faire en sorte que le compilateur le trouve : il faut
+        ajouter l'option ``-I/chemin/vers/module`` dans une des
+        variables ``*_FLAGS`` de cmake. On peut vérifier ce que
+        ``cmake`` passe au compilateur avec ``make VERBOSE=1``
+
+    - Le module est produit par un autre compilateur :
+
+      - gfortran ne peut pas utiliser un module compilé avec ifort et vice-versa.
+
+        Il ne peut pas utiliser non plus la librairie produite,
+        autrement dit un appel à une fonction externe (dans le style
+        Fortran 77) va compiler mais produire des erreurs lors de
+        l'exécution.
+
+      - Plus gênant, gfortran est incapable d'utiliser un module
+        produit par une version majeur différente : on ne peut pas
+        compiler SEM avec gfortran 4.8 et lui faire utiliser une
+        librairie compilée avec gfortran 4.7
+
+Après la compilation vient l'édition de lien, c'est le moment où l'on
+assemble les fichiers ``.o`` pour en faire un exécutable. Cela
+consiste principalement à relier les appels de fonctions externes à
+une unité avec leurs définitions dans une autre unité ou dans une
+librairie.
+
+Il y a encore plusieurs erreurs classiques :
+
+- La librairie n'est pas trouvée :
+
+  Il faut inclure la librairie dans la compilation. Dans ``cmake`` ce
+  sont les variables ``*_LDFLAGS`` ou ``*LIBRARIES`` qui contrôlent
+  cette partie de la procédure. On peut ajouter le chemin complet
+  d'une librairie, ou les options ``-L/chemin -lnom_de_lib``.
+
+  Si le linker indique qu'il ne trouve pas une librairie, c'est que
+  celle-ci lui a été désignée : donc soit une option ``-lnom_de_lib``
+  existe mais aucun fichier ``libnom_de_lib.so`` n'est présent dans
+  les chemins fournis au linker, soit une librairie utilisée indique
+  qu'elle dépend d'une autre librairie introuvable.
+
+- La seconde erreur possible est que le linker ne peut pas résoudre un
+  symbole. C'est à dire que quelque part dans un fichier ``.o`` ou
+  dans une librairie, une fonction est appelée, mais la définition de
+  cette fonction n'est dans aucun autre fichier ``.o`` ou librairie.
+
+  - Cela peut venir du code : par exemple lorsqu'on compile SEM en
+    monoprocesseur, on utilise une "fausse" librairie MPI. Cette
+    version étant moins testée, il se peut qu'un développeur ait
+    utilisé une fonction MPI non encore émulée. (c'est arrivé dans le
+    passé, mais le nombre de fonction MPI étant limité, on va finir
+    par les avoir toutes émulées).
+
+  - Le plus souvent, cela vient d'une librairie qui dépend d'une autre
+    librairie, qui ne spécifie pas ses dépendances (car ce n'est pas
+    obligatoire pour une librairie).
+
+    C'est le cas avec les librairies de support du compilateur Intel.
+
+    Par exemple: je compile hdf5 avec icc 10. qui utilise des
+    fonctions provenant de la librairie de support du compilateur
+    10.0. Et plus tard je compile *et* je link SEM avec
+    icc/ifort 11. Entre temps la fonction utilisée par intel 10. a
+    disparu et n'est plus dans la librairie de support de
+    Intel 11. Donc à l'édition de lien le symbole utilisé par la
+    librairie hdf5 ne sera plus présent.
+
+
+Création de la documentation
+============================
+
+Si :program:`sphinx` et :program:`latex` sont installés correctement, la documentation (ce fichier)
+se génère par la commande ::
+
+ $ cd ${SOURCE_SEM}/DOC
+ $ make latexpdf  # pour la version PDF
+ $ make html      # pour la version HTML
+
+Les fichiers produits sont écrits dans les répertoires ::
+
+  ${SOURCE_SEM}/DOC/build/latex/SEM.pdf
+  ${SOURCE_SEM}/DOC/build/html/index.html

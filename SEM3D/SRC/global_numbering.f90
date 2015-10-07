@@ -1,15 +1,19 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file global_numbering.f90
-!!\brief Assure la correspondance entre les différentes numérotations.
+!!\brief Assure la correspondance entre les diffÃ©rentes numÃ©rotations.
 !!
 !<
 
 
 !>
-!! Définition de Iglobnum et  renvoi du nombre total de ddl: elements, faces, aretes, sommets
+!! DÃ©finition de Iglobnum et  renvoi du nombre total de ddl: elements, faces, aretes, sommets
 !!
 !<
-subroutine global_numbering(Tdomain,rank)
+subroutine global_numbering(Tdomain)
 
     ! routine different from the 2D case. Everything is independently numbered, here (inner
     !      points in elements, on faces, edges and vertices). And then associated in
@@ -19,7 +23,6 @@ subroutine global_numbering(Tdomain,rank)
     use sdomain
     use mindex
     implicit none
-    integer, intent(in)  :: rank
     type(domain), intent (inout) :: Tdomain
     integer :: n,icount,i,j,k,ngllx,nglly,ngllz,nf,nnf,ne,nne,nv,ngll1,ngll2,   &
         orient_f,orient_e,ngll,nnv
@@ -28,6 +31,7 @@ subroutine global_numbering(Tdomain,rank)
     integer, dimension(0:2)  :: index_elem_v
 
 
+	!Elements Inner GLL points
     icount = 0
 
     do n = 0,Tdomain%n_elem-1
@@ -46,7 +50,7 @@ subroutine global_numbering(Tdomain,rank)
         enddo
     enddo
 
-
+	!Faces Inner GLL points
     do n = 0,Tdomain%n_face-1
         ngllx = Tdomain%sFace(n)%ngll1
         nglly = Tdomain%sFace(n)%ngll2
@@ -60,6 +64,7 @@ subroutine global_numbering(Tdomain,rank)
         enddo
     enddo
 
+	!Edges Inner GLL points
     do n = 0,Tdomain%n_edge-1
         ngllx = Tdomain%sEdge(n)%ngll
         allocate(Tdomain%sEdge(n)%Iglobnum_Edge(1:ngllx-2))
@@ -70,22 +75,21 @@ subroutine global_numbering(Tdomain,rank)
         enddo
     enddo
 
+	!Corner GLL points
     do n = 0,Tdomain%n_vertex-1
         Tdomain%sVertex(n)%Iglobnum_Vertex = icount
         icount = icount + 1
     enddo
 
-    ! total number of GLL points (= degrees of freedom)
+    !Total number of GLL points (= degrees of freedom)
     Tdomain%n_glob_points = icount
 
-
-    ! recollecting at the element level, from faces, edges and vertices.
-
+    !Recollecting at the element level, from faces, edges and vertices.
     do n = 0,Tdomain%n_elem-1
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
-        ! taking information from faces
+        !Taking information from faces
         do nf = 0,5
             orient_f = Tdomain%specel(n)%Orient_Faces(nf)
             nnf = Tdomain%specel(n)%Near_Faces(nf)
@@ -95,10 +99,11 @@ subroutine global_numbering(Tdomain,rank)
             select case(orient_f)
             case(0,1,2,3)
                 if(nf == 2 .or. nf == 4)then
-                    Tdomain%specel(n)%Iglobnum(index_elem_f(0),                       &
+                    Tdomain%specel(n)%Iglobnum(                             &
+                        index_elem_f(0),                                    &
                         index_elem_f(1):index_elem_f(2):index_elem_f(3),    &
-                        index_elem_f(4):index_elem_f(5):index_elem_f(6)) =  &
-                        Tdomain%sFace(nnf)%Iglobnum_Face(1:ngll1-2,1:ngll2-2)
+                        index_elem_f(4):index_elem_f(5):index_elem_f(6))    &
+                        = Tdomain%sFace(nnf)%Iglobnum_Face(1:ngll1-2,1:ngll2-2)
                 else if(nf == 1 .or. nf == 3)then
                     Tdomain%specel(n)%Iglobnum(index_elem_f(1):index_elem_f(2):index_elem_f(3), &
                         index_elem_f(0),                                              &
@@ -109,7 +114,6 @@ subroutine global_numbering(Tdomain,rank)
                         index_elem_f(4):index_elem_f(5):index_elem_f(6),    &
                         index_elem_f(0)) =                                  &
                         Tdomain%sFace(nnf)%Iglobnum_Face(1:ngll1-2,1:ngll2-2)
-
                 end if
             case(4,5,6,7)
                 if(nf == 2 .or. nf == 4)then
@@ -134,7 +138,7 @@ subroutine global_numbering(Tdomain,rank)
         end do
 
 
-        ! taking information from edges
+        !Taking information from edges
         do ne = 0,11
             orient_e = Tdomain%specel(n)%Orient_Edges(ne)
             nne = Tdomain%specel(n)%Near_Edges(ne)
@@ -156,7 +160,7 @@ subroutine global_numbering(Tdomain,rank)
             end select
         end do
 
-        ! taking information from vertices
+        !Taking information from vertices
         do nv = 0,7
             nnv = Tdomain%specel(n)%Near_Vertices(nv)
             call ind_elem_vertex(nv,ngllx,nglly,ngllz,index_elem_v)
@@ -168,8 +172,15 @@ subroutine global_numbering(Tdomain,rank)
 
     return
 end subroutine global_numbering
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 module solid_fluid
 
     ! all that is related to the solid-fluid interfaces
@@ -88,7 +92,7 @@ contains
         any_f = .false. ; all_f = .true. ; s_f = .false.
         do i = 0, nmat-1
             if(mattab(i) == 'F' .or. mattab(i) == 'L') any_f = .true. 
-            if(mattab(i) == 'S' .or. mattab(i) == 'P') all_f = .false. 
+            if(mattab(i) == 'S' .or. mattab(i) == 'P' .or. mattab(i) == 'R') all_f = .false.
         end do
 
         !-
@@ -133,7 +137,7 @@ contains
             !- Nature of nodes
             do n = 0, size(elems)-1
                 imat = mater(n)
-                if(mattab(imat) == 'S' .or. mattab(imat) == 'P')then
+                if(mattab(imat) == 'S' .or. mattab(imat) == 'P' .or. mattab(imat) == 'R' )then
                     code = 1   ! solid
                 else
                     code = 0   ! liquid
@@ -142,6 +146,7 @@ contains
                 do i = 0, n_nodes-1
                     j = Ipointer(i,n)
                     if(nods(j) == code .or. nods(j) == -1)then
+                    !if(nods(j) == code)then
                         nods(j) = code
                     else
                         nods(j) = 2   ! solid-fluid node
@@ -219,10 +224,8 @@ contains
         integer, dimension(:), allocatable, intent(out)   ::  SF_object_n_faces
         integer, intent(out)   :: SF_n_global_faces
 
-        integer   :: i,j,k,l,n,nf,nn,nnn,ok,num,neighbor_edge,neighbor_face
-        integer, dimension(0:1)  :: corner_edge
-        integer, dimension(0:3)  :: corner, corner_fl, neighbor_corner,  &
-            corner_s,edge_fl,edge_s
+        integer   :: j,k,n,nf,nn,nnn,ok,num,neighbor_face
+        integer, dimension(0:3)  :: corner, corner_fl, neighbor_corner
 
         SF_n_global_faces = 0
         write(*,*) "  --> Construction of Solid-Fluid objects."
@@ -278,6 +281,7 @@ contains
                                         SF_object_n_faces(n) = SF_object_n_faces(n)+1
                                         SF_object_n_faces(nn) = SF_object_n_faces(nn)+1
                                         SF_n_global_faces = SF_n_global_faces+1
+                                        !SF_n_global_faces = SF_object_n_faces(n)
                                     end if
                                 end do search1
                             end if
@@ -288,8 +292,10 @@ contains
                 end do
             end if
         end do
+        !write(*,*) "    --> Nb of SF_object_n_faces:", SF_object_n_faces
 
     end subroutine SF_object_construct
+
     !------------------------------------------------------
     subroutine SF_global_faces_construct(n_elem, SF_n_global_faces,      &
         SF_object,SF_object_face,SF_object_n_faces,  &
@@ -329,6 +335,7 @@ contains
                 end do
             end if
         end do
+
     end subroutine SF_global_faces_construct
     !------------------------------------------------------
     !------------------------------------------------------
@@ -501,7 +508,7 @@ contains
         type(SF_vertex), dimension(0:SF_n_global_vertices-1), intent(inout) ::  &
             SF_global_vertices
 
-        integer   :: i,nf,ns,js,jf,k,proc,nel
+        integer   :: i,ns,js,jf,k,nel
         integer, dimension(0:15)  :: tr_procf,tr_procs
         type(near_entity), pointer  :: near_neighb => NULL()
 
@@ -562,7 +569,7 @@ contains
             SF_edges_near_elem
         type(near_entity), pointer   :: near_neighb => NULL()
 
-        integer   :: i,j,n,nv0,nv1,jf,js,nf,nel
+        integer   :: i,n,jf,js,nel
         integer, dimension(0:15)   :: tr_procs,tr_procf
 
         do i = 0,SF_n_global_edges-1
@@ -626,7 +633,7 @@ contains
             SF_global_edges
 
         logical, dimension(:), allocatable   :: Lproc_solid,Lproc_fluid
-        integer   :: i,j,k,ind,nv0,nv1,n,np,nel,num,ok,n_proct,n_procf,n_procs
+        integer   :: i,j,k,ind,nv0,nv1,n,np,nel,num,ok,n_procf,n_procs
         integer, dimension(0:1)  :: npf,nps,e_neighbor_corner
         type(near_entity), pointer   :: near_neighb => NULL()
 
@@ -728,7 +735,7 @@ contains
         integer, dimension(0:SF_n_faces-1), intent(out) :: SF_face_orient, &
             SF_local_to_global_faces
         type(process_obj), dimension(0:), intent(inout)  :: MemorySF_F
-        integer :: i,j,k,nf,nel,nnf,num,n
+        integer :: j,k,nf,nel,nnf,num,n
 
         SF_nf_shared(0:) = 0
         SF_face_orient(0:) = -1
@@ -807,7 +814,7 @@ contains
         integer, dimension(0:nproc-1), intent(out)   :: SF_ne_shared
         integer, dimension(0:SF_n_edges-1), intent(out) :: SF_mapping_edges
         type(process_obj), dimension(0:), intent(inout)  :: MemorySF_E
-        integer :: i,j,k,nf,nel,nnf,num,n,ns,nes,ne,n0,n1,nns,nv0,nels,   &
+        integer :: i,j,nnf,num,n,ns,nes,ne,n0,n1,nns,nv0,nels,   &
             indf,inds,indgen,o_indf,o_inds,o_indgen
         logical   ::  orient_fluid,orient_solid,orient_fluid_loc,orient_solid_loc,  &
             orient_o_proc_fluid,orient_o_proc_solid
@@ -917,7 +924,7 @@ contains
         integer, dimension(0:,0:), intent(out)   :: SF_vertices_shared
         integer, dimension(0:nproc-1), intent(out)   :: SF_nv_shared
         type(process_obj), dimension(0:), intent(inout)  :: MemorySF_V
-        integer :: i,j,k,nf,nel,nnf,num,n,ns,nes,ne,n0,n1,nns,nv0,nels,  &
+        integer :: i,j,nf,nnf,num,ns,nns,  &
             indf,inds,indgen,o_indf,o_inds,o_indgen
 
         SF_vertices(0:,0:) = -1
@@ -1024,8 +1031,15 @@ contains
 end module solid_fluid
 
 
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

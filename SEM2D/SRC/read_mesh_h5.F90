@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file read_mesh_h5.F90
 !!\brief Contient la subroutine read_mesh().
@@ -8,7 +12,7 @@
 !<
 
 !>
-!! \brief Assure la lecture du maillage (mesh_file) et lecture des caractéristiques des matériaux.
+!! \brief Assure la lecture du maillage (mesh_file) et lecture des caracteristiques des materiaux.
 !!
 !! Ecriture de data/sem/mesh_echo
 !! La racine du nom du maillage doit etre saisie dans Parametrage/sem/input.spec
@@ -41,7 +45,7 @@ subroutine read_mesh_h5(tDomain)
     ! The reading is local to the grid
 
     call semname_read_mesh_rank(Tdomain%mesh_file,Tdomain%Mpi_var%my_rank,fnamef)
-    write(*,*)"ouverture fichier:",trim(adjustl(fnamef))
+    write(*,*)"ouverture fichier:",trim(adjustl(fnamef))//".h5"
     call init_hdf5()
     !
     call h5fopen_f(trim(adjustl(fnamef))//".h5", H5F_ACC_RDONLY_F, fid, hdferr)
@@ -357,5 +361,11 @@ end subroutine set_vertex_valence
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

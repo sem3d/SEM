@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !! \file save_checkpoint.f90
 !! \brief Gère la protection de Sem3d
@@ -7,22 +11,26 @@
 !!
 !<
 
-subroutine init_protection(Tdomain, it, rg, prot_file)
+subroutine init_protection(Tdomain, it, prot_file)
     use sdomain
     use semdatafiles
     use mpi
     use sem_c_config, only : sem_mkdir
     implicit none
     type (domain), intent (INOUT):: Tdomain
-    integer, intent (IN) :: it, rg
+    integer, intent (IN) :: it
+    integer :: rg
     character (len=MAX_FILE_SIZE), INTENT(OUT) :: prot_file
     character (len=MAX_FILE_SIZE) :: dir_prot, dir_prot_prev, times_file
     character (len=MAX_FILE_SIZE) :: dir_traces, dir_prot_traces
     character (len=MAX_FILE_SIZE) :: commande
     integer :: ierr
 
+    rg = Tdomain%rank
+
     call semname_protection_iter_rank_file(it,rg,prot_file)
 
+    call MPI_Barrier(Tdomain%communicateur, ierr)
 
     ! recherche et destruction au fur et a mesure des anciennes prots
     if (rg == 0) then
@@ -905,17 +913,17 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
-                        data(idx+ 0) = Tdomain%specel(n)%slpml%Veloc1(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%slpml%Veloc1(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%slpml%Veloc1(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%flpml%Veloc1(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%flpml%Veloc1(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%flpml%Veloc1(i,j,k,2)
                         idx = idx + 3
-                        data(idx+ 0) = Tdomain%specel(n)%slpml%Veloc2(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%slpml%Veloc2(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%slpml%Veloc2(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%flpml%Veloc2(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%flpml%Veloc2(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%flpml%Veloc2(i,j,k,2)
                         idx = idx + 3
-                        data(idx+ 0) = Tdomain%specel(n)%slpml%Veloc3(i,j,k,0)
-                        data(idx+ 1) = Tdomain%specel(n)%slpml%Veloc3(i,j,k,1)
-                        data(idx+ 2) = Tdomain%specel(n)%slpml%Veloc3(i,j,k,2)
+                        data(idx+ 0) = Tdomain%specel(n)%flpml%Veloc3(i,j,k,0)
+                        data(idx+ 1) = Tdomain%specel(n)%flpml%Veloc3(i,j,k,1)
+                        data(idx+ 2) = Tdomain%specel(n)%flpml%Veloc3(i,j,k,2)
                         idx = idx + 3
                     enddo
                 enddo
@@ -1071,7 +1079,7 @@ subroutine write_Edges(Tdomain, offset_e, edge_id)
 
     integer(HID_T) :: veloc_id, displ_id, veloc1_id, veloc2_id, veloc3_id,   &
                       velphi_id, phi_id, velphi1_id, velphi2_id, velphi3_id
-    integer :: n,ngll,idx1,idx2,idx3,idx4,idx5,idx6,i,j,hdferr
+    integer :: n,ngll,idx1,idx2,idx3,idx4,idx5,idx6,i,hdferr
     real(kind=8), dimension(1:offset_e(1)) :: veloc
     real(kind=8), dimension(1:offset_e(2)) :: displ
     real(kind=8), dimension(1:offset_e(3)) :: veloc1
@@ -1202,7 +1210,7 @@ subroutine write_Vertices(Tdomain, offset_v, vertex_id)
 
     integer(HID_T) :: veloc_id, displ_id, veloc1_id, veloc2_id, veloc3_id,  &
                       velphi_id, phi_id, velphi1_id, velphi2_id, velphi3_id
-    integer :: n,idx1,idx2,idx3,idx4,idx5,idx6,i,j,hdferr
+    integer :: n,idx1,idx2,idx3,idx4,idx5,idx6,hdferr
     real(kind=8), dimension(1:offset_v(1)) :: veloc
     real(kind=8), dimension(1:offset_v(2)) :: displ
     real(kind=8), dimension(1:offset_v(3)) :: veloc1
@@ -1317,7 +1325,7 @@ subroutine write_Vertices(Tdomain, offset_v, vertex_id)
 
 end subroutine write_Vertices
 
-subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, isort)
+subroutine save_checkpoint (Tdomain, rtime, it, dtmin, isort)
     use sdomain
     use HDF5
     use sem_hdf5
@@ -1325,27 +1333,26 @@ subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, isort)
     implicit none
 
     type (domain), intent (INOUT):: Tdomain
-    integer, intent (IN) :: it, rg, isort
+    integer, intent (IN) :: it, isort
     real, intent (IN) :: rtime, dtmin
-    character (len=MAX_FILE_SIZE) :: fnamef, fnamer
-    !  complement de sauvegarde pour le partie facteur de qualite Qp et Qs
-    integer :: n_solid , i_sls
+    character (len=MAX_FILE_SIZE) :: fnamef
     ! HDF5 stuff
     integer :: hdferr
-    integer(HID_T) :: fid, dset_id, elem_id, face_id, edge_id, vertex_id
-    logical :: avail
-    integer :: nelem, noffset
-    integer :: size_vec, size_eps, size_epsaniso
+    integer(HID_T) :: fid, elem_id, face_id, edge_id, vertex_id
+    integer :: nelem
     integer(kind=4), dimension (12) :: offset
     integer(kind=4), dimension (6) :: offset_f ! Veloc / Displ / (Veloc1,Veloc2,Veloc3)
     integer(kind=4), dimension (6) :: offset_e ! Veloc / Displ / (Veloc1,Veloc2,Veloc3)
     integer(kind=4), dimension (6) :: offset_v ! Veloc / Displ / (Veloc1,Veloc2,Veloc3)
     integer(HSIZE_T), dimension(2) :: off_dims
+    integer :: rg
+
+    rg = Tdomain%rank
 
     if (rg == 0) then
         write (*,'(A44,I8,A1,f10.6)') "--> SEM : protection at iteration and time :",it," ",rtime
     endif
-    call init_protection(Tdomain, it, rg, fnamef)
+    call init_protection(Tdomain, it, fnamef)
 
     nelem = Tdomain%n_elem
 
@@ -1414,8 +1421,15 @@ subroutine save_checkpoint (Tdomain, rtime, it, rg, dtmin, isort)
     call h5gclose_f(vertex_id, hdferr)
     call h5fclose_f(fid, hdferr)
 end subroutine save_checkpoint
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

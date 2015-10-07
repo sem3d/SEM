@@ -9,7 +9,7 @@
  * Started 8/18/97
  * George
  *
- * $Id: mesh.c 10495 2011-07-06 16:04:45Z karypis $
+ * $Id: mesh.c 13804 2013-03-04 23:49:08Z karypis $
  *
  */
 
@@ -230,6 +230,48 @@ void CreateGraphDual(idx_t ne, idx_t nn, idx_t *eptr, idx_t *eind, idx_t ncommon
 
 
 /*****************************************************************************/
+/*! This function finds all elements that share at least ncommon nodes with 
+    the ``query'' element. 
+*/
+/*****************************************************************************/
+idx_t FindCommonElements(idx_t qid, idx_t elen, idx_t *eind, idx_t *nptr, 
+          idx_t *nind, idx_t *eptr, idx_t ncommon, idx_t *marker, idx_t *nbrs)
+{
+  idx_t i, ii, j, jj, k, l, overlap;
+
+  /* find all elements that share at least one node with qid */
+  for (k=0, i=0; i<elen; i++) {
+    j = eind[i];
+    for (ii=nptr[j]; ii<nptr[j+1]; ii++) {
+      jj = nind[ii];
+
+      if (marker[jj] == 0) 
+        nbrs[k++] = jj;
+      marker[jj]++;
+    }
+  }
+
+  /* put qid into the neighbor list (in case it is not there) so that it
+     will be removed in the next step */
+  if (marker[qid] == 0)
+    nbrs[k++] = qid;
+  marker[qid] = 0;
+
+  /* compact the list to contain only those with at least ncommon nodes */
+  for (j=0, i=0; i<k; i++) {
+    overlap = marker[l = nbrs[i]];
+    if (overlap >= ncommon || 
+        overlap >= elen-1 || 
+        overlap >= eptr[l+1]-eptr[l]-1)
+      nbrs[j++] = l;
+    marker[l] = 0;
+  }
+
+  return j;
+}
+
+
+/*****************************************************************************/
 /*! This function creates the (almost) nodal of a finite element mesh */
 /*****************************************************************************/
 void CreateGraphNodal(idx_t ne, idx_t nn, idx_t *eptr, idx_t *eind, 
@@ -268,11 +310,11 @@ void CreateGraphNodal(idx_t ne, idx_t nn, idx_t *eptr, idx_t *eind,
 
   /* allocate memory for working arrays used by FindCommonElements */
   marker = ismalloc(nn, 0, "CreateGraphNodal: marker");
-  nbrs   = imalloc(nn, "CreateGraphDual: nbrs");
+  nbrs   = imalloc(nn, "CreateGraphNodal: nbrs");
 
   for (i=0; i<nn; i++) {
-    xadj[i] = FindCommonElements(i, nptr[i+1]-nptr[i], nind+nptr[i], eptr, 
-                  eind, eptr, 1, marker, nbrs);
+    xadj[i] = FindCommonNodes(i, nptr[i+1]-nptr[i], nind+nptr[i], eptr, 
+                  eind, marker, nbrs);
   }
   MAKECSR(i, nn, xadj);
 
@@ -287,8 +329,8 @@ void CreateGraphNodal(idx_t ne, idx_t nn, idx_t *eptr, idx_t *eind,
   *r_adjncy = adjncy;
 
   for (i=0; i<nn; i++) {
-    nnbrs = FindCommonElements(i, nptr[i+1]-nptr[i], nind+nptr[i], eptr, 
-                eind, eptr, 1, marker, nbrs);
+    nnbrs = FindCommonNodes(i, nptr[i+1]-nptr[i], nind+nptr[i], eptr, 
+                eind, marker, nbrs);
     for (j=0; j<nnbrs; j++)
       adjncy[xadj[i]++] = nbrs[j];
   }
@@ -299,48 +341,37 @@ void CreateGraphNodal(idx_t ne, idx_t nn, idx_t *eptr, idx_t *eind,
 
 
 /*****************************************************************************/
-/*! This function finds all elements that share at least ncommon nodes with 
-    the ``query'' element. 
-
-    Also it is used to find all nodes that are present in all the elements
-    with the ``query'' node (using ncommon = 1).
+/*! This function finds the union of nodes that are in the same elements with
+    the ``query'' node. 
 */
 /*****************************************************************************/
-idx_t FindCommonElements(idx_t qid, idx_t elen, idx_t *eind, idx_t *nptr, 
-          idx_t *nind, idx_t *eptr, idx_t ncommon, idx_t *marker, idx_t *nbrs)
+idx_t FindCommonNodes(idx_t qid, idx_t nelmnts, idx_t *elmntids, idx_t *eptr, 
+          idx_t *eind, idx_t *marker, idx_t *nbrs)
 {
-  int i, ii, j, jj, k, l, overlap;
+  idx_t i, ii, j, jj, k;
 
-  /* find all elements that share at least one node with qid */
-  for (k=0, i=0; i<elen; i++) {
-    j = eind[i];
-    for (ii=nptr[j]; ii<nptr[j+1]; ii++) {
-      jj = nind[ii];
-
-      if (marker[jj] == 0) 
+  /* find all nodes that share at least one element with qid */
+  marker[qid] = 1;  /* this is to prevent self-loops */
+  for (k=0, i=0; i<nelmnts; i++) {
+    j = elmntids[i];
+    for (ii=eptr[j]; ii<eptr[j+1]; ii++) {
+      jj = eind[ii];
+      if (marker[jj] == 0) {
         nbrs[k++] = jj;
-      marker[jj]++;
+        marker[jj] = 1;
+      }
     }
   }
 
-  /* put qid into the neighbor list (in case it is not there) so that it
-     will be removed in the next step */
-  if (marker[qid] == 0)
-    nbrs[k++] = qid;
+  /* reset the marker */
   marker[qid] = 0;
-
-  /* compact the list to contain only those with at least ncommon nodes */
-  for (j=0, i=0; i<k; i++) {
-    overlap = marker[l = nbrs[i]];
-    if (overlap >= ncommon || 
-        overlap >= elen-1 || 
-        overlap >= eptr[l+1]-eptr[l]-1)
-      nbrs[j++] = l;
-    marker[l] = 0;
+  for (i=0; i<k; i++) {
+    marker[nbrs[i]] = 0;
   }
 
-  return j;
+  return k;
 }
+
 
 
 /*************************************************************************/

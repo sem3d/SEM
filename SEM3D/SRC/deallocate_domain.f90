@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !! \file deallocate_domain.f90
 !! \brief
@@ -7,7 +11,7 @@
 !!
 !<
 
-subroutine deallocate_domain (Tdomain, rg)
+subroutine deallocate_domain (Tdomain)
 
     ! Modified by Gaetano Festa 25/02/2005
     ! Modified by Paul Cupillard 08/12/2005
@@ -18,14 +22,13 @@ subroutine deallocate_domain (Tdomain, rg)
     implicit none
 
     type(domain), intent (INOUT):: Tdomain
-    integer, intent (IN) :: rg
 
-
-    integer :: n
-
+    integer :: n, code
 
     deallocate (Tdomain%GlobCoord)
     deallocate (Tdomain%Coord_Nodes)
+    if(allocated(Tdomain%not_PML_List)) deallocate (Tdomain%not_PML_List)
+    if(allocated(Tdomain%subD_exist)) deallocate (Tdomain%subD_exist)
 
     do n = 0,Tdomain%n_elem-1
         deallocate (Tdomain%specel(n)%Density)
@@ -34,39 +37,42 @@ subroutine deallocate_domain (Tdomain, rg)
         deallocate (Tdomain%specel(n)%Control_Nodes)
         deallocate (Tdomain%specel(n)%Jacob)
         if (Tdomain%TimeD%velocity_scheme) then
-            deallocate (Tdomain%specel(n)%sl%Veloc )
-            !  modif mariotti fevrier 2007 cea capteur displ
-            deallocate (Tdomain%specel(n)%sl%Displ)
-
-            deallocate (Tdomain%specel(n)%sl%Accel)
-            deallocate (Tdomain%specel(n)%sl%V0 )
-            deallocate (Tdomain%specel(n)%sl%Forces)
+            if(Tdomain%specel(n)%solid) then
+                deallocate (Tdomain%specel(n)%sl%Veloc )
+                !  modif mariotti fevrier 2007 cea capteur displ
+                deallocate (Tdomain%specel(n)%sl%Displ)
+                deallocate (Tdomain%specel(n)%sl%Accel)
+                deallocate (Tdomain%specel(n)%sl%V0 )
+                deallocate (Tdomain%specel(n)%sl%Forces)
+            end if
             if (Tdomain%specel(n)%PML) then
                 !  modif mariotti fevrier 2007 cea
                 deallocate (Tdomain%specel(n)%Lambda)
                 deallocate (Tdomain%specel(n)%Kappa)
                 deallocate (Tdomain%specel(n)%Mu)
 
-                deallocate (Tdomain%specel(n)%sl%Acoeff)
-                deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress)
-                deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress1)
-                deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress2)
-                deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress3)
-                deallocate (Tdomain%specel(n)%slpml%Residual_Stress)
-                deallocate (Tdomain%specel(n)%slpml%Residual_Stress1)
-                deallocate (Tdomain%specel(n)%slpml%Residual_Stress2)
-                deallocate (Tdomain%specel(n)%slpml%Veloc1)
-                deallocate (Tdomain%specel(n)%slpml%Veloc2)
-                deallocate (Tdomain%specel(n)%slpml%Veloc3)
-                deallocate (Tdomain%specel(n)%slpml%Forces1)
-                deallocate (Tdomain%specel(n)%slpml%Forces2)
-                deallocate (Tdomain%specel(n)%slpml%Forces3)
-                deallocate (Tdomain%specel(n)%slpml%DumpSx)
-                deallocate (Tdomain%specel(n)%slpml%DumpSy)
-                deallocate (Tdomain%specel(n)%slpml%DumpSz)
-                deallocate (Tdomain%specel(n)%slpml%DumpVx)
-                deallocate (Tdomain%specel(n)%slpml%DumpVy)
-                deallocate (Tdomain%specel(n)%slpml%DumpVz)
+                if(Tdomain%specel(n)%solid) then
+                    deallocate (Tdomain%specel(n)%sl%Acoeff)
+                    deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress)
+                    deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress1)
+                    deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress2)
+                    deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress3)
+                    deallocate (Tdomain%specel(n)%slpml%Residual_Stress)
+                    deallocate (Tdomain%specel(n)%slpml%Residual_Stress1)
+                    deallocate (Tdomain%specel(n)%slpml%Residual_Stress2)
+                    deallocate (Tdomain%specel(n)%slpml%Veloc1)
+                    deallocate (Tdomain%specel(n)%slpml%Veloc2)
+                    deallocate (Tdomain%specel(n)%slpml%Veloc3)
+                    deallocate (Tdomain%specel(n)%slpml%Forces1)
+                    deallocate (Tdomain%specel(n)%slpml%Forces2)
+                    deallocate (Tdomain%specel(n)%slpml%Forces3)
+                end if
+                deallocate (Tdomain%specel(n)%xpml%DumpSx)
+                deallocate (Tdomain%specel(n)%xpml%DumpSy)
+                deallocate (Tdomain%specel(n)%xpml%DumpSz)
+                deallocate (Tdomain%specel(n)%xpml%DumpVx)
+                deallocate (Tdomain%specel(n)%xpml%DumpVy)
+                deallocate (Tdomain%specel(n)%xpml%DumpVz)
             else
                 if (Tdomain%aniso) then
                     deallocate (Tdomain%specel(n)%sl%Cij)
@@ -80,7 +86,7 @@ subroutine deallocate_domain (Tdomain, rg)
                     deallocate (Tdomain%specel(n)%Kappa)
                     deallocate (Tdomain%specel(n)%Mu)
                 endif
-                if (Tdomain%n_sls>0) then
+                if (Tdomain%specel(n)%solid .and. Tdomain%n_sls>0) then
                     if (Tdomain%aniso) then
                         deallocate (Tdomain%specel(n)%sl%Q)
                     else
@@ -114,63 +120,80 @@ subroutine deallocate_domain (Tdomain, rg)
 
             endif
         endif
-        if (.not. Tdomain%specel(n)%PML) then
-            deallocate (Tdomain%specel(n)%InvGrad)     !purge fuites memoire Gsa
-        endif
+        deallocate (Tdomain%specel(n)%InvGrad)     !purge fuites memoire Gsa
+        if(Tdomain%specel(n)%solid) then
+            deallocate (Tdomain%specel(n)%sl)
+            if (Tdomain%specel(n)%PML) then
+                deallocate(Tdomain%specel(n)%slpml)
+            endif
+        end if
     enddo
 
     do n = 0, Tdomain%n_face-1
-        deallocate (Tdomain%sFace(n)%MassMat)
-        deallocate (Tdomain%sFace(n)%Veloc)
-
-        !  modif mariotti fevrier 2007 cea capteur displ
-        deallocate (Tdomain%sFace(n)%Displ)
-
-        deallocate (Tdomain%sFace(n)%Forces)
-        deallocate (Tdomain%sFace(n)%Accel)
-        deallocate (Tdomain%sFace(n)%V0)
+        if(Tdomain%sFace(n)%solid) then
+            deallocate (Tdomain%sFace(n)%MassMat)
+            deallocate (Tdomain%sFace(n)%Veloc)
+            !  modif mariotti fevrier 2007 cea capteur displ
+            deallocate (Tdomain%sFace(n)%Displ)
+            deallocate (Tdomain%sFace(n)%Forces)
+            deallocate (Tdomain%sFace(n)%Accel)
+            deallocate (Tdomain%sFace(n)%V0)
+        end if
         if (Tdomain%sFace(n)%PML) then
-            deallocate (Tdomain%sFace(n)%spml%Forces1)
-            deallocate (Tdomain%sFace(n)%spml%Forces2)
-            deallocate (Tdomain%sFace(n)%spml%Forces3)
-            deallocate (Tdomain%sFace(n)%spml%Veloc1)
-            deallocate (Tdomain%sFace(n)%spml%Veloc2)
-            deallocate (Tdomain%sFace(n)%spml%Veloc3)
+            if(Tdomain%sFace(n)%solid) then
+                deallocate (Tdomain%sFace(n)%spml%Forces1)
+                deallocate (Tdomain%sFace(n)%spml%Forces2)
+                deallocate (Tdomain%sFace(n)%spml%Forces3)
+                deallocate (Tdomain%sFace(n)%spml%Veloc1)
+                deallocate (Tdomain%sFace(n)%spml%Veloc2)
+                deallocate (Tdomain%sFace(n)%spml%Veloc3)
+            else
+                deallocate (Tdomain%sFace(n)%spml%ForcesFl1)
+                deallocate (Tdomain%sFace(n)%spml%ForcesFl2)
+                deallocate (Tdomain%sFace(n)%spml%ForcesFl3)
+                deallocate (Tdomain%sFace(n)%spml%VelPhi1)
+                deallocate (Tdomain%sFace(n)%spml%VelPhi2)
+                deallocate (Tdomain%sFace(n)%spml%VelPhi3)
+            endif
             deallocate (Tdomain%sFace(n)%spml%DumpVx)
             deallocate (Tdomain%sFace(n)%spml%DumpVy)
             deallocate (Tdomain%sFace(n)%spml%DumpVz)
-        else
-            !  modif mariotti fevrier 2007 cea capteur displ
-            !        deallocate (Tdomain%sFace(n)%Displ)
         endif
     enddo
 
     do n = 0,Tdomain%n_edge-1
-        deallocate (Tdomain%sEdge(n)%MassMat)
-        deallocate (Tdomain%sEdge(n)%Veloc)
-        !  modif mariotti fevrier 2007 cea capteur displ
-        deallocate (Tdomain%sEdge(n)%Displ)
-
-        deallocate (Tdomain%sEdge(n)%Forces)
-        deallocate (Tdomain%sEdge(n)%Accel)
-        deallocate (Tdomain%sEdge(n)%V0)
+        if(Tdomain%sEdge(n)%solid) then
+            deallocate (Tdomain%sEdge(n)%MassMat)
+            deallocate (Tdomain%sEdge(n)%Veloc)
+            !  modif mariotti fevrier 2007 cea capteur displ
+            deallocate (Tdomain%sEdge(n)%Displ)
+            deallocate (Tdomain%sEdge(n)%Forces)
+            deallocate (Tdomain%sEdge(n)%Accel)
+            deallocate (Tdomain%sEdge(n)%V0)
+        end if
         if (Tdomain%sEdge(n)%PML) then
-            deallocate (Tdomain%sEdge(n)%spml%Forces1)
-            deallocate (Tdomain%sEdge(n)%spml%Forces2)
-            deallocate (Tdomain%sEdge(n)%spml%Forces3)
-            deallocate (Tdomain%sEdge(n)%spml%Veloc1)
-            deallocate (Tdomain%sEdge(n)%spml%Veloc2)
-            deallocate (Tdomain%sEdge(n)%spml%Veloc3)
+            if(Tdomain%sEdge(n)%solid) then
+                deallocate (Tdomain%sEdge(n)%spml%Forces1)
+                deallocate (Tdomain%sEdge(n)%spml%Forces2)
+                deallocate (Tdomain%sEdge(n)%spml%Forces3)
+                deallocate (Tdomain%sEdge(n)%spml%Veloc1)
+                deallocate (Tdomain%sEdge(n)%spml%Veloc2)
+                deallocate (Tdomain%sEdge(n)%spml%Veloc3)
+            else
+                deallocate (Tdomain%sEdge(n)%spml%ForcesFl1)
+                deallocate (Tdomain%sEdge(n)%spml%ForcesFl2)
+                deallocate (Tdomain%sEdge(n)%spml%ForcesFl3)
+                deallocate (Tdomain%sEdge(n)%spml%VelPhi1)
+                deallocate (Tdomain%sEdge(n)%spml%VelPhi2)
+                deallocate (Tdomain%sEdge(n)%spml%VelPhi3)
+            end if
             deallocate (Tdomain%sEdge(n)%spml%DumpVx)
             deallocate (Tdomain%sEdge(n)%spml%DumpVy)
             deallocate (Tdomain%sEdge(n)%spml%DumpVz)
-        else
-            !  modif mariotti fevrier 2007 cea capteur displ
-            !        deallocate (Tdomain%sEdge(n)%Displ)
         endif
     enddo
 
-    do n = 0,Tdomain%n_proc-1
+    do n = 0,Tdomain%tot_comm_proc-1
         if (Tdomain%sComm(n)%ngll>0) then
             deallocate (Tdomain%sComm(n)%GiveForces)
             deallocate (Tdomain%sComm(n)%TakeForces)
@@ -211,12 +234,19 @@ subroutine deallocate_domain (Tdomain, rg)
         deallocate (Tdomain%sSubdomain(n)%GLLwx)
         deallocate (Tdomain%sSubdomain(n)%hprimex)
         deallocate (Tdomain%sSubdomain(n)%hTprimex)
+
+!        if (Tdomain%any_Random) then
+!            call MPI_COMM_FREE (Tdomain%subDComm(n),code)
+!        end if
     enddo
 
+!    if (Tdomain%any_Random) then
+!        if(allocated(Tdomain%subDComm)) deallocate (Tdomain%subDComm)
+!    end if
     deallocate (Tdomain%sSubdomain)
 
     do n = 0, Tdomain%n_source-1
-        if (rg==Tdomain%sSource(n)%proc) then
+        if (Tdomain%rank==Tdomain%sSource(n)%proc) then
             if (Tdomain%sSource(n)%i_type_source==2) deallocate (Tdomain%sSource(n)%coeff)
             if (Tdomain%sSource(n)%i_time_function==3) deallocate (Tdomain%sSource(n)%timefunc)
         endif
@@ -229,15 +259,15 @@ subroutine deallocate_domain (Tdomain, rg)
 #ifdef COUPLAGE
     !purge - fuites memoire
     do n = 0, Tdomain%n_face-1
-        deallocate (Tdomain%sFace(n)%ForcesMka)
+        deallocate (Tdomain%sFace(n)%ForcesExt)
         deallocate (Tdomain%sFace(n)%tsurfsem)
     enddo
     do n = 0, Tdomain%n_edge-1
-        deallocate (Tdomain%sEdge(n)%ForcesMka)
+        deallocate (Tdomain%sEdge(n)%ForcesExt)
         deallocate (Tdomain%sEdge(n)%tsurfsem)
     enddo
     do n = 0, Tdomain%n_vertex-1
-        deallocate (Tdomain%sVertex(n)%ForcesMka)
+        deallocate (Tdomain%sVertex(n)%ForcesExt)
     enddo
 #endif
 
@@ -248,8 +278,15 @@ subroutine deallocate_domain (Tdomain, rg)
 
     return
 end subroutine deallocate_domain
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

@@ -8,7 +8,7 @@
  * Started 7/24/97
  * George
  *
- * $Id: timing.c 10942 2011-10-26 12:28:40Z karypis $
+ * $Id: timing.c 13936 2013-03-30 03:59:09Z karypis $
  *
  */
 

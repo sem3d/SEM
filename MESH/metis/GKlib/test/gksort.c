@@ -4,7 +4,7 @@
 
 \date   Started 4/4/2007
 \author George
-\version\verbatim $Id: gksort.c 10711 2011-08-31 22:23:04Z karypis $ \endverbatim
+\version\verbatim $Id: gksort.c 11058 2011-11-10 00:02:50Z karypis $ \endverbatim
 */
 
 #include <GKlib.h>
@@ -100,7 +100,7 @@ void test_idxsort()
 
   for (i=0; i<N-1; i++) {
     if (array[i] > array[i+1])
-      printf("gk_idxsorti error at index %jd [%jd %jd]\n", (intmax_t)i, array[i], array[i+1]);
+      printf("gk_idxsorti error at index %zd [%zd %zd]\n", (ssize_t)i, (ssize_t)array[i], (ssize_t)array[i+1]);
   }
 
 
@@ -113,7 +113,7 @@ void test_idxsort()
 
   for (i=0; i<N-1; i++) {
     if (array[i] < array[i+1])
-      printf("gk_idxsortd error at index %jd [%jd %jd]\n", (intmax_t)i, array[i], array[i+1]);
+      printf("gk_idxsortd error at index %zd [%zd %zd]\n", (ssize_t)i, (ssize_t)array[i], (ssize_t)array[i+1]);
   }
 
 }
@@ -304,7 +304,9 @@ void test_idxkvsort()
 
   for (i=0; i<N-1; i++) {
     if (array[i].key > array[i+1].key)
-      printf("gk_idxkvsorti error at index %jd [%jd %jd] [%jd %jd]\n", (intmax_t)i, array[i].key, array[i+1].key, (intmax_t)array[i].val, (intmax_t)array[i+1].val);
+      printf("gk_idxkvsorti error at index %zd [%zd %zd] [%zd %zd]\n", 
+          (ssize_t)i, (ssize_t)array[i].key, (ssize_t)array[i+1].key, 
+          (ssize_t)array[i].val, (ssize_t)array[i+1].val);
   }
 
 
@@ -319,7 +321,9 @@ void test_idxkvsort()
 
   for (i=0; i<N-1; i++) {
     if (array[i].key < array[i+1].key)
-      printf("gk_idxkvsortd error at index %jd [%jd %jd] [%jd %jd]\n", (intmax_t)i, array[i].key, array[i+1].key, (intmax_t)array[i].val, (intmax_t)array[i+1].val);
+      printf("gk_idxkvsortd error at index %zd [%zd %zd] [%zd %zd]\n", 
+          (ssize_t)i, (ssize_t)array[i].key, (ssize_t)array[i+1].key, 
+          (ssize_t)array[i].val, (ssize_t)array[i+1].val);
   }
 
 }

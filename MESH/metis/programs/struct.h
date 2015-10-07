@@ -6,7 +6,7 @@
  * Started 8/9/02
  * George
  *
- * $Id: struct.h 10409 2011-06-25 16:58:34Z karypis $
+ * $Id: struct.h 13900 2013-03-24 15:27:07Z karypis $
  */
 
 #ifndef _STRUCTBIN_H_
@@ -23,6 +23,7 @@ typedef struct {
   idx_t iptype;
   idx_t rtype;
 
+  idx_t no2hop;
   idx_t minconn;
   idx_t contig;
 

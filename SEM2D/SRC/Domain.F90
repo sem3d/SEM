@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file Domain.F90
 !!\brief Contient le définition du type domain
@@ -26,13 +30,13 @@ module sdomain
 
 
     type :: domain
-
+       ! Communicateur pour tous les processus SEM
        integer :: communicateur
-#ifdef MKA3D
+       ! Communicateurs utilises uniquement pour le couplage
        integer :: communicateur_global
        integer :: master_superviseur
-#endif
-
+       logical :: couplage
+       !
        integer :: n_elem, n_face, n_vertex, n_source,n_glob_nodes, n_line ,n_receivers
        integer :: n_nodes, n_mat,n_glob_points, n_super_object, n_fault, n_communications
        integer :: type_timeInteg, type_elem, type_flux, type_bc, pml_type, capt_loc_type, Implicitness
@@ -134,10 +138,8 @@ subroutine read_material_file(Tdomain)
             Tdomain%sSubDomain(i)%NGLLx, n_aus, Tdomain%sSubDomain(i)%NGLLz, Tdomain%sSubDomain(i)%Dt, &
             Qp, Qs
         Tdomain%sSubDomain(i)%n_loc_dim = 2
-        Tdomain%sSubdomain(i)%wpml = -1
         if ( Tdomain%sSubDomain(i)%NGLLx == Tdomain%sSubDomain(i)%NGLLz)  Tdomain%sSubDomain(i)%n_loc_dim = 1
         if (Tdomain%sSubDomain(i)%material_type == "P" )  then
-            Tdomain%sSubDomain(i)%wpml = npml
             npml = npml + 1
         endif
         ! Pour l'instant, on a un seul type de Flux et d'Elements pour TOUT le domaine
@@ -301,8 +303,15 @@ end subroutine read_material_file
 
 
 end module sdomain
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

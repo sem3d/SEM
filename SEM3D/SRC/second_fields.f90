@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 module mfields
     use sdomain
     use orientation
@@ -284,7 +288,7 @@ contains
             mat = el%mat_index
             call pressure_solid(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
                  Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
-                 el%InvGrad,displ, el%Lambda, el%Mu,field)
+                 el%InvGrad, displ, el%Lambda, el%Mu,field)
             deallocate(displ)
         else ! liquid
             field(1:nx-2,1:ny-2,1:nz-2) = el%fl%VelPhi(:,:,:)
@@ -310,3 +314,15 @@ contains
 
 
 end module mfields
+
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

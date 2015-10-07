@@ -1,15 +1,10 @@
-!>
-!!\file pow.F90
-!!\brief Contient la fonction pow.
-!!\author
-!!\version 1.0
-!!\date 10/03/2009
+!! This file is part of SEM
 !!
-!<
-
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !! \fn function pow (x,vp,npm,dx,A,np)
-!! \brief
+!! \brief calcule le facteur d'attenuation PML
 !!
 !! \param real x
 !! \param real vp
@@ -40,8 +35,15 @@ real function pow (x,vp,npm,dx,A,np)
 
     return
 end function pow
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

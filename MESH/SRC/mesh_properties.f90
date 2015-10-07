@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 module mesh_properties
 
     use fich_cubit
@@ -15,21 +19,22 @@ contains
 
     subroutine mesh_init_3D(n_nods,n_points,n_elem,n_blocks,          &
         xco,yco,zco,Ipointer,Material,tabmat,n_neu,n_PW,     &
-        Faces_Neumann, Faces_PW,pml_b,pml_t,pml_bottom,nmatref,strat_bool)
+        Faces_Neumann, Faces_PW)
         implicit none
         integer, intent(out)   :: n_nods, n_points, n_elem, n_blocks, n_neu, &
             n_PW
         integer, allocatable, dimension(:), intent(out)   :: Material
         integer, allocatable, dimension(:,:), intent(out) :: Ipointer,    &
             Faces_Neumann, Faces_PW
-        character, dimension(0:), intent(in)              :: tabmat
+        character, dimension(:), allocatable, intent(out)              :: tabmat
         real, allocatable, dimension(:), intent(out)   :: xco,yco,zco
-        integer, intent(in), optional   :: pml_b, pml_t, pml_bottom, nmatref
-        logical, intent(in)   :: strat_bool
-        integer   :: choice, i_ex, idummy,icount,iunit, nfile, i, j, n, mesh_type
-        integer, allocatable, dimension(:)  :: ind_mat, n_elem_mat
-        real      :: xmin,xmax,ymin,ymax,zmin,zmax,step_x,step_y,step_z,   &
+        real, allocatable, dimension(:)   :: thick,z_dep
+        integer   :: choice, i_ex, idummy,icount,iunit, nfile, i, j, n,    &
+            mesh_type,pml_b, pml_t, pml_bottom, n_mat_tot,nmatref
+        integer, allocatable, dimension(:)  :: ind_mat, n_elem_mat, nlay
+        real      :: xmin,xmax,ymin,ymax,zmin,zmax,step_x,step_y,   &
             xminref,xmaxref,yminref,ymaxref,zminref,zmaxref
+        integer :: n_mate
         character(len=30)    :: cubitmesh
         character(len=60), dimension(:), allocatable  :: unv_files
 
@@ -39,31 +44,37 @@ contains
         ! no Neumann or Plane Wave faces for the time being.
         n_neu = 0 ; n_PW = 0
 
+        ! menu
+        choice = -1
+        do while(choice < 0 .or. choice > 5)
+            write(*,*)
+            write(*,*) "****************************************"
+            write(*,*) "****************************************"
+            write(*,*) " WHICH INITIAL MESH?"
+            write(*,*) "     1- On the fly"
+            write(*,*) "     2- Abaqus from Cubit"
+            write(*,*) "     3- Ideas (.unv) files"
+            write(*,*) "     4- HDF5 Hex8 files"
+            write(*,*) "     5- Earth Chunk"
+            read(*,*) choice
+            write(*,*)
+            write(*,*) "****************************************"
+        end do
 
-        write(*,*) "****************************************"
-        write(*,*) "****************************************"
-        write(*,*) " WHICH INITIAL MESH?"
-        write(*,*) "     1- On the fly"
-        write(*,*) "     2- Abaqus from Cubit"
-        write(*,*) "     3- Ideas (.unv) files"
-        write(*,*) "     4- HDF5 Hex8 files"
-        write(*,*) "     5- Earth Chunk"
-        read(*,*) choice
-        write(*,*)
-        write(*,*) "****************************************"
         select case(choice)
-            ! mesh created on the fly
-        case(1)
-            if(.not.(present(pml_b))) stop "In mesh2spec: if on the fly,   &
-                &  we must also create the material model."
+        case(1)  ! mesh created on the fly
+            ! general information input file 
+            !- construction of the material table
+            call  create_model_ondafly(n_mat_tot,tabmat,pml_b,pml_t,pml_bottom,   &
+                xmin,xmax,step_x,ymin,ymax,step_y,zmax,mesh_type,nlay,thick)
+            write(*,*)
+            write(*,*) "************************************************"
+            write(*,*) "  --> Construction of the material table: OK."
 
-            write(*,*) "****************************************"
-            write(*,*) " Mesh to be created on the fly: input data."
-            write(*,*) "****************************************"
-            call init_ondafly(xmin,xmax,ymin,ymax,zmin,zmax,xminref,xmaxref,   &
+            call init_ondafly(xmin,xmax,ymin,ymax,zmax,xminref,xmaxref,   &
                 yminref,ymaxref,zminref,zmaxref, step_x,step_y,  &
-                step_z,mesh_type,n_nods,n_points,n_elem,pml_b,   &
-                pml_t,pml_bottom)
+                mesh_type,n_nods,n_points,n_elem,pml_b,   &
+                pml_t,pml_bottom,nlay,thick,z_dep)
             allocate(xco(0:n_points-1),yco(0:n_points-1),zco(0:n_points-1))
             allocate(Ipointer(0:n_nods-1,0:n_elem-1))
             allocate(Material(0:n_elem-1))
@@ -77,21 +88,24 @@ contains
             !     Material(7) = 1
 
             call mesh_on_the_fly(xmin,xmax,ymin,ymax,zmin,zmax,step_x,step_y,  &
-                step_z,mesh_type,xco,yco,zco,Ipointer)
+                z_dep,mesh_type,xco,yco,zco,Ipointer)
 
             !- PML materials added
-            call nature_elem(Ipointer,xco,yco,zco,nmatref,Material,xminref,    &
-                xmaxref,yminref,ymaxref,zminref,zmaxref,strat_bool)
+            call nature_elem(Ipointer,xco,yco,zco,size(tabmat),Material,xminref,    &
+                xmaxref,yminref,ymaxref,zminref,zmaxref,pml_b,pml_t,pml_bottom,thick)
 
             !- Cubit file
         case(2)
-            if(present(pml_b)) stop "Incoherency: the material file must exist if   &
-                &  Cubit meshing procedure."
-            write(*,*)" CUBIT file to be analyzed."
-            write(*,*) "****************************************"
+            write(*,*)
+            write(*,*) "------------------------------------"
+            write(*,*) "  --> CUBIT file to be analyzed."
+            write(*,*) "------------------------------------"
             write(*,*)
             write(*,*) "    --> Warning: there must be no empty line in the Cubit file (depending on the version)"
+            write(*,*) "    --> Warning 2: file mater.in must be in the directory to construct material table."
             write(*,*)
+            ! construction of the material table
+            call mat_table_construct(tabmat)
             write(*,*) "  --> Name of the Cubit file:"
             read(*,*) cubitmesh
             iunit = 10
@@ -153,50 +167,29 @@ contains
             ! UNV files
         case(3,4)
             write(*,*) "****************************************"
-            write(*,*) "  --> Ideas files to be read (.unv)"
-            write(*,*) "    --> How many .unv files ? "
+            write(*,*) "  --> files to be read"
+            write(*,*) "    --> How many files ?"
             read*, nfile
             n_blocks = nfile   ! number of materials
             allocate(unv_files(0:nfile-1))
+            call mat_table_construct_unv(tabmat)
             call lec_init_unv(unv_files)
 
+            n_mate = size(tabmat,1)
             n_nods = 8
-            if (.true.) then
-                if (choice==3) then
-                    call lec_unv_v2(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks)
-                else
-                    call lec_hdf5(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks)
-                endif
-                !stop 1
+            if (choice==3) then
+                call lec_unv(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks, n_mate)
             else
-                allocate(n_elem_mat(0:n_blocks-1))
-                call lec_unv_struct(unv_files,n_points,n_elem_mat,n_elem)
-                write(*,*) " Number of control points, elements, materials: ",      &
-                    n_points, n_elem, n_blocks
-                !- co-ordinates of control points
-                allocate(xco(0:n_points-1),yco(0:n_points-1),zco(0:n_points-1))
-                !- general index for each control point of an element
-                allocate(Ipointer(0:n_nods-1,0:n_elem-1))
-                allocate(Material(0:n_elem-1))
-                icount = 0
-                do i = 0,n_blocks-1
-                    do n = 0,n_elem_mat(i)-1
-                        Material(icount) = i
-                        icount = icount+1
-                    end do
-                end do
+                call lec_hdf5(unv_files,n_points,n_elem,Material,Ipointer,xco,yco,zco, n_blocks)
+            endif
 
-                call lec_unv_final(unv_files,n_elem_mat,xco,yco,zco,Ipointer)
-                deallocate(n_elem_mat)
-            end if
-
-            write(*,*) "****************************************"
-            write(*,*) "  - END of .unv files READING -"
-            write(*,*) "****************************************"
+            write(*,*) "***********************************"
+            write(*,*) "  - END of files READING -"
+            write(*,*) "***********************************"
             deallocate(unv_files)
 
         case(5)
-            
+
             call init_earthchunk(earthchunk)
 
             n_points = earthchunk%total_pt
@@ -206,11 +199,15 @@ contains
             allocate(Ipointer(0:n_nods-1,0:n_elem-1))
             allocate(Material(0:n_elem-1))
 
-            call create_earthchunk(earthchunk, nmatref, xco,yco,zco, Ipointer, Material)
+            pml_b = 1  ! PMLs in the domain: lateral and bottom
+            nmatref = 1   ! only one physical material
+            n_blocks = 1 + 9+8 ! physical and PMLs
+            allocate(tabmat(0:17))
+            tabmat(0) = 'S' ; tabmat(1:17) = 'P'
+
+            call create_earthchunk(earthchunk, pml_b, nmatref, xco,yco,zco, Ipointer, Material)
 
             call clean_earthchunk(earthchunk)
-
-            n_blocks = size(tabmat)
 
 
         case default
@@ -1240,54 +1237,267 @@ contains
         end do
     end subroutine transfo_8
 
-    !----------------------------------
-    subroutine init_ondafly(xmin,xmax,ymin,ymax,zmin,zmax,xminref,xmaxref,yminref,ymaxref,zminref,zmaxref,    &
-        step_x,step_y,step_z,mesh_type,nnods,npts,nelem,pml_b,pml_t,pml_bott)
+    !-------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------
+    subroutine create_model_ondafly(n_mat_tot,mattab,pml_bool,pml_top,pml_bottom,   &
+        xmin,xmax,step_x,ymin,ymax,step_y,zmax,mesh_type,nlay,thick)
+        ! reads 'mat.dat' with info related to construction of a simple model on
+        ! the fly 
+        implicit none
+        integer, intent(out)  :: n_mat_tot,pml_bool,pml_top,pml_bottom,mesh_type
+        character, allocatable, dimension(:),intent(out) :: mattab
+        real, intent(out)  :: step_x,step_y,xmin,xmax,ymin,ymax,zmax
+        integer, dimension(:), allocatable, intent(out) :: nlay
+        real, dimension(:), allocatable, intent(out) :: thick
+        integer    :: i_err,n_mat,i,n_lay,ngllPML
+        real       :: tr
+        real, dimension(:), allocatable :: rho,pvel,svel,qp,qs
+        integer, dimension(:), allocatable :: ngll
+        character, allocatable, dimension(:):: matarray
+        logical  :: strat_bool
+
+        write(*,*)
+        write(*,*) "-------------------------------------------------"
+        write(*,*) "  -->  Mesh to be created on the fly: input data."
+        write(*,*) "-------------------------------------------------"
+        write(*,*)
+        write(*,*) "  --> Construction of the model:"
+        write(*,*) "        files to be found in the directory where 'mesher' is launched:" 
+        write(*,*) "      1- general file 'mat.dat'" 
+        write(*,*) "      2- the material file 'mater.in'"
+        write(*,*)
+
+
+        open(10,file="mater.in",action="read",status="old",iostat=i_err)
+        if(i_err > 0) stop "File 'mater.in' not found in the working directory"
+        read(10,*) n_mat
+        allocate(rho(0:n_mat-1),pvel(0:n_mat-1),svel(0:n_mat-1),qp(0:n_mat-1),  &
+            qs(0:n_mat-1),ngll(0:n_mat-1),matarray(0:n_mat-1))
+        do i = 0,n_mat-1
+            read(10,*) matarray(i),pvel(i),svel(i),rho(i),ngll(i),tr,tr,tr,qp(i),qs(i)
+        end do
+        close(10)
+
+
+        open(10,file="mat.dat",action="read",status="old",iostat=i_err)
+        if(i_err > 0) stop "File 'mat.dat' not found in the working directory"
+        read(10,*) xmin ; read(10,*) xmax ; read(10,*) step_x
+        read(10,*) ymin ; read(10,*) ymax ; read(10,*) step_y
+        read(10,*) zmax
+        read(10,*) n_lay  !- number of materials
+        if(n_lay /= n_mat) stop "  --> Pb in construction of the model: number of materials diff. betw. mater.in and mat.dat"
+        allocate(thick(0:n_lay-1),nlay(0:n_lay-1))
+        do i = 0,n_lay-1
+            read(10,*) thick(i),nlay(i)
+        end do
+        n_mat_tot = n_mat
+        write(*,*) "  --> Number of non-PML materials:",n_mat
+        strat_bool = .false.
+        if(n_lay > 1)then
+            print*,"  --> Stratified medium."
+            strat_bool = .true.
+        end if
+        !  PMLs
+        read(10,*) pml_bool
+        if(pml_bool /= 0 .and. pml_bool /= 1) stop "In mesh2spec: PML or not?"
+        if(pml_bool == 1)then   ! PMLs added
+            write(*,*) "  --> PMLs added."
+            n_mat_tot = n_mat_tot + 8*n_lay
+            read(10,*) pml_top,pml_bottom
+            if(pml_top /= 0 .and. pml_top /= 1) stop "In mesh2spec: PML on top or not?"
+            if(pml_bottom /= 0 .and. pml_bottom /= 1) stop "In mesh2spec: PML at the bottom or not?"
+            if(pml_top == 1)then
+                write(*,*) "    --> PMLs on the top."
+                n_mat_tot = n_mat_tot+9
+            end if
+            if(pml_bottom == 1)then
+                write(*,*) "    --> PMLs at the bottom."
+                n_mat_tot = n_mat_tot+9
+            end if
+            read(10,*) ngllPML
+        else
+            read(10,*)
+            read(10,*)
+            write(*,*)
+            write(*,*) "  --> Run without absorbing boundaries: you may observe some reflected phases."
+            write(*,*) "       Ok? (type enter if..)"
+            read*
+        end if
+        ! number of control nodes
+        read(10,*) mesh_type
+        close(10)
+
+        ! material file created
+        allocate(mattab(0:n_mat_tot-1))
+
+        call mat_table_construct_ondafly(n_mat,n_mat_tot,matarray,mattab,pml_bool,pml_top,pml_bottom)
+
+        if(pml_bool == 1)then
+            call write_mater_ondafly(n_mat,mattab,pvel,svel,rho,ngll,qp,qs,pml_bool,   &
+                pml_top,pml_bottom,ngllPML)
+        else
+            call write_mater_ondafly(n_mat,mattab,pvel,svel,rho,ngll,qp,qs)
+        end if
+
+        deallocate(matarray,rho,pvel,svel,qp,qs,ngll)
+
+    end subroutine create_model_ondafly
+    !-------------------------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------------------------
+    subroutine mat_table_construct(mattab)
+        !- obtention of the material table array: important for the fluid/solid interfaces in mesh2spec
+        character, dimension(:), allocatable, intent(inout)  :: mattab
+        integer                 :: i,nblock
+
+        open(10,file="mater.in",action="read",status="old")
+        read(10,*) nblock
+        allocate(mattab(0:nblock-1))
+        do i = 0,size(mattab)-1
+            read(10,"(a1)") mattab(i)
+        end do
+        close(10)
+
+    end subroutine mat_table_construct
+    !--------------------------------------------------------------------
+    !--------------------------------------------------------------------
+    !-------------------------------------------------------------------------------------------------
+    !-------------------------------------------------------------------------------------------------
+    subroutine mat_table_construct_unv(mattab)
+        !- obtention of the material table array: important for the fluid/solid interfaces in mesh2spec
+        character, dimension(:), allocatable, intent(inout)  :: mattab
+        integer                 :: i,nblock
+
+        open(10,file="material.input",action="read",status="old")
+        read(10,*) nblock
+        allocate(mattab(0:nblock-1))
+        do i = 0,size(mattab)-1
+            read(10,"(a1)") mattab(i)
+        end do
+        close(10)
+
+    end subroutine mat_table_construct_unv
+    !--------------------------------------------------------------------
+    !--------------------------------------------------------------------
+    subroutine mat_table_construct_ondafly(nmat,nmat_tot,matarray,mattab,pml_bool,pml_t,pml_b)
+        !- obtention of the material table array: important for the fluid/solid interfaces in mesh2spec
+        !     (case where mesh built on the fly)
+        !- construction of the "material.input" file directly used in SEM3D
+        character, dimension(0:), intent(in)   :: matarray
+        character, dimension(0:), intent(out)  :: mattab
+        integer, intent(in)     :: nmat,nmat_tot,pml_bool,pml_t,pml_b
+        integer                 :: i,icount
+
+        icount = nmat
+
+        do i = 0,nmat-1
+            mattab(i) = matarray(i)
+        end do
+        if(size(mattab) == nmat) return
+        do i = 0,nmat-1
+            if(mattab(i) == 'F') mattab(icount:icount+7) = 'L' 
+            if(mattab(i) == 'S' .or. mattab(i) == 'R') mattab(icount:icount+7) = 'P'
+            icount = icount + 8
+        end do
+
+        if(pml_b == 1)then
+            if(mattab(nmat-1) == 'F') mattab(icount:icount+8) = 'L' 
+            if(mattab(nmat-1) == 'S' .or. mattab(nmat-1) == 'R') mattab(icount:icount+8) = 'P'
+            icount = icount + 9
+        end if
+
+        if(pml_t == 1)then
+            if(mattab(0) == 'F') mattab(icount:icount+8) = 'L' 
+            if(mattab(0) == 'S' .or. mattab(0) == 'R') mattab(icount:icount+8) = 'P'
+            icount = icount + 9
+        end if
+
+
+    end subroutine mat_table_construct_ondafly
+    !--------------------------------------------------------------------
+    !--------------------------------------------------------------------
+
+    subroutine init_ondafly(xmin,xmax,ymin,ymax,zmax,xminref,xmaxref,yminref,ymaxref,zminref,zmaxref,    &
+        step_x,step_y,mesh_type,nnods,npts,nelem,pml_b,pml_t,pml_bott,nlay,thick,z_dep)
 
         implicit none
         integer, intent(in)  :: pml_b,pml_t,pml_bott
-        real, intent(out)    :: xmin,xmax,ymin,ymax,zmin,zmax,step_x,step_y,step_z
+        integer, dimension(0:), intent(in)  :: nlay
+        real, dimension(0:), intent(in)  :: thick
+        real, intent(inout)     :: xmin,xmax,ymin,ymax
+        real, intent(in)     :: zmax,step_x,step_y
         real, intent(out)    :: xminref,xmaxref,yminref,ymaxref,zminref,zmaxref
-        integer, intent(out) :: mesh_type, npts, nelem, nnods
-        integer              :: nelemx,nelemy,nelemz,npx,npy,npz
+        real, dimension(:), allocatable, intent(out)    ::  z_dep
+        integer, intent(in)  :: mesh_type
+        integer, intent(out) :: npts, nelem, nnods
+        integer              :: i,j,n_z, nelemx,nelemy,nelemz,npx,npy,npz
+        real   ::  step_max,step_z
 
         write(*,*) "*****************************************"
-        write(*,*) "  --> Xmin: " ; read(*,*) xmin
-        write(*,*) "  --> Xmax: " ; read(*,*) xmax
-        write(*,*) "  --> Ymin: " ; read(*,*) ymin
-        write(*,*) "  --> Ymax: " ; read(*,*) ymax
-        write(*,*) "  --> Zmin: " ; read(*,*) zmin
-        write(*,*) "  --> Zmax: " ; read(*,*) zmax
-        write(*,*) "  --> Step in x: " ; read(*,*) step_x
-        write(*,*) "  --> Step in y: " ; read(*,*) step_y
-        write(*,*) "  --> Step in z: " ; read(*,*) step_z
-        write(*,*) "  --> 8 or 27 nodes (1 or 2)?: " ; read(*,*) mesh_type
+        write(*,*) "  --> Xmin: ", xmin
+        write(*,*) "  --> Xmax: ",  xmax
+        write(*,*) "  --> Ymin: ",  ymin
+        write(*,*) "  --> Ymax: ",  ymax
+        write(*,*) "  --> Zmax: ",  zmax
+        write(*,*) "  --> Step in x: ", step_x
+        write(*,*) "  --> Step in y: ", step_y
+        write(*,*) "  --> 8 or 27 nodes (1 or 2)?: ", mesh_type
 
         if(mesh_type /= 1 .and. mesh_type /= 2) &
             stop "In init_ondafly: we said 1 or 2.."
-        if(xmin > xmax .or. ymin > ymax .or. zmin > zmax .or. step_x <= 0d0 .or. step_y <= 0d0 .or. step_z <= 0d0) &
-            stop "Pb in init_ondafly at the output."
+        if(xmin > xmax .or. ymin > ymax .or. step_x <= 0d0 .or. step_y <= 0d0) &
+            stop "Pb in init_ondafly at the outset."
 
         !- number of nodes
         nnods = merge(8,27,mesh_type == 1)
 
+
+        !- construction of the z-dependence
+        step_max = max(step_x,step_y)
+        n_z = 1
+        do i = 0,size(nlay)-1
+            n_z = n_z+nlay(i)
+        end do
+        if(pml_t == 1) n_z = n_z+1
+        if(pml_bott == 1) n_z = n_z+1
+
+        allocate(z_dep(0:n_z-1))
+        if(pml_t == 1)then
+            z_dep(n_z-1) = zmax+step_max
+            n_z = n_z-1
+        end if
+        z_dep(n_z-1) = zmax ; n_z = n_z-1 
+        do i = 0,size(nlay)-1
+            step_z = thick(i)/nlay(i)
+            do j = 1,nlay(i)
+                z_dep(n_z-1) = z_dep(n_z)-step_z
+                n_z = n_z-1 
+            end do
+        end do
+        if(pml_bott == 1)then
+            z_dep(0) = z_dep(1)-step_max
+        end if
+
+
         !- reference boundaries
         xminref = xmin ; xmaxref = xmax
         yminref = ymin ; ymaxref = ymax
-        zminref = zmin ; zmaxref = zmax
+        zmaxref = zmax
+        if(pml_bott == 1)then
+            zminref = z_dep(1)
+        else
+            zminref = z_dep(0)
+        end if
 
         !- changes in lengths if PMLs added:
         if(pml_b == 1)then
             xmin = xmin-step_x ; xmax = xmax+step_x
             ymin = ymin-step_y ; ymax = ymax+step_y
-            if(pml_t == 1) zmax = zmax+step_z
-            if(pml_bott == 1) zmin = zmin-step_z
         end if
 
         !- number of elements
-        nelemx = nint((xmax-xmin)/step_x)
-        nelemy = nint((ymax-ymin)/step_y)
-        nelemz = nint((zmax-zmin)/step_z)
+        nelemx = ceiling((xmax-xmin)/step_x)
+        nelemy = ceiling((ymax-ymin)/step_y)
+        nelemz = size(z_dep)-1
         nelem = nelemx*nelemy*nelemz
         !- number of points
         npx = merge(nelemx+1,2*nelemx+1,mesh_type==1)
@@ -1298,19 +1508,20 @@ contains
 
     end subroutine init_ondafly
     !----------------------------------
-    subroutine mesh_on_the_fly(xmin,xmax,ymin,ymax,zmin,zmax,xstep,ystep,zstep,meshtype,xp,yp,zp,Ipoint)
+    subroutine mesh_on_the_fly(xmin,xmax,ymin,ymax,zmin,zmax,xstep,ystep,z_dep,meshtype,xp,yp,zp,Ipoint)
 
         implicit none
-        real, intent(in)     :: xmin,xmax,ymin,ymax,zmin,zmax,xstep,ystep,zstep
+        real, intent(in)     :: xmin,xmax,ymin,ymax,zmin,zmax,xstep,ystep
+        real, dimension(0:), intent(in)   :: z_dep
         integer, intent(in)  :: meshtype
         real, intent(out)    :: xp(0:),yp(0:),zp(0:)
         integer, intent(out) :: Ipoint(0:,0:)
         integer              :: nelemx,nelemy,nelemz,nx,ny,nz, indelem, aux_pt
 
         !- number of elements
-        nelemx = nint((xmax-xmin)/xstep)
-        nelemy = nint((ymax-ymin)/ystep)
-        nelemz = nint((zmax-zmin)/zstep)
+        nelemx = ceiling((xmax-xmin)/xstep)
+        nelemy = ceiling((ymax-ymin)/ystep)
+        nelemz = size(z_dep)-1
 
         indelem = 0
 
@@ -1332,6 +1543,7 @@ contains
                     end do
                 end do
             end do
+
             !- co-ordinates
             aux_pt = 0
             do nz = 0,nelemz
@@ -1339,7 +1551,7 @@ contains
                     do nx = 0, nelemx
                         xp(aux_pt) = xmin+nx*xstep
                         yp(aux_pt) = ymin+ny*ystep
-                        zp(aux_pt) = zmin+nz*zstep
+                        zp(aux_pt) = z_dep(nz)
                         aux_pt = aux_pt+1
                     end do
                 end do
@@ -1390,7 +1602,11 @@ contains
                     do nx = 0, 2*nelemx
                         xp(aux_pt) = xmin+nx*xstep/2d0
                         yp(aux_pt) = ymin+ny*ystep/2d0
-                        zp(aux_pt) = zmin+nz*zstep/2d0
+                        if(mod(nz,2) == 0)then
+                            zp(aux_pt) = z_dep(nz/2)
+                        else
+                            zp(aux_pt) = (z_dep(nz/2)+z_dep(nz/2+1))/2d0
+                        end if
                         aux_pt = aux_pt+1
                     end do
                 end do
@@ -1402,26 +1618,26 @@ contains
     end subroutine mesh_on_the_fly
     !---------------------
     subroutine nature_elem(Ipoint,xp,yp,zp,nmat,mat,xminref,xmaxref,       &
-        yminref,ymaxref,zminref,zmaxref,strat_bool)
+        yminref,ymaxref,zminref,zmaxref,pml_bool,pml_t,pml_b,thick)
         !- when on the fly construction: allows to determine the PML layers
-        integer, intent(in)   :: Ipoint(0:,0:),nmat
+        integer, intent(in)   :: Ipoint(0:,0:),nmat,pml_bool,pml_t,pml_b
         real, intent(in)      :: xp(0:),yp(0:),zp(0:), xminref, xmaxref,   &
             yminref,ymaxref,zminref,zmaxref
-        logical, intent(in)   :: strat_bool
+        real, dimension(0:),intent(in)   :: thick
         integer, intent(inout)  :: mat(0:)
-        integer               :: i,j,n,nelem
-        real                  :: coord(0:7,0:2), bary(0:2), half
+        integer               :: i,j,n,nelem,ind_pml
+        real                  :: coord(0:7,0:2), bary(0:2), z(0:size(thick))
 
         nelem = size(Ipoint,2)
 
-        if(strat_bool)then
-            print*, "  --> Which z for the stratification plane?"
-            read*,half
-            if(half < zminref .or. half > zmaxref) stop "Stratification plane ill-placed."
-        end if
+        ind_pml = 0
+        if(pml_t == 1) ind_pml = 9
 
-!        write(*,*) 'Pmin', xminref, yminref,zminref
-!        write(*,*) 'Pmax', xmaxref, ymaxref,zmaxref
+        z(0) = zmaxref
+        do j = 1,size(thick)
+            z(j) = z(j-1)-thick(j-1)
+        end do
+
         do n = 0,nelem-1
             do i = 0,7
                 coord(i,0) = xp(Ipoint(i,n))
@@ -1429,227 +1645,101 @@ contains
                 coord(i,2) = zp(Ipoint(i,n))
             end do
             call barycentre(coord,bary)
-            if(.not. strat_bool)then   !! simple brick with PMLs
-            !- PMLs material list
-            if(bary(2) < zminref)then   ! all bottom PMLs
+
+            ! eventual bottom and top PMLs 
+            if(bary(2) > zmaxref) then   ! top PMLs
                 if(bary(1) < yminref)then
                     if(bary(0) < xminref)then
-                        Mat(n) = nmat+17
+                        Mat(n) = nmat-9
                     else if(bary(0) > xmaxref)then
-                        Mat(n) = nmat+18
+                        Mat(n) = nmat-8
                     else
-                        Mat(n) = nmat+21
+                        Mat(n) = nmat-5
                     end if
                 else if(bary(1) > ymaxref)then
                     if(bary(0) < xminref)then
-                        Mat(n) = nmat+20
+                        Mat(n) = nmat-6
                     else if(bary(0) > xmaxref)then
-                        Mat(n) = nmat+19
+                        Mat(n) = nmat-7
                     else
-                        Mat(n) = nmat+23
+                        Mat(n) = nmat-3
                     end if
                 else
                     if(bary(0) < xminref)then
-                        Mat(n) = nmat+24
+                        Mat(n) = nmat-2
                     else if(bary(0) > xmaxref)then
-                        Mat(n) = nmat+22
+                        Mat(n) = nmat-4
                     else
-                        Mat(n) = nmat+25
+                        Mat(n) = nmat-1
                     end if
                 end if
             end if
-
-            if(bary(2) < zmaxref .and. bary(2) > zminref)then   ! all lateral PMLs
+            if(bary(2) < zminref) then   ! bottom PMLs
                 if(bary(1) < yminref)then
                     if(bary(0) < xminref)then
-                        Mat(n) = nmat
+                        Mat(n) = nmat-9-ind_pml
                     else if(bary(0) > xmaxref)then
-                        Mat(n) = nmat+1
+                        Mat(n) = nmat-8-ind_pml
                     else
-                        Mat(n) = nmat+4
+                        Mat(n) = nmat-5-ind_pml
                     end if
                 else if(bary(1) > ymaxref)then
                     if(bary(0) < xminref)then
-                        Mat(n) = nmat+3
+                        Mat(n) = nmat-6-ind_pml
                     else if(bary(0) > xmaxref)then
-                        Mat(n) = nmat+2
+                        Mat(n) = nmat-7-ind_pml
                     else
-                        Mat(n) = nmat+6
+                        Mat(n) = nmat-3-ind_pml
                     end if
                 else
                     if(bary(0) < xminref)then
-                        Mat(n) = nmat+7
+                        Mat(n) = nmat-2-ind_pml
                     else if(bary(0) > xmaxref)then
-                        Mat(n) = nmat+5
+                        Mat(n) = nmat-4-ind_pml
+                    else
+                        Mat(n) = nmat-1-ind_pml
                     end if
                 end if
             end if
 
-            if(bary(2) > zmaxref)then   ! top PMLs
+            if(bary(2) < zmaxref .and. bary(2) > zminref)then
+                do j = 0,size(z)-1
+                    if(bary(2) < z(j) .and. bary(2) > z(j+1)) exit 
+                end do
+
                 if(bary(1) < yminref)then
                     if(bary(0) < xminref)then
-                        Mat(n) = nmat+8
+                        Mat(n) = size(thick)+8*j
                     else if(bary(0) > xmaxref)then
-                        Mat(n) = nmat+9
+                        Mat(n) = size(thick)+8*j+1
                     else
-                        Mat(n) = nmat+12
+                        Mat(n) = size(thick)+8*j+4
                     end if
                 else if(bary(1) > ymaxref)then
                     if(bary(0) < xminref)then
-                        Mat(n) = nmat+11
+                        Mat(n) = size(thick)+8*j+3
                     else if(bary(0) > xmaxref)then
-                        Mat(n) = nmat+10
+                        Mat(n) = size(thick)+8*j+2
                     else
-                        Mat(n) = nmat+14
+                        Mat(n) = size(thick)+8*j+6
                     end if
                 else
                     if(bary(0) < xminref)then
-                        Mat(n) = nmat+15
+                        Mat(n) = size(thick)+8*j+7
                     else if(bary(0) > xmaxref)then
-                        Mat(n) = nmat+13
+                        Mat(n) = size(thick)+8*j+5
                     else
-                        Mat(n) = nmat+16
+                        Mat(n) = j
                     end if
                 end if
             end if
 
-            if((bary(0) > xminref .and. bary(0) < xmaxref) .and. &
-               (bary(1) > yminref .and. bary(1) < ymaxref) .and. &
-               (bary(2) > zminref .and. bary(2) < zmaxref))then   ! physical layer
-                   Mat(n) = nmat-1
-            end if
-                                                                               
-
-            else      !! stratified medium
-          if(bary(2) < half .and. bary(2) > zminref)then   ! lower layer of lateral PMLs
-             if(bary(1) < yminref)then
-                if(bary(0) < xminref)then
-                   Mat(n) = nmat
-                else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+1
-                else
-                   Mat(n) = nmat+4
-                end if
-             else if(bary(1) > ymaxref)then
-                if(bary(0) < xminref)then
-                   Mat(n) = nmat+3
-                else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+2
-                else
-                   Mat(n) = nmat+6
-                end if
-             else
-                if(bary(0) < xminref)then
-                   Mat(n) = nmat+7
-                else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+5
-                end if
-             end if
-          end if
-
-          if(bary(2) < zminref)then   ! all bottom PMLs
-             if(bary(1) < yminref)then
-                if(bary(0) < xminref)then
-                   Mat(n) = nmat+8
-                else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+9
-                else
-                   Mat(n) = nmat+12
-                end if
-             else if(bary(1) > ymaxref)then
-                if(bary(0) < xminref)then
-                   Mat(n) = nmat+11
-                else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+10
-                else
-                   Mat(n) = nmat+14
-                end if
-             else
-                if(bary(0) < xminref)then
-                   Mat(n) = nmat+15
-                else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+13
-                else
-                   Mat(n) = nmat+16
-                end if
-             end if
-          end if
-
-          if(bary(2) > half .and. bary(2) < zmaxref)then   ! upper layer of lateral PMLs
-             if(bary(1) < yminref)then
-                if(bary(0) < xminref)then
-                   Mat(n) = nmat+17
-                else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+18
-                else
-                   Mat(n) = nmat+21
-                end if
-             else if(bary(1) > ymaxref)then
-                if(bary(0) < xminref)then
-                   Mat(n) = nmat+20
-                else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+19
-                else
-                   Mat(n) = nmat+23
-                end if
-             else
-                if(bary(0) < xminref)then
-                   Mat(n) = nmat+24
-                else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+22
-                end if
-             end if
-          end if
-
-
-          if(bary(2) > zmaxref)then   ! top PMLs
-             if(bary(1) < yminref)then
-                if(bary(0) < xminref)then
-                   Mat(n) = nmat+25
-                else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+26
-                else
-                   Mat(n) = nmat+29
-                end if
-             else if(bary(1) > ymaxref)then
-                if(bary(0) < xminref)then
-                   Mat(n) = nmat+28
-                else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+27
-                else
-                   Mat(n) = nmat+31
-                end if
-             else
-                if(bary(0) < xminref)then
-                   Mat(n) = nmat+32
-                else if(bary(0) > xmaxref)then
-                   Mat(n) = nmat+30
-                else
-                   Mat(n) = nmat+33
-                end if
-             end if
-          end if
-
-          if((bary(0) > xminref .and. bary(0) < xmaxref) .and. & 
-               (bary(1) > yminref .and. bary(1) < ymaxref) .and. & 
-               (bary(2) > zminref .and. bary(2) < half))then   ! lower physical layer
-             Mat(n) = nmat-2
-          end if
-
-          if((bary(0) > xminref .and. bary(0) < xmaxref) .and. & 
-               (bary(1) > yminref .and. bary(1) < ymaxref) .and. & 
-               (bary(2) > half .and. bary(2) < zmaxref))then   ! upper physical layer
-             Mat(n) = nmat-1
-          end if
-
-            end if
-
-            !write(*,*) 'Elem:', n, ' mat=', Mat(n), 'ctr=', bary
         end do
 
     end subroutine nature_elem
     !--------------------------------------------------------
     !--------------------------------------------------------
+
     subroutine barycentre(coord,bary)
         real, intent(in), dimension(0:7,0:2)   :: coord
         real, intent(out), dimension(0:2)  :: bary
@@ -1662,6 +1752,196 @@ contains
         bary = bary/8
 
     end subroutine barycentre
+    !--------------------------------------------------------------------
+    !--------------------------------------------------------------------
+    subroutine write_mater_ondafly(nmat,mattab,vp,vs,rho,ngll,qp,qs,pml_bool,pml_t,pml_b,ngll_PML)
+        !- construction of the "material.input" file directly used in SEM3D
+        integer, intent(in)   :: nmat
+        character, dimension(0:), intent(in)   :: mattab
+        real, dimension(0:nmat-1), intent(in)  :: vp,vs,rho,qp,qs
+        integer, dimension(0:nmat-1), intent(in)  :: ngll
+        integer, intent(in),optional     :: pml_bool,pml_t,pml_b,ngll_PML
+        integer                 :: i,icount
+        real  :: tr
+        character(len=*), parameter  :: FMT1="(a1,2x,f9.3,2x,f9.3,2x,f9.3,2x,3(i2,2x),f8.5,2x,f8.3,2x,f8.3)"
+        character(len=*), parameter  :: FMT2="(l1,1x,i2,1x,f5.2,1x,6(l1,1x),f5.2,i3)"
+        real, parameter  :: a = 10d0, k =0d0
+        integer, parameter  :: n = 2
+        logical, parameter   :: VRAI = .true. , FAUX = .false.
+
+        integer :: nblock,j,jj,count_matR
+        integer :: seed
+        character(len=10) :: corr, marga,margb,margc
+        real(kind=8) :: lx,ly,lz,sigma2a,sigma2b,sigma2c
+
+        icount = 0
+        tr = 0.0001d0
+
+        open(10,file="material.input",action="write",status="replace")
+        write(10,*) size(mattab)
+        !  physical layers
+        do i = 0,nmat-1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll(i),   &
+                ngll(i),tr,qp(i),qs(i)
+            icount = icount+1
+        end do
+
+        ! lateral PMLs
+        if(present(pml_bool) .and. pml_bool == 1)then
+            do i = 0,nmat-1
+                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                    ngll(i),tr,qp(i),qs(i)
+                icount = icount+1
+                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                    ngll(i),tr,qp(i),qs(i)
+                icount = icount+1
+                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                    ngll(i),tr,qp(i),qs(i)
+                icount = icount+1
+                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                    ngll(i),tr,qp(i),qs(i)
+                icount = icount+1
+                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
+                    ngll(i),tr,qp(i),qs(i)
+                icount = icount+1
+                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
+                    ngll(i),tr,qp(i),qs(i)
+                icount = icount+1
+                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
+                    ngll(i),tr,qp(i),qs(i)
+                icount = icount+1
+                write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
+                    ngll(i),tr,qp(i),qs(i)
+                icount = icount+1
+
+            end do
+        end if
+        ! bottom PMLs
+        if(present(pml_b) .and. pml_b == 1)then
+            i = nmat-1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll(i),   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+        end if
+        ! top PMLs
+        if(present(pml_t) .and. pml_t == 1)then
+            i = 0
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll_PML,   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll_PML,ngll(i),   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+            write(10,FMT=FMT1) mattab(icount),vp(i),vs(i),rho(i),ngll(i),ngll(i),   &
+                ngll_PML,tr,qp(i),qs(i)
+            icount = icount+1
+        end if
+
+        !! lines dedicated to PMLs
+        write(10,*) ; write(10,*)
+        ! lateral PMLs
+        if(present(pml_bool) .and. pml_bool == 1)then
+            do i = 0,nmat-1
+                write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,VRAI,FAUX,FAUX,k,i
+                write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,VRAI,FAUX,FAUX,k,i
+                write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,FAUX,FAUX,FAUX,k,i
+                write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,FAUX,FAUX,FAUX,k,i
+                write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,VRAI,VRAI,FAUX,FAUX,k,i
+                write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,FAUX,VRAI,FAUX,FAUX,k,i
+                write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,VRAI,FAUX,FAUX,FAUX,k,i
+                write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,FAUX,VRAI,FAUX,FAUX,k,i
+            end do
+        end if
+        ! bottom PMLs
+        if(present(pml_b) .and. pml_b == 1)then
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,VRAI,VRAI,VRAI,k,nmat-1
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,VRAI,VRAI,VRAI,k,nmat-1
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,FAUX,VRAI,VRAI,k,nmat-1
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,FAUX,VRAI,VRAI,k,nmat-1
+            write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,VRAI,VRAI,VRAI,VRAI,k,nmat-1
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,FAUX,VRAI,VRAI,VRAI,k,nmat-1
+            write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,VRAI,FAUX,VRAI,VRAI,k,nmat-1
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,FAUX,VRAI,VRAI,VRAI,k,nmat-1
+            write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,FAUX,VRAI,VRAI,VRAI,k,nmat-1
+        end if
+        ! top PMLs
+        if(present(pml_t) .and. pml_t == 1)then
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,VRAI,VRAI,FAUX,k,0
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,VRAI,VRAI,FAUX,k,0
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,VRAI,FAUX,VRAI,FAUX,k,0
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,VRAI,FAUX,VRAI,FAUX,k,0
+            write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,VRAI,VRAI,VRAI,FAUX,k,0
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,FAUX,FAUX,VRAI,VRAI,FAUX,k,0
+            write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,VRAI,FAUX,VRAI,FAUX,k,0
+            write(10,FMT=FMT2) FAUX,n,a,VRAI,VRAI,FAUX,VRAI,VRAI,FAUX,k,0
+            write(10,FMT=FMT2) FAUX,n,a,FAUX,VRAI,FAUX,VRAI,VRAI,FAUX,k,0
+        end if
+
+        !! Lines dedicated to Random Field
+        write(10,*) ; write(10,*)
+        count_matR = 0
+        do j = 0,nmat-1
+            if(mattab(j)=='R') then
+                open(20,file="mater.in",action="read",status="old")
+                read(20,*) nblock
+                do jj = 0,(nblock+1+count_matR)
+                    read(20,*)
+                end do
+                read(20,*)  corr, lx, ly, lz, marga ,sigma2a, margb ,sigma2b, margc ,sigma2c,seed
+                write(10,*) corr, lx, ly, lz, marga ,sigma2a, margb ,sigma2b, margc ,sigma2c,seed
+                count_matR = count_matR + 1
+                close(20)
+            end if
+        end do
+
+        close(10)
+
+
+
+    end subroutine write_mater_ondafly
+
     !--------------------------------------------------------
     !--------------------------------------------------------
     integer function vertices2edge(vert)
@@ -1731,7 +2011,7 @@ contains
     !-------------------------------------
     subroutine face2corner(Ipoint,nfa,corn)
         implicit none
-        integer, intent(in)   :: Ipoint(0:),nfa
+        integer, intent(in)   :: Ipoint(0:7),nfa
         integer, intent(out)  :: corn(0:3)
 
         select case(nfa)
@@ -2055,8 +2335,15 @@ contains
 
 end module mesh_properties
 
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

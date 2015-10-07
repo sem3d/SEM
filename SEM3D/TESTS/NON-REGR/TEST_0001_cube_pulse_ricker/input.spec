@@ -47,7 +47,7 @@ time_scheme {
     accel_scheme = false;  # Acceleration scheme for Newmark
     veloc_scheme = true;   # Velocity scheme for Newmark
     alpha = 0.5;           # alpha (Newmark parameter)
-    beta = -0.5;           # beta (Newmark parameter)
+    beta = 0.5;           # beta (Newmark parameter)
     gamma = 1;             # gamma (Newmark parameter)
     courant=0.2;
 };
@@ -56,4 +56,10 @@ amortissement {
     nsolids = 0;           # number of solids for attenuation (0 if no attenuation)
     atn_band = 10  0.05;   # attenuation period band
     atn_period = 0.2;      # model period 
+};
+
+capteurs "UU" {
+    type = points;
+    file = "stations.txt";
+    period = 1;
 };

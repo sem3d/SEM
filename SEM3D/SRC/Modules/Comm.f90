@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !! \file Comm.f90
 !! \brief
@@ -19,6 +23,8 @@ module scomms
     end type comm_vector_2d
 
     type :: comm
+       ! Numero du proc avec qui on communique
+       integer :: dest
 
        integer :: nb_faces, nb_edges, nb_vertices, nb_edges_so,nb_vertices_so,    &
            nb_edges_neu,nb_vertices_neu,ngllSO,ngll_F,ngllPML_F,ngllPML_tot
@@ -73,8 +79,15 @@ contains
 
     end subroutine allocate_comm_vector_1d
 end module scomms
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

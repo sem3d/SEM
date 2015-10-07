@@ -1,3 +1,5 @@
+!! The original code in this module was written by Daniele Funaro (see below)
+!! It has been reworked as F90 module
 MODULE splib
     USE constants, only : M_PI, M_PI_2
     IMPLICIT none

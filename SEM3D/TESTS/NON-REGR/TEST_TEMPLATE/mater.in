@@ -1,0 +1,4 @@
+%(nmat)s
+%(matdef)s
+# PML properties
+# Filtering? npow,Apow,X?,left?,Y?,Forwrd?,Z?,down?,cutoff freq

@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 module partition_mesh
     use iso_c_binding
     implicit none
@@ -21,13 +25,13 @@ module partition_mesh
 contains
 
     !-----------------------------------------------------
-    subroutine part_mesh_3D(n_elem, n_points, Ipoint, nproc, dxadj, dxadjncy, procs)
+    subroutine part_mesh_3D(n_nodes, n_elem, n_points, Ipoint, nproc, dxadj, dxadjncy, procs)
         implicit none
-        integer, intent(in)                            :: n_elem, nproc, n_points
-        integer, intent(in), dimension(0:7,0:n_elem-1) :: Ipoint
-        integer, dimension(0:8*n_elem-1),target        :: eind
-        integer, dimension(0:n_elem),target            :: eptr
-        integer, dimension(0:n_elem-1)                 :: vwgt, vsize
+        integer, intent(in)                            :: n_nodes,n_elem, nproc, n_points
+        integer, intent(in), dimension(0:n_nodes-1,0:n_elem-1) :: Ipoint
+        integer, dimension(:), allocatable, target :: eind
+        integer, dimension(:), allocatable, target :: eptr
+        integer, dimension(:), allocatable :: vwgt, vsize
         integer   :: i,n,idummy
         ! Metis'variables
         integer  :: edgecut
@@ -39,6 +43,11 @@ contains
         integer, pointer, dimension(:) :: dxadj, dxadjncy
         real(kind=4), dimension(nproc) :: tpwgts
         real(kind=4), dimension(ncon) :: ubvec
+
+        allocate(eind(0:8*n_elem-1))
+        allocate(eptr(0:n_elem))
+        allocate(vwgt(0:n_elem))
+        allocate(vsize(0:n_elem))
 
         write(*,*)
         write(*,*) "****************************************"
@@ -57,7 +66,7 @@ contains
         write(*,*) "  --> Number of procs: ",nproc
         !allocate(dxadj(0:n_elem),dxadjncy(0:8*n_elem-1))
         call METIS_SetDefaultOptions(options)
-        call METIS_MeshToDual(n_elem,n_points,c_loc(eptr),c_loc(eind),1,numflag,dxadj_p,dxadjncy_p)
+        call METIS_MeshToDual(n_elem,n_points,c_loc(eptr),c_loc(eind),4,numflag,dxadj_p,dxadjncy_p)
         call c_f_pointer(dxadj_p, dxadj, [n_elem+1])
         call c_f_pointer(dxadjncy_p, dxadjncy, [dxadj(n_elem+1)])
         allocate(procs(0:n_elem-1))
@@ -75,12 +84,19 @@ contains
             call METIS_PartGraphKway(n_elem,ncon,dxadj,dxadjncy,    &
                 vwgt, vsize, adjwgt, nproc, tpwgts, ubvec, options, edgecut, procs)
         end if
-
+        deallocate(eind, eptr, vwgt, vsize)
     end subroutine part_mesh_3D
     !------------------------------------------------------------------
 end module partition_mesh
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

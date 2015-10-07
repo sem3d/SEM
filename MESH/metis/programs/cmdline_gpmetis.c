@@ -4,7 +4,7 @@
 
 \date 12/24/2008
 \author George
-\version\verbatim $Id: cmdline_gpmetis.c 10482 2011-07-05 20:10:55Z karypis $\endverbatim
+\version\verbatim $Id: cmdline_gpmetis.c 13901 2013-03-24 16:17:03Z karypis $\endverbatim
 */
 
 #include "metisbin.h"
@@ -23,6 +23,7 @@ static struct gk_option long_options[] = {
 
 /*  {"balanced",       0,      0,      METIS_OPTION_BALANCE}, */
 
+  {"no2hop",         0,      0,      METIS_OPTION_NO2HOP},
   {"minconn",        0,      0,      METIS_OPTION_MINCONN},
   {"contig",         0,      0,      METIS_OPTION_CONTIG},
 
@@ -128,6 +129,10 @@ static char helpstr[][100] =
 "        greedy   - Greedy k-way refinement [default for -ptype=kway]",
 " ",
 */
+"  -no2hop",
+"     Specifies that the coarsening will not perform any 2-hop matchings",
+"     when the standard matching fails to sufficiently contract the graph.",
+" ",
 "  -contig [applies only when -ptype=kway]",
 "     Specifies that the partitioning routines should try to produce",
 "     partitions that are contiguous. Note that if the input graph is not",
@@ -225,6 +230,7 @@ params_t *parse_cmdline(int argc, char *argv[])
   params->iptype        = -1;
   params->rtype         = -1;
 
+  params->no2hop        = 0;
   params->minconn       = 0;
   params->contig        = 0;
 
@@ -286,6 +292,10 @@ params_t *parse_cmdline(int argc, char *argv[])
             errexit("Invalid option -%s=%s\n", long_options[option_index].name, gk_optarg);
         break;
 */
+
+      case METIS_OPTION_NO2HOP:
+        params->no2hop = 1;
+        break;
 
       case METIS_OPTION_CONTIG:
         params->contig = 1;

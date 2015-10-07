@@ -23,19 +23,11 @@ set(MESH_SRC
   ${PRJ}/SRC/free_surf.f90
 )
 
-if(OPT_MPI)
-#set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
-# TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
-# c++ et ne link pas semx.exe
-set(SEM_EXTRA_LIBS ${MPI_LIBRARY} ${MPI_EXTRA_LIBRARY})
-else(OPT_MPI)
-endif(OPT_MPI)
-
 add_definitions(-DUSE_HDF5)
 include_directories(${HDF5_INCLUDE_DIR_FORTRAN})
 
 add_executable(mesher ${MESH_SRC})
-target_link_libraries(mesher metis ${HDF5_LIBRARIES} )
+target_link_libraries(mesher metis ${SEM_EXTRA_LIBS} )
 
 
 install(TARGETS mesher DESTINATION bin)
@@ -44,6 +36,6 @@ add_executable(cmesh
   ${PRJ}/CSRC/main.cpp
   ${PRJ}/CSRC/mesh.cpp
 )
-include_directories(${PRJ}/CSRC ${PRJ}/metis/include)
-target_link_libraries(cmesh metis ${HDF5_LIBRARIES})
+include_directories(BEFORE ${PRJ}/CSRC ${PRJ}/metis/include)
+target_link_libraries(cmesh metis ${SEM_EXTRA_LIBS})
 

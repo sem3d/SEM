@@ -8,7 +8,7 @@
  * Started 10/19/95
  * George
  *
- * $Id: proto.h 10565 2011-07-13 16:07:36Z karypis $
+ * $Id: proto.h 13933 2013-03-29 22:20:46Z karypis $
  *
  */
 
@@ -41,6 +41,12 @@ graph_t *CoarsenGraph(ctrl_t *ctrl, graph_t *graph);
 graph_t *CoarsenGraphNlevels(ctrl_t *ctrl, graph_t *graph, idx_t nlevels);
 idx_t Match_RM(ctrl_t *ctrl, graph_t *graph);
 idx_t Match_SHEM(ctrl_t *ctrl, graph_t *graph);
+idx_t Match_2Hop(ctrl_t *ctrl, graph_t *graph, idx_t *perm, idx_t *match,
+          idx_t cnvtxs, size_t nunmatched);
+idx_t Match_2HopAny(ctrl_t *ctrl, graph_t *graph, idx_t *perm, idx_t *match,
+          idx_t cnvtxs, size_t *r_nunmatched, size_t maxdegree);
+idx_t Match_2HopAll(ctrl_t *ctrl, graph_t *graph, idx_t *perm, idx_t *match,
+          idx_t cnvtxs, size_t *r_nunmatched, size_t maxdegree);
 void PrintCGraphStats(ctrl_t *ctrl, graph_t *graph);
 void CreateCoarseGraph(ctrl_t *ctrl, graph_t *graph, idx_t cnvtxs, 
          idx_t *match);
@@ -193,10 +199,12 @@ void ComputeLoadImbalanceVec(graph_t *graph, idx_t nparts, real_t *pijbm,
 /* mesh.c */
 void CreateGraphDual(idx_t ne, idx_t nn, idx_t *eptr, idx_t *eind, idx_t ncommon,
           idx_t **r_xadj, idx_t **r_adjncy);
-void CreateGraphNodal(idx_t ne, idx_t nn, idx_t *eptr, idx_t *eind, idx_t **r_xadj, 
-          idx_t **r_adjncy);
 idx_t FindCommonElements(idx_t qid, idx_t elen, idx_t *eind, idx_t *nptr,
           idx_t *nind, idx_t *eptr, idx_t ncommon, idx_t *marker, idx_t *nbrs);
+void CreateGraphNodal(idx_t ne, idx_t nn, idx_t *eptr, idx_t *eind, idx_t **r_xadj, 
+          idx_t **r_adjncy);
+idx_t FindCommonNodes(idx_t qid, idx_t nelmnts, idx_t *elmntids, idx_t *eptr,
+          idx_t *eind, idx_t *marker, idx_t *nbrs);
 mesh_t *CreateMesh(void);
 void InitMesh(mesh_t *mesh);  
 void FreeMesh(mesh_t **mesh);

@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file savefield.F90
 !!\brief Contient la subroutine savefield.
@@ -13,7 +17,6 @@
 !! \param type (domain), intent (INOUT) TDomain
 !! \param integer, intent (IN) it
 !! \param integer, intent (IN) i_snap
-!! \param logical sortie_capteur_vitesse
 !<
 
 subroutine savefield (Tdomain,it,sortie_capteur,i_snap,nom_grandeur,nom_dir_sorties)
@@ -222,8 +225,15 @@ subroutine savefield (Tdomain,it,sortie_capteur,i_snap,nom_grandeur,nom_dir_sort
 
     return
 end subroutine savefield
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

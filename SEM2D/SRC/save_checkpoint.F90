@@ -1,4 +1,8 @@
-!>
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
+!> -*- coding: utf-8 -*-
 !!\file save_checkpoint.F90
 !!\brief Contient la subroutine save_checkpoint.
 !!\author
@@ -8,7 +12,9 @@
 !<
 
 !>
-!! \brief La routine save_checkpoint() assure la sauvegarde des champs (force,vitesse,...). Cette sauvegarde permet une reprise éventuelle.
+!! \brief La routine save_checkpoint() assure la sauvegarde des champs
+!! (force,vitesse,...). Cette sauvegarde permet une reprise
+!! Ã©ventuelle.
 !!
 !! \param type (domain), intent (INOUT) Tdomain
 !! \param integer, intent (IN) it
@@ -29,8 +35,7 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
     real, intent (IN) :: rtime,dtmin
 
     ! local variables
-    integer :: n,ngllx,ngllz,i,j,ngll,ierr
-    character (len=MAX_FILE_SIZE) :: prot_file
+    integer :: ierr
     character (len=MAX_FILE_SIZE) :: dir_prot, dir_prot_prev, times_file
     character (len=MAX_FILE_SIZE) :: dir_traces, dir_prot_traces
     character (len=100) :: commande
@@ -46,17 +51,14 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
     ! on doit s'assurer que les processeurs ont fini d ecrire leurs resultats=> synchronisation
     call MPI_Barrier (Tdomain%communicateur, ierr)
 
-
-    call semname_protection_iter_rank_file(it,rg,prot_file)
-
-
     ! recherche et destruction au fur et a mesure des anciennes prots
     if (rg == 0) then
 
         call semname_protection_iter_dir(it,dir_prot)
-        ! creation du repertoire data/sem/Protection_<it> (par le proc le plus rapide)
         ierr = sem_mkdir(trim(adjustl(dir_prot)))
-
+        if (ierr/=0) then
+            write(*,*) "Erreur creating dir:", trim(adjustl(dir_prot))
+        endif
         Tdomain%TimeD%prot_m2 = Tdomain%TimeD%prot_m1
         Tdomain%TimeD%prot_m1 = Tdomain%TimeD%prot_m0
         Tdomain%TimeD%prot_m0 = it
@@ -78,48 +80,63 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
         commande="cp -R "//trim(adjustl(dir_traces))//" "//dir_prot_traces
         call system(trim(commande))
     endif
+    call MPI_Barrier (Tdomain%communicateur, ierr)
 
+    call read_write_prot(Tdomain,.false.,rtime,dtmin,it,isort)
+    return
+end subroutine save_checkpoint
 
+! read_write_prot :
+! 1. make sure read / write are done the exact same way (save_chekpoint // read_restart)
+! 2. use "read(61,*) tab(:)" instead of "do i=1,n read(61,*) tab(i)" : this reduces file size, and, improves IO time
+subroutine read_write_prot(Tdomain,readprot,rtime,dtmin,it,isort)
+    use sdomain
+    implicit none
+
+    type(domain), intent(inout)  :: Tdomain
+    logical,      intent(in)     :: readprot
+    real                         :: rtime,dtmin
+    integer                      :: it,isort
+
+    character(len=MAX_FILE_SIZE) :: prot_file
+    integer                      :: n, ngll, ngllx, ngllz
+
+    call semname_protection_iter_rank_file(it,Tdomain%MPI_var%my_rank,prot_file)
     open (61,file=prot_file,status="unknown",form="formatted")
-    write(61,*) rtime,dtmin
-    write(61,*) it,isort
+    if (readprot .eqv. .true.) then
+        read (61,*) rtime,dtmin
+        read (61,*) it,isort
+    else
+        write(61,*) rtime,dtmin
+        write(61,*) it,isort
+    endif
 
     ! Save Fields for Elements
     do n = 0,Tdomain%n_elem-1
         ngllx = Tdomain%specel(n)%ngllx
         ngllz = Tdomain%specel(n)%ngllz
         if ( (.not.Tdomain%specel(n)%PML) .or. Tdomain%specel(n)%CPML) then
-            do j = 1,ngllz-2
-                do i = 1,ngllx-2
-                    write(61,*) Tdomain%specel(n)%Veloc(i,j,0)
-                    write(61,*) Tdomain%specel(n)%Veloc(i,j,1)
-                    write(61,*) Tdomain%specel(n)%Displ(i,j,0)
-                    write(61,*) Tdomain%specel(n)%Displ(i,j,1)
-                enddo
-            enddo
+            if (readprot .eqv. .true.) then
+                read (61,*) Tdomain%specel(n)%Veloc(1:ngllx-2,1:ngllz-2,0:1)
+                read (61,*) Tdomain%specel(n)%Displ(1:ngllx-2,1:ngllz-2,0:1)
+            else
+                write(61,*) Tdomain%specel(n)%Veloc(1:ngllx-2,1:ngllz-2,0:1)
+                write(61,*) Tdomain%specel(n)%Displ(1:ngllx-2,1:ngllz-2,0:1)
+            endif
         else
-            do j = 1,ngllz-2
-                do i = 1,ngllx-2
-                    write(61,*) Tdomain%specel(n)%Veloc(i,j,0)
-                    write(61,*) Tdomain%specel(n)%Veloc(i,j,1)
-                    write(61,*) Tdomain%specel(n)%Veloc1(i,j,0)
-                    write(61,*) Tdomain%specel(n)%Veloc1(i,j,1)
-                    write(61,*) Tdomain%specel(n)%Veloc2(i,j,0)
-                    write(61,*) Tdomain%specel(n)%Veloc2(i,j,1)
-                enddo
-            enddo
-
-            do j = 0,ngllz-1
-                do i = 0,ngllx-1
-                    write(61,*) Tdomain%specel(n)%Stress1(i,j,0)
-                    write(61,*) Tdomain%specel(n)%Stress1(i,j,1)
-                    write(61,*) Tdomain%specel(n)%Stress1(i,j,2)
-                    write(61,*) Tdomain%specel(n)%Stress2(i,j,0)
-                    write(61,*) Tdomain%specel(n)%Stress2(i,j,1)
-                    write(61,*) Tdomain%specel(n)%Stress2(i,j,2)
-                enddo
-            enddo
-
+            if (readprot .eqv. .true.) then
+                read (61,*) Tdomain%specel(n)%Veloc  (1:ngllx-2,1:ngllz-2,0:1)
+                read (61,*) Tdomain%specel(n)%Veloc1 (1:ngllx-2,1:ngllz-2,0:1)
+                read (61,*) Tdomain%specel(n)%Veloc2 (1:ngllx-2,1:ngllz-2,0:1)
+                read (61,*) Tdomain%specel(n)%Stress1(1:ngllx-2,1:ngllz-2,0:2)
+                read (61,*) Tdomain%specel(n)%Stress2(1:ngllx-2,1:ngllz-2,0:2)
+            else
+                write(61,*) Tdomain%specel(n)%Veloc  (1:ngllx-2,1:ngllz-2,0:1)
+                write(61,*) Tdomain%specel(n)%Veloc1 (1:ngllx-2,1:ngllz-2,0:1)
+                write(61,*) Tdomain%specel(n)%Veloc2 (1:ngllx-2,1:ngllz-2,0:1)
+                write(61,*) Tdomain%specel(n)%Stress1(1:ngllx-2,1:ngllz-2,0:2)
+                write(61,*) Tdomain%specel(n)%Stress2(1:ngllx-2,1:ngllz-2,0:2)
+            endif
         endif
     enddo
 
@@ -127,50 +144,69 @@ subroutine save_checkpoint (Tdomain,rtime,dtmin,it,isort)
     do n = 0,Tdomain%n_face-1
         ngll = Tdomain%sFace(n)%ngll
         if ((.not.Tdomain%sFace(n)%PML) .or. Tdomain%sFace(n)%CPML) then
-            do i = 1,ngll-2
-                write(61,*) Tdomain%sFace(n)%Veloc(i,0)
-                write(61,*) Tdomain%sFace(n)%Veloc(i,1)
-                write(61,*) Tdomain%sFace(n)%Displ(i,0)
-                write(61,*) Tdomain%sFace(n)%Displ(i,1)
-                write(61,*) Tdomain%sFace(n)%Forces(i,0)
-                write(61,*) Tdomain%sFace(n)%Forces(i,1)
-            enddo
+            if (readprot .eqv. .true.) then
+                read (61,*) Tdomain%sFace(n)%Veloc (1:ngll-2,0:1)
+                read (61,*) Tdomain%sFace(n)%Displ (1:ngll-2,0:1)
+                read (61,*) Tdomain%sFace(n)%Forces(1:ngll-2,0:1)
+            else
+                write(61,*) Tdomain%sFace(n)%Veloc (1:ngll-2,0:1)
+                write(61,*) Tdomain%sFace(n)%Displ (1:ngll-2,0:1)
+                write(61,*) Tdomain%sFace(n)%Forces(1:ngll-2,0:1)
+            endif
         else
-            do i = 1,ngll-2
-                write(61,*) Tdomain%sFace(n)%Veloc(i,0)
-                write(61,*) Tdomain%sFace(n)%Veloc(i,1)
-                write(61,*) Tdomain%sFace(n)%Veloc1(i,0)
-                write(61,*) Tdomain%sFace(n)%Veloc1(i,1)
-                write(61,*) Tdomain%sFace(n)%Veloc2(i,0)
-                write(61,*) Tdomain%sFace(n)%Veloc2(i,1)
-            enddo
+            if (readprot .eqv. .true.) then
+                read (61,*) Tdomain%sFace(n)%Veloc (1:ngll-2,0:1)
+                read (61,*) Tdomain%sFace(n)%Veloc1(1:ngll-2,0:1)
+                read (61,*) Tdomain%sFace(n)%Veloc2(1:ngll-2,0:1)
+            else
+                write(61,*) Tdomain%sFace(n)%Veloc (1:ngll-2,0:1)
+                write(61,*) Tdomain%sFace(n)%Veloc1(1:ngll-2,0:1)
+                write(61,*) Tdomain%sFace(n)%Veloc2(1:ngll-2,0:1)
+            endif
         endif
     enddo
-
 
     ! Save Fields for Vertices
     do n = 0,Tdomain%n_vertex-1
         if ((.not.Tdomain%sVertex(n)%PML) .or. Tdomain%sVertex(n)%CPML) then
-            do i = 0,1
-                write(61,*) Tdomain%sVertex(n)%Veloc(i)
-                write(61,*) Tdomain%sVertex(n)%Displ(i)
-            enddo
+            if (readprot .eqv. .true.) then
+                read (61,*) Tdomain%sVertex(n)%Veloc(0:1)
+                read (61,*) Tdomain%sVertex(n)%Displ(0:1)
+            else
+                write(61,*) Tdomain%sVertex(n)%Veloc(0:1)
+                write(61,*) Tdomain%sVertex(n)%Displ(0:1)
+            endif
         else
-            do i = 0,1
-                write(61,*) Tdomain%sVertex(n)%Veloc(i)
-                write(61,*) Tdomain%sVertex(n)%Veloc1(i)
-                write(61,*) Tdomain%sVertex(n)%Veloc2(i)
-            enddo
+            if (readprot .eqv. .true.) then
+                read (61,*) Tdomain%sVertex(n)%Veloc (0:1)
+                read (61,*) Tdomain%sVertex(n)%Veloc1(0:1)
+                read (61,*) Tdomain%sVertex(n)%Veloc2(0:1)
+            else
+                write(61,*) Tdomain%sVertex(n)%Veloc (0:1)
+                write(61,*) Tdomain%sVertex(n)%Veloc1(0:1)
+                write(61,*) Tdomain%sVertex(n)%Veloc2(0:1)
+            endif
         endif
     enddo
+
+    ! Save n_quad for xdmf results visualisation
+    if (readprot .eqv. .true.) then
+        read (61,*) Tdomain%n_quad
+    else
+        write(61,*) Tdomain%n_quad
+    endif
+
     close(61)
+end subroutine read_write_prot
 
-
-
-    return
-end subroutine save_checkpoint
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

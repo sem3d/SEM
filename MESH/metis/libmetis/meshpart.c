@@ -8,7 +8,7 @@
  * Started 9/29/97
  * George
  *
- * $Id: meshpart.c 10709 2011-08-31 21:07:57Z karypis $
+ * $Id: meshpart.c 13931 2013-03-29 16:48:48Z karypis $
  *
  */
 
@@ -23,7 +23,7 @@ int METIS_PartMeshNodal(idx_t *ne, idx_t *nn, idx_t *eptr, idx_t *eind,
           idx_t *vwgt, idx_t *vsize, idx_t *nparts, real_t *tpwgts, 
           idx_t *options, idx_t *objval, idx_t *epart, idx_t *npart)
 {
-  int sigrval=0, renumber=0;
+  int sigrval=0, renumber=0, ptype;
   idx_t *xadj=NULL, *adjncy=NULL;
   idx_t ncon=1, pnumflag=0;
   int rstatus=METIS_OK;
@@ -37,11 +37,13 @@ int METIS_PartMeshNodal(idx_t *ne, idx_t *nn, idx_t *eptr, idx_t *eind,
   if ((sigrval = gk_sigcatch()) != 0) 
     goto SIGTHROW;
 
+  renumber = GETOPTION(options, METIS_OPTION_NUMBERING, 0);
+  ptype    = GETOPTION(options, METIS_OPTION_PTYPE, METIS_PTYPE_KWAY);
 
   /* renumber the mesh */
-  if (options && options[METIS_OPTION_NUMBERING] == 1) {
+  if (renumber) {
     ChangeMesh2CNumbering(*ne, eptr, eind);
-    renumber = 1;
+    options[METIS_OPTION_NUMBERING] = 0;
   }
 
   /* get the nodal graph */
@@ -50,7 +52,7 @@ int METIS_PartMeshNodal(idx_t *ne, idx_t *nn, idx_t *eptr, idx_t *eind,
     raise(SIGERR);
 
   /* partition the graph */
-  if (options == NULL || options[METIS_OPTION_PTYPE] == METIS_PTYPE_KWAY) 
+  if (ptype == METIS_PTYPE_KWAY) 
     rstatus = METIS_PartGraphKway(nn, &ncon, xadj, adjncy, vwgt, vsize, NULL, 
                   nparts, tpwgts, NULL, options, objval, npart);
   else 
@@ -65,8 +67,10 @@ int METIS_PartMeshNodal(idx_t *ne, idx_t *nn, idx_t *eptr, idx_t *eind,
 
 
 SIGTHROW:
-  if (renumber)
+  if (renumber) {
     ChangeMesh2FNumbering2(*ne, *nn, eptr, eind, epart, npart);
+    options[METIS_OPTION_NUMBERING] = 1;
+  }
 
   METIS_Free(xadj);
   METIS_Free(adjncy);
@@ -88,7 +92,7 @@ int METIS_PartMeshDual(idx_t *ne, idx_t *nn, idx_t *eptr, idx_t *eind,
           real_t *tpwgts, idx_t *options, idx_t *objval, idx_t *epart, 
           idx_t *npart) 
 {
-  int sigrval=0, renumber=0;
+  int sigrval=0, renumber=0, ptype;
   idx_t i, j;
   idx_t *xadj=NULL, *adjncy=NULL, *nptr=NULL, *nind=NULL;
   idx_t ncon=1, pnumflag=0;
@@ -103,10 +107,13 @@ int METIS_PartMeshDual(idx_t *ne, idx_t *nn, idx_t *eptr, idx_t *eind,
   if ((sigrval = gk_sigcatch()) != 0) 
     goto SIGTHROW;
 
+  renumber = GETOPTION(options, METIS_OPTION_NUMBERING, 0);
+  ptype    = GETOPTION(options, METIS_OPTION_PTYPE, METIS_PTYPE_KWAY);
+
   /* renumber the mesh */
-  if (options && options[METIS_OPTION_NUMBERING] == 1) {
+  if (renumber) {
     ChangeMesh2CNumbering(*ne, eptr, eind);
-    renumber = 1;
+    options[METIS_OPTION_NUMBERING] = 0;
   }
 
   /* get the dual graph */
@@ -115,7 +122,7 @@ int METIS_PartMeshDual(idx_t *ne, idx_t *nn, idx_t *eptr, idx_t *eind,
     raise(SIGERR);
 
   /* partition the graph */
-  if (options == NULL || options[METIS_OPTION_PTYPE] == METIS_PTYPE_KWAY) 
+  if (ptype == METIS_PTYPE_KWAY) 
     rstatus = METIS_PartGraphKway(ne, &ncon, xadj, adjncy, vwgt, vsize, NULL, 
                   nparts, tpwgts, NULL, options, objval, epart);
   else 
@@ -149,8 +156,10 @@ int METIS_PartMeshDual(idx_t *ne, idx_t *nn, idx_t *eptr, idx_t *eind,
 
 
 SIGTHROW:
-  if (renumber)
+  if (renumber) {
     ChangeMesh2FNumbering2(*ne, *nn, eptr, eind, epart, npart);
+    options[METIS_OPTION_NUMBERING] = 1;
+  }
 
   METIS_Free(xadj);
   METIS_Free(adjncy);

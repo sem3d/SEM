@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file receiver_pos.F90
 !!\brief Contient la subroutine ReceiverPosition.
@@ -16,161 +20,79 @@ contains
 subroutine ReceiverPosition(Tdomain)
 
     use sdomain
-    use shape_lin
-    use shape_quad
+    use mlocations2d
     use constants, only : NCAPT_CACHE
-    use semdatafiles
     implicit none
     type (domain), intent (INOUT) :: Tdomain
 
     ! local variables
 
-    integer :: i,j,n,nel,nnelem, nrec,idef, nind,ngllx, ngllz, nmin, mat, ipoint
-    integer, parameter :: nimax=50,njmax=50
-    integer, dimension (0:5) :: nreceiv
+    integer, parameter :: NMAXEL=20
+    integer, dimension(NMAXEL) :: elems
+    double precision, dimension(0:1,NMAXEL) :: coordloc
+    double precision, parameter :: EPS = 1D-13
+    integer :: nrec, nmax, i, j, n_el, ngllx, ngllz, mat
+    double precision :: xc, zc, xi, eta, outx, outz
+    logical :: inside
 
-    real :: Dmin,Dist
-    real :: eta1,xi1
-    real :: outx,outz,dximax, detamax
-    real, dimension (0:7) :: xc,zc
-    character(Len=MAX_FILE_SIZE) :: fnamef
+    ! Find the nearest point to the real location of the receivers in GLL scheme
 
-    logical :: inosol,inner
-
-    ! ################################################
-    ! Modified by Gaetano Festa 15/9/2004
-    ! Some minor changes for compatibility with MPI 13/10/2005
-
-    ! Compute the nearest point to the real location of the receivers in GLL scheme
-
-    nel = Tdomain%n_elem
-    do nrec = 0, Tdomain%n_receivers -1
-
-        Dmin = 1e20
-        nmin = -1
-        do n = 0,Tdomain%n_glob_points-1
-
-            Dist = (Tdomain%GlobCoord(0,n)-Tdomain%sReceiver(nrec)%Xrec)**2  +   &
-                (Tdomain%GlobCoord(1,n)- Tdomain%sReceiver(nrec)%zrec)**2
-
-            if ( Dist < Dmin ) then
-                nmin = n
-                Dmin = Dist
-            endif
-        enddo
-        if (nmin==-1) then
-            write(*,*) "Incorrect receiver positions"
-            stop
-        end if
+    do nrec = 0, Tdomain%n_receivers - 1
 
         ! If "collapse mode" is choosen for captors, the captors are relocated on the nearest gll node
-        if (Tdomain%capt_loc_type == CAPT_NEAREST_NODE .AND. Dmin > 0.) then
-            Tdomain%sReceiver(nrec)%Xrec = Tdomain%GlobCoord(0,nmin)
-            Tdomain%sReceiver(nrec)%Zrec = Tdomain%GlobCoord(1,nmin)
-            write (*,*) "Receiver",nrec, " has been relocated on GLL node ",nmin
-            write (*,*) " on the new position : ", Tdomain%GlobCoord(0,nmin), Tdomain%GlobCoord(1,nmin)
+        if (Tdomain%capt_loc_type == CAPT_NEAREST_NODE) then
+            call relocalize_on_nearest_gauss_pt(Tdomain, nrec)
         endif
 
-        ! Search for the element
-        nind = 0
-        do n = 0,nel-1
-            ngllx = Tdomain%specel(n)%ngllx
-            ngllz = Tdomain%specel(n)%ngllz
-            do j = 0,ngllz-1
-                do i = 0,ngllx-1
-                    idef = Tdomain%specel(n)%Iglobnum(i,j)
-                    if (idef == nmin ) then
-                        nreceiv(nind) = n
-                        nind = nind + 1
-                        if (nind > 6 ) then
-                            write (*,*) "Maximum allowed connection is 6! Some elements have a larger connection"
-                            write (*,*) " Return to continue, and Ctrl C to quit"
-                            read  (*,*)
-                        endif
-                    endif
-                enddo
-            enddo
-        enddo
+        xc = Tdomain%sReceiver(nrec)%xrec
+        zc = Tdomain%sReceiver(nrec)%zrec
+        nmax = NMAXEL
 
-        if (Tdomain%n_nodes == 4) then
-            inner = .false.
-            do n = 0,nind-1
-                nnelem = nreceiv(n)
-                do i=0, 3
-                    ipoint = Tdomain%specel(nnelem)%Control_Nodes(i)
-                    xc(i)= Tdomain%Coord_nodes(0,ipoint)
-                    zc(i)= Tdomain%Coord_nodes(1,ipoint)
-                end do
-                call verify_in_quad (xc,zc, Tdomain%sReceiver(nrec)%Xrec,Tdomain%sReceiver(nrec)%Zrec, inner)
-                if (inner) exit
-            enddo
-            if (inner) then
-                nreceiv(0) = nreceiv(n)
-                call shape4_local_coord(xc, zc, &
-                    Tdomain%sReceiver(nrec)%Xrec, Tdomain%sReceiver(nrec)%Zrec, &
-                    xi1, eta1, inosol)
+        ! Find receiver location
+        call find_location(Tdomain, xc, zc, nmax, elems, coordloc)
 
-                if (inosol) then
-                    !              write (*,*)  "Receiver",nrec, " is not in the processor" , Tdomain%Mpi_var%my_rank
-                    Tdomain%sReceiver(nrec)%located_here = .false.
-                else
-                    write (*,*)  "Receiver",nrec, " is in the processor" , Tdomain%Mpi_var%my_rank
-                    write (*,*) "At the location (Element, xi,eta) : "
-                    write (*,*) nreceiv (0), xi1, eta1
+        Tdomain%sReceiver(nrec)%located_here = .false.
+        do i=1,nmax! When the receiver is in the mesh
+            inside = .true.
+            n_el = elems(i)
+            xi   = coordloc(0,i)
+            eta  = coordloc(1,i)
+            if (xi<(-1-EPS) .or. eta<(-1-EPS)) inside = .false.
+            if (xi>( 1+EPS) .or. eta>( 1+EPS)) inside = .false.
+            if (inside) then
+                write (*,*) " Receiver ", nrec, " : found on proc. ", Tdomain%Mpi_var%my_rank," on Elem ", n_el
+                if(.NOT. Tdomain%sReceiver(nrec)%located_here) then
                     Tdomain%sReceiver(nrec)%located_here = .true.
-                    Tdomain%sReceiver(nrec)%nr = nreceiv (0)
-                    Tdomain%sReceiver(nrec)%xi = xi1
-                    Tdomain%sReceiver(nrec)%eta = eta1
+                    Tdomain%sReceiver(nrec)%nr           = n_el
+                    Tdomain%sReceiver(nrec)%xi           = xi
+                    Tdomain%sReceiver(nrec)%eta          = eta
                 endif
             end if
-            call check_receiver_on_vertex(Tdomain,nrec)
-        else if (Tdomain%n_nodes == 8 ) then
-            dximax = 2./nimax; detamax = 2./njmax
-            do11_n : do n = 0,nind-1
-                nnelem = nreceiv(n)
-                do i=0, 7
-                    ipoint = Tdomain%specel(nnelem)%Control_Nodes(i)
-                    xc(i)= Tdomain%Coord_nodes(0,ipoint)
-                    zc(i)= Tdomain%Coord_nodes(1,ipoint)
-                end do
-                call shape8_local_coord(xc, zc, &
-                    Tdomain%sReceiver(nrec)%Xrec, Tdomain%sReceiver(nrec)%Zrec, &
-                    xi1, eta1, inosol)
-                if (.not. inosol) exit do11_n
-            enddo do11_n
-            if (inosol) then
-                Tdomain%sReceiver(nrec)%located_here = .false.
-                !	  write (*,*)  "Receiver",nrec, " is not in the processor" , Tdomain%Mpi_var%my_rank
+        end do
 
-            else
-                write (*,*)  "Receiver",nrec, " is in the processor" , Tdomain%Mpi_var%my_rank
-                Tdomain%sReceiver(nrec)%located_here = .true.
-                Tdomain%sReceiver(nrec)%nr = nreceiv (n)
-                Tdomain%sReceiver(nrec)%xi = xi1
-                Tdomain%sReceiver(nrec)%eta = eta1
-                write (*,*) "At the location (Element, xi,eta) : ",xi1, eta1
-            endif
-            call check_receiver_on_vertex(Tdomain,nrec)
-        endif
+        ! Compute interpolation coefficient
+
         if (Tdomain%sReceiver(nrec)%located_here) then
-            nnelem = Tdomain%sReceiver(nrec)%nr
-            mat = Tdomain%specel(nnelem)%mat_index
-            ngllx = Tdomain%specel(nnelem)%ngllx
-            ngllz =Tdomain%specel(nnelem)%ngllz
+            write (*,'(a,i5,a,i4,a,f10.5,a,f10.5,a,i10,a,f20.17,a,f20.17,a)') " Receiver ", nrec, &
+                " : found on proc. ", Tdomain%Mpi_var%my_rank, ", (xc, zc) : (", xc, ", ", zc, &
+                ") <=> (element, xi, eta) : (", Tdomain%sReceiver(nrec)%nr, ", ", xi, ", ", eta, ")"
+            n_el  = Tdomain%sReceiver(nrec)%nr
+            mat   = Tdomain%specel(n_el)%mat_index
+            ngllx = Tdomain%specel(n_el)%ngllx
+            ngllz = Tdomain%specel(n_el)%ngllz
             allocate (Tdomain%sReceiver(nrec)%Interp_Coeff(0:ngllx-1,0:ngllz-1))
-
-            do j = 0,ngllz-1
-                call  pol_lagrange (ngllz,Tdomain%sSubdomain(mat)%GLLcz,j,Tdomain%sReceiver(nrec)%eta,outz)
-                do i = 0,ngllx -1
-                    call  pol_lagrange (ngllx,Tdomain%sSubdomain(mat)%GLLcx,i,Tdomain%sReceiver(nrec)%xi,outx)
+            do j = 0, ngllz-1
+                call pol_lagrange(ngllz, Tdomain%sSubdomain(mat)%GLLcz, j, Tdomain%sReceiver(nrec)%eta, outz)
+                do i = 0, ngllx -1
+                    call pol_lagrange(ngllx, Tdomain%sSubdomain(mat)%GLLcx, i, Tdomain%sReceiver(nrec)%xi, outx)
                     Tdomain%sReceiver(nrec)%Interp_Coeff(i,j) = outx*outz
-                    if (Tdomain%capt_loc_type == CAPT_NEAREST_NODE) then
-                        Tdomain%sReceiver(nrec)%Interp_Coeff(i,j) = anint(outx*outz)
-                    endif
                 enddo
             enddo
+            call check_receiver_on_vertex(Tdomain,nrec)
         endif
     enddo
+
+    ! Prepare to store receiver trace
 
     i = 0
     do nrec = 0, Tdomain%n_receivers-1
@@ -179,33 +101,23 @@ subroutine ReceiverPosition(Tdomain)
     if (i > 0) then
         allocate (Tdomain%Store_Trace(0:1,0:i-1,0:NCAPT_CACHE-1))
     endif
-    return
-    ! Initialisation
-    do i = 0,Tdomain%n_receivers-1
-        if (Tdomain%sReceiver(i)%located_here) then
-            call semname_capteur_type(Tdomain%sReceiver(i)%name, "vel", fnamef)
-            open (31,file=fnamef, form="formatted", status="replace")
-            close (31)
-        endif
-    enddo
-    ! restart procedure will recover the original file content later
 end subroutine ReceiverPosition
 
 subroutine save_trace (Tdomain, it)
     use sdomain
     use orientation
-    use constants
     implicit none
 
     type (domain), intent (INOUT) :: Tdomain
     integer, intent (IN) :: it
 
-    integer :: ir, nr, i,j, ngllx, ngllz, nsta, ncache
+    integer :: ir, nr, i,j, ngllx, ngllz, nsta, ncache, ind
     real :: dum0, dum1
     real, dimension (:,:,:), allocatable :: Field
 
     ncache = mod(it, NCAPT_CACHE)
     nsta = Tdomain%n_receivers
+    ind = 0
     do ir = 0, nsta-1
         if (Tdomain%sReceiver(ir)%located_here) then
             nr = Tdomain%sReceiver(ir)%nr
@@ -229,14 +141,14 @@ subroutine save_trace (Tdomain, it)
             if (Tdomain%sReceiver(ir)%on_vertex .AND. Tdomain%specel(nr)%type_dg == GALERKIN_HDG_RP) &
                 call build_vertex_vhat_for_receiver(Tdomain, ir, dum0, dum1)
 
-            Tdomain%Store_Trace(0,ir,ncache) = dum0
-            Tdomain%Store_Trace(1,ir,ncache) = dum1
-
+            Tdomain%Store_Trace(0,ind,ncache) = dum0
+            Tdomain%Store_Trace(1,ind,ncache) = dum1
+            ind = ind + 1
             deallocate (Field)
         endif
     enddo
 
-    if (ncache == NCAPT_CACHE-1) then
+    if (ncache == NCAPT_CACHE-1 .or. it == Tdomain%TimeD%NtimeMax-1) then
         call dump_trace(Tdomain)
     end if
 
@@ -252,27 +164,34 @@ subroutine dump_trace (Tdomain)
 
     type(Domain), intent (IN) :: Tdomain
 
-    integer :: i, it, it0, it1
+    integer :: i, it, it0, it1, ind, ncache, i_err
     character(Len=MAX_FILE_SIZE) :: fnamef
     real :: rtime
 
     !dumping the traces
-    print *, Tdomain%MPI_var%my_rank
-    it1 = Tdomain%TimeD%ntime
     it0 = NCAPT_CACHE*(Tdomain%TimeD%ntime/NCAPT_CACHE)
-
-    write(*,*) "Receivers out:", it0, it1
+    if (Tdomain%logicD%run_restart .and. (Tdomain%TimeD%ntime - Tdomain%TimeD%iter_reprise) < NCAPT_CACHE) then
+        it0 = Tdomain%TimeD%iter_reprise+1 ! if restart, start dump from restart iteration (not from last NCAPT_CACHE block)
+    end if
+    it1 = Tdomain%TimeD%ntime
+    ind = 0
 
     do i = 0,Tdomain%n_receivers-1
         if (Tdomain%sReceiver(i)%located_here) then
             call semname_capteur_type(Tdomain%sReceiver(i)%name, ".vel", fnamef)
-            open (31,file=fnamef, status="unknown", form="formatted", position="append")
-            rtime=(it0+1)*Tdomain%TimeD%dtmin ! Modif ST 03/03/2015
+            open (31, file=trim(fnamef), action="write", form="formatted", position="append", iostat=i_err)
+            if (i_err .ne. 0) stop "open trace file KO"
+            rtime=(it0+1)*Tdomain%TimeD%dtmin
             do it = it0, it1
-                write (31,*) rtime,Tdomain%Store_Trace(0,i,it-it0), Tdomain%Store_Trace (1,i,it-it0)
+                ncache=it-it0
+                if (Tdomain%logicD%run_restart .and. (Tdomain%TimeD%ntime - Tdomain%TimeD%iter_reprise) < NCAPT_CACHE) then
+                    ncache = mod(it,NCAPT_CACHE) ! if restart, start dump from restart iteration (not from last NCAPT_CACHE block)
+                end if
+                write(31,*) rtime, Tdomain%Store_Trace(0,ind,ncache), Tdomain%Store_Trace(1,ind,ncache)
                 rtime = rtime + Tdomain%TimeD%dtmin
             enddo
             close (31)
+            ind = ind + 1
         endif
     enddo
     return
@@ -396,5 +315,11 @@ end module treceivers
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

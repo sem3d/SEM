@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file shape8.F90
 !!\brief Contient la subroutine shape8.
@@ -31,7 +35,7 @@ contains
         ! local variables
 
         integer :: i_aus,n, mat,ngllx,ngllz,i,j,ipoint
-        real, dimension(0:7) :: xc, zc
+        real, dimension(0:1,0:7) :: coord
         real :: xi,eta,xp,zp, Jac
         real, dimension (0:1,0:1) :: LocInvGrad
 
@@ -48,8 +52,8 @@ contains
         do n = 0,Tdomain%n_elem - 1
             do i=0,7
                 i_aus = Tdomain%specel(n)%Control_Nodes(i)
-                xc(i) = Tdomain%Coord_Nodes(0,i_aus)
-                zc(i) = Tdomain%Coord_Nodes(1,i_aus)
+                coord(0,i) = Tdomain%Coord_Nodes(0,i_aus)
+                coord(1,i) = Tdomain%Coord_Nodes(1,i_aus)
             end do
 
             mat = Tdomain%specel(n)%mat_index
@@ -62,21 +66,19 @@ contains
             do j = 0,ngllz - 1
                 eta =   Tdomain%sSubdomain(mat)%GLLcz (j)
                 do i = 0,ngllx - 1
-
                     xi = Tdomain%sSubdomain(mat)%GLLcx (i)
 
+                    ! Computation of global coordinates
+
                     ipoint = Tdomain%specel(n)%Iglobnum(i,j)
+                    call shape8_local2global(coord, xi, eta, xp, zp)
+                    Tdomain%GlobCoord(0,ipoint) = xp; Tdomain%GlobCoord(1,ipoint) = zp
 
-                    call shape8_global_coord(xc, zc, xi, eta, xp, zp)
+                    ! Computation of the derivative matrix
 
-                    Tdomain%GlobCoord (0,ipoint) = xp;   Tdomain%GlobCoord (1,ipoint) = zp
-
-                    call shape8_compute_jacobian(LocInvGrad, xc, zc, xi, eta)
-                    call invert2 (LocInvGrad, Jac )
-
-                    !  Computation of the local Jacobian and inversion of the Jacobian Matrix
-                    Tdomain%specel(n)%InvGrad (i,j,0:1,0:1)  = LocInvGrad (0:1,0:1)
-
+                    call shape8_local2jacob(coord, xi, eta, LocInvGrad)
+                    call invert2(LocInvGrad, Jac)
+                    Tdomain%specel(n)%InvGrad (i,j,0:1,0:1) = LocInvGrad(0:1,0:1)
                     Tdomain%specel(n)%Jacob (i,j) = Jac
                 enddo
             enddo
@@ -88,51 +90,8 @@ contains
                 call shape8_manage_super_object(Tdomain, n)
             end do
         endif
-
         return
     end subroutine shape8
-
-    subroutine shape8_compute_jacobian(LocInvGrad, xc, zc, xi, eta)
-        implicit none
-
-        real, dimension (0:1,0:1) :: LocInvGrad
-        real, dimension(0:7) :: xc, zc
-        real :: xi,eta
-
-        ! Computation of the derivative matrix, dx_(jj)/dxi_(ii) : more precisely we have :
-        !   LocInvGrad(0,0) = dx/dxi;  LocInvGrad(1,0) = dx/deta
-        !   LocInvGrad(0,1) = dz/dxi;  LocInvGrad(1,1) = dz/deta
-
-        LocInvGrad(0,0) = 0.25 * (xc(0) *(1-eta)*(2*xi+eta) &
-            +xc(1) *(1-eta)*(2*xi-eta) &
-            +xc(2) *(1+eta)*(2*xi+eta) &
-            +xc(3) *(1+eta)*(2*xi-eta)) &
-            -xc(4) * xi*(1-eta) &
-            -xc(6) * xi*(1+eta) &
-            +0.5* (xc(5)-xc(7))* (1-eta**2)
-        LocInvGrad(1,0) = 0.25 * (xc(0) *(1-xi)*(2*eta+xi) &
-            -xc(1) *(1+xi)*(xi-2*eta) &
-            +xc(2) *(1+xi)*(2*eta+xi) &
-            -xc(3) *(1-xi)*(xi-2*eta)) &
-            -xc(5) *eta*(1+xi) &
-            -xc(7) *eta*(1-xi) &
-            +0.5* (xc(6)-xc(4))* (1-xi**2)
-        LocInvGrad(0,1) = 0.25 * (zc(0) *(1-eta)*(2*xi+eta) &
-            +zc(1) *(1-eta)*(2*xi-eta) &
-            +zc(2) *(1+eta)*(2*xi+eta) &
-            +zc(3) *(1+eta)*(2*xi-eta)) &
-            -zc(4) * xi*(1-eta) &
-            -zc(6) *xi *(1+eta) &
-            +0.5* (zc(5)-zc(7))* (1-eta**2)
-        LocInvGrad(1,1) = 0.25 * (zc(0) *(1-xi)*(2*eta+xi) &
-            -zc(1) *(1+xi)*(xi-2*eta) &
-            +zc(2) *(1+xi)*(2*eta+xi) &
-            -zc(3) *(1-xi)*(xi-2*eta)) &
-            -zc(5) *eta*(1+xi) &
-            -zc(7) *eta *(1-xi) &
-            +0.5* (zc(6)-zc(4))* (1-xi**2)
-
-    end subroutine shape8_compute_jacobian
 
     subroutine shape8_manage_super_object(Tdomain, n)
         use sdomain
@@ -269,10 +228,7 @@ contains
             deallocate (Store_normal)
         enddo
 
-        return
     end subroutine shape8_manage_super_object
-
-!##########################################
 
     subroutine buildNormal(Tdomain,n_elem)
 
@@ -286,7 +242,7 @@ contains
 
         ! local variables
         real, dimension (0:1,0:1) :: LocInvGrad
-        real, dimension(0:7) :: xc, zc
+        real, dimension(0:1,0:7) :: coord
         integer :: i, j, i_aus, ngllx, ngllz, npg, k, mat, nf
         real    :: eta, xi, tx, tz, nx, nz, n_norm, w
 
@@ -303,8 +259,8 @@ contains
         k = 0 ! k scans gauss points face by face (with respect to each face order)
         do i=0,7
             i_aus = Tdomain%specel(n_elem)%Control_Nodes(i)
-            xc(i) = Tdomain%Coord_Nodes(0,i_aus)
-            zc(i) = Tdomain%Coord_Nodes(1,i_aus)
+            coord(0,i) = Tdomain%Coord_Nodes(0,i_aus)
+            coord(1,i) = Tdomain%Coord_Nodes(1,i_aus)
         end do
 
         ! face 0
@@ -313,7 +269,7 @@ contains
             ! Tangent from derivatives along xi
             xi  = Tdomain%sSubdomain(mat)%GLLcx(i)
             eta = Tdomain%sSubdomain(mat)%GLLcz(j)
-            call shape8_compute_jacobian(LocInvGrad, xc, zc, xi, eta)
+            call shape8_local2jacob(coord, xi, eta, LocInvGrad)
             tx = LocInvGrad(0, 0) ! dx/dxi
             tz = LocInvGrad(0, 1) ! dz/dxi
             ! Normal build from tangent
@@ -339,7 +295,7 @@ contains
             ! Tangent from derivatives along eta
             xi  = Tdomain%sSubdomain(mat)%GLLcx(i)
             eta = Tdomain%sSubdomain(mat)%GLLcz(j)
-            call shape8_compute_jacobian(LocInvGrad, xc, zc, xi, eta)
+            call shape8_local2jacob(coord, xi, eta, LocInvGrad)
             tx = LocInvGrad(1, 0) ! dx/deta
             tz = LocInvGrad(1, 1) ! dz/deta
             ! Normal build from tangent
@@ -365,7 +321,7 @@ contains
             ! Tangent from derivatives along eta
             xi  = Tdomain%sSubdomain(mat)%GLLcx(i)
             eta = Tdomain%sSubdomain(mat)%GLLcz(j)
-            call shape8_compute_jacobian(LocInvGrad, xc, zc, xi, eta)
+            call shape8_local2jacob(coord, xi, eta, LocInvGrad)
             tx = LocInvGrad(0, 0) ! dx/dxi
             tz = LocInvGrad(0, 1) ! dz/dxi
             ! Normal build from tangent
@@ -391,7 +347,7 @@ contains
             ! Tangent from derivatives along eta
             xi  = Tdomain%sSubdomain(mat)%GLLcx(i)
             eta = Tdomain%sSubdomain(mat)%GLLcz(j)
-            call shape8_compute_jacobian(LocInvGrad, xc, zc, xi, eta)
+            call shape8_local2jacob(coord, xi, eta, LocInvGrad)
             tx = LocInvGrad(1, 0) ! dx/deta
             tz = LocInvGrad(1, 1) ! dz/deta
             ! Normal build from tangent
@@ -412,70 +368,125 @@ contains
         end do
     end subroutine buildNormal
 
-    subroutine shape8_global_coord(xq, zq, xi, eta, x, z)
-        real, dimension(0:7), intent(in) :: xq, zq
-        real, intent(in) :: xi, eta
-        real, intent(out) :: x, z
 
-        x = 0.25 * ( -xq(0) * (1.-xi)*(1.-eta)*(1+xi+eta) &
-            -xq(1) * (1.+xi)*(1.-eta)*(1-xi+eta) &
-            -xq(2) * (1.+xi)*(1.+eta)*(1-xi-eta) &
-            -xq(3) * (1.-xi)*(1.+eta)*(1+xi-eta) ) &
-            + 0.5 * (  xq(4) * (1.-xi**2)*(1.-eta) + &
-            xq(5) * (1.+xi)*(1.-eta**2) + &
-            xq(6) * (1.-xi**2)*(1.+eta) + &
-            xq(7) * (1.-xi)*(1.-eta**2) )
-        z = 0.25 * ( -zq(0) * (1.-xi)*(1.-eta)*(1+xi+eta) &
-            -zq(1) * (1.+xi)*(1.-eta)*(1-xi+eta) &
-            -zq(2) * (1.+xi)*(1.+eta)*(1-xi-eta) &
-            -zq(3) * (1.-xi)*(1.+eta)*(1+xi-eta) ) &
-            + 0.5 * (  zq(4) * (1.-xi**2)*(1.-eta) + &
-            zq(5) * (1.+xi)*(1.-eta**2) + &
-            zq(6) * (1.-xi**2)*(1.+eta) + &
-            zq(7) * (1.-xi)*(1.-eta**2) )
-
-    end subroutine shape8_global_coord
-
-    subroutine shape8_local_coord(xq, zq, x, z, xi1, eta1, inosol)
-        implicit none
-        real, dimension (0:7), intent(in) :: xq, zq
-        real, intent(in) :: x, z
-        real, intent(out) :: xi1, eta1
-        logical, intent(out) :: inosol
+    subroutine shape8_global2local(coord, xa, za, xi, eta, ok)
+        double precision, dimension(0:1,0:7), intent(in)  :: coord
+        double precision, intent(in) :: xa, za
+        double precision, intent(out) :: xi, eta
+        logical, intent(out) :: ok
         !
-        real, dimension(0:7) :: xc, zc
-        integer, parameter :: nimax = 50, njmax = 50
-        real, parameter :: dximax = 2./nimax,  detamax = 2./njmax
-        real :: xi2, eta2
-        logical :: inner
-        integer :: i, j
+        integer :: niter
+        double precision, dimension(0:1) :: xin, xout, xref
+        ok = .true.
+        xin(0) = 0.
+        xin(1) = 0.
+        xref(0) = xa
+        xref(1) = za
+        call shape8_simple_newton(coord, xref, xin, xout, niter)
+        if (niter==1000 .or. niter<0) ok=.false.
+        xi  = xout(0)
+        eta = xout(1)
+    end subroutine shape8_global2local
 
-        inner = .false.
-        do12_jmax : do j = 0,njmax-1
-            do i = 0, nimax-1
-                xi1 = i*dximax -1; xi2 = xi1 + dximax
-                eta1 = j * detamax-1 ; eta2 = eta1 + detamax
-                xi1 = xi1 -dximax/nimax; xi2 = xi2 + dximax/nimax;
-                eta1 = eta1 - detamax/njmax; eta2 = eta2 + detamax/njmax
+    subroutine shape8_simple_newton(nodes, xref, xin, xout, nit)
+        double precision, dimension(0:1,0:7), intent(in) :: nodes
+        double precision, dimension(0:1), intent(in) :: xref, xin
+        double precision, dimension(0:1), intent(out) :: xout
+        integer, intent(out) :: nit
+        !
+        double precision, dimension(0:1,0:1) :: jac
+        double precision, dimension(0:1) :: x
+        double precision :: xa, za, err, Det
+        integer, parameter :: niter=1000
+        integer :: i
+        xout = xin
+        do i=1,niter
+            call shape8_local2global(nodes, xout(0), xout(1), xa, za)
+            call shape8_local2jacob (nodes, xout(0), xout(1), Jac)
+            call invert2 (Jac, Det)
+            xa = xref(0)-xa
+            za = xref(1)-za
+            x(0) = Jac(0,0)*xa + Jac(1,0)*za
+            x(1) = Jac(0,1)*xa + Jac(1,1)*za
+            err = x(0)**2+x(1)**2
+            if (err<1e-24) exit ! eps^2 with eps=1e-12 : for consistency with shape4
+            xout = xout + x
+        end do
+        nit = i
+    end subroutine shape8_simple_newton
 
-                call shape8_global_coord(xq, zq, xi1, eta1, xc(0), zc(0))
-                call shape8_global_coord(xq, zq, xi2, eta1, xc(1), zc(1))
-                call shape8_global_coord(xq, zq, xi2, eta2, xc(2), zc(2))
-                call shape8_global_coord(xq, zq, xi1, eta2, xc(3), zc(3))
+    subroutine shape8_local2global(coord, xi, eta, xa, za)
+        double precision, dimension(0:1,0:7), intent(in) :: coord
+        double precision, intent(in) :: xi, eta
+        double precision, intent(out) :: xa, za
+        !
+        real, dimension(0:7) :: xc, zc ! Used for clarity (-O2 should be able to optimize this)
+        xc = coord(0,:)
+        zc = coord(1,:)
+        !- computation of the global coordinates from the local coordinates
+        xa = 0.25*(-xc(0)*(1.-xi)*(1.-eta)*(1+xi+eta)  &
+                   -xc(1)*(1.+xi)*(1.-eta)*(1-xi+eta)  &
+                   -xc(2)*(1.+xi)*(1.+eta)*(1-xi-eta)  &
+                   -xc(3)*(1.-xi)*(1.+eta)*(1+xi-eta)) &
+            + 0.5*( xc(4)*(1.-xi**2)*(1.-eta) +        &
+                    xc(5)*(1.+xi)*(1.-eta**2) +        &
+                    xc(6)*(1.-xi**2)*(1.+eta) +        &
+                    xc(7)*(1.-xi)*(1.-eta**2) )
+        za = 0.25*(-zc(0)*(1.-xi)*(1.-eta)*(1+xi+eta)  &
+                   -zc(1)*(1.+xi)*(1.-eta)*(1-xi+eta)  &
+                   -zc(2)*(1.+xi)*(1.+eta)*(1-xi-eta)  &
+                   -zc(3)*(1.-xi)*(1.+eta)*(1+xi-eta)) &
+            + 0.5*( zc(4)*(1.-xi**2)*(1.-eta) +        &
+                    zc(5)*(1.+xi)*(1.-eta**2) +        &
+                    zc(6)*(1.-xi**2)*(1.+eta) +        &
+                    zc(7)*(1.-xi)*(1.-eta**2) )
+    end subroutine shape8_local2global
 
-                call verify_in_quad (Xc, Zc, x, z, inner)
-                if (inner) exit do12_jmax
-            enddo
-        enddo do12_jmax
-
-        inosol = .not. inner
-        xi1 = 0.5*(xi1+xi2)
-        eta1 = 0.5*(eta1+eta2)
-    end subroutine shape8_local_coord
+    subroutine shape8_local2jacob(coord, xi, eta, jac)
+        double precision, dimension(0:1,0:7), intent(in) :: coord
+        double precision, intent(in) :: xi, eta
+        double precision, dimension(0:1,0:1), intent(out) :: jac
+        !
+        real, dimension(0:7) :: xc, zc ! Used for clarity (-O2 should be able to optimize this)
+        xc = coord(0,:)
+        zc = coord(1,:)
+        !- computation of the derivative matrix, dx_(jj)/dxi_(ii)
+        jac(0,0) = 0.25*( xc(0)*(1-eta)*(2*xi+eta)    &
+                         +xc(1)*(1-eta)*(2*xi-eta)    &
+                         +xc(2)*(1+eta)*(2*xi+eta)    &
+                         +xc(3)*(1+eta)*(2*xi-eta))   &
+                   -xc(4)*xi*(1-eta)-xc(6)*xi*(1+eta) &
+                   +0.5*(xc(5)-xc(7))*(1-eta**2)
+        jac(1,0) = 0.25*( xc(0)*(1-xi)*(2*eta+xi)     &
+                         -xc(1)*(1+xi)*(xi-2*eta)     &
+                         +xc(2)*(1+xi)*(2*eta+xi)     &
+                         -xc(3)*(1-xi)*(xi-2*eta))    &
+                   -xc(5)*eta*(1+xi)-xc(7)*eta*(1-xi) &
+                   +0.5*(xc(6)-xc(4))*(1-xi**2)
+        jac(0,1) = 0.25*( zc(0)*(1-eta)*(2*xi+eta)    &
+                         +zc(1)*(1-eta)*(2*xi-eta)    &
+                         +zc(2)*(1+eta)*(2*xi+eta)    &
+                         +zc(3)*(1+eta)*(2*xi-eta))   &
+                   -zc(4)*xi*(1-eta)-zc(6)*xi*(1+eta) &
+                   +0.5*(zc(5)-zc(7))*(1-eta**2)
+        jac(1,1) = 0.25*( zc(0)*(1-xi)*(2*eta+xi)     &
+                         -zc(1)*(1+xi)*(xi-2*eta)     &
+                         +zc(2)*(1+xi)*(2*eta+xi)     &
+                         -zc(3)*(1-xi)*(xi-2*eta))    &
+                   -zc(5)*eta*(1+xi)-zc(7)*eta*(1-xi) &
+                   +0.5*(zc(6)-zc(4))*(1-xi**2)
+    end subroutine shape8_local2jacob
 
 end module shape_quad
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

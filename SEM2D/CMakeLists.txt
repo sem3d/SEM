@@ -4,14 +4,12 @@ ENABLE_LANGUAGE(Fortran)
 
 set(PRJ ${PROJECT_SOURCE_DIR})
 
-set(SEM2D_SOURCES_F
-    ${SEM_SRC}
+set(SEM2D_SOURCES
     ${PRJ}/SRC/Element.F90
     ${PRJ}/SRC/Face.F90
     ${PRJ}/SRC/Vertex.F90
     ${PRJ}/SRC/Sources.F90
     ${PRJ}/SRC/TimeP.F90
-    ${PRJ}/SRC/orientation.F90
     ${PRJ}/SRC/logical_input.F90
     ${PRJ}/SRC/Subdomains.F90
     ${PRJ}/SRC/Receivers.F90
@@ -19,6 +17,7 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/mpi_list.F90
     ${PRJ}/SRC/communicating_wall.F90
     ${PRJ}/SRC/Domain.F90
+    ${PRJ}/SRC/orientation.F90
     ${PRJ}/SRC/Capteur.F90
     ${PRJ}/SRC/Couplage.F90
     ${PRJ}/SRC/Newmark.F90
@@ -46,48 +45,48 @@ set(SEM2D_SOURCES_F
     ${PRJ}/SRC/mesh_deformations.F90
     ${PRJ}/SRC/snapshots.F90
     ${PRJ}/SRC/read_input.F90
+    ${PRJ}/SRC/shape4.F90
+    ${PRJ}/SRC/shape8.F90
+    ${PRJ}/SRC/find_location.F90
+    ${PRJ}/SRC/receiver_pos.F90
     ${PRJ}/SRC/read_mesh.F90
     ${PRJ}/SRC/read_mesh_h5.F90
     ${PRJ}/SRC/read_restart.F90
-    ${PRJ}/SRC/receiver_pos.F90
     ${PRJ}/SRC/Runge_Kutta_4.F90
     ${PRJ}/SRC/save_checkpoint.F90
     ${PRJ}/SRC/save_deformation.F90
     ${PRJ}/SRC/save_fault_trace.F90
     ${PRJ}/SRC/save_vorticity.F90
     ${PRJ}/SRC/savefield.F90
-    ${PRJ}/SRC/shape4.F90
-    ${PRJ}/SRC/shape8.F90
     ${PRJ}/SRC/smoothing_exp.F90
     ${PRJ}/SRC/source_pos.F90
-    ${PRJ}/SRC/verify_in_quad.F90
     ${PRJ}/SRC/wall_transfer.F90
-    ${PRJ}/SRC/main.F90
 )
 
-set(SEM2D_SOURCES ${SEM2D_SOURCES_F}
-  ${SEM_SRC_C}
-)
+add_library(sem2dcommon ${SEM2D_SOURCES})
+set_target_properties(sem2dcommon PROPERTIES
+				  COMPILE_FLAGS "-I${SEMLIBDIR}/common -I${SEMLIBDIR}/sem2d"
+                                  Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/sem2d)
 
 
 if(OPT_MPI)
-  add_executable(sem2d_cpl  ${SEM2D_SOURCES})
-  target_link_libraries(sem2d_cpl ${SEM_EXTRA_LIBS})
+  add_executable(sem2d_cpl ${PRJ}/SRC/main.F90 ${SEM2D_SOURCES})
+  target_link_libraries(sem2d_cpl sem2dcommon ${SEM_EXTRA_LIBS})
   set_target_properties(sem2d_cpl PROPERTIES
-				  COMPILE_DEFINITIONS COUPLAGE
-				  COMPILE_FLAGS -I${PROJECT_BINARY_DIR}/cpl
-                              	  Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/cpl)
+                                  COMPILE_DEFINITIONS COUPLAGE
+				  COMPILE_FLAGS "-I${SEMLIBDIR}/cpl2d -I${SEMLIBDIR}/common -I${SEMLIBDIR}/sem2d"
+                              	  Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/cpl2d)
   install(TARGETS sem2d_cpl DESTINATION bin)
 else(OPT_MPI)
   set(SEM2D_SOURCES ${SEM2D_SOURCES} ${FTM_SOURCES})
 endif(OPT_MPI)
 
-add_executable(sem2d.exe  ${SEM2D_SOURCES})
-target_link_libraries(sem2d.exe ${SEM_EXTRA_LIBS})
+add_executable(sem2d.exe ${PRJ}/SRC/main.F90 ${SEM2D_SOURCES})
+target_link_libraries(sem2d.exe sem2dcommon ${SEM_EXTRA_LIBS})
 
 set_target_properties(sem2d.exe PROPERTIES
-				COMPILE_FLAGS -I${PROJECT_BINARY_DIR}/ncpl
-                              	Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/ncpl)
+				COMPILE_FLAGS "-I${SEMLIBDIR}/ncpl2d -I${SEMLIBDIR}/common -I${SEMLIBDIR}/sem2d"
+                              	Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/ncpl2d)
 
 install(TARGETS sem2d.exe DESTINATION bin)
 

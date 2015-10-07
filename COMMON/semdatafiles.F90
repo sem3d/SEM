@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file semdatafiles.F90
 !!\brief Permet de gerer les noms de fichier des repertoire SEM
@@ -23,6 +27,8 @@ module semdatafiles
     character(Len=MAX_FILE_SIZE) :: path_data
     character(Len=MAX_FILE_SIZE) :: path_prot
     character(Len=MAX_FILE_SIZE) :: path_logs
+    character(Len=MAX_FILE_SIZE) :: path_prop
+    character(Len=MAX_FILE_SIZE) :: path_prop_h5
 contains
 
     function pjoin(s1, s2)
@@ -47,19 +53,24 @@ contains
         path_logs = "./listings"
     end subroutine init_mka3d_path
 
-    subroutine init_sem_path(param, traces, results, data, prorep)
+    subroutine init_sem_path(param, traces, results, data, prorep, properties, properties_h5)
         character(Len=MAX_FILE_SIZE), intent(in) :: param
         character(Len=MAX_FILE_SIZE), intent(in) :: traces
         character(Len=MAX_FILE_SIZE), intent(in) :: results
         character(Len=MAX_FILE_SIZE), intent(in) :: data
         character(Len=MAX_FILE_SIZE), intent(in) :: prorep
+        character(Len=MAX_FILE_SIZE), intent(in) :: properties
+        character(Len=MAX_FILE_SIZE), intent(in) :: properties_h5
 
-        path_param = param
-        path_traces = traces
+        path_param   = param
+        path_traces  = traces
         path_results = results
-        path_data = data
-        path_prot = prorep
-        path_logs = "."
+        path_data    = data
+        path_prot    = prorep
+        path_logs    = "."
+        path_prop    = properties
+        path_prop_h5 = properties_h5
+
     end subroutine init_sem_path
 
     subroutine create_sem_output_directories()
@@ -72,7 +83,19 @@ contains
         if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_prot))
         ierr = sem_mkdir(trim(adjustl(path_logs)))
         if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_logs))
+        ierr = sem_mkdir(trim(adjustl(path_prop)))
+        if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_prop))
+        ierr = sem_mkdir(trim(adjustl(path_prop_h5)))
+        if (ierr/=0) write(*,*) "Error creating path:", trim(adjustl(path_prop_h5))
     end subroutine create_sem_output_directories
+
+    subroutine semname_read_capteurs(file,fnamef)
+        implicit none
+        character(Len=*),intent(in) :: file
+        character(Len=MAX_FILE_SIZE),intent(out) :: fnamef
+
+        fnamef = pjoin(path_param, file)
+    end subroutine semname_read_capteurs
 
     subroutine semname_dir_capteurs(dirname)
         implicit none
@@ -80,10 +103,13 @@ contains
         dirname = path_traces
     end subroutine semname_dir_capteurs
 
-    subroutine semname_tracefile_h5(fname)
+    subroutine semname_tracefile_h5(rank, fname)
         implicit none
+        integer, intent(in) :: rank
         character(Len=MAX_FILE_SIZE), intent(out) :: fname
-        fname = pjoin(path_traces,"capteurs.h5")
+        character(Len=MAX_FILE_SIZE) :: temp
+        write(temp,"(a9,I4.4,a3)") "capteurs.",rank,".h5"
+        fname = pjoin(path_traces,temp)
     end subroutine semname_tracefile_h5
 
     !!fichier capteur 2d 3d
@@ -765,8 +791,15 @@ contains
     end subroutine semname_unv_fichier
     !!end fichier unv 2d 3d
 end module semdatafiles
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

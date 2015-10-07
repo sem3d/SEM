@@ -1,46 +1,63 @@
 .. -*- coding: utf-8; mode:rst -*-
 
-NEWS
-====
+Version 2015.02.0
+-----------------
 
-Version 2014.xx
----------------
+Ci-dessous sont recensées les nouveautés et modifications apportées
+depuis la dernière version :
 
-- Partitionneur 2D / C++ (LA)
+- Développement d'un partitionneur pour SEM 2D / C++ (LA)
 
-- Entrees/sorties HDF5 pour SEM2D, sauvegarde de l'accélération dans les snapshots (LA)
+- Entrées/sorties HDF5 pour SEM2D, sauvegarde de l'accélération dans les snapshots (LA)
 
-- nouvelle option (``dim``) obligatoire, permet :
+- Nouvelle option (``dim``) obligatoire, permet :
 
   - la direction des pulses est maintenant un vecteur quelconque.
 
-  - les vecteurs spécifiés en 2D pour Sem2D (``dim=2``) et non plus en X (Y=0) Z.
+  - les vecteurs sont spécifiés en 2D pour Sem2D (``dim=2``) et non plus en X (Y=0) Z.
 
   - tenseur moment quelconque en 2D
 
+- Nouveau format pour la spécification des capteurs (intégré à ``input.spec``)
+
 - Model global EarthChunk (ML)
 
-- Calcul de l'énergie totale (ST) (option ``output_total_energy``)
+- Calcul de l'énergie totale pour Sem 2D (ST) (option ``output_total_energy``)
 
 - Mailleur et SEM3D :
 
-  - condition de type dirichlet (P=0) pour les fluides (LG)
+  - condition de type Dirichlet (P=0) pour les fluides (LG)
 
-- Corrections de bug
+- Génération de champs aléatoires de propriétés pour les paramètres de Lamé (RC, ECP)
 
-  - compilation en mode MPI=off,
+- Corrections de bug :
 
-  - position des recepteurs,
+  - Compilation en mode MPI=off.
 
-  - mauvais calcul dans partial_deriv
+  - Position des récepteurs, récepteurs et sources dans les éléments à 27 noeuds.
 
-- Performance
+  - Fin de calcul pour différents cas (Solide-Fluide, Solide-Fluide avec atténuation).
 
-  - regroupement des sorties par groupes de processeurs (option ``group_outputs``)
+  - Calcul des coefficients utilisés pour l'atténuation. (LG)
+
+  - Protection/reprise pour les cas Solide-Fluide.
+
+  - Les paramètres d'intégration de Newmark sont toujours fixés, mais
+    ne l'étaient pas pour les PMLs, on pouvait donc avoir un jeu de
+    paramètres différents pour le milieu solide et le milieu
+    solide+PML.
+
+- Performance :
+
+  - Regroupement des sorties par groupes de processeurs (option ``group_outputs``).
 
   - SEM2D, sauvegarde par blocs des capteurs.
 
-  - Optimisation mailleur 3D pour les gros cas (LG)
+  - Format HDF5 pour les capteurs.
+
+  - Optimisation mailleur 3D pour les gros cas (LG).
+
+  - Optimisation routine de calcul de l'atténuation.
 
 
 Version 2013.12
@@ -51,7 +68,7 @@ Version 2013.12
 - Nouvelles fonctions d'évolution temporelle des sources (square, tanh, ...)
 
 - La limite maximum du nombre de processeurs gérés par le mailleur est
-  portée à 8192 (1024 précédement). La consommation mémoire excessive
+  portée à 8192 (1024 précédemment). La consommation mémoire excessive
   (en nombre de processeurs * nombre de mailles) est résolue. On a
   maintenant une consommation proportionnelle à : nombre de mailles x
   nombre de processeurs voisins.
@@ -61,7 +78,7 @@ Version 2013.12
 - La dépendance sur la librairie HDF5 est maintenant obligatoire.
 
 - Le mailleur accepte un format HDF5 (d'un structure semblable au format UNV) en entrée.
-  Cela permet de gérer de gros maillages, beaucoup trop long à lire dans un format texte.
+  Cela permet de gérer de gros maillages, beaucoup trop longs à lire dans un format texte.
 
 - Limitation du nombre de sorties texte du code pour passer des codes sur un grand nombre
   de processeurs.
@@ -69,14 +86,14 @@ Version 2013.12
 - Bugfix: le paramètre ``mpml`` était ignoré.
 
 - Bugfix: le mailleur ne libérait pas immédiatement les ressources
-  HDF5, ce qui induisait des temps très long de flush en fin de
+  HDF5, ce qui induisait des temps très longs de flush en fin de
   job pour les gros maillages.
 
   Ce temps étant décompté après l'épilogue MPI (ie après l'appel à ``MPI_Finalize``),
   le processus était considéré comme bloqué et tué avant la fin par ``mpirun``.
 
-- Bugfix: les paramètres d'attenuation n'étaient pas correctement
-  sauvegardé dans les fichiers de protection/reprise.
+- Bugfix: les paramètres d'atténuation n'étaient pas correctement
+  sauvegardés dans les fichiers de protection/reprise.
 
 - Les sorties ont été mutualisées par groupe de processeurs, permettant d'avoir
   une sortie par noeud de calcul, plutôt qu'une sortie par processus MPI.
@@ -119,11 +136,11 @@ On liste ici les nouvelles fonctionnalités par rapport à :program:`RegSEM.U`.
 
 Fonctionnalités du code :
 
-- (:program:`SEM3D`) Introduction d'éléments de type fluide, avec couplage fluide solide.
+- (:program:`SEM3D`) Introduction d'éléments de type fluide, avec couplage fluide-solide.
 
-- Introduction d'un mécanisme d'amortissement sismique. On spécifie Qp
-  et Qs dans le fichier matériau. La bande de fréquence et le
-  paramétrage du filtre est déterminé par le fichier de configuration.
+- Introduction d'un mécanisme d'amortissement sismique. On spécifie :math:`Q_\kappa`
+  et :math:`Q_\mu` dans le fichier matériau. La bande de fréquence et le
+  paramétrage du filtre sont déterminés par le fichier de configuration.
 
 - Nouvelles formes d'onde pour les sources (Benchmark E2VP, Benchmark
   SPICE, sinus).
@@ -132,8 +149,7 @@ Fonctionnalités du code :
   introduite. Ceci afin de régler des problèmes d'instabilités
   constatés sur certains cas.
 
-- Un mode couplage optionnel avec un code externe (pour l'instant
-  Mka3D).
+- Un mode couplage optionnel avec un code externe.
 
 - On peut maintenant faire des sorties snapshots partielles. Le fichier
   ``input.spec`` permet de décrire simplement une sélection de mailles
@@ -145,7 +161,7 @@ Entrées/sorties :
 
 - (:program:`SEM3D`, :program:`SEM2D`) Un nouveau format de fichier d'entrée (input.spec) :
 
-  L'ancien format était très confu : une liste de valeurs lues de
+  L'ancien format était très confus : une liste de valeurs lues de
   manière aveugle par les codes. Chaque code lisait ses paramètres
   dans un ordre pré-établi. Il était impossible de réutiliser un
   fichier de config d'une version à l'autre.
@@ -181,7 +197,7 @@ Entrées/sorties :
 
 - Le format des backups est désormais :program:`HDF5` (protection/reprise).
 
-  Ce développement à été effectué pour faire passer un cas HPC. Le
+  Ce développement a été effectué pour faire passer un cas HPC. Le
   temps de création d'un backup pour ce cas est passé de 2H à 5min.
 
 Optimisations :
@@ -192,7 +208,7 @@ Optimisations :
   utiliser des communications asynchrones. Il n'y a plus de risque
   d'interblocage occasionnel et les performances sont accrues.
 
-- Optimisation de la consomation mémoire :
+- Optimisation de la consommation mémoire :
 
   Les mailles non-PML consommaient inutilement de la mémoire en
   stockant des pointeurs (non-alloués) vers des tableaux concernant
@@ -224,7 +240,7 @@ Autres :
 - Introduction d'un répertoire de cas tests de non-régression et de
   benchmarks.
 
-  Les tests :program:`SEM3D` se trouvent dans ``SEM3D/TESTS``.
+  Des cas d'exemples d'utilisation de :program:`SEM3D` se trouvent dans ``SEM3D/TESTS``.
 
 - Compilation des sources avec :program:`CMake` :
 
@@ -235,64 +251,4 @@ Autres :
 
 - (:program:`SEM3D`) : le code a été factorisé (suppression des duplications,
   réorganisations, simplifications) en plusieurs endroits.
-
-Evolutions futures
-~~~~~~~~~~~~~~~~~~
-
-Certaines fonctionnalités sont prévues (voire déjà disponibles dans le code) mais
-n'ont pas encore été finalisées, intégrées ou correctement testées :
-
-- Description de gradient de propriétés dans les matériaux. Le code de la version CEA
-  a été intégré, mais la description des matériaux dans le fichier de configuration
-  n'a pas encore été effectuée.
-
-  La nouvelle description des gradients et le nouveau format du fichier matériaux
-  seront développés dans une future version.
-
-- Description des conditions de Neumann. Le code existe, il n'a pas été testé. Il sera intégré
-  dans le fichier de configuration au nouveau format dans une prochaine version.
-
-- Description des capteurs : la prochaine version utilisera une syntaxe semblable à celle du
-  fichier ``input.spec`` pour la description des capteurs.
-
-- Anisotropie : le code pour gérer des matériaux anisotropes existe,
-  mais il n'y a rien dans la syntaxe actuelle du fichier de
-  description des matériaux qui permette de définir un milieu
-  anisotrope. Là encore, cela sera intégré dans la prochaine version
-  lors de la refonte du fichier de description des matériaux.
-
-
-
-Notes importantes
-~~~~~~~~~~~~~~~~~
-
-Le code source est versionné avec :program:`Git` et livré dans une archive contenant :
-
-- SEM version 3D
-
-- SEM version 2D
-
-- MESH : un outil de préparation de maillages 3D pour :program:`SEM3D` (l'équivalent
-  2D sera intégré dans une prochaine version).
-
-- La librairie :program:`HDF5` est devenue une dépendance obligatoire (
-  `www.hdfgroup.org <http://www.hdfgroup.org>`_ ).
-
-  Cette librairie permet le stockage efficace de gros volume de
-  données. Son utilisation permet le posttraitement immédiat des
-  snapshot avec Paraview ou Ensight. Les données produites sont
-  également lisibles facilement avec Matlab et Python.
-
-- Le schéma en temps a été simplifié (Les paramètres beta/gamma de
-  l'algorithme de Newmark ne sont plus modifiables).
-
-  Ils pourront être réintroduits une fois réglé le problème de
-  synchronisation avec les forces de couplage externes.
-
-- Bien que les deux méthodes continuent de coéxister, le calcul des
-  forces utilisant le tableau ``Acoeff`` a été désactivé dans cette
-  version. Le code est plus lisible mais moins rapide.
-
-  On étudiera comment obtenir le meilleur des deux méthodes dans une
-  prochaine version.
 

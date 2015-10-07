@@ -18,17 +18,25 @@ program main
     character(Len=MAX_FILE_SIZE),parameter :: p_results = "./res"
     character(Len=MAX_FILE_SIZE),parameter :: p_data = "."
     character(Len=MAX_FILE_SIZE),parameter :: p_prot = "./prot"
-
+    character(Len=MAX_FILE_SIZE),parameter :: p_prop = "./prop"
+    character(Len=MAX_FILE_SIZE),parameter :: p_prop_h5 = "./prop/h5"
 #ifndef COUPLAGE
-    call init_sem_path(p_param, p_traces, p_results, p_data, p_prot)
+    logical, parameter :: couplage = .false.
 #else
-    call init_mka3d_path()
+    logical, parameter :: couplage = .true.
 #endif
-    call sem()
+
+    if (.not. couplage) then
+        call init_sem_path(p_param, p_traces, p_results, p_data, p_prot, p_prop, p_prop_h5)
+    else
+        call init_mka3d_path()
+    endif
+
+    call sem(couplage)
 
 end program main
 
-subroutine  sem()
+subroutine  sem(couplage)
     use sdomain
     use mCapteur
     use semdatafiles
@@ -40,97 +48,44 @@ subroutine  sem()
     use treceivers
     use sglobal_energy
     use snewmark
-#ifdef COUPLAGE
     use scouplage
-#endif
     use smidpoint
     use srungekutta
 
     implicit none
 
+    logical, intent(in) :: couplage
     type (domain), target  :: Tdomain
     integer :: ntime,i_snap, ierr
     integer :: isort
     character(len=MAX_FILE_SIZE) :: fnamef
     integer :: info_capteur
-    real(kind=8) :: remaining_time
-    real(kind=8), parameter :: max_time_left=900
     integer :: getpid, pid
 
 #ifdef COUPLAGE
-    integer :: finSem
-    integer :: tag, MaxNgParFace
-    integer, dimension (MPI_STATUS_SIZE) :: status
-    integer, dimension(3) :: flags_synchro ! fin/protection/sortie
-    integer, dimension(3) :: tab
-
-    integer :: global_rank, global_nb_proc, worldgroup, intergroup
-    integer :: m_localComm, comm_super_mka
     integer :: n
-    integer :: min_rank_glob_sem
+    integer, dimension(3) :: flags_synchro ! fin/protection/sortie
+#else
+    real(kind=8), parameter :: max_time_left=900
+    real(kind=8) :: remaining_time
 #endif
     integer :: display_iter !! Indique si on doit faire des sortie lors de cette iteration
     real(kind=4), dimension(2) :: tarray
     real(kind=4) :: tref, t_fin, t_ini
-    real(kind=4), parameter :: display_iter_time = 5.
     integer :: interrupt, rg, code, protection, n_it_max
+    logical :: sortie_capteur_depla, sortie_capteur_vitesse
 
-    display_iter = 1
-    call MPI_Init(ierr)
     pid = getpid()
-    write(*,*) "SEM2D[", pid, "] : Demarrage."
+    !write(*,*) "SEM2D[", pid, "] : Demarrage."
 
-#ifdef COUPLAGE
-    call MPI_Comm_Rank (MPI_COMM_WORLD, global_rank, ierr)
-    call MPI_Comm_size(MPI_COMM_WORLD, global_nb_proc, ierr)
-    call MPI_Comm_split(MPI_COMM_WORLD, 2, Tdomain%Mpi_var%my_rank, m_localComm, ierr)
-    call MPI_Comm_Rank (m_localComm, Tdomain%Mpi_var%my_rank, ierr)
-    call MPI_Comm_size(m_localComm, Tdomain%Mpi_var%n_proc, ierr)
+    Tdomain%couplage = couplage
+    display_iter = 1
 
-    Tdomain%communicateur=m_localComm
-    Tdomain%communicateur_global=MPI_COMM_WORLD
-    Tdomain%master_superviseur=0
-
-    !! Reception des infos du superviseur
-    tag=8000000+global_rank
-    call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
-
-    !! Reception des infos de mka
-    tag=8100000+global_rank
-    call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
-
-    !! On cherche le global rank minimal des procs sem
-    call MPI_Reduce(global_rank, min_rank_glob_sem, 1, MPI_INTEGER, MPI_MIN, 0, m_localComm)
-
-    !! Envoi des infos de couplage
-    if (Tdomain%Mpi_var%my_rank == 0) then
-        tab(1) = global_rank
-        tab(2) = Tdomain%Mpi_var%n_proc
-        tab(3) = min_rank_glob_sem
-        do n=1, global_nb_proc
-            tag=8200000+n
-            call MPI_Send(tab, 3, MPI_INTEGER, n-1, tag, MPI_COMM_WORLD, ierr)
-        enddo
-    endif
-
-    !! Reception des infos de sem
-    tag=8200000+global_rank+1
-    call MPI_Recv(tab, 3, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
-
-    call MPI_Comm_group(MPI_COMM_WORLD, worldgroup, ierr)
-    call MPI_Group_incl(worldgroup, 2, tab, intergroup, ierr)
-    call MPI_Comm_create(MPI_COMM_WORLD, intergroup, comm_super_mka, ierr)
-
-#else
-    call MPI_Comm_Rank (MPI_COMM_WORLD, Tdomain%Mpi_var%my_rank, ierr)
-    call MPI_Comm_Size (MPI_COMM_WORLD, Tdomain%Mpi_var%n_proc,  ierr)
-    Tdomain%communicateur=MPI_COMM_WORLD
-    Tdomain%communicateur_global=MPI_COMM_WORLD
-#endif
+    call START_SEM(Tdomain)
 
     rg = Tdomain%Mpi_var%my_rank
-
     if (rg == 0) call create_sem_output_directories()
+    call MPI_Barrier (Tdomain%communicateur, ierr)
 
     !lecture du fichier de donnee
     if (rg == 0) write (*,*) "Read input.spec"
@@ -179,10 +134,6 @@ subroutine  sem()
         call ReceiverPosition(Tdomain)
     endif
 
-    ! Initialisations des capteurs par S Terrana Jauary 2014
-    !open (90,file="capteur_sourceX",status="replace",form="formatted")
-    !call init_capteurs_veloc (Tdomain)
-
     if (rg ==0 .and. Tdomain%logicD%super_object) write(*,*) "Define Fault properties"
     if (Tdomain%logicD%super_object_local_present) then
         if (Tdomain%n_fault > 0) call define_fault_properties (Tdomain)
@@ -209,16 +160,16 @@ subroutine  sem()
 
     isort = 1
 
-#ifdef COUPLAGE
-    if (rg == 0) write(6,'(A)') 'Methode de couplage Mka3D/SEM2D 4: Peigne de points d''interpolation, en vitesses, systeme lineaire sur la vitesse,', &
-        ' contraintes discontinues pour les ddl de couplage'
+    if (couplage) then
+        if (rg == 0) write(6,'(A)') 'Methode de couplage Mka3D/SEM2D 4: ', &
+            'Peigne de points d''interpolation, en vitesses, systeme lineaire sur la vitesse, ', &
+            'contraintes discontinues pour les ddl de couplage'
 
-    call initialisation_couplage(Tdomain, MaxNgParFace)
-    finSem=0
+        call initialisation_couplage(Tdomain)
 
-    ! recalcul du nbre d'iteration max
-    Tdomain%TimeD%ntimeMax = int (Tdomain%TimeD%Duration/Tdomain%TimeD%dtmin)
-#endif
+        ! recalcul du nbre d'iteration max
+        Tdomain%TimeD%ntimeMax = int (Tdomain%TimeD%Duration/Tdomain%TimeD%dtmin)
+    endif
 
 
 
@@ -253,22 +204,21 @@ subroutine  sem()
     if (Tdomain%logicD%save_snapshots .or. Tdomain%logicD%save_deformation) then
         Tdomain%timeD%nsnap = Tdomain%TimeD%time_snapshots / Tdomain%TimeD%dtmin
         if (Tdomain%timeD%nsnap == 0) Tdomain%timeD%nsnap = 1
-        write(*,*) "Snapshot every ", Tdomain%timeD%nsnap, " iterations"
+        if (rg==0) write(*,*) "Snapshot every ", Tdomain%timeD%nsnap, " iterations"
     endif
 
 
     i_snap =1;
 
-#ifdef COUPLAGE
-    if(Tdomain%TimeD%iter_reprise>0) then
-        ntime = Tdomain%TimeD%iter_reprise
-    else
-        ntime = 0
+    if (couplage) then
+        if(Tdomain%TimeD%iter_reprise>0) then
+            ntime = Tdomain%TimeD%iter_reprise
+        else
+            ntime = 0
+        endif
+        call reception_surface_part_mka(Tdomain)
+        call reception_nouveau_pdt_sem(Tdomain)
     endif
-
-    call reception_surface_part_mka(Tdomain)
-    call reception_nouveau_pdt_sem(Tdomain)
-#endif
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -276,6 +226,7 @@ subroutine  sem()
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     call CPU_TIME( t_ini )
     call dtime(tarray, tref)
+    protection = 0
     interrupt = 0
     do ntime= Tdomain%TimeD%NtimeMin, Tdomain%TimeD%NtimeMax-1
 
@@ -304,11 +255,8 @@ subroutine  sem()
             interrupt=1
         endif
 
-        ! incrementation du pas de temps
-        Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
-
 #ifdef COUPLAGE
-        call envoi_vitesse_mka(Tdomain, ntime) !! syst. lineaire vitesse
+        call envoi_vitesse_mka(Tdomain) !! syst. lineaire vitesse
 
         ! traitement de l arret
         ! comm entre le master_sem et le Tdomain%master_superviseur : reception de la valeur de l interruption
@@ -361,15 +309,7 @@ subroutine  sem()
 
         if (i_snap == 0 .or. sortie_capteur) then
 
-
-#ifdef COUPLAGE
-            if (rg == 0.and.i_snap == 0 .and. display_iter==1) then
-                write(*,'(a35,i8.8,a8,f10.5)') "SEM : sortie resultats iteration : ",ntime, &
-                    " temps : ",Tdomain%TimeD%rtime
-            endif
-#endif
-            if (rg==0) write(*,*) "Snapshot iteration=", ntime, " tps=", Tdomain%TimeD%rtime
-
+            if (rg==0 .and. display_iter==1) write(*,*) "Snapshot:",isort," iteration=", ntime, " tps=", Tdomain%TimeD%rtime
             call save_field_h5(Tdomain, rg, isort)
 
             ! Sortie Energie totale du systeme
@@ -413,10 +353,10 @@ subroutine  sem()
 #endif
 
         ! sortie des quantites demandees par les capteur
-        !if (sortie_capteur) call save_capteur(Tdomain, ntime)
+        if (sortie_capteur) call save_capteur(Tdomain, ntime)
 
         if (protection/=0) then
-            !call save_checkpoint(Tdomain,Tdomain%TimeD%rtime,Tdomain%TimeD%dtmin,ntime,isort)
+            call save_checkpoint(Tdomain,Tdomain%TimeD%rtime,Tdomain%TimeD%dtmin,ntime,isort)
         endif
 
         ! arret des calculs sur tous les procs
@@ -426,32 +366,132 @@ subroutine  sem()
         endif
 
         ! incrementation du pas de temps
-        !Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
+        Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
 
     enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! FIN BOUCLE DE CALCUL EN TEMPS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-
-    if (Tdomain%logicD%save_trace) call dump_trace(Tdomain)
+    call END_SEM(Tdomain, ntime)
 
     if (Tdomain%bCapteur) then
         deallocate(Tdomain%GrandeurDeformation)
         deallocate(Tdomain%GrandeurVitesse)
     endif
 
-#ifdef COUPLAGE
-    ! on quitte directement SEM, la fin du parallelisme est geree par le main.C de la maquette
-#else
-    call MPI_Finalize  (ierr)
-    if (rg == 0) write (*,*) "Execution completed"
-#endif
-    if (rg == 0) call CPU_TIME( t_fin )
-    if (rg == 0) write (*,*) "CPU Time for computation : ", t_fin - t_ini
+    if (.not. couplage) then
+        call MPI_Finalize  (ierr)
+        if (rg == 0) write (*,*) "Execution completed"
+    endif
     if (rg == 0) close(78)
 
+    if (rg == 0) call CPU_TIME( t_fin )
+    if (rg == 0) write (*,*) "CPU Time for computation : ", t_fin - t_ini
+
 end subroutine sem
+
+
+subroutine START_SEM(Tdomain)
+    use sdomain
+    use mpi
+    implicit none
+    type(domain), intent(inout) :: Tdomain
+    integer :: rg, ierr
+    integer :: global_rank, global_nb_proc
+#ifdef COUPLAGE
+    integer :: worldgroup, intergroup
+    integer, dimension (MPI_STATUS_SIZE) :: status
+    integer :: m_localComm, comm_super_mka
+    integer :: min_rank_glob_sem
+    integer :: n, tag
+    integer, dimension(3) :: tab
+#endif
+
+    call MPI_Init(ierr)
+    call MPI_Comm_Rank (MPI_COMM_WORLD, global_rank, ierr)
+    call MPI_Comm_size (MPI_COMM_WORLD, global_nb_proc, ierr)
+
+#ifdef COUPLAGE
+    call MPI_Comm_split(MPI_COMM_WORLD, 2, Tdomain%Mpi_var%my_rank, m_localComm, ierr)
+    call MPI_Comm_Rank (m_localComm, Tdomain%Mpi_var%my_rank, ierr)
+    call MPI_Comm_size (m_localComm, Tdomain%Mpi_var%n_proc, ierr)
+
+    Tdomain%communicateur=m_localComm
+    Tdomain%communicateur_global=MPI_COMM_WORLD
+    Tdomain%master_superviseur=0
+
+    !! Reception des infos du superviseur
+    tag=8000000+global_rank
+    call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
+
+    !! Reception des infos de mka
+    tag=8100000+global_rank
+    call MPI_Recv(tab, 2, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
+
+    !! On cherche le global rank minimal des procs sem
+    call MPI_Reduce(global_rank, min_rank_glob_sem, 1, MPI_INTEGER, MPI_MIN, 0, m_localComm, ierr)
+
+    !! Envoi des infos de couplage
+    if (Tdomain%Mpi_var%my_rank == 0) then
+        tab(1) = global_rank
+        tab(2) = Tdomain%Mpi_var%n_proc
+        tab(3) = min_rank_glob_sem
+        do n=1, global_nb_proc
+            tag=8200000+n
+            call MPI_Send(tab, 3, MPI_INTEGER, n-1, tag, MPI_COMM_WORLD, ierr)
+        enddo
+    endif
+
+    !! Reception des infos de sem
+    tag=8200000+global_rank+1
+    call MPI_Recv(tab, 3, MPI_INTEGER, MPI_ANY_SOURCE, tag, MPI_COMM_WORLD, status, ierr)
+
+    call MPI_Comm_group(MPI_COMM_WORLD, worldgroup, ierr)
+    call MPI_Group_incl(worldgroup, 2, tab, intergroup, ierr)
+    call MPI_Comm_create(MPI_COMM_WORLD, intergroup, comm_super_mka, ierr)
+
+#else
+    Tdomain%Mpi_var%my_rank = global_rank
+    Tdomain%Mpi_var%n_proc = global_nb_proc
+    Tdomain%communicateur=MPI_COMM_WORLD
+    Tdomain%communicateur_global=MPI_COMM_WORLD
+#endif
+
+    rg = Tdomain%Mpi_var%my_rank
+
+    if (rg==0) then
+        open (111,file = "fin_sem", status="REPLACE")
+        write(111,*) -1
+        close(111)
+    end if
+
+    Tdomain%TimeD%prot_m2 = -1
+    Tdomain%TimeD%prot_m1 = -1
+    Tdomain%TimeD%prot_m0 = -1
+
+end subroutine START_SEM
+
+subroutine END_SEM(Tdomain, ntime)
+    use sdomain
+    implicit none
+    type(domain), intent(in) :: Tdomain
+    integer, intent(in) :: ntime
+    integer :: rg
+    rg = Tdomain%Mpi_var%my_rank
+    if (rg==0) then
+        open (111,file = "fin_sem", status="REPLACE")
+        if (ntime >= Tdomain%TimeD%NtimeMax-1) then
+            write(111,*) 1
+        else
+            write(111,*) 0
+        end if
+        close(111)
+    end if
+
+end subroutine END_SEM
+
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

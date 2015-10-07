@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 
 subroutine test_path()
     use semdatafiles
@@ -21,12 +25,14 @@ program test_sem_path
     character(Len=MAX_FILE_SIZE),parameter :: p_results = "./results"
     character(Len=MAX_FILE_SIZE),parameter :: p_data = "./data"
     character(Len=MAX_FILE_SIZE),parameter :: p_prot = "./prot"
+    character(Len=MAX_FILE_SIZE),parameter :: p_prop = "./prop"
+    character(Len=MAX_FILE_SIZE),parameter :: p_prop_h5 = "./prop/h5"
 
 
 
     write(*,*) "pjoin: ", trim(adjustl(pjoin("abc","def")))
 
-    call init_sem_path(p_param, p_traces, p_results, p_data, p_prot)
+    call init_sem_path(p_param, p_traces, p_results, p_data, p_prot, p_prop, p_prop_h5)
     write(*,*) "CHEMINS SEM"
     write(*,*) "==========="
     call test_path()
@@ -37,3 +43,15 @@ program test_sem_path
     call test_path()
 
 end program test_sem_path
+
+!! Local Variables:
+!! mode: f90
+!! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
+!! End:
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

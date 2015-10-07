@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !! \file forces_int.f90
 !! \brief
@@ -8,14 +12,6 @@
 !<
 module forces_aniso
     use deriv3d
-    interface
-       subroutine DGEMM ( TRANSA, TRANSB, M, N, K, ALPHA, A, LDA, B, LDB, BETA, C, LDC )
-         CHARACTER*1        TRANSA, TRANSB
-         INTEGER            M, N, K, LDA, LDB, LDC
-         DOUBLE PRECISION   ALPHA, BETA
-         DOUBLE PRECISION   A( LDA, * ), B( LDB, * ), C( LDC, * )
-       end subroutine DGEMM
-    end interface
 
 contains
 
@@ -36,7 +32,7 @@ contains
         logical, intent(IN) :: aniso
         logical, intent(IN) :: solid   ! flag : solid or fluid element?
 
-        integer :: n_z, m1,m2,m3, i,j,k
+        integer :: m1,m2,m3, i,j,k
         real :: epsilon_trace_over_3
         real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) ::  DXX,DXY,DXZ, &
             DYX,DYY,DYZ, &
@@ -84,19 +80,10 @@ contains
                 enddo
             enddo
         endif
-
         if (aniso) then
             if (n_solid>0) then
                 call calcul_forces_aniso_att(Fox,Foy,Foz, &
-                    Elem%Invgrad(:,:,:,0,0), &
-                    Elem%Invgrad(:,:,:,1,0), &
-                    Elem%Invgrad(:,:,:,2,0), &
-                    Elem%Invgrad(:,:,:,0,1), &
-                    Elem%Invgrad(:,:,:,1,1), &
-                    Elem%Invgrad(:,:,:,2,1), &
-                    Elem%Invgrad(:,:,:,0,2), &
-                    Elem%Invgrad(:,:,:,1,2), &
-                    Elem%Invgrad(:,:,:,2,2), &
+                    Elem%Invgrad, &
                     htprimex, htprimey, htprimez, &
                     Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
@@ -118,15 +105,7 @@ contains
                 !      deallocate(epsilonvol_loc)
             else
                 call calcul_forces_aniso(Fox,Foy,Foz,  &
-                    Elem%Invgrad(:,:,:,0,0), &
-                    Elem%Invgrad(:,:,:,1,0), &
-                    Elem%Invgrad(:,:,:,2,0), &
-                    Elem%Invgrad(:,:,:,0,1), &
-                    Elem%Invgrad(:,:,:,1,1), &
-                    Elem%Invgrad(:,:,:,2,1), &
-                    Elem%Invgrad(:,:,:,0,2), &
-                    Elem%Invgrad(:,:,:,1,2), &
-                    Elem%Invgrad(:,:,:,2,2), &
+                    Elem%Invgrad, &
                     htprimex, htprimey, htprimez, &
                     Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
@@ -138,15 +117,7 @@ contains
         else
             if (n_solid>0) then
                 call calcul_forces_att(Fox,Foy,Foz, &
-                    Elem%Invgrad(:,:,:,0,0), &
-                    Elem%Invgrad(:,:,:,1,0), &
-                    Elem%Invgrad(:,:,:,2,0), &
-                    Elem%Invgrad(:,:,:,0,1), &
-                    Elem%Invgrad(:,:,:,1,1), &
-                    Elem%Invgrad(:,:,:,2,1), &
-                    Elem%Invgrad(:,:,:,0,2), &
-                    Elem%Invgrad(:,:,:,1,2), &
-                    Elem%Invgrad(:,:,:,2,2), &
+                    Elem%Invgrad, &
                     htprimex, htprimey, htprimez, &
                     Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
@@ -154,11 +125,12 @@ contains
                     DZX,DZY,DZZ, &
                     Elem%Mu, Elem%Kappa, &
                     m1,m2,m3, n_solid, &
-                                !     Elem%onemSbeta, &
                     Elem%sl%R_xx_, Elem%sl%R_yy_, &
                     Elem%sl%R_xy_, Elem%sl%R_xz_, Elem%sl%R_yz_, &
-                                !      Elem%onemPbeta, &
-                    Elem%sl%R_vol_)
+                    Elem%sl%R_vol_, &
+                    Elem%sl%onemSbeta, &
+                    Elem%sl%onemPbeta &
+                    )
                 !                             Elem%Mu, Elem%Lambda, &
                 !                             m1,m2,m3, n_solid, &
                 !                             Elem%onemSbeta, Elem%R_xx_, Elem%R_yy_, &
@@ -178,15 +150,7 @@ contains
                 deallocate(epsilonvol_loc)
             else
                 call calcul_forces(Fox,Foy,Foz,  &
-                    Elem%Invgrad(:,:,:,0,0), &
-                    Elem%Invgrad(:,:,:,1,0), &
-                    Elem%Invgrad(:,:,:,2,0), &
-                    Elem%Invgrad(:,:,:,0,1), &
-                    Elem%Invgrad(:,:,:,1,1), &
-                    Elem%Invgrad(:,:,:,2,1), &
-                    Elem%Invgrad(:,:,:,0,2), &
-                    Elem%Invgrad(:,:,:,1,2), &
-                    Elem%Invgrad(:,:,:,2,2), &
+                    Elem%Invgrad, &
                     htprimex, htprimey, htprimez, &
                     Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
@@ -211,15 +175,7 @@ contains
 
             ! internal forces
             call calcul_forces_fluid(Fo_Fl,                &
-                         Elem%Invgrad(:,:,:,0,0), &
-                         Elem%Invgrad(:,:,:,1,0), &
-                         Elem%Invgrad(:,:,:,2,0), &
-                         Elem%Invgrad(:,:,:,0,1), &
-                         Elem%Invgrad(:,:,:,1,1), &
-                         Elem%Invgrad(:,:,:,2,1), &
-                         Elem%Invgrad(:,:,:,0,2), &
-                         Elem%Invgrad(:,:,:,1,2), &
-                         Elem%Invgrad(:,:,:,2,2), &
+                         Elem%Invgrad, &
                          htprimex,htprimey,htprimez, &
                          Elem%Jacob,mat%GLLwx,mat%GLLwy,mat%GLLwz, &
                          dPhiX,dPhiY,dPhiZ,       &
@@ -234,8 +190,15 @@ contains
     end subroutine forces_int
 
 end module forces_aniso
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

@@ -1,16 +1,14 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !!\file Vertex.f90
 !!\brief Assure la gestion des Vertex.
-!!\author
-!!\version 1.0
-!!\date 10/03/2009
 !!
 !<
 
 module svertices
-
-    ! Modified by Gaetano 31/01/2005
-    ! Modified by Paul 06/11/2005
 
     type :: vertex_pml
        real, dimension(0:2) :: Forces1, Forces2, Forces3
@@ -28,15 +26,16 @@ module svertices
        integer :: Iglobnum_Vertex, global_numbering
        real :: MassMat
        real, dimension(0:2) :: Forces, Displ, Veloc, Accel, V0
-       ! solid-fluid
+
+       !! solid-fluid
        logical :: solid, fluid_dirich
        real :: ForcesFl, Phi, VelPhi, AccelPhi, VelPhi0
 
        type(vertex_pml), pointer :: spml
-#ifdef COUPLAGE
-       real, dimension (:), allocatable :: ForcesMka
+
+       !! Couplage Externe
+       real, dimension (:), allocatable :: ForcesExt
        real :: tsurfsem
-#endif
 
     end type vertex
 
@@ -207,36 +206,7 @@ contains
 
         return
     end subroutine Correction_Vertex_FPML_Veloc
-    ! ###########################################################
 
-    subroutine get_vel_vertex(V,Vfree,dt,logic)
-        implicit none
-
-        type (Vertex), intent (IN) :: V
-        real, dimension (0:2), intent (INOUT) :: Vfree
-        logical, intent (IN) :: logic
-        real, intent(IN) :: dt
-
-        if (.not. V%PML) then
-
-            if (logic) then
-                Vfree(0:2) = Vfree(0:2) -  ( V%V0(0:2) + dt*V%MassMat*V%Forces(0:2) )
-            else
-                Vfree(0:2) =  V%V0(0:2) + dt*V%MassMat*V%Forces(0:2)
-            endif
-
-        else
-
-            if (logic) then
-                Vfree(0:2) = Vfree(0:2) - (V%spml%DumpVz(0) * V%spml%Veloc3(0:2) + dt * V%spml%DumpVz(1) * V%spml%Forces3(0:2) )
-            else
-                Vfree(0:2) =  V%spml%DumpVz(0) * V%spml%Veloc3(0:2) + dt * V%spml%DumpVz(1) * V%spml%Forces3(0:2)
-            endif
-
-        endif
-
-        return
-    end subroutine get_vel_vertex
     ! ###########################################################
 
     subroutine init_vertex(ve)
@@ -262,8 +232,15 @@ contains
     end subroutine init_vertex
 
 end module svertices
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :

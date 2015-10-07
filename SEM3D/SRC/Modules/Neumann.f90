@@ -1,3 +1,7 @@
+!! This file is part of SEM
+!!
+!! Copyright CEA, ECP, IPGP
+!!
 !>
 !! \file Neumann.f90
 !! \brief
@@ -114,6 +118,12 @@ contains
                     Face%Forces(i,j,0) = -vel_i(i,j,0)*Face%Btn(i,j,0)
                     Face%Forces(i,j,1) = -vel_i(i,j,1)*Face%Btn(i,j,1)
                     Face%Forces(i,j,2) = -vel_i(i,j,2)*Face%Btn(i,j,2)
+                
+            !    case('S')
+            !        ! Pour le case de source surfacique
+            !        Face%Forces(i,j,0) = triangle(dt)*Face%Btn(i,j,0)
+            !        Face%Forces(i,j,1) = triangle(dt)*Face%Btn(i,j,1)
+            !        Face%Forces(i,j,2) = triangle(dt)*Face%Btn(i,j,2) 
 
                 end select
             enddo
@@ -183,6 +193,12 @@ contains
                 Edge%Forces(i,0) = -vel_i(i,0)*Edge%Btn(i,0)
                 Edge%Forces(i,1) = -vel_i(i,1)*Edge%Btn(i,1)
                 Edge%Forces(i,2) = -vel_i(i,2)*Edge%Btn(i,2)
+            
+         !   case('S')
+         !       ! Pour la source surfacique
+         !       Edge%Forces(i,0) = triangle(dt)*Edge%Btn(i,0)
+         !       Edge%Forces(i,1) = triangle(dt)*Edge%Btn(i,1)
+         !       Edge%Forces(i,2) = triangle(dt)*Edge%Btn(i,2)
 
             end select
         enddo
@@ -251,6 +267,14 @@ contains
             Vertex%Forces(1) = -vel_i(1)*Vertex%Btn(1)
             Vertex%Forces(2) = -vel_i(2)*Vertex%Btn(2)
 
+
+        ! case('S')
+                ! Pour la source surfacique
+        !    Vertex%Forces(0) = triangle(dt)*Vertex%Btn(0)
+        !    Vertex%Forces(1) = triangle(dt)*Vertex%Btn(1)
+        !    Vertex%Forces(2) = triangle(dt)*Vertex%Btn(2)
+
+
         end select
 
     end subroutine compute_Neu_forces_on_vertex
@@ -309,8 +333,15 @@ contains
     !------------------------------------------------------------------------------
 
 end module sneu
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent : !!
+!! vim: set sw=4 ts=8 et tw=80 smartindent :
