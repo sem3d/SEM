@@ -167,7 +167,7 @@ subroutine write_EpsilonVol(Tdomain, nmax, elem_id)
     integer(HID_T) :: dset_id
     integer(kind=4), intent(IN) :: nmax
     integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
-    real(kind=8), dimension(1:nmax) :: data
+    real(kind=8), allocatable, dimension(:) :: data
     integer(HSIZE_T), dimension(1) :: dims
     integer :: n_solid
 
@@ -176,6 +176,7 @@ subroutine write_EpsilonVol(Tdomain, nmax, elem_id)
         call h5dclose_f(dset_id, hdferr)
         return
     end if
+    allocate(data(1:nmax))
     dims(1) = nmax
     idx = 1
     n_solid = Tdomain%n_sls
@@ -205,6 +206,7 @@ subroutine write_EpsilonVol(Tdomain, nmax, elem_id)
         enddo
     enddo
     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+    deallocate(data)
     call h5dclose_f(dset_id, hdferr)
 end subroutine write_EpsilonVol
 
@@ -219,7 +221,7 @@ subroutine write_Rvol(Tdomain, nmax, elem_id)
     integer(HID_T) :: dset_id
     integer(kind=4), intent(IN) :: nmax
     integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr,i_sls
-    real(kind=8), dimension(1:nmax) :: data
+    real(kind=8), allocatable, dimension(:) :: data
     integer(HSIZE_T), dimension(1) :: dims
     integer :: n_solid
 
@@ -228,6 +230,7 @@ subroutine write_Rvol(Tdomain, nmax, elem_id)
         call h5dclose_f(dset_id, hdferr)
         return
     end if
+    allocate(data(1:nmax))
 
 
     dims(1) = nmax
@@ -260,6 +263,7 @@ subroutine write_Rvol(Tdomain, nmax, elem_id)
             enddo
         enddo
     enddo
+    deallocate(data)
     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
     call h5dclose_f(dset_id, hdferr)
 end subroutine write_Rvol
@@ -275,7 +279,7 @@ subroutine write_Rxyz(Tdomain, nmax, elem_id)
     integer(HID_T) :: dset_id_xx, dset_id_yy, dset_id_xy, dset_id_xz, dset_id_yz
     integer(kind=4), intent(IN) :: nmax
     integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr,i_sls
-    real(kind=8), dimension(1:nmax) :: data_xx, data_yy, data_xy, data_xz, data_yz
+    real(kind=8), allocatable, dimension(:) :: data_xx, data_yy, data_xy, data_xz, data_yz
     integer(HSIZE_T), dimension(1) :: dims
     integer :: n_solid
 
@@ -292,6 +296,11 @@ subroutine write_Rxyz(Tdomain, nmax, elem_id)
         call h5dclose_f(dset_id_yz, hdferr)
         return
     end if
+    allocate(data_xx(1:nmax))
+    allocate(data_yy(1:nmax))
+    allocate(data_xy(1:nmax))
+    allocate(data_xz(1:nmax))
+    allocate(data_yz(1:nmax))
 
 
     dims(1) = nmax
@@ -325,6 +334,7 @@ subroutine write_Rxyz(Tdomain, nmax, elem_id)
             enddo
         enddo
     enddo
+    deallocate(data_xx,data_yy,data_xy,data_xz,data_yz)
     call h5dwrite_f(dset_id_xx, H5T_NATIVE_DOUBLE, data_xx, dims, hdferr)
     call h5dwrite_f(dset_id_yy, H5T_NATIVE_DOUBLE, data_yy, dims, hdferr)
     call h5dwrite_f(dset_id_xy, H5T_NATIVE_DOUBLE, data_xy, dims, hdferr)
@@ -348,7 +358,7 @@ subroutine write_EpsilonDev(Tdomain, nmax, elem_id)
     integer(HID_T) :: dset_id_xx, dset_id_yy, dset_id_xy, dset_id_xz, dset_id_yz
     integer(kind=4), intent(IN) :: nmax
     integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
-    real(kind=8), dimension(1:nmax) :: data_xx, data_yy, data_xy, data_xz, data_yz
+    real(kind=8), allocatable, dimension(:) :: data_xx, data_yy, data_xy, data_xz, data_yz
     integer(HSIZE_T), dimension(1) :: dims
     integer :: n_solid
 
@@ -365,6 +375,12 @@ subroutine write_EpsilonDev(Tdomain, nmax, elem_id)
         call h5dclose_f(dset_id_yz, hdferr)
         return
     end if
+    allocate(data_xx(1:nmax))
+    allocate(data_yy(1:nmax))
+    allocate(data_xy(1:nmax))
+    allocate(data_xz(1:nmax))
+    allocate(data_yz(1:nmax))
+
     dims(1) = nmax
     idx = 1
     n_solid = Tdomain%n_sls
@@ -394,6 +410,7 @@ subroutine write_EpsilonDev(Tdomain, nmax, elem_id)
             enddo
         enddo
     enddo
+    deallocate(data_xx,data_yy,data_xy,data_xz,data_yz)
     call h5dwrite_f(dset_id_xx, H5T_NATIVE_DOUBLE, data_xx, dims, hdferr)
     call h5dwrite_f(dset_id_yy, H5T_NATIVE_DOUBLE, data_yy, dims, hdferr)
     call h5dwrite_f(dset_id_xy, H5T_NATIVE_DOUBLE, data_xy, dims, hdferr)
@@ -418,7 +435,7 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
     integer(kind=4), intent(IN) :: nmax
 
     integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
-    real(kind=8), dimension(1:nmax) :: data
+    real(kind=8), allocatable, dimension(:) :: data
     integer(HSIZE_T), dimension(1) :: dims
 
     call create_dset(elem_id, "Stress", H5T_IEEE_F64LE, nmax, dset_id)
@@ -426,7 +443,7 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
         call h5dclose_f(dset_id, hdferr)
         return
     end if
-
+    allocate(data(1:nmax))
     dims(1) = nmax
     idx = 1
     do n = 0,Tdomain%n_elem-1
@@ -470,6 +487,7 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
             enddo
         enddo
     enddo
+    deallocate(data)
     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
     call h5dclose_f(dset_id, hdferr)
 end subroutine write_Stress
@@ -486,7 +504,7 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
     integer(kind=4), intent(IN) :: nmax
 
     integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
-    real(kind=8), dimension(1:nmax) :: data
+    real(kind=8), allocatable, dimension(:) :: data
     integer(HSIZE_T), dimension(1) :: dims
 
     call create_dset(elem_id, "Veloc_Fl_PML", H5T_IEEE_F64LE, nmax, dset_id)
@@ -494,6 +512,7 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
         call h5dclose_f(dset_id, hdferr)
         return
     end if
+    allocate(data(1:nmax))
 
     dims(1) = nmax
     idx = 1
@@ -510,23 +529,16 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
                         write(*,*) "Erreur fatale sauvegarde des protections"
                         stop 1
                     end if
-                    data(idx+ 0) = Tdomain%specel(n)%flpml%Veloc1(i,j,k,0)
-                    data(idx+ 1) = Tdomain%specel(n)%flpml%Veloc1(i,j,k,1)
-                    data(idx+ 2) = Tdomain%specel(n)%flpml%Veloc1(i,j,k,2)
-                    idx = idx + 3
-                    data(idx+ 0) = Tdomain%specel(n)%flpml%Veloc2(i,j,k,0)
-                    data(idx+ 1) = Tdomain%specel(n)%flpml%Veloc2(i,j,k,1)
-                    data(idx+ 2) = Tdomain%specel(n)%flpml%Veloc2(i,j,k,2)
-                    idx = idx + 3
-                    data(idx+ 0) = Tdomain%specel(n)%flpml%Veloc3(i,j,k,0)
-                    data(idx+ 1) = Tdomain%specel(n)%flpml%Veloc3(i,j,k,1)
-                    data(idx+ 2) = Tdomain%specel(n)%flpml%Veloc3(i,j,k,2)
+                    data(idx+ 0) = Tdomain%specel(n)%flpml%Veloc(i,j,k,0)
+                    data(idx+ 1) = Tdomain%specel(n)%flpml%Veloc(i,j,k,1)
+                    data(idx+ 2) = Tdomain%specel(n)%flpml%Veloc(i,j,k,2)
                     idx = idx + 3
                 enddo
             enddo
         enddo
     enddo
     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+    deallocate(data)
     call h5dclose_f(dset_id, hdferr)
 end subroutine write_Veloc_Fluid_PML
 
