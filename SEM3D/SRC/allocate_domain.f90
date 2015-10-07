@@ -150,13 +150,7 @@ subroutine allocate_domain (Tdomain)
                 if(ispml)then
                     allocate(Tdomain%specel(n)%flpml)
                     allocate(Tdomain%specel(n)%flpml%Veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%flpml%Veloc1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%flpml%Veloc2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%flpml%Veloc3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                     Tdomain%specel(n)%flpml%Veloc = 0d0
-                    Tdomain%specel(n)%flpml%Veloc1 = 0d0
-                    Tdomain%specel(n)%flpml%Veloc2 = 0d0
-                    Tdomain%specel(n)%flpml%Veloc3 = 0d0
                 endif
             endif
 

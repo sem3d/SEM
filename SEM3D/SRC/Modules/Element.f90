@@ -48,7 +48,6 @@ module selement
 
     type :: element_fluid_pml
         real, dimension(:,:,:,:), allocatable :: Veloc
-        real, dimension(:,:,:,:), allocatable :: Veloc1,Veloc2,Veloc3
     end type element_fluid_pml
 
     type :: element

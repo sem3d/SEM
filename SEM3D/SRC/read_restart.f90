@@ -200,17 +200,9 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
             do j = 0,nglly-1
                 do i = 0,ngllx-1
                     id = Tdomain%specel(n)%Idom(i,j,k)
-                    Tdomain%specel(n)%flpml%Veloc1(i,j,k,0) = veloc(idx+0)
-                    Tdomain%specel(n)%flpml%Veloc1(i,j,k,1) = veloc(idx+1)
-                    Tdomain%specel(n)%flpml%Veloc1(i,j,k,2) = veloc(idx+2)
-                    idx = idx + 3
-                    Tdomain%specel(n)%flpml%Veloc2(i,j,k,0) = veloc(idx+0)
-                    Tdomain%specel(n)%flpml%Veloc2(i,j,k,1) = veloc(idx+1)
-                    Tdomain%specel(n)%flpml%Veloc2(i,j,k,2) = veloc(idx+2)
-                    idx = idx + 3
-                    Tdomain%specel(n)%flpml%Veloc3(i,j,k,0) = veloc(idx+0)
-                    Tdomain%specel(n)%flpml%Veloc3(i,j,k,1) = veloc(idx+1)
-                    Tdomain%specel(n)%flpml%Veloc3(i,j,k,2) = veloc(idx+2)
+                    Tdomain%specel(n)%flpml%Veloc(i,j,k,0) = veloc(idx+0)
+                    Tdomain%specel(n)%flpml%Veloc(i,j,k,1) = veloc(idx+1)
+                    Tdomain%specel(n)%flpml%Veloc(i,j,k,2) = veloc(idx+2)
                     idx = idx + 3
                 end do
             end do
