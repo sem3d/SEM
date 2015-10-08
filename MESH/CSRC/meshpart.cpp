@@ -8,34 +8,6 @@
 using std::vector;
 
 
-/// Reference numbering for faces
-/// Faces are defined so that the normal given using the right hand rule
-/// points inside
-/// This definition needs to match indexation.f90
-static FaceDesc RefFace[6] = {
-    { {0,1,2,3}, {0, 1, 2, 3} },
-    { {0,4,5,1}, {0, 4, 5, 6} },
-    { {1,5,6,2}, {1, 7, 8, 4} },
-    { {3,2,6,7}, {2, 7, 9,10} },
-    { {0,3,7,4}, {3,10,11, 6} },
-    { {4,7,6,5}, {5, 8, 9,11} },
-};
-
-/// Reference numbering of edges
-static int RefEdge[12][2] = {
-    { 0, 1},
-    { 1, 2},
-    { 3, 2},
-    { 0, 3},
-    { 4, 5},
-    { 5, 6},
-    { 7, 6},
-    { 4, 7},
-    { 0, 4},
-    { 1, 5},
-    { 2, 6},
-    { 3, 7}
-};
 
 void Mesh3DPart::compute_part()
 {
@@ -47,7 +19,27 @@ void Mesh3DPart::compute_part()
             handle_neighbour_element(k);
         }
     }
+    // Walk the surfaces and keep what belongs to us...
+    std::map<std::string, Surface*>::const_iterator it;
+    for(it=m_mesh.m_surfaces.begin();it!=m_mesh.m_surfaces.end();++it) {
+        handle_surface(it->second);
+    }
     printf("Created %ld facets\n", m_face_to_id.size());
+}
+
+void Mesh3DPart::handle_surface(const Surface* surf)
+{
+    // brutal, test each face if present...
+    Surface* new_surf = new Surface(surf->name());
+    face_map_t::const_iterator itfound, it;
+    for(it=surf->m_faces.begin();it!=surf->m_faces.end();++it) {
+        itfound = m_face_to_id.find(it->first);
+        if (itfound!=m_face_to_id.end()) {
+            new_surf->add_face(it->first, itfound->second);
+        }
+    }
+    // We keep all surfaces even if locally empty
+    m_surfaces.push_back(new_surf);
 }
 
 int Mesh3DPart::add_facet(const PFace& facet)
@@ -397,22 +389,8 @@ void Mesh3DPart::get_vertex_coupling(int d0, int d1, std::vector<int>& cpl) cons
     }
 }
 
-void Mesh3DPart::output_mesh_part()
+void Mesh3DPart::output_mesh_attributes(hid_t fid)
 {
-    char fname[2048];
-    vector<double> tmpd;
-    vector<int> tmpi, tmpi1;
-    int elem_doms[5] = {0,0,0,0,0};
-    int face_doms[5] = {0,0,0,0,0};
-    int edge_doms[5] = {0,0,0,0,0};
-    int vert_doms[5] = {0,0,0,0,0};
-
-    h5h_set_errhandler();
-
-    printf("%04d : number of elements = %d\n", m_proc, n_elems());
-    snprintf(fname, sizeof(fname), "mesh4spec.%04d.h5", m_proc);
-    hid_t fid = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
     h5h_create_attr(fid, "ndims", 3);
     h5h_create_attr(fid, "n_processors", m_mesh.n_parts());
     h5h_create_attr(fid, "n_materials", m_mesh.n_materials());
@@ -426,6 +404,16 @@ void Mesh3DPart::output_mesh_part()
     h5h_create_attr(fid, "neumann_present", false);
     h5h_create_attr(fid, "neumann_present_loc", false);
     h5h_create_attr(fid, "curve", false);
+}
+
+void Mesh3DPart::output_local_mesh(hid_t fid)
+{
+    int elem_doms[5] = {0,0,0,0,0};
+    int face_doms[5] = {0,0,0,0,0};
+    int edge_doms[5] = {0,0,0,0,0};
+    int vert_doms[5] = {0,0,0,0,0};
+    vector<double> tmpd;
+    vector<int> tmpi, tmpi1;
 
     get_local_nodes(tmpd);
     h5h_write_dset_2d(fid, "local_nodes", n_nodes(), 3, &tmpd[0]);
@@ -436,7 +424,7 @@ void Mesh3DPart::output_mesh_part()
     get_local_materials(tmpi,tmpi1);
     h5h_write_dset(fid, "material", n_elems(), &tmpi[0]);
     h5h_write_dset(fid, "domains", n_elems(), &tmpi1[0]);
-    for(int k=0;k<tmpi1.size();++k) {
+    for(unsigned k=0;k<tmpi1.size();++k) {
         elem_doms[tmpi1[k]]++;
     }
     //
@@ -444,7 +432,7 @@ void Mesh3DPart::output_mesh_part()
     get_local_faces(tmpi, tmpi1);
     h5h_write_dset_2d(fid, "faces_def", n_faces(), 4, &tmpi[0]);
     h5h_write_dset(fid, "faces_dom", n_faces(), &tmpi1[0]);
-    for(int k=0;k<tmpi1.size();++k) {
+    for(unsigned k=0;k<tmpi1.size();++k) {
         face_doms[tmpi1[k]]++;
     }
     //
@@ -452,9 +440,10 @@ void Mesh3DPart::output_mesh_part()
     get_local_edges(tmpi, tmpi1);
     h5h_write_dset_2d(fid, "edges_def", n_edges(), 2, &tmpi[0]);
     h5h_write_dset(fid, "edges_dom", n_edges(), &tmpi1[0]);
-    for(int k=0;k<tmpi1.size();++k) {
+    for(unsigned k=0;k<tmpi1.size();++k) {
         edge_doms[tmpi1[k]]++;
     }
+    h5h_write_dset_2d(fid, "vertices", n_elems(), 8, &m_elems_vertices[0]);
     //
     printf("%04d : number of elements = (tot=%d/fpml=%d/spml=%d/fl=%d/sol=%d)\n", m_proc, n_elems(),
            elem_doms[1],elem_doms[2],elem_doms[3],elem_doms[4]);
@@ -462,7 +451,36 @@ void Mesh3DPart::output_mesh_part()
            face_doms[1],face_doms[2],face_doms[3],face_doms[4]);
     printf("%04d : number of edges    = (tot=%d/fpml=%d/spml=%d/fl=%d/sol=%d)\n", m_proc, n_edges(),
            edge_doms[1],edge_doms[2],edge_doms[3],edge_doms[4]);
-    h5h_write_dset_2d(fid, "vertices", n_elems(), 8, &m_elems_vertices[0]);
+}
+
+void Mesh3DPart::output_surface(hid_t fid, const Surface* surf)
+{
+    std::vector<int> temp;
+    hid_t gid = H5Gcreate(fid, surf->name().c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    h5h_create_attr(gid, "n_faces", (int)surf->m_faces.size());
+    surf->get_faces_data(temp);
+    h5h_write_dset(gid, "faces", temp);
+    H5Gclose(gid);
+}
+
+void Mesh3DPart::output_mesh_part()
+{
+    char fname[2048];
+
+    h5h_set_errhandler();
+
+    printf("%04d : number of elements = %d\n", m_proc, n_elems());
+    snprintf(fname, sizeof(fname), "mesh4spec.%04d.h5", m_proc);
+    hid_t fid = H5Fcreate(fname, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+    output_mesh_attributes(fid);
+    output_local_mesh(fid);
+
+    hid_t surf_grp = H5Gcreate(fid, "Surfaces", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    for(unsigned k=0;k<m_surfaces.size();++k) {
+        output_surface(surf_grp, m_surfaces[k]);
+    }
+    H5Gclose(surf_grp);
 
     // Now write out inter-domain coupling
     // Couplage Solide-fluide :

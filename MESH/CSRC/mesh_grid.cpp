@@ -180,6 +180,7 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
     // Elements
     HexElem elem;
     int k=0;
+    Surface* dirich = mesh.get_surface("dirichlet");
     for(int nl=0;nl<nlayers;++nl) {
         for(int kl=0;kl<nsteps[nl];++kl) {
             for(int j=0;j<nelemy;++j) {
@@ -196,16 +197,54 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
                         assert(elem.v[in]<nnodes);
                         assert(elem.v[in]>=0);
                     }
-                    int mat = get_mat(mesh, nl,
-                                      i==0, i==(nelemx-1),
-                                      j==0, j==(nelemy-1),
-                                      k==0 && nl==0, k==(nelemz-1) && nl==(nlayers-1));
+                    bool W = (i==0);
+                    bool E = (i==(nelemx-1));
+                    bool S = (j==0);
+                    bool N = (j==(nelemy-1));
+                    bool U = (k==0 && nl==0);
+                    bool D = (k==(nelemz-1) && nl==(nlayers-1));
+                    int mat = get_mat(mesh, nl, W,E,S,N,U,D);
                     mesh.add_elem(mat, elem);
+                    // Check for free fluid surface and free pml surface
+                    int dom = mesh.m_materials[mat].domain();
+                    if (dom==DM_FLUID||dom==DM_FLUID_PML) {
+                        emit_free_face(dirich, dom, elem, W,E,S,N,U,D);
+                    }
+                    if (dom==DM_SOLID_PML) {
+                        int x_dir = mesh.m_materials[mat].x_dir;
+                        int y_dir = mesh.m_materials[mat].y_dir;
+                        int z_dir = mesh.m_materials[mat].z_dir;
+                        emit_free_face(dirich, dom, elem,
+                                       W&&(x_dir==-1), E&&(x_dir==1),
+                                       S&&(y_dir==-1), N&&(y_dir==1),
+                                       U&&(z_dir==1), D&&(z_dir==-1));
+                    }
                 }
             }
             k++;
         }
     }
+}
+
+void RectMesh::emit_free_face(Surface* surf, int dom, const HexElem& elem,
+                              bool W, bool E, bool S, bool N, bool U, bool D)
+{
+    if (W) emit_free_face(surf, dom, elem, 4);
+    if (E) emit_free_face(surf, dom, elem, 2);
+    if (S) emit_free_face(surf, dom, elem, 1);
+    if (N) emit_free_face(surf, dom, elem, 3);
+    if (U) emit_free_face(surf, dom, elem, 5);
+    if (D) emit_free_face(surf, dom, elem, 0);
+}
+
+void RectMesh::emit_free_face(Surface* surf, int dom, const HexElem& elem, int facenum)
+{
+    int n[4];
+    for(int k=0;k<4;++k) {
+        n[k] = elem.v[RefFace[facenum].v[k]];
+    }
+    PFace fc(n, dom);
+    surf->add_face(fc, 0);
 }
 
 /* Local Variables:                                                        */

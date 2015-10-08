@@ -13,61 +13,8 @@
 #include "material.h"
 #include "h5helper.h"
 #include "vertex_elem_map.h"
+#include "meshbase.h"
 
-template <int N>
-struct Elem {
-    Elem() {}
-    Elem(const Elem& el) { for(int i=0;i<N;++i) { v[i] = el.v[i];} }
-    Elem& operator=(const Elem& el) { for(int i=0;i<N;++i) { v[i] = el.v[i]; } return *this; }
-    bool operator==(const Elem& el) {
-	for(int i=0;i<N;++i) { if (v[i] != el.v[i]) return false; }
-	return true;
-    }
-    bool operator<(const Elem& el) {
-	for(int i=0;i<N;++i) {
-	    if (v[i] < el.v[i]) return true;
-	    if (v[i] > el.v[i]) return false;
-	}
-	return false;
-    }
-    int v[N];
-};
-
-struct HexElem : public Elem<8>
-{
-    HexElem() {}
-    HexElem(int a, int b, int c, int d,
-	    int e, int f, int g, int h) {
-	v[0] = a;
-	v[1] = b;
-	v[2] = c;
-	v[3] = d;
-	v[4] = e;
-	v[5] = f;
-	v[6] = g;
-	v[7] = h;
-    }
-};
-
-struct QuadElem : public Elem<4>
-{
-    QuadElem() {}
-    QuadElem(int a, int b, int c, int d){
-	v[0] = a;
-	v[1] = b;
-	v[2] = c;
-	v[3] = d;
-    }
-};
-
-struct FaceDesc {
-    int v[4];  /// Local vertex index
-    int e[4];  /// Local edge index
-
-    void show_face() {
-	printf("%d.%d.%d.%d\n", v[0], v[1], v[2], v[3]);
-    }
-};
 
 class Mesh3D
 {
@@ -117,6 +64,13 @@ public:
         //printf("%d -> %c (%d/%d)\n", el, mat.ctype, m_mat[el], int(m_materials.size()));
         return mat.domain();
     }
+    Surface* get_surface(const std::string& surfname) {
+        Surface* sfp = m_surfaces[surfname];
+        if (sfp!=NULL) return sfp;
+        sfp = new Surface(surfname);
+        m_surfaces[surfname] = sfp;
+        return sfp;
+    }
 public:
     // attributes
     int n_procs;
@@ -135,6 +89,8 @@ public:
     std::vector<Material> m_materials;
     VertexElemMap  m_vertex_to_elem;
     void build_vertex_to_elem_map();
+    // A map of surfaces, indexed by names
+    std::map<std::string,Surface*> m_surfaces;
 protected:
     std::vector<int> m_procs; ///< size=n_elems; elem->proc association
 

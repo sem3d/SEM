@@ -66,12 +66,12 @@ public:
         m_pml_num.resize(64,-1);
     }
     void set_pml_dirs(bool W, bool E, bool S, bool N, bool U, bool D) {
-        if (E) x_dir =  1.;
-        if (W) x_dir = -1.;
-        if (N) y_dir =  1.;
-        if (S) y_dir = -1.;
-        if (U) z_dir =  1.;
-        if (D) z_dir = -1.;
+        if (E) x_dir =  1;
+        if (W) x_dir = -1;
+        if (N) y_dir =  1;
+        if (S) y_dir = -1;
+        if (U) z_dir =  1;
+        if (D) z_dir = -1;
     }
     bool is_fluid() const { return false; }
     int domain() const { return m_type; }

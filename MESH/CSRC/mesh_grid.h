@@ -7,6 +7,7 @@
 #define MESH_GRID_H
 
 #include <cstdio>
+#include "meshbase.h"
 
 // Describe directions of presence of PML elements
 // When generating a structured axis aligned grid
@@ -40,6 +41,10 @@ protected:
     int nelemx, nelemy, nelemz;
     int pointidx(int i, int j, int k);
     int get_mat(Mesh3D& mesh, int layer, bool W, bool E, bool S, bool N, bool U, bool D);
+    void emit_free_face(Surface* surf, int dom, const HexElem& elem,
+                        bool W, bool E, bool S, bool N, bool U, bool D);
+    void emit_free_face(Surface* surf, int dom, const HexElem& elem, int facenum);
+
 };
 
 #endif

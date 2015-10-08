@@ -6,6 +6,7 @@
 #ifndef _MESHPART_H_
 #define _MESHPART_H_
 
+#include "meshbase.h"
 #include "mesh.h"
 #include <vector>
 #include <map>
@@ -20,117 +21,6 @@ T1 get(const std::map<T0,T1>& m, const T0& key, const T1& def)
     return def;
 }
 
-/// Faces are stored as v1 v2 v3 v4, with v1 < v2 < v4
-/// The nodes are consecutive, the direction is determined by the ordering of
-/// the vertex number of the second node ie
-/// if we create a face with (a,b,c,d) such that node numbers are c<b<a<d
-/// then we store it as c,b,a,d so that with a global numbering of nodes
-/// there is only one way to define the face and give it an orientation.
-/// The domain to which the face belongs is added as a fifth component
-/// because we want to duplicate the faces across domains (but keep them
-/// oriented in the same manner)
-struct PFace {
-    PFace() {}
-    PFace( int v[4], int dom ) {
-        n[4] = dom;
-        set_face(v);
-    }
-    PFace(const PFace& fc):orient(fc.orient) { for(int k=0;k<5;++k) n[k]=fc.n[k]; }
-
-    void set_face(int v[4]) {
-        int l=0;
-        int k;
-        for(k=1;k<4;++k) {
-            if (v[k]<v[l]) l=k;
-        }
-        int prev = (l+3)%4;
-        int next = (l+1)%4;
-        int step;
-        if (v[prev]<v[next]) {
-            step=3;
-            orient = -1;
-        } else {
-            step=1;
-            orient = 1;
-        }
-        for(k=0;k<4;++k) {
-            n[k] = v[l];
-            l = (l+step)%4;
-        }
-    }
-    bool operator<(const PFace& fc) const {
-	for(int i=0;i<5;++i) {
-	    if (n[i] < fc.n[i]) return true;
-	    if (n[i] > fc.n[i]) return false;
-	}
-	return false;
-    }
-    bool operator=(const PFace& fc) const {
-	for(int i=0;i<5;++i) {
-	    if (n[i] != fc.n[i]) return false;
-	}
-	return true;
-    }
-    /// Same as operator= but ignore domain
-    bool eq_geom(const PFace& fc) const {
-	for(int i=0;i<4;++i) {
-	    if (n[i] != fc.n[i]) return false;
-	}
-	return true;
-    }
-    int domain() const { return n[4]; }
-    int n[5];
-    // !! This will be only useful for faces at domain interfaces, otherwise
-    // there is no way to tell which of the two elements sharing the face appears first
-    int orient; // 1 if points inside original element -1 otherwise
-};
-
-struct PEdge {
-    PEdge() {}
-    PEdge( int v0, int v1, int dom ) {
-        n[2] = dom;
-        set_edge(v0, v1);
-    }
-    PEdge(const PEdge& ed) { for(int k=0;k<3;++k) n[k]=ed.n[k]; }
-
-    void set_edge(int v0, int v1) {
-        if (v0<v1) {
-            n[0] = v0;
-            n[1] = v1;
-        } else {
-            n[0] = v1;
-            n[1] = v0;
-        }
-    }
-    bool operator<(const PEdge& ed) const {
-	for(int i=0;i<3;++i) {
-	    if (n[i] < ed.n[i]) return true;
-	    if (n[i] > ed.n[i]) return false;
-	}
-	return false;
-    }
-    bool operator=(const PEdge& ed) const {
-	for(int i=0;i<3;++i) {
-	    if (n[i] != ed.n[i]) return false;
-	}
-	return true;
-    }
-    /// Same as operator= but ignore domain
-    bool eq_geom(const PEdge& ed) const {
-	for(int i=0;i<2;++i) {
-	    if (n[i] != ed.n[i]) return false;
-	}
-	return true;
-    }
-    int domain() const { return n[2]; }
-    int n[3];
-};
-
-typedef std::pair<int,int> PVertex; // pair(ID,Domain)
-
-typedef std::map<PFace,int>  face_map_t;
-typedef std::map<PEdge,int>  edge_map_t;
-typedef std::map<PVertex,int> vertex_map_t;
 
 /** Manages the list of communications with another processor */
 class MeshPartComm
@@ -222,6 +112,7 @@ protected:
     std::vector<int> m_elems_faces; // local face number of each local element
     std::vector<int> m_elems_edges; // local edge number of each local element
     std::vector<int> m_elems_vertices; // local vertex number of each local element
+    std::vector<Surface*> m_surfaces;
     face_map_t m_face_to_id;
     edge_map_t m_edge_to_id;
     vertex_map_t m_vertex_to_id;
@@ -231,6 +122,10 @@ protected:
 
     void handle_local_element(int el);
     void handle_neighbour_element(int el);
+    void handle_surface(const Surface* surf);
+    void output_mesh_attributes(hid_t fid);
+    void output_local_mesh(hid_t fid);
+    void output_surface(hid_t fid, const Surface* surf);
 };
 
 #endif
