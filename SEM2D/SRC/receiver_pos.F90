@@ -61,6 +61,8 @@ subroutine ReceiverPosition(Tdomain)
                 Tdomain%sReceiver(nrec)%nr           = n_el
                 Tdomain%sReceiver(nrec)%xi           = xi
                 Tdomain%sReceiver(nrec)%eta          = eta
+
+                exit ! Choose the first one to be consistent with previous behavior
             end if
         end do
 

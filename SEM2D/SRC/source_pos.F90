@@ -39,6 +39,7 @@ subroutine SourcePosition(Tdomain)
         call find_location(Tdomain, xc, zc, nmax, elems, coordloc)
 
         Tdomain%sSource(nsour)%located_here = .false.
+        Tdomain%sSource(nsour)%ine = 0
         do i=1,nmax! When the source is in the mesh
             inside = .true.
             n_el = elems(i)
@@ -57,17 +58,21 @@ subroutine SourcePosition(Tdomain)
                 Tdomain%sSource(nsour)%Elem(0)%xi   = xi
                 Tdomain%sSource(nsour)%Elem(0)%eta  = eta
 
-                ! Customizing according to source type
-
-                if (Tdomain%sSource(nsour)%i_type_source == 1) then       ! Pulse directional force
-                    call source_excit_pulse(Tdomain, Tdomain%sSource(nsour))
-                else if (Tdomain%sSource(nsour)%i_type_source  == 2) then ! Explosive source diagonal moment considered
-                    if (Tdomain%n_nodes == 4) call calc_shape4_coeffs(Tdomain, Tdomain%sSource(nsour))
-                    if (Tdomain%n_nodes == 8) call calc_shape8_coeffs(Tdomain, Tdomain%sSource(nsour))
-                    call source_excit_moment(Tdomain, Tdomain%sSource(nsour))
-                endif
+                exit ! Choose the first one to be consistent with previous behavior
             end if
         end do
+
+        ! Customizing according to source type
+
+        if (Tdomain%sSource(nsour)%located_here) then
+            if (Tdomain%sSource(nsour)%i_type_source == 1) then       ! Pulse directional force
+                call source_excit_pulse(Tdomain, Tdomain%sSource(nsour))
+            else if (Tdomain%sSource(nsour)%i_type_source  == 2) then ! Explosive source diagonal moment considered
+                if (Tdomain%n_nodes == 4) call calc_shape4_coeffs(Tdomain, Tdomain%sSource(nsour))
+                if (Tdomain%n_nodes == 8) call calc_shape8_coeffs(Tdomain, Tdomain%sSource(nsour))
+                call source_excit_moment(Tdomain, Tdomain%sSource(nsour))
+            endif
+        endif
     enddo
 end subroutine SourcePosition
 
