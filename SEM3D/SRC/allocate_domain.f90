@@ -37,13 +37,6 @@ subroutine allocate_domain (Tdomain)
                 if(.not.(allocated(Tdomain%sSubdomain(mat)%chosenSeed))) then
                     allocate(Tdomain%sSubdomain(mat)%chosenSeed(randSize))
                 end if
-                if(.not.(allocated(Tdomain%sSubDomain(mat)%MinBound))) then
-                    allocate(Tdomain%sSubDomain(mat)%MinBound(0:2))
-                end if
-                if(.not.(allocated(Tdomain%sSubDomain(mat)%MaxBound))) then
-                    allocate(Tdomain%sSubDomain(mat)%MaxBound(0:2))
-                end if
-
             end if
         end if
     end do

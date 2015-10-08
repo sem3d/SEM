@@ -43,7 +43,7 @@ module ssubdomains
         real               , dimension(:)   , allocatable :: varProp
         integer            , dimension(:)   , allocatable :: chosenSeed
         real               , dimension(:)   , allocatable :: corrL
-        real               , dimension(:)   , allocatable :: MinBound, MaxBound
+        real               , dimension(0:2) :: MinBound, MaxBound
 
     end type Subdomain
 
