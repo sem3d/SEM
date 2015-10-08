@@ -51,9 +51,11 @@ subroutine SourcePosition(Tdomain)
                                                                                   ", (xc, zc) : (", xc, ", ", zc, ") <=> (element, xi, eta) : (", n_el, &
                                                                                   ", ", xi, ", ", eta, ")"
                 Tdomain%sSource(nsour)%located_here = .true.
-                Tdomain%sSource(nsour)%nr           = n_el
-                Tdomain%sSource(nsour)%xi           = xi
-                Tdomain%sSource(nsour)%eta          = eta
+                Tdomain%sSource(nsour)%ine          = 1 ! Source spread over one element by default (spread over more elements later on if necessary)
+                allocate(Tdomain%sSource(nsour)%Elem(0:Tdomain%sSource(nsour)%ine-1))
+                Tdomain%sSource(nsour)%Elem(0)%nr   = n_el
+                Tdomain%sSource(nsour)%Elem(0)%xi   = xi
+                Tdomain%sSource(nsour)%Elem(0)%eta  = eta
 
                 ! Customizing according to source type
 
@@ -77,21 +79,23 @@ subroutine source_excit_pulse(Tdomain, src)
     type(Domain), intent(inout) :: Tdomain
     type(Subdomain), pointer :: mat
     type(Source), intent(inout) :: src
-    integer :: i, j, ngllx, ngllz, nmat, nnelem
+    integer :: n, i, j, ngllx, ngllz, nmat, nnelem
     real :: weta, wxi
 
-    nnelem = src%nr
-    nmat = Tdomain%specel(nnelem)%mat_index
-    mat => Tdomain%sSubdomain(nmat)
-    ngllx = mat%ngllx
-    ngllz = mat%ngllz
-    allocate(src%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
-    do j = 0,ngllz-1
-        call pol_lagrange (ngllz, mat%GLLcz, j, src%eta,weta)
-        do i = 0,ngllx-1
-            call pol_lagrange (ngllx, mat%GLLcx, i, src%xi, wxi )
-            src%ExtForce (i,j,0) = wxi*weta*src%dir(1)
-            src%ExtForce (i,j,1) = wxi*weta*src%dir(2)
+    do n = 0, src%ine-1
+        nnelem = src%Elem(n)%nr
+        nmat = Tdomain%specel(nnelem)%mat_index
+        mat => Tdomain%sSubdomain(nmat)
+        ngllx = mat%ngllx
+        ngllz = mat%ngllz
+        allocate(src%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
+        do j = 0,ngllz-1
+            call pol_lagrange (ngllz, mat%GLLcz, j, src%Elem(n)%eta,weta)
+            do i = 0,ngllx-1
+                call pol_lagrange (ngllx, mat%GLLcx, i, src%Elem(n)%xi, wxi )
+                src%Elem(n)%ExtForce (i,j,0) = wxi*weta*src%dir(1)
+                src%Elem(n)%ExtForce (i,j,1) = wxi*weta*src%dir(2)
+            enddo
         enddo
     enddo
 end subroutine source_excit_pulse
@@ -106,35 +110,37 @@ subroutine source_excit_moment(Tdomain, src)
     type(Subdomain), pointer :: mat
     type(element), pointer :: elem
     type(Source), intent(inout) :: src
-    integer :: i, j, ngllx, ngllz, nmat, nnelem
+    integer :: n, i, j, ngllx, ngllz, nmat, nnelem
     real, dimension(0:1, 0:1) :: InvGrad, M
     real :: xi, eta, wxi, weta, dwdxi, dwdeta
 
     M = src%moment
-    nnelem = src%nr
-    elem => Tdomain%specel(nnelem)
-    nmat = elem%mat_index
-    mat => Tdomain%sSubdomain(nmat)
-    ngllx = mat%ngllx
-    ngllz = mat%ngllz
+    do n = 0, src%ine-1
+        nnelem = src%Elem(n)%nr
+        elem => Tdomain%specel(nnelem)
+        nmat = elem%mat_index
+        mat => Tdomain%sSubdomain(nmat)
+        ngllx = mat%ngllx
+        ngllz = mat%ngllz
 
-    InvGrad = src%Scoeff
-    eta = src%eta
-    xi = src%xi
+        InvGrad = src%Elem(n)%Scoeff
+        eta = src%Elem(n)%eta
+        xi = src%Elem(n)%xi
 
-    allocate(src%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
-    do j = 0,ngllz-1
-        call pol_lagrange (ngllz, mat%GLLcz, j, eta,weta)
-        call DERIVLAG (mat%GLLcz, ngllz, j, eta, dwdeta)
-        do i = 0,ngllx-1
-            call pol_lagrange (ngllx, mat%GLLcx, i, xi, wxi )
-            call DERIVLAG ( mat%GLLcx, ngllx, i, xi, dwdxi)
-            src%ExtForce (i,j,0) = &
-                (InvGrad(0,0)*dwdxi*weta + InvGrad(0,1)*dwdeta*wxi)*M(0,0) + &
-                (InvGrad(1,0)*dwdxi*weta + InvGrad(1,1)*dwdeta*wxi)*M(0,1)
-            src%ExtForce (i,j,1) = &
-                (InvGrad(0,0)*dwdxi*weta + InvGrad(0,1)*dwdeta*wxi)*M(1,0) + &
-                (InvGrad(1,0)*dwdxi*weta + InvGrad(1,1)*dwdeta*wxi)*M(1,1)
+        allocate(src%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
+        do j = 0,ngllz-1
+            call pol_lagrange (ngllz, mat%GLLcz, j, eta,weta)
+            call DERIVLAG (mat%GLLcz, ngllz, j, eta, dwdeta)
+            do i = 0,ngllx-1
+                call pol_lagrange (ngllx, mat%GLLcx, i, xi, wxi )
+                call DERIVLAG ( mat%GLLcx, ngllx, i, xi, dwdxi)
+                src%Elem(n)%ExtForce (i,j,0) = &
+                    (InvGrad(0,0)*dwdxi*weta + InvGrad(0,1)*dwdeta*wxi)*M(0,0) + &
+                    (InvGrad(1,0)*dwdxi*weta + InvGrad(1,1)*dwdeta*wxi)*M(0,1)
+                src%Elem(n)%ExtForce (i,j,1) = &
+                    (InvGrad(0,0)*dwdxi*weta + InvGrad(0,1)*dwdeta*wxi)*M(1,0) + &
+                    (InvGrad(1,0)*dwdxi*weta + InvGrad(1,1)*dwdeta*wxi)*M(1,1)
+            enddo
         enddo
     enddo
 end subroutine source_excit_moment
@@ -149,28 +155,30 @@ subroutine calc_shape4_coeffs(Tdomain, src)
     type(element), pointer :: elem
     type(Source), intent(inout) :: src
     real, dimension(0:1, 0:1) :: InvGrad
-    integer :: ipoint, nnelem
+    integer :: n, ipoint, nnelem
     real :: xi, eta, jac
     real :: x0, x1, x2, x3
     real :: z0, z1, z2, z3
 
-    nnelem = src%nr
-    elem => Tdomain%specel(nnelem)
+    do n = 0, src%ine-1
+        nnelem = src%Elem(n)%nr
+        elem => Tdomain%specel(nnelem)
 
-    ipoint = elem%Control_Nodes(0); x0= Tdomain%Coord_nodes(0,ipoint); z0= Tdomain%Coord_nodes(1,ipoint)
-    ipoint = elem%Control_Nodes(1); x1= Tdomain%Coord_nodes(0,ipoint); z1= Tdomain%Coord_nodes(1,ipoint)
-    ipoint = elem%Control_Nodes(2); x2= Tdomain%Coord_nodes(0,ipoint); z2= Tdomain%Coord_nodes(1,ipoint)
-    ipoint = elem%Control_Nodes(3); x3= Tdomain%Coord_nodes(0,ipoint); z3= Tdomain%Coord_nodes(1,ipoint)
-    eta = src%eta
-    xi = src%xi
+        ipoint = elem%Control_Nodes(0); x0= Tdomain%Coord_nodes(0,ipoint); z0= Tdomain%Coord_nodes(1,ipoint)
+        ipoint = elem%Control_Nodes(1); x1= Tdomain%Coord_nodes(0,ipoint); z1= Tdomain%Coord_nodes(1,ipoint)
+        ipoint = elem%Control_Nodes(2); x2= Tdomain%Coord_nodes(0,ipoint); z2= Tdomain%Coord_nodes(1,ipoint)
+        ipoint = elem%Control_Nodes(3); x3= Tdomain%Coord_nodes(0,ipoint); z3= Tdomain%Coord_nodes(1,ipoint)
+        eta = src%Elem(n)%eta
+        xi = src%Elem(n)%xi
 
-    InvGrad(0,0) = 0.25 * ( (x1-x0) * (1-eta) + (x2-x3) * (1+eta) )
-    InvGrad(1,0) = 0.25 * ( (x3-x0) * (1-xi) + (x2-x1) * (1+xi) )
-    InvGrad(0,1) = 0.25 * ( (z1-z0) * (1-eta) + (z2-z3) * (1+eta) )
-    InvGrad(1,1) = 0.25 * ( (z3-z0) * (1-xi) + (z2-z1) * (1+xi) )
+        InvGrad(0,0) = 0.25 * ( (x1-x0) * (1-eta) + (x2-x3) * (1+eta) )
+        InvGrad(1,0) = 0.25 * ( (x3-x0) * (1-xi) + (x2-x1) * (1+xi) )
+        InvGrad(0,1) = 0.25 * ( (z1-z0) * (1-eta) + (z2-z3) * (1+eta) )
+        InvGrad(1,1) = 0.25 * ( (z3-z0) * (1-xi) + (z2-z1) * (1+xi) )
 
-    call invert2 (InvGrad, Jac )
-    src%Scoeff = InvGrad
+        call invert2 (InvGrad, Jac )
+        src%Elem(n)%Scoeff = InvGrad
+    enddo
 end subroutine calc_shape4_coeffs
 
 subroutine calc_shape8_coeffs(Tdomain, src)
@@ -183,45 +191,47 @@ subroutine calc_shape8_coeffs(Tdomain, src)
     type(element), pointer :: elem
     type(Source), intent(inout) :: src
     real, dimension(0:1, 0:1) :: InvGrad
-    integer :: ipoint, nnelem
+    integer :: n, ipoint, nnelem
     real :: xi, eta, jac
     real :: x0, x1, x2, x3, x4, x5, x6, x7
     real :: z0, z1, z2, z3, z4, z5, z6, z7
 
-    nnelem = src%nr
-    elem => Tdomain%specel(nnelem)
+    do n = 0, src%ine-1
+        nnelem = src%Elem(n)%nr
+        elem => Tdomain%specel(nnelem)
 
-    ipoint = elem%Control_Nodes(0)
-    x0 = Tdomain%Coord_Nodes(0,ipoint);  z0 = Tdomain%Coord_Nodes(1,ipoint)
-    ipoint = elem%Control_Nodes(1)
-    x1 = Tdomain%Coord_Nodes(0,ipoint);  z1 = Tdomain%Coord_Nodes(1,ipoint)
-    ipoint = elem%Control_Nodes(2)
-    x2 = Tdomain%Coord_Nodes(0,ipoint);  z2 = Tdomain%Coord_Nodes(1,ipoint)
-    ipoint = elem%Control_Nodes(3)
-    x3 = Tdomain%Coord_Nodes(0,ipoint);  z3 = Tdomain%Coord_Nodes(1,ipoint)
-    ipoint = elem%Control_Nodes(4)
-    x4 = Tdomain%Coord_Nodes(0,ipoint);  z4 = Tdomain%Coord_Nodes(1,ipoint)
-    ipoint = elem%Control_Nodes(5)
-    x5 = Tdomain%Coord_Nodes(0,ipoint);  z5 = Tdomain%Coord_Nodes(1,ipoint)
-    ipoint = elem%Control_Nodes(6)
-    x6 = Tdomain%Coord_Nodes(0,ipoint);  z6 = Tdomain%Coord_Nodes(1,ipoint)
-    ipoint = elem%Control_Nodes(7)
-    x7 = Tdomain%Coord_Nodes(0,ipoint);  z7 = Tdomain%Coord_Nodes(1,ipoint)
+        ipoint = elem%Control_Nodes(0)
+        x0 = Tdomain%Coord_Nodes(0,ipoint);  z0 = Tdomain%Coord_Nodes(1,ipoint)
+        ipoint = elem%Control_Nodes(1)
+        x1 = Tdomain%Coord_Nodes(0,ipoint);  z1 = Tdomain%Coord_Nodes(1,ipoint)
+        ipoint = elem%Control_Nodes(2)
+        x2 = Tdomain%Coord_Nodes(0,ipoint);  z2 = Tdomain%Coord_Nodes(1,ipoint)
+        ipoint = elem%Control_Nodes(3)
+        x3 = Tdomain%Coord_Nodes(0,ipoint);  z3 = Tdomain%Coord_Nodes(1,ipoint)
+        ipoint = elem%Control_Nodes(4)
+        x4 = Tdomain%Coord_Nodes(0,ipoint);  z4 = Tdomain%Coord_Nodes(1,ipoint)
+        ipoint = elem%Control_Nodes(5)
+        x5 = Tdomain%Coord_Nodes(0,ipoint);  z5 = Tdomain%Coord_Nodes(1,ipoint)
+        ipoint = elem%Control_Nodes(6)
+        x6 = Tdomain%Coord_Nodes(0,ipoint);  z6 = Tdomain%Coord_Nodes(1,ipoint)
+        ipoint = elem%Control_Nodes(7)
+        x7 = Tdomain%Coord_Nodes(0,ipoint);  z7 = Tdomain%Coord_Nodes(1,ipoint)
 
-    eta = src%eta
-    xi = src%xi
+        eta = src%Elem(n)%eta
+        xi = src%Elem(n)%xi
 
-    InvGrad(0,0) = 0.25 * (x0 *(1-eta)*(2*xi+eta) + x1 *(1-eta)*(2*xi-eta) + x2 *(1+eta)*(2*xi+eta)+ &
-        x3 *(1+eta)*(2*xi-eta)) - x4 * xi*(1-eta) - x6 *xi *(1+eta) + 0.5* (x5-x7)* (1-eta**2)
-    InvGrad(1,0) = 0.25 * (x0 *(1-xi)*(2*eta+xi) - x1 *(1+xi)*(xi-2*eta) + x2 *(1+xi)*(2*eta+xi)-  &
-        x3 *(1-xi)*(xi-2*eta)) - x5 *eta*(1+xi) - x7 *eta *(1-xi) + 0.5* (x6-x4)* (1-xi**2)
-    InvGrad(0,1) = 0.25 * (z0 *(1-eta)*(2*xi+eta) + z1 *(1-eta)*(2*xi-eta) + z2 *(1+eta)*(2*xi+eta)+ &
-        z3 *(1+eta)*(2*xi-eta)) - z4 * xi*(1-eta) - z6 *xi *(1+eta) + 0.5* (z5-z7)* (1-eta**2)
-    InvGrad(1,1) = 0.25 * (z0 *(1-xi)*(2*eta+xi) - z1 *(1+xi)*(xi-2*eta) + z2 *(1+xi)*(2*eta+xi)-  &
-        z3 *(1-xi)*(xi-2*eta)) - z5 *eta*(1+xi) - z7 *eta *(1-xi) + 0.5* (z6-z4)* (1-xi**2)
-    call invert2 (InvGrad, Jac)
+        InvGrad(0,0) = 0.25 * (x0 *(1-eta)*(2*xi+eta) + x1 *(1-eta)*(2*xi-eta) + x2 *(1+eta)*(2*xi+eta)+ &
+            x3 *(1+eta)*(2*xi-eta)) - x4 * xi*(1-eta) - x6 *xi *(1+eta) + 0.5* (x5-x7)* (1-eta**2)
+        InvGrad(1,0) = 0.25 * (x0 *(1-xi)*(2*eta+xi) - x1 *(1+xi)*(xi-2*eta) + x2 *(1+xi)*(2*eta+xi)-  &
+            x3 *(1-xi)*(xi-2*eta)) - x5 *eta*(1+xi) - x7 *eta *(1-xi) + 0.5* (x6-x4)* (1-xi**2)
+        InvGrad(0,1) = 0.25 * (z0 *(1-eta)*(2*xi+eta) + z1 *(1-eta)*(2*xi-eta) + z2 *(1+eta)*(2*xi+eta)+ &
+            z3 *(1+eta)*(2*xi-eta)) - z4 * xi*(1-eta) - z6 *xi *(1+eta) + 0.5* (z5-z7)* (1-eta**2)
+        InvGrad(1,1) = 0.25 * (z0 *(1-xi)*(2*eta+xi) - z1 *(1+xi)*(xi-2*eta) + z2 *(1+xi)*(2*eta+xi)-  &
+            z3 *(1-xi)*(xi-2*eta)) - z5 *eta*(1+xi) - z7 *eta *(1-xi) + 0.5* (z6-z4)* (1-xi**2)
+        call invert2 (InvGrad, Jac)
 
-    src%Scoeff = InvGrad
+        src%Elem(n)%Scoeff = InvGrad
+    enddo
 end subroutine calc_shape8_coeffs
 
 

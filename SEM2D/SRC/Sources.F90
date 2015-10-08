@@ -13,16 +13,20 @@
 
 module ssources
 
+    type :: elem_source
+       integer :: nr
+       real :: eta,xi
+       real, dimension (0:1,0:1) :: Scoeff
+       real, dimension (:,:,:), pointer :: ExtForce
+    end type elem_source
+
     type :: Source
-       integer :: i_type_source, i_time_function
+       integer :: i_type_source, i_time_function,ine
        real, dimension(2) :: dir
        real, dimension (0:1,0:1) :: moment
        real :: Xsource,Zsource, tau_b,cutoff_freq,amplitude
        logical :: located_here
-       integer :: nr
-       real :: eta,xi
-       real, dimension (0:1,0:1) :: Scoeff
-       real, dimension (:,:,:), allocatable :: ExtForce
+       type(elem_source), dimension(:), allocatable :: Elem
     end type Source
 
 contains
