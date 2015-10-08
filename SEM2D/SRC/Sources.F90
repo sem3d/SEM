@@ -29,6 +29,7 @@ module ssources
        real, dimension (0:1,0:1) :: moment
        real :: Xsource,Zsource, tau_b,cutoff_freq,amplitude,sigma
        type(elem_source), dimension(:), pointer :: Elem
+       logical :: located_here
     end type Source
 
 contains

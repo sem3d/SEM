@@ -24,50 +24,46 @@ subroutine SourcePosition(Tdomain)
     integer, dimension(NMAXEL) :: elems
     double precision, dimension(0:1,NMAXEL) :: coordloc
     double precision, parameter :: EPS = 1D-13
-    integer :: nsour, nmax, i, n_el, n_el_test
+    integer :: nsour, nmax, i, n_el
     double precision :: xc, zc, xi, eta
-    logical :: inside, at_least_one_inside
+    logical :: inside
 
     ! Find the nearest point to the real location of the sources in GLL scheme
 
     do nsour = 0, Tdomain%n_source -1
-
+        ! Find source location
         xc = Tdomain%sSource(nsour)%xsource
         zc = Tdomain%sSource(nsour)%zsource
         nmax = NMAXEL
-
-        ! Find source location
         call find_location(Tdomain, xc, zc, nmax, elems, coordloc)
-        at_least_one_inside = .false.
 
+        Tdomain%sSource(nsour)%located_here = .false.
+        Tdomain%sSource(nsour)%ine = 0
         do i=1,nmax! When the source is in the mesh
             inside = .true.
-            n_el_test = elems(i)
+            n_el = elems(i)
             xi   = coordloc(0,i)
             eta  = coordloc(1,i)
             if (xi<(-1-EPS) .or. eta<(-1-EPS)) inside = .false.
             if (xi>( 1+EPS) .or. eta>( 1+EPS)) inside = .false.
             if (inside) then
-                n_el = n_el_test
-                at_least_one_inside = .true.
-            endif
-        enddo
+                write (*,'(a,i5,a,i4,a,f10.5,a,f10.5,a,i10,a,f20.17,a,f20.17,a)') " Source ", nsour, " : found on proc. ", Tdomain%Mpi_var%my_rank,     &
+                                                                                  ", (xc, zc) : (", xc, ", ", zc, ") <=> (element, xi, eta) : (", n_el, &
+                                                                                  ", ", xi, ", ", eta, ")"
+                Tdomain%sSource(nsour)%located_here = .true.
+                Tdomain%sSource(nsour)%ine          = 1 ! Source spread over one element by default (spread over more elements later on if necessary)
+                allocate(Tdomain%sSource(nsour)%Elem(0:Tdomain%sSource(nsour)%ine-1))
+                Tdomain%sSource(nsour)%Elem(0)%nr   = n_el
+                Tdomain%sSource(nsour)%Elem(0)%xi   = xi
+                Tdomain%sSource(nsour)%Elem(0)%eta  = eta
 
-        if (at_least_one_inside) then
-            write (*,'(a,i5,a,i4,a,f10.5,a,f10.5,a,i10,a,f20.17,a,f20.17,a)') " Source ", nsour, &
-                 " : found on proc. ", Tdomain%Mpi_var%my_rank, ", (xc, zc) : (", xc, ", ", zc, &
-                 ") <=> (element, xi, eta) : (", n_el, ", ", xi, ", ", eta, ")"
+                exit ! Choose the first one to be consistent with previous behavior
+            end if
+        end do
 
-            ! Allocation (1 element par source)
-            Tdomain%sSource(nsour)%ine = 1
-            allocate(Tdomain%sSource(nsour)%Elem(0:0))
-            Tdomain%sSource(nsour)%Elem(0)%nr   = n_el
-            Tdomain%sSource(nsour)%Elem(0)%xi   = xi
-            Tdomain%sSource(nsour)%Elem(0)%eta  = eta
-            Tdomain%specel(n_el)%is_source = .true.
+        ! Customizing according to source type
 
-            ! Customizing according to source type
-
+        if (Tdomain%sSource(nsour)%located_here) then
             if (Tdomain%sSource(nsour)%i_type_source == 1) then       ! Pulse directional force
                 call source_excit_pulse(Tdomain, Tdomain%sSource(nsour))
             else if (Tdomain%sSource(nsour)%i_type_source  == 2) then ! Explosive source diagonal moment considered
@@ -102,7 +98,8 @@ subroutine source_excit_pulse(Tdomain, src)
         mat => Tdomain%sSubdomain(nmat)
         ngllx = mat%ngllx
         ngllz = mat%ngllz
-        allocate  (src%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
+
+        allocate(src%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
         do j = 0,ngllz-1
             call pol_lagrange (ngllz, mat%GLLcz, j, src%Elem(n)%eta,weta)
             do i = 0,ngllx-1
@@ -185,7 +182,7 @@ subroutine source_excit_moment(Tdomain, src)
         eta = src%Elem(n)%eta
         xi = src%Elem(n)%xi
 
-        allocate  (src%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
+        allocate(src%Elem(n)%ExtForce(0:ngllx-1,0:ngllz-1,0:1))
         do j = 0,ngllz-1
             call pol_lagrange (ngllz, mat%GLLcz, j, eta,weta)
             call DERIVLAG (mat%GLLcz, ngllz, j, eta, dwdeta)

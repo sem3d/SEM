@@ -60,22 +60,21 @@ subroutine ReceiverPosition(Tdomain)
             if (xi<(-1-EPS) .or. eta<(-1-EPS)) inside = .false.
             if (xi>( 1+EPS) .or. eta>( 1+EPS)) inside = .false.
             if (inside) then
-                write (*,*) " Receiver ", nrec, " : found on proc. ", Tdomain%Mpi_var%my_rank," on Elem ", n_el
-                if(.NOT. Tdomain%sReceiver(nrec)%located_here) then
-                    Tdomain%sReceiver(nrec)%located_here = .true.
-                    Tdomain%sReceiver(nrec)%nr           = n_el
-                    Tdomain%sReceiver(nrec)%xi           = xi
-                    Tdomain%sReceiver(nrec)%eta          = eta
-                endif
+                write (*,'(a,i5,a,i4,a,f10.5,a,f10.5,a,i10,a,f20.17,a,f20.17,a)') " Receiver ", nrec, " : found on proc. ", Tdomain%Mpi_var%my_rank,    &
+                                                                                  ", (xc, zc) : (", xc, ", ", zc, ") <=> (element, xi, eta) : (", n_el, &
+                                                                                  ", ", xi, ", ", eta, ")"
+                Tdomain%sReceiver(nrec)%located_here = .true.
+                Tdomain%sReceiver(nrec)%nr           = n_el
+                Tdomain%sReceiver(nrec)%xi           = xi
+                Tdomain%sReceiver(nrec)%eta          = eta
+
+                exit ! Choose the first one to be consistent with previous behavior
             end if
         end do
 
         ! Compute interpolation coefficient
 
         if (Tdomain%sReceiver(nrec)%located_here) then
-            write (*,'(a,i5,a,i4,a,f10.5,a,f10.5,a,i10,a,f20.17,a,f20.17,a)') " Receiver ", nrec, &
-                " : found on proc. ", Tdomain%Mpi_var%my_rank, ", (xc, zc) : (", xc, ", ", zc, &
-                ") <=> (element, xi, eta) : (", Tdomain%sReceiver(nrec)%nr, ", ", xi, ", ", eta, ")"
             n_el  = Tdomain%sReceiver(nrec)%nr
             mat   = Tdomain%specel(n_el)%mat_index
             ngllx = Tdomain%specel(n_el)%ngllx
