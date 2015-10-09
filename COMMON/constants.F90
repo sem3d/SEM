@@ -65,6 +65,7 @@ MODULE constants
     integer, parameter :: OUT_EPS_DEV    = 7
     integer, parameter :: OUT_STRESS_DEV = 8
 
+    integer, parameter, dimension(0:8) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 1, 3, 3, 3, 6, 6 /)
 CONTAINS
 
 
