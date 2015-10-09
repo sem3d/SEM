@@ -110,6 +110,7 @@ subroutine read_input (Tdomain)
     Tdomain%mesh_file = fromcstr(config%mesh_file)
     Tdomain%material_file = fromcstr(config%mat_file)
     Tdomain%pml_type = config%pml_type
+    if(Tdomain%pml_type .ne. 0) Tdomain%type_bc = DG_BC_REFL ! Use same default behavior than CG
     Tdomain%logicD%save_trace = config%save_traces .ne. 0
     Tdomain%logicD%save_snapshots = config%save_snap .ne. 0
     Tdomain%logicD%Lamb_test = config%is_lamb_test .ne. 0
