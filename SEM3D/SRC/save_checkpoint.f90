@@ -487,8 +487,8 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
             enddo
         enddo
     enddo
-    deallocate(data)
     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+    deallocate(data)
     call h5dclose_f(dset_id, hdferr)
 end subroutine write_Stress
 
