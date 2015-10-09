@@ -130,7 +130,7 @@ void RectMesh::apply_pml_borders()
     if (pmls.S) { ymin-=ystep; }
     if (pmls.U) {
         double zstep = thickness[0]/nsteps[0];
-        zmax -= zstep;
+        zmax += zstep;
         thickness[0] += zstep;
         nsteps[0] += 1;
     }
@@ -207,7 +207,10 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
                     mesh.add_elem(mat, elem);
                     // Check for free fluid surface and free pml surface
                     int dom = mesh.m_materials[mat].domain();
-                    if (dom==DM_FLUID||dom==DM_FLUID_PML) {
+                    if (dom==DM_FLUID) {
+                        if (U) emit_free_face(dirich, dom, elem, 5);
+                    }
+                    if (dom==DM_FLUID_PML) {
                         emit_free_face(dirich, dom, elem, W,E,S,N,U,D);
                     }
                     if (dom==DM_SOLID_PML) {
