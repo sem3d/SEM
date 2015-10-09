@@ -35,7 +35,21 @@ void Mesh3DPart::handle_surface(const Surface* surf)
     for(it=surf->m_faces.begin();it!=surf->m_faces.end();++it) {
         itfound = m_face_to_id.find(it->first);
         if (itfound!=m_face_to_id.end()) {
-            new_surf->add_face(it->first, itfound->second);
+            const PFace& fc = it->first;
+            new_surf->add_face(fc, itfound->second);
+            int dom = fc.domain();
+            for(int k=0;k<4;++k) {
+                int va = fc.n[k];
+                int vb = fc.n[(k+1)%4];
+                PEdge ed(va, vb, dom);
+                int eid = get(m_edge_to_id, ed, -1);
+                assert(eid!=-1);
+                new_surf->add_edge(ed, eid);
+                PVertex vx(va, dom);
+                int vid = get(m_vertex_to_id, vx, -1);
+                assert(vid!=-1);
+                new_surf->add_vertex(vx, vid);
+            }
         }
     }
     // We keep all surfaces even if locally empty
@@ -453,13 +467,45 @@ void Mesh3DPart::output_local_mesh(hid_t fid)
            edge_doms[1],edge_doms[2],edge_doms[3],edge_doms[4]);
 }
 
+void Mesh3DPart::write_surface_dom(hid_t gid, const Surface* surf, const char* pfx, int dom)
+{
+    vector<int> data, orient;
+    char sface_data[100];
+    char sface_orient[100];
+    char sface_num [100];
+    char sedge_data[100];
+    char sedge_num [100];
+    char svert_data[100];
+    char svert_num [100];
+    snprintf(sface_data, 100, "%s_faces", pfx);
+    snprintf(sface_orient, 100, "%s_orient", pfx);
+    snprintf(sface_num , 100, "n_%s_faces", pfx);
+    snprintf(sedge_data, 100, "%s_edges", pfx);
+    snprintf(sedge_num , 100, "n_%s_edges", pfx);
+    snprintf(svert_data, 100, "%s_vertices", pfx);
+    snprintf(svert_num , 100, "n_%s_vertices", pfx);
+
+    surf->get_faces_data(dom, data, orient);
+    h5h_create_attr(gid, sface_num, (int)data.size());
+    h5h_write_dset(gid, sface_data, data);
+    h5h_write_dset(gid, sface_orient, orient);
+
+    surf->get_edges_data(dom, data);
+    h5h_create_attr(gid, sedge_num, (int)data.size());
+    h5h_write_dset(gid, sedge_data, data);
+
+    surf->get_vertices_data(dom, data);
+    h5h_write_dset(gid, svert_data, data);
+    h5h_create_attr(gid, svert_num, (int)data.size());
+}
 void Mesh3DPart::output_surface(hid_t fid, const Surface* surf)
 {
-    std::vector<int> temp;
+    std::vector<int> faces, orient;
     hid_t gid = H5Gcreate(fid, surf->name().c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    h5h_create_attr(gid, "n_faces", (int)surf->m_faces.size());
-    surf->get_faces_data(temp);
-    h5h_write_dset(gid, "faces", temp);
+    write_surface_dom(gid, surf, "sl", DM_SOLID);
+    write_surface_dom(gid, surf, "fl", DM_FLUID);
+    write_surface_dom(gid, surf, "spml", DM_SOLID_PML);
+    write_surface_dom(gid, surf, "fpml", DM_FLUID_PML);
     H5Gclose(gid);
 }
 
@@ -477,6 +523,7 @@ void Mesh3DPart::output_mesh_part()
     output_local_mesh(fid);
 
     hid_t surf_grp = H5Gcreate(fid, "Surfaces", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    h5h_create_attr(surf_grp, "n_surfaces", (int)m_surfaces.size());
     for(unsigned k=0;k<m_surfaces.size();++k) {
         output_surface(surf_grp, m_surfaces[k]);
     }

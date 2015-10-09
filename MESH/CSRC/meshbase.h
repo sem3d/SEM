@@ -116,6 +116,7 @@ struct PEdge {
     int n[3];
 };
 
+
 typedef std::pair<int,int> PVertex; // pair(ID,Domain)
 
 typedef std::map<PFace,int>  face_map_t;
@@ -131,8 +132,32 @@ public:
     void add_face(const PFace& fc, int data) {
         m_faces[fc] = data;
     }
-    void get_faces_data(std::vector<int>& data) const {
+    void add_edge(const PEdge& ed, int data) {
+        m_edges[ed] = data;
+    }
+    void add_vertex(const PVertex& vx, int data) {
+        m_vertices[vx] = data;
+    }
+    void get_faces_data(int dom, std::vector<int>& data, std::vector<int>& orient) const {
+        data.clear();
+        orient.clear();
         for(face_map_t::const_iterator it=m_faces.begin();it!=m_faces.end();++it) {
+            if (it->first.domain()!=dom) continue;
+            data.push_back(it->second);
+            orient.push_back(it->first.orient);
+        }
+    }
+    void get_edges_data(int dom, std::vector<int>& data) const {
+        data.clear();
+        for(edge_map_t::const_iterator it=m_edges.begin();it!=m_edges.end();++it) {
+            if (it->first.domain()!=dom) continue;
+            data.push_back(it->second);
+        }
+    }
+    void get_vertices_data(int dom, std::vector<int>& data) const {
+        data.clear();
+        for(vertex_map_t::const_iterator it=m_vertices.begin();it!=m_vertices.end();++it) {
+            if (it->first.second!=dom) continue;
             data.push_back(it->second);
         }
     }
@@ -140,6 +165,8 @@ public:
     
     std::string m_name;
     face_map_t m_faces;
+    edge_map_t m_edges;
+    vertex_map_t m_vertices;
 };
 
 template <int N>
