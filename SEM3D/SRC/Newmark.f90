@@ -336,9 +336,9 @@ subroutine Newmark_Corrector_Fluid(Tdomain,champs1)
             Tdomain%champs0%fpml_VelPhi(:,:) + &
             dt * &
             Tdomain%champs0%fpml_DumpV(:,1,:) * &
-            champs1%fpml_Forces(:,:)*Tdomain%fpml_dirich
-        do n = 0, Tdomain%nbOuterFPMLNodes-1
-            indpml = Tdomain%OuterFPMLNodes(n)
+            champs1%fpml_Forces(:,:)
+        do n = 0, Tdomain%n_fpml_dirich-1
+            indpml = Tdomain%fpml_dirich(n)
             Tdomain%champs0%fpml_VelPhi(indpml,0) = 0.
             Tdomain%champs0%fpml_VelPhi(indpml,1) = 0.
             Tdomain%champs0%fpml_VelPhi(indpml,2) = 0.
@@ -350,7 +350,11 @@ subroutine Newmark_Corrector_Fluid(Tdomain,champs1)
     ! Si il existe des éléments fluides
     if (Tdomain%ngll_f /= 0) then
         Tdomain%champs0%ForcesFl = champs1%ForcesFl * Tdomain%MassMatFlu
-        Tdomain%champs0%VelPhi = (Tdomain%champs0%VelPhi + dt * Tdomain%champs0%ForcesFl) * Tdomain%fl_dirich
+        Tdomain%champs0%VelPhi = (Tdomain%champs0%VelPhi + dt * Tdomain%champs0%ForcesFl)
+        do n = 0, Tdomain%n_fl_dirich-1
+            indpml = Tdomain%fl_dirich(n)
+            Tdomain%champs0%VelPhi(indpml) = 0.
+        enddo
         Tdomain%champs0%Phi = Tdomain%champs0%Phi + dt * Tdomain%champs0%VelPhi
     endif
 
@@ -379,8 +383,8 @@ subroutine Newmark_Corrector_Solid(Tdomain,champs1)
                                                 champs1%ForcesPML(:,i_dir,:)
         enddo
         !TODO Eventuellement : DeplaPML(:,:) = DeplaPML(:,:) + dt * VelocPML(:,:)
-        do n = 0, Tdomain%nbOuterSPMLNodes-1
-            indpml = Tdomain%OuterSPMLNodes(n)
+        do n = 0, Tdomain%n_spml_dirich-1
+            indpml = Tdomain%spml_dirich(n)
             Tdomain%champs0%VelocPML(indpml,:,:) = 0.
         enddo
     endif
@@ -391,6 +395,10 @@ subroutine Newmark_Corrector_Solid(Tdomain,champs1)
             Tdomain%champs0%Forces(:,i_dir) = champs1%Forces(:,i_dir) * Tdomain%MassMatSol(:)
         enddo
         Tdomain%champs0%Veloc = Tdomain%champs0%Veloc + dt * Tdomain%champs0%Forces
+        do n = 0, Tdomain%n_sl_dirich-1
+            indpml = Tdomain%sl_dirich(n)
+            Tdomain%champs0%Veloc(indpml,:) = 0.
+        enddo
         Tdomain%champs0%Depla = Tdomain%champs0%Depla + dt * Tdomain%champs0%Veloc
     endif
     return

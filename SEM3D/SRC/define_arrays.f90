@@ -83,10 +83,42 @@ contains
         call assemble_mass_matrices(Tdomain)
         call finalize_pml_properties(Tdomain)
         call inverse_mass_mat(Tdomain)
-
+        do n = 0,size(Tdomain%sSurfaces)-1
+            if (trim(Tdomain%sSurfaces(n)%name)=="dirichlet") then
+                call init_dirichlet_surface(Tdomain, Tdomain%sSurfaces(n))
+                exit
+            end if
+        end do
         return
     end subroutine define_arrays
 
+
+    subroutine init_dirichlet_surface(Tdomain, surf)
+        type (domain), intent (INOUT) :: Tdomain
+        type (SurfaceT), intent(INOUT) :: surf
+        !
+        Tdomain%n_sl_dirich = surf%surf_sl%nbtot
+        if (Tdomain%n_sl_dirich/=0) then
+            allocate(Tdomain%sl_dirich(0:surf%surf_sl%nbtot-1))
+            Tdomain%sl_dirich = surf%surf_sl%map
+        end if
+        Tdomain%n_fl_dirich = surf%surf_fl%nbtot
+        if (Tdomain%n_fl_dirich/=0) then
+            allocate(Tdomain%fl_dirich(0:surf%surf_fl%nbtot-1))
+            Tdomain%fl_dirich = surf%surf_fl%map
+        end if
+        Tdomain%n_spml_dirich = surf%surf_spml%nbtot
+        if (Tdomain%n_spml_dirich/=0) then
+            allocate(Tdomain%spml_dirich(0:surf%surf_spml%nbtot-1))
+            Tdomain%spml_dirich = surf%surf_spml%map
+        end if
+        Tdomain%n_fpml_dirich = surf%surf_fpml%nbtot
+        if (Tdomain%n_fpml_dirich/=0) then
+            allocate(Tdomain%fpml_dirich(0:surf%surf_fpml%nbtot-1))
+            Tdomain%fpml_dirich = surf%surf_fpml%map
+        end if
+
+    end subroutine init_dirichlet_surface
     subroutine init_solid_fluid_interface(Tdomain)
         type (domain), intent (INOUT), target :: Tdomain
         !

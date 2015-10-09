@@ -170,8 +170,7 @@ contains
         implicit none
 
         type(domain), intent(inout) :: Tdomain
-        integer :: i, j, k, nf, ne
-        integer :: n_aus
+        integer :: i, j, k
 
         ! XXX kill?
         do j = 0, Tdomain%n_elem-1

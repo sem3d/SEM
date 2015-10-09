@@ -16,7 +16,7 @@ module sinterface
         integer :: n_faces, n_edges, n_vertices
         integer :: nbtot ! nombre total de points de gauss de l'interface
         ! A list of gll points from the interface
-        integer, dimension(:), allocatable :: map ! dimension(0:nbInterfSolPml-1)
+        integer, dimension(:), allocatable :: map ! dimension(0:nbtot-1)
         ! List of faces, edges, vertices
         integer, dimension(:), allocatable :: if_faces
         integer, dimension(:), allocatable :: if_edges

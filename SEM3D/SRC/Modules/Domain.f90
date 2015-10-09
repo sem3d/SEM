@@ -21,6 +21,7 @@ module sdomain
     use ssubdomains
     use splanew
     use sneu
+    use ssurf
     use sbassin
     use solid_fluid
     use semdatafiles
@@ -60,7 +61,7 @@ module sdomain
        type(edge)     , dimension (:), pointer :: sEdge
        type(vertex)   , dimension (:), pointer :: sVertex
        type(subdomain), dimension (:), pointer :: sSubDomain
-
+       type(SurfaceT), dimension(:), allocatable :: sSurfaces
 
        logical :: any_PML, any_FPML, aniso, any_Random
 
@@ -100,9 +101,12 @@ module sdomain
        real, dimension(:), allocatable :: MassMatSolPml, MassMatFluPml
        real, dimension(:,:), allocatable :: DumpMass, fpml_DumpMass
 
-       ! Condition de dirichlet fluide et fluide PML
-       real, dimension(:), allocatable :: fl_dirich
-       real, dimension(:,:), allocatable :: fpml_dirich
+       ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
+       integer :: n_sl_dirich, n_fl_dirich, n_spml_dirich, n_fpml_dirich
+       integer, dimension(:), allocatable :: sl_dirich
+       integer, dimension(:), allocatable :: spml_dirich
+       integer, dimension(:), allocatable :: fl_dirich
+       integer, dimension(:), allocatable :: fpml_dirich
 
        ! Interface Solide / PML
        type(inter_num) :: intSolPml
@@ -110,12 +114,6 @@ module sdomain
        type(inter_num) :: intFluPml
        ! Interface Fluide / Solide
        type(SF_object)     :: SF
-
-       ! Faces externes PML
-       ! Permet par exemple de mettre a 0 le champs de vitesse pour certaines face, edge, vertex PML
-       integer, dimension(:), allocatable :: OuterSPMLNodes
-       integer, dimension(:), allocatable :: OuterFPMLNodes
-       integer :: nbOuterSPMLNodes, nbOuterFPMLNodes
 
         ! Communication
         type(comm_vector) :: Comm_data      ! Comm mass et forces

@@ -307,7 +307,79 @@ contains
         endif
 
     end subroutine read_comm_sf
-    
+
+
+    subroutine read_one_surface(surf, pfx, gid)
+        implicit none
+        type(surf_num), intent(inout) :: surf
+        integer(HID_T), intent(in) :: gid
+        character(len=*) :: pfx
+        !
+        integer, allocatable, dimension(:) :: itemp
+        !
+        call init_surface(surf)
+
+        call read_attr_int(gid, "n_"//trim(pfx)//"_faces",    surf%n_faces)
+        call read_attr_int(gid, "n_"//trim(pfx)//"_edges",    surf%n_edges)
+        call read_attr_int(gid, "n_"//trim(pfx)//"_vertices", surf%n_vertices)
+
+        call allocate_surface(surf)
+
+        if (surf%n_faces/=0) then
+            write(*,*) "READ: //", trim(pfx)//"_faces","//"
+            call read_dataset(gid, trim(pfx)//"_faces", itemp)
+            write(*,*) trim(pfx)//" Faces:", size(itemp)
+            surf%if_faces = itemp
+            deallocate(itemp)
+            call read_dataset(gid, trim(pfx)//"_orient", itemp)
+            surf%if_norm = itemp
+            deallocate(itemp)
+        end if
+        if (surf%n_edges/=0) then
+            call read_dataset(gid, trim(pfx)//"_edges", itemp)
+            write(*,*) trim(pfx)//" Edges:", size(itemp)
+            surf%if_edges = itemp
+            deallocate(itemp)
+        end if
+        if (surf%n_vertices/=0) then
+            call read_dataset(gid, trim(pfx)//"_vertices", itemp)
+            write(*,*) trim(pfx)//" Vertices:", size(itemp)
+            surf%if_vertices = itemp
+            deallocate(itemp)
+        end if
+
+    end subroutine read_one_surface
+    subroutine read_surfaces(Tdomain, gid)
+        implicit none
+        type(domain), intent(inout) :: Tdomain
+        integer(HID_T), intent(in) :: gid
+        !
+        integer :: n_surfaces
+        integer :: storage_type, nlinks, max_corder, ierr
+        character(len=100) :: surfname
+        integer(HSIZE_T) :: namesz, i
+        integer(HID_T) :: surf_id
+        call read_attr_int(gid, "n_surfaces", n_surfaces)
+        allocate(Tdomain%sSurfaces(0:n_surfaces-1))
+        ! Get group info
+        call H5Gget_info_f(gid, storage_type, nlinks, max_corder, ierr)
+        write(*,*) "SURFACES:", n_surfaces, "/", max_corder, " nlinks=", nlinks
+        do i=0,nlinks-1
+            call H5Lget_name_by_idx_f(gid, ".", H5_INDEX_NAME_F, H5_ITER_INC_F, i, surfname, ierr, namesz)
+            write(*,*) "SURFACE:", i, " :: ", trim(surfname)
+            call H5Gopen_f(gid, trim(surfname), surf_id, ierr)
+            !
+            ! Read one surface
+            !
+            Tdomain%sSurfaces(i)%name = surfname
+            Tdomain%sSurfaces(i)%cond_type = COND_NONE
+            call read_one_surface(Tdomain%sSurfaces(i)%surf_sl  , "sl"  , surf_id)
+            call read_one_surface(Tdomain%sSurfaces(i)%surf_fl  , "fl"  , surf_id)
+            call read_one_surface(Tdomain%sSurfaces(i)%surf_spml, "spml", surf_id)
+            call read_one_surface(Tdomain%sSurfaces(i)%surf_fpml, "fpml", surf_id)
+        end do
+    end subroutine read_surfaces
+
     subroutine read_mesh_file_h5(Tdomain)
         use mpi
         use sem_c_bindings
@@ -321,7 +393,7 @@ contains
         integer :: i
         logical :: neumann_log
         !
-        integer(HID_T) :: fid, proc_id
+        integer(HID_T) :: fid, proc_id, surf_id
         integer :: hdferr, ierr
         integer, allocatable, dimension(:,:) :: itemp2, itemp2b
         integer, allocatable, dimension(:)   :: itemp
@@ -354,10 +426,10 @@ contains
         ! solid - fluid interface
         call init_interface(Tdomain%SF%intSolFlu)
         call init_interface(Tdomain%SF%intSolFluPml)
-        !Subdomains allocation
-        allocate(Tdomain%sSubdomain(0:Tdomain%n_mat-1))
 
         call read_mesh_attributes(Tdomain, fid)
+        !Subdomains allocation
+        allocate(Tdomain%sSubdomain(0:Tdomain%n_mat-1))
         !
         if(neumann_log .neqv. Tdomain%logicD%Neumann) then
             write(*,*) rg,"neumann (input.spec)=",Tdomain%logicD%Neumann
@@ -382,6 +454,10 @@ contains
             Tdomain%SF%intSolFluPml%surf0%n_edges + &
             Tdomain%SF%intSolFluPml%surf0%n_vertices) /= 0
 
+
+        call h5gopen_f(fid, "Surfaces", surf_id, hdferr)
+        call read_surfaces(Tdomain, surf_id)
+        call h5gclose_f(surf_id, hdferr)
         ! Neumann B.C. properties, eventually
         if(Tdomain%logicD%Neumann_local_present)then
             ! Neumann properties

@@ -29,7 +29,8 @@ subroutine global_numbering(Tdomain)
     use sdomain
     implicit none
     type(domain), intent (inout) :: Tdomain
-!    integer, dimension (:,:), allocatable :: renumSF !, renumSFpml
+    !
+    integer :: k
 
     ! Create a unique gll number per node location
     call renumber_global_gll_nodes(Tdomain)
@@ -42,17 +43,18 @@ subroutine global_numbering(Tdomain)
     if (Tdomain%logicD%SF_local_present) then
         call renumber_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID, DM_FLUID)
     end if
-    ! Create numbering for Solid-Fluid interface
-    !
-    !call renumber_pml_domain(Tdomain, renumS, renumF, renumSpml, renumFpml)
-    ! Compute index of glls that participate in communications
+    do k=0,size(Tdomain%sSurfaces)-1
+        call renumber_surface(Tdomain, Tdomain%sSurfaces(k)%surf_sl, DM_SOLID)
+        call renumber_surface(Tdomain, Tdomain%sSurfaces(k)%surf_fl, DM_FLUID)
+        call renumber_surface(Tdomain, Tdomain%sSurfaces(k)%surf_spml, DM_SOLID_PML)
+        call renumber_surface(Tdomain, Tdomain%sSurfaces(k)%surf_fpml, DM_FLUID_PML)
+        write(*,*) "FOUND SURFACE :", Tdomain%sSurfaces(k)%name
+        write(*,*) "WITH S/F/SP/FP:", Tdomain%sSurfaces(k)%surf_sl%nbtot, "/", &
+            Tdomain%sSurfaces(k)%surf_fl%nbtot, "/", &
+            Tdomain%sSurfaces(k)%surf_spml%nbtot, "/", &
+            Tdomain%sSurfaces(k)%surf_fpml%nbtot
+    end do
     call prepare_comm_vector(Tdomain,Tdomain%Comm_data)
-!    call prepare_comm_vector_SF(Tdomain,Tdomain%n_glob_points,renumSF,Tdomain%Comm_SolFlu)
-!     call debug_comm_vector(Tdomain, rank, 0, 1, Tdomain%Comm_data)
-!     call debug_comm_vector(Tdomain, rank, 0, 2, Tdomain%Comm_data)
-!     call debug_comm_vector(Tdomain, rank, 0, 3, Tdomain%Comm_data)
-!     call debug_comm_vector(Tdomain, rank, 3, 0, Tdomain%Comm_data)
-
 
 end subroutine global_numbering
 
@@ -151,10 +153,6 @@ subroutine renumber_global_gll_nodes(Tdomain)
         icount(dom) = icount(dom) + 1
     enddo
 
-    Tdomain%nbOuterSPMLNodes = solid_abs_count
-    Tdomain%nbOuterFPMLNodes = fluid_abs_count
-    allocate(Tdomain%OuterSPMLNodes(0:Tdomain%nbOuterSPMLNodes-1))
-    allocate(Tdomain%OuterFPMLNodes(0:Tdomain%nbOuterFPMLNodes-1))
     ! total number of GLL points (= degrees of freedom)
     Tdomain%n_glob_points = icount(0)
     Tdomain%ngll_s = icount(DM_SOLID)
