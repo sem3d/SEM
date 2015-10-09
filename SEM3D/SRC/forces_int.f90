@@ -56,7 +56,11 @@ contains
                 do k = 0,m3-1
                     do j = 0,m2-1
                         do i = 0,m1-1
-                            Depla(i,j,k,i_dir) = champs1%Depla(Elem%Isol(i,j,k),i_dir)
+                            if (nl_flag == 1) then
+                                Depla(i,j,k,i_dir) = champs1%Veloc(Elem%Isol(i,j,k),i_dir)
+                            else
+                                Depla(i,j,k,i_dir) = champs1%Depla(Elem%Isol(i,j,k),i_dir)
+                            end if
                         enddo
                     enddo
                 enddo
@@ -193,7 +197,7 @@ contains
                             Elem%Invgrad, &
                             htprimex, htprimey, htprimez, &
                             Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
-                            DXX, DXY, DXZ, DYX, DYY, DYZ, DZX, DZY, DZZ, &
+                            DXX*dt, DXY*dt, DXZ*dt, DYX*dt, DYY*dt, DYZ*dt, DZX*dt, DZY*dt, DZZ*dt, &
                             Elem%Mu, Elem%Lambda, m1, m2 ,m3, &
                             EpsPl_ij_N_el, Sigma_ij_N_el, &
                             Xkin_ij_N_el, Riso_N_el, &

@@ -269,7 +269,7 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
                 !---
                 syy = xla2mu * DYY(i,j,k) + xla  * (DXX(i,j,k) + DZZ(i,j,k))
                 !---
-                syz = xmu * (DYZ(i,j,k)  + DZY(i,j,k) )
+                syz = xmu * (DYZ(i,j,k)  + DZY(i,j,k))
                 !---
                 szz = xla2mu * DZZ(i,j,k) + xla  * (DXX(i,j,k) + DYY(i,j,k))
                 !---
