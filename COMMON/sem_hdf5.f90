@@ -341,7 +341,7 @@ contains
         call h5dget_space_f(dset_id, space_id, hdferr)
         if (hdferr .ne. 0) stop "read_dset_3d_real : h5dgetspace KO"
         call h5sget_simple_extent_dims_f(space_id, dims, maxdims, hdferr)
-        if (hdferr .ne. 2) stop "read_dset_3d_real : h5sgetdim KO "
+        if (hdferr .ne. 3) stop "read_dset_3d_real : h5sgetdim KO "
         allocate(data(i0:dims(1)+i0-1, i1:dims(2)+i1-1, i2:dims(3)+i2-1))
         call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
         if (hdferr .ne. 0) stop "read_dset_3d_real : h5dread KO"
