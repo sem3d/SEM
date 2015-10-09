@@ -474,7 +474,7 @@ contains
             n_solid=Tdomain%n_sls
             aniso=Tdomain%aniso
 
-            if((solid) .and. (.not. Tdomain%specel(n_el)%PML) .and. (flag_gradU .ge. 1)) then   ! SOLID PART OF THE DOMAIN
+            if((solid) .and. (.not. Tdomain%specel(n_el)%PML) .and. (flag_gradU)) then   ! SOLID PART OF THE DOMAIN
                 call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,0),DXX,DYX,DZX)
                 call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,1),DXY,DYY,DZY)
                 call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
@@ -538,7 +538,7 @@ contains
                                 = grandeur(offset(OUT_PRESSION)) + weight*fieldP(i,j,k)
                         end if
 
-                        if ((solid) .and. (.not. Tdomain%specel(n_el)%PML) .and. (flag_gradU .ge. 1)) then
+                        if ((solid) .and. (.not. Tdomain%specel(n_el)%PML) .and. (flag_gradU)) then
 
                             eps_trace = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
 
