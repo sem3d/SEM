@@ -46,7 +46,7 @@ Le fichier ``mater.in`` décrit combien de matériaux sont utilisés dans le mod
  `1` est le nombre de matériaux dans le modèle.
 
 La deuxième ligne décrit le type de matériau (``S`` matériau solide et
-``F`` matériau fluide).Pour chaque matériau, on déclare
+``F`` matériau fluide). Pour chaque matériau, on déclare
 successivement, la vitesse de propagation de l'onde de pression,
 vitesse de l'onde de cisaillement, la densité du matériau, le nombre
 de GLLs dans les trois directions( ``x``, ``y`` et ``z``), le pas de
