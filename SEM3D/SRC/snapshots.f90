@@ -968,7 +968,7 @@ contains
                                     xmu     = Tdomain%specel(n)%Mu(i,j,k)
                                     xlambda = Tdomain%specel(n)%Lambda(i,j,k)
                                     xkappa  = Tdomain%specel(n)%Kappa(i,j,k)
-                                    if (n_solid>0) then
+                                    if (n_solid>0.and.domain_type==DM_SOLID) then
                                        onemSbeta=Tdomain%specel(n)%sl%onemSbeta(i,j,k)
                                        onemPbeta=Tdomain%specel(n)%sl%onemPbeta(i,j,k)
                                        !  mu_relaxed -> mu_unrelaxed
