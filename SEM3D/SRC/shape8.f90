@@ -253,8 +253,8 @@ contains
                 + nodes(i,3)*(1-xi) )
         end do
         call cross_prod(d_xi, d_eta, normal)
-        norm = sqrt(normal(0)**2 + normal(1)**2+normal(2)**2)
-        normal = normal/norm
+!        norm = sqrt(normal(0)**2 + normal(1)**2+normal(2)**2)
+!        normal = normal/norm
     end subroutine normal_face
     !---------------------------------------------------------------------------
     subroutine nodes_coord_8(Control_Nodes,n_glob_nodes,Coord_Nodes,coord)
