@@ -17,6 +17,7 @@
 !! \param type (domain), intent (INOUT) Tdomain
 !<
 
+
 module semconfig
     use semdatafiles
     use mesh3d
@@ -221,6 +222,7 @@ contains
         use semdatafiles
         use orientation
         use mpi
+        use build_prop_files
         implicit none
 
         type(domain), intent(inout) :: Tdomain
@@ -317,6 +319,14 @@ contains
                 endif
             enddo
         endif
+
+        Tdomain%any_PropOnFile = .false.
+        do i = 0,Tdomain%n_mat-1
+            if(propOnFile(Tdomain, i)) then
+                Tdomain%any_PropOnFile = .true.
+                exit
+            end if
+        enddo
 
         if(nRandom > 0) then
             !Building element list in each subdomain

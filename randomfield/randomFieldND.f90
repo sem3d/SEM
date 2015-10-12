@@ -64,12 +64,12 @@ contains
         if(rang==0) write(*,*) "        Fitting Statistics"
         call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim, comm, contrib)
 
-        if(rang==0) then
-            write(*,*) " "
-            write(*,*) "BEFORE stdGauss Fitting"
-            write(*,*) "    evntAvg = ", evntAvg
-            write(*,*) "    evntVar = ", evntStdDev**2
-        end if
+        !if(rang==0) then
+        !    write(*,*) " "
+        !    write(*,*) "BEFORE stdGauss Fitting"
+        !    write(*,*) "    evntAvg = ", evntAvg
+        !    write(*,*) "    evntVar = ", evntStdDev**2
+        !end if
 
         do i = 1, Nmc
             !            write(*,*) " i = ", i
@@ -79,14 +79,14 @@ contains
         call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim, comm, contrib)
         if(rang==0) then
             !                write(*,*) "  ", evntAvg
-            write(*,*) "AFTER stdGauss Fitting"
-            write(*,*) "    evntAvg = ", evntAvg
-            write(*,*) "    evntVar = ", evntStdDev**2
-            write(*,*) " "
+            !write(*,*) "AFTER stdGauss Fitting"
+            !write(*,*) "    evntAvg = ", evntAvg
+            !write(*,*) "    evntVar = ", evntStdDev**2
+            !write(*,*) " "
         end if
 
         !Modifying Field Mean and Variance
-        if(rang==0) write(*,*) "        Tranforming First-Order Marginal"
+        !if(rang==0) write(*,*) "        Tranforming First-Order Marginal"
         if(contrib == 1) randField(:,:) = randField(:,:) * sqrt(normalVar) &
             + normalAvg;
 
@@ -95,6 +95,7 @@ contains
         end if
 
         call set_StatisticsUnstruct_MPI(randField, rang, evntAvg, evntStdDev, nDim, comm, contrib)
+
         if(rang==0) then
             write(*,*) "First Order Marginal = ", margiFirst
             write(*,*) "   req average  = ", fieldAvg
