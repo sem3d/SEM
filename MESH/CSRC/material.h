@@ -51,6 +51,7 @@ public:
             m_type = DM_SOLID_PML;
             break;
         case 'S':
+        case 'R':
             m_type = DM_SOLID;
             break;
         case 'F':
