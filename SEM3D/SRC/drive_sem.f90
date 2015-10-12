@@ -584,9 +584,9 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         if (sortie_capteur) call save_capteur(Tdomain, ntime)
 
 
-!---------------------------------------------------------!
-    !- SAVE TO EVENTUAL RESTART
-!---------------------------------------------------------!
+        !---------------------------------------------------------!
+        !- SAVE TO EVENTUAL RESTART
+        !---------------------------------------------------------!
         if(protection /= 0)then
             call flushAllCapteurs(Tdomain)
             call save_checkpoint(Tdomain, Tdomain%TimeD%rtime, ntime, Tdomain%TimeD%dtmin, isort)

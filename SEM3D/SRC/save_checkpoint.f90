@@ -263,8 +263,8 @@ subroutine write_Rvol(Tdomain, nmax, elem_id)
             enddo
         enddo
     enddo
-    deallocate(data)
     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+    deallocate(data)
     call h5dclose_f(dset_id, hdferr)
 end subroutine write_Rvol
 
@@ -334,12 +334,12 @@ subroutine write_Rxyz(Tdomain, nmax, elem_id)
             enddo
         enddo
     enddo
-    deallocate(data_xx,data_yy,data_xy,data_xz,data_yz)
     call h5dwrite_f(dset_id_xx, H5T_NATIVE_DOUBLE, data_xx, dims, hdferr)
     call h5dwrite_f(dset_id_yy, H5T_NATIVE_DOUBLE, data_yy, dims, hdferr)
     call h5dwrite_f(dset_id_xy, H5T_NATIVE_DOUBLE, data_xy, dims, hdferr)
     call h5dwrite_f(dset_id_xz, H5T_NATIVE_DOUBLE, data_xz, dims, hdferr)
     call h5dwrite_f(dset_id_yz, H5T_NATIVE_DOUBLE, data_yz, dims, hdferr)
+    deallocate(data_xx,data_yy,data_xy,data_xz,data_yz)
     call h5dclose_f(dset_id_xx, hdferr)
     call h5dclose_f(dset_id_yy, hdferr)
     call h5dclose_f(dset_id_xy, hdferr)
@@ -410,12 +410,12 @@ subroutine write_EpsilonDev(Tdomain, nmax, elem_id)
             enddo
         enddo
     enddo
-    deallocate(data_xx,data_yy,data_xy,data_xz,data_yz)
     call h5dwrite_f(dset_id_xx, H5T_NATIVE_DOUBLE, data_xx, dims, hdferr)
     call h5dwrite_f(dset_id_yy, H5T_NATIVE_DOUBLE, data_yy, dims, hdferr)
     call h5dwrite_f(dset_id_xy, H5T_NATIVE_DOUBLE, data_xy, dims, hdferr)
     call h5dwrite_f(dset_id_xz, H5T_NATIVE_DOUBLE, data_xz, dims, hdferr)
     call h5dwrite_f(dset_id_yz, H5T_NATIVE_DOUBLE, data_yz, dims, hdferr)
+    deallocate(data_xx,data_yy,data_xy,data_xz,data_yz)
     call h5dclose_f(dset_id_xx, hdferr)
     call h5dclose_f(dset_id_yy, hdferr)
     call h5dclose_f(dset_id_xy, hdferr)
@@ -591,6 +591,7 @@ subroutine save_checkpoint (Tdomain, rtime, it, dtmin, isort)
     call write_attr_real(fid, "dtmin", dtmin)
     call write_attr_int(fid, "iteration", it)
     call write_attr_int(fid, "isort", isort)
+
     if (Tdomain%ngll_s.gt.0) then
         call write_dataset(elem_id, "sl_Veloc", Tdomain%champs0%Veloc)
         call write_dataset(elem_id, "sl_Displ", Tdomain%champs0%Depla)
@@ -605,9 +606,11 @@ subroutine save_checkpoint (Tdomain, rtime, it, dtmin, isort)
     if (Tdomain%ngll_pmlf.gt.0) then
         call write_dataset(elem_id, "fpml_VelPhi", Tdomain%champs0%fpml_VelPhi)
     end if
+
     call write_EpsilonVol(Tdomain, offset(4), elem_id)
     call write_EpsilonDev(Tdomain, offset(7), elem_id)
     call write_Stress(Tdomain, offset(8), elem_id)
+
     call write_Veloc_Fluid_PML(Tdomain, offset(12), elem_id)
     call write_Rvol(Tdomain, offset(5), elem_id)
     call write_Rxyz(Tdomain, offset(6), elem_id)
