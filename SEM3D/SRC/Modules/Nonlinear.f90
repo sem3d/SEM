@@ -71,65 +71,65 @@ contains
 
     end subroutine tensor_components
 
-    subroutine check_plasticity (dSigma_ij_trial, Sigma_ij_start, X_ij, R, sigma_yld, &
-                                 st_epl, alpha_elp, Sigma_ij_on_F, F_final)
+    subroutine check_plasticity (Sigma_ij_trial, Sigma_ij_start, X_ij, R, sigma_yld, &
+        st_epl, alpha_elp, Sigma_ij_on_F)
 
         ! CHECK PLASTIC CONSISTENCY (KKT CONDITIONS)
 
         implicit none
-        real, dimension(0:5), intent(in) :: dSigma_ij_trial ! stress trial increment
-        real, dimension(0:5), intent(in) ::  Sigma_ij_start ! initial stress state
-        real, dimension(0:5), intent(in) ::      X_ij       ! current back-stress state
-        real,                 intent(in) ::  R              ! current yld locus size
-        real,                 intent(in) ::  sigma_yld      ! first yield limit
+        real, dimension(0:5), intent(in) :: Sigma_ij_trial ! stress trial increment
+        real, dimension(0:5), intent(in) :: Sigma_ij_start ! initial stress state
+        real, dimension(0:5), intent(in) :: X_ij           ! current back-stress state
+        real,                 intent(in) :: R              ! current yld locus size
+        real,                 intent(in) :: sigma_yld      ! first yield limit
 
         real, dimension(0:5), intent(out):: Sigma_ij_on_F   ! stress state on F = 0
         real,                 intent(out):: alpha_elp       ! percentage of elastic strain
-        real,                 intent(out):: F_final         ! should be -tol < F < tol
         integer,              intent(out):: st_epl          ! elasto-plastic status
 
-        real                             :: F_start, F_final_trial
-        real, dimension(0:5)             :: gradF_start, gradF_trial, gradF_final
+        real                             :: F_start    , F_final_trial
+        real, dimension(0:5)             :: gradF_start, gradF_trial
+        real, dimension(0:5)             :: dSigma_ij_trial
+
+        ! Stress trial increment
+        dSigma_ij_trial = Sigma_ij_trial - Sigma_ij_start
 
         ! Yield function at Sigma_ij_start
-        call mises_yld_locus (Sigma_ij_start, X_ij, R, sigma_yld, F_start, gradF_start)
+        call mises_yld_locus (Sigma_ij_start, X_ij, R, sigma_yld, &
+            F_start, gradF_start)
 
-        ! Yield function at Sigma_ij_start + dSigma_ij_trial
-        call mises_yld_locus (Sigma_ij_start + dSigma_ij_trial, X_ij, R, sigma_yld, &
-                                F_final_trial, gradF_trial)
+        ! Yield function at Sigma_ij_trial
+        call mises_yld_locus (Sigma_ij_trial, X_ij, R, sigma_yld, &
+            F_final_trial, gradF_trial)
 
         ! KKT condition
         if ((F_start .lt. -tol) .and. (F_final_trial .lt. -tol))      then  ! ELASTIC (UN)- LOADING
 
             alpha_elp     = 1
-            Sigma_ij_on_F = Sigma_ij_start + dSigma_ij_trial
-            F_final       = F_final_trial
+            Sigma_ij_on_F = Sigma_ij_trial
             st_epl        = 2
 
         elseif ((F_start .lt. -tol) .and. (F_final_trial .gt. -tol)) then  ! ELASTO-PLASTIC LOADING
 
             alpha_elp     = F_start / (F_start-F_final_trial)
             Sigma_ij_on_F = Sigma_ij_start + dSigma_ij_trial * alpha_elp
-            call mises_yld_locus (Sigma_ij_on_F, X_ij, R, sigma_yld, F_final, gradF_final)
             st_epl        = 1
 
         elseif ((abs(F_start) .le. tol) .and. &
-            (10*sum(dSigma_ij_trial*gradF_start) .lt. -tol))           then  ! ELASTIC UNLOADING
+            (10*sum(dSigma_ij_trial*gradF_start) .lt. -tol))         then  ! ELASTIC UNLOADING
 
             alpha_elp     = 1
-            Sigma_ij_on_F = Sigma_ij_start + dSigma_ij_trial
-            F_final       = F_final_trial
+            Sigma_ij_on_F = Sigma_ij_trial
             st_epl        = 3
 
         elseif ((abs(F_start) .le. tol) .and. &
-            (10*sum(dSigma_ij_trial*gradF_start) .gt. -tol))           then  ! PLASTIC LOADING
+            (10*sum(dSigma_ij_trial*gradF_start) .gt. -tol))         then  ! PLASTIC LOADING
 
             alpha_elp     = 0
             Sigma_ij_on_F = Sigma_ij_start
-            F_final       = F_start
             st_epl        = 1
 
-        elseif (F_start .gt. tol)                                     then  ! START OUTSIDE ELASTIC DOMAIN
+        elseif (F_start .gt. tol)                                    then  ! START OUTSIDE ELASTIC DOMAIN
             write(*,*) "F_start > 0!!"
             write(*,*) "=> reduce tolerance"
         else
@@ -138,7 +138,7 @@ contains
 
     end subroutine check_plasticity
 
-    subroutine plastic_corrector (Sigma_ij_1, dEpsilon_ij_alpha, X_ij_1, sigma_yld, &
+    subroutine plastic_corrector (dEpsilon_ij_alpha, Sigma_ij_1, X_ij_1, sigma_yld, &
         R_1, b_lmc, Rinf_lmc, C_lmc, kapa_lmc, mu, lambda, &
         PlastMult_1)
 
@@ -149,7 +149,7 @@ contains
         real, dimension(0:5), intent(inout) :: X_ij_1               ! starting back stress
         real,                 intent(inout) :: R_1                  ! starting mises radius
         real,                 intent(inout) :: PlastMult_1          ! current plastic multiplier
-        real, dimension(0:5), intent(inout) :: dEpsilon_ij_alpha    ! percentage of elastic-plastic strain
+        real, dimension(0:5), intent(inout) :: dEpsilon_ij_alpha       ! percentage of elastic-plastic strain
         real,                 intent(in)    :: sigma_yld            ! first yield limit
         real,                 intent(in)    :: b_lmc, Rinf_lmc      ! Lamaitre and Chaboche parameters (isotropic hardening)
         real,                 intent(in)    :: C_lmc, kapa_lmc      ! Lamaitre and Chaboche parameters (kinematic hardening)
@@ -187,7 +187,7 @@ contains
 
             ! PLASTIC MULTIPLIER
             call compute_plastic_modulus(dEpsilon_ij_alpha, Sigma_ij_0, X_ij_0, R_0, mu, lambda, sigma_yld, &
-                                          b_lmc, Rinf_lmc, C_lmc, kapa_lmc, dPlastMult_1)
+                b_lmc, Rinf_lmc, C_lmc, kapa_lmc, dPlastMult_1)
 
             dPlastMult_0 = dPlastMult_0 + dPlastMult_1
 
@@ -346,8 +346,8 @@ contains
             Sigma_ij_1 = Sigma_ij_0 + alpha1 * gradF_0
             call tensor_components (Sigma_ij_1, Sigma_ij_dev_1)
 
-            call tau_eq_mises((Sigma_ij_dev_1 - Sigma_ij_dev_0), err0)
-            call tau_eq_mises((Sigma_ij_dev_0 - X_ij), err1)
+            call tau_mises((Sigma_ij_dev_1 - Sigma_ij_dev_0), err0)
+            call tau_mises((Sigma_ij_dev_0 - X_ij), err1)
 
             err0 = err0/err1
 

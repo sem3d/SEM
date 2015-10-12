@@ -466,7 +466,7 @@ subroutine internal_forces(Tdomain,champs1)
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
                 Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
                 Tdomain%sSubDomain(mat)%hTprimez, Tdomain%n_sls,Tdomain%aniso,     &
-                Tdomain%specel(n)%solid, champs1)
+                Tdomain%specel(n)%solid, champs1, Tdomain%nl_flag)
         else ! PML
             if (Tdomain%specel(n)%solid)then
                 call pred_sol_pml(Tdomain%specel(n), Tdomain%sSubDomain(mat),Tdomain%TimeD%dtmin, &

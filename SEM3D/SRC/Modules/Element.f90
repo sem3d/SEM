@@ -17,11 +17,11 @@ module selement
     implicit none
 
     type :: lmc_param
-        real :: b_iso
-        real :: Rinf_iso
-        real :: C_kin
-        real :: kapa_kin
-        real :: sigma_yld
+        real, dimension (:,:,:), allocatable :: b_iso
+        real, dimension (:,:,:), allocatable :: Rinf_iso
+        real, dimension (:,:,:), allocatable :: C_kin
+        real, dimension (:,:,:), allocatable :: kapa_kin
+        real, dimension (:,:,:), allocatable :: sigma_yld
     end type lmc_param
 
     type :: nl_param
