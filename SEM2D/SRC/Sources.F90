@@ -13,8 +13,6 @@
 
 module ssources
 
-    ! Modified by Gaetano 13/9/04
-
     type :: elem_source
        integer :: nr
        real :: eta,xi
@@ -27,7 +25,8 @@ module ssources
        real, dimension(2) :: dir
        real, dimension (0:1,0:1) :: moment
        real :: Xsource,Zsource, tau_b,cutoff_freq,amplitude
-       type(elem_source), dimension(:), pointer :: Elem
+       logical :: located_here
+       type(elem_source), dimension(:), allocatable :: Elem
     end type Source
 
 contains
