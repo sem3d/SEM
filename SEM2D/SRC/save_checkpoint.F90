@@ -188,6 +188,14 @@ subroutine read_write_prot(Tdomain,readprot,rtime,dtmin,it,isort)
             endif
         endif
     enddo
+
+    ! Save n_quad for xdmf results visualisation
+    if (readprot .eqv. .true.) then
+        read (61,*) Tdomain%n_quad
+    else
+        write(61,*) Tdomain%n_quad
+    endif
+
     close(61)
 end subroutine read_write_prot
 

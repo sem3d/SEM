@@ -43,7 +43,6 @@ subroutine compute_GLL(Tdomain)
         ! DMLEGL compute the matrix of the first derivatives in GLL points
 
         call zelegl (ngll-1,Tdomain%sSubdomain(i)%GLLcx,Tdomain%sSubdomain(i)%GLLpolx)
-        print*,' gllcx ', Tdomain%sSubdomain(i)%GLLcx
         call welegl (ngll-1, Tdomain%sSubdomain(i)%GLLcx, Tdomain%sSubdomain(i)%GLLpolx, Tdomain%sSubdomain(i)%GLLwx)
         call dmlegl (ngll-1, ngll-1, Tdomain%sSubdomain(i)%GLLcx, Tdomain%sSubdomain(i)%GLLpolx, Tdomain%sSubdomain(i)%hTprimex)
 
@@ -61,7 +60,6 @@ subroutine compute_GLL(Tdomain)
             allocate (Tdomain%sSubdomain(i)%hTprimez (0:ngll-1,0:ngll-1))
 
             call zelegl (ngll-1,Tdomain%sSubdomain(i)%GLLcz,Tdomain%sSubdomain(i)%GLLpolz)
-            print*,' gllcz ', Tdomain%sSubdomain(i)%GLLcz
             call welegl (ngll-1, Tdomain%sSubdomain(i)%GLLcz, Tdomain%sSubdomain(i)%GLLpolz, Tdomain%sSubdomain(i)%GLLwz)
             call dmlegl (ngll-1, ngll-1, Tdomain%sSubdomain(i)%GLLcz, Tdomain%sSubdomain(i)%GLLpolz, Tdomain%sSubdomain(i)%hTprimez)
 

@@ -15,6 +15,7 @@ Documentation SEM IPG-CEA
    tutoriel.rst
    reference.rst
    developpement.rst
+   limitations_et_bugs.rst
 
 
 ..  ==================

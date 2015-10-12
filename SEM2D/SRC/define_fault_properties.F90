@@ -39,6 +39,8 @@ subroutine define_fault_properties (Tdomain)
 
     character (len=MAX_FILE_SIZE) :: fnamef
 
+    c1 = 0.
+    s1 = 0.
     nf = 0
     do n = 0, Tdomain%n_super_object-1
         if (Tdomain%Super_object_type(n) == "F" ) then
