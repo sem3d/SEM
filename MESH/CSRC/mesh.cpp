@@ -49,7 +49,7 @@ void Mesh3D::partition_mesh(int n_parts)
     int ncommon = 1;
     int numflags = 0;
     int ncon=1;
-    int *vwgt=0L;
+    vector<int> vwgt;
     int *vsize=0L;
     int *adjwgt=0L;
     float *tpwgts=0L;
@@ -75,9 +75,30 @@ void Mesh3D::partition_mesh(int n_parts)
 //        m_adjncy[k] = perm[m_adjncy[k]];
 //    }
 //    dump_connectivity("conn2.dat");
+    vwgt.resize(ne);
+    // Define weights
+    for(int k=0;k<ne;++k) {
+        const Material& mat = m_materials[m_mat[k]];
+        switch(mat.m_type) {
+        case DM_SOLID:
+            vwgt[k] = 3;
+            break;
+        case DM_FLUID:
+            vwgt[k] = 1;
+            break;
+        case DM_SOLID_PML:
+            vwgt[k] = 9;
+            break;
+        case DM_FLUID_PML:
+            vwgt[k] = 3;
+            break;
+        default:
+            vwgt[k] = 1;
+        }
+    }
     if (n_parts>1) {
         METIS_PartGraphKway(&ne, &ncon, m_xadj, m_adjncy,
-                            vwgt, vsize, adjwgt, &n_procs, tpwgts, ubvec,
+                            &vwgt[0], vsize, adjwgt, &n_procs, tpwgts, ubvec,
                             options, &edgecut, &m_procs[0]);
     } else {
         for(int k=0;k<ne;++k) m_procs[k]=0;
