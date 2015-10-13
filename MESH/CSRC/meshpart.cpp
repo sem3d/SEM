@@ -167,9 +167,9 @@ void Mesh3DPart::handle_neighbour_element(int el)
     // We have a neighbouring element
     // add only those facets, edge, vertice that are in common with our proc
     int e0 = m_mesh.m_elems_offs[el];
-    int dom = m_mesh.get_elem_domain(el);
+    //int dom = m_mesh.get_elem_domain(el);
     int share_pt[8] = {0, 0, 0, 0, 0, 0, 0, 0 };
-    vector<int> elems;;
+    vector<int> elems;
     for(int k=0;k<8;++k) {
         int vertex_id = m_mesh.m_elems[e0+k];
         elems.clear();
@@ -184,38 +184,58 @@ void Mesh3DPart::handle_neighbour_element(int el)
     // Assign all 6 faces
     for(int fc=0;fc<6;++fc) {
         int n[4];
+        // A mask for the domains shared by this face.
+        // since its a face There should be at most two
+        int dommask =  0xffff;
         contact = 0;
         for(int p=0;p<4;++p) {
             int vx = RefFace[fc].v[p];
             n[p] = m_mesh.m_elems[e0 + vx];
+            dommask &= m_mesh.m_vertex_domains[n[p]];
             contact += share_pt[vx];
         }
         if (contact==4) {
-            PFace fc(n,dom);
-            int nf = add_facet(fc);
-            m_comm[source_proc].m_faces[fc]=nf;
-            //printf("Add face p=%d (%d,%d,%d,%d,%d)\n", source_proc, fc.n[0], fc.n[1], fc.n[2], fc.n[3],fc.n[4]);
-        } else if (contact!=0) {
-            //printf("!!Face from part %d with %d nodes in contact with part %d\n", source_proc, contact, m_proc);
+            int added=0;
+            for(int dom=0;dom<=DM_MAX;++dom) {
+                if ((dommask & (1<<dom))==0) continue;
+                PFace fc(n,dom);
+                int nf = add_facet(fc);
+                m_comm[source_proc].m_faces[fc]=nf;
+                ++added;
+            }
+            if (added==0) {
+                printf("ERR: no domain available (%02x) \n", dommask);
+            }
         }
     }
     for(int ed=0;ed<12;++ed) {
         int v0 = RefEdge[ed][0];
         int v1 = RefEdge[ed][1];
+        int dommask = m_mesh.m_vertex_domains[v0] & m_mesh.m_vertex_domains[v1];
         contact = share_pt[v0] + share_pt[v1];
         if (contact==2) {
-            PEdge ed(m_mesh.m_elems[e0 + v0], m_mesh.m_elems[e0 + v1], dom);
-            int ne = add_edge(ed);
-            m_comm[source_proc].m_edges[ed] = ne;
-        } else if (contact!=0) {
-            //printf("!!Edge from part %d with %d nodes in contact with part %d\n", source_proc, contact, m_proc);
+            int added=0;
+            for(int dom=0;dom<=DM_MAX;++dom) {
+                if ((dommask & (1<<dom))==0) continue;
+                PEdge ed(m_mesh.m_elems[e0 + v0], m_mesh.m_elems[e0 + v1], dom);
+                int ne = add_edge(ed);
+                m_comm[source_proc].m_edges[ed] = ne;
+                added++;
+            }
+            if (added==0) {
+                printf("ERR: no domain available (%02x) \n", dommask);
+            }
         }
     }
     for(int vx=0;vx<8;++vx) {
         if (share_pt[vx]==1) {
-            PVertex vert(m_mesh.m_elems[e0 + vx], dom);
-            int nv = add_vertex(vert);
-            m_comm[source_proc].m_vertices[vert] = nv;
+            int dommask = m_mesh.m_vertex_domains[vx];
+            for(int dom=0;dom<=DM_MAX;++dom) {
+                if ((dommask & (1<<dom))==0) continue;
+                PVertex vert(m_mesh.m_elems[e0 + vx], dom);
+                int nv = add_vertex(vert);
+                m_comm[source_proc].m_vertices[vert] = nv;
+            }
         }
     }
 }
@@ -308,6 +328,17 @@ void Mesh3DPart::get_local_vertices_dom(std::vector<int>& doms) const
         for(int p=0;p<2;++p) {
             doms[vx] = it->first.second;
         }
+    }
+}
+
+void Mesh3DPart::global_to_local_ids(std::vector<int>& ids) const
+{
+    std::map<int,int>::const_iterator it, itend;
+    itend = m_nodes_to_id.end();
+    for(int k=0;k<ids.size();++k) {
+        it = m_nodes_to_id.find(ids[k]);
+        if (it!=itend)
+            ids[k] = it->second;
     }
 }
 
@@ -555,22 +586,31 @@ void Mesh3DPart::output_mesh_part()
     h5h_create_attr(fid, "tot_comm_proc", (int)m_comm.size());
     std::map<int,MeshPartComm>::const_iterator it;
     int k=0;
-    std::vector<int> temp;
+    std::vector<int> tdefs, tids;
     for(it=m_comm.begin();it!=m_comm.end();++it,++k) {
         char gproc[200];
         snprintf(gproc, 200, "Proc%04d", k);
         hid_t gid = H5Gcreate(fid, gproc, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         h5h_create_attr(gid, "proc_dest", it->first);
-        h5h_create_attr(gid, "n_faces", (int)it->second.m_faces.size());
-        h5h_create_attr(gid, "n_edges", (int)it->second.m_edges.size());
-        h5h_create_attr(gid, "n_vertices", (int)it->second.m_vertices.size());
-        it->second.get_faces(temp);
-        h5h_write_dset(gid, "faces", temp);
-        it->second.get_edges(temp);
-        h5h_write_dset(gid, "edges", temp);
-        it->second.get_vertices(temp);
-        h5h_write_dset(gid, "vertices", temp);
+        h5h_create_attr(gid, "n_faces", it->second.n_faces());
+        h5h_create_attr(gid, "n_edges", it->second.n_edges());
+        h5h_create_attr(gid, "n_vertices", it->second.n_vertices());
+        it->second.get_faces(tdefs, tids);
+        h5h_write_dset(gid, "faces", tids);
+        global_to_local_ids(tdefs);
+        h5h_write_dset_2d(gid, "faces_def", 4, tdefs); // DEBUG
+        it->second.get_edges(tdefs, tids);
+        h5h_write_dset(gid, "edges", tids);
+        global_to_local_ids(tdefs);
+        h5h_write_dset_2d(gid, "edges_def", 2, tdefs); // DEBUG
+        it->second.get_vertices(tdefs, tids);
+        h5h_write_dset(gid, "vertices", tids);
+        global_to_local_ids(tdefs);
+        h5h_write_dset(gid, "vertices_defs", tdefs);
         H5Gclose(gid);
+        printf("Comm:%d->%d : F/E/V : (%d,%d,%d)\n", m_proc, it->first,
+               (int)it->second.m_faces.size(), (int)it->second.m_edges.size(),
+               (int)it->second.m_vertices.size());
     }
 
     H5Fclose(fid);
@@ -624,19 +664,50 @@ void Mesh3DPart::output_int_scalar(FILE* f, int indent, const char* aname, const
     fprintf(f, "%s</Attribute>\n", sind);
 }
 
+
+void Mesh3DPart::output_int_constant(FILE* f, int indent, const char* aname, const char* atype, int val)
+{
+    char sind[50];
+    for(int k=0;k<indent;++k) sind[k] = ' ';
+    sind[indent] = 0;
+    fprintf(f, "%s<Attribute Name=\"%s\" Center=\"%s\" AttributeType=\"Constant\" Dimensions=\"1\">\n", sind, aname, atype);
+    fprintf(f, "%s  <DataItem Format=\"XML\" Datatype=\"Integer\" Dimensions=\"1\">\n", sind);
+    fprintf(f, "%d\n", val);
+    fprintf(f, "%s  </DataItem>\n", sind);
+    fprintf(f, "%s</Attribute>\n", sind);
+}
+
 void Mesh3DPart::output_mesh_part_xmf()
 {
-    char fname[2048];
-    FILE* f;
+    output_xmf_elements();
+    output_xmf_faces();
+    output_xmf_edges();
+    output_xmf_vertices();
+    output_xmf_comms();
+}
 
-    snprintf(fname, sizeof(fname), "mesh4spec.%04d.xmf", m_proc);
-    f = fopen(fname,"w");
+void Mesh3DPart::output_xmf_header(FILE* f)
+{
     fprintf(f, "<?xml version=\"1.0\" ?>\n");
     fprintf(f, "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\">\n");
     fprintf(f, "<Xdmf Version=\"2.0\" xmlns:xi=\"http://www.w3.org/2001/XInclude\">\n");
     fprintf(f, "  <Domain>\n");
+}
 
-    // Elements
+void Mesh3DPart::output_xmf_footer(FILE* f)
+{
+    fprintf(f, "  </Domain>\n");
+    fprintf(f, "</Xdmf>\n");
+}
+
+void Mesh3DPart::output_xmf_elements()
+{
+    char fname[2048];
+    FILE* f;
+
+    snprintf(fname, sizeof(fname), "mesh4spec.%04d.elems.xmf", m_proc);
+    f = fopen(fname,"w");
+    output_xmf_header(f);
     fprintf(f, "    <Grid name=\"mesh.%04d\">\n", m_proc);
     fprintf(f, "      <Topology Type=\"Hexahedron\" NumberOfElements=\"%d\">\n", n_elems());
     fprintf(f, "        <DataItem Format=\"HDF\" Datatype=\"Int\" Dimensions=\"%d 8\">\n", n_elems());
@@ -652,9 +723,20 @@ void Mesh3DPart::output_mesh_part_xmf()
     output_int_scalar(f, 6, "Mat", "Cell", n_elems(), "/material");
     output_int_scalar(f, 6, "Dom", "Cell", n_elems(), "/domains");
     fprintf(f, "    </Grid>\n");
+    output_xmf_footer(f);
+    fclose(f);
+
+}
 
 
-    // Faces
+void Mesh3DPart::output_xmf_faces()
+{
+    char fname[2048];
+    FILE* f;
+
+    snprintf(fname, sizeof(fname), "mesh4spec.%04d.faces.xmf", m_proc);
+    f = fopen(fname,"w");
+    output_xmf_header(f);
     fprintf(f, "    <Grid name=\"faces.%04d\">\n", m_proc);
     fprintf(f, "      <Topology Type=\"Quadrilateral\" NumberOfElements=\"%d\">\n", n_faces());
     fprintf(f, "        <DataItem Format=\"HDF\" Datatype=\"Int\" Dimensions=\"%d 4\">\n", n_faces());
@@ -668,8 +750,18 @@ void Mesh3DPart::output_mesh_part_xmf()
     fprintf(f, "      </Geometry>\n");
     output_int_scalar(f, 6, "FDom", "Cell", n_faces(), "/faces_dom");
     fprintf(f, "    </Grid>\n");
+    output_xmf_footer(f);
+    fclose(f);
+}
 
-    // Edges
+void Mesh3DPart::output_xmf_edges()
+{
+    char fname[2048];
+    FILE* f;
+
+    snprintf(fname, sizeof(fname), "mesh4spec.%04d.edges.xmf", m_proc);
+    f = fopen(fname,"w");
+    output_xmf_header(f);
     fprintf(f, "    <Grid name=\"edges.%04d\">\n", m_proc);
     fprintf(f, "      <Topology Type=\"Polyline\" NumberOfElements=\"%d\">\n", n_edges());
     fprintf(f, "        <DataItem Format=\"HDF\" Datatype=\"Int\" Dimensions=\"%d 2\">\n", n_edges());
@@ -683,20 +775,56 @@ void Mesh3DPart::output_mesh_part_xmf()
     fprintf(f, "      </Geometry>\n");
     output_int_scalar(f, 6, "FDom", "Cell", n_edges(), "/edges_dom");
     fprintf(f, "    </Grid>\n");
-
-
-/*
-    fprintf(f, "<Attribute Name=\"Mat\" Center=\"Cell\" AttributeType=\"Vector\" Dimensions=\"    44585 3\">");
-    fprintf(f, "<DataItem Format=\"HDF\" Datatype=\"Float\" Precision=\"8\" Dimensions=\"    44585 3\">");
-    fprintf(f, "Rsem0001/sem_field.0000.h5:/displ");
-    fprintf(f, "</DataItem>");
-    fprintf(f, "</Attribute>");
-
-*/
-    fprintf(f, "  </Domain>\n");
-    fprintf(f, "</Xdmf>\n");
+    output_xmf_footer(f);
     fclose(f);
+}
 
+void Mesh3DPart::output_xmf_vertices()
+{
+    char fname[2048];
+    FILE* f;
+
+    snprintf(fname, sizeof(fname), "mesh4spec.%04d.vertices.xmf", m_proc);
+    f = fopen(fname,"w");
+    output_xmf_header(f);
+
+    output_xmf_footer(f);
+    fclose(f);
+}
+
+void Mesh3DPart::output_xmf_comms()
+{
+    char fname[2048];
+    FILE* f;
+
+    snprintf(fname, sizeof(fname), "mesh4spec.%04d.comms.xmf", m_proc);
+    f = fopen(fname,"w");
+    output_xmf_header(f);
+
+    fprintf(f, "  <Grid name=\"comms.%04d\" GridType=\"Collection\" CollectionType=\"Spatial\">\n", m_proc);
+    int k=0;
+    std::map<int,MeshPartComm>::const_iterator it;
+    for(it=m_comm.begin();it!=m_comm.end();++it,++k) {
+        int dest = it->first;
+
+        // Edges
+        fprintf(f, "    <Grid name=\"comms.%04d.%04d.e\">\n", m_proc, dest);
+        int n_edges = it->second.n_edges();
+        fprintf(f, "      <Topology Type=\"Polyline\" NumberOfElements=\"%d\">\n", n_edges);
+        fprintf(f, "        <DataItem Format=\"HDF\" Datatype=\"Int\" Dimensions=\"%d 2\">\n", n_edges);
+        fprintf(f, "mesh4spec.%04d.h5:/Proc%04d/edges_def\n",m_proc, k);
+        fprintf(f, "        </DataItem>\n");
+        fprintf(f, "      </Topology>\n");
+        fprintf(f, "      <Geometry Type=\"XYZ\">\n");
+        fprintf(f, "        <DataItem Format=\"HDF\" Datatype=\"Float\" Precision=\"8\" Dimensions=\"%d 3\">\n", n_nodes());
+        fprintf(f, "mesh4spec.%04d.h5:/local_nodes\n", m_proc);
+        fprintf(f, "        </DataItem>\n");
+        fprintf(f, "      </Geometry>\n");
+        fprintf(f, "    </Grid>\n");
+    }
+    fprintf(f, "  </Grid>\n");
+    output_xmf_footer(f);
+    fclose(f);
 }
 
 

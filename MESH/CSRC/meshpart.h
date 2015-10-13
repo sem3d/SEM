@@ -42,22 +42,32 @@ public:
     edge_map_t m_edges;
     face_map_t m_faces;
 
-    void get_faces(std::vector<int>& tmp) const {
-        tmp.clear();
+    int n_faces() const { return m_faces.size(); }
+    int n_edges() const { return m_edges.size(); }
+    int n_vertices() const { return m_vertices.size(); }
+
+    void get_faces(std::vector<int>& defs, std::vector<int>& ids) const {
+        defs.clear();
+        ids.clear();
         for(face_map_t::const_iterator it=m_faces.begin();it!=m_faces.end();++it) {
-            tmp.push_back(it->second);
+            for(int k=0;k<4;++k) defs.push_back(it->first.n[k]);
+            ids.push_back(it->second);
         }
     }
-    void get_edges(std::vector<int>& tmp) const {
-        tmp.clear();
+    void get_edges(std::vector<int>& defs, std::vector<int>& ids) const {
+        defs.clear();
+        ids.clear();
         for(edge_map_t::const_iterator it=m_edges.begin();it!=m_edges.end();++it) {
-            tmp.push_back(it->second);
+            for(int k=0;k<2;++k) defs.push_back(it->first.n[k]);
+            ids.push_back(it->second);
         }
     }
-    void get_vertices(std::vector<int>& tmp) const {
-        tmp.clear();
+    void get_vertices(std::vector<int>& defs, std::vector<int>& ids) const {
+        defs.clear();
+        ids.clear();
         for(vertex_map_t::const_iterator it=m_vertices.begin();it!=m_vertices.end();++it) {
-            tmp.push_back(it->second);
+            defs.push_back(it->first.first);
+            ids.push_back(it->second);
         }
     }
 };
@@ -104,7 +114,10 @@ public:
     void write_coupling_interface(hid_t fid, const char* pfx, int d0, int d1);
     void output_int_scalar(FILE* f, int indent, const char* aname,
                            const char* atype, int n0, const char* field);
+    void output_int_constant(FILE* f, int indent, const char* aname, const char* atype, int val);
     void reorder_comm(MeshPartComm& comm);
+    void global_to_local_ids(std::vector<int>& ids) const;
+
 protected:
     const Mesh3D& m_mesh;
     int m_proc;
@@ -128,6 +141,14 @@ protected:
     void output_local_mesh(hid_t fid);
     void output_surface(hid_t fid, const Surface* surf);
     void write_surface_dom(hid_t gid, const Surface* surf, const char* pfx, int dom);
+
+    void output_xmf_elements();
+    void output_xmf_faces();
+    void output_xmf_edges();
+    void output_xmf_vertices();
+    void output_xmf_comms();
+    void output_xmf_header(FILE* f);
+    void output_xmf_footer(FILE* f);
 };
 
 #endif
