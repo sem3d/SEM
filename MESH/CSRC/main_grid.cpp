@@ -36,8 +36,8 @@ int main(int argc, char**argv)
     mesh.read_materials("mater.in");
     desc.init_rectangular_mesh(mesh);
     mesh.write_materials("material.input");
-    mesh.partition_mesh(NPROCS);
     mesh.build_vertex_to_elem_map();
+    mesh.partition_mesh(NPROCS);
 
     for(int part=0;part<NPROCS;++part) {
 	Mesh3DPart loc(mesh, part);

@@ -30,8 +30,8 @@ int main(int argc, char**argv)
 
     mesh.read_materials("material.input");
     mesh.read_mesh_file(argv[2]);
-    mesh.partition_mesh(NPROCS);
     mesh.build_vertex_to_elem_map();
+    mesh.partition_mesh(NPROCS);
 
     for(int part=0;part<NPROCS;++part) {
 	Mesh3DPart loc(mesh, part);
