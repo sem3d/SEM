@@ -298,6 +298,19 @@ void Mesh3DPart::get_local_edges(std::vector<int>& edges, std::vector<int>& doms
     }
 }
 
+void Mesh3DPart::get_local_vertices_dom(std::vector<int>& doms) const
+{
+    doms.resize(m_vertex_to_id.size());
+    vertex_map_t::const_iterator it;
+    int vx=0;
+    for(it=m_vertex_to_id.begin();it!=m_vertex_to_id.end();++it) {
+        vx = it->second;
+        for(int p=0;p<2;++p) {
+            doms[vx] = it->first.second;
+        }
+    }
+}
+
 void Mesh3DPart::get_face_coupling(int d0, int d1, std::vector<int>& cpl, std::vector<int>& orient) const
 {
     bool swapped=false;
@@ -458,6 +471,8 @@ void Mesh3DPart::output_local_mesh(hid_t fid)
         edge_doms[tmpi1[k]]++;
     }
     h5h_write_dset_2d(fid, "vertices", n_elems(), 8, &m_elems_vertices[0]);
+    get_local_vertices_dom(tmpi);
+    h5h_write_dset(fid, "vertices_dom", n_vertices(), &tmpi[0]);
     //
     printf("%04d : number of elements = (tot=%d/fpml=%d/spml=%d/fl=%d/sol=%d)\n", m_proc, n_elems(),
            elem_doms[1],elem_doms[2],elem_doms[3],elem_doms[4]);

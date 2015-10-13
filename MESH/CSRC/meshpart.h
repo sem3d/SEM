@@ -95,6 +95,7 @@ public:
     void get_local_materials(std::vector<int>& mats, std::vector<int>& doms) const;
     void get_local_faces(std::vector<int>& faces, std::vector<int>& doms) const;
     void get_local_edges(std::vector<int>& edges, std::vector<int>& doms) const;
+    void get_local_vertices_dom(std::vector<int>& doms) const;
     void get_face_coupling(int d0, int d1, std::vector<int>& cpl, std::vector<int>& orient) const;
     void get_edge_coupling(int d0, int d1, std::vector<int>& cpl) const;
     void get_vertex_coupling(int d0, int d1, std::vector<int>& cpl) const;
