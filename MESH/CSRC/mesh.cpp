@@ -222,10 +222,19 @@ void Mesh3D::build_vertex_to_elem_map()
 {
     int nel = n_elems();
     m_vertex_to_elem.init(nel);
+    m_vertex_domains.clear();
+    m_vertex_domains.resize(n_vertices(), 0);
     for(int i=0;i<nel;++i) {
         for(int k=m_elems_offs[i];k<m_elems_offs[i+1];++k) {
-            m_vertex_to_elem.add_link(m_elems[k], i);
+            int vtx = m_elems[k];
+            int domain = m_materials[m_mat[i]].domain();
+            m_vertex_to_elem.add_link(vtx, i);
+            m_vertex_domains[vtx] |= (1<<domain);
+//            printf("VX[%d] dom=%d/%02x, %02x\n", vtx, domain, (int)(1<<domain), m_vertex_domains[vtx]);
         }
+    }
+    for(int k=0;k<n_vertices();++k) {
+        printf("VX[%d] dom=%02x\n", k, m_vertex_domains[k]);
     }
 }
 

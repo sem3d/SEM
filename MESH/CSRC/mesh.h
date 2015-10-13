@@ -87,6 +87,7 @@ public:
     std::vector<int> m_mat;  ///< size=n_elems; material index for element
     std::vector<int> m_nelems_per_proc; // ?? number of elements for each procs
     std::vector<Material> m_materials;
+    std::vector<unsigned int> m_vertex_domains;
     VertexElemMap  m_vertex_to_elem;
     void build_vertex_to_elem_map();
     // A map of surfaces, indexed by names
