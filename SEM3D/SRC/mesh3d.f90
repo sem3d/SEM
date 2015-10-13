@@ -134,42 +134,48 @@ contains
         ! Faces and elements properties related to faces
         call read_dataset(fid, "faces", itemp2)
         call read_dataset(fid, "faces_def", itemp2b)
+        call read_dataset(fid, "faces_dom", itemp)
 
         allocate(Tdomain%sFace(0:Tdomain%n_face-1))
         do i=0,Tdomain%n_face-1
             call init_face(Tdomain%sFace(i))
             Tdomain%sFace(i)%inodes = itemp2b(:,i+1)
+            Tdomain%sFace(i)%domain = itemp(i+1)
         enddo
         do i = 0, Tdomain%n_elem-1
             Tdomain%specel(i)%Near_Faces(0:5) = itemp2(:,i+1)
         enddo
-        deallocate(itemp2, itemp2b)
+        deallocate(itemp2, itemp2b, itemp)
 
         ! Edges
         call read_dataset(fid, "edges", itemp2)
         call read_dataset(fid, "edges_def", itemp2b)
+        call read_dataset(fid, "edges_dom", itemp)
 
         allocate(Tdomain%sEdge(0:Tdomain%n_edge-1))
         do i=0,Tdomain%n_edge-1
             call init_edge(Tdomain%sEdge(i))
             Tdomain%sEdge(i)%inodes = itemp2b(:,i+1)
+            Tdomain%sEdge(i)%domain = itemp(i+1)
         enddo
         do i = 0, Tdomain%n_elem-1
             Tdomain%specel(i)%Near_Edges(0:11) = itemp2(:,i+1)
         enddo
-        deallocate(itemp2, itemp2b)
+        deallocate(itemp2, itemp2b, itemp)
 
         ! Vertices
         call read_dataset(fid, "vertices", itemp2)
+        call read_dataset(fid, "vertices_dom", itemp)
 
         allocate(Tdomain%sVertex(0:Tdomain%n_vertex-1))
         do i=0,Tdomain%n_vertex-1
             call init_vertex(Tdomain%sVertex(i))
+            Tdomain%sVertex(i)%domain = itemp(i+1)
         enddo
         do i = 0,Tdomain%n_elem-1
             Tdomain%specel(i)%Near_Vertices(0:7) = itemp2(:,i+1)
         enddo
-        deallocate(itemp2)
+        deallocate(itemp2, itemp)
 
     end subroutine read_mesh_elements
 

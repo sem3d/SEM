@@ -602,6 +602,8 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
                 nflupml = nflupml + temp
             case (DM_FLUID)
                 nflu = nflu + temp
+            case (-1)
+                stop 1
             end select
         enddo
         ! Edges
@@ -617,6 +619,8 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
                 nflupml = nflupml + temp
             case (DM_FLUID)
                 nflu = nflu + temp
+            case (-1)
+                stop 1
             end select
         enddo
         ! Vertices
@@ -631,6 +635,8 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
                 nflupml = nflupml + 1
             case (DM_FLUID)
                 nflu = nflu + 1
+            case (-1)
+                stop 1
             end select
         enddo
 

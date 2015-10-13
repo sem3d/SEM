@@ -376,8 +376,6 @@ contains
 
         close(13)
 
-
-        
         !- GLL properties in elements, on faces, edges.
         do i = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(i)%mat_index
@@ -390,7 +388,10 @@ contains
         call apply_mat_to_faces(Tdomain)
         call apply_mat_to_edges(Tdomain)
         call apply_mat_to_vertices(Tdomain)
-
+        call apply_interface(Tdomain, Tdomain%intSolPml, DM_SOLID, DM_SOLID_PML)
+        call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID, DM_FLUID_PML)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID, DM_FLUID)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_PML, DM_FLUID_PML)
     end subroutine read_material_file
 
 

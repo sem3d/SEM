@@ -61,7 +61,10 @@ contains
                     Tdomain%sFace(nf)%ngll1 = ngll(face_dir(1,j))
                     Tdomain%sFace(nf)%ngll2 = ngll(face_dir(0,j))
                 end if
-                Tdomain%sFace(nf)%domain = dom
+                if (Tdomain%sFace(nf)%domain /= dom) then
+                    write(*,*) "Error: inconsistency detected in apply_mat_to_faces"
+                    stop 1
+                end if
             end do
         end do
 
@@ -88,7 +91,10 @@ contains
                     eledge(k) = Tdomain%specel(i)%Control_nodes(edge_def(k,j))
                 end do
                 Tdomain%sEdge(ne)%ngll = ngll(edge_axis(j))
-                Tdomain%sEdge(ne)%domain = dom
+                if (Tdomain%sEdge(ne)%domain /= dom) then
+                    write(*,*) "Error: inconsistency detected in apply_mat_to_edges"
+                    stop 1
+                end if
             end do
         end do
     end subroutine apply_mat_to_edges
@@ -104,10 +110,73 @@ contains
             dom = get_domain(Tdomain%sSubDomain(mat))
             do j = 0,7
                 nv = Tdomain%specel(i)%Near_Vertices(j)
-                Tdomain%sVertex(nv)%domain = dom
+                if (Tdomain%sVertex(nv)%domain /= dom) then
+                    write(*,*) "Error: inconsistency detected in apply_mat_to_vertices"
+                    stop 1
+                end if
             end do
         end do
     end subroutine apply_mat_to_vertices
+
+    ! make sure face,edge,vertices domains are set
+    ! and that ngll on both sides match
+    !
+    ! single surface element without a 3d hex associated can happen
+    ! at processor boundary. It's the role of this function to make
+    ! sure those are correctly initialised
+    subroutine apply_interface(Tdomain, inter, d0, d1)
+        type(domain), intent(inout) :: Tdomain
+        type(inter_num), intent(in) :: inter
+        integer, intent(in) :: d0, d1
+        !
+        integer :: k
+        integer :: i0, i1
+        integer :: interface_ok
+
+        do k=0,inter%surf0%n_faces-1
+            i0 = inter%surf0%if_faces(k)
+            i1 = inter%surf1%if_faces(k)
+            interface_ok = 0
+            if (Tdomain%sFace(i0)%ngll1 == 0) then
+                Tdomain%sFace(i0)%ngll1 = Tdomain%sFace(i1)%ngll1
+                Tdomain%sFace(i0)%ngll2 = Tdomain%sFace(i1)%ngll2
+                interface_ok = interface_ok + 1
+            end if
+            if (Tdomain%sFace(i1)%ngll1 == 0) then
+                Tdomain%sFace(i1)%ngll1 = Tdomain%sFace(i0)%ngll1
+                Tdomain%sFace(i1)%ngll2 = Tdomain%sFace(i0)%ngll2
+                interface_ok = interface_ok + 1
+            endif
+            if ((Tdomain%sFace(i0)%domain /= d0).or.(Tdomain%sFace(i1)%domain /= d1).or.&
+                (interface_ok==2)) then
+                write(*,*) "Inconsistency detected, unhandled interface"
+                stop 1
+            end if
+        end do
+        do k=0,inter%surf0%n_edges-1
+            i0 = inter%surf0%if_edges(k)
+            i1 = inter%surf1%if_edges(k)
+            if ((Tdomain%sEdge(i0)%domain /= d0).or.(Tdomain%sEdge(i1)%domain /= d1).or.&
+                (interface_ok==2).or.((Tdomain%sEdge(i0)%ngll==0).and.(Tdomain%sEdge(i1)%ngll==0))) then
+                write(*,*) "Inconsistency detected, unhandled interface"
+                stop 1
+            end if
+            if (Tdomain%sEdge(i0)%ngll == 0) then
+                Tdomain%sEdge(i0)%ngll = Tdomain%sEdge(i1)%ngll
+            end if
+            if (Tdomain%sEdge(i1)%ngll == 0) then
+                Tdomain%sEdge(i1)%ngll = Tdomain%sEdge(i0)%ngll
+            endif
+        end do
+        do k=0,inter%surf0%n_vertices-1
+            i0 = inter%surf0%if_vertices(k)
+            i1 = inter%surf1%if_vertices(k)
+            if ((Tdomain%sVertex(i0)%domain /= d0).or.(Tdomain%sVertex(i1)%domain /= d1)) then
+                write(*,*) "Inconsistency detected, unhandled interface"
+                stop 1
+            end if
+        end do
+    end subroutine apply_interface
 end module orientation
 
 !! Local Variables:
