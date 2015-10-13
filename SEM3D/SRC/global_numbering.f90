@@ -949,7 +949,7 @@ subroutine reorder_domains(Tdomain)
     !
     integer, dimension(:,:), allocatable :: reorder
     integer :: n, i, j, k
-    integer :: ind, dom
+    integer :: ind, dom, new_ind
     integer :: ngllx, nglly, ngllz
     integer, dimension(0:5) :: oind
     ! Initialize new order : set new order to -1
@@ -968,23 +968,35 @@ subroutine reorder_domains(Tdomain)
                 do i = 0,ngllx-1
                     ind = Tdomain%specel(n)%Idom(i,j,k)
                     dom = Tdomain%specel(n)%domain
-                    reorder(dom, ind) = oind(dom)
-                    Tdomain%specel(n)%Idom(i,j,k) = oind(dom)
-                    oind(dom) = oind(dom) + 1
+                    new_ind = reorder(dom, ind)
+                    if (new_ind==-1) then
+                        new_ind = oind(dom)
+                        oind(dom) = oind(dom) + 1
+                        reorder(dom, ind) = new_ind
+                    end if
+                    Tdomain%specel(n)%Idom(i,j,k) = new_ind
                 end do
             end do
         end do
     end do
 
+    ! This is still usefull for ghost faces/edges/vertices
+    ! from other cpus
     ! Reorder over faces
     do n = 0, Tdomain%n_face-1
         ngllx = Tdomain%sFace(n)%ngll1
         nglly = Tdomain%sFace(n)%ngll2
-        do j = 1,nglly-2
-            do i = 1,ngllx-2
+        do j = 0,nglly-1
+            do i = 0,ngllx-1
                 ind = Tdomain%sFace(n)%Idom(i,j)
                 dom = Tdomain%sFace(n)%domain
-                Tdomain%sFace(n)%Idom(i,j) = reorder(dom, ind)
+                new_ind = reorder(dom, ind)
+                if (new_ind==-1) then
+                    new_ind = oind(dom)
+                    oind(dom) = oind(dom) + 1
+                    reorder(dom, ind) = new_ind
+                end if
+                Tdomain%sFace(n)%Idom(i,j) = new_ind
             enddo
         enddo
     end do
@@ -992,10 +1004,16 @@ subroutine reorder_domains(Tdomain)
     ! Reorder over edges
     do n = 0, Tdomain%n_edge-1
         ngllx = Tdomain%sEdge(n)%ngll
-        do i = 1,ngllx-2
+        do i = 0,ngllx-1
             ind = Tdomain%sEdge(n)%Idom(i)
             dom = Tdomain%sEdge(n)%domain
-            Tdomain%sEdge(n)%Idom(i) = reorder(dom, ind)
+            new_ind = reorder(dom, ind)
+            if (new_ind==-1) then
+                new_ind = oind(dom)
+                oind(dom) = oind(dom) + 1
+                reorder(dom, ind) = new_ind
+            end if
+            Tdomain%sEdge(n)%Idom(i) = new_ind
         enddo
     end do
 
@@ -1003,7 +1021,12 @@ subroutine reorder_domains(Tdomain)
     do n = 0, Tdomain%n_vertex-1
         ind = Tdomain%sVertex(n)%Idom
         dom = Tdomain%sVertex(n)%domain
-        Tdomain%sVertex(n)%Idom = reorder(dom, ind)
+        if (new_ind==-1) then
+            new_ind = oind(dom)
+            oind(dom) = oind(dom) + 1
+            reorder(dom, ind) = new_ind
+        end if
+        Tdomain%sVertex(n)%Idom = new_ind
     end do
 
     deallocate(reorder)
