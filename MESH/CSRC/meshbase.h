@@ -56,7 +56,7 @@ struct PFace {
 	}
 	return false;
     }
-    bool operator=(const PFace& fc) const {
+    bool operator==(const PFace& fc) const {
 	for(int i=0;i<5;++i) {
 	    if (n[i] != fc.n[i]) return false;
 	}
@@ -101,7 +101,7 @@ struct PEdge {
 	}
 	return false;
     }
-    bool operator=(const PEdge& ed) const {
+    bool operator==(const PEdge& ed) const {
 	for(int i=0;i<3;++i) {
 	    if (n[i] != ed.n[i]) return false;
 	}
