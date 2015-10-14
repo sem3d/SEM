@@ -66,7 +66,7 @@ public:
         defs.clear();
         ids.clear();
         for(vertex_map_t::const_iterator it=m_vertices.begin();it!=m_vertices.end();++it) {
-            defs.push_back(it->first.first);
+            defs.push_back(it->first.n[0]);
             ids.push_back(it->second);
         }
     }
@@ -81,16 +81,16 @@ public:
 
 
     void compute_part();
+    void compute_communications();
     void output_mesh_part();
     void output_mesh_part_xmf();
+    /// Returns whether an element (global index) communicates with other processors
+    bool is_border_element(int el);
 
     // manages local facets
-    int add_facet(const PFace& facet);
-    int add_edge(const PEdge& edge);
-    int add_vertex(const PVertex& vertex);
-    int add_facet(int n[4], int dom) { PFace facet(n, dom); return add_facet(facet); }
-    int add_edge(int v0, int v1, int dom) { PEdge edge(v0, v1, dom); return add_edge(edge); }
-    int add_vertex(int v0, int dom) { PVertex vertex(v0, dom); return add_vertex(vertex); }
+    int add_facet(const PFace& facet, bool border);
+    int add_edge(const PEdge& edge, bool border);
+    int add_vertex(const PVertex& vertex, bool border);
     int add_node(int v0);
 
     int n_nodes() const    { return m_nodes_to_id.size(); }
@@ -130,11 +130,15 @@ protected:
     face_map_t m_face_to_id;
     edge_map_t m_edge_to_id;
     vertex_map_t m_vertex_to_id;
+    // Maintains a flag for whose element might be in contact with other processors
+    std::vector<bool> m_face_border;
+    std::vector<bool> m_edge_border;
+    std::vector<bool> m_vertex_border;
 
     std::map<int,MeshPartComm> m_comm;
     std::map<int,int> m_nodes_to_id;
 
-    void handle_local_element(int el);
+    void handle_local_element(int el, bool is_border);
     void handle_neighbour_element(int el);
     void handle_surface(const Surface* surf);
     void output_mesh_attributes(hid_t fid);

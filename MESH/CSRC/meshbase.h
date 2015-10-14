@@ -25,7 +25,8 @@ struct PFace {
         n[4] = dom;
         set_face(v);
     }
-    PFace(const PFace& fc):orient(fc.orient) { for(int k=0;k<5;++k) n[k]=fc.n[k]; }
+    PFace(const PFace& fc):orient(fc.orient)
+        { for(int k=0;k<5;++k) n[k]=fc.n[k]; }
 
     void set_face(int v[4]) {
         int l=0;
@@ -81,7 +82,8 @@ struct PEdge {
         n[2] = dom;
         set_edge(v0, v1);
     }
-    PEdge(const PEdge& ed) { for(int k=0;k<3;++k) n[k]=ed.n[k]; }
+    PEdge(const PEdge& ed)
+        { for(int k=0;k<3;++k) n[k]=ed.n[k]; }
 
     void set_edge(int v0, int v1) {
         if (v0<v1) {
@@ -117,7 +119,37 @@ struct PEdge {
 };
 
 
-typedef std::pair<int,int> PVertex; // pair(ID,Domain)
+struct PVertex {
+    PVertex() {}
+    PVertex( int v0, int dom ) {
+        n[0] = v0;
+        n[1] = dom;
+    }
+    PVertex(const PVertex& vx) {
+        for(int k=0;k<2;++k) n[k]=vx.n[k];
+    }
+
+    bool operator<(const PVertex& vx) const {
+	for(int i=0;i<2;++i) {
+	    if (n[i] < vx.n[i]) return true;
+	    if (n[i] > vx.n[i]) return false;
+	}
+	return false;
+    }
+    bool operator==(const PVertex& vx) const {
+	for(int i=0;i<2;++i) {
+	    if (n[i] != vx.n[i]) return false;
+	}
+	return true;
+    }
+    /// Same as operator= but ignore domain
+    bool eq_geom(const PVertex& vx) const {
+        if (n[0] != vx.n[0]) return false;
+	return true;
+    }
+    int domain() const { return n[1]; }
+    int n[2];
+};
 
 typedef std::map<PFace,int>  face_map_t;
 typedef std::map<PEdge,int>  edge_map_t;
@@ -157,7 +189,7 @@ public:
     void get_vertices_data(int dom, std::vector<int>& data) const {
         data.clear();
         for(vertex_map_t::const_iterator it=m_vertices.begin();it!=m_vertices.end();++it) {
-            if (it->first.second!=dom) continue;
+            if (it->first.domain()!=dom) continue;
             data.push_back(it->second);
         }
     }

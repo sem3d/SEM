@@ -14,17 +14,35 @@ void Mesh3DPart::compute_part()
     /// Handle all elements on this node and those that touches it
     for(int k=0;k<m_mesh.n_elems();++k) {
         if (m_mesh.elem_part(k)==m_proc) {
-            handle_local_element(k);
+            bool border = is_border_element(k);
+            handle_local_element(k, border);
         } else {
             handle_neighbour_element(k);
         }
     }
+    compute_communications();
     // Walk the surfaces and keep what belongs to us...
     std::map<std::string, Surface*>::const_iterator it;
     for(it=m_mesh.m_surfaces.begin();it!=m_mesh.m_surfaces.end();++it) {
         handle_surface(it->second);
     }
     printf("Created %ld facets\n", m_face_to_id.size());
+}
+
+
+bool Mesh3DPart::is_border_element(int el)
+{
+    for(int k=m_mesh.m_xadj[el];k<m_mesh.m_xadj[el+1];++k) {
+        int neighbour = m_mesh.m_adjncy[k];
+        if (m_mesh.elem_part(neighbour)!=m_proc) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void Mesh3DPart::compute_communications()
+{
 }
 
 void Mesh3DPart::handle_surface(const Surface* surf)
@@ -56,7 +74,7 @@ void Mesh3DPart::handle_surface(const Surface* surf)
     m_surfaces.push_back(new_surf);
 }
 
-int Mesh3DPart::add_facet(const PFace& facet)
+int Mesh3DPart::add_facet(const PFace& facet, bool border)
 {
     int nf;
     face_map_t::iterator it;
@@ -64,14 +82,16 @@ int Mesh3DPart::add_facet(const PFace& facet)
     if (it==m_face_to_id.end()) {
         // New face
         nf = m_face_to_id.size();
+        m_face_border.push_back(border);
         m_face_to_id[facet] = nf;
     } else {
         nf = it->second;
+        m_face_border[nf] = border || m_face_border[nf];
     }
     return nf;
 }
 
-int Mesh3DPart::add_edge(const PEdge& edge)
+int Mesh3DPart::add_edge(const PEdge& edge, bool border)
 {
     int ne;
     edge_map_t::iterator it;
@@ -79,14 +99,16 @@ int Mesh3DPart::add_edge(const PEdge& edge)
     if (it==m_edge_to_id.end()) {
         // New edge
         ne = m_edge_to_id.size();
+        m_edge_border.push_back(border);
         m_edge_to_id[edge] = ne;
     } else {
         ne = it->second;
+        m_edge_border[ne] = border || m_edge_border[ne];
     }
     return ne;
 }
 
-int Mesh3DPart::add_vertex(const PVertex& vertex)
+int Mesh3DPart::add_vertex(const PVertex& vertex, bool border)
 {
     int nv;
     vertex_map_t::iterator it;
@@ -94,9 +116,11 @@ int Mesh3DPart::add_vertex(const PVertex& vertex)
     if (it==m_vertex_to_id.end()) {
         // New vertex
         nv = m_vertex_to_id.size();
+        m_vertex_border.push_back(border);
         m_vertex_to_id[vertex] = nv;
     } else {
         nv = it->second;
+        m_vertex_border[nv] = border || m_vertex_border[nv];
     }
     return nv;
 }
@@ -116,7 +140,7 @@ int Mesh3DPart::add_node(int v0)
     return nv;
 }
 
-void Mesh3DPart::handle_local_element(int el)
+void Mesh3DPart::handle_local_element(int el, bool is_border)
 {
     int e0 = m_mesh.m_elems_offs[el];
     int dom = m_mesh.get_elem_domain(el);
@@ -128,18 +152,21 @@ void Mesh3DPart::handle_local_element(int el)
         for(int p=0;p<4;++p) {
             n[p] = m_mesh.m_elems[e0 + RefFace[fc].v[p]];
         }
-        int nf = add_facet(n, dom);
+        PFace facet(n, dom);
+        int nf = add_facet(facet, is_border);
         m_elems_faces.push_back(nf);
     }
     for(int ed=0;ed<12;++ed) {
         int v0 = RefEdge[ed][0];
         int v1 = RefEdge[ed][1];
-        int ne = add_edge(m_mesh.m_elems[e0 + v0], m_mesh.m_elems[e0 + v1], dom);
+        PEdge edge(m_mesh.m_elems[e0 + v0], m_mesh.m_elems[e0 + v1], dom);
+        int ne = add_edge(edge, is_border);
         m_elems_edges.push_back(ne);
     }
     for(int vx=0;vx<8;++vx) {
         int gid = m_mesh.m_elems[e0 + vx];
-        int vid = add_vertex(gid, dom);
+        PVertex vertex(gid, dom);
+        int vid = add_vertex(vertex, is_border);
         add_node(gid);
         m_elems_vertices.push_back(vid);
     }
@@ -160,6 +187,9 @@ void Mesh3DPart::handle_neighbour_element(int el)
             found = true;
             break;
         }
+    }
+    if (el==63 || el == 64) {
+        printf("EL=%d : found=%d\n", el, (int)found);
     }
     if (!found) return;
 
@@ -199,7 +229,7 @@ void Mesh3DPart::handle_neighbour_element(int el)
             for(int dom=0;dom<=DM_MAX;++dom) {
                 if ((dommask & (1<<dom))==0) continue;
                 PFace fc(n,dom);
-                int nf = add_facet(fc);
+                int nf = add_facet(fc, true);
                 m_comm[source_proc].m_faces[fc]=nf;
                 ++added;
             }
@@ -218,8 +248,11 @@ void Mesh3DPart::handle_neighbour_element(int el)
             for(int dom=0;dom<=DM_MAX;++dom) {
                 if ((dommask & (1<<dom))==0) continue;
                 PEdge ed(m_mesh.m_elems[e0 + v0], m_mesh.m_elems[e0 + v1], dom);
-                int ne = add_edge(ed);
+                int ne = add_edge(ed, true);
                 m_comm[source_proc].m_edges[ed] = ne;
+                if (ed.n[0]==88 && ed.n[1]==94) {
+                    printf("DEBUG: el=%d ed=(%d,%d) src=%d dst=%d dom=%d\n", el, ed.n[0], ed.n[1], m_proc, source_proc, dom);
+                }
                 added++;
             }
             if (added==0) {
@@ -233,7 +266,7 @@ void Mesh3DPart::handle_neighbour_element(int el)
             for(int dom=0;dom<=DM_MAX;++dom) {
                 if ((dommask & (1<<dom))==0) continue;
                 PVertex vert(m_mesh.m_elems[e0 + vx], dom);
-                int nv = add_vertex(vert);
+                int nv = add_vertex(vert, true);
                 m_comm[source_proc].m_vertices[vert] = nv;
             }
         }
@@ -326,7 +359,7 @@ void Mesh3DPart::get_local_vertices_dom(std::vector<int>& doms) const
     for(it=m_vertex_to_id.begin();it!=m_vertex_to_id.end();++it) {
         vx = it->second;
         for(int p=0;p<2;++p) {
-            doms[vx] = it->first.second;
+            doms[vx] = it->first.domain();
         }
     }
 }
@@ -427,11 +460,11 @@ void Mesh3DPart::get_vertex_coupling(int d0, int d1, std::vector<int>& cpl) cons
     for(it0=m_vertex_to_id.begin();it0!=m_vertex_to_id.end();++it0) {
         it = it0;
         ++it;
-        if (it0->first.second!=d0) continue;
+        if (it0->first.domain()!=d0) continue;
         while(it!=m_vertex_to_id.end()) {
-            if (it->first.first!=it0->first.first) break;
+            if (!it->first.eq_geom(it0->first)) break;
             // We have two vertexs equal with different domain,
-            if (it->first.second!=d1) {
+            if (it->first.domain()!=d1) {
                 ++it;
                 continue;
             }
