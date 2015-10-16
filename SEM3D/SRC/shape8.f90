@@ -21,13 +21,16 @@ contains
 !            nf,ne,nv
 !            mat_index,which_elem,which_face,which_edge,which_vertex,
 !        integer, dimension(0:3)  :: loc_vertices,loc_nodes
-        real(kind=FPP) :: Jac, xi, eta, zeta
-        real, dimension(0:2,0:2) :: LocInvGrad
-        real, dimension(0:2,0:7) :: coord  ! coordinates of nodes
-        real :: xp, yp, zp
+        real(FPP) :: Jac, xi, eta, zeta
+        real(FPP), dimension(0:2,0:2) :: LocInvGrad
+        real(FPP), dimension(0:2,0:7) :: coord  ! coordinates of nodes
+        real(FPP) :: xp, yp, zp
+        real(FPP), parameter :: XEPS=1e-10
+        real(FPP) :: dxp, dyp, dzp
 
         ! Tdomain%n_glob_points is the number of degrees of fredom
         allocate(Tdomain%GlobCoord(0:2,0:Tdomain%n_glob_points-1))
+        Tdomain%GlobCoord = 0d0
 
         do n = 0,Tdomain%n_elem-1
 
@@ -54,6 +57,18 @@ contains
                         ipoint = Tdomain%specel(n)%Iglobnum(i,j,k)
 
                         call shape8_local2global(coord, xi, eta, zeta, xp, yp, zp)
+                        ! DEBUG CHECK
+                        if (Tdomain%GlobCoord(0,ipoint)/=0d0 .or. &
+                            Tdomain%GlobCoord(1,ipoint)/=0d0 .or. &
+                            Tdomain%GlobCoord(2,ipoint)/=0d0) then
+                            dxp = abs(xp-Tdomain%GlobCoord(0,ipoint))
+                            dyp = abs(yp-Tdomain%GlobCoord(1,ipoint))
+                            dzp = abs(zp-Tdomain%GlobCoord(2,ipoint))
+                            if (dxp>XEPS .or. dyp>XEPS .or. dzp>XEPS) then
+                                write(*,*) "DIFF", n, ipoint, Tdomain%GlobCoord(:,ipoint), ":", dxp, dyp, dzp
+                            end if
+                        end if
+                        !
                         Tdomain%GlobCoord(0,ipoint) = xp
                         Tdomain%GlobCoord(1,ipoint) = yp
                         Tdomain%GlobCoord(2,ipoint) = zp

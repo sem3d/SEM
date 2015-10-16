@@ -166,6 +166,9 @@ subroutine renumber_global_gll_nodes(Tdomain)
         ngll(0) = Tdomain%specel(n)%ngllx
         ngll(1) = Tdomain%specel(n)%nglly
         ngll(2) = Tdomain%specel(n)%ngllz
+        if (n<=24) then
+            write(*,*) "EL",n," NODES=",Tdomain%specel(n)%Control_nodes
+        end if
         !Taking information from faces
         do nf = 0,5
             nnf = Tdomain%specel(n)%Near_Faces(nf)
@@ -174,6 +177,10 @@ subroutine renumber_global_gll_nodes(Tdomain)
             end do
             call ind_elem_face(ngll, nf, Tdomain%sFace(nnf)%inodes, elface, i0, di, dj)
 
+            if (n<=24) then
+                write(*,*) "EL",n," FACE",nf, " NODES=", Tdomain%sFace(nnf)%inodes
+                write(*,*) "EL",n," FACE",nf, "I0", i0, "DI", di, "DJ", dj
+            end if
             do i=1,Tdomain%sFace(nnf)%ngll1-2
                 do j=1,Tdomain%sFace(nnf)%ngll2-2
                     idxi = i0(0)+i*di(0)+j*dj(0)

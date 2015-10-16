@@ -172,6 +172,44 @@ contains
         end select
     end function domain_ngll
 
+    subroutine check_interface_orient(Tdomain, inter, eps)
+        type(domain), intent(in) :: Tdomain
+        type(inter_num), intent(in) :: inter
+        real(FPP), intent(in) :: eps
+        !
+        integer :: nif, i, j
+        integer :: nf0, nf1, ip0, ip1
+        integer :: ngll1, ngll2
+        real(FPP), dimension(0:2) :: dp
+        real(FPP) :: x1, y1, z1
+        real(FPP), parameter :: xeps=1e-10
+        logical :: bad
+        !
+        do nif=0,inter%surf0%n_faces-1
+            nf0 = inter%surf0%if_faces(nif)
+            nf1 = inter%surf1%if_faces(nif)
+            ngll1 = Tdomain%sFace(nf0)%ngll1
+            ngll2 = Tdomain%sFace(nf0)%ngll2
+            bad = .false.
+            do j=0,ngll2-1
+                do i=0,ngll1-1
+                    ip0 = Tdomain%sFace(nf0)%Iglobnum_Face(i,j)
+                    ip1 = Tdomain%sFace(nf1)%Iglobnum_Face(i,j)
+                    dp = abs(Tdomain%GlobCoord(:,ip0)- Tdomain%GlobCoord(:,ip1))
+                    if (dp(0)>xeps.or.dp(1)>xeps.or.dp(2)>xeps) then
+                        !write(*,*) "IF ERROR:", Tdomain%GlobCoord(:,ip0), Tdomain%GlobCoord(:,ip1), dp
+                        bad = .true.
+                    end if
+                end do
+            end do
+            if (bad) then
+                write(*,*) "BAD INTERFACE:"
+                write(*,*) "IF0:", nf0, "[", Tdomain%sFace(nf0)%inodes, "]"
+                write(*,*) "IF1:", nf1, "[", Tdomain%sFace(nf1)%inodes, "]"
+            end if
+        end do
+    end subroutine check_interface_orient
+
 end module sdomain
 
 !! Local Variables:

@@ -86,6 +86,7 @@ contains
         call allocate_surface(inter%surf0)
         call allocate_surface(inter%surf1)
     end subroutine allocate_interface
+
 end module sinterface
 
 !! Local Variables:

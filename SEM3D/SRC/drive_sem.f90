@@ -256,6 +256,10 @@ subroutine RUN_PREPARED(Tdomain)
         write (*,*) Tdomain%n_nodes, "control points not yet implemented in the code. Wait for an upgrade"
         stop
     endif
+    call check_interface_orient(Tdomain, Tdomain%intSolPml, 1e-12)
+    call check_interface_orient(Tdomain, Tdomain%intFluPml, 1e-12)
+    call check_interface_orient(Tdomain, Tdomain%SF%intSolFlu, 1e-12)
+    call check_interface_orient(Tdomain, Tdomain%SF%intSolFluPml, 1e-12)
     call MPI_Barrier(Tdomain%communicateur,code)
 
     !- Managing properties that should be written on a file
