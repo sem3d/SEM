@@ -23,7 +23,7 @@ contains
 subroutine allocate_domain (Tdomain)
 
     type(domain), intent (INOUT) :: Tdomain
-    integer :: n,k,ngllx,nglly,ngllz
+    integer :: n,ngllx,nglly,ngllz
     integer :: n_solid
     integer :: mat, randSize, assocMat
     logical :: ispml, issolid
@@ -150,76 +150,8 @@ subroutine allocate_domain (Tdomain)
         end if
     enddo
 
-    ! solid-fluid related terms
-    k = 0
-    if(Tdomain%logicD%SF_local_present)then
-        ! On alloue le tableau de BtN
-!        allocate(Tdomain%SF%SF_BtN(0:Tdomain%SF%ngll-1,0:2))
-!        Tdomain%SF%SF_BtN(:,:) = 0d0
-!        do nf = 0,Tdomain%SF%SF_n_faces-1
-!            ngll1 = Tdomain%SF%SF_Face(nf)%ngll1
-!            ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
-!            allocate(Tdomain%SF%SF_Face(nf)%BtN(0:ngll1-1,0:ngll2-1,0:2))
-!            Tdomain%SF%SF_Face(nf)%BtN = 0d0
-!        end do
-!
-!        do ne = 0,Tdomain%SF%SF_n_edges-1
-!            ngll = Tdomain%SF%SF_Edge(ne)%ngll
-!            allocate(Tdomain%SF%SF_Edge(ne)%pn(1:ngll-2,0:2))
-!            allocate(Tdomain%SF%SF_Edge(ne)%save_forces(1:ngll-2,0:2))
-!            allocate(Tdomain%SF%SF_Edge(ne)%Vn(1:ngll-2))
-!            Tdomain%SF%SF_Edge(ne)%pn = 0d0
-!            Tdomain%SF%SF_Edge(ne)%save_forces = 0d0
-!            Tdomain%SF%SF_Edge(ne)%Vn = 0d0
-!            if(Tdomain%SF%SF_Edge(ne)%PML)then
-!                allocate(Tdomain%SF%SF_Edge(ne)%pn1(1:ngll-2,0:2))
-!                allocate(Tdomain%SF%SF_Edge(ne)%pn2(1:ngll-2,0:2))
-!                allocate(Tdomain%SF%SF_Edge(ne)%pn3(1:ngll-2,0:2))
-!                allocate(Tdomain%SF%SF_Edge(ne)%save_veloc1(1:ngll-2,0:2))
-!                allocate(Tdomain%SF%SF_Edge(ne)%save_veloc2(1:ngll-2,0:2))
-!                allocate(Tdomain%SF%SF_Edge(ne)%save_veloc3(1:ngll-2,0:2))
-!                allocate(Tdomain%SF%SF_Edge(ne)%Vn1(1:ngll-2))
-!                allocate(Tdomain%SF%SF_Edge(ne)%Vn2(1:ngll-2))
-!                allocate(Tdomain%SF%SF_Edge(ne)%Vn3(1:ngll-2))
-!                Tdomain%SF%SF_Edge(ne)%pn1 = 0d0
-!                Tdomain%SF%SF_Edge(ne)%pn2 = 0d0
-!                Tdomain%SF%SF_Edge(ne)%pn3 = 0d0
-!                Tdomain%SF%SF_Edge(ne)%save_veloc1 = 0d0
-!                Tdomain%SF%SF_Edge(ne)%save_veloc2 = 0d0
-!                Tdomain%SF%SF_Edge(ne)%save_veloc3 = 0d0
-!                Tdomain%SF%SF_Edge(ne)%Vn1 = 0d0
-!                Tdomain%SF%SF_Edge(ne)%Vn2 = 0d0
-!                Tdomain%SF%SF_Edge(ne)%Vn3 = 0d0
-!            else
-!                allocate(Tdomain%SF%SF_Edge(ne)%save_displ(1:ngll-2,0:2))
-!                Tdomain%SF%SF_Edge(ne)%save_displ = 0d0
-!            end if
-!        enddo
-!
-!        do nv = 0,Tdomain%SF%SF_n_vertices-1
-!            Tdomain%SF%SF_Vertex(nv)%pn = 0d0
-!            Tdomain%SF%SF_Vertex(nv)%Vn = 0d0
-!            Tdomain%SF%SF_Vertex(nv)%save_forces = 0d0
-!            if(Tdomain%SF%SF_Vertex(nv)%PML)then
-!                Tdomain%SF%SF_Vertex(nv)%pn1 = 0d0
-!                Tdomain%SF%SF_Vertex(nv)%pn2 = 0d0
-!                Tdomain%SF%SF_Vertex(nv)%pn3 = 0d0
-!                Tdomain%SF%SF_Vertex(nv)%Vn1 = 0d0
-!                Tdomain%SF%SF_Vertex(nv)%Vn2 = 0d0
-!                Tdomain%SF%SF_Vertex(nv)%Vn3 = 0d0
-!                Tdomain%SF%SF_Vertex(nv)%save_veloc1 = 0d0
-!                Tdomain%SF%SF_Vertex(nv)%save_veloc2 = 0d0
-!                Tdomain%SF%SF_Vertex(nv)%save_veloc3 = 0d0
-!            else
-!                Tdomain%SF%SF_Vertex(nv)%save_displ = 0d0
-!            end if
-!        enddo
-
-    end if
-
     ! Allocation et initialisation de Tdomain%champs0 et champs1 pour les solides
     if (Tdomain%ngll_s /= 0) then
-        write(*,*) "* NGLL SOLID", Tdomain%ngll_s
         allocate(Tdomain%champs0%Forces(0:Tdomain%ngll_s-1,0:2))
         allocate(Tdomain%champs0%Depla(0:Tdomain%ngll_s-1,0:2))
         allocate(Tdomain%champs0%Veloc(0:Tdomain%ngll_s-1,0:2))
@@ -238,7 +170,6 @@ subroutine allocate_domain (Tdomain)
 
     ! Allocation et initialisation de Tdomain%champs0 pour les PML solides
     if (Tdomain%ngll_pmls /= 0) then
-        write(*,*) "* NGLL PMLS", Tdomain%ngll_pmls
         allocate(Tdomain%champs1%ForcesPML(0:Tdomain%ngll_pmls-1,0:2,0:2))
         allocate(Tdomain%champs0%VelocPML(0:Tdomain%ngll_pmls-1,0:2,0:2))
         allocate(Tdomain%champs1%VelocPML(0:Tdomain%ngll_pmls-1,0:2,0:2))
@@ -257,7 +188,6 @@ subroutine allocate_domain (Tdomain)
 
     ! Allocation et initialisation de Tdomain%champs0 et champs1 pour les fluides
     if (Tdomain%ngll_f /= 0) then
-        write(*,*) "* NGLL FLUID", Tdomain%ngll_f
         allocate(Tdomain%champs0%ForcesFl(0:Tdomain%ngll_f-1))
         allocate(Tdomain%champs0%Phi(0:Tdomain%ngll_f-1))
         allocate(Tdomain%champs0%VelPhi(0:Tdomain%ngll_f-1))
@@ -276,7 +206,6 @@ subroutine allocate_domain (Tdomain)
 
     ! Allocation et initialisation de Tdomain%champs0 pour les PML fluides
     if (Tdomain%ngll_pmlf /= 0) then
-        write(*,*) "* NGLL FLUID", Tdomain%ngll_pmlf
         allocate(Tdomain%champs1%fpml_Forces(0:Tdomain%ngll_pmlf-1,0:2))
         allocate(Tdomain%champs0%fpml_VelPhi(0:Tdomain%ngll_pmlf-1,0:2))
         allocate(Tdomain%champs0%fpml_Phi(0:Tdomain%ngll_pmlf-1,0:2))
