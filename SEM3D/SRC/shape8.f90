@@ -189,7 +189,7 @@ contains
 
         Btn(:,:) = 0.
         call get_surface_numbering(Tdomain, surf, dom, renum)
-        ! SF faces: the normal is taken outward from the elements
+        ! SF faces: the normal is taken outward from the fluid elements
         do nf = 0, surf%n_faces-1
             nfs = surf%if_faces(nf)
             orient = -1d0*surf%if_norm(nf)
@@ -216,9 +216,20 @@ contains
             end do
             do j=0,ngll2-1
                 do i=0,ngll1-1
-                    idx = renum(Tdomain%sFace(nfs)%Idom(i,j))
+                    idx = Tdomain%sFace(nfs)%Idom(i,j)
+                    if (idx==-1) then
+                        write(*,*) "ERROR, getting face gll:", dom, Tdomain%sFace(nfs)%domain
+                        write(*,*) "IND:", Tdomain%sFace(nfs)%Idom
+                        stop 1
+                    end if
+                    idx = renum(idx)
                     call normal_face(nodes, gllc1(i), gllc2(j), normal)
                     !
+                    if (idx==-1) then
+                        write(*,*) "ERROR, getting face gll:", dom, Tdomain%sFace(nfs)%domain
+                        write(*,*) "IND:", Tdomain%sFace(nfs)%Idom
+                        stop 1
+                    end if
                     BtN(:,idx) = BtN(:,idx) + orient*normal*gllw1(i)*gllw2(j)
                 end do
             end do
@@ -253,8 +264,7 @@ contains
                 + nodes(i,3)*(1-xi) )
         end do
         call cross_prod(d_xi, d_eta, normal)
-!        norm = sqrt(normal(0)**2 + normal(1)**2+normal(2)**2)
-!        normal = normal/norm
+        ! We don't normalize, we want normal = n.dS
     end subroutine normal_face
     !---------------------------------------------------------------------------
     subroutine nodes_coord_8(Control_Nodes,n_glob_nodes,Coord_Nodes,coord)

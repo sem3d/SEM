@@ -388,10 +388,14 @@ contains
         call apply_mat_to_faces(Tdomain)
         call apply_mat_to_edges(Tdomain)
         call apply_mat_to_vertices(Tdomain)
-        call apply_interface(Tdomain, Tdomain%intSolPml, DM_SOLID, DM_SOLID_PML)
-        call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID, DM_FLUID_PML)
-        call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID, DM_FLUID)
-        call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_PML, DM_FLUID_PML)
+        call apply_interface(Tdomain, Tdomain%intSolPml, DM_SOLID, DM_SOLID_PML, .false.)
+        call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID, DM_FLUID_PML, .false.)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID, DM_FLUID, .false.)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_PML, DM_FLUID_PML, .false.)
+        call apply_interface(Tdomain, Tdomain%intSolPml, DM_SOLID, DM_SOLID_PML, .true.)
+        call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID, DM_FLUID_PML, .true.)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID, DM_FLUID, .true.)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_PML, DM_FLUID_PML, .true.)
     end subroutine read_material_file
 
 

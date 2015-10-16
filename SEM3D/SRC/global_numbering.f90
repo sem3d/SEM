@@ -42,6 +42,7 @@ subroutine global_numbering(Tdomain)
     call renumber_interface(Tdomain, Tdomain%intFluPml, DM_FLUID, DM_FLUID_PML)
     if (Tdomain%logicD%SF_local_present) then
         call renumber_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID, DM_FLUID)
+        call renumber_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_PML, DM_FLUID_PML)
     end if
     do k=0,size(Tdomain%sSurfaces)-1
         call renumber_surface(Tdomain, Tdomain%sSurfaces(k)%surf_sl, DM_SOLID)
@@ -310,19 +311,14 @@ subroutine get_surface_numbering(Tdomain, surf, dom, renum)
     integer :: nf, ne, nv
     integer :: nfs, nes, nvs
     integer :: ngll1, ngll2, ngll_if
-    nglltot = 0
-    select case(dom)
-    case(DM_SOLID)
-        nglltot = Tdomain%ngll_s
-    case(DM_FLUID)
-        nglltot = Tdomain%ngll_f
-    case(DM_SOLID_PML)
-        nglltot = Tdomain%ngll_pmls
-    case(DM_FLUID_PML)
-        nglltot = Tdomain%ngll_pmlf
-    end select
+    nglltot = domain_ngll(Tdomain, dom)
     allocate(renum(0:nglltot-1))
     renum = -1
+#if 1
+    do i=0,surf%nbtot-1
+        renum(surf%map(i)) = i
+    end do
+#else
     ! copy gll numbers on the interface
     ngll_if = 0
     ! FACES
@@ -352,6 +348,7 @@ subroutine get_surface_numbering(Tdomain, surf, dom, renum)
         renum(Tdomain%sVertex(nvs)%Idom) = ngll_if
         ngll_if = ngll_if + 1
     end do
+#endif
 end subroutine get_surface_numbering
 
 subroutine renumber_surface(Tdomain, surf, dom0)
@@ -453,12 +450,87 @@ subroutine renumber_interface(Tdomain, inter, dom0, dom1)
     type(domain), intent (inout) :: Tdomain
     type(inter_num), intent(inout) :: inter
     integer, intent(in) :: dom0, dom1
-    !
     ! Count number of gll on the interface
     call renumber_surface(Tdomain, inter%surf0, dom0)
     call renumber_surface(Tdomain, inter%surf1, dom1)
+    ! We need to make sure both faces of an interface are numbered
+    ! orphan faces (ie whose elements belong to another processor
+    ! will not have Idom filled correctly at this point
+    call apply_numbering_coherency(Tdomain, inter, dom0, dom1)
 
 end subroutine renumber_interface
+
+subroutine apply_numbering_coherency(Tdomain, inter, dom0, dom1)
+    use sdomain
+    use mindex
+    implicit none
+    type(domain), intent (inout) :: Tdomain
+    type(inter_num), intent(inout) :: inter
+    integer, intent(in) :: dom0, dom1
+    !
+    integer, dimension(:), allocatable :: renum0, renum1
+    !
+    integer :: nglltot0, nglltot1, i, j
+    integer :: idx, imap, idom
+    integer :: ngll1, ngll2
+    integer :: nf, nfs0, nfs1
+    nglltot0 = domain_ngll(Tdomain, dom0)
+    nglltot1 = domain_ngll(Tdomain, dom1)
+    allocate(renum0(0:nglltot0-1))
+    allocate(renum1(0:nglltot1-1))
+
+    do i=0,inter%surf0%nbtot-1
+        idx = inter%surf0%map(i)
+        if (idx>=0) then
+            renum0(idx) = i
+        else
+            write(*,*) "Error dom=", dom0, "map:", i
+        end if
+    end do
+    do i=0,inter%surf1%nbtot-1
+        idx = inter%surf1%map(i)
+        if (idx>=0) then
+            renum1(idx) = i
+        else
+            write(*,*) "Error dom=", dom1, "map:", i
+        end if
+    end do
+    ! FACES
+    do nf=0,inter%surf0%n_faces-1
+        nfs0 = inter%surf0%if_faces(nf)
+        nfs1 = inter%surf1%if_faces(nf)
+        ngll1 = Tdomain%sFace(nfs0)%ngll1
+        ngll2 = Tdomain%sFace(nfs0)%ngll2
+        do j=0,ngll2-1
+            do i=0,ngll1-1
+                if (Tdomain%sFace(nfs0)%Idom(i,j)==-1) then
+                    idx = Tdomain%sFace(nfs1)%Idom(i,j)
+                    if (idx==-1) then
+                        write(*,*) "Coherency problem"
+                        stop 1
+                    end if
+                    imap = renum1(idx)
+                    idom = inter%surf0%map(imap)
+                    write(*,*) "Coherency 0->1", idx, idom
+                    Tdomain%sFace(nfs0)%Idom(i,j) = idom
+                end if
+                if (Tdomain%sFace(nfs1)%Idom(i,j)==-1) then
+                    idx = Tdomain%sFace(nfs0)%Idom(i,j)
+                    if (idx==-1) then
+                        write(*,*) "Coherency problem"
+                        stop 1
+                    end if
+                    imap = renum0(idx)
+                    idom = inter%surf1%map(imap)
+                    write(*,*) "Coherency 1->0", idx, idom
+                    Tdomain%sFace(nfs1)%Idom(i,j) = idom
+                end if
+            end do
+        end do
+    end do
+
+    deallocate(renum0, renum1)
+end subroutine apply_numbering_coherency
 
 subroutine prepare_comm_vector(Tdomain,comm_data)
     use sdomain
@@ -662,6 +734,10 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
         allocate(Comm_data%Data(n_comm)%IGiveF(0:nflu-1))
         allocate(Comm_data%Data(n_comm)%IGiveFPML(0:nflupml-1))
 
+        write(*,*) "COMM:", Tdomain%rank, "->", Comm_Data%Data(n_comm)%dest, ": NGLLS ", nsol
+        write(*,*) "COMM:", Tdomain%rank, "->", Comm_Data%Data(n_comm)%dest, ": NGLLF ", nflu
+        write(*,*) "COMM:", Tdomain%rank, "->", Comm_Data%Data(n_comm)%dest, ": NGLLSP", nsolpml
+        write(*,*) "COMM:", Tdomain%rank, "->", Comm_Data%Data(n_comm)%dest, ": NGLLFP", nflupml
         n_comm = n_comm + 1
     enddo
 

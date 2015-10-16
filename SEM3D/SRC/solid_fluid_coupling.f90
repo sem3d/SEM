@@ -54,50 +54,6 @@ subroutine StoF_coupling(Tdomain, champs0, champs1)
         champs1%fpml_Forces(idxF,1) = champs1%fpml_Forces(idxF,1) + vn2
         champs1%fpml_Forces(idxF,2) = champs1%fpml_Forces(idxF,2) + vn3
     enddo
-    ! TODO
-    !call send_cpl_forces_fl()
-!    if (Tdomain%Comm_SolFlu%ncomm > 0)then
-!        ! Give
-!        do n = 0,Tdomain%Comm_SolFlu%ncomm-1
-!            k = 0
-!            do i=0,Tdomain%Comm_SolFlu%Data(n)%ndata-1
-!                idx = Tdomain%Comm_SolFlu%Data(n)%IGiveS(i)
-!                Tdomain%Comm_SolFlu%Data(n)%Give(k) = champs1%ForceFl(idx)
-!                k=k+1
-!            end do
-!            Tdomain%Comm_SolFlu%Data(n)%nsend = k
-!        enddo
-!
-!        ! Exchange interproc of vn
-!        call exchange_sem_var(Tdomain, 301, Tdomain%Comm_SolFlu)
-!
-!        ! Take
-!        do n = 0,Tdomain%Comm_SolFlu%ncomm-1
-!            k = 0
-!            do i=0,Tdomain%Comm_SolFlu%Data(n)%ndata-1
-!                idx = Tdomain%Comm_SolFlu%Data(n)%IGiveS(i)
-!                vn(idx) = vn(idx) + Tdomain%Comm_SolFlu%Data(n)%Take(k)
-!                k=k+1
-!            enddo
-!        enddo
-!    endif
-!
-!    do i = 0,ngll_sf-1
-!        idx = TDomain%SF%SF_IGlobFlu(i)
-!        if (idx >= 0) then
-!            champs1%ForcesFl(idx) = champs1%ForcesFl(idx) + vn(i)
-!        end if
-!    enddo
-!
-!    do i = 0,ngll_sf_pml-1
-!        idx = TDomain%SF%SF_IGlobFlu_pml(i)
-!        if (idx >= 0) then
-!            champs1%fpml_Forces(idx,0) = champs1%fpml_Forces(idx,0) + vn1(i)
-!            champs1%fpml_Forces(idx,1) = champs1%fpml_Forces(idx,1) + vn2(i)
-!            champs1%fpml_Forces(idx,2) = champs1%fpml_Forces(idx,2) + vn3(i)
-!        end if
-!    enddo
-
 end subroutine StoF_coupling
 !----------------------------------------------------------------
 !----------------------------------------------------------------
@@ -138,57 +94,6 @@ subroutine FtoS_coupling(Tdomain, champs0, champs1)
             champs1%ForcesPML(idxS,j,2) = champs1%ForcesPML(idxS,j,2) - (BtN(j)*champs0%fpml_VelPhi(idxF,2))
         enddo
     enddo
-
-    ! TODO : send forces sol+solpml
-!    if (Tdomain%Comm_SolFlu%ncomm > 0)then
-!        ! Give
-!        do n = 0,Tdomain%Comm_SolFlu%ncomm-1
-!            k = 0
-!            do i=0,Tdomain%Comm_SolFlu%Data(n)%ndata-1
-!                idx = Tdomain%Comm_SolFlu%Data(n)%IGiveS(i)
-!                Tdomain%Comm_SolFlu%Data(n)%Give(k+0) = pn(0,idx)
-!                Tdomain%Comm_SolFlu%Data(n)%Give(k+1) = pn(1,idx)
-!                Tdomain%Comm_SolFlu%Data(n)%Give(k+2) = pn(2,idx)
-!                k=k+3
-!            end do
-!            Tdomain%Comm_SolFlu%Data(n)%nsend = k
-!        enddo
-!
-!        ! Exchange interproc of vn
-!        call exchange_sem_var(Tdomain, 302, Tdomain%Comm_SolFlu)
-!
-!        ! Take
-!        do n = 0,Tdomain%Comm_SolFlu%ncomm-1
-!            k = 0
-!            do i=0,Tdomain%Comm_SolFlu%Data(n)%ndata-1
-!                idx = Tdomain%Comm_SolFlu%Data(n)%IGiveS(i)
-!                pn(0,idx) = pn(0,idx) + Tdomain%Comm_SolFlu%Data(n)%Take(k+0)
-!                pn(1,idx) = pn(1,idx) + Tdomain%Comm_SolFlu%Data(n)%Take(k+1)
-!                pn(2,idx) = pn(2,idx) + Tdomain%Comm_SolFlu%Data(n)%Take(k+2)
-!                k=k+3
-!            enddo
-!        enddo
-!    endif
-!
-!    do i = 0,ngll_sf-1
-!        idx = Tdomain%SF%SF_IGlobSol(i)
-!        if (idx >= 0) then
-!            do j = 0,2
-!                champs1%Forces(idx,j) = champs1%Forces(idx,j) + pn(j,i)
-!            enddo
-!        end if
-!    enddo
-!    do i = 0,ngll_sf_pml-1
-!        idx = Tdomain%SF%SF_IGlobSol_pml(i)
-!        if (idx >= 0) then
-!            do j = 0,2
-!                champs1%ForcesPML(idx,j,0) = champs1%ForcesPML(idx,j,0) + pn1(j,i)
-!                champs1%ForcesPML(idx,j,1) = champs1%ForcesPML(idx,j,1) + pn2(j,i)
-!                champs1%ForcesPML(idx,j,2) = champs1%ForcesPML(idx,j,2) + pn3(j,i)
-!            enddo
-!        end if
-!    enddo
-
 end subroutine FtoS_coupling
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------

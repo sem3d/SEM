@@ -514,13 +514,13 @@ contains
             call h5gopen_f(fid, trim(adjustl(proc_grp)), proc_id, hdferr)
             call read_comm_proc_data(Tdomain, proc_id, Tdomain%sComm(i) )
 
-            if(Tdomain%logicD%SF_local_present)then
-                call read_comm_sf(Tdomain, proc_id, Tdomain%sComm(i))
-            else
-                Tdomain%sComm(i)%SF_nf_shared = 0
-                Tdomain%sComm(i)%SF_ne_shared = 0
-                Tdomain%sComm(i)%SF_nv_shared = 0
-            end if
+!            if(Tdomain%logicD%SF_local_present)then
+!                call read_comm_sf(Tdomain, proc_id, Tdomain%sComm(i))
+!            else
+!                Tdomain%sComm(i)%SF_nf_shared = 0
+!                Tdomain%sComm(i)%SF_ne_shared = 0
+!                Tdomain%sComm(i)%SF_nv_shared = 0
+!            end if
 
 !            if(Tdomain%logicD%Neumann_local_present)then
 !                call read_attr_int(proc_id, "n_neu_edges", Tdomain%sComm(i)%Neu_ne_shared)

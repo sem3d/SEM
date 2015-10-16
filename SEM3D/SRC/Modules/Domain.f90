@@ -154,6 +154,23 @@ contains
 
     end subroutine dist_max_elem
 
+    function domain_ngll(Tdomain, dom)
+        integer, intent(in) :: dom
+        type(domain), intent(in) :: Tdomain
+        !
+        integer :: domain_ngll
+        domain_ngll = 0
+        select case(dom)
+        case(DM_SOLID)
+            domain_ngll = Tdomain%ngll_s
+        case(DM_FLUID)
+            domain_ngll = Tdomain%ngll_f
+        case(DM_SOLID_PML)
+            domain_ngll = Tdomain%ngll_pmls
+        case(DM_FLUID_PML)
+            domain_ngll = Tdomain%ngll_pmlf
+        end select
+    end function domain_ngll
 
 end module sdomain
 
