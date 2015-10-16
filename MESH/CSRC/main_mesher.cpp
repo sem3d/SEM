@@ -10,7 +10,7 @@
 #include "meshpart.h"
 #include "mesh_h5_output.h"
 #include "mesh_grid.h"
-
+#include "reader_abaqus.h"
 
 void handle_on_the_fly(Mesh3D& mesh)
 {
@@ -28,6 +28,17 @@ void handle_ideas_file(Mesh3D& mesh)
 
 void handle_abaqus_file(Mesh3D& mesh)
 {
+    int numfiles;
+    char fname[2048];
+
+    printf("\nHow many files ?\n");
+    scanf("%d", &numfiles);
+    for(int k=0;k<numfiles;++k) {
+        printf("File %d name ?\n", k+1);
+        scanf("%2000s", fname);
+        MeshReaderAbaqus  reader(fname);
+        reader.parse_file(mesh);
+    }
 }
 
 void handle_hdf5_file(Mesh3D& mesh)
@@ -46,6 +57,7 @@ int main(int argc, char**argv)
     int NPROCS;
     int choice;
 
+    mesh.debug = true;
     printf("-------------------------------------------------\n");
     printf("-------------------------------------------------\n");
     printf("-----                                       -----\n");
@@ -53,6 +65,9 @@ int main(int argc, char**argv)
     printf("-----                                       -----\n");
     printf("-------------------------------------------------\n");
     printf("-------------------------------------------------\n");
+    if (mesh.debug) {
+        printf("\n    DEBUG MODE    \n\n");
+    }
     printf("\n   --> How many procs for the run ?\n");
     scanf("%d", &NPROCS);
 
@@ -73,6 +88,7 @@ int main(int argc, char**argv)
         handle_on_the_fly(mesh);
         break;
     case 2:
+        mesh.read_materials("mater.in");
         handle_abaqus_file(mesh);
         break;
     case 3:
