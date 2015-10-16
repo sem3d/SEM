@@ -44,12 +44,15 @@ module mindex
         0, 3, 7, 4, &
         4, 7, 6, 5 /), (/ 4, 6 /) )
 
+    ! axes of the element corresponding to the face according to the reference def of face_def
+    ! ie if face_def(a,b,c,d)  face_dir(0)=axis of elem to go from a to b
+    ! face_dir(1)=axis of elem to go from a to d
     integer, parameter, dimension(0:1,0:5) :: face_dir = reshape( (/ &
-        0, 1, &  ! x+,y+
-        2, 0, &  ! x+,z+
-        2, 1, &  ! y+,z+
-        0, 2, &  ! x+,z+
-        1, 2, &  ! y+,z+
+        0, 1, &  ! x,y
+        2, 0, &  ! z,x
+        2, 1, &  ! z,y
+        0, 2, &  ! x,z
+        1, 2, &  ! y,z
         1, 0 /), (/ 2, 6 /))
 
     integer, parameter, dimension(0:1,0:11) :: edge_def = reshape( (/ &
@@ -130,11 +133,11 @@ contains
         dir3 = 3-dir1-dir2
         di(dir3) = 0
         dj(dir3) = 0
-        if ((node==1) .or. (node==3)) then
-            temp = dir1
-            dir1 = dir2
-            dir2 = temp
-        end if
+!        if ((node==1) .or. (node==3)) then
+!            temp = dir1
+!            dir1 = dir2
+!            dir2 = temp
+!        end if
         ngll1 = ngll(dir1)-1
         ngll2 = ngll(dir2)-1
         ngll3 = ngll(dir3)-1

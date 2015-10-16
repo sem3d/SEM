@@ -54,6 +54,7 @@ contains
                     elface(k) = Tdomain%specel(i)%Control_nodes(face_def(k,j))
                 end do
                 call rel_orient(Tdomain%sFace(nf)%inodes, elface, node, dir)
+                ! XXX WRONG, but ngllx==nglly==ngllz ...
                 if ((node==0) .or. (node==2)) then
                     Tdomain%sFace(nf)%ngll1 = ngll(face_dir(0,j))
                     Tdomain%sFace(nf)%ngll2 = ngll(face_dir(1,j))
