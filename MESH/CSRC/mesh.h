@@ -20,7 +20,7 @@ class Mesh3D
 {
 public:
     // methods
-    Mesh3D():m_xadj(0L), m_adjncy(0L) {
+    Mesh3D():m_xadj(0L), m_adjncy(0L), debug(false) {
 	m_elems_offs.push_back(0);
     }
 
@@ -78,6 +78,7 @@ public:
     int n_neu;
     int n_PW;
     int n_ctl_nodes; ///< Number of control nodes per element (8 or 27)
+    bool debug;
 
     int *m_xadj, *m_adjncy;
 

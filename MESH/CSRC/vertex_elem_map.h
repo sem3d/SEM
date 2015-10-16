@@ -9,7 +9,7 @@
 
 #include <vector>
 #include <map>
-
+#include <set>
 
 /// Manages a map of vertex points to elements connected to them
 class VertexElemMap
@@ -41,6 +41,15 @@ public:
         int head = it->second;
         while(head!=0) {
             elements.push_back(m_elem_linked_list[head].first);
+            head = m_elem_linked_list[head].second;
+        }
+    }
+    void vertex_to_elements(int vid, std::set<int>& elements) const {
+        std::map<int,int>::const_iterator it = m_vertex_to_first_elem.find(vid);
+        if (it==m_vertex_to_first_elem.end()) return;
+        int head = it->second;
+        while(head!=0) {
+            elements.insert(m_elem_linked_list[head].first);
             head = m_elem_linked_list[head].second;
         }
     }

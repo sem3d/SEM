@@ -64,7 +64,7 @@ void Mesh3D::partition_mesh(int n_parts)
     METIS_MeshToDual(&ne, &nn, &m_elems_offs[0], &m_elems[0],
 		     &ncommon, &numflags, &m_xadj, &m_adjncy);
 
-    dump_connectivity("conn1.dat");
+    //dump_connectivity("conn1.dat");
     // Tentative de reordonnancement des elements pour optimiser la reutilisation de cache
     // lors de la boucle sur les elements
 //    vector<int> perm, iperm;
@@ -233,9 +233,9 @@ void Mesh3D::build_vertex_to_elem_map()
 //            printf("VX[%d] dom=%d/%02x, %02x\n", vtx, domain, (int)(1<<domain), m_vertex_domains[vtx]);
         }
     }
-    for(int k=0;k<n_vertices();++k) {
-        printf("VX[%d] dom=%02x\n", k, m_vertex_domains[k]);
-    }
+//    for(int k=0;k<n_vertices();++k) {
+//        printf("VX[%d] dom=%02x\n", k, m_vertex_domains[k]);
+//    }
 }
 
 

@@ -10,7 +10,7 @@
 #include "mesh.h"
 #include <vector>
 #include <map>
-
+#include <set>
 
 template<typename T0, typename T1>
 T1 get(const std::map<T0,T1>& m, const T0& key, const T1& def)
@@ -46,28 +46,34 @@ public:
     int n_edges() const { return m_edges.size(); }
     int n_vertices() const { return m_vertices.size(); }
 
-    void get_faces(std::vector<int>& defs, std::vector<int>& ids) const {
+    void get_faces(std::vector<int>& defs, std::vector<int>& ids, std::vector<int>& doms) const {
         defs.clear();
         ids.clear();
+        doms.clear();
         for(face_map_t::const_iterator it=m_faces.begin();it!=m_faces.end();++it) {
             for(int k=0;k<4;++k) defs.push_back(it->first.n[k]);
             ids.push_back(it->second);
+            doms.push_back(it->first.domain());
         }
     }
-    void get_edges(std::vector<int>& defs, std::vector<int>& ids) const {
+    void get_edges(std::vector<int>& defs, std::vector<int>& ids, std::vector<int>& doms) const {
         defs.clear();
         ids.clear();
+        doms.clear();
         for(edge_map_t::const_iterator it=m_edges.begin();it!=m_edges.end();++it) {
             for(int k=0;k<2;++k) defs.push_back(it->first.n[k]);
             ids.push_back(it->second);
+            doms.push_back(it->first.domain());
         }
     }
-    void get_vertices(std::vector<int>& defs, std::vector<int>& ids) const {
+    void get_vertices(std::vector<int>& defs, std::vector<int>& ids, std::vector<int>& doms) const {
         defs.clear();
         ids.clear();
+        doms.clear();
         for(vertex_map_t::const_iterator it=m_vertices.begin();it!=m_vertices.end();++it) {
             defs.push_back(it->first.n[0]);
             ids.push_back(it->second);
+            doms.push_back(it->first.domain());
         }
     }
 };
@@ -81,7 +87,9 @@ public:
 
 
     void compute_part();
-    void compute_communications();
+    void compute_face_communications();
+    void compute_edge_communications();
+    void compute_vertex_communications();
     void output_mesh_part();
     void output_mesh_part_xmf();
     /// Returns whether an element (global index) communicates with other processors
@@ -140,17 +148,24 @@ protected:
 
     void handle_local_element(int el, bool is_border);
     void handle_neighbour_element(int el);
+    void handle_neighbouring_face(int lnf, const PFace& fc, int el);
+    void handle_neighbouring_edge(int lne, const PEdge& ed, int el);
+    void handle_neighbouring_vertex(int lnv, const PVertex& vx, int el);
     void handle_surface(const Surface* surf);
     void output_mesh_attributes(hid_t fid);
     void output_local_mesh(hid_t fid);
     void output_surface(hid_t fid, const Surface* surf);
-    void write_surface_dom(hid_t gid, const Surface* surf, const char* pfx, int dom);
+    void output_comm(hid_t gid, const MeshPartComm& comm, int dest);
 
+    void write_surface_dom(hid_t gid, const Surface* surf, const char* pfx, int dom);
+    void get_neighbour_elements(int nn, const int* n, std::set<int>& elemset);
     void output_xmf_elements();
     void output_xmf_faces();
     void output_xmf_edges();
     void output_xmf_vertices();
     void output_xmf_comms();
+    void output_xmf_comms_faces();
+    void output_xmf_comms_edges();
     void output_xmf_header(FILE* f);
     void output_xmf_footer(FILE* f);
 };

@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cassert>
 #include <vector>
+#include <algorithm>
 #include "mesh.h"
 #include "meshpart.h"
 
@@ -17,10 +18,12 @@ void Mesh3DPart::compute_part()
             bool border = is_border_element(k);
             handle_local_element(k, border);
         } else {
-            handle_neighbour_element(k);
+//            handle_neighbour_element(k);
         }
     }
-    compute_communications();
+    compute_face_communications();
+    compute_edge_communications();
+    compute_vertex_communications();
     // Walk the surfaces and keep what belongs to us...
     std::map<std::string, Surface*>::const_iterator it;
     for(it=m_mesh.m_surfaces.begin();it!=m_mesh.m_surfaces.end();++it) {
@@ -41,8 +44,140 @@ bool Mesh3DPart::is_border_element(int el)
     return false;
 }
 
-void Mesh3DPart::compute_communications()
+void Mesh3DPart::get_neighbour_elements(int nn, const int* n, std::set<int>& elemset)
 {
+    std::set<int> elems, temp;
+    m_mesh.m_vertex_to_elem.vertex_to_elements(n[0], elemset);
+    for(int k=1;k<nn;++k) {
+        int vertex_id = n[k];
+        elems.clear();
+        temp.clear();
+        m_mesh.m_vertex_to_elem.vertex_to_elements(n[k], elems);
+        std::set_intersection(elemset.begin(), elemset.end(),
+                              elems.begin(), elems.end(),
+                              std::inserter(temp, temp.begin()));
+        elemset.swap(temp);
+    }
+}
+
+void Mesh3DPart::compute_face_communications()
+{
+    // Move through all border vertex,edges, faces
+    // and add them as communications if they match any
+    // neighbour's from other processors
+    // if two edge (faces, vertex) from different domains
+    // lie on different processor, then each proc must have
+    // the two domains.
+    face_map_t::const_iterator it;
+    // gross, but makes sure that we iterate over a stable container
+    face_map_t face_to_id(m_face_to_id);
+    for(it=face_to_id.begin();it!=face_to_id.end();++it) {
+        if (!m_face_border[it->second]) continue;
+        const PFace& fc = it->first;
+        int nfc = it->second;
+        std::set<int> elemset;
+        get_neighbour_elements(4, fc.n, elemset);
+        std::set<int>::const_iterator it;
+        for(it=elemset.begin();it!=elemset.end();++it) {
+            if (m_mesh.elem_part(*it)==m_proc) continue;
+            handle_neighbouring_face(nfc, fc, *it);
+        }
+    }
+}
+
+void Mesh3DPart::compute_edge_communications()
+{
+    edge_map_t::const_iterator it;
+    edge_map_t edge_to_id(m_edge_to_id);
+    for(it=edge_to_id.begin();it!=edge_to_id.end();++it) {
+        if (!m_edge_border[it->second]) continue;
+        const PEdge& ed = it->first;
+        int ned = it->second;
+        std::set<int> elemset;
+        get_neighbour_elements(2, ed.n, elemset);
+        std::set<int>::const_iterator it;
+        for(it=elemset.begin();it!=elemset.end();++it) {
+            if (m_mesh.elem_part(*it)==m_proc) continue;
+            handle_neighbouring_edge(ned, ed, *it);
+        }
+    }
+}
+
+void Mesh3DPart::compute_vertex_communications()
+{
+    vertex_map_t::const_iterator it;
+    vertex_map_t vertex_to_id(m_vertex_to_id);
+    for(it=vertex_to_id.begin();it!=vertex_to_id.end();++it) {
+        if (!m_vertex_border[it->second]) continue;
+        const PVertex& vx = it->first;
+        int nvx = it->second;
+        std::set<int> elemset;
+        get_neighbour_elements(1, vx.n, elemset);
+        std::set<int>::const_iterator it;
+        for(it=elemset.begin();it!=elemset.end();++it) {
+            if (m_mesh.elem_part(*it)==m_proc) continue;
+            handle_neighbouring_vertex(nvx, vx, *it);
+        }
+    }
+}
+void Mesh3DPart::handle_neighbouring_face(int lnf, const PFace& fc, int el)
+{
+    int dom = m_mesh.get_elem_domain(el);
+    int e0 = m_mesh.m_elems_offs[el];
+    const int *eldef = &m_mesh.m_elems[e0];
+    int source_proc = m_mesh.elem_part(el);
+    for(int nf=0;nf<6;++nf) {
+        int n[4];
+        for(int i=0;i<4;++i) n[i] = eldef[RefFace[nf].v[i]];
+        PFace nfc(n,dom);
+        if (!nfc.eq_geom(fc)) continue;
+        /// add local facet
+        m_comm[source_proc].m_faces[fc]=lnf;
+        if (dom!=fc.domain()) {
+            // if neighbour's domain is different add a new facet
+            int inf = add_facet(nfc, true);
+            m_comm[source_proc].m_faces[nfc]=inf;
+        }
+    }
+}
+
+void Mesh3DPart::handle_neighbouring_edge(int lne, const PEdge& ed, int el)
+{
+    int e0 = m_mesh.m_elems_offs[el];
+    const int *eldef = &m_mesh.m_elems[e0];
+    int source_proc = m_mesh.elem_part(el);
+    for(int ne=0;ne<12;++ne) {
+        int n[2];
+        for(int i=0;i<2;++i) n[i] = eldef[RefEdge[ne][i]];
+        PEdge ned(n[0], n[1],0);
+        if (!ned.eq_geom(ed)) continue;
+        // We are guaranteed that the edge exists locally and on the remote
+        // We add all domains common to the two vertices of the edge since
+        // a domain not local to the processor and the source_proc may still
+        // be created on source_proc by a third processor
+
+        int dommask = m_mesh.m_vertex_domains[n[0]] & m_mesh.m_vertex_domains[n[1]];
+        for(int dom=0;dom<=DM_MAX;++dom) {
+            if ((dommask & (1<<dom))==0) continue;
+            PEdge loced(n[0], n[1], dom);
+            int ne = add_edge(loced, true);
+            m_comm[source_proc].m_edges[loced] = ne;
+        }
+    }
+}
+
+void Mesh3DPart::handle_neighbouring_vertex(int lnv, const PVertex& vx, int el)
+{
+    int e0 = m_mesh.m_elems_offs[el];
+    const int *eldef = &m_mesh.m_elems[e0];
+    int source_proc = m_mesh.elem_part(el);
+    int dommask = m_mesh.m_vertex_domains[vx.n[0]];
+    for(int dom=0;dom<=DM_MAX;++dom) {
+        if ((dommask & (1<<dom))==0) continue;
+        PVertex locvx(vx.n[0], dom);
+        int nv = add_vertex(locvx, true);
+        m_comm[source_proc].m_vertices[locvx] = nv;
+    }
 }
 
 void Mesh3DPart::handle_surface(const Surface* surf)
@@ -619,36 +754,52 @@ void Mesh3DPart::output_mesh_part()
     h5h_create_attr(fid, "tot_comm_proc", (int)m_comm.size());
     std::map<int,MeshPartComm>::const_iterator it;
     int k=0;
-    std::vector<int> tdefs, tids;
     for(it=m_comm.begin();it!=m_comm.end();++it,++k) {
         char gproc[200];
         snprintf(gproc, 200, "Proc%04d", k);
         hid_t gid = H5Gcreate(fid, gproc, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        h5h_create_attr(gid, "proc_dest", it->first);
-        h5h_create_attr(gid, "n_faces", it->second.n_faces());
-        h5h_create_attr(gid, "n_edges", it->second.n_edges());
-        h5h_create_attr(gid, "n_vertices", it->second.n_vertices());
-        it->second.get_faces(tdefs, tids);
-        h5h_write_dset(gid, "faces", tids);
-        global_to_local_ids(tdefs);
-        h5h_write_dset_2d(gid, "faces_def", 4, tdefs); // DEBUG
-        it->second.get_edges(tdefs, tids);
-        h5h_write_dset(gid, "edges", tids);
-        global_to_local_ids(tdefs);
-        h5h_write_dset_2d(gid, "edges_def", 2, tdefs); // DEBUG
-        it->second.get_vertices(tdefs, tids);
-        h5h_write_dset(gid, "vertices", tids);
-        global_to_local_ids(tdefs);
-        h5h_write_dset(gid, "vertices_defs", tdefs);
-        H5Gclose(gid);
-        printf("Comm:%d->%d : F/E/V : (%d,%d,%d)\n", m_proc, it->first,
-               (int)it->second.m_faces.size(), (int)it->second.m_edges.size(),
-               (int)it->second.m_vertices.size());
+        output_comm(gid, it->second, it->first);
     }
 
     H5Fclose(fid);
 }
 
+
+void Mesh3DPart::output_comm(hid_t gid, const MeshPartComm& comm, int dest)
+{
+    std::vector<int> tdefs, tids, tdoms;
+    h5h_create_attr(gid, "proc_dest", dest);
+    h5h_create_attr(gid, "n_faces", comm.n_faces());
+    h5h_create_attr(gid, "n_edges", comm.n_edges());
+    h5h_create_attr(gid, "n_vertices", comm.n_vertices());
+    comm.get_faces(tdefs, tids, tdoms);
+    h5h_write_dset(gid, "faces", tids);
+    if (m_mesh.debug) {
+        global_to_local_ids(tdefs);
+        h5h_write_dset_2d(gid, "faces_def", 4, tdefs); // DEBUG
+        h5h_write_dset(gid, "faces_dom", tdoms);
+    }
+    comm.get_edges(tdefs, tids, tdoms);
+    h5h_write_dset(gid, "edges", tids);
+    if (m_mesh.debug) {
+        global_to_local_ids(tdefs);
+        h5h_write_dset_2d(gid, "edges_def", 2, tdefs); // DEBUG
+        h5h_write_dset(gid, "edges_dom", tdoms);
+    }
+    comm.get_vertices(tdefs, tids, tdoms);
+    h5h_write_dset(gid, "vertices", tids);
+    if (m_mesh.debug) {
+        global_to_local_ids(tdefs);
+        h5h_write_dset(gid, "vertices_defs", tdefs);
+    }
+    H5Gclose(gid);
+    if (m_mesh.debug) {
+        printf("Comm:%d->%d : F/E/V : (%d,%d,%d)\n", m_proc, dest,
+               (int)comm.m_faces.size(), (int)comm.m_edges.size(),
+               (int)comm.m_vertices.size());
+    }
+
+}
 void Mesh3DPart::reorder_comm(MeshPartComm& comm)
 {
 }
@@ -827,11 +978,17 @@ void Mesh3DPart::output_xmf_vertices()
 
 void Mesh3DPart::output_xmf_comms()
 {
-    char fname[2048];
+    output_xmf_comms_faces();
+    output_xmf_comms_edges();
+}
+
+void Mesh3DPart::output_xmf_comms_edges()
+{
+    char namebuf[2048];
     FILE* f;
 
-    snprintf(fname, sizeof(fname), "mesh4spec.%04d.comms.xmf", m_proc);
-    f = fopen(fname,"w");
+    snprintf(namebuf, sizeof(namebuf), "mesh4spec.%04d.comms.edges.xmf", m_proc);
+    f = fopen(namebuf,"w");
     output_xmf_header(f);
 
     fprintf(f, "  <Grid name=\"comms.%04d\" GridType=\"Collection\" CollectionType=\"Spatial\">\n", m_proc);
@@ -853,6 +1010,46 @@ void Mesh3DPart::output_xmf_comms()
         fprintf(f, "mesh4spec.%04d.h5:/local_nodes\n", m_proc);
         fprintf(f, "        </DataItem>\n");
         fprintf(f, "      </Geometry>\n");
+        snprintf(namebuf, sizeof(namebuf), "/Proc%04d/edges_dom", k);
+        output_int_scalar(f, 8, "Dom", "Cell", n_edges, namebuf);
+
+        fprintf(f, "    </Grid>\n");
+    }
+    fprintf(f, "  </Grid>\n");
+    output_xmf_footer(f);
+    fclose(f);
+}
+
+void Mesh3DPart::output_xmf_comms_faces()
+{
+    char namebuf[2048];
+    FILE* f;
+
+    snprintf(namebuf, sizeof(namebuf), "mesh4spec.%04d.comms.faces.xmf", m_proc);
+    f = fopen(namebuf,"w");
+    output_xmf_header(f);
+
+    fprintf(f, "  <Grid name=\"comms.%04d\" GridType=\"Collection\" CollectionType=\"Spatial\">\n", m_proc);
+    int k=0;
+    std::map<int,MeshPartComm>::const_iterator it;
+    for(it=m_comm.begin();it!=m_comm.end();++it,++k) {
+        int dest = it->first;
+
+        // Faces
+        fprintf(f, "    <Grid name=\"comms.%04d.%04d.e\">\n", m_proc, dest);
+        int n_faces = it->second.n_faces();
+        fprintf(f, "      <Topology Type=\"Quadrilateral\" NumberOfElements=\"%d\">\n", n_faces);
+        fprintf(f, "        <DataItem Format=\"HDF\" Datatype=\"Int\" Dimensions=\"%d 4\">\n", n_faces);
+        fprintf(f, "mesh4spec.%04d.h5:/Proc%04d/faces_def\n",m_proc, k);
+        fprintf(f, "        </DataItem>\n");
+        fprintf(f, "      </Topology>\n");
+        fprintf(f, "      <Geometry Type=\"XYZ\">\n");
+        fprintf(f, "        <DataItem Format=\"HDF\" Datatype=\"Float\" Precision=\"8\" Dimensions=\"%d 3\">\n", n_nodes());
+        fprintf(f, "mesh4spec.%04d.h5:/local_nodes\n", m_proc);
+        fprintf(f, "        </DataItem>\n");
+        fprintf(f, "      </Geometry>\n");
+        snprintf(namebuf, sizeof(namebuf), "/Proc%04d/faces_dom", k);
+        output_int_scalar(f, 8, "Dom", "Cell", n_faces, namebuf);
         fprintf(f, "    </Grid>\n");
     }
     fprintf(f, "  </Grid>\n");
