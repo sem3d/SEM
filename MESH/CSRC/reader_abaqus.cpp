@@ -31,8 +31,9 @@ void MeshReaderAbaqus::parse_file(Mesh3D& mesh)
             read_elements(mesh);
         } else if (strncmp(curline, "*PART", 5)==0) {
             read_next_line(); //read_part(mesh);
+        } else {
+            read_next_line();
         }
-        read_next_line();
     } while (!eof());
 }
 
@@ -82,6 +83,7 @@ void MeshReaderAbaqus::read_elements(Mesh3D& mesh)
         printf("Element type %s ignored\n", type);
         do {
             read_next_line();
+            if (eof()) break;
         } while(curline[0]!='*');
         return;
     }
@@ -94,7 +96,8 @@ void MeshReaderAbaqus::read_elements(Mesh3D& mesh)
         HexElem el;
         read_next_line();
         if (curline[0]=='*') break;
-        scanf(curline, "%d, %d, %d, %d, %d, %d, %d, %d, %d", &num,
+        if (eof()) break;
+        sscanf(curline, "%d, %d, %d, %d, %d, %d, %d, %d, %d", &num,
               &n[0], &n[1], &n[2], &n[3], &n[4], &n[5], &n[6], &n[7]);
         for(int k=0;k<8;++k) {
             el.v[k] = m_node_map[n[k]];
