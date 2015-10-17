@@ -16,7 +16,6 @@ module svertices
        integer :: Iglobnum_Vertex
        integer :: Idom
        integer :: inode
-       logical :: Abs
     end type vertex
 
 contains
@@ -24,7 +23,6 @@ contains
         type(Vertex), intent(inout) :: ve
         !
         ve%domain = -1
-        ve%Abs = .false.
         ve%Iglobnum_Vertex = -1
     end subroutine init_vertex
 

@@ -126,34 +126,6 @@ module sdomain
 
 contains
 
-
-    subroutine dist_max_elem(Tdomain)
-        implicit none
-        type (Domain), intent (INOUT) :: Tdomain
-        integer :: ipoint, jpoint
-        integer :: i, j, n
-        real :: coor_i(0:2), coor_j(0:2)
-        real :: dist_max
-
-
-        do n = 0,Tdomain%n_elem-1
-            dist_max = 0.
-
-            do i=0,Tdomain%n_nodes-1
-                ipoint = Tdomain%specel(n)%Control_Nodes(i)
-                coor_i = Tdomain%Coord_nodes(0:2,ipoint)
-                do j=i+1,Tdomain%n_nodes-1
-                    jpoint = Tdomain%specel(n)%Control_Nodes(j)
-                    coor_j = Tdomain%Coord_nodes(0:2,jpoint)
-                    dist_max = max(dist_max, sqrt((coor_i(0)-coor_j(0))**2 + (coor_i(1)-coor_j(1))**2 &
-                        + (coor_i(2)-coor_j(2))**2))
-                enddo
-            enddo
-            Tdomain%specel(n)%dist_max = dist_max
-        enddo
-
-    end subroutine dist_max_elem
-
     function domain_ngll(Tdomain, dom)
         integer, intent(in) :: dom
         type(domain), intent(in) :: Tdomain

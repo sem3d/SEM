@@ -78,7 +78,6 @@ module selement
 
         ! Index of a gll node within the global nodes array
         integer, dimension (:,:,:), allocatable :: Iglobnum
-        real :: dist_max !! taille caracteristique de l'element
     end type element
 
 contains

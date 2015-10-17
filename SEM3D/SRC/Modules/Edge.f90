@@ -11,14 +11,11 @@
 module sedges
     implicit none
     type :: edge
-
         integer :: ngll
         integer :: domain
         integer, dimension (:), allocatable :: Iglobnum_Edge
         integer, dimension (:), allocatable :: Idom
         integer, dimension(0:1) :: inodes
-
-        logical :: Abs
     end type edge
 
 contains
@@ -29,7 +26,6 @@ contains
         !
         ed%ngll = 0
         ed%domain = -1
-        ed%Abs = .false.
     end subroutine init_edge
 
 end module sedges

@@ -232,13 +232,6 @@ subroutine RUN_PREPARED(Tdomain)
     call compute_GLL(Tdomain)
     call MPI_Barrier(Tdomain%communicateur, code)
 
-!- absorbing layers (PMLs)
-    if (Tdomain%any_PML)then
-        if (rg == 0) write (*,*) "--> ATTRIBUTING PMLs PROPERTIES"
-        call PML_definition(Tdomain)
-    endif
-    call MPI_BARRIER(Tdomain%communicateur,code)
-
 !- from elementary to global numbering
     if (rg == 0) write (*,*) "--> DEFINING A GLOBAL NUMBERING FOR COLLOCATION POINTS"
     call global_numbering (Tdomain)

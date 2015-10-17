@@ -22,7 +22,6 @@ module sfaces
         integer, dimension(0:3) :: inodes
 
         ! TODO remove:
-        logical :: Abs
         integer, dimension(0:1) :: Which_Elem
         !! Couplage Externe
 !       real, dimension (:,:,:), allocatable :: ForcesExt
@@ -37,7 +36,6 @@ contains
         fc%domain = -1
         fc%ngll1 = 0
         fc%ngll2 = 0
-        fc%Abs = .false.
         fc%Which_Elem = -1
     end subroutine init_face
 

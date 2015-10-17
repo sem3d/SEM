@@ -23,7 +23,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Capteur.f90
     ${PRJ}/SRC/comm_utils.f90
     ${PRJ}/SRC/solid_fluid_coupling.f90
-    ${PRJ}/SRC/PML_def.f90
     ${PRJ}/SRC/SourcePosition.f90
     ${PRJ}/SRC/Modules/Edge.f90
     ${PRJ}/SRC/Modules/Comm.f90
