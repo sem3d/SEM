@@ -122,7 +122,7 @@ contains
         integer, intent(in), dimension(0:3) :: refface, face
         integer, intent(out), dimension(0:2) :: i0, di, dj
         !
-        integer :: node, dir, dir1, dir2, dir3, temp
+        integer :: node, dir, dir1, dir2, dir3
         integer :: ngll1, ngll2, ngll3
         call rel_orient(refface, face, node, dir)
         ! dir1..dir3 are the axis numbers (0,1,2) of respectively
@@ -133,11 +133,6 @@ contains
         dir3 = 3-dir1-dir2
         di(dir3) = 0
         dj(dir3) = 0
-!        if ((node==1) .or. (node==3)) then
-!            temp = dir1
-!            dir1 = dir2
-!            dir2 = temp
-!        end if
         ngll1 = ngll(dir1)-1
         ngll2 = ngll(dir2)-1
         ngll3 = ngll(dir3)-1

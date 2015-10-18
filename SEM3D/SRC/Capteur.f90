@@ -125,8 +125,8 @@ contains
             ! attention si le capteur est partage par plusieurs procs. On choisit le proc de num max
             if(Tdomain%rank==numproc_max) then
                 allocate(capteur)
-                
-                n_out = Tdomain%nReqOut                
+
+                n_out = Tdomain%nReqOut
                 if (.not.allocated(capteur%valuecache)) allocate(capteur%valuecache(1:n_out+1,NCAPT_CACHE))
 
                 nom = fromcstr(station_ptr%name)
@@ -371,10 +371,10 @@ contains
         real  :: sig_dev_xx, sig_dev_yy, sig_dev_zz, &
                  sig_dev_xy, sig_dev_xz, sig_dev_yz
         real  :: eps_vol,    P_energy,   S_energy
-        
+
         logical :: aniso
         real :: xmu, xlambda, xkappa, x2mu, xlambda2mu, onemSbeta, onemPbeta, eps_trace
-        
+
         real,    dimension(:), allocatable :: grandeur
         integer, dimension(0:8) :: out_variables, offset
         logical :: flag_gradU
@@ -601,11 +601,11 @@ contains
                         if (out_variables(OUT_ENERGYP) == 1) then
                             grandeur (offset(OUT_ENERGYP)) = grandeur (offset(OUT_ENERGYP)) + weight*P_energy
                         end if
-                        
+
                         if (out_variables(OUT_ENERGYS) == 1) then
                             grandeur (offset(OUT_ENERGYS)) = grandeur (offset(OUT_ENERGYS)) + weight*S_energy
                         end if
-                        
+
                         if (out_variables(OUT_EPS_VOL) == 1) then
                             grandeur (offset(OUT_EPS_VOL)) = grandeur (offset(OUT_EPS_VOL)) + weight*eps_vol
                         end if
@@ -626,7 +626,7 @@ contains
                     enddo
                 enddo
             enddo
-            
+
             deallocate(outx)
             deallocate(outy)
             deallocate(outz)
@@ -652,7 +652,7 @@ contains
             capteur%valuecache(2:n_out+1,i) = grandeur(:)
             if(allocated(grandeur)) deallocate(grandeur)
             capteur%icache = i
-            
+
         endif
 
     end subroutine sortieGrandeurCapteur_interp

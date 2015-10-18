@@ -314,48 +314,14 @@ subroutine get_surface_numbering(Tdomain, surf, dom, renum)
     integer, intent(in) :: dom
     integer, dimension(:), allocatable, intent(out) :: renum
     !
-    integer :: nglltot, i, j
-    integer :: nf, ne, nv
-    integer :: nfs, nes, nvs
-    integer :: ngll1, ngll2, ngll_if
+    integer :: nglltot, i
+
     nglltot = domain_ngll(Tdomain, dom)
     allocate(renum(0:nglltot-1))
     renum = -1
-#if 1
     do i=0,surf%nbtot-1
         renum(surf%map(i)) = i
     end do
-#else
-    ! copy gll numbers on the interface
-    ngll_if = 0
-    ! FACES
-    do nf=0,surf%n_faces-1
-        nfs = surf%if_faces(nf)
-        ngll1 = Tdomain%sFace(nfs)%ngll1
-        ngll2 = Tdomain%sFace(nfs)%ngll2
-        do j=1,ngll2-2
-            do i=1,ngll1-2
-                renum(Tdomain%sFace(nfs)%Idom(i,j)) = ngll_if
-                ngll_if = ngll_if + 1
-            end do
-        end do
-    end do
-    ! EDGES
-    do ne=0,surf%n_edges-1
-        nes = surf%if_edges(ne)
-        ngll1 = Tdomain%sEdge(nes)%ngll
-        do i=1,ngll1-2
-            renum(Tdomain%sEdge(nes)%Idom(i)) = ngll_if
-            ngll_if = ngll_if + 1
-        end do
-    end do
-    ! VERTICES
-    do nv=0,surf%n_vertices-1
-        nvs = surf%if_vertices(nv)
-        renum(Tdomain%sVertex(nvs)%Idom) = ngll_if
-        ngll_if = ngll_if + 1
-    end do
-#endif
 end subroutine get_surface_numbering
 
 subroutine renumber_surface(Tdomain, surf, dom0)

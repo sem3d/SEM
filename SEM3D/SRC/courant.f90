@@ -47,7 +47,7 @@ subroutine Compute_Courant (Tdomain,rg)
     integer, intent(IN) :: rg
 
     integer :: i,j,k, n, ngllx,nglly,ngllz, idef0,idef1, mat, ierr
-    real :: dx,dxmin,courant,courant_max
+    real :: dxmin,courant,courant_max
     real :: dt_min, dt, dt_loc
     real :: floc_max, dxmax, f_max
 

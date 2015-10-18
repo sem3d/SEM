@@ -26,9 +26,9 @@ contains
             phi,dphi_dx,dphi_dy,dphi_dz)
 
         !
-        Veloc(:,:,:,0) = dphi_dx(:,:,:)/density(:,:,:) 
-        Veloc(:,:,:,1) = dphi_dy(:,:,:)/density(:,:,:) 
-        Veloc(:,:,:,2) = dphi_dz(:,:,:)/density(:,:,:) 
+        Veloc(:,:,:,0) = dphi_dx(:,:,:)/density(:,:,:)
+        Veloc(:,:,:,1) = dphi_dy(:,:,:)/density(:,:,:)
+        Veloc(:,:,:,2) = dphi_dz(:,:,:)/density(:,:,:)
 
     end subroutine fluid_velocity
 
@@ -44,7 +44,7 @@ contains
         real, dimension(0:nglly-1,0:nglly-1), intent(in) :: hprimey
         real, dimension(0:ngllz-1,0:ngllz-1), intent(in) :: hprimez
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:2), intent(in) :: InvGrad
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2), intent(in) :: displ 
+        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2), intent(in) :: displ
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: dUx_dx,dUx_dy,dUx_dz,  &
             dUy_dx,dUy_dy,dUy_dz,dUz_dx,dUz_dy,dUz_dz
 
@@ -70,7 +70,7 @@ contains
         real, dimension(0:nglly-1,0:nglly-1), intent(in) :: hprimey
         real, dimension(0:ngllz-1,0:ngllz-1), intent(in) :: hprimez
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:2), intent(in) :: InvGrad
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2), intent(in) :: displ 
+        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2), intent(in) :: displ
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: mu,lambda
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: pressure
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: dUx_dx,dUx_dy,dUx_dz,  &

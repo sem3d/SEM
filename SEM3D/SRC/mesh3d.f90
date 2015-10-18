@@ -265,56 +265,6 @@ contains
 
     end subroutine read_comm_proc_data
 
-    subroutine read_comm_sf(Tdomain, proc_id, scomm)
-        type(domain), intent(inout) :: Tdomain
-        integer(HID_T), intent(in) :: proc_id
-        type(comm), intent(inout) :: scomm
-        !
-        integer, allocatable, dimension(:)   :: itemp, itempb
-        integer :: j
-        !
-        call read_attr_int(proc_id, "n_sf_faces", scomm%SF_nf_shared)
-        call read_attr_int(proc_id, "n_sf_edges", scomm%SF_ne_shared)
-        call read_attr_int(proc_id, "n_sf_vertices", scomm%SF_nv_shared)
-
-        if(scomm%SF_nf_shared > 0)then
-            call read_dataset(proc_id, "sf_faces", itemp)
-            allocate(scomm%SF_faces_shared(0:scomm%SF_nf_shared-1))
-            do j = 0,scomm%SF_nf_shared-1
-                scomm%SF_faces_shared(j) = itemp(j+1)
-            enddo
-            deallocate(itemp)
-        else
-            nullify(scomm%SF_faces_shared)
-        endif
-        if(scomm%SF_ne_shared > 0)then
-            call read_dataset(proc_id,"sf_edges", itemp)
-            call read_dataset(proc_id,"sf_edges_map", itempb)
-            allocate(scomm%SF_edges_shared(0:scomm%SF_ne_shared-1))
-            allocate(scomm%SF_mapping_edges_shared(0:scomm%SF_ne_shared-1))
-            do j = 0,scomm%SF_ne_shared-1
-                scomm%SF_edges_shared(j) = itemp(j+1)
-                scomm%SF_mapping_edges_shared(j) = itempb(j+1)
-            enddo
-            deallocate(itemp, itempb)
-        else
-            nullify(scomm%SF_edges_shared)
-            nullify(scomm%SF_mapping_edges_shared)
-        endif
-        if(scomm%SF_nv_shared > 0)then
-            call read_dataset(proc_id, "sf_vertices", itemp)
-            allocate(scomm%SF_vertices_shared(0:scomm%SF_nv_shared-1))
-            do j = 0,scomm%SF_nv_shared-1
-                scomm%SF_vertices_shared(j) = itemp(j+1)
-            enddo
-            deallocate(itemp)
-        else
-            nullify(scomm%SF_vertices_shared)
-        endif
-
-    end subroutine read_comm_sf
-
-
     subroutine read_one_surface(surf, pfx, gid)
         implicit none
         type(surf_num), intent(inout) :: surf
@@ -353,8 +303,8 @@ contains
             surf%if_vertices = itemp
             deallocate(itemp)
         end if
-
     end subroutine read_one_surface
+
     subroutine read_surfaces(Tdomain, gid)
         implicit none
         type(domain), intent(inout) :: Tdomain
@@ -514,55 +464,10 @@ contains
             call h5gopen_f(fid, trim(adjustl(proc_grp)), proc_id, hdferr)
             call read_comm_proc_data(Tdomain, proc_id, Tdomain%sComm(i) )
 
-!            if(Tdomain%logicD%SF_local_present)then
-!                call read_comm_sf(Tdomain, proc_id, Tdomain%sComm(i))
-!            else
-!                Tdomain%sComm(i)%SF_nf_shared = 0
-!                Tdomain%sComm(i)%SF_ne_shared = 0
-!                Tdomain%sComm(i)%SF_nv_shared = 0
-!            end if
-
-!            if(Tdomain%logicD%Neumann_local_present)then
-!                call read_attr_int(proc_id, "n_neu_edges", Tdomain%sComm(i)%Neu_ne_shared)
-!                call read_attr_int(proc_id, "n_neu_vertices", Tdomain%sComm(i)%Neu_nv_shared)
-!            else
-                Tdomain%sComm(i)%Neu_ne_shared = 0
-                Tdomain%sComm(i)%Neu_nv_shared = 0
-!            end if
-!            if(Tdomain%logicD%Neumann_local_present)then
-!                if(Tdomain%sComm(i)%Neu_ne_shared > 0)then
-!                    call read_dataset(proc_id,"neu_edges", itemp)
-!                    call read_dataset(proc_id,"neu_edges_map", itempb)
-!                    allocate(Tdomain%sComm(i)%Neu_edges_shared(0:Tdomain%sComm(i)%Neu_ne_shared-1))
-!                    allocate(Tdomain%sComm(i)%Neu_mapping_edges_shared(0:Tdomain%sComm(i)%Neu_ne_shared-1))
-!                    do j = 0,Tdomain%sComm(i)%Neu_ne_shared-1
-!                        Tdomain%sComm(i)%Neu_edges_shared(j) = itemp(j+1)
-!                        Tdomain%sComm(i)%Neu_mapping_edges_shared(j) = itempb(j+1)
-!                    enddo
-!                    deallocate(itemp, itempb)
-!                else
-!                    nullify(Tdomain%sComm(i)%Neu_edges_shared)
-!                    nullify(Tdomain%sComm(i)%Neu_mapping_edges_shared)
-!                endif
-!                if(Tdomain%sComm(i)%Neu_nv_shared > 0)then
-!                    call read_dataset(proc_id,"neu_vertices", itemp)
-!                    allocate(Tdomain%sComm(i)%Neu_vertices_shared(0:Tdomain%sComm(i)%Neu_nv_shared-1))
-!                    do j = 0,Tdomain%sComm(i)%Neu_nv_shared-1
-!                        Tdomain%sComm(i)%Neu_vertices_shared(j) = itemp(j+1)
-!                    enddo
-!                    deallocate(itemp)
-!                else
-!                    nullify(Tdomain%sComm(i)%Neu_vertices_shared)
-!                endif
-!            else
-!                nullify(Tdomain%sComm(i)%Neu_edges_shared)
-!                nullify(Tdomain%sComm(i)%Neu_mapping_edges_shared)
-!                nullify(Tdomain%sComm(i)%Neu_vertices_shared)
-!            end if
-
+            Tdomain%sComm(i)%Neu_ne_shared = 0
+            Tdomain%sComm(i)%Neu_nv_shared = 0
         end do
 
-        !write(*,*) "Mesh read correctly for proc #", rg
         if(rg == 0)then
             if(Tdomain%logicD%solid_fluid)then
                 write(*,*) "  --> Propagation in solid-fluid media."
@@ -582,7 +487,6 @@ contains
             end do
         end if
         deallocate(nb_elems_per_proc)
-        !write(*,*) rg, "NFACES=", Tdomain%n_face
 
     end subroutine read_mesh_file_h5
 

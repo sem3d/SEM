@@ -144,17 +144,15 @@ contains
         end select
     end function domain_ngll
 
-    subroutine check_interface_orient(Tdomain, inter, eps)
+    subroutine check_interface_orient(Tdomain, inter, xeps)
         type(domain), intent(in) :: Tdomain
         type(inter_num), intent(in) :: inter
-        real(FPP), intent(in) :: eps
+        real(FPP), intent(in) :: xeps
         !
         integer :: nif, i, j
         integer :: nf0, nf1, ip0, ip1
         integer :: ngll1, ngll2
         real(FPP), dimension(0:2) :: dp
-        real(FPP) :: x1, y1, z1
-        real(FPP), parameter :: xeps=1e-10
         logical :: bad
         !
         do nif=0,inter%surf0%n_faces-1
