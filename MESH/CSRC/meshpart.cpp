@@ -17,8 +17,6 @@ void Mesh3DPart::compute_part()
         if (m_mesh.elem_part(k)==m_proc) {
             bool border = is_border_element(k);
             handle_local_element(k, border);
-        } else {
-//            handle_neighbour_element(k);
         }
     }
     compute_face_communications();
@@ -307,104 +305,6 @@ void Mesh3DPart::handle_local_element(int el, bool is_border)
     }
     for(int vx=8;vx<m_mesh.nodes_per_elem();++vx) {
         add_node(m_mesh.m_elems[e0 + vx]);
-    }
-}
-
-void Mesh3DPart::handle_neighbour_element(int el)
-{
-    // use adjacency map to tell if a neigbouring element belong to this proc
-    // this works only if we used ncommon=1 in MeshToDual
-    bool found = false;
-    int contact;
-    for(int k=m_mesh.m_xadj[el];k<m_mesh.m_xadj[el+1];++k) {
-        int neighbour = m_mesh.m_adjncy[k];
-        if (m_mesh.elem_part(neighbour)==m_proc) {
-            found = true;
-            break;
-        }
-    }
-    if (el==63 || el == 64) {
-        printf("EL=%d : found=%d\n", el, (int)found);
-    }
-    if (!found) return;
-
-    int source_proc = m_mesh.elem_part(el);
-    // We have a neighbouring element
-    // add only those facets, edge, vertice that are in common with our proc
-    int e0 = m_mesh.m_elems_offs[el];
-    //int dom = m_mesh.get_elem_domain(el);
-    int share_pt[8] = {0, 0, 0, 0, 0, 0, 0, 0 };
-    vector<int> elems;
-    for(int k=0;k<8;++k) {
-        int vertex_id = m_mesh.m_elems[e0+k];
-        elems.clear();
-        m_mesh.m_vertex_to_elem.vertex_to_elements(vertex_id, elems);
-        for(size_t n=0;n<elems.size();++n) {
-            if (m_mesh.elem_part(elems[n])==m_proc) {
-                share_pt[k] = 1;
-                break;
-            }
-        }
-    }
-    // Assign all 6 faces
-    for(int fc=0;fc<6;++fc) {
-        int n[4];
-        // A mask for the domains shared by this face.
-        // since its a face There should be at most two
-        int dommask =  0xffff;
-        contact = 0;
-        for(int p=0;p<4;++p) {
-            int vx = RefFace[fc].v[p];
-            n[p] = m_mesh.m_elems[e0 + vx];
-            dommask &= m_mesh.m_vertex_domains[n[p]];
-            contact += share_pt[vx];
-        }
-        if (contact==4) {
-            int added=0;
-            for(int dom=0;dom<=DM_MAX;++dom) {
-                if ((dommask & (1<<dom))==0) continue;
-                PFace fc(n,dom);
-                int nf = add_facet(fc, true);
-                m_comm[source_proc].m_faces[fc]=nf;
-                ++added;
-            }
-            if (added==0) {
-                printf("ERR: no domain available (%02x) \n", dommask);
-            }
-        }
-    }
-    for(int ed=0;ed<12;++ed) {
-        int v0 = RefEdge[ed][0];
-        int v1 = RefEdge[ed][1];
-        int dommask = m_mesh.m_vertex_domains[v0] & m_mesh.m_vertex_domains[v1];
-        contact = share_pt[v0] + share_pt[v1];
-        if (contact==2) {
-            int added=0;
-            for(int dom=0;dom<=DM_MAX;++dom) {
-                if ((dommask & (1<<dom))==0) continue;
-                PEdge ed(m_mesh.m_elems[e0 + v0], m_mesh.m_elems[e0 + v1], dom);
-                int ne = add_edge(ed, true);
-                m_comm[source_proc].m_edges[ed] = ne;
-                if (ed.n[0]==88 && ed.n[1]==94) {
-                    printf("DEBUG: el=%d ed=(%d,%d) src=%d dst=%d dom=%d\n", el, ed.n[0], ed.n[1], m_proc, source_proc, dom);
-                }
-                added++;
-            }
-            if (added==0) {
-                printf("ERR: no domain available (%02x) \n", dommask);
-            }
-        }
-    }
-    for(int vx=0;vx<8;++vx) {
-        if (share_pt[vx]==1) {
-            int dommask = m_mesh.m_vertex_domains[vx];
-            for(int dom=0;dom<=DM_MAX;++dom) {
-                if ((dommask & (1<<dom))==0) continue;
-                PVertex vert(m_mesh.m_elems[e0 + vx], dom);
-                int nv = add_vertex(vert, true);
-                m_comm[source_proc].m_vertices[vert] = nv;
-            }
-        }
     }
 }
 
