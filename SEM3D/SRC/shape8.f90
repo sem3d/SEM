@@ -264,7 +264,6 @@ contains
         !
         real(kind=FPP), dimension(0:2) :: d_xi
         real(kind=FPP), dimension(0:2) :: d_eta
-        real(kind=FPP) :: norm
         integer :: i
         do i=0,2
             d_xi(i) = 0.25*( &
