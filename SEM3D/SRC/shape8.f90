@@ -160,19 +160,7 @@ contains
 
         ! Obtention of a positive Jacobian.
         do n = 0,Tdomain%n_elem - 1
-            ngllx = Tdomain%specel(n)%ngllx;
-            nglly = Tdomain%specel(n)%nglly;
-            ngllz = Tdomain%specel(n)%ngllz;
-            do k = 0,ngllz - 1
-                do j = 0,nglly - 1
-                    do i = 0,ngllx - 1
-                        Tdomain%specel(n)%Jacob(i,j,k) = abs(Tdomain%specel(n)%Jacob(i,j,k))
-                    enddo
-                enddo
-            enddo
-            !OBS: could be rewriten
-            !Tdomain%specel(n)%Jacob(:,:,:) = abs(Tdomain%specel(n)%Jacob(:,:,:))
-            !Keeping only the loop over the elements (n)
+            Tdomain%specel(n)%Jacob = abs(Tdomain%specel(n)%Jacob)
         enddo
 
 

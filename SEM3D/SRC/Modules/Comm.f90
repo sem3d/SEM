@@ -2,11 +2,6 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
-!>
-!! \file Comm.f90
-!! \brief
-!!
-!<
 
 module scomms
 
