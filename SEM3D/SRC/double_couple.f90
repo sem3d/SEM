@@ -34,59 +34,59 @@ subroutine double_couple(Tdomain,rg)
 
             M = Tdomain%sSource(n)%Moment
 
-            if (Tdomain%curve) then
-                Tdomain%sSource(n)%realcolat = M_PI*Tdomain%sSource(n)%realcolat/180
-                Tdomain%sSource(n)%reallong = M_PI*Tdomain%sSource(n)%reallong/180
-                ct=cos(Tdomain%sSource(n)%realcolat)  !!dcos(Tdomain%sSource(n)%realcolat)  !!Avt Gsa Ipsis
-                st=sin(Tdomain%sSource(n)%realcolat) !!dsin(Tdomain%sSource(n)%realcolat)
-                cp=cos(Tdomain%sSource(n)%reallong) !!dcos(Tdomain%sSource(n)%reallong)
-                sp=sin(Tdomain%sSource(n)%reallong) !!dsin(Tdomain%sSource(n)%reallong)
-                ! matrice de passage du systeme cartesien au systeme spherique
-                Pcs(0,0) = st*cp; Pcs(0,1) = ct*cp; Pcs(0,2) = -sp
-                Pcs(1,0) = st*sp; Pcs(1,1) = ct*sp; Pcs(1,2) = cp
-                Pcs(2,0) = ct   ; Pcs(2,1) = -st  ; Pcs(2,2) = 0.0d0
-                ! matrice de passage du systeme spherique au systeme cartesien (inverse de Pcs)
-                Psc(0,0) = st*cp; Psc(0,1) = st*sp; Psc(0,2) = ct
-                Psc(1,0) = ct*cp; Psc(1,1) = ct*sp; Psc(1,2) = -st
-                Psc(2,0) = -sp  ; Psc(2,1) = cp   ; Psc(2,2) = 0.0d0
-                ! Calcul du tenseur moment sismique dans le systeme cartesien
-                M = Tdomain%sSource(n)%Moment
-                do a = 0,2
-                    do b = 0,2
-                        TMP(a,b) = 0.0d0
-                        do k = 0,2
-                            TMP(a,b) = TMP(a,b) + M(a,k)*Psc(k,b)
-                        enddo
-                    enddo
-                enddo
-                do a = 0,2
-                    do b = 0,2
-                        M(a,b) = 0.0d0
-                        do k = 0,2
-                            M(a,b) = M(a,b) + Pcs(a,k)*TMP(k,b)
-                        enddo
-                    enddo
-                enddo
-                ! Rotation (du chunk reel au chunk de reference) du tenseur moment sismique
-                Rot = Tdomain%rot
-                tRot = transpose(Rot)
-                do a = 0,2
-                    do b = 0,2
-                        TMP(a,b) = 0.0d0
-                        do k = 0,2
-                            TMP(a,b) = TMP(a,b) + M(a,k)*Rot(k,b)
-                        enddo
-                    enddo
-                enddo
-                do a = 0,2
-                    do b = 0,2
-                        M(a,b) = 0.0d0
-                        do k = 0,2
-                            M(a,b) = M(a,b) + tRot(a,k)*TMP(k,b)
-                        enddo
-                    enddo
-                enddo
-            endif
+!!            if (Tdomain%curve) then
+!!                Tdomain%sSource(n)%realcolat = M_PI*Tdomain%sSource(n)%realcolat/180
+!!                Tdomain%sSource(n)%reallong = M_PI*Tdomain%sSource(n)%reallong/180
+!!                ct=cos(Tdomain%sSource(n)%realcolat)  !!dcos(Tdomain%sSource(n)%realcolat)  !!Avt Gsa Ipsis
+!!                st=sin(Tdomain%sSource(n)%realcolat) !!dsin(Tdomain%sSource(n)%realcolat)
+!!                cp=cos(Tdomain%sSource(n)%reallong) !!dcos(Tdomain%sSource(n)%reallong)
+!!                sp=sin(Tdomain%sSource(n)%reallong) !!dsin(Tdomain%sSource(n)%reallong)
+!!                ! matrice de passage du systeme cartesien au systeme spherique
+!!                Pcs(0,0) = st*cp; Pcs(0,1) = ct*cp; Pcs(0,2) = -sp
+!!                Pcs(1,0) = st*sp; Pcs(1,1) = ct*sp; Pcs(1,2) = cp
+!!                Pcs(2,0) = ct   ; Pcs(2,1) = -st  ; Pcs(2,2) = 0.0d0
+!!                ! matrice de passage du systeme spherique au systeme cartesien (inverse de Pcs)
+!!                Psc(0,0) = st*cp; Psc(0,1) = st*sp; Psc(0,2) = ct
+!!                Psc(1,0) = ct*cp; Psc(1,1) = ct*sp; Psc(1,2) = -st
+!!                Psc(2,0) = -sp  ; Psc(2,1) = cp   ; Psc(2,2) = 0.0d0
+!!                ! Calcul du tenseur moment sismique dans le systeme cartesien
+!!                M = Tdomain%sSource(n)%Moment
+!!                do a = 0,2
+!!                    do b = 0,2
+!!                        TMP(a,b) = 0.0d0
+!!                        do k = 0,2
+!!                            TMP(a,b) = TMP(a,b) + M(a,k)*Psc(k,b)
+!!                        enddo
+!!                    enddo
+!!                enddo
+!!                do a = 0,2
+!!                    do b = 0,2
+!!                        M(a,b) = 0.0d0
+!!                        do k = 0,2
+!!                            M(a,b) = M(a,b) + Pcs(a,k)*TMP(k,b)
+!!                        enddo
+!!                    enddo
+!!                enddo
+!!                ! Rotation (du chunk reel au chunk de reference) du tenseur moment sismique
+!!                Rot = Tdomain%rot
+!!                tRot = transpose(Rot)
+!!                do a = 0,2
+!!                    do b = 0,2
+!!                        TMP(a,b) = 0.0d0
+!!                        do k = 0,2
+!!                            TMP(a,b) = TMP(a,b) + M(a,k)*Rot(k,b)
+!!                        enddo
+!!                    enddo
+!!                enddo
+!!                do a = 0,2
+!!                    do b = 0,2
+!!                        M(a,b) = 0.0d0
+!!                        do k = 0,2
+!!                            M(a,b) = M(a,b) + tRot(a,k)*TMP(k,b)
+!!                        enddo
+!!                    enddo
+!!                enddo
+!!            endif
 
             do a = 0,2
                 do b = 0,2

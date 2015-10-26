@@ -19,7 +19,7 @@
 !-------------------------------------------------------------------
 module attenuation
     use sdomain
-    use constants, only : M_PI
+    use constants, only : M_PI, DM_SOLID
     implicit none
 contains
 
@@ -71,13 +71,12 @@ contains
         allocate(agamma_kappa(0:n_solid-1))
 
         do n = 0,Tdomain%n_elem-1
-            if (Tdomain%specel(n)%PML) cycle
-            if (.NOT.(Tdomain%specel(n)%solid)) cycle
+            if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
 
             ! a faire dans PMLs...
-                ngllx = Tdomain%specel(n)%ngllx
-                nglly = Tdomain%specel(n)%nglly
-                ngllz = Tdomain%specel(n)%ngllz
+            ngllx = Tdomain%specel(n)%ngllx
+            nglly = Tdomain%specel(n)%nglly
+            ngllz = Tdomain%specel(n)%ngllz
 
                 do i = 0,ngllx-1
                     do j = 0,nglly-1

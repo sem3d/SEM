@@ -12,6 +12,7 @@
 !<
 
 module ssubdomains
+implicit none
 
     !
     type LMC_properties
@@ -40,11 +41,11 @@ module ssubdomains
         ! Qmu en plus
         real :: Pspeed, Sspeed, Ddensity, Dt, Apow, freq, DLambda, DMu, Qmu, Q
         real :: DKappa, Qpression
-        real, dimension (:), pointer :: GLLcx, GLLpolx, GLLwx
+        real, dimension (:), pointer :: GLLcx, GLLwx
         real, dimension (:,:), pointer :: hprimex, hTprimex
-        real, dimension (:), pointer :: GLLcy, GLLpoly, GLLwy
+        real, dimension (:), pointer :: GLLcy, GLLwy
         real, dimension (:,:), pointer :: hprimey, hTprimey
-        real, dimension (:), pointer :: GLLcz, GLLpolz, GLLwz
+        real, dimension (:), pointer :: GLLcz, GLLwz
         real, dimension (:,:), pointer :: hprimez, hTprimez
 
         character(len=1) :: material_type
@@ -60,7 +61,7 @@ module ssubdomains
         real               , dimension(:)   , allocatable :: varProp
         integer            , dimension(:)   , allocatable :: chosenSeed
         real               , dimension(:)   , allocatable :: corrL
-        real               , dimension(:)   , allocatable :: MinBound, MaxBound
+        real               , dimension(0:2) :: MinBound, MaxBound
         type(nl_properties) :: nl_prop
 
     end type Subdomain
@@ -82,6 +83,41 @@ contains
         S%DKappa = S%DLambda + 2.*S%DMu /3.
 
     end subroutine Lame_coefficients
+
+    logical function is_pml(mat)
+        type(Subdomain), intent(in) :: mat
+
+        is_pml = .false.
+        select case (mat%material_type)
+        case('S')
+            is_pml = .false.
+        case('P')
+            is_pml = .true.
+        case('F')
+            is_pml = .false.
+        case('L')
+            is_pml = .true.
+        end select
+    end function is_pml
+
+    integer function get_domain(mat)
+        use constants
+        implicit none
+        type(Subdomain), intent(in) :: mat
+
+        get_domain = DM_SOLID
+        select case (mat%material_type)
+        case('S')
+            get_domain = DM_SOLID
+        case('P')
+            get_domain = DM_SOLID_PML
+        case('F')
+            get_domain = DM_FLUID
+        case('L')
+            get_domain = DM_FLUID_PML
+        end select
+        return
+    end function get_domain
 
 end module ssubdomains
 

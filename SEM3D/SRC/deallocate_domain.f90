@@ -24,6 +24,7 @@ subroutine deallocate_domain (Tdomain)
     type(domain), intent (INOUT):: Tdomain
 
     integer :: n
+    logical :: issolid, ispml
 
     deallocate (Tdomain%GlobCoord)
     deallocate (Tdomain%Coord_Nodes)
@@ -36,14 +37,16 @@ subroutine deallocate_domain (Tdomain)
         deallocate (Tdomain%specel(n)%IglobNum)
         deallocate (Tdomain%specel(n)%Control_Nodes)
         deallocate (Tdomain%specel(n)%Jacob)
+        ispml = Tdomain%specel(n)%domain==DM_SOLID_PML .or. Tdomain%specel(n)%domain==DM_FLUID_PML
+        issolid = Tdomain%specel(n)%domain==DM_SOLID_PML .or. Tdomain%specel(n)%domain==DM_SOLID
         if (Tdomain%TimeD%velocity_scheme) then
-            if (Tdomain%specel(n)%PML) then
+            if (ispml) then
                 !  modif mariotti fevrier 2007 cea
                 deallocate (Tdomain%specel(n)%Lambda)
                 deallocate (Tdomain%specel(n)%Kappa)
                 deallocate (Tdomain%specel(n)%Mu)
 
-                if (Tdomain%specel(n)%solid) then
+                if (issolid) then
                     deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress)
                     deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress1)
                     deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress2)
@@ -57,7 +60,7 @@ subroutine deallocate_domain (Tdomain)
                 deallocate (Tdomain%specel(n)%xpml%DumpSz)
             else
                 if (Tdomain%aniso) then
-                    if (Tdomain%specel(n)%solid) deallocate (Tdomain%specel(n)%sl%Cij)
+                    if (issolid) deallocate (Tdomain%specel(n)%sl%Cij)
                     if (Tdomain%n_sls>0) then
                         deallocate (Tdomain%specel(n)%Lambda)
                         deallocate (Tdomain%specel(n)%Kappa)
@@ -77,8 +80,7 @@ subroutine deallocate_domain (Tdomain)
                     deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el)
                     deallocate(Tdomain%specel(n)%sl%nl_param_el)
                 end if
-
-                if (Tdomain%specel(n)%solid .and. Tdomain%n_sls>0) then
+                if (issolid .and. Tdomain%n_sls>0) then
                     if (Tdomain%aniso) then
                         deallocate (Tdomain%specel(n)%sl%Q)
                     else
@@ -113,21 +115,14 @@ subroutine deallocate_domain (Tdomain)
             endif
         endif
         deallocate (Tdomain%specel(n)%InvGrad)     !purge fuites memoire Gsa
-        if(Tdomain%specel(n)%solid) then
+        if(issolid) then
             deallocate (Tdomain%specel(n)%sl)
-            if (Tdomain%specel(n)%PML) then
+            if (ispml) then
                 deallocate(Tdomain%specel(n)%slpml)
             endif
         end if
     enddo
 
-    do n = 0, Tdomain%n_face-1
-        if (Tdomain%sFace(n)%PML) then
-        else
-            !  modif mariotti fevrier 2007 cea capteur displ
-            !        deallocate (Tdomain%sFace(n)%Displ)
-        endif
-    enddo
 
     !purge -fuites memoire
     deallocate (Tdomain%sComm)
@@ -160,16 +155,8 @@ subroutine deallocate_domain (Tdomain)
         deallocate (Tdomain%sSubdomain(n)%GLLwx)
         deallocate (Tdomain%sSubdomain(n)%hprimex)
         deallocate (Tdomain%sSubdomain(n)%hTprimex)
-
-
-!        if (Tdomain%any_Random) then
-!            call MPI_COMM_FREE (Tdomain%subDComm(n),code)
-!        end if
     enddo
 
-!    if (Tdomain%any_Random) then
-!        if(allocated(Tdomain%subDComm)) deallocate (Tdomain%subDComm)
-!    end if
     deallocate (Tdomain%sSubdomain)
 
     do n = 0, Tdomain%n_source-1

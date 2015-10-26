@@ -61,19 +61,18 @@ subroutine  sem(couplage)
     integer :: isort
     character(len=MAX_FILE_SIZE) :: fnamef
     integer :: info_capteur
-    real(kind=8), parameter :: max_time_left=900
     integer :: getpid, pid
 
 #ifdef COUPLAGE
     integer :: n
     integer, dimension(3) :: flags_synchro ! fin/protection/sortie
 #else
+    real(kind=8), parameter :: max_time_left=900
     real(kind=8) :: remaining_time
 #endif
     integer :: display_iter !! Indique si on doit faire des sortie lors de cette iteration
     real(kind=4), dimension(2) :: tarray
     real(kind=4) :: tref
-    real(kind=4), parameter :: display_iter_time = 5.
     integer :: interrupt, rg, code, protection
 
     pid = getpid()
@@ -95,6 +94,9 @@ subroutine  sem(couplage)
     !lecture du fichier de maillage unv avec conversion en fichier sem2D
     if (rg == 0) write (*,*) "Define mesh properties"
     call read_mesh_h5(Tdomain)
+
+    ! mesh deformation (for testing purposes)
+    !call rotate_mesh(Tdomain)
 
     if (rg == 0) write (*,*) "Compute Gauss-Lobatto-Legendre weights and zeroes"
     call compute_GLL (Tdomain)
@@ -228,9 +230,6 @@ subroutine  sem(couplage)
             interrupt=1
         endif
 
-        ! incrementation du pas de temps
-        Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
-
 #ifdef COUPLAGE
         call envoi_vitesse_mka(Tdomain) !! syst. lineaire vitesse
 
@@ -336,6 +335,8 @@ subroutine  sem(couplage)
             exit
         endif
 
+        ! incrementation du pas de temps
+        Tdomain%TimeD%rtime = Tdomain%TimeD%rtime + Tdomain%TimeD%dtmin
     enddo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
     ! FIN BOUCLE DE CALCUL EN TEMPS

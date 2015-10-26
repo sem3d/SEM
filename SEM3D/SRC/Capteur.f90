@@ -124,8 +124,9 @@ contains
             ! attention si le capteur est partage par plusieurs procs. On choisit le proc de num max
             if(Tdomain%rank==numproc_max) then
                 allocate(capteur)
-                
-                n_out = Tdomain%nReqOut                
+
+                n_out = Tdomain%nReqOut
+                if (Tdomain%nl_flag==1 .and. Tdomain%out_variables(OUT_EPS_DEV)) n_out=n_out+6
                 if (.not.allocated(capteur%valuecache)) allocate(capteur%valuecache(1:n_out+1,NCAPT_CACHE))
 
                 nom = fromcstr(station_ptr%name)
@@ -369,19 +370,18 @@ contains
         real, dimension(:,:,:), allocatable :: DZX, DZY, DZZ
         real, dimension (:,:), allocatable  :: htprimex, hprimey, hprimez
         real  :: eps_dev_xx, eps_dev_yy, eps_dev_zz, &
-                 eps_dev_xy, eps_dev_xz, eps_dev_yz
-        real  :: eps_dev_pl_xx, eps_dev_pl_yy, eps_dev_pl_zz, &
-                 eps_dev_pl_xy, eps_dev_pl_xz, eps_dev_pl_yz
+            eps_dev_xy, eps_dev_xz, eps_dev_yz
         real  :: sig_dev_xx, sig_dev_yy, sig_dev_zz, &
-                 sig_dev_xy, sig_dev_xz, sig_dev_yz
-        real  :: eps_vol, P_energy, S_energy
-        
-        logical :: aniso, solid
+            sig_dev_xy, sig_dev_xz, sig_dev_yz
+        real  :: eps_vol,    P_energy,   S_energy
+        logical :: aniso
         real :: xmu, xlambda, xkappa, x2mu, xlambda2mu, onemSbeta, onemPbeta, eps_trace
-        
+
         real,    dimension(:), allocatable :: grandeur
         integer, dimension(0:8) :: out_variables, offset
-        integer                 :: flag_gradU, n_out, domain_type, nl_flag
+        logical :: flag_gradU
+        integer :: n_out, ioff
+        integer :: domtype, nl_flag
 
         rg = Tdomain%rank
 
@@ -395,7 +395,11 @@ contains
 
 
         out_variables(0:8) = Tdomain%out_variables(0:8)
-        flag_gradU = sum(out_variables(0:2:1)) + sum(out_variables(7:8:1))
+        flag_gradU = (out_variables(OUT_ENERGYP) + &
+            out_variables(OUT_ENERGYS) + &
+            out_variables(OUT_EPS_VOL) + &
+            out_variables(OUT_EPS_DEV) + &
+            out_variables(OUT_STRESS_DEV)) /= 0
 
         offset   = 0
 
@@ -403,18 +407,15 @@ contains
         nl_flag = Tdomain%nl_flag
         do i = 0,size(out_variables)-2
             if (out_variables(i) == 1) then
-                if (i .le. 3) then
-                    offset(i+1) = offset(i) + 1
-                else if ((i .gt. 3) .and. (i .le. 6)) then
-                    offset(i+1) = offset(i) + 3
-                else if (i .gt. 6) then
-                    offset(i+1) = offset(i) + 6
+                offset(i+1) = offset(i) + OUT_VAR_DIMS_3D(i)
+                if (nl_flag .and. i==OUT_EPS_DEV) then
+                    offset(i+i)=offset(i+1)+OUT_VAR_DIMS_3D(i)
+                    n_out=n_out+OUT_VAR_DIMS_3D(i)
                 end if
             else
                 offset(i+1) = offset(i)
             end if
         end do
-
         allocate(grandeur(0:n_out-1))
         grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
 
@@ -424,6 +425,18 @@ contains
             nglly = Tdomain%specel(n_el)%nglly
             ngllz = Tdomain%specel(n_el)%ngllz
             mat=Tdomain%specel(n_el)%mat_index
+            ! ALLOCATION
+            subroutine allocate_second_fields(domain_type, out_variables, nl_flag, ngllx, nglly, ngllz, &
+                fieldU, fieldV, fieldA, fieldP, fieldS, fieldEP, field_phi, field_vphi, &
+                DXX, DYY, DZZ, DXY, DYX, DXZ, DZX, DYZ, DZY)
+            if (flag_gradU/=0) then
+                allocate(hTprimex(0:ngllx-1,0:ngllx-1))
+                allocate(hprimey(0:nglly-1,0:nglly-1))
+                allocate(hprimez(0:ngllz-1,0:ngllz-1))
+                hTprimex=Tdomain%sSubDomain(mat)%hTprimex
+                hprimey=Tdomain%sSubDomain(mat)%hprimey
+                hprimez=Tdomain%sSubDomain(mat)%hprimez
+            end if
             allocate(outx(0:ngllx-1))
             allocate(outy(0:nglly-1))
             allocate(outz(0:ngllz-1))
@@ -490,29 +503,28 @@ contains
                 call  pol_lagrange(ngllz,Tdomain%sSubdomain(mat)%GLLcz,k,zeta,outz(k))
             end do
 
-            solid=Tdomain%specel(n_el)%solid
+            domtype=Tdomain%specel(n_el)%domain
             n_solid=Tdomain%n_sls
             aniso=Tdomain%aniso
 
-            if((solid) .and. (.not. Tdomain%specel(n_el)%PML) .and. (flag_gradU .ge. 1)) then   ! SOLID PART OF THE DOMAIN
+            if(domtype == DM_SOLID .and. flag_gradU/=0) then   ! SOLID PART OF THE DOMAIN
                 call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,0),DXX,DYX,DZX)
                 call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,1),DXY,DYY,DZY)
                 call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
             endif
-
-            if (out_variables(0) == 1) then
+            if (out_variables(OUT_ENERGYP) == 1) then
                 P_energy = 0
             end if
 
-            if (out_variables(1) == 1) then
+            if (out_variables(OUT_ENERGYS) == 1) then
                 S_energy = 0
             end if
 
-            if (out_variables(2) == 1) then
+            if (out_variables(OUT_EPS_VOL) == 1) then
                 eps_vol = 0
             end if
 
-            if (out_variables(7) == 1) then
+            if (out_variables(OUT_EPS_DEV) == 1) then
                 eps_dev_xx = 0
                 eps_dev_yy = 0
                 eps_dev_zz = 0
@@ -521,7 +533,7 @@ contains
                 eps_dev_yz = 0
             end if
 
-            if (out_variables(8) == 1) then
+            if (out_variables(OUT_STRESS_DEV) == 1) then
                 sig_dev_xx = 0
                 sig_dev_yy = 0
                 sig_dev_zz = 0
@@ -535,113 +547,124 @@ contains
                     do k = 0,ngllz - 1
                         weight = outx(i)*outy(j)*outz(k)
 
-                        if (out_variables(4) == 1) then
-                            grandeur(offset(4):offset(4)+2) &
-                                = grandeur(offset(4):offset(4)+2) + weight*fieldU(i,j,k,:)
+                        if (out_variables(OUT_DEPLA) == 1) then
+                            ioff=offset(OUT_DEPLA)
+                            grandeur(ioff:ioff+2) &
+                                = grandeur(ioff:ioff+2) + weight*fieldU(i,j,k,:)
+                        end if
+                        if (out_variables(OUT_VITESSE) == 1) then
+                            ioff=offset(OUT_VITESSE)
+                            grandeur(ioff:ioff+2) &
+                                = grandeur(ioff:ioff+2) + weight*fieldV(i,j,k,:)
+                        end if
+                        if (out_variables(OUT_ACCEL) == 1) then
+                            ioff=offset(OUT_ACCEL)
+                            grandeur(ioff:ioff+2) &
+                                = grandeur(ioff:ioff+2) + weight*fieldA(i,j,k,:)
+                        end if
+                        if (out_variables(OUT_PRESSION) == 1) then
+                            grandeur(offset(OUT_PRESSION)) &
+                                = grandeur(offset(OUT_PRESSION)) + weight*fieldP(i,j,k)
                         end if
 
-                        if (out_variables(5) == 1) then
-                            grandeur(offset(5):offset(5)+2) &
-                                = grandeur(offset(5):offset(5)+2) + weight*fieldV(i,j,k,:)
-                        end if
-
-                        if (out_variables(6) == 1) then
-                            grandeur(offset(6):offset(6)+2) &
-                                = grandeur(offset(6):offset(6)+2) + weight*fieldA(i,j,k,:)
-                        end if
-
-                        if (out_variables(3) == 1) then
-                            grandeur(offset(3)) &
-                                = grandeur(offset(3)) + weight*fieldP(i,j,k)
-                        end if
-
-                        if ((solid) .and. (.not. Tdomain%specel(n_el)%PML) .and. (flag_gradU .ge. 1)) then
+                        if (domtype==DM_SOLID .and. flag_gradU/=0) then
 
                             eps_trace = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
-
-                            if (out_variables(2) == 1) then
+                            if (out_variables(OUT_EPS_VOL) == 1) then
                                 eps_vol = eps_trace
+                                grandeur (offset(OUT_EPS_VOL)) = grandeur (offset(OUT_EPS_VOL)) + weight*eps_vol
                             end if
-
-                            if (out_variables(7) ==1) then
-                                eps_dev_xx = DXX(i,j,k) - eps_trace / 3
-                                eps_dev_yy = DYY(i,j,k) - eps_trace / 3
-                                eps_dev_zz = DZZ(i,j,k) - eps_trace / 3
+                            if (out_variables(OUT_EPS_DEV)==1) then
+                                eps_dev_xx = DXX(i,j,k)-eps_trace*M_1_3
+                                eps_dev_yy = DYY(i,j,k)-eps_trace*M_1_3
+                                eps_dev_zz = DZZ(i,j,k)-eps_trace*M_1_3
                                 eps_dev_xy = 0.5 * (DXY(i,j,k) + DYX(i,j,k))
                                 eps_dev_xz = 0.5 * (DZX(i,j,k) + DXZ(i,j,k))
                                 eps_dev_yz = 0.5 * (DZY(i,j,k) + DYZ(i,j,k))
+                                ioff=offset(OUT_EPS_DEV)
+                                grandeur (ioff:ioff+5) = grandeur(ioff:ioff+5) +&
+                                    (/weight*eps_dev_xx, weight*eps_dev_yy, weight*eps_dev_zz, &
+                                    weight*eps_dev_xy, weight*eps_dev_xz, weight*eps_dev_yz/)
+                                if (nl_flag==1) then
+                                    ioff=ioff+6
+                                    grandeur (ioff:ioff+5) = grandeur(ioff:ioff+5) + weight*fieldEP(i,j,k,:)
+                                endif
                             end if
 
                             if (aniso) then
                             else
+                                if (nl_flag==1) then
+                                    if (out_variables(OUT_STRESS_DEV) == 1) then
+                                        sig_dev_xx = fieldS(i,j,k,0)
+                                        sig_dev_yy = fieldS(i,j,k,1)
+                                        sig_dev_zz = fieldS(i,j,k,2)
+                                        sig_dev_xy = fieldS(i,j,k,3)
+                                        sig_dev_xz = fieldS(i,j,k,4)
+                                        sig_dev_yz = fieldS(i,j,k,5)
+                                    end if
+                                    ! A VOIR
+                                !                                    if (out_variables(OUT_ENERGYP) == 1) then
+                                !
+                                !                                    end if
+                                    ! A VOIR
+                                !                                    if (out_variables(OUT_ENERGYS) == 1) then
+                                !
+                                !                                    end if
 
-                                xmu     = Tdomain%specel(n_el)%Mu(i,j,k)
-                                xlambda = Tdomain%specel(n_el)%Lambda(i,j,k)
-                                xkappa  = Tdomain%specel(n_el)%Kappa(i,j,k)
+                                else
+                                    xmu     = Tdomain%specel(n_el)%Mu(i,j,k)
+                                    xlambda = Tdomain%specel(n_el)%Lambda(i,j,k)
+                                    xkappa  = Tdomain%specel(n_el)%Kappa(i,j,k)
+                                    if (n_solid>0) then
+                                        onemSbeta=Tdomain%specel(n_el)%sl%onemSbeta(i,j,k)
+                                        onemPbeta=Tdomain%specel(n_el)%sl%onemPbeta(i,j,k)
+                                        xmu=xmu*onemSbeta
+                                        xkappa=xkappa*onemPbeta
+                                    endif
+                                    x2mu=2.*xmu
+                                    xlambda2mu=xlambda+x2mu
+                                    if (out_variables(OUT_STRESS_DEV) == 1) then
+                                        sig_dev_xx = x2mu * (DXX(i,j,k) - eps_trace * M_1_3)
+                                        sig_dev_yy = x2mu * (DYY(i,j,k) - eps_trace * M_1_3)
+                                        sig_dev_zz = x2mu * (DZZ(i,j,k) - eps_trace * M_1_3)
+                                        sig_dev_xy = xmu * (DXY(i,j,k) + DYX(i,j,k))
+                                        sig_dev_xz = xmu * (DXZ(i,j,k) + DZX(i,j,k))
+                                        sig_dev_yz = xmu * (DYZ(i,j,k) + DZY(i,j,k))
+                                    end if
 
-                                if (n_solid>0) then
-                                    onemSbeta=Tdomain%specel(n_el)%sl%onemSbeta(i,j,k)
-                                    onemPbeta=Tdomain%specel(n_el)%sl%onemPbeta(i,j,k)
-                                    !  mu_relaxed -> mu_unrelaxed
-                                    xmu    = xmu * onemSbeta
-                                    !  kappa_relaxed -> kappa_unrelaxed
-                                    xkappa = xkappa * onemPbeta
-                                endif
-                                x2mu       = 2. * xmu
-                                xlambda2mu = xlambda + x2mu
+                                    if (out_variables(OUT_ENERGYP) == 1) then
+                                        P_energy = .5 * xlambda2mu * eps_trace**2
+                                    end if
 
-                                if (out_variables(8) == 1) then
-                                    sig_dev_xx = x2mu * (DXX(i,j,k) - eps_trace * M_1_3)
-                                    sig_dev_yy = x2mu * (DYY(i,j,k) - eps_trace * M_1_3)
-                                    sig_dev_zz = x2mu * (DZZ(i,j,k) - eps_trace * M_1_3)
-                                    sig_dev_xy = xmu * (DXY(i,j,k) + DYX(i,j,k))
-                                    sig_dev_xz = xmu * (DXZ(i,j,k) + DZX(i,j,k))
-                                    sig_dev_yz = xmu * (DYZ(i,j,k) + DZY(i,j,k))
+                                    if (out_variables(OUT_ENERGYS) == 1) then
+                                        S_energy =  xmu/2 * (DXY(i,j,k)**2 + DYX(i,j,k)**2 &
+                                            +   DXZ(i,j,k)**2 + DZX(i,j,k)**2 &
+                                            +   DYZ(i,j,k)**2 + DZY(i,j,k)**2 &
+                                            - 2 * DXY(i,j,k) * DYX(i,j,k)     &
+                                            - 2 * DXZ(i,j,k) * DZX(i,j,k)     &
+                                            - 2 * DYZ(i,j,k) * DZY(i,j,k))
+                                    end if
                                 end if
-
-                                if (out_variables(0) == 1) then
-                                    P_energy = .5 * xlambda2mu * eps_trace**2
-                                end if
-
-                                if (out_variables(1) == 1) then
-                                    S_energy =  xmu/2 * ( DXY(i,j,k)**2 + DYX(i,j,k)**2 &
-                                             +   DXZ(i,j,k)**2 + DZX(i,j,k)**2 &
-                                             +   DYZ(i,j,k)**2 + DZY(i,j,k)**2 &
-                                             - 2 * DXY(i,j,k) * DYX(i,j,k)     &
-                                             - 2 * DXZ(i,j,k) * DZX(i,j,k)     &
-                                             - 2 * DYZ(i,j,k) * DZY(i,j,k))
-                                end if
-
                             endif
                         endif
 
-                        if (out_variables(0) == 1) then
-                            grandeur (offset(0)) = grandeur (offset(0)) + weight*P_energy
-                        end if
-                        
-                        if (out_variables(1) == 1) then
-                            grandeur (offset(1)) = grandeur (offset(1)) + weight*S_energy
-                        end if
-                        
-                        if (out_variables(2) == 1) then
-                            grandeur (offset(2)) = grandeur (offset(2)) + weight*eps_vol
+                        if (out_variables(OUT_ENERGYP) == 1) then
+                            grandeur (offset(OUT_ENERGYP)) = grandeur (offset(OUT_ENERGYP)) + weight*P_energy
                         end if
 
-                        if (out_variables(7) == 1) then
-                            grandeur (offset(7):offset(7)+5) = grandeur (offset(7):offset(7)+5) &
-                            + (/weight*eps_dev_xx, weight*eps_dev_yy, weight*eps_dev_zz, &
-                                weight*eps_dev_xy, weight*eps_dev_xz, weight*eps_dev_yz/)
+                        if (out_variables(OUT_ENERGYS) == 1) then
+                            grandeur (offset(OUT_ENERGYS)) = grandeur (offset(OUT_ENERGYS)) + weight*S_energy
                         end if
-
-                        if (out_variables(8) == 1) then
-                            grandeur (offset(8):offset(8)+5) = grandeur (offset(8):offset(8)+5) &
-                            + (/weight*sig_dev_xx, weight*sig_dev_yy, weight*sig_dev_zz, &
+                        if (out_variables(OUT_STRESS_DEV) == 1) then
+                            ioff = offset(OUT_STRESS_DEV)
+                            grandeur (ioff:ioff+5) = grandeur (ioff:ioff+5) &
+                                + (/weight*sig_dev_xx, weight*sig_dev_yy, weight*sig_dev_zz, &
                                 weight*sig_dev_xy, weight*sig_dev_xz, weight*sig_dev_yz/)
                         end if
                     enddo
                 enddo
             enddo
-            
+
             deallocate(outx)
             deallocate(outy)
             deallocate(outz)
@@ -649,6 +672,8 @@ contains
             if (allocated(fieldV)) deallocate(fieldV)
             if (allocated(fieldA)) deallocate(fieldA)
             if (allocated(fieldP)) deallocate(fieldP)
+            if (allocated(fieldS)) deallocate(fieldS)
+            if (allocated(fieldEP)) deallocate(fieldEP)
             if (allocated(DXX)) deallocate(DXX)
             if (allocated(DXY)) deallocate(DXY)
             if (allocated(DXZ)) deallocate(DXZ)
@@ -667,7 +692,7 @@ contains
             capteur%valuecache(2:n_out+1,i) = grandeur(:)
             if(allocated(grandeur)) deallocate(grandeur)
             capteur%icache = i
-            
+
         endif
 
     end subroutine sortieGrandeurCapteur_interp

@@ -52,7 +52,6 @@ module selement
     end type element_pml
 
     type :: element_solid_pml
-        integer, dimension (:,:,:), allocatable :: ISolPml
         ! TODO move pml related data here
         real, dimension(:,:,:,:), allocatable :: Diagonal_Stress1, Diagonal_Stress2, Diagonal_Stress3
         real, dimension(:,:,:,:), allocatable :: Residual_Stress1, Residual_Stress2, Residual_Stress3
@@ -61,17 +60,17 @@ module selement
     end type element_solid_pml
 
     type :: element_fluid_pml
-        integer, dimension (:,:,:), allocatable :: IFluPml
         real, dimension(:,:,:,:), allocatable :: Veloc
-        real, dimension(:,:,:,:), allocatable :: Veloc1,Veloc2,Veloc3
     end type element_fluid_pml
 
     type :: element
-        integer :: mat_index, ngllx, nglly, ngllz
+        integer :: ngllx, nglly, ngllz
+        integer :: mat_index
+        integer :: domain
         type(element_solid), allocatable :: sl
-
         type(element_fluid), allocatable :: fl
-        integer, dimension (:,:,:), allocatable :: ISol, IFlu
+        ! Index of a gll node within the physical domain
+        integer, dimension (:,:,:), allocatable :: Idom
         real, dimension (:,:,:), allocatable :: Jacob
         real, dimension(:,:,:,:,:), allocatable :: InvGrad
         real, dimension (:,:,:), allocatable :: Density, MassMat
@@ -86,62 +85,24 @@ module selement
 
         ! These should not be used during the simulation, only at init time
         integer, dimension (:), allocatable :: Control_nodes
-        integer, dimension (0:5) :: Near_Faces, Orient_Faces
-        integer, dimension (0:11) :: Near_Edges, Orient_Edges
+        integer, dimension (0:5) :: Near_Faces
+        integer, dimension (0:11) :: Near_Edges
         integer, dimension (0:7) :: Near_Vertices
 
+        ! Index of a gll node within the global nodes array
         integer, dimension (:,:,:), allocatable :: Iglobnum
-        ! flag for PML allocation
-        logical :: PML, FPML
-        logical  :: solid, fluid_dirich
-
-        real :: dist_max !! taille caracteristique de l'element
     end type element
 
-
-!    interface
-!       subroutine DGEMM ( TRANSA, TRANSB, M, N, K, ALPHA, A, LDA, B, LDB, BETA, C, LDC )
-!           CHARACTER*1        TRANSA, TRANSB
-!           INTEGER            M, N, K, LDA, LDB, LDC
-!           DOUBLE PRECISION   ALPHA, BETA
-!           DOUBLE PRECISION   A( LDA, * ), B( LDB, * ), C( LDC, * )
-!       end subroutine DGEMM
-!    end interface
-
 contains
-
-    integer function get_domain(el)
-        use constants
-        implicit none
-        type(Element), intent(INOUT) :: el
-
-        if (el%solid) then
-            if (el%PML) then
-                get_domain = DM_SOLID_PML
-            else
-                get_domain = DM_SOLID
-            endif
-        else ! Fluid
-            if (el%PML) then
-                get_domain = DM_FLUID_PML
-            else
-                get_domain = DM_FLUID
-            endif
-        endif
-        return
-    end function get_domain
-
-
 
     subroutine init_element(el)
         type(element), intent(inout) :: el
 
         el%mat_index=-1
+        el%domain = -1
         el%ngllx=0
         el%nglly=0
         el%ngllz=0
-        el%PML = .false.
-        el%solid = .true.
 
     end subroutine init_element
 

@@ -32,7 +32,7 @@ subroutine define_arrays(Tdomain)
     integer :: n,mat,ngllx,ngllz,ngll,i,j,idef,n_elem,w_face,nv_aus,nf,npow,powOmc
     integer :: i_send, n_face_pointed, i_proc, nv, i_stock, tag_send, tag_receive, ierr
     integer ,  dimension (MPI_STATUS_SIZE) :: status
-    real :: vp,ri,rj,dx,LocMassmat_Vertex,Apow,OmegaCprime,PI, Omega_c
+    real :: vp,ri,rj,dx,LocMassmat_Vertex,Apow,OmegaCprime,PI,Omega_c,dxdxi,dzdeta
     real, external :: pow
     real, dimension (:), allocatable :: LocMassMat1D, LocMassMat1D_Down, Send_bt, Receive_Bt
     real, dimension (:,:), allocatable :: xix,etax, xiz,etaz,Jac, Rlam,Rmu,RKmod,Whei,Id,wx, wz
@@ -147,12 +147,17 @@ subroutine define_arrays(Tdomain)
                         ri = 0.5*(1+Tdomain%sSubDomain(mat)%GLLcx(ngllx-1-i))
                         vp = Rkmod(i,0)/Tdomain%specel(n)%Density(i,0)
                         vp = sqrt(vp)
+                        dxdxi = -0.5
                         wx(i,0:ngllz-1) = pow (ri,vp,1,dx,Apow,npow)
                         OmegaCutx(i,0:ngllz-1) = Omega_c * (1 - ri**PowOmc)
-                        OmegaCprime = 0.5 * Omega_c * PowOmc * ri**(PowOmc-1)
-                        du_du_x(i,0:ngllz-1) = -0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) * (OmegaCutx(i,0) + wx(i,0)) &
-                                             + wx(i,0) * (0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) + OmegaCprime)
-                        duux(i,0:ngllz-1) = -wx(i,0) * (0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) + OmegaCprime) &
+                        OmegaCprime = -Omega_c * PowOmc * ri**(PowOmc-1)
+                        if (powOmc == 0) then
+                            OmegaCutx(i,0:ngllz-1) = Omega_c
+                            OmegaCprime = 0.
+                        endif
+                        du_du_x(i,0:ngllz-1) = dxdxi* (npow*pow(ri,vp,1,dx,Apow,npow-1) * (OmegaCutx(i,0) + wx(i,0)) &
+                                                     - wx(i,0) * (npow*pow(ri,vp,1,dx,Apow,npow-1) + OmegaCprime))
+                        duux(i,0:ngllz-1) = dxdxi * wx(i,0) * (npow*pow(ri,vp,1,dx,Apow,npow-1) + OmegaCprime) &
                                           * (wx(i,0) + OmegaCutx(i,0)) * Tdomain%sSubdomain(mat)%Dt
                     enddo
                 else
@@ -160,13 +165,22 @@ subroutine define_arrays(Tdomain)
                         ri = 0.5*(1+Tdomain%sSubDomain(mat)%GLLcx(i))
                         vp = Rkmod(i,0)/Tdomain%specel(n)%Density(i,0)
                         vp = sqrt(vp)
+                        dxdxi = 0.5
                         wx(i,0:ngllz-1) = pow (ri,vp,1,dx,Apow,npow)
                         OmegaCutx(i,0:ngllz-1)  = Omega_c * (1 - ri**PowOmc)
-                        OmegaCprime = -0.5 * Omega_c * PowOmc * ri**(PowOmc-1)
-                        du_du_x(i,0:ngllz-1) = 0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) * (OmegaCutx(i,0) + wx(i,0)) &
-                                             - wx(i,0) * (0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) + OmegaCprime)
-                        duux(i,0:ngllz-1) = wx(i,0) * (0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) + OmegaCprime) &
+                        OmegaCprime = -Omega_c * PowOmc * ri**(PowOmc-1)
+                        if (powOmc == 0) then
+                            OmegaCutx(i,0:ngllz-1) = Omega_c
+                            OmegaCprime = 0.
+                        endif
+                        du_du_x(i,0:ngllz-1) = dxdxi* (npow*pow(ri,vp,1,dx,Apow,npow-1) * (OmegaCutx(i,0) + wx(i,0)) &
+                                                     - wx(i,0) * (npow*pow(ri,vp,1,dx,Apow,npow-1) + OmegaCprime))
+                        duux(i,0:ngllz-1) = dxdxi * wx(i,0) * (npow*pow(ri,vp,1,dx,Apow,npow-1) + OmegaCprime) &
                                           * (wx(i,0) + OmegaCutx(i,0)) * Tdomain%sSubdomain(mat)%Dt
+                        !du_du_x(i,0:ngllz-1) = 0.5 * npow*pow(ri,vp,1,dx,Apow,npow-1) * (OmegaCutx(i,0) + wx(i,0)) &
+                        !                     - wx(i,0) * (0.5*npow*pow(ri,vp,1,dx,Apow,npow-1) + OmegaCprime)
+                        !duux(i,0:ngllz-1) = 0.5 * wx(i,0) * (npow*pow(ri,vp,1,dx,Apow,npow-1) + OmegaCprime) &
+                        !                  * (wx(i,0) + OmegaCutx(i,0)) * Tdomain%sSubdomain(mat)%Dt
                     enddo
                 endif
             else
@@ -181,12 +195,17 @@ subroutine define_arrays(Tdomain)
                         rj = 0.5*(1+Tdomain%sSubdomain(mat)%GLLcz(ngllz-1-j))
                         vp = Rkmod(0,j)/Tdomain%specel(n)%Density(0,j)
                         vp = sqrt(vp)
+                        dzdeta = -0.5
                         wz(0:ngllx-1,j) = pow (rj,vp,1,dx,Apow,npow)
                         OmegaCutz(0:ngllx-1,j) = Omega_c * (1 - rj**PowOmc)
-                        OmegaCprime = 0.5 * Omega_c * PowOmc * rj**(PowOmc-1)
-                        du_du_z(0:ngllx-1,j) = -0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) * (OmegaCutz(0,j) + wz(0,j)) &
-                                             + wz(0,j) * (0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) + OmegaCprime)
-                        duuz(0:ngllx-1,j) = -wz(0,j) * (0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) + OmegaCprime) &
+                        OmegaCprime = -Omega_c * PowOmc * rj**(PowOmc-1)
+                        if (powOmc == 0) then
+                            OmegaCutz(0:ngllx-1,j) = Omega_c
+                            OmegaCprime = 0.
+                        endif
+                        du_du_z(0:ngllx-1,j) = dzdeta* (npow*pow(rj,vp,1,dx,Apow,npow-1) * (OmegaCutz(0,j) + wz(0,j)) &
+                                             - wz(0,j) * (npow*pow(rj,vp,1,dx,Apow,npow-1) + OmegaCprime))
+                        duuz(0:ngllx-1,j) = dzdeta * wz(0,j) * (npow*pow(rj,vp,1,dx,Apow,npow-1) + OmegaCprime) &
                                           * (wz(0,j) + OmegaCutz(0,j)) * Tdomain%sSubdomain(mat)%Dt
                     enddo
                 else
@@ -194,13 +213,22 @@ subroutine define_arrays(Tdomain)
                         rj = 0.5*(1+Tdomain%sSubdomain(mat)%GLLcz(j))
                         vp = Rkmod(0,j)/Tdomain%specel(n)%Density(0,j)
                         vp = sqrt(vp)
+                        dzdeta = 0.5
                         wz(0:ngllx-1,j) = pow (rj,vp,1,dx,Apow,npow)
                         OmegaCutz(0:ngllx-1,j) = Omega_c * (1 - rj**PowOmc)
-                        OmegaCprime = -0.5 * Omega_c * PowOmc * rj**(PowOmc-1)
-                        du_du_z(0:ngllx-1,j) = 0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) * (OmegaCutz(0,j) + wz(0,j)) &
-                                             - wz(0,j) * (0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) + OmegaCprime)
-                        duuz(0:ngllx-1,j) = wz(0,j) * (0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) + OmegaCprime) &
+                        OmegaCprime = -Omega_c * PowOmc * rj**(PowOmc-1)
+                        if (powOmc == 0) then
+                            OmegaCutz(0:ngllx-1,j) = Omega_c
+                            OmegaCprime = 0.
+                        endif
+                        du_du_z(0:ngllx-1,j) = dzdeta* (npow*pow(rj,vp,1,dx,Apow,npow-1) * (OmegaCutz(0,j) + wz(0,j)) &
+                                             - wz(0,j) * (npow*pow(rj,vp,1,dx,Apow,npow-1) + OmegaCprime))
+                        duuz(0:ngllx-1,j) = dzdeta * wz(0,j) * (npow*pow(rj,vp,1,dx,Apow,npow-1) + OmegaCprime) &
                                           * (wz(0,j) + OmegaCutz(0,j)) * Tdomain%sSubdomain(mat)%Dt
+                        !du_du_z(0:ngllx-1,j) = 0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) * (OmegaCutz(0,j) + wz(0,j)) &
+                        !                     - wz(0,j) * (0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) + OmegaCprime)
+                        !duuz(0:ngllx-1,j) = wz(0,j) * (0.5*npow*pow(rj,vp,1,dx,Apow,npow-1) + OmegaCprime) &
+                        !                  * (wz(0,j) + OmegaCutz(0,j)) * Tdomain%sSubdomain(mat)%Dt
                     enddo
                 endif
             else
@@ -238,18 +266,18 @@ subroutine define_arrays(Tdomain)
 
             elseif (Tdomain%specel(n)%CPML) then
                 if (Tdomain%sSubDomain(mat)%Px) then
-                    Tdomain%specel(n)%Bxi(:,:)  = exp(-(wx(:,:) + OmegaCutx(:,:)) * Tdomain%sSubdomain(mat)%Dt)
-                    Tdomain%specel(n)%Axi(:,:)  = wx(:,:) * (Tdomain%specel(n)%Bxi (:,:) - Id(:,:)) / (wx(:,:) + OmegaCutx(:,:))
-                    if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Axi(:,:) = Tdomain%specel(n)%Bxi (:,:) - Id(:,:)
-                    Tdomain%specel(n)%Axi_prime(:,:) = ((Tdomain%specel(n)%Bxi(:,:) - Id(:,:)) * du_du_x(:,:)  &
-                                                       - Tdomain%specel(n)%Bxi(:,:) * duux(:,:))/ (wx(:,:) + OmegaCutx(:,:))**2
+                    Tdomain%specel(n)%Bx(:,:)  = exp(-(wx(:,:) + OmegaCutx(:,:)) * Tdomain%sSubdomain(mat)%Dt)
+                    Tdomain%specel(n)%Ax(:,:)  = wx(:,:) * (Tdomain%specel(n)%Bx(:,:) - Id(:,:)) / (wx(:,:) + OmegaCutx(:,:))
+                    if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Ax(:,:) = Tdomain%specel(n)%Bx(:,:) - Id(:,:)
+                    Tdomain%specel(n)%Ax_prime(:,:) = ((Tdomain%specel(n)%Bx(:,:) - Id(:,:)) * du_du_x(:,:)  &
+                                                       - Tdomain%specel(n)%Bx(:,:) * duux(:,:))/ (wx(:,:) + OmegaCutx(:,:))**2
                endif
                if (Tdomain%sSubDomain(mat)%Pz) then
-                   Tdomain%specel(n)%Beta(:,:) = exp(-(wz(:,:) + OmegaCutz(:,:)) * Tdomain%sSubdomain(mat)%Dt)
-                   Tdomain%specel(n)%Aeta(:,:) = wz(:,:) * (Tdomain%specel(n)%Beta(:,:) - Id(:,:)) / (wz(:,:) + OmegaCutz(:,:))
-                   if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Aeta(:,:) = Tdomain%specel(n)%Beta (:,:) - Id(:,:)
-                   Tdomain%specel(n)%Aeta_prime(:,:) = ((Tdomain%specel(n)%Beta(:,:) - Id(:,:)) * du_du_z(:,:) &
-                                                       - Tdomain%specel(n)%Beta(:,:) * duuz(:,:)) / (wz(:,:) + OmegaCutz(:,:))**2
+                   Tdomain%specel(n)%Bz(:,:) = exp(-(wz(:,:) + OmegaCutz(:,:)) * Tdomain%sSubdomain(mat)%Dt)
+                   Tdomain%specel(n)%Az(:,:) = wz(:,:) * (Tdomain%specel(n)%Bz(:,:) - Id(:,:)) / (wz(:,:) + OmegaCutz(:,:))
+                   if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Az(:,:) = Tdomain%specel(n)%Bz(:,:) - Id(:,:)
+                   Tdomain%specel(n)%Az_prime(:,:) = ((Tdomain%specel(n)%Bz(:,:) - Id(:,:)) * du_du_z(:,:) &
+                                                       - Tdomain%specel(n)%Bz(:,:) * duuz(:,:)) / (wz(:,:) + OmegaCutz(:,:))**2
                 endif
 
             else ! Usual PML

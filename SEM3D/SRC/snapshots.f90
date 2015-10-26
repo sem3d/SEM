@@ -518,7 +518,7 @@ contains
         integer :: n, i, j, k, ngllx, nglly, ngllz, ig, gn, ne
         !
         integer :: count
-        integer :: ierr, domain_type
+        integer :: ierr, domain_type, imat
         integer, dimension(:), allocatable, intent(out) :: domains
 
         allocate(irenum(0:Tdomain%n_glob_points-1))
@@ -554,7 +554,8 @@ contains
             ngllx = Tdomain%specel(n)%ngllx
             nglly = Tdomain%specel(n)%nglly
             ngllz = Tdomain%specel(n)%ngllz
-            domain_type = get_domain(Tdomain%specel(n))
+            imat = Tdomain%specel(n)%mat_index
+            domain_type = get_domain(Tdomain%sSubDomain(imat))
 
             do k = 0,ngllz - 1
                 do j = 0,nglly - 1
@@ -964,10 +965,8 @@ contains
     end subroutine deallocate_fields
 
     subroutine save_field_h5(Tdomain, isort)
-
         use sdomain
         use forces_aniso
-        use assembly
 
         implicit none
 
@@ -1021,8 +1020,8 @@ contains
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
             sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
+            domain_type = get_domain(sub_dom_mat)
             if (.not. el%OUTPUT) cycle
-            domain_type = get_domain(el)
             if (ngllx /= el%ngllx .or. nglly /= el%nglly .or. ngllz /= el%ngllz) then
                 ngllx = el%ngllx
                 nglly = el%nglly
@@ -1032,7 +1031,6 @@ contains
                     field_phi, field_vphi, DXX, DYY, DZZ, DXY, DYX, DXZ, DZX, DYZ, DZY)
 
             endif
-
             ! GATHER FIELDS
             select case(domain_type)
                 case (DM_SOLID) ! SOLID PART OF THE DOMAIN
@@ -1089,7 +1087,7 @@ contains
                         el%InvGrad,el%density,field_vphi,field_accel)
                     field_press = -field_vphi
             end select
-
+            ! COMPUTING SNAPSHOTS
             do k = 0,ngllz-1
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
@@ -1499,7 +1497,7 @@ contains
         real, dimension(:),allocatable :: mass, jac
         integer :: ngllx, nglly, ngllz, idx
         integer :: i, j, k, n, nnodes_tot
-        integer :: domain_type
+        integer :: domain_type, imat
 
 
         allocate(mass(0:nnodes-1))
@@ -1510,7 +1508,8 @@ contains
             ngllx = Tdomain%specel(n)%ngllx
             nglly = Tdomain%specel(n)%nglly
             ngllz = Tdomain%specel(n)%ngllz
-            domain_type = get_domain(Tdomain%specel(n))
+            imat = Tdomain%specel(n)%mat_index
+            domain_type = get_domain(Tdomain%sSubDomain(imat))
             select case(domain_type)
                 case (DM_SOLID)
                     do k = 0,ngllz-1
@@ -1518,7 +1517,7 @@ contains
                             do i = 0,ngllx-1
                                 idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                                 if (domains(idx)==domain_type) then
-                                    mass(idx) = Tdomain%MassMatSol(Tdomain%specel(n)%Isol(i,j,k))
+                                    mass(idx) = Tdomain%MassMatSol(Tdomain%specel(n)%Idom(i,j,k))
                                 endif
                             end do
                         end do
@@ -1529,7 +1528,7 @@ contains
                             do i = 0,ngllx-1
                                 idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                                 if (domains(idx)==domain_type) then
-                                    mass(idx) = Tdomain%MassMatSolPML(Tdomain%specel(n)%slpml%IsolPML(i,j,k))
+                                    mass(idx) = Tdomain%MassMatSolPML(Tdomain%specel(n)%Idom(i,j,k))
                                 endif
                             end do
                         end do
@@ -1540,7 +1539,7 @@ contains
                             do i = 0,ngllx-1
                                 idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                                 if (domains(idx)==domain_type) then
-                                    mass(idx) = Tdomain%MassMatFlu(Tdomain%specel(n)%IFlu(i,j,k))
+                                    mass(idx) = Tdomain%MassMatFlu(Tdomain%specel(n)%Idom(i,j,k))
                                 endif
                             end do
                         end do
@@ -1551,13 +1550,12 @@ contains
                             do i = 0,ngllx-1
                                 idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                                 if (domains(idx)==domain_type) then
-                                    mass(idx) = Tdomain%MassMatFluPML(Tdomain%specel(n)%flpml%IFluPML(i,j,k))
+                                    mass(idx) = Tdomain%MassMatFluPML(Tdomain%specel(n)%Idom(i,j,k))
                                 endif
                             end do
                         end do
-                    end do
-            end select
-        enddo
+                end select
+            enddo
         if (Tdomain%ngll_pmls>0) deallocate(Tdomain%MassMatSolPml)
         if (Tdomain%ngll_pmlf>0) deallocate(Tdomain%MassMatFluPml)
         ! jac

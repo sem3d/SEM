@@ -16,14 +16,13 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/logical_input.f90
     ${PRJ}/SRC/Modules/Subdomains.f90
     ${PRJ}/SRC/Modules/Fault.f90
+    ${PRJ}/SRC/Modules/Interface.f90
     ${PRJ}/SRC/Modules/Domain.f90
     ${PRJ}/SRC/Modules/solid_fluid.f90
     ${PRJ}/SRC/orientation.f90
-    ${PRJ}/SRC/assembly.f90
     ${PRJ}/SRC/Capteur.f90
     ${PRJ}/SRC/comm_utils.f90
     ${PRJ}/SRC/solid_fluid_coupling.f90
-    ${PRJ}/SRC/PML_def.f90
     ${PRJ}/SRC/SourcePosition.f90
     ${PRJ}/SRC/Modules/Edge.f90
     ${PRJ}/SRC/Modules/Comm.f90
@@ -130,3 +129,8 @@ add_executable(test_pointlist
   ${SEMCOMMON}/pointlist.f90
   ${PRJ}/TESTS/UNITS/test_pointlist.f90
 )
+
+add_executable(test_index
+      ${PRJ}/SRC/indexation.f90
+      ${PRJ}/TESTS/SRC/test_indexation.f90
+      )
