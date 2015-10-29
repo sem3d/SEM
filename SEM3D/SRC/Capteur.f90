@@ -382,7 +382,6 @@ contains
         logical :: flag_gradU
         integer :: n_out, ioff
         integer :: domtype, nl_flag
-
         rg = Tdomain%rank
 
         ! ETAPE 0 : initialisations
@@ -478,17 +477,17 @@ contains
 
             end if
 
-            if (out_variables(5) == 1) then
+            if (out_variables(OUT_VITESSE) == 1) then
                 allocate(fieldV(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                 call gather_elem_veloc(Tdomain, n_el, fieldV)
             end if
 
-            if (out_variables(6) == 1) then
+            if (out_variables(OUT_ACCEL) == 1) then
                 allocate(fieldA(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                 call gather_elem_accel(Tdomain, n_el, fieldA)
             end if
 
-            if (out_variables(3) == 1) then
+            if (out_variables(OUT_PRESSION) == 1) then
                 allocate(fieldP(0:ngllx-1,0:nglly-1,0:ngllz-1))
                 call gather_elem_press(Tdomain, n_el, fieldP)
             end if
@@ -566,7 +565,6 @@ contains
                             grandeur(offset(OUT_PRESSION)) &
                                 = grandeur(offset(OUT_PRESSION)) + weight*fieldP(i,j,k)
                         end if
-
                         if (domtype==DM_SOLID .and. flag_gradU/=0) then
 
                             eps_trace = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)

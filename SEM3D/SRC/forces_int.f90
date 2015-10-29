@@ -20,7 +20,6 @@ contains
 
     subroutine forces_int_solid(Elem, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
         n_solid, aniso, solid, champs1, nl_flag)
-
         type (Element), intent (INOUT) :: Elem
         type (subdomain), intent(IN) :: mat
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: htprimex
@@ -216,7 +215,6 @@ contains
                     champs1%Forces(Elem%Idom(i,j,k),0) = champs1%Forces(Elem%Idom(i,j,k),0)-Fox(i,j,k)
                     champs1%Forces(Elem%Idom(i,j,k),1) = champs1%Forces(Elem%Idom(i,j,k),1)-Foy(i,j,k)
                     champs1%Forces(Elem%Idom(i,j,k),2) = champs1%Forces(Elem%Idom(i,j,k),2)-Foz(i,j,k)
-
                     if (nl_flag == 1) then
                         do i_dir = 0,5
                             champs1%Epsilon_pl(Elem%Idom(i,j,k),i_dir) = EpsPl_ij_N_el(i_dir,i,j,k)

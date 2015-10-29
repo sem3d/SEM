@@ -244,28 +244,6 @@ contains
             Tdomain%fpml_DumpMass = 0d0
 
         endif
-
-        ! Allocation et Initialisation de Fluid_dirich
-        ! permet d'annuler VelPhi sur les faces libres dans Newmark_corrector
-        allocate(Tdomain%fpml_dirich(0:Tdomain%ngll_pmlf-1))
-        Tdomain%fpml_dirich = 1.0
-        do n = 0,Tdomain%n_elem-1
-            if (Tdomain%specel(n)%Solid) cycle
-            if (.not. Tdomain%specel(n)%PML) cycle
-            if (.not. Tdomain%specel(n)%fluid_dirich) cycle
-            ngllx = Tdomain%specel(n)%ngllx
-            nglly = Tdomain%specel(n)%nglly
-            ngllz = Tdomain%specel(n)%ngllz
-            do j = 0,nglly-1
-                do i = 0,ngllx-1
-                    idx = Tdomain%specel(n)%flpml%IFluPml(i,j,ngllz-1)
-                    if (idx==-1) stop "Error"
-                    Tdomain%fpml_dirich(idx+0) = 0.
-                    Tdomain%fpml_dirich(idx+1) = 0.
-                    Tdomain%fpml_dirich(idx+2) = 0.
-                enddo
-            enddo
-        enddo
     endif
 
     return
@@ -284,4 +262,3 @@ end module sdomain_alloc
 !! f90-program-indent: 4
 !! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent :

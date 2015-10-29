@@ -323,7 +323,6 @@ contains
                             ind = el%Idom(i,j,k)
                             field(i,j,k) = -Tdomain%champs0%VelPhi(ind)
                         enddo
->>>>>>> 7c43c9c... merge ecp_evol_filippo LAST
                     enddo
                 enddo
             case (DM_SOLID_PML)

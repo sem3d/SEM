@@ -63,7 +63,6 @@ implicit none
         real               , dimension(:)   , allocatable :: corrL
         real               , dimension(0:2) :: MinBound, MaxBound
         type(nl_properties) :: nl_prop
-
     end type Subdomain
 
 contains
