@@ -8,11 +8,13 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <algorithm> // find
 #define OMPI_SKIP_MPICXX
 #include <hdf5.h>
 #include <cassert>
 #include <unistd.h>
 #include "metis.h"
+#include "../../COMMON/read_unv.hpp"
 
 using std::string;
 using std::vector;
@@ -33,6 +35,7 @@ typedef pair<int,int> edge_idx_t;
 class Quad {
     public:
         Quad() {nn = 0; n = NULL;}
+        Quad(vector<unsigned long long int> & nodeID) {nn = nodeID.size(); n = new int[nn]; for(int i=0; i<nn; i++) n[i]=nodeID[i];}
         virtual ~Quad() {if(n){delete [] n; n = NULL; nn = 0;};}
         Quad(const Quad& Q) {nn = 0; n = NULL; *this = Q;}
         Quad& operator=(const Quad & Q) {
@@ -51,7 +54,7 @@ class Quad {
             int n3=n[3]; assert(n3>=0 && n3<x.size());
             double v01[2] = {x[n1]-x[n0], y[n1]-y[n0]};
             double v03[2] = {x[n3]-x[n0], y[n3]-y[n0]};
-            if ((v01[0]*v03[1]-v01[1]*v03[0])<0.){swap_orient(); printf("one quad (%f %f) has been swaped\n", x[n0]+v01[0]/2., y[n0]+v03[1]/2.);}
+            if ((v01[0]*v03[1]-v01[1]*v03[0])<0.) swap_orient();
         };
         virtual void swap_orient() = 0;
         virtual edge_idx_t get_edge_from_node(int i) = 0; // Assume a node belongs to the upcoming edge (or current edge for intermediate node)
@@ -65,6 +68,7 @@ class Quad4 : public Quad {
     public:
         Quad4() {nn = 0; n = NULL;}
         Quad4(const int* q):Quad() {nn = 4; n = new int[nn]; for(int i=0; q && i<nn; i++) n[i]=q[i];}
+        Quad4(vector<unsigned long long int> & nodeID):Quad(nodeID) {}
         virtual edge_idx_t get_edge_from_node(int i) // Return edge oriented the same way (low -> high) whatever element edge orientation may be
         {
             assert (i>=0 && i<=3);
@@ -79,6 +83,7 @@ class Quad8 : public Quad4 { // Assume intermediate nodes are stored after princ
     public:
         Quad8() {nn = 0; n = NULL;}
         Quad8(const int* q):Quad4() {nn = 8; n = new int[nn]; for(int i=0; q && i<nn; i++) n[i]=q[i];}
+        Quad8(vector<unsigned long long int> & nodeID):Quad4(nodeID) {}
         virtual void swap_orient() {int tmp=n[4]; n[4]=n[7]; n[7]=tmp; tmp=n[5]; n[5]=n[6]; n[6]=tmp; Quad4::swap_orient();};
         virtual edge_idx_t get_edge_from_node(int i) {assert (i>=0 && i<=7); int ii = (i >= 4) ? i - 4 : i; return Quad4::get_edge_from_node(ii);};
         virtual int get_face_from_node(int i) {assert (i>=0 && i<=7); int ii = (i >= 4) ? i - 4 : i; return ii;};
@@ -139,12 +144,12 @@ class Mesh2D {
 public:
     Mesh2D() {};
     virtual ~Mesh2D() {for(vector<Quad*>::iterator it = m_quads.begin(); it != m_quads.end(); ++it) {Quad* q=*it; if(q){delete q; q=NULL;}}};
-    void read_mesh(const string& fname, int& t);
+    void read_mesh(const string& fname);
     void partition_metis(int nproc);
     void partition_scotch(int nproc);
     void check_cell_orient();
     void write_proc_field(const string& fname);
-    void write_proc_file(const string& fname, const int t, int rk);
+    void write_proc_file(const string& fname, int rk);
     void gather_proc_info(MeshProcInfo& info, int rk);
     void store_local_quad_points(MeshProcInfo& info, int qn, Quad& quad);
     void prepare_new_proc_info(MeshProcInfo& info);
@@ -156,6 +161,8 @@ public:
     vector<int>  m_procs;
     vector<int>  m_mat1;
     vector<int>  m_mat2;
+private:
+    void read_sem_mesh(const string& fname);
 };
 
 
@@ -471,10 +478,11 @@ void read_nodes(hid_t g, vector<double>& x, vector<double>& y)
     read_dset_2d_d(g, "/Nodes", x, y);
 }
 
-void read_quads(hid_t g, vector<Quad*>& v, vector<double>& x, vector<double>& y, int& t)
+void read_quads(hid_t g, vector<Quad*>& v, vector<double>& x, vector<double>& y)
 {
     hid_t dset_id;
     hsize_t n0, n1;
+    int t = 0;
     if     (H5Lexists(g, "/Sem2D/Quad4", H5P_DEFAULT)) {dset_id=H5Dopen2(g, "/Sem2D/Quad4", H5P_DEFAULT); t=4;}
     else if(H5Lexists(g, "/Sem2D/Quad8", H5P_DEFAULT)) {dset_id=H5Dopen2(g, "/Sem2D/Quad8", H5P_DEFAULT); t=8;}
     else   {printf("ERR: only Quad4 and Quad8 are supported\n"); exit(1);}
@@ -496,21 +504,55 @@ void read_mat(hid_t g, vector<int>& m)
     read_dset_1d_i(g, "/Sem2D/Mat", m);
 }
 
-void Mesh2D::read_mesh(const string& fname, int& t)
+void Mesh2D::read_mesh(const string& fname)
+{
+  if (fname.find(".unv") != string::npos)
+  {
+    lsnodes nodes; lselems elems;
+    int rc = read_unv_mesh(fname, nodes, elems);
+    assert(rc == 0);
+
+    // Look for nodes in the XY plan (UNV, which is a 3D generic format, do not provide any hint to "choose" between XY or XZ or YZ)
+
+    for (unsigned int i = 0; i < nodes.size(); i++) {m_px.push_back(get<0>(nodes[i])); m_py.push_back(get<1>(nodes[i]));}
+
+    // Look for quad4 / quad8
+
+    for (unsigned int i = 0; i < elems.size(); i++)
+    {
+      int type = get<0>(elems[i]);
+      vector<unsigned long long int> nodeID = get<2>(elems[i]);
+      group gp = get<3>(elems[i]);
+      if(type == 44) {Quad4* q = new Quad4(nodeID); q->check_orient(m_px, m_py); m_quads.push_back(q); m_mat1.push_back(get<1>(gp));}; // Quad4
+      if(type == 45) {Quad8* q = new Quad8(nodeID); q->check_orient(m_px, m_py); m_quads.push_back(q); m_mat1.push_back(get<1>(gp));}; // Quad8
+    }
+    m_mat2 = m_mat1;
+  }
+  else read_sem_mesh(fname);
+
+  m_nprocs = 1;
+  m_procs.resize(m_quads.size(), 0);
+  m_mat_max = 0;
+  for(int k=0;k<m_mat1.size();++k) if (m_mat1[k]>m_mat_max) m_mat_max = m_mat1[k];
+
+  assert(m_px.size() > 0 && m_px.size() == m_py.size());               // Check nodes    consistency
+  assert(m_quads.size() > 0);                                          // Check element  consistency
+  assert(m_mat1.size() > 0 && m_mat1.size() == m_mat2.size());         // Check material consistency
+  assert(std::find(m_mat1.begin(), m_mat1.end(), -1) == m_mat1.end()); // Check all elements have a material
+}
+
+void Mesh2D::read_sem_mesh(const string& fname)
 {
     hid_t file_id = H5Fopen(fname.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     read_nodes(file_id, m_px, m_py);
-    read_quads(file_id, m_quads, m_px, m_py, t);
+    read_quads(file_id, m_quads, m_px, m_py);
     read_mat(file_id, m_mat1);
     read_mat(file_id, m_mat2);
     assert(m_mat1.size()==m_mat2.size());
     assert(m_quads.size()==m_mat1.size());
-    printf("%ld Nodes, %ld Quads%i\n", m_px.size(), m_quads.size(), t);
+    assert(m_quads.size()>0);
+    printf("%ld Nodes, %ld Quads%i\n", m_px.size(), m_quads.size(), m_quads[0]->get_nb_nodes());
     H5Fclose(file_id);
-    m_nprocs = 1;
-    m_procs.resize(m_quads.size(), 0);
-    m_mat_max = 0;
-    for(int k=0;k<m_mat1.size();++k) if (m_mat1[k]>m_mat_max) m_mat_max = m_mat1[k];
 }
 
 void Mesh2D::check_cell_orient()
@@ -519,6 +561,11 @@ void Mesh2D::check_cell_orient()
 
 void Mesh2D::partition_metis(int nproc)
 {
+    if (m_quads.size() > 0 && m_quads[0]->get_nb_nodes() == 8) {
+        printf("Error : not yet implemented\n");
+        exit(1);
+    }
+
     idx_t options[METIS_NOPTIONS];
     idx_t ne = m_quads.size();
     idx_t nn = m_px.size();
@@ -563,13 +610,13 @@ void Mesh2D::partition_metis(int nproc)
 
 void Mesh2D::write_proc_field(const string& fname)
 {
-    hid_t file_id = H5Fopen(fname.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+    hid_t file_id = H5Fopen(fname.c_str(), H5F_ACC_RDWR|H5F_ACC_CREAT, H5P_DEFAULT);
     write_dset_1d_i(file_id, "Proc", m_procs);
     H5Fclose(file_id);
 }
 
 
-void Mesh2D::write_proc_file(const string& fname, const int t, int rk)
+void Mesh2D::write_proc_file(const string& fname, int rk)
 {
     hid_t fid;
     if (access(fname.c_str(), F_OK)==0) {
@@ -578,7 +625,8 @@ void Mesh2D::write_proc_file(const string& fname, const int t, int rk)
     }
     fid = H5Fopen(fname.c_str(), H5F_ACC_RDWR|H5F_ACC_CREAT, H5P_DEFAULT);
 
-    MeshProcInfo info(t);
+    assert(m_quads.size() > 0);
+    MeshProcInfo info(m_quads[0]->get_nb_nodes());
     gather_proc_info(info, rk);
     write_attr_int(fid, "ndim", 2);
     //m_nprocs=1;
@@ -635,21 +683,18 @@ int main(int argc, char** argv)
     int nproc = atoi(argv[1]);
     string fmesh = argv[2];
 
-    int t = -1; // Element type : 4 or 8
     Mesh2D mesh;
-    mesh.read_mesh(fmesh, t);
-    if (nproc>1) {
-        if (t == 8) {
-            printf("Error : not yet implemented\n");
-            exit(1);
-        }
-        mesh.partition_metis(nproc);
-    }
-    mesh.write_proc_field(fmesh);
+    mesh.read_mesh(fmesh);
+    if (nproc>1) mesh.partition_metis(nproc);
+
+    string basename = fmesh;
+    if (basename.find(".h5")  != string::npos) basename = basename.erase(basename.find(".h5"),  3);
+    if (basename.find(".unv") != string::npos) basename = basename.erase(basename.find(".unv"), 4);
+    mesh.write_proc_field(basename+".h5");
 
     for(int k=0;k<nproc;++k) {
         snprintf(fname, 1024,"%s.%04d.h5", argv[3], k);
-        mesh.write_proc_file(fname, t, k);
+        mesh.write_proc_file(fname, k);
     }
 }
 
