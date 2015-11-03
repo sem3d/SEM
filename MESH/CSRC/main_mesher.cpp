@@ -115,6 +115,7 @@ int main(int argc, char**argv)
 	loc.output_mesh_part_xmf();
     }
     output_all_meshes_xmf(NPROCS);
+    return 0;
 }
 
 /* Local Variables:                                                        */
