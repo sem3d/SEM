@@ -508,8 +508,9 @@ void Mesh2D::read_mesh(const string& fname)
 {
   if (fname.find(".unv") != string::npos)
   {
+    vector<int> filterelems; filterelems.push_back(44); filterelems.push_back(45);
     lsnodes nodes; lselems elems;
-    int rc = read_unv_mesh(fname, nodes, elems);
+    int rc = read_unv_mesh(fname, nodes, elems, &filterelems);
     assert(rc == 0);
 
     // Look for nodes in the XY plan (UNV, which is a 3D generic format, do not provide any hint to "choose" between XY or XZ or YZ)

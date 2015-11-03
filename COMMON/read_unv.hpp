@@ -16,6 +16,21 @@ typedef vector<group>                                          lsgroups;
 typedef vector<node>                                           lsnodes;
 typedef vector<elem>                                           lselems;
 
-int read_unv_mesh ( string const & fname, lsnodes & nodes, lselems & elems );
+/*
+ * read_unv_mesh : read mesh from unv file.
+ * fpath        = path                  to   the unv file.
+ * lsnodes      = list of nodes    read from the unv file.
+ * lselems      = list of elements read from the unv file.
+ * filterelems  = filter designed to include only elements of specific types.
+ * filtergroups = filter designed to include only groups   of specific names.
+ *
+ * If filters are not used, all  the nodes / elements contained in the unv file are returned.
+ * If filters are     used, only the nodes / elements matching the filter       are returned (= a subset of the whole file).
+ *
+ * Note :
+ * Usually, unv exported files are messy (they contain a lot more than one needs to use).
+ * Filters enable to shrink the data set extracted from the unv file to a more convenient subset.
+ */
+int read_unv_mesh ( string const & fpath, lsnodes & nodes, lselems & elems, vector<int> * filterelems = NULL, vector<string> * filtergroups = NULL );
 
 #endif
