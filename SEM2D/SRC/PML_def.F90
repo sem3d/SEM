@@ -28,9 +28,9 @@ subroutine PML_definition (Tdomain)
     type (Domain), intent (INOUT) :: Tdomain
 
     ! local variables
-    integer :: n, mat,n_el0, n_el1, nv, nf, n_pml_faces, i
+    integer :: n, mat,n_el0, n_el1, nv, nf, n_pml_faces, i, j
     integer, dimension (:), allocatable :: FacePML_List
-    logical, dimension (:), allocatable :: Logical_PML_Vertices, Logical_Abs_Vertices,FacePML_Coherency
+    logical, dimension (:), allocatable :: Logical_PML_Vertices,  FacePML_Coherency
     logical, dimension (:), allocatable :: Logical_CPML_Vertices, Logical_ADEPML_Vertices
 
     do n = 0, Tdomain%n_elem -1
@@ -60,6 +60,39 @@ subroutine PML_definition (Tdomain)
         endif
     enddo
 
+    ! ASSIGNING Boundary Condition Type
+    ! Flags on absorbing/free surface Faces
+    do n = 0, Tdomain%n_face-1
+        n_el0 = Tdomain%sFace(n)%Near_Element(0)
+        n_el1 = Tdomain%sFace(n)%Near_Element(1)
+        if (n_el1 == -1) then
+            if (Tdomain%type_bc == DG_BC_ABS) then
+                Tdomain%sFace(n)%abs      = .true.
+                Tdomain%sFace(n)%freesurf = .false.
+                Tdomain%sFace(n)%reflex   = .false.
+            elseif (Tdomain%type_bc == DG_BC_FREE) then
+                Tdomain%sFace(n)%abs      = .false.
+                Tdomain%sFace(n)%freesurf = .true.
+                Tdomain%sFace(n)%reflex   = .false.
+            elseif (Tdomain%type_bc == DG_BC_REFL) then
+                Tdomain%sFace(n)%abs      = .false.
+                Tdomain%sFace(n)%freesurf = .false.
+                Tdomain%sFace(n)%reflex   = .true.
+            endif
+        else
+            Tdomain%sFace(n)%abs = .false.
+            Tdomain%sFace(n)%freesurf = .false.
+            Tdomain%sFace(n)%reflex   = .false.
+        endif
+        i = Tdomain%sFace(n)%Near_Vertex(0)
+        j = Tdomain%sFace(n)%Near_Vertex(1)
+        Tdomain%sVertex(i)%abs    = Tdomain%sFace(n)%abs
+        Tdomain%sVertex(j)%abs    = Tdomain%sFace(n)%abs
+        Tdomain%sVertex(i)%reflex = Tdomain%sFace(n)%reflex
+        Tdomain%sVertex(j)%reflex = Tdomain%sFace(n)%reflex
+    enddo
+
+    ! Special Treatment for PML
     do n = 0, Tdomain%n_face-1
         Tdomain%sFace(n)%PML = .false.
         Tdomain%sFace(n)%CPML = .false.
@@ -67,6 +100,7 @@ subroutine PML_definition (Tdomain)
         Tdomain%sFace(n)%Abs = .false.
         n_el0 = Tdomain%sFace(n)%Near_Element(0)
         n_el1 = Tdomain%sFace(n)%Near_Element(1)
+        ! Dealing With PML Faces at the border of the domain.
         if (n_el1 > -1) then
             if (Tdomain%specel(n_el0)%PML .and. Tdomain%specel(n_el1)%PML) Tdomain%sFace(n)%PML = .true.
             if (Tdomain%specel(n_el0)%CPML .and. Tdomain%specel(n_el1)%CPML) Tdomain%sFace(n)%CPML = .true.
@@ -75,16 +109,19 @@ subroutine PML_definition (Tdomain)
             if (Tdomain%specel(n_el0)%PML) then
                 mat = Tdomain%specel(n_el0)%mat_index
                 if (Tdomain%sFace(n)%which_face(0) == 0 .and. Tdomain%sSubdomain(mat)%Pz &
-                    .and. Tdomain%sSubdomain(mat)%Down) Tdomain%sFace(n)%Abs = .true.
+                    .and. Tdomain%sSubdomain(mat)%Down) Tdomain%sFace(n)%Reflex = .true.
                 if (Tdomain%sFace(n)%which_face(0) == 1 .and. Tdomain%sSubdomain(mat)%Px  &
-                    .and.(.not.  Tdomain%sSubdomain(mat)%Left)) Tdomain%sFace(n)%Abs = .true.
+                    .and.(.not.  Tdomain%sSubdomain(mat)%Left)) Tdomain%sFace(n)%Reflex = .true.
                 if (Tdomain%sFace(n)%which_face(0) == 2 .and. Tdomain%sSubdomain(mat)%Pz &
-                    .and. (.not. Tdomain%sSubdomain(mat)%Down)) Tdomain%sFace(n)%Abs = .true.
+                    .and. (.not. Tdomain%sSubdomain(mat)%Down)) Tdomain%sFace(n)%Reflex = .true.
                 if (Tdomain%sFace(n)%which_face(0) == 3 .and. Tdomain%sSubdomain(mat)%Px  &
-                    .and. Tdomain%sSubdomain(mat)%Left) Tdomain%sFace(n)%Abs = .true.
+                    .and. Tdomain%sSubdomain(mat)%Left) Tdomain%sFace(n)%Reflex = .true.
+                if (Tdomain%sFace(n)%Reflex) then
+                    Tdomain%sFace(n)%Abs = .false. ; Tdomain%sFace(n)%Freesurf = .false.
+                    i=Tdomain%sFace(n)%Near_Vertex(0) ; j=Tdomain%sFace(n)%Near_Vertex(1)
+                    Tdomain%sVertex(i)%Reflex = .true. ; Tdomain%sVertex(j)%Reflex = .true.
+                endif
             endif
-
-
         endif
     enddo
 
@@ -126,11 +163,9 @@ subroutine PML_definition (Tdomain)
     allocate (Logical_PML_vertices(0:Tdomain%n_vertex-1))
     allocate (Logical_CPML_vertices(0:Tdomain%n_vertex-1))
     allocate (Logical_ADEPML_vertices(0:Tdomain%n_vertex-1))
-    allocate (Logical_Abs_vertices(0:Tdomain%n_vertex-1))
     Logical_PML_vertices = .true.
     Logical_CPML_vertices = .true.
     Logical_ADEPML_vertices = .true.
-    Logical_Abs_vertices = .false.
 
     do n = 0, Tdomain%n_face-1
         if (.not. Tdomain%sFace(n)%PML) then
@@ -155,14 +190,6 @@ subroutine PML_definition (Tdomain)
             nv = Tdomain%sFace(n)%Near_Vertex(1)
             Logical_ADEPML_Vertices(nv) = .false.
         endif
-        if (Tdomain%sFace(n)%Abs) then
-            nv = Tdomain%sFace(n)%Near_Vertex(0)
-            if (nv<0 .or. nv >=Tdomain%n_vertex) stop "ERROR - PML_def : invalid near_vertex"
-            Logical_Abs_Vertices(nv) = .true.
-            nv = Tdomain%sFace(n)%Near_Vertex(1)
-            if (nv<0 .or. nv >=Tdomain%n_vertex) stop "ERROR - PML_def : invalid near_vertex"
-            Logical_Abs_Vertices(nv) = .true.
-        endif
 
     enddo
 
@@ -172,13 +199,12 @@ subroutine PML_definition (Tdomain)
         ! computations in define_array.F90
         Tdomain%sVertex(n)%CPML = Logical_CPML_Vertices (n) .or. Logical_ADEPML_Vertices (n)
         Tdomain%sVertex(n)%ADEPML = Logical_ADEPML_Vertices (n)
-        Tdomain%sVertex(n)%Abs = Logical_Abs_Vertices (n)
     enddo
 
     deallocate (Logical_PML_Vertices)
     deallocate (Logical_CPML_Vertices)
     deallocate (Logical_ADEPML_Vertices)
-    deallocate (Logical_Abs_Vertices )
+
     return
 end subroutine PML_definition
 

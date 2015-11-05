@@ -25,9 +25,10 @@ contains
 
         ! local variables
         integer :: n, mat, type_DG
-        real    :: E_tot, E_k, E_el, Dt
+        real    :: E_tot, E_k, E_el, E_el_tot, Dt
 
         E_tot = 0.
+        E_el_tot = 0.
         E_k  = 0.
         E_el = 0.
         Dt = Tdomain%TimeD%dtmin
@@ -49,6 +50,7 @@ contains
                         call compute_Elastic_Energy_DG (Tdomain%specel(n), E_el)
                         call compute_Kinetic_Energy_DG (Tdomain%specel(n), E_k)
                     endif
+                    E_el_tot = E_el_tot + E_el
                     E_tot = E_tot + E_k + E_el
                 endif
             enddo
@@ -57,7 +59,7 @@ contains
                 open (51,file = "Total_Energy",status="replace",form="formatted")
                 Tdomain%openfilescapt = .true.
             endif
-            write(51,*) Tdomain%TimeD%rtime, E_tot
+            write(51,*) Tdomain%TimeD%rtime, E_tot, E_el_tot
             call flush(51)
         endif
         return

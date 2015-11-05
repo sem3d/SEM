@@ -214,7 +214,7 @@ subroutine Get_flux_f2el (Tdomain, nelem)
   enddo
 
   ! Dirichlet Boundary conditions (if any)
-  if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,nelem)
+  if(Tdomain%type_bc==DG_BC_REFL .OR. Tdomain%specel(nelem)%PML) call enforce_diriclet_BC(Tdomain,nelem)
 
 end subroutine Get_flux_f2el
 
@@ -292,7 +292,7 @@ subroutine Get_flux_f2el_DGstrong (Tdomain, nelem)
   enddo
 
   ! Dirichlet Boundary conditions (if any)
-  if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,nelem)
+  if(Tdomain%type_bc==DG_BC_REFL .OR. Tdomain%specel(nelem)%PML) call enforce_diriclet_BC(Tdomain,nelem)
 
 end subroutine Get_flux_f2el_DGstrong
 

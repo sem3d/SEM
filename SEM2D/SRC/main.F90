@@ -121,7 +121,7 @@ subroutine  sem(couplage)
     if (rg == 0) write (*,*) " Compute Courant parameter"
     call compute_Courant (Tdomain)
 
-    if (rg == 0) write (*,*) "Attribute PML properties"
+    if (rg == 0) write (*,*) "Attribute Boundary Conditions and PML properties"
     call PML_definition (Tdomain)
 
     if (Tdomain%logicD%any_source) then

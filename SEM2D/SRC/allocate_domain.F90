@@ -4,7 +4,7 @@
 !!
 !>
 !!\file allocate_domain.F90
-!!\brief Gère l'allocation des domaines.
+!!\brief Gere l'allocation des domaines.
 !!\author
 !!\version 1.0
 !!\date 10/03/2009
@@ -226,32 +226,6 @@ subroutine allocate_domain (Tdomain)
          Tdomain%sFace(n)%DumpMass = 0.
      endif
 
-     ! Flags on absorbing/free surface Faces
-     if (Tdomain%sFace(n)%Near_Element(1) == -1) then
-         if (Tdomain%type_bc == DG_BC_ABS) then
-             Tdomain%sFace(n)%abs      = .true.
-             Tdomain%sFace(n)%freesurf = .false.
-             Tdomain%sFace(n)%reflex   = .false.
-         elseif (Tdomain%type_bc == DG_BC_FREE) then
-             Tdomain%sFace(n)%abs      = .false.
-             Tdomain%sFace(n)%freesurf = .true.
-             Tdomain%sFace(n)%reflex   = .false.
-          elseif (Tdomain%type_bc == DG_BC_REFL) then
-             Tdomain%sFace(n)%abs      = .false.
-             Tdomain%sFace(n)%freesurf = .false.
-             Tdomain%sFace(n)%reflex   = .true.
-         endif
-     else
-         Tdomain%sFace(n)%abs = .false.
-         Tdomain%sFace(n)%freesurf = .false.
-         Tdomain%sFace(n)%reflex   = .false.
-     endif
-     i = Tdomain%sFace(n)%Near_Vertex(0)
-     j = Tdomain%sFace(n)%Near_Vertex(1)
-     Tdomain%sVertex(i)%abs    = Tdomain%sFace(n)%abs
-     Tdomain%sVertex(j)%abs    = Tdomain%sFace(n)%abs
-     Tdomain%sVertex(i)%reflex = Tdomain%sFace(n)%reflex
-     Tdomain%sVertex(j)%reflex = Tdomain%sFace(n)%reflex
      ! Putting a flag for Continuous-Discontinuous interface :
      i = Tdomain%sFace(n)%Near_Element(0)
      j = Tdomain%sFace(n)%Near_Element(1)

@@ -249,7 +249,7 @@ subroutine Semi_Implicit_Resolution (Tdomain,timelocal,Dt)
     do n=0,Tdomain%n_elem-1
         ! Communication Lambda from faces to elements
         call get_Vhat_f2el(Tdomain,n)
-        if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,n)
+        if(Tdomain%type_bc==DG_BC_REFL .OR. Tdomain%specel(n)%PML) call enforce_diriclet_BC(Tdomain,n)
         ! Local Solver
         call local_solver(Tdomain%specel(n),Dt)
     enddo
@@ -310,12 +310,12 @@ subroutine Forward_Euler_Resolution (Tdomain,timelocal,Dt,computeVhat)
     do n=0,Tdomain%n_elem-1
         call get_Vhat_f2el(Tdomain,n)
         call Compute_Traces (Tdomain%specel(n),.true.)
-        if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,n)
+        if(Tdomain%type_bc==DG_BC_REFL .OR. Tdomain%specel(n)%PML) call enforce_diriclet_BC(Tdomain,n)
         ! Add previous state to forces :
         call add_previous_state2forces (Tdomain%specel(n),Dt)
         Tdomain%specel(n)%Forces(:,:,2) = Tdomain%specel(n)%Forces(:,:,2) &
             - 1./Dt * Tdomain%specel(n)%Acoeff(:,:,12) * Tdomain%specel(n)%Strain0(:,:,2)
-        if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,n)
+        if(Tdomain%type_bc==DG_BC_REFL .OR. Tdomain%specel(n)%PML) call enforce_diriclet_BC(Tdomain,n)
         call inversion_massmat(Tdomain%specel(n))
         Tdomain%specel(n)%Strain(:,:,:) = Dt * Tdomain%specel(n)%Forces(:,:,0:2)
         Tdomain%specel(n)%Veloc (:,:,:) = Dt * Tdomain%specel(n)%Forces(:,:,3:4)
@@ -389,7 +389,7 @@ subroutine Semi_Implicit_Resolution_tnplus1 (Tdomain,timelocal,Dt)
         ! Communication Lambda from faces to elements
         call get_Vhat_f2el(Tdomain,n)
         Tdomain%specel(n)%Vhat = 0.5 * Tdomain%specel(n)%Vhat
-        if(Tdomain%type_bc==DG_BC_REFL) call enforce_diriclet_BC(Tdomain,n)
+        if(Tdomain%type_bc==DG_BC_REFL .OR. Tdomain%specel(n)%PML) call enforce_diriclet_BC(Tdomain,n)
         ! Local Solver
         call local_solver(Tdomain%specel(n),Dt)
     enddo
