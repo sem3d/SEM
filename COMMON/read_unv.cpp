@@ -37,7 +37,9 @@ int read_unv_mesh_elems ( ifstream & file, lsnodes & nodes, lselems & elems )
     if ( !file || nodeID >= nodes.size () ) { cerr << "read_unv_mesh_elems : bad element (" << elems.size () - 1 << ")" << endl; return 1; }
     nodeIDs.push_back ( nodeID );
   }
-  int dim = 1; if ( type > 40 ) dim = 2; if ( type > 100 ) dim = 3; // Types are ordered : 1D < 40, 40 <= 2D < 100, 100 <= 3D
+  int dim = 1;
+  if ( type > 40  ) dim = 2; if ( type > 110 ) dim = 3; // Types are ordered : 1D < 40, 2D >= 40, 3D >= 110
+  if ( type > 130 ) dim = -1;                           // Does no more make sense if > 130
   elems.push_back ( elem { type, dim, nodeIDs, group { "", -1 } } );
   return 0;
 }
@@ -128,18 +130,41 @@ int filter_unv ( lsnodes & nodes, lselems & elems, vector<int> * filterelems, ve
   return 0;
 }
 
-int read_unv_mesh ( string const & fpath, lsnodes & nodes, lselems & elems, vector<int> * filterelems, vector<string> * filtergroups )
+int transform_vtk ( lselems & elems )
+{
+  for ( unsigned int i = 0; i < elems.size (); i++ )
+  {
+    int type = get<0> ( elems[i] );
+    vector<unsigned long long int> nodeIDs, vtkNodeIDs;
+
+    if      ( type == 44 ) return 0; // Quad4 : OK
+    else if ( type == 45 )           // Quad8
+    {
+      nodeIDs = get<2> ( elems[i] );
+      for ( unsigned int j = 0; j < nodeIDs.size (); j += 2 ) vtkNodeIDs.push_back ( nodeIDs[j] ); // Main         nodes
+      for ( unsigned int j = 1; j < nodeIDs.size (); j += 2 ) vtkNodeIDs.push_back ( nodeIDs[j] ); // Intermediate nodes
+    }
+    else { cerr << "transform_vtk : element type not yet implemented" << endl; return 1; }
+
+    get<2> ( elems[i] ) = vtkNodeIDs; // Replace node IDs with vtk node IDs
+  }
+  return 0;
+}
+
+int read_unv_mesh ( string const & fpath, lsnodes & nodes, lselems & elems, vector<int> * filterelems, vector<string> * filtergroups, bool vtkformat )
 {
   lsgroups groups;
   if ( read_unv_mesh_block ( fpath, 2411, nodes, elems, groups ) != 0 ) return 1; // Nodes
   if ( read_unv_mesh_block ( fpath, 2412, nodes, elems, groups ) != 0 ) return 1; // Elements
   if ( read_unv_mesh_block ( fpath, 2467, nodes, elems, groups ) != 0 ) return 1; // Groups
-  int rc = ( filterelems || filtergroups ) ? filter_unv ( nodes, elems, filterelems, filtergroups ) : 0;
+
+  if ( ( filterelems || filtergroups ) && filter_unv    ( nodes, elems, filterelems, filtergroups ) != 0 ) return 1;
+  if (   vtkformat                     && transform_vtk (        elems                            ) != 0 ) return 1;
 
   cout << "read_unv_mesh : " << nodes.size () << " nodes " << endl;
   cout << "read_unv_mesh : " << elems.size () << " elements" << endl;
   for ( unsigned int i = 0; i < groups.size (); i++ ) cout << "read_unv_mesh : group " << get<0> ( groups[i] ) << " has been found" << endl;
-  return rc;
+  return 0;
 }
 
 //int main ( int argc, char ** argv ) { if ( argc == 2 ) { lsnodes nodes; lselems elems; read_unv_mesh ( argv[1], nodes, elems ); } return 0; } // Debug read_unv_mesh
