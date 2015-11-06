@@ -8,7 +8,9 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <utility> // pair
 #include <algorithm> // find
+#include <tuple>
 #define OMPI_SKIP_MPICXX
 #include <hdf5.h>
 #include <cassert>
@@ -29,8 +31,8 @@ class Point {
         double x,y;
 };
 
-// Edge index : <node1,node2> with node1<node2
-typedef pair<int,int> edge_idx_t;
+typedef pair<int,int> edge_idx_t;               // Edge index : <node0,node1>                 with node0<node1
+typedef tuple<int,int,int,int,int> edge_info_t; // Edge info  : <edgenum,elem0,elem1,wf0,wf1> with elemX = element X, wfX = which_face of elemX
 
 class Quad {
     public:
@@ -90,11 +92,11 @@ class Quad8 : public Quad4 { // Assume intermediate nodes are stored after princ
         virtual bool is_intermediate_node(int i) {assert (i>=0 && i<=7); return (i >= 4) ? true : false;};
 };
 
-struct edge_info_t
+struct edge_comm_info_t
 {
-    edge_info_t():edge(-1),coherency(-1) {}
-    edge_info_t(int e, int c):edge(e),coherency(c) {}
-    edge_info_t(const edge_info_t& ei):edge(ei.edge),coherency(ei.coherency) {}
+    edge_comm_info_t():edge(-1),coherency(-1) {}
+    edge_comm_info_t(int e, int c):edge(e),coherency(c) {}
+    edge_comm_info_t(const edge_comm_info_t& ei):edge(ei.edge),coherency(ei.coherency) {}
     int edge;
     int coherency;
 };
@@ -103,37 +105,34 @@ struct Comm_proc {
     vector<int> m_vertices;
     map<int,int> m_vertices_map;
     vector<int> m_edges;
-    map<edge_idx_t,edge_info_t> m_edges_map;
+    map<edge_idx_t,edge_comm_info_t> m_edges_map;
     vector<int> m_coherency;
 };
 
 class MeshProcInfo {
     public:
-        MeshProcInfo(const int npq) {m_npq = npq;}
+        MeshProcInfo(const int npq) { m_npq = npq; }
         // Computed for storage
         vector<double> m_nodes;
         vector<int> m_quadnodes; // 4 or 8 node number for each quad
         vector<int> m_quadvertices; // always 4 vertice number for each quad
         vector<int> m_material;
-        vector<int> m_edges; // 4 edge number for each quad
-        vector<int> m_edges_elems; // Elem0,Elem1 for each edge
-        vector<int> m_edges_local; // local face number of the corresponding element (Which_face)
-        vector<int> m_edges_vertices; // vert0,vert1 for each edge
+        vector<int> m_quadedges; // 4 edge number for each quad
 
         int n_elements() const { return m_quadnodes.size()/m_npq; }
-        int n_edges() const { return m_edges_vertices.size()/2; } // Divide by 2 as v0 and v1 are stored for each edge
+        int n_edges() const { return m_edge_map.size(); }
         int n_vertices() const { return m_vert_map.size(); }
 
         // Bookkeeping info
-        vector<int> m_node_map;
-        map<int, int> m_vert_map; // for quad8, vertex global numbering != node numbering (intermediate nodes not considered)
+        vector<int> m_node_map; // map global node with local node (processor submesh)
+        map<int, int> m_vert_map; // map node with vertex (for quad8, vertex numbering != node numbering as intermediate nodes are not considered)
         vector<int> m_quad_map;
-        map<edge_idx_t,int> m_edge_map; // maps edge_idx to edge num+1 (so that 0 is used as not assigned)
+        map<edge_idx_t, edge_info_t> m_edge_map; // maps each edge with informations associated to this edge
+        vector<edge_idx_t> m_edges; // Keep track of face creation order (lost when using only map)
 
         // Methods
-        void add_edge_element(Quad& q, int fn, int en, int qn);
+        int add_edge_element(edge_idx_t e, int fn, int qn);
         void add_vertex(const int nid) {if(m_vert_map.find(nid)==m_vert_map.end()) {int vid=n_vertices(); m_vert_map[nid]=vid;}}
-        void create_new_edge();
         void get_quad_edge(Quad& q, int fn, int& v0, int& v1);
 
         map<int,Comm_proc> m_comm;
@@ -226,50 +225,19 @@ void MeshProcInfo::get_quad_edge(Quad& q, int fn, int& v0, int& v1)
     v1=m_vert_map[n1];
 }
 
-void MeshProcInfo::create_new_edge()
+int MeshProcInfo::add_edge_element(edge_idx_t e, int fn, int qn)
 {
-    m_edges_elems.push_back(-1);
-    m_edges_elems.push_back(-1);
-    m_edges_local.push_back(-1);
-    m_edges_local.push_back(-1);
-    m_edges_vertices.push_back(-1);
-    m_edges_vertices.push_back(-1);
-}
+    edge_info_t ei;
+    if (m_edge_map.find(e) != m_edge_map.end()) ei = m_edge_map[e];
+    else {ei = edge_info_t (m_edge_map.size (), -1, -1, -1, -1); m_edges.push_back(e);}
 
-void MeshProcInfo::add_edge_element(Quad& q, int fn, int en, int qn)
-{
-    // fn : local face number of current quad
-    // qn : quad number
-    // en : edge number
-    int j=0;
-    int v0=-1, v1=-1;
-    int lqn = m_quad_map[qn];
-    // Asserts we don't come here more than twice
-    assert(m_edges_elems[2*en+1]==-1);
-    if (m_edges_elems[2*en+0]==-1) {
-        j=0;
-        get_quad_edge(q, fn, v0, v1);
-    } else if (m_edges_elems[2*en+0]>lqn) {
-        j=0;
-        // Move elem0 to index 1
-        m_edges_elems[2*en+1] = m_edges_elems[2*en+0];
-        m_edges_local[2*en+1] = m_edges_local[2*en+0];
-        // Reset vertices for elem0
-        get_quad_edge(q, fn, v0, v1);
-    } else {
-        j=1;
-    }
-    m_edges_elems[2*en+j] = lqn;
-    m_edges_local[2*en+j] = fn;
-    if (j==0) {
-        m_edges_vertices[2*en+0] = v0;
-        m_edges_vertices[2*en+1] = v1;
-    } else {
-        // Do nothing the vertices stored are already those of m_edges_elems[2*en+0]
-        v0 = m_edges_vertices[2*en+0];
-        v1 = m_edges_vertices[2*en+1];
-    }
-    //printf("qn=%d fn=%d en=%d : j=%d v0=%d v1=%d\n", qn, fn, en, j, v0, v1);
+    int elem0 = get<1>(ei); int elem1 = get<2>(ei);
+    if      (elem0 == -1) {get<1>(ei) = qn; get<3>(ei) = fn;} // Modify info
+    else if (elem1 == -1) {get<2>(ei) = qn; get<4>(ei) = fn;} // Modify info
+    else                  {assert(0); /*should never happen - assert to make sure*/ }
+
+    m_edge_map[e] = ei; // Store (created or modified) info in map
+    return get<0>(ei);
 }
 
 void Mesh2D::gather_proc_info(MeshProcInfo& info, int rk)
@@ -290,18 +258,10 @@ void Mesh2D::gather_proc_info(MeshProcInfo& info, int rk)
             info.m_quadnodes.push_back(locnode);
             if (quad->is_intermediate_node(k)) continue; // For topology construction, rely on principal nodes only
             info.m_quadvertices.push_back(info.m_vert_map[locnode]); // Log node as a vertex
-            edge_idx_t e = quad->get_edge_from_node(k);
-            int& edge_num = info.m_edge_map[e]; // edge_num is offset by one so that zero means unassigned
-            if (edge_num==0) {
-                edge_num = info.m_edge_map.size();
-                info.create_new_edge();
-                assert(edge_num==info.m_edges_local.size()/2);
-            }
-            info.add_edge_element(*quad, quad->get_face_from_node(k), edge_num-1, qn);
-            info.m_edges.push_back(edge_num-1);
+            int edge_num = info.add_edge_element(quad->get_edge_from_node(k), quad->get_face_from_node(k), qn);
+            info.m_quadedges.push_back(edge_num);
         }
     }
-    for(int k=0;k<info.m_edges_local.size();k+=2) assert(info.m_edges_local[k]!=-1);
     for(int qn=0;qn<m_quads.size();++qn) {
         Quad* quad = m_quads[qn];
         assert(quad);
@@ -317,10 +277,10 @@ void Mesh2D::gather_proc_info(MeshProcInfo& info, int rk)
                 }
                 // Check edges
                 edge_idx_t e = quad->get_edge_from_node(k);
-                int edge_num = info.m_edge_map[e]-1; //edge_num is offset by one so that zero means unassigned
-                if (edge_num>=0) {
+                int edge_num = get<0>(info.m_edge_map[e]);
+                if (edge_num>0) {
                     Comm_proc& comm = info.m_comm[m_procs[qn]];
-                    comm.m_edges_map[e]=edge_info_t(edge_num,1);
+                    comm.m_edges_map[e]=edge_comm_info_t(edge_num,1);
                 }
             }
         }
@@ -328,8 +288,7 @@ void Mesh2D::gather_proc_info(MeshProcInfo& info, int rk)
     map<int,Comm_proc>::iterator cit;
     for(cit=info.m_comm.begin();cit!=info.m_comm.end();++cit) {
         Comm_proc& comm=cit->second;
-        map<edge_idx_t,edge_info_t>::const_iterator eit;
-        for(eit=comm.m_edges_map.begin();eit!=comm.m_edges_map.end();++eit) {
+        for(auto eit=comm.m_edges_map.begin();eit!=comm.m_edges_map.end();++eit) {
             comm.m_edges.push_back(eit->second.edge);
             comm.m_coherency.push_back(eit->second.coherency);
         }
@@ -639,12 +598,23 @@ void Mesh2D::write_proc_file(const string& fname, int rk)
     write_dset_2d_r(fid, "nodes", 2, info.m_nodes);
     write_dset_2d_i(fid, "material", 3, info.m_material);
     write_dset_2d_i(fid, "elements", info.m_npq, info.m_quadnodes);
-    write_dset_2d_i(fid, "edges", 4, info.m_edges);
+    write_dset_2d_i(fid, "edges", 4, info.m_quadedges);
     // With linear Quad, vertices==elements
     write_dset_2d_i(fid, "vertices", 4, info.m_quadvertices);
-    write_dset_2d_i(fid, "faces_elem", 2, info.m_edges_elems);
-    write_dset_2d_i(fid, "faces_which", 2, info.m_edges_local);
-    write_dset_2d_i(fid, "faces_vertex", 2, info.m_edges_vertices);
+    vector<int> edges_elems, edges_wf, edges_vertices;
+    for(auto it = info.m_edges.begin(); it != info.m_edges.end(); it++) {
+        edge_idx_t e = *it;
+        edges_vertices.push_back(info.m_vert_map[info.m_node_map[get<0>(e)]]);
+        edges_vertices.push_back(info.m_vert_map[info.m_node_map[get<1>(e)]]);
+        edge_info_t ei = info.m_edge_map[e];
+        edges_elems.push_back(get<1>(ei));
+        edges_elems.push_back(get<2>(ei));
+        edges_wf.push_back(get<3>(ei));
+        edges_wf.push_back(get<4>(ei));
+    }
+    write_dset_2d_i(fid, "faces_elem", 2, edges_elems);
+    write_dset_2d_i(fid, "faces_which", 2, edges_wf);
+    write_dset_2d_i(fid, "faces_vertex", 2, edges_vertices);
     vector<int> vgn;
     for(map<int,int>::const_iterator it = info.m_vert_map.begin(); it != info.m_vert_map.end(); it++) {
         vgn.push_back(it->first);
