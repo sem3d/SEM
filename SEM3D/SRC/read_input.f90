@@ -566,8 +566,12 @@ contains
         Tdomain%TimeD%beta = 0.5
         Tdomain%TimeD%gamma = 1.
         ! OUTPUT FIELDS
-        Tdomain%out_variables(0:8) = Tdomain%config%out_variables
-        Tdomain%nReqOut = sum(Tdomain%out_variables(0:3)) + 3*sum(Tdomain%out_variables(4:6)) + 6*sum(Tdomain%out_variables(7:8))
+        Tdomain%out_variables(0:8)=Tdomain%config%out_variables
+        Tdomain%nReqOut = 1*(Tdomain%out_variables(OUT_ENERGYP)+Tdomain%out_variables(OUT_ENERGYS)+ &
+                             Tdomain%out_variables(OUT_EPS_VOL)+Tdomain%out_variables(OUT_PRESSION))+ &
+                          3*(Tdomain%out_variables(OUT_DEPLA)+Tdomain%out_variables(OUT_VITESSE)+&
+                             Tdomain%out_variables(OUT_ACCEL))+&
+                          6*(Tdomain%out_variables(OUT_EPS_DEV)+Tdomain%out_variables(OUT_STRESS_DEV))
 
         Tdomain%TimeD%courant             = Tdomain%config%courant
         Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)
