@@ -144,7 +144,7 @@ int transform_vtk ( lselems & elems )
       for ( unsigned int j = 0; j < nodeIDs.size (); j += 2 ) vtkNodeIDs.push_back ( nodeIDs[j] ); // Main         nodes
       for ( unsigned int j = 1; j < nodeIDs.size (); j += 2 ) vtkNodeIDs.push_back ( nodeIDs[j] ); // Intermediate nodes
     }
-    else { cerr << "transform_vtk : element type not yet implemented" << endl; return 1; }
+    else { cerr << "transform_vtk : element type " << type << " not yet implemented" << endl; return 1; }
 
     get<2> ( elems[i] ) = vtkNodeIDs; // Replace node IDs with vtk node IDs
   }
