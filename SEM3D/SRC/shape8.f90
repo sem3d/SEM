@@ -257,12 +257,12 @@ contains
             d_xi(i) = 0.25*( &
                 - nodes(i,0)*(1-eta) &
                 + nodes(i,1)*(1-eta) &
-                + nodes(i,2)*eta &
-                - nodes(i,3)*eta)
+                + nodes(i,2)*(1+eta) &
+                - nodes(i,3)*(1+eta))
             d_eta(i) = 0.25*( &
                 - nodes(i,0)*(1-xi) &
-                - nodes(i,1)*xi &
-                + nodes(i,2)*xi &
+                - nodes(i,1)*(1+xi) &
+                + nodes(i,2)*(1+xi) &
                 + nodes(i,3)*(1-xi) )
         end do
         call cross_prod(d_xi, d_eta, normal)
