@@ -29,7 +29,7 @@ contains
 
         call tensor_components (Sigma_ij, Sigma_ij_dev)
 
-        call tau_mises(Sigma_ij-X_ij, tau_eq_mises)
+        call tau_mises(Sigma_ij_dev-X_ij, tau_eq_mises)
 
         F_mises      =  tau_eq_mises - sigma_yld - R
 
@@ -105,31 +105,31 @@ contains
             F_final_trial, gradF_trial)
 
         ! KKT condition
-        if ((F_start .lt. -tol) .and. (F_final_trial .lt. -tol))      then  ! ELASTIC (UN)- LOADING
+        if (F_start .lt. -tol_nl .and. F_final_trial .lt. -tol_nl)      then  ! ELASTIC (UN)- LOADING
 
             alpha_elp      = 1
             st_epl         = 2
 
-        elseif ((F_start .lt. -tol) .and. (F_final_trial .gt. -tol)) then  ! ELASTO-PLASTIC LOADING
+        elseif (F_start .lt. -tol_nl .and. F_final_trial .gt. -tol_nl)  then  ! ELASTO-PLASTIC LOADING
 
             alpha_elp      = F_start / (F_start-F_final_trial)
             Sigma_ij_trial = Sigma_ij_start + dSigma_ij_trial * alpha_elp
             st_epl         = 1
 
-        elseif ((abs(F_start) .le. tol) .and. &
-            (10*sum(dSigma_ij_trial*gradF_start) .lt. -tol))         then  ! ELASTIC UNLOADING
+        elseif (abs(F_start) .le. tol_nl .and. &
+            10*sum(dSigma_ij_trial*gradF_start) .lt. 0)                    then  ! ELASTIC UNLOADING
 
             alpha_elp      = 1
             st_epl         = 3
 
-        elseif ((abs(F_start) .le. tol) .and. &
-            (10*sum(dSigma_ij_trial*gradF_start) .gt. -tol))         then  ! PLASTIC LOADING
+        elseif (abs(F_start) .le. tol_nl .and. &
+             10*sum(dSigma_ij_trial*gradF_start) .gt. 0)                   then  ! PLASTIC LOADING
 
             alpha_elp      = 0
             Sigma_ij_trial = Sigma_ij_start
             st_epl         = 1
 
-        elseif (F_start .gt. tol)                                    then  ! START OUTSIDE ELASTIC DOMAIN
+        elseif (F_start .gt. tol_nl)                                       then  ! START OUTSIDE ELASTIC DOMAIN
             write(*,*) "F_start > 0!!"
             write(*,*) "=> reduce tolerance"
         else
@@ -350,7 +350,7 @@ contains
 
             Sigma_ij_0 = Sigma_ij_1
 
-            if (err0 .le. tol) exit
+            if (err0 .le. tol_nl) exit
             alpha0 = alpha1
 
         end do

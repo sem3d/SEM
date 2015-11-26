@@ -236,7 +236,7 @@ contains
 
         call semname_read_inputmesh_parametrage(Tdomain%material_file,fnamef)
         open (13, file=fnamef, status="old", form="formatted")
-
+        
         read(13,*) n_aus
 
         if(n_aus /= Tdomain%n_mat) then
@@ -272,10 +272,10 @@ contains
                     Tdomain%sSubDomain(i)%nl_prop%LMC_prop%kapa_kin,  &
                     Tdomain%sSubDomain(i)%nl_prop%LMC_prop%b_iso,     &
                     Tdomain%sSubDomain(i)%nl_prop%LMC_prop%Rinf_iso
-
+           
             else
                 read(13,*) Tdomain%sSubDomain(i)%material_type, &
-                    Tdomain%sSubDomain(i)%Pspeed,        &
+                   Tdomain%sSubDomain(i)%Pspeed,        &
                     Tdomain%sSubDomain(i)%Sspeed,        &
                     Tdomain%sSubDomain(i)%dDensity,      &
                     Tdomain%sSubDomain(i)%NGLLx,         &
@@ -564,7 +564,6 @@ contains
             stop 1
         endif
         if (rg==0) call dump_config(Tdomain%config) !Print of configuration on the screen
-        write(*,*), "first check",Tdomain%config%neu_present
         ! On copie les parametres renvoyes dans la structure C
         Tdomain%Title_simulation          = fromcstr(Tdomain%config%run_name)
         Tdomain%TimeD%acceleration_scheme = Tdomain%config%accel_scheme .ne. 0
@@ -584,9 +583,18 @@ contains
         Tdomain%TimeD%beta = 0.5
         Tdomain%TimeD%gamma = 1.
         ! OUTPUT FIELDS
-        Tdomain%out_variables(0:8) = Tdomain%config%out_variables
-        Tdomain%nReqOut = sum(Tdomain%out_variables(0:3)) + 3*sum(Tdomain%out_variables(4:6)) + 6*sum(Tdomain%out_variables(7:8))
-
+        Tdomain%out_variables(0:8)=Tdomain%config%out_variables
+        Tdomain%nReqOut = 1*(Tdomain%out_variables(OUT_ENERGYP)+Tdomain%out_variables(OUT_ENERGYS)+ & 
+                             Tdomain%out_variables(OUT_EPS_VOL)+Tdomain%out_variables(OUT_PRESSION))+ &
+                          3*(Tdomain%out_variables(OUT_DEPLA)+Tdomain%out_variables(OUT_VITESSE)+&
+                             Tdomain%out_variables(OUT_ACCEL))+&
+                          6*(Tdomain%out_variables(OUT_EPS_DEV)+Tdomain%out_variables(OUT_STRESS_DEV))   
+        if (Tdomain%nl_flag==1 .and. Tdomain%out_variables(OUT_EPS_DEV)==1) then
+             Tdomain%nReqOut=Tdomain%nReqOut+6
+        endif 
+        
+        write(*,*),'requested output',Tdomain%nReqOut
+        
         Tdomain%TimeD%courant             = Tdomain%config%courant
         Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)
         call semname_read_input_meshfile(rg,Tdomain%mesh_file,fnamef) !indicates the path to the mesh file for this proc"
@@ -626,8 +634,6 @@ contains
             write(*,*) "           band =", Tdomain%T1_att, Tdomain%T2_att
         end if
 
-        write(*,*), "third check",Tdomain%logicD%Neumann
-        write(*,*), "fourth check",Tdomain%config%neu_present
         ! Neumann boundary conditions? If yes: geometrical properties read in the mesh files.
         Tdomain%logicD%Neumann = Tdomain%config%neu_present == 1
         Tdomain%Neumann%Neu_Param%what_bc = 'S'
@@ -656,9 +662,8 @@ contains
 
         !---   Properties of materials.
         call read_material_file(Tdomain)
-
         ! Material Earthchunk
-
+        
         Tdomain%earthchunk_isInit=0
         if( Tdomain%config%material_type == MATERIAL_EARTHCHUNK) then
             Tdomain%earthchunk_isInit=1

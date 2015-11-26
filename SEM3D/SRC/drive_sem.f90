@@ -226,7 +226,7 @@ subroutine RUN_PREPARED(Tdomain)
         if (rg == 0) write(*,*) "--> DEFINING NEUMANN PROPERTIES"
         call define_Neumann_properties(Tdomain)
     endif
-    call MPI_Barrier(Tdomain%communicateur, code)
+
 
  !- discretization (collocation) points' properties
     if (rg == 0) write (*,*) "--> COMPUTING GAUSS-LOBATTO-LEGENDRE PROPERTIES"
@@ -572,7 +572,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !---------------------------------------------------------!
         if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) &
             call OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
-        write(*,*) "after snapshots ok"
 !---------------------------------------------------------!
     !- RECEIVERS'OUTPUTS
 !---------------------------------------------------------!
@@ -683,7 +682,6 @@ subroutine OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
         write(*,'(a34,i6.6,a8,f11.5)') "--> SEM : snapshot at iteration : ", ntime, " ,time: ", Tdomain%TimeD%rtime
     endif
     call save_field_h5(Tdomain, isort)
-
     if(rg == 0)then
         write(78,*) isort, Tdomain%TimeD%rtime
         call semname_nb_proc(isort,fnamef)

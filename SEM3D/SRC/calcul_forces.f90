@@ -294,8 +294,7 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
                 !
 
                 if (st_epl == 1) then
-                    dEpsilon_ij_alpha = (1-alpha_elp) * &
-                        (/dxx, dyy, dzz, 1/2*(dxy+dyx), 1/2*(dxz+dzx), 1/2*(dyz+dzy) /)
+                    dEpsilon_ij_alpha = (1-alpha_elp)*(/dxx, dyy, dzz, dxy+dyx, dxz+dzx, dyz+dzy/)
                     call plastic_corrector(dEpsilon_ij_alpha, Sigma_ij_trial, Xkin_ij_N, sigma_yld, &
                         Riso_N, b_iso, Rinf_iso, C_kin, kapa_kin, xmu, xla, dEpsilon_ij_pl)
 

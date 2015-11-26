@@ -255,7 +255,7 @@ contains
         ngllz = specel%ngllz
 
         !    integration de la prise en compte du gradient de proprietes
-        domain_type = get_domain(specel)
+        domain_type = specel%domain
         select case (domain_type)
             case (DM_SOLID)
                 if (Tdomain%nl_flag == 1) then

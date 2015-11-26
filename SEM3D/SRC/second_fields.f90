@@ -296,7 +296,7 @@ contains
         el => Tdomain%specel(nel)
         select case (el%domain)
             case (DM_SOLID)
-                if (nl_flag==1) then
+                if (Tdomain%nl_flag==1) then
                     allocate(displ(0:nx-1,0:ny-1,0:nz-1,0:5)) ! stress state (same variable name)
                     call gather_elem_stress_solid(Tdomain, nel, displ)
                     do k=0,nz-1
@@ -332,6 +332,58 @@ contains
         end select
     end subroutine gather_elem_press
 
+    subroutine gather_elem_stress_solid(Tdomain, nel, field)
+
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: nel
+        real, dimension(0:,0:,0:,0:), intent(out) :: field
+        type(element), pointer :: el
+        integer :: nx, ny, nz, i, j, k, ind
+        nx = Tdomain%specel(nel)%ngllx
+        ny = Tdomain%specel(nel)%nglly
+        nz = Tdomain%specel(nel)%ngllz
+        el => Tdomain%specel(nel)
+        select case (el%domain)
+            case (DM_SOLID)
+                do k=0,nz-1
+                    do j=0,ny-1
+                        do i=0,nx-1
+                            ind = el%Idom(i,j,k)
+                            field(i,j,k,:) = Tdomain%champs0%Stress(ind,:)
+                        enddo
+                    enddo
+                enddo
+            case (DM_SOLID_PML)
+                field = 0d0
+        end select
+
+    end subroutine gather_elem_stress_solid
+
+    subroutine gather_elem_eps_pl(Tdomain, nel, field)
+
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: nel
+        real, dimension(0:,0:,0:,0:), intent(out) :: field
+        type(element), pointer :: el
+        integer :: nx, ny, nz, i, j, k, ind
+        nx = Tdomain%specel(nel)%ngllx
+        ny = Tdomain%specel(nel)%nglly
+        nz = Tdomain%specel(nel)%ngllz
+        el => Tdomain%specel(nel)
+        select case (el%domain)
+            case (DM_SOLID)
+                do k=0,nz-1
+                    do j=0,ny-1
+                        do i=0,nx-1
+                            ind = el%Idom(i,j,k)
+                            field(i,j,k,:) = Tdomain%champs0%Epsilon_pl(ind,:)
+                        enddo
+                    enddo
+                enddo
+            case (DM_SOLID_PML)
+                field = 0d0
+        end select              
+    end subroutine gather_elem_eps_pl
 end module mfields
 
 !! Local Variables:

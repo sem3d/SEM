@@ -206,10 +206,10 @@ int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
         if (cmp(scanner,"enP")) err=expect_eq_int(scanner, &(config->out_variables[0]),1);
         else if (cmp(scanner,"enS")) err=expect_eq_int(scanner, &(config->out_variables[1]),1);
         else if (cmp(scanner,"evol")) err=expect_eq_int(scanner, &(config->out_variables[2]),1);
-        else if (cmp(scanner,"pre")) err=expect_eq_int(scanner, &(config->out_variables[3]),1);
-        else if (cmp(scanner,"dis")) err=expect_eq_int(scanner, &(config->out_variables[4]),1);
-        else if (cmp(scanner,"vel")) err=expect_eq_int(scanner, &(config->out_variables[5]),1);
-        else if (cmp(scanner,"acc")) err=expect_eq_int(scanner, &(config->out_variables[6]),1);
+        else if (cmp(scanner,"pre")) err=expect_eq_int(scanner, &(config->out_variables[6]),1);
+        else if (cmp(scanner,"dis")) err=expect_eq_int(scanner, &(config->out_variables[3]),1);
+        else if (cmp(scanner,"vel")) err=expect_eq_int(scanner, &(config->out_variables[4]),1);
+        else if (cmp(scanner,"acc")) err=expect_eq_int(scanner, &(config->out_variables[5]),1);
         else if (cmp(scanner,"edev")) err=expect_eq_int(scanner, &(config->out_variables[7]),1);
         else if (cmp(scanner,"sdev")) err=expect_eq_int(scanner, &(config->out_variables[8]),1);
 

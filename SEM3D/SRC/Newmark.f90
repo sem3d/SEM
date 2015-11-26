@@ -37,10 +37,9 @@ subroutine Newmark(Tdomain,ntime)
     ! PML needs to be implemented
     if(.not. Tdomain%TimeD%velocity_scheme)   &
         stop "Newmark scheme implemented only in velocity form."
-    write(*,*) "START-NEWMARK"
+
     !- Prediction Phase
     call Newmark_Predictor(Tdomain,Tdomain%champs1)
-
     !- Solution phase
     call stat_starttick()
     call internal_forces(Tdomain,Tdomain%champs1)
@@ -428,13 +427,13 @@ subroutine internal_forces(Tdomain,champs1)
         mat = Tdomain%specel(n)%mat_index
         select case (Tdomain%specel(n)%domain)
         case (DM_SOLID)
-            call forces_int_solid(Tdomain%specel(n), Tdomain%sSubDomain(mat),           &
+            call forces_int_solid(Tdomain%specel(n), Tdomain%sSubDomain(mat),      &
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
                 Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
-                Tdomain%sSubDomain(mat)%hTprimez, Tdomain%n_sls,Tdomain%aniso,     &
-                champs1, Tdomain%nl_flag)
+                Tdomain%sSubDomain(mat)%hTprimez, Tdomain%n_sls, Tdomain%aniso,    &
+                champs1, Tdomain%nl_flag, Tdomain%TimeD%dtmin)
         case (DM_FLUID)
-            call forces_int_fluid(Tdomain%specel(n), Tdomain%sSubDomain(mat),           &
+            call forces_int_fluid(Tdomain%specel(n), Tdomain%sSubDomain(mat),      &
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
                 Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
                 Tdomain%sSubDomain(mat)%hTprimez, champs1)

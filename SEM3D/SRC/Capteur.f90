@@ -126,7 +126,6 @@ contains
                 allocate(capteur)
 
                 n_out = Tdomain%nReqOut
-                if (Tdomain%nl_flag==1 .and. Tdomain%out_variables(OUT_EPS_DEV)) n_out=n_out+6
                 if (.not.allocated(capteur%valuecache)) allocate(capteur%valuecache(1:n_out+1,NCAPT_CACHE))
 
                 nom = fromcstr(station_ptr%name)
@@ -349,6 +348,7 @@ contains
     subroutine sortieGrandeurCapteur_interp(Tdomain, capteur)
         use mpi
         use selement
+        use msnapshots
         implicit none
 
         type(tCapteur) :: capteur
@@ -358,8 +358,9 @@ contains
         integer :: i, j, k
 
         real, dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
-        real, dimension(:,:,:,:), allocatable :: fieldS, fieldE
+        real, dimension(:,:,:,:), allocatable :: fieldS, fieldE, fieldEP
         real, dimension(:,:,:), allocatable :: fieldP
+        real, dimension(:,:,:), allocatable :: field_phi, field_vphi
 
         integer :: n_el, ngllx, nglly, ngllz, mat, n_solid
         real :: xi, eta, zeta, weight
@@ -400,16 +401,15 @@ contains
             out_variables(OUT_EPS_DEV) + &
             out_variables(OUT_STRESS_DEV)) /= 0
 
-        offset   = 0
+        offset = 0
 
         n_out = Tdomain%nReqOut
         nl_flag = Tdomain%nl_flag
         do i = 0,size(out_variables)-2
             if (out_variables(i) == 1) then
                 offset(i+1) = offset(i) + OUT_VAR_DIMS_3D(i)
-                if (nl_flag .and. i==OUT_EPS_DEV) then
-                    offset(i+i)=offset(i+1)+OUT_VAR_DIMS_3D(i)
-                    n_out=n_out+OUT_VAR_DIMS_3D(i)
+                if (nl_flag==1 .and. i==OUT_EPS_DEV) then
+                    offset(i+1)=offset(i+1)+OUT_VAR_DIMS_3D(i)
                 end if
             else
                 offset(i+1) = offset(i)
@@ -417,15 +417,14 @@ contains
         end do
         allocate(grandeur(0:n_out-1))
         grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
-
         if((n_el/=-1) .AND. (capteur%numproc==rg)) then
-            domain_type = get_domain(Tdomain%specel(n_el))
             ngllx = Tdomain%specel(n_el)%ngllx
             nglly = Tdomain%specel(n_el)%nglly
             ngllz = Tdomain%specel(n_el)%ngllz
             mat=Tdomain%specel(n_el)%mat_index
+            domtype=Tdomain%specel(n_el)%domain
             ! ALLOCATION
-            subroutine allocate_second_fields(domain_type, out_variables, nl_flag, ngllx, nglly, ngllz, &
+            call allocate_second_fields(domtype, out_variables, nl_flag, ngllx, nglly, ngllz, &
                 fieldU, fieldV, fieldA, fieldP, fieldS, fieldEP, field_phi, field_vphi, &
                 DXX, DYY, DZZ, DXY, DYX, DXZ, DZX, DYZ, DZY)
             if (flag_gradU/=0) then
@@ -439,56 +438,15 @@ contains
             allocate(outx(0:ngllx-1))
             allocate(outy(0:nglly-1))
             allocate(outz(0:ngllz-1))
-
-            select case(domain_type)
-
-                case (DM_SOLID,DM_SOLID_PML) ! SOLID PART OF THE DOMAIN
-                    if (flag_gradU /= 0 .or. out_variables(OUT_DEPLA)==1) then
-                        allocate(fieldU(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                        call gather_elem_displ(Tdomain, n_el, fieldU)
-                    end if
-
-                    if (flag_gradU /= 0 .and. nl_flag==0) then
-                        allocate(DXX(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(DXY(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(DXZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(DYX(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(DYY(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(DYZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(DZX(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(DZY(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(DZZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                        allocate(hTprimex(0:ngllx-1,0:ngllx-1))
-                        allocate(hprimey(0:nglly-1,0:nglly-1))
-                        allocate(hprimez(0:ngllz-1,0:ngllz-1))
-                        hTprimex=Tdomain%sSubDomain(mat)%hTprimex
-                        hprimey=Tdomain%sSubDomain(mat)%hprimey
-                        hprimez=Tdomain%sSubDomain(mat)%hprimez
-                    else if
-
-                    end if
-                case (DM_FLUID,DM_FLUID_PML) ! FLUID PART OF THE DOMAIN
-
-            end select
-
-
-
-            if (flag_gradU .ge. 1) then
-
-            end if
-
             if (out_variables(OUT_VITESSE) == 1) then
-                allocate(fieldV(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                 call gather_elem_veloc(Tdomain, n_el, fieldV)
             end if
 
             if (out_variables(OUT_ACCEL) == 1) then
-                allocate(fieldA(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                 call gather_elem_accel(Tdomain, n_el, fieldA)
             end if
 
             if (out_variables(OUT_PRESSION) == 1) then
-                allocate(fieldP(0:ngllx-1,0:nglly-1,0:ngllz-1))
                 call gather_elem_press(Tdomain, n_el, fieldP)
             end if
 
@@ -502,7 +460,6 @@ contains
                 call  pol_lagrange(ngllz,Tdomain%sSubdomain(mat)%GLLcz,k,zeta,outz(k))
             end do
 
-            domtype=Tdomain%specel(n_el)%domain
             n_solid=Tdomain%n_sls
             aniso=Tdomain%aniso
 
@@ -540,7 +497,6 @@ contains
                 sig_dev_xz = 0
                 sig_dev_yz = 0
             end if
-
             do i = 0,ngllx - 1
                 do j = 0,nglly - 1
                     do k = 0,ngllz - 1
@@ -662,7 +618,7 @@ contains
                     enddo
                 enddo
             enddo
-
+            
             deallocate(outx)
             deallocate(outy)
             deallocate(outz)

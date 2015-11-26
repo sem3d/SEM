@@ -244,7 +244,6 @@ contains
             Tdomain%fpml_DumpMass = 0d0
 
         endif
-    endif
 
     return
 end subroutine allocate_domain

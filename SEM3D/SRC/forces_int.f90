@@ -19,7 +19,7 @@ module forces_aniso
 contains
 
     subroutine forces_int_solid(Elem, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
-        n_solid, aniso, solid, champs1, nl_flag)
+        n_solid, aniso, champs1, nl_flag, dt)
         type (Element), intent (INOUT) :: Elem
         type (subdomain), intent(IN) :: mat
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: htprimex
@@ -45,6 +45,7 @@ contains
         real, dimension(:,:,:,:), allocatable :: Sigma_ij_N_el
         real, dimension(:,:,:,:), allocatable :: Xkin_ij_N_el
         real, dimension(:,:,:,:), allocatable :: EpsPl_ij_N_el
+        real, intent(in) :: dt
 
         m1 = Elem%ngllx;   m2 = Elem%nglly;   m3 = Elem%ngllz
 
@@ -53,9 +54,10 @@ contains
                 do j = 0,m2-1
                     do i = 0,m1-1
                         if (nl_flag == 1) then
-                            Depla(i,j,k,i_dir) = champs1%Veloc(Elem%Isol(i,j,k),i_dir)
+                            Depla(i,j,k,i_dir) = champs1%Veloc(Elem%Idom(i,j,k),i_dir)
+                            write(*,*) "allocate velocities"
                         else
-                            Depla(i,j,k,i_dir) = champs1%Depla(Elem%Isol(i,j,k),i_dir)
+                            Depla(i,j,k,i_dir) = champs1%Depla(Elem%Idom(i,j,k),i_dir)
                         end if
                     enddo
                 enddo
@@ -71,15 +73,14 @@ contains
             allocate(Sigma_ij_N_el(0:5,0:m1-1,0:m2-1,0:m3-1))
             allocate(Xkin_ij_N_el(0:5,0:m1-1,0:m2-1,0:m3-1))
             allocate(Riso_N_el(0:m1-1,0:m2-1,0:m3-1))
-
+            write(*,*) "allocate stress-strain for calculations"
             do k = 0,m3-1
                 do j = 0,m2-1
                     do i = 0,m1-1
-                        Riso_N_el(i,j,k) = champs1%Riso(Elem%Isol(i,j,k))
+                        Riso_N_el(i,j,k) = champs1%Riso(Elem%Idom(i,j,k))
                         do i_dir = 0,5
-                            EpsPl_ij_N_el(i_dir,i,j,k) = champs1%Epsilon_pl(Elem%Isol(i,j,k),i_dir)
-                            Sigma_ij_N_el(i_dir,i,j,k) = champs1%Stress(Elem%Isol(i,j,k),i_dir)
-                            Xkin_ij_N_el(i_dir,i,j,k)  = champs1%Xkin(Elem%Isol(i,j,k),i_dir)
+                            Sigma_ij_N_el(i_dir,i,j,k) = champs1%Stress(Elem%Idom(i,j,k),i_dir)
+                            Xkin_ij_N_el(i_dir,i,j,k)  = champs1%Xkin(Elem%Idom(i,j,k),i_dir)
                         enddo
                     enddo
                 enddo
@@ -183,11 +184,14 @@ contains
                 deallocate(epsilonvol_loc)
             else
                 if (nl_flag == 1) then
+                    write(*,*) "passing by nonlinear"
+                    
                     call calcul_forces_nl(Fox,Foy,Foz,  &
                         Elem%Invgrad, &
                         htprimex, htprimey, htprimez, &
                         Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                         DXX*dt, DXY*dt, DXZ*dt, DYX*dt, DYY*dt, DYZ*dt, DZX*dt, DZY*dt, DZZ*dt, &
+                        !DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
                         Elem%Mu, Elem%Lambda, m1, m2 ,m3, &
                         EpsPl_ij_N_el, Sigma_ij_N_el, &
                         Xkin_ij_N_el, Riso_N_el, &
