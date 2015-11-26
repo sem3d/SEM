@@ -251,7 +251,6 @@ contains
             deallocate(itemp)
         else
             nullify(scomm%edges)
-            nullify(scomm%orient_edges)
         endif
         if(scomm%nb_vertices > 0)then
             call read_dataset(proc_id, "vertices", itemp)
@@ -463,8 +462,6 @@ contains
             call h5gopen_f(fid, trim(adjustl(proc_grp)), proc_id, hdferr)
             call read_comm_proc_data(Tdomain, proc_id, Tdomain%sComm(i) )
 
-            Tdomain%sComm(i)%Neu_ne_shared = 0
-            Tdomain%sComm(i)%Neu_nv_shared = 0
         end do
 
         if(rg == 0)then

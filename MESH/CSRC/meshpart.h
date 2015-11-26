@@ -147,7 +147,6 @@ protected:
     std::map<int,int> m_nodes_to_id;
 
     void handle_local_element(int el, bool is_border);
-    void handle_neighbour_element(int el);
     void handle_neighbouring_face(int lnf, const PFace& fc, int el);
     void handle_neighbouring_edge(int lne, const PEdge& ed, int el);
     void handle_neighbouring_vertex(int lnv, const PVertex& vx, int el);

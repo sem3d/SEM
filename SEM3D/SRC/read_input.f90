@@ -219,6 +219,14 @@ contains
 
     subroutine read_material_file(Tdomain)
         use sdomain
+        implicit none
+        type(domain), intent(inout) :: Tdomain
+
+        call read_material_file_v1(Tdomain)
+    end subroutine read_material_file
+
+    subroutine read_material_file_v1(Tdomain)
+        use sdomain
         use semdatafiles
         use orientation
         use mpi
@@ -250,8 +258,6 @@ contains
         endif
 
         allocate(Tdomain%not_PML_List(0:Tdomain%n_mat-1))
-        Tdomain%any_PML      = .false.
-        Tdomain%any_FPML     = .false.
         Tdomain%any_Random   = .false.
         Tdomain%not_PML_List = .true.
 
@@ -317,7 +323,6 @@ contains
 
         if(npml > 0) then
             if(rg==0) write (*,*) "!!WARNING change on 'material.input', put associated material after PML existing definition', "
-            Tdomain%any_PML = .true.
             read(13,*); read(13,*)
             do i = 0,Tdomain%n_mat-1
                 if(.not. Tdomain%not_PML_List(i)) then
@@ -332,7 +337,6 @@ contains
                         Tdomain%sSubdomain(i)%Down,      &
                         Tdomain%sSubdomain(i)%freq,      &
                         Tdomain%sSubdomain(i)%assocMat
-                    if(Tdomain%sSubdomain(i)%Filtering) Tdomain%any_FPML = .true.
                 endif
             enddo
         endif
@@ -346,26 +350,6 @@ contains
         enddo
 
         if(nRandom > 0) then
-            !Building element list in each subdomain
-            !      do i=0,Tdomain%n_mat-1
-            !          allocate (Tdomain%sSubdomain(i)%elemList(0:Tdomain%sSubdomain(i)%nElem-1))
-            !          Tdomain%sSubdomain(i)%elemList(:) = -1 !-1 to detect errors
-            !          Tdomain%sSubdomain(i)%nElem       = 0 !Using to count the elements in the next loop
-            !      enddo
-            !      do i=0,Tdomain%n_elem-1
-            !          mat = Tdomain%specel(i)%mat_index
-            !          Tdomain%sSubdomain(mat)%elemList(Tdomain%sSubdomain(mat)%nElem) = i
-            !          Tdomain%sSubdomain(mat)%nElem = Tdomain%sSubdomain(mat)%nElem + 1
-            !      enddo
-
-            !      !Defining existing subdomain list in each domain
-            !      allocate (Tdomain%subD_exist(0:Tdomain%n_mat-1))
-            !      allocate (Tdomain%subDComm(0:Tdomain%n_mat - 1))
-            !      Tdomain%subD_exist(:) = .true.
-            !      do mat=0,Tdomain%n_mat-1
-            !          if(Tdomain%sSubdomain(mat)%nElem == 0) Tdomain%subD_exist(mat) = .false.
-            !      enddo
-
             Tdomain%any_Random = .true.
             read(13,*); read(13,*)
             do i = 0,Tdomain%n_mat-1
@@ -413,7 +397,7 @@ contains
         call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID, DM_FLUID_PML, .true.)
         call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID, DM_FLUID, .true.)
         call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_PML, DM_FLUID_PML, .true.)
-    end subroutine read_material_file
+    end subroutine read_material_file_v1
 
 
     subroutine create_sem_sources(Tdomain, config)
@@ -594,7 +578,6 @@ contains
         endif 
         
         write(*,*),'requested output',Tdomain%nReqOut
-        
         Tdomain%TimeD%courant             = Tdomain%config%courant
         Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)
         call semname_read_input_meshfile(rg,Tdomain%mesh_file,fnamef) !indicates the path to the mesh file for this proc"

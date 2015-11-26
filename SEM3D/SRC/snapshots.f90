@@ -267,7 +267,7 @@ contains
             end if
         end if
 
-        ! SIG_DEV
+        !SIG_DEV
         if (out_variables(OUT_STRESS_DEV) == 1) then
             ! SIG_DEV_XX
             call MPI_Gatherv(outputs%sig_dev_xx, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
