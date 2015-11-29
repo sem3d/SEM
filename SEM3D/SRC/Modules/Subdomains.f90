@@ -13,6 +13,22 @@
 
 module ssubdomains
     implicit none
+    !
+    type LMC_properties
+
+        ! variables d'écrouissage kinematic et isotrope de Lamaitre et Chaboche
+        real :: sigma_yld   ! first yielding limit
+        real :: C_kin       ! variable for kinematic hardening
+        real :: kapa_kin    ! variable for kinematic hardening
+        real :: b_iso       ! variable for isotropic hardening
+        real :: Rinf_iso    ! variable for isotropic hardening
+
+    end type LMC_properties
+    !
+    type nl_properties
+        type(LMC_properties) :: LMC_prop
+    end type nl_properties
+    !
     type Subdomain
 
         logical :: Filtering, Px, Py, Pz, Left, Forward, Down
@@ -44,6 +60,7 @@ module ssubdomains
         integer            , dimension(:)   , allocatable :: chosenSeed
         real               , dimension(:)   , allocatable :: corrL
         real               , dimension(0:2) :: MinBound, MaxBound
+        type(nl_properties) :: nl_prop
 
     end type Subdomain
 

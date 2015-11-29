@@ -16,6 +16,18 @@ module selement
     use blas
     implicit none
 
+    type :: lmc_param ! LAMAITRE & CHABOCHE NONLINEAR PARAMETERS
+        real, dimension (:,:,:), allocatable :: b_iso
+        real, dimension (:,:,:), allocatable :: Rinf_iso
+        real, dimension (:,:,:), allocatable :: C_kin
+        real, dimension (:,:,:), allocatable :: kapa_kin
+        real, dimension (:,:,:), allocatable :: sigma_yld
+    end type lmc_param
+
+    type :: nl_param ! STRUCTURE CONTAINING NL PARAMETER SETS
+        type(lmc_param), allocatable :: lmc_param_el
+    end type nl_param
+
     type :: element_solid
         real, dimension(:,:,:,:), allocatable :: Cij
 
@@ -27,7 +39,8 @@ module selement
         real, dimension(:,:,:,:), allocatable :: &
             factor_common_3, alphaval_3,betaval_3,gammaval_3, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_, &
             factor_common_P, alphaval_P,betaval_P,gammaval_P, R_vol_
-
+        ! NL PARAMETERS
+        type(nl_param),allocatable :: nl_param_el
     end type element_solid
 
     type :: element_fluid

@@ -47,10 +47,9 @@ module sem_c_config
        type(C_PTR)    :: snapshot_selection
        integer(C_INT) :: comp_energ
 
-       ! START MODIFS - FILIPPO 07/15
        !! Output Variables
        integer(C_INT), dimension(9) :: out_variables
-       ! END MODIFS - FILIPPO 07/15
+       integer(C_INT) :: nl_flag
 
        !! Protection reprise
        integer(C_INT) :: prorep

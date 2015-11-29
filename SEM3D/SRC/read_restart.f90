@@ -7,7 +7,6 @@
 !!\brief Contient la subroutine read_restart().
 !!
 !! Gère la reprise de Sem3d
-
 subroutine read_EpsilonVol(Tdomain, elem_id)
     use sdomain
     use HDF5
@@ -210,7 +209,6 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
     end do
     deallocate(veloc)
 end subroutine read_Veloc_Fluid_PML
-
 
 subroutine read_restart (Tdomain,rg, isort)
     use HDF5

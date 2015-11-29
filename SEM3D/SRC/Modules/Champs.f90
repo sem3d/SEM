@@ -1,6 +1,6 @@
 !>
 !!\file Champs.f90
-!!\brief Contient le définition du type champs
+!!\brief Contient le dï¿½finition du type champs
 !!
 !<
 
@@ -29,6 +29,18 @@ module schamps
         real, dimension(:,:), allocatable   :: fpml_Phi
         real, dimension(:,:), allocatable   :: fpml_VelPhi
         real, dimension(:,:,:), allocatable :: fpml_DumpV
+
+        !! Non Linear
+        real, dimension(:,:), allocatable :: Stress
+        real, dimension(:,:), allocatable :: Epsilon_pl
+        real, dimension(:,:), allocatable :: Xkin
+        real, dimension(:),   allocatable :: Riso
+
+        !! Non Linear
+        real, dimension(:,:), allocatable :: Stress
+        real, dimension(:,:), allocatable :: Epsilon_pl
+        real, dimension(:,:), allocatable :: Xkin
+        real, dimension(:),   allocatable :: Riso
 
     end type champs
 

@@ -32,17 +32,14 @@ subroutine Newmark(Tdomain,ntime)
     integer :: i,j
 #endif
 
-
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a
     ! Time staggered Stress-Velocity formulation inside PML
     ! PML needs to be implemented
     if(.not. Tdomain%TimeD%velocity_scheme)   &
         stop "Newmark scheme implemented only in velocity form."
 
-
     !- Prediction Phase
     call Newmark_Predictor(Tdomain,Tdomain%champs1)
-
     !- Solution phase
     call stat_starttick()
     call internal_forces(Tdomain,Tdomain%champs1)
@@ -55,7 +52,6 @@ subroutine Newmark(Tdomain,ntime)
         call external_forces(Tdomain,Tdomain%TimeD%rtime,ntime,Tdomain%champs1)
         call stat_stoptick('fext')
     end if
-
 #ifdef COUPLAGE
 #if 0
     if (ntime>0) then
@@ -101,7 +97,6 @@ subroutine Newmark(Tdomain,ntime)
 
     ! MPI communications
     call comm_forces(Tdomain)
-
     ! Neumann B.C.: associated forces
     if(Tdomain%logicD%neumann_local_present)then
 #if 1
@@ -175,7 +170,6 @@ subroutine Newmark(Tdomain,ntime)
         call FtoS_coupling(Tdomain, Tdomain%champs0, Tdomain%champs1)
     end if
     call Newmark_Corrector_Solid(Tdomain,Tdomain%champs1)
-
     if (Tdomain%rank==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
 
     return
@@ -275,6 +269,12 @@ subroutine Newmark_Predictor(Tdomain,champs1)
         champs1%Depla = Tdomain%champs0%Depla
         champs1%Veloc = Tdomain%champs0%Veloc
         champs1%Forces = 0d0
+        if (Tdomain%nl_flag ==1) then
+            champs1%Stress = Tdomain%champs0%Stress
+            champs1%Xkin   = Tdomain%champs0%Xkin
+            champs1%Riso    = Tdomain%champs0%Riso
+            champs1%Epsilon_pl = Tdomain%champs0%Epsilon_pl
+        end if
     endif
 
     ! Elements fluide
@@ -400,6 +400,12 @@ subroutine Newmark_Corrector_Solid(Tdomain,champs1)
             Tdomain%champs0%Veloc(indpml,:) = 0.
         enddo
         Tdomain%champs0%Depla = Tdomain%champs0%Depla + dt * Tdomain%champs0%Veloc
+        if (Tdomain%nl_flag == 1) then
+            Tdomain%champs0%Epsilon_pl = Tdomain%champs1%Epsilon_pl
+            Tdomain%champs0%Stress = Tdomain%champs1%Stress
+            Tdomain%champs0%Xkin = Tdomain%champs1%Xkin
+            Tdomain%champs0%Riso = Tdomain%champs1%Riso
+        end if
     endif
     return
 end subroutine Newmark_Corrector_Solid
@@ -410,6 +416,7 @@ subroutine internal_forces(Tdomain,champs1)
     use sdomain
     use schamps
     use forces_aniso
+    use nonlinear
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
@@ -420,13 +427,13 @@ subroutine internal_forces(Tdomain,champs1)
         mat = Tdomain%specel(n)%mat_index
         select case (Tdomain%specel(n)%domain)
         case (DM_SOLID)
-            call forces_int_solid(Tdomain%specel(n), Tdomain%sSubDomain(mat),           &
+            call forces_int_solid(Tdomain%specel(n), Tdomain%sSubDomain(mat),      &
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
                 Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
-                Tdomain%sSubDomain(mat)%hTprimez, Tdomain%n_sls,Tdomain%aniso,     &
-                champs1)
+                Tdomain%sSubDomain(mat)%hTprimez, Tdomain%n_sls, Tdomain%aniso,    &
+                champs1, Tdomain%nl_flag, Tdomain%TimeD%dtmin)
         case (DM_FLUID)
-            call forces_int_fluid(Tdomain%specel(n), Tdomain%sSubDomain(mat),           &
+            call forces_int_fluid(Tdomain%specel(n), Tdomain%sSubDomain(mat),      &
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
                 Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
                 Tdomain%sSubDomain(mat)%hTprimez, champs1)

@@ -13,7 +13,7 @@
 
 !>
 !! \fn subroutine Compute_Courant (Tdomain)
-!! \brief V�rifie que le pas de temps est adapt� aux d�placements �valu�s
+!! \brief Vérifie que le pas de temps est adapté aux déplacements évalués
 !!
 !! \param type (Domain), intent (IN) Tdomain
 !<

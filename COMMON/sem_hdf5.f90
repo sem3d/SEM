@@ -284,7 +284,6 @@ contains
         if (hdferr .ne. 0) stop "read_dset_1d_int : h5sclose KO"
     end subroutine read_dset_1d_int
 
-
     subroutine read_dset_2d_real(parent, name, data, ibase)
         use HDF5
         character(len=*), INTENT(IN) :: name

@@ -19,8 +19,7 @@ module forces_aniso
 contains
 
     subroutine forces_int_solid(Elem, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
-               n_solid, aniso, champs1)
-
+        n_solid, aniso, champs1, nl_flag, dt)
         type (Element), intent (INOUT) :: Elem
         type (subdomain), intent(IN) :: mat
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: htprimex
@@ -41,7 +40,12 @@ contains
             epsilondev_xy_loc, epsilondev_xz_loc, epsilondev_yz_loc
         real, dimension(:,:,:), allocatable :: epsilonvol_loc
         real, dimension(0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1,0:2) :: Depla
-
+        integer, intent(in) :: nl_flag
+        real, dimension(:,:,:), allocatable :: Riso_N_el
+        real, dimension(:,:,:,:), allocatable :: Sigma_ij_N_el
+        real, dimension(:,:,:,:), allocatable :: Xkin_ij_N_el
+        real, dimension(:,:,:,:), allocatable :: EpsPl_ij_N_el
+        real, intent(in) :: dt
 
         m1 = Elem%ngllx;   m2 = Elem%nglly;   m3 = Elem%ngllz
 
@@ -49,15 +53,35 @@ contains
             do k = 0,m3-1
                 do j = 0,m2-1
                     do i = 0,m1-1
-                        Depla(i,j,k,i_dir) = champs1%Depla(Elem%Idom(i,j,k),i_dir)
+                        if (nl_flag == 1) then
+                            Depla(i,j,k,i_dir) = champs1%Veloc(Elem%Idom(i,j,k),i_dir)
+                        else
+                            Depla(i,j,k,i_dir) = champs1%Depla(Elem%Idom(i,j,k),i_dir)
+                        end if
                     enddo
                 enddo
             enddo
         enddo
-
         call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Depla(:,:,:,0),dxx,dyx,dzx)
         call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Depla(:,:,:,1),dxy,dyy,dzy)
         call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Depla(:,:,:,2),dxz,dyz,dzz)
+        if (nl_flag == 1) then
+            allocate(EpsPl_ij_N_el(0:5,0:m1-1,0:m2-1,0:m3-1))
+            allocate(Sigma_ij_N_el(0:5,0:m1-1,0:m2-1,0:m3-1))
+            allocate(Xkin_ij_N_el(0:5,0:m1-1,0:m2-1,0:m3-1))
+            allocate(Riso_N_el(0:m1-1,0:m2-1,0:m3-1))
+            do k = 0,m3-1
+                do j = 0,m2-1
+                    do i = 0,m1-1
+                        Riso_N_el(i,j,k) = champs1%Riso(Elem%Idom(i,j,k))
+                        do i_dir = 0,5
+                            Sigma_ij_N_el(i_dir,i,j,k) = champs1%Stress(Elem%Idom(i,j,k),i_dir)
+                            Xkin_ij_N_el(i_dir,i,j,k)  = champs1%Xkin(Elem%Idom(i,j,k),i_dir)
+                        enddo
+                    enddo
+                enddo
+            enddo
+        end if
 
         if (n_solid>0) then
             if (aniso) then
@@ -97,7 +121,6 @@ contains
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &
                     Elem%Mu, Elem%Lambda, Elem%sl%Cij, &
-                    
                     m1,m2,m3, n_solid, &
                     Elem%sl%onemSbeta, Elem%sl%R_xx_, Elem%sl%R_yy_, &
                     Elem%sl%R_xy_, Elem%sl%R_xz_, Elem%sl%R_yz_)
@@ -120,7 +143,7 @@ contains
                     DZX,DZY,DZZ, &
                     Elem%sl%Cij, &
                     m1,m2,m3)
-            endif
+            end if
         else
             if (n_solid>0) then
                 call calcul_forces_att(Fox,Foy,Foz, &
@@ -156,28 +179,57 @@ contains
                 deallocate(epsilondev_xx_loc,epsilondev_yy_loc,epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc)
                 deallocate(epsilonvol_loc)
             else
-                call calcul_forces(Fox,Foy,Foz,  &
-                    Elem%Invgrad, &
-                    htprimex, htprimey, htprimez, &
-                    Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
-                    DXX,DXY,DXZ, &
-                    DYX,DYY,DYZ, &
-                    DZX,DZY,DZZ, &
-                    Elem%Mu, Elem%Lambda, &
-                    m1,m2,m3)
+                if (nl_flag == 1) then
+                    write(*,*) "passing by nonlinear"
+                    
+                    call calcul_forces_nl(Fox,Foy,Foz,  &
+                        Elem%Invgrad, &
+                        htprimex, htprimey, htprimez, &
+                        Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
+                        !DXX*dt, DXY*dt, DXZ*dt, DYX*dt, DYY*dt, DYZ*dt, DZX*dt, DZY*dt, DZZ*dt, &
+                        DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
+                        Elem%Mu, Elem%Lambda, m1, m2 ,m3, &
+                        EpsPl_ij_N_el, Sigma_ij_N_el, &
+                        Xkin_ij_N_el, Riso_N_el, &
+                        Elem%sl%nl_param_el%lmc_param_el%sigma_yld, &
+                        Elem%sl%nl_param_el%lmc_param_el%b_iso,    &
+                        Elem%sl%nl_param_el%lmc_param_el%Rinf_iso, &
+                        Elem%sl%nl_param_el%lmc_param_el%C_kin,    &
+                        Elem%sl%nl_param_el%lmc_param_el%kapa_kin)
+                else
+                    call calcul_forces_el(Fox,Foy,Foz,  &
+                        Elem%Invgrad, &
+                        htprimex, htprimey, htprimez, &
+                        Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
+                        DXX,DXY,DXZ, &
+                        DYX,DYY,DYZ, &
+                        DZX,DZY,DZZ, &
+                        Elem%Mu, Elem%Lambda, &
+                        m1,m2,m3)
+                end if
             endif
-        endif
-
+        end if
         do k = 0,m3-1
             do j = 0,m2-1
                 do i = 0,m1-1
                     champs1%Forces(Elem%Idom(i,j,k),0) = champs1%Forces(Elem%Idom(i,j,k),0)-Fox(i,j,k)
                     champs1%Forces(Elem%Idom(i,j,k),1) = champs1%Forces(Elem%Idom(i,j,k),1)-Foy(i,j,k)
                     champs1%Forces(Elem%Idom(i,j,k),2) = champs1%Forces(Elem%Idom(i,j,k),2)-Foz(i,j,k)
+                    if (nl_flag == 1) then
+                        do i_dir = 0,5
+                            champs1%Epsilon_pl(Elem%Idom(i,j,k),i_dir) = EpsPl_ij_N_el(i_dir,i,j,k)
+                            champs1%Stress(Elem%Idom(i,j,k),i_dir)     = Sigma_ij_N_el(i_dir,i,j,k)
+                            champs1%Xkin(Elem%Idom(i,j,k),i_dir)       = Xkin_ij_N_el(i_dir,i,j,k)
+                        end do
+                        champs1%Riso(Elem%Idom(i,j,k)) = Riso_N_el(i,j,k)
+                    end if
                 enddo
             enddo
         enddo
-
+        if(allocated(EpsPl_ij_N_el)) deallocate(EpsPl_ij_N_el)
+        if(allocated(Sigma_ij_N_el)) deallocate(Sigma_ij_N_el)
+        if(allocated(Xkin_ij_N_el))  deallocate(Xkin_ij_N_el)
+        if(allocated(Riso_N_el))     deallocate(Riso_N_el)
         return
     end subroutine forces_int_solid
 
@@ -228,7 +280,6 @@ contains
                 enddo
             enddo
         enddo
-
 
         return
     end subroutine forces_int_fluid
@@ -313,7 +364,6 @@ contains
 
         return
     end subroutine forces_int_flu_pml
-
 
     subroutine pred_flu_pml(Elem, mat, dt, champs1)
         implicit none
@@ -487,16 +537,16 @@ contains
                     do i=0,m1-1
                         acoeff = - mat%hprimey(j,l)*mat%GLLwx(i)*mat%GLLwy(l)*mat%GLLwz(k)*Elem%Jacob(i,l,k)
                         sum_vx = acoeff*(Elem%InvGrad(0,1,i,l,k)*Elem%slpml%Diagonal_Stress(i,l,k,0) + &
-                                         Elem%InvGrad(1,1,i,l,k)*Elem%slpml%Residual_Stress(i,l,k,0) + &
-                                         Elem%InvGrad(2,1,i,l,k)*Elem%slpml%Residual_Stress(i,l,k,1))
+                            Elem%InvGrad(1,1,i,l,k)*Elem%slpml%Residual_Stress(i,l,k,0) + &
+                            Elem%InvGrad(2,1,i,l,k)*Elem%slpml%Residual_Stress(i,l,k,1))
 
                         sum_vy = acoeff*(Elem%InvGrad(0,1,i,l,k)*Elem%slpml%Residual_Stress(i,l,k,0) + &
-                                         Elem%InvGrad(1,1,i,l,k)*Elem%slpml%Diagonal_Stress(i,l,k,1) + &
-                                         Elem%InvGrad(2,1,i,l,k)*Elem%slpml%Residual_Stress(i,l,k,2))
+                            Elem%InvGrad(1,1,i,l,k)*Elem%slpml%Diagonal_Stress(i,l,k,1) + &
+                            Elem%InvGrad(2,1,i,l,k)*Elem%slpml%Residual_Stress(i,l,k,2))
 
                         sum_vz = acoeff*(Elem%InvGrad(0,1,i,l,k)*Elem%slpml%Residual_Stress(i,l,k,1) + &
-                                         Elem%InvGrad(1,1,i,l,k)*Elem%slpml%Residual_Stress(i,l,k,2) + &
-                                         Elem%InvGrad(2,1,i,l,k)*Elem%slpml%Diagonal_Stress(i,l,k,2))
+                            Elem%InvGrad(1,1,i,l,k)*Elem%slpml%Residual_Stress(i,l,k,2) + &
+                            Elem%InvGrad(2,1,i,l,k)*Elem%slpml%Diagonal_Stress(i,l,k,2))
                         Forces2(0,i,j,k) = Forces2(0,i,j,k) + sum_vx
                         Forces2(1,i,j,k) = Forces2(1,i,j,k) + sum_vy
                         Forces2(2,i,j,k) = Forces2(2,i,j,k) + sum_vz
@@ -512,16 +562,16 @@ contains
                     do i=0,m1-1
                         acoeff = - mat%hprimez(k,l)*mat%GLLwx(i)*mat%GLLwy(j)*mat%GLLwz(l)*Elem%Jacob(i,j,l)
                         sum_vx = acoeff*(Elem%InvGrad(0,2,i,j,l)*Elem%slpml%Diagonal_Stress(i,j,l,0) + &
-                                         Elem%InvGrad(1,2,i,j,l)*Elem%slpml%Residual_Stress(i,j,l,0) + &
-                                         Elem%InvGrad(2,2,i,j,l)*Elem%slpml%Residual_Stress(i,j,l,1))
+                            Elem%InvGrad(1,2,i,j,l)*Elem%slpml%Residual_Stress(i,j,l,0) + &
+                            Elem%InvGrad(2,2,i,j,l)*Elem%slpml%Residual_Stress(i,j,l,1))
 
                         sum_vy = acoeff*(Elem%InvGrad(0,2,i,j,l)*Elem%slpml%Residual_Stress(i,j,l,0) + &
-                                         Elem%InvGrad(1,2,i,j,l)*Elem%slpml%Diagonal_Stress(i,j,l,1) + &
-                                         Elem%InvGrad(2,2,i,j,l)*Elem%slpml%Residual_Stress(i,j,l,2))
+                            Elem%InvGrad(1,2,i,j,l)*Elem%slpml%Diagonal_Stress(i,j,l,1) + &
+                            Elem%InvGrad(2,2,i,j,l)*Elem%slpml%Residual_Stress(i,j,l,2))
 
                         sum_vz = acoeff*(Elem%InvGrad(0,2,i,j,l)*Elem%slpml%Residual_Stress(i,j,l,1) + &
-                                         Elem%InvGrad(1,2,i,j,l)*Elem%slpml%Residual_Stress(i,j,l,2) + &
-                                         Elem%InvGrad(2,2,i,j,l)*Elem%slpml%Diagonal_Stress(i,j,l,2))
+                            Elem%InvGrad(1,2,i,j,l)*Elem%slpml%Residual_Stress(i,j,l,2) + &
+                            Elem%InvGrad(2,2,i,j,l)*Elem%slpml%Diagonal_Stress(i,j,l,2))
                         Forces3(0,i,j,k) = Forces3(0,i,j,k) + sum_vx
                         Forces3(1,i,j,k) = Forces3(1,i,j,k) + sum_vy
                         Forces3(2,i,j,k) = Forces3(2,i,j,k) + sum_vz

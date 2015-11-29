@@ -14,6 +14,7 @@ module mdefinitions
     use sdomain
     use mpi
     use scomm
+    use selement
     implicit none
 
     public :: define_arrays
@@ -247,15 +248,24 @@ contains
         type (element), intent(inout) :: specel
         type (subdomain), intent(in) :: mat
         !
-        integer :: ngllx, nglly, ngllz
+        integer :: ngllx, nglly, ngllz, domain_type
         !
         ngllx = specel%ngllx
         nglly = specel%nglly
         ngllz = specel%ngllz
 
         !    integration de la prise en compte du gradient de proprietes
-
-
+        domain_type = specel%domain
+        select case (domain_type)
+            case (DM_SOLID)
+                if (Tdomain%nl_flag == 1) then
+                    specel%sl%nl_param_el%lmc_param_el%sigma_yld = mat%nl_prop%LMC_prop%sigma_yld
+                    specel%sl%nl_param_el%lmc_param_el%b_iso     = mat%nl_prop%LMC_prop%b_iso
+                    specel%sl%nl_param_el%lmc_param_el%Rinf_iso  = mat%nl_prop%LMC_prop%Rinf_iso
+                    specel%sl%nl_param_el%lmc_param_el%C_kin     = mat%nl_prop%LMC_prop%C_kin
+                    specel%sl%nl_param_el%lmc_param_el%kapa_kin  = mat%nl_prop%LMC_prop%kapa_kin
+                end if
+        end select
 
         select case( mat%material_definition)
         case( MATERIAL_CONSTANT )
@@ -706,7 +716,6 @@ contains
         DumpV(:,1,:) = 1d0/DumpV(:,1,:)
         DumpV(:,0,:) = spread(MassMat(:),2,3) - DumpMass(:,:)
         DumpV(:,0,:) = DumpV(:,0,:) * DumpV(:,1,:)
-
         return
     end subroutine define_PML_DumpEnd
 

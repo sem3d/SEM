@@ -84,7 +84,6 @@ contains
 
     end subroutine pressure_solid
 
-
     subroutine check_field(nel, field, nx, ny, nz)
         integer, intent(in) :: nel, nx, ny, nz
         real, dimension(0:nx-1,0:ny-1,0:nz-1), intent(in) :: field
@@ -253,8 +252,6 @@ contains
         ny = Tdomain%specel(nel)%nglly
         nz = Tdomain%specel(nel)%ngllz
         el => Tdomain%specel(nel)
-
-
         if (el%domain==DM_FLUID) allocate(vphi(0:nx-1,0:ny-1,0:nz-1))
         do k=0,nz-1
             do j=0,ny-1
@@ -298,30 +295,95 @@ contains
         nz = Tdomain%specel(nel)%ngllz
         el => Tdomain%specel(nel)
         select case (el%domain)
-        case (DM_SOLID)
-            allocate(displ(0:nx-1,0:ny-1,0:nz-1,0:2))
-            mat = el%mat_index
-            call gather_elem_displ(Tdomain, nel, displ)
-            call pressure_solid(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
-                 Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
-                 el%InvGrad, displ, el%Lambda, el%Mu,field)
-            deallocate(displ)
-        case (DM_FLUID)
-            do k=0,nz-1
-                do j=0,ny-1
-                    do i=0,nx-1
-                        ind = el%Idom(i,j,k)
-                        field(i,j,k) = -Tdomain%champs0%VelPhi(ind)
+            case (DM_SOLID)
+                if (Tdomain%nl_flag==1) then
+                    allocate(displ(0:nx-1,0:ny-1,0:nz-1,0:5)) ! stress state (same variable name)
+                    call gather_elem_stress_solid(Tdomain, nel, displ)
+                    do k=0,nz-1
+                        do j=0,ny-1
+                            do i=0,nx-1
+                                field(i,j,k) = sum(displ(i,j,k,1:3))* M_1_3
+                            end do
+                        end do
+                    end do
+                    deallocate(displ)
+                else
+                    allocate(displ(0:nx-1,0:ny-1,0:nz-1,0:2))
+                    mat = el%mat_index
+                    call gather_elem_displ(Tdomain, nel, displ)
+                    call pressure_solid(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
+                        Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
+                        el%InvGrad, displ, el%Lambda, el%Mu,field)
+                    deallocate(displ)
+                end if
+            case (DM_FLUID)
+                do k=0,nz-1
+                    do j=0,ny-1
+                        do i=0,nx-1
+                            ind = el%Idom(i,j,k)
+                            field(i,j,k) = -Tdomain%champs0%VelPhi(ind)
+                        enddo
                     enddo
                 enddo
-            enddo
-        case (DM_SOLID_PML)
-            field = 0d0
-        case (DM_FLUID_PML)
-            field = 0d0
+            case (DM_SOLID_PML)
+                field = 0d0
+            case (DM_FLUID_PML)
+                field = 0d0
         end select
     end subroutine gather_elem_press
 
+    subroutine gather_elem_stress_solid(Tdomain, nel, field)
+
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: nel
+        real, dimension(0:,0:,0:,0:), intent(out) :: field
+        type(element), pointer :: el
+        integer :: nx, ny, nz, i, j, k, ind
+        nx = Tdomain%specel(nel)%ngllx
+        ny = Tdomain%specel(nel)%nglly
+        nz = Tdomain%specel(nel)%ngllz
+        el => Tdomain%specel(nel)
+        select case (el%domain)
+            case (DM_SOLID)
+                do k=0,nz-1
+                    do j=0,ny-1
+                        do i=0,nx-1
+                            ind = el%Idom(i,j,k)
+                            field(i,j,k,:) = Tdomain%champs0%Stress(ind,:)
+                        enddo
+                    enddo
+                enddo
+            case (DM_SOLID_PML)
+                field = 0d0
+        end select
+
+    end subroutine gather_elem_stress_solid
+
+    subroutine gather_elem_eps_pl(Tdomain, nel, field)
+
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: nel
+        real, dimension(0:,0:,0:,0:), intent(out) :: field
+        type(element), pointer :: el
+        integer :: nx, ny, nz, i, j, k, ind
+        nx = Tdomain%specel(nel)%ngllx
+        ny = Tdomain%specel(nel)%nglly
+        nz = Tdomain%specel(nel)%ngllz
+        el => Tdomain%specel(nel)
+        select case (el%domain)
+            case (DM_SOLID)
+                do k=0,nz-1
+                    do j=0,ny-1
+                        do i=0,nx-1
+                            ind = el%Idom(i,j,k)
+                            field(i,j,k,:) = Tdomain%champs0%Epsilon_pl(ind,:)
+                        enddo
+                    enddo
+                enddo
+            case (DM_SOLID_PML)
+                field = 0d0
+        end select              
+    end subroutine gather_elem_eps_pl
 end module mfields
 
 !! Local Variables:
@@ -334,4 +396,3 @@ end module mfields
 !! f90-program-indent: 4
 !! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent :

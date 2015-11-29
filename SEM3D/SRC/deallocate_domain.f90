@@ -71,6 +71,16 @@ subroutine deallocate_domain (Tdomain)
                     deallocate (Tdomain%specel(n)%Kappa)
                     deallocate (Tdomain%specel(n)%Mu)
                 endif
+                if (issolid .and. Tdomain%nl_flag == 1) then ! NL variables
+                    deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%sigma_yld)
+                    deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%b_iso)
+                    deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%Rinf_iso)
+                    deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%C_kin)
+                    deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%kapa_kin)
+                    deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el)
+                    deallocate(Tdomain%specel(n)%sl%nl_param_el)
+                end if
+
                 if (issolid .and. Tdomain%n_sls>0) then
                     if (Tdomain%aniso) then
                         deallocate (Tdomain%specel(n)%sl%Q)
@@ -102,6 +112,16 @@ subroutine deallocate_domain (Tdomain)
                     deallocate (Tdomain%specel(n)%sl%R_xz_)
                     deallocate (Tdomain%specel(n)%sl%R_yz_)
                 endif
+
+                if (Tdomain%nl_flag == 1) then ! NL variables
+                    deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%sigma_yld)
+                    deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%b_iso)
+                    deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%Rinf_iso)
+                    deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%C_kin)
+                    deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%kapa_kin)
+                    deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el)
+                    deallocate(Tdomain%specel(n)%sl%nl_param_el)
+                end if
 
             endif
         endif
@@ -146,7 +166,6 @@ subroutine deallocate_domain (Tdomain)
         deallocate (Tdomain%sSubdomain(n)%GLLwx)
         deallocate (Tdomain%sSubdomain(n)%hprimex)
         deallocate (Tdomain%sSubdomain(n)%hTprimex)
-
     enddo
 
     deallocate (Tdomain%sSubdomain)

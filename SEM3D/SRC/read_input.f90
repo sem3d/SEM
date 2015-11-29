@@ -244,7 +244,7 @@ contains
 
         call semname_read_inputmesh_parametrage(Tdomain%material_file,fnamef)
         open (13, file=fnamef, status="old", form="formatted")
-
+        
         read(13,*) n_aus
 
         if(n_aus /= Tdomain%n_mat) then
@@ -262,17 +262,34 @@ contains
         Tdomain%not_PML_List = .true.
 
         do i = 0,Tdomain%n_mat-1
-            read(13,*) Tdomain%sSubDomain(i)%material_type, &
-                Tdomain%sSubDomain(i)%Pspeed,        &
-                Tdomain%sSubDomain(i)%Sspeed,        &
-                Tdomain%sSubDomain(i)%dDensity,      &
-                Tdomain%sSubDomain(i)%NGLLx,         &
-                Tdomain%sSubDomain(i)%NGLLy,         &
-                Tdomain%sSubDomain(i)%NGLLz,         &
-                Tdomain%sSubDomain(i)%Dt,            &
-                Tdomain%sSubDomain(i)%Qpression,     &
-                Tdomain%sSubDomain(i)%Qmu
-
+            if (Tdomain%nl_flag==1) then
+                read(13,*) Tdomain%sSubDomain(i)%material_type, &
+                    Tdomain%sSubDomain(i)%Pspeed,        &
+                    Tdomain%sSubDomain(i)%Sspeed,        &
+                    Tdomain%sSubDomain(i)%dDensity,      &
+                    Tdomain%sSubDomain(i)%NGLLx,         &
+                    Tdomain%sSubDomain(i)%NGLLy,         &
+                    Tdomain%sSubDomain(i)%NGLLz,         &
+                    Tdomain%sSubDomain(i)%Dt,            &
+                    Tdomain%sSubDomain(i)%Qpression,     &
+                    Tdomain%sSubDomain(i)%Qmu,           &
+                    Tdomain%sSubDomain(i)%nl_prop%LMC_prop%sigma_yld, &
+                    Tdomain%sSubDomain(i)%nl_prop%LMC_prop%C_kin,     &
+                    Tdomain%sSubDomain(i)%nl_prop%LMC_prop%kapa_kin,  &
+                    Tdomain%sSubDomain(i)%nl_prop%LMC_prop%b_iso,     &
+                    Tdomain%sSubDomain(i)%nl_prop%LMC_prop%Rinf_iso
+            else
+                read(13,*) Tdomain%sSubDomain(i)%material_type, &
+                   Tdomain%sSubDomain(i)%Pspeed,        &
+                    Tdomain%sSubDomain(i)%Sspeed,        &
+                    Tdomain%sSubDomain(i)%dDensity,      &
+                    Tdomain%sSubDomain(i)%NGLLx,         &
+                    Tdomain%sSubDomain(i)%NGLLy,         &
+                    Tdomain%sSubDomain(i)%NGLLz,         &
+                    Tdomain%sSubDomain(i)%Dt,            &
+                    Tdomain%sSubDomain(i)%Qpression,     &
+                    Tdomain%sSubDomain(i)%Qmu
+            end if
             Tdomain%sSubdomain(i)%Filtering = .false.
 
             if(rg==0 .and. .false.) then
@@ -286,12 +303,18 @@ contains
                 write (*,*) 'Dt       :', Tdomain%sSubDomain(i)%Dt
                 write (*,*) 'Qp       :', Tdomain%sSubDomain(i)%Qpression
                 write (*,*) 'Qmu      :', Tdomain%sSubDomain(i)%Qmu
+                if (Tdomain%nl_flag==1) then
+                    write (*,*) 'NL_LMC - sigma_yld:', Tdomain%sSubDomain(i)%nl_prop%LMC_prop%sigma_yld
+                    write (*,*) 'NL_LMC - C_kin:',     Tdomain%sSubDomain(i)%nl_prop%LMC_prop%C_kin
+                    write (*,*) 'NL_LMC - kapa_kin:',  Tdomain%sSubDomain(i)%nl_prop%LMC_prop%kapa_kin
+                    write (*,*) 'NL_LMC - b_iso:',     Tdomain%sSubDomain(i)%nl_prop%LMC_prop%b_iso
+                    write (*,*) 'NL_LMC - Rinf:',      Tdomain%sSubDomain(i)%nl_prop%LMC_prop%Rinf_iso
+                end if
             endif
 
             Tdomain%sSubdomain(i)%assocMat = i
 
             call Lame_coefficients (Tdomain%sSubDomain(i))
-
             if (Tdomain%sSubDomain(i)%material_type == "P" .or. Tdomain%sSubDomain(i)%material_type == "L")  then
                 npml = npml + 1
                 Tdomain%not_PML_List(i) = .false.
@@ -301,7 +324,6 @@ contains
             if (Tdomain%sSubDomain(i)%material_type == "R") then
                 nRandom = nRandom + 1
             end if
-
         enddo
 
         if(npml > 0) then
@@ -489,15 +511,15 @@ contains
                 end do
                 pos = pos/8
                 select case (selection%type)
-                case (1)
-                    ! All
-                    Tdomain%specel(n)%output = sel
-                case (2)
-                    ! Material
-                    if (Tdomain%specel(n)%mat_index == selection%material) Tdomain%specel(n)%output = sel
-                case (3)
-                    ! Box
-                    if (is_in_box(pos, selection%box)) Tdomain%specel(n)%output = sel
+                    case (1)
+                        ! All
+                        Tdomain%specel(n)%output = sel
+                    case (2)
+                        ! Material
+                        if (Tdomain%specel(n)%mat_index == selection%material) Tdomain%specel(n)%output = sel
+                    case (3)
+                        ! Box
+                        if (is_in_box(pos, selection%box)) Tdomain%specel(n)%output = sel
                 end select
 
                 call c_f_pointer(selection%next, selection)
@@ -531,7 +553,6 @@ contains
             stop 1
         endif
         if (rg==0) call dump_config(Tdomain%config) !Print of configuration on the screen
-
         ! On copie les parametres renvoyes dans la structure C
         Tdomain%Title_simulation          = fromcstr(Tdomain%config%run_name)
         Tdomain%TimeD%acceleration_scheme = Tdomain%config%accel_scheme .ne. 0
@@ -540,6 +561,7 @@ contains
         Tdomain%TimeD%alpha               = Tdomain%config%alpha
         Tdomain%TimeD%beta                = Tdomain%config%beta
         Tdomain%TimeD%gamma               = Tdomain%config%gamma
+        Tdomain%nl_flag                   = Tdomain%config%nl_flag
         if (rg==0) then
             if (Tdomain%TimeD%alpha /= 0.5 .or. Tdomain%TimeD%beta /= 0.5 .or. Tdomain%TimeD%gamma /= 1.) then
                 write(*,*) "***WARNING*** : Les parametres alpha,beta,gamma sont ignores dans cette version"
@@ -551,12 +573,17 @@ contains
         Tdomain%TimeD%gamma = 1.
         ! OUTPUT FIELDS
         Tdomain%out_variables(0:8)=Tdomain%config%out_variables
-        Tdomain%nReqOut = 1*(Tdomain%out_variables(OUT_ENERGYP)+Tdomain%out_variables(OUT_ENERGYS)+ &
+        Tdomain%nReqOut = 1*(Tdomain%out_variables(OUT_ENERGYP)+Tdomain%out_variables(OUT_ENERGYS)+ & 
                              Tdomain%out_variables(OUT_EPS_VOL)+Tdomain%out_variables(OUT_PRESSION))+ &
                           3*(Tdomain%out_variables(OUT_DEPLA)+Tdomain%out_variables(OUT_VITESSE)+&
                              Tdomain%out_variables(OUT_ACCEL))+&
-                          6*(Tdomain%out_variables(OUT_EPS_DEV)+Tdomain%out_variables(OUT_STRESS_DEV))
-
+                          6*(Tdomain%out_variables(OUT_EPS_DEV)+Tdomain%out_variables(OUT_STRESS_DEV))   
+        if (Tdomain%nl_flag==1 .and. Tdomain%out_variables(OUT_EPS_DEV)==1) then
+             Tdomain%nReqOut=Tdomain%nReqOut+6
+        endif 
+        
+        write(*,*),'requested output',Tdomain%nReqOut
+        
         Tdomain%TimeD%courant             = Tdomain%config%courant
         Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)
         call semname_read_input_meshfile(rg,Tdomain%mesh_file,fnamef) !indicates the path to the mesh file for this proc"
@@ -577,8 +604,8 @@ contains
         Tdomain%TimeD%iter_reprise = Tdomain%config%prorep_restart_iter
         Tdomain%TimeD%ncheck       = Tdomain%config%prorep_iter ! frequence de sauvegarde
 
-        Tdomain%TimeD%ntrace        = Tdomain%config%traces_interval ! XXX
-        Tdomain%traces_format       = Tdomain%config%traces_format
+        Tdomain%TimeD%ntrace         = Tdomain%config%traces_interval ! XXX
+        Tdomain%traces_format        = Tdomain%config%traces_format
         Tdomain%TimeD%time_snapshots = Tdomain%config%snap_interval
         logic_scheme                 = Tdomain%TimeD%acceleration_scheme .neqv. Tdomain%TimeD%velocity_scheme
         if(.not. logic_scheme) then
@@ -596,9 +623,8 @@ contains
             write(*,*) "           band =", Tdomain%T1_att, Tdomain%T2_att
         end if
 
-
         ! Neumann boundary conditions? If yes: geometrical properties read in the mesh files.
-        Tdomain%logicD%Neumann = Tdomain%config%neu_present /= 0
+        Tdomain%logicD%Neumann = Tdomain%config%neu_present == 1
         Tdomain%Neumann%Neu_Param%what_bc = 'S'
         Tdomain%Neumann%Neu_Param%mat_index = Tdomain%config%neu_mat
         if (Tdomain%config%neu_type==1) then
@@ -625,9 +651,8 @@ contains
 
         !---   Properties of materials.
         call read_material_file(Tdomain)
-
         ! Material Earthchunk
-
+        
         Tdomain%earthchunk_isInit=0
         if( Tdomain%config%material_type == MATERIAL_EARTHCHUNK) then
             Tdomain%earthchunk_isInit=1
@@ -639,14 +664,14 @@ contains
 
             select case (Tdomain%config%material_type)
 
-            case (MATERIAL_PREM)
-                Tdomain%aniso=.true.
-            case (MATERIAL_EARTHCHUNK)
-                Tdomain%earthchunk_isInit=1
-                Tdomain%aniso=.true.
-                Tdomain%earthchunk_file = fromcstr(Tdomain%config%model_file)
-                Tdomain%earthchunk_delta_lon = Tdomain%config%delta_lon
-                Tdomain%earthchunk_delta_lat = Tdomain%config%delta_lat
+                case (MATERIAL_PREM)
+                    Tdomain%aniso=.true.
+                case (MATERIAL_EARTHCHUNK)
+                    Tdomain%earthchunk_isInit=1
+                    Tdomain%aniso=.true.
+                    Tdomain%earthchunk_file = fromcstr(Tdomain%config%model_file)
+                    Tdomain%earthchunk_delta_lon = Tdomain%config%delta_lon
+                    Tdomain%earthchunk_delta_lat = Tdomain%config%delta_lat
 
             end select
 
