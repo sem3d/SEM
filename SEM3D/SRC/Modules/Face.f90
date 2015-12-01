@@ -9,19 +9,21 @@
 !<
 
 module sfaces
-
-
+    implicit none
     type :: face
-       logical :: PML, Abs, FPML
-       integer :: ngll1, ngll2, dir, Which_Elem, mat_index
-       integer, dimension (:,:), allocatable :: Iglobnum_Face
-       ! Lien entre ngll et numérotation des champs globaux
-       integer, dimension (:,:), allocatable :: Renum
+        integer :: ngll1, ngll2
+        integer :: domain
+        ! Index dans Tdomain%GlobalCoord des coordonnees du pt de gauss
+        ! Long term : on peut avoir un champ GlobalCoord par domaine et virer les Iglobnum_*
+        integer, dimension (:,:), allocatable :: Iglobnum_Face
+        ! Index dans un domaine des valeurs associées au gll
+        integer, dimension (:,:), allocatable :: Idom
+        ! Index dans Tdomain%Coord_nodes des 4 sommets de la face (y compris pour les Hex27)
+        integer, dimension(0:3) :: inodes
 
-       ! solid-fluid
-       logical :: solid, fluid_dirich
-
-       !! Couplage Externe
+        ! TODO remove:
+        integer, dimension(0:1) :: Which_Elem
+        !! Couplage Externe
 !       real, dimension (:,:,:), allocatable :: ForcesExt
 !       real, dimension (:,:), allocatable :: tsurfsem
     end type face
@@ -31,15 +33,10 @@ contains
 
     subroutine init_face(fc)
         type(Face), intent(inout) :: fc
-
-        fc%PML = .false.
-        fc%Abs = .false.
-        fc%FPML = .false.
+        fc%domain = -1
         fc%ngll1 = 0
         fc%ngll2 = 0
-        fc%dir = -1
         fc%Which_Elem = -1
-        fc%solid = .true.
     end subroutine init_face
 
 end module sfaces

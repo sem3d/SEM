@@ -39,16 +39,16 @@ contains
         integer :: Nmc, xNTotal, xNEffect;
         integer :: code, nb_procs;
 
-        if(rang == 0) write(*,*) "        rang = ", rang
-        if(rang == 0) write(*,*) "        evntAvg = ", evntAvg
-        if(rang == 0) write(*,*) "        evntStdDev = ", evntStdDev
-        if(rang == 0) write(*,*) "        nDim = ", nDim
+        !if(rang == 0) write(*,*) "        rang = ", rang
+        !if(rang == 0) write(*,*) "        evntAvg = ", evntAvg
+        !if(rang == 0) write(*,*) "        evntStdDev = ", evntStdDev
+        !if(rang == 0) write(*,*) "        nDim = ", nDim
 
         Nmc = size(randField, 2)
 
-        write(*,*) "RANG = ", rang
+        !write(*,*) "RANG = ", rang
 
-        if(rang == 0) write(*,*) "        Nmc = ", Nmc
+        !if(rang == 0) write(*,*) "        Nmc = ", Nmc
 
         call MPI_COMM_SIZE(comm, nb_procs, code)
 
@@ -69,8 +69,8 @@ contains
         if(contrib == 1) sumRF(:)       = sum( randField    , dim = 1)
         if(contrib == 1) sumRFsquare(:) = sum((randField)**2, dim = 1)
 
-        if(rang == 0) write(*,*) "        sumRF = ", sumRF
-        if(rang == 0) write(*,*) "        sumRFsquare = ", sumRFsquare
+        !if(rang == 0) write(*,*) "        sumRF = ", sumRF
+        !if(rang == 0) write(*,*) "        sumRFsquare = ", sumRFsquare
 
         xNEffect = 0
         if(contrib == 1) xNEffect = size(randField, 1)
@@ -86,14 +86,14 @@ contains
             evntAvg      = totalSumRF/dble(xNTotal);
             evntStdDev   = sqrt(totalSumRFsquare/dble(xNTotal) &
                 - (evntAvg)**2)
-            if(rang == 0) write(*,*) "        evntAvg      = ", evntAvg
-            if(rang == 0) write(*,*) "        evntStdDev   = ", evntStdDev
+            !if(rang == 0) write(*,*) "        evntAvg      = ", evntAvg
+            !if(rang == 0) write(*,*) "        evntStdDev   = ", evntStdDev
         end if
 
-        if(rang == 0) write(*,*) "BEFORE BDCST" 
+        !if(rang == 0) write(*,*) "BEFORE BDCST"
         call MPI_BCAST (evntAvg, Nmc, MPI_DOUBLE_PRECISION, 0, comm, code)
         call MPI_BCAST (evntStdDev, Nmc, MPI_DOUBLE_PRECISION, 0, comm, code)
-        if(rang == 0) write(*,*) "AFTER BDCST"
+        !if(rang == 0) write(*,*) "AFTER BDCST"
 
         if(allocated(sumRF))       deallocate(sumRF)
         if(allocated(sumRFsquare)) deallocate(sumRFsquare)

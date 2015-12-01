@@ -48,12 +48,13 @@ contains
         integer, pointer, dimension(:) :: dxadj, dxadjncy
         real(kind=4), dimension(nproc) :: tpwgts
         real(kind=4), dimension(ncon) :: ubvec
-        integer :: nsol, nflu, nspml, nfpml
+        integer :: nsol, nflu, nspml, nfpml, nrand
 
         nsol = 0
         nflu = 0
         nspml = 0
         nfpml = 0
+        nrand = 0
         allocate(eind(0:8*n_elem-1))
         allocate(eptr(0:n_elem))
         allocate(vwgt(0:n_elem))
@@ -103,6 +104,9 @@ contains
                 case ('L')
                     vwgt(n) = 3
                     nfpml = nfpml+1
+                case ('R')
+                    vwgt(n) = 9
+                    nrand = nrand+1
                 end select
                 if (vwgt(n)==0) then
                     write(*,*) "Erreur: elem",n, Material(n), tabmat(Material(n))
@@ -117,6 +121,7 @@ contains
         write(*,*) "Found:"
         write(*,*) nsol, "Sol"
         write(*,*) nflu, "Flu"
+        write(*,*) nrand, "Rand"
         write(*,*) nspml, "Sol PML"
         write(*,*) nfpml, "Flu PML"
         deallocate(eind, eptr, vwgt, vsize)

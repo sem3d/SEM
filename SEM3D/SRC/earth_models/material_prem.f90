@@ -3,6 +3,7 @@
 !! Copyright CEA, ECP, IPGP
 !!
 subroutine  initialize_material_prem( elem, matInfo, coorPt, npts)
+    use constants, only : DM_SOLID_PML
     use selement
     use ssubdomains
     use model_prem
@@ -60,7 +61,7 @@ subroutine  initialize_material_prem( elem, matInfo, coorPt, npts)
                 enddo
 
 
-                if( elem%PML) then
+                if(elem%domain==DM_SOLID_PML) then
                     elem%Lambda(i,j,k) = lambda_from_Cij(Cij)
                     elem%Mu(i,j,k) = mu_from_Cij(Cij)
                 else

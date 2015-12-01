@@ -8,26 +8,29 @@
 !!
 !<
 module mshape8
+    use sdomain
     implicit none
 contains
     subroutine shape8_init(Tdomain)
         use shape_geom_3d
-        use sdomain
         use mpi
         implicit none
 
         type(domain), intent(inout) :: Tdomain
-        integer :: n,  ngll,ngllx,nglly,ngllz,ngll1,ngll2, mat, i,j,k ,ipoint,   &
-            nf,ne,nv,               &
-            mat_index,which_elem,which_face,which_edge,which_vertex,f_dir,indv
-        integer, dimension(0:3)  :: loc_vertices,loc_nodes
-        real :: xi,eta,zeta, Jac, fact_norm
-        real, dimension(0:2,0:2) :: LocInvGrad
-        real, dimension(0:2,0:7) :: coord  ! coordinates of nodes
-        real :: xp, yp, zp
+        integer :: n,  ngllx,nglly,ngllz, mat, i,j,k ,ipoint
+!            nf,ne,nv
+!            mat_index,which_elem,which_face,which_edge,which_vertex,
+!        integer, dimension(0:3)  :: loc_vertices,loc_nodes
+        real(FPP) :: Jac, xi, eta, zeta
+        real(FPP), dimension(0:2,0:2) :: LocInvGrad
+        real(FPP), dimension(0:2,0:7) :: coord  ! coordinates of nodes
+        real(FPP) :: xp, yp, zp
+        real(FPP), parameter :: XEPS=1e-10
+        real(FPP) :: dxp, dyp, dzp
 
         ! Tdomain%n_glob_points is the number of degrees of fredom
         allocate(Tdomain%GlobCoord(0:2,0:Tdomain%n_glob_points-1))
+        Tdomain%GlobCoord = 0d0
 
         do n = 0,Tdomain%n_elem-1
 
@@ -54,10 +57,23 @@ contains
                         ipoint = Tdomain%specel(n)%Iglobnum(i,j,k)
 
                         call shape8_local2global(coord, xi, eta, zeta, xp, yp, zp)
+                        ! DEBUG CHECK
+                        if (Tdomain%GlobCoord(0,ipoint)/=0d0 .or. &
+                            Tdomain%GlobCoord(1,ipoint)/=0d0 .or. &
+                            Tdomain%GlobCoord(2,ipoint)/=0d0) then
+                            dxp = abs(xp-Tdomain%GlobCoord(0,ipoint))
+                            dyp = abs(yp-Tdomain%GlobCoord(1,ipoint))
+                            dzp = abs(zp-Tdomain%GlobCoord(2,ipoint))
+                            if (dxp>XEPS .or. dyp>XEPS .or. dzp>XEPS) then
+                                write(*,*) "DIFF", n, ipoint, Tdomain%GlobCoord(:,ipoint), ":", dxp, dyp, dzp
+                            end if
+                        end if
+                        !
                         Tdomain%GlobCoord(0,ipoint) = xp
                         Tdomain%GlobCoord(1,ipoint) = yp
                         Tdomain%GlobCoord(2,ipoint) = zp
 
+                        !write(*,*) n, i, j, k, xp, yp, zp
                         call shape8_local2jacob(coord, xi, eta, zeta, LocInvGrad)
 
                         call invert_3d(LocInvGrad,Jac)
@@ -73,230 +89,185 @@ contains
 
         ! Neumann Boundary Conditions : normal vectors
         if(Tdomain%logicD%neumann_local_present)then
-            ! Neumann faces
-            do nf = 0, Tdomain%Neumann%Neu_n_faces-1
-                which_face = Tdomain%Neumann%Neu_Face(nf)%Face
-                which_elem = Tdomain%sFace(which_face)%which_elem
-                ngll1 = Tdomain%Neumann%Neu_Face(nf)%ngll1
-                ngll2 = Tdomain%Neumann%Neu_Face(nf)%ngll2
-                ngllx = Tdomain%specel(which_elem)%ngllx
-                nglly = Tdomain%specel(which_elem)%nglly
-                ngllz = Tdomain%specel(which_elem)%ngllz
-                f_dir = Tdomain%Neumann%Neu_Face(nf)%dir
-                mat_index = Tdomain%specel(which_elem)%mat_index
-
-                allocate(Tdomain%Neumann%Neu_Face(nf)%normal(0:ngll1-1,0:ngll2-1,0:2))
-                do i = 0,3
-                    loc_vertices(i) =        &
-                        Tdomain%Neumann%Neu_Vertex(Tdomain%Neumann%Neu_Face(nf)%Near_Vertices(i))%vertex
-                    loc_nodes(i) = Tdomain%sVertex(loc_vertices(i))%global_numbering
-                end do
-
-                call coord_nodes_face(f_dir,coord,loc_nodes,Tdomain%n_glob_nodes,    &
-                    Tdomain%Coord_Nodes(0:,0:))
-                call normal_face(f_dir,ngllx,nglly,ngllz,ngll1,ngll2,coord,                     &
-                    Tdomain%sSubdomain(mat_index)%GLLcx,Tdomain%sSubdomain(mat_index)%GLLcy,   &
-                    Tdomain%sSubdomain(mat_index)%GLLcz,Tdomain%Neumann%Neu_Face(nf)%normal)
-
-                ! eventual switch of the normal direction
-                call inversion_normal(f_dir,Tdomain%specel(which_elem),ngll1,ngll2,    &
-                    Tdomain%Neumann%Neu_Face(nf)%normal)
-
-            end do
-
-            ! co-ordinates of Neumann GLL points: necessary to impose a boundary condition
-            do nf = 0,Tdomain%Neumann%Neu_n_faces-1
-                ngll1 = Tdomain%Neumann%Neu_Face(nf)%ngll1
-                ngll2 = Tdomain%Neumann%Neu_Face(nf)%ngll2
-                which_face = Tdomain%Neumann%Neu_Face(nf)%Face
-                allocate(Tdomain%Neumann%Neu_Face(nf)%Coord(1:ngll1-2,1:ngll2-2,0:2))
-                do j = 1,ngll2-2
-                    do i = 1,ngll1-2
-                        Tdomain%Neumann%Neu_Face(nf)%Coord(i,j,0:2) =    &
-                            Tdomain%GlobCoord(0:2,Tdomain%sFace(which_face)%Iglobnum_Face(i,j))
-                    enddo
-                enddo
-            end do
-            do ne = 0,Tdomain%Neumann%Neu_n_edges-1
-                ngll = Tdomain%Neumann%Neu_Edge(ne)%ngll
-                which_edge = Tdomain%Neumann%Neu_Edge(ne)%Edge
-                allocate(Tdomain%Neumann%Neu_Edge(ne)%Coord(1:ngll-2,0:2))
-                do i = 1,ngll-2
-                    Tdomain%Neumann%Neu_Edge(ne)%Coord(i,0:2) =    &
-                        Tdomain%GlobCoord(0:2,Tdomain%sEdge(which_edge)%Iglobnum_Edge(i))
-                enddo
-            end do
-            do nv = 0, Tdomain%Neumann%Neu_n_vertices-1
-                which_vertex = Tdomain%Neumann%Neu_Vertex(nv)%Vertex
-                Tdomain%Neumann%Neu_Vertex(nv)%Coord(0:2) =     &
-                    Tdomain%GlobCoord(0:2,Tdomain%sVertex(which_vertex)%Iglobnum_Vertex)
-            enddo
-
+            ! call compute_normals(Tdomain, Tdomain%neu%surf, Tdomain%neu%btn)
+!            ! Neumann faces
+!            do nf = 0, Tdomain%Neumann%Neu_n_faces-1
+!                which_face = Tdomain%Neumann%Neu_Face(nf)%Face
+!                which_elem = Tdomain%sFace(which_face)%which_elem
+!                ngll1 = Tdomain%Neumann%Neu_Face(nf)%ngll1
+!                ngll2 = Tdomain%Neumann%Neu_Face(nf)%ngll2
+!                ngllx = Tdomain%specel(which_elem)%ngllx
+!                nglly = Tdomain%specel(which_elem)%nglly
+!                ngllz = Tdomain%specel(which_elem)%ngllz
+!                f_dir = Tdomain%Neumann%Neu_Face(nf)%dir
+!                mat_index = Tdomain%specel(which_elem)%mat_index
+!
+!                allocate(Tdomain%Neumann%Neu_Face(nf)%normal(0:ngll1-1,0:ngll2-1,0:2))
+!                do i = 0,3
+!                    loc_vertices(i) =        &
+!                        Tdomain%Neumann%Neu_Vertex(Tdomain%Neumann%Neu_Face(nf)%Near_Vertices(i))%vertex
+!                    loc_nodes(i) = Tdomain%sVertex(loc_vertices(i))%Iglobnum_Vertex
+!                end do
+!
+!                call coord_nodes_face(f_dir,coord,loc_nodes,Tdomain%n_glob_nodes,    &
+!                    Tdomain%Coord_Nodes(0:,0:))
+!                call normal_face(f_dir,ngllx,nglly,ngllz,ngll1,ngll2,coord,                     &
+!                    Tdomain%sSubdomain(mat_index)%GLLcx,Tdomain%sSubdomain(mat_index)%GLLcy,   &
+!                    Tdomain%sSubdomain(mat_index)%GLLcz,Tdomain%Neumann%Neu_Face(nf)%normal)
+!
+!                ! eventual switch of the normal direction
+!                call inversion_normal(f_dir,Tdomain%specel(which_elem),ngll1,ngll2,    &
+!                    Tdomain%Neumann%Neu_Face(nf)%normal)
+!
+!            end do
+!
+!            ! co-ordinates of Neumann GLL points: necessary to impose a boundary condition
+!            do nf = 0,Tdomain%Neumann%Neu_n_faces-1
+!                ngll1 = Tdomain%Neumann%Neu_Face(nf)%ngll1
+!                ngll2 = Tdomain%Neumann%Neu_Face(nf)%ngll2
+!                which_face = Tdomain%Neumann%Neu_Face(nf)%Face
+!                allocate(Tdomain%Neumann%Neu_Face(nf)%Coord(1:ngll1-2,1:ngll2-2,0:2))
+!                do j = 1,ngll2-2
+!                    do i = 1,ngll1-2
+!                        Tdomain%Neumann%Neu_Face(nf)%Coord(i,j,0:2) =    &
+!                            Tdomain%GlobCoord(0:2,Tdomain%sFace(which_face)%Iglobnum_Face(i,j))
+!                    enddo
+!                enddo
+!            end do
+!            do ne = 0,Tdomain%Neumann%Neu_n_edges-1
+!                ngll = Tdomain%Neumann%Neu_Edge(ne)%ngll
+!                which_edge = Tdomain%Neumann%Neu_Edge(ne)%Edge
+!                allocate(Tdomain%Neumann%Neu_Edge(ne)%Coord(1:ngll-2,0:2))
+!                do i = 1,ngll-2
+!                    Tdomain%Neumann%Neu_Edge(ne)%Coord(i,0:2) =    &
+!                        Tdomain%GlobCoord(0:2,Tdomain%sEdge(which_edge)%Iglobnum_Edge(i))
+!                enddo
+!            end do
+!            do nv = 0, Tdomain%Neumann%Neu_n_vertices-1
+!                which_vertex = Tdomain%Neumann%Neu_Vertex(nv)%Vertex
+!                Tdomain%Neumann%Neu_Vertex(nv)%Coord(0:2) =     &
+!                    Tdomain%GlobCoord(0:2,Tdomain%sVertex(which_vertex)%Iglobnum_Vertex)
+!            enddo
+!
         endif ! Neumann
 
         ! Solid-Fluid interfaces : normal vectors
         if(Tdomain%logicD%SF_local_present)then
-            ! SF faces: the normal is taken outward from the fluid element !!
-            do nf = 0, Tdomain%SF%SF_n_faces-1
-                which_face = Tdomain%SF%SF_Face(nf)%Face(0)
-                fact_norm = 1d0 ; indv = 0
-                if(which_face < 0)then  ! this SF face has no fluid side on this proc
-                    which_face = Tdomain%SF%SF_Face(nf)%Face(1)
-                    fact_norm = -1d0 ; indv = 1
-                end if
-                which_elem = Tdomain%sFace(which_face)%which_elem
-                ngll1 = Tdomain%SF%SF_Face(nf)%ngll1
-                ngll2 = Tdomain%SF%SF_Face(nf)%ngll2
-                ngllx = Tdomain%specel(which_elem)%ngllx
-                nglly = Tdomain%specel(which_elem)%nglly
-                ngllz = Tdomain%specel(which_elem)%ngllz
-                f_dir = Tdomain%SF%SF_Face(nf)%dir
-                mat_index = Tdomain%specel(which_elem)%mat_index
-
-                allocate(Tdomain%SF%SF_Face(nf)%normal(0:ngll1-1,0:ngll2-1,0:2))
-                do i = 0,3
-                    loc_vertices(i) =        &
-                        Tdomain%SF%SF_Vertex(Tdomain%SF%SF_Face(nf)%Near_Vertices(i))%Vertex(indv)
-                    loc_nodes(i) = Tdomain%sVertex(loc_vertices(i))%global_numbering
-                end do
-
-                call coord_nodes_face(f_dir,coord,loc_nodes,Tdomain%n_glob_nodes,    &
-                    Tdomain%Coord_Nodes(0:,0:))
-                call normal_face(f_dir,ngllx,nglly,ngllz,ngll1,ngll2,coord, &
-                    Tdomain%sSubdomain(mat_index)%GLLcx,Tdomain%sSubdomain(mat_index)%GLLcy,   &
-                    Tdomain%sSubdomain(mat_index)%GLLcz,Tdomain%SF%SF_Face(nf)%normal)
-
-                ! eventual switch of the normal direction
-                call inversion_normal(f_dir,Tdomain%specel(which_elem),ngll1,ngll2,    &
-                    Tdomain%SF%SF_Face(nf)%normal)
-
-                ! correct direction for the normal (outwards from fluid)
-                Tdomain%SF%SF_Face(nf)%normal(:,:,:) = fact_norm*Tdomain%SF%SF_Face(nf)%normal(:,:,:)
-            end do
-
-
+            call compute_normals(Tdomain, Tdomain%SF%intSolFlu%surf1, DM_FLUID, Tdomain%SF%SF_BtN)
+            call compute_normals(Tdomain, Tdomain%SF%intSolFluPml%surf1, DM_FLUID_PML, Tdomain%SF%SFpml_BtN)
         endif ! Solid-Fluid interface
 
 
         ! Obtention of a positive Jacobian.
         do n = 0,Tdomain%n_elem - 1
-            ngllx = Tdomain%specel(n)%ngllx;
-            nglly = Tdomain%specel(n)%nglly;
-            ngllz = Tdomain%specel(n)%ngllz;
-            do k = 0,ngllz - 1
-                do j = 0,nglly - 1
-                    do i = 0,ngllx - 1
-                        Tdomain%specel(n)%Jacob(i,j,k) = abs(Tdomain%specel(n)%Jacob(i,j,k))
-                    enddo
-                enddo
-            enddo
-            !OBS: could be rewriten
-            !Tdomain%specel(n)%Jacob(:,:,:) = abs(Tdomain%specel(n)%Jacob(:,:,:))
-            !Keeping only the loop over the elements (n)
+            Tdomain%specel(n)%Jacob = abs(Tdomain%specel(n)%Jacob)
         enddo
 
 
         return
     end subroutine shape8_init
     !-------------------------------------------------------------------------
-    subroutine coord_nodes_face(dir,coord,local_nod,n_glob_nodes,coord_nodes)
-        ! returns the coordinates for all vertices on a face of interest.
-        use svertices
+    subroutine compute_normals(Tdomain, surf, dom, BtN)
+        use mrenumber
+        use splib
         implicit none
-        integer, intent(in)   :: dir
-        real, dimension(0:2,0:7), intent(out)  :: coord
-        integer, dimension(0:3), intent(in)  :: local_nod
-        integer, intent(in)  :: n_glob_nodes
-        real, dimension(0:2,0:n_glob_nodes-1), intent(in)  :: coord_nodes
+        type(domain), intent(inout) :: Tdomain
+        type(surf_num), intent(inout) :: surf
+        integer, intent(in) :: dom
+        real(kind=FPP), allocatable, dimension(:,:), intent(out) :: BtN
+        !
+        integer, allocatable, dimension(:) :: renum
+        integer :: nf, nfs
+        integer :: ngll1, ngll2
+        integer :: i, j, idx
+        real(kind=FPP), allocatable, dimension(:) :: gllc1, gllc2
+        real(kind=FPP), allocatable, dimension(:) :: pol1, pol2
+        real(kind=FPP), allocatable, dimension(:) :: gllw1, gllw2
+        real(kind=FPP), dimension(0:2, 0:3) :: nodes
+        real(kind=FPP), dimension(0:2) :: normal
+        real(kind=FPP) :: orient
+        allocate(BtN(0:2, 0:surf%nbtot-1))
+        ngll1 = 0
+        ngll2 = 0
 
-        coord(:,:) = 0d0
-        select case(dir)
-        case(0)
-            coord(:,0) = coord_nodes(:,local_nod(0))
-            coord(:,1) = coord_nodes(:,local_nod(1))
-            coord(:,2) = coord_nodes(:,local_nod(2))
-            coord(:,3) = coord_nodes(:,local_nod(3))
-        case(1)
-            coord(:,0) = coord_nodes(:,local_nod(0))
-            coord(:,1) = coord_nodes(:,local_nod(1))
-            coord(:,5) = coord_nodes(:,local_nod(2))
-            coord(:,4) = coord_nodes(:,local_nod(3))
-        case(2)
-            coord(:,1) = coord_nodes(:,local_nod(0))
-            coord(:,2) = coord_nodes(:,local_nod(1))
-            coord(:,6) = coord_nodes(:,local_nod(2))
-            coord(:,5) = coord_nodes(:,local_nod(3))
-        case(3)
-            coord(:,3) = coord_nodes(:,local_nod(0))
-            coord(:,2) = coord_nodes(:,local_nod(1))
-            coord(:,6) = coord_nodes(:,local_nod(2))
-            coord(:,7) = coord_nodes(:,local_nod(3))
-        case(4)
-            coord(:,0) = coord_nodes(:,local_nod(0))
-            coord(:,3) = coord_nodes(:,local_nod(1))
-            coord(:,7) = coord_nodes(:,local_nod(2))
-            coord(:,4) = coord_nodes(:,local_nod(3))
-        case(5)
-            coord(:,4) = coord_nodes(:,local_nod(0))
-            coord(:,5) = coord_nodes(:,local_nod(1))
-            coord(:,6) = coord_nodes(:,local_nod(2))
-            coord(:,7) = coord_nodes(:,local_nod(3))
-        case default
-            stop 1
-        end select
-    end subroutine coord_nodes_face
-    !--------------------------------------------------------------------
-    !--------------------------------------------------------------------
-    subroutine inversion_normal(dir,elem,ngll1,ngll2,normal)
-        use selement
-        implicit none
-        integer, intent(in)   :: dir,ngll1,ngll2
-        type(element), intent(in)  :: elem
-        real, dimension(0:ngll1-1,0:ngll2-1,0:2), intent(inout) :: normal
-        integer  :: i,ngllx,nglly,ngllz
-
-        ngllx = elem%ngllx ; nglly = elem%nglly ; ngllz = elem%ngllz
-
-        select case(dir)
-        case(0)
-            do i = 0,2
-                where(elem%Jacob(:,:,0) > 0)
-                    normal(:,:,i) = -normal(:,:,i)
-                end where
+        Btn(:,:) = 0.
+        call get_surface_numbering(Tdomain, surf, dom, renum)
+        ! SF faces: the normal is taken outward from the fluid elements
+        do nf = 0, surf%n_faces-1
+            nfs = surf%if_faces(nf)
+            orient = -1d0*surf%if_norm(nf)
+            if (ngll1/=Tdomain%sFace(nfs)%ngll1) then
+                if (allocated(gllc1)) deallocate(gllc1, pol1, gllw1)
+                ngll1 = Tdomain%sFace(nfs)%ngll1
+                allocate(pol1(0:ngll1-1))
+                allocate(gllc1(0:ngll1-1))
+                allocate(gllw1(0:ngll1-1))
+                call zelegl(ngll1-1, gllc1, pol1)
+                call welegl(ngll1-1, gllc1, pol1, gllw1)
+            end if
+            if (ngll2/=Tdomain%sFace(nfs)%ngll2) then
+                if (allocated(gllc2)) deallocate(gllc2, pol2, gllw2)
+                ngll2 = Tdomain%sFace(nfs)%ngll2
+                allocate(pol2(0:ngll2-1))
+                allocate(gllc2(0:ngll2-1))
+                allocate(gllw2(0:ngll2-1))
+                call zelegl(ngll2-1, gllc2, pol2)
+                call welegl(ngll2-1, gllc2, pol2, gllw2)
+            end if
+            do i = 0,3
+                nodes(:,i) = Tdomain%Coord_nodes(:,Tdomain%sFace(nfs)%inodes(i))
             end do
-        case(1)
-            do i = 0,2
-                where(elem%Jacob(:,0,:) < 0)
-                    normal(:,:,i) = -normal(:,:,i)
-                end where
+            do j=0,ngll2-1
+                do i=0,ngll1-1
+                    idx = Tdomain%sFace(nfs)%Idom(i,j)
+                    if (idx==-1) then
+                        write(*,*) "ERROR, getting face gll:", dom, Tdomain%sFace(nfs)%domain
+                        write(*,*) "IND:", Tdomain%sFace(nfs)%Idom
+                        stop 1
+                    end if
+                    idx = renum(idx)
+                    call normal_face(nodes, gllc1(i), gllc2(j), normal)
+                    !
+                    if (idx==-1) then
+                        write(*,*) "ERROR, getting face gll:", dom, Tdomain%sFace(nfs)%domain
+                        write(*,*) "IND:", Tdomain%sFace(nfs)%Idom
+                        stop 1
+                    end if
+                    BtN(:,idx) = BtN(:,idx) + orient*normal*gllw1(i)*gllw2(j)
+                end do
             end do
-        case(2)
-            do i = 0,2
-                where(elem%Jacob(ngllx-1,:,:) < 0)
-                    normal(:,:,i) = -normal(:,:,i)
-                end where
-            end do
-        case(3)
-            do i = 0,2
-                where(elem%Jacob(:,nglly-1,:) > 0)
-                    normal(:,:,i) = -normal(:,:,i)
-                end where
-            end do
-        case(4)
-            do i = 0,2
-                where(elem%Jacob(0,:,:) > 0)
-                    normal(:,:,i) = -normal(:,:,i)
-                end where
-            end do
-        case(5)
-            do i = 0,2
-                where(elem%Jacob(:,:,ngllz-1) < 0)
-                    normal(:,:,i) = -normal(:,:,i)
-                end where
-            end do
-        end select
-
-    end subroutine inversion_normal
+        end do
+        if (allocated(gllc1)) deallocate(gllc1)
+        if (allocated(pol1)) deallocate(pol1)
+        if (allocated(gllc2)) deallocate(gllc2)
+        if (allocated(pol2)) deallocate(pol2)
+        deallocate(renum)
+    end subroutine compute_normals
+    !---------------------------------------------------------------------------
+    subroutine normal_face(nodes, xi, eta, normal)
+        use shape_geom_3d
+        real(kind=FPP), dimension(0:2, 0:3), intent(in) :: nodes
+        real(kind=FPP), intent(in) :: xi, eta
+        real(kind=FPP), dimension(0:2), intent(out) :: normal
+        !
+        real(kind=FPP), dimension(0:2) :: d_xi
+        real(kind=FPP), dimension(0:2) :: d_eta
+        integer :: i
+        do i=0,2
+            d_xi(i) = 0.25*( &
+                - nodes(i,0)*(1-eta) &
+                + nodes(i,1)*(1-eta) &
+                + nodes(i,2)*(1+eta) &
+                - nodes(i,3)*(1+eta))
+            d_eta(i) = 0.25*( &
+                - nodes(i,0)*(1-xi) &
+                - nodes(i,1)*(1+xi) &
+                + nodes(i,2)*(1+xi) &
+                + nodes(i,3)*(1-xi) )
+        end do
+        call cross_prod(d_xi, d_eta, normal)
+        ! We don't normalize, we want normal = n.dS
+    end subroutine normal_face
     !---------------------------------------------------------------------------
     subroutine nodes_coord_8(Control_Nodes,n_glob_nodes,Coord_Nodes,coord)
         ! gives the coordinates of the 8 nodes, for a given element

@@ -6,7 +6,7 @@
 !!\file read_restart.f90
 !!\brief Contient la subroutine read_restart().
 !!
-!! Gère la reprise de Sem3d
+!! GÃ¨re la reprise de Sem3d
 
 subroutine read_EpsilonVol(Tdomain, elem_id)
     use sdomain
@@ -36,7 +36,7 @@ subroutine read_EpsilonVol(Tdomain, elem_id)
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
 
-        if ( Tdomain%specel(n)%solid .and. ( .not. Tdomain%specel(n)%PML ) ) then
+        if ( Tdomain%specel(n)%domain==DM_SOLID ) then
             do k = 0,ngllz-1
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
@@ -97,7 +97,7 @@ subroutine read_EpsilonDev(Tdomain, elem_id)
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
 
-        if ( Tdomain%specel(n)%solid .and. ( .not. Tdomain%specel(n)%PML ) ) then
+        if ( Tdomain%specel(n)%domain == DM_SOLID ) then
             do k = 0,ngllz-1
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
@@ -137,43 +137,41 @@ subroutine read_Stress(Tdomain, elem_id)
     idx = 1
     n_solid = Tdomain%n_sls
     do n = 0,Tdomain%n_elem-1
-        if(.not. Tdomain%specel(n)%solid) cycle
+        if (Tdomain%specel(n)%domain/=DM_SOLID_PML) cycle
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
 
-        if (Tdomain%specel(n)%PML ) then
-            do k = 0,ngllz-1
-                do j = 0,nglly-1
-                    do i = 0,ngllx-1
-                        Tdomain%specel(n)%slpml%Diagonal_Stress1(i,j,k,0) = stress(idx+0)
-                        Tdomain%specel(n)%slpml%Diagonal_Stress1(i,j,k,1) = stress(idx+1)
-                        Tdomain%specel(n)%slpml%Diagonal_Stress1(i,j,k,2) = stress(idx+2)
-                        idx = idx + 3
-                        Tdomain%specel(n)%slpml%Diagonal_Stress2(i,j,k,0) = stress(idx+0)
-                        Tdomain%specel(n)%slpml%Diagonal_Stress2(i,j,k,1) = stress(idx+1)
-                        Tdomain%specel(n)%slpml%Diagonal_Stress2(i,j,k,2) = stress(idx+2)
-                        idx = idx + 3
-                        Tdomain%specel(n)%slpml%Diagonal_Stress3(i,j,k,0) = stress(idx+0)
-                        Tdomain%specel(n)%slpml%Diagonal_Stress3(i,j,k,1) = stress(idx+1)
-                        Tdomain%specel(n)%slpml%Diagonal_Stress3(i,j,k,2) = stress(idx+2)
-                        idx = idx + 3
-                        Tdomain%specel(n)%slpml%Residual_Stress1(i,j,k,0) = stress(idx+0)
-                        Tdomain%specel(n)%slpml%Residual_Stress1(i,j,k,1) = stress(idx+1)
-                        Tdomain%specel(n)%slpml%Residual_Stress1(i,j,k,2) = stress(idx+2)
-                        idx = idx + 3
-                        Tdomain%specel(n)%slpml%Residual_Stress2(i,j,k,0) = stress(idx+0)
-                        Tdomain%specel(n)%slpml%Residual_Stress2(i,j,k,1) = stress(idx+1)
-                        Tdomain%specel(n)%slpml%Residual_Stress2(i,j,k,2) = stress(idx+2)
-                        idx = idx + 3
-                        Tdomain%specel(n)%slpml%Residual_Stress3(i,j,k,0) = stress(idx+0)
-                        Tdomain%specel(n)%slpml%Residual_Stress3(i,j,k,1) = stress(idx+1)
-                        Tdomain%specel(n)%slpml%Residual_Stress3(i,j,k,2) = stress(idx+2)
-                        idx = idx + 3
-                    end do
+        do k = 0,ngllz-1
+            do j = 0,nglly-1
+                do i = 0,ngllx-1
+                    Tdomain%specel(n)%slpml%Diagonal_Stress1(i,j,k,0) = stress(idx+0)
+                    Tdomain%specel(n)%slpml%Diagonal_Stress1(i,j,k,1) = stress(idx+1)
+                    Tdomain%specel(n)%slpml%Diagonal_Stress1(i,j,k,2) = stress(idx+2)
+                    idx = idx + 3
+                    Tdomain%specel(n)%slpml%Diagonal_Stress2(i,j,k,0) = stress(idx+0)
+                    Tdomain%specel(n)%slpml%Diagonal_Stress2(i,j,k,1) = stress(idx+1)
+                    Tdomain%specel(n)%slpml%Diagonal_Stress2(i,j,k,2) = stress(idx+2)
+                    idx = idx + 3
+                    Tdomain%specel(n)%slpml%Diagonal_Stress3(i,j,k,0) = stress(idx+0)
+                    Tdomain%specel(n)%slpml%Diagonal_Stress3(i,j,k,1) = stress(idx+1)
+                    Tdomain%specel(n)%slpml%Diagonal_Stress3(i,j,k,2) = stress(idx+2)
+                    idx = idx + 3
+                    Tdomain%specel(n)%slpml%Residual_Stress1(i,j,k,0) = stress(idx+0)
+                    Tdomain%specel(n)%slpml%Residual_Stress1(i,j,k,1) = stress(idx+1)
+                    Tdomain%specel(n)%slpml%Residual_Stress1(i,j,k,2) = stress(idx+2)
+                    idx = idx + 3
+                    Tdomain%specel(n)%slpml%Residual_Stress2(i,j,k,0) = stress(idx+0)
+                    Tdomain%specel(n)%slpml%Residual_Stress2(i,j,k,1) = stress(idx+1)
+                    Tdomain%specel(n)%slpml%Residual_Stress2(i,j,k,2) = stress(idx+2)
+                    idx = idx + 3
+                    Tdomain%specel(n)%slpml%Residual_Stress3(i,j,k,0) = stress(idx+0)
+                    Tdomain%specel(n)%slpml%Residual_Stress3(i,j,k,1) = stress(idx+1)
+                    Tdomain%specel(n)%slpml%Residual_Stress3(i,j,k,2) = stress(idx+2)
+                    idx = idx + 3
                 end do
             end do
-        end if
+        end do
     end do
     deallocate(stress)
 end subroutine read_Stress
@@ -193,32 +191,22 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
     call read_dset_1d_real(elem_id, "Veloc_Fl_PML", veloc)
     idx = 1
     do n = 0,Tdomain%n_elem-1
-        if(Tdomain%specel(n)%solid) cycle
+        if (Tdomain%specel(n)%domain/=DM_FLUID_PML) cycle
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
 
-        if (Tdomain%specel(n)%PML ) then
-            do k = 0,ngllz-1
-                do j = 0,nglly-1
-                    do i = 0,ngllx-1
-                        id = Tdomain%specel(n)%slpml%ISolPML(i,j,k)
-                        Tdomain%specel(n)%flpml%Veloc1(i,j,k,0) = veloc(idx+0)
-                        Tdomain%specel(n)%flpml%Veloc1(i,j,k,1) = veloc(idx+1)
-                        Tdomain%specel(n)%flpml%Veloc1(i,j,k,2) = veloc(idx+2)
-                        idx = idx + 3
-                        Tdomain%specel(n)%flpml%Veloc2(i,j,k,0) = veloc(idx+0)
-                        Tdomain%specel(n)%flpml%Veloc2(i,j,k,1) = veloc(idx+1)
-                        Tdomain%specel(n)%flpml%Veloc2(i,j,k,2) = veloc(idx+2)
-                        idx = idx + 3
-                        Tdomain%specel(n)%flpml%Veloc3(i,j,k,0) = veloc(idx+0)
-                        Tdomain%specel(n)%flpml%Veloc3(i,j,k,1) = veloc(idx+1)
-                        Tdomain%specel(n)%flpml%Veloc3(i,j,k,2) = veloc(idx+2)
-                        idx = idx + 3
-                    end do
+        do k = 0,ngllz-1
+            do j = 0,nglly-1
+                do i = 0,ngllx-1
+                    id = Tdomain%specel(n)%Idom(i,j,k)
+                    Tdomain%specel(n)%flpml%Veloc(i,j,k,0) = veloc(idx+0)
+                    Tdomain%specel(n)%flpml%Veloc(i,j,k,1) = veloc(idx+1)
+                    Tdomain%specel(n)%flpml%Veloc(i,j,k,2) = veloc(idx+2)
+                    idx = idx + 3
                 end do
             end do
-        end if
+        end do
     end do
     deallocate(veloc)
 end subroutine read_Veloc_Fluid_PML

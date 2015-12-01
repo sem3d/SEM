@@ -5,7 +5,6 @@ module build_prop_files
     use constants
     use scomm
     use scommutils
-    use assembly
     use randomFieldND
     use displayCarvalhol
     use writeResultFile_RF
@@ -88,8 +87,6 @@ contains
             if (allocated(Tdomain%sSubdomain(mat)%varProp))       deallocate(Tdomain%sSubdomain(mat)%varProp)
             if (allocated(Tdomain%sSubDomain(mat)%corrL))         deallocate(Tdomain%sSubDomain(mat)%corrL)
             if (allocated(Tdomain%sSubDomain(mat)%margiFirst))    deallocate(Tdomain%sSubDomain(mat)%margiFirst)
-            if (allocated(Tdomain%sSubDomain(mat)%MinBound))      deallocate(Tdomain%sSubDomain(mat)%MinBound)
-            if (allocated(Tdomain%sSubDomain(mat)%MaxBound))      deallocate(Tdomain%sSubDomain(mat)%MaxBound)
             if (allocated(Tdomain%sSubDomain(mat)%chosenSeed))    deallocate(Tdomain%sSubDomain(mat)%chosenSeed)
         end do
 

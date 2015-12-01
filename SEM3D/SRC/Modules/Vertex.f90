@@ -10,37 +10,19 @@
 
 module svertices
 
-    type :: vertex_pml
-       real, dimension (:), allocatable :: Iveloc1, Iveloc2, Iveloc3
-       real, dimension (:), allocatable :: Ivx, Ivy, Ivz
-    end type vertex_pml
 
     type :: vertex
-       integer  :: mat_index
-       logical :: PML, Abs, FPML
-       integer :: Iglobnum_Vertex, global_numbering
-       ! Lien entre ngll et numérotation des champs globaux
-       integer :: Renum
-
-       ! solid-fluid
-       logical :: solid, fluid_dirich
-       type(vertex_pml), pointer :: spml
-
-       !! Couplage Externe
-       real, dimension (:), allocatable :: ForcesExt
-       real :: tsurfsem
-
+       integer :: domain
+       integer :: Iglobnum_Vertex
+       integer :: Idom
+       integer :: inode
     end type vertex
 
 contains
     subroutine init_vertex(ve)
         type(Vertex), intent(inout) :: ve
-
-        ve%PML = .false.
-        ve%Abs = .false.
-        ve%FPML = .false.
-        ve%solid = .true.
-        ve%global_numbering = -1
+        !
+        ve%domain = -1
         ve%Iglobnum_Vertex = -1
     end subroutine init_vertex
 

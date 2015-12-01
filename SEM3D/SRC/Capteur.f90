@@ -19,7 +19,7 @@ module mCapteur
     use mfields
     use sem_hdf5
     use sem_c_config
-    use constants, only : NCAPT_CACHE, M_1_3
+    use constants, only : NCAPT_CACHE, M_1_3, DM_SOLID, DM_FLUID, DM_SOLID_PML, DM_FLUID_PML
     use mshape8
     use mshape27
     implicit none
@@ -125,8 +125,8 @@ contains
             ! attention si le capteur est partage par plusieurs procs. On choisit le proc de num max
             if(Tdomain%rank==numproc_max) then
                 allocate(capteur)
-                
-                n_out = Tdomain%nReqOut                
+
+                n_out = Tdomain%nReqOut
                 if (.not.allocated(capteur%valuecache)) allocate(capteur%valuecache(1:n_out+1,NCAPT_CACHE))
 
                 nom = fromcstr(station_ptr%name)
@@ -371,14 +371,15 @@ contains
         real  :: sig_dev_xx, sig_dev_yy, sig_dev_zz, &
                  sig_dev_xy, sig_dev_xz, sig_dev_yz
         real  :: eps_vol,    P_energy,   S_energy
-        
-        logical :: aniso, solid
+
+        logical :: aniso
         real :: xmu, xlambda, xkappa, x2mu, xlambda2mu, onemSbeta, onemPbeta, eps_trace
-        
+
         real,    dimension(:), allocatable :: grandeur
         integer, dimension(0:8) :: out_variables, offset
         logical :: flag_gradU
         integer :: n_out, ioff
+        integer :: domtype
 
         rg = Tdomain%rank
 
@@ -409,7 +410,6 @@ contains
                 offset(i+1) = offset(i)
             end if
         end do
-
         allocate(grandeur(0:n_out-1))
         grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
 
@@ -470,11 +470,11 @@ contains
                 call  pol_lagrange(ngllz,Tdomain%sSubdomain(mat)%GLLcz,k,zeta,outz(k))
             end do
 
-            solid=Tdomain%specel(n_el)%solid
+            domtype=Tdomain%specel(n_el)%domain
             n_solid=Tdomain%n_sls
             aniso=Tdomain%aniso
 
-            if((solid) .and. (.not. Tdomain%specel(n_el)%PML) .and. (flag_gradU)) then   ! SOLID PART OF THE DOMAIN
+            if((domtype == DM_SOLID) .and. flag_gradU) then   ! SOLID PART OF THE DOMAIN
                 call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,0),DXX,DYX,DZX)
                 call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,1),DXY,DYY,DZY)
                 call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
@@ -538,7 +538,7 @@ contains
                                 = grandeur(offset(OUT_PRESSION)) + weight*fieldP(i,j,k)
                         end if
 
-                        if ((solid) .and. (.not. Tdomain%specel(n_el)%PML) .and. (flag_gradU)) then
+                        if ((domtype==DM_SOLID) .and. flag_gradU) then
 
                             eps_trace = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
 
@@ -601,11 +601,11 @@ contains
                         if (out_variables(OUT_ENERGYP) == 1) then
                             grandeur (offset(OUT_ENERGYP)) = grandeur (offset(OUT_ENERGYP)) + weight*P_energy
                         end if
-                        
+
                         if (out_variables(OUT_ENERGYS) == 1) then
                             grandeur (offset(OUT_ENERGYS)) = grandeur (offset(OUT_ENERGYS)) + weight*S_energy
                         end if
-                        
+
                         if (out_variables(OUT_EPS_VOL) == 1) then
                             grandeur (offset(OUT_EPS_VOL)) = grandeur (offset(OUT_EPS_VOL)) + weight*eps_vol
                         end if
@@ -626,7 +626,7 @@ contains
                     enddo
                 enddo
             enddo
-            
+
             deallocate(outx)
             deallocate(outy)
             deallocate(outz)
@@ -652,7 +652,7 @@ contains
             capteur%valuecache(2:n_out+1,i) = grandeur(:)
             if(allocated(grandeur)) deallocate(grandeur)
             capteur%icache = i
-            
+
         endif
 
     end subroutine sortieGrandeurCapteur_interp

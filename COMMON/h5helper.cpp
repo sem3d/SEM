@@ -2,6 +2,7 @@
 #include "h5helper.h"
 #include <cassert>
 #include <vector>
+#include <cstdlib>
 
 using std::vector;
 
@@ -11,6 +12,25 @@ using std::vector;
 #undef  _MAX
 #define _MAX(x,y) ((x) > (y) ? (x) : (y))
 
+
+#define H5H_MSG_SIZE 64
+static herr_t h5h_err_handler(hid_t stack, void* client_data)
+{
+    exit(1);
+}
+
+static void* old_handler;
+static void* old_data;
+void h5h_set_errhandler()
+{
+    H5Eget_auto(H5E_DEFAULT, (H5E_auto_t*)&old_handler, &old_data);
+    H5Eset_auto(H5E_DEFAULT, h5h_err_handler, NULL);
+}
+
+void h5h_restore_errhandler()
+{
+    H5Eset_auto(H5E_DEFAULT, (H5E_auto_t)old_handler, old_data);
+}
 
 void h5h_create_attr(hid_t parent, const char* name, int value)
 {

@@ -27,7 +27,8 @@ module sdomain
     use semdatafiles
     use schamps
     use sem_c_config
-
+    use sinterface
+    
     type :: domain
        integer :: communicateur !<<< Communicator including all SEM processors
        integer :: rank          !<<< Rank of this process within this communicator
@@ -52,9 +53,7 @@ module sdomain
        type(logical_array) :: logicD
        type(planew)        :: sPlaneW
        type(Neu_object)    :: Neumann
-       type(surf)          :: sSurf
        type(bassin)        :: sBassin
-       type(SF_object)     :: SF
        type(source)   , dimension (:), pointer :: sSource
        type(element)  , dimension (:), pointer :: specel
        type(face)     , dimension (:), pointer :: sFace
@@ -62,15 +61,15 @@ module sdomain
        type(edge)     , dimension (:), pointer :: sEdge
        type(vertex)   , dimension (:), pointer :: sVertex
        type(subdomain), dimension (:), pointer :: sSubDomain
+       type(SurfaceT), dimension(:), allocatable :: sSurfaces
 
-
-       logical :: any_PML, curve, any_FPML, aniso, any_Random
+       logical :: aniso
+       logical :: any_Random, any_PropOnFile
 
        integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers
        integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls
        integer :: n_hexa  !< Nombre de maille hexa ~= (ngllx-1)*(nglly-1)*(ngllz-1)*nelem
        logical, dimension(:), allocatable :: not_PML_List, subD_exist
-       integer, dimension(:), allocatable :: subDComm
 
        real :: T1_att, T2_att, T0_modele
        real, dimension (0:2,0:2) :: rot
@@ -93,7 +92,6 @@ module sdomain
        ! Nombre de gll solide, fluide, pml solide, pml fluide
        integer :: ngll_s, ngll_f, ngll_pmls, ngll_pmlf
 
-
        ! Champs
        type(champs) :: champs0
        type(champs) :: champs1
@@ -101,24 +99,21 @@ module sdomain
        ! MassMat pour elements solide, fluide, solide pml et fluide pml
        real, dimension(:), allocatable :: MassMatSol, MassMatFlu
        real, dimension(:), allocatable :: MassMatSolPml, MassMatFluPml
-       real, dimension(:), allocatable :: DumpMass, fpml_DumpMass
+       real, dimension(:,:), allocatable :: DumpMass, fpml_DumpMass
 
-       ! Condition de dirichlet fluide et fluide PML
-        real, dimension(:), allocatable :: fl_dirich, fpml_dirich
+       ! Condition de dirichlet : liste des noeuds Ã  mettre Ã  0 pour chaque domaine
+       integer :: n_sl_dirich, n_fl_dirich, n_spml_dirich, n_fpml_dirich
+       integer, dimension(:), allocatable :: sl_dirich
+       integer, dimension(:), allocatable :: spml_dirich
+       integer, dimension(:), allocatable :: fl_dirich
+       integer, dimension(:), allocatable :: fpml_dirich
 
        ! Interface Solide / PML
-       integer :: nbInterfSolPml ! nombre de points de gauss à l'interface Solide / PML
-       integer, dimension(:,:), allocatable :: InterfSolPml ! dimension(0:nbInterfSolPml-1,0:1), 0 Sol, 1 PML
-
+       type(inter_num) :: intSolPml
        ! Interface Fluide / PML
-       integer :: nbInterfFluPml ! nombre de points de gauss à l'interface Solide / PML
-       integer, dimension(:,:), allocatable :: InterfFluPml ! dimension(0:nbInterfFluPml-1,0:1), 0 Flu, 1 PML
-
-       ! Faces externes PML
-       ! Permet par exemple de mettre a 0 le champs de vitesse pour certaines face, edge, vertex PML
-       integer, dimension(:), allocatable :: OuterSPMLNodes
-       integer, dimension(:), allocatable :: OuterFPMLNodes
-       integer :: nbOuterSPMLNodes, nbOuterFPMLNodes
+       type(inter_num) :: intFluPml
+       ! Interface Fluide / Solide
+       type(SF_object)     :: SF
 
         ! Communication
         type(comm_vector) :: Comm_data      ! Comm mass et forces
@@ -130,34 +125,59 @@ module sdomain
 
 contains
 
+    function domain_ngll(Tdomain, dom)
+        integer, intent(in) :: dom
+        type(domain), intent(in) :: Tdomain
+        !
+        integer :: domain_ngll
+        domain_ngll = 0
+        select case(dom)
+        case(DM_SOLID)
+            domain_ngll = Tdomain%ngll_s
+        case(DM_FLUID)
+            domain_ngll = Tdomain%ngll_f
+        case(DM_SOLID_PML)
+            domain_ngll = Tdomain%ngll_pmls
+        case(DM_FLUID_PML)
+            domain_ngll = Tdomain%ngll_pmlf
+        end select
+    end function domain_ngll
 
-    subroutine dist_max_elem(Tdomain)
-        implicit none
-        type (Domain), intent (INOUT) :: Tdomain
-        integer :: ipoint, jpoint
-        integer :: i, j, n
-        real :: coor_i(0:2), coor_j(0:2)
-        real :: dist_max
-
-
-        do n = 0,Tdomain%n_elem-1
-            dist_max = 0.
-
-            do i=0,Tdomain%n_nodes-1
-                ipoint = Tdomain%specel(n)%Control_Nodes(i)
-                coor_i = Tdomain%Coord_nodes(0:2,ipoint)
-                do j=i+1,Tdomain%n_nodes-1
-                    jpoint = Tdomain%specel(n)%Control_Nodes(j)
-                    coor_j = Tdomain%Coord_nodes(0:2,jpoint)
-                    dist_max = max(dist_max, sqrt((coor_i(0)-coor_j(0))**2 + (coor_i(1)-coor_j(1))**2 &
-                        + (coor_i(2)-coor_j(2))**2))
-                enddo
-            enddo
-            Tdomain%specel(n)%dist_max = dist_max
-        enddo
-
-    end subroutine dist_max_elem
-
+    subroutine check_interface_orient(Tdomain, inter, xeps)
+        type(domain), intent(in) :: Tdomain
+        type(inter_num), intent(in) :: inter
+        real(FPP), intent(in) :: xeps
+        !
+        integer :: nif, i, j
+        integer :: nf0, nf1, ip0, ip1
+        integer :: ngll1, ngll2
+        real(FPP), dimension(0:2) :: dp
+        logical :: bad
+        !
+        do nif=0,inter%surf0%n_faces-1
+            nf0 = inter%surf0%if_faces(nif)
+            nf1 = inter%surf1%if_faces(nif)
+            ngll1 = Tdomain%sFace(nf0)%ngll1
+            ngll2 = Tdomain%sFace(nf0)%ngll2
+            bad = .false.
+            do j=0,ngll2-1
+                do i=0,ngll1-1
+                    ip0 = Tdomain%sFace(nf0)%Iglobnum_Face(i,j)
+                    ip1 = Tdomain%sFace(nf1)%Iglobnum_Face(i,j)
+                    dp = abs(Tdomain%GlobCoord(:,ip0)- Tdomain%GlobCoord(:,ip1))
+                    if (dp(0)>xeps.or.dp(1)>xeps.or.dp(2)>xeps) then
+                        !write(*,*) "IF ERROR:", Tdomain%GlobCoord(:,ip0), Tdomain%GlobCoord(:,ip1), dp
+                        bad = .true.
+                    end if
+                end do
+            end do
+            if (bad) then
+                write(*,*) "BAD INTERFACE:"
+                write(*,*) "IF0:", nf0, "[", Tdomain%sFace(nf0)%inodes, "]"
+                write(*,*) "IF1:", nf1, "[", Tdomain%sFace(nf1)%inodes, "]"
+            end if
+        end do
+    end subroutine check_interface_orient
 
 end module sdomain
 

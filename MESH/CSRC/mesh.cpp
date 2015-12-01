@@ -8,6 +8,7 @@
 #include "metis.h"
 #include <map>
 #include <cstdlib>
+#include <cstring>
 
 using std::map;
 using std::multimap;
@@ -48,7 +49,7 @@ void Mesh3D::partition_mesh(int n_parts)
     int ncommon = 1;
     int numflags = 0;
     int ncon=1;
-    int *vwgt=0L;
+    vector<int> vwgt;
     int *vsize=0L;
     int *adjwgt=0L;
     float *tpwgts=0L;
@@ -58,19 +59,69 @@ void Mesh3D::partition_mesh(int n_parts)
 
     n_procs = n_parts;
     m_procs.resize(ne);
-
+    m_xadj = 0L;
+    m_adjncy = 0L;
     METIS_MeshToDual(&ne, &nn, &m_elems_offs[0], &m_elems[0],
 		     &ncommon, &numflags, &m_xadj, &m_adjncy);
 
+    //dump_connectivity("conn1.dat");
+    // Tentative de reordonnancement des elements pour optimiser la reutilisation de cache
+    // lors de la boucle sur les elements
+//    vector<int> perm, iperm;
+//    perm.resize(ne);
+//    iperm.resize(ne);
+//    METIS_NodeND(&ne, m_xadj, m_adjncy, 0L, 0L, &perm[0], &iperm[0]);
+//    for(int k=0;k<m_xadj[ne];++k) {
+//        m_adjncy[k] = perm[m_adjncy[k]];
+//    }
+//    dump_connectivity("conn2.dat");
+    vwgt.resize(ne);
+    // Define weights
+    for(int k=0;k<ne;++k) {
+        const Material& mat = m_materials[m_mat[k]];
+        switch(mat.m_type) {
+        case DM_SOLID:
+            vwgt[k] = 3;
+            break;
+        case DM_FLUID:
+            vwgt[k] = 1;
+            break;
+        case DM_SOLID_PML:
+            vwgt[k] = 9;
+            break;
+        case DM_FLUID_PML:
+            vwgt[k] = 3;
+            break;
+        default:
+            vwgt[k] = 1;
+        }
+    }
     if (n_parts>1) {
         METIS_PartGraphKway(&ne, &ncon, m_xadj, m_adjncy,
-                            vwgt, vsize, adjwgt, &n_procs, tpwgts, ubvec,
+                            &vwgt[0], vsize, adjwgt, &n_procs, tpwgts, ubvec,
                             options, &edgecut, &m_procs[0]);
     } else {
         for(int k=0;k<ne;++k) m_procs[k]=0;
     }
 }
 
+
+void Mesh3D::dump_connectivity(const char* fname)
+{
+    FILE* fmat = fopen(fname, "wb");
+    int ne = n_elems();
+    unsigned char* mat = (unsigned char*)malloc(ne*ne*sizeof(unsigned char));
+    memset(mat, 0, ne*ne);
+    for(int i=0;i<n_elems();++i) {
+        for(int k=m_xadj[i];k<m_xadj[i+1];++k) {
+            int j = m_adjncy[k];
+            mat[i+ne*j] = 1;
+            mat[j+ne*i] = 1;
+        }
+    }
+    fwrite(mat, ne*ne, 1, fmat);
+    fclose(fmat);
+}
 
 
 
@@ -80,24 +131,54 @@ int Mesh3D::read_materials(const std::string& str)
     FILE* f = fopen(str.c_str(), "r");
     int nmats;
     char type;
+    char *buffer=NULL;
+    size_t linesize=0;
     double vs, vp, rho;
     int ngllx, nglly, ngllz;
     double dt, Qp, Qmu;
 
-    fscanf(f, "%d", &nmats);
+    getline(&buffer, &linesize, f);
+    sscanf(buffer, "%d", &nmats);
     for(int k=0;k<nmats;++k) {
-        fscanf(f, "%c %lf %lf %lf %d %d %d %lf %lf %lf",
-               &type, &vs, &vp, &rho, &ngllx, &nglly, &ngllz,
+        getline(&buffer, &linesize, f);
+        sscanf(buffer, "%c %lf %lf %lf %d %d %d %lf %lf %lf",
+               &type, &vp, &vs, &rho, &ngllx, &nglly, &ngllz,
                &dt, &Qp, &Qmu);
+        printf("Mat: %2ld : %c vp=%lf vs=%lf\n", m_materials.size(), type, vp, vs);
         m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx, nglly, ngllz));
     }
+    free(buffer);
     return nmats;
 }
 
-int Mesh3D::add_material()
+#define TF(e)  (e ? 'T' : 'F')
+
+void Mesh3D::write_materials(const std::string& str)
 {
-    m_materials.push_back(Material());
-    return m_materials.size()-1;
+    FILE* f = fopen(str.c_str(), "w");
+    int nmats = m_materials.size();
+    fprintf(f, "%d\n", nmats);
+    for(int k=0;k<nmats;++k) {
+        const Material& mat = m_materials[k];
+        fprintf(f, "%c %lf %lf %lf %d %d %d %lf %lf %lf\n",
+                mat.material_char(),
+                mat.Pspeed, mat.Sspeed, mat.rho,
+                mat.m_ngllx, mat.m_nglly, mat.m_ngllz,
+                0.0, mat.Qpression, mat.Qmu);
+    }
+    fprintf(f, "# PML properties\n");
+    fprintf(f, "# Filtering? npow,Apow,X?,left?,Y?,Forwrd?,Z?,down?,cutoff freq\n");
+    for(int k=0;k<nmats;++k) {
+        const Material& mat = m_materials[k];
+        if (!mat.is_pml()) continue;
+        char px = TF(mat.x_dir!=0);
+        char py = TF(mat.y_dir!=0);
+        char pz = TF(mat.z_dir!=0);
+        char xl = TF(mat.x_dir==-1);
+        char yf = TF(mat.y_dir==-1);
+        char zd = TF(mat.z_dir==-1);
+        fprintf(f, "F 2 10. %c %c %c %c %c %c 0. 0\n", px, xl, py, yf, pz, zd);
+    }
 }
 
 void Mesh3D::read_mesh_file(const std::string& fname)
@@ -141,11 +222,20 @@ void Mesh3D::build_vertex_to_elem_map()
 {
     int nel = n_elems();
     m_vertex_to_elem.init(nel);
+    m_vertex_domains.clear();
+    m_vertex_domains.resize(n_vertices(), 0);
     for(int i=0;i<nel;++i) {
         for(int k=m_elems_offs[i];k<m_elems_offs[i+1];++k) {
-            m_vertex_to_elem.add_link(m_elems[k], i);
+            int vtx = m_elems[k];
+            int domain = m_materials[m_mat[i]].domain();
+            m_vertex_to_elem.add_link(vtx, i);
+            m_vertex_domains[vtx] |= (1<<domain);
+//            printf("VX[%d] dom=%d/%02x, %02x\n", vtx, domain, (int)(1<<domain), m_vertex_domains[vtx]);
         }
     }
+//    for(int k=0;k<n_vertices();++k) {
+//        printf("VX[%d] dom=%02x\n", k, m_vertex_domains[k]);
+//    }
 }
 
 

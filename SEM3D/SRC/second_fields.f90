@@ -4,7 +4,6 @@
 !!
 module mfields
     use sdomain
-    use orientation
     use deriv3d
     implicit none
 contains
@@ -27,9 +26,9 @@ contains
             phi,dphi_dx,dphi_dy,dphi_dz)
 
         !
-        Veloc(:,:,:,0) = dphi_dx(:,:,:)/density(:,:,:) 
-        Veloc(:,:,:,1) = dphi_dy(:,:,:)/density(:,:,:) 
-        Veloc(:,:,:,2) = dphi_dz(:,:,:)/density(:,:,:) 
+        Veloc(:,:,:,0) = dphi_dx(:,:,:)/density(:,:,:)
+        Veloc(:,:,:,1) = dphi_dy(:,:,:)/density(:,:,:)
+        Veloc(:,:,:,2) = dphi_dz(:,:,:)/density(:,:,:)
 
     end subroutine fluid_velocity
 
@@ -45,7 +44,7 @@ contains
         real, dimension(0:nglly-1,0:nglly-1), intent(in) :: hprimey
         real, dimension(0:ngllz-1,0:ngllz-1), intent(in) :: hprimez
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:2), intent(in) :: InvGrad
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2), intent(in) :: displ 
+        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2), intent(in) :: displ
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: dUx_dx,dUx_dy,dUx_dz,  &
             dUy_dx,dUy_dy,dUy_dz,dUz_dx,dUz_dy,dUz_dz
 
@@ -71,7 +70,7 @@ contains
         real, dimension(0:nglly-1,0:nglly-1), intent(in) :: hprimey
         real, dimension(0:ngllz-1,0:ngllz-1), intent(in) :: hprimez
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:2), intent(in) :: InvGrad
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2), intent(in) :: displ 
+        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2), intent(in) :: displ
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: mu,lambda
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: pressure
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: dUx_dx,dUx_dy,dUx_dz,  &
@@ -102,73 +101,69 @@ contains
         end do
     end subroutine check_field
 
-    subroutine gather_field(el, field, src_field, inum)
+    subroutine gather_field(el, field, src_field)
         type(element), intent(in), pointer :: el
         real, dimension(0:,0:,0:,0:), intent(out) :: field
         real, dimension(0:,0:), intent(in) :: src_field
-        integer, dimension(0:,0:,0:), intent(in) :: inum
         !
         integer :: i,j,k,ind
 
         do k=0,el%ngllz-1
             do j=0,el%nglly-1
                 do i=0,el%ngllx-1
-                    ind = inum(i,j,k)
-                    field(i,j,k,:) = src_field(ind,:) 
+                    ind = el%Idom(i,j,k)
+                    field(i,j,k,:) = src_field(ind,:)
                 enddo
             enddo
         enddo
     end subroutine gather_field
 
-    subroutine gather_field_pml(el, field, src_field, inum)
+    subroutine gather_field_pml(el, field, src_field)
         type(element), intent(in), pointer :: el
         real, dimension(0:,0:,0:,0:), intent(out) :: field
-        real, dimension(0:,0:), intent(in) :: src_field
-        integer, dimension(0:,0:,0:), intent(in) :: inum
+        real, dimension(0:,0:,0:), intent(in) :: src_field
         !
         integer :: i,j,k,ind
 
         do k=0,el%ngllz-1
             do j=0,el%nglly-1
                 do i=0,el%ngllx-1
-                    ind = inum(i,j,k)
-                    field(i,j,k,:) = src_field(ind,:) + src_field(ind+1,:) + src_field(ind+2,:)
+                    ind = el%Idom(i,j,k)
+                    field(i,j,k,:) = src_field(ind,:,0) + src_field(ind,:,1) + src_field(ind,:,2)
                 enddo
             enddo
         enddo
     end subroutine gather_field_pml
 
-    subroutine gather_field_fpml(el, field, src_field, inum)
+    subroutine gather_field_fpml(el, field, src_field)
         type(element), intent(in), pointer :: el
         real, dimension(0:,0:,0:), intent(out) :: field
-        real, dimension(0:), intent(in) :: src_field
-        integer, dimension(0:,0:,0:), intent(in) :: inum
+        real, dimension(0:,0:), intent(in) :: src_field
         !
         integer :: i,j,k,ind
 
         do k=0,el%ngllz-1
             do j=0,el%nglly-1
                 do i=0,el%ngllx-1
-                    ind = inum(i,j,k)
-                    field(i,j,k) = src_field(ind) + src_field(ind+1) + src_field(ind+2)
+                    ind = el%Idom(i,j,k)
+                    field(i,j,k) = src_field(ind,0) + src_field(ind,1) + src_field(ind,2)
                 enddo
             enddo
         enddo
     end subroutine gather_field_fpml
 
-    subroutine gather_field_fluid(el, field, src_field, inum)
+    subroutine gather_field_fluid(el, field, src_field)
         type(element), intent(in), pointer :: el
         real, dimension(0:,0:,0:), intent(out) :: field
         real, dimension(0:), intent(in) :: src_field
-        integer, dimension(0:,0:,0:), intent(in) :: inum
         !
         integer :: i,j,k,ind
 
         do k=0,el%ngllz-1
             do j=0,el%nglly-1
                 do i=0,el%ngllx-1
-                    ind = inum(i,j,k)
-                    field(i,j,k) = src_field(ind) 
+                    ind = el%Idom(i,j,k)
+                    field(i,j,k) = src_field(ind)
                 enddo
             enddo
         enddo
@@ -185,48 +180,33 @@ contains
         ny = Tdomain%specel(nel)%nglly
         nz = Tdomain%specel(nel)%ngllz
         el => Tdomain%specel(nel)
-        if (el%solid) then
-            if (el%PML) then
-                do k=0,nz-1
-                    do j=0,ny-1
-                        do i=0,nx-1
-                            ind = el%slpml%ISolPML(i,j,k)
-                            field(i,j,k,:) = Tdomain%champs0%VelocPml(ind,:) + &
-                                             Tdomain%champs0%VelocPml(ind+1,:) + &
-                                             Tdomain%champs0%VelocPml(ind+2,:)
-                        enddo
-                    enddo
-                enddo
-            else
-                do k=0,nz-1
-                    do j=0,ny-1
-                        do i=0,nx-1
-                            ind = el%ISol(i,j,k)
+        if (el%domain==DM_FLUID) allocate(phi(0:nx-1,0:ny-1,0:nz-1))
+        do k=0,nz-1
+            do j=0,ny-1
+                do i=0,nx-1
+                    ind = el%Idom(i,j,k)
+                    select case (el%domain)
+                    case (DM_SOLID)
                             field(i,j,k,:) = Tdomain%champs0%Veloc(ind,:)
-                        enddo
-                    enddo
-                enddo
-            endif
-        else ! liquid
-            if (el%PML) then
-                field = 0d0
-            else
-                allocate(phi(0:nx-1,0:ny-1,0:nz-1))
-                do k=0,nz-1
-                    do j=0,ny-1
-                        do i=0,nx-1
-                            ind = el%IFlu(i,j,k)
+                    case (DM_FLUID)
                             phi(i,j,k) = Tdomain%champs0%Phi(ind)
-                        enddo
-                    enddo
+                    case (DM_SOLID_PML)
+                        field(i,j,k,:) = Tdomain%champs0%VelocPml(ind,:,0) + &
+                            Tdomain%champs0%VelocPml(ind,:,1) + &
+                            Tdomain%champs0%VelocPml(ind,:,2)
+                    case (DM_FLUID_PML)
+                        field(i,j,k,:) = 0d0
+                    end select
                 enddo
-                mat = el%mat_index
-                call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
-                            Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
-                            el%InvGrad,el%density,phi,field)
-                deallocate(phi)
-            endif
-        end if
+            enddo
+        enddo
+        if (el%domain==DM_FLUID) then
+            mat = el%mat_index
+            call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
+                Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
+                el%InvGrad,el%density,phi,field)
+            deallocate(phi)
+        endif
 
     end subroutine gather_elem_veloc
 
@@ -241,22 +221,23 @@ contains
         nz = Tdomain%specel(nel)%ngllz
         el => Tdomain%specel(nel)
 
-        if (el%solid) then
-            if (el%PML) then
-                field = 0d0
-            else
-                do k=0,nz-1
-                    do j=0,ny-1
-                        do i=0,nx-1
-                            ind = el%ISol(i,j,k)
-                            field(i,j,k,:) = Tdomain%champs0%Depla(ind,:)
-                        enddo
-                    enddo
+        do k=0,nz-1
+            do j=0,ny-1
+                do i=0,nx-1
+                    ind = el%Idom(i,j,k)
+                    select case (el%domain)
+                    case (DM_SOLID)
+                        field(i,j,k,:) = Tdomain%champs0%Depla(ind,:)
+                    case (DM_FLUID)
+                        field(i,j,k,:) = 0d0
+                    case (DM_SOLID_PML)
+                        field(i,j,k,:) = 0d0
+                    case (DM_FLUID_PML)
+                        field(i,j,k,:) = 0d0
+                    end select
                 enddo
-            endif
-        else ! liquid
-            field = 0d0
-        end if
+            enddo
+        enddo
 
     end subroutine gather_elem_displ
 
@@ -272,48 +253,35 @@ contains
         ny = Tdomain%specel(nel)%nglly
         nz = Tdomain%specel(nel)%ngllz
         el => Tdomain%specel(nel)
-        if (el%solid) then
-            if (el%PML) then
-                do k=0,nz-1
-                    do j=0,ny-1
-                        do i=0,nx-1
-                            ind = el%slpml%ISolPML(i,j,k)
-                            field(i,j,k,:) = Tdomain%champs1%ForcesPML(ind,:) + &
-                                             Tdomain%champs1%ForcesPML(ind+1,:) + &
-                                             Tdomain%champs1%ForcesPML(ind+2,:)
-                        enddo
-                    enddo
-                enddo
-            else
-                do k=0,nz-1
-                    do j=0,ny-1
-                        do i=0,nx-1
-                            ind = el%ISol(i,j,k)
+
+
+        if (el%domain==DM_FLUID) allocate(vphi(0:nx-1,0:ny-1,0:nz-1))
+        do k=0,nz-1
+            do j=0,ny-1
+                do i=0,nx-1
+                    ind = el%Idom(i,j,k)
+                    select case (el%domain)
+                    case (DM_SOLID)
                             field(i,j,k,:) = Tdomain%champs0%Forces(ind,:)
-                        enddo
-                    enddo
-                enddo
-            endif
-        else ! liquid
-            if (el%PML) then
-                field = 0d0
-            else
-                allocate(vphi(0:nx-1,0:ny-1,0:nz-1))
-                do k=0,nz-1
-                    do j=0,ny-1
-                        do i=0,nx-1
-                            ind = el%IFlu(i,j,k)
+                    case (DM_FLUID)
                             vphi(i,j,k) = Tdomain%champs0%VelPhi(ind)
-                        enddo
-                    enddo
+                    case (DM_SOLID_PML)
+                        field(i,j,k,:) = Tdomain%champs0%ForcesPml(ind,:,0) + &
+                            Tdomain%champs0%ForcesPml(ind,:,1) + &
+                            Tdomain%champs0%ForcesPml(ind,:,2)
+                    case (DM_FLUID_PML)
+                        field(i,j,k,:) = 0d0
+                    end select
                 enddo
-                mat = el%mat_index
-                call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
-                            Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
-                            el%InvGrad,el%density,vphi,field)
-                deallocate(vphi)
-            endif
-        end if
+            enddo
+        enddo
+        if (el%domain==DM_FLUID) then
+            mat = el%mat_index
+            call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
+                Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
+                el%InvGrad,el%density,vphi,field)
+            deallocate(vphi)
+        endif
     end subroutine gather_elem_accel
 
 
@@ -329,7 +297,8 @@ contains
         ny = Tdomain%specel(nel)%nglly
         nz = Tdomain%specel(nel)%ngllz
         el => Tdomain%specel(nel)
-        if (el%solid) then
+        select case (el%domain)
+        case (DM_SOLID)
             allocate(displ(0:nx-1,0:ny-1,0:nz-1,0:2))
             mat = el%mat_index
             call gather_elem_displ(Tdomain, nel, displ)
@@ -337,17 +306,20 @@ contains
                  Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
                  el%InvGrad, displ, el%Lambda, el%Mu,field)
             deallocate(displ)
-        else ! liquid
+        case (DM_FLUID)
             do k=0,nz-1
                 do j=0,ny-1
                     do i=0,nx-1
-                        ind = el%IFlu(i,j,k)
+                        ind = el%Idom(i,j,k)
                         field(i,j,k) = -Tdomain%champs0%VelPhi(ind)
                     enddo
                 enddo
             enddo
-        end if
-
+        case (DM_SOLID_PML)
+            field = 0d0
+        case (DM_FLUID_PML)
+            field = 0d0
+        end select
     end subroutine gather_elem_press
 
 end module mfields

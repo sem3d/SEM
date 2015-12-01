@@ -13,12 +13,12 @@
 using std::vector;
 
 
-void output_all_meshes_xmf(int nprocs)
+static void output_all_meshes_xmf_part(int nprocs, const char* sfx)
 {
     char fname[2048];
     FILE* f;
 
-    snprintf(fname, sizeof(fname), "mesh4spec.xmf");
+    snprintf(fname, sizeof(fname), "mesh4spec.%s.xmf", sfx);
     f = fopen(fname,"w");
     fprintf(f, "<?xml version=\"1.0\" ?>\n");
     fprintf(f, "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\">\n");
@@ -27,13 +27,23 @@ void output_all_meshes_xmf(int nprocs)
     fprintf(f, "    <Grid name=\"mesh\" CollectionType=\"Spatial\" GridType=\"Collection\">\n");
     for(int n=0;n<nprocs;++n)
     {
-	fprintf(f, "      <xi:include href=\"mesh4spec.%04d.xmf\" xpointer=\"xpointer(//Xdmf/Domain/Grid)\" />\n", n);
+	fprintf(f, "      <xi:include href=\"mesh4spec.%04d.%s.xmf\" xpointer=\"xpointer(//Xdmf/Domain/Grid)\" />\n", n, sfx);
     }
     fprintf(f, "    </Grid>\n");
     fprintf(f, "  </Domain>\n");
     fprintf(f, "</Xdmf>\n");
     fclose(f);
 }
+
+void output_all_meshes_xmf(int nprocs)
+{
+    output_all_meshes_xmf_part(nprocs, "elems");
+    output_all_meshes_xmf_part(nprocs, "faces");
+    output_all_meshes_xmf_part(nprocs, "edges");
+    output_all_meshes_xmf_part(nprocs, "comms.edges");
+    output_all_meshes_xmf_part(nprocs, "comms.faces");
+}
+
 
 /* Local Variables:                                                        */
 /* mode: c++                                                               */

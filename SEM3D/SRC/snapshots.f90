@@ -107,7 +107,7 @@ contains
         end if
 
         ! P_ENERGY
-        if (out_variables(0) == 1) then
+        if (out_variables(OUT_ENERGYP) == 1) then
             call MPI_Gatherv(outputs%P_energy, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
@@ -118,7 +118,7 @@ contains
             end if
         end if
         ! S_ENERGY
-        if (out_variables(1) == 1) then
+        if (out_variables(OUT_ENERGYS) == 1) then
             call MPI_Gatherv(outputs%S_energy, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
@@ -129,7 +129,7 @@ contains
             end if
         end if
         ! VOL_EPS
-        if (out_variables(2) == 1) then
+        if (out_variables(OUT_EPS_VOL) == 1) then
             call MPI_Gatherv(outputs%eps_vol, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
@@ -140,7 +140,7 @@ contains
             end if
         end if
         ! PRESSION
-        if (out_variables(3) == 1) then
+        if (out_variables(OUT_PRESSION) == 1) then
             call MPI_Gatherv(outputs%press, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
@@ -152,7 +152,7 @@ contains
         end if
 
         ! EPS_DEV
-        if (out_variables(7) == 1) then
+        if (out_variables(OUT_EPS_DEV) == 1) then
             ! EPS_DEV_XX
             call MPI_Gatherv(outputs%eps_dev_xx, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
@@ -210,7 +210,7 @@ contains
         end if
 
         !SIG_DEV
-        if (out_variables(8) == 1) then
+        if (out_variables(OUT_STRESS_DEV) == 1) then
             ! SIG_DEV_XX
             call MPI_Gatherv(outputs%sig_dev_xx, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
@@ -277,7 +277,7 @@ contains
         end if
 
         ! VELOCITY
-        if (out_variables(5) == 1) then
+        if (out_variables(OUT_VITESSE) == 1) then
             call MPI_Gatherv(outputs%veloc, 3*dim2, MPI_DOUBLE_PRECISION, all_data_2d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
@@ -289,7 +289,7 @@ contains
             end if
         end if
         ! DISPLACEMENT
-        if (out_variables(4) == 1) then
+        if (out_variables(OUT_DEPLA) == 1) then
             call MPI_Gatherv(outputs%displ, 3*dim2, MPI_DOUBLE_PRECISION, all_data_2d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
@@ -302,7 +302,7 @@ contains
         end if
 
         ! ACCELERATION
-        if (out_variables(6) == 1) then
+        if (out_variables(OUT_ACCEL) == 1) then
             call MPI_Gatherv(outputs%accel, 3*dim2, MPI_DOUBLE_PRECISION, all_data_2d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
             if (Tdomain%output_rank==0) then
@@ -462,7 +462,7 @@ contains
         integer :: n, i, j, k, ngllx, nglly, ngllz, ig, gn, ne
         !
         integer :: count
-        integer :: ierr, domain_type
+        integer :: ierr, domain_type, imat
         integer, dimension(:), allocatable, intent(out) :: domains
 
         allocate(irenum(0:Tdomain%n_glob_points-1))
@@ -498,7 +498,8 @@ contains
             ngllx = Tdomain%specel(n)%ngllx
             nglly = Tdomain%specel(n)%nglly
             ngllz = Tdomain%specel(n)%ngllz
-            domain_type = get_domain(Tdomain%specel(n))
+            imat = Tdomain%specel(n)%mat_index
+            domain_type = get_domain(Tdomain%sSubDomain(imat))
 
             do k = 0,ngllz - 1
                 do j = 0,nglly - 1
@@ -779,10 +780,8 @@ contains
     end subroutine deallocate_fields
 
     subroutine save_field_h5(Tdomain, isort)
-
         use sdomain
         use forces_aniso
-        use assembly
 
         implicit none
 
@@ -874,12 +873,12 @@ contains
                 allocate(DZZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
             endif
             
-            domain_type = get_domain(el)
+            domain_type = get_domain(sub_dom_mat)
             select case(domain_type)
             case (DM_SOLID)
-                call gather_field(el, field_displ, Tdomain%champs0%Depla, el%Isol)
-                call gather_field(el, field_veloc, Tdomain%champs0%Veloc, el%Isol)
-                call gather_field(el, field_accel, Tdomain%champs0%Forces, el%Isol)
+                call gather_field(el, field_displ, Tdomain%champs0%Depla)
+                call gather_field(el, field_veloc, Tdomain%champs0%Veloc)
+                call gather_field(el, field_accel, Tdomain%champs0%Forces)
                 call pressure_solid(ngllx,nglly,ngllz,sub_dom_mat%htprimex,              &
                     sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
                     el%InvGrad,field_displ, el%Lambda, el%Mu, field_press)
@@ -891,7 +890,7 @@ contains
                 endif
             case (DM_SOLID_PML)
                 field_displ = 0
-                call gather_field_pml(el, field_veloc, Tdomain%champs0%VelocPML, el%slpml%IsolPML)
+                call gather_field_pml(el, field_veloc, Tdomain%champs0%VelocPML)
                 if (flag_gradU/=0) then
                     dxx = 0
                     dxy = 0
@@ -907,11 +906,11 @@ contains
                 field_press = 0
             case (DM_FLUID)
                 field_displ = 0
-                call gather_field_fluid(el, field_phi, Tdomain%champs0%Phi, el%IFlu)
+                call gather_field_fluid(el, field_phi, Tdomain%champs0%Phi)
                 call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex,              &
                             sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
                             el%InvGrad,el%density,field_phi,field_veloc)
-                call gather_field_fluid(el, field_vphi, Tdomain%champs0%VelPhi, el%IFlu)
+                call gather_field_fluid(el, field_vphi, Tdomain%champs0%VelPhi)
                 call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex,              &
                             sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
                             el%InvGrad,el%density,field_vphi,field_accel)
@@ -929,11 +928,11 @@ contains
                 field_press = -field_vphi
             case (DM_FLUID_PML)
                 field_displ = 0
-                call gather_field_fpml(el, field_phi, Tdomain%champs0%fpml_Phi, el%flpml%IFluPML)
+                call gather_field_fpml(el, field_phi, Tdomain%champs0%fpml_Phi)
                 call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex,              &
                             sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
                             el%InvGrad,el%density,field_phi,field_veloc)
-                call gather_field_fpml(el, field_vphi, Tdomain%champs0%fpml_Velphi, el%flpml%IFluPML)
+                call gather_field_fpml(el, field_vphi, Tdomain%champs0%fpml_Velphi)
                 call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex,              &
                             sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
                             el%InvGrad,el%density,field_vphi,field_accel)
@@ -969,7 +968,7 @@ contains
                                     xmu     = Tdomain%specel(n)%Mu(i,j,k)
                                     xlambda = Tdomain%specel(n)%Lambda(i,j,k)
                                     xkappa  = Tdomain%specel(n)%Kappa(i,j,k)
-                                    if (n_solid>0) then
+                                    if (n_solid>0.and.domain_type==DM_SOLID) then
                                        onemSbeta=Tdomain%specel(n)%sl%onemSbeta(i,j,k)
                                        onemPbeta=Tdomain%specel(n)%sl%onemPbeta(i,j,k)
                                        !  mu_relaxed -> mu_unrelaxed
@@ -981,11 +980,11 @@ contains
                                     xlambda2mu = xlambda + x2mu
                                 end if
 
-                                if (out_variables(0) == 1) then ! P_energy
+                                if (out_variables(OUT_ENERGYP) == 1) then ! P_energy
                                     out_fields%P_energy(idx) = .5 * xlambda2mu * eps_trace**2
                                 end if
 
-                                if (out_variables(1) == 1) then ! S_energy
+                                if (out_variables(OUT_ENERGYS) == 1) then ! S_energy
                                     out_fields%S_energy(idx) =  xmu/2 * ( DXY(i,j,k)**2 + DYX(i,j,k)**2 &
                                         + DXZ(i,j,k)**2 + DZX(i,j,k)**2 &
                                         + DYZ(i,j,k)**2 + DZY(i,j,k)**2 &
@@ -994,11 +993,11 @@ contains
                                         - 2 * DYZ(i,j,k) * DZY(i,j,k))
                                 end if
 
-                                if (out_variables(2) == 1) then ! volumetric strain
+                                if (out_variables(OUT_EPS_VOL) == 1) then ! volumetric strain
                                     out_fields%eps_vol(idx)    = eps_trace
                                 end if
 
-                                if (out_variables(7) == 1) then ! deviatoric strain
+                                if (out_variables(OUT_EPS_DEV) == 1) then ! deviatoric strain
                                     out_fields%eps_dev_xx(idx) = DXX(i,j,k) - eps_trace * M_1_3
                                     out_fields%eps_dev_yy(idx) = DYY(i,j,k) - eps_trace * M_1_3
                                     out_fields%eps_dev_zz(idx) = DZZ(i,j,k) - eps_trace * M_1_3
@@ -1007,7 +1006,7 @@ contains
                                     out_fields%eps_dev_yz(idx) = 0.5 * (DZY(i,j,k) + DYZ(i,j,k))
                                 end if
 
-                                if (out_variables(8) == 1) then ! deviatoric stress state
+                                if (out_variables(OUT_STRESS_DEV) == 1) then ! deviatoric stress state
                                     if (Tdomain%aniso) then
                                     else
                                         out_fields%sig_dev_xx(idx) = x2mu * (DXX(i,j,k) - eps_trace * M_1_3)
@@ -1333,7 +1332,7 @@ contains
         real, dimension(:),allocatable :: mass, jac
         integer :: ngllx, nglly, ngllz, idx
         integer :: i, j, k, n, nnodes_tot
-        integer :: domain_type
+        integer :: domain_type, imat
 
 
         allocate(mass(0:nnodes-1))
@@ -1344,7 +1343,8 @@ contains
             ngllx = Tdomain%specel(n)%ngllx
             nglly = Tdomain%specel(n)%nglly
             ngllz = Tdomain%specel(n)%ngllz
-            domain_type = get_domain(Tdomain%specel(n))
+            imat = Tdomain%specel(n)%mat_index
+            domain_type = get_domain(Tdomain%sSubDomain(imat))
             select case(domain_type)
             case (DM_SOLID)
                 do k = 0,ngllz-1
@@ -1352,7 +1352,7 @@ contains
                         do i = 0,ngllx-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%MassMatSol(Tdomain%specel(n)%Isol(i,j,k))
+                                mass(idx) = Tdomain%MassMatSol(Tdomain%specel(n)%Idom(i,j,k))
                             endif
                         end do
                     end do
@@ -1363,7 +1363,7 @@ contains
                         do i = 0,ngllx-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%MassMatSolPML(Tdomain%specel(n)%slpml%IsolPML(i,j,k))
+                                mass(idx) = Tdomain%MassMatSolPML(Tdomain%specel(n)%Idom(i,j,k))
                             endif
                         end do
                     end do
@@ -1374,7 +1374,7 @@ contains
                         do i = 0,ngllx-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%MassMatFlu(Tdomain%specel(n)%IFlu(i,j,k))
+                                mass(idx) = Tdomain%MassMatFlu(Tdomain%specel(n)%Idom(i,j,k))
                             endif
                         end do
                     end do
@@ -1385,7 +1385,7 @@ contains
                         do i = 0,ngllx-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%MassMatFluPML(Tdomain%specel(n)%flpml%IFluPML(i,j,k))
+                                mass(idx) = Tdomain%MassMatFluPML(Tdomain%specel(n)%Idom(i,j,k))
                             endif
                         end do
                     end do

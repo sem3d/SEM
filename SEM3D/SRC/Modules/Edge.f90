@@ -9,25 +9,13 @@
 !<
 
 module sedges
-
+    implicit none
     type :: edge
-
-       logical :: PML, Abs, FPML
-
-       integer :: ngll,mat_index
-       integer, dimension (:), allocatable :: Iglobnum_Edge
-
-       ! Lien entre ngll et numérotation des champs globaux
-       integer, dimension (:), allocatable :: Renum
-
-       ! solid-fluid
-       logical  :: solid, fluid_dirich
-
-
-       !! Couplage Externe
-!       real, dimension (:,:), allocatable :: ForcesExt
-!       real, dimension (:), allocatable :: tsurfsem
-
+        integer :: ngll
+        integer :: domain
+        integer, dimension (:), allocatable :: Iglobnum_Edge
+        integer, dimension (:), allocatable :: Idom
+        integer, dimension(0:1) :: inodes
     end type edge
 
 contains
@@ -35,12 +23,9 @@ contains
     ! ###########################################################
     subroutine init_edge(ed)
         type(Edge), intent(inout) :: ed
-
-        ed%PML = .false.
-        ed%Abs = .false.
-        ed%FPML = .false.
+        !
         ed%ngll = 0
-        ed%solid = .true.
+        ed%domain = -1
     end subroutine init_edge
 
 end module sedges

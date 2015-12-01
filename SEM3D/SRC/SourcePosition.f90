@@ -60,8 +60,8 @@ subroutine SourcePosition (Tdomain)
         end do
         ! On ignore une source fluide dans le domaine solide
         if (n_el/=-1) then
-            if(Tdomain%sSource(n_src)%i_type_source == 3 .and.       Tdomain%specel(elems(i))%solid) n_el = -1
-            if(Tdomain%sSource(n_src)%i_type_source /= 3 .and. .not. Tdomain%specel(elems(i))%solid) n_el = -1
+            if(Tdomain%sSource(n_src)%i_type_source == 3 .and. Tdomain%specel(elems(i))%domain/=DM_FLUID) n_el = -1
+            if(Tdomain%sSource(n_src)%i_type_source /= 3 .and. Tdomain%specel(elems(i))%domain/=DM_SOLID) n_el = -1
         endif
 
         Tdomain%Ssource(n_src)%elem = n_el

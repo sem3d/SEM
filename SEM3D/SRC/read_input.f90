@@ -17,6 +17,7 @@
 !! \param type (domain), intent (INOUT) Tdomain
 !<
 
+
 module semconfig
     use semdatafiles
     use mesh3d
@@ -170,156 +171,76 @@ contains
         implicit none
 
         type(domain), intent(inout) :: Tdomain
-        integer :: i, j, k, n, nf, nnf, mat, ne, nv, nne, nnv
-        integer :: n_aus
+        integer :: i, j, k
 
-
-        ! faces and edges => which element?
-        !do i = 0,Tdomain%n_face-1
-        !    do j = 0, Tdomain%n_elem-1
-        !        do k = 0,5
-        !            if(Tdomain%specel(j)%Near_Faces(k) == i)then
-        !                Tdomain%sFace(i)%Which_Elem = j
-        !            endif
-        !        enddo
-        !    enddo
-        !enddo
+        ! XXX kill?
         do j = 0, Tdomain%n_elem-1
             do k = 0,5
                 i = Tdomain%specel(j)%Near_Faces(k)
-                Tdomain%sFace(i)%Which_Elem = j
+                if (Tdomain%sFace(i)%Which_Elem(0) == -1) then
+                    Tdomain%sFace(i)%Which_Elem(0) = j
+                else
+                    Tdomain%sFace(i)%Which_Elem(1) = j
+                endif
             enddo
         enddo
 
-        !do i = 0,Tdomain%n_edge-1
-        !    allocate(Tdomain%sEdge(i)%Which_Elem(0:11))
-        !    allocate(Tdomain%sEdge(i)%Which_EdgeinElem(0:11))
-        !    Tdomain%sEdge(i)%Which_Elem = -1
-        !    Tdomain%sEdge(i)%Which_EdgeinElem = -1
-        !    icount = 0
-        !    do j = 0, Tdomain%n_elem - 1
-        !        do k=0,11
-        !            if ( Tdomain%specel(j)%Near_Edges(k) == i )  then
-        !                Tdomain%sEdge(i)%Which_Elem(icount) = j
-        !                Tdomain%sEdge(i)%Which_EdgeinElem(icount) = k
-        !                icount = icount+1
-        !            endif
-        !        enddo
-        !    enddo
-        !enddo
 
-        ! material => time steps ; solid/liquid attributions
-        do n = 0,Tdomain%n_elem-1
-            mat = Tdomain%specel(n)%mat_index
-            do nf = 0,5
-                nnf = Tdomain%specel(n)%Near_Faces(nf)
-                Tdomain%sFace(nnf)%mat_index = mat
-                Tdomain%sFace(nnf)%solid = Tdomain%specel(n)%solid
-                Tdomain%sFace(nnf)%fluid_dirich = .false.
-              ! if(Tdomain%specel(n)%fluid_dirich .and. (nf == 5))then
-              !     Tdomain%sFace(nnf)%fluid_dirich = .true.
-              !  end if
-            end do
-            do ne = 0,11
-                nne = Tdomain%specel(n)%Near_edges(ne)
-                Tdomain%sEdge(nne)%mat_index = mat
-                Tdomain%sEdge(nne)%solid = Tdomain%specel(n)%solid
-                Tdomain%sEdge(nne)%fluid_dirich = .false.
-               ! if(Tdomain%specel(n)%fluid_dirich .and.   &
-               !    ((ne == 5).or.(ne == 8).or.(ne == 9).or.(ne == 11)))then
-               !    Tdomain%sEdge(nne)%fluid_dirich = .true.
-               ! end if
-            end do
-            do nv = 0,7
-                nnv = Tdomain%specel(n)%Near_Vertices(nv)
-                Tdomain%sVertex(nnv)%mat_index = mat
-                Tdomain%sVertex(nnv)%solid = Tdomain%specel(n)%solid
-                Tdomain%sVertex(nnv)%fluid_dirich = .false.
-               ! if(Tdomain%specel(n)%fluid_dirich .and.   &
-               !    ((nv == 4).or.(nv == 5).or.(nv == 6).or.(nv == 7)))then
-               !   Tdomain%sVertex(nnv)%fluid_dirich = .true.
-               ! end if
-            end do
 
-            !        !Faces
-            !        do nf = 0, 5
-            !            nnf = Tdomain%specel(n)%Near_Faces(nf)
-            !            if(nnf == 2 .or. nnf == 3 .or. nnf == 5) then
-            !                Tdomain%sFace(nnf)%mat_list(0) = mat
-            !            else(nnf == 0 .or. nnf == 1 .or. nnf == 4) then
-            !                Tdomain%sFace(nnf)%mat_list(1) = mat
-            !            end if
-            !        end do
-            !        !Edges
-            !        do ne = 0, 11
-            !            nne = Tdomain%specel(n)%Near_edges(ne)
-            !            if(nne == 0 .or. nne == 3 .or. nne == 6) then
-            !                Tdomain%sEdge(nne)%mat_list(0) = mat
-            !            else if (nne == 1 .or. nne == 2 .or. nne == 4) then
-            !                Tdomain%sEdge(nne)%mat_list(1) = mat
-            !            else if (nne == 7 .or. nne == 8 .or. nne == 9) then
-            !                Tdomain%sEdge(nne)%mat_list(2) = mat
-            !            else if (nne == 5 .or. nne == 10 .or. nne == 11) then
-            !                Tdomain%sEdge(nne)%mat_list(3) = mat
-            !            end if
-            !        end do
-            !        !Vertex
-            !        do nv = 0, 7
-            !            nnv = Tdomain%specel(n)%Near_Vertices(nv)
-            !            Tdomain%sVertex(nnv)%mat_list(nnv) = mat
-            !        end do
-
-        end do
-
-        !- Neumann local properties
-        if(Tdomain%logicD%neumann_local_present)then
-            do nf = 0, Tdomain%Neumann%Neu_n_faces-1
-                n_aus = Tdomain%Neumann%Neu_Face(nf)%Face
-                Tdomain%Neumann%Neu_Face(nf)%ngll1 = Tdomain%sFace(n_aus)%ngll1
-                Tdomain%Neumann%Neu_Face(nf)%ngll2 = Tdomain%sFace(n_aus)%ngll2
-                Tdomain%Neumann%Neu_Face(nf)%dir = Tdomain%sFace(n_aus)%dir
-            enddo
-            do ne = 0, Tdomain%Neumann%Neu_n_edges-1
-                n_aus = Tdomain%Neumann%Neu_Edge(ne)%Edge
-                Tdomain%Neumann%Neu_Edge(ne)%ngll = Tdomain%sEdge(n_aus)%ngll
-            enddo
-        endif
-
-        !- Solid/fluid interfaces local properties
-        if(Tdomain%logicD%SF_local_present)then
-            do nf = 0, Tdomain%SF%SF_n_faces-1
-                n_aus = Tdomain%SF%SF_Face(nf)%Face(0)
-                if(n_aus < 0) n_aus = Tdomain%SF%SF_Face(nf)%Face(1)
-                Tdomain%SF%SF_Face(nf)%ngll1 = Tdomain%sFace(n_aus)%ngll1
-                Tdomain%SF%SF_Face(nf)%ngll2 = Tdomain%sFace(n_aus)%ngll2
-                Tdomain%SF%SF_Face(nf)%dir = Tdomain%sFace(n_aus)%dir
-            enddo
-            do ne = 0, Tdomain%SF%SF_n_edges-1
-                n_aus = Tdomain%SF%SF_Edge(ne)%Edge(0)
-                if(n_aus < 0) n_aus = Tdomain%SF%SF_Edge(ne)%Edge(1)
-                Tdomain%SF%SF_Edge(ne)%ngll = Tdomain%sEdge(n_aus)%ngll
-            enddo
-        endif
+!        !- Neumann local properties
+!        if(Tdomain%logicD%neumann_local_present)then
+!            do nf = 0, Tdomain%Neumann%Neu_n_faces-1
+!                n_aus = Tdomain%Neumann%Neu_Face(nf)%Face
+!                Tdomain%Neumann%Neu_Face(nf)%ngll1 = Tdomain%sFace(n_aus)%ngll1
+!                Tdomain%Neumann%Neu_Face(nf)%ngll2 = Tdomain%sFace(n_aus)%ngll2
+!            enddo
+!            do ne = 0, Tdomain%Neumann%Neu_n_edges-1
+!                n_aus = Tdomain%Neumann%Neu_Edge(ne)%Edge
+!                Tdomain%Neumann%Neu_Edge(ne)%ngll = Tdomain%sEdge(n_aus)%ngll
+!            enddo
+!        endif
+!
+!        !- Solid/fluid interfaces local properties
+!        if(Tdomain%logicD%SF_local_present)then
+!            do nf = 0, Tdomain%SF%SF_n_faces-1
+!                n_aus = Tdomain%SF%SF_Face(nf)%Face(0)
+!                if(n_aus < 0) n_aus = Tdomain%SF%SF_Face(nf)%Face(1)
+!                Tdomain%SF%SF_Face(nf)%ngll1 = Tdomain%sFace(n_aus)%ngll1
+!                Tdomain%SF%SF_Face(nf)%ngll2 = Tdomain%sFace(n_aus)%ngll2
+!            enddo
+!            do ne = 0, Tdomain%SF%SF_n_edges-1
+!                n_aus = Tdomain%SF%SF_Edge(ne)%Edge(0)
+!                if(n_aus < 0) n_aus = Tdomain%SF%SF_Edge(ne)%Edge(1)
+!                Tdomain%SF%SF_Edge(ne)%ngll = Tdomain%sEdge(n_aus)%ngll
+!            enddo
+!        endif
 
     end subroutine finalize_mesh_connectivity
 
     subroutine read_material_file(Tdomain)
         use sdomain
+        implicit none
+        type(domain), intent(inout) :: Tdomain
+
+        call read_material_file_v1(Tdomain)
+    end subroutine read_material_file
+
+    subroutine read_material_file_v1(Tdomain)
+        use sdomain
         use semdatafiles
+        use orientation
         use mpi
+        use build_prop_files
         implicit none
 
         type(domain), intent(inout) :: Tdomain
         character(Len=MAX_FILE_SIZE) :: fnamef
-        integer :: i, j, n_aus, npml, mat, ne, nf, nRandom
-        logical, dimension(:), allocatable :: L_Face, L_Edge
-        real :: dtmin
+        integer :: i, n_aus, npml, mat, nRandom
         integer :: rg
 
         rg = Tdomain%rank
         npml = 0
         nRandom = 0
-        !allocate(Tdomain%sSubdomain(0:Tdomain%n_mat-1)) !Changed to mesh3d.f90 line 337
 
         call semname_read_inputmesh_parametrage(Tdomain%material_file,fnamef)
         open (13, file=fnamef, status="old", form="formatted")
@@ -337,8 +258,6 @@ contains
         endif
 
         allocate(Tdomain%not_PML_List(0:Tdomain%n_mat-1))
-        Tdomain%any_PML      = .false.
-        Tdomain%any_FPML     = .false.
         Tdomain%any_Random   = .false.
         Tdomain%not_PML_List = .true.
 
@@ -362,7 +281,8 @@ contains
                 write (*,*) 'Pspeed   :', Tdomain%sSubDomain(i)%Pspeed
                 write (*,*) 'Sspeed   :', Tdomain%sSubDomain(i)%Sspeed
                 write (*,*) 'Density  :', Tdomain%sSubDomain(i)%dDensity
-                write (*,*) 'NGLL     :', Tdomain%sSubDomain(i)%NGLLx, Tdomain%sSubDomain(i)%NGLLy, Tdomain%sSubDomain(i)%NGLLz
+                write (*,*) 'NGLL     :', Tdomain%sSubDomain(i)%NGLLx, &
+                    Tdomain%sSubDomain(i)%NGLLy, Tdomain%sSubDomain(i)%NGLLz
                 write (*,*) 'Dt       :', Tdomain%sSubDomain(i)%Dt
                 write (*,*) 'Qp       :', Tdomain%sSubDomain(i)%Qpression
                 write (*,*) 'Qmu      :', Tdomain%sSubDomain(i)%Qmu
@@ -371,8 +291,7 @@ contains
             Tdomain%sSubdomain(i)%assocMat = i
 
             call Lame_coefficients (Tdomain%sSubDomain(i))
-            !        if(rg==0) &
-            !            print*,' lame ',Tdomain%sSubDomain(i)%DMu,Tdomain%sSubDomain(i)%DLambda ,Tdomain%sSubDomain(i)%DKappa
+
             if (Tdomain%sSubDomain(i)%material_type == "P" .or. Tdomain%sSubDomain(i)%material_type == "L")  then
                 npml = npml + 1
                 Tdomain%not_PML_List(i) = .false.
@@ -387,7 +306,6 @@ contains
 
         if(npml > 0) then
             if(rg==0) write (*,*) "!!WARNING change on 'material.input', put associated material after PML existing definition', "
-            Tdomain%any_PML = .true.
             read(13,*); read(13,*)
             do i = 0,Tdomain%n_mat-1
                 if(.not. Tdomain%not_PML_List(i)) then
@@ -402,32 +320,19 @@ contains
                         Tdomain%sSubdomain(i)%Down,      &
                         Tdomain%sSubdomain(i)%freq,      &
                         Tdomain%sSubdomain(i)%assocMat
-                    if(Tdomain%sSubdomain(i)%Filtering) Tdomain%any_FPML = .true.
                 endif
             enddo
         endif
 
+        Tdomain%any_PropOnFile = .false.
+        do i = 0,Tdomain%n_mat-1
+            if(propOnFile(Tdomain, i)) then
+                Tdomain%any_PropOnFile = .true.
+                exit
+            end if
+        enddo
+
         if(nRandom > 0) then
-            !Building element list in each subdomain
-      !      do i=0,Tdomain%n_mat-1
-      !          allocate (Tdomain%sSubdomain(i)%elemList(0:Tdomain%sSubdomain(i)%nElem-1))
-      !          Tdomain%sSubdomain(i)%elemList(:) = -1 !-1 to detect errors
-      !          Tdomain%sSubdomain(i)%nElem       = 0 !Using to count the elements in the next loop
-      !      enddo
-      !      do i=0,Tdomain%n_elem-1
-      !          mat = Tdomain%specel(i)%mat_index
-      !          Tdomain%sSubdomain(mat)%elemList(Tdomain%sSubdomain(mat)%nElem) = i
-      !          Tdomain%sSubdomain(mat)%nElem = Tdomain%sSubdomain(mat)%nElem + 1
-      !      enddo
-
-      !      !Defining existing subdomain list in each domain
-      !      allocate (Tdomain%subD_exist(0:Tdomain%n_mat-1))
-      !      allocate (Tdomain%subDComm(0:Tdomain%n_mat - 1))
-      !      Tdomain%subD_exist(:) = .true.
-      !      do mat=0,Tdomain%n_mat-1
-      !          if(Tdomain%sSubdomain(mat)%nElem == 0) Tdomain%subD_exist(mat) = .false.
-      !      enddo
-
             Tdomain%any_Random = .true.
             read(13,*); read(13,*)
             do i = 0,Tdomain%n_mat-1
@@ -456,71 +361,26 @@ contains
         close(13)
 
         !- GLL properties in elements, on faces, edges.
-        allocate(L_Face(0:Tdomain%n_face-1))
-        L_Face = .true.
-        allocate(L_Edge(0:Tdomain%n_edge-1))
-        L_Edge = .true.
         do i = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(i)%mat_index
             Tdomain%specel(i)%ngllx = Tdomain%sSubDomain(mat)%NGLLx
             Tdomain%specel(i)%nglly = Tdomain%sSubDomain(mat)%NGLLy
             Tdomain%specel(i)%ngllz = Tdomain%sSubDomain(mat)%NGLLz
-            do j = 0,5
-                nf = Tdomain%specel(i)%Near_Faces(j)
-                if(L_Face(nf) .and. Tdomain%specel(i)%Orient_Faces(j) == 0)then
-                    L_Face(nf) = .false. !L_Face est pour eviter que l'on modifie plusieurs fois la meme face
-                    if(j == 0 .or. j == 5)then
-                        Tdomain%sFace(nf)%ngll1 = Tdomain%specel(i)%ngllx
-                        Tdomain%sFace(nf)%ngll2 = Tdomain%specel(i)%nglly
-                    else if(j == 1 .or. j == 3)then
-                        Tdomain%sFace(nf)%ngll1 = Tdomain%specel(i)%ngllx
-                        Tdomain%sFace(nf)%ngll2 = Tdomain%specel(i)%ngllz
-                    else
-                        Tdomain%sFace(nf)%ngll1 = Tdomain%specel(i)%nglly
-                        Tdomain%sFace(nf)%ngll2 = Tdomain%specel(i)%ngllz
-                    endif
-                    Tdomain%sFace(nf)%dir = j
-                endif
-            enddo
-            do j = 0,11
-                ne = Tdomain%specel(i)%Near_Edges(j)
-                if(L_Edge(ne) .and. Tdomain%specel(i)%Orient_Edges(j) == 0)then
-                    L_Edge(ne) = .false.
-                    if (j == 0 .or. j == 2 .or. j == 5 .or. j == 9)then
-                        Tdomain%sEdge(ne)%ngll = Tdomain%specel(i)%ngllx
-                    else if (j == 1 .or. j == 3 .or. j == 8 .or. j == 11)then
-                        Tdomain%sEdge(ne)%ngll = Tdomain%specel(i)%nglly
-                    else
-                        Tdomain%sEdge(ne)%ngll = Tdomain%specel(i)%ngllz
-                    endif
-                endif
-            enddo
-        enddo
-        deallocate(L_Face,L_Edge)
+            Tdomain%specel(i)%domain = get_domain(Tdomain%sSubDomain(mat))
+        end do
 
-        ! MODIF to be done here.: Gaetano's formulae are wrong for filtering PMLs
-        do i = 0, Tdomain%n_mat-1
-            if((Tdomain%sSubdomain(i)%material_type == "P" .or.   &
-                Tdomain%sSubdomain(i)%material_type == "L") .and. &
-                Tdomain%sSubdomain(i)%Filtering)                  &
-                Tdomain%sSubdomain(i)%freq = exp(-Tdomain%sSubdomain(i)%freq*Tdomain%sSubdomain(i)%dt/2)
-        enddo
-
-        dtmin = 1e20
-        do i = 0,Tdomain%n_mat-1
-            if(Tdomain%sSubDomain(i)%Dt < dtmin) dtmin = Tdomain%sSubDomain(i)%Dt
-        enddo
-        Tdomain%TimeD%dtmin = dtmin
-        if(dtmin > 0)then
-            Tdomain%TimeD%ntimeMax = int(Tdomain%TimeD%Duration/dtmin)
-        else
-            stop "Your dt min is zero : verify it"
-        endif
-        if(rg==0) &
-            print *,'ntimemax',Tdomain%TimeD%ntimeMax,Tdomain%TimeD%Duration,dtmin
-
-
-    end subroutine read_material_file
+        call apply_mat_to_faces(Tdomain)
+        call apply_mat_to_edges(Tdomain)
+        call apply_mat_to_vertices(Tdomain)
+        call apply_interface(Tdomain, Tdomain%intSolPml, DM_SOLID, DM_SOLID_PML, .false.)
+        call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID, DM_FLUID_PML, .false.)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID, DM_FLUID, .false.)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_PML, DM_FLUID_PML, .false.)
+        call apply_interface(Tdomain, Tdomain%intSolPml, DM_SOLID, DM_SOLID_PML, .true.)
+        call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID, DM_FLUID_PML, .true.)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID, DM_FLUID, .true.)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_PML, DM_FLUID_PML, .true.)
+    end subroutine read_material_file_v1
 
 
     subroutine create_sem_sources(Tdomain, config)
@@ -690,8 +550,12 @@ contains
         Tdomain%TimeD%beta = 0.5
         Tdomain%TimeD%gamma = 1.
         ! OUTPUT FIELDS
-        Tdomain%out_variables(0:8) = Tdomain%config%out_variables
-        Tdomain%nReqOut = sum(Tdomain%out_variables(0:3)) + 3*sum(Tdomain%out_variables(4:6)) + 6*sum(Tdomain%out_variables(7:8))
+        Tdomain%out_variables(0:8)=Tdomain%config%out_variables
+        Tdomain%nReqOut = 1*(Tdomain%out_variables(OUT_ENERGYP)+Tdomain%out_variables(OUT_ENERGYS)+ &
+                             Tdomain%out_variables(OUT_EPS_VOL)+Tdomain%out_variables(OUT_PRESSION))+ &
+                          3*(Tdomain%out_variables(OUT_DEPLA)+Tdomain%out_variables(OUT_VITESSE)+&
+                             Tdomain%out_variables(OUT_ACCEL))+&
+                          6*(Tdomain%out_variables(OUT_EPS_DEV)+Tdomain%out_variables(OUT_STRESS_DEV))
 
         Tdomain%TimeD%courant             = Tdomain%config%courant
         Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)

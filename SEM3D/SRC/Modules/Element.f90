@@ -17,16 +17,16 @@ module selement
     implicit none
 
     type :: element_solid
-       real, dimension(:,:,:,:), allocatable :: Cij
+        real, dimension(:,:,:,:), allocatable :: Cij
 
         ! Attenuation
-       real, dimension (:,:,:), allocatable :: Q, Qs, Qp, onemSbeta, onemPbeta, &
-           epsilonvol_, &
-           epsilondev_xx_,epsilondev_yy_,epsilondev_xy_,epsilondev_xz_,epsilondev_yz_
+        real, dimension (:,:,:), allocatable :: Q, Qs, Qp, onemSbeta, onemPbeta, &
+            epsilonvol_, &
+            epsilondev_xx_,epsilondev_yy_,epsilondev_xy_,epsilondev_xz_,epsilondev_yz_
 
-       real, dimension(:,:,:,:), allocatable :: &
-           factor_common_3, alphaval_3,betaval_3,gammaval_3, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_, &
-           factor_common_P, alphaval_P,betaval_P,gammaval_P, R_vol_
+        real, dimension(:,:,:,:), allocatable :: &
+            factor_common_3, alphaval_3,betaval_3,gammaval_3, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_, &
+            factor_common_P, alphaval_P,betaval_P,gammaval_P, R_vol_
 
     end type element_solid
 
@@ -39,95 +39,57 @@ module selement
     end type element_pml
 
     type :: element_solid_pml
-       integer, dimension (:,:,:), allocatable :: ISolPml
-       ! TODO move pml related data here
-       real, dimension(:,:,:,:), allocatable :: Diagonal_Stress1, Diagonal_Stress2, Diagonal_Stress3
-       real, dimension(:,:,:,:), allocatable :: Residual_Stress1, Residual_Stress2, Residual_Stress3
-       ! FPML
-       real, dimension(:,:,:,:), allocatable :: Diagonal_Stress, Residual_Stress
+        ! TODO move pml related data here
+        real, dimension(:,:,:,:), allocatable :: Diagonal_Stress1, Diagonal_Stress2, Diagonal_Stress3
+        real, dimension(:,:,:,:), allocatable :: Residual_Stress1, Residual_Stress2, Residual_Stress3
+        ! FPML
+        real, dimension(:,:,:,:), allocatable :: Diagonal_Stress, Residual_Stress
     end type element_solid_pml
 
     type :: element_fluid_pml
-        integer, dimension (:,:,:), allocatable :: IFluPml
         real, dimension(:,:,:,:), allocatable :: Veloc
-        real, dimension(:,:,:,:), allocatable :: Veloc1,Veloc2,Veloc3
     end type element_fluid_pml
 
     type :: element
-       integer :: mat_index, ngllx, nglly, ngllz
-       type(element_solid), allocatable :: sl
-       type(element_fluid), allocatable :: fl
-       integer, dimension (:,:,:), allocatable :: ISol, IFlu
-       real, dimension (:,:,:), allocatable :: Jacob
-       real, dimension(:,:,:,:,:), allocatable :: InvGrad
-       real, dimension (:,:,:), allocatable :: Density, MassMat
-       real, dimension (:,:,:), allocatable :: Lambda, Mu, Kappa
+        integer :: ngllx, nglly, ngllz
+        integer :: mat_index
+        integer :: domain
+        type(element_solid), allocatable :: sl
+        type(element_fluid), allocatable :: fl
+        ! Index of a gll node within the physical domain
+        integer, dimension (:,:,:), allocatable :: Idom
+        real, dimension (:,:,:), allocatable :: Jacob
+        real, dimension(:,:,:,:,:), allocatable :: InvGrad
+        real, dimension (:,:,:), allocatable :: Density, MassMat
+        real, dimension (:,:,:), allocatable :: Lambda, Mu, Kappa
 
-       type(element_pml), allocatable :: xpml
-       type(element_solid_pml), allocatable :: slpml
-       type(element_fluid_pml), allocatable :: flpml
+        type(element_pml), allocatable :: xpml
+        type(element_solid_pml), allocatable :: slpml
+        type(element_fluid_pml), allocatable :: flpml
 
-       ! Whether this element will be part of snapshot outputs
-       logical :: OUTPUT
+        ! Whether this element will be part of snapshot outputs
+        logical :: OUTPUT
 
-       ! These should not be used during the simulation, only at init time
-       integer, dimension (:), allocatable :: Control_nodes
-       integer, dimension (0:5) :: Near_Faces, Orient_Faces
-       integer, dimension (0:11) :: Near_Edges, Orient_Edges
-       integer, dimension (0:7) :: Near_Vertices
+        ! These should not be used during the simulation, only at init time
+        integer, dimension (:), allocatable :: Control_nodes
+        integer, dimension (0:5) :: Near_Faces
+        integer, dimension (0:11) :: Near_Edges
+        integer, dimension (0:7) :: Near_Vertices
 
-       integer, dimension (:,:,:), allocatable :: Iglobnum
-       ! flag for PML allocation
-       logical :: PML, FPML
-       logical  :: solid, fluid_dirich
-
-       real :: dist_max !! taille caracteristique de l'element
+        ! Index of a gll node within the global nodes array
+        integer, dimension (:,:,:), allocatable :: Iglobnum
     end type element
 
-
-!    interface
-!       subroutine DGEMM ( TRANSA, TRANSB, M, N, K, ALPHA, A, LDA, B, LDB, BETA, C, LDC )
-!           CHARACTER*1        TRANSA, TRANSB
-!           INTEGER            M, N, K, LDA, LDB, LDC
-!           DOUBLE PRECISION   ALPHA, BETA
-!           DOUBLE PRECISION   A( LDA, * ), B( LDB, * ), C( LDC, * )
-!       end subroutine DGEMM
-!    end interface
-
 contains
-
-    integer function get_domain(el)
-        use constants
-        implicit none
-        type(Element), intent(INOUT) :: el
-
-        if (el%solid) then
-            if (el%PML) then
-                get_domain = DM_SOLID_PML
-            else
-                get_domain = DM_SOLID
-            endif
-        else ! Fluid
-            if (el%PML) then
-                get_domain = DM_FLUID_PML
-            else
-                get_domain = DM_FLUID
-            endif
-        endif
-        return
-    end function get_domain
-
-
 
     subroutine init_element(el)
         type(element), intent(inout) :: el
 
         el%mat_index=-1
+        el%domain = -1
         el%ngllx=0
         el%nglly=0
         el%ngllz=0
-        el%PML = .false.
-        el%solid = .true.
 
     end subroutine init_element
 
