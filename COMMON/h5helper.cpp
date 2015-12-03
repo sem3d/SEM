@@ -96,6 +96,7 @@ void h5h_write_dset(hid_t parent, const char* name, int d0, const double* arr)
     hid_t dset_id, space_id, prop_id;
     hsize_t dims[1];
     dims[0] = d0;
+    if (d0==0) return;
     space_id = H5Screate_simple(1, dims, dims);
     prop_id = h5h_dset_prop(d0);
     dset_id = H5Dcreate(parent, name, H5T_IEEE_F64LE, space_id, H5P_DEFAULT, prop_id, H5P_DEFAULT);
@@ -117,6 +118,7 @@ void h5h_write_dset_2d(hid_t parent, const char* name, int d0, int d1, const dou
     hsize_t dims[2];
     dims[0] = d0;
     dims[1] = d1;
+    if (d0*d1==0) return;
     space_id = H5Screate_simple(2, dims, dims);
     prop_id = h5h_dset_prop(d0, d1);
     dset_id = H5Dcreate(parent, name, H5T_IEEE_F64LE, space_id, H5P_DEFAULT, prop_id, H5P_DEFAULT);
@@ -137,6 +139,7 @@ void h5h_write_dset(hid_t parent, const char* name, int d0, const int* arr)
     hid_t dset_id, space_id, prop_id;
     hsize_t dims[1];
     dims[0] = d0;
+    if (d0==0) return;
     space_id = H5Screate_simple(1, dims, dims);
     prop_id = h5h_dset_prop(d0);
     dset_id = H5Dcreate(parent, name, H5T_STD_I32LE, space_id, H5P_DEFAULT, prop_id, H5P_DEFAULT);
@@ -158,6 +161,7 @@ void h5h_write_dset(hid_t parent, const char* dname, const vector<int>& v)
     } else {
         /* Create the data space for the dataset. */
         dims[0] = v.size();
+        if (v.size()==0) return;
         dspc_id = H5Screate_simple(1, dims, NULL);
         dset_id = H5Dcreate2(parent, dname, H5T_STD_I32LE, dspc_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         H5Sclose(dspc_id);
@@ -174,6 +178,7 @@ void h5h_write_dset_2d(hid_t parent, const char* name, int d0, int d1, const int
     hsize_t dims[2];
     dims[0] = d0;
     dims[1] = d1;
+    if (d0*d1==0) return;
     space_id = H5Screate_simple(2, dims, dims);
     prop_id = h5h_dset_prop(d0, d1);
     dset_id = H5Dcreate(parent, name, H5T_STD_I32LE, space_id, H5P_DEFAULT, prop_id, H5P_DEFAULT);
