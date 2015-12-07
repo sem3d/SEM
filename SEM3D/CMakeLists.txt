@@ -96,6 +96,7 @@ set(SEM3D_SOURCES_CPL
     )
 
 add_library(sem3dcommon ${SEM3D_SOURCES})
+add_dependencies(sem3dcommon randomfield semcommon)
 set_target_properties(sem3dcommon PROPERTIES
 				  COMPILE_FLAGS "-I${SEMLIBDIR}/sem3d -I${SEMLIBDIR}/common"
                                   Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/sem3d)
