@@ -39,6 +39,8 @@ add_library(mesh3d
   ${PRJ}/CSRC/mesh.cpp
   ${PRJ}/CSRC/mesh_grid.cpp
   ${PRJ}/CSRC/reader_abaqus.cpp
+  ${PRJ}/CSRC/reader_ideas.cpp
+  ${PRJ}/CSRC/read_unv.cpp
   )
 add_executable(sem_part_grid
   ${PRJ}/CSRC/main_grid.cpp

@@ -48,6 +48,9 @@ endif (NOT BUILD_WITH_MKA)
 
 add_definitions(-DMKA3D)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
+message(STATUS "${CMAKE_CXX_FLAGS}")
+
 set(SEMCOMMON ${SEMDIR}/COMMON)
 
 set(SEM_SRC
