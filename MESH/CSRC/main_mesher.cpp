@@ -109,17 +109,11 @@ int main(int argc, char**argv)
 
     for(int part=0;part<NPROCS;++part) {
 	Mesh3DPart loc(mesh, part);
-        printf("111 part=%d\n", part); 
 	loc.compute_part();
-	printf("222\n"); 
         loc.output_mesh_part();
-        printf("333\n");
 	loc.output_mesh_part_xmf();
-        printf("444\n");
     }
-    printf("555\n");
     output_all_meshes_xmf(NPROCS);
-    printf("666\n");
     return 0;
 }
 
