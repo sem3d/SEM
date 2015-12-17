@@ -579,7 +579,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         ! sortie des quantites demandees par les capteur
         if (sortie_capteur) call save_capteur(Tdomain, ntime)
 
-
         !---------------------------------------------------------!
         !- SAVE TO EVENTUAL RESTART
         !---------------------------------------------------------!

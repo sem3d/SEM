@@ -40,7 +40,7 @@ module selement
             factor_common_3, alphaval_3,betaval_3,gammaval_3, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_, &
             factor_common_P, alphaval_P,betaval_P,gammaval_P, R_vol_
         ! NL PARAMETERS
-        type(nl_param),allocatable :: nl_param_el
+        type(nl_param), allocatable :: nl_param_el
     end type element_solid
 
     type :: element_fluid

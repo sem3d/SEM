@@ -763,10 +763,10 @@ contains
         type (output_var_t), intent(inout) :: fields
         integer, dimension(0:8), intent(in) :: out_flags
         integer, intent(in) :: nnodes, nl_flag
-        integer             :: flag_gradU
+        logical             :: flag_gradU
         flag_gradU =  out_flags(OUT_ENERGYP)+out_flags(OUT_ENERGYS)+&
             out_flags(OUT_EPS_VOL)+out_flags(OUT_EPS_DEV)+&
-            out_flags(OUT_STRESS_DEV)
+            out_flags(OUT_STRESS_DEV)/=0
 
         ! ALLOCATE FIELDS
         if (out_flags(OUT_ENERGYP   ) == 1) allocate(fields%P_energy(0:nnodes-1))
@@ -776,7 +776,7 @@ contains
         if (out_flags(OUT_DEPLA     ) == 1) allocate(fields%displ(0:2,0:nnodes-1))
         if (out_flags(OUT_VITESSE   ) == 1) allocate(fields%veloc(0:2,0:nnodes-1))
         if (out_flags(OUT_ACCEL     ) == 1) allocate(fields%accel(0:2,0:nnodes-1))
-        if (flag_gradU/=0) then
+        if (flag_gradU) then
             allocate(fields%eps_dev_xx(0:nnodes-1))
             allocate(fields%eps_dev_yy(0:nnodes-1))
             allocate(fields%eps_dev_zz(0:nnodes-1))
@@ -809,7 +809,7 @@ contains
         if (out_flags(OUT_VITESSE ) == 1) fields%veloc = 0.
         if (out_flags(OUT_ACCEL   ) == 1) fields%accel = 0.
 
-        if (flag_gradU/=0) then
+        if (flag_gradU) then
             fields%eps_dev_xx = 0.
             fields%eps_dev_yy = 0.
             fields%eps_dev_zz = 0.
@@ -838,9 +838,7 @@ contains
 
     subroutine allocate_second_fields(domain_type, out_flags, nl_flag, ngllx, nglly, ngllz, &
         field_displ, field_veloc, field_accel, field_press, field_stress, field_eps_pl, field_phi, field_vphi, &
-        DXX, DYY, DZZ, DXY, DYX, DXZ, DZX, DYZ, DZY)
-
-        integer, intent(in) :: domain_type, nl_flag, ngllx, nglly, ngllz
+        DXX, DYY, DZZ, DXY, DYX, DXZ, DZX, DYZ, DZY, hTprimex, hprimey, hprimez)
 
         integer, intent(in) :: domain_type, nl_flag, ngllx, nglly, ngllz
         integer, dimension(0:8), intent(in) :: out_flags
@@ -849,11 +847,12 @@ contains
         real, dimension(:,:,:),   allocatable, intent(inout) :: field_press
         real, dimension(:,:,:),   allocatable, intent(inout) :: field_phi, field_vphi
         real, dimension(:,:,:),   allocatable, intent(inout) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
-        integer                                              :: flag_gradU
+        real, dimension(:,:),     allocatable, intent(inout), optional :: hTprimex, hprimey, hprimez
+        logical                                              :: flag_gradU
 
         flag_gradU =  out_flags(OUT_ENERGYP)+out_flags(OUT_ENERGYS)+&
             out_flags(OUT_EPS_VOL)+out_flags(OUT_EPS_DEV)+&
-            out_flags(OUT_STRESS_DEV)
+            out_flags(OUT_STRESS_DEV)/=0
         if (allocated(field_veloc))  deallocate(field_veloc)
         if (allocated(field_accel))  deallocate(field_accel)
         if (allocated(field_press))  deallocate(field_press)
@@ -873,16 +872,25 @@ contains
             deallocate(DZY)
             deallocate(DZZ)
         end if
+        if (present(hTprimex)) then
+            if (allocated(hTprimex)) then
+                deallocate(hTprimex)
+                deallocate(hprimey)
+                deallocate(hprimez)
+            end if
+        end if
 
         ! ALLOCATION
         select case(domain_type)
             case (DM_SOLID,DM_SOLID_PML) !  SOLID PART OF THE DOMAIN
-                if (out_flags(OUT_DEPLA)==1 .or. flag_gradU/=0) allocate(field_displ(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                if (out_flags(OUT_DEPLA)==1 .or. flag_gradU) then
+                    allocate(field_displ(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+                end if
                 if (out_flags(OUT_VITESSE)==1) allocate(field_veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                 if (out_flags(OUT_ACCEL)==1) allocate(field_accel(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                 if (out_flags(OUT_PRESSION)==1) allocate(field_press(0:ngllx-1,0:nglly-1,0:ngllz-1))
 
-                if (flag_gradU /=0) then
+                if (flag_gradU) then
                     allocate(DXX(0:ngllx-1,0:nglly-1,0:ngllz-1))
                     allocate(DXY(0:ngllx-1,0:nglly-1,0:ngllz-1))
                     allocate(DXZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
@@ -892,12 +900,17 @@ contains
                     allocate(DZX(0:ngllx-1,0:nglly-1,0:ngllz-1))
                     allocate(DZY(0:ngllx-1,0:nglly-1,0:ngllz-1))
                     allocate(DZZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
+                    if (present(hTprimex)) then
+                        allocate(hTprimex(0:ngllx-1,0:ngllx-1))
+                        allocate(hprimey(0:nglly-1,0:nglly-1))
+                        allocate(hprimez(0:ngllz-1,0:ngllz-1))
+                    end if
                 endif
                 if (nl_flag == 1) then
-                    if (flag_gradU /= 0 .or. out_flags(OUT_PRESSION) == 1) then
+                    if (flag_gradU .or. out_flags(OUT_PRESSION) == 1) then
                         allocate(field_stress(0:ngllx-1,0:nglly-1,0:ngllz-1,0:5))
                     end if
-                    if (flag_gradU /=0) then
+                    if (flag_gradU) then
                         allocate(field_eps_pl(0:ngllx-1,0:nglly-1,0:ngllz-1,0:5))
                     end if
                 end if
@@ -910,13 +923,12 @@ contains
                 allocate(field_press(0:ngllx-1,0:nglly-1,0:ngllz-1))
         end select
 
-        ! INITIALIZATION
+        ! INITIALIZATION FOR PML
         if (domain_type == DM_SOLID_PML) then
-            if (out_flags(OUT_DEPLA   ) == 1) field_displ = 0
-            if (out_flags(OUT_ACCEL   ) == 1) field_accel = 0
-            if (out_flags(OUT_PRESSION) == 1) field_press = 0
-
-            if (flag_gradU /=0) then
+            if (out_flags(OUT_DEPLA   ) == 1 .and. allocated(field_displ)) field_displ = 0
+            if (out_flags(OUT_ACCEL   ) == 1 .and. allocated(field_accel)) field_accel = 0
+            if (out_flags(OUT_PRESSION) == 1 .and. allocated(field_press)) field_press = 0
+            if (allocated(DXX)) then 
                 DXX = 0
                 DYY = 0
                 DZZ = 0
@@ -926,10 +938,7 @@ contains
                 DZX = 0
                 DYZ = 0
                 DZY = 0
-            else if (flag_gradU == 0 .and. nl_flag == 0) then
-                field_stress = 0
-                field_eps_pl = 0
-            end if
+            endif
         end if
 
     end subroutine allocate_second_fields
@@ -1000,18 +1009,16 @@ contains
         type(subdomain), pointer :: sub_dom_mat
         type(output_var_t) :: out_fields
         integer :: n_solid
-
         real, dimension(:,:,:), allocatable   :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
         real    :: xmu, xlambda, xkappa, x2mu, xlambda2mu, onemSbeta, onemPbeta
-
         integer, dimension(0:8) :: out_variables
-        integer                 :: flag_gradU
+        logical                 :: flag_gradU
 
 
         out_variables(0:8) = Tdomain%out_variables(0:8)
         flag_gradU = out_variables(OUT_ENERGYP)+out_variables(OUT_ENERGYS)+&
             out_variables(OUT_EPS_VOL)+out_variables(OUT_EPS_DEV)+&
-            out_variables(OUT_STRESS_DEV)
+            out_variables(OUT_STRESS_DEV)/=0
         n_solid = Tdomain%n_sls
         call create_dir_sorties(Tdomain, isort)
 
@@ -1025,7 +1032,6 @@ contains
         ngllx = 0
         nglly = 0
         ngllz = 0
-
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
             sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
@@ -1039,6 +1045,7 @@ contains
                     field_displ, field_veloc, field_accel, field_press, field_stress, field_eps_pl, &
                     field_phi, field_vphi, DXX, DYY, DZZ, DXY, DYX, DXZ, DZX, DYZ, DZY)
             endif
+            
             !GATHER FIELDS
             select case(domain_type)
                 case (DM_SOLID) ! SOLID PART OF THE DOMAIN
@@ -1046,7 +1053,7 @@ contains
                     if (out_variables(OUT_VITESSE) == 1) call gather_field(el, field_veloc, Tdomain%champs0%Veloc)
                     if (out_variables(OUT_ACCEL  ) == 1) call gather_field(el, field_accel, Tdomain%champs0%Forces)
                     if (Tdomain%nl_flag == 1) then ! NON LINEAR
-                        if (out_variables(OUT_PRESSION) == 1 .or. flag_gradU /=0) then
+                        if (out_variables(OUT_PRESSION) == 1 .or. flag_gradU) then
                             call gather_field(el, field_stress, Tdomain%champs0%Stress)
                             do k = 0,ngllz-1
                                 do j = 0,nglly-1
@@ -1054,7 +1061,7 @@ contains
                                         if (out_variables(OUT_PRESSION) == 1) then
                                             field_press(i,j,k) = sum(field_stress(i,j,k,1:3))
                                         end if
-                                        if (flag_gradU /= 0) then
+                                        if (flag_gradU) then
                                             call gather_field(el, field_eps_pl, Tdomain%champs0%Epsilon_pl)
                                         end if
                                     end do
@@ -1062,12 +1069,11 @@ contains
                             end do
                         end if
                     else    ! ELASTIC
-                        write(*,*) 'allocate_displ', allocated(field_displ)
                         if (out_variables(OUT_PRESSION) == 1) then
                             call pressure_solid(ngllx,nglly,ngllz,sub_dom_mat%htprimex, sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
                                 el%InvGrad,field_displ, el%Lambda, el%Mu, field_press)
                         end if
-                        if (flag_gradU/=0) then
+                        if (flag_gradU) then
                             call grad_displ_solid(ngllx,nglly,ngllz,sub_dom_mat%htprimex,sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
                                 el%InvGrad,field_displ,dxx,dxy,dxz,dyx,dyy,dyz,dzx,dzy,dzz)
                         endif
@@ -1104,7 +1110,7 @@ contains
                                     if (out_variables(OUT_VITESSE) ==1) out_fields%veloc(:,idx) = out_fields%veloc(:,idx) + field_veloc(i,j,k,:)
                                     if (out_variables(OUT_ACCEL)   ==1) out_fields%accel(:,idx) = out_fields%accel(:,idx) + field_accel(i,j,k,:)
                                     if (out_variables(OUT_PRESSION)==1) out_fields%press(idx)   = field_press(i,j,k)
-                                    if (flag_gradU /= 0) then
+                                    if (flag_gradU) then
                                         if (Tdomain%nl_flag==1) then ! NON LINEAR
                                             call stress_strain_nl(out_variables, out_fields, &
                                                 DXX(i,j,k), DYY(i,j,k), DZZ(i,j,k), &
@@ -1557,6 +1563,7 @@ contains
                             endif
                         end do
                     end do
+                end do
             end select
         end do
         if (Tdomain%ngll_pmls>0) deallocate(Tdomain%MassMatSolPml)
