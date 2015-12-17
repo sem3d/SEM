@@ -293,7 +293,6 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
                 !
 
                 if (st_epl == 1) then
-                    write(*,*) "elasto-plastic correction"
                     dEpsilon_ij_alpha = (1-alpha_elp)*(/dxx, dyy, dzz, dxy+dyx, dxz+dzx, dyz+dzy/)
                     call plastic_corrector(dEpsilon_ij_alpha, Sigma_ij_trial, Xkin_ij_N, sigma_yld, &
                         Riso_N, b_iso, Rinf_iso, C_kin, kapa_kin, xmu, xla, dEpsilon_ij_pl)
@@ -312,7 +311,6 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
                 Sigma_ij_N_el(0:5,i,j,k) = Sigma_ij_trial
                 Xkin_ij_N_el(0:5,i,j,k)  = Xkin_ij_N
                 Riso_N_el(i,j,k)         = Riso_N
-                
                 !
                 xi1 = Invgrad(0,0,i,j,k)
                 xi2 = Invgrad(1,0,i,j,k)

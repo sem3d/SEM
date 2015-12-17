@@ -767,7 +767,6 @@ contains
         flag_gradU =  out_flags(OUT_ENERGYP)+out_flags(OUT_ENERGYS)+&
             out_flags(OUT_EPS_VOL)+out_flags(OUT_EPS_DEV)+&
             out_flags(OUT_STRESS_DEV)/=0
-
         ! ALLOCATE FIELDS
         if (out_flags(OUT_ENERGYP   ) == 1) allocate(fields%P_energy(0:nnodes-1))
         if (out_flags(OUT_ENERGYS   ) == 1) allocate(fields%S_energy(0:nnodes-1))
@@ -1015,6 +1014,7 @@ contains
         logical                 :: flag_gradU
 
 
+
         out_variables(0:8) = Tdomain%out_variables(0:8)
         flag_gradU = out_variables(OUT_ENERGYP)+out_variables(OUT_ENERGYS)+&
             out_variables(OUT_EPS_VOL)+out_variables(OUT_EPS_DEV)+&
@@ -1045,7 +1045,6 @@ contains
                     field_displ, field_veloc, field_accel, field_press, field_stress, field_eps_pl, &
                     field_phi, field_vphi, DXX, DYY, DZZ, DXY, DYX, DXZ, DZX, DYZ, DZY)
             endif
-            
             !GATHER FIELDS
             select case(domain_type)
                 case (DM_SOLID) ! SOLID PART OF THE DOMAIN
@@ -1520,50 +1519,50 @@ contains
             imat = Tdomain%specel(n)%mat_index
             domain_type = get_domain(Tdomain%sSubDomain(imat))
             select case(domain_type)
-            case (DM_SOLID)
-                do k = 0,ngllz-1
-                    do j = 0,nglly-1
-                        do i = 0,ngllx-1
-                            idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
-                            if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%MassMatSol(Tdomain%specel(n)%Idom(i,j,k))
-                            endif
+                case (DM_SOLID)
+                    do k = 0,ngllz-1
+                        do j = 0,nglly-1
+                            do i = 0,ngllx-1
+                                idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                                if (domains(idx)==domain_type) then
+                                    mass(idx) = Tdomain%MassMatSol(Tdomain%specel(n)%Idom(i,j,k))
+                                endif
+                            end do
                         end do
                     end do
-                end do
-            case (DM_SOLID_PML)
-                do k = 0,ngllz-1
-                    do j = 0,nglly-1
-                        do i = 0,ngllx-1
-                            idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
-                            if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%MassMatSolPML(Tdomain%specel(n)%Idom(i,j,k))
-                            endif
+                case (DM_SOLID_PML)
+                    do k = 0,ngllz-1
+                        do j = 0,nglly-1
+                            do i = 0,ngllx-1
+                                idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                                if (domains(idx)==domain_type) then
+                                    mass(idx) = Tdomain%MassMatSolPML(Tdomain%specel(n)%Idom(i,j,k))
+                                endif
+                            end do
                         end do
                     end do
-                end do
-            case (DM_FLUID)
-                do k = 0,ngllz-1
-                    do j = 0,nglly-1
-                        do i = 0,ngllx-1
-                            idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
-                            if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%MassMatFlu(Tdomain%specel(n)%Idom(i,j,k))
-                            endif
+                case (DM_FLUID)
+                    do k = 0,ngllz-1
+                        do j = 0,nglly-1
+                            do i = 0,ngllx-1
+                                idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                                if (domains(idx)==domain_type) then
+                                    mass(idx) = Tdomain%MassMatFlu(Tdomain%specel(n)%Idom(i,j,k))
+                                endif
+                            end do
                         end do
                     end do
-                end do
-            case (DM_FLUID_PML)
-                do k = 0,ngllz-1
-                    do j = 0,nglly-1
-                        do i = 0,ngllx-1
-                            idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
-                            if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%MassMatFluPML(Tdomain%specel(n)%Idom(i,j,k))
-                            endif
+                case (DM_FLUID_PML)
+                    do k = 0,ngllz-1
+                        do j = 0,nglly-1
+                            do i = 0,ngllx-1
+                                idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                                if (domains(idx)==domain_type) then
+                                    mass(idx) = Tdomain%MassMatFluPML(Tdomain%specel(n)%Idom(i,j,k))
+                                endif
+                            end do
                         end do
                     end do
-                end do
             end select
         end do
         if (Tdomain%ngll_pmls>0) deallocate(Tdomain%MassMatSolPml)

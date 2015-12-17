@@ -80,7 +80,6 @@ subroutine deallocate_domain (Tdomain)
                     deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el)
                     deallocate(Tdomain%specel(n)%sl%nl_param_el)
                 end if
-
                 if (issolid .and. Tdomain%n_sls>0) then
                     if (Tdomain%aniso) then
                         deallocate (Tdomain%specel(n)%sl%Q)

@@ -383,7 +383,6 @@ contains
         logical :: flag_gradU
         integer :: n_out, ioff
         integer :: domtype, nl_flag
-
         rg = Tdomain%rank
 
         ! ETAPE 0 : initialisations

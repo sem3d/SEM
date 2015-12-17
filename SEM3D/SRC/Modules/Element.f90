@@ -31,7 +31,7 @@ module selement
     type :: element_solid
         real, dimension(:,:,:,:), allocatable :: Cij
 
-        ! Attenuation
+         ! Attenuation
         real, dimension (:,:,:), allocatable :: Q, Qs, Qp, onemSbeta, onemPbeta, &
             epsilonvol_, &
             epsilondev_xx_,epsilondev_yy_,epsilondev_xy_,epsilondev_xz_,epsilondev_yz_

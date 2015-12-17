@@ -583,7 +583,6 @@ contains
         endif 
         
         write(*,*),'requested output',Tdomain%nReqOut
-        
         Tdomain%TimeD%courant             = Tdomain%config%courant
         Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)
         call semname_read_input_meshfile(rg,Tdomain%mesh_file,fnamef) !indicates the path to the mesh file for this proc"
