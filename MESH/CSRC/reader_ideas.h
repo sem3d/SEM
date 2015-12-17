@@ -3,34 +3,37 @@
 /* Copyright CEA, ECP, IPGP                                                */
 /*                                                                         */
 // mesh.h : Gestion maillage format SEM
-#ifndef _READER_ABAQUS_H_
-#define _READER_ABAQUS_H_
+#ifndef _READER_IDEAS_H_
+#define _READER_IDEAS_H_
 
 #include "mesh.h"
 #include <cstdio>
 #include <map>
 #include <string>
 #include <vector>
-#include <tuple>
+#include "read_unv.hpp"
 
-class MeshReaderAbaqus {
+
+class MeshReaderIdeas {
 public:
-    MeshReaderAbaqus(const char* fname);
-    ~MeshReaderAbaqus();
-    void parse_file(Mesh3D& mesh);
+    MeshReaderIdeas(const char* fname);
+    ~MeshReaderIdeas();
+    void parse_file(Mesh3D& mesh, const char* fname);
 
     bool eof();
 protected:
     char curline[2048];
     FILE* m_file;
     int m_line;
-    void read_next_line();
-    void read_header(Mesh3D& mesh);
-    void read_node_section(Mesh3D& mesh);
-    void read_elements(Mesh3D& mesh);
+    lsnodes  nodes;
+	lselems  elems;
+
+    void read_node_section(Mesh3D& mesh, lsnodes& nodes);
+    void read_elements(Mesh3D& mesh, lselems& elems);
 
     std::map<int,int> m_node_map; // maps file id to mesh ids
-    std::vector<std::string> m_elemsets;
+    std::vector<int> m_elemsetsID;
+
 };
 
 #endif
