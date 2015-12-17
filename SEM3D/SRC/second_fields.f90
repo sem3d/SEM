@@ -306,7 +306,6 @@ contains
                             end do
                         end do
                     end do
-                    deallocate(displ)
                 else
                     allocate(displ(0:nx-1,0:ny-1,0:nz-1,0:2))
                     mat = el%mat_index
@@ -314,8 +313,8 @@ contains
                     call pressure_solid(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
                         Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
                         el%InvGrad, displ, el%Lambda, el%Mu,field)
-                    deallocate(displ)
                 end if
+                deallocate(displ)
             case (DM_FLUID)
                 do k=0,nz-1
                     do j=0,ny-1
@@ -336,7 +335,7 @@ contains
 
         type(domain), intent(in) :: Tdomain
         integer, intent(in) :: nel
-        real, dimension(0:,0:,0:,0:), intent(out) :: field
+        real, dimension(0:,0:,0:,0:), intent(inout) :: field
         type(element), pointer :: el
         integer :: nx, ny, nz, i, j, k, ind
         nx = Tdomain%specel(nel)%ngllx

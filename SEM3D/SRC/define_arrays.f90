@@ -59,7 +59,7 @@ contains
                 print*, "ERROR : inconsistent material index = ", mat
                 stop
             end if
-!!! Attribute elastic properties from material !!!
+            !!! Attribute elastic properties from material !!!
             ! Sets Lambda, Mu, Qmu, ... from mat
             call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
             ! Compute MassMat and Whei (with allocation)
@@ -244,29 +244,25 @@ contains
 
 
     subroutine init_material_properties(Tdomain, specel, mat)
+        use constants
         type (domain), intent (INOUT), target :: Tdomain
         type (element), intent(inout) :: specel
         type (subdomain), intent(in) :: mat
         !
-        integer :: ngllx, nglly, ngllz, domain_type
+        integer :: ngllx, nglly, ngllz
         !
         ngllx = specel%ngllx
         nglly = specel%nglly
         ngllz = specel%ngllz
-
         !    integration de la prise en compte du gradient de proprietes
-        domain_type = specel%domain
-        select case (domain_type)
-            case (DM_SOLID)
-                if (Tdomain%nl_flag == 1) then
-                    specel%sl%nl_param_el%lmc_param_el%sigma_yld = mat%nl_prop%LMC_prop%sigma_yld
-                    specel%sl%nl_param_el%lmc_param_el%b_iso     = mat%nl_prop%LMC_prop%b_iso
-                    specel%sl%nl_param_el%lmc_param_el%Rinf_iso  = mat%nl_prop%LMC_prop%Rinf_iso
-                    specel%sl%nl_param_el%lmc_param_el%C_kin     = mat%nl_prop%LMC_prop%C_kin
-                    specel%sl%nl_param_el%lmc_param_el%kapa_kin  = mat%nl_prop%LMC_prop%kapa_kin
-                end if
-        end select
-
+        if (specel%domain==DM_SOLID .and. Tdomain%nl_flag/=0) then
+            specel%sl%nl_param_el%lmc_param_el%sigma_yld=mat%nl_prop%LMC_prop%sigma_yld
+            specel%sl%nl_param_el%lmc_param_el%C_kin=mat%nl_prop%LMC_prop%C_kin
+            specel%sl%nl_param_el%lmc_param_el%kapa_kin=mat%nl_prop%LMC_prop%kapa_kin
+            specel%sl%nl_param_el%lmc_param_el%Rinf_iso=mat%nl_prop%LMC_prop%Rinf_iso
+            specel%sl%nl_param_el%lmc_param_el%b_iso=mat%nl_prop%LMC_prop%b_iso
+            
+        end if
         select case( mat%material_definition)
         case( MATERIAL_CONSTANT )
             !    on copie toujours le materiau de base
@@ -291,7 +287,7 @@ contains
             if ( Tdomain%logicD%grad_bassin ) then
                 call initialize_material_gradient(Tdomain, specel, mat)
             endif
-
+            
         case( MATERIAL_MULTIPLE )
             !Don`t do anything, the basic properties were initialized by file
             if(materialIsConstant(Tdomain, mat)) then
@@ -300,9 +296,7 @@ contains
                 specel%Kappa = mat%DKappa
                 specel%Mu = mat%DMu
             end if
-
         end select
-
         if ((specel%domain==DM_SOLID) .and. (Tdomain%n_sls>0))  then
             if (Tdomain%aniso) then
                 specel%sl%Q = mat%Qmu
@@ -311,7 +305,6 @@ contains
                 specel%sl%Qp = mat%Qpression
             endif
         endif
-
     end subroutine init_material_properties
 
 
@@ -746,7 +739,6 @@ contains
             Tdomain%sSubDomain(assocMat)%material_type == "T") then
             authorization = .true.
         end if
-
     end function materialIsConstant
 
 end module mdefinitions

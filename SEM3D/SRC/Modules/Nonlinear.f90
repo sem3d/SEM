@@ -116,23 +116,25 @@ contains
             st_epl         = 1
 
         elseif (abs(F_start) .le. tol_nl .and. &
-            10*sum(dSigma_ij_trial*gradF_start) .lt. 0)                    then  ! ELASTIC UNLOADING
+            sum(10*dSigma_ij_trial*gradF_start) .lt. 0)                    then  ! ELASTIC UNLOADING
 
             alpha_elp      = 1
             st_epl         = 3
 
         elseif (abs(F_start) .le. tol_nl .and. &
-             10*sum(dSigma_ij_trial*gradF_start) .gt. 0)                   then  ! PLASTIC LOADING
+             sum(10*dSigma_ij_trial*gradF_start) .gt. 0)                   then  ! PLASTIC LOADING
 
             alpha_elp      = 0
             Sigma_ij_trial = Sigma_ij_start
             st_epl         = 1
 
         elseif (F_start .gt. tol_nl)                                       then  ! START OUTSIDE ELASTIC DOMAIN
-            write(*,*) "F_start > 0!!"
-            write(*,*) "=> reduce tolerance"
+            write(*,*) "F_start=",F_start," > 0!!"
+            write(*,*) "=> reduce tolerance",tol_nl
+            stop
         else
             write(*,*) "ERROR: NO CONVERGENCE"
+            stop
         end if
 
     end subroutine check_plasticity
@@ -156,7 +158,7 @@ contains
         real, dimension(0:5)                :: Sigma_ij_0, X_ij_0, dX_ij_0, gradF_0, gradF_mises
         real                                :: R_0, dR_0, dPlastMult_0, dPlastMult_1, F_mises_0, F_mises
         integer                             :: i,j,k
-        integer, parameter                  :: N_incr = 10
+        integer, parameter                  :: N_incr = 15
         real, dimension(0:5)                :: temp_vec
         real, dimension(0:2), parameter     :: vec0 = (/ 0.0, 0.0, 0.0 /)
         real, dimension(0:2), parameter     :: veci = (/ 1.0, 0.0, 0.0 /)
