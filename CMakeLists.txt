@@ -2,7 +2,7 @@
 # en standalone (hors mka3d)
 PROJECT(SEM)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
-ENABLE_LANGUAGE(C Fortran)
+ENABLE_LANGUAGE(C CXX Fortran)
 ENABLE_TESTING()
 
 
@@ -72,6 +72,7 @@ set(SEM_SRC
 )
 
 set(SEM_SRC_C
+  ${SEMCOMMON}/read_unv.cpp
   ${SEMCOMMON}/read_input.c
   ${SEMCOMMON}/file_scan.c
   ${SEMCOMMON}/sem_input.c
@@ -127,6 +128,11 @@ set(SEMLIBDIR ${PROJECT_BINARY_DIR}/libs)
 #SEM COMMON LIBRARY
 add_library(semcommon ${SEM_SRC} ${SEM_SRC_C})
 set_target_properties(semcommon PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/common)
+target_include_directories(semcommon PUBLIC ${SEMCOMMON}) # find COMMON/read_unv.hpp
+# A reprendre plus tard : il faut imposer C++11 pour read_unv.cpp
+set_property(TARGET semcommon PROPERTY CXX_STANDARD 11)          # read_unv.cpp needs C++11 (tuple) - Ne marche pas ?!
+set_property(TARGET semcommon PROPERTY CXX_STANDARD_REQUIRED ON) # read_unv.cpp needs C++11 (tuple) - Ne marche pas ?!
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}") # set_property C++11 KO ?!... Solution du pauvre qui devrait marcher dans 99% des cas (gnu, intel)...
 
 #RANDOM FIELD LIBRARY
 add_library(randomfield
