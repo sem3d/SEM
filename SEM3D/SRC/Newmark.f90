@@ -269,10 +269,10 @@ subroutine Newmark_Predictor(Tdomain,champs1)
         champs1%Depla = Tdomain%champs0%Depla
         champs1%Veloc = Tdomain%champs0%Veloc
         champs1%Forces = 0d0
-        if (Tdomain%nl_flag ==1) then
-            champs1%Stress = Tdomain%champs0%Stress
-            champs1%Xkin   = Tdomain%champs0%Xkin
-            champs1%Riso    = Tdomain%champs0%Riso
+        if (Tdomain%nl_flag==1) then
+            champs1%Stress     = Tdomain%champs0%Stress
+            champs1%Xkin       = Tdomain%champs0%Xkin
+            champs1%Riso       = Tdomain%champs0%Riso
             champs1%Epsilon_pl = Tdomain%champs0%Epsilon_pl
         end if
     endif
@@ -400,7 +400,7 @@ subroutine Newmark_Corrector_Solid(Tdomain,champs1)
             Tdomain%champs0%Veloc(indpml,:) = 0.
         enddo
         Tdomain%champs0%Depla = Tdomain%champs0%Depla + dt * Tdomain%champs0%Veloc
-        if (Tdomain%nl_flag == 1) then
+        if (Tdomain%nl_flag==1) then
             Tdomain%champs0%Epsilon_pl = Tdomain%champs1%Epsilon_pl
             Tdomain%champs0%Stress = Tdomain%champs1%Stress
             Tdomain%champs0%Xkin = Tdomain%champs1%Xkin
@@ -431,7 +431,7 @@ subroutine internal_forces(Tdomain,champs1)
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
                 Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
                 Tdomain%sSubDomain(mat)%hTprimez, Tdomain%n_sls, Tdomain%aniso,    &
-                champs1, Tdomain%nl_flag, Tdomain%TimeD%dtmin)
+                champs1, Tdomain%nl_flag, Tdomain%TimeD%dtmin,n)
         case (DM_FLUID)
             call forces_int_fluid(Tdomain%specel(n), Tdomain%sSubDomain(mat),      &
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &

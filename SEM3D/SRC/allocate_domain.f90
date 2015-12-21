@@ -33,6 +33,7 @@ contains
             if(Tdomain%sSubDomain(assocMat)%material_type == "R") then
                 if (Tdomain%subD_exist(mat)) then
                     call random_seed(size = randSize)
+                    
                     if(.not.(allocated(Tdomain%sSubdomain(mat)%chosenSeed))) then
                         allocate(Tdomain%sSubdomain(mat)%chosenSeed(randSize))
                     end if
@@ -41,7 +42,9 @@ contains
         end do
 
         do n = 0,Tdomain%n_elem-1
+
             n_solid = Tdomain%n_sls
+            
             ngllx = Tdomain%specel(n)%ngllx
             nglly = Tdomain%specel(n)%nglly
             ngllz = Tdomain%specel(n)%ngllz
@@ -85,8 +88,8 @@ contains
                         Tdomain%specel(n)%slpml%Residual_Stress2 = 0d0
                         Tdomain%specel(n)%slpml%Residual_Stress3 = 0d0
                     
-                    else ! PML
-                        if (Tdomain%nl_flag == 1) then ! NL variables
+                    else ! SOLID
+                        if (Tdomain%nl_flag==1) then ! NL variables
                             allocate(Tdomain%specel(n)%sl%nl_param_el)
                             allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el)
                             allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%sigma_yld (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
@@ -95,14 +98,28 @@ contains
                             allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%C_kin     (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
                             allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%kapa_kin  (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
                         end if
+        
                         if (Tdomain%aniso) then
                             allocate (Tdomain%specel(n)%sl%Cij (0:20, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
                         endif
+                        
                         if (n_solid>0) then
                             if (Tdomain%aniso) then
-                                allocate (Tdomain%specel(n)%sl%Cij (0:20, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                                allocate (Tdomain%specel(n)%sl%Q (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                            else
+                                allocate (Tdomain%specel(n)%sl%Qs (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                                allocate (Tdomain%specel(n)%sl%Qp (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                                allocate (Tdomain%specel(n)%sl%onemPbeta (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                                allocate (Tdomain%specel(n)%sl%epsilonvol_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                                Tdomain%specel(n)%sl%epsilonvol_ = 0
+                                allocate (Tdomain%specel(n)%sl%factor_common_P (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                                allocate (Tdomain%specel(n)%sl%alphaval_P (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                                allocate (Tdomain%specel(n)%sl%betaval_P (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                                allocate (Tdomain%specel(n)%sl%gammaval_P (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                                allocate (Tdomain%specel(n)%sl%R_vol_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                                Tdomain%specel(n)%sl%R_vol_ = 0
                             endif
-<<<<<<< HEAD
+
                             allocate (Tdomain%specel(n)%sl%onemSbeta (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
                             allocate (Tdomain%specel(n)%sl%epsilondev_xx_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
                             allocate (Tdomain%specel(n)%sl%epsilondev_yy_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
@@ -142,7 +159,6 @@ contains
                 end if
             end if
         enddo
-
         ! Allocation et initialisation de Tdomain%champs0 et champs1 pour les solides
         if (Tdomain%ngll_s /= 0) then
             allocate(Tdomain%champs0%Forces(0:Tdomain%ngll_s-1,0:2))
@@ -155,7 +171,8 @@ contains
             Tdomain%champs0%Depla  = 0d0
             Tdomain%champs0%Veloc  = 0d0
 
-            if (Tdomain%nl_flag == 1) then
+            if (Tdomain%nl_flag==1) then
+                write(*,*) "allocate nl var"
                 allocate(Tdomain%champs0%Epsilon_pl (0:Tdomain%ngll_s-1,0:5))
                 allocate(Tdomain%champs0%Stress     (0:Tdomain%ngll_s-1,0:5))
                 allocate(Tdomain%champs0%Xkin       (0:Tdomain%ngll_s-1,0:5))
@@ -229,7 +246,6 @@ contains
             Tdomain%fpml_DumpMass = 0d0
 
         endif
-
     return
 end subroutine allocate_domain
 

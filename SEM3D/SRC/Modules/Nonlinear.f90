@@ -9,7 +9,6 @@ module nonlinear
     use sdomain
     use deriv3d
     use constants
-
 contains
 
     subroutine mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, F_mises, gradF_mises)
@@ -33,7 +32,7 @@ contains
 
         F_mises      =  tau_eq_mises - sigma_yld - R
 
-        gradF_mises  = 1.5 * (Sigma_ij_dev(0:5)-X_ij(0:5)) / tau_eq_mises
+        gradF_mises  = 1.5*(Sigma_ij_dev(0:5)-X_ij(0:5))/tau_eq_mises
 
     end subroutine mises_yld_locus
 
@@ -73,7 +72,7 @@ contains
     end subroutine tensor_components
 
     subroutine check_plasticity (Sigma_ij_trial, Sigma_ij_start, X_ij, R, sigma_yld, &
-        st_epl, alpha_elp)
+        st_epl, alpha_elp,el,GLLx,GLLy,GLLz)
 
         ! CHECK PLASTIC CONSISTENCY (KKT CONDITIONS)
 
@@ -91,7 +90,7 @@ contains
         real                                :: F_start, F_final_trial
         real, dimension(0:5)                :: gradF_start, gradF_trial
         real, dimension(0:5)                :: dSigma_ij_trial
-
+        integer                             :: el, GLLx,GLLy,GLLz
         ! Stress trial increment
         dSigma_ij_trial = Sigma_ij_trial - Sigma_ij_start
 
@@ -102,35 +101,33 @@ contains
         ! Yield function at Sigma_ij_trial
         call mises_yld_locus (Sigma_ij_trial, X_ij, R, sigma_yld, &
             F_final_trial, gradF_trial)
-
+        write(*,*) "F_yld", F_start
         ! KKT condition
         if (F_start .lt. -tol_nl .and. F_final_trial .lt. -tol_nl)      then  ! ELASTIC (UN)- LOADING
-
             alpha_elp      = 1
             st_epl         = 2
-
         elseif (F_start .lt. -tol_nl .and. F_final_trial .gt. -tol_nl)  then  ! ELASTO-PLASTIC LOADING
-
             alpha_elp      = F_start / (F_start-F_final_trial)
-            Sigma_ij_trial = Sigma_ij_start + dSigma_ij_trial * alpha_elp
+            Sigma_ij_trial = Sigma_ij_start+dSigma_ij_trial*alpha_elp
             st_epl         = 1
-
+            WRITE(*,*) "ELASTO-PLASTICITY"
+            write(*,*) "trial stress",dSigma_ij_trial
+            write(*,*) "F_start", F_start
         elseif (abs(F_start) .le. tol_nl .and. &
-            sum(10*dSigma_ij_trial*gradF_start) .lt. 0)                    then  ! ELASTIC UNLOADING
-
+            DOT_PRODUCT(10*dSigma_ij_trial,gradF_start) .lt. 0)                    then  ! ELASTIC UNLOADING
             alpha_elp      = 1
             st_epl         = 3
-
         elseif (abs(F_start) .le. tol_nl .and. &
-             sum(10*dSigma_ij_trial*gradF_start) .gt. 0)                   then  ! PLASTIC LOADING
-
+             DOT_PRODUCT(10*dSigma_ij_trial,gradF_start) .gt. 0)                   then  ! PLASTIC LOADING
             alpha_elp      = 0
             Sigma_ij_trial = Sigma_ij_start
             st_epl         = 1
-
+            WRITE(*,*) "PLASTICITY"
+            write(*,*) "trial stress",dSigma_ij_trial
+            write(*,*) "F_start", F_start
         elseif (F_start .gt. tol_nl)                                       then  ! START OUTSIDE ELASTIC DOMAIN
             write(*,*) "F_start=",F_start," > 0!!"
-            write(*,*) "=> reduce tolerance",tol_nl
+            write(*,*) "element", el,"GLL", GLLx, GLLy, GLLz
             stop
         else
             write(*,*) "ERROR: NO CONVERGENCE"
@@ -188,8 +185,8 @@ contains
             call compute_plastic_modulus(dEpsilon_ij_alpha, Sigma_ij_0, X_ij_0, R_0, mu, lambda, sigma_yld, &
                 b_lmc, Rinf_lmc, C_lmc, kapa_lmc, dPlastMult_1)
 
-            dPlastMult_0   = dPlastMult_0 + dPlastMult_1
-            dEpsilon_ij_pl = dEpsilon_ij_pl + dPlastMult_1*gradF_0
+            dPlastMult_0=dPlastMult_0+dPlastMult_1
+            dEpsilon_ij_pl=dEpsilon_ij_pl+dPlastMult_1*gradF_0
 
             ! HARDENING INCREMENTS
             call hardening_increments(dPlastMult_1, Sigma_ij_0, R_0, X_ij_0, sigma_yld, &
@@ -207,11 +204,10 @@ contains
             end do
 
             ! DRIFT CORRECTION
-            Sigma_ij_0 = Sigma_ij_0 + temp_vec
-            call drift_corr(Sigma_ij_0, X_ij_1, R_1, sigma_yld) ! drift correction (radial return)
+            Sigma_ij_1=Sigma_ij_0+temp_vec
+            call drift_corr(Sigma_ij_1, X_ij_1, R_1, sigma_yld) ! drift correction (radial return)
 
         end do
-        call mises_yld_locus(Sigma_ij_1, X_ij_1, R_1, sigma_yld, F_mises, gradF_mises)
 
     end subroutine plastic_corrector
 
@@ -234,7 +230,7 @@ contains
         real                             :: F_mises
         real, dimension(0:5)             :: gradF_mises
         real                             :: h_lmc               ! total hardening modulus
-        real, dimension(0:5)             :: temp_vec
+        real                             :: temp_vec
         real, dimension(0:2), parameter  :: vec0 = (/ 0.0, 0.0, 0.0 /), &
             veci = (/ 1.0, 0.0, 0.0 /), &
             vecj = (/ 0.0, 1.0, 0.0 /), &
@@ -253,21 +249,24 @@ contains
         call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, F_mises, gradF_mises)
 
         h_iso = b_lmc * (Rinf_lmc - R)
-        h_kin = C_lmc - kapa_lmc * sum(X_ij * gradF_mises)
+        h_kin = C_lmc - kapa_lmc * (X_ij(0)*gradF_mises(0)+&
+            X_ij(1)*gradF_mises(1)+X_ij(2)*gradF_mises(2)+&
+            2*X_ij(3)*gradF_mises(3)+2*X_ij(4)*gradF_mises(4)+&
+            2*X_ij(5)*gradF_mises(5))
         h_lmc = h_iso + h_kin
 
         ! PLASTIC MULTIPLIER
-        temp_vec(0:5) = 0d0
-        dPlastMult    = 0d0
+        temp_vec   = 0d0
+        dPlastMult = 0d0
 
         do k = 0,5
             do j = 0,5
-                temp_vec(j) = temp_vec(j)+DEL_ijhk(j,k)*gradF_mises(k)
+                temp_vec = temp_vec+gradF_mises(j)*DEL_ijhk(j,k)*gradF_mises(k)
                 dPlastMult = dPlastMult+dEpsilon_ij(j)*DEL_ijhk(j,k)*gradF_mises(k)
             end do
         end do
 
-        dPlastMult = dPlastMult/(h_lmc + DOT_PRODUCT(gradF_mises,temp_vec))
+        dPlastMult = dPlastMult/(h_lmc+temp_vec)
 
     end subroutine compute_plastic_modulus
 
@@ -299,7 +298,7 @@ contains
         integer                          :: j,k
 
         temp_matrix(0:2,0:2) = id_matrix
-        temp_matrix(3:5,3:5) = 0.5 * id_matrix
+        temp_matrix(3:5,3:5) = id_matrix
 
         ! INCREMENT IN ISOTROPIC HARDENING VARIABLES (R)
         dR = b_lmc * (Rinf_lmc - R) * dPlastMult
@@ -334,26 +333,27 @@ contains
         call mises_yld_locus(Sigma_ij_0, X_ij, R, sigma_yld, F_0, gradF_0)
 
         alpha0 = 0 ! starting iteration value (step 0)
-
+        write(*,*) "drift0", F_0
         ! NR algorithm for drift correction (radial return) (see Sloan 1987)
         do
             call tensor_components(Sigma_ij_0, Sigma_ij_dev_0)
             call mises_yld_locus(Sigma_ij_0, X_ij, R, sigma_yld, F_1, gradF_1)
-            dalpha = -F_1 / DOT_PRODUCT(gradF_1, gradF_0)
+            dalpha = -F_1/DOT_PRODUCT(gradF_1, gradF_0)
             alpha1 = alpha0 + dalpha
-            Sigma_ij_1 = Sigma_ij_0 + alpha1 * gradF_0
+            Sigma_ij_1 = Sigma_ij_0+alpha1*gradF_0
             call tensor_components (Sigma_ij_1, Sigma_ij_dev_1)
 
-            call tau_mises((Sigma_ij_dev_1 - Sigma_ij_dev_0), err0)
-            call tau_mises((Sigma_ij_dev_0 - X_ij), err1)
+            call tau_mises(Sigma_ij_dev_1 - Sigma_ij_dev_0, err0)
+            call tau_mises(Sigma_ij_dev_0 - X_ij, err1)
 
             err0 = err0/err1
-
+            write(*,*) 'drift error', err0
+            write(*,*) 'F=',F_1
             Sigma_ij_0 = Sigma_ij_1
 
-            if (err0 .le. tol_nl) exit
+            if (err0 .lt. tol_nl) exit
             alpha0 = alpha1
-
+            write(*,*) 'again'
         end do
 
     end subroutine

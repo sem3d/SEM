@@ -12,6 +12,7 @@ module mlocations3d
     use sdomain
     use mshape8
     use mshape27
+    use selement
     implicit none
 contains
 
@@ -82,6 +83,22 @@ contains
         deallocate(coord)
     end subroutine find_location
 
+    subroutine find_coords_elem(Tdomain, NELEMENT)
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: NELEMENT
+        integer :: nnodes, i
+        type(element) :: Elem
+
+        nnodes = Tdomain%n_nodes
+        Elem=Tdomain%specel(NELEMENT)
+        write(*,*) "control_nodes"
+        do i=0,nnodes-1
+            write(*,*) "node=",Elem%Control_Nodes(i)
+            write(*,*) "    x=",Tdomain%Coord_Nodes(0, Elem%Control_Nodes(i))
+            write(*,*) "    y=",Tdomain%Coord_Nodes(1, Elem%Control_Nodes(i))
+            write(*,*) "    z=",Tdomain%Coord_Nodes(2, Elem%Control_Nodes(i))
+        end do
+    end subroutine find_coords_elem
 end module mlocations3d
 
 !! Local Variables:

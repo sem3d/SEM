@@ -515,15 +515,14 @@ contains
                                 eps_dev_xx = DXX(i,j,k)-eps_trace*M_1_3
                                 eps_dev_yy = DYY(i,j,k)-eps_trace*M_1_3
                                 eps_dev_zz = DZZ(i,j,k)-eps_trace*M_1_3
-                                eps_dev_xy = 0.5 * (DXY(i,j,k) + DYX(i,j,k))
-                                eps_dev_xz = 0.5 * (DZX(i,j,k) + DXZ(i,j,k))
-                                eps_dev_yz = 0.5 * (DZY(i,j,k) + DYZ(i,j,k))
+                                eps_dev_xy = (DXY(i,j,k) + DYX(i,j,k))
+                                eps_dev_xz = (DZX(i,j,k) + DXZ(i,j,k))
+                                eps_dev_yz = (DZY(i,j,k) + DYZ(i,j,k))
                                 ioff=offset(OUT_EPS_DEV)
                                 grandeur(ioff:ioff+5) = grandeur(ioff:ioff+5) +&
                                     (/weight*eps_dev_xx, weight*eps_dev_yy, weight*eps_dev_zz, &
                                     weight*eps_dev_xy, weight*eps_dev_xz, weight*eps_dev_yz/)
                                 if (nl_flag==1) then
-                                    
                                     ioff=ioff+6
                                     grandeur (ioff:ioff+5) = grandeur(ioff:ioff+5)+weight*fieldEP(i,j,k,:)
                                 endif

@@ -210,7 +210,7 @@ end subroutine calcul_forces_el
 subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poidsy, poidsz, &
     DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, mu_,la_, ngllx, nglly, ngllz, &
     EpsPl_ij_N_el, Sigma_ij_N_el, Xkin_ij_N_el, Riso_N_el, &
-    sigma_yld_el, b_iso_el, Rinf_iso_el, C_kin_el, kapa_kin_el)
+    sigma_yld_el, b_iso_el, Rinf_iso_el, C_kin_el, kapa_kin_el, Nelement)
 
     use sdomain
     use nonlinear
@@ -229,7 +229,8 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
     real, dimension(0:nglly-1), intent(in) :: poidsy
     real, dimension(0:ngllz-1), intent(in) :: poidsz
 
-    real, dimension(0:5,0:nglly-1,0:ngllx-1,0:ngllz-1), intent(inout) :: EpsPl_ij_N_el, Sigma_ij_N_el, Xkin_ij_N_el
+    real, dimension(0:5,0:nglly-1,0:ngllx-1,0:ngllz-1), intent(inout) :: EpsPl_ij_N_el
+    real, dimension(0:5,0:nglly-1,0:ngllx-1,0:ngllz-1), intent(inout) :: Sigma_ij_N_el, Xkin_ij_N_el
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1),     intent(inout) :: Riso_N_el
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: b_iso_el, C_kin_el, kapa_kin_el
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Rinf_iso_el, sigma_yld_el
@@ -249,7 +250,7 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
 
     real                 :: Rinf_iso, b_iso, C_kin, kapa_kin, Riso_N, sigma_yld, alpha_elp
     real, dimension(0:5) :: Sigma_ij_start, Sigma_ij_trial, dEpsilon_ij_alpha, Xkin_ij_N, dEpsilon_ij_pl
-
+    integer :: Nelement
     do k = 0,ngllz-1
         do j = 0,nglly-1
             do i = 0,ngllx-1
@@ -258,7 +259,7 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
                 xla = la_(i,j,k)
                 xla2mu = xla + 2. * xmu
 
-                ! ELASTIC PREDICTION =>     to be verified
+                ! ELASTIC PREDICTION 
 
                 sxx = xla2mu * DXX(i,j,k) + xla  * (DYY(i,j,k) + DZZ(i,j,k))
                 !---
@@ -284,33 +285,33 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
                 sigma_yld   = sigma_yld_el (i,j,k)
 
                 Sigma_ij_start = Sigma_ij_N_el(0:5,i,j,k)
-                Sigma_ij_trial = Sigma_ij_start+(/ sxx, syy, szz, sxy, sxz, syz /)
-                dEpsilon_ij_pl = 0d0
+                Sigma_ij_trial = Sigma_ij_start+(/sxx,syy,szz,sxy,sxz,syz/)
+                dEpsilon_ij_pl(0:5) = 0d0
                 call check_plasticity (Sigma_ij_trial, Sigma_ij_start, Xkin_ij_N, Riso_N, &
-                    sigma_yld, st_epl, alpha_elp)
+                    sigma_yld, st_epl, alpha_elp,Nelement,i,j,k)
                 !
                 ! PLASTIC CORRECTION
                 !
 
                 if (st_epl == 1) then
-                    dEpsilon_ij_alpha = (1-alpha_elp)*(/dxx, dyy, dzz, dxy+dyx, dxz+dzx, dyz+dzy/)
+                    write(*,*) 'alpha=',alpha_elp
+                    dEpsilon_ij_alpha = (1-alpha_elp)*(/dxx,dyy,dzz,dxy+dyx,dxz+dzx,dyz+dzy/)
                     call plastic_corrector(dEpsilon_ij_alpha, Sigma_ij_trial, Xkin_ij_N, sigma_yld, &
                         Riso_N, b_iso, Rinf_iso, C_kin, kapa_kin, xmu, xla, dEpsilon_ij_pl)
-
-                        sxx = Sigma_ij_trial(0)
-                        syy = Sigma_ij_trial(1)
-                        szz = Sigma_ij_trial(2)
-                        sxy = Sigma_ij_trial(3)
-                        sxz = Sigma_ij_trial(4)
-                        syz = Sigma_ij_trial(5)
                 end if
+                sxx = Sigma_ij_trial(0)
+                syy = Sigma_ij_trial(1)
+                szz = Sigma_ij_trial(2)
+                sxy = Sigma_ij_trial(3)
+                sxz = Sigma_ij_trial(4)
+                syz = Sigma_ij_trial(5)
                 !
                 ! UPDATE STATE
                 !
-                EpsPl_ij_N_el(0:5,i,j,k) = EpsPl_ij_N_el(0:5,i,j,k)+dEpsilon_ij_pl
                 Sigma_ij_N_el(0:5,i,j,k) = Sigma_ij_trial
                 Xkin_ij_N_el(0:5,i,j,k)  = Xkin_ij_N
                 Riso_N_el(i,j,k)         = Riso_N
+                EpsPl_ij_N_el(0:5,i,j,k) = EpsPl_ij_N_el(0:5,i,j,k)+dEpsilon_ij_pl
                 !
                 xi1 = Invgrad(0,0,i,j,k)
                 xi2 = Invgrad(1,0,i,j,k)

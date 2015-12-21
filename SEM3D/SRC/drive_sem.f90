@@ -284,7 +284,7 @@ subroutine RUN_PREPARED(Tdomain)
     if (rg == 0) write (*,*) "--> COMPUTING MASS MATRIX AND INTERNAL FORCES COEFFICIENTS "
     call define_arrays(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
-
+    write(*,*) "define arrays ok"
  ! - changing "material_type" of random subdomains
     do mat = 0, Tdomain%n_mat - 1
         if(Tdomain%sSubDomain(mat)%material_type == "R") Tdomain%sSubDomain(mat)%material_type = "S"
@@ -506,7 +506,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         print*,"--> Number of time steps: ",Tdomain%TimeD%ntimeMax
         print*
     end if
-
 !- snapshots counters
 !   (isort already defined for snapshots outputting index)
     i_snap = 1

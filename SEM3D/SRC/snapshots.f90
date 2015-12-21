@@ -1058,7 +1058,8 @@ contains
                                 do j = 0,nglly-1
                                     do i = 0,ngllx-1
                                         if (out_variables(OUT_PRESSION) == 1) then
-                                            field_press(i,j,k) = sum(field_stress(i,j,k,1:3))
+                                            field_press(i,j,k) = field_stress(i,j,k,0)+&
+                                                field_stress(i,j,k,1)+field_stress(i,j,k,2)
                                         end if
                                         if (flag_gradU) then
                                             call gather_field(el, field_eps_pl, Tdomain%champs0%Epsilon_pl)
@@ -1621,9 +1622,9 @@ contains
             fields%eps_dev_xx(idx) = DXX - eps_trace * M_1_3
             fields%eps_dev_yy(idx) = DYY - eps_trace * M_1_3
             fields%eps_dev_zz(idx) = DZZ - eps_trace * M_1_3
-            fields%eps_dev_xy(idx) = 0.5 * (DXY + DYX)
-            fields%eps_dev_xz(idx) = 0.5 * (DZX + DXZ)
-            fields%eps_dev_yz(idx) = 0.5 * (DZY + DYZ)
+            fields%eps_dev_xy(idx) = (DXY + DYX)
+            fields%eps_dev_xz(idx) = (DZX + DXZ)
+            fields%eps_dev_yz(idx) = (DZY + DYZ)
         end if
 
         if (out_flags(OUT_STRESS_DEV) == 1) then ! deviatoric stress state
@@ -1667,12 +1668,12 @@ contains
             fields%eps_dev_xx(idx) = dUxx - eps_trace * M_1_3
             fields%eps_dev_yy(idx) = dUyy - eps_trace * M_1_3
             fields%eps_dev_zz(idx) = dUzz - eps_trace * M_1_3
-            fields%eps_dev_xy(idx) = 0.5 * (dUxy + dUyx)
-            fields%eps_dev_xz(idx) = 0.5 * (dUzx + dUxz)
-            fields%eps_dev_yz(idx) = 0.5 * (dUyz + dUzy)
-            fields%eps_dev_pl_xx(idx) = strain_pl(0) - eps_trace_pl * M_1_3
-            fields%eps_dev_pl_yy(idx) = strain_pl(1) - eps_trace_pl * M_1_3
-            fields%eps_dev_pl_zz(idx) = strain_pl(2) - eps_trace_pl * M_1_3
+            fields%eps_dev_xy(idx) = dUxy + dUyx
+            fields%eps_dev_xz(idx) = dUzx + dUxz
+            fields%eps_dev_yz(idx) = dUyz + dUzy
+            fields%eps_dev_pl_xx(idx) = strain_pl(0) 
+            fields%eps_dev_pl_yy(idx) = strain_pl(1) 
+            fields%eps_dev_pl_zz(idx) = strain_pl(2)
             fields%eps_dev_pl_xy(idx) = strain_pl(3)
             fields%eps_dev_pl_xz(idx) = strain_pl(4)
             fields%eps_dev_pl_yz(idx) = strain_pl(5)

@@ -19,7 +19,7 @@ module forces_aniso
 contains
 
     subroutine forces_int_solid(Elem, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
-        n_solid, aniso, champs1, nl_flag, dt)
+        n_solid, aniso, champs1, nl_flag, dt,Nelement)
         type (Element), intent (INOUT) :: Elem
         type (subdomain), intent(IN) :: mat
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: htprimex
@@ -46,6 +46,7 @@ contains
         real, dimension(:,:,:,:), allocatable :: Xkin_ij_N_el
         real, dimension(:,:,:,:), allocatable :: EpsPl_ij_N_el
         real, intent(in) :: dt
+        integer :: Nelement
 
         m1 = Elem%ngllx;   m2 = Elem%nglly;   m3 = Elem%ngllz
 
@@ -83,26 +84,6 @@ contains
                 enddo
             enddo
         end if
-
-        if (nl_flag == 1) then
-            allocate(EpsPl_ij_N_el(0:5,0:m1-1,0:m2-1,0:m3-1))
-            allocate(Sigma_ij_N_el(0:5,0:m1-1,0:m2-1,0:m3-1))
-            allocate(Xkin_ij_N_el(0:5,0:m1-1,0:m2-1,0:m3-1))
-            allocate(Riso_N_el(0:m1-1,0:m2-1,0:m3-1))
-            write(*,*) "allocate stress-strain for calculations"
-            do k = 0,m3-1
-                do j = 0,m2-1
-                    do i = 0,m1-1
-                        Riso_N_el(i,j,k) = champs1%Riso(Elem%Idom(i,j,k))
-                        do i_dir = 0,5
-                            Sigma_ij_N_el(i_dir,i,j,k) = champs1%Stress(Elem%Idom(i,j,k),i_dir)
-                            Xkin_ij_N_el(i_dir,i,j,k)  = champs1%Xkin(Elem%Idom(i,j,k),i_dir)
-                        enddo
-                    enddo
-                enddo
-            enddo
-        end if
-
         if (n_solid>0) then
             if (aniso) then
             else
@@ -213,7 +194,7 @@ contains
                         Elem%sl%nl_param_el%lmc_param_el%b_iso,    &
                         Elem%sl%nl_param_el%lmc_param_el%Rinf_iso, &
                         Elem%sl%nl_param_el%lmc_param_el%C_kin,    &
-                        Elem%sl%nl_param_el%lmc_param_el%kapa_kin)
+                        Elem%sl%nl_param_el%lmc_param_el%kapa_kin,nelement)
                 else
                     call calcul_forces_el(Fox,Foy,Foz,  &
                         Elem%Invgrad, &
