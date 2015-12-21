@@ -4,10 +4,10 @@ ENABLE_LANGUAGE(Fortran CXX)
 set(PRJ ${PROJECT_SOURCE_DIR})
 set(BASE ${CMAKE_SOURCE_DIR})
 
-
 set(MESHC_SRC
   ${BASE}/COMMON/h5helper.cpp
   ${PRJ}/SRC/main_mesh2d.cpp
+  ${BASE}/COMMON/read_unv.cpp
 )
 
 set(MESH_EXTRA_LIBS ${SEM_EXTRA_LIBS})
