@@ -4,6 +4,7 @@
 !!
 
 module scomms
+    implicit none
 
     type :: exchange_vector
        integer :: ndata ! Taille allouee de Give/Take

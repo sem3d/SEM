@@ -8,6 +8,7 @@
 !!
 !<
 module stimeparam
+    implicit none
     type :: time
 
        logical :: acceleration_scheme, velocity_scheme

@@ -4,12 +4,12 @@
 !!
 !>
 !!\file logical_input.f90
-!!\brief Contient la définition du type Logical_array.
+!!\brief Contient la definition du type Logical_array.
 !!
 !<
 
 module logical_input
-
+    implicit none
     type :: Logical_array
 
        logical :: save_trace,save_snapshots,save_energy,plot_grid,save_restart,run_restart

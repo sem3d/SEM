@@ -10,7 +10,7 @@
 
 module svertices
 
-
+    implicit none
     type :: vertex
        integer :: domain
        integer :: Iglobnum_Vertex

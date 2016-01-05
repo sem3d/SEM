@@ -9,7 +9,6 @@
 !<
 
 module sdomain
-
     use selement
     use sfaces
     use sedges
@@ -28,7 +27,8 @@ module sdomain
     use schamps
     use sem_c_config
     use sinterface
-    
+    implicit none
+
     type :: domain
        integer :: communicateur !<<< Communicator including all SEM processors
        integer :: rank          !<<< Rank of this process within this communicator
