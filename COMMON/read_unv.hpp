@@ -1,20 +1,19 @@
 // UNV specifications : http://www.sdrl.uc.edu/sdrl/referenceinfo/universalfileformats/file-format-storehouse
 
-#ifndef read_unv_h
-#define read_unv_h 1
+#ifndef READ_UNV_HPP
+#define READ_UNV_HPP
 
 #include <string>
 #include <vector>
 #include <tuple>
+#include <cstdint>
 
-using namespace std;
-
-typedef tuple<string, int>                                     group;    // Group : name, group ID (0-based)
-typedef tuple<double, double, double, group>                   node;     // Nodes : X, Y, Z, group
-typedef tuple<int, int, vector<unsigned long long int>, group> elem;     // Elements : type, dim, node ID (0-based), group
-typedef vector<group>                                          lsgroups;
-typedef vector<node>                                           lsnodes;
-typedef vector<elem>                                           lselems;
+typedef std::tuple<std::string, int>                        group; // Group : name, group ID (0-based)
+typedef std::tuple<double, double, double, group>           node;  // Nodes : X, Y, Z, group
+typedef std::tuple<int, int, std::vector<uint64_t>, group>  elem;  // Elements : type, dim, node ID (0-based), group
+typedef std::vector<group>                                  lsgroups;
+typedef std::vector<node>                                   lsnodes;
+typedef std::vector<elem>                                   lselems;
 
 /*
  * read_unv_mesh : read mesh from unv file.
@@ -32,8 +31,16 @@ typedef vector<elem>                                           lselems;
  * Usually, unv exported files are messy (they contain a lot more than one needs to use).
  * Filters enable to shrink the data set extracted from the unv file to a more convenient subset.
  */
-int read_unv_mesh ( string const & fpath, lsnodes & nodes, lselems & elems,
-                    vector<int> * filterelems = NULL, vector<string> * filtergroups = NULL,
+int read_unv_mesh ( std::string const & fpath, lsnodes & nodes, lselems & elems,
+                    std::vector<int> * filterelems = NULL,
+                    std::vector<std::string> * filtergroups = NULL,
                     bool vtkformat = true );
 
 #endif
+/* Local Variables:                                                        */
+/* mode: c++                                                               */
+/* show-trailing-whitespace: t                                             */
+/* coding: utf-8                                                           */
+/* c-file-style: "stroustrup"                                              */
+/* End:                                                                    */
+/* vim: set sw=4 ts=8 et tw=80 smartindent :                               */

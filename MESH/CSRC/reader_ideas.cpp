@@ -3,10 +3,8 @@
 /* Copyright CEA, ECP, IPGP                                                */
 /*                                                                         */
 
-#include "reader_ideas.h"
 
 #include <cstdio>
-#include "mesh.h"
 #include <cstring>
 
 #include <iostream>      // cout, cerr
@@ -14,6 +12,11 @@
 #include <sstream>       // stringstream
 #include <unordered_map> // unordered_map
 #include <algorithm>     // find
+
+#include "mesh.h"
+#include "reader_ideas.h"
+
+using namespace std;
 
 MeshReaderIdeas::MeshReaderIdeas(const char* fname)
 {

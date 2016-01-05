@@ -15,14 +15,12 @@
 #include <hdf5.h>
 #include <cassert>
 #include <unistd.h>
+#include <cstdint>
 #include "metis.h"
 #include "h5helper.h"
-#include "../../COMMON/read_unv.hpp"
+#include "read_unv.hpp"
 
-using std::string;
-using std::vector;
-using std::pair;
-using std::map;
+using namespace std;
 
 class Point {
     public:
@@ -38,7 +36,7 @@ typedef tuple<int,int,int,int,int> edge_info_t; // Edge info  : <edgenum,elem0,e
 class Quad {
     public:
         Quad() {nn = 0; n = NULL;}
-        Quad(vector<unsigned long long int> & nodeID) {nn = nodeID.size(); n = new int[nn]; for(int i=0; i<nn; i++) n[i]=nodeID[i];}
+        Quad(vector<uint64_t> & nodeID) {nn = nodeID.size(); n = new int[nn]; for(int i=0; i<nn; i++) n[i]=nodeID[i];}
         virtual ~Quad() {if(n){delete [] n; n = NULL; nn = 0;};}
         Quad(const Quad& Q) {nn = 0; n = NULL; *this = Q;}
         Quad& operator=(const Quad & Q) {
@@ -71,7 +69,7 @@ class Quad4 : public Quad {
     public:
         Quad4() {nn = 0; n = NULL;}
         Quad4(const int* q):Quad() {nn = 4; n = new int[nn]; for(int i=0; q && i<nn; i++) n[i]=q[i];}
-        Quad4(vector<unsigned long long int> & nodeID):Quad(nodeID) {}
+        Quad4(vector<uint64_t> & nodeID):Quad(nodeID) {}
         virtual edge_idx_t get_edge_from_node(int i) // Return edge oriented the same way (low -> high) whatever element edge orientation may be
         {
             assert (i>=0 && i<=3);
@@ -86,7 +84,7 @@ class Quad8 : public Quad4 { // Assume intermediate nodes are stored after princ
     public:
         Quad8() {nn = 0; n = NULL;}
         Quad8(const int* q):Quad4() {nn = 8; n = new int[nn]; for(int i=0; q && i<nn; i++) n[i]=q[i];}
-        Quad8(vector<unsigned long long int> & nodeID):Quad4(nodeID) {}
+        Quad8(vector<uint64_t> & nodeID):Quad4(nodeID) {}
         virtual void swap_orient() {int tmp=n[4]; n[4]=n[7]; n[7]=tmp; tmp=n[5]; n[5]=n[6]; n[6]=tmp; Quad4::swap_orient();};
         virtual edge_idx_t get_edge_from_node(int i) {assert (i>=0 && i<=7); int ii = (i >= 4) ? i - 4 : i; return Quad4::get_edge_from_node(ii);};
         virtual int get_face_from_node(int i) {assert (i>=0 && i<=7); int ii = (i >= 4) ? i - 4 : i; return ii;};
@@ -350,7 +348,7 @@ void Mesh2D::read_mesh(const string& fname)
     for (unsigned int i = 0; i < elems.size(); i++)
     {
       int type = get<0>(elems[i]);
-      vector<unsigned long long int> nodeID = get<2>(elems[i]);
+      vector<uint64_t> nodeID = get<2>(elems[i]);
       group gp = get<3>(elems[i]);
       if(type == 44) {Quad4* q = new Quad4(nodeID); q->check_orient(m_px, m_py); m_quads.push_back(q); m_mat1.push_back(get<1>(gp));}; // Quad4
       if(type == 45) {Quad8* q = new Quad8(nodeID); q->check_orient(m_px, m_py); m_quads.push_back(q); m_mat1.push_back(get<1>(gp));}; // Quad8

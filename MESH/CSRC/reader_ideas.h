@@ -6,12 +6,13 @@
 #ifndef _READER_IDEAS_H_
 #define _READER_IDEAS_H_
 
-#include "mesh.h"
 #include <cstdio>
 #include <map>
 #include <string>
 #include <vector>
-#include "../../COMMON/read_unv.hpp"
+
+#include "mesh.h"
+#include "read_unv.hpp"
 
 
 class MeshReaderIdeas {
