@@ -30,8 +30,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/PlaneW.f90
     ${PRJ}/SRC/Modules/Surface.f90
     ${PRJ}/SRC/Modules/tensor_util.f90
-    ${PRJ}/SRC/Solid/attenuation_aniso_update.f90
-    ${PRJ}/SRC/Solid/attenuation_update.f90
+    ${PRJ}/SRC/Solid/attenuation_solid.f90
     ${PRJ}/SRC/Solid/calcul_forces.f90
     ${PRJ}/SRC/Solid/calcul_forces_aniso.f90
     ${PRJ}/SRC/Solid/calcul_forces_aniso_att.f90

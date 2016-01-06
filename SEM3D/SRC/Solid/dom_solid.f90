@@ -13,6 +13,8 @@ contains
     subroutine forces_int_solid(Elem, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
                n_solid, aniso, champs1)
 
+        use attenuation_solid
+
         type (Element), intent (INOUT) :: Elem
         type (subdomain), intent(IN) :: mat
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: htprimex
