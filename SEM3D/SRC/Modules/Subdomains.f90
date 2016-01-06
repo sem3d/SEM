@@ -12,38 +12,48 @@
 !<
 
 module ssubdomains
+    use constants
     implicit none
+
     type Subdomain
-
-        logical :: Filtering, Px, Py, Pz, Left, Forward, Down
-
-        integer :: NGLLx, NGLLy, NGLLz, npow
-
-        !  modif mariotti fevrier 2007 cea
-        ! Qmu en plus
-        real :: Pspeed, Sspeed, Ddensity, Dt, Apow, freq, DLambda, DMu, Qmu, Q
-        real :: DKappa, Qpression
-        real, dimension (:), pointer :: GLLcx, GLLwx
-        real, dimension (:,:), pointer :: hprimex, hTprimex
-        real, dimension (:), pointer :: GLLcy, GLLwy
-        real, dimension (:,:), pointer :: hprimey, hTprimey
-        real, dimension (:), pointer :: GLLcz, GLLwz
-        real, dimension (:,:), pointer :: hprimez, hTprimez
-
         character(len=1) :: material_type
         integer          :: material_definition
-        !Modification to accept random media
+
+        !! Numerotation gll
+        integer :: NGLLx, NGLLy, NGLLz
+        real(fpp), dimension (:), pointer :: GLLcx, GLLwx
+        real(fpp), dimension (:,:), pointer :: hprimex, hTprimex
+        real(fpp), dimension (:), pointer :: GLLcy, GLLwy
+        real(fpp), dimension (:,:), pointer :: hprimey, hTprimey
+        real(fpp), dimension (:), pointer :: GLLcz, GLLwz
+        real(fpp), dimension (:,:), pointer :: hprimez, hTprimez
+
+        !! Definition materiau solide, isotrope
+        real(fpp) :: Pspeed, Sspeed, Ddensity
+        real(fpp) :: DLambda, DMu
+        real(fpp) :: DKappa
+
+        !! Definition materiau solide anisotrope
+        ! TODO
+
+        !! ATTENUATION
+        real(fpp) :: Qmu, Qpression
+
+        !! PML
+        logical :: Px, Py, Pz, Left, Forward, Down
+        real(fpp), dimension(4) :: plane_eqn
+        integer :: npow
+        real(fpp) :: Apow
+
+        !! RANDOM
         character(len = 15) :: corrMod
         integer             :: assocMat = -1
         integer             :: seedStart
-        !integer             :: nElem = 0 !number of elements in each subdomain (by proc) - mesh3d.f90(362)
-        !integer            , dimension(:)   , allocatable :: elemList !List of elements in "Tdomain%specel(:)" that belong to this subdomain (by proc)
-        !logical            , dimension(:,:) , allocatable :: globCoordMask
         character(len = 30), dimension(:)   , allocatable :: margiFirst
-        real               , dimension(:)   , allocatable :: varProp
+        real(fpp)          , dimension(:)   , allocatable :: varProp
         integer            , dimension(:)   , allocatable :: chosenSeed
-        real               , dimension(:)   , allocatable :: corrL
-        real               , dimension(0:2) :: MinBound, MaxBound
+        real(fpp)          , dimension(:)   , allocatable :: corrL
+        real(fpp)          , dimension(0:2) :: MinBound, MaxBound
 
     end type Subdomain
 

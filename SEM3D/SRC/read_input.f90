@@ -219,16 +219,38 @@ contains
 
     subroutine read_material_file(Tdomain)
         use sdomain
+        use orientation
         implicit none
         type(domain), intent(inout) :: Tdomain
+        integer :: i, mat
 
         call read_material_file_v1(Tdomain)
+
+        !- GLL properties in elements, on faces, edges.
+        do i = 0,Tdomain%n_elem-1
+            mat = Tdomain%specel(i)%mat_index
+            Tdomain%specel(i)%ngllx = Tdomain%sSubDomain(mat)%NGLLx
+            Tdomain%specel(i)%nglly = Tdomain%sSubDomain(mat)%NGLLy
+            Tdomain%specel(i)%ngllz = Tdomain%sSubDomain(mat)%NGLLz
+            Tdomain%specel(i)%domain = get_domain(Tdomain%sSubDomain(mat))
+        end do
+
+        call apply_mat_to_faces(Tdomain)
+        call apply_mat_to_edges(Tdomain)
+        call apply_mat_to_vertices(Tdomain)
+        call apply_interface(Tdomain, Tdomain%intSolPml, DM_SOLID, DM_SOLID_PML, .false.)
+        call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID, DM_FLUID_PML, .false.)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID, DM_FLUID, .false.)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_PML, DM_FLUID_PML, .false.)
+        call apply_interface(Tdomain, Tdomain%intSolPml, DM_SOLID, DM_SOLID_PML, .true.)
+        call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID, DM_FLUID_PML, .true.)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID, DM_FLUID, .true.)
+        call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_PML, DM_FLUID_PML, .true.)
     end subroutine read_material_file
 
     subroutine read_material_file_v1(Tdomain)
         use sdomain
         use semdatafiles
-        use orientation
         use mpi
         use build_prop_files
         implicit none
@@ -237,6 +259,8 @@ contains
         character(Len=MAX_FILE_SIZE) :: fnamef
         integer :: i, n_aus, npml, mat, nRandom
         integer :: rg
+        real :: dummy_dt, dummy_freq
+        logical :: dummy_filtering
 
         rg = Tdomain%rank
         npml = 0
@@ -269,11 +293,10 @@ contains
                 Tdomain%sSubDomain(i)%NGLLx,         &
                 Tdomain%sSubDomain(i)%NGLLy,         &
                 Tdomain%sSubDomain(i)%NGLLz,         &
-                Tdomain%sSubDomain(i)%Dt,            &
+                dummy_Dt,            &
                 Tdomain%sSubDomain(i)%Qpression,     &
                 Tdomain%sSubDomain(i)%Qmu
 
-            Tdomain%sSubdomain(i)%Filtering = .false.
 
             if(rg==0 .and. .false.) then
                 write (*,*) 'Material :', i
@@ -283,7 +306,6 @@ contains
                 write (*,*) 'Density  :', Tdomain%sSubDomain(i)%dDensity
                 write (*,*) 'NGLL     :', Tdomain%sSubDomain(i)%NGLLx, &
                     Tdomain%sSubDomain(i)%NGLLy, Tdomain%sSubDomain(i)%NGLLz
-                write (*,*) 'Dt       :', Tdomain%sSubDomain(i)%Dt
                 write (*,*) 'Qp       :', Tdomain%sSubDomain(i)%Qpression
                 write (*,*) 'Qmu      :', Tdomain%sSubDomain(i)%Qmu
             endif
@@ -309,7 +331,7 @@ contains
             read(13,*); read(13,*)
             do i = 0,Tdomain%n_mat-1
                 if(.not. Tdomain%not_PML_List(i)) then
-                    read(13,*) Tdomain%sSubdomain(i)%Filtering, &
+                    read(13,*) dummy_Filtering, &
                         Tdomain%sSubdomain(i)%npow,      &
                         Tdomain%sSubdomain(i)%Apow,      &
                         Tdomain%sSubdomain(i)%Px,        &
@@ -318,7 +340,7 @@ contains
                         Tdomain%sSubdomain(i)%Forward,   &
                         Tdomain%sSubdomain(i)%Pz,        &
                         Tdomain%sSubdomain(i)%Down,      &
-                        Tdomain%sSubdomain(i)%freq,      &
+                        dummy_freq,      &
                         Tdomain%sSubdomain(i)%assocMat
                 endif
             enddo
@@ -341,8 +363,7 @@ contains
                     allocate(Tdomain%sSubdomain(i)%corrL(0:2))
                     allocate(Tdomain%sSubdomain(i)%varProp(0:2))
                     allocate(Tdomain%sSubdomain(i)%margiFirst(0:2))
-                    !write(*,*) "Allocation finished"
-                    !corrMod, corrLX, corrLY, corrLZ, margiFirstDens, varDens, margiFirstLambda, varLambda, margiFirstMu, varMu
+
                     read(13,*) Tdomain%sSubdomain(i)%corrMod,       &
                         Tdomain%sSubdomain(i)%corrL(0),      &
                         Tdomain%sSubdomain(i)%corrL(1),      &
@@ -360,26 +381,6 @@ contains
 
         close(13)
 
-        !- GLL properties in elements, on faces, edges.
-        do i = 0,Tdomain%n_elem-1
-            mat = Tdomain%specel(i)%mat_index
-            Tdomain%specel(i)%ngllx = Tdomain%sSubDomain(mat)%NGLLx
-            Tdomain%specel(i)%nglly = Tdomain%sSubDomain(mat)%NGLLy
-            Tdomain%specel(i)%ngllz = Tdomain%sSubDomain(mat)%NGLLz
-            Tdomain%specel(i)%domain = get_domain(Tdomain%sSubDomain(mat))
-        end do
-
-        call apply_mat_to_faces(Tdomain)
-        call apply_mat_to_edges(Tdomain)
-        call apply_mat_to_vertices(Tdomain)
-        call apply_interface(Tdomain, Tdomain%intSolPml, DM_SOLID, DM_SOLID_PML, .false.)
-        call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID, DM_FLUID_PML, .false.)
-        call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID, DM_FLUID, .false.)
-        call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_PML, DM_FLUID_PML, .false.)
-        call apply_interface(Tdomain, Tdomain%intSolPml, DM_SOLID, DM_SOLID_PML, .true.)
-        call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID, DM_FLUID_PML, .true.)
-        call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID, DM_FLUID, .true.)
-        call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_PML, DM_FLUID_PML, .true.)
     end subroutine read_material_file_v1
 
 

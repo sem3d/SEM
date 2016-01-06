@@ -114,7 +114,7 @@ contains
 
                             !- Runge-kutta parameters for the time integration of the terms related to the relaxation function
                             mat = Tdomain%specel(n)%mat_index
-                            dt = Tdomain%sSubdomain(mat)%dt
+                            dt = Tdomain%TimeD%dtmin
                             call RK4_attenu_coefficients(n_solid,dt,omega_tau_s,agamma_mu,   &
                                 Tdomain%specel(n)%sl%factor_common_3(:,i,j,k),             &
                                 Tdomain%specel(n)%sl%alphaval_3(:,i,j,k),                  &

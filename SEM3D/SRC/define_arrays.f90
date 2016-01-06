@@ -315,6 +315,9 @@ contains
         real, dimension(:,:,:), allocatable :: temp_PMLx,temp_PMLy
         real, dimension(:,:,:), allocatable :: RKmod
         real, dimension(:,:,:), allocatable :: wx,wy,wz
+        real :: dt
+
+        dt = Tdomain%TimeD%dtmin
 
         if (specel%domain/=DM_SOLID_PML .and. specel%domain/=DM_FLUID_PML) then
             stop "init_pml_properties should not be called for non-pml element"
@@ -369,11 +372,11 @@ contains
 
         !- strong formulation for stresses. Dumped mass elements, convolutional terms.
         ! Compute DumpS(x,y,z) and DumpMass(0,1,2)
-        call define_PML_DumpInit(ngllx,nglly,ngllz,mat%Dt,wx,specel%MassMat, &
+        call define_PML_DumpInit(ngllx,nglly,ngllz,dt,wx,specel%MassMat, &
             specel%xpml%DumpSx,specel%xpml%DumpMass(:,:,:,0))
-        call define_PML_DumpInit(ngllx,nglly,ngllz,mat%Dt,wy,specel%MassMat, &
+        call define_PML_DumpInit(ngllx,nglly,ngllz,dt,wy,specel%MassMat, &
             specel%xpml%DumpSy,specel%xpml%DumpMass(:,:,:,1))
-        call define_PML_DumpInit(ngllx,nglly,ngllz,mat%Dt,wz,specel%MassMat, &
+        call define_PML_DumpInit(ngllx,nglly,ngllz,dt,wz,specel%MassMat, &
             specel%xpml%DumpSz,specel%xpml%DumpMass(:,:,:,2))
 
         call assemble_DumpMass(Tdomain,specel)

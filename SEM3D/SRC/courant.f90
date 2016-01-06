@@ -105,10 +105,6 @@ subroutine Compute_Courant (Tdomain,rg)
 
     !! Affectation a tous les materiaux
     !!
-    do n=0,Tdomain%n_elem - 1
-        mat = Tdomain%specel(n)%mat_index
-        Tdomain%sSubdomain(mat)%Dt = dt
-    enddo
     Tdomain%TimeD%dtmin = dt
     if (Tdomain%TimeD%dtmin > 0) then
         Tdomain%TimeD%ntimeMax = int (Tdomain%TimeD%Duration/Tdomain%TimeD%dtmin)
