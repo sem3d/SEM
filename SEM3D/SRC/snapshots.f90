@@ -781,7 +781,6 @@ contains
 
     subroutine save_field_h5(Tdomain, isort)
         use sdomain
-        use forces_aniso
 
         implicit none
 
