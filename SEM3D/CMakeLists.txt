@@ -30,20 +30,22 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/PlaneW.f90
     ${PRJ}/SRC/Modules/Surface.f90
     ${PRJ}/SRC/Modules/tensor_util.f90
-    ${PRJ}/SRC/attenuation_aniso_update.f90
-    ${PRJ}/SRC/attenuation_update.f90
-    ${PRJ}/SRC/calcul_forces.f90
-    ${PRJ}/SRC/calcul_forces_aniso.f90
-    ${PRJ}/SRC/calcul_forces_aniso_att.f90
-    ${PRJ}/SRC/calcul_forces_att.f90
-    ${PRJ}/SRC/calcul_forces_fluid.f90
+    ${PRJ}/SRC/Solid/attenuation_solid.f90
+    ${PRJ}/SRC/Solid/calcul_forces.f90
+    ${PRJ}/SRC/Solid/calcul_forces_aniso.f90
+    ${PRJ}/SRC/Solid/calcul_forces_aniso_att.f90
+    ${PRJ}/SRC/Solid/calcul_forces_att.f90
+    ${PRJ}/SRC/Fluid/calcul_forces_fluid.f90
+    ${PRJ}/SRC/Solid/dom_solid.f90
+    ${PRJ}/SRC/SolidPML/dom_solidpml.f90
+    ${PRJ}/SRC/Fluid/dom_fluid.f90
+    ${PRJ}/SRC/FluidPML/dom_fluidpml.f90
     ${PRJ}/SRC/compute_GLL.f90
     ${PRJ}/SRC/courant.f90
     ${PRJ}/SRC/define_arrays.f90
     ${PRJ}/SRC/define_Neumann_properties.f90
     ${PRJ}/SRC/define_planew_properties.f90
     ${PRJ}/SRC/double_couple.f90
-    ${PRJ}/SRC/forces_int.f90
     ${PRJ}/SRC/global_numbering.f90
     ${PRJ}/SRC/mesh3d.f90
     ${PRJ}/SRC/read_input.f90

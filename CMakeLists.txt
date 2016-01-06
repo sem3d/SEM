@@ -8,7 +8,7 @@ ENABLE_TESTING()
 
 if (NOT BUILD_WITH_MKA)
 # Hors mka il faut chercher MPI et HDF5 ici
-option(OPT_MPI "Compilation en mode MPI")
+option(OPT_MPI "Compilation en mode MPI" ON)
 
 # Obligatoire mais le flag n'est pas supprime partout
 if(HDF5_DIR)
