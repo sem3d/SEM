@@ -259,7 +259,7 @@ end subroutine comm_forces
 subroutine Newmark_Predictor(Tdomain,champs1)
     use schamps
     use sdomain
-    use forces_aniso, only : pred_flu_pml
+    use dom_fluidpml
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
@@ -409,7 +409,10 @@ subroutine internal_forces(Tdomain,champs1)
     ! volume forces - depending on rheology
     use sdomain
     use schamps
-    use forces_aniso
+    use dom_solid
+    use dom_solidpml
+    use dom_fluid
+    use dom_fluidpml
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
