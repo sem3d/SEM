@@ -257,19 +257,19 @@ subroutine read_restart (Tdomain,rg, isort)
         write (*,'(A40,I8,A1,f10.6)') "SEM : REPRISE a iteration et tps:", it," ",rtime
     endif
 
-    if (Tdomain%ngll_s.gt.0) then
-        call read_dataset(elem_id, "sl_Veloc", Tdomain%champs0%Veloc, ibase=0)
-        call read_dataset(elem_id, "sl_Displ", Tdomain%champs0%Depla, ibase=0)
+    if (Tdomain%sdom%ngll.gt.0) then
+        call read_dataset(elem_id, "sl_Veloc", Tdomain%sdom%champs0%Veloc, ibase=0)
+        call read_dataset(elem_id, "sl_Displ", Tdomain%sdom%champs0%Depla, ibase=0)
     end if
-    if (Tdomain%ngll_f.gt.0) then
-        call read_dataset(elem_id, "fl_VelPhi", Tdomain%champs0%VelPhi, ibase=0)
-        call read_dataset(elem_id, "fl_Phi", Tdomain%champs0%Phi, ibase=0)
+    if (Tdomain%fdom%ngll.gt.0) then
+        call read_dataset(elem_id, "fl_VelPhi", Tdomain%fdom%champs0%VelPhi, ibase=0)
+        call read_dataset(elem_id, "fl_Phi",    Tdomain%fdom%champs0%Phi, ibase=0)
     end if
-    if (Tdomain%ngll_pmls.gt.0) then
-        call read_dataset(elem_id, "spml_Veloc", Tdomain%champs0%VelocPML, ibase=0)
+    if (Tdomain%spmldom%ngll.gt.0) then
+        call read_dataset(elem_id, "spml_Veloc", Tdomain%spmldom%champs0%VelocPML, ibase=0)
     end if
-    if (Tdomain%ngll_pmlf.gt.0) then
-        call read_dataset(elem_id, "fpml_VelPhi", Tdomain%champs0%fpml_VelPhi, ibase=0)
+    if (Tdomain%fpmldom%ngll.gt.0) then
+      call read_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs0%fpml_VelPhi, ibase=0)
     end if
     call read_EpsilonVol(Tdomain, elem_id)
     call read_EpsilonDev(Tdomain, elem_id)

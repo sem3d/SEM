@@ -8,16 +8,12 @@ module sf_coupling
     implicit none
 
 contains
-subroutine StoF_coupling(Tdomain, champs0, champs1)
+subroutine StoF_coupling(Tdomain)
     ! from solid to fluid: velocity (dot) normal
     use sdomain
-    use scomm
-    use schamps
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    type(champs), intent(in) :: champs0
-    type(champs), intent(inout) :: champs1
     !
     integer:: ngll_sf, ngll_sf_pml
     integer  :: i,j
@@ -34,7 +30,8 @@ subroutine StoF_coupling(Tdomain, champs0, champs1)
         BtN = Tdomain%SF%SF_Btn(:,i)
         vn = 0.
         do j = 0,2
-            champs1%ForcesFl(idxF) = champs1%ForcesFl(idxF) + (BtN(j) * champs0%Veloc(idxS,j))
+            Tdomain%fdom%champs1%ForcesFl(idxF) = Tdomain%fdom%champs1%ForcesFl(idxF) &
+                                                  + (BtN(j) * Tdomain%sdom%champs0%Veloc(idxS,j))
         enddo
     enddo
 
@@ -46,26 +43,23 @@ subroutine StoF_coupling(Tdomain, champs0, champs1)
         vn2 = 0.
         vn3 = 0.
         do j = 0,2
-            vn1 = vn1 + (BtN(j) * champs0%VelocPML(idxS,j,0))
-            vn2 = vn2 + (BtN(j) * champs0%VelocPML(idxS,j,1))
-            vn3 = vn3 + (BtN(j) * champs0%VelocPML(idxS,j,2))
+            vn1 = vn1 + (BtN(j) * Tdomain%spmldom%champs0%VelocPML(idxS,j,0))
+            vn2 = vn2 + (BtN(j) * Tdomain%spmldom%champs0%VelocPML(idxS,j,1))
+            vn3 = vn3 + (BtN(j) * Tdomain%spmldom%champs0%VelocPML(idxS,j,2))
         enddo
-        champs1%fpml_Forces(idxF,0) = champs1%fpml_Forces(idxF,0) + vn1
-        champs1%fpml_Forces(idxF,1) = champs1%fpml_Forces(idxF,1) + vn2
-        champs1%fpml_Forces(idxF,2) = champs1%fpml_Forces(idxF,2) + vn3
+        Tdomain%fpmldom%champs1%fpml_Forces(idxF,0) = Tdomain%fpmldom%champs1%fpml_Forces(idxF,0) + vn1
+        Tdomain%fpmldom%champs1%fpml_Forces(idxF,1) = Tdomain%fpmldom%champs1%fpml_Forces(idxF,1) + vn2
+        Tdomain%fpmldom%champs1%fpml_Forces(idxF,2) = Tdomain%fpmldom%champs1%fpml_Forces(idxF,2) + vn3
     enddo
 end subroutine StoF_coupling
 !----------------------------------------------------------------
 !----------------------------------------------------------------
-subroutine FtoS_coupling(Tdomain, champs0, champs1)
+subroutine FtoS_coupling(Tdomain)
     ! from fluid to solid: normal times pressure (= -rho . VelPhi)
     use sdomain
-    use scomm
     implicit none
 
     type(domain), intent(inout) :: Tdomain
-    type(champs), intent(in) :: champs0
-    type(champs), intent(inout) :: champs1
     !
     real, dimension(0:2) :: BtN
     integer :: ngll_sf, ngll_sf_pml
@@ -80,7 +74,8 @@ subroutine FtoS_coupling(Tdomain, champs0, champs1)
         idxF = Tdomain%SF%intSolFlu%surf1%map(i)
         BtN = Tdomain%SF%SF_Btn(:,i)
         do j = 0,2
-            champs1%Forces(idxS,j) = champs1%Forces(idxS,j) - (BtN(j) * champs0%VelPhi(idxF))
+            Tdomain%sdom%champs1%Forces(idxS,j) = Tdomain%sdom%champs1%Forces(idxS,j) &
+                                                  - (BtN(j) * Tdomain%fdom%champs0%VelPhi(idxF))
         enddo
     enddo
 
@@ -89,9 +84,12 @@ subroutine FtoS_coupling(Tdomain, champs0, champs1)
         idxF = Tdomain%SF%intSolFluPml%surf1%map(i)
         BtN = Tdomain%SF%SFPml_Btn(:,i)
         do j = 0,2
-            champs1%ForcesPML(idxS,j,0) = champs1%ForcesPML(idxS,j,0) - (BtN(j)*champs0%fpml_VelPhi(idxF,0))
-            champs1%ForcesPML(idxS,j,1) = champs1%ForcesPML(idxS,j,1) - (BtN(j)*champs0%fpml_VelPhi(idxF,1))
-            champs1%ForcesPML(idxS,j,2) = champs1%ForcesPML(idxS,j,2) - (BtN(j)*champs0%fpml_VelPhi(idxF,2))
+            Tdomain%spmldom%champs1%ForcesPML(idxS,j,0) = Tdomain%spmldom%champs1%ForcesPML(idxS,j,0) &
+                                                          - (BtN(j)*Tdomain%fpmldom%champs0%fpml_VelPhi(idxF,0))
+            Tdomain%spmldom%champs1%ForcesPML(idxS,j,1) = Tdomain%spmldom%champs1%ForcesPML(idxS,j,1) &
+                                                          - (BtN(j)*Tdomain%fpmldom%champs0%fpml_VelPhi(idxF,1))
+            Tdomain%spmldom%champs1%ForcesPML(idxS,j,2) = Tdomain%spmldom%champs1%ForcesPML(idxS,j,2) &
+                                                          - (BtN(j)*Tdomain%fpmldom%champs0%fpml_VelPhi(idxF,2))
         enddo
     enddo
 end subroutine FtoS_coupling

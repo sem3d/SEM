@@ -875,9 +875,9 @@ contains
             domain_type = get_domain(sub_dom_mat)
             select case(domain_type)
             case (DM_SOLID)
-                call gather_field(el, field_displ, Tdomain%champs0%Depla)
-                call gather_field(el, field_veloc, Tdomain%champs0%Veloc)
-                call gather_field(el, field_accel, Tdomain%champs0%Forces)
+                call gather_field(el, field_displ, Tdomain%sdom%champs0%Depla)
+                call gather_field(el, field_veloc, Tdomain%sdom%champs0%Veloc)
+                call gather_field(el, field_accel, Tdomain%sdom%champs0%Forces)
                 call pressure_solid(ngllx,nglly,ngllz,sub_dom_mat%htprimex,              &
                     sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
                     el%InvGrad,field_displ, el%Lambda, el%Mu, field_press)
@@ -889,7 +889,7 @@ contains
                 endif
             case (DM_SOLID_PML)
                 field_displ = 0
-                call gather_field_pml(el, field_veloc, Tdomain%champs0%VelocPML)
+                call gather_field_pml(el, field_veloc, Tdomain%spmldom%champs0%VelocPML)
                 if (flag_gradU/=0) then
                     dxx = 0
                     dxy = 0
@@ -905,11 +905,11 @@ contains
                 field_press = 0
             case (DM_FLUID)
                 field_displ = 0
-                call gather_field_fluid(el, field_phi, Tdomain%champs0%Phi)
+                call gather_field_fluid(el, field_phi, Tdomain%fdom%champs0%Phi)
                 call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex,              &
                             sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
                             el%InvGrad,el%density,field_phi,field_veloc)
-                call gather_field_fluid(el, field_vphi, Tdomain%champs0%VelPhi)
+                call gather_field_fluid(el, field_vphi, Tdomain%fdom%champs0%VelPhi)
                 call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex,              &
                             sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
                             el%InvGrad,el%density,field_vphi,field_accel)
@@ -927,11 +927,11 @@ contains
                 field_press = -field_vphi
             case (DM_FLUID_PML)
                 field_displ = 0
-                call gather_field_fpml(el, field_phi, Tdomain%champs0%fpml_Phi)
+                call gather_field_fpml(el, field_phi, Tdomain%fpmldom%champs0%fpml_Phi)
                 call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex,              &
                             sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
                             el%InvGrad,el%density,field_phi,field_veloc)
-                call gather_field_fpml(el, field_vphi, Tdomain%champs0%fpml_Velphi)
+                call gather_field_fpml(el, field_vphi, Tdomain%fpmldom%champs0%fpml_Velphi)
                 call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex,              &
                             sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
                             el%InvGrad,el%density,field_vphi,field_accel)
@@ -1351,7 +1351,7 @@ contains
                         do i = 0,ngllx-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%MassMatSol(Tdomain%specel(n)%Idom(i,j,k))
+                                mass(idx) = Tdomain%sdom%MassMat(Tdomain%specel(n)%Idom(i,j,k))
                             endif
                         end do
                     end do
@@ -1362,7 +1362,7 @@ contains
                         do i = 0,ngllx-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%MassMatSolPML(Tdomain%specel(n)%Idom(i,j,k))
+                                mass(idx) = Tdomain%spmldom%MassMat(Tdomain%specel(n)%Idom(i,j,k))
                             endif
                         end do
                     end do
@@ -1373,7 +1373,7 @@ contains
                         do i = 0,ngllx-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%MassMatFlu(Tdomain%specel(n)%Idom(i,j,k))
+                                mass(idx) = Tdomain%fdom%MassMat(Tdomain%specel(n)%Idom(i,j,k))
                             endif
                         end do
                     end do
@@ -1384,15 +1384,15 @@ contains
                         do i = 0,ngllx-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%MassMatFluPML(Tdomain%specel(n)%Idom(i,j,k))
+                                mass(idx) = Tdomain%fpmldom%MassMat(Tdomain%specel(n)%Idom(i,j,k))
                             endif
                         end do
                     end do
                 end do
             end select
         enddo
-        if (Tdomain%ngll_pmls>0) deallocate(Tdomain%MassMatSolPml)
-        if (Tdomain%ngll_pmlf>0) deallocate(Tdomain%MassMatFluPml)
+        if (Tdomain%spmldom%ngll>0) deallocate(Tdomain%spmldom%MassMat)
+        if (Tdomain%fpmldom%ngll>0) deallocate(Tdomain%fpmldom%MassMat)
         ! jac
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle

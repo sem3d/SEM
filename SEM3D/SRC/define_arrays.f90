@@ -98,25 +98,25 @@ contains
         type (domain), intent (INOUT) :: Tdomain
         type (SurfaceT), intent(INOUT) :: surf
         !
-        Tdomain%n_sl_dirich = surf%surf_sl%nbtot
-        if (Tdomain%n_sl_dirich/=0) then
-            allocate(Tdomain%sl_dirich(0:surf%surf_sl%nbtot-1))
-            Tdomain%sl_dirich = surf%surf_sl%map
+        Tdomain%sdom%n_dirich = surf%surf_sl%nbtot
+        if (Tdomain%sdom%n_dirich/=0) then
+            allocate(Tdomain%sdom%dirich(0:surf%surf_sl%nbtot-1))
+            Tdomain%sdom%dirich = surf%surf_sl%map
         end if
-        Tdomain%n_fl_dirich = surf%surf_fl%nbtot
-        if (Tdomain%n_fl_dirich/=0) then
-            allocate(Tdomain%fl_dirich(0:surf%surf_fl%nbtot-1))
-            Tdomain%fl_dirich = surf%surf_fl%map
+        Tdomain%fdom%n_dirich = surf%surf_fl%nbtot
+        if (Tdomain%fdom%n_dirich/=0) then
+            allocate(Tdomain%fdom%dirich(0:surf%surf_fl%nbtot-1))
+            Tdomain%fdom%dirich = surf%surf_fl%map
         end if
-        Tdomain%n_spml_dirich = surf%surf_spml%nbtot
-        if (Tdomain%n_spml_dirich/=0) then
-            allocate(Tdomain%spml_dirich(0:surf%surf_spml%nbtot-1))
-            Tdomain%spml_dirich = surf%surf_spml%map
+        Tdomain%spmldom%n_dirich = surf%surf_spml%nbtot
+        if (Tdomain%spmldom%n_dirich/=0) then
+            allocate(Tdomain%spmldom%dirich(0:surf%surf_spml%nbtot-1))
+            Tdomain%spmldom%dirich = surf%surf_spml%map
         end if
-        Tdomain%n_fpml_dirich = surf%surf_fpml%nbtot
-        if (Tdomain%n_fpml_dirich/=0) then
-            allocate(Tdomain%fpml_dirich(0:surf%surf_fpml%nbtot-1))
-            Tdomain%fpml_dirich = surf%surf_fpml%map
+        Tdomain%fpmldom%n_dirich = surf%surf_fpml%nbtot
+        if (Tdomain%fpmldom%n_dirich/=0) then
+            allocate(Tdomain%fpmldom%dirich(0:surf%surf_fpml%nbtot-1))
+            Tdomain%fpmldom%dirich = surf%surf_fpml%map
         end if
 
     end subroutine init_dirichlet_surface
@@ -142,26 +142,26 @@ contains
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1
             indsol = Tdomain%intSolPml%surf0%map(n)
             indpml = Tdomain%intSolPml%surf1%map(n)
-            if (indsol<0 .or. indsol>=Tdomain%ngll_s) then
+            if (indsol<0 .or. indsol>=Tdomain%sdom%ngll) then
                 write(*,*) "Pb indexation Sol"
                 stop 1
             end if
-            if (indpml<0 .or. indpml>=Tdomain%ngll_pmls) then
+            if (indpml<0 .or. indpml>=Tdomain%spmldom%ngll) then
                 write(*,*) "Pb indexation Sol-pml"
                 stop 1
             end if
-            Mass = Tdomain%MassMatSol(indsol) + Tdomain%MassMatSolPml(indpml)
-            Tdomain%MassMatSol(indsol) = Mass
-            Tdomain%MassMatSolPml(indpml) = Mass
+            Mass = Tdomain%sdom%MassMat(indsol) + Tdomain%spmldom%MassMat(indpml)
+            Tdomain%sdom%MassMat(indsol) = Mass
+            Tdomain%spmldom%MassMat(indpml) = Mass
         enddo
 
         ! Couplage à l'interface fluid / PML
         do n = 0,Tdomain%intFluPml%surf0%nbtot-1
             indflu = Tdomain%intFluPml%surf0%map(n)
             indpml = Tdomain%intFluPml%surf1%map(n)
-            Mass = Tdomain%MassMatFlu(indflu) + Tdomain%MassMatFluPml(indpml)
-            Tdomain%MassMatFlu(indflu) = Mass
-            Tdomain%MassMatFluPml(indpml) = Mass
+            Mass = Tdomain%fdom%MassMat(indflu) + Tdomain%fpmldom%MassMat(indpml)
+            Tdomain%fdom%MassMat(indflu) = Mass
+            Tdomain%fpmldom%MassMat(indpml) = Mass
         enddo
 
         if(Tdomain%Comm_data%ncomm > 0)then
@@ -169,26 +169,26 @@ contains
                 ! Domain SOLID
                 k = 0
                 call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                    Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%MassMatSol, k)
+                    Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%sdom%MassMat, k)
 
                 ! Domain SOLID PML
                 if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                        Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%DumpMass, k)
+                        Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%DumpMass, k)
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                        Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%MassMatSolPml, k)
+                        Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%MassMat, k)
                 end if
 
                 ! Domain FLUID
                 call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                    Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%MassMatFlu, k)
+                    Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%fdom%MassMat, k)
 
                 ! Domain FLUID PML
                 if (Tdomain%Comm_data%Data(n)%nflupml>0) then
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                        Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpml_DumpMass, k)
+                        Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%DumpMass, k)
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                        Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%MassMatFluPml, k)
+                        Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%MassMat, k)
                 end if
 
                 Tdomain%Comm_data%Data(n)%nsend = k
@@ -202,26 +202,26 @@ contains
                 ! Domain SOLID
                 k = 0
                 call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                    Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%MassMatSol, k)
+                    Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%sdom%MassMat, k)
 
                 ! Domain SOLID PML
                 if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                        Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%DumpMass, k)
+                        Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%DumpMass, k)
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                        Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%MassMatSolPml, k)
+                        Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%MassMat, k)
                 end if
 
                 ! Domain FLUID
                 call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                    Tdomain%Comm_data%Data(n)%IGiveF,  Tdomain%MassMatFlu, k)
+                    Tdomain%Comm_data%Data(n)%IGiveF,  Tdomain%fdom%MassMat, k)
 
                 ! Domain FLUID PML
                 if (Tdomain%Comm_data%Data(n)%nflupml>0) then
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                        Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpml_DumpMass, k)
+                        Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%DumpMass, k)
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                        Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%MassMatFluPml, k)
+                        Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%MassMat, k)
                 end if
             end do
         end if
@@ -234,10 +234,10 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         !
 
-        if (Tdomain%ngll_s /= 0)    Tdomain%MassMatSol(:) = 1d0/Tdomain%MassMatSol(:)
-        if (Tdomain%ngll_f /= 0)    Tdomain%MassMatFlu(:) = 1d0/Tdomain%MassMatFlu(:)
-        if (Tdomain%ngll_pmls /= 0) Tdomain%MassMatSolPml(:) = 1d0/Tdomain%MassMatSolPml(:)
-        if (Tdomain%ngll_pmlf /= 0) Tdomain%MassMatFluPml(:) = 1d0/Tdomain%MassMatFluPml(:)
+        if (Tdomain%sdom%ngll /= 0)    Tdomain%sdom%MassMat(:) = 1d0/Tdomain%sdom%MassMat(:)
+        if (Tdomain%fdom%ngll /= 0)    Tdomain%fdom%MassMat(:) = 1d0/Tdomain%fdom%MassMat(:)
+        if (Tdomain%spmldom%ngll /= 0) Tdomain%spmldom%MassMat(:) = 1d0/Tdomain%spmldom%MassMat(:)
+        if (Tdomain%fpmldom%ngll /= 0) Tdomain%fpmldom%MassMat(:) = 1d0/Tdomain%fpmldom%MassMat(:)
 
     end subroutine inverse_mass_mat
 
@@ -406,12 +406,12 @@ contains
 
             select case (Tdomain%specel(n)%domain)
             case (DM_SOLID_PML)
-                call define_PML_DumpEnd(Tdomain%ngll_pmls, Tdomain%MassMatSolPml, &
-                    Tdomain%DumpMass, Tdomain%champs0%DumpV)
+                call define_PML_DumpEnd(Tdomain%spmldom%ngll,     Tdomain%spmldom%MassMat, &
+                                        Tdomain%spmldom%DumpMass, Tdomain%spmldom%champs0%DumpV)
                 deallocate(Tdomain%specel(n)%xpml%DumpMass)
             case (DM_FLUID_PML)
-                call define_PML_DumpEnd(Tdomain%ngll_pmlf, Tdomain%MassMatFluPml, &
-                    Tdomain%fpml_DumpMass, Tdomain%champs0%fpml_DumpV)
+                call define_PML_DumpEnd(Tdomain%fpmldom%ngll,     Tdomain%fpmldom%MassMat, &
+                                        Tdomain%fpmldom%DumpMass, Tdomain%fpmldom%champs0%fpml_DumpV)
                 deallocate(Tdomain%specel(n)%xpml%DumpMass)
             end select
         end do
@@ -449,13 +449,13 @@ contains
                     !write(*,*) ind, i, j, k
                     select case(specel%domain)
                     case (DM_SOLID)
-                        Tdomain%MassMatSol(ind) = Tdomain%MassMatSol(ind) + specel%MassMat(i,j,k)
+                        Tdomain%sdom%MassMat(ind) = Tdomain%sdom%MassMat(ind) + specel%MassMat(i,j,k)
                     case (DM_FLUID)
-                        Tdomain%MassMatFlu(ind) = Tdomain%MassMatFlu(ind) + specel%MassMat(i,j,k)
+                        Tdomain%fdom%MassMat(ind) = Tdomain%fdom%MassMat(ind) + specel%MassMat(i,j,k)
                     case (DM_SOLID_PML)
-                        Tdomain%MassMatSolPml(ind) = Tdomain%MassMatSolPml(ind) + specel%MassMat(i,j,k)
+                        Tdomain%spmldom%MassMat(ind) = Tdomain%spmldom%MassMat(ind) + specel%MassMat(i,j,k)
                     case (DM_FLUID_PML)
-                        Tdomain%MassMatFluPml(ind) = Tdomain%MassMatFluPml(ind) + specel%MassMat(i,j,k)
+                        Tdomain%fpmldom%MassMat(ind) = Tdomain%fpmldom%MassMat(ind) + specel%MassMat(i,j,k)
                     end select
                 enddo
             enddo
@@ -683,11 +683,11 @@ contains
                     do i = 0,specel%ngllx-1
                         ind = specel%Idom(i,j,k)
                         if (specel%domain==DM_SOLID_PML) then
-                            Tdomain%DumpMass(ind,m) = Tdomain%DumpMass(ind,m) &
-                                + specel%xpml%DumpMass(i,j,k,m)
+                            Tdomain%spmldom%DumpMass(ind,m) = Tdomain%spmldom%DumpMass(ind,m) &
+                                                              + specel%xpml%DumpMass(i,j,k,m)
                         else
-                            Tdomain%fpml_DumpMass(ind,m) = Tdomain%fpml_DumpMass(ind,m) &
-                                + specel%xpml%DumpMass(i,j,k,m)
+                            Tdomain%fpmldom%DumpMass(ind,m) = Tdomain%fpmldom%DumpMass(ind,m) &
+                                                              + specel%xpml%DumpMass(i,j,k,m)
                         endif
                     enddo
                 enddo

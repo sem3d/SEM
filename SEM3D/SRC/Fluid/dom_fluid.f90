@@ -5,7 +5,9 @@
 
 module dom_fluid
     use constants
-    use sdomain
+    use champs_fluid
+    use selement
+    use ssubdomains
     implicit none
 
 contains
@@ -18,7 +20,7 @@ contains
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: htprimex
         real, dimension (0:Elem%nglly-1, 0:Elem%nglly-1), intent (IN) :: hprimey, htprimey
         real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
-        type(champs), intent(inout) :: champs1
+        type(champsfluid), intent(inout) :: champs1
 
         integer :: m1,m2,m3, i,j,k
         real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dPhiX,dPhiY,dPhiZ,Fo_Fl

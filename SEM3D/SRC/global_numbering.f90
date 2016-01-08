@@ -157,10 +157,10 @@ subroutine renumber_global_gll_nodes(Tdomain)
 
     ! total number of GLL points (= degrees of freedom)
     Tdomain%n_glob_points = icount(0)
-    Tdomain%ngll_s = icount(DM_SOLID)
-    Tdomain%ngll_f = icount(DM_FLUID)
-    Tdomain%ngll_pmls = icount(DM_SOLID_PML)
-    Tdomain%ngll_pmlf = icount(DM_FLUID_PML)
+    Tdomain%sdom%ngll = icount(DM_SOLID)
+    Tdomain%fdom%ngll = icount(DM_FLUID)
+    Tdomain%spmldom%ngll = icount(DM_SOLID_PML)
+    Tdomain%fpmldom%ngll = icount(DM_FLUID_PML)
 
     !Recollecting at the element level, from faces, edges and vertices.
     do n = 0,Tdomain%n_elem-1

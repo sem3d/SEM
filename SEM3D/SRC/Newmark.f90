@@ -20,7 +20,6 @@ subroutine Newmark(Tdomain,ntime)
     use mpi
     use scomm, only : exchange_sem_var, comm_give_data, comm_take_data
     use scommutils
-    use schamps
     use stat, only : stat_starttick, stat_stoptick
     use sf_coupling
     implicit none
@@ -41,18 +40,18 @@ subroutine Newmark(Tdomain,ntime)
 
 
     !- Prediction Phase
-    call Newmark_Predictor(Tdomain,Tdomain%champs1)
+    call Newmark_Predictor(Tdomain)
 
     !- Solution phase
     call stat_starttick()
-    call internal_forces(Tdomain,Tdomain%champs1)
+    call internal_forces(Tdomain)
     call stat_stoptick('fint')
 
 
     ! External Forces
     if(Tdomain%logicD%any_source)then
         call stat_starttick()
-        call external_forces(Tdomain,Tdomain%TimeD%rtime,ntime,Tdomain%champs1)
+        call external_forces(Tdomain,Tdomain%TimeD%rtime,ntime)
         call stat_stoptick('fext')
     end if
 
@@ -164,17 +163,17 @@ subroutine Newmark(Tdomain,ntime)
 
     !- solid -> fluid coupling (normal dot velocity)
     if(Tdomain%logicD%SF_local_present)then
-        call StoF_coupling(Tdomain, Tdomain%champs0, Tdomain%champs1)
+        call StoF_coupling(Tdomain)
     end if
 
     !- correction phase
-    call Newmark_Corrector_Fluid(Tdomain,Tdomain%champs1)
+    call Newmark_Corrector_Fluid(Tdomain)
 
     if(Tdomain%logicD%SF_local_present)then
         !- fluid -> solid coupling (pressure times velocity)
-        call FtoS_coupling(Tdomain, Tdomain%champs0, Tdomain%champs1)
+        call FtoS_coupling(Tdomain)
     end if
-    call Newmark_Corrector_Solid(Tdomain,Tdomain%champs1)
+    call Newmark_Corrector_Solid(Tdomain)
 
     if (Tdomain%rank==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
 
@@ -199,22 +198,22 @@ subroutine comm_forces(Tdomain)
             ! Domain SOLID
             k = 0
             call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%champs1%Forces, k)
+                Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%sdom%champs1%Forces, k)
 
             ! Domain SOLID PML
             if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
                 call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                    Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%champs1%ForcesPML, k)
+                    Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%champs1%ForcesPML, k)
             end if
 
             ! Domain FLUID
             call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%champs1%ForcesFl, k)
+                Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%fdom%champs1%ForcesFl, k)
 
             ! Domain FLUID PML
             if (Tdomain%Comm_data%Data(n)%nflupml>0) then
                 call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
-                    Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%champs1%fpml_Forces, k)
+                    Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%champs1%fpml_Forces, k)
             end if
             Tdomain%Comm_data%Data(n)%nsend = k
         end do
@@ -229,22 +228,22 @@ subroutine comm_forces(Tdomain)
             ! Domain SOLID
             k = 0
             call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%champs1%Forces, k)
+                Tdomain%Comm_data%Data(n)%IGiveS, Tdomain%sdom%champs1%Forces, k)
 
             ! Domain SOLID PML
             if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
                 call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                    Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%champs1%ForcesPML, k)
+                    Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%champs1%ForcesPML, k)
             end if
 
             ! Domain FLUID
             call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%champs1%ForcesFl, k)
+                Tdomain%Comm_data%Data(n)%IGiveF, Tdomain%fdom%champs1%ForcesFl, k)
 
             ! Domain FLUID PML
             if (Tdomain%Comm_data%Data(n)%nflupml>0) then
                 call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
-                    Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%champs1%fpml_Forces, k)
+                    Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%champs1%fpml_Forces, k)
             end if
         end do
         call stat_stoptick('take')
@@ -256,14 +255,12 @@ end subroutine comm_forces
 
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
-subroutine Newmark_Predictor(Tdomain,champs1)
-    use schamps
+subroutine Newmark_Predictor(Tdomain)
     use sdomain
     use dom_fluidpml
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
-    type(champs), intent(inout) :: champs1
     integer :: n, indsol, indpml, indflu
     real :: bega, dt
 
@@ -271,47 +268,47 @@ subroutine Newmark_Predictor(Tdomain,champs1)
     dt = Tdomain%TimeD%dtmin
 
     ! Elements solide
-    if (Tdomain%ngll_s /= 0) then
-        champs1%Depla = Tdomain%champs0%Depla
-        champs1%Veloc = Tdomain%champs0%Veloc
-        champs1%Forces = 0d0
+    if (Tdomain%sdom%ngll /= 0) then
+        Tdomain%sdom%champs1%Depla = Tdomain%sdom%champs0%Depla
+        Tdomain%sdom%champs1%Veloc = Tdomain%sdom%champs0%Veloc
+        Tdomain%sdom%champs1%Forces = 0d0
     endif
 
     ! Elements fluide
-    if (Tdomain%ngll_f /= 0) then
-        champs1%VelPhi = Tdomain%champs0%VelPhi
-        champs1%Phi = Tdomain%champs0%Phi
-        champs1%ForcesFl = 0d0
+    if (Tdomain%fdom%ngll /= 0) then
+        Tdomain%fdom%champs1%VelPhi = Tdomain%fdom%champs0%VelPhi
+        Tdomain%fdom%champs1%Phi    = Tdomain%fdom%champs0%Phi
+        Tdomain%fdom%champs1%ForcesFl = 0d0
     endif
 
     ! Elements solide pml
-    if (Tdomain%ngll_pmls /= 0) then
-        champs1%ForcesPML = 0.
+    if (Tdomain%spmldom%ngll /= 0) then
+        Tdomain%spmldom%champs1%ForcesPML = 0.
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1
             ! Couplage à l'interface solide / PML
             indsol = Tdomain%intSolPml%surf0%map(n)
             indpml = Tdomain%intSolPml%surf1%map(n)
-            Tdomain%champs0%VelocPML(indpml,:,0) = Tdomain%champs0%Veloc(indsol,:)
-            Tdomain%champs0%VelocPML(indpml,:,1) = 0.
-            Tdomain%champs0%VelocPML(indpml,:,2) = 0.
+            Tdomain%spmldom%champs0%VelocPML(indpml,:,0) = Tdomain%sdom%champs0%Veloc(indsol,:)
+            Tdomain%spmldom%champs0%VelocPML(indpml,:,1) = 0.
+            Tdomain%spmldom%champs0%VelocPML(indpml,:,2) = 0.
         enddo
         ! Prediction
-        champs1%VelocPML = Tdomain%champs0%VelocPML + dt*(0.5-bega)*champs1%ForcesPML
+        Tdomain%spmldom%champs1%VelocPML = Tdomain%spmldom%champs0%VelocPML + dt*(0.5-bega)*Tdomain%spmldom%champs1%ForcesPML
     endif
 
     ! Elements fluide pml
-    if (Tdomain%ngll_pmlf /= 0) then
-        champs1%fpml_Forces = 0.
+    if (Tdomain%fpmldom%ngll /= 0) then
+        Tdomain%fpmldom%champs1%fpml_Forces = 0.
         do n = 0,Tdomain%intFluPml%surf0%nbtot-1
             ! Couplage à l'interface fluide / PML
             indflu = Tdomain%intFluPml%surf0%map(n)
             indpml = Tdomain%intFluPml%surf1%map(n)
-            Tdomain%champs0%fpml_VelPhi(indpml,0) = Tdomain%champs0%VelPhi(indflu)
-            Tdomain%champs0%fpml_VelPhi(indpml,1) = 0.
-            Tdomain%champs0%fpml_VelPhi(indpml,2) = 0.
+            Tdomain%fpmldom%champs0%fpml_VelPhi(indpml,0) = Tdomain%fdom%champs0%VelPhi(indflu)
+            Tdomain%fpmldom%champs0%fpml_VelPhi(indpml,1) = 0.
+            Tdomain%fpmldom%champs0%fpml_VelPhi(indpml,2) = 0.
         enddo
         ! Prediction
-        champs1%fpml_Velphi = Tdomain%champs0%fpml_VelPhi + dt*(0.5-bega)*champs1%fpml_Forces
+        Tdomain%fpmldom%champs1%fpml_Velphi = Tdomain%fpmldom%champs0%fpml_VelPhi + dt*(0.5-bega)*Tdomain%fpmldom%champs1%fpml_Forces
     endif
 
     return
@@ -319,96 +316,92 @@ subroutine Newmark_Predictor(Tdomain,champs1)
 end subroutine Newmark_Predictor
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
-subroutine Newmark_Corrector_Fluid(Tdomain,champs1)
+subroutine Newmark_Corrector_Fluid(Tdomain)
     use sdomain
-    use schamps
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
-    type(champs), intent(in)   :: champs1
     integer  :: n,  indpml
     double precision :: dt
 
     dt = Tdomain%TimeD%dtmin
     ! Si il existe des éléments PML fluides
-    if (Tdomain%ngll_pmlf /= 0) then
-        Tdomain%champs0%fpml_VelPhi(:,:) = Tdomain%champs0%fpml_DumpV(:,0,:) * &
-            Tdomain%champs0%fpml_VelPhi(:,:) + &
-            dt * &
-            Tdomain%champs0%fpml_DumpV(:,1,:) * &
-            champs1%fpml_Forces(:,:)
-        do n = 0, Tdomain%n_fpml_dirich-1
-            indpml = Tdomain%fpml_dirich(n)
-            Tdomain%champs0%fpml_VelPhi(indpml,0) = 0.
-            Tdomain%champs0%fpml_VelPhi(indpml,1) = 0.
-            Tdomain%champs0%fpml_VelPhi(indpml,2) = 0.
+    if (Tdomain%fpmldom%ngll /= 0) then
+        Tdomain%fpmldom%champs0%fpml_VelPhi(:,:) = Tdomain%fpmldom%champs0%fpml_DumpV(:,0,:) * &
+                                                   Tdomain%fpmldom%champs0%fpml_VelPhi(:,:) + &
+                                                   dt * &
+                                                   Tdomain%fpmldom%champs0%fpml_DumpV(:,1,:) * &
+                                                   Tdomain%fpmldom%champs1%fpml_Forces(:,:)
+        do n = 0, Tdomain%fpmldom%n_dirich-1
+            indpml = Tdomain%fpmldom%dirich(n)
+                     Tdomain%fpmldom%champs0%fpml_VelPhi(indpml,0) = 0.
+                     Tdomain%fpmldom%champs0%fpml_VelPhi(indpml,1) = 0.
+                     Tdomain%fpmldom%champs0%fpml_VelPhi(indpml,2) = 0.
         enddo
 
 
-        Tdomain%champs0%fpml_Phi = Tdomain%champs0%fpml_Phi + dt*Tdomain%champs0%fpml_VelPhi
+        Tdomain%fpmldom%champs0%fpml_Phi = Tdomain%fpmldom%champs0%fpml_Phi + &
+                                           dt*Tdomain%fpmldom%champs0%fpml_VelPhi
     endif
     ! Si il existe des éléments fluides
-    if (Tdomain%ngll_f /= 0) then
-        Tdomain%champs0%ForcesFl = champs1%ForcesFl * Tdomain%MassMatFlu
-        Tdomain%champs0%VelPhi = (Tdomain%champs0%VelPhi + dt * Tdomain%champs0%ForcesFl)
-        do n = 0, Tdomain%n_fl_dirich-1
-            indpml = Tdomain%fl_dirich(n)
-            Tdomain%champs0%VelPhi(indpml) = 0.
+    if (Tdomain%fdom%ngll /= 0) then
+        Tdomain%fdom%champs0%ForcesFl = Tdomain%fdom%champs1%ForcesFl * Tdomain%fdom%MassMat
+        Tdomain%fdom%champs0%VelPhi = (Tdomain%fdom%champs0%VelPhi + dt * Tdomain%fdom%champs0%ForcesFl)
+        do n = 0, Tdomain%fdom%n_dirich-1
+            indpml = Tdomain%fdom%dirich(n)
+            Tdomain%fdom%champs0%VelPhi(indpml) = 0.
         enddo
-        Tdomain%champs0%Phi = Tdomain%champs0%Phi + dt * Tdomain%champs0%VelPhi
+        Tdomain%fdom%champs0%Phi = Tdomain%fdom%champs0%Phi + dt * Tdomain%fdom%champs0%VelPhi
     endif
 
     return
 end subroutine Newmark_Corrector_Fluid
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
-subroutine Newmark_Corrector_Solid(Tdomain,champs1)
+subroutine Newmark_Corrector_Solid(Tdomain)
     use sdomain
-    use schamps
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
-    type(champs), intent(in)   :: champs1
     integer  :: n, i_dir, indpml
     double precision :: dt
 
     dt = Tdomain%TimeD%dtmin
     ! Si il existe des éléments PML solides
-    if (Tdomain%ngll_pmls /= 0) then
+    if (Tdomain%spmldom%ngll /= 0) then
         do i_dir = 0,2
-            Tdomain%champs0%VelocPML(:,i_dir,:) = Tdomain%champs0%DumpV(:,0,:) * &
-                                                Tdomain%champs0%VelocPML(:,i_dir,:) + &
+            Tdomain%spmldom%champs0%VelocPML(:,i_dir,:) = Tdomain%spmldom%champs0%DumpV(:,0,:) * &
+                                                Tdomain%spmldom%champs0%VelocPML(:,i_dir,:) + &
                                                 dt * &
-                                                Tdomain%champs0%DumpV(:,1,:) * &
-                                                champs1%ForcesPML(:,i_dir,:)
+                                                Tdomain%spmldom%champs0%DumpV(:,1,:) * &
+                                                Tdomain%spmldom%champs1%ForcesPML(:,i_dir,:)
         enddo
         !TODO Eventuellement : DeplaPML(:,:) = DeplaPML(:,:) + dt * VelocPML(:,:)
-        do n = 0, Tdomain%n_spml_dirich-1
-            indpml = Tdomain%spml_dirich(n)
-            Tdomain%champs0%VelocPML(indpml,:,:) = 0.
+        do n = 0, Tdomain%spmldom%n_dirich-1
+            indpml = Tdomain%spmldom%dirich(n)
+            Tdomain%spmldom%champs0%VelocPML(indpml,:,:) = 0.
         enddo
     endif
 
     ! Si il existe des éléments solides
-    if (Tdomain%ngll_s /= 0) then
+    if (Tdomain%sdom%ngll /= 0) then
         do i_dir = 0,2
-            Tdomain%champs0%Forces(:,i_dir) = champs1%Forces(:,i_dir) * Tdomain%MassMatSol(:)
+            Tdomain%sdom%champs0%Forces(:,i_dir) = Tdomain%sdom%champs1%Forces(:,i_dir) * Tdomain%sdom%MassMat(:)
         enddo
-        Tdomain%champs0%Veloc = Tdomain%champs0%Veloc + dt * Tdomain%champs0%Forces
-        do n = 0, Tdomain%n_sl_dirich-1
-            indpml = Tdomain%sl_dirich(n)
-            Tdomain%champs0%Veloc(indpml,:) = 0.
+        Tdomain%sdom%champs0%Veloc = Tdomain%sdom%champs0%Veloc + dt * Tdomain%sdom%champs0%Forces
+        do n = 0, Tdomain%sdom%n_dirich-1
+            indpml = Tdomain%sdom%dirich(n)
+            Tdomain%sdom%champs0%Veloc(indpml,:) = 0.
         enddo
-        Tdomain%champs0%Depla = Tdomain%champs0%Depla + dt * Tdomain%champs0%Veloc
+        Tdomain%sdom%champs0%Depla = Tdomain%sdom%champs0%Depla + dt * Tdomain%sdom%champs0%Veloc
     endif
     return
 end subroutine Newmark_Corrector_Solid
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
-subroutine internal_forces(Tdomain,champs1)
+subroutine internal_forces(Tdomain)
     ! volume forces - depending on rheology
     use sdomain
-    use schamps
     use dom_solid
     use dom_solidpml
     use dom_fluid
@@ -416,7 +409,6 @@ subroutine internal_forces(Tdomain,champs1)
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    type(champs), intent(inout) :: champs1
     integer  :: n,mat, indsol, indflu, indpml
 
     do n = 0,Tdomain%n_elem-1
@@ -427,43 +419,43 @@ subroutine internal_forces(Tdomain,champs1)
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
                 Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
                 Tdomain%sSubDomain(mat)%hTprimez, Tdomain%n_sls,Tdomain%aniso,     &
-                champs1)
+                Tdomain%sdom%champs1)
         case (DM_FLUID)
             call forces_int_fluid(Tdomain%specel(n), Tdomain%sSubDomain(mat),           &
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
                 Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
-                Tdomain%sSubDomain(mat)%hTprimez, champs1)
+                Tdomain%sSubDomain(mat)%hTprimez, Tdomain%fdom%champs1)
         case (DM_SOLID_PML)
             call pred_sol_pml(Tdomain%specel(n), Tdomain%sSubDomain(mat),Tdomain%TimeD%dtmin, &
-                champs1)
-            call forces_int_sol_pml(Tdomain%specel(n), Tdomain%sSubDomain(mat), champs1)
+                Tdomain%spmldom%champs1)
+            call forces_int_sol_pml(Tdomain%specel(n), Tdomain%sSubDomain(mat), Tdomain%spmldom%champs1)
         case (DM_FLUID_PML)
             call pred_flu_pml(Tdomain%specel(n), Tdomain%sSubDomain(mat),Tdomain%TimeD%dtmin, &
-                champs1)
-            call forces_int_flu_pml(Tdomain%specel(n), Tdomain%sSubDomain(mat), champs1)
+                Tdomain%fpmldom%champs1)
+            call forces_int_flu_pml(Tdomain%specel(n), Tdomain%sSubDomain(mat), Tdomain%fpmldom%champs1)
         end select
     enddo
 
     ! Couplage interface solide / PML
-    if (Tdomain%ngll_pmls > 0) then
+    if (Tdomain%spmldom%ngll > 0) then
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1
             indsol = Tdomain%intSolPml%surf0%map(n)
             indpml = Tdomain%intSolPml%surf1%map(n)
-            champs1%Forces(indsol,:) = champs1%Forces(indsol,:) + &
-                                       champs1%ForcesPML(indpml,:,0) + &
-                                       champs1%ForcesPML(indpml,:,1) + &
-                                       champs1%ForcesPML(indpml,:,2)
+            Tdomain%sdom%champs1%Forces(indsol,:) = Tdomain%sdom%champs1%Forces(indsol,:) + &
+                                                    Tdomain%spmldom%champs1%ForcesPML(indpml,:,0) + &
+                                                    Tdomain%spmldom%champs1%ForcesPML(indpml,:,1) + &
+                                                    Tdomain%spmldom%champs1%ForcesPML(indpml,:,2)
         enddo
     endif
     ! Couplage interface fluid / PML
-    if (Tdomain%ngll_pmlf > 0) then
+    if (Tdomain%fpmldom%ngll > 0) then
         do n = 0,Tdomain%intFluPml%surf0%nbtot-1
             indflu = Tdomain%intFluPml%surf0%map(n)
             indpml = Tdomain%intFluPml%surf1%map(n)
-            champs1%ForcesFl(indflu) = champs1%ForcesFl(indflu) + &
-                                       champs1%fpml_Forces(indpml,0) + &
-                                       champs1%fpml_Forces(indpml,1) + &
-                                       champs1%fpml_Forces(indpml,2)
+            Tdomain%fdom%champs1%ForcesFl(indflu) = Tdomain%fdom%champs1%ForcesFl(indflu) + &
+                                                    Tdomain%fpmldom%champs1%fpml_Forces(indpml,0) + &
+                                                    Tdomain%fpmldom%champs1%fpml_Forces(indpml,1) + &
+                                                    Tdomain%fpmldom%champs1%fpml_Forces(indpml,2)
         enddo
     endif
 
@@ -471,15 +463,13 @@ subroutine internal_forces(Tdomain,champs1)
 end subroutine internal_forces
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
-subroutine external_forces(Tdomain,timer,ntime,champs1)
+subroutine external_forces(Tdomain,timer,ntime)
     use sdomain
-    use schamps
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
     integer, intent(in)  :: ntime
     real, intent(in)  :: timer
-    type(champs), intent(inout)  :: champs1
     integer  :: ns,nel,i_dir, i,j,k, idx
     real :: t, ft
 
@@ -505,7 +495,7 @@ subroutine external_forces(Tdomain,timer,ntime,champs1)
                         do j = 0,Tdomain%specel(nel)%nglly-1
                             do i = 0,Tdomain%specel(nel)%ngllx-1
                                 idx = Tdomain%specel(nel)%Idom(i,j,k)
-                                champs1%Forces(idx, i_dir) = champs1%Forces(idx, i_dir) + &
+                                Tdomain%sdom%champs1%Forces(idx, i_dir) = Tdomain%sdom%champs1%Forces(idx, i_dir) + &
                                     ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
                             enddo
                         enddo
@@ -516,7 +506,7 @@ subroutine external_forces(Tdomain,timer,ntime,champs1)
                     do j = 0,Tdomain%specel(nel)%nglly-1
                         do i = 0,Tdomain%specel(nel)%ngllx-1
                             idx = Tdomain%specel(nel)%Idom(i,j,k)
-                            champs1%ForcesFl(idx) = champs1%ForcesFl(idx) +    &
+                            Tdomain%fdom%champs1%ForcesFl(idx) = Tdomain%fdom%champs1%ForcesFl(idx) +    &
                                 ft*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
                         enddo
                     enddo

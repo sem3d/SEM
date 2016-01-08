@@ -5,7 +5,9 @@
 
 module dom_solidpml
     use constants
-    use sdomain
+    use champs_solidpml
+    use selement
+    use ssubdomains
     implicit none
 
 contains
@@ -13,7 +15,7 @@ contains
     subroutine forces_int_sol_pml(Elem, mat, champs1)
         type (Element), intent (INOUT) :: Elem
         type (subdomain), intent(IN) :: mat
-        type(champs), intent(inout) :: champs1
+        type(champssolidpml), intent(inout) :: champs1
         !
         integer :: m1, m2, m3
         integer :: i, j, k, l, ind
@@ -119,7 +121,7 @@ contains
 
         type(Element), intent(inout) :: Elem
         type (subdomain), intent(IN) :: mat
-        type(champs), intent(inout) :: champs1
+        type(champssolidpml), intent(inout) :: champs1
         real, intent(in) :: dt
         !
         real, dimension(0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVx_dx, dVx_dy, dVx_dz

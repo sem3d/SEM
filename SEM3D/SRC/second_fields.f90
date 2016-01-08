@@ -187,13 +187,13 @@ contains
                     ind = el%Idom(i,j,k)
                     select case (el%domain)
                     case (DM_SOLID)
-                            field(i,j,k,:) = Tdomain%champs0%Veloc(ind,:)
+                            field(i,j,k,:) = Tdomain%sdom%champs0%Veloc(ind,:)
                     case (DM_FLUID)
-                            phi(i,j,k) = Tdomain%champs0%Phi(ind)
+                            phi(i,j,k) = Tdomain%fdom%champs0%Phi(ind)
                     case (DM_SOLID_PML)
-                        field(i,j,k,:) = Tdomain%champs0%VelocPml(ind,:,0) + &
-                            Tdomain%champs0%VelocPml(ind,:,1) + &
-                            Tdomain%champs0%VelocPml(ind,:,2)
+                        field(i,j,k,:) = Tdomain%spmldom%champs0%VelocPml(ind,:,0) + &
+                                         Tdomain%spmldom%champs0%VelocPml(ind,:,1) + &
+                                         Tdomain%spmldom%champs0%VelocPml(ind,:,2)
                     case (DM_FLUID_PML)
                         field(i,j,k,:) = 0d0
                     end select
@@ -227,7 +227,7 @@ contains
                     ind = el%Idom(i,j,k)
                     select case (el%domain)
                     case (DM_SOLID)
-                        field(i,j,k,:) = Tdomain%champs0%Depla(ind,:)
+                        field(i,j,k,:) = Tdomain%sdom%champs0%Depla(ind,:)
                     case (DM_FLUID)
                         field(i,j,k,:) = 0d0
                     case (DM_SOLID_PML)
@@ -262,13 +262,13 @@ contains
                     ind = el%Idom(i,j,k)
                     select case (el%domain)
                     case (DM_SOLID)
-                            field(i,j,k,:) = Tdomain%champs0%Forces(ind,:)
+                            field(i,j,k,:) = Tdomain%sdom%champs0%Forces(ind,:)
                     case (DM_FLUID)
-                            vphi(i,j,k) = Tdomain%champs0%VelPhi(ind)
+                            vphi(i,j,k) = Tdomain%fdom%champs0%VelPhi(ind)
                     case (DM_SOLID_PML)
-                        field(i,j,k,:) = Tdomain%champs0%ForcesPml(ind,:,0) + &
-                            Tdomain%champs0%ForcesPml(ind,:,1) + &
-                            Tdomain%champs0%ForcesPml(ind,:,2)
+                        field(i,j,k,:) = Tdomain%spmldom%champs0%ForcesPml(ind,:,0) + &
+                                         Tdomain%spmldom%champs0%ForcesPml(ind,:,1) + &
+                                         Tdomain%spmldom%champs0%ForcesPml(ind,:,2)
                     case (DM_FLUID_PML)
                         field(i,j,k,:) = 0d0
                     end select
@@ -311,7 +311,7 @@ contains
                 do j=0,ny-1
                     do i=0,nx-1
                         ind = el%Idom(i,j,k)
-                        field(i,j,k) = -Tdomain%champs0%VelPhi(ind)
+                        field(i,j,k) = -Tdomain%fdom%champs0%VelPhi(ind)
                     enddo
                 enddo
             enddo

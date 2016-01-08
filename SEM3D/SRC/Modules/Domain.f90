@@ -8,6 +8,108 @@
 !!
 !<
 
+module sdomain_solid
+
+    use champs_solid
+    implicit none
+
+    type sdomainsolid
+
+        ! Nombre de gll
+        integer :: ngll
+
+        ! Champs
+        type(champssolid) :: champs0
+        type(champssolid) :: champs1
+
+        ! MassMat pour elements solide, fluide, solide pml et fluide pml
+        real, dimension(:), allocatable :: MassMat
+
+        ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
+        integer :: n_dirich
+        integer, dimension(:), allocatable :: dirich
+
+    end type sdomainsolid
+
+end module sdomain_solid
+
+module sdomain_solidpml
+
+    use champs_solidpml
+    implicit none
+
+    type sdomainsolidpml
+
+        ! Nombre de gll
+        integer :: ngll
+
+        ! Champs
+        type(champssolidpml) :: champs0
+        type(champssolidpml) :: champs1
+
+        ! MassMat pour elements solide, fluide, solide pml et fluide pml
+        real, dimension(:), allocatable :: MassMat
+        real, dimension(:,:), allocatable :: DumpMass
+
+        ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
+        integer :: n_dirich
+        integer, dimension(:), allocatable :: dirich
+
+    end type sdomainsolidpml
+
+end module sdomain_solidpml
+
+module sdomain_fluid
+
+    use champs_fluid
+    implicit none
+
+    type sdomainfluid
+
+        ! Nombre de gll
+        integer :: ngll
+
+        ! Champs
+        type(champsfluid) :: champs0
+        type(champsfluid) :: champs1
+
+        ! MassMat pour elements solide, fluide, solide pml et fluide pml
+        real, dimension(:), allocatable :: MassMat
+
+        ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
+        integer :: n_dirich
+        integer, dimension(:), allocatable :: dirich
+
+    end type sdomainfluid
+
+end module sdomain_fluid
+
+module sdomain_fluidpml
+
+    use champs_fluidpml
+    implicit none
+
+    type sdomainfluidpml
+
+        ! Nombre de gll
+        integer :: ngll
+
+        ! Champs
+        type(champsfluidpml) :: champs0
+        type(champsfluidpml) :: champs1
+
+        ! MassMat pour elements solide, fluide, solide pml et fluide pml
+        real, dimension(:), allocatable :: MassMat
+        real, dimension(:,:), allocatable :: DumpMass
+
+        ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
+        integer :: n_dirich
+        integer, dimension(:), allocatable :: dirich
+
+    end type sdomainfluidpml
+
+end module sdomain_fluidpml
+
 module sdomain
     use selement
     use sfaces
@@ -24,7 +126,10 @@ module sdomain
     use sbassin
     use solid_fluid
     use semdatafiles
-    use schamps
+    use sdomain_solid
+    use sdomain_solidpml
+    use sdomain_fluid
+    use sdomain_fluidpml
     use sem_c_config
     use sinterface
     implicit none
@@ -89,24 +194,11 @@ module sdomain
 
        real :: MPML_coeff
 
-       ! Nombre de gll solide, fluide, pml solide, pml fluide
-       integer :: ngll_s, ngll_f, ngll_pmls, ngll_pmlf
-
-       ! Champs
-       type(champs) :: champs0
-       type(champs) :: champs1
-
-       ! MassMat pour elements solide, fluide, solide pml et fluide pml
-       real, dimension(:), allocatable :: MassMatSol, MassMatFlu
-       real, dimension(:), allocatable :: MassMatSolPml, MassMatFluPml
-       real, dimension(:,:), allocatable :: DumpMass, fpml_DumpMass
-
-       ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
-       integer :: n_sl_dirich, n_fl_dirich, n_spml_dirich, n_fpml_dirich
-       integer, dimension(:), allocatable :: sl_dirich
-       integer, dimension(:), allocatable :: spml_dirich
-       integer, dimension(:), allocatable :: fl_dirich
-       integer, dimension(:), allocatable :: fpml_dirich
+       ! Domains
+       type(sdomainsolid)    :: sdom
+       type(sdomainsolidpml) :: spmldom
+       type(sdomainfluid)    :: fdom
+       type(sdomainfluidpml) :: fpmldom
 
        ! Interface Solide / PML
        type(inter_num) :: intSolPml
@@ -133,13 +225,13 @@ contains
         domain_ngll = 0
         select case(dom)
         case(DM_SOLID)
-            domain_ngll = Tdomain%ngll_s
+            domain_ngll = Tdomain%sdom%ngll
         case(DM_FLUID)
-            domain_ngll = Tdomain%ngll_f
+            domain_ngll = Tdomain%fdom%ngll
         case(DM_SOLID_PML)
-            domain_ngll = Tdomain%ngll_pmls
+            domain_ngll = Tdomain%spmldom%ngll
         case(DM_FLUID_PML)
-            domain_ngll = Tdomain%ngll_pmlf
+            domain_ngll = Tdomain%fpmldom%ngll
         end select
     end function domain_ngll
 

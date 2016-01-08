@@ -5,7 +5,9 @@
 
 module dom_solid
     use constants
-    use sdomain
+    use champs_solid
+    use selement
+    use ssubdomains
     implicit none
 
 contains
@@ -22,7 +24,7 @@ contains
         real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
         integer, intent(IN) :: n_solid
         logical, intent(IN) :: aniso
-        type(champs), intent(inout) :: champs1
+        type(champssolid), intent(inout) :: champs1
 
         integer :: m1,m2,m3, i,j,k,i_dir
         real :: epsilon_trace_over_3

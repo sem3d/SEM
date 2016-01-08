@@ -592,19 +592,19 @@ subroutine save_checkpoint (Tdomain, rtime, it, dtmin, isort)
     call write_attr_int(fid, "iteration", it)
     call write_attr_int(fid, "isort", isort)
 
-    if (Tdomain%ngll_s.gt.0) then
-        call write_dataset(elem_id, "sl_Veloc", Tdomain%champs0%Veloc)
-        call write_dataset(elem_id, "sl_Displ", Tdomain%champs0%Depla)
+    if (Tdomain%sdom%ngll.gt.0) then
+        call write_dataset(elem_id, "sl_Veloc", Tdomain%sdom%champs0%Veloc)
+        call write_dataset(elem_id, "sl_Displ", Tdomain%sdom%champs0%Depla)
     end if
-    if (Tdomain%ngll_f.gt.0) then
-        call write_dataset(elem_id, "fl_VelPhi", Tdomain%champs0%VelPhi)
-        call write_dataset(elem_id, "fl_Phi", Tdomain%champs0%Phi)
+    if (Tdomain%fdom%ngll.gt.0) then
+        call write_dataset(elem_id, "fl_VelPhi", Tdomain%fdom%champs0%VelPhi)
+        call write_dataset(elem_id, "fl_Phi",    Tdomain%fdom%champs0%Phi)
     end if
-    if (Tdomain%ngll_pmls.gt.0) then
-        call write_dataset(elem_id, "spml_Veloc", Tdomain%champs0%VelocPML)
+    if (Tdomain%spmldom%ngll.gt.0) then
+        call write_dataset(elem_id, "spml_Veloc", Tdomain%spmldom%champs0%VelocPML)
     end if
-    if (Tdomain%ngll_pmlf.gt.0) then
-        call write_dataset(elem_id, "fpml_VelPhi", Tdomain%champs0%fpml_VelPhi)
+    if (Tdomain%fpmldom%ngll.gt.0) then
+        call write_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs0%fpml_VelPhi)
     end if
 
     call write_EpsilonVol(Tdomain, offset(4), elem_id)

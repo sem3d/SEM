@@ -5,7 +5,9 @@
 
 module dom_fluidpml
     use constants
-    use sdomain
+    use champs_fluidpml
+    use selement
+    use ssubdomains
     implicit none
 
 contains
@@ -13,7 +15,7 @@ contains
     subroutine forces_int_flu_pml(Elem, mat, champs1)
         type (Element), intent (INOUT) :: Elem
         type (subdomain), intent(IN) :: mat
-        type(champs), intent(inout) :: champs1
+        type(champsfluidpml), intent(inout) :: champs1
         !
         integer :: m1, m2, m3
         integer :: i, j, k, l, ind
@@ -92,11 +94,12 @@ contains
     end subroutine forces_int_flu_pml
 
     subroutine pred_flu_pml(Elem, mat, dt, champs1)
+
         implicit none
 
         type(Element), intent(inout) :: Elem
         type (subdomain), intent(IN) :: mat
-        type(champs), intent(inout) :: champs1
+        type(champsfluidpml), intent(inout) :: champs1
         real, intent(in) :: dt
         !
         real, dimension(0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVelPhi_dx, dVelPhi_dy, dVelPhi_dz
