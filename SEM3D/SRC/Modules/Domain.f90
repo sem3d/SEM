@@ -8,108 +8,6 @@
 !!
 !<
 
-module sdomain_solid
-
-    use champs_solid
-    implicit none
-
-    type sdomainsolid
-
-        ! Nombre de gll
-        integer :: ngll
-
-        ! Champs
-        type(champssolid) :: champs0
-        type(champssolid) :: champs1
-
-        ! MassMat pour elements solide, fluide, solide pml et fluide pml
-        real, dimension(:), allocatable :: MassMat
-
-        ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
-        integer :: n_dirich
-        integer, dimension(:), allocatable :: dirich
-
-    end type sdomainsolid
-
-end module sdomain_solid
-
-module sdomain_solidpml
-
-    use champs_solidpml
-    implicit none
-
-    type sdomainsolidpml
-
-        ! Nombre de gll
-        integer :: ngll
-
-        ! Champs
-        type(champssolidpml) :: champs0
-        type(champssolidpml) :: champs1
-
-        ! MassMat pour elements solide, fluide, solide pml et fluide pml
-        real, dimension(:), allocatable :: MassMat
-        real, dimension(:,:), allocatable :: DumpMass
-
-        ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
-        integer :: n_dirich
-        integer, dimension(:), allocatable :: dirich
-
-    end type sdomainsolidpml
-
-end module sdomain_solidpml
-
-module sdomain_fluid
-
-    use champs_fluid
-    implicit none
-
-    type sdomainfluid
-
-        ! Nombre de gll
-        integer :: ngll
-
-        ! Champs
-        type(champsfluid) :: champs0
-        type(champsfluid) :: champs1
-
-        ! MassMat pour elements solide, fluide, solide pml et fluide pml
-        real, dimension(:), allocatable :: MassMat
-
-        ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
-        integer :: n_dirich
-        integer, dimension(:), allocatable :: dirich
-
-    end type sdomainfluid
-
-end module sdomain_fluid
-
-module sdomain_fluidpml
-
-    use champs_fluidpml
-    implicit none
-
-    type sdomainfluidpml
-
-        ! Nombre de gll
-        integer :: ngll
-
-        ! Champs
-        type(champsfluidpml) :: champs0
-        type(champsfluidpml) :: champs1
-
-        ! MassMat pour elements solide, fluide, solide pml et fluide pml
-        real, dimension(:), allocatable :: MassMat
-        real, dimension(:,:), allocatable :: DumpMass
-
-        ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
-        integer :: n_dirich
-        integer, dimension(:), allocatable :: dirich
-
-    end type sdomainfluidpml
-
-end module sdomain_fluidpml
-
 module sdomain
     use selement
     use sfaces
@@ -126,13 +24,79 @@ module sdomain
     use sbassin
     use solid_fluid
     use semdatafiles
-    use sdomain_solid
-    use sdomain_solidpml
-    use sdomain_fluid
-    use sdomain_fluidpml
     use sem_c_config
     use sinterface
+    use champs_solid
+    use champs_solidpml
+    use champs_fluid
+    use champs_fluidpml
     implicit none
+
+    type domain_solid
+        ! Nombre de gll
+        integer :: ngll
+
+        ! Champs
+        type(champssolid) :: champs0
+        type(champssolid) :: champs1
+
+        ! MassMat pour elements solide, fluide, solide pml et fluide pml
+        real, dimension(:), allocatable :: MassMat
+
+        ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
+        integer :: n_dirich
+        integer, dimension(:), allocatable :: dirich
+    end type domain_solid
+
+    type domain_solidpml
+        ! Nombre de gll
+        integer :: ngll
+
+        ! Champs
+        type(champssolidpml) :: champs0
+        type(champssolidpml) :: champs1
+
+        ! MassMat pour elements solide, fluide, solide pml et fluide pml
+        real, dimension(:), allocatable :: MassMat
+        real, dimension(:,:), allocatable :: DumpMass
+
+        ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
+        integer :: n_dirich
+        integer, dimension(:), allocatable :: dirich
+    end type domain_solidpml
+
+    type domain_fluid
+        ! Nombre de gll
+        integer :: ngll
+
+        ! Champs
+        type(champsfluid) :: champs0
+        type(champsfluid) :: champs1
+
+        ! MassMat pour elements solide, fluide, solide pml et fluide pml
+        real, dimension(:), allocatable :: MassMat
+
+        ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
+        integer :: n_dirich
+        integer, dimension(:), allocatable :: dirich
+    end type domain_fluid
+
+    type domain_fluidpml
+        ! Nombre de gll
+        integer :: ngll
+
+        ! Champs
+        type(champsfluidpml) :: champs0
+        type(champsfluidpml) :: champs1
+
+        ! MassMat pour elements solide, fluide, solide pml et fluide pml
+        real, dimension(:), allocatable :: MassMat
+        real, dimension(:,:), allocatable :: DumpMass
+
+        ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
+        integer :: n_dirich
+        integer, dimension(:), allocatable :: dirich
+    end type domain_fluidpml
 
     type :: domain
        integer :: communicateur !<<< Communicator including all SEM processors
@@ -195,10 +159,10 @@ module sdomain
        real :: MPML_coeff
 
        ! Domains
-       type(sdomainsolid)    :: sdom
-       type(sdomainsolidpml) :: spmldom
-       type(sdomainfluid)    :: fdom
-       type(sdomainfluidpml) :: fpmldom
+       type(domain_solid)    :: sdom
+       type(domain_solidpml) :: spmldom
+       type(domain_fluid)    :: fdom
+       type(domain_fluidpml) :: fpmldom
 
        ! Interface Solide / PML
        type(inter_num) :: intSolPml

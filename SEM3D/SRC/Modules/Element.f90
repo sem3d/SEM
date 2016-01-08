@@ -53,7 +53,7 @@ module selement
     type :: element
         integer :: ngllx, nglly, ngllz
         integer :: mat_index
-        integer :: domain
+        integer :: domain ! Type de domaine, voir constants : DOM_SOLID, DOM_FLUID, ...
         type(element_solid), allocatable :: sl
         type(element_fluid), allocatable :: fl
         ! Index of a gll node within the physical domain
