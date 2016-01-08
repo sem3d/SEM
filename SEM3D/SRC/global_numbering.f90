@@ -72,7 +72,8 @@ subroutine renumber_global_gll_nodes(Tdomain)
     ! Counts PML glls with abs flag in solid or fluid
     integer :: solid_abs_count, fluid_abs_count
     ! A counter for each domain (0: global)
-    integer, dimension(0:4) :: icount
+    integer, dimension(0:4) :: icount ! nombre de glls    par domaine
+    integer, dimension(0:4) :: ecount ! nombre d'elements par domaine
     integer, dimension(0:2) :: ngll
     integer, dimension(0:3) :: elface
     integer, dimension(0:1) :: eledge
@@ -82,16 +83,20 @@ subroutine renumber_global_gll_nodes(Tdomain)
     ! debug
     type(element), pointer :: pel
     logical :: fail
-	!Elements Inner GLL points
+
     icount = 0
+    ecount = 0
     solid_abs_count = 0
     fluid_abs_count = 0
 
+    !Elements Inner GLL points
     do n = 0,Tdomain%n_elem-1
         ngll(0) = Tdomain%specel(n)%ngllx
         ngll(1) = Tdomain%specel(n)%nglly
         ngll(2) = Tdomain%specel(n)%ngllz
         dom   = Tdomain%specel(n)%domain
+        Tdomain%specel(n)%lnum = ecount(dom)
+        ecount(dom) = ecount(dom)+1
         allocate(Tdomain%specel(n)%Iglobnum(0:ngll(0)-1,0:ngll(1)-1,0:ngll(2)-1))
         allocate(Tdomain%specel(n)%Idom    (0:ngll(0)-1,0:ngll(1)-1,0:ngll(2)-1))
         Tdomain%specel(n)%Iglobnum = -1

@@ -53,6 +53,7 @@ module selement
     type :: element
         integer :: ngllx, nglly, ngllz
         integer :: mat_index
+        integer :: lnum ! local number of element within its domain
         integer :: domain ! Type de domaine, voir constants : DOM_SOLID, DOM_FLUID, ...
         type(element_solid), allocatable :: sl
         type(element_fluid), allocatable :: fl
