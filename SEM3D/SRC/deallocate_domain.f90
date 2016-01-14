@@ -46,6 +46,8 @@ subroutine deallocate_domain (Tdomain)
                 deallocate (Tdomain%specel(n)%Kappa)
                 deallocate (Tdomain%specel(n)%Mu)
 
+                if(allocated(Tdomain%fpmldom%Veloc)) deallocate(Tdomain%fpmldom%Veloc)
+
                 if (issolid) then
                     deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress)
                     deallocate (Tdomain%specel(n)%slpml%Diagonal_Stress1)
