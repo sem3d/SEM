@@ -138,7 +138,6 @@ subroutine allocate_domain (Tdomain)
                 endif !PML
             endif
         else   ! FLUID PART
-            allocate(Tdomain%specel(n)%fl)
             if(Tdomain%TimeD%velocity_scheme)then
                 if(ispml)then
                     if(.not. allocated(Tdomain%fpmldom%Veloc)) then

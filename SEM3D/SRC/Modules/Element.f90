@@ -30,9 +30,6 @@ module selement
 
     end type element_solid
 
-    type :: element_fluid
-    end type element_fluid
-
     type :: element_pml
         real, dimension(:,:,:,:), allocatable :: DumpSx,DumpSy,DumpSz
         real, dimension(:,:,:,:), allocatable :: DumpMass
@@ -52,7 +49,6 @@ module selement
         integer :: lnum ! local number of element within its domain
         integer :: domain ! Type de domaine, voir constants : DOM_SOLID, DOM_FLUID, ...
         type(element_solid), allocatable :: sl
-        type(element_fluid), allocatable :: fl
         ! Index of a gll node within the physical domain
         integer, dimension (:,:,:), allocatable :: Idom
         real, dimension (:,:,:), allocatable :: Jacob
