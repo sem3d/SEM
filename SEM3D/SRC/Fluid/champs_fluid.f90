@@ -6,14 +6,15 @@
 
 module champs_fluid
 
+    use constants
     implicit none
 
     type champsfluid
 
         !! Fluide
-        real, dimension(:), allocatable :: ForcesFl
-        real, dimension(:), allocatable :: Phi
-        real, dimension(:), allocatable :: VelPhi
+        real(fpp), dimension(:), allocatable :: ForcesFl
+        real(fpp), dimension(:), allocatable :: Phi
+        real(fpp), dimension(:), allocatable :: VelPhi
 
     end type champsfluid
 

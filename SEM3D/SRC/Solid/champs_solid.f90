@@ -6,14 +6,15 @@
 
 module champs_solid
 
+    use constants
     implicit none
 
     type :: champssolid
 
         !! Solide
-        real, dimension(:,:), allocatable :: Forces
-        real, dimension(:,:), allocatable :: Depla
-        real, dimension(:,:), allocatable :: Veloc
+        real(fpp), dimension(:,:), allocatable :: Forces
+        real(fpp), dimension(:,:), allocatable :: Depla
+        real(fpp), dimension(:,:), allocatable :: Veloc
 
     end type champssolid
 

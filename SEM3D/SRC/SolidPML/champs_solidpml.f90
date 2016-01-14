@@ -6,14 +6,15 @@
 
 module champs_solidpml
 
+    use constants
     implicit none
 
     type :: champssolidpml
 
         !! Solide PML
-        real, dimension(:,:,:), allocatable :: ForcesPML
-        real, dimension(:,:,:), allocatable :: VelocPML
-        real, dimension(:,:,:), allocatable :: DumpV
+        real(fpp), dimension(:,:,:), allocatable :: ForcesPML
+        real(fpp), dimension(:,:,:), allocatable :: VelocPML
+        real(fpp), dimension(:,:,:), allocatable :: DumpV
 
     end type champssolidpml
 
