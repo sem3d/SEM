@@ -6,15 +6,16 @@
 
 module champs_fluidpml
 
+    use constants
     implicit none
 
     type :: champsfluidpml
 
         !! Fluide PML
-        real, dimension(:,:), allocatable   :: fpml_Forces
-        real, dimension(:,:), allocatable   :: fpml_Phi
-        real, dimension(:,:), allocatable   :: fpml_VelPhi
-        real, dimension(:,:,:), allocatable :: fpml_DumpV
+        real(fpp), dimension(:,:), allocatable   :: fpml_Forces
+        real(fpp), dimension(:,:), allocatable   :: fpml_Phi
+        real(fpp), dimension(:,:), allocatable   :: fpml_VelPhi
+        real(fpp), dimension(:,:,:), allocatable :: fpml_DumpV
 
     end type champsfluidpml
 

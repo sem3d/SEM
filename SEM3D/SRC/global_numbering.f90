@@ -112,6 +112,10 @@ subroutine renumber_global_gll_nodes(Tdomain)
             enddo
         enddo
     enddo
+    Tdomain%sdom%nbelem = ecount(DM_SOLID)
+    Tdomain%fdom%nbelem = ecount(DM_FLUID)
+    Tdomain%spmldom%nbelem = ecount(DM_SOLID_PML)
+    Tdomain%fpmldom%nbelem = ecount(DM_FLUID_PML)
 
     !Faces Inner GLL points
     do n = 0,Tdomain%n_face-1

@@ -409,9 +409,10 @@ subroutine internal_forces(Tdomain)
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    integer  :: n,mat, indsol, indflu, indpml
+    integer  :: n,mat, indsol, indflu, indpml, lnum
 
     do n = 0,Tdomain%n_elem-1
+        lnum = Tdomain%specel(n)%lnum
         mat = Tdomain%specel(n)%mat_index
         select case (Tdomain%specel(n)%domain)
         case (DM_SOLID)
@@ -430,9 +431,10 @@ subroutine internal_forces(Tdomain)
                 Tdomain%spmldom%champs1)
             call forces_int_sol_pml(Tdomain%specel(n), Tdomain%sSubDomain(mat), Tdomain%spmldom%champs1)
         case (DM_FLUID_PML)
-            call pred_flu_pml(Tdomain%specel(n), Tdomain%sSubDomain(mat),Tdomain%TimeD%dtmin, &
-                Tdomain%fpmldom%champs1)
-            call forces_int_flu_pml(Tdomain%specel(n), Tdomain%sSubDomain(mat), Tdomain%fpmldom%champs1)
+            call pred_flu_pml(Tdomain%fpmldom, Tdomain%sSubDomain(mat),Tdomain%TimeD%dtmin, &
+                              Tdomain%fpmldom%champs1, Tdomain%specel(n), lnum)
+            call forces_int_flu_pml(Tdomain%fpmldom, Tdomain%sSubDomain(mat), Tdomain%fpmldom%champs1, &
+                                    Tdomain%specel(n), lnum)
         end select
     enddo
 

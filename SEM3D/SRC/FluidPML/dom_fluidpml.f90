@@ -7,15 +7,18 @@ module dom_fluidpml
     use constants
     use champs_fluidpml
     use selement
+    use sdomain
     use ssubdomains
     implicit none
 
 contains
 
-    subroutine forces_int_flu_pml(Elem, mat, champs1)
-        type (Element), intent (INOUT) :: Elem
+  subroutine forces_int_flu_pml(dom, mat, champs1, Elem, lnum)
+        type (domain_fluidpml), intent (INOUT) :: dom
         type (subdomain), intent(IN) :: mat
         type(champsfluidpml), intent(inout) :: champs1
+        type (Element), intent(INOUT) :: Elem
+        integer :: lnum
         !
         integer :: m1, m2, m3
         integer :: i, j, k, l, ind
@@ -33,9 +36,9 @@ contains
                     sum_vz = 0d0
                     do l = 0,m1-1
                         acoeff = - mat%hprimex(i,l)*mat%GLLwx(l)*mat%GLLwy(j)*mat%GLLwz(k)*Elem%Jacob(l,j,k)
-                        sum_vx = sum_vx + acoeff*Elem%InvGrad(0,0,l,j,k)*Elem%flpml%Veloc(l,j,k,0)
-                        sum_vy = sum_vy + acoeff*Elem%InvGrad(1,0,l,j,k)*Elem%flpml%Veloc(l,j,k,1)
-                        sum_vz = sum_vz + acoeff*Elem%InvGrad(2,0,l,j,k)*Elem%flpml%Veloc(l,j,k,2)
+                        sum_vx = sum_vx + acoeff*Elem%InvGrad(0,0,l,j,k)*dom%Veloc(l,j,k,0,lnum)
+                        sum_vy = sum_vy + acoeff*Elem%InvGrad(1,0,l,j,k)*dom%Veloc(l,j,k,1,lnum)
+                        sum_vz = sum_vz + acoeff*Elem%InvGrad(2,0,l,j,k)*dom%Veloc(l,j,k,2,lnum)
                     end do
                     ForcesFl(0,i,j,k) = sum_vx
                     ForcesFl(1,i,j,k) = sum_vy
@@ -49,9 +52,9 @@ contains
                     do i=0,m1-1
                         ind = Elem%Idom(i,j,k)
                         acoeff = - mat%hprimey(j,l)*mat%GLLwx(i)*mat%GLLwy(l)*mat%GLLwz(k)*Elem%Jacob(i,l,k)
-                        sum_vx = acoeff*Elem%InvGrad(0,1,i,l,k)*Elem%flpml%Veloc(i,l,k,0)
-                        sum_vy = acoeff*Elem%InvGrad(1,1,i,l,k)*Elem%flpml%Veloc(i,l,k,1)
-                        sum_vz = acoeff*Elem%InvGrad(2,1,i,l,k)*Elem%flpml%Veloc(i,l,k,2)
+                        sum_vx = acoeff*Elem%InvGrad(0,1,i,l,k)*dom%Veloc(i,l,k,0,lnum)
+                        sum_vy = acoeff*Elem%InvGrad(1,1,i,l,k)*dom%Veloc(i,l,k,1,lnum)
+                        sum_vz = acoeff*Elem%InvGrad(2,1,i,l,k)*dom%Veloc(i,l,k,2,lnum)
                         ForcesFl(0,i,j,k) = ForcesFl(0,i,j,k) + sum_vx
                         ForcesFl(1,i,j,k) = ForcesFl(1,i,j,k) + sum_vy
                         ForcesFl(2,i,j,k) = ForcesFl(2,i,j,k) + sum_vz
@@ -66,9 +69,9 @@ contains
                     do i=0,m1-1
                         ind = Elem%Idom(i,j,k)
                         acoeff = - mat%hprimez(k,l)*mat%GLLwx(i)*mat%GLLwy(j)*mat%GLLwz(l)*Elem%Jacob(i,j,l)
-                        sum_vx = acoeff*Elem%InvGrad(0,2,i,j,l)*Elem%flpml%Veloc(i,j,l,0)
-                        sum_vy = acoeff*Elem%InvGrad(1,2,i,j,l)*Elem%flpml%Veloc(i,j,l,1)
-                        sum_vz = acoeff*Elem%InvGrad(2,2,i,j,l)*Elem%flpml%Veloc(i,j,l,2)
+                        sum_vx = acoeff*Elem%InvGrad(0,2,i,j,l)*dom%Veloc(i,j,l,0,lnum)
+                        sum_vy = acoeff*Elem%InvGrad(1,2,i,j,l)*dom%Veloc(i,j,l,1,lnum)
+                        sum_vz = acoeff*Elem%InvGrad(2,2,i,j,l)*dom%Veloc(i,j,l,2,lnum)
                         ForcesFl(0,i,j,k) = ForcesFl(0,i,j,k) + sum_vx
                         ForcesFl(1,i,j,k) = ForcesFl(1,i,j,k) + sum_vy
                         ForcesFl(2,i,j,k) = ForcesFl(2,i,j,k) + sum_vz
@@ -93,14 +96,13 @@ contains
         return
     end subroutine forces_int_flu_pml
 
-    subroutine pred_flu_pml(Elem, mat, dt, champs1)
-
-        implicit none
-
-        type(Element), intent(inout) :: Elem
+    subroutine pred_flu_pml(dom, mat, dt, champs1, Elem, lnum)
+        type (domain_fluidpml), intent (INOUT) :: dom
         type (subdomain), intent(IN) :: mat
-        type(champsfluidpml), intent(inout) :: champs1
         real, intent(in) :: dt
+        type(champsfluidpml), intent(inout) :: champs1
+        type(Element), intent(inout) :: Elem
+        integer :: lnum
         !
         real, dimension(0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVelPhi_dx, dVelPhi_dy, dVelPhi_dz
         integer :: m1, m2, m3
@@ -129,19 +131,19 @@ contains
 
         ! prediction for (physical) velocity (which is the equivalent of a stress, here)
         ! V_x^x
-        Elem%flpml%Veloc(:,:,:,0) = Elem%xpml%DumpSx(:,:,:,0) * Elem%flpml%Veloc(:,:,:,0) + &
+        dom%Veloc(:,:,:,0,lnum) = Elem%xpml%DumpSx(:,:,:,0) * dom%Veloc(:,:,:,0,lnum) + &
             Elem%xpml%DumpSx(:,:,:,1) * Dt * dVelPhi_dx
         ! V_x^y = 0
         ! V_x^z = 0
         ! V_y^x = 0
         ! V_y^y
-        Elem%flpml%Veloc(:,:,:,1) = Elem%xpml%DumpSy(:,:,:,0) * Elem%flpml%Veloc(:,:,:,1) + &
+        dom%Veloc(:,:,:,1,lnum) = Elem%xpml%DumpSy(:,:,:,0) * dom%Veloc(:,:,:,1,lnum) + &
             Elem%xpml%DumpSy(:,:,:,1) * Dt * dVelPhi_dy
         ! V_y^z = 0
         ! V_z^x = 0
         ! V_z^y = 0
         ! V_z^z
-        Elem%flpml%Veloc(:,:,:,2) = Elem%xpml%DumpSz(:,:,:,0) * Elem%flpml%Veloc(:,:,:,2) + &
+        dom%Veloc(:,:,:,2,lnum) = Elem%xpml%DumpSz(:,:,:,0) * dom%Veloc(:,:,:,2,lnum) + &
             Elem%xpml%DumpSz(:,:,:,1) * Dt * dVelPhi_dz
         return
     end subroutine Pred_Flu_Pml

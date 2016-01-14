@@ -529,9 +529,9 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
                         write(*,*) "Erreur fatale sauvegarde des protections"
                         stop 1
                     end if
-                    data(idx+ 0) = Tdomain%specel(n)%flpml%Veloc(i,j,k,0)
-                    data(idx+ 1) = Tdomain%specel(n)%flpml%Veloc(i,j,k,1)
-                    data(idx+ 2) = Tdomain%specel(n)%flpml%Veloc(i,j,k,2)
+                    data(idx+ 0) = Tdomain%fpmldom%Veloc(i,j,k,0,Tdomain%specel(n)%lnum)
+                    data(idx+ 1) = Tdomain%fpmldom%Veloc(i,j,k,1,Tdomain%specel(n)%lnum)
+                    data(idx+ 2) = Tdomain%fpmldom%Veloc(i,j,k,2,Tdomain%specel(n)%lnum)
                     idx = idx + 3
                 enddo
             enddo

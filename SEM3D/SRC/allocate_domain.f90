@@ -141,9 +141,10 @@ subroutine allocate_domain (Tdomain)
             allocate(Tdomain%specel(n)%fl)
             if(Tdomain%TimeD%velocity_scheme)then
                 if(ispml)then
-                    allocate(Tdomain%specel(n)%flpml)
-                    allocate(Tdomain%specel(n)%flpml%Veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    Tdomain%specel(n)%flpml%Veloc = 0d0
+                    if(.not. allocated(Tdomain%fpmldom%Veloc)) then
+                        allocate(Tdomain%fpmldom%Veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:Tdomain%fpmldom%nbelem-1))
+                    endif
+                    Tdomain%fpmldom%Veloc = 0d0
                 endif
             endif
 

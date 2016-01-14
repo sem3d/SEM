@@ -46,10 +46,6 @@ module selement
         real, dimension(:,:,:,:), allocatable :: Diagonal_Stress, Residual_Stress
     end type element_solid_pml
 
-    type :: element_fluid_pml
-        real, dimension(:,:,:,:), allocatable :: Veloc
-    end type element_fluid_pml
-
     type :: element
         integer :: ngllx, nglly, ngllz
         integer :: mat_index
@@ -66,7 +62,6 @@ module selement
 
         type(element_pml), allocatable :: xpml
         type(element_solid_pml), allocatable :: slpml
-        type(element_fluid_pml), allocatable :: flpml
 
         ! Whether this element will be part of snapshot outputs
         logical :: OUTPUT

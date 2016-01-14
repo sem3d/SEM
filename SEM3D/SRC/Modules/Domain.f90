@@ -30,11 +30,14 @@ module sdomain
     use champs_solidpml
     use champs_fluid
     use champs_fluidpml
+    use constants
     implicit none
 
     type domain_solid
         ! Nombre de gll
         integer :: ngll
+
+        integer :: nbelem
 
         ! Champs
         type(champssolid) :: champs0
@@ -51,6 +54,8 @@ module sdomain
     type domain_solidpml
         ! Nombre de gll
         integer :: ngll
+
+        integer :: nbelem
 
         ! Champs
         type(champssolidpml) :: champs0
@@ -69,6 +74,8 @@ module sdomain
         ! Nombre de gll
         integer :: ngll
 
+        integer :: nbelem
+
         ! Champs
         type(champsfluid) :: champs0
         type(champsfluid) :: champs1
@@ -82,20 +89,26 @@ module sdomain
     end type domain_fluid
 
     type domain_fluidpml
+        ! D'abord, les données membres qui ne sont pas modifiées
+
         ! Nombre de gll
         integer :: ngll
+
+        integer :: nbelem
+
+        ! MassMat pour elements solide, fluide, solide pml et fluide pml
+        real(fpp), dimension(:), allocatable :: MassMat
+        real(fpp), dimension(:,:), allocatable :: DumpMass
+        ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
+        integer :: n_dirich
+        integer, dimension(:), allocatable :: dirich
+
+        ! A partir de là, les données membres sont modifiées en cours de calcul
 
         ! Champs
         type(champsfluidpml) :: champs0
         type(champsfluidpml) :: champs1
-
-        ! MassMat pour elements solide, fluide, solide pml et fluide pml
-        real, dimension(:), allocatable :: MassMat
-        real, dimension(:,:), allocatable :: DumpMass
-
-        ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
-        integer :: n_dirich
-        integer, dimension(:), allocatable :: dirich
+        real(fpp), dimension(:,:,:,:,:), allocatable :: Veloc
     end type domain_fluidpml
 
     type :: domain
