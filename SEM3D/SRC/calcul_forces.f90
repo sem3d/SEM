@@ -210,7 +210,7 @@ end subroutine calcul_forces_el
 subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poidsy, poidsz, &
     DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, mu_,la_, ngllx, nglly, ngllz, &
     EpsPl_ij_N_el, Sigma_ij_N_el, Xkin_ij_N_el, Riso_N_el, &
-    sigma_yld_el, b_iso_el, Rinf_iso_el, C_kin_el, kapa_kin_el, Nelement)
+    sigma_yld_el, b_iso_el, Rinf_iso_el, C_kin_el, kapa_kin_el,nelement)
 
     use sdomain
     use nonlinear
@@ -248,9 +248,9 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
     real, dimension(0:nglly-1,0:ngllx-1,0:ngllz-1) :: t2,t6,t9
     real, dimension(0:ngllz-1,0:ngllx-1,0:nglly-1) :: t3,t7,t10
 
-    real                 :: Rinf_iso, b_iso, C_kin, kapa_kin, Riso_N, sigma_yld, alpha_elp
+    real                 :: Rinf_iso, b_iso, C_kin, kapa_kin, Riso_N, sigma_yld, alpha_elp, Ffinal
     real, dimension(0:5) :: Sigma_ij_start, Sigma_ij_trial, dEpsilon_ij_alpha, Xkin_ij_N, dEpsilon_ij_pl
-    integer :: Nelement
+    integer, intent(in) :: nelement
     do k = 0,ngllz-1
         do j = 0,nglly-1
             do i = 0,ngllx-1
@@ -261,17 +261,17 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
 
                 ! ELASTIC PREDICTION 
 
-                sxx = xla2mu * DXX(i,j,k) + xla  * (DYY(i,j,k) + DZZ(i,j,k))
+                sxx = xla2mu*DXX(i,j,k)+xla*(DYY(i,j,k)+DZZ(i,j,k))
                 !---
-                sxy = xmu  *(DXY(i,j,k)  + DYX(i,j,k))
+                sxy = xmu*(DXY(i,j,k)+DYX(i,j,k))
                 !---
-                sxz = xmu * (DXZ(i,j,k)  + DZX(i,j,k))
+                sxz = xmu*(DXZ(i,j,k)+DZX(i,j,k))
                 !---
-                syy = xla2mu * DYY(i,j,k) + xla  * (DXX(i,j,k) + DZZ(i,j,k))
+                syy = xla2mu*DYY(i,j,k)+xla*(DXX(i,j,k)+DZZ(i,j,k))
                 !---
-                syz = xmu * (DYZ(i,j,k)  + DZY(i,j,k))
+                syz = xmu*(DYZ(i,j,k)+DZY(i,j,k))
                 !---
-                szz = xla2mu * DZZ(i,j,k) + xla  * (DXX(i,j,k) + DYY(i,j,k))
+                szz = xla2mu*DZZ(i,j,k)+xla*(DXX(i,j,k)+DYY(i,j,k))
                 !---
                 !
                 ! CHECK PLASTICITY
@@ -286,18 +286,42 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
 
                 Sigma_ij_start = Sigma_ij_N_el(0:5,i,j,k)
                 Sigma_ij_trial = Sigma_ij_start+(/sxx,syy,szz,sxy,sxz,syz/)
-                dEpsilon_ij_pl(0:5) = 0d0
+                dEpsilon_ij_pl = 0d0
+
                 call check_plasticity (Sigma_ij_trial, Sigma_ij_start, Xkin_ij_N, Riso_N, &
-                    sigma_yld, st_epl, alpha_elp,Nelement,i,j,k)
+                    sigma_yld, st_epl, alpha_elp,nelement,i,j,k)
                 !
                 ! PLASTIC CORRECTION
                 !
-
                 if (st_epl == 1) then
-                    write(*,*) 'alpha=',alpha_elp
-                    dEpsilon_ij_alpha = (1-alpha_elp)*(/dxx,dyy,dzz,dxy+dyx,dxz+dzx,dyz+dzy/)
+                    write(*,*) "****** plastic correction after check *********"
+                    write(*,*) "alpha :",alpha_elp
+                    write(*,*) ""
+                    write(*,*) "DXX   :",DXX(i,j,k)
+                    write(*,*) ""
+                    write(*,*) "DYY   :",DYY(i,j,k)
+                    write(*,*) ""
+                    write(*,*) "DZZ   :",DZZ(i,j,k)
+                    write(*,*) ""
+                    write(*,*) "DXY   :",DXY(i,j,k),"DYX   :",DYX(i,j,k)
+                    write(*,*) ""
+                    write(*,*) "DXZ   :",DXZ(i,j,k),"DZX   :",DZX(i,j,k)
+                    write(*,*) ""
+                    write(*,*) "DYZ   :",DYZ(i,j,k),"DYZ   :",DZY(i,j,k)
+                    write(*,*) "****** plastic correction after check *********"
+
+                    dEpsilon_ij_alpha(0)=(1-alpha_elp)*(DXX(i,j,k))
+                    dEpsilon_ij_alpha(1)=(1-alpha_elp)*(DYY(i,j,k))
+                    dEpsilon_ij_alpha(2)=(1-alpha_elp)*(DZZ(i,j,k))
+                    dEpsilon_ij_alpha(3)=(1-alpha_elp)*(DXY(i,j,k)+DYX(i,j,k))
+                    dEpsilon_ij_alpha(4)=(1-alpha_elp)*(DXZ(i,j,k)+DZX(i,j,k))
+                    dEpsilon_ij_alpha(5)=(1-alpha_elp)*(DYZ(i,j,k)+DZY(i,j,k))
                     call plastic_corrector(dEpsilon_ij_alpha, Sigma_ij_trial, Xkin_ij_N, sigma_yld, &
-                        Riso_N, b_iso, Rinf_iso, C_kin, kapa_kin, xmu, xla, dEpsilon_ij_pl)
+                        Riso_N, b_iso, Rinf_iso, C_kin, kapa_kin, xmu, xla, dEpsilon_ij_pl,Ffinal,  &
+                       (i==4.and.j==4.and.k==4.and.nelement==4))
+                    if (i==4.and.j==4.and.k==4.and.nelement==4) then
+                        write(*,*) "Ffinal corrected",Ffinal
+                    end if
                 end if
                 sxx = Sigma_ij_trial(0)
                 syy = Sigma_ij_trial(1)
@@ -305,13 +329,14 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
                 sxy = Sigma_ij_trial(3)
                 sxz = Sigma_ij_trial(4)
                 syz = Sigma_ij_trial(5)
+
                 !
                 ! UPDATE STATE
                 !
-                Sigma_ij_N_el(0:5,i,j,k) = Sigma_ij_trial
-                Xkin_ij_N_el(0:5,i,j,k)  = Xkin_ij_N
+                Sigma_ij_N_el(0:5,i,j,k) = Sigma_ij_trial(0:5)
+                Xkin_ij_N_el(0:5,i,j,k)  = Xkin_ij_N(0:5)
                 Riso_N_el(i,j,k)         = Riso_N
-                EpsPl_ij_N_el(0:5,i,j,k) = EpsPl_ij_N_el(0:5,i,j,k)+dEpsilon_ij_pl
+                EpsPl_ij_N_el(0:5,i,j,k) = EpsPl_ij_N_el(0:5,i,j,k)+dEpsilon_ij_pl(0:5)
                 !
                 xi1 = Invgrad(0,0,i,j,k)
                 xi2 = Invgrad(1,0,i,j,k)

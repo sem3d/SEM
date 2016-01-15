@@ -302,7 +302,7 @@ contains
                     do k=0,nz-1
                         do j=0,ny-1
                             do i=0,nx-1
-                                field(i,j,k) = sum(displ(i,j,k,1:3))* M_1_3
+                                field(i,j,k) = -sum(displ(i,j,k,0:2))*M_1_3
                             end do
                         end do
                     end do
@@ -348,7 +348,7 @@ contains
                     do j=0,ny-1
                         do i=0,nx-1
                             ind = el%Idom(i,j,k)
-                            field(i,j,k,:) = Tdomain%champs0%Stress(ind,:)
+                            field(i,j,k,0:5) = Tdomain%champs0%Stress(ind,0:5)
                         enddo
                     enddo
                 enddo
@@ -375,7 +375,7 @@ contains
                     do j=0,ny-1
                         do i=0,nx-1
                             ind = el%Idom(i,j,k)
-                            field(i,j,k,:) = Tdomain%champs0%Epsilon_pl(ind,:)
+                            field(i,j,k,0:5) = Tdomain%champs0%Epsilon_pl(ind,0:5)
                         enddo
                     enddo
                 enddo

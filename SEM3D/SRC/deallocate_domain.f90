@@ -136,7 +136,8 @@ subroutine deallocate_domain (Tdomain)
 
     !purge -fuites memoire
     deallocate (Tdomain%sComm)
-
+    write(*,*) '****** DEBUG ******'
+    
     do n = 0, Tdomain%n_mat-1
         if (associated(Tdomain%sSubdomain(n)%GLLcz, Tdomain%sSubdomain(n)%GLLcx) .or. &
             associated(Tdomain%sSubdomain(n)%GLLcz, Tdomain%sSubdomain(n)%GLLcy )) then

@@ -425,11 +425,14 @@ contains
             Tdomain%Ssource(nsrc)%Zsource = src%coords(3)
             Tdomain%Ssource(nsrc)%i_type_source = src%type
             Tdomain%Ssource(nsrc)%amplitude_factor = src%amplitude
+            write(*,*) "source amplitude:",src%amplitude
             if (src%func .eq. 5) then
                 Tdomain%Ssource(nsrc)%time_file = fromcstr(src%time_file)
+                write(*,*) "time_file:",Tdomain%Ssource(nsrc)%amplitude_factor
             end if
             ! Comportement temporel
             Tdomain%Ssource(nsrc)%i_time_function = src%func
+            write(*,*) "source type:",src%func
             Tdomain%Ssource(nsrc)%cutoff_freq = src%freq ! func=2,4
             Tdomain%Ssource(nsrc)%tau_b = src%tau ! func=1,2,3,4,5
             Tdomain%Ssource(nsrc)%fh = src%band  ! func=3
@@ -582,7 +585,6 @@ contains
              Tdomain%nReqOut=Tdomain%nReqOut+6
         endif 
         
-        write(*,*),'requested output',Tdomain%nReqOut
         Tdomain%TimeD%courant             = Tdomain%config%courant
         Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)
         call semname_read_input_meshfile(rg,Tdomain%mesh_file,fnamef) !indicates the path to the mesh file for this proc"

@@ -28,7 +28,7 @@ MODULE constants
     real(KIND=8), parameter :: M_SQRT2 = 1.41421356237309504880D0    ! sqrt(2)
     real(KIND=8), parameter :: M_SQRT1_2 = 0.70710678118654752440D0  ! 1/sqrt(2)
     real(KIND=8), parameter :: M_1_3  = 0.33333333333333333333D0 ! 1/3
-    real(KIND=8), parameter :: tol_nl = 0.00010000000000000000D0 ! tolerance for nonlinear analysis
+    real(KIND=8), parameter :: tol_nl = 0.0100000000000000000D0 ! tolerance for nonlinear analysis
 
     ! Constantes physiques
 
@@ -73,6 +73,7 @@ MODULE constants
     integer, parameter :: COND_NEUMANN  = 2
 
     integer, parameter, dimension(0:8) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6 /)
+    real(KIND=8), dimension(0:5), parameter :: Miso = M_1_3*(/1, 1, 1, 0, 0, 0/) ! projection vector to get isotropic stress
 CONTAINS
 
 

@@ -19,7 +19,7 @@ module forces_aniso
 contains
 
     subroutine forces_int_solid(Elem, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
-        n_solid, aniso, champs1, nl_flag, dt,Nelement)
+        n_solid, aniso, champs1, nl_flag, dt,nelement)
         type (Element), intent (INOUT) :: Elem
         type (subdomain), intent(IN) :: mat
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: htprimex
@@ -46,8 +46,7 @@ contains
         real, dimension(:,:,:,:), allocatable :: Xkin_ij_N_el
         real, dimension(:,:,:,:), allocatable :: EpsPl_ij_N_el
         real, intent(in) :: dt
-        integer :: Nelement
-
+        integer,intent(in) :: nelement
         m1 = Elem%ngllx;   m2 = Elem%nglly;   m3 = Elem%ngllz
 
         do i_dir = 0,2

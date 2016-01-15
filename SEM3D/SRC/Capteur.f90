@@ -427,6 +427,7 @@ contains
             call allocate_second_fields(domtype, out_variables, nl_flag, ngllx, nglly, ngllz, &
                 fieldU, fieldV, fieldA, fieldP, fieldS, fieldEP, field_phi, field_vphi, &
                 DXX, DYY, DZZ, DXY, DYX, DXZ, DZX, DYZ, DZY, hTprimex, hprimey, hprimez)
+            ! INTEGRATION WEIGHTS
             allocate(outx(0:ngllx-1))
             allocate(outy(0:nglly-1))
             allocate(outz(0:ngllz-1))
@@ -440,7 +441,16 @@ contains
                 call  pol_lagrange(ngllz,Tdomain%sSubdomain(mat)%GLLcz,k,zeta,outz(k))
             end do
             ! INITIALIZATION 
+            if ((flag_gradU) .or. (out_variables(OUT_DEPLA)==1)) then
+               call gather_elem_displ(Tdomain, n_el, fieldU)  
+            end if
             if (flag_gradU) then
+                eps_dev_xx=0
+                eps_dev_yy=0
+                eps_dev_zz=0
+                eps_dev_xy=0
+                eps_dev_xz=0
+                eps_dev_yz=0
                 hTprimex=Tdomain%sSubDomain(mat)%hTprimex
                 hprimey=Tdomain%sSubDomain(mat)%hprimey
                 hprimez=Tdomain%sSubDomain(mat)%hprimez
@@ -462,24 +472,8 @@ contains
             if (out_variables(OUT_ENERGYP)==1)  P_energy = 0
             if (out_variables(OUT_ENERGYS)==1)  S_energy = 0
             if (out_variables(OUT_EPS_VOL)==1)  eps_vol = 0
-            if (out_variables(OUT_EPS_DEV)==1) then
-                eps_dev_xx = 0
-                eps_dev_yy = 0
-                eps_dev_zz = 0
-                eps_dev_xy = 0
-                eps_dev_xz = 0
-                eps_dev_yz = 0
-                if (nl_flag==1) call gather_elem_eps_pl(Tdomain, n_el, fieldEP)
-            end if
-            if (out_variables(OUT_STRESS_DEV)==1) then
-                sig_dev_xx = 0
-                sig_dev_yy = 0
-                sig_dev_zz = 0
-                sig_dev_xy = 0
-                sig_dev_xz = 0
-                sig_dev_yz = 0
-                if (nl_flag==1) call gather_elem_stress_solid(Tdomain, n_el, fieldS)
-            end if
+            if (out_variables(OUT_EPS_DEV)==1 .and. nl_flag==1) call gather_elem_eps_pl(Tdomain, n_el, fieldEP)
+            if (out_variables(OUT_STRESS_DEV)==1 .and. nl_flag==1) call gather_elem_stress_solid(Tdomain, n_el, fieldS)
             ! COMPUTE OUTPUTS
             do i = 0,ngllx - 1
                 do j = 0,nglly - 1
