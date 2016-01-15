@@ -35,14 +35,6 @@ module selement
         real, dimension(:,:,:,:), allocatable :: DumpMass
     end type element_pml
 
-    type :: element_solid_pml
-        ! TODO move pml related data here
-        real, dimension(:,:,:,:), allocatable :: Diagonal_Stress1, Diagonal_Stress2, Diagonal_Stress3
-        real, dimension(:,:,:,:), allocatable :: Residual_Stress1, Residual_Stress2, Residual_Stress3
-        ! FPML
-        real, dimension(:,:,:,:), allocatable :: Diagonal_Stress, Residual_Stress
-    end type element_solid_pml
-
     type :: element
         integer :: ngllx, nglly, ngllz
         integer :: mat_index
@@ -57,7 +49,6 @@ module selement
         real, dimension (:,:,:), allocatable :: Lambda, Mu, Kappa
 
         type(element_pml), allocatable :: xpml
-        type(element_solid_pml), allocatable :: slpml
 
         ! Whether this element will be part of snapshot outputs
         logical :: OUTPUT

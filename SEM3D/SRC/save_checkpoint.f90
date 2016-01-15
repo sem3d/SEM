@@ -459,29 +459,29 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
                         write(*,*) "Erreur fatale sauvegarde des protections"
                         stop 1
                     end if
-                    data(idx+ 0) = Tdomain%specel(n)%slpml%Diagonal_Stress1(i,j,k,0)
-                    data(idx+ 1) = Tdomain%specel(n)%slpml%Diagonal_Stress1(i,j,k,1)
-                    data(idx+ 2) = Tdomain%specel(n)%slpml%Diagonal_Stress1(i,j,k,2)
+                    data(idx+ 0) = Tdomain%spmldom%Diagonal_Stress1(i,j,k,0,Tdomain%specel(n)%lnum)
+                    data(idx+ 1) = Tdomain%spmldom%Diagonal_Stress1(i,j,k,1,Tdomain%specel(n)%lnum)
+                    data(idx+ 2) = Tdomain%spmldom%Diagonal_Stress1(i,j,k,2,Tdomain%specel(n)%lnum)
                     idx = idx + 3
-                    data(idx+ 0) = Tdomain%specel(n)%slpml%Diagonal_Stress2(i,j,k,0)
-                    data(idx+ 1) = Tdomain%specel(n)%slpml%Diagonal_Stress2(i,j,k,1)
-                    data(idx+ 2) = Tdomain%specel(n)%slpml%Diagonal_Stress2(i,j,k,2)
+                    data(idx+ 0) = Tdomain%spmldom%Diagonal_Stress2(i,j,k,0,Tdomain%specel(n)%lnum)
+                    data(idx+ 1) = Tdomain%spmldom%Diagonal_Stress2(i,j,k,1,Tdomain%specel(n)%lnum)
+                    data(idx+ 2) = Tdomain%spmldom%Diagonal_Stress2(i,j,k,2,Tdomain%specel(n)%lnum)
                     idx = idx + 3
-                    data(idx+ 0) = Tdomain%specel(n)%slpml%Diagonal_Stress3(i,j,k,0)
-                    data(idx+ 1) = Tdomain%specel(n)%slpml%Diagonal_Stress3(i,j,k,1)
-                    data(idx+ 2) = Tdomain%specel(n)%slpml%Diagonal_Stress3(i,j,k,2)
+                    data(idx+ 0) = Tdomain%spmldom%Diagonal_Stress3(i,j,k,0,Tdomain%specel(n)%lnum)
+                    data(idx+ 1) = Tdomain%spmldom%Diagonal_Stress3(i,j,k,1,Tdomain%specel(n)%lnum)
+                    data(idx+ 2) = Tdomain%spmldom%Diagonal_Stress3(i,j,k,2,Tdomain%specel(n)%lnum)
                     idx = idx + 3
-                    data(idx+ 0) = Tdomain%specel(n)%slpml%Residual_Stress1(i,j,k,0)
-                    data(idx+ 1) = Tdomain%specel(n)%slpml%Residual_Stress1(i,j,k,1)
-                    data(idx+ 2) = Tdomain%specel(n)%slpml%Residual_Stress1(i,j,k,2)
+                    data(idx+ 0) = Tdomain%spmldom%Residual_Stress1(i,j,k,0,Tdomain%specel(n)%lnum)
+                    data(idx+ 1) = Tdomain%spmldom%Residual_Stress1(i,j,k,1,Tdomain%specel(n)%lnum)
+                    data(idx+ 2) = Tdomain%spmldom%Residual_Stress1(i,j,k,2,Tdomain%specel(n)%lnum)
                     idx = idx + 3
-                    data(idx+ 0) = Tdomain%specel(n)%slpml%Residual_Stress2(i,j,k,0)
-                    data(idx+ 1) = Tdomain%specel(n)%slpml%Residual_Stress2(i,j,k,1)
-                    data(idx+ 2) = Tdomain%specel(n)%slpml%Residual_Stress2(i,j,k,2)
+                    data(idx+ 0) = Tdomain%spmldom%Residual_Stress2(i,j,k,0,Tdomain%specel(n)%lnum)
+                    data(idx+ 1) = Tdomain%spmldom%Residual_Stress2(i,j,k,1,Tdomain%specel(n)%lnum)
+                    data(idx+ 2) = Tdomain%spmldom%Residual_Stress2(i,j,k,2,Tdomain%specel(n)%lnum)
                     idx = idx + 3
-                    data(idx+ 0) = Tdomain%specel(n)%slpml%Residual_Stress3(i,j,k,0)
-                    data(idx+ 1) = Tdomain%specel(n)%slpml%Residual_Stress3(i,j,k,1)
-                    data(idx+ 2) = Tdomain%specel(n)%slpml%Residual_Stress3(i,j,k,2)
+                    data(idx+ 0) = Tdomain%spmldom%Residual_Stress3(i,j,k,0,Tdomain%specel(n)%lnum)
+                    data(idx+ 1) = Tdomain%spmldom%Residual_Stress3(i,j,k,1,Tdomain%specel(n)%lnum)
+                    data(idx+ 2) = Tdomain%spmldom%Residual_Stress3(i,j,k,2,Tdomain%specel(n)%lnum)
                     idx = idx + 3
                 enddo
             enddo

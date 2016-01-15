@@ -70,24 +70,30 @@ subroutine allocate_domain (Tdomain)
             allocate(Tdomain%specel(n)%sl)
             if(Tdomain%TimeD%velocity_scheme)then
                 if(ispml)then
-                    allocate(Tdomain%specel(n)%slpml)
-                    allocate(Tdomain%specel(n)%slpml%Diagonal_Stress(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%slpml%Diagonal_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%slpml%Diagonal_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%slpml%Diagonal_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%slpml%Residual_Stress(0:ngllx-1, 0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%slpml%Residual_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%slpml%Residual_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    allocate(Tdomain%specel(n)%slpml%Residual_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                    Tdomain%specel(n)%slpml%Diagonal_Stress = 0d0
-                    Tdomain%specel(n)%slpml%Diagonal_Stress1 = 0d0
-                    Tdomain%specel(n)%slpml%Diagonal_Stress2 = 0d0
-                    Tdomain%specel(n)%slpml%Diagonal_Stress3 = 0d0
-                    Tdomain%specel(n)%slpml%Residual_Stress = 0d0
-                    Tdomain%specel(n)%slpml%Residual_Stress1 = 0d0
-                    Tdomain%specel(n)%slpml%Residual_Stress2 = 0d0
-                    Tdomain%specel(n)%slpml%Residual_Stress3 = 0d0
-
+                    if(.not. allocated(Tdomain%spmldom%Diagonal_Stress )) &
+                             allocate(Tdomain%spmldom%Diagonal_Stress (0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:Tdomain%spmldom%nbelem-1))
+                    if(.not. allocated(Tdomain%spmldom%Diagonal_Stress1)) &
+                             allocate(Tdomain%spmldom%Diagonal_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:Tdomain%spmldom%nbelem-1))
+                    if(.not. allocated(Tdomain%spmldom%Diagonal_Stress2)) &
+                             allocate(Tdomain%spmldom%Diagonal_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:Tdomain%spmldom%nbelem-1))
+                    if(.not. allocated(Tdomain%spmldom%Diagonal_Stress3)) &
+                             allocate(Tdomain%spmldom%Diagonal_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:Tdomain%spmldom%nbelem-1))
+                    if(.not. allocated(Tdomain%spmldom%Residual_Stress )) &
+                             allocate(Tdomain%spmldom%Residual_Stress (0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:Tdomain%spmldom%nbelem-1))
+                    if(.not. allocated(Tdomain%spmldom%Residual_Stress1)) &
+                             allocate(Tdomain%spmldom%Residual_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:Tdomain%spmldom%nbelem-1))
+                    if(.not. allocated(Tdomain%spmldom%Residual_Stress2)) &
+                             allocate(Tdomain%spmldom%Residual_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:Tdomain%spmldom%nbelem-1))
+                    if(.not. allocated(Tdomain%spmldom%Residual_Stress3)) &
+                             allocate(Tdomain%spmldom%Residual_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:Tdomain%spmldom%nbelem-1))
+                    Tdomain%spmldom%Diagonal_Stress  = 0d0
+                    Tdomain%spmldom%Diagonal_Stress1 = 0d0
+                    Tdomain%spmldom%Diagonal_Stress2 = 0d0
+                    Tdomain%spmldom%Diagonal_Stress3 = 0d0
+                    Tdomain%spmldom%Residual_Stress  = 0d0
+                    Tdomain%spmldom%Residual_Stress1 = 0d0
+                    Tdomain%spmldom%Residual_Stress2 = 0d0
+                    Tdomain%spmldom%Residual_Stress3 = 0d0
                 else ! PML
                     if (Tdomain%aniso) then
                         allocate (Tdomain%specel(n)%sl%Cij (0:20, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))

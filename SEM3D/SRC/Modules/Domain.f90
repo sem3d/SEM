@@ -78,6 +78,9 @@ module sdomain
         ! Champs
         type(champssolidpml) :: champs0
         type(champssolidpml) :: champs1
+        real(fpp), dimension(:,:,:,:,:), allocatable :: Diagonal_Stress1, Diagonal_Stress2, Diagonal_Stress3
+        real(fpp), dimension(:,:,:,:,:), allocatable :: Residual_Stress1, Residual_Stress2, Residual_Stress3
+        real(fpp), dimension(:,:,:,:,:), allocatable :: Diagonal_Stress, Residual_Stress
     end type domain_solidpml
 
     type domain_fluid

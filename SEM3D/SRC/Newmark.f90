@@ -427,9 +427,10 @@ subroutine internal_forces(Tdomain)
                 Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
                 Tdomain%sSubDomain(mat)%hTprimez, Tdomain%fdom%champs1)
         case (DM_SOLID_PML)
-            call pred_sol_pml(Tdomain%specel(n), Tdomain%sSubDomain(mat),Tdomain%TimeD%dtmin, &
-                Tdomain%spmldom%champs1)
-            call forces_int_sol_pml(Tdomain%specel(n), Tdomain%sSubDomain(mat), Tdomain%spmldom%champs1)
+            call pred_sol_pml(Tdomain%spmldom, Tdomain%sSubDomain(mat),Tdomain%TimeD%dtmin, &
+                              Tdomain%spmldom%champs1, Tdomain%specel(n), lnum)
+            call forces_int_sol_pml(Tdomain%spmldom, Tdomain%sSubDomain(mat), Tdomain%spmldom%champs1, &
+                                    Tdomain%specel(n), lnum)
         case (DM_FLUID_PML)
             call pred_flu_pml(Tdomain%fpmldom, Tdomain%sSubDomain(mat),Tdomain%TimeD%dtmin, &
                               Tdomain%fpmldom%champs1, Tdomain%specel(n), lnum)
