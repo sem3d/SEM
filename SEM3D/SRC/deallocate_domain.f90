@@ -80,6 +80,8 @@ subroutine deallocate_domain (Tdomain)
                     deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el)
                     deallocate(Tdomain%specel(n)%sl%nl_param_el)
                 end if
+        
+
                 if (issolid .and. Tdomain%n_sls>0) then
                     if (Tdomain%aniso) then
                         deallocate (Tdomain%specel(n)%sl%Q)
@@ -111,17 +113,6 @@ subroutine deallocate_domain (Tdomain)
                     deallocate (Tdomain%specel(n)%sl%R_xz_)
                     deallocate (Tdomain%specel(n)%sl%R_yz_)
                 endif
-
-                if (Tdomain%nl_flag == 1) then ! NL variables
-                    deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%sigma_yld)
-                    deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%b_iso)
-                    deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%Rinf_iso)
-                    deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%C_kin)
-                    deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%kapa_kin)
-                    deallocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el)
-                    deallocate(Tdomain%specel(n)%sl%nl_param_el)
-                end if
-
             endif
         endif
         deallocate (Tdomain%specel(n)%InvGrad)     !purge fuites memoire Gsa
@@ -136,7 +127,6 @@ subroutine deallocate_domain (Tdomain)
 
     !purge -fuites memoire
     deallocate (Tdomain%sComm)
-    write(*,*) '****** DEBUG ******'
     
     do n = 0, Tdomain%n_mat-1
         if (associated(Tdomain%sSubdomain(n)%GLLcz, Tdomain%sSubdomain(n)%GLLcx) .or. &

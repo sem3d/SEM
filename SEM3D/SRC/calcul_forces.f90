@@ -277,39 +277,28 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
                 ! CHECK PLASTICITY
                 !
                 Xkin_ij_N   = Xkin_ij_N_el(0:5,i,j,k)
-                Riso_N      = Riso_N_el    (i,j,k)
-                b_iso       = b_iso_el     (i,j,k)
-                C_kin       = C_kin_el     (i,j,k)
-                kapa_kin    = kapa_kin_el  (i,j,k)
-                Rinf_iso    = Rinf_iso_el  (i,j,k)
-                sigma_yld   = sigma_yld_el (i,j,k)
+                Riso_N      = Riso_N_el(i,j,k)
+                b_iso       = b_iso_el(i,j,k)
+                C_kin       = C_kin_el(i,j,k)
+                kapa_kin    = kapa_kin_el(i,j,k)
+                Rinf_iso    = Rinf_iso_el(i,j,k)
+                sigma_yld   = sigma_yld_el(i,j,k)
 
                 Sigma_ij_start = Sigma_ij_N_el(0:5,i,j,k)
                 Sigma_ij_trial = Sigma_ij_start+(/sxx,syy,szz,sxy,sxz,syz/)
-                dEpsilon_ij_pl = 0d0
+                dEpsilon_ij_pl(0:5) = 0d0
 
                 call check_plasticity (Sigma_ij_trial, Sigma_ij_start, Xkin_ij_N, Riso_N, &
                     sigma_yld, st_epl, alpha_elp,nelement,i,j,k)
                 !
                 ! PLASTIC CORRECTION
                 !
+                write(*,*) "++++++++++++ STATUS PLASTIC",ST_EPL
+                WRITE(*,*) ""
                 if (st_epl == 1) then
-                    write(*,*) "****** plastic correction after check *********"
-                    write(*,*) "alpha :",alpha_elp
+                    write(*,*) "========== ELASTO PLASTIC CORRECTION ============="
                     write(*,*) ""
-                    write(*,*) "DXX   :",DXX(i,j,k)
-                    write(*,*) ""
-                    write(*,*) "DYY   :",DYY(i,j,k)
-                    write(*,*) ""
-                    write(*,*) "DZZ   :",DZZ(i,j,k)
-                    write(*,*) ""
-                    write(*,*) "DXY   :",DXY(i,j,k),"DYX   :",DYX(i,j,k)
-                    write(*,*) ""
-                    write(*,*) "DXZ   :",DXZ(i,j,k),"DZX   :",DZX(i,j,k)
-                    write(*,*) ""
-                    write(*,*) "DYZ   :",DYZ(i,j,k),"DYZ   :",DZY(i,j,k)
-                    write(*,*) "****** plastic correction after check *********"
-
+                    write(*,*) "ALPHA_ELP",alpha_elp
                     dEpsilon_ij_alpha(0)=(1-alpha_elp)*(DXX(i,j,k))
                     dEpsilon_ij_alpha(1)=(1-alpha_elp)*(DYY(i,j,k))
                     dEpsilon_ij_alpha(2)=(1-alpha_elp)*(DZZ(i,j,k))
@@ -317,11 +306,11 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
                     dEpsilon_ij_alpha(4)=(1-alpha_elp)*(DXZ(i,j,k)+DZX(i,j,k))
                     dEpsilon_ij_alpha(5)=(1-alpha_elp)*(DYZ(i,j,k)+DZY(i,j,k))
                     call plastic_corrector(dEpsilon_ij_alpha, Sigma_ij_trial, Xkin_ij_N, sigma_yld, &
-                        Riso_N, b_iso, Rinf_iso, C_kin, kapa_kin, xmu, xla, dEpsilon_ij_pl,Ffinal,  &
-                       (i==4.and.j==4.and.k==4.and.nelement==4))
-                    if (i==4.and.j==4.and.k==4.and.nelement==4) then
-                        write(*,*) "Ffinal corrected",Ffinal
-                    end if
+                        Riso_N, b_iso, Rinf_iso, C_kin, kapa_kin, xmu, xla, dEpsilon_ij_pl,Ffinal)
+                        write(*,*) "++++++++++++++++ F CORRECTED",Ffinal
+                        write(*,*) "PLASTIC STRAIN INCREMENT"
+                        write(*,*) dEpsilon_ij_pl(0:5)
+
                 end if
                 sxx = Sigma_ij_trial(0)
                 syy = Sigma_ij_trial(1)
