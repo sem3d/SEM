@@ -257,7 +257,7 @@ contains
 
         type(domain), intent(inout) :: Tdomain
         character(Len=MAX_FILE_SIZE) :: fnamef
-        integer :: i, n_aus, npml, mat, nRandom
+        integer :: i, n_aus, npml, nRandom
         integer :: rg
         real :: dummy_dt, dummy_freq
         logical :: dummy_filtering
