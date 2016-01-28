@@ -405,7 +405,7 @@ contains
             Tdomain%Ssource(nsrc)%i_type_source = src%type
             Tdomain%Ssource(nsrc)%amplitude_factor = src%amplitude
             if (src%func .eq. 5) then
-                Tdomain%Ssource(nsrc)%time_file = fromcstr(src%time_file)
+                Tdomain%Ssource(nsrc)%time_file = trim(fromcstr(src%time_file))
             end if
             ! Comportement temporel
             Tdomain%Ssource(nsrc)%i_time_function = src%func
