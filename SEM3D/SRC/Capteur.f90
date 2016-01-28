@@ -162,10 +162,9 @@ contains
     end subroutine create_capteurs
 
 
-    subroutine evalueSortieCapteur(it, time, sortie_capteur)
+    subroutine evalueSortieCapteur(it, sortie_capteur)
         implicit none
         integer, intent(in) :: it
-        double precision, intent(in) :: time
         logical, intent(out) :: sortie_capteur
         type(tCapteur),pointer :: capteur
 

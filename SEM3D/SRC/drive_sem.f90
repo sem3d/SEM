@@ -576,7 +576,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !---------------------------------------------------------!
     !- RECEIVERS'OUTPUTS
 !---------------------------------------------------------!
-        call evalueSortieCapteur(ntime, Tdomain%TimeD%rtime, sortie_capteur)
+        call evalueSortieCapteur(ntime, sortie_capteur)
         ! sortie des quantites demandees par les capteur
         if (sortie_capteur) call save_capteur(Tdomain, ntime)
 
