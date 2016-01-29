@@ -4,6 +4,7 @@
 !!
 
 module dom_solidpml
+    use sdomain
     use constants
     use champs_solidpml
     use selement
@@ -12,6 +13,85 @@ module dom_solidpml
     implicit none
 
 contains
+
+    subroutine get_solidpml_dom_var(Tdomain, el, out_variables, &
+        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+        implicit none
+        !
+        type(domain)                               :: TDomain
+        integer, dimension(0:8)                    :: out_variables
+        type(element)                              :: el
+        real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
+        real(fpp), dimension(:,:,:), allocatable   :: fieldP
+        real(fpp)                                  :: P_energy, S_energy, eps_vol
+        real(fpp), dimension(0:5)                  :: eps_dev
+        real(fpp), dimension(0:5)                  :: sig_dev
+        !
+        logical :: flag_gradU
+        integer :: nx, ny, nz, i, j, k, ind
+
+        flag_gradU = (out_variables(OUT_ENERGYP) + &
+            out_variables(OUT_ENERGYS) + &
+            out_variables(OUT_EPS_VOL) + &
+            out_variables(OUT_EPS_DEV) + &
+            out_variables(OUT_STRESS_DEV)) /= 0
+
+        nx = el%ngllx
+        ny = el%nglly
+        nz = el%ngllz
+
+        do k=0,nz-1
+            do j=0,ny-1
+                do i=0,nx-1
+                    ind = el%Idom(i,j,k)
+
+                    if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
+                        if(.not. allocated(fieldU)) allocate(fieldU(0:nx-1,0:ny-1,0:nz-1,0:2))
+                        fieldU(i,j,k,:) = 0d0
+                    end if
+
+                    if (out_variables(OUT_VITESSE) == 1) then
+                        if(.not. allocated(fieldV)) allocate(fieldV(0:nx-1,0:ny-1,0:nz-1,0:2))
+                        fieldV(i,j,k,:) = Tdomain%spmldom%champs0%VelocPml(ind,:,0) + &
+                                          Tdomain%spmldom%champs0%VelocPml(ind,:,1) + &
+                                          Tdomain%spmldom%champs0%VelocPml(ind,:,2)
+                    end if
+
+                    if (out_variables(OUT_ACCEL) == 1) then
+                        if(.not. allocated(fieldA)) allocate(fieldA(0:nx-1,0:ny-1,0:nz-1,0:2))
+                        fieldA(i,j,k,:) = Tdomain%spmldom%champs0%ForcesPml(ind,:,0) + &
+                                          Tdomain%spmldom%champs0%ForcesPml(ind,:,1) + &
+                                          Tdomain%spmldom%champs0%ForcesPml(ind,:,2)
+                    end if
+
+                    if (out_variables(OUT_PRESSION) == 1) then
+                        if(.not. allocated(fieldP)) allocate(fieldP(0:nx-1,0:ny-1,0:nz-1))
+                        fieldP = 0d0
+                    end if
+
+                    if (out_variables(OUT_EPS_VOL) == 1) then
+                        eps_vol = 0.
+                    end if
+
+                    if (out_variables(OUT_ENERGYP) == 1) then
+                        P_energy = 0.
+                    end if
+
+                    if (out_variables(OUT_ENERGYS) == 1) then
+                        S_energy = 0.
+                    end if
+
+                    if (out_variables(OUT_EPS_DEV) == 1) then
+                        eps_dev = 0.
+                    end if
+
+                    if (out_variables(OUT_STRESS_DEV) == 1) then
+                        sig_dev = 0.
+                    end if
+                enddo
+            enddo
+        enddo
+    end subroutine get_solidpml_dom_var
 
   subroutine forces_int_sol_pml(dom, mat, champs1, Elem, lnum)
         type(domain_solidpml), intent(inout) :: dom

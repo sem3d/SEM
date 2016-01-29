@@ -16,7 +16,6 @@ module mCapteur
     use sdomain
     use semdatafiles
     use mpi
-    use mfields
     use sem_hdf5
     use sem_c_config
     use constants, only : NCAPT_CACHE, M_1_3, DM_SOLID, DM_FLUID, DM_SOLID_PML, DM_FLUID_PML
@@ -346,62 +345,59 @@ contains
     !! seul le proc gere l'ecriture
     !!
     subroutine sortieGrandeurCapteur_interp(Tdomain, capteur)
-        use mpi
+        use dom_solid
+        use dom_fluid
+        use dom_solidpml
+        use dom_fluidpml
         implicit none
-
+        !
+        type(domain)   :: TDomain
         type(tCapteur) :: capteur
-        type (domain) :: TDomain
-        integer :: rg
-
-        integer :: i, j, k
-
+        !
+        integer                               :: i, j, k, ioff
+        integer                               :: n_el, ngllx, nglly, ngllz, mat
+        real                                  :: weight
+        real, dimension(:), allocatable       :: outx, outy, outz
+        real, dimension(:), allocatable       :: grandeur
+        integer, dimension(0:8)               :: out_variables, offset
         real, dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
-        real, dimension(:,:,:), allocatable :: fieldP
-        integer :: n_el, ngllx, nglly, ngllz, mat, n_solid
-        real :: xi, eta, zeta, weight
-        real, dimension(:), allocatable :: outx, outy, outz
+        real, dimension(:,:,:), allocatable   :: fieldP
+        real                                  :: P_energy, S_energy, eps_vol
+        real, dimension(0:5)                  :: eps_dev
+        real, dimension(0:5)                  :: sig_dev
 
-        real, dimension(:,:,:), allocatable :: DXX, DXY, DXZ
-        real, dimension(:,:,:), allocatable :: DYX, DYY, DYZ
-        real, dimension(:,:,:), allocatable :: DZX, DZY, DZZ
-        real, dimension (:,:), allocatable  :: htprimex, hprimey, hprimez
-        real  :: eps_dev_xx, eps_dev_yy, eps_dev_zz, &
-                 eps_dev_xy, eps_dev_xz, eps_dev_yz
-        real  :: sig_dev_xx, sig_dev_yy, sig_dev_zz, &
-                 sig_dev_xy, sig_dev_xz, sig_dev_yz
-        real  :: eps_vol,    P_energy,   S_energy
+        ! Verification : le capteur est il gere par le proc. ?
 
-        logical :: aniso
-        real :: xmu, xlambda, xkappa, x2mu, xlambda2mu, onemSbeta, onemPbeta, eps_trace
-
-        real,    dimension(:), allocatable :: grandeur
-        integer, dimension(0:8) :: out_variables, offset
-        logical :: flag_gradU
-        integer :: n_out, ioff
-        integer :: domtype
-
-        rg = Tdomain%rank
-
-        ! ETAPE 0 : initialisations
-
-        ! Recuperation du numero de la maille Sem et des abscisses
         n_el = capteur%n_el
-        xi = capteur%xi
-        eta = capteur%eta
-        zeta = capteur%zeta
+        if((n_el==-1) .OR. (capteur%numproc/=Tdomain%rank)) return
 
+        ! Initialisation.
+
+        ngllx = Tdomain%specel(n_el)%ngllx
+        nglly = Tdomain%specel(n_el)%nglly
+        ngllz = Tdomain%specel(n_el)%ngllz
+
+        mat=Tdomain%specel(n_el)%mat_index
+
+        allocate(outx(0:ngllx-1))
+        allocate(outy(0:nglly-1))
+        allocate(outz(0:ngllz-1))
+        do i = 0,ngllx - 1
+            call  pol_lagrange(ngllx,Tdomain%sSubdomain(mat)%GLLcx,i,capteur%xi,outx(i))
+        end do
+        do j = 0,nglly - 1
+            call  pol_lagrange(nglly,Tdomain%sSubdomain(mat)%GLLcy,j,capteur%eta,outy(j))
+        end do
+        do k = 0,ngllz - 1
+            call  pol_lagrange(ngllz,Tdomain%sSubdomain(mat)%GLLcz,k,capteur%zeta,outz(k))
+        end do
+
+        allocate(grandeur(0:Tdomain%nReqOut-1))
+        grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
 
         out_variables(0:8) = Tdomain%out_variables(0:8)
-        flag_gradU = (out_variables(OUT_ENERGYP) + &
-            out_variables(OUT_ENERGYS) + &
-            out_variables(OUT_EPS_VOL) + &
-            out_variables(OUT_EPS_DEV) + &
-            out_variables(OUT_STRESS_DEV)) /= 0
 
-        offset   = 0
-
-        n_out = Tdomain%nReqOut
-
+        offset = 0
         do i = 0,size(out_variables)-2
             if (out_variables(i) == 1) then
                 offset(i+1) = offset(i) + OUT_VAR_DIMS_3D(i)
@@ -409,251 +405,106 @@ contains
                 offset(i+1) = offset(i)
             end if
         end do
-        allocate(grandeur(0:n_out-1))
-        grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1
 
-        if((n_el/=-1) .AND. (capteur%numproc==rg)) then
-            ngllx = Tdomain%specel(n_el)%ngllx
-            nglly = Tdomain%specel(n_el)%nglly
-            ngllz = Tdomain%specel(n_el)%ngllz
-            mat=Tdomain%specel(n_el)%mat_index
-            allocate(outx(0:ngllx-1))
-            allocate(outy(0:nglly-1))
-            allocate(outz(0:ngllz-1))
+        P_energy = 0.
+        S_energy = 0.
+        eps_vol = 0.
+        eps_dev = 0.
+        sig_dev = 0.
 
-            if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
-                allocate(fieldU(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                call gather_elem_displ(Tdomain, n_el, fieldU)
-            end if
+        ! On recupere les variables de l'element associe au capteur.
 
-            if (flag_gradU) then
-                allocate(DXX(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                allocate(DXY(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                allocate(DXZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                allocate(DYX(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                allocate(DYY(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                allocate(DYZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                allocate(DZX(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                allocate(DZY(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                allocate(DZZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                allocate(hTprimex(0:ngllx-1,0:ngllx-1))
-                allocate(hprimey(0:nglly-1,0:nglly-1))
-                allocate(hprimez(0:ngllz-1,0:ngllz-1))
-                hTprimex=Tdomain%sSubDomain(mat)%hTprimex
-                hprimey=Tdomain%sSubDomain(mat)%hprimey
-                hprimez=Tdomain%sSubDomain(mat)%hprimez
-            end if
+        select case(Tdomain%specel(n_el)%domain)
+            case (DM_SOLID)
+              call get_solid_dom_var(Tdomain, Tdomain%specel(n_el), out_variables, &
+              fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+            case (DM_FLUID)
+              call get_fluid_dom_var(Tdomain, Tdomain%specel(n_el), out_variables, &
+                fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+            case (DM_SOLID_PML)
+              call get_solidpml_dom_var(Tdomain, Tdomain%specel(n_el), out_variables, &
+                fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+            case (DM_FLUID_PML)
+              call get_fluidpml_dom_var(Tdomain, Tdomain%specel(n_el), out_variables, &
+                fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+        end select
 
-            if (out_variables(OUT_VITESSE) == 1) then
-                allocate(fieldV(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                call gather_elem_veloc(Tdomain, n_el, fieldV)
-            end if
+        ! On interpole le DOF a la position du capteur.
 
-            if (out_variables(OUT_ACCEL) == 1) then
-                allocate(fieldA(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-                call gather_elem_accel(Tdomain, n_el, fieldA)
-            end if
-
-            if (out_variables(OUT_PRESSION) == 1) then
-                allocate(fieldP(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                call gather_elem_press(Tdomain, n_el, fieldP)
-            end if
-
-            do i = 0,ngllx - 1
-                call  pol_lagrange(ngllx,Tdomain%sSubdomain(mat)%GLLcx,i,xi,outx(i))
-            end do
+        do i = 0,ngllx - 1
             do j = 0,nglly - 1
-                call  pol_lagrange(nglly,Tdomain%sSubdomain(mat)%GLLcy,j,eta,outy(j))
-            end do
-            do k = 0,ngllz - 1
-                call  pol_lagrange(ngllz,Tdomain%sSubdomain(mat)%GLLcz,k,zeta,outz(k))
-            end do
+                do k = 0,ngllz - 1
+                    weight = outx(i)*outy(j)*outz(k)
 
-            domtype=Tdomain%specel(n_el)%domain
-            n_solid=Tdomain%n_sls
-            aniso=Tdomain%aniso
+                    if (out_variables(OUT_DEPLA) == 1 .AND. allocated(fieldU)) then
+                        ioff = offset(OUT_DEPLA)
+                        grandeur(ioff:ioff+2) &
+                            = grandeur(ioff:ioff+2) + weight*fieldU(i,j,k,:)
+                    end if
 
-            if((domtype == DM_SOLID) .and. flag_gradU) then   ! SOLID PART OF THE DOMAIN
-                call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,0),DXX,DYX,DZX)
-                call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,1),DXY,DYY,DZY)
-                call physical_part_deriv(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,Tdomain%specel(n_el)%InvGrad,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
-            endif
+                    if (out_variables(OUT_VITESSE) == 1 .AND. allocated(fieldV)) then
+                        ioff = offset(OUT_VITESSE)
+                        grandeur(ioff:ioff+2) &
+                            = grandeur(ioff:ioff+2) + weight*fieldV(i,j,k,:)
+                    end if
 
-            if (out_variables(OUT_ENERGYP) == 1) then
-                P_energy = 0
-            end if
+                    if (out_variables(OUT_ACCEL) == 1 .AND. allocated(fieldA)) then
+                        ioff = offset(OUT_ACCEL)
+                        grandeur(ioff:ioff+2) &
+                            = grandeur(ioff:ioff+2) + weight*fieldA(i,j,k,:)
+                    end if
 
-            if (out_variables(OUT_ENERGYS) == 1) then
-                S_energy = 0
-            end if
+                    if (out_variables(OUT_PRESSION) == 1 .AND. allocated(fieldP)) then
+                        grandeur(offset(OUT_PRESSION)) &
+                            = grandeur(offset(OUT_PRESSION)) + weight*fieldP(i,j,k)
+                    end if
 
-            if (out_variables(OUT_EPS_VOL) == 1) then
-                eps_vol = 0
-            end if
+                    if (out_variables(OUT_ENERGYP) == 1) then
+                        grandeur (offset(OUT_ENERGYP)) = grandeur (offset(OUT_ENERGYP)) + weight*P_energy
+                    end if
 
-            if (out_variables(OUT_EPS_DEV) == 1) then
-                eps_dev_xx = 0
-                eps_dev_yy = 0
-                eps_dev_zz = 0
-                eps_dev_xy = 0
-                eps_dev_xz = 0
-                eps_dev_yz = 0
-            end if
+                    if (out_variables(OUT_ENERGYS) == 1) then
+                        grandeur (offset(OUT_ENERGYS)) = grandeur (offset(OUT_ENERGYS)) + weight*S_energy
+                    end if
 
-            if (out_variables(OUT_STRESS_DEV) == 1) then
-                sig_dev_xx = 0
-                sig_dev_yy = 0
-                sig_dev_zz = 0
-                sig_dev_xy = 0
-                sig_dev_xz = 0
-                sig_dev_yz = 0
-            end if
+                    if (out_variables(OUT_EPS_VOL) == 1) then
+                        grandeur (offset(OUT_EPS_VOL)) = grandeur (offset(OUT_EPS_VOL)) + weight*eps_vol
+                    end if
 
-            do i = 0,ngllx - 1
-                do j = 0,nglly - 1
-                    do k = 0,ngllz - 1
-                        weight = outx(i)*outy(j)*outz(k)
+                    if (out_variables(OUT_EPS_DEV) == 1) then
+                        ioff = offset(OUT_EPS_DEV)
+                        grandeur (ioff:ioff+5) = grandeur (ioff:ioff+5) &
+                        + (/weight*eps_dev(0), weight*eps_dev(1), weight*eps_dev(2), &
+                            weight*eps_dev(3), weight*eps_dev(4), weight*eps_dev(5)/)
+                    end if
 
-                        if (out_variables(OUT_DEPLA) == 1) then
-                            ioff = offset(OUT_DEPLA)
-                            grandeur(ioff:ioff+2) &
-                                = grandeur(ioff:ioff+2) + weight*fieldU(i,j,k,:)
-                        end if
-
-                        if (out_variables(OUT_VITESSE) == 1) then
-                            ioff = offset(OUT_VITESSE)
-                            grandeur(ioff:ioff+2) &
-                                = grandeur(ioff:ioff+2) + weight*fieldV(i,j,k,:)
-                        end if
-
-                        if (out_variables(OUT_ACCEL) == 1) then
-                            ioff = offset(OUT_ACCEL)
-                            grandeur(ioff:ioff+2) &
-                                = grandeur(ioff:ioff+2) + weight*fieldA(i,j,k,:)
-                        end if
-
-                        if (out_variables(OUT_PRESSION) == 1) then
-                            grandeur(offset(OUT_PRESSION)) &
-                                = grandeur(offset(OUT_PRESSION)) + weight*fieldP(i,j,k)
-                        end if
-
-                        if ((domtype==DM_SOLID) .and. flag_gradU) then
-
-                            eps_trace = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
-
-                            if (out_variables(OUT_EPS_VOL) == 1) then
-                                eps_vol = eps_trace
-                            end if
-
-                            if (out_variables(OUT_EPS_DEV) ==1) then
-                                eps_dev_xx = DXX(i,j,k) - eps_trace / 3
-                                eps_dev_yy = DYY(i,j,k) - eps_trace / 3
-                                eps_dev_zz = DZZ(i,j,k) - eps_trace / 3
-                                eps_dev_xy = 0.5 * (DXY(i,j,k) + DYX(i,j,k))
-                                eps_dev_xz = 0.5 * (DZX(i,j,k) + DXZ(i,j,k))
-                                eps_dev_yz = 0.5 * (DZY(i,j,k) + DYZ(i,j,k))
-                            end if
-
-                            if (aniso) then
-                            else
-
-                                xmu     = Tdomain%specel(n_el)%Mu(i,j,k)
-                                xlambda = Tdomain%specel(n_el)%Lambda(i,j,k)
-                                xkappa  = Tdomain%specel(n_el)%Kappa(i,j,k)
-
-                                if (n_solid>0) then
-                                    onemSbeta=Tdomain%specel(n_el)%sl%onemSbeta(i,j,k)
-                                    onemPbeta=Tdomain%specel(n_el)%sl%onemPbeta(i,j,k)
-                                    !  mu_relaxed -> mu_unrelaxed
-                                    xmu    = xmu * onemSbeta
-                                    !  kappa_relaxed -> kappa_unrelaxed
-                                    xkappa = xkappa * onemPbeta
-                                endif
-                                x2mu       = 2. * xmu
-                                xlambda2mu = xlambda + x2mu
-
-                                if (out_variables(OUT_STRESS_DEV) == 1) then
-                                    sig_dev_xx = x2mu * (DXX(i,j,k) - eps_trace * M_1_3)
-                                    sig_dev_yy = x2mu * (DYY(i,j,k) - eps_trace * M_1_3)
-                                    sig_dev_zz = x2mu * (DZZ(i,j,k) - eps_trace * M_1_3)
-                                    sig_dev_xy = xmu * (DXY(i,j,k) + DYX(i,j,k))
-                                    sig_dev_xz = xmu * (DXZ(i,j,k) + DZX(i,j,k))
-                                    sig_dev_yz = xmu * (DYZ(i,j,k) + DZY(i,j,k))
-                                end if
-
-                                if (out_variables(OUT_ENERGYP) == 1) then
-                                    P_energy = .5 * xlambda2mu * eps_trace**2
-                                end if
-
-                                if (out_variables(OUT_ENERGYS) == 1) then
-                                    S_energy =  xmu/2 * ( DXY(i,j,k)**2 + DYX(i,j,k)**2 &
-                                             +   DXZ(i,j,k)**2 + DZX(i,j,k)**2 &
-                                             +   DYZ(i,j,k)**2 + DZY(i,j,k)**2 &
-                                             - 2 * DXY(i,j,k) * DYX(i,j,k)     &
-                                             - 2 * DXZ(i,j,k) * DZX(i,j,k)     &
-                                             - 2 * DYZ(i,j,k) * DZY(i,j,k))
-                                end if
-
-                            endif
-                        endif
-
-                        if (out_variables(OUT_ENERGYP) == 1) then
-                            grandeur (offset(OUT_ENERGYP)) = grandeur (offset(OUT_ENERGYP)) + weight*P_energy
-                        end if
-
-                        if (out_variables(OUT_ENERGYS) == 1) then
-                            grandeur (offset(OUT_ENERGYS)) = grandeur (offset(OUT_ENERGYS)) + weight*S_energy
-                        end if
-
-                        if (out_variables(OUT_EPS_VOL) == 1) then
-                            grandeur (offset(OUT_EPS_VOL)) = grandeur (offset(OUT_EPS_VOL)) + weight*eps_vol
-                        end if
-
-                        if (out_variables(OUT_EPS_DEV) == 1) then
-                            ioff = offset(OUT_EPS_DEV)
-                            grandeur (ioff:ioff+5) = grandeur (ioff:ioff+5) &
-                            + (/weight*eps_dev_xx, weight*eps_dev_yy, weight*eps_dev_zz, &
-                                weight*eps_dev_xy, weight*eps_dev_xz, weight*eps_dev_yz/)
-                        end if
-
-                        if (out_variables(OUT_STRESS_DEV) == 1) then
-                            ioff = offset(OUT_STRESS_DEV)
-                            grandeur (ioff:ioff+5) = grandeur (ioff:ioff+5) &
-                            + (/weight*sig_dev_xx, weight*sig_dev_yy, weight*sig_dev_zz, &
-                                weight*sig_dev_xy, weight*sig_dev_xz, weight*sig_dev_yz/)
-                        end if
-                    enddo
+                    if (out_variables(OUT_STRESS_DEV) == 1) then
+                        ioff = offset(OUT_STRESS_DEV)
+                        grandeur (ioff:ioff+5) = grandeur (ioff:ioff+5) &
+                        + (/weight*sig_dev(0), weight*sig_dev(1), weight*sig_dev(2), &
+                            weight*sig_dev(3), weight*sig_dev(4), weight*sig_dev(5)/)
+                    end if
                 enddo
             enddo
+        enddo
 
-            deallocate(outx)
-            deallocate(outy)
-            deallocate(outz)
-            if (allocated(fieldU)) deallocate(fieldU)
-            if (allocated(fieldV)) deallocate(fieldV)
-            if (allocated(fieldA)) deallocate(fieldA)
-            if (allocated(fieldP)) deallocate(fieldP)
-            if (allocated(DXX)) deallocate(DXX)
-            if (allocated(DXY)) deallocate(DXY)
-            if (allocated(DXZ)) deallocate(DXZ)
-            if (allocated(DYX)) deallocate(DYX)
-            if (allocated(DYY)) deallocate(DYY)
-            if (allocated(DYZ)) deallocate(DYZ)
-            if (allocated(DZX)) deallocate(DZX)
-            if (allocated(DZY)) deallocate(DZY)
-            if (allocated(DZZ)) deallocate(DZZ)
-            if (allocated(hTprimex)) deallocate(hTprimex)
-            if (allocated(hprimey)) deallocate(hprimey)
-            if (allocated(hprimez)) deallocate(hprimez)
+        ! Sauvegarde des valeurs dans le capteur.
 
-            i = capteur%icache+1
-            capteur%valuecache(1,i) = Tdomain%TimeD%rtime
-            capteur%valuecache(2:n_out+1,i) = grandeur(:)
-            if(allocated(grandeur)) deallocate(grandeur)
-            capteur%icache = i
+        i = capteur%icache+1
+        capteur%valuecache(1,i) = Tdomain%TimeD%rtime
+        capteur%valuecache(2:Tdomain%nReqOut+1,i) = grandeur(:)
+        capteur%icache = i
 
-        endif
+        ! Deallocation.
 
+        if(allocated(fieldU))   deallocate(fieldU)
+        if(allocated(fieldV))   deallocate(fieldV)
+        if(allocated(fieldA))   deallocate(fieldA)
+        if(allocated(fieldP))   deallocate(fieldP)
+        if(allocated(grandeur)) deallocate(grandeur)
+        deallocate(outx)
+        deallocate(outy)
+        deallocate(outz)
     end subroutine sortieGrandeurCapteur_interp
 
     !!on identifie la maille dans laquelle se trouve le capteur. Il peut y en avoir plusieurs,

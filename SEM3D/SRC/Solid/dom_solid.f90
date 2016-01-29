@@ -4,6 +4,7 @@
 !!
 
 module dom_solid
+    use sdomain
     use constants
     use champs_solid
     use selement
@@ -11,6 +12,175 @@ module dom_solid
     implicit none
 
 contains
+
+    subroutine get_solid_dom_var(Tdomain, el, out_variables, &
+        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+        implicit none
+        !
+        type(domain)                               :: TDomain
+        integer, dimension(0:8)                    :: out_variables
+        type(element)                              :: el
+        real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
+        real(fpp), dimension(:,:,:), allocatable   :: fieldP
+        real(fpp)                                  :: P_energy, S_energy, eps_vol
+        real(fpp), dimension(0:5)                  :: eps_dev
+        real(fpp), dimension(0:5)                  :: sig_dev
+        !
+        logical                                  :: flag_gradU
+        integer                                  :: nx, ny, nz, i, j, k, ind, mat
+        real(fpp), dimension(:,:,:), allocatable :: DXX, DXY, DXZ
+        real(fpp), dimension(:,:,:), allocatable :: DYX, DYY, DYZ
+        real(fpp), dimension(:,:,:), allocatable :: DZX, DZY, DZZ
+        real(fpp), dimension (:,:), allocatable  :: htprimex, hprimey, hprimez
+        real(fpp)                                :: xmu, xlambda, xkappa
+        real(fpp)                                :: x2mu, xlambda2mu
+        real(fpp)                                :: onemSbeta, onemPbeta
+
+        flag_gradU = (out_variables(OUT_PRESSION)    + &
+                      out_variables(OUT_ENERGYP)     + &
+                      out_variables(OUT_ENERGYS)     + &
+                      out_variables(OUT_EPS_VOL)     + &
+                      out_variables(OUT_EPS_DEV)     + &
+                      out_variables(OUT_STRESS_DEV)) /= 0
+
+        nx = el%ngllx
+        ny = el%nglly
+        nz = el%ngllz
+        mat = el%mat_index
+
+        if (flag_gradU) then
+            allocate(DXX(0:nx-1,0:ny-1,0:nz-1))
+            allocate(DXY(0:nx-1,0:ny-1,0:nz-1))
+            allocate(DXZ(0:nx-1,0:ny-1,0:nz-1))
+            allocate(DYX(0:nx-1,0:ny-1,0:nz-1))
+            allocate(DYY(0:nx-1,0:ny-1,0:nz-1))
+            allocate(DYZ(0:nx-1,0:ny-1,0:nz-1))
+            allocate(DZX(0:nx-1,0:ny-1,0:nz-1))
+            allocate(DZY(0:nx-1,0:ny-1,0:nz-1))
+            allocate(DZZ(0:nx-1,0:ny-1,0:nz-1))
+            allocate(hTprimex(0:nx-1,0:nx-1))
+            allocate(hprimey(0:ny-1,0:ny-1))
+            allocate(hprimez(0:nz-1,0:nz-1))
+            hTprimex=Tdomain%sSubDomain(mat)%hTprimex
+            hprimey=Tdomain%sSubDomain(mat)%hprimey
+            hprimez=Tdomain%sSubDomain(mat)%hprimez
+        end if
+
+        if (.not. Tdomain%aniso) then
+            xmu     = el%Mu(i,j,k)
+            xlambda = el%Lambda(i,j,k)
+            xkappa  = el%Kappa(i,j,k)
+
+            if (Tdomain%n_sls>0) then
+                onemSbeta = el%sl%onemSbeta(i,j,k)
+                onemPbeta = el%sl%onemPbeta(i,j,k)
+                xmu    = xmu * onemSbeta
+                xkappa = xkappa * onemPbeta
+            endif
+            x2mu       = 2. * xmu
+            xlambda2mu = xlambda + x2mu
+        end if
+
+        do k=0,nz-1
+            do j=0,ny-1
+                do i=0,nx-1
+                    ind = el%Idom(i,j,k)
+
+                    if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
+                        if(.not. allocated(fieldU)) allocate(fieldU(0:nx-1,0:ny-1,0:nz-1,0:2))
+                        fieldU(i,j,k,:) = Tdomain%sdom%champs0%Depla(ind,:)
+                    end if
+
+                enddo
+            enddo
+        enddo
+
+        if (flag_gradU) then
+            call physical_part_deriv(nx,ny,nz,htprimex,hprimey,hprimez,el%InvGrad,fieldU(:,:,:,0),DXX,DYX,DZX)
+            call physical_part_deriv(nx,ny,nz,htprimex,hprimey,hprimez,el%InvGrad,fieldU(:,:,:,1),DXY,DYY,DZY)
+            call physical_part_deriv(nx,ny,nz,htprimex,hprimey,hprimez,el%InvGrad,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
+        end if
+
+        do k=0,nz-1
+            do j=0,ny-1
+                do i=0,nx-1
+                    ind = el%Idom(i,j,k)
+
+                    if (out_variables(OUT_VITESSE) == 1) then
+                        if(.not. allocated(fieldV)) allocate(fieldV(0:nx-1,0:ny-1,0:nz-1,0:2))
+                        fieldV(i,j,k,:) = Tdomain%sdom%champs0%Veloc(ind,:)
+                    end if
+
+                    if (out_variables(OUT_ACCEL) == 1) then
+                        if(.not. allocated(fieldA)) allocate(fieldA(0:nx-1,0:ny-1,0:nz-1,0:2))
+                        fieldA(i,j,k,:) = Tdomain%sdom%champs0%Forces(ind,:)
+                    end if
+
+                    if (out_variables(OUT_PRESSION) == 1) then
+                        if(.not. allocated(fieldP)) allocate(fieldP(0:nx-1,0:ny-1,0:nz-1))
+                        fieldP(i,j,k) = -(el%lambda(i,j,k)+2d0/3d0*el%mu(i,j,k))*(DXX(i,j,k)+DYY(i,j,k)+DZZ(i,j,k))
+                    end if
+
+                    if (out_variables(OUT_EPS_VOL) == 1) then
+                        eps_vol = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
+                    end if
+
+                    if (out_variables(OUT_ENERGYP) == 1) then
+                        P_energy = 0.
+                        if (.not. Tdomain%aniso) then
+                            P_energy = .5 * xlambda2mu * eps_vol**2
+                        end if
+                    end if
+
+                    if (out_variables(OUT_ENERGYS) == 1) then
+                        S_energy = 0.
+                        if (.not. Tdomain%aniso) then
+                            S_energy =   xmu/2 * ( DXY(i,j,k)**2 + DYX(i,j,k)**2 &
+                                       +   DXZ(i,j,k)**2 + DZX(i,j,k)**2 &
+                                       +   DYZ(i,j,k)**2 + DZY(i,j,k)**2 &
+                                       - 2 * DXY(i,j,k) * DYX(i,j,k)     &
+                                       - 2 * DXZ(i,j,k) * DZX(i,j,k)     &
+                                       - 2 * DYZ(i,j,k) * DZY(i,j,k))
+                        end if
+                    end if
+
+                    if (out_variables(OUT_EPS_DEV) == 1) then
+                        eps_dev(0) = DXX(i,j,k) - eps_vol / 3
+                        eps_dev(1) = DYY(i,j,k) - eps_vol / 3
+                        eps_dev(2) = DZZ(i,j,k) - eps_vol / 3
+                        eps_dev(3) = 0.5 * (DXY(i,j,k) + DYX(i,j,k))
+                        eps_dev(4) = 0.5 * (DZX(i,j,k) + DXZ(i,j,k))
+                        eps_dev(5) = 0.5 * (DZY(i,j,k) + DYZ(i,j,k))
+                    end if
+
+                    if (out_variables(OUT_STRESS_DEV) == 1) then
+                        sig_dev = 0.
+                        if (.not. Tdomain%aniso) then
+                            sig_dev(0) = x2mu * (DXX(i,j,k) - eps_vol * M_1_3)
+                            sig_dev(1) = x2mu * (DYY(i,j,k) - eps_vol * M_1_3)
+                            sig_dev(2) = x2mu * (DZZ(i,j,k) - eps_vol * M_1_3)
+                            sig_dev(3) = xmu * (DXY(i,j,k) + DYX(i,j,k))
+                            sig_dev(4) = xmu * (DXZ(i,j,k) + DZX(i,j,k))
+                            sig_dev(5) = xmu * (DYZ(i,j,k) + DZY(i,j,k))
+                        end if
+                    end if
+                enddo
+            enddo
+        enddo
+
+        if (allocated(DXX))      deallocate(DXX)
+        if (allocated(DXY))      deallocate(DXY)
+        if (allocated(DXZ))      deallocate(DXZ)
+        if (allocated(DYX))      deallocate(DYX)
+        if (allocated(DYY))      deallocate(DYY)
+        if (allocated(DYZ))      deallocate(DYZ)
+        if (allocated(DZX))      deallocate(DZX)
+        if (allocated(DZY))      deallocate(DZY)
+        if (allocated(DZZ))      deallocate(DZZ)
+        if (allocated(hTprimex)) deallocate(hTprimex)
+        if (allocated(hprimey))  deallocate(hprimey)
+        if (allocated(hprimez))  deallocate(hprimez)
+    end subroutine get_solid_dom_var
 
     subroutine forces_int_solid(Elem, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
                n_solid, aniso, champs1)
