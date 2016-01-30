@@ -276,7 +276,7 @@ contains
         real, dimension(0:2,0:2)         :: M
         real, dimension(0:2,0:2), parameter :: id_matrix = reshape( (/veci,vecj,veck/), (/3,3/) )
         integer                          :: j,k
-        real, dimension(0:5), parameter :: A =(/1.0,1.0,1.0,0.5,0.5,0.5/)
+        real, dimension(0:5), parameter :: A =(/1.0,1.0,1.0,1.0,1.0,1.0/)
         
         ! COMPUTE ELASTIC STIFFNESS MATRIX
         DEL_ijhk(:,:) = 0d0
@@ -337,7 +337,7 @@ contains
         
         real                             :: F_mises
         real, dimension(0:5)             :: gradF_mises
-        real, dimension(0:5), parameter  :: A = (/1.0,1.0,1.0,0.5,0.5,0.5/)
+        real, dimension(0:5), parameter  :: A = (/1.0,1.0,1.0,1.0,1.0,1.0/)
         integer                          :: k
 
         ! INCREMENT IN ISOTROPIC HARDENING VARIABLES (R)
@@ -361,7 +361,7 @@ contains
         real,                 intent(inout) :: R
         real,                 intent(in)    :: lambda, mu, sigma_yld, b_lmc, Rinf_lmc, C_lmc, kapa_lmc
         real, dimension(0:5)                :: gradF_mises,gradF0,Sigma_temp,Sigma_dev_temp,Sigma_dev_ij
-        real, dimension(0:5),     parameter :: A = (/1.0,1.0,1.0,0.5,0.5,0.5/)
+        real, dimension(0:5),     parameter :: A = (/1.0,1.0,1.0,1.0,1.0,1.0/)
         real, dimension(0:2), parameter  :: &
             veci = (/ 1.0, 0.0, 0.0 /), &
             vecj = (/ 0.0, 1.0, 0.0 /), &
@@ -394,7 +394,7 @@ contains
                 err0=err0/err1
                 Sigma_ij(0:5)=Sigma_temp(0:5)
                 !if (abs(Fmises) .le. tol_nl) then
-                if (err0 .le. 0.01) then
+                if (err0 .le. tol_nl .or. abs(Fmises) .le. tol_nl) then
                     exit
                 end if
             end do
