@@ -14,6 +14,84 @@ module dom_solidpml
 
 contains
 
+  subroutine allocate_dom_solidpml (Tdomain, dom)
+        implicit none
+        type(domain) :: TDomain
+        type(domain_solidpml), intent (INOUT) :: dom
+        !
+        integer nbelem, ngllx, nglly, ngllz
+        !
+
+        dom%ngllx = Tdomain%specel(0)%ngllx ! Temporaire: ngll* doit passer sur le domaine a terme
+        dom%nglly = Tdomain%specel(0)%nglly ! Temporaire: ngll* doit passer sur le domaine a terme
+        dom%ngllz = Tdomain%specel(0)%ngllz ! Temporaire: ngll* doit passer sur le domaine a terme
+
+        nbelem  = dom%nbelem
+        ngllx   = dom%ngllx
+        nglly   = dom%nglly
+        ngllz   = dom%ngllz
+
+        if(Tdomain%TimeD%velocity_scheme)then
+            allocate(dom%Diagonal_Stress (0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
+            allocate(dom%Diagonal_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
+            allocate(dom%Diagonal_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
+            allocate(dom%Diagonal_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
+            allocate(dom%Residual_Stress (0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
+            allocate(dom%Residual_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
+            allocate(dom%Residual_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
+            allocate(dom%Residual_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
+            dom%Diagonal_Stress  = 0d0
+            dom%Diagonal_Stress1 = 0d0
+            dom%Diagonal_Stress2 = 0d0
+            dom%Diagonal_Stress3 = 0d0
+            dom%Residual_Stress  = 0d0
+            dom%Residual_Stress1 = 0d0
+            dom%Residual_Stress2 = 0d0
+            dom%Residual_Stress3 = 0d0
+        endif
+
+        ! Allocation et initialisation de champs0 pour les PML solides
+        if (dom%ngll /= 0) then
+            allocate(dom%champs1%ForcesPML(0:dom%ngll-1,0:2,0:2))
+            allocate(dom%champs0%VelocPML (0:dom%ngll-1,0:2,0:2))
+            allocate(dom%champs1%VelocPML (0:dom%ngll-1,0:2,0:2))
+            allocate(dom%champs0%DumpV    (0:dom%ngll-1,0:1,0:2))
+            dom%champs1%ForcesPML = 0d0
+            dom%champs0%VelocPML = 0d0
+            dom%champs0%DumpV = 0d0
+
+            ! Allocation de MassMat pour les PML solides
+            allocate(dom%MassMat(0:dom%ngll-1))
+            dom%MassMat = 0d0
+
+            allocate(dom%DumpMass(0:dom%ngll-1,0:2))
+            dom%DumpMass = 0d0
+        endif
+    end subroutine allocate_dom_solidpml
+
+    subroutine deallocate_dom_solidpml (dom)
+        implicit none
+        type(domain_solidpml), intent (INOUT) :: dom
+
+        if(allocated(dom%Diagonal_Stress )) deallocate(dom%Diagonal_Stress )
+        if(allocated(dom%Diagonal_Stress1)) deallocate(dom%Diagonal_Stress1)
+        if(allocated(dom%Diagonal_Stress2)) deallocate(dom%Diagonal_Stress2)
+        if(allocated(dom%Diagonal_Stress3)) deallocate(dom%Diagonal_Stress3)
+        if(allocated(dom%Residual_Stress )) deallocate(dom%Residual_Stress )
+        if(allocated(dom%Residual_Stress1)) deallocate(dom%Residual_Stress1)
+        if(allocated(dom%Residual_Stress2)) deallocate(dom%Residual_Stress2)
+        if(allocated(dom%Residual_Stress3)) deallocate(dom%Residual_Stress3)
+
+        if(allocated(dom%champs1%ForcesPML)) deallocate(dom%champs1%ForcesPML)
+        if(allocated(dom%champs0%VelocPML )) deallocate(dom%champs0%VelocPML )
+        if(allocated(dom%champs1%VelocPML )) deallocate(dom%champs1%VelocPML )
+        if(allocated(dom%champs0%DumpV    )) deallocate(dom%champs0%DumpV    )
+
+        if(allocated(dom%MassMat)) deallocate(dom%MassMat)
+
+        if(allocated(dom%DumpMass)) deallocate(dom%DumpMass)
+    end subroutine deallocate_dom_solidpml
+
     subroutine get_solidpml_dom_var(Tdomain, el, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
         implicit none

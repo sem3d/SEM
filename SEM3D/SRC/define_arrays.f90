@@ -266,10 +266,10 @@ contains
             specel%Mu = mat%DMu
             !    si le flag gradient est actif alors on peut changer les proprietes
         case( MATERIAL_EARTHCHUNK )
-            call initialize_material_earthchunk(specel, mat, Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
+            call initialize_material_earthchunk(Tdomain, specel, Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
 
         case( MATERIAL_PREM )
-            call initialize_material_prem(specel, mat, Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
+            call initialize_material_prem(Tdomain, specel, Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
 
         case( MATERIAL_GRADIENT )
             !    on copie toujours le materiau de base
@@ -279,7 +279,7 @@ contains
             specel%Mu = mat%DMu
             !    si le flag gradient est actif alors on peut changer les proprietes
             if ( Tdomain%logicD%grad_bassin ) then
-                call initialize_material_gradient(Tdomain, specel, mat)
+                call initialize_material_gradient(Tdomain, specel)
             endif
 
         case( MATERIAL_MULTIPLE )
@@ -295,10 +295,10 @@ contains
 
         if ((specel%domain==DM_SOLID) .and. (Tdomain%n_sls>0))  then
             if (Tdomain%aniso) then
-                specel%sl%Q = mat%Qmu
+                Tdomain%sdom%Q = mat%Qmu
             else
-                specel%sl%Qs = mat%Qmu
-                specel%sl%Qp = mat%Qpression
+                Tdomain%sdom%Qs = mat%Qmu
+                Tdomain%sdom%Qp = mat%Qpression
             endif
         endif
 
@@ -463,10 +463,9 @@ contains
         !- mass matrix elements
     end subroutine init_local_mass_mat
 
-    subroutine initialize_material_gradient(Tdomain, specel, mat)
+    subroutine initialize_material_gradient(Tdomain, specel)
         type (domain), intent (INOUT), target :: Tdomain
         type (element), intent(inout) :: specel
-        type (subdomain), intent(in) :: mat
         !
         integer :: i,j,k,ipoint,iflag
         real :: Mu,Lambda,Kappa

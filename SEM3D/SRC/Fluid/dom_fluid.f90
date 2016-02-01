@@ -13,6 +13,48 @@ module dom_fluid
 
 contains
 
+  subroutine allocate_dom_fluid (Tdomain, dom)
+        implicit none
+        type(domain) :: TDomain
+        type(domain_fluid), intent (INOUT) :: dom
+
+        dom%ngllx = Tdomain%specel(0)%ngllx ! Temporaire: ngll* doit passer sur le domaine a terme
+        dom%nglly = Tdomain%specel(0)%nglly ! Temporaire: ngll* doit passer sur le domaine a terme
+        dom%ngllz = Tdomain%specel(0)%ngllz ! Temporaire: ngll* doit passer sur le domaine a terme
+
+        ! Allocation et initialisation de champs0 et champs1 pour les fluides
+        if (dom%ngll /= 0) then
+            allocate(dom%champs0%ForcesFl(0:dom%ngll-1))
+            allocate(dom%champs0%Phi     (0:dom%ngll-1))
+            allocate(dom%champs0%VelPhi  (0:dom%ngll-1))
+            allocate(dom%champs1%ForcesFl(0:dom%ngll-1))
+            allocate(dom%champs1%Phi     (0:dom%ngll-1))
+            allocate(dom%champs1%VelPhi  (0:dom%ngll-1))
+
+            dom%champs0%ForcesFl = 0d0
+            dom%champs0%Phi = 0d0
+            dom%champs0%VelPhi = 0d0
+
+            ! Allocation de MassMat pour les fluides
+            allocate(dom%MassMat(0:dom%ngll-1))
+            dom%MassMat = 0d0
+        endif
+    end subroutine allocate_dom_fluid
+
+    subroutine deallocate_dom_fluid (dom)
+        implicit none
+        type(domain_fluid), intent (INOUT) :: dom
+
+        if(allocated(dom%champs0%ForcesFl)) deallocate(dom%champs0%ForcesFl)
+        if(allocated(dom%champs0%Phi     )) deallocate(dom%champs0%Phi     )
+        if(allocated(dom%champs0%VelPhi  )) deallocate(dom%champs0%VelPhi  )
+        if(allocated(dom%champs1%ForcesFl)) deallocate(dom%champs1%ForcesFl)
+        if(allocated(dom%champs1%Phi     )) deallocate(dom%champs1%Phi     )
+        if(allocated(dom%champs1%VelPhi  )) deallocate(dom%champs1%VelPhi  )
+
+        if(allocated(dom%MassMat)) deallocate(dom%MassMat)
+    end subroutine deallocate_dom_fluid
+
     subroutine fluid_velocity(ngllx,nglly,ngllz,htprimex,hprimey,hprimez,InvGrad,    &
         density,phi,veloc)
         ! gives the physical particle velocity in the fluid = 1/dens grad(dens.Phi)

@@ -14,6 +14,66 @@ module dom_fluidpml
 
 contains
 
+  subroutine allocate_dom_fluidpml (Tdomain, dom)
+        implicit none
+        type(domain) :: TDomain
+        type(domain_fluidpml) :: dom
+        !
+        integer nbelem, ngllx, nglly, ngllz
+        !
+
+        dom%ngllx = Tdomain%specel(0)%ngllx ! Temporaire: ngll* doit passer sur le domaine a terme
+        dom%nglly = Tdomain%specel(0)%nglly ! Temporaire: ngll* doit passer sur le domaine a terme
+        dom%ngllz = Tdomain%specel(0)%ngllz ! Temporaire: ngll* doit passer sur le domaine a terme
+
+        nbelem  = dom%nbelem
+        ngllx   = dom%ngllx
+        nglly   = dom%nglly
+        ngllz   = dom%ngllz
+
+        if(Tdomain%TimeD%velocity_scheme)then
+            allocate(dom%Veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
+            dom%Veloc = 0d0
+        endif
+
+        ! Allocation et initialisation de champs0 pour les PML fluides
+        if (dom%ngll /= 0) then
+            allocate(dom%champs1%fpml_Forces(0:dom%ngll-1,0:2))
+            allocate(dom%champs0%fpml_VelPhi(0:dom%ngll-1,0:2))
+            allocate(dom%champs0%fpml_Phi   (0:dom%ngll-1,0:2))
+            allocate(dom%champs1%fpml_VelPhi(0:dom%ngll-1,0:2))
+            allocate(dom%champs0%fpml_DumpV (0:dom%ngll-1,0:1,0:2))
+            dom%champs1%fpml_Forces = 0d0
+            dom%champs0%fpml_VelPhi = 0d0
+            dom%champs0%fpml_Phi = 0d0
+            dom%champs0%fpml_DumpV = 0d0
+
+            ! Allocation de MassMat pour les PML fluides
+            allocate(dom%MassMat(0:dom%ngll-1))
+            dom%MassMat = 0d0
+
+            allocate(dom%DumpMass(0:dom%ngll-1,0:2))
+            dom%DumpMass = 0d0
+        endif
+    end subroutine allocate_dom_fluidpml
+
+    subroutine deallocate_dom_fluidpml (dom)
+        implicit none
+        type(domain_fluidpml) :: dom
+
+        if(allocated(dom%Veloc)) deallocate(dom%Veloc)
+
+        if(allocated(dom%champs1%fpml_Forces)) deallocate(dom%champs1%fpml_Forces)
+        if(allocated(dom%champs0%fpml_VelPhi)) deallocate(dom%champs0%fpml_VelPhi)
+        if(allocated(dom%champs0%fpml_Phi   )) deallocate(dom%champs0%fpml_Phi   )
+        if(allocated(dom%champs1%fpml_VelPhi)) deallocate(dom%champs1%fpml_VelPhi)
+        if(allocated(dom%champs0%fpml_DumpV )) deallocate(dom%champs0%fpml_DumpV )
+
+        if(allocated(dom%MassMat)) deallocate(dom%MassMat)
+
+        if(allocated(dom%DumpMass)) deallocate(dom%DumpMass)
+    end subroutine deallocate_dom_fluidpml
+
     subroutine get_fluidpml_dom_var(Tdomain, el, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
         implicit none
