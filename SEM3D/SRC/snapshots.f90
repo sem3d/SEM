@@ -771,9 +771,9 @@ contains
         type(output_var_t) :: out_fields
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
-        real(fpp)                                  :: P_energy, S_energy, eps_vol
-        real(fpp), dimension(0:5)                  :: eps_dev
-        real(fpp), dimension(0:5)                  :: sig_dev
+        real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
+        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
+        real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
 
         integer, dimension(0:8) :: out_variables
 
@@ -829,11 +829,11 @@ contains
                         if (out_variables(OUT_VITESSE   ) == 1) out_fields%veloc(0:2,ind)   = fieldV(i,j,k,0:2)
                         if (out_variables(OUT_ACCEL     ) == 1) out_fields%accel(0:2,ind)   = fieldA(i,j,k,0:2)
                         if (out_variables(OUT_PRESSION  ) == 1) out_fields%press(ind)       = fieldP(i,j,k)
-                        if (out_variables(OUT_ENERGYP   ) == 1) out_fields%P_energy(ind)    = P_energy
-                        if (out_variables(OUT_ENERGYS   ) == 1) out_fields%S_energy(ind)    = S_energy
-                        if (out_variables(OUT_EPS_VOL   ) == 1) out_fields%eps_vol(ind)     = eps_vol
-                        if (out_variables(OUT_EPS_DEV   ) == 1) out_fields%eps_dev(0:5,ind) = eps_dev
-                        if (out_variables(OUT_STRESS_DEV) == 1) out_fields%sig_dev(0:5,ind) = sig_dev
+                        if (out_variables(OUT_ENERGYP   ) == 1) out_fields%P_energy(ind)    = P_energy(i,j,k)
+                        if (out_variables(OUT_ENERGYS   ) == 1) out_fields%S_energy(ind)    = S_energy(i,j,k)
+                        if (out_variables(OUT_EPS_VOL   ) == 1) out_fields%eps_vol(ind)     = eps_vol(i,j,k)
+                        if (out_variables(OUT_EPS_DEV   ) == 1) out_fields%eps_dev(0:5,ind) = eps_dev(i,j,k,0:5)
+                        if (out_variables(OUT_STRESS_DEV) == 1) out_fields%sig_dev(0:5,ind) = sig_dev(i,j,k,0:5)
                     enddo
                 enddo
             enddo
@@ -842,6 +842,11 @@ contains
         if(allocated(fieldV)) deallocate(fieldV)
         if(allocated(fieldA)) deallocate(fieldA)
         if(allocated(fieldP)) deallocate(fieldP)
+        if(allocated(P_energy)) deallocate(P_energy)
+        if(allocated(S_energy)) deallocate(S_energy)
+        if(allocated(eps_vol))  deallocate(eps_vol)
+        if(allocated(eps_dev))  deallocate(eps_dev)
+        if(allocated(sig_dev))  deallocate(sig_dev)
 
         ! normalization
         do i = 0,nnodes-1

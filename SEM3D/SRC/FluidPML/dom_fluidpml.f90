@@ -83,9 +83,9 @@ contains
         type(element)                              :: el
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
-        real(fpp)                                  :: P_energy, S_energy, eps_vol
-        real(fpp), dimension(0:5)                  :: eps_dev
-        real(fpp), dimension(0:5)                  :: sig_dev
+        real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
+        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
+        real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         !
         logical :: flag_gradU
         integer :: nx, ny, nz, i, j, k, ind
@@ -122,27 +122,32 @@ contains
 
                     if (out_variables(OUT_PRESSION) == 1) then
                         if(.not. allocated(fieldP)) allocate(fieldP(0:nx-1,0:ny-1,0:nz-1))
-                        fieldP = 0d0
+                        fieldP(i,j,k) = 0d0
                     end if
 
                     if (out_variables(OUT_EPS_VOL) == 1) then
-                        eps_vol = 0.
+                        if(.not. allocated(eps_vol)) allocate(eps_vol(0:nx-1,0:ny-1,0:nz-1))
+                        eps_vol(i,j,k) = 0.
                     end if
 
                     if (out_variables(OUT_ENERGYP) == 1) then
-                        P_energy = 0.
+                        if(.not. allocated(P_energy)) allocate(P_energy(0:nx-1,0:ny-1,0:nz-1))
+                        P_energy(i,j,k) = 0.
                     end if
 
                     if (out_variables(OUT_ENERGYS) == 1) then
-                        S_energy = 0.
+                        if(.not. allocated(S_energy)) allocate(S_energy(0:nx-1,0:ny-1,0:nz-1))
+                        S_energy(i,j,k) = 0.
                     end if
 
                     if (out_variables(OUT_EPS_DEV) == 1) then
-                        eps_dev = 0.
+                        if(.not. allocated(eps_dev)) allocate(eps_dev(0:nx-1,0:ny-1,0:nz-1,0:5))
+                        eps_dev(i,j,k,:) = 0.
                     end if
 
                     if (out_variables(OUT_STRESS_DEV) == 1) then
-                        sig_dev = 0.
+                        if(.not. allocated(sig_dev)) allocate(sig_dev(0:nx-1,0:ny-1,0:nz-1,0:5))
+                        sig_dev(i,j,k,:) = 0.
                     end if
                 enddo
             enddo
