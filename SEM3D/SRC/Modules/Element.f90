@@ -16,20 +16,6 @@ module selement
     use blas
     implicit none
 
-    type :: element_solid
-        real, dimension(:,:,:,:), allocatable :: Cij
-
-        ! Attenuation
-        real, dimension (:,:,:), allocatable :: Q, Qs, Qp, onemSbeta, onemPbeta, &
-            epsilonvol_, &
-            epsilondev_xx_,epsilondev_yy_,epsilondev_xy_,epsilondev_xz_,epsilondev_yz_
-
-        real, dimension(:,:,:,:), allocatable :: &
-            factor_common_3, alphaval_3,betaval_3,gammaval_3, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_, &
-            factor_common_P, alphaval_P,betaval_P,gammaval_P, R_vol_
-
-    end type element_solid
-
     type :: element_pml
         real, dimension(:,:,:,:), allocatable :: DumpSx,DumpSy,DumpSz
         real, dimension(:,:,:,:), allocatable :: DumpMass
@@ -40,7 +26,6 @@ module selement
         integer :: mat_index
         integer :: lnum ! local number of element within its domain
         integer :: domain ! Type de domaine, voir constants : DOM_SOLID, DOM_FLUID, ...
-        type(element_solid), allocatable :: sl
         ! Index of a gll node within the physical domain
         integer, dimension (:,:,:), allocatable :: Idom
         real, dimension (:,:,:), allocatable :: Jacob

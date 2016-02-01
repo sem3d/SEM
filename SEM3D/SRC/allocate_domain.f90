@@ -18,15 +18,20 @@
 !<
 module sdomain_alloc
     use sdomain
+    use dom_solid
+    use dom_solidpml
+    use dom_fluid
+    use dom_fluidpml
     implicit none
 contains
+
 subroutine allocate_domain (Tdomain)
 
     type(domain), intent (INOUT) :: Tdomain
     integer :: n,ngllx,nglly,ngllz
     integer :: n_solid
     integer :: mat, randSize, assocMat
-    logical :: ispml, issolid
+    logical :: ispml
 
     do mat = 0,Tdomain%n_mat-1
         assocMat = Tdomain%sSubdomain(mat)%assocMat
@@ -41,8 +46,12 @@ subroutine allocate_domain (Tdomain)
         end if
     end do
 
-    do n = 0,Tdomain%n_elem-1
+    call allocate_dom_solid   (Tdomain, Tdomain%sdom)
+    call allocate_dom_fluid   (Tdomain, Tdomain%fdom)
+    call allocate_dom_solidpml(Tdomain, Tdomain%spmldom)
+    call allocate_dom_fluidpml(Tdomain, Tdomain%fpmldom)
 
+    do n = 0,Tdomain%n_elem-1
         n_solid = Tdomain%n_sls
 
         ngllx = Tdomain%specel(n)%ngllx
@@ -50,7 +59,6 @@ subroutine allocate_domain (Tdomain)
         ngllz = Tdomain%specel(n)%ngllz
 
         ispml = Tdomain%specel(n)%domain==DM_SOLID_PML .or. Tdomain%specel(n)%domain==DM_FLUID_PML
-        issolid = Tdomain%specel(n)%domain==DM_SOLID_PML .or. Tdomain%specel(n)%domain==DM_SOLID
 
         allocate(Tdomain%specel(n)%Density(0:ngllx-1, 0:nglly-1, 0:ngllz-1))
         allocate(Tdomain%specel(n)%MassMat(0:ngllx-1, 0:nglly-1, 0:ngllz-1))
@@ -65,173 +73,7 @@ subroutine allocate_domain (Tdomain)
             allocate(Tdomain%specel(n)%xpml%DumpSz(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
             allocate(Tdomain%specel(n)%xpml%DumpMass(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
         end if
-
-        if(issolid)then  ! SOLID PART
-            allocate(Tdomain%specel(n)%sl)
-            if(Tdomain%TimeD%velocity_scheme)then
-                if(ispml)then
-                    if(.not. allocated(Tdomain%spmldom%Diagonal_Stress )) &
-                             allocate(Tdomain%spmldom%Diagonal_Stress (0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:Tdomain%spmldom%nbelem-1))
-                    if(.not. allocated(Tdomain%spmldom%Diagonal_Stress1)) &
-                             allocate(Tdomain%spmldom%Diagonal_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:Tdomain%spmldom%nbelem-1))
-                    if(.not. allocated(Tdomain%spmldom%Diagonal_Stress2)) &
-                             allocate(Tdomain%spmldom%Diagonal_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:Tdomain%spmldom%nbelem-1))
-                    if(.not. allocated(Tdomain%spmldom%Diagonal_Stress3)) &
-                             allocate(Tdomain%spmldom%Diagonal_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:Tdomain%spmldom%nbelem-1))
-                    if(.not. allocated(Tdomain%spmldom%Residual_Stress )) &
-                             allocate(Tdomain%spmldom%Residual_Stress (0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:Tdomain%spmldom%nbelem-1))
-                    if(.not. allocated(Tdomain%spmldom%Residual_Stress1)) &
-                             allocate(Tdomain%spmldom%Residual_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:Tdomain%spmldom%nbelem-1))
-                    if(.not. allocated(Tdomain%spmldom%Residual_Stress2)) &
-                             allocate(Tdomain%spmldom%Residual_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:Tdomain%spmldom%nbelem-1))
-                    if(.not. allocated(Tdomain%spmldom%Residual_Stress3)) &
-                             allocate(Tdomain%spmldom%Residual_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:Tdomain%spmldom%nbelem-1))
-                    Tdomain%spmldom%Diagonal_Stress  = 0d0
-                    Tdomain%spmldom%Diagonal_Stress1 = 0d0
-                    Tdomain%spmldom%Diagonal_Stress2 = 0d0
-                    Tdomain%spmldom%Diagonal_Stress3 = 0d0
-                    Tdomain%spmldom%Residual_Stress  = 0d0
-                    Tdomain%spmldom%Residual_Stress1 = 0d0
-                    Tdomain%spmldom%Residual_Stress2 = 0d0
-                    Tdomain%spmldom%Residual_Stress3 = 0d0
-                else ! PML
-                    if (Tdomain%aniso) then
-                        allocate (Tdomain%specel(n)%sl%Cij (0:20, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                    endif
-                    if (n_solid>0) then
-                        if (Tdomain%aniso) then
-                            allocate (Tdomain%specel(n)%sl%Q (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        else
-                            !              allocate (Tdomain%specel(n)%Kappa (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            allocate (Tdomain%specel(n)%sl%Qs (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            allocate (Tdomain%specel(n)%sl%Qp (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            allocate (Tdomain%specel(n)%sl%onemPbeta (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            allocate (Tdomain%specel(n)%sl%epsilonvol_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            Tdomain%specel(n)%sl%epsilonvol_ = 0
-                            allocate (Tdomain%specel(n)%sl%factor_common_P (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            allocate (Tdomain%specel(n)%sl%alphaval_P (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            allocate (Tdomain%specel(n)%sl%betaval_P (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            allocate (Tdomain%specel(n)%sl%gammaval_P (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            allocate (Tdomain%specel(n)%sl%R_vol_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                            Tdomain%specel(n)%sl%R_vol_ = 0
-                        endif
-                        allocate (Tdomain%specel(n)%sl%onemSbeta (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%sl%epsilondev_xx_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%sl%epsilondev_yy_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%sl%epsilondev_xy_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%sl%epsilondev_xz_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%sl%epsilondev_yz_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        Tdomain%specel(n)%sl%epsilondev_xx_ = 0
-                        Tdomain%specel(n)%sl%epsilondev_yy_ = 0
-                        Tdomain%specel(n)%sl%epsilondev_xy_ = 0
-                        Tdomain%specel(n)%sl%epsilondev_xz_ = 0
-                        Tdomain%specel(n)%sl%epsilondev_yz_ = 0
-                        allocate (Tdomain%specel(n)%sl%factor_common_3 (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%sl%alphaval_3 (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%sl%betaval_3 (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%sl%gammaval_3 (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%sl%R_xx_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%sl%R_yy_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%sl%R_xy_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%sl%R_xz_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        allocate (Tdomain%specel(n)%sl%R_yz_ (0:n_solid-1, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-                        Tdomain%specel(n)%sl%R_xx_ = 0
-                        Tdomain%specel(n)%sl%R_yy_ = 0
-                        Tdomain%specel(n)%sl%R_xy_ = 0
-                        Tdomain%specel(n)%sl%R_xz_ = 0
-                        Tdomain%specel(n)%sl%R_yz_ = 0
-                    endif ! n_solid
-                endif !PML
-            endif
-        else   ! FLUID PART
-            if(Tdomain%TimeD%velocity_scheme)then
-                if(ispml)then
-                    if(.not. allocated(Tdomain%fpmldom%Veloc)) then
-                        allocate(Tdomain%fpmldom%Veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:Tdomain%fpmldom%nbelem-1))
-                    endif
-                    Tdomain%fpmldom%Veloc = 0d0
-                endif
-            endif
-
-        end if
     enddo
-
-    ! Allocation et initialisation de Tdomain%champs0 et champs1 pour les solides
-    if (Tdomain%sdom%ngll /= 0) then
-        allocate(Tdomain%sdom%champs0%Forces(0:Tdomain%sdom%ngll-1,0:2))
-        allocate(Tdomain%sdom%champs0%Depla (0:Tdomain%sdom%ngll-1,0:2))
-        allocate(Tdomain%sdom%champs0%Veloc (0:Tdomain%sdom%ngll-1,0:2))
-        allocate(Tdomain%sdom%champs1%Forces(0:Tdomain%sdom%ngll-1,0:2))
-        allocate(Tdomain%sdom%champs1%Depla (0:Tdomain%sdom%ngll-1,0:2))
-        allocate(Tdomain%sdom%champs1%Veloc (0:Tdomain%sdom%ngll-1,0:2))
-
-        Tdomain%sdom%champs0%Forces = 0d0
-        Tdomain%sdom%champs0%Depla = 0d0
-        Tdomain%sdom%champs0%Veloc = 0d0
-
-        ! Allocation de Tdomain%MassMat pour les solides
-        allocate(Tdomain%sdom%MassMat(0:Tdomain%sdom%ngll-1))
-        Tdomain%sdom%MassMat = 0d0
-    endif
-
-    ! Allocation et initialisation de Tdomain%champs0 pour les PML solides
-    if (Tdomain%spmldom%ngll /= 0) then
-        allocate(Tdomain%spmldom%champs1%ForcesPML(0:Tdomain%spmldom%ngll-1,0:2,0:2))
-        allocate(Tdomain%spmldom%champs0%VelocPML (0:Tdomain%spmldom%ngll-1,0:2,0:2))
-        allocate(Tdomain%spmldom%champs1%VelocPML (0:Tdomain%spmldom%ngll-1,0:2,0:2))
-        allocate(Tdomain%spmldom%champs0%DumpV    (0:Tdomain%spmldom%ngll-1,0:1,0:2))
-        Tdomain%spmldom%champs1%ForcesPML = 0d0
-        Tdomain%spmldom%champs0%VelocPML = 0d0
-        Tdomain%spmldom%champs0%DumpV = 0d0
-
-        ! Allocation de Tdomain%MassMat pour les PML solides
-        allocate(Tdomain%spmldom%MassMat(0:Tdomain%spmldom%ngll-1))
-        Tdomain%spmldom%MassMat = 0d0
-
-        allocate(Tdomain%spmldom%DumpMass(0:Tdomain%spmldom%ngll-1,0:2))
-        Tdomain%spmldom%DumpMass = 0d0
-    endif
-
-    ! Allocation et initialisation de Tdomain%champs0 et champs1 pour les fluides
-    if (Tdomain%fdom%ngll /= 0) then
-        allocate(Tdomain%fdom%champs0%ForcesFl(0:Tdomain%fdom%ngll-1))
-        allocate(Tdomain%fdom%champs0%Phi     (0:Tdomain%fdom%ngll-1))
-        allocate(Tdomain%fdom%champs0%VelPhi  (0:Tdomain%fdom%ngll-1))
-        allocate(Tdomain%fdom%champs1%ForcesFl(0:Tdomain%fdom%ngll-1))
-        allocate(Tdomain%fdom%champs1%Phi     (0:Tdomain%fdom%ngll-1))
-        allocate(Tdomain%fdom%champs1%VelPhi  (0:Tdomain%fdom%ngll-1))
-
-        Tdomain%fdom%champs0%ForcesFl = 0d0
-        Tdomain%fdom%champs0%Phi = 0d0
-        Tdomain%fdom%champs0%VelPhi = 0d0
-
-        ! Allocation de Tdomain%MassMat pour les fluides
-        allocate(Tdomain%fdom%MassMat(0:Tdomain%fdom%ngll-1))
-        Tdomain%fdom%MassMat = 0d0
-    endif
-
-    ! Allocation et initialisation de Tdomain%champs0 pour les PML fluides
-    if (Tdomain%fpmldom%ngll /= 0) then
-        allocate(Tdomain%fpmldom%champs1%fpml_Forces(0:Tdomain%fpmldom%ngll-1,0:2))
-        allocate(Tdomain%fpmldom%champs0%fpml_VelPhi(0:Tdomain%fpmldom%ngll-1,0:2))
-        allocate(Tdomain%fpmldom%champs0%fpml_Phi   (0:Tdomain%fpmldom%ngll-1,0:2))
-        allocate(Tdomain%fpmldom%champs1%fpml_VelPhi(0:Tdomain%fpmldom%ngll-1,0:2))
-        allocate(Tdomain%fpmldom%champs0%fpml_DumpV (0:Tdomain%fpmldom%ngll-1,0:1,0:2))
-        Tdomain%fpmldom%champs1%fpml_Forces = 0d0
-        Tdomain%fpmldom%champs0%fpml_VelPhi = 0d0
-        Tdomain%fpmldom%champs0%fpml_Phi = 0d0
-        Tdomain%fpmldom%champs0%fpml_DumpV = 0d0
-
-        ! Allocation de Tdomain%MassMat pour les PML fluides
-        allocate(Tdomain%fpmldom%MassMat(0:Tdomain%fpmldom%ngll-1))
-        Tdomain%fpmldom%MassMat = 0d0
-
-        allocate(Tdomain%fpmldom%DumpMass(0:Tdomain%fpmldom%ngll-1,0:2))
-        Tdomain%fpmldom%DumpMass = 0d0
-
-    endif
-
-    return
 end subroutine allocate_domain
 
 

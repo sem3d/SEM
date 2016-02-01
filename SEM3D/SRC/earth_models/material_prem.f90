@@ -2,16 +2,17 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
-subroutine  initialize_material_prem( elem, matInfo, coorPt, npts)
+subroutine  initialize_material_prem(Tdomain, elem, coorPt, npts)
     use constants, only : DM_SOLID_PML
     use selement
     use ssubdomains
     use model_prem
     use tensor_util
     use earth_transform
+    use sdomain
 
+    type (domain), intent (INOUT), target :: Tdomain
     type(element), intent(inout) :: elem
-    type(subdomain), intent(in) :: matInfo
     real, dimension(0:2,0:npts-1), intent(in) :: coorPt
     integer, intent(in) :: npts
 
@@ -71,7 +72,7 @@ subroutine  initialize_material_prem( elem, matInfo, coorPt, npts)
                     idef = 0
                     do ii = 1,6
                         do jj = ii,6
-                            elem%sl%Cij(idef,i,j,k) = Cij(ii,jj)
+                            Tdomain%sdom%Cij(idef,i,j,k,elem%lnum) = Cij(ii,jj)
                             idef = idef + 1
                         enddo
                     enddo

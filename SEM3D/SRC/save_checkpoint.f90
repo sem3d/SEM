@@ -197,7 +197,7 @@ subroutine write_EpsilonVol(Tdomain, nmax, elem_id)
                                 write(*,*) "Erreur fatale sauvegarde des protections"
                                 stop 1
                             end if
-                            data(idx+0) = Tdomain%specel(n)%sl%epsilonvol_(i,j,k)
+                            data(idx+0) = Tdomain%sdom%epsilonvol_(i,j,k,Tdomain%specel(n)%lnum)
                             idx = idx + 1
                         end if
                     end if
@@ -254,7 +254,7 @@ subroutine write_Rvol(Tdomain, nmax, elem_id)
                                 stop 1
                             end if
                             do i_sls = 0, n_solid-1
-                                data(idx+i_sls) = Tdomain%specel(n)%sl%R_vol_(i_sls,i,j,k)
+                                data(idx+i_sls) = Tdomain%sdom%R_vol_(i_sls,i,j,k,Tdomain%specel(n)%lnum)
                             end do
                             idx = idx + n_solid
                         end if
@@ -322,11 +322,11 @@ subroutine write_Rxyz(Tdomain, nmax, elem_id)
                             stop 1
                         end if
                         do i_sls=0, n_solid-1
-                            data_xx(idx+i_sls) = Tdomain%specel(n)%sl%R_xx_(i_sls,i,j,k)
-                            data_yy(idx+i_sls) = Tdomain%specel(n)%sl%R_yy_(i_sls,i,j,k)
-                            data_xy(idx+i_sls) = Tdomain%specel(n)%sl%R_xy_(i_sls,i,j,k)
-                            data_xz(idx+i_sls) = Tdomain%specel(n)%sl%R_xz_(i_sls,i,j,k)
-                            data_yz(idx+i_sls) = Tdomain%specel(n)%sl%R_yz_(i_sls,i,j,k)
+                            data_xx(idx+i_sls) = Tdomain%sdom%R_xx_(i_sls,i,j,k,Tdomain%specel(n)%lnum)
+                            data_yy(idx+i_sls) = Tdomain%sdom%R_yy_(i_sls,i,j,k,Tdomain%specel(n)%lnum)
+                            data_xy(idx+i_sls) = Tdomain%sdom%R_xy_(i_sls,i,j,k,Tdomain%specel(n)%lnum)
+                            data_xz(idx+i_sls) = Tdomain%sdom%R_xz_(i_sls,i,j,k,Tdomain%specel(n)%lnum)
+                            data_yz(idx+i_sls) = Tdomain%sdom%R_yz_(i_sls,i,j,k,Tdomain%specel(n)%lnum)
                         end do
                         idx = idx + n_solid
                     end if
@@ -399,11 +399,11 @@ subroutine write_EpsilonDev(Tdomain, nmax, elem_id)
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
-                        data_xx(idx) = Tdomain%specel(n)%sl%epsilondev_xx_(i,j,k)
-                        data_yy(idx) = Tdomain%specel(n)%sl%epsilondev_yy_(i,j,k)
-                        data_xy(idx) = Tdomain%specel(n)%sl%epsilondev_xy_(i,j,k)
-                        data_xz(idx) = Tdomain%specel(n)%sl%epsilondev_xz_(i,j,k)
-                        data_yz(idx) = Tdomain%specel(n)%sl%epsilondev_yz_(i,j,k)
+                        data_xx(idx) = Tdomain%sdom%epsilondev_xx_(i,j,k,Tdomain%specel(n)%lnum)
+                        data_yy(idx) = Tdomain%sdom%epsilondev_yy_(i,j,k,Tdomain%specel(n)%lnum)
+                        data_xy(idx) = Tdomain%sdom%epsilondev_xy_(i,j,k,Tdomain%specel(n)%lnum)
+                        data_xz(idx) = Tdomain%sdom%epsilondev_xz_(i,j,k,Tdomain%specel(n)%lnum)
+                        data_yz(idx) = Tdomain%sdom%epsilondev_yz_(i,j,k,Tdomain%specel(n)%lnum)
                         idx = idx + 1
                     end if
                 enddo

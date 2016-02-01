@@ -16,8 +16,11 @@ subroutine deallocate_domain (Tdomain)
     ! Modified by Gaetano Festa 25/02/2005
     ! Modified by Paul Cupillard 08/12/2005
 
-
     use sdomain
+    use dom_solid
+    use dom_solidpml
+    use dom_fluid
+    use dom_fluidpml
 
     implicit none
 
@@ -30,6 +33,11 @@ subroutine deallocate_domain (Tdomain)
     deallocate (Tdomain%Coord_Nodes)
     if(allocated(Tdomain%not_PML_List)) deallocate (Tdomain%not_PML_List)
     if(allocated(Tdomain%subD_exist)) deallocate (Tdomain%subD_exist)
+
+    call deallocate_dom_solid   (Tdomain%sdom)
+    call deallocate_dom_fluid   (Tdomain%fdom)
+    call deallocate_dom_solidpml(Tdomain%spmldom)
+    call deallocate_dom_fluidpml(Tdomain%fpmldom)
 
     do n = 0,Tdomain%n_elem-1
         deallocate (Tdomain%specel(n)%Density)
@@ -47,21 +55,11 @@ subroutine deallocate_domain (Tdomain)
                     deallocate (Tdomain%specel(n)%Kappa)
                     deallocate (Tdomain%specel(n)%Mu)
 
-                    if(allocated(Tdomain%spmldom%Diagonal_Stress))  deallocate(Tdomain%spmldom%Diagonal_Stress)
-                    if(allocated(Tdomain%spmldom%Diagonal_Stress1)) deallocate(Tdomain%spmldom%Diagonal_Stress1)
-                    if(allocated(Tdomain%spmldom%Diagonal_Stress2)) deallocate(Tdomain%spmldom%Diagonal_Stress2)
-                    if(allocated(Tdomain%spmldom%Diagonal_Stress3)) deallocate(Tdomain%spmldom%Diagonal_Stress3)
-                    if(allocated(Tdomain%spmldom%Residual_Stress))  deallocate(Tdomain%spmldom%Residual_Stress)
-                    if(allocated(Tdomain%spmldom%Residual_Stress1)) deallocate(Tdomain%spmldom%Residual_Stress1)
-                    if(allocated(Tdomain%spmldom%Residual_Stress2)) deallocate(Tdomain%spmldom%Residual_Stress2)
-                    if(allocated(Tdomain%spmldom%Residual_Stress3)) deallocate(Tdomain%spmldom%Residual_Stress3)
-
                     deallocate (Tdomain%specel(n)%xpml%DumpSx)
                     deallocate (Tdomain%specel(n)%xpml%DumpSy)
                     deallocate (Tdomain%specel(n)%xpml%DumpSz)
                 else
                     if (Tdomain%aniso) then
-                        if (issolid) deallocate (Tdomain%specel(n)%sl%Cij)
                         if (Tdomain%n_sls>0) then
                             deallocate (Tdomain%specel(n)%Lambda)
                             deallocate (Tdomain%specel(n)%Kappa)
@@ -72,49 +70,11 @@ subroutine deallocate_domain (Tdomain)
                         deallocate (Tdomain%specel(n)%Kappa)
                         deallocate (Tdomain%specel(n)%Mu)
                     endif
-                    if (issolid .and. Tdomain%n_sls>0) then
-                        if (Tdomain%aniso) then
-                            deallocate (Tdomain%specel(n)%sl%Q)
-                        else
-                            !             deallocate (Tdomain%specel(n)%Kappa)
-                            deallocate (Tdomain%specel(n)%sl%Qs)
-                            deallocate (Tdomain%specel(n)%sl%Qp)
-                            deallocate (Tdomain%specel(n)%sl%onemPbeta)
-                            deallocate (Tdomain%specel(n)%sl%factor_common_P)
-                            deallocate (Tdomain%specel(n)%sl%alphaval_P)
-                            deallocate (Tdomain%specel(n)%sl%betaval_P)
-                            deallocate (Tdomain%specel(n)%sl%gammaval_P)
-                            deallocate (Tdomain%specel(n)%sl%epsilonvol_)
-                            deallocate (Tdomain%specel(n)%sl%R_vol_)
-                        endif
-                        deallocate (Tdomain%specel(n)%sl%onemSbeta)
-                        deallocate (Tdomain%specel(n)%sl%factor_common_3)
-                        deallocate (Tdomain%specel(n)%sl%alphaval_3)
-                        deallocate (Tdomain%specel(n)%sl%betaval_3)
-                        deallocate (Tdomain%specel(n)%sl%gammaval_3)
-                        deallocate (Tdomain%specel(n)%sl%epsilondev_xx_)
-                        deallocate (Tdomain%specel(n)%sl%epsilondev_yy_)
-                        deallocate (Tdomain%specel(n)%sl%epsilondev_xy_)
-                        deallocate (Tdomain%specel(n)%sl%epsilondev_xz_)
-                        deallocate (Tdomain%specel(n)%sl%epsilondev_yz_)
-                        deallocate (Tdomain%specel(n)%sl%R_xx_)
-                        deallocate (Tdomain%specel(n)%sl%R_yy_)
-                        deallocate (Tdomain%specel(n)%sl%R_xy_)
-                        deallocate (Tdomain%specel(n)%sl%R_xz_)
-                        deallocate (Tdomain%specel(n)%sl%R_yz_)
-                    endif
-
                 endif
             endif
-        else ! FLUID PART
-            if(allocated(Tdomain%fpmldom%Veloc)) deallocate(Tdomain%fpmldom%Veloc)
         end if
         deallocate (Tdomain%specel(n)%InvGrad)     !purge fuites memoire Gsa
-        if(issolid) then
-            deallocate (Tdomain%specel(n)%sl)
-        end if
     enddo
-
 
     !purge -fuites memoire
     deallocate (Tdomain%sComm)

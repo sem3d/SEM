@@ -36,7 +36,12 @@ module sdomain
     type domain_solid
         ! D'abord, les données membres qui ne sont pas modifiées
 
-        ! Nombre de gll
+        ! Nombre de gll dans chaque element du domaine
+        integer :: ngllx
+        integer :: nglly
+        integer :: ngllz
+
+        ! Nombre total de gll du domaine (assembles)
         integer :: ngll
 
         ! Nombre d'elements dans le domaine
@@ -54,12 +59,24 @@ module sdomain
         ! Champs
         type(champssolid) :: champs0
         type(champssolid) :: champs1
+        real, dimension(:,:,:,:,:), allocatable :: Cij
+        real, dimension (:,:,:,:), allocatable :: Q, Qs, Qp, onemSbeta, onemPbeta, & ! Attenuation
+            epsilonvol_, &
+            epsilondev_xx_,epsilondev_yy_,epsilondev_xy_,epsilondev_xz_,epsilondev_yz_
+        real, dimension(:,:,:,:,:), allocatable :: &
+            factor_common_3, alphaval_3,betaval_3,gammaval_3, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_, &
+            factor_common_P, alphaval_P,betaval_P,gammaval_P, R_vol_
     end type domain_solid
 
     type domain_solidpml
         ! D'abord, les données membres qui ne sont pas modifiées
 
-        ! Nombre de gll
+        ! Nombre de gll dans chaque element du domaine
+        integer :: ngllx
+        integer :: nglly
+        integer :: ngllz
+
+        ! Nombre total de gll du domaine (assembles)
         integer :: ngll
 
         ! Nombre d'elements dans le domaine
@@ -86,7 +103,12 @@ module sdomain
     type domain_fluid
         ! D'abord, les données membres qui ne sont pas modifiées
 
-        ! Nombre de gll
+        ! Nombre de gll dans chaque element du domaine
+        integer :: ngllx
+        integer :: nglly
+        integer :: ngllz
+
+        ! Nombre total de gll du domaine (assembles)
         integer :: ngll
 
         ! Nombre d'elements dans le domaine
@@ -109,7 +131,12 @@ module sdomain
     type domain_fluidpml
         ! D'abord, les données membres qui ne sont pas modifiées
 
-        ! Nombre de gll
+        ! Nombre de gll dans chaque element du domaine
+        integer :: ngllx
+        integer :: nglly
+        integer :: ngllz
+
+        ! Nombre total de gll du domaine (assembles)
         integer :: ngll
 
         ! Nombre d'elements dans le domaine

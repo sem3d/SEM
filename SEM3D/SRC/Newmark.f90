@@ -416,11 +416,11 @@ subroutine internal_forces(Tdomain)
         mat = Tdomain%specel(n)%mat_index
         select case (Tdomain%specel(n)%domain)
         case (DM_SOLID)
-            call forces_int_solid(Tdomain%specel(n), Tdomain%sSubDomain(mat),           &
+            call forces_int_solid(Tdomain%sdom, Tdomain%sSubDomain(mat),           &
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
                 Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
                 Tdomain%sSubDomain(mat)%hTprimez, Tdomain%n_sls,Tdomain%aniso,     &
-                Tdomain%sdom%champs1)
+                Tdomain%sdom%champs1, Tdomain%specel(n), lnum)
         case (DM_FLUID)
             call forces_int_fluid(Tdomain%specel(n), Tdomain%sSubDomain(mat),           &
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &

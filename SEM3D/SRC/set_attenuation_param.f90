@@ -82,8 +82,8 @@ contains
                     do j = 0,nglly-1
                         do k = 0,ngllz-1
 
-                            Q_mu = Tdomain%specel(n)%sl%Qs(i,j,k)
-                            Q_kappa = Tdomain%specel(n)%sl%Qp(i,j,k)
+                            Q_mu = Tdomain%sdom%Qs(i,j,k,Tdomain%specel(n)%lnum)
+                            Q_kappa = Tdomain%sdom%Qp(i,j,k,Tdomain%specel(n)%lnum)
 
                             !- from Qs to gammas
                             if (Q_mu .ne. Q_mu_old) then
@@ -107,24 +107,24 @@ contains
 
 
                             !- factor to get from relaxed to unrelaxed modulus: M_U = M_R*(1+delta_M/M_R)
-                            Tdomain%specel(n)%sl%onemSbeta(i,j,k) = 1d0+get_modulus_defect(n_solid, agamma_mu)
-                            Tdomain%specel(n)%sl%onemPbeta(i,j,k) = 1d0+get_modulus_defect(n_solid, agamma_kappa)
+                            Tdomain%sdom%onemSbeta(i,j,k,Tdomain%specel(n)%lnum) = 1d0+get_modulus_defect(n_solid, agamma_mu)
+                            Tdomain%sdom%onemPbeta(i,j,k,Tdomain%specel(n)%lnum) = 1d0+get_modulus_defect(n_solid, agamma_kappa)
 
 
 
                             !- Runge-kutta parameters for the time integration of the terms related to the relaxation function
                             mat = Tdomain%specel(n)%mat_index
                             dt = Tdomain%TimeD%dtmin
-                            call RK4_attenu_coefficients(n_solid,dt,omega_tau_s,agamma_mu,   &
-                                Tdomain%specel(n)%sl%factor_common_3(:,i,j,k),             &
-                                Tdomain%specel(n)%sl%alphaval_3(:,i,j,k),                  &
-                                Tdomain%specel(n)%sl%betaval_3(:,i,j,k),                   &
-                                Tdomain%specel(n)%sl%gammaval_3(:,i,j,k))
-                            call RK4_attenu_coefficients(n_solid,dt,omega_tau_s,agamma_kappa,   &
-                                Tdomain%specel(n)%sl%factor_common_P(:,i,j,k),             &
-                                Tdomain%specel(n)%sl%alphaval_P(:,i,j,k),                  &
-                                Tdomain%specel(n)%sl%betaval_P(:,i,j,k),                   &
-                                Tdomain%specel(n)%sl%gammaval_P(:,i,j,k))
+                            call RK4_attenu_coefficients(n_solid,dt,omega_tau_s,agamma_mu,    &
+                                Tdomain%sdom%factor_common_3(:,i,j,k,Tdomain%specel(n)%lnum), &
+                                Tdomain%sdom%alphaval_3(:,i,j,k,Tdomain%specel(n)%lnum),      &
+                                Tdomain%sdom%betaval_3(:,i,j,k,Tdomain%specel(n)%lnum),       &
+                                Tdomain%sdom%gammaval_3(:,i,j,k,Tdomain%specel(n)%lnum))
+                            call RK4_attenu_coefficients(n_solid,dt,omega_tau_s,agamma_kappa, &
+                                Tdomain%sdom%factor_common_P(:,i,j,k,Tdomain%specel(n)%lnum), &
+                                Tdomain%sdom%alphaval_P(:,i,j,k,Tdomain%specel(n)%lnum),      &
+                                Tdomain%sdom%betaval_P(:,i,j,k,Tdomain%specel(n)%lnum),       &
+                                Tdomain%sdom%gammaval_P(:,i,j,k,Tdomain%specel(n)%lnum))
 
 
                         enddo

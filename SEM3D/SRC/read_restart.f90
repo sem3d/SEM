@@ -43,19 +43,19 @@ subroutine read_EpsilonVol(Tdomain, elem_id)
                         if (n_solid>0) then
                             if (Tdomain%aniso) then
                             else
-                                Tdomain%specel(n)%sl%epsilonvol_(i,j,k) = epsilonVol(idx1)
+                                Tdomain%sdom%epsilonvol_(i,j,k,Tdomain%specel(n)%lnum) = epsilonVol(idx1)
                                 idx1 = idx1 + 1
                                 do i_sls = 0, n_solid-1
-                                    Tdomain%specel(n)%sl%R_vol_(i_sls,i,j,k) = rvol(idx2+i_sls)
+                                    Tdomain%sdom%R_vol_(i_sls,i,j,k,Tdomain%specel(n)%lnum) = rvol(idx2+i_sls)
                                 end do
                                 idx2 = idx2 + n_solid
                             end if
                             do i_sls = 0, n_solid-1
-                                Tdomain%specel(n)%sl%R_xx_(i_sls,i,j,k) = rxx(idx3+i_sls)
-                                Tdomain%specel(n)%sl%R_yy_(i_sls,i,j,k) = ryy(idx3+i_sls)
-                                Tdomain%specel(n)%sl%R_xy_(i_sls,i,j,k) = rxy(idx3+i_sls)
-                                Tdomain%specel(n)%sl%R_xz_(i_sls,i,j,k) = rxz(idx3+i_sls)
-                                Tdomain%specel(n)%sl%R_yz_(i_sls,i,j,k) = ryz(idx3+i_sls)
+                                Tdomain%sdom%R_xx_(i_sls,i,j,k,Tdomain%specel(n)%lnum) = rxx(idx3+i_sls)
+                                Tdomain%sdom%R_yy_(i_sls,i,j,k,Tdomain%specel(n)%lnum) = ryy(idx3+i_sls)
+                                Tdomain%sdom%R_xy_(i_sls,i,j,k,Tdomain%specel(n)%lnum) = rxy(idx3+i_sls)
+                                Tdomain%sdom%R_xz_(i_sls,i,j,k,Tdomain%specel(n)%lnum) = rxz(idx3+i_sls)
+                                Tdomain%sdom%R_yz_(i_sls,i,j,k,Tdomain%specel(n)%lnum) = ryz(idx3+i_sls)
                             end do
                             idx3 = idx3 + n_solid
                         end if
@@ -102,11 +102,11 @@ subroutine read_EpsilonDev(Tdomain, elem_id)
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
                         if (n_solid>0) then
-                            Tdomain%specel(n)%sl%epsilondev_xx_(i,j,k) = eps_dev_xx(idx)
-                            Tdomain%specel(n)%sl%epsilondev_yy_(i,j,k) = eps_dev_yy(idx)
-                            Tdomain%specel(n)%sl%epsilondev_xy_(i,j,k) = eps_dev_xy(idx)
-                            Tdomain%specel(n)%sl%epsilondev_xz_(i,j,k) = eps_dev_xz(idx)
-                            Tdomain%specel(n)%sl%epsilondev_yz_(i,j,k) = eps_dev_yz(idx)
+                            Tdomain%sdom%epsilondev_xx_(i,j,k,Tdomain%specel(n)%lnum) = eps_dev_xx(idx)
+                            Tdomain%sdom%epsilondev_yy_(i,j,k,Tdomain%specel(n)%lnum) = eps_dev_yy(idx)
+                            Tdomain%sdom%epsilondev_xy_(i,j,k,Tdomain%specel(n)%lnum) = eps_dev_xy(idx)
+                            Tdomain%sdom%epsilondev_xz_(i,j,k,Tdomain%specel(n)%lnum) = eps_dev_xz(idx)
+                            Tdomain%sdom%epsilondev_yz_(i,j,k,Tdomain%specel(n)%lnum) = eps_dev_yz(idx)
                             idx = idx + 1
                         end if
                     end do

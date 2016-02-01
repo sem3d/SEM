@@ -345,6 +345,7 @@ contains
     !! seul le proc gere l'ecriture
     !!
     subroutine sortieGrandeurCapteur_interp(Tdomain, capteur)
+        use constants
         use dom_solid
         use dom_fluid
         use dom_solidpml
@@ -354,17 +355,17 @@ contains
         type(domain)   :: TDomain
         type(tCapteur) :: capteur
         !
-        integer                               :: i, j, k, ioff
-        integer                               :: n_el, ngllx, nglly, ngllz, mat
-        real                                  :: weight
-        real, dimension(:), allocatable       :: outx, outy, outz
-        real, dimension(:), allocatable       :: grandeur
-        integer, dimension(0:8)               :: out_variables, offset
-        real, dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
-        real, dimension(:,:,:), allocatable   :: fieldP
-        real                                  :: P_energy, S_energy, eps_vol
-        real, dimension(0:5)                  :: eps_dev
-        real, dimension(0:5)                  :: sig_dev
+        integer                                    :: i, j, k, ioff
+        integer                                    :: n_el, ngllx, nglly, ngllz, mat
+        real(fpp)                                  :: weight
+        real(fpp), dimension(:), allocatable       :: outx, outy, outz
+        real(fpp), dimension(:), allocatable       :: grandeur
+        integer, dimension(0:8)                    :: out_variables, offset
+        real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
+        real(fpp), dimension(:,:,:), allocatable   :: fieldP
+        real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
+        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
+        real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
 
         ! Verification : le capteur est il gere par le proc. ?
 
@@ -405,12 +406,6 @@ contains
                 offset(i+1) = offset(i)
             end if
         end do
-
-        P_energy = 0.
-        S_energy = 0.
-        eps_vol = 0.
-        eps_dev = 0.
-        sig_dev = 0.
 
         ! On recupere les variables de l'element associe au capteur.
 
@@ -460,29 +455,29 @@ contains
                     end if
 
                     if (out_variables(OUT_ENERGYP) == 1) then
-                        grandeur (offset(OUT_ENERGYP)) = grandeur (offset(OUT_ENERGYP)) + weight*P_energy
+                        grandeur (offset(OUT_ENERGYP)) = grandeur (offset(OUT_ENERGYP)) + weight*P_energy(i,j,k)
                     end if
 
                     if (out_variables(OUT_ENERGYS) == 1) then
-                        grandeur (offset(OUT_ENERGYS)) = grandeur (offset(OUT_ENERGYS)) + weight*S_energy
+                        grandeur (offset(OUT_ENERGYS)) = grandeur (offset(OUT_ENERGYS)) + weight*S_energy(i,j,k)
                     end if
 
                     if (out_variables(OUT_EPS_VOL) == 1) then
-                        grandeur (offset(OUT_EPS_VOL)) = grandeur (offset(OUT_EPS_VOL)) + weight*eps_vol
+                        grandeur (offset(OUT_EPS_VOL)) = grandeur (offset(OUT_EPS_VOL)) + weight*eps_vol(i,j,k)
                     end if
 
                     if (out_variables(OUT_EPS_DEV) == 1) then
                         ioff = offset(OUT_EPS_DEV)
                         grandeur (ioff:ioff+5) = grandeur (ioff:ioff+5) &
-                        + (/weight*eps_dev(0), weight*eps_dev(1), weight*eps_dev(2), &
-                            weight*eps_dev(3), weight*eps_dev(4), weight*eps_dev(5)/)
+                        + (/weight*eps_dev(i,j,k,0), weight*eps_dev(i,j,k,1), weight*eps_dev(i,j,k,2), &
+                            weight*eps_dev(i,j,k,3), weight*eps_dev(i,j,k,4), weight*eps_dev(i,j,k,5)/)
                     end if
 
                     if (out_variables(OUT_STRESS_DEV) == 1) then
                         ioff = offset(OUT_STRESS_DEV)
                         grandeur (ioff:ioff+5) = grandeur (ioff:ioff+5) &
-                        + (/weight*sig_dev(0), weight*sig_dev(1), weight*sig_dev(2), &
-                            weight*sig_dev(3), weight*sig_dev(4), weight*sig_dev(5)/)
+                        + (/weight*sig_dev(i,j,k,0), weight*sig_dev(i,j,k,1), weight*sig_dev(i,j,k,2), &
+                            weight*sig_dev(i,j,k,3), weight*sig_dev(i,j,k,4), weight*sig_dev(i,j,k,5)/)
                     end if
                 enddo
             enddo
@@ -501,6 +496,11 @@ contains
         if(allocated(fieldV))   deallocate(fieldV)
         if(allocated(fieldA))   deallocate(fieldA)
         if(allocated(fieldP))   deallocate(fieldP)
+        if(allocated(P_energy)) deallocate(P_energy)
+        if(allocated(S_energy)) deallocate(S_energy)
+        if(allocated(eps_vol))  deallocate(eps_vol)
+        if(allocated(eps_dev))  deallocate(eps_dev)
+        if(allocated(sig_dev))  deallocate(sig_dev)
         if(allocated(grandeur)) deallocate(grandeur)
         deallocate(outx)
         deallocate(outy)
