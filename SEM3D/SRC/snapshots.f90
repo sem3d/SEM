@@ -1193,8 +1193,9 @@ contains
                 end do
             end select
         enddo
-        if (Tdomain%spmldom%ngll>0) deallocate(Tdomain%spmldom%MassMat)
-        if (Tdomain%fpmldom%ngll>0) deallocate(Tdomain%fpmldom%MassMat)
+        ! We need that for computing accel
+!        if (Tdomain%spmldom%ngll>0) deallocate(Tdomain%spmldom%MassMat)
+!        if (Tdomain%fpmldom%ngll>0) deallocate(Tdomain%fpmldom%MassMat)
         ! jac
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle

@@ -137,9 +137,10 @@ contains
 
                     if (out_variables(OUT_ACCEL) == 1) then
                         if(.not. allocated(fieldA)) allocate(fieldA(0:nx-1,0:ny-1,0:nz-1,0:2))
-                        fieldA(i,j,k,:) = Tdomain%spmldom%champs0%ForcesPml(ind,:,0) + &
-                                          Tdomain%spmldom%champs0%ForcesPml(ind,:,1) + &
-                                          Tdomain%spmldom%champs0%ForcesPml(ind,:,2)
+                        fieldA(i,j,k,:) = Tdomain%spmldom%Massmat(ind) * &
+                            ( Tdomain%spmldom%champs1%ForcesPml(ind,:,0) + &
+                            Tdomain%spmldom%champs1%ForcesPml(ind,:,1) + &
+                            Tdomain%spmldom%champs1%ForcesPml(ind,:,2) )
                     end if
 
                     if (out_variables(OUT_PRESSION) == 1) then
