@@ -147,9 +147,6 @@ subroutine renumber_global_gll_nodes(Tdomain)
         do i = 1,ngll(0)-2
             Tdomain%sEdge(n)%Iglobnum_Edge(i) = icount(0)
             icount(0) = icount(0) + 1
-            if (n==3004) then
-                write(*,*) "Edge",n, "gll(",i,")=", icount(dom)
-            end if
             Tdomain%sEdge(n)%Idom(i) = icount(dom)
             icount(dom) = icount(dom) + 1
         enddo
@@ -176,9 +173,6 @@ subroutine renumber_global_gll_nodes(Tdomain)
         ngll(0) = Tdomain%specel(n)%ngllx
         ngll(1) = Tdomain%specel(n)%nglly
         ngll(2) = Tdomain%specel(n)%ngllz
-        if (n<=24) then
-            write(*,*) "EL",n," NODES=",Tdomain%specel(n)%Control_nodes
-        end if
         !Taking information from faces
         do nf = 0,5
             nnf = Tdomain%specel(n)%Near_Faces(nf)
@@ -187,10 +181,6 @@ subroutine renumber_global_gll_nodes(Tdomain)
             end do
             call ind_elem_face(ngll, nf, Tdomain%sFace(nnf)%inodes, elface, i0, di, dj)
 
-            if (n<=24) then
-                write(*,*) "EL",n," FACE",nf, " NODES=", Tdomain%sFace(nnf)%inodes
-                write(*,*) "EL",n," FACE",nf, "I0", i0, "DI", di, "DJ", dj
-            end if
             do i=1,Tdomain%sFace(nnf)%ngll1-2
                 do j=1,Tdomain%sFace(nnf)%ngll2-2
                     idxi = i0(0)+i*di(0)+j*dj(0)
@@ -288,9 +278,8 @@ subroutine renumber_global_gll_nodes(Tdomain)
         end do
     end do
 #if 1
-    ! Check
+    ! Check that all glls have an Iglobnum
     do n = 0,Tdomain%n_elem-1
-        pel => Tdomain%specel(n)
         ngll(0) = Tdomain%specel(n)%ngllx
         ngll(1) = Tdomain%specel(n)%nglly
         ngll(2) = Tdomain%specel(n)%ngllz
@@ -436,9 +425,9 @@ subroutine renumber_interface(Tdomain, inter, dom0, dom1)
     ! Count number of gll on the interface
     call renumber_surface(Tdomain, inter%surf0, dom0)
     call renumber_surface(Tdomain, inter%surf1, dom1)
-    ! We need to make sure both faces of an interface are numbered
-    ! orphan faces (ie whose elements belong to another processor
-    ! will not have Idom filled correctly at this point
+    ! We need to make sure both faces of an interface are numbered.
+    ! Orphan faces (ie whose elements belong to another processor
+    ! will not have Idom or Iglobnum filled correctly at this point
     call apply_numbering_coherency(Tdomain, inter, dom0, dom1)
 
 end subroutine renumber_interface
@@ -457,6 +446,7 @@ subroutine apply_numbering_coherency(Tdomain, inter, dom0, dom1)
     integer :: idx, imap, idom
     integer :: ngll1, ngll2
     integer :: nf, nfs0, nfs1
+    logical :: face0_orphan, face1_orphan
     nglltot0 = domain_ngll(Tdomain, dom0)
     nglltot1 = domain_ngll(Tdomain, dom1)
     allocate(renum0(0:nglltot0-1))
@@ -484,32 +474,54 @@ subroutine apply_numbering_coherency(Tdomain, inter, dom0, dom1)
         nfs1 = inter%surf1%if_faces(nf)
         ngll1 = Tdomain%sFace(nfs0)%ngll1
         ngll2 = Tdomain%sFace(nfs0)%ngll2
+        face0_orphan = .false.
+        face1_orphan = .false.
+
         do j=0,ngll2-1
             do i=0,ngll1-1
                 if (Tdomain%sFace(nfs0)%Idom(i,j)==-1) then
-                    idx = Tdomain%sFace(nfs1)%Idom(i,j)
-                    if (idx==-1) then
-                        write(*,*) "Coherency problem"
-                        stop 1
-                    end if
-                    imap = renum1(idx)
-                    idom = inter%surf0%map(imap)
-                    write(*,*) "Coherency 0->1", idx, idom
-                    Tdomain%sFace(nfs0)%Idom(i,j) = idom
+                    face0_orphan = .true.
                 end if
                 if (Tdomain%sFace(nfs1)%Idom(i,j)==-1) then
-                    idx = Tdomain%sFace(nfs0)%Idom(i,j)
-                    if (idx==-1) then
-                        write(*,*) "Coherency problem"
-                        stop 1
-                    end if
-                    imap = renum0(idx)
-                    idom = inter%surf1%map(imap)
-                    write(*,*) "Coherency 1->0", idx, idom
-                    Tdomain%sFace(nfs1)%Idom(i,j) = idom
+                    face1_orphan = .true.
                 end if
             end do
         end do
+        if (face0_orphan .and. face1_orphan) then
+            write(*,*) "Coherency problem"
+            stop 1
+        end if
+
+        if (face0_orphan) then
+            do j=0,ngll2-1
+                do i=0,ngll1-1
+                    ! Unconditionnally copy Iglobnum from 'good' face
+                    Tdomain%sFace(nfs0)%Iglobnum_Face(i,j) = Tdomain%sFace(nfs1)%Iglobnum_Face(i,j)
+                    if (Tdomain%sFace(nfs0)%Idom(i,j)==-1) then
+                        ! This
+                        idx = Tdomain%sFace(nfs1)%Idom(i,j) ! can't be -1
+                        imap = renum1(idx)
+                        idom = inter%surf0%map(imap)
+                        Tdomain%sFace(nfs0)%Idom(i,j) = idom
+                    end if
+                end do
+            end do
+        end if
+        if (face1_orphan) then
+            do j=0,ngll2-1
+                do i=0,ngll1-1
+                    ! Unconditionnally copy Iglobnum from 'good' face
+                    Tdomain%sFace(nfs1)%Iglobnum_Face(i,j) = Tdomain%sFace(nfs0)%Iglobnum_Face(i,j)
+                    if (Tdomain%sFace(nfs1)%Idom(i,j)==-1) then
+                        ! This
+                        idx = Tdomain%sFace(nfs0)%Idom(i,j) ! can't be -1
+                        imap = renum0(idx)
+                        idom = inter%surf1%map(imap)
+                        Tdomain%sFace(nfs1)%Idom(i,j) = idom
+                    end if
+                end do
+            end do
+        end if
     end do
 
     deallocate(renum0, renum1)

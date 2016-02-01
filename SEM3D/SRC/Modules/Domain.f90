@@ -239,7 +239,7 @@ contains
         integer :: nif, i, j
         integer :: nf0, nf1, ip0, ip1
         integer :: ngll1, ngll2
-        real(FPP), dimension(0:2) :: dp
+        real(FPP), dimension(0:2) :: dp, x0, x1
         logical :: bad
         !
         do nif=0,inter%surf0%n_faces-1
@@ -261,8 +261,28 @@ contains
             end do
             if (bad) then
                 write(*,*) "BAD INTERFACE:"
-                write(*,*) "IF0:", nf0, "[", Tdomain%sFace(nf0)%inodes, "]"
-                write(*,*) "IF1:", nf1, "[", Tdomain%sFace(nf1)%inodes, "]"
+                write(*,*) "IF0: INODES", nf0, "[", Tdomain%sFace(nf0)%inodes, "]"
+                write(*,*) "IF1: INODES", nf1, "[", Tdomain%sFace(nf1)%inodes, "]"
+                write(*,*) "IF0: IGLOBN", nf0, "[", Tdomain%sFace(nf0)%Iglobnum_Face, "]"
+                write(*,*) "IF1: IGLOBN", nf1, "[", Tdomain%sFace(nf1)%Iglobnum_Face, "]"
+                write(*,*) "DX:", nf0, nf1, ":"
+                do j=0,ngll2-1
+                    do i=0,ngll1-1
+                        ip0 = Tdomain%sFace(nf0)%Iglobnum_Face(i,j)
+                        ip1 = Tdomain%sFace(nf1)%Iglobnum_Face(i,j)
+                        if (ip0>=0) then
+                            x0 = Tdomain%GlobCoord(:,ip0)
+                        else
+                            x0 = 0
+                        end if
+                        if (ip1>=0) then
+                            x1 = Tdomain%GlobCoord(:,ip1)
+                        else
+                            x1 = 0.
+                        end if
+                        write(*,*) "dx:", nf0, nf1, i,j, ":", x0, x1
+                    end do
+                end do
             end if
         end do
     end subroutine check_interface_orient
