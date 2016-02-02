@@ -48,7 +48,8 @@ module sdomain
         integer :: nbelem
 
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
-        real, dimension(:), allocatable :: MassMat
+        real(fpp), dimension(:), allocatable :: MassMat
+
 
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich
@@ -59,11 +60,11 @@ module sdomain
         ! Champs
         type(champssolid) :: champs0
         type(champssolid) :: champs1
-        real, dimension(:,:,:,:,:), allocatable :: Cij
-        real, dimension (:,:,:,:), allocatable :: Q, Qs, Qp, onemSbeta, onemPbeta, & ! Attenuation
+        real(fpp), dimension(:,:,:,:,:), allocatable :: Cij
+        real(fpp), dimension (:,:,:,:), allocatable :: Q, Qs, Qp, onemSbeta, onemPbeta, & ! Attenuation
             epsilonvol_, &
             epsilondev_xx_,epsilondev_yy_,epsilondev_xy_,epsilondev_xz_,epsilondev_yz_
-        real, dimension(:,:,:,:,:), allocatable :: &
+        real(fpp), dimension(:,:,:,:,:), allocatable :: &
             factor_common_3, alphaval_3,betaval_3,gammaval_3, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_, &
             factor_common_P, alphaval_P,betaval_P,gammaval_P, R_vol_
     end type domain_solid
@@ -83,8 +84,9 @@ module sdomain
         integer :: nbelem
 
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
-        real, dimension(:), allocatable :: MassMat
-        real, dimension(:,:), allocatable :: DumpMass
+        real(fpp), dimension(:), allocatable :: MassMat
+        real(fpp), dimension(:,:), allocatable :: DumpMass
+
 
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich
@@ -116,7 +118,8 @@ module sdomain
         integer :: nbelem
 
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
-        real, dimension(:), allocatable :: MassMat
+        real(fpp), dimension(:), allocatable :: MassMat
+
 
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich
@@ -146,6 +149,8 @@ module sdomain
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
         real(fpp), dimension(:), allocatable :: MassMat
         real(fpp), dimension(:,:), allocatable :: DumpMass
+
+
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich
         integer, dimension(:), allocatable :: dirich
@@ -201,9 +206,9 @@ module sdomain
        integer :: n_hexa  !< Nombre de maille hexa ~= (ngllx-1)*(nglly-1)*(ngllz-1)*nelem
        logical, dimension(:), allocatable :: not_PML_List, subD_exist
 
-       real :: T1_att, T2_att, T0_modele
-       real, dimension (0:2,0:2) :: rot
-       real, dimension (:,:), pointer :: Coord_nodes, GlobCoord
+       real(fpp) :: T1_att, T2_att, T0_modele
+       real(fpp), dimension (0:2,0:2) :: rot
+       real(fpp), dimension (:,:), pointer :: Coord_nodes, GlobCoord
 
        integer :: traces_format
        character (len=MAX_FILE_SIZE) :: Title_simulation, mesh_file,station_file,material_file,   &
@@ -215,9 +220,9 @@ module sdomain
        integer                 :: nReqOut ! number of required outputs
        integer :: earthchunk_isInit
        character (len=MAX_FILE_SIZE) :: earthchunk_file
-       real :: earthchunk_delta_lon, earthchunk_delta_lat
+       real(fpp) :: earthchunk_delta_lon, earthchunk_delta_lat
 
-       real :: MPML_coeff
+       real(fpp) :: MPML_coeff
 
        ! Domains
        type(domain_solid)    :: sdom
