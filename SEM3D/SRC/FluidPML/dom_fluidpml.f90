@@ -37,11 +37,9 @@ contains
             allocate(dom%PMLDumpSx  (0:ngllx-1,0:nglly-1,0:ngllz-1,0:1,0:nbelem-1))
             allocate(dom%PMLDumpSy  (0:ngllx-1,0:nglly-1,0:ngllz-1,0:1,0:nbelem-1))
             allocate(dom%PMLDumpSz  (0:ngllx-1,0:nglly-1,0:ngllz-1,0:1,0:nbelem-1))
-            allocate(dom%PMLDumpMass(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
             dom%PMLDumpSx   = 0d0
             dom%PMLDumpSy   = 0d0
             dom%PMLDumpSz   = 0d0
-            dom%PMLDumpMass = 0d0
         endif
 
         ! Allocation et initialisation de champs0 pour les PML fluides
@@ -73,7 +71,6 @@ contains
         if(allocated(dom%PMLDumpSx  )) deallocate(dom%PMLDumpSx  )
         if(allocated(dom%PMLDumpSy  )) deallocate(dom%PMLDumpSy  )
         if(allocated(dom%PMLDumpSz  )) deallocate(dom%PMLDumpSz  )
-        if(allocated(dom%PMLDumpMass)) deallocate(dom%PMLDumpMass)
 
         if(allocated(dom%champs1%fpml_Forces)) deallocate(dom%champs1%fpml_Forces)
         if(allocated(dom%champs0%fpml_VelPhi)) deallocate(dom%champs0%fpml_VelPhi)
