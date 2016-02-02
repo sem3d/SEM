@@ -311,13 +311,14 @@ contains
         type (element), intent(inout) :: specel
         type (subdomain), intent(in) :: mat
         !
-        integer :: ngllx, nglly, ngllz
+        integer :: ngllx, nglly, ngllz, lnum
         real, dimension(:,:,:), allocatable :: temp_PMLx,temp_PMLy
         real, dimension(:,:,:), allocatable :: RKmod
         real, dimension(:,:,:), allocatable :: wx,wy,wz
         real :: dt
 
         dt = Tdomain%TimeD%dtmin
+        lnum = specel%lnum
 
         if (specel%domain/=DM_SOLID_PML .and. specel%domain/=DM_FLUID_PML) then
             stop "init_pml_properties should not be called for non-pml element"
@@ -372,12 +373,22 @@ contains
 
         !- strong formulation for stresses. Dumped mass elements, convolutional terms.
         ! Compute DumpS(x,y,z) and DumpMass(0,1,2)
-        call define_PML_DumpInit(ngllx,nglly,ngllz,dt,wx,specel%MassMat, &
-            specel%xpml%DumpSx,specel%xpml%DumpMass(:,:,:,0))
-        call define_PML_DumpInit(ngllx,nglly,ngllz,dt,wy,specel%MassMat, &
-            specel%xpml%DumpSy,specel%xpml%DumpMass(:,:,:,1))
-        call define_PML_DumpInit(ngllx,nglly,ngllz,dt,wz,specel%MassMat, &
-            specel%xpml%DumpSz,specel%xpml%DumpMass(:,:,:,2))
+        if (specel%domain==DM_SOLID_PML) then
+            call define_PML_DumpInit(ngllx,nglly,ngllz,dt,wx,specel%MassMat, &
+                Tdomain%spmldom%PMLDumpSx(:,:,:,:,specel%lnum),Tdomain%spmldom%PMLDumpMass(:,:,:,0,lnum))
+            call define_PML_DumpInit(ngllx,nglly,ngllz,dt,wy,specel%MassMat, &
+                Tdomain%spmldom%PMLDumpSy(:,:,:,:,specel%lnum),Tdomain%spmldom%PMLDumpMass(:,:,:,1,lnum))
+            call define_PML_DumpInit(ngllx,nglly,ngllz,dt,wz,specel%MassMat, &
+                Tdomain%spmldom%PMLDumpSz(:,:,:,:,specel%lnum),Tdomain%spmldom%PMLDumpMass(:,:,:,2,lnum))
+        end if
+        if (specel%domain==DM_FLUID_PML) then
+            call define_PML_DumpInit(ngllx,nglly,ngllz,dt,wx,specel%MassMat, &
+                Tdomain%fpmldom%PMLDumpSx(:,:,:,:,specel%lnum),Tdomain%fpmldom%PMLDumpMass(:,:,:,0,lnum))
+            call define_PML_DumpInit(ngllx,nglly,ngllz,dt,wy,specel%MassMat, &
+                Tdomain%fpmldom%PMLDumpSy(:,:,:,:,specel%lnum),Tdomain%fpmldom%PMLDumpMass(:,:,:,1,lnum))
+            call define_PML_DumpInit(ngllx,nglly,ngllz,dt,wz,specel%MassMat, &
+                Tdomain%fpmldom%PMLDumpSz(:,:,:,:,specel%lnum),Tdomain%fpmldom%PMLDumpMass(:,:,:,2,lnum))
+        end if
 
         call assemble_DumpMass(Tdomain,specel)
 
@@ -385,9 +396,9 @@ contains
 
         !! XXX
         if (specel%domain==DM_FLUID_PML) then
-            specel%xpml%DumpSx(:,:,:,1) = specel%xpml%DumpSx(:,:,:,1) / specel%Density
-            specel%xpml%DumpSy(:,:,:,1) = specel%xpml%DumpSy(:,:,:,1) / specel%Density
-            specel%xpml%DumpSz(:,:,:,1) = specel%xpml%DumpSz(:,:,:,1) / specel%Density
+            Tdomain%fpmldom%PMLDumpSx(:,:,:,1,lnum) = Tdomain%fpmldom%PMLDumpSx(:,:,:,1,lnum) / specel%Density
+            Tdomain%fpmldom%PMLDumpSy(:,:,:,1,lnum) = Tdomain%fpmldom%PMLDumpSy(:,:,:,1,lnum) / specel%Density
+            Tdomain%fpmldom%PMLDumpSz(:,:,:,1,lnum) = Tdomain%fpmldom%PMLDumpSz(:,:,:,1,lnum) / specel%Density
         end if
         deallocate(RKmod)
 
@@ -408,13 +419,13 @@ contains
             case (DM_SOLID_PML)
                 call define_PML_DumpEnd(Tdomain%spmldom%ngll,     Tdomain%spmldom%MassMat, &
                                         Tdomain%spmldom%DumpMass, Tdomain%spmldom%champs0%DumpV)
-                deallocate(Tdomain%specel(n)%xpml%DumpMass)
             case (DM_FLUID_PML)
                 call define_PML_DumpEnd(Tdomain%fpmldom%ngll,     Tdomain%fpmldom%MassMat, &
                                         Tdomain%fpmldom%DumpMass, Tdomain%fpmldom%champs0%fpml_DumpV)
-                deallocate(Tdomain%specel(n)%xpml%DumpMass)
             end select
         end do
+        if(allocated(Tdomain%spmldom%PMLDumpMass)) deallocate(Tdomain%spmldom%PMLDumpMass)
+        if(allocated(Tdomain%fpmldom%PMLDumpMass)) deallocate(Tdomain%fpmldom%PMLDumpMass)
     end subroutine finalize_pml_properties
 
     subroutine init_local_mass_mat(Tdomain, specel, mat, Whei)
@@ -682,11 +693,11 @@ contains
                     do i = 0,specel%ngllx-1
                         ind = specel%Idom(i,j,k)
                         if (specel%domain==DM_SOLID_PML) then
-                            Tdomain%spmldom%DumpMass(ind,m) = Tdomain%spmldom%DumpMass(ind,m) &
-                                                              + specel%xpml%DumpMass(i,j,k,m)
+                            Tdomain%spmldom%DumpMass(ind,m) =   Tdomain%spmldom%DumpMass   (ind,m) &
+                                                              + Tdomain%spmldom%PMLDumpMass(i,j,k,m,specel%lnum)
                         else
-                            Tdomain%fpmldom%DumpMass(ind,m) = Tdomain%fpmldom%DumpMass(ind,m) &
-                                                              + specel%xpml%DumpMass(i,j,k,m)
+                            Tdomain%fpmldom%DumpMass(ind,m) =   Tdomain%fpmldom%DumpMass   (ind,m) &
+                                                              + Tdomain%fpmldom%PMLDumpMass(i,j,k,m,specel%lnum)
                         endif
                     enddo
                 enddo

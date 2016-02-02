@@ -98,6 +98,8 @@ module sdomain
         real(fpp), dimension(:,:,:,:,:), allocatable :: Diagonal_Stress1, Diagonal_Stress2, Diagonal_Stress3
         real(fpp), dimension(:,:,:,:,:), allocatable :: Residual_Stress1, Residual_Stress2, Residual_Stress3
         real(fpp), dimension(:,:,:,:,:), allocatable :: Diagonal_Stress, Residual_Stress
+        real(fpp), dimension(:,:,:,:,:), allocatable :: PMLDumpSx,PMLDumpSy,PMLDumpSz
+        real(fpp), dimension(:,:,:,:,:), allocatable :: PMLDumpMass
     end type domain_solidpml
 
     type domain_fluid
@@ -155,6 +157,8 @@ module sdomain
         type(champsfluidpml) :: champs0
         type(champsfluidpml) :: champs1
         real(fpp), dimension(:,:,:,:,:), allocatable :: Veloc
+        real(fpp), dimension(:,:,:,:,:), allocatable :: PMLDumpSx,PMLDumpSy,PMLDumpSz
+        real(fpp), dimension(:,:,:,:,:), allocatable :: PMLDumpMass
     end type domain_fluidpml
 
     type :: domain

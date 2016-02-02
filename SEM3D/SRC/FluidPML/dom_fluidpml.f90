@@ -34,6 +34,14 @@ contains
         if(Tdomain%TimeD%velocity_scheme)then
             allocate(dom%Veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
             dom%Veloc = 0d0
+            allocate(dom%PMLDumpSx  (0:ngllx-1,0:nglly-1,0:ngllz-1,0:1,0:nbelem-1))
+            allocate(dom%PMLDumpSy  (0:ngllx-1,0:nglly-1,0:ngllz-1,0:1,0:nbelem-1))
+            allocate(dom%PMLDumpSz  (0:ngllx-1,0:nglly-1,0:ngllz-1,0:1,0:nbelem-1))
+            allocate(dom%PMLDumpMass(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
+            dom%PMLDumpSx   = 0d0
+            dom%PMLDumpSy   = 0d0
+            dom%PMLDumpSz   = 0d0
+            dom%PMLDumpMass = 0d0
         endif
 
         ! Allocation et initialisation de champs0 pour les PML fluides
@@ -61,7 +69,11 @@ contains
         implicit none
         type(domain_fluidpml) :: dom
 
-        if(allocated(dom%Veloc)) deallocate(dom%Veloc)
+        if(allocated(dom%Veloc))       deallocate(dom%Veloc      )
+        if(allocated(dom%PMLDumpSx  )) deallocate(dom%PMLDumpSx  )
+        if(allocated(dom%PMLDumpSy  )) deallocate(dom%PMLDumpSy  )
+        if(allocated(dom%PMLDumpSz  )) deallocate(dom%PMLDumpSz  )
+        if(allocated(dom%PMLDumpMass)) deallocate(dom%PMLDumpMass)
 
         if(allocated(dom%champs1%fpml_Forces)) deallocate(dom%champs1%fpml_Forces)
         if(allocated(dom%champs0%fpml_VelPhi)) deallocate(dom%champs0%fpml_VelPhi)
@@ -272,20 +284,20 @@ contains
 
         ! prediction for (physical) velocity (which is the equivalent of a stress, here)
         ! V_x^x
-        dom%Veloc(:,:,:,0,lnum) = Elem%xpml%DumpSx(:,:,:,0) * dom%Veloc(:,:,:,0,lnum) + &
-            Elem%xpml%DumpSx(:,:,:,1) * Dt * dVelPhi_dx
+        dom%Veloc(:,:,:,0,lnum) = dom%PMLDumpSx(:,:,:,0,lnum) * dom%Veloc(:,:,:,0,lnum) + &
+                                  dom%PMLDumpSx(:,:,:,1,lnum) * Dt * dVelPhi_dx
         ! V_x^y = 0
         ! V_x^z = 0
         ! V_y^x = 0
         ! V_y^y
-        dom%Veloc(:,:,:,1,lnum) = Elem%xpml%DumpSy(:,:,:,0) * dom%Veloc(:,:,:,1,lnum) + &
-            Elem%xpml%DumpSy(:,:,:,1) * Dt * dVelPhi_dy
+        dom%Veloc(:,:,:,1,lnum) = dom%PMLDumpSy(:,:,:,0,lnum) * dom%Veloc(:,:,:,1,lnum) + &
+                                  dom%PMLDumpSy(:,:,:,1,lnum) * Dt * dVelPhi_dy
         ! V_y^z = 0
         ! V_z^x = 0
         ! V_z^y = 0
         ! V_z^z
-        dom%Veloc(:,:,:,2,lnum) = Elem%xpml%DumpSz(:,:,:,0) * dom%Veloc(:,:,:,2,lnum) + &
-            Elem%xpml%DumpSz(:,:,:,1) * Dt * dVelPhi_dz
+        dom%Veloc(:,:,:,2,lnum) = dom%PMLDumpSz(:,:,:,0,lnum) * dom%Veloc(:,:,:,2,lnum) + &
+                                  dom%PMLDumpSz(:,:,:,1,lnum) * Dt * dVelPhi_dz
         return
     end subroutine Pred_Flu_Pml
 

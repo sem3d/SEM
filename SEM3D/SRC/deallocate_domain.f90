@@ -54,10 +54,6 @@ subroutine deallocate_domain (Tdomain)
                     deallocate (Tdomain%specel(n)%Lambda)
                     deallocate (Tdomain%specel(n)%Kappa)
                     deallocate (Tdomain%specel(n)%Mu)
-
-                    deallocate (Tdomain%specel(n)%xpml%DumpSx)
-                    deallocate (Tdomain%specel(n)%xpml%DumpSy)
-                    deallocate (Tdomain%specel(n)%xpml%DumpSz)
                 else
                     if (Tdomain%aniso) then
                         if (Tdomain%n_sls>0) then

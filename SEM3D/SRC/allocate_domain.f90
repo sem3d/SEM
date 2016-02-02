@@ -29,9 +29,7 @@ subroutine allocate_domain (Tdomain)
 
     type(domain), intent (INOUT) :: Tdomain
     integer :: n,ngllx,nglly,ngllz
-    integer :: n_solid
     integer :: mat, randSize, assocMat
-    logical :: ispml
 
     do mat = 0,Tdomain%n_mat-1
         assocMat = Tdomain%sSubdomain(mat)%assocMat
@@ -52,27 +50,15 @@ subroutine allocate_domain (Tdomain)
     call allocate_dom_fluidpml(Tdomain, Tdomain%fpmldom)
 
     do n = 0,Tdomain%n_elem-1
-        n_solid = Tdomain%n_sls
-
         ngllx = Tdomain%specel(n)%ngllx
         nglly = Tdomain%specel(n)%nglly
         ngllz = Tdomain%specel(n)%ngllz
-
-        ispml = Tdomain%specel(n)%domain==DM_SOLID_PML .or. Tdomain%specel(n)%domain==DM_FLUID_PML
 
         allocate(Tdomain%specel(n)%Density(0:ngllx-1, 0:nglly-1, 0:ngllz-1))
         allocate(Tdomain%specel(n)%MassMat(0:ngllx-1, 0:nglly-1, 0:ngllz-1))
         allocate(Tdomain%specel(n)%Lambda (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
         allocate(Tdomain%specel(n)%Mu     (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
         allocate(Tdomain%specel(n)%Kappa  (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
-
-        if(ispml)then ! PML Common parts
-            allocate(Tdomain%specel(n)%xpml)
-            allocate(Tdomain%specel(n)%xpml%DumpSx(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
-            allocate(Tdomain%specel(n)%xpml%DumpSy(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
-            allocate(Tdomain%specel(n)%xpml%DumpSz(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1))
-            allocate(Tdomain%specel(n)%xpml%DumpMass(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-        end if
     enddo
 end subroutine allocate_domain
 

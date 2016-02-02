@@ -16,11 +16,6 @@ module selement
     use blas
     implicit none
 
-    type :: element_pml
-        real, dimension(:,:,:,:), allocatable :: DumpSx,DumpSy,DumpSz
-        real, dimension(:,:,:,:), allocatable :: DumpMass
-    end type element_pml
-
     type :: element
         integer :: ngllx, nglly, ngllz
         integer :: mat_index
@@ -32,8 +27,6 @@ module selement
         real, dimension(:,:,:,:,:), allocatable :: InvGrad
         real, dimension (:,:,:), allocatable :: Density, MassMat
         real, dimension (:,:,:), allocatable :: Lambda, Mu, Kappa
-
-        type(element_pml), allocatable :: xpml
 
         ! Whether this element will be part of snapshot outputs
         logical :: OUTPUT
