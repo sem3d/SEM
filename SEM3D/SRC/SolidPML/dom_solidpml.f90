@@ -27,6 +27,7 @@ contains
         dom%ngllz = Tdomain%specel(0)%ngllz ! Temporaire: ngll* doit passer sur le domaine a terme
 
         nbelem  = dom%nbelem
+        if(nbelem == 0) return ! Do not allocate if not needed (save allocation/RAM)
         ngllx   = dom%ngllx
         nglly   = dom%nglly
         ngllz   = dom%ngllz

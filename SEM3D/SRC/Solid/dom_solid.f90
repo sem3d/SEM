@@ -26,13 +26,12 @@ contains
         dom%ngllz = Tdomain%specel(0)%ngllz ! Temporaire: ngll* doit passer sur le domaine a terme
 
         nbelem  = dom%nbelem
+        if(nbelem == 0) return ! Do not allocate if not needed (save allocation/RAM)
         ngllx   = dom%ngllx
         nglly   = dom%nglly
         ngllz   = dom%ngllz
         aniso   = Tdomain%aniso
         n_solid = Tdomain%n_sls
-
-        if (nbelem == 0) return
 
         allocate(dom%Density(0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
         allocate(dom%Lambda (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
