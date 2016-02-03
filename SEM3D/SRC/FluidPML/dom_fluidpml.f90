@@ -116,9 +116,9 @@ contains
             out_variables(OUT_EPS_DEV) + &
             out_variables(OUT_STRESS_DEV)) /= 0
 
-        nx = el%ngllx
-        ny = el%nglly
-        nz = el%ngllz
+        nx = Tdomain%fpmldom%ngllx
+        ny = Tdomain%fpmldom%nglly
+        nz = Tdomain%fpmldom%ngllz
 
         do k=0,nz-1
             do j=0,ny-1
