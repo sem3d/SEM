@@ -97,11 +97,11 @@ contains
 
 
                             !- getting the values of the relaxed moduli
-                            Tdomain%specel(n)%Mu(i,j,k) = Tdomain%specel(n)%Mu(i,j,k)*   &
+                            Tdomain%sdom%Mu(i,j,k,Tdomain%specel(n)%lnum) = Tdomain%sdom%Mu(i,j,k,Tdomain%specel(n)%lnum)*   &
                                 get_relaxed_modulus(n_solid,Q_mu,f_ref,   &
                                 f_c_source,omega_tau_s,agamma_mu)
 
-                            Tdomain%specel(n)%Kappa(i,j,k) = Tdomain%specel(n)%Kappa(i,j,k)*  &
+                            Tdomain%sdom%Kappa(i,j,k,Tdomain%specel(n)%lnum) = Tdomain%sdom%Kappa(i,j,k,Tdomain%specel(n)%lnum)*  &
                                 get_relaxed_modulus(n_solid,Q_kappa,f_ref,     &
                                 f_c_source,omega_tau_s,agamma_kappa)
 

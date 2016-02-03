@@ -102,7 +102,7 @@ contains
         integer      , intent(IN) :: rg
 
         !LOCAL
-        integer :: mat, n, ipoint, i, j, k
+        integer :: mat, n, ipoint, i, j, k, lnum
         integer :: ngllx,nglly,ngllz
         double precision, dimension(:, :, :), allocatable :: propMatrix !Properties
         allocate(propMatrix(0:size(Tdomain%GlobCoord,2)-1, 0:nProp-1, 0:Tdomain%n_mat-1))
@@ -112,7 +112,7 @@ contains
         do mat = 0, Tdomain%n_mat-1
             if(propOnFile(Tdomain, mat)) then
 
-                call read_properties_from_file(Tdomain, rg, mat, propMatrix(:,:, mat), &
+                call read_properties_from_file(rg, propMatrix(:,:, mat), &
                     trim(procFileName)//"_read", trim(h5folder),     &
                     ["_proc", "_subD"], [rg, mat])
             end if
@@ -121,6 +121,7 @@ contains
         !Applying properties to elements
         do n = 0, Tdomain%n_elem-1
             mat = Tdomain%specel(n)%mat_index
+            lnum = Tdomain%specel(n)%lnum
             if(propOnFile(Tdomain, mat)) then
 
                 ngllx    = Tdomain%sSubDomain(mat)%NGLLx
@@ -131,9 +132,24 @@ contains
                     do j = 0, nglly-1
                         do k = 0, ngllz-1
                             ipoint  = Tdomain%specel(n)%Iglobnum(i,j,k)
-                            Tdomain%specel(n)%Density(i,j,k) = propMatrix(ipoint, 0, mat)
-                            Tdomain%specel(n)%Lambda(i,j,k)  = propMatrix(ipoint, 1, mat)
-                            Tdomain%specel(n)%Mu(i,j,k)      = propMatrix(ipoint, 2, mat)
+                            select case (Tdomain%specel(n)%domain)
+                                case (DM_SOLID)
+                                    Tdomain%sdom%Density(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
+                                    Tdomain%sdom%Lambda (i,j,k,lnum) = propMatrix(ipoint, 1, mat)
+                                    Tdomain%sdom%Mu     (i,j,k,lnum) = propMatrix(ipoint, 2, mat)
+                                case (DM_FLUID)
+                                    Tdomain%fdom%Density(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
+                                    Tdomain%fdom%Lambda (i,j,k,lnum) = propMatrix(ipoint, 1, mat)
+                                    Tdomain%fdom%Mu     (i,j,k,lnum) = propMatrix(ipoint, 2, mat)
+                                case (DM_SOLID_PML)
+                                    Tdomain%spmldom%Density(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
+                                    Tdomain%spmldom%Lambda (i,j,k,lnum) = propMatrix(ipoint, 1, mat)
+                                    Tdomain%spmldom%Mu     (i,j,k,lnum) = propMatrix(ipoint, 2, mat)
+                                case (DM_FLUID_PML)
+                                    Tdomain%fpmldom%Density(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
+                                    Tdomain%fpmldom%Lambda (i,j,k,lnum) = propMatrix(ipoint, 1, mat)
+                                    Tdomain%fpmldom%Mu     (i,j,k,lnum) = propMatrix(ipoint, 2, mat)
+                            end select
                         end do
                     end do
                 end do
@@ -149,7 +165,7 @@ contains
     !---------------------------------------------------------------------------
     !---------------------------------------------------------------------------
     !---------------------------------------------------------------------------
-    subroutine read_properties_from_file(Tdomain, rg, mat, prop,  &
+    subroutine read_properties_from_file(rg, prop,  &
         fileName, folderPath, labels, indexes)
 
         use sem_hdf5
@@ -157,8 +173,7 @@ contains
 
         implicit none
         !INPUT
-        type(domain)    , intent(inout), target :: Tdomain
-        integer         , intent(in)            :: rg, mat
+        integer         , intent(in)            :: rg
         character(len=*)                 , intent(in) :: filename;
         character(len=*)                 , intent(in) :: folderPath
         character(len=*) , dimension(1:), optional  , intent(in) :: labels
@@ -214,7 +229,7 @@ contains
         integer      , intent(IN) :: rg
 
         !LOCAL
-        integer :: n, ipoint, i, j, k, mat
+        integer :: n, ipoint, i, j, k, mat, lnum
         integer :: ngllx,nglly,ngllz
         logical         , dimension(:,:) , allocatable :: globCoordMask, propMask
         double precision, dimension(:, :), allocatable :: prop !Properties
@@ -241,6 +256,7 @@ contains
             ngllz = Tdomain%sSubDomain(mat)%NGLLz
 
             do n = 0, Tdomain%n_elem-1
+                lnum = Tdomain%specel(n)%lnum
                 if(Tdomain%specel(n)%mat_index == mat) then
                     !Building masks for this subdomain in this proc
                     do i = 0, ngllx-1
@@ -250,9 +266,24 @@ contains
                                 ipoint = Tdomain%specel(n)%Iglobnum(i,j,k)
                                 globCoordMask(:,ipoint) = .true.
                                 propMask(ipoint,:)      = .true.
-                                prop(ipoint, 0) = Tdomain%specel(n)%Density(i,j,k)
-                                prop(ipoint, 1) = Tdomain%specel(n)%Lambda(i,j,k)
-                                prop(ipoint, 2) = Tdomain%specel(n)%Mu(i,j,k)
+                                select case (Tdomain%specel(n)%domain)
+                                    case (DM_SOLID)
+                                        prop(ipoint, 0) = Tdomain%sdom%Density(i,j,k,lnum)
+                                        prop(ipoint, 1) = Tdomain%sdom%Lambda (i,j,k,lnum)
+                                        prop(ipoint, 2) = Tdomain%sdom%Mu     (i,j,k,lnum)
+                                    case (DM_FLUID)
+                                        prop(ipoint, 0) = Tdomain%fdom%Density(i,j,k,lnum)
+                                        prop(ipoint, 1) = Tdomain%fdom%Lambda (i,j,k,lnum)
+                                        prop(ipoint, 2) = Tdomain%fdom%Mu     (i,j,k,lnum)
+                                    case (DM_SOLID_PML)
+                                        prop(ipoint, 0) = Tdomain%spmldom%Density(i,j,k,lnum)
+                                        prop(ipoint, 1) = Tdomain%spmldom%Lambda (i,j,k,lnum)
+                                        prop(ipoint, 2) = Tdomain%spmldom%Mu     (i,j,k,lnum)
+                                    case (DM_FLUID_PML)
+                                        prop(ipoint, 0) = Tdomain%fpmldom%Density(i,j,k,lnum)
+                                        prop(ipoint, 1) = Tdomain%fpmldom%Lambda (i,j,k,lnum)
+                                        prop(ipoint, 2) = Tdomain%fpmldom%Mu     (i,j,k,lnum)
+                                end select
                             end do
                         end do
                     end do !END Loop over GLLs

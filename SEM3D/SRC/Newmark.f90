@@ -422,10 +422,11 @@ subroutine internal_forces(Tdomain)
                 Tdomain%sSubDomain(mat)%hTprimez, Tdomain%n_sls,Tdomain%aniso,     &
                 Tdomain%sdom%champs1, Tdomain%specel(n), lnum)
         case (DM_FLUID)
-            call forces_int_fluid(Tdomain%specel(n), Tdomain%sSubDomain(mat),           &
+            call forces_int_fluid(Tdomain%fdom, Tdomain%sSubDomain(mat),           &
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
                 Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
-                Tdomain%sSubDomain(mat)%hTprimez, Tdomain%fdom%champs1)
+                Tdomain%sSubDomain(mat)%hTprimez, Tdomain%fdom%champs1,            &
+                Tdomain%specel(n), lnum)
         case (DM_SOLID_PML)
             call pred_sol_pml(Tdomain%spmldom, Tdomain%sSubDomain(mat),Tdomain%TimeD%dtmin, &
                               Tdomain%spmldom%champs1, Tdomain%specel(n), lnum)

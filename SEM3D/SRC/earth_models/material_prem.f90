@@ -63,12 +63,11 @@ subroutine  initialize_material_prem(Tdomain, elem, coorPt, npts)
 
 
                 if(elem%domain==DM_SOLID_PML) then
-                    elem%Lambda(i,j,k) = lambda_from_Cij(Cij)
-                    elem%Mu(i,j,k) = mu_from_Cij(Cij)
-                else
-
+                    Tdomain%spmldom%Lambda (i,j,k,elem%lnum) = lambda_from_Cij(Cij)
+                    Tdomain%spmldom%Mu     (i,j,k,elem%lnum) = mu_from_Cij(Cij)
+                    Tdomain%spmldom%Density(i,j,k,elem%lnum) = rho
+                else ! DM_SOLID
                     call c_4tensor(Cij,theta,phi)
-
                     idef = 0
                     do ii = 1,6
                         do jj = ii,6
@@ -76,10 +75,8 @@ subroutine  initialize_material_prem(Tdomain, elem, coorPt, npts)
                             idef = idef + 1
                         enddo
                     enddo
+                    Tdomain%sdom%Density(i,j,k,elem%lnum) = rho
                 endif
-
-                elem%Density(i,j,k) = rho
-
             end do
         end do
     end do

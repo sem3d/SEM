@@ -25,8 +25,7 @@ module selement
         integer, dimension (:,:,:), allocatable :: Idom
         real, dimension (:,:,:), allocatable :: Jacob
         real, dimension(:,:,:,:,:), allocatable :: InvGrad
-        real, dimension (:,:,:), allocatable :: Density, MassMat
-        real, dimension (:,:,:), allocatable :: Lambda, Mu, Kappa
+        real, dimension (:,:,:), allocatable :: MassMat
 
         ! Whether this element will be part of snapshot outputs
         logical :: OUTPUT

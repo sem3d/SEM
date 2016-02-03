@@ -114,7 +114,13 @@ subroutine source_excit_pulse_fluid(Tdomain, nels, src,mat)
     end do
 
     ! fluid case
-    lambda = interp_lag(mat,xi,eta,zeta,Tdomain%specel(nels)%lambda)
+    lambda = 0.
+    if(Tdomain%specel(nels)%domain==DM_FLUID) then
+        lambda = interp_lag(mat,xi,eta,zeta,Tdomain%fdom%lambda(:,:,:,Tdomain%specel(nels)%lnum))
+    end if
+    if(Tdomain%specel(nels)%domain==DM_FLUID_PML) then
+        lambda = interp_lag(mat,xi,eta,zeta,Tdomain%fpmldom%lambda(:,:,:,Tdomain%specel(nels)%lnum))
+    end if
     src%ExtForce(:,:,:,0) = -src%ExtForce(:,:,:,0)/lambda
     ! point source = moment tensor M (explosion is a special case: M(i,j) = delta _(ij))
 

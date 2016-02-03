@@ -17,10 +17,23 @@ contains
         implicit none
         type(domain) :: TDomain
         type(domain_fluid), intent (INOUT) :: dom
+        !
+        integer nbelem, ngllx, nglly, ngllz
+        !
 
         dom%ngllx = Tdomain%specel(0)%ngllx ! Temporaire: ngll* doit passer sur le domaine a terme
         dom%nglly = Tdomain%specel(0)%nglly ! Temporaire: ngll* doit passer sur le domaine a terme
         dom%ngllz = Tdomain%specel(0)%ngllz ! Temporaire: ngll* doit passer sur le domaine a terme
+
+        nbelem  = dom%nbelem
+        ngllx   = dom%ngllx
+        nglly   = dom%nglly
+        ngllz   = dom%ngllz
+
+        allocate(dom%Density(0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
+        allocate(dom%Lambda (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
+        allocate(dom%Mu     (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
+        allocate(dom%Kappa  (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
 
         ! Allocation et initialisation de champs0 et champs1 pour les fluides
         if (dom%ngll /= 0) then
@@ -44,6 +57,11 @@ contains
     subroutine deallocate_dom_fluid (dom)
         implicit none
         type(domain_fluid), intent (INOUT) :: dom
+
+        if(allocated(dom%Density)) deallocate(dom%Density)
+        if(allocated(dom%Lambda )) deallocate(dom%Lambda )
+        if(allocated(dom%Mu     )) deallocate(dom%Mu     )
+        if(allocated(dom%Kappa  )) deallocate(dom%Kappa  )
 
         if(allocated(dom%champs0%ForcesFl)) deallocate(dom%champs0%ForcesFl)
         if(allocated(dom%champs0%Phi     )) deallocate(dom%champs0%Phi     )
@@ -124,7 +142,7 @@ contains
                         mat = el%mat_index
                         call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
                             Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
-                            el%InvGrad,el%density,phi,fieldV)
+                            el%InvGrad,Tdomain%fdom%density(:,:,:,el%lnum),phi,fieldV)
                     end if
 
                     if (out_variables(OUT_ACCEL) == 1) then
@@ -134,7 +152,7 @@ contains
                         mat = el%mat_index
                         call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,              &
                             Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez, &
-                            el%InvGrad,el%density,vphi,fieldA)
+                            el%InvGrad,Tdomain%fdom%density(:,:,:,el%lnum),vphi,fieldA)
                     end if
 
                     if (out_variables(OUT_PRESSION) == 1) then
@@ -173,15 +191,17 @@ contains
         if(allocated(vphi)) deallocate(vphi)
     end subroutine get_fluid_dom_var
 
-    subroutine forces_int_fluid(Elem, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
-        champs1)
+    subroutine forces_int_fluid(dom, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
+        champs1, Elem, lnum)
 
+        type(domain_fluid), intent (INOUT) :: dom
         type (Element), intent (INOUT) :: Elem
         type (subdomain), intent(IN) :: mat
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: htprimex
         real, dimension (0:Elem%nglly-1, 0:Elem%nglly-1), intent (IN) :: hprimey, htprimey
         real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
         type(champsfluid), intent(inout) :: champs1
+        integer :: lnum
 
         integer :: m1,m2,m3, i,j,k
         real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dPhiX,dPhiY,dPhiZ,Fo_Fl
@@ -205,14 +225,12 @@ contains
             dPhiX, dPhiY, dPhiZ)
 
         ! internal forces
-        call calcul_forces_fluid(Fo_Fl,                &
-            Elem%Invgrad, &
-            htprimex,htprimey,htprimez, &
+        call calcul_forces_fluid(Fo_Fl,               &
+            Elem%Invgrad,                             &
+            htprimex,htprimey,htprimez,               &
             Elem%Jacob,mat%GLLwx,mat%GLLwy,mat%GLLwz, &
-            dPhiX,dPhiY,dPhiZ,       &
-            Elem%Density,            &
-            m1,m2,m3)
-
+            dPhiX,dPhiY,dPhiZ,                        &
+            dom%Density(:,:,:,lnum),m1,m2,m3)
         do k = 0,m3-1
             do j = 0,m2-1
                 do i = 0,m1-1

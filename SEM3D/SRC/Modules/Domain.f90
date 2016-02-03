@@ -50,6 +50,7 @@ module sdomain
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
         real(fpp), dimension(:), allocatable :: MassMat
 
+        real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, Density
 
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich
@@ -87,6 +88,7 @@ module sdomain
         real(fpp), dimension(:), allocatable :: MassMat
         real(fpp), dimension(:,:), allocatable :: DumpMass
 
+        real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, Density
 
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich
@@ -120,6 +122,7 @@ module sdomain
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
         real(fpp), dimension(:), allocatable :: MassMat
 
+        real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, Density
 
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich
@@ -150,6 +153,7 @@ module sdomain
         real(fpp), dimension(:), allocatable :: MassMat
         real(fpp), dimension(:,:), allocatable :: DumpMass
 
+        real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, Density
 
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich

@@ -31,6 +31,11 @@ contains
         nglly   = dom%nglly
         ngllz   = dom%ngllz
 
+        allocate(dom%Density(0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
+        allocate(dom%Lambda (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
+        allocate(dom%Mu     (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
+        allocate(dom%Kappa  (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
+
         if(Tdomain%TimeD%velocity_scheme)then
             allocate(dom%Veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
             dom%Veloc = 0d0
@@ -66,6 +71,11 @@ contains
     subroutine deallocate_dom_fluidpml (dom)
         implicit none
         type(domain_fluidpml) :: dom
+
+        if(allocated(dom%Density)) deallocate(dom%Density)
+        if(allocated(dom%Lambda )) deallocate(dom%Lambda )
+        if(allocated(dom%Mu     )) deallocate(dom%Mu     )
+        if(allocated(dom%Kappa  )) deallocate(dom%Kappa  )
 
         if(allocated(dom%Veloc))       deallocate(dom%Veloc      )
         if(allocated(dom%PMLDumpSx  )) deallocate(dom%PMLDumpSx  )
