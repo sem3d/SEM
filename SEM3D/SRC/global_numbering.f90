@@ -80,8 +80,6 @@ subroutine renumber_global_gll_nodes(Tdomain)
     integer :: dom
     integer :: idxi, idxj, idxk, ind
     integer, dimension(0:2) :: i0, di, dj
-    ! debug
-    type(element), pointer :: pel
     logical :: fail
 
     icount = 0
