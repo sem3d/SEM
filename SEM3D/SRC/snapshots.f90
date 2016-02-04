@@ -1027,8 +1027,8 @@ contains
         ! normalization
         do i = 0,nnodes-1
             if (valence(i)/=0) then
-                out_fields%veloc(0:2,i) = out_fields%veloc(0:2,i)/valence(i)
-                out_fields%accel(0:2,i) = out_fields%accel(0:2,i)/valence(i)
+                if (out_variables(OUT_VITESSE)==1) out_fields%veloc(0:2,i) = out_fields%veloc(0:2,i)/valence(i)
+                if (out_variables(OUT_ACCEL)==1) out_fields%accel(0:2,i) = out_fields%accel(0:2,i)/valence(i)
             end if
         enddo
 
