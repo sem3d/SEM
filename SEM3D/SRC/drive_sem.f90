@@ -237,6 +237,11 @@ subroutine RUN_PREPARED(Tdomain)
     call global_numbering (Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
 
+!- allocation of different fields' sizes
+    if (rg == 0) write (*,*) "--> ALLOCATING FIELDS"
+    call allocate_domain(Tdomain)
+    call MPI_Barrier(Tdomain%communicateur,code)
+
  !- geometrical properties for integrals' calculations
     if (rg == 0) write (*,*) "--> COMPUTING SHAPE FUNCTIONS AND THEIR DERIVATIVES"
     if (Tdomain%n_nodes == 8) then
@@ -272,11 +277,6 @@ subroutine RUN_PREPARED(Tdomain)
     !- timestep value - > Courant, or Courant -> timestep
     if (rg == 0) write (*,*) "--> COMPUTING COURANT PARAMETER"
     call compute_Courant(Tdomain,rg)
-    call MPI_Barrier(Tdomain%communicateur,code)
-
-!- allocation of different fields' sizes
-    if (rg == 0) write (*,*) "--> ALLOCATING FIELDS"
-    call allocate_domain(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
 
  !- elementary properties (mass matrices, PML factors,..)

@@ -43,9 +43,6 @@ contains
             ngllz = Tdomain%specel(n)%ngllz
             mat = Tdomain%specel(n)%mat_index
 
-            allocate(Tdomain%specel(n)%Jacob(0:ngllx-1,0:nglly-1,0:ngllz-1))
-            allocate(Tdomain%specel(n)%InvGrad(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1))
-
             ! coordinates of GLL points, and values of Jacobian and dX_dxi at each GLL point.
             do k = 0,ngllz-1
                 zeta = Tdomain%sSubdomain(mat)%GLLcz(k)
@@ -73,14 +70,22 @@ contains
                         Tdomain%GlobCoord(1,ipoint) = yp
                         Tdomain%GlobCoord(2,ipoint) = zp
 
-                        !write(*,*) n, i, j, k, xp, yp, zp
                         call shape8_local2jacob(coord, xi, eta, zeta, LocInvGrad)
-
                         call invert_3d(LocInvGrad,Jac)
-
-                        Tdomain%specel(n)%Jacob(i,j,k) = Jac
-                        Tdomain%specel(n)%InvGrad(0:2,0:2,i,j,k) = LocInvGrad(0:2,0:2)
-
+                        select case (Tdomain%specel(n)%domain)
+                            case (DM_SOLID)
+                                Tdomain%sdom%Jacob     (        i,j,k,Tdomain%specel(n)%lnum) = Jac
+                                Tdomain%sdom%InvGrad   (0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                            case (DM_FLUID)
+                                Tdomain%fdom%Jacob     (        i,j,k,Tdomain%specel(n)%lnum) = Jac
+                                Tdomain%fdom%InvGrad   (0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                            case (DM_SOLID_PML)
+                                Tdomain%spmldom%Jacob  (        i,j,k,Tdomain%specel(n)%lnum) = Jac
+                                Tdomain%spmldom%InvGrad(0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                            case (DM_FLUID_PML)
+                                Tdomain%fpmldom%Jacob  (        i,j,k,Tdomain%specel(n)%lnum) = Jac
+                                Tdomain%fpmldom%InvGrad(0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                        end select
                     enddo
                 enddo
             enddo  ! end of loops onto GLL points inside an element
@@ -159,12 +164,16 @@ contains
 
 
         ! Obtention of a positive Jacobian.
-        do n = 0,Tdomain%n_elem - 1
-            Tdomain%specel(n)%Jacob = abs(Tdomain%specel(n)%Jacob)
-        enddo
-
-
-        return
+        select case (Tdomain%specel(n)%domain)
+            case (DM_SOLID)
+                Tdomain%sdom%Jacob    = abs(Tdomain%sdom%Jacob   )
+            case (DM_FLUID)
+                Tdomain%fdom%Jacob    = abs(Tdomain%fdom%Jacob   )
+            case (DM_SOLID_PML)
+                Tdomain%spmldom%Jacob = abs(Tdomain%spmldom%Jacob)
+            case (DM_FLUID_PML)
+                Tdomain%fpmldom%Jacob = abs(Tdomain%fpmldom%Jacob)
+        end select
     end subroutine shape8_init
     !-------------------------------------------------------------------------
     subroutine compute_normals(Tdomain, surf, dom, BtN)

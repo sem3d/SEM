@@ -1206,7 +1206,16 @@ contains
                 do j = 0,nglly-1
                     do i = 0,ngllx-1
                         idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
-                        jac(idx) = Tdomain%specel(n)%Jacob(i,j,k)
+                        select case (Tdomain%specel(n)%domain)
+                            case (DM_SOLID)
+                                jac(idx) = Tdomain%sdom%Jacob   (i,j,k,Tdomain%specel(n)%lnum)
+                            case (DM_SOLID_PML)
+                                jac(idx) = Tdomain%spmldom%Jacob(i,j,k,Tdomain%specel(n)%lnum)
+                            case (DM_FLUID)
+                                jac(idx) = Tdomain%fdom%Jacob   (i,j,k,Tdomain%specel(n)%lnum)
+                            case (DM_FLUID_PML)
+                                jac(idx) = Tdomain%fpmldom%Jacob(i,j,k,Tdomain%specel(n)%lnum)
+                        end select
                     end do
                 end do
             end do

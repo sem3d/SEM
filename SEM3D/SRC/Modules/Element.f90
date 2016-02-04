@@ -23,8 +23,6 @@ module selement
         integer :: domain ! Type de domaine, voir constants : DOM_SOLID, DOM_FLUID, ...
         ! Index of a gll node within the physical domain
         integer, dimension (:,:,:), allocatable :: Idom
-        real, dimension (:,:,:), allocatable :: Jacob
-        real, dimension(:,:,:,:,:), allocatable :: InvGrad
         real, dimension (:,:,:), allocatable :: MassMat
 
         ! Whether this element will be part of snapshot outputs

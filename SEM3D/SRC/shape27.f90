@@ -47,9 +47,6 @@ contains
             ngllz = Tdomain%specel(n)%ngllz
             mat   = Tdomain%specel(n)%mat_index
 
-            allocate (Tdomain%specel(n)%Jacob(0:ngllx-1,0:nglly-1,0:ngllz-1) )
-            allocate (Tdomain%specel(n)%InvGrad(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1) )
-
             do k = 0,ngllz - 1
                 zeta =  Tdomain%sSubdomain(mat)%GLLcz (k)
                 do j = 0,nglly - 1
@@ -64,8 +61,20 @@ contains
 
                         call shape27_local2jacob(coord, xi, eta, zeta, LocInvGrad)
                         call invert_3d (LocInvGrad, Jac)
-                        Tdomain%specel(n)%Jacob(i,j,k) = Jac
-                        Tdomain%specel(n)%InvGrad(0:2,0:2,i,j,k) = LocInvGrad(0:2,0:2)
+                        select case (Tdomain%specel(n)%domain)
+                            case (DM_SOLID)
+                                Tdomain%sdom%Jacob     (        i,j,k,Tdomain%specel(n)%lnum) = Jac
+                                Tdomain%sdom%InvGrad   (0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                            case (DM_FLUID)
+                                Tdomain%fdom%Jacob     (        i,j,k,Tdomain%specel(n)%lnum) = Jac
+                                Tdomain%fdom%InvGrad   (0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                            case (DM_SOLID_PML)
+                                Tdomain%spmldom%Jacob  (        i,j,k,Tdomain%specel(n)%lnum) = Jac
+                                Tdomain%spmldom%InvGrad(0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                            case (DM_FLUID_PML)
+                                Tdomain%fpmldom%Jacob  (        i,j,k,Tdomain%specel(n)%lnum) = Jac
+                                Tdomain%fpmldom%InvGrad(0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                        end select
                     enddo
                 enddo
             enddo

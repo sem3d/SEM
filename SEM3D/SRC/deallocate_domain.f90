@@ -42,8 +42,6 @@ subroutine deallocate_domain (Tdomain)
         deallocate (Tdomain%specel(n)%MassMat)
         deallocate (Tdomain%specel(n)%IglobNum)
         deallocate (Tdomain%specel(n)%Control_Nodes)
-        deallocate (Tdomain%specel(n)%Jacob)
-        deallocate (Tdomain%specel(n)%InvGrad)     !purge fuites memoire Gsa
     enddo
 
     !purge -fuites memoire

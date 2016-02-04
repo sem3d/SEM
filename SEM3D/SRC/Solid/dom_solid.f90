@@ -38,6 +38,9 @@ contains
         allocate(dom%Mu     (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
         allocate(dom%Kappa  (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
 
+        allocate (dom%Jacob  (        0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
+        allocate (dom%InvGrad(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
+
         if (aniso) then
             allocate (dom%Cij (0:20, 0:ngllx-1, 0:nglly-1, 0:ngllz-1, 0:nbelem-1))
         endif
@@ -111,6 +114,9 @@ contains
         if(allocated(dom%Lambda )) deallocate(dom%Lambda )
         if(allocated(dom%Mu     )) deallocate(dom%Mu     )
         if(allocated(dom%Kappa  )) deallocate(dom%Kappa  )
+
+        if(allocated(dom%Jacob  )) deallocate(dom%Jacob  )
+        if(allocated(dom%InvGrad)) deallocate(dom%InvGrad)
 
         if(allocated(dom%Cij             )) deallocate (dom%Cij             )
         if(allocated(dom%Q               )) deallocate (dom%Q               )
@@ -221,9 +227,12 @@ contains
         ! Then, compute gradU with displacement if needed.
 
         if (flag_gradU) then
-            call physical_part_deriv(nx,ny,nz,htprimex,hprimey,hprimez,el%InvGrad,fieldU(:,:,:,0),DXX,DYX,DZX)
-            call physical_part_deriv(nx,ny,nz,htprimex,hprimey,hprimez,el%InvGrad,fieldU(:,:,:,1),DXY,DYY,DZY)
-            call physical_part_deriv(nx,ny,nz,htprimex,hprimey,hprimez,el%InvGrad,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
+            call physical_part_deriv(nx,ny,nz,htprimex,hprimey,hprimez,&
+                 Tdomain%sdom%InvGrad(:,:,:,:,:,el%lnum),fieldU(:,:,:,0),DXX,DYX,DZX)
+            call physical_part_deriv(nx,ny,nz,htprimex,hprimey,hprimez,&
+                 Tdomain%sdom%InvGrad(:,:,:,:,:,el%lnum),fieldU(:,:,:,1),DXY,DYY,DZY)
+            call physical_part_deriv(nx,ny,nz,htprimex,hprimey,hprimez,&
+                 Tdomain%sdom%InvGrad(:,:,:,:,:,el%lnum),fieldU(:,:,:,2),DXZ,DYZ,DZZ)
         end if
 
         ! Then, get other variables.
@@ -372,9 +381,12 @@ contains
             enddo
         enddo
 
-        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Depla(:,:,:,0),dxx,dyx,dzx)
-        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Depla(:,:,:,1),dxy,dyy,dzy)
-        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Depla(:,:,:,2),dxz,dyz,dzz)
+        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,&
+             dom%InvGrad(:,:,:,:,:,lnum),Depla(:,:,:,0),dxx,dyx,dzx)
+        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,&
+             dom%InvGrad(:,:,:,:,:,lnum),Depla(:,:,:,1),dxy,dyy,dzy)
+        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,&
+             dom%InvGrad(:,:,:,:,:,lnum),Depla(:,:,:,2),dxz,dyz,dzz)
 
         if (n_solid>0) then
             if (aniso) then
@@ -407,9 +419,9 @@ contains
         if (aniso) then
             if (n_solid>0) then
                 call calcul_forces_aniso_att(Fox,Foy,Foz, &
-                    Elem%Invgrad, &
+                    dom%InvGrad(:,:,:,:,:,lnum), &
                     htprimex, htprimey, htprimez, &
-                    Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
+                    dom%Jacob(:,:,:,lnum), mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &
@@ -442,9 +454,9 @@ contains
                 !      deallocate(epsilonvol_loc)
             else
                 call calcul_forces_aniso(Fox,Foy,Foz,  &
-                    Elem%Invgrad, &
+                    dom%InvGrad(:,:,:,:,:,lnum), &
                     htprimex, htprimey, htprimez, &
-                    Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
+                    dom%Jacob(:,:,:,lnum), mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &
@@ -454,9 +466,9 @@ contains
         else
             if (n_solid>0) then
                 call calcul_forces_att(Fox,Foy,Foz, &
-                    Elem%Invgrad, &
+                    dom%InvGrad(:,:,:,:,:,lnum), &
                     htprimex, htprimey, htprimez, &
-                    Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
+                    dom%Jacob(:,:,:,lnum), mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &
@@ -498,9 +510,9 @@ contains
                 deallocate(epsilonvol_loc)
             else
                 call calcul_forces(Fox,Foy,Foz,  &
-                    Elem%Invgrad, &
+                    dom%InvGrad(:,:,:,:,:,lnum), &
                     htprimex, htprimey, htprimez, &
-                    Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
+                    dom%Jacob(:,:,:,lnum), mat%GLLwx, mat%GLLwy, mat%GLLwz, &
                     DXX,DXY,DXZ, &
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &

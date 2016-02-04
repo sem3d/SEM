@@ -52,6 +52,9 @@ module sdomain
 
         real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, Density
 
+        real(fpp), dimension(:,:,:,:),     allocatable :: Jacob
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: InvGrad
+
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich
         integer, dimension(:), allocatable :: dirich
@@ -90,6 +93,9 @@ module sdomain
 
         real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, Density
 
+        real(fpp), dimension(:,:,:,:),     allocatable :: Jacob
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: InvGrad
+
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich
         integer, dimension(:), allocatable :: dirich
@@ -124,6 +130,9 @@ module sdomain
 
         real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, Density
 
+        real(fpp), dimension(:,:,:,:),     allocatable :: Jacob
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: InvGrad
+
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich
         integer, dimension(:), allocatable :: dirich
@@ -154,6 +163,9 @@ module sdomain
         real(fpp), dimension(:,:), allocatable :: DumpMass
 
         real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, Density
+
+        real(fpp), dimension(:,:,:,:),     allocatable :: Jacob
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: InvGrad
 
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich
