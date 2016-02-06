@@ -40,20 +40,17 @@ contains
         end do
     end subroutine mises_yld_locus
 
-    subroutine tau_mises(A_ij,tau_eq_mises)
+    subroutine tau_mises(tensor,tau_eq_mises)
         implicit none
 
-        real, dimension(0:5), intent(in) :: A_ij
+        real, dimension(0:5), intent(in) :: tensor
         real,                 intent(out):: tau_eq_mises
-        integer                          :: i
-
+        real, dimension(0:5), parameter  :: A = (/1.0,1.0,1.0,2.0,2.0,2.0/) 
+        integer                          :: k
+        
         tau_eq_mises = 0.0d0
-        do i = 0,5
-            if (i .le. 2) then
-                tau_eq_mises = tau_eq_mises + (A_ij(i))**2
-            else
-                tau_eq_mises = tau_eq_mises + 2*(A_ij(i))**2
-            end if
+        do k=0,5
+            tau_eq_mises = tau_eq_mises+A(k)*(tensor(k)**2)
         end do
         tau_eq_mises = sqrt(1.5*tau_eq_mises)
 
@@ -67,98 +64,95 @@ contains
         real, dimension(0:5), intent(in)  :: Sigma_ij
         real, dimension(0:5), intent(out) :: Sigma_ij_dev
         real                              :: Sigma_P
-        integer :: i
+        integer :: k
 
         Sigma_ij_dev(0:5) = Sigma_ij(0:5)
-        Sigma_P           = 0d0
-        do i = 0,2
-            Sigma_P=Sigma_P+Sigma_ij(i)/3
-        end do
-
-        do i=0,2
-            Sigma_ij_dev(i) = Sigma_ij_dev(i)-Sigma_P
+        Sigma_P=sum(Sigma_ij(0:2))/3
+        do k=0,2
+            Sigma_ij_dev(k) = Sigma_ij_dev(k)-Sigma_P
         end do
 
     end subroutine tensor_components
 
-    subroutine check_plasticity (Sigma_ij_trial, Sigma_ij_start, X_ij, R, sigma_yld, &
-        st_epl, alpha_elp,nx,ny,nz,nelement)
+    subroutine check_plasticity (dSigma_ij_trial, Sigma_ij_start, X_ij, R, sigma_yld, &
+        st_elp, alpha_elp, nx,ny,nz,nelement)
 
         ! CHECK PLASTIC CONSISTENCY (KKT CONDITIONS)
 
         implicit none
-
-        real, dimension(0:5), intent(in)    :: Sigma_ij_start ! initial stress state
-        real, dimension(0:5), intent(in)    :: X_ij           ! current back-stress state
-        real,                 intent(in)    :: R              ! current yld locus size
-        real,                 intent(in)    :: sigma_yld      ! first yield limit
-        real, dimension(0:5), intent(inout) :: Sigma_ij_trial ! stress trial increment
-
-        real,                 intent(out) :: alpha_elp      ! percentage of elastic strain
-        integer,              intent(out) :: st_epl         ! elasto-plastic status
-        integer, intent(in)               :: nx,ny,nz,nelement
-        real                                :: F_start, F_final_trial,checkload
-        real, dimension(0:5)                :: gradF_start, gradF_trial
-        real, dimension(0:5)                :: dSigma_ij_trial
+        real,                 intent(in)    :: R,sigma_yld
+        integer,              intent(in)    :: nx,ny,nz,nelement
+        real, dimension(0:5), intent(in)    :: X_ij,Sigma_ij_start
+        real, dimension(0:5), intent(inout) :: dSigma_ij_trial
+        real,                 intent(out)   :: alpha_elp
+        integer,              intent(out)   :: st_elp
+        real, dimension(0:5)                :: gradFstart, gradFtrial, Sigma_ij_trial
+        real, dimension(0:5), parameter     :: A=(/1.0,1.0,1.0,2.0,2.0,2.0/)
+        real                                :: Fstart, Ftrial,checkload
         integer                             :: GLLx,GLLy,GLLz,k
-        ! Stress trial increment
-        dSigma_ij_trial = Sigma_ij_trial-Sigma_ij_start
 
         ! Yield function at Sigma_ij_start
         call mises_yld_locus (Sigma_ij_start, X_ij, R, sigma_yld, &
-            F_start, gradF_start)
+            Fstart, gradFstart)
 
         ! Yield function at Sigma_ij_trial
-        call mises_yld_locus (Sigma_ij_trial, X_ij, R, sigma_yld, &
-            F_final_trial, gradF_trial)
-        
-        if (nelement==4 .and. nx==4 .and. ny==4 .and. nz==4) then
-            write(*,*) "F_start(NL)",F_start
-            write(*,*) "F_final_trial(NL)",F_final_trial
-        end if
+        Sigma_ij_trial=Sigma_ij_start+dSigma_ij_trial
+        call mises_yld_locus(Sigma_ij_trial, X_ij, R, sigma_yld, &
+            Ftrial, gradFtrial)
+
+        write(*,*) "*********************************"
+        write(*,*) "ELEMENT:",nelement
+        write(*,*) "nx,ny,nz",nx,ny,nz
+        write(*,*) "Fstart:",Fstart,"Ftrial:",Ftrial
+        ! LOADING CONDITION    
         checkload=0d0
         do k=0,5
-            checkload=checkload+10*gradF_start(k)*dSigma_ij_trial(k)
+            checkload=checkload+10*gradFstart(k)*dSigma_ij_trial(k)
         end do
-        ! KKT condition
-        if (abs(F_start) .le. tol_nl) then
+        write(*,*) "checkload",checkload
+        ! KKT CONDITION
+        if (abs(Fstart) .le. tol_nl) then
             if (checkload .ge. 0) then
                 alpha_elp = 0d0
-                st_epl    = 1
+                st_elp    = 1
+                write(*,*) "PURE-PLASTIC STEP"
             else
-                if (F_final_trial .gt. 0) then
-                    alpha_elp = 2*sigma_yld/(2*sigma_yld+F_final_trial)
-                    st_epl    = 1
+                if (Ftrial .gt. tol_nl) then
+                    alpha_elp = 2*sigma_yld/(2*sigma_yld+Ftrial)
+                    st_elp    = 1
+                    write(*,*) "ELASTO-PLASTIC WITH REVERSAL STEP"
                 else
                     alpha_elp = 1d0
-                    st_epl    = 3 
+                    st_elp    = 2 
+                    write(*,*) "PURE ELASTIC WITH REVERSAL STEP"
                 endif
             end if
-        elseif (F_start .lt. -tol_nl) then
-            if (F_final_trial .lt. tol_nl) then
+        elseif (Fstart .lt. -tol_nl) then
+            if (Ftrial .lt. tol_nl) then
                 alpha_elp = 1d0
-                st_epl    = 2
+                st_elp    = 2
+                write(*,*) "PURE ELASTIC STEP"
             else
-                alpha_elp = F_start/(F_start-F_final_trial)    
-                st_epl    = 1
+                call gotoFtan(Sigma_ij_start,dSigma_ij_trial,Fstart,Ftrial,X_ij,R,sigma_yld,alpha_elp)
+                st_elp    = 1
+                write(*,*) "ELASTO-PLASTIC STEP"
             end if
-        elseif (F_start .gt. tol_nl) then
-            write(*,*) "element: ", nelement
-            write(*,*) "gll: ",nx,ny,nz
+        elseif (Fstart .gt. tol_nl) then
+            write(*,*) "ERROR!"
+            write(*,*) "Fstart: ",Fstart,">",tol_nl,"!!!!"
+            write(*,*) "ERROR!"
             stop
         end if
-
-        Sigma_ij_trial = Sigma_ij_start+dSigma_ij_trial*alpha_elp
-        if (nelement==4 .and. nx==4 .and. ny==4 .and. nz==4) then
-            call mises_yld_locus (Sigma_ij_trial, X_ij, R, sigma_yld, &
-                F_start, gradF_trial)
-            write(*,*) "F_after(NLend)",F_start
-        end if
-        
+        dSigma_ij_trial(0:5)=Sigma_ij_start(0:5)+dSigma_ij_trial(0:5)*alpha_elp
+        call mises_yld_locus(dSigma_ij_trial,X_ij,R,sigma_yld,Fstart,gradFstart)
+        write(*,*) "check plasticity:",Fstart,"<=",tol_nl
+        write(*,*) "ALPHA:",alpha_elp
+        write(*,*) "*********************************"
+        write(*,*) ""
     end subroutine check_plasticity
 
     subroutine plastic_corrector (dEpsilon_ij_alpha, Sigma_ij, X_ij, sigma_yld, &
-        R, b_lmc, Rinf_lmc, C_lmc, kapa_lmc, mu, lambda, dEpsilon_ij_pl,Ffinal)
+        R, b_lmc, Rinf_lmc, C_lmc, kapa_lmc, mu, lambda, dEpsilon_ij_pl)
 
         ! NR ALGORITHM AND DRIFT CORRECTION
 
@@ -174,7 +168,7 @@ contains
         real,                 intent(in)    :: mu, lambda           ! elastic parameters
 
         real, dimension(0:5)                :: dX_ij, gradF_0, gradF_mises
-        real                                :: dR, dPlastMult, F_mises_0, F_mises
+        real                                :: dR, dPlastMult, F_mises_0, F_mises,Ffinal
         integer                             :: i,j,k
         integer, parameter                  :: N_incr = 10
         real, dimension(0:5)                :: temp_vec
@@ -185,7 +179,6 @@ contains
         real, dimension(0:2,0:2)            :: M
         real, dimension(0:2,0:2), parameter :: id_matrix = reshape( (/veci,vecj,veck/), (/3,3/) )
         real, dimension(0:5), parameter     :: A = (/1.0,1.0,1.0,0.5,0.5,0.5/)
-        real, intent(out) :: Ffinal
 
         ! COMPUTE ELASTIC STIFFNESS MATRIX
         DEL_ijhk(:,:)   = 0d0
@@ -197,17 +190,15 @@ contains
         dEpsilon_ij_alpha(0:5) = dEpsilon_ij_alpha(0:5)/N_incr
 
         do i = 0,N_incr-1
-            
-            write(*,*) "============ INCREMENT:",i," =============="
-            WRITE(*,*) ""
 
             ! PREDICTION
             call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, F_mises_0, gradF_0)
-
+            write(*,*) "prediction",F_mises_0
+            write(*,*) "grad",gradF_0
             ! COMPUTE PLASTIC MULTIPLIER
             call compute_plastic_modulus(dEpsilon_ij_alpha, Sigma_ij, X_ij, R, mu, lambda, sigma_yld, &
                 b_lmc, Rinf_lmc, C_lmc, kapa_lmc, dPlastMult)
-
+            
             ! HARDENING INCREMENTS
             call hardening_increments(Sigma_ij, R, X_ij, sigma_yld, &
                 b_lmc, Rinf_lmc, C_lmc, kapa_lmc, dR, dX_ij)
@@ -226,25 +217,16 @@ contains
                     Sigma_ij(j)=Sigma_ij(j)+DEL_ijhk(k,j)*(dEpsilon_ij_alpha(k)-A(k)*dPlastMult*gradF_0(k))
                 end do
             end do
-
             ! DRIFT CORRECTION
             call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, Ffinal, gradF_0)
+            write(*,*) "Ffinal (BD): ",Ffinal
             if (Ffinal .gt. tol_nl) then
-            WRITE(*,*) "********* BEFORE DRIFT **************"
-            write(*,*) "Ffinal",Ffinal
-            write(*,*) "Sigma"
-            write(*,*) Sigma_ij
-            
                 call drift_corr(.true.,Sigma_ij, X_ij, R, sigma_yld,&
                     b_lmc, Rinf_lmc, C_lmc, kapa_lmc, lambda, mu, dEpsilon_ij_pl)
                 call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, Ffinal, gradF_0)
-            WRITE(*,*) "********* AFTER  DRIFT **************"
-            write(*,*) "sigma",Sigma_ij
-            write(*,*) "Ffinal",Ffinal
-            write(*,*) ""
             end if
-            write(*,*) "========= END INCREMENT",i,"=============="
-            
+            write(*,*) "Ffinal (AD): ",Ffinal
+            write(*,*) ""
         end do
     end subroutine plastic_corrector
 
@@ -276,7 +258,7 @@ contains
         real, dimension(0:2,0:2)         :: M
         real, dimension(0:2,0:2), parameter :: id_matrix = reshape( (/veci,vecj,veck/), (/3,3/) )
         integer                          :: j,k
-        real, dimension(0:5), parameter :: A =(/1.0,1.0,1.0,1.0,1.0,1.0/)
+        real, dimension(0:5), parameter :: A =(/1.0,1.0,1.0,0.5,0.5,0.5/)
         
         ! COMPUTE ELASTIC STIFFNESS MATRIX
         DEL_ijhk(:,:) = 0d0
@@ -294,7 +276,6 @@ contains
         end do
         h_kin=C_lmc-h_kin
         h_lmc = h_iso+h_kin
-        
         ! COMPUTE PLASTIC MULTIPLIER
         temp_vec   = 0d0
         dPlastMult = 0d0
@@ -305,15 +286,12 @@ contains
                 dPlastMult = dPlastMult+gradF_mises(j)*DEL_ijhk(j,k)*dEpsilon_ij(k)
             end do
         end do
-        write(*,*) "nom:",dPLastMult
-        write(*,*) "====="
+        write(*,*) "nominatore",dPlastMult
+        write(*,*) "deps",dEpsilon_ij
+        write(*,*) "grad",gradF_mises
         dPlastMult = dPlastMult/(h_lmc+temp_vec)
         if (dPlastMult .lt. 0) then
             write(*,*) "DPLAST NEGATIVE"
-            write(*,*) "gradF:",gradF_mises
-            write(*,*) "SIGMA", Sigma_ij
-            write(*,*) "Xij", X_ij
-            write(*,*) "DEPSI",dEpsilon_ij
             stop
         end if
 
@@ -337,7 +315,7 @@ contains
         
         real                             :: F_mises
         real, dimension(0:5)             :: gradF_mises
-        real, dimension(0:5), parameter  :: A = (/1.0,1.0,1.0,1.0,1.0,1.0/)
+        real, dimension(0:5), parameter  :: A = (/1.0,1.0,1.0,0.5,0.5,0.5/)
         integer                          :: k
 
         ! INCREMENT IN ISOTROPIC HARDENING VARIABLES (R)
@@ -345,10 +323,7 @@ contains
 
         ! INCREMENT IN KINEMATIC HARDENING VARIABLES (Xij)
         call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, F_mises, gradF_mises)
-        dX_ij(0:5)=0d0
-        do k=0,5
-            dX_ij(k)=2*A(k)*gradF_mises(k)*C_lmc/3-X_ij(k)*kapa_lmc
-        end do
+        dX_ij(0:5)=2*A(0:5)*gradF_mises(0:5)*C_lmc/3-X_ij(0:5)*kapa_lmc
 
     end subroutine hardening_increments
 
@@ -361,7 +336,7 @@ contains
         real,                 intent(inout) :: R
         real,                 intent(in)    :: lambda, mu, sigma_yld, b_lmc, Rinf_lmc, C_lmc, kapa_lmc
         real, dimension(0:5)                :: gradF_mises,gradF0,Sigma_temp,Sigma_dev_temp,Sigma_dev_ij
-        real, dimension(0:5),     parameter :: A = (/1.0,1.0,1.0,1.0,1.0,1.0/)
+        real, dimension(0:5),     parameter :: A = (/1.0,1.0,1.0,0.5,0.5,0.5/)
         real, dimension(0:2), parameter  :: &
             veci = (/ 1.0, 0.0, 0.0 /), &
             vecj = (/ 0.0, 1.0, 0.0 /), &
@@ -369,7 +344,7 @@ contains
         real, dimension(0:5,0:5)            :: DEL_ijhk
         real, dimension(0:2,0:2), parameter :: M = 1d0
         real, dimension(0:2,0:2), parameter :: id_matrix = reshape( (/veci,vecj,veck/), (/3,3/) )
-        real :: Fmises,Fmises0,beta,h_kin,h_iso,h_lmc,dbeta,dSigma
+        real :: Fmises,Fmises0,beta,h_kin,h_iso,h_lmc,dbeta
         integer :: k,j
         
         ! INITIAL PLASTIC CONDITION
@@ -394,7 +369,7 @@ contains
                 err0=err0/err1
                 Sigma_ij(0:5)=Sigma_temp(0:5)
                 !if (abs(Fmises) .le. tol_nl) then
-                if (err0 .le. tol_nl .or. abs(Fmises) .le. tol_nl) then
+                if (err0 .le. 0.0000001 .or. abs(Fmises) .le. tol_nl) then
                     exit
                 end if
             end do
@@ -412,35 +387,110 @@ contains
                     h_kin = h_kin-kapa_lmc*X_ij(k)*gradF0(k)
                 end do
                 h_lmc=h_iso+h_kin
-                ! COMPUTE BETA FOR DRIFT CORRECTION
+                write(*,*) "H: ", h_lmc
+               ! COMPUTE BETA FOR DRIFT CORRECTION
                 beta = 0d0
                 do j=0,5
                     do k=0,5
                         beta=beta+gradF0(k)*DEL_ijhk(k,j)*A(j)*gradF0(j)
                     end do
                 end do
-                !beta=beta+h_lmc
-                beta = Fmises/beta
+                write(*,*) "beta",beta
+                 
+                beta=Fmises/(-h_lmc+beta)
+                write(*,*) "beta",beta
                 ! STRESS-STRAIN-HARDENING CORRECTION
                 do k=0,5
-                    dSigma=0d0
                     do j=0,5
-                        Sigma_ij(k)=Sigma_ij(k)-beta*DEL_ijhk(j,k)*A(j)*gradF0(j)
+                        Sigma_temp(k)=Sigma_ij(k)-beta*DEL_ijhk(j,k)*A(j)*gradF0(j)
                     end do
-                    dEpsilon_ij_pl(k)=dEpsilon_ij_pl(k)+beta*gradF0(k)*A(k)
-                    X_ij(k)=X_ij(k)+beta*(2*A(k)*gradF0(k)*C_lmc/3-X_ij(k)*kapa_lmc)
                 end do
+                
+                call mises_yld_locus(Sigma_temp,X_ij,R,sigma_yld,Fmises,gradF_mises)
+                call tensor_components(Sigma_temp, Sigma_dev_temp)
+                call tensor_components(Sigma_ij,Sigma_dev_ij)
+                call tau_mises(Sigma_dev_ij-Sigma_dev_temp,err0)
+                call tau_mises(Sigma_dev_ij-X_ij,err1)
+                err0=err0/err1
+                Sigma_ij(0:5)=Sigma_temp(0:5)
+
+                dEpsilon_ij_pl(0:5)=dEpsilon_ij_pl(0:5)+beta*A(0:5)*gradF0(0:5)
+                X_ij(0:5)=X_ij(0:5)+beta*(2*A(0:5)*gradF0(0:5)*C_lmc/3-X_ij(0:5)*kapa_lmc)
                 R=R+beta*(Rinf_lmc-R)*b_lmc
                 call mises_yld_locus(Sigma_ij, X_ij, R, sigma_yld, Fmises0, gradF0)
-                if (abs(Fmises0) .le. tol_nl) exit
+
+                if (abs(Fmises0) .lt. tol_nl .or. err0/err1.lt.tol_nl/100) exit
             end do
         end if
-        write(*,*) ""
-        write(*,*) "beta drift"
-        write(*,*) beta
-        write(*,*) ""
     end subroutine drift_corr
 
+    subroutine gotoFtan(start0,dtrial0,F0,Ftrial,center,radius,s0,alpha)
+        real, dimension(0:5), intent(in) :: start0,dtrial0,center
+        real,                 intent(in) :: radius,s0
+        real,                 intent(inout):: F0,Ftrial
+        real,                 intent(out):: alpha
+        real, dimension(0:5)             :: start,gradF,dev,dev_temp,temp,dev0
+        real                             :: Fstart,err0,err1
+        integer                          :: counter
+        call tensor_components(start0,dev0)
+        alpha=F0/(F0-Ftrial)
+        start(0:5)=start0(0:5)
+        temp=start+alpha*dtrial0
+        do counter=0,9 
+            call tensor_components(temp, dev_temp)
+            call tensor_components(start,dev)
+            call tau_mises(-dev+dev_temp,err0)
+            call tau_mises(dev-dev0,err1)
+            write(*,*) "err0",err0
+            write(*,*) "err1",err1
+            err0=err0/err1
+            start(0:5)=temp(0:5)
+            call mises_yld_locus(start,center,radius,s0,Fstart,gradF)
+            if (abs(Fstart).le.tol_nl .or. err0.lt.0.000001) then
+                exit
+            end if
+            beta=sum(gradF(0:5)*dtrial0(0:5))
+            alpha=alpha-Fstart/beta
+            temp(0:5)=start(0:5)-(Fstart/beta)*dtrial0(0:5)
+        end do
+        write(*,*) "F:",Fstart
+        write(*,*) "err0",err0
+        write(*,*) "gotoF: stress:",start
+        write(*,*) ""
+    end subroutine gotoFtan
+     
+    subroutine gotoFsec(start0,dtrial0,F0,Ftrial,center,radius,s0,alpha)
+        real, dimension(0:5), intent(in) :: start0,dtrial0,center
+        real,                 intent(in) :: radius,s0
+        real,                 intent(inout):: F0,Ftrial
+        real,                 intent(out):: alpha
+        real, dimension(0:5)             :: start,gradF,dev,dev_temp,temp,dev0
+        real                             :: alphanew,err0,err1
+        integer                          :: counter
+        call tensor_components(start0,dev0)
+        alpha=F0/(F0-Ftrial)
+        beta=0d0
+        alphanew=0d0
+        start(0:5)=start0(0:5)
+        temp(0:5)=start(0:5)+alpha*dtrial0(0:5)
+        do counter=0,9 
+            call tensor_components(temp, dev_temp)
+            call tensor_components(start,dev)
+            call tau_mises(-dev+dev_temp,err0)
+            call tau_mises(dev-dev0,err1)
+            err0=err0/err1
+            call mises_yld_locus(start,center,radius,s0,F0,gradF)
+            call mises_yld_locus(temp,center,radius,s0,Ftrial,gradF)
+            start(0:5)=temp(0:5)
+            if (abs(Ftrial).le.tol_nl .or. err0.lt.0.0000001) exit
+            alphanew=alpha-(Ftrial/(Ftrial-F0))*(alpha-beta)
+            beta=alpha
+            alpha=alphanew
+            temp(0:5)=start(0:5)-(alpha-beta)*dtrial0(0:5)
+            
+        enddo
+
+    end subroutine gotoFsec
 end module nonlinear
 
 !! Local Variables:
