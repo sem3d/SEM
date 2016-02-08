@@ -11,6 +11,7 @@ module build_prop_files
     use define_random
 
     implicit none
+#include "index.h"
 
     character(len=15) :: procFileName = "prop"
     character(len=50) :: h5folder  = "./prop/h5", &

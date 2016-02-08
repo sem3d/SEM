@@ -10,6 +10,8 @@ subroutine  initialize_material_earthchunk(Tdomain, elem, coorPt, npts)
     use tensor_util
     use earth_transform
     use sdomain
+    implicit none
+#include "index.h"
 
     type (domain), intent (INOUT), target :: Tdomain
     type(element), intent(inout) :: elem

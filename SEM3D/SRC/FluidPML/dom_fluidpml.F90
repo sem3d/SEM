@@ -11,6 +11,7 @@ module dom_fluidpml
     use sdomain
     use ssubdomains
     implicit none
+#include "index.h"
 
 contains
 
@@ -76,7 +77,7 @@ contains
         implicit none
         type(domain_fluidpml) :: dom
 
-        if(allocated(dom%Density)) deallocate(dom%Density)
+        if(allocated(dom%Density_)) deallocate(dom%Density_)
         if(allocated(dom%Lambda )) deallocate(dom%Lambda )
         if(allocated(dom%Mu     )) deallocate(dom%Mu     )
         if(allocated(dom%Kappa  )) deallocate(dom%Kappa  )

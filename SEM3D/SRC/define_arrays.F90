@@ -16,6 +16,7 @@ module mdefinitions
     use scomm
     use constants
     implicit none
+#include "index.h"
 
     public :: define_arrays
     private :: define_alpha_PML
@@ -710,13 +711,13 @@ contains
     !-------------------------------------------------------------------------------------
     !-------------------------------------------------------------------------------------
     subroutine define_alpha_PML(lattenu,dir,ldir_attenu,ngllx,nglly,ngllz,ngll,n_pts,   &
-        Coord,GLLc,Rkmod,Density,ind_min,ind_max,Apow,npow,alpha)
+        Coord,GLLc,Rkmod,density,ind_min,ind_max,Apow,npow,alpha)
         !- routine determines attenuation profile in an PML layer (see Festa & Vilotte)
         !   dir = attenuation's direction, ldir_attenu = the logical giving the orientation
         logical, intent(in)   :: lattenu,ldir_attenu
         integer, intent(in) :: dir,ngllx,nglly,ngllz,ngll,n_pts,ind_min,ind_max,npow
         real, dimension(0:2,0:n_pts-1), intent(in) :: Coord
-        real, dimension(0:ngll-1), intent(in) :: GLLc,RKmod,Density
+        real, dimension(0:ngll-1), intent(in) :: GLLc,RKmod,density
         real, intent(in)  :: Apow
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: alpha
         integer  :: i
@@ -734,7 +735,7 @@ contains
             else  ! Right in x, Backward in y, Up in z
                 ri(:) = 0.5d0*(1d0+GLLc(0:ngll-1))*float(ngll-1)
             end if
-            vp(:) = sqrt(Rkmod(:)/Density(:))
+            vp(:) = sqrt(Rkmod(:)/density(:))
             select case(dir)
             case(0)  ! dir = x
                 do i = 0,ngll-1

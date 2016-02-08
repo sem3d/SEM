@@ -39,13 +39,13 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Solid/calcul_forces_aniso_att.f90
     ${PRJ}/SRC/Solid/calcul_forces_att.f90
     ${PRJ}/SRC/Fluid/calcul_forces_fluid.f90
-    ${PRJ}/SRC/Solid/dom_solid.f90
-    ${PRJ}/SRC/SolidPML/dom_solidpml.f90
-    ${PRJ}/SRC/Fluid/dom_fluid.f90
-    ${PRJ}/SRC/FluidPML/dom_fluidpml.f90
+    ${PRJ}/SRC/Solid/dom_solid.F90
+    ${PRJ}/SRC/SolidPML/dom_solidpml.F90
+    ${PRJ}/SRC/Fluid/dom_fluid.F90
+    ${PRJ}/SRC/FluidPML/dom_fluidpml.F90
     ${PRJ}/SRC/compute_GLL.f90
     ${PRJ}/SRC/courant.f90
-    ${PRJ}/SRC/define_arrays.f90
+    ${PRJ}/SRC/define_arrays.F90
     ${PRJ}/SRC/define_Neumann_properties.f90
     ${PRJ}/SRC/define_planew_properties.f90
     ${PRJ}/SRC/double_couple.f90
@@ -59,7 +59,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/shape27.f90
     ${PRJ}/SRC/ondelette.f90
     ${PRJ}/SRC/define_random.f90
-    ${PRJ}/SRC/build_prop_files.f90
+    ${PRJ}/SRC/build_prop_files.F90
     ${PRJ}/SRC/find_location.f90
 
     ${PRJ}/SRC/indexation.f90
@@ -71,8 +71,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/snapshots.f90
 
     ${PRJ}/SRC/earth_models/earth_transform.f90
-    ${PRJ}/SRC/earth_models/material_earthchunk.f90
-    ${PRJ}/SRC/earth_models/material_prem.f90
+    ${PRJ}/SRC/earth_models/material_earthchunk.F90
+    ${PRJ}/SRC/earth_models/material_prem.F90
     ${PRJ}/SRC/earth_models/model_earthchunk.f90
     ${PRJ}/SRC/earth_models/model_prem.f90
 	

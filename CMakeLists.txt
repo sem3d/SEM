@@ -5,6 +5,11 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 ENABLE_LANGUAGE(C CXX Fortran)
 ENABLE_TESTING()
 
+option(OPT_VEC "Vectorize" ON)
+if(OPT_VEC)
+  include_directories(${CMAKE_SOURCE_DIR})
+  add_definitions(-DSEM_VEC -cpp)
+endif(OPT_VEC)
 
 if (NOT BUILD_WITH_MKA)
 # Hors mka il faut chercher MPI et HDF5 ici

@@ -10,6 +10,7 @@ module dom_fluid
     use selement
     use ssubdomains
     implicit none
+#include "index.h"
 
 contains
 
@@ -62,7 +63,7 @@ contains
         implicit none
         type(domain_fluid), intent (INOUT) :: dom
 
-        if(allocated(dom%Density)) deallocate(dom%Density)
+        if(allocated(dom%Density_)) deallocate(dom%Density_)
         if(allocated(dom%Lambda )) deallocate(dom%Lambda )
         if(allocated(dom%Mu     )) deallocate(dom%Mu     )
         if(allocated(dom%Kappa  )) deallocate(dom%Kappa  )
@@ -149,7 +150,7 @@ contains
                         mat = el%mat_index
                         call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,                  &
                             Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez,            &
-                            Tdomain%fdom%InvGrad(:,:,:,:,:,el%lnum),Tdomain%fdom%density(:,:,:,el%lnum),&
+                            Tdomain%fdom%InvGrad(:,:,:,:,:,el%lnum),Tdomain%fdom%Density(:,:,:,el%lnum),&
                             phi,fieldV)
                     end if
 
@@ -160,7 +161,7 @@ contains
                         mat = el%mat_index
                         call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,                  &
                             Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez,            &
-                            Tdomain%fdom%InvGrad(:,:,:,:,:,el%lnum),Tdomain%fdom%density(:,:,:,el%lnum),&
+                            Tdomain%fdom%InvGrad(:,:,:,:,:,el%lnum),Tdomain%fdom%Density(:,:,:,el%lnum),&
                             vphi,fieldA)
                     end if
 
