@@ -21,6 +21,8 @@ module attenuation
     use sdomain
     use constants, only : M_PI, DM_SOLID
     implicit none
+#include "index.h"
+
 contains
 
     subroutine set_attenuation_param ( Tdomain )
@@ -97,11 +99,11 @@ contains
 
 
                             !- getting the values of the relaxed moduli
-                            Tdomain%sdom%Mu(i,j,k,Tdomain%specel(n)%lnum) = Tdomain%sdom%Mu(i,j,k,Tdomain%specel(n)%lnum)*   &
+                            Tdomain%sdom%Mu_(i,j,k,Tdomain%specel(n)%lnum) = Tdomain%sdom%Mu_(i,j,k,Tdomain%specel(n)%lnum)*   &
                                 get_relaxed_modulus(n_solid,Q_mu,f_ref,   &
                                 f_c_source,omega_tau_s,agamma_mu)
 
-                            Tdomain%sdom%Kappa(i,j,k,Tdomain%specel(n)%lnum) = Tdomain%sdom%Kappa(i,j,k,Tdomain%specel(n)%lnum)*  &
+                            Tdomain%sdom%Kappa_(i,j,k,Tdomain%specel(n)%lnum) = Tdomain%sdom%Kappa_(i,j,k,Tdomain%specel(n)%lnum)*  &
                                 get_relaxed_modulus(n_solid,Q_kappa,f_ref,     &
                                 f_c_source,omega_tau_s,agamma_kappa)
 

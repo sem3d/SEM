@@ -50,7 +50,8 @@ module sdomain
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
         real(fpp), dimension(:), allocatable :: MassMat
 
-        real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, m_Density
+        real(fpp), dimension (:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Kappa, m_Density
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_Cij
 
         real(fpp), dimension(:,:,:,:),     allocatable :: Jacob
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: InvGrad
@@ -64,7 +65,6 @@ module sdomain
         ! Champs
         type(champssolid) :: champs0
         type(champssolid) :: champs1
-        real(fpp), dimension(:,:,:,:,:), allocatable :: Cij
         real(fpp), dimension (:,:,:,:), allocatable :: Q, Qs, Qp, onemSbeta, onemPbeta, & ! Attenuation
             epsilonvol_, &
             epsilondev_xx_,epsilondev_yy_,epsilondev_xy_,epsilondev_xz_,epsilondev_yz_
@@ -91,7 +91,7 @@ module sdomain
         real(fpp), dimension(:), allocatable :: MassMat
         real(fpp), dimension(:,:), allocatable :: DumpMass
 
-        real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, m_Density
+        real(fpp), dimension (:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Kappa, m_Density
 
         real(fpp), dimension(:,:,:,:),     allocatable :: Jacob
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: InvGrad
@@ -128,7 +128,7 @@ module sdomain
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
         real(fpp), dimension(:), allocatable :: MassMat
 
-        real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, m_Density
+        real(fpp), dimension (:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Kappa, m_Density
 
         real(fpp), dimension(:,:,:,:),     allocatable :: Jacob
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: InvGrad
@@ -162,7 +162,7 @@ module sdomain
         real(fpp), dimension(:), allocatable :: MassMat
         real(fpp), dimension(:,:), allocatable :: DumpMass
 
-        real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, m_Density
+        real(fpp), dimension (:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Kappa, m_Density
 
         real(fpp), dimension(:,:,:,:),     allocatable :: Jacob
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: InvGrad

@@ -35,15 +35,15 @@ contains
         n_solid = Tdomain%n_sls
 
         allocate(dom%Density_(0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
-        allocate(dom%Lambda (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
-        allocate(dom%Mu     (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
-        allocate(dom%Kappa  (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
+        allocate(dom%Lambda_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
+        allocate(dom%Mu_     (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
+        allocate(dom%Kappa_  (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
 
         allocate (dom%Jacob  (        0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
         allocate (dom%InvGrad(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
 
         if (aniso) then
-            allocate (dom%Cij (0:20, 0:ngllx-1, 0:nglly-1, 0:ngllz-1, 0:nbelem-1))
+            allocate (dom%Cij_ (0:20, 0:ngllx-1, 0:nglly-1, 0:ngllz-1, 0:nbelem-1))
         endif
         if (n_solid>0) then
             if (aniso) then
@@ -112,14 +112,14 @@ contains
         type(domain_solid), intent (INOUT) :: dom
 
         if(allocated(dom%m_Density)) deallocate(dom%m_Density)
-        if(allocated(dom%Lambda )) deallocate(dom%Lambda )
-        if(allocated(dom%Mu     )) deallocate(dom%Mu     )
-        if(allocated(dom%Kappa  )) deallocate(dom%Kappa  )
+        if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
+        if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
+        if(allocated(dom%m_Kappa  )) deallocate(dom%m_Kappa  )
 
         if(allocated(dom%Jacob  )) deallocate(dom%Jacob  )
         if(allocated(dom%InvGrad)) deallocate(dom%InvGrad)
 
-        if(allocated(dom%Cij             )) deallocate (dom%Cij             )
+        if(allocated(dom%m_Cij           )) deallocate (dom%m_Cij           )
         if(allocated(dom%Q               )) deallocate (dom%Q               )
         if(allocated(dom%Qs              )) deallocate (dom%Qs              )
         if(allocated(dom%Qp              )) deallocate (dom%Qp              )
@@ -255,8 +255,8 @@ contains
 
                     if (out_variables(OUT_PRESSION) == 1) then
                         if(.not. allocated(fieldP)) allocate(fieldP(0:nx-1,0:ny-1,0:nz-1))
-                        fieldP(i,j,k) = -(Tdomain%sdom%lambda(i,j,k,el%lnum)&
-                                          +2d0/3d0*Tdomain%sdom%mu(i,j,k,el%lnum))&
+                        fieldP(i,j,k) = -(Tdomain%sdom%Lambda_(i,j,k,el%lnum)&
+                                          +2d0/3d0*Tdomain%sdom%Mu_(i,j,k,el%lnum))&
                                         *(DXX(i,j,k)+DYY(i,j,k)+DZZ(i,j,k))
                     end if
 
@@ -266,9 +266,9 @@ contains
                     end if
 
                     if (.not. Tdomain%aniso) then
-                        xmu     = Tdomain%sdom%Mu    (i,j,k,el%lnum)
-                        xlambda = Tdomain%sdom%Lambda(i,j,k,el%lnum)
-                        xkappa  = Tdomain%sdom%Kappa (i,j,k,el%lnum)
+                        xmu     = Tdomain%sdom%Mu_    (i,j,k,el%lnum)
+                        xlambda = Tdomain%sdom%Lambda_(i,j,k,el%lnum)
+                        xkappa  = Tdomain%sdom%Kappa_ (i,j,k,el%lnum)
 
                         if (Tdomain%n_sls>0) then
                             onemSbeta = Tdomain%sdom%onemSbeta(i,j,k,el%lnum)
@@ -426,7 +426,9 @@ contains
                     DXX,DXY,DXZ, &
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &
-                    dom%Mu(:,:,:,lnum), dom%Lambda(:,:,:,lnum), dom%Cij(:,:,:,:,lnum), &
+                    dom%Mu_    (:,:,:,lnum), &
+                    dom%Lambda_(:,:,:,lnum), &
+                    dom%Cij_   (:,:,:,:,lnum), &
                     m1,m2,m3, n_solid, &
                     dom%onemSbeta(:,:,:,lnum), &
                     dom%R_xx_(:,:,:,:,lnum), &
@@ -450,7 +452,8 @@ contains
                     dom%alphaval_3(:,:,:,:,lnum),&
                     dom%betaval_3(:,:,:,:,lnum),&
                     dom%gammaval_3(:,:,:,:,lnum),&
-                    dom%Mu(:,:,:,lnum), m1,m2,m3, n_solid)
+                    dom%Mu_(:,:,:,lnum), &
+                    m1,m2,m3, n_solid)
                 deallocate(epsilondev_xx_loc,epsilondev_yy_loc,epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc)
                 !      deallocate(epsilonvol_loc)
             else
@@ -461,7 +464,7 @@ contains
                     DXX,DXY,DXZ, &
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &
-                    dom%Cij(:,:,:,:,lnum), &
+                    dom%Cij_(:,:,:,:,lnum), &
                     m1,m2,m3)
             endif
         else
@@ -473,7 +476,8 @@ contains
                     DXX,DXY,DXZ, &
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &
-                    dom%Mu(:,:,:,lnum), dom%Kappa(:,:,:,lnum), &
+                    dom%Mu_(:,:,:,lnum), &
+                    dom%Kappa_(:,:,:,lnum), &
                     m1,m2,m3, n_solid, &
                     dom%R_xx_(:,:,:,:,lnum),&
                     dom%R_yy_(:,:,:,:,lnum), &
@@ -500,7 +504,9 @@ contains
                     dom%alphaval_3(:,:,:,:,lnum),&
                     dom%betaval_3(:,:,:,:,lnum),&
                     dom%gammaval_3(:,:,:,:,lnum), &
-                    dom%Mu(:,:,:,lnum), m1,m2,m3, n_solid, dom%Kappa(:,:,:,lnum), &
+                    dom%Mu_(:,:,:,lnum), &
+                    m1,m2,m3, n_solid, &
+                    dom%Kappa_(:,:,:,lnum), &
                     dom%epsilonvol_(:,:,:,lnum),epsilonvol_loc,&
                     dom%R_vol_(:,:,:,:,lnum), &
                     dom%factor_common_P(:,:,:,:,lnum),&
@@ -517,7 +523,8 @@ contains
                     DXX,DXY,DXZ, &
                     DYX,DYY,DYZ, &
                     DZX,DZY,DZZ, &
-                    dom%Mu(:,:,:,lnum), dom%Lambda(:,:,:,lnum),&
+                    dom%Mu_(:,:,:,lnum), &
+                    dom%Lambda_(:,:,:,lnum),&
                     m1,m2,m3)
             endif
         endif

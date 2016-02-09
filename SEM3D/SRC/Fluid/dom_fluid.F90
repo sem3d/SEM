@@ -33,9 +33,9 @@ contains
         ngllz   = dom%ngllz
 
         allocate(dom%Density_(0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
-        allocate(dom%Lambda (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
-        allocate(dom%Mu     (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
-        allocate(dom%Kappa  (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
+        allocate(dom%Lambda_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
+        allocate(dom%Mu_     (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
+        allocate(dom%Kappa_  (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
 
         allocate (dom%Jacob  (        0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
         allocate (dom%InvGrad(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
@@ -64,9 +64,9 @@ contains
         type(domain_fluid), intent (INOUT) :: dom
 
         if(allocated(dom%m_Density)) deallocate(dom%m_Density)
-        if(allocated(dom%Lambda )) deallocate(dom%Lambda )
-        if(allocated(dom%Mu     )) deallocate(dom%Mu     )
-        if(allocated(dom%Kappa  )) deallocate(dom%Kappa  )
+        if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
+        if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
+        if(allocated(dom%m_Kappa  )) deallocate(dom%m_Kappa  )
 
         if(allocated(dom%Jacob  )) deallocate(dom%Jacob  )
         if(allocated(dom%InvGrad)) deallocate(dom%InvGrad)

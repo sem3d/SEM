@@ -54,7 +54,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/read_input.f90
     ${PRJ}/SRC/read_restart.f90
     ${PRJ}/SRC/save_checkpoint.f90
-    ${PRJ}/SRC/set_attenuation_param.f90
+    ${PRJ}/SRC/set_attenuation_param.F90
     ${PRJ}/SRC/shape8.f90
     ${PRJ}/SRC/shape27.f90
     ${PRJ}/SRC/ondelette.f90
@@ -64,7 +64,7 @@ set(SEM3D_SOURCES_F
 
     ${PRJ}/SRC/indexation.f90
     ${PRJ}/SRC/algo_comm.f90
-    ${PRJ}/SRC/source_excit.f90
+    ${PRJ}/SRC/source_excit.F90
     ${PRJ}/SRC/boundary_conditions_init.f90
     ${PRJ}/SRC/partial_deriv.f90
 
