@@ -8,3 +8,4 @@ Guide de développement
 
    coding_style.rst
    git.rst
+   vectorisation.rst

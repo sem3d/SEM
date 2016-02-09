@@ -76,9 +76,9 @@ subroutine  initialize_material_earthchunk(Tdomain, elem, coorPt, npts)
 
 
                 if(elem%domain==DM_SOLID_PML) then
-                    Tdomain%spmldom%Lambda (i,j,k,elem%lnum) = lambda_from_Cij(Cij)
-                    Tdomain%spmldom%Mu     (i,j,k,elem%lnum) = mu_from_Cij(Cij)
-                    Tdomain%spmldom%Density(i,j,k,elem%lnum) = rho
+                    Tdomain%spmldom%Lambda    (i,j,k,elem%lnum) = lambda_from_Cij(Cij)
+                    Tdomain%spmldom%Mu        (i,j,k,elem%lnum) = mu_from_Cij(Cij)
+                    Tdomain%spmldom%mc_Density(i,j,k,elem%lnum) = rho
                 else ! DM_SOLID
                     call c_4tensor(Cij,theta,phi)
                     call rot_4tensor(Cij,transpose(RotMat))
@@ -89,7 +89,7 @@ subroutine  initialize_material_earthchunk(Tdomain, elem, coorPt, npts)
                             idef = idef + 1
                         enddo
                     enddo
-                    Tdomain%sdom%Density(i,j,k,elem%lnum) = rho
+                    Tdomain%sdom%mc_Density(i,j,k,elem%lnum) = rho
                 endif
             end do
         end do

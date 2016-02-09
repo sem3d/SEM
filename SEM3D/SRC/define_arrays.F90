@@ -262,22 +262,22 @@ contains
             !    on copie toujours le materiau de base
             select case (specel%domain)
                 case (DM_SOLID)
-                    Tdomain%sdom%Density(:,:,:,specel%lnum) = mat%DDensity
+                    Tdomain%sdom%mc_Density(:,:,:,specel%lnum) = mat%DDensity
                     Tdomain%sdom%Lambda (:,:,:,specel%lnum) = mat%DLambda
                     Tdomain%sdom%Kappa  (:,:,:,specel%lnum) = mat%DKappa
                     Tdomain%sdom%Mu     (:,:,:,specel%lnum) = mat%DMu
                 case (DM_FLUID)
-                    Tdomain%fdom%Density(:,:,:,specel%lnum) = mat%DDensity
+                    Tdomain%fdom%mc_Density(:,:,:,specel%lnum) = mat%DDensity
                     Tdomain%fdom%Lambda (:,:,:,specel%lnum) = mat%DLambda
                     Tdomain%fdom%Kappa  (:,:,:,specel%lnum) = mat%DKappa
                     Tdomain%fdom%Mu     (:,:,:,specel%lnum) = mat%DMu
                 case (DM_SOLID_PML)
-                    Tdomain%spmldom%Density(:,:,:,specel%lnum) = mat%DDensity
+                    Tdomain%spmldom%mc_Density(:,:,:,specel%lnum) = mat%DDensity
                     Tdomain%spmldom%Lambda (:,:,:,specel%lnum) = mat%DLambda
                     Tdomain%spmldom%Kappa  (:,:,:,specel%lnum) = mat%DKappa
                     Tdomain%spmldom%Mu     (:,:,:,specel%lnum) = mat%DMu
                 case (DM_FLUID_PML)
-                    Tdomain%fpmldom%Density(:,:,:,specel%lnum) = mat%DDensity
+                    Tdomain%fpmldom%mc_Density(:,:,:,specel%lnum) = mat%DDensity
                     Tdomain%fpmldom%Lambda (:,:,:,specel%lnum) = mat%DLambda
                     Tdomain%fpmldom%Kappa  (:,:,:,specel%lnum) = mat%DKappa
                     Tdomain%fpmldom%Mu     (:,:,:,specel%lnum) = mat%DMu
@@ -293,22 +293,22 @@ contains
             !    on copie toujours le materiau de base
             select case (specel%domain)
                 case (DM_SOLID)
-                    Tdomain%sdom%Density(:,:,:,specel%lnum) = mat%DDensity
+                    Tdomain%sdom%mc_Density(:,:,:,specel%lnum) = mat%DDensity
                     Tdomain%sdom%Lambda (:,:,:,specel%lnum) = mat%DLambda
                     Tdomain%sdom%Kappa  (:,:,:,specel%lnum) = mat%DKappa
                     Tdomain%sdom%Mu     (:,:,:,specel%lnum) = mat%DMu
                 case (DM_FLUID)
-                    Tdomain%fdom%Density(:,:,:,specel%lnum) = mat%DDensity
+                    Tdomain%fdom%mc_Density(:,:,:,specel%lnum) = mat%DDensity
                     Tdomain%fdom%Lambda (:,:,:,specel%lnum) = mat%DLambda
                     Tdomain%fdom%Kappa  (:,:,:,specel%lnum) = mat%DKappa
                     Tdomain%fdom%Mu     (:,:,:,specel%lnum) = mat%DMu
                 case (DM_SOLID_PML)
-                    Tdomain%spmldom%Density(:,:,:,specel%lnum) = mat%DDensity
+                    Tdomain%spmldom%mc_Density(:,:,:,specel%lnum) = mat%DDensity
                     Tdomain%spmldom%Lambda (:,:,:,specel%lnum) = mat%DLambda
                     Tdomain%spmldom%Kappa  (:,:,:,specel%lnum) = mat%DKappa
                     Tdomain%spmldom%Mu     (:,:,:,specel%lnum) = mat%DMu
                 case (DM_FLUID_PML)
-                    Tdomain%fpmldom%Density(:,:,:,specel%lnum) = mat%DDensity
+                    Tdomain%fpmldom%mc_Density(:,:,:,specel%lnum) = mat%DDensity
                     Tdomain%fpmldom%Lambda (:,:,:,specel%lnum) = mat%DLambda
                     Tdomain%fpmldom%Kappa  (:,:,:,specel%lnum) = mat%DKappa
                     Tdomain%fpmldom%Mu     (:,:,:,specel%lnum) = mat%DMu
@@ -323,22 +323,22 @@ contains
             if(materialIsConstant(Tdomain, mat)) then
                 select case (specel%domain)
                     case (DM_SOLID)
-                        Tdomain%sdom%Density(:,:,:,specel%lnum) = mat%DDensity
+                        Tdomain%sdom%mc_Density(:,:,:,specel%lnum) = mat%DDensity
                         Tdomain%sdom%Lambda (:,:,:,specel%lnum) = mat%DLambda
                         Tdomain%sdom%Kappa  (:,:,:,specel%lnum) = mat%DKappa
                         Tdomain%sdom%Mu     (:,:,:,specel%lnum) = mat%DMu
                     case (DM_FLUID)
-                        Tdomain%fdom%Density(:,:,:,specel%lnum) = mat%DDensity
+                        Tdomain%fdom%mc_Density(:,:,:,specel%lnum) = mat%DDensity
                         Tdomain%fdom%Lambda (:,:,:,specel%lnum) = mat%DLambda
                         Tdomain%fdom%Kappa  (:,:,:,specel%lnum) = mat%DKappa
                         Tdomain%fdom%Mu     (:,:,:,specel%lnum) = mat%DMu
                     case (DM_SOLID_PML)
-                        Tdomain%spmldom%Density(:,:,:,specel%lnum) = mat%DDensity
+                        Tdomain%spmldom%mc_Density(:,:,:,specel%lnum) = mat%DDensity
                         Tdomain%spmldom%Lambda (:,:,:,specel%lnum) = mat%DLambda
                         Tdomain%spmldom%Kappa  (:,:,:,specel%lnum) = mat%DKappa
                         Tdomain%spmldom%Mu     (:,:,:,specel%lnum) = mat%DMu
                     case (DM_FLUID_PML)
-                        Tdomain%fpmldom%Density(:,:,:,specel%lnum) = mat%DDensity
+                        Tdomain%fpmldom%mc_Density(:,:,:,specel%lnum) = mat%DDensity
                         Tdomain%fpmldom%Lambda (:,:,:,specel%lnum) = mat%DLambda
                         Tdomain%fpmldom%Kappa  (:,:,:,specel%lnum) = mat%DKappa
                         Tdomain%fpmldom%Mu     (:,:,:,specel%lnum) = mat%DMu
@@ -408,34 +408,34 @@ contains
             call define_alpha_PML(mat%Px,0,mat%Left,                              &
                 ngllx,nglly,ngllz,ngllx,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
                 mat%GLLcx,RKmod(:,0,0),                                           &
-                Tdomain%spmldom%Density(:,0,0,specel%lnum),specel%Iglobnum(0,0,0),&
+                Tdomain%spmldom%mc_Density(:,0,0,specel%lnum),specel%Iglobnum(0,0,0),&
                 specel%Iglobnum(ngllx-1,0,0),mat%Apow,mat%npow,wx)
             call define_alpha_PML(mat%Py,1,mat%Forward,                           &
                 ngllx,nglly,ngllz,nglly,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
                 mat%GLLcy,RKmod(0,:,0),                                           &
-                Tdomain%spmldom%Density(0,:,0,specel%lnum),specel%Iglobnum(0,0,0),&
+                Tdomain%spmldom%mc_Density(0,:,0,specel%lnum),specel%Iglobnum(0,0,0),&
                 specel%Iglobnum(0,nglly-1,0),mat%Apow,mat%npow,wy)
             call define_alpha_PML(mat%Pz,2,mat%Down,                              &
                 ngllx,nglly,ngllz,ngllz,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
                 mat%GLLcz,RKmod(0,0,:),                                           &
-                Tdomain%spmldom%Density(0,0,:,specel%lnum),specel%Iglobnum(0,0,0),&
+                Tdomain%spmldom%mc_Density(0,0,:,specel%lnum),specel%Iglobnum(0,0,0),&
                 specel%Iglobnum(0,0,ngllz-1),mat%Apow,mat%npow,wz)
         end if
         if (specel%domain==DM_FLUID_PML) then
             call define_alpha_PML(mat%Px,0,mat%Left,                              &
                 ngllx,nglly,ngllz,ngllx,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
                 mat%GLLcx,RKmod(:,0,0),                                           &
-                Tdomain%fpmldom%Density(:,0,0,specel%lnum),specel%Iglobnum(0,0,0),&
+                Tdomain%fpmldom%mc_Density(:,0,0,specel%lnum),specel%Iglobnum(0,0,0),&
                 specel%Iglobnum(ngllx-1,0,0),mat%Apow,mat%npow,wx)
             call define_alpha_PML(mat%Py,1,mat%Forward,                           &
                 ngllx,nglly,ngllz,nglly,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
                 mat%GLLcy,RKmod(0,:,0),                                           &
-                Tdomain%fpmldom%Density(0,:,0,specel%lnum),specel%Iglobnum(0,0,0),&
+                Tdomain%fpmldom%mc_Density(0,:,0,specel%lnum),specel%Iglobnum(0,0,0),&
                 specel%Iglobnum(0,nglly-1,0),mat%Apow,mat%npow,wy)
             call define_alpha_PML(mat%Pz,2,mat%Down,                              &
                 ngllx,nglly,ngllz,ngllz,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
                 mat%GLLcz,RKmod(0,0,:),                                           &
-                Tdomain%fpmldom%Density(0,0,:,specel%lnum),specel%Iglobnum(0,0,0),&
+                Tdomain%fpmldom%mc_Density(0,0,:,specel%lnum),specel%Iglobnum(0,0,0),&
                 specel%Iglobnum(0,0,ngllz-1),mat%Apow,mat%npow,wz)
         end if
 
@@ -479,12 +479,12 @@ contains
 
         !! XXX
         if (specel%domain==DM_FLUID_PML) then
-            Tdomain%fpmldom%PMLDumpSx(:,:,:,1,lnum) = Tdomain%fpmldom%PMLDumpSx(:,:,:,1,lnum) / &
-                                                      Tdomain%fpmldom%Density  (:,:,:  ,lnum)
-            Tdomain%fpmldom%PMLDumpSy(:,:,:,1,lnum) = Tdomain%fpmldom%PMLDumpSy(:,:,:,1,lnum) / &
-                                                      Tdomain%fpmldom%Density  (:,:,:  ,lnum)
-            Tdomain%fpmldom%PMLDumpSz(:,:,:,1,lnum) = Tdomain%fpmldom%PMLDumpSz(:,:,:,1,lnum) / &
-                                                      Tdomain%fpmldom%Density  (:,:,:  ,lnum)
+            Tdomain%fpmldom%PMLDumpSx(:,:,:,1,lnum) = Tdomain%fpmldom%PMLDumpSx (:,:,:,1,lnum) / &
+                                                      Tdomain%fpmldom%mc_Density(:,:,:  ,lnum)
+            Tdomain%fpmldom%PMLDumpSy(:,:,:,1,lnum) = Tdomain%fpmldom%PMLDumpSy (:,:,:,1,lnum) / &
+                                                      Tdomain%fpmldom%mc_Density(:,:,:  ,lnum)
+            Tdomain%fpmldom%PMLDumpSz(:,:,:,1,lnum) = Tdomain%fpmldom%PMLDumpSz (:,:,:,1,lnum) / &
+                                                      Tdomain%fpmldom%mc_Density(:,:,:  ,lnum)
         end if
 
         deallocate(RKmod)
@@ -520,11 +520,11 @@ contains
                     Whei(i,j,k) = mat%GLLwx(i)*mat%GLLwy(j)*mat%GLLwz(k)
                     select case (specel%domain)
                     case (DM_SOLID)
-                        specel%MassMat(i,j,k) = Whei(i,j,k)*Tdomain%sdom%Density   (i,j,k,specel%lnum)*&
+                        specel%MassMat(i,j,k) = Whei(i,j,k)*Tdomain%sdom%mc_Density(i,j,k,specel%lnum)*&
                                                             Tdomain%sdom%Jacob     (i,j,k,specel%lnum)
                     case (DM_SOLID_PML)
-                        specel%MassMat(i,j,k) = Whei(i,j,k)*Tdomain%spmldom%Density(i,j,k,specel%lnum)*&
-                                                            Tdomain%spmldom%Jacob  (i,j,k,specel%lnum)
+                        specel%MassMat(i,j,k) = Whei(i,j,k)*Tdomain%spmldom%mc_Density(i,j,k,specel%lnum)*&
+                                                            Tdomain%spmldom%Jacob     (i,j,k,specel%lnum)
                     ! fluid case: inertial term ponderation by the inverse of the bulk modulus
                     case (DM_FLUID)
                         specel%MassMat(i,j,k) = Whei(i,j,k)*Tdomain%fdom%Jacob (i,j,k,specel%lnum)/&
@@ -680,25 +680,25 @@ contains
 
                         select case (specel%domain)
                             case (DM_SOLID)
-                                Tdomain%sdom%Density(i,j,k,specel%lnum) = zrho
-                                Tdomain%sdom%Lambda (i,j,k,specel%lnum) = Lambda
-                                Tdomain%sdom%Kappa  (i,j,k,specel%lnum) = Kappa
-                                Tdomain%sdom%Mu     (i,j,k,specel%lnum) = Mu
+                                Tdomain%sdom%mc_Density(i,j,k,specel%lnum) = zrho
+                                Tdomain%sdom%Lambda    (i,j,k,specel%lnum) = Lambda
+                                Tdomain%sdom%Kappa     (i,j,k,specel%lnum) = Kappa
+                                Tdomain%sdom%Mu        (i,j,k,specel%lnum) = Mu
                             case (DM_FLUID)
-                                Tdomain%fdom%Density(i,j,k,specel%lnum) = zrho
-                                Tdomain%fdom%Lambda (i,j,k,specel%lnum) = Lambda
-                                Tdomain%fdom%Kappa  (i,j,k,specel%lnum) = Kappa
-                                Tdomain%fdom%Mu     (i,j,k,specel%lnum) = Mu
+                                Tdomain%fdom%mc_Density(i,j,k,specel%lnum) = zrho
+                                Tdomain%fdom%Lambda    (i,j,k,specel%lnum) = Lambda
+                                Tdomain%fdom%Kappa     (i,j,k,specel%lnum) = Kappa
+                                Tdomain%fdom%Mu        (i,j,k,specel%lnum) = Mu
                             case (DM_SOLID_PML)
-                                Tdomain%spmldom%Density(i,j,k,specel%lnum) = zrho
-                                Tdomain%spmldom%Lambda (i,j,k,specel%lnum) = Lambda
-                                Tdomain%spmldom%Kappa  (i,j,k,specel%lnum) = Kappa
-                                Tdomain%spmldom%Mu     (i,j,k,specel%lnum) = Mu
+                                Tdomain%spmldom%mc_Density(i,j,k,specel%lnum) = zrho
+                                Tdomain%spmldom%Lambda    (i,j,k,specel%lnum) = Lambda
+                                Tdomain%spmldom%Kappa     (i,j,k,specel%lnum) = Kappa
+                                Tdomain%spmldom%Mu        (i,j,k,specel%lnum) = Mu
                             case (DM_FLUID_PML)
-                                Tdomain%fpmldom%Density(i,j,k,specel%lnum) = zrho
-                                Tdomain%fpmldom%Lambda (i,j,k,specel%lnum) = Lambda
-                                Tdomain%fpmldom%Kappa  (i,j,k,specel%lnum) = Kappa
-                                Tdomain%fpmldom%Mu     (i,j,k,specel%lnum) = Mu
+                                Tdomain%fpmldom%mc_Density(i,j,k,specel%lnum) = zrho
+                                Tdomain%fpmldom%Lambda    (i,j,k,specel%lnum) = Lambda
+                                Tdomain%fpmldom%Kappa     (i,j,k,specel%lnum) = Kappa
+                                Tdomain%fpmldom%Mu        (i,j,k,specel%lnum) = Mu
                         end select
                     enddo
                 enddo
