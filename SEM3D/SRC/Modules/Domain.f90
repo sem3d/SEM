@@ -50,7 +50,7 @@ module sdomain
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
         real(fpp), dimension(:), allocatable :: MassMat
 
-        real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, mb_Density
+        real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, m_Density
 
         real(fpp), dimension(:,:,:,:),     allocatable :: Jacob
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: InvGrad
@@ -91,7 +91,7 @@ module sdomain
         real(fpp), dimension(:), allocatable :: MassMat
         real(fpp), dimension(:,:), allocatable :: DumpMass
 
-        real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, mb_Density
+        real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, m_Density
 
         real(fpp), dimension(:,:,:,:),     allocatable :: Jacob
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: InvGrad
@@ -128,7 +128,7 @@ module sdomain
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
         real(fpp), dimension(:), allocatable :: MassMat
 
-        real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, mb_Density
+        real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, m_Density
 
         real(fpp), dimension(:,:,:,:),     allocatable :: Jacob
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: InvGrad
@@ -162,7 +162,7 @@ module sdomain
         real(fpp), dimension(:), allocatable :: MassMat
         real(fpp), dimension(:,:), allocatable :: DumpMass
 
-        real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, mb_Density
+        real(fpp), dimension (:,:,:,:), allocatable :: Lambda, Mu, Kappa, m_Density
 
         real(fpp), dimension(:,:,:,:),     allocatable :: Jacob
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: InvGrad

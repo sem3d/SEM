@@ -33,7 +33,7 @@ contains
         nglly   = dom%nglly
         ngllz   = dom%ngllz
 
-        allocate(dom%mc_Density(0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
+        allocate(dom%Density_(0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
         allocate(dom%Lambda (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
         allocate(dom%Mu     (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
         allocate(dom%Kappa  (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
@@ -89,7 +89,7 @@ contains
         implicit none
         type(domain_solidpml), intent (INOUT) :: dom
 
-        if(allocated(dom%mb_Density)) deallocate(dom%mb_Density)
+        if(allocated(dom%m_Density)) deallocate(dom%m_Density)
         if(allocated(dom%Lambda )) deallocate(dom%Lambda )
         if(allocated(dom%Mu     )) deallocate(dom%Mu     )
         if(allocated(dom%Kappa  )) deallocate(dom%Kappa  )

@@ -1,15 +1,15 @@
 .. -*- mode: rst; coding: utf-8 -*-
 
-=================================
-Note relatives à la vectorisation
-=================================
+================================
+Note relative à la vectorisation
+================================
 
-Pour maximiser l'adéquation entre structures de données (membre d'un module) et architecture (vectorisation possible ou non), des macros sont définies dans le fichier index.h : il existe une macro (mc_) par structure (mb_).
+Pour maximiser l'adéquation entre structures de données (membre d'un module) et architecture (vectorisation possible ou non), des macros sont définies dans le fichier index.h : il existe une macro (suffixée par ``_``) par structure (préfixée par ``m_``).
 
 Les règles à suivre pour utiliser ces macros sont :
 
-- allocation de la strucutre : utiliser mc_ (mais pas mb_).
+- allocation et accès (lecture, écriture) : utiliser ``*_`` (mais pas ``m_*``).
 
-- accès (lecture, écriture) aux éléments de la structure : utiliser mc_ (mais pas mb_).
+- désallocation : utiliser ``m_*`` (mais pas ``*_``).
 
-- désallocation : utiliser mb_ (mais pas mc_).
+Pour pouvoir utiliser les macros il faut respecter la casse de leurs noms (le préprocesseur qui les substitue est sensible à la casse).

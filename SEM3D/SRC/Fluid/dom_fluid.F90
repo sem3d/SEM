@@ -32,7 +32,7 @@ contains
         nglly   = dom%nglly
         ngllz   = dom%ngllz
 
-        allocate(dom%mc_Density(0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
+        allocate(dom%Density_(0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
         allocate(dom%Lambda (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
         allocate(dom%Mu     (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
         allocate(dom%Kappa  (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
@@ -63,7 +63,7 @@ contains
         implicit none
         type(domain_fluid), intent (INOUT) :: dom
 
-        if(allocated(dom%mb_Density)) deallocate(dom%mb_Density)
+        if(allocated(dom%m_Density)) deallocate(dom%m_Density)
         if(allocated(dom%Lambda )) deallocate(dom%Lambda )
         if(allocated(dom%Mu     )) deallocate(dom%Mu     )
         if(allocated(dom%Kappa  )) deallocate(dom%Kappa  )
@@ -150,7 +150,7 @@ contains
                         mat = el%mat_index
                         call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,                  &
                             Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez,            &
-                            Tdomain%fdom%InvGrad(:,:,:,:,:,el%lnum),Tdomain%fdom%mc_Density(:,:,:,el%lnum),&
+                            Tdomain%fdom%InvGrad(:,:,:,:,:,el%lnum),Tdomain%fdom%Density_(:,:,:,el%lnum),&
                             phi,fieldV)
                     end if
 
@@ -161,7 +161,7 @@ contains
                         mat = el%mat_index
                         call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,                  &
                             Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez,            &
-                            Tdomain%fdom%InvGrad(:,:,:,:,:,el%lnum),Tdomain%fdom%mc_Density(:,:,:,el%lnum),&
+                            Tdomain%fdom%InvGrad(:,:,:,:,:,el%lnum),Tdomain%fdom%Density_(:,:,:,el%lnum),&
                             vphi,fieldA)
                     end if
 
@@ -240,7 +240,7 @@ contains
             htprimex,htprimey,htprimez,                           &
             dom%Jacob(:,:,:,lnum),mat%GLLwx,mat%GLLwy,mat%GLLwz,&
             dPhiX,dPhiY,dPhiZ,                                    &
-            dom%mc_Density(:,:,:,lnum),m1,m2,m3)
+            dom%Density_(:,:,:,lnum),m1,m2,m3)
         do k = 0,m3-1
             do j = 0,m2-1
                 do i = 0,m1-1
