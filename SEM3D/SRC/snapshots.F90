@@ -13,6 +13,7 @@ module msnapshots
     use sem_c_config, only : sem_mkdir
     use constants
     implicit none
+#include "index.h"
 
     type :: output_var_t
         real, dimension(:,:), allocatable :: displ, veloc, accel
@@ -1208,13 +1209,13 @@ contains
                         idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
-                                jac(idx) = Tdomain%sdom%Jacob   (i,j,k,Tdomain%specel(n)%lnum)
+                                jac(idx) = Tdomain%sdom%Jacob_   (i,j,k,Tdomain%specel(n)%lnum)
                             case (DM_SOLID_PML)
-                                jac(idx) = Tdomain%spmldom%Jacob(i,j,k,Tdomain%specel(n)%lnum)
+                                jac(idx) = Tdomain%spmldom%Jacob_(i,j,k,Tdomain%specel(n)%lnum)
                             case (DM_FLUID)
-                                jac(idx) = Tdomain%fdom%Jacob   (i,j,k,Tdomain%specel(n)%lnum)
+                                jac(idx) = Tdomain%fdom%Jacob_   (i,j,k,Tdomain%specel(n)%lnum)
                             case (DM_FLUID_PML)
-                                jac(idx) = Tdomain%fpmldom%Jacob(i,j,k,Tdomain%specel(n)%lnum)
+                                jac(idx) = Tdomain%fpmldom%Jacob_(i,j,k,Tdomain%specel(n)%lnum)
                         end select
                     end do
                 end do

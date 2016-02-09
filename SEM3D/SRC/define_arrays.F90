@@ -521,16 +521,16 @@ contains
                     select case (specel%domain)
                     case (DM_SOLID)
                         specel%MassMat(i,j,k) = Whei(i,j,k)*Tdomain%sdom%Density_(i,j,k,specel%lnum)*&
-                                                            Tdomain%sdom%Jacob     (i,j,k,specel%lnum)
+                                                            Tdomain%sdom%Jacob_  (i,j,k,specel%lnum)
                     case (DM_SOLID_PML)
                         specel%MassMat(i,j,k) = Whei(i,j,k)*Tdomain%spmldom%Density_(i,j,k,specel%lnum)*&
-                                                            Tdomain%spmldom%Jacob     (i,j,k,specel%lnum)
+                                                            Tdomain%spmldom%Jacob_  (i,j,k,specel%lnum)
                     ! fluid case: inertial term ponderation by the inverse of the bulk modulus
                     case (DM_FLUID)
-                        specel%MassMat(i,j,k) = Whei(i,j,k)*Tdomain%fdom%Jacob (i,j,k,specel%lnum)/&
+                        specel%MassMat(i,j,k) = Whei(i,j,k)*Tdomain%fdom%Jacob_ (i,j,k,specel%lnum)/&
                                                             Tdomain%fdom%Lambda_(i,j,k,specel%lnum)
                     case (DM_FLUID_PML)
-                        specel%MassMat(i,j,k) = Whei(i,j,k)*Tdomain%fpmldom%Jacob (i,j,k,specel%lnum)/&
+                        specel%MassMat(i,j,k) = Whei(i,j,k)*Tdomain%fpmldom%Jacob_ (i,j,k,specel%lnum)/&
                                                             Tdomain%fpmldom%Lambda_(i,j,k,specel%lnum)
                     end select
                 enddo

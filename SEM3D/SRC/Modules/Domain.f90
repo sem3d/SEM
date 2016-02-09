@@ -53,8 +53,8 @@ module sdomain
         real(fpp), dimension (:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Kappa, m_Density
         real(fpp), dimension(:,:,:,:,:), allocatable :: m_Cij
 
-        real(fpp), dimension(:,:,:,:),     allocatable :: Jacob
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: InvGrad
+        real(fpp), dimension(:,:,:,:),     allocatable :: m_Jacob
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_InvGrad
 
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich
@@ -93,8 +93,8 @@ module sdomain
 
         real(fpp), dimension (:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Kappa, m_Density
 
-        real(fpp), dimension(:,:,:,:),     allocatable :: Jacob
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: InvGrad
+        real(fpp), dimension(:,:,:,:),     allocatable :: m_Jacob
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_InvGrad
 
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich
@@ -130,8 +130,8 @@ module sdomain
 
         real(fpp), dimension (:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Kappa, m_Density
 
-        real(fpp), dimension(:,:,:,:),     allocatable :: Jacob
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: InvGrad
+        real(fpp), dimension(:,:,:,:),     allocatable :: m_Jacob
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_InvGrad
 
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich
@@ -164,8 +164,8 @@ module sdomain
 
         real(fpp), dimension (:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Kappa, m_Density
 
-        real(fpp), dimension(:,:,:,:),     allocatable :: Jacob
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: InvGrad
+        real(fpp), dimension(:,:,:,:),     allocatable :: m_Jacob
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_InvGrad
 
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich

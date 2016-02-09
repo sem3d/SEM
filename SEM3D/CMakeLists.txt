@@ -55,8 +55,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/read_restart.f90
     ${PRJ}/SRC/save_checkpoint.f90
     ${PRJ}/SRC/set_attenuation_param.F90
-    ${PRJ}/SRC/shape8.f90
-    ${PRJ}/SRC/shape27.f90
+    ${PRJ}/SRC/shape8.F90
+    ${PRJ}/SRC/shape27.F90
     ${PRJ}/SRC/ondelette.f90
     ${PRJ}/SRC/define_random.f90
     ${PRJ}/SRC/build_prop_files.F90
@@ -68,7 +68,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/boundary_conditions_init.f90
     ${PRJ}/SRC/partial_deriv.f90
 
-    ${PRJ}/SRC/snapshots.f90
+    ${PRJ}/SRC/snapshots.F90
 
     ${PRJ}/SRC/earth_models/earth_transform.f90
     ${PRJ}/SRC/earth_models/material_earthchunk.F90

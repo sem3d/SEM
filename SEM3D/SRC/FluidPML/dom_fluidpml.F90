@@ -38,8 +38,8 @@ contains
         allocate(dom%Mu_     (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
         allocate(dom%Kappa_  (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
 
-        allocate (dom%Jacob  (        0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
-        allocate (dom%InvGrad(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
+        allocate (dom%Jacob_  (        0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
+        allocate (dom%InvGrad_(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
 
         if(Tdomain%TimeD%velocity_scheme)then
             allocate(dom%Veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
@@ -82,8 +82,8 @@ contains
         if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
         if(allocated(dom%m_Kappa  )) deallocate(dom%m_Kappa  )
 
-        if(allocated(dom%Jacob  )) deallocate(dom%Jacob  )
-        if(allocated(dom%InvGrad)) deallocate(dom%InvGrad)
+        if(allocated(dom%m_Jacob  )) deallocate(dom%m_Jacob  )
+        if(allocated(dom%m_InvGrad)) deallocate(dom%m_InvGrad)
 
         if(allocated(dom%Veloc))       deallocate(dom%Veloc      )
         if(allocated(dom%PMLDumpSx  )) deallocate(dom%PMLDumpSx  )
@@ -203,10 +203,10 @@ contains
                     sum_vy = 0d0
                     sum_vz = 0d0
                     do l = 0,m1-1
-                        acoeff = - mat%hprimex(i,l)*mat%GLLwx(l)*mat%GLLwy(j)*mat%GLLwz(k)*dom%Jacob(l,j,k,lnum)
-                        sum_vx = sum_vx + acoeff*dom%InvGrad(0,0,l,j,k,lnum)*dom%Veloc(l,j,k,0,lnum)
-                        sum_vy = sum_vy + acoeff*dom%InvGrad(1,0,l,j,k,lnum)*dom%Veloc(l,j,k,1,lnum)
-                        sum_vz = sum_vz + acoeff*dom%InvGrad(2,0,l,j,k,lnum)*dom%Veloc(l,j,k,2,lnum)
+                        acoeff = - mat%hprimex(i,l)*mat%GLLwx(l)*mat%GLLwy(j)*mat%GLLwz(k)*dom%Jacob_(l,j,k,lnum)
+                        sum_vx = sum_vx + acoeff*dom%InvGrad_(0,0,l,j,k,lnum)*dom%Veloc(l,j,k,0,lnum)
+                        sum_vy = sum_vy + acoeff*dom%InvGrad_(1,0,l,j,k,lnum)*dom%Veloc(l,j,k,1,lnum)
+                        sum_vz = sum_vz + acoeff*dom%InvGrad_(2,0,l,j,k,lnum)*dom%Veloc(l,j,k,2,lnum)
                     end do
                     ForcesFl(0,i,j,k) = sum_vx
                     ForcesFl(1,i,j,k) = sum_vy
@@ -219,10 +219,10 @@ contains
                 do j = 0,m2-1
                     do i=0,m1-1
                         ind = Elem%Idom(i,j,k)
-                        acoeff = - mat%hprimey(j,l)*mat%GLLwx(i)*mat%GLLwy(l)*mat%GLLwz(k)*dom%Jacob(i,l,k,lnum)
-                        sum_vx = acoeff*dom%InvGrad(0,1,i,l,k,lnum)*dom%Veloc(i,l,k,0,lnum)
-                        sum_vy = acoeff*dom%InvGrad(1,1,i,l,k,lnum)*dom%Veloc(i,l,k,1,lnum)
-                        sum_vz = acoeff*dom%InvGrad(2,1,i,l,k,lnum)*dom%Veloc(i,l,k,2,lnum)
+                        acoeff = - mat%hprimey(j,l)*mat%GLLwx(i)*mat%GLLwy(l)*mat%GLLwz(k)*dom%Jacob_(i,l,k,lnum)
+                        sum_vx = acoeff*dom%InvGrad_(0,1,i,l,k,lnum)*dom%Veloc(i,l,k,0,lnum)
+                        sum_vy = acoeff*dom%InvGrad_(1,1,i,l,k,lnum)*dom%Veloc(i,l,k,1,lnum)
+                        sum_vz = acoeff*dom%InvGrad_(2,1,i,l,k,lnum)*dom%Veloc(i,l,k,2,lnum)
                         ForcesFl(0,i,j,k) = ForcesFl(0,i,j,k) + sum_vx
                         ForcesFl(1,i,j,k) = ForcesFl(1,i,j,k) + sum_vy
                         ForcesFl(2,i,j,k) = ForcesFl(2,i,j,k) + sum_vz
@@ -236,10 +236,10 @@ contains
                 do j = 0,m2-1
                     do i=0,m1-1
                         ind = Elem%Idom(i,j,k)
-                        acoeff = - mat%hprimez(k,l)*mat%GLLwx(i)*mat%GLLwy(j)*mat%GLLwz(l)*dom%Jacob(i,j,l,lnum)
-                        sum_vx = acoeff*dom%InvGrad(0,2,i,j,l,lnum)*dom%Veloc(i,j,l,0,lnum)
-                        sum_vy = acoeff*dom%InvGrad(1,2,i,j,l,lnum)*dom%Veloc(i,j,l,1,lnum)
-                        sum_vz = acoeff*dom%InvGrad(2,2,i,j,l,lnum)*dom%Veloc(i,j,l,2,lnum)
+                        acoeff = - mat%hprimez(k,l)*mat%GLLwx(i)*mat%GLLwy(j)*mat%GLLwz(l)*dom%Jacob_(i,j,l,lnum)
+                        sum_vx = acoeff*dom%InvGrad_(0,2,i,j,l,lnum)*dom%Veloc(i,j,l,0,lnum)
+                        sum_vy = acoeff*dom%InvGrad_(1,2,i,j,l,lnum)*dom%Veloc(i,j,l,1,lnum)
+                        sum_vz = acoeff*dom%InvGrad_(2,2,i,j,l,lnum)*dom%Veloc(i,j,l,2,lnum)
                         ForcesFl(0,i,j,k) = ForcesFl(0,i,j,k) + sum_vx
                         ForcesFl(1,i,j,k) = ForcesFl(1,i,j,k) + sum_vy
                         ForcesFl(2,i,j,k) = ForcesFl(2,i,j,k) + sum_vz
@@ -295,7 +295,8 @@ contains
         ! XXX DumpS{xyz}(:,:,:,1) doit etre multiplie par 1/density
         ! d(rho*Phi)_d(xi,eta,zeta)
         call physical_part_deriv(m1,m2,m3,mat%htprimex,mat%hprimey,mat%hprimez,&
-             dom%InvGrad(:,:,:,:,:,lnum), VelPhi(:,:,:), dVelPhi_dx, dVelPhi_dy, dVelPhi_dz)
+                                 dom%InvGrad_(:,:,:,:,:,lnum),                 &
+                                 VelPhi(:,:,:), dVelPhi_dx, dVelPhi_dy, dVelPhi_dz)
 
         ! prediction for (physical) velocity (which is the equivalent of a stress, here)
         ! V_x^x

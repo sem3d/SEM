@@ -12,6 +12,8 @@
 !<
 module mshape27
     implicit none
+#include "index.h"
+
 contains
     !>
     !! shape27: alloue et calcule la jacobienne et l'inverse du gradient de ??
@@ -63,17 +65,17 @@ contains
                         call invert_3d (LocInvGrad, Jac)
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
-                                Tdomain%sdom%Jacob     (        i,j,k,Tdomain%specel(n)%lnum) = Jac
-                                Tdomain%sdom%InvGrad   (0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                                Tdomain%sdom%Jacob_     (        i,j,k,Tdomain%specel(n)%lnum) = Jac
+                                Tdomain%sdom%InvGrad_   (0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
                             case (DM_FLUID)
-                                Tdomain%fdom%Jacob     (        i,j,k,Tdomain%specel(n)%lnum) = Jac
-                                Tdomain%fdom%InvGrad   (0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                                Tdomain%fdom%Jacob_     (        i,j,k,Tdomain%specel(n)%lnum) = Jac
+                                Tdomain%fdom%InvGrad_   (0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
                             case (DM_SOLID_PML)
-                                Tdomain%spmldom%Jacob  (        i,j,k,Tdomain%specel(n)%lnum) = Jac
-                                Tdomain%spmldom%InvGrad(0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                                Tdomain%spmldom%Jacob_  (        i,j,k,Tdomain%specel(n)%lnum) = Jac
+                                Tdomain%spmldom%InvGrad_(0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
                             case (DM_FLUID_PML)
-                                Tdomain%fpmldom%Jacob  (        i,j,k,Tdomain%specel(n)%lnum) = Jac
-                                Tdomain%fpmldom%InvGrad(0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                                Tdomain%fpmldom%Jacob_  (        i,j,k,Tdomain%specel(n)%lnum) = Jac
+                                Tdomain%fpmldom%InvGrad_(0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
                         end select
                     enddo
                 enddo

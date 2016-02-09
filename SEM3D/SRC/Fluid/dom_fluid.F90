@@ -37,8 +37,8 @@ contains
         allocate(dom%Mu_     (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
         allocate(dom%Kappa_  (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
 
-        allocate (dom%Jacob  (        0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
-        allocate (dom%InvGrad(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
+        allocate (dom%Jacob_  (        0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
+        allocate (dom%InvGrad_(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
 
         ! Allocation et initialisation de champs0 et champs1 pour les fluides
         if (dom%ngll /= 0) then
@@ -68,8 +68,8 @@ contains
         if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
         if(allocated(dom%m_Kappa  )) deallocate(dom%m_Kappa  )
 
-        if(allocated(dom%Jacob  )) deallocate(dom%Jacob  )
-        if(allocated(dom%InvGrad)) deallocate(dom%InvGrad)
+        if(allocated(dom%m_Jacob  )) deallocate(dom%m_Jacob  )
+        if(allocated(dom%m_InvGrad)) deallocate(dom%m_InvGrad)
 
         if(allocated(dom%champs0%ForcesFl)) deallocate(dom%champs0%ForcesFl)
         if(allocated(dom%champs0%Phi     )) deallocate(dom%champs0%Phi     )
@@ -150,7 +150,7 @@ contains
                         mat = el%mat_index
                         call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,                  &
                             Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez,            &
-                            Tdomain%fdom%InvGrad(:,:,:,:,:,el%lnum),Tdomain%fdom%Density_(:,:,:,el%lnum),&
+                            Tdomain%fdom%InvGrad_(:,:,:,:,:,el%lnum),Tdomain%fdom%Density_(:,:,:,el%lnum),&
                             phi,fieldV)
                     end if
 
@@ -161,7 +161,7 @@ contains
                         mat = el%mat_index
                         call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,                  &
                             Tdomain%sSubdomain(mat)%hprimey,Tdomain%sSubdomain(mat)%hprimez,            &
-                            Tdomain%fdom%InvGrad(:,:,:,:,:,el%lnum),Tdomain%fdom%Density_(:,:,:,el%lnum),&
+                            Tdomain%fdom%InvGrad_(:,:,:,:,:,el%lnum),Tdomain%fdom%Density_(:,:,:,el%lnum),&
                             vphi,fieldA)
                     end if
 
@@ -231,14 +231,15 @@ contains
                 enddo
             enddo
         enddo
-        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,dom%InvGrad(:,:,:,:,:,lnum), Phi, &
-            dPhiX, dPhiY, dPhiZ)
+        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez, &
+                                 dom%InvGrad_(:,:,:,:,:,lnum), Phi, &
+                                 dPhiX, dPhiY, dPhiZ)
 
         ! internal forces
         call calcul_forces_fluid(Fo_Fl,                           &
-            dom%Invgrad(:,:,:,:,:,lnum),                          &
+            dom%InvGrad_(:,:,:,:,:,lnum),                         &
             htprimex,htprimey,htprimez,                           &
-            dom%Jacob(:,:,:,lnum),mat%GLLwx,mat%GLLwy,mat%GLLwz,&
+            dom%Jacob_(:,:,:,lnum),mat%GLLwx,mat%GLLwy,mat%GLLwz, &
             dPhiX,dPhiY,dPhiZ,                                    &
             dom%Density_(:,:,:,lnum),m1,m2,m3)
         do k = 0,m3-1
