@@ -14,7 +14,7 @@ module dom_fluid
 
 contains
 
-  subroutine allocate_dom_fluid (Tdomain, dom)
+    subroutine allocate_dom_fluid (Tdomain, dom)
         implicit none
         type(domain) :: TDomain
         type(domain_fluid), intent (INOUT) :: dom

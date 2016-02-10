@@ -15,7 +15,7 @@ module dom_solidpml
 
 contains
 
-  subroutine allocate_dom_solidpml (Tdomain, dom)
+    subroutine allocate_dom_solidpml (Tdomain, dom)
         implicit none
         type(domain) :: TDomain
         type(domain_solidpml), intent (INOUT) :: dom
@@ -204,7 +204,7 @@ contains
         enddo
     end subroutine get_solidpml_dom_var
 
-  subroutine forces_int_sol_pml(dom, mat, champs1, Elem, lnum)
+    subroutine forces_int_sol_pml(dom, mat, champs1, Elem, lnum)
         type(domain_solidpml), intent(inout) :: dom
         type (subdomain), intent(IN) :: mat
         type(champssolidpml), intent(inout) :: champs1
@@ -217,7 +217,6 @@ contains
         real, dimension(0:2,0:Elem%ngllx-1,0:Elem%nglly-1,0:Elem%ngllz-1)  :: Forces1, Forces2, Forces3
 
         m1 = Elem%ngllx ; m2 = Elem%nglly ; m3 = Elem%ngllz
-
 
         do k = 0,m3-1
             do j = 0,m2-1
@@ -295,7 +294,6 @@ contains
                 end do
             end do
         end do
-
 
         ! Assemblage
         do k = 0,m3-1

@@ -14,7 +14,7 @@ module dom_solid
 
 contains
 
-  subroutine allocate_dom_solid (Tdomain, dom)
+    subroutine allocate_dom_solid (Tdomain, dom)
         implicit none
         type(domain) :: TDomain
         type(domain_solid), intent (INOUT) :: dom

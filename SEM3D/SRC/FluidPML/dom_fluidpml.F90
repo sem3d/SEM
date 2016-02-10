@@ -15,7 +15,7 @@ module dom_fluidpml
 
 contains
 
-  subroutine allocate_dom_fluidpml (Tdomain, dom)
+    subroutine allocate_dom_fluidpml (Tdomain, dom)
         implicit none
         type(domain) :: TDomain
         type(domain_fluidpml) :: dom
@@ -181,7 +181,7 @@ contains
         enddo
     end subroutine get_fluidpml_dom_var
 
-  subroutine forces_int_flu_pml(dom, mat, champs1, Elem, lnum)
+    subroutine forces_int_flu_pml(dom, mat, champs1, Elem, lnum)
         type (domain_fluidpml), intent (INOUT) :: dom
         type (subdomain), intent(IN) :: mat
         type(champsfluidpml), intent(inout) :: champs1
@@ -247,7 +247,7 @@ contains
                 end do
             end do
         end do
-        
+
         ! Assemblage
         do k = 0,m3-1
             do j = 0,m2-1
