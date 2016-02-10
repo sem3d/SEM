@@ -11,18 +11,18 @@
 !!
 !<
 
-subroutine calcul_forces_aniso(Fox,Foy,Foz, invgrad, &
-    dx,dy,dz, jac, poidsx,poidsy,poidsz, DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
-    Cij, ngllx,nglly,ngllz)
+subroutine calcul_forces_aniso(dom,lnum,Fox,Foy,Foz, &
+    dx,dy,dz,poidsx,poidsy,poidsz, DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
+    ngllx,nglly,ngllz)
 
     use sdomain
 
     implicit none
+#include "index.h"
 
+    type(domain_solid), intent (INOUT) :: dom
+    integer, intent(in) :: lnum
     integer, intent(in) :: ngllx,nglly,ngllz
-    real, dimension(0:20, 0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Cij
-    real, dimension(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: invgrad
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,jac
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: Fox,Foz,Foy
     real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: dx
     real, dimension(0:nglly-1,0:nglly-1), intent(in) :: dy
@@ -30,6 +30,7 @@ subroutine calcul_forces_aniso(Fox,Foy,Foz, invgrad, &
     real, dimension(0:ngllx-1), intent(in) :: poidsx
     real, dimension(0:nglly-1), intent(in) :: poidsy
     real, dimension(0:ngllz-1), intent(in) :: poidsz
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
 
     integer :: i,j,k,l
     real :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
@@ -48,7 +49,7 @@ subroutine calcul_forces_aniso(Fox,Foy,Foz, invgrad, &
     k = 0
     do i = 0,5
         do j = i,5
-            C(i,j,:,:,:) = Cij(k,:,:,:)
+        C(i,j,:,:,:) = dom%Cij_(k,:,:,:,lnum)
             k = k + 1
         enddo
     enddo
@@ -87,15 +88,15 @@ subroutine calcul_forces_aniso(Fox,Foy,Foz, invgrad, &
                 sxz=sxz/s2
                 sxy=sxy/s2
 
-                xi1 = Invgrad(0,0,i,j,k)
-                xi2 = Invgrad(1,0,i,j,k)
-                xi3 = Invgrad(2,0,i,j,k)
-                et1 = Invgrad(0,1,i,j,k)
-                et2 = Invgrad(1,1,i,j,k)
-                et3 = Invgrad(2,1,i,j,k)
-                ga1 = Invgrad(0,2,i,j,k)
-                ga2 = Invgrad(1,2,i,j,k)
-                ga3 = Invgrad(2,2,i,j,k)
+                xi1 = dom%InvGrad_(0,0,i,j,k,lnum)
+                xi2 = dom%InvGrad_(1,0,i,j,k,lnum)
+                xi3 = dom%InvGrad_(2,0,i,j,k,lnum)
+                et1 = dom%InvGrad_(0,1,i,j,k,lnum)
+                et2 = dom%InvGrad_(1,1,i,j,k,lnum)
+                et3 = dom%InvGrad_(2,1,i,j,k,lnum)
+                ga1 = dom%InvGrad_(0,2,i,j,k,lnum)
+                ga2 = dom%InvGrad_(1,2,i,j,k,lnum)
+                ga3 = dom%InvGrad_(2,2,i,j,k,lnum)
 
                 !
                 !=====================
@@ -126,17 +127,17 @@ subroutine calcul_forces_aniso(Fox,Foy,Foz, invgrad, &
                 !
                 !- Multiplication par le Jacobien et le poids d'integration
                 !
-                t4 = jac(i,j,k) * poidsx(i)
+                t4 = dom%Jacob_(i,j,k,lnum) * poidsx(i)
                 xt1  =  xt1 * t4
                 xt5  =  xt5 * t4
                 xt8  =  xt8 * t4
 
-                t4 = jac(i,j,k) * poidsy(j)
+                t4 = dom%Jacob_(i,j,k,lnum) * poidsy(j)
                 xt2  =  xt2 * t4
                 xt6  =  xt6 * t4
                 xt9  =  xt9 * t4
 
-                t4 = jac(i,j,k) * poidsz(k)
+                t4 = dom%Jacob_(i,j,k,lnum) * poidsz(k)
                 xt3  =  xt3 * t4
                 xt7  =  xt7 * t4
                 xt10 = xt10 * t4

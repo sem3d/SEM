@@ -419,113 +419,26 @@ contains
 
         if (aniso) then
             if (n_solid>0) then
-                call calcul_forces_aniso_att(Fox,Foy,Foz, &
-                    dom%InvGrad_(:,:,:,:,:,lnum), &
-                    htprimex, htprimey, htprimez, &
-                    dom%Jacob_(:,:,:,lnum), mat%GLLwx, mat%GLLwy, mat%GLLwz, &
-                    DXX,DXY,DXZ, &
-                    DYX,DYY,DYZ, &
-                    DZX,DZY,DZZ, &
-                    dom%Mu_    (:,:,:,lnum), &
-                    dom%Lambda_(:,:,:,lnum), &
-                    dom%Cij_   (:,:,:,:,lnum), &
-                    m1,m2,m3, n_solid, &
-                    dom%onemSbeta(:,:,:,lnum), &
-                    dom%R_xx_(:,:,:,:,lnum), &
-                    dom%R_yy_(:,:,:,:,lnum), &
-                    dom%R_xy_(:,:,:,:,lnum), &
-                    dom%R_xz_(:,:,:,:,lnum), &
-                    dom%R_yz_(:,:,:,:,lnum))
-                  call attenuation_aniso_update(dom%epsilondev_xx_(:,:,:,lnum),&
-                    dom%epsilondev_yy_(:,:,:,lnum), &
-                    dom%epsilondev_xy_(:,:,:,lnum),&
-                    dom%epsilondev_xz_(:,:,:,lnum),&
-                    dom%epsilondev_yz_(:,:,:,lnum), &
-                    epsilondev_xx_loc,epsilondev_yy_loc, &
-                    epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc, &
-                    dom%R_xx_(:,:,:,:,lnum),&
-                    dom%R_yy_(:,:,:,:,lnum),&
-                    dom%R_xy_(:,:,:,:,lnum),&
-                    dom%R_xz_(:,:,:,:,lnum),&
-                    dom%R_yz_(:,:,:,:,lnum),&
-                    dom%factor_common_3(:,:,:,:,lnum),&
-                    dom%alphaval_3(:,:,:,:,lnum),&
-                    dom%betaval_3(:,:,:,:,lnum),&
-                    dom%gammaval_3(:,:,:,:,lnum),&
-                    dom%Mu_(:,:,:,lnum), &
-                    m1,m2,m3, n_solid)
+                call calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz,htprimex,htprimey,htprimez,&
+                     mat%GLLwx,mat%GLLwy,mat%GLLwz,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,m1,m2,m3,n_solid)
+                call attenuation_aniso_update(dom,lnum,epsilondev_xx_loc,epsilondev_yy_loc, &
+                     epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc,m1,m2,m3,n_solid)
                 deallocate(epsilondev_xx_loc,epsilondev_yy_loc,epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc)
-                !      deallocate(epsilonvol_loc)
             else
-                call calcul_forces_aniso(Fox,Foy,Foz,  &
-                    dom%InvGrad_(:,:,:,:,:,lnum), &
-                    htprimex, htprimey, htprimez, &
-                    dom%Jacob_(:,:,:,lnum), mat%GLLwx, mat%GLLwy, mat%GLLwz, &
-                    DXX,DXY,DXZ, &
-                    DYX,DYY,DYZ, &
-                    DZX,DZY,DZZ, &
-                    dom%Cij_(:,:,:,:,lnum), &
-                    m1,m2,m3)
+                call calcul_forces_aniso(dom,lnum,Fox,Foy,Foz,htprimex,htprimey,htprimez, &
+                     mat%GLLwx, mat%GLLwy, mat%GLLwz,DXX,DXY,DXZ,DYX,DYY,DYZ, DZX,DZY,DZZ,m1,m2,m3)
             endif
         else
             if (n_solid>0) then
-                call calcul_forces_att(Fox,Foy,Foz, &
-                    dom%InvGrad_(:,:,:,:,:,lnum), &
-                    htprimex, htprimey, htprimez, &
-                    dom%Jacob_(:,:,:,lnum), mat%GLLwx, mat%GLLwy, mat%GLLwz, &
-                    DXX,DXY,DXZ, &
-                    DYX,DYY,DYZ, &
-                    DZX,DZY,DZZ, &
-                    dom%Mu_(:,:,:,lnum), &
-                    dom%Kappa_(:,:,:,lnum), &
-                    m1,m2,m3, n_solid, &
-                    dom%R_xx_(:,:,:,:,lnum),&
-                    dom%R_yy_(:,:,:,:,lnum), &
-                    dom%R_xy_(:,:,:,:,lnum), &
-                    dom%R_xz_(:,:,:,:,lnum), &
-                    dom%R_yz_(:,:,:,:,lnum), &
-                    dom%R_vol_(:,:,:,:,lnum), &
-                    dom%onemSbeta(:,:,:,lnum), &
-                    dom%onemPbeta(:,:,:,lnum) &
-                    )
-                  call attenuation_update(dom%epsilondev_xx_(:,:,:,lnum),&
-                    dom%epsilondev_yy_(:,:,:,lnum), &
-                    dom%epsilondev_xy_(:,:,:,lnum),&
-                    dom%epsilondev_xz_(:,:,:,lnum),&
-                    dom%epsilondev_yz_(:,:,:,lnum), &
-                    epsilondev_xx_loc,epsilondev_yy_loc, &
-                    epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc, &
-                    dom%R_xx_(:,:,:,:,lnum),&
-                    dom%R_yy_(:,:,:,:,lnum),&
-                    dom%R_xy_(:,:,:,:,lnum),&
-                    dom%R_xz_(:,:,:,:,lnum),&
-                    dom%R_yz_(:,:,:,:,lnum), &
-                    dom%factor_common_3(:,:,:,:,lnum),&
-                    dom%alphaval_3(:,:,:,:,lnum),&
-                    dom%betaval_3(:,:,:,:,lnum),&
-                    dom%gammaval_3(:,:,:,:,lnum), &
-                    dom%Mu_(:,:,:,lnum), &
-                    m1,m2,m3, n_solid, &
-                    dom%Kappa_(:,:,:,lnum), &
-                    dom%epsilonvol_(:,:,:,lnum),epsilonvol_loc,&
-                    dom%R_vol_(:,:,:,:,lnum), &
-                    dom%factor_common_P(:,:,:,:,lnum),&
-                    dom%alphaval_P(:,:,:,:,lnum),&
-                    dom%betaval_P(:,:,:,:,lnum),&
-                    dom%gammaval_P(:,:,:,:,lnum))
+                call calcul_forces_att(dom,lnum,Fox,Foy,Foz,htprimex,htprimey,htprimez, &
+                     mat%GLLwx, mat%GLLwy, mat%GLLwz,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,m1,m2,m3, n_solid)
+                call attenuation_update(dom,lnum,epsilondev_xx_loc,epsilondev_yy_loc, &
+                     epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc,m1,m2,m3,n_solid,epsilonvol_loc)
                 deallocate(epsilondev_xx_loc,epsilondev_yy_loc,epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc)
                 deallocate(epsilonvol_loc)
             else
-                call calcul_forces(Fox,Foy,Foz,  &
-                    dom%InvGrad_(:,:,:,:,:,lnum), &
-                    htprimex, htprimey, htprimez, &
-                    dom%Jacob_(:,:,:,lnum), mat%GLLwx, mat%GLLwy, mat%GLLwz, &
-                    DXX,DXY,DXZ, &
-                    DYX,DYY,DYZ, &
-                    DZX,DZY,DZZ, &
-                    dom%Mu_(:,:,:,lnum), &
-                    dom%Lambda_(:,:,:,lnum),&
-                    m1,m2,m3)
+                call calcul_forces(dom,lnum,Fox,Foy,Foz,htprimex,htprimey,htprimez, &
+                     mat%GLLwx,mat%GLLwy,mat%GLLwz,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,m1,m2,m3)
             endif
         endif
 

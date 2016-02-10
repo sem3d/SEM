@@ -236,12 +236,8 @@ contains
                                  dPhiX, dPhiY, dPhiZ)
 
         ! internal forces
-        call calcul_forces_fluid(Fo_Fl,                           &
-            dom%InvGrad_(:,:,:,:,:,lnum),                         &
-            htprimex,htprimey,htprimez,                           &
-            dom%Jacob_(:,:,:,lnum),mat%GLLwx,mat%GLLwy,mat%GLLwz, &
-            dPhiX,dPhiY,dPhiZ,                                    &
-            dom%Density_(:,:,:,lnum),m1,m2,m3)
+        call calcul_forces_fluid(dom,lnum,Fo_Fl,htprimex,htprimey,htprimez,&
+             mat%GLLwx,mat%GLLwy,mat%GLLwz,dPhiX,dPhiY,dPhiZ,m1,m2,m3)
         do k = 0,m3-1
             do j = 0,m2-1
                 do i = 0,m1-1

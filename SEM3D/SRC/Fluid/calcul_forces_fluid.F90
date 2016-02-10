@@ -2,17 +2,18 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
-subroutine calcul_forces_fluid(FFl,invgrad,      &
-    hTprimex,hTprimey,hTprimez,jac,wheix,wheiy,wheiz,  &
-    dPhiX,dPhiY,dPhiZ,dens_,ngllx,nglly,ngllz)
+subroutine calcul_forces_fluid(dom,lnum,FFl,      &
+    hTprimex,hTprimey,hTprimez,wheix,wheiy,wheiz, &
+    dPhiX,dPhiY,dPhiZ,ngllx,nglly,ngllz)
 
     use sdomain
 
     implicit none
+#include "index.h"
 
+    type(domain_fluid), intent (INOUT) :: dom
+    integer, intent(in) :: lnum
     integer, intent(in) :: ngllx,nglly,ngllz
-    real, dimension(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: invgrad
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: jac,dens_, dPhiX,dPhiY,dPhiZ
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: FFl
     real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: hTprimex
     real, dimension(0:nglly-1,0:nglly-1), intent(in) :: hTprimey
@@ -20,6 +21,7 @@ subroutine calcul_forces_fluid(FFl,invgrad,      &
     real, dimension(0:ngllx-1), intent(in) :: wheix
     real, dimension(0:nglly-1), intent(in) :: wheiy
     real, dimension(0:ngllz-1), intent(in) :: wheiz
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: dPhiX,dPhiY,dPhiZ
 
     real :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
     integer :: i,j,k,l
@@ -31,8 +33,7 @@ subroutine calcul_forces_fluid(FFl,invgrad,      &
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t1,t6
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t10
 
-
-    xdens(:,:,:) = 1d0/dens_(:,:,:)
+    xdens(:,:,:) = 1d0/dom%Density_(:,:,:,lnum)
 
     do k = 0,ngllz-1
         do j = 0,nglly-1
@@ -43,15 +44,15 @@ subroutine calcul_forces_fluid(FFl,invgrad,      &
                 sy = xdens(i,j,k)*dPhiY(i,j,k)
                 sz = xdens(i,j,k)*dPhiZ(i,j,k)
 
-                xi1 = Invgrad(0,0,i,j,k)
-                xi2 = Invgrad(1,0,i,j,k)
-                xi3 = Invgrad(2,0,i,j,k)
-                et1 = Invgrad(0,1,i,j,k)
-                et2 = Invgrad(1,1,i,j,k)
-                et3 = Invgrad(2,1,i,j,k)
-                ga1 = Invgrad(0,2,i,j,k)
-                ga2 = Invgrad(1,2,i,j,k)
-                ga3 = Invgrad(2,2,i,j,k)
+                xi1 = dom%InvGrad_(0,0,i,j,k,lnum)
+                xi2 = dom%InvGrad_(1,0,i,j,k,lnum)
+                xi3 = dom%InvGrad_(2,0,i,j,k,lnum)
+                et1 = dom%InvGrad_(0,1,i,j,k,lnum)
+                et2 = dom%InvGrad_(1,1,i,j,k,lnum)
+                et3 = dom%InvGrad_(2,1,i,j,k,lnum)
+                ga1 = dom%InvGrad_(0,2,i,j,k,lnum)
+                ga2 = dom%InvGrad_(1,2,i,j,k,lnum)
+                ga3 = dom%InvGrad_(2,2,i,j,k,lnum)
 
                 !=====================
                 !       F1 
@@ -68,13 +69,13 @@ subroutine calcul_forces_fluid(FFl,invgrad,      &
                 !
                 !- Multiply par Jacobian and weight
                 !
-                t4 = jac(i,j,k) * wheix(i)
-                xt1  =  xt1 * t4
+                t4  = dom%Jacob_(i,j,k,lnum) * wheix(i)
+                xt1 = xt1 * t4
 
-                t4 = jac(i,j,k) * wheiy(j)
-                xt6  =  xt6 * t4
+                t4  = dom%Jacob_(i,j,k,lnum) * wheiy(j)
+                xt6 = xt6 * t4
 
-                t4 = jac(i,j,k) * wheiz(k)
+                t4   = dom%Jacob_(i,j,k,lnum) * wheiz(k)
                 xt10 = xt10 * t4
 
 

@@ -3,28 +3,26 @@
 !! Copyright CEA, ECP, IPGP
 !!
 !>
-!! \file calcul_forces_att.f90
+!! \file calcul_forces_aniso_att.f90
 !! \brief
 !! \author
 !! \version 1.0
 !! \date
 !!
 !<
-subroutine calcul_forces_att(Fox,Foy,Foz, invgrad, &
-    dx,dy,dz, jac, poidsx,poidsy,poidsz, DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
-    mu_,ka_, ngllx,nglly,ngllz, n_solid, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_,R_vol_,onemSbeta,onemPbeta)
+
+subroutine calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz, &
+    dx,dy,dz,poidsx,poidsy,poidsz,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
+    ngllx,nglly,ngllz,n_solid)
+
     use sdomain
 
     implicit none
+#include "index.h"
 
-    integer, intent(in) :: ngllx,nglly,ngllz, n_solid
-    real, dimension(0:n_solid-1,0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: R_vol_,R_xx_,R_yy_
-    real, dimension(0:n_solid-1,0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: R_xy_,R_xz_,R_yz_
-    real, dimension(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: invgrad
-
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: jac, mu_,ka_, DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
-
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: onemSbeta, onemPbeta
+    type(domain_solid), intent (INOUT) :: dom
+    integer, intent(in) :: lnum
+    integer, intent(in) :: ngllx,nglly,ngllz
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: Fox,Foz,Foy
     real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: dx
     real, dimension(0:nglly-1,0:nglly-1), intent(in) :: dy
@@ -32,77 +30,106 @@ subroutine calcul_forces_att(Fox,Foy,Foz, invgrad, &
     real, dimension(0:ngllx-1), intent(in) :: poidsx
     real, dimension(0:nglly-1), intent(in) :: poidsy
     real, dimension(0:ngllz-1), intent(in) :: poidsz
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
+    integer, intent(in) :: n_solid
 
     real :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
     real :: sxx,sxy,sxz,syy,syz,szz,t4,F1,F2,F3
-    real :: xpression , stt
     real :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
-    real, parameter :: zero = 0.
+    real, parameter :: deuxtiers = 0.666666666666667, &
+        quatretiers = 1.333333333333337, &
+        s2 = 1.414213562373095, &
+        s2o2 = 0.707106781186547, &
+        zero = 0., two = 2.
     integer :: i,j,k,l, i_sls
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: xmu,x2mu,xkappa
+    real, dimension(0:5) :: eij
+    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: xmu,xla,xla2mu,kappa
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t1,t5,t8,t2,t6,t9
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t3,t7,t10
+    real, dimension(0:5, 0:5, 0:ngllx-1,0:nglly-1,0:ngllz-1) :: C
 
 
-    xmu(:,:,:) = mu_(:,:,:)
-    !  mu_relaxed -> mu_unrelaxed
-    xmu(:,:,:) = xmu(:,:,:) * onemSbeta(:,:,:)
-    xkappa(:,:,:) = ka_(:,:,:)
-    !  kappa_relaxed -> kappa_unrelaxed
-    xkappa(:,:,:) = xkappa(:,:,:) * onemPbeta(:,:,:)
-    x2mu(:,:,:) = 2. * xmu(:,:,:)
+    xmu(:,:,:) = dom%Mu_(:,:,:,lnum)
+    xmu(:,:,:) = xmu(:,:,:) * dom%onemSbeta(:,:,:,lnum)
+    !ATTENTION a l'histoire kappa/lambda !!!
+    kappa(:,:,:) = dom%Lambda_(:,:,:,lnum)
+    xla(:,:,:) = kappa(:,:,:) - deuxtiers * xmu(:,:,:)
+    xla2mu(:,:,:) = xla(:,:,:) + two * xmu(:,:,:)
+
+    !on remplit la partie superieure isotrope
+    C(:,:,:,:,:) = 0.d0
+    C(0,0,:,:,:) = xla2mu(:,:,:)
+    C(1,1,:,:,:) = xla2mu(:,:,:)
+    C(2,2,:,:,:) = xla2mu(:,:,:)
+    C(3,3,:,:,:) = two*xmu(:,:,:)
+    C(4,4,:,:,:) = two*xmu(:,:,:)
+    C(5,5,:,:,:) = two*xmu(:,:,:)
+    C(0,1,:,:,:) = xla(:,:,:)
+    C(0,2,:,:,:) = xla(:,:,:)
+    C(1,2,:,:,:) = xla(:,:,:)
+    !on ajoute la partie anisotrope et on symetrise:
+    k = 0
+    do i = 0,5
+        do j = i,5
+        C(i,j,:,:,:) = C(i,j,:,:,:) + dom%Cij_(k,:,:,:,lnum)
+            k = k + 1
+        enddo
+    enddo
+    do i = 1,5
+        do j = 0,i-1
+            C(i,j,:,:,:) = C(j,i,:,:,:)
+        enddo
+    enddo
 
     do k = 0,ngllz-1
         do j = 0,nglly-1
             do i = 0,ngllx-1
-                xpression = xkappa(i,j,k) * ( DXX(i,j,k) + &
-                    DYY(i,j,k) + DZZ(i,j,k) )
 
-                sxx = x2mu(i,j,k) * DXX(i,j,k)
+                eij(0) = DXX(i,j,k)
+                eij(1) = DYY(i,j,k)
+                eij(2) = DZZ(i,j,k)
+                eij(3) = s2o2*(DYZ(i,j,k)+DZY(i,j,k))
+                eij(4) = s2o2*(DXZ(i,j,k)+DZX(i,j,k))
+                eij(5) = s2o2*(DXY(i,j,k)+DYX(i,j,k))
 
-                sxy = xmu(i,j,k)  *( DXY(i,j,k)  +       &
-                    DYX(i,j,k)  )
-
-                sxz = xmu(i,j,k) * ( DXZ(i,j,k)  +       &
-                    DZX(i,j,k)  )
-
-                syy = x2mu(i,j,k) * DYY(i,j,k)
-
-                syz = xmu(i,j,k) * ( DYZ(i,j,k)  +       &
-                    DZY(i,j,k)  )
-
-                szz = x2mu(i,j,k) * DZZ(i,j,k)
-
-                !        stt = (sxx + syy + szz)/3.
-                do i_sls = 0,n_solid-1
-                    xpression = xpression - R_vol_(i_sls,i,j,k)
-                    sxx = sxx  - R_xx_(i_sls,i,j,k)
-                    syy = syy  - R_yy_(i_sls,i,j,k)
-                    !         sxx = sxx - stt - R_xx_(i_sls,i,j,k)
-                    !         syy = syy - stt - R_yy_(i_sls,i,j,k)
-                    ! ici on utilise le fait que la trace est nulle
-                    szz = szz  + R_xx_(i_sls,i,j,k) + R_yy_(i_sls,i,j,k)
-                    !         szz = szz - stt + R_xx_(i_sls,i,j,k) + R_yy_(i_sls,i,j,k)
-                    sxy = sxy - R_xy_(i_sls,i,j,k)
-                    sxz = sxz - R_xz_(i_sls,i,j,k)
-                    syz = syz - R_yz_(i_sls,i,j,k)
+                sxx = 0.
+                syy = 0.
+                szz = 0.
+                syz = 0.
+                sxz = 0.
+                sxy = 0.
+                do l = 0,5
+                    sxx = sxx + C(0,l,i,j,k)*eij(l)
+                    syy = syy + C(1,l,i,j,k)*eij(l)
+                    szz = szz + C(2,l,i,j,k)*eij(l)
+                    syz = syz + C(3,l,i,j,k)*eij(l)
+                    sxz = sxz + C(4,l,i,j,k)*eij(l)
+                    sxy = sxy + C(5,l,i,j,k)*eij(l)
                 enddo
-                stt = (sxx + syy + szz)/3.
-                sxx = sxx - stt + xpression
-                syy = syy - stt + xpression
-                szz = szz - stt + xpression
+                syz=syz/s2
+                sxz=sxz/s2
+                sxy=sxy/s2
 
-                xi1 = Invgrad(0,0,i,j,k)
-                xi2 = Invgrad(1,0,i,j,k)
-                xi3 = Invgrad(2,0,i,j,k)
-                et1 = Invgrad(0,1,i,j,k)
-                et2 = Invgrad(1,1,i,j,k)
-                et3 = Invgrad(2,1,i,j,k)
-                ga1 = Invgrad(0,2,i,j,k)
-                ga2 = Invgrad(1,2,i,j,k)
-                ga3 = Invgrad(2,2,i,j,k)
-
+                do i_sls = 0,n_solid-1
+                    sxx = sxx - dom%R_xx_(i_sls,i,j,k,lnum)
+                    syy = syy - dom%R_yy_(i_sls,i,j,k,lnum)
+                    ! ici on utilise le fait que la trace est nulle
+                    szz = szz + dom%R_xx_(i_sls,i,j,k,lnum) + &
+                                dom%R_yy_(i_sls,i,j,k,lnum)
+                    sxy = sxy - dom%R_xy_(i_sls,i,j,k,lnum)
+                    sxz = sxz - dom%R_xz_(i_sls,i,j,k,lnum)
+                    syz = syz - dom%R_yz_(i_sls,i,j,k,lnum)
+                enddo
+                xi1 = dom%InvGrad_(0,0,i,j,k,lnum)
+                xi2 = dom%InvGrad_(1,0,i,j,k,lnum)
+                xi3 = dom%InvGrad_(2,0,i,j,k,lnum)
+                et1 = dom%InvGrad_(0,1,i,j,k,lnum)
+                et2 = dom%InvGrad_(1,1,i,j,k,lnum)
+                et3 = dom%InvGrad_(2,1,i,j,k,lnum)
+                ga1 = dom%InvGrad_(0,2,i,j,k,lnum)
+                ga2 = dom%InvGrad_(1,2,i,j,k,lnum)
+                ga3 = dom%InvGrad_(2,2,i,j,k,lnum)
                 !
                 !=====================
                 !       FX
@@ -131,17 +158,17 @@ subroutine calcul_forces_att(Fox,Foy,Foz, invgrad, &
                 !
                 !- Multiplication par le Jacobien et le poids d'integration
                 !
-                t4 = jac(i,j,k) * poidsx(i)
+                t4 = dom%Jacob_(i,j,k,lnum) * poidsx(i)
                 xt1  =  xt1 * t4
                 xt5  =  xt5 * t4
                 xt8  =  xt8 * t4
 
-                t4 = jac(i,j,k) * poidsy(j)
+                t4 = dom%Jacob_(i,j,k,lnum) * poidsy(j)
                 xt2  =  xt2 * t4
                 xt6  =  xt6 * t4
                 xt9  =  xt9 * t4
 
-                t4 = jac(i,j,k) * poidsz(k)
+                t4 = dom%Jacob_(i,j,k,lnum) * poidsz(k)
                 xt3  =  xt3 * t4
                 xt7  =  xt7 * t4
                 xt10 = xt10 * t4
@@ -230,7 +257,7 @@ subroutine calcul_forces_att(Fox,Foy,Foz, invgrad, &
     enddo
     !=-=-=-=-=-=-=-=-=-=-
 
-end subroutine calcul_forces_att
+end subroutine calcul_forces_aniso_att
 
 !! Local Variables:
 !! mode: f90
