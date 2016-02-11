@@ -38,7 +38,6 @@ contains
 
         type (domain), intent (INOUT), target :: Tdomain
         integer :: n, mat, rg
-        real, dimension(:,:,:), allocatable :: Whei
 
         rg = Tdomain%rank
 
@@ -67,13 +66,12 @@ contains
 !!! Attribute elastic properties from material !!!
             ! Sets Lambda, Mu, Qmu, ... from mat
             call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
-            ! Compute MassMat and Whei (with allocation)
-            call init_local_mass_mat(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat),Whei)
+            ! Compute MassMat
+            call init_local_mass(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
             ! Computes DumpS, DumpMass (local),and for FPML :  Iv and Is
             if (Tdomain%specel(n)%domain==DM_SOLID_PML .or. Tdomain%specel(n)%domain==DM_FLUID_PML) then
                 call init_pml_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
             end if
-            deallocate(Whei)
         enddo
         ! Here we have local mass matrix (not assembled) on elements and
         ! each of faces, edges, vertices containing assembled (on local processor only) mass matrix
@@ -456,59 +454,34 @@ contains
         end if
     end subroutine finalize_pml_properties
 
-    subroutine init_local_mass_mat(Tdomain, specel, mat, Whei)
+    subroutine init_local_mass(Tdomain, specel, mat)
         type (domain), intent (INOUT), target :: Tdomain
         type (element), intent(inout) :: specel
         type (subdomain), intent(in) :: mat
-        real, dimension(:,:,:), allocatable, intent(out) :: Whei
         !
-        integer :: i, j, k
-        integer :: ind
+        integer :: i, j, k, ind
+        real(fpp) :: Whei
 
-        allocate(Whei(0:specel%ngllx-1,0:specel%nglly-1,0:specel%ngllz-1))
         !- general (element) weighting: tensorial property..
         do k = 0,specel%ngllz-1
             do j = 0,specel%nglly-1
                 do i = 0,specel%ngllx-1
-                    Whei(i,j,k) = mat%GLLwx(i)*mat%GLLwy(j)*mat%GLLwz(k)
-                    select case (specel%domain)
-                    case (DM_SOLID)
-                        specel%MassMat(i,j,k) = Whei(i,j,k)*Tdomain%sdom%Density_(i,j,k,specel%lnum)*&
-                                                            Tdomain%sdom%Jacob_  (i,j,k,specel%lnum)
-                    case (DM_SOLID_PML)
-                        specel%MassMat(i,j,k) = Whei(i,j,k)*Tdomain%spmldom%Density_(i,j,k,specel%lnum)*&
-                                                            Tdomain%spmldom%Jacob_  (i,j,k,specel%lnum)
-                    ! fluid case: inertial term ponderation by the inverse of the bulk modulus
-                    case (DM_FLUID)
-                        specel%MassMat(i,j,k) = Whei(i,j,k)*Tdomain%fdom%Jacob_ (i,j,k,specel%lnum)/&
-                                                            Tdomain%fdom%Lambda_(i,j,k,specel%lnum)
-                    case (DM_FLUID_PML)
-                        specel%MassMat(i,j,k) = Whei(i,j,k)*Tdomain%fpmldom%Jacob_ (i,j,k,specel%lnum)/&
-                                                            Tdomain%fpmldom%Lambda_(i,j,k,specel%lnum)
-                    end select
-                enddo
-            enddo
-        enddo
-        do k = 0,specel%ngllz-1
-            do j = 0,specel%nglly-1
-                do i = 0,specel%ngllx-1
+                    Whei = mat%GLLwx(i)*mat%GLLwy(j)*mat%GLLwz(k)
                     ind = specel%Idom(i,j,k)
-                    !write(*,*) ind, i, j, k
-                    select case(specel%domain)
-                    case (DM_SOLID)
-                        Tdomain%sdom%MassMat(ind) = Tdomain%sdom%MassMat(ind) + specel%MassMat(i,j,k)
-                    case (DM_FLUID)
-                        Tdomain%fdom%MassMat(ind) = Tdomain%fdom%MassMat(ind) + specel%MassMat(i,j,k)
-                    case (DM_SOLID_PML)
-                        Tdomain%spmldom%MassMat(ind) = Tdomain%spmldom%MassMat(ind) + specel%MassMat(i,j,k)
-                    case (DM_FLUID_PML)
-                        Tdomain%fpmldom%MassMat(ind) = Tdomain%fpmldom%MassMat(ind) + specel%MassMat(i,j,k)
+                    select case (specel%domain)
+                        case (DM_SOLID)
+                            call init_local_mass_solid(Tdomain%sdom,specel,i,j,k,ind,Whei)
+                        case (DM_SOLID_PML)
+                            call init_local_mass_solidpml(Tdomain%spmldom,specel,i,j,k,ind,Whei,mat,Tdomain)
+                        case (DM_FLUID)
+                            call init_local_mass_fluid(Tdomain%fdom,specel,i,j,k,ind,Whei)
+                        case (DM_FLUID_PML)
+                            call init_local_mass_fluidpml(Tdomain%fpmldom,specel,i,j,k,ind,Whei,mat,Tdomain)
                     end select
                 enddo
             enddo
         enddo
-        !- mass matrix elements
-    end subroutine init_local_mass_mat
+    end subroutine init_local_mass
 
     subroutine initialize_material_gradient(Tdomain, specel)
         type (domain), intent (INOUT), target :: Tdomain

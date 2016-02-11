@@ -395,6 +395,18 @@ contains
         dom%Density_(i,j,k,lnum) = density
     end subroutine init_material_tensor_solid
 
+    subroutine init_local_mass_solid(dom,specel,i,j,k,ind,Whei)
+        type(domain_solid), intent (INOUT) :: dom
+        type (Element), intent (INOUT) :: specel
+        integer :: i,j,k,ind
+        real Whei
+
+        ! Solid.
+
+        specel%MassMat(i,j,k) = Whei*dom%Density_(i,j,k,specel%lnum)*dom%Jacob_(i,j,k,specel%lnum)
+        dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
+    end subroutine init_local_mass_solid
+
     subroutine forces_int_solid(dom, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
                n_solid, aniso, champs1, Elem, lnum)
 

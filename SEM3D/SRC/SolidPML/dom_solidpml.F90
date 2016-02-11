@@ -221,6 +221,20 @@ contains
         end if
     end subroutine init_material_properties_solidpml
 
+    subroutine init_local_mass_solidpml(dom,specel,i,j,k,ind,Whei,mat,Tdomain)
+        type(domain_solidpml), intent (INOUT) :: dom
+        type (Element), intent (INOUT) :: specel
+        integer :: i,j,k,ind
+        real Whei
+        type (subdomain), intent(in) :: mat
+        type (domain), intent (INOUT), target :: Tdomain
+
+        ! Solid.
+
+        specel%MassMat(i,j,k) = Whei*dom%Density_(i,j,k,specel%lnum)*dom%Jacob_(i,j,k,specel%lnum)
+        dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
+    end subroutine init_local_mass_solidpml
+
     subroutine forces_int_sol_pml(dom, mat, champs1, Elem, lnum)
         type(domain_solidpml), intent(inout) :: dom
         type (subdomain), intent(IN) :: mat
