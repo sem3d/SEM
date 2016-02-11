@@ -269,7 +269,7 @@ contains
                              mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa,Tdomain,mat)
                     case (DM_FLUID)
                         call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
+                             mat%DDensity,mat%DLambda)
                     case (DM_SOLID_PML)
                         call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,-1,-1,-1,&
                              mat%DDensity,mat%DLambda,mat%DMu)
@@ -290,7 +290,7 @@ contains
                              mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa,Tdomain,mat)
                     case (DM_FLUID)
                         call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
+                             mat%DDensity,mat%DLambda)
                     case (DM_SOLID_PML)
                         call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,-1,-1,-1,&
                              mat%DDensity,mat%DLambda,mat%DMu)
@@ -311,7 +311,7 @@ contains
                                  mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa,Tdomain,mat)
                         case (DM_FLUID)
                             call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
-                                 mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
+                                 mat%DDensity,mat%DLambda)
                         case (DM_SOLID_PML)
                             call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,-1,-1,-1,&
                                  mat%DDensity,mat%DLambda,mat%DMu)
@@ -352,8 +352,7 @@ contains
                 RKmod =      Tdomain%sdom%Lambda_(:,:,:,specel%lnum) + &
                         2. * Tdomain%sdom%Mu_    (:,:,:,specel%lnum)
             case (DM_FLUID)
-                RKmod =      Tdomain%fdom%Lambda_(:,:,:,specel%lnum) + &
-                        2. * Tdomain%fdom%Mu_    (:,:,:,specel%lnum)
+                RKmod =      Tdomain%fdom%Lambda_(:,:,:,specel%lnum)
             case (DM_SOLID_PML)
                 RKmod =      Tdomain%spmldom%Lambda_(:,:,:,specel%lnum) + &
                         2. * Tdomain%spmldom%Mu_    (:,:,:,specel%lnum)
@@ -649,7 +648,7 @@ contains
                                      zrho,Lambda,Mu,Kappa)
                             case (DM_FLUID)
                                 call init_material_properties_fluid(Tdomain%fdom,specel%lnum,i,j,k,&
-                                     zrho,Lambda,Mu,Kappa)
+                                     zrho,Lambda)
                             case (DM_SOLID_PML)
                                 call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,i,j,k,&
                                      zrho,Lambda,Mu)
