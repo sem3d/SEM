@@ -186,7 +186,6 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
     double precision, allocatable, dimension(:) :: Veloc
     integer :: idx, ngllx, nglly, ngllz
     integer :: n, i, j, k
-    integer :: id
 
     call read_dset_1d_real(elem_id, "Veloc_Fl_PML", veloc)
     idx = 1
@@ -199,7 +198,6 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
         do k = 0,ngllz-1
             do j = 0,nglly-1
                 do i = 0,ngllx-1
-                    id = Tdomain%specel(n)%Idom(i,j,k)
                     Tdomain%fpmldom%Veloc(i,j,k,0,Tdomain%specel(n)%lnum) = veloc(idx+0)
                     Tdomain%fpmldom%Veloc(i,j,k,1,Tdomain%specel(n)%lnum) = veloc(idx+1)
                     Tdomain%fpmldom%Veloc(i,j,k,2,Tdomain%specel(n)%lnum) = veloc(idx+2)
