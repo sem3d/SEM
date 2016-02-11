@@ -15,6 +15,10 @@ module mdefinitions
     use mpi
     use scomm
     use constants
+    use dom_solid
+    use dom_fluid
+    use dom_solidpml
+    use dom_fluidpml
     implicit none
 #include "index.h"
 
@@ -243,7 +247,6 @@ contains
 
     end subroutine inverse_mass_mat
 
-
     subroutine init_material_properties(Tdomain, specel, mat)
         type (domain), intent (INOUT), target :: Tdomain
         type (element), intent(inout) :: specel
@@ -257,105 +260,67 @@ contains
 
         ! integration de la prise en compte du gradient de proprietes
 
-        select case( mat%material_definition)
-        case( MATERIAL_CONSTANT )
-            !    on copie toujours le materiau de base
-            select case (specel%domain)
-                case (DM_SOLID)
-                    Tdomain%sdom%Density_(:,:,:,specel%lnum) = mat%DDensity
-                    Tdomain%sdom%Lambda_ (:,:,:,specel%lnum) = mat%DLambda
-                    Tdomain%sdom%Kappa_  (:,:,:,specel%lnum) = mat%DKappa
-                    Tdomain%sdom%Mu_     (:,:,:,specel%lnum) = mat%DMu
-                case (DM_FLUID)
-                    Tdomain%fdom%Density_(:,:,:,specel%lnum) = mat%DDensity
-                    Tdomain%fdom%Lambda_ (:,:,:,specel%lnum) = mat%DLambda
-                    Tdomain%fdom%Kappa_  (:,:,:,specel%lnum) = mat%DKappa
-                    Tdomain%fdom%Mu_     (:,:,:,specel%lnum) = mat%DMu
-                case (DM_SOLID_PML)
-                    Tdomain%spmldom%Density_(:,:,:,specel%lnum) = mat%DDensity
-                    Tdomain%spmldom%Lambda_ (:,:,:,specel%lnum) = mat%DLambda
-                    Tdomain%spmldom%Kappa_  (:,:,:,specel%lnum) = mat%DKappa
-                    Tdomain%spmldom%Mu_     (:,:,:,specel%lnum) = mat%DMu
-                case (DM_FLUID_PML)
-                    Tdomain%fpmldom%Density_(:,:,:,specel%lnum) = mat%DDensity
-                    Tdomain%fpmldom%Lambda_ (:,:,:,specel%lnum) = mat%DLambda
-                    Tdomain%fpmldom%Kappa_  (:,:,:,specel%lnum) = mat%DKappa
-                    Tdomain%fpmldom%Mu_     (:,:,:,specel%lnum) = mat%DMu
-            end select
-            !    si le flag gradient est actif alors on peut changer les proprietes
-        case( MATERIAL_EARTHCHUNK )
-            call initialize_material_earthchunk(Tdomain, specel, Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
-
-        case( MATERIAL_PREM )
-            call initialize_material_prem(Tdomain, specel, Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
-
-        case( MATERIAL_GRADIENT )
-            !    on copie toujours le materiau de base
-            select case (specel%domain)
-                case (DM_SOLID)
-                    Tdomain%sdom%Density_(:,:,:,specel%lnum) = mat%DDensity
-                    Tdomain%sdom%Lambda_ (:,:,:,specel%lnum) = mat%DLambda
-                    Tdomain%sdom%Kappa_  (:,:,:,specel%lnum) = mat%DKappa
-                    Tdomain%sdom%Mu_     (:,:,:,specel%lnum) = mat%DMu
-                case (DM_FLUID)
-                    Tdomain%fdom%Density_(:,:,:,specel%lnum) = mat%DDensity
-                    Tdomain%fdom%Lambda_ (:,:,:,specel%lnum) = mat%DLambda
-                    Tdomain%fdom%Kappa_  (:,:,:,specel%lnum) = mat%DKappa
-                    Tdomain%fdom%Mu_     (:,:,:,specel%lnum) = mat%DMu
-                case (DM_SOLID_PML)
-                    Tdomain%spmldom%Density_(:,:,:,specel%lnum) = mat%DDensity
-                    Tdomain%spmldom%Lambda_ (:,:,:,specel%lnum) = mat%DLambda
-                    Tdomain%spmldom%Kappa_  (:,:,:,specel%lnum) = mat%DKappa
-                    Tdomain%spmldom%Mu_     (:,:,:,specel%lnum) = mat%DMu
-                case (DM_FLUID_PML)
-                    Tdomain%fpmldom%Density_(:,:,:,specel%lnum) = mat%DDensity
-                    Tdomain%fpmldom%Lambda_ (:,:,:,specel%lnum) = mat%DLambda
-                    Tdomain%fpmldom%Kappa_  (:,:,:,specel%lnum) = mat%DKappa
-                    Tdomain%fpmldom%Mu_     (:,:,:,specel%lnum) = mat%DMu
-            end select
-            !    si le flag gradient est actif alors on peut changer les proprietes
-            if ( Tdomain%logicD%grad_bassin ) then
-                call initialize_material_gradient(Tdomain, specel)
-            endif
-
-        case( MATERIAL_MULTIPLE )
-            !Don`t do anything, the basic properties were initialized by file
-            if(materialIsConstant(Tdomain, mat)) then
+        select case(mat%material_definition)
+            case(MATERIAL_CONSTANT)
+                !    on copie toujours le materiau de base
                 select case (specel%domain)
                     case (DM_SOLID)
-                        Tdomain%sdom%Density_(:,:,:,specel%lnum) = mat%DDensity
-                        Tdomain%sdom%Lambda_ (:,:,:,specel%lnum) = mat%DLambda
-                        Tdomain%sdom%Kappa_  (:,:,:,specel%lnum) = mat%DKappa
-                        Tdomain%sdom%Mu_     (:,:,:,specel%lnum) = mat%DMu
+                        call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
+                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa,Tdomain,mat)
                     case (DM_FLUID)
-                        Tdomain%fdom%Density_(:,:,:,specel%lnum) = mat%DDensity
-                        Tdomain%fdom%Lambda_ (:,:,:,specel%lnum) = mat%DLambda
-                        Tdomain%fdom%Kappa_  (:,:,:,specel%lnum) = mat%DKappa
-                        Tdomain%fdom%Mu_     (:,:,:,specel%lnum) = mat%DMu
+                        call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
+                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
                     case (DM_SOLID_PML)
-                        Tdomain%spmldom%Density_(:,:,:,specel%lnum) = mat%DDensity
-                        Tdomain%spmldom%Lambda_ (:,:,:,specel%lnum) = mat%DLambda
-                        Tdomain%spmldom%Kappa_  (:,:,:,specel%lnum) = mat%DKappa
-                        Tdomain%spmldom%Mu_     (:,:,:,specel%lnum) = mat%DMu
+                        call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,-1,-1,-1,&
+                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
                     case (DM_FLUID_PML)
-                        Tdomain%fpmldom%Density_(:,:,:,specel%lnum) = mat%DDensity
-                        Tdomain%fpmldom%Lambda_ (:,:,:,specel%lnum) = mat%DLambda
-                        Tdomain%fpmldom%Kappa_  (:,:,:,specel%lnum) = mat%DKappa
-                        Tdomain%fpmldom%Mu_     (:,:,:,specel%lnum) = mat%DMu
+                        call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
+                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
                 end select
-            end if
-
+                !    si le flag gradient est actif alors on peut changer les proprietes
+            case( MATERIAL_EARTHCHUNK )
+                call initialize_material_earthchunk(Tdomain, specel, Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
+            case( MATERIAL_PREM )
+                call initialize_material_prem(Tdomain, specel, Tdomain%GlobCoord, size(Tdomain%GlobCoord,2))
+            case( MATERIAL_GRADIENT )
+                !    on copie toujours le materiau de base
+                select case (specel%domain)
+                    case (DM_SOLID)
+                        call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
+                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa,Tdomain,mat)
+                    case (DM_FLUID)
+                        call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
+                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
+                    case (DM_SOLID_PML)
+                        call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,-1,-1,-1,&
+                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
+                    case (DM_FLUID_PML)
+                        call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
+                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
+                end select
+                !    si le flag gradient est actif alors on peut changer les proprietes
+                if ( Tdomain%logicD%grad_bassin ) then
+                    call initialize_material_gradient(Tdomain, specel)
+                endif
+            case( MATERIAL_MULTIPLE )
+                !Don`t do anything, the basic properties were initialized by file
+                if(materialIsConstant(Tdomain, mat)) then
+                    select case (specel%domain)
+                        case (DM_SOLID)
+                            call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
+                                 mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa,Tdomain,mat)
+                        case (DM_FLUID)
+                            call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
+                                 mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
+                        case (DM_SOLID_PML)
+                            call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,-1,-1,-1,&
+                                 mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
+                        case (DM_FLUID_PML)
+                            call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
+                                 mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
+                    end select
+                end if
         end select
-
-        if ((specel%domain==DM_SOLID) .and. (Tdomain%n_sls>0))  then
-            if (Tdomain%aniso) then
-                Tdomain%sdom%Q = mat%Qmu
-            else
-                Tdomain%sdom%Qs = mat%Qmu
-                Tdomain%sdom%Qp = mat%Qpression
-            endif
-        endif
-
     end subroutine init_material_properties
 
     subroutine init_pml_properties(Tdomain,specel,mat)
@@ -680,25 +645,17 @@ contains
 
                         select case (specel%domain)
                             case (DM_SOLID)
-                                Tdomain%sdom%Density_(i,j,k,specel%lnum) = zrho
-                                Tdomain%sdom%Lambda_    (i,j,k,specel%lnum) = Lambda
-                                Tdomain%sdom%Kappa_     (i,j,k,specel%lnum) = Kappa
-                                Tdomain%sdom%Mu_        (i,j,k,specel%lnum) = Mu
+                                call init_material_properties_solid(Tdomain%sdom,specel%lnum,i,j,k,&
+                                     zrho,Lambda,Mu,Kappa)
                             case (DM_FLUID)
-                                Tdomain%fdom%Density_(i,j,k,specel%lnum) = zrho
-                                Tdomain%fdom%Lambda_    (i,j,k,specel%lnum) = Lambda
-                                Tdomain%fdom%Kappa_     (i,j,k,specel%lnum) = Kappa
-                                Tdomain%fdom%Mu_        (i,j,k,specel%lnum) = Mu
+                                call init_material_properties_fluid(Tdomain%fdom,specel%lnum,i,j,k,&
+                                     zrho,Lambda,Mu,Kappa)
                             case (DM_SOLID_PML)
-                                Tdomain%spmldom%Density_(i,j,k,specel%lnum) = zrho
-                                Tdomain%spmldom%Lambda_    (i,j,k,specel%lnum) = Lambda
-                                Tdomain%spmldom%Kappa_     (i,j,k,specel%lnum) = Kappa
-                                Tdomain%spmldom%Mu_        (i,j,k,specel%lnum) = Mu
+                                call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,i,j,k,&
+                                     zrho,Lambda,Mu,Kappa)
                             case (DM_FLUID_PML)
-                                Tdomain%fpmldom%Density_(i,j,k,specel%lnum) = zrho
-                                Tdomain%fpmldom%Lambda_    (i,j,k,specel%lnum) = Lambda
-                                Tdomain%fpmldom%Kappa_     (i,j,k,specel%lnum) = Kappa
-                                Tdomain%fpmldom%Mu_        (i,j,k,specel%lnum) = Mu
+                                call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,i,j,k,&
+                                     zrho,Lambda,Mu,Kappa)
                         end select
                     enddo
                 enddo

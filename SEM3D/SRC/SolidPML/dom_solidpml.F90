@@ -204,6 +204,28 @@ contains
         enddo
     end subroutine get_solidpml_dom_var
 
+    subroutine init_material_properties_solidpml(dom, lnum, i, j, k, density, lambda, mu, kappa)
+        type(domain_solidpml), intent(inout) :: dom
+        integer, intent(in) :: lnum
+        integer, intent(in) :: i, j, k ! -1 means :
+        real(fpp), intent(in) :: density
+        real(fpp), intent(in) :: lambda
+        real(fpp), intent(in) :: mu
+        real(fpp), intent(in) :: kappa
+
+        if (i==-1 .and. j==-1 .and. k==-1) then
+            dom%Density_(:,:,:,lnum) = density
+            dom%Lambda_ (:,:,:,lnum) = lambda
+            dom%Kappa_  (:,:,:,lnum) = kappa
+            dom%Mu_     (:,:,:,lnum) = mu
+        else
+            dom%Density_(i,j,k,lnum) = density
+            dom%Lambda_ (i,j,k,lnum) = lambda
+            dom%Kappa_  (i,j,k,lnum) = kappa
+            dom%Mu_     (i,j,k,lnum) = mu
+        end if
+    end subroutine init_material_properties_solidpml
+
     subroutine forces_int_sol_pml(dom, mat, champs1, Elem, lnum)
         type(domain_solidpml), intent(inout) :: dom
         type (subdomain), intent(IN) :: mat

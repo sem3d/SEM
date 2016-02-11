@@ -10,6 +10,8 @@ subroutine  initialize_material_prem(Tdomain, elem, coorPt, npts)
     use tensor_util
     use earth_transform
     use sdomain
+    use dom_solid
+    use dom_solidpml
     implicit none
 #include "index.h"
 
@@ -65,19 +67,13 @@ subroutine  initialize_material_prem(Tdomain, elem, coorPt, npts)
 
 
                 if(elem%domain==DM_SOLID_PML) then
-                    Tdomain%spmldom%Lambda_ (i,j,k,elem%lnum) = lambda_from_Cij(Cij)
-                    Tdomain%spmldom%Mu_     (i,j,k,elem%lnum) = mu_from_Cij(Cij)
-                    Tdomain%spmldom%Density_(i,j,k,elem%lnum) = rho
-                else ! DM_SOLID
+                    call init_material_properties_solidpml(Tdomain%spmldom,elem%lnum,i,j,k,&
+                         rho,lambda_from_Cij(Cij),mu_from_Cij(Cij),0.)
+                else if(elem%domain==DM_SOLID) then
                     call c_4tensor(Cij,theta,phi)
-                    idef = 0
-                    do ii = 1,6
-                        do jj = ii,6
-                            Tdomain%sdom%Cij_(idef,i,j,k,elem%lnum) = Cij(ii,jj)
-                            idef = idef + 1
-                        enddo
-                    enddo
-                    Tdomain%sdom%Density_(i,j,k,elem%lnum) = rho
+                    call init_material_tensor_solid(Tdomain%sdom,elem%lnum,i,j,k,rho,Cij)
+                else
+                    stop "initialize prem material KO"
                 endif
             end do
         end do

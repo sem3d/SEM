@@ -341,6 +341,60 @@ contains
         if (allocated(hprimez))  deallocate(hprimez)
     end subroutine get_solid_dom_var
 
+    subroutine init_material_properties_solid(dom, lnum, i, j, k, density, lambda, mu, kappa, Tdomain, mat)
+        type(domain_solid), intent(inout) :: dom
+        integer, intent(in) :: lnum
+        integer, intent(in) :: i, j, k ! -1 means :
+        real(fpp), intent(in) :: density
+        real(fpp), intent(in) :: lambda
+        real(fpp), intent(in) :: mu
+        real(fpp), intent(in) :: kappa
+        type(domain), intent(in), optional :: Tdomain
+        type (subdomain), intent(in), optional :: mat
+
+        if (i==-1 .and. j==-1 .and. k==-1) then
+            dom%Density_(:,:,:,lnum) = density
+            dom%Lambda_ (:,:,:,lnum) = lambda
+            dom%Kappa_  (:,:,:,lnum) = kappa
+            dom%Mu_     (:,:,:,lnum) = mu
+        else
+            dom%Density_(i,j,k,lnum) = density
+            dom%Lambda_ (i,j,k,lnum) = lambda
+            dom%Kappa_  (i,j,k,lnum) = kappa
+            dom%Mu_     (i,j,k,lnum) = mu
+        end if
+
+        if (present(Tdomain) .and. present(mat)) then
+            if (Tdomain%n_sls>0)  then
+                if (Tdomain%aniso) then
+                    dom%Q = mat%Qmu
+                else
+                    dom%Qs = mat%Qmu
+                    dom%Qp = mat%Qpression
+                endif
+            endif
+        endif
+    end subroutine init_material_properties_solid
+
+    subroutine init_material_tensor_solid(dom, lnum, i, j, k, density, Cij)
+        type(domain_solid), intent(inout) :: dom
+        integer, intent(in) :: lnum
+        integer, intent(in) :: i, j, k
+        real(fpp), intent(in) :: density
+        real(fpp), dimension(1:6,1:6), intent(in) :: Cij
+
+        integer :: idef, ii, jj
+
+        idef = 0
+        do ii = 1,6
+            do jj = ii,6
+                dom%Cij_(idef,i,j,k,lnum) = Cij(ii,jj)
+                idef = idef + 1
+            enddo
+        enddo
+        dom%Density_(i,j,k,lnum) = density
+    end subroutine init_material_tensor_solid
+
     subroutine forces_int_solid(dom, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
                n_solid, aniso, champs1, Elem, lnum)
 
