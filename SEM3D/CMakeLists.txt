@@ -99,6 +99,7 @@ set(SEM3D_SOURCES_CPL
     ${PRJ}/SRC/main.F90
     )
 
+include_directories(${PRJ}/SRC)
 add_library(sem3dcommon ${SEM3D_SOURCES})
 add_dependencies(sem3dcommon randomfield semcommon)
 set_target_properties(sem3dcommon PROPERTIES

@@ -7,8 +7,7 @@ ENABLE_TESTING()
 
 option(OPT_VEC "Vectorize" ON)
 if(OPT_VEC)
-  include_directories(${CMAKE_SOURCE_DIR})
-  add_definitions(-DSEM_VEC -cpp)
+  add_definitions(-DSEM_VEC)
 endif(OPT_VEC)
 
 if (NOT BUILD_WITH_MKA)
