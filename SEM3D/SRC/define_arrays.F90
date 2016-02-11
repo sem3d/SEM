@@ -272,7 +272,7 @@ contains
                              mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
                     case (DM_SOLID_PML)
                         call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
+                             mat%DDensity,mat%DLambda,mat%DMu)
                     case (DM_FLUID_PML)
                         call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
                              mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
@@ -293,7 +293,7 @@ contains
                              mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
                     case (DM_SOLID_PML)
                         call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
+                             mat%DDensity,mat%DLambda,mat%DMu)
                     case (DM_FLUID_PML)
                         call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
                              mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
@@ -314,7 +314,7 @@ contains
                                  mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
                         case (DM_SOLID_PML)
                             call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,-1,-1,-1,&
-                                 mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
+                                 mat%DDensity,mat%DLambda,mat%DMu)
                         case (DM_FLUID_PML)
                             call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
                                  mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
@@ -652,7 +652,7 @@ contains
                                      zrho,Lambda,Mu,Kappa)
                             case (DM_SOLID_PML)
                                 call init_material_properties_solidpml(Tdomain%spmldom,specel%lnum,i,j,k,&
-                                     zrho,Lambda,Mu,Kappa)
+                                     zrho,Lambda,Mu)
                             case (DM_FLUID_PML)
                                 call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,i,j,k,&
                                      zrho,Lambda,Mu,Kappa)

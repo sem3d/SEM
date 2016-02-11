@@ -78,7 +78,7 @@ subroutine  initialize_material_earthchunk(Tdomain, elem, coorPt, npts)
 
                 if(elem%domain==DM_SOLID_PML) then
                     call init_material_properties_solidpml(Tdomain%spmldom,elem%lnum,i,j,k,&
-                         rho,lambda_from_Cij(Cij),mu_from_Cij(Cij),0.)
+                         rho,lambda_from_Cij(Cij),mu_from_Cij(Cij))
                 else if(elem%domain==DM_SOLID) then
                     call c_4tensor(Cij,theta,phi)
                     call rot_4tensor(Cij,transpose(RotMat))
