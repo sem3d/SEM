@@ -275,7 +275,7 @@ contains
                              mat%DDensity,mat%DLambda,mat%DMu)
                     case (DM_FLUID_PML)
                         call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
+                             mat%DDensity,mat%DLambda)
                 end select
                 !    si le flag gradient est actif alors on peut changer les proprietes
             case( MATERIAL_EARTHCHUNK )
@@ -296,7 +296,7 @@ contains
                              mat%DDensity,mat%DLambda,mat%DMu)
                     case (DM_FLUID_PML)
                         call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
+                             mat%DDensity,mat%DLambda)
                 end select
                 !    si le flag gradient est actif alors on peut changer les proprietes
                 if ( Tdomain%logicD%grad_bassin ) then
@@ -317,7 +317,7 @@ contains
                                  mat%DDensity,mat%DLambda,mat%DMu)
                         case (DM_FLUID_PML)
                             call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
-                                 mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa)
+                                 mat%DDensity,mat%DLambda)
                     end select
                 end if
         end select
@@ -357,8 +357,7 @@ contains
                 RKmod =      Tdomain%spmldom%Lambda_(:,:,:,specel%lnum) + &
                         2. * Tdomain%spmldom%Mu_    (:,:,:,specel%lnum)
             case (DM_FLUID_PML)
-                RKmod =      Tdomain%fpmldom%Lambda_(:,:,:,specel%lnum) + &
-                        2. * Tdomain%fpmldom%Mu_    (:,:,:,specel%lnum)
+                RKmod =      Tdomain%fpmldom%Lambda_(:,:,:,specel%lnum)
         end select
 
         ! PML case: valid for solid and fluid parts
@@ -654,7 +653,7 @@ contains
                                      zrho,Lambda,Mu)
                             case (DM_FLUID_PML)
                                 call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,i,j,k,&
-                                     zrho,Lambda,Mu,Kappa)
+                                     zrho,Lambda)
                         end select
                     enddo
                 enddo
