@@ -86,7 +86,6 @@ contains
             call define_FEV_Neumann(Tdomain)
         endif
 
-        call init_solid_fluid_interface(Tdomain)
         call assemble_mass_matrices(Tdomain)
         call finalize_pml_properties(Tdomain)
         call inverse_mass_mat(Tdomain)
@@ -126,15 +125,6 @@ contains
         end if
 
     end subroutine init_dirichlet_surface
-    subroutine init_solid_fluid_interface(Tdomain)
-        type (domain), intent (INOUT), target :: Tdomain
-        !
-        !- defining Solid/Fluid faces'properties
-        if(Tdomain%logicD%SF_local_present)then
-            !  Btn: the complete normal term, ponderated by GLL weights
-            !call define_Face_SF(Tdomain)
-        endif
-    end subroutine init_solid_fluid_interface
 
     subroutine assemble_mass_matrices(Tdomain)
         implicit none
