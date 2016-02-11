@@ -37,7 +37,7 @@ module champs_fluidpml
         real(fpp), dimension(:), allocatable :: MassMat
         real(fpp), dimension(:,:), allocatable :: DumpMass
 
-        real(fpp), dimension (:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Kappa, m_Density
+        real(fpp), dimension (:,:,:,:), allocatable :: m_Lambda, m_Density
 
         real(fpp), dimension(:,:,:,:),     allocatable :: m_Jacob
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_InvGrad

@@ -36,7 +36,6 @@ contains
         allocate(dom%Density_(0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
         allocate(dom%Lambda_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
         allocate(dom%Mu_     (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
-        allocate(dom%Kappa_  (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
 
         allocate (dom%Jacob_  (        0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
         allocate (dom%InvGrad_(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
@@ -92,7 +91,6 @@ contains
         if(allocated(dom%m_Density)) deallocate(dom%m_Density)
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
         if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
-        if(allocated(dom%m_Kappa  )) deallocate(dom%m_Kappa  )
 
         if(allocated(dom%m_Jacob  )) deallocate(dom%m_Jacob  )
         if(allocated(dom%m_InvGrad)) deallocate(dom%m_InvGrad)
@@ -204,24 +202,21 @@ contains
         enddo
     end subroutine get_solidpml_dom_var
 
-    subroutine init_material_properties_solidpml(dom, lnum, i, j, k, density, lambda, mu, kappa)
+    subroutine init_material_properties_solidpml(dom, lnum, i, j, k, density, lambda, mu)
         type(domain_solidpml), intent(inout) :: dom
         integer, intent(in) :: lnum
         integer, intent(in) :: i, j, k ! -1 means :
         real(fpp), intent(in) :: density
         real(fpp), intent(in) :: lambda
         real(fpp), intent(in) :: mu
-        real(fpp), intent(in) :: kappa
 
         if (i==-1 .and. j==-1 .and. k==-1) then
             dom%Density_(:,:,:,lnum) = density
             dom%Lambda_ (:,:,:,lnum) = lambda
-            dom%Kappa_  (:,:,:,lnum) = kappa
             dom%Mu_     (:,:,:,lnum) = mu
         else
             dom%Density_(i,j,k,lnum) = density
             dom%Lambda_ (i,j,k,lnum) = lambda
-            dom%Kappa_  (i,j,k,lnum) = kappa
             dom%Mu_     (i,j,k,lnum) = mu
         end if
     end subroutine init_material_properties_solidpml

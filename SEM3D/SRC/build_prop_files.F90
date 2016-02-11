@@ -141,7 +141,6 @@ contains
                                 case (DM_FLUID)
                                     Tdomain%fdom%Density_(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
                                     Tdomain%fdom%Lambda_ (i,j,k,lnum) = propMatrix(ipoint, 1, mat)
-                                    Tdomain%fdom%Mu_     (i,j,k,lnum) = propMatrix(ipoint, 2, mat)
                                 case (DM_SOLID_PML)
                                     Tdomain%spmldom%Density_(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
                                     Tdomain%spmldom%Lambda_ (i,j,k,lnum) = propMatrix(ipoint, 1, mat)
@@ -149,7 +148,6 @@ contains
                                 case (DM_FLUID_PML)
                                     Tdomain%fpmldom%Density_(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
                                     Tdomain%fpmldom%Lambda_ (i,j,k,lnum) = propMatrix(ipoint, 1, mat)
-                                    Tdomain%fpmldom%Mu_     (i,j,k,lnum) = propMatrix(ipoint, 2, mat)
                             end select
                         end do
                     end do
@@ -275,7 +273,7 @@ contains
                                     case (DM_FLUID)
                                         prop(ipoint, 0) = Tdomain%fdom%Density_(i,j,k,lnum)
                                         prop(ipoint, 1) = Tdomain%fdom%Lambda_ (i,j,k,lnum)
-                                        prop(ipoint, 2) = Tdomain%fdom%Mu_     (i,j,k,lnum)
+                                        prop(ipoint, 2) = 0
                                     case (DM_SOLID_PML)
                                         prop(ipoint, 0) = Tdomain%spmldom%Density_(i,j,k,lnum)
                                         prop(ipoint, 1) = Tdomain%spmldom%Lambda_ (i,j,k,lnum)
@@ -283,7 +281,7 @@ contains
                                     case (DM_FLUID_PML)
                                         prop(ipoint, 0) = Tdomain%fpmldom%Density_(i,j,k,lnum)
                                         prop(ipoint, 1) = Tdomain%fpmldom%Lambda_ (i,j,k,lnum)
-                                        prop(ipoint, 2) = Tdomain%fpmldom%Mu_     (i,j,k,lnum)
+                                        prop(ipoint, 2) = 0
                                 end select
                             end do
                         end do
