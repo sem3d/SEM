@@ -128,13 +128,13 @@ contains
         domain_ngll = 0
         select case(dom)
         case(DM_SOLID)
-            domain_ngll = Tdomain%sdom%ngll
+            domain_ngll = Tdomain%sdom%nglltot
         case(DM_FLUID)
-            domain_ngll = Tdomain%fdom%ngll
+            domain_ngll = Tdomain%fdom%nglltot
         case(DM_SOLID_PML)
-            domain_ngll = Tdomain%spmldom%ngll
+            domain_ngll = Tdomain%spmldom%nglltot
         case(DM_FLUID_PML)
-            domain_ngll = Tdomain%fpmldom%ngll
+            domain_ngll = Tdomain%fpmldom%nglltot
         end select
     end function domain_ngll
 

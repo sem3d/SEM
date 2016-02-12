@@ -268,21 +268,21 @@ subroutine Newmark_Predictor(Tdomain)
     dt = Tdomain%TimeD%dtmin
 
     ! Elements solide
-    if (Tdomain%sdom%ngll /= 0) then
+    if (Tdomain%sdom%nglltot /= 0) then
         Tdomain%sdom%champs1%Depla = Tdomain%sdom%champs0%Depla
         Tdomain%sdom%champs1%Veloc = Tdomain%sdom%champs0%Veloc
         Tdomain%sdom%champs1%Forces = 0d0
     endif
 
     ! Elements fluide
-    if (Tdomain%fdom%ngll /= 0) then
+    if (Tdomain%fdom%nglltot /= 0) then
         Tdomain%fdom%champs1%VelPhi = Tdomain%fdom%champs0%VelPhi
         Tdomain%fdom%champs1%Phi    = Tdomain%fdom%champs0%Phi
         Tdomain%fdom%champs1%ForcesFl = 0d0
     endif
 
     ! Elements solide pml
-    if (Tdomain%spmldom%ngll /= 0) then
+    if (Tdomain%spmldom%nglltot /= 0) then
         Tdomain%spmldom%champs1%ForcesPML = 0.
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1
             ! Couplage à l'interface solide / PML
@@ -297,7 +297,7 @@ subroutine Newmark_Predictor(Tdomain)
     endif
 
     ! Elements fluide pml
-    if (Tdomain%fpmldom%ngll /= 0) then
+    if (Tdomain%fpmldom%nglltot /= 0) then
         Tdomain%fpmldom%champs1%fpml_Forces = 0.
         do n = 0,Tdomain%intFluPml%surf0%nbtot-1
             ! Couplage à l'interface fluide / PML
@@ -326,7 +326,7 @@ subroutine Newmark_Corrector_Fluid(Tdomain)
 
     dt = Tdomain%TimeD%dtmin
     ! Si il existe des éléments PML fluides
-    if (Tdomain%fpmldom%ngll /= 0) then
+    if (Tdomain%fpmldom%nglltot /= 0) then
         Tdomain%fpmldom%champs0%fpml_VelPhi(:,:) = Tdomain%fpmldom%champs0%fpml_DumpV(:,0,:) * &
                                                    Tdomain%fpmldom%champs0%fpml_VelPhi(:,:) + &
                                                    dt * &
@@ -344,7 +344,7 @@ subroutine Newmark_Corrector_Fluid(Tdomain)
                                            dt*Tdomain%fpmldom%champs0%fpml_VelPhi
     endif
     ! Si il existe des éléments fluides
-    if (Tdomain%fdom%ngll /= 0) then
+    if (Tdomain%fdom%nglltot /= 0) then
         Tdomain%fdom%champs0%ForcesFl = Tdomain%fdom%champs1%ForcesFl * Tdomain%fdom%MassMat
         Tdomain%fdom%champs0%VelPhi = (Tdomain%fdom%champs0%VelPhi + dt * Tdomain%fdom%champs0%ForcesFl)
         do n = 0, Tdomain%fdom%n_dirich-1
@@ -368,7 +368,7 @@ subroutine Newmark_Corrector_Solid(Tdomain)
 
     dt = Tdomain%TimeD%dtmin
     ! Si il existe des éléments PML solides
-    if (Tdomain%spmldom%ngll /= 0) then
+    if (Tdomain%spmldom%nglltot /= 0) then
         do i_dir = 0,2
             Tdomain%spmldom%champs0%VelocPML(:,i_dir,:) = Tdomain%spmldom%champs0%DumpV(:,0,:) * &
                                                 Tdomain%spmldom%champs0%VelocPML(:,i_dir,:) + &
@@ -384,7 +384,7 @@ subroutine Newmark_Corrector_Solid(Tdomain)
     endif
 
     ! Si il existe des éléments solides
-    if (Tdomain%sdom%ngll /= 0) then
+    if (Tdomain%sdom%nglltot /= 0) then
         do i_dir = 0,2
             Tdomain%sdom%champs0%Forces(:,i_dir) = Tdomain%sdom%champs1%Forces(:,i_dir) * Tdomain%sdom%MassMat(:)
         enddo
@@ -440,7 +440,7 @@ subroutine internal_forces(Tdomain)
     enddo
 
     ! Couplage interface solide / PML
-    if (Tdomain%spmldom%ngll > 0) then
+    if (Tdomain%spmldom%nglltot > 0) then
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1
             indsol = Tdomain%intSolPml%surf0%map(n)
             indpml = Tdomain%intSolPml%surf1%map(n)
@@ -451,7 +451,7 @@ subroutine internal_forces(Tdomain)
         enddo
     endif
     ! Couplage interface fluid / PML
-    if (Tdomain%fpmldom%ngll > 0) then
+    if (Tdomain%fpmldom%nglltot > 0) then
         do n = 0,Tdomain%intFluPml%surf0%nbtot-1
             indflu = Tdomain%intFluPml%surf0%map(n)
             indpml = Tdomain%intFluPml%surf1%map(n)

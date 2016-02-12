@@ -68,20 +68,20 @@ contains
         endif
 
         ! Allocation et initialisation de champs0 pour les PML solides
-        if (dom%ngll /= 0) then
-            allocate(dom%champs1%ForcesPML(0:dom%ngll-1,0:2,0:2))
-            allocate(dom%champs0%VelocPML (0:dom%ngll-1,0:2,0:2))
-            allocate(dom%champs1%VelocPML (0:dom%ngll-1,0:2,0:2))
-            allocate(dom%champs0%DumpV    (0:dom%ngll-1,0:1,0:2))
+        if (dom%nglltot /= 0) then
+            allocate(dom%champs1%ForcesPML(0:dom%nglltot-1,0:2,0:2))
+            allocate(dom%champs0%VelocPML (0:dom%nglltot-1,0:2,0:2))
+            allocate(dom%champs1%VelocPML (0:dom%nglltot-1,0:2,0:2))
+            allocate(dom%champs0%DumpV    (0:dom%nglltot-1,0:1,0:2))
             dom%champs1%ForcesPML = 0d0
             dom%champs0%VelocPML = 0d0
             dom%champs0%DumpV = 0d0
 
             ! Allocation de MassMat pour les PML solides
-            allocate(dom%MassMat(0:dom%ngll-1))
+            allocate(dom%MassMat(0:dom%nglltot-1))
             dom%MassMat = 0d0
 
-            allocate(dom%DumpMass(0:dom%ngll-1,0:2))
+            allocate(dom%DumpMass(0:dom%nglltot-1,0:2))
             dom%DumpMass = 0d0
         endif
     end subroutine allocate_dom_solidpml

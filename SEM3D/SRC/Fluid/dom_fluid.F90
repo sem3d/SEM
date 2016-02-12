@@ -41,20 +41,20 @@ contains
         allocate(dom%Idom_(0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
 
         ! Allocation et initialisation de champs0 et champs1 pour les fluides
-        if (dom%ngll /= 0) then
-            allocate(dom%champs0%ForcesFl(0:dom%ngll-1))
-            allocate(dom%champs0%Phi     (0:dom%ngll-1))
-            allocate(dom%champs0%VelPhi  (0:dom%ngll-1))
-            allocate(dom%champs1%ForcesFl(0:dom%ngll-1))
-            allocate(dom%champs1%Phi     (0:dom%ngll-1))
-            allocate(dom%champs1%VelPhi  (0:dom%ngll-1))
+        if (dom%nglltot /= 0) then
+            allocate(dom%champs0%ForcesFl(0:dom%nglltot-1))
+            allocate(dom%champs0%Phi     (0:dom%nglltot-1))
+            allocate(dom%champs0%VelPhi  (0:dom%nglltot-1))
+            allocate(dom%champs1%ForcesFl(0:dom%nglltot-1))
+            allocate(dom%champs1%Phi     (0:dom%nglltot-1))
+            allocate(dom%champs1%VelPhi  (0:dom%nglltot-1))
 
             dom%champs0%ForcesFl = 0d0
             dom%champs0%Phi = 0d0
             dom%champs0%VelPhi = 0d0
 
             ! Allocation de MassMat pour les fluides
-            allocate(dom%MassMat(0:dom%ngll-1))
+            allocate(dom%MassMat(0:dom%nglltot-1))
             dom%MassMat = 0d0
         endif
     end subroutine allocate_dom_fluid

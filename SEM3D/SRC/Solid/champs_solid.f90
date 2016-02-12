@@ -28,7 +28,7 @@ module champs_solid
         integer :: ngllz
 
         ! Nombre total de gll du domaine (assembles)
-        integer :: ngll
+        integer :: nglltot
 
         ! Nombre d'elements dans le domaine
         integer :: nbelem

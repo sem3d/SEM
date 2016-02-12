@@ -91,20 +91,20 @@ contains
         endif ! n_solid
 
         ! Allocation et initialisation de champs0 et champs1 pour les solides
-        if (dom%ngll /= 0) then
-            allocate(dom%champs0%Forces(0:dom%ngll-1,0:2))
-            allocate(dom%champs0%Depla (0:dom%ngll-1,0:2))
-            allocate(dom%champs0%Veloc (0:dom%ngll-1,0:2))
-            allocate(dom%champs1%Forces(0:dom%ngll-1,0:2))
-            allocate(dom%champs1%Depla (0:dom%ngll-1,0:2))
-            allocate(dom%champs1%Veloc (0:dom%ngll-1,0:2))
+        if (dom%nglltot /= 0) then
+            allocate(dom%champs0%Forces(0:dom%nglltot-1,0:2))
+            allocate(dom%champs0%Depla (0:dom%nglltot-1,0:2))
+            allocate(dom%champs0%Veloc (0:dom%nglltot-1,0:2))
+            allocate(dom%champs1%Forces(0:dom%nglltot-1,0:2))
+            allocate(dom%champs1%Depla (0:dom%nglltot-1,0:2))
+            allocate(dom%champs1%Veloc (0:dom%nglltot-1,0:2))
 
             dom%champs0%Forces = 0d0
             dom%champs0%Depla = 0d0
             dom%champs0%Veloc = 0d0
 
             ! Allocation de MassMat pour les solides
-            allocate(dom%MassMat(0:dom%ngll-1))
+            allocate(dom%MassMat(0:dom%nglltot-1))
             dom%MassMat = 0d0
         endif
     end subroutine allocate_dom_solid

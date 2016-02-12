@@ -149,11 +149,11 @@ contains
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1
             indsol = Tdomain%intSolPml%surf0%map(n)
             indpml = Tdomain%intSolPml%surf1%map(n)
-            if (indsol<0 .or. indsol>=Tdomain%sdom%ngll) then
+            if (indsol<0 .or. indsol>=Tdomain%sdom%nglltot) then
                 write(*,*) "Pb indexation Sol"
                 stop 1
             end if
-            if (indpml<0 .or. indpml>=Tdomain%spmldom%ngll) then
+            if (indpml<0 .or. indpml>=Tdomain%spmldom%nglltot) then
                 write(*,*) "Pb indexation Sol-pml"
                 stop 1
             end if
@@ -241,10 +241,10 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         !
 
-        if (Tdomain%sdom%ngll /= 0)    Tdomain%sdom%MassMat(:) = 1d0/Tdomain%sdom%MassMat(:)
-        if (Tdomain%fdom%ngll /= 0)    Tdomain%fdom%MassMat(:) = 1d0/Tdomain%fdom%MassMat(:)
-        if (Tdomain%spmldom%ngll /= 0) Tdomain%spmldom%MassMat(:) = 1d0/Tdomain%spmldom%MassMat(:)
-        if (Tdomain%fpmldom%ngll /= 0) Tdomain%fpmldom%MassMat(:) = 1d0/Tdomain%fpmldom%MassMat(:)
+        if (Tdomain%sdom%nglltot    /= 0)    Tdomain%sdom%MassMat(:) = 1d0/Tdomain%sdom%MassMat(:)
+        if (Tdomain%fdom%nglltot    /= 0)    Tdomain%fdom%MassMat(:) = 1d0/Tdomain%fdom%MassMat(:)
+        if (Tdomain%spmldom%nglltot /= 0) Tdomain%spmldom%MassMat(:) = 1d0/Tdomain%spmldom%MassMat(:)
+        if (Tdomain%fpmldom%nglltot /= 0) Tdomain%fpmldom%MassMat(:) = 1d0/Tdomain%fpmldom%MassMat(:)
 
     end subroutine inverse_mass_mat
 
@@ -458,11 +458,11 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         !
         if (allocated(Tdomain%spmldom%champs0%DumpV)) then ! allocated <=> we'll need it
-            call define_PML_DumpEnd(Tdomain%spmldom%ngll,     Tdomain%spmldom%MassMat, &
+            call define_PML_DumpEnd(Tdomain%spmldom%nglltot,  Tdomain%spmldom%MassMat, &
                                     Tdomain%spmldom%DumpMass, Tdomain%spmldom%champs0%DumpV)
         end if
         if (allocated(Tdomain%fpmldom%champs0%fpml_DumpV)) then ! allocated <=> we'll need it
-            call define_PML_DumpEnd(Tdomain%fpmldom%ngll,     Tdomain%fpmldom%MassMat, &
+            call define_PML_DumpEnd(Tdomain%fpmldom%nglltot,  Tdomain%fpmldom%MassMat, &
                                     Tdomain%fpmldom%DumpMass, Tdomain%fpmldom%champs0%fpml_DumpV)
         end if
     end subroutine finalize_pml_properties
