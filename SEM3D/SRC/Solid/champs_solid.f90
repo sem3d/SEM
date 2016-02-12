@@ -18,6 +18,7 @@ module champs_solid
 
     end type champssolid
 
+    !! ATTENTION: voir index.h en ce qui concerne les champs dont les noms commencent par m_
     type domain_solid
         ! D'abord, les données membres qui ne sont pas modifiées
 
