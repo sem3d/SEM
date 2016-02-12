@@ -115,7 +115,7 @@ contains
         !OUTPUT
         real        , intent(out), dimension(0:, 0:) :: prop !Properties
         !LOCAL
-        integer :: ngllx,nglly,ngllz, assocMat
+        integer :: assocMat
         integer :: i !counter
         integer :: error, code
         integer :: nProp = 3
@@ -146,9 +146,6 @@ contains
             Tdomain%sSubDomain(mat)%DLambda,  &
             Tdomain%sSubDomain(mat)%DMu]
         assocMat = Tdomain%sSubdomain(mat)%assocMat
-        ngllx    = Tdomain%sSubDomain(mat)%NGLLx
-        nglly    = Tdomain%sSubDomain(mat)%NGLLy
-        ngllz    = Tdomain%sSubDomain(mat)%NGLLz
 
         if(rg == 0) write(*,*) " "
         if(rg == 0) write(*,*) "    Generating Standard Gaussian Field"
@@ -231,7 +228,7 @@ contains
         real        , intent(inout), dimension(0:, 0:) :: prop !Properties that should be modified
 
         !LOCAL
-        integer :: ngllx,nglly,ngllz
+        integer :: ngll
         integer :: iPoint
         integer :: i, j, k, n !counters
         integer :: LimPML1, LimPML2, LimPML3
@@ -247,17 +244,15 @@ contains
             mat_index = Tdomain%specel(n)%mat_index
             if(.not. Tdomain%not_PML_List(mat_index)) then
 
-                ngllx = Tdomain%sSubDomain(mat_index)%NGLLx
-                nglly = Tdomain%sSubDomain(mat_index)%NGLLy
-                ngllz = Tdomain%sSubDomain(mat_index)%NGLLz
+                ngll = Tdomain%sSubDomain(mat_index)%NGLL
                 !On the lower bound initialization
                 LimPML1 = 0
                 LimPML2 = 0
                 LimPML3 = 0
                 !To the upper bound transformation
-                if (Tdomain%sSubDomain(mat_index)%Left)    LimPML1 = ngllx-1
-                if (Tdomain%sSubDomain(mat_index)%Forward) LimPML2 = nglly-1
-                if (Tdomain%sSubDomain(mat_index)%Down)    LimPML3 = ngllz-1
+                if (Tdomain%sSubDomain(mat_index)%Left)    LimPML1 = ngll-1
+                if (Tdomain%sSubDomain(mat_index)%Forward) LimPML2 = ngll-1
+                if (Tdomain%sSubDomain(mat_index)%Down)    LimPML3 = ngll-1
 
                 dir = read_PML_Direction(Tdomain, mat_index)
                 if(verbose) write(*,*) "dir = ", dir
@@ -266,11 +261,11 @@ contains
                     !Face X oriented
                     case(0)
                         if(verbose) write(*,*) "Face X oriented"
-                        do j = 0, nglly-1
-                            do k = 0, ngllz-1
+                        do j = 0, ngll-1
+                            do k = 0, ngll-1
                                 ipoint       = Tdomain%specel(n)%Iglobnum(LimPML1,j,k)
                                 pointProp(:) = prop(ipoint, :)
-                                do i = 0, ngllx-1
+                                do i = 0, ngll-1
                                     ipoint          = Tdomain%specel(n)%Iglobnum(i,j,k)
                                     prop(ipoint, :) = pointProp(:)
                                 end do
@@ -280,11 +275,11 @@ contains
                     !Face Y oriented
                     case(1)
                         if(verbose) write(*,*) "Face Y oriented"
-                        do i = 0, ngllx-1
-                            do k = 0, ngllz-1
+                        do i = 0, ngll-1
+                            do k = 0, ngll-1
                                 ipoint       = Tdomain%specel(n)%Iglobnum(i, LimPML2, k)
                                 pointProp(:) = prop(ipoint, :)
-                                do j = 0, nglly-1
+                                do j = 0, ngll-1
                                     ipoint          = Tdomain%specel(n)%Iglobnum(i,j,k)
                                     prop(ipoint, :) = pointProp(:)
                                 end do
@@ -294,11 +289,11 @@ contains
                     !Face Z oriented
                     case(2)
                         if(verbose) write(*,*) "Face Z oriented"
-                        do i = 0, ngllx-1
-                            do j = 0, nglly-1
+                        do i = 0, ngll-1
+                            do j = 0, ngll-1
                                 ipoint       = Tdomain%specel(n)%Iglobnum(i,j,LimPML3)
                                 pointProp(:) = prop(ipoint, :)
-                                do k = 0, ngllz-1
+                                do k = 0, ngll-1
                                     ipoint          = Tdomain%specel(n)%Iglobnum(i,j,k)
                                     prop(ipoint, :) = pointProp(:)
                                 end do
@@ -308,11 +303,11 @@ contains
                     !Edge in XY
                     case(3)
                         if(verbose) write(*,*) "Edge in XY"
-                        do k = 0, ngllz-1
+                        do k = 0, ngll-1
                             ipoint       = Tdomain%specel(n)%Iglobnum(LimPML1,LimPML2,k)
                             pointProp(:) = prop(ipoint, :)
-                            do i = 0, ngllx-1
-                                do j = 0, nglly-1
+                            do i = 0, ngll-1
+                                do j = 0, ngll-1
                                     ipoint          = Tdomain%specel(n)%Iglobnum(i,j,k)
                                     prop(ipoint, :) = pointProp(:)
                                 end do
@@ -322,11 +317,11 @@ contains
                     !Edge in YZ
                     case(4)
                         if(verbose) write(*,*) "Edge in YZ"
-                        do i = 0, ngllx-1
+                        do i = 0, ngll-1
                             ipoint       = Tdomain%specel(n)%Iglobnum(i, LimPML2,LimPML3)
                             pointProp(:) = prop(ipoint, :)
-                            do j = 0, nglly-1
-                                do k = 0, ngllz-1
+                            do j = 0, ngll-1
+                                do k = 0, ngll-1
                                     ipoint          = Tdomain%specel(n)%Iglobnum(i,j,k)
                                     prop(ipoint, :) = pointProp(:)
                                 end do
@@ -336,11 +331,11 @@ contains
                     !Edge in ZX
                     case(5)
                         if(verbose) write(*,*) "Edge in ZX"
-                        do j = 0, nglly-1
+                        do j = 0, ngll-1
                             ipoint       = Tdomain%specel(n)%Iglobnum(LimPML1, j,LimPML3)
                             pointProp(:) = prop(ipoint, :)
-                            do i = 0, ngllx-1
-                                do k = 0, ngllz-1
+                            do i = 0, ngll-1
+                                do k = 0, ngll-1
                                     ipoint          = Tdomain%specel(n)%Iglobnum(i,j,k)
                                     prop(ipoint, :) = pointProp(:)
                                 end do
@@ -352,9 +347,9 @@ contains
                         if(verbose) write(*,*) "Vertex"
                         ipoint       = Tdomain%specel(n)%Iglobnum(LimPML1, LimPML2,LimPML3)
                         pointProp(:) = prop(ipoint, :)
-                        do i = 0, ngllx-1
-                            do j = 0, nglly-1
-                                do k = 0, ngllz-1
+                        do i = 0, ngll-1
+                            do j = 0, ngll-1
+                                do k = 0, ngll-1
                                     ipoint          = Tdomain%specel(n)%Iglobnum(i,j,k)
                                     prop(ipoint, :) = pointProp(:)
                                 end do

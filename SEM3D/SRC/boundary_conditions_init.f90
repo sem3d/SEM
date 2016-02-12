@@ -2,15 +2,15 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
-subroutine normal_face_weighting(dir,ngllx,nglly,ngllz,ngll1,ngll2,normal,   &
+subroutine normal_face_weighting(dir,ngll,ngll1,ngll2,normal,   &
     GLLwx,GLLwy,GLLwz,BtN)
     !- determination of the weighted normal term for a given (inter)face
     implicit none
 
-    integer, intent(in)  :: dir,ngll1,ngll2,ngllx,nglly,ngllz
-    real, dimension(0:ngllx-1), intent(in)  :: GLLwx
-    real, dimension(0:nglly-1), intent(in)  :: GLLwy
-    real, dimension(0:ngllz-1), intent(in)  :: GLLwz
+    integer, intent(in)  :: dir,ngll1,ngll2,ngll
+    real, dimension(0:ngll-1), intent(in)  :: GLLwx
+    real, dimension(0:ngll-1), intent(in)  :: GLLwy
+    real, dimension(0:ngll-1), intent(in)  :: GLLwz
     real, dimension(0:ngll1-1,0:ngll2-1,0:2), intent(in)  :: normal
     real, dimension(0:ngll1-1,0:ngll2-1,0:2), intent(out) :: BtN
     integer :: i,j
@@ -447,16 +447,14 @@ subroutine define_FEV_Neumann(Tdomain)
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    integer :: nf,ne,nv,ngllx,nglly,ngllz,ngll1,ngll2,ngll,mat,i,orient_e
+    integer :: nf,ne,nv,ngll,ngll1,ngll2,mat,i,orient_e
     real, dimension(:,:,:), allocatable :: Store_Btn
 
     do nf = 0,Tdomain%Neumann%Neu_n_faces-1
         ngll1 = Tdomain%Neumann%Neu_Face(nf)%ngll1 ; ngll2 = Tdomain%Neumann%neu_Face(nf)%ngll2
         mat = Tdomain%Neumann%Neu_Param%mat_index
-        ngllx = Tdomain%sSubdomain(mat)%ngllx
-        nglly = Tdomain%sSubdomain(mat)%nglly
-        ngllz = Tdomain%sSubdomain(mat)%ngllz
-        call normal_face_weighting(Tdomain%Neumann%Neu_face(nf)%dir,ngllx,nglly,ngllz,     &
+        ngll = Tdomain%sSubdomain(mat)%ngll
+        call normal_face_weighting(Tdomain%Neumann%Neu_face(nf)%dir,ngll,                  &
             ngll1,ngll2,Tdomain%Neumann%Neu_face(nf)%normal,Tdomain%sSubdomain(mat)%GLLwx, &
             Tdomain%sSubdomain(mat)%GLLwy,Tdomain%sSubdomain(mat)%GLLwz,                   &
             Tdomain%Neumann%Neu_Face(nf)%Btn)

@@ -229,9 +229,9 @@ contains
         !- GLL properties in elements, on faces, edges.
         do i = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(i)%mat_index
-            Tdomain%specel(i)%ngllx = Tdomain%sSubDomain(mat)%NGLLx
-            Tdomain%specel(i)%nglly = Tdomain%sSubDomain(mat)%NGLLy
-            Tdomain%specel(i)%ngllz = Tdomain%sSubDomain(mat)%NGLLz
+            Tdomain%specel(i)%ngllx = Tdomain%sSubDomain(mat)%NGLL
+            Tdomain%specel(i)%nglly = Tdomain%sSubDomain(mat)%NGLL
+            Tdomain%specel(i)%ngllz = Tdomain%sSubDomain(mat)%NGLL
             Tdomain%specel(i)%domain = get_domain(Tdomain%sSubDomain(mat))
         end do
 
@@ -258,7 +258,7 @@ contains
         type(domain), intent(inout) :: Tdomain
         character(Len=MAX_FILE_SIZE) :: fnamef
         integer :: i, n_aus, npml, nRandom
-        integer :: rg
+        integer :: rg, dummy_ngll
         real :: dummy_dt, dummy_freq
         logical :: dummy_filtering
 
@@ -290,10 +290,10 @@ contains
                 Tdomain%sSubDomain(i)%Pspeed,        &
                 Tdomain%sSubDomain(i)%Sspeed,        &
                 Tdomain%sSubDomain(i)%dDensity,      &
-                Tdomain%sSubDomain(i)%NGLLx,         &
-                Tdomain%sSubDomain(i)%NGLLy,         &
-                Tdomain%sSubDomain(i)%NGLLz,         &
-                dummy_Dt,            &
+                Tdomain%sSubDomain(i)%NGLL,          &
+                dummy_NGLL,                          &
+                dummy_NGLL,                          &
+                dummy_Dt,                            &
                 Tdomain%sSubDomain(i)%Qpression,     &
                 Tdomain%sSubDomain(i)%Qmu
 
@@ -304,8 +304,7 @@ contains
                 write (*,*) 'Pspeed   :', Tdomain%sSubDomain(i)%Pspeed
                 write (*,*) 'Sspeed   :', Tdomain%sSubDomain(i)%Sspeed
                 write (*,*) 'Density  :', Tdomain%sSubDomain(i)%dDensity
-                write (*,*) 'NGLL     :', Tdomain%sSubDomain(i)%NGLLx, &
-                    Tdomain%sSubDomain(i)%NGLLy, Tdomain%sSubDomain(i)%NGLLz
+                write (*,*) 'NGLL     :', Tdomain%sSubDomain(i)%NGLL
                 write (*,*) 'Qp       :', Tdomain%sSubDomain(i)%Qpression
                 write (*,*) 'Qmu      :', Tdomain%sSubDomain(i)%Qmu
             endif

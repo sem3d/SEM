@@ -11,32 +11,25 @@ real function interp_lag(mat,xi,eta,zeta,func)
 
     type(subdomain), intent(in)   :: mat
     real, intent(in)  :: xi,eta,zeta
-    real, dimension(0:mat%ngllx-1,0:mat%nglly-1,0:mat%ngllz-1) :: func
+    real, dimension(0:mat%ngll-1,0:mat%ngll-1,0:mat%ngll-1) :: func
     integer :: i,j,k
     real  :: f,wxi,weta,wzeta
-    integer  :: ngllx,nglly,ngllz
-    ngllx = mat%ngllx
-    nglly = mat%nglly
-    ngllz = mat%ngllz
+    integer  :: ngll
+    ngll = mat%ngll
 
     f = 0d0
-
-    do k = 0,ngllz-1
-        call pol_lagrange(ngllz,mat%GLLcz,k,zeta,wzeta)
-        do j = 0,nglly-1
-            call pol_lagrange(nglly,mat%GLLcy,j,eta,weta)
-            do i = 0,ngllx-1
-                call pol_lagrange(ngllx,mat%GLLcx,i,xi,wxi)
+    do k = 0,ngll-1
+        call pol_lagrange(ngll,mat%GLLcz,k,zeta,wzeta)
+        do j = 0,ngll-1
+            call pol_lagrange(ngll,mat%GLLcy,j,eta,weta)
+            do i = 0,ngll-1
+                call pol_lagrange(ngll,mat%GLLcx,i,xi,wxi)
                 f = f+func(i,j,k)*wxi*weta*wzeta
             end do
         end do
     end do
-
     interp_lag = f
-
-    return
 end function interp_lag
-
 
 subroutine source_excit_pulse(src,mat)
     use ssources
@@ -44,29 +37,26 @@ subroutine source_excit_pulse(src,mat)
     implicit none
     type(source), intent(inout) :: src
     type(subdomain), intent(in) :: mat
-    integer :: ngllx, nglly, ngllz, np, i, j, k
+    integer :: ngll, np, i, j, k
     real :: xi,eta,zeta,wxi,weta,wzeta
-    ngllx = mat%ngllx
-    nglly = mat%nglly
-    ngllz = mat%ngllz
+    ngll = mat%ngll
     xi = src%RefCoord(0)
     eta = src%RefCoord(1)
     zeta = src%RefCoord(2)
 
-    allocate(src%ExtForce(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
-    do k = 0,ngllz-1
-        call pol_lagrange(ngllz, mat%GLLcz, k, zeta, wzeta)
-        do j = 0,nglly-1
-            call pol_lagrange(nglly,mat%GLLcy,j,eta,weta)
-            do i = 0,ngllx-1
-                call pol_lagrange(ngllx,mat%GLLcx,i,xi,wxi)
+    allocate(src%ExtForce(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+    do k = 0,ngll-1
+        call pol_lagrange(ngll, mat%GLLcz, k, zeta, wzeta)
+        do j = 0,ngll-1
+            call pol_lagrange(ngll,mat%GLLcy,j,eta,weta)
+            do i = 0,ngll-1
+                call pol_lagrange(ngll,mat%GLLcx,i,xi,wxi)
                 do np = 0,2
                     src%ExtForce(i,j,k,np) = wxi*weta*wzeta*src%dir(np)
                 end do
             end do
         end do
     end do
-
 end subroutine source_excit_pulse
 
 subroutine source_excit_pulse_fluid(Tdomain, nels, src,mat)
@@ -79,7 +69,7 @@ subroutine source_excit_pulse_fluid(Tdomain, nels, src,mat)
     type(subdomain), intent(in) :: mat
     type(domain), intent(in)   :: Tdomain
     integer, intent(in) :: nels
-    integer :: ngllx, nglly, ngllz, i, j, k
+    integer :: ngll, i, j, k
     real :: xi,eta,zeta,wxi,weta,wzeta,lambda
 
     interface
@@ -91,24 +81,22 @@ subroutine source_excit_pulse_fluid(Tdomain, nels, src,mat)
 
            type(subdomain), intent(in)   :: mat
            real, intent(in)  :: xi,eta,zeta
-           real, dimension(0:mat%ngllx-1,0:mat%nglly-1,0:mat%ngllz-1) :: func
+           real, dimension(0:mat%ngll-1,0:mat%ngll-1,0:mat%ngll-1) :: func
        end function interp_lag
     end interface
 
-    ngllx = mat%ngllx
-    nglly = mat%nglly
-    ngllz = mat%ngllz
+    ngll = mat%ngll
     xi = src%RefCoord(0)
     eta = src%RefCoord(1)
     zeta = src%RefCoord(2)
 
-    allocate(src%ExtForce(0:ngllx-1,0:nglly-1,0:ngllz-1,0:0))
-    do k = 0,ngllz-1
-        call pol_lagrange(ngllz, mat%GLLcz, k, zeta, wzeta)
-        do j = 0,nglly-1
-            call pol_lagrange(nglly,mat%GLLcy,j,eta,weta)
-            do i = 0,ngllx-1
-                call pol_lagrange(ngllx,mat%GLLcx,i,xi,wxi)
+    allocate(src%ExtForce(0:ngll-1,0:ngll-1,0:ngll-1,0:0))
+    do k = 0,ngll-1
+        call pol_lagrange(ngll, mat%GLLcz, k, zeta, wzeta)
+        do j = 0,ngll-1
+            call pol_lagrange(ngll,mat%GLLcy,j,eta,weta)
+            do i = 0,ngll-1
+                call pol_lagrange(ngll,mat%GLLcx,i,xi,wxi)
                 src%ExtForce(i,j,k,0) = wxi*weta*wzeta
             end do
         end do
@@ -133,28 +121,26 @@ subroutine source_excit_moment(src,mat)
     implicit none
     type(source), intent(inout) :: src
     type(subdomain), intent(in) :: mat
-    integer :: ngllx, nglly, ngllz, i, j, k
+    integer :: ngll, i, j, k
     real :: xi,eta,zeta,wxi,weta,wzeta,dwdxi,dwdeta,dwdzeta
     real, dimension(0:2,0:2) :: M,InvGrad
-    ngllx = mat%ngllx
-    nglly = mat%nglly
-    ngllz = mat%ngllz
+    ngll = mat%ngll
     xi = src%RefCoord(0)
     eta = src%RefCoord(1)
     zeta = src%RefCoord(2)
 
-    allocate(src%ExtForce(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+    allocate(src%ExtForce(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
     M(:,:) = src%Moment(:,:)
     InvGrad(:,:) = src%InvGrad(:,:)
-    do k = 0,ngllz-1
-        call pol_lagrange(ngllz,mat%GLLcz,k,zeta,wzeta)
-        call derivlag(mat%GLLcz,ngllz,k,zeta,dwdzeta)
-        do j = 0,nglly-1
-            call pol_lagrange(nglly,mat%GLLcy,j,eta,weta)
-            call derivlag(mat%GLLcy,nglly,j,eta,dwdeta)
-            do i = 0,ngllx-1
-                call pol_lagrange(ngllx,mat%GLLcx,i,xi,wxi)
-                call derivlag(mat%GLLcx,ngllx,i,xi,dwdxi)
+    do k = 0,ngll-1
+        call pol_lagrange(ngll,mat%GLLcz,k,zeta,wzeta)
+        call derivlag(mat%GLLcz,ngll,k,zeta,dwdzeta)
+        do j = 0,ngll-1
+            call pol_lagrange(ngll,mat%GLLcy,j,eta,weta)
+            call derivlag(mat%GLLcy,ngll,j,eta,dwdeta)
+            do i = 0,ngll-1
+                call pol_lagrange(ngll,mat%GLLcx,i,xi,wxi)
+                call derivlag(mat%GLLcx,ngll,i,xi,dwdxi)
                 ! final step: values at the GLL points
                 src%ExtForce(i,j,k,0) =     &
                     (InvGrad(0,0)*dwdxi*weta*wzeta+InvGrad(0,1)*wxi*dwdeta*wzeta+InvGrad(0,2)*wxi*weta*dwdzeta)*M(0,0) + &

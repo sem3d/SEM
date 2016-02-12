@@ -104,7 +104,7 @@ contains
 
         !LOCAL
         integer :: mat, n, ipoint, i, j, k, lnum
-        integer :: ngllx,nglly,ngllz
+        integer :: ngll
         double precision, dimension(:, :, :), allocatable :: propMatrix !Properties
         allocate(propMatrix(0:size(Tdomain%GlobCoord,2)-1, 0:nProp-1, 0:Tdomain%n_mat-1))
 
@@ -124,14 +124,10 @@ contains
             mat = Tdomain%specel(n)%mat_index
             lnum = Tdomain%specel(n)%lnum
             if(propOnFile(Tdomain, mat)) then
-
-                ngllx    = Tdomain%sSubDomain(mat)%NGLLx
-                nglly    = Tdomain%sSubDomain(mat)%NGLLy
-                ngllz    = Tdomain%sSubDomain(mat)%NGLLz
-
-                do i = 0, ngllx-1
-                    do j = 0, nglly-1
-                        do k = 0, ngllz-1
+                ngll = Tdomain%sSubDomain(mat)%NGLL
+                do i = 0, ngll-1
+                    do j = 0, ngll-1
+                        do k = 0, ngll-1
                             ipoint  = Tdomain%specel(n)%Iglobnum(i,j,k)
                             select case (Tdomain%specel(n)%domain)
                                 case (DM_SOLID)
@@ -229,7 +225,7 @@ contains
 
         !LOCAL
         integer :: n, ipoint, i, j, k, mat, lnum
-        integer :: ngllx,nglly,ngllz
+        integer :: ngll
         logical         , dimension(:,:) , allocatable :: globCoordMask, propMask
         double precision, dimension(:, :), allocatable :: prop !Properties
         integer         , dimension(:)   , allocatable :: nSubDPoints;
@@ -250,17 +246,14 @@ contains
         do mat = 0, Tdomain%n_mat - 1
             globCoordMask(:,:) = .false.
             propMask(:,:)      = .false.
-            ngllx = Tdomain%sSubDomain(mat)%NGLLx
-            nglly = Tdomain%sSubDomain(mat)%NGLLy
-            ngllz = Tdomain%sSubDomain(mat)%NGLLz
-
+            ngll = Tdomain%sSubDomain(mat)%NGLL
             do n = 0, Tdomain%n_elem-1
                 lnum = Tdomain%specel(n)%lnum
                 if(Tdomain%specel(n)%mat_index == mat) then
                     !Building masks for this subdomain in this proc
-                    do i = 0, ngllx-1
-                        do j = 0, nglly-1
-                            do k = 0, ngllz-1
+                    do i = 0, ngll-1
+                        do j = 0, ngll-1
+                            do k = 0, ngll-1
                                 !write(*,*) "i = ", i, "j = ", j, "k = ", k
                                 ipoint = Tdomain%specel(n)%Iglobnum(i,j,k)
                                 globCoordMask(:,ipoint) = .true.
