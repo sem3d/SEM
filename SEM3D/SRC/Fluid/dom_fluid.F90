@@ -213,6 +213,18 @@ contains
         end if
     end subroutine init_material_properties_fluid
 
+    subroutine init_local_mass_fluid(dom,specel,i,j,k,ind,Whei)
+        type(domain_fluid), intent (INOUT) :: dom
+        type (Element), intent (INOUT) :: specel
+        integer :: i,j,k,ind
+        real Whei
+
+        ! Fluid : inertial term ponderation by the inverse of the bulk modulus
+
+        specel%MassMat(i,j,k) = Whei*dom%Jacob_(i,j,k,specel%lnum)/dom%Lambda_(i,j,k,specel%lnum)
+        dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
+    end subroutine init_local_mass_fluid
+
     subroutine forces_int_fluid(dom, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
         champs1, Elem, lnum)
 
