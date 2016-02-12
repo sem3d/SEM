@@ -165,17 +165,11 @@ contains
         endif ! Solid-Fluid interface
 
 
-        ! Obtention of a positive Jacobian.
-        select case (Tdomain%specel(n)%domain)
-            case (DM_SOLID)
-                Tdomain%sdom%m_Jacob    = abs(Tdomain%sdom%m_Jacob   )
-            case (DM_FLUID)
-                Tdomain%fdom%m_Jacob    = abs(Tdomain%fdom%m_Jacob   )
-            case (DM_SOLID_PML)
-                Tdomain%spmldom%m_Jacob = abs(Tdomain%spmldom%m_Jacob)
-            case (DM_FLUID_PML)
-                Tdomain%fpmldom%m_Jacob = abs(Tdomain%fpmldom%m_Jacob)
-        end select
+        if (Tdomain%sdom%nbelem>0) Tdomain%sdom%m_Jacob    = abs(Tdomain%sdom%m_Jacob   )
+        if (Tdomain%fdom%nbelem>0) Tdomain%fdom%m_Jacob    = abs(Tdomain%fdom%m_Jacob   )
+        if (Tdomain%spmldom%nbelem>0) Tdomain%spmldom%m_Jacob = abs(Tdomain%spmldom%m_Jacob)
+        if (Tdomain%fpmldom%nbelem>0) Tdomain%fpmldom%m_Jacob = abs(Tdomain%fpmldom%m_Jacob)
+
     end subroutine shape8_init
     !-------------------------------------------------------------------------
     subroutine compute_normals(Tdomain, surf, dom, BtN)
