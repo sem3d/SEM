@@ -220,8 +220,7 @@ contains
         end do
     end subroutine compute_material_boundaries
 
-    subroutine read_comm_proc_data(Tdomain, proc_id, scomm)
-        type(domain), intent(inout) :: Tdomain
+    subroutine read_comm_proc_data(proc_id, scomm)
         integer(HID_T), intent(in) :: proc_id
         type(comm), intent(inout) :: scomm
         !
@@ -461,7 +460,7 @@ contains
         do i = 0,Tdomain%tot_comm_proc-1
             write(proc_grp,"(a,I4.4)") "Proc", i
             call h5gopen_f(fid, trim(adjustl(proc_grp)), proc_id, hdferr)
-            call read_comm_proc_data(Tdomain, proc_id, Tdomain%sComm(i) )
+            call read_comm_proc_data(proc_id, Tdomain%sComm(i) )
 
         end do
 
