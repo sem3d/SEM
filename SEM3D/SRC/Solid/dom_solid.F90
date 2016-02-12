@@ -264,7 +264,10 @@ contains
                                         *(DXX(i,j,k)+DYY(i,j,k)+DZZ(i,j,k))
                     end if
 
-                    if (out_variables(OUT_EPS_VOL) == 1) then
+                    if (out_variables(OUT_EPS_VOL) == 1 .or. &
+                        out_variables(OUT_ENERGYP) == 1 .or. &
+                        out_variables(OUT_EPS_DEV) == 1 .or. &
+                        out_variables(OUT_STRESS_DEV) == 1 ) then
                         if(.not. allocated(eps_vol)) allocate(eps_vol(0:nx-1,0:ny-1,0:nz-1))
                         eps_vol(i,j,k) = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
                     end if
@@ -343,6 +346,7 @@ contains
         if (allocated(hTprimex)) deallocate(hTprimex)
         if (allocated(hprimey))  deallocate(hprimey)
         if (allocated(hprimez))  deallocate(hprimez)
+
     end subroutine get_solid_dom_var
 
     subroutine init_material_properties_solid(dom, lnum, i, j, k, density, lambda, mu, kappa, Tdomain, mat)
