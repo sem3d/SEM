@@ -221,13 +221,11 @@ contains
         end if
     end subroutine init_material_properties_solidpml
 
-    subroutine init_local_mass_solidpml(dom,specel,i,j,k,ind,Whei,mat,Tdomain)
+    subroutine init_local_mass_solidpml(dom,specel,i,j,k,ind,Whei)
         type(domain_solidpml), intent (INOUT) :: dom
         type (Element), intent (INOUT) :: specel
         integer :: i,j,k,ind
         real Whei
-        type (subdomain), intent(in) :: mat
-        type (domain), intent (INOUT), target :: Tdomain
 
         ! Solid.
 

@@ -472,11 +472,11 @@ contains
                         case (DM_SOLID)
                             call init_local_mass_solid(Tdomain%sdom,specel,i,j,k,ind,Whei)
                         case (DM_SOLID_PML)
-                            call init_local_mass_solidpml(Tdomain%spmldom,specel,i,j,k,ind,Whei,mat,Tdomain)
+                            call init_local_mass_solidpml(Tdomain%spmldom,specel,i,j,k,ind,Whei)
                         case (DM_FLUID)
                             call init_local_mass_fluid(Tdomain%fdom,specel,i,j,k,ind,Whei)
                         case (DM_FLUID_PML)
-                            call init_local_mass_fluidpml(Tdomain%fpmldom,specel,i,j,k,ind,Whei,mat,Tdomain)
+                            call init_local_mass_fluidpml(Tdomain%fpmldom,specel,i,j,k,ind,Whei)
                     end select
                 enddo
             enddo
