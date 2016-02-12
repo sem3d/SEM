@@ -420,23 +420,22 @@ subroutine internal_forces(Tdomain)
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
                 Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
                 Tdomain%sSubDomain(mat)%hTprimez, Tdomain%n_sls,Tdomain%aniso,     &
-                Tdomain%sdom%champs1, Tdomain%specel(n), lnum)
+                Tdomain%sdom%champs1, lnum)
         case (DM_FLUID)
             call forces_int_fluid(Tdomain%fdom, Tdomain%sSubDomain(mat),           &
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
                 Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
-                Tdomain%sSubDomain(mat)%hTprimez, Tdomain%fdom%champs1,            &
-                Tdomain%specel(n), lnum)
+                Tdomain%sSubDomain(mat)%hTprimez, Tdomain%fdom%champs1, lnum)
         case (DM_SOLID_PML)
             call pred_sol_pml(Tdomain%spmldom, Tdomain%sSubDomain(mat),Tdomain%TimeD%dtmin, &
-                              Tdomain%spmldom%champs1, Tdomain%specel(n), lnum)
+                              Tdomain%spmldom%champs1, lnum)
             call forces_int_sol_pml(Tdomain%spmldom, Tdomain%sSubDomain(mat), Tdomain%spmldom%champs1, &
-                                    Tdomain%specel(n), lnum)
+                                    lnum)
         case (DM_FLUID_PML)
             call pred_flu_pml(Tdomain%fpmldom, Tdomain%sSubDomain(mat),Tdomain%TimeD%dtmin, &
-                              Tdomain%fpmldom%champs1, Tdomain%specel(n), lnum)
+                              Tdomain%fpmldom%champs1, lnum)
             call forces_int_flu_pml(Tdomain%fpmldom, Tdomain%sSubDomain(mat), Tdomain%fpmldom%champs1, &
-                                    Tdomain%specel(n), lnum)
+                                    lnum)
         end select
     enddo
 
@@ -470,16 +469,18 @@ end subroutine internal_forces
 subroutine external_forces(Tdomain,timer,ntime)
     use sdomain
     implicit none
+#include "index.h"
 
     type(domain), intent(inout)  :: Tdomain
     integer, intent(in)  :: ntime
     real, intent(in)  :: timer
-    integer  :: ns,nel,i_dir, i,j,k, idx
+    integer  :: ns,nel,i_dir, i,j,k, idx, lnum
     real :: t, ft
 
     do ns = 0, Tdomain%n_source-1
         if(Tdomain%rank == Tdomain%sSource(ns)%proc)then
             nel = Tdomain%Ssource(ns)%elem
+            lnum = Tdomain%specel(nel)%lnum
 
             !  vieille version:
             ! time : t_(n+1/2) for solid ; t_n for fluid
@@ -498,7 +499,7 @@ subroutine external_forces(Tdomain,timer,ntime)
                     do k = 0,Tdomain%specel(nel)%ngllz-1
                         do j = 0,Tdomain%specel(nel)%nglly-1
                             do i = 0,Tdomain%specel(nel)%ngllx-1
-                                idx = Tdomain%specel(nel)%Idom(i,j,k)
+                                idx = Tdomain%sdom%Idom_(i,j,k,lnum)
                                 Tdomain%sdom%champs1%Forces(idx, i_dir) = Tdomain%sdom%champs1%Forces(idx, i_dir) + &
                                     ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
                             enddo
@@ -509,7 +510,7 @@ subroutine external_forces(Tdomain,timer,ntime)
                 do k = 0,Tdomain%specel(nel)%ngllz-1
                     do j = 0,Tdomain%specel(nel)%nglly-1
                         do i = 0,Tdomain%specel(nel)%ngllx-1
-                            idx = Tdomain%specel(nel)%Idom(i,j,k)
+                            idx = Tdomain%fdom%Idom_(i,j,k,lnum)
                             Tdomain%fdom%champs1%ForcesFl(idx) = Tdomain%fdom%champs1%ForcesFl(idx) +    &
                                 ft*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
                         enddo

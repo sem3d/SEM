@@ -38,6 +38,8 @@ contains
         allocate (dom%Jacob_  (        0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
         allocate (dom%InvGrad_(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
 
+        allocate(dom%Idom_(0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
+
         ! Allocation et initialisation de champs0 et champs1 pour les fluides
         if (dom%ngll /= 0) then
             allocate(dom%champs0%ForcesFl(0:dom%ngll-1))
@@ -66,6 +68,8 @@ contains
 
         if(allocated(dom%m_Jacob  )) deallocate(dom%m_Jacob  )
         if(allocated(dom%m_InvGrad)) deallocate(dom%m_InvGrad)
+
+        if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
 
         if(allocated(dom%champs0%ForcesFl)) deallocate(dom%champs0%ForcesFl)
         if(allocated(dom%champs0%Phi     )) deallocate(dom%champs0%Phi     )
@@ -132,7 +136,7 @@ contains
         do k=0,nz-1
             do j=0,ny-1
                 do i=0,nx-1
-                    ind = el%Idom(i,j,k)
+                    ind = Tdomain%fdom%Idom_(i,j,k,el%lnum)
 
                     if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
                         if(.not. allocated(fieldU)) allocate(fieldU(0:nx-1,0:ny-1,0:nz-1,0:2))
@@ -226,24 +230,20 @@ contains
     end subroutine init_local_mass_fluid
 
     subroutine forces_int_fluid(dom, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
-        champs1, Elem, lnum)
+        champs1, lnum)
 
         type(domain_fluid), intent (INOUT) :: dom
-        type (Element), intent (INOUT) :: Elem
         type (subdomain), intent(IN) :: mat
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: htprimex
-        real, dimension (0:Elem%nglly-1, 0:Elem%nglly-1), intent (IN) :: hprimey, htprimey
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
+        real, dimension (0:dom%ngllx-1, 0:dom%ngllx-1), intent (IN) :: htprimex
+        real, dimension (0:dom%nglly-1, 0:dom%nglly-1), intent (IN) :: hprimey, htprimey
+        real, dimension (0:dom%ngllz-1, 0:dom%ngllz-1), intent (IN) :: hprimez, hTprimez
         type(champsfluid), intent(inout) :: champs1
         integer :: lnum
 
         integer :: m1,m2,m3, i,j,k
-        real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dPhiX,dPhiY,dPhiZ,Fo_Fl
+        real, dimension(0:dom%ngllx-1, 0:dom%nglly-1, 0:dom%ngllz-1) :: dPhiX,dPhiY,dPhiZ,Fo_Fl,Phi
 
-        real, dimension(0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: Phi
-
-
-        m1 = Elem%ngllx;   m2 = Elem%nglly;   m3 = Elem%ngllz
+        m1 = dom%ngllx;   m2 = dom%nglly;   m3 = dom%ngllz
 
         ! d(rho*Phi)_dX
         ! d(rho*Phi)_dY
@@ -251,7 +251,7 @@ contains
         do k = 0,m3-1
             do j = 0,m2-1
                 do i = 0,m1-1
-                    Phi(i,j,k) = champs1%Phi(Elem%Idom(i,j,k))
+                    Phi(i,j,k) = champs1%Phi(dom%Idom_(i,j,k,lnum))
                 enddo
             enddo
         enddo
@@ -265,15 +265,11 @@ contains
         do k = 0,m3-1
             do j = 0,m2-1
                 do i = 0,m1-1
-                    champs1%ForcesFl(Elem%Idom(i,j,k)) = champs1%ForcesFl(Elem%Idom(i,j,k))-Fo_Fl(i,j,k)
+                    champs1%ForcesFl(dom%Idom_(i,j,k,lnum)) = champs1%ForcesFl(dom%Idom_(i,j,k,lnum))-Fo_Fl(i,j,k)
                 enddo
             enddo
         enddo
-
-
-        return
     end subroutine forces_int_fluid
-
 end module dom_fluid
 
 !! Local Variables:

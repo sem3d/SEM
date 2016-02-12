@@ -42,6 +42,8 @@ contains
         allocate (dom%Jacob_  (        0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
         allocate (dom%InvGrad_(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
 
+        allocate(dom%Idom_(0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
+
         if (aniso) then
             allocate (dom%Cij_ (0:20, 0:ngllx-1, 0:nglly-1, 0:ngllz-1, 0:nbelem-1))
         endif
@@ -118,6 +120,8 @@ contains
 
         if(allocated(dom%m_Jacob  )) deallocate(dom%m_Jacob  )
         if(allocated(dom%m_InvGrad)) deallocate(dom%m_InvGrad)
+
+        if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
 
         if(allocated(dom%m_Cij           )) deallocate (dom%m_Cij           )
         if(allocated(dom%Q               )) deallocate (dom%Q               )
@@ -214,7 +218,7 @@ contains
         do k=0,nz-1
             do j=0,ny-1
                 do i=0,nx-1
-                    ind = el%Idom(i,j,k)
+                    ind = Tdomain%sdom%Idom_(i,j,k,el%lnum)
 
                     if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
                         if(.not. allocated(fieldU)) allocate(fieldU(0:nx-1,0:ny-1,0:nz-1,0:2))
@@ -241,7 +245,7 @@ contains
         do k=0,nz-1
             do j=0,ny-1
                 do i=0,nx-1
-                    ind = el%Idom(i,j,k)
+                    ind = Tdomain%sdom%Idom_(i,j,k,el%lnum)
 
                     if (out_variables(OUT_VITESSE) == 1) then
                         if(.not. allocated(fieldV)) allocate(fieldV(0:nx-1,0:ny-1,0:nz-1,0:2))
@@ -408,16 +412,15 @@ contains
     end subroutine init_local_mass_solid
 
     subroutine forces_int_solid(dom, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
-               n_solid, aniso, champs1, Elem, lnum)
+               n_solid, aniso, champs1, lnum)
 
         use attenuation_solid
 
         type(domain_solid), intent (INOUT) :: dom
         type (subdomain), intent(IN) :: mat
-        type (Element), intent (INOUT) :: Elem
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: htprimex
-        real, dimension (0:Elem%nglly-1, 0:Elem%nglly-1), intent (IN) :: hprimey, htprimey
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
+        real, dimension (0:dom%ngllx-1, 0:dom%ngllx-1), intent (IN) :: htprimex
+        real, dimension (0:dom%nglly-1, 0:dom%nglly-1), intent (IN) :: hprimey, htprimey
+        real, dimension (0:dom%ngllz-1, 0:dom%ngllz-1), intent (IN) :: hprimez, hTprimez
         integer, intent(IN) :: n_solid
         logical, intent(IN) :: aniso
         type(champssolid), intent(inout) :: champs1
@@ -425,24 +428,21 @@ contains
 
         integer :: m1,m2,m3, i,j,k,i_dir
         real :: epsilon_trace_over_3
-        real, dimension (0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) ::  DXX,DXY,DXZ, &
-            DYX,DYY,DYZ, &
-            DZX,DZY,DZZ, &
-            Fox,Foy,Foz
+        real, dimension (0:dom%ngllx-1, 0:dom%nglly-1, 0:dom%ngllz-1) ::  DXX,DXY,DXZ, &
+            DYX,DYY,DYZ,DZX,DZY,DZZ,Fox,Foy,Foz
 
         real, dimension(:,:,:), allocatable :: epsilondev_xx_loc, epsilondev_yy_loc, &
             epsilondev_xy_loc, epsilondev_xz_loc, epsilondev_yz_loc
         real, dimension(:,:,:), allocatable :: epsilonvol_loc
-        real, dimension(0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1,0:2) :: Depla
+        real, dimension(0:dom%ngllx-1, 0:dom%nglly-1, 0:dom%ngllz-1,0:2) :: Depla
 
-
-        m1 = Elem%ngllx;   m2 = Elem%nglly;   m3 = Elem%ngllz
+        m1 = dom%ngllx;   m2 = dom%nglly;   m3 = dom%ngllz
 
         do i_dir = 0,2
             do k = 0,m3-1
                 do j = 0,m2-1
                     do i = 0,m1-1
-                        Depla(i,j,k,i_dir) = champs1%Depla(Elem%Idom(i,j,k),i_dir)
+                        Depla(i,j,k,i_dir) = champs1%Depla(dom%Idom_(i,j,k,lnum),i_dir)
                     enddo
                 enddo
             enddo
@@ -511,9 +511,9 @@ contains
         do k = 0,m3-1
             do j = 0,m2-1
                 do i = 0,m1-1
-                    champs1%Forces(Elem%Idom(i,j,k),0) = champs1%Forces(Elem%Idom(i,j,k),0)-Fox(i,j,k)
-                    champs1%Forces(Elem%Idom(i,j,k),1) = champs1%Forces(Elem%Idom(i,j,k),1)-Foy(i,j,k)
-                    champs1%Forces(Elem%Idom(i,j,k),2) = champs1%Forces(Elem%Idom(i,j,k),2)-Foz(i,j,k)
+                    champs1%Forces(dom%Idom_(i,j,k,lnum),0) = champs1%Forces(dom%Idom_(i,j,k,lnum),0)-Fox(i,j,k)
+                    champs1%Forces(dom%Idom_(i,j,k,lnum),1) = champs1%Forces(dom%Idom_(i,j,k,lnum),1)-Foy(i,j,k)
+                    champs1%Forces(dom%Idom_(i,j,k,lnum),2) = champs1%Forces(dom%Idom_(i,j,k,lnum),2)-Foz(i,j,k)
                 enddo
             enddo
         enddo

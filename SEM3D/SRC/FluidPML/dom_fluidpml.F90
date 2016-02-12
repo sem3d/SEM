@@ -39,6 +39,8 @@ contains
         allocate (dom%Jacob_  (        0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
         allocate (dom%InvGrad_(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
 
+        allocate(dom%Idom_(0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
+
         if(Tdomain%TimeD%velocity_scheme)then
             allocate(dom%Veloc(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
             dom%Veloc = 0d0
@@ -80,6 +82,8 @@ contains
 
         if(allocated(dom%m_Jacob  )) deallocate(dom%m_Jacob  )
         if(allocated(dom%m_InvGrad)) deallocate(dom%m_InvGrad)
+
+        if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
 
         if(allocated(dom%Veloc))       deallocate(dom%Veloc      )
         if(allocated(dom%PMLDumpSx  )) deallocate(dom%PMLDumpSx  )
@@ -126,7 +130,7 @@ contains
         do k=0,nz-1
             do j=0,ny-1
                 do i=0,nx-1
-                    ind = el%Idom(i,j,k)
+                    ind = Tdomain%fpmldom%Idom_(i,j,k,el%lnum)
 
                     if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
                         if(.not. allocated(fieldU)) allocate(fieldU(0:nx-1,0:ny-1,0:nz-1,0:2))
@@ -205,24 +209,23 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_fluidpml
 
-    subroutine forces_int_flu_pml(dom, mat, champs1, Elem, lnum)
+    subroutine forces_int_flu_pml(dom, mat, champs1, lnum)
         type (domain_fluidpml), intent (INOUT) :: dom
         type (subdomain), intent(IN) :: mat
         type(champsfluidpml), intent(inout) :: champs1
-        type (Element), intent(INOUT) :: Elem
         integer :: lnum
         !
         integer :: m1, m2, m3
         integer :: i, j, k, l, ind
         real :: sum_vx, sum_vy, sum_vz, acoeff
-        real, dimension(0:2,0:Elem%ngllx-1,0:Elem%nglly-1,0:Elem%ngllz-1)  :: ForcesFl
+        real, dimension(0:2,0:dom%ngllx-1,0:dom%nglly-1,0:dom%ngllz-1)  :: ForcesFl
 
-        m1 = Elem%ngllx ; m2 = Elem%nglly ; m3 = Elem%ngllz
+        m1 = dom%ngllx ; m2 = dom%nglly ; m3 = dom%ngllz
 
         do k = 0,m3-1
             do j = 0,m2-1
                 do i=0,m1-1
-                    ind = Elem%Idom(i,j,k)
+                    ind = dom%Idom_(i,j,k,lnum)
                     sum_vx = 0d0
                     sum_vy = 0d0
                     sum_vz = 0d0
@@ -242,7 +245,7 @@ contains
             do l = 0,m2-1
                 do j = 0,m2-1
                     do i=0,m1-1
-                        ind = Elem%Idom(i,j,k)
+                        ind = dom%Idom_(i,j,k,lnum)
                         acoeff = - mat%hprimey(j,l)*mat%GLLwx(i)*mat%GLLwy(l)*mat%GLLwz(k)*dom%Jacob_(i,l,k,lnum)
                         sum_vx = acoeff*dom%InvGrad_(0,1,i,l,k,lnum)*dom%Veloc(i,l,k,0,lnum)
                         sum_vy = acoeff*dom%InvGrad_(1,1,i,l,k,lnum)*dom%Veloc(i,l,k,1,lnum)
@@ -259,7 +262,7 @@ contains
             do k = 0,m3-1
                 do j = 0,m2-1
                     do i=0,m1-1
-                        ind = Elem%Idom(i,j,k)
+                        ind = dom%Idom_(i,j,k,lnum)
                         acoeff = - mat%hprimez(k,l)*mat%GLLwx(i)*mat%GLLwy(j)*mat%GLLwz(l)*dom%Jacob_(i,j,l,lnum)
                         sum_vx = acoeff*dom%InvGrad_(0,2,i,j,l,lnum)*dom%Veloc(i,j,l,0,lnum)
                         sum_vy = acoeff*dom%InvGrad_(1,2,i,j,l,lnum)*dom%Veloc(i,j,l,1,lnum)
@@ -276,7 +279,7 @@ contains
         do k = 0,m3-1
             do j = 0,m2-1
                 do i = 0,m1-1
-                    ind = Elem%Idom(i,j,k)
+                    ind = dom%Idom_(i,j,k,lnum)
                     ! We should have atomic adds with openmp // here
                     champs1%fpml_Forces(ind,0) = champs1%fpml_Forces(ind,0) + ForcesFl(0,i,j,k)
                     champs1%fpml_Forces(ind,1) = champs1%fpml_Forces(ind,1) + ForcesFl(1,i,j,k)
@@ -288,20 +291,19 @@ contains
         return
     end subroutine forces_int_flu_pml
 
-    subroutine pred_flu_pml(dom, mat, dt, champs1, Elem, lnum)
+    subroutine pred_flu_pml(dom, mat, dt, champs1, lnum)
         type (domain_fluidpml), intent (INOUT) :: dom
         type (subdomain), intent(IN) :: mat
         real, intent(in) :: dt
         type(champsfluidpml), intent(inout) :: champs1
-        type(Element), intent(inout) :: Elem
         integer :: lnum
         !
-        real, dimension(0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVelPhi_dx, dVelPhi_dy, dVelPhi_dz
+        real, dimension(0:dom%ngllx-1, 0:dom%nglly-1, 0:dom%ngllz-1) :: dVelPhi_dx, dVelPhi_dy, dVelPhi_dz
         integer :: m1, m2, m3
         integer :: i, j, k, ind
         real, dimension(:,:,:), allocatable :: VelPhi
 
-        m1 = Elem%ngllx ; m2 = Elem%nglly ; m3 = Elem%ngllz
+        m1 = dom%ngllx ; m2 = dom%nglly ; m3 = dom%ngllz
 
         allocate(VelPhi(0:m1-1,0:m2-1,0:m3-1))
         ! prediction in the element
@@ -309,7 +311,7 @@ contains
         do k = 0,m3-1
             do j = 0,m2-1
                 do i = 0,m1-1
-                    ind = Elem%Idom(i,j,k)
+                    ind = dom%Idom_(i,j,k,lnum)
                     VelPhi(i,j,k) = champs1%fpml_VelPhi(ind,0) + &
                         champs1%fpml_VelPhi(ind,1) + &
                         champs1%fpml_VelPhi(ind,2)

@@ -1133,9 +1133,8 @@ contains
         !
         real, dimension(:),allocatable :: mass, jac
         integer :: ngllx, nglly, ngllz, idx
-        integer :: i, j, k, n, nnodes_tot
+        integer :: i, j, k, n, lnum, nnodes_tot
         integer :: domain_type, imat
-
 
         allocate(mass(0:nnodes-1))
         allocate(jac(0:nnodes-1))
@@ -1146,6 +1145,7 @@ contains
             nglly = Tdomain%specel(n)%nglly
             ngllz = Tdomain%specel(n)%ngllz
             imat = Tdomain%specel(n)%mat_index
+            lnum = Tdomain%specel(n)%lnum
             domain_type = get_domain(Tdomain%sSubDomain(imat))
             select case(domain_type)
             case (DM_SOLID)
@@ -1154,7 +1154,7 @@ contains
                         do i = 0,ngllx-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%sdom%MassMat(Tdomain%specel(n)%Idom(i,j,k))
+                                mass(idx) = Tdomain%sdom%MassMat(Tdomain%sdom%Idom_(i,j,k,lnum))
                             endif
                         end do
                     end do
@@ -1165,7 +1165,7 @@ contains
                         do i = 0,ngllx-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%spmldom%MassMat(Tdomain%specel(n)%Idom(i,j,k))
+                                mass(idx) = Tdomain%spmldom%MassMat(Tdomain%spmldom%Idom_(i,j,k,lnum))
                             endif
                         end do
                     end do
@@ -1176,7 +1176,7 @@ contains
                         do i = 0,ngllx-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%fdom%MassMat(Tdomain%specel(n)%Idom(i,j,k))
+                                mass(idx) = Tdomain%fdom%MassMat(Tdomain%fdom%Idom_(i,j,k,lnum))
                             endif
                         end do
                     end do
@@ -1187,7 +1187,7 @@ contains
                         do i = 0,ngllx-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%fpmldom%MassMat(Tdomain%specel(n)%Idom(i,j,k))
+                                mass(idx) = Tdomain%fpmldom%MassMat(Tdomain%fpmldom%Idom_(i,j,k,lnum))
                             endif
                         end do
                     end do

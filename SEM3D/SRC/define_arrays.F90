@@ -93,7 +93,20 @@ contains
                 exit
             end if
         end do
-        return
+
+        ! Copy Idom from element to domain_XXX
+        do n = 0,Tdomain%n_elem-1
+            if      (Tdomain%specel(n)%domain==DM_SOLID    ) then
+                Tdomain%sdom%Idom_(:,:,:,Tdomain%specel(n)%lnum)    = Tdomain%specel(n)%Idom
+            else if (Tdomain%specel(n)%domain==DM_SOLID_PML) then
+                Tdomain%spmldom%Idom_(:,:,:,Tdomain%specel(n)%lnum) = Tdomain%specel(n)%Idom
+            else if (Tdomain%specel(n)%domain==DM_FLUID    ) then
+                Tdomain%fdom%Idom_(:,:,:,Tdomain%specel(n)%lnum)    = Tdomain%specel(n)%Idom
+            else if (Tdomain%specel(n)%domain==DM_FLUID_PML) then
+                Tdomain%fpmldom%Idom_(:,:,:,Tdomain%specel(n)%lnum) = Tdomain%specel(n)%Idom
+            end if
+            deallocate(Tdomain%specel(n)%Idom)
+        end do
     end subroutine define_arrays
 
 

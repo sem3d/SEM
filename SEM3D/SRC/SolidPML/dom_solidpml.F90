@@ -40,6 +40,8 @@ contains
         allocate (dom%Jacob_  (        0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
         allocate (dom%InvGrad_(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
 
+        allocate(dom%Idom_(0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
+
         if(Tdomain%TimeD%velocity_scheme)then
             allocate(dom%Diagonal_Stress (0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
             allocate(dom%Diagonal_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
@@ -95,6 +97,8 @@ contains
         if(allocated(dom%m_Jacob  )) deallocate(dom%m_Jacob  )
         if(allocated(dom%m_InvGrad)) deallocate(dom%m_InvGrad)
 
+        if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
+
         if(allocated(dom%Diagonal_Stress )) deallocate(dom%Diagonal_Stress )
         if(allocated(dom%Diagonal_Stress1)) deallocate(dom%Diagonal_Stress1)
         if(allocated(dom%Diagonal_Stress2)) deallocate(dom%Diagonal_Stress2)
@@ -146,7 +150,7 @@ contains
         do k=0,nz-1
             do j=0,ny-1
                 do i=0,nx-1
-                    ind = el%Idom(i,j,k)
+                    ind = Tdomain%spmldom%Idom_(i,j,k,el%lnum)
 
                     if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
                         if(.not. allocated(fieldU)) allocate(fieldU(0:nx-1,0:ny-1,0:nz-1,0:2))
@@ -233,19 +237,18 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solidpml
 
-    subroutine forces_int_sol_pml(dom, mat, champs1, Elem, lnum)
+    subroutine forces_int_sol_pml(dom, mat, champs1, lnum)
         type(domain_solidpml), intent(inout) :: dom
         type (subdomain), intent(IN) :: mat
         type(champssolidpml), intent(inout) :: champs1
-        type (Element), intent (INOUT) :: Elem
         integer :: lnum
         !
         integer :: m1, m2, m3
         integer :: i, j, k, l, ind
         real :: sum_vx, sum_vy, sum_vz, acoeff
-        real, dimension(0:2,0:Elem%ngllx-1,0:Elem%nglly-1,0:Elem%ngllz-1)  :: Forces1, Forces2, Forces3
+        real, dimension(0:2,0:dom%ngllx-1,0:dom%nglly-1,0:dom%ngllz-1)  :: Forces1, Forces2, Forces3
 
-        m1 = Elem%ngllx ; m2 = Elem%nglly ; m3 = Elem%ngllz
+        m1 = dom%ngllx ; m2 = dom%nglly ; m3 = dom%ngllz
 
         do k = 0,m3-1
             do j = 0,m2-1
@@ -328,7 +331,7 @@ contains
         do k = 0,m3-1
             do j = 0,m2-1
                 do i = 0,m1-1
-                    ind = Elem%Idom(i,j,k)
+                    ind = dom%Idom_(i,j,k,lnum)
                     champs1%ForcesPML(ind,:,0) = champs1%ForcesPML(ind,:,0) + Forces1(:,i,j,k)
                     champs1%ForcesPML(ind,:,1) = champs1%ForcesPML(ind,:,1) + Forces2(:,i,j,k)
                     champs1%ForcesPML(ind,:,2) = champs1%ForcesPML(ind,:,2) + Forces3(:,i,j,k)
@@ -337,31 +340,30 @@ contains
         enddo
     end subroutine forces_int_sol_pml
 
-    subroutine pred_sol_pml(dom, mat, dt, champs1, Elem, lnum)
+    subroutine pred_sol_pml(dom, mat, dt, champs1, lnum)
         implicit none
 
         type(domain_solidpml), intent(inout) :: dom
         type (subdomain), intent(IN) :: mat
         type(champssolidpml), intent(inout) :: champs1
         real, intent(in) :: dt
-        type(Element), intent(inout) :: Elem
         integer :: lnum
         !
-        real, dimension(0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVx_dx, dVx_dy, dVx_dz
-        real, dimension(0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVy_dx, dVy_dy, dVy_dz
-        real, dimension(0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1) :: dVz_dx, dVz_dy, dVz_dz
+        real, dimension(0:dom%ngllx-1, 0:dom%nglly-1, 0:dom%ngllz-1) :: dVx_dx, dVx_dy, dVx_dz
+        real, dimension(0:dom%ngllx-1, 0:dom%nglly-1, 0:dom%ngllz-1) :: dVy_dx, dVy_dy, dVy_dz
+        real, dimension(0:dom%ngllx-1, 0:dom%nglly-1, 0:dom%ngllz-1) :: dVz_dx, dVz_dy, dVz_dz
         integer :: m1, m2, m3
         integer :: i, j, k, ind, i_dir
         real, dimension (:,:,:,:), allocatable :: Veloc
 
-        m1 = Elem%ngllx ; m2 = Elem%nglly ; m3 = Elem%ngllz
+        m1 = dom%ngllx ; m2 = dom%nglly ; m3 = dom%ngllz
 
         allocate(Veloc(0:m1-1,0:m2-1,0:m3-1,0:2))
         do i_dir = 0,2
             do k = 0,m3-1
                 do j = 0,m2-1
                     do i = 0,m1-1
-                        ind = Elem%Idom(i,j,k)
+                        ind = dom%Idom_(i,j,k,lnum)
                         Veloc(i,j,k,i_dir) = champs1%VelocPML(ind,i_dir,0) + &
                             champs1%VelocPML(ind,i_dir,1) + &
                             champs1%VelocPML(ind,i_dir,2)

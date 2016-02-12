@@ -46,6 +46,9 @@ module champs_fluidpml
         integer :: n_dirich
         integer, dimension(:), allocatable :: dirich
 
+        ! Index of a gll node within the physical domain
+        integer, dimension (:,:,:,:), allocatable :: m_Idom ! Idom copied from element
+
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
         ! Champs

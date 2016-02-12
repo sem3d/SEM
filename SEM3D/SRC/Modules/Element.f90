@@ -21,8 +21,6 @@ module selement
         integer :: mat_index
         integer :: lnum ! local number of element within its domain
         integer :: domain ! Type de domaine, voir constants : DOM_SOLID, DOM_FLUID, ...
-        ! Index of a gll node within the physical domain
-        integer, dimension (:,:,:), allocatable :: Idom
         real, dimension (:,:,:), allocatable :: MassMat
 
         ! Whether this element will be part of snapshot outputs
@@ -36,6 +34,8 @@ module selement
 
         ! Index of a gll node within the global nodes array
         integer, dimension (:,:,:), allocatable :: Iglobnum
+        ! Index of a gll node within the physical domain
+        integer, dimension (:,:,:), allocatable :: Idom ! deallocated in define_array + copied into domain_XXX
     end type element
 
 contains
