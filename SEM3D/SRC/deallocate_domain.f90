@@ -48,34 +48,10 @@ subroutine deallocate_domain (Tdomain)
     deallocate (Tdomain%sComm)
 
     do n = 0, Tdomain%n_mat-1
-        if (associated(Tdomain%sSubdomain(n)%GLLcz, Tdomain%sSubdomain(n)%GLLcx) .or. &
-            associated(Tdomain%sSubdomain(n)%GLLcz, Tdomain%sSubdomain(n)%GLLcy )) then
-            nullify (Tdomain%sSubdomain(n)%GLLcz)
-            nullify(Tdomain%sSubdomain(n)%GLLwz)
-            nullify(Tdomain%sSubdomain(n)%hprimez)
-            nullify(Tdomain%sSubdomain(n)%hTprimez)
-        else
-            deallocate (Tdomain%sSubdomain(n)%GLLcz)
-            deallocate (Tdomain%sSubdomain(n)%GLLwz)
-            deallocate (Tdomain%sSubdomain(n)%hprimez)
-            deallocate (Tdomain%sSubdomain(n)%hTprimez)
-        endif
-        if (associated(Tdomain%sSubdomain(n)%GLLcy, Tdomain%sSubdomain(n)%GLLcx) ) then
-            nullify (Tdomain%sSubdomain(n)%GLLcy)
-            nullify(Tdomain%sSubdomain(n)%GLLwy)
-            nullify(Tdomain%sSubdomain(n)%hprimey)
-            nullify(Tdomain%sSubdomain(n)%hTprimey)
-        else
-            deallocate (Tdomain%sSubdomain(n)%GLLcy)
-            deallocate (Tdomain%sSubdomain(n)%GLLwy)
-            deallocate (Tdomain%sSubdomain(n)%hprimey)
-            deallocate (Tdomain%sSubdomain(n)%hTprimey)
-        endif
         deallocate (Tdomain%sSubdomain(n)%GLLcx)
         deallocate (Tdomain%sSubdomain(n)%GLLwx)
         deallocate (Tdomain%sSubdomain(n)%hprimex)
         deallocate (Tdomain%sSubdomain(n)%hTprimex)
-
     enddo
 
     deallocate (Tdomain%sSubdomain)

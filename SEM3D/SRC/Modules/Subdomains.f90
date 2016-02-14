@@ -23,10 +23,6 @@ module ssubdomains
         integer :: NGLL
         real(fpp), dimension (:), pointer :: GLLcx, GLLwx
         real(fpp), dimension (:,:), pointer :: hprimex, hTprimex
-        real(fpp), dimension (:), pointer :: GLLcy, GLLwy
-        real(fpp), dimension (:,:), pointer :: hprimey, hTprimey
-        real(fpp), dimension (:), pointer :: GLLcz, GLLwz
-        real(fpp), dimension (:,:), pointer :: hprimez, hTprimez
 
         !! Definition materiau solide, isotrope
         real(fpp) :: Pspeed, Sspeed, Ddensity

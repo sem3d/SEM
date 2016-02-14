@@ -2,12 +2,10 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
-subroutine calcul_forces_fluid(dom,lnum,FFl,      &
-    hTprimex,hTprimey,hTprimez,wheix,wheiy,wheiz, &
-    dPhiX,dPhiY,dPhiZ,ngllx,nglly,ngllz)
-
+module m_calcul_forces_fluid ! wrap subroutine in module to get arg type check at build time
+    contains
+subroutine calcul_forces_fluid(dom,lnum,FFl,hTprimex,wheix,dPhiX,dPhiY,dPhiZ,ngllx,nglly,ngllz)
     use sdomain
-
     implicit none
 #include "index.h"
 
@@ -16,11 +14,7 @@ subroutine calcul_forces_fluid(dom,lnum,FFl,      &
     integer, intent(in) :: ngllx,nglly,ngllz
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: FFl
     real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: hTprimex
-    real, dimension(0:nglly-1,0:nglly-1), intent(in) :: hTprimey
-    real, dimension(0:ngllz-1,0:ngllz-1), intent(in) :: hTprimez
     real, dimension(0:ngllx-1), intent(in) :: wheix
-    real, dimension(0:nglly-1), intent(in) :: wheiy
-    real, dimension(0:ngllz-1), intent(in) :: wheiz
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: dPhiX,dPhiY,dPhiZ
 
     real :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
@@ -72,10 +66,10 @@ subroutine calcul_forces_fluid(dom,lnum,FFl,      &
                 t4  = dom%Jacob_(i,j,k,lnum) * wheix(i)
                 xt1 = xt1 * t4
 
-                t4  = dom%Jacob_(i,j,k,lnum) * wheiy(j)
+                t4  = dom%Jacob_(i,j,k,lnum) * wheix(j)
                 xt6 = xt6 * t4
 
-                t4   = dom%Jacob_(i,j,k,lnum) * wheiz(k)
+                t4   = dom%Jacob_(i,j,k,lnum) * wheix(k)
                 xt10 = xt10 * t4
 
 
@@ -100,9 +94,9 @@ subroutine calcul_forces_fluid(dom,lnum,FFl,      &
             do i = 0,ngllx-1
                 !=-=-=-=-=-=-=-=-=-=-
                 !
-                t11 = wheiy(j) * wheiz(k)
-                t12 = wheix(i) * wheiz(k)
-                t13 = wheix(i) * wheiy(j)
+                t11 = wheix(j) * wheix(k)
+                t12 = wheix(i) * wheix(k)
+                t13 = wheix(i) * wheix(j)
                 !
                 t41 = zero
                 t51 = zero
@@ -113,14 +107,14 @@ subroutine calcul_forces_fluid(dom,lnum,FFl,      &
                 enddo
 
                 do l = 0,nglly-1
-                    t51 = t51 + hTprimey(l,j) * t6(l,i,k)
+                    t51 = t51 + hTprimex(l,j) * t6(l,i,k)
                 enddo
                 ! FFl
                 F1 = t41*t11 + t51*t12
                 !
                 !
                 do l = 0,ngllz-1
-                    t61 = t61 + hTprimez(l,k) * t10(l,i,j)
+                    t61 = t61 + hTprimex(l,k) * t10(l,i,j)
                 enddo
 
                 ! FX
@@ -135,6 +129,7 @@ subroutine calcul_forces_fluid(dom,lnum,FFl,      &
     !=-=-=-=-=-=-=-=-=-=-
 
 end subroutine calcul_forces_fluid
+end module m_calcul_forces_fluid
 
 !! Local Variables:
 !! mode: f90

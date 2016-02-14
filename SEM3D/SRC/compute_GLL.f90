@@ -41,16 +41,6 @@ subroutine compute_GLL(Tdomain)
         Tdomain%sSubdomain(i)%hprimex =  TRANSPOSE ( Tdomain%sSubdomain(i)%hTprimex )
 
         deallocate (GLLpol)
-
-        Tdomain%sSubdomain(i)%GLLcy => Tdomain%sSubdomain(i)%GLLcx
-        Tdomain%sSubdomain(i)%GLLwy => Tdomain%sSubdomain(i)%GLLwx
-        Tdomain%sSubdomain(i)%hprimey => Tdomain%sSubdomain(i)%hprimex
-        Tdomain%sSubdomain(i)%hTprimey => Tdomain%sSubdomain(i)%hTprimex
-
-        Tdomain%sSubdomain(i)%GLLcz => Tdomain%sSubdomain(i)%GLLcx
-        Tdomain%sSubdomain(i)%GLLwz => Tdomain%sSubdomain(i)%GLLwx
-        Tdomain%sSubdomain(i)%hprimez => Tdomain%sSubdomain(i)%hprimex
-        Tdomain%sSubdomain(i)%hTprimez => Tdomain%sSubdomain(i)%hTprimex
     enddo
 end subroutine compute_GLL
 

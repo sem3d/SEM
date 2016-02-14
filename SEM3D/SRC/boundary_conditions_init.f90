@@ -3,14 +3,12 @@
 !! Copyright CEA, ECP, IPGP
 !!
 subroutine normal_face_weighting(dir,ngll,ngll1,ngll2,normal,   &
-    GLLwx,GLLwy,GLLwz,BtN)
+    GLLwx,BtN)
     !- determination of the weighted normal term for a given (inter)face
     implicit none
 
     integer, intent(in)  :: dir,ngll1,ngll2,ngll
     real, dimension(0:ngll-1), intent(in)  :: GLLwx
-    real, dimension(0:ngll-1), intent(in)  :: GLLwy
-    real, dimension(0:ngll-1), intent(in)  :: GLLwz
     real, dimension(0:ngll1-1,0:ngll2-1,0:2), intent(in)  :: normal
     real, dimension(0:ngll1-1,0:ngll2-1,0:2), intent(out) :: BtN
     integer :: i,j
@@ -18,19 +16,19 @@ subroutine normal_face_weighting(dir,ngll,ngll1,ngll2,normal,   &
     if(dir == 0 .or. dir == 5)then
         do j = 0,ngll2-1
             do i = 0,ngll1-1
-                Btn(i,j,0:2) = GLLwx(i)*GLLwy(j)*normal(i,j,0:2)
+                Btn(i,j,0:2) = GLLwx(i)*GLLwx(j)*normal(i,j,0:2)
             enddo
         enddo
     else if(dir == 1 .or. dir == 3)then
         do j = 0,ngll2-1
             do i = 0,ngll1-1
-                Btn(i,j,0:2) = GLLwx(i)*GLLwz(j)*normal(i,j,0:2)
+                Btn(i,j,0:2) = GLLwx(i)*GLLwx(j)*normal(i,j,0:2)
             enddo
         enddo
     else
         do j = 0,ngll2-1
             do i = 0,ngll1-1
-                Btn(i,j,0:2) = GLLwy(i)*GLLwz(j)*normal(i,j,0:2)
+                Btn(i,j,0:2) = GLLwx(i)*GLLwx(j)*normal(i,j,0:2)
             enddo
         enddo
     endif
@@ -456,7 +454,6 @@ subroutine define_FEV_Neumann(Tdomain)
         ngll = Tdomain%sSubdomain(mat)%ngll
         call normal_face_weighting(Tdomain%Neumann%Neu_face(nf)%dir,ngll,                  &
             ngll1,ngll2,Tdomain%Neumann%Neu_face(nf)%normal,Tdomain%sSubdomain(mat)%GLLwx, &
-            Tdomain%sSubdomain(mat)%GLLwy,Tdomain%sSubdomain(mat)%GLLwz,                   &
             Tdomain%Neumann%Neu_Face(nf)%Btn)
         !- internal communication of Btn: from Neumann faces to Neu edges and vertices
         do i = 0,3

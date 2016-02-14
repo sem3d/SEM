@@ -11,8 +11,10 @@
 !!
 !<
 
+module m_calcul_forces_aniso_att ! wrap subroutine in module to get arg type check at build time
+    contains
 subroutine calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz, &
-    dx,dy,dz,poidsx,poidsy,poidsz,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
+    htprimex,GLLwx,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
     ngllx,nglly,ngllz,n_solid)
 
     use sdomain
@@ -24,12 +26,8 @@ subroutine calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz, &
     integer, intent(in) :: lnum
     integer, intent(in) :: ngllx,nglly,ngllz
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: Fox,Foz,Foy
-    real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: dx
-    real, dimension(0:nglly-1,0:nglly-1), intent(in) :: dy
-    real, dimension(0:ngllz-1,0:ngllz-1), intent(in) :: dz
-    real, dimension(0:ngllx-1), intent(in) :: poidsx
-    real, dimension(0:nglly-1), intent(in) :: poidsy
-    real, dimension(0:ngllz-1), intent(in) :: poidsz
+    real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: htprimex
+    real, dimension(0:ngllx-1), intent(in) :: GLLwx
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
     integer, intent(in) :: n_solid
 
@@ -158,17 +156,17 @@ subroutine calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz, &
                 !
                 !- Multiplication par le Jacobien et le poids d'integration
                 !
-                t4 = dom%Jacob_(i,j,k,lnum) * poidsx(i)
+                t4 = dom%Jacob_(i,j,k,lnum) * GLLwx(i)
                 xt1  =  xt1 * t4
                 xt5  =  xt5 * t4
                 xt8  =  xt8 * t4
 
-                t4 = dom%Jacob_(i,j,k,lnum) * poidsy(j)
+                t4 = dom%Jacob_(i,j,k,lnum) * GLLwx(j)
                 xt2  =  xt2 * t4
                 xt6  =  xt6 * t4
                 xt9  =  xt9 * t4
 
-                t4 = dom%Jacob_(i,j,k,lnum) * poidsz(k)
+                t4 = dom%Jacob_(i,j,k,lnum) * GLLwx(k)
                 xt3  =  xt3 * t4
                 xt7  =  xt7 * t4
                 xt10 = xt10 * t4
@@ -201,9 +199,9 @@ subroutine calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz, &
             do i = 0,ngllx-1
                 !=-=-=-=-=-=-=-=-=-=-
                 !
-                t11 = poidsy(j) * poidsz(k)
-                t12 = poidsx(i) * poidsz(k)
-                t13 = poidsx(i) * poidsy(j)
+                t11 = GLLwx(j) * GLLwx(k)
+                t12 = GLLwx(i) * GLLwx(k)
+                t13 = GLLwx(i) * GLLwx(j)
                 !
                 t41 = zero
                 t42 = zero
@@ -216,15 +214,15 @@ subroutine calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz, &
                 t63 = zero
                 !
                 do l = 0,ngllx-1
-                    t41 = t41 + dx(l,i) * t1(l,j,k)
-                    t42 = t42 + dx(l,i) * t5(l,j,k)
-                    t43 = t43 + dx(l,i) * t8(l,j,k)
+                    t41 = t41 + htprimex(l,i) * t1(l,j,k)
+                    t42 = t42 + htprimex(l,i) * t5(l,j,k)
+                    t43 = t43 + htprimex(l,i) * t8(l,j,k)
                 enddo
 
                 do l = 0,nglly-1
-                    t51 = t51 + dy(l,j) * t2(l,i,k)
-                    t52 = t52 + dy(l,j) * t6(l,i,k)
-                    t53 = t53 + dy(l,j) * t9(l,i,k)
+                    t51 = t51 + htprimex(l,j) * t2(l,i,k)
+                    t52 = t52 + htprimex(l,j) * t6(l,i,k)
+                    t53 = t53 + htprimex(l,j) * t9(l,i,k)
                 enddo
                 ! FX
                 F1 = t41*t11 + t51*t12
@@ -235,9 +233,9 @@ subroutine calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz, &
                 !
                 !
                 do l = 0,ngllz-1
-                    t61 = t61 + dz(l,k) * t3(l,i,j)
-                    t62 = t62 + dz(l,k) * t7(l,i,j)
-                    t63 = t63 + dz(l,k) * t10(l,i,j)
+                    t61 = t61 + htprimex(l,k) * t3(l,i,j)
+                    t62 = t62 + htprimex(l,k) * t7(l,i,j)
+                    t63 = t63 + htprimex(l,k) * t10(l,i,j)
                 enddo
 
                 ! FX
@@ -258,6 +256,7 @@ subroutine calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz, &
     !=-=-=-=-=-=-=-=-=-=-
 
 end subroutine calcul_forces_aniso_att
+end module m_calcul_forces_aniso_att
 
 !! Local Variables:
 !! mode: f90

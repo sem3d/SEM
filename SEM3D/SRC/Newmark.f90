@@ -416,26 +416,22 @@ subroutine internal_forces(Tdomain)
         mat = Tdomain%specel(n)%mat_index
         select case (Tdomain%specel(n)%domain)
         case (DM_SOLID)
-            call forces_int_solid(Tdomain%sdom, Tdomain%sSubDomain(mat),           &
-                Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
-                Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
-                Tdomain%sSubDomain(mat)%hTprimez, Tdomain%n_sls,Tdomain%aniso,     &
-                Tdomain%sdom%champs1, lnum)
+            call forces_int_solid(Tdomain%sdom, Tdomain%sSubDomain(mat),        &
+                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%n_sls,Tdomain%aniso, &
+                 Tdomain%sdom%champs1, lnum)
         case (DM_FLUID)
-            call forces_int_fluid(Tdomain%fdom, Tdomain%sSubDomain(mat),           &
-                Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
-                Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
-                Tdomain%sSubDomain(mat)%hTprimez, Tdomain%fdom%champs1, lnum)
+            call forces_int_fluid(Tdomain%fdom, Tdomain%sSubDomain(mat),     &
+                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%fdom%champs1, lnum)
         case (DM_SOLID_PML)
-            call pred_sol_pml(Tdomain%spmldom, Tdomain%sSubDomain(mat),Tdomain%TimeD%dtmin, &
-                              Tdomain%spmldom%champs1, lnum)
-            call forces_int_sol_pml(Tdomain%spmldom, Tdomain%sSubDomain(mat), Tdomain%spmldom%champs1, &
-                                    lnum)
+            call pred_sol_pml(Tdomain%spmldom, Tdomain%sSubDomain(mat), &
+                 Tdomain%TimeD%dtmin, Tdomain%spmldom%champs1, lnum)
+            call forces_int_sol_pml(Tdomain%spmldom, Tdomain%sSubDomain(mat), &
+                 Tdomain%spmldom%champs1, lnum)
         case (DM_FLUID_PML)
-            call pred_flu_pml(Tdomain%fpmldom, Tdomain%sSubDomain(mat),Tdomain%TimeD%dtmin, &
-                              Tdomain%fpmldom%champs1, lnum)
-            call forces_int_flu_pml(Tdomain%fpmldom, Tdomain%sSubDomain(mat), Tdomain%fpmldom%champs1, &
-                                    lnum)
+            call pred_flu_pml(Tdomain%fpmldom, Tdomain%sSubDomain(mat), &
+                 Tdomain%TimeD%dtmin, Tdomain%fpmldom%champs1, lnum)
+            call forces_int_flu_pml(Tdomain%fpmldom, Tdomain%sSubDomain(mat), &
+                 Tdomain%fpmldom%champs1, lnum)
         end select
     enddo
 

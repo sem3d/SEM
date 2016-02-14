@@ -387,10 +387,10 @@ contains
             call  pol_lagrange(ngllx,Tdomain%sSubdomain(mat)%GLLcx,i,capteur%xi,outx(i))
         end do
         do j = 0,nglly - 1
-            call  pol_lagrange(nglly,Tdomain%sSubdomain(mat)%GLLcy,j,capteur%eta,outy(j))
+            call  pol_lagrange(nglly,Tdomain%sSubdomain(mat)%GLLcx,j,capteur%eta,outy(j))
         end do
         do k = 0,ngllz - 1
-            call  pol_lagrange(ngllz,Tdomain%sSubdomain(mat)%GLLcz,k,capteur%zeta,outz(k))
+            call  pol_lagrange(ngllz,Tdomain%sSubdomain(mat)%GLLcx,k,capteur%zeta,outz(k))
         end do
 
         allocate(grandeur(0:Tdomain%nReqOut-1))

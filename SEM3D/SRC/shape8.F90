@@ -47,9 +47,9 @@ contains
 
             ! coordinates of GLL points, and values of Jacobian and dX_dxi at each GLL point.
             do k = 0,ngllz-1
-                zeta = Tdomain%sSubdomain(mat)%GLLcz(k)
+                zeta = Tdomain%sSubdomain(mat)%GLLcx(k)
                 do j = 0,nglly-1
-                    eta = Tdomain%sSubdomain(mat)%GLLcy(j)
+                    eta = Tdomain%sSubdomain(mat)%GLLcx(j)
                     do i = 0,ngllx-1
                         xi = Tdomain%sSubdomain(mat)%GLLcx(i)
 

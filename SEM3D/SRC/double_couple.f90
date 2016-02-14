@@ -132,17 +132,17 @@ subroutine double_couple(Tdomain,rg)
                 xdh(x) = num/denom
             enddo
             do y = 0,nglly-1
-                coord = Tdomain%sSubdomain(mat)%GLLcy(y)
+                coord = Tdomain%sSubdomain(mat)%GLLcx(y)
                 num = 0;   denom = 1
                 do a = 0,nglly-1
                     if (a/=y) then
-                        ya = Tdomain%sSubdomain(mat)%GLLcy(a)
+                        ya = Tdomain%sSubdomain(mat)%GLLcx(a)
                         ypol(y) = ypol(y) * (eta-ya)/(coord-ya)
                         denom = denom * (coord-ya)
                         prod = 1
                         do b = 0,nglly-1
                             if ((b/=y) .and. (b/=a)) then
-                                yb = Tdomain%sSubdomain(mat)%GLLcy(b)
+                                yb = Tdomain%sSubdomain(mat)%GLLcx(b)
                                 prod = prod * (eta-yb)
                             endif
                         enddo
@@ -152,17 +152,17 @@ subroutine double_couple(Tdomain,rg)
                 ydh(y) = num/denom
             enddo
             do z = 0,ngllz-1
-                coord = Tdomain%sSubdomain(mat)%GLLcz(z)
+                coord = Tdomain%sSubdomain(mat)%GLLcx(z)
                 num = 0;   denom = 1
                 do a = 0,ngllz-1
                     if (a/=z) then
-                        za = Tdomain%sSubdomain(mat)%GLLcz(a)
+                        za = Tdomain%sSubdomain(mat)%GLLcx(a)
                         zpol(z) = zpol(z) * (zeta-za)/(coord-za)
                         denom = denom * (coord-za)
                         prod = 1
                         do b = 0,ngllz-1
                             if ((b/=z) .and. (b/=a)) then
-                                zb = Tdomain%sSubdomain(mat)%GLLcz(b)
+                                zb = Tdomain%sSubdomain(mat)%GLLcx(b)
                                 prod = prod * (zeta-zb)
                             endif
                         enddo
