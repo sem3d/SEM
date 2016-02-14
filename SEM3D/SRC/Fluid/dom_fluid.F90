@@ -81,18 +81,18 @@ contains
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
     end subroutine deallocate_dom_fluid
 
-    subroutine fluid_velocity(ngllx,nglly,ngllz,htprimex,InvGrad,density,phi,veloc)
+    subroutine fluid_velocity(ngllx,nglly,ngllz,htprime,InvGrad,density,phi,veloc)
         ! gives the physical particle velocity in the fluid = 1/dens grad(dens.Phi)
         implicit none
         integer, intent(in)  :: ngllx,nglly,ngllz
-        real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: hTprimex
+        real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: htprime
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:2), intent(in) :: InvGrad
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: density,phi
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2), intent(out) :: Veloc
         real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: dphi_dx,dphi_dy,dphi_dz
 
         ! physical gradient
-        call physical_part_deriv(ngllx,nglly,ngllz,hTprimex,InvGrad,phi,dphi_dx,dphi_dy,dphi_dz)
+        call physical_part_deriv(ngllx,nglly,ngllz,htprime,InvGrad,phi,dphi_dx,dphi_dy,dphi_dz)
         Veloc(:,:,:,0) = dphi_dx(:,:,:)/density(:,:,:)
         Veloc(:,:,:,1) = dphi_dy(:,:,:)/density(:,:,:)
         Veloc(:,:,:,2) = dphi_dz(:,:,:)/density(:,:,:)
@@ -141,7 +141,7 @@ contains
                         if(.not. allocated(phi))    allocate(phi(0:nx-1,0:ny-1,0:nz-1))
                         phi(i,j,k) = Tdomain%fdom%champs0%Phi(ind)
                         mat = el%mat_index
-                        call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,                  &
+                        call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprime,                  &
                             Tdomain%fdom%InvGrad_(:,:,:,:,:,el%lnum),Tdomain%fdom%Density_(:,:,:,el%lnum),&
                             phi,fieldV)
                     end if
@@ -151,7 +151,7 @@ contains
                         if(.not. allocated(vphi))   allocate(vphi(0:nx-1,0:ny-1,0:nz-1))
                         vphi(i,j,k) = Tdomain%fdom%champs0%VelPhi(ind)
                         mat = el%mat_index
-                        call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprimex,                  &
+                        call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprime,                  &
                             Tdomain%fdom%InvGrad_(:,:,:,:,:,el%lnum),Tdomain%fdom%Density_(:,:,:,el%lnum),&
                             vphi,fieldA)
                     end if
@@ -220,11 +220,11 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_fluid
 
-    subroutine forces_int_fluid(dom, mat, htprimex, champs1, lnum)
+    subroutine forces_int_fluid(dom, mat, htprime, champs1, lnum)
         use m_calcul_forces_fluid
         type(domain_fluid), intent (INOUT) :: dom
         type (subdomain), intent(IN) :: mat
-        real, dimension (0:dom%ngllx-1, 0:dom%ngllx-1), intent (IN) :: htprimex
+        real, dimension (0:dom%ngllx-1, 0:dom%ngllx-1), intent (IN) :: htprime
         type(champsfluid), intent(inout) :: champs1
         integer :: lnum
 
@@ -243,10 +243,10 @@ contains
                 enddo
             enddo
         enddo
-        call physical_part_deriv(m1,m2,m3,htprimex,dom%InvGrad_(:,:,:,:,:,lnum),Phi,dPhiX,dPhiY,dPhiZ)
+        call physical_part_deriv(m1,m2,m3,htprime,dom%InvGrad_(:,:,:,:,:,lnum),Phi,dPhiX,dPhiY,dPhiZ)
 
         ! internal forces
-        call calcul_forces_fluid(dom,lnum,Fo_Fl,htprimex,mat%GLLwx,dPhiX,dPhiY,dPhiZ,m1,m2,m3)
+        call calcul_forces_fluid(dom,lnum,Fo_Fl,htprime,mat%GLLw,dPhiX,dPhiY,dPhiZ,m1,m2,m3)
         do k = 0,m3-1
             do j = 0,m2-1
                 do i = 0,m1-1

@@ -19,11 +19,11 @@ real function interp_lag(mat,xi,eta,zeta,func)
 
     f = 0d0
     do k = 0,ngll-1
-        call pol_lagrange(ngll,mat%GLLcx,k,zeta,wzeta)
+        call pol_lagrange(ngll,mat%GLLc,k,zeta,wzeta)
         do j = 0,ngll-1
-            call pol_lagrange(ngll,mat%GLLcx,j,eta,weta)
+            call pol_lagrange(ngll,mat%GLLc,j,eta,weta)
             do i = 0,ngll-1
-                call pol_lagrange(ngll,mat%GLLcx,i,xi,wxi)
+                call pol_lagrange(ngll,mat%GLLc,i,xi,wxi)
                 f = f+func(i,j,k)*wxi*weta*wzeta
             end do
         end do
@@ -46,11 +46,11 @@ subroutine source_excit_pulse(src,mat)
 
     allocate(src%ExtForce(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
     do k = 0,ngll-1
-        call pol_lagrange(ngll, mat%GLLcx, k, zeta, wzeta)
+        call pol_lagrange(ngll, mat%GLLc, k, zeta, wzeta)
         do j = 0,ngll-1
-            call pol_lagrange(ngll,mat%GLLcx,j,eta,weta)
+            call pol_lagrange(ngll,mat%GLLc,j,eta,weta)
             do i = 0,ngll-1
-                call pol_lagrange(ngll,mat%GLLcx,i,xi,wxi)
+                call pol_lagrange(ngll,mat%GLLc,i,xi,wxi)
                 do np = 0,2
                     src%ExtForce(i,j,k,np) = wxi*weta*wzeta*src%dir(np)
                 end do
@@ -92,11 +92,11 @@ subroutine source_excit_pulse_fluid(Tdomain, nels, src,mat)
 
     allocate(src%ExtForce(0:ngll-1,0:ngll-1,0:ngll-1,0:0))
     do k = 0,ngll-1
-        call pol_lagrange(ngll, mat%GLLcx, k, zeta, wzeta)
+        call pol_lagrange(ngll, mat%GLLc, k, zeta, wzeta)
         do j = 0,ngll-1
-            call pol_lagrange(ngll,mat%GLLcx,j,eta,weta)
+            call pol_lagrange(ngll,mat%GLLc,j,eta,weta)
             do i = 0,ngll-1
-                call pol_lagrange(ngll,mat%GLLcx,i,xi,wxi)
+                call pol_lagrange(ngll,mat%GLLc,i,xi,wxi)
                 src%ExtForce(i,j,k,0) = wxi*weta*wzeta
             end do
         end do
@@ -133,14 +133,14 @@ subroutine source_excit_moment(src,mat)
     M(:,:) = src%Moment(:,:)
     InvGrad(:,:) = src%InvGrad(:,:)
     do k = 0,ngll-1
-        call pol_lagrange(ngll,mat%GLLcx,k,zeta,wzeta)
-        call derivlag(mat%GLLcx,ngll,k,zeta,dwdzeta)
+        call pol_lagrange(ngll,mat%GLLc,k,zeta,wzeta)
+        call derivlag(mat%GLLc,ngll,k,zeta,dwdzeta)
         do j = 0,ngll-1
-            call pol_lagrange(ngll,mat%GLLcx,j,eta,weta)
-            call derivlag(mat%GLLcx,ngll,j,eta,dwdeta)
+            call pol_lagrange(ngll,mat%GLLc,j,eta,weta)
+            call derivlag(mat%GLLc,ngll,j,eta,dwdeta)
             do i = 0,ngll-1
-                call pol_lagrange(ngll,mat%GLLcx,i,xi,wxi)
-                call derivlag(mat%GLLcx,ngll,i,xi,dwdxi)
+                call pol_lagrange(ngll,mat%GLLc,i,xi,wxi)
+                call derivlag(mat%GLLc,ngll,i,xi,dwdxi)
                 ! final step: values at the GLL points
                 src%ExtForce(i,j,k,0) =     &
                     (InvGrad(0,0)*dwdxi*weta*wzeta+InvGrad(0,1)*wxi*dwdeta*wzeta+InvGrad(0,2)*wxi*weta*dwdzeta)*M(0,0) + &

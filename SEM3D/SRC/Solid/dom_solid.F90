@@ -178,7 +178,7 @@ contains
         real(fpp), dimension(:,:,:), allocatable :: DXX, DXY, DXZ
         real(fpp), dimension(:,:,:), allocatable :: DYX, DYY, DYZ
         real(fpp), dimension(:,:,:), allocatable :: DZX, DZY, DZZ
-        real(fpp), dimension (:,:), allocatable  :: htprimex
+        real(fpp), dimension (:,:), allocatable  :: htprime
         real(fpp)                                :: xmu, xlambda, xkappa
         real(fpp)                                :: x2mu, xlambda2mu
         real(fpp)                                :: onemSbeta, onemPbeta
@@ -205,8 +205,8 @@ contains
             allocate(DZX(0:nx-1,0:ny-1,0:nz-1))
             allocate(DZY(0:nx-1,0:ny-1,0:nz-1))
             allocate(DZZ(0:nx-1,0:ny-1,0:nz-1))
-            allocate(hTprimex(0:nx-1,0:nx-1))
-            hTprimex=Tdomain%sSubDomain(mat)%hTprimex
+            allocate(hTprime(0:nx-1,0:nx-1))
+            hTprime=Tdomain%sSubDomain(mat)%hTprime
         end if
 
         ! First, get displacement.
@@ -228,11 +228,11 @@ contains
         ! Then, compute gradU with displacement if needed.
 
         if (flag_gradU) then
-            call physical_part_deriv(nx,ny,nz,htprimex,&
+            call physical_part_deriv(nx,ny,nz,htprime,&
                  Tdomain%sdom%InvGrad_(:,:,:,:,:,el%lnum),fieldU(:,:,:,0),DXX,DYX,DZX)
-            call physical_part_deriv(nx,ny,nz,htprimex,&
+            call physical_part_deriv(nx,ny,nz,htprime,&
                  Tdomain%sdom%InvGrad_(:,:,:,:,:,el%lnum),fieldU(:,:,:,1),DXY,DYY,DZY)
-            call physical_part_deriv(nx,ny,nz,htprimex,&
+            call physical_part_deriv(nx,ny,nz,htprime,&
                  Tdomain%sdom%InvGrad_(:,:,:,:,:,el%lnum),fieldU(:,:,:,2),DXZ,DYZ,DZZ)
         end if
 
@@ -330,16 +330,16 @@ contains
             enddo
         enddo
 
-        if (allocated(DXX))      deallocate(DXX)
-        if (allocated(DXY))      deallocate(DXY)
-        if (allocated(DXZ))      deallocate(DXZ)
-        if (allocated(DYX))      deallocate(DYX)
-        if (allocated(DYY))      deallocate(DYY)
-        if (allocated(DYZ))      deallocate(DYZ)
-        if (allocated(DZX))      deallocate(DZX)
-        if (allocated(DZY))      deallocate(DZY)
-        if (allocated(DZZ))      deallocate(DZZ)
-        if (allocated(hTprimex)) deallocate(hTprimex)
+        if (allocated(DXX))     deallocate(DXX)
+        if (allocated(DXY))     deallocate(DXY)
+        if (allocated(DXZ))     deallocate(DXZ)
+        if (allocated(DYX))     deallocate(DYX)
+        if (allocated(DYY))     deallocate(DYY)
+        if (allocated(DYZ))     deallocate(DYZ)
+        if (allocated(DZX))     deallocate(DZX)
+        if (allocated(DZY))     deallocate(DZY)
+        if (allocated(DZZ))     deallocate(DZZ)
+        if (allocated(hTprime)) deallocate(hTprime)
     end subroutine get_solid_dom_var
 
     subroutine init_material_properties_solid(dom, lnum, i, j, k, density, lambda, mu, kappa, Tdomain, mat)
@@ -408,7 +408,7 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solid
 
-    subroutine forces_int_solid(dom, mat, htprimex, n_solid, aniso, champs1, lnum)
+    subroutine forces_int_solid(dom, mat, htprime, n_solid, aniso, champs1, lnum)
         use m_calcul_forces
         use m_calcul_forces_att
         use m_calcul_forces_aniso
@@ -416,7 +416,7 @@ contains
         use attenuation_solid
         type(domain_solid), intent (INOUT) :: dom
         type (subdomain), intent(IN) :: mat
-        real, dimension (0:dom%ngllx-1, 0:dom%ngllx-1), intent (IN) :: htprimex
+        real, dimension (0:dom%ngllx-1, 0:dom%ngllx-1), intent (IN) :: htprime
         integer, intent(IN) :: n_solid
         logical, intent(IN) :: aniso
         type(champssolid), intent(inout) :: champs1
@@ -444,9 +444,9 @@ contains
             enddo
         enddo
 
-        call physical_part_deriv(m1,m2,m3,htprimex,dom%InvGrad_(:,:,:,:,:,lnum),Depla(:,:,:,0),dxx,dyx,dzx)
-        call physical_part_deriv(m1,m2,m3,htprimex,dom%InvGrad_(:,:,:,:,:,lnum),Depla(:,:,:,1),dxy,dyy,dzy)
-        call physical_part_deriv(m1,m2,m3,htprimex,dom%InvGrad_(:,:,:,:,:,lnum),Depla(:,:,:,2),dxz,dyz,dzz)
+        call physical_part_deriv(m1,m2,m3,htprime,dom%InvGrad_(:,:,:,:,:,lnum),Depla(:,:,:,0),dxx,dyx,dzx)
+        call physical_part_deriv(m1,m2,m3,htprime,dom%InvGrad_(:,:,:,:,:,lnum),Depla(:,:,:,1),dxy,dyy,dzy)
+        call physical_part_deriv(m1,m2,m3,htprime,dom%InvGrad_(:,:,:,:,:,lnum),Depla(:,:,:,2),dxz,dyz,dzz)
 
         if (n_solid>0) then
             if (aniso) then
@@ -478,26 +478,26 @@ contains
 
         if (aniso) then
             if (n_solid>0) then
-                call calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz,htprimex,&
-                     mat%GLLwx,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,m1,m2,m3,n_solid)
+                call calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz,htprime,&
+                     mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,m1,m2,m3,n_solid)
                 call attenuation_aniso_update(dom,lnum,epsilondev_xx_loc,epsilondev_yy_loc, &
                      epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc,m1,m2,m3,n_solid)
                 deallocate(epsilondev_xx_loc,epsilondev_yy_loc,epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc)
             else
-                call calcul_forces_aniso(dom,lnum,Fox,Foy,Foz,htprimex,&
-                     mat%GLLwx,DXX,DXY,DXZ,DYX,DYY,DYZ, DZX,DZY,DZZ,m1,m2,m3)
+                call calcul_forces_aniso(dom,lnum,Fox,Foy,Foz,htprime,&
+                     mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ, DZX,DZY,DZZ,m1,m2,m3)
             endif
         else
             if (n_solid>0) then
-                call calcul_forces_att(dom,lnum,Fox,Foy,Foz,htprimex,&
-                     mat%GLLwx,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,m1,m2,m3, n_solid)
+                call calcul_forces_att(dom,lnum,Fox,Foy,Foz,htprime,&
+                     mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,m1,m2,m3, n_solid)
                 call attenuation_update(dom,lnum,epsilondev_xx_loc,epsilondev_yy_loc, &
                      epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc,m1,m2,m3,n_solid,epsilonvol_loc)
                 deallocate(epsilondev_xx_loc,epsilondev_yy_loc,epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc)
                 deallocate(epsilonvol_loc)
             else
-                call calcul_forces(dom,lnum,Fox,Foy,Foz,htprimex,&
-                     mat%GLLwx,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,m1,m2,m3)
+                call calcul_forces(dom,lnum,Fox,Foy,Foz,htprime,&
+                     mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,m1,m2,m3)
             endif
         endif
 

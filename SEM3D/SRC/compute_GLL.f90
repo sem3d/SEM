@@ -23,22 +23,21 @@ subroutine compute_GLL(Tdomain)
     do i = 0, ndomains-1
         !- x-part
         ngll = Tdomain%sSubdomain(i)%NGLL
-        allocate(Tdomain%sSubdomain(i)%GLLcx(0:ngll-1))
+        allocate(Tdomain%sSubdomain(i)%GLLc(0:ngll-1))
         allocate(GLLpol(0:ngll-1))
-        allocate(Tdomain%sSubdomain(i)%GLLwx(0:ngll-1))
-        allocate(Tdomain%sSubdomain(i)%hprimex(0:ngll-1,0:ngll-1))
-        allocate(Tdomain%sSubdomain(i)%hTprimex(0:ngll-1,0:ngll-1))
+        allocate(Tdomain%sSubdomain(i)%GLLw(0:ngll-1))
+        allocate(Tdomain%sSubdomain(i)%hprime(0:ngll-1,0:ngll-1))
+        allocate(Tdomain%sSubdomain(i)%hTprime(0:ngll-1,0:ngll-1))
 
         ! USING FUNARO SUBROUTINES
         ! ZELEGL computes the coordinates of GLL points
         ! WELEGL computes the respective weights
         ! DMLEGL compute the matrix of the first derivatives in GLL points
 
-        call zelegl (ngll-1,Tdomain%sSubdomain(i)%GLLcx, GLLpol)
-        call welegl (ngll-1, Tdomain%sSubdomain(i)%GLLcx, GLLpol, Tdomain%sSubdomain(i)%GLLwx)
-        call dmlegl (ngll-1, ngll-1, Tdomain%sSubdomain(i)%GLLcx, GLLpol, Tdomain%sSubdomain(i)%hTprimex)
-
-        Tdomain%sSubdomain(i)%hprimex =  TRANSPOSE ( Tdomain%sSubdomain(i)%hTprimex )
+        call zelegl (ngll-1, Tdomain%sSubdomain(i)%GLLc, GLLpol)
+        call welegl (ngll-1, Tdomain%sSubdomain(i)%GLLc, GLLpol, Tdomain%sSubdomain(i)%GLLw)
+        call dmlegl (ngll-1, ngll-1, Tdomain%sSubdomain(i)%GLLc, GLLpol, Tdomain%sSubdomain(i)%hTprime)
+        Tdomain%sSubdomain(i)%hprime = TRANSPOSE(Tdomain%sSubdomain(i)%hTprime)
 
         deallocate (GLLpol)
     enddo

@@ -21,8 +21,8 @@ module ssubdomains
 
         !! Numerotation gll
         integer :: NGLL
-        real(fpp), dimension (:), pointer :: GLLcx, GLLwx
-        real(fpp), dimension (:,:), pointer :: hprimex, hTprimex
+        real(fpp), dimension (:), pointer :: GLLc, GLLw
+        real(fpp), dimension (:,:), pointer :: hprime, hTprime
 
         !! Definition materiau solide, isotrope
         real(fpp) :: Pspeed, Sspeed, Ddensity

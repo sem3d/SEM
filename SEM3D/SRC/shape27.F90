@@ -50,11 +50,11 @@ contains
             mat   = Tdomain%specel(n)%mat_index
 
             do k = 0,ngllz - 1
-                zeta =  Tdomain%sSubdomain(mat)%GLLcx (k)
+                zeta =  Tdomain%sSubdomain(mat)%GLLc(k)
                 do j = 0,nglly - 1
-                    eta =  Tdomain%sSubdomain(mat)%GLLcx (j)
+                    eta =  Tdomain%sSubdomain(mat)%GLLc(j)
                     do i = 0,ngllx - 1
-                        xi = Tdomain%sSubdomain(mat)%GLLcx (i)
+                        xi = Tdomain%sSubdomain(mat)%GLLc(i)
                         call shape27_local2global(coord, xi, eta, zeta, xp, yp, zp)
                         ipoint = Tdomain%specel(n)%Iglobnum(i,j,k)
                         Tdomain%GlobCoord (0,ipoint) = xp

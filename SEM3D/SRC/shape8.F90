@@ -47,11 +47,11 @@ contains
 
             ! coordinates of GLL points, and values of Jacobian and dX_dxi at each GLL point.
             do k = 0,ngllz-1
-                zeta = Tdomain%sSubdomain(mat)%GLLcx(k)
+                zeta = Tdomain%sSubdomain(mat)%GLLc(k)
                 do j = 0,nglly-1
-                    eta = Tdomain%sSubdomain(mat)%GLLcx(j)
+                    eta = Tdomain%sSubdomain(mat)%GLLc(j)
                     do i = 0,ngllx-1
-                        xi = Tdomain%sSubdomain(mat)%GLLcx(i)
+                        xi = Tdomain%sSubdomain(mat)%GLLc(i)
 
                         ipoint = Tdomain%specel(n)%Iglobnum(i,j,k)
 

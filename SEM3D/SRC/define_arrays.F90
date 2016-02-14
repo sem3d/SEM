@@ -371,34 +371,34 @@ contains
         if (specel%domain==DM_SOLID_PML) then
             call define_alpha_PML(mat%Px,0,mat%Left,                              &
                 ngllx,nglly,ngllz,ngllx,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
-                mat%GLLcx,RKmod(:,0,0),                                           &
+                mat%GLLc,RKmod(:,0,0),                                           &
                 Tdomain%spmldom%Density_(:,0,0,specel%lnum),specel%Iglobnum(0,0,0),&
                 specel%Iglobnum(ngllx-1,0,0),mat%Apow,mat%npow,wx)
             call define_alpha_PML(mat%Py,1,mat%Forward,                           &
                 ngllx,nglly,ngllz,nglly,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
-                mat%GLLcx,RKmod(0,:,0),                                           &
+                mat%GLLc,RKmod(0,:,0),                                           &
                 Tdomain%spmldom%Density_(0,:,0,specel%lnum),specel%Iglobnum(0,0,0),&
                 specel%Iglobnum(0,nglly-1,0),mat%Apow,mat%npow,wy)
             call define_alpha_PML(mat%Pz,2,mat%Down,                              &
                 ngllx,nglly,ngllz,ngllz,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
-                mat%GLLcx,RKmod(0,0,:),                                           &
+                mat%GLLc,RKmod(0,0,:),                                           &
                 Tdomain%spmldom%Density_(0,0,:,specel%lnum),specel%Iglobnum(0,0,0),&
                 specel%Iglobnum(0,0,ngllz-1),mat%Apow,mat%npow,wz)
         end if
         if (specel%domain==DM_FLUID_PML) then
             call define_alpha_PML(mat%Px,0,mat%Left,                              &
                 ngllx,nglly,ngllz,ngllx,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
-                mat%GLLcx,RKmod(:,0,0),                                           &
+                mat%GLLc,RKmod(:,0,0),                                           &
                 Tdomain%fpmldom%Density_(:,0,0,specel%lnum),specel%Iglobnum(0,0,0),&
                 specel%Iglobnum(ngllx-1,0,0),mat%Apow,mat%npow,wx)
             call define_alpha_PML(mat%Py,1,mat%Forward,                           &
                 ngllx,nglly,ngllz,nglly,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
-                mat%GLLcx,RKmod(0,:,0),                                           &
+                mat%GLLc,RKmod(0,:,0),                                           &
                 Tdomain%fpmldom%Density_(0,:,0,specel%lnum),specel%Iglobnum(0,0,0),&
                 specel%Iglobnum(0,nglly-1,0),mat%Apow,mat%npow,wy)
             call define_alpha_PML(mat%Pz,2,mat%Down,                              &
                 ngllx,nglly,ngllz,ngllz,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
-                mat%GLLcx,RKmod(0,0,:),                                           &
+                mat%GLLc,RKmod(0,0,:),                                           &
                 Tdomain%fpmldom%Density_(0,0,:,specel%lnum),specel%Iglobnum(0,0,0),&
                 specel%Iglobnum(0,0,ngllz-1),mat%Apow,mat%npow,wz)
         end if
@@ -479,7 +479,7 @@ contains
         do k = 0,specel%ngllz-1
             do j = 0,specel%nglly-1
                 do i = 0,specel%ngllx-1
-                    Whei = mat%GLLwx(i)*mat%GLLwx(j)*mat%GLLwx(k)
+                    Whei = mat%GLLw(i)*mat%GLLw(j)*mat%GLLw(k)
                     ind = specel%Idom(i,j,k)
                     select case (specel%domain)
                         case (DM_SOLID)
