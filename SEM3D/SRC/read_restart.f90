@@ -32,9 +32,24 @@ subroutine read_EpsilonVol(Tdomain, elem_id)
     idx3 = 1
     n_solid = Tdomain%n_sls
     do n = 0,Tdomain%n_elem-1
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
+        select case (Tdomain%specel(n)%domain)
+             case (DM_SOLID)
+                 ngllx = Tdomain%sdom%ngllx
+                 nglly = Tdomain%sdom%nglly
+                 ngllz = Tdomain%sdom%ngllz
+             case (DM_FLUID)
+                 ngllx = Tdomain%fdom%ngllx
+                 nglly = Tdomain%fdom%nglly
+                 ngllz = Tdomain%fdom%ngllz
+             case (DM_SOLID_PML)
+                 ngllx = Tdomain%spmldom%ngllx
+                 nglly = Tdomain%spmldom%nglly
+                 ngllz = Tdomain%spmldom%ngllz
+             case (DM_FLUID_PML)
+                 ngllx = Tdomain%fpmldom%ngllx
+                 nglly = Tdomain%fpmldom%nglly
+                 ngllz = Tdomain%fpmldom%ngllz
+        end select
 
         if ( Tdomain%specel(n)%domain==DM_SOLID ) then
             do k = 0,ngllz-1
@@ -93,9 +108,24 @@ subroutine read_EpsilonDev(Tdomain, elem_id)
     idx = 1
     n_solid = Tdomain%n_sls
     do n = 0,Tdomain%n_elem-1
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
+        select case (Tdomain%specel(n)%domain)
+             case (DM_SOLID)
+                 ngllx = Tdomain%sdom%ngllx
+                 nglly = Tdomain%sdom%nglly
+                 ngllz = Tdomain%sdom%ngllz
+             case (DM_FLUID)
+                 ngllx = Tdomain%fdom%ngllx
+                 nglly = Tdomain%fdom%nglly
+                 ngllz = Tdomain%fdom%ngllz
+             case (DM_SOLID_PML)
+                 ngllx = Tdomain%spmldom%ngllx
+                 nglly = Tdomain%spmldom%nglly
+                 ngllz = Tdomain%spmldom%ngllz
+             case (DM_FLUID_PML)
+                 ngllx = Tdomain%fpmldom%ngllx
+                 nglly = Tdomain%fpmldom%nglly
+                 ngllz = Tdomain%fpmldom%ngllz
+        end select
 
         if ( Tdomain%specel(n)%domain == DM_SOLID ) then
             do k = 0,ngllz-1
@@ -138,9 +168,24 @@ subroutine read_Stress(Tdomain, elem_id)
     n_solid = Tdomain%n_sls
     do n = 0,Tdomain%n_elem-1
         if (Tdomain%specel(n)%domain/=DM_SOLID_PML) cycle
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
+        select case (Tdomain%specel(n)%domain)
+             case (DM_SOLID)
+                 ngllx = Tdomain%sdom%ngllx
+                 nglly = Tdomain%sdom%nglly
+                 ngllz = Tdomain%sdom%ngllz
+             case (DM_FLUID)
+                 ngllx = Tdomain%fdom%ngllx
+                 nglly = Tdomain%fdom%nglly
+                 ngllz = Tdomain%fdom%ngllz
+             case (DM_SOLID_PML)
+                 ngllx = Tdomain%spmldom%ngllx
+                 nglly = Tdomain%spmldom%nglly
+                 ngllz = Tdomain%spmldom%ngllz
+             case (DM_FLUID_PML)
+                 ngllx = Tdomain%fpmldom%ngllx
+                 nglly = Tdomain%fpmldom%nglly
+                 ngllz = Tdomain%fpmldom%ngllz
+        end select
 
         do k = 0,ngllz-1
             do j = 0,nglly-1
@@ -191,9 +236,24 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
     idx = 1
     do n = 0,Tdomain%n_elem-1
         if (Tdomain%specel(n)%domain/=DM_FLUID_PML) cycle
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
+        select case (Tdomain%specel(n)%domain)
+             case (DM_SOLID)
+                 ngllx = Tdomain%sdom%ngllx
+                 nglly = Tdomain%sdom%nglly
+                 ngllz = Tdomain%sdom%ngllz
+             case (DM_FLUID)
+                 ngllx = Tdomain%fdom%ngllx
+                 nglly = Tdomain%fdom%nglly
+                 ngllz = Tdomain%fdom%ngllz
+             case (DM_SOLID_PML)
+                 ngllx = Tdomain%spmldom%ngllx
+                 nglly = Tdomain%spmldom%nglly
+                 ngllz = Tdomain%spmldom%ngllz
+             case (DM_FLUID_PML)
+                 ngllx = Tdomain%fpmldom%ngllx
+                 nglly = Tdomain%fpmldom%nglly
+                 ngllz = Tdomain%fpmldom%ngllz
+        end select
 
         do k = 0,ngllz-1
             do j = 0,nglly-1

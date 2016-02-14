@@ -22,9 +22,6 @@ contains
         integer nbelem, ngllx, nglly, ngllz, n_solid
         logical aniso
         !
-        dom%ngllx = Tdomain%specel(0)%ngllx ! Temporaire: ngll* doit passer sur le domaine a terme
-        dom%nglly = Tdomain%specel(0)%nglly ! Temporaire: ngll* doit passer sur le domaine a terme
-        dom%ngllz = Tdomain%specel(0)%ngllz ! Temporaire: ngll* doit passer sur le domaine a terme
 
         nbelem  = dom%nbelem
         if(nbelem == 0) return ! Do not allocate if not needed (save allocation/RAM)
@@ -160,11 +157,12 @@ contains
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
     end subroutine deallocate_dom_solid
 
-    subroutine get_solid_dom_var(Tdomain, el, out_variables, &
+    subroutine get_solid_dom_var(Tdomain, dom, el, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
         implicit none
         !
         type(domain)                               :: TDomain
+        type(domain_solid), intent(inout)          :: dom
         integer, dimension(0:8)                    :: out_variables
         type(element)                              :: el
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
@@ -190,9 +188,9 @@ contains
                       out_variables(OUT_EPS_DEV)     + &
                       out_variables(OUT_STRESS_DEV)) /= 0
 
-        nx = el%ngllx
-        ny = el%nglly
-        nz = el%ngllz
+        nx = dom%ngllx
+        ny = dom%nglly
+        nz = dom%ngllz
         mat = el%mat_index
 
         if (flag_gradU) then
@@ -214,11 +212,11 @@ contains
         do k=0,nz-1
             do j=0,ny-1
                 do i=0,nx-1
-                    ind = Tdomain%sdom%Idom_(i,j,k,el%lnum)
+                    ind = dom%Idom_(i,j,k,el%lnum)
 
                     if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
                         if(.not. allocated(fieldU)) allocate(fieldU(0:nx-1,0:ny-1,0:nz-1,0:2))
-                        fieldU(i,j,k,:) = Tdomain%sdom%champs0%Depla(ind,:)
+                        fieldU(i,j,k,:) = dom%champs0%Depla(ind,:)
                     end if
 
                 enddo
@@ -229,11 +227,11 @@ contains
 
         if (flag_gradU) then
             call physical_part_deriv(nx,ny,nz,htprime,&
-                 Tdomain%sdom%InvGrad_(:,:,:,:,:,el%lnum),fieldU(:,:,:,0),DXX,DYX,DZX)
+                 dom%InvGrad_(:,:,:,:,:,el%lnum),fieldU(:,:,:,0),DXX,DYX,DZX)
             call physical_part_deriv(nx,ny,nz,htprime,&
-                 Tdomain%sdom%InvGrad_(:,:,:,:,:,el%lnum),fieldU(:,:,:,1),DXY,DYY,DZY)
+                 dom%InvGrad_(:,:,:,:,:,el%lnum),fieldU(:,:,:,1),DXY,DYY,DZY)
             call physical_part_deriv(nx,ny,nz,htprime,&
-                 Tdomain%sdom%InvGrad_(:,:,:,:,:,el%lnum),fieldU(:,:,:,2),DXZ,DYZ,DZZ)
+                 dom%InvGrad_(:,:,:,:,:,el%lnum),fieldU(:,:,:,2),DXZ,DYZ,DZZ)
         end if
 
         ! Then, get other variables.
@@ -241,22 +239,22 @@ contains
         do k=0,nz-1
             do j=0,ny-1
                 do i=0,nx-1
-                    ind = Tdomain%sdom%Idom_(i,j,k,el%lnum)
+                    ind = dom%Idom_(i,j,k,el%lnum)
 
                     if (out_variables(OUT_VITESSE) == 1) then
                         if(.not. allocated(fieldV)) allocate(fieldV(0:nx-1,0:ny-1,0:nz-1,0:2))
-                        fieldV(i,j,k,:) = Tdomain%sdom%champs0%Veloc(ind,:)
+                        fieldV(i,j,k,:) = dom%champs0%Veloc(ind,:)
                     end if
 
                     if (out_variables(OUT_ACCEL) == 1) then
                         if(.not. allocated(fieldA)) allocate(fieldA(0:nx-1,0:ny-1,0:nz-1,0:2))
-                        fieldA(i,j,k,:) = Tdomain%sdom%champs0%Forces(ind,:)
+                        fieldA(i,j,k,:) = dom%champs0%Forces(ind,:)
                     end if
 
                     if (out_variables(OUT_PRESSION) == 1) then
                         if(.not. allocated(fieldP)) allocate(fieldP(0:nx-1,0:ny-1,0:nz-1))
-                        fieldP(i,j,k) = -(Tdomain%sdom%Lambda_(i,j,k,el%lnum)&
-                                          +2d0/3d0*Tdomain%sdom%Mu_(i,j,k,el%lnum))&
+                        fieldP(i,j,k) = -(dom%Lambda_(i,j,k,el%lnum)&
+                                          +2d0/3d0*dom%Mu_(i,j,k,el%lnum))&
                                         *(DXX(i,j,k)+DYY(i,j,k)+DZZ(i,j,k))
                     end if
 
@@ -269,13 +267,13 @@ contains
                     end if
 
                     if (.not. Tdomain%aniso) then
-                        xmu     = Tdomain%sdom%Mu_    (i,j,k,el%lnum)
-                        xlambda = Tdomain%sdom%Lambda_(i,j,k,el%lnum)
-                        xkappa  = Tdomain%sdom%Kappa_ (i,j,k,el%lnum)
+                        xmu     = dom%Mu_    (i,j,k,el%lnum)
+                        xlambda = dom%Lambda_(i,j,k,el%lnum)
+                        xkappa  = dom%Kappa_ (i,j,k,el%lnum)
 
                         if (Tdomain%n_sls>0) then
-                            onemSbeta = Tdomain%sdom%onemSbeta(i,j,k,el%lnum)
-                            onemPbeta = Tdomain%sdom%onemPbeta(i,j,k,el%lnum)
+                            onemSbeta = dom%onemSbeta(i,j,k,el%lnum)
+                            onemPbeta = dom%onemPbeta(i,j,k,el%lnum)
                             xmu    = xmu * onemSbeta
                             xkappa = xkappa * onemPbeta
                         endif

@@ -22,10 +22,6 @@ contains
         integer nbelem, ngllx, nglly, ngllz
         !
 
-        dom%ngllx = Tdomain%specel(0)%ngllx ! Temporaire: ngll* doit passer sur le domaine a terme
-        dom%nglly = Tdomain%specel(0)%nglly ! Temporaire: ngll* doit passer sur le domaine a terme
-        dom%ngllz = Tdomain%specel(0)%ngllz ! Temporaire: ngll* doit passer sur le domaine a terme
-
         nbelem  = dom%nbelem
         if(nbelem == 0) return ! Do not allocate if not needed (save allocation/RAM)
         ngllx   = dom%ngllx
@@ -98,11 +94,12 @@ contains
         Veloc(:,:,:,2) = dphi_dz(:,:,:)/density(:,:,:)
     end subroutine fluid_velocity
 
-    subroutine get_fluid_dom_var(Tdomain, el, out_variables, &
+    subroutine get_fluid_dom_var(Tdomain, dom, el, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
         implicit none
         !
         type(domain)                               :: TDomain
+        type(domain_fluid), intent(inout)          :: dom
         integer, dimension(0:8)                    :: out_variables
         type(element)                              :: el
         real(fpp), dimension(:,:,:), allocatable   :: phi
@@ -122,14 +119,14 @@ contains
             out_variables(OUT_EPS_DEV) + &
             out_variables(OUT_STRESS_DEV)) /= 0
 
-        nx = el%ngllx
-        ny = el%nglly
-        nz = el%ngllz
+        nx = dom%ngllx
+        ny = dom%nglly
+        nz = dom%ngllz
 
         do k=0,nz-1
             do j=0,ny-1
                 do i=0,nx-1
-                    ind = Tdomain%fdom%Idom_(i,j,k,el%lnum)
+                    ind = dom%Idom_(i,j,k,el%lnum)
 
                     if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
                         if(.not. allocated(fieldU)) allocate(fieldU(0:nx-1,0:ny-1,0:nz-1,0:2))
@@ -139,26 +136,24 @@ contains
                     if (out_variables(OUT_VITESSE) == 1) then
                         if(.not. allocated(fieldV)) allocate(fieldV(0:nx-1,0:ny-1,0:nz-1,0:2))
                         if(.not. allocated(phi))    allocate(phi(0:nx-1,0:ny-1,0:nz-1))
-                        phi(i,j,k) = Tdomain%fdom%champs0%Phi(ind)
+                        phi(i,j,k) = dom%champs0%Phi(ind)
                         mat = el%mat_index
-                        call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprime,                  &
-                            Tdomain%fdom%InvGrad_(:,:,:,:,:,el%lnum),Tdomain%fdom%Density_(:,:,:,el%lnum),&
-                            phi,fieldV)
+                        call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprime,              &
+                             dom%InvGrad_(:,:,:,:,:,el%lnum),dom%Density_(:,:,:,el%lnum),phi,fieldV)
                     end if
 
                     if (out_variables(OUT_ACCEL) == 1) then
                         if(.not. allocated(fieldA)) allocate(fieldA(0:nx-1,0:ny-1,0:nz-1,0:2))
                         if(.not. allocated(vphi))   allocate(vphi(0:nx-1,0:ny-1,0:nz-1))
-                        vphi(i,j,k) = Tdomain%fdom%champs0%VelPhi(ind)
+                        vphi(i,j,k) = dom%champs0%VelPhi(ind)
                         mat = el%mat_index
-                        call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprime,                  &
-                            Tdomain%fdom%InvGrad_(:,:,:,:,:,el%lnum),Tdomain%fdom%Density_(:,:,:,el%lnum),&
-                            vphi,fieldA)
+                        call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprime,               &
+                             dom%InvGrad_(:,:,:,:,:,el%lnum),dom%Density_(:,:,:,el%lnum),vphi,fieldA)
                     end if
 
                     if (out_variables(OUT_PRESSION) == 1) then
                         if(.not. allocated(fieldP)) allocate(fieldP(0:nx-1,0:ny-1,0:nz-1))
-                        fieldP(i,j,k) = -Tdomain%fdom%champs0%VelPhi(ind)
+                        fieldP(i,j,k) = -dom%champs0%VelPhi(ind)
                     end if
 
                     if (out_variables(OUT_EPS_VOL) == 1) then

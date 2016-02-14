@@ -76,70 +76,73 @@ contains
             if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
 
             ! a faire dans PMLs...
-            ngllx = Tdomain%specel(n)%ngllx
-            nglly = Tdomain%specel(n)%nglly
-            ngllz = Tdomain%specel(n)%ngllz
+            select case (Tdomain%specel(n)%domain)
+                 case (DM_SOLID)
+                     ngllx = Tdomain%sdom%ngllx
+                     nglly = Tdomain%sdom%nglly
+                     ngllz = Tdomain%sdom%ngllz
+                 case (DM_FLUID)
+                     ngllx = Tdomain%fdom%ngllx
+                     nglly = Tdomain%fdom%nglly
+                     ngllz = Tdomain%fdom%ngllz
+                 case (DM_SOLID_PML)
+                     ngllx = Tdomain%spmldom%ngllx
+                     nglly = Tdomain%spmldom%nglly
+                     ngllz = Tdomain%spmldom%ngllz
+                 case (DM_FLUID_PML)
+                     ngllx = Tdomain%fpmldom%ngllx
+                     nglly = Tdomain%fpmldom%nglly
+                     ngllz = Tdomain%fpmldom%ngllz
+            end select
 
-                do i = 0,ngllx-1
-                    do j = 0,nglly-1
-                        do k = 0,ngllz-1
+            do i = 0,ngllx-1
+                do j = 0,nglly-1
+                    do k = 0,ngllz-1
 
-                            Q_mu = Tdomain%sdom%Qs(i,j,k,Tdomain%specel(n)%lnum)
-                            Q_kappa = Tdomain%sdom%Qp(i,j,k,Tdomain%specel(n)%lnum)
+                        Q_mu = Tdomain%sdom%Qs(i,j,k,Tdomain%specel(n)%lnum)
+                        Q_kappa = Tdomain%sdom%Qp(i,j,k,Tdomain%specel(n)%lnum)
 
-                            !- from Qs to gammas
-                            if (Q_mu .ne. Q_mu_old) then
-                                call inv_gamma_Q_const(n_solid,n_freq_q,Q_mu,omega_Q,omega_tau_s,agamma_mu)
-                                Q_mu_old = Q_mu
-                            end if
-                            if (Q_kappa .ne. Q_kappa_old) then
-                                call inv_gamma_Q_const(n_solid,n_freq_q,Q_kappa,omega_Q,omega_tau_s,agamma_kappa)
-                                Q_kappa_old = Q_kappa
-                            end if
+                        !- from Qs to gammas
+                        if (Q_mu .ne. Q_mu_old) then
+                            call inv_gamma_Q_const(n_solid,n_freq_q,Q_mu,omega_Q,omega_tau_s,agamma_mu)
+                            Q_mu_old = Q_mu
+                        end if
+                        if (Q_kappa .ne. Q_kappa_old) then
+                            call inv_gamma_Q_const(n_solid,n_freq_q,Q_kappa,omega_Q,omega_tau_s,agamma_kappa)
+                            Q_kappa_old = Q_kappa
+                        end if
 
+                        !- getting the values of the relaxed moduli
+                        Tdomain%sdom%Mu_(i,j,k,Tdomain%specel(n)%lnum) = Tdomain%sdom%Mu_(i,j,k,Tdomain%specel(n)%lnum)*   &
+                            get_relaxed_modulus(n_solid,Q_mu,f_ref,   &
+                            f_c_source,omega_tau_s,agamma_mu)
 
-                            !- getting the values of the relaxed moduli
-                            Tdomain%sdom%Mu_(i,j,k,Tdomain%specel(n)%lnum) = Tdomain%sdom%Mu_(i,j,k,Tdomain%specel(n)%lnum)*   &
-                                get_relaxed_modulus(n_solid,Q_mu,f_ref,   &
-                                f_c_source,omega_tau_s,agamma_mu)
+                        Tdomain%sdom%Kappa_(i,j,k,Tdomain%specel(n)%lnum) = Tdomain%sdom%Kappa_(i,j,k,Tdomain%specel(n)%lnum)*  &
+                            get_relaxed_modulus(n_solid,Q_kappa,f_ref,     &
+                            f_c_source,omega_tau_s,agamma_kappa)
 
-                            Tdomain%sdom%Kappa_(i,j,k,Tdomain%specel(n)%lnum) = Tdomain%sdom%Kappa_(i,j,k,Tdomain%specel(n)%lnum)*  &
-                                get_relaxed_modulus(n_solid,Q_kappa,f_ref,     &
-                                f_c_source,omega_tau_s,agamma_kappa)
+                        !- factor to get from relaxed to unrelaxed modulus: M_U = M_R*(1+delta_M/M_R)
+                        Tdomain%sdom%onemSbeta(i,j,k,Tdomain%specel(n)%lnum) = 1d0+get_modulus_defect(n_solid, agamma_mu)
+                        Tdomain%sdom%onemPbeta(i,j,k,Tdomain%specel(n)%lnum) = 1d0+get_modulus_defect(n_solid, agamma_kappa)
 
-
-                            !- factor to get from relaxed to unrelaxed modulus: M_U = M_R*(1+delta_M/M_R)
-                            Tdomain%sdom%onemSbeta(i,j,k,Tdomain%specel(n)%lnum) = 1d0+get_modulus_defect(n_solid, agamma_mu)
-                            Tdomain%sdom%onemPbeta(i,j,k,Tdomain%specel(n)%lnum) = 1d0+get_modulus_defect(n_solid, agamma_kappa)
-
-
-
-                            !- Runge-kutta parameters for the time integration of the terms related to the relaxation function
-                            mat = Tdomain%specel(n)%mat_index
-                            dt = Tdomain%TimeD%dtmin
-                            call RK4_attenu_coefficients(n_solid,dt,omega_tau_s,agamma_mu,    &
-                                Tdomain%sdom%factor_common_3(:,i,j,k,Tdomain%specel(n)%lnum), &
-                                Tdomain%sdom%alphaval_3(:,i,j,k,Tdomain%specel(n)%lnum),      &
-                                Tdomain%sdom%betaval_3(:,i,j,k,Tdomain%specel(n)%lnum),       &
-                                Tdomain%sdom%gammaval_3(:,i,j,k,Tdomain%specel(n)%lnum))
-                            call RK4_attenu_coefficients(n_solid,dt,omega_tau_s,agamma_kappa, &
-                                Tdomain%sdom%factor_common_P(:,i,j,k,Tdomain%specel(n)%lnum), &
-                                Tdomain%sdom%alphaval_P(:,i,j,k,Tdomain%specel(n)%lnum),      &
-                                Tdomain%sdom%betaval_P(:,i,j,k,Tdomain%specel(n)%lnum),       &
-                                Tdomain%sdom%gammaval_P(:,i,j,k,Tdomain%specel(n)%lnum))
-
-
-                        enddo
+                        !- Runge-kutta parameters for the time integration of the terms related to the relaxation function
+                        mat = Tdomain%specel(n)%mat_index
+                        dt = Tdomain%TimeD%dtmin
+                        call RK4_attenu_coefficients(n_solid,dt,omega_tau_s,agamma_mu,    &
+                            Tdomain%sdom%factor_common_3(:,i,j,k,Tdomain%specel(n)%lnum), &
+                            Tdomain%sdom%alphaval_3(:,i,j,k,Tdomain%specel(n)%lnum),      &
+                            Tdomain%sdom%betaval_3(:,i,j,k,Tdomain%specel(n)%lnum),       &
+                            Tdomain%sdom%gammaval_3(:,i,j,k,Tdomain%specel(n)%lnum))
+                        call RK4_attenu_coefficients(n_solid,dt,omega_tau_s,agamma_kappa, &
+                            Tdomain%sdom%factor_common_P(:,i,j,k,Tdomain%specel(n)%lnum), &
+                            Tdomain%sdom%alphaval_P(:,i,j,k,Tdomain%specel(n)%lnum),      &
+                            Tdomain%sdom%betaval_P(:,i,j,k,Tdomain%specel(n)%lnum),       &
+                            Tdomain%sdom%gammaval_P(:,i,j,k,Tdomain%specel(n)%lnum))
                     enddo
                 enddo
-
+            enddo
         enddo
-
-
         deallocate(agamma_mu,agamma_kappa,omega_tau_s,omega_Q)
-
-
-
     end subroutine set_attenuation_param_solid_nopml
 
     !----------------------------------------------------------------------

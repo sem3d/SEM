@@ -23,10 +23,6 @@ contains
         integer nbelem, ngllx, nglly, ngllz
         !
 
-        dom%ngllx = Tdomain%specel(0)%ngllx ! Temporaire: ngll* doit passer sur le domaine a terme
-        dom%nglly = Tdomain%specel(0)%nglly ! Temporaire: ngll* doit passer sur le domaine a terme
-        dom%ngllz = Tdomain%specel(0)%ngllz ! Temporaire: ngll* doit passer sur le domaine a terme
-
         nbelem  = dom%nbelem
         if(nbelem == 0) return ! Do not allocate if not needed (save allocation/RAM)
         ngllx   = dom%ngllx
@@ -101,11 +97,11 @@ contains
         if(allocated(dom%DumpMass)) deallocate(dom%DumpMass)
     end subroutine deallocate_dom_fluidpml
 
-    subroutine get_fluidpml_dom_var(Tdomain, el, out_variables, &
+    subroutine get_fluidpml_dom_var(dom, el, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
         implicit none
         !
-        type(domain)                               :: TDomain
+        type(domain_fluidpml), intent(inout)       :: dom
         integer, dimension(0:8)                    :: out_variables
         type(element)                              :: el
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
@@ -123,14 +119,14 @@ contains
             out_variables(OUT_EPS_DEV) + &
             out_variables(OUT_STRESS_DEV)) /= 0
 
-        nx = Tdomain%fpmldom%ngllx
-        ny = Tdomain%fpmldom%nglly
-        nz = Tdomain%fpmldom%ngllz
+        nx = dom%ngllx
+        ny = dom%nglly
+        nz = dom%ngllz
 
         do k=0,nz-1
             do j=0,ny-1
                 do i=0,nx-1
-                    ind = Tdomain%fpmldom%Idom_(i,j,k,el%lnum)
+                    ind = dom%Idom_(i,j,k,el%lnum)
 
                     if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
                         if(.not. allocated(fieldU)) allocate(fieldU(0:nx-1,0:ny-1,0:nz-1,0:2))

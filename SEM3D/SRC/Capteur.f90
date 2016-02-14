@@ -374,10 +374,24 @@ contains
 
         ! Initialisation.
 
-        ngllx = Tdomain%specel(n_el)%ngllx
-        nglly = Tdomain%specel(n_el)%nglly
-        ngllz = Tdomain%specel(n_el)%ngllz
-
+        select case (Tdomain%specel(n_el)%domain)
+             case (DM_SOLID)
+                 ngllx = Tdomain%sdom%ngllx
+                 nglly = Tdomain%sdom%nglly
+                 ngllz = Tdomain%sdom%ngllz
+             case (DM_FLUID)
+                 ngllx = Tdomain%fdom%ngllx
+                 nglly = Tdomain%fdom%nglly
+                 ngllz = Tdomain%fdom%ngllz
+             case (DM_SOLID_PML)
+                 ngllx = Tdomain%spmldom%ngllx
+                 nglly = Tdomain%spmldom%nglly
+                 ngllz = Tdomain%spmldom%ngllz
+             case (DM_FLUID_PML)
+                 ngllx = Tdomain%fpmldom%ngllx
+                 nglly = Tdomain%fpmldom%nglly
+                 ngllz = Tdomain%fpmldom%ngllz
+        end select
         mat=Tdomain%specel(n_el)%mat_index
 
         allocate(outx(0:ngllx-1))
@@ -411,16 +425,16 @@ contains
 
         select case(Tdomain%specel(n_el)%domain)
             case (DM_SOLID)
-              call get_solid_dom_var(Tdomain, Tdomain%specel(n_el), out_variables, &
+              call get_solid_dom_var(Tdomain, Tdomain%sdom, Tdomain%specel(n_el), out_variables, &
               fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
             case (DM_FLUID)
-              call get_fluid_dom_var(Tdomain, Tdomain%specel(n_el), out_variables, &
+              call get_fluid_dom_var(Tdomain, Tdomain%fdom, Tdomain%specel(n_el), out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
             case (DM_SOLID_PML)
-              call get_solidpml_dom_var(Tdomain, Tdomain%specel(n_el), out_variables, &
+              call get_solidpml_dom_var(Tdomain%spmldom, Tdomain%specel(n_el), out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
             case (DM_FLUID_PML)
-              call get_fluidpml_dom_var(Tdomain, Tdomain%specel(n_el), out_variables, &
+              call get_fluidpml_dom_var(Tdomain%fpmldom, Tdomain%specel(n_el), out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
         end select
 

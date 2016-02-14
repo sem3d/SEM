@@ -43,9 +43,24 @@ contains
         do i = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(i)%mat_index
             dom = get_domain(Tdomain%sSubDomain(mat))
-            ngll(0) = Tdomain%specel(i)%ngllx
-            ngll(1) = Tdomain%specel(i)%nglly
-            ngll(2) = Tdomain%specel(i)%ngllz
+            select case (Tdomain%specel(i)%domain)
+                 case (DM_SOLID)
+                     ngll(0) = Tdomain%sdom%ngllx
+                     ngll(1) = Tdomain%sdom%nglly
+                     ngll(2) = Tdomain%sdom%ngllz
+                 case (DM_FLUID)
+                     ngll(0) = Tdomain%fdom%ngllx
+                     ngll(1) = Tdomain%fdom%nglly
+                     ngll(2) = Tdomain%fdom%ngllz
+                 case (DM_SOLID_PML)
+                     ngll(0) = Tdomain%spmldom%ngllx
+                     ngll(1) = Tdomain%spmldom%nglly
+                     ngll(2) = Tdomain%spmldom%ngllz
+                 case (DM_FLUID_PML)
+                     ngll(0) = Tdomain%fpmldom%ngllx
+                     ngll(1) = Tdomain%fpmldom%nglly
+                     ngll(2) = Tdomain%fpmldom%ngllz
+            end select
 
             do j = 0,5
                 nf = Tdomain%specel(i)%Near_Faces(j)
@@ -82,9 +97,24 @@ contains
         do i = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(i)%mat_index
             dom = get_domain(Tdomain%sSubDomain(mat))
-            ngll(0) = Tdomain%specel(i)%ngllx
-            ngll(1) = Tdomain%specel(i)%nglly
-            ngll(2) = Tdomain%specel(i)%ngllz
+            select case (Tdomain%specel(i)%domain)
+                 case (DM_SOLID)
+                     ngll(0) = Tdomain%sdom%ngllx
+                     ngll(1) = Tdomain%sdom%nglly
+                     ngll(2) = Tdomain%sdom%ngllz
+                 case (DM_FLUID)
+                     ngll(0) = Tdomain%fdom%ngllx
+                     ngll(1) = Tdomain%fdom%nglly
+                     ngll(2) = Tdomain%fdom%ngllz
+                 case (DM_SOLID_PML)
+                     ngll(0) = Tdomain%spmldom%ngllx
+                     ngll(1) = Tdomain%spmldom%nglly
+                     ngll(2) = Tdomain%spmldom%ngllz
+                 case (DM_FLUID_PML)
+                     ngll(0) = Tdomain%fpmldom%ngllx
+                     ngll(1) = Tdomain%fpmldom%nglly
+                     ngll(2) = Tdomain%fpmldom%ngllz
+            end select
 
             do j = 0,11
                 ne = Tdomain%specel(i)%Near_Edges(j)

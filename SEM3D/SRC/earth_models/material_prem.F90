@@ -25,9 +25,9 @@ subroutine  initialize_material_prem(Tdomain, elem, coorPt, npts)
     real :: x, y, z, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu, r, theta, phi
     real, dimension(1:6,1:6) :: Cij
 
-    ngllx = elem%ngllx
-    nglly = elem%nglly
-    ngllz = elem%ngllz
+    ngllx = Tdomain%sdom%ngllx
+    nglly = Tdomain%sdom%nglly
+    ngllz = Tdomain%sdom%ngllz
 
 
     do k = 0,ngllz-1

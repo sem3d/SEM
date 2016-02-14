@@ -26,9 +26,9 @@ subroutine  initialize_material_earthchunk(Tdomain, elem, coorPt, npts)
     real, dimension(1:6,1:6) :: Cij
     real, dimension(3,3) :: RotMat
 
-    ngllx = elem%ngllx
-    nglly = elem%nglly
-    ngllz = elem%ngllz
+    ngllx = Tdomain%sdom%ngllx
+    nglly = Tdomain%sdom%nglly
+    ngllz = Tdomain%sdom%ngllz
 
  !   write(*,*) "--material earthchunk--"
 

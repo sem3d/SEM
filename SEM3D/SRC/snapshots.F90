@@ -471,9 +471,24 @@ contains
         ne = 0
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
-            ngllx = Tdomain%specel(n)%ngllx
-            nglly = Tdomain%specel(n)%nglly
-            ngllz = Tdomain%specel(n)%ngllz
+            select case (Tdomain%specel(n)%domain)
+                 case (DM_SOLID)
+                     ngllx = Tdomain%sdom%ngllx
+                     nglly = Tdomain%sdom%nglly
+                     ngllz = Tdomain%sdom%ngllz
+                 case (DM_FLUID)
+                     ngllx = Tdomain%fdom%ngllx
+                     nglly = Tdomain%fdom%nglly
+                     ngllz = Tdomain%fdom%ngllz
+                 case (DM_SOLID_PML)
+                     ngllx = Tdomain%spmldom%ngllx
+                     nglly = Tdomain%spmldom%nglly
+                     ngllz = Tdomain%spmldom%ngllz
+                 case (DM_FLUID_PML)
+                     ngllx = Tdomain%fpmldom%ngllx
+                     nglly = Tdomain%fpmldom%nglly
+                     ngllz = Tdomain%fpmldom%ngllz
+            end select
             ne = ne + 1
             do k = 0,ngllz - 1
                 do j = 0,nglly - 1
@@ -494,9 +509,24 @@ contains
         domains = 0
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
-            ngllx = Tdomain%specel(n)%ngllx
-            nglly = Tdomain%specel(n)%nglly
-            ngllz = Tdomain%specel(n)%ngllz
+            select case (Tdomain%specel(n)%domain)
+                 case (DM_SOLID)
+                     ngllx = Tdomain%sdom%ngllx
+                     nglly = Tdomain%sdom%nglly
+                     ngllz = Tdomain%sdom%ngllz
+                 case (DM_FLUID)
+                     ngllx = Tdomain%fdom%ngllx
+                     nglly = Tdomain%fdom%nglly
+                     ngllz = Tdomain%fdom%ngllz
+                 case (DM_SOLID_PML)
+                     ngllx = Tdomain%spmldom%ngllx
+                     nglly = Tdomain%spmldom%nglly
+                     ngllz = Tdomain%spmldom%ngllz
+                 case (DM_FLUID_PML)
+                     ngllx = Tdomain%fpmldom%ngllx
+                     nglly = Tdomain%fpmldom%nglly
+                     ngllz = Tdomain%fpmldom%ngllz
+            end select
             imat = Tdomain%specel(n)%mat_index
             domain_type = get_domain(Tdomain%sSubDomain(imat))
 
@@ -638,9 +668,24 @@ contains
         k = 0
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
-            ngll(1,k) = Tdomain%specel(n)%ngllx
-            ngll(2,k) = Tdomain%specel(n)%nglly
-            ngll(3,k) = Tdomain%specel(n)%ngllz
+            select case (Tdomain%specel(n)%domain)
+                 case (DM_SOLID)
+                     ngll(1,k) = Tdomain%sdom%ngllx
+                     ngll(2,k) = Tdomain%sdom%nglly
+                     ngll(3,k) = Tdomain%sdom%ngllz
+                 case (DM_FLUID)
+                     ngll(1,k) = Tdomain%fdom%ngllx
+                     ngll(2,k) = Tdomain%fdom%nglly
+                     ngll(3,k) = Tdomain%fdom%ngllz
+                 case (DM_SOLID_PML)
+                     ngll(1,k) = Tdomain%spmldom%ngllx
+                     ngll(2,k) = Tdomain%spmldom%nglly
+                     ngll(3,k) = Tdomain%spmldom%ngllz
+                 case (DM_FLUID_PML)
+                     ngll(1,k) = Tdomain%fpmldom%ngllx
+                     ngll(2,k) = Tdomain%fpmldom%nglly
+                     ngll(3,k) = Tdomain%fpmldom%ngllz
+            end select
             ! Max number of global points (can count elem vertices twice)
             nglobnum = nglobnum + ngll(1,k)*ngll(2,k)*ngll(3,k)
             ! Number of subelements
@@ -662,9 +707,24 @@ contains
         ioffset = Tdomain%output_nodes_offset(Tdomain%output_rank)
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
-            ngllx = Tdomain%specel(n)%ngllx
-            nglly = Tdomain%specel(n)%nglly
-            ngllz = Tdomain%specel(n)%ngllz
+            select case (Tdomain%specel(n)%domain)
+                 case (DM_SOLID)
+                     ngllx = Tdomain%sdom%ngllx
+                     nglly = Tdomain%sdom%nglly
+                     ngllz = Tdomain%sdom%ngllz
+                 case (DM_FLUID)
+                     ngllx = Tdomain%fdom%ngllx
+                     nglly = Tdomain%fdom%nglly
+                     ngllz = Tdomain%fdom%ngllz
+                 case (DM_SOLID_PML)
+                     ngllx = Tdomain%spmldom%ngllx
+                     nglly = Tdomain%spmldom%nglly
+                     ngllz = Tdomain%spmldom%ngllz
+                 case (DM_FLUID_PML)
+                     ngllx = Tdomain%fpmldom%ngllx
+                     nglly = Tdomain%fpmldom%nglly
+                     ngllz = Tdomain%fpmldom%ngllz
+            end select
             do k = 0,ngllz-2
                 do j = 0,nglly-2
                     do i = 0,ngllx-2
@@ -797,27 +857,38 @@ contains
             el => Tdomain%specel(n)
             sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
             if (.not. el%OUTPUT) cycle
-            if (ngllx /= el%ngllx .or. &
-                nglly /= el%nglly .or. &
-                ngllz /= el%ngllz) then
-                ngllx = el%ngllx
-                nglly = el%nglly
-                ngllz = el%ngllz
-            endif
+            select case (Tdomain%specel(n)%domain)
+                 case (DM_SOLID)
+                     ngllx = Tdomain%sdom%ngllx
+                     nglly = Tdomain%sdom%nglly
+                     ngllz = Tdomain%sdom%ngllz
+                 case (DM_FLUID)
+                     ngllx = Tdomain%fdom%ngllx
+                     nglly = Tdomain%fdom%nglly
+                     ngllz = Tdomain%fdom%ngllz
+                 case (DM_SOLID_PML)
+                     ngllx = Tdomain%spmldom%ngllx
+                     nglly = Tdomain%spmldom%nglly
+                     ngllz = Tdomain%spmldom%ngllz
+                 case (DM_FLUID_PML)
+                     ngllx = Tdomain%fpmldom%ngllx
+                     nglly = Tdomain%fpmldom%nglly
+                     ngllz = Tdomain%fpmldom%ngllz
+            end select
 
             domain_type = get_domain(sub_dom_mat)
             select case(domain_type)
                 case (DM_SOLID)
-                  call get_solid_dom_var(Tdomain, el, out_variables,                         &
+                  call get_solid_dom_var(Tdomain, Tdomain%sdom, el, out_variables,             &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
                 case (DM_FLUID)
-                  call get_fluid_dom_var(Tdomain, el, out_variables,                         &
+                  call get_fluid_dom_var(Tdomain, Tdomain%fdom, el, out_variables,             &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
                 case (DM_SOLID_PML)
-                  call get_solidpml_dom_var(Tdomain, el, out_variables,                      &
+                  call get_solidpml_dom_var(Tdomain%spmldom, el, out_variables,                &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
                 case (DM_FLUID_PML)
-                  call get_fluidpml_dom_var(Tdomain, el, out_variables,                      &
+                  call get_fluidpml_dom_var(Tdomain%fpmldom, el, out_variables,                &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
             end select
 
@@ -1141,9 +1212,24 @@ contains
         mass = 0d0
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
-            ngllx = Tdomain%specel(n)%ngllx
-            nglly = Tdomain%specel(n)%nglly
-            ngllz = Tdomain%specel(n)%ngllz
+            select case (Tdomain%specel(n)%domain)
+                 case (DM_SOLID)
+                     ngllx = Tdomain%sdom%ngllx
+                     nglly = Tdomain%sdom%nglly
+                     ngllz = Tdomain%sdom%ngllz
+                 case (DM_FLUID)
+                     ngllx = Tdomain%fdom%ngllx
+                     nglly = Tdomain%fdom%nglly
+                     ngllz = Tdomain%fdom%ngllz
+                 case (DM_SOLID_PML)
+                     ngllx = Tdomain%spmldom%ngllx
+                     nglly = Tdomain%spmldom%nglly
+                     ngllz = Tdomain%spmldom%ngllz
+                 case (DM_FLUID_PML)
+                     ngllx = Tdomain%fpmldom%ngllx
+                     nglly = Tdomain%fpmldom%nglly
+                     ngllz = Tdomain%fpmldom%ngllz
+            end select
             imat = Tdomain%specel(n)%mat_index
             lnum = Tdomain%specel(n)%lnum
             domain_type = get_domain(Tdomain%sSubDomain(imat))
@@ -1200,9 +1286,24 @@ contains
         ! jac
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
-            ngllx = Tdomain%specel(n)%ngllx
-            nglly = Tdomain%specel(n)%nglly
-            ngllz = Tdomain%specel(n)%ngllz
+            select case (Tdomain%specel(n)%domain)
+                 case (DM_SOLID)
+                     ngllx = Tdomain%sdom%ngllx
+                     nglly = Tdomain%sdom%nglly
+                     ngllz = Tdomain%sdom%ngllz
+                 case (DM_FLUID)
+                     ngllx = Tdomain%fdom%ngllx
+                     nglly = Tdomain%fdom%nglly
+                     ngllz = Tdomain%fdom%ngllz
+                 case (DM_SOLID_PML)
+                     ngllx = Tdomain%spmldom%ngllx
+                     nglly = Tdomain%spmldom%nglly
+                     ngllz = Tdomain%spmldom%ngllz
+                 case (DM_FLUID_PML)
+                     ngllx = Tdomain%fpmldom%ngllx
+                     nglly = Tdomain%fpmldom%nglly
+                     ngllz = Tdomain%fpmldom%ngllz
+            end select
             do k = 0,ngllz-1
                 do j = 0,nglly-1
                     do i = 0,ngllx-1

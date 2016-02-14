@@ -229,10 +229,25 @@ contains
         !- GLL properties in elements, on faces, edges.
         do i = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(i)%mat_index
-            Tdomain%specel(i)%ngllx = Tdomain%sSubDomain(mat)%NGLL
-            Tdomain%specel(i)%nglly = Tdomain%sSubDomain(mat)%NGLL
-            Tdomain%specel(i)%ngllz = Tdomain%sSubDomain(mat)%NGLL
             Tdomain%specel(i)%domain = get_domain(Tdomain%sSubDomain(mat))
+            select case (Tdomain%specel(i)%domain)
+                 case (DM_SOLID)
+                     Tdomain%sdom%ngllx = Tdomain%sSubDomain(mat)%NGLL
+                     Tdomain%sdom%nglly = Tdomain%sSubDomain(mat)%NGLL
+                     Tdomain%sdom%ngllz = Tdomain%sSubDomain(mat)%NGLL
+                 case (DM_FLUID)
+                     Tdomain%fdom%ngllx = Tdomain%sSubDomain(mat)%NGLL
+                     Tdomain%fdom%nglly = Tdomain%sSubDomain(mat)%NGLL
+                     Tdomain%fdom%ngllz = Tdomain%sSubDomain(mat)%NGLL
+                 case (DM_SOLID_PML)
+                     Tdomain%spmldom%ngllx = Tdomain%sSubDomain(mat)%NGLL
+                     Tdomain%spmldom%nglly = Tdomain%sSubDomain(mat)%NGLL
+                     Tdomain%spmldom%ngllz = Tdomain%sSubDomain(mat)%NGLL
+                 case (DM_FLUID_PML)
+                     Tdomain%fpmldom%ngllx = Tdomain%sSubDomain(mat)%NGLL
+                     Tdomain%fpmldom%nglly = Tdomain%sSubDomain(mat)%NGLL
+                     Tdomain%fpmldom%ngllz = Tdomain%sSubDomain(mat)%NGLL
+            end select
         end do
 
         call apply_mat_to_faces(Tdomain)

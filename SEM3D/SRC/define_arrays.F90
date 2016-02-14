@@ -255,9 +255,24 @@ contains
         !
         integer :: ngllx, nglly, ngllz
         !
-        ngllx = specel%ngllx
-        nglly = specel%nglly
-        ngllz = specel%ngllz
+        select case (specel%domain)
+             case (DM_SOLID)
+                 ngllx = Tdomain%sdom%ngllx
+                 nglly = Tdomain%sdom%nglly
+                 ngllz = Tdomain%sdom%ngllz
+             case (DM_FLUID)
+                 ngllx = Tdomain%fdom%ngllx
+                 nglly = Tdomain%fdom%nglly
+                 ngllz = Tdomain%fdom%ngllz
+             case (DM_SOLID_PML)
+                 ngllx = Tdomain%spmldom%ngllx
+                 nglly = Tdomain%spmldom%nglly
+                 ngllz = Tdomain%spmldom%ngllz
+             case (DM_FLUID_PML)
+                 ngllx = Tdomain%fpmldom%ngllx
+                 nglly = Tdomain%fpmldom%nglly
+                 ngllz = Tdomain%fpmldom%ngllz
+        end select
 
         ! integration de la prise en compte du gradient de proprietes
 
@@ -343,9 +358,24 @@ contains
             stop "init_pml_properties should not be called for non-pml element"
         end if
 
-        ngllx = specel%ngllx
-        nglly = specel%nglly
-        ngllz = specel%ngllz
+        select case (specel%domain)
+             case (DM_SOLID)
+                 ngllx = Tdomain%sdom%ngllx
+                 nglly = Tdomain%sdom%nglly
+                 ngllz = Tdomain%sdom%ngllz
+             case (DM_FLUID)
+                 ngllx = Tdomain%fdom%ngllx
+                 nglly = Tdomain%fdom%nglly
+                 ngllz = Tdomain%fdom%ngllz
+             case (DM_SOLID_PML)
+                 ngllx = Tdomain%spmldom%ngllx
+                 nglly = Tdomain%spmldom%nglly
+                 ngllz = Tdomain%spmldom%ngllz
+             case (DM_FLUID_PML)
+                 ngllx = Tdomain%fpmldom%ngllx
+                 nglly = Tdomain%fpmldom%nglly
+                 ngllz = Tdomain%fpmldom%ngllz
+        end select
 
         allocate(RKmod(0:ngllx-1,0:nglly-1,0:ngllz-1))
         select case (specel%domain)
@@ -438,7 +468,8 @@ contains
         end if
         deallocate(wx,wy,wz)
 
-        call assemble_DumpMass(Tdomain,specel,PMLDumpMass)
+        if (specel%domain==DM_SOLID_PML) call assemble_DumpMass(Tdomain,specel,Tdomain%spmldom%ngllx,PMLDumpMass)
+        if (specel%domain==DM_FLUID_PML) call assemble_DumpMass(Tdomain,specel,Tdomain%fpmldom%ngllx,PMLDumpMass)
         if(allocated(PMLDumpMass)) deallocate(PMLDumpMass)
 
         !! XXX
@@ -475,10 +506,31 @@ contains
         integer :: i, j, k, ind
         real(fpp) :: Whei
 
+        integer ngllx, nglly, ngllz
+
+        select case (specel%domain)
+             case (DM_SOLID)
+                 ngllx = Tdomain%sdom%ngllx
+                 nglly = Tdomain%sdom%nglly
+                 ngllz = Tdomain%sdom%ngllz
+             case (DM_FLUID)
+                 ngllx = Tdomain%fdom%ngllx
+                 nglly = Tdomain%fdom%nglly
+                 ngllz = Tdomain%fdom%ngllz
+             case (DM_SOLID_PML)
+                 ngllx = Tdomain%spmldom%ngllx
+                 nglly = Tdomain%spmldom%nglly
+                 ngllz = Tdomain%spmldom%ngllz
+             case (DM_FLUID_PML)
+                 ngllx = Tdomain%fpmldom%ngllx
+                 nglly = Tdomain%fpmldom%nglly
+                 ngllz = Tdomain%fpmldom%ngllz
+        end select
+
         !- general (element) weighting: tensorial property..
-        do k = 0,specel%ngllz-1
-            do j = 0,specel%nglly-1
-                do i = 0,specel%ngllx-1
+        do k = 0,ngllz-1
+            do j = 0,nglly-1
+                do i = 0,ngllx-1
                     Whei = mat%GLLw(i)*mat%GLLw(j)*mat%GLLw(k)
                     ind = specel%Idom(i,j,k)
                     select case (specel%domain)
@@ -510,9 +562,24 @@ contains
         integer :: ngllx, nglly, ngllz
         integer :: icolonne,jlayer
         !
-        ngllx = specel%ngllx
-        nglly = specel%nglly
-        ngllz = specel%ngllz
+        select case (specel%domain)
+             case (DM_SOLID)
+                 ngllx = Tdomain%sdom%ngllx
+                 nglly = Tdomain%sdom%nglly
+                 ngllz = Tdomain%sdom%ngllz
+             case (DM_FLUID)
+                 ngllx = Tdomain%fdom%ngllx
+                 nglly = Tdomain%fdom%nglly
+                 ngllz = Tdomain%fdom%ngllz
+             case (DM_SOLID_PML)
+                 ngllx = Tdomain%spmldom%ngllx
+                 nglly = Tdomain%spmldom%nglly
+                 ngllz = Tdomain%spmldom%ngllz
+             case (DM_FLUID_PML)
+                 ngllx = Tdomain%fpmldom%ngllx
+                 nglly = Tdomain%fpmldom%nglly
+                 ngllz = Tdomain%fpmldom%ngllz
+        end select
 
         !    debut modification des proprietes des couches de materiaux
         !    bassin    voir programme Surface.f90
@@ -713,17 +780,18 @@ contains
 
     !----------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------
-    subroutine assemble_DumpMass(Tdomain,specel,PMLDumpMass)
+    subroutine assemble_DumpMass(Tdomain,specel,ngll,PMLDumpMass)
         type(domain), intent(inout) :: Tdomain
         type (element), intent(inout) :: specel
-        real(fpp), dimension(0:specel%ngllx-1,0:specel%nglly-1,0:specel%ngllz-1,0:2), intent(in) :: PMLDumpMass
+        integer :: ngll
+        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: PMLDumpMass
 
         integer :: i,j,k,m, ind
 
         do m = 0,2
-            do k = 0,specel%ngllz-1
-                do j = 0,specel%nglly-1
-                    do i = 0,specel%ngllx-1
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
                         ind = specel%Idom(i,j,k)
                         if (specel%domain==DM_SOLID_PML) then
                             Tdomain%spmldom%DumpMass(ind,m) =   Tdomain%spmldom%DumpMass(ind,m) &
@@ -736,8 +804,6 @@ contains
                 enddo
             enddo
         enddo
-
-        return
     end subroutine assemble_DumpMass
     !----------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------

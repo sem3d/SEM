@@ -17,7 +17,6 @@ module selement
     implicit none
 
     type :: element
-        integer :: ngllx, nglly, ngllz
         integer :: mat_index
         integer :: lnum ! local number of element within its domain
         integer :: domain ! Type de domaine, voir constants : DOM_SOLID, DOM_FLUID, ...
@@ -45,10 +44,6 @@ contains
 
         el%mat_index=-1
         el%domain = -1
-        el%ngllx=0
-        el%nglly=0
-        el%ngllz=0
-
     end subroutine init_element
 
 end module selement

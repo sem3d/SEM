@@ -98,9 +98,24 @@ subroutine double_couple(Tdomain,rg)
             enddo
 
             elem = Tdomain%Ssource(n)%elem
-            ngllx = Tdomain%specel(elem)%ngllx
-            nglly = Tdomain%specel(elem)%nglly
-            ngllz = Tdomain%specel(elem)%ngllz
+            select case (Tdomain%specel(elem)%domain)
+                 case (DM_SOLID)
+                     ngllx = Tdomain%sdom%ngllx
+                     nglly = Tdomain%sdom%nglly
+                     ngllz = Tdomain%sdom%ngllz
+                 case (DM_FLUID)
+                     ngllx = Tdomain%fdom%ngllx
+                     nglly = Tdomain%fdom%nglly
+                     ngllz = Tdomain%fdom%ngllz
+                 case (DM_SOLID_PML)
+                     ngllx = Tdomain%spmldom%ngllx
+                     nglly = Tdomain%spmldom%nglly
+                     ngllz = Tdomain%spmldom%ngllz
+                 case (DM_FLUID_PML)
+                     ngllx = Tdomain%fpmldom%ngllx
+                     nglly = Tdomain%fpmldom%nglly
+                     ngllz = Tdomain%fpmldom%ngllz
+            end select
             allocate (xpol(0:ngllx-1));   xpol = 1
             allocate (ypol(0:nglly-1));   ypol = 1
             allocate (zpol(0:ngllz-1));   zpol = 1
