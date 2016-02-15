@@ -28,7 +28,7 @@ contains
 subroutine allocate_domain (Tdomain)
 
     type(domain), intent (INOUT) :: Tdomain
-    integer :: n,ngllx,nglly,ngllz
+    integer :: n,ngll
     integer :: mat, randSize, assocMat
 
     do mat = 0,Tdomain%n_mat-1
@@ -45,30 +45,23 @@ subroutine allocate_domain (Tdomain)
     end do
 
     call allocate_dom_solid   (Tdomain, Tdomain%sdom)
-    call allocate_dom_fluid   (Tdomain, Tdomain%fdom)
+    call allocate_dom_fluid   (         Tdomain%fdom)
     call allocate_dom_solidpml(Tdomain, Tdomain%spmldom)
     call allocate_dom_fluidpml(Tdomain, Tdomain%fpmldom)
 
     do n = 0,Tdomain%n_elem-1
+        ngll = 0
         select case (Tdomain%specel(n)%domain)
              case (DM_SOLID)
-                 ngllx = Tdomain%sdom%ngllx
-                 nglly = Tdomain%sdom%nglly
-                 ngllz = Tdomain%sdom%ngllz
+                 ngll = Tdomain%sdom%ngll
              case (DM_FLUID)
-                 ngllx = Tdomain%fdom%ngllx
-                 nglly = Tdomain%fdom%nglly
-                 ngllz = Tdomain%fdom%ngllz
+                 ngll = Tdomain%fdom%ngll
              case (DM_SOLID_PML)
-                 ngllx = Tdomain%spmldom%ngllx
-                 nglly = Tdomain%spmldom%nglly
-                 ngllz = Tdomain%spmldom%ngllz
+                 ngll = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
-                 ngllx = Tdomain%fpmldom%ngllx
-                 nglly = Tdomain%fpmldom%nglly
-                 ngllz = Tdomain%fpmldom%ngllz
+                 ngll = Tdomain%fpmldom%ngll
         end select
-        allocate(Tdomain%specel(n)%MassMat(0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+        allocate(Tdomain%specel(n)%MassMat(0:ngll-1, 0:ngll-1, 0:ngll-1))
     enddo
 end subroutine allocate_domain
 

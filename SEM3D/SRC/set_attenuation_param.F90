@@ -42,7 +42,7 @@ contains
         real       :: f_c_source,f_ref,dt
         real, dimension(:), allocatable   :: omega_tau_s,omega_Q
         real, dimension(:), allocatable   :: agamma_mu,agamma_kappa
-        integer :: n,i,j,k,ngllx,nglly,ngllz,mat
+        integer :: n,i,j,k,ngll,mat
         real :: Q_mu, Q_kappa, Q_mu_old, Q_kappa_old
 
         !- last values of Q factors (allows to save time if same Qs)
@@ -76,28 +76,21 @@ contains
             if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
 
             ! a faire dans PMLs...
+            ngll = 0
             select case (Tdomain%specel(n)%domain)
                  case (DM_SOLID)
-                     ngllx = Tdomain%sdom%ngllx
-                     nglly = Tdomain%sdom%nglly
-                     ngllz = Tdomain%sdom%ngllz
+                     ngll = Tdomain%sdom%ngll
                  case (DM_FLUID)
-                     ngllx = Tdomain%fdom%ngllx
-                     nglly = Tdomain%fdom%nglly
-                     ngllz = Tdomain%fdom%ngllz
+                     ngll = Tdomain%fdom%ngll
                  case (DM_SOLID_PML)
-                     ngllx = Tdomain%spmldom%ngllx
-                     nglly = Tdomain%spmldom%nglly
-                     ngllz = Tdomain%spmldom%ngllz
+                     ngll = Tdomain%spmldom%ngll
                  case (DM_FLUID_PML)
-                     ngllx = Tdomain%fpmldom%ngllx
-                     nglly = Tdomain%fpmldom%nglly
-                     ngllz = Tdomain%fpmldom%ngllz
+                     ngll = Tdomain%fpmldom%ngll
             end select
 
-            do i = 0,ngllx-1
-                do j = 0,nglly-1
-                    do k = 0,ngllz-1
+            do i = 0,ngll-1
+                do j = 0,ngll-1
+                    do k = 0,ngll-1
 
                         Q_mu = Tdomain%sdom%Qs(i,j,k,Tdomain%specel(n)%lnum)
                         Q_kappa = Tdomain%sdom%Qp(i,j,k,Tdomain%specel(n)%lnum)

@@ -253,26 +253,6 @@ contains
         type (element), intent(inout) :: specel
         type (subdomain), intent(in) :: mat
         !
-        integer :: ngllx, nglly, ngllz
-        !
-        select case (specel%domain)
-             case (DM_SOLID)
-                 ngllx = Tdomain%sdom%ngllx
-                 nglly = Tdomain%sdom%nglly
-                 ngllz = Tdomain%sdom%ngllz
-             case (DM_FLUID)
-                 ngllx = Tdomain%fdom%ngllx
-                 nglly = Tdomain%fdom%nglly
-                 ngllz = Tdomain%fdom%ngllz
-             case (DM_SOLID_PML)
-                 ngllx = Tdomain%spmldom%ngllx
-                 nglly = Tdomain%spmldom%nglly
-                 ngllz = Tdomain%spmldom%ngllz
-             case (DM_FLUID_PML)
-                 ngllx = Tdomain%fpmldom%ngllx
-                 nglly = Tdomain%fpmldom%nglly
-                 ngllz = Tdomain%fpmldom%ngllz
-        end select
 
         ! integration de la prise en compte du gradient de proprietes
 
@@ -344,7 +324,7 @@ contains
         type (element), intent(inout) :: specel
         type (subdomain), intent(in) :: mat
         !
-        integer :: ngllx, nglly, ngllz, lnum
+        integer :: ngll, lnum
         real(fpp), dimension(:,:,:), allocatable :: temp_PMLx,temp_PMLy
         real(fpp), dimension(:,:,:), allocatable :: RKmod
         real(fpp), dimension(:,:,:), allocatable :: wx,wy,wz
@@ -358,26 +338,19 @@ contains
             stop "init_pml_properties should not be called for non-pml element"
         end if
 
+        ngll = 0
         select case (specel%domain)
              case (DM_SOLID)
-                 ngllx = Tdomain%sdom%ngllx
-                 nglly = Tdomain%sdom%nglly
-                 ngllz = Tdomain%sdom%ngllz
+                 ngll = Tdomain%sdom%ngll
              case (DM_FLUID)
-                 ngllx = Tdomain%fdom%ngllx
-                 nglly = Tdomain%fdom%nglly
-                 ngllz = Tdomain%fdom%ngllz
+                 ngll = Tdomain%fdom%ngll
              case (DM_SOLID_PML)
-                 ngllx = Tdomain%spmldom%ngllx
-                 nglly = Tdomain%spmldom%nglly
-                 ngllz = Tdomain%spmldom%ngllz
+                 ngll = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
-                 ngllx = Tdomain%fpmldom%ngllx
-                 nglly = Tdomain%fpmldom%nglly
-                 ngllz = Tdomain%fpmldom%ngllz
+                 ngll = Tdomain%fpmldom%ngll
         end select
 
-        allocate(RKmod(0:ngllx-1,0:nglly-1,0:ngllz-1))
+        allocate(RKmod(0:ngll-1,0:ngll-1,0:ngll-1))
         select case (specel%domain)
             case (DM_SOLID)
                 RKmod =      Tdomain%sdom%Lambda_(:,:,:,specel%lnum) + &
@@ -394,49 +367,49 @@ contains
         ! PML case: valid for solid and fluid parts
 
         !- definition of the attenuation coefficient in PMLs (alpha in the literature)
-        allocate(wx(0:ngllx-1,0:nglly-1,0:ngllz-1))
-        allocate(wy(0:ngllx-1,0:nglly-1,0:ngllz-1))
-        allocate(wz(0:ngllx-1,0:nglly-1,0:ngllz-1))
+        allocate(wx(0:ngll-1,0:ngll-1,0:ngll-1))
+        allocate(wy(0:ngll-1,0:ngll-1,0:ngll-1))
+        allocate(wz(0:ngll-1,0:ngll-1,0:ngll-1))
 
         if (specel%domain==DM_SOLID_PML) then
-            call define_alpha_PML(mat%Px,0,mat%Left,                              &
-                ngllx,nglly,ngllz,ngllx,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
-                mat%GLLc,RKmod(:,0,0),                                           &
+            call define_alpha_PML(mat%Px,0,mat%Left,                               &
+                ngll,Tdomain%n_glob_points,Tdomain%GlobCoord,                      &
+                mat%GLLc,RKmod(:,0,0),                                             &
                 Tdomain%spmldom%Density_(:,0,0,specel%lnum),specel%Iglobnum(0,0,0),&
-                specel%Iglobnum(ngllx-1,0,0),mat%Apow,mat%npow,wx)
-            call define_alpha_PML(mat%Py,1,mat%Forward,                           &
-                ngllx,nglly,ngllz,nglly,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
-                mat%GLLc,RKmod(0,:,0),                                           &
+                specel%Iglobnum(ngll-1,0,0),mat%Apow,mat%npow,wx)
+            call define_alpha_PML(mat%Py,1,mat%Forward,                            &
+                ngll,Tdomain%n_glob_points,Tdomain%GlobCoord,                      &
+                mat%GLLc,RKmod(0,:,0),                                             &
                 Tdomain%spmldom%Density_(0,:,0,specel%lnum),specel%Iglobnum(0,0,0),&
-                specel%Iglobnum(0,nglly-1,0),mat%Apow,mat%npow,wy)
-            call define_alpha_PML(mat%Pz,2,mat%Down,                              &
-                ngllx,nglly,ngllz,ngllz,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
-                mat%GLLc,RKmod(0,0,:),                                           &
+                specel%Iglobnum(0,ngll-1,0),mat%Apow,mat%npow,wy)
+            call define_alpha_PML(mat%Pz,2,mat%Down,                               &
+                ngll,Tdomain%n_glob_points,Tdomain%GlobCoord,                      &
+                mat%GLLc,RKmod(0,0,:),                                             &
                 Tdomain%spmldom%Density_(0,0,:,specel%lnum),specel%Iglobnum(0,0,0),&
-                specel%Iglobnum(0,0,ngllz-1),mat%Apow,mat%npow,wz)
+                specel%Iglobnum(0,0,ngll-1),mat%Apow,mat%npow,wz)
         end if
         if (specel%domain==DM_FLUID_PML) then
-            call define_alpha_PML(mat%Px,0,mat%Left,                              &
-                ngllx,nglly,ngllz,ngllx,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
-                mat%GLLc,RKmod(:,0,0),                                           &
+            call define_alpha_PML(mat%Px,0,mat%Left,                               &
+                ngll,Tdomain%n_glob_points,Tdomain%GlobCoord,                      &
+                mat%GLLc,RKmod(:,0,0),                                             &
                 Tdomain%fpmldom%Density_(:,0,0,specel%lnum),specel%Iglobnum(0,0,0),&
-                specel%Iglobnum(ngllx-1,0,0),mat%Apow,mat%npow,wx)
-            call define_alpha_PML(mat%Py,1,mat%Forward,                           &
-                ngllx,nglly,ngllz,nglly,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
-                mat%GLLc,RKmod(0,:,0),                                           &
+                specel%Iglobnum(ngll-1,0,0),mat%Apow,mat%npow,wx)
+            call define_alpha_PML(mat%Py,1,mat%Forward,                            &
+                ngll,Tdomain%n_glob_points,Tdomain%GlobCoord,                      &
+                mat%GLLc,RKmod(0,:,0),                                             &
                 Tdomain%fpmldom%Density_(0,:,0,specel%lnum),specel%Iglobnum(0,0,0),&
-                specel%Iglobnum(0,nglly-1,0),mat%Apow,mat%npow,wy)
-            call define_alpha_PML(mat%Pz,2,mat%Down,                              &
-                ngllx,nglly,ngllz,ngllz,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
-                mat%GLLc,RKmod(0,0,:),                                           &
+                specel%Iglobnum(0,ngll-1,0),mat%Apow,mat%npow,wy)
+            call define_alpha_PML(mat%Pz,2,mat%Down,                               &
+                ngll,Tdomain%n_glob_points,Tdomain%GlobCoord,                      &
+                mat%GLLc,RKmod(0,0,:),                                             &
                 Tdomain%fpmldom%Density_(0,0,:,specel%lnum),specel%Iglobnum(0,0,0),&
-                specel%Iglobnum(0,0,ngllz-1),mat%Apow,mat%npow,wz)
+                specel%Iglobnum(0,0,ngll-1),mat%Apow,mat%npow,wz)
         end if
 
         !- M-PMLs
         if(Tdomain%logicD%MPML)then
-            allocate(temp_PMLx(0:ngllx-1,0:nglly-1,0:ngllz-1))
-            allocate(temp_PMLy(0:ngllx-1,0:nglly-1,0:ngllz-1))
+            allocate(temp_PMLx(0:ngll-1,0:ngll-1,0:ngll-1))
+            allocate(temp_PMLy(0:ngll-1,0:ngll-1,0:ngll-1))
             temp_PMLx(:,:,:) = wx(:,:,:)
             temp_PMLy(:,:,:) = wy(:,:,:)
             wx(:,:,:) = wx(:,:,:)+Tdomain%MPML_coeff*(wy(:,:,:)+wz(:,:,:))
@@ -445,31 +418,31 @@ contains
             deallocate(temp_PMLx,temp_PMLy)
         end if
 
-        allocate(PMLDumpMass(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+        allocate(PMLDumpMass(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
         PMLDumpMass = 0d0
 
         !- strong formulation for stresses. Dumped mass elements, convolutional terms.
         ! Compute DumpS(x,y,z) and DumpMass(0,1,2)
         if (specel%domain==DM_SOLID_PML) then
-            call define_PML_DumpInit(ngllx,nglly,ngllz,dt,wx,specel%MassMat, &
+            call define_PML_DumpInit(ngll,dt,wx,specel%MassMat, &
                 Tdomain%spmldom%PMLDumpSx(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,0))
-            call define_PML_DumpInit(ngllx,nglly,ngllz,dt,wy,specel%MassMat, &
+            call define_PML_DumpInit(ngll,dt,wy,specel%MassMat, &
                 Tdomain%spmldom%PMLDumpSy(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,1))
-            call define_PML_DumpInit(ngllx,nglly,ngllz,dt,wz,specel%MassMat, &
+            call define_PML_DumpInit(ngll,dt,wz,specel%MassMat, &
                 Tdomain%spmldom%PMLDumpSz(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,2))
         end if
         if (specel%domain==DM_FLUID_PML) then
-            call define_PML_DumpInit(ngllx,nglly,ngllz,dt,wx,specel%MassMat, &
+            call define_PML_DumpInit(ngll,dt,wx,specel%MassMat, &
                 Tdomain%fpmldom%PMLDumpSx(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,0))
-            call define_PML_DumpInit(ngllx,nglly,ngllz,dt,wy,specel%MassMat, &
+            call define_PML_DumpInit(ngll,dt,wy,specel%MassMat, &
                 Tdomain%fpmldom%PMLDumpSy(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,1))
-            call define_PML_DumpInit(ngllx,nglly,ngllz,dt,wz,specel%MassMat, &
+            call define_PML_DumpInit(ngll,dt,wz,specel%MassMat, &
                 Tdomain%fpmldom%PMLDumpSz(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,2))
         end if
         deallocate(wx,wy,wz)
 
-        if (specel%domain==DM_SOLID_PML) call assemble_DumpMass(Tdomain,specel,Tdomain%spmldom%ngllx,PMLDumpMass)
-        if (specel%domain==DM_FLUID_PML) call assemble_DumpMass(Tdomain,specel,Tdomain%fpmldom%ngllx,PMLDumpMass)
+        if (specel%domain==DM_SOLID_PML) call assemble_DumpMass(Tdomain,specel,Tdomain%spmldom%ngll,PMLDumpMass)
+        if (specel%domain==DM_FLUID_PML) call assemble_DumpMass(Tdomain,specel,Tdomain%fpmldom%ngll,PMLDumpMass)
         if(allocated(PMLDumpMass)) deallocate(PMLDumpMass)
 
         !! XXX
@@ -506,31 +479,24 @@ contains
         integer :: i, j, k, ind
         real(fpp) :: Whei
 
-        integer ngllx, nglly, ngllz
+        integer ngll
 
+        ngll = 0
         select case (specel%domain)
              case (DM_SOLID)
-                 ngllx = Tdomain%sdom%ngllx
-                 nglly = Tdomain%sdom%nglly
-                 ngllz = Tdomain%sdom%ngllz
+                 ngll = Tdomain%sdom%ngll
              case (DM_FLUID)
-                 ngllx = Tdomain%fdom%ngllx
-                 nglly = Tdomain%fdom%nglly
-                 ngllz = Tdomain%fdom%ngllz
+                 ngll = Tdomain%fdom%ngll
              case (DM_SOLID_PML)
-                 ngllx = Tdomain%spmldom%ngllx
-                 nglly = Tdomain%spmldom%nglly
-                 ngllz = Tdomain%spmldom%ngllz
+                 ngll = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
-                 ngllx = Tdomain%fpmldom%ngllx
-                 nglly = Tdomain%fpmldom%nglly
-                 ngllz = Tdomain%fpmldom%ngllz
+                 ngll = Tdomain%fpmldom%ngll
         end select
 
         !- general (element) weighting: tensorial property..
-        do k = 0,ngllz-1
-            do j = 0,nglly-1
-                do i = 0,ngllx-1
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
                     Whei = mat%GLLw(i)*mat%GLLw(j)*mat%GLLw(k)
                     ind = specel%Idom(i,j,k)
                     select case (specel%domain)
@@ -559,26 +525,19 @@ contains
         real :: zg1,zd1,zg2,zd2,zz1,zz2,zfact
         real :: xd1,xg1
         real :: zrho,zrho1,zrho2,zCp,zCp1,zCp2,zCs,zCs1,zCs2
-        integer :: ngllx, nglly, ngllz
+        integer :: ngll
         integer :: icolonne,jlayer
         !
+        ngll = 0
         select case (specel%domain)
              case (DM_SOLID)
-                 ngllx = Tdomain%sdom%ngllx
-                 nglly = Tdomain%sdom%nglly
-                 ngllz = Tdomain%sdom%ngllz
+                 ngll = Tdomain%sdom%ngll
              case (DM_FLUID)
-                 ngllx = Tdomain%fdom%ngllx
-                 nglly = Tdomain%fdom%nglly
-                 ngllz = Tdomain%fdom%ngllz
+                 ngll = Tdomain%fdom%ngll
              case (DM_SOLID_PML)
-                 ngllx = Tdomain%spmldom%ngllx
-                 nglly = Tdomain%spmldom%nglly
-                 ngllz = Tdomain%spmldom%ngllz
+                 ngll = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
-                 ngllx = Tdomain%fpmldom%ngllx
-                 nglly = Tdomain%fpmldom%nglly
-                 ngllz = Tdomain%fpmldom%ngllz
+                 ngll = Tdomain%fpmldom%ngll
         end select
 
         !    debut modification des proprietes des couches de materiaux
@@ -599,9 +558,9 @@ contains
 
         !     on cherche tout d abord a localiser la maille a partir d un
         !     point de Gauss interne milieux (imx,imy,imz)
-        imx = 1+(ngllx-1)/2
-        imy = 1+(nglly-1)/2
-        imz = 1+(ngllz-1)/2
+        imx = 1+(ngll-1)/2
+        imy = 1+(ngll-1)/2
+        imz = 1+(ngll-1)/2
         !     on impose qu une maille appartienne a un seul groupe de gradient de
         !     proprietes
         ipoint = specel%Iglobnum(imx,imy,imz)
@@ -659,9 +618,9 @@ contains
 
             !     boucle sur les points de Gauss de la maille
             !     xp, yp, zp coordonnees du point de Gauss
-            do k = 0, ngllz -1
-                do j = 0,nglly-1
-                    do i = 0,ngllx-1
+            do k = 0, ngll -1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
                         ipoint = specel%Iglobnum(i,j,k)
                         xp = Tdomain%GlobCoord(0,ipoint)
                         yp = Tdomain%GlobCoord(1,ipoint)
@@ -708,16 +667,16 @@ contains
 
     !-------------------------------------------------------------------------------------
     !-------------------------------------------------------------------------------------
-    subroutine define_alpha_PML(lattenu,dir,ldir_attenu,ngllx,nglly,ngllz,ngll,n_pts,   &
+    subroutine define_alpha_PML(lattenu,dir,ldir_attenu,ngll,n_pts,   &
         Coord,GLLc,Rkmod,density,ind_min,ind_max,Apow,npow,alpha)
         !- routine determines attenuation profile in an PML layer (see Festa & Vilotte)
         !   dir = attenuation's direction, ldir_attenu = the logical giving the orientation
         logical, intent(in)   :: lattenu,ldir_attenu
-        integer, intent(in) :: dir,ngllx,nglly,ngllz,ngll,n_pts,ind_min,ind_max,npow
+        integer, intent(in) :: dir,ngll,n_pts,ind_min,ind_max,npow
         real, dimension(0:2,0:n_pts-1), intent(in) :: Coord
         real, dimension(0:ngll-1), intent(in) :: GLLc,RKmod,density
         real, intent(in)  :: Apow
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: alpha
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: alpha
         integer  :: i
         real  :: dh
         real, dimension(0:ngll-1)  :: ri,vp
@@ -749,24 +708,21 @@ contains
                 end do
             end select
         end if
-
-        return
-
     end subroutine define_alpha_PML
     !----------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------
-    subroutine define_PML_DumpInit(ngllx,nglly,ngllz,dt,alpha,&
+    subroutine define_PML_DumpInit(ngll,dt,alpha,&
         MassMat,DumpS,DumpMass)
         !- defining parameters related to stresses and mass matrix elements, in the case of
         !    a PML, along a given splitted direction:
-        integer, intent(in)  :: ngllx,nglly,ngllz
+        integer, intent(in)  :: ngll
         real, intent(in) :: dt
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: alpha
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: MassMat
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:1), intent(out) :: DumpS
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: DumpMass
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: alpha
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: MassMat
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:1), intent(out) :: DumpS
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: DumpMass
 
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1)  :: Id
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1)  :: Id
 
         Id = 1d0
 

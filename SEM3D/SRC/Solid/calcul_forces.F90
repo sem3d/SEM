@@ -15,7 +15,7 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
     contains
 subroutine calcul_forces(dom,lnum,Fox,Foy,Foz, &
     htprimex,GLLwx,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
-    ngllx,nglly,ngllz)
+    ngll)
 
     use sdomain
     implicit none
@@ -23,11 +23,11 @@ subroutine calcul_forces(dom,lnum,Fox,Foy,Foz, &
 
     type(domain_solid), intent (INOUT) :: dom
     integer, intent(in) :: lnum
-    integer, intent(in) :: ngllx,nglly,ngllz
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: Fox,Foz,Foy
-    real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: htprimex
-    real, dimension(0:ngllx-1), intent(in) :: GLLwx
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
+    integer, intent(in) :: ngll
+    real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
+    real, dimension(0:ngll-1,0:ngll-1), intent(in) :: htprimex
+    real, dimension(0:ngll-1), intent(in) :: GLLwx
+    real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
 
     integer :: i,j,k,l
     real :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
@@ -36,14 +36,14 @@ subroutine calcul_forces(dom,lnum,Fox,Foy,Foz, &
     real :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
     real, parameter :: zero = 0.
     real :: xmu, xla, xla2mu
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t1,t5,t8
+    real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t5,t8
     ! Les indices sont reordonnes, probablement pour la localite memoire
-    real, dimension(0:nglly-1,0:ngllx-1,0:ngllz-1) :: t2,t6,t9
-    real, dimension(0:ngllz-1,0:ngllx-1,0:nglly-1) :: t3,t7,t10
+    real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: t2,t6,t9
+    real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: t3,t7,t10
 
-    do k = 0,ngllz-1
-        do j = 0,nglly-1
-            do i = 0,ngllx-1
+    do k = 0,ngll-1
+        do j = 0,ngll-1
+            do i = 0,ngll-1
 
                 xmu = dom%Mu_    (i,j,k,lnum)
                 xla = dom%Lambda_(i,j,k,lnum)
@@ -136,9 +136,9 @@ subroutine calcul_forces(dom,lnum,Fox,Foy,Foz, &
     !
 
     !=-=-=-=-=-=-=-=-=-=-
-    do k = 0,ngllz-1
-        do j = 0,nglly-1
-            do i = 0,ngllx-1
+    do k = 0,ngll-1
+        do j = 0,ngll-1
+            do i = 0,ngll-1
                 !=-=-=-=-=-=-=-=-=-=-
                 !
                 t11 = GLLwx(j) * GLLwx(k)
@@ -155,13 +155,13 @@ subroutine calcul_forces(dom,lnum,Fox,Foy,Foz, &
                 t62 = zero
                 t63 = zero
                 !
-                do l = 0,ngllx-1
+                do l = 0,ngll-1
                     t41 = t41 + htprimex(l,i) * t1(l,j,k)
                     t42 = t42 + htprimex(l,i) * t5(l,j,k)
                     t43 = t43 + htprimex(l,i) * t8(l,j,k)
                 enddo
 
-                do l = 0,nglly-1
+                do l = 0,ngll-1
                     t51 = t51 + htprimex(l,j) * t2(l,i,k)
                     t52 = t52 + htprimex(l,j) * t6(l,i,k)
                     t53 = t53 + htprimex(l,j) * t9(l,i,k)
@@ -174,7 +174,7 @@ subroutine calcul_forces(dom,lnum,Fox,Foy,Foz, &
                 F3 = t43*t11 + t53*t12
                 !
                 !
-                do l = 0,ngllz-1
+                do l = 0,ngll-1
                     t61 = t61 + htprimex(l,k) * t3(l,i,j)
                     t62 = t62 + htprimex(l,k) * t7(l,i,j)
                     t63 = t63 + htprimex(l,k) * t10(l,i,j)

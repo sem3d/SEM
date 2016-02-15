@@ -15,7 +15,7 @@ module m_calcul_forces_aniso_att ! wrap subroutine in module to get arg type che
     contains
 subroutine calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz, &
     htprimex,GLLwx,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
-    ngllx,nglly,ngllz,n_solid)
+    ngll,n_solid)
 
     use sdomain
 
@@ -24,11 +24,11 @@ subroutine calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz, &
 
     type(domain_solid), intent (INOUT) :: dom
     integer, intent(in) :: lnum
-    integer, intent(in) :: ngllx,nglly,ngllz
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: Fox,Foz,Foy
-    real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: htprimex
-    real, dimension(0:ngllx-1), intent(in) :: GLLwx
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
+    integer, intent(in) :: ngll
+    real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
+    real, dimension(0:ngll-1,0:ngll-1), intent(in) :: htprimex
+    real, dimension(0:ngll-1), intent(in) :: GLLwx
+    real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
     integer, intent(in) :: n_solid
 
     real :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
@@ -42,10 +42,10 @@ subroutine calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz, &
         zero = 0., two = 2.
     integer :: i,j,k,l, i_sls
     real, dimension(0:5) :: eij
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: xmu,xla,xla2mu,kappa
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t1,t5,t8,t2,t6,t9
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t3,t7,t10
-    real, dimension(0:5, 0:5, 0:ngllx-1,0:nglly-1,0:ngllz-1) :: C
+    real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: xmu,xla,xla2mu,kappa
+    real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t5,t8,t2,t6,t9
+    real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: t3,t7,t10
+    real, dimension(0:5, 0:5, 0:ngll-1,0:ngll-1,0:ngll-1) :: C
 
 
     xmu(:,:,:) = dom%Mu_(:,:,:,lnum)
@@ -80,9 +80,9 @@ subroutine calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz, &
         enddo
     enddo
 
-    do k = 0,ngllz-1
-        do j = 0,nglly-1
-            do i = 0,ngllx-1
+    do k = 0,ngll-1
+        do j = 0,ngll-1
+            do i = 0,ngll-1
 
                 eij(0) = DXX(i,j,k)
                 eij(1) = DYY(i,j,k)
@@ -194,9 +194,9 @@ subroutine calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz, &
     !
 
     !=-=-=-=-=-=-=-=-=-=-
-    do k = 0,ngllz-1
-        do j = 0,nglly-1
-            do i = 0,ngllx-1
+    do k = 0,ngll-1
+        do j = 0,ngll-1
+            do i = 0,ngll-1
                 !=-=-=-=-=-=-=-=-=-=-
                 !
                 t11 = GLLwx(j) * GLLwx(k)
@@ -213,13 +213,13 @@ subroutine calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz, &
                 t62 = zero
                 t63 = zero
                 !
-                do l = 0,ngllx-1
+                do l = 0,ngll-1
                     t41 = t41 + htprimex(l,i) * t1(l,j,k)
                     t42 = t42 + htprimex(l,i) * t5(l,j,k)
                     t43 = t43 + htprimex(l,i) * t8(l,j,k)
                 enddo
 
-                do l = 0,nglly-1
+                do l = 0,ngll-1
                     t51 = t51 + htprimex(l,j) * t2(l,i,k)
                     t52 = t52 + htprimex(l,j) * t6(l,i,k)
                     t53 = t53 + htprimex(l,j) * t9(l,i,k)
@@ -232,7 +232,7 @@ subroutine calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz, &
                 F3 = t43*t11 + t53*t12
                 !
                 !
-                do l = 0,ngllz-1
+                do l = 0,ngll-1
                     t61 = t61 + htprimex(l,k) * t3(l,i,j)
                     t62 = t62 + htprimex(l,k) * t7(l,i,j)
                     t63 = t63 + htprimex(l,k) * t10(l,i,j)

@@ -4,18 +4,17 @@
 !!
 module m_calcul_forces_fluid ! wrap subroutine in module to get arg type check at build time
     contains
-subroutine calcul_forces_fluid(dom,lnum,FFl,hTprimex,wheix,dPhiX,dPhiY,dPhiZ,ngllx,nglly,ngllz)
+subroutine calcul_forces_fluid(dom,lnum,FFl,hTprimex,wheix,dPhiX,dPhiY,dPhiZ)
     use sdomain
     implicit none
 #include "index.h"
 
     type(domain_fluid), intent (INOUT) :: dom
     integer, intent(in) :: lnum
-    integer, intent(in) :: ngllx,nglly,ngllz
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: FFl
-    real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: hTprimex
-    real, dimension(0:ngllx-1), intent(in) :: wheix
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: dPhiX,dPhiY,dPhiZ
+    real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(out) :: FFl
+    real, dimension(0:dom%ngll-1,0:dom%ngll-1), intent(in) :: hTprimex
+    real, dimension(0:dom%ngll-1), intent(in) :: wheix
+    real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(in) :: dPhiX,dPhiY,dPhiZ
 
     real :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
     integer :: i,j,k,l
@@ -23,15 +22,15 @@ subroutine calcul_forces_fluid(dom,lnum,FFl,hTprimex,wheix,dPhiX,dPhiY,dPhiZ,ngl
     real :: t41,t11,t51,t12,t61,t13
     real :: xt1,xt6,xt10
     real, parameter :: zero = 0.
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: xdens
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t1,t6
-    real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t10
+    real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: xdens
+    real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: t1,t6
+    real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: t10
 
     xdens(:,:,:) = 1d0/dom%Density_(:,:,:,lnum)
 
-    do k = 0,ngllz-1
-        do j = 0,nglly-1
-            do i = 0,ngllx-1
+    do k = 0,dom%ngll-1
+        do j = 0,dom%ngll-1
+            do i = 0,dom%ngll-1
 
                 ! (fluid equivalent) stress  ( = physical velocity)
                 sx = xdens(i,j,k)*dPhiX(i,j,k)
@@ -89,9 +88,9 @@ subroutine calcul_forces_fluid(dom,lnum,FFl,hTprimex,wheix,dPhiX,dPhiY,dPhiZ,ngl
     !
 
     !=-=-=-=-=-=-=-=-=-=-
-    do k = 0,ngllz-1
-        do j = 0,nglly-1
-            do i = 0,ngllx-1
+    do k = 0,dom%ngll-1
+        do j = 0,dom%ngll-1
+            do i = 0,dom%ngll-1
                 !=-=-=-=-=-=-=-=-=-=-
                 !
                 t11 = wheix(j) * wheix(k)
@@ -102,18 +101,18 @@ subroutine calcul_forces_fluid(dom,lnum,FFl,hTprimex,wheix,dPhiX,dPhiY,dPhiZ,ngl
                 t51 = zero
                 t61 = zero
                 !
-                do l = 0,ngllx-1
+                do l = 0,dom%ngll-1
                     t41 = t41 + hTprimex(l,i) * t1(l,j,k)
                 enddo
 
-                do l = 0,nglly-1
+                do l = 0,dom%ngll-1
                     t51 = t51 + hTprimex(l,j) * t6(l,i,k)
                 enddo
                 ! FFl
                 F1 = t41*t11 + t51*t12
                 !
                 !
-                do l = 0,ngllz-1
+                do l = 0,dom%ngll-1
                     t61 = t61 + hTprimex(l,k) * t10(l,i,j)
                 enddo
 

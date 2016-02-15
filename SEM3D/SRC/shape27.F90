@@ -29,7 +29,7 @@ contains
 
         type(domain), target, intent (INOUT) :: Tdomain
 
-        integer :: n, ngllx,nglly,ngllz, mat, i,j,k, ipoint
+        integer :: n,ngll,mat,i,j,k,ipoint
         real :: xi,eta,zeta, xp,yp,zp, Jac
         real, dimension(0:2,0:26) :: coord
         real, dimension(0:2,0:2) :: LocInvGrad
@@ -44,31 +44,24 @@ contains
                 coord(0:2,i) = Tdomain%Coord_Nodes(0:2,j)
             enddo
 
+            ngll = 0
             select case (Tdomain%specel(n)%domain)
                  case (DM_SOLID)
-                     ngllx = Tdomain%sdom%ngllx
-                     nglly = Tdomain%sdom%nglly
-                     ngllz = Tdomain%sdom%ngllz
+                     ngll = Tdomain%sdom%ngll
                  case (DM_FLUID)
-                     ngllx = Tdomain%fdom%ngllx
-                     nglly = Tdomain%fdom%nglly
-                     ngllz = Tdomain%fdom%ngllz
+                     ngll = Tdomain%fdom%ngll
                  case (DM_SOLID_PML)
-                     ngllx = Tdomain%spmldom%ngllx
-                     nglly = Tdomain%spmldom%nglly
-                     ngllz = Tdomain%spmldom%ngllz
+                     ngll = Tdomain%spmldom%ngll
                  case (DM_FLUID_PML)
-                     ngllx = Tdomain%fpmldom%ngllx
-                     nglly = Tdomain%fpmldom%nglly
-                     ngllz = Tdomain%fpmldom%ngllz
+                     ngll = Tdomain%fpmldom%ngll
             end select
             mat   = Tdomain%specel(n)%mat_index
 
-            do k = 0,ngllz - 1
+            do k = 0,ngll - 1
                 zeta =  Tdomain%sSubdomain(mat)%GLLc(k)
-                do j = 0,nglly - 1
+                do j = 0,ngll - 1
                     eta =  Tdomain%sSubdomain(mat)%GLLc(j)
-                    do i = 0,ngllx - 1
+                    do i = 0,ngll - 1
                         xi = Tdomain%sSubdomain(mat)%GLLc(i)
                         call shape27_local2global(coord, xi, eta, zeta, xp, yp, zp)
                         ipoint = Tdomain%specel(n)%Iglobnum(i,j,k)

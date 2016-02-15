@@ -20,21 +20,16 @@ subroutine  initialize_material_earthchunk(Tdomain, elem, coorPt, npts)
     real, dimension(0:2,0:npts-1), intent(in) :: coorPt
     integer, intent(in) :: npts
 
-
-    integer :: i,j,k,ii,jj, ngllx, nglly, ngllz, idef
+    integer :: i,j,k,ii,jj,ngll,idef
     real :: xr, yr, zr, x, y, z, rho,A,C,F,L,M,Gc,Gs,Hc,Hs,Bc,Bs,Ec,Es,Qmu, r, theta, phi, lon, lat
     real, dimension(1:6,1:6) :: Cij
     real, dimension(3,3) :: RotMat
 
-    ngllx = Tdomain%sdom%ngllx
-    nglly = Tdomain%sdom%nglly
-    ngllz = Tdomain%sdom%ngllz
+    ngll = Tdomain%sdom%ngll
 
- !   write(*,*) "--material earthchunk--"
-
-    do k = 0,ngllz-1
-        do j = 0,nglly-1
-            do i = 0,ngllx-1
+    do k = 0,ngll-1
+        do j = 0,ngll-1
+            do i = 0,ngll-1
 
                 idef = elem%Iglobnum(i,j,k)
 

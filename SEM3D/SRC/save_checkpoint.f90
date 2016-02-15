@@ -76,23 +76,24 @@ subroutine compute_save_offsets(Tdomain, offset)
     n_solid = Tdomain%n_sls
     offset(1:12)=0
     do n = 0,Tdomain%n_elem-1
+        ngllx = 0; nglly = 0; ngllz = 0;
         select case (Tdomain%specel(n)%domain)
              case (DM_SOLID)
-                 ngllx = Tdomain%sdom%ngllx
-                 nglly = Tdomain%sdom%nglly
-                 ngllz = Tdomain%sdom%ngllz
+                 ngllx = Tdomain%sdom%ngll
+                 nglly = Tdomain%sdom%ngll
+                 ngllz = Tdomain%sdom%ngll
              case (DM_FLUID)
-                 ngllx = Tdomain%fdom%ngllx
-                 nglly = Tdomain%fdom%nglly
-                 ngllz = Tdomain%fdom%ngllz
+                 ngllx = Tdomain%fdom%ngll
+                 nglly = Tdomain%fdom%ngll
+                 ngllz = Tdomain%fdom%ngll
              case (DM_SOLID_PML)
-                 ngllx = Tdomain%spmldom%ngllx
-                 nglly = Tdomain%spmldom%nglly
-                 ngllz = Tdomain%spmldom%ngllz
+                 ngllx = Tdomain%spmldom%ngll
+                 nglly = Tdomain%spmldom%ngll
+                 ngllz = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
-                 ngllx = Tdomain%fpmldom%ngllx
-                 nglly = Tdomain%fpmldom%nglly
-                 ngllz = Tdomain%fpmldom%ngllz
+                 ngllx = Tdomain%fpmldom%ngll
+                 nglly = Tdomain%fpmldom%ngll
+                 ngllz = Tdomain%fpmldom%ngll
         end select
         ngll = (ngllx-2)*(nglly-2)*(ngllz-2)
         ngll2 = ngllx*nglly*ngllz
@@ -183,7 +184,7 @@ subroutine write_EpsilonVol(Tdomain, nmax, elem_id)
     integer(HID_T), intent(IN) :: elem_id
     integer(HID_T) :: dset_id
     integer(kind=4), intent(IN) :: nmax
-    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
+    integer :: n,ngll,idx,i,j,k,hdferr
     real(kind=8), allocatable, dimension(:) :: data
     integer(HSIZE_T), dimension(1) :: dims
     integer :: n_solid
@@ -200,13 +201,11 @@ subroutine write_EpsilonVol(Tdomain, nmax, elem_id)
 
     do n = 0,Tdomain%n_elem-1
         if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
-        ngllx = Tdomain%sdom%ngllx
-        nglly = Tdomain%sdom%nglly
-        ngllz = Tdomain%sdom%ngllz
+        ngll = Tdomain%sdom%ngll
 
-        do k = 0,ngllz-1
-            do j = 0,nglly-1
-                do i = 0,ngllx-1
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
                     if (n_solid>0) then
                         if (Tdomain%aniso) then
                         else
@@ -237,7 +236,7 @@ subroutine write_Rvol(Tdomain, nmax, elem_id)
     integer(HID_T), intent(IN) :: elem_id
     integer(HID_T) :: dset_id
     integer(kind=4), intent(IN) :: nmax
-    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr,i_sls
+    integer :: n,ngll,idx,i,j,k,hdferr,i_sls
     real(kind=8), allocatable, dimension(:) :: data
     integer(HSIZE_T), dimension(1) :: dims
     integer :: n_solid
@@ -256,13 +255,11 @@ subroutine write_Rvol(Tdomain, nmax, elem_id)
 
     do n = 0,Tdomain%n_elem-1
         if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
-        ngllx = Tdomain%sdom%ngllx
-        nglly = Tdomain%sdom%nglly
-        ngllz = Tdomain%sdom%ngllz
+        ngll = Tdomain%sdom%ngll
 
-        do k = 0,ngllz-1
-            do j = 0,nglly-1
-                do i = 0,ngllx-1
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
                     if (n_solid>0) then
                         if (Tdomain%aniso) then
                         else
@@ -295,7 +292,7 @@ subroutine write_Rxyz(Tdomain, nmax, elem_id)
     integer(HID_T), intent(IN) :: elem_id
     integer(HID_T) :: dset_id_xx, dset_id_yy, dset_id_xy, dset_id_xz, dset_id_yz
     integer(kind=4), intent(IN) :: nmax
-    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr,i_sls
+    integer :: n,ngll,idx,i,j,k,hdferr,i_sls
     real(kind=8), allocatable, dimension(:) :: data_xx, data_yy, data_xy, data_xz, data_yz
     integer(HSIZE_T), dimension(1) :: dims
     integer :: n_solid
@@ -326,13 +323,11 @@ subroutine write_Rxyz(Tdomain, nmax, elem_id)
 
     do n = 0,Tdomain%n_elem-1
         if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
-        ngllx = Tdomain%sdom%ngllx
-        nglly = Tdomain%sdom%nglly
-        ngllz = Tdomain%sdom%ngllz
+        ngll = Tdomain%sdom%ngll
 
-        do k = 0,ngllz-1
-            do j = 0,nglly-1
-                do i = 0,ngllx-1
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
                     if (n_solid>0) then
                         if (idx.gt.nmax) then
                             write(*,*) "Erreur fatale sauvegarde des protections"
@@ -374,7 +369,7 @@ subroutine write_EpsilonDev(Tdomain, nmax, elem_id)
     integer(HID_T), intent(IN) :: elem_id
     integer(HID_T) :: dset_id_xx, dset_id_yy, dset_id_xy, dset_id_xz, dset_id_yz
     integer(kind=4), intent(IN) :: nmax
-    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
+    integer :: n,ngll,idx,i,j,k,hdferr
     real(kind=8), allocatable, dimension(:) :: data_xx, data_yy, data_xy, data_xz, data_yz
     integer(HSIZE_T), dimension(1) :: dims
     integer :: n_solid
@@ -404,13 +399,11 @@ subroutine write_EpsilonDev(Tdomain, nmax, elem_id)
 
     do n = 0,Tdomain%n_elem-1
         if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
-        ngllx = Tdomain%sdom%ngllx
-        nglly = Tdomain%sdom%nglly
-        ngllz = Tdomain%sdom%ngllz
+        ngll = Tdomain%sdom%ngll
 
-        do k = 0,ngllz-1
-            do j = 0,nglly-1
-                do i = 0,ngllx-1
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
                     if (n_solid>0) then
                         if (idx.gt.nmax) then
                             write(*,*) "Erreur fatale sauvegarde des protections"
@@ -451,7 +444,7 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
     integer(HID_T) :: dset_id
     integer(kind=4), intent(IN) :: nmax
 
-    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
+    integer :: n,ngll,idx,i,j,k,hdferr
     real(kind=8), allocatable, dimension(:) :: data
     integer(HSIZE_T), dimension(1) :: dims
 
@@ -465,13 +458,11 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
     idx = 1
     do n = 0,Tdomain%n_elem-1
         if(Tdomain%specel(n)%domain/=DM_SOLID_PML) cycle
-        ngllx = Tdomain%spmldom%ngllx
-        nglly = Tdomain%spmldom%nglly
-        ngllz = Tdomain%spmldom%ngllz
+        ngll = Tdomain%spmldom%ngll
 
-        do k = 0,ngllz-1
-            do j = 0,nglly-1
-                do i = 0,ngllx-1
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
                     if (idx.gt.nmax) then
                         write(*,*) "Erreur fatale sauvegarde des protections"
                         stop 1
@@ -520,7 +511,7 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
     integer(HID_T) :: dset_id
     integer(kind=4), intent(IN) :: nmax
 
-    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
+    integer :: n,ngll,idx,i,j,k,hdferr
     real(kind=8), allocatable, dimension(:) :: data
     integer(HSIZE_T), dimension(1) :: dims
 
@@ -535,13 +526,11 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
     idx = 1
     do n = 0,Tdomain%n_elem-1
         if(Tdomain%specel(n)%domain/=DM_FLUID_PML) cycle
-        ngllx = Tdomain%fpmldom%ngllx
-        nglly = Tdomain%fpmldom%nglly
-        ngllz = Tdomain%fpmldom%ngllz
+        ngll = Tdomain%fpmldom%ngll
 
-        do k = 0,ngllz-1
-            do j = 0,nglly-1
-                do i = 0,ngllx-1
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
                     if (idx.gt.nmax) then
                         write(*,*) "Erreur fatale sauvegarde des protections"
                         stop 1

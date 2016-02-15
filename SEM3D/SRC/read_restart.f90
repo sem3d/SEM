@@ -16,7 +16,7 @@ subroutine read_EpsilonVol(Tdomain, elem_id)
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
     double precision, allocatable, dimension(:) :: epsilonvol, rvol, rxx, ryy, rxy, rxz, ryz
-    integer :: idx1, idx2, idx3, ngllx, nglly, ngllz
+    integer :: idx1, idx2, idx3, ngll
     integer :: n, i, j, k, i_sls
     integer :: n_solid
 
@@ -32,29 +32,22 @@ subroutine read_EpsilonVol(Tdomain, elem_id)
     idx3 = 1
     n_solid = Tdomain%n_sls
     do n = 0,Tdomain%n_elem-1
+        ngll = 0
         select case (Tdomain%specel(n)%domain)
              case (DM_SOLID)
-                 ngllx = Tdomain%sdom%ngllx
-                 nglly = Tdomain%sdom%nglly
-                 ngllz = Tdomain%sdom%ngllz
+                 ngll = Tdomain%sdom%ngll
              case (DM_FLUID)
-                 ngllx = Tdomain%fdom%ngllx
-                 nglly = Tdomain%fdom%nglly
-                 ngllz = Tdomain%fdom%ngllz
+                 ngll = Tdomain%fdom%ngll
              case (DM_SOLID_PML)
-                 ngllx = Tdomain%spmldom%ngllx
-                 nglly = Tdomain%spmldom%nglly
-                 ngllz = Tdomain%spmldom%ngllz
+                 ngll = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
-                 ngllx = Tdomain%fpmldom%ngllx
-                 nglly = Tdomain%fpmldom%nglly
-                 ngllz = Tdomain%fpmldom%ngllz
+                 ngll = Tdomain%fpmldom%ngll
         end select
 
         if ( Tdomain%specel(n)%domain==DM_SOLID ) then
-            do k = 0,ngllz-1
-                do j = 0,nglly-1
-                    do i = 0,ngllx-1
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
                         if (n_solid>0) then
                             if (Tdomain%aniso) then
                             else
@@ -96,7 +89,7 @@ subroutine read_EpsilonDev(Tdomain, elem_id)
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
     double precision, allocatable, dimension(:) :: eps_dev_xx, eps_dev_yy, eps_dev_xy, eps_dev_xz, eps_dev_yz
-    integer :: idx, ngllx, nglly, ngllz
+    integer :: idx, ngll
     integer :: n, i, j, k
     integer :: n_solid
 
@@ -108,29 +101,22 @@ subroutine read_EpsilonDev(Tdomain, elem_id)
     idx = 1
     n_solid = Tdomain%n_sls
     do n = 0,Tdomain%n_elem-1
+        ngll = 0
         select case (Tdomain%specel(n)%domain)
              case (DM_SOLID)
-                 ngllx = Tdomain%sdom%ngllx
-                 nglly = Tdomain%sdom%nglly
-                 ngllz = Tdomain%sdom%ngllz
+                 ngll = Tdomain%sdom%ngll
              case (DM_FLUID)
-                 ngllx = Tdomain%fdom%ngllx
-                 nglly = Tdomain%fdom%nglly
-                 ngllz = Tdomain%fdom%ngllz
+                 ngll = Tdomain%fdom%ngll
              case (DM_SOLID_PML)
-                 ngllx = Tdomain%spmldom%ngllx
-                 nglly = Tdomain%spmldom%nglly
-                 ngllz = Tdomain%spmldom%ngllz
+                 ngll = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
-                 ngllx = Tdomain%fpmldom%ngllx
-                 nglly = Tdomain%fpmldom%nglly
-                 ngllz = Tdomain%fpmldom%ngllz
+                 ngll = Tdomain%fpmldom%ngll
         end select
 
         if ( Tdomain%specel(n)%domain == DM_SOLID ) then
-            do k = 0,ngllz-1
-                do j = 0,nglly-1
-                    do i = 0,ngllx-1
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
                         if (n_solid>0) then
                             Tdomain%sdom%epsilondev_xx_(i,j,k,Tdomain%specel(n)%lnum) = eps_dev_xx(idx)
                             Tdomain%sdom%epsilondev_yy_(i,j,k,Tdomain%specel(n)%lnum) = eps_dev_yy(idx)
@@ -159,7 +145,7 @@ subroutine read_Stress(Tdomain, elem_id)
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
     double precision, allocatable, dimension(:) :: stress
-    integer :: idx, ngllx, nglly, ngllz
+    integer :: idx, ngll
     integer :: n, i, j, k
     integer :: n_solid
 
@@ -168,28 +154,21 @@ subroutine read_Stress(Tdomain, elem_id)
     n_solid = Tdomain%n_sls
     do n = 0,Tdomain%n_elem-1
         if (Tdomain%specel(n)%domain/=DM_SOLID_PML) cycle
+        ngll = 0
         select case (Tdomain%specel(n)%domain)
              case (DM_SOLID)
-                 ngllx = Tdomain%sdom%ngllx
-                 nglly = Tdomain%sdom%nglly
-                 ngllz = Tdomain%sdom%ngllz
+                 ngll = Tdomain%sdom%ngll
              case (DM_FLUID)
-                 ngllx = Tdomain%fdom%ngllx
-                 nglly = Tdomain%fdom%nglly
-                 ngllz = Tdomain%fdom%ngllz
+                 ngll = Tdomain%fdom%ngll
              case (DM_SOLID_PML)
-                 ngllx = Tdomain%spmldom%ngllx
-                 nglly = Tdomain%spmldom%nglly
-                 ngllz = Tdomain%spmldom%ngllz
+                 ngll = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
-                 ngllx = Tdomain%fpmldom%ngllx
-                 nglly = Tdomain%fpmldom%nglly
-                 ngllz = Tdomain%fpmldom%ngllz
+                 ngll = Tdomain%fpmldom%ngll
         end select
 
-        do k = 0,ngllz-1
-            do j = 0,nglly-1
-                do i = 0,ngllx-1
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
                     Tdomain%spmldom%Diagonal_Stress1(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
                     Tdomain%spmldom%Diagonal_Stress1(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
                     Tdomain%spmldom%Diagonal_Stress1(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
@@ -229,35 +208,28 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
     double precision, allocatable, dimension(:) :: Veloc
-    integer :: idx, ngllx, nglly, ngllz
+    integer :: idx, ngll
     integer :: n, i, j, k
 
     call read_dset_1d_real(elem_id, "Veloc_Fl_PML", veloc)
     idx = 1
     do n = 0,Tdomain%n_elem-1
         if (Tdomain%specel(n)%domain/=DM_FLUID_PML) cycle
+        ngll = 0
         select case (Tdomain%specel(n)%domain)
              case (DM_SOLID)
-                 ngllx = Tdomain%sdom%ngllx
-                 nglly = Tdomain%sdom%nglly
-                 ngllz = Tdomain%sdom%ngllz
+                 ngll = Tdomain%sdom%ngll
              case (DM_FLUID)
-                 ngllx = Tdomain%fdom%ngllx
-                 nglly = Tdomain%fdom%nglly
-                 ngllz = Tdomain%fdom%ngllz
+                 ngll = Tdomain%fdom%ngll
              case (DM_SOLID_PML)
-                 ngllx = Tdomain%spmldom%ngllx
-                 nglly = Tdomain%spmldom%nglly
-                 ngllz = Tdomain%spmldom%ngllz
+                 ngll = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
-                 ngllx = Tdomain%fpmldom%ngllx
-                 nglly = Tdomain%fpmldom%nglly
-                 ngllz = Tdomain%fpmldom%ngllz
+                 ngll = Tdomain%fpmldom%ngll
         end select
 
-        do k = 0,ngllz-1
-            do j = 0,nglly-1
-                do i = 0,ngllx-1
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
                     Tdomain%fpmldom%Veloc(i,j,k,0,Tdomain%specel(n)%lnum) = veloc(idx+0)
                     Tdomain%fpmldom%Veloc(i,j,k,1,Tdomain%specel(n)%lnum) = veloc(idx+1)
                     Tdomain%fpmldom%Veloc(i,j,k,2,Tdomain%specel(n)%lnum) = veloc(idx+2)

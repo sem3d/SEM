@@ -14,27 +14,24 @@ module dom_fluid
 
 contains
 
-    subroutine allocate_dom_fluid (Tdomain, dom)
+    subroutine allocate_dom_fluid (dom)
         implicit none
-        type(domain) :: TDomain
         type(domain_fluid), intent (INOUT) :: dom
         !
-        integer nbelem, ngllx, nglly, ngllz
+        integer nbelem, ngll
         !
 
-        nbelem  = dom%nbelem
+        nbelem = dom%nbelem
         if(nbelem == 0) return ! Do not allocate if not needed (save allocation/RAM)
-        ngllx   = dom%ngllx
-        nglly   = dom%nglly
-        ngllz   = dom%ngllz
+        ngll   = dom%ngll
 
-        allocate(dom%Density_(0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
-        allocate(dom%Lambda_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
+        allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+        allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
 
-        allocate (dom%Jacob_  (        0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
-        allocate (dom%InvGrad_(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
+        allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+        allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
 
-        allocate(dom%Idom_(0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
+        allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
 
         ! Allocation et initialisation de champs0 et champs1 pour les fluides
         if (dom%nglltot /= 0) then
@@ -77,18 +74,18 @@ contains
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
     end subroutine deallocate_dom_fluid
 
-    subroutine fluid_velocity(ngllx,nglly,ngllz,htprime,InvGrad,density,phi,veloc)
+    subroutine fluid_velocity(ngll,htprime,InvGrad,density,phi,veloc)
         ! gives the physical particle velocity in the fluid = 1/dens grad(dens.Phi)
         implicit none
-        integer, intent(in)  :: ngllx,nglly,ngllz
-        real, dimension(0:ngllx-1,0:ngllx-1), intent(in) :: htprime
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:2), intent(in) :: InvGrad
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: density,phi
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2), intent(out) :: Veloc
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: dphi_dx,dphi_dy,dphi_dz
+        integer, intent(in)  :: ngll
+        real, dimension(0:ngll-1,0:ngll-1), intent(in) :: htprime
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:2), intent(in) :: InvGrad
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: density,phi
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(out) :: Veloc
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: dphi_dx,dphi_dy,dphi_dz
 
         ! physical gradient
-        call physical_part_deriv(ngllx,nglly,ngllz,htprime,InvGrad,phi,dphi_dx,dphi_dy,dphi_dz)
+        call physical_part_deriv(ngll,htprime,InvGrad,phi,dphi_dx,dphi_dy,dphi_dz)
         Veloc(:,:,:,0) = dphi_dx(:,:,:)/density(:,:,:)
         Veloc(:,:,:,1) = dphi_dy(:,:,:)/density(:,:,:)
         Veloc(:,:,:,2) = dphi_dz(:,:,:)/density(:,:,:)
@@ -111,7 +108,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         !
         logical :: flag_gradU
-        integer :: nx, ny, nz, i, j, k, ind, mat
+        integer :: ngll, i, j, k, ind, mat
 
         flag_gradU = (out_variables(OUT_ENERGYP) + &
             out_variables(OUT_ENERGYS) + &
@@ -119,65 +116,63 @@ contains
             out_variables(OUT_EPS_DEV) + &
             out_variables(OUT_STRESS_DEV)) /= 0
 
-        nx = dom%ngllx
-        ny = dom%nglly
-        nz = dom%ngllz
+        ngll = dom%ngll
 
-        do k=0,nz-1
-            do j=0,ny-1
-                do i=0,nx-1
+        do k=0,ngll-1
+            do j=0,ngll-1
+                do i=0,ngll-1
                     ind = dom%Idom_(i,j,k,el%lnum)
 
                     if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
-                        if(.not. allocated(fieldU)) allocate(fieldU(0:nx-1,0:ny-1,0:nz-1,0:2))
+                        if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                         fieldU(i,j,k,:) = 0d0
                     end if
 
                     if (out_variables(OUT_VITESSE) == 1) then
-                        if(.not. allocated(fieldV)) allocate(fieldV(0:nx-1,0:ny-1,0:nz-1,0:2))
-                        if(.not. allocated(phi))    allocate(phi(0:nx-1,0:ny-1,0:nz-1))
+                        if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+                        if(.not. allocated(phi))    allocate(phi(0:ngll-1,0:ngll-1,0:ngll-1))
                         phi(i,j,k) = dom%champs0%Phi(ind)
                         mat = el%mat_index
-                        call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprime,              &
+                        call fluid_velocity(ngll,Tdomain%sSubdomain(mat)%htprime,                  &
                              dom%InvGrad_(:,:,:,:,:,el%lnum),dom%Density_(:,:,:,el%lnum),phi,fieldV)
                     end if
 
                     if (out_variables(OUT_ACCEL) == 1) then
-                        if(.not. allocated(fieldA)) allocate(fieldA(0:nx-1,0:ny-1,0:nz-1,0:2))
-                        if(.not. allocated(vphi))   allocate(vphi(0:nx-1,0:ny-1,0:nz-1))
+                        if(.not. allocated(fieldA)) allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+                        if(.not. allocated(vphi))   allocate(vphi(0:ngll-1,0:ngll-1,0:ngll-1))
                         vphi(i,j,k) = dom%champs0%VelPhi(ind)
                         mat = el%mat_index
-                        call fluid_velocity(nx,ny,nz,Tdomain%sSubdomain(mat)%htprime,               &
+                        call fluid_velocity(ngll,Tdomain%sSubdomain(mat)%htprime,               &
                              dom%InvGrad_(:,:,:,:,:,el%lnum),dom%Density_(:,:,:,el%lnum),vphi,fieldA)
                     end if
 
                     if (out_variables(OUT_PRESSION) == 1) then
-                        if(.not. allocated(fieldP)) allocate(fieldP(0:nx-1,0:ny-1,0:nz-1))
+                        if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
                         fieldP(i,j,k) = -dom%champs0%VelPhi(ind)
                     end if
 
                     if (out_variables(OUT_EPS_VOL) == 1) then
-                        if(.not. allocated(eps_vol)) allocate(eps_vol(0:nx-1,0:ny-1,0:nz-1))
+                        if(.not. allocated(eps_vol)) allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
                         eps_vol(i,j,k) = 0.
                     end if
 
                     if (out_variables(OUT_ENERGYP) == 1) then
-                        if(.not. allocated(P_energy)) allocate(P_energy(0:nx-1,0:ny-1,0:nz-1))
+                        if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                         P_energy(i,j,k) = 0.
                     end if
 
                     if (out_variables(OUT_ENERGYS) == 1) then
-                        if(.not. allocated(S_energy)) allocate(S_energy(0:nx-1,0:ny-1,0:nz-1))
+                        if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                         S_energy(i,j,k) = 0.
                     end if
 
                     if (out_variables(OUT_EPS_DEV) == 1) then
-                        if(.not. allocated(eps_dev)) allocate(eps_dev(0:nx-1,0:ny-1,0:nz-1,0:5))
+                        if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
                         eps_dev(i,j,k,:) = 0.
                     end if
 
                     if (out_variables(OUT_STRESS_DEV) == 1) then
-                        if(.not. allocated(sig_dev)) allocate(sig_dev(0:nx-1,0:ny-1,0:nz-1,0:5))
+                        if(.not. allocated(sig_dev)) allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
                         sig_dev(i,j,k,:) = 0.
                     end if
                 enddo
@@ -219,32 +214,32 @@ contains
         use m_calcul_forces_fluid
         type(domain_fluid), intent (INOUT) :: dom
         type (subdomain), intent(IN) :: mat
-        real, dimension (0:dom%ngllx-1, 0:dom%ngllx-1), intent (IN) :: htprime
+        real, dimension (0:dom%ngll-1, 0:dom%ngll-1), intent (IN) :: htprime
         type(champsfluid), intent(inout) :: champs1
         integer :: lnum
 
-        integer :: m1,m2,m3, i,j,k
-        real, dimension(0:dom%ngllx-1, 0:dom%nglly-1, 0:dom%ngllz-1) :: dPhiX,dPhiY,dPhiZ,Fo_Fl,Phi
+        integer :: ngll,i,j,k
+        real, dimension(0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: dPhiX,dPhiY,dPhiZ,Fo_Fl,Phi
 
-        m1 = dom%ngllx;   m2 = dom%nglly;   m3 = dom%ngllz
+        ngll = dom%ngll
 
         ! d(rho*Phi)_dX
         ! d(rho*Phi)_dY
         ! d(rho*Phi)_dZ
-        do k = 0,m3-1
-            do j = 0,m2-1
-                do i = 0,m1-1
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
                     Phi(i,j,k) = champs1%Phi(dom%Idom_(i,j,k,lnum))
                 enddo
             enddo
         enddo
-        call physical_part_deriv(m1,m2,m3,htprime,dom%InvGrad_(:,:,:,:,:,lnum),Phi,dPhiX,dPhiY,dPhiZ)
+        call physical_part_deriv(ngll,htprime,dom%InvGrad_(:,:,:,:,:,lnum),Phi,dPhiX,dPhiY,dPhiZ)
 
         ! internal forces
-        call calcul_forces_fluid(dom,lnum,Fo_Fl,htprime,mat%GLLw,dPhiX,dPhiY,dPhiZ,m1,m2,m3)
-        do k = 0,m3-1
-            do j = 0,m2-1
-                do i = 0,m1-1
+        call calcul_forces_fluid(dom,lnum,Fo_Fl,htprime,mat%GLLw,dPhiX,dPhiY,dPhiZ)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
                     champs1%ForcesFl(dom%Idom_(i,j,k,lnum)) = champs1%ForcesFl(dom%Idom_(i,j,k,lnum))-Fo_Fl(i,j,k)
                 enddo
             enddo

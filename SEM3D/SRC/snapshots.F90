@@ -458,7 +458,7 @@ contains
         type (domain), intent (INOUT):: Tdomain
         integer, allocatable, dimension(:), intent(out) :: irenum ! maps Iglobnum to file node number
         integer, intent(out) :: nnodes
-        integer :: n, i, j, k, ngllx, nglly, ngllz, ig, gn, ne
+        integer :: n, i, j, k, ngll, ig, gn, ne
         !
         integer :: count
         integer :: ierr, domain_type, imat
@@ -471,28 +471,21 @@ contains
         ne = 0
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            ngll = 0
             select case (Tdomain%specel(n)%domain)
                  case (DM_SOLID)
-                     ngllx = Tdomain%sdom%ngllx
-                     nglly = Tdomain%sdom%nglly
-                     ngllz = Tdomain%sdom%ngllz
+                     ngll = Tdomain%sdom%ngll
                  case (DM_FLUID)
-                     ngllx = Tdomain%fdom%ngllx
-                     nglly = Tdomain%fdom%nglly
-                     ngllz = Tdomain%fdom%ngllz
+                     ngll = Tdomain%fdom%ngll
                  case (DM_SOLID_PML)
-                     ngllx = Tdomain%spmldom%ngllx
-                     nglly = Tdomain%spmldom%nglly
-                     ngllz = Tdomain%spmldom%ngllz
+                     ngll = Tdomain%spmldom%ngll
                  case (DM_FLUID_PML)
-                     ngllx = Tdomain%fpmldom%ngllx
-                     nglly = Tdomain%fpmldom%nglly
-                     ngllz = Tdomain%fpmldom%ngllz
+                     ngll = Tdomain%fpmldom%ngll
             end select
             ne = ne + 1
-            do k = 0,ngllz - 1
-                do j = 0,nglly - 1
-                    do i = 0,ngllx - 1
+            do k = 0,ngll - 1
+                do j = 0,ngll - 1
+                    do i = 0,ngll - 1
                         gn = Tdomain%specel(n)%Iglobnum(i,j,k)
                         if (irenum(gn) == -1) then
                             irenum(gn) = ig
@@ -509,30 +502,23 @@ contains
         domains = 0
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            ngll = 0
             select case (Tdomain%specel(n)%domain)
                  case (DM_SOLID)
-                     ngllx = Tdomain%sdom%ngllx
-                     nglly = Tdomain%sdom%nglly
-                     ngllz = Tdomain%sdom%ngllz
+                     ngll = Tdomain%sdom%ngll
                  case (DM_FLUID)
-                     ngllx = Tdomain%fdom%ngllx
-                     nglly = Tdomain%fdom%nglly
-                     ngllz = Tdomain%fdom%ngllz
+                     ngll = Tdomain%fdom%ngll
                  case (DM_SOLID_PML)
-                     ngllx = Tdomain%spmldom%ngllx
-                     nglly = Tdomain%spmldom%nglly
-                     ngllz = Tdomain%spmldom%ngllz
+                     ngll = Tdomain%spmldom%ngll
                  case (DM_FLUID_PML)
-                     ngllx = Tdomain%fpmldom%ngllx
-                     nglly = Tdomain%fpmldom%nglly
-                     ngllz = Tdomain%fpmldom%ngllz
+                     ngll = Tdomain%fpmldom%ngll
             end select
             imat = Tdomain%specel(n)%mat_index
             domain_type = get_domain(Tdomain%sSubDomain(imat))
 
-            do k = 0,ngllz - 1
-                do j = 0,nglly - 1
-                    do i = 0,ngllx - 1
+            do k = 0,ngll - 1
+                do j = 0,ngll - 1
+                    do i = 0,ngll - 1
                         gn = Tdomain%specel(n)%Iglobnum(i,j,k)
                         if (domain_type>domains(irenum(gn))) then
                             domains(irenum(gn)) = domain_type
@@ -670,21 +656,21 @@ contains
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             select case (Tdomain%specel(n)%domain)
                  case (DM_SOLID)
-                     ngll(1,k) = Tdomain%sdom%ngllx
-                     ngll(2,k) = Tdomain%sdom%nglly
-                     ngll(3,k) = Tdomain%sdom%ngllz
+                     ngll(1,k) = Tdomain%sdom%ngll
+                     ngll(2,k) = Tdomain%sdom%ngll
+                     ngll(3,k) = Tdomain%sdom%ngll
                  case (DM_FLUID)
-                     ngll(1,k) = Tdomain%fdom%ngllx
-                     ngll(2,k) = Tdomain%fdom%nglly
-                     ngll(3,k) = Tdomain%fdom%ngllz
+                     ngll(1,k) = Tdomain%fdom%ngll
+                     ngll(2,k) = Tdomain%fdom%ngll
+                     ngll(3,k) = Tdomain%fdom%ngll
                  case (DM_SOLID_PML)
-                     ngll(1,k) = Tdomain%spmldom%ngllx
-                     ngll(2,k) = Tdomain%spmldom%nglly
-                     ngll(3,k) = Tdomain%spmldom%ngllz
+                     ngll(1,k) = Tdomain%spmldom%ngll
+                     ngll(2,k) = Tdomain%spmldom%ngll
+                     ngll(3,k) = Tdomain%spmldom%ngll
                  case (DM_FLUID_PML)
-                     ngll(1,k) = Tdomain%fpmldom%ngllx
-                     ngll(2,k) = Tdomain%fpmldom%nglly
-                     ngll(3,k) = Tdomain%fpmldom%ngllz
+                     ngll(1,k) = Tdomain%fpmldom%ngll
+                     ngll(2,k) = Tdomain%fpmldom%ngll
+                     ngll(3,k) = Tdomain%fpmldom%ngll
             end select
             ! Max number of global points (can count elem vertices twice)
             nglobnum = nglobnum + ngll(1,k)*ngll(2,k)*ngll(3,k)
@@ -707,23 +693,24 @@ contains
         ioffset = Tdomain%output_nodes_offset(Tdomain%output_rank)
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            ngllx = 0; nglly = 0; ngllz = 0;
             select case (Tdomain%specel(n)%domain)
                  case (DM_SOLID)
-                     ngllx = Tdomain%sdom%ngllx
-                     nglly = Tdomain%sdom%nglly
-                     ngllz = Tdomain%sdom%ngllz
+                     ngllx = Tdomain%sdom%ngll
+                     nglly = Tdomain%sdom%ngll
+                     ngllz = Tdomain%sdom%ngll
                  case (DM_FLUID)
-                     ngllx = Tdomain%fdom%ngllx
-                     nglly = Tdomain%fdom%nglly
-                     ngllz = Tdomain%fdom%ngllz
+                     ngllx = Tdomain%fdom%ngll
+                     nglly = Tdomain%fdom%ngll
+                     ngllz = Tdomain%fdom%ngll
                  case (DM_SOLID_PML)
-                     ngllx = Tdomain%spmldom%ngllx
-                     nglly = Tdomain%spmldom%nglly
-                     ngllz = Tdomain%spmldom%ngllz
+                     ngllx = Tdomain%spmldom%ngll
+                     nglly = Tdomain%spmldom%ngll
+                     ngllz = Tdomain%spmldom%ngll
                  case (DM_FLUID_PML)
-                     ngllx = Tdomain%fpmldom%ngllx
-                     nglly = Tdomain%fpmldom%nglly
-                     ngllz = Tdomain%fpmldom%ngllz
+                     ngllx = Tdomain%fpmldom%ngll
+                     nglly = Tdomain%fpmldom%ngll
+                     ngllz = Tdomain%fpmldom%ngll
             end select
             do k = 0,ngllz-2
                 do j = 0,nglly-2
@@ -822,7 +809,7 @@ contains
         integer :: domain_type
         integer, dimension(:), allocatable :: valence
         integer :: hdferr
-        integer :: ngllx, nglly, ngllz
+        integer :: ngll
         integer :: i, j, k, n, ind
         integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
         integer :: nnodes, group, nnodes_tot
@@ -849,9 +836,7 @@ contains
 
         valence(:) = 0
 
-        ngllx = 0
-        nglly = 0
-        ngllz = 0
+        ngll = 0
 
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
@@ -859,21 +844,13 @@ contains
             if (.not. el%OUTPUT) cycle
             select case (Tdomain%specel(n)%domain)
                  case (DM_SOLID)
-                     ngllx = Tdomain%sdom%ngllx
-                     nglly = Tdomain%sdom%nglly
-                     ngllz = Tdomain%sdom%ngllz
+                     ngll = Tdomain%sdom%ngll
                  case (DM_FLUID)
-                     ngllx = Tdomain%fdom%ngllx
-                     nglly = Tdomain%fdom%nglly
-                     ngllz = Tdomain%fdom%ngllz
+                     ngll = Tdomain%fdom%ngll
                  case (DM_SOLID_PML)
-                     ngllx = Tdomain%spmldom%ngllx
-                     nglly = Tdomain%spmldom%nglly
-                     ngllz = Tdomain%spmldom%ngllz
+                     ngll = Tdomain%spmldom%ngll
                  case (DM_FLUID_PML)
-                     ngllx = Tdomain%fpmldom%ngllx
-                     nglly = Tdomain%fpmldom%nglly
-                     ngllz = Tdomain%fpmldom%ngllz
+                     ngll = Tdomain%fpmldom%ngll
             end select
 
             domain_type = get_domain(sub_dom_mat)
@@ -892,9 +869,9 @@ contains
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
             end select
 
-            do k = 0, ngllz-1
-                do j = 0, nglly-1
-                    do i = 0, ngllx-1
+            do k = 0, ngll-1
+                do j = 0, ngll-1
+                    do i = 0, ngll-1
                         ind = irenum(el%Iglobnum(i,j,k))
 
                         if (out_variables(OUT_DEPLA     ) == 1) out_fields%displ(0:2,ind)   = fieldU(i,j,k,0:2)
@@ -1203,7 +1180,7 @@ contains
         integer, dimension(:), allocatable, intent(in) :: domains
         !
         real, dimension(:),allocatable :: mass, jac
-        integer :: ngllx, nglly, ngllz, idx
+        integer :: ngll, idx
         integer :: i, j, k, n, lnum, nnodes_tot
         integer :: domain_type, imat
 
@@ -1212,32 +1189,25 @@ contains
         mass = 0d0
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            ngll = 0
             select case (Tdomain%specel(n)%domain)
                  case (DM_SOLID)
-                     ngllx = Tdomain%sdom%ngllx
-                     nglly = Tdomain%sdom%nglly
-                     ngllz = Tdomain%sdom%ngllz
+                     ngll = Tdomain%sdom%ngll
                  case (DM_FLUID)
-                     ngllx = Tdomain%fdom%ngllx
-                     nglly = Tdomain%fdom%nglly
-                     ngllz = Tdomain%fdom%ngllz
+                     ngll = Tdomain%fdom%ngll
                  case (DM_SOLID_PML)
-                     ngllx = Tdomain%spmldom%ngllx
-                     nglly = Tdomain%spmldom%nglly
-                     ngllz = Tdomain%spmldom%ngllz
+                     ngll = Tdomain%spmldom%ngll
                  case (DM_FLUID_PML)
-                     ngllx = Tdomain%fpmldom%ngllx
-                     nglly = Tdomain%fpmldom%nglly
-                     ngllz = Tdomain%fpmldom%ngllz
+                     ngll = Tdomain%fpmldom%ngll
             end select
             imat = Tdomain%specel(n)%mat_index
             lnum = Tdomain%specel(n)%lnum
             domain_type = get_domain(Tdomain%sSubDomain(imat))
             select case(domain_type)
             case (DM_SOLID)
-                do k = 0,ngllz-1
-                    do j = 0,nglly-1
-                        do i = 0,ngllx-1
+                do k = 0,ngll-1
+                    do j = 0,ngll-1
+                        do i = 0,ngll-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
                                 mass(idx) = Tdomain%sdom%MassMat(Tdomain%sdom%Idom_(i,j,k,lnum))
@@ -1246,9 +1216,9 @@ contains
                     end do
                 end do
             case (DM_SOLID_PML)
-                do k = 0,ngllz-1
-                    do j = 0,nglly-1
-                        do i = 0,ngllx-1
+                do k = 0,ngll-1
+                    do j = 0,ngll-1
+                        do i = 0,ngll-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
                                 mass(idx) = Tdomain%spmldom%MassMat(Tdomain%spmldom%Idom_(i,j,k,lnum))
@@ -1257,9 +1227,9 @@ contains
                     end do
                 end do
             case (DM_FLUID)
-                do k = 0,ngllz-1
-                    do j = 0,nglly-1
-                        do i = 0,ngllx-1
+                do k = 0,ngll-1
+                    do j = 0,ngll-1
+                        do i = 0,ngll-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
                                 mass(idx) = Tdomain%fdom%MassMat(Tdomain%fdom%Idom_(i,j,k,lnum))
@@ -1268,9 +1238,9 @@ contains
                     end do
                 end do
             case (DM_FLUID_PML)
-                do k = 0,ngllz-1
-                    do j = 0,nglly-1
-                        do i = 0,ngllx-1
+                do k = 0,ngll-1
+                    do j = 0,ngll-1
+                        do i = 0,ngll-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
                                 mass(idx) = Tdomain%fpmldom%MassMat(Tdomain%fpmldom%Idom_(i,j,k,lnum))
@@ -1286,27 +1256,20 @@ contains
         ! jac
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            ngll = 0
             select case (Tdomain%specel(n)%domain)
                  case (DM_SOLID)
-                     ngllx = Tdomain%sdom%ngllx
-                     nglly = Tdomain%sdom%nglly
-                     ngllz = Tdomain%sdom%ngllz
+                     ngll = Tdomain%sdom%ngll
                  case (DM_FLUID)
-                     ngllx = Tdomain%fdom%ngllx
-                     nglly = Tdomain%fdom%nglly
-                     ngllz = Tdomain%fdom%ngllz
+                     ngll = Tdomain%fdom%ngll
                  case (DM_SOLID_PML)
-                     ngllx = Tdomain%spmldom%ngllx
-                     nglly = Tdomain%spmldom%nglly
-                     ngllz = Tdomain%spmldom%ngllz
+                     ngll = Tdomain%spmldom%ngll
                  case (DM_FLUID_PML)
-                     ngllx = Tdomain%fpmldom%ngllx
-                     nglly = Tdomain%fpmldom%nglly
-                     ngllz = Tdomain%fpmldom%ngllz
+                     ngll = Tdomain%fpmldom%ngll
             end select
-            do k = 0,ngllz-1
-                do j = 0,nglly-1
-                    do i = 0,ngllx-1
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
                         idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)

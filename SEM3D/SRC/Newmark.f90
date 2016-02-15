@@ -470,30 +470,23 @@ subroutine external_forces(Tdomain,timer,ntime)
     type(domain), intent(inout)  :: Tdomain
     integer, intent(in)  :: ntime
     real, intent(in)  :: timer
-    integer  :: ns,nel,i_dir, i,j,k, idx, lnum,ngllx,nglly,ngllz
+    integer  :: ns,nel,i_dir, i,j,k, idx, lnum,ngll
     real :: t, ft
 
     do ns = 0, Tdomain%n_source-1
         if(Tdomain%rank == Tdomain%sSource(ns)%proc)then
             nel = Tdomain%Ssource(ns)%elem
             lnum = Tdomain%specel(nel)%lnum
+            ngll = 0
             select case (Tdomain%specel(nel)%domain)
                  case (DM_SOLID)
-                     ngllx = Tdomain%sdom%ngllx
-                     nglly = Tdomain%sdom%nglly
-                     ngllz = Tdomain%sdom%ngllz
+                     ngll = Tdomain%sdom%ngll
                  case (DM_FLUID)
-                     ngllx = Tdomain%fdom%ngllx
-                     nglly = Tdomain%fdom%nglly
-                     ngllz = Tdomain%fdom%ngllz
+                     ngll = Tdomain%fdom%ngll
                  case (DM_SOLID_PML)
-                     ngllx = Tdomain%spmldom%ngllx
-                     nglly = Tdomain%spmldom%nglly
-                     ngllz = Tdomain%spmldom%ngllz
+                     ngll = Tdomain%spmldom%ngll
                  case (DM_FLUID_PML)
-                     ngllx = Tdomain%fpmldom%ngllx
-                     nglly = Tdomain%fpmldom%nglly
-                     ngllz = Tdomain%fpmldom%ngllz
+                     ngll = Tdomain%fpmldom%ngll
             end select
 
             !  vieille version:
@@ -510,9 +503,9 @@ subroutine external_forces(Tdomain,timer,ntime)
                 ! collocated force in solid
                 !
                 do i_dir = 0,2
-                    do k = 0,ngllz-1
-                        do j = 0,nglly-1
-                            do i = 0,ngllx-1
+                    do k = 0,ngll-1
+                        do j = 0,ngll-1
+                            do i = 0,ngll-1
                                 idx = Tdomain%sdom%Idom_(i,j,k,lnum)
                                 Tdomain%sdom%champs1%Forces(idx, i_dir) = Tdomain%sdom%champs1%Forces(idx, i_dir) + &
                                     ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
@@ -521,9 +514,9 @@ subroutine external_forces(Tdomain,timer,ntime)
                     enddo
                 enddo
             else if(Tdomain%sSource(ns)%i_type_source == 3)then    ! pressure pulse in fluid
-                do k = 0,ngllz-1
-                    do j = 0,nglly-1
-                        do i = 0,ngllx-1
+                do k = 0,ngll-1
+                    do j = 0,ngll-1
+                        do i = 0,ngll-1
                             idx = Tdomain%fdom%Idom_(i,j,k,lnum)
                             Tdomain%fdom%champs1%ForcesFl(idx) = Tdomain%fdom%champs1%ForcesFl(idx) +    &
                                 ft*Tdomain%sSource(ns)%ExtForce(i,j,k,0)

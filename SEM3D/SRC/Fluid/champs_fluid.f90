@@ -22,9 +22,7 @@ module champs_fluid
         ! D'abord, les données membres qui ne sont pas modifiées
 
         ! Nombre de gll dans chaque element du domaine
-        integer :: ngllx
-        integer :: nglly
-        integer :: ngllz
+        integer :: ngll
 
         ! Nombre total de gll du domaine (assembles)
         integer :: nglltot

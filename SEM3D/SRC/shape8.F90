@@ -19,10 +19,7 @@ contains
         implicit none
 
         type(domain), intent(inout) :: Tdomain
-        integer :: n,  ngllx,nglly,ngllz, mat, i,j,k ,ipoint
-!            nf,ne,nv
-!            mat_index,which_elem,which_face,which_edge,which_vertex,
-!        integer, dimension(0:3)  :: loc_vertices,loc_nodes
+        integer :: n,ngll,mat,i,j,k,ipoint
         real(FPP) :: Jac, xi, eta, zeta
         real(FPP), dimension(0:2,0:2) :: LocInvGrad
         real(FPP), dimension(0:2,0:7) :: coord  ! coordinates of nodes
@@ -40,32 +37,25 @@ contains
             call nodes_coord_8(Tdomain%specel(n)%Control_Nodes(0:),Tdomain%n_glob_nodes,    &
                 Tdomain%Coord_Nodes(0:,0:),coord)
 
+            ngll = 0
             select case (Tdomain%specel(n)%domain)
                  case (DM_SOLID)
-                     ngllx = Tdomain%sdom%ngllx
-                     nglly = Tdomain%sdom%nglly
-                     ngllz = Tdomain%sdom%ngllz
+                     ngll = Tdomain%sdom%ngll
                  case (DM_FLUID)
-                     ngllx = Tdomain%fdom%ngllx
-                     nglly = Tdomain%fdom%nglly
-                     ngllz = Tdomain%fdom%ngllz
+                     ngll = Tdomain%fdom%ngll
                  case (DM_SOLID_PML)
-                     ngllx = Tdomain%spmldom%ngllx
-                     nglly = Tdomain%spmldom%nglly
-                     ngllz = Tdomain%spmldom%ngllz
+                     ngll = Tdomain%spmldom%ngll
                  case (DM_FLUID_PML)
-                     ngllx = Tdomain%fpmldom%ngllx
-                     nglly = Tdomain%fpmldom%nglly
-                     ngllz = Tdomain%fpmldom%ngllz
+                     ngll = Tdomain%fpmldom%ngll
             end select
             mat = Tdomain%specel(n)%mat_index
 
             ! coordinates of GLL points, and values of Jacobian and dX_dxi at each GLL point.
-            do k = 0,ngllz-1
+            do k = 0,ngll-1
                 zeta = Tdomain%sSubdomain(mat)%GLLc(k)
-                do j = 0,nglly-1
+                do j = 0,ngll-1
                     eta = Tdomain%sSubdomain(mat)%GLLc(j)
-                    do i = 0,ngllx-1
+                    do i = 0,ngll-1
                         xi = Tdomain%sSubdomain(mat)%GLLc(i)
 
                         ipoint = Tdomain%specel(n)%Iglobnum(i,j,k)

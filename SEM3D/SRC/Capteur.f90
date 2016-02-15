@@ -356,7 +356,7 @@ contains
         type(tCapteur) :: capteur
         !
         integer                                    :: i, j, k, ioff
-        integer                                    :: n_el, ngllx, nglly, ngllz, mat
+        integer                                    :: n_el, ngll, mat
         real(fpp)                                  :: weight
         real(fpp), dimension(:), allocatable       :: outx, outy, outz
         real(fpp), dimension(:), allocatable       :: grandeur
@@ -376,35 +376,27 @@ contains
 
         select case (Tdomain%specel(n_el)%domain)
              case (DM_SOLID)
-                 ngllx = Tdomain%sdom%ngllx
-                 nglly = Tdomain%sdom%nglly
-                 ngllz = Tdomain%sdom%ngllz
+                 ngll = Tdomain%sdom%ngll
              case (DM_FLUID)
-                 ngllx = Tdomain%fdom%ngllx
-                 nglly = Tdomain%fdom%nglly
-                 ngllz = Tdomain%fdom%ngllz
+                 ngll = Tdomain%fdom%ngll
              case (DM_SOLID_PML)
-                 ngllx = Tdomain%spmldom%ngllx
-                 nglly = Tdomain%spmldom%nglly
-                 ngllz = Tdomain%spmldom%ngllz
+                 ngll = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
-                 ngllx = Tdomain%fpmldom%ngllx
-                 nglly = Tdomain%fpmldom%nglly
-                 ngllz = Tdomain%fpmldom%ngllz
+                 ngll = Tdomain%fpmldom%ngll
         end select
         mat=Tdomain%specel(n_el)%mat_index
 
-        allocate(outx(0:ngllx-1))
-        allocate(outy(0:nglly-1))
-        allocate(outz(0:ngllz-1))
-        do i = 0,ngllx - 1
-            call  pol_lagrange(ngllx,Tdomain%sSubdomain(mat)%GLLc,i,capteur%xi,outx(i))
+        allocate(outx(0:ngll-1))
+        allocate(outy(0:ngll-1))
+        allocate(outz(0:ngll-1))
+        do i = 0,ngll - 1
+            call  pol_lagrange(ngll,Tdomain%sSubdomain(mat)%GLLc,i,capteur%xi,outx(i))
         end do
-        do j = 0,nglly - 1
-            call  pol_lagrange(nglly,Tdomain%sSubdomain(mat)%GLLc,j,capteur%eta,outy(j))
+        do j = 0,ngll - 1
+            call  pol_lagrange(ngll,Tdomain%sSubdomain(mat)%GLLc,j,capteur%eta,outy(j))
         end do
-        do k = 0,ngllz - 1
-            call  pol_lagrange(ngllz,Tdomain%sSubdomain(mat)%GLLc,k,capteur%zeta,outz(k))
+        do k = 0,ngll - 1
+            call  pol_lagrange(ngll,Tdomain%sSubdomain(mat)%GLLc,k,capteur%zeta,outz(k))
         end do
 
         allocate(grandeur(0:Tdomain%nReqOut-1))
@@ -440,9 +432,9 @@ contains
 
         ! On interpole le DOF a la position du capteur.
 
-        do i = 0,ngllx - 1
-            do j = 0,nglly - 1
-                do k = 0,ngllz - 1
+        do i = 0,ngll - 1
+            do j = 0,ngll - 1
+                do k = 0,ngll - 1
                     weight = outx(i)*outy(j)*outz(k)
 
                     if (out_variables(OUT_DEPLA) == 1 .AND. allocated(fieldU)) then

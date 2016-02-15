@@ -45,21 +45,13 @@ contains
             dom = get_domain(Tdomain%sSubDomain(mat))
             select case (Tdomain%specel(i)%domain)
                  case (DM_SOLID)
-                     ngll(0) = Tdomain%sdom%ngllx
-                     ngll(1) = Tdomain%sdom%nglly
-                     ngll(2) = Tdomain%sdom%ngllz
+                     ngll(0:2) = Tdomain%sdom%ngll
                  case (DM_FLUID)
-                     ngll(0) = Tdomain%fdom%ngllx
-                     ngll(1) = Tdomain%fdom%nglly
-                     ngll(2) = Tdomain%fdom%ngllz
+                     ngll(0:2) = Tdomain%fdom%ngll
                  case (DM_SOLID_PML)
-                     ngll(0) = Tdomain%spmldom%ngllx
-                     ngll(1) = Tdomain%spmldom%nglly
-                     ngll(2) = Tdomain%spmldom%ngllz
+                     ngll(0:2) = Tdomain%spmldom%ngll
                  case (DM_FLUID_PML)
-                     ngll(0) = Tdomain%fpmldom%ngllx
-                     ngll(1) = Tdomain%fpmldom%nglly
-                     ngll(2) = Tdomain%fpmldom%ngllz
+                     ngll(0:2) = Tdomain%fpmldom%ngll
             end select
 
             do j = 0,5
@@ -99,21 +91,13 @@ contains
             dom = get_domain(Tdomain%sSubDomain(mat))
             select case (Tdomain%specel(i)%domain)
                  case (DM_SOLID)
-                     ngll(0) = Tdomain%sdom%ngllx
-                     ngll(1) = Tdomain%sdom%nglly
-                     ngll(2) = Tdomain%sdom%ngllz
+                     ngll(0:2) = Tdomain%sdom%ngll
                  case (DM_FLUID)
-                     ngll(0) = Tdomain%fdom%ngllx
-                     ngll(1) = Tdomain%fdom%nglly
-                     ngll(2) = Tdomain%fdom%ngllz
+                     ngll(0:2) = Tdomain%fdom%ngll
                  case (DM_SOLID_PML)
-                     ngll(0) = Tdomain%spmldom%ngllx
-                     ngll(1) = Tdomain%spmldom%nglly
-                     ngll(2) = Tdomain%spmldom%ngllz
+                     ngll(0:2) = Tdomain%spmldom%ngll
                  case (DM_FLUID_PML)
-                     ngll(0) = Tdomain%fpmldom%ngllx
-                     ngll(1) = Tdomain%fpmldom%nglly
-                     ngll(2) = Tdomain%fpmldom%ngllz
+                     ngll(0:2) = Tdomain%fpmldom%ngll
             end select
 
             do j = 0,11
@@ -165,6 +149,7 @@ contains
         integer :: i0, i1
         integer :: interface_ok
 
+        interface_ok = 0
         do k=0,inter%surf0%n_faces-1
             i0 = inter%surf0%if_faces(k)
             i1 = inter%surf1%if_faces(k)

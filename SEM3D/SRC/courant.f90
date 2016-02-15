@@ -46,7 +46,7 @@ subroutine Compute_Courant (Tdomain,rg)
     type (Domain), intent (INOUT) :: Tdomain
     integer, intent(IN) :: rg
 
-    integer :: i,j,k, n, ngllx,nglly,ngllz, idef0,idef1, mat, ierr
+    integer :: i,j,k,n,ngll,idef0,idef1, mat, ierr
     real :: dxmin,courant,courant_max
     real :: dt_min, dt, dt_loc
     real :: floc_max, dxmax, f_max
@@ -59,28 +59,21 @@ subroutine Compute_Courant (Tdomain,rg)
         dxmin = 1e10
         dxmax = 0
 
+        ngll = 0
         select case (Tdomain%specel(n)%domain)
              case (DM_SOLID)
-                 ngllx = Tdomain%sdom%ngllx
-                 nglly = Tdomain%sdom%nglly
-                 ngllz = Tdomain%sdom%ngllz
+                 ngll = Tdomain%sdom%ngll
              case (DM_FLUID)
-                 ngllx = Tdomain%fdom%ngllx
-                 nglly = Tdomain%fdom%nglly
-                 ngllz = Tdomain%fdom%ngllz
+                 ngll = Tdomain%fdom%ngll
              case (DM_SOLID_PML)
-                 ngllx = Tdomain%spmldom%ngllx
-                 nglly = Tdomain%spmldom%nglly
-                 ngllz = Tdomain%spmldom%ngllz
+                 ngll = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
-                 ngllx = Tdomain%fpmldom%ngllx
-                 nglly = Tdomain%fpmldom%nglly
-                 ngllz = Tdomain%fpmldom%ngllz
+                 ngll = Tdomain%fpmldom%ngll
         end select
 
-        do k = 0, ngllz-2
-            do j = 0, nglly - 2
-                do i = 0, ngllx -2
+        do k = 0, ngll-2
+            do j = 0, ngll - 2
+                do i = 0, ngll -2
 
                     idef0 = Tdomain%specel(n)%Iglobnum(i,j,k)
                     idef1 = Tdomain%specel(n)%Iglobnum(i+1,j,k)

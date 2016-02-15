@@ -20,33 +20,31 @@ contains
         type(domain) :: TDomain
         type(domain_solidpml), intent (INOUT) :: dom
         !
-        integer nbelem, ngllx, nglly, ngllz
+        integer nbelem, ngll
         !
 
-        nbelem  = dom%nbelem
+        nbelem = dom%nbelem
         if(nbelem == 0) return ! Do not allocate if not needed (save allocation/RAM)
-        ngllx   = dom%ngllx
-        nglly   = dom%nglly
-        ngllz   = dom%ngllz
+        ngll   = dom%ngll
 
-        allocate(dom%Density_(0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
-        allocate(dom%Lambda_ (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
-        allocate(dom%Mu_     (0:ngllx-1, 0:nglly-1, 0:ngllz-1,0:nbelem-1))
+        allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+        allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+        allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
 
-        allocate (dom%Jacob_  (        0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
-        allocate (dom%InvGrad_(0:2,0:2,0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
+        allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+        allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
 
-        allocate(dom%Idom_(0:ngllx-1,0:nglly-1,0:ngllz-1,0:nbelem-1))
+        allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
 
         if(Tdomain%TimeD%velocity_scheme)then
-            allocate(dom%Diagonal_Stress (0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
-            allocate(dom%Diagonal_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
-            allocate(dom%Diagonal_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
-            allocate(dom%Diagonal_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
-            allocate(dom%Residual_Stress (0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
-            allocate(dom%Residual_Stress1(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
-            allocate(dom%Residual_Stress2(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
-            allocate(dom%Residual_Stress3(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2,0:nbelem-1))
+            allocate(dom%Diagonal_Stress (0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
+            allocate(dom%Diagonal_Stress1(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
+            allocate(dom%Diagonal_Stress2(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
+            allocate(dom%Diagonal_Stress3(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
+            allocate(dom%Residual_Stress (0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
+            allocate(dom%Residual_Stress1(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
+            allocate(dom%Residual_Stress2(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
+            allocate(dom%Residual_Stress3(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
             dom%Diagonal_Stress  = 0d0
             dom%Diagonal_Stress1 = 0d0
             dom%Diagonal_Stress2 = 0d0
@@ -55,9 +53,9 @@ contains
             dom%Residual_Stress1 = 0d0
             dom%Residual_Stress2 = 0d0
             dom%Residual_Stress3 = 0d0
-            allocate(dom%PMLDumpSx  (0:ngllx-1,0:nglly-1,0:ngllz-1,0:1,0:nbelem-1))
-            allocate(dom%PMLDumpSy  (0:ngllx-1,0:nglly-1,0:ngllz-1,0:1,0:nbelem-1))
-            allocate(dom%PMLDumpSz  (0:ngllx-1,0:nglly-1,0:ngllz-1,0:1,0:nbelem-1))
+            allocate(dom%PMLDumpSx  (0:ngll-1,0:ngll-1,0:ngll-1,0:1,0:nbelem-1))
+            allocate(dom%PMLDumpSy  (0:ngll-1,0:ngll-1,0:ngll-1,0:1,0:nbelem-1))
+            allocate(dom%PMLDumpSz  (0:ngll-1,0:ngll-1,0:ngll-1,0:1,0:nbelem-1))
             dom%PMLDumpSx   = 0d0
             dom%PMLDumpSy   = 0d0
             dom%PMLDumpSz   = 0d0
@@ -131,7 +129,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         !
         logical :: flag_gradU
-        integer :: nx, ny, nz, i, j, k, ind
+        integer :: ngll, i, j, k, ind
 
         flag_gradU = (out_variables(OUT_ENERGYP) + &
             out_variables(OUT_ENERGYS) + &
@@ -139,29 +137,27 @@ contains
             out_variables(OUT_EPS_DEV) + &
             out_variables(OUT_STRESS_DEV)) /= 0
 
-        nx = dom%ngllx
-        ny = dom%nglly
-        nz = dom%ngllz
+        ngll = dom%ngll
 
-        do k=0,nz-1
-            do j=0,ny-1
-                do i=0,nx-1
+        do k=0,ngll-1
+            do j=0,ngll-1
+                do i=0,ngll-1
                     ind = dom%Idom_(i,j,k,el%lnum)
 
                     if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
-                        if(.not. allocated(fieldU)) allocate(fieldU(0:nx-1,0:ny-1,0:nz-1,0:2))
+                        if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                         fieldU(i,j,k,:) = 0d0
                     end if
 
                     if (out_variables(OUT_VITESSE) == 1) then
-                        if(.not. allocated(fieldV)) allocate(fieldV(0:nx-1,0:ny-1,0:nz-1,0:2))
+                        if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                         fieldV(i,j,k,:) = dom%champs0%VelocPml(ind,:,0) + &
                                           dom%champs0%VelocPml(ind,:,1) + &
                                           dom%champs0%VelocPml(ind,:,2)
                     end if
 
                     if (out_variables(OUT_ACCEL) == 1) then
-                        if(.not. allocated(fieldA)) allocate(fieldA(0:nx-1,0:ny-1,0:nz-1,0:2))
+                        if(.not. allocated(fieldA)) allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                         fieldA(i,j,k,:) = dom%Massmat(ind) * &
                             ( dom%champs1%ForcesPml(ind,:,0) + &
                             dom%champs1%ForcesPml(ind,:,1) + &
@@ -169,32 +165,32 @@ contains
                     end if
 
                     if (out_variables(OUT_PRESSION) == 1) then
-                        if(.not. allocated(fieldP)) allocate(fieldP(0:nx-1,0:ny-1,0:nz-1))
+                        if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
                         fieldP(i,j,k) = 0d0
                     end if
 
                     if (out_variables(OUT_EPS_VOL) == 1) then
-                        if(.not. allocated(eps_vol)) allocate(eps_vol(0:nx-1,0:ny-1,0:nz-1))
+                        if(.not. allocated(eps_vol)) allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
                         eps_vol(i,j,k) = 0.
                     end if
 
                     if (out_variables(OUT_ENERGYP) == 1) then
-                        if(.not. allocated(P_energy)) allocate(P_energy(0:nx-1,0:ny-1,0:nz-1))
+                        if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                         P_energy(i,j,k) = 0.
                     end if
 
                     if (out_variables(OUT_ENERGYS) == 1) then
-                        if(.not. allocated(S_energy)) allocate(S_energy(0:nx-1,0:ny-1,0:nz-1))
+                        if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                         S_energy(i,j,k) = 0.
                     end if
 
                     if (out_variables(OUT_EPS_DEV) == 1) then
-                        if(.not. allocated(eps_dev)) allocate(eps_dev(0:nx-1,0:ny-1,0:nz-1,0:5))
+                        if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
                         eps_dev(i,j,k,:) = 0.
                     end if
 
                     if (out_variables(OUT_STRESS_DEV) == 1) then
-                        if(.not. allocated(sig_dev)) allocate(sig_dev(0:nx-1,0:ny-1,0:nz-1,0:5))
+                        if(.not. allocated(sig_dev)) allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
                         sig_dev(i,j,k,:) = 0.
                     end if
                 enddo
@@ -239,20 +235,20 @@ contains
         type(champssolidpml), intent(inout) :: champs1
         integer :: lnum
         !
-        integer :: m1, m2, m3
+        integer :: ngll
         integer :: i, j, k, l, ind
         real :: sum_vx, sum_vy, sum_vz, acoeff
-        real, dimension(0:2,0:dom%ngllx-1,0:dom%nglly-1,0:dom%ngllz-1)  :: Forces1, Forces2, Forces3
+        real, dimension(0:2,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)  :: Forces1, Forces2, Forces3
 
-        m1 = dom%ngllx ; m2 = dom%nglly ; m3 = dom%ngllz
+        ngll = dom%ngll
 
-        do k = 0,m3-1
-            do j = 0,m2-1
-                do i=0,m1-1
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i=0,ngll-1
                     sum_vx = 0d0
                     sum_vy = 0d0
                     sum_vz = 0d0
-                    do l = 0,m1-1
+                    do l = 0,ngll-1
                         acoeff = - mat%hprime(i,l)*mat%GLLw(l)*mat%GLLw(j)*mat%GLLw(k)*dom%Jacob_(l,j,k,lnum)
                         sum_vx = sum_vx + acoeff*dom%InvGrad_(0,0,l,j,k,lnum)*dom%Diagonal_Stress(l,j,k,0,lnum)
                         sum_vx = sum_vx + acoeff*dom%InvGrad_(1,0,l,j,k,lnum)*dom%Residual_Stress(l,j,k,0,lnum)
@@ -273,11 +269,11 @@ contains
             end do
         end do
 
-        do k = 0,m3-1
+        do k = 0,ngll-1
             Forces2(:,:,:,k) = 0d0
-            do l = 0,m2-1
-                do j = 0,m2-1
-                    do i=0,m1-1
+            do l = 0,ngll-1
+                do j = 0,ngll-1
+                    do i=0,ngll-1
                         acoeff = - mat%hprime(j,l)*mat%GLLw(i)*mat%GLLw(l)*mat%GLLw(k)*dom%Jacob_(i,l,k,lnum)
                         sum_vx = acoeff*(dom%InvGrad_(0,1,i,l,k,lnum)*dom%Diagonal_Stress(i,l,k,0,lnum) + &
                                          dom%InvGrad_(1,1,i,l,k,lnum)*dom%Residual_Stress(i,l,k,0,lnum) + &
@@ -299,10 +295,10 @@ contains
         end do
         ! TODO reorder loops ?
         Forces3 = 0
-        do l = 0,m3-1
-            do k = 0,m3-1
-                do j = 0,m2-1
-                    do i=0,m1-1
+        do l = 0,ngll-1
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i=0,ngll-1
                         acoeff = - mat%hprime(k,l)*mat%GLLw(i)*mat%GLLw(j)*mat%GLLw(l)*dom%Jacob_(i,j,l,lnum)
                         sum_vx = acoeff*(dom%InvGrad_(0,2,i,j,l,lnum)*dom%Diagonal_Stress(i,j,l,0,lnum) + &
                                          dom%InvGrad_(1,2,i,j,l,lnum)*dom%Residual_Stress(i,j,l,0,lnum) + &
@@ -324,9 +320,9 @@ contains
         end do
 
         ! Assemblage
-        do k = 0,m3-1
-            do j = 0,m2-1
-                do i = 0,m1-1
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
                     ind = dom%Idom_(i,j,k,lnum)
                     champs1%ForcesPML(ind,:,0) = champs1%ForcesPML(ind,:,0) + Forces1(:,i,j,k)
                     champs1%ForcesPML(ind,:,1) = champs1%ForcesPML(ind,:,1) + Forces2(:,i,j,k)
@@ -345,20 +341,20 @@ contains
         real, intent(in) :: dt
         integer :: lnum
         !
-        real, dimension(0:dom%ngllx-1, 0:dom%nglly-1, 0:dom%ngllz-1) :: dVx_dx, dVx_dy, dVx_dz
-        real, dimension(0:dom%ngllx-1, 0:dom%nglly-1, 0:dom%ngllz-1) :: dVy_dx, dVy_dy, dVy_dz
-        real, dimension(0:dom%ngllx-1, 0:dom%nglly-1, 0:dom%ngllz-1) :: dVz_dx, dVz_dy, dVz_dz
-        integer :: m1, m2, m3
+        real, dimension(0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: dVx_dx, dVx_dy, dVx_dz
+        real, dimension(0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: dVy_dx, dVy_dy, dVy_dz
+        real, dimension(0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: dVz_dx, dVz_dy, dVz_dz
+        integer :: ngll
         integer :: i, j, k, ind, i_dir
         real, dimension (:,:,:,:), allocatable :: Veloc
 
-        m1 = dom%ngllx ; m2 = dom%nglly ; m3 = dom%ngllz
+        ngll = dom%ngll
 
-        allocate(Veloc(0:m1-1,0:m2-1,0:m3-1,0:2))
+        allocate(Veloc(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
         do i_dir = 0,2
-            do k = 0,m3-1
-                do j = 0,m2-1
-                    do i = 0,m1-1
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
                         ind = dom%Idom_(i,j,k,lnum)
                         Veloc(i,j,k,i_dir) = champs1%VelocPML(ind,i_dir,0) + &
                             champs1%VelocPML(ind,i_dir,1) + &
@@ -369,9 +365,9 @@ contains
         enddo
 
         ! partial of velocity components with respect to xi,eta,zeta
-        call physical_part_deriv(m1,m2,m3,mat%htprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,0),dVx_dx,dVx_dy,dVx_dz)
-        call physical_part_deriv(m1,m2,m3,mat%htprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,1),dVy_dx,dVy_dy,dVy_dz)
-        call physical_part_deriv(m1,m2,m3,mat%htprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,2),dVz_dx,dVz_dy,dVz_dz)
+        call physical_part_deriv(ngll,mat%htprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,0),dVx_dx,dVx_dy,dVx_dz)
+        call physical_part_deriv(ngll,mat%htprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,1),dVy_dx,dVy_dy,dVy_dz)
+        call physical_part_deriv(ngll,mat%htprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,2),dVz_dx,dVz_dy,dVz_dz)
         deallocate(Veloc)
 
         ! Stress_xx

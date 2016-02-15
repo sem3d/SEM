@@ -91,21 +91,13 @@ subroutine renumber_global_gll_nodes(Tdomain)
     do n = 0,Tdomain%n_elem-1
         select case (Tdomain%specel(n)%domain)
              case (DM_SOLID)
-                 ngll(0) = Tdomain%sdom%ngllx
-                 ngll(1) = Tdomain%sdom%nglly
-                 ngll(2) = Tdomain%sdom%ngllz
+                 ngll(0:2) = Tdomain%sdom%ngll
              case (DM_FLUID)
-                 ngll(0) = Tdomain%fdom%ngllx
-                 ngll(1) = Tdomain%fdom%nglly
-                 ngll(2) = Tdomain%fdom%ngllz
+                 ngll(0:2) = Tdomain%fdom%ngll
              case (DM_SOLID_PML)
-                 ngll(0) = Tdomain%spmldom%ngllx
-                 ngll(1) = Tdomain%spmldom%nglly
-                 ngll(2) = Tdomain%spmldom%ngllz
+                 ngll(0:2) = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
-                 ngll(0) = Tdomain%fpmldom%ngllx
-                 ngll(1) = Tdomain%fpmldom%nglly
-                 ngll(2) = Tdomain%fpmldom%ngllz
+                 ngll(0:2) = Tdomain%fpmldom%ngll
         end select
         dom = Tdomain%specel(n)%domain
         Tdomain%specel(n)%lnum = ecount(dom)
@@ -185,21 +177,13 @@ subroutine renumber_global_gll_nodes(Tdomain)
     do n = 0,Tdomain%n_elem-1
         select case (Tdomain%specel(n)%domain)
              case (DM_SOLID)
-                 ngll(0) = Tdomain%sdom%ngllx
-                 ngll(1) = Tdomain%sdom%nglly
-                 ngll(2) = Tdomain%sdom%ngllz
+                 ngll(0:2) = Tdomain%sdom%ngll
              case (DM_FLUID)
-                 ngll(0) = Tdomain%fdom%ngllx
-                 ngll(1) = Tdomain%fdom%nglly
-                 ngll(2) = Tdomain%fdom%ngllz
+                 ngll(0:2) = Tdomain%fdom%ngll
              case (DM_SOLID_PML)
-                 ngll(0) = Tdomain%spmldom%ngllx
-                 ngll(1) = Tdomain%spmldom%nglly
-                 ngll(2) = Tdomain%spmldom%ngllz
+                 ngll(0:2) = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
-                 ngll(0) = Tdomain%fpmldom%ngllx
-                 ngll(1) = Tdomain%fpmldom%nglly
-                 ngll(2) = Tdomain%fpmldom%ngllz
+                 ngll(0:2) = Tdomain%fpmldom%ngll
         end select
         !Taking information from faces
         do nf = 0,5
@@ -256,21 +240,13 @@ subroutine renumber_global_gll_nodes(Tdomain)
     do n = 0,Tdomain%n_elem-1
         select case (Tdomain%specel(n)%domain)
              case (DM_SOLID)
-                 ngll(0) = Tdomain%sdom%ngllx
-                 ngll(1) = Tdomain%sdom%nglly
-                 ngll(2) = Tdomain%sdom%ngllz
+                 ngll(0:2) = Tdomain%sdom%ngll
              case (DM_FLUID)
-                 ngll(0) = Tdomain%fdom%ngllx
-                 ngll(1) = Tdomain%fdom%nglly
-                 ngll(2) = Tdomain%fdom%ngllz
+                 ngll(0:2) = Tdomain%fdom%ngll
              case (DM_SOLID_PML)
-                 ngll(0) = Tdomain%spmldom%ngllx
-                 ngll(1) = Tdomain%spmldom%nglly
-                 ngll(2) = Tdomain%spmldom%ngllz
+                 ngll(0:2) = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
-                 ngll(0) = Tdomain%fpmldom%ngllx
-                 ngll(1) = Tdomain%fpmldom%nglly
-                 ngll(2) = Tdomain%fpmldom%ngllz
+                 ngll(0:2) = Tdomain%fpmldom%ngll
         end select
         !Taking information from faces
         do nf = 0,5
@@ -325,21 +301,13 @@ subroutine renumber_global_gll_nodes(Tdomain)
     do n = 0,Tdomain%n_elem-1
         select case (Tdomain%specel(n)%domain)
              case (DM_SOLID)
-                 ngll(0) = Tdomain%sdom%ngllx
-                 ngll(1) = Tdomain%sdom%nglly
-                 ngll(2) = Tdomain%sdom%ngllz
+                 ngll(0:2) = Tdomain%sdom%ngll
              case (DM_FLUID)
-                 ngll(0) = Tdomain%fdom%ngllx
-                 ngll(1) = Tdomain%fdom%nglly
-                 ngll(2) = Tdomain%fdom%ngllz
+                 ngll(0:2) = Tdomain%fdom%ngll
              case (DM_SOLID_PML)
-                 ngll(0) = Tdomain%spmldom%ngllx
-                 ngll(1) = Tdomain%spmldom%nglly
-                 ngll(2) = Tdomain%spmldom%ngllz
+                 ngll(0:2) = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
-                 ngll(0) = Tdomain%fpmldom%ngllx
-                 ngll(1) = Tdomain%fpmldom%nglly
-                 ngll(2) = Tdomain%fpmldom%ngllz
+                 ngll(0:2) = Tdomain%fpmldom%ngll
         end select
         dom  = Tdomain%specel(n)%domain
         fail = .false.
@@ -841,24 +809,28 @@ subroutine reorder_domains(Tdomain)
     oind(:) = 0 ! Ordered index
 
     ! Reorder over elements
+    ngllx = 0
+    nglly = 0
+    ngllz = 0
+    new_ind = 0
     do n = 0,Tdomain%n_elem-1
         select case (Tdomain%specel(n)%domain)
              case (DM_SOLID)
-                 ngllx = Tdomain%sdom%ngllx
-                 nglly = Tdomain%sdom%nglly
-                 ngllz = Tdomain%sdom%ngllz
+                 ngllx = Tdomain%sdom%ngll
+                 nglly = Tdomain%sdom%ngll
+                 ngllz = Tdomain%sdom%ngll
              case (DM_FLUID)
-                 ngllx = Tdomain%fdom%ngllx
-                 nglly = Tdomain%fdom%nglly
-                 ngllz = Tdomain%fdom%ngllz
+                 ngllx = Tdomain%fdom%ngll
+                 nglly = Tdomain%fdom%ngll
+                 ngllz = Tdomain%fdom%ngll
              case (DM_SOLID_PML)
-                 ngllx = Tdomain%spmldom%ngllx
-                 nglly = Tdomain%spmldom%nglly
-                 ngllz = Tdomain%spmldom%ngllz
+                 ngllx = Tdomain%spmldom%ngll
+                 nglly = Tdomain%spmldom%ngll
+                 ngllz = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
-                 ngllx = Tdomain%fpmldom%ngllx
-                 nglly = Tdomain%fpmldom%nglly
-                 ngllz = Tdomain%fpmldom%ngllz
+                 ngllx = Tdomain%fpmldom%ngll
+                 nglly = Tdomain%fpmldom%ngll
+                 ngllz = Tdomain%fpmldom%ngll
         end select
         do k = 0,ngllz-1
             do j = 0,nglly-1

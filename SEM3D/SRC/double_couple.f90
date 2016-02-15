@@ -23,7 +23,7 @@ subroutine double_couple(Tdomain,rg)
     type (domain), intent(inout) :: Tdomain
     integer, intent(in) :: rg
 
-    integer :: n, elem, x,y,z, ngllx,nglly,ngllz, mat, a,b, k
+    integer :: n, elem, x,y,z, ngll, mat, a,b, k
     real :: ct,st,cp,sp, xi,eta,zeta, coord, xa,ya,za, xb,yb,zb, num,denom,prod
     real, dimension(:), allocatable :: xpol,ypol,zpol, xdh,ydh,zdh
     real, dimension(0:2,0:2) :: Pcs, Psc, TMP, M, Rot, tRot
@@ -98,44 +98,37 @@ subroutine double_couple(Tdomain,rg)
             enddo
 
             elem = Tdomain%Ssource(n)%elem
+            ngll = 0
             select case (Tdomain%specel(elem)%domain)
                  case (DM_SOLID)
-                     ngllx = Tdomain%sdom%ngllx
-                     nglly = Tdomain%sdom%nglly
-                     ngllz = Tdomain%sdom%ngllz
+                     ngll = Tdomain%sdom%ngll
                  case (DM_FLUID)
-                     ngllx = Tdomain%fdom%ngllx
-                     nglly = Tdomain%fdom%nglly
-                     ngllz = Tdomain%fdom%ngllz
+                     ngll = Tdomain%fdom%ngll
                  case (DM_SOLID_PML)
-                     ngllx = Tdomain%spmldom%ngllx
-                     nglly = Tdomain%spmldom%nglly
-                     ngllz = Tdomain%spmldom%ngllz
+                     ngll = Tdomain%spmldom%ngll
                  case (DM_FLUID_PML)
-                     ngllx = Tdomain%fpmldom%ngllx
-                     nglly = Tdomain%fpmldom%nglly
-                     ngllz = Tdomain%fpmldom%ngllz
+                     ngll = Tdomain%fpmldom%ngll
             end select
-            allocate (xpol(0:ngllx-1));   xpol = 1
-            allocate (ypol(0:nglly-1));   ypol = 1
-            allocate (zpol(0:ngllz-1));   zpol = 1
-            allocate (xdh(0:ngllx-1))
-            allocate (ydh(0:nglly-1))
-            allocate (zdh(0:ngllz-1))
+            allocate (xpol(0:ngll-1));   xpol = 1
+            allocate (ypol(0:ngll-1));   ypol = 1
+            allocate (zpol(0:ngll-1));   zpol = 1
+            allocate (xdh(0:ngll-1))
+            allocate (ydh(0:ngll-1))
+            allocate (zdh(0:ngll-1))
             xi = Tdomain%sSource(n)%refcoord(0)
             eta = Tdomain%sSource(n)%refcoord(1)
             zeta = Tdomain%sSource(n)%refcoord(2)
             mat = Tdomain%specel(elem)%mat_index
-            do x = 0,ngllx-1
+            do x = 0,ngll-1
                 coord = Tdomain%sSubdomain(mat)%GLLc(x)
                 num = 0;   denom = 1
-                do a = 0,ngllx-1
+                do a = 0,ngll-1
                     if (a/=x) then
                         xa = Tdomain%sSubdomain(mat)%GLLc(a)
                         xpol(x) = xpol(x) * (xi-xa)/(coord-xa)
                         denom = denom * (coord-xa)
                         prod = 1
-                        do b = 0,ngllx-1
+                        do b = 0,ngll-1
                             if ((b/=x) .and. (b/=a)) then
                                 xb = Tdomain%sSubdomain(mat)%GLLc(b)
                                 prod = prod * (xi-xb)
@@ -146,16 +139,16 @@ subroutine double_couple(Tdomain,rg)
                 enddo
                 xdh(x) = num/denom
             enddo
-            do y = 0,nglly-1
+            do y = 0,ngll-1
                 coord = Tdomain%sSubdomain(mat)%GLLc(y)
                 num = 0;   denom = 1
-                do a = 0,nglly-1
+                do a = 0,ngll-1
                     if (a/=y) then
                         ya = Tdomain%sSubdomain(mat)%GLLc(a)
                         ypol(y) = ypol(y) * (eta-ya)/(coord-ya)
                         denom = denom * (coord-ya)
                         prod = 1
-                        do b = 0,nglly-1
+                        do b = 0,ngll-1
                             if ((b/=y) .and. (b/=a)) then
                                 yb = Tdomain%sSubdomain(mat)%GLLc(b)
                                 prod = prod * (eta-yb)
@@ -166,16 +159,16 @@ subroutine double_couple(Tdomain,rg)
                 enddo
                 ydh(y) = num/denom
             enddo
-            do z = 0,ngllz-1
+            do z = 0,ngll-1
                 coord = Tdomain%sSubdomain(mat)%GLLc(z)
                 num = 0;   denom = 1
-                do a = 0,ngllz-1
+                do a = 0,ngll-1
                     if (a/=z) then
                         za = Tdomain%sSubdomain(mat)%GLLc(a)
                         zpol(z) = zpol(z) * (zeta-za)/(coord-za)
                         denom = denom * (coord-za)
                         prod = 1
-                        do b = 0,ngllz-1
+                        do b = 0,ngll-1
                             if ((b/=z) .and. (b/=a)) then
                                 zb = Tdomain%sSubdomain(mat)%GLLc(b)
                                 prod = prod * (zeta-zb)
@@ -187,10 +180,10 @@ subroutine double_couple(Tdomain,rg)
                 zdh(z) = num/denom
             enddo
 
-            allocate (Tdomain%sSource(n)%coeff(0:ngllx-1, 0:nglly-1, 0:ngllz-1, 0:2))
-            do x = 0,ngllx-1
-                do y = 0,nglly-1
-                    do z = 0,ngllz-1
+            allocate (Tdomain%sSource(n)%coeff(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:2))
+            do x = 0,ngll-1
+                do y = 0,ngll-1
+                    do z = 0,ngll-1
                         Tdomain%sSource(n)%coeff(x,y,z,:) = xdh(x)*ypol(y)*zpol(z)*TMP(0,:) + &
                             xpol(x)*ydh(y)*zpol(z)*TMP(1,:) + &
                             xpol(x)*ypol(y)*zdh(z)*TMP(2,:)
