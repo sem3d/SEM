@@ -162,61 +162,6 @@ contains
         !   fin  ajout ecriture par un seul proc
     end subroutine echo_input_params
 
-
-
-    subroutine finalize_mesh_connectivity(Tdomain)
-        use sdomain
-        use semdatafiles
-        use mpi
-        implicit none
-
-        type(domain), intent(inout) :: Tdomain
-        integer :: i, j, k
-
-        ! XXX kill?
-        do j = 0, Tdomain%n_elem-1
-            do k = 0,5
-                i = Tdomain%specel(j)%Near_Faces(k)
-                if (Tdomain%sFace(i)%Which_Elem(0) == -1) then
-                    Tdomain%sFace(i)%Which_Elem(0) = j
-                else
-                    Tdomain%sFace(i)%Which_Elem(1) = j
-                endif
-            enddo
-        enddo
-
-
-
-!        !- Neumann local properties
-!        if(Tdomain%logicD%neumann_local_present)then
-!            do nf = 0, Tdomain%Neumann%Neu_n_faces-1
-!                n_aus = Tdomain%Neumann%Neu_Face(nf)%Face
-!                Tdomain%Neumann%Neu_Face(nf)%ngll1 = Tdomain%sFace(n_aus)%ngll1
-!                Tdomain%Neumann%Neu_Face(nf)%ngll2 = Tdomain%sFace(n_aus)%ngll2
-!            enddo
-!            do ne = 0, Tdomain%Neumann%Neu_n_edges-1
-!                n_aus = Tdomain%Neumann%Neu_Edge(ne)%Edge
-!                Tdomain%Neumann%Neu_Edge(ne)%ngll = Tdomain%sEdge(n_aus)%ngll
-!            enddo
-!        endif
-!
-!        !- Solid/fluid interfaces local properties
-!        if(Tdomain%logicD%SF_local_present)then
-!            do nf = 0, Tdomain%SF%SF_n_faces-1
-!                n_aus = Tdomain%SF%SF_Face(nf)%Face(0)
-!                if(n_aus < 0) n_aus = Tdomain%SF%SF_Face(nf)%Face(1)
-!                Tdomain%SF%SF_Face(nf)%ngll1 = Tdomain%sFace(n_aus)%ngll1
-!                Tdomain%SF%SF_Face(nf)%ngll2 = Tdomain%sFace(n_aus)%ngll2
-!            enddo
-!            do ne = 0, Tdomain%SF%SF_n_edges-1
-!                n_aus = Tdomain%SF%SF_Edge(ne)%Edge(0)
-!                if(n_aus < 0) n_aus = Tdomain%SF%SF_Edge(ne)%Edge(1)
-!                Tdomain%SF%SF_Edge(ne)%ngll = Tdomain%sEdge(n_aus)%ngll
-!            enddo
-!        endif
-
-    end subroutine finalize_mesh_connectivity
-
     subroutine read_material_file(Tdomain)
         use sdomain
         use orientation
@@ -665,14 +610,8 @@ contains
                 Tdomain%sSubDomain(imat)%material_definition = MATERIAL_CONSTANT
             enddo
         endif
-
-        !write(*,*) rg, "Reading materials done"
-
-        call finalize_mesh_connectivity(Tdomain)
         call select_output_elements(Tdomain, Tdomain%config)
-
     end subroutine read_input
-
 end module semconfig
 
 !! Local Variables:

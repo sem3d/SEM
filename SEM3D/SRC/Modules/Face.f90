@@ -21,8 +21,6 @@ module sfaces
         ! Index dans Tdomain%Coord_nodes des 4 sommets de la face (y compris pour les Hex27)
         integer, dimension(0:3) :: inodes
 
-        ! TODO remove:
-        integer, dimension(0:1) :: Which_Elem
         !! Couplage Externe
 !       real, dimension (:,:,:), allocatable :: ForcesExt
 !       real, dimension (:,:), allocatable :: tsurfsem
@@ -36,7 +34,6 @@ contains
         fc%domain = -1
         fc%ngll1 = 0
         fc%ngll2 = 0
-        fc%Which_Elem = -1
     end subroutine init_face
 
 end module sfaces
