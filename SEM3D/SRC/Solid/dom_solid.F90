@@ -417,13 +417,8 @@ contains
         integer :: lnum
 
         integer :: ngll,i,j,k,i_dir
-        real :: epsilon_trace_over_3
         real, dimension (0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) ::  DXX,DXY,DXZ, &
             DYX,DYY,DYZ,DZX,DZY,DZZ,Fox,Foy,Foz
-
-        real, dimension(:,:,:), allocatable :: epsilondev_xx_loc, epsilondev_yy_loc, &
-            epsilondev_xy_loc, epsilondev_xz_loc, epsilondev_yz_loc
-        real, dimension(:,:,:), allocatable :: epsilonvol_loc
         real, dimension(0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1,0:2) :: Depla
 
         ngll = dom%ngll
@@ -442,41 +437,11 @@ contains
         call physical_part_deriv(ngll,htprime,dom%InvGrad_(:,:,:,:,:,lnum),Depla(:,:,:,1),dxy,dyy,dzy)
         call physical_part_deriv(ngll,htprime,dom%InvGrad_(:,:,:,:,:,lnum),Depla(:,:,:,2),dxz,dyz,dzz)
 
-        if (n_solid>0) then
-            if (aniso) then
-            else
-                allocate (epsilonvol_loc(0:ngll-1,0:ngll-1,0:ngll-1))
-            endif
-            allocate (epsilondev_xx_loc(0:ngll-1,0:ngll-1,0:ngll-1))
-            allocate (epsilondev_yy_loc(0:ngll-1,0:ngll-1,0:ngll-1))
-            allocate (epsilondev_xy_loc(0:ngll-1,0:ngll-1,0:ngll-1))
-            allocate (epsilondev_xz_loc(0:ngll-1,0:ngll-1,0:ngll-1))
-            allocate (epsilondev_yz_loc(0:ngll-1,0:ngll-1,0:ngll-1))
-            do i = 0,ngll-1
-                do j = 0,ngll-1
-                    do k = 0,ngll-1
-                        epsilon_trace_over_3 = 0.333333333333333333333333333333d0 * (DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k))
-                        if (aniso) then
-                        else
-                            epsilonvol_loc(i,j,k) = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
-                        endif
-                        epsilondev_xx_loc(i,j,k) = DXX(i,j,k) - epsilon_trace_over_3
-                        epsilondev_yy_loc(i,j,k) = DYY(i,j,k) - epsilon_trace_over_3
-                        epsilondev_xy_loc(i,j,k) = 0.5 * (DXY(i,j,k) + DYX(i,j,k))
-                        epsilondev_xz_loc(i,j,k) = 0.5 * (DZX(i,j,k) + DXZ(i,j,k))
-                        epsilondev_yz_loc(i,j,k) = 0.5 * (DZY(i,j,k) + DYZ(i,j,k))
-                    enddo
-                enddo
-            enddo
-        endif
-
         if (aniso) then
             if (n_solid>0) then
                 call calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz,htprime,&
                      mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid)
-                call attenuation_aniso_update(dom,lnum,epsilondev_xx_loc,epsilondev_yy_loc, &
-                     epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc,ngll,ngll,ngll,n_solid)
-                deallocate(epsilondev_xx_loc,epsilondev_yy_loc,epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc)
+                call attenuation_aniso_update(dom,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid)
             else
                 call calcul_forces_aniso(dom,lnum,Fox,Foy,Foz,htprime,&
                      mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ, DZX,DZY,DZZ,ngll)
@@ -485,10 +450,7 @@ contains
             if (n_solid>0) then
                 call calcul_forces_att(dom,lnum,Fox,Foy,Foz,htprime,&
                      mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid)
-                call attenuation_update(dom,lnum,epsilondev_xx_loc,epsilondev_yy_loc, &
-                     epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc,ngll,ngll,ngll,n_solid,epsilonvol_loc)
-                deallocate(epsilondev_xx_loc,epsilondev_yy_loc,epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc)
-                deallocate(epsilonvol_loc)
+                call attenuation_update(dom,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid,aniso)
             else
                 call calcul_forces(dom,lnum,Fox,Foy,Foz,htprime,&
                      mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll)

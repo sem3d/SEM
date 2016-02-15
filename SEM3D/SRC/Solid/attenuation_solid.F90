@@ -17,10 +17,7 @@ module attenuation_solid
 
 contains
 
-  subroutine attenuation_update(dom,lnum,&
-        epsilondev_xx_loc,epsilondev_yy_loc, &
-        epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc, &
-        ngllx,nglly,ngllz, n_solid,epsilonvol_loc)
+  subroutine attenuation_update(dom,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid,aniso)
 
         use sdomain
         implicit none
@@ -28,20 +25,41 @@ contains
 
         type(domain_solid), intent (INOUT) :: dom
         integer, intent(in) :: lnum
-        integer, intent(in) :: ngllx,nglly,ngllz, n_solid
-        !   partie deviatoire
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(inout) :: epsilondev_xx_loc,epsilondev_yy_loc, &
-            epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc
-        !    partie isotrope
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(inout) :: epsilonvol_loc
+        integer, intent(in) :: ngll,n_solid
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
+        logical aniso
+
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: epsilondev_xx_loc,epsilondev_yy_loc
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: epsilonvol_loc
 
         integer :: i_sls,i,j,k
         real :: factorS_loc,alphavalS_loc,betavalS_loc,gammavalS_loc,Sn,Snp1
         real :: factorP_loc,alphavalP_loc,betavalP_loc,gammavalP_loc,Pn,Pnp1
+        real epsilon_trace_over_3
 
-        do k = 0, ngllz - 1
-            do j = 0, nglly - 1
-                do i = 0, ngllx-1
+        if (n_solid>0) then
+            do i = 0,ngll-1
+                do j = 0,ngll-1
+                    do k = 0,ngll-1
+                        epsilon_trace_over_3 = 0.333333333333333333333333333333d0 * (DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k))
+                        if (aniso) then
+                        else
+                            epsilonvol_loc(i,j,k) = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
+                        endif
+                        epsilondev_xx_loc(i,j,k) = DXX(i,j,k) - epsilon_trace_over_3
+                        epsilondev_yy_loc(i,j,k) = DYY(i,j,k) - epsilon_trace_over_3
+                        epsilondev_xy_loc(i,j,k) = 0.5 * (DXY(i,j,k) + DYX(i,j,k))
+                        epsilondev_xz_loc(i,j,k) = 0.5 * (DZX(i,j,k) + DXZ(i,j,k))
+                        epsilondev_yz_loc(i,j,k) = 0.5 * (DZY(i,j,k) + DYZ(i,j,k))
+                    enddo
+                enddo
+            enddo
+        endif
+
+        do k = 0, ngll - 1
+            do j = 0, ngll - 1
+                do i = 0, ngll-1
                     do i_sls = 0,n_solid-1
     
                         ! get coefficients for that standard linear solid
@@ -115,10 +133,8 @@ contains
     
     end subroutine attenuation_update
 
-    subroutine attenuation_aniso_update(dom,lnum,&
-        epsilondev_xx_loc,epsilondev_yy_loc, &
-        epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc, &
-        ngllx,nglly,ngllz, n_solid)
+    subroutine attenuation_aniso_update(dom,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
+        ngll,n_solid)
 
         use sdomain
         implicit none
@@ -126,12 +142,29 @@ contains
 
         type(domain_solid), intent (INOUT) :: dom
         integer, intent(in) :: lnum
-        integer, intent(in) :: ngllx,nglly,ngllz, n_solid
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(inout) :: epsilondev_xx_loc,epsilondev_yy_loc, &
-            epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc
+        integer, intent(in) :: ngll,n_solid
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
 
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: factor_loc,alphaval_loc,betaval_loc,gammaval_loc,Sn,Snp1
-        integer :: i_sls
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: epsilondev_xx_loc,epsilondev_yy_loc
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: factor_loc,alphaval_loc,betaval_loc,gammaval_loc,Sn,Snp1
+        integer :: i_sls, i, j, k
+        real epsilon_trace_over_3
+
+        if (n_solid>0) then
+            do i = 0,ngll-1
+                do j = 0,ngll-1
+                    do k = 0,ngll-1
+                        epsilon_trace_over_3 = 0.333333333333333333333333333333d0 * (DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k))
+                        epsilondev_xx_loc(i,j,k) = DXX(i,j,k) - epsilon_trace_over_3
+                        epsilondev_yy_loc(i,j,k) = DYY(i,j,k) - epsilon_trace_over_3
+                        epsilondev_xy_loc(i,j,k) = 0.5 * (DXY(i,j,k) + DYX(i,j,k))
+                        epsilondev_xz_loc(i,j,k) = 0.5 * (DZX(i,j,k) + DXZ(i,j,k))
+                        epsilondev_yz_loc(i,j,k) = 0.5 * (DZY(i,j,k) + DYZ(i,j,k))
+                    enddo
+                enddo
+            enddo
+        endif
 
         do i_sls = 0,n_solid-1
 
