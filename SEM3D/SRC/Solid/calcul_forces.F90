@@ -15,7 +15,7 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
     contains
 subroutine calcul_forces(dom,lnum,Fox,Foy,Foz, &
     htprimex,GLLwx,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
-    ngll)
+    ngll,aniso)
 
     use sdomain
     implicit none
@@ -28,6 +28,7 @@ subroutine calcul_forces(dom,lnum,Fox,Foy,Foz, &
     real, dimension(0:ngll-1,0:ngll-1), intent(in) :: htprimex
     real, dimension(0:ngll-1), intent(in) :: GLLwx
     real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
+    logical aniso
 
     integer :: i,j,k,l
     real :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
@@ -35,32 +36,33 @@ subroutine calcul_forces(dom,lnum,Fox,Foy,Foz, &
     real :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
     real, parameter :: zero = 0.
-    real :: xmu, xla, xla2mu
     real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t5,t8
     ! Les indices sont reordonnes, probablement pour la localite memoire
     real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: t2,t6,t9
     real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: t3,t7,t10
+    real, dimension(:,:,:,:,:), allocatable :: C
+
+    if(aniso) then
+        allocate(C(0:5,0:5,0:ngll-1,0:ngll-1,0:ngll-1))
+        k = 0
+        do i = 0,5
+            do j = i,5
+                C(i,j,:,:,:) = dom%Cij_(k,:,:,:,lnum)
+                k = k + 1
+            enddo
+        enddo
+        do i = 1,5
+            do j = 0,i-1
+                C(i,j,:,:,:) = C(j,i,:,:,:)
+            enddo
+        enddo
+    end if
 
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-
-                xmu = dom%Mu_    (i,j,k,lnum)
-                xla = dom%Lambda_(i,j,k,lnum)
-                xla2mu = xla + 2. * xmu
-
-                sxx = xla2mu * DXX(i,j,k) + xla  * ( DYY(i,j,k) + DZZ(i,j,k) )
-                !---
-                sxy = xmu  *( DXY(i,j,k)  + DYX(i,j,k)  )
-                !---
-                sxz = xmu * ( DXZ(i,j,k)  + DZX(i,j,k)  )
-                !---
-                syy = xla2mu * DYY(i,j,k) + xla  * ( DXX(i,j,k) + DZZ(i,j,k) )
-                !---
-                syz = xmu * ( DYZ(i,j,k)  + DZY(i,j,k)  )
-                !---
-                szz = xla2mu * DZZ(i,j,k) + xla  * ( DXX(i,j,k) + DYY(i,j,k) )
-                !---
+                call calcul_sigma(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
+                     sxx,sxy,sxz,syy,syz,szz,aniso,C)
 
                 xi1 = dom%InvGrad_(0,0,i,j,k,lnum)
                 xi2 = dom%InvGrad_(1,0,i,j,k,lnum)
@@ -130,6 +132,7 @@ subroutine calcul_forces(dom,lnum,Fox,Foy,Foz, &
             enddo
         enddo
     enddo
+    if (allocated(C)) deallocate(C)
 
     !
     !- Multiplication par la matrice de derivation puis par les poids
@@ -198,6 +201,62 @@ subroutine calcul_forces(dom,lnum,Fox,Foy,Foz, &
     !=-=-=-=-=-=-=-=-=-=-
 
 end subroutine calcul_forces
+
+subroutine calcul_sigma(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
+                        sxx,sxy,sxz,syy,syz,szz,aniso,C)
+    use sdomain
+    implicit none
+    type(domain_solid), intent (INOUT) :: dom
+    integer, intent(in) :: i,j,k,lnum
+    real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
+    real, intent(out) :: sxx,sxy,sxz,syy,syz,szz
+    logical aniso
+    real, dimension(:,:,:,:,:), allocatable :: C
+
+    real, dimension(0:5) :: eij
+    real, parameter :: s2 = 1.414213562373095, s2o2 = 0.707106781186547
+    real xmu, xla, xla2mu
+    integer l
+
+    if (aniso .and. allocated(C)) then
+        eij(0) = DXX(i,j,k)
+        eij(1) = DYY(i,j,k)
+        eij(2) = DZZ(i,j,k)
+        eij(3) = s2o2*(DYZ(i,j,k)+DZY(i,j,k))
+        eij(4) = s2o2*(DXZ(i,j,k)+DZX(i,j,k))
+        eij(5) = s2o2*(DXY(i,j,k)+DYX(i,j,k))
+
+        sxx = 0.
+        syy = 0.
+        szz = 0.
+        syz = 0.
+        sxz = 0.
+        sxy = 0.
+        do l = 0,5
+            sxx = sxx + C(0,l,i,j,k)*eij(l)
+            syy = syy + C(1,l,i,j,k)*eij(l)
+            szz = szz + C(2,l,i,j,k)*eij(l)
+            syz = syz + C(3,l,i,j,k)*eij(l)
+            sxz = sxz + C(4,l,i,j,k)*eij(l)
+            sxy = sxy + C(5,l,i,j,k)*eij(l)
+        enddo
+        syz=syz/s2
+        sxz=sxz/s2
+        sxy=sxy/s2
+    else
+        xmu = dom%Mu_    (i,j,k,lnum)
+        xla = dom%Lambda_(i,j,k,lnum)
+        xla2mu = xla + 2. * xmu
+
+        sxx = xla2mu * DXX(i,j,k) + xla  * ( DYY(i,j,k) + DZZ(i,j,k) )
+        sxy = xmu  *( DXY(i,j,k)  + DYX(i,j,k)  )
+        sxz = xmu * ( DXZ(i,j,k)  + DZX(i,j,k)  )
+        syy = xla2mu * DYY(i,j,k) + xla  * ( DXX(i,j,k) + DZZ(i,j,k) )
+        syz = xmu * ( DYZ(i,j,k)  + DZY(i,j,k)  )
+        szz = xla2mu * DZZ(i,j,k) + xla  * ( DXX(i,j,k) + DYY(i,j,k) )
+    end if
+end subroutine calcul_sigma
+
 end module m_calcul_forces
 
 !! Local Variables:

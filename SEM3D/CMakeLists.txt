@@ -35,7 +35,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/tensor_util.f90
     ${PRJ}/SRC/Solid/attenuation_solid.F90
     ${PRJ}/SRC/Solid/calcul_forces.F90
-    ${PRJ}/SRC/Solid/calcul_forces_aniso.F90
     ${PRJ}/SRC/Solid/calcul_forces_aniso_att.F90
     ${PRJ}/SRC/Solid/calcul_forces_att.F90
     ${PRJ}/SRC/Fluid/calcul_forces_fluid.F90

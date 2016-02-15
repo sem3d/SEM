@@ -443,8 +443,8 @@ contains
                      mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid)
                 call attenuation_update(dom,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid,aniso)
             else
-                call calcul_forces_aniso(dom,lnum,Fox,Foy,Foz,htprime,&
-                     mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ, DZX,DZY,DZZ,ngll)
+                call calcul_forces(dom,lnum,Fox,Foy,Foz,htprime,&
+                     mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,aniso)
             endif
         else
             if (n_solid>0) then
@@ -453,7 +453,7 @@ contains
                 call attenuation_update(dom,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid,aniso)
             else
                 call calcul_forces(dom,lnum,Fox,Foy,Foz,htprime,&
-                     mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll)
+                     mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,aniso)
             endif
         endif
 
