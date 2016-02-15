@@ -441,7 +441,7 @@ contains
             if (n_solid>0) then
                 call calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz,htprime,&
                      mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid)
-                call attenuation_aniso_update(dom,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid)
+                call attenuation_update(dom,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid,aniso)
             else
                 call calcul_forces_aniso(dom,lnum,Fox,Foy,Foz,htprime,&
                      mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ, DZX,DZY,DZZ,ngll)
