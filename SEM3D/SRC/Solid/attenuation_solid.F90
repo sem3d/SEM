@@ -103,18 +103,21 @@ contains
         real :: factorS_loc,alphavalS_loc,betavalS_loc,gammavalS_loc,Sn,Snp1
         real :: factorP_loc,alphavalP_loc,betavalP_loc,gammavalP_loc,Pn,Pnp1
         real epsilon_trace_over_3
+        real, dimension(0:2,0:2) :: invgrad_ijk
 
         if (n_solid==0) return
 
         do i = 0,ngll-1
             do j = 0,ngll-1
                 do k = 0,ngll-1
+                    invgrad_ijk = dom%InvGrad_(:,:,i,j,k,lnum) ! cache for performance
+
                     call physical_part_deriv_ijk(i,j,k,dom%ngll,htprime,&
-                         dom%InvGrad_(:,:,i,j,k,lnum),Depla(:,:,:,0),dxx,dyx,dzx)
+                         invgrad_ijk,Depla(:,:,:,0),dxx,dyx,dzx)
                     call physical_part_deriv_ijk(i,j,k,dom%ngll,htprime,&
-                         dom%InvGrad_(:,:,i,j,k,lnum),Depla(:,:,:,1),dxy,dyy,dzy)
+                         invgrad_ijk,Depla(:,:,:,1),dxy,dyy,dzy)
                     call physical_part_deriv_ijk(i,j,k,dom%ngll,htprime,&
-                         dom%InvGrad_(:,:,i,j,k,lnum),Depla(:,:,:,2),dxz,dyz,dzz)
+                         invgrad_ijk,Depla(:,:,:,2),dxz,dyz,dzz)
 
                     epsilon_trace_over_3 = 0.333333333333333333333333333333d0 * (DXX + DYY + DZZ)
                     if (aniso) then

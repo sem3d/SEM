@@ -27,29 +27,32 @@ module m_calcul_forces_fluid ! wrap subroutine in module to get arg type check a
         real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: xdens
         real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: t1,t6
         real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: t10
+        real, dimension(0:2,0:2) :: invgrad_ijk
 
         xdens(:,:,:) = 1d0/dom%Density_(:,:,:,lnum)
 
         do k = 0,dom%ngll-1
             do j = 0,dom%ngll-1
                 do i = 0,dom%ngll-1
+                    invgrad_ijk = dom%InvGrad_(:,:,i,j,k,lnum) ! cache for performance
+
                     call physical_part_deriv_ijk(i,j,k,dom%ngll,hTprime,&
-                         dom%InvGrad_(:,:,i,j,k,lnum),Phi,dPhiX,dPhiY,dPhiZ)
+                         invgrad_ijk,Phi,dPhiX,dPhiY,dPhiZ)
 
                     ! (fluid equivalent) stress  ( = physical velocity)
                     sx = xdens(i,j,k)*dPhiX
                     sy = xdens(i,j,k)*dPhiY
                     sz = xdens(i,j,k)*dPhiZ
 
-                    xi1 = dom%InvGrad_(0,0,i,j,k,lnum)
-                    xi2 = dom%InvGrad_(1,0,i,j,k,lnum)
-                    xi3 = dom%InvGrad_(2,0,i,j,k,lnum)
-                    et1 = dom%InvGrad_(0,1,i,j,k,lnum)
-                    et2 = dom%InvGrad_(1,1,i,j,k,lnum)
-                    et3 = dom%InvGrad_(2,1,i,j,k,lnum)
-                    ga1 = dom%InvGrad_(0,2,i,j,k,lnum)
-                    ga2 = dom%InvGrad_(1,2,i,j,k,lnum)
-                    ga3 = dom%InvGrad_(2,2,i,j,k,lnum)
+                    xi1 = invgrad_ijk(0,0)
+                    xi2 = invgrad_ijk(1,0)
+                    xi3 = invgrad_ijk(2,0)
+                    et1 = invgrad_ijk(0,1)
+                    et2 = invgrad_ijk(1,1)
+                    et3 = invgrad_ijk(2,1)
+                    ga1 = invgrad_ijk(0,2)
+                    ga2 = invgrad_ijk(1,2)
+                    ga3 = invgrad_ijk(2,2)
 
                     !=====================
                     !       F1 

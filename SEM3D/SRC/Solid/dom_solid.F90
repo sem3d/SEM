@@ -178,6 +178,7 @@ contains
         real(fpp)                                :: xmu, xlambda, xkappa
         real(fpp)                                :: x2mu, xlambda2mu
         real(fpp)                                :: onemSbeta, onemPbeta
+        real, dimension(0:2,0:2) :: invgrad_ijk
 
         flag_gradU = (out_variables(OUT_PRESSION)    + &
                       out_variables(OUT_ENERGYP)     + &
@@ -213,12 +214,14 @@ contains
                     ! Compute gradU with displacement if needed.
 
                     if (flag_gradU) then
+                        invgrad_ijk = dom%InvGrad_(:,:,i,j,k,el%lnum) ! cache for performance
+
                         call physical_part_deriv_ijk(i,j,k,ngll,Tdomain%sSubDomain(mat)%hTprime,&
-                             dom%InvGrad_(:,:,i,j,k,el%lnum),fieldU(:,:,:,0),DXX,DYX,DZX)
+                             invgrad_ijk,fieldU(:,:,:,0),DXX,DYX,DZX)
                         call physical_part_deriv_ijk(i,j,k,ngll,Tdomain%sSubDomain(mat)%hTprime,&
-                             dom%InvGrad_(:,:,i,j,k,el%lnum),fieldU(:,:,:,1),DXY,DYY,DZY)
+                             invgrad_ijk,fieldU(:,:,:,1),DXY,DYY,DZY)
                         call physical_part_deriv_ijk(i,j,k,ngll,Tdomain%sSubDomain(mat)%hTprime,&
-                             dom%InvGrad_(:,:,i,j,k,el%lnum),fieldU(:,:,:,2),DXZ,DYZ,DZZ)
+                             invgrad_ijk,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
                     end if
 
                     ! Get other variables.

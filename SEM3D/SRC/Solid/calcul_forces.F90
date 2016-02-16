@@ -43,6 +43,7 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: t2,t6,t9
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: t3,t7,t10
         real, dimension(:,:,:,:,:), allocatable :: C
+        real, dimension(0:2,0:2) :: invgrad_ijk
 
         if(aniso) then
             allocate(C(0:5,0:5,0:ngll-1,0:ngll-1,0:ngll-1))
@@ -63,25 +64,27 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
+                    invgrad_ijk = dom%InvGrad_(:,:,i,j,k,lnum) ! cache for performance
+
                     call physical_part_deriv_ijk(i,j,k,dom%ngll,htprime,&
-                         dom%InvGrad_(:,:,i,j,k,lnum),Depla(:,:,:,0),dxx,dyx,dzx)
+                         invgrad_ijk,Depla(:,:,:,0),dxx,dyx,dzx)
                     call physical_part_deriv_ijk(i,j,k,dom%ngll,htprime,&
-                         dom%InvGrad_(:,:,i,j,k,lnum),Depla(:,:,:,1),dxy,dyy,dzy)
+                         invgrad_ijk,Depla(:,:,:,1),dxy,dyy,dzy)
                     call physical_part_deriv_ijk(i,j,k,dom%ngll,htprime,&
-                         dom%InvGrad_(:,:,i,j,k,lnum),Depla(:,:,:,2),dxz,dyz,dzz)
+                         invgrad_ijk,Depla(:,:,:,2),dxz,dyz,dzz)
 
                     call calcul_sigma(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
                          sxx,sxy,sxz,syy,syz,szz,aniso,C,n_solid)
 
-                    xi1 = dom%InvGrad_(0,0,i,j,k,lnum)
-                    xi2 = dom%InvGrad_(1,0,i,j,k,lnum)
-                    xi3 = dom%InvGrad_(2,0,i,j,k,lnum)
-                    et1 = dom%InvGrad_(0,1,i,j,k,lnum)
-                    et2 = dom%InvGrad_(1,1,i,j,k,lnum)
-                    et3 = dom%InvGrad_(2,1,i,j,k,lnum)
-                    ga1 = dom%InvGrad_(0,2,i,j,k,lnum)
-                    ga2 = dom%InvGrad_(1,2,i,j,k,lnum)
-                    ga3 = dom%InvGrad_(2,2,i,j,k,lnum)
+                    xi1 = invgrad_ijk(0,0)
+                    xi2 = invgrad_ijk(1,0)
+                    xi3 = invgrad_ijk(2,0)
+                    et1 = invgrad_ijk(0,1)
+                    et2 = invgrad_ijk(1,1)
+                    et3 = invgrad_ijk(2,1)
+                    ga1 = invgrad_ijk(0,2)
+                    ga2 = invgrad_ijk(1,2)
+                    ga3 = invgrad_ijk(2,2)
 
                     !
                     !=====================
