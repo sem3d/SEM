@@ -222,10 +222,7 @@ subroutine calcul_sigma(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
     real xmu, xla, xla2mu
     integer l
 
-    if (n_solid>0) then
-        call calcul_sigma_attenuation(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
-             sxx,sxy,sxz,syy,syz,szz,n_solid)
-    else if (aniso .and. allocated(C)) then
+    if (aniso .and. allocated(C)) then
         eij(0) = DXX(i,j,k)
         eij(1) = DYY(i,j,k)
         eij(2) = DZZ(i,j,k)
@@ -251,16 +248,26 @@ subroutine calcul_sigma(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
         sxz=sxz/s2
         sxy=sxy/s2
     else
-        xmu = dom%Mu_    (i,j,k,lnum)
-        xla = dom%Lambda_(i,j,k,lnum)
-        xla2mu = xla + 2. * xmu
+        if (n_solid>0) then
+            call calcul_sigma_attenuation(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
+                 sxx,sxy,sxz,syy,syz,szz)
+        else
+            xmu = dom%Mu_    (i,j,k,lnum)
+            xla = dom%Lambda_(i,j,k,lnum)
+            xla2mu = xla + 2. * xmu
 
-        sxx = xla2mu * DXX(i,j,k) + xla  * ( DYY(i,j,k) + DZZ(i,j,k) )
-        sxy = xmu  *( DXY(i,j,k)  + DYX(i,j,k)  )
-        sxz = xmu * ( DXZ(i,j,k)  + DZX(i,j,k)  )
-        syy = xla2mu * DYY(i,j,k) + xla  * ( DXX(i,j,k) + DZZ(i,j,k) )
-        syz = xmu * ( DYZ(i,j,k)  + DZY(i,j,k)  )
-        szz = xla2mu * DZZ(i,j,k) + xla  * ( DXX(i,j,k) + DYY(i,j,k) )
+            sxx = xla2mu * DXX(i,j,k) + xla  * ( DYY(i,j,k) + DZZ(i,j,k) )
+            sxy = xmu  *( DXY(i,j,k)  + DYX(i,j,k)  )
+            sxz = xmu * ( DXZ(i,j,k)  + DZX(i,j,k)  )
+            syy = xla2mu * DYY(i,j,k) + xla  * ( DXX(i,j,k) + DZZ(i,j,k) )
+            syz = xmu * ( DYZ(i,j,k)  + DZY(i,j,k)  )
+            szz = xla2mu * DZZ(i,j,k) + xla  * ( DXX(i,j,k) + DYY(i,j,k) )
+        end if
+    end if
+
+    if (n_solid>0) then
+        call sigma_attenuation(dom,i,j,k,lnum,DXX,DYY,DZZ,&
+             sxx,sxy,sxz,syy,syz,szz,n_solid)
     end if
 end subroutine calcul_sigma
 

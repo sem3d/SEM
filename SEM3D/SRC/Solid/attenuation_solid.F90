@@ -18,7 +18,7 @@ module attenuation_solid
 contains
 
     subroutine calcul_sigma_attenuation(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
-                                        sxx,sxy,sxz,syy,syz,szz,n_solid)
+                                        sxx,sxy,sxz,syy,syz,szz)
         use sdomain
         implicit none
 #include "index.h"
@@ -26,17 +26,12 @@ contains
         integer, intent(in) :: i,j,k,lnum
         real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
         real, intent(out) :: sxx,sxy,sxz,syy,syz,szz
-        integer :: n_solid
 
-        real :: xmu, xkappa, x2mu, xpression, stt
-        integer :: i_sls
+        real :: xmu, x2mu
 
         xmu = dom%Mu_(i,j,k,lnum)
         ! mu_relaxed -> mu_unrelaxed
         xmu = xmu * dom%onemSbeta(i,j,k,lnum)
-        xkappa = dom%Kappa_(i,j,k,lnum)
-        ! kappa_relaxed -> kappa_unrelaxed
-        xkappa = xkappa * dom%onemPbeta(i,j,k,lnum)
         x2mu = 2. * xmu
 
         sxx = x2mu *   DXX(i,j,k)
@@ -45,8 +40,27 @@ contains
         syy = x2mu *   DYY(i,j,k)
         syz = xmu  * ( DYZ(i,j,k) + DZY(i,j,k) )
         szz = x2mu *   DZZ(i,j,k)
+    end subroutine calcul_sigma_attenuation
 
+    subroutine sigma_attenuation(dom,i,j,k,lnum,DXX,DYY,DZZ,&
+                                 sxx,sxy,sxz,syy,syz,szz,n_solid)
+        use sdomain
+        implicit none
+#include "index.h"
+        type(domain_solid), intent (INOUT) :: dom
+        integer, intent(in) :: i,j,k,lnum
+        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(in) :: DXX,DYY,DZZ
+        real, intent(out) :: sxx,sxy,sxz,syy,syz,szz
+        integer :: n_solid
+
+        real :: xkappa, xpression, stt
+        integer :: i_sls
+
+        xkappa = dom%Kappa_(i,j,k,lnum)
+        ! kappa_relaxed -> kappa_unrelaxed
+        xkappa = xkappa * dom%onemPbeta(i,j,k,lnum)
         xpression = xkappa * ( DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k) )
+
         !        stt = (sxx + syy + szz)/3.
         do i_sls = 0,n_solid-1
         xpression = xpression - dom%R_vol_(i_sls,i,j,k,lnum)
@@ -65,7 +79,7 @@ contains
         sxx = sxx - stt + xpression
         syy = syy - stt + xpression
         szz = szz - stt + xpression
-    end subroutine calcul_sigma_attenuation
+    end subroutine sigma_attenuation
 
     subroutine attenuation_update(dom,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid,aniso)
         use sdomain
