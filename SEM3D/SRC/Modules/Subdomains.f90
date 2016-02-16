@@ -40,8 +40,7 @@ module ssubdomains
         real(fpp) :: Qmu, Qpression
 
         !! PML
-        logical :: Px, Py, Pz, Left, Forward, Down
-        real(fpp), dimension(4) :: plane_eqn
+        real(fpp), dimension(0:2) :: pml_pos, pml_width
         integer :: npow
         real(fpp) :: Apow
 

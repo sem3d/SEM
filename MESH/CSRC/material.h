@@ -38,22 +38,23 @@ public:
 				  Sspeed(mat.Sspeed),
 				  Qpression(mat.Qpression),
 				  Qmu(mat.Qmu),
-                                  m_ngllx(mat.m_ngllx),
-                                  m_nglly(mat.m_nglly),
-                                  m_ngllz(mat.m_ngllz),
-                                  x_dir(mat.x_dir),
-                                  y_dir(mat.y_dir),
-                                  z_dir(mat.z_dir),
+                                  m_ngll(mat.m_ngll),
+                                  xpos(mat.xpos),
+                                  xwidth(mat.xwidth),
+                                  ypos(mat.ypos),
+                                  ywidth(mat.ywidth),
+                                  zpos(mat.zpos),
+                                  zwidth(mat.zwidth),
                                   m_pml_num(mat.m_pml_num)
         {
         }
 
 
     Material(char type, double Vp, double Vs, double Rho,
-             double Qp, double Qmu_, int ngllx, int nglly, int ngllz):
+             double Qp, double Qmu_, int ngll):
         ctype(type), rho(Rho), Pspeed(Vp), Sspeed(Vs), Qpression(Qp), Qmu(Qmu_),
-        m_ngllx(ngllx), m_nglly(nglly), m_ngllz(ngllz),
-        x_dir(0), y_dir(0), z_dir(0)
+        m_ngll(ngll),
+        xpos(0.), xwidth(0.), ypos(0.), ywidth(0.), zpos(0.), zwidth(0.)
         {
         switch (type) {
         case 'P':
@@ -75,13 +76,13 @@ public:
         }
         m_pml_num.resize(64,-1);
     }
-    void set_pml_dirs(bool W, bool E, bool S, bool N, bool U, bool D) {
-        if (E) x_dir =  1;
-        if (W) x_dir = -1;
-        if (N) y_dir =  1;
-        if (S) y_dir = -1;
-        if (U) z_dir =  1;
-        if (D) z_dir = -1;
+    void set_pml_borders(double xp, double xw, double yp, double yw, double zp, double zw) {
+        xpos = xp;
+        ypos = yp;
+        zpos = zp;
+        xwidth = xw;
+        ywidth = yw;
+        zwidth = zw;
     }
     bool is_fluid() const { return false; }
     int domain() const { return m_type; }
@@ -102,6 +103,7 @@ public:
         assert(f>=0 && f<64);
         return f;
     }
+
     char material_char() const {
         switch (m_type) {
         case DM_SOLID:
@@ -117,7 +119,7 @@ public:
         };
     }
     bool is_pml() const {
-        return !((x_dir==0)&&(y_dir==0)&&(z_dir==0));
+        return ((xwidth!=0)||(ywidth!=0)||(zwidth!=0));
     }
 public:
     material_type_t m_type;
@@ -127,16 +129,14 @@ public:
     double Sspeed;
     double Qpression;
     double Qmu;
-    int m_ngllx, m_nglly, m_ngllz;
-    int x_dir; // -1, 1., 0
-    int y_dir; // -1, 1., 0
-    int z_dir; // -1, 1., 0
+    int m_ngll;
+    double xpos, xwidth;
+    double ypos, ywidth;
+    double zpos, zwidth;
     std::vector<int> m_pml_num;
 };
 
 #endif
-
-
 
 
 /* Local Variables:                                                        */

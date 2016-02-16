@@ -20,12 +20,16 @@ class Mesh3D;
 struct RectMesh {
     double xmin, xmax;
     double ymin, ymax;
-    double zmax;
+    double zmax, zmin;
+    double xmin0, xmax0;
+    double ymin0, ymax0;
+    double zmax0, zmin0;
     double xstep, ystep;
     int has_pml;
     Pml_dirs pmls;
 
     int nlayers;
+    int npml; // Number of layers of pmls
     double zheight;
     double *thickness;
     int    *nsteps;
@@ -35,7 +39,7 @@ struct RectMesh {
     void read_params(FILE* fparam);
     void read_params_old(FILE* fparam);
     void init_rectangular_mesh(Mesh3D& mesh);
-    void apply_pml_borders();
+    void apply_pml_borders(int npml);
 protected:
 
     int nelemx, nelemy, nelemz;

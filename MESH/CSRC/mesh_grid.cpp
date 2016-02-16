@@ -43,9 +43,11 @@ void RectMesh::read_params_old(FILE* fparam)
     }
     thickness = (double*)malloc(nlayers*sizeof(double));
     nsteps    = (int*)   malloc(nlayers*sizeof(int));
+    zmin = zmax;
     for(int k=0;k<nlayers;++k) {
         getline(&buffer, &n, fparam);
         sscanf(buffer, "%lf %d", &thickness[k], &nsteps[k]);
+        zmin = zmin-thickness[k];
     }
     getline(&buffer, &n, fparam);
     sscanf(buffer, "%d", &has_pml);
@@ -113,41 +115,59 @@ int RectMesh::get_mat(Mesh3D& mesh, int layer, bool W, bool E, bool S, bool N, b
     Material new_mat(mat);
     if (new_mat.m_type==DM_SOLID) new_mat.m_type = DM_SOLID_PML;
     if (new_mat.m_type==DM_FLUID) new_mat.m_type = DM_FLUID_PML;
-    new_mat.set_pml_dirs(W,E,S,N,U,D);
+    double xw=0., yw=0., zw=0.;
+    double xp=0., yp=0., zp=0.;
+
+    if (W) { xw = -npml*xstep; xp = xmin0; }
+    if (E) { xw =  npml*xstep; xp = xmax0; }
+    if (S) { yw = -npml*ystep; yp = ymin0; }
+    if (N) { yw =  npml*ystep; yp = ymax0; }
+    if (U) { zw =  npml*thickness[0]/nsteps[0]; zp=zmax0; }
+    if (D) { zw = -npml*thickness[nlayers-1]/nsteps[nlayers-1]; zp=zmin0; }
+
+    new_mat.set_pml_borders(xp, xw, yp, yw, zp, zw);
     pml_mat = mesh.m_materials.size();
-//    printf("mat=%d layer = %d, idx=%d pmlnum=%d\n", pml_mat, layer, new_idx, mat.m_pml_num[new_idx]);
-//    printf("W=%d E=%d S=%d N=%d U=%d D=%d\n", W, E, S, N, U, D);
+    printf("mat=%d layer = %d, idx=%d pmlnum=%d\n", pml_mat, layer, new_idx, mat.m_pml_num[new_idx]);
+    printf("xp=%lf xw=%lf ; yp=%lf yw=%lf ; zp=%lf zw=%lf\n", xp, xw, yp, yw, zp, zw);
     mat.m_pml_num[new_idx] = pml_mat;
     mesh.m_materials.push_back(new_mat);
     return pml_mat;
 }
 
-void RectMesh::apply_pml_borders()
+void RectMesh::apply_pml_borders(int npml_)
 {
-    if (pmls.E) { xmax+=xstep; }
-    if (pmls.W) { xmin-=xstep; }
-    if (pmls.N) { ymax+=ystep; }
-    if (pmls.S) { ymin-=ystep; }
+    npml = npml_;
+    xmax0 = xmax;
+    xmin0 = ymin;
+    ymax0 = ymax;
+    ymin0 = ymin;
+    zmax0 = zmax;
+    zmin0 = zmin;
+    if (pmls.E) { xmax+=npml*xstep; }
+    if (pmls.W) { xmin-=npml*xstep; }
+    if (pmls.N) { ymax+=npml*ystep; }
+    if (pmls.S) { ymin-=npml*ystep; }
     if (pmls.U) {
         double zstep = thickness[0]/nsteps[0];
-        zmax += zstep;
-        thickness[0] += zstep;
-        nsteps[0] += 1;
+        zmax += npml*zstep;
+        thickness[0] += npml*zstep;
+        nsteps[0] += npml;
     }
     if (pmls.D) {
         int ll = nlayers-1;
         double zstep = thickness[ll]/nsteps[ll];
-        thickness[ll] += zstep;
-        nsteps[ll] += 1;
+        thickness[ll] += npml*zstep;
+        nsteps[ll] += npml;
     }
 }
 
 void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
 {
+    const int npml=2;
     assert(xmin<xmax);
     assert(ymin<ymax);
 
-    apply_pml_borders();
+    apply_pml_borders(npml);
 
     nelemx = int( (xmax-xmin)/xstep );
     nelemy = int( (ymax-ymin)/ystep );
@@ -197,12 +217,18 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
                         assert(elem.v[in]<nnodes);
                         assert(elem.v[in]>=0);
                     }
-                    bool W = (i==0);
-                    bool E = (i==(nelemx-1));
-                    bool S = (j==0);
-                    bool N = (j==(nelemy-1));
-                    bool U = (k==0 && nl==0);
-                    bool D = (k==(nelemz-1) && nl==(nlayers-1));
+                    bool W = (i<npml);
+                    bool E = (i>(nelemx-npml-1));
+                    bool S = (j<npml);
+                    bool N = (j>(nelemy-npml-1));
+                    bool U = (k<npml && nl==0);
+                    bool D = (k>(nelemz-npml-1) && nl==(nlayers-1));
+                    bool LW = (i<1);
+                    bool LE = (i>(nelemx-2));
+                    bool LS = (j<1);
+                    bool LN = (j>(nelemy-2));
+                    bool LU = (k<1 && nl==0);
+                    bool LD = (k>(nelemz-2) && nl==(nlayers-1));
                     int mat = get_mat(mesh, nl, W,E,S,N,U,D);
                     mesh.add_elem(mat, elem);
                     // Check for free fluid surface and free pml surface
@@ -214,13 +240,14 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
                         emit_free_face(dirich, dom, elem, W,E,S,N,U,D);
                     }
                     if (dom==DM_SOLID_PML) {
-                        int x_dir = mesh.m_materials[mat].x_dir;
-                        int y_dir = mesh.m_materials[mat].y_dir;
-                        int z_dir = mesh.m_materials[mat].z_dir;
+                        double x_dir = mesh.m_materials[mat].xwidth;
+                        double y_dir = mesh.m_materials[mat].ywidth;
+                        double z_dir = mesh.m_materials[mat].zwidth;
+
                         emit_free_face(dirich, dom, elem,
-                                       W&&(x_dir==-1), E&&(x_dir==1),
-                                       S&&(y_dir==-1), N&&(y_dir==1),
-                                       U&&(z_dir==1), D&&(z_dir==-1));
+                                       LW&&(x_dir<0), LE&&(x_dir>0),
+                                       LS&&(y_dir<0), LN&&(y_dir>0),
+                                       LU&&(z_dir>0), LD&&(z_dir<0));
                     }
                 }
             }

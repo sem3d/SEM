@@ -331,10 +331,12 @@ contains
         !
         integer :: ngllx, nglly, ngllz, lnum
         real(fpp), dimension(:,:,:), allocatable :: temp_PMLx,temp_PMLy
-        real(fpp), dimension(:,:,:), allocatable :: RKmod
         real(fpp), dimension(:,:,:), allocatable :: wx,wy,wz
         real(fpp) :: dt
         real(fpp), dimension(:,:,:,:), allocatable :: PMLDumpMass
+        integer :: i,j,k,idx
+        real(fpp), dimension(:,:,:), allocatable   :: Vp
+        real(fpp), dimension(:,:,:,:), allocatable :: coords
 
         dt = Tdomain%TimeD%dtmin
         lnum = specel%lnum
@@ -347,18 +349,17 @@ contains
         nglly = specel%nglly
         ngllz = specel%ngllz
 
-        allocate(RKmod(0:ngllx-1,0:nglly-1,0:ngllz-1))
+        allocate(Vp(0:ngllx-1,0:nglly-1,0:ngllz-1))
         select case (specel%domain)
-            case (DM_SOLID)
-                RKmod =      Tdomain%sdom%Lambda_(:,:,:,specel%lnum) + &
-                        2. * Tdomain%sdom%Mu_    (:,:,:,specel%lnum)
-            case (DM_FLUID)
-                RKmod =      Tdomain%fdom%Lambda_(:,:,:,specel%lnum)
-            case (DM_SOLID_PML)
-                RKmod =      Tdomain%spmldom%Lambda_(:,:,:,specel%lnum) + &
-                        2. * Tdomain%spmldom%Mu_    (:,:,:,specel%lnum)
-            case (DM_FLUID_PML)
-                RKmod =      Tdomain%fpmldom%Lambda_(:,:,:,specel%lnum)
+        case (DM_SOLID)
+            Vp = 0.
+        case (DM_FLUID)
+            Vp = 0.
+        case (DM_SOLID_PML)
+            Vp = sqrt((Tdomain%spmldom%Lambda_ (:,:,:,lnum) + &
+                2. * Tdomain%spmldom%Mu_(:,:,:,lnum))/Tdomain%spmldom%Density_(:,:,:,lnum))
+        case (DM_FLUID_PML)
+            Vp = sqrt(Tdomain%fpmldom%Lambda_(:,:,:,specel%lnum)/Tdomain%fpmldom%Density_(:,:,:,lnum))
         end select
 
         ! PML case: valid for solid and fluid parts
@@ -368,40 +369,20 @@ contains
         allocate(wy(0:ngllx-1,0:nglly-1,0:ngllz-1))
         allocate(wz(0:ngllx-1,0:nglly-1,0:ngllz-1))
 
-        if (specel%domain==DM_SOLID_PML) then
-            call define_alpha_PML(mat%Px,0,mat%Left,                              &
-                ngllx,nglly,ngllz,ngllx,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
-                mat%GLLcx,RKmod(:,0,0),                                           &
-                Tdomain%spmldom%Density_(:,0,0,specel%lnum),specel%Iglobnum(0,0,0),&
-                specel%Iglobnum(ngllx-1,0,0),mat%Apow,mat%npow,wx)
-            call define_alpha_PML(mat%Py,1,mat%Forward,                           &
-                ngllx,nglly,ngllz,nglly,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
-                mat%GLLcy,RKmod(0,:,0),                                           &
-                Tdomain%spmldom%Density_(0,:,0,specel%lnum),specel%Iglobnum(0,0,0),&
-                specel%Iglobnum(0,nglly-1,0),mat%Apow,mat%npow,wy)
-            call define_alpha_PML(mat%Pz,2,mat%Down,                              &
-                ngllx,nglly,ngllz,ngllz,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
-                mat%GLLcz,RKmod(0,0,:),                                           &
-                Tdomain%spmldom%Density_(0,0,:,specel%lnum),specel%Iglobnum(0,0,0),&
-                specel%Iglobnum(0,0,ngllz-1),mat%Apow,mat%npow,wz)
-        end if
-        if (specel%domain==DM_FLUID_PML) then
-            call define_alpha_PML(mat%Px,0,mat%Left,                              &
-                ngllx,nglly,ngllz,ngllx,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
-                mat%GLLcx,RKmod(:,0,0),                                           &
-                Tdomain%fpmldom%Density_(:,0,0,specel%lnum),specel%Iglobnum(0,0,0),&
-                specel%Iglobnum(ngllx-1,0,0),mat%Apow,mat%npow,wx)
-            call define_alpha_PML(mat%Py,1,mat%Forward,                           &
-                ngllx,nglly,ngllz,nglly,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
-                mat%GLLcy,RKmod(0,:,0),                                           &
-                Tdomain%fpmldom%Density_(0,:,0,specel%lnum),specel%Iglobnum(0,0,0),&
-                specel%Iglobnum(0,nglly-1,0),mat%Apow,mat%npow,wy)
-            call define_alpha_PML(mat%Pz,2,mat%Down,                              &
-                ngllx,nglly,ngllz,ngllz,Tdomain%n_glob_points,Tdomain%GlobCoord,  &
-                mat%GLLcz,RKmod(0,0,:),                                           &
-                Tdomain%fpmldom%Density_(0,0,:,specel%lnum),specel%Iglobnum(0,0,0),&
-                specel%Iglobnum(0,0,ngllz-1),mat%Apow,mat%npow,wz)
-        end if
+        allocate(coords(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
+
+        DO K=0,ngllz-1
+            DO J=0,nglly-1
+                DO I=0,ngllx-1
+                    idx = specel%Iglobnum(I,J,K)
+                    coords(I,J,K,:) = Tdomain%GlobCoord(:,idx)
+                END DO
+            END DO
+        END DO
+        call define_alpha_PML(coords, 0, ngllx, nglly, ngllz, Vp, mat%pml_width, mat%pml_pos, mat%Apow, mat%npow, wx)
+        call define_alpha_PML(coords, 1, ngllx, nglly, ngllz, Vp, mat%pml_width, mat%pml_pos, mat%Apow, mat%npow, wy)
+        call define_alpha_PML(coords, 2, ngllx, nglly, ngllz, Vp, mat%pml_width, mat%pml_pos, mat%Apow, mat%npow, wz)
+
 
         !- M-PMLs
         if(Tdomain%logicD%MPML)then
@@ -439,7 +420,7 @@ contains
         deallocate(wx,wy,wz)
 
         call assemble_DumpMass(Tdomain,specel,PMLDumpMass)
-        if(allocated(PMLDumpMass)) deallocate(PMLDumpMass)
+        deallocate(PMLDumpMass)
 
         !! XXX
         if (specel%domain==DM_FLUID_PML) then
@@ -451,7 +432,7 @@ contains
                                                       Tdomain%fpmldom%Density_(:,:,:  ,lnum)
         end if
 
-        deallocate(RKmod)
+        deallocate(Vp)
     end subroutine init_pml_properties
 
     subroutine finalize_pml_properties(Tdomain)
@@ -641,48 +622,30 @@ contains
 
     !-------------------------------------------------------------------------------------
     !-------------------------------------------------------------------------------------
-    subroutine define_alpha_PML(lattenu,dir,ldir_attenu,ngllx,nglly,ngllz,ngll,n_pts,   &
-        Coord,GLLc,Rkmod,density,ind_min,ind_max,Apow,npow,alpha)
+    subroutine define_alpha_PML(Coord, dir, ngllx, nglly, ngllz, &
+        vp, pml_width, pml_pos, Apow, npow, alpha)
         !- routine determines attenuation profile in an PML layer (see Festa & Vilotte)
         !   dir = attenuation's direction, ldir_attenu = the logical giving the orientation
-        logical, intent(in)   :: lattenu,ldir_attenu
-        integer, intent(in) :: dir,ngllx,nglly,ngllz,ngll,n_pts,ind_min,ind_max,npow
-        real, dimension(0:2,0:n_pts-1), intent(in) :: Coord
-        real, dimension(0:ngll-1), intent(in) :: GLLc,RKmod,density
-        real, intent(in)  :: Apow
-        real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: alpha
-        integer  :: i
-        real  :: dh
-        real, dimension(0:ngll-1)  :: ri,vp
-        real, external  :: pow
-
-        if(.not. lattenu)then   ! no attenuation in the dir-direction
+        integer, intent(in) :: dir, ngllx, nglly, ngllz, npow
+        real(fpp), dimension(0:ngllx-1,0:nglly-1,0:ngllz-1, 0:2), intent(in) :: Coord
+        real(fpp), intent(in)  :: Apow
+        real(fpp), dimension(0:2), intent(in) :: pml_pos, pml_width
+        real(fpp), dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: vp
+        real(fpp), dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(out) :: alpha
+        real(fpp), dimension(0:ngllx-1,0:nglly-1,0:ngllz-1)  :: ri
+        real(fpp) :: invdh, coef
+        integer :: i,j,k
+        if (pml_width(dir)==0d0) then
             alpha(:,:,:) = 0d0
-        else  ! yes, attenuation in this dir-direction
-            dh = Coord(dir,ind_min)
-            dh = abs(Coord(dir,ind_max)-dh)
-            if(ldir_attenu)then  ! Left in x, Forward in y, Down in z
-                ri(:) = 0.5d0*(1d0+GLLc(ngll-1:0:-1))*float(ngll-1)
-            else  ! Right in x, Backward in y, Up in z
-                ri(:) = 0.5d0*(1d0+GLLc(0:ngll-1))*float(ngll-1)
-            end if
-            vp(:) = sqrt(Rkmod(:)/density(:))
-            select case(dir)
-            case(0)  ! dir = x
-                do i = 0,ngll-1
-                    alpha(i,0:,0:) = pow(ri(i),vp(i),ngll-1,dh,Apow,npow)
-                end do
-            case(1)  ! dir = y
-                do i = 0,ngll-1
-                    alpha(0:,i,0:) = pow(ri(i),vp(i),ngll-1,dh,Apow,npow)
-                end do
-            case(2)  ! dir = z
-                do i = 0,ngll-1
-                    alpha(0:,0:,i) = pow(ri(i),vp(i),ngll-1,dh,Apow,npow)
-                end do
-            end select
+            return
         end if
 
+        ! Until we can do better, the plane equation is only parallel to one axis
+        ! when more coefficient are != 0 it means we have a corner
+        invdh = 1d0/abs(pml_width(dir))
+        coef = 1/pml_width(dir)
+        ri = coef*(Coord(:,:,:,dir)-pml_pos(dir))
+        alpha = Apow * Vp * invdh *  (ri)**npow
         return
 
     end subroutine define_alpha_PML
