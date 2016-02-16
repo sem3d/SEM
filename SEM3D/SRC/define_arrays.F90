@@ -658,7 +658,6 @@ contains
         real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: alpha
         real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1)  :: ri
         real(fpp) :: invdh, coef
-        integer :: i,j,k
         if (pml_width(dir)==0d0) then
             alpha(:,:,:) = 0d0
             return
