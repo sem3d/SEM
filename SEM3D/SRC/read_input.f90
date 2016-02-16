@@ -169,7 +169,7 @@ contains
         type(domain), intent(inout) :: Tdomain
         integer :: i, mat
 
-        call read_material_file_v1(Tdomain)
+        call read_material_file_v2(Tdomain)
 
         !- GLL properties in elements, on faces, edges.
         do i = 0,Tdomain%n_elem-1
@@ -213,6 +213,7 @@ contains
         integer :: rg, dummy_ngll
         real :: dummy_dt, dummy_freq
         logical :: dummy_filtering
+        logical :: px, py, pz, left, forward, down
 
         rg = Tdomain%rank
         npml = 0
@@ -285,12 +286,12 @@ contains
                     read(13,*) dummy_Filtering, &
                         Tdomain%sSubdomain(i)%npow,      &
                         Tdomain%sSubdomain(i)%Apow,      &
-                        Tdomain%sSubdomain(i)%Px,        &
-                        Tdomain%sSubdomain(i)%Left,      &
-                        Tdomain%sSubdomain(i)%Py,        &
-                        Tdomain%sSubdomain(i)%Forward,   &
-                        Tdomain%sSubdomain(i)%Pz,        &
-                        Tdomain%sSubdomain(i)%Down,      &
+                        Px,        &
+                        Left,      &
+                        Py,        &
+                        Forward,   &
+                        Pz,        &
+                        Down,      &
                         dummy_freq,      &
                         Tdomain%sSubdomain(i)%assocMat
                 endif
@@ -333,6 +334,122 @@ contains
         close(13)
 
     end subroutine read_material_file_v1
+
+    subroutine read_material_file_v2(Tdomain)
+        use sdomain
+        use semdatafiles
+        use mpi
+        use build_prop_files
+        implicit none
+
+        type(domain), intent(inout) :: Tdomain
+        character(Len=MAX_FILE_SIZE) :: fnamef
+        integer :: i, n_aus, npml, mat, nRandom
+        integer :: rg, NGLL
+        real :: dummy_dt, dummy_freq
+        logical :: dummy_filtering
+
+        rg = Tdomain%rank
+        npml = 0
+        nRandom = 0
+
+        call semname_read_inputmesh_parametrage(Tdomain%material_file,fnamef)
+        open (13, file=fnamef, status="old", form="formatted")
+
+        read(13,*) n_aus
+
+        if(n_aus /= Tdomain%n_mat) then
+            write(*,*) trim(fnamef), n_aus, Tdomain%n_mat
+            stop "Incompatibility between the mesh file and the material file for n_mat"
+        endif
+
+        if (Tdomain%aniso) then
+            print *,"The code can't put anisotropy in a homogeneous media"
+            stop
+        endif
+
+        allocate(Tdomain%not_PML_List(0:Tdomain%n_mat-1))
+        Tdomain%any_Random   = .false.
+        Tdomain%not_PML_List = .true.
+
+        do i = 0,Tdomain%n_mat-1
+            read(13,*) Tdomain%sSubDomain(i)%material_type, &
+                Tdomain%sSubDomain(i)%Pspeed,        &
+                Tdomain%sSubDomain(i)%Sspeed,        &
+                Tdomain%sSubDomain(i)%dDensity,      &
+                NGLL,         &
+                Tdomain%sSubDomain(i)%Qpression,     &
+                Tdomain%sSubDomain(i)%Qmu
+            Tdomain%sSubDomain(i)%NGLL = NGLL
+            Tdomain%sSubdomain(i)%assocMat = i
+
+            call Lame_coefficients (Tdomain%sSubDomain(i))
+
+            if (Tdomain%sSubDomain(i)%material_type == "P" .or. Tdomain%sSubDomain(i)%material_type == "L")  then
+                npml = npml + 1
+                Tdomain%not_PML_List(i) = .false.
+            else
+            endif
+
+            if (Tdomain%sSubDomain(i)%material_type == "R") then
+                nRandom = nRandom + 1
+            end if
+
+        enddo
+
+        if(npml > 0) then
+            read(13,*); read(13,*)
+            do i = 0,Tdomain%n_mat-1
+                if(.not. Tdomain%not_PML_List(i)) then
+                    read(13,*) Tdomain%sSubdomain(i)%npow,  &
+                        Tdomain%sSubdomain(i)%Apow,         &
+                        Tdomain%sSubdomain(i)%pml_pos(0), &
+                        Tdomain%sSubdomain(i)%pml_width(0), &
+                        Tdomain%sSubdomain(i)%pml_pos(1), &
+                        Tdomain%sSubdomain(i)%pml_width(1), &
+                        Tdomain%sSubdomain(i)%pml_pos(2), &
+                        Tdomain%sSubdomain(i)%pml_width(2), &
+                        Tdomain%sSubdomain(i)%assocMat
+                endif
+            enddo
+        endif
+
+        Tdomain%any_PropOnFile = .false.
+        do i = 0,Tdomain%n_mat-1
+            if(propOnFile(Tdomain, i)) then
+                Tdomain%any_PropOnFile = .true.
+                exit
+            end if
+        enddo
+
+        if(nRandom > 0) then
+            Tdomain%any_Random = .true.
+            read(13,*); read(13,*)
+            do i = 0,Tdomain%n_mat-1
+                !write(*,*) "Reading Random Material (", i, ")"
+                if(Tdomain%sSubdomain(i)%material_type == "R") then
+                    allocate(Tdomain%sSubdomain(i)%corrL(0:2))
+                    allocate(Tdomain%sSubdomain(i)%varProp(0:2))
+                    allocate(Tdomain%sSubdomain(i)%margiFirst(0:2))
+
+                    read(13,*) Tdomain%sSubdomain(i)%corrMod,       &
+                        Tdomain%sSubdomain(i)%corrL(0),      &
+                        Tdomain%sSubdomain(i)%corrL(1),      &
+                        Tdomain%sSubdomain(i)%corrL(2),      &
+                        Tdomain%sSubdomain(i)%margiFirst(0), &
+                        Tdomain%sSubdomain(i)%varProp(0),    &
+                        Tdomain%sSubdomain(i)%margiFirst(1), &
+                        Tdomain%sSubdomain(i)%varProp(1),    &
+                        Tdomain%sSubdomain(i)%margiFirst(2), &
+                        Tdomain%sSubdomain(i)%varProp(2),    &
+                        Tdomain%sSubdomain(i)%seedStart
+                endif
+            enddo
+        endif
+
+        close(13)
+
+    end subroutine read_material_file_v2
 
 
     subroutine create_sem_sources(Tdomain, config)

@@ -239,6 +239,10 @@ contains
 
         !Propagating Properties over the PML
 
+        ! With the new PML definition, we can do better:
+        ! We can project x,y,z, on the pml plane, and interpolate the properties from the
+        ! projected coordinates
+
         do n = 0, Tdomain%n_elem-1
             mat_index = Tdomain%specel(n)%mat_index
             if(.not. Tdomain%not_PML_List(mat_index)) then
@@ -249,9 +253,9 @@ contains
                 LimPML2 = 0
                 LimPML3 = 0
                 !To the upper bound transformation
-                if (Tdomain%sSubDomain(mat_index)%Left)    LimPML1 = ngll-1
-                if (Tdomain%sSubDomain(mat_index)%Forward) LimPML2 = ngll-1
-                if (Tdomain%sSubDomain(mat_index)%Down)    LimPML3 = ngll-1
+                if (Tdomain%sSubDomain(mat_index)%pml_width(0)<0) LimPML1 = ngll-1
+                if (Tdomain%sSubDomain(mat_index)%pml_width(1)<0) LimPML2 = ngll-1
+                if (Tdomain%sSubDomain(mat_index)%pml_width(2)<0) LimPML3 = ngll-1
 
                 dir = read_PML_Direction(Tdomain, mat_index)
                 if(verbose) write(*,*) "dir = ", dir
@@ -415,54 +419,43 @@ contains
         !LOCAL
         integer :: error, code
 
+        real :: vx, vy, vz
+
+        !!! XXX: this wont work always, read comments from the call site
+        vx = Tdomain%sSubDomain(mat)%pml_width(0)
+        vy = Tdomain%sSubDomain(mat)%pml_width(1)
+        vz = Tdomain%sSubDomain(mat)%pml_width(2)
+
         !/////////////Defining PML orientation
         dir = 0
         !Face X oriented
-        if  (        Tdomain%sSubDomain(mat)%Px   .and. &
-            (.not.Tdomain%sSubDomain(mat)%Py)  .and. &
-            (.not.Tdomain%sSubDomain(mat)%Pz)) then
+        if  (vx /= 0 .and. vy == 0d0 .and. vz == 0d0) then
             dir = 0
         !Face Y oriented
-        elseif ((.not.Tdomain%sSubDomain(mat)%Px)  .and. &
-            Tdomain%sSubDomain(mat)%Py   .and. &
-            (.not.Tdomain%sSubDomain(mat)%Pz)) then
+        elseif (vx == 0 .and. vy /= 0d0 .and. vz == 0d0) then
             dir = 1
         !Face Z oriented
-        elseif ((.not.Tdomain%sSubDomain(mat)%Px) .and. &
-            (.not.Tdomain%sSubDomain(mat)%Py) .and. &
-            Tdomain%sSubDomain(mat)%Pz) then
+        elseif (vx == 0 .and. vy == 0d0 .and. vz /= 0d0) then
             dir = 2
-
         !Edge in XY
-        elseif (     Tdomain%sSubDomain(mat)%Px  .and. &
-            (     Tdomain%sSubDomain(mat)%Py) .and. &
-            (.not.Tdomain%sSubDomain(mat)%Pz)) then
+        elseif (vx /= 0 .and. vy /= 0d0 .and. vz == 0d0) then
             dir = 3
 
         !Edge in YZ
-        elseif ((.not.Tdomain%sSubDomain(mat)%Px) .and. &
-            (      Tdomain%sSubDomain(mat)%Py) .and. &
-            (      Tdomain%sSubDomain(mat)%Pz)) then
+        elseif (vx == 0 .and. vy /= 0d0 .and. vz /= 0d0) then
             dir = 4
 
         !Edge in ZX
-        elseif (      Tdomain%sSubDomain(mat)%Px   .and. &
-            ((.not.Tdomain%sSubDomain(mat)%Py)) .and. &
-            (      Tdomain%sSubDomain(mat)%Pz)) then
+        elseif (vx /= 0 .and. vy == 0d0 .and. vz /= 0d0) then
             dir = 5
 
         !Vertex in XYZ
-        elseif (  Tdomain%sSubDomain(mat)%Px   .and. &
-            (  Tdomain%sSubDomain(mat)%Py)  .and. &
-            (  Tdomain%sSubDomain(mat)%Pz)) then
+        elseif (vx /= 0 .and. vy /= 0d0 .and. vz /= 0d0) then
             dir = 6
 
         !Undefined PML
         else
             write(*,*) "ERROR in mat ", mat, " (PML) definition (directions), check 'material.input'"
-            write(*,*) "Tdomain%sSubDomain(", mat, ")%Px = ", Tdomain%sSubDomain(mat)%Px
-            write(*,*) "Tdomain%sSubDomain(", mat, ")%Py = ", Tdomain%sSubDomain(mat)%Py
-            write(*,*) "Tdomain%sSubDomain(", mat, ")%Pz = ", Tdomain%sSubDomain(mat)%Pz
             call MPI_ABORT(Tdomain%communicateur, error, code)
         end if
 

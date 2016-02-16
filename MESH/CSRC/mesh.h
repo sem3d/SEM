@@ -36,7 +36,11 @@ public:
     int add_elem(int mat_idx, const HexElem& el);
 
     int read_materials(const std::string& fname);
+    int read_materials_v1(const std::string& fname);
+    int read_materials_v2(const std::string& fname);
     void write_materials(const std::string& fname);
+    void write_materials_v1(const std::string& fname);
+    void write_materials_v2(const std::string& fname);
     void read_mesh_file(const std::string& fname);
 
 
@@ -78,9 +82,9 @@ public:
     int n_neu;
     int n_PW;
     int n_ctl_nodes; ///< Number of control nodes per element (8 or 27)
-    bool debug;
 
     int *m_xadj, *m_adjncy;
+    bool debug;
 
     std::vector<double> m_xco,m_yco,m_zco;  ///< Coordinates of the nodes
     std::vector<int> m_elems; ///< size=8*n_elems ; describe each node of every elements

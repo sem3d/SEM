@@ -981,6 +981,8 @@ contains
 
         write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Mass" Format="HDF" Datatype="Float" Precision="8"  Dimensions="',nn, &
             '">geometry',group,'.h5:/Mass</DataItem>'
+        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Alpha" Format="HDF" Datatype="Float" Precision="8"  Dimensions="',nn, &
+            '">geometry',group,'.h5:/Alpha</DataItem>'
         write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Jac" Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn, &
             '">geometry',group,'.h5:/Jac</DataItem>'
         write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Dom" Format="HDF" Datatype="Int"  Dimensions="',nn, &
@@ -1155,6 +1157,11 @@ contains
             write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
                 '"]/DataItem[@Name="Mass"]</DataItem>'
             write(61,"(a)") '</Attribute>'
+            ! ALPHA/DUMPSX
+            write(61,"(a,I9,a)") '<Attribute Name="Alpha" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
+                '"]/DataItem[@Name="Alpha"]</DataItem>'
+            write(61,"(a)") '</Attribute>'
             write(61,"(a,I9,a)") '<Attribute Name="Jac" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
             write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
                 '"]/DataItem[@Name="Jac"]</DataItem>'
@@ -1179,14 +1186,17 @@ contains
         integer, intent(in) :: nnodes
         integer, dimension(:), allocatable, intent(in) :: domains
         !
-        real, dimension(:),allocatable :: mass, jac
+        real, dimension(:),allocatable :: mass, jac, dumpsx
         integer :: ngll, idx
         integer :: i, j, k, n, lnum, nnodes_tot
         integer :: domain_type, imat
+        real(fpp) :: dx, dy, dz, dt
 
         allocate(mass(0:nnodes-1))
+        allocate(dumpsx(0:nnodes-1))
         allocate(jac(0:nnodes-1))
         mass = 0d0
+        dumpsx = 0d0
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             ngll = 0
@@ -1222,6 +1232,11 @@ contains
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
                                 mass(idx) = Tdomain%spmldom%MassMat(Tdomain%spmldom%Idom_(i,j,k,lnum))
+                                dt = 2d0*Tdomain%TimeD%dtmin
+                                dx = ((1d0/Tdomain%spmldom%PMLDumpSx(i,j,k,1,lnum))-1.)/dt
+                                dy = ((1d0/Tdomain%spmldom%PMLDumpSy(i,j,k,1,lnum))-1.)/dt
+                                dz = ((1d0/Tdomain%spmldom%PMLDumpSz(i,j,k,1,lnum))-1.)/dt
+                                dumpsx(idx) = dx+dy+dz
                             endif
                         end do
                     end do
@@ -1287,6 +1302,7 @@ contains
         end do
 
         call grp_write_real_1d(Tdomain, fid, "Mass", nnodes, mass, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "Alpha", nnodes, dumpsx, nnodes_tot)
         call grp_write_real_1d(Tdomain, fid, "Jac", nnodes, jac, nnodes_tot)
         call grp_write_int_1d(Tdomain, fid, "Dom", nnodes, domains, nnodes_tot)
         deallocate(mass,jac)

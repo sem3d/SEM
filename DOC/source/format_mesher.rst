@@ -140,3 +140,26 @@ Pour le cas où le maillage n'est pas automatique, le ficher doit contenir ::
       ou négatif de l'axe.
   
     - La fréquence de coupure en cas de PML filtrante
+
+
+
+Format de material.input V2
+===========================
+
+
+::
+
+   Nmat
+   Type  Pspeed  Sspeed Density  NGLL  Qp  Qmu
+   # Two lines skipped after Nmat material lines
+   # The second line
+   npow  Apow  posX  widthX  posY widthY posZ widthZ  mat
+
+
+Description des paramètres : comme le format V1 sauf :
+
+- posX, widthX : position du début de la couche PML sur l'axe X. Si widthX == 0, alors
+  pas de PML en X. Le signe de widthX donne sa direction : la pml
+  se trouve entre (posX) et (posX+widthX)
+
+   

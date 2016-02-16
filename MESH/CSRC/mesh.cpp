@@ -124,9 +124,17 @@ void Mesh3D::dump_connectivity(const char* fname)
 }
 
 
-
+void Mesh3D::write_materials(const std::string& str)
+{
+    write_materials_v2(str);
+}
 
 int Mesh3D::read_materials(const std::string& str)
+{
+    return read_materials_v2(str);
+}
+
+int Mesh3D::read_materials_v1(const std::string& str)
 {
     FILE* f = fopen(str.c_str(), "r");
     int nmats;
@@ -144,8 +152,32 @@ int Mesh3D::read_materials(const std::string& str)
         sscanf(buffer, "%c %lf %lf %lf %d %d %d %lf %lf %lf",
                &type, &vp, &vs, &rho, &ngllx, &nglly, &ngllz,
                &dt, &Qp, &Qmu);
+        printf("Mat: %2ld : %c vp=%lf vs=%lf Qp=%lf Qmu=%lf\n", m_materials.size(), type, vp, vs, Qp, Qmu);
+        m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
+    }
+    free(buffer);
+    return nmats;
+}
+
+int Mesh3D::read_materials_v2(const std::string& str)
+{
+    FILE* f = fopen(str.c_str(), "r");
+    int nmats;
+    char type;
+    char *buffer=NULL;
+    size_t linesize=0;
+    double vs, vp, rho;
+    int ngllx;
+    double Qp, Qmu;
+
+    getline(&buffer, &linesize, f);
+    sscanf(buffer, "%d", &nmats);
+    for(int k=0;k<nmats;++k) {
+        getline(&buffer, &linesize, f);
+        sscanf(buffer, "%c %lf %lf %lf %d %lf %lf",
+               &type, &vp, &vs, &rho, &ngllx, &Qp, &Qmu);
         printf("Mat: %2ld : %c vp=%lf vs=%lf\n", m_materials.size(), type, vp, vs);
-        m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx, nglly, ngllz));
+        m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
     }
     free(buffer);
     return nmats;
@@ -153,7 +185,8 @@ int Mesh3D::read_materials(const std::string& str)
 
 #define TF(e)  (e ? 'T' : 'F')
 
-void Mesh3D::write_materials(const std::string& str)
+
+void Mesh3D::write_materials_v1(const std::string& str)
 {
     FILE* f = fopen(str.c_str(), "w");
     int nmats = m_materials.size();
@@ -163,7 +196,7 @@ void Mesh3D::write_materials(const std::string& str)
         fprintf(f, "%c %lf %lf %lf %d %d %d %lf %lf %lf\n",
                 mat.material_char(),
                 mat.Pspeed, mat.Sspeed, mat.rho,
-                mat.m_ngllx, mat.m_nglly, mat.m_ngllz,
+                mat.m_ngll, mat.m_ngll, mat.m_ngll,
                 0.0, mat.Qpression, mat.Qmu);
     }
     fprintf(f, "# PML properties\n");
@@ -171,13 +204,39 @@ void Mesh3D::write_materials(const std::string& str)
     for(int k=0;k<nmats;++k) {
         const Material& mat = m_materials[k];
         if (!mat.is_pml()) continue;
-        char px = TF(mat.x_dir!=0);
-        char py = TF(mat.y_dir!=0);
-        char pz = TF(mat.z_dir!=0);
-        char xl = TF(mat.x_dir==-1);
-        char yf = TF(mat.y_dir==-1);
-        char zd = TF(mat.z_dir==-1);
+        char px = TF(mat.xwidth!=0.);
+        char py = TF(mat.ywidth!=0);
+        char pz = TF(mat.zwidth!=0);
+        char xl = TF(mat.xwidth<0);
+        char yf = TF(mat.ywidth<0);
+        char zd = TF(mat.zwidth<0);
         fprintf(f, "F 2 10. %c %c %c %c %c %c 0. 0\n", px, xl, py, yf, pz, zd);
+    }
+}
+
+void Mesh3D::write_materials_v2(const std::string& str)
+{
+    FILE* f = fopen(str.c_str(), "w");
+    int nmats = m_materials.size();
+    fprintf(f, "%d\n", nmats);
+    for(int k=0;k<nmats;++k) {
+        const Material& mat = m_materials[k];
+        fprintf(f, "%c %lf %lf %lf %d %lf %lf\n",
+                mat.material_char(),
+                mat.Pspeed, mat.Sspeed, mat.rho,
+                mat.m_ngll,
+                mat.Qpression, mat.Qmu);
+    }
+
+    fprintf(f, "# PML properties\n");
+    fprintf(f, "# npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat\n");
+    for(int k=0;k<nmats;++k) {
+        const Material& mat = m_materials[k];
+        if (!mat.is_pml()) continue;
+        fprintf(f, "2 10. %lf %lf %lf %lf %lf %lf %d\n",
+                mat.xpos, mat.xwidth,
+                mat.ypos, mat.ywidth,
+                mat.zpos, mat.zwidth, k);
     }
 }
 
