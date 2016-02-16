@@ -157,6 +157,7 @@ contains
 
     subroutine get_solid_dom_var(Tdomain, dom, el, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+        use deriv3d
         implicit none
         !
         type(domain)                               :: TDomain
@@ -171,10 +172,9 @@ contains
         !
         logical                                  :: flag_gradU
         integer                                  :: ngll, i, j, k, ind, mat
-        real(fpp), dimension(:,:,:), allocatable :: DXX, DXY, DXZ
-        real(fpp), dimension(:,:,:), allocatable :: DYX, DYY, DYZ
-        real(fpp), dimension(:,:,:), allocatable :: DZX, DZY, DZZ
-        real(fpp), dimension (:,:), allocatable  :: htprime
+        real(fpp)                                :: DXX, DXY, DXZ
+        real(fpp)                                :: DYX, DYY, DYZ
+        real(fpp)                                :: DZX, DZY, DZZ
         real(fpp)                                :: xmu, xlambda, xkappa
         real(fpp)                                :: x2mu, xlambda2mu
         real(fpp)                                :: onemSbeta, onemPbeta
@@ -188,20 +188,6 @@ contains
 
         ngll = dom%ngll
         mat  = el%mat_index
-
-        if (flag_gradU) then
-            allocate(DXX(0:ngll-1,0:ngll-1,0:ngll-1))
-            allocate(DXY(0:ngll-1,0:ngll-1,0:ngll-1))
-            allocate(DXZ(0:ngll-1,0:ngll-1,0:ngll-1))
-            allocate(DYX(0:ngll-1,0:ngll-1,0:ngll-1))
-            allocate(DYY(0:ngll-1,0:ngll-1,0:ngll-1))
-            allocate(DYZ(0:ngll-1,0:ngll-1,0:ngll-1))
-            allocate(DZX(0:ngll-1,0:ngll-1,0:ngll-1))
-            allocate(DZY(0:ngll-1,0:ngll-1,0:ngll-1))
-            allocate(DZZ(0:ngll-1,0:ngll-1,0:ngll-1))
-            allocate(hTprime(0:ngll-1,0:ngll-1))
-            hTprime=Tdomain%sSubDomain(mat)%hTprime
-        end if
 
         ! First, get displacement.
 
@@ -219,22 +205,24 @@ contains
             enddo
         enddo
 
-        ! Then, compute gradU with displacement if needed.
-
-        if (flag_gradU) then
-            call physical_part_deriv(ngll,htprime,&
-                 dom%InvGrad_(:,:,:,:,:,el%lnum),fieldU(:,:,:,0),DXX,DYX,DZX)
-            call physical_part_deriv(ngll,htprime,&
-                 dom%InvGrad_(:,:,:,:,:,el%lnum),fieldU(:,:,:,1),DXY,DYY,DZY)
-            call physical_part_deriv(ngll,htprime,&
-                 dom%InvGrad_(:,:,:,:,:,el%lnum),fieldU(:,:,:,2),DXZ,DYZ,DZZ)
-        end if
-
         ! Then, get other variables.
 
         do k=0,ngll-1
             do j=0,ngll-1
                 do i=0,ngll-1
+                    ! Compute gradU with displacement if needed.
+
+                    if (flag_gradU) then
+                        call physical_part_deriv_ijk(i,j,k,ngll,Tdomain%sSubDomain(mat)%hTprime,&
+                             dom%InvGrad_(:,:,i,j,k,el%lnum),fieldU(:,:,:,0),DXX,DYX,DZX)
+                        call physical_part_deriv_ijk(i,j,k,ngll,Tdomain%sSubDomain(mat)%hTprime,&
+                             dom%InvGrad_(:,:,i,j,k,el%lnum),fieldU(:,:,:,1),DXY,DYY,DZY)
+                        call physical_part_deriv_ijk(i,j,k,ngll,Tdomain%sSubDomain(mat)%hTprime,&
+                             dom%InvGrad_(:,:,i,j,k,el%lnum),fieldU(:,:,:,2),DXZ,DYZ,DZZ)
+                    end if
+
+                    ! Get other variables.
+
                     ind = dom%Idom_(i,j,k,el%lnum)
 
                     if (out_variables(OUT_VITESSE) == 1) then
@@ -251,7 +239,7 @@ contains
                         if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
                         fieldP(i,j,k) = -(dom%Lambda_(i,j,k,el%lnum)&
                                           +2d0/3d0*dom%Mu_(i,j,k,el%lnum))&
-                                        *(DXX(i,j,k)+DYY(i,j,k)+DZZ(i,j,k))
+                                        *(DXX+DYY+DZZ)
                     end if
 
                     if (out_variables(OUT_EPS_VOL) == 1 .or. &
@@ -259,7 +247,7 @@ contains
                         out_variables(OUT_EPS_DEV) == 1 .or. &
                         out_variables(OUT_STRESS_DEV) == 1 ) then
                         if(.not. allocated(eps_vol)) allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
-                        eps_vol(i,j,k) = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
+                        eps_vol(i,j,k) = DXX + DYY + DZZ
                     end if
 
                     if (.not. Tdomain%aniso) then
@@ -289,51 +277,40 @@ contains
                         if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                         S_energy(i,j,k) = 0.
                         if (.not. Tdomain%aniso) then
-                            S_energy(i,j,k) =   xmu/2 * ( DXY(i,j,k)**2 + DYX(i,j,k)**2 &
-                                              +   DXZ(i,j,k)**2 + DZX(i,j,k)**2 &
-                                              +   DYZ(i,j,k)**2 + DZY(i,j,k)**2 &
-                                              - 2 * DXY(i,j,k) * DYX(i,j,k)     &
-                                              - 2 * DXZ(i,j,k) * DZX(i,j,k)     &
-                                              - 2 * DYZ(i,j,k) * DZY(i,j,k))
+                            S_energy(i,j,k) =   xmu/2 * (       DXY**2 + DYX**2 &
+                                                          +     DXZ**2 + DZX**2 &
+                                                          +     DYZ**2 + DZY**2 &
+                                                          - 2 * DXY * DYX     &
+                                                          - 2 * DXZ * DZX     &
+                                                          - 2 * DYZ * DZY )
                         end if
                     end if
 
                     if (out_variables(OUT_EPS_DEV) == 1) then
                         if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
-                        eps_dev(i,j,k,0) = DXX(i,j,k) - eps_vol(i,j,k) / 3
-                        eps_dev(i,j,k,1) = DYY(i,j,k) - eps_vol(i,j,k) / 3
-                        eps_dev(i,j,k,2) = DZZ(i,j,k) - eps_vol(i,j,k) / 3
-                        eps_dev(i,j,k,3) = 0.5 * (DXY(i,j,k) + DYX(i,j,k))
-                        eps_dev(i,j,k,4) = 0.5 * (DZX(i,j,k) + DXZ(i,j,k))
-                        eps_dev(i,j,k,5) = 0.5 * (DZY(i,j,k) + DYZ(i,j,k))
+                        eps_dev(i,j,k,0) = DXX - eps_vol(i,j,k) / 3
+                        eps_dev(i,j,k,1) = DYY - eps_vol(i,j,k) / 3
+                        eps_dev(i,j,k,2) = DZZ - eps_vol(i,j,k) / 3
+                        eps_dev(i,j,k,3) = 0.5 * (DXY + DYX)
+                        eps_dev(i,j,k,4) = 0.5 * (DZX + DXZ)
+                        eps_dev(i,j,k,5) = 0.5 * (DZY + DYZ)
                     end if
 
                     if (out_variables(OUT_STRESS_DEV) == 1) then
                         if(.not. allocated(sig_dev)) allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
                         sig_dev(i,j,k,0:5) = 0.
                         if (.not. Tdomain%aniso) then
-                            sig_dev(i,j,k,0) = x2mu * (DXX(i,j,k) - eps_vol(i,j,k) * M_1_3)
-                            sig_dev(i,j,k,1) = x2mu * (DYY(i,j,k) - eps_vol(i,j,k) * M_1_3)
-                            sig_dev(i,j,k,2) = x2mu * (DZZ(i,j,k) - eps_vol(i,j,k) * M_1_3)
-                            sig_dev(i,j,k,3) = xmu * (DXY(i,j,k) + DYX(i,j,k))
-                            sig_dev(i,j,k,4) = xmu * (DXZ(i,j,k) + DZX(i,j,k))
-                            sig_dev(i,j,k,5) = xmu * (DYZ(i,j,k) + DZY(i,j,k))
+                            sig_dev(i,j,k,0) = x2mu * (DXX - eps_vol(i,j,k) * M_1_3)
+                            sig_dev(i,j,k,1) = x2mu * (DYY - eps_vol(i,j,k) * M_1_3)
+                            sig_dev(i,j,k,2) = x2mu * (DZZ - eps_vol(i,j,k) * M_1_3)
+                            sig_dev(i,j,k,3) = xmu * (DXY + DYX)
+                            sig_dev(i,j,k,4) = xmu * (DXZ + DZX)
+                            sig_dev(i,j,k,5) = xmu * (DYZ + DZY)
                         end if
                     end if
                 enddo
             enddo
         enddo
-
-        if (allocated(DXX))     deallocate(DXX)
-        if (allocated(DXY))     deallocate(DXY)
-        if (allocated(DXZ))     deallocate(DXZ)
-        if (allocated(DYX))     deallocate(DYX)
-        if (allocated(DYY))     deallocate(DYY)
-        if (allocated(DYZ))     deallocate(DYZ)
-        if (allocated(DZX))     deallocate(DZX)
-        if (allocated(DZY))     deallocate(DZY)
-        if (allocated(DZZ))     deallocate(DZZ)
-        if (allocated(hTprime)) deallocate(hTprime)
     end subroutine get_solid_dom_var
 
     subroutine init_material_properties_solid(dom, lnum, i, j, k, density, lambda, mu, kappa, Tdomain, mat)
@@ -414,9 +391,8 @@ contains
         integer :: lnum
 
         integer :: ngll,i,j,k,i_dir
-        real, dimension (0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) ::  DXX,DXY,DXZ, &
-            DYX,DYY,DYZ,DZX,DZY,DZZ,Fox,Foy,Foz
-        real, dimension(0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1,0:2) :: Depla
+        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
+        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
 
         ngll = dom%ngll
 
@@ -430,12 +406,7 @@ contains
             enddo
         enddo
 
-        call physical_part_deriv(ngll,htprime,dom%InvGrad_(:,:,:,:,:,lnum),Depla(:,:,:,0),dxx,dyx,dzx)
-        call physical_part_deriv(ngll,htprime,dom%InvGrad_(:,:,:,:,:,lnum),Depla(:,:,:,1),dxy,dyy,dzy)
-        call physical_part_deriv(ngll,htprime,dom%InvGrad_(:,:,:,:,:,lnum),Depla(:,:,:,2),dxz,dyz,dzz)
-
-        call calcul_forces(dom,lnum,Fox,Foy,Foz,htprime,&
-             mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,aniso,n_solid)
+        call calcul_forces(dom,lnum,Fox,Foy,Foz,htprime,mat%GLLw,Depla,ngll,aniso,n_solid)
 
         do k = 0,ngll-1
             do j = 0,ngll-1

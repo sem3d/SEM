@@ -22,6 +22,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/Interface.f90
     ${PRJ}/SRC/Modules/Domain.f90
     ${PRJ}/SRC/Modules/solid_fluid.f90
+    ${PRJ}/SRC/partial_deriv.f90
     ${PRJ}/SRC/orientation.f90
     ${PRJ}/SRC/Capteur.f90
     ${PRJ}/SRC/comm_utils.f90
@@ -63,7 +64,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/algo_comm.f90
     ${PRJ}/SRC/source_excit.F90
     ${PRJ}/SRC/boundary_conditions_init.f90
-    ${PRJ}/SRC/partial_deriv.f90
 
     ${PRJ}/SRC/snapshots.F90
 

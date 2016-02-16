@@ -219,7 +219,7 @@ contains
         integer :: lnum
 
         integer :: ngll,i,j,k
-        real, dimension(0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: dPhiX,dPhiY,dPhiZ,Fo_Fl,Phi
+        real, dimension(0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: Fo_Fl,Phi
 
         ngll = dom%ngll
 
@@ -233,10 +233,9 @@ contains
                 enddo
             enddo
         enddo
-        call physical_part_deriv(ngll,htprime,dom%InvGrad_(:,:,:,:,:,lnum),Phi,dPhiX,dPhiY,dPhiZ)
 
         ! internal forces
-        call calcul_forces_fluid(dom,lnum,Fo_Fl,htprime,mat%GLLw,dPhiX,dPhiY,dPhiZ)
+        call calcul_forces_fluid(dom,lnum,Fo_Fl,htprime,mat%GLLw,Phi)
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1

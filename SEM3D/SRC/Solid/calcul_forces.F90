@@ -13,9 +13,8 @@
 
 module m_calcul_forces ! wrap subroutine in module to get arg type check at build time
     contains
-    subroutine calcul_forces(dom,lnum,Fox,Foy,Foz, &
-        htprime,GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
-        ngll,aniso,n_solid)
+    subroutine calcul_forces(dom,lnum,Fox,Foy,Foz,&
+        htprime,GLLw,Depla,ngll,aniso,n_solid)
 
         use sdomain
         use attenuation_solid
@@ -28,11 +27,12 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
         real, dimension(0:ngll-1,0:ngll-1), intent(in) :: htprime
         real, dimension(0:ngll-1), intent(in) :: GLLw
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
+        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2), intent(in) :: Depla
         logical :: aniso
         integer :: n_solid
 
         integer :: i,j,k,l
+        real :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
         real :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
         real :: sxx,sxy,sxz,syy,syz,szz,t4,F1,F2,F3
         real :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
@@ -63,6 +63,13 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
+                    call physical_part_deriv_ijk(i,j,k,dom%ngll,htprime,&
+                         dom%InvGrad_(:,:,i,j,k,lnum),Depla(:,:,:,0),dxx,dyx,dzx)
+                    call physical_part_deriv_ijk(i,j,k,dom%ngll,htprime,&
+                         dom%InvGrad_(:,:,i,j,k,lnum),Depla(:,:,:,1),dxy,dyy,dzy)
+                    call physical_part_deriv_ijk(i,j,k,dom%ngll,htprime,&
+                         dom%InvGrad_(:,:,i,j,k,lnum),Depla(:,:,:,2),dxz,dyz,dzz)
+
                     call calcul_sigma(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
                          sxx,sxy,sxz,syy,syz,szz,aniso,C,n_solid)
 
@@ -200,7 +207,7 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
             enddo
         enddo
         !=-=-=-=-=-=-=-=-=-=-
-        call attenuation_update(dom,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid,aniso)
+        call attenuation_update(dom,lnum,htprime,Depla,ngll,n_solid,aniso)
     end subroutine calcul_forces
 
     subroutine calcul_sigma(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
@@ -210,7 +217,7 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
         implicit none
         type(domain_solid), intent (INOUT) :: dom
         integer, intent(in) :: i,j,k,lnum
-        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
+        real, intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
         real, intent(out) :: sxx,sxy,sxz,syy,syz,szz
         logical aniso
         real, dimension(:,:,:,:,:), allocatable :: C
@@ -222,12 +229,12 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
         integer l
 
         if (aniso .and. allocated(C)) then
-            eij(0) = DXX(i,j,k)
-            eij(1) = DYY(i,j,k)
-            eij(2) = DZZ(i,j,k)
-            eij(3) = s2o2*(DYZ(i,j,k)+DZY(i,j,k))
-            eij(4) = s2o2*(DXZ(i,j,k)+DZX(i,j,k))
-            eij(5) = s2o2*(DXY(i,j,k)+DYX(i,j,k))
+            eij(0) = DXX
+            eij(1) = DYY
+            eij(2) = DZZ
+            eij(3) = s2o2*(DYZ+DZY)
+            eij(4) = s2o2*(DXZ+DZX)
+            eij(5) = s2o2*(DXY+DYX)
 
             sxx = 0.
             syy = 0.
@@ -255,12 +262,12 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
                 xla = dom%Lambda_(i,j,k,lnum)
                 xla2mu = xla + 2. * xmu
 
-                sxx = xla2mu * DXX(i,j,k) + xla  * ( DYY(i,j,k) + DZZ(i,j,k) )
-                sxy = xmu  *( DXY(i,j,k)  + DYX(i,j,k)  )
-                sxz = xmu * ( DXZ(i,j,k)  + DZX(i,j,k)  )
-                syy = xla2mu * DYY(i,j,k) + xla  * ( DXX(i,j,k) + DZZ(i,j,k) )
-                syz = xmu * ( DYZ(i,j,k)  + DZY(i,j,k)  )
-                szz = xla2mu * DZZ(i,j,k) + xla  * ( DXX(i,j,k) + DYY(i,j,k) )
+                sxx = xla2mu * DXX + xla * ( DYY + DZZ )
+                sxy = xmu * ( DXY + DYX )
+                sxz = xmu * ( DXZ + DZX )
+                syy = xla2mu * DYY + xla * ( DXX + DZZ )
+                syz = xmu * ( DYZ + DZY )
+                szz = xla2mu * DZZ + xla * ( DXX + DYY )
             end if
         end if
 
@@ -269,7 +276,6 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
                  sxx,sxy,sxz,syy,syz,szz,n_solid)
         end if
     end subroutine calcul_sigma
-
 end module m_calcul_forces
 
 !! Local Variables:

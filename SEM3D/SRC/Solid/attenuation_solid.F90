@@ -24,7 +24,7 @@ contains
 #include "index.h"
         type(domain_solid), intent (INOUT) :: dom
         integer, intent(in) :: i,j,k,lnum
-        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
+        real, intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
         real, intent(out) :: sxx,sxy,sxz,syy,syz,szz
 
         real :: xmu, x2mu
@@ -34,12 +34,12 @@ contains
         xmu = xmu * dom%onemSbeta(i,j,k,lnum)
         x2mu = 2. * xmu
 
-        sxx = x2mu *   DXX(i,j,k)
-        sxy = xmu  * ( DXY(i,j,k) + DYX(i,j,k) )
-        sxz = xmu  * ( DXZ(i,j,k) + DZX(i,j,k) )
-        syy = x2mu *   DYY(i,j,k)
-        syz = xmu  * ( DYZ(i,j,k) + DZY(i,j,k) )
-        szz = x2mu *   DZZ(i,j,k)
+        sxx = x2mu *   DXX
+        sxy = xmu  * ( DXY + DYX )
+        sxz = xmu  * ( DXZ + DZX )
+        syy = x2mu *   DYY
+        syz = xmu  * ( DYZ + DZY )
+        szz = x2mu *   DZZ
     end subroutine calcul_sigma_attenuation
 
     subroutine sigma_attenuation(dom,i,j,k,lnum,DXX,DYY,DZZ,&
@@ -49,7 +49,7 @@ contains
 #include "index.h"
         type(domain_solid), intent (INOUT) :: dom
         integer, intent(in) :: i,j,k,lnum
-        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(in) :: DXX,DYY,DZZ
+        real, intent(in) :: DXX,DYY,DZZ
         real, intent(out) :: sxx,sxy,sxz,syy,syz,szz
         integer :: n_solid
 
@@ -59,7 +59,7 @@ contains
         xkappa = dom%Kappa_(i,j,k,lnum)
         ! kappa_relaxed -> kappa_unrelaxed
         xkappa = xkappa * dom%onemPbeta(i,j,k,lnum)
-        xpression = xkappa * ( DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k) )
+        xpression = xkappa * ( DXX + DYY + DZZ )
 
         !        stt = (sxx + syy + szz)/3.
         do i_sls = 0,n_solid-1
@@ -81,21 +81,25 @@ contains
         szz = szz - stt + xpression
     end subroutine sigma_attenuation
 
-    subroutine attenuation_update(dom,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid,aniso)
+    subroutine attenuation_update(dom,lnum,htprime,Depla,ngll,n_solid,aniso)
         use sdomain
+        use deriv3d
         implicit none
 #include "index.h"
 
         type(domain_solid), intent (INOUT) :: dom
         integer, intent(in) :: lnum
-        integer, intent(in) :: ngll,n_solid
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
+        integer, intent(in) :: ngll
+        real, dimension(0:ngll-1,0:ngll-1), intent(in) :: htprime
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
+        integer, intent(in) :: n_solid
         logical aniso
 
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: epsilondev_xx_loc,epsilondev_yy_loc
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: epsilonvol_loc
         integer :: i_sls,i,j,k
+        real :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
         real :: factorS_loc,alphavalS_loc,betavalS_loc,gammavalS_loc,Sn,Snp1
         real :: factorP_loc,alphavalP_loc,betavalP_loc,gammavalP_loc,Pn,Pnp1
         real epsilon_trace_over_3
@@ -105,16 +109,23 @@ contains
         do i = 0,ngll-1
             do j = 0,ngll-1
                 do k = 0,ngll-1
-                    epsilon_trace_over_3 = 0.333333333333333333333333333333d0 * (DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k))
+                    call physical_part_deriv_ijk(i,j,k,dom%ngll,htprime,&
+                         dom%InvGrad_(:,:,i,j,k,lnum),Depla(:,:,:,0),dxx,dyx,dzx)
+                    call physical_part_deriv_ijk(i,j,k,dom%ngll,htprime,&
+                         dom%InvGrad_(:,:,i,j,k,lnum),Depla(:,:,:,1),dxy,dyy,dzy)
+                    call physical_part_deriv_ijk(i,j,k,dom%ngll,htprime,&
+                         dom%InvGrad_(:,:,i,j,k,lnum),Depla(:,:,:,2),dxz,dyz,dzz)
+
+                    epsilon_trace_over_3 = 0.333333333333333333333333333333d0 * (DXX + DYY + DZZ)
                     if (aniso) then
                     else
-                        epsilonvol_loc(i,j,k) = DXX(i,j,k) + DYY(i,j,k) + DZZ(i,j,k)
+                        epsilonvol_loc(i,j,k) = DXX + DYY + DZZ
                     endif
-                    epsilondev_xx_loc(i,j,k) = DXX(i,j,k) - epsilon_trace_over_3
-                    epsilondev_yy_loc(i,j,k) = DYY(i,j,k) - epsilon_trace_over_3
-                    epsilondev_xy_loc(i,j,k) = 0.5 * (DXY(i,j,k) + DYX(i,j,k))
-                    epsilondev_xz_loc(i,j,k) = 0.5 * (DZX(i,j,k) + DXZ(i,j,k))
-                    epsilondev_yz_loc(i,j,k) = 0.5 * (DZY(i,j,k) + DYZ(i,j,k))
+                    epsilondev_xx_loc(i,j,k) = DXX - epsilon_trace_over_3
+                    epsilondev_yy_loc(i,j,k) = DYY - epsilon_trace_over_3
+                    epsilondev_xy_loc(i,j,k) = 0.5 * (DXY + DYX)
+                    epsilondev_xz_loc(i,j,k) = 0.5 * (DZX + DXZ)
+                    epsilondev_yz_loc(i,j,k) = 0.5 * (DZY + DYZ)
                 enddo
             enddo
         enddo

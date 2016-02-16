@@ -4,8 +4,9 @@
 !!
 module m_calcul_forces_fluid ! wrap subroutine in module to get arg type check at build time
     contains
-    subroutine calcul_forces_fluid(dom,lnum,FFl,htprime,GLLw,dPhiX,dPhiY,dPhiZ)
+    subroutine calcul_forces_fluid(dom,lnum,FFl,htprime,GLLw,Phi)
         use sdomain
+        use deriv3d
         implicit none
 #include "index.h"
 
@@ -14,8 +15,9 @@ module m_calcul_forces_fluid ! wrap subroutine in module to get arg type check a
         real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(out) :: FFl
         real, dimension(0:dom%ngll-1,0:dom%ngll-1), intent(in) :: htprime
         real, dimension(0:dom%ngll-1), intent(in) :: GLLw
-        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(in) :: dPhiX,dPhiY,dPhiZ
+        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(in) :: Phi
 
+        real :: dPhiX,dPhiY,dPhiZ
         real :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
         integer :: i,j,k,l
         real :: sx,sy,sz,t4,F1
@@ -31,11 +33,13 @@ module m_calcul_forces_fluid ! wrap subroutine in module to get arg type check a
         do k = 0,dom%ngll-1
             do j = 0,dom%ngll-1
                 do i = 0,dom%ngll-1
+                    call physical_part_deriv_ijk(i,j,k,dom%ngll,hTprime,&
+                         dom%InvGrad_(:,:,i,j,k,lnum),Phi,dPhiX,dPhiY,dPhiZ)
 
                     ! (fluid equivalent) stress  ( = physical velocity)
-                    sx = xdens(i,j,k)*dPhiX(i,j,k)
-                    sy = xdens(i,j,k)*dPhiY(i,j,k)
-                    sz = xdens(i,j,k)*dPhiZ(i,j,k)
+                    sx = xdens(i,j,k)*dPhiX
+                    sy = xdens(i,j,k)*dPhiY
+                    sz = xdens(i,j,k)*dPhiZ
 
                     xi1 = dom%InvGrad_(0,0,i,j,k,lnum)
                     xi2 = dom%InvGrad_(1,0,i,j,k,lnum)
