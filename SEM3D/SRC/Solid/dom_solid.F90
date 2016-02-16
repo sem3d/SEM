@@ -404,8 +404,6 @@ contains
 
     subroutine forces_int_solid(dom, mat, htprime, n_solid, aniso, champs1, lnum)
         use m_calcul_forces
-        use m_calcul_forces_att
-        use m_calcul_forces_aniso
         use m_calcul_forces_aniso_att
         use attenuation_solid
         type(domain_solid), intent (INOUT) :: dom
@@ -437,24 +435,13 @@ contains
         call physical_part_deriv(ngll,htprime,dom%InvGrad_(:,:,:,:,:,lnum),Depla(:,:,:,1),dxy,dyy,dzy)
         call physical_part_deriv(ngll,htprime,dom%InvGrad_(:,:,:,:,:,lnum),Depla(:,:,:,2),dxz,dyz,dzz)
 
-        if (aniso) then
-            if (n_solid>0) then
-                call calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz,htprime,&
-                     mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid)
-                call attenuation_update(dom,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid,aniso)
-            else
-                call calcul_forces(dom,lnum,Fox,Foy,Foz,htprime,&
-                     mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,aniso)
-            endif
+        if (aniso .and. n_solid>0) then
+            call calcul_forces_aniso_att(dom,lnum,Fox,Foy,Foz,htprime,&
+                 mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid)
+            call attenuation_update(dom,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid,aniso)
         else
-            if (n_solid>0) then
-                call calcul_forces_att(dom,lnum,Fox,Foy,Foz,htprime,&
-                     mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid)
-                call attenuation_update(dom,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid,aniso)
-            else
-                call calcul_forces(dom,lnum,Fox,Foy,Foz,htprime,&
-                     mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,aniso)
-            endif
+            call calcul_forces(dom,lnum,Fox,Foy,Foz,htprime,&
+                 mat%GLLw,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,aniso,n_solid)
         endif
 
         do k = 0,ngll-1

@@ -15,9 +15,10 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
     contains
 subroutine calcul_forces(dom,lnum,Fox,Foy,Foz, &
     htprimex,GLLwx,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, &
-    ngll,aniso)
+    ngll,aniso,n_solid)
 
     use sdomain
+    use attenuation_solid
     implicit none
 #include "index.h"
 
@@ -28,7 +29,8 @@ subroutine calcul_forces(dom,lnum,Fox,Foy,Foz, &
     real, dimension(0:ngll-1,0:ngll-1), intent(in) :: htprimex
     real, dimension(0:ngll-1), intent(in) :: GLLwx
     real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
-    logical aniso
+    logical :: aniso
+    integer :: n_solid
 
     integer :: i,j,k,l
     real :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
@@ -62,7 +64,7 @@ subroutine calcul_forces(dom,lnum,Fox,Foy,Foz, &
         do j = 0,ngll-1
             do i = 0,ngll-1
                 call calcul_sigma(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
-                     sxx,sxy,sxz,syy,syz,szz,aniso,C)
+                     sxx,sxy,sxz,syy,syz,szz,aniso,C,n_solid)
 
                 xi1 = dom%InvGrad_(0,0,i,j,k,lnum)
                 xi2 = dom%InvGrad_(1,0,i,j,k,lnum)
@@ -199,12 +201,13 @@ subroutine calcul_forces(dom,lnum,Fox,Foy,Foz, &
         enddo
     enddo
     !=-=-=-=-=-=-=-=-=-=-
-
+    call attenuation_update(dom,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,ngll,n_solid,aniso)
 end subroutine calcul_forces
 
 subroutine calcul_sigma(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
-                        sxx,sxy,sxz,syy,syz,szz,aniso,C)
+                        sxx,sxy,sxz,syy,syz,szz,aniso,C,n_solid)
     use sdomain
+    use attenuation_solid
     implicit none
     type(domain_solid), intent (INOUT) :: dom
     integer, intent(in) :: i,j,k,lnum
@@ -212,13 +215,17 @@ subroutine calcul_sigma(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
     real, intent(out) :: sxx,sxy,sxz,syy,syz,szz
     logical aniso
     real, dimension(:,:,:,:,:), allocatable :: C
+    integer :: n_solid
 
     real, dimension(0:5) :: eij
     real, parameter :: s2 = 1.414213562373095, s2o2 = 0.707106781186547
     real xmu, xla, xla2mu
     integer l
 
-    if (aniso .and. allocated(C)) then
+    if (n_solid>0) then
+        call calcul_sigma_attenuation(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
+             sxx,sxy,sxz,syy,syz,szz,n_solid)
+    else if (aniso .and. allocated(C)) then
         eij(0) = DXX(i,j,k)
         eij(1) = DYY(i,j,k)
         eij(2) = DZZ(i,j,k)
