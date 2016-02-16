@@ -352,6 +352,7 @@ contains
         nRandom = 0
 
         call semname_read_inputmesh_parametrage(Tdomain%material_file,fnamef)
+        if(rg==0) write(*,*) "read material file : ", trim(fnamef)
         open (13, file=fnamef, status="old", form="formatted")
 
         read(13,*) n_aus
@@ -393,6 +394,16 @@ contains
                 nRandom = nRandom + 1
             end if
 
+            if(rg==0) then
+                write (*,*) 'Material   : ', i
+                write (*,*) ' - type    : ', Tdomain%sSubDomain(i)%material_type
+                write (*,*) ' - Pspeed  : ', Tdomain%sSubDomain(i)%Pspeed
+                write (*,*) ' - Sspeed  : ', Tdomain%sSubDomain(i)%Sspeed
+                write (*,*) ' - Density : ', Tdomain%sSubDomain(i)%dDensity
+                write (*,*) ' - NGLL    : ', Tdomain%sSubDomain(i)%NGLL
+                write (*,*) ' - Qp      : ', Tdomain%sSubDomain(i)%Qpression
+                write (*,*) ' - Qmu     : ', Tdomain%sSubDomain(i)%Qmu
+            endif
         enddo
 
         if(npml > 0) then
@@ -408,6 +419,15 @@ contains
                         Tdomain%sSubdomain(i)%pml_pos(2), &
                         Tdomain%sSubdomain(i)%pml_width(2), &
                         Tdomain%sSubdomain(i)%assocMat
+
+                    if(rg==0) then
+                        write (*,*) 'PML Material : '
+                        write (*,*) ' - assocMat  : ', Tdomain%sSubdomain(i)%assocMat
+                        write (*,*) ' - Apow      : ', Tdomain%sSubdomain(i)%Apow
+                        write (*,*) ' - npow      : ', Tdomain%sSubdomain(i)%npow
+                        write (*,*) ' - pml_pos   : ', Tdomain%sSubdomain(i)%pml_pos(:)
+                        write (*,*) ' - pml_width : ', Tdomain%sSubdomain(i)%pml_width(:)
+                    endif
                 endif
             enddo
         endif
