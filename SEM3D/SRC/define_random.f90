@@ -203,7 +203,7 @@ contains
         if(.not. Tdomain%not_PML_List(mat)) then !Random PML
             if(rg == 0) write(*,*) " "
             if(rg == 0) write(*,*) "        Propagating PML Properties"
-            call propagate_PML_properties(Tdomain, rg, prop)
+            call propagate_PML_properties(Tdomain, prop)
         end if
 
         deallocate(calculate)
@@ -215,14 +215,13 @@ contains
     !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    subroutine propagate_PML_properties(Tdomain, rg, prop)
+    subroutine propagate_PML_properties(Tdomain, prop)
         !This subroutine modifies the "prop" table.
         !In the PML elements it extrudes the properties according to the PML direction
 
         implicit none
         !INPUT
         type(domain)    , intent(inout), target :: Tdomain
-        integer         , intent(in)            :: rg
 
         !OUTPUT
         real        , intent(inout), dimension(0:, 0:) :: prop !Properties that should be modified
@@ -417,6 +416,7 @@ contains
         integer :: error, code
 
         !/////////////Defining PML orientation
+        dir = 0
         !Face X oriented
         if  (        Tdomain%sSubDomain(mat)%Px   .and. &
             (.not.Tdomain%sSubDomain(mat)%Py)  .and. &
