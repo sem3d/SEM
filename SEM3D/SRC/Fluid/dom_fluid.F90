@@ -256,7 +256,7 @@ contains
         enddo
 
         ! internal forces
-        call calcul_forces_fluid(dom,lnum,Fo_Fl,Phi)
+        call calcul_forces_fluid(dom,dom%ngll,lnum,Fo_Fl,Phi)
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
