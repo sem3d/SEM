@@ -10,39 +10,53 @@
 !!\date 10/03/2009
 !!
 !<
-subroutine compute_GLL(Tdomain)
-    use sdomain
-    use splib, only : zelegl, welegl, dmlegl
+module gll3d
     implicit none
-    type(domain), intent(inout) :: Tdomain
+contains
+    subroutine compute_gll_data(ngll, gllc, gllw, hprime, htprime)
+        use constants
+        use splib, only : zelegl, welegl, dmlegl
+        implicit none
+        integer, intent(in) :: ngll
+        real(fpp), dimension(:), allocatable, intent(out) :: gllc, gllw
+        real(fpp), dimension(:,:), allocatable, intent(out) :: hprime, htprime
+        !
+        real(fpp), dimension(:), allocatable :: gllpol
 
-    integer ::  ngll, i, ndomains
-    real, dimension(:), allocatable :: gllpol
-
-    ndomains = Tdomain%n_mat
-    do i = 0, ndomains-1
-        !- x-part
-        ngll = Tdomain%sSubdomain(i)%NGLL
-        allocate(Tdomain%sSubdomain(i)%GLLc(0:ngll-1))
+        allocate(GLLc(0:ngll-1))
         allocate(GLLpol(0:ngll-1))
-        allocate(Tdomain%sSubdomain(i)%GLLw(0:ngll-1))
-        allocate(Tdomain%sSubdomain(i)%hprime(0:ngll-1,0:ngll-1))
-        allocate(Tdomain%sSubdomain(i)%hTprime(0:ngll-1,0:ngll-1))
+        allocate(GLLw(0:ngll-1))
+        allocate(hprime(0:ngll-1,0:ngll-1))
+        allocate(hTprime(0:ngll-1,0:ngll-1))
 
         ! USING FUNARO SUBROUTINES
         ! ZELEGL computes the coordinates of GLL points
         ! WELEGL computes the respective weights
         ! DMLEGL compute the matrix of the first derivatives in GLL points
 
-        call zelegl (ngll-1, Tdomain%sSubdomain(i)%GLLc, GLLpol)
-        call welegl (ngll-1, Tdomain%sSubdomain(i)%GLLc, GLLpol, Tdomain%sSubdomain(i)%GLLw)
-        call dmlegl (ngll-1, ngll-1, Tdomain%sSubdomain(i)%GLLc, GLLpol, Tdomain%sSubdomain(i)%hTprime)
-        Tdomain%sSubdomain(i)%hprime = TRANSPOSE(Tdomain%sSubdomain(i)%hTprime)
-
+        call zelegl (ngll-1, GLLc, GLLpol)
+        call welegl (ngll-1, GLLc, GLLpol, GLLw)
+        call dmlegl (ngll-1, ngll-1, GLLc, GLLpol, hTprime)
+        hprime = TRANSPOSE(hTprime)
         deallocate (GLLpol)
-    enddo
-end subroutine compute_GLL
+    end subroutine compute_gll_data
 
+    subroutine compute_GLL(Tdomain)
+        use sdomain
+        implicit none
+        type(domain), intent(inout) :: Tdomain
+
+        integer ::  ngll, i, ndomains
+
+        ndomains = Tdomain%n_mat
+        do i = 0, ndomains-1
+            !- x-part
+            ngll = Tdomain%sSubdomain(i)%NGLL
+            call compute_gll_data(ngll, Tdomain%sSubdomain(i)%GLLc, Tdomain%sSubdomain(i)%GLLw, &
+                Tdomain%sSubdomain(i)%hprime, Tdomain%sSubdomain(i)%htprime)
+        enddo
+    end subroutine compute_GLL
+end module gll3d
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

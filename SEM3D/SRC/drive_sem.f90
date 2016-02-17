@@ -174,6 +174,7 @@ subroutine RUN_PREPARED(Tdomain)
     use mshape8
     use mshape27
     use build_prop_files
+    use gll3d
 #ifdef COUPLAGE
     use scouplage
 #endif
