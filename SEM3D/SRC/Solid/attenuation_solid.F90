@@ -81,7 +81,7 @@ contains
         szz = szz - stt + xpression
     end subroutine sigma_attenuation
 
-    subroutine attenuation_update(dom,lnum,hprime,Depla,ngll,n_solid,aniso)
+    subroutine attenuation_update(dom,lnum,hprime,Depla,n_solid,aniso)
         use sdomain
         use deriv3d
         implicit none
@@ -89,16 +89,15 @@ contains
 
         type(domain_solid), intent (INOUT) :: dom
         integer, intent(in) :: lnum
-        integer, intent(in) :: ngll
-        real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
+        real, dimension(0:dom%ngll-1,0:dom%ngll-1), intent(in) :: hprime
+        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2), intent(in) :: Depla
         integer, intent(in) :: n_solid
         logical aniso
 
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: epsilondev_xx_loc,epsilondev_yy_loc
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: epsilonvol_loc
-        integer :: i_sls,i,j,k
+        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: epsilondev_xx_loc,epsilondev_yy_loc
+        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc
+        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: epsilonvol_loc
+        integer :: i_sls,i,j,k, ngll
         real :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
         real :: factorS_loc,alphavalS_loc,betavalS_loc,gammavalS_loc,Sn,Snp1
         real :: factorP_loc,alphavalP_loc,betavalP_loc,gammavalP_loc,Pn,Pnp1
@@ -107,6 +106,7 @@ contains
 
         if (n_solid==0) return
 
+        ngll = dom%ngll
         do i = 0,ngll-1
             do j = 0,ngll-1
                 do k = 0,ngll-1

@@ -207,7 +207,7 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
             enddo
         enddo
         !=-=-=-=-=-=-=-=-=-=-
-        call attenuation_update(dom,lnum,mat%hprime,Depla,dom%ngll,n_solid,aniso)
+        call attenuation_update(dom,lnum,mat%hprime,Depla,n_solid,aniso)
     end subroutine calcul_forces
 
     subroutine calcul_sigma(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
