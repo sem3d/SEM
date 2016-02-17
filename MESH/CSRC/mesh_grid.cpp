@@ -163,7 +163,7 @@ void RectMesh::apply_pml_borders(int npml_)
 
 void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
 {
-    const int npml=2;
+    const int npml=1;
     assert(xmin<xmax);
     assert(ymin<ymax);
 
