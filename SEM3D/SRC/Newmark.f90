@@ -9,6 +9,8 @@
 !! des vitesses avec une formulation contrainte-vitesse décalée en temps dans les PML.
 !<
 
+#include "index.h"
+
 subroutine Newmark(Tdomain,ntime)
     ! Predictor-MultiCorrector Newmark Velocity Scheme within a
     ! Time staggered Stress-Velocity formulation inside PML

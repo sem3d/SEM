@@ -18,19 +18,28 @@
 
 
 #if defined(SEM_VEC)
+#define CHUNK  64
 #define IND_IJKE(i,j,k,e)           e,i,j,k
 #define IND_DIJKE(m,i,j,k,e)      e,m,i,j,k
 #define IND_MNIJKE(m,n,i,j,k,e) e,m,n,i,j,k
 #define IND_IJKNE(i,j,k,n,e)      e,n,i,j,k
 #define IND_IJKE(i,j,k,e)           e,i,j,k
 #define IND_NIJKE(n,i,j,k,e)        e,i,j,k,n
+#define SUBELEM_LOOP_DIR  !dir$ simd
+#define BEGIN_SUBELEM_LOOP(e,ee,e0)  do ee=0,CHUNK-1; e = e0+ee
+
+#define END_SUBELEM_LOOP()  end do
 #else
+#define CHUNK 1
 #define IND_IJKE(i,j,k,e)           i,j,k,e
 #define IND_DIJKE(m,i,j,k,e)      m,i,j,k,e
 #define IND_MNIJKE(m,n,i,j,k,e) m,n,i,j,k,e
 #define IND_IJKNE(i,j,k,n,e)      n,i,j,k,e
 #define IND_IJKE(i,j,k,e)           i,j,k,e
 #define IND_NIJKE(n,i,j,k,e)        i,j,k,n,e
+#define SUBELEM_LOOP_DIR
+#define BEGIN_SUBELEM_LOOP(e,ee,e0)  ee=0;e=e0;
+#define END_SUBELEM_LOOP()  ;
 #endif
 
 #define     Density_(i,j,k,e)     m_Density(IND_IJKE(i,j,k,e))
