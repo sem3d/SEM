@@ -29,6 +29,13 @@ module champs_fluid
 
         ! Nombre d'elements dans le domaine
         integer :: nbelem
+        integer :: nbelem_alloc ! Nb reelement alloue pour l'alignement des tableaux
+
+        ! Points, poids de gauss et derivees
+        real(fpp), dimension (:), allocatable :: GLLc
+        real(fpp), dimension (:), allocatable :: GLLw
+        real(fpp), dimension (:,:), allocatable :: hprime
+        real(fpp), dimension (:,:), allocatable :: hTprime
 
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
         real(fpp), dimension(:), allocatable :: MassMat

@@ -3,85 +3,106 @@
 !! Copyright CEA, ECP, IPGP
 !!
 module m_calcul_forces_fluid ! wrap subroutine in module to get arg type check at build time
-    contains
-    subroutine calcul_forces_fluid(dom,mat,lnum,FFl,Phi)
+contains
+
+
+    subroutine calcul_forces_fluid(dom,lnum,FFl,Phi)
         use sdomain
         use deriv3d
         implicit none
 #include "index.h"
 
         type(domain_fluid), intent (INOUT) :: dom
-        type (subdomain), intent(IN) :: mat
         integer, intent(in) :: lnum
-        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(out) :: FFl
-        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(in) :: Phi
+        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(out) :: FFl
+        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(in) :: Phi
 
-        real :: dPhiX,dPhiY,dPhiZ
-        real :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
-        integer :: i,j,k,l
-        real :: sx,sy,sz,t4,F1
-        real :: t41,t11,t51,t12,t61,t13
-        real :: xt1,xt6,xt10
-        real, parameter :: zero = 0.
-        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: xdens
-        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: t1,t6
-        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: t10
-        real, dimension(0:2,0:2) :: invgrad_ijk
+        real(fpp) :: dPhi_dX,dPhi_dY,dPhi_dZ
+        real(fpp) :: dPhi_dxi,dPhi_deta,dPhi_dzeta
+        real(fpp) :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
+        integer :: i,j,k,l,e,ee
+        real(fpp) :: sx,sy,sz,t4,F1
+        real(fpp) :: t41,t11,t51,t12,t61,t13
+        real(fpp) :: xt1,xt6,xt10
+        real(fpp), parameter :: zero = 0.
+        real(fpp) :: xdens
+        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: t1,t6,t10
 
-        xdens(:,:,:) = 1d0/dom%Density_(:,:,:,lnum)
+
 
         do k = 0,dom%ngll-1
             do j = 0,dom%ngll-1
                 do i = 0,dom%ngll-1
-                    invgrad_ijk = dom%InvGrad_(:,:,i,j,k,lnum) ! cache for performance
+!dir$ simd
+                    do ee = 0, CHUNK-1
+                        e = lnum+ee
+                        ! Calcul de dPhi/dx dPhi/dy dPhi/dz
+                        dPhi_dxi   = 0D0
+                        dPhi_deta  = 0D0
+                        dPhi_dzeta = 0D0
+!dir$ loop count (5)
+                        DO L = 0, dom%ngll-1
+                            dPhi_dxi   = dPhi_dxi  +Phi(ee,L,J,K)*dom%hprime(L,I)
+                            dPhi_deta  = dPhi_deta +Phi(ee,I,L,K)*dom%hprime(L,J)
+                            dPhi_dzeta = dPhi_dzeta+Phi(ee,I,J,L)*dom%hprime(L,K)
+                        END DO
+                        !- in the physical domain
+                        dPhi_dx = dPhi_dxi*dom%InvGrad_(0,0,i,j,k,e) &
+                            + dPhi_deta*dom%InvGrad_(0,1,i,j,k,e) &
+                            + dPhi_dzeta*dom%InvGrad_(0,2,i,j,k,e)
+                        dPhi_dy = dPhi_dxi*dom%InvGrad_(1,0,i,j,k,e) &
+                            + dPhi_deta*dom%InvGrad_(1,1,i,j,k,e) &
+                            + dPhi_dzeta*dom%InvGrad_(1,2,i,j,k,e)
+                        dPhi_dz = dPhi_dxi*dom%InvGrad_(2,0,i,j,k,e) &
+                            + dPhi_deta*dom%InvGrad_(2,1,i,j,k,e) &
+                            + dPhi_dzeta*dom%InvGrad_(2,2,i,j,k,e)
 
-                    call physical_part_deriv_ijk(i,j,k,dom%ngll,mat%hprime,&
-                         invgrad_ijk,Phi,dPhiX,dPhiY,dPhiZ)
+                        ! (fluid equivalent) stress  ( = physical velocity)
+                        xdens = 1d0/dom%Density_(i,j,k,e)
+                        sx = xdens*dPhi_dX
+                        sy = xdens*dPhi_dY
+                        sz = xdens*dPhi_dZ
 
-                    ! (fluid equivalent) stress  ( = physical velocity)
-                    sx = xdens(i,j,k)*dPhiX
-                    sy = xdens(i,j,k)*dPhiY
-                    sz = xdens(i,j,k)*dPhiZ
+                        xi1 = dom%InvGrad_(0,0,i,j,k,e)
+                        xi2 = dom%InvGrad_(1,0,i,j,k,e)
+                        xi3 = dom%InvGrad_(2,0,i,j,k,e)
+                        et1 = dom%InvGrad_(0,1,i,j,k,e)
+                        et2 = dom%InvGrad_(1,1,i,j,k,e)
+                        et3 = dom%InvGrad_(2,1,i,j,k,e)
+                        ga1 = dom%InvGrad_(0,2,i,j,k,e)
+                        ga2 = dom%InvGrad_(1,2,i,j,k,e)
+                        ga3 = dom%InvGrad_(2,2,i,j,k,e)
 
-                    xi1 = invgrad_ijk(0,0)
-                    xi2 = invgrad_ijk(1,0)
-                    xi3 = invgrad_ijk(2,0)
-                    et1 = invgrad_ijk(0,1)
-                    et2 = invgrad_ijk(1,1)
-                    et3 = invgrad_ijk(2,1)
-                    ga1 = invgrad_ijk(0,2)
-                    ga2 = invgrad_ijk(1,2)
-                    ga3 = invgrad_ijk(2,2)
+                        !=====================
+                        !       F1 
+                        xt1 = sx*xi1 + sy*xi2 + sz*xi3
 
-                    !=====================
-                    !       F1 
-                    xt1 = sx*xi1 + sy*xi2 + sz*xi3
+                        !=====================
+                        !       F2 
+                        xt6 = sx*et1 + sy*et2 + sz*et3
 
-                    !=====================
-                    !       F2 
-                    xt6 = sx*et1 + sy*et2 + sz*et3
+                        !=====================
+                        !       F3 
+                        xt10 = sx*ga1 + sy*ga2 + sz*ga3
 
-                    !=====================
-                    !       F3 
-                    xt10 = sx*ga1 + sy*ga2 + sz*ga3
+                        !
+                        !- Multiply par Jacobian and weight
+                        !
+                        t4  = dom%Jacob_(i,j,k,e) * dom%GLLw(i)
+                        xt1 = xt1 * t4
 
-                    !
-                    !- Multiply par Jacobian and weight
-                    !
-                    t4  = dom%Jacob_(i,j,k,lnum) * mat%GLLw(i)
-                    xt1 = xt1 * t4
+                        t4  = dom%Jacob_(i,j,k,e) * dom%GLLw(j)
+                        xt6 = xt6 * t4
 
-                    t4  = dom%Jacob_(i,j,k,lnum) * mat%GLLw(j)
-                    xt6 = xt6 * t4
+                        t4   = dom%Jacob_(i,j,k,e) * dom%GLLw(k)
+                        xt10 = xt10 * t4
 
-                    t4   = dom%Jacob_(i,j,k,lnum) * mat%GLLw(k)
-                    xt10 = xt10 * t4
+                        t1(ee,i,j,k) = xt1
 
-                    t1(i,j,k) = xt1
+                        t6(ee,j,i,k) = xt6
 
-                    t6(j,i,k) = xt6
-
-                    t10(k,i,j) = xt10
+                        t10(ee,k,i,j) = xt10
+                    enddo
                 enddo
             enddo
         enddo
@@ -94,36 +115,43 @@ module m_calcul_forces_fluid ! wrap subroutine in module to get arg type check a
         do k = 0,dom%ngll-1
             do j = 0,dom%ngll-1
                 do i = 0,dom%ngll-1
-                    !=-=-=-=-=-=-=-=-=-=-
-                    !
-                    t11 = mat%GLLw(j) * mat%GLLw(k)
-                    t12 = mat%GLLw(i) * mat%GLLw(k)
-                    t13 = mat%GLLw(i) * mat%GLLw(j)
-                    !
-                    t41 = zero
-                    t51 = zero
-                    t61 = zero
-                    !
-                    do l = 0,dom%ngll-1
-                        t41 = t41 + mat%htprime(l,i) * t1(l,j,k)
-                    enddo
+!dir$ simd
+                    do ee = 0,CHUNK-1
+                        e = lnum+ee
+                        !=-=-=-=-=-=-=-=-=-=-
+                        !
+                        t11 = dom%GLLw(j) * dom%GLLw(k)
+                        t12 = dom%GLLw(i) * dom%GLLw(k)
+                        t13 = dom%GLLw(i) * dom%GLLw(j)
+                        !
+                        t41 = zero
+                        t51 = zero
+                        t61 = zero
+                        !
+!dir$ loop count (5)
+                        do l = 0,dom%ngll-1
+                            t41 = t41 + dom%htprime(l,i) * t1(ee,l,j,k)
+                        enddo
 
-                    do l = 0,dom%ngll-1
-                        t51 = t51 + mat%htprime(l,j) * t6(l,i,k)
-                    enddo
-                    ! FFl
-                    F1 = t41*t11 + t51*t12
-                    !
-                    !
-                    do l = 0,dom%ngll-1
-                        t61 = t61 + mat%htprime(l,k) * t10(l,i,j)
-                    enddo
+!dir$ loop count (5)
+                        do l = 0,dom%ngll-1
+                            t51 = t51 + dom%htprime(l,j) * t6(ee,l,i,k)
+                        enddo
+                        ! FFl
+                        F1 = t41*t11 + t51*t12
+                        !
+                        !
+!dir$ loop count (5)
+                        do l = 0,dom%ngll-1
+                            t61 = t61 + dom%htprime(l,k) * t10(ee,l,i,j)
+                        enddo
 
-                    ! FX
-                    F1 = F1 + t61*t13
-                    !
-                    FFl(i,j,k) = F1
-                    !=-=-=-=-=-=-=-=-=-=-
+                        ! FX
+                        F1 = F1 + t61*t13
+                        !
+                        FFl(ee,i,j,k) = F1
+                        !=-=-=-=-=-=-=-=-=-=-
+                    enddo
                 enddo
             enddo
         enddo

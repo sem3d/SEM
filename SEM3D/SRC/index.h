@@ -24,8 +24,6 @@
 #define IND_IJKNE(i,j,k,n,e)      e,n,i,j,k
 #define IND_IJKE(i,j,k,e)           e,i,j,k
 #define IND_NIJKE(n,i,j,k,e)        e,i,j,k,n
-#define BEGIN_ELEM_SUBLOOP(e,k,e0,e1) DO e = e0,e1;k=e-e0
-#define END_ELEM_SUBLOOP  END DO
 #else
 #define IND_IJKE(i,j,k,e)           i,j,k,e
 #define IND_DIJKE(m,i,j,k,e)      m,i,j,k,e
@@ -33,8 +31,6 @@
 #define IND_IJKNE(i,j,k,n,e)      n,i,j,k,e
 #define IND_IJKE(i,j,k,e)           i,j,k,e
 #define IND_NIJKE(n,i,j,k,e)        i,j,k,n,e
-#define BEGIN_ELEM_SUBLOOP(e,k,e0,e1) e=e0;k=0
-#define END_ELEM_SUBLOOP
 #endif
 
 #define     Density_(i,j,k,e)     m_Density(IND_IJKE(i,j,k,e))

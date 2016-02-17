@@ -15,16 +15,20 @@ module dom_fluid
 contains
 
     subroutine allocate_dom_fluid (dom)
+        use gll3d
         implicit none
         type(domain_fluid), intent (INOUT) :: dom
         !
-        integer nbelem, ngll
+        integer :: nbelem, ngll
         !
 
         nbelem = dom%nbelem
         if(nbelem == 0) return ! Do not allocate if not needed (save allocation/RAM)
         ngll   = dom%ngll
 
+        nbelem = CHUNK*((nbelem+CHUNK-1)/CHUNK)
+        dom%nbelem_alloc = nbelem
+        
         allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
         allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
 
@@ -32,6 +36,9 @@ contains
         allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
 
         allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+        dom%m_Idom = 0
+        ! Initialisation poids, points des polynomes de lagranges aux point de GLL
+        call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
 
         ! Allocation et initialisation de champs0 et champs1 pour les fluides
         if (dom%nglltot /= 0) then
@@ -223,15 +230,14 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_fluid
 
-    subroutine forces_int_fluid(dom, mat, champs1, lnum)
+    subroutine forces_int_fluid(dom, champs1, lnum)
         use m_calcul_forces_fluid
         type(domain_fluid), intent (INOUT) :: dom
-        type (subdomain), intent(IN) :: mat
         type(champsfluid), intent(inout) :: champs1
         integer :: lnum
 
-        integer :: ngll,i,j,k
-        real, dimension(0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: Fo_Fl,Phi
+        integer :: ngll,i,j,k,e,ee,idx
+        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: Fo_Fl,Phi
 
         ngll = dom%ngll
 
@@ -241,17 +247,24 @@ contains
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    Phi(i,j,k) = champs1%Phi(dom%Idom_(i,j,k,lnum))
+                    do ee = 0, CHUNK-1
+                        idx = dom%Idom_(i,j,k,ee+lnum)
+                        Phi(ee,i,j,k) = champs1%Phi(idx)
+                    enddo
                 enddo
             enddo
         enddo
 
         ! internal forces
-        call calcul_forces_fluid(dom,mat,lnum,Fo_Fl,Phi)
+        call calcul_forces_fluid(dom,lnum,Fo_Fl,Phi)
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    champs1%ForcesFl(dom%Idom_(i,j,k,lnum)) = champs1%ForcesFl(dom%Idom_(i,j,k,lnum))-Fo_Fl(i,j,k)
+                    do ee = 0, CHUNK-1
+                        e = lnum+ee
+                        if (e>dom%nbelem) exit
+                        champs1%ForcesFl(dom%Idom_(i,j,k,e)) = champs1%ForcesFl(dom%Idom_(i,j,k,e))-Fo_Fl(ee,i,j,k)
+                    enddo
                 enddo
             enddo
         enddo

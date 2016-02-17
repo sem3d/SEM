@@ -40,6 +40,8 @@ MODULE constants
     ! Les fichiers capteurs sont ecrits toutes les NCAPT_CACHE sorties
     integer, parameter :: NCAPT_CACHE=100
 
+    ! VECTORISATION/CHUNKING
+    integer, parameter :: CHUNK=32
 
     ! Materials
     integer, parameter :: MATERIAL_CONSTANT   = 1

@@ -411,6 +411,12 @@ subroutine internal_forces(Tdomain)
     type(domain), intent(inout)  :: Tdomain
     integer  :: n,mat, indsol, indflu, indpml, lnum
 
+    ! DOMAIN Fluide
+    if (Tdomain%fdom%nbelem>0) then
+        do n = 0,Tdomain%fdom%nbelem-1,CHUNK
+            call forces_int_fluid(Tdomain%fdom, Tdomain%fdom%champs1, n)
+        end do
+    end if
     do n = 0,Tdomain%n_elem-1
         lnum = Tdomain%specel(n)%lnum
         mat = Tdomain%specel(n)%mat_index
@@ -419,8 +425,8 @@ subroutine internal_forces(Tdomain)
             call forces_int_solid(Tdomain%sdom, Tdomain%sSubDomain(mat),&
                  Tdomain%n_sls, Tdomain%aniso, Tdomain%sdom%champs1, lnum)
         case (DM_FLUID)
-            call forces_int_fluid(Tdomain%fdom, Tdomain%sSubDomain(mat),&
-                 Tdomain%fdom%champs1, lnum)
+!!            call forces_int_fluid(Tdomain%fdom, Tdomain%sSubDomain(mat),&
+!!                 Tdomain%fdom%champs1, lnum)
         case (DM_SOLID_PML)
             call pred_sol_pml(Tdomain%spmldom, Tdomain%sSubDomain(mat), &
                  Tdomain%TimeD%dtmin, Tdomain%spmldom%champs1, lnum)
