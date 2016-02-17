@@ -17,6 +17,8 @@
 #define CONCAT(a,b) a ## b
 #define PROCNAME(n) CONCAT(calcul_forces_fluid_,n)
 
+#define ORIG
+
 subroutine PROCNAME(NGLLVAL)(dom,ngllvar,lnum,FFl,Phi)
     use sdomain
     use deriv3d
@@ -39,12 +41,13 @@ subroutine PROCNAME(NGLLVAL)(dom,ngllvar,lnum,FFl,Phi)
     real(fpp) :: xt1,xt6,xt10
     real(fpp), parameter :: zero = 0.
     real(fpp) :: xdens
+#ifdef ORIG
     real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t6,t10
-
+#endif
     !dir$ ASSUME_ALIGNED PHI: 32
     !dir$ ASSUME_ALIGNED FFL: 32
     !!        !dir$ ASSUME_ALIGNED dom%m_InvGrad: 32
-
+    ! Assume FFl = 0d0
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
@@ -108,11 +111,17 @@ subroutine PROCNAME(NGLLVAL)(dom,ngllvar,lnum,FFl,Phi)
                 t4   = dom%Jacob_(i,j,k,e) * dom%GLLw(k)
                 xt10 = xt10 * t4
 
+#ifdef ORIG
                 t1(ee,i,j,k) = xt1
-
                 t6(ee,j,i,k) = xt6
-
                 t10(ee,k,i,j) = xt10
+#else
+                DO L = 0, ngll-1
+                    FFl(ee,L,j,k) = FFl(ee,L,j,k) + dom%hprime(L,I)*xt1*dom%GLLw(j) * dom%GLLw(k)
+                    FFl(ee,i,L,k) = FFl(ee,i,L,k) + dom%hprime(L,J)*xt6*dom%GLLw(i) * dom%GLLw(k)
+                    FFl(ee,i,j,L) = FFl(ee,i,j,L) + dom%hprime(L,K)*xt10*dom%GLLw(i) * dom%GLLw(j)
+                END DO
+#endif
                 END_SUBELEM_LOOP()
             enddo
         enddo
@@ -121,7 +130,7 @@ subroutine PROCNAME(NGLLVAL)(dom,ngllvar,lnum,FFl,Phi)
     !
     !- Multiplication par la matrice de derivation puis par les poids
     !
-
+#ifdef ORIG
     !=-=-=-=-=-=-=-=-=-=-
     do k = 0,ngll-1
         do j = 0,ngll-1
@@ -167,6 +176,7 @@ subroutine PROCNAME(NGLLVAL)(dom,ngllvar,lnum,FFl,Phi)
             enddo
         enddo
     enddo
+#endif
     !=-=-=-=-=-=-=-=-=-=-
 end subroutine PROCNAME(NGLLVAL)
 

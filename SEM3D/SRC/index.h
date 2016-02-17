@@ -18,7 +18,7 @@
 
 
 #if defined(SEM_VEC)
-#define CHUNK  64
+#define CHUNK  8
 #define IND_IJKE(i,j,k,e)           e,i,j,k
 #define IND_DIJKE(m,i,j,k,e)      e,m,i,j,k
 #define IND_MNIJKE(m,n,i,j,k,e) e,m,n,i,j,k

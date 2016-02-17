@@ -250,6 +250,7 @@ contains
                     do ee = 0, CHUNK-1
                         idx = dom%Idom_(i,j,k,ee+lnum)
                         Phi(ee,i,j,k) = champs1%Phi(idx)
+                        Fo_Fl(ee,i,j,k) = 0d0
                     enddo
                 enddo
             enddo
