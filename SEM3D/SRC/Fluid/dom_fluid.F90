@@ -118,66 +118,79 @@ contains
 
         ngll = dom%ngll
 
-        do k=0,ngll-1
-            do j=0,ngll-1
-                do i=0,ngll-1
-                    ind = dom%Idom_(i,j,k,el%lnum)
+        if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
+            if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+            fieldU(:,:,:,:) = 0d0
+        end if
 
-                    if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
-                        if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                        fieldU(i,j,k,:) = 0d0
-                    end if
-
-                    if (out_variables(OUT_VITESSE) == 1) then
-                        if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                        if(.not. allocated(phi))    allocate(phi(0:ngll-1,0:ngll-1,0:ngll-1))
+        if (out_variables(OUT_VITESSE) == 1) then
+            if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+            if(.not. allocated(phi))    allocate(phi(0:ngll-1,0:ngll-1,0:ngll-1))
+            do k=0,ngll-1
+                do j=0,ngll-1
+                    do i=0,ngll-1
+                        ind = dom%Idom_(i,j,k,el%lnum)
                         phi(i,j,k) = dom%champs0%Phi(ind)
-                        mat = el%mat_index
-                        call fluid_velocity(ngll,Tdomain%sSubdomain(mat)%htprime,                  &
-                             dom%InvGrad_(:,:,:,:,:,el%lnum),dom%Density_(:,:,:,el%lnum),phi,fieldV)
-                    end if
-
-                    if (out_variables(OUT_ACCEL) == 1) then
-                        if(.not. allocated(fieldA)) allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                        if(.not. allocated(vphi))   allocate(vphi(0:ngll-1,0:ngll-1,0:ngll-1))
-                        vphi(i,j,k) = dom%champs0%VelPhi(ind)
-                        mat = el%mat_index
-                        call fluid_velocity(ngll,Tdomain%sSubdomain(mat)%htprime,               &
-                             dom%InvGrad_(:,:,:,:,:,el%lnum),dom%Density_(:,:,:,el%lnum),vphi,fieldA)
-                    end if
-
-                    if (out_variables(OUT_PRESSION) == 1) then
-                        if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
-                        fieldP(i,j,k) = -dom%champs0%VelPhi(ind)
-                    end if
-
-                    if (out_variables(OUT_EPS_VOL) == 1) then
-                        if(.not. allocated(eps_vol)) allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
-                        eps_vol(i,j,k) = 0.
-                    end if
-
-                    if (out_variables(OUT_ENERGYP) == 1) then
-                        if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-                        P_energy(i,j,k) = 0.
-                    end if
-
-                    if (out_variables(OUT_ENERGYS) == 1) then
-                        if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
-                        S_energy(i,j,k) = 0.
-                    end if
-
-                    if (out_variables(OUT_EPS_DEV) == 1) then
-                        if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
-                        eps_dev(i,j,k,:) = 0.
-                    end if
-
-                    if (out_variables(OUT_STRESS_DEV) == 1) then
-                        if(.not. allocated(sig_dev)) allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
-                        sig_dev(i,j,k,:) = 0.
-                    end if
+                    enddo
                 enddo
             enddo
-        enddo
+            mat = el%mat_index
+            call fluid_velocity(ngll,Tdomain%sSubdomain(mat)%htprime,                  &
+                dom%InvGrad_(:,:,:,:,:,el%lnum),dom%Density_(:,:,:,el%lnum),phi,fieldV)
+        end if
+
+        if (out_variables(OUT_ACCEL) == 1) then
+            if(.not. allocated(fieldA)) allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+            if(.not. allocated(vphi))   allocate(vphi(0:ngll-1,0:ngll-1,0:ngll-1))
+            do k=0,ngll-1
+                do j=0,ngll-1
+                    do i=0,ngll-1
+                        ind = dom%Idom_(i,j,k,el%lnum)
+                        vphi(i,j,k) = dom%champs0%VelPhi(ind)
+                    enddo
+                enddo
+            enddo
+            mat = el%mat_index
+            call fluid_velocity(ngll,Tdomain%sSubdomain(mat)%htprime,               &
+                dom%InvGrad_(:,:,:,:,:,el%lnum),dom%Density_(:,:,:,el%lnum),vphi,fieldA)
+        end if
+
+        if (out_variables(OUT_PRESSION) == 1) then
+            if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
+            do k=0,ngll-1
+                do j=0,ngll-1
+                    do i=0,ngll-1
+                        ind = dom%Idom_(i,j,k,el%lnum)
+                        fieldP(i,j,k) = -dom%champs0%VelPhi(ind)
+                    enddo
+                enddo
+            enddo
+        end if
+
+        if (out_variables(OUT_EPS_VOL) == 1) then
+            if(.not. allocated(eps_vol)) allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
+            eps_vol(:,:,:) = 0.
+        end if
+
+        if (out_variables(OUT_ENERGYP) == 1) then
+            if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+            P_energy(:,:,:) = 0.
+        end if
+
+        if (out_variables(OUT_ENERGYS) == 1) then
+            if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
+            S_energy(:,:,:) = 0.
+        end if
+
+        if (out_variables(OUT_EPS_DEV) == 1) then
+            if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
+            eps_dev(:,:,:,:) = 0.
+        end if
+
+        if (out_variables(OUT_STRESS_DEV) == 1) then
+            if(.not. allocated(sig_dev)) allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
+            sig_dev(:,:,:,:) = 0.
+        end if
         if(allocated(phi))  deallocate(phi)
         if(allocated(vphi)) deallocate(vphi)
     end subroutine get_fluid_dom_var
