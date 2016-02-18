@@ -15,10 +15,7 @@
 #define ngllvar ngll0
 #endif
 
-#ifndef PROCNAME
-#define CONCAT(a,b) a##b
-#define PROCNAME CONCAT(calcul_forces_fluid_,NGLLVAL)
-#endif
+#undef ORIG
 
 subroutine PROCNAME(dom,ngllvar,lnum,FFl,Phi)
     use sdomain
@@ -49,11 +46,14 @@ subroutine PROCNAME(dom,ngllvar,lnum,FFl,Phi)
     !dir$ ASSUME_ALIGNED FFL: 32
     !!        !dir$ ASSUME_ALIGNED dom%m_InvGrad: 32
     ! Assume FFl = 0d0
+    !dir$ assume(mod(size(dom%m_InvGrad,1),16).eq.0)
+
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
 #ifdef SEM_VEC
                 !dir$ simd
+                !dir$ vector aligned
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,lnum)
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz

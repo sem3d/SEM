@@ -234,8 +234,8 @@ contains
         use m_calcul_forces_fluid
         type(domain_fluid), intent (INOUT) :: dom
         type(champsfluid), intent(inout) :: champs1
-        integer :: lnum
-
+        integer, intent(in) :: lnum
+        !
         integer :: ngll,i,j,k,e,ee,idx
         real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: Fo_Fl,Phi
 

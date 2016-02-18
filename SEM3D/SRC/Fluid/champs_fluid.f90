@@ -29,7 +29,10 @@ module champs_fluid
 
         ! Nombre d'elements dans le domaine
         integer :: nbelem
-        integer :: nbelem_alloc ! Nb reelement alloue pour l'alignement des tableaux
+
+        ! Nombre d'elements alloues dans le domaine (>=nbelem)
+        integer :: nbelem_alloc
+        integer :: nb_chunks  ! nbelem_alloc == nb_chunks*CHUNK
 
         ! Points, poids de gauss et derivees
         real(fpp), dimension (:), allocatable :: GLLc
