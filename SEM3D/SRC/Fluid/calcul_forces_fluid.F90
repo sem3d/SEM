@@ -35,18 +35,37 @@ contains
     end subroutine calcul_forces_fluid
 
 #define NGLLVAL 4
+#define PROCNAME calcul_forces_fluid_4
 #include "calcul_forces_fluid.inc"
+#undef NGLLVAL
+#undef PROCNAME
 #define NGLLVAL 5
+#define PROCNAME calcul_forces_fluid_5
 #include "calcul_forces_fluid.inc"
+#undef NGLLVAL
+#undef PROCNAME
 #define NGLLVAL 6
+#define PROCNAME calcul_forces_fluid_6
 #include "calcul_forces_fluid.inc"
+#undef NGLLVAL
+#undef PROCNAME
 #define NGLLVAL 7
+#define PROCNAME calcul_forces_fluid_7
 #include "calcul_forces_fluid.inc"
+#undef NGLLVAL
+#undef PROCNAME
 #define NGLLVAL 8
+#define PROCNAME calcul_forces_fluid_8
 #include "calcul_forces_fluid.inc"
+#undef NGLLVAL
+#undef PROCNAME
 #define NGLLVAL 9
+#define PROCNAME calcul_forces_fluid_9
 #include "calcul_forces_fluid.inc"
+#undef NGLLVAL
+#undef PROCNAME
 #define NGLLVAL n
+#define PROCNAME calcul_forces_fluid_n
 #define NGLL_GEN
 #include "calcul_forces_fluid.inc"
 

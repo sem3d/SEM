@@ -14,12 +14,13 @@
 #else
 #define ngllvar ngll0
 #endif
-#define CONCAT(a,b) a ## b
-#define PROCNAME(n) CONCAT(calcul_forces_fluid_,n)
 
-#define ORIG
+#ifndef PROCNAME
+#define CONCAT(a,b) a##b
+#define PROCNAME CONCAT(calcul_forces_fluid_,NGLLVAL)
+#endif
 
-subroutine PROCNAME(NGLLVAL)(dom,ngllvar,lnum,FFl,Phi)
+subroutine PROCNAME(dom,ngllvar,lnum,FFl,Phi)
     use sdomain
     use deriv3d
     implicit none
@@ -178,7 +179,7 @@ subroutine PROCNAME(NGLLVAL)(dom,ngllvar,lnum,FFl,Phi)
     enddo
 #endif
     !=-=-=-=-=-=-=-=-=-=-
-end subroutine PROCNAME(NGLLVAL)
+end subroutine PROCNAME
 
 
 
