@@ -15,6 +15,7 @@ module dom_solid
 contains
 
     subroutine allocate_dom_solid (Tdomain, dom)
+        use gll3d
         implicit none
         type(domain) :: TDomain
         type(domain_solid), intent (INOUT) :: dom
@@ -28,6 +29,11 @@ contains
         ngll    = dom%ngll
         aniso   = Tdomain%aniso
         n_solid = Tdomain%n_sls
+        dom%n_sls = n_solid
+        dom%aniso = Tdomain%aniso
+
+        nbelem = CHUNK*((nbelem+CHUNK-1)/CHUNK)
+        dom%nbelem_alloc = nbelem
 
         allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
         allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
@@ -38,6 +44,9 @@ contains
         allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
 
         allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+        dom%m_Idom = 0
+        ! Initialisation poids, points des polynomes de lagranges aux point de GLL
+        call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
 
         if (aniso) then
             allocate (dom%Cij_ (0:20, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))

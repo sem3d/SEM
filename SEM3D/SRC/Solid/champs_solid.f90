@@ -31,9 +31,20 @@ module champs_solid
         ! Nombre d'elements dans le domaine
         integer :: nbelem
 
+        ! Nombre d'elements alloues dans le domaine (>=nbelem)
+        integer :: nbelem_alloc
+        integer :: nb_chunks ! nbelem_alloc == nb_chunks*CHUNK
+
+        ! Points, poids de gauss et derivees
+        real(fpp), dimension (:), allocatable :: GLLc
+        real(fpp), dimension (:), allocatable :: GLLw
+        real(fpp), dimension (:,:), allocatable :: hprime
+        real(fpp), dimension (:,:), allocatable :: hTprime
+
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
         real(fpp), dimension(:), allocatable :: MassMat
 
+        logical :: aniso
         real(fpp), dimension (:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Kappa, m_Density
         real(fpp), dimension(:,:,:,:,:), allocatable :: m_Cij
 
@@ -53,6 +64,7 @@ module champs_solid
         type(champssolid) :: champs0
         type(champssolid) :: champs1
         ! Attenuation
+        integer :: n_sls
         real(fpp), dimension(:,:,:,:),   allocatable :: m_Q
         real(fpp), dimension(:,:,:,:),   allocatable :: m_Qs
         real(fpp), dimension(:,:,:,:),   allocatable :: m_Qp
@@ -87,5 +99,11 @@ end module champs_solid
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
-!! End:
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
+!!! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!
