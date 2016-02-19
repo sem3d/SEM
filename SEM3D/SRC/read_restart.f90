@@ -13,6 +13,7 @@ subroutine read_EpsilonVol(Tdomain, elem_id)
     use HDF5
     use sem_hdf5, only : read_dset_1d_real
     implicit none
+#include "index.h"
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
     double precision, allocatable, dimension(:) :: epsilonvol, rvol, rxx, ryy, rxy, rxz, ryz
@@ -169,29 +170,29 @@ subroutine read_Stress(Tdomain, elem_id)
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    Tdomain%spmldom%Diagonal_Stress1(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
-                    Tdomain%spmldom%Diagonal_Stress1(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
-                    Tdomain%spmldom%Diagonal_Stress1(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
+                    Tdomain%spmldom%Diagonal_Stress1_(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
+                    Tdomain%spmldom%Diagonal_Stress1_(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
+                    Tdomain%spmldom%Diagonal_Stress1_(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
                     idx = idx + 3
-                    Tdomain%spmldom%Diagonal_Stress2(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
-                    Tdomain%spmldom%Diagonal_Stress2(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
-                    Tdomain%spmldom%Diagonal_Stress2(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
+                    Tdomain%spmldom%Diagonal_Stress2_(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
+                    Tdomain%spmldom%Diagonal_Stress2_(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
+                    Tdomain%spmldom%Diagonal_Stress2_(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
                     idx = idx + 3
-                    Tdomain%spmldom%Diagonal_Stress3(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
-                    Tdomain%spmldom%Diagonal_Stress3(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
-                    Tdomain%spmldom%Diagonal_Stress3(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
+                    Tdomain%spmldom%Diagonal_Stress3_(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
+                    Tdomain%spmldom%Diagonal_Stress3_(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
+                    Tdomain%spmldom%Diagonal_Stress3_(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
                     idx = idx + 3
-                    Tdomain%spmldom%Residual_Stress1(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
-                    Tdomain%spmldom%Residual_Stress1(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
-                    Tdomain%spmldom%Residual_Stress1(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
+                    Tdomain%spmldom%Residual_Stress1_(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
+                    Tdomain%spmldom%Residual_Stress1_(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
+                    Tdomain%spmldom%Residual_Stress1_(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
                     idx = idx + 3
-                    Tdomain%spmldom%Residual_Stress2(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
-                    Tdomain%spmldom%Residual_Stress2(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
-                    Tdomain%spmldom%Residual_Stress2(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
+                    Tdomain%spmldom%Residual_Stress2_(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
+                    Tdomain%spmldom%Residual_Stress2_(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
+                    Tdomain%spmldom%Residual_Stress2_(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
                     idx = idx + 3
-                    Tdomain%spmldom%Residual_Stress3(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
-                    Tdomain%spmldom%Residual_Stress3(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
-                    Tdomain%spmldom%Residual_Stress3(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
+                    Tdomain%spmldom%Residual_Stress3_(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
+                    Tdomain%spmldom%Residual_Stress3_(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
+                    Tdomain%spmldom%Residual_Stress3_(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
                     idx = idx + 3
                 end do
             end do
@@ -230,9 +231,9 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    Tdomain%fpmldom%Veloc(i,j,k,0,Tdomain%specel(n)%lnum) = veloc(idx+0)
-                    Tdomain%fpmldom%Veloc(i,j,k,1,Tdomain%specel(n)%lnum) = veloc(idx+1)
-                    Tdomain%fpmldom%Veloc(i,j,k,2,Tdomain%specel(n)%lnum) = veloc(idx+2)
+                    Tdomain%fpmldom%PMLVeloc_(i,j,k,0,Tdomain%specel(n)%lnum) = veloc(idx+0)
+                    Tdomain%fpmldom%PMLVeloc_(i,j,k,1,Tdomain%specel(n)%lnum) = veloc(idx+1)
+                    Tdomain%fpmldom%PMLVeloc_(i,j,k,2,Tdomain%specel(n)%lnum) = veloc(idx+2)
                     idx = idx + 3
                 end do
             end do

@@ -31,7 +31,7 @@ contains
 
         xmu = dom%Mu_(i,j,k,lnum)
         ! mu_relaxed -> mu_unrelaxed
-        xmu = xmu * dom%onemSbeta(i,j,k,lnum)
+        xmu = xmu * dom%onemSbeta_(i,j,k,lnum)
         x2mu = 2. * xmu
 
         sxx = x2mu *   DXX
@@ -58,7 +58,7 @@ contains
 
         xkappa = dom%Kappa_(i,j,k,lnum)
         ! kappa_relaxed -> kappa_unrelaxed
-        xkappa = xkappa * dom%onemPbeta(i,j,k,lnum)
+        xkappa = xkappa * dom%onemPbeta_(i,j,k,lnum)
         xpression = xkappa * ( DXX + DYY + DZZ )
 
         !        stt = (sxx + syy + szz)/3.
@@ -66,11 +66,11 @@ contains
         xpression = xpression - dom%R_vol_(i_sls,i,j,k,lnum)
             sxx = sxx  - dom%R_xx_(i_sls,i,j,k,lnum)
             syy = syy  - dom%R_yy_(i_sls,i,j,k,lnum)
-            !         sxx = sxx - stt - R_xx_(i_sls,i,j,k)
-            !         syy = syy - stt - R_yy_(i_sls,i,j,k)
+            !         sxx = sxx - stt - Rxx(i_sls,i,j,k)
+            !         syy = syy - stt - Ryy(i_sls,i,j,k)
             ! ici on utilise le fait que la trace est nulle
             szz = szz  + dom%R_xx_(i_sls,i,j,k,lnum) + dom%R_yy_(i_sls,i,j,k,lnum)
-            !         szz = szz - stt + R_xx_(i_sls,i,j,k) + R_yy_(i_sls,i,j,k)
+            !         szz = szz - stt + Rxx(i_sls,i,j,k) + Ryy(i_sls,i,j,k)
             sxy = sxy - dom%R_xy_(i_sls,i,j,k,lnum)
             sxz = sxz - dom%R_xz_(i_sls,i,j,k,lnum)
             syz = syz - dom%R_yz_(i_sls,i,j,k,lnum)
@@ -140,10 +140,10 @@ contains
                         if (aniso) then
                         else
                             ! get coefficients for that standard linear solid
-                            factorP_loc   = dom%Kappa_(i,j,k,lnum) * dom%factor_common_P(i_sls,i,j,k,lnum)
-                            alphavalP_loc = dom%alphaval_P(i_sls,i,j,k,lnum)
-                            betavalP_loc  = dom%betaval_P (i_sls,i,j,k,lnum)
-                            gammavalP_loc = dom%gammaval_P(i_sls,i,j,k,lnum)
+                            factorP_loc   = dom%Kappa_(i,j,k,lnum) * dom%factor_common_P_(i_sls,i,j,k,lnum)
+                            alphavalP_loc = dom%alphaval_P_(i_sls,i,j,k,lnum)
+                            betavalP_loc  = dom%betaval_P_(i_sls,i,j,k,lnum)
+                            gammavalP_loc = dom%gammaval_P_(i_sls,i,j,k,lnum)
 
                             !  terme volumique
                             Pn   = factorP_loc * dom%epsilonvol_(i,j,k,lnum)
@@ -153,10 +153,10 @@ contains
                         endif
 
                         ! get coefficients for that standard linear solid
-                        factorS_loc   = dom%Mu_(i,j,k,lnum) * dom%factor_common_3(i_sls,i,j,k,lnum)
-                        alphavalS_loc = dom%alphaval_3(i_sls,i,j,k,lnum)
-                        betavalS_loc  = dom%betaval_3 (i_sls,i,j,k,lnum)
-                        gammavalS_loc = dom%gammaval_3(i_sls,i,j,k,lnum)
+                        factorS_loc   = dom%Mu_(i,j,k,lnum) * dom%factor_common_3_(i_sls,i,j,k,lnum)
+                        alphavalS_loc = dom%alphaval_3_(i_sls,i,j,k,lnum)
+                        betavalS_loc  = dom%betaval_3_(i_sls,i,j,k,lnum)
+                        gammavalS_loc = dom%gammaval_3_(i_sls,i,j,k,lnum)
 
                         !     termes deviatoires
                         ! term in xx

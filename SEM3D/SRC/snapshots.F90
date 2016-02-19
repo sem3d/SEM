@@ -1233,9 +1233,9 @@ contains
                             if (domains(idx)==domain_type) then
                                 mass(idx) = Tdomain%spmldom%MassMat(Tdomain%spmldom%Idom_(i,j,k,lnum))
                                 dt = 2d0*Tdomain%TimeD%dtmin
-                                dx = ((1d0/Tdomain%spmldom%PMLDumpSx(i,j,k,1,lnum))-1.)/dt
-                                dy = ((1d0/Tdomain%spmldom%PMLDumpSy(i,j,k,1,lnum))-1.)/dt
-                                dz = ((1d0/Tdomain%spmldom%PMLDumpSz(i,j,k,1,lnum))-1.)/dt
+                                dx = ((1d0/Tdomain%spmldom%PMLDumpSx_(i,j,k,1,lnum))-1.)/dt
+                                dy = ((1d0/Tdomain%spmldom%PMLDumpSy_(i,j,k,1,lnum))-1.)/dt
+                                dz = ((1d0/Tdomain%spmldom%PMLDumpSz_(i,j,k,1,lnum))-1.)/dt
                                 dumpsx(idx) = dx+dy+dz
                             endif
                         end do

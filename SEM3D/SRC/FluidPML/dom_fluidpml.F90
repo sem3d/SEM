@@ -36,14 +36,14 @@ contains
         allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
 
         if(Tdomain%TimeD%velocity_scheme)then
-            allocate(dom%Veloc(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
-            dom%Veloc = 0d0
-            allocate(dom%PMLDumpSx  (0:ngll-1,0:ngll-1,0:ngll-1,0:1,0:nbelem-1))
-            allocate(dom%PMLDumpSy  (0:ngll-1,0:ngll-1,0:ngll-1,0:1,0:nbelem-1))
-            allocate(dom%PMLDumpSz  (0:ngll-1,0:ngll-1,0:ngll-1,0:1,0:nbelem-1))
-            dom%PMLDumpSx   = 0d0
-            dom%PMLDumpSy   = 0d0
-            dom%PMLDumpSz   = 0d0
+            allocate(dom%PMLVeloc_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
+            dom%PMLVeloc_(:,:,:,:,:) = 0d0
+            allocate(dom%PMLDumpSx_(0:ngll-1,0:ngll-1,0:ngll-1,0:1,0:nbelem-1))
+            allocate(dom%PMLDumpSy_(0:ngll-1,0:ngll-1,0:ngll-1,0:1,0:nbelem-1))
+            allocate(dom%PMLDumpSz_(0:ngll-1,0:ngll-1,0:ngll-1,0:1,0:nbelem-1))
+            dom%PMLDumpSx_(:,:,:,:,:) = 0d0
+            dom%PMLDumpSy_(:,:,:,:,:) = 0d0
+            dom%PMLDumpSz_(:,:,:,:,:) = 0d0
         endif
 
         ! Allocation et initialisation de champs0 pour les PML fluides
@@ -79,10 +79,10 @@ contains
 
         if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
 
-        if(allocated(dom%Veloc))       deallocate(dom%Veloc      )
-        if(allocated(dom%PMLDumpSx  )) deallocate(dom%PMLDumpSx  )
-        if(allocated(dom%PMLDumpSy  )) deallocate(dom%PMLDumpSy  )
-        if(allocated(dom%PMLDumpSz  )) deallocate(dom%PMLDumpSz  )
+        if(allocated(dom%m_PMLVeloc )) deallocate(dom%m_PMLVeloc )
+        if(allocated(dom%m_PMLDumpSx)) deallocate(dom%m_PMLDumpSx)
+        if(allocated(dom%m_PMLDumpSy)) deallocate(dom%m_PMLDumpSy)
+        if(allocated(dom%m_PMLDumpSz)) deallocate(dom%m_PMLDumpSz)
 
         if(allocated(dom%champs1%fpml_Forces)) deallocate(dom%champs1%fpml_Forces)
         if(allocated(dom%champs0%fpml_VelPhi)) deallocate(dom%champs0%fpml_VelPhi)
@@ -223,9 +223,9 @@ contains
                     sum_vz = 0d0
                     do l = 0,ngll-1
                         acoeff = - mat%hprime(i,l)*mat%GLLw(l)*mat%GLLw(j)*mat%GLLw(k)*dom%Jacob_(l,j,k,lnum)
-                        sum_vx = sum_vx + acoeff*dom%InvGrad_(0,0,l,j,k,lnum)*dom%Veloc(l,j,k,0,lnum)
-                        sum_vy = sum_vy + acoeff*dom%InvGrad_(1,0,l,j,k,lnum)*dom%Veloc(l,j,k,1,lnum)
-                        sum_vz = sum_vz + acoeff*dom%InvGrad_(2,0,l,j,k,lnum)*dom%Veloc(l,j,k,2,lnum)
+                        sum_vx = sum_vx + acoeff*dom%InvGrad_(0,0,l,j,k,lnum)*dom%PMLVeloc_(l,j,k,0,lnum)
+                        sum_vy = sum_vy + acoeff*dom%InvGrad_(1,0,l,j,k,lnum)*dom%PMLVeloc_(l,j,k,1,lnum)
+                        sum_vz = sum_vz + acoeff*dom%InvGrad_(2,0,l,j,k,lnum)*dom%PMLVeloc_(l,j,k,2,lnum)
                     end do
                     ForcesFl(0,i,j,k) = sum_vx
                     ForcesFl(1,i,j,k) = sum_vy
@@ -239,9 +239,9 @@ contains
                     do i=0,ngll-1
                         ind = dom%Idom_(i,j,k,lnum)
                         acoeff = - mat%hprime(j,l)*mat%GLLw(i)*mat%GLLw(l)*mat%GLLw(k)*dom%Jacob_(i,l,k,lnum)
-                        sum_vx = acoeff*dom%InvGrad_(0,1,i,l,k,lnum)*dom%Veloc(i,l,k,0,lnum)
-                        sum_vy = acoeff*dom%InvGrad_(1,1,i,l,k,lnum)*dom%Veloc(i,l,k,1,lnum)
-                        sum_vz = acoeff*dom%InvGrad_(2,1,i,l,k,lnum)*dom%Veloc(i,l,k,2,lnum)
+                        sum_vx = acoeff*dom%InvGrad_(0,1,i,l,k,lnum)*dom%PMLVeloc_(i,l,k,0,lnum)
+                        sum_vy = acoeff*dom%InvGrad_(1,1,i,l,k,lnum)*dom%PMLVeloc_(i,l,k,1,lnum)
+                        sum_vz = acoeff*dom%InvGrad_(2,1,i,l,k,lnum)*dom%PMLVeloc_(i,l,k,2,lnum)
                         ForcesFl(0,i,j,k) = ForcesFl(0,i,j,k) + sum_vx
                         ForcesFl(1,i,j,k) = ForcesFl(1,i,j,k) + sum_vy
                         ForcesFl(2,i,j,k) = ForcesFl(2,i,j,k) + sum_vz
@@ -256,9 +256,9 @@ contains
                     do i=0,ngll-1
                         ind = dom%Idom_(i,j,k,lnum)
                         acoeff = - mat%hprime(k,l)*mat%GLLw(i)*mat%GLLw(j)*mat%GLLw(l)*dom%Jacob_(i,j,l,lnum)
-                        sum_vx = acoeff*dom%InvGrad_(0,2,i,j,l,lnum)*dom%Veloc(i,j,l,0,lnum)
-                        sum_vy = acoeff*dom%InvGrad_(1,2,i,j,l,lnum)*dom%Veloc(i,j,l,1,lnum)
-                        sum_vz = acoeff*dom%InvGrad_(2,2,i,j,l,lnum)*dom%Veloc(i,j,l,2,lnum)
+                        sum_vx = acoeff*dom%InvGrad_(0,2,i,j,l,lnum)*dom%PMLVeloc_(i,j,l,0,lnum)
+                        sum_vy = acoeff*dom%InvGrad_(1,2,i,j,l,lnum)*dom%PMLVeloc_(i,j,l,1,lnum)
+                        sum_vz = acoeff*dom%InvGrad_(2,2,i,j,l,lnum)*dom%PMLVeloc_(i,j,l,2,lnum)
                         ForcesFl(0,i,j,k) = ForcesFl(0,i,j,k) + sum_vx
                         ForcesFl(1,i,j,k) = ForcesFl(1,i,j,k) + sum_vy
                         ForcesFl(2,i,j,k) = ForcesFl(2,i,j,k) + sum_vz
@@ -315,20 +315,20 @@ contains
 
         ! prediction for (physical) velocity (which is the equivalent of a stress, here)
         ! V_x^x
-        dom%Veloc(:,:,:,0,lnum) = dom%PMLDumpSx(:,:,:,0,lnum) * dom%Veloc(:,:,:,0,lnum) + &
-                                  dom%PMLDumpSx(:,:,:,1,lnum) * Dt * dVelPhi_dx
+        dom%PMLVeloc_(:,:,:,0,lnum) = dom%PMLDumpSx_(:,:,:,0,lnum) * dom%PMLVeloc_(:,:,:,0,lnum) + &
+                                      dom%PMLDumpSx_(:,:,:,1,lnum) * Dt * dVelPhi_dx
         ! V_x^y = 0
         ! V_x^z = 0
         ! V_y^x = 0
         ! V_y^y
-        dom%Veloc(:,:,:,1,lnum) = dom%PMLDumpSy(:,:,:,0,lnum) * dom%Veloc(:,:,:,1,lnum) + &
-                                  dom%PMLDumpSy(:,:,:,1,lnum) * Dt * dVelPhi_dy
+        dom%PMLVeloc_(:,:,:,1,lnum) = dom%PMLDumpSy_(:,:,:,0,lnum) * dom%PMLVeloc_(:,:,:,1,lnum) + &
+                                      dom%PMLDumpSy_(:,:,:,1,lnum) * Dt * dVelPhi_dy
         ! V_y^z = 0
         ! V_z^x = 0
         ! V_z^y = 0
         ! V_z^z
-        dom%Veloc(:,:,:,2,lnum) = dom%PMLDumpSz(:,:,:,0,lnum) * dom%Veloc(:,:,:,2,lnum) + &
-                                  dom%PMLDumpSz(:,:,:,1,lnum) * Dt * dVelPhi_dz
+        dom%PMLVeloc_(:,:,:,2,lnum) = dom%PMLDumpSz_(:,:,:,0,lnum) * dom%PMLVeloc_(:,:,:,2,lnum) + &
+                                      dom%PMLDumpSz_(:,:,:,1,lnum) * Dt * dVelPhi_dz
     end subroutine Pred_Flu_Pml
 end module dom_fluidpml
 

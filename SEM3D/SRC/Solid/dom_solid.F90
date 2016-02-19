@@ -44,45 +44,45 @@ contains
         endif
         if (n_solid>0) then
             if (aniso) then
-                allocate (dom%Q (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%Q_(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
             else
-                allocate (dom%Qs          (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%Qp          (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%onemPbeta   (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%Qs_         (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%Qp_         (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%onemPbeta_  (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
                 allocate (dom%epsilonvol_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                dom%epsilonvol_ = 0
-                allocate (dom%factor_common_P (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%alphaval_P      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%betaval_P       (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%gammaval_P      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                dom%epsilonvol_(:,:,:,:) = 0
+                allocate (dom%factor_common_P_(0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%alphaval_P_     (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%betaval_P_      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%gammaval_P_     (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
                 allocate (dom%R_vol_          (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                dom%R_vol_ = 0
+                dom%R_vol_(:,:,:,:,:) = 0
             endif
-            allocate (dom%onemSbeta      (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+            allocate (dom%onemSbeta_     (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
             allocate (dom%epsilondev_xx_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
             allocate (dom%epsilondev_yy_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
             allocate (dom%epsilondev_xy_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
             allocate (dom%epsilondev_xz_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
             allocate (dom%epsilondev_yz_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            dom%epsilondev_xx_ = 0
-            dom%epsilondev_yy_ = 0
-            dom%epsilondev_xy_ = 0
-            dom%epsilondev_xz_ = 0
-            dom%epsilondev_yz_ = 0
-            allocate (dom%factor_common_3 (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            allocate (dom%alphaval_3      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            allocate (dom%betaval_3       (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            allocate (dom%gammaval_3      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+            dom%epsilondev_xx_(:,:,:,:) = 0
+            dom%epsilondev_yy_(:,:,:,:) = 0
+            dom%epsilondev_xy_(:,:,:,:) = 0
+            dom%epsilondev_xz_(:,:,:,:) = 0
+            dom%epsilondev_yz_(:,:,:,:) = 0
+            allocate (dom%factor_common_3_(0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+            allocate (dom%alphaval_3_     (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+            allocate (dom%betaval_3_      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+            allocate (dom%gammaval_3_     (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
             allocate (dom%R_xx_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
             allocate (dom%R_yy_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
             allocate (dom%R_xy_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
             allocate (dom%R_xz_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
             allocate (dom%R_yz_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            dom%R_xx_ = 0
-            dom%R_yy_ = 0
-            dom%R_xy_ = 0
-            dom%R_xz_ = 0
-            dom%R_yz_ = 0
+            dom%R_xx_(:,:,:,:,:) = 0
+            dom%R_yy_(:,:,:,:,:) = 0
+            dom%R_xy_(:,:,:,:,:) = 0
+            dom%R_xz_(:,:,:,:,:) = 0
+            dom%R_yz_(:,:,:,:,:) = 0
         endif ! n_solid
 
         ! Allocation et initialisation de champs0 et champs1 pour les solides
@@ -118,32 +118,32 @@ contains
 
         if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
 
-        if(allocated(dom%m_Cij           )) deallocate (dom%m_Cij           )
-        if(allocated(dom%Q               )) deallocate (dom%Q               )
-        if(allocated(dom%Qs              )) deallocate (dom%Qs              )
-        if(allocated(dom%Qp              )) deallocate (dom%Qp              )
-        if(allocated(dom%onemPbeta       )) deallocate (dom%onemPbeta       )
-        if(allocated(dom%epsilonvol_     )) deallocate (dom%epsilonvol_     )
-        if(allocated(dom%factor_common_P )) deallocate (dom%factor_common_P )
-        if(allocated(dom%alphaval_P      )) deallocate (dom%alphaval_P      )
-        if(allocated(dom%betaval_P       )) deallocate (dom%betaval_P       )
-        if(allocated(dom%gammaval_P      )) deallocate (dom%gammaval_P      )
-        if(allocated(dom%R_vol_          )) deallocate (dom%R_vol_          )
-        if(allocated(dom%onemSbeta       )) deallocate (dom%onemSbeta       )
-        if(allocated(dom%epsilondev_xx_  )) deallocate (dom%epsilondev_xx_  )
-        if(allocated(dom%epsilondev_yy_  )) deallocate (dom%epsilondev_yy_  )
-        if(allocated(dom%epsilondev_xy_  )) deallocate (dom%epsilondev_xy_  )
-        if(allocated(dom%epsilondev_xz_  )) deallocate (dom%epsilondev_xz_  )
-        if(allocated(dom%epsilondev_yz_  )) deallocate (dom%epsilondev_yz_  )
-        if(allocated(dom%factor_common_3 )) deallocate (dom%factor_common_3 )
-        if(allocated(dom%alphaval_3      )) deallocate (dom%alphaval_3      )
-        if(allocated(dom%betaval_3       )) deallocate (dom%betaval_3       )
-        if(allocated(dom%gammaval_3      )) deallocate (dom%gammaval_3      )
-        if(allocated(dom%R_xx_           )) deallocate (dom%R_xx_           )
-        if(allocated(dom%R_yy_           )) deallocate (dom%R_yy_           )
-        if(allocated(dom%R_xy_           )) deallocate (dom%R_xy_           )
-        if(allocated(dom%R_xz_           )) deallocate (dom%R_xz_           )
-        if(allocated(dom%R_yz_           )) deallocate (dom%R_yz_           )
+        if(allocated(dom%m_Cij            )) deallocate (dom%m_Cij            )
+        if(allocated(dom%m_Q              )) deallocate (dom%m_Q              )
+        if(allocated(dom%m_Qs             )) deallocate (dom%m_Qs             )
+        if(allocated(dom%m_Qp             )) deallocate (dom%m_Qp             )
+        if(allocated(dom%m_onemPbeta      )) deallocate (dom%m_onemPbeta      )
+        if(allocated(dom%m_epsilonvol     )) deallocate (dom%m_epsilonvol     )
+        if(allocated(dom%m_factor_common_P)) deallocate (dom%m_factor_common_P)
+        if(allocated(dom%m_alphaval_P     )) deallocate (dom%m_alphaval_P     )
+        if(allocated(dom%m_betaval_P      )) deallocate (dom%m_betaval_P      )
+        if(allocated(dom%m_gammaval_P     )) deallocate (dom%m_gammaval_P     )
+        if(allocated(dom%m_R_vol          )) deallocate (dom%m_R_vol          )
+        if(allocated(dom%m_onemSbeta      )) deallocate (dom%m_onemSbeta      )
+        if(allocated(dom%m_epsilondev_xx  )) deallocate (dom%m_epsilondev_xx  )
+        if(allocated(dom%m_epsilondev_yy  )) deallocate (dom%m_epsilondev_yy  )
+        if(allocated(dom%m_epsilondev_xy  )) deallocate (dom%m_epsilondev_xy  )
+        if(allocated(dom%m_epsilondev_xz  )) deallocate (dom%m_epsilondev_xz  )
+        if(allocated(dom%m_epsilondev_yz  )) deallocate (dom%m_epsilondev_yz  )
+        if(allocated(dom%m_factor_common_3)) deallocate (dom%m_factor_common_3)
+        if(allocated(dom%m_alphaval_3     )) deallocate (dom%m_alphaval_3     )
+        if(allocated(dom%m_betaval_3      )) deallocate (dom%m_betaval_3      )
+        if(allocated(dom%m_gammaval_3     )) deallocate (dom%m_gammaval_3     )
+        if(allocated(dom%m_R_xx           )) deallocate (dom%m_R_xx           )
+        if(allocated(dom%m_R_yy           )) deallocate (dom%m_R_yy           )
+        if(allocated(dom%m_R_xy           )) deallocate (dom%m_R_xy           )
+        if(allocated(dom%m_R_xz           )) deallocate (dom%m_R_xz           )
+        if(allocated(dom%m_R_yz           )) deallocate (dom%m_R_yz           )
 
         if(allocated(dom%champs0%Forces)) deallocate(dom%champs0%Forces)
         if(allocated(dom%champs0%Depla )) deallocate(dom%champs0%Depla )
@@ -259,8 +259,8 @@ contains
                         xkappa  = dom%Kappa_ (i,j,k,el%lnum)
 
                         if (Tdomain%n_sls>0) then
-                            onemSbeta = dom%onemSbeta(i,j,k,el%lnum)
-                            onemPbeta = dom%onemPbeta(i,j,k,el%lnum)
+                            onemSbeta = dom%onemSbeta_(i,j,k,el%lnum)
+                            onemPbeta = dom%onemPbeta_(i,j,k,el%lnum)
                             xmu    = xmu * onemSbeta
                             xkappa = xkappa * onemPbeta
                         endif
@@ -342,10 +342,10 @@ contains
         if (present(Tdomain) .and. present(mat)) then
             if (Tdomain%n_sls>0)  then
                 if (Tdomain%aniso) then
-                    dom%Q = mat%Qmu
+                    dom%Q_(:,:,:,lnum) = mat%Qmu
                 else
-                    dom%Qs = mat%Qmu
-                    dom%Qp = mat%Qpression
+                    dom%Qs_(:,:,:,lnum) = mat%Qmu
+                    dom%Qp_(:,:,:,lnum) = mat%Qpression
                 endif
             endif
         endif

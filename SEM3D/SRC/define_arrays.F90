@@ -405,19 +405,19 @@ contains
         ! Compute DumpS(x,y,z) and DumpMass(0,1,2)
         if (specel%domain==DM_SOLID_PML) then
             call define_PML_DumpInit(ngll,dt,wx,specel%MassMat, &
-                Tdomain%spmldom%PMLDumpSx(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,0))
+                Tdomain%spmldom%PMLDumpSx_(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,0))
             call define_PML_DumpInit(ngll,dt,wy,specel%MassMat, &
-                Tdomain%spmldom%PMLDumpSy(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,1))
+                Tdomain%spmldom%PMLDumpSy_(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,1))
             call define_PML_DumpInit(ngll,dt,wz,specel%MassMat, &
-                Tdomain%spmldom%PMLDumpSz(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,2))
+                Tdomain%spmldom%PMLDumpSz_(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,2))
         end if
         if (specel%domain==DM_FLUID_PML) then
             call define_PML_DumpInit(ngll,dt,wx,specel%MassMat, &
-                Tdomain%fpmldom%PMLDumpSx(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,0))
+                Tdomain%fpmldom%PMLDumpSx_(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,0))
             call define_PML_DumpInit(ngll,dt,wy,specel%MassMat, &
-                Tdomain%fpmldom%PMLDumpSy(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,1))
+                Tdomain%fpmldom%PMLDumpSy_(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,1))
             call define_PML_DumpInit(ngll,dt,wz,specel%MassMat, &
-                Tdomain%fpmldom%PMLDumpSz(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,2))
+                Tdomain%fpmldom%PMLDumpSz_(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,2))
         end if
         deallocate(wx,wy,wz)
 
@@ -427,12 +427,12 @@ contains
 
         !! XXX
         if (specel%domain==DM_FLUID_PML) then
-            Tdomain%fpmldom%PMLDumpSx(:,:,:,1,lnum) = Tdomain%fpmldom%PMLDumpSx (:,:,:,1,lnum) / &
-                                                      Tdomain%fpmldom%Density_(:,:,:  ,lnum)
-            Tdomain%fpmldom%PMLDumpSy(:,:,:,1,lnum) = Tdomain%fpmldom%PMLDumpSy (:,:,:,1,lnum) / &
-                                                      Tdomain%fpmldom%Density_(:,:,:  ,lnum)
-            Tdomain%fpmldom%PMLDumpSz(:,:,:,1,lnum) = Tdomain%fpmldom%PMLDumpSz (:,:,:,1,lnum) / &
-                                                      Tdomain%fpmldom%Density_(:,:,:  ,lnum)
+            Tdomain%fpmldom%PMLDumpSx_(:,:,:,1,lnum) = Tdomain%fpmldom%PMLDumpSx_(:,:,:,1,lnum) / &
+                                                       Tdomain%fpmldom%Density_(:,:,:  ,lnum)
+            Tdomain%fpmldom%PMLDumpSy_(:,:,:,1,lnum) = Tdomain%fpmldom%PMLDumpSy_(:,:,:,1,lnum) / &
+                                                       Tdomain%fpmldom%Density_(:,:,:  ,lnum)
+            Tdomain%fpmldom%PMLDumpSz_(:,:,:,1,lnum) = Tdomain%fpmldom%PMLDumpSz_(:,:,:,1,lnum) / &
+                                                       Tdomain%fpmldom%Density_(:,:,:  ,lnum)
         end if
 
         deallocate(Vp)
@@ -680,16 +680,16 @@ contains
         real, intent(in) :: dt
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: alpha
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: MassMat
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:1), intent(out) :: DumpS
+        real, dimension(0:1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: DumpS
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: DumpMass
 
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1)  :: Id
 
         Id = 1d0
 
-        DumpS(:,:,:,1) = Id + 0.5d0*dt*alpha
-        DumpS(:,:,:,1) = 1d0/DumpS(:,:,:,1)
-        DumpS(:,:,:,0) = (Id - 0.5d0*dt*alpha)*DumpS(:,:,:,1)
+        DumpS(1,:,:,:) = Id + 0.5d0*dt*alpha
+        DumpS(1,:,:,:) = 1d0/DumpS(1,:,:,:)
+        DumpS(0,:,:,:) = (Id - 0.5d0*dt*alpha)*DumpS(1,:,:,:)
         DumpMass(:,:,:) = 0.5d0*MassMat(:,:,:)*alpha(:,:,:)*dt
 
         return

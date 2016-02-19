@@ -51,10 +51,17 @@ module champs_solidpml
         ! Champs
         type(champssolidpml) :: champs0
         type(champssolidpml) :: champs1
-        real(fpp), dimension(:,:,:,:,:), allocatable :: Diagonal_Stress1, Diagonal_Stress2, Diagonal_Stress3
-        real(fpp), dimension(:,:,:,:,:), allocatable :: Residual_Stress1, Residual_Stress2, Residual_Stress3
-        real(fpp), dimension(:,:,:,:,:), allocatable :: Diagonal_Stress, Residual_Stress
-        real(fpp), dimension(:,:,:,:,:), allocatable :: PMLDumpSx,PMLDumpSy,PMLDumpSz
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_Diagonal_Stress1
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_Diagonal_Stress2
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_Diagonal_Stress3
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_Diagonal_Stress
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_Residual_Stress1
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_Residual_Stress2
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_Residual_Stress3
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_Residual_Stress
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_PMLDumpSx
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_PMLDumpSy
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_PMLDumpSz
     end type domain_solidpml
 
     contains

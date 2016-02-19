@@ -180,6 +180,7 @@ subroutine write_EpsilonVol(Tdomain, nmax, elem_id)
     use sem_hdf5, only : create_dset
     use HDF5
     implicit none
+#include "index.h"
     type (domain), intent (IN):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
     integer(HID_T) :: dset_id
@@ -439,6 +440,7 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
     use sem_hdf5, only : create_dset
     use HDF5
     implicit none
+#include "index.h"
     type (domain), intent (IN):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
     integer(HID_T) :: dset_id
@@ -467,29 +469,29 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
                         write(*,*) "Erreur fatale sauvegarde des protections"
                         stop 1
                     end if
-                    data(idx+ 0) = Tdomain%spmldom%Diagonal_Stress1(i,j,k,0,Tdomain%specel(n)%lnum)
-                    data(idx+ 1) = Tdomain%spmldom%Diagonal_Stress1(i,j,k,1,Tdomain%specel(n)%lnum)
-                    data(idx+ 2) = Tdomain%spmldom%Diagonal_Stress1(i,j,k,2,Tdomain%specel(n)%lnum)
+                    data(idx+ 0) = Tdomain%spmldom%Diagonal_Stress1_(i,j,k,0,Tdomain%specel(n)%lnum)
+                    data(idx+ 1) = Tdomain%spmldom%Diagonal_Stress1_(i,j,k,1,Tdomain%specel(n)%lnum)
+                    data(idx+ 2) = Tdomain%spmldom%Diagonal_Stress1_(i,j,k,2,Tdomain%specel(n)%lnum)
                     idx = idx + 3
-                    data(idx+ 0) = Tdomain%spmldom%Diagonal_Stress2(i,j,k,0,Tdomain%specel(n)%lnum)
-                    data(idx+ 1) = Tdomain%spmldom%Diagonal_Stress2(i,j,k,1,Tdomain%specel(n)%lnum)
-                    data(idx+ 2) = Tdomain%spmldom%Diagonal_Stress2(i,j,k,2,Tdomain%specel(n)%lnum)
+                    data(idx+ 0) = Tdomain%spmldom%Diagonal_Stress2_(i,j,k,0,Tdomain%specel(n)%lnum)
+                    data(idx+ 1) = Tdomain%spmldom%Diagonal_Stress2_(i,j,k,1,Tdomain%specel(n)%lnum)
+                    data(idx+ 2) = Tdomain%spmldom%Diagonal_Stress2_(i,j,k,2,Tdomain%specel(n)%lnum)
                     idx = idx + 3
-                    data(idx+ 0) = Tdomain%spmldom%Diagonal_Stress3(i,j,k,0,Tdomain%specel(n)%lnum)
-                    data(idx+ 1) = Tdomain%spmldom%Diagonal_Stress3(i,j,k,1,Tdomain%specel(n)%lnum)
-                    data(idx+ 2) = Tdomain%spmldom%Diagonal_Stress3(i,j,k,2,Tdomain%specel(n)%lnum)
+                    data(idx+ 0) = Tdomain%spmldom%Diagonal_Stress3_(i,j,k,0,Tdomain%specel(n)%lnum)
+                    data(idx+ 1) = Tdomain%spmldom%Diagonal_Stress3_(i,j,k,1,Tdomain%specel(n)%lnum)
+                    data(idx+ 2) = Tdomain%spmldom%Diagonal_Stress3_(i,j,k,2,Tdomain%specel(n)%lnum)
                     idx = idx + 3
-                    data(idx+ 0) = Tdomain%spmldom%Residual_Stress1(i,j,k,0,Tdomain%specel(n)%lnum)
-                    data(idx+ 1) = Tdomain%spmldom%Residual_Stress1(i,j,k,1,Tdomain%specel(n)%lnum)
-                    data(idx+ 2) = Tdomain%spmldom%Residual_Stress1(i,j,k,2,Tdomain%specel(n)%lnum)
+                    data(idx+ 0) = Tdomain%spmldom%Residual_Stress1_(i,j,k,0,Tdomain%specel(n)%lnum)
+                    data(idx+ 1) = Tdomain%spmldom%Residual_Stress1_(i,j,k,1,Tdomain%specel(n)%lnum)
+                    data(idx+ 2) = Tdomain%spmldom%Residual_Stress1_(i,j,k,2,Tdomain%specel(n)%lnum)
                     idx = idx + 3
-                    data(idx+ 0) = Tdomain%spmldom%Residual_Stress2(i,j,k,0,Tdomain%specel(n)%lnum)
-                    data(idx+ 1) = Tdomain%spmldom%Residual_Stress2(i,j,k,1,Tdomain%specel(n)%lnum)
-                    data(idx+ 2) = Tdomain%spmldom%Residual_Stress2(i,j,k,2,Tdomain%specel(n)%lnum)
+                    data(idx+ 0) = Tdomain%spmldom%Residual_Stress2_(i,j,k,0,Tdomain%specel(n)%lnum)
+                    data(idx+ 1) = Tdomain%spmldom%Residual_Stress2_(i,j,k,1,Tdomain%specel(n)%lnum)
+                    data(idx+ 2) = Tdomain%spmldom%Residual_Stress2_(i,j,k,2,Tdomain%specel(n)%lnum)
                     idx = idx + 3
-                    data(idx+ 0) = Tdomain%spmldom%Residual_Stress3(i,j,k,0,Tdomain%specel(n)%lnum)
-                    data(idx+ 1) = Tdomain%spmldom%Residual_Stress3(i,j,k,1,Tdomain%specel(n)%lnum)
-                    data(idx+ 2) = Tdomain%spmldom%Residual_Stress3(i,j,k,2,Tdomain%specel(n)%lnum)
+                    data(idx+ 0) = Tdomain%spmldom%Residual_Stress3_(i,j,k,0,Tdomain%specel(n)%lnum)
+                    data(idx+ 1) = Tdomain%spmldom%Residual_Stress3_(i,j,k,1,Tdomain%specel(n)%lnum)
+                    data(idx+ 2) = Tdomain%spmldom%Residual_Stress3_(i,j,k,2,Tdomain%specel(n)%lnum)
                     idx = idx + 3
                 enddo
             enddo
@@ -506,6 +508,7 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
     use sem_hdf5, only : create_dset
     use HDF5
     implicit none
+#include "index.h"
     type (domain), intent (IN):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
     integer(HID_T) :: dset_id
@@ -535,9 +538,9 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
                         write(*,*) "Erreur fatale sauvegarde des protections"
                         stop 1
                     end if
-                    data(idx+ 0) = Tdomain%fpmldom%Veloc(i,j,k,0,Tdomain%specel(n)%lnum)
-                    data(idx+ 1) = Tdomain%fpmldom%Veloc(i,j,k,1,Tdomain%specel(n)%lnum)
-                    data(idx+ 2) = Tdomain%fpmldom%Veloc(i,j,k,2,Tdomain%specel(n)%lnum)
+                    data(idx+ 0) = Tdomain%fpmldom%PMLVeloc_(i,j,k,0,Tdomain%specel(n)%lnum)
+                    data(idx+ 1) = Tdomain%fpmldom%PMLVeloc_(i,j,k,1,Tdomain%specel(n)%lnum)
+                    data(idx+ 2) = Tdomain%fpmldom%PMLVeloc_(i,j,k,2,Tdomain%specel(n)%lnum)
                     idx = idx + 3
                 enddo
             enddo

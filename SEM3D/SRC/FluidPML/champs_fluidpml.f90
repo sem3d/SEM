@@ -52,8 +52,10 @@ module champs_fluidpml
         ! Champs
         type(champsfluidpml) :: champs0
         type(champsfluidpml) :: champs1
-        real(fpp), dimension(:,:,:,:,:), allocatable :: Veloc
-        real(fpp), dimension(:,:,:,:,:), allocatable :: PMLDumpSx,PMLDumpSy,PMLDumpSz
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_PMLVeloc
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_PMLDumpSx
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_PMLDumpSy
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_PMLDumpSz
     end type domain_fluidpml
 
     contains
