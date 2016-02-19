@@ -13,8 +13,7 @@
 
 module m_calcul_forces ! wrap subroutine in module to get arg type check at build time
     contains
-    subroutine calcul_forces(dom,mat,lnum,Fox,Foy,Foz,&
-        GLLw,Depla,ngll,aniso,n_solid)
+    subroutine calcul_forces(dom,mat,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)
 
         use sdomain
         use attenuation_solid
@@ -24,9 +23,7 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
         type(domain_solid), intent (INOUT) :: dom
         type (subdomain), intent(IN) :: mat
         integer, intent(in) :: lnum
-        integer, intent(in) :: ngll
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
-        real, dimension(0:ngll-1), intent(in) :: GLLw
+        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(out) :: Fox,Foz,Foy
         real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2), intent(in) :: Depla
         logical :: aniso
         integer :: n_solid
@@ -38,15 +35,15 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
         real :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
         real :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
         real, parameter :: zero = 0.
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t5,t8
+        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: t1,t5,t8
         ! Les indices sont reordonnes, probablement pour la localite memoire
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: t2,t6,t9
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: t3,t7,t10
+        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: t2,t6,t9
+        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: t3,t7,t10
         real, dimension(:,:,:,:,:), allocatable :: C
         real, dimension(0:2,0:2) :: invgrad_ijk
 
         if(aniso) then
-            allocate(C(0:5,0:5,0:ngll-1,0:ngll-1,0:ngll-1))
+            allocate(C(0:5,0:5,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1))
             k = 0
             do i = 0,5
                 do j = i,5
@@ -61,9 +58,9 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
             enddo
         end if
 
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i = 0,ngll-1
+        do k = 0,dom%ngll-1
+            do j = 0,dom%ngll-1
+                do i = 0,dom%ngll-1
                     invgrad_ijk = dom%InvGrad_(:,:,i,j,k,lnum) ! cache for performance
 
                     call physical_part_deriv_ijk(i,j,k,dom%ngll,mat%hprime,&
@@ -114,17 +111,17 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
                     !
                     !- Multiplication par le Jacobien et le poids d'integration
                     !
-                    t4 = dom%Jacob_(i,j,k,lnum) * GLLw(i)
+                    t4 = dom%Jacob_(i,j,k,lnum) * mat%GLLw(i)
                     xt1  =  xt1 * t4
                     xt5  =  xt5 * t4
                     xt8  =  xt8 * t4
 
-                    t4 = dom%Jacob_(i,j,k,lnum) * GLLw(j)
+                    t4 = dom%Jacob_(i,j,k,lnum) * mat%GLLw(j)
                     xt2  =  xt2 * t4
                     xt6  =  xt6 * t4
                     xt9  =  xt9 * t4
 
-                    t4 = dom%Jacob_(i,j,k,lnum) * GLLw(k)
+                    t4 = dom%Jacob_(i,j,k,lnum) * mat%GLLw(k)
                     xt3  =  xt3 * t4
                     xt7  =  xt7 * t4
                     xt10 = xt10 * t4
@@ -150,14 +147,14 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
         !
 
         !=-=-=-=-=-=-=-=-=-=-
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i = 0,ngll-1
+        do k = 0,dom%ngll-1
+            do j = 0,dom%ngll-1
+                do i = 0,dom%ngll-1
                     !=-=-=-=-=-=-=-=-=-=-
                     !
-                    t11 = GLLw(j) * GLLw(k)
-                    t12 = GLLw(i) * GLLw(k)
-                    t13 = GLLw(i) * GLLw(j)
+                    t11 = mat%GLLw(j) * mat%GLLw(k)
+                    t12 = mat%GLLw(i) * mat%GLLw(k)
+                    t13 = mat%GLLw(i) * mat%GLLw(j)
                     !
                     t41 = zero
                     t42 = zero
@@ -169,13 +166,13 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
                     t62 = zero
                     t63 = zero
                     !
-                    do l = 0,ngll-1
+                    do l = 0,dom%ngll-1
                         t41 = t41 + mat%htprime(l,i) * t1(l,j,k)
                         t42 = t42 + mat%htprime(l,i) * t5(l,j,k)
                         t43 = t43 + mat%htprime(l,i) * t8(l,j,k)
                     enddo
 
-                    do l = 0,ngll-1
+                    do l = 0,dom%ngll-1
                         t51 = t51 + mat%htprime(l,j) * t2(l,i,k)
                         t52 = t52 + mat%htprime(l,j) * t6(l,i,k)
                         t53 = t53 + mat%htprime(l,j) * t9(l,i,k)
@@ -188,7 +185,7 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
                     F3 = t43*t11 + t53*t12
                     !
                     !
-                    do l = 0,ngll-1
+                    do l = 0,dom%ngll-1
                         t61 = t61 + mat%htprime(l,k) * t3(l,i,j)
                         t62 = t62 + mat%htprime(l,k) * t7(l,i,j)
                         t63 = t63 + mat%htprime(l,k) * t10(l,i,j)
@@ -210,7 +207,7 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
             enddo
         enddo
         !=-=-=-=-=-=-=-=-=-=-
-        call attenuation_update(dom,lnum,mat%hprime,Depla,ngll,n_solid,aniso)
+        call attenuation_update(dom,lnum,mat%hprime,Depla,dom%ngll,n_solid,aniso)
     end subroutine calcul_forces
 
     subroutine calcul_sigma(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&

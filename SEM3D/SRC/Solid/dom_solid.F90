@@ -408,7 +408,7 @@ contains
             enddo
         enddo
 
-        call calcul_forces(dom,mat,lnum,Fox,Foy,Foz,mat%GLLw,Depla,ngll,aniso,n_solid)
+        call calcul_forces(dom,mat,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)
 
         do k = 0,ngll-1
             do j = 0,ngll-1

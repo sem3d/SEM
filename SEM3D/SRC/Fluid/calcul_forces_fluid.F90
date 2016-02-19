@@ -4,7 +4,7 @@
 !!
 module m_calcul_forces_fluid ! wrap subroutine in module to get arg type check at build time
     contains
-    subroutine calcul_forces_fluid(dom,mat,lnum,FFl,GLLw,Phi)
+    subroutine calcul_forces_fluid(dom,mat,lnum,FFl,Phi)
         use sdomain
         use deriv3d
         implicit none
@@ -14,7 +14,6 @@ module m_calcul_forces_fluid ! wrap subroutine in module to get arg type check a
         type (subdomain), intent(IN) :: mat
         integer, intent(in) :: lnum
         real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(out) :: FFl
-        real, dimension(0:dom%ngll-1), intent(in) :: GLLw
         real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(in) :: Phi
 
         real :: dPhiX,dPhiY,dPhiZ
@@ -69,13 +68,13 @@ module m_calcul_forces_fluid ! wrap subroutine in module to get arg type check a
                     !
                     !- Multiply par Jacobian and weight
                     !
-                    t4  = dom%Jacob_(i,j,k,lnum) * GLLw(i)
+                    t4  = dom%Jacob_(i,j,k,lnum) * mat%GLLw(i)
                     xt1 = xt1 * t4
 
-                    t4  = dom%Jacob_(i,j,k,lnum) * GLLw(j)
+                    t4  = dom%Jacob_(i,j,k,lnum) * mat%GLLw(j)
                     xt6 = xt6 * t4
 
-                    t4   = dom%Jacob_(i,j,k,lnum) * GLLw(k)
+                    t4   = dom%Jacob_(i,j,k,lnum) * mat%GLLw(k)
                     xt10 = xt10 * t4
 
                     t1(i,j,k) = xt1
@@ -97,9 +96,9 @@ module m_calcul_forces_fluid ! wrap subroutine in module to get arg type check a
                 do i = 0,dom%ngll-1
                     !=-=-=-=-=-=-=-=-=-=-
                     !
-                    t11 = GLLw(j) * GLLw(k)
-                    t12 = GLLw(i) * GLLw(k)
-                    t13 = GLLw(i) * GLLw(j)
+                    t11 = mat%GLLw(j) * mat%GLLw(k)
+                    t12 = mat%GLLw(i) * mat%GLLw(k)
+                    t13 = mat%GLLw(i) * mat%GLLw(j)
                     !
                     t41 = zero
                     t51 = zero
