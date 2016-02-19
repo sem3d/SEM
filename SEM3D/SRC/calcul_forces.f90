@@ -248,9 +248,11 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
     real, dimension(0:nglly-1,0:ngllx-1,0:ngllz-1) :: t2,t6,t9
     real, dimension(0:ngllz-1,0:ngllx-1,0:nglly-1) :: t3,t7,t10
 
-    real                 :: Rinf_iso, b_iso, C_kin, kapa_kin, Riso_N, sigma_yld, alpha_elp
-    real, dimension(0:5) :: Sigma_ij_start, Sigma_ij_trial, dEpsilon_ij_alpha, Xkin_ij_N, dEpsilon_ij_pl
-    integer, intent(in) :: nelement
+    real                    :: Rinf_iso, b_iso, C_kin, kapa_kin, Riso_N, sigma_yld, alpha_elp
+    real, dimension(0:5)    :: Sigma_ij_start, Sigma_ij_trial, dEpsilon_ij_alpha, Xkin_ij_N, dEpsilon_ij_pl
+    integer, intent(in)     :: nelement
+    logical,parameter       :: flag_SS=.true.
+
     do k = 0,ngllz-1
         do j = 0,nglly-1
             do i = 0,ngllx-1
@@ -285,22 +287,26 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
                 sigma_yld   = sigma_yld_el(i,j,k)
 
                 Sigma_ij_start = Sigma_ij_N_el(0:5,i,j,k)
-                Sigma_ij_trial = (/sxx,syy,szz,sxy,sxz,syz/) ! trial stress increment
                 dEpsilon_ij_pl(0:5) = 0d0
+                
+                Sigma_ij_trial = (/sxx,syy,szz,sxy,sxz,syz/) ! trial stress increment
+                
                 dEpsilon_ij_alpha(0:5)=(/DXX(i,j,k),DYY(i,j,k),DZZ(i,j,k),&
                     DXY(i,j,k)+DYX(i,j,k),DXZ(i,j,k)+DZX(i,j,k),DYZ(i,j,k)+DZY(i,j,k)/)
-                call check_plasticity (Sigma_ij_trial, Sigma_ij_start, Xkin_ij_N, Riso_N, &
+                
+                call check_plasticity(Sigma_ij_trial, Sigma_ij_start, Xkin_ij_N, Riso_N, &
                     sigma_yld,st_epl,alpha_elp,i,j,k,nelement)
-                ! Sigma_ij_trial = stress state on F=0
-                !
+                                       
                 ! PLASTIC CORRECTION
-                !
                 if (st_epl == 1) then
-                   write(*,*) "1-alpha",1-alpha_elp 
-                   dEpsilon_ij_alpha(0:5)=(1-alpha_elp)*dEpsilon_ij_alpha(0:5)
-                   call plastic_corrector(dEpsilon_ij_alpha, Sigma_ij_trial, Xkin_ij_N, sigma_yld, &
-                        Riso_N, b_iso, Rinf_iso, C_kin, kapa_kin, xmu, xla, dEpsilon_ij_pl)
+                       
+                    dEpsilon_ij_alpha(0:5)=(1-alpha_elp)*dEpsilon_ij_alpha(0:5)
+                   
+                    call plastic_corrector(dEpsilon_ij_alpha, Sigma_ij_trial, Xkin_ij_N, sigma_yld, &
+                        Riso_N, b_iso, Rinf_iso, C_kin, kapa_kin, xmu, xla, dEpsilon_ij_pl,flag_SS)
+                
                 end if
+                
                 sxx = Sigma_ij_trial(0)
                 syy = Sigma_ij_trial(1)
                 szz = Sigma_ij_trial(2)
