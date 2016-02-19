@@ -310,7 +310,7 @@ contains
         enddo
         ! XXX DumpS{xyz}(:,:,:,1) doit etre multiplie par 1/density
         ! d(rho*Phi)_d(xi,eta,zeta)
-        call physical_part_deriv(ngll,mat%htprime,dom%InvGrad_(:,:,:,:,:,lnum),&
+        call physical_part_deriv(ngll,mat%hprime,dom%InvGrad_(:,:,:,:,:,lnum),&
                                  VelPhi(:,:,:),dVelPhi_dx,dVelPhi_dy,dVelPhi_dz)
 
         ! prediction for (physical) velocity (which is the equivalent of a stress, here)

@@ -81,7 +81,7 @@ contains
         szz = szz - stt + xpression
     end subroutine sigma_attenuation
 
-    subroutine attenuation_update(dom,lnum,htprime,Depla,ngll,n_solid,aniso)
+    subroutine attenuation_update(dom,lnum,hprime,Depla,ngll,n_solid,aniso)
         use sdomain
         use deriv3d
         implicit none
@@ -90,7 +90,7 @@ contains
         type(domain_solid), intent (INOUT) :: dom
         integer, intent(in) :: lnum
         integer, intent(in) :: ngll
-        real, dimension(0:ngll-1,0:ngll-1), intent(in) :: htprime
+        real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
         integer, intent(in) :: n_solid
         logical aniso
@@ -112,11 +112,11 @@ contains
                 do k = 0,ngll-1
                     invgrad_ijk = dom%InvGrad_(:,:,i,j,k,lnum) ! cache for performance
 
-                    call physical_part_deriv_ijk(i,j,k,dom%ngll,htprime,&
+                    call physical_part_deriv_ijk(i,j,k,dom%ngll,hprime,&
                          invgrad_ijk,Depla(:,:,:,0),dxx,dyx,dzx)
-                    call physical_part_deriv_ijk(i,j,k,dom%ngll,htprime,&
+                    call physical_part_deriv_ijk(i,j,k,dom%ngll,hprime,&
                          invgrad_ijk,Depla(:,:,:,1),dxy,dyy,dzy)
-                    call physical_part_deriv_ijk(i,j,k,dom%ngll,htprime,&
+                    call physical_part_deriv_ijk(i,j,k,dom%ngll,hprime,&
                          invgrad_ijk,Depla(:,:,:,2),dxz,dyz,dzz)
 
                     epsilon_trace_over_3 = 0.333333333333333333333333333333d0 * (DXX + DYY + DZZ)

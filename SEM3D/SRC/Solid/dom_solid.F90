@@ -216,11 +216,11 @@ contains
                     if (flag_gradU) then
                         invgrad_ijk = dom%InvGrad_(:,:,i,j,k,el%lnum) ! cache for performance
 
-                        call physical_part_deriv_ijk(i,j,k,ngll,Tdomain%sSubDomain(mat)%hTprime,&
+                        call physical_part_deriv_ijk(i,j,k,ngll,Tdomain%sSubDomain(mat)%hprime,&
                              invgrad_ijk,fieldU(:,:,:,0),DXX,DYX,DZX)
-                        call physical_part_deriv_ijk(i,j,k,ngll,Tdomain%sSubDomain(mat)%hTprime,&
+                        call physical_part_deriv_ijk(i,j,k,ngll,Tdomain%sSubDomain(mat)%hprime,&
                              invgrad_ijk,fieldU(:,:,:,1),DXY,DYY,DZY)
-                        call physical_part_deriv_ijk(i,j,k,ngll,Tdomain%sSubDomain(mat)%hTprime,&
+                        call physical_part_deriv_ijk(i,j,k,ngll,Tdomain%sSubDomain(mat)%hprime,&
                              invgrad_ijk,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
                     end if
 

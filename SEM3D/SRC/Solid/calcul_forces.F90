@@ -66,11 +66,11 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
                 do i = 0,ngll-1
                     invgrad_ijk = dom%InvGrad_(:,:,i,j,k,lnum) ! cache for performance
 
-                    call physical_part_deriv_ijk(i,j,k,dom%ngll,mat%htprime,&
+                    call physical_part_deriv_ijk(i,j,k,dom%ngll,mat%hprime,&
                          invgrad_ijk,Depla(:,:,:,0),dxx,dyx,dzx)
-                    call physical_part_deriv_ijk(i,j,k,dom%ngll,mat%htprime,&
+                    call physical_part_deriv_ijk(i,j,k,dom%ngll,mat%hprime,&
                          invgrad_ijk,Depla(:,:,:,1),dxy,dyy,dzy)
-                    call physical_part_deriv_ijk(i,j,k,dom%ngll,mat%htprime,&
+                    call physical_part_deriv_ijk(i,j,k,dom%ngll,mat%hprime,&
                          invgrad_ijk,Depla(:,:,:,2),dxz,dyz,dzz)
 
                     call calcul_sigma(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
@@ -210,7 +210,7 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
             enddo
         enddo
         !=-=-=-=-=-=-=-=-=-=-
-        call attenuation_update(dom,lnum,mat%htprime,Depla,ngll,n_solid,aniso)
+        call attenuation_update(dom,lnum,mat%hprime,Depla,ngll,n_solid,aniso)
     end subroutine calcul_forces
 
     subroutine calcul_sigma(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&

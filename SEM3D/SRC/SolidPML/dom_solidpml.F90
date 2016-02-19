@@ -365,9 +365,9 @@ contains
         enddo
 
         ! partial of velocity components with respect to xi,eta,zeta
-        call physical_part_deriv(ngll,mat%htprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,0),dVx_dx,dVx_dy,dVx_dz)
-        call physical_part_deriv(ngll,mat%htprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,1),dVy_dx,dVy_dy,dVy_dz)
-        call physical_part_deriv(ngll,mat%htprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,2),dVz_dx,dVz_dy,dVz_dz)
+        call physical_part_deriv(ngll,mat%hprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,0),dVx_dx,dVx_dy,dVx_dz)
+        call physical_part_deriv(ngll,mat%hprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,1),dVy_dx,dVy_dy,dVy_dz)
+        call physical_part_deriv(ngll,mat%hprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,2),dVz_dx,dVz_dy,dVz_dz)
         deallocate(Veloc)
 
         ! Stress_xx

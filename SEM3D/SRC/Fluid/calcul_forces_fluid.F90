@@ -36,7 +36,7 @@ module m_calcul_forces_fluid ! wrap subroutine in module to get arg type check a
                 do i = 0,dom%ngll-1
                     invgrad_ijk = dom%InvGrad_(:,:,i,j,k,lnum) ! cache for performance
 
-                    call physical_part_deriv_ijk(i,j,k,dom%ngll,mat%htprime,&
+                    call physical_part_deriv_ijk(i,j,k,dom%ngll,mat%hprime,&
                          invgrad_ijk,Phi,dPhiX,dPhiY,dPhiZ)
 
                     ! (fluid equivalent) stress  ( = physical velocity)
