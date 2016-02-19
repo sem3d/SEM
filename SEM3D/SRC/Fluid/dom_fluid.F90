@@ -223,11 +223,10 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_fluid
 
-    subroutine forces_int_fluid(dom, mat, htprime, champs1, lnum)
+    subroutine forces_int_fluid(dom, mat, champs1, lnum)
         use m_calcul_forces_fluid
         type(domain_fluid), intent (INOUT) :: dom
         type (subdomain), intent(IN) :: mat
-        real, dimension (0:dom%ngll-1, 0:dom%ngll-1), intent (IN) :: htprime
         type(champsfluid), intent(inout) :: champs1
         integer :: lnum
 
@@ -248,7 +247,7 @@ contains
         enddo
 
         ! internal forces
-        call calcul_forces_fluid(dom,lnum,Fo_Fl,htprime,mat%GLLw,Phi)
+        call calcul_forces_fluid(dom,mat,lnum,Fo_Fl,mat%GLLw,Phi)
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1

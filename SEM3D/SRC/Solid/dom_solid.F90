@@ -382,12 +382,11 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solid
 
-    subroutine forces_int_solid(dom, mat, htprime, n_solid, aniso, champs1, lnum)
+    subroutine forces_int_solid(dom, mat, n_solid, aniso, champs1, lnum)
         use m_calcul_forces
         use attenuation_solid
         type(domain_solid), intent (INOUT) :: dom
         type (subdomain), intent(IN) :: mat
-        real, dimension (0:dom%ngll-1, 0:dom%ngll-1), intent (IN) :: htprime
         integer, intent(IN) :: n_solid
         logical, intent(IN) :: aniso
         type(champssolid), intent(inout) :: champs1
@@ -409,7 +408,7 @@ contains
             enddo
         enddo
 
-        call calcul_forces(dom,lnum,Fox,Foy,Foz,htprime,mat%GLLw,Depla,ngll,aniso,n_solid)
+        call calcul_forces(dom,mat,lnum,Fox,Foy,Foz,mat%GLLw,Depla,ngll,aniso,n_solid)
 
         do k = 0,ngll-1
             do j = 0,ngll-1

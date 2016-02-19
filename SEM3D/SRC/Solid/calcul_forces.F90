@@ -13,8 +13,8 @@
 
 module m_calcul_forces ! wrap subroutine in module to get arg type check at build time
     contains
-    subroutine calcul_forces(dom,lnum,Fox,Foy,Foz,&
-        htprime,GLLw,Depla,ngll,aniso,n_solid)
+    subroutine calcul_forces(dom,mat,lnum,Fox,Foy,Foz,&
+        GLLw,Depla,ngll,aniso,n_solid)
 
         use sdomain
         use attenuation_solid
@@ -22,10 +22,10 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
 #include "index.h"
 
         type(domain_solid), intent (INOUT) :: dom
+        type (subdomain), intent(IN) :: mat
         integer, intent(in) :: lnum
         integer, intent(in) :: ngll
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
-        real, dimension(0:ngll-1,0:ngll-1), intent(in) :: htprime
         real, dimension(0:ngll-1), intent(in) :: GLLw
         real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2), intent(in) :: Depla
         logical :: aniso
@@ -66,11 +66,11 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
                 do i = 0,ngll-1
                     invgrad_ijk = dom%InvGrad_(:,:,i,j,k,lnum) ! cache for performance
 
-                    call physical_part_deriv_ijk(i,j,k,dom%ngll,htprime,&
+                    call physical_part_deriv_ijk(i,j,k,dom%ngll,mat%htprime,&
                          invgrad_ijk,Depla(:,:,:,0),dxx,dyx,dzx)
-                    call physical_part_deriv_ijk(i,j,k,dom%ngll,htprime,&
+                    call physical_part_deriv_ijk(i,j,k,dom%ngll,mat%htprime,&
                          invgrad_ijk,Depla(:,:,:,1),dxy,dyy,dzy)
-                    call physical_part_deriv_ijk(i,j,k,dom%ngll,htprime,&
+                    call physical_part_deriv_ijk(i,j,k,dom%ngll,mat%htprime,&
                          invgrad_ijk,Depla(:,:,:,2),dxz,dyz,dzz)
 
                     call calcul_sigma(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
@@ -170,15 +170,15 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
                     t63 = zero
                     !
                     do l = 0,ngll-1
-                        t41 = t41 + htprime(l,i) * t1(l,j,k)
-                        t42 = t42 + htprime(l,i) * t5(l,j,k)
-                        t43 = t43 + htprime(l,i) * t8(l,j,k)
+                        t41 = t41 + mat%htprime(l,i) * t1(l,j,k)
+                        t42 = t42 + mat%htprime(l,i) * t5(l,j,k)
+                        t43 = t43 + mat%htprime(l,i) * t8(l,j,k)
                     enddo
 
                     do l = 0,ngll-1
-                        t51 = t51 + htprime(l,j) * t2(l,i,k)
-                        t52 = t52 + htprime(l,j) * t6(l,i,k)
-                        t53 = t53 + htprime(l,j) * t9(l,i,k)
+                        t51 = t51 + mat%htprime(l,j) * t2(l,i,k)
+                        t52 = t52 + mat%htprime(l,j) * t6(l,i,k)
+                        t53 = t53 + mat%htprime(l,j) * t9(l,i,k)
                     enddo
                     ! FX
                     F1 = t41*t11 + t51*t12
@@ -189,9 +189,9 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
                     !
                     !
                     do l = 0,ngll-1
-                        t61 = t61 + htprime(l,k) * t3(l,i,j)
-                        t62 = t62 + htprime(l,k) * t7(l,i,j)
-                        t63 = t63 + htprime(l,k) * t10(l,i,j)
+                        t61 = t61 + mat%htprime(l,k) * t3(l,i,j)
+                        t62 = t62 + mat%htprime(l,k) * t7(l,i,j)
+                        t63 = t63 + mat%htprime(l,k) * t10(l,i,j)
                     enddo
 
                     ! FX
@@ -210,7 +210,7 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
             enddo
         enddo
         !=-=-=-=-=-=-=-=-=-=-
-        call attenuation_update(dom,lnum,htprime,Depla,ngll,n_solid,aniso)
+        call attenuation_update(dom,lnum,mat%htprime,Depla,ngll,n_solid,aniso)
     end subroutine calcul_forces
 
     subroutine calcul_sigma(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&
