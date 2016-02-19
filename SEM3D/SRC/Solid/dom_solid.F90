@@ -201,19 +201,18 @@ contains
 
         ! First, get displacement.
 
-        do k=0,ngll-1
-            do j=0,ngll-1
-                do i=0,ngll-1
-                    ind = dom%Idom_(i,j,k,el%lnum)
-
-                    if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
-                        if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+        if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
+            if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+            do k=0,ngll-1
+                do j=0,ngll-1
+                    do i=0,ngll-1
+                        ind = dom%Idom_(i,j,k,el%lnum)
                         fieldU(i,j,k,:) = dom%champs0%Depla(ind,:)
-                    end if
-
+                    enddo
                 enddo
             enddo
-        enddo
+        end if
+
 
         ! Then, get other variables.
 
