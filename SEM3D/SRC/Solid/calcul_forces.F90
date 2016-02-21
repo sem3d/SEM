@@ -6,7 +6,100 @@
 #include "index.h"
 
 module m_calcul_forces ! wrap subroutine in module to get arg type check at build time
-    contains
+    implicit none
+    private :: physical_part_deriv_ijke
+contains
+
+    pure subroutine physical_part_deriv_ijke(e,i,j,k,ngll,hprime,InvGrad,Scalp,dS_dx,dS_dy,dS_dz)
+        implicit none
+        integer,intent(in) :: i,j,k,e
+        integer, intent(in) :: ngll
+        real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
+        real, dimension(IND_MNE(0:2,0:2,0:CHUNK-1)), intent(in) :: InvGrad
+        real, dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Scalp
+        real, intent(out) :: dS_dx,dS_dy,dS_dz
+
+        integer :: l
+        real :: dS_dxi, dS_deta, dS_dzeta
+
+        dS_dxi   = 0.0D+0
+        dS_deta  = 0.0D+0
+        dS_dzeta = 0.0D+0
+        DO L = 0, ngll-1
+            dS_dxi   = dS_dxi  +Scalp(e,L,J,K)*hprime(L,I)
+            dS_deta  = dS_deta +Scalp(e,I,L,K)*hprime(L,J)
+            dS_dzeta = dS_dzeta+Scalp(e,I,J,L)*hprime(L,K)
+        END DO
+        !- in the physical domain
+        dS_dx = dS_dxi*InvGrad(IND_MNE(0,0,e))+dS_deta*InvGrad(IND_MNE(0,1,e))+dS_dzeta*InvGrad(IND_MNE(0,2,e))
+        dS_dy = dS_dxi*InvGrad(IND_MNE(1,0,e))+dS_deta*InvGrad(IND_MNE(1,1,e))+dS_dzeta*InvGrad(IND_MNE(1,2,e))
+        dS_dz = dS_dxi*InvGrad(IND_MNE(2,0,e))+dS_deta*InvGrad(IND_MNE(2,1,e))+dS_dzeta*InvGrad(IND_MNE(2,2,e))
+    end subroutine physical_part_deriv_ijke
+
+    subroutine calcul_forces_iso(dom,lnum,Fox,Foy,Foz,Depla)
+        use sdomain
+        use deriv3d
+        implicit none
+        type(domain_solid), intent (INOUT) :: dom
+        integer, intent(in) :: lnum
+        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(out) :: Fox,Foz,Foy
+        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2), intent(in) :: Depla
+
+        select case(dom%ngll)
+        case(4)
+            call calcul_forces_iso_4(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+        case(5)
+            call calcul_forces_iso_5(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+        case (6)
+            call calcul_forces_iso_6(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+        case (7)
+            call calcul_forces_iso_7(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+        case (8)
+            call calcul_forces_iso_8(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+        case (9)
+            call calcul_forces_iso_9(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+        case default
+            call calcul_forces_iso_n(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+        end select
+    end subroutine calcul_forces_iso
+
+#define NGLLVAL 4
+#define PROCNAME calcul_forces_iso_4
+#include "calcul_forces_solid.inc"
+#undef NGLLVAL
+#undef PROCNAME
+#define NGLLVAL 5
+#define PROCNAME calcul_forces_iso_5
+#include "calcul_forces_solid.inc"
+#undef NGLLVAL
+#undef PROCNAME
+#define NGLLVAL 6
+#define PROCNAME calcul_forces_iso_6
+#include "calcul_forces_solid.inc"
+#undef NGLLVAL
+#undef PROCNAME
+#define NGLLVAL 7
+#define PROCNAME calcul_forces_iso_7
+#include "calcul_forces_solid.inc"
+#undef NGLLVAL
+#undef PROCNAME
+#define NGLLVAL 8
+#define PROCNAME calcul_forces_iso_8
+#include "calcul_forces_solid.inc"
+#undef NGLLVAL
+#undef PROCNAME
+#define NGLLVAL 9
+#define PROCNAME calcul_forces_iso_9
+#include "calcul_forces_solid.inc"
+
+#undef NGLLVAL
+#undef PROCNAME
+#define NGLL_GEN
+#define PROCNAME calcul_forces_iso_n
+#define ANISO 0
+#define ATN 0
+#include "calcul_forces_solid.inc"
+
     subroutine calcul_forces(dom,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)
 
         use sdomain

@@ -436,8 +436,8 @@ contains
                 !call calcul_forces_iso_atn(dom,lnum,Fox,Foy,Foz,Depla)
                 call calcul_forces(dom,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)
             else
-                !call calcul_forces_iso(dom,lnum,Fox,Foy,Foz,Depla)
-                call calcul_forces(dom,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)
+                call calcul_forces_iso(dom,lnum,Fox,Foy,Foz,Depla)
+                !call calcul_forces(dom,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)
             end if
         end if
 
