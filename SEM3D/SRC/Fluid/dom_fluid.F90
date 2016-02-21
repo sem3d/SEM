@@ -29,7 +29,7 @@ contains
         nbelem = CHUNK*((nbelem+CHUNK-1)/CHUNK)
         dom%nbelem_alloc = nbelem
         
-        allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+        allocate(dom%IDensity_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
         allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
 
         allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
@@ -63,7 +63,7 @@ contains
         implicit none
         type(domain_fluid), intent (INOUT) :: dom
 
-        if(allocated(dom%m_Density)) deallocate(dom%m_Density)
+        if(allocated(dom%m_IDensity)) deallocate(dom%m_IDensity)
         if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
 
         if(allocated(dom%m_Jacob  )) deallocate(dom%m_Jacob  )
@@ -81,21 +81,21 @@ contains
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
     end subroutine deallocate_dom_fluid
 
-    subroutine fluid_velocity(ngll,hprime,InvGrad,density,phi,veloc)
+    subroutine fluid_velocity(ngll,hprime,InvGrad,idensity,phi,veloc)
         ! gives the physical particle velocity in the fluid = 1/dens grad(dens.Phi)
         implicit none
         integer, intent(in)  :: ngll
         real, dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:2), intent(in) :: InvGrad
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: density,phi
+        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: idensity,phi
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(out) :: Veloc
         real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: dphi_dx,dphi_dy,dphi_dz
 
         ! physical gradient
         call physical_part_deriv(ngll,hprime,InvGrad,phi,dphi_dx,dphi_dy,dphi_dz)
-        Veloc(:,:,:,0) = dphi_dx(:,:,:)/density(:,:,:)
-        Veloc(:,:,:,1) = dphi_dy(:,:,:)/density(:,:,:)
-        Veloc(:,:,:,2) = dphi_dz(:,:,:)/density(:,:,:)
+        Veloc(:,:,:,0) = dphi_dx(:,:,:) * idensity(:,:,:)
+        Veloc(:,:,:,1) = dphi_dy(:,:,:) * idensity(:,:,:)
+        Veloc(:,:,:,2) = dphi_dz(:,:,:) * idensity(:,:,:)
     end subroutine fluid_velocity
 
     subroutine get_fluid_dom_var(Tdomain, dom, el, out_variables, &
@@ -143,7 +143,7 @@ contains
             enddo
             mat = el%mat_index
             call fluid_velocity(ngll,Tdomain%sSubdomain(mat)%hprime,                  &
-                dom%InvGrad_(:,:,:,:,:,el%lnum),dom%Density_(:,:,:,el%lnum),phi,fieldV)
+                dom%InvGrad_(:,:,:,:,:,el%lnum),dom%IDensity_(:,:,:,el%lnum),phi,fieldV)
         end if
 
         if (out_variables(OUT_ACCEL) == 1) then
@@ -159,7 +159,7 @@ contains
             enddo
             mat = el%mat_index
             call fluid_velocity(ngll,Tdomain%sSubdomain(mat)%hprime,               &
-                dom%InvGrad_(:,:,:,:,:,el%lnum),dom%Density_(:,:,:,el%lnum),vphi,fieldA)
+                dom%InvGrad_(:,:,:,:,:,el%lnum),dom%IDensity_(:,:,:,el%lnum),vphi,fieldA)
         end if
 
         if (out_variables(OUT_PRESSION) == 1) then
@@ -210,10 +210,10 @@ contains
         real(fpp), intent(in) :: lambda
 
         if (i==-1 .and. j==-1 .and. k==-1) then
-            dom%Density_(:,:,:,lnum) = density
+            dom%IDensity_(:,:,:,lnum) = 1d0/density
             dom%Lambda_ (:,:,:,lnum) = lambda
         else
-            dom%Density_(i,j,k,lnum) = density
+            dom%IDensity_(i,j,k,lnum) = 1d0/density
             dom%Lambda_ (i,j,k,lnum) = lambda
         end if
     end subroutine init_material_properties_fluid

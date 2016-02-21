@@ -135,7 +135,7 @@ contains
                                     Tdomain%sdom%Lambda_ (i,j,k,lnum) = propMatrix(ipoint, 1, mat)
                                     Tdomain%sdom%Mu_     (i,j,k,lnum) = propMatrix(ipoint, 2, mat)
                                 case (DM_FLUID)
-                                    Tdomain%fdom%Density_(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
+                                    Tdomain%fdom%IDensity_(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
                                     Tdomain%fdom%Lambda_ (i,j,k,lnum) = propMatrix(ipoint, 1, mat)
                                 case (DM_SOLID_PML)
                                     Tdomain%spmldom%Density_(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
@@ -264,7 +264,7 @@ contains
                                         prop(ipoint, 1) = Tdomain%sdom%Lambda_ (i,j,k,lnum)
                                         prop(ipoint, 2) = Tdomain%sdom%Mu_     (i,j,k,lnum)
                                     case (DM_FLUID)
-                                        prop(ipoint, 0) = Tdomain%fdom%Density_(i,j,k,lnum)
+                                        prop(ipoint, 0) = Tdomain%fdom%IDensity_(i,j,k,lnum)
                                         prop(ipoint, 1) = Tdomain%fdom%Lambda_ (i,j,k,lnum)
                                         prop(ipoint, 2) = 0
                                     case (DM_SOLID_PML)

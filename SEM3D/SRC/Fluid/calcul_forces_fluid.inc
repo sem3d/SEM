@@ -82,7 +82,7 @@ subroutine PROCNAME(dom,ngllvar,lnum,FFl,Phi)
                 dPhi_dz = dPhi_dxi*xi3 + dPhi_deta*et3 + dPhi_dzeta*ga3
 
                 ! (fluid equivalent) stress  ( = physical velocity)
-                xdens = 1d0/dom%Density_(i,j,k,e)
+                xdens = dom%IDensity_(i,j,k,e)
                 sx = xdens*dPhi_dX
                 sy = xdens*dPhi_dY
                 sz = xdens*dPhi_dZ

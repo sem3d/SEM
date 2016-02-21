@@ -43,6 +43,7 @@
 #endif
 
 #define     Density_(i,j,k,e)     m_Density(IND_IJKE(i,j,k,e))
+#define    IDensity_(i,j,k,e)    m_IDensity(IND_IJKE(i,j,k,e))
 #define      Lambda_(i,j,k,e)      m_Lambda(IND_IJKE(i,j,k,e))
 #define          Mu_(i,j,k,e)          m_Mu(IND_IJKE(i,j,k,e))
 #define       Kappa_(i,j,k,e)       m_Kappa(IND_IJKE(i,j,k,e))
