@@ -64,9 +64,7 @@ contains
 #include "calcul_forces_fluid.inc"
 #undef NGLLVAL
 #undef PROCNAME
-#define NGLLVAL n
 #define PROCNAME calcul_forces_fluid_n
-#define NGLL_GEN
 #include "calcul_forces_fluid.inc"
 
 end module m_calcul_forces_fluid

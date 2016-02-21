@@ -5,17 +5,17 @@
 
 #include "index.h"
 
-#ifndef NGLLVAL
-#error "Must define NGLLVAL before inclusion"
+#ifndef PROCNAME
+#error "Must define PROCNAME before inclusion"
 #endif
 
-#ifdef NGLL_GEN
+#ifndef NGLLVAL
 #define ngllvar ngll
 #else
 #define ngllvar ngll0
 #endif
 
-#undef ORIG
+#undef USE_LOCAL_MEM
 
 subroutine PROCNAME(dom,ngllvar,lnum,FFl,Phi)
     use sdomain
@@ -24,7 +24,7 @@ subroutine PROCNAME(dom,ngllvar,lnum,FFl,Phi)
 
     type(domain_fluid), intent (INOUT) :: dom
     integer, intent(in) :: ngllvar
-#ifndef NGLL_GEN
+#ifdef NGLLVAL
     integer, parameter :: ngll=NGLLVAL
 #endif
     integer, intent(in) :: lnum
@@ -34,12 +34,12 @@ subroutine PROCNAME(dom,ngllvar,lnum,FFl,Phi)
     real(fpp) :: dPhi_dxi,dPhi_deta,dPhi_dzeta
     real(fpp) :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
     integer :: i,j,k,l,e,ee
-    real(fpp) :: sx,sy,sz,t4,F1
-    real(fpp) :: t41,t11,t51,t12,t61,t13
+    real(fpp) :: sx,sy,sz,t4
     real(fpp) :: xt1,xt6,xt10
     real(fpp), parameter :: zero = 0.
     real(fpp) :: xdens
-#ifdef ORIG
+#ifdef USE_LOCAL_MEM
+    real(fpp) :: t41,t11,t51,t12,t61,t13,F1
     real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t6,t10
 #endif
     !dir$ ASSUME_ALIGNED PHI: 32
@@ -112,7 +112,7 @@ subroutine PROCNAME(dom,ngllvar,lnum,FFl,Phi)
                 t4   = dom%Jacob_(i,j,k,e) * dom%GLLw(k)
                 xt10 = xt10 * t4
 
-#ifdef ORIG
+#ifdef USE_LOCAL_MEM
                 t1(ee,i,j,k) = xt1
                 t6(ee,j,i,k) = xt6
                 t10(ee,k,i,j) = xt10
@@ -121,8 +121,9 @@ subroutine PROCNAME(dom,ngllvar,lnum,FFl,Phi)
                     FFl(ee,L,j,k) = FFl(ee,L,j,k) + dom%hprime(L,I)*xt1*dom%GLLw(j) * dom%GLLw(k)
                     FFl(ee,i,L,k) = FFl(ee,i,L,k) + dom%hprime(L,J)*xt6*dom%GLLw(i) * dom%GLLw(k)
                     FFl(ee,i,j,L) = FFl(ee,i,j,L) + dom%hprime(L,K)*xt10*dom%GLLw(i) * dom%GLLw(j)
-                END DO
+                ENDDO
 #endif
+
                 END_SUBELEM_LOOP()
             enddo
         enddo
@@ -131,7 +132,7 @@ subroutine PROCNAME(dom,ngllvar,lnum,FFl,Phi)
     !
     !- Multiplication par la matrice de derivation puis par les poids
     !
-#ifdef ORIG
+#ifdef USE_LOCAL_MEM
     !=-=-=-=-=-=-=-=-=-=-
     do k = 0,ngll-1
         do j = 0,ngll-1
