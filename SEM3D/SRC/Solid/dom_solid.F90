@@ -390,40 +390,66 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solid
 
-    subroutine forces_int_solid(dom, mat, n_solid, aniso, champs1, lnum)
+    subroutine forces_int_solid(dom, champs1, lnum)
         use m_calcul_forces
         use attenuation_solid
         type(domain_solid), intent (INOUT) :: dom
-        type (subdomain), intent(IN) :: mat
-        integer, intent(IN) :: n_solid
-        logical, intent(IN) :: aniso
         type(champssolid), intent(inout) :: champs1
-        integer :: lnum
+        integer, intent(in) :: lnum
+        !
+        integer :: ngll,i,j,k,i_dir,e,ee,idx
+        integer :: n_solid
+        logical :: aniso
+        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
+        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
 
-        integer :: ngll,i,j,k,i_dir
-        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
-        real, dimension(0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
-
+        n_solid = dom%n_sls
+        aniso = dom%aniso
         ngll = dom%ngll
 
         do i_dir = 0,2
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
-                        Depla(i,j,k,i_dir) = champs1%Depla(dom%Idom_(i,j,k,lnum),i_dir)
+                        do ee = 0, CHUNK-1
+                            idx = dom%Idom_(i,j,k,ee+lnum)
+                            Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+                        enddo
                     enddo
                 enddo
             enddo
         enddo
+        Fox = 0d0
+        Foy = 0d0
+        Foz = 0d0
 
-        call calcul_forces(dom,mat,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)
+        if (aniso) then
+            if (n_solid>0) then
+                !call calcul_forces_aniso_atn(dom,lnum,Fox,Foy,Foz,Depla)
+                call calcul_forces(dom,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)
+            else
+                !call calcul_forces_aniso(dom,lnum,Fox,Foy,Foz,Depla)
+                call calcul_forces(dom,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)
+            end if
+        else
+            if (n_solid>0) then
+                !call calcul_forces_iso_atn(dom,lnum,Fox,Foy,Foz,Depla)
+                call calcul_forces(dom,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)
+            else
+                !call calcul_forces_iso(dom,lnum,Fox,Foy,Foz,Depla)
+                call calcul_forces(dom,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)
+            end if
+        end if
 
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    champs1%Forces(dom%Idom_(i,j,k,lnum),0) = champs1%Forces(dom%Idom_(i,j,k,lnum),0)-Fox(i,j,k)
-                    champs1%Forces(dom%Idom_(i,j,k,lnum),1) = champs1%Forces(dom%Idom_(i,j,k,lnum),1)-Foy(i,j,k)
-                    champs1%Forces(dom%Idom_(i,j,k,lnum),2) = champs1%Forces(dom%Idom_(i,j,k,lnum),2)-Foz(i,j,k)
+                    do ee = 0, CHUNK-1
+                        idx = dom%Idom_(i,j,k,ee+lnum)
+                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
+                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)
+                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)
+                    enddo
                 enddo
             enddo
         enddo
