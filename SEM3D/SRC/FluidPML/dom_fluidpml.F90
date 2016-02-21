@@ -16,6 +16,7 @@ module dom_fluidpml
 contains
 
     subroutine allocate_dom_fluidpml (Tdomain, dom)
+        use gll3d
         implicit none
         type(domain) :: TDomain
         type(domain_fluidpml) :: dom
@@ -27,6 +28,9 @@ contains
         if(nbelem == 0) return ! Do not allocate if not needed (save allocation/RAM)
         ngll   = dom%ngll
 
+        nbelem = CHUNK*((nbelem+CHUNK-1)/CHUNK)
+        dom%nbelem_alloc = nbelem
+
         allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
         allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
 
@@ -34,6 +38,9 @@ contains
         allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
 
         allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+        dom%m_Idom = 0
+        ! Initialisation poids, points des polynomes de lagranges aux point de GLL
+        call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
 
         if(Tdomain%TimeD%velocity_scheme)then
             allocate(dom%PMLVeloc_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
@@ -201,9 +208,8 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_fluidpml
 
-    subroutine forces_int_flu_pml(dom, mat, champs1, lnum)
+    subroutine forces_int_flu_pml(dom, champs1, lnum)
         type (domain_fluidpml), intent (INOUT) :: dom
-        type (subdomain), intent(IN) :: mat
         type(champsfluidpml), intent(inout) :: champs1
         integer :: lnum
         !
@@ -217,12 +223,11 @@ contains
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i=0,ngll-1
-                    ind = dom%Idom_(i,j,k,lnum)
                     sum_vx = 0d0
                     sum_vy = 0d0
                     sum_vz = 0d0
                     do l = 0,ngll-1
-                        acoeff = - mat%hprime(i,l)*mat%GLLw(l)*mat%GLLw(j)*mat%GLLw(k)*dom%Jacob_(l,j,k,lnum)
+                        acoeff = - dom%hprime(i,l)*dom%GLLw(l)*dom%GLLw(j)*dom%GLLw(k)*dom%Jacob_(l,j,k,lnum)
                         sum_vx = sum_vx + acoeff*dom%InvGrad_(0,0,l,j,k,lnum)*dom%PMLVeloc_(l,j,k,0,lnum)
                         sum_vy = sum_vy + acoeff*dom%InvGrad_(1,0,l,j,k,lnum)*dom%PMLVeloc_(l,j,k,1,lnum)
                         sum_vz = sum_vz + acoeff*dom%InvGrad_(2,0,l,j,k,lnum)*dom%PMLVeloc_(l,j,k,2,lnum)
@@ -237,8 +242,7 @@ contains
             do l = 0,ngll-1
                 do j = 0,ngll-1
                     do i=0,ngll-1
-                        ind = dom%Idom_(i,j,k,lnum)
-                        acoeff = - mat%hprime(j,l)*mat%GLLw(i)*mat%GLLw(l)*mat%GLLw(k)*dom%Jacob_(i,l,k,lnum)
+                        acoeff = - dom%hprime(j,l)*dom%GLLw(i)*dom%GLLw(l)*dom%GLLw(k)*dom%Jacob_(i,l,k,lnum)
                         sum_vx = acoeff*dom%InvGrad_(0,1,i,l,k,lnum)*dom%PMLVeloc_(i,l,k,0,lnum)
                         sum_vy = acoeff*dom%InvGrad_(1,1,i,l,k,lnum)*dom%PMLVeloc_(i,l,k,1,lnum)
                         sum_vz = acoeff*dom%InvGrad_(2,1,i,l,k,lnum)*dom%PMLVeloc_(i,l,k,2,lnum)
@@ -254,8 +258,7 @@ contains
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i=0,ngll-1
-                        ind = dom%Idom_(i,j,k,lnum)
-                        acoeff = - mat%hprime(k,l)*mat%GLLw(i)*mat%GLLw(j)*mat%GLLw(l)*dom%Jacob_(i,j,l,lnum)
+                        acoeff = - dom%hprime(k,l)*dom%GLLw(i)*dom%GLLw(j)*dom%GLLw(l)*dom%Jacob_(i,j,l,lnum)
                         sum_vx = acoeff*dom%InvGrad_(0,2,i,j,l,lnum)*dom%PMLVeloc_(i,j,l,0,lnum)
                         sum_vy = acoeff*dom%InvGrad_(1,2,i,j,l,lnum)*dom%PMLVeloc_(i,j,l,1,lnum)
                         sum_vz = acoeff*dom%InvGrad_(2,2,i,j,l,lnum)*dom%PMLVeloc_(i,j,l,2,lnum)
@@ -281,9 +284,8 @@ contains
         enddo
     end subroutine forces_int_flu_pml
 
-    subroutine pred_flu_pml(dom, mat, dt, champs1, lnum)
+    subroutine pred_flu_pml(dom, dt, champs1, lnum)
         type (domain_fluidpml), intent (INOUT) :: dom
-        type (subdomain), intent(IN) :: mat
         real, intent(in) :: dt
         type(champsfluidpml), intent(inout) :: champs1
         integer :: lnum
@@ -310,7 +312,7 @@ contains
         enddo
         ! XXX DumpS{xyz}(:,:,:,1) doit etre multiplie par 1/density
         ! d(rho*Phi)_d(xi,eta,zeta)
-        call physical_part_deriv(ngll,mat%hprime,dom%InvGrad_(:,:,:,:,:,lnum),&
+        call physical_part_deriv(ngll, dom%hprime,dom%InvGrad_(:,:,:,:,:,lnum),&
                                  VelPhi(:,:,:),dVelPhi_dx,dVelPhi_dy,dVelPhi_dz)
 
         ! prediction for (physical) velocity (which is the equivalent of a stress, here)

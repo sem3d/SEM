@@ -419,6 +419,12 @@ subroutine internal_forces(Tdomain)
             call forces_int_fluid(Tdomain%fdom, Tdomain%fdom%champs1, n)
         end do
     end if
+    if (Tdomain%fpmldom%nbelem>0) then
+        do n = 0,Tdomain%fpmldom%nbelem-1,CHUNK
+            call pred_flu_pml(Tdomain%fpmldom, Tdomain%TimeD%dtmin, Tdomain%fpmldom%champs1, n)
+            call forces_int_flu_pml(Tdomain%fpmldom, Tdomain%fpmldom%champs1, n)
+        end do
+    end if
     do n = 0,Tdomain%n_elem-1
         lnum = Tdomain%specel(n)%lnum
         mat = Tdomain%specel(n)%mat_index
@@ -435,10 +441,10 @@ subroutine internal_forces(Tdomain)
             call forces_int_sol_pml(Tdomain%spmldom, Tdomain%sSubDomain(mat), &
                  Tdomain%spmldom%champs1, lnum)
         case (DM_FLUID_PML)
-            call pred_flu_pml(Tdomain%fpmldom, Tdomain%sSubDomain(mat), &
-                 Tdomain%TimeD%dtmin, Tdomain%fpmldom%champs1, lnum)
-            call forces_int_flu_pml(Tdomain%fpmldom, Tdomain%sSubDomain(mat), &
-                 Tdomain%fpmldom%champs1, lnum)
+!            call pred_flu_pml(Tdomain%fpmldom, Tdomain%sSubDomain(mat), &
+!                 Tdomain%TimeD%dtmin, Tdomain%fpmldom%champs1, lnum)
+!            call forces_int_flu_pml(Tdomain%fpmldom, Tdomain%sSubDomain(mat), &
+!                 Tdomain%fpmldom%champs1, lnum)
         end select
     enddo
 

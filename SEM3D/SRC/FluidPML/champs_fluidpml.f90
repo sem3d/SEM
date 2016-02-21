@@ -31,6 +31,16 @@ module champs_fluidpml
         ! Nombre d'elements dans le domaine
         integer :: nbelem
 
+        ! Nombre d'elements alloues dans le domaine (>=nbelem)
+        integer :: nbelem_alloc
+        integer :: nb_chunks  ! nbelem_alloc == nb_chunks*CHUNK
+
+        ! Points, poids de gauss et derivees
+        real(fpp), dimension (:), allocatable :: GLLc
+        real(fpp), dimension (:), allocatable :: GLLw
+        real(fpp), dimension (:,:), allocatable :: hprime
+        real(fpp), dimension (:,:), allocatable :: hTprime
+
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
         real(fpp), dimension(:), allocatable :: MassMat
         real(fpp), dimension(:,:), allocatable :: DumpMass
