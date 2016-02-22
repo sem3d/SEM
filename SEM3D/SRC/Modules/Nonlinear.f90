@@ -116,45 +116,44 @@ contains
         Sigma_ij_trial=Sigma_ij_start+dSigma_ij_trial
         call mises_yld_locus(Sigma_ij_trial, X_ij, R, sigma_yld, &
             Ftrial, gradFtrial)
-
         write(*,*) "*********************************"
-        write(*,*) "ELEMENT:",nelement
-        write(*,*) "nx,ny,nz",nx,ny,nz
         write(*,*) "Fstart:",Fstart,"Ftrial:",Ftrial
+
         ! LOADING CONDITION    
         checkload=0d0
         do k=0,5
             checkload=checkload+10*gradFstart(k)*dSigma_ij_trial(k)
         end do
-        write(*,*) "checkload",checkload
         ! KKT CONDITION
-        if (abs(Fstart) .le. tol_nl) then
-            if (checkload .ge. 0) then
+        if (abs(Fstart).le.tol_nl) then           ! ON F=0
+            if (checkload.ge.0) then              ! PURE ELASTIC STEP 
                 alpha_elp = 0d0
                 st_elp    = 1
-                write(*,*) "PURE-PLASTIC STEP"
             else
-                if (Ftrial .gt. tol_nl) then
-                    alpha_elp = 2*sigma_yld/(2*sigma_yld+Ftrial)
-                    st_elp    = 1
-                    write(*,*) "ELASTO-PLASTIC WITH REVERSAL STEP"
-                else
+                if (Ftrial.lt.tol_nl) then        ! REVERSE ELASTO-PLASTIC STEP
                     alpha_elp = 1d0
                     st_elp    = 2 
-                    write(*,*) "PURE ELASTIC WITH REVERSAL STEP"
+                else                              ! REVERSE PURE ELASTIC STEP
+                    !alpha_elp = 2*sigma_yld/(2*sigma_yld+Ftrial)
+                    Fstart=Fstart+sigma_yld
+                    Ftrial=Ftrial+sigma_yld
+                    write(*,*) "Fstart corrected:",Fstart,"Ftrial corrected:",Ftrial
+                    call gotoFtan(Sigma_ij_start,dSigma_ij_trial,&
+                        Fstart,Ftrial,X_ij,R,0d0,alpha_elp)
+                    st_elp    = 1
                 endif
             end if
-        elseif (Fstart .lt. -tol_nl) then
-            if (Ftrial .lt. tol_nl) then
+        elseif (Fstart.lt.-tol_nl) then
+            if (Ftrial.lt.tol_nl) then            ! PURE ELASTIC STEP
                 alpha_elp = 1d0
                 st_elp    = 2
-                write(*,*) "PURE ELASTIC STEP"
-            else
-                call gotoFsec(Sigma_ij_start,dSigma_ij_trial,Fstart,Ftrial,X_ij,R,sigma_yld,alpha_elp)
+            else                                  ! ELASO-PLASTIC STEP
+                !call gotoFsec(Sigma_ij_start,dSigma_ij_trial,Fstart,Ftrial,X_ij,R,sigma_yld,alpha_elp)
+                call gotoFpegasus(Sigma_ij_start,dSigma_ij_trial,X_ij,R,sigma_yld,alpha_elp)  
                 st_elp    = 1
-                write(*,*) "ELASTO-PLASTIC STEP"
             end if
         elseif (Fstart .gt. tol_nl) then
+            write(*,*) "Fstart:",Fstart,"Ftrial:",Ftrial
             write(*,*) "ERROR!"
             write(*,*) "Fstart: ",Fstart,">",tol_nl,"!!!!"
             write(*,*) "ERROR!"
@@ -169,7 +168,8 @@ contains
     end subroutine check_plasticity
 
     subroutine plastic_corrector (dEpsilon_ij_alpha, Sigma_ij, X_ij, sigma_yld, &
-        R, b_lmc, Rinf_lmc, C_lmc, kapa_lmc, mu, lambda, dEpsilon_ij_pl,flag_SS)
+        R, b_lmc, Rinf_lmc, C_lmc, kapa_lmc, mu, lambda, dEpsilon_ij_pl,flag_SS,&
+        nelement,ngllx,nglly,ngllz)
 
         ! NR ALGORITHM AND DRIFT CORRECTION
 
@@ -183,21 +183,25 @@ contains
         real,                 intent(in)    :: b_lmc, Rinf_lmc      ! Lamaitre and Chaboche parameters (isotropic hardening)
         real,                 intent(in)    :: C_lmc, kapa_lmc      ! Lamaitre and Chaboche parameters (kinematic hardening)
         real,                 intent(in)    :: mu, lambda           ! elastic parameters
+        integer, optional,    intent(in)    :: nelement,ngllx,nglly,ngllz
         logical,              intent(in)    :: flag_SS
         real                                :: N_incr
         real, dimension(0:5)                :: dX_ij, gradF_0, gradF_mises
-        real                                :: dR, dPlastMult, F_mises_0, F_mises,Ffinal
+        real                                :: dR,dPlastMult,F_mises_0,F_mises,Ffinal,dPlastMult1
         integer                             :: i,j,k
-        real, dimension(0:5)                :: temp_vec, Sigma_ij_temp
+        real, dimension(0:5)                :: temp_vec
         real, dimension(0:5,0:5)            :: DEL_ijhk
         real, dimension(0:5), parameter     :: A = (/1.0,1.0,1.0,0.5,0.5,0.5/)
-        
+        real, parameter                     :: stol = 0.001d0
+        real                                :: Ttot,deltaTk,qq,R1,R2,dR1,dR2,err0,err1
+        real(8)                             :: Resk
+        logical                             :: flag_fail
+        real, dimension(0:5)                :: S1,S2,X1,X2
+        real, dimension(0:5)                :: dS1,dS2,dX1,dX2,dEpl1,dEpl2
 
         call stiff_matrix(lambda,mu,DEL_ijhk)
         
-        if (flag_SS) then         ! SUBSTEPPING (SLOAN,1982)
-            
-            ! ELASTO-PLASTIC SUB-STEPPING
+        if (flag_SS) then         ! CONSTANT INCREMENT
             
             N_incr=10
             
@@ -207,11 +211,9 @@ contains
 
                 ! PREDICTION
                 call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, F_mises_0, gradF_0)
-                write(*,*) "prediction",F_mises_0
-                write(*,*) "grad",gradF_0
                 ! COMPUTE PLASTIC MULTIPLIER
                 call compute_plastic_modulus(dEpsilon_ij_alpha, Sigma_ij, X_ij, R, mu, lambda, sigma_yld, &
-                    b_lmc, Rinf_lmc, C_lmc, kapa_lmc, dPlastMult)
+                    b_lmc, Rinf_lmc, C_lmc, kapa_lmc, dPlastMult,nelement,ngllx,nglly,ngllz)
                 
                 ! HARDENING INCREMENTS
                 call hardening_increments(Sigma_ij, R, X_ij, sigma_yld, &
@@ -223,8 +225,8 @@ contains
                 do k=0,5 ! plastic strains
                     dEpsilon_ij_pl(k)=dEpsilon_ij_pl(k)+dPlastMult*gradF_0(k)*A(k)
                 end do
-                R=R+dR          ! isotropic hardening update
-                X_ij(0:5)=X_ij(0:5)+dX_ij(0:5) ! back-stress update
+                R=R+dR                          ! isotropic hardening update
+                X_ij(0:5)=X_ij(0:5)+dX_ij(0:5)  ! back-stress update
 
                 ! stress update
                 do j = 0,5
@@ -235,66 +237,152 @@ contains
 
                 ! DRIFT CORRECTION
                 call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, Ffinal, gradF_0)
-                write(*,*) "Ffinal (BD): ",Ffinal
+!               write(*,*) "Ffinal (BD): ",Ffinal
                 if (Ffinal .gt. tol_nl) then
                     call drift_corr(1,Sigma_ij, X_ij, R, sigma_yld,&
                         b_lmc, Rinf_lmc, C_lmc, kapa_lmc, lambda, mu, dEpsilon_ij_pl)
                     call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, Ffinal, gradF_0)
                 end if
-                write(*,*) "Ffinal (AD): ",Ffinal
-                write(*,*) ""
+                if (Ffinal.gt.tol_nl) then
+                    write(*,*) "Ffinal (AD): ",Ffinal
+                    write(*,*) ""
+                endif
 
             end do
-        else    ! 2-STEPS RUNGE-KUTTA
+        else    ! ERROR ADAPTIVE CONTROL
             
-            dEpsilon_ij_alpha(0:5) = dEpsilon_ij_alpha(0:5)*0.5
-            
-            ! PREDICTION
-            
-            call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, F_mises_0, gradF_0)
-            write(*,*) "prediction",F_mises_0
-            write(*,*) "grad",gradF_0
-            ! COMPUTE PLASTIC MULTIPLIER
-            call compute_plastic_modulus(dEpsilon_ij_alpha, Sigma_ij, X_ij, R, mu, lambda, sigma_yld, &
-                b_lmc, Rinf_lmc, C_lmc, kapa_lmc, dPlastMult)
-            
-            ! HARDENING INCREMENTS
-            call hardening_increments(Sigma_ij, R, X_ij, sigma_yld, &
-                b_lmc, Rinf_lmc, C_lmc, kapa_lmc, dR, dX_ij)
-            dR = dPlastMult*dR
-            dX_ij(0:5) = dPlastMult*dX_ij(0:5)
+            deltaTk = 1.0d0
+            Ttot    = 0.0d0
 
-            ! VARIABLE UPDATE
-            do k=0,5 ! plastic strains
-                dEpsilon_ij_pl(k)=dEpsilon_ij_pl(k)+dPlastMult*gradF_0(k)*A(k)
-            end do
-            R=R+dR          ! isotropic hardening update
-            X_ij(0:5)=X_ij(0:5)+dX_ij(0:5) ! back-stress update
+            do while (Ttot.lt.0.99999d0)
+                write(*,*) "correction rk",deltaTk 
+                write(*,*) "total time",Ttot
+                
+                Resk     = 0d0
+                dS1(0:5) = 0d0
+                dX1(0:5) = 0d0
+                dS2(0:5) = 0d0
+                dX2(0:5) = 0d0
+                dR1      = 0d0
+                dR2      = 0d0
+                dEpl1(0:5) = 0d0
+                dEpl2(0:5) = 0d0
 
-            ! stress update
-            do j = 0,5
-                do k = 0,5
-                    Sigma_ij_temp(i)=Sigma_ij_temp(j)+DEL_ijhk(k,j)*(2*dEpsilon_ij_alpha(k)-A(k)*dPlastMult*gradF_0(k))
-                    Sigma_ij(j)=Sigma_ij(j)+DEL_ijhk(k,j)*(2*dEpsilon_ij_alpha(k)-A(k)*dPlastMult*gradF_0(k))
-                end do
+                ! FIRST ORDER COMPUTATION
+                call ep_integration(dEpsilon_ij_alpha*deltaTk,Sigma_ij,X_ij,R,&
+                    sigma_yld,mu,lambda,b_lmc,Rinf_lmc,C_lmc,kapa_lmc,        &
+                    dS1,dX1,dR1,dEpl1)
+
+                R1      = R+dR1
+                X1(0:5) = X_ij(0:5) + dX1(0:5) 
+                S1(0:5) = Sigma_ij(0:5) + dS1(0:5)
+               
+                ! SECOND ORDER COMPUTATION
+                call ep_integration(dEpsilon_ij_alpha*deltaTk,S1,X1,R1,&
+                    sigma_yld,mu,lambda,b_lmc,Rinf_lmc,C_lmc,kapa_lmc, &
+                    dS2,dX2,dR2,dEpl2)
+                
+                ! TEMPORARY VARIABLES
+                S1 = Sigma_ij + 0.5d0*(dS1+dS2)
+                X1 = X_ij     + 0.5d0*(dX1+dX2)
+                R1 = R        + 0.5d0*(dR1+dR2)
+                dEpl1 = 0.5d0*(dEpl1+dEpl2)
+
+                ! ERROR
+                call tau_mises(dS2-dS1,err0)
+                call tau_mises(S1,err1)
+
+                Resk=0.5d0*max(epsilon(Resk),err0/err1)
+!                call tau_mises(dX2-dX1,err0)
+!                call tau_mises(X1,err1)
+!
+!                Resk=0.5d0*max(Resk,err0/err1)
+                
+                write(*,*) "residuum",Resk
+                if (Resk.le.stol) then ! substep is ok
+                    
+                    Sigma_ij = S1
+                    X_ij     = X1
+                    R        = R1
+
+!                    ! DRIFT CORRECTION
+                    call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, Ffinal, gradF_0)
+                    if (Ffinal .gt. tol_nl) then
+                        call drift_corr(0,Sigma_ij, X_ij, R, sigma_yld,&
+                                b_lmc, Rinf_lmc, C_lmc, kapa_lmc, lambda, mu, dEpsilon_ij_pl)
+                        call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, Ffinal, gradF_0)
+                        write(*,*) "after drift",Ffinal
+                    endif
+                   
+                    ! UPDATE TO NEXT TIME STEP
+                    Ttot=Ttot+deltaTk
+                    qq = min(0.9d0*sqrt(stol/Resk),1.1d0) 
+                    if (flag_fail) then
+                        qq = min(qq,1.0d0)
+                    endif
+!                    qq=min(0.8d0*sqrt(Resk/stol),2.0d0)
+                    flag_fail=.false.
+                    deltaTk=qq*deltaTk
+                    deltaTk=max(qq*deltaTk,0.1d0)
+!                    deltaTk=min(deltaTk,1-Ttot)
+
+                else    ! substep has failed
+!                    qq=max(0.9d0*sqrt(stol/Resk),0.1d0)
+                    qq=max(0.9d0*sqrt(Resk/stol),0.1d0)
+                    deltaTk=qq*deltaTk
+                    flag_fail=.true.
+                end if
+                write(*,*) "flag",flag_fail
             end do
-            write(*,*) "sigma_ij_1_2"
-            ! DRIFT CORRECTION
-            call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, Ffinal, gradF_0)
-            write(*,*) "Ffinal (BD): ",Ffinal
-            if (Ffinal .gt. tol_nl) then
-                call drift_corr(0,Sigma_ij, X_ij, R, sigma_yld,&
-                    b_lmc, Rinf_lmc, C_lmc, kapa_lmc, lambda, mu, dEpsilon_ij_pl)
-                call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, Ffinal, gradF_0)
-            end if
-            write(*,*) "Ffinal (AD): ",Ffinal
-            write(*,*) ""
 
         endif
     end subroutine plastic_corrector
+    
+    subroutine ep_integration(dStrain,Stress,center,radius,syld,mu,lambda,biso,Rinf,&
+        Ckin,kapakin,dStress,dcenter,dradius,dEplast)
+        
+        implicit none
+        real                , intent(in) :: radius,syld,mu,lambda,biso,Rinf,Ckin,kapakin
+        real, dimension(0:5), intent(in) :: dStrain,Stress,center
+        real, dimension(0:5), intent(inout):: dStress,dcenter,dEplast
+        real,                 intent(inout):: dradius
+        real, dimension(0:5)             :: gradF
+        real, dimension(0:5), parameter  :: A = (/1.0,1.0,1.0,0.5,0.5,0.5/)
+        real, dimension(0:5,0:5)         :: DEL
+        real                             :: Fmises,dPlast
+        integer                          :: j,k
+        
+        ! PREDICTION
+        call mises_yld_locus (Stress,center,radius,syld,Fmises,gradF)
+        call stiff_matrix(lambda,mu,DEL)
+
+        ! PLASTIC MULTIPLIER
+        call compute_plastic_modulus(dStrain,Stress,center,radius,mu,lambda,syld, &
+            biso,Rinf,Ckin,kapakin,dPlast)
+        
+        ! INCREMENTS
+        call hardening_increments(Stress,radius,center,syld, &
+            biso,Rinf,Ckin,kapakin,dradius,dcenter)
+        
+        dradius     = dPlast*dradius
+        dcenter(0:5)= dPlast*dcenter(0:5)
+        dEplast(0:5)= 0d0
+        do k=0,5 
+            dEplast(k)=dEplast(k)+dPlast*gradF(k)*A(k)
+        end do
+        do j = 0,5 ! stress increment
+            do k = 0,5
+                dstress(j)=DEL(k,j)*(dstrain(j)-A(k)*dPlast*gradF(k))  
+            end do
+        end do
+        
+        return
+
+    end subroutine ep_integration
+
 
     subroutine compute_plastic_modulus(dEpsilon_ij, Sigma_ij, X_ij, R, mu, lambda, &
-        sigma_yld, b_lmc, Rinf_lmc, C_lmc, kapa_lmc, dPlastMult)
+        sigma_yld, b_lmc, Rinf_lmc, C_lmc, kapa_lmc, dPlastMult, nelement, ngllx, nglly, ngllz)
 
         ! HARDENING MODULUS AND PLASTIC MULTIPLIER INCREMENT
 
@@ -307,6 +395,7 @@ contains
         real,                 intent(in) :: C_lmc, kapa_lmc     ! Lamaitre and Chaboche parameters (kinematic hardening)
         real,                 intent(in) :: mu, lambda          ! elastic parameters
         real,                 intent(in) :: sigma_yld           ! first yielding limit
+        integer, optional,       intent(in) :: nelement,ngllx,nglly,ngllz
         real,                 intent(out):: dPlastMult          ! plastic multiplier increment
         real                             :: h_iso, h_kin        ! isotropic and kinematic hardening modula
         real                             :: F_mises
@@ -315,7 +404,7 @@ contains
         real                             :: temp_vec
         real, dimension(0:5,0:5)         :: DEL_ijhk
         integer                          :: j,k
-        real, dimension(0:5), parameter :: A =(/1.0,1.0,1.0,0.5,0.5,0.5/)
+        real, dimension(0:5), parameter  :: A =(/1.0,1.0,1.0,0.5,0.5,0.5/)
         
         ! COMPUTE ELASTIC STIFFNESS MATRIX
         call stiff_matrix(lambda,mu,DEL_ijhk)
@@ -340,14 +429,7 @@ contains
                 dPlastMult = dPlastMult+gradF_mises(j)*DEL_ijhk(j,k)*dEpsilon_ij(k)
             end do
         end do
-        write(*,*) "nominatore",dPlastMult
-        write(*,*) "deps",dEpsilon_ij
-        write(*,*) "grad",gradF_mises
-        dPlastMult = dPlastMult/(h_lmc+temp_vec)
-        if (dPlastMult .lt. 0) then
-            write(*,*) "DPLAST NEGATIVE"
-            stop
-        end if
+        dPlastMult = max(0d0,dPlastMult/(h_lmc+temp_vec))
 
     end subroutine compute_plastic_modulus
 
@@ -489,8 +571,8 @@ contains
             call tensor_components(start,dev)
             call tau_mises(-dev+dev_temp,err0)
             call tau_mises(dev-dev0,err1)
-            write(*,*) "err0",err0
-            write(*,*) "err1",err1
+!            write(*,*) "err0",err0
+!            write(*,*) "err1",err1
             err0=err0/err1
             start(0:5)=temp(0:5)
             call mises_yld_locus(start,center,radius,s0,Fstart,gradF)
@@ -501,10 +583,10 @@ contains
             alpha=alpha-Fstart/beta
             temp(0:5)=start(0:5)-(Fstart/beta)*dtrial0(0:5)
         end do
-        write(*,*) "F:",Fstart
-        write(*,*) "err0",err0
-        write(*,*) "gotoF: stress:",start
-        write(*,*) ""
+!        write(*,*) "F:",Fstart
+!        write(*,*) "err0",err0
+!        write(*,*) "gotoF: stress:",start
+!        write(*,*) ""
     end subroutine gotoFtan
      
     subroutine gotoFsec(start0,dtrial0,F0,Ftrial,center,radius,s0,alpha)
@@ -539,6 +621,42 @@ contains
         enddo
 
     end subroutine gotoFsec
+
+    subroutine gotoFpegasus(start0,dtrial,center,radius,s0,alpha)
+        implicit none
+        real, dimension(0:5), intent(in)    :: start0,dtrial,center
+        real,                 intent(in)    :: radius,s0
+        real,                 intent(out)   :: alpha
+        real, dimension(0:5)                :: stress0,stress1,stress,gradF
+        real                                :: alpha0,alpha1,F0,F1,FM
+        integer                             :: counter
+
+        alpha1  = 1d0
+        alpha0  = 0d0
+        stress0 = start0+alpha0*dtrial
+        stress1 = start0+alpha1*dtrial
+        call mises_yld_locus(stress0,center,radius,s0,F0,gradF)
+        call mises_yld_locus(stress1,center,radius,s0,F1,gradF)
+        
+        do counter=0,9
+            alpha  = alpha1-F1*(alpha1-alpha0)/(F1-F0)
+            stress = start0+alpha*dtrial
+            call mises_yld_locus(stress,center,radius,s0,FM,gradF)
+
+            if (abs(FM).le.tol_nl) then
+                exit
+            else
+                alpha0  =   alpha1
+                alpha1  =   alpha
+                F0      =   F1
+                F1      =   FM
+            endif
+
+        end do
+        if (FM.gt.tol_nl) then
+            write(*,*) "WARNING: F>TOL"
+        endif
+    end subroutine gotoFpegasus
 
     subroutine tau_deepsoil(gamma_dp,gamma_R,gamma_rev,gamma_max,&
         flag_rev,tau_rev,mu,p1_dp,p2_dp,p3_dp,beta_dp,S_dp,tau_dp)
