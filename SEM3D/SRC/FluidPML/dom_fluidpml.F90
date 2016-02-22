@@ -207,7 +207,7 @@ contains
         specel%MassMat(i,j,k) = Whei*dom%Jacob_(i,j,k,specel%lnum)/dom%Lambda_(i,j,k,specel%lnum)
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_fluidpml
-
+#if 0
     subroutine forces_int_flu_pml(dom, champs1, lnum)
         type (domain_fluidpml), intent (INOUT) :: dom
         type(champsfluidpml), intent(inout) :: champs1
@@ -283,54 +283,176 @@ contains
             enddo
         enddo
     end subroutine forces_int_flu_pml
-
-    subroutine pred_flu_pml(dom, dt, champs1, lnum)
+#else
+        subroutine forces_int_flu_pml(dom, champs1, lnum)
         type (domain_fluidpml), intent (INOUT) :: dom
-        real, intent(in) :: dt
         type(champsfluidpml), intent(inout) :: champs1
         integer :: lnum
         !
-        real, dimension(0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: dVelPhi_dx, dVelPhi_dy, dVelPhi_dz
         integer :: ngll
-        integer :: i, j, k, ind
-        real, dimension(:,:,:), allocatable :: VelPhi
+        integer :: i, j, k, l, ind,e,ee
+        real(fpp) :: acoeff
+        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: FFl
+        ngll = dom%ngll
+
+        FFl(:,:,:,:,0) = 0d0
+        ! Fx
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i=0,ngll-1
+#ifdef SEM_VEC
+!$omp simd linear(ee) safelen(CHUNK) private(acoeff)
+#endif
+                    BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                    acoeff = -dom%GLLw(i)*dom%GLLw(j)*dom%GLLw(k)*dom%Jacob_(i,j,k,e)*dom%PMLVeloc_(i,j,k,0,e)
+                    do l = 0,ngll-1
+                        FFl(ee,l,j,k,0) = FFl(ee,l,j,k,0) + dom%hprime(l,i)*acoeff*dom%InvGrad_(0,0,i,j,k,e)
+                        FFl(ee,i,l,k,0) = FFl(ee,i,l,k,0) + dom%hprime(l,j)*acoeff*dom%InvGrad_(0,1,i,j,k,e)
+                        FFl(ee,i,j,l,0) = FFl(ee,i,j,l,0) + dom%hprime(l,k)*acoeff*dom%InvGrad_(0,2,i,j,k,e)
+                    end do
+                    END_SUBELEM_LOOP()
+                end do
+            end do
+        end do
+        FFl(:,:,:,:,1) = 0d0
+        ! Fy
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i=0,ngll-1
+#ifdef SEM_VEC
+!$omp simd linear(ee) safelen(CHUNK) private(acoeff)
+#endif
+                    BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                    acoeff = -dom%GLLw(i)*dom%GLLw(j)*dom%GLLw(k)*dom%Jacob_(i,j,k,e)*dom%PMLVeloc_(i,j,k,1,e)
+                    do l = 0,ngll-1
+                        FFl(ee,l,j,k,1) = FFl(ee,l,j,k,1) + dom%hprime(l,i)*acoeff*dom%InvGrad_(1,0,i,j,k,e)
+                        FFl(ee,i,l,k,1) = FFl(ee,i,l,k,1) + dom%hprime(l,j)*acoeff*dom%InvGrad_(1,1,i,j,k,e)
+                        FFl(ee,i,j,l,1) = FFl(ee,i,j,l,1) + dom%hprime(l,k)*acoeff*dom%InvGrad_(1,2,i,j,k,e)
+                    end do
+                    END_SUBELEM_LOOP()
+                end do
+            end do
+        end do
+        FFl(:,:,:,:,2) = 0d0
+        ! Fz
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i=0,ngll-1
+#ifdef SEM_VEC
+!$omp simd linear(ee) safelen(CHUNK) private(acoeff)
+#endif
+                    BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                    acoeff = -dom%GLLw(i)*dom%GLLw(j)*dom%GLLw(k)*dom%Jacob_(i,j,k,e)*dom%PMLVeloc_(i,j,k,2,e)
+                    do l = 0,ngll-1
+                        FFl(ee,l,j,k,2) = FFl(ee,l,j,k,2) + dom%hprime(l,i)*acoeff*dom%InvGrad_(2,0,i,j,k,e)
+                        FFl(ee,i,l,k,2) = FFl(ee,i,l,k,2) + dom%hprime(l,j)*acoeff*dom%InvGrad_(2,1,i,j,k,e)
+                        FFl(ee,i,j,l,2) = FFl(ee,i,j,l,2) + dom%hprime(l,k)*acoeff*dom%InvGrad_(2,2,i,j,k,e)
+                    end do
+                    END_SUBELEM_LOOP()
+                end do
+            end do
+        end do
+
+        ! Assemblage
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                    if (e>=dom%nbelem) exit
+                    ind = dom%Idom_(i,j,k,e)
+                    ! We should have atomic adds with openmp // here
+                    champs1%fpml_Forces(ind,0) = champs1%fpml_Forces(ind,0) + FFl(ee,i,j,k,0)
+                    champs1%fpml_Forces(ind,1) = champs1%fpml_Forces(ind,1) + FFl(ee,i,j,k,1)
+                    champs1%fpml_Forces(ind,2) = champs1%fpml_Forces(ind,2) + FFl(ee,i,j,k,2)
+                    END_SUBELEM_LOOP()
+                enddo
+            enddo
+        enddo
+    end subroutine forces_int_flu_pml
+#endif
+
+    subroutine pred_flu_pml(dom, dt, champs1, lnum)
+        type (domain_fluidpml), intent (INOUT) :: dom
+        real(fpp), intent(in) :: dt
+        type(champsfluidpml), intent(inout) :: champs1
+        integer :: lnum
+        !
+        real(fpp) :: dVelPhi_dx, dVelPhi_dy, dVelPhi_dz
+        integer :: ngll
+        integer :: i, j, k, l, ind, e, ee
+        real, dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: VelPhi
+        real(fpp) :: dVPhi_dxi,dVPhi_deta,dVPhi_dzeta
+        real(fpp) :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
 
         ngll = dom%ngll
 
-        allocate(VelPhi(0:ngll-1,0:ngll-1,0:ngll-1))
         ! prediction in the element
         ! We do the sum V1+V2+V3 and F1+F2+F3 here
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    ind = dom%Idom_(i,j,k,lnum)
-                    VelPhi(i,j,k) = champs1%fpml_VelPhi(ind,0) + &
+                    BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                    ind = dom%Idom_(i,j,k,e)
+                    VelPhi(ee,i,j,k) = champs1%fpml_VelPhi(ind,0) + &
                         champs1%fpml_VelPhi(ind,1) + &
                         champs1%fpml_VelPhi(ind,2)
+                    END_SUBELEM_LOOP()
                 enddo
             enddo
         enddo
-        ! XXX DumpS{xyz}(:,:,:,1) doit etre multiplie par 1/density
-        ! d(rho*Phi)_d(xi,eta,zeta)
-        call physical_part_deriv(ngll, dom%hprime,dom%InvGrad_(:,:,:,:,:,lnum),&
-                                 VelPhi(:,:,:),dVelPhi_dx,dVelPhi_dy,dVelPhi_dz)
 
-        ! prediction for (physical) velocity (which is the equivalent of a stress, here)
-        ! V_x^x
-        dom%PMLVeloc_(:,:,:,0,lnum) = dom%PMLDumpSx_(:,:,:,0,lnum) * dom%PMLVeloc_(:,:,:,0,lnum) + &
-                                      dom%PMLDumpSx_(:,:,:,1,lnum) * Dt * dVelPhi_dx
-        ! V_x^y = 0
-        ! V_x^z = 0
-        ! V_y^x = 0
-        ! V_y^y
-        dom%PMLVeloc_(:,:,:,1,lnum) = dom%PMLDumpSy_(:,:,:,0,lnum) * dom%PMLVeloc_(:,:,:,1,lnum) + &
-                                      dom%PMLDumpSy_(:,:,:,1,lnum) * Dt * dVelPhi_dy
-        ! V_y^z = 0
-        ! V_z^x = 0
-        ! V_z^y = 0
-        ! V_z^z
-        dom%PMLVeloc_(:,:,:,2,lnum) = dom%PMLDumpSz_(:,:,:,0,lnum) * dom%PMLVeloc_(:,:,:,2,lnum) + &
-                                      dom%PMLDumpSz_(:,:,:,1,lnum) * Dt * dVelPhi_dz
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+#ifdef SEM_VEC
+!$omp simd linear(ee) safelen(CHUNK) private(dVPhi_dxi,dVPhi_deta,dVPhi_dzeta,dVelPhi_dx, dVelPhi_dy, dVelPhi_dz)
+#endif
+                    BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                    ! d(rho*Phi)_d(xi,eta,zeta)
+                    dVPhi_dxi   = 0D0
+                    dVPhi_deta  = 0D0
+                    dVPhi_dzeta = 0D0
+
+                    DO L = 0, ngll-1
+                        dVPhi_dxi   = dVPhi_dxi  +VelPhi(ee,L,J,K)*dom%hprime(L,I)
+                        dVPhi_deta  = dVPhi_deta +VelPhi(ee,I,L,K)*dom%hprime(L,J)
+                        dVPhi_dzeta = dVPhi_dzeta+VelPhi(ee,I,J,L)*dom%hprime(L,K)
+                    END DO
+
+                    xi1 = dom%InvGrad_(0,0,i,j,k,e)
+                    xi2 = dom%InvGrad_(1,0,i,j,k,e)
+                    xi3 = dom%InvGrad_(2,0,i,j,k,e)
+                    et1 = dom%InvGrad_(0,1,i,j,k,e)
+                    et2 = dom%InvGrad_(1,1,i,j,k,e)
+                    et3 = dom%InvGrad_(2,1,i,j,k,e)
+                    ga1 = dom%InvGrad_(0,2,i,j,k,e)
+                    ga2 = dom%InvGrad_(1,2,i,j,k,e)
+                    ga3 = dom%InvGrad_(2,2,i,j,k,e)
+                    !- in the physical domain
+                    dVelPhi_dx = dVPhi_dxi*xi1 + dVPhi_deta*et1 + dVPhi_dzeta*ga1
+                    dVelPhi_dy = dVPhi_dxi*xi2 + dVPhi_deta*et2 + dVPhi_dzeta*ga2
+                    dVelPhi_dz = dVPhi_dxi*xi3 + dVPhi_deta*et3 + dVPhi_dzeta*ga3
+
+                    ! prediction for (physical) velocity (which is the equivalent of a stress, here)
+                    ! V_x^x
+                    dom%PMLVeloc_(i,j,k,0,e) = dom%PMLDumpSx_(i,j,k,0,e) * dom%PMLVeloc_(i,j,k,0,e) + &
+                        dom%PMLDumpSx_(i,j,k,1,e) * Dt * dVelPhi_dx
+                    ! V_x^y = 0
+                    ! V_x^z = 0
+                    ! V_y^x = 0
+                    ! V_y^y
+                    dom%PMLVeloc_(i,j,k,1,e) = dom%PMLDumpSy_(i,j,k,0,e) * dom%PMLVeloc_(i,j,k,1,e) + &
+                        dom%PMLDumpSy_(i,j,k,1,e) * Dt * dVelPhi_dy
+                    ! V_y^z = 0
+                    ! V_z^x = 0
+                    ! V_z^y = 0
+                    ! V_z^z
+                    dom%PMLVeloc_(i,j,k,2,e) = dom%PMLDumpSz_(i,j,k,0,e) * dom%PMLVeloc_(i,j,k,2,e) + &
+                        dom%PMLDumpSz_(i,j,k,1,e) * Dt * dVelPhi_dz
+                    END_SUBELEM_LOOP()
+                enddo
+            enddo
+        enddo
     end subroutine Pred_Flu_Pml
 end module dom_fluidpml
 
