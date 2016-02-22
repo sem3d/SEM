@@ -45,16 +45,14 @@ subroutine Newmark(Tdomain,ntime)
     call Newmark_Predictor(Tdomain)
 
     !- Solution phase
-    call stat_starttick()
     call internal_forces(Tdomain)
-    call stat_stoptick('fint')
 
 
     ! External Forces
     if(Tdomain%logicD%any_source)then
         call stat_starttick()
         call external_forces(Tdomain,Tdomain%TimeD%rtime,ntime)
-        call stat_stoptick('fext')
+        call stat_stoptick(STAT_FEXT)
     end if
 
 #ifdef COUPLAGE
@@ -219,7 +217,7 @@ subroutine comm_forces(Tdomain)
             end if
             Tdomain%Comm_data%Data(n)%nsend = k
         end do
-        call stat_stoptick('give')
+        call stat_stoptick(STAT_GIVE)
 
         ! Exchange
         call exchange_sem_var(Tdomain, 104, Tdomain%Comm_data)
@@ -248,7 +246,7 @@ subroutine comm_forces(Tdomain)
                     Tdomain%Comm_data%Data(n)%IGiveFPML, Tdomain%fpmldom%champs1%fpml_Forces, k)
             end if
         end do
-        call stat_stoptick('take')
+        call stat_stoptick(STAT_TAKE)
     endif
 
     return
@@ -260,6 +258,7 @@ end subroutine comm_forces
 subroutine Newmark_Predictor(Tdomain)
     use sdomain
     use dom_fluidpml
+    use stat, only : stat_starttick, stat_stoptick
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
@@ -271,20 +270,25 @@ subroutine Newmark_Predictor(Tdomain)
 
     ! Elements solide
     if (Tdomain%sdom%nglltot /= 0) then
+        call stat_starttick()
         Tdomain%sdom%champs1%Depla = Tdomain%sdom%champs0%Depla
         Tdomain%sdom%champs1%Veloc = Tdomain%sdom%champs0%Veloc
         Tdomain%sdom%champs1%Forces = 0d0
+        call stat_stoptick(STAT_FSOL)
     endif
 
     ! Elements fluide
     if (Tdomain%fdom%nglltot /= 0) then
+        call stat_starttick()
         Tdomain%fdom%champs1%VelPhi = Tdomain%fdom%champs0%VelPhi
         Tdomain%fdom%champs1%Phi    = Tdomain%fdom%champs0%Phi
         Tdomain%fdom%champs1%ForcesFl = 0d0
+        call stat_stoptick(STAT_FFLU)
     endif
 
     ! Elements solide pml
     if (Tdomain%spmldom%nglltot /= 0) then
+        call stat_starttick()
         Tdomain%spmldom%champs1%ForcesPML = 0.
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1
             ! Couplage à l'interface solide / PML
@@ -296,10 +300,12 @@ subroutine Newmark_Predictor(Tdomain)
         enddo
         ! Prediction
         Tdomain%spmldom%champs1%VelocPML = Tdomain%spmldom%champs0%VelocPML + dt*(0.5-bega)*Tdomain%spmldom%champs1%ForcesPML
+        call stat_stoptick(STAT_PSOL)
     endif
 
     ! Elements fluide pml
     if (Tdomain%fpmldom%nglltot /= 0) then
+        call stat_starttick()
         Tdomain%fpmldom%champs1%fpml_Forces = 0.
         do n = 0,Tdomain%intFluPml%surf0%nbtot-1
             ! Couplage à l'interface fluide / PML
@@ -311,6 +317,7 @@ subroutine Newmark_Predictor(Tdomain)
         enddo
         ! Prediction
         Tdomain%fpmldom%champs1%fpml_Velphi = Tdomain%fpmldom%champs0%fpml_VelPhi + dt*(0.5-bega)*Tdomain%fpmldom%champs1%fpml_Forces
+        call stat_stoptick(STAT_PFLU)
     endif
 
     return
@@ -320,6 +327,7 @@ end subroutine Newmark_Predictor
 !-------------------------------------------------------------------------------
 subroutine Newmark_Corrector_Fluid(Tdomain)
     use sdomain
+    use stat, only : stat_starttick, stat_stoptick
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
@@ -329,6 +337,7 @@ subroutine Newmark_Corrector_Fluid(Tdomain)
     dt = Tdomain%TimeD%dtmin
     ! Si il existe des éléments PML fluides
     if (Tdomain%fpmldom%nglltot /= 0) then
+        call stat_starttick()
         Tdomain%fpmldom%champs0%fpml_VelPhi(:,:) = Tdomain%fpmldom%champs0%fpml_DumpV(:,0,:) * &
                                                    Tdomain%fpmldom%champs0%fpml_VelPhi(:,:) + &
                                                    dt * &
@@ -344,9 +353,11 @@ subroutine Newmark_Corrector_Fluid(Tdomain)
 
         Tdomain%fpmldom%champs0%fpml_Phi = Tdomain%fpmldom%champs0%fpml_Phi + &
                                            dt*Tdomain%fpmldom%champs0%fpml_VelPhi
+        call stat_stoptick(STAT_PFLU)
     endif
     ! Si il existe des éléments fluides
     if (Tdomain%fdom%nglltot /= 0) then
+        call stat_starttick()
         Tdomain%fdom%champs0%ForcesFl = Tdomain%fdom%champs1%ForcesFl * Tdomain%fdom%MassMat
         Tdomain%fdom%champs0%VelPhi = (Tdomain%fdom%champs0%VelPhi + dt * Tdomain%fdom%champs0%ForcesFl)
         do n = 0, Tdomain%fdom%n_dirich-1
@@ -354,6 +365,7 @@ subroutine Newmark_Corrector_Fluid(Tdomain)
             Tdomain%fdom%champs0%VelPhi(indpml) = 0.
         enddo
         Tdomain%fdom%champs0%Phi = Tdomain%fdom%champs0%Phi + dt * Tdomain%fdom%champs0%VelPhi
+        call stat_stoptick(STAT_FFLU)
     endif
 
     return
@@ -362,6 +374,7 @@ end subroutine Newmark_Corrector_Fluid
 !-----------------------------------------------------------------------------
 subroutine Newmark_Corrector_Solid(Tdomain)
     use sdomain
+    use stat, only : stat_starttick, stat_stoptick
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
@@ -371,6 +384,7 @@ subroutine Newmark_Corrector_Solid(Tdomain)
     dt = Tdomain%TimeD%dtmin
     ! Si il existe des éléments PML solides
     if (Tdomain%spmldom%nglltot /= 0) then
+        call stat_starttick()
         do i_dir = 0,2
             Tdomain%spmldom%champs0%VelocPML(:,i_dir,:) = Tdomain%spmldom%champs0%DumpV(:,0,:) * &
                                                 Tdomain%spmldom%champs0%VelocPML(:,i_dir,:) + &
@@ -383,10 +397,12 @@ subroutine Newmark_Corrector_Solid(Tdomain)
             indpml = Tdomain%spmldom%dirich(n)
             Tdomain%spmldom%champs0%VelocPML(indpml,:,:) = 0.
         enddo
+        call stat_stoptick(STAT_PSOL)
     endif
 
     ! Si il existe des éléments solides
     if (Tdomain%sdom%nglltot /= 0) then
+        call stat_starttick()
         do i_dir = 0,2
             Tdomain%sdom%champs0%Forces(:,i_dir) = Tdomain%sdom%champs1%Forces(:,i_dir) * Tdomain%sdom%MassMat(:)
         enddo
@@ -396,6 +412,7 @@ subroutine Newmark_Corrector_Solid(Tdomain)
             Tdomain%sdom%champs0%Veloc(indpml,:) = 0.
         enddo
         Tdomain%sdom%champs0%Depla = Tdomain%sdom%champs0%Depla + dt * Tdomain%sdom%champs0%Veloc
+        call stat_stoptick(STAT_FSOL)
     endif
     return
 end subroutine Newmark_Corrector_Solid
@@ -408,6 +425,7 @@ subroutine internal_forces(Tdomain)
     use dom_solidpml
     use dom_fluid
     use dom_fluidpml
+    use stat, only : stat_starttick, stat_stoptick
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
@@ -415,20 +433,26 @@ subroutine internal_forces(Tdomain)
 
     ! DOMAIN Fluide
     if (Tdomain%fdom%nbelem>0) then
+        call stat_starttick()
         do n = 0,Tdomain%fdom%nbelem-1,CHUNK
             call forces_int_fluid(Tdomain%fdom, Tdomain%fdom%champs1, n)
         end do
+        call stat_stoptick(STAT_FFLU)
     end if
     if (Tdomain%fpmldom%nbelem>0) then
+        call stat_starttick()
         do n = 0,Tdomain%fpmldom%nbelem-1,CHUNK
             call pred_flu_pml(Tdomain%fpmldom, Tdomain%TimeD%dtmin, Tdomain%fpmldom%champs1, n)
             call forces_int_flu_pml(Tdomain%fpmldom, Tdomain%fpmldom%champs1, n)
         end do
+        call stat_stoptick(STAT_PFLU)
     end if
     if (Tdomain%sdom%nbelem>0) then
+        call stat_starttick()
         do n = 0,Tdomain%sdom%nbelem-1,CHUNK
             call forces_int_solid(Tdomain%sdom, Tdomain%sdom%champs1, n)
         end do
+        call stat_stoptick(STAT_FSOL)
     end if
     do n = 0,Tdomain%n_elem-1
         lnum = Tdomain%specel(n)%lnum

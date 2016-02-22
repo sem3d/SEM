@@ -69,6 +69,18 @@ MODULE constants
     integer, parameter :: COND_DIRICH   = 1
     integer, parameter :: COND_NEUMANN  = 2
 
+    ! TYPE DE STATISTIQUES
+    integer, parameter :: STAT_COUNT = 9
+    integer, parameter :: STAT_GIVE = 0 !
+    integer, parameter :: STAT_TAKE = 1 !
+    integer, parameter :: STAT_WAIT = 2 !
+    integer, parameter :: STAT_FSOL = 3 ! Forces solide
+    integer, parameter :: STAT_FFLU = 4 ! Forces fluide
+    integer, parameter :: STAT_PSOL = 5 ! Forces PML solide
+    integer, parameter :: STAT_PFLU = 6 ! Forces PML fluide
+    integer, parameter :: STAT_FEXT = 7 !
+    integer, parameter :: STAT_FULL = 8 !
+
     integer, parameter, dimension(0:8) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6 /)
 CONTAINS
 
