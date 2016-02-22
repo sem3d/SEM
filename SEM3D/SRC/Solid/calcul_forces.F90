@@ -11,6 +11,9 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
 contains
 
     pure subroutine physical_part_deriv_ijke(e,i,j,k,ngll,hprime,InvGrad,Scalp,dS_dx,dS_dy,dS_dz)
+#ifdef SEM_VEC
+!$omp declare simd (physical_part_deriv_ijke) linear(e) uniform(i,j,k,ngll,hprime,InvGrad,Scalp)
+#endif
         implicit none
         integer,intent(in) :: i,j,k,e
         integer, intent(in) :: ngll

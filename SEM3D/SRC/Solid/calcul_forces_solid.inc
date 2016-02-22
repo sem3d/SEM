@@ -15,6 +15,19 @@
 
 #define ORIG
 
+#define part_deriv_ijke(d,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz) \
+        dS_dxi   = 0.0D+0; \
+        dS_deta  = 0.0D+0; \
+        dS_dzeta = 0.0D+0; \
+        DO L = 0, ngll-1;  \
+            dS_dxi   = dS_dxi  +Depla(ee,L,J,K,d)*dom%hprime(L,I); \
+            dS_deta  = dS_deta +Depla(ee,I,L,K,d)*dom%hprime(L,J); \
+            dS_dzeta = dS_dzeta+Depla(ee,I,J,L,d)*dom%hprime(L,K); \
+        END DO; \
+        dxx = dS_dxi*InvGrad(IND_MNE(0,0,ee))+dS_deta*InvGrad(IND_MNE(0,1,ee))+dS_dzeta*InvGrad(IND_MNE(0,2,ee)); \
+        dxy = dS_dxi*InvGrad(IND_MNE(1,0,ee))+dS_deta*InvGrad(IND_MNE(1,1,ee))+dS_dzeta*InvGrad(IND_MNE(1,2,ee)); \
+        dxz = dS_dxi*InvGrad(IND_MNE(2,0,ee))+dS_deta*InvGrad(IND_MNE(2,1,ee))+dS_dzeta*InvGrad(IND_MNE(2,2,ee));
+
 subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
 
     use sdomain
@@ -44,21 +57,23 @@ subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
 #endif
     real(fpp) :: xla, xmu,xla2mu
     real(fpp), dimension(IND_MNE(0:2,0:2,0:CHUNK-1)) :: invgrad
-
+    real(fpp) :: dS_dxi, dS_deta, dS_dzeta
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
                 InvGrad(IND_MNE(0:2,0:2,0:CHUNK-1)) = dom%InvGrad_(:,:,i,j,k,lnum:lnum+CHUNK-1)
 #ifdef SEM_VEC
-                !dir$ simd
-                !dir$ vector aligned
+!$omp simd linear(e,ee) private(xla,xmu,xla2mu,sxx,sxy,sxz,syy,syz,szz,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10,dS_dxi, dS_deta, dS_dzeta)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,lnum)
 
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz
-                call physical_part_deriv_ijke(ee,i,j,k,ngll,dom%hprime,InvGrad,Depla(:,:,:,:,0),dxx,dxy,dxz)
-                call physical_part_deriv_ijke(ee,i,j,k,ngll,dom%hprime,InvGrad,Depla(:,:,:,:,1),dyx,dyy,dyz)
-                call physical_part_deriv_ijke(ee,i,j,k,ngll,dom%hprime,InvGrad,Depla(:,:,:,:,2),dzx,dzy,dzz)
+!                call physical_part_deriv_ijke(ee,i,j,k,ngll,dom%hprime,InvGrad,Depla(:,:,:,:,0),dxx,dxy,dxz)
+!                call physical_part_deriv_ijke(ee,i,j,k,ngll,dom%hprime,InvGrad,Depla(:,:,:,:,1),dyx,dyy,dyz)
+!                call physical_part_deriv_ijke(ee,i,j,k,ngll,dom%hprime,InvGrad,Depla(:,:,:,:,2),dzx,dzy,dzz)
+                part_deriv_ijke(0,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz)
+                part_deriv_ijke(1,dS_dxi,dS_deta,dS_dzeta,dyx,dyy,dyz)
+                part_deriv_ijke(2,dS_dxi,dS_deta,dS_dzeta,dzx,dzy,dzz)
 
                 xmu = dom%Mu_    (i,j,k,e)
                 xla = dom%Lambda_(i,j,k,e)
