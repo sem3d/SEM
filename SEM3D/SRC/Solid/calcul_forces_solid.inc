@@ -112,17 +112,17 @@ subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
                 !
                 !- Multiplication par le Jacobien et le poids d'integration
                 !
-                t4 = dom%Jacob_(i,j,k,lnum) * dom%GLLw(i)
+                t4 = dom%Jacob_(i,j,k,e) * dom%GLLw(i)
                 xt1  =  xt1 * t4
                 xt5  =  xt5 * t4
                 xt8  =  xt8 * t4
 
-                t4 = dom%Jacob_(i,j,k,lnum) * dom%GLLw(j)
+                t4 = dom%Jacob_(i,j,k,e) * dom%GLLw(j)
                 xt2  =  xt2 * t4
                 xt6  =  xt6 * t4
                 xt9  =  xt9 * t4
 
-                t4 = dom%Jacob_(i,j,k,lnum) * dom%GLLw(k)
+                t4 = dom%Jacob_(i,j,k,e) * dom%GLLw(k)
                 xt3  =  xt3 * t4
                 xt7  =  xt7 * t4
                 xt10 = xt10 * t4
