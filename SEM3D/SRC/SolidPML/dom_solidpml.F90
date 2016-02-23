@@ -35,6 +35,7 @@ contains
         allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
 
         allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+        dom%m_Idom = 0
 
         if(Tdomain%TimeD%velocity_scheme)then
             allocate(dom%Diagonal_Stress_ (0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
