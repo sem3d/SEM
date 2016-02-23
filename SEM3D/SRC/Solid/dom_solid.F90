@@ -29,7 +29,6 @@ contains
         n_solid = Tdomain%n_sls
         dom%n_sls = n_solid
         dom%aniso = Tdomain%aniso
-
         nbelem = CHUNK*((nbelem+CHUNK-1)/CHUNK)
         dom%nbelem_alloc = nbelem
 
@@ -85,6 +84,11 @@ contains
             allocate (dom%R_xy_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
             allocate (dom%R_xz_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
             allocate (dom%R_yz_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+            !
+            allocate (dom%omega_tau_s_    (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+            allocate (dom%agamma_mu_      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+            allocate (dom%agamma_kappa_   (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+            !
             dom%R_xx_(:,:,:,:,:) = 0
             dom%R_yy_(:,:,:,:,:) = 0
             dom%R_xy_(:,:,:,:,:) = 0
@@ -430,8 +434,8 @@ contains
             end if
         else
             if (n_solid>0) then
-                !call calcul_forces_iso_atn(dom,lnum,Fox,Foy,Foz,Depla)
-                call calcul_forces(dom,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)
+                call calcul_forces_iso_atn(dom,lnum,Fox,Foy,Foz,Depla)
+                !call calcul_forces(dom,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)
             else
                 call calcul_forces_iso(dom,lnum,Fox,Foy,Foz,Depla)
                 !call calcul_forces(dom,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)

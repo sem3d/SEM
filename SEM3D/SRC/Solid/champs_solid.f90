@@ -65,31 +65,38 @@ module champs_solid
         type(champssolid) :: champs1
         ! Attenuation
         integer :: n_sls
+        real(fpp) :: dt
         real(fpp), dimension(:,:,:,:),   allocatable :: m_Q
         real(fpp), dimension(:,:,:,:),   allocatable :: m_Qs
         real(fpp), dimension(:,:,:,:),   allocatable :: m_Qp
-        real(fpp), dimension(:,:,:,:),   allocatable :: m_onemSbeta
-        real(fpp), dimension(:,:,:,:),   allocatable :: m_onemPbeta
         real(fpp), dimension(:,:,:,:),   allocatable :: m_epsilonvol
         real(fpp), dimension(:,:,:,:),   allocatable :: m_epsilondev_xx
         real(fpp), dimension(:,:,:,:),   allocatable :: m_epsilondev_yy
         real(fpp), dimension(:,:,:,:),   allocatable :: m_epsilondev_xy
         real(fpp), dimension(:,:,:,:),   allocatable :: m_epsilondev_xz
         real(fpp), dimension(:,:,:,:),   allocatable :: m_epsilondev_yz
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_factor_common_3
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_alphaval_3
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_betaval_3
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_gammaval_3
         real(fpp), dimension(:,:,:,:,:), allocatable :: m_R_xx
         real(fpp), dimension(:,:,:,:,:), allocatable :: m_R_yy
         real(fpp), dimension(:,:,:,:,:), allocatable :: m_R_xy
         real(fpp), dimension(:,:,:,:,:), allocatable :: m_R_xz
         real(fpp), dimension(:,:,:,:,:), allocatable :: m_R_yz
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_R_vol
+        ! Coef RK4
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_omega_tau_s
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_agamma_mu
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_agamma_kappa
+        !
+        real(fpp), dimension(:,:,:,:),   allocatable :: m_onemSbeta
+        real(fpp), dimension(:,:,:,:),   allocatable :: m_onemPbeta
         real(fpp), dimension(:,:,:,:,:), allocatable :: m_factor_common_P
         real(fpp), dimension(:,:,:,:,:), allocatable :: m_alphaval_P
         real(fpp), dimension(:,:,:,:,:), allocatable :: m_betaval_P
         real(fpp), dimension(:,:,:,:,:), allocatable :: m_gammaval_P
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_R_vol
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_factor_common_3
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_alphaval_3
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_betaval_3
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_gammaval_3
+
     end type domain_solid
 
     contains

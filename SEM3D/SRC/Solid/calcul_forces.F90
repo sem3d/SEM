@@ -6,9 +6,42 @@
 #include "index.h"
 
 module m_calcul_forces ! wrap subroutine in module to get arg type check at build time
+    use constants
     implicit none
     private :: physical_part_deriv_ijke
 contains
+
+    subroutine RK4_attenu_coefs(n_solid,dt,omega_tau_s,agamma,alphaval,betaval,gammaval)
+#ifdef SEM_VEC
+!$omp declare simd (RK4_attenu_coefs) uniform(dt,n_solid)
+#endif
+        !- routine returns the coefficients for the time integration of the
+        !  relaxation function M(t)
+        integer, intent(in)  :: n_solid
+        real(fpp), intent(in)  :: dt
+        real(fpp), intent(in) :: omega_tau_s,agamma
+        real(fpp), intent(out) :: alphaval,betaval,gammaval
+        !
+        real(fpp) :: dt_tau
+
+        dt_tau = -dt*omega_tau_s
+        alphaval = 1d0 + dt_tau + 0.5d0 * dt_tau**2 + dt_tau**3 *(1d0/6d0) + dt_tau**4 *(1d0/24.d0)
+        betaval  = dt*(0.5d0 + dt_tau * (1d0/3.d0) + dt_tau**2 *(1d0/8d0) + dt_tau**3 *(1d0/24.d0))
+        gammaval = dt*(0.5d0 + dt_tau * (1d0/6.d0) + dt_tau**2 *(1d0/24d0))
+    end subroutine RK4_attenu_coefs
+
+#define part_deriv_ijke(d,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz) \
+        dS_dxi   = 0.0D+0; \
+        dS_deta  = 0.0D+0; \
+        dS_dzeta = 0.0D+0; \
+        DO L = 0, ngll-1;  \
+            dS_dxi   = dS_dxi  +Depla(ee,L,J,K,d)*dom%hprime(L,I); \
+            dS_deta  = dS_deta +Depla(ee,I,L,K,d)*dom%hprime(L,J); \
+            dS_dzeta = dS_dzeta+Depla(ee,I,J,L,d)*dom%hprime(L,K); \
+        END DO; \
+        dxx = dS_dxi*InvGrad(IND_MNE(0,0,ee))+dS_deta*InvGrad(IND_MNE(0,1,ee))+dS_dzeta*InvGrad(IND_MNE(0,2,ee)); \
+        dxy = dS_dxi*InvGrad(IND_MNE(1,0,ee))+dS_deta*InvGrad(IND_MNE(1,1,ee))+dS_dzeta*InvGrad(IND_MNE(1,2,ee)); \
+        dxz = dS_dxi*InvGrad(IND_MNE(2,0,ee))+dS_deta*InvGrad(IND_MNE(2,1,ee))+dS_dzeta*InvGrad(IND_MNE(2,2,ee));
 
     pure subroutine physical_part_deriv_ijke(e,i,j,k,ngll,hprime,InvGrad,Scalp,dS_dx,dS_dy,dS_dz)
 #ifdef SEM_VEC
@@ -66,6 +99,7 @@ contains
         end select
     end subroutine calcul_forces_iso
 
+#undef ATTENUATION
 #define NGLLVAL 4
 #define PROCNAME calcul_forces_iso_4
 #include "calcul_forces_solid.inc"
@@ -94,11 +128,85 @@ contains
 #define NGLLVAL 9
 #define PROCNAME calcul_forces_iso_9
 #include "calcul_forces_solid.inc"
-
 #undef NGLLVAL
 #undef PROCNAME
-#define NGLL_GEN
 #define PROCNAME calcul_forces_iso_n
+#include "calcul_forces_solid.inc"
+
+    subroutine calcul_forces_iso_atn(dom,lnum,Fox,Foy,Foz,Depla)
+        use champs_solid
+        use deriv3d
+        implicit none
+        type(domain_solid), intent (INOUT) :: dom
+        integer, intent(in) :: lnum
+        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(out) :: Fox,Foz,Foy
+        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2), intent(in) :: Depla
+
+        select case(dom%ngll)
+        case(4)
+            call calcul_forces_iso_atn_4(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+        case(5)
+            call calcul_forces_iso_atn_5(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+        case (6)
+            call calcul_forces_iso_atn_6(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+        case (7)
+            call calcul_forces_iso_atn_7(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+        case (8)
+            call calcul_forces_iso_atn_8(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+        case (9)
+            call calcul_forces_iso_atn_9(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+        case default
+            call calcul_forces_iso_atn_n(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+        end select
+    end subroutine calcul_forces_iso_atn
+
+#define ATTENUATION
+#define NGLLVAL 4
+#undef PROCNAME
+#define PROCNAME calcul_forces_iso_atn_4
+#define PROCNAME_ATN attenuation_update_4
+#include "calcul_forces_solid.inc"
+#undef NGLLVAL
+#undef PROCNAME
+#undef PROCNAME_ATN
+#define NGLLVAL 5
+#define PROCNAME calcul_forces_iso_atn_5
+#define PROCNAME_ATN attenuation_update_5
+#include "calcul_forces_solid.inc"
+#undef NGLLVAL
+#undef PROCNAME
+#undef PROCNAME_ATN
+#define NGLLVAL 6
+#define PROCNAME calcul_forces_iso_atn_6
+#define PROCNAME_ATN attenuation_update_6
+#include "calcul_forces_solid.inc"
+#undef NGLLVAL
+#undef PROCNAME
+#undef PROCNAME_ATN
+#define NGLLVAL 7
+#define PROCNAME calcul_forces_iso_atn_7
+#define PROCNAME_ATN attenuation_update_7
+#include "calcul_forces_solid.inc"
+#undef NGLLVAL
+#undef PROCNAME
+#undef PROCNAME_ATN
+#define NGLLVAL 8
+#define PROCNAME calcul_forces_iso_atn_8
+#define PROCNAME_ATN attenuation_update_8
+#include "calcul_forces_solid.inc"
+#undef NGLLVAL
+#undef PROCNAME
+#undef PROCNAME_ATN
+#define NGLLVAL 9
+#define PROCNAME calcul_forces_iso_atn_9
+#define PROCNAME_ATN attenuation_update_9
+#include "calcul_forces_solid.inc"
+#undef NGLLVAL
+#undef PROCNAME
+#undef PROCNAME_ATN
+#define NGLL_GEN
+#define PROCNAME calcul_forces_iso_atn_n
+#define PROCNAME_ATN attenuation_update_n
 #define ANISO 0
 #define ATN 0
 #include "calcul_forces_solid.inc"

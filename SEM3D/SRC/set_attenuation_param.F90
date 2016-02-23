@@ -42,7 +42,7 @@ contains
         real       :: f_c_source,f_ref,dt
         real, dimension(:), allocatable   :: omega_tau_s,omega_Q
         real, dimension(:), allocatable   :: agamma_mu,agamma_kappa
-        integer :: n,i,j,k,ngll,mat
+        integer :: n,i,j,k,ngll,mat,lnum
         real :: Q_mu, Q_kappa, Q_mu_old, Q_kappa_old
 
         !- last values of Q factors (allows to save time if same Qs)
@@ -121,16 +121,21 @@ contains
                         !- Runge-kutta parameters for the time integration of the terms related to the relaxation function
                         mat = Tdomain%specel(n)%mat_index
                         dt = Tdomain%TimeD%dtmin
+                        lnum = Tdomain%specel(n)%lnum
+                        Tdomain%sdom%omega_tau_s_(:,i,j,k,lnum) = omega_tau_s
+                        Tdomain%sdom%agamma_mu_(:,i,j,k,lnum) = agamma_mu
+                        Tdomain%sdom%agamma_kappa_(:,i,j,k,lnum) = agamma_kappa
+
                         call RK4_attenu_coefficients(n_solid,dt,omega_tau_s,agamma_mu,     &
-                            Tdomain%sdom%factor_common_3_(:,i,j,k,Tdomain%specel(n)%lnum), &
-                            Tdomain%sdom%alphaval_3_(:,i,j,k,Tdomain%specel(n)%lnum),      &
-                            Tdomain%sdom%betaval_3_(:,i,j,k,Tdomain%specel(n)%lnum),       &
-                            Tdomain%sdom%gammaval_3_(:,i,j,k,Tdomain%specel(n)%lnum))
+                            Tdomain%sdom%factor_common_3_(:,i,j,k,lnum), &
+                            Tdomain%sdom%alphaval_3_(:,i,j,k,lnum),      &
+                            Tdomain%sdom%betaval_3_(:,i,j,k,lnum),       &
+                            Tdomain%sdom%gammaval_3_(:,i,j,k,lnum))
                         call RK4_attenu_coefficients(n_solid,dt,omega_tau_s,agamma_kappa,  &
-                            Tdomain%sdom%factor_common_P_(:,i,j,k,Tdomain%specel(n)%lnum), &
-                            Tdomain%sdom%alphaval_P_(:,i,j,k,Tdomain%specel(n)%lnum),      &
-                            Tdomain%sdom%betaval_P_(:,i,j,k,Tdomain%specel(n)%lnum),       &
-                            Tdomain%sdom%gammaval_P_(:,i,j,k,Tdomain%specel(n)%lnum))
+                            Tdomain%sdom%factor_common_P_(:,i,j,k,lnum), &
+                            Tdomain%sdom%alphaval_P_(:,i,j,k,lnum),      &
+                            Tdomain%sdom%betaval_P_(:,i,j,k,lnum),       &
+                            Tdomain%sdom%gammaval_P_(:,i,j,k,lnum))
                     enddo
                 enddo
             enddo

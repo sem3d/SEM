@@ -36,7 +36,7 @@ subroutine PROCNAME(dom,ngllvar,lnum,FFl,Phi)
     integer :: i,j,k,l,e,ee
     real(fpp) :: sx,sy,sz,t4
     real(fpp) :: xt1,xt6,xt10
-    real(fpp), parameter :: zero = 0.
+    real(fpp), parameter :: zero = 0d0
     real(fpp) :: xdens
 #ifdef USE_LOCAL_MEM
     real(fpp) :: t41,t11,t51,t12,t61,t13,F1
