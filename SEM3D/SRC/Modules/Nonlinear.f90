@@ -124,6 +124,8 @@ contains
         do k=0,5
             checkload=checkload+10*gradFstart(k)*dSigma_ij_trial(k)
         end do
+        checkload=checkload/sum(gradFstart(:)**2)/sum(dSigma_ij_trial(:)**2)
+        
         ! KKT CONDITION
         if (abs(Fstart).le.tol_nl) then           ! ON F=0
             if (checkload.ge.0) then              ! PURE ELASTIC STEP 
@@ -134,12 +136,7 @@ contains
                     alpha_elp = 1d0
                     st_elp    = 2 
                 else                              ! REVERSE PURE ELASTIC STEP
-                    !alpha_elp = 2*sigma_yld/(2*sigma_yld+Ftrial)
-                    Fstart=Fstart+sigma_yld
-                    Ftrial=Ftrial+sigma_yld
-                    write(*,*) "Fstart corrected:",Fstart,"Ftrial corrected:",Ftrial
-                    call gotoFtan(Sigma_ij_start,dSigma_ij_trial,&
-                        Fstart,Ftrial,X_ij,R,0d0,alpha_elp)
+                    call gotoFpegasus(Sigma_ij_start,dSigma_ij_trial,X_ij,R,sigma_yld,10,alpha_elp)  
                     st_elp    = 1
                 endif
             end if
@@ -148,8 +145,7 @@ contains
                 alpha_elp = 1d0
                 st_elp    = 2
             else                                  ! ELASO-PLASTIC STEP
-                !call gotoFsec(Sigma_ij_start,dSigma_ij_trial,Fstart,Ftrial,X_ij,R,sigma_yld,alpha_elp)
-                call gotoFpegasus(Sigma_ij_start,dSigma_ij_trial,X_ij,R,sigma_yld,alpha_elp)  
+                call gotoFpegasus(Sigma_ij_start,dSigma_ij_trial,X_ij,R,sigma_yld,1,alpha_elp)  
                 st_elp    = 1
             end if
         elseif (Fstart .gt. tol_nl) then
@@ -239,7 +235,7 @@ contains
                 call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, Ffinal, gradF_0)
 !               write(*,*) "Ffinal (BD): ",Ffinal
                 if (Ffinal .gt. tol_nl) then
-                    call drift_corr(1,Sigma_ij, X_ij, R, sigma_yld,&
+                    call drift_corr(Sigma_ij, X_ij, R, sigma_yld,&
                         b_lmc, Rinf_lmc, C_lmc, kapa_lmc, lambda, mu, dEpsilon_ij_pl)
                     call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, Ffinal, gradF_0)
                 end if
@@ -308,7 +304,7 @@ contains
 !                    ! DRIFT CORRECTION
                     call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, Ffinal, gradF_0)
                     if (Ffinal .gt. tol_nl) then
-                        call drift_corr(0,Sigma_ij, X_ij, R, sigma_yld,&
+                        call drift_corr(Sigma_ij, X_ij, R, sigma_yld,&
                                 b_lmc, Rinf_lmc, C_lmc, kapa_lmc, lambda, mu, dEpsilon_ij_pl)
                         call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, Ffinal, gradF_0)
                         write(*,*) "after drift",Ffinal
@@ -463,95 +459,66 @@ contains
 
     end subroutine hardening_increments
 
-    subroutine drift_corr(drift,Sigma_ij, X_ij, R, sigma_yld, &
-        b_lmc, Rinf_lmc, C_lmc, kapa_lmc, lambda, mu, dEpsilon_ij_pl)
+    subroutine drift_corr(stress,center,radius,syld, &
+        biso,Rinf,Ckin,kkin,lambda,mu,dEplastic)
 
         ! DRIFT CORRECTION (RADIAL RETURN)
-        integer, intent(in)                 :: drift
-        real, dimension(0:5), intent(inout) :: Sigma_ij, X_ij, dEpsilon_ij_pl
-        real,                 intent(inout) :: R
-        real,                 intent(in)    :: lambda, mu, sigma_yld, b_lmc, Rinf_lmc, C_lmc, kapa_lmc
-        real, dimension(0:5)                :: gradF_mises,gradF0,Sigma_temp,Sigma_dev_temp,Sigma_dev_ij
+        real, dimension(0:5), intent(inout) :: stress,center,dEplastic
+        real,                 intent(inout) :: radius
+        real,                 intent(in)    :: lambda,mu,syld,biso,Rinf,Ckin,kkin
+        real                                :: F0,F1,beta,hard,radiust
+        real, dimension(0:5)                :: gradF0,gradF1,dstress,stresst,centert
         real, dimension(0:5),     parameter :: A = (/1.0,1.0,1.0,0.5,0.5,0.5/)
-        real, dimension(0:5,0:5)            :: DEL_ijhk
-        real :: Fmises,Fmises0,beta,h_kin,h_iso,h_lmc,dbeta,err0,err1
-        integer :: k,j
+        real, dimension(0:5,0:5)            :: DEL
+        integer                             :: k,j
         
         ! INITIAL PLASTIC CONDITION
-        call mises_yld_locus(Sigma_ij, X_ij, R, sigma_yld, Fmises0, gradF0)
-        !if (drift==1) then ! B METHOD by Potts & Gens 1985
-        beta=0d0
-        do 
-            call mises_yld_locus(Sigma_ij,X_ij,R,sigma_yld,Fmises,gradF_mises)
+        call mises_yld_locus(stress,center,radius,syld,F0,gradF0)
+        call stiff_matrix(lambda,mu,DEL)
+        do counter=0,4 
+            ! COMPUTE HARDENING INCREMENTS
+            hard = biso*(Rinf-radius)
+            hard = hard + Ckin
+            hard = hard - kkin*sum(gradF0*center)
             ! COMPUTE BETA FOR DRIFT CORRECTION
-            dbeta=0d0
-            do k=0,5
-                dbeta = dbeta+gradF0(k)*gradF_mises(k)
+            beta = 0d0
+            do j=0,5
+                do k=0,5
+                    beta=beta+gradF0(k)*DEL(k,j)*A(j)*gradF0(j)
+                end do
             end do
-            beta=beta-Fmises/dbeta
-            ! STRESS CORRECTION (RADIAL RETURN)
-            Sigma_temp(0:5)=Sigma_ij(0:5)+beta*gradF0(0:5)*A(0:5)
-            call mises_yld_locus(Sigma_temp,X_ij,R,sigma_yld,Fmises,gradF_mises)
-            call tensor_components(Sigma_temp, Sigma_dev_temp)
-            call tensor_components(Sigma_ij,Sigma_dev_ij)
-            call tau_mises(Sigma_dev_ij-Sigma_dev_temp,err0)
-            call tau_mises(Sigma_dev_ij-X_ij,err1)
-            err0=err0/err1
-            Sigma_ij(0:5)=Sigma_temp(0:5)
-            if (err0 .le. 0.0000001 .or. abs(Fmises) .le. tol_nl) then
-                exit
-            end if
-        end do
-        !elseif( ! E METHOD
-            ! COMPUTE ELASTIC STIFFNESS MATRIX
-!            call stiff_matrix(lambda,mu,DEL_ijhk)
-!            DEL_ijhk(:,:) = 0d0
-!            DEL_ijhk(0:2,0:2) = DEL_ijhk(0:2,0:2) + lambda * M + id_matrix *2*mu
-!            DEL_ijhk(3:5,3:5) = DEL_ijhk(3:5,3:5) + id_matrix * mu
-!            
-!            do 
-!                ! COMPUTE HARDENING INCREMENTS
-!                h_iso = b_lmc*(Rinf_lmc-R)
-!                h_kin = C_lmc
-!                do k=0,5
-!                    h_kin = h_kin-kapa_lmc*X_ij(k)*gradF0(k)
-!                end do
-!                h_lmc=h_iso+h_kin
-!                write(*,*) "H: ", h_lmc
-!               ! COMPUTE BETA FOR DRIFT CORRECTION
-!                beta = 0d0
-!                do j=0,5
-!                    do k=0,5
-!                        beta=beta+gradF0(k)*DEL_ijhk(k,j)*A(j)*gradF0(j)
-!                    end do
-!                end do
-!                write(*,*) "beta",beta
-!                 
-!                beta=Fmises/(-h_lmc+beta)
-!                write(*,*) "beta debug",beta
-!                ! STRESS-STRAIN-HARDENING CORRECTION
-!                do k=0,5
-!                    do j=0,5
-!                        Sigma_temp(k)=Sigma_ij(k)-beta*DEL_ijhk(j,k)*A(j)*gradF0(j)
-!                    end do
-!                end do
-!                
-!                call mises_yld_locus(Sigma_temp,X_ij,R,sigma_yld,Fmises,gradF_mises)
-!                call tensor_components(Sigma_temp, Sigma_dev_temp)
-!                call tensor_components(Sigma_ij,Sigma_dev_ij)
-!                call tau_mises(Sigma_dev_ij-Sigma_dev_temp,err0)
-!                call tau_mises(Sigma_dev_ij-X_ij,err1)
-!                err0=err0/err1
-!                Sigma_ij(0:5)=Sigma_temp(0:5)
-!
-!                dEpsilon_ij_pl(0:5)=dEpsilon_ij_pl(0:5)+beta*A(0:5)*gradF0(0:5)
-!                X_ij(0:5)=X_ij(0:5)+beta*(2*A(0:5)*gradF0(0:5)*C_lmc/3-X_ij(0:5)*kapa_lmc)
-!                R=R+beta*(Rinf_lmc-R)*b_lmc
-!                call mises_yld_locus(Sigma_ij, X_ij, R, sigma_yld, Fmises0, gradF0)
-!
-!                if (abs(Fmises0) .lt. tol_nl .or. err0/err1.lt.tol_nl/100) exit
-!            end do
-!        end if
+            beta=F0/(hard+beta)
+            ! STRESS-STRAIN-HARDENING CORRECTION
+            dstress=0d0
+            do k=0,5
+                do j=0,5
+                    dstress(k)=dstress(k)-beta*DEL(j,k)*A(j)*gradF0(j)
+                end do
+            end do
+            stresst = stress+dstress
+            centert = center+beta*(2*A*gradF0*Ckin/3-center*kkin)
+            radiust = radius+beta*(Rinf-radius)*biso
+            
+            ! CHECK DRIFT
+            call mises_yld_locus(stresst,centert,radiust,syld,F1,gradF1)
+            if (abs(F1).gt.abs(F0)) then
+                beta   = F0/sum(gradF0*gradF0)
+                stress = stress-beta*gradF0
+            else
+                stress = stresst
+                center = centert
+                radius = radiust
+                dEplastic = dEplastic+beta*A*gradF0
+                if (abs(F1).le.tol_nl) then
+                    exit
+                else
+                    F0     = F1
+                    gradF0 = gradF1
+                endif
+            endif
+            
+        enddo
+        return
     end subroutine drift_corr
 
     subroutine gotoFtan(start0,dtrial0,F0,Ftrial,center,radius,s0,alpha)
@@ -571,8 +538,6 @@ contains
             call tensor_components(start,dev)
             call tau_mises(-dev+dev_temp,err0)
             call tau_mises(dev-dev0,err1)
-!            write(*,*) "err0",err0
-!            write(*,*) "err1",err1
             err0=err0/err1
             start(0:5)=temp(0:5)
             call mises_yld_locus(start,center,radius,s0,Fstart,gradF)
@@ -583,10 +548,6 @@ contains
             alpha=alpha-Fstart/beta
             temp(0:5)=start(0:5)-(Fstart/beta)*dtrial0(0:5)
         end do
-!        write(*,*) "F:",Fstart
-!        write(*,*) "err0",err0
-!        write(*,*) "gotoF: stress:",start
-!        write(*,*) ""
     end subroutine gotoFtan
      
     subroutine gotoFsec(start0,dtrial0,F0,Ftrial,center,radius,s0,alpha)
@@ -622,14 +583,16 @@ contains
 
     end subroutine gotoFsec
 
-    subroutine gotoFpegasus(start0,dtrial,center,radius,s0,alpha)
+    subroutine gotoFpegasus(start0,dtrial,center,radius,s0,nsub,alpha)
         implicit none
         real, dimension(0:5), intent(in)    :: start0,dtrial,center
         real,                 intent(in)    :: radius,s0
+        integer,              intent(in)    :: nsub
         real,                 intent(out)   :: alpha
         real, dimension(0:5)                :: stress0,stress1,stress,gradF
-        real                                :: alpha0,alpha1,F0,F1,FM
-        integer                             :: counter
+        real                                :: dalpha,alpha0,alpha1,F0,F1,FM,Fsave
+        integer                             :: counter0,counter1
+        logical                             :: flagxit
 
         alpha1  = 1d0
         alpha0  = 0d0
@@ -637,12 +600,43 @@ contains
         stress1 = start0+alpha1*dtrial
         call mises_yld_locus(stress0,center,radius,s0,F0,gradF)
         call mises_yld_locus(stress1,center,radius,s0,F1,gradF)
-        
-        do counter=0,9
+        if (nsub.gt.1)then
+            Fsave=F0
+            do counter0=0,2
+                dalpha = (alpha1-alpha0)/nsub
+                do counter1=0,nsub-1
+                    alpha=alpha0+dalpha
+                    stress=start0+alpha*dtrial
+                    call mises_yld_locus(stress,center,radius,s0,F1,gradF)
+                    if (FM.gt.tol_nl) then
+                        alpha1=alpha
+                        if (F0.lt.-tol_nl) then
+                            F1=FM
+                            flagxit=.true.
+                            exit
+                        else
+                            alpha0=0d0
+                            F0=Fsave
+                        endif
+                    else
+                        alpha0=alpha
+                        F0=FM
+                    endif
+                end do
+                if (flagxit) then
+                    exit
+                endif
+            end do
+            if (.not.flagxit) then
+                write(*,*) "ERROR IN FINDING F=0 (REVERSAL)"
+                STOP
+            endif
+        end if
+
+        do counter0=0,9
             alpha  = alpha1-F1*(alpha1-alpha0)/(F1-F0)
             stress = start0+alpha*dtrial
             call mises_yld_locus(stress,center,radius,s0,FM,gradF)
-
             if (abs(FM).le.tol_nl) then
                 exit
             else
@@ -653,6 +647,7 @@ contains
             endif
 
         end do
+
         if (FM.gt.tol_nl) then
             write(*,*) "WARNING: F>TOL"
         endif
