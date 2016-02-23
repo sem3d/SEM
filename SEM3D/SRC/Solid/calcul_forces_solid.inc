@@ -29,9 +29,7 @@
         dxz = dS_dxi*InvGrad(IND_MNE(2,0,ee))+dS_deta*InvGrad(IND_MNE(2,1,ee))+dS_dzeta*InvGrad(IND_MNE(2,2,ee));
 
 subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
-
-    use sdomain
-    use attenuation_solid
+    use champs_solid
     implicit none
 
     type(domain_solid), intent (INOUT) :: dom

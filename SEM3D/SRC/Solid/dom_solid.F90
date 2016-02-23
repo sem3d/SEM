@@ -4,17 +4,15 @@
 !!
 
 module dom_solid
-    use sdomain
     use constants
     use champs_solid
-    use selement
-    use ssubdomains
     implicit none
 #include "index.h"
 
 contains
 
     subroutine allocate_dom_solid (Tdomain, dom)
+        use sdomain
         use gll3d
         implicit none
         type(domain) :: TDomain
@@ -164,15 +162,14 @@ contains
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
     end subroutine deallocate_dom_solid
 
-    subroutine get_solid_dom_var(Tdomain, dom, el, out_variables, &
+    subroutine get_solid_dom_var(dom, lnum, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
         use deriv3d
         implicit none
         !
-        type(domain)                               :: TDomain
         type(domain_solid), intent(inout)          :: dom
-        integer, dimension(0:8)                    :: out_variables
-        type(element)                              :: el
+        integer, intent(in), dimension(0:8)        :: out_variables
+        integer, intent(in)                        :: lnum
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
@@ -180,7 +177,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         !
         logical                                  :: flag_gradU
-        integer                                  :: ngll, i, j, k, ind, mat
+        integer                                  :: ngll, i, j, k, ind
         real(fpp)                                :: DXX, DXY, DXZ
         real(fpp)                                :: DYX, DYY, DYZ
         real(fpp)                                :: DZX, DZY, DZZ
@@ -197,7 +194,6 @@ contains
                       out_variables(OUT_STRESS_DEV)) /= 0
 
         ngll = dom%ngll
-        mat  = el%mat_index
 
         ! First, get displacement.
 
@@ -206,7 +202,7 @@ contains
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
-                        ind = dom%Idom_(i,j,k,el%lnum)
+                        ind = dom%Idom_(i,j,k,lnum)
                         fieldU(i,j,k,:) = dom%champs0%Depla(ind,:)
                     enddo
                 enddo
@@ -222,19 +218,19 @@ contains
                     ! Compute gradU with displacement if needed.
 
                     if (flag_gradU) then
-                        invgrad_ijk = dom%InvGrad_(:,:,i,j,k,el%lnum) ! cache for performance
+                        invgrad_ijk = dom%InvGrad_(:,:,i,j,k,lnum) ! cache for performance
 
-                        call physical_part_deriv_ijk(i,j,k,ngll,Tdomain%sSubDomain(mat)%hprime,&
+                        call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
                              invgrad_ijk,fieldU(:,:,:,0),DXX,DYX,DZX)
-                        call physical_part_deriv_ijk(i,j,k,ngll,Tdomain%sSubDomain(mat)%hprime,&
+                        call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
                              invgrad_ijk,fieldU(:,:,:,1),DXY,DYY,DZY)
-                        call physical_part_deriv_ijk(i,j,k,ngll,Tdomain%sSubDomain(mat)%hprime,&
+                        call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
                              invgrad_ijk,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
                     end if
 
                     ! Get other variables.
 
-                    ind = dom%Idom_(i,j,k,el%lnum)
+                    ind = dom%Idom_(i,j,k,lnum)
 
                     if (out_variables(OUT_VITESSE) == 1) then
                         if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
@@ -248,8 +244,8 @@ contains
 
                     if (out_variables(OUT_PRESSION) == 1) then
                         if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
-                        fieldP(i,j,k) = -(dom%Lambda_(i,j,k,el%lnum)&
-                                          +2d0/3d0*dom%Mu_(i,j,k,el%lnum))&
+                        fieldP(i,j,k) = -(dom%Lambda_(i,j,k,lnum)&
+                                          +2d0/3d0*dom%Mu_(i,j,k,lnum))&
                                         *(DXX+DYY+DZZ)
                     end if
 
@@ -261,14 +257,14 @@ contains
                         eps_vol(i,j,k) = DXX + DYY + DZZ
                     end if
 
-                    if (.not. Tdomain%aniso) then
-                        xmu     = dom%Mu_    (i,j,k,el%lnum)
-                        xlambda = dom%Lambda_(i,j,k,el%lnum)
-                        xkappa  = dom%Kappa_ (i,j,k,el%lnum)
+                    if (.not. dom%aniso) then
+                        xmu     = dom%Mu_    (i,j,k,lnum)
+                        xlambda = dom%Lambda_(i,j,k,lnum)
+                        xkappa  = dom%Kappa_ (i,j,k,lnum)
 
-                        if (Tdomain%n_sls>0) then
-                            onemSbeta = dom%onemSbeta_(i,j,k,el%lnum)
-                            onemPbeta = dom%onemPbeta_(i,j,k,el%lnum)
+                        if (dom%n_sls>0) then
+                            onemSbeta = dom%onemSbeta_(i,j,k,lnum)
+                            onemPbeta = dom%onemPbeta_(i,j,k,lnum)
                             xmu    = xmu * onemSbeta
                             xkappa = xkappa * onemPbeta
                         endif
@@ -279,7 +275,7 @@ contains
                     if (out_variables(OUT_ENERGYP) == 1) then
                         if(.not. allocated(P_energy)) allocate(P_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                         P_energy(i,j,k) = 0.
-                        if (.not. Tdomain%aniso) then
+                        if (.not. dom%aniso) then
                             P_energy(i,j,k) = .5 * xlambda2mu * eps_vol(i,j,k)**2
                         end if
                     end if
@@ -287,7 +283,7 @@ contains
                     if (out_variables(OUT_ENERGYS) == 1) then
                         if(.not. allocated(S_energy)) allocate(S_energy(0:ngll-1,0:ngll-1,0:ngll-1))
                         S_energy(i,j,k) = 0.
-                        if (.not. Tdomain%aniso) then
+                        if (.not. dom%aniso) then
                             S_energy(i,j,k) =   xmu/2 * (       DXY**2 + DYX**2 &
                                                           +     DXZ**2 + DZX**2 &
                                                           +     DYZ**2 + DZY**2 &
@@ -310,7 +306,7 @@ contains
                     if (out_variables(OUT_STRESS_DEV) == 1) then
                         if(.not. allocated(sig_dev)) allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
                         sig_dev(i,j,k,0:5) = 0.
-                        if (.not. Tdomain%aniso) then
+                        if (.not. dom%aniso) then
                             sig_dev(i,j,k,0) = x2mu * (DXX - eps_vol(i,j,k) * M_1_3)
                             sig_dev(i,j,k,1) = x2mu * (DYY - eps_vol(i,j,k) * M_1_3)
                             sig_dev(i,j,k,2) = x2mu * (DZZ - eps_vol(i,j,k) * M_1_3)
@@ -324,7 +320,8 @@ contains
         enddo
     end subroutine get_solid_dom_var
 
-    subroutine init_material_properties_solid(dom, lnum, i, j, k, density, lambda, mu, kappa, Tdomain, mat)
+    subroutine init_material_properties_solid(dom, lnum, i, j, k, density, lambda, mu, kappa, mat)
+        use ssubdomains
         type(domain_solid), intent(inout) :: dom
         integer, intent(in) :: lnum
         integer, intent(in) :: i, j, k ! -1 means :
@@ -332,7 +329,6 @@ contains
         real(fpp), intent(in) :: lambda
         real(fpp), intent(in) :: mu
         real(fpp), intent(in) :: kappa
-        type(domain), intent(in), optional :: Tdomain
         type (subdomain), intent(in), optional :: mat
 
         if (i==-1 .and. j==-1 .and. k==-1) then
@@ -347,9 +343,9 @@ contains
             dom%Mu_     (i,j,k,lnum) = mu
         end if
 
-        if (present(Tdomain) .and. present(mat)) then
-            if (Tdomain%n_sls>0)  then
-                if (Tdomain%aniso) then
+        if (present(mat)) then
+            if (dom%n_sls>0)  then
+                if (dom%aniso) then
                     dom%Q_(:,:,:,lnum) = mat%Qmu
                 else
                     dom%Qs_(:,:,:,lnum) = mat%Qmu
@@ -379,6 +375,7 @@ contains
     end subroutine init_material_tensor_solid
 
     subroutine init_local_mass_solid(dom,specel,i,j,k,ind,Whei)
+        use selement
         type(domain_solid), intent (INOUT) :: dom
         type (Element), intent (INOUT) :: specel
         integer :: i,j,k,ind

@@ -40,7 +40,7 @@ contains
     end subroutine physical_part_deriv_ijke
 
     subroutine calcul_forces_iso(dom,lnum,Fox,Foy,Foz,Depla)
-        use sdomain
+        use champs_solid
         use deriv3d
         implicit none
         type(domain_solid), intent (INOUT) :: dom

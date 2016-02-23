@@ -417,7 +417,7 @@ contains
 
         select case(Tdomain%specel(n_el)%domain)
             case (DM_SOLID)
-              call get_solid_dom_var(Tdomain, Tdomain%sdom, Tdomain%specel(n_el), out_variables, &
+              call get_solid_dom_var(Tdomain%sdom, Tdomain%specel(n_el)%lnum, out_variables, &
               fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
             case (DM_FLUID)
               call get_fluid_dom_var(Tdomain, Tdomain%fdom, Tdomain%specel(n_el), out_variables, &
