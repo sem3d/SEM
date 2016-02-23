@@ -429,9 +429,8 @@ subroutine internal_forces(Tdomain)
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    integer  :: n,mat, indsol, indflu, indpml, lnum
+    integer  :: n, indsol, indflu, indpml
 
-    ! DOMAIN Fluide
     if (Tdomain%fdom%nbelem>0) then
         call stat_starttick()
         do n = 0,Tdomain%fdom%nbelem-1,CHUNK
@@ -454,28 +453,14 @@ subroutine internal_forces(Tdomain)
         end do
         call stat_stoptick(STAT_FSOL)
     end if
-    do n = 0,Tdomain%n_elem-1
-        lnum = Tdomain%specel(n)%lnum
-        mat = Tdomain%specel(n)%mat_index
-        select case (Tdomain%specel(n)%domain)
-        case (DM_SOLID)
-!!            call forces_int_solid(Tdomain%sdom, Tdomain%sSubDomain(mat),&
-!!                 Tdomain%n_sls, Tdomain%aniso, Tdomain%sdom%champs1, lnum)
-        case (DM_FLUID)
-!!            call forces_int_fluid(Tdomain%fdom, Tdomain%sSubDomain(mat),&
-!!                 Tdomain%fdom%champs1, lnum)
-        case (DM_SOLID_PML)
-            call pred_sol_pml(Tdomain%spmldom, Tdomain%sSubDomain(mat), &
-                 Tdomain%TimeD%dtmin, Tdomain%spmldom%champs1, lnum)
-            call forces_int_sol_pml(Tdomain%spmldom, Tdomain%sSubDomain(mat), &
-                 Tdomain%spmldom%champs1, lnum)
-        case (DM_FLUID_PML)
-!            call pred_flu_pml(Tdomain%fpmldom, Tdomain%sSubDomain(mat), &
-!                 Tdomain%TimeD%dtmin, Tdomain%fpmldom%champs1, lnum)
-!            call forces_int_flu_pml(Tdomain%fpmldom, Tdomain%sSubDomain(mat), &
-!                 Tdomain%fpmldom%champs1, lnum)
-        end select
-    enddo
+    if (Tdomain%spmldom%nbelem>0) then
+        call stat_starttick()
+        do n = 0,Tdomain%spmldom%nbelem-1,CHUNK
+            call pred_sol_pml(Tdomain%spmldom, Tdomain%TimeD%dtmin, Tdomain%spmldom%champs1, n)
+            call forces_int_sol_pml(Tdomain%spmldom, Tdomain%spmldom%champs1, n)
+        end do
+        call stat_stoptick(STAT_PSOL)
+    end if
 
     ! Couplage interface solide / PML
     if (Tdomain%spmldom%nglltot > 0) then

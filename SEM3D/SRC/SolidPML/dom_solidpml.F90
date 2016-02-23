@@ -233,91 +233,98 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solidpml
 
-    subroutine forces_int_sol_pml(dom, mat, champs1, lnum)
+    subroutine forces_int_sol_pml(dom, champs1, lnum)
         type(domain_solidpml), intent(inout) :: dom
-        type (subdomain), intent(IN) :: mat
         type(champssolidpml), intent(inout) :: champs1
         integer :: lnum
         !
         integer :: ngll
-        integer :: i, j, k, l, ind
+        integer :: i, j, k, l, ind, e, ee
         real :: sum_vx, sum_vy, sum_vz, acoeff
-        real, dimension(0:2,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)  :: Forces1, Forces2, Forces3
+        real, dimension(0:CHUNK-1,0:2,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)  :: Forces1, Forces2, Forces3
 
         ngll = dom%ngll
 
+        Forces1 = 0d0
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i=0,ngll-1
+                    BEGIN_SUBELEM_LOOP(e,ee,lnum)
                     sum_vx = 0d0
                     sum_vy = 0d0
                     sum_vz = 0d0
                     do l = 0,ngll-1
-                        acoeff = - dom%hprime(i,l)*dom%GLLw(l)*dom%GLLw(j)*dom%GLLw(k)*dom%Jacob_(l,j,k,lnum)
-                        sum_vx = sum_vx + acoeff*dom%InvGrad_(0,0,l,j,k,lnum)*dom%Diagonal_Stress_(l,j,k,0,lnum)
-                        sum_vx = sum_vx + acoeff*dom%InvGrad_(1,0,l,j,k,lnum)*dom%Residual_Stress_(l,j,k,0,lnum)
-                        sum_vx = sum_vx + acoeff*dom%InvGrad_(2,0,l,j,k,lnum)*dom%Residual_Stress_(l,j,k,1,lnum)
+                        acoeff = - dom%hprime(i,l)*dom%GLLw(l)*dom%GLLw(j)*dom%GLLw(k)*dom%Jacob_(l,j,k,e)
+                        sum_vx = sum_vx + acoeff*dom%InvGrad_(0,0,l,j,k,e)*dom%Diagonal_Stress_(l,j,k,0,e)
+                        sum_vx = sum_vx + acoeff*dom%InvGrad_(1,0,l,j,k,e)*dom%Residual_Stress_(l,j,k,0,e)
+                        sum_vx = sum_vx + acoeff*dom%InvGrad_(2,0,l,j,k,e)*dom%Residual_Stress_(l,j,k,1,e)
 
-                        sum_vy = sum_vy + acoeff*dom%InvGrad_(0,0,l,j,k,lnum)*dom%Residual_Stress_(l,j,k,0,lnum)
-                        sum_vy = sum_vy + acoeff*dom%InvGrad_(1,0,l,j,k,lnum)*dom%Diagonal_Stress_(l,j,k,1,lnum)
-                        sum_vy = sum_vy + acoeff*dom%InvGrad_(2,0,l,j,k,lnum)*dom%Residual_Stress_(l,j,k,2,lnum)
+                        sum_vy = sum_vy + acoeff*dom%InvGrad_(0,0,l,j,k,e)*dom%Residual_Stress_(l,j,k,0,e)
+                        sum_vy = sum_vy + acoeff*dom%InvGrad_(1,0,l,j,k,e)*dom%Diagonal_Stress_(l,j,k,1,e)
+                        sum_vy = sum_vy + acoeff*dom%InvGrad_(2,0,l,j,k,e)*dom%Residual_Stress_(l,j,k,2,e)
 
-                        sum_vz = sum_vz + acoeff*dom%InvGrad_(0,0,l,j,k,lnum)*dom%Residual_Stress_(l,j,k,1,lnum)
-                        sum_vz = sum_vz + acoeff*dom%InvGrad_(1,0,l,j,k,lnum)*dom%Residual_Stress_(l,j,k,2,lnum)
-                        sum_vz = sum_vz + acoeff*dom%InvGrad_(2,0,l,j,k,lnum)*dom%Diagonal_Stress_(l,j,k,2,lnum)
+                        sum_vz = sum_vz + acoeff*dom%InvGrad_(0,0,l,j,k,e)*dom%Residual_Stress_(l,j,k,1,e)
+                        sum_vz = sum_vz + acoeff*dom%InvGrad_(1,0,l,j,k,e)*dom%Residual_Stress_(l,j,k,2,e)
+                        sum_vz = sum_vz + acoeff*dom%InvGrad_(2,0,l,j,k,e)*dom%Diagonal_Stress_(l,j,k,2,e)
                     end do
-                    Forces1(0,i,j,k) = sum_vx
-                    Forces1(1,i,j,k) = sum_vy
-                    Forces1(2,i,j,k) = sum_vz
+                    Forces1(ee,0,i,j,k) = sum_vx
+                    Forces1(ee,1,i,j,k) = sum_vy
+                    Forces1(ee,2,i,j,k) = sum_vz
+                    END_SUBELEM_LOOP()
                 end do
             end do
         end do
 
+        Forces2 = 0d0
         do k = 0,ngll-1
-            Forces2(:,:,:,k) = 0d0
             do l = 0,ngll-1
                 do j = 0,ngll-1
                     do i=0,ngll-1
-                        acoeff = - dom%hprime(j,l)*dom%GLLw(i)*dom%GLLw(l)*dom%GLLw(k)*dom%Jacob_(i,l,k,lnum)
-                        sum_vx = acoeff*(dom%InvGrad_(0,1,i,l,k,lnum)*dom%Diagonal_Stress_(i,l,k,0,lnum) + &
-                                         dom%InvGrad_(1,1,i,l,k,lnum)*dom%Residual_Stress_(i,l,k,0,lnum) + &
-                                         dom%InvGrad_(2,1,i,l,k,lnum)*dom%Residual_Stress_(i,l,k,1,lnum))
+                        BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                        acoeff = - dom%hprime(j,l)*dom%GLLw(i)*dom%GLLw(l)*dom%GLLw(k)*dom%Jacob_(i,l,k,e)
+                        sum_vx = acoeff*(dom%InvGrad_(0,1,i,l,k,e)*dom%Diagonal_Stress_(i,l,k,0,e) + &
+                                         dom%InvGrad_(1,1,i,l,k,e)*dom%Residual_Stress_(i,l,k,0,e) + &
+                                         dom%InvGrad_(2,1,i,l,k,e)*dom%Residual_Stress_(i,l,k,1,e))
 
-                        sum_vy = acoeff*(dom%InvGrad_(0,1,i,l,k,lnum)*dom%Residual_Stress_(i,l,k,0,lnum) + &
-                                         dom%InvGrad_(1,1,i,l,k,lnum)*dom%Diagonal_Stress_(i,l,k,1,lnum) + &
-                                         dom%InvGrad_(2,1,i,l,k,lnum)*dom%Residual_Stress_(i,l,k,2,lnum))
+                        sum_vy = acoeff*(dom%InvGrad_(0,1,i,l,k,e)*dom%Residual_Stress_(i,l,k,0,e) + &
+                                         dom%InvGrad_(1,1,i,l,k,e)*dom%Diagonal_Stress_(i,l,k,1,e) + &
+                                         dom%InvGrad_(2,1,i,l,k,e)*dom%Residual_Stress_(i,l,k,2,e))
 
-                        sum_vz = acoeff*(dom%InvGrad_(0,1,i,l,k,lnum)*dom%Residual_Stress_(i,l,k,1,lnum) + &
-                                         dom%InvGrad_(1,1,i,l,k,lnum)*dom%Residual_Stress_(i,l,k,2,lnum) + &
-                                         dom%InvGrad_(2,1,i,l,k,lnum)*dom%Diagonal_Stress_(i,l,k,2,lnum))
-                        Forces2(0,i,j,k) = Forces2(0,i,j,k) + sum_vx
-                        Forces2(1,i,j,k) = Forces2(1,i,j,k) + sum_vy
-                        Forces2(2,i,j,k) = Forces2(2,i,j,k) + sum_vz
+                        sum_vz = acoeff*(dom%InvGrad_(0,1,i,l,k,e)*dom%Residual_Stress_(i,l,k,1,e) + &
+                                         dom%InvGrad_(1,1,i,l,k,e)*dom%Residual_Stress_(i,l,k,2,e) + &
+                                         dom%InvGrad_(2,1,i,l,k,e)*dom%Diagonal_Stress_(i,l,k,2,e))
+                        Forces2(ee,0,i,j,k) = Forces2(ee,0,i,j,k) + sum_vx
+                        Forces2(ee,1,i,j,k) = Forces2(ee,1,i,j,k) + sum_vy
+                        Forces2(ee,2,i,j,k) = Forces2(ee,2,i,j,k) + sum_vz
+                        END_SUBELEM_LOOP()
                     end do
                 end do
             end do
         end do
+
         ! TODO reorder loops ?
         Forces3 = 0
         do l = 0,ngll-1
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i=0,ngll-1
-                        acoeff = - dom%hprime(k,l)*dom%GLLw(i)*dom%GLLw(j)*dom%GLLw(l)*dom%Jacob_(i,j,l,lnum)
-                        sum_vx = acoeff*(dom%InvGrad_(0,2,i,j,l,lnum)*dom%Diagonal_Stress_(i,j,l,0,lnum) + &
-                                         dom%InvGrad_(1,2,i,j,l,lnum)*dom%Residual_Stress_(i,j,l,0,lnum) + &
-                                         dom%InvGrad_(2,2,i,j,l,lnum)*dom%Residual_Stress_(i,j,l,1,lnum))
+                        BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                        acoeff = - dom%hprime(k,l)*dom%GLLw(i)*dom%GLLw(j)*dom%GLLw(l)*dom%Jacob_(i,j,l,e)
+                        sum_vx = acoeff*(dom%InvGrad_(0,2,i,j,l,e)*dom%Diagonal_Stress_(i,j,l,0,e) + &
+                                         dom%InvGrad_(1,2,i,j,l,e)*dom%Residual_Stress_(i,j,l,0,e) + &
+                                         dom%InvGrad_(2,2,i,j,l,e)*dom%Residual_Stress_(i,j,l,1,e))
 
-                        sum_vy = acoeff*(dom%InvGrad_(0,2,i,j,l,lnum)*dom%Residual_Stress_(i,j,l,0,lnum) + &
-                                         dom%InvGrad_(1,2,i,j,l,lnum)*dom%Diagonal_Stress_(i,j,l,1,lnum) + &
-                                         dom%InvGrad_(2,2,i,j,l,lnum)*dom%Residual_Stress_(i,j,l,2,lnum))
+                        sum_vy = acoeff*(dom%InvGrad_(0,2,i,j,l,e)*dom%Residual_Stress_(i,j,l,0,e) + &
+                                         dom%InvGrad_(1,2,i,j,l,e)*dom%Diagonal_Stress_(i,j,l,1,e) + &
+                                         dom%InvGrad_(2,2,i,j,l,e)*dom%Residual_Stress_(i,j,l,2,e))
 
-                        sum_vz = acoeff*(dom%InvGrad_(0,2,i,j,l,lnum)*dom%Residual_Stress_(i,j,l,1,lnum) + &
-                                         dom%InvGrad_(1,2,i,j,l,lnum)*dom%Residual_Stress_(i,j,l,2,lnum) + &
-                                         dom%InvGrad_(2,2,i,j,l,lnum)*dom%Diagonal_Stress_(i,j,l,2,lnum))
-                        Forces3(0,i,j,k) = Forces3(0,i,j,k) + sum_vx
-                        Forces3(1,i,j,k) = Forces3(1,i,j,k) + sum_vy
-                        Forces3(2,i,j,k) = Forces3(2,i,j,k) + sum_vz
+                        sum_vz = acoeff*(dom%InvGrad_(0,2,i,j,l,e)*dom%Residual_Stress_(i,j,l,1,e) + &
+                                         dom%InvGrad_(1,2,i,j,l,e)*dom%Residual_Stress_(i,j,l,2,e) + &
+                                         dom%InvGrad_(2,2,i,j,l,e)*dom%Diagonal_Stress_(i,j,l,2,e))
+                        Forces3(ee,0,i,j,k) = Forces3(ee,0,i,j,k) + sum_vx
+                        Forces3(ee,1,i,j,k) = Forces3(ee,1,i,j,k) + sum_vy
+                        Forces3(ee,2,i,j,k) = Forces3(ee,2,i,j,k) + sum_vz
+                        END_SUBELEM_LOOP()
                     end do
                 end do
             end do
@@ -327,107 +334,115 @@ contains
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    ind = dom%Idom_(i,j,k,lnum)
-                    champs1%ForcesPML(ind,:,0) = champs1%ForcesPML(ind,:,0) + Forces1(:,i,j,k)
-                    champs1%ForcesPML(ind,:,1) = champs1%ForcesPML(ind,:,1) + Forces2(:,i,j,k)
-                    champs1%ForcesPML(ind,:,2) = champs1%ForcesPML(ind,:,2) + Forces3(:,i,j,k)
+                    BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                    ind = dom%Idom_(i,j,k,e)
+                    champs1%ForcesPML(ind,:,0) = champs1%ForcesPML(ind,:,0) + Forces1(ee,:,i,j,k)
+                    champs1%ForcesPML(ind,:,1) = champs1%ForcesPML(ind,:,1) + Forces2(ee,:,i,j,k)
+                    champs1%ForcesPML(ind,:,2) = champs1%ForcesPML(ind,:,2) + Forces3(ee,:,i,j,k)
+                    END_SUBELEM_LOOP()
                 enddo
             enddo
         enddo
     end subroutine forces_int_sol_pml
 
-    subroutine pred_sol_pml(dom, mat, dt, champs1, lnum)
+    subroutine pred_sol_pml(dom, dt, champs1, lnum)
         implicit none
 
         type(domain_solidpml), intent(inout) :: dom
-        type (subdomain), intent(IN) :: mat
         type(champssolidpml), intent(inout) :: champs1
         real, intent(in) :: dt
         integer :: lnum
         !
-        real, dimension(0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: dVx_dx, dVx_dy, dVx_dz
-        real, dimension(0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: dVy_dx, dVy_dy, dVy_dz
-        real, dimension(0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: dVz_dx, dVz_dy, dVz_dz
+        real, dimension (0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Veloc
+        real :: dVx_dx, dVx_dy, dVx_dz
+        real :: dVy_dx, dVy_dy, dVy_dz
+        real :: dVz_dx, dVz_dy, dVz_dz
         integer :: ngll
-        integer :: i, j, k, ind, i_dir
-        real, dimension (:,:,:,:), allocatable :: Veloc
+        integer :: i, j, k, ind, i_dir, e, ee
 
         ngll = dom%ngll
 
-        allocate(Veloc(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
         do i_dir = 0,2
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
-                        ind = dom%Idom_(i,j,k,lnum)
-                        Veloc(i,j,k,i_dir) = champs1%VelocPML(ind,i_dir,0) + &
-                            champs1%VelocPML(ind,i_dir,1) + &
-                            champs1%VelocPML(ind,i_dir,2)
+                        BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                        ind = dom%Idom_(i,j,k,e)
+                        Veloc(ee,i,j,k,i_dir) = champs1%VelocPML(ind,i_dir,0) + &
+                                                champs1%VelocPML(ind,i_dir,1) + &
+                                                champs1%VelocPML(ind,i_dir,2)
+                        END_SUBELEM_LOOP()
                     enddo
                 enddo
             enddo
         enddo
 
-        ! partial of velocity components with respect to xi,eta,zeta
-        call physical_part_deriv(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,0),dVx_dx,dVx_dy,dVx_dz)
-        call physical_part_deriv(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,1),dVy_dx,dVy_dy,dVy_dz)
-        call physical_part_deriv(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,2),dVz_dx,dVz_dy,dVz_dz)
-        deallocate(Veloc)
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                    ! partial of velocity components with respect to xi,eta,zeta
+                    call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,dom%InvGrad_(:,:,i,j,k,e),Veloc(ee,:,:,:,0),dVx_dx,dVx_dy,dVx_dz)
+                    call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,dom%InvGrad_(:,:,i,j,k,e),Veloc(ee,:,:,:,1),dVy_dx,dVy_dy,dVy_dz)
+                    call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,dom%InvGrad_(:,:,i,j,k,e),Veloc(ee,:,:,:,2),dVz_dx,dVz_dy,dVz_dz)
 
-        ! Stress_xx
-        dom%Diagonal_Stress1_(:,:,:,0,lnum) = dom%PMLDumpSx_(:,:,:,0,lnum)*dom%Diagonal_Stress1_(:,:,:,0,lnum) + &
-                                              dom%PMLDumpSx_(:,:,:,1,lnum)*Dt*(dom%Lambda_(:,:,:,lnum)+2*dom%Mu_(:,:,:,lnum))*dVx_dx
-        dom%Diagonal_Stress2_(:,:,:,0,lnum) = dom%PMLDumpSy_(:,:,:,0,lnum)*dom%Diagonal_Stress2_(:,:,:,0,lnum) + &
-                                              dom%PMLDumpSy_(:,:,:,1,lnum)*Dt*(dom%Lambda_(:,:,:,lnum))*dVy_dy
-        dom%Diagonal_Stress3_(:,:,:,0,lnum) = dom%PMLDumpSz_(:,:,:,0,lnum)*dom%Diagonal_Stress3_(:,:,:,0,lnum) + &
-                                              dom%PMLDumpSz_(:,:,:,1,lnum)*Dt*(dom%Lambda_(:,:,:,lnum))*dVz_dz
+                    ! Stress_xx
+                    dom%Diagonal_Stress1_(i,j,k,0,e) = dom%PMLDumpSx_(i,j,k,0,e)*dom%Diagonal_Stress1_(i,j,k,0,e) + &
+                                                       dom%PMLDumpSx_(i,j,k,1,e)*Dt*(dom%Lambda_(i,j,k,e)+2*dom%Mu_(i,j,k,e))*dVx_dx
+                    dom%Diagonal_Stress2_(i,j,k,0,e) = dom%PMLDumpSy_(i,j,k,0,e)*dom%Diagonal_Stress2_(i,j,k,0,e) + &
+                                                       dom%PMLDumpSy_(i,j,k,1,e)*Dt*(dom%Lambda_(i,j,k,e))*dVy_dy
+                    dom%Diagonal_Stress3_(i,j,k,0,e) = dom%PMLDumpSz_(i,j,k,0,e)*dom%Diagonal_Stress3_(i,j,k,0,e) + &
+                                                       dom%PMLDumpSz_(i,j,k,1,e)*Dt*(dom%Lambda_(i,j,k,e))*dVz_dz
 
-        ! Stress_yy
-        dom%Diagonal_Stress1_(:,:,:,1,lnum) = dom%PMLDumpSx_(:,:,:,0,lnum)*dom%Diagonal_Stress1_(:,:,:,1,lnum) + &
-                                              dom%PMLDumpSx_(:,:,:,1,lnum)*Dt*(dom%Lambda_(:,:,:,lnum))*dVx_dx
-        dom%Diagonal_Stress2_(:,:,:,1,lnum) = dom%PMLDumpSy_(:,:,:,0,lnum)*dom%Diagonal_Stress2_(:,:,:,1,lnum) + &
-                                              dom%PMLDumpSy_(:,:,:,1,lnum)*Dt*(dom%Lambda_(:,:,:,lnum)+2*dom%Mu_(:,:,:,lnum))*dVy_dy
-        dom%Diagonal_Stress3_(:,:,:,1,lnum) = dom%PMLDumpSz_(:,:,:,0,lnum)*dom%Diagonal_Stress3_(:,:,:,1,lnum) + &
-                                              dom%PMLDumpSz_(:,:,:,1,lnum)*Dt*(dom%Lambda_(:,:,:,lnum))*dVz_dz
+                    ! Stress_yy
+                    dom%Diagonal_Stress1_(i,j,k,1,e) = dom%PMLDumpSx_(i,j,k,0,e)*dom%Diagonal_Stress1_(i,j,k,1,e) + &
+                                                       dom%PMLDumpSx_(i,j,k,1,e)*Dt*(dom%Lambda_(i,j,k,e))*dVx_dx
+                    dom%Diagonal_Stress2_(i,j,k,1,e) = dom%PMLDumpSy_(i,j,k,0,e)*dom%Diagonal_Stress2_(i,j,k,1,e) + &
+                                                       dom%PMLDumpSy_(i,j,k,1,e)*Dt*(dom%Lambda_(i,j,k,e)+2*dom%Mu_(i,j,k,e))*dVy_dy
+                    dom%Diagonal_Stress3_(i,j,k,1,e) = dom%PMLDumpSz_(i,j,k,0,e)*dom%Diagonal_Stress3_(i,j,k,1,e) + &
+                                                       dom%PMLDumpSz_(i,j,k,1,e)*Dt*(dom%Lambda_(i,j,k,e))*dVz_dz
 
-        ! Stress_zz
-        dom%Diagonal_Stress1_(:,:,:,2,lnum) = dom%PMLDumpSx_(:,:,:,0,lnum)*dom%Diagonal_Stress1_(:,:,:,2,lnum) + &
-                                              dom%PMLDumpSx_(:,:,:,1,lnum)*Dt*(dom%Lambda_(:,:,:,lnum))*dVx_dx
-        dom%Diagonal_Stress2_(:,:,:,2,lnum) = dom%PMLDumpSy_(:,:,:,0,lnum)*dom%Diagonal_Stress2_(:,:,:,2,lnum) + &
-                                              dom%PMLDumpSy_(:,:,:,1,lnum)*Dt*(dom%Lambda_(:,:,:,lnum))*dVy_dy
-        dom%Diagonal_Stress3_(:,:,:,2,lnum) = dom%PMLDumpSz_(:,:,:,0,lnum)*dom%Diagonal_Stress3_(:,:,:,2,lnum) + &
-                                              dom%PMLDumpSz_(:,:,:,1,lnum)*Dt*(dom%Lambda_(:,:,:,lnum)+2*dom%Mu_(:,:,:,lnum))*dVz_dz
+                    ! Stress_zz
+                    dom%Diagonal_Stress1_(i,j,k,2,e) = dom%PMLDumpSx_(i,j,k,0,e)*dom%Diagonal_Stress1_(i,j,k,2,e) + &
+                                                       dom%PMLDumpSx_(i,j,k,1,e)*Dt*(dom%Lambda_(i,j,k,e))*dVx_dx
+                    dom%Diagonal_Stress2_(i,j,k,2,e) = dom%PMLDumpSy_(i,j,k,0,e)*dom%Diagonal_Stress2_(i,j,k,2,e) + &
+                                                       dom%PMLDumpSy_(i,j,k,1,e)*Dt*(dom%Lambda_(i,j,k,e))*dVy_dy
+                    dom%Diagonal_Stress3_(i,j,k,2,e) = dom%PMLDumpSz_(i,j,k,0,e)*dom%Diagonal_Stress3_(i,j,k,2,e) + &
+                                                       dom%PMLDumpSz_(i,j,k,1,e)*Dt*(dom%Lambda_(i,j,k,e)+2*dom%Mu_(i,j,k,e))*dVz_dz
 
-        dom%Diagonal_Stress_(:,:,:,:,lnum) = dom%Diagonal_Stress1_(:,:,:,:,lnum) + &
-                                             dom%Diagonal_Stress2_(:,:,:,:,lnum) + &
-                                             dom%Diagonal_Stress3_(:,:,:,:,lnum)
+                    dom%Diagonal_Stress_(i,j,k,:,e) = dom%Diagonal_Stress1_(i,j,k,:,e) + &
+                                                      dom%Diagonal_Stress2_(i,j,k,:,e) + &
+                                                      dom%Diagonal_Stress3_(i,j,k,:,e)
 
-        ! Stress_xy
-        dom%Residual_Stress1_(:,:,:,0,lnum) = dom%PMLDumpSx_(:,:,:,0,lnum)*dom%Residual_Stress1_(:,:,:,0,lnum) + &
-                                              dom%PMLDumpSx_(:,:,:,1,lnum)*Dt*(dom%Mu_(:,:,:,lnum))*dVy_dx
-        dom%Residual_Stress2_(:,:,:,0,lnum) = dom%PMLDumpSy_(:,:,:,0,lnum)*dom%Residual_Stress2_(:,:,:,0,lnum) + &
-                                              dom%PMLDumpSy_(:,:,:,1,lnum)*Dt*(dom%Mu_(:,:,:,lnum))*dVx_dy
-        dom%Residual_Stress3_(:,:,:,0,lnum) = dom%PMLDumpSz_(:,:,:,0,lnum)*dom%Residual_Stress3_(:,:,:,0,lnum)
+                    ! Stress_xy
+                    dom%Residual_Stress1_(i,j,k,0,e) = dom%PMLDumpSx_(i,j,k,0,e)*dom%Residual_Stress1_(i,j,k,0,e) + &
+                                                       dom%PMLDumpSx_(i,j,k,1,e)*Dt*(dom%Mu_(i,j,k,e))*dVy_dx
+                    dom%Residual_Stress2_(i,j,k,0,e) = dom%PMLDumpSy_(i,j,k,0,e)*dom%Residual_Stress2_(i,j,k,0,e) + &
+                                                       dom%PMLDumpSy_(i,j,k,1,e)*Dt*(dom%Mu_(i,j,k,e))*dVx_dy
+                    dom%Residual_Stress3_(i,j,k,0,e) = dom%PMLDumpSz_(i,j,k,0,e)*dom%Residual_Stress3_(i,j,k,0,e)
 
-        ! Stress_xz
-        dom%Residual_Stress1_ (:,:,:,1,lnum) = dom%PMLDumpSx_(:,:,:,0,lnum)*dom%Residual_Stress1_(:,:,:,1,lnum) + &
-                                               dom%PMLDumpSx_(:,:,:,1,lnum)*Dt*(dom%Mu_(:,:,:,lnum))*dVz_dx
-        dom%Residual_Stress2_ (:,:,:,1,lnum) = dom%PMLDumpSy_(:,:,:,0,lnum)*dom%Residual_Stress2_(:,:,:,1,lnum)
-        dom%Residual_Stress3_ (:,:,:,1,lnum) = dom%PMLDumpSz_(:,:,:,0,lnum)*dom%Residual_Stress3_(:,:,:,1,lnum) + &
-                                               dom%PMLDumpSz_(:,:,:,1,lnum)*Dt*(dom%Mu_(:,:,:,lnum))*dVx_dz
+                    ! Stress_xz
+                    dom%Residual_Stress1_ (i,j,k,1,e) = dom%PMLDumpSx_(i,j,k,0,e)*dom%Residual_Stress1_(i,j,k,1,e) + &
+                                                        dom%PMLDumpSx_(i,j,k,1,e)*Dt*(dom%Mu_(i,j,k,e))*dVz_dx
+                    dom%Residual_Stress2_ (i,j,k,1,e) = dom%PMLDumpSy_(i,j,k,0,e)*dom%Residual_Stress2_(i,j,k,1,e)
+                    dom%Residual_Stress3_ (i,j,k,1,e) = dom%PMLDumpSz_(i,j,k,0,e)*dom%Residual_Stress3_(i,j,k,1,e) + &
+                                                        dom%PMLDumpSz_(i,j,k,1,e)*Dt*(dom%Mu_(i,j,k,e))*dVx_dz
 
-        ! Stress_yz
-        dom%Residual_Stress1_ (:,:,:,2,lnum) = dom%PMLDumpSx_(:,:,:,0,lnum)*dom%Residual_Stress1_(:,:,:,2,lnum)
-        dom%Residual_Stress2_ (:,:,:,2,lnum) = dom%PMLDumpSy_(:,:,:,0,lnum)*dom%Residual_Stress2_(:,:,:,2,lnum) + &
-                                               dom%PMLDumpSy_(:,:,:,1,lnum)*Dt*(dom%Mu_(:,:,:,lnum))*dVz_dy
-        dom%Residual_Stress3_ (:,:,:,2,lnum) = dom%PMLDumpSz_(:,:,:,0,lnum)*dom%Residual_Stress3_(:,:,:,2,lnum) + &
-                                               dom%PMLDumpSz_(:,:,:,1,lnum)*Dt*(dom%Mu_(:,:,:,lnum))*dVy_dz
+                    ! Stress_yz
+                    dom%Residual_Stress1_ (i,j,k,2,e) = dom%PMLDumpSx_(i,j,k,0,e)*dom%Residual_Stress1_(i,j,k,2,e)
+                    dom%Residual_Stress2_ (i,j,k,2,e) = dom%PMLDumpSy_(i,j,k,0,e)*dom%Residual_Stress2_(i,j,k,2,e) + &
+                                                        dom%PMLDumpSy_(i,j,k,1,e)*Dt*(dom%Mu_(i,j,k,e))*dVz_dy
+                    dom%Residual_Stress3_ (i,j,k,2,e) = dom%PMLDumpSz_(i,j,k,0,e)*dom%Residual_Stress3_(i,j,k,2,e) + &
+                                                        dom%PMLDumpSz_(i,j,k,1,e)*Dt*(dom%Mu_(i,j,k,e))*dVy_dz
 
-        dom%Residual_Stress_(:,:,:,:,lnum) = dom%Residual_Stress1_(:,:,:,:,lnum) + &
-                                             dom%Residual_Stress2_(:,:,:,:,lnum) + &
-                                             dom%Residual_Stress3_(:,:,:,:,lnum)
+                    dom%Residual_Stress_(i,j,k,:,e) = dom%Residual_Stress1_(i,j,k,:,e) + &
+                                                      dom%Residual_Stress2_(i,j,k,:,e) + &
+                                                      dom%Residual_Stress3_(i,j,k,:,e)
+                    END_SUBELEM_LOOP()
+                enddo
+            enddo
+        enddo
     end subroutine pred_sol_pml
-
 end module dom_solidpml
 
 !! Local Variables:
