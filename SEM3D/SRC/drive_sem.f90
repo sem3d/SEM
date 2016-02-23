@@ -506,6 +506,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         print*,"--> Number of time steps: ",Tdomain%TimeD%ntimeMax
         print*
     end if
+    Tdomain%sdom%dt = Tdomain%TimeD%dtmin
 
 !- snapshots counters
 !   (isort already defined for snapshots outputting index)

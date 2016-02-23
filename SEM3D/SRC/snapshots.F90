@@ -856,7 +856,7 @@ contains
             domain_type = get_domain(sub_dom_mat)
             select case(domain_type)
                 case (DM_SOLID)
-                  call get_solid_dom_var(Tdomain, Tdomain%sdom, el, out_variables,             &
+                  call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,             &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
                 case (DM_FLUID)
                   call get_fluid_dom_var(Tdomain, Tdomain%fdom, el, out_variables,             &

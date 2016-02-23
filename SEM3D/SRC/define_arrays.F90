@@ -262,7 +262,7 @@ contains
                 select case (specel%domain)
                     case (DM_SOLID)
                         call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa,Tdomain,mat)
+                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)
                     case (DM_FLUID)
                         call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
                              mat%DDensity,mat%DLambda)
@@ -283,7 +283,7 @@ contains
                 select case (specel%domain)
                     case (DM_SOLID)
                         call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa,Tdomain,mat)
+                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa,mat)
                     case (DM_FLUID)
                         call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
                              mat%DDensity,mat%DLambda)
@@ -304,7 +304,7 @@ contains
                     select case (specel%domain)
                         case (DM_SOLID)
                             call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
-                                 mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa,Tdomain,mat)
+                                 mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa,mat)
                         case (DM_FLUID)
                             call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
                                  mat%DDensity,mat%DLambda)
