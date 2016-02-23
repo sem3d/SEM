@@ -16,6 +16,7 @@ module dom_solidpml
 contains
 
     subroutine allocate_dom_solidpml (Tdomain, dom)
+        use gll3d
         implicit none
         type(domain) :: TDomain
         type(domain_solidpml), intent (INOUT) :: dom
@@ -36,6 +37,8 @@ contains
 
         allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
         dom%m_Idom = 0
+        ! Initialisation poids, points des polynomes de lagranges aux point de GLL
+        call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
 
         if(Tdomain%TimeD%velocity_scheme)then
             allocate(dom%Diagonal_Stress_ (0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
@@ -250,7 +253,7 @@ contains
                     sum_vy = 0d0
                     sum_vz = 0d0
                     do l = 0,ngll-1
-                        acoeff = - mat%hprime(i,l)*mat%GLLw(l)*mat%GLLw(j)*mat%GLLw(k)*dom%Jacob_(l,j,k,lnum)
+                        acoeff = - dom%hprime(i,l)*dom%GLLw(l)*dom%GLLw(j)*dom%GLLw(k)*dom%Jacob_(l,j,k,lnum)
                         sum_vx = sum_vx + acoeff*dom%InvGrad_(0,0,l,j,k,lnum)*dom%Diagonal_Stress_(l,j,k,0,lnum)
                         sum_vx = sum_vx + acoeff*dom%InvGrad_(1,0,l,j,k,lnum)*dom%Residual_Stress_(l,j,k,0,lnum)
                         sum_vx = sum_vx + acoeff*dom%InvGrad_(2,0,l,j,k,lnum)*dom%Residual_Stress_(l,j,k,1,lnum)
@@ -275,7 +278,7 @@ contains
             do l = 0,ngll-1
                 do j = 0,ngll-1
                     do i=0,ngll-1
-                        acoeff = - mat%hprime(j,l)*mat%GLLw(i)*mat%GLLw(l)*mat%GLLw(k)*dom%Jacob_(i,l,k,lnum)
+                        acoeff = - dom%hprime(j,l)*dom%GLLw(i)*dom%GLLw(l)*dom%GLLw(k)*dom%Jacob_(i,l,k,lnum)
                         sum_vx = acoeff*(dom%InvGrad_(0,1,i,l,k,lnum)*dom%Diagonal_Stress_(i,l,k,0,lnum) + &
                                          dom%InvGrad_(1,1,i,l,k,lnum)*dom%Residual_Stress_(i,l,k,0,lnum) + &
                                          dom%InvGrad_(2,1,i,l,k,lnum)*dom%Residual_Stress_(i,l,k,1,lnum))
@@ -300,7 +303,7 @@ contains
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i=0,ngll-1
-                        acoeff = - mat%hprime(k,l)*mat%GLLw(i)*mat%GLLw(j)*mat%GLLw(l)*dom%Jacob_(i,j,l,lnum)
+                        acoeff = - dom%hprime(k,l)*dom%GLLw(i)*dom%GLLw(j)*dom%GLLw(l)*dom%Jacob_(i,j,l,lnum)
                         sum_vx = acoeff*(dom%InvGrad_(0,2,i,j,l,lnum)*dom%Diagonal_Stress_(i,j,l,0,lnum) + &
                                          dom%InvGrad_(1,2,i,j,l,lnum)*dom%Residual_Stress_(i,j,l,0,lnum) + &
                                          dom%InvGrad_(2,2,i,j,l,lnum)*dom%Residual_Stress_(i,j,l,1,lnum))
@@ -366,9 +369,9 @@ contains
         enddo
 
         ! partial of velocity components with respect to xi,eta,zeta
-        call physical_part_deriv(ngll,mat%hprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,0),dVx_dx,dVx_dy,dVx_dz)
-        call physical_part_deriv(ngll,mat%hprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,1),dVy_dx,dVy_dy,dVy_dz)
-        call physical_part_deriv(ngll,mat%hprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,2),dVz_dx,dVz_dy,dVz_dz)
+        call physical_part_deriv(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,0),dVx_dx,dVx_dy,dVx_dz)
+        call physical_part_deriv(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,1),dVy_dx,dVy_dy,dVy_dz)
+        call physical_part_deriv(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,lnum),Veloc(:,:,:,2),dVz_dx,dVz_dy,dVz_dz)
         deallocate(Veloc)
 
         ! Stress_xx

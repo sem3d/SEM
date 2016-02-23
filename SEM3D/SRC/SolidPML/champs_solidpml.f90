@@ -30,6 +30,12 @@ module champs_solidpml
         ! Nombre d'elements dans le domaine
         integer :: nbelem
 
+        ! Points, poids de gauss et derivees
+        real(fpp), dimension (:), allocatable :: GLLc
+        real(fpp), dimension (:), allocatable :: GLLw
+        real(fpp), dimension (:,:), allocatable :: hprime
+        real(fpp), dimension (:,:), allocatable :: hTprime
+
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
         real(fpp), dimension(:), allocatable :: MassMat
         real(fpp), dimension(:,:), allocatable :: DumpMass
