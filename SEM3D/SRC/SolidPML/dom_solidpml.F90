@@ -353,15 +353,17 @@ contains
 
         type(domain_solidpml), intent(inout) :: dom
         type(champssolidpml), intent(inout) :: champs1
-        real, intent(in) :: dt
+        real(fpp), intent(in) :: dt
         integer :: lnum
         !
-        real, dimension (0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Veloc
-        real :: dVx_dx, dVx_dy, dVx_dz
-        real :: dVy_dx, dVy_dy, dVy_dz
-        real :: dVz_dx, dVz_dy, dVz_dz
+        real(fpp), dimension (0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Veloc
+        real(fpp) :: dVx_dx, dVx_dy, dVx_dz
+        real(fpp) :: dVy_dx, dVy_dy, dVy_dz
+        real(fpp) :: dVz_dx, dVz_dy, dVz_dz
+        real(fpp) :: dS_dxi, dS_deta, dS_dzeta
         integer :: ngll
-        integer :: i, j, k, ind, i_dir, e, ee
+        integer :: i, j, k, l, ind, i_dir, e, ee
+        real(fpp), dimension(IND_MNE(0:2,0:2,0:CHUNK-1)) :: invgrad
 
         ngll = dom%ngll
 
@@ -383,11 +385,15 @@ contains
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
+                    InvGrad(IND_MNE(0:2,0:2,0:CHUNK-1)) = dom%InvGrad_(:,:,i,j,k,lnum:lnum+CHUNK-1)
+#ifdef SEM_VEC
+!$omp simd linear(e,ee)
+#endif
                     BEGIN_SUBELEM_LOOP(e,ee,lnum)
                     ! partial of velocity components with respect to xi,eta,zeta
-                    call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,dom%InvGrad_(:,:,i,j,k,e),Veloc(ee,:,:,:,0),dVx_dx,dVx_dy,dVx_dz)
-                    call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,dom%InvGrad_(:,:,i,j,k,e),Veloc(ee,:,:,:,1),dVy_dx,dVy_dy,dVy_dz)
-                    call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,dom%InvGrad_(:,:,i,j,k,e),Veloc(ee,:,:,:,2),dVz_dx,dVz_dy,dVz_dz)
+                    part_deriv_ijke(Veloc,0,dS_dxi,dS_deta,dS_dzeta,dVx_dx,dVx_dy,dVx_dz)
+                    part_deriv_ijke(Veloc,1,dS_dxi,dS_deta,dS_dzeta,dVy_dx,dVy_dy,dVy_dz)
+                    part_deriv_ijke(Veloc,2,dS_dxi,dS_deta,dS_dzeta,dVz_dx,dVz_dy,dVz_dz)
 
                     ! Stress_xx
                     dom%Diagonal_Stress1_(i,j,k,0,e) = dom%PMLDumpSx_(i,j,k,0,e)*dom%Diagonal_Stress1_(i,j,k,0,e) + &
