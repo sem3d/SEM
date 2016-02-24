@@ -10,8 +10,11 @@ module nonlinear
     use deriv3d
     use constants
 
-    real(KIND=8), parameter :: FTOL = 0.0000010000000000D0
-    real(KIND=8), parameter :: LTOL = 0.0000010000000000D0
+!    real(KIND=8), parameter :: FTOL = 0.0000010000000000D0
+!    real(KIND=8), parameter :: LTOL = 0.0000010000000000D0
+!    real(KIND=8), parameter :: STOL = 0.0010000000000000D0
+    real(KIND=8), parameter :: FTOL = 1.0000000000D0
+    real(KIND=8), parameter :: LTOL = 0.010000000000D0
     real(KIND=8), parameter :: STOL = 0.0010000000000000D0
 contains
     
@@ -166,7 +169,8 @@ contains
         real, dimension(0:5)                :: temp_vec
         real, dimension(0:5,0:5)            :: DEL
         real, dimension(0:5), parameter     :: A = (/1.0,1.0,1.0,0.5,0.5,0.5/)
-        real                                :: Ttot,deltaTk,qq,R1,R2,dR1,dR2,err0,err1,hard1,hard2
+        real                                :: Ttot,deltaTk,qq,R1,R2,dR1,dR2,err0,err1
+        real                                :: hard1,hard2,deltaTmin
         real(8)                             :: Resk
         logical                             :: flag_fail
         real, dimension(0:5)                :: S1,S2,X1,X2
@@ -175,7 +179,7 @@ contains
         call stiff_matrix(lambda,mu,DEL)
         deltaTk = 1.0d0
         Ttot    = 0.0d0
-
+        deltaTmin = 0.01d0
         do while (Ttot.lt.1d0-FTOL)
             Resk     = 0d0
             dS1(0:5) = 0d0
@@ -233,11 +237,12 @@ contains
                 endif
                 flag_fail=.false.
                 deltaTk=qq*deltaTk
-                deltaTk=max(qq*deltaTk,0.1d0)
+                deltaTk=max(qq*deltaTk,deltaTmin)
+                deltaTk=min(deltaTk,1d0-Ttot)
 
             else    ! substep has failed
 !                    qq=max(0.9d0*sqrt(STOL/Resk),0.1d0)
-                qq=max(0.9d0*sqrt(Resk/STOL),0.1d0)
+                qq=max(0.9d0*sqrt(STOL/Resk),deltaTmin)
                 deltaTk=qq*deltaTk
                 flag_fail=.true.
             end if
@@ -545,7 +550,7 @@ contains
         call mises_yld_locus(stress1,center,radius,s0,F1,gradF)
         if (nsub.gt.1)then
             Fsave=F0
-            do counter0=0,5
+            do counter0=0,9
                 dalpha = (alpha1-alpha0)/nsub
                 do counter1=0,nsub-1
                     alpha=alpha0+dalpha
@@ -572,7 +577,8 @@ contains
             end do
             if (.not.flagxit) then
                 write(*,*) "ERROR IN FINDING F=0 (REVERSAL)"
-                STOP
+                alpha1=1d0
+                alpha0=0d0
             endif
         end if
 
