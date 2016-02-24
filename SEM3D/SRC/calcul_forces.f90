@@ -251,7 +251,6 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
     real                    :: Rinf_iso, b_iso, C_kin, kapa_kin, Riso_N, sigma_yld, alpha_elp
     real, dimension(0:5)    :: Sigma_ij_start, Sigma_ij_trial, dEpsilon_ij_alpha, Xkin_ij_N, dEpsilon_ij_pl
     integer, intent(in)     :: nelement
-    logical,parameter       :: flag_SS=.false.
 
     do k = 0,ngllz-1
         do j = 0,nglly-1
@@ -295,7 +294,7 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
                     DXY(i,j,k)+DYX(i,j,k),DXZ(i,j,k)+DZX(i,j,k),DYZ(i,j,k)+DZY(i,j,k)/)
                 
                 call check_plasticity(Sigma_ij_trial, Sigma_ij_start, Xkin_ij_N, Riso_N, &
-                    sigma_yld,st_epl,alpha_elp,i,j,k,nelement)
+                    sigma_yld,st_epl,alpha_elp)
                                        
                 ! PLASTIC CORRECTION
                 if (st_epl == 1) then
@@ -303,8 +302,7 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
                     dEpsilon_ij_alpha(0:5)=(1-alpha_elp)*dEpsilon_ij_alpha(0:5)
                    
                     call plastic_corrector(dEpsilon_ij_alpha, Sigma_ij_trial, Xkin_ij_N, sigma_yld, &
-                        Riso_N, b_iso, Rinf_iso, C_kin, kapa_kin, xmu, xla, dEpsilon_ij_pl,flag_SS, &
-                        nelement,i,j,k)
+                        Riso_N, b_iso, Rinf_iso, C_kin, kapa_kin, xmu, xla, dEpsilon_ij_pl)
                 
                 end if
                 
