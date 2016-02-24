@@ -40,22 +40,6 @@ contains
         hprime = TRANSPOSE(hTprime)
         deallocate (GLLpol)
     end subroutine compute_gll_data
-
-    subroutine compute_GLL(Tdomain)
-        use sdomain
-        implicit none
-        type(domain), intent(inout) :: Tdomain
-
-        integer ::  ngll, i, ndomains
-
-        ndomains = Tdomain%n_mat
-        do i = 0, ndomains-1
-            !- x-part
-            ngll = Tdomain%sSubdomain(i)%NGLL
-            call compute_gll_data(ngll, Tdomain%sSubdomain(i)%GLLc, Tdomain%sSubdomain(i)%GLLw, &
-                Tdomain%sSubdomain(i)%hprime, Tdomain%sSubdomain(i)%htprime)
-        enddo
-    end subroutine compute_GLL
 end module gll3d
 !! Local Variables:
 !! mode: f90

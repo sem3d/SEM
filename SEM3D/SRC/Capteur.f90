@@ -356,7 +356,7 @@ contains
         type(tCapteur) :: capteur
         !
         integer                                    :: i, j, k, ioff
-        integer                                    :: n_el, ngll, mat
+        integer                                    :: n_el, ngll
         real(fpp)                                  :: weight
         real(fpp), dimension(:), allocatable       :: outx, outy, outz
         real(fpp), dimension(:), allocatable       :: grandeur
@@ -366,6 +366,7 @@ contains
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
+        real, dimension(:), allocatable :: GLLc
 
         ! Verification : le capteur est il gere par le proc. ?
 
@@ -377,27 +378,35 @@ contains
         select case (Tdomain%specel(n_el)%domain)
              case (DM_SOLID)
                  ngll = Tdomain%sdom%ngll
+                 allocate(GLLc(0:ngll-1))
+                 GLLc = Tdomain%sdom%GLLc
              case (DM_FLUID)
                  ngll = Tdomain%fdom%ngll
+                 allocate(GLLc(0:ngll-1))
+                 GLLc = Tdomain%fdom%GLLc
              case (DM_SOLID_PML)
                  ngll = Tdomain%spmldom%ngll
+                 allocate(GLLc(0:ngll-1))
+                 GLLc = Tdomain%spmldom%GLLc
              case (DM_FLUID_PML)
                  ngll = Tdomain%fpmldom%ngll
+                 allocate(GLLc(0:ngll-1))
+                 GLLc = Tdomain%fpmldom%GLLc
         end select
-        mat=Tdomain%specel(n_el)%mat_index
 
         allocate(outx(0:ngll-1))
         allocate(outy(0:ngll-1))
         allocate(outz(0:ngll-1))
         do i = 0,ngll - 1
-            call  pol_lagrange(ngll,Tdomain%sSubdomain(mat)%GLLc,i,capteur%xi,outx(i))
+            call  pol_lagrange(ngll,GLLc,i,capteur%xi,outx(i))
         end do
         do j = 0,ngll - 1
-            call  pol_lagrange(ngll,Tdomain%sSubdomain(mat)%GLLc,j,capteur%eta,outy(j))
+            call  pol_lagrange(ngll,GLLc,j,capteur%eta,outy(j))
         end do
         do k = 0,ngll - 1
-            call  pol_lagrange(ngll,Tdomain%sSubdomain(mat)%GLLc,k,capteur%zeta,outz(k))
+            call  pol_lagrange(ngll,GLLc,k,capteur%zeta,outz(k))
         end do
+        deallocate(GLLc)
 
         allocate(grandeur(0:Tdomain%nReqOut-1))
         grandeur(:) = 0. ! si maillage vide donc pas de pdg, on fait comme si il y en avait 1

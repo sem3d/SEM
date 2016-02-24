@@ -46,14 +46,6 @@ subroutine deallocate_domain (Tdomain)
 
     !purge -fuites memoire
     deallocate (Tdomain%sComm)
-
-    do n = 0, Tdomain%n_mat-1
-        deallocate (Tdomain%sSubdomain(n)%GLLc)
-        deallocate (Tdomain%sSubdomain(n)%GLLw)
-        deallocate (Tdomain%sSubdomain(n)%hprime)
-        deallocate (Tdomain%sSubdomain(n)%hTprime)
-    enddo
-
     deallocate (Tdomain%sSubdomain)
 
     do n = 0, Tdomain%n_source-1

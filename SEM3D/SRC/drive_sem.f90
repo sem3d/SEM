@@ -174,7 +174,6 @@ subroutine RUN_PREPARED(Tdomain)
     use mshape8
     use mshape27
     use build_prop_files
-    use gll3d
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -230,7 +229,6 @@ subroutine RUN_PREPARED(Tdomain)
 
  !- discretization (collocation) points' properties
     if (rg == 0) write (*,*) "--> COMPUTING GAUSS-LOBATTO-LEGENDRE PROPERTIES"
-    call compute_GLL(Tdomain)
     call MPI_Barrier(Tdomain%communicateur, code)
 
 !- from elementary to global numbering

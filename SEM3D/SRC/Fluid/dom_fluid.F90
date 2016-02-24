@@ -142,8 +142,8 @@ contains
                 enddo
             enddo
             mat = el%mat_index
-            call fluid_velocity(ngll,Tdomain%sSubdomain(mat)%hprime,                  &
-                dom%InvGrad_(:,:,:,:,:,el%lnum),dom%IDensity_(:,:,:,el%lnum),phi,fieldV)
+            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,el%lnum),&
+                 dom%IDensity_(:,:,:,el%lnum),phi,fieldV)
         end if
 
         if (out_variables(OUT_ACCEL) == 1) then
@@ -158,8 +158,8 @@ contains
                 enddo
             enddo
             mat = el%mat_index
-            call fluid_velocity(ngll,Tdomain%sSubdomain(mat)%hprime,               &
-                dom%InvGrad_(:,:,:,:,:,el%lnum),dom%IDensity_(:,:,:,el%lnum),vphi,fieldA)
+            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,el%lnum),&
+                 dom%IDensity_(:,:,:,el%lnum),vphi,fieldA)
         end if
 
         if (out_variables(OUT_PRESSION) == 1) then

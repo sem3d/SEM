@@ -14,15 +14,14 @@ module mshape8
 
 contains
     subroutine shape8_init(Tdomain)
-        use shape_geom_3d
-        use mpi
         implicit none
 
         type(domain), intent(inout) :: Tdomain
-        integer :: n,ngll,mat,i,j,k,ipoint
+        integer :: n,ngll,i,j,k,ipoint
         real(FPP) :: Jac, xi, eta, zeta
         real(FPP), dimension(0:2,0:2) :: LocInvGrad
         real(FPP), dimension(0:2,0:7) :: coord  ! coordinates of nodes
+        real(FPP), dimension(:), allocatable :: GLLc
         real(FPP) :: xp, yp, zp
         real(FPP), parameter :: XEPS=1e-10
         real(FPP) :: dxp, dyp, dzp
@@ -41,22 +40,29 @@ contains
             select case (Tdomain%specel(n)%domain)
                  case (DM_SOLID)
                      ngll = Tdomain%sdom%ngll
+                     allocate(GLLc(0:ngll-1))
+                     GLLc = Tdomain%sdom%GLLc
                  case (DM_FLUID)
                      ngll = Tdomain%fdom%ngll
+                     allocate(GLLc(0:ngll-1))
+                     GLLc = Tdomain%fdom%GLLc
                  case (DM_SOLID_PML)
                      ngll = Tdomain%spmldom%ngll
+                     allocate(GLLc(0:ngll-1))
+                     GLLc = Tdomain%spmldom%GLLc
                  case (DM_FLUID_PML)
                      ngll = Tdomain%fpmldom%ngll
+                     allocate(GLLc(0:ngll-1))
+                     GLLc = Tdomain%fpmldom%GLLc
             end select
-            mat = Tdomain%specel(n)%mat_index
 
             ! coordinates of GLL points, and values of Jacobian and dX_dxi at each GLL point.
             do k = 0,ngll-1
-                zeta = Tdomain%sSubdomain(mat)%GLLc(k)
+                zeta = GLLc(k)
                 do j = 0,ngll-1
-                    eta = Tdomain%sSubdomain(mat)%GLLc(j)
+                    eta = GLLc(j)
                     do i = 0,ngll-1
-                        xi = Tdomain%sSubdomain(mat)%GLLc(i)
+                        xi = GLLc(i)
 
                         ipoint = Tdomain%specel(n)%Iglobnum(i,j,k)
 
@@ -95,8 +101,9 @@ contains
                         end select
                     enddo
                 enddo
-            enddo  ! end of loops onto GLL points inside an element
-        enddo    ! end of loop onto elements
+            enddo ! end of loops onto GLL points inside an element
+            deallocate(GLLc)
+        enddo ! end of loop onto elements
 
 
         ! Neumann Boundary Conditions : normal vectors

@@ -67,7 +67,7 @@ contains
             ! Sets Lambda, Mu, Qmu, ... from mat
             call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
             ! Compute MassMat
-            call init_local_mass(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
+            call init_local_mass(Tdomain, Tdomain%specel(n))
             ! Computes DumpS, DumpMass (local),and for FPML :  Iv and Is
             if (Tdomain%specel(n)%domain==DM_SOLID_PML .or. Tdomain%specel(n)%domain==DM_FLUID_PML) then
                 call init_pml_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
@@ -80,9 +80,11 @@ contains
         endif
         !- defining Neumann properties (Btn: the complete normal term, ponderated
         !      by Gaussian weights)
+#if 0
         if(Tdomain%logicD%neumann_local_present)then
             call define_FEV_Neumann(Tdomain)
         endif
+#endif
 
         call assemble_mass_matrices(Tdomain)
         call finalize_pml_properties(Tdomain)
@@ -451,13 +453,13 @@ contains
         end if
     end subroutine finalize_pml_properties
 
-    subroutine init_local_mass(Tdomain, specel, mat)
+    subroutine init_local_mass(Tdomain, specel)
         type (domain), intent (INOUT), target :: Tdomain
         type (element), intent(inout) :: specel
-        type (subdomain), intent(in) :: mat
         !
         integer :: i, j, k, ind
         real(fpp) :: Whei
+        real, dimension(:), allocatable :: GLLw
 
         integer ngll
 
@@ -465,19 +467,27 @@ contains
         select case (specel%domain)
              case (DM_SOLID)
                  ngll = Tdomain%sdom%ngll
+                 allocate(GLLw(0:ngll-1))
+                 GLLw = Tdomain%sdom%GLLw
              case (DM_FLUID)
                  ngll = Tdomain%fdom%ngll
+                 allocate(GLLw(0:ngll-1))
+                 GLLw = Tdomain%fdom%GLLw
              case (DM_SOLID_PML)
                  ngll = Tdomain%spmldom%ngll
+                 allocate(GLLw(0:ngll-1))
+                 GLLw = Tdomain%spmldom%GLLw
              case (DM_FLUID_PML)
                  ngll = Tdomain%fpmldom%ngll
+                 allocate(GLLw(0:ngll-1))
+                 GLLw = Tdomain%fpmldom%GLLw
         end select
 
         !- general (element) weighting: tensorial property..
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    Whei = mat%GLLw(i)*mat%GLLw(j)*mat%GLLw(k)
+                    Whei = GLLw(i)*GLLw(j)*GLLw(k)
                     ind = specel%Idom(i,j,k)
                     select case (specel%domain)
                         case (DM_SOLID)
@@ -492,6 +502,7 @@ contains
                 enddo
             enddo
         enddo
+        deallocate(GLLw)
     end subroutine init_local_mass
 
     subroutine initialize_material_gradient(Tdomain, specel)
