@@ -342,17 +342,7 @@ contains
             stop "init_pml_properties should not be called for non-pml element"
         end if
 
-        ngll = 0
-        select case (specel%domain)
-             case (DM_SOLID)
-                 ngll = Tdomain%sdom%ngll
-             case (DM_FLUID)
-                 ngll = Tdomain%fdom%ngll
-             case (DM_SOLID_PML)
-                 ngll = Tdomain%spmldom%ngll
-             case (DM_FLUID_PML)
-                 ngll = Tdomain%fpmldom%ngll
-        end select
+        ngll = domain_ngll(Tdomain, specel%domain)
 
         allocate(Vp(0:ngll-1,0:ngll-1,0:ngll-1))
         select case (specel%domain)
