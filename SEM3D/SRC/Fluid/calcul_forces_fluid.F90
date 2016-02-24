@@ -13,24 +13,33 @@ contains
         type(domain_fluid), intent (INOUT) :: dom
         integer, intent(in) :: ngll
         integer, intent(in) :: lnum
+        !
+        integer :: nchunk
         real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: FFl
         real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Phi
-
+        nchunk = dom%nbelem_alloc/CHUNK
         select case(ngll)
         case(4)
-            call calcul_forces_fluid_4(dom,ngll,lnum,FFl,Phi)
+            call calcul_forces_fluid_4(ngll,nchunk,lnum,dom%hprime,dom%htprime,dom%gllw, &
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
         case(5)
-            call calcul_forces_fluid_5(dom,ngll,lnum,FFl,Phi)
+            call calcul_forces_fluid_5(ngll,nchunk,lnum,dom%hprime,dom%htprime,dom%gllw, &
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
         case (6)
-            call calcul_forces_fluid_6(dom,ngll,lnum,FFl,Phi)
+            call calcul_forces_fluid_6(ngll,nchunk,lnum,dom%hprime,dom%htprime,dom%gllw, &
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
         case (7)
-            call calcul_forces_fluid_7(dom,ngll,lnum,FFl,Phi)
+            call calcul_forces_fluid_7(ngll,nchunk,lnum,dom%hprime,dom%htprime,dom%gllw, &
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
         case (8)
-            call calcul_forces_fluid_8(dom,ngll,lnum,FFl,Phi)
+            call calcul_forces_fluid_8(ngll,nchunk,lnum,dom%hprime,dom%htprime,dom%gllw, &
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
         case (9)
-            call calcul_forces_fluid_9(dom,ngll,lnum,FFl,Phi)
+            call calcul_forces_fluid_9(ngll,nchunk,lnum,dom%hprime,dom%htprime,dom%gllw, &
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
         case default
-            call calcul_forces_fluid_n(dom,ngll,lnum,FFl,Phi)
+            call calcul_forces_fluid_n(ngll,nchunk,lnum,dom%hprime,dom%htprime,dom%gllw, &
+                dom%m_InvGrad,dom%m_Jacob,dom%m_IDensity,FFl,Phi)
         end select
     end subroutine calcul_forces_fluid
 
