@@ -440,6 +440,7 @@ subroutine BtN_Face2Vertex(nv,ngll1,ngll2,BtNf,BtNv)
 end subroutine BtN_Face2Vertex
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
+#if 0
 subroutine define_FEV_Neumann(Tdomain)
     use sdomain
     implicit none
@@ -478,8 +479,8 @@ subroutine define_FEV_Neumann(Tdomain)
 
         !- end on the loop on a Neumann face
     enddo
-
 end subroutine define_FEV_Neumann
+#endif
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
 !subroutine define_Face_SF(Tdomain)

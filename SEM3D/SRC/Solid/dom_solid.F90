@@ -129,6 +129,11 @@ contains
 
         if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
 
+        if(allocated(dom%gllc))    deallocate(dom%gllc)
+        if(allocated(dom%gllw))    deallocate(dom%gllw)
+        if(allocated(dom%hprime))  deallocate(dom%hprime)
+        if(allocated(dom%htprime)) deallocate(dom%htprime)
+
         if(allocated(dom%m_Cij            )) deallocate (dom%m_Cij            )
         if(allocated(dom%m_Q              )) deallocate (dom%m_Q              )
         if(allocated(dom%m_Qs             )) deallocate (dom%m_Qs             )

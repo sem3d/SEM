@@ -3,27 +3,26 @@
 !! Copyright CEA, ECP, IPGP
 !!
 !------------------------------------------------------------------------
-real function interp_lag(mat,xi,eta,zeta,func)
+real function interp_lag(ngll,GLLc,xi,eta,zeta,func)
     ! gives the Lagrange interpolation at (xi,eta,zeta) for a function func
     !    whose values are known at GLL points
-    use ssubdomains
     implicit none
 
-    type(subdomain), intent(in)   :: mat
-    real, intent(in)  :: xi,eta,zeta
-    real, dimension(0:mat%ngll-1,0:mat%ngll-1,0:mat%ngll-1) :: func
+    integer :: ngll
+    real, dimension(0:ngll-1) :: GLLc
+    real, intent(in) :: xi,eta,zeta
+    real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: func
+    !
     integer :: i,j,k
     real  :: f,wxi,weta,wzeta
-    integer  :: ngll
-    ngll = mat%ngll
 
     f = 0d0
     do k = 0,ngll-1
-        call pol_lagrange(ngll,mat%GLLc,k,zeta,wzeta)
+        call pol_lagrange(ngll,GLLc,k,zeta,wzeta)
         do j = 0,ngll-1
-            call pol_lagrange(ngll,mat%GLLc,j,eta,weta)
+            call pol_lagrange(ngll,GLLc,j,eta,weta)
             do i = 0,ngll-1
-                call pol_lagrange(ngll,mat%GLLc,i,xi,wxi)
+                call pol_lagrange(ngll,GLLc,i,xi,wxi)
                 f = f+func(i,j,k)*wxi*weta*wzeta
             end do
         end do
@@ -31,26 +30,27 @@ real function interp_lag(mat,xi,eta,zeta,func)
     interp_lag = f
 end function interp_lag
 
-subroutine source_excit_pulse(src,mat)
+subroutine source_excit_pulse(src,ngll,GLLc)
     use ssources
-    use ssubdomains
     implicit none
     type(source), intent(inout) :: src
-    type(subdomain), intent(in) :: mat
-    integer :: ngll, np, i, j, k
+    integer, intent(in) :: ngll
+    real, dimension(0:ngll-1), intent(in) :: GLLc
+    !
+    integer :: np, i, j, k
     real :: xi,eta,zeta,wxi,weta,wzeta
-    ngll = mat%ngll
+
     xi = src%RefCoord(0)
     eta = src%RefCoord(1)
     zeta = src%RefCoord(2)
 
     allocate(src%ExtForce(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
     do k = 0,ngll-1
-        call pol_lagrange(ngll, mat%GLLc, k, zeta, wzeta)
+        call pol_lagrange(ngll, GLLc, k, zeta, wzeta)
         do j = 0,ngll-1
-            call pol_lagrange(ngll,mat%GLLc,j,eta,weta)
+            call pol_lagrange(ngll, GLLc, j, eta, weta)
             do i = 0,ngll-1
-                call pol_lagrange(ngll,mat%GLLc,i,xi,wxi)
+                call pol_lagrange(ngll, GLLc, i, xi, wxi)
                 do np = 0,2
                     src%ExtForce(i,j,k,np) = wxi*weta*wzeta*src%dir(np)
                 end do
@@ -59,44 +59,43 @@ subroutine source_excit_pulse(src,mat)
     end do
 end subroutine source_excit_pulse
 
-subroutine source_excit_pulse_fluid(Tdomain, nels, src,mat)
+subroutine source_excit_pulse_fluid(Tdomain, nels, src, ngll, GLLc)
     use ssources
     use sdomain
-    use ssubdomains
     implicit none
 #include "index.h"
-    type(source), intent(inout) :: src
-    type(subdomain), intent(in) :: mat
     type(domain), intent(in)   :: Tdomain
     integer, intent(in) :: nels
-    integer :: ngll, i, j, k
+    type(source), intent(inout) :: src
+    integer, intent(in) :: ngll
+    real, dimension(0:ngll-1), intent(in) :: GLLc
+    !
+    integer :: i, j, k
     real :: xi,eta,zeta,wxi,weta,wzeta,lambda
 
     interface
-       real function interp_lag(mat,xi,eta,zeta,func)
+       real function interp_lag(ngll,GLLc,xi,eta,zeta,func)
            ! gives the Lagrange interpolation at (xi,eta,zeta) for a function func
            !    whose values are known at GLL points
-           use ssubdomains
            implicit none
-
-           type(subdomain), intent(in)   :: mat
-           real, intent(in)  :: xi,eta,zeta
-           real, dimension(0:mat%ngll-1,0:mat%ngll-1,0:mat%ngll-1) :: func
+           integer :: ngll
+           real, dimension(0:ngll-1) :: GLLc
+           real, intent(in) :: xi,eta,zeta
+           real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: func
        end function interp_lag
     end interface
 
-    ngll = mat%ngll
     xi = src%RefCoord(0)
     eta = src%RefCoord(1)
     zeta = src%RefCoord(2)
 
     allocate(src%ExtForce(0:ngll-1,0:ngll-1,0:ngll-1,0:0))
     do k = 0,ngll-1
-        call pol_lagrange(ngll, mat%GLLc, k, zeta, wzeta)
+        call pol_lagrange(ngll, GLLc, k, zeta, wzeta)
         do j = 0,ngll-1
-            call pol_lagrange(ngll,mat%GLLc,j,eta,weta)
+            call pol_lagrange(ngll, GLLc, j, eta, weta)
             do i = 0,ngll-1
-                call pol_lagrange(ngll,mat%GLLc,i,xi,wxi)
+                call pol_lagrange(ngll, GLLc, i, xi, wxi)
                 src%ExtForce(i,j,k,0) = wxi*weta*wzeta
             end do
         end do
@@ -105,26 +104,29 @@ subroutine source_excit_pulse_fluid(Tdomain, nels, src,mat)
     ! fluid case
     lambda = 0.
     if(Tdomain%specel(nels)%domain==DM_FLUID) then
-        lambda = interp_lag(mat,xi,eta,zeta,Tdomain%fdom%Lambda_(:,:,:,Tdomain%specel(nels)%lnum))
+        lambda = interp_lag(Tdomain%fdom%ngll,Tdomain%fdom%GLLc,xi,eta,zeta,&
+                            Tdomain%fdom%Lambda_(:,:,:,Tdomain%specel(nels)%lnum))
     end if
     if(Tdomain%specel(nels)%domain==DM_FLUID_PML) then
-        lambda = interp_lag(mat,xi,eta,zeta,Tdomain%fpmldom%Lambda_(:,:,:,Tdomain%specel(nels)%lnum))
+        lambda = interp_lag(Tdomain%fpmldom%ngll,Tdomain%fpmldom%GLLc,xi,eta,zeta,&
+                            Tdomain%fpmldom%Lambda_(:,:,:,Tdomain%specel(nels)%lnum))
     end if
     src%ExtForce(:,:,:,0) = -src%ExtForce(:,:,:,0)/lambda
     ! point source = moment tensor M (explosion is a special case: M(i,j) = delta _(ij))
 
 end subroutine source_excit_pulse_fluid
 
-subroutine source_excit_moment(src,mat)
+subroutine source_excit_moment(src, ngll, GLLc)
     use ssources
-    use ssubdomains
     implicit none
     type(source), intent(inout) :: src
-    type(subdomain), intent(in) :: mat
-    integer :: ngll, i, j, k
+    integer, intent(in) :: ngll
+    real, dimension(0:ngll-1), intent(in) :: GLLc
+    !
+    integer :: i, j, k
     real :: xi,eta,zeta,wxi,weta,wzeta,dwdxi,dwdeta,dwdzeta
     real, dimension(0:2,0:2) :: M,InvGrad
-    ngll = mat%ngll
+
     xi = src%RefCoord(0)
     eta = src%RefCoord(1)
     zeta = src%RefCoord(2)
@@ -133,14 +135,14 @@ subroutine source_excit_moment(src,mat)
     M(:,:) = src%Moment(:,:)
     InvGrad(:,:) = src%InvGrad(:,:)
     do k = 0,ngll-1
-        call pol_lagrange(ngll,mat%GLLc,k,zeta,wzeta)
-        call derivlag(mat%GLLc,ngll,k,zeta,dwdzeta)
+        call pol_lagrange(ngll,GLLc,k,zeta,wzeta)
+        call derivlag(GLLc,ngll,k,zeta,dwdzeta)
         do j = 0,ngll-1
-            call pol_lagrange(ngll,mat%GLLc,j,eta,weta)
-            call derivlag(mat%GLLc,ngll,j,eta,dwdeta)
+            call pol_lagrange(ngll,GLLc,j,eta,weta)
+            call derivlag(GLLc,ngll,j,eta,dwdeta)
             do i = 0,ngll-1
-                call pol_lagrange(ngll,mat%GLLc,i,xi,wxi)
-                call derivlag(mat%GLLc,ngll,i,xi,dwdxi)
+                call pol_lagrange(ngll,GLLc,i,xi,wxi)
+                call derivlag(GLLc,ngll,i,xi,dwdxi)
                 ! final step: values at the GLL points
                 src%ExtForce(i,j,k,0) =     &
                     (InvGrad(0,0)*dwdxi*weta*wzeta+InvGrad(0,1)*wxi*dwdeta*wzeta+InvGrad(0,2)*wxi*weta*dwdzeta)*M(0,0) + &
@@ -157,7 +159,6 @@ subroutine source_excit_moment(src,mat)
             end do
         enddo
     enddo
-
 end subroutine source_excit_moment
 
 subroutine source_excit(Tdomain,rank)
@@ -168,24 +169,40 @@ subroutine source_excit(Tdomain,rank)
 
     type(domain), intent(inout) :: Tdomain
     integer, intent(in)  :: rank
-    integer :: nsour,nels,mat
-
+    integer :: nsour,nels,ngll
+    real, dimension(:), allocatable :: GLLc
 
     do nsour = 0, Tdomain%n_source -1
         if(Tdomain%sSource(nsour)%proc == rank)then
             nels = Tdomain%sSource(nsour)%elem
-            mat = Tdomain%specel(nels)%mat_index
+            select case (Tdomain%specel(nels)%domain)
+                 case (DM_SOLID)
+                     ngll = Tdomain%sdom%ngll
+                     allocate(GLLc(0:ngll-1))
+                     GLLc = Tdomain%sdom%GLLc
+                 case (DM_FLUID)
+                     ngll = Tdomain%fdom%ngll
+                     allocate(GLLc(0:ngll-1))
+                     GLLc = Tdomain%fdom%GLLc
+                 case (DM_SOLID_PML)
+                     ngll = Tdomain%spmldom%ngll
+                     allocate(GLLc(0:ngll-1))
+                     GLLc = Tdomain%spmldom%GLLc
+                 case (DM_FLUID_PML)
+                     ngll = Tdomain%fpmldom%ngll
+                     allocate(GLLc(0:ngll-1))
+                     GLLc = Tdomain%fpmldom%GLLc
+            end select
 
             ! pulse in a solid (in a given direction) or fluid (isotropic pressure source term)
             if(Tdomain%sSource(nsour)%i_type_source == 1) then
-                call source_excit_pulse(Tdomain%sSource(nsour), Tdomain%sSubdomain(mat))
-
+                call source_excit_pulse(Tdomain%sSource(nsour), ngll, GLLc)
             else if (Tdomain%sSource(nsour)%i_type_source == 3) then
-                call source_excit_pulse_fluid(Tdomain, nels, Tdomain%sSource(nsour), Tdomain%sSubdomain(mat))
+                call source_excit_pulse_fluid(Tdomain, nels, Tdomain%sSource(nsour), ngll, GLLc)
             else if(Tdomain%sSource(nsour)%i_type_source == 2)then
-                call source_excit_moment(Tdomain%sSource(nsour), Tdomain%sSubdomain(mat))
+                call source_excit_moment(Tdomain%sSource(nsour), ngll, GLLc)
             end if  ! end i_type_source
-
+            deallocate(GLLc)
         end if
     end do  ! end of loop over sources
 

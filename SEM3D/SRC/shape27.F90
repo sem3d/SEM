@@ -29,11 +29,11 @@ contains
 
         type(domain), target, intent (INOUT) :: Tdomain
 
-        integer :: n,ngll,mat,i,j,k,ipoint
+        integer :: n,ngll,i,j,k,ipoint
         real :: xi,eta,zeta, xp,yp,zp, Jac
         real, dimension(0:2,0:26) :: coord
         real, dimension(0:2,0:2) :: LocInvGrad
-
+        real, dimension(:), allocatable :: GLLc
 
         allocate (Tdomain%GlobCoord(0:2,0:Tdomain%n_glob_points-1))
 
@@ -48,21 +48,28 @@ contains
             select case (Tdomain%specel(n)%domain)
                  case (DM_SOLID)
                      ngll = Tdomain%sdom%ngll
+                     allocate(GLLc(0:ngll-1))
+                     GLLc = Tdomain%sdom%GLLc
                  case (DM_FLUID)
                      ngll = Tdomain%fdom%ngll
+                     allocate(GLLc(0:ngll-1))
+                     GLLc = Tdomain%fdom%GLLc
                  case (DM_SOLID_PML)
                      ngll = Tdomain%spmldom%ngll
+                     allocate(GLLc(0:ngll-1))
+                     GLLc = Tdomain%spmldom%GLLc
                  case (DM_FLUID_PML)
                      ngll = Tdomain%fpmldom%ngll
+                     allocate(GLLc(0:ngll-1))
+                     GLLc = Tdomain%fpmldom%GLLc
             end select
-            mat   = Tdomain%specel(n)%mat_index
 
             do k = 0,ngll - 1
-                zeta =  Tdomain%sSubdomain(mat)%GLLc(k)
+                zeta = GLLc(k)
                 do j = 0,ngll - 1
-                    eta =  Tdomain%sSubdomain(mat)%GLLc(j)
+                    eta = GLLc(j)
                     do i = 0,ngll - 1
-                        xi = Tdomain%sSubdomain(mat)%GLLc(i)
+                        xi = GLLc(i)
                         call shape27_local2global(coord, xi, eta, zeta, xp, yp, zp)
                         ipoint = Tdomain%specel(n)%Iglobnum(i,j,k)
                         Tdomain%GlobCoord (0,ipoint) = xp
@@ -88,6 +95,7 @@ contains
                     enddo
                 enddo
             enddo
+            deallocate(GLLc)
         enddo
     end subroutine shape27_init
     !---------------------------------------------------------------------------

@@ -71,6 +71,11 @@ contains
 
         if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
 
+        if(allocated(dom%gllc))    deallocate(dom%gllc)
+        if(allocated(dom%gllw))    deallocate(dom%gllw)
+        if(allocated(dom%hprime))  deallocate(dom%hprime)
+        if(allocated(dom%htprime)) deallocate(dom%htprime)
+
         if(allocated(dom%champs0%ForcesFl)) deallocate(dom%champs0%ForcesFl)
         if(allocated(dom%champs0%Phi     )) deallocate(dom%champs0%Phi     )
         if(allocated(dom%champs0%VelPhi  )) deallocate(dom%champs0%VelPhi  )
@@ -142,8 +147,8 @@ contains
                 enddo
             enddo
             mat = el%mat_index
-            call fluid_velocity(ngll,Tdomain%sSubdomain(mat)%hprime,                  &
-                dom%InvGrad_(:,:,:,:,:,el%lnum),dom%IDensity_(:,:,:,el%lnum),phi,fieldV)
+            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,el%lnum),&
+                 dom%IDensity_(:,:,:,el%lnum),phi,fieldV)
         end if
 
         if (out_variables(OUT_ACCEL) == 1) then
@@ -158,8 +163,8 @@ contains
                 enddo
             enddo
             mat = el%mat_index
-            call fluid_velocity(ngll,Tdomain%sSubdomain(mat)%hprime,               &
-                dom%InvGrad_(:,:,:,:,:,el%lnum),dom%IDensity_(:,:,:,el%lnum),vphi,fieldA)
+            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,el%lnum),&
+                 dom%IDensity_(:,:,:,el%lnum),vphi,fieldA)
         end if
 
         if (out_variables(OUT_PRESSION) == 1) then

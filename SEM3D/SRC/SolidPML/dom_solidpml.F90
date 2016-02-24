@@ -100,6 +100,11 @@ contains
 
         if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
 
+        if(allocated(dom%gllc))    deallocate(dom%gllc)
+        if(allocated(dom%gllw))    deallocate(dom%gllw)
+        if(allocated(dom%hprime))  deallocate(dom%hprime)
+        if(allocated(dom%htprime)) deallocate(dom%htprime)
+
         if(allocated(dom%m_Diagonal_Stress )) deallocate(dom%m_Diagonal_Stress )
         if(allocated(dom%m_Diagonal_Stress1)) deallocate(dom%m_Diagonal_Stress1)
         if(allocated(dom%m_Diagonal_Stress2)) deallocate(dom%m_Diagonal_Stress2)
