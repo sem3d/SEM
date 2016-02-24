@@ -30,19 +30,6 @@ contains
         gammaval = dt*(0.5d0 + dt_tau * (1d0/6.d0) + dt_tau**2 *(1d0/24d0))
     end subroutine RK4_attenu_coefs
 
-#define part_deriv_ijke(d,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz) \
-        dS_dxi   = 0.0D+0; \
-        dS_deta  = 0.0D+0; \
-        dS_dzeta = 0.0D+0; \
-        DO L = 0, ngll-1;  \
-            dS_dxi   = dS_dxi  +Depla(ee,L,J,K,d)*dom%hprime(L,I); \
-            dS_deta  = dS_deta +Depla(ee,I,L,K,d)*dom%hprime(L,J); \
-            dS_dzeta = dS_dzeta+Depla(ee,I,J,L,d)*dom%hprime(L,K); \
-        END DO; \
-        dxx = dS_dxi*InvGrad(IND_MNE(0,0,ee))+dS_deta*InvGrad(IND_MNE(0,1,ee))+dS_dzeta*InvGrad(IND_MNE(0,2,ee)); \
-        dxy = dS_dxi*InvGrad(IND_MNE(1,0,ee))+dS_deta*InvGrad(IND_MNE(1,1,ee))+dS_dzeta*InvGrad(IND_MNE(1,2,ee)); \
-        dxz = dS_dxi*InvGrad(IND_MNE(2,0,ee))+dS_deta*InvGrad(IND_MNE(2,1,ee))+dS_dzeta*InvGrad(IND_MNE(2,2,ee));
-
     subroutine physical_part_deriv_ijke(e,i,j,k,ngll,hprime,InvGrad,Scalp,dS_dx,dS_dy,dS_dz)
 #if defined(SEM_VEC) && defined(__INTEL_COMPILER)
 !$omp declare simd (physical_part_deriv_ijke) linear(e) uniform(i,j,k,ngll,hprime,InvGrad,Scalp)

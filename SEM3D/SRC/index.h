@@ -104,3 +104,16 @@
 #define        PMLDumpSz_(i,j,k,n,e)        m_PMLDumpSz(IND_IJKNE(i,j,k,n,e))
 
 #endif
+
+#define part_deriv_ijke(Var,d,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz) \
+        dS_dxi   = 0.0D+0; \
+        dS_deta  = 0.0D+0; \
+        dS_dzeta = 0.0D+0; \
+        DO L = 0, ngll-1;  \
+            dS_dxi   = dS_dxi  +Var(ee,L,J,K,d)*dom%hprime(L,I); \
+            dS_deta  = dS_deta +Var(ee,I,L,K,d)*dom%hprime(L,J); \
+            dS_dzeta = dS_dzeta+Var(ee,I,J,L,d)*dom%hprime(L,K); \
+        END DO; \
+        dxx = dS_dxi*InvGrad(IND_MNE(0,0,ee))+dS_deta*InvGrad(IND_MNE(0,1,ee))+dS_dzeta*InvGrad(IND_MNE(0,2,ee)); \
+        dxy = dS_dxi*InvGrad(IND_MNE(1,0,ee))+dS_deta*InvGrad(IND_MNE(1,1,ee))+dS_dzeta*InvGrad(IND_MNE(1,2,ee)); \
+        dxz = dS_dxi*InvGrad(IND_MNE(2,0,ee))+dS_deta*InvGrad(IND_MNE(2,1,ee))+dS_dzeta*InvGrad(IND_MNE(2,2,ee));

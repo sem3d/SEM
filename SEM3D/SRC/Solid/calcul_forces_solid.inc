@@ -60,9 +60,9 @@ subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
                 BEGIN_SUBELEM_LOOP(e,ee,lnum)
 
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz
-                part_deriv_ijke(0,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz)
-                part_deriv_ijke(1,dS_dxi,dS_deta,dS_dzeta,dyx,dyy,dyz)
-                part_deriv_ijke(2,dS_dxi,dS_deta,dS_dzeta,dzx,dzy,dzz)
+                part_deriv_ijke(Depla,0,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz)
+                part_deriv_ijke(Depla,1,dS_dxi,dS_deta,dS_dzeta,dyx,dyy,dyz)
+                part_deriv_ijke(Depla,2,dS_dxi,dS_deta,dS_dzeta,dzx,dzy,dzz)
 
 #ifdef ATTENUATION
                 xmu = dom%Mu_(i,j,k,e) * dom%onemSbeta_(i,j,k,e)
@@ -286,13 +286,13 @@ subroutine PROCNAME_ATN(dom,lnum,hprime,Depla)
             do i = 0,ngll-1
                 InvGrad(IND_MNE(0:2,0:2,0:CHUNK-1)) = dom%InvGrad_(:,:,i,j,k,lnum:lnum+CHUNK-1)
 #ifdef SEM_VEC
-!$omp simd linear(e,ee) 
+!$omp simd linear(e,ee)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,lnum)
 
-                part_deriv_ijke(0,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz)
-                part_deriv_ijke(1,dS_dxi,dS_deta,dS_dzeta,dyx,dyy,dyz)
-                part_deriv_ijke(2,dS_dxi,dS_deta,dS_dzeta,dzx,dzy,dzz)
+                part_deriv_ijke(Depla,0,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz)
+                part_deriv_ijke(Depla,1,dS_dxi,dS_deta,dS_dzeta,dyx,dyy,dyz)
+                part_deriv_ijke(Depla,2,dS_dxi,dS_deta,dS_dzeta,dzx,dzy,dzz)
 
                 epsilon_trace_over_3 = 0.333333333333333333333333333333d0 * (DXX + DYY + DZZ)
                 epsilonvol_loc = DXX + DYY + DZZ
