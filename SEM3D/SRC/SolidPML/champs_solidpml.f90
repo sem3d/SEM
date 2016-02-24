@@ -29,6 +29,7 @@ module champs_solidpml
 
         ! Nombre d'elements dans le domaine
         integer :: nbelem
+        integer :: nbelem_alloc
 
         ! Points, poids de gauss et derivees
         real(fpp), dimension (:), allocatable :: GLLc

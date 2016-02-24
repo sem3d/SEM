@@ -28,7 +28,7 @@ contains
 
         nbelem = CHUNK*((nbelem+CHUNK-1)/CHUNK)
         dom%nbelem_alloc = nbelem
-        
+
         allocate(dom%IDensity_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
         allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
 

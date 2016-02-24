@@ -28,6 +28,9 @@ contains
         if(nbelem == 0) return ! Do not allocate if not needed (save allocation/RAM)
         ngll   = dom%ngll
 
+        nbelem = CHUNK*((nbelem+CHUNK-1)/CHUNK)
+        dom%nbelem_alloc = nbelem
+
         allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
         allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
         allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
