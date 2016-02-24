@@ -71,6 +71,11 @@ contains
 
         if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
 
+        if(allocated(dom%gllc))    deallocate(dom%gllc)
+        if(allocated(dom%gllw))    deallocate(dom%gllw)
+        if(allocated(dom%hprime))  deallocate(dom%hprime)
+        if(allocated(dom%htprime)) deallocate(dom%htprime)
+
         if(allocated(dom%champs0%ForcesFl)) deallocate(dom%champs0%ForcesFl)
         if(allocated(dom%champs0%Phi     )) deallocate(dom%champs0%Phi     )
         if(allocated(dom%champs0%VelPhi  )) deallocate(dom%champs0%VelPhi  )

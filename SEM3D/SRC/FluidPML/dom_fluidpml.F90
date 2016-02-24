@@ -86,6 +86,11 @@ contains
 
         if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
 
+        if(allocated(dom%gllc))    deallocate(dom%gllc)
+        if(allocated(dom%gllw))    deallocate(dom%gllw)
+        if(allocated(dom%hprime))  deallocate(dom%hprime)
+        if(allocated(dom%htprime)) deallocate(dom%htprime)
+
         if(allocated(dom%m_PMLVeloc )) deallocate(dom%m_PMLVeloc )
         if(allocated(dom%m_PMLDumpSx)) deallocate(dom%m_PMLDumpSx)
         if(allocated(dom%m_PMLDumpSy)) deallocate(dom%m_PMLDumpSy)
