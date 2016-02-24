@@ -120,6 +120,26 @@ module sdomain
 
 contains
 
+    function domain_nglltot(Tdomain, dom)
+        integer, intent(in) :: dom
+        type(domain), intent(in) :: Tdomain
+        !
+        integer :: domain_nglltot
+        domain_nglltot = 0
+        select case(dom)
+        case(DM_SOLID)
+            domain_nglltot = Tdomain%sdom%nglltot
+        case(DM_FLUID)
+            domain_nglltot = Tdomain%fdom%nglltot
+        case(DM_SOLID_PML)
+            domain_nglltot = Tdomain%spmldom%nglltot
+        case(DM_FLUID_PML)
+            domain_nglltot = Tdomain%fpmldom%nglltot
+        case default
+            stop "Unknown Domain"
+        end select
+    end function domain_nglltot
+
     function domain_ngll(Tdomain, dom)
         integer, intent(in) :: dom
         type(domain), intent(in) :: Tdomain
@@ -128,15 +148,74 @@ contains
         domain_ngll = 0
         select case(dom)
         case(DM_SOLID)
-            domain_ngll = Tdomain%sdom%nglltot
+            domain_ngll = Tdomain%sdom%ngll
         case(DM_FLUID)
-            domain_ngll = Tdomain%fdom%nglltot
+            domain_ngll = Tdomain%fdom%ngll
         case(DM_SOLID_PML)
-            domain_ngll = Tdomain%spmldom%nglltot
+            domain_ngll = Tdomain%spmldom%ngll
         case(DM_FLUID_PML)
-            domain_ngll = Tdomain%fpmldom%nglltot
+            domain_ngll = Tdomain%fpmldom%ngll
+        case default
+            stop "Unknown Domain"
         end select
     end function domain_ngll
+
+    subroutine domain_gllc(Tdomain, dom, GLLc)
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: dom
+        real(fpp), dimension(:), allocatable, intent(out) :: gllc
+        !
+        integer :: ngll
+        select case (dom)
+        case (DM_SOLID)
+            ngll = Tdomain%sdom%ngll
+            allocate(GLLc(0:ngll-1))
+            GLLc = Tdomain%sdom%GLLc
+        case (DM_FLUID)
+            ngll = Tdomain%fdom%ngll
+            allocate(GLLc(0:ngll-1))
+            GLLc = Tdomain%fdom%GLLc
+        case (DM_SOLID_PML)
+            ngll = Tdomain%spmldom%ngll
+            allocate(GLLc(0:ngll-1))
+            GLLc = Tdomain%spmldom%GLLc
+        case (DM_FLUID_PML)
+            ngll = Tdomain%fpmldom%ngll
+            allocate(GLLc(0:ngll-1))
+            GLLc = Tdomain%fpmldom%GLLc
+        case default
+            stop "Unknown Domain"
+        end select
+    end subroutine domain_gllc
+
+    subroutine domain_gllw(Tdomain, dom, gllw)
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: dom
+        real(fpp), dimension(:), allocatable, intent(out) :: gllw
+        !
+        integer :: ngll
+        select case (dom)
+        case (DM_SOLID)
+            ngll = Tdomain%sdom%ngll
+            allocate(gllw(0:ngll-1))
+            gllw = Tdomain%sdom%GLLw
+        case (DM_FLUID)
+            ngll = Tdomain%fdom%ngll
+            allocate(gllw(0:ngll-1))
+            gllw = Tdomain%fdom%GLLw
+        case (DM_SOLID_PML)
+            ngll = Tdomain%spmldom%ngll
+            allocate(gllw(0:ngll-1))
+            gllw = Tdomain%spmldom%GLLw
+        case (DM_FLUID_PML)
+            ngll = Tdomain%fpmldom%ngll
+            allocate(gllw(0:ngll-1))
+            gllw = Tdomain%fpmldom%GLLw
+        case default
+            stop "Unknown Domain"
+        end select
+    end subroutine domain_gllw
+
 
     subroutine check_interface_orient(Tdomain, inter, xeps)
         type(domain), intent(in) :: Tdomain

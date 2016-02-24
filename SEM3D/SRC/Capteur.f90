@@ -374,25 +374,8 @@ contains
         if((n_el==-1) .OR. (capteur%numproc/=Tdomain%rank)) return
 
         ! Initialisation.
-
-        select case (Tdomain%specel(n_el)%domain)
-             case (DM_SOLID)
-                 ngll = Tdomain%sdom%ngll
-                 allocate(GLLc(0:ngll-1))
-                 GLLc = Tdomain%sdom%GLLc
-             case (DM_FLUID)
-                 ngll = Tdomain%fdom%ngll
-                 allocate(GLLc(0:ngll-1))
-                 GLLc = Tdomain%fdom%GLLc
-             case (DM_SOLID_PML)
-                 ngll = Tdomain%spmldom%ngll
-                 allocate(GLLc(0:ngll-1))
-                 GLLc = Tdomain%spmldom%GLLc
-             case (DM_FLUID_PML)
-                 ngll = Tdomain%fpmldom%ngll
-                 allocate(GLLc(0:ngll-1))
-                 GLLc = Tdomain%fpmldom%GLLc
-        end select
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n_el)%domain)
+        call domain_gllc(Tdomain, Tdomain%specel(n_el)%domain, GLLc)
 
         allocate(outx(0:ngll-1))
         allocate(outy(0:ngll-1))

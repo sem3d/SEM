@@ -341,7 +341,7 @@ subroutine get_surface_numbering(Tdomain, surf, dom, renum)
     !
     integer :: nglltot, i
 
-    nglltot = domain_ngll(Tdomain, dom)
+    nglltot = domain_nglltot(Tdomain, dom)
     allocate(renum(0:nglltot-1))
     renum = -1
     do i=0,surf%nbtot-1
@@ -473,8 +473,8 @@ subroutine apply_numbering_coherency(Tdomain, inter, dom0, dom1)
     integer :: ngll1, ngll2
     integer :: nf, nfs0, nfs1
     logical :: face0_orphan, face1_orphan
-    nglltot0 = domain_ngll(Tdomain, dom0)
-    nglltot1 = domain_ngll(Tdomain, dom1)
+    nglltot0 = domain_nglltot(Tdomain, dom0)
+    nglltot1 = domain_nglltot(Tdomain, dom1)
     allocate(renum0(0:nglltot0-1))
     allocate(renum1(0:nglltot1-1))
 

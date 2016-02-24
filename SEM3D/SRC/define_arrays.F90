@@ -463,25 +463,8 @@ contains
 
         integer ngll
 
-        ngll = 0
-        select case (specel%domain)
-             case (DM_SOLID)
-                 ngll = Tdomain%sdom%ngll
-                 allocate(GLLw(0:ngll-1))
-                 GLLw = Tdomain%sdom%GLLw
-             case (DM_FLUID)
-                 ngll = Tdomain%fdom%ngll
-                 allocate(GLLw(0:ngll-1))
-                 GLLw = Tdomain%fdom%GLLw
-             case (DM_SOLID_PML)
-                 ngll = Tdomain%spmldom%ngll
-                 allocate(GLLw(0:ngll-1))
-                 GLLw = Tdomain%spmldom%GLLw
-             case (DM_FLUID_PML)
-                 ngll = Tdomain%fpmldom%ngll
-                 allocate(GLLw(0:ngll-1))
-                 GLLw = Tdomain%fpmldom%GLLw
-        end select
+        ngll = domain_ngll(Tdomain, specel%domain)
+        call domain_gllw(Tdomain, specel%domain, GLLw)
 
         !- general (element) weighting: tensorial property..
         do k = 0,ngll-1

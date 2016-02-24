@@ -36,25 +36,8 @@ contains
             call nodes_coord_8(Tdomain%specel(n)%Control_Nodes(0:),Tdomain%n_glob_nodes,    &
                 Tdomain%Coord_Nodes(0:,0:),coord)
 
-            ngll = 0
-            select case (Tdomain%specel(n)%domain)
-                 case (DM_SOLID)
-                     ngll = Tdomain%sdom%ngll
-                     allocate(GLLc(0:ngll-1))
-                     GLLc = Tdomain%sdom%GLLc
-                 case (DM_FLUID)
-                     ngll = Tdomain%fdom%ngll
-                     allocate(GLLc(0:ngll-1))
-                     GLLc = Tdomain%fdom%GLLc
-                 case (DM_SOLID_PML)
-                     ngll = Tdomain%spmldom%ngll
-                     allocate(GLLc(0:ngll-1))
-                     GLLc = Tdomain%spmldom%GLLc
-                 case (DM_FLUID_PML)
-                     ngll = Tdomain%fpmldom%ngll
-                     allocate(GLLc(0:ngll-1))
-                     GLLc = Tdomain%fpmldom%GLLc
-            end select
+            ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+            call domain_gllc(Tdomain, Tdomain%specel(n)%domain, GLLc)
 
             ! coordinates of GLL points, and values of Jacobian and dX_dxi at each GLL point.
             do k = 0,ngll-1
@@ -195,47 +178,30 @@ contains
         !
         integer, allocatable, dimension(:) :: renum
         integer :: nf, nfs
-        integer :: ngll1, ngll2
+        integer :: ngll
         integer :: i, j, idx
-        real(kind=FPP), allocatable, dimension(:) :: gllc1, gllc2
-        real(kind=FPP), allocatable, dimension(:) :: pol1, pol2
-        real(kind=FPP), allocatable, dimension(:) :: gllw1, gllw2
+        real(kind=FPP), allocatable, dimension(:) :: gllc
+        real(kind=FPP), allocatable, dimension(:) :: pol
+        real(kind=FPP), allocatable, dimension(:) :: gllw
         real(kind=FPP), dimension(0:2, 0:3) :: nodes
         real(kind=FPP), dimension(0:2) :: normal
         real(kind=FPP) :: orient
         allocate(BtN(0:2, 0:surf%nbtot-1))
-        ngll1 = 0
-        ngll2 = 0
 
         Btn(:,:) = 0.
         call get_surface_numbering(Tdomain, surf, dom, renum)
+        ngll = domain_ngll(Tdomain, dom)
+        call domain_gllc(Tdomain, dom, gllc)
+        call domain_gllw(Tdomain, dom, gllw)
         ! SF faces: the normal is taken outward from the fluid elements
         do nf = 0, surf%n_faces-1
             nfs = surf%if_faces(nf)
             orient = -1d0*surf%if_norm(nf)
-            if (ngll1/=Tdomain%sFace(nfs)%ngll1) then
-                if (allocated(gllc1)) deallocate(gllc1, pol1, gllw1)
-                ngll1 = Tdomain%sFace(nfs)%ngll1
-                allocate(pol1(0:ngll1-1))
-                allocate(gllc1(0:ngll1-1))
-                allocate(gllw1(0:ngll1-1))
-                call zelegl(ngll1-1, gllc1, pol1)
-                call welegl(ngll1-1, gllc1, pol1, gllw1)
-            end if
-            if (ngll2/=Tdomain%sFace(nfs)%ngll2) then
-                if (allocated(gllc2)) deallocate(gllc2, pol2, gllw2)
-                ngll2 = Tdomain%sFace(nfs)%ngll2
-                allocate(pol2(0:ngll2-1))
-                allocate(gllc2(0:ngll2-1))
-                allocate(gllw2(0:ngll2-1))
-                call zelegl(ngll2-1, gllc2, pol2)
-                call welegl(ngll2-1, gllc2, pol2, gllw2)
-            end if
             do i = 0,3
                 nodes(:,i) = Tdomain%Coord_nodes(:,Tdomain%sFace(nfs)%inodes(i))
             end do
-            do j=0,ngll2-1
-                do i=0,ngll1-1
+            do j=0,ngll-1
+                do i=0,ngll-1
                     idx = Tdomain%sFace(nfs)%Idom(i,j)
                     if (idx==-1) then
                         write(*,*) "ERROR, getting face gll:", dom, Tdomain%sFace(nfs)%domain
@@ -243,21 +209,19 @@ contains
                         stop 1
                     end if
                     idx = renum(idx)
-                    call normal_face(nodes, gllc1(i), gllc2(j), normal)
+                    call normal_face(nodes, gllc(i), gllc(j), normal)
                     !
                     if (idx==-1) then
                         write(*,*) "ERROR, getting face gll:", dom, Tdomain%sFace(nfs)%domain
                         write(*,*) "IND:", Tdomain%sFace(nfs)%Idom
                         stop 1
                     end if
-                    BtN(:,idx) = BtN(:,idx) + orient*normal*gllw1(i)*gllw2(j)
+                    BtN(:,idx) = BtN(:,idx) + orient*normal*gllw(i)*gllw(j)
                 end do
             end do
         end do
-        if (allocated(gllc1)) deallocate(gllc1)
-        if (allocated(pol1)) deallocate(pol1)
-        if (allocated(gllc2)) deallocate(gllc2)
-        if (allocated(pol2)) deallocate(pol2)
+        deallocate(gllc)
+        deallocate(gllw)
         deallocate(renum)
     end subroutine compute_normals
     !---------------------------------------------------------------------------

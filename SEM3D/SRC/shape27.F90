@@ -44,25 +44,8 @@ contains
                 coord(0:2,i) = Tdomain%Coord_Nodes(0:2,j)
             enddo
 
-            ngll = 0
-            select case (Tdomain%specel(n)%domain)
-                 case (DM_SOLID)
-                     ngll = Tdomain%sdom%ngll
-                     allocate(GLLc(0:ngll-1))
-                     GLLc = Tdomain%sdom%GLLc
-                 case (DM_FLUID)
-                     ngll = Tdomain%fdom%ngll
-                     allocate(GLLc(0:ngll-1))
-                     GLLc = Tdomain%fdom%GLLc
-                 case (DM_SOLID_PML)
-                     ngll = Tdomain%spmldom%ngll
-                     allocate(GLLc(0:ngll-1))
-                     GLLc = Tdomain%spmldom%GLLc
-                 case (DM_FLUID_PML)
-                     ngll = Tdomain%fpmldom%ngll
-                     allocate(GLLc(0:ngll-1))
-                     GLLc = Tdomain%fpmldom%GLLc
-            end select
+            ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+            call domain_gllc(Tdomain, Tdomain%specel(n)%domain, GLLc)
 
             do k = 0,ngll - 1
                 zeta = GLLc(k)
