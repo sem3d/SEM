@@ -12,7 +12,7 @@ module m_calcul_forces ! wrap subroutine in module to get arg type check at buil
 contains
 
     subroutine RK4_attenu_coefs(n_solid,dt,omega_tau_s,agamma,alphaval,betaval,gammaval)
-#ifdef SEM_VEC
+#if defined(SEM_VEC) && defined(__INTEL_COMPILER)
 !$omp declare simd (RK4_attenu_coefs) uniform(dt,n_solid)
 #endif
         !- routine returns the coefficients for the time integration of the
@@ -44,8 +44,8 @@ contains
         dxz = dS_dxi*InvGrad(IND_MNE(2,0,ee))+dS_deta*InvGrad(IND_MNE(2,1,ee))+dS_dzeta*InvGrad(IND_MNE(2,2,ee));
 
     subroutine physical_part_deriv_ijke(e,i,j,k,ngll,hprime,InvGrad,Scalp,dS_dx,dS_dy,dS_dz)
-#ifdef SEM_VEC
-!!$omp declare simd (physical_part_deriv_ijke) linear(e) uniform(i,j,k,ngll,hprime,InvGrad,Scalp)
+#if defined(SEM_VEC) && defined(__INTEL_COMPILER)
+!$omp declare simd (physical_part_deriv_ijke) linear(e) uniform(i,j,k,ngll,hprime,InvGrad,Scalp)
 #endif
         implicit none
         integer,intent(in) :: i,j,k,e
