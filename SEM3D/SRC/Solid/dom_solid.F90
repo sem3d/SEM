@@ -398,6 +398,7 @@ contains
 
     subroutine forces_int_solid(dom, champs1, lnum)
         use m_calcul_forces
+        use m_calcul_forces_atn
         use attenuation_solid
         type(domain_solid), intent (INOUT) :: dom
         type(champssolid), intent(inout) :: champs1
@@ -431,19 +432,15 @@ contains
 
         if (aniso) then
             if (n_solid>0) then
-                !call calcul_forces_aniso_atn(dom,lnum,Fox,Foy,Foz,Depla)
-                call calcul_forces(dom,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)
+                call calcul_forces_aniso_atn(dom,lnum,Fox,Foy,Foz,Depla)
             else
-                !call calcul_forces_aniso(dom,lnum,Fox,Foy,Foz,Depla)
-                call calcul_forces(dom,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)
+                call calcul_forces_aniso(dom,lnum,Fox,Foy,Foz,Depla)
             end if
         else
             if (n_solid>0) then
                 call calcul_forces_iso_atn(dom,lnum,Fox,Foy,Foz,Depla)
-                !call calcul_forces(dom,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)
             else
                 call calcul_forces_iso(dom,lnum,Fox,Foy,Foz,Depla)
-                !call calcul_forces(dom,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)
             end if
         end if
 

@@ -41,6 +41,9 @@ subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
     real(fpp) :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real(fpp) :: F1,F2,F3
 #endif
+#ifdef ANISO
+    real(fpp) :: Eyz, Exz, Exy
+#endif
     real(fpp) :: xla, xmu
 #ifdef ATTENUATION
     real(fpp) :: stt, x2mu, xpression, xkappa
@@ -65,6 +68,19 @@ subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
                 part_deriv_ijke(Depla,2,dS_dxi,dS_deta,dS_dzeta,dzx,dzy,dzz)
 
 #ifdef ATTENUATION
+#ifdef ANISO
+                Eyz = (DYZ+DZY)*M_SQRT1_2
+                Exz = (DXZ+DZX)*M_SQRT1_2
+                Exy = (DXY+DYX)*M_SQRT1_2
+#define CC(d)  dom%Cij_(d,i,j,k,e)
+                sxx = DXX*CC( 0) + DYY*CC( 1) + DZZ*CC( 2) + EYZ*CC( 3) + EXZ*CC( 4) + EXY*CC( 5)
+                syy = DXX*CC( 1) + DYY*CC( 6) + DZZ*CC( 7) + EYZ*CC( 8) + EXZ*CC( 9) + EXY*CC(10)
+                szz = DXX*CC( 2) + DYY*CC( 7) + DZZ*CC(11) + EYZ*CC(12) + EXZ*CC(13) + EXY*CC(14)
+                syz = DXX*CC( 3) + DYY*CC( 8) + DZZ*CC(12) + EYZ*CC(15) + EXZ*CC(16) + EXY*CC(17)
+                sxz = DXX*CC( 4) + DYY*CC( 9) + DZZ*CC(13) + EYZ*CC(16) + EXZ*CC(18) + EXY*CC(19)
+                sxy = DXX*CC( 5) + DYY*CC(10) + DZZ*CC(14) + EYZ*CC(17) + EXZ*CC(19) + EXY*CC(20)
+#undef CC
+#else
                 xmu = dom%Mu_(i,j,k,e) * dom%onemSbeta_(i,j,k,e)
                 x2mu = 2. * xmu
                 sxx = x2mu * DXX
@@ -73,7 +89,7 @@ subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
                 syy = x2mu * DYY
                 syz = xmu * ( DYZ + DZY )
                 szz = x2mu * DZZ
-
+#endif
                 xkappa = dom%Kappa_(i,j,k,e)* dom%onemPbeta_(i,j,k,e)
                 xpression = xkappa*(DXX+DYY+DZZ)
                 do i_sls = 0,dom%n_sls-1
@@ -306,56 +322,24 @@ subroutine PROCNAME_ATN(dom,lnum,hprime,Depla)
                     omega_tau_s = dom%omega_tau_s_(i_sls,i,j,k,e)
                     gamma_kappa = dom%agamma_kappa_(i_sls,i,j,k,e)
                     gamma_mu = dom%agamma_mu_(i_sls,i,j,k,e)
+#ifndef ANISO
                     ! get coefficients for that standard linear solid
                     factor_common_P = 2d0*gamma_kappa*omega_tau_s
                     factorP_loc   = dom%Kappa_(i,j,k,e) * factor_common_P
-!                    if (factor_common_P/=dom%factor_common_P_(i_sls,i,j,k,e)) then
-!                        write(*,*) "ERR: factor_common_P",i_sls,i,j,k,e
-!                        stop 1
-!                    end if
                     call RK4_attenu_coefs(n_solid,dom%dt,omega_tau_s,gamma_kappa, &
                         alphavalP_loc, betavalP_loc, gammavalP_loc)
-!                    if (alphavalP_loc/=dom%alphaval_P_(i_sls,i,j,k,e)) then
-!                        write(*,*) "ERR: alphaval_P", alphavalP_loc, dom%alphaval_P_(i_sls,i,j,k,e)
-!                        stop 1
-!                    end if
-!                    if (betavalP_loc/=dom%betaval_P_(i_sls,i,j,k,e)) then
-!                        write(*,*) "ERR: betaval_P",betavalP_loc,dom%betaval_P_(i_sls,i,j,k,e)
-!                        stop 1
-!                    end if
-!                    if (gammavalP_loc/=dom%gammaval_P_(i_sls,i,j,k,e)) then
-!                        write(*,*) "ERR: gammaval_P",gammavalP_loc,dom%gammaval_P_(i_sls,i,j,k,e)
-!                        stop 1
-!                    end if
 
                     !  terme volumique
                     Pn   = factorP_loc * dom%epsilonvol_(i,j,k,e)
                     Pnp1 = factorP_loc * epsilonvol_loc
                     dom%R_vol_(i_sls,i,j,k,e) = alphavalP_loc * dom%R_vol_(i_sls,i,j,k,e)  &
                         + betavalP_loc*Pn+gammavalP_loc*Pnp1
-
+#endif
                     ! get coefficients for that standard linear solid
                     factor_common_3 = 2d0*gamma_mu*omega_tau_s
-!                    if (factor_common_3/=dom%factor_common_3_(i_sls,i,j,k,e)) then
-!                        write(*,*) "ERR: factor_common_S",i_sls,i,j,k,e
-!                        stop 1
-!                    end if
                     call RK4_attenu_coefs(n_solid,dom%dt,omega_tau_s, gamma_mu, &
                         alphavalS_loc, betavalS_loc, gammavalS_loc)
-!                    if (alphavalS_loc/=dom%alphaval_3_(i_sls,i,j,k,e)) then
-!                        write(*,*) "ERR: alphaval_3",i_sls,i,j,k,e
-!                        stop 1
-!                    end if
-!                    if (betavalS_loc/=dom%betaval_3_(i_sls,i,j,k,e)) then
-!                        write(*,*) "ERR: betaval_3",i_sls,i,j,k,e
-!                        stop 1
-!                    end if
-!                    if (gammavalS_loc/=dom%gammaval_3_(i_sls,i,j,k,e)) then
-!                        write(*,*) "ERR: gammaval_3",i_sls,i,j,k,e
-!                        stop 1
-!                    end if
 
-                    
                     factorS_loc   = dom%Mu_(i,j,k,e) * factor_common_3
 
                     !     termes deviatoires
@@ -402,10 +386,10 @@ subroutine PROCNAME_ATN(dom,lnum,hprime,Depla)
                 dom%epsilondev_xy_(i,j,k,e) = epsilondev_xy_loc
                 dom%epsilondev_xz_(i,j,k,e) = epsilondev_xz_loc
                 dom%epsilondev_yz_(i,j,k,e) = epsilondev_yz_loc
-
+#ifndef ANISO
                 !   partie isotrope
                 dom%epsilonvol_   (i,j,k,e) = epsilonvol_loc
-
+#endif
                 END_SUBELEM_LOOP()
             end do
         end do
