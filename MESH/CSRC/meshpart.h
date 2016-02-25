@@ -107,7 +107,6 @@ public:
     int n_edges() const    { return m_edge_to_id.size(); }
     int n_vertices() const { return m_vertex_to_id.size(); }
 
-
     void get_local_nodes(std::vector<double>& nodes) const;
     void get_local_elements(std::vector<int>& elems) const;
     void get_local_materials(std::vector<int>& mats, std::vector<int>& doms) const;

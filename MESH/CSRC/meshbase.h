@@ -9,6 +9,8 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <cstdlib>
+#include <cassert>
 
 /// Faces are stored as v1 v2 v3 v4, with v1 < v2 < v4
 /// The nodes are consecutive, the direction is determined by the ordering of
@@ -201,50 +203,54 @@ public:
     vertex_map_t m_vertices;
 };
 
-template <int N>
+
 struct Elem {
-    Elem() {}
-    Elem(const Elem& el) { for(int i=0;i<N;++i) { v[i] = el.v[i];} }
-    Elem& operator=(const Elem& el) { for(int i=0;i<N;++i) { v[i] = el.v[i]; } return *this; }
+    Elem(int _N):N(_N) { v=(int*)malloc(N*sizeof(int)); }
+    ~Elem() { free(v); }
+    Elem(const Elem& el):N(el.N) { v=(int*)malloc(N*sizeof(int)); for(int i=0;i<N;++i) { v[i] = el.v[i];} }
+    Elem& operator=(const Elem& el) { assert(N==el.N); for(int i=0;i<N;++i) { v[i] = el.v[i]; } return *this; }
     bool operator==(const Elem& el) {
+        assert(N==el.N);
 	for(int i=0;i<N;++i) { if (v[i] != el.v[i]) return false; }
 	return true;
     }
     bool operator<(const Elem& el) {
+        assert(N==el.N);
 	for(int i=0;i<N;++i) {
 	    if (v[i] < el.v[i]) return true;
 	    if (v[i] > el.v[i]) return false;
 	}
 	return false;
     }
-    int v[N];
+    int N;
+    int *v;
 };
 
-struct HexElem : public Elem<8>
+struct HexElem : public Elem
 {
-    HexElem() {}
-    HexElem(int a, int b, int c, int d,
-	    int e, int f, int g, int h) {
-	v[0] = a;
-	v[1] = b;
-	v[2] = c;
-	v[3] = d;
-	v[4] = e;
-	v[5] = f;
-	v[6] = g;
-	v[7] = h;
-    }
+    HexElem(int nn=8):Elem(nn) {}
+//    HexElem(int a, int b, int c, int d,
+//	    int e, int f, int g, int h) {
+//	v[0] = a;
+//	v[1] = b;
+//	v[2] = c;
+//	v[3] = d;
+//	v[4] = e;
+//	v[5] = f;
+//	v[6] = g;
+//	v[7] = h;
+//    }
 };
 
-struct QuadElem : public Elem<4>
+struct QuadElem : public Elem
 {
-    QuadElem() {}
-    QuadElem(int a, int b, int c, int d){
-	v[0] = a;
-	v[1] = b;
-	v[2] = c;
-	v[3] = d;
-    }
+    QuadElem():Elem(4) {}
+//    QuadElem(int a, int b, int c, int d){
+//	v[0] = a;
+//	v[1] = b;
+//	v[2] = c;
+//	v[3] = d;
+//    }
 };
 
 struct FaceDesc {

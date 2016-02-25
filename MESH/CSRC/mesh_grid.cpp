@@ -82,12 +82,31 @@ void RectMesh::read_params_old(FILE* fparam)
     sscanf(buffer, "%d", &ngll_pml);
     getline(&buffer, &n, fparam);
     sscanf(buffer, "%d", &elem_shape);
-
+    switch(elem_shape) {
+    case 1:
+    case 8:
+        elem_shape = 8;
+        break;
+    case 2:
+    case 27:
+        elem_shape = 27;
+        break;
+    default:
+        printf("Please use 1 or 8 for linear elements, or 2 or 27 for quadratic elements\n");
+        exit(1);
+    }
 }
 
 int RectMesh::pointidx(int i, int j, int k)
 {
     int idx =  i+j*(nelemx+1) + k*(nelemx+1)*(nelemy+1);
+    //    printf("(%d / %d) (%d / %d)  (%d / %d)  = %d\n", i, nelemx, j, nelemy, k, 0, idx);
+    return idx;
+}
+
+int RectMesh::pointidx27(int i, int j, int k)
+{
+    int idx =  i+j*(2*nelemx+1) + k*(2*nelemx+1)*(2*nelemy+1);
     //    printf("(%d / %d) (%d / %d)  (%d / %d)  = %d\n", i, nelemx, j, nelemy, k, 0, idx);
     return idx;
 }
@@ -161,22 +180,8 @@ void RectMesh::apply_pml_borders(int npml_)
     }
 }
 
-void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
+int RectMesh::create_linear_grid_nodes(Mesh3D& mesh)
 {
-    const int npml=1;
-    assert(xmin<xmax);
-    assert(ymin<ymax);
-
-    apply_pml_borders(npml);
-
-    nelemx = int( (xmax-xmin)/xstep );
-    nelemy = int( (ymax-ymin)/ystep );
-    nelemz = 0;
-    for(int k=0;k<nlayers;++k) {
-        nelemz += nsteps[k];
-    }
-
-    printf("Creating grid mesh %d x %d x %d\n", nelemx, nelemy, nelemz );
     // Coordinates
     double layerzmax = zmax;
     int k0 = 0;
@@ -197,23 +202,129 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
         k0 = 1;
         layerzmax = zmin;
     }
+    return nnodes;
+}
+int RectMesh::create_quadratic_grid_nodes(Mesh3D& mesh)
+{
+    // Coordinates
+    double layerzmax = zmax;
+    double z;
+    int k0 = 0;
+    int nnodes = 0;
+    int npx = 2*nelemx+1;
+    int npy = 2*nelemy+1;
+    int npz;
+    for(int nl=0;nl<nlayers;++nl) {
+        double zmin = layerzmax - thickness[nl];
+        double zstep = (layerzmax-zmin)/nsteps[nl];
+        for(int k=k0;k<=2*nsteps[nl]+1;++k) {
+            for(int j=0;j<=npy;++j) {
+                for(int i=0;i<=npx;++i) {
+                    mesh.add_node( xmin + i*0.5*xstep,
+                                   ymin + j*0.5*ystep,
+                                   layerzmax - k*0.5*zstep );
+                    nnodes++;
+                }
+            }
+        }
+        k0 = 1;
+        layerzmax = zmin;
+    }
+    return nnodes;
+}
+
+
+void RectMesh::create_linear_element(Elem& elem, int i, int j, int k)
+{
+    elem.v[0] = pointidx(i  ,j  ,k+1); // bottom layer
+    elem.v[1] = pointidx(i+1,j  ,k+1);
+    elem.v[2] = pointidx(i+1,j+1,k+1);
+    elem.v[3] = pointidx(i  ,j+1,k+1);
+    elem.v[4] = pointidx(i  ,j  ,k  ); // top layer
+    elem.v[5] = pointidx(i+1,j  ,k  );
+    elem.v[6] = pointidx(i+1,j+1,k  );
+    elem.v[7] = pointidx(i  ,j+1,k  );
+}
+
+void RectMesh::create_quadratic_element(Elem& elem, int i, int j, int k)
+{
+    elem.v[ 0] = pointidx27(2*i  , 2*j  , 2*k+2); // bottom layer
+    elem.v[ 1] = pointidx27(2*i+2, 2*j  , 2*k+2);
+    elem.v[ 2] = pointidx27(2*i+2, 2*j+2, 2*k+2);
+    elem.v[ 3] = pointidx27(2*i  , 2*j+2, 2*k+2);
+    elem.v[ 4] = pointidx27(2*i  , 2*j  , 2*k  ); // top layer
+    elem.v[ 5] = pointidx27(2*i+2, 2*j  , 2*k  );
+    elem.v[ 6] = pointidx27(2*i+2, 2*j+2, 2*k  );
+    elem.v[ 7] = pointidx27(2*i  , 2*j+2, 2*k  );
+
+    elem.v[ 8] = pointidx27(2*i+1, 2*j+0, 2*k+2); // mid segment bottom layer
+    elem.v[ 9] = pointidx27(2*i+2, 2*j+1, 2*k+2);
+    elem.v[10] = pointidx27(2*i+1, 2*j+2, 2*k+2);
+    elem.v[11] = pointidx27(2*i+0, 2*j+1, 2*k+2);
+
+    elem.v[12] = pointidx27(2*i  , 2*j  , 2*k+1); // middle layer
+    elem.v[13] = pointidx27(2*i+2, 2*j  , 2*k+1);
+    elem.v[14] = pointidx27(2*i+2, 2*j+2, 2*k+1);
+    elem.v[15] = pointidx27(2*i  , 2*j+2, 2*k+1);
+
+    elem.v[16] = pointidx27(2*i+1, 2*j+0, 2*k+0); // mid segment top layer
+    elem.v[17] = pointidx27(2*i+2, 2*j+1, 2*k+0);
+    elem.v[18] = pointidx27(2*i+1, 2*j+2, 2*k+0);
+    elem.v[19] = pointidx27(2*i+0, 2*j+1, 2*k+0);
+
+    elem.v[20] = pointidx27(2*i+1, 2*j+1, 2*k+2);
+
+    elem.v[21] = pointidx27(2*i+1, 2*j+0, 2*k+1); // mid segment middle layer
+    elem.v[22] = pointidx27(2*i+2, 2*j+1, 2*k+1);
+    elem.v[23] = pointidx27(2*i+1, 2*j+2, 2*k+1);
+    elem.v[24] = pointidx27(2*i+0, 2*j+1, 2*k+1);
+
+    elem.v[25] = pointidx27(2*i+1, 2*j+1, 2*k  );
+    elem.v[26] = pointidx27(2*i+1, 2*j+1, 2*k+1);
+}
+
+
+void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
+{
+    const int npml=1;
+    assert(xmin<xmax);
+    assert(ymin<ymax);
+
+    apply_pml_borders(npml);
+
+    mesh.set_control_nodes(elem_shape);
+
+    nelemx = int( (xmax-xmin)/xstep );
+    nelemy = int( (ymax-ymin)/ystep );
+    nelemz = 0;
+    for(int k=0;k<nlayers;++k) {
+        nelemz += nsteps[k];
+    }
+
+    printf("Creating grid mesh %d x %d x %d", nelemx, nelemy, nelemz );
+    int nnodes = 0;
+    if (elem_shape==8) {
+        printf(" with linear elements\n");
+        nnodes = create_linear_grid_nodes(mesh);
+    } else if (elem_shape==27) {
+        printf(" with quadratic elements\n");
+        nnodes = create_quadratic_grid_nodes(mesh);
+    }
+
     // Elements
-    HexElem elem;
+    Elem elem(elem_shape);
     int k=0;
     Surface* dirich = mesh.get_surface("dirichlet");
     for(int nl=0;nl<nlayers;++nl) {
         for(int kl=0;kl<nsteps[nl];++kl) {
             for(int j=0;j<nelemy;++j) {
                 for(int i=0;i<nelemx;++i) {
-                    elem.v[0] = pointidx(i  ,j  ,k+1); // bottom layer
-                    elem.v[1] = pointidx(i+1,j  ,k+1);
-                    elem.v[2] = pointidx(i+1,j+1,k+1);
-                    elem.v[3] = pointidx(i  ,j+1,k+1);
-                    elem.v[4] = pointidx(i  ,j  ,k  ); // top layer
-                    elem.v[5] = pointidx(i+1,j  ,k  );
-                    elem.v[6] = pointidx(i+1,j+1,k  );
-                    elem.v[7] = pointidx(i  ,j+1,k  );
-                    for(int in=0;in<8;++in) {
+                    if (elem_shape==8) {
+                        create_linear_element(elem, i,j,k);
+                    } else if (elem_shape==27) {
+                        create_quadratic_element(elem, i,j,k);
+                    }
+                    for(int in=0;in<elem_shape;++in) {
                         assert(elem.v[in]<nnodes);
                         assert(elem.v[in]>=0);
                     }
@@ -256,7 +367,7 @@ void RectMesh::init_rectangular_mesh(Mesh3D& mesh)
     }
 }
 
-void RectMesh::emit_free_face(Surface* surf, int dom, const HexElem& elem,
+void RectMesh::emit_free_face(Surface* surf, int dom, const Elem& elem,
                               bool W, bool E, bool S, bool N, bool U, bool D)
 {
     if (W) emit_free_face(surf, dom, elem, 4);
@@ -267,7 +378,7 @@ void RectMesh::emit_free_face(Surface* surf, int dom, const HexElem& elem,
     if (D) emit_free_face(surf, dom, elem, 0);
 }
 
-void RectMesh::emit_free_face(Surface* surf, int dom, const HexElem& elem, int facenum)
+void RectMesh::emit_free_face(Surface* surf, int dom, const Elem& elem, int facenum)
 {
     int n[4];
     for(int k=0;k<4;++k) {

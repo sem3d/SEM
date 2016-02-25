@@ -30,10 +30,12 @@ public:
     int n_parts()     const { return n_procs; }
     int n_materials() const { return m_materials.size(); }
 
-    int nodes_per_elem() const { return 8; }
+    void set_control_nodes(int n) { n_ctl_nodes = n; }
+
+    int nodes_per_elem() const { return n_ctl_nodes; }
 
     int add_node(double x, double y, double z);
-    int add_elem(int mat_idx, const HexElem& el);
+    int add_elem(int mat_idx, const Elem& el);
 
     int read_materials(const std::string& fname);
     int read_materials_v1(const std::string& fname);
@@ -87,7 +89,7 @@ public:
     bool debug;
 
     std::vector<double> m_xco,m_yco,m_zco;  ///< Coordinates of the nodes
-    std::vector<int> m_elems; ///< size=8*n_elems ; describe each node of every elements
+    std::vector<int> m_elems; ///< size=(8|27)*n_elems ; describe each node of every elements
     std::vector<int> m_elems_offs; ///< size=n_elems+1; offset of node idx into elems
     std::vector<int> m_mat;  ///< size=n_elems; material index for element
     std::vector<int> m_nelems_per_proc; // ?? number of elements for each procs

@@ -30,10 +30,10 @@ int Mesh3D::add_node(double x, double y, double z)
     return m_xco.size()-1;
 }
 
-int Mesh3D::add_elem(int mat_idx, const HexElem& el)
+int Mesh3D::add_elem(int mat_idx, const Elem& el)
 {
     // Builds elem<->vertex graph
-    for(int i=0;i<8;++i) {
+    for(int i=0;i<el.N;++i) {
 	m_elems.push_back(el.v[i]);
     }
     m_elems_offs.push_back(m_elems.size());
@@ -263,7 +263,7 @@ void Mesh3D::read_mesh_hexa8(hid_t file_id)
 {
     int nel, nnodes;
     h5h_read_dset_2d(file_id, "/Sem3D/Hexa8", nel, nnodes, m_elems);
-    n_ctl_nodes = 8;
+    set_control_nodes(8);
     if (nnodes!=8) {
         printf("Error: dataset /Sem/Hexa8 is not of size NEL*8\n");
         exit(1);
@@ -275,6 +275,7 @@ void Mesh3D::read_mesh_hexa8(hid_t file_id)
 
 void Mesh3D::read_mesh_hexa27(hid_t file_id)
 {
+    set_control_nodes(27);
 }
 
 void Mesh3D::build_vertex_to_elem_map()

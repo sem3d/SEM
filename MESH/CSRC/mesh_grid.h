@@ -44,11 +44,17 @@ protected:
 
     int nelemx, nelemy, nelemz;
     int pointidx(int i, int j, int k);
+    int pointidx27(int i, int j, int k);
     int get_mat(Mesh3D& mesh, int layer, bool W, bool E, bool S, bool N, bool U, bool D);
-    void emit_free_face(Surface* surf, int dom, const HexElem& elem,
+    void emit_free_face(Surface* surf, int dom, const Elem& elem,
                         bool W, bool E, bool S, bool N, bool U, bool D);
-    void emit_free_face(Surface* surf, int dom, const HexElem& elem, int facenum);
+    void emit_free_face(Surface* surf, int dom, const Elem& elem, int facenum);
 
+    int create_linear_grid_nodes(Mesh3D& mesh);
+    int create_quadratic_grid_nodes(Mesh3D& mesh);
+
+    void create_linear_element(Elem& elem, int i, int j, int k);
+    void create_quadratic_element(Elem& elem, int i, int j, int k);
 };
 
 #endif

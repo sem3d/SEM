@@ -302,9 +302,12 @@ void Mesh3DPart::handle_local_element(int el, bool is_border)
         int vid = add_vertex(vertex, is_border);
         add_node(gid);
         m_elems_vertices.push_back(vid);
+//        printf("EV:%d e0=%d gid=%d v=%d\n", el, e0, gid, vid);
     }
     for(int vx=8;vx<m_mesh.nodes_per_elem();++vx) {
-        add_node(m_mesh.m_elems[e0 + vx]);
+        int gid = m_mesh.m_elems[e0 + vx];
+        add_node(gid);
+//        printf("EN:%d e0=%d gid=%d\n", el, e0, gid);
     }
 }
 
@@ -324,15 +327,16 @@ void Mesh3DPart::get_local_nodes(std::vector<double>& nodes) const
 void Mesh3DPart::get_local_elements(std::vector<int>& elems) const
 {
     std::map<int,int>::const_iterator it;
-    elems.resize(m_elems.size()*8);
+    int nctl_nodes = m_mesh.nodes_per_elem();
+    elems.resize(m_elems.size()*nctl_nodes);
 
     for(size_t k=0;k<m_elems.size();++k) {
         int el = m_elems[k];
         int e0 = m_mesh.m_elems_offs[el];
-        for(int n=0;n<m_mesh.nodes_per_elem();++n) {
+        for(int n=0;n<nctl_nodes;++n) {
             int gid = m_mesh.m_elems[e0+n];
             int lid = get(m_nodes_to_id, gid, -1);
-            elems[8*k + n] = lid;
+            elems[nctl_nodes*k + n] = lid;
         }
     }
 }
@@ -545,7 +549,7 @@ void Mesh3DPart::output_local_mesh(hid_t fid)
     h5h_write_dset_2d(fid, "local_nodes", n_nodes(), 3, &tmpd[0]);
 
     get_local_elements(tmpi);
-    h5h_write_dset_2d(fid, "elements", n_elems(), 8, &tmpi[0]);
+    h5h_write_dset_2d(fid, "elements", n_elems(), m_mesh.nodes_per_elem(), &tmpi[0]);
 
     get_local_materials(tmpi,tmpi1);
     h5h_write_dset(fid, "material", n_elems(), &tmpi[0]);
