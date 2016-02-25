@@ -10,12 +10,12 @@ module nonlinear
     use deriv3d
     use constants
 
-!    real(KIND=8), parameter :: FTOL = 0.0000010000000000D0
-!    real(KIND=8), parameter :: LTOL = 0.0000010000000000D0
+   real(KIND=8), parameter :: FTOL = 0.0000010000000000D0
+   real(KIND=8), parameter :: LTOL = 0.0000010000000000D0
+   real(KIND=8), parameter :: STOL = 0.0010000000000000D0
+!    real(KIND=8), parameter :: FTOL = 1.0000000000D0
+!    real(KIND=8), parameter :: LTOL = 0.010000000000D0
 !    real(KIND=8), parameter :: STOL = 0.0010000000000000D0
-    real(KIND=8), parameter :: FTOL = 1.0000000000D0
-    real(KIND=8), parameter :: LTOL = 0.010000000000D0
-    real(KIND=8), parameter :: STOL = 0.0010000000000000D0
 contains
     
     subroutine stiff_matrix(lambda,mu,DEL)
@@ -99,21 +99,14 @@ contains
         real                                :: FS,FT,checkload
         integer                             :: k
 
-        ! Yield function at stress0
-        call mises_yld_locus(stress0,center,radius,syld,FS,gradFS)
-
-        ! Yield function at stress1
         stress1=stress0+dtrial
+        call mises_yld_locus(stress0,center,radius,syld,FS,gradFS)
         call mises_yld_locus(stress1,center,radius,syld,FT,gradFT)
-
-        write(*,*) "*********************************"
-        write(*,*) "Fstart:",FS,"Ftrial:",FT
-
-        ! LOADING CONDITION    
         checkload=sum(gradFS*dtrial)/sum(gradFS**2)/sum(dtrial**2)
-        write(*,*) 'checkload:',checkload
-
-        ! KKT CONDITION
+        
+        write(*,*) "*********************************"
+        write(*,*) "Fstart:",FS,"Ftrial:",FT,'CL',checkload
+        
         if (abs(FS).le.FTOL) then
             if (checkload.ge.-LTOL) then 
                 alpha_elp = 0d0
@@ -149,31 +142,20 @@ contains
         write(*,*) ""
     end subroutine check_plasticity
 
-    subroutine plastic_corrector (dEpsilon_ij_alpha, Sigma_ij, X_ij, sigma_yld, &
-        R, b_lmc, Rinf_lmc, C_lmc, kapa_lmc, mu, lambda, dEpsilon_ij_pl)
+    subroutine plastic_corrector (dEps_alpha,stress,center,syld, &
+        radius,biso,Rinf,Ckin,kkin,mu,lambda,dEpl)
 
         implicit none
-        real, dimension(0:5), intent(inout) :: Sigma_ij             ! starting stress state
-        real, dimension(0:5), intent(inout) :: X_ij                 ! starting back stress
-        real,                 intent(inout) :: R                    ! starting mises radius
-        real, dimension(0:5), intent(inout) :: dEpsilon_ij_alpha    ! percentage of elastic-plastic strain
-        real, dimension(0:5), intent(inout) :: dEpsilon_ij_pl       ! percentage of plastic strain
-        real,                 intent(in)    :: sigma_yld            ! first yield limit
-        real,                 intent(in)    :: b_lmc, Rinf_lmc      ! Lamaitre and Chaboche parameters (isotropic hardening)
-        real,                 intent(in)    :: C_lmc, kapa_lmc      ! Lamaitre and Chaboche parameters (kinematic hardening)
-        real,                 intent(in)    :: mu, lambda           ! elastic parameters
-        real                                :: N_incr
-        real, dimension(0:5)                :: dX_ij, gradF_0, gradF_mises
-        real                                :: dR,dPlastMult,F_mises_0,F_mises,Ffinal,dPlastMult1
-        integer                             :: i,j,k
-        real, dimension(0:5)                :: temp_vec
+        real, dimension(0:5), intent(inout) :: dEps_alpha,stress,center,dEpl 
+        real,                 intent(inout) :: radius 
+        real,                 intent(in)    :: syld,biso,Rinf,Ckin,kkin,mu,lambda
         real, dimension(0:5,0:5)            :: DEL
         real, dimension(0:5), parameter     :: A = (/1.0,1.0,1.0,0.5,0.5,0.5/)
         real                                :: Ttot,deltaTk,qq,R1,R2,dR1,dR2,err0,err1
-        real                                :: hard1,hard2,deltaTmin
+        real                                :: FM,hard1,hard2,deltaTmin
         real(8)                             :: Resk
         logical                             :: flag_fail
-        real, dimension(0:5)                :: S1,S2,X1,X2
+        real, dimension(0:5)                :: gradFM,S1,S2,X1,X2
         real, dimension(0:5)                :: dS1,dS2,dX1,dX2,dEpl1,dEpl2
 
         call stiff_matrix(lambda,mu,DEL)
@@ -192,23 +174,21 @@ contains
             dEpl2(0:5) = 0d0
 
             ! FIRST ORDER COMPUTATION
-            call ep_integration(dEpsilon_ij_alpha*deltaTk,Sigma_ij,X_ij,R,&
-                sigma_yld,mu,lambda,b_lmc,Rinf_lmc,C_lmc,kapa_lmc,        &
-                dS1,dX1,dR1,dEpl1,hard1)
+            call ep_integration(dEps_alpha*deltaTk,stress,center,radius,syld,&
+                mu,lambda,biso,Rinf,Ckin,kkin,dS1,dX1,dR1,dEpl1,hard1)
 
-            R1      = R+dR1
-            X1(0:5) = X_ij(0:5) + dX1(0:5) 
-            S1(0:5) = Sigma_ij(0:5) + dS1(0:5)
+            S1 = stress + dS1
+            X1 = center + dX1 
+            R1 = radius + dR1
            
             ! SECOND ORDER COMPUTATION
-            call ep_integration(dEpsilon_ij_alpha*deltaTk,S1,X1,R1,&
-                sigma_yld,mu,lambda,b_lmc,Rinf_lmc,C_lmc,kapa_lmc, &
-                dS2,dX2,dR2,dEpl2,hard2)
+            call ep_integration(dEps_alpha*deltaTk,S1,X1,R1,syld,mu,lambda,&
+                biso,Rinf,Ckin,kkin,dS2,dX2,dR2,dEpl2,hard2)
             
             ! TEMPORARY VARIABLES
-            S1 = Sigma_ij + 0.5d0*(dS1+dS2)
-            X1 = X_ij     + 0.5d0*(dX1+dX2)
-            R1 = R        + 0.5d0*(dR1+dR2)
+            S1 = stress + 0.5d0*(dS1+dS2)
+            X1 = center + 0.5d0*(dX1+dX2)
+            R1 = radius + 0.5d0*(dR1+dR2)
             dEpl1 = 0.5d0*(dEpl1+dEpl2)
 
             ! ERROR
@@ -217,17 +197,16 @@ contains
 
             Resk=0.5d0*max(epsilon(Resk),err0/err1)
             
-            if (Resk.le.STOL) then ! substep is ok
+            if (Resk.le.STOL) then
                 
-                Sigma_ij = S1
-                X_ij     = X1
-                R        = R1
+                stress = S1
+                center = X1
+                radius = R1
 
-                call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, Ffinal, gradF_0)
-                if (Ffinal .gt. FTOL) then
-                    call drift_corr(Sigma_ij, X_ij, R, sigma_yld,&
-                            b_lmc, Rinf_lmc, C_lmc, kapa_lmc, lambda, mu, dEpsilon_ij_pl)
-                    call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, Ffinal, gradF_0)
+                call mises_yld_locus (stress, center,radius,syld,FM,gradFM)
+                if (FM.gt.FTOL) then
+                    call drift_corr(stress,center,radius,syld,&
+                            biso,Rinf,Ckin,kkin,lambda,mu,dEpl)
                 endif
                
                 Ttot=Ttot+deltaTk
@@ -240,8 +219,7 @@ contains
                 deltaTk=max(qq*deltaTk,deltaTmin)
                 deltaTk=min(deltaTk,1d0-Ttot)
 
-            else    ! substep has failed
-!                    qq=max(0.9d0*sqrt(STOL/Resk),0.1d0)
+            else
                 qq=max(0.9d0*sqrt(STOL/Resk),deltaTmin)
                 deltaTk=qq*deltaTk
                 flag_fail=.true.
@@ -251,43 +229,43 @@ contains
 !            
 !            N_incr=10
 !            
-!            dEpsilon_ij_alpha(0:5) = dEpsilon_ij_alpha(0:5)/N_incr
+!            dEps_alpha(0:5) = dEpsilon_ij_alpha(0:5)/N_incr
 !            
 !            do i = 0,N_incr-1
 !
 !                ! PREDICTION
-!                call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, F_mises_0, gradF_0)
+!                call mises_yld_locus (stress, center, R, syld, F_mises_0, gradF0)
 !                ! COMPUTE PLASTIC MULTIPLIER
-!                call compute_plastic_modulus(dEpsilon_ij_alpha, Sigma_ij, X_ij, R, mu, lambda, sigma_yld, &
-!                    b_lmc, Rinf_lmc, C_lmc, kapa_lmc, dPlastMult)
+!                call compute_plastic_modulus(dEps_alpha, stress, center, R, mu, lambda, syld, &
+!                    biso, Rinf, Ckin, kkin, dPlastMult)
 !                
 !                ! HARDENING INCREMENTS
-!                call hardening_increments(Sigma_ij, R, X_ij, sigma_yld, &
-!                    b_lmc, Rinf_lmc, C_lmc, kapa_lmc, dR, dX_ij)
+!                call hardening_increments(stress, R, center, syld, &
+!                    biso, Rinf, Ckin, kkin, dR, dcenter)
 !                dR = dPlastMult*dR
-!                dX_ij(0:5) = dPlastMult*dX_ij(0:5)
+!                dcenter(0:5) = dPlastMult*dX_ij(0:5)
 !
 !                ! VARIABLE UPDATE
 !                do k=0,5 ! plastic strains
-!                    dEpsilon_ij_pl(k)=dEpsilon_ij_pl(k)+dPlastMult*gradF_0(k)*A(k)
+!                    dEpl(k)=dEpsilon_ij_pl(k)+dPlastMult*gradF0(k)*A(k)
 !                end do
 !                R=R+dR                          ! isotropic hardening update
-!                X_ij(0:5)=X_ij(0:5)+dX_ij(0:5)  ! back-stress update
+!                center(0:5)=X_ij(0:5)+dX_ij(0:5)  ! back-stress update
 !
 !                ! stress update
 !                do j = 0,5
 !                    do k = 0,5
-!                        Sigma_ij(j)=Sigma_ij(j)+DEL_ijhk(k,j)*(dEpsilon_ij_alpha(k)-A(k)*dPlastMult*gradF_0(k))
+!                        stress(j)=Sigma_ij(j)+DEL_ijhk(k,j)*(dEps_alpha(k)-A(k)*dPlastMult*gradF0(k))
 !                    end do
 !                end do
 !
 !                ! DRIFT CORRECTION
-!                call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, Ffinal, gradF_0)
+!                call mises_yld_locus (stress, center, R, syld, Ffinal, gradF0)
 !!               write(*,*) "Ffinal (BD): ",Ffinal
 !                if (Ffinal .gt. FTOL) then
-!                    call drift_corr(Sigma_ij, X_ij, R, sigma_yld,&
-!                        b_lmc, Rinf_lmc, C_lmc, kapa_lmc, lambda, mu, dEpsilon_ij_pl)
-!                    call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, Ffinal, gradF_0)
+!                    call drift_corr(stress, center, R, syld,&
+!                        biso, Rinf, Ckin, kkin, lambda, mu, dEpl)
+!                    call mises_yld_locus (stress, center, R, syld, Ffinal, gradF0)
 !                end if
 !                if (Ffinal.gt.FTOL) then
 !                    write(*,*) "Ffinal (AD): ",Ffinal
