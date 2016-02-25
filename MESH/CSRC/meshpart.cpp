@@ -302,12 +302,10 @@ void Mesh3DPart::handle_local_element(int el, bool is_border)
         int vid = add_vertex(vertex, is_border);
         add_node(gid);
         m_elems_vertices.push_back(vid);
-//        printf("EV:%d e0=%d gid=%d v=%d\n", el, e0, gid, vid);
     }
     for(int vx=8;vx<m_mesh.nodes_per_elem();++vx) {
         int gid = m_mesh.m_elems[e0 + vx];
         add_node(gid);
-//        printf("EN:%d e0=%d gid=%d\n", el, e0, gid);
     }
 }
 

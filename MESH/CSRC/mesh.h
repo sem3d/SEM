@@ -57,7 +57,7 @@ public:
 
     void get_elem_nodes(int el, int nodes[8]) {
         int off = m_elems_offs[el];
-        for(int k=0;k<7;++k) nodes[k] = m_elems[off+k];
+        for(int k=0;k<8;++k) nodes[k] = m_elems[off+k];
     }
     /// Returns domain number for an element:
     /// for now domain number == domain type:

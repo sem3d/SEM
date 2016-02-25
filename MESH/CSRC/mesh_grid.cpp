@@ -100,14 +100,12 @@ void RectMesh::read_params_old(FILE* fparam)
 int RectMesh::pointidx(int i, int j, int k)
 {
     int idx =  i+j*(nelemx+1) + k*(nelemx+1)*(nelemy+1);
-    //    printf("(%d / %d) (%d / %d)  (%d / %d)  = %d\n", i, nelemx, j, nelemy, k, 0, idx);
     return idx;
 }
 
 int RectMesh::pointidx27(int i, int j, int k)
 {
     int idx =  i+j*(2*nelemx+1) + k*(2*nelemx+1)*(2*nelemy+1);
-    //    printf("(%d / %d) (%d / %d)  (%d / %d)  = %d\n", i, nelemx, j, nelemy, k, 0, idx);
     return idx;
 }
 
@@ -217,9 +215,9 @@ int RectMesh::create_quadratic_grid_nodes(Mesh3D& mesh)
     for(int nl=0;nl<nlayers;++nl) {
         double zmin = layerzmax - thickness[nl];
         double zstep = (layerzmax-zmin)/nsteps[nl];
-        for(int k=k0;k<=2*nsteps[nl]+1;++k) {
-            for(int j=0;j<=npy;++j) {
-                for(int i=0;i<=npx;++i) {
+        for(int k=k0;k<2*nsteps[nl]+1;++k) {
+            for(int j=0;j<npy;++j) {
+                for(int i=0;i<npx;++i) {
                     mesh.add_node( xmin + i*0.5*xstep,
                                    ymin + j*0.5*ystep,
                                    layerzmax - k*0.5*zstep );
