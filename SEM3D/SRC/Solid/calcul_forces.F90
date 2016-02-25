@@ -3,6 +3,22 @@
 !! Copyright CEA, ECP, IPGP
 !!
 
+!========================================================================
+! Ce fichier contient la routine principale de calcul des forces
+! solides pour les 4 cas isotrope/anisotrope avec ou sans atténuation.
+!
+! L'implémentation de ces routines se trouve dans les fichiers .inc
+! inclus par les directives #include
+!
+! Le but de ceci est de permettre au compilateur de "voir" le nombre
+! de ngll utilisé réellement, on spécialise les routines pour les ngll
+! 4,5,6,7,8,9. Une routine générique est fournie pour les autres
+! valeurs.
+!
+! On gagne 15 à 20% de performance ainsi.
+!
+!========================================================================
+
 #include "index.h"
 
 module m_calcul_forces ! wrap subroutine in module to get arg type check at build time
@@ -369,9 +385,9 @@ contains
                 sxz = sxz + C(4,l,i,j,k)*eij(l)
                 sxy = sxy + C(5,l,i,j,k)*eij(l)
             enddo
-            syz=syz/s2
-            sxz=sxz/s2
-            sxy=sxy/s2
+            syz=syz*s2o2
+            sxz=sxz*s2o2
+            sxy=sxy*s2o2
         else
             if (n_solid>0) then
                 call calcul_sigma_attenuation(dom,i,j,k,lnum,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,&

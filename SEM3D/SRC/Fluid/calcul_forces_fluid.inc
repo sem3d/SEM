@@ -59,8 +59,7 @@ subroutine PROCNAME(ngllvar,nchunk,lnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m_
         do j = 0,ngll-1
             do i = 0,ngll-1
 #ifdef SEM_VEC
-                !dir$ simd
-                !dir$ vector aligned
+!$omp simd linear(e,ee)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,lnum)
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz
@@ -145,7 +144,7 @@ subroutine PROCNAME(ngllvar,nchunk,lnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m_
         do j = 0,ngll-1
             do i = 0,ngll-1
 #ifdef SEM_VEC
-                !dir$ simd
+!$omp simd linear(e,ee)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,lnum)
                 !=-=-=-=-=-=-=-=-=-=-
