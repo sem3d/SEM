@@ -15,8 +15,19 @@
   Pour l'instant seule une boucle par element est prevue ainsi.
   
  */
-
-
+#if defined(SEM_VEC)
+/* ATTENTION, ne pas utiliser ces macros pour l'instant, un bug du compilateur
+   intel 15 fait crasher le preprocesseur... */
+#define OMP_SIMD(xx) !$omp simd xx
+#if defined(__INTEL_COMPILER)  /* IFORT */
+#define OMP_DECLARE_SIMD(name,args) !$omp declare simd (name) args
+#define ALIGNED(var,val) !dir$ ASSUME_ALIGNED var: val
+#else /* GFORTRAN */
+#define OMP_DECLARE_SIMD(name,args) !!!
+#define ALIGNED(var,val) !!!
+#endif
+#else /* SEM_VEC */
+#endif
 #if defined(SEM_VEC)
 #define CHUNK  64
 #define IND_IJKE(i,j,k,e)           e,i,j,k
