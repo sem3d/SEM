@@ -181,11 +181,12 @@ contains
         integer :: ngll
         integer :: i, j, idx
         real(kind=FPP), allocatable, dimension(:) :: gllc
-        real(kind=FPP), allocatable, dimension(:) :: pol
         real(kind=FPP), allocatable, dimension(:) :: gllw
         real(kind=FPP), dimension(0:2, 0:3) :: nodes
         real(kind=FPP), dimension(0:2) :: normal
         real(kind=FPP) :: orient
+
+        if (surf%nbtot==0) return
         allocate(BtN(0:2, 0:surf%nbtot-1))
 
         Btn(:,:) = 0.
