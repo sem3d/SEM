@@ -220,8 +220,8 @@ contains
                 end do
             end do
         end do
-        deallocate(gllc)
-        deallocate(gllw)
+        if (allocated(gllc)) deallocate(gllc)
+        if (allocated(gllw)) deallocate(gllw)
         deallocate(renum)
     end subroutine compute_normals
     !---------------------------------------------------------------------------
