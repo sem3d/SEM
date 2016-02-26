@@ -294,6 +294,7 @@ subroutine PROCNAME_ATN(dom,lnum,hprime,Depla)
     real(fpp), dimension(IND_MNE(0:2,0:2,0:CHUNK-1)) :: invgrad
     real(fpp) :: dS_dxi, dS_deta, dS_dzeta
     real(fpp) :: factor_common_3, factor_common_P, omega_tau_s, gamma_mu, gamma_kappa
+    real(fpp) :: dt_tau
     n_solid = dom%n_sls
 
     ngll = dom%ngll
@@ -326,8 +327,7 @@ subroutine PROCNAME_ATN(dom,lnum,hprime,Depla)
                     ! get coefficients for that standard linear solid
                     factor_common_P = 2d0*gamma_kappa*omega_tau_s
                     factorP_loc   = dom%Kappa_(i,j,k,e) * factor_common_P
-                    call RK4_attenu_coefs(n_solid,dom%dt,omega_tau_s,gamma_kappa, &
-                        alphavalP_loc, betavalP_loc, gammavalP_loc)
+                    RK4_attenu_coefs(dom%dt,omega_tau_s,gamma_kappa,alphavalP_loc, betavalP_loc, gammavalP_loc)
 
                     !  terme volumique
                     Pn   = factorP_loc * dom%epsilonvol_(i,j,k,e)
@@ -337,8 +337,7 @@ subroutine PROCNAME_ATN(dom,lnum,hprime,Depla)
 #endif
                     ! get coefficients for that standard linear solid
                     factor_common_3 = 2d0*gamma_mu*omega_tau_s
-                    call RK4_attenu_coefs(n_solid,dom%dt,omega_tau_s, gamma_mu, &
-                        alphavalS_loc, betavalS_loc, gammavalS_loc)
+                    RK4_attenu_coefs(dom%dt,omega_tau_s, gamma_mu, alphavalS_loc, betavalS_loc, gammavalS_loc)
 
                     factorS_loc   = dom%Mu_(i,j,k,e) * factor_common_3
 
