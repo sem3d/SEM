@@ -29,7 +29,7 @@ module scomms
        integer :: dest
 
        integer :: nb_faces, nb_edges, nb_vertices
-       integer, dimension(:), pointer :: faces, edges, vertices
+       integer, dimension(:), allocatable :: faces, edges, vertices
     end type comm
 
 contains

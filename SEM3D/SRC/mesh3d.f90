@@ -239,8 +239,6 @@ contains
                 scomm%faces(j)        = itemp(j+1)
             enddo
             deallocate(itemp)
-        else
-            nullify(scomm%faces)
         endif
         if(scomm%nb_edges > 0)then
             call read_dataset(proc_id, "edges", itemp)
@@ -249,8 +247,6 @@ contains
                 scomm%edges(j) = itemp(j+1)
             enddo
             deallocate(itemp)
-        else
-            nullify(scomm%edges)
         endif
         if(scomm%nb_vertices > 0)then
             call read_dataset(proc_id, "vertices", itemp)
