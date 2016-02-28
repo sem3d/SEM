@@ -22,9 +22,14 @@ contains
         logical aniso
         !
 
-        nbelem  = dom%nbelem
-        if(nbelem == 0) return ! Do not allocate if not needed (save allocation/RAM)
         ngll    = dom%ngll
+        nbelem  = dom%nbelem
+        if (ngll == 0) return ! Domain doesn't exist anywhere
+        ! Initialisation poids, points des polynomes de lagranges aux point de GLL
+        call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
+
+        ! Glls are initialized first, because we can have faces of a domain without elements
+        if(nbelem == 0) return ! Do not allocate if not needed (save allocation/RAM)
         aniso   = Tdomain%aniso
         n_solid = Tdomain%n_sls
         dom%n_sls = n_solid
@@ -42,8 +47,6 @@ contains
 
         allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
         dom%m_Idom = 0
-        ! Initialisation poids, points des polynomes de lagranges aux point de GLL
-        call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
 
         if (aniso) then
             allocate (dom%Cij_ (0:20, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))

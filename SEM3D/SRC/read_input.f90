@@ -167,15 +167,13 @@ contains
         use orientation
         implicit none
         type(domain), intent(inout) :: Tdomain
-        integer :: i, mat
+        integer :: i, mat, dom
 
         call read_material_file_v2(Tdomain)
 
-        !- GLL properties in elements, on faces, edges.
-        do i = 0,Tdomain%n_elem-1
-            mat = Tdomain%specel(i)%mat_index
-            Tdomain%specel(i)%domain = get_domain(Tdomain%sSubDomain(mat))
-            select case (Tdomain%specel(i)%domain)
+        do mat = 0, Tdomain%n_mat-1
+            dom = get_domain(Tdomain%sSubDomain(mat))
+            select case (dom)
                  case (DM_SOLID)
                      Tdomain%sdom%ngll = Tdomain%sSubDomain(mat)%NGLL
                  case (DM_FLUID)
@@ -185,6 +183,11 @@ contains
                  case (DM_FLUID_PML)
                      Tdomain%fpmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
             end select
+        end do
+        !- GLL properties in elements, on faces, edges.
+        do i = 0,Tdomain%n_elem-1
+            mat = Tdomain%specel(i)%mat_index
+            Tdomain%specel(i)%domain = get_domain(Tdomain%sSubDomain(mat))
         end do
 
         call apply_mat_to_faces(Tdomain)

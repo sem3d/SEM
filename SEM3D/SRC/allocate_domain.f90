@@ -45,22 +45,12 @@ subroutine allocate_domain (Tdomain)
     end do
 
     call allocate_dom_solid   (Tdomain, Tdomain%sdom)
-    call allocate_dom_fluid   (         Tdomain%fdom)
+    call allocate_dom_fluid   (Tdomain, Tdomain%fdom)
     call allocate_dom_solidpml(Tdomain, Tdomain%spmldom)
     call allocate_dom_fluidpml(Tdomain, Tdomain%fpmldom)
 
     do n = 0,Tdomain%n_elem-1
-        ngll = 0
-        select case (Tdomain%specel(n)%domain)
-             case (DM_SOLID)
-                 ngll = Tdomain%sdom%ngll
-             case (DM_FLUID)
-                 ngll = Tdomain%fdom%ngll
-             case (DM_SOLID_PML)
-                 ngll = Tdomain%spmldom%ngll
-             case (DM_FLUID_PML)
-                 ngll = Tdomain%fpmldom%ngll
-        end select
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
         allocate(Tdomain%specel(n)%MassMat(0:ngll-1, 0:ngll-1, 0:ngll-1))
     enddo
 end subroutine allocate_domain
