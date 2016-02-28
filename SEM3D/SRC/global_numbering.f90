@@ -755,10 +755,10 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
         allocate(Comm_data%Data(n_comm)%IGiveF(0:nflu-1))
         allocate(Comm_data%Data(n_comm)%IGiveFPML(0:nflupml-1))
 
-        write(*,*) "COMM:", Tdomain%rank, "->", Comm_Data%Data(n_comm)%dest, ": NGLLS ", nsol
-        write(*,*) "COMM:", Tdomain%rank, "->", Comm_Data%Data(n_comm)%dest, ": NGLLF ", nflu
-        write(*,*) "COMM:", Tdomain%rank, "->", Comm_Data%Data(n_comm)%dest, ": NGLLSP", nsolpml
-        write(*,*) "COMM:", Tdomain%rank, "->", Comm_Data%Data(n_comm)%dest, ": NGLLFP", nflupml
+!        write(*,*) "COMM:", Tdomain%rank, "->", Comm_Data%Data(n_comm)%dest, ": NGLLS ", nsol
+!        write(*,*) "COMM:", Tdomain%rank, "->", Comm_Data%Data(n_comm)%dest, ": NGLLF ", nflu
+!        write(*,*) "COMM:", Tdomain%rank, "->", Comm_Data%Data(n_comm)%dest, ": NGLLSP", nsolpml
+!        write(*,*) "COMM:", Tdomain%rank, "->", Comm_Data%Data(n_comm)%dest, ": NGLLFP", nflupml
         n_comm = n_comm + 1
     enddo
 

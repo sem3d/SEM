@@ -31,7 +31,7 @@ contains
 
         if (inter%surf0%n_faces/=0) then
             call read_dataset(fid, trim(pfx)//"_faces", itemp2)
-            write(*,*) pfx//" Faces:", size(itemp2,1), size(itemp2,2)
+!            write(*,*) pfx//" Faces:", size(itemp2,1), size(itemp2,2)
             inter%surf0%if_faces = itemp2(1,:)
             inter%surf1%if_faces = itemp2(2,:)
             deallocate(itemp2)
@@ -42,14 +42,14 @@ contains
         end if
         if (inter%surf0%n_edges/=0) then
             call read_dataset(fid, trim(pfx)//"_edges", itemp2)
-            write(*,*) pfx//" Edges:", size(itemp2,1), size(itemp2,2)
+!            write(*,*) pfx//" Edges:", size(itemp2,1), size(itemp2,2)
             inter%surf0%if_edges = itemp2(1,:)
             inter%surf1%if_edges = itemp2(2,:)
             deallocate(itemp2)
         end if
         if (inter%surf0%n_vertices/=0) then
             call read_dataset(fid, trim(pfx)//"_vertices", itemp2)
-            write(*,*) pfx//" Vertices:", size(itemp2,1), size(itemp2,2)
+!            write(*,*) pfx//" Vertices:", size(itemp2,1), size(itemp2,2)
             inter%surf0%if_vertices = itemp2(1,:)
             inter%surf1%if_vertices = itemp2(2,:)
             deallocate(itemp2)
@@ -276,9 +276,9 @@ contains
         call allocate_surface(surf)
 
         if (surf%n_faces/=0) then
-            write(*,*) "READ: //", trim(pfx)//"_faces","//"
+!            write(*,*) "READ: //", trim(pfx)//"_faces","//"
             call read_dataset(gid, trim(pfx)//"_faces", itemp)
-            write(*,*) trim(pfx)//" Faces:", size(itemp)
+!            write(*,*) trim(pfx)//" Faces:", size(itemp)
             surf%if_faces = itemp
             deallocate(itemp)
             call read_dataset(gid, trim(pfx)//"_orient", itemp)
@@ -287,13 +287,13 @@ contains
         end if
         if (surf%n_edges/=0) then
             call read_dataset(gid, trim(pfx)//"_edges", itemp)
-            write(*,*) trim(pfx)//" Edges:", size(itemp)
+!            write(*,*) trim(pfx)//" Edges:", size(itemp)
             surf%if_edges = itemp
             deallocate(itemp)
         end if
         if (surf%n_vertices/=0) then
             call read_dataset(gid, trim(pfx)//"_vertices", itemp)
-            write(*,*) trim(pfx)//" Vertices:", size(itemp)
+!            write(*,*) trim(pfx)//" Vertices:", size(itemp)
             surf%if_vertices = itemp
             deallocate(itemp)
         end if
@@ -313,10 +313,10 @@ contains
         allocate(Tdomain%sSurfaces(0:n_surfaces-1))
         ! Get group info
         call H5Gget_info_f(gid, storage_type, nlinks, max_corder, ierr)
-        write(*,*) "SURFACES:", n_surfaces, "/", max_corder, " nlinks=", nlinks
+!        write(*,*) "SURFACES:", n_surfaces, "/", max_corder, " nlinks=", nlinks
         do i=0,nlinks-1
             call H5Lget_name_by_idx_f(gid, ".", H5_INDEX_NAME_F, H5_ITER_INC_F, i, surfname, ierr, namesz)
-            write(*,*) "SURFACE:", i, " :: ", trim(surfname)
+!            write(*,*) "SURFACE:", i, " :: ", trim(surfname)
             call H5Gopen_f(gid, trim(surfname), surf_id, ierr)
             !
             ! Read one surface

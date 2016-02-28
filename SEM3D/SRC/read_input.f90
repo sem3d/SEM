@@ -397,7 +397,7 @@ contains
                 nRandom = nRandom + 1
             end if
 
-            if(rg==0) then
+            if(rg==0 .and. .False.) then
                 write (*,*) 'Material   : ', i
                 write (*,*) ' - type    : ', Tdomain%sSubDomain(i)%material_type
                 write (*,*) ' - Pspeed  : ', Tdomain%sSubDomain(i)%Pspeed
@@ -423,7 +423,7 @@ contains
                         Tdomain%sSubdomain(i)%pml_width(2), &
                         Tdomain%sSubdomain(i)%assocMat
 
-                    if(rg==0) then
+                    if(rg==0 .and. .False.) then
                         write (*,*) 'PML Material : '
                         write (*,*) ' - assocMat  : ', Tdomain%sSubdomain(i)%assocMat
                         write (*,*) ' - Apow      : ', Tdomain%sSubdomain(i)%Apow
