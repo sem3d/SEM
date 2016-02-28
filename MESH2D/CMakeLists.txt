@@ -4,11 +4,11 @@ ENABLE_LANGUAGE(Fortran CXX)
 set(PRJ ${PROJECT_SOURCE_DIR})
 set(BASE ${CMAKE_SOURCE_DIR})
 
-
 set(MESHC_SRC
   ${BASE}/COMMON/h5helper.cpp
   ${SEMCOMMON}/read_unv.cpp
   ${PRJ}/SRC/main_mesh2d.cpp
+  ${BASE}/COMMON/read_unv.cpp
 )
 #set_property(SOURCE ${SEMCOMMON}/read_unv.cpp ${PRJ}/SRC/main_mesh2d.cpp PROPERTY CXX_STANDARD 11) # set_property C++11 KO...
 set_source_files_properties(${SEMCOMMON}/read_unv.cpp ${PRJ}/SRC/main_mesh2d.cpp PROPERTIES COMPILE_FLAGS "-std=c++11") # Bypass qui devrait marcher dans 99% des cas (gnu, intel)...
