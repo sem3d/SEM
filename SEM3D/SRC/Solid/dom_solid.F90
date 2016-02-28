@@ -28,77 +28,80 @@ contains
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
         call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
 
-        ! Glls are initialized first, because we can have faces of a domain without elements
-        if(nbelem == 0) return ! Do not allocate if not needed (save allocation/RAM)
         aniso   = Tdomain%aniso
         n_solid = Tdomain%n_sls
         dom%n_sls = n_solid
         dom%aniso = Tdomain%aniso
-        nbelem = CHUNK*((nbelem+CHUNK-1)/CHUNK)
-        dom%nbelem_alloc = nbelem
 
-        allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-        allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-        allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-        allocate(dom%Kappa_  (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+        ! Glls are initialized first, because we can have faces of a domain without elements
+        if(nbelem /= 0) then
+            ! Do not allocate if not needed (save allocation/RAM)
+            ! Wexo can have glls without elements
+            nbelem = CHUNK*((nbelem+CHUNK-1)/CHUNK)
+            dom%nbelem_alloc = nbelem
 
-        allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
-        allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+            allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+            allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+            allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+            allocate(dom%Kappa_  (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
 
-        allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
-        dom%m_Idom = 0
+            allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+            allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
 
-        if (aniso) then
-            allocate (dom%Cij_ (0:20, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-        endif
-        if (n_solid>0) then
+            allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+            dom%m_Idom = 0
+
             if (aniso) then
-                allocate (dom%Q_(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            else
-                allocate (dom%Qs_         (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%Qp_         (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%onemPbeta_  (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%epsilonvol_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                dom%epsilonvol_(:,:,:,:) = 0
-                allocate (dom%factor_common_P_(0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%alphaval_P_     (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%betaval_P_      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%gammaval_P_     (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%R_vol_          (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                dom%R_vol_(:,:,:,:,:) = 0
+                allocate (dom%Cij_ (0:20, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
             endif
-            allocate (dom%onemSbeta_     (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            allocate (dom%epsilondev_xx_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            allocate (dom%epsilondev_yy_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            allocate (dom%epsilondev_xy_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            allocate (dom%epsilondev_xz_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            allocate (dom%epsilondev_yz_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            dom%epsilondev_xx_(:,:,:,:) = 0
-            dom%epsilondev_yy_(:,:,:,:) = 0
-            dom%epsilondev_xy_(:,:,:,:) = 0
-            dom%epsilondev_xz_(:,:,:,:) = 0
-            dom%epsilondev_yz_(:,:,:,:) = 0
-            allocate (dom%factor_common_3_(0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            allocate (dom%alphaval_3_     (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            allocate (dom%betaval_3_      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            allocate (dom%gammaval_3_     (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            allocate (dom%R_xx_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            allocate (dom%R_yy_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            allocate (dom%R_xy_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            allocate (dom%R_xz_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            allocate (dom%R_yz_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            !
-            allocate (dom%omega_tau_s_    (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            allocate (dom%agamma_mu_      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            allocate (dom%agamma_kappa_   (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-            !
-            dom%R_xx_(:,:,:,:,:) = 0
-            dom%R_yy_(:,:,:,:,:) = 0
-            dom%R_xy_(:,:,:,:,:) = 0
-            dom%R_xz_(:,:,:,:,:) = 0
-            dom%R_yz_(:,:,:,:,:) = 0
-        endif ! n_solid
-
+            if (n_solid>0) then
+                if (aniso) then
+                    allocate (dom%Q_(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                else
+                    allocate (dom%Qs_         (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                    allocate (dom%Qp_         (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                    allocate (dom%onemPbeta_  (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                    allocate (dom%epsilonvol_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                    dom%epsilonvol_(:,:,:,:) = 0
+                    allocate (dom%factor_common_P_(0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                    allocate (dom%alphaval_P_     (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                    allocate (dom%betaval_P_      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                    allocate (dom%gammaval_P_     (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                    allocate (dom%R_vol_          (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                    dom%R_vol_(:,:,:,:,:) = 0
+                endif
+                allocate (dom%onemSbeta_     (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%epsilondev_xx_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%epsilondev_yy_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%epsilondev_xy_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%epsilondev_xz_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%epsilondev_yz_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                dom%epsilondev_xx_(:,:,:,:) = 0
+                dom%epsilondev_yy_(:,:,:,:) = 0
+                dom%epsilondev_xy_(:,:,:,:) = 0
+                dom%epsilondev_xz_(:,:,:,:) = 0
+                dom%epsilondev_yz_(:,:,:,:) = 0
+                allocate (dom%factor_common_3_(0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%alphaval_3_     (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%betaval_3_      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%gammaval_3_     (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%R_xx_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%R_yy_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%R_xy_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%R_xz_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%R_yz_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                !
+                allocate (dom%omega_tau_s_    (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%agamma_mu_      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%agamma_kappa_   (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                !
+                dom%R_xx_(:,:,:,:,:) = 0
+                dom%R_yy_(:,:,:,:,:) = 0
+                dom%R_xy_(:,:,:,:,:) = 0
+                dom%R_xz_(:,:,:,:,:) = 0
+                dom%R_yz_(:,:,:,:,:) = 0
+            endif ! n_solid
+        end if
         ! Allocation et initialisation de champs0 et champs1 pour les solides
         if (dom%nglltot /= 0) then
             allocate(dom%champs0%Forces(0:dom%nglltot-1,0:2))

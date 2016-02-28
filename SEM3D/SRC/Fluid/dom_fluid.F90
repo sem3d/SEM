@@ -29,21 +29,21 @@ contains
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
         call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
 
-        ! Glls are initialized first, because we can have faces of a domain without elements
-        if(nbelem == 0) return ! Do not allocate if not needed (save allocation/RAM)
+        if(nbelem /= 0) then
+            ! We can have glls without elements
+            ! Do not allocate if not needed (save allocation/RAM)
+            nbelem = CHUNK*((nbelem+CHUNK-1)/CHUNK)
+            dom%nbelem_alloc = nbelem
 
-        nbelem = CHUNK*((nbelem+CHUNK-1)/CHUNK)
-        dom%nbelem_alloc = nbelem
+            allocate(dom%IDensity_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+            allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
 
-        allocate(dom%IDensity_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-        allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+            allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+            allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
 
-        allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
-        allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
-
-        allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
-        dom%m_Idom = 0
-
+            allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+            dom%m_Idom = 0
+        end if
         ! Allocation et initialisation de champs0 et champs1 pour les fluides
         if (dom%nglltot /= 0) then
             allocate(dom%champs0%ForcesFl(0:dom%nglltot-1))
