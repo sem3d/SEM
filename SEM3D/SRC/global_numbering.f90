@@ -17,6 +17,8 @@ module mrenumber
   implicit none
   public :: global_numbering, get_surface_numbering
   private :: allocate_comm_vector, prepare_comm_vector
+
+
 contains
 
 subroutine global_numbering(Tdomain)
@@ -56,8 +58,8 @@ subroutine global_numbering(Tdomain)
             Tdomain%sSurfaces(k)%surf_fpml%nbtot
     end do
     call prepare_comm_vector(Tdomain, Tdomain%Comm_data)
-    call prepare_comm_surface(Tdomain, Tdomain%Comm_SolFlu, Tdomain%SF%intSolFlu%surf1, DM_FLUID)
-    call prepare_comm_surface(Tdomain, Tdomain%Comm_SolFlu, Tdomain%SF%intSolFluPml%surf1, DM_FLUID_PML)
+
+    call prepare_comm_surface(Tdomain, Tdomain%Comm_SolFlu)
 end subroutine global_numbering
 
 subroutine renumber_global_gll_nodes(Tdomain)
@@ -901,14 +903,109 @@ subroutine reorder_domains(Tdomain)
     deallocate(reorder)
 end subroutine reorder_domains
 
-subroutine prepare_comm_surface(Tdomain, comm_data, surface, dom)
+subroutine build_comms_surface(Tdomain, comm_data, surface, dom)
     use sdomain
+    use mintset
     implicit none
-
     type(domain), intent (inout) :: Tdomain
     type(comm_vector), intent(inout) :: comm_data
     type(surf_num), intent(in) :: surface
     integer, intent(in) :: dom
+    !
+    integer :: n, src, dst, n1, n2
+    integer :: count, idx, nv, ne, i, j
+    integer :: ngll
+    integer, dimension(:), allocatable :: verts, edges
+    integer, dimension(:), allocatable :: igive
+    integer, allocatable, dimension(:) :: renum
+    !
+    src = Tdomain%rank
+!    write(*,*) "Surface:", surface%n_vertices, surface%n_edges
+    call get_surface_numbering(Tdomain, surface, dom, renum)
+
+    ngll = domain_ngll(Tdomain, dom)
+    do n = 0,Tdomain%Comm_data%ncomm-1
+        dst = Tdomain%Comm_data%Data(n)%dest
+
+        n2 = surface%nbtot
+        select case(dom)
+        case (DM_FLUID)
+            n1 = Tdomain%Comm_data%Data(n)%nflu
+            if (n1>0.and.n2>0) then
+                count = intersect_arrays(n1, Tdomain%Comm_data%Data(n)%IGiveF, n2, surface%map, igive)
+            else
+                count = 0
+                allocate(igive(0:-1))
+            endif
+        case (DM_FLUID_PML)
+            n1 = Tdomain%Comm_data%Data(n)%nflupml
+            if (n1>0.and.n2>0) then
+                count = intersect_arrays(n1, Tdomain%Comm_data%Data(n)%IGiveFPML, n2, surface%map, igive)
+            else
+                count = 0
+                allocate(igive(0:-1))
+            endif
+        end select
+        do i=0,count-1
+            idx = igive(i)
+            idx = renum(idx)
+            igive(i) = idx
+        enddo
+        select case(dom)
+        case (DM_SOLID)
+            allocate(comm_data%Data(n)%IGiveS(0:count-1))
+            comm_data%Data(n)%IGiveS = igive
+            comm_data%Data(n)%nsolpml = count
+        case (DM_FLUID)
+            allocate(comm_data%Data(n)%IGiveF(0:count-1))
+            comm_data%Data(n)%IGiveF = igive
+            comm_data%Data(n)%nflu = count
+        case (DM_SOLID_PML)
+            allocate(comm_data%Data(n)%IGiveSPML(0:count-1))
+            comm_data%Data(n)%IGiveSPML = igive
+            comm_data%Data(n)%nsolpml = count
+        case (DM_FLUID_PML)
+            allocate(comm_data%Data(n)%IGiveFPML(0:count-1))
+            comm_data%Data(n)%IGiveFPML = igive
+            comm_data%Data(n)%nflupml = count
+        end select
+        comm_data%Data(n)%src = src
+        comm_data%Data(n)%dest = dst
+
+        write(*,*) "COMM:", src, "->", dst, ":", count, "(",dom,")"
+        deallocate(igive)
+    end do
+end subroutine build_comms_surface
+
+subroutine prepare_comm_surface(Tdomain, comm_data)
+    use sdomain
+    implicit none
+
+    type(domain), intent (inout) :: Tdomain
+!    type(comm_vector), intent(in) :: comm_src
+    type(comm_vector), intent(inout) :: comm_data
+!    type(surf_num), intent(in) :: surface
+    integer :: ncomm, sz, n
+
+    ncomm = Tdomain%tot_comm_proc
+    allocate(Comm_data%Data(0:ncomm-1))
+    allocate(Comm_data%send_reqs(0:ncomm-1))
+    allocate(Comm_data%recv_reqs(0:ncomm-1))
+    Comm_data%ncomm = ncomm
+
+    ! Compte le nb de points GLL commun entre Tdomain%SF%intSolFlu%surf1 et les points de Tdomain
+    call build_comms_surface(Tdomain, comm_data, Tdomain%SF%intSolFlu%surf1, DM_FLUID)
+    call build_comms_surface(Tdomain, comm_data, Tdomain%SF%intSolFluPml%surf1, DM_FLUID_PML)
+
+    do n = 0, comm_data%ncomm-1
+        sz = comm_data%Data(n)%nflu + comm_data%Data(n)%nflupml
+        comm_data%Data(n)%ndata = 3*sz
+
+        allocate(comm_data%Data(n)%Give(0:3*sz-1))
+        allocate(comm_data%Data(n)%Take(0:3*sz-1))
+    end do
+!    call prepare_comm_surface(Tdomain, Tdomain%Comm_SolFlu, Tdomain%SF%intSolFlu%surf1, DM_FLUID)
+!    call prepare_comm_surface(Tdomain, Tdomain%Comm_SolFlu, Tdomain%SF%intSolFluPml%surf1, DM_FLUID_PML)
 
 end subroutine prepare_comm_surface
 end module mrenumber
