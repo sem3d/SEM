@@ -221,6 +221,7 @@ gammaval = dt*(0.5d0 + dt_tau * (1d0/6.d0) + dt_tau**2 *(1d0/24d0))
 #define PROCNAME_ATN attenuation_aniso_update_n
 #include "calcul_forces_solid.inc"
 
+#if 0
     subroutine calcul_forces(dom,lnum,Fox,Foy,Foz,Depla,aniso,n_solid)
 
         use sdomain
@@ -482,6 +483,7 @@ gammaval = dt*(0.5d0 + dt_tau * (1d0/6.d0) + dt_tau**2 *(1d0/24d0))
                  sxx,sxy,sxz,syy,syz,szz,n_solid)
         end if
     end subroutine calcul_sigma
+#endif
 end module m_calcul_forces_atn
 
 !! Local Variables:
