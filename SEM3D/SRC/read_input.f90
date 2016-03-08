@@ -171,6 +171,10 @@ contains
 
         call read_material_file_v2(Tdomain)
 
+        Tdomain%sdom%ngll    = 0
+        Tdomain%fdom%ngll    = 0
+        Tdomain%spmldom%ngll = 0
+        Tdomain%fpmldom%ngll = 0
         do mat = 0, Tdomain%n_mat-1
             dom = get_domain(Tdomain%sSubDomain(mat))
             select case (dom)
