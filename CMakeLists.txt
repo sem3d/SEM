@@ -161,13 +161,15 @@ add_dependencies(randomfield semcommon)
 set(SEM_EXTRA_LIBS randomfield semcommon ${SEM_EXTRA_LIBS})
 
 add_subdirectory(COMMON/netlib)
-add_subdirectory(SEM2D)
+option(OPT_SEM2D "Compile SEM2D" OFF) # Save compilation time (in particular with intel : save half an hour !...)
+if(OPT_SEM2D)
+  add_subdirectory(MESH2D)
+  add_subdirectory(SEM2D)
+  SET_TARGET_PROPERTIES(sem2d.exe PROPERTIES LINKER_LANGUAGE Fortran)
+endif(OPT_SEM2D)
 add_subdirectory(SEM3D)
 add_subdirectory(MESH)
-add_subdirectory(MESH2D)
-
 
 add_executable(test_sem_path ${SEMCOMMON}/test_sem_path.f90   ${SEMCOMMON}/fileutils.c ${SEMCOMMON}/sem_c_bindings.F90 ${SEMCOMMON}/semdatafiles.F90)
 
-SET_TARGET_PROPERTIES(sem2d.exe PROPERTIES LINKER_LANGUAGE Fortran)
 SET_TARGET_PROPERTIES(sem3d.exe PROPERTIES LINKER_LANGUAGE Fortran)
