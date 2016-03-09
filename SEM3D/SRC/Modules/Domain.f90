@@ -73,7 +73,7 @@ module sdomain
 
        logical :: aniso
        logical :: any_Random, any_PropOnFile
-
+       logical :: nl_flag
        integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers
        integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls
        integer :: n_hexa  !< Nombre de maille hexa ~= (ngllx-1)*(nglly-1)*(ngllz-1)*nelem

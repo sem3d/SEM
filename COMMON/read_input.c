@@ -624,7 +624,8 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"mat_file")) err=expect_eq_string(scanner, &config->mat_file,1);
 	else if (cmp(scanner,"mesh_file")) err=expect_eq_string(scanner, &config->mesh_file,1);
 	else if (cmp(scanner,"mpml_atn_param")) err=expect_eq_float(scanner, &config->mpml,1);
-	else if (cmp(scanner,"prorep")) err=expect_eq_bool(scanner, &config->prorep,1);
+	else if (cmp(scanner,"nonlinear")) err=expect_eq_bool(scanner, &config->nl_flag,1);
+    else if (cmp(scanner,"prorep")) err=expect_eq_bool(scanner, &config->prorep,1);
 	else if (cmp(scanner,"prorep_iter")) err=expect_eq_int(scanner, &config->prorep_iter,1);
 	else if (cmp(scanner,"restart_iter")) err=expect_eq_int(scanner, &config->prorep_restart_iter,1);
 	else if (cmp(scanner,"run_name")) err=expect_eq_string(scanner, &config->run_name,1);
@@ -673,7 +674,7 @@ void init_sem_config(sem_config_t* cfg)
     cfg->out_variables[6] = 1; // Accel
     cfg->out_variables[7] = 0; // Deformation Dev
     cfg->out_variables[8] = 0; // Contrainte Dev
-
+    cfg->nl_flag = 0; // calcul nonlineaire
 }
 
 
@@ -702,16 +703,14 @@ void dump_config(sem_config_t* cfg)
     printf("Fichier stations: '%s'\n", cfg->station_file);
     printf("Snap interval : %lf\n", cfg->snap_interval);
     printf("Snap selection : %p\n", cfg->snapshot_selection);
-    // START MODIFS - FILIPPO 07/15
     printf("out variables : (%d,%d,%d,%d,%d,%d,%d,%d,%d)\n", \
     				cfg->out_variables[0], cfg->out_variables[1], cfg->out_variables[2],\
     				cfg->out_variables[3], cfg->out_variables[4], cfg->out_variables[5],\
     				cfg->out_variables[6], cfg->out_variables[7], cfg->out_variables[8]);
-	// END MODIFS - FILIPPO 07/15
     printf("Neu present : %d\n", cfg->neu_present);
     printf("Neu type    : %d\n", cfg->neu_type);
     printf("Neu mat     : %d\n", cfg->neu_mat);
-
+    printf("Nonlinear analysis : %d\n",cfg->nl_flag);
 //    src = cfg->source;
 //    while(src) {
 //	printf("\nSource %d\n--------\n", ksrc);

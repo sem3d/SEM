@@ -19,7 +19,7 @@ contains
         type(domain_solid), intent (INOUT) :: dom
         !
         integer nbelem, ngll, n_solid
-        logical aniso
+        logical aniso,nl_flag,nl_law
         !
 
         ngll    = dom%ngll
@@ -28,10 +28,12 @@ contains
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
         call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
 
-        aniso   = Tdomain%aniso
-        n_solid = Tdomain%n_sls
-        dom%n_sls = n_solid
-        dom%aniso = Tdomain%aniso
+        aniso       = Tdomain%aniso
+        n_solid     = Tdomain%n_sls
+        dom%n_sls   = n_solid
+        dom%aniso   = Tdomain%aniso
+        nl_flag     = Tdomain%nl_flag==1
+        nl_law      = dom%nl_law==NLLMC
 
         ! Glls are initialized first, because we can have faces of a domain without elements
         if(nbelem /= 0) then
@@ -44,6 +46,16 @@ contains
             allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
             allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
             allocate(dom%Kappa_  (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+            
+            if (nl_flag.and.nl_law) then
+                allocate(dom%nl_param)
+                allocate(dom%nl_param%LMC)
+                allocate(dom%nl_param%LMC%syld_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+                allocate(dom%nl_param%LMC%Ckin_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+                allocate(dom%nl_param%LMC%kkin_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+                allocate(dom%nl_param%LMC%rinf_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+                allocate(dom%nl_param%LMC%biso_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+            end if
 
             allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
             allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
@@ -114,10 +126,25 @@ contains
             dom%champs0%Forces = 0d0
             dom%champs0%Depla = 0d0
             dom%champs0%Veloc = 0d0
+            if (nl_flag.and.nl_law) then
+                allocate(dom%champs0%EpsP   (0:dom%nglltot-1,0:5))
+                allocate(dom%champs0%Stress (0:dom%nglltot-1,0:5))
+                allocate(dom%champs0%Xkin   (0:dom%nglltot-1,0:5))
+                allocate(dom%champs0%Riso   (0:dom%nglltot-1))
+                allocate(dom%champs1%EpsP   (0:dom%nglltot-1,0:5))
+                allocate(dom%champs1%Stress (0:dom%nglltot-1,0:5))
+                allocate(dom%champs1%Xkin   (0:dom%nglltot-1,0:5))
+                allocate(dom%champs1%Riso   (0:dom%nglltot-1))
+                dom%champs0%EpsP    = 0d0
+                dom%champs0%Stress  = 0d0
+                dom%champs0%Xkin    = 0d0
+                dom%champs0%Riso    = 0d0
+            end if
 
             ! Allocation de MassMat pour les solides
             allocate(dom%MassMat(0:dom%nglltot-1))
             dom%MassMat = 0d0
+
         endif
     end subroutine allocate_dom_solid
 
@@ -175,23 +202,35 @@ contains
         if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
 
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
+
+        if(allocated(dom%nl_param%LMC%m_syld))  deallocate(dom%nl_param%LMC%m_syld)
+        if(allocated(dom%nl_param%LMC%m_biso))  deallocate(dom%nl_param%LMC%m_biso)
+        if(allocated(dom%nl_param%LMC%m_rinf))  deallocate(dom%nl_param%LMC%m_rinf)
+        if(allocated(dom%nl_param%LMC%m_Ckin))  deallocate(dom%nl_param%LMC%m_Ckin)
+        if(allocated(dom%nl_param%LMC%m_kkin))  deallocate(dom%nl_param%LMC%m_kkin)
+        if(allocated(dom%nl_param%LMC       ))  deallocate(dom%nl_param%LMC)
+        if(allocated(dom%nl_param           ))  deallocate(dom%nl_param)
+
     end subroutine deallocate_dom_solid
 
     subroutine get_solid_dom_var(dom, lnum, out_variables, &
-        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+        fieldU, fieldV, fieldA, fieldP, P_energy, S_energy,&
+        eps_vol, eps_dev, sig_dev, nl_flag, eps_dev_pl)
         use deriv3d
         implicit none
         !
         type(domain_solid), intent(inout)          :: dom
         integer, intent(in), dimension(0:8)        :: out_variables
         integer, intent(in)                        :: lnum
+        logical, intent(in)                        :: nl_flag
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
+        real(fpp), dimension(:,:,:,:), allocatable, optional :: eps_dev_pl
         !
-        logical                                  :: flag_gradU
+        logical                                  :: flag_gradU, nl_law
         integer                                  :: ngll, i, j, k, ind
         real(fpp)                                :: DXX, DXY, DXZ
         real(fpp)                                :: DYX, DYY, DYZ
@@ -201,13 +240,21 @@ contains
         real(fpp)                                :: onemSbeta, onemPbeta
         real, dimension(0:2,0:2) :: invgrad_ijk
 
-        flag_gradU = (out_variables(OUT_PRESSION)    + &
-                      out_variables(OUT_ENERGYP)     + &
-                      out_variables(OUT_ENERGYS)     + &
-                      out_variables(OUT_EPS_VOL)     + &
-                      out_variables(OUT_EPS_DEV)     + &
-                      out_variables(OUT_STRESS_DEV)) /= 0
-
+        if (nl_flag.and.nl_law) then
+            flag_gradU = (out_variables(OUT_ENERGYP)     + &
+                          out_variables(OUT_ENERGYS)     + &
+                          out_variables(OUT_EPS_VOL)     + &
+                          out_variables(OUT_EPS_DEV)     + &
+                          out_variables(OUT_STRESS_DEV)) /= 0
+        else
+            flag_gradU = (out_variables(OUT_PRESSION)    + &
+                          out_variables(OUT_ENERGYP)     + &
+                          out_variables(OUT_ENERGYS)     + &
+                          out_variables(OUT_EPS_VOL)     + &
+                          out_variables(OUT_EPS_DEV)     + &
+                          out_variables(OUT_STRESS_DEV)) /= 0
+        endif
+        
         ngll = dom%ngll
 
         ! First, get displacement.
@@ -259,9 +306,13 @@ contains
 
                     if (out_variables(OUT_PRESSION) == 1) then
                         if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
-                        fieldP(i,j,k) = -(dom%Lambda_(i,j,k,lnum)&
-                                          +2d0/3d0*dom%Mu_(i,j,k,lnum))&
-                                        *(DXX+DYY+DZZ)
+                          
+                        if (nl_flag) then
+                            fieldP(i,j,k) = -sum(dom%champs0%Stress(ind,0:2))/3
+                        else
+                            fieldP(i,j,k) = -(dom%Lambda_(i,j,k,lnum)&
+                                +2d0/3d0*dom%Mu_(i,j,k,lnum))*(DXX+DYY+DZZ)
+                        endif
                     end if
 
                     if (out_variables(OUT_EPS_VOL) == 1 .or. &
@@ -316,26 +367,37 @@ contains
                         eps_dev(i,j,k,3) = 0.5 * (DXY + DYX)
                         eps_dev(i,j,k,4) = 0.5 * (DZX + DXZ)
                         eps_dev(i,j,k,5) = 0.5 * (DZY + DYZ)
+                        if (present(eps_dev_pl).and.nl_flag) then
+                            eps_dev_pl(i,j,k,:) = dom%champs0%EpsP(ind,:) 
+                        endif
                     end if
 
                     if (out_variables(OUT_STRESS_DEV) == 1) then
                         if(.not. allocated(sig_dev)) allocate(sig_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
                         sig_dev(i,j,k,0:5) = 0.
+                        
                         if (.not. dom%aniso) then
-                            sig_dev(i,j,k,0) = x2mu * (DXX - eps_vol(i,j,k) * M_1_3)
-                            sig_dev(i,j,k,1) = x2mu * (DYY - eps_vol(i,j,k) * M_1_3)
-                            sig_dev(i,j,k,2) = x2mu * (DZZ - eps_vol(i,j,k) * M_1_3)
-                            sig_dev(i,j,k,3) = xmu * (DXY + DYX)
-                            sig_dev(i,j,k,4) = xmu * (DXZ + DZX)
-                            sig_dev(i,j,k,5) = xmu * (DYZ + DZY)
+                            if (nl_flag) then
+                                sig_dev(i,j,k,:) = dom%champs0%Stress(ind,:)
+                            else
+                                sig_dev(i,j,k,0) = x2mu * (DXX - eps_vol(i,j,k) * M_1_3)
+                                sig_dev(i,j,k,1) = x2mu * (DYY - eps_vol(i,j,k) * M_1_3)
+                                sig_dev(i,j,k,2) = x2mu * (DZZ - eps_vol(i,j,k) * M_1_3)
+                                sig_dev(i,j,k,3) = xmu * (DXY + DYX)
+                                sig_dev(i,j,k,4) = xmu * (DXZ + DZX)
+                                sig_dev(i,j,k,5) = xmu * (DYZ + DZY)
+                            endif
                         end if
+
                     end if
                 enddo
             enddo
         enddo
     end subroutine get_solid_dom_var
 
-    subroutine init_material_properties_solid(dom, lnum, i, j, k, density, lambda, mu, kappa, mat)
+    subroutine init_material_properties_solid(dom, lnum, i, j, k, density, lambda, mu, kappa, mat,&
+        syld, ckin, kkin, rinf, biso)
+
         use ssubdomains
         type(domain_solid), intent(inout) :: dom
         integer, intent(in) :: lnum
@@ -344,8 +406,14 @@ contains
         real(fpp), intent(in) :: lambda
         real(fpp), intent(in) :: mu
         real(fpp), intent(in) :: kappa
-        type (subdomain), intent(in), optional :: mat
+        real(fpp), intent(in), optional :: syld
+        real(fpp), intent(in), optional :: ckin
+        real(fpp), intent(in), optional :: kkin
+        real(fpp), intent(in), optional :: rinf
+        real(fpp), intent(in), optional :: biso
 
+        type (subdomain), intent(in), optional :: mat
+        
         if (i==-1 .and. j==-1 .and. k==-1) then
             dom%Density_(:,:,:,lnum) = density
             dom%Lambda_ (:,:,:,lnum) = lambda
@@ -357,7 +425,21 @@ contains
             dom%Kappa_  (i,j,k,lnum) = kappa
             dom%Mu_     (i,j,k,lnum) = mu
         end if
-
+        if (present(syld)) then
+            if (i==-1 .and. j==-1 .and. k==-1) then
+                dom%nl_param%LMC%syld_(:,:,:,lnum) = syld
+                dom%nl_param%LMC%Ckin_(:,:,:,lnum) = Ckin
+                dom%nl_param%LMC%kkin_(:,:,:,lnum) = kkin
+                dom%nl_param%LMC%rinf_(:,:,:,lnum) = rinf 
+                dom%nl_param%LMC%biso_(:,:,:,lnum) = biso
+            else
+                dom%nl_param%LMC%syld_(i,j,k,lnum) = syld
+                dom%nl_param%LMC%Ckin_(i,j,k,lnum) = Ckin
+                dom%nl_param%LMC%kkin_(i,j,k,lnum) = kkin
+                dom%nl_param%LMC%rinf_(i,j,k,lnum) = rinf 
+                dom%nl_param%LMC%biso_(i,j,k,lnum) = biso
+            end if
+        endif
         if (present(mat)) then
             if (dom%n_sls>0)  then
                 if (dom%aniso) then
@@ -368,6 +450,7 @@ contains
                 endif
             endif
         endif
+
     end subroutine init_material_properties_solid
 
     subroutine init_material_tensor_solid(dom, lnum, i, j, k, density, Cij)
@@ -402,36 +485,81 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solid
 
-    subroutine forces_int_solid(dom, champs1, lnum)
+    subroutine forces_int_solid(dom, champs1, lnum, nl_flag)
         use m_calcul_forces
         use m_calcul_forces_atn
         use attenuation_solid
         type(domain_solid), intent (INOUT) :: dom
         type(champssolid), intent(inout) :: champs1
         integer, intent(in) :: lnum
+        logical, intent(in) :: nl_flag
         !
         integer :: ngll,i,j,k,i_dir,e,ee,idx
         integer :: n_solid
-        logical :: aniso
+        logical :: aniso,nl_law
         real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
+        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: Strs
+        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: Xkin
+        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: EpsP
+        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: Riso
 
         n_solid = dom%n_sls
-        aniso = dom%aniso
-        ngll = dom%ngll
+        aniso   = dom%aniso
+        ngll    = dom%ngll
+        nl_law  = dom%nl_law==NLLMC
 
-        do i_dir = 0,2
+        if (nl_flag.and.nl_law) then
+            do i_dir = 0,2
+                do k = 0,ngll-1
+                    do j = 0,ngll-1
+                        do i = 0,ngll-1
+                            do ee = 0, CHUNK-1
+                                idx = dom%Idom_(i,j,k,ee+lnum)
+                                Depla(ee,i,j,k,i_dir) = champs1%Veloc(idx,i_dir)
+                            enddo
+                        enddo
+                    enddo
+                enddo
+            enddo
+            do i_dir = 0,5
+                do k = 0,ngll-1
+                    do j = 0,ngll-1
+                        do i = 0,ngll-1
+                            do ee = 0, CHUNK-1
+                                idx = dom%Idom_(i,j,k,ee+lnum)
+                                Strs(ee,i,j,k,i_dir) = champs1%Stress(idx,i_dir)
+                                Xkin(ee,i,j,k,i_dir) = champs1%Xkin  (idx,i_dir)
+                                EpsP(ee,i,j,k,i_dir) = champs1%EpsP (idx,i_dir)
+                            enddo
+                        enddo
+                    enddo
+                enddo
+            enddo
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
                         do ee = 0, CHUNK-1
                             idx = dom%Idom_(i,j,k,ee+lnum)
-                            Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+                            Riso(ee,i,j,k) = champs1%riso(idx)
                         enddo
                     enddo
                 enddo
             enddo
-        enddo
+        else
+            do i_dir = 0,2
+                do k = 0,ngll-1
+                    do j = 0,ngll-1
+                        do i = 0,ngll-1
+                            do ee = 0, CHUNK-1
+                                idx = dom%Idom_(i,j,k,ee+lnum)
+                                Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+                            enddo
+                        enddo
+                    enddo
+                enddo
+            enddo
+        endif
         Fox = 0d0
         Foy = 0d0
         Foz = 0d0
@@ -446,7 +574,11 @@ contains
             if (n_solid>0) then
                 call calcul_forces_iso_atn(dom,lnum,Fox,Foy,Foz,Depla)
             else
-                call calcul_forces_iso(dom,lnum,Fox,Foy,Foz,Depla)
+                if (nl_flag.and.nl_law) then
+                    !call calcul_forces_iso_nl(dom,lnum,Fox,Foy,Foz,Depla)
+                else
+                    call calcul_forces_iso(dom,lnum,Fox,Foy,Foz,Depla)
+                endif 
             end if
         end if
 

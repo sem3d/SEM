@@ -62,6 +62,13 @@
 #define       Kappa_(i,j,k,e)       m_Kappa(IND_IJKE(i,j,k,e))
 #define       Jacob_(i,j,k,e)       m_Jacob(IND_IJKE(i,j,k,e))
 #define        Idom_(i,j,k,e)        m_Idom(IND_IJKE(i,j,k,e))
+#define        syld_(i,j,k,e)        m_syld(IND_IJKE(i,j,k,e))
+#define        Ckin_(i,j,k,e)        m_Ckin(IND_IJKE(i,j,k,e))
+#define        kkin_(i,j,k,e)        m_kkin(IND_IJKE(i,j,k,e))
+#define        rinf_(i,j,k,e)        m_rinf(IND_IJKE(i,j,k,e))
+#define        biso_(i,j,k,e)        m_biso(IND_IJKE(i,j,k,e))
+
+
 
 #define       Cij_(m,i,j,k,e)      m_Cij(IND_DIJKE(m,i,j,k,e))
 #define InvGrad_(m,n,i,j,k,e) m_InvGrad(IND_MNIJKE(m,n,i,j,k,e))

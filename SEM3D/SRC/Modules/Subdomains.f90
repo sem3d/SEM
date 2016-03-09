@@ -26,9 +26,13 @@ module ssubdomains
         real(fpp) :: Pspeed, Sspeed, Ddensity
         real(fpp) :: DLambda, DMu
         real(fpp) :: DKappa
-
+        
         !! Definition materiau solide anisotrope
         ! TODO
+        
+        !! NONLINEAR LEMAITRE-CHABOCHE
+        integer   :: nl_law
+        real(fpp) :: Dsyld,DCkin,Dkkin,Drinf,Dbiso
 
         !! ATTENUATION
         real(fpp) :: Qmu, Qpression

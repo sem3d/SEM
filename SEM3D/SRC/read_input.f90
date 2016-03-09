@@ -176,6 +176,9 @@ contains
             select case (dom)
                  case (DM_SOLID)
                      Tdomain%sdom%ngll = Tdomain%sSubDomain(mat)%NGLL
+                     if (Tdomain%nl_flag==1) then
+                         Tdomain%sdom%nl_law = Tdomain%sSubDomain(mat)%nl_law
+                     endif
                  case (DM_FLUID)
                      Tdomain%fdom%ngll = Tdomain%sSubDomain(mat)%NGLL
                  case (DM_SOLID_PML)
@@ -375,13 +378,30 @@ contains
         Tdomain%not_PML_List = .true.
 
         do i = 0,Tdomain%n_mat-1
-            read(13,*) Tdomain%sSubDomain(i)%material_type, &
-                Tdomain%sSubDomain(i)%Pspeed,        &
-                Tdomain%sSubDomain(i)%Sspeed,        &
-                Tdomain%sSubDomain(i)%dDensity,      &
-                NGLL,         &
-                Tdomain%sSubDomain(i)%Qpression,     &
-                Tdomain%sSubDomain(i)%Qmu
+            if (Tdomain%nl_flag==1) then
+                read(13,*) Tdomain%sSubDomain(i)%material_type, &
+                    Tdomain%sSubDomain(i)%Pspeed,               &
+                    Tdomain%sSubDomain(i)%Sspeed,               &
+                    Tdomain%sSubDomain(i)%dDensity,             &
+                    NGLL,                                       &
+                    Tdomain%sSubDomain(i)%Qpression,            &
+                    Tdomain%sSubDomain(i)%Qmu,                  &
+                    Tdomain%sSubDomain(i)%nl_law,               &
+                    Tdomain%sSubDomain(i)%dsyld,                &
+                    Tdomain%sSubDomain(i)%dCkin,                &
+                    Tdomain%sSubDomain(i)%dkkin,                &
+                    Tdomain%sSubDomain(i)%dbiso,                &
+                    Tdomain%sSubDomain(i)%dRinf
+            else
+                read(13,*) Tdomain%sSubDomain(i)%material_type, &
+                    Tdomain%sSubDomain(i)%Pspeed,               &
+                    Tdomain%sSubDomain(i)%Sspeed,               &
+                    Tdomain%sSubDomain(i)%dDensity,             &
+                    NGLL,                                       &
+                    Tdomain%sSubDomain(i)%Qpression,            &
+                    Tdomain%sSubDomain(i)%Qmu
+            endif
+            
             Tdomain%sSubDomain(i)%NGLL = NGLL
             Tdomain%sSubdomain(i)%assocMat = i
 
@@ -396,17 +416,6 @@ contains
             if (Tdomain%sSubDomain(i)%material_type == "R") then
                 nRandom = nRandom + 1
             end if
-
-            if(rg==0 .and. .False.) then
-                write (*,*) 'Material   : ', i
-                write (*,*) ' - type    : ', Tdomain%sSubDomain(i)%material_type
-                write (*,*) ' - Pspeed  : ', Tdomain%sSubDomain(i)%Pspeed
-                write (*,*) ' - Sspeed  : ', Tdomain%sSubDomain(i)%Sspeed
-                write (*,*) ' - Density : ', Tdomain%sSubDomain(i)%dDensity
-                write (*,*) ' - NGLL    : ', Tdomain%sSubDomain(i)%NGLL
-                write (*,*) ' - Qp      : ', Tdomain%sSubDomain(i)%Qpression
-                write (*,*) ' - Qmu     : ', Tdomain%sSubDomain(i)%Qmu
-            endif
         enddo
 
         if(npml > 0) then
@@ -423,14 +432,6 @@ contains
                         Tdomain%sSubdomain(i)%pml_width(2), &
                         Tdomain%sSubdomain(i)%assocMat
 
-                    if(rg==0 .and. .False.) then
-                        write (*,*) 'PML Material : '
-                        write (*,*) ' - assocMat  : ', Tdomain%sSubdomain(i)%assocMat
-                        write (*,*) ' - Apow      : ', Tdomain%sSubdomain(i)%Apow
-                        write (*,*) ' - npow      : ', Tdomain%sSubdomain(i)%npow
-                        write (*,*) ' - pml_pos   : ', Tdomain%sSubdomain(i)%pml_pos(:)
-                        write (*,*) ' - pml_width : ', Tdomain%sSubdomain(i)%pml_width(:)
-                    endif
                 endif
             enddo
         endif
@@ -630,6 +631,7 @@ contains
         Tdomain%TimeD%alpha               = Tdomain%config%alpha
         Tdomain%TimeD%beta                = Tdomain%config%beta
         Tdomain%TimeD%gamma               = Tdomain%config%gamma
+        Tdomain%nl_flag                   = Tdomain%config%nl_flag
         if (rg==0) then
             if (Tdomain%TimeD%alpha /= 0.5 .or. Tdomain%TimeD%beta /= 0.5 .or. Tdomain%TimeD%gamma /= 1.) then
                 write(*,*) "***WARNING*** : Les parametres alpha,beta,gamma sont ignores dans cette version"
@@ -646,6 +648,9 @@ contains
                           3*(Tdomain%out_variables(OUT_DEPLA)+Tdomain%out_variables(OUT_VITESSE)+&
                              Tdomain%out_variables(OUT_ACCEL))+&
                           6*(Tdomain%out_variables(OUT_EPS_DEV)+Tdomain%out_variables(OUT_STRESS_DEV))
+        if (Tdomain%nl_flag==1 .and. Tdomain%out_variables(OUT_EPS_DEV)==1) then
+             Tdomain%nReqOut=Tdomain%nReqOut+6
+        endif 
 
         Tdomain%TimeD%courant             = Tdomain%config%courant
         Tdomain%mesh_file                 = fromcstr(Tdomain%config%mesh_file)

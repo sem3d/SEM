@@ -449,7 +449,7 @@ subroutine internal_forces(Tdomain)
     if (Tdomain%sdom%nbelem>0) then
         call stat_starttick()
         do n = 0,Tdomain%sdom%nbelem-1,CHUNK
-            call forces_int_solid(Tdomain%sdom, Tdomain%sdom%champs1, n)
+            call forces_int_solid(Tdomain%sdom, Tdomain%sdom%champs1, n, Tdomain%nl_flag)
         end do
         call stat_stoptick(STAT_FSOL)
     end if

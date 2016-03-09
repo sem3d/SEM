@@ -251,10 +251,14 @@ contains
     end subroutine inverse_mass_mat
 
     subroutine init_material_properties(Tdomain, specel, mat)
-        type (domain), intent (INOUT), target :: Tdomain
-        type (element), intent(inout) :: specel
-        type (subdomain), intent(in) :: mat
-        !
+
+        type (domain), intent (INOUT), target   :: Tdomain
+        type (element), intent(inout)           :: specel
+        type (subdomain), intent(in)            :: mat
+        logical                                 :: nl_flag,nl_law
+            
+        nl_flag = Tdomain%nl_flag
+        nl_law  = mat%nl_law
 
         ! integration de la prise en compte du gradient de proprietes
 
@@ -263,8 +267,14 @@ contains
                 !    on copie toujours le materiau de base
                 select case (specel%domain)
                     case (DM_SOLID)
-                        call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)
+                        if (nl_flag.and.nl_law) then
+                            call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
+                                mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat, &
+                                mat%Dsyld, mat%Dckin, mat%Dkkin, mat%Drinf, mat%Dbiso)
+                        else
+                            call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
+                                 mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)
+                        end if
                     case (DM_FLUID)
                         call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
                              mat%DDensity,mat%DLambda)
@@ -284,8 +294,14 @@ contains
                 !    on copie toujours le materiau de base
                 select case (specel%domain)
                     case (DM_SOLID)
-                        call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
-                             mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa,mat)
+                        if (Tdomain%nl_flag==1.and.mat%material_type=='N') then
+                            call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
+                                mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat, &
+                                mat%Dsyld, mat%Dckin, mat%Dkkin, mat%Drinf, mat%Dbiso)
+                        else
+                            call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
+                                 mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)
+                        end if
                     case (DM_FLUID)
                         call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
                              mat%DDensity,mat%DLambda)
@@ -305,8 +321,14 @@ contains
                 if(materialIsConstant(Tdomain, mat)) then
                     select case (specel%domain)
                         case (DM_SOLID)
-                            call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
-                                 mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa,mat)
+                            if (Tdomain%nl_flag==1.and.mat%nl_law==NLLMC) then
+                                call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
+                                    mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat, &
+                                    mat%Dsyld, mat%Dckin, mat%Dkkin, mat%Drinf, mat%Dbiso)
+                            else
+                                call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
+                                     mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)
+                            end if
                         case (DM_FLUID)
                             call init_material_properties_fluid(Tdomain%fdom,specel%lnum,-1,-1,-1,&
                                  mat%DDensity,mat%DLambda)
@@ -744,6 +766,7 @@ contains
 
 
         if(Tdomain%sSubDomain(assocMat)%material_type == "S" .or. &
+            Tdomain%sSubDomain(assocMat)%material_type == "N" .or. &
             Tdomain%sSubDomain(assocMat)%material_type == "P" .or. &
             Tdomain%sSubDomain(assocMat)%material_type == "F" .or. &
             Tdomain%sSubDomain(assocMat)%material_type == "L" .or. &

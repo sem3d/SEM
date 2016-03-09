@@ -114,6 +114,7 @@ typedef struct {
 
     // Output Variables
     int out_variables[9];
+    int nl_flag;
 
     // Protection reprise
     int prorep;

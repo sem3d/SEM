@@ -21,6 +21,7 @@ module msnapshots
         real, dimension(:)  , allocatable :: eps_vol
         real, dimension(:,:), allocatable :: eps_dev, sig_dev
         real, dimension(:)  , allocatable :: P_energy, S_energy
+        real, dimension(:,:)  , allocatable :: eps_dev_pl
     end type output_var_t
 
 contains
@@ -206,6 +207,64 @@ contains
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
                 call h5dclose_f(dset_id, hdferr)
             end if
+
+            if (Tdomain%nl_flag==1) then
+                ! EPS_DEV_PL_XX
+                call MPI_Gatherv(outputs%eps_dev_pl(0,:), dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
+                    MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+                if (Tdomain%output_rank==0) then
+                    dims(1) = ntot_nodes
+                    call create_dset(parent_id, "eps_dev_pl_xx", H5T_IEEE_F32LE, dims(1), dset_id)
+                    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
+                    call h5dclose_f(dset_id, hdferr)
+                end if
+                ! EPS_DEV_PL_YY
+                call MPI_Gatherv(outputs%eps_dev_pl(1,:), dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
+                    MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+                if (Tdomain%output_rank==0) then
+                    dims(1) = ntot_nodes
+                    call create_dset(parent_id, "eps_dev_pl_yy", H5T_IEEE_F32LE, dims(1), dset_id)
+                    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
+                    call h5dclose_f(dset_id, hdferr)
+                end if
+                ! EPS_DEV_PL_ZZ
+                call MPI_Gatherv(outputs%eps_dev_pl(2,:), dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
+                    MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+                if (Tdomain%output_rank==0) then
+                    dims(1) = ntot_nodes
+                    call create_dset(parent_id, "eps_dev_pl_zz", H5T_IEEE_F32LE, dims(1), dset_id)
+                    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
+                    call h5dclose_f(dset_id, hdferr)
+                end if
+                ! EPS_DEV_PL_XY
+                call MPI_Gatherv(outputs%eps_dev_pl(3,:), dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
+                    MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+                if (Tdomain%output_rank==0) then
+                    dims(1) = ntot_nodes
+                    call create_dset(parent_id, "eps_dev_pl_xy", H5T_IEEE_F32LE, dims(1), dset_id)
+                    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
+                    call h5dclose_f(dset_id, hdferr)
+                end if
+                ! EPS_DEV_PL_XZ
+                call MPI_Gatherv(outputs%eps_dev_pl(4,:), dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
+                    MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+                if (Tdomain%output_rank==0) then
+                    dims(1) = ntot_nodes
+                    call create_dset(parent_id, "eps_dev_pl_xz", H5T_IEEE_F32LE, dims(1), dset_id)
+                    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
+                    call h5dclose_f(dset_id, hdferr)
+                end if
+                ! EPS_DEV_PL_YZ
+                call MPI_Gatherv(outputs%eps_dev_pl(5,:), dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
+                    MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+                if (Tdomain%output_rank==0) then
+                    dims(1) = ntot_nodes
+                    call create_dset(parent_id, "eps_dev_pl_yz", H5T_IEEE_F32LE, dims(1), dset_id)
+                    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
+                    call h5dclose_f(dset_id, hdferr)
+                end if
+            end if
+
         end if
 
         !SIG_DEV
@@ -751,10 +810,16 @@ contains
         deallocate(data)
     end subroutine write_elem_connectivity
 
-    subroutine allocate_fields(nnodes, out_flags, fields)
+    subroutine allocate_fields(nnodes, out_flags, fields,nl_flag)
         type (output_var_t), intent(inout) :: fields
         integer, dimension(0:8), intent(in) :: out_flags
         integer, intent(in) :: nnodes
+        logical, intent(in) :: nl_flag
+        logical :: flag_gradU
+
+        flag_gradU =  out_flags(OUT_ENERGYP)+out_flags(OUT_ENERGYS)+&
+            out_flags(OUT_EPS_VOL)+out_flags(OUT_EPS_DEV)+&
+            out_flags(OUT_STRESS_DEV)/=0
 
         if (out_flags(OUT_ENERGYP   ) == 1) allocate(fields%P_energy(0:nnodes-1))
         if (out_flags(OUT_ENERGYS   ) == 1) allocate(fields%S_energy(0:nnodes-1))
@@ -763,8 +828,15 @@ contains
         if (out_flags(OUT_DEPLA     ) == 1) allocate(fields%displ(0:2,0:nnodes-1))
         if (out_flags(OUT_VITESSE   ) == 1) allocate(fields%veloc(0:2,0:nnodes-1))
         if (out_flags(OUT_ACCEL     ) == 1) allocate(fields%accel(0:2,0:nnodes-1))
-        if (out_flags(OUT_EPS_DEV   ) == 1) allocate(fields%eps_dev(0:5,0:nnodes-1))
-        if (out_flags(OUT_STRESS_DEV) == 1) allocate(fields%sig_dev(0:5,0:nnodes-1))
+        if (flag_gradU) then
+            allocate(fields%eps_dev(0:5,0:nnodes-1))
+            if (nl_flag) then
+                allocate(fields%eps_dev_pl(0:5,0:nnodes-1))
+            end if
+            if (out_flags(OUT_STRESS_DEV) == 1) then
+                allocate(fields%sig_dev(0:5,0:nnodes-1))
+            end if
+        end if
 
         if (out_flags(OUT_ENERGYP   ) == 1) fields%P_energy = 0.
         if (out_flags(OUT_ENERGYS   ) == 1) fields%S_energy = 0.
@@ -773,13 +845,24 @@ contains
         if (out_flags(OUT_DEPLA     ) == 1) fields%displ = 0.
         if (out_flags(OUT_VITESSE   ) == 1) fields%veloc = 0.
         if (out_flags(OUT_ACCEL     ) == 1) fields%accel = 0.
-        if (out_flags(OUT_EPS_DEV   ) == 1) fields%eps_dev = 0.
-        if (out_flags(OUT_STRESS_DEV) == 1) fields%sig_dev = 0.
+        if (flag_gradU) then
+            fields%eps_dev = 0.
+            if (nl_flag) then
+                fields%eps_dev_pl = 0.
+            endif
+            if (out_flags(OUT_STRESS_DEV) == 1) fields%sig_dev = 0.
+        endif
     end subroutine allocate_fields
 
-    subroutine deallocate_fields(out_flags, fields)
+    subroutine deallocate_fields(out_flags, fields, nl_flag)
         integer, dimension(0:8), intent(in) :: out_flags
         type (output_var_t), intent(inout) :: fields
+        logical, intent(in) :: nl_flag
+        logical :: flag_gradU
+
+        flag_gradU =  out_flags(OUT_ENERGYP)+out_flags(OUT_ENERGYS)+&
+            out_flags(OUT_EPS_VOL)+out_flags(OUT_EPS_DEV)+&
+            out_flags(OUT_STRESS_DEV)/=0
 
         if (out_flags(OUT_ENERGYP   ) == 1) deallocate(fields%P_energy)
         if (out_flags(OUT_ENERGYS   ) == 1) deallocate(fields%S_energy)
@@ -788,7 +871,12 @@ contains
         if (out_flags(OUT_DEPLA     ) == 1) deallocate(fields%displ)
         if (out_flags(OUT_VITESSE   ) == 1) deallocate(fields%veloc)
         if (out_flags(OUT_ACCEL     ) == 1) deallocate(fields%accel)
-        if (out_flags(OUT_EPS_DEV   ) == 1) deallocate(fields%eps_dev)
+        if (flag_gradU) then
+            deallocate(fields%eps_dev)
+            if (nl_flag) then
+                deallocate(fields%eps_dev_pl)
+            endif
+        endif
         if (out_flags(OUT_STRESS_DEV) == 1) deallocate(fields%sig_dev)
     end subroutine deallocate_fields
 
@@ -820,10 +908,13 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
-        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
+        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev,eps_dev_pl
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
 
         integer, dimension(0:8) :: out_variables
+        logical :: nl_flag
+
+        nl_flag=Tdomain%nl_flag
 
         out_variables(0:8) = Tdomain%out_variables(0:8)
 
@@ -831,7 +922,7 @@ contains
 
         call compute_saved_elements(Tdomain, irenum, nnodes, domains)
 
-        call allocate_fields(nnodes, Tdomain%out_variables, out_fields)
+        call allocate_fields(nnodes, Tdomain%out_variables, out_fields, nl_flag)
         allocate(valence(0:nnodes-1))
 
         valence(:) = 0
@@ -856,8 +947,9 @@ contains
             domain_type = get_domain(sub_dom_mat)
             select case(domain_type)
                 case (DM_SOLID)
-                  call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,             &
-                  fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                  call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,     &
+                      fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, &
+                      eps_dev, sig_dev, nl_flag, eps_dev_pl)
                 case (DM_FLUID)
                   call get_fluid_dom_var(Tdomain, Tdomain%fdom, el, out_variables,             &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
@@ -873,7 +965,7 @@ contains
                 do j = 0, ngll-1
                     do i = 0, ngll-1
                         ind = irenum(el%Iglobnum(i,j,k))
-
+                        valence(ind) = valence(ind)+1
                         if (out_variables(OUT_DEPLA     ) == 1) out_fields%displ(0:2,ind)   = fieldU(i,j,k,0:2)
                         if (out_variables(OUT_VITESSE   ) == 1) out_fields%veloc(0:2,ind)   = fieldV(i,j,k,0:2)
                         if (out_variables(OUT_ACCEL     ) == 1) out_fields%accel(0:2,ind)   = fieldA(i,j,k,0:2)
@@ -881,27 +973,42 @@ contains
                         if (out_variables(OUT_ENERGYP   ) == 1) out_fields%P_energy(ind)    = P_energy(i,j,k)
                         if (out_variables(OUT_ENERGYS   ) == 1) out_fields%S_energy(ind)    = S_energy(i,j,k)
                         if (out_variables(OUT_EPS_VOL   ) == 1) out_fields%eps_vol(ind)     = eps_vol(i,j,k)
-                        if (out_variables(OUT_EPS_DEV   ) == 1) out_fields%eps_dev(0:5,ind) = eps_dev(i,j,k,0:5)
+                        if (out_variables(OUT_EPS_DEV   ) == 1) then
+                            out_fields%eps_dev(0:5,ind) = eps_dev(i,j,k,0:5)
+                            if (allocated(eps_dev_pl)) then
+                                out_fields%eps_dev_pl(0:5,ind) = eps_dev_pl(i,j,k,0:5)
+                            endif
+                        endif
                         if (out_variables(OUT_STRESS_DEV) == 1) out_fields%sig_dev(0:5,ind) = sig_dev(i,j,k,0:5)
                     enddo
                 enddo
             enddo
         enddo
-        if(allocated(fieldU)) deallocate(fieldU)
-        if(allocated(fieldV)) deallocate(fieldV)
-        if(allocated(fieldA)) deallocate(fieldA)
-        if(allocated(fieldP)) deallocate(fieldP)
-        if(allocated(P_energy)) deallocate(P_energy)
-        if(allocated(S_energy)) deallocate(S_energy)
-        if(allocated(eps_vol))  deallocate(eps_vol)
-        if(allocated(eps_dev))  deallocate(eps_dev)
-        if(allocated(sig_dev))  deallocate(sig_dev)
+        if(allocated(fieldU))       deallocate(fieldU)
+        if(allocated(fieldV))       deallocate(fieldV)
+        if(allocated(fieldA))       deallocate(fieldA)
+        if(allocated(fieldP))       deallocate(fieldP)
+        if(allocated(P_energy))     deallocate(P_energy)
+        if(allocated(S_energy))     deallocate(S_energy)
+        if(allocated(eps_vol))      deallocate(eps_vol)
+        if(allocated(eps_dev))      deallocate(eps_dev)
+        if(allocated(eps_dev_pl))   deallocate(eps_dev_pl)
+        if(allocated(sig_dev))      deallocate(sig_dev)
 
         ! normalization
         do i = 0,nnodes-1
             if (valence(i)/=0) then
-                if (out_variables(OUT_VITESSE)==1) out_fields%veloc(0:2,i) = out_fields%veloc(0:2,i)/valence(i)
-                if (out_variables(OUT_ACCEL)==1) out_fields%accel(0:2,i) = out_fields%accel(0:2,i)/valence(i)
+                if (out_variables(OUT_VITESSE   )==1)   out_fields%veloc(0:2,i)     = out_fields%veloc(0:2,i)/valence(i)
+                if (out_variables(OUT_ACCEL     )==1)   out_fields%accel(0:2,i)     = out_fields%accel(0:2,i)/valence(i)
+                if (out_variables(OUT_EPS_VOL   )==1)   out_fields%eps_vol(i)       = out_fields%eps_vol(i)/valence(i)
+                if (out_variables(OUT_EPS_DEV   )==1) then
+                    out_fields%eps_dev(0:5,i)   = out_fields%eps_dev(0:5,i)/valence(i)
+                    if (allocated(out_fields%eps_dev_pl)) then
+                        out_fields%eps_dev_pl(0:5,i)   = out_fields%eps_dev_pl(0:5,i)/valence(i)
+                    endif
+                endif
+                if (out_variables(OUT_STRESS_DEV)==1)   out_fields%sig_dev(0:5,i)   = out_fields%sig_dev(0:5,i)/valence(i)
+
             end if
         enddo
 
@@ -921,7 +1028,7 @@ contains
         endif
 
         deallocate(valence)
-        call deallocate_fields(out_variables, out_fields)
+        call deallocate_fields(out_variables, out_fields, nl_flag)
 
         call mpi_barrier(Tdomain%communicateur, hdferr)
 
@@ -1003,7 +1110,7 @@ contains
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Geometry>'
             ! DISPL
-            if (out_variables(4) == 1) then
+            if (out_variables(OUT_DEPLA) == 1) then
                 write(61,"(a,I9,a)") '<Attribute Name="Displ" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/displ'
@@ -1011,7 +1118,7 @@ contains
                 write(61,"(a)") '</Attribute>'
             end if
             ! VELOC
-            if (out_variables(5) == 1) then
+            if (out_variables(OUT_VITESSE) == 1) then
                 write(61,"(a,I9,a)") '<Attribute Name="Veloc" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/veloc'
@@ -1019,7 +1126,7 @@ contains
                 write(61,"(a)") '</Attribute>'
             end if
             ! ACCEL
-            if (out_variables(6) == 1) then
+            if (out_variables(OUT_ACCEL) == 1) then
                 write(61,"(a,I9,a)") '<Attribute Name="Accel" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/accel'
@@ -1027,7 +1134,7 @@ contains
                 write(61,"(a)") '</Attribute>'
             end if
             ! PRESSURE
-            if (out_variables(3) == 1) then
+            if (out_variables(OUT_PRESSION) == 1) then
                 write(61,"(a,I9,a)") '<Attribute Name="Pressure" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/press'
@@ -1035,14 +1142,14 @@ contains
                 write(61,"(a)") '</Attribute>'
             end if
             ! VOLUMETRIC STRAIN
-            if (out_variables(2) == 1) then
+            if (out_variables(OUT_EPS_VOL) == 1) then
                 write(61,"(a,I9,a)") '<Attribute Name="eps_vol" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_vol'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
-            if (out_variables(7) == 1) then
+            if (out_variables(OUT_EPS_DEV) == 1) then
                 ! EPS_DEV_XX
                 write(61,"(a,I9,a)") '<Attribute Name="eps_dev_xx" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
@@ -1079,9 +1186,48 @@ contains
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_yz'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
+                if (Tdomain%nl_flag==1) then
+                    ! EPS_DEV_PL_XX
+                    write(61,"(a,I9,a)") '<Attribute Name="eps_dev_pl_xx" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_xx'
+                    write(61,"(a)") '</DataItem>'
+                    write(61,"(a)") '</Attribute>'
+                    ! EPS_DEV_PL_XX
+                    write(61,"(a,I9,a)") '<Attribute Name="eps_dev_pl_yy" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_yy'
+                    write(61,"(a)") '</DataItem>'
+                    write(61,"(a)") '</Attribute>'
+                    ! EPS_DEV_PL_ZZ
+                    write(61,"(a,I9,a)") '<Attribute Name="eps_dev_pl_zz" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_zz'
+                    write(61,"(a)") '</DataItem>'
+                    write(61,"(a)") '</Attribute>'
+                    ! EPS_DEV_PL_XY
+                    write(61,"(a,I9,a)") '<Attribute Name="eps_dev_pl_xy" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_xy'
+                    write(61,"(a)") '</DataItem>'
+                    write(61,"(a)") '</Attribute>'
+                    ! EPS_DEV_PLXZ
+                    write(61,"(a,I9,a)") '<Attribute Name="eps_dev_pl_xz" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_xz'
+                    write(61,"(a)") '</DataItem>'
+                    write(61,"(a)") '</Attribute>'
+                    ! EPS_DEV_PL_YZ
+                    write(61,"(a,I9,a)") '<Attribute Name="eps_dev_pl_yz" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+                    write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
+                    write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_dev_pl_yz'
+                    write(61,"(a)") '</DataItem>'
+                    write(61,"(a)") '</Attribute>'
+                end if
             end if
 
-            if (out_variables(8) == 1) then
+
+            if (out_variables(OUT_STRESS_DEV) == 1) then
                 ! SIG_DEV_XX
                 write(61,"(a,I9,a)") '<Attribute Name="sig_dev_xx" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
@@ -1120,7 +1266,7 @@ contains
                 write(61,"(a)") '</Attribute>'
             end if
 
-            if (out_variables(0) == 1) then
+            if (out_variables(OUT_ENERGYP) == 1) then
                 ! P_ENERGY
                 write(61,"(a,I9,a)") '<Attribute Name="P_energy" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
@@ -1129,7 +1275,7 @@ contains
                 write(61,"(a)") '</Attribute>'
             end if
 
-            if (out_variables(1) == 1) then
+            if (out_variables(OUT_ENERGYS) == 1) then
                 ! S_ENERGY
                 write(61,"(a,I9,a)") '<Attribute Name="S_energy" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
@@ -1137,7 +1283,6 @@ contains
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
-
             ! DOMAIN
             write(61,"(a)") '<Attribute Name="Domain" Center="Grid" AttributeType="Scalar" Dimensions="1">'
             write(61,"(a,I4,a)") '<DataItem Format="XML" Datatype="Int"  Dimensions="1">',group,'</DataItem>'

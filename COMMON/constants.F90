@@ -46,6 +46,8 @@ MODULE constants
     integer, parameter :: MATERIAL_EARTHCHUNK = 3
     integer, parameter :: MATERIAL_PREM       = 4
     integer, parameter :: MATERIAL_MULTIPLE   = 5
+    ! Non-linear law
+    integer, parameter :: NLLMC               = 1
 
     ! DOMAINS (par ordre de priorite pour les sauvegardes)
     integer, parameter :: DM_SOLID = 4
