@@ -4,7 +4,7 @@
 !!
 !>
 !!\file Face.F90
-!!\brief Gère les faces des éléments.
+!!\brief Gere les faces des elements.
 !!\author
 !!\version 1.0
 !!\date 10/03/2009

@@ -30,7 +30,6 @@ subroutine Runge_Kutta4 (Tdomain, dt)
     integer               :: nface,  type_DG
     real                  :: timelocal
     real, dimension(3)    :: coeffs
-    real, dimension (:,:), allocatable :: Vxloc, Vzloc
 
 
     do i = 1,5
@@ -43,17 +42,12 @@ subroutine Runge_Kutta4 (Tdomain, dt)
           mat = Tdomain%specel(n)%mat_index
           select case (type_DG)
           case(GALERKIN_CONT) ! Continuous Galerkin
-             ngx = Tdomain%specel(n)%ngllx
-             ngz = Tdomain%specel(n)%ngllz
-             allocate (Vxloc(0:ngx-1, 0:ngz-1))
-             allocate (Vzloc(0:ngx-1, 0:ngz-1))
-             call get_veloc_fv2el (Tdomain,n,Vxloc,vzloc,ngx,ngz)
-             call compute_2ndMember_Veloc_Stress(Tdomain%specel(n), Vxloc, Vzloc, &
-                                                 Tdomain%sSubDomain(mat)%hprimex, &
-                                                 Tdomain%sSubDomain(mat)%hTprimex, &
-                                                 Tdomain%sSubDomain(mat)%hprimez, &
-                                                 Tdomain%sSubDomain(mat)%hTprimez)
-             deallocate (VxLoc, Vzloc)
+             call get_RealDispl_fv2el (Tdomain,n)
+             call compute_InternalForces_Elem (Tdomain%specel(n), &
+                 Tdomain%sSubDomain(mat)%hprimex,  &
+                 Tdomain%sSubDomain(mat)%hTprimex, &
+                 Tdomain%sSubDomain(mat)%hprimez,  &
+                 Tdomain%sSubDomain(mat)%hTprimez)
          case(GALERKIN_HDG_RP)   ! Hybridizable Discontinuous Galerkin
              call compute_InternalForces_DG_Weak(Tdomain%specel(n), &
                                                  Tdomain%sSubDomain(mat)%hprimex, &
@@ -207,28 +201,37 @@ subroutine Runge_Kutta4 (Tdomain, dt)
        ngll = Tdomain%sface(n)%ngll
        type_DG = Tdomain%sface(n)%Type_DG
        if (type_DG == GALERKIN_CONT .OR. type_DG == COUPLE_CG_HDG) then
+          ! Reflexive Boundary Conditions (if any)
+          if (Tdomain%sface(n)%reflex) Tdomain%sface(n)%Forces = 0.
           ! Sends the forces from face to vertex if the face is coupling CG-HDG
           if (type_DG == COUPLE_CG_HDG) call get_forces_f2v (Tdomain, n)
           ! Inversion of Mass Matrix to get 2nd member of velocity equation
           Tdomain%sface(n)%Forces(1:ngll-2,0) = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(1:ngll-2,0)
           Tdomain%sface(n)%Forces(1:ngll-2,1) = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(1:ngll-2,1)
-          if (Tdomain%sface(n)%reflex) Tdomain%sface(n)%Forces = 0.
-          ! RK4 Updates of velocities and displacements
-          Tdomain%sface(n)%Vect_RK = coeff1 * Tdomain%sface(n)%Vect_RK + Dt * Tdomain%sface(n)%Forces(1:ngll-2,0:1)
-          Tdomain%sface(n)%Veloc(1:ngll-2,:) = Tdomain%sface(n)%Veloc(1:ngll-2,:) &
-                                             + coeff2 * Tdomain%sface(n)%Vect_RK(:,0:1)
+          ! RK4 Updates of displacements and velocities (displacements first !)
+          Tdomain%sface(n)%Vect_RK(:,2:3) = coeff1 * Tdomain%sface(n)%Vect_RK(:,2:3) &
+                                          + Dt *Tdomain%sface(n)%Veloc(:,0:1)
+          Tdomain%sface(n)%Vect_RK(:,0:1) = coeff1 * Tdomain%sface(n)%Vect_RK(:,0:1) &
+                                          + Dt * Tdomain%sface(n)%Forces(:,0:1)
+          Tdomain%sface(n)%Displ = Tdomain%sface(n)%Displ + coeff2 * Tdomain%sface(n)%Vect_RK(:,2:3)
+          Tdomain%sface(n)%Veloc = Tdomain%sface(n)%Veloc + coeff2 * Tdomain%sface(n)%Vect_RK(:,0:1)
           Tdomain%sface(n)%Forces(:,:) = 0.
        endif
     enddo
     do n=0, Tdomain%n_vertex-1
        type_DG = Tdomain%sVertex(n)%Type_DG
        if (type_DG == GALERKIN_CONT) then
+          ! Reflexive Boundary Conditions (if any)
+          if (Tdomain%sVertex(n)%reflex) Tdomain%sVertex(n)%Forces = 0.
           ! Inversion of Mass Matrix to get 2nd member of velocity equation
           Tdomain%sVertex(n)%Forces  = Tdomain%sVertex(n)%MassMat * Tdomain%sVertex(n)%Forces
-          if (Tdomain%sVertex(n)%reflex) Tdomain%sVertex(n)%Forces = 0.
-          ! RK4 Updates of velocities and displacements
-          Tdomain%sVertex(n)%Vect_RK = coeff1 * Tdomain%sVertex(n)%Vect_RK + Dt * Tdomain%sVertex(n)%Forces
-          Tdomain%sVertex(n)%Veloc   = Tdomain%sVertex(n)%Veloc + coeff2 * Tdomain%sVertex(n)%Vect_RK(0:1)
+          ! RK4 Updates of displacements and velocities (displacements first !)
+          Tdomain%sVertex(n)%Vect_RK(2:3) = coeff1 * Tdomain%sVertex(n)%Vect_RK(2:3) &
+                                          + Dt * Tdomain%sVertex(n)%Veloc
+          Tdomain%sVertex(n)%Vect_RK(0:1) = coeff1 * Tdomain%sVertex(n)%Vect_RK(0:1) &
+                                          + Dt * Tdomain%sVertex(n)%Forces
+          Tdomain%sVertex(n)%Displ = Tdomain%sVertex(n)%Displ + coeff2 * Tdomain%sVertex(n)%Vect_RK(2:3)
+          Tdomain%sVertex(n)%Veloc = Tdomain%sVertex(n)%Veloc + coeff2 * Tdomain%sVertex(n)%Vect_RK(0:1)
           Tdomain%sVertex(n)%Forces  = 0.
        endif
     enddo

@@ -290,13 +290,7 @@ subroutine allocate_domain (Tdomain)
         ngllx = Tdomain%specel(n)%ngllx
         ngllz = Tdomain%specel(n)%ngllz
         if (Tdomain%specel(n)%Type_DG == GALERKIN_CONT) then
-           allocate (Tdomain%specel(n)%Vect_RK(0:ngllx-1,0:ngllz-1,0:4))
-           allocate (Tdomain%specel(n)%StressSMBR(0:ngllx-1,0:ngllz-1,0:2))
-           allocate (Tdomain%specel(n)%Stress(0:ngllx-1,0:ngllz-1,0:2))
-           Tdomain%specel(n)%Vect_RK = 0.
-           Tdomain%specel(n)%StressSMBR = 0.
-           Tdomain%specel(n)%Stress = 0.
-           !allocate (Tdomain%specel(n)%Vect_RK(1:ngllx-2,1:ngllz-2,0:3))
+           allocate (Tdomain%specel(n)%Vect_RK(1:ngllx-2,1:ngllz-2,0:3))
         else
            allocate (Tdomain%specel(n)%Vect_RK(0:ngllx-1,0:ngllz-1,0:4))
         endif
@@ -306,13 +300,13 @@ subroutine allocate_domain (Tdomain)
         ngll = Tdomain%sFace(n)%ngll
         if (Tdomain%sface(n)%Type_DG == GALERKIN_CONT .OR. &
             Tdomain%sface(n)%Type_DG == COUPLE_CG_HDG) then
-           allocate (Tdomain%sface(n)%Vect_RK(1:ngll-2,0:1))
+           allocate (Tdomain%sface(n)%Vect_RK(1:ngll-2,0:3))
            Tdomain%sface(n)%Vect_RK = 0.
         endif
      enddo
      do n = 0, Tdomain%n_vertex-1
         if (Tdomain%svertex(n)%Type_DG == GALERKIN_CONT) then
-           allocate (Tdomain%sVertex(n)%Vect_RK(0:1))
+           allocate (Tdomain%sVertex(n)%Vect_RK(0:3))
            Tdomain%svertex(n)%Vect_RK = 0.
         endif
      enddo

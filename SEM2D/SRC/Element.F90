@@ -4,7 +4,7 @@
 !!
 !>
 !!\file Element.F90
-!!\brief contient les méthodes qui assure la gestion du type Element.
+!!\brief contient les methodes qui assure la gestion du type Element.
 !!\author
 !!\version 1.0
 !!\date 10/03/2009
@@ -50,7 +50,7 @@ module selement
        logical :: acoustic
        real, dimension (:),    allocatable :: Coeff_Integr_Faces
        real, dimension(:,:,:), allocatable :: Strain, Strain0
-       real, dimension(:,:,:), allocatable :: Vect_RK, Psi_store, StressSMBR
+       real, dimension(:,:,:), allocatable :: Vect_RK, Psi_store
        ! HDG
        real, dimension(:,:), allocatable :: Normal_nodes
        real, dimension(:,:), allocatable :: MatPen, TracFace, Vhat, Dinv
@@ -512,14 +512,12 @@ contains
 
         if (Elem%type_DG==GALERKIN_CONT) then
             ngx = Elem%ngllx ; ngz = Elem%ngllz
-            Elem%Vect_RK(1:ngx-2,1:ngz-2,0:1) = coeff1 * Elem%Vect_RK(1:ngx-2,1:ngz-2,0:1) &
+            Elem%Vect_RK(:,:,0:1) = coeff1 * Elem%Vect_RK(:,:,0:1) &
                                   + Dt * Elem%Forces(1:ngx-2,1:ngz-2,0:1)
-            Elem%Vect_RK(:,:,2:4) = coeff1 * Elem%Vect_RK(:,:,2:4) + Dt * Elem%StressSMBR(:,:,:)
-            Elem%Veloc  = Elem%Veloc  + coeff2 * Elem%Vect_RK(1:ngx-2,1:ngz-2,0:1)
-            Elem%Stress = Elem%Stress + coeff2 * Elem%Vect_RK(:,:,2:4)
-            !Elem%Vect_RK(:,:,2:3) = coeff1 * Elem%Vect_RK(:,:,2:3)  + Dt * Elem%Veloc(:,:,:)
-            !Elem%Veloc = Elem%Veloc + coeff2 * Elem%Vect_RK(:,:,0:1)
-            !Elem%Displ = Elem%Displ + coeff2 * Elem%Vect_RK(:,:,2:3)
+            Elem%Vect_RK(:,:,2:3) = coeff1 * Elem%Vect_RK(:,:,2:3)  + Dt * Elem%Veloc(:,:,:)
+            Elem%Veloc = Elem%Veloc + coeff2 * Elem%Vect_RK(:,:,0:1)
+            Elem%Displ = Elem%Displ + coeff2 * Elem%Vect_RK(:,:,2:3)
+
         else
             Elem%Vect_RK = coeff1 * Elem%Vect_RK + Dt * Elem%Forces
             Elem%Strain  = Elem%Strain + coeff2 * Elem%Vect_RK(:,:,0:2)
@@ -821,57 +819,7 @@ contains
         return
     end subroutine compute_InternalForces_CPML_Elem
 
-
-    ! ###########################################################
-    !>
-    !! \brief This subroutine computes the second member for the equation
-    !! of time evolution of stresses.
-    !! This subroutine is only used for Continuous Galerkin Elements in a
-    !! RK4 time-scheme framework. Somehow it does the equivalent of the prediction
-    !! phase and the internal forces in the PML framework.
-    !!
-    !! \param type (Element), intent (INOUT) Elem
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) Vxloc
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) Vzloc
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
-    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hTprime
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hprimez
-    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
-    !<
-    subroutine  compute_2ndMember_Veloc_Stress(Elem,Vxloc,Vzloc,hprime,hTprime,hprimez,hTprimez)
-        implicit none
-
-        type (Element), intent (INOUT) :: Elem
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime, hTprime
-        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez, hTprimez
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1), intent (INOUT) ::Vxloc, Vzloc
-        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: s0,s1,s2,s3
-
-        VxLoc(1:Elem%ngllx-2,1:Elem%ngllz-2) = Elem%Veloc(:,:,0)
-        VzLoc(1:Elem%ngllx-2,1:Elem%ngllz-2) = Elem%Veloc(:,:,1)
-        ! Second member of the Velocity time-evolution Equation (iternal forces)
-        s0 = Elem%Acoeff(:,:,12) * Elem%Stress(:,:,0) + Elem%Acoeff(:,:,14) * Elem%Stress(:,:,2)
-        s1 = Elem%Acoeff(:,:,13) * Elem%Stress(:,:,0) + Elem%Acoeff(:,:,15) * Elem%Stress(:,:,2)
-        Elem%Forces(:,:,0) = MATMUL(hprime,s0) + MATMUL(s1,hTprimez)
-        s0 = Elem%Acoeff(:,:,12) * Elem%Stress(:,:,2) + Elem%Acoeff(:,:,14) * Elem%Stress(:,:,1)
-        s1 = Elem%Acoeff(:,:,13) * Elem%Stress(:,:,2) + Elem%Acoeff(:,:,15) * Elem%Stress(:,:,1)
-        Elem%Forces(:,:,1) = MATMUL(hprime,s0) + MATMUL(s1,hTprimez)
-
-        ! Second member of the Stress time-evolution Equation
-        s0 = MATMUL (HTprime,VxLoc)
-        s1 = MATMUL (VxLoc,Hprimez)
-        s2 = MATMUL (HTprime,VzLoc)
-        s3 = MATMUL (VzLoc,Hprimez)
-        Elem%StressSMBR(:,:,0) = Elem%Acoeff(:,:,0)*s0 + Elem%Acoeff(:,:,1)*s1 &
-                               + Elem%Acoeff(:,:,2)*s2 + Elem%Acoeff(:,:,3)*s3
-        Elem%StressSMBR(:,:,1) = Elem%Acoeff(:,:,6)*s2 + Elem%Acoeff(:,:,7)*s3 &
-                               + Elem%Acoeff(:,:,4)*s0 + Elem%Acoeff(:,:,5)*s1
-        Elem%StressSMBR(:,:,2) = Elem%Acoeff(:,:,10)*s2 + Elem%Acoeff(:,:,11)*s3 &
-                               + Elem%Acoeff(:,:,8) *s0 + Elem%Acoeff(:,:,9) *s1
-
-        return
-    end subroutine compute_2ndMember_Veloc_Stress
-
+    
     ! ###########################################################
     !>
     !! \brief
