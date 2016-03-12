@@ -158,7 +158,6 @@ int Mesh3D::read_materials_v1(const std::string& str)
     free(buffer);
     return nmats;
 }
-
 int Mesh3D::read_materials_v2(const std::string& str)
 {
     FILE* f = fopen(str.c_str(), "r");

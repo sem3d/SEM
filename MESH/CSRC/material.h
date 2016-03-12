@@ -10,6 +10,8 @@
 #include <vector>
 
 typedef enum {
+	DM_RANDOM = 6,
+	DM_RANDOM_PML = 5,
     DM_SOLID = 4,
     DM_SOLID_PML = 2,
     DM_FLUID = 3,
@@ -19,10 +21,12 @@ typedef enum {
 #define DM_MAX 4
 
 typedef enum {
-    DM_SOLID_MASK     = 1<<DM_SOLID,
-    DM_SOLID_PML_MASK = 1<<DM_SOLID_PML,
-    DM_FLUID_MASK     = 1<<DM_FLUID,
-    DM_FLUID_PML_MASK = 1<<DM_FLUID_PML
+	DM_RANDOM_MASK     = 1<<DM_RANDOM,
+	DM_RANDOM_PML_MASK = 1<<DM_RANDOM_PML,
+    DM_SOLID_MASK      = 1<<DM_SOLID,
+    DM_SOLID_PML_MASK  = 1<<DM_SOLID_PML,
+    DM_FLUID_MASK      = 1<<DM_FLUID,
+    DM_FLUID_PML_MASK  = 1<<DM_FLUID_PML
 } material_mask_t;
 
 class Material {
@@ -61,8 +65,10 @@ public:
             m_type = DM_SOLID_PML;
             break;
         case 'S':
+        	m_type = DM_SOLID;
+        	break;
         case 'R':
-            m_type = DM_SOLID;
+            m_type = DM_RANDOM;
             break;
         case 'F':
             m_type = DM_FLUID;
@@ -106,6 +112,10 @@ public:
 
     char material_char() const {
         switch (m_type) {
+        case DM_RANDOM_PML:
+            return 'P';
+        case DM_RANDOM:
+            return 'R';
         case DM_SOLID:
             return 'S';
         case DM_SOLID_PML:
