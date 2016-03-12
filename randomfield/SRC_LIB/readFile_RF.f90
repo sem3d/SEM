@@ -1,7 +1,3 @@
-!! This file is part of SEM
-!!
-!! Copyright CEA, ECP, IPGP
-!!
 module readFile_RF
     use displayCarvalhol
 
@@ -11,7 +7,8 @@ module readFile_RF
            read_DataTable_IntVec,   &
            read_DataTable_IntScal,  &
            read_DataTable_CharVec,  &
-           read_DataTable_CharScal
+           read_DataTable_CharScal, &
+           read_DataTable_LogicalScal
     end interface read_DataTable
 
 contains
@@ -29,19 +26,19 @@ contains
         integer,   optional, intent(in) :: wordsMax;
         integer,   optional, intent(in) :: tagPatternMax;
         !OUTPUT
-        character(len=50), dimension(:,:), allocatable, intent(out) :: dataTable;
+        character(len=1024), dimension(:,:), allocatable, intent(out) :: dataTable;
 
         !LOCAL VARIABLES
         integer            :: fileID, contentSize, unitTags;
-        character (len=50) :: empty='';
+        character (len=1024) :: empty='';
         integer            :: i, j, stat, wdMax, conStart, commentCount,   &
             tagCount, tagTotal, blankTotal,ratioTagData,         &
             dataRow, dataColumn, dataCount,dataTotal, tagPatMax;
         logical            :: posTaken, dataPassed, labelPassed;
         character          :: comment, tagID;
-        character (len=50), dimension(40)               :: foundedTags
+        character (len=1024), dimension(40)               :: foundedTags
         integer,            dimension(:),   allocatable :: tagPattern, lastLine;
-        character (len=50), dimension(:),   allocatable :: contentVector;
+        character (len=1024), dimension(:),   allocatable :: contentVector;
 
 
         !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Treating optional arguments
@@ -55,11 +52,15 @@ contains
         if(.not.present(wordsMax))      wdMax     = 1000
 
         !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Putting all the data in a vector (for accessibility)
-        fileID      = 2;
+        fileID      = 11;
         stat        = 0;
 
+        !write(*,*) "FIRST LOOP"
+        !write(*,*) "path = ", path
         open (unit = fileID , file = path, action = 'read')
+        !write(*,*) "AFTER OPEN"
         contentSize = 0
+        !wdMax       = 20 !For Tests
         allocate (contentVector(wdMax)) !Limitation about the number of words the file can have
         contentVector = "notUsed"
         do while(stat.eq.0)
@@ -68,7 +69,10 @@ contains
             read(fileID, fmt=*,IOSTAT = stat) contentVector(1:contentSize)
             rewind(fileID);
             !write(*,*) "stat", stat
+            !if(contentSize > 15) stop("ERROR READING FILE (truncated at 200 words)")
         end do
+
+        !write(*,*) "AFTER"
         contentSize = contentSize - 1
         deallocate (contentVector)
         allocate (contentVector(contentSize))
@@ -102,7 +106,8 @@ contains
             end if
         end do
         if (mod(commentCount,2) == 1) contentVector(conStart:) = "" !Treating final comment
-        !        write(*,*) "contentVector = ", contentVector
+        !call DispCarvalhol(contentVector, "contentVector BEFORE")
+        !write(*,*) " size(contentVector) = ", size(contentVector)
 
         !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Starting data treatment
         blankTotal  = 0;
@@ -138,9 +143,9 @@ contains
                 blankTotal = blankTotal+1
                 !write(*,*) "Comment or blank";
             endif
-            read(fileID,'(A)',IOSTAT = stat) contentVector(i)
         enddo
 
+        !call DispCarvalhol(contentVector, "contentVector")
         !write(*,*) "dataTotal            = ", dataTotal;
         !write(*,*) "tagTotal             = ", tagTotal;
         !write(*,*) "blank/comment Total  = ", blankTotal;
@@ -148,6 +153,10 @@ contains
         if(dataTotal == 0 .or. tagTotal == 0) then
             write(*,*) "ERROR! In set_DataTable, no tags and/or data bad conditioned "
             stop "ERROR! In set_DataTable, no tags and/or data bad conditioned ";
+            write(*,*) "dataTotal = ", dataTotal
+            write(*,*) " tagTotal = ", tagTotal
+            call dispCarvalhol(foundedTags,"foundedTags")
+            call dispCarvalhol(contentVector, "contentVector")
         else if((tagTotal-unitTags) == 0) then
             !            write(*,*) "Only unit data"
             ratioTagData = 1;
@@ -157,8 +166,13 @@ contains
         else
             write(*,*) "ERROR! In set_DataTable, Tags and data dimensions don't match "
             stop "ERROR! In set_DataTable, Tags and data dimensions don't match ";
+            write(*,*) "dataTotal = ", dataTotal
+            write(*,*) " tagTotal = ", tagTotal
+            call dispCarvalhol(foundedTags,"foundedTags")
+            call dispCarvalhol(contentVector, "contentVector")
         endif
 
+        !write(*,*) "SECOND LOOP"
         !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Second loop: filling data table
 
         !Initializing
@@ -224,6 +238,10 @@ contains
             end if
         end do
 
+        if(allocated(tagPattern))    deallocate(tagPattern)
+        if(allocated(lastLine))      deallocate(lastLine)
+        if(allocated(contentVector)) deallocate(contentVector)
+
     end subroutine set_DataTable
 
     !-----------------------------------------------------------------------------------------------
@@ -254,12 +272,14 @@ contains
 
         if(stat /= 0) then
             write(*,*) "ERROR! in -read_DataTable_DbleVec- read failed (check types and Tag name)"
-            stop "ERROR! in -read_DataTable_DbleVec- read failed (check types and Tag name)"
+            write(*,*) "tagName = ", tagName
+            stop
         end if
 
         if(.not.tagFounded) then
             write(*,*) "ERROR! in -read_DataTable- TAG not founded"
-            stop "ERROR! in -read_DataTable- TAG not founded"
+            write(*,*) "tagName = ", tagName
+            stop
         end if
 
     end subroutine read_DataTable_DbleVec
@@ -291,13 +311,15 @@ contains
         end do
 
         if(stat /= 0) then
-            write(*,*) "ERROR! in -read_DataTable_IntVec- read failed (check types and Tag name)"
-            stop "ERROR! in -read_DataTable_IntVec- read failed (check types and Tag name)"
+            write(*,*) "ERROR! in -read_DataTable_DbleVec- read failed (check types and Tag name)"
+            write(*,*) "tagName = ", tagName
+            stop
         end if
 
         if(.not.tagFounded) then
             write(*,*) "ERROR! in -read_DataTable- TAG not founded"
-            stop "ERROR! in -read_DataTable- TAG not founded"
+            write(*,*) "tagName = ", tagName
+            stop
         end if
 
     end subroutine read_DataTable_IntVec
@@ -329,13 +351,15 @@ contains
         end do
 
         if(stat /= 0) then
-            write(*,*) "ERROR! in -read_DataTable_CharVec- read failed (check types and Tag name)"
-            stop "ERROR! in -read_DataTable_CharVec- read failed (check types and Tag name)"
+            write(*,*) "ERROR! in -read_DataTable_DbleVec- read failed (check types and Tag name)"
+            write(*,*) "tagName = ", tagName
+            stop
         end if
 
         if(.not.tagFounded) then
             write(*,*) "ERROR! in -read_DataTable- TAG not founded"
-            stop "ERROR! in -read_DataTable- TAG not founded"
+            write(*,*) "tagName = ", tagName
+            stop
         end if
 
     end subroutine read_DataTable_CharVec
@@ -365,16 +389,56 @@ contains
         end do
 
         if(stat /= 0) then
-            write(*,*) "ERROR! in -read_DataTable_DbleScal- read failed (check types and Tag name)"
-            stop "ERROR! in -read_DataTable_DbleScal- read failed (check types and Tag name)"
+            write(*,*) "ERROR! in -read_DataTable_DbleVec- read failed (check types and Tag name)"
+            write(*,*) "tagName = ", tagName
+            stop
         end if
 
         if(.not.tagFounded) then
             write(*,*) "ERROR! in -read_DataTable- TAG not founded"
-            stop "ERROR! in -read_DataTable- TAG not founded"
+            write(*,*) "tagName = ", tagName
+            stop
         end if
 
     end subroutine read_DataTable_DbleScal
+
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    subroutine read_DataTable_LogicalScal(dataTable, tagName, dataDestination)
+        implicit none
+        !INPUT
+        character(len=*), dimension(:,:), intent(in)  :: dataTable
+        character(len=*),                 intent(in)  :: tagName
+        !OUTPUT
+        logical, intent(out)  :: dataDestination
+        !LOCAL VARIABLES
+        integer :: i, stat
+        logical :: tagFounded
+
+        tagFounded = .FALSE.
+        stat       = -1
+
+        do i = 1, size(dataTable,2)
+            if (trim(dataTable(1,i)) == tagName) then
+                read(dataTable(2,i), fmt=*, IOSTAT = stat) dataDestination
+                tagFounded = .TRUE.
+                exit
+            end if
+        end do
+
+        if(stat /= 0) then
+            write(*,*) "ERROR! in -read_DataTable_DbleVec- read failed (check types and Tag name)"
+            write(*,*) "tagName = ", tagName
+            stop
+        end if
+
+        if(.not.tagFounded) then
+            write(*,*) "ERROR! in -read_DataTable- TAG not founded"
+            write(*,*) "tagName = ", tagName
+            stop
+        end if
+
+    end subroutine read_DataTable_LogicalScal
 
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
@@ -402,12 +466,14 @@ contains
 
         if(stat /= 0) then
             write(*,*) "ERROR! in -read_DataTable_IntScal- read failed (check types and Tag name)"
-            stop "ERROR! in -read_DataTable_IntScal- read failed (check types and Tag name)"
+            write(*,*) "tagName = ", tagName
+            stop
         end if
 
         if(.not.tagFounded) then
-            write(*,*) "ERROR! in -read_DataTable- TAG not founded"
-            stop "ERROR! in -read_DataTable- TAG not founded"
+            write(*,*) "ERROR! in -read_DataTable_IntScal- TAG not founded"
+            write(*,*) "tagName = ", tagName
+            stop
         end if
 
     end subroutine read_DataTable_IntScal
@@ -430,20 +496,24 @@ contains
 
         do i = 1, size(dataTable,2)
             if (trim(dataTable(1,i)) == tagName) then
-                read(dataTable(2,i), fmt=*, IOSTAT = stat) dataDestination
+                !read(dataTable(2,i), fmt=*, IOSTAT = stat) dataDestination
+                dataDestination = adjustL(dataTable(2,i))
+                !write(*,*) "dataDestination = ", dataDestination
                 tagFounded = .TRUE.
                 exit
             end if
         end do
 
-        if(stat /= 0) then
-            write(*,*) "ERROR! in -read_DataTable_CharScal- read failed (check types)"
-            stop "ERROR! in -read_DataTable_CharScal- read failed (check types)"
-        end if
+!        if(stat /= 0) then
+!            write(*,*) "ERROR! in -read_DataTable_CharScal- read failed (check types and Tag name)"
+!            write(*,*) "tagName = ", tagName
+!            stop
+!        end if
 
         if(.not.tagFounded) then
-            write(*,*) "ERROR! in -read_DataTable- TAG not founded"
-            stop "ERROR! in -read_DataTable- TAG not founded"
+            write(*,*) "ERROR! in -read_DataTable_CharScal- TAG not founded"
+            write(*,*) "tagName = ", tagName
+            stop
         end if
 
     end subroutine read_DataTable_CharScal
@@ -462,15 +532,13 @@ contains
     end function modCyclic
 
 end module readFile_RF
-
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
-!! coding: utf-8
 !! f90-do-indent: 4
 !! f90-if-indent: 4
 !! f90-type-indent: 4
 !! f90-program-indent: 4
 !! f90-continuation-indent: 4
 !! End:
-!! vim: set sw=4 ts=8 et tw=80 smartindent :
+!! vim: set sw=4 ts=8 et tw=80 smartindent : !!

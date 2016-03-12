@@ -139,14 +139,39 @@ set_target_properties(semcommon PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR}
 
 #RANDOM FIELD LIBRARY
 add_library(randomfield
-  ${SEMDIR}/randomfield/displayCarvalhol.f90
-  ${SEMDIR}/randomfield/math_RF.f90
-  ${SEMDIR}/randomfield/obsolete_RF.f90
-  ${SEMDIR}/randomfield/spectra_RF.f90
-  ${SEMDIR}/randomfield/randomFieldND.f90
-  ${SEMDIR}/randomfield/readFile_RF.f90
-  ${SEMDIR}/randomfield/statistics_RF.f90
-  ${SEMDIR}/randomfield/writeResultFile_RF.f90
+  ${SEMDIR}/randomfield/SRC_LIB/randomFieldND.f90
+  ${SEMDIR}/randomfield/SRC_LIB/spectra_RF.f90
+  ${SEMDIR}/randomfield/SRC_LIB/writeResultFile_RF.f90
+  ${SEMDIR}/randomfield/SRC_LIB/mesh_RF.f90
+  ${SEMDIR}/randomfield/SRC_LIB/type_MESH.f90
+  ${SEMDIR}/randomfield/SRC_LIB/type_RF.f90
+  ${SEMDIR}/randomfield/SRC_LIB/topography_RF.f90
+  ${SEMDIR}/randomfield/SRC_LIB/readUNV_RF.f90
+  ${SEMDIR}/randomfield/SRC_LIB/localization_RF.f90
+  ${SEMDIR}/randomfield/SRC_LIB/type_inputRF.f90
+  ${SEMDIR}/randomfield/SRC_LIB/sample_RF.f90
+  ${SEMDIR}/randomfield/SRC_LIB/calls_RF.f90
+  ${SEMDIR}/randomfield/SRC_LIB/statistics_RF.f90
+  ${SEMDIR}/randomfield/SRC_LIB/type_STAT.f90
+  ${SEMDIR}/randomfield/SRC_LIB/charFunctions.f90
+  ${SEMDIR}/randomfield/SRC_LIB/constants_RF.f90
+  ${SEMDIR}/randomfield/SRC_LIB/common_variables_RF.f90
+  ${SEMDIR}/randomfield/SRC_LIB/displayCarvalhol.f90
+  ${SEMDIR}/randomfield/SRC_LIB/hdf5_RF.f90
+  ${SEMDIR}/randomfield/SRC_LIB/write_Log_File.f90
+  ${SEMDIR}/randomfield/SRC_LIB/readFile_RF.f90
+  ${SEMDIR}/randomfield/SRC_LIB/math_RF.f90
+  ${SEMDIR}/randomfield/SRC_LIB/systemUt_RF.f90
+  ${SEMDIR}/randomfield/SRC_LIB/fftw3.f90
+  ${SEMDIR}/randomfield/dcdflib/src/ipmpar.f
+  ${SEMDIR}/randomfield/dcdflib/src/spmpar.f
+  ${SEMDIR}/randomfield/dcdflib/src/cumnor.f
+  ${SEMDIR}/randomfield/dcdflib/src/devlpl.f
+  ${SEMDIR}/randomfield/dcdflib/src/stvaln.f
+  ${SEMDIR}/randomfield/dcdflib/src/dinvnr.f
+  ${SEMDIR}/randomfield/dcdflib/src/cdfnor.f
+  ${SEMDIR}/randomfield/RANDLIB/ranlib.f90
+  ${SEMDIR}/randomfield/RANDLIB/rnglib.f90
 )
 set_target_properties(randomfield PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/common)
 add_dependencies(randomfield semcommon)
