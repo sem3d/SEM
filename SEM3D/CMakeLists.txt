@@ -44,6 +44,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/FluidPML/dom_fluidpml.F90
     ${PRJ}/SRC/compute_GLL.f90
     ${PRJ}/SRC/courant.f90
+    ${PRJ}/SRC/pml.F90
     ${PRJ}/SRC/define_arrays.F90
     ${PRJ}/SRC/define_Neumann_properties.f90
     ${PRJ}/SRC/define_planew_properties.f90
