@@ -560,6 +560,12 @@ contains
         deallocate(Vp)
     end subroutine init_fluidpml_properties
 
+    subroutine finalize_fluidpml_properties(dom)
+      type (domain_fluidpml), intent (INOUT), target :: dom
+      !
+      call define_PML_DumpEnd(dom%nglltot, dom%MassMat, dom%DumpMass, dom%champs0%fpml_DumpV)
+    end subroutine finalize_fluidpml_properties
+
 end module dom_fluidpml
 
 !! Local Variables:

@@ -325,14 +325,8 @@ contains
     subroutine finalize_pml_properties(Tdomain)
         type (domain), intent (INOUT), target :: Tdomain
         !
-        if (allocated(Tdomain%spmldom%champs0%DumpV)) then ! allocated <=> we'll need it
-            call define_PML_DumpEnd(Tdomain%spmldom%nglltot,  Tdomain%spmldom%MassMat, &
-                                    Tdomain%spmldom%DumpMass, Tdomain%spmldom%champs0%DumpV)
-        end if
-        if (allocated(Tdomain%fpmldom%champs0%fpml_DumpV)) then ! allocated <=> we'll need it
-            call define_PML_DumpEnd(Tdomain%fpmldom%nglltot,  Tdomain%fpmldom%MassMat, &
-                                    Tdomain%fpmldom%DumpMass, Tdomain%fpmldom%champs0%fpml_DumpV)
-        end if
+        if (Tdomain%spmldom%nbelem>0) call finalize_solidpml_properties(Tdomain%spmldom)
+        if (Tdomain%fpmldom%nbelem>0) call finalize_fluidpml_properties(Tdomain%fpmldom)
     end subroutine finalize_pml_properties
 
     subroutine init_local_mass(Tdomain, specel)
@@ -520,23 +514,6 @@ contains
         endif
         !    fin modification des proprietes des couches de materiaux
     end subroutine initialize_material_gradient
-
-    !----------------------------------------------------------------------------------
-    !----------------------------------------------------------------------------------
-    subroutine define_PML_DumpEnd(ngll,Massmat,DumpMass,DumpV)
-        implicit none
-        integer, intent(in)   :: ngll
-        real, dimension(0:ngll-1), intent(in) :: MassMat
-        real, dimension(0:ngll-1,0:2), intent(in) :: DumpMass
-        real, dimension(0:ngll-1,0:1,0:2), intent(out) :: DumpV
-
-        DumpV(:,1,:) = spread(MassMat(:),2,3) + DumpMass(:,:)
-        DumpV(:,1,:) = 1d0/DumpV(:,1,:)
-        DumpV(:,0,:) = spread(MassMat(:),2,3) - DumpMass(:,:)
-        DumpV(:,0,:) = DumpV(:,0,:) * DumpV(:,1,:)
-
-        return
-    end subroutine define_PML_DumpEnd
 
     !---------------------------------------------------------------------------
     !---------------------------------------------------------------------------
