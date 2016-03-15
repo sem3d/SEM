@@ -168,6 +168,17 @@ int Mesh3D::read_materials_v2(const std::string& str)
     double vs, vp, rho;
     int ngllx;
     double Qp, Qmu;
+    int corrMod;
+	double corrL_x;
+	double corrL_y;
+	double corrL_z;
+	int rho_margiF;
+	double rho_var;
+	int lambda_margiF;
+	double lambda_var;
+	int mu_margiF;
+	double mu_var;
+	int seedStart;
 
     getline(&buffer, &linesize, f);
     sscanf(buffer, "%d", &nmats);
@@ -176,7 +187,28 @@ int Mesh3D::read_materials_v2(const std::string& str)
         sscanf(buffer, "%c %lf %lf %lf %d %lf %lf",
                &type, &vp, &vs, &rho, &ngllx, &Qp, &Qmu);
         printf("Mat: %2ld : %c vp=%lf vs=%lf\n", m_materials.size(), type, vp, vs);
-        m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
+        if(strcmp(&type,"R")){
+        	getline(&buffer, &linesize, f);
+        	sscanf(buffer, "%d %lf %lf %lf %d %lf %d %lf %d %lf %d",
+        	               &corrMod,
+						   &corrL_x, &corrL_y, &corrL_z,
+						   &rho_margiF, &rho_var,
+						   &lambda_margiF, &lambda_var,
+						   &mu_margiF, &mu_var,
+						   &seedStart);
+        	printf("     corrMod = %d, cL_x = %lf, cL_y = %lf, cL_z = %lf, seedStart = %d\n",
+        			corrMod, corrL_x, corrL_y, corrL_z, seedStart);
+        	m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx,
+        			    corrMod,
+        				corrL_x, corrL_y, corrL_z,
+        				rho_margiF, rho_var,
+        				lambda_margiF, lambda_var,
+        				mu_margiF, mu_var,
+						seedStart));
+        }
+        else{
+        	m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
+        }
     }
     free(buffer);
     return nmats;
@@ -221,7 +253,7 @@ void Mesh3D::write_materials_v2(const std::string& str)
     for(int k=0;k<nmats;++k) {
         const Material& mat = m_materials[k];
         fprintf(f, "%c %lf %lf %lf %d %lf %lf\n",
-                mat.material_char(),
+        		mat.cinitial_type,
                 mat.Pspeed, mat.Sspeed, mat.rho,
                 mat.m_ngll,
                 mat.Qpression, mat.Qmu);
@@ -235,7 +267,19 @@ void Mesh3D::write_materials_v2(const std::string& str)
         fprintf(f, "2 10. %lf %lf %lf %lf %lf %lf %d\n",
                 mat.xpos, mat.xwidth,
                 mat.ypos, mat.ywidth,
-                mat.zpos, mat.zwidth, k);
+                mat.zpos, mat.zwidth, mat.associated_material);
+    }
+    fprintf(f, "# Random properties\n");
+    fprintf(f, "# corrMod, corrL_x, corrL_y, corrL_z, rho_margiF, rho_var, lambda_margiF, lambda_var, mu_margiF, mu_var, seedStart\n");
+    for(int k=0;k<nmats;++k) {
+        const Material& mat = m_materials[k];
+        if (strcmp(&mat.cinitial_type,"R") != 0) continue;
+        fprintf(f, "%d %lf %lf %lf %d %lf %d %lf %d %lf %d\n",
+                mat.corrMod,
+				mat.corrL_x, mat.corrL_y, mat.corrL_z,
+                mat.rho_margiF, mat.rho_var,
+				mat.lambda_margiF, mat.lambda_var,
+				mat.mu_margiF, mat.mu_var, mat.seedStart);
     }
 }
 

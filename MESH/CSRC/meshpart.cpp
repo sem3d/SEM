@@ -349,7 +349,7 @@ void Mesh3DPart::get_local_materials(std::vector<int>& mats, std::vector<int>& d
         mats[k] = m_mesh.m_mat[el];
         int dom = m_mesh.get_elem_domain(el);
         doms[k] = dom;
-        assert(dom>0 && dom<=6);
+        assert(dom>0 && dom<=DM_MAX);
     }
 
 }
