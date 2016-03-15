@@ -24,7 +24,7 @@ subroutine Runge_Kutta4 (Tdomain, dt)
     real,    intent(in)   :: dt
 
     ! local variables
-    integer :: i, n, mat, ngx, ngz
+    integer :: i, n, mat
     integer :: tag_send, tag_receive, i_send, ierr, i_proc
     integer, dimension (MPI_STATUS_SIZE) :: status
     integer               :: nface,  type_DG
@@ -197,6 +197,7 @@ subroutine Runge_Kutta4 (Tdomain, dt)
     ! local variables
     integer :: n, type_DG, ngll
 
+
     do n=0, Tdomain%n_face-1
        ngll = Tdomain%sface(n)%ngll
        type_DG = Tdomain%sface(n)%Type_DG
@@ -210,11 +211,13 @@ subroutine Runge_Kutta4 (Tdomain, dt)
           Tdomain%sface(n)%Forces(1:ngll-2,1) = Tdomain%sface(n)%MassMat(:) * Tdomain%sface(n)%Forces(1:ngll-2,1)
           ! RK4 Updates of displacements and velocities (displacements first !)
           Tdomain%sface(n)%Vect_RK(:,2:3) = coeff1 * Tdomain%sface(n)%Vect_RK(:,2:3) &
-                                          + Dt *Tdomain%sface(n)%Veloc(:,0:1)
+                                          + Dt *Tdomain%sface(n)%Veloc(1:ngll-2,0:1)
           Tdomain%sface(n)%Vect_RK(:,0:1) = coeff1 * Tdomain%sface(n)%Vect_RK(:,0:1) &
-                                          + Dt * Tdomain%sface(n)%Forces(:,0:1)
-          Tdomain%sface(n)%Displ = Tdomain%sface(n)%Displ + coeff2 * Tdomain%sface(n)%Vect_RK(:,2:3)
-          Tdomain%sface(n)%Veloc = Tdomain%sface(n)%Veloc + coeff2 * Tdomain%sface(n)%Vect_RK(:,0:1)
+                                          + Dt * Tdomain%sface(n)%Forces(1:ngll-2,0:1)
+          Tdomain%sface(n)%Displ(1:ngll-2,0:1) = Tdomain%sface(n)%Displ(1:ngll-2,0:1) &
+                                               + coeff2 * Tdomain%sface(n)%Vect_RK(:,2:3)
+          Tdomain%sface(n)%Veloc(1:ngll-2,0:1) = Tdomain%sface(n)%Veloc(1:ngll-2,0:1) &
+                                               + coeff2 * Tdomain%sface(n)%Vect_RK(:,0:1)
           Tdomain%sface(n)%Forces(:,:) = 0.
        endif
     enddo

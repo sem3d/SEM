@@ -28,7 +28,7 @@ subroutine allocate_domain (Tdomain)
 
   type(domain), intent (INOUT):: Tdomain
 
-  integer :: n,ngllx,ngllz,ngll,i,j,imin,imax
+  integer :: n,ngllx,ngllz,ngll,i,j
 
   do n=0,Tdomain%n_elem-1
      ngllx = Tdomain%specel(n)%ngllx
@@ -234,11 +234,14 @@ subroutine allocate_domain (Tdomain)
         deallocate(Tdomain%sFace(n)%Veloc,Tdomain%sFace(n)%Forces)
         allocate(Tdomain%sFace(n)%Veloc (0:ngll-1,0:1))
         allocate(Tdomain%sFace(n)%Forces(0:ngll-1,0:1))
-        !if (.not. allocated(Tdomain%sFace(n)%InvMatPen)) allocate (Tdomain%sFace(n)%InvMatPen(0:ngll-1,0:2))
-        !if (.not. allocated(Tdomain%sFace(n)%Traction))  allocate (Tdomain%sFace(n)%Traction(0:ngll-1,0:1))
+        if (.NOT. allocated(Tdomain%sFace(n)%Accel)) allocate(Tdomain%sFace(n)%Accel(0:ngll-1,0:1))
+        if (.NOT. allocated(Tdomain%sFace(n)%KinvExpl)) allocate(Tdomain%sFace(n)%KinvExpl(0:ngll-1,0:2))
+        if (.NOT. allocated(Tdomain%sFace(n)%SmbrTrac)) allocate(Tdomain%sFace(n)%SmbrTrac(0:ngll-1,0:1))
+        Tdomain%type_elem = COUPLE_CG_HDG
         Tdomain%sFace(n)%Veloc = 0.
-        !Tdomain%sFace(n)%Traction = 0.
-        !Tdomain%sFace(n)%InvMatPen= 0.
+        Tdomain%sFace(n)%Forces = 0.
+        Tdomain%sFace(n)%KinvExpl = 0.
+        Tdomain%sFace(n)%SmbrTrac = 0.
         Tdomain%sFace(n)%type_DG = COUPLE_CG_HDG
         Tdomain%sFace(n)%type_Flux = FLUX_HDG
         i = Tdomain%sFace(n)%Near_Vertex(0)
@@ -246,9 +249,11 @@ subroutine allocate_domain (Tdomain)
         Tdomain%sVertex(i)%Type_DG = GALERKIN_CONT
         Tdomain%sVertex(j)%Type_DG = GALERKIN_CONT
         ! Coefficients of integration on face
-        j = Tdomain%sFace(n)%Near_Element(0)
-        i = Tdomain%sFace(n)%Which_Face(0)
-        call get_iminimax(Tdomain%specel(j),i,imin,imax)
+        !j = Tdomain%sFace(n)%Near_Element(0)
+        !i = Tdomain%sFace(n)%Which_Face(0)
+        !allocate(Tdomain%sFace(n)%Coeff_Integr(0:ngll-1))
+        !call get_iminimax(Tdomain%specel(j),i,imin,imax)
+        !Tdomain%sFace(n)%Coeff_Integr(:) = Tdomain%specel(j)%Coeff_Integr_Faces(imin:imax)
      endif
   enddo
 

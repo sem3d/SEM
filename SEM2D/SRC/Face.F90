@@ -235,6 +235,13 @@ end subroutine Compute_Flux_DGstrong
       implicit none
       type (Face), intent (INOUT) :: F
 
+      F%Forces(:,0) = F%Forces(:,0) - (F%SmbrTrac(:,0) + (F%KinvExpl(:,0)*F%Veloc(:,0) &
+                                                       + F%KinvExpl(:,2)*F%Veloc(:,1)))
+      F%Forces(:,1) = F%Forces(:,1) - (F%SmbrTrac(:,1) + (F%KinvExpl(:,2)*F%Veloc(:,0) &
+                                                       + F%KinvExpl(:,1)*F%Veloc(:,1)))
+
+      F%SmbrTrac(:,:) = 0.
+
       !################ DESACTIVATED IN MAY 2015 #####################!
       !F%Traction(:,0) =  F%Traction(:,0) + (F%InvMatPen(:,0)*F%Veloc(:,0) + F%InvMatPen(:,2)*F%Veloc(:,1))
       !F%Traction(:,1) =  F%Traction(:,1) + (F%InvMatPen(:,2)*F%Veloc(:,0) + F%InvMatPen(:,1)*F%Veloc(:,1))
@@ -649,6 +656,10 @@ end subroutine Compute_Flux_DGstrong
         type (Face), intent (INOUT) :: F
         real, dimension(0:F%ngll-1) :: Det, tmp
         integer                     :: i
+
+        if (F%Type_DG==COUPLE_CG_HDG) then
+            return
+        endif
 
         Det(:) = F%KinvExpl(:,0) * F%KinvExpl(:,1) - (F%KinvExpl(:,2)*F%KinvExpl(:,2))
         ! Check positive-definiteness of matrices on Faces

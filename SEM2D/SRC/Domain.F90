@@ -4,7 +4,7 @@
 !!
 !>
 !!\file Domain.F90
-!!\brief Contient le définition du type domain
+!!\brief Contient le definition du type domain
 !!\author
 !!\version 1.0
 !!\date 10/03/2009

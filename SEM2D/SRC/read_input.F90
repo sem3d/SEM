@@ -133,6 +133,7 @@ subroutine read_input (Tdomain)
     Tdomain%logicD%run_echo = .false.
     Tdomain%logicD%super_object = .false.
     Tdomain%logicD%super_object_local_present = .false.
+    Tdomain%logicD%save_deformation = .false.
     !read (11,*) Tdomain%logicD%save_deformation
     !read (11,*) Tdomain%logicD%save_energy
 
