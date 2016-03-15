@@ -37,14 +37,14 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Solid/attenuation_solid.F90
     ${PRJ}/SRC/Solid/calcul_forces.F90
     ${PRJ}/SRC/Solid/calcul_forces_atn.F90
-    ${PRJ}/SRC/Fluid/calcul_forces_fluid.F90
     ${PRJ}/SRC/Solid/dom_solid.F90
-    ${PRJ}/SRC/SolidPML/dom_solidpml.F90
+    ${PRJ}/SRC/Fluid/calcul_forces_fluid.F90
     ${PRJ}/SRC/Fluid/dom_fluid.F90
+    ${PRJ}/SRC/pml.F90
+    ${PRJ}/SRC/SolidPML/dom_solidpml.F90
     ${PRJ}/SRC/FluidPML/dom_fluidpml.F90
     ${PRJ}/SRC/compute_GLL.f90
     ${PRJ}/SRC/courant.f90
-    ${PRJ}/SRC/pml.F90
     ${PRJ}/SRC/define_arrays.F90
     ${PRJ}/SRC/define_Neumann_properties.f90
     ${PRJ}/SRC/define_planew_properties.f90
