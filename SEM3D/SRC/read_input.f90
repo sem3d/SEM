@@ -171,17 +171,27 @@ contains
 
         call read_material_file_v2(Tdomain)
 
+        Tdomain%any_sdom = .false.
+        Tdomain%any_fdom = .false.
+        Tdomain%any_spml = .false.
+        Tdomain%any_fpml = .false.
+
         do mat = 0, Tdomain%n_mat-1
             dom = get_domain(Tdomain%sSubDomain(mat))
+
             select case (dom)
                  case (DM_SOLID)
                      Tdomain%sdom%ngll = Tdomain%sSubDomain(mat)%NGLL
+                     Tdomain%any_sdom = .true.
                  case (DM_FLUID)
                      Tdomain%fdom%ngll = Tdomain%sSubDomain(mat)%NGLL
+                     Tdomain%any_fdom = .true.
                  case (DM_SOLID_PML)
                      Tdomain%spmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
+                     Tdomain%any_spml = .true.
                  case (DM_FLUID_PML)
                      Tdomain%fpmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
+                     Tdomain%any_fpml = .true.
             end select
         end do
         !- GLL properties in elements, on faces, edges.
@@ -255,6 +265,8 @@ contains
 
 
             if(rg==0 .and. .false.) then
+                write (*,*) ' '
+                write (*,*) ' '
                 write (*,*) 'Material :', i
                 write (*,*) 'type     :', Tdomain%sSubDomain(i)%material_type
                 write (*,*) 'Pspeed   :', Tdomain%sSubDomain(i)%Pspeed
@@ -275,14 +287,17 @@ contains
             else
             endif
 
+            Tdomain%sSubdomain(i)%initial_material_type = Tdomain%sSubDomain(i)%material_type
+
             if (Tdomain%sSubDomain(i)%material_type == "R") then
                 nRandom = nRandom + 1
+                Tdomain%sSubDomain(i)%material_type = "S"
+                Tdomain%any_Random = .true.
             end if
 
         enddo
 
         if(npml > 0) then
-            if(rg==0) write (*,*) "!!WARNING change on 'material.input', put associated material after PML existing definition', "
             read(13,*); read(13,*)
             do i = 0,Tdomain%n_mat-1
                 if(.not. Tdomain%not_PML_List(i)) then
@@ -310,11 +325,10 @@ contains
         enddo
 
         if(nRandom > 0) then
-            Tdomain%any_Random = .true.
             read(13,*); read(13,*)
             do i = 0,Tdomain%n_mat-1
                 !write(*,*) "Reading Random Material (", i, ")"
-                if(Tdomain%sSubdomain(i)%material_type == "R") then
+                if(Tdomain%sSubdomain(i)%initial_material_type == 'R') then
                     allocate(Tdomain%sSubdomain(i)%corrL(0:2))
                     allocate(Tdomain%sSubdomain(i)%varProp(0:2))
                     allocate(Tdomain%sSubdomain(i)%margiFirst(0:2))
@@ -393,19 +407,25 @@ contains
             else
             endif
 
+            Tdomain%sSubDomain(i)%initial_material_type = Tdomain%sSubDomain(i)%material_type
             if (Tdomain%sSubDomain(i)%material_type == "R") then
                 nRandom = nRandom + 1
+                Tdomain%sSubDomain(i)%material_type = "S"
+                Tdomain%any_Random = .true.
             end if
 
-            if(rg==0 .and. .False.) then
-                write (*,*) 'Material   : ', i
-                write (*,*) ' - type    : ', Tdomain%sSubDomain(i)%material_type
-                write (*,*) ' - Pspeed  : ', Tdomain%sSubDomain(i)%Pspeed
-                write (*,*) ' - Sspeed  : ', Tdomain%sSubDomain(i)%Sspeed
-                write (*,*) ' - Density : ', Tdomain%sSubDomain(i)%dDensity
-                write (*,*) ' - NGLL    : ', Tdomain%sSubDomain(i)%NGLL
-                write (*,*) ' - Qp      : ', Tdomain%sSubDomain(i)%Qpression
-                write (*,*) ' - Qmu     : ', Tdomain%sSubDomain(i)%Qmu
+            if(rg==0 .and. .false.) then
+                write (*,*) ' '
+                write (*,*) ' '
+                write (*,*) 'Material     : ', i
+                write (*,*) ' - type      : ', Tdomain%sSubDomain(i)%material_type
+                write (*,*) ' - init_type : ', Tdomain%sSubDomain(i)%initial_material_type
+                write (*,*) ' - Pspeed    : ', Tdomain%sSubDomain(i)%Pspeed
+                write (*,*) ' - Sspeed    : ', Tdomain%sSubDomain(i)%Sspeed
+                write (*,*) ' - Density   : ', Tdomain%sSubDomain(i)%dDensity
+                write (*,*) ' - NGLL      : ', Tdomain%sSubDomain(i)%NGLL
+                write (*,*) ' - Qp        : ', Tdomain%sSubDomain(i)%Qpression
+                write (*,*) ' - Qmu       : ', Tdomain%sSubDomain(i)%Qmu
             endif
         enddo
 
@@ -423,7 +443,7 @@ contains
                         Tdomain%sSubdomain(i)%pml_width(2), &
                         Tdomain%sSubdomain(i)%assocMat
 
-                    if(rg==0 .and. .False.) then
+                    if(rg==0 .and. .false.) then
                         write (*,*) 'PML Material : '
                         write (*,*) ' - assocMat  : ', Tdomain%sSubdomain(i)%assocMat
                         write (*,*) ' - Apow      : ', Tdomain%sSubdomain(i)%Apow
@@ -443,12 +463,11 @@ contains
             end if
         enddo
 
-        if(nRandom > 0) then
-            Tdomain%any_Random = .true.
+        if(Tdomain%any_Random) then
             read(13,*); read(13,*)
             do i = 0,Tdomain%n_mat-1
+                if(Tdomain%sSubDomain(i)%initial_material_type == "R") then
                 !write(*,*) "Reading Random Material (", i, ")"
-                if(Tdomain%sSubdomain(i)%material_type == "R") then
                     allocate(Tdomain%sSubdomain(i)%corrL(0:2))
                     allocate(Tdomain%sSubdomain(i)%varProp(0:2))
                     allocate(Tdomain%sSubdomain(i)%margiFirst(0:2))
@@ -464,9 +483,62 @@ contains
                         Tdomain%sSubdomain(i)%margiFirst(2), &
                         Tdomain%sSubdomain(i)%varProp(2),    &
                         Tdomain%sSubdomain(i)%seedStart
+                    if(rg==0 .and. .false.) then
+                        write (*,*) 'RANDOM Material  : '
+                        write (*,*) ' - corrMod       : ', Tdomain%sSubdomain(i)%corrMod
+                        write (*,*) ' - corrL_x       : ', Tdomain%sSubdomain(i)%corrL(0)
+                        write (*,*) ' - corrL_y       : ', Tdomain%sSubdomain(i)%corrL(1)
+                        write (*,*) ' - corrL_z       : ', Tdomain%sSubdomain(i)%corrL(2)
+                        write (*,*) ' - FOMarg Prop 0 : ', Tdomain%sSubdomain(i)%margiFirst(0)
+                        write (*,*) ' - FOMarg Prop 1 : ', Tdomain%sSubdomain(i)%margiFirst(1)
+                        write (*,*) ' - FOMarg Prop 2 : ', Tdomain%sSubdomain(i)%margiFirst(2)
+                        write (*,*) ' - Var Prop 0    : ', Tdomain%sSubdomain(i)%varProp(0)
+                        write (*,*) ' - Var Prop 1    : ', Tdomain%sSubdomain(i)%varProp(1)
+                        write (*,*) ' - Var Prop 2    : ', Tdomain%sSubdomain(i)%varProp(2)
+                        write (*,*) ' - Seed Start    : ', Tdomain%sSubdomain(i)%seedStart
+                    endif
                 endif
             enddo
         endif
+
+        do i = 0,Tdomain%n_mat-1
+            if(rg==0 .and. .true.) then
+                write (*,*) ' '
+                write (*,*) ' '
+                write (*,*) 'Material     : ', i
+                write (*,*) '| - type      : ', Tdomain%sSubDomain(i)%material_type
+                write (*,*) '| - init_type : ', Tdomain%sSubDomain(i)%initial_material_type
+                write (*,*) '| - Pspeed    : ', Tdomain%sSubDomain(i)%Pspeed
+                write (*,*) '| - Sspeed    : ', Tdomain%sSubDomain(i)%Sspeed
+                write (*,*) '| - Density   : ', Tdomain%sSubDomain(i)%dDensity
+                write (*,*) '| - NGLL      : ', Tdomain%sSubDomain(i)%NGLL
+                write (*,*) '| - Qp        : ', Tdomain%sSubDomain(i)%Qpression
+                write (*,*) '| - Qmu       : ', Tdomain%sSubDomain(i)%Qmu
+                if(.not. Tdomain%not_PML_List(i)) then
+                    write (*,*) '|   PML Material : '
+                    write (*,*) '|    - assocMat  : ', Tdomain%sSubdomain(i)%assocMat
+                    write (*,*) '|    - Apow      : ', Tdomain%sSubdomain(i)%Apow
+                    write (*,*) '|    - npow      : ', Tdomain%sSubdomain(i)%npow
+                    write (*,*) '|    - pml_pos   : ', Tdomain%sSubdomain(i)%pml_pos(:)
+                    write (*,*) '|    - pml_width : ', Tdomain%sSubdomain(i)%pml_width(:)
+                end if
+                if(Tdomain%sSubDomain(i)%initial_material_type == "R") then
+                    write (*,*) '|   RANDOM Material  : '
+                    write (*,*) '|    - corrMod       : ', Tdomain%sSubdomain(i)%corrMod
+                    write (*,*) '|    - corrL_x       : ', Tdomain%sSubdomain(i)%corrL(0)
+                    write (*,*) '|    - corrL_y       : ', Tdomain%sSubdomain(i)%corrL(1)
+                    write (*,*) '|    - corrL_z       : ', Tdomain%sSubdomain(i)%corrL(2)
+                    write (*,*) '|    - FOMarg Prop 0 : ', Tdomain%sSubdomain(i)%margiFirst(0)
+                    write (*,*) '|    - FOMarg Prop 1 : ', Tdomain%sSubdomain(i)%margiFirst(1)
+                    write (*,*) '|    - FOMarg Prop 2 : ', Tdomain%sSubdomain(i)%margiFirst(2)
+                    write (*,*) '|    - Var Prop 0    : ', Tdomain%sSubdomain(i)%varProp(0)
+                    write (*,*) '|    - Var Prop 1    : ', Tdomain%sSubdomain(i)%varProp(1)
+                    write (*,*) '|    - Var Prop 2    : ', Tdomain%sSubdomain(i)%varProp(2)
+                    write (*,*) '|    - Seed Start    : ', Tdomain%sSubdomain(i)%seedStart
+                endif
+                write (*,*) '|----------------------------------------'
+            endif
+        end do
 
         close(13)
 
@@ -685,7 +757,6 @@ contains
             write(*,*) "         period =", Tdomain%T0_modele
             write(*,*) "           band =", Tdomain%T1_att, Tdomain%T2_att
         end if
-
 
         ! Neumann boundary conditions? If yes: geometrical properties read in the mesh files.
         Tdomain%logicD%Neumann = Tdomain%config%neu_present /= 0

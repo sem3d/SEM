@@ -29,6 +29,12 @@ include_directories(${HDF5_FORTRAN_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} ${HDF5_INC
 include_directories(${HDF5_INCLUDE_DIR} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP})
 include_directories(${PROJECT_BINARY_DIR}/libs/common)
 
+find_path (FFTW_INCLUDES fftw3.h)
+find_library (FFTW_LIBRARIES NAMES fftw3)
+# TODO : find paths automatically
+set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/opt/local/lib -lfftw3 -lfftw3_threads -lfftw3_mpi")
+
+#set(CMAKE
 if (OPT_MPI OR HDF5_IS_PARALLEL)
     set(MPI_COMPILER mpif90)
     find_package(MPI)
@@ -114,6 +120,9 @@ set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} netlib)
 
 # HDF5
 set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
+
+#FFTW
+#set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${FFTW_LIBRARIES})
 
 # MPI
 if(OPT_MPI OR HDF5_IS_PARALLEL)

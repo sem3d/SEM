@@ -31,17 +31,16 @@ contains
 
         !LOCAL
         integer :: mat, assocMat
-        integer :: randMethod = 1 !1 for Isotropic method, 2 for Shinozuka's
-        real               , dimension(:)   , allocatable :: avgProp;
-        integer            , dimension(:)   , allocatable :: nSubDPoints;
-        double precision   , dimension(:, :), allocatable :: prop !Properties
-        character(len=110) , dimension(:)   , allocatable :: HDF5NameList
+        !real               , dimension(:)   , allocatable :: avgProp;
+        !integer            , dimension(:)   , allocatable :: nSubDPoints;
+        !double precision   , dimension(:, :), allocatable :: prop !Properties
+        !character(len=110) , dimension(:)   , allocatable :: HDF5NameList
 
-        allocate(avgProp(0:nProp-1)) !Obs: should have nProp declared before
-        allocate(prop(0:size(Tdomain%GlobCoord,2)-1, 0:nProp-1)) !Subdomain properties Matrix ((:,0) = Dens, (:,1) = Lambda, (:,2) = Mu) per proc
-        allocate(HDF5NameList(0:Tdomain%n_mat-1))
-        allocate(nSubDPoints(0:Tdomain%n_mat-1))
-        HDF5NameList(:) = "not_Used"
+        !allocate(avgProp(0:nProp-1)) !Obs: should have nProp declared before
+        !allocate(prop(0:size(Tdomain%GlobCoord,2)-1, 0:nProp-1)) !Subdomain properties Matrix ((:,0) = Dens, (:,1) = Lambda, (:,2) = Mu) per proc
+        !allocate(HDF5NameList(0:Tdomain%n_mat-1))
+        !allocate(nSubDPoints(0:Tdomain%n_mat-1))
+        !HDF5NameList(:) = "not_Used"
 
         !Writing hdf5 files
         if(rg == 0) write(*,*)
@@ -49,39 +48,31 @@ contains
             if(propOnFile(Tdomain, mat)) then
                 if(rg == 0) write(*,*) "  Material ", mat, " will have properties on file"
                 assocMat = Tdomain%sSubdomain(mat)%assocMat
-                avgProp  = [Tdomain%sSubDomain(mat)%Ddensity, &
-                    Tdomain%sSubDomain(mat)%DLambda,  &
-                    Tdomain%sSubDomain(mat)%DMu]
+                !avgProp  = [Tdomain%sSubDomain(mat)%Ddensity, &
+                !    Tdomain%sSubDomain(mat)%DLambda,  &
+                !    Tdomain%sSubDomain(mat)%DMu]
 
-                if(Tdomain%sSubDomain(assocMat)%material_type == "S".or. &
-                    Tdomain%sSubDomain(assocMat)%material_type == "P") then
-                    prop(:,0) = avgProp(0)
-                    prop(:,1) = avgProp(1)
-                    prop(:,2) = avgProp(2)
-                else if(Tdomain%sSubDomain(assocMat)%material_type == "R") then
+                if(is_rand(Tdomain%sSubdomain(mat))) then
                     if(rg == 0) write(*,*) "  Generating Random Properties"
-                    call build_random_properties(Tdomain, rg, mat, prop, randMethod)
+                    call build_random_properties(Tdomain, rg, mat)
                 end if
-!                if(rg == 0) write(*,*) "  Writing hdf5 files"
-!                call write_ResultHDF5Unstruct_MPI(Tdomain%GlobCoord, prop, trim(procFileName)//"_read", &
-!                    rg, trim(h5folder), Tdomain%communicateur,   &
-!                    ["_proc", "_subD"], [rg, mat], HDF5NameList(mat))
+
             end if
         end do
 
         !Writing XMF File
-        if(rg == 0) write(*,*) "  Writing XMF file"
-        nSubDPoints(:) = size(Tdomain%GlobCoord,2)
+!        if(rg == 0) write(*,*) "  Writing XMF file"
+!        nSubDPoints(:) = size(Tdomain%GlobCoord,2)
 !        call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, Tdomain%subD_exist, Tdomain%n_dime, &
 !            trim(string_join(procFileName,"-TO_READ")), rg, trim(XMFfolder),     &
 !            Tdomain%communicateur, trim(h5_to_xmf),                               &
 !            ["Density","Lambda ","Mu     "])
 
         !Deallocating
-        if(allocated(prop))         deallocate(prop)
-        if(allocated(HDF5NameList)) deallocate(HDF5NameList)
-        if(allocated(nSubDPoints))  deallocate(nSubDPoints)
-        if(allocated(avgProp))      deallocate(avgProp)
+        !if(allocated(prop))         deallocate(prop)
+        !if(allocated(HDF5NameList)) deallocate(HDF5NameList)
+        !if(allocated(nSubDPoints))  deallocate(nSubDPoints)
+        !if(allocated(avgProp))      deallocate(avgProp)
 
         !Deallocating arrays associated to random properties
         do mat = 0, Tdomain%n_mat - 1
@@ -330,8 +321,7 @@ contains
         assocMat = Tdomain%sSubdomain(mat)%assocMat
         authorization = .false.
 
-        !if(Tdomain%subD_exist(mat)) then
-        if(Tdomain%sSubDomain(assocMat)%material_type == "R") then
+        if(Tdomain%sSubdomain(assocMat)%initial_material_type == 'R') then
             authorization = .true.
         end if
         !end if

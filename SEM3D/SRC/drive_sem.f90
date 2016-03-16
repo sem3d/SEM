@@ -120,19 +120,19 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 !---------------------------------------------------------------------------------------------!
 
     call RUN_PREPARED(Tdomain)
-    call RUN_INIT_INTERACT(Tdomain,isort)
+    !call RUN_INIT_INTERACT(Tdomain,isort)
 
 !---------------------------------------------------------------------------------------------!
 !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
 !---------------------------------------------------------------------------------------------!
 
-    call TIME_STEPPING(Tdomain,isort,ntime)
+    !call TIME_STEPPING(Tdomain,isort,ntime)
 
 !---------------------------------------------------------------------------------------------!
 !-------------------------------      NORMAL  END OF THE RUN      ----------------------------!
 !---------------------------------------------------------------------------------------------!
 
-    call END_SEM(Tdomain,ntime)
+    !call END_SEM(Tdomain,ntime)
 
 end subroutine sem
 !-----------------------------------------------------------------------------------
@@ -236,7 +236,7 @@ subroutine RUN_PREPARED(Tdomain)
     call global_numbering (Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
 
-!- allocation of different fields' sizes
+ !- allocation of different fields' sizes
     if (rg == 0) write (*,*) "--> ALLOCATING FIELDS"
     call allocate_domain(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
@@ -261,11 +261,11 @@ subroutine RUN_PREPARED(Tdomain)
 
     !- Managing properties that should be written on a file
     if (Tdomain%any_PropOnFile) then
-        ! - defining random subdomains
-        if(Tdomain%any_Random .and. (.not.Tdomain%logicD%run_restart)) then
-            if(rg == 0) write(*,*) "--> DEFINING RANDOM SUBDOMAINS"
-            call define_random_subdomains(Tdomain, rg)
-        end if
+!        ! - defining random subdomains
+!        if(Tdomain%any_Random .and. (.not.Tdomain%logicD%run_restart)) then
+!            if(rg == 0) write(*,*) "--> DEFINING RANDOM SUBDOMAINS"
+!            call define_random_subdomains(Tdomain, rg)
+!        end if
         !- writing properties files (if its not a restart)
         if(.not. Tdomain%logicD%run_restart) then
             if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
@@ -275,7 +275,7 @@ subroutine RUN_PREPARED(Tdomain)
 
     !- timestep value - > Courant, or Courant -> timestep
     if (rg == 0) write (*,*) "--> COMPUTING COURANT PARAMETER"
-    call compute_Courant(Tdomain,rg)
+    call Compute_Courant(Tdomain,rg)
     call MPI_Barrier(Tdomain%communicateur,code)
 
  !- elementary properties (mass matrices, PML factors,..)
@@ -287,16 +287,14 @@ subroutine RUN_PREPARED(Tdomain)
     do mat = 0, Tdomain%n_mat - 1
         if(Tdomain%sSubDomain(mat)%material_type == "R") Tdomain%sSubDomain(mat)%material_type = "S"
     end do
-    !OBS: in the future, after writing properties files for non-homogeneous media
-    !we could redefine the "material_type" according only to its behaviour for calculations
-    !it would ease syntax
-    !Ex: S for solid, F for fluid, P for solid PML, L for fluid PML
-
+   !OBS: in the future, after writing properties files for non-homogeneous media
+   !we could redefine the "material_type" according only to its behaviour for calculations
+   !it would ease syntax
+   !Ex: S for solid, F for fluid, P for solid PML, L for fluid PML
 ! !- creating properties visualization files
 !    if (rg == 0) write (*,*) "--> CREATING PROPERTIES VISUALIZATION FILES "
 !    call create_prop_visu_files (Tdomain, rg)
-
- !- anelastic properties
+!- anelastic properties
     if (Tdomain%n_sls>0) then
         if (Tdomain%aniso) then
             if (rg == 0) write (*,*) "--> COMPUTING ANISOTROPIC ATTENUATION FEATURES"
@@ -306,8 +304,7 @@ subroutine RUN_PREPARED(Tdomain)
             call set_attenuation_param(Tdomain)
         endif
     endif
-
- !- eventual classical seismic point sources: their spatial and temporal properties
+!- eventual classical seismic point sources: their spatial and temporal properties
     if (Tdomain%logicD%any_source) then
         if (rg == 0) write (*,*) "--> COMPUTING SOURCE PARAMETERS "
         call SourcePosition (Tdomain)
@@ -322,9 +319,8 @@ subroutine RUN_PREPARED(Tdomain)
             endif
         end do
     endif
-
- !- time: initializations. Eventual changes if restarting from a checkpoint (see
- !         routine  RUN_INIT_INTERACT)
+!- time: initializations. Eventual changes if restarting from a checkpoint (see
+!         routine  RUN_INIT_INTERACT)
     Tdomain%TimeD%rtime = 0
     Tdomain%TimeD%NtimeMin = 0
     call MPI_Barrier(Tdomain%communicateur,code)

@@ -78,6 +78,7 @@ module sdomain
        integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls
        integer :: n_hexa  !< Nombre de maille hexa ~= (ngllx-1)*(nglly-1)*(ngllz-1)*nelem
        logical, dimension(:), allocatable :: not_PML_List, subD_exist
+       logical :: any_sdom, any_fdom, any_spml, any_fpml
 
        real(fpp) :: T1_att, T2_att, T0_modele
        real(fpp), dimension (0:2,0:2) :: rot

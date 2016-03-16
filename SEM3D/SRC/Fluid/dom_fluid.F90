@@ -25,42 +25,45 @@ contains
 
         ngll   = dom%ngll
         nbelem = dom%nbelem
+        write(*,*) "DOM_FLUID ngll   = ", ngll
+        write(*,*) "DOM_FLUID nbelem = ", nbelem
         if (ngll == 0) return ! Domain doesn't exist anywhere
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
-        call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
-
-        if(nbelem /= 0) then
-            ! We can have glls without elements
-            ! Do not allocate if not needed (save allocation/RAM)
-            nbelem = CHUNK*((nbelem+CHUNK-1)/CHUNK)
-            dom%nbelem_alloc = nbelem
-
-            allocate(dom%IDensity_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-            allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-
-            allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
-            allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
-
-            allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
-            dom%m_Idom = 0
-        end if
-        ! Allocation et initialisation de champs0 et champs1 pour les fluides
-        if (dom%nglltot /= 0) then
-            allocate(dom%champs0%ForcesFl(0:dom%nglltot-1))
-            allocate(dom%champs0%Phi     (0:dom%nglltot-1))
-            allocate(dom%champs0%VelPhi  (0:dom%nglltot-1))
-            allocate(dom%champs1%ForcesFl(0:dom%nglltot-1))
-            allocate(dom%champs1%Phi     (0:dom%nglltot-1))
-            allocate(dom%champs1%VelPhi  (0:dom%nglltot-1))
-
-            dom%champs0%ForcesFl = 0d0
-            dom%champs0%Phi = 0d0
-            dom%champs0%VelPhi = 0d0
-
-            ! Allocation de MassMat pour les fluides
-            allocate(dom%MassMat(0:dom%nglltot-1))
-            dom%MassMat = 0d0
-        endif
+!        write(*,*) "AFTER RETURN"
+!        call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
+!
+!        if(nbelem /= 0) then
+!            ! We can have glls without elements
+!            ! Do not allocate if not needed (save allocation/RAM)
+!            nbelem = CHUNK*((nbelem+CHUNK-1)/CHUNK)
+!            dom%nbelem_alloc = nbelem
+!
+!            allocate(dom%IDensity_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+!            allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+!
+!            allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+!            allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+!
+!            allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+!            dom%m_Idom = 0
+!        end if
+!        ! Allocation et initialisation de champs0 et champs1 pour les fluides
+!        if (dom%nglltot /= 0) then
+!            allocate(dom%champs0%ForcesFl(0:dom%nglltot-1))
+!            allocate(dom%champs0%Phi     (0:dom%nglltot-1))
+!            allocate(dom%champs0%VelPhi  (0:dom%nglltot-1))
+!            allocate(dom%champs1%ForcesFl(0:dom%nglltot-1))
+!            allocate(dom%champs1%Phi     (0:dom%nglltot-1))
+!            allocate(dom%champs1%VelPhi  (0:dom%nglltot-1))
+!
+!            dom%champs0%ForcesFl = 0d0
+!            dom%champs0%Phi = 0d0
+!            dom%champs0%VelPhi = 0d0
+!
+!            ! Allocation de MassMat pour les fluides
+!            allocate(dom%MassMat(0:dom%nglltot-1))
+!            dom%MassMat = 0d0
+!        endif
     end subroutine allocate_dom_fluid
 
     subroutine deallocate_dom_fluid (dom)

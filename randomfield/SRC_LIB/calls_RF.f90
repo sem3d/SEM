@@ -276,7 +276,7 @@ contains
                             call write_MONO_proc_result(xMinFiles(:, countFields), xMaxFiles(:, countFields), &
                                                         IPT%xStep, IPT%nDim, &
                                                         randField_inProc(:,1,countFields), &
-                                                        MONO_FileNames(countFields), single_path)
+                                                        MONO_FileNames(countFields), IPT%outputFolder)
                         end if
                     end if
                     if(allocated(randField_Local)) deallocate(randField_Local)
@@ -332,7 +332,7 @@ contains
                 MONO_FileName = string_join_many("PofUnit_L0_Group",numb2String(IPT%gen_group))
                 call write_MONO_proc_result(IPT%procExtent*0, IPT%procExtent, &
                                             IPT%xStep, IPT%nDim, &
-                                            unityPartition, MONO_FileName, single_path)
+                                            unityPartition, MONO_FileName, IPT%outputFolder)
             end if
 
             if(any(shape(unityPartition) /= shape(randField_inProc(:,1,1)))) then
@@ -349,7 +349,7 @@ contains
                         if(IPT%gen_rang == 0) call write_MONO_proc_result(xMinFiles(:, i), xMaxFiles(:, i), &
                                                                       IPT%xStep, IPT%nDim, &
                                                                       randField_inProc(:,j,i), MONO_FileName, &
-                                                                      single_path)
+                                                                      IPT%outputFolder)
 
                     end if
                 end do
@@ -382,7 +382,7 @@ contains
                 if(IPT%gen_rang == 0) call write_MONO_proc_result(xMin_Group, xMax_Group, &
                                                               IPT%xStep, IPT%nDim, &
                                                               randField_Group(:,1), MONO_FileName, &
-                                                              single_path)
+                                                              IPT%outputFolder)
             end if
 
             !Correcting Borders
@@ -396,7 +396,7 @@ contains
                 if(IPT%gen_rang == 0) call write_MONO_proc_result(xMin_Group, xMax_Group, &
                                                               IPT%xStep, IPT%nDim, &
                                                               unityPartition, MONO_FileName, &
-                                                              single_path)
+                                                              IPT%outputFolder)
             end if
 
             call wLog("shape(randField_Group(:,1)) = ")
@@ -420,7 +420,7 @@ contains
                 if(IPT%gen_rang == 0) call write_MONO_proc_result(xMin_Group, xMax_Group, &
                                                               IPT%xStep, IPT%nDim, &
                                                               randField_Group(:,1), MONO_FileName, &
-                                                              single_path)
+                                                              IPT%outputFolder)
             end if
 
             call wLog("AFTmaxval(randField_Group(:,:)) = ")
@@ -454,7 +454,7 @@ contains
                 if(IPT%gen_rang == 0) call write_MONO_proc_result(xMin_Group, xMax_Group, &
                                                                   IPT%xStep, IPT%nDim, &
                                                                   randField_Group(:,1), MONO_FileName, &
-                                                                  single_path)
+                                                                  IPT%outputFolder)
             end if
         end if
 
@@ -511,7 +511,7 @@ contains
             call wLog("-> INTERPOLATING TO GIVEN MESH----------------------------------------")
             call interpolateToMesh(BBoxPath, IPT%coordList, UNV_randField, IPT%rang)
             call write_UNV_XMF_h5(UNV_randField, IPT%coordList, IPT%connectList, &
-                                  "UNV_", IPT%rang, single_path, &
+                                  "UNV_", IPT%rang, IPT%outputFolder, &
                                   IPT%comm, 0)
             if(allocated(UNV_randField)) deallocate(UNV_randField)
         end if
