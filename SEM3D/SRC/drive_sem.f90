@@ -283,18 +283,16 @@ subroutine RUN_PREPARED(Tdomain)
     call define_arrays(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
 
- ! - changing "material_type" of random subdomains
-    do mat = 0, Tdomain%n_mat - 1
-        if(Tdomain%sSubDomain(mat)%material_type == "R") Tdomain%sSubDomain(mat)%material_type = "S"
-    end do
-   !OBS: in the future, after writing properties files for non-homogeneous media
-   !we could redefine the "material_type" according only to its behaviour for calculations
-   !it would ease syntax
-   !Ex: S for solid, F for fluid, P for solid PML, L for fluid PML
-! !- creating properties visualization files
-!    if (rg == 0) write (*,*) "--> CREATING PROPERTIES VISUALIZATION FILES "
-!    call create_prop_visu_files (Tdomain, rg)
-!- anelastic properties
+    !OBS: in the future, after writing properties files for non-homogeneous media
+    !we could redefine the "material_type" according only to its behaviour for calculations
+    !it would ease syntax
+    !Ex: S for solid, F for fluid, P for solid PML, L for fluid PML
+
+ ! !- creating properties visualization files
+ !    if (rg == 0) write (*,*) "--> CREATING PROPERTIES VISUALIZATION FILES "
+ !    call create_prop_visu_files (Tdomain, rg)
+
+ !- anelastic properties
     if (Tdomain%n_sls>0) then
         if (Tdomain%aniso) then
             if (rg == 0) write (*,*) "--> COMPUTING ANISOTROPIC ATTENUATION FEATURES"

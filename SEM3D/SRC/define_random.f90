@@ -122,118 +122,39 @@ contains
         real, dimension(0:2) :: avgProp;
         integer :: propId
         double precision, dimension(10) :: times
+        character(50), dimension(0:2) :: propName
+        integer :: seedStart
 
         avgProp  = [Tdomain%sSubDomain(mat)%Ddensity, &
                     Tdomain%sSubDomain(mat)%DLambda,  &
                     Tdomain%sSubDomain(mat)%DMu]
-        propId = 1
+        propName(0) = "Density"
+        propName(1) = "Lambda"
+        propName(2) = "Mu"
 
-        write(*,*) "Tdomain%sSubDomain(mat)%corrL = ", Tdomain%sSubDomain(mat)%corrL
-        call init_IPT_RF_std(&
-            IPT, &
-            comm = Tdomain%communicateur, &
-            nDim = 3, &
-            xMinGlob_in = Tdomain%sSubDomain(mat)%MinBound, &
-            xMaxGlob_in = Tdomain%sSubDomain(mat)%MaxBound, &
-            fieldAvg = avgProp(propId), &
-            fieldVar = Tdomain%sSubDomain(mat)%varProp(propId), &
-            corrL_in = Tdomain%sSubDomain(mat)%corrL, &
-            corrMod = Tdomain%sSubDomain(mat)%corrMod, &
-            margiFirst = Tdomain%sSubDomain(mat)%margiFirst(propId), &
-            seedStart = Tdomain%sSubDomain(mat)%seedStart, &
-            outputFolder = "prop", &
-            outputName = "Lambida")
+        do propId = 0, nProp - 1
+            seedStart = Tdomain%sSubDomain(mat)%seedStart
+            if(seedStart >= 0) seedStart = seedStart + 7*(propId+1)
+            call init_IPT_RF_std(&
+                IPT, &
+                comm = Tdomain%communicateur, &
+                nDim = 3, &
+                xMinGlob_in = Tdomain%sSubDomain(mat)%MinBound, &
+                xMaxGlob_in = Tdomain%sSubDomain(mat)%MaxBound, &
+                fieldAvg = avgProp(propId), &
+                fieldVar = Tdomain%sSubDomain(mat)%varProp(propId), &
+                corrL_in = Tdomain%sSubDomain(mat)%corrL, &
+                corrMod = Tdomain%sSubDomain(mat)%corrMod, &
+                margiFirst = Tdomain%sSubDomain(mat)%margiFirst(propId), &
+                seedStart = seedStart, &
+                outputFolder = "prop", &
+                outputName = string_join_many(propName(propId), "_Mat_", numb2String(mat)))
 
-        call show_IPT_RF(IPT)
+            !Generating random fields
+            call make_random_field(IPT, times)
 
-        !Generating random fields
-        call make_random_field(IPT, times)
-
-        call finalize_IPT_RF(IPT)
-
-!        !Defining which properties will be calculated
-!        allocate(calculate(0:nProp-1))
-!        calculate(:) = .true.
-!        do i = 0, nProp - 1
-!            if(Tdomain%sSubDomain(mat)%varProp(i) <= 0 .or. (.not. Tdomain%subD_exist(mat))) calculate(i) = .false.
-!        end do
-!
-!        effecMethod = 1;
-!        if (present(method)) then
-!            if((method > 0) .and. (method<3)) then
-!                effecMethod = method
-!            else
-!                effecMethod = 1
-!                write(*,*) "WARNING! The chosen method is not an avaiable choice - method = ", method
-!                write(*,*) "         The method was automatically setted - method = ", effecMethod
-!            end if
-!        end if
-!
-!        avgProp = [Tdomain%sSubDomain(mat)%Ddensity, &
-!            Tdomain%sSubDomain(mat)%DLambda,  &
-!            Tdomain%sSubDomain(mat)%DMu]
-!        assocMat = Tdomain%sSubdomain(mat)%assocMat
-!
-!        if(rg == 0) write(*,*) " "
-!        if(rg == 0) write(*,*) "    Generating Standard Gaussian Field"
-!        select case(effecMethod)
-!            case( 1 ) !Victor
-!                if(rg == 0) write(*,*) "        Isotropic method"
-!                call createStandardGaussianFieldUnstructVictor(&
-!                    Tdomain%GlobCoord(:, :),                   &
-!                    Tdomain%sSubDomain(mat)%corrL,             &
-!                    Tdomain%sSubDomain(mat)%corrMod,           &
-!                    nProp,                                     &
-!                    prop(:, :),                                &
-!                    Tdomain%sSubDomain(mat)%chosenSeed,        &
-!                    Tdomain%sSubDomain(mat)%MinBound,          &
-!                    Tdomain%sSubDomain(mat)%MaxBound,          &
-!                    Tdomain%communicateur,                     &
-!                    calculate)
-!
-!            case( 2 ) !Shinozuka
-!                if(rg == 0) write(*,*) "        Shinozuka's method"
-!                call createStandardGaussianFieldUnstructShinozuka (&
-!                    Tdomain%GlobCoord,                             &
-!                    Tdomain%sSubDomain(mat)%corrL,                 &
-!                    Tdomain%sSubDomain(mat)%corrMod,               &
-!                    nProp,                                         &
-!                    prop(:, :),                                    &
-!                    Tdomain%sSubDomain(mat)%chosenSeed,            &
-!                    Tdomain%sSubDomain(mat)%MinBound,              &
-!                    Tdomain%sSubDomain(mat)%MaxBound,              &
-!                    Tdomain%communicateur,                         &
-!                    calculate)
-!
-!            case default
-!                write(*,*) "ERROR! The chosen method is not an avaiable choice"
-!                call MPI_ABORT(Tdomain%communicateur, error, code)
-!        end select
-!
-!        if(rg == 0) write(*,*) " "
-!        if(rg == 0) write(*,*) "        Multi-Variate Transformation"
-!        if(rg == 0) write(*,*) "        	MATERIAL -----!!!!!!!! ,", mat
-!        do i = 0, nProp - 1
-!            if(rg == 0 .and. i == 0) write(*,*) "Dens------------- "
-!            if(rg == 0 .and. i == 1) write(*,*) "Lambda----------- "
-!            if(rg == 0 .and. i == 2) write(*,*) "Mu--------------- "
-!
-!            contrib = 0
-!            if(Tdomain%subD_exist(mat)) contrib = 1
-!            call multiVariateTransformation (          &
-!                Tdomain%sSubDomain(mat)%margiFirst(i), &
-!                avgProp(i),                            &
-!                Tdomain%sSubDomain(mat)%varProp(i),    &
-!                prop(:, i:i), Tdomain%n_dime, Tdomain%communicateur, contrib)
-!        end do
-!
-!        if(.not. Tdomain%not_PML_List(mat)) then !Random PML
-!            if(rg == 0) write(*,*) " "
-!            if(rg == 0) write(*,*) "        Propagating PML Properties"
-!            call propagate_PML_properties(Tdomain, prop)
-!        end if
-!
-!        deallocate(calculate)
+            call finalize_IPT_RF(IPT)
+        end do
 
     end subroutine build_random_properties
 

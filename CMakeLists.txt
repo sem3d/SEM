@@ -32,7 +32,10 @@ include_directories(${PROJECT_BINARY_DIR}/libs/common)
 find_path (FFTW_INCLUDES fftw3.h)
 find_library (FFTW_LIBRARIES NAMES fftw3)
 # TODO : find paths automatically
-set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/opt/local/lib -lfftw3 -lfftw3_threads -lfftw3_mpi")
+#Local MAC
+#set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/opt/local/lib -lfftw3 -lfftw3_threads -lfftw3_mpi")
+#IGLOO
+set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/opt/san/bibliotheques/fftw/3.3.4-intelmpi5.0.2/lib -lfftw3_mpi -lfftw3_threads -lfftw3")
 
 #set(CMAKE
 if (OPT_MPI OR HDF5_IS_PARALLEL)
