@@ -62,6 +62,7 @@ contains
                 double precision, dimension(0:dim-1,0:nn-1), intent(in) :: args0
             end function fun
         end interface
+        double precision, dimension(0:dim-1) :: xx
         double precision :: r, val
         double precision :: fmin, alphamin
         ! Very simple line search that chooses between 0.1 x alpha and 2 x alpha
@@ -69,7 +70,8 @@ contains
         fmin = 1d100
         r = 0.05
         do while (r<1.1)
-            val = fun(dim, nn, x0+r*alpha*dir, args0, args1)
+            xx = x0+r*alpha*dir
+            val = fun(dim, nn, xx, args0, args1)
             if (val<fmin) then
                 fmin = val
                 alphamin = r*alpha
