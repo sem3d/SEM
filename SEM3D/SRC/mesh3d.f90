@@ -211,12 +211,15 @@ contains
 
         !PASSING EXTREMES TO THE ASSOCIATED MATERIAL (Taking into account PML boundaries)
         do mat = 0, Tdomain%n_mat - 1
+            Tdomain%sSubDomain(mat)%MaxBound_Loc = Tdomain%sSubDomain(mat)%MaxBound
+            Tdomain%sSubDomain(mat)%MinBound_Loc = Tdomain%sSubDomain(mat)%MinBound
             assocMat = Tdomain%sSubDomain(mat)%assocMat
             where(Tdomain%sSubDomain(mat)%MinBound < Tdomain%sSubDomain(assocMat)%MinBound) &
                   Tdomain%sSubDomain(assocMat)%MinBound = Tdomain%sSubDomain(mat)%MinBound
             where(Tdomain%sSubDomain(mat)%MaxBound > Tdomain%sSubDomain(assocMat)%MaxBound) &
                   Tdomain%sSubDomain(assocMat)%MaxBound = Tdomain%sSubDomain(mat)%MaxBound
         end do
+
 
         !COMMUNICATING EXTREMES BETWEEN PROCS
         do mat = 0, Tdomain%n_mat - 1

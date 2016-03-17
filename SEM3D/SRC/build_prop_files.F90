@@ -30,56 +30,22 @@ contains
         integer      , intent(IN) :: rg
 
         !LOCAL
-        integer :: mat, assocMat
-        !real               , dimension(:)   , allocatable :: avgProp;
-        !integer            , dimension(:)   , allocatable :: nSubDPoints;
-        !double precision   , dimension(:, :), allocatable :: prop !Properties
-        !character(len=110) , dimension(:)   , allocatable :: HDF5NameList
-
-        !allocate(avgProp(0:nProp-1)) !Obs: should have nProp declared before
-        !allocate(prop(0:size(Tdomain%GlobCoord,2)-1, 0:nProp-1)) !Subdomain properties Matrix ((:,0) = Dens, (:,1) = Lambda, (:,2) = Mu) per proc
-        !allocate(HDF5NameList(0:Tdomain%n_mat-1))
-        !allocate(nSubDPoints(0:Tdomain%n_mat-1))
-        !HDF5NameList(:) = "not_Used"
+        integer :: mat, assocMat, code
 
         !Writing hdf5 files
         if(rg == 0) write(*,*)
         do mat = 0, Tdomain%n_mat - 1
-            if(propOnFile(Tdomain, mat)) then
-                if(rg == 0) write(*,*) "  Material ", mat, " will have properties on file"
-                assocMat = Tdomain%sSubdomain(mat)%assocMat
-                !avgProp  = [Tdomain%sSubDomain(mat)%Ddensity, &
-                !    Tdomain%sSubDomain(mat)%DLambda,  &
-                !    Tdomain%sSubDomain(mat)%DMu]
-
-                if(is_rand(Tdomain%sSubdomain(mat))) then
-                    if(rg == 0) write(*,*) "  Generating Random Properties"
+            assocMat = Tdomain%sSubdomain(mat)%assocMat
+            if(propOnFile(Tdomain, assocMat)) then
+                !if(rg == 0) write(*,*) "  Material ", mat, " will have properties on file"
+                if(is_rand(Tdomain%sSubdomain(assocMat))) then
+                !write(*,*) " rang ", rg," Flag 1---------------------", "mat = ", mat
+                call MPI_BARRIER(Tdomain%communicateur, code)
+                    !write(*,*) "FOR SURE"
                     call build_random_properties(Tdomain, rg, mat)
                 end if
 
             end if
-        end do
-
-        !Writing XMF File
-!        if(rg == 0) write(*,*) "  Writing XMF file"
-!        nSubDPoints(:) = size(Tdomain%GlobCoord,2)
-!        call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, Tdomain%subD_exist, Tdomain%n_dime, &
-!            trim(string_join(procFileName,"-TO_READ")), rg, trim(XMFfolder),     &
-!            Tdomain%communicateur, trim(h5_to_xmf),                               &
-!            ["Density","Lambda ","Mu     "])
-
-        !Deallocating
-        !if(allocated(prop))         deallocate(prop)
-        !if(allocated(HDF5NameList)) deallocate(HDF5NameList)
-        !if(allocated(nSubDPoints))  deallocate(nSubDPoints)
-        !if(allocated(avgProp))      deallocate(avgProp)
-
-        !Deallocating arrays associated to random properties
-        do mat = 0, Tdomain%n_mat - 1
-            if (allocated(Tdomain%sSubdomain(mat)%varProp))       deallocate(Tdomain%sSubdomain(mat)%varProp)
-            if (allocated(Tdomain%sSubDomain(mat)%corrL))         deallocate(Tdomain%sSubDomain(mat)%corrL)
-            if (allocated(Tdomain%sSubDomain(mat)%margiFirst))    deallocate(Tdomain%sSubDomain(mat)%margiFirst)
-            if (allocated(Tdomain%sSubDomain(mat)%chosenSeed))    deallocate(Tdomain%sSubDomain(mat)%chosenSeed)
         end do
 
     end subroutine create_prop_files
@@ -89,53 +55,105 @@ contains
     !---------------------------------------------------------------------------
     !---------------------------------------------------------------------------
     subroutine apply_prop_files(Tdomain, rg)
+        use sample_RF
+
+        implicit none
         !INPUTS
         type (domain), intent (INOUT), target :: Tdomain
         integer      , intent(IN) :: rg
 
         !LOCAL
         integer :: mat, n, ipoint, i, j, k, lnum
-        integer :: ngll
-        double precision, dimension(:, :, :), allocatable :: propMatrix !Properties
-        allocate(propMatrix(0:size(Tdomain%GlobCoord,2)-1, 0:nProp-1, 0:Tdomain%n_mat-1))
+        integer :: ngll, elem_mat
+        double precision, dimension(:, :), allocatable :: interpolatedRF !Properties
+        double precision, dimension(:), allocatable :: kappa
+        integer :: assocMat, propId
 
+        !Putting properties on elements
+        if(Tdomain%any_Random) then
+            allocate(interpolatedRF(0:size(Tdomain%GlobCoord, 2) - 1, 0:nProp - 1))
+            allocate(kappa(0:size(Tdomain%GlobCoord, 2) - 1))
+        end if
 
-        !Reading files and putting it on a matrix
-        do mat = 0, Tdomain%n_mat-1
+        do mat = 0, Tdomain%n_mat - 1
+
+            if(.not. Tdomain%subD_exist(mat)) cycle
+
             if(propOnFile(Tdomain, mat)) then
+                if(rg == 0) write(*,*) "  Material ", mat, " have properties on file"
+                assocMat = Tdomain%sSubdomain(mat)%assocMat
+                if(is_rand(Tdomain%sSubdomain(assocMat))) then
 
-                call read_properties_from_file(rg, propMatrix(:,:, mat), &
-                    trim(procFileName)//"_read", trim(h5folder),     &
-                    ["_proc", "_subD"], [rg, mat])
-            end if
-        end do
+                    if(rg == 0) write(*,*) "  Reading and Interpolating Random Properties"
 
-        !Applying properties to elements
-        do n = 0, Tdomain%n_elem-1
-            mat = Tdomain%specel(n)%mat_index
-            lnum = Tdomain%specel(n)%lnum
-            if(propOnFile(Tdomain, mat)) then
-                ngll = Tdomain%sSubDomain(mat)%NGLL
-                do i = 0, ngll-1
-                    do j = 0, ngll-1
-                        do k = 0, ngll-1
-                            ipoint  = Tdomain%specel(n)%Iglobnum(i,j,k)
-                            select case (Tdomain%specel(n)%domain)
-                                case (DM_SOLID)
-                                    Tdomain%sdom%Density_(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
-                                    Tdomain%sdom%Lambda_ (i,j,k,lnum) = propMatrix(ipoint, 1, mat)
-                                    Tdomain%sdom%Mu_     (i,j,k,lnum) = propMatrix(ipoint, 2, mat)
-                                case (DM_FLUID)
-                                    Tdomain%fdom%IDensity_(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
-                                    Tdomain%fdom%Lambda_ (i,j,k,lnum) = propMatrix(ipoint, 1, mat)
-                                case (DM_SOLID_PML)
-                                    Tdomain%spmldom%Density_(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
-                                    Tdomain%spmldom%Lambda_ (i,j,k,lnum) = propMatrix(ipoint, 1, mat)
-                                    Tdomain%spmldom%Mu_     (i,j,k,lnum) = propMatrix(ipoint, 2, mat)
-                                case (DM_FLUID_PML)
-                                    Tdomain%fpmldom%Density_(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
-                                    Tdomain%fpmldom%Lambda_ (i,j,k,lnum) = propMatrix(ipoint, 1, mat)
-                            end select
+                    do propId = 0, nProp - 1
+                        call interpolateToMesh(BBoxFileName=Tdomain%sSubDomain(mat)%propFilePath(propId),  &
+                                               coordList=Tdomain%GlobCoord, &
+                                               UNV_randField=interpolatedRF(:,propId:propId), &
+                                               rang=Tdomain%rank, &
+                                               xMinLoc_In = Tdomain%sSubDomain(mat)%MinBound_Loc,  &
+                                               xMaxLoc_In = Tdomain%sSubDomain(mat)%MaxBound_Loc)
+                    end do
+                end if
+
+                kappa(:) = interpolatedRF(:, 1) + 2.*interpolatedRF(:, 2) /3.
+                !S%DMu = S%Sspeed**2 * S%Ddensity
+                !S%DLambda = (S%Pspeed**2 - 2 * S%Sspeed **2 ) * S%Ddensity
+                !S%DKappa = S%DLambda + 2.*S%DMu /3.
+
+
+
+                !Applying properties to elements
+                do n = 0, Tdomain%n_elem-1
+                    elem_mat = Tdomain%specel(n)%mat_index
+
+                    if(elem_mat /= mat) cycle
+
+                    lnum = Tdomain%specel(n)%lnum
+                    ngll = Tdomain%sSubDomain(mat)%NGLL
+
+                    !Properties by element
+                    select case (Tdomain%specel(n)%domain)
+                        case (DM_SOLID)
+                            if (Tdomain%sdom%n_sls>0)  then
+                                if (Tdomain%sdom%aniso) then
+                                    Tdomain%sdom%Q_(:,:,:,lnum) = Tdomain%sSubDomain(mat)%Qmu
+                                else
+                                    Tdomain%sdom%Qs_(:,:,:,lnum) = Tdomain%sSubDomain(mat)%Qmu
+                                    Tdomain%sdom%Qp_(:,:,:,lnum) = Tdomain%sSubDomain(mat)%Qpression
+                                endif
+                            endif
+                        case (DM_FLUID)
+                            !Nothing to do, all definitions are by point
+                        case (DM_SOLID_PML)
+                            !Nothing to do, all definitions are by point
+                        case (DM_FLUID_PML)
+                            !Nothing to do, all definitions are by point
+                    end select
+
+                    !Properties by GLL
+                    do i = 0, ngll-1
+                        do j = 0, ngll-1
+                            do k = 0, ngll-1
+                                ipoint  = Tdomain%specel(n)%Iglobnum(i,j,k)
+                                select case (Tdomain%specel(n)%domain)
+                                    case (DM_SOLID)
+                                        Tdomain%sdom%Density_(i,j,k,lnum) = interpolatedRF(ipoint, 0)
+                                        Tdomain%sdom%Lambda_ (i,j,k,lnum) = interpolatedRF(ipoint, 1)
+                                        Tdomain%sdom%Mu_     (i,j,k,lnum) = interpolatedRF(ipoint, 2)
+                                        Tdomain%sdom%Kappa_  (i,j,k,lnum) = kappa(ipoint)
+                                    case (DM_FLUID)
+                                        Tdomain%fdom%IDensity_(i,j,k,lnum) = 1d0/interpolatedRF(ipoint, 0)
+                                        Tdomain%fdom%Lambda_  (i,j,k,lnum) = interpolatedRF(ipoint, 1)
+                                    case (DM_SOLID_PML)
+                                        Tdomain%spmldom%Density_(i,j,k,lnum) = interpolatedRF(ipoint, 0)
+                                        Tdomain%spmldom%Lambda_ (i,j,k,lnum) = interpolatedRF(ipoint, 1)
+                                        Tdomain%spmldom%Mu_     (i,j,k,lnum) = interpolatedRF(ipoint, 2)
+                                    case (DM_FLUID_PML)
+                                        Tdomain%fpmldom%Density_(i,j,k,lnum) = interpolatedRF(ipoint, 0)
+                                        Tdomain%fpmldom%Lambda_ (i,j,k,lnum) = interpolatedRF(ipoint, 1)
+                                end select
+                            end do
                         end do
                     end do
                 end do
@@ -143,7 +161,9 @@ contains
             end if
         end do
 
-        deallocate(propMatrix)
+
+        if(allocated(interpolatedRF)) deallocate(interpolatedRF)
+        if(allocated(kappa))          deallocate(kappa)
 
     end subroutine apply_prop_files
 

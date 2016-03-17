@@ -1,3 +1,16 @@
+#####INSTALL (Should work with this makefile if you set all standard paths -- Tested 11/03/2016)
+#Install Xcode from app store
+#Install macports (https://www.macports.org/install.php)
+## On Terminal
+#sudo port selfupdate
+#sudo port upgrade outdated
+#sudo port install gcc5
+#sudo port select --set gcc mp-gcc5
+#sudo port install openmpi-gcc5
+#sudo port select --set mpi openmpi-gcc5-fortran
+#sudo port install hdf5 +gcc5 +fortran +szip +openmpi -cxx
+#sudo port install fftw-3 +gcc5 +fortran +openmpi
+
 # Ce CMakeLists.txt est le projet principal permettant de construire sem2d et sem3d
 # en standalone (hors mka3d)
 PROJECT(SEM)

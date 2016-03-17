@@ -28,7 +28,7 @@ contains
                 !write(*,*) "fullName = ", fullName
                 !call system("ls "//trim(adjustL(path)))
                 command = 'mkdir -pv '// trim(adjustL(fullName))
-                write(*,*) "command = ", command
+                !write(*,*) "command = ", command
                 call system(command)
             end if
         !end if

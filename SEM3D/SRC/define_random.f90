@@ -122,7 +122,7 @@ contains
         real, dimension(0:2) :: avgProp;
         integer :: propId
         double precision, dimension(10) :: times
-        character(50), dimension(0:2) :: propName
+        character(len=50), dimension(0:2) :: propName
         integer :: seedStart
 
         avgProp  = [Tdomain%sSubDomain(mat)%Ddensity, &
@@ -131,29 +131,51 @@ contains
         propName(0) = "Density"
         propName(1) = "Lambda"
         propName(2) = "Mu"
+        assocMat = Tdomain%sSubdomain(mat)%assocMat
+
+        !write(*,*) " rang ", rg," Flag 2", " mat = ", mat
+        call MPI_BARRIER(Tdomain%communicateur, code)
 
         do propId = 0, nProp - 1
-            seedStart = Tdomain%sSubDomain(mat)%seedStart
-            if(seedStart >= 0) seedStart = seedStart + 7*(propId+1)
-            call init_IPT_RF_std(&
-                IPT, &
-                comm = Tdomain%communicateur, &
-                nDim = 3, &
-                xMinGlob_in = Tdomain%sSubDomain(mat)%MinBound, &
-                xMaxGlob_in = Tdomain%sSubDomain(mat)%MaxBound, &
-                fieldAvg = avgProp(propId), &
-                fieldVar = Tdomain%sSubDomain(mat)%varProp(propId), &
-                corrL_in = Tdomain%sSubDomain(mat)%corrL, &
-                corrMod = Tdomain%sSubDomain(mat)%corrMod, &
-                margiFirst = Tdomain%sSubDomain(mat)%margiFirst(propId), &
-                seedStart = seedStart, &
-                outputFolder = "prop", &
-                outputName = string_join_many(propName(propId), "_Mat_", numb2String(mat)))
+            Tdomain%sSubDomain(mat)%propFilePath(propId) = string_join_many("./prop/h5/",propName(propId), "_Mat_", numb2String(assocMat),".h5")
 
-            !Generating random fields
-            call make_random_field(IPT, times)
+            !write(*,*) " rang ", rg," Flag 3"
+            !call MPI_BARRIER(Tdomain%communicateur, code)
+            !write(*,*) " rang ", rg," Flag 4"
+            !call MPI_BARRIER(Tdomain%communicateur, code)
+            if(is_rand(Tdomain%sSubdomain(mat))) then
+                !write(*,*) " rang ", rg," Flag 5"
+                call MPI_BARRIER(Tdomain%communicateur, code)
+                if(rg == 0) write(*,*) "  Generating Random Properties"
+                seedStart = Tdomain%sSubDomain(mat)%seedStart
+                if(seedStart >= 0) seedStart = seedStart + 7*(propId+1)
 
-            call finalize_IPT_RF(IPT)
+                !write(*,*) "  Generating Random Properties"
+                !call MPI_BARRIER(Tdomain%communicateur, code)
+                !write(*,*) "FOR SURE"
+
+                call init_IPT_RF_std(&
+                    IPT, &
+                    comm = Tdomain%communicateur, &
+                    nDim = 3, &
+                    xMinGlob_in = Tdomain%sSubDomain(mat)%MinBound, &
+                    xMaxGlob_in = Tdomain%sSubDomain(mat)%MaxBound, &
+                    fieldAvg = avgProp(propId), &
+                    fieldVar = Tdomain%sSubDomain(mat)%varProp(propId), &
+                    corrL_in = Tdomain%sSubDomain(mat)%corrL, &
+                    corrMod = Tdomain%sSubDomain(mat)%corrMod, &
+                    margiFirst = Tdomain%sSubDomain(mat)%margiFirst(propId), &
+                    seedStart = seedStart, &
+                    outputFolder = "prop", &
+                    outputName = string_join_many(propName(propId), "_Mat_", numb2String(mat)))
+
+
+                !Generating random fields
+                call make_random_field(IPT, times)
+
+                call finalize_IPT_RF(IPT)
+            end if
+
         end do
 
     end subroutine build_random_properties

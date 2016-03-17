@@ -38,7 +38,7 @@ contains
 
         type (domain), intent (INOUT), target :: Tdomain
         integer :: n, mat, rg
-
+        double precision, dimension(:,:), allocatable :: interpolatedRF
         rg = Tdomain%rank
 
         if( Tdomain%earthchunk_isInit/=0) then
@@ -46,16 +46,9 @@ contains
         endif
 
         !Applying properties that were written on files
-        if (Tdomain%any_PropOnFile) then
-            do mat = 0 , Tdomain%n_mat-1
-                if (.not. Tdomain%subD_exist(mat)) cycle
-                if (propOnFile(Tdomain, mat)) then
-                    if (rg == 0) write (*,*) "--> APPLYING PROPERTIES FILES "
-                    !- applying properties files
-                    call apply_prop_files (Tdomain, rg)
-                end if
-            end do
-        end if
+        if (rg == 0) write (*,*) "--> APPLYING PROPERTIES FILES "
+        !- applying properties files
+        call apply_prop_files (Tdomain, rg)
 
         do n = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(n)%mat_index
@@ -109,6 +102,8 @@ contains
             end if
             deallocate(Tdomain%specel(n)%Idom)
         end do
+
+        if(allocated(interpolatedRF)) deallocate(interpolatedRF)
     end subroutine define_arrays
 
 

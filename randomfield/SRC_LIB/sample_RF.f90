@@ -845,13 +845,14 @@ contains
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
-        subroutine interpolateToMesh(BBoxFileName, coordList, UNV_randField, rang)
+        subroutine interpolateToMesh(BBoxFileName, coordList, UNV_randField, rang, xMinLoc_In, xMaxLoc_In)
             implicit none
 
             !INPUT
             character(len=*), intent(in)      :: BBoxFileName
             double precision, dimension(:,:), intent(in) :: coordList
             integer, intent(in) :: rang
+            double precision, dimension(:), intent(in), optional :: xMinLoc_In, xMaxLoc_In
             !OUTPUT
             double precision, dimension(:,:), intent(out) :: UNV_randField
             !LOCAL
@@ -904,8 +905,19 @@ contains
 
             !DEFINE LOCAL BOUNDING BOX
             do i = 1, nDim
-                xMin_Loc_UNV(i) = minval(coordList(i,:))
-                xMax_Loc_UNV(i) = maxval(coordList(i,:))
+
+                if(present(xMinLoc_In)) then
+                    xMin_Loc_UNV(i) = xMinLoc_In(i)
+                else
+                    xMin_Loc_UNV(i) = minval(coordList(i,:))
+                end if
+
+                if(present(xMaxLoc_In)) then
+                    xMax_Loc_UNV(i) = xMaxLoc_In(i)
+                else
+                    xMax_Loc_UNV(i) = maxval(coordList(i,:))
+                end if
+
             end do
 
             minPos = floor((xMin_Loc_UNV-xMinGlob)/xStep) + 1
@@ -991,7 +1003,7 @@ contains
                 coordPos = ((coordList(:,i)-xMinGlob)/xStep) + 1.0D0
                 coordPosInt = floor(coordPos)
                 where(coordPosInt == maxPos) coordPosInt = coordPosInt - 1 !Dealing with points on the positive border
-                if(any(coordPosInt<0)) stop("coordPosInt smaller than 1")
+                !if(any(coordPosInt<0)) stop("coordPosInt smaller than 1")
 
                 !Applying Values
                 do j = 1, size(neighCoord, 2)
@@ -1003,32 +1015,33 @@ contains
                     !write(*,*) "weight = ", weight
 
                     if(any(coordPosInt(:)+neighCoord(:,j) > maxPos)) then
-                        call wLog("Error in rang ")
-                        call wLog(rang)
-                        call wLog("   coordPos = ")
-                        call wLog(coordPos)
-                        call wLog("          j = ")
-                        call wLog(j)
-                        call wLog("coordPosInt(:)+neighCoord(:,j) = ")
-                        call wLog(coordPosInt(:)+neighCoord(:,j))
-                        call wLog("maxPos = ")
-                        call wLog(maxPos)
+                        !call wLog("Error in rang ")
+                        !call wLog(rang)
+                        !call wLog("   coordPos = ")
+                        !call wLog(coordPos)
+                        !call wLog("          j = ")
+                        !call wLog(j)
+                        !call wLog("coordPosInt(:)+neighCoord(:,j) = ")
+                        !call wLog(coordPosInt(:)+neighCoord(:,j))
+                        !call wLog("maxPos = ")
+                        !call wLog(maxPos)
                         !stop(" ERROR! UNV TRIED POSITION OUT OF RANGE")
-
+                        cycle
                     end if
 
                     if(any(coordPosInt(:)+neighCoord(:,j) < minPos)) then
-                        call wLog("Error in rang ")
-                        call wLog(rang)
-                        call wLog("   coordPos = ")
-                        call wLog(coordPos)
-                        call wLog("          j = ")
-                        call wLog(j)
-                        call wLog("coordPosInt(:)+neighCoord(:,j) = ")
-                        call wLog(coordPosInt(:)+neighCoord(:,j))
-                        call wLog("minPos = ")
-                        call wLog(minPos)
+                        !call wLog("Error in rang ")
+                        !call wLog(rang)
+                        !call wLog("   coordPos = ")
+                        !call wLog(coordPos)
+                        !call wLog("          j = ")
+                        !call wLog(j)
+                        !call wLog("coordPosInt(:)+neighCoord(:,j) = ")
+                        !call wLog(coordPosInt(:)+neighCoord(:,j))
+                        !call wLog("minPos = ")
+                        !call wLog(minPos)
                         !stop(" ERROR! UNV TRIED POSITION OUT OF RANGE")
+                        cycle
                     end if
 
                     if(nDim == 2) then

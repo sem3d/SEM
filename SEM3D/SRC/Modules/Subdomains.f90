@@ -47,7 +47,7 @@ module ssubdomains
         integer  , dimension(:), allocatable :: chosenSeed
         real(fpp), dimension(:), allocatable :: varProp
         real(fpp), dimension(:), allocatable :: corrL
-        real(fpp), dimension(0:2) :: MinBound, MaxBound
+        real(fpp), dimension(0:2) :: MinBound, MaxBound, MinBound_Loc, MaxBound_Loc
         character(len=1024), dimension(0:2) :: propFilePath
 
     end type Subdomain

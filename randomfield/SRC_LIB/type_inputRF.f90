@@ -69,19 +69,19 @@ contains
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
         subroutine init_IPT_RF_std(&
-        IPT, &
-        comm, &
-        nDim, &
-        xMinGlob_in, &
-        xMaxGlob_in, &
-        fieldAvg, &
-        fieldVar, &
-        corrL_in, &
-        corrMod, &
-        margiFirst, &
-        seedStart, &
-        outputFolder, &
-        outputName)
+                                    IPT, &
+                                    comm, &
+                                    nDim, &
+                                    xMinGlob_in, &
+                                    xMaxGlob_in, &
+                                    fieldAvg, &
+                                    fieldVar, &
+                                    corrL_in, &
+                                    corrMod, &
+                                    margiFirst, &
+                                    seedStart, &
+                                    outputFolder, &
+                                    outputName)
 
             !OUTPUT
             type(IPT_RF), intent(inout)  :: IPT
@@ -116,10 +116,10 @@ contains
             call MPI_COMM_RANK(comm, rang, code)
             call MPI_COMM_SIZE(comm, nb_procs, code)
 
-            if(rang == 0) call create_folder(outputFolder, ".", rang, comm)
+            call create_folder(outputFolder, ".", rang, comm)
             !create xmf and h5 folders
-            if(rang == 0) call create_folder("xmf", outputFolder, rang, comm)
-            if(rang == 0) call create_folder("h5", outputFolder, rang, comm)
+            call create_folder("xmf", outputFolder, rang, comm)
+            call create_folder("h5", outputFolder, rang, comm)
 
             call allocate_IPT_RF(IPT, nDim, log_ID, rang, comm, nb_procs)
 
@@ -240,6 +240,7 @@ contains
             logical, intent(in) :: writeUNVinterpolation
 
             !create xmf and h5 folders
+            call create_folder(outputFolder, ".", rang, comm)
             call create_folder("xmf", outputFolder, rang, comm)
             call create_folder("h5", outputFolder, rang, comm)
 
