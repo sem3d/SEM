@@ -1,6 +1,7 @@
 # Ce CMakeLists.txt est le projet principal permettant de construire sem2d et sem3d
 # en standalone (hors mka3d)
 PROJECT(SEM)
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 ENABLE_LANGUAGE(C CXX Fortran)
 ENABLE_TESTING()
@@ -29,15 +30,25 @@ include_directories(${HDF5_FORTRAN_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} ${HDF5_INC
 include_directories(${HDF5_INCLUDE_DIR} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP})
 include_directories(${PROJECT_BINARY_DIR}/libs/common)
 
-find_path (FFTW_INCLUDES fftw3.h)
-find_library (FFTW_LIBRARIES NAMES fftw3)
+find_package(FFTW3 REQUIRED)
+#include_directories(FFTW3_INCLUDE_DIR)
+#  FFTW3_FOUND
+#  FFTW3_INCLUDE_DIR
+#  FFTW3_LIBRARY
+#  FFTW3_CPP_LIBRARY
+#  FFTW3_FORTRAN_LIBRARY
+
+#Obs: define on terminal: export FFTW3_ROOT="/opt/san/bibliotheques/fftw/3.3.4-intelmpi5.0.2"
+#ccmake -DCMAKE_LIBRARY_PATH=/opt/san/intel15/lib/intel64/ ../sem-ecp/
+#Put -lhdf5 on CMAKE_Fortran_FLAGS and CMAKE_CXX_FLAGS options
+#find_path (FFTW_INCLUDES fftw3.h)
+#find_library (FFTW_LIBRARIES NAMES fftw3)
 # TODO : find paths automatically
 #Local MAC
-set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/opt/local/lib -lfftw3 -lfftw3_threads -lfftw3_mpi")
+#set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/opt/local/lib -lfftw3 -lfftw3_threads -lfftw3_mpi")
 #IGLOO
 #set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/opt/san/bibliotheques/fftw/3.3.4-intelmpi5.0.2/lib -lfftw3_mpi -lfftw3_threads -lfftw3")
 
-#set(CMAKE
 if (OPT_MPI OR HDF5_IS_PARALLEL)
     set(MPI_COMPILER mpif90)
     find_package(MPI)
@@ -125,7 +136,10 @@ set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} netlib)
 set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
 
 #FFTW
-#set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${FFTW_LIBRARIES})
+# set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${FFTW3_LIBRARY} ${FFTW3_FORTRAN_LIBRARY} ${FFTW3_CPP_LIBRARY})
+#  FFTW3_LIBRARY
+#  FFTW3_CPP_LIBRARY
+#  FFTW3_FORTRAN_LIBRARY
 
 # MPI
 if(OPT_MPI OR HDF5_IS_PARALLEL)
@@ -185,6 +199,8 @@ add_library(randomfield
   ${SEMDIR}/randomfield/RANDLIB/ranlib.f90
   ${SEMDIR}/randomfield/RANDLIB/rnglib.f90
 )
+target_link_libraries(randomfield ${FFTW3_LIBRARY})
+
 set_target_properties(randomfield PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/common)
 add_dependencies(randomfield semcommon)
 set(SEM_EXTRA_LIBS randomfield semcommon ${SEM_EXTRA_LIBS})
