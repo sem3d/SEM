@@ -98,6 +98,8 @@ subroutine renumber_global_gll_nodes(Tdomain)
                  ngll(0:2) = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
                  ngll(0:2) = Tdomain%fpmldom%ngll
+             case default
+                 stop "unknown domain"
         end select
         dom = Tdomain%specel(n)%domain
         Tdomain%specel(n)%lnum = ecount(dom)
@@ -184,6 +186,8 @@ subroutine renumber_global_gll_nodes(Tdomain)
                  ngll(0:2) = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
                  ngll(0:2) = Tdomain%fpmldom%ngll
+             case default
+                 stop "unknown domain"
         end select
         !Taking information from faces
         do nf = 0,5
@@ -247,6 +251,8 @@ subroutine renumber_global_gll_nodes(Tdomain)
                  ngll(0:2) = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
                  ngll(0:2) = Tdomain%fpmldom%ngll
+             case default
+                 stop "unknown domain"
         end select
         !Taking information from faces
         do nf = 0,5
@@ -308,6 +314,8 @@ subroutine renumber_global_gll_nodes(Tdomain)
                  ngll(0:2) = Tdomain%spmldom%ngll
              case (DM_FLUID_PML)
                  ngll(0:2) = Tdomain%fpmldom%ngll
+             case default
+                 stop "unknown domain"
         end select
         dom  = Tdomain%specel(n)%domain
         fail = .false.
@@ -598,6 +606,8 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
                     case (DM_FLUID_PML)
                         Comm_data%Data(n)%IGiveFPML(nflupml) = idx
                         nflupml = nflupml + 1
+                    case default
+                        stop "unknown domain"
                     end select
                 end do
             end do
@@ -621,6 +631,8 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
                 case (DM_FLUID_PML)
                     Comm_data%Data(n)%IGiveFPML(nflupml) = idx
                     nflupml = nflupml + 1
+                case default
+                    stop "unknown domain"
                 end select
             enddo
         enddo
@@ -642,6 +654,8 @@ subroutine prepare_comm_vector(Tdomain,comm_data)
             case (DM_FLUID_PML)
                 Comm_data%Data(n)%IGiveFPML(nflupml) = idx
                 nflupml = nflupml + 1
+            case default
+                stop "unknown domain"
             end select
         enddo
     end do
@@ -695,8 +709,8 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
                 nflupml = nflupml + temp
             case (DM_FLUID)
                 nflu = nflu + temp
-            case (-1)
-                stop 1
+            case default
+                stop "unknown domain"
             end select
         enddo
         ! Edges
@@ -712,8 +726,8 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
                 nflupml = nflupml + temp
             case (DM_FLUID)
                 nflu = nflu + temp
-            case (-1)
-                stop 1
+            case default
+                stop "unknown domain"
             end select
         enddo
         ! Vertices
@@ -728,8 +742,8 @@ subroutine allocate_comm_vector(Tdomain,comm_data)
                 nflupml = nflupml + 1
             case (DM_FLUID)
                 nflu = nflu + 1
-            case (-1)
-                stop 1
+            case default
+                stop "unknown domain"
             end select
         enddo
 
@@ -831,6 +845,8 @@ subroutine reorder_domains(Tdomain)
                  ngllx = Tdomain%fpmldom%ngll
                  nglly = Tdomain%fpmldom%ngll
                  ngllz = Tdomain%fpmldom%ngll
+             case default
+                 stop "unknown domain"
         end select
         do k = 0,ngllz-1
             do j = 0,nglly-1
@@ -909,7 +925,6 @@ subroutine prepare_comm_surface(Tdomain, comm_data, surface, dom)
     type(comm_vector), intent(inout) :: comm_data
     type(surf_num), intent(in) :: surface
     integer, intent(in) :: dom
-
 end subroutine prepare_comm_surface
 end module mrenumber
 !! Local Variables:

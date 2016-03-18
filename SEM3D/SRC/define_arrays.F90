@@ -107,6 +107,8 @@ contains
                 Tdomain%fdom%Idom_(:,:,:,Tdomain%specel(n)%lnum)    = Tdomain%specel(n)%Idom
             else if (Tdomain%specel(n)%domain==DM_FLUID_PML) then
                 Tdomain%fpmldom%Idom_(:,:,:,Tdomain%specel(n)%lnum) = Tdomain%specel(n)%Idom
+            else
+                stop "unknown domain"
             end if
             deallocate(Tdomain%specel(n)%Idom)
         end do
@@ -275,6 +277,8 @@ contains
                     case (DM_FLUID_PML)
                         call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
                              mat%DDensity,mat%DLambda)
+                    case default
+                        stop "unknown domain"
                 end select
                 !    si le flag gradient est actif alors on peut changer les proprietes
             case( MATERIAL_EARTHCHUNK )
@@ -296,6 +300,8 @@ contains
                     case (DM_FLUID_PML)
                         call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
                              mat%DDensity,mat%DLambda)
+                    case default
+                        stop "unknown domain"
                 end select
                 !    si le flag gradient est actif alors on peut changer les proprietes
                 if ( Tdomain%logicD%grad_bassin ) then
@@ -317,6 +323,8 @@ contains
                         case (DM_FLUID_PML)
                             call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
                                  mat%DDensity,mat%DLambda)
+                        case default
+                            stop "unknown domain"
                     end select
                 end if
         end select
@@ -357,6 +365,8 @@ contains
                             call init_local_mass_fluid(Tdomain%fdom,specel,i,j,k,ind,Whei)
                         case (DM_FLUID_PML)
                             call init_local_mass_fluidpml(Tdomain%fpmldom,specel,i,j,k,ind,Whei)
+                        case default
+                            stop "unknown domain"
                     end select
                 enddo
             enddo
@@ -378,17 +388,7 @@ contains
         integer :: ngll
         integer :: icolonne,jlayer
         !
-        ngll = 0
-        select case (specel%domain)
-             case (DM_SOLID)
-                 ngll = Tdomain%sdom%ngll
-             case (DM_FLUID)
-                 ngll = Tdomain%fdom%ngll
-             case (DM_SOLID_PML)
-                 ngll = Tdomain%spmldom%ngll
-             case (DM_FLUID_PML)
-                 ngll = Tdomain%fpmldom%ngll
-        end select
+        ngll = domain_ngll(Tdomain, specel%domain)
 
         !    debut modification des proprietes des couches de materiaux
         !    bassin    voir programme Surface.f90
@@ -506,6 +506,8 @@ contains
                             case (DM_FLUID_PML)
                                 call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,i,j,k,&
                                      zrho,Lambda)
+                            case default
+                                stop "unknown domain"
                         end select
                     enddo
                 enddo

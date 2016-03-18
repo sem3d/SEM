@@ -52,6 +52,8 @@ contains
                      ngll(0:2) = Tdomain%spmldom%ngll
                  case (DM_FLUID_PML)
                      ngll(0:2) = Tdomain%fpmldom%ngll
+                 case default
+                     stop "unknown domain"
             end select
 
             do j = 0,5
@@ -98,6 +100,8 @@ contains
                      ngll(0:2) = Tdomain%spmldom%ngll
                  case (DM_FLUID_PML)
                      ngll(0:2) = Tdomain%fpmldom%ngll
+                 case default
+                     stop "unknown domain"
             end select
 
             do j = 0,11

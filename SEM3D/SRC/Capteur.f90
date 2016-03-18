@@ -420,6 +420,8 @@ contains
             case (DM_FLUID_PML)
               call get_fluidpml_dom_var(Tdomain%fpmldom, Tdomain%specel(n_el), out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+            case default
+              stop "unknown domain"
         end select
 
         ! On interpole le DOF a la position du capteur.

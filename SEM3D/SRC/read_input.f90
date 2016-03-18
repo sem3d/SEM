@@ -186,6 +186,8 @@ contains
                      Tdomain%spmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
                  case (DM_FLUID_PML)
                      Tdomain%fpmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
+                 case default
+                     stop "unknown domain"
             end select
         end do
         !- GLL properties in elements, on faces, edges.

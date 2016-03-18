@@ -192,6 +192,8 @@ subroutine source_excit(Tdomain,rank)
                      ngll = Tdomain%fpmldom%ngll
                      allocate(GLLc(0:ngll-1))
                      GLLc = Tdomain%fpmldom%GLLc
+                 case default
+                     stop "unknown domain"
             end select
 
             ! pulse in a solid (in a given direction) or fluid (isotropic pressure source term)
