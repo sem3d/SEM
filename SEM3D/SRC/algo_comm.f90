@@ -144,6 +144,59 @@ contains
         end do
     end subroutine comm_take_data_3
 
+    subroutine exchange_sf_normals(Tdomain)
+        use sdomain
+        type(domain), intent(inout) :: Tdomain
+        !
+        integer :: n, k, p
+        if(Tdomain%Comm_solflu%ncomm <= 0) return
+
+        do n = 0,Tdomain%Comm_solflu%ncomm-1
+            ! Domain SOLID
+            ! Domain SOLID PML
+            ! ignored
+            k = 0
+
+            ! Domain FLUID
+            do p=0,2
+                call comm_give_data(Tdomain%Comm_solflu%Data(n)%Give, &
+                    Tdomain%Comm_SolFlu%Data(n)%IGiveF, Tdomain%SF%SF_BtN(p,:), k)
+            end do
+            ! Domain FLUID PML
+            if (Tdomain%Comm_SolFlu%Data(n)%nflupml>0) then
+                do p=0,2
+                    call comm_give_data(Tdomain%Comm_SolFlu%Data(n)%Give, &
+                        Tdomain%Comm_SolFlu%Data(n)%IGiveFPML, Tdomain%SF%SFpml_BtN(p,:), k)
+                end do
+            end if
+            Tdomain%Comm_SolFlu%Data(n)%nsend = k
+        end do
+
+        ! Exchange
+        call exchange_sem_var(Tdomain, 108, Tdomain%Comm_SolFlu)
+
+        ! Take
+        do n = 0,Tdomain%Comm_SolFlu%ncomm-1
+            ! Domain SOLID
+            ! Domain SOLID PML
+            ! .. ignored
+            ! Domain FLUID
+            k = 0
+            do p=0,2
+                call comm_take_data(Tdomain%Comm_SolFlu%Data(n)%Take, &
+                    Tdomain%Comm_SolFlu%Data(n)%IGiveF, Tdomain%SF%SF_BtN(p,:), k)
+            end do
+            ! Domain FLUID PML
+                if (Tdomain%Comm_SolFlu%Data(n)%nflupml>0) then
+                    do p=0,2
+                        call comm_take_data(Tdomain%Comm_SolFlu%Data(n)%Take, &
+                            Tdomain%Comm_SolFlu%Data(n)%IGiveFPML, Tdomain%SF%SFpml_BtN(p,:), k)
+                    end do
+            end if
+        end do
+
+    end subroutine exchange_sf_normals
+
 end module scomm
 
 !! Local Variables:

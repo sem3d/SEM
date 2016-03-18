@@ -14,6 +14,7 @@ module mshape8
 
 contains
     subroutine shape8_init(Tdomain)
+        use scomm
         implicit none
 
         type(domain), intent(inout) :: Tdomain
@@ -157,6 +158,7 @@ contains
         if(Tdomain%logicD%SF_local_present)then
             call compute_normals(Tdomain, Tdomain%SF%intSolFlu%surf1, DM_FLUID, Tdomain%SF%SF_BtN)
             call compute_normals(Tdomain, Tdomain%SF%intSolFluPml%surf1, DM_FLUID_PML, Tdomain%SF%SFpml_BtN)
+            call exchange_sf_normals(Tdomain)
         endif ! Solid-Fluid interface
 
 
