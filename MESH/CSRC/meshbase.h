@@ -24,8 +24,11 @@
 struct PFace {
     PFace() {}
     PFace( int v[4], int dom ) {
-        n[4] = dom;
+        set_domain(dom);
         set_face(v);
+    }
+    void set_domain(int dom) {
+        n[4] = dom;
     }
     PFace(const PFace& fc):orient(fc.orient)
         { for(int k=0;k<5;++k) n[k]=fc.n[k]; }

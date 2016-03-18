@@ -42,21 +42,6 @@ bool Mesh3DPart::is_border_element(int el)
     return false;
 }
 
-void Mesh3DPart::get_neighbour_elements(int nn, const int* n, std::set<int>& elemset)
-{
-    std::set<int> elems, temp;
-    m_mesh.m_vertex_to_elem.vertex_to_elements(n[0], elemset);
-    for(int k=1;k<nn;++k) {
-        int vertex_id = n[k];
-        elems.clear();
-        temp.clear();
-        m_mesh.m_vertex_to_elem.vertex_to_elements(n[k], elems);
-        std::set_intersection(elemset.begin(), elemset.end(),
-                              elems.begin(), elems.end(),
-                              std::inserter(temp, temp.begin()));
-        elemset.swap(temp);
-    }
-}
 
 void Mesh3DPart::compute_face_communications()
 {
@@ -75,7 +60,7 @@ void Mesh3DPart::compute_face_communications()
         // We have a face shared between cpus
         const PFace& fc = it->first;
         std::set<int> elemset;
-        get_neighbour_elements(4, fc.n, elemset);
+        m_mesh.get_neighbour_elements(4, fc.n, elemset);
         std::set<int>::const_iterator it;
         // We emit a neighbouring face for each element that don't belong
         // to this cpu (as it's a face there should be one and only one
@@ -97,7 +82,7 @@ void Mesh3DPart::compute_edge_communications()
         // We have an edge shared between cpus
         const PEdge& ed = it->first;
         std::set<int> elemset;
-        get_neighbour_elements(2, ed.n, elemset);
+        m_mesh.get_neighbour_elements(2, ed.n, elemset);
         std::set<int>::const_iterator it;
         for(it=elemset.begin();it!=elemset.end();++it) {
             if (m_mesh.elem_part(*it)==m_proc) continue;
@@ -115,7 +100,7 @@ void Mesh3DPart::compute_vertex_communications()
         const PVertex& vx = it->first;
         int nvx = it->second;
         std::set<int> elemset;
-        get_neighbour_elements(1, vx.n, elemset);
+        m_mesh.get_neighbour_elements(1, vx.n, elemset);
         std::set<int>::const_iterator it;
         for(it=elemset.begin();it!=elemset.end();++it) {
             if (m_mesh.elem_part(*it)==m_proc) continue;

@@ -7,8 +7,11 @@
 #include "mesh.h"
 #include "metis.h"
 #include <map>
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
+#include "mesh_h5_output.h"
+#include "meshpart.h"
 
 using std::map;
 using std::multimap;
@@ -296,6 +299,104 @@ void Mesh3D::build_vertex_to_elem_map()
 //    for(int k=0;k<n_vertices();++k) {
 //        printf("VX[%d] dom=%02x\n", k, m_vertex_domains[k]);
 //    }
+}
+
+void Mesh3D::build_sf_interface()
+{
+    PFace fc;
+    Surface* sf = get_surface("sf");
+    for(int el=0;el<n_elems();++el) {
+        int dom0 = get_elem_domain(el);
+        for(int k=m_xadj[el];k<m_xadj[el+1];++k) {
+            int neighbour = m_adjncy[k];
+            int dom1 = get_elem_domain(neighbour);
+            // Make sure the face normal points inside fluid or fluidpml domain
+            if ((dom0==DM_FLUID && dom1==DM_SOLID) ||
+                (dom0==DM_FLUID_PML && dom1==DM_SOLID_PML))
+            {
+                if (get_common_face(el, neighbour, fc)) {
+                    fc.set_domain(dom0);
+                    sf->add_face(fc,0);
+                    fc.set_domain(dom1);
+                    fc.orient = -fc.orient;
+                    sf->add_face(fc,0);
+                }
+            }
+            if ((dom1==DM_FLUID && dom0==DM_SOLID) ||
+                (dom1==DM_FLUID_PML && dom0==DM_SOLID_PML))
+            {
+                if (get_common_face(neighbour, el, fc)) {
+                    fc.set_domain(dom1);
+                    sf->add_face(fc,0);
+                    fc.set_domain(dom0);
+                    fc.orient = -fc.orient;
+                    sf->add_face(fc,0);
+                }
+            }
+        }
+    }
+}
+
+bool Mesh3D::get_common_face(int e0, int e1, PFace& fc)
+{
+    int nodes0[8];
+    int nodes1[8];
+    int face0[4];
+    std::set<int> inter;
+    get_elem_nodes(e0, nodes0);
+    get_elem_nodes(e1, nodes1);
+    std::set<int> snodes1(nodes1,nodes1+8);
+    // walks faces from e0 and return fc if found in e1 with orientation from e0
+    for(int nf=0;nf<6;++nf) {
+        for(int p=0;p<4;++p) {
+            face0[p] = nodes0[RefFace[nf].v[p]];
+        }
+        std::set<int> sface0(face0,face0+4);
+        inter.clear();
+        std::set_intersection(sface0.begin(),sface0.end(),snodes1.begin(),snodes1.end(),
+                              std::inserter(inter,inter.begin()));
+        if (inter.size()==4) {
+            fc.set_face(face0);
+            return true;
+        }
+    }
+    return false;
+}
+
+void Mesh3D::get_neighbour_elements(int nn, const int* n, std::set<int>& elemset) const
+{
+    std::set<int> elems, temp;
+    m_vertex_to_elem.vertex_to_elements(n[0], elemset);
+    for(int k=1;k<nn;++k) {
+        int vertex_id = n[k];
+        elems.clear();
+        temp.clear();
+        m_vertex_to_elem.vertex_to_elements(n[k], elems);
+        std::set_intersection(elemset.begin(), elemset.end(),
+                              elems.begin(), elems.end(),
+                              std::inserter(temp, temp.begin()));
+        elemset.swap(temp);
+    }
+}
+
+
+void Mesh3D::generate_output(int nprocs)
+{
+    build_vertex_to_elem_map();
+    partition_mesh(nprocs);
+    // partition_mesh builds adjacency map that is used by build_sf_interface
+    // Later on, we will want to treat SF interfaces like all others.
+    // That is when we will be able to generate normals for all surfaces
+    // build_sf_interface();
+
+    for(int part=0;part<nprocs;++part) {
+	Mesh3DPart loc(*this, part);
+
+	loc.compute_part();
+	loc.output_mesh_part();
+	loc.output_mesh_part_xmf();
+    }
+    output_all_meshes_xmf(nprocs);
 }
 
 
