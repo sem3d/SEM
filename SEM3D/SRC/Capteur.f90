@@ -412,13 +412,13 @@ contains
               call get_solid_dom_var(Tdomain%sdom, Tdomain%specel(n_el)%lnum, out_variables, &
               fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
             case (DM_FLUID)
-              call get_fluid_dom_var(Tdomain, Tdomain%fdom, Tdomain%specel(n_el), out_variables, &
+              call get_fluid_dom_var(Tdomain, Tdomain%fdom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
             case (DM_SOLID_PML)
-              call get_solidpml_dom_var(Tdomain%spmldom, Tdomain%specel(n_el), out_variables, &
+              call get_solidpml_dom_var(Tdomain%spmldom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
             case (DM_FLUID_PML)
-              call get_fluidpml_dom_var(Tdomain%fpmldom, Tdomain%specel(n_el), out_variables, &
+              call get_fluidpml_dom_var(Tdomain%fpmldom, Tdomain%specel(n_el)%lnum, out_variables, &
                 fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
             case default
               stop "unknown domain"

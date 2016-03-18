@@ -850,16 +850,16 @@ contains
             domain_type = Tdomain%specel(n)%domain
             select case(domain_type)
                 case (DM_SOLID)
-                  call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,             &
+                  call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,                 &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
                 case (DM_FLUID)
-                  call get_fluid_dom_var(Tdomain, Tdomain%fdom, el, out_variables,             &
+                  call get_fluid_dom_var(Tdomain, Tdomain%fdom, el%lnum, out_variables,        &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
                 case (DM_SOLID_PML)
-                  call get_solidpml_dom_var(Tdomain%spmldom, el, out_variables,                &
+                  call get_solidpml_dom_var(Tdomain%spmldom, el%lnum, out_variables,           &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
                 case (DM_FLUID_PML)
-                  call get_fluidpml_dom_var(Tdomain%fpmldom, el, out_variables,                &
+                  call get_fluidpml_dom_var(Tdomain%fpmldom, el%lnum, out_variables,           &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
                 case default
                   stop "unknown domain"

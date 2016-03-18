@@ -115,13 +115,13 @@ contains
         if(allocated(dom%DumpMass)) deallocate(dom%DumpMass)
     end subroutine deallocate_dom_fluidpml
 
-    subroutine get_fluidpml_dom_var(dom, el, out_variables, &
+    subroutine get_fluidpml_dom_var(dom, lnum, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
         implicit none
         !
         type(domain_fluidpml), intent(inout)       :: dom
         integer, dimension(0:8)                    :: out_variables
-        type(element)                              :: el
+        integer                                    :: lnum
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
@@ -142,7 +142,7 @@ contains
         do k=0,ngll-1
             do j=0,ngll-1
                 do i=0,ngll-1
-                    ind = dom%Idom_(i,j,k,el%lnum)
+                    ind = dom%Idom_(i,j,k,lnum)
 
                     if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
                         if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
