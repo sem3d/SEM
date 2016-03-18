@@ -18,8 +18,26 @@ module forces_aniso
 
 contains
 
+    subroutine make_connectivity_(champs1,Elem)
+        type(champs),intent(inout) :: champs1
+        type(Element),intent(in)    :: Elem
+        integer                     :: m1,m2,m3,i,j,k
+        
+        m1=Elem%ngllx
+        m2=Elem%nglly
+        m3=Elem%ngllz
+        do k = 0,m3-1
+            do j = 0,m2-1
+                do i = 0,m1-1
+                    champs1%element_connectivity(Elem%Idom(i,j,k))= &
+                    champs1%element_connectivity(Elem%Idom(i,j,k))+1
+                enddo
+            enddo
+        enddo
+        return
+    end subroutine make_connectivity_
     subroutine forces_int_solid(Elem, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
-        n_solid, aniso, champs1, nl_flag, dt,nelement)
+        n_solid, aniso, champs0, champs1, nl_flag, dt)
         type (Element), intent (INOUT) :: Elem
         type (subdomain), intent(IN) :: mat
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: htprimex
@@ -28,6 +46,7 @@ contains
         integer, intent(IN) :: n_solid
         logical, intent(IN) :: aniso
         type(champs), intent(inout) :: champs1
+        type(champs), intent(in) :: champs0
 
         integer :: m1,m2,m3, i,j,k,i_dir
         real :: epsilon_trace_over_3
@@ -46,7 +65,9 @@ contains
         real, dimension(:,:,:,:), allocatable :: Xkin_ij_N_el
         real, dimension(:,:,:,:), allocatable :: EpsPl_ij_N_el
         real, intent(in) :: dt
-        integer,intent(in) :: nelement
+
+        integer :: element_connectivty
+
         m1 = Elem%ngllx;   m2 = Elem%nglly;   m3 = Elem%ngllz
 
         do i_dir = 0,2
@@ -73,11 +94,11 @@ contains
             do k = 0,m3-1
                 do j = 0,m2-1
                     do i = 0,m1-1
-                        Riso_N_el(i,j,k) = champs1%Riso(Elem%Idom(i,j,k))
+                        Riso_N_el(i,j,k) = champs0%Riso(Elem%Idom(i,j,k))
                         do i_dir = 0,5
-                            Sigma_ij_N_el(i_dir,i,j,k) = champs1%Stress(Elem%Idom(i,j,k),i_dir)
-                            Xkin_ij_N_el(i_dir,i,j,k)  = champs1%Xkin(Elem%Idom(i,j,k),i_dir)
-                            EpsPl_ij_N_el(i_dir,i,j,k) = champs1%Epsilon_pl(Elem%Idom(i,j,k),i_dir)
+                            Sigma_ij_N_el(i_dir,i,j,k) = champs0%Stress(Elem%Idom(i,j,k),i_dir)
+                            Xkin_ij_N_el(i_dir,i,j,k)  = champs0%Xkin(Elem%Idom(i,j,k),i_dir)
+                            EpsPl_ij_N_el(i_dir,i,j,k) = champs0%Epsilon_pl(Elem%Idom(i,j,k),i_dir)
                         enddo
                     enddo
                 enddo
@@ -181,23 +202,12 @@ contains
             else
                 if (nl_flag == 1) then
                     
-                    call calcul_forces_nl(Fox,Foy,Foz,Elem%Invgrad,     &
-                        htprimex, htprimey, htprimez,                   &
-                        Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz,    &
-                        DXX*dt, DXY*dt, DXZ*dt,                         &
-                        DYX*dt, DYY*dt, DYZ*dt,                         &
-                        DZX*dt, DZY*dt, DZZ*dt,                         &
-                        Elem%Mu, Elem%Lambda, m1, m2 ,m3,               &
-                        EpsPl_ij_N_el,                                  &
-                        Sigma_ij_N_el,                                  & 
-                        Xkin_ij_N_el,                                   & 
-                        Riso_N_el,                                      &
-                        Elem%sl%nl_param_el%lmc_param_el%sigma_yld,     &
-                        Elem%sl%nl_param_el%lmc_param_el%b_iso,         &
-                        Elem%sl%nl_param_el%lmc_param_el%Rinf_iso,      &
-                        Elem%sl%nl_param_el%lmc_param_el%C_kin,         &
-                        Elem%sl%nl_param_el%lmc_param_el%kapa_kin,      &
-                        nelement)
+                    call calcul_forces_nl(Fox,Foy,Foz,Elem%Invgrad,htprimex,htprimey,htprimez,Elem%Jacob,     &
+                        mat%GLLwx,mat%GLLwy,mat%GLLwz,DXX*dt,DXY*dt,DXZ*dt,DYX*dt,DYY*dt,DYZ*dt,DZX*dt,       &
+                        DZY*dt, DZZ*dt,Elem%Mu,Elem%Lambda,m1,m2,m3,EpsPl_ij_N_el,Sigma_ij_N_el,Xkin_ij_N_el, &
+                        Riso_N_el,Elem%sl%nl_param_el%lmc_param_el%sigma_yld,Elem%sl%nl_param_el%lmc_param_el%b_iso, &
+                        Elem%sl%nl_param_el%lmc_param_el%Rinf_iso,Elem%sl%nl_param_el%lmc_param_el%C_kin,     &
+                        Elem%sl%nl_param_el%lmc_param_el%kapa_kin)
                 else
                     call calcul_forces_el(Fox,Foy,Foz,  &
                         Elem%Invgrad, &
@@ -219,9 +229,17 @@ contains
                     champs1%Forces(Elem%Idom(i,j,k),2) = champs1%Forces(Elem%Idom(i,j,k),2)-Foz(i,j,k)
                     if (nl_flag == 1) then
                         do i_dir = 0,5
-                            champs1%Epsilon_pl(Elem%Idom(i,j,k),i_dir) = EpsPl_ij_N_el(i_dir,i,j,k)
-                            champs1%Stress(Elem%Idom(i,j,k),i_dir)     = Sigma_ij_N_el(i_dir,i,j,k)
-                            champs1%Xkin(Elem%Idom(i,j,k),i_dir)       = Xkin_ij_N_el(i_dir,i,j,k)
+                            champs1%Epsilon_pl(Elem%Idom(i,j,k),i_dir) = EpsPl_ij_N_el(i_dir,i,j,k)/&
+                            champs1%element_connectivity(Elem%Idom(i,j,k))                       + &
+                            champs1%Epsilon_pl(Elem%Idom(i,j,k),i_dir)     
+                            
+                            champs1%Stress(Elem%Idom(i,j,k),i_dir)     = Sigma_ij_N_el(i_dir,i,j,k)/&
+                            champs1%element_connectivity(Elem%Idom(i,j,k))                       + &
+                            champs1%Stress(Elem%Idom(i,j,k),i_dir)
+
+                            champs1%Xkin(Elem%Idom(i,j,k),i_dir)       = Xkin_ij_N_el(i_dir,i,j,k)/&
+                            champs1%element_connectivity(Elem%Idom(i,j,k))                       + &
+                            champs1%Xkin(Elem%Idom(i,j,k),i_dir) 
                         end do
                         champs1%Riso(Elem%Idom(i,j,k)) = Riso_N_el(i,j,k)
                     end if

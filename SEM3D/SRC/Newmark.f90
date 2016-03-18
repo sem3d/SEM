@@ -171,9 +171,8 @@ subroutine Newmark(Tdomain,ntime)
     end if
     call Newmark_Corrector_Solid(Tdomain,Tdomain%champs1)
     if (Tdomain%rank==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
-
+    
     return
-
 end subroutine Newmark
 !---------------------------------------------------------------------------------------
 !---------------------------------------------------------------------------------------
@@ -275,6 +274,9 @@ subroutine Newmark_Predictor(Tdomain,champs1)
             champs1%Riso       = Tdomain%champs0%Riso
             champs1%Epsilon_pl = Tdomain%champs0%Epsilon_pl
         end if
+        
+        champs1%element_connectivity=0
+        
     endif
 
     ! Elements fluide
@@ -401,10 +403,10 @@ subroutine Newmark_Corrector_Solid(Tdomain,champs1)
         enddo
         Tdomain%champs0%Depla = Tdomain%champs0%Depla + dt * Tdomain%champs0%Veloc
         if (Tdomain%nl_flag==1) then
-            Tdomain%champs0%Epsilon_pl = Tdomain%champs1%Epsilon_pl
-            Tdomain%champs0%Stress = Tdomain%champs1%Stress
-            Tdomain%champs0%Xkin = Tdomain%champs1%Xkin
-            Tdomain%champs0%Riso = Tdomain%champs1%Riso
+            Tdomain%champs0%Epsilon_pl  = Tdomain%champs1%Epsilon_pl
+            Tdomain%champs0%Stress      = Tdomain%champs1%Stress
+            Tdomain%champs0%Xkin        = Tdomain%champs1%Xkin
+            Tdomain%champs0%Riso        = Tdomain%champs1%Riso
         end if
     endif
     return
@@ -420,18 +422,25 @@ subroutine internal_forces(Tdomain,champs1)
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
-    type(champs), intent(inout) :: champs1
-    integer  :: n,mat, indsol, indflu, indpml
-
+    type(champs), intent(inout)  :: champs1
+    integer  :: n, mat, indsol, indflu, indpml
+    
+    do n = 0,Tdomain%n_elem-1
+        select case(Tdomain%specel(n)%domain)
+        case(DM_SOLID)
+            call make_connectivity_(champs1,Tdomain%specel(n))
+        end select
+    enddo
     do n = 0,Tdomain%n_elem-1
         mat = Tdomain%specel(n)%mat_index
         select case (Tdomain%specel(n)%domain)
         case (DM_SOLID)
+
             call forces_int_solid(Tdomain%specel(n), Tdomain%sSubDomain(mat),      &
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
                 Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
                 Tdomain%sSubDomain(mat)%hTprimez, Tdomain%n_sls, Tdomain%aniso,    &
-                champs1, Tdomain%nl_flag, Tdomain%TimeD%dtmin,n)
+                Tdomain%champs0,champs1, Tdomain%nl_flag, Tdomain%TimeD%dtmin)
         case (DM_FLUID)
             call forces_int_fluid(Tdomain%specel(n), Tdomain%sSubDomain(mat),      &
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &

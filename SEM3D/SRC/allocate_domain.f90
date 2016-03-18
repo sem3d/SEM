@@ -167,9 +167,11 @@ contains
             allocate(Tdomain%champs1%Forces(0:Tdomain%ngll_s-1,0:2))
             allocate(Tdomain%champs1%Depla(0:Tdomain%ngll_s-1,0:2))
             allocate(Tdomain%champs1%Veloc(0:Tdomain%ngll_s-1,0:2))
+            allocate(Tdomain%champs1%element_connectivity(0:Tdomain%ngll_s-1))
             Tdomain%champs0%Forces = 0d0
             Tdomain%champs0%Depla  = 0d0
             Tdomain%champs0%Veloc  = 0d0
+            Tdomain%champs1%element_connectivity = -1
 
             if (Tdomain%nl_flag==1) then
                 write(*,*) "allocate nl var"

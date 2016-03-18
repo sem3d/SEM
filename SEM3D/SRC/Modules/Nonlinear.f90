@@ -10,9 +10,9 @@ module nonlinear
     use deriv3d
     use constants
 
-   real(KIND=8), parameter :: FTOL = 0.0000010000000000D0
-   real(KIND=8), parameter :: LTOL = 0.0000010000000000D0
-   real(KIND=8), parameter :: STOL = 0.0010000000000000D0
+   real(KIND=8), parameter :: FTOL = 0.0010000000000D0
+   real(KIND=8), parameter :: LTOL = 0.00100000000000D0
+   real(KIND=8), parameter :: STOL = 0.0000100000000D0
 !    real(KIND=8), parameter :: FTOL = 1.0000000000D0
 !    real(KIND=8), parameter :: LTOL = 0.010000000000D0
 !    real(KIND=8), parameter :: STOL = 0.0010000000000000D0
@@ -98,15 +98,12 @@ contains
         real, dimension(0:5), parameter     :: A=(/1.0,1.0,1.0,2.0,2.0,2.0/)
         real                                :: FS,FT,checkload
         integer                             :: k
-
+        logical                             :: flag
         stress1=stress0+dtrial
         call mises_yld_locus(stress0,center,radius,syld,FS,gradFS)
         call mises_yld_locus(stress1,center,radius,syld,FT,gradFT)
         checkload=sum(gradFS*dtrial)/sum(gradFS**2)/sum(dtrial**2)
-        
-        write(*,*) "*********************************"
-        write(*,*) "Fstart:",FS,"Ftrial:",FT,'CL',checkload
-        
+        flag=.false.
         if (abs(FS).le.FTOL) then
             if (checkload.ge.-LTOL) then 
                 alpha_elp = 0d0
@@ -116,6 +113,8 @@ contains
                     alpha_elp = 1d0
                     st_elp    = 2 
                 elseif(FT.gt.FTOL) then
+                    write(*,*) "-------------------------------------------------"
+                    write(*,*) "check load",checkload,"LTOL",LTOL
                     call gotoFpegasus(stress0,dtrial,center,radius,syld,10,alpha_elp)  
                     st_elp    = 1
                 endif
@@ -129,17 +128,16 @@ contains
                 st_elp    = 1
             end if
         elseif (FS.gt.FTOL) then
+            write(*,*) "*********************************"
             write(*,*) "Fstart:",FS,"Ftrial:",FT
             write(*,*) "Fstart: ",FS,">",FTOL,"!!!!"
+            write(*,*) "Load condition:",checkload
             write(*,*) "ERROR!"
-            stop
+            write(*,*) "*********************************"
+            write(*,*) ""
         end if
         dtrial=stress0+dtrial*alpha_elp
         call mises_yld_locus(dtrial,center,radius,syld,FS,gradFS)
-        write(*,*) "check plasticity:",FS,"<=",FTOL
-        write(*,*) "ALPHA:",alpha_elp
-        write(*,*) "*********************************"
-        write(*,*) ""
     end subroutine check_plasticity
 
     subroutine plastic_corrector (dEps_alpha,stress,center,syld, &
@@ -225,57 +223,6 @@ contains
                 flag_fail=.true.
             end if
         end do
-!        if (flag_SS) then         ! CONSTANT INCREMENT
-!            
-!            N_incr=10
-!            
-!            dEps_alpha(0:5) = dEpsilon_ij_alpha(0:5)/N_incr
-!            
-!            do i = 0,N_incr-1
-!
-!                ! PREDICTION
-!                call mises_yld_locus (stress, center, R, syld, F_mises_0, gradF0)
-!                ! COMPUTE PLASTIC MULTIPLIER
-!                call compute_plastic_modulus(dEps_alpha, stress, center, R, mu, lambda, syld, &
-!                    biso, Rinf, Ckin, kkin, dPlastMult)
-!                
-!                ! HARDENING INCREMENTS
-!                call hardening_increments(stress, R, center, syld, &
-!                    biso, Rinf, Ckin, kkin, dR, dcenter)
-!                dR = dPlastMult*dR
-!                dcenter(0:5) = dPlastMult*dX_ij(0:5)
-!
-!                ! VARIABLE UPDATE
-!                do k=0,5 ! plastic strains
-!                    dEpl(k)=dEpsilon_ij_pl(k)+dPlastMult*gradF0(k)*A(k)
-!                end do
-!                R=R+dR                          ! isotropic hardening update
-!                center(0:5)=X_ij(0:5)+dX_ij(0:5)  ! back-stress update
-!
-!                ! stress update
-!                do j = 0,5
-!                    do k = 0,5
-!                        stress(j)=Sigma_ij(j)+DEL_ijhk(k,j)*(dEps_alpha(k)-A(k)*dPlastMult*gradF0(k))
-!                    end do
-!                end do
-!
-!                ! DRIFT CORRECTION
-!                call mises_yld_locus (stress, center, R, syld, Ffinal, gradF0)
-!!               write(*,*) "Ffinal (BD): ",Ffinal
-!                if (Ffinal .gt. FTOL) then
-!                    call drift_corr(stress, center, R, syld,&
-!                        biso, Rinf, Ckin, kkin, lambda, mu, dEpl)
-!                    call mises_yld_locus (stress, center, R, syld, Ffinal, gradF0)
-!                end if
-!                if (Ffinal.gt.FTOL) then
-!                    write(*,*) "Ffinal (AD): ",Ffinal
-!                    write(*,*) ""
-!                endif
-!
-!            end do
-!        else    ! ERROR ADAPTIVE CONTROL
-
-!        endif
     end subroutine plastic_corrector
     
     subroutine ep_integration(dStrain,Stress,center,radius,syld,mu,lambda,biso,Rinf,&
@@ -396,7 +343,7 @@ contains
         real, dimension(0:5)                :: gradF0,gradF1,dstress,stresst,centert
         real, dimension(0:5),     parameter :: A = (/1.0,1.0,1.0,0.5,0.5,0.5/)
         real, dimension(0:5,0:5)            :: DEL
-        integer                             :: k,j
+        integer                             :: k,j,counter
         
         ! INITIAL PLASTIC CONDITION
         call mises_yld_locus(stress,center,radius,syld,F0,gradF0)
@@ -428,6 +375,8 @@ contains
             ! CHECK DRIFT
             call mises_yld_locus(stresst,centert,radiust,syld,F1,gradF1)
             if (abs(F1).gt.abs(F0)) then
+                write(*,*) "DRIFT 1", F1 
+                write(*,*) "DRIFT 0", F0
                 beta   = F0/sum(gradF0*gradF0)
                 stress = stress-beta*gradF0
             else
@@ -520,34 +469,49 @@ contains
         integer                             :: counter0,counter1
         logical                             :: flagxit
 
-        alpha1  = 1d0
         alpha0  = 0d0
+        alpha1  = 1d0
         stress0 = start0+alpha0*dtrial
         stress1 = start0+alpha1*dtrial
         call mises_yld_locus(stress0,center,radius,s0,F0,gradF)
         call mises_yld_locus(stress1,center,radius,s0,F1,gradF)
-        if (nsub.gt.1)then
+        if (nsub.gt.1) then
             Fsave=F0
-            do counter0=0,9
+            write(*,*) "before pegasus-> find starting alpha0-alpha1"
+            write(*,*) "F0",F0
+            write(*,*) "F1",F1
+            do counter0=0,2
                 dalpha = (alpha1-alpha0)/nsub
+                flagxit=.false.
+                write(*,*) "dalpha",dalpha,"counter0",counter0
                 do counter1=0,nsub-1
+                    write(*,*) "counter1",counter1
                     alpha=alpha0+dalpha
                     stress=start0+alpha*dtrial
-                    call mises_yld_locus(stress,center,radius,s0,F1,gradF)
+                    write(*,*) "alpha",alpha
+                    write(*,*) "stress",stress
+                    write(*,*) ""
+                    write(*,*) "start0",start0
+                    write(*,*) "dtrial",dtrial
+                    call mises_yld_locus(stress,center,radius,s0,FM,gradF)
                     if (FM.gt.FTOL) then
                         alpha1=alpha
                         if (F0.lt.-FTOL) then
                             F1=FM
                             flagxit=.true.
-                            exit
+                            write(*,*) "exit1"
                         else
                             alpha0=0d0
                             F0=Fsave
+                            write(*,*) "exit2"
                         endif
+                        exit
+                        
                     else
                         alpha0=alpha
                         F0=FM
                     endif
+                    write(*,*) "alpha0",alpha0,"alpha1",alpha1
                 end do
                 if (flagxit) then
                     exit
@@ -558,6 +522,8 @@ contains
                 alpha1=1d0
                 alpha0=0d0
             endif
+        write(*,*) "-------------------------------------------------"
+        
         end if
 
         do counter0=0,9
@@ -574,9 +540,9 @@ contains
             endif
 
         end do
-
+        write(*,*) "alpha",alpha
         if (FM.gt.FTOL) then
-            write(*,*) "WARNING: F>TOL"
+            write(*,*) "WARNING: F>TOL!!!!!!!!!"
         endif
     end subroutine gotoFpegasus
 

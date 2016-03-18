@@ -210,7 +210,7 @@ end subroutine calcul_forces_el
 subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poidsy, poidsz, &
     DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,mu_,la_, ngllx, nglly, ngllz, &
     EpsPl_ij_N_el, Sigma_ij_N_el, Xkin_ij_N_el, Riso_N_el, &
-    sigma_yld_el, b_iso_el, Rinf_iso_el, C_kin_el, kapa_kin_el,nelement)
+    sigma_yld_el, b_iso_el, Rinf_iso_el, C_kin_el, kapa_kin_el)
 
     use sdomain
     use nonlinear
@@ -249,8 +249,7 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
     real, dimension(0:ngllz-1,0:ngllx-1,0:nglly-1) :: t3,t7,t10
 
     real                    :: Rinf_iso, b_iso, C_kin, kapa_kin, Riso_N, sigma_yld, alpha_elp
-    real, dimension(0:5)    :: Sigma_ij_start, Sigma_ij_trial, dEpsilon_ij_alpha, Xkin_ij_N, dEpsilon_ij_pl
-    integer, intent(in)     :: nelement
+    real, dimension(0:5)    :: Sigma_ij_start, Sigma_ij_trial, dEpsilon_ij_alpha, Xkin_ij_N, Xkin_ij_start, dEpsilon_ij_pl
 
     do k = 0,ngllz-1
         do j = 0,nglly-1
@@ -285,7 +284,8 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
                 Rinf_iso    = Rinf_iso_el(i,j,k)
                 sigma_yld   = sigma_yld_el(i,j,k)
 
-                Sigma_ij_start = Sigma_ij_N_el(0:5,i,j,k)
+                Sigma_ij_start      = Sigma_ij_N_el(0:5,i,j,k)
+                Xkin_ij_start       = Xkin_ij_N_el(0:5,i,j,k) 
                 dEpsilon_ij_pl(0:5) = 0d0
                 
                 Sigma_ij_trial = (/sxx,syy,szz,sxy,sxz,syz/) ! trial stress increment
@@ -306,20 +306,26 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
                 
                 end if
                 
-                sxx = Sigma_ij_trial(0)
-                syy = Sigma_ij_trial(1)
-                szz = Sigma_ij_trial(2)
-                sxy = Sigma_ij_trial(3)
-                sxz = Sigma_ij_trial(4)
-                syz = Sigma_ij_trial(5)
-
+                sxx = Sigma_ij_trial(0)-Sigma_ij_start(0)
+                syy = Sigma_ij_trial(1)-Sigma_ij_start(1)
+                szz = Sigma_ij_trial(2)-Sigma_ij_start(2)
+                sxy = Sigma_ij_trial(3)-Sigma_ij_start(3)
+                sxz = Sigma_ij_trial(4)-Sigma_ij_start(4)
+                syz = Sigma_ij_trial(5)-Sigma_ij_start(5)
+!                sxx = Sigma_ij_trial(0)
+!                syy = Sigma_ij_trial(1)
+!                szz = Sigma_ij_trial(2)
+!                sxy = Sigma_ij_trial(3)   
+!                sxz = Sigma_ij_trial(4)   
+!                syz = Sigma_ij_trial(5)   
+                                        
                 !
                 ! UPDATE STATE
                 !
-                Sigma_ij_N_el(0:5,i,j,k) = Sigma_ij_trial(0:5)
-                Xkin_ij_N_el(0:5,i,j,k)  = Xkin_ij_N(0:5)
+                Sigma_ij_N_el(0:5,i,j,k) = Sigma_ij_trial(0:5)-Sigma_ij_start(0:5)
+                Xkin_ij_N_el(0:5,i,j,k)  = Xkin_ij_N(0:5)-Xkin_ij_start(0:5)
                 Riso_N_el(i,j,k)         = Riso_N
-                EpsPl_ij_N_el(0:5,i,j,k) = EpsPl_ij_N_el(0:5,i,j,k)+dEpsilon_ij_pl(0:5)
+                EpsPl_ij_N_el(0:5,i,j,k) = dEpsilon_ij_pl(0:5) !+ EpsPl_ij_N_el(0:5,i,j,k)
                 !
                 xi1 = Invgrad(0,0,i,j,k)
                 xi2 = Invgrad(1,0,i,j,k)

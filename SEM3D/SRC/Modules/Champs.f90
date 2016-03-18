@@ -34,6 +34,7 @@ module schamps
         real, dimension(:,:), allocatable :: Epsilon_pl
         real, dimension(:,:), allocatable :: Xkin
         real, dimension(:),   allocatable :: Riso
+        integer, dimension(:), allocatable :: element_connectivity
     end type champs
 
 end module schamps

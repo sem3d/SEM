@@ -708,7 +708,6 @@ void dump_config(sem_config_t* cfg)
     				cfg->out_variables[0], cfg->out_variables[1], cfg->out_variables[2],\
     				cfg->out_variables[3], cfg->out_variables[4], cfg->out_variables[5],\
     				cfg->out_variables[6], cfg->out_variables[7], cfg->out_variables[8]);
-    printf("Calcul nonlineaire: '%d'\n", cfg->nl_flag);
     printf("Neu present : %d\n", cfg->neu_present);
     printf("Neu type    : %d\n", cfg->neu_type);
     printf("Neu mat     : %d\n", cfg->neu_mat);
