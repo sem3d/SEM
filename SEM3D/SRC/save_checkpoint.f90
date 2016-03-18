@@ -94,6 +94,8 @@ subroutine compute_save_offsets(Tdomain, offset)
                  ngllx = Tdomain%fpmldom%ngll
                  nglly = Tdomain%fpmldom%ngll
                  ngllz = Tdomain%fpmldom%ngll
+             case default
+                 stop "unknown domain"
         end select
         ngll = (ngllx-2)*(nglly-2)*(ngllz-2)
         ngll2 = ngllx*nglly*ngllz
@@ -170,6 +172,8 @@ subroutine compute_save_offsets(Tdomain, offset)
             offset(11) = offset(11) + 0
             ! pour Veloc : 12
             offset(12) = offset(12) + ngll2*9
+        case default
+            stop "unknown domain"
         end select
     end do
 end subroutine compute_save_offsets

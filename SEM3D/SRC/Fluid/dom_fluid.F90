@@ -61,6 +61,7 @@ contains
             allocate(dom%MassMat(0:dom%nglltot-1))
             dom%MassMat = 0d0
         endif
+        if(Tdomain%rank==0) write(*,*) "INFO - fluid domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_fluid
 
     subroutine deallocate_dom_fluid (dom)
@@ -107,14 +108,14 @@ contains
         Veloc(:,:,:,2) = dphi_dz(:,:,:) * idensity(:,:,:)
     end subroutine fluid_velocity
 
-    subroutine get_fluid_dom_var(Tdomain, dom, el, out_variables, &
+    subroutine get_fluid_dom_var(Tdomain, dom, lnum, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
         implicit none
         !
         type(domain)                               :: TDomain
         type(domain_fluid), intent(inout)          :: dom
         integer, dimension(0:8)                    :: out_variables
-        type(element)                              :: el
+        integer                                    :: lnum
         real(fpp), dimension(:,:,:), allocatable   :: phi
         real(fpp), dimension(:,:,:), allocatable   :: vphi
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
@@ -124,7 +125,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         !
         logical :: flag_gradU
-        integer :: ngll, i, j, k, ind, mat
+        integer :: ngll, i, j, k, ind
 
         flag_gradU = (out_variables(OUT_ENERGYP) + &
             out_variables(OUT_ENERGYS) + &
@@ -145,14 +146,13 @@ contains
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
-                        ind = dom%Idom_(i,j,k,el%lnum)
+                        ind = dom%Idom_(i,j,k,lnum)
                         phi(i,j,k) = dom%champs0%Phi(ind)
                     enddo
                 enddo
             enddo
-            mat = el%mat_index
-            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,el%lnum),&
-                 dom%IDensity_(:,:,:,el%lnum),phi,fieldV)
+            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,lnum),&
+                 dom%IDensity_(:,:,:,lnum),phi,fieldV)
         end if
 
         if (out_variables(OUT_ACCEL) == 1) then
@@ -161,14 +161,13 @@ contains
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
-                        ind = dom%Idom_(i,j,k,el%lnum)
+                        ind = dom%Idom_(i,j,k,lnum)
                         vphi(i,j,k) = dom%champs0%VelPhi(ind)
                     enddo
                 enddo
             enddo
-            mat = el%mat_index
-            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,el%lnum),&
-                 dom%IDensity_(:,:,:,el%lnum),vphi,fieldA)
+            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,lnum),&
+                 dom%IDensity_(:,:,:,lnum),vphi,fieldA)
         end if
 
         if (out_variables(OUT_PRESSION) == 1) then
@@ -176,7 +175,7 @@ contains
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
-                        ind = dom%Idom_(i,j,k,el%lnum)
+                        ind = dom%Idom_(i,j,k,lnum)
                         fieldP(i,j,k) = -dom%champs0%VelPhi(ind)
                     enddo
                 enddo

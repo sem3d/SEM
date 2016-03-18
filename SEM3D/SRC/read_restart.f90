@@ -33,17 +33,7 @@ subroutine read_EpsilonVol(Tdomain, elem_id)
     idx3 = 1
     n_solid = Tdomain%n_sls
     do n = 0,Tdomain%n_elem-1
-        ngll = 0
-        select case (Tdomain%specel(n)%domain)
-             case (DM_SOLID)
-                 ngll = Tdomain%sdom%ngll
-             case (DM_FLUID)
-                 ngll = Tdomain%fdom%ngll
-             case (DM_SOLID_PML)
-                 ngll = Tdomain%spmldom%ngll
-             case (DM_FLUID_PML)
-                 ngll = Tdomain%fpmldom%ngll
-        end select
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
 
         if ( Tdomain%specel(n)%domain==DM_SOLID ) then
             do k = 0,ngll-1
@@ -102,17 +92,7 @@ subroutine read_EpsilonDev(Tdomain, elem_id)
     idx = 1
     n_solid = Tdomain%n_sls
     do n = 0,Tdomain%n_elem-1
-        ngll = 0
-        select case (Tdomain%specel(n)%domain)
-             case (DM_SOLID)
-                 ngll = Tdomain%sdom%ngll
-             case (DM_FLUID)
-                 ngll = Tdomain%fdom%ngll
-             case (DM_SOLID_PML)
-                 ngll = Tdomain%spmldom%ngll
-             case (DM_FLUID_PML)
-                 ngll = Tdomain%fpmldom%ngll
-        end select
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
 
         if ( Tdomain%specel(n)%domain == DM_SOLID ) then
             do k = 0,ngll-1
@@ -155,17 +135,7 @@ subroutine read_Stress(Tdomain, elem_id)
     n_solid = Tdomain%n_sls
     do n = 0,Tdomain%n_elem-1
         if (Tdomain%specel(n)%domain/=DM_SOLID_PML) cycle
-        ngll = 0
-        select case (Tdomain%specel(n)%domain)
-             case (DM_SOLID)
-                 ngll = Tdomain%sdom%ngll
-             case (DM_FLUID)
-                 ngll = Tdomain%fdom%ngll
-             case (DM_SOLID_PML)
-                 ngll = Tdomain%spmldom%ngll
-             case (DM_FLUID_PML)
-                 ngll = Tdomain%fpmldom%ngll
-        end select
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
 
         do k = 0,ngll-1
             do j = 0,ngll-1
@@ -216,17 +186,7 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
     idx = 1
     do n = 0,Tdomain%n_elem-1
         if (Tdomain%specel(n)%domain/=DM_FLUID_PML) cycle
-        ngll = 0
-        select case (Tdomain%specel(n)%domain)
-             case (DM_SOLID)
-                 ngll = Tdomain%sdom%ngll
-             case (DM_FLUID)
-                 ngll = Tdomain%fdom%ngll
-             case (DM_SOLID_PML)
-                 ngll = Tdomain%spmldom%ngll
-             case (DM_FLUID_PML)
-                 ngll = Tdomain%fpmldom%ngll
-        end select
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
 
         do k = 0,ngll-1
             do j = 0,ngll-1

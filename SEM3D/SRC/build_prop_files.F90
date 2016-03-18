@@ -144,6 +144,8 @@ contains
                                 case (DM_FLUID_PML)
                                     Tdomain%fpmldom%Density_(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
                                     Tdomain%fpmldom%Lambda_ (i,j,k,lnum) = propMatrix(ipoint, 1, mat)
+                                case default
+                                    stop "unknown domain"
                             end select
                         end do
                     end do
@@ -275,6 +277,8 @@ contains
                                         prop(ipoint, 0) = Tdomain%fpmldom%Density_(i,j,k,lnum)
                                         prop(ipoint, 1) = Tdomain%fpmldom%Lambda_ (i,j,k,lnum)
                                         prop(ipoint, 2) = 0
+                                    case default
+                                        stop "unknown domain"
                                 end select
                             end do
                         end do

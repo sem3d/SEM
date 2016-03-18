@@ -514,7 +514,7 @@ contains
                      ngll = Tdomain%fpmldom%ngll
             end select
             imat = Tdomain%specel(n)%mat_index
-            domain_type = get_domain(Tdomain%sSubDomain(imat))
+            domain_type = Tdomain%specel(n)%domain
 
             do k = 0,ngll - 1
                 do j = 0,ngll - 1
@@ -671,6 +671,8 @@ contains
                      ngll(1,k) = Tdomain%fpmldom%ngll
                      ngll(2,k) = Tdomain%fpmldom%ngll
                      ngll(3,k) = Tdomain%fpmldom%ngll
+                 case default
+                     stop "unknown domain"
             end select
             ! Max number of global points (can count elem vertices twice)
             nglobnum = nglobnum + ngll(1,k)*ngll(2,k)*ngll(3,k)
@@ -711,6 +713,8 @@ contains
                      ngllx = Tdomain%fpmldom%ngll
                      nglly = Tdomain%fpmldom%ngll
                      ngllz = Tdomain%fpmldom%ngll
+                 case default
+                     stop "unknown domain"
             end select
             do k = 0,ngllz-2
                 do j = 0,nglly-2
@@ -842,31 +846,23 @@ contains
             el => Tdomain%specel(n)
             sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
             if (.not. el%OUTPUT) cycle
-            select case (Tdomain%specel(n)%domain)
-                 case (DM_SOLID)
-                     ngll = Tdomain%sdom%ngll
-                 case (DM_FLUID)
-                     ngll = Tdomain%fdom%ngll
-                 case (DM_SOLID_PML)
-                     ngll = Tdomain%spmldom%ngll
-                 case (DM_FLUID_PML)
-                     ngll = Tdomain%fpmldom%ngll
-            end select
-
-            domain_type = get_domain(sub_dom_mat)
+            ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+            domain_type = Tdomain%specel(n)%domain
             select case(domain_type)
                 case (DM_SOLID)
-                  call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,             &
+                  call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,                 &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
                 case (DM_FLUID)
-                  call get_fluid_dom_var(Tdomain, Tdomain%fdom, el, out_variables,             &
+                  call get_fluid_dom_var(Tdomain, Tdomain%fdom, el%lnum, out_variables,        &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
                 case (DM_SOLID_PML)
-                  call get_solidpml_dom_var(Tdomain%spmldom, el, out_variables,                &
+                  call get_solidpml_dom_var(Tdomain%spmldom, el%lnum, out_variables,           &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
                 case (DM_FLUID_PML)
-                  call get_fluidpml_dom_var(Tdomain%fpmldom, el, out_variables,                &
+                  call get_fluidpml_dom_var(Tdomain%fpmldom, el%lnum, out_variables,           &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                case default
+                  stop "unknown domain"
             end select
 
             do k = 0, ngll-1
@@ -1199,20 +1195,10 @@ contains
         dumpsx = 0d0
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
-            ngll = 0
-            select case (Tdomain%specel(n)%domain)
-                 case (DM_SOLID)
-                     ngll = Tdomain%sdom%ngll
-                 case (DM_FLUID)
-                     ngll = Tdomain%fdom%ngll
-                 case (DM_SOLID_PML)
-                     ngll = Tdomain%spmldom%ngll
-                 case (DM_FLUID_PML)
-                     ngll = Tdomain%fpmldom%ngll
-            end select
+            ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             imat = Tdomain%specel(n)%mat_index
             lnum = Tdomain%specel(n)%lnum
-            domain_type = get_domain(Tdomain%sSubDomain(imat))
+            domain_type = Tdomain%specel(n)%domain
             select case(domain_type)
             case (DM_SOLID)
                 do k = 0,ngll-1
@@ -1263,6 +1249,8 @@ contains
                         end do
                     end do
                 end do
+            case default
+                stop "unknown domain"
             end select
         enddo
         ! We need that for computing accel
@@ -1271,17 +1259,7 @@ contains
         ! jac
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
-            ngll = 0
-            select case (Tdomain%specel(n)%domain)
-                 case (DM_SOLID)
-                     ngll = Tdomain%sdom%ngll
-                 case (DM_FLUID)
-                     ngll = Tdomain%fdom%ngll
-                 case (DM_SOLID_PML)
-                     ngll = Tdomain%spmldom%ngll
-                 case (DM_FLUID_PML)
-                     ngll = Tdomain%fpmldom%ngll
-            end select
+            ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
@@ -1295,6 +1273,8 @@ contains
                                 jac(idx) = Tdomain%fdom%Jacob_   (i,j,k,Tdomain%specel(n)%lnum)
                             case (DM_FLUID_PML)
                                 jac(idx) = Tdomain%fpmldom%Jacob_(i,j,k,Tdomain%specel(n)%lnum)
+                            case default
+                                stop "unknown domain"
                         end select
                     end do
                 end do

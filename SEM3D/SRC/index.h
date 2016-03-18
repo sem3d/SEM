@@ -29,7 +29,13 @@
 #else /* SEM_VEC */
 #endif
 #if defined(SEM_VEC)
+#if defined(SEM_VEC_LOW_RAM)
+#define CHUNK   4
+#elif defined(SEM_VEC_MED_RAM)
+#define CHUNK  16
+#else
 #define CHUNK  64
+#endif
 #define IND_IJKE(i,j,k,e)           e,i,j,k
 #define IND_MNE(m,n,e)           e,m,n
 #define IND_DIJKE(m,i,j,k,e)      e,m,i,j,k
