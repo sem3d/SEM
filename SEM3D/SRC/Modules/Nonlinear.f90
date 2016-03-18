@@ -13,9 +13,9 @@ module nonlinear
    real(KIND=8), parameter :: FTOL = 0.0010000000000D0
    real(KIND=8), parameter :: LTOL = 0.00100000000000D0
    real(KIND=8), parameter :: STOL = 0.0000100000000D0
-!    real(KIND=8), parameter :: FTOL = 1.0000000000D0
-!    real(KIND=8), parameter :: LTOL = 0.010000000000D0
-!    real(KIND=8), parameter :: STOL = 0.0010000000000000D0
+!   real(KIND=8), parameter :: FTOL = 0.0000010000000000D0
+!   real(KIND=8), parameter :: LTOL = 0.0000010000000000D0
+!   real(KIND=8), parameter :: STOL = 0.0010000000000000D0
 contains
     
     subroutine stiff_matrix(lambda,mu,DEL)
@@ -103,7 +103,7 @@ contains
         call mises_yld_locus(stress0,center,radius,syld,FS,gradFS)
         call mises_yld_locus(stress1,center,radius,syld,FT,gradFT)
         checkload=sum(gradFS*dtrial)/sum(gradFS**2)/sum(dtrial**2)
-        flag=.false.
+        
         if (abs(FS).le.FTOL) then
             if (checkload.ge.-LTOL) then 
                 alpha_elp = 0d0
@@ -375,8 +375,6 @@ contains
             ! CHECK DRIFT
             call mises_yld_locus(stresst,centert,radiust,syld,F1,gradF1)
             if (abs(F1).gt.abs(F0)) then
-                write(*,*) "DRIFT 1", F1 
-                write(*,*) "DRIFT 0", F0
                 beta   = F0/sum(gradF0*gradF0)
                 stress = stress-beta*gradF0
             else
@@ -540,7 +538,6 @@ contains
             endif
 
         end do
-        write(*,*) "alpha",alpha
         if (FM.gt.FTOL) then
             write(*,*) "WARNING: F>TOL!!!!!!!!!"
         endif
