@@ -70,33 +70,38 @@ void Mesh3DPart::compute_face_communications()
     // gross, but makes sure that we iterate over a stable container
     face_map_t face_to_id(m_face_to_id);
     for(it=face_to_id.begin();it!=face_to_id.end();++it) {
-        if (!m_face_border[it->second]) continue;
+        int face_id = it->second;
+        if (!m_face_border[face_id]) continue;
+        // We have a face shared between cpus
         const PFace& fc = it->first;
-        int nfc = it->second;
         std::set<int> elemset;
         get_neighbour_elements(4, fc.n, elemset);
         std::set<int>::const_iterator it;
+        // We emit a neighbouring face for each element that don't belong
+        // to this cpu (as it's a face there should be one and only one
         for(it=elemset.begin();it!=elemset.end();++it) {
             if (m_mesh.elem_part(*it)==m_proc) continue;
-            handle_neighbouring_face(nfc, fc, *it);
+            handle_neighbouring_face(face_id, fc, *it);
         }
     }
 }
 
 void Mesh3DPart::compute_edge_communications()
 {
+    // This is similare to compute_face_communications above
     edge_map_t::const_iterator it;
     edge_map_t edge_to_id(m_edge_to_id);
     for(it=edge_to_id.begin();it!=edge_to_id.end();++it) {
-        if (!m_edge_border[it->second]) continue;
+        int edge_id = it->second;
+        if (!m_edge_border[edge_id]) continue;
+        // We have an edge shared between cpus
         const PEdge& ed = it->first;
-        int ned = it->second;
         std::set<int> elemset;
         get_neighbour_elements(2, ed.n, elemset);
         std::set<int>::const_iterator it;
         for(it=elemset.begin();it!=elemset.end();++it) {
             if (m_mesh.elem_part(*it)==m_proc) continue;
-            handle_neighbouring_edge(ned, ed, *it);
+            handle_neighbouring_edge(edge_id, ed, *it);
         }
     }
 }
@@ -185,22 +190,24 @@ void Mesh3DPart::handle_surface(const Surface* surf)
     face_map_t::const_iterator itfound, it;
     for(it=surf->m_faces.begin();it!=surf->m_faces.end();++it) {
         itfound = m_face_to_id.find(it->first);
-        if (itfound!=m_face_to_id.end()) {
-            const PFace& fc = it->first;
-            new_surf->add_face(fc, itfound->second);
-            int dom = fc.domain();
-            for(int k=0;k<4;++k) {
-                int va = fc.n[k];
-                int vb = fc.n[(k+1)%4];
-                PEdge ed(va, vb, dom);
-                int eid = get(m_edge_to_id, ed, -1);
-                assert(eid!=-1);
-                new_surf->add_edge(ed, eid);
-                PVertex vx(va, dom);
-                int vid = get(m_vertex_to_id, vx, -1);
-                assert(vid!=-1);
-                new_surf->add_vertex(vx, vid);
-            }
+        if (itfound==m_face_to_id.end())
+            continue;
+        // A face from this surface belongs to this processor
+        const PFace& fc = it->first;
+        new_surf->add_face(fc, itfound->second);
+        int dom = fc.domain();
+        // Also creates the edges and vertices
+        for(int k=0;k<4;++k) {
+            int va = fc.n[k];
+            int vb = fc.n[(k+1)%4];
+            PEdge ed(va, vb, dom);
+            int eid = get(m_edge_to_id, ed, -1);
+            assert(eid!=-1);
+            new_surf->add_edge(ed, eid);
+            PVertex vx(va, dom);
+            int vid = get(m_vertex_to_id, vx, -1);
+            assert(vid!=-1);
+            new_surf->add_vertex(vx, vid);
         }
     }
     // We keep all surfaces even if locally empty
@@ -431,20 +438,24 @@ void Mesh3DPart::get_face_coupling(int d0, int d1, std::vector<int>& cpl, std::v
     if (it==m_face_to_id.end()) return;
     // it0 and it are two consecutive faces
     for(;it!=m_face_to_id.end();++it,++it0) {
-        if (!it->first.eq_geom(it0->first)) continue;
+        const PFace& fc0 = it0->first;
+        const PFace& fc1 = it->first;
+        int face_id0 = it0->second;
+        int face_id1 = it->second;
+        if (!fc1.eq_geom(fc0)) continue;
         // We have two faces equal with different domain, 
-        if (it0->first.domain()!=d0) continue;
-        if (it->first.domain()!=d1) continue;
+        if (fc0.domain()!=d0) continue;
+        if (fc1.domain()!=d1) continue;
         if (swapped) {
-            cpl.push_back(it->second);
-            cpl.push_back(it0->second);
-            orient.push_back(it->first.orient);
-            orient.push_back(it0->first.orient);
+            cpl.push_back(face_id1);
+            cpl.push_back(face_id0);
+            orient.push_back(fc1.orient);
+            orient.push_back(fc0.orient);
         } else {
-            cpl.push_back(it0->second);
-            cpl.push_back(it->second);
-            orient.push_back(it0->first.orient);
-            orient.push_back(it->first.orient);
+            cpl.push_back(face_id0);
+            cpl.push_back(face_id1);
+            orient.push_back(fc0.orient);
+            orient.push_back(fc1.orient);
         }
     }
 }
