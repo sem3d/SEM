@@ -234,6 +234,8 @@ contains
         do nf = 0, surf%n_faces-1
             nfs = surf%if_faces(nf)
             orient = -1d0*surf%if_norm(nf)
+            ! We don't treat orphan faces, they will be handled by communications
+            if (Tdomain%sFace(nfs)%orphan) cycle
             do i = 0,3
                 nodes(:,i) = Tdomain%Coord_nodes(:,Tdomain%sFace(nfs)%inodes(i))
             end do

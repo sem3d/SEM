@@ -40,6 +40,9 @@ contains
         integer :: node, dir
         integer, dimension(0:3) :: elface
 
+        do i = 0,Tdomain%n_face-1
+            Tdomain%sFace(i)%orphan = .true.
+        end do
         do i = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(i)%mat_index
             dom = get_domain(Tdomain%sSubDomain(mat))
@@ -56,6 +59,7 @@ contains
 
             do j = 0,5
                 nf = Tdomain%specel(i)%Near_Faces(j)
+                Tdomain%sFace(nf)%orphan = .false.
                 do k=0,3
                     !write(*,*) 'k=', k, 'f(k,j)=', face_def(k,j), size(Tdomain%specel(i)%Control_nodes)
                     elface(k) = Tdomain%specel(i)%Control_nodes(face_def(k,j))
