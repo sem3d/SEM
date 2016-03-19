@@ -5,6 +5,11 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 ENABLE_LANGUAGE(C CXX Fortran)
 ENABLE_TESTING()
 
+option(OPT_CPML "CPML" OFF)
+if (OPT_CPML)
+  add_definitions(-DCPML)
+endif(OPT_CPML)
+
 option(OPT_VEC "Vectorize" ON)
 option(OPT_VEC_LOW_RAM "Vectorize but save lot of RAM" OFF)
 option(OPT_VEC_MED_RAM "Vectorize but save RAM" ON)

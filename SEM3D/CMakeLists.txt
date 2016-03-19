@@ -8,7 +8,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/stat.f90
     ${PRJ}/SRC/geometrical_prop.f90
     ${PRJ}/SRC/Solid/champs_solid.f90
-    ${PRJ}/SRC/SolidPML/champs_solidpml.f90
     ${PRJ}/SRC/Fluid/champs_fluid.f90
     ${PRJ}/SRC/FluidPML/champs_fluidpml.f90
     ${PRJ}/SRC/Modules/Element.f90
@@ -41,7 +40,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Fluid/calcul_forces_fluid.F90
     ${PRJ}/SRC/Fluid/dom_fluid.F90
     ${PRJ}/SRC/pml.F90
-    ${PRJ}/SRC/SolidPML/dom_solidpml.F90
     ${PRJ}/SRC/FluidPML/dom_fluidpml.F90
     ${PRJ}/SRC/compute_GLL.f90
     ${PRJ}/SRC/courant.f90
@@ -76,6 +74,16 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/earth_models/model_prem.f90
 	
 )
+
+if (OPT_CPML)
+  set(SEM3D_SOURCES_F ${SEM3D_SOURCES_F}
+      ${PRJ}/SRC/SolidCPML/champs_solidcpml.f90
+      ${PRJ}/SRC/SolidCPML/dom_solidcpml.F90)
+else(OPT_CPML)
+  set(SEM3D_SOURCES_F ${SEM3D_SOURCES_F}
+      ${PRJ}/SRC/SolidPML/champs_solidpml.f90
+      ${PRJ}/SRC/SolidPML/dom_solidpml.F90)
+endif(OPT_CPML)
 
 #if(NOT USE_MKL)
 #set(SEM3D_SOURCES_F
