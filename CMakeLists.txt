@@ -31,6 +31,8 @@ include_directories(${HDF5_INCLUDE_DIR} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLU
 include_directories(${PROJECT_BINARY_DIR}/libs/common)
 
 find_package(FFTW3 REQUIRED)
+include_directories(${FFTW3_INCLUDE_DIR})
+#set(FFTW3_LIBRARIES ${FFTW3_LIBRARY} ${FFTW3_MPI_LIB} ${FFTW3_THREADS_LIB})
 #include_directories(FFTW3_INCLUDE_DIR)
 #  FFTW3_FOUND
 #  FFTW3_INCLUDE_DIR
@@ -136,7 +138,8 @@ set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} netlib)
 set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
 
 #FFTW
-# set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${FFTW3_LIBRARY} ${FFTW3_FORTRAN_LIBRARY} ${FFTW3_CPP_LIBRARY})
+#set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${FFTW3_LIBRARY} ${FFTW3_FORTRAN_LIBRARY} ${FFTW3_CPP_LIBRARY})
+set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${FFTW3_LIBRARIES})
 #  FFTW3_LIBRARY
 #  FFTW3_CPP_LIBRARY
 #  FFTW3_FORTRAN_LIBRARY
@@ -199,9 +202,9 @@ add_library(randomfield
   ${SEMDIR}/randomfield/RANDLIB/ranlib.f90
   ${SEMDIR}/randomfield/RANDLIB/rnglib.f90
 )
-target_link_libraries(randomfield ${FFTW3_LIBRARY})
 
 set_target_properties(randomfield PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/common)
+target_link_libraries(randomfield ${FFTW3_LIBRARIES})
 add_dependencies(randomfield semcommon)
 set(SEM_EXTRA_LIBS randomfield semcommon ${SEM_EXTRA_LIBS})
 
