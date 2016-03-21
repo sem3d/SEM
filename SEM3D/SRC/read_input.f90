@@ -175,7 +175,11 @@ contains
         Tdomain%any_fdom = .false.
         Tdomain%any_spml = .false.
         Tdomain%any_fpml = .false.
-
+        Tdomain%sdom%ngll    = 0
+        Tdomain%fdom%ngll    = 0
+        Tdomain%spmldom%ngll = 0
+        Tdomain%fpmldom%ngll = 0
+        
         do mat = 0, Tdomain%n_mat-1
             dom = get_domain(Tdomain%sSubDomain(mat))
 
@@ -192,6 +196,8 @@ contains
                  case (DM_FLUID_PML)
                      Tdomain%fpmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
                      Tdomain%any_fpml = .true.
+                 case default
+                     stop "unknown domain"
             end select
         end do
         !- GLL properties in elements, on faces, edges.

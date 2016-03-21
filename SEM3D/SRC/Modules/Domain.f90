@@ -62,14 +62,14 @@ module sdomain
        type(planew)        :: sPlaneW
        type(Neu_object)    :: Neumann
        type(bassin)        :: sBassin
-       type(source)   , dimension (:), pointer :: sSource
-       type(element)  , dimension (:), pointer :: specel
-       type(face)     , dimension (:), pointer :: sFace
-       type(comm)     , dimension (:), pointer :: sComm
-       type(edge)     , dimension (:), pointer :: sEdge
-       type(vertex)   , dimension (:), pointer :: sVertex
-       type(subdomain), dimension (:), pointer :: sSubDomain
-       type(SurfaceT), dimension(:), allocatable :: sSurfaces
+       type(source)   , dimension (:), allocatable :: sSource
+       type(element)  , dimension (:), pointer     :: specel
+       type(face)     , dimension (:), allocatable :: sFace
+       type(edge)     , dimension (:), allocatable :: sEdge
+       type(vertex)   , dimension (:), allocatable :: sVertex
+       type(subdomain), dimension (:), pointer     :: sSubDomain
+       type(SurfaceT) , dimension (:), allocatable :: sSurfaces
+       type(comm)     , dimension (:), allocatable :: sComm
 
        logical :: aniso
        logical :: any_Random, any_PropOnFile
@@ -82,7 +82,7 @@ module sdomain
 
        real(fpp) :: T1_att, T2_att, T0_modele
        real(fpp), dimension (0:2,0:2) :: rot
-       real(fpp), dimension (:,:), pointer :: Coord_nodes, GlobCoord
+       real(fpp), dimension (:,:), allocatable:: Coord_nodes, GlobCoord
 
        integer :: traces_format
        character (len=MAX_FILE_SIZE) :: Title_simulation, mesh_file,station_file,material_file,   &

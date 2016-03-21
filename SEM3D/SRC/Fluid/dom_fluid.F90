@@ -29,41 +29,41 @@ contains
         write(*,*) "DOM_FLUID nbelem = ", nbelem
         if (ngll == 0) return ! Domain doesn't exist anywhere
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
-!        write(*,*) "AFTER RETURN"
-!        call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
-!
-!        if(nbelem /= 0) then
-!            ! We can have glls without elements
-!            ! Do not allocate if not needed (save allocation/RAM)
-!            nbelem = CHUNK*((nbelem+CHUNK-1)/CHUNK)
-!            dom%nbelem_alloc = nbelem
-!
-!            allocate(dom%IDensity_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-!            allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-!
-!            allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
-!            allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
-!
-!            allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
-!            dom%m_Idom = 0
-!        end if
-!        ! Allocation et initialisation de champs0 et champs1 pour les fluides
-!        if (dom%nglltot /= 0) then
-!            allocate(dom%champs0%ForcesFl(0:dom%nglltot-1))
-!            allocate(dom%champs0%Phi     (0:dom%nglltot-1))
-!            allocate(dom%champs0%VelPhi  (0:dom%nglltot-1))
-!            allocate(dom%champs1%ForcesFl(0:dom%nglltot-1))
-!            allocate(dom%champs1%Phi     (0:dom%nglltot-1))
-!            allocate(dom%champs1%VelPhi  (0:dom%nglltot-1))
-!
-!            dom%champs0%ForcesFl = 0d0
-!            dom%champs0%Phi = 0d0
-!            dom%champs0%VelPhi = 0d0
-!
-!            ! Allocation de MassMat pour les fluides
-!            allocate(dom%MassMat(0:dom%nglltot-1))
-!            dom%MassMat = 0d0
-!        endif
+        call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)
+
+        if(nbelem /= 0) then
+            ! We can have glls without elements
+            ! Do not allocate if not needed (save allocation/RAM)
+            nbelem = CHUNK*((nbelem+CHUNK-1)/CHUNK)
+            dom%nbelem_alloc = nbelem
+
+            allocate(dom%IDensity_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+            allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+
+            allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+            allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+
+            allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+            dom%m_Idom = 0
+        end if
+        ! Allocation et initialisation de champs0 et champs1 pour les fluides
+        if (dom%nglltot /= 0) then
+            allocate(dom%champs0%ForcesFl(0:dom%nglltot-1))
+            allocate(dom%champs0%Phi     (0:dom%nglltot-1))
+            allocate(dom%champs0%VelPhi  (0:dom%nglltot-1))
+            allocate(dom%champs1%ForcesFl(0:dom%nglltot-1))
+            allocate(dom%champs1%Phi     (0:dom%nglltot-1))
+            allocate(dom%champs1%VelPhi  (0:dom%nglltot-1))
+
+            dom%champs0%ForcesFl = 0d0
+            dom%champs0%Phi = 0d0
+            dom%champs0%VelPhi = 0d0
+
+            ! Allocation de MassMat pour les fluides
+            allocate(dom%MassMat(0:dom%nglltot-1))
+            dom%MassMat = 0d0
+        endif
+        if(Tdomain%rank==0) write(*,*) "INFO - fluid domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_fluid
 
     subroutine deallocate_dom_fluid (dom)
@@ -110,14 +110,14 @@ contains
         Veloc(:,:,:,2) = dphi_dz(:,:,:) * idensity(:,:,:)
     end subroutine fluid_velocity
 
-    subroutine get_fluid_dom_var(Tdomain, dom, el, out_variables, &
+    subroutine get_fluid_dom_var(Tdomain, dom, lnum, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
         implicit none
         !
         type(domain)                               :: TDomain
         type(domain_fluid), intent(inout)          :: dom
         integer, dimension(0:8)                    :: out_variables
-        type(element)                              :: el
+        integer                                    :: lnum
         real(fpp), dimension(:,:,:), allocatable   :: phi
         real(fpp), dimension(:,:,:), allocatable   :: vphi
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
@@ -127,7 +127,7 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         !
         logical :: flag_gradU
-        integer :: ngll, i, j, k, ind, mat
+        integer :: ngll, i, j, k, ind
 
         flag_gradU = (out_variables(OUT_ENERGYP) + &
             out_variables(OUT_ENERGYS) + &
@@ -148,14 +148,13 @@ contains
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
-                        ind = dom%Idom_(i,j,k,el%lnum)
+                        ind = dom%Idom_(i,j,k,lnum)
                         phi(i,j,k) = dom%champs0%Phi(ind)
                     enddo
                 enddo
             enddo
-            mat = el%mat_index
-            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,el%lnum),&
-                 dom%IDensity_(:,:,:,el%lnum),phi,fieldV)
+            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,lnum),&
+                 dom%IDensity_(:,:,:,lnum),phi,fieldV)
         end if
 
         if (out_variables(OUT_ACCEL) == 1) then
@@ -164,14 +163,13 @@ contains
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
-                        ind = dom%Idom_(i,j,k,el%lnum)
+                        ind = dom%Idom_(i,j,k,lnum)
                         vphi(i,j,k) = dom%champs0%VelPhi(ind)
                     enddo
                 enddo
             enddo
-            mat = el%mat_index
-            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,el%lnum),&
-                 dom%IDensity_(:,:,:,el%lnum),vphi,fieldA)
+            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,lnum),&
+                 dom%IDensity_(:,:,:,lnum),vphi,fieldA)
         end if
 
         if (out_variables(OUT_PRESSION) == 1) then
@@ -179,7 +177,7 @@ contains
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
-                        ind = dom%Idom_(i,j,k,el%lnum)
+                        ind = dom%Idom_(i,j,k,lnum)
                         fieldP(i,j,k) = -dom%champs0%VelPhi(ind)
                     enddo
                 enddo

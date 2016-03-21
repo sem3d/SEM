@@ -76,17 +76,7 @@ contains
             if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
 
             ! a faire dans PMLs...
-            ngll = 0
-            select case (Tdomain%specel(n)%domain)
-                 case (DM_SOLID)
-                     ngll = Tdomain%sdom%ngll
-                 case (DM_FLUID)
-                     ngll = Tdomain%fdom%ngll
-                 case (DM_SOLID_PML)
-                     ngll = Tdomain%spmldom%ngll
-                 case (DM_FLUID_PML)
-                     ngll = Tdomain%fpmldom%ngll
-            end select
+            ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
 
             do i = 0,ngll-1
                 do j = 0,ngll-1

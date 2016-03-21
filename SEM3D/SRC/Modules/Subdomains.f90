@@ -101,6 +101,8 @@ contains
             get_domain = DM_FLUID
         case('L')
             get_domain = DM_FLUID_PML
+        case default
+            stop "unknown domain"
         end select
         return
     end function get_domain

@@ -59,18 +59,7 @@ subroutine Compute_Courant (Tdomain,rg)
         dxmin = 1e10
         dxmax = 0
 
-        ngll = 0
-        select case (Tdomain%specel(n)%domain)
-             case (DM_SOLID)
-                 ngll = Tdomain%sdom%ngll
-             case (DM_FLUID)
-                 ngll = Tdomain%fdom%ngll
-             case (DM_SOLID_PML)
-                 ngll = Tdomain%spmldom%ngll
-             case (DM_FLUID_PML)
-                 ngll = Tdomain%fpmldom%ngll
-        end select
-
+        ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
         do k = 0, ngll-2
             do j = 0, ngll - 2
                 do i = 0, ngll -2

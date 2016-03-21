@@ -7,10 +7,18 @@ ENABLE_LANGUAGE(C CXX Fortran)
 ENABLE_TESTING()
 
 option(OPT_VEC "Vectorize" ON)
+option(OPT_VEC_LOW_RAM "Vectorize but save lot of RAM" OFF)
+option(OPT_VEC_MED_RAM "Vectorize but save RAM" ON)
 if(OPT_VEC)
   add_definitions(-DSEM_VEC)
   set(EXTRA_IFORT_FLAGS "-qopenmp-simd")
   set(EXTRA_GFORT_FLAGS "-fopenmp")
+  if(OPT_VEC_LOW_RAM)
+    add_definitions(-DSEM_VEC_LOW_RAM)
+  endif(OPT_VEC_LOW_RAM)
+  if(OPT_VEC_MED_RAM)
+    add_definitions(-DSEM_VEC_MED_RAM)
+  endif(OPT_VEC_MED_RAM)
 endif(OPT_VEC)
 
 if (NOT BUILD_WITH_MKA)
@@ -100,6 +108,7 @@ set(SEM_SRC
   ${SEMCOMMON}/sem_hdf5.f90
   ${SEMCOMMON}/blas.F90
   ${SEMCOMMON}/leastsq.f90
+  ${SEMCOMMON}/intset.F90
 )
 
 set(SEM_SRC_C
@@ -209,13 +218,15 @@ add_dependencies(randomfield semcommon)
 set(SEM_EXTRA_LIBS randomfield semcommon ${SEM_EXTRA_LIBS})
 
 add_subdirectory(COMMON/netlib)
-add_subdirectory(SEM2D)
+option(OPT_SEM2D "Compile SEM2D" OFF) # Save compilation time (in particular with intel : save half an hour !...)
+if(OPT_SEM2D)
+  add_subdirectory(MESH2D)
+  add_subdirectory(SEM2D)
+  SET_TARGET_PROPERTIES(sem2d.exe PROPERTIES LINKER_LANGUAGE Fortran)
+endif(OPT_SEM2D)
 add_subdirectory(SEM3D)
 add_subdirectory(MESH)
-add_subdirectory(MESH2D)
-
 
 add_executable(test_sem_path ${SEMCOMMON}/test_sem_path.f90   ${SEMCOMMON}/fileutils.c ${SEMCOMMON}/sem_c_bindings.F90 ${SEMCOMMON}/semdatafiles.F90)
 
-SET_TARGET_PROPERTIES(sem2d.exe PROPERTIES LINKER_LANGUAGE Fortran)
 SET_TARGET_PROPERTIES(sem3d.exe PROPERTIES LINKER_LANGUAGE Fortran)

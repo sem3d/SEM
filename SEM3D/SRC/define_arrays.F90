@@ -23,9 +23,7 @@ module mdefinitions
 #include "index.h"
 
     public :: define_arrays
-    private :: define_alpha_PML
-    private :: define_PML_DumpInit, define_PML_DumpEnd
-    private :: assemble_DumpMass
+    private :: define_PML_DumpEnd
 
 contains
 
@@ -62,8 +60,11 @@ contains
             ! Compute MassMat
             call init_local_mass(Tdomain, Tdomain%specel(n))
             ! Computes DumpS, DumpMass (local),and for FPML :  Iv and Is
-            if (Tdomain%specel(n)%domain==DM_SOLID_PML .or. Tdomain%specel(n)%domain==DM_FLUID_PML) then
-                call init_pml_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
+            if (Tdomain%specel(n)%domain==DM_SOLID_PML) then
+                call init_solidpml_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
+            end if
+            if (Tdomain%specel(n)%domain==DM_FLUID_PML) then
+                call init_fluidpml_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
             end if
         enddo
         ! Here we have local mass matrix (not assembled) on elements and
@@ -99,6 +100,8 @@ contains
                 Tdomain%fdom%Idom_(:,:,:,Tdomain%specel(n)%lnum)    = Tdomain%specel(n)%Idom
             else if (Tdomain%specel(n)%domain==DM_FLUID_PML) then
                 Tdomain%fpmldom%Idom_(:,:,:,Tdomain%specel(n)%lnum) = Tdomain%specel(n)%Idom
+            else
+                stop "unknown domain"
             end if
             deallocate(Tdomain%specel(n)%Idom)
         end do
@@ -269,6 +272,8 @@ contains
                     case (DM_FLUID_PML)
                         call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
                              mat%DDensity,mat%DLambda)
+                    case default
+                        stop "unknown domain"
                 end select
                 !    si le flag gradient est actif alors on peut changer les proprietes
             case( MATERIAL_EARTHCHUNK )
@@ -290,6 +295,8 @@ contains
                     case (DM_FLUID_PML)
                         call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
                              mat%DDensity,mat%DLambda)
+                    case default
+                        stop "unknown domain"
                 end select
                 !    si le flag gradient est actif alors on peut changer les proprietes
                 if ( Tdomain%logicD%grad_bassin ) then
@@ -311,131 +318,18 @@ contains
                         case (DM_FLUID_PML)
                             call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,-1,-1,-1,&
                                  mat%DDensity,mat%DLambda)
+                        case default
+                            stop "unknown domain"
                     end select
                 end if
         end select
     end subroutine init_material_properties
 
-    subroutine init_pml_properties(Tdomain,specel,mat)
-        type (domain), intent (INOUT), target :: Tdomain
-        type (element), intent(inout) :: specel
-        type (subdomain), intent(in) :: mat
-        !
-        integer :: ngll, lnum
-        real(fpp), dimension(:,:,:), allocatable :: temp_PMLx,temp_PMLy
-        real(fpp), dimension(:,:,:), allocatable :: wx,wy,wz
-        real(fpp) :: dt
-        real(fpp), dimension(:,:,:,:), allocatable :: PMLDumpMass
-        integer :: i,j,k,idx
-        real(fpp), dimension(:,:,:), allocatable   :: Vp
-        real(fpp), dimension(:,:,:,:), allocatable :: coords
-
-        dt = Tdomain%TimeD%dtmin
-        lnum = specel%lnum
-
-        if (specel%domain/=DM_SOLID_PML .and. specel%domain/=DM_FLUID_PML) then
-            stop "init_pml_properties should not be called for non-pml element"
-        end if
-
-        ngll = domain_ngll(Tdomain, specel%domain)
-
-        allocate(Vp(0:ngll-1,0:ngll-1,0:ngll-1))
-        select case (specel%domain)
-        case (DM_SOLID)
-            Vp = 0.
-        case (DM_FLUID)
-            Vp = 0.
-        case (DM_SOLID_PML)
-            Vp = sqrt((Tdomain%spmldom%Lambda_ (:,:,:,lnum) + &
-                2. * Tdomain%spmldom%Mu_(:,:,:,lnum))/Tdomain%spmldom%Density_(:,:,:,lnum))
-        case (DM_FLUID_PML)
-            Vp = sqrt(Tdomain%fpmldom%Lambda_(:,:,:,specel%lnum)/Tdomain%fpmldom%Density_(:,:,:,lnum))
-        end select
-
-        ! PML case: valid for solid and fluid parts
-
-        !- definition of the attenuation coefficient in PMLs (alpha in the literature)
-        allocate(wx(0:ngll-1,0:ngll-1,0:ngll-1))
-        allocate(wy(0:ngll-1,0:ngll-1,0:ngll-1))
-        allocate(wz(0:ngll-1,0:ngll-1,0:ngll-1))
-
-        allocate(coords(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-
-        DO K=0,ngll-1
-            DO J=0,ngll-1
-                DO I=0,ngll-1
-                    idx = specel%Iglobnum(I,J,K)
-                    coords(I,J,K,:) = Tdomain%GlobCoord(:,idx)
-                END DO
-            END DO
-        END DO
-        call define_alpha_PML(coords, 0, ngll, Vp, mat%pml_width, mat%pml_pos, mat%Apow, mat%npow, wx)
-        call define_alpha_PML(coords, 1, ngll, Vp, mat%pml_width, mat%pml_pos, mat%Apow, mat%npow, wy)
-        call define_alpha_PML(coords, 2, ngll, Vp, mat%pml_width, mat%pml_pos, mat%Apow, mat%npow, wz)
-
-        !- M-PMLs
-        if(Tdomain%logicD%MPML)then
-            allocate(temp_PMLx(0:ngll-1,0:ngll-1,0:ngll-1))
-            allocate(temp_PMLy(0:ngll-1,0:ngll-1,0:ngll-1))
-            temp_PMLx(:,:,:) = wx(:,:,:)
-            temp_PMLy(:,:,:) = wy(:,:,:)
-            wx(:,:,:) = wx(:,:,:)+Tdomain%MPML_coeff*(wy(:,:,:)+wz(:,:,:))
-            wy(:,:,:) = wy(:,:,:)+Tdomain%MPML_coeff*(temp_PMLx(:,:,:)+wz(:,:,:))
-            wz(:,:,:) = wz(:,:,:)+Tdomain%MPML_coeff*(temp_PMLx(:,:,:)+temp_PMLy(:,:,:))
-            deallocate(temp_PMLx,temp_PMLy)
-        end if
-
-        allocate(PMLDumpMass(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-        PMLDumpMass = 0d0
-
-        !- strong formulation for stresses. Dumped mass elements, convolutional terms.
-        ! Compute DumpS(x,y,z) and DumpMass(0,1,2)
-        if (specel%domain==DM_SOLID_PML) then
-            call define_PML_DumpInit(ngll,dt,wx,specel%MassMat, &
-                Tdomain%spmldom%PMLDumpSx_(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,0))
-            call define_PML_DumpInit(ngll,dt,wy,specel%MassMat, &
-                Tdomain%spmldom%PMLDumpSy_(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,1))
-            call define_PML_DumpInit(ngll,dt,wz,specel%MassMat, &
-                Tdomain%spmldom%PMLDumpSz_(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,2))
-        end if
-        if (specel%domain==DM_FLUID_PML) then
-            call define_PML_DumpInit(ngll,dt,wx,specel%MassMat, &
-                Tdomain%fpmldom%PMLDumpSx_(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,0))
-            call define_PML_DumpInit(ngll,dt,wy,specel%MassMat, &
-                Tdomain%fpmldom%PMLDumpSy_(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,1))
-            call define_PML_DumpInit(ngll,dt,wz,specel%MassMat, &
-                Tdomain%fpmldom%PMLDumpSz_(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,2))
-        end if
-        deallocate(wx,wy,wz)
-
-        if (specel%domain==DM_SOLID_PML) call assemble_DumpMass(Tdomain,specel,Tdomain%spmldom%ngll,PMLDumpMass)
-        if (specel%domain==DM_FLUID_PML) call assemble_DumpMass(Tdomain,specel,Tdomain%fpmldom%ngll,PMLDumpMass)
-        if(allocated(PMLDumpMass)) deallocate(PMLDumpMass)
-
-        !! XXX
-        if (specel%domain==DM_FLUID_PML) then
-            Tdomain%fpmldom%PMLDumpSx_(:,:,:,1,lnum) = Tdomain%fpmldom%PMLDumpSx_(:,:,:,1,lnum) / &
-                                                       Tdomain%fpmldom%Density_(:,:,:  ,lnum)
-            Tdomain%fpmldom%PMLDumpSy_(:,:,:,1,lnum) = Tdomain%fpmldom%PMLDumpSy_(:,:,:,1,lnum) / &
-                                                       Tdomain%fpmldom%Density_(:,:,:  ,lnum)
-            Tdomain%fpmldom%PMLDumpSz_(:,:,:,1,lnum) = Tdomain%fpmldom%PMLDumpSz_(:,:,:,1,lnum) / &
-                                                       Tdomain%fpmldom%Density_(:,:,:  ,lnum)
-        end if
-
-        deallocate(Vp)
-    end subroutine init_pml_properties
-
     subroutine finalize_pml_properties(Tdomain)
         type (domain), intent (INOUT), target :: Tdomain
         !
-        if (allocated(Tdomain%spmldom%champs0%DumpV)) then ! allocated <=> we'll need it
-            call define_PML_DumpEnd(Tdomain%spmldom%nglltot,  Tdomain%spmldom%MassMat, &
-                                    Tdomain%spmldom%DumpMass, Tdomain%spmldom%champs0%DumpV)
-        end if
-        if (allocated(Tdomain%fpmldom%champs0%fpml_DumpV)) then ! allocated <=> we'll need it
-            call define_PML_DumpEnd(Tdomain%fpmldom%nglltot,  Tdomain%fpmldom%MassMat, &
-                                    Tdomain%fpmldom%DumpMass, Tdomain%fpmldom%champs0%fpml_DumpV)
-        end if
+        if (Tdomain%spmldom%nbelem>0) call finalize_solidpml_properties(Tdomain%spmldom)
+        if (Tdomain%fpmldom%nbelem>0) call finalize_fluidpml_properties(Tdomain%fpmldom)
     end subroutine finalize_pml_properties
 
     subroutine init_local_mass(Tdomain, specel)
@@ -466,6 +360,8 @@ contains
                             call init_local_mass_fluid(Tdomain%fdom,specel,i,j,k,ind,Whei)
                         case (DM_FLUID_PML)
                             call init_local_mass_fluidpml(Tdomain%fpmldom,specel,i,j,k,ind,Whei)
+                        case default
+                            stop "unknown domain"
                     end select
                 enddo
             enddo
@@ -487,17 +383,7 @@ contains
         integer :: ngll
         integer :: icolonne,jlayer
         !
-        ngll = 0
-        select case (specel%domain)
-             case (DM_SOLID)
-                 ngll = Tdomain%sdom%ngll
-             case (DM_FLUID)
-                 ngll = Tdomain%fdom%ngll
-             case (DM_SOLID_PML)
-                 ngll = Tdomain%spmldom%ngll
-             case (DM_FLUID_PML)
-                 ngll = Tdomain%fpmldom%ngll
-        end select
+        ngll = domain_ngll(Tdomain, specel%domain)
 
         !    debut modification des proprietes des couches de materiaux
         !    bassin    voir programme Surface.f90
@@ -615,6 +501,8 @@ contains
                             case (DM_FLUID_PML)
                                 call init_material_properties_fluidpml(Tdomain%fpmldom,specel%lnum,i,j,k,&
                                      zrho,Lambda)
+                            case default
+                                stop "unknown domain"
                         end select
                     enddo
                 enddo
@@ -623,100 +511,6 @@ contains
         endif
         !    fin modification des proprietes des couches de materiaux
     end subroutine initialize_material_gradient
-
-    !-------------------------------------------------------------------------------------
-    !-------------------------------------------------------------------------------------
-    subroutine define_alpha_PML(Coord, dir, ngll, vp, pml_width, pml_pos, Apow, npow, alpha)
-        !- routine determines attenuation profile in an PML layer (see Festa & Vilotte)
-        !   dir = attenuation's direction, ldir_attenu = the logical giving the orientation
-        integer, intent(in) :: dir, ngll, npow
-        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1, 0:2), intent(in) :: Coord
-        real(fpp), intent(in)  :: Apow
-        real(fpp), dimension(0:2), intent(in) :: pml_pos, pml_width
-        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: vp
-        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: alpha
-        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1)  :: ri
-        real(fpp) :: invdh, coef
-        if (pml_width(dir)==0d0) then
-            alpha(:,:,:) = 0d0
-            return
-        end if
-
-        ! Until we can do better, the plane equation is only parallel to one axis
-        ! when more coefficient are != 0 it means we have a corner
-        invdh = 1d0/abs(pml_width(dir))
-        coef = 1/pml_width(dir)
-        ri = coef*(Coord(:,:,:,dir)-pml_pos(dir))
-        alpha = Apow * Vp * invdh *  (ri)**npow
-    end subroutine define_alpha_PML
-    !----------------------------------------------------------------------------------
-    !----------------------------------------------------------------------------------
-    subroutine define_PML_DumpInit(ngll,dt,alpha,&
-        MassMat,DumpS,DumpMass)
-        !- defining parameters related to stresses and mass matrix elements, in the case of
-        !    a PML, along a given splitted direction:
-        integer, intent(in)  :: ngll
-        real, intent(in) :: dt
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: alpha
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: MassMat
-        real, dimension(0:1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: DumpS
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: DumpMass
-
-        real, dimension(0:ngll-1,0:ngll-1,0:ngll-1)  :: Id
-
-        Id = 1d0
-
-        DumpS(1,:,:,:) = Id + 0.5d0*dt*alpha
-        DumpS(1,:,:,:) = 1d0/DumpS(1,:,:,:)
-        DumpS(0,:,:,:) = (Id - 0.5d0*dt*alpha)*DumpS(1,:,:,:)
-        DumpMass(:,:,:) = 0.5d0*MassMat(:,:,:)*alpha(:,:,:)*dt
-
-        return
-    end subroutine define_PML_DumpInit
-
-    !----------------------------------------------------------------------------------
-    !----------------------------------------------------------------------------------
-    subroutine assemble_DumpMass(Tdomain,specel,ngll,PMLDumpMass)
-        type(domain), intent(inout) :: Tdomain
-        type (element), intent(inout) :: specel
-        integer :: ngll
-        real(fpp), dimension(0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: PMLDumpMass
-
-        integer :: i,j,k,m, ind
-
-        do m = 0,2
-            do k = 0,ngll-1
-                do j = 0,ngll-1
-                    do i = 0,ngll-1
-                        ind = specel%Idom(i,j,k)
-                        if (specel%domain==DM_SOLID_PML) then
-                            Tdomain%spmldom%DumpMass(ind,m) =   Tdomain%spmldom%DumpMass(ind,m) &
-                                                              + PMLDumpMass(i,j,k,m)
-                        else
-                            Tdomain%fpmldom%DumpMass(ind,m) =   Tdomain%fpmldom%DumpMass(ind,m) &
-                                                              + PMLDumpMass(i,j,k,m)
-                        endif
-                    enddo
-                enddo
-            enddo
-        enddo
-    end subroutine assemble_DumpMass
-    !----------------------------------------------------------------------------------
-    !----------------------------------------------------------------------------------
-    subroutine define_PML_DumpEnd(ngll,Massmat,DumpMass,DumpV)
-        implicit none
-        integer, intent(in)   :: ngll
-        real, dimension(0:ngll-1), intent(in) :: MassMat
-        real, dimension(0:ngll-1,0:2), intent(in) :: DumpMass
-        real, dimension(0:ngll-1,0:1,0:2), intent(out) :: DumpV
-
-        DumpV(:,1,:) = spread(MassMat(:),2,3) + DumpMass(:,:)
-        DumpV(:,1,:) = 1d0/DumpV(:,1,:)
-        DumpV(:,0,:) = spread(MassMat(:),2,3) - DumpMass(:,:)
-        DumpV(:,0,:) = DumpV(:,0,:) * DumpV(:,1,:)
-
-        return
-    end subroutine define_PML_DumpEnd
 
     !---------------------------------------------------------------------------
     !---------------------------------------------------------------------------
