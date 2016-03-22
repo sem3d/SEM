@@ -61,7 +61,7 @@ module stat
                     " sec, fext ", statTimes(STAT_FEXT), " sec]"
 
                 write (123,'(a,i4,a,f10.3,a)') "TIMING - stat full : rank ", r, &
-                    ", full time ", statTimes(STAT_FULL), " sec"
+                    ", full time ", fullTime, " sec"
             end do
             close (123)
         end if
