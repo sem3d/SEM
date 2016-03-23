@@ -81,20 +81,12 @@ module champs_solid
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_R_yz
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_R_vol
         ! Coef RK4
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_omega_tau_s
+        real(fpp), dimension(:), allocatable :: omega_tau_s
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_agamma_mu
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_agamma_kappa
         !
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_onemSbeta
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_onemPbeta
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_factor_common_P
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_alphaval_P
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_betaval_P
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_gammaval_P
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_factor_common_3
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_alphaval_3
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_betaval_3
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_gammaval_3
 
     end type domain_solid
 

@@ -36,7 +36,7 @@
 #define IND_MNIJKE(m,n,i,j,k,eb,ec) ec,m,n,i,j,k,eb
 #define IND_IJKNE(i,j,k,n,eb,ec)      ec,n,i,j,k,eb
 #define IND_IJKE(i,j,k,eb,ec)           ec,i,j,k,eb
-#define IND_NIJKE(n,i,j,k,eb,ec)        ec,i,j,k,n,eb
+#define IND_NIJKE(n,i,j,k,eb,ec)      ec,n,i,j,k,eb
 
 #if VCHUNK>1
 #define SUBELEM_LOOP_DIR  !dir$ simd

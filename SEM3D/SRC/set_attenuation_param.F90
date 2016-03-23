@@ -53,6 +53,8 @@ contains
         !   related to shear or compression
         call init_attenu(Tdomain,n_solid,n_freq_q,f_ref,f_c_source,omega_tau_s,omega_Q)
 
+        Tdomain%sdom%omega_tau_s(:) = omega_tau_s
+
         !-----------------------------------------------------------------------------------
         !- here we will look (at each GLL where a given value of Q is given) for the values
         !    of gamma, a combination of the stress and strain relaxation
@@ -112,23 +114,14 @@ contains
                         Tdomain%sdom%onemSbeta_(i,j,k,bnum,ee) = 1d0+get_modulus_defect(n_solid, agamma_mu)
                         Tdomain%sdom%onemPbeta_(i,j,k,bnum,ee) = 1d0+get_modulus_defect(n_solid, agamma_kappa)
 
-                        !- Runge-kutta parameters for the time integration of the terms related to the relaxation function
+                        !- Runge-kutta parameters for the time
+                        !- integration of the terms related to the
+                        !- relaxation function are now computed on the
+                        !- fly
                         mat = Tdomain%specel(n)%mat_index
                         dt = Tdomain%TimeD%dtmin
-                        Tdomain%sdom%omega_tau_s_(:,i,j,k,bnum,ee) = omega_tau_s
                         Tdomain%sdom%agamma_mu_(:,i,j,k,bnum,ee) = agamma_mu
                         Tdomain%sdom%agamma_kappa_(:,i,j,k,bnum,ee) = agamma_kappa
-
-                        call RK4_attenu_coefficients(n_solid,dt,omega_tau_s,agamma_mu,     &
-                            Tdomain%sdom%factor_common_3_(:,i,j,k,bnum,ee), &
-                            Tdomain%sdom%alphaval_3_(:,i,j,k,bnum,ee),      &
-                            Tdomain%sdom%betaval_3_(:,i,j,k,bnum,ee),       &
-                            Tdomain%sdom%gammaval_3_(:,i,j,k,bnum,ee))
-                        call RK4_attenu_coefficients(n_solid,dt,omega_tau_s,agamma_kappa,  &
-                            Tdomain%sdom%factor_common_P_(:,i,j,k,bnum,ee), &
-                            Tdomain%sdom%alphaval_P_(:,i,j,k,bnum,ee),      &
-                            Tdomain%sdom%betaval_P_(:,i,j,k,bnum,ee),       &
-                            Tdomain%sdom%gammaval_P_(:,i,j,k,bnum,ee))
                     enddo
                 enddo
             enddo

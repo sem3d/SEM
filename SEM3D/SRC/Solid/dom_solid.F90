@@ -63,10 +63,6 @@ contains
                     allocate (dom%onemPbeta_  (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                     allocate (dom%epsilonvol_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                     dom%epsilonvol_(:,:,:,:,:) = 0
-                    allocate (dom%factor_common_P_(0:n_solid-1, 0:ngll-1, 0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1))
-                    allocate (dom%alphaval_P_  (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-                    allocate (dom%betaval_P_   (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-                    allocate (dom%gammaval_P_  (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                     allocate (dom%R_vol_       (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                     dom%R_vol_(:,:,:,:,:,:) = 0
                 endif
@@ -81,17 +77,13 @@ contains
                 dom%epsilondev_xy_(:,:,:,:,:) = 0
                 dom%epsilondev_xz_(:,:,:,:,:) = 0
                 dom%epsilondev_yz_(:,:,:,:,:) = 0
-                allocate (dom%factor_common_3_(0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-                allocate (dom%alphaval_3_     (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-                allocate (dom%betaval_3_      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-                allocate (dom%gammaval_3_     (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                 allocate (dom%R_xx_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                 allocate (dom%R_yy_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                 allocate (dom%R_xy_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                 allocate (dom%R_xz_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                 allocate (dom%R_yz_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                 !
-                allocate (dom%omega_tau_s_    (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%omega_tau_s     (0:n_solid-1))
                 allocate (dom%agamma_mu_      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                 allocate (dom%agamma_kappa_   (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                 !
@@ -147,10 +139,6 @@ contains
         if(allocated(dom%m_Qp             )) deallocate (dom%m_Qp             )
         if(allocated(dom%m_onemPbeta      )) deallocate (dom%m_onemPbeta      )
         if(allocated(dom%m_epsilonvol     )) deallocate (dom%m_epsilonvol     )
-        if(allocated(dom%m_factor_common_P)) deallocate (dom%m_factor_common_P)
-        if(allocated(dom%m_alphaval_P     )) deallocate (dom%m_alphaval_P     )
-        if(allocated(dom%m_betaval_P      )) deallocate (dom%m_betaval_P      )
-        if(allocated(dom%m_gammaval_P     )) deallocate (dom%m_gammaval_P     )
         if(allocated(dom%m_R_vol          )) deallocate (dom%m_R_vol          )
         if(allocated(dom%m_onemSbeta      )) deallocate (dom%m_onemSbeta      )
         if(allocated(dom%m_epsilondev_xx  )) deallocate (dom%m_epsilondev_xx  )
@@ -158,10 +146,6 @@ contains
         if(allocated(dom%m_epsilondev_xy  )) deallocate (dom%m_epsilondev_xy  )
         if(allocated(dom%m_epsilondev_xz  )) deallocate (dom%m_epsilondev_xz  )
         if(allocated(dom%m_epsilondev_yz  )) deallocate (dom%m_epsilondev_yz  )
-        if(allocated(dom%m_factor_common_3)) deallocate (dom%m_factor_common_3)
-        if(allocated(dom%m_alphaval_3     )) deallocate (dom%m_alphaval_3     )
-        if(allocated(dom%m_betaval_3      )) deallocate (dom%m_betaval_3      )
-        if(allocated(dom%m_gammaval_3     )) deallocate (dom%m_gammaval_3     )
         if(allocated(dom%m_R_xx           )) deallocate (dom%m_R_xx           )
         if(allocated(dom%m_R_yy           )) deallocate (dom%m_R_yy           )
         if(allocated(dom%m_R_xy           )) deallocate (dom%m_R_xy           )

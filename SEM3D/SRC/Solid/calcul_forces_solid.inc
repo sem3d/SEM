@@ -370,11 +370,12 @@ subroutine PROCNAME_ATN(dom,bnum,hprime,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,
     real(fpp) :: epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc
     real(fpp) :: epsilonvol_loc
     integer   :: i_sls,i,j,k, ngll,e,ee,l
-    real(fpp) :: factorS_loc,alphavalS_loc,betavalS_loc,gammavalS_loc,Sn,Snp1
-    real(fpp) :: factorP_loc,alphavalP_loc,betavalP_loc,gammavalP_loc,Pn,Pnp1
+    real(fpp) :: factorS_loc,Sn,Snp1
+    real(fpp) :: factorP_loc,Pn,Pnp1
     real(fpp) :: epsilon_trace_over_3
     real(fpp) :: dS_dxi, dS_deta, dS_dzeta
     real(fpp) :: factor_common_3, factor_common_P, omega_tau_s, gamma_mu, gamma_kappa
+    real(fpp) :: alphaval, betaval, gammaval
     real(fpp) :: dt_tau
     n_solid = dom%n_sls
 
@@ -395,24 +396,23 @@ subroutine PROCNAME_ATN(dom,bnum,hprime,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,
                 epsilondev_yz_loc = 0.5 * (DZY + DYZ)
 
                 do i_sls = 0,n_solid-1
-                    omega_tau_s = dom%omega_tau_s_(i_sls,i,j,k,bnum,ee)
+                    omega_tau_s = dom%omega_tau_s(i_sls)
                     gamma_kappa = dom%agamma_kappa_(i_sls,i,j,k,bnum,ee)
                     gamma_mu = dom%agamma_mu_(i_sls,i,j,k,bnum,ee)
 #ifndef ANISO
                     ! get coefficients for that standard linear solid
                     factor_common_P = 2d0*gamma_kappa*omega_tau_s
                     factorP_loc   = dom%Kappa_(i,j,k,bnum,ee) * factor_common_P
-                    RK4_attenu_coefs(dom%dt,omega_tau_s,gamma_kappa,alphavalP_loc, betavalP_loc, gammavalP_loc)
+                    RK4_attenu_coefs(dom%dt,omega_tau_s,alphaval, betaval, gammaval)
 
                     !  terme volumique
                     Pn   = factorP_loc * dom%epsilonvol_(i,j,k,bnum,ee)
                     Pnp1 = factorP_loc * epsilonvol_loc
-                    dom%R_vol_(i_sls,i,j,k,bnum,ee) = alphavalP_loc * dom%R_vol_(i_sls,i,j,k,bnum,ee)  &
-                        + betavalP_loc*Pn+gammavalP_loc*Pnp1
+                    dom%R_vol_(i_sls,i,j,k,bnum,ee) = alphaval * dom%R_vol_(i_sls,i,j,k,bnum,ee)  &
+                        + betaval*Pn+gammaval*Pnp1
 #endif
                     ! get coefficients for that standard linear solid
                     factor_common_3 = 2d0*gamma_mu*omega_tau_s
-                    RK4_attenu_coefs(dom%dt,omega_tau_s, gamma_mu, alphavalS_loc, betavalS_loc, gammavalS_loc)
 
                     factorS_loc   = dom%Mu_(i,j,k,bnum,ee) * factor_common_3
 
@@ -420,32 +420,32 @@ subroutine PROCNAME_ATN(dom,bnum,hprime,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,
                     ! term in xx
                     Sn    = factorS_loc * dom%epsilondev_xx_(i,j,k,bnum,ee)
                     Snp1  = factorS_loc * epsilondev_xx_loc
-                    dom%R_xx_(i_sls,i,j,k,bnum,ee) = alphavalS_loc * dom%R_xx_(i_sls,i,j,k,bnum,ee)  &
-                        + betavalS_loc*Sn+gammavalS_loc*Snp1
+                    dom%R_xx_(i_sls,i,j,k,bnum,ee) = alphaval * dom%R_xx_(i_sls,i,j,k,bnum,ee)  &
+                        + betaval*Sn+gammaval*Snp1
 
                     ! term in yy
                     Sn    = factorS_loc  * dom%epsilondev_yy_(i,j,k,bnum,ee)
                     Snp1  = factorS_loc  * epsilondev_yy_loc
-                    dom%R_yy_(i_sls,i,j,k,bnum,ee) = alphavalS_loc * dom%R_yy_(i_sls,i,j,k,bnum,ee)  &
-                        + betavalS_loc*Sn+gammavalS_loc*Snp1
+                    dom%R_yy_(i_sls,i,j,k,bnum,ee) = alphaval * dom%R_yy_(i_sls,i,j,k,bnum,ee)  &
+                        + betaval*Sn+gammaval*Snp1
 
                     ! term in xy
                     Sn    = factorS_loc  * dom%epsilondev_xy_(i,j,k,bnum,ee)
                     Snp1  = factorS_loc  * epsilondev_xy_loc
-                    dom%R_xy_(i_sls,i,j,k,bnum,ee) = alphavalS_loc * dom%R_xy_(i_sls,i,j,k,bnum,ee) &
-                        + betavalS_loc*Sn+gammavalS_loc*Snp1
+                    dom%R_xy_(i_sls,i,j,k,bnum,ee) = alphaval * dom%R_xy_(i_sls,i,j,k,bnum,ee) &
+                        + betaval*Sn+gammaval*Snp1
 
                     ! term in xz
                     Sn    = factorS_loc * dom%epsilondev_xz_(i,j,k,bnum,ee)
                     Snp1  = factorS_loc * epsilondev_xz_loc
-                    dom%R_xz_(i_sls,i,j,k,bnum,ee) = alphavalS_loc * dom%R_xz_(i_sls,i,j,k,bnum,ee) &
-                        + betavalS_loc*Sn+gammavalS_loc*Snp1
+                    dom%R_xz_(i_sls,i,j,k,bnum,ee) = alphaval * dom%R_xz_(i_sls,i,j,k,bnum,ee) &
+                        + betaval*Sn+gammaval*Snp1
 
                     ! term in yz
                     Sn    = factorS_loc * dom%epsilondev_yz_(i,j,k,bnum,ee)
                     Snp1  = factorS_loc * epsilondev_yz_loc
-                    dom%R_yz_(i_sls,i,j,k,bnum,ee) = alphavalS_loc * dom%R_yz_(i_sls,i,j,k,bnum,ee)  &
-                        + betavalS_loc*Sn+gammavalS_loc*Snp1
+                    dom%R_yz_(i_sls,i,j,k,bnum,ee) = alphaval * dom%R_yz_(i_sls,i,j,k,bnum,ee)  &
+                        + betaval*Sn+gammaval*Snp1
 
                 enddo   ! end of loop on memory variables
 

@@ -10,7 +10,7 @@ module m_calcul_forces_atn ! wrap subroutine in module to get arg type check at 
     implicit none
 contains
 
-#define RK4_attenu_coefs(dt,omega_tau_s,agamma,alphaval,betaval,gammaval) \
+#define RK4_attenu_coefs(dt,omega_tau_s,alphaval,betaval,gammaval) \
 dt_tau = -dt*omega_tau_s;\
 alphaval = 1d0 + dt_tau + 0.5d0 * dt_tau**2 + dt_tau**3 *(1d0/6d0) + dt_tau**4 *(1d0/24.d0); \
 betaval  = dt*(0.5d0 + dt_tau * (1d0/3.d0) + dt_tau**2 *(1d0/8d0) + dt_tau**3 *(1d0/24.d0)); \
