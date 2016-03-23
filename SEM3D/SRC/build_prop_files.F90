@@ -103,7 +103,7 @@ contains
         integer      , intent(IN) :: rg
 
         !LOCAL
-        integer :: mat, n, ipoint, i, j, k, lnum
+        integer :: mat, n, ipoint, i, j, k, lnum, bnum, ee
         integer :: ngll
         double precision, dimension(:, :, :), allocatable :: propMatrix !Properties
         allocate(propMatrix(0:size(Tdomain%GlobCoord,2)-1, 0:nProp-1, 0:Tdomain%n_mat-1))
@@ -123,6 +123,9 @@ contains
         do n = 0, Tdomain%n_elem-1
             mat = Tdomain%specel(n)%mat_index
             lnum = Tdomain%specel(n)%lnum
+            bnum = lnum/VCHUNK
+            ee = mod(lnum,VCHUNK)
+
             if(propOnFile(Tdomain, mat)) then
                 ngll = Tdomain%sSubDomain(mat)%NGLL
                 do i = 0, ngll-1
@@ -131,19 +134,19 @@ contains
                             ipoint  = Tdomain%specel(n)%Iglobnum(i,j,k)
                             select case (Tdomain%specel(n)%domain)
                                 case (DM_SOLID)
-                                    Tdomain%sdom%Density_(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
-                                    Tdomain%sdom%Lambda_ (i,j,k,lnum) = propMatrix(ipoint, 1, mat)
-                                    Tdomain%sdom%Mu_     (i,j,k,lnum) = propMatrix(ipoint, 2, mat)
+                                    Tdomain%sdom%Density_(i,j,k,bnum,ee) = propMatrix(ipoint, 0, mat)
+                                    Tdomain%sdom%Lambda_ (i,j,k,bnum,ee) = propMatrix(ipoint, 1, mat)
+                                    Tdomain%sdom%Mu_     (i,j,k,bnum,ee) = propMatrix(ipoint, 2, mat)
                                 case (DM_FLUID)
-                                    Tdomain%fdom%IDensity_(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
-                                    Tdomain%fdom%Lambda_ (i,j,k,lnum) = propMatrix(ipoint, 1, mat)
+                                    Tdomain%fdom%IDensity_(i,j,k,bnum,ee) = propMatrix(ipoint, 0, mat)
+                                    Tdomain%fdom%Lambda_ (i,j,k,bnum,ee) = propMatrix(ipoint, 1, mat)
                                 case (DM_SOLID_PML)
-                                    Tdomain%spmldom%Density_(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
-                                    Tdomain%spmldom%Lambda_ (i,j,k,lnum) = propMatrix(ipoint, 1, mat)
-                                    Tdomain%spmldom%Mu_     (i,j,k,lnum) = propMatrix(ipoint, 2, mat)
+                                    Tdomain%spmldom%Density_(i,j,k,bnum,ee) = propMatrix(ipoint, 0, mat)
+                                    Tdomain%spmldom%Lambda_ (i,j,k,bnum,ee) = propMatrix(ipoint, 1, mat)
+                                    Tdomain%spmldom%Mu_     (i,j,k,bnum,ee) = propMatrix(ipoint, 2, mat)
                                 case (DM_FLUID_PML)
-                                    Tdomain%fpmldom%Density_(i,j,k,lnum) = propMatrix(ipoint, 0, mat)
-                                    Tdomain%fpmldom%Lambda_ (i,j,k,lnum) = propMatrix(ipoint, 1, mat)
+                                    Tdomain%fpmldom%Density_(i,j,k,bnum,ee) = propMatrix(ipoint, 0, mat)
+                                    Tdomain%fpmldom%Lambda_ (i,j,k,bnum,ee) = propMatrix(ipoint, 1, mat)
                                 case default
                                     stop "unknown domain"
                             end select
@@ -226,7 +229,7 @@ contains
         integer      , intent(IN) :: rg
 
         !LOCAL
-        integer :: n, ipoint, i, j, k, mat, lnum
+        integer :: n, ipoint, i, j, k, mat, lnum, bnum, ee
         integer :: ngll
         logical         , dimension(:,:) , allocatable :: globCoordMask, propMask
         double precision, dimension(:, :), allocatable :: prop !Properties
@@ -251,6 +254,8 @@ contains
             ngll = Tdomain%sSubDomain(mat)%NGLL
             do n = 0, Tdomain%n_elem-1
                 lnum = Tdomain%specel(n)%lnum
+                bnum = lnum/VCHUNK
+                ee = mod(lnum,VCHUNK)
                 if(Tdomain%specel(n)%mat_index == mat) then
                     !Building masks for this subdomain in this proc
                     do i = 0, ngll-1
@@ -262,20 +267,20 @@ contains
                                 propMask(ipoint,:)      = .true.
                                 select case (Tdomain%specel(n)%domain)
                                     case (DM_SOLID)
-                                        prop(ipoint, 0) = Tdomain%sdom%Density_(i,j,k,lnum)
-                                        prop(ipoint, 1) = Tdomain%sdom%Lambda_ (i,j,k,lnum)
-                                        prop(ipoint, 2) = Tdomain%sdom%Mu_     (i,j,k,lnum)
+                                        prop(ipoint, 0) = Tdomain%sdom%Density_(i,j,k,bnum,ee)
+                                        prop(ipoint, 1) = Tdomain%sdom%Lambda_ (i,j,k,bnum,ee)
+                                        prop(ipoint, 2) = Tdomain%sdom%Mu_     (i,j,k,bnum,ee)
                                     case (DM_FLUID)
-                                        prop(ipoint, 0) = Tdomain%fdom%IDensity_(i,j,k,lnum)
-                                        prop(ipoint, 1) = Tdomain%fdom%Lambda_ (i,j,k,lnum)
+                                        prop(ipoint, 0) = Tdomain%fdom%IDensity_(i,j,k,bnum,ee)
+                                        prop(ipoint, 1) = Tdomain%fdom%Lambda_ (i,j,k,bnum,ee)
                                         prop(ipoint, 2) = 0
                                     case (DM_SOLID_PML)
-                                        prop(ipoint, 0) = Tdomain%spmldom%Density_(i,j,k,lnum)
-                                        prop(ipoint, 1) = Tdomain%spmldom%Lambda_ (i,j,k,lnum)
-                                        prop(ipoint, 2) = Tdomain%spmldom%Mu_     (i,j,k,lnum)
+                                        prop(ipoint, 0) = Tdomain%spmldom%Density_(i,j,k,bnum,ee)
+                                        prop(ipoint, 1) = Tdomain%spmldom%Lambda_ (i,j,k,bnum,ee)
+                                        prop(ipoint, 2) = Tdomain%spmldom%Mu_     (i,j,k,bnum,ee)
                                     case (DM_FLUID_PML)
-                                        prop(ipoint, 0) = Tdomain%fpmldom%Density_(i,j,k,lnum)
-                                        prop(ipoint, 1) = Tdomain%fpmldom%Lambda_ (i,j,k,lnum)
+                                        prop(ipoint, 0) = Tdomain%fpmldom%Density_(i,j,k,bnum,ee)
+                                        prop(ipoint, 1) = Tdomain%fpmldom%Lambda_ (i,j,k,bnum,ee)
                                         prop(ipoint, 2) = 0
                                     case default
                                         stop "unknown domain"

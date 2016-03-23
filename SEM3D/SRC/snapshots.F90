@@ -1184,7 +1184,7 @@ contains
         !
         real, dimension(:),allocatable :: mass, jac, dumpsx
         integer :: ngll, idx
-        integer :: i, j, k, n, lnum, nnodes_tot
+        integer :: i, j, k, n, lnum, nnodes_tot, bnum, ee
         integer :: domain_type, imat
         real(fpp) :: dx, dy, dz, dt
 
@@ -1198,6 +1198,9 @@ contains
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             imat = Tdomain%specel(n)%mat_index
             lnum = Tdomain%specel(n)%lnum
+            bnum = lnum/VCHUNK
+            ee = mod(lnum,VCHUNK)
+
             domain_type = Tdomain%specel(n)%domain
             select case(domain_type)
             case (DM_SOLID)
@@ -1206,7 +1209,7 @@ contains
                         do i = 0,ngll-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%sdom%MassMat(Tdomain%sdom%Idom_(i,j,k,lnum))
+                                mass(idx) = Tdomain%sdom%MassMat(Tdomain%sdom%Idom_(i,j,k,bnum,ee))
                             endif
                         end do
                     end do
@@ -1217,11 +1220,11 @@ contains
                         do i = 0,ngll-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%spmldom%MassMat(Tdomain%spmldom%Idom_(i,j,k,lnum))
+                                mass(idx) = Tdomain%spmldom%MassMat(Tdomain%spmldom%Idom_(i,j,k,bnum,ee))
                                 dt = 2d0*Tdomain%TimeD%dtmin
-                                dx = ((1d0/Tdomain%spmldom%PMLDumpSx_(i,j,k,1,lnum))-1.)/dt
-                                dy = ((1d0/Tdomain%spmldom%PMLDumpSy_(i,j,k,1,lnum))-1.)/dt
-                                dz = ((1d0/Tdomain%spmldom%PMLDumpSz_(i,j,k,1,lnum))-1.)/dt
+                                dx = ((1d0/Tdomain%spmldom%PMLDumpSx_(i,j,k,1,bnum,ee))-1.)/dt
+                                dy = ((1d0/Tdomain%spmldom%PMLDumpSy_(i,j,k,1,bnum,ee))-1.)/dt
+                                dz = ((1d0/Tdomain%spmldom%PMLDumpSz_(i,j,k,1,bnum,ee))-1.)/dt
                                 dumpsx(idx) = dx+dy+dz
                             endif
                         end do
@@ -1233,7 +1236,7 @@ contains
                         do i = 0,ngll-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%fdom%MassMat(Tdomain%fdom%Idom_(i,j,k,lnum))
+                                mass(idx) = Tdomain%fdom%MassMat(Tdomain%fdom%Idom_(i,j,k,bnum,ee))
                             endif
                         end do
                     end do
@@ -1244,7 +1247,7 @@ contains
                         do i = 0,ngll-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%fpmldom%MassMat(Tdomain%fpmldom%Idom_(i,j,k,lnum))
+                                mass(idx) = Tdomain%fpmldom%MassMat(Tdomain%fpmldom%Idom_(i,j,k,bnum,ee))
                             endif
                         end do
                     end do
@@ -1260,19 +1263,21 @@ contains
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
                         idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
-                                jac(idx) = Tdomain%sdom%Jacob_   (i,j,k,Tdomain%specel(n)%lnum)
+                                jac(idx) = Tdomain%sdom%Jacob_   (i,j,k,bnum,ee)
                             case (DM_SOLID_PML)
-                                jac(idx) = Tdomain%spmldom%Jacob_(i,j,k,Tdomain%specel(n)%lnum)
+                                jac(idx) = Tdomain%spmldom%Jacob_(i,j,k,bnum,ee)
                             case (DM_FLUID)
-                                jac(idx) = Tdomain%fdom%Jacob_   (i,j,k,Tdomain%specel(n)%lnum)
+                                jac(idx) = Tdomain%fdom%Jacob_   (i,j,k,bnum,ee)
                             case (DM_FLUID_PML)
-                                jac(idx) = Tdomain%fpmldom%Jacob_(i,j,k,Tdomain%specel(n)%lnum)
+                                jac(idx) = Tdomain%fpmldom%Jacob_(i,j,k,bnum,ee)
                             case default
                                 stop "unknown domain"
                         end select

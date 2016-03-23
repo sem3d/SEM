@@ -15,35 +15,32 @@
 #endif
 
 #define ORIG
-#define PHYSDERIV
 
-subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
+subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     use champs_solid
     implicit none
 
     type(domain_solid), intent (INOUT) :: dom
-    integer, intent(in) :: lnum
+    integer, intent(in) :: bnum
     integer, intent(in) :: ngllvar
 #ifdef NGLLVAL
     integer, parameter :: ngll=NGLLVAL
 #endif
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
     integer :: i,j,k,l,e,ee
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,t4
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
     real(fpp), parameter :: zero = 0.
 #ifdef ORIG
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t5,t8
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t5,t8
     ! Les indices sont reordonnes, probablement pour la localite memoire
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t2,t6,t9
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t3,t7,t10
-#ifdef PHYSDERIV
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUx_dxi, dUx_deta, dUx_dzeta
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUy_dxi, dUy_deta, dUy_dzeta
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUz_dxi, dUz_deta, dUz_dzeta
-#endif
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t2,t6,t9
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t3,t7,t10
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUx_dxi, dUx_deta, dUx_dzeta
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUy_dxi, dUy_deta, dUy_dzeta
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUz_dxi, dUz_deta, dUz_dzeta
     real(fpp) :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real(fpp) :: F1,F2,F3
 #endif
@@ -57,16 +54,15 @@ subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
 #else
     real(fpp) :: xla2mu
 #endif
-    real(fpp), dimension(IND_MNE(0:2,0:2,0:CHUNK-1)) :: invgrad
     real(fpp) :: dS_dxi, dS_deta, dS_dzeta
-#ifdef PHYSDERIV
+
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
 #ifdef SEM_VEC
 !$omp simd linear(e,ee)
 #endif
-                BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz
                 local_deriv_ijke(Depla,0,dUx_dxi(ee,i,j,k),dUx_deta(ee,i,j,k),dUx_dzeta(ee,i,j,k))
                 END_SUBELEM_LOOP()
@@ -79,7 +75,7 @@ subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
 #ifdef SEM_VEC
 !$omp simd linear(e,ee)
 #endif
-                BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz
                 local_deriv_ijke(Depla,1,dUy_dxi(ee,i,j,k),dUy_deta(ee,i,j,k),dUy_dzeta(ee,i,j,k))
                 END_SUBELEM_LOOP()
@@ -92,7 +88,7 @@ subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
 #ifdef SEM_VEC
 !$omp simd linear(e,ee)
 #endif
-                BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz
                 local_deriv_ijke(Depla,2,dUz_dxi(ee,i,j,k),dUz_deta(ee,i,j,k),dUz_dzeta(ee,i,j,k))
                 END_SUBELEM_LOOP()
@@ -100,44 +96,34 @@ subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
         end do
     end do
 
-#endif
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
 #ifdef SEM_VEC
 !$omp simd linear(e,ee)
 #endif
-                BEGIN_SUBELEM_LOOP(e,ee,lnum)
-#ifdef PHYSDERIV
-                dxx=dUx_dxi(ee,i,j,k)*dom%InvGrad_(0,0,i,j,k,e)+ &
-                    dUx_deta(ee,i,j,k)*dom%InvGrad_(0,1,i,j,k,e)+ &
-                    dUx_dzeta(ee,i,j,k)*dom%InvGrad_(0,2,i,j,k,e)
-                dxy=dUx_dxi(ee,i,j,k)*dom%InvGrad_(1,0,i,j,k,e)+&
-                    dUx_deta(ee,i,j,k)*dom%InvGrad_(1,1,i,j,k,e)+&
-                    dUx_dzeta(ee,i,j,k)*dom%InvGrad_(1,2,i,j,k,e);
-                dxz=dUx_dxi(ee,i,j,k)*dom%InvGrad_(2,0,i,j,k,e)+&
-                    dUx_deta(ee,i,j,k)*dom%InvGrad_(2,1,i,j,k,e)+&
-                    dUx_dzeta(ee,i,j,k)*dom%InvGrad_(2,2,i,j,k,e)
+                BEGIN_SUBELEM_LOOP(e,ee,bnum)
+#define JXX dom%InvGrad_(0,0,i,j,k,bnum,ee)
+#define JXY dom%InvGrad_(0,1,i,j,k,bnum,ee)
+#define JXZ dom%InvGrad_(0,2,i,j,k,bnum,ee)
+#define JYX dom%InvGrad_(1,0,i,j,k,bnum,ee)
+#define JYY dom%InvGrad_(1,1,i,j,k,bnum,ee)
+#define JYZ dom%InvGrad_(1,2,i,j,k,bnum,ee)
+#define JZX dom%InvGrad_(2,0,i,j,k,bnum,ee)
+#define JZY dom%InvGrad_(2,1,i,j,k,bnum,ee)
+#define JZZ dom%InvGrad_(2,2,i,j,k,bnum,ee)
 
-                dyx=dUy_dxi(ee,i,j,k)*dom%InvGrad_(0,0,i,j,k,e)+ &
-                    dUy_deta(ee,i,j,k)*dom%InvGrad_(0,1,i,j,k,e)+ &
-                    dUy_dzeta(ee,i,j,k)*dom%InvGrad_(0,2,i,j,k,e);
-                dyy=dUy_dxi(ee,i,j,k)*dom%InvGrad_(1,0,i,j,k,e)+&
-                    dUy_deta(ee,i,j,k)*dom%InvGrad_(1,1,i,j,k,e)+&
-                    dUy_dzeta(ee,i,j,k)*dom%InvGrad_(1,2,i,j,k,e);
-                dyz=dUy_dxi(ee,i,j,k)*dom%InvGrad_(2,0,i,j,k,e)+&
-                    dUy_deta(ee,i,j,k)*dom%InvGrad_(2,1,i,j,k,e)+&
-                    dUy_dzeta(ee,i,j,k)*dom%InvGrad_(2,2,i,j,k,e)
+                dxx=dUx_dxi(ee,i,j,k)*JXX + dUx_deta(ee,i,j,k)*JXY + dUx_dzeta(ee,i,j,k)*JXZ
+                dxy=dUx_dxi(ee,i,j,k)*JYX + dUx_deta(ee,i,j,k)*JYY + dUx_dzeta(ee,i,j,k)*JYZ
+                dxz=dUx_dxi(ee,i,j,k)*JZX + dUx_deta(ee,i,j,k)*JZY + dUx_dzeta(ee,i,j,k)*JZZ
 
-                dzx=dUz_dxi(ee,i,j,k)*dom%InvGrad_(0,0,i,j,k,e)+ &
-                    dUz_deta(ee,i,j,k)*dom%InvGrad_(0,1,i,j,k,e)+ &
-                    dUz_dzeta(ee,i,j,k)*dom%InvGrad_(0,2,i,j,k,e);
-                dzy=dUz_dxi(ee,i,j,k)*dom%InvGrad_(1,0,i,j,k,e)+&
-                    dUz_deta(ee,i,j,k)*dom%InvGrad_(1,1,i,j,k,e)+&
-                    dUz_dzeta(ee,i,j,k)*dom%InvGrad_(1,2,i,j,k,e);
-                dzz=dUz_dxi(ee,i,j,k)*dom%InvGrad_(2,0,i,j,k,e)+&
-                    dUz_deta(ee,i,j,k)*dom%InvGrad_(2,1,i,j,k,e)+&
-                    dUz_dzeta(ee,i,j,k)*dom%InvGrad_(2,2,i,j,k,e)
+                dyx=dUy_dxi(ee,i,j,k)*JXX + dUy_deta(ee,i,j,k)*JXY + dUy_dzeta(ee,i,j,k)*JXZ
+                dyy=dUy_dxi(ee,i,j,k)*JYX + dUy_deta(ee,i,j,k)*JYY + dUy_dzeta(ee,i,j,k)*JYZ
+                dyz=dUy_dxi(ee,i,j,k)*JZX + dUy_deta(ee,i,j,k)*JZY + dUy_dzeta(ee,i,j,k)*JZZ
+
+                dzx=dUz_dxi(ee,i,j,k)*JXX + dUz_deta(ee,i,j,k)*JXY + dUz_dzeta(ee,i,j,k)*JXZ
+                dzy=dUz_dxi(ee,i,j,k)*JYX + dUz_deta(ee,i,j,k)*JYY + dUz_dzeta(ee,i,j,k)*JYZ
+                dzz=dUz_dxi(ee,i,j,k)*JZX + dUz_deta(ee,i,j,k)*JZY + dUz_dzeta(ee,i,j,k)*JZZ
 #ifdef ATTENUATION
                 ! Save for reuse
                 dUx_dxi  (ee,i,j,k) = dxx
@@ -150,19 +136,13 @@ subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
                 dUz_deta (ee,i,j,k) = dzy
                 dUz_dzeta(ee,i,j,k) = dzz
 #endif
-#else
-                ! Calcul de dPhi/dx dPhi/dy dPhi/dz
-                part2_deriv_ijke(Depla,0,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz)
-                part2_deriv_ijke(Depla,1,dS_dxi,dS_deta,dS_dzeta,dyx,dyy,dyz)
-                part2_deriv_ijke(Depla,2,dS_dxi,dS_deta,dS_dzeta,dzx,dzy,dzz)
-#endif
 
 #ifdef ATTENUATION
 #ifdef ANISO
                 Eyz = (DYZ+DZY)*M_SQRT1_2
                 Exz = (DXZ+DZX)*M_SQRT1_2
                 Exy = (DXY+DYX)*M_SQRT1_2
-#define CC(d)  dom%Cij_(d,i,j,k,e)
+#define CC(d)  dom%Cij_(d,i,j,k,bnum,ee)
                 sxx = DXX*CC( 0) + DYY*CC( 1) + DZZ*CC( 2) + EYZ*CC( 3) + EXZ*CC( 4) + EXY*CC( 5)
                 syy = DXX*CC( 1) + DYY*CC( 6) + DZZ*CC( 7) + EYZ*CC( 8) + EXZ*CC( 9) + EXY*CC(10)
                 szz = DXX*CC( 2) + DYY*CC( 7) + DZZ*CC(11) + EYZ*CC(12) + EXZ*CC(13) + EXY*CC(14)
@@ -171,7 +151,7 @@ subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
                 sxy = DXX*CC( 5) + DYY*CC(10) + DZZ*CC(14) + EYZ*CC(17) + EXZ*CC(19) + EXY*CC(20)
 #undef CC
 #else
-                xmu = dom%Mu_(i,j,k,e) * dom%onemSbeta_(i,j,k,e)
+                xmu = dom%Mu_(i,j,k,bnum,ee) * dom%onemSbeta_(i,j,k,bnum,ee)
                 x2mu = 2. * xmu
                 sxx = x2mu * DXX
                 sxy = xmu * ( DXY + DYX )
@@ -180,25 +160,25 @@ subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
                 syz = xmu * ( DYZ + DZY )
                 szz = x2mu * DZZ
 #endif
-                xkappa = dom%Kappa_(i,j,k,e)* dom%onemPbeta_(i,j,k,e)
+                xkappa = dom%Kappa_(i,j,k,bnum,ee)* dom%onemPbeta_(i,j,k,bnum,ee)
                 xpression = xkappa*(DXX+DYY+DZZ)
                 do i_sls = 0,dom%n_sls-1
-                    xpression = xpression - dom%R_vol_(i_sls,i,j,k,e)
-                    sxx = sxx - dom%R_xx_(i_sls,i,j,k,e)
-                    syy = syy - dom%R_yy_(i_sls,i,j,k,e)
+                    xpression = xpression - dom%R_vol_(i_sls,i,j,k,bnum,ee)
+                    sxx = sxx - dom%R_xx_(i_sls,i,j,k,bnum,ee)
+                    syy = syy - dom%R_yy_(i_sls,i,j,k,bnum,ee)
                     ! ici on utilise le fait que la trace est nulle
-                    szz = szz + dom%R_xx_(i_sls,i,j,k,e) + dom%R_yy_(i_sls,i,j,k,e)
-                    sxy = sxy - dom%R_xy_(i_sls,i,j,k,e)
-                    sxz = sxz - dom%R_xz_(i_sls,i,j,k,e)
-                    syz = syz - dom%R_yz_(i_sls,i,j,k,e)
+                    szz = szz + dom%R_xx_(i_sls,i,j,k,bnum,ee) + dom%R_yy_(i_sls,i,j,k,bnum,ee)
+                    sxy = sxy - dom%R_xy_(i_sls,i,j,k,bnum,ee)
+                    sxz = sxz - dom%R_xz_(i_sls,i,j,k,bnum,ee)
+                    syz = syz - dom%R_yz_(i_sls,i,j,k,bnum,ee)
                 enddo
                 stt = (sxx + syy + szz)*M_1_3
                 sxx = sxx - stt + xpression
                 syy = syy - stt + xpression
                 szz = szz - stt + xpression
 #else
-                xmu = dom%Mu_    (i,j,k,e)
-                xla = dom%Lambda_(i,j,k,e)
+                xmu = dom%Mu_    (i,j,k,bnum,ee)
+                xla = dom%Lambda_(i,j,k,bnum,ee)
                 xla2mu = xla + 2. * xmu
 
                 sxx = xla2mu * DXX + xla * ( DYY + DZZ )
@@ -213,40 +193,40 @@ subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
                 !       FX
                 !=====================
                 !
-                xt1 = sxx*dom%InvGrad_(0,0,i,j,k,e)+sxy*dom%InvGrad_(1,0,i,j,k,e)+sxz*dom%InvGrad_(2,0,i,j,k,e)
-                xt2 = sxx*dom%InvGrad_(0,1,i,j,k,e)+sxy*dom%InvGrad_(1,1,i,j,k,e)+sxz*dom%InvGrad_(2,1,i,j,k,e)
-                xt3 = sxx*dom%InvGrad_(0,2,i,j,k,e)+sxy*dom%InvGrad_(1,2,i,j,k,e)+sxz*dom%InvGrad_(2,2,i,j,k,e)
+                xt1 = sxx*JXX+sxy*JYX+sxz*JZX
+                xt2 = sxx*JXY+sxy*JYY+sxz*JZY
+                xt3 = sxx*JXZ+sxy*JYZ+sxz*JZZ
                 !
                 !=====================
                 !       FY
                 !=====================
                 !
-                xt5 = syy*dom%InvGrad_(1,0,i,j,k,e)+sxy*dom%InvGrad_(0,0,i,j,k,e)+syz*dom%InvGrad_(2,0,i,j,k,e)
-                xt6 = syy*dom%InvGrad_(1,1,i,j,k,e)+sxy*dom%InvGrad_(0,1,i,j,k,e)+syz*dom%InvGrad_(2,1,i,j,k,e)
-                xt7 = syy*dom%InvGrad_(1,2,i,j,k,e)+sxy*dom%InvGrad_(0,2,i,j,k,e)+syz*dom%InvGrad_(2,2,i,j,k,e)
+                xt5 = syy*JYX+sxy*JXX+syz*JZX
+                xt6 = syy*JYY+sxy*JXY+syz*JZY
+                xt7 = syy*JYZ+sxy*JXZ+syz*JZZ
                 !
                 !=====================
                 !       FZ
                 !=====================
                 !
-                xt8 = szz*dom%InvGrad_(2,0,i,j,k,e)+sxz*dom%InvGrad_(0,0,i,j,k,e)+syz*dom%InvGrad_(1,0,i,j,k,e)
-                xt9 = szz*dom%InvGrad_(2,1,i,j,k,e)+sxz*dom%InvGrad_(0,1,i,j,k,e)+syz*dom%InvGrad_(1,1,i,j,k,e)
-                xt10= szz*dom%InvGrad_(2,2,i,j,k,e)+sxz*dom%InvGrad_(0,2,i,j,k,e)+syz*dom%InvGrad_(1,2,i,j,k,e)
+                xt8 = szz*JZX+sxz*JXX+syz*JYX
+                xt9 = szz*JZY+sxz*JXY+syz*JYY
+                xt10= szz*JZZ+sxz*JXZ+syz*JYZ
 
                 !
                 !- Multiplication par le Jacobien et le poids d'integration
                 !
-                t4 = dom%Jacob_(i,j,k,e) * dom%GLLw(i)
+                t4 = dom%Jacob_(i,j,k,bnum,ee) * dom%GLLw(i)
                 xt1  =  xt1 * t4
                 xt5  =  xt5 * t4
                 xt8  =  xt8 * t4
 
-                t4 = dom%Jacob_(i,j,k,e) * dom%GLLw(j)
+                t4 = dom%Jacob_(i,j,k,bnum,ee) * dom%GLLw(j)
                 xt2  =  xt2 * t4
                 xt6  =  xt6 * t4
                 xt9  =  xt9 * t4
 
-                t4 = dom%Jacob_(i,j,k,e) * dom%GLLw(k)
+                t4 = dom%Jacob_(i,j,k,bnum,ee) * dom%GLLw(k)
                 xt3  =  xt3 * t4
                 xt7  =  xt7 * t4
                 xt10 = xt10 * t4
@@ -295,7 +275,7 @@ subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
                 !dir$ simd
                 !dir$ vector aligned
 #endif
-                BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 !=-=-=-=-=-=-=-=-=-=-
                 !
                 t11 = dom%GLLw(j) * dom%GLLw(k)
@@ -356,33 +336,24 @@ subroutine PROCNAME(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
     !=-=-=-=-=-=-=-=-=-=-
 #endif
 #ifdef ATTENUATION
-#ifdef PHYSDERIV
-    call PROCNAME_ATN(dom,lnum,dom%hprime,dUx_dxi,dUx_deta,dUx_dzeta,&
+    call PROCNAME_ATN(dom,bnum,dom%hprime,dUx_dxi,dUx_deta,dUx_dzeta,&
         dUy_dxi,dUy_deta,dUy_dzeta, &
         dUz_dxi,dUz_deta,dUz_dzeta)
-#else
-    call PROCNAME_ATN(dom,lnum,dom%hprime,Depla)
-#endif
 #endif
 end subroutine PROCNAME
 
 #ifdef ATTENUATION
-#ifdef PHYSDERIV
-subroutine PROCNAME_ATN(dom,lnum,hprime,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,mdzz)
-#else
-subroutine PROCNAME_ATN(dom,lnum,hprime,Depla)
-#endif
+subroutine PROCNAME_ATN(dom,bnum,hprime,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,mdzz)
     use champs_solid
     use deriv3d
     implicit none
 
     type(domain_solid), intent (INOUT) :: dom
-    integer, intent(in) :: lnum
+    integer, intent(in) :: bnum
     real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1), intent(in) :: hprime
-#ifdef PHYSDERIV
-    real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mDXX,mDXY,mDXZ
-    real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mDYX,mDYY,mDYZ
-    real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mDZX,mDZY,mDZZ
+    real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mDXX,mDXY,mDXZ
+    real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mDYX,mDYY,mDYZ
+    real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mDZX,mDZY,mDZZ
 #define DXX mDXX(ee,i,j,k)
 #define DXY mDXY(ee,i,j,k)
 #define DXZ mDXZ(ee,i,j,k)
@@ -392,10 +363,6 @@ subroutine PROCNAME_ATN(dom,lnum,hprime,Depla)
 #define DZX mDZX(ee,i,j,k)
 #define DZY mDZY(ee,i,j,k)
 #define DZZ mDZZ(ee,i,j,k)
-#else
-    real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2), intent(in) :: Depla
-    real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
-#endif
     !
     integer :: n_solid
 
@@ -406,7 +373,6 @@ subroutine PROCNAME_ATN(dom,lnum,hprime,Depla)
     real(fpp) :: factorS_loc,alphavalS_loc,betavalS_loc,gammavalS_loc,Sn,Snp1
     real(fpp) :: factorP_loc,alphavalP_loc,betavalP_loc,gammavalP_loc,Pn,Pnp1
     real(fpp) :: epsilon_trace_over_3
-    real(fpp), dimension(IND_MNE(0:2,0:2,0:CHUNK-1)) :: invgrad
     real(fpp) :: dS_dxi, dS_deta, dS_dzeta
     real(fpp) :: factor_common_3, factor_common_P, omega_tau_s, gamma_mu, gamma_kappa
     real(fpp) :: dt_tau
@@ -416,19 +382,10 @@ subroutine PROCNAME_ATN(dom,lnum,hprime,Depla)
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#ifndef PHYSDERIV
-                InvGrad(IND_MNE(0:2,0:2,0:CHUNK-1)) = dom%InvGrad_(:,:,i,j,k,lnum:lnum+CHUNK-1)
-#endif
 #ifdef SEM_VEC
 !$omp simd linear(e,ee)
 #endif
-                BEGIN_SUBELEM_LOOP(e,ee,lnum)
-#ifndef PHYSDERIV
-
-                part_deriv_ijke(Depla,0,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz)
-                part_deriv_ijke(Depla,1,dS_dxi,dS_deta,dS_dzeta,dyx,dyy,dyz)
-                part_deriv_ijke(Depla,2,dS_dxi,dS_deta,dS_dzeta,dzx,dzy,dzz)
-#endif
+                BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 epsilon_trace_over_3 = 0.333333333333333333333333333333d0 * (DXX + DYY + DZZ)
                 epsilonvol_loc = DXX + DYY + DZZ
                 epsilondev_xx_loc = DXX - epsilon_trace_over_3
@@ -438,56 +395,56 @@ subroutine PROCNAME_ATN(dom,lnum,hprime,Depla)
                 epsilondev_yz_loc = 0.5 * (DZY + DYZ)
 
                 do i_sls = 0,n_solid-1
-                    omega_tau_s = dom%omega_tau_s_(i_sls,i,j,k,e)
-                    gamma_kappa = dom%agamma_kappa_(i_sls,i,j,k,e)
-                    gamma_mu = dom%agamma_mu_(i_sls,i,j,k,e)
+                    omega_tau_s = dom%omega_tau_s_(i_sls,i,j,k,bnum,ee)
+                    gamma_kappa = dom%agamma_kappa_(i_sls,i,j,k,bnum,ee)
+                    gamma_mu = dom%agamma_mu_(i_sls,i,j,k,bnum,ee)
 #ifndef ANISO
                     ! get coefficients for that standard linear solid
                     factor_common_P = 2d0*gamma_kappa*omega_tau_s
-                    factorP_loc   = dom%Kappa_(i,j,k,e) * factor_common_P
+                    factorP_loc   = dom%Kappa_(i,j,k,bnum,ee) * factor_common_P
                     RK4_attenu_coefs(dom%dt,omega_tau_s,gamma_kappa,alphavalP_loc, betavalP_loc, gammavalP_loc)
 
                     !  terme volumique
-                    Pn   = factorP_loc * dom%epsilonvol_(i,j,k,e)
+                    Pn   = factorP_loc * dom%epsilonvol_(i,j,k,bnum,ee)
                     Pnp1 = factorP_loc * epsilonvol_loc
-                    dom%R_vol_(i_sls,i,j,k,e) = alphavalP_loc * dom%R_vol_(i_sls,i,j,k,e)  &
+                    dom%R_vol_(i_sls,i,j,k,bnum,ee) = alphavalP_loc * dom%R_vol_(i_sls,i,j,k,bnum,ee)  &
                         + betavalP_loc*Pn+gammavalP_loc*Pnp1
 #endif
                     ! get coefficients for that standard linear solid
                     factor_common_3 = 2d0*gamma_mu*omega_tau_s
                     RK4_attenu_coefs(dom%dt,omega_tau_s, gamma_mu, alphavalS_loc, betavalS_loc, gammavalS_loc)
 
-                    factorS_loc   = dom%Mu_(i,j,k,e) * factor_common_3
+                    factorS_loc   = dom%Mu_(i,j,k,bnum,ee) * factor_common_3
 
                     !     termes deviatoires
                     ! term in xx
-                    Sn    = factorS_loc * dom%epsilondev_xx_(i,j,k,e)
+                    Sn    = factorS_loc * dom%epsilondev_xx_(i,j,k,bnum,ee)
                     Snp1  = factorS_loc * epsilondev_xx_loc
-                    dom%R_xx_(i_sls,i,j,k,e) = alphavalS_loc * dom%R_xx_(i_sls,i,j,k,e)  &
+                    dom%R_xx_(i_sls,i,j,k,bnum,ee) = alphavalS_loc * dom%R_xx_(i_sls,i,j,k,bnum,ee)  &
                         + betavalS_loc*Sn+gammavalS_loc*Snp1
 
                     ! term in yy
-                    Sn    = factorS_loc  * dom%epsilondev_yy_(i,j,k,e)
+                    Sn    = factorS_loc  * dom%epsilondev_yy_(i,j,k,bnum,ee)
                     Snp1  = factorS_loc  * epsilondev_yy_loc
-                    dom%R_yy_(i_sls,i,j,k,e) = alphavalS_loc * dom%R_yy_(i_sls,i,j,k,e)  &
+                    dom%R_yy_(i_sls,i,j,k,bnum,ee) = alphavalS_loc * dom%R_yy_(i_sls,i,j,k,bnum,ee)  &
                         + betavalS_loc*Sn+gammavalS_loc*Snp1
 
                     ! term in xy
-                    Sn    = factorS_loc  * dom%epsilondev_xy_(i,j,k,e)
+                    Sn    = factorS_loc  * dom%epsilondev_xy_(i,j,k,bnum,ee)
                     Snp1  = factorS_loc  * epsilondev_xy_loc
-                    dom%R_xy_(i_sls,i,j,k,e) = alphavalS_loc * dom%R_xy_(i_sls,i,j,k,e) &
+                    dom%R_xy_(i_sls,i,j,k,bnum,ee) = alphavalS_loc * dom%R_xy_(i_sls,i,j,k,bnum,ee) &
                         + betavalS_loc*Sn+gammavalS_loc*Snp1
 
                     ! term in xz
-                    Sn    = factorS_loc * dom%epsilondev_xz_(i,j,k,e)
+                    Sn    = factorS_loc * dom%epsilondev_xz_(i,j,k,bnum,ee)
                     Snp1  = factorS_loc * epsilondev_xz_loc
-                    dom%R_xz_(i_sls,i,j,k,e) = alphavalS_loc * dom%R_xz_(i_sls,i,j,k,e) &
+                    dom%R_xz_(i_sls,i,j,k,bnum,ee) = alphavalS_loc * dom%R_xz_(i_sls,i,j,k,bnum,ee) &
                         + betavalS_loc*Sn+gammavalS_loc*Snp1
 
                     ! term in yz
-                    Sn    = factorS_loc * dom%epsilondev_yz_(i,j,k,e)
+                    Sn    = factorS_loc * dom%epsilondev_yz_(i,j,k,bnum,ee)
                     Snp1  = factorS_loc * epsilondev_yz_loc
-                    dom%R_yz_(i_sls,i,j,k,e) = alphavalS_loc * dom%R_yz_(i_sls,i,j,k,e)  &
+                    dom%R_yz_(i_sls,i,j,k,bnum,ee) = alphavalS_loc * dom%R_yz_(i_sls,i,j,k,bnum,ee)  &
                         + betavalS_loc*Sn+gammavalS_loc*Snp1
 
                 enddo   ! end of loop on memory variables
@@ -498,21 +455,20 @@ subroutine PROCNAME_ATN(dom,lnum,hprime,Depla)
                 ! save deviatoric strain for Runge-Kutta scheme
 
                 !     partie deviatoire
-                dom%epsilondev_xx_(i,j,k,e) = epsilondev_xx_loc
-                dom%epsilondev_yy_(i,j,k,e) = epsilondev_yy_loc
-                dom%epsilondev_xy_(i,j,k,e) = epsilondev_xy_loc
-                dom%epsilondev_xz_(i,j,k,e) = epsilondev_xz_loc
-                dom%epsilondev_yz_(i,j,k,e) = epsilondev_yz_loc
+                dom%epsilondev_xx_(i,j,k,bnum,ee) = epsilondev_xx_loc
+                dom%epsilondev_yy_(i,j,k,bnum,ee) = epsilondev_yy_loc
+                dom%epsilondev_xy_(i,j,k,bnum,ee) = epsilondev_xy_loc
+                dom%epsilondev_xz_(i,j,k,bnum,ee) = epsilondev_xz_loc
+                dom%epsilondev_yz_(i,j,k,bnum,ee) = epsilondev_yz_loc
 #ifndef ANISO
                 !   partie isotrope
-                dom%epsilonvol_   (i,j,k,e) = epsilonvol_loc
+                dom%epsilonvol_   (i,j,k,bnum,ee) = epsilonvol_loc
 #endif
                 END_SUBELEM_LOOP()
             end do
         end do
     end do
 end subroutine PROCNAME_ATN
-#ifdef PHYSDERIV
 #undef DXX
 #undef DXY
 #undef DXZ
@@ -523,7 +479,16 @@ end subroutine PROCNAME_ATN
 #undef DZY
 #undef DZZ
 #endif
-#endif
+#undef JXX
+#undef JXY
+#undef JXZ
+#undef JYX
+#undef JYY
+#undef JYZ
+#undef JZX
+#undef JZY
+#undef JZZ
+
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t

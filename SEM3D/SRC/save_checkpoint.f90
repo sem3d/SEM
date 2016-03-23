@@ -189,7 +189,7 @@ subroutine write_EpsilonVol(Tdomain, nmax, elem_id)
     integer(HID_T), intent(IN) :: elem_id
     integer(HID_T) :: dset_id
     integer(kind=4), intent(IN) :: nmax
-    integer :: n,ngll,idx,i,j,k,hdferr
+    integer :: n,ngll,idx,i,j,k,hdferr,bnum,ee
     real(kind=8), allocatable, dimension(:) :: data
     integer(HSIZE_T), dimension(1) :: dims
     integer :: n_solid
@@ -207,6 +207,8 @@ subroutine write_EpsilonVol(Tdomain, nmax, elem_id)
     do n = 0,Tdomain%n_elem-1
         if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
         ngll = Tdomain%sdom%ngll
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
         do k = 0,ngll-1
             do j = 0,ngll-1
@@ -218,7 +220,7 @@ subroutine write_EpsilonVol(Tdomain, nmax, elem_id)
                                 write(*,*) "Erreur fatale sauvegarde des protections"
                                 stop 1
                             end if
-                            data(idx+0) = Tdomain%sdom%epsilonvol_(i,j,k,Tdomain%specel(n)%lnum)
+                            data(idx+0) = Tdomain%sdom%epsilonvol_(i,j,k,bnum,ee)
                             idx = idx + 1
                         end if
                     end if
@@ -241,7 +243,7 @@ subroutine write_Rvol(Tdomain, nmax, elem_id)
     integer(HID_T), intent(IN) :: elem_id
     integer(HID_T) :: dset_id
     integer(kind=4), intent(IN) :: nmax
-    integer :: n,ngll,idx,i,j,k,hdferr,i_sls
+    integer :: n,ngll,idx,i,j,k,hdferr,i_sls,bnum,ee
     real(kind=8), allocatable, dimension(:) :: data
     integer(HSIZE_T), dimension(1) :: dims
     integer :: n_solid
@@ -261,6 +263,8 @@ subroutine write_Rvol(Tdomain, nmax, elem_id)
     do n = 0,Tdomain%n_elem-1
         if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
         ngll = Tdomain%sdom%ngll
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
         do k = 0,ngll-1
             do j = 0,ngll-1
@@ -273,7 +277,7 @@ subroutine write_Rvol(Tdomain, nmax, elem_id)
                                 stop 1
                             end if
                             do i_sls = 0, n_solid-1
-                                data(idx+i_sls) = Tdomain%sdom%R_vol_(i_sls,i,j,k,Tdomain%specel(n)%lnum)
+                                data(idx+i_sls) = Tdomain%sdom%R_vol_(i_sls,i,j,k,bnum,ee)
                             end do
                             idx = idx + n_solid
                         end if
@@ -297,7 +301,7 @@ subroutine write_Rxyz(Tdomain, nmax, elem_id)
     integer(HID_T), intent(IN) :: elem_id
     integer(HID_T) :: dset_id_xx, dset_id_yy, dset_id_xy, dset_id_xz, dset_id_yz
     integer(kind=4), intent(IN) :: nmax
-    integer :: n,ngll,idx,i,j,k,hdferr,i_sls
+    integer :: n,ngll,idx,i,j,k,hdferr,i_sls,bnum,ee
     real(kind=8), allocatable, dimension(:) :: data_xx, data_yy, data_xy, data_xz, data_yz
     integer(HSIZE_T), dimension(1) :: dims
     integer :: n_solid
@@ -329,6 +333,8 @@ subroutine write_Rxyz(Tdomain, nmax, elem_id)
     do n = 0,Tdomain%n_elem-1
         if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
         ngll = Tdomain%sdom%ngll
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
         do k = 0,ngll-1
             do j = 0,ngll-1
@@ -339,11 +345,11 @@ subroutine write_Rxyz(Tdomain, nmax, elem_id)
                             stop 1
                         end if
                         do i_sls=0, n_solid-1
-                            data_xx(idx+i_sls) = Tdomain%sdom%R_xx_(i_sls,i,j,k,Tdomain%specel(n)%lnum)
-                            data_yy(idx+i_sls) = Tdomain%sdom%R_yy_(i_sls,i,j,k,Tdomain%specel(n)%lnum)
-                            data_xy(idx+i_sls) = Tdomain%sdom%R_xy_(i_sls,i,j,k,Tdomain%specel(n)%lnum)
-                            data_xz(idx+i_sls) = Tdomain%sdom%R_xz_(i_sls,i,j,k,Tdomain%specel(n)%lnum)
-                            data_yz(idx+i_sls) = Tdomain%sdom%R_yz_(i_sls,i,j,k,Tdomain%specel(n)%lnum)
+                            data_xx(idx+i_sls) = Tdomain%sdom%R_xx_(i_sls,i,j,k,bnum,ee)
+                            data_yy(idx+i_sls) = Tdomain%sdom%R_yy_(i_sls,i,j,k,bnum,ee)
+                            data_xy(idx+i_sls) = Tdomain%sdom%R_xy_(i_sls,i,j,k,bnum,ee)
+                            data_xz(idx+i_sls) = Tdomain%sdom%R_xz_(i_sls,i,j,k,bnum,ee)
+                            data_yz(idx+i_sls) = Tdomain%sdom%R_yz_(i_sls,i,j,k,bnum,ee)
                         end do
                         idx = idx + n_solid
                     end if
@@ -374,7 +380,7 @@ subroutine write_EpsilonDev(Tdomain, nmax, elem_id)
     integer(HID_T), intent(IN) :: elem_id
     integer(HID_T) :: dset_id_xx, dset_id_yy, dset_id_xy, dset_id_xz, dset_id_yz
     integer(kind=4), intent(IN) :: nmax
-    integer :: n,ngll,idx,i,j,k,hdferr
+    integer :: n,ngll,idx,i,j,k,hdferr,bnum,ee
     real(kind=8), allocatable, dimension(:) :: data_xx, data_yy, data_xy, data_xz, data_yz
     integer(HSIZE_T), dimension(1) :: dims
     integer :: n_solid
@@ -405,6 +411,8 @@ subroutine write_EpsilonDev(Tdomain, nmax, elem_id)
     do n = 0,Tdomain%n_elem-1
         if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
         ngll = Tdomain%sdom%ngll
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
         do k = 0,ngll-1
             do j = 0,ngll-1
@@ -414,11 +422,11 @@ subroutine write_EpsilonDev(Tdomain, nmax, elem_id)
                             write(*,*) "Erreur fatale sauvegarde des protections"
                             stop 1
                         end if
-                        data_xx(idx) = Tdomain%sdom%epsilondev_xx_(i,j,k,Tdomain%specel(n)%lnum)
-                        data_yy(idx) = Tdomain%sdom%epsilondev_yy_(i,j,k,Tdomain%specel(n)%lnum)
-                        data_xy(idx) = Tdomain%sdom%epsilondev_xy_(i,j,k,Tdomain%specel(n)%lnum)
-                        data_xz(idx) = Tdomain%sdom%epsilondev_xz_(i,j,k,Tdomain%specel(n)%lnum)
-                        data_yz(idx) = Tdomain%sdom%epsilondev_yz_(i,j,k,Tdomain%specel(n)%lnum)
+                        data_xx(idx) = Tdomain%sdom%epsilondev_xx_(i,j,k,bnum,ee)
+                        data_yy(idx) = Tdomain%sdom%epsilondev_yy_(i,j,k,bnum,ee)
+                        data_xy(idx) = Tdomain%sdom%epsilondev_xy_(i,j,k,bnum,ee)
+                        data_xz(idx) = Tdomain%sdom%epsilondev_xz_(i,j,k,bnum,ee)
+                        data_yz(idx) = Tdomain%sdom%epsilondev_yz_(i,j,k,bnum,ee)
                         idx = idx + 1
                     end if
                 enddo
@@ -450,7 +458,7 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
     integer(HID_T) :: dset_id
     integer(kind=4), intent(IN) :: nmax
 
-    integer :: n,ngll,idx,i,j,k,hdferr
+    integer :: n,ngll,idx,i,j,k,hdferr,bnum,ee
     real(kind=8), allocatable, dimension(:) :: data
     integer(HSIZE_T), dimension(1) :: dims
 
@@ -465,6 +473,8 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
     do n = 0,Tdomain%n_elem-1
         if(Tdomain%specel(n)%domain/=DM_SOLID_PML) cycle
         ngll = Tdomain%spmldom%ngll
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
         do k = 0,ngll-1
             do j = 0,ngll-1
@@ -473,29 +483,29 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
                         write(*,*) "Erreur fatale sauvegarde des protections"
                         stop 1
                     end if
-                    data(idx+ 0) = Tdomain%spmldom%Diagonal_Stress1_(i,j,k,0,Tdomain%specel(n)%lnum)
-                    data(idx+ 1) = Tdomain%spmldom%Diagonal_Stress1_(i,j,k,1,Tdomain%specel(n)%lnum)
-                    data(idx+ 2) = Tdomain%spmldom%Diagonal_Stress1_(i,j,k,2,Tdomain%specel(n)%lnum)
+                    data(idx+ 0) = Tdomain%spmldom%Diagonal_Stress1_(i,j,k,0,bnum,ee)
+                    data(idx+ 1) = Tdomain%spmldom%Diagonal_Stress1_(i,j,k,1,bnum,ee)
+                    data(idx+ 2) = Tdomain%spmldom%Diagonal_Stress1_(i,j,k,2,bnum,ee)
                     idx = idx + 3
-                    data(idx+ 0) = Tdomain%spmldom%Diagonal_Stress2_(i,j,k,0,Tdomain%specel(n)%lnum)
-                    data(idx+ 1) = Tdomain%spmldom%Diagonal_Stress2_(i,j,k,1,Tdomain%specel(n)%lnum)
-                    data(idx+ 2) = Tdomain%spmldom%Diagonal_Stress2_(i,j,k,2,Tdomain%specel(n)%lnum)
+                    data(idx+ 0) = Tdomain%spmldom%Diagonal_Stress2_(i,j,k,0,bnum,ee)
+                    data(idx+ 1) = Tdomain%spmldom%Diagonal_Stress2_(i,j,k,1,bnum,ee)
+                    data(idx+ 2) = Tdomain%spmldom%Diagonal_Stress2_(i,j,k,2,bnum,ee)
                     idx = idx + 3
-                    data(idx+ 0) = Tdomain%spmldom%Diagonal_Stress3_(i,j,k,0,Tdomain%specel(n)%lnum)
-                    data(idx+ 1) = Tdomain%spmldom%Diagonal_Stress3_(i,j,k,1,Tdomain%specel(n)%lnum)
-                    data(idx+ 2) = Tdomain%spmldom%Diagonal_Stress3_(i,j,k,2,Tdomain%specel(n)%lnum)
+                    data(idx+ 0) = Tdomain%spmldom%Diagonal_Stress3_(i,j,k,0,bnum,ee)
+                    data(idx+ 1) = Tdomain%spmldom%Diagonal_Stress3_(i,j,k,1,bnum,ee)
+                    data(idx+ 2) = Tdomain%spmldom%Diagonal_Stress3_(i,j,k,2,bnum,ee)
                     idx = idx + 3
-                    data(idx+ 0) = Tdomain%spmldom%Residual_Stress1_(i,j,k,0,Tdomain%specel(n)%lnum)
-                    data(idx+ 1) = Tdomain%spmldom%Residual_Stress1_(i,j,k,1,Tdomain%specel(n)%lnum)
-                    data(idx+ 2) = Tdomain%spmldom%Residual_Stress1_(i,j,k,2,Tdomain%specel(n)%lnum)
+                    data(idx+ 0) = Tdomain%spmldom%Residual_Stress1_(i,j,k,0,bnum,ee)
+                    data(idx+ 1) = Tdomain%spmldom%Residual_Stress1_(i,j,k,1,bnum,ee)
+                    data(idx+ 2) = Tdomain%spmldom%Residual_Stress1_(i,j,k,2,bnum,ee)
                     idx = idx + 3
-                    data(idx+ 0) = Tdomain%spmldom%Residual_Stress2_(i,j,k,0,Tdomain%specel(n)%lnum)
-                    data(idx+ 1) = Tdomain%spmldom%Residual_Stress2_(i,j,k,1,Tdomain%specel(n)%lnum)
-                    data(idx+ 2) = Tdomain%spmldom%Residual_Stress2_(i,j,k,2,Tdomain%specel(n)%lnum)
+                    data(idx+ 0) = Tdomain%spmldom%Residual_Stress2_(i,j,k,0,bnum,ee)
+                    data(idx+ 1) = Tdomain%spmldom%Residual_Stress2_(i,j,k,1,bnum,ee)
+                    data(idx+ 2) = Tdomain%spmldom%Residual_Stress2_(i,j,k,2,bnum,ee)
                     idx = idx + 3
-                    data(idx+ 0) = Tdomain%spmldom%Residual_Stress3_(i,j,k,0,Tdomain%specel(n)%lnum)
-                    data(idx+ 1) = Tdomain%spmldom%Residual_Stress3_(i,j,k,1,Tdomain%specel(n)%lnum)
-                    data(idx+ 2) = Tdomain%spmldom%Residual_Stress3_(i,j,k,2,Tdomain%specel(n)%lnum)
+                    data(idx+ 0) = Tdomain%spmldom%Residual_Stress3_(i,j,k,0,bnum,ee)
+                    data(idx+ 1) = Tdomain%spmldom%Residual_Stress3_(i,j,k,1,bnum,ee)
+                    data(idx+ 2) = Tdomain%spmldom%Residual_Stress3_(i,j,k,2,bnum,ee)
                     idx = idx + 3
                 enddo
             enddo
@@ -518,7 +528,7 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
     integer(HID_T) :: dset_id
     integer(kind=4), intent(IN) :: nmax
 
-    integer :: n,ngll,idx,i,j,k,hdferr
+    integer :: n,ngll,idx,i,j,k,hdferr,bnum,ee
     real(kind=8), allocatable, dimension(:) :: data
     integer(HSIZE_T), dimension(1) :: dims
 
@@ -534,6 +544,8 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
     do n = 0,Tdomain%n_elem-1
         if(Tdomain%specel(n)%domain/=DM_FLUID_PML) cycle
         ngll = Tdomain%fpmldom%ngll
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
         do k = 0,ngll-1
             do j = 0,ngll-1
@@ -542,9 +554,9 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
                         write(*,*) "Erreur fatale sauvegarde des protections"
                         stop 1
                     end if
-                    data(idx+ 0) = Tdomain%fpmldom%PMLVeloc_(i,j,k,0,Tdomain%specel(n)%lnum)
-                    data(idx+ 1) = Tdomain%fpmldom%PMLVeloc_(i,j,k,1,Tdomain%specel(n)%lnum)
-                    data(idx+ 2) = Tdomain%fpmldom%PMLVeloc_(i,j,k,2,Tdomain%specel(n)%lnum)
+                    data(idx+ 0) = Tdomain%fpmldom%PMLVeloc_(i,j,k,0,bnum,ee)
+                    data(idx+ 1) = Tdomain%fpmldom%PMLVeloc_(i,j,k,1,bnum,ee)
+                    data(idx+ 2) = Tdomain%fpmldom%PMLVeloc_(i,j,k,2,bnum,ee)
                     idx = idx + 3
                 enddo
             enddo

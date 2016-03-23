@@ -2,14 +2,6 @@
 !!
 !! Copyright CEA, ECP, IPGP
 !!
-!>
-!! \file shape27.f90
-!! \brief
-!! \author
-!! \version 1.0
-!! \date
-!!
-!<
 module mshape27
     implicit none
 #include "index.h"
@@ -19,10 +11,6 @@ contains
     !! shape27: alloue et calcule la jacobienne et l'inverse du gradient de ??
     !<
     subroutine shape27_init(Tdomain)
-
-        ! Modified by Paul Cupillard 26/06/2006
-
-
         use sdomain
 
         implicit none
@@ -34,10 +22,14 @@ contains
         real, dimension(0:2,0:26) :: coord
         real, dimension(0:2,0:2) :: LocInvGrad
         real, dimension(:), allocatable :: GLLc
+        !
+        integer :: bnum, ee
 
         allocate (Tdomain%GlobCoord(0:2,0:Tdomain%n_glob_points-1))
 
         do n = 0,Tdomain%n_elem - 1
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
             do i = 0,26
                 j = Tdomain%specel(n)%Control_Nodes(i)
@@ -63,17 +55,17 @@ contains
                         call invert_3d (LocInvGrad, Jac)
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
-                                Tdomain%sdom%Jacob_     (        i,j,k,Tdomain%specel(n)%lnum) = Jac
-                                Tdomain%sdom%InvGrad_   (0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                                Tdomain%sdom%Jacob_     (        i,j,k,bnum,ee) = Jac
+                                Tdomain%sdom%InvGrad_   (0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
                             case (DM_FLUID)
-                                Tdomain%fdom%Jacob_     (        i,j,k,Tdomain%specel(n)%lnum) = Jac
-                                Tdomain%fdom%InvGrad_   (0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                                Tdomain%fdom%Jacob_     (        i,j,k,bnum,ee) = Jac
+                                Tdomain%fdom%InvGrad_   (0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
                             case (DM_SOLID_PML)
-                                Tdomain%spmldom%Jacob_  (        i,j,k,Tdomain%specel(n)%lnum) = Jac
-                                Tdomain%spmldom%InvGrad_(0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                                Tdomain%spmldom%Jacob_  (        i,j,k,bnum,ee) = Jac
+                                Tdomain%spmldom%InvGrad_(0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
                             case (DM_FLUID_PML)
-                                Tdomain%fpmldom%Jacob_  (        i,j,k,Tdomain%specel(n)%lnum) = Jac
-                                Tdomain%fpmldom%InvGrad_(0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                                Tdomain%fpmldom%Jacob_  (        i,j,k,bnum,ee) = Jac
+                                Tdomain%fpmldom%InvGrad_(0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
                             case default
                                 stop "unknown domain"
                         end select

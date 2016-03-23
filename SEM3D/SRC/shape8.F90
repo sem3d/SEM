@@ -26,12 +26,15 @@ contains
         real(FPP) :: xp, yp, zp
         real(FPP), parameter :: XEPS=1e-10
         real(FPP) :: dxp, dyp, dzp
+        integer :: bnum, ee
 
         ! Tdomain%n_glob_points is the number of degrees of fredom
         allocate(Tdomain%GlobCoord(0:2,0:Tdomain%n_glob_points-1))
         Tdomain%GlobCoord = 0d0
 
         do n = 0,Tdomain%n_elem-1
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
             ! coordinates of control nodes (which are vertices also)
             call nodes_coord_8(Tdomain%specel(n)%Control_Nodes(0:),Tdomain%n_glob_nodes,    &
@@ -71,17 +74,17 @@ contains
                         call invert_3d(LocInvGrad,Jac)
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
-                                Tdomain%sdom%Jacob_     (        i,j,k,Tdomain%specel(n)%lnum) = Jac
-                                Tdomain%sdom%InvGrad_   (0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                                Tdomain%sdom%Jacob_     (        i,j,k,bnum,ee) = Jac
+                                Tdomain%sdom%InvGrad_   (0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
                             case (DM_FLUID)
-                                Tdomain%fdom%Jacob_     (        i,j,k,Tdomain%specel(n)%lnum) = Jac
-                                Tdomain%fdom%InvGrad_   (0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                                Tdomain%fdom%Jacob_     (        i,j,k,bnum,ee) = Jac
+                                Tdomain%fdom%InvGrad_   (0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
                             case (DM_SOLID_PML)
-                                Tdomain%spmldom%Jacob_  (        i,j,k,Tdomain%specel(n)%lnum) = Jac
-                                Tdomain%spmldom%InvGrad_(0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                                Tdomain%spmldom%Jacob_  (        i,j,k,bnum,ee) = Jac
+                                Tdomain%spmldom%InvGrad_(0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
                             case (DM_FLUID_PML)
-                                Tdomain%fpmldom%Jacob_  (        i,j,k,Tdomain%specel(n)%lnum) = Jac
-                                Tdomain%fpmldom%InvGrad_(0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                                Tdomain%fpmldom%Jacob_  (        i,j,k,bnum,ee) = Jac
+                                Tdomain%fpmldom%InvGrad_(0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
                             case default
                                 stop "unknown domain"
                         end select

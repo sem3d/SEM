@@ -29,7 +29,7 @@ module champs_solidpml
 
         ! Nombre d'elements dans le domaine
         integer :: nbelem
-        integer :: nbelem_alloc
+        integer :: nblocks
 
         ! Points, poids de gauss et derivees
         real(fpp), dimension (:), allocatable :: GLLc
@@ -41,34 +41,34 @@ module champs_solidpml
         real(fpp), dimension(:), allocatable :: MassMat
         real(fpp), dimension(:,:), allocatable :: DumpMass
 
-        real(fpp), dimension (:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Density
+        real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Density
 
-        real(fpp), dimension(:,:,:,:),     allocatable :: m_Jacob
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_InvGrad
+        real(fpp), dimension(:,:,:,:,:),     allocatable :: m_Jacob
+        real(fpp), dimension(:,:,:,:,:,:,:), allocatable :: m_InvGrad
 
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich
         integer, dimension(:), allocatable :: dirich
 
         ! Index of a gll node within the physical domain
-        integer, dimension (:,:,:,:), allocatable :: m_Idom ! Idom copied from element
+        integer, dimension (:,:,:,:,:), allocatable :: m_Idom ! Idom copied from element
 
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
         ! Champs
         type(champssolidpml) :: champs0
         type(champssolidpml) :: champs1
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_Diagonal_Stress1
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_Diagonal_Stress2
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_Diagonal_Stress3
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_Diagonal_Stress
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_Residual_Stress1
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_Residual_Stress2
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_Residual_Stress3
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_Residual_Stress
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_PMLDumpSx
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_PMLDumpSy
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_PMLDumpSz
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Diagonal_Stress1
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Diagonal_Stress2
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Diagonal_Stress3
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Diagonal_Stress
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Residual_Stress1
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Residual_Stress2
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Residual_Stress3
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Residual_Stress
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLDumpSx
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLDumpSy
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLDumpSz
     end type domain_solidpml
 
     contains
