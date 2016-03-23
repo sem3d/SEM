@@ -144,7 +144,7 @@ subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#ifdef SEM_VEC
+#if VCHUNK>1
 !$omp simd linear(ee)
 #endif
                 BEGIN_SUBELEM_LOOP(ei,ee,bnum)

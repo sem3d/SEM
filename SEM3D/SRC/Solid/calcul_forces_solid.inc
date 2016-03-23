@@ -59,7 +59,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#ifdef SEM_VEC
+#if VCHUNK>1
 !$omp simd linear(e,ee)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
@@ -72,7 +72,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#ifdef SEM_VEC
+#if VCHUNK>1
 !$omp simd linear(e,ee)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
@@ -85,7 +85,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#ifdef SEM_VEC
+#if VCHUNK>1
 !$omp simd linear(e,ee)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
@@ -99,7 +99,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#ifdef SEM_VEC
+#if VCHUNK>1
 !$omp simd linear(e,ee)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
@@ -271,7 +271,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#ifdef SEM_VEC
+#if VCHUNK>1
                 !dir$ simd
                 !dir$ vector aligned
 #endif
@@ -383,7 +383,7 @@ subroutine PROCNAME_ATN(dom,bnum,hprime,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#ifdef SEM_VEC
+#if VCHUNK>1
 !$omp simd linear(e,ee)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
