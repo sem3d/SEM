@@ -51,11 +51,11 @@ subroutine global_numbering(Tdomain)
         call renumber_surface(Tdomain, Tdomain%sSurfaces(k)%surf_fl, DM_FLUID)
         call renumber_surface(Tdomain, Tdomain%sSurfaces(k)%surf_spml, DM_SOLID_PML)
         call renumber_surface(Tdomain, Tdomain%sSurfaces(k)%surf_fpml, DM_FLUID_PML)
-        write(*,*) "FOUND SURFACE :", Tdomain%sSurfaces(k)%name
-        write(*,*) "WITH S/F/SP/FP:", Tdomain%sSurfaces(k)%surf_sl%nbtot, "/", &
-            Tdomain%sSurfaces(k)%surf_fl%nbtot, "/", &
-            Tdomain%sSurfaces(k)%surf_spml%nbtot, "/", &
-            Tdomain%sSurfaces(k)%surf_fpml%nbtot
+!        write(*,*) "FOUND SURFACE :", Tdomain%sSurfaces(k)%name
+!        write(*,*) "WITH S/F/SP/FP:", Tdomain%sSurfaces(k)%surf_sl%nbtot, "/", &
+!            Tdomain%sSurfaces(k)%surf_fl%nbtot, "/", &
+!            Tdomain%sSurfaces(k)%surf_spml%nbtot, "/", &
+!            Tdomain%sSurfaces(k)%surf_fpml%nbtot
     end do
     call prepare_comm_vector(Tdomain, Tdomain%Comm_data)
 
@@ -988,7 +988,7 @@ subroutine build_comms_surface(Tdomain, comm_data, surface, dom)
         comm_data%Data(n)%src = src
         comm_data%Data(n)%dest = dst
 
-        write(*,*) "COMM:", src, "->", dst, ":", count, "(",dom,")"
+!        write(*,*) "COMM:", src, "->", dst, ":", count, "(",dom,")"
         deallocate(igive)
     end do
 end subroutine build_comms_surface

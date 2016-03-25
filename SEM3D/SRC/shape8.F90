@@ -163,9 +163,9 @@ contains
         if(Tdomain%logicD%SF_local_present)then
             call compute_normals(Tdomain, Tdomain%SF%intSolFlu%surf1, DM_FLUID, Tdomain%SF%SF_BtN)
             call compute_normals(Tdomain, Tdomain%SF%intSolFluPml%surf1, DM_FLUID_PML, Tdomain%SF%SFpml_BtN)
-            call dump_sf_btn(Tdomain,"BEFORE  ")
+!            call dump_sf_btn(Tdomain,"BEFORE  ")
             call exchange_sf_normals(Tdomain)
-            call dump_sf_btn(Tdomain,"AFTER   ")
+!            call dump_sf_btn(Tdomain,"AFTER   ")
         endif ! Solid-Fluid interface
 
 

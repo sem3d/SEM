@@ -242,7 +242,6 @@ contains
         capteur=>listeCapteur
         do while (associated(capteur))
             dname = dset_capteur_name(capteur)
-            write(*,*) "Create dset:", trim(adjustl(dname))
             call create_dset_2d(fid, trim(adjustl(dname)), H5T_IEEE_F64LE, &
                 int(CAPT_DIM,HSIZE_T), int(H5S_UNLIMITED_F,HSIZE_T), dset_id)
             call h5dclose_f(dset_id, hdferr)
