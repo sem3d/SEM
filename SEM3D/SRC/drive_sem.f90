@@ -463,6 +463,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     use msnapshots
     use semconfig !< pour config C
     use sem_c_bindings
+    use stat, only : stat_starttick, stat_stoptick
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -554,10 +555,14 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
                 if (ntime/=0) protection = 1
             end if
         endif
-    !- Time remaining
-        call TREMAIN(remaining_time)
-        if(remaining_time < max_time_left) interrupt = 1
-        call MPI_ALLREDUCE(MPI_IN_PLACE, interrupt, 1, MPI_INTEGER, MPI_SUM, Tdomain%communicateur_global, code)
+        !- Time remaining
+        if (mod(ntime,20)==0) then
+            call stat_starttick()
+            call TREMAIN(remaining_time)
+            if(remaining_time < max_time_left) interrupt = 1
+            call MPI_ALLREDUCE(MPI_IN_PLACE, interrupt, 1, MPI_INTEGER, MPI_SUM, Tdomain%communicateur_global, code)
+            call stat_stoptick(STAT_TSTEP)
+        end if
 
     !- snapshotting
         if(Tdomain%logicD%save_snapshots) i_snap = mod(ntime, Tdomain%TimeD%nsnap)
@@ -566,6 +571,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     !- Ici, on a une info globale pour interrupt, protection, i_snap
         if(interrupt > 0) protection = 1
 
+        call stat_starttick()
 
 !---------------------------------------------------------!
     !- SNAPSHOTS
@@ -588,6 +594,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
             call flushAllCapteurs(Tdomain)
             call save_checkpoint(Tdomain, Tdomain%TimeD%rtime, ntime, Tdomain%TimeD%dtmin, isort)
         endif
+        call stat_stoptick(STAT_IO)
 
 !---------------------------------------------------------!
     !-  STOPPING RUN on all procs
