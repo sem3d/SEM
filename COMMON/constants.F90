@@ -84,7 +84,7 @@ MODULE constants
     integer, parameter :: STAT_IO    =10 ! IO
 
     character(len=5), dimension(0:STAT_COUNT-1) :: stat_labels = (/ &
-        "GIVE", "TAKE", "WAIT", "FSOL", "FFLU", "PSOL", "PFLU", "FEXT", "FULL", "TSTEP","IO" /)
+        "GIVE ", "TAKE ", "WAIT ", "FSOL ", "FFLU ", "PSOL ", "PFLU ", "FEXT ", "FULL ", "TSTEP","IO   " /)
 
 
     integer, parameter, dimension(0:8) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6 /)
