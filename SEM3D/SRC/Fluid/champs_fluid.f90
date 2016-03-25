@@ -30,9 +30,8 @@ module champs_fluid
         ! Nombre d'elements dans le domaine
         integer :: nbelem
 
-        ! Nombre d'elements alloues dans le domaine (>=nbelem)
-        integer :: nbelem_alloc
-        integer :: nb_chunks  ! nbelem_alloc == nb_chunks*CHUNK
+        ! Nombre de blocks d'elements (de taille VCHUNK) alloues dans le domaine (>=nbelem)
+        integer :: nblocks
 
         ! Points, poids de gauss et derivees
         real(fpp), dimension (:), allocatable :: GLLc
@@ -43,18 +42,18 @@ module champs_fluid
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
         real(fpp), dimension(:), allocatable :: MassMat
 
-        real(fpp), dimension (:,:,:,:), allocatable :: m_Lambda
-        real(fpp), dimension (:,:,:,:), allocatable :: m_IDensity ! Inverse of density
+        real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda
+        real(fpp), dimension (:,:,:,:,:), allocatable :: m_IDensity ! Inverse of density
 
-        real(fpp), dimension(:,:,:,:),     allocatable :: m_Jacob
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_InvGrad
+        real(fpp), dimension(:,:,:,:,:),     allocatable :: m_Jacob
+        real(fpp), dimension(:,:,:,:,:,:,:), allocatable :: m_InvGrad
 
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich
         integer, dimension(:), allocatable :: dirich
 
         ! Index of a gll node within the physical domain
-        integer, dimension (:,:,:,:), allocatable :: m_Idom ! Idom copied from element
+        integer, dimension (:,:,:,:,:), allocatable :: m_Idom ! Idom copied from element
 
         ! A partir de là, les données membres sont modifiées en cours de calcul
 

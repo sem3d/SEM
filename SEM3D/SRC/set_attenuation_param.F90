@@ -42,7 +42,7 @@ contains
         real       :: f_c_source,f_ref,dt
         real, dimension(:), allocatable   :: omega_tau_s,omega_Q
         real, dimension(:), allocatable   :: agamma_mu,agamma_kappa
-        integer :: n,i,j,k,ngll,mat,lnum
+        integer :: n,i,j,k,ngll,mat,lnum,bnum,ee
         real :: Q_mu, Q_kappa, Q_mu_old, Q_kappa_old
 
         !- last values of Q factors (allows to save time if same Qs)
@@ -52,6 +52,8 @@ contains
         !- initialization of general parameters, valid for each GLL point, and mechanisms
         !   related to shear or compression
         call init_attenu(Tdomain,n_solid,n_freq_q,f_ref,f_c_source,omega_tau_s,omega_Q)
+
+        Tdomain%sdom%omega_tau_s(:) = omega_tau_s
 
         !-----------------------------------------------------------------------------------
         !- here we will look (at each GLL where a given value of Q is given) for the values
@@ -73,6 +75,10 @@ contains
         allocate(agamma_kappa(0:n_solid-1))
 
         do n = 0,Tdomain%n_elem-1
+            lnum = Tdomain%specel(n)%lnum
+            bnum = lnum/VCHUNK
+            ee = mod(lnum,VCHUNK)
+
             if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
 
             ! a faire dans PMLs...
@@ -82,8 +88,8 @@ contains
                 do j = 0,ngll-1
                     do k = 0,ngll-1
 
-                        Q_mu = Tdomain%sdom%Qs_(i,j,k,Tdomain%specel(n)%lnum)
-                        Q_kappa = Tdomain%sdom%Qp_(i,j,k,Tdomain%specel(n)%lnum)
+                        Q_mu = Tdomain%sdom%Qs_(i,j,k,bnum,ee)
+                        Q_kappa = Tdomain%sdom%Qp_(i,j,k,bnum,ee)
 
                         !- from Qs to gammas
                         if (Q_mu .ne. Q_mu_old) then
@@ -96,36 +102,26 @@ contains
                         end if
 
                         !- getting the values of the relaxed moduli
-                        Tdomain%sdom%Mu_(i,j,k,Tdomain%specel(n)%lnum) = Tdomain%sdom%Mu_(i,j,k,Tdomain%specel(n)%lnum)*   &
+                        Tdomain%sdom%Mu_(i,j,k,bnum,ee) = Tdomain%sdom%Mu_(i,j,k,bnum,ee)*   &
                             get_relaxed_modulus(n_solid,Q_mu,f_ref,   &
                             f_c_source,omega_tau_s,agamma_mu)
 
-                        Tdomain%sdom%Kappa_(i,j,k,Tdomain%specel(n)%lnum) = Tdomain%sdom%Kappa_(i,j,k,Tdomain%specel(n)%lnum)*  &
+                        Tdomain%sdom%Kappa_(i,j,k,bnum,ee) = Tdomain%sdom%Kappa_(i,j,k,bnum,ee)*  &
                             get_relaxed_modulus(n_solid,Q_kappa,f_ref,     &
                             f_c_source,omega_tau_s,agamma_kappa)
 
                         !- factor to get from relaxed to unrelaxed modulus: M_U = M_R*(1+delta_M/M_R)
-                        Tdomain%sdom%onemSbeta_(i,j,k,Tdomain%specel(n)%lnum) = 1d0+get_modulus_defect(n_solid, agamma_mu)
-                        Tdomain%sdom%onemPbeta_(i,j,k,Tdomain%specel(n)%lnum) = 1d0+get_modulus_defect(n_solid, agamma_kappa)
+                        Tdomain%sdom%onemSbeta_(i,j,k,bnum,ee) = 1d0+get_modulus_defect(n_solid, agamma_mu)
+                        Tdomain%sdom%onemPbeta_(i,j,k,bnum,ee) = 1d0+get_modulus_defect(n_solid, agamma_kappa)
 
-                        !- Runge-kutta parameters for the time integration of the terms related to the relaxation function
+                        !- Runge-kutta parameters for the time
+                        !- integration of the terms related to the
+                        !- relaxation function are now computed on the
+                        !- fly
                         mat = Tdomain%specel(n)%mat_index
                         dt = Tdomain%TimeD%dtmin
-                        lnum = Tdomain%specel(n)%lnum
-                        Tdomain%sdom%omega_tau_s_(:,i,j,k,lnum) = omega_tau_s
-                        Tdomain%sdom%agamma_mu_(:,i,j,k,lnum) = agamma_mu
-                        Tdomain%sdom%agamma_kappa_(:,i,j,k,lnum) = agamma_kappa
-
-                        call RK4_attenu_coefficients(n_solid,dt,omega_tau_s,agamma_mu,     &
-                            Tdomain%sdom%factor_common_3_(:,i,j,k,lnum), &
-                            Tdomain%sdom%alphaval_3_(:,i,j,k,lnum),      &
-                            Tdomain%sdom%betaval_3_(:,i,j,k,lnum),       &
-                            Tdomain%sdom%gammaval_3_(:,i,j,k,lnum))
-                        call RK4_attenu_coefficients(n_solid,dt,omega_tau_s,agamma_kappa,  &
-                            Tdomain%sdom%factor_common_P_(:,i,j,k,lnum), &
-                            Tdomain%sdom%alphaval_P_(:,i,j,k,lnum),      &
-                            Tdomain%sdom%betaval_P_(:,i,j,k,lnum),       &
-                            Tdomain%sdom%gammaval_P_(:,i,j,k,lnum))
+                        Tdomain%sdom%agamma_mu_(:,i,j,k,bnum,ee) = agamma_mu
+                        Tdomain%sdom%agamma_kappa_(:,i,j,k,bnum,ee) = agamma_kappa
                     enddo
                 enddo
             enddo

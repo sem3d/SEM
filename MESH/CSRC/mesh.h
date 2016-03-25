@@ -24,6 +24,9 @@ public:
 	m_elems_offs.push_back(0);
     }
 
+    void generate_output(int nprocs);
+    void build_sf_interface();
+    
     int n_nodes()     const { return m_elems.size(); }
     int n_vertices()  const { return m_xco.size(); }
     int n_elems()     const { return m_mat.size(); }
@@ -55,6 +58,8 @@ public:
     int n_shared_edges() const { return -1; }
     int n_shared_vertices() const { return -1; }
 
+    bool get_common_face(int e0, int e1, PFace& fc);
+
     void get_elem_nodes(int el, int nodes[8]) {
         int off = m_elems_offs[el];
         for(int k=0;k<8;++k) nodes[k] = m_elems[off+k];
@@ -77,6 +82,9 @@ public:
         m_surfaces[surfname] = sfp;
         return sfp;
     }
+
+    void get_neighbour_elements(int nn, const int* n, std::set<int>& elemset) const;
+
 public:
     // attributes
     int n_procs;

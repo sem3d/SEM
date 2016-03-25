@@ -19,7 +19,7 @@ subroutine read_EpsilonVol(Tdomain, elem_id)
     double precision, allocatable, dimension(:) :: epsilonvol, rvol, rxx, ryy, rxy, rxz, ryz
     integer :: idx1, idx2, idx3, ngll
     integer :: n, i, j, k, i_sls
-    integer :: n_solid
+    integer :: n_solid, bnum, ee
 
     call read_dset_1d_real(elem_id, "EpsilonVol", epsilonVol)
     call read_dset_1d_real(elem_id, "Rvol", rvol)
@@ -34,6 +34,8 @@ subroutine read_EpsilonVol(Tdomain, elem_id)
     n_solid = Tdomain%n_sls
     do n = 0,Tdomain%n_elem-1
         ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
         if ( Tdomain%specel(n)%domain==DM_SOLID ) then
             do k = 0,ngll-1
@@ -42,19 +44,19 @@ subroutine read_EpsilonVol(Tdomain, elem_id)
                         if (n_solid>0) then
                             if (Tdomain%aniso) then
                             else
-                                Tdomain%sdom%epsilonvol_(i,j,k,Tdomain%specel(n)%lnum) = epsilonVol(idx1)
+                                Tdomain%sdom%epsilonvol_(i,j,k,bnum,ee) = epsilonVol(idx1)
                                 idx1 = idx1 + 1
                                 do i_sls = 0, n_solid-1
-                                    Tdomain%sdom%R_vol_(i_sls,i,j,k,Tdomain%specel(n)%lnum) = rvol(idx2+i_sls)
+                                    Tdomain%sdom%R_vol_(i_sls,i,j,k,bnum,ee) = rvol(idx2+i_sls)
                                 end do
                                 idx2 = idx2 + n_solid
                             end if
                             do i_sls = 0, n_solid-1
-                                Tdomain%sdom%R_xx_(i_sls,i,j,k,Tdomain%specel(n)%lnum) = rxx(idx3+i_sls)
-                                Tdomain%sdom%R_yy_(i_sls,i,j,k,Tdomain%specel(n)%lnum) = ryy(idx3+i_sls)
-                                Tdomain%sdom%R_xy_(i_sls,i,j,k,Tdomain%specel(n)%lnum) = rxy(idx3+i_sls)
-                                Tdomain%sdom%R_xz_(i_sls,i,j,k,Tdomain%specel(n)%lnum) = rxz(idx3+i_sls)
-                                Tdomain%sdom%R_yz_(i_sls,i,j,k,Tdomain%specel(n)%lnum) = ryz(idx3+i_sls)
+                                Tdomain%sdom%R_xx_(i_sls,i,j,k,bnum,ee) = rxx(idx3+i_sls)
+                                Tdomain%sdom%R_yy_(i_sls,i,j,k,bnum,ee) = ryy(idx3+i_sls)
+                                Tdomain%sdom%R_xy_(i_sls,i,j,k,bnum,ee) = rxy(idx3+i_sls)
+                                Tdomain%sdom%R_xz_(i_sls,i,j,k,bnum,ee) = rxz(idx3+i_sls)
+                                Tdomain%sdom%R_yz_(i_sls,i,j,k,bnum,ee) = ryz(idx3+i_sls)
                             end do
                             idx3 = idx3 + n_solid
                         end if
@@ -80,7 +82,7 @@ subroutine read_EpsilonDev(Tdomain, elem_id)
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
     double precision, allocatable, dimension(:) :: eps_dev_xx, eps_dev_yy, eps_dev_xy, eps_dev_xz, eps_dev_yz
-    integer :: idx, ngll
+    integer :: idx, ngll, bnum, ee
     integer :: n, i, j, k
     integer :: n_solid
 
@@ -93,17 +95,19 @@ subroutine read_EpsilonDev(Tdomain, elem_id)
     n_solid = Tdomain%n_sls
     do n = 0,Tdomain%n_elem-1
         ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
         if ( Tdomain%specel(n)%domain == DM_SOLID ) then
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
                         if (n_solid>0) then
-                            Tdomain%sdom%epsilondev_xx_(i,j,k,Tdomain%specel(n)%lnum) = eps_dev_xx(idx)
-                            Tdomain%sdom%epsilondev_yy_(i,j,k,Tdomain%specel(n)%lnum) = eps_dev_yy(idx)
-                            Tdomain%sdom%epsilondev_xy_(i,j,k,Tdomain%specel(n)%lnum) = eps_dev_xy(idx)
-                            Tdomain%sdom%epsilondev_xz_(i,j,k,Tdomain%specel(n)%lnum) = eps_dev_xz(idx)
-                            Tdomain%sdom%epsilondev_yz_(i,j,k,Tdomain%specel(n)%lnum) = eps_dev_yz(idx)
+                            Tdomain%sdom%epsilondev_xx_(i,j,k,bnum,ee) = eps_dev_xx(idx)
+                            Tdomain%sdom%epsilondev_yy_(i,j,k,bnum,ee) = eps_dev_yy(idx)
+                            Tdomain%sdom%epsilondev_xy_(i,j,k,bnum,ee) = eps_dev_xy(idx)
+                            Tdomain%sdom%epsilondev_xz_(i,j,k,bnum,ee) = eps_dev_xz(idx)
+                            Tdomain%sdom%epsilondev_yz_(i,j,k,bnum,ee) = eps_dev_yz(idx)
                             idx = idx + 1
                         end if
                     end do
@@ -126,7 +130,7 @@ subroutine read_Stress(Tdomain, elem_id)
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
     double precision, allocatable, dimension(:) :: stress
-    integer :: idx, ngll
+    integer :: idx, ngll, bnum, ee
     integer :: n, i, j, k
     integer :: n_solid
 
@@ -136,33 +140,35 @@ subroutine read_Stress(Tdomain, elem_id)
     do n = 0,Tdomain%n_elem-1
         if (Tdomain%specel(n)%domain/=DM_SOLID_PML) cycle
         ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    Tdomain%spmldom%Diagonal_Stress1_(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
-                    Tdomain%spmldom%Diagonal_Stress1_(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
-                    Tdomain%spmldom%Diagonal_Stress1_(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
+                    Tdomain%spmldom%Diagonal_Stress1_(i,j,k,0,bnum,ee) = stress(idx+0)
+                    Tdomain%spmldom%Diagonal_Stress1_(i,j,k,1,bnum,ee) = stress(idx+1)
+                    Tdomain%spmldom%Diagonal_Stress1_(i,j,k,2,bnum,ee) = stress(idx+2)
                     idx = idx + 3
-                    Tdomain%spmldom%Diagonal_Stress2_(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
-                    Tdomain%spmldom%Diagonal_Stress2_(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
-                    Tdomain%spmldom%Diagonal_Stress2_(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
+                    Tdomain%spmldom%Diagonal_Stress2_(i,j,k,0,bnum,ee) = stress(idx+0)
+                    Tdomain%spmldom%Diagonal_Stress2_(i,j,k,1,bnum,ee) = stress(idx+1)
+                    Tdomain%spmldom%Diagonal_Stress2_(i,j,k,2,bnum,ee) = stress(idx+2)
                     idx = idx + 3
-                    Tdomain%spmldom%Diagonal_Stress3_(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
-                    Tdomain%spmldom%Diagonal_Stress3_(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
-                    Tdomain%spmldom%Diagonal_Stress3_(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
+                    Tdomain%spmldom%Diagonal_Stress3_(i,j,k,0,bnum,ee) = stress(idx+0)
+                    Tdomain%spmldom%Diagonal_Stress3_(i,j,k,1,bnum,ee) = stress(idx+1)
+                    Tdomain%spmldom%Diagonal_Stress3_(i,j,k,2,bnum,ee) = stress(idx+2)
                     idx = idx + 3
-                    Tdomain%spmldom%Residual_Stress1_(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
-                    Tdomain%spmldom%Residual_Stress1_(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
-                    Tdomain%spmldom%Residual_Stress1_(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
+                    Tdomain%spmldom%Residual_Stress1_(i,j,k,0,bnum,ee) = stress(idx+0)
+                    Tdomain%spmldom%Residual_Stress1_(i,j,k,1,bnum,ee) = stress(idx+1)
+                    Tdomain%spmldom%Residual_Stress1_(i,j,k,2,bnum,ee) = stress(idx+2)
                     idx = idx + 3
-                    Tdomain%spmldom%Residual_Stress2_(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
-                    Tdomain%spmldom%Residual_Stress2_(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
-                    Tdomain%spmldom%Residual_Stress2_(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
+                    Tdomain%spmldom%Residual_Stress2_(i,j,k,0,bnum,ee) = stress(idx+0)
+                    Tdomain%spmldom%Residual_Stress2_(i,j,k,1,bnum,ee) = stress(idx+1)
+                    Tdomain%spmldom%Residual_Stress2_(i,j,k,2,bnum,ee) = stress(idx+2)
                     idx = idx + 3
-                    Tdomain%spmldom%Residual_Stress3_(i,j,k,0,Tdomain%specel(n)%lnum) = stress(idx+0)
-                    Tdomain%spmldom%Residual_Stress3_(i,j,k,1,Tdomain%specel(n)%lnum) = stress(idx+1)
-                    Tdomain%spmldom%Residual_Stress3_(i,j,k,2,Tdomain%specel(n)%lnum) = stress(idx+2)
+                    Tdomain%spmldom%Residual_Stress3_(i,j,k,0,bnum,ee) = stress(idx+0)
+                    Tdomain%spmldom%Residual_Stress3_(i,j,k,1,bnum,ee) = stress(idx+1)
+                    Tdomain%spmldom%Residual_Stress3_(i,j,k,2,bnum,ee) = stress(idx+2)
                     idx = idx + 3
                 end do
             end do
@@ -179,7 +185,7 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
     double precision, allocatable, dimension(:) :: Veloc
-    integer :: idx, ngll
+    integer :: idx, ngll, bnum, ee
     integer :: n, i, j, k
 
     call read_dset_1d_real(elem_id, "Veloc_Fl_PML", veloc)
@@ -187,13 +193,15 @@ subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
     do n = 0,Tdomain%n_elem-1
         if (Tdomain%specel(n)%domain/=DM_FLUID_PML) cycle
         ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    Tdomain%fpmldom%PMLVeloc_(i,j,k,0,Tdomain%specel(n)%lnum) = veloc(idx+0)
-                    Tdomain%fpmldom%PMLVeloc_(i,j,k,1,Tdomain%specel(n)%lnum) = veloc(idx+1)
-                    Tdomain%fpmldom%PMLVeloc_(i,j,k,2,Tdomain%specel(n)%lnum) = veloc(idx+2)
+                    Tdomain%fpmldom%PMLVeloc_(i,j,k,0,bnum,ee) = veloc(idx+0)
+                    Tdomain%fpmldom%PMLVeloc_(i,j,k,1,bnum,ee) = veloc(idx+1)
+                    Tdomain%fpmldom%PMLVeloc_(i,j,k,2,bnum,ee) = veloc(idx+2)
                     idx = idx + 3
                 end do
             end do

@@ -120,17 +120,8 @@ int main(int argc, char**argv)
     };
 
     mesh.write_materials("material.input");
-    mesh.build_vertex_to_elem_map();
-    mesh.partition_mesh(NPROCS);
 
-    for(int part=0;part<NPROCS;++part) {
-	Mesh3DPart loc(mesh, part);
-
-	loc.compute_part();
-	loc.output_mesh_part();
-	loc.output_mesh_part_xmf();
-    }
-    output_all_meshes_xmf(NPROCS);
+    mesh.generate_output(NPROCS);
     return 0;
 }
 

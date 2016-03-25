@@ -433,14 +433,14 @@ subroutine internal_forces(Tdomain)
 
     if (Tdomain%fdom%nbelem>0) then
         call stat_starttick()
-        do n = 0,Tdomain%fdom%nbelem-1,CHUNK
+        do n = 0,Tdomain%fdom%nblocks-1
             call forces_int_fluid(Tdomain%fdom, Tdomain%fdom%champs1, n)
         end do
         call stat_stoptick(STAT_FFLU)
     end if
     if (Tdomain%fpmldom%nbelem>0) then
         call stat_starttick()
-        do n = 0,Tdomain%fpmldom%nbelem-1,CHUNK
+        do n = 0,Tdomain%fpmldom%nblocks-1
             call pred_flu_pml(Tdomain%fpmldom, Tdomain%TimeD%dtmin, Tdomain%fpmldom%champs1, n)
             call forces_int_flu_pml(Tdomain%fpmldom, Tdomain%fpmldom%champs1, n)
         end do
@@ -448,14 +448,14 @@ subroutine internal_forces(Tdomain)
     end if
     if (Tdomain%sdom%nbelem>0) then
         call stat_starttick()
-        do n = 0,Tdomain%sdom%nbelem-1,CHUNK
+        do n = 0,Tdomain%sdom%nblocks-1
             call forces_int_solid(Tdomain%sdom, Tdomain%sdom%champs1, n)
         end do
         call stat_stoptick(STAT_FSOL)
     end if
     if (Tdomain%spmldom%nbelem>0) then
         call stat_starttick()
-        do n = 0,Tdomain%spmldom%nbelem-1,CHUNK
+        do n = 0,Tdomain%spmldom%nblocks-1
             call pred_sol_pml(Tdomain%spmldom, Tdomain%TimeD%dtmin, Tdomain%spmldom%champs1, n)
             call forces_int_sol_pml(Tdomain%spmldom, Tdomain%spmldom%champs1, n)
         end do
@@ -496,19 +496,21 @@ subroutine external_forces(Tdomain,timer,ntime)
 
     type(domain), intent(inout)  :: Tdomain
     integer, intent(in)  :: ntime
-    real, intent(in)  :: timer
-    integer  :: ns,nel,i_dir, i,j,k, idx, lnum,ngll
-    real :: t, ft
+    real(kind=fpp), intent(in)  :: timer
+    integer  :: ns,nel,i_dir, i,j,k, idx, lnum,ngll, bnum, ee
+    real(kind=fpp) :: t, ft, val
 
     do ns = 0, Tdomain%n_source-1
         if(Tdomain%rank == Tdomain%sSource(ns)%proc)then
             nel = Tdomain%Ssource(ns)%elem
             lnum = Tdomain%specel(nel)%lnum
             ngll = domain_ngll(Tdomain, Tdomain%specel(nel)%domain)
+            bnum = lnum/VCHUNK
+            ee = mod(lnum,VCHUNK)
 
             !  vieille version:
             ! time : t_(n+1/2) for solid ; t_n for fluid
-             ! t = merge(timer+Tdomain%TimeD%dtmin/2d0,timer,Tdomain%specel(nel)%solid)
+            ! t = merge(timer+Tdomain%TimeD%dtmin/2d0,timer,Tdomain%specel(nel)%solid)
             ! nouvelle version:
             ! le temps n'est plus decale pour les sources, pour un saute-mouton
             !   on rajoute le 1/2 pas de temps qui correspond au fait que la
@@ -523,9 +525,9 @@ subroutine external_forces(Tdomain,timer,ntime)
                     do k = 0,ngll-1
                         do j = 0,ngll-1
                             do i = 0,ngll-1
-                                idx = Tdomain%sdom%Idom_(i,j,k,lnum)
-                                Tdomain%sdom%champs1%Forces(idx, i_dir) = Tdomain%sdom%champs1%Forces(idx, i_dir) + &
-                                    ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
+                                idx = Tdomain%sdom%Idom_(i,j,k,bnum,ee)
+                                val = Tdomain%sdom%champs1%Forces(idx, i_dir) + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,i_dir)
+                                Tdomain%sdom%champs1%Forces(idx, i_dir) = val
                             enddo
                         enddo
                     enddo
@@ -534,9 +536,11 @@ subroutine external_forces(Tdomain,timer,ntime)
                 do k = 0,ngll-1
                     do j = 0,ngll-1
                         do i = 0,ngll-1
-                            idx = Tdomain%fdom%Idom_(i,j,k,lnum)
-                            Tdomain%fdom%champs1%ForcesFl(idx) = Tdomain%fdom%champs1%ForcesFl(idx) +    &
-                                ft*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
+                            idx = Tdomain%fdom%Idom_(i,j,k,bnum,ee)
+                            val = Tdomain%fdom%champs1%ForcesFl(idx)
+                            val = val + ft*Tdomain%sSource(ns)%ExtForce(i,j,k,0)
+                            !write(*,*) ntime,nel,i,j,k,val
+                            Tdomain%fdom%champs1%ForcesFl(idx) = val
                         enddo
                     enddo
                 enddo

@@ -9,15 +9,16 @@
 #error "Must define PROCNAME before inclusion"
 #endif
 
+#undef ngllvar
 #ifndef NGLLVAL
 #define ngllvar ngll
 #else
 #define ngllvar ngll0
 #endif
 
-#undef USE_LOCAL_MEM
+#define USE_LOCAL_MEM
 
-subroutine PROCNAME(ngllvar,nchunk,lnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m_IDensity,FFl,Phi)
+subroutine PROCNAME(ngllvar,nblocks,bnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m_IDensity,FFl,Phi)
     use sdomain
     use deriv3d
     implicit none
@@ -26,26 +27,26 @@ subroutine PROCNAME(ngllvar,nchunk,lnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m_
 #ifdef NGLLVAL
     integer, parameter :: ngll=NGLLVAL
 #endif
-    integer, intent(in) :: lnum,nchunk
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: FFl
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Phi
+    integer, intent(in) :: bnum,nblocks
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: FFl
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(in) :: Phi
     real(fpp), dimension(0:ngll-1,0:ngll-1), intent(in) :: hprime,htprime
     real(fpp), dimension(0:ngll-1), intent(in) :: gllw
-    real(fpp), dimension(IND_MNIJKE(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:CHUNK*nchunk-1)), intent(in) :: m_InvGrad
-    real(fpp), dimension(IND_IJKE(0:ngll-1,0:ngll-1,0:ngll-1,0:CHUNK*nchunk-1)), intent(in) :: m_Jacob
-    real(fpp), dimension(IND_IJKE(0:ngll-1,0:ngll-1,0:ngll-1,0:CHUNK*nchunk-1)), intent(in) :: m_IDensity
+    real(fpp), dimension(IND_MNIJKE(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1)), intent(in) :: m_InvGrad
+    real(fpp), dimension(IND_IJKE(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1)), intent(in) :: m_Jacob
+    real(fpp), dimension(IND_IJKE(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1,0:VCHUNK-1)), intent(in) :: m_IDensity
     !
     real(fpp) :: dPhi_dX,dPhi_dY,dPhi_dZ
     real(fpp) :: dPhi_dxi,dPhi_deta,dPhi_dzeta
     real(fpp) :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
-    integer :: i,j,k,l,e,ee
+    integer :: i,j,k,l,ei,ee
     real(fpp) :: sx,sy,sz,t4
     real(fpp) :: xt1,xt6,xt10
     real(fpp), parameter :: zero = 0d0
     real(fpp) :: xdens
 #ifdef USE_LOCAL_MEM
     real(fpp) :: t41,t11,t51,t12,t61,t13,F1
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t6,t10
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t6,t10
 #endif
     !dir$ ASSUME_ALIGNED PHI: 32
     !dir$ ASSUME_ALIGNED FFL: 32
@@ -58,10 +59,10 @@ subroutine PROCNAME(ngllvar,nchunk,lnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m_
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#ifdef SEM_VEC
-!$omp simd linear(e,ee)
+#if VCHUNK>1
+!$omp simd linear(ee)
 #endif
-                BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                BEGIN_SUBELEM_LOOP(ei,ee,bnum)
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz
                 dPhi_dxi   = 0D0
                 dPhi_deta  = 0D0
@@ -73,22 +74,22 @@ subroutine PROCNAME(ngllvar,nchunk,lnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m_
                     dPhi_dzeta = dPhi_dzeta+Phi(ee,I,J,L)*hprime(L,K)
                 END DO
 
-                xi1 = InvGrad_(0,0,i,j,k,e)
-                xi2 = InvGrad_(1,0,i,j,k,e)
-                xi3 = InvGrad_(2,0,i,j,k,e)
-                et1 = InvGrad_(0,1,i,j,k,e)
-                et2 = InvGrad_(1,1,i,j,k,e)
-                et3 = InvGrad_(2,1,i,j,k,e)
-                ga1 = InvGrad_(0,2,i,j,k,e)
-                ga2 = InvGrad_(1,2,i,j,k,e)
-                ga3 = InvGrad_(2,2,i,j,k,e)
+                xi1 = InvGrad_(0,0,i,j,k,bnum,ee)
+                xi2 = InvGrad_(1,0,i,j,k,bnum,ee)
+                xi3 = InvGrad_(2,0,i,j,k,bnum,ee)
+                et1 = InvGrad_(0,1,i,j,k,bnum,ee)
+                et2 = InvGrad_(1,1,i,j,k,bnum,ee)
+                et3 = InvGrad_(2,1,i,j,k,bnum,ee)
+                ga1 = InvGrad_(0,2,i,j,k,bnum,ee)
+                ga2 = InvGrad_(1,2,i,j,k,bnum,ee)
+                ga3 = InvGrad_(2,2,i,j,k,bnum,ee)
                 !- in the physical domain
                 dPhi_dx = dPhi_dxi*xi1 + dPhi_deta*et1 + dPhi_dzeta*ga1
                 dPhi_dy = dPhi_dxi*xi2 + dPhi_deta*et2 + dPhi_dzeta*ga2
                 dPhi_dz = dPhi_dxi*xi3 + dPhi_deta*et3 + dPhi_dzeta*ga3
 
                 ! (fluid equivalent) stress  ( = physical velocity)
-                xdens = IDensity_(i,j,k,e)
+                xdens = IDensity_(i,j,k,bnum,ee)
                 sx = xdens*dPhi_dX
                 sy = xdens*dPhi_dY
                 sz = xdens*dPhi_dZ
@@ -109,13 +110,13 @@ subroutine PROCNAME(ngllvar,nchunk,lnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m_
                 !
                 !- Multiply par Jacobian and weight
                 !
-                t4  = Jacob_(i,j,k,e) * gllw(i)
+                t4  = Jacob_(i,j,k,bnum,ee) * gllw(i)
                 xt1 = xt1 * t4
 
-                t4  = Jacob_(i,j,k,e) * gllw(j)
+                t4  = Jacob_(i,j,k,bnum,ee) * gllw(j)
                 xt6 = xt6 * t4
 
-                t4   = Jacob_(i,j,k,e) * gllw(k)
+                t4   = Jacob_(i,j,k,bnum,ee) * gllw(k)
                 xt10 = xt10 * t4
 
 #ifdef USE_LOCAL_MEM
@@ -143,10 +144,10 @@ subroutine PROCNAME(ngllvar,nchunk,lnum,hprime,htprime,gllw,m_InvGrad,m_Jacob,m_
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#ifdef SEM_VEC
-!$omp simd linear(e,ee)
+#if VCHUNK>1
+!$omp simd linear(ee)
 #endif
-                BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                BEGIN_SUBELEM_LOOP(ei,ee,bnum)
                 !=-=-=-=-=-=-=-=-=-=-
                 !
                 t11 = gllw(j) * gllw(k)

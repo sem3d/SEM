@@ -14,6 +14,7 @@ module mshape8
 
 contains
     subroutine shape8_init(Tdomain)
+        use scomm
         implicit none
 
         type(domain), intent(inout) :: Tdomain
@@ -25,16 +26,19 @@ contains
         real(FPP) :: xp, yp, zp
         real(FPP), parameter :: XEPS=1e-10
         real(FPP) :: dxp, dyp, dzp
+        integer :: bnum, ee
 
         ! Tdomain%n_glob_points is the number of degrees of fredom
         allocate(Tdomain%GlobCoord(0:2,0:Tdomain%n_glob_points-1))
         Tdomain%GlobCoord = 0d0
 
         do n = 0,Tdomain%n_elem-1
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
 
             ! coordinates of control nodes (which are vertices also)
             call nodes_coord_8(Tdomain%specel(n)%Control_Nodes(0:),Tdomain%n_glob_nodes,    &
-                Tdomain%Coord_Nodes(0:,0:),coord)
+                Tdomain%Coord_Nodes,coord)
 
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             call domain_gllc(Tdomain, Tdomain%specel(n)%domain, GLLc)
@@ -70,17 +74,17 @@ contains
                         call invert_3d(LocInvGrad,Jac)
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
-                                Tdomain%sdom%Jacob_     (        i,j,k,Tdomain%specel(n)%lnum) = Jac
-                                Tdomain%sdom%InvGrad_   (0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                                Tdomain%sdom%Jacob_     (        i,j,k,bnum,ee) = Jac
+                                Tdomain%sdom%InvGrad_   (0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
                             case (DM_FLUID)
-                                Tdomain%fdom%Jacob_     (        i,j,k,Tdomain%specel(n)%lnum) = Jac
-                                Tdomain%fdom%InvGrad_   (0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                                Tdomain%fdom%Jacob_     (        i,j,k,bnum,ee) = Jac
+                                Tdomain%fdom%InvGrad_   (0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
                             case (DM_SOLID_PML)
-                                Tdomain%spmldom%Jacob_  (        i,j,k,Tdomain%specel(n)%lnum) = Jac
-                                Tdomain%spmldom%InvGrad_(0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                                Tdomain%spmldom%Jacob_  (        i,j,k,bnum,ee) = Jac
+                                Tdomain%spmldom%InvGrad_(0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
                             case (DM_FLUID_PML)
-                                Tdomain%fpmldom%Jacob_  (        i,j,k,Tdomain%specel(n)%lnum) = Jac
-                                Tdomain%fpmldom%InvGrad_(0:2,0:2,i,j,k,Tdomain%specel(n)%lnum) = LocInvGrad(0:2,0:2)
+                                Tdomain%fpmldom%Jacob_  (        i,j,k,bnum,ee) = Jac
+                                Tdomain%fpmldom%InvGrad_(0:2,0:2,i,j,k,bnum,ee) = LocInvGrad(0:2,0:2)
                             case default
                                 stop "unknown domain"
                         end select
@@ -159,6 +163,9 @@ contains
         if(Tdomain%logicD%SF_local_present)then
             call compute_normals(Tdomain, Tdomain%SF%intSolFlu%surf1, DM_FLUID, Tdomain%SF%SF_BtN)
             call compute_normals(Tdomain, Tdomain%SF%intSolFluPml%surf1, DM_FLUID_PML, Tdomain%SF%SFpml_BtN)
+            call dump_sf_btn(Tdomain,"BEFORE  ")
+            call exchange_sf_normals(Tdomain)
+            call dump_sf_btn(Tdomain,"AFTER   ")
         endif ! Solid-Fluid interface
 
 
@@ -168,6 +175,38 @@ contains
         if (Tdomain%fpmldom%nbelem>0) Tdomain%fpmldom%m_Jacob = abs(Tdomain%fpmldom%m_Jacob)
 
     end subroutine shape8_init
+    !-------------------------------------------------------------------------
+    subroutine dump_sf_btn(Tdomain,s)
+        use mrenumber
+        type(domain), intent(inout) :: Tdomain
+        integer, allocatable, dimension(:) :: renum
+        character(len=8),intent(in) :: s
+        !
+        integer :: nf, i, j, idx, idom, iglob, ngll
+        real(kind=fpp) :: nx, ny, nz, px, py, pz
+        call get_surface_numbering(Tdomain,Tdomain%SF%intSolFlu%surf1, DM_FLUID, renum)
+
+        do nf=0,Tdomain%n_face-1
+            ngll = Tdomain%sFace(nf)%ngll1
+            if (Tdomain%sFace(nf)%domain/=DM_FLUID) cycle
+            do j=0,ngll-1
+                do i=0,ngll-1
+                    idom = Tdomain%sFace(nf)%Idom(i,j)
+                    iglob = Tdomain%sFace(nf)%Iglobnum_Face(i,j)
+                    idx = renum(idom)
+                    if (idx==-1) cycle
+                    px = Tdomain%GlobCoord(0,iglob)
+                    py = Tdomain%GlobCoord(1,iglob)
+                    pz = Tdomain%GlobCoord(2,iglob)
+                    nx = Tdomain%SF%SF_BtN(0,idx)
+                    ny = Tdomain%SF%SF_BtN(1,idx)
+                    nz = Tdomain%SF%SF_BtN(2,idx)
+                    write(*,"(A8,I4,A,I4,A,I4,A,F10.3,F10.3,F10.3,A,F10.3)") s,Tdomain%rank, "/", i, ":", idx, &
+                        "(",px, py, pz,")->", nz
+                end do
+            end do
+        end do
+    end subroutine dump_sf_btn
     !-------------------------------------------------------------------------
     subroutine compute_normals(Tdomain, surf, dom, BtN)
         use mrenumber
@@ -200,6 +239,8 @@ contains
         do nf = 0, surf%n_faces-1
             nfs = surf%if_faces(nf)
             orient = -1d0*surf%if_norm(nf)
+            ! We don't treat orphan faces, they will be handled by communications
+            if (Tdomain%sFace(nfs)%orphan) cycle
             do i = 0,3
                 nodes(:,i) = Tdomain%Coord_nodes(:,Tdomain%sFace(nfs)%inodes(i))
             end do

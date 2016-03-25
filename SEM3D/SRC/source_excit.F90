@@ -70,7 +70,7 @@ subroutine source_excit_pulse_fluid(Tdomain, nels, src, ngll, GLLc)
     integer, intent(in) :: ngll
     real, dimension(0:ngll-1), intent(in) :: GLLc
     !
-    integer :: i, j, k
+    integer :: i, j, k, bnum, ee
     real :: xi,eta,zeta,wxi,weta,wzeta,lambda
 
     interface
@@ -84,6 +84,9 @@ subroutine source_excit_pulse_fluid(Tdomain, nels, src, ngll, GLLc)
            real, dimension(0:ngll-1,0:ngll-1,0:ngll-1) :: func
        end function interp_lag
     end interface
+
+    bnum = Tdomain%specel(nels)%lnum/VCHUNK
+    ee = mod(Tdomain%specel(nels)%lnum,VCHUNK)
 
     xi = src%RefCoord(0)
     eta = src%RefCoord(1)
@@ -105,11 +108,11 @@ subroutine source_excit_pulse_fluid(Tdomain, nels, src, ngll, GLLc)
     lambda = 0.
     if(Tdomain%specel(nels)%domain==DM_FLUID) then
         lambda = interp_lag(Tdomain%fdom%ngll,Tdomain%fdom%GLLc,xi,eta,zeta,&
-                            Tdomain%fdom%Lambda_(:,:,:,Tdomain%specel(nels)%lnum))
+                            Tdomain%fdom%Lambda_(:,:,:,bnum,ee))
     end if
     if(Tdomain%specel(nels)%domain==DM_FLUID_PML) then
         lambda = interp_lag(Tdomain%fpmldom%ngll,Tdomain%fpmldom%GLLc,xi,eta,zeta,&
-                            Tdomain%fpmldom%Lambda_(:,:,:,Tdomain%specel(nels)%lnum))
+                            Tdomain%fpmldom%Lambda_(:,:,:,bnum,ee))
     end if
     src%ExtForce(:,:,:,0) = -src%ExtForce(:,:,:,0)/lambda
     ! point source = moment tensor M (explosion is a special case: M(i,j) = delta _(ij))
