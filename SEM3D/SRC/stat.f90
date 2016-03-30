@@ -1,6 +1,23 @@
 module stat
+    use constants, only : fpp
+    ! TYPE DE STATISTIQUES
+    integer, parameter :: STAT_COUNT = 12
+    integer, parameter :: STAT_GIVE  = 0 !
+    integer, parameter :: STAT_TAKE  = 1 !
+    integer, parameter :: STAT_WAIT  = 2 !
+    integer, parameter :: STAT_FSOL  = 3 ! Forces      solide
+    integer, parameter :: STAT_FFLU  = 4 ! Forces      fluide
+    integer, parameter :: STAT_PSOL  = 5 ! Forces  PML solide
+    integer, parameter :: STAT_PFLU  = 6 ! Forces  PML fluide
+    integer, parameter :: STAT_FEXT  = 7 !
+    integer, parameter :: STAT_FULL  = 8 !
+    integer, parameter :: STAT_TSTEP = 9 ! Timestep synchronisation
+    integer, parameter :: STAT_IO    =10 ! IO
+    integer, parameter :: STAT_START =11 ! Initialisation/startup time
 
-    use constants
+    character(len=5), dimension(0:STAT_COUNT-1) :: stat_labels = (/ &
+        "GIVE ", "TAKE ", "WAIT ", "FSOL ", "FFLU ", "PSOL ", "PFLU ", "FEXT ", "FULL ", "TSTEP","IO   ", "INIT " /)
+
     integer, private :: clockRate, maxPeriod
 
     integer, private :: startFullTick, stopFullTick

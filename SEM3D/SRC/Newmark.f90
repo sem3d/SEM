@@ -22,7 +22,7 @@ subroutine Newmark(Tdomain,ntime)
     use mpi
     use scomm, only : exchange_sem_var, comm_give_data, comm_take_data
     use scommutils
-    use stat, only : stat_starttick, stat_stoptick
+    use stat, only : stat_starttick, stat_stoptick, STAT_FEXT
     use sf_coupling
     implicit none
 
@@ -185,7 +185,7 @@ end subroutine Newmark
 subroutine comm_forces(Tdomain)
     use sdomain
     use scomm
-    use stat, only : stat_starttick, stat_stoptick
+    use stat, only : stat_starttick, stat_stoptick, STAT_GIVE, STAT_TAKE
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
@@ -258,7 +258,7 @@ end subroutine comm_forces
 subroutine Newmark_Predictor(Tdomain)
     use sdomain
     use dom_fluidpml
-    use stat, only : stat_starttick, stat_stoptick
+    use stat, only : stat_starttick, stat_stoptick, STAT_FSOL, STAT_FFLU, STAT_PSOL, STAT_PFLU
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
@@ -327,7 +327,7 @@ end subroutine Newmark_Predictor
 !-------------------------------------------------------------------------------
 subroutine Newmark_Corrector_Fluid(Tdomain)
     use sdomain
-    use stat, only : stat_starttick, stat_stoptick
+    use stat, only : stat_starttick, stat_stoptick, STAT_PFLU, STAT_FFLU
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
@@ -374,7 +374,7 @@ end subroutine Newmark_Corrector_Fluid
 !-----------------------------------------------------------------------------
 subroutine Newmark_Corrector_Solid(Tdomain)
     use sdomain
-    use stat, only : stat_starttick, stat_stoptick
+    use stat, only : stat_starttick, stat_stoptick, STAT_PSOL, STAT_FSOL
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
@@ -425,7 +425,7 @@ subroutine internal_forces(Tdomain)
     use dom_solidpml
     use dom_fluid
     use dom_fluidpml
-    use stat, only : stat_starttick, stat_stoptick
+    use stat, only : stat_starttick, stat_stoptick, STAT_FFLU, STAT_PFLU, STAT_FSOL, STAT_PSOL
     implicit none
 
     type(domain), intent(inout)  :: Tdomain
