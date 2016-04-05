@@ -29,6 +29,7 @@ program main_Stat
     character(len=200), parameter :: outPath = "./results/res/singleGen"
     integer :: nFiles
     logical :: deleteSampleInTheEnd=.true.
+    logical :: calculateCorrL=.false.
 
     !LOCAL
     integer :: i
@@ -76,12 +77,14 @@ program main_Stat
         call read_RF_h5_File_Table()
         if(STA%rang == 0) write(*,*) "-> Calculating Average and StdVar"
         call calculate_average_and_stdVar_MPI(STA)
-        if(STA%rang == 0) write(*,*) "-> Recontructing Spectrum"
-        call rebuild_Sk(STA)
-        if(STA%rang == 0) write(*,*) "-> Calculating Correlation Length"
-        call rebuild_corrL(STA, STA%corrL_out)
-        if(STA%rang == 0) write(*,*) "-> Writing Statistics on File"
-        if(STA%rang == 0) call write_StatisticsOnH5(STA, resPath)
+        if(calculateCorrL) then
+            if(STA%rang == 0) write(*,*) "-> Recontructing Spectrum"
+            call rebuild_Sk(STA)
+            if(STA%rang == 0) write(*,*) "-> Calculating Correlation Length"
+            call rebuild_corrL(STA, STA%corrL_out)
+            if(STA%rang == 0) write(*,*) "-> Writing Statistics on File"
+            if(STA%rang == 0) call write_StatisticsOnH5(STA, resPath)
+        end if
 
         if(STA%rang == 0) call show_STAT(STA, "Calculated Statistics", 6)
 
@@ -230,26 +233,27 @@ program main_Stat
             end if
             call write_h5attr_real_vec(file_id, attr_name, STA%evntStdDev)
 
-
-            attr_name = "corrL_out"
-            call h5aexists_by_name_f(file_id, ".", trim(adjustL(attr_name)), attr_exists, error)
-            !write(*,*) "attr_exists 5 = ", attr_exists
-            if(attr_exists) then
-                call h5adelete_f(file_id, trim(adjustL(attr_name)), error)
-            end if
-            call write_h5attr_real_vec(file_id, attr_name, STA%corrL_out)
-
-            !write(*,*) "Sk"
-            do i = 1, STA%nDim
-                attr_name = stringNumb_join("Sk_",i)
+            if(calculateCorrL) then
+                attr_name = "corrL_out"
                 call h5aexists_by_name_f(file_id, ".", trim(adjustL(attr_name)), attr_exists, error)
-                !write(*,*) "attr_exists 6 7 8= ", attr_exists
+                !write(*,*) "attr_exists 5 = ", attr_exists
                 if(attr_exists) then
                     call h5adelete_f(file_id, trim(adjustL(attr_name)), error)
                 end if
-                call write_h5attr_real_vec(file_id, attr_name, STA%SkTot_Dir(STA%SkTot_Ind(i,1):STA%SkTot_Ind(i,2)))
+                call write_h5attr_real_vec(file_id, attr_name, STA%corrL_out)
 
-            end do
+                !write(*,*) "Sk"
+                do i = 1, STA%nDim
+                    attr_name = stringNumb_join("Sk_",i)
+                    call h5aexists_by_name_f(file_id, ".", trim(adjustL(attr_name)), attr_exists, error)
+                    !write(*,*) "attr_exists 6 7 8= ", attr_exists
+                    if(attr_exists) then
+                        call h5adelete_f(file_id, trim(adjustL(attr_name)), error)
+                    end if
+                    call write_h5attr_real_vec(file_id, attr_name, STA%SkTot_Dir(STA%SkTot_Ind(i,1):STA%SkTot_Ind(i,2)))
+
+                end do
+            end if
 
             call h5fclose_f(file_id, error)! Close the file.
             call h5close_f(error) ! Close FORTRAN interface
@@ -468,6 +472,7 @@ program main_Stat
             double precision, dimension(nDim_in) :: xMinGlob, xMaxGlob, xStep, corrL, overlap
             double precision, dimension(nDim_in) :: procExtent, kMax_out
             integer         , dimension(nDim_in) :: kNStep_out, nFields
+            double precision :: GT_avg, GT_stdDev, GT_min, GT_max
             integer(kind=8) :: old_file_bytes_size
             double precision :: old_file_mb_size
 
@@ -527,6 +532,18 @@ program main_Stat
             attr_name = "gen_WALL_Time"
             call read_h5attr_real(old_file_id, attr_name, gen_WALL_Time)
             call write_h5attr_real(new_file_id, trim(adjustL(attr_name)), gen_WALL_Time)
+            attr_name = "GT_avg"
+            call read_h5attr_real(old_file_id, attr_name, GT_avg)
+            call write_h5attr_real(new_file_id, attr_name, GT_avg)
+            attr_name = "GT_stdDev"
+            call read_h5attr_real(old_file_id, attr_name, GT_stdDev)
+            call write_h5attr_real(new_file_id, attr_name, GT_stdDev)
+            attr_name = "GT_min"
+            call read_h5attr_real(old_file_id, attr_name, GT_min)
+            call write_h5attr_real(new_file_id, attr_name, GT_min)
+            attr_name = "GT_max"
+            call read_h5attr_real(old_file_id, attr_name, GT_max)
+            call write_h5attr_real(new_file_id, attr_name, GT_max)
             attr_name = "old_file_mb_size"
             call write_h5attr_real(new_file_id, trim(adjustL(attr_name)), old_file_mb_size)
 
@@ -582,9 +599,9 @@ program main_Stat
             attr_name = "BT_max"
             call read_h5attr_real_vec(old_file_id, attr_name, BT_max)
             call write_h5attr_real_vec(new_file_id, attr_name, BT_max)
-            attr_name = "gen_times"
-            call read_h5attr_real_vec(old_file_id, attr_name, gen_times)
-            call write_h5attr_real_vec(new_file_id, attr_name, gen_times)
+            !attr_name = "gen_times"
+            !call read_h5attr_real_vec(old_file_id, attr_name, gen_times)
+            !call write_h5attr_real_vec(new_file_id, attr_name, gen_times)
 
             call h5fclose_f(new_file_id, error)! Close the new file.
             call h5fclose_f(old_file_id, error)! Close the oldfile.

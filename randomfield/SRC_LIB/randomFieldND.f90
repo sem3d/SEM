@@ -63,7 +63,7 @@ contains
         call wLog("->Normalizing Coordinates")
         call wLog(" ")
         do i = 1, RDF%nDim
-            RDF%xPoints(i,:)   = RDF%xPoints(i,:)/RDF%corrL(i)
+            if(associated(RDF%xPoints)) RDF%xPoints(i,:)   = RDF%xPoints(i,:)/RDF%corrL(i)
             MSH%xStep(i)       = MSH%xStep(i) /RDF%corrL(i)
             MSH%xMinInt(i)     = MSH%xMinInt(i)/RDF%corrL(i)
             MSH%xMaxInt(i)     = MSH%xMaxInt(i)/RDF%corrL(i)
@@ -79,19 +79,10 @@ contains
             RDF%xRange(i)      = RDF%xRange(i)/RDF%corrL(i)
         end do
 
-        !if(RDF%independent) then
-            !RDF%xRange = MSH%xMaxExt - MSH%xMinExt !Delta max in between two wave numbers to avoid periodicity
-            !RDF%xRange = MSH%xMaxBound - MSH%xMinBound !Delta max in between two wave numbers to avoid periodicity
-        !else
-            RDF%xRange = MSH%xMaxGlob - MSH%xMinGlob !Delta max in between two wave numbers to avoid periodicity
-        !end if
-
         !Generating Standard Gaussian Field
         call wLog("")
         call wLog("GENERATING RANDOM FIELDS")
         call wLog("-------------------------------")
-        !if(RDF%rang == 0) write(*,*)"GENERATING RANDOM FIELDS"
-        !if(RDF%rang == 0) write(*,*) "-------------------------------"
         call wLog("")
 
         select case (RDF%method)
@@ -124,7 +115,7 @@ contains
         call wLog(" ")
         call wLog("->Reverting Normalization")
         do i = 1, RDF%nDim
-            RDF%xPoints(i,:)   = RDF%xPoints(i,:)*RDF%corrL(i)
+            if(associated(RDF%xPoints)) RDF%xPoints(i,:)   = RDF%xPoints(i,:)*RDF%corrL(i)
             RDF%xRange(i)      = RDF%xRange(i)*RDF%corrL(i)
             MSH%xStep(i)       = MSH%xStep(i)*RDF%corrL(i)
             MSH%xMinInt(i)     = MSH%xMinInt(i)*RDF%corrL(i)
@@ -527,6 +518,10 @@ contains
                                                  local_LastDim, local_LD_offset) !FOR MPI
             cdata = fftw_alloc_real(alloc_local)
             call c_f_pointer(cdata, data_real_2D, [L, local_LastDim])
+            call wLog("L = ")
+            call wLog(L)
+            call wLog("M = ")
+            call wLog(L)
 
         else if(RDF%nDim == 3) then
             L = xNStepGlob(1)
@@ -536,6 +531,12 @@ contains
                                                  local_LastDim, local_LD_offset) !FOR MPI
             cdata = fftw_alloc_real(alloc_local)
             call c_f_pointer(cdata, data_real_3D, [L, M, local_LastDim])
+            call wLog("L = ")
+            call wLog(L)
+            call wLog("M = ")
+            call wLog(L)
+            call wLog("N = ")
+            call wLog(L)
 
         else
             stop("Inside gen_Std_Gauss_FFT dimension not yet implemented for this generation method")
@@ -549,6 +550,14 @@ contains
         call wLog(local_LD_offset)
         call wLog("local_LastDim")
         call wLog(local_LastDim)
+
+        if(local_LastDim < 20) then
+            write(*,*) "WARNING, local_LastDim = ", local_LastDim&
+                       , "problems have been observed when a FFTW slab is this thin"
+            call wLog("WARNING, local_LastDim = ")
+            call wLog(local_LastDim)
+            call wLog("problems have been observed when a FFTW slab is this thin")
+        end if
 
         call wLog("RDF%kNInit")
         call wLog(RDF%kNInit)
@@ -647,12 +656,23 @@ contains
             RDF%randField(:,1) = reshape(data_real_2D, [L*local_LastDim])
 
         else if(RDF%nDim == 3) then
+            call wLog("L = ")
+            call wLog(L)
+            call wLog("M = ")
+            call wLog(L)
+            call wLog("N = ")
+            call wLog(L)
+            call wLog("local_LastDim")
+            call wLog(local_LastDim)
+            call wLog("shape(data_real_3D) = ")
+            call wLog(shape(data_real_3D))
+
             plan = fftw_mpi_plan_r2r(RDF%nDim, [N, M, L], data_real_3D, data_real_3D, &
                                      RDF%comm, [FFTW_REDFT01, FFTW_REDFT01, FFTW_REDFT01], FFTW_ESTIMATE)
             data_real_3D(:,:,:) = reshape(RDF%SkVec, [L, M, local_LastDim])
             call fftw_mpi_execute_r2r(plan, data_real_3D, data_real_3D)
-            !data_real_3D = data_real_3D*(2.0D0**((RDF%nDim-1))/2.0D0))*sqrt(product(MSH%xStep))
             data_real_3D = data_real_3D*(2.0D0)*sqrt(product(MSH%xStep))
+            !data_real_3D = data_real_3D*(2.0D0**((RDF%nDim-1))/2.0D0))*sqrt(product(MSH%xStep))
             !RDF%randField(:,1) = pack(data_real_3D(1:L, 1:M, 1:local_LastDim), .true.)
             RDF%randField(:,1) = reshape(data_real_3D, [L*M*local_LastDim])
         end if

@@ -35,6 +35,7 @@ contains
         double precision, dimension(:), intent(inout) :: times
         !LOCAL
         double precision :: t_initial
+        integer :: code
 
         call CPU_TIME(t_initial)
 
@@ -104,6 +105,8 @@ contains
 
         call build_random_field (IPT, times, t_initial)
 
+        call MPI_COMM_FREE (IPT%gen_Comm, code)
+        call MPI_COMM_FREE (IPT%loc_Comm, code)
 
     end subroutine make_random_field
 
@@ -126,29 +129,31 @@ contains
         integer         , dimension(IPT%nDim, IPT%nTotalFields) :: subdivisionId
         double precision      :: t_bef, t_aft
         integer               :: fieldNumber
-        character(len=200) :: BBoxPath, XMFPath, MONO_FileName
-        character(len=200), dimension(:), allocatable :: MONO_FileNames
+        character(len=buf_RF) :: BBoxPath, XMFPath, MONO_FileName
+        character(len=buf_RF), dimension(:), allocatable :: MONO_FileNames
         double precision, dimension(IPT%nTotalFields) :: gen_times, temp_gen_times
         integer :: i, d, countFields, j
-        integer :: nSamplesInProc, nSamplesInAllProc, rest, sum_SamplesInProc
-        double precision, dimension(:,:,:), allocatable, target :: randField_inProc
+        integer :: nSamplesInProc
+        double precision, dimension(:,:), allocatable, target :: randField_Gen
         double precision, dimension(:,:), allocatable, target :: randField_Group
         double precision, dimension(:,:), allocatable :: randField_Local
         double precision, dimension(:), allocatable ::unityPartition
         integer(kind=8) :: xNTotal_Proc, xNTotal_Group
         double precision, dimension(:,:), allocatable :: xMinFiles, xMaxFiles
-        double precision, dimension(IPT%nDim) :: ones, xMin_Group, xMax_Group
+        double precision, dimension(IPT%nDim) :: xMin_Group, xMax_Group
         integer, dimension(IPT%nDim) :: xNStep_Proc, xNStep_Group, origin_Group
-        integer, dimension(IPT%nDim) :: locStep, minP, maxP
-        double precision, dimension(:, :), pointer :: RF_2D_Proc, RF_2D_Group
-        double precision, dimension(:, :, :), pointer :: RF_3D_Proc, RF_3D_Group
+        integer, dimension(IPT%nDim) :: minP, maxP
+        double precision, dimension(:, :), pointer :: RF_2D_Group
+        double precision, dimension(:, :, :), pointer :: RF_3D_Group
         double precision :: gen_WALL_Time
-        double precision, dimension(9) :: build_times, BT_sum, BT2_sum
-        double precision, dimension(9) :: BT_avg
-        double precision, dimension(9) :: BT_stdDev, BT_max, BT_min
+        double precision, dimension(8) :: build_times, BT_sum, BT2_sum
+        double precision, dimension(8) :: BT_avg
+        double precision, dimension(8) :: BT_stdDev, BT_max, BT_min
         double precision :: t_final
         double precision, dimension(IPT%nDim) :: kMax_out
         integer, dimension(IPT%nDim) :: kNStep_out
+        integer(kind=8) :: file_bytes_size
+        double precision :: file_mb_size
 
         if(IPT%rang == 0) write(*,*) "  "
         if(IPT%rang == 0) write(*,*) " Inside 'build_random_field'"
@@ -166,157 +171,28 @@ contains
         gen_WALL_Time = 0.0D0
 
         build_times(1) = MPI_Wtime() !Reference
-        !BT_stdDev = -1.0D0 !TEST
-
-        !Init
-        ones = 1.0D0
-        locStep = IPT%nFields**(IPT%localizationLevel)
-        call setGrid(subdivisionCoords, IPT%xMinGlob, IPT%stepProc, locStep, inverse=.true.)
-        do i = 1, size(subdivisionCoords, 2)
-            subdivisionId(:,i) = nint((subdivisionCoords(:,i)-IPT%xMinGlob)/IPT%stepProc)
-        end do
-        if(IPT%rang == 0) call DispCarvalhol(subdivisionCoords, "subdivisionCoords")
-        !if(IPT%rang == 0) call DispCarvalhol(subdivisionId, "subdivisionId")
-        if(IPT%rang == 0) write(*,*) "Max Coord = ", subdivisionCoords(:, size(subdivisionCoords,2)) + IPT%procExtent
 
         !Discovering number of fields in each proc
         nSamplesInProc = 0
         xNTotal_Proc   = 0
 
-        if(IPT%gen_rang == 0) then
-            nSamplesInAllProc = int(IPT%nTotalFields/(IPT%loc_nbProcs))
-            rest              = IPT%nTotalFields - (nSamplesInAllProc*IPT%loc_nbProcs)
-            nSamplesInProc    = nSamplesInAllProc
-            if(IPT%rang < rest) nSamplesInProc = nSamplesInProc + 1
+        call find_nSamples_in_proc(IPT, nSamplesInProc, xNStep_Proc, xNTotal_Proc)
 
-            xNStep_Proc = find_xNStep(xMaxExt=IPT%procExtent, xStep=IPT%xStep)
-            xNTotal_Proc = product(int(xNStep_Proc, 8))
-
-            allocate(randField_inProc(xNTotal_Proc, IPT%Nmc, nSamplesInProc))
-
+        if(IPT%loc_group == 0) then
+            allocate(randField_Gen(xNTotal_Proc, IPT%Nmc))
             if(IPT%write_intermediate_files) allocate(MONO_FileNames(nSamplesInProc))
             allocate(xMinFiles(IPT%nDim, nSamplesInProc))
             allocate(xMaxFiles(IPT%nDim, nSamplesInProc))
-
         end if
 
-
-        !Verification
-        call MPI_ALLREDUCE (nSamplesInProc, sum_SamplesInProc, 1, MPI_INTEGER, MPI_SUM, IPT%comm, code)
-        if(IPT%nTotalFields /= sum_SamplesInProc) then
-            write(*,*) "ERROR in 'build_random_field' IPT%nTotalFields and sum_SamplesInProc are different"
-            write(*,*) "IPT%nTotalFields  = ", IPT%nTotalFields
-            write(*,*) "sum_SamplesInProc = ", sum_SamplesInProc
-            call wLog("ERROR in 'build_random_field' IPT%nTotalFields and sum_SamplesInProc are different")
-            call wLog("nSamplesInProc = ")
-            call wLog(nSamplesInProc)
-            call wLog("IPT%nTotalFields = ")
-            call wLog(IPT%nTotalFields)
-            call wLog("sum_SamplesInProc = ")
-            call wLog(sum_SamplesInProc)
-            stop (" ")
-        end if
-
-        call wLog("IPT%gen_rang = ")
-        call wLog(IPT%gen_rang)
-        call wLog("nSamplesInProc = ")
-        call wLog(nSamplesInProc)
-        call wLog("xNTotal_Proc = ")
-        call wLog(xNTotal_Proc)
-        call wLog("IPT%coords = ")
-        call wLog(IPT%coords)
-
-
-        !call MPI_BARRIER(IPT%comm, code)
-        build_times(2) = MPI_Wtime() !Organizing Localization
-        !times(3) = MPI_Wtime() !Organizing Localization
-
-
-        !MAKING ALL REALIZATIONS--------------------------------------------------
-        gen_times(:) = 0.0D0
-        countFields  = 0
-        !if(.false.)then
-        if(IPT%sampleFields)then
-
-            if(IPT%rang == 0) write(*,*) " "
-            if(IPT%rang == 0) write(*,*) "-> SAMPLING----------------------------------------"
-            call wLog("-> SAMPLING----------------------------------------")
-            do i = 1, IPT%nTotalFields
-            !do i = 1, 1 !FOR TESTS
-                !if(mod(i, gen_groupMax) == gen_group) then
-                if(all(subdivisionId(:,i)/(IPT%nFields**(IPT%localizationLevel - 1)) == IPT%coords) &
-                   .or. (.not. IPT%extLoc)) then
-
-                    if(IPT%gen_rang == 0) write(*,*)  "-> Gen_Group ", IPT%gen_group, " making Field ", i
-                    call wLog("-> Making Field")
-                    call wLog(i)
-
-                    t_bef = MPI_Wtime()
-                    fieldNumber = i;
-                    countFields = countFields + 1
-                    call single_realization(IPT, &
-                                            IPT%gen_Comm, fieldNumber, subdivisionCoords(:,i), &
-                                            IPT%stepProc, randField_Local, kMax_out, kNStep_out)
-                    call wLog("Gathering Sample")
-                    call gather_sample(randField_Local, randField_inProc(:,:,countFields), &
-                                       IPT%gen_rang, IPT%gen_nbProcs, IPT%gen_comm)
-
-                    if(IPT%gen_rang == 0) then
-                        xMinFiles(:, countFields) = subdivisionCoords(:,i)
-                        xMaxFiles(:, countFields) = xMinFiles(:, countFields) + IPT%procExtent
-                        if(IPT%write_intermediate_files) then
-                            call wLog("Writing intermediate generation file")
-                            MONO_FileNames(countFields) = "GEN"
-
-                            do d = 1, IPT%nDim
-                                MONO_FileNames(countFields) = &
-                                string_join_many(MONO_FileNames(countFields),"_",numb2String(subdivisionId(d,i)+1,3))
-                            end do
-
-                            call write_MONO_proc_result(xMinFiles(:, countFields), xMaxFiles(:, countFields), &
-                                                        IPT%xStep, IPT%nDim, &
-                                                        randField_inProc(:,1,countFields), &
-                                                        MONO_FileNames(countFields), IPT%outputFolder)
-                        end if
-                    end if
-                    if(allocated(randField_Local)) deallocate(randField_Local)
-                    t_aft = MPI_Wtime()
-                    temp_gen_times(i) = t_aft-t_bef
-                    !write(*,*) "After single"
-                end if
-            end do
-        end if
-
-        build_times(3) = MPI_Wtime() !Sampling
-
-        ! INTERNAL LOCALIZATION-----------------------------------
-        if(IPT%rang == 0) write(*,*) " "
-        if(IPT%rang == 0) write(*,*) "-> INTERNAL LOCALIZATION----------------------------------------"
+        call prepare_Localization(IPT, subdivisionCoords, subdivisionId, &
+                                    xMinFiles, xMaxFiles, xMin_Group, xMax_Group, &
+                                    gen_GroupRange, xNStep_Group, origin_Group, &
+                                    xNTotal_Group)
 
         if(IPT%loc_group == 0) then
-
-            !Localization Inside Group
-            if(IPT%rang == 0) write(*,*) "Internal Localization"
-            xMin_Group    = minval(xMinFiles(:, :),2)
-            xMax_Group    = maxval(xMaxFiles(:, :),2)
-            gen_GroupRange = xMax_Group - xMin_Group
-            xNStep_Group  = find_xNStep(xMaxExt=gen_GroupRange, xStep=IPT%xStep)
-            origin_Group  = find_xNStep(xMinExt=IPT%xMinGlob, xMaxExt=xMin_Group, xStep=IPT%xStep)
-            xNTotal_Group = product(int(xNStep_Group,8))
-            call wLog("xMin_Group = ")
-            call wLog(xMin_Group)
-            call wLog("xMax_Group = ")
-            call wLog(xMax_Group)
-            call wLog("gen_GroupRange = ")
-            call wLog(gen_GroupRange)
-            call wLog("xNStep_Group = ")
-            call wLog(xNStep_Group)
-            call wLog("xNTotal_Group = ")
-            call wLog(xNTotal_Group)
-
             allocate(randField_Group(xNTotal_Group, IPT%Nmc))
             randField_Group = 0.0D0
-
             if(IPT%nDim_gen == 2) then
                 RF_2D_Group(1:xNStep_Group(1),1:xNStep_Group(2)) => randField_Group
             else if(IPT%nDim_gen == 3) then
@@ -332,61 +208,118 @@ contains
                 MONO_FileName = string_join_many("PofUnit_L0_Group",numb2String(IPT%gen_group))
                 call write_MONO_proc_result(IPT%procExtent*0, IPT%procExtent, &
                                             IPT%xStep, IPT%nDim, &
-                                            unityPartition, MONO_FileName, IPT%outputFolder)
+                                            unityPartition, MONO_FileName, single_path)
             end if
+        end if
 
-            if(any(shape(unityPartition) /= shape(randField_inProc(:,1,1)))) then
-                write(*,*) "ERROR in internal localization, unityPartition and randField_inProc don't have the same sizes"
-            end if
 
-            do i = 1, nSamplesInProc
-                !Multiplication
-                do j = 1, IPT%Nmc
-                    randField_inProc(:,j,i) = randField_inProc(:,j,i)*unityPartition
-                    if(IPT%write_intermediate_files) then
-                        MONO_FileName = MONO_FileNames(i)
-                        MONO_FileName = string_join_many("LOC_L0_P", numb2String(IPT%rang), "-",MONO_FileName)
-                        if(IPT%gen_rang == 0) call write_MONO_proc_result(xMinFiles(:, i), xMaxFiles(:, i), &
-                                                                      IPT%xStep, IPT%nDim, &
-                                                                      randField_inProc(:,j,i), MONO_FileName, &
-                                                                      IPT%outputFolder)
+        !call MPI_BARRIER(IPT%comm, code)
+        build_times(2) = MPI_Wtime() !Organizing Localization
+        !times(3) = MPI_Wtime() !Organizing Localization
 
+        !MAKING ALL REALIZATIONS--------------------------------------------------
+        gen_times(:) = 0.0D0
+        countFields  = 0
+        !if(.false.)then
+        if(IPT%sampleFields)then
+
+            if(IPT%rang == 0) write(*,*) " "
+            if(IPT%rang == 0) write(*,*) "-> SAMPLING----------------------------------------"
+            call wLog("-> SAMPLING----------------------------------------")
+            do i = 1, IPT%nTotalFields
+            !do i = 1, 1 !FOR TESTS
+                if(all(subdivisionId(:,i)/(IPT%nFields**(IPT%localizationLevel - 1)) == IPT%coords) &
+                   .or. (.not. IPT%extLoc)) then
+
+                    if(IPT%gen_rang == 0) write(*,*)  "-> Gen_Group ", IPT%gen_group, " making Field ", i
+                    call wLog("-> Making Field")
+                    call wLog(i)
+
+                    t_bef = MPI_Wtime()
+                    fieldNumber = i;
+                    countFields = countFields + 1
+                    call single_realization(IPT, &
+                                            IPT%gen_Comm, fieldNumber, subdivisionCoords(:,i), &
+                                            randField_Local, randField_Gen, kMax_out, kNStep_out)
+
+                    if(IPT%gen_rang == 0) then
+                        if(IPT%write_intermediate_files) then
+                            call wLog("Writing intermediate generation file")
+                            MONO_FileNames(countFields) = "GEN"
+
+                            do d = 1, IPT%nDim
+                                MONO_FileNames(countFields) = &
+                                string_join_many(MONO_FileNames(countFields),"_",numb2String(subdivisionId(d,i)+1,3))
+                            end do
+
+                            call write_MONO_proc_result(xMinFiles(:, countFields), xMaxFiles(:, countFields), &
+                                                        IPT%xStep, IPT%nDim, &
+                                                        randField_Gen(:,1), &
+                                                        MONO_FileNames(countFields), single_path)
+                        end if
                     end if
-                end do
 
-                !Sum
-                minP = find_xNStep(xMin_Group, xMinFiles(:, i), IPT%xStep)
-                maxP = minP + xNStep_Proc - 1
+                    if(IPT%nDim == 2) then
+                        call add_RF_to_Group(IPT, randField_Gen, xNStep_Proc, &
+                                        unityPartition, &
+                                        xMinFiles(:, countFields), xMaxFiles(:, countFields), &
+                                        xMin_Group, &
+                                        subdivisionId(:,i), RF_2D_Group=RF_2D_Group)
+                   else if(IPT%nDim == 3) then
+                       call add_RF_to_Group(IPT, randField_Gen, xNStep_Proc, &
+                                        unityPartition, &
+                                        xMinFiles(:, countFields), xMaxFiles(:, countFields), &
+                                        xMin_Group, &
+                                        subdivisionId(:,i), RF_3D_Group=RF_3D_Group)
+                   end if
 
-                if(IPT%nDim_gen == 2) then
-                    RF_2D_Proc(1:xNStep_Proc(1),1:xNStep_Proc(2)) => randField_inProc(:,1,i)
 
-                    RF_2D_Group(minP(1):maxP(1),minP(2):maxP(2)) = RF_2D_Proc &
-                                                       + RF_2D_Group(minP(1):maxP(1),minP(2):maxP(2))
-                else if(IPT%nDim_gen == 3) then
-                    RF_3D_Proc(1:xNStep_Proc(1),1:xNStep_Proc(2),1:xNStep_Proc(3)) => randField_inProc(:,1,i)
+                   if(IPT%gen_rang == 0) then
+                        if(IPT%write_intermediate_files) then
+                            call wLog("Writing intermediate localized generation file")
+                            MONO_FileName = MONO_FileNames(countFields)
+                            MONO_FileName = string_join_many("LOC_L0_P", numb2String(IPT%rang), "-",MONO_FileName)
+                            if(IPT%gen_rang == 0) call write_MONO_proc_result( &
+                                xMinFiles(:, countFields), xMaxFiles(:, countFields), &
+                                IPT%xStep, IPT%nDim, &
+                                randField_Gen(:,1), MONO_FileName, &
+                                single_path)
+                        end if
+                   end if
 
-                    RF_3D_Group(minP(1):maxP(1),minP(2):maxP(2),minP(3):maxP(3)) = RF_3D_Proc &
-                                              + RF_3D_Group(minP(1):maxP(1),minP(2):maxP(2),minP(3):maxP(3))
+                    !if(allocated(randField_Local)) deallocate(randField_Local)
+                    !write(*,*) "After single"
                 end if
-
-                if(associated(RF_2D_Proc)) nullify(RF_2D_Proc)
-                if(associated(RF_3D_Proc)) nullify(RF_3D_Proc)
-
             end do
+        end if
 
-            if(allocated(unityPartition)) deallocate(unityPartition)
+        build_times(3) = MPI_Wtime() !Sampling
 
-            if(IPT%write_intermediate_files) then
-                MONO_FileName = string_join_many("LOC_L1_P", numb2String(IPT%rang), "BEF_Cor-GROUP",numb2String(IPT%gen_group))
-                if(IPT%gen_rang == 0) call write_MONO_proc_result(xMin_Group, xMax_Group, &
-                                                              IPT%xStep, IPT%nDim, &
-                                                              randField_Group(:,1), MONO_FileName, &
-                                                              IPT%outputFolder)
+        if(IPT%write_intermediate_files) then
+            MONO_FileName = string_join_many("LOC_L1_P", numb2String(IPT%rang), "BEF_Cor-GROUP",numb2String(IPT%gen_group))
+            if(IPT%gen_rang == 0) call write_MONO_proc_result(xMin_Group, xMax_Group, &
+                                                          IPT%xStep, IPT%nDim, &
+                                                          randField_Group(:,1), MONO_FileName, &
+                                                          single_path)
+        end if
+
+        !Correcting Borders (From internal localization)
+        if(allocated(unityPartition)) deallocate(unityPartition)
+
+        if(IPT%loc_group == 0) then
+            allocate(unityPartition(xNTotal_Group))
+
+            call wLog("shape(randField_Group(:,1)) = ")
+            call wLog(shape(randField_Group(:,1)))
+            call wLog("shape(unityPartition) = ")
+            call wLog(shape(unityPartition))
+
+            if(any(shape(unityPartition) /= shape(randField_Group(:,1)))) then
+                write(*,*) "shape(randField_Group(:,1)) = ", shape(randField_Group(:,1))
+                write(*,*) "shape(unityPartition) = ", shape(unityPartition)
+                write(*,*) "ERROR in correcting borders, unityPartition and randField_Group don't have the same sizes"
             end if
 
-            !Correcting Borders
-            allocate(unityPartition(xNTotal_Group))
             call generateUnityPartition_Matrix(xNStep_Group, IPT%overlap, IPT%corrL, IPT%xStep,&
                                                1, unityPartition, IPT%nDim, &
                                                IPT%neigh, IPT%neighShift, reverse = .true.)
@@ -396,16 +329,7 @@ contains
                 if(IPT%gen_rang == 0) call write_MONO_proc_result(xMin_Group, xMax_Group, &
                                                               IPT%xStep, IPT%nDim, &
                                                               unityPartition, MONO_FileName, &
-                                                              IPT%outputFolder)
-            end if
-
-            call wLog("shape(randField_Group(:,1)) = ")
-            call wLog(shape(randField_Group(:,1)))
-            call wLog("shape(unityPartition) = ")
-            call wLog(shape(unityPartition))
-
-            if(any(shape(unityPartition) /= shape(randField_Group(:,1)))) then
-                write(*,*) "ERROR in internal localization, unityPartition and randField_Group don't have the same sizes"
+                                                              single_path)
             end if
 
             call wLog("BEFmaxval(randField_Group(:,:)) = ")
@@ -420,24 +344,30 @@ contains
                 if(IPT%gen_rang == 0) call write_MONO_proc_result(xMin_Group, xMax_Group, &
                                                               IPT%xStep, IPT%nDim, &
                                                               randField_Group(:,1), MONO_FileName, &
-                                                              IPT%outputFolder)
+                                                              single_path)
             end if
 
             call wLog("AFTmaxval(randField_Group(:,:)) = ")
             call wLog(maxval(randField_Group(:,:)))
             call wLog("AFTminval(randField_Group(:,:)) = ")
             call wLog(minval(randField_Group(:,:)))
+        end if
 
-            if(allocated(unityPartition)) deallocate(unityPartition)
-
-        end if !END INTERNAL LOCALIZATION
+        if(allocated(unityPartition)) deallocate(unityPartition)
 
         !call MPI_BARRIER(IPT%loc_Comm, code)
-        build_times(4) = MPI_Wtime() !Internal Localization Time
+        !build_times(4) = MPI_Wtime() !Internal Localization Time
 
          ! EXTERNAL LOCALIZATION-----------------------------------
          if(IPT%rang == 0) write(*,*) " "
-         if(IPT%rang == 0) write(*,*) "-> EXTERNAL LOCALIZATION----------------------------------------"
+         if(IPT%rang == 0) then
+            write(*,*) "-> EXTERNAL LOCALIZATION----------------------------------------"
+            if(IPT%extLoc) then
+                write(*,*) "YES"
+            else
+                write(*,*) "NO"
+            end if
+         end if
 
         if(IPT%loc_group == 0 .and. IPT%extLoc) then
             !Combining realizations (communicating between procs)
@@ -454,13 +384,21 @@ contains
                 if(IPT%gen_rang == 0) call write_MONO_proc_result(xMin_Group, xMax_Group, &
                                                                   IPT%xStep, IPT%nDim, &
                                                                   randField_Group(:,1), MONO_FileName, &
-                                                                  IPT%outputFolder)
+                                                                  single_path)
             end if
         end if
 
+        if(IPT%write_intermediate_files) then
+            MONO_FileName = string_join_many("EXT_LOC_L1_P", numb2String(IPT%rang), "-GROUP",numb2String(IPT%gen_group))
+            if(IPT%gen_rang == 0) call write_MONO_proc_result(xMin_Group, xMax_Group, &
+                                                          IPT%xStep, IPT%nDim, &
+                                                          randField_Group(:,1), MONO_FileName, &
+                                                          single_path)
+        end if
+
         !call MPI_BARRIER(IPT%loc_Comm, code)
-        build_times(5:9) = MPI_Wtime() !External Localization Time
-        times(6) = build_times(5) !External Localization Time
+        build_times(4:8) = MPI_Wtime() !External Localization Time
+        times(6) = build_times(4) !External Localization Time
 
         ! TRANSFORMATION AND OUTPUT WRITING
         if(IPT%rang == 0) write(*,*) "-> TRANFORMING AND WRITING OUTPUT--------------------"
@@ -472,18 +410,27 @@ contains
                                             IPT, build_times, BBoxPath, XMFPath)
         end if
 
+        if(IPT%write_intermediate_files) then
+            MONO_FileName = string_join_many("TRANS_LOC_L1_P", numb2String(IPT%rang), "-GROUP",numb2String(IPT%gen_group))
+            if(IPT%gen_rang == 0) call write_MONO_proc_result(xMin_Group, xMax_Group, &
+                                                          IPT%xStep, IPT%nDim, &
+                                                          randField_Group(:,1), MONO_FileName, &
+                                                          single_path)
+        end if
+
 
         if(IPT%rang == 0) call write_stat_input("./stat_input", BBoxPath)
 
         !call MPI_BARRIER(IPT%loc_Comm, code)
 
         if(allocated(unityPartition))   deallocate(unityPartition)
-        if(allocated(randField_inProc)) deallocate(randField_inProc)
+        if(allocated(randField_Gen)) deallocate(randField_Gen)
+        !if(allocated(randField_inProc)) deallocate(randField_inProc)
         if(allocated(randField_Local))  deallocate(randField_Local)
         if(allocated(randField_Group))  deallocate(randField_Group)
-        if(associated(RF_2D_Proc))  nullify(RF_2D_Proc)
+        !if(associated(RF_2D_Proc))  nullify(RF_2D_Proc)
         if(associated(RF_2D_Group)) nullify(RF_2D_Group)
-        if(associated(RF_3D_Proc))  nullify(RF_3D_Proc)
+        !if(associated(RF_3D_Proc))  nullify(RF_3D_Proc)
         if(associated(RF_3D_Group)) nullify(RF_3D_Group)
 
         !Build Times
@@ -511,19 +458,19 @@ contains
             call wLog("-> INTERPOLATING TO GIVEN MESH----------------------------------------")
             call interpolateToMesh(BBoxPath, IPT%coordList, UNV_randField, IPT%rang)
             call write_UNV_XMF_h5(UNV_randField, IPT%coordList, IPT%connectList, &
-                                  "UNV_", IPT%rang, IPT%outputFolder, &
+                                  "UNV_", IPT%rang, single_path, &
                                   IPT%comm, 0)
             if(allocated(UNV_randField)) deallocate(UNV_randField)
         end if
 
-        build_times(9) = MPI_Wtime() !Interpolation Time
+        build_times(8) = MPI_Wtime() !Interpolation Time
 
-        times(3:10) = build_times(2:9)
+        times(3:9) = build_times(2:8)
 
         BT_sum  = 0.0D0 !Just a temporary variable
         BT2_sum = 0.0D0 !Just a temporary variable
-        BT_sum(2:9)  = build_times(2:9)
-        BT2_sum(2:9) = build_times(1:8)
+        BT_sum(2:8)  = build_times(2:8)
+        BT2_sum(2:8) = build_times(1:7)
         build_times = BT_sum - BT2_sum
 
         !BT_stdDev = -1.0D0 !TEST
@@ -583,11 +530,6 @@ contains
             call wLog("BT_stdDev = ")
             call wLog(BT_stdDev)
 
-            call getcwd(MONO_FileName)
-            !write(*,*) "PATH: ", MONO_FileName
-            write(*,*) "OUTPUT HDF5 ON: ", trim(string_join_many(MONO_FileName, BBoxPath(2:)))
-            write(*,*) "OUTPUT XMF  ON: ", trim(string_join_many(MONO_FileName, XMFPath(2:)))
-
             call write_HDF5_attributes(BBoxPath, &
                 IPT%nb_procs, IPT%nDim, IPT%Nmc, IPT%method, IPT%seedStart, &
                 IPT%corrMod, IPT%margiFirst, &
@@ -595,68 +537,29 @@ contains
                 IPT%localizationLevel, IPT%nFields, &
                 IPT%xMinGlob, IPT%xMaxGlob, IPT%xStep, IPT%corrL, IPT%overlap, &
                 IPT%procExtent, kMax_out, kNStep_out)
+
+            call getcwd(MONO_FileName)
+            !write(*,*) "PATH: ", MONO_FileName
+            write(*,*) "OUTPUT HDF5 ON: ", trim(string_join_many(MONO_FileName, BBoxPath(2:)))
+            inquire(FILE=trim(string_join_many(MONO_FileName, BBoxPath(2:))), SIZE=file_bytes_size)
+            file_mb_size = dble(file_bytes_size)/dble(1024.0D0 ** 2.0D0)
+            write(*,*) "    file_mb_size: ", file_mb_size
+            write(*,*) "OUTPUT XMF  ON: ", trim(string_join_many(MONO_FileName, XMFPath(2:)))
         end if
 
 
         if(allocated(xMinFiles))        deallocate(xMinFiles)
         if(allocated(xMaxFiles))        deallocate(xMaxFiles)
         if(allocated(unityPartition))   deallocate(unityPartition)
-        if(allocated(randField_inProc)) deallocate(randField_inProc)
+        if(allocated(randField_Gen)) deallocate(randField_Gen)
+        !if(allocated(randField_inProc)) deallocate(randField_inProc)
         if(allocated(randField_Local))  deallocate(randField_Local)
         if(allocated(randField_Group))  deallocate(randField_Group)
-        if(associated(RF_2D_Proc))  nullify(RF_2D_Proc)
         if(associated(RF_2D_Group)) nullify(RF_2D_Group)
-        if(associated(RF_3D_Proc))  nullify(RF_3D_Proc)
         if(associated(RF_3D_Group)) nullify(RF_3D_Group)
+        !if(associated(RF_2D_Gen))  nullify(RF_2D_Gen)
+        !if(associated(RF_3D_Gen))  nullify(RF_3D_Gen)
 
     end subroutine build_random_field
-!    !-----------------------------------------------------------------------------------------------
-!    !-----------------------------------------------------------------------------------------------
-!    !-----------------------------------------------------------------------------------------------
-!    !-----------------------------------------------------------------------------------------------
-!    subroutine create_RF_Unstruct_noInit (xPoints, corrL, corrMod, Nmc,   &
-!                                          randField, method, seedStart,   &
-!                                          margiFirst, fieldAvg, fieldVar, &
-!                                          comm, rang, nb_procs, calculate, MSH)
-!        !INPUT
-!        double precision, dimension(1:, 1:), intent(in), target :: xPoints;
-!        double precision, dimension(1:)    , intent(in) :: corrL;
-!        integer                            , intent(in) :: corrMod;
-!        integer                            , intent(in) :: Nmc;
-!        integer                            , intent(in) :: method
-!        integer                            , intent(in) :: seedStart
-!        integer                            , intent(in) :: margiFirst;
-!        double precision                   , intent(in) :: fieldAvg
-!        double precision                   , intent(in) :: fieldVar;
-!        integer                            , intent(in) :: comm, rang, nb_procs
-!        logical, dimension(1:), optional   , intent(in) :: calculate
-!        type(MESH), intent(inout) :: MSH
-!
-!        !OUTPUT
-!        double precision, dimension(:, :), intent(out), target :: randField;
-!
-!        !LOCAL
-!        type(RF) :: RDF
-!
-!        write(*,*) "Inside create_RF_Unstruct_noInit"
-!
-!        !Initializing RF
-!        call init_RF(RDF, size(corrL), Nmc, comm, rang, nb_procs)
-!        RDF%xPoints   => xPoints
-!        RDF%randField => randField
-!        RDF%xNTotal    = size(RDF%xPoints, 2)
-!        RDF%corrL      = corrL
-!        RDF%corrMod    = corrMod
-!        RDF%Nmc        = Nmc
-!        RDF%method     = method
-!        RDF%seedStart  = seedStart
-!        RDF%margiFirst = margiFirst
-!        RDF%fieldAvg   = fieldAvg
-!        RDF%fieldVar   = fieldVar
-!        if(present(calculate)) RDF%calculate  = calculate
-!
-!        call create_RF_Unstruct_Init(RDF, MSH)
-!
-!    end subroutine create_RF_Unstruct_noInit
 
 end module calls_RF

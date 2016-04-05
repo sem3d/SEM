@@ -117,13 +117,13 @@ module type_MESH
             MESH_a%method   = IPT%method
             MESH_a%pointsPerCorrL = IPT%pointsPerCorrL
             MESH_a%overlap(:)     = IPT%overlap
-            !MESH_a%independent    = IPT%independent
+            MESH_a%xStep      = IPT%xStep
+            MESH_a%procExtent = IPT%procExtent
 
             MESH_a%xMaxBound     = -1
             MESH_a%xMinBound     = -1
             MESH_a%xMaxExt     = -1
             MESH_a%xMinExt     = -1
-            MESH_a%xStep    = -1
             MESH_a%xNStep   = -1
             MESH_a%xMaxInt  = -1
             MESH_a%xMinInt  = -1
@@ -153,7 +153,7 @@ module type_MESH
             integer, intent(in), optional :: unit_in
             logical, intent(in), optional :: forLog_in
             !LOCAL
-            character(len = 200) :: dblFmt, matDblFmt, intFmt, matIntFmt
+            character(len = buf_RF) :: dblFmt, matDblFmt, intFmt, matIntFmt
             integer :: unit
             logical :: forLog
             logical :: active

@@ -37,7 +37,7 @@ contains
         !LOCAL
         integer :: fileId
         integer :: cte = 100001
-        character(len=300) :: fullName
+        character(len=buf_RF) :: fullName
         integer :: nChar
 
         nChar = len(trim(numb2String(nb_procs-1)))

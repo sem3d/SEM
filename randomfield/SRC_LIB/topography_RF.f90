@@ -147,18 +147,16 @@ contains
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
-    subroutine set_local_bounding_box (MSH, xMinBound, xMaxBound, &
-                                       xNStep, xNTotal, origin, validProc, localization)
+    subroutine set_local_bounding_box (MSH, xMinBound, xMaxBound, xRange, &
+                                       xNStep, xNTotal, origin)
 
         implicit none
 
         type(MESH), intent(in) :: MSH
         !INPUT AND OUTPUT
-        double precision, dimension(:), intent(out) :: xMinBound, xMaxBound
+        double precision, dimension(:), intent(out) :: xMinBound, xMaxBound, xRange
         integer         , dimension(:), intent(out) :: xNStep, origin
         integer(kind=8) , intent(out) :: xNTotal
-        logical, intent(inout) :: validProc
-        logical, intent(in) :: localization
 
 
         !FFTW
@@ -170,89 +168,88 @@ contains
         double precision :: deltaLD
         integer :: LD
 
-        xMinBound = MSH%procStart
-        xMaxBound = MSH%procStart + MSH%procExtent
-        !where(MSH%coords == 0) xMinBound = MSH%procStart
-        !where(MSH%coords == MSH%procPerDim-1) xMaxBound = MSH%procStart + MSH%procExtent
 
-        validProc = .true.
+        xRange = MSH%xMaxGlob - MSH%xMinGlob
+        LD     = MSH%nDim
 
-        if(.not. localization) then
-            xMinBound = 0.0
-            xMaxBound = MSH%procExtent
-            !Slicing Last Dimension (LD)
-            LD      = MSH%nDim
-            deltaLD = MSH%procExtent(LD)/dble(MSH%nb_procs)
-            xMinBound(LD) = MSH%rang*deltaLD
-            xMaxBound(LD) = xMinBound(3) + deltaLD
+        !xMinBound = 0.0
+        !xMaxBound = MSH%procExtent
 
-            validProc = .true.
+        !Slicing Last Dimension (LD)
+        deltaLD = MSH%procExtent(LD)/dble(MSH%nb_procs)
+        xMinBound(LD) = MSH%rang*deltaLD
+        xMaxBound(LD) = xMinBound(LD) + deltaLD
+        xMinBound = xMinBound + MSH%procStart
+        xMaxBound = xMaxBound + MSH%procStart
 
-            !GLOBAL FFT
-            if(MSH%method == FFT) then
+        where(MSH%coords /= (MSH%procPerDim - 1)) xMaxBound = xMaxBound - MSH%xStep
 
-                xNStepGlob = find_xNStep(xMaxExt=(MSH%xMaxGlob - MSH%xMinGlob), xStep=MSH%xStep)
-                call wLog("xNStepGlob = ")
-                call wLog(xNStepGlob)
+        !FFT
+        if(MSH%method == FFT) then
 
-                call wLog("FFT Local Division")
+            call wLog("IN MSH%xMaxGlob = ")
+            call wLog(MSH%xMaxGlob)
+            call wLog("IN MSH%xMinGlob = ")
+            call wLog(MSH%xMinGlob)
+            call wLog("IN MSH%xStep = ")
+            call wLog(MSH%xStep)
 
-                if(xNStepGlob(MSH%nDim) < MSH%nb_procs) stop("ERROR!! When using parallel FFT the last dimension should have at least 1 slice by proc")
+            xNStepGlob = find_xNStep(xMaxExt=(MSH%xMaxGlob - MSH%xMinGlob), xStep=MSH%xStep)
+            call wLog("OUT xNStepGlob = ")
+            call wLog(xNStepGlob)
 
-                if(MSH%nDim == 2) then
-                    L = xNStepGlob(1)
-                    M = xNStepGlob(2)
-                    alloc_local = fftw_mpi_local_size_2d(M, L, MSH%comm, &
-                                                         local_LastDim, local_LD_offset) !FOR MPI
-                else if(MSH%nDim == 3) then
-                    L = xNStepGlob(1)
-                    M = xNStepGlob(2)
-                    N = xNStepGlob(3)
-                    alloc_local = fftw_mpi_local_size_3d(N, M, L, MSH%comm, &
-                                                         local_LastDim, local_LD_offset) !FOR MPI
-                else
-                    stop("Inside set_local_extremes no mesh division for FFT in this dimension")
-                end if
+            call wLog("FFT Local Division")
 
-                call wLog("local_LastDim = ")
-                call wLog(local_LastDim)
-                call wLog("local_LD_offset = ")
-                call wLog(local_LD_offset)
+            if(xNStepGlob(MSH%nDim) < MSH%nb_procs) stop("ERROR!! When using parallel FFT the last dimension should have at least 1 slice by proc")
 
-                if(local_LastDim == 0) then
-                    validProc = .false.
-                    call wLog("PROCESSOR IGNORED BY FFTW DECOMPOSITION")
-                end if
-
-                xMinBound = MSH%xMinGlob
-                xMinBound(MSH%nDim) = MSH%xMinGlob(MSH%nDim) + dble(local_LD_offset)*MSH%xStep(MSH%nDim)
-                xMaxBound = MSH%xMaxGlob
-                xMaxBound(MSH%nDim) = xMinBound(MSH%nDim) + dble(local_LastDim-1)*MSH%xStep(MSH%nDim)
-
+            if(MSH%nDim == 2) then
+                L = xNStepGlob(1)
+                M = xNStepGlob(2)
+                alloc_local = fftw_mpi_local_size_2d(M, L, MSH%comm, &
+                                                     local_LastDim, local_LD_offset) !FOR MPI
+            else if(MSH%nDim == 3) then
+                L = xNStepGlob(1)
+                M = xNStepGlob(2)
+                N = xNStepGlob(3)
+                alloc_local = fftw_mpi_local_size_3d(N, M, L, MSH%comm, &
+                                                     local_LastDim, local_LD_offset) !FOR MPI
             else
-                !Taking out the repeated point on the positive extreme
-                where(MSH%coords /= (MSH%procPerDim - 1)) xMaxBound = xMaxBound - MSH%xStep
-
+                stop("Inside set_local_extremes no mesh division for FFT in this dimension")
             end if
+
+            call wLog("local_LastDim = ")
+            call wLog(local_LastDim)
+            call wLog("local_LD_offset = ")
+            call wLog(local_LD_offset)
+
+            if(local_LastDim == 0) then
+                !validProc = .false.
+                write(*,*) "ERROR!! Validated processor ignored in FFTW"
+                stop(" ")
+            end if
+
+            xMinBound = MSH%xMinGlob
+            xMinBound(LD) = MSH%xMinGlob(LD) + dble(local_LD_offset)*MSH%xStep(LD)
+            xMaxBound = MSH%xMaxGlob
+            xMaxBound(LD) = xMinBound(LD) + dble(local_LastDim-1)*MSH%xStep(LD)
+
         end if
 
-        if(validProc) then
-            call wLog("        OUT xMinBound = ")
-            call wLog(xMinBound)
-            call wLog("        OUT xMaxBound = ")
-            call wLog(xMaxBound)
+        call wLog("        OUT xMinBound = ")
+        call wLog(xMinBound)
+        call wLog("        OUT xMaxBound = ")
+        call wLog(xMaxBound)
 
-            xNStep = find_xNStep(xMinBound, xMaxBound, MSH%xStep)
-            origin = find_xNStep(MSH%xMinGlob, xMinBound , MSH%xStep)
-            xNTotal = product(int(xNStep,8))
+        xNStep = find_xNStep(xMinBound, xMaxBound, MSH%xStep)
+        origin = find_xNStep(MSH%xMinGlob, xMinBound , MSH%xStep)
+        xNTotal = product(int(xNStep,8))
 
-            call wLog("        OUT xNStep = ")
-            call wLog(xNStep)
-            call wLog("        OUT xNTotal = ")
-            call wLog(xNTotal)
-            call wLog("        OUT origin = ")
-            call wLog(origin)
-        end if
+        call wLog("        OUT xNStep = ")
+        call wLog(xNStep)
+        call wLog("        OUT xNTotal = ")
+        call wLog(xNTotal)
+        call wLog("        OUT origin = ")
+        call wLog(origin)
 
     end subroutine set_local_bounding_box
 
@@ -453,44 +450,92 @@ contains
     !---------------------------------------------------------------------------------
     !---------------------------------------------------------------------------------
     !---------------------------------------------------------------------------------
-    subroutine set_validProcs_comm(valid, comm, rang, validProcMSH, validProcRDF, &
-                                   commMSH, commRDF, nProcsMSH, nProcsRDF, rangMSH, rangRDF)
+    subroutine set_validProcs_comm(IPT, fieldComm, valid, validComm)
 
         implicit none
 
         !INPUT
-        logical, intent(in) :: valid
-        integer, intent(in) :: comm
-        integer, intent(in) :: rang
+        type(IPT_RF), intent(in) :: IPT
+        integer, intent(in) :: fieldComm
+
         !OUTPUT
-        logical, intent(out) :: validProcMSH
-        logical, intent(out) :: validProcRDF
-        integer, intent(out) :: commMSH, commRDF
-        integer, intent(out) :: nProcsMSH, nProcsRDF
-        integer, intent(out) :: rangMSH, rangRDF
+        logical, intent(out) :: valid
+        integer, intent(out) :: validComm
+
 
         !LOCAL
         integer :: newComm, newNbProcs, newRang, code, color
+        integer, dimension(IPT%nDim) :: xNStepGlob
+        !FFTW
+        integer(C_INTPTR_T) :: L, M, N
+        integer(C_INTPTR_T) :: local_LastDim
+        integer(C_INTPTR_T) :: local_LD_offset
+        integer(C_INTPTR_T) :: alloc_local
+        double precision :: deltaLD
+        integer :: LD
+        integer :: gen_rang, gen_nb_Procs
 
-        validProcRDF = valid
-        validProcMSH = valid
+        !Checking communicator
+        call MPI_COMM_RANK(fieldComm, gen_rang, code)
+        call MPI_COMM_SIZE(fieldComm, gen_nb_Procs, code)
 
-        if(validProcMSH) then
+        !Geometric requirements
+        xNStepGlob = find_xNStep(xMaxExt=IPT%procExtent, xStep=IPT%xStep)
+        LD = IPT%nDim !LD = Last Dimension
+        valid = .true.
+        call wLog("xNStepGlob = ")
+        call wLog(xNStepGlob)
+
+        !FFT
+        if(IPT%method == FFT) then
+            call wLog("Verification (FFT)--------")
+
+            if(IPT%nDim == 2) then
+                L = xNStepGlob(1)
+                M = xNStepGlob(2)
+                alloc_local = fftw_mpi_local_size_2d(M, L, fieldComm, &
+                                                     local_LastDim, local_LD_offset) !FOR MPI
+            else if(IPT%nDim == 3) then
+                L = xNStepGlob(1)
+                M = xNStepGlob(2)
+                N = xNStepGlob(3)
+                alloc_local = fftw_mpi_local_size_3d(N, M, L, fieldComm, &
+                                                     local_LastDim, local_LD_offset) !FOR MPI
+            else
+                stop("Inside set_local_extremes no mesh division for FFT in this dimension")
+            end if
+
+            call wLog("local_LastDim = ")
+            call wLog(local_LastDim)
+            call wLog("local_LD_offset = ")
+            call wLog(local_LD_offset)
+
+            if(local_LastDim == 0) then
+                valid = .false.
+                call wLog("PROCESSOR IGNORED BY FFTW DECOMPOSITION")
+            end if
+
+        else
+
+            call wLog("Verification (Geometry)--------")
+            if(gen_rang > xNStepGlob(LD)-1) then
+                valid = .false.
+                call wLog("Verification - proc OK")
+            else
+                call wLog("Verification - proc KO (won't be used for generation)")
+            end if
+
+        end if
+
+        if(valid) then
             color = 1
         else
             color = 0
         end if
 
-        call MPI_COMM_SPLIT(comm, color, rang, newComm, code)
-        call MPI_COMM_SIZE(newComm, newNbProcs, code)
-        call MPI_COMM_RANK(newComm, newRang, code)
-
-        commMSH = newComm
-        commRDF = newComm
-        nProcsMSH = newNbProcs
-        nProcsRDF = newNbProcs
-        rangMSH = newRang
-        rangRDF = newRang
+        call MPI_COMM_SPLIT(fieldComm, color, gen_rang, validComm, code)
+        call MPI_COMM_SIZE(validComm, newNbProcs, code)
+        call MPI_COMM_RANK(validComm, newRang, code)
 
     end subroutine set_validProcs_comm
 

@@ -89,26 +89,34 @@ contains
 
     end subroutine rename_folder
 
-!    !-----------------------------------------------------------------------------------------------
-!    !-----------------------------------------------------------------------------------------------
-!    !-----------------------------------------------------------------------------------------------
-!    !-----------------------------------------------------------------------------------------------
-!    function folderExist (folder, path, compiler) result (dirExists)
-!        implicit none
-!        !INPUT
-!        character(len = *), intent(in) :: folder, path
-!        integer, intent(in) :: compiler !1 for gfortran and 2 for ifort
-!        !OUTPUT
-!        logical :: dirExists
-!        !LOCAL
-!        character(len = 200) fullName
-!
-!        !fullName = trim(adjustL(path)) // "/" // trim(adjustL(folder))
-!
-!        !if(compiler == 1) inquire( file=trim(fullName)//'/.', exist=dirExists )  ! Works with gfortran, but not ifort
-!        !if(compiler == 2) inquire( directory=fullName, exist=dirExists )         ! Works with ifort, but not gfortran
-!        dirExists=.false.
-!    end function folderExist
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    function folderExist (folder, path) result (dirExists)
+        implicit none
+        !INPUT
+        character(len = *), intent(in) :: folder, path
+        !OUTPUT
+        logical :: dirExists
+        !LOCAL
+        character(len=1024) :: filePath
+        integer :: i, fileId=56, error
+
+        filePath = trim(adjustL(path))//"/"//trim(adjustL(folder))//"/INQUIRE_file"
+        !write(*,*) "filePath = ", trim(filePath)
+
+        dirExists = .false.
+        open (unit = fileId , file = filePath, action = 'write', iostat=error)
+        !write(*,*) "error = ", error
+        if(error==0) then
+            close(fileId)
+            dirExists = .true.
+            call system("rm "//filePath)
+        end if
+
+
+    end function folderExist
 
 end module systemUt_RF
 

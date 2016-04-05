@@ -3,7 +3,6 @@ module type_inputRF
     use mpi
     use readFile_RF
     use readUNV_RF
-    use systemUt_RF
 
     implicit none
 
@@ -21,6 +20,7 @@ module type_inputRF
         double precision, dimension(:), allocatable :: xMaxGlob, xMinGlob;
         double precision, dimension(:), allocatable :: xMaxGlob_in, xMinGlob_in;
         integer         , dimension(:), allocatable :: pointsPerCorrL;
+        integer         , dimension(:), allocatable :: procPerDim
         integer         , dimension(:), allocatable :: coords
         !UNV
         double precision, dimension(:,:), allocatable :: coordList_local
@@ -29,7 +29,7 @@ module type_inputRF
         integer         , dimension(:,:), pointer :: connectList
         logical :: monotype
         logical :: unv = .false.
-        character(len=buf_RF) :: unv_path, outputFolder, outputName
+        character(len=1024) :: unv_path
 
         !GENERATION
         integer :: nDim_gen
@@ -68,101 +68,6 @@ contains
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
-        subroutine init_IPT_RF_std(&
-                                    IPT, &
-                                    comm, &
-                                    nDim, &
-                                    xMinGlob_in, &
-                                    xMaxGlob_in, &
-                                    fieldAvg, &
-                                    fieldVar, &
-                                    corrL_in, &
-                                    corrMod, &
-                                    margiFirst, &
-                                    seedStart, &
-                                    outputFolder, &
-                                    outputName)
-
-            !OUTPUT
-            type(IPT_RF), intent(inout)  :: IPT
-
-            !INPUT----------------------------------
-            integer, intent(in) :: comm
-            integer, intent(in) :: nDim
-
-            !MESH
-            double precision, dimension(:), intent(in) :: xMaxGlob_in, xMinGlob_in;
-
-            !GENERATION
-            double precision, intent(in)   :: fieldAvg, fieldVar
-            double precision, dimension(:), intent(in) :: corrL_in
-            character(len=*) :: outputFolder, outputName
-            integer, intent(in) :: corrMod!1 for Gaussian
-            integer, intent(in) :: margiFirst!1 for Gaussian, 2 for Lognormal
-            integer, intent(in) :: seedStart
-
-            !LOCAL
-            integer :: method!1 for Isotropic, 2 for Shinozuka, 3 for Randomization, 4 for FFT
-            integer :: log_ID
-            integer :: rang
-            integer :: nb_procs
-            integer :: code
-
-            method = 4
-            log_ID = 0
-#ifdef MAKELOG
-            stop("init_IPT_RF_std cannot be used if MAKELOG is activated")
-#endif
-            call MPI_COMM_RANK(comm, rang, code)
-            call MPI_COMM_SIZE(comm, nb_procs, code)
-
-            call create_folder(outputFolder, ".", rang, comm)
-            !create xmf and h5 folders
-            call create_folder("xmf", outputFolder, rang, comm)
-            call create_folder("h5", outputFolder, rang, comm)
-
-            call allocate_IPT_RF(IPT, nDim, log_ID, rang, comm, nb_procs)
-
-            IPT%nDim_mesh = nDim
-            IPT%nDim_gen  = nDim
-            IPT%meshMod   = 1
-            IPT%xMaxGlob_in = xMaxGlob_in
-            IPT%xMinGlob_in = xMinGlob_in
-            IPT%pointsPerCorrL = 5
-            nullify(IPT%coordList)
-            nullify(IPT%connectList)
-            IPT%monotype = .false.
-            IPT%unv = .false.
-            IPT%fieldAvg = fieldAvg
-            IPT%fieldVar = fieldVar
-            IPT%corrL_in    = corrL_in
-            IPT%overlap_in  = 0.0D0
-            IPT%corrMod  = corrMod
-            IPT%method   = method
-            IPT%Nmc      = 1
-            IPT%nFields  = 1
-            IPT%margiFirst    = margiFirst
-            IPT%seedStart     = seedStart
-            IPT%localizationLevel = 1
-            IPT%writeDataSet = .true.
-            IPT%sameFolder = .true.
-            IPT%outputStyle = 1
-            IPT%write_intermediate_files = .false.
-            IPT%sampleFields = .true.
-            IPT%writeUNVinterpolation = .false.
-            IPT%outputFolder = outputFolder
-            IPT%outputName = outputName
-
-            IPT%xMinGlob = IPT%xMinGlob_in
-            IPT%xMaxGlob = IPT%xMaxGlob_in
-
-            IPT%init   = .true.
-
-        end subroutine init_IPT_RF_std
-        !---------------------------------------------------------------------------------
-        !---------------------------------------------------------------------------------
-        !---------------------------------------------------------------------------------
-        !---------------------------------------------------------------------------------
         subroutine init_IPT_RF(&
         IPT, &
         log_ID, &
@@ -174,6 +79,7 @@ contains
         xMaxGlob_in, &
         xMinGlob_in, &
         pointsPerCorrL, &
+        procPerDim, &
         coordList_local, &
         connectList_local, &
         monotype, &
@@ -195,9 +101,7 @@ contains
         outputStyle, &
         write_intermediate_files, &
         sampleFields, &
-        writeUNVinterpolation, &
-        outputFolder, &
-        outputName)
+        writeUNVinterpolation  )
 
             !OUTPUT
             type(IPT_RF), intent(inout)  :: IPT
@@ -213,6 +117,7 @@ contains
             integer, intent(in) :: meshMod
             double precision, dimension(:), intent(in) :: xMaxGlob_in, xMinGlob_in;
             integer         , dimension(:), intent(in) :: pointsPerCorrL;
+            integer         , dimension(:), intent(in) :: procPerDim
             !UNV
             double precision, dimension(:,:), intent(in), target :: coordList_local
             integer         , dimension(:,:), intent(in), target :: connectList_local
@@ -229,7 +134,6 @@ contains
             integer, intent(in) :: Nmc, seedStart
             integer, dimension(:), intent(in) :: nFields
             integer, intent(in) :: localizationLevel
-            character(len=*) :: outputFolder, outputName
 
             !FILE MANAGER
             logical, intent(in) :: writeDataSet
@@ -238,11 +142,6 @@ contains
             logical, intent(in) :: write_intermediate_files
             logical, intent(in) :: sampleFields
             logical, intent(in) :: writeUNVinterpolation
-
-            !create xmf and h5 folders
-            call create_folder(outputFolder, ".", rang, comm)
-            call create_folder("xmf", outputFolder, rang, comm)
-            call create_folder("h5", outputFolder, rang, comm)
 
             call allocate_IPT_RF(IPT, nDim, log_ID, rang, comm, nb_procs)
 
@@ -268,6 +167,7 @@ contains
             IPT%nFields  = nFields
             IPT%margiFirst    = margiFirst
             IPT%seedStart     = seedStart
+            IPT%procPerDim = procPerDim
             IPT%localizationLevel = localizationLevel
             IPT%writeDataSet = writeDataSet
             IPT%sameFolder = sameFolder
@@ -275,8 +175,6 @@ contains
             IPT%write_intermediate_files = write_intermediate_files
             IPT%sampleFields = sampleFields
             IPT%writeUNVinterpolation = writeUNVinterpolation
-            IPT%outputFolder = outputFolder
-            IPT%outputName = outputName
 
             IPT%xMinGlob = IPT%xMinGlob_in
             IPT%xMaxGlob = IPT%xMaxGlob_in
@@ -305,6 +203,7 @@ contains
             if(.not. allocated(IPT%pointsPerCorrL)) allocate(IPT%pointsPerCorrL(nDim))
             if(.not. allocated(IPT%corrL_in)) allocate(IPT%corrL_in(nDim))
             if(.not. allocated(IPT%overlap_in)) allocate(IPT%overlap_in(nDim))
+            if(.not. allocated(IPT%procPerDim)) allocate(IPT%procPerDim(nDim))
             if(.not. allocated(IPT%nFields)) allocate(IPT%nFields(nDim))
             !Process
             if(.not. allocated(IPT%corrL)) allocate(IPT%corrL(nDim))
@@ -349,6 +248,7 @@ contains
             if(allocated(IPT%pointsPerCorrL)) deallocate(IPT%pointsPerCorrL)
             if(allocated(IPT%corrL_in)) deallocate(IPT%corrL_in)
             if(allocated(IPT%overlap_in)) deallocate(IPT%overlap_in)
+            if(allocated(IPT%procPerDim)) deallocate(IPT%procPerDim)
             if(allocated(IPT%nFields)) deallocate(IPT%nFields)
             if(allocated(IPT%xMaxGlob_in)) deallocate(IPT%xMaxGlob_in)
             if(allocated(IPT%xMinGlob_in)) deallocate(IPT%xMinGlob_in)
@@ -371,80 +271,81 @@ contains
 
         end subroutine finalize_IPT_RF
 
-!        !---------------------------------------------------------------------------------
-!        !---------------------------------------------------------------------------------
-!        !---------------------------------------------------------------------------------
-!        !---------------------------------------------------------------------------------
-!        subroutine copy_IPT_RF(IPT, IPT_orig)
-!
-!            implicit none
-!
-!            !INPUT
-!            type(IPT_RF), intent(in)  :: IPT_orig
-!            !OUTPUT
-!            type(IPT_RF), intent(inout)  :: IPT
-!
-!            IPT%init   = IPT_orig%init
-!            IPT%xMaxGlob = IPT_orig%xMaxGlob
-!            IPT%xMinGlob = IPT_orig%xMinGlob
-!            IPT%xMinGlob_in = IPT_orig%xMinGlob_in
-!            IPT%xMinGlob_in = IPT_orig%xMinGlob_in
-!            IPT%pointsPerCorrL = IPT_orig%pointsPerCorrL
-!            IPT%corrL_in   = IPT_orig%corrL_in
-!            IPT%overlap_in = IPT_orig%overlap_in
-!            IPT%nFields = IPT_orig%nFields
-!            IPT%log_ID = IPT_orig%log_ID
-!            IPT%rang   = IPT_orig%rang
-!            IPT%overlap = IPT_orig%overlap
-!            IPT%comm = IPT_orig%comm
-!            IPT%nb_procs = IPT_orig%nb_procs
-!            IPT%writeDataSet = IPT_orig%writeDataSet
-!
-!            IPT%nDim_mesh = IPT_orig%nDim_mesh
-!            IPT%meshMod = IPT_orig%meshMod
-!
-!            IPT%coordList   => IPT_orig%coordList
-!            IPT%connectList => IPT_orig%connectList
-!
-!            !UNV
-!            !if(allocated(IPT_orig%coordList)) then
-!            !    if(.not. allocated(IPT%coordList)) then
-!            !        allocate(IPT%coordList(size(IPT_orig%connectList,1), size(IPT_orig%connectList,2)))
-!            !    end if
-!            !    IPT%coordList = IPT_orig%coordList
-!            !end if
-!            !if(allocated(IPT_orig%connectList)) then
-!            !   if(.not. allocated(IPT%connectList)) then
-!            !        allocate(IPT%connectList(size(IPT_orig%connectList,1), size(IPT_orig%connectList,2)))
-!            !    end if
-!            !    IPT%connectList = IPT_orig%connectList
-!            !end if
-!
-!            IPT%monotype = IPT_orig%monotype
-!            IPT%unv = IPT_orig%unv
-!            IPT%unv_path = IPT_orig%unv_path
-!
-!            !GENERATION
-!            IPT%nDim_gen = IPT_orig%nDim_gen
-!            IPT%fieldAvg = IPT_orig%fieldAvg
-!            IPT%fieldVar = IPT_orig%fieldVar
-!            IPT%margiFirst = IPT_orig%margiFirst
-!            IPT%corrL = IPT_orig%corrL
-!            IPT%overlap = IPT_orig%overlap
-!            IPT%corrMod = IPT_orig%corrMod
-!            IPT%method = IPT_orig%method
-!            IPT%Nmc = IPT_orig%Nmc
-!            IPT%seedStart = IPT_orig%seedStart
-!            IPT%nFields = IPT_orig%nFields
-!            IPT%localizationLevel = IPT_orig%localizationLevel
-!
-!            IPT%corrL = IPT_orig%corrL
-!            IPT%overlap = IPT_orig%overlap
-!            IPT%xStep = IPT_orig%xStep
-!            IPT%stepProc = IPT_orig%stepProc
-!            IPT%procExtent = IPT_orig%procExtent
-!
-!        end subroutine copy_IPT_RF
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        subroutine copy_IPT_RF(IPT, IPT_orig)
+
+            implicit none
+
+            !INPUT
+            type(IPT_RF), intent(in)  :: IPT_orig
+            !OUTPUT
+            type(IPT_RF), intent(inout)  :: IPT
+
+            IPT%init   = IPT_orig%init
+            IPT%xMaxGlob = IPT_orig%xMaxGlob
+            IPT%xMinGlob = IPT_orig%xMinGlob
+            IPT%xMinGlob_in = IPT_orig%xMinGlob_in
+            IPT%xMinGlob_in = IPT_orig%xMinGlob_in
+            IPT%pointsPerCorrL = IPT_orig%pointsPerCorrL
+            IPT%corrL_in   = IPT_orig%corrL_in
+            IPT%overlap_in = IPT_orig%overlap_in
+            IPT%procPerDim = IPT_orig%procPerDim
+            IPT%nFields = IPT_orig%nFields
+            IPT%log_ID = IPT_orig%log_ID
+            IPT%rang   = IPT_orig%rang
+            IPT%overlap = IPT_orig%overlap
+            IPT%comm = IPT_orig%comm
+            IPT%nb_procs = IPT_orig%nb_procs
+            IPT%writeDataSet = IPT_orig%writeDataSet
+
+            IPT%nDim_mesh = IPT_orig%nDim_mesh
+            IPT%meshMod = IPT_orig%meshMod
+
+            IPT%coordList   => IPT_orig%coordList
+            IPT%connectList => IPT_orig%connectList
+
+            !UNV
+            !if(allocated(IPT_orig%coordList)) then
+            !    if(.not. allocated(IPT%coordList)) then
+            !        allocate(IPT%coordList(size(IPT_orig%connectList,1), size(IPT_orig%connectList,2)))
+            !    end if
+            !    IPT%coordList = IPT_orig%coordList
+            !end if
+            !if(allocated(IPT_orig%connectList)) then
+            !   if(.not. allocated(IPT%connectList)) then
+            !        allocate(IPT%connectList(size(IPT_orig%connectList,1), size(IPT_orig%connectList,2)))
+            !    end if
+            !    IPT%connectList = IPT_orig%connectList
+            !end if
+
+            IPT%monotype = IPT_orig%monotype
+            IPT%unv = IPT_orig%unv
+            IPT%unv_path = IPT_orig%unv_path
+
+            !GENERATION
+            IPT%nDim_gen = IPT_orig%nDim_gen
+            IPT%fieldAvg = IPT_orig%fieldAvg
+            IPT%fieldVar = IPT_orig%fieldVar
+            IPT%margiFirst = IPT_orig%margiFirst
+            IPT%corrL = IPT_orig%corrL
+            IPT%overlap = IPT_orig%overlap
+            IPT%corrMod = IPT_orig%corrMod
+            IPT%method = IPT_orig%method
+            IPT%Nmc = IPT_orig%Nmc
+            IPT%seedStart = IPT_orig%seedStart
+            IPT%nFields = IPT_orig%nFields
+            IPT%localizationLevel = IPT_orig%localizationLevel
+
+            IPT%corrL = IPT_orig%corrL
+            IPT%overlap = IPT_orig%overlap
+            IPT%xStep = IPT_orig%xStep
+            IPT%stepProc = IPT_orig%stepProc
+            IPT%procExtent = IPT_orig%procExtent
+
+        end subroutine copy_IPT_RF
 
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
