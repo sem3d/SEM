@@ -69,6 +69,7 @@ contains
         el%PML = .false.
         el%CPML = .false.
         el%ADEPML = .false.
+        el%acoustic = .false.
         el%OUTPUT = .true.
         el%dist_max = 0.0
         el%type_DG = GALERKIN_CONT
@@ -385,6 +386,67 @@ contains
 
       return
     end subroutine compute_InternalForces_DG_Weak
+
+
+    ! ###########################################################
+
+    !>
+    !! \brief Calcul des forces internes HDG pour partie acoustique en formulation
+    !! vitesse - deformation scalaire.
+    !!
+    !! \param type (Element), intent (INOUT) Elem
+    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) hprime
+    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) hTprimez
+    !<
+
+    subroutine  compute_InternalForces_HDG_Weak (Elem,hprime,hTprimez)
+      implicit none
+
+      type (Element), intent (INOUT) :: Elem
+      real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hprime
+      real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hTprimez
+      real, dimension ( 0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: aux1, aux2
+
+
+      if (Elem%acoustic) then ! ACOUSTIC CASE
+          aux1 = Elem%Acoeff(:,:,0)*Elem%Veloc(:,:,0) + Elem%Acoeff(:,:,1)*Elem%Veloc(:,:,1)
+          aux2 = Elem%Acoeff(:,:,1)*Elem%Veloc(:,:,0) + Elem%Acoeff(:,:,3)*Elem%Veloc(:,:,1)
+          Elem%Forces(:,:,0) = - MATMUL(hprime,aux1) - MATMUL(aux2,hTprimez)
+
+          aux1 = Elem%Lambda(:,:)*Elem%Strain(:,:,0)
+          Elem%Forces(:,:,0) = - MATMUL(hprime,(Elem%Acoeff(:,:,0)*aux1)) - MATMUL((Elem%Acoeff(:,:,1)*aux1),hTprimez)
+          Elem%Forces(:,:,1) = - MATMUL(hprime,(Elem%Acoeff(:,:,2)*aux1)) - MATMUL((Elem%Acoeff(:,:,3)*aux1),hTprimez)
+
+      else ! ELASTIC CASE
+          aux1 = Elem%Acoeff(:,:,0)*Elem%Veloc(:,:,0)
+          aux2 = Elem%Acoeff(:,:,1)*Elem%Veloc(:,:,0)
+          Elem%Forces(:,:,0) = MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez)
+
+          aux1 = Elem%Acoeff(:,:,2)*Elem%Veloc(:,:,1)
+          aux2 = Elem%Acoeff(:,:,3)*Elem%Veloc(:,:,1)
+          Elem%Forces(:,:,1) = MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez)
+
+          aux1 = Elem%Acoeff(:,:,0)*Elem%Veloc(:,:,1) + Elem%Acoeff(:,:,2)*Elem%Veloc(:,:,0)
+          aux2 = Elem%Acoeff(:,:,1)*Elem%Veloc(:,:,1) + Elem%Acoeff(:,:,3)*Elem%Veloc(:,:,0)
+          Elem%Forces(:,:,2) = 0.5 * (MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez))
+
+          aux1 = (Elem%Acoeff(:,:,4) + Elem%Acoeff(:,:,5))*Elem%Strain(:,:,0) + Elem%Acoeff(:,:,4)*Elem%Strain(:,:,1) &
+              + Elem%Acoeff(:,:,7)*Elem%Strain(:,:,2)
+          aux2 = (Elem%Acoeff(:,:,8) + Elem%Acoeff(:,:,9))*Elem%Strain(:,:,0) + Elem%Acoeff(:,:,8)*Elem%Strain(:,:,1) &
+              + Elem%Acoeff(:,:,11)*Elem%Strain(:,:,2)
+          Elem%Forces(:,:,3) = MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez)
+
+          aux1 = (Elem%Acoeff(:,:,7) + Elem%Acoeff(:,:,6))*Elem%Strain(:,:,1) + Elem%Acoeff(:,:,6)*Elem%Strain(:,:,0) &
+              + Elem%Acoeff(:,:,5)*Elem%Strain(:,:,2)
+          aux2 = (Elem%Acoeff(:,:,11) + Elem%Acoeff(:,:,10))*Elem%Strain(:,:,1) + Elem%Acoeff(:,:,10)*Elem%Strain(:,:,0) &
+              + Elem%Acoeff(:,:,9)*Elem%Strain(:,:,2)
+          Elem%Forces(:,:,4) = MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez)
+
+          Elem%Forces(:,:,:) = - Elem%Forces(:,:,:)
+      endif
+
+      return
+    end subroutine compute_InternalForces_HDG_Weak
 
 
     ! ###########################################################

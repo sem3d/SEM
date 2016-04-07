@@ -282,7 +282,7 @@ subroutine Forward_Euler_Resolution (Tdomain,timelocal,Dt,computeVhat)
     ! Building second members (= forces) of systems.
     do n=0,Tdomain%n_elem-1
         mat = Tdomain%specel(n)%mat_index
-        call compute_InternalForces_DG_Weak(Tdomain%specel(n), &
+        call compute_InternalForces_HDG_Weak(Tdomain%specel(n), &
             Tdomain%sSubDomain(mat)%hprimex, &
             Tdomain%sSubDomain(mat)%hTprimez)
         if (computeVhat) &

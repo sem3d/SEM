@@ -105,19 +105,26 @@ subroutine define_arrays(Tdomain)
         Tdomain%specel(n)%MassMat  = Whei*Tdomain%specel(n)%Density*Jac
 
         if(Tdomain%specel(n)%Type_DG .NE. GALERKIN_CONT) then ! Discontinuous Galerkin
-            Tdomain%specel(n)%Acoeff(:,:,0) = Whei*xix*Jac
-            Tdomain%specel(n)%Acoeff(:,:,1) = Whei*etax*Jac
-            Tdomain%specel(n)%Acoeff(:,:,2) = Whei*xiz*Jac
-            Tdomain%specel(n)%Acoeff(:,:,3) = Whei*etaz*Jac
-            Tdomain%specel(n)%Acoeff(:,:,4) = Whei*xix*Rlam*Jac
-            Tdomain%specel(n)%Acoeff(:,:,5) = 2.*Whei*xix*Rmu*Jac
-            Tdomain%specel(n)%Acoeff(:,:,6) = Whei*xiz*Rlam*Jac
-            Tdomain%specel(n)%Acoeff(:,:,7) = 2.*Whei*xiz*Rmu*Jac
-            Tdomain%specel(n)%Acoeff(:,:,8) = Whei*etax*Rlam*Jac
-            Tdomain%specel(n)%Acoeff(:,:,9) = 2.*Whei*etax*Rmu*Jac
-            Tdomain%specel(n)%Acoeff(:,:,10)= Whei*etaz*Rlam*Jac
-            Tdomain%specel(n)%Acoeff(:,:,11)= 2.*Whei*etaz*Rmu*Jac
-            Tdomain%specel(n)%Acoeff(:,:,12)= Whei*Jac
+            if(Tdomain%specel(n)%acoustic) then
+                Tdomain%specel(n)%Acoeff(:,:,0) = Whei*xix*Jac
+                Tdomain%specel(n)%Acoeff(:,:,1) = Whei*etax*Jac
+                Tdomain%specel(n)%Acoeff(:,:,2) = Whei*xiz*Jac
+                Tdomain%specel(n)%Acoeff(:,:,3) = Whei*etaz*Jac
+            else ! Discontinuous Galerkin, usual
+                Tdomain%specel(n)%Acoeff(:,:,0) = Whei*xix*Jac
+                Tdomain%specel(n)%Acoeff(:,:,1) = Whei*etax*Jac
+                Tdomain%specel(n)%Acoeff(:,:,2) = Whei*xiz*Jac
+                Tdomain%specel(n)%Acoeff(:,:,3) = Whei*etaz*Jac
+                Tdomain%specel(n)%Acoeff(:,:,4) = Whei*xix*Rlam*Jac
+                Tdomain%specel(n)%Acoeff(:,:,5) = 2.*Whei*xix*Rmu*Jac
+                Tdomain%specel(n)%Acoeff(:,:,6) = Whei*xiz*Rlam*Jac
+                Tdomain%specel(n)%Acoeff(:,:,7) = 2.*Whei*xiz*Rmu*Jac
+                Tdomain%specel(n)%Acoeff(:,:,8) = Whei*etax*Rlam*Jac
+                Tdomain%specel(n)%Acoeff(:,:,9) = 2.*Whei*etax*Rmu*Jac
+                Tdomain%specel(n)%Acoeff(:,:,10)= Whei*etaz*Rlam*Jac
+                Tdomain%specel(n)%Acoeff(:,:,11)= 2.*Whei*etaz*Rmu*Jac
+                Tdomain%specel(n)%Acoeff(:,:,12)= Whei*Jac
+            endif
         else ! Continuous Galerkin (usual SEM) without PML
             if ((.NOT. Tdomain%specel(n)%PML)) then ! .AND. (.NOT. Tdomain%type_timeInteg == TIME_INTEG_RK4)) then
                 Tdomain%specel(n)%Acoeff(:,:,0) = -Whei*(RKmod*xix**2+Rmu*xiz**2) *Jac

@@ -52,12 +52,22 @@ subroutine allocate_domain (Tdomain)
          allocate (Tdomain%specel(n)%Strain(0:ngllx-1,0:ngllz-1,0:2))
          Tdomain%specel(n)%Strain = 0
          if(Tdomain%specel(n)%Type_DG==GALERKIN_HDG_RP) then
-             allocate (Tdomain%specel(n)%MatPen(0:2*(ngllx+ngllz)-1,0:2))
-             allocate (Tdomain%specel(n)%TracFace(0:2*(ngllx+ngllz)-1,0:1))
-             allocate (Tdomain%specel(n)%Vhat(0:2*(ngllx+ngllz)-1,0:1))
-             Tdomain%specel(n)%MatPen   = 0.
-             Tdomain%specel(n)%TracFace = 0.
-             Tdomain%specel(n)%Vhat     = 0.
+             if (Tdomain%specel(n)%acoustic) then ! Acoustic Element (velocity-pressure)
+                 deallocate(Tdomain%specel(n)%Forces,Tdomain%specel(n)%Strain)
+                 allocate (Tdomain%specel(n)%Strain(0:ngllx-1,0:ngllz-1,0))
+                 allocate (Tdomain%specel(n)%Forces(0:ngllx-1,0:ngllz-1,0:2))
+                 allocate (Tdomain%specel(n)%MatPen(0:2*(ngllx+ngllz)-1,0))
+                 allocate (Tdomain%specel(n)%TracFace(0:2*(ngllx+ngllz)-1,0))
+                 allocate (Tdomain%specel(n)%Vhat(0:2*(ngllx+ngllz)-1,0))
+                 Tdomain%specel(n)%Strain = 0
+             else ! Elastic Element
+                 allocate (Tdomain%specel(n)%MatPen(0:2*(ngllx+ngllz)-1,0:2))
+                 allocate (Tdomain%specel(n)%TracFace(0:2*(ngllx+ngllz)-1,0:1))
+                 allocate (Tdomain%specel(n)%Vhat(0:2*(ngllx+ngllz)-1,0:1))
+             endif
+                 Tdomain%specel(n)%MatPen   = 0.
+                 Tdomain%specel(n)%TracFace = 0.
+                 Tdomain%specel(n)%Vhat     = 0.
          endif
      endif
      Tdomain%specel(n)%MassMat = 0
@@ -132,7 +142,11 @@ subroutine allocate_domain (Tdomain)
          if(Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
              allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:15))
          else ! Discontinuous Case
-             allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
+             if (Tdomain%specel(n)%Type_DG==GALERKIN_HDG_RP .AND. Tdomain%specel(n)%acoustic) then
+                 allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:3))
+             else ! Discontinuous Galerkin, usual
+                 allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
+             endif
          endif
          Tdomain%specel(n)%Acoeff = 0.
      endif
@@ -203,14 +217,19 @@ subroutine allocate_domain (Tdomain)
          Tdomain%sFace(n)%Flux_p = 0
      elseif (Tdomain%sFace(n)%type_Flux .EQ. FLUX_HDG ) then
          deallocate(Tdomain%sFace(n)%Veloc,Tdomain%sFace(n)%V0,Tdomain%sFace(n)%Accel)
-         allocate (Tdomain%sFace(n)%Veloc(0:ngll-1,0:1))
-         allocate (Tdomain%sFace(n)%KinvExpl(0:ngll-1,0:2))
-         allocate (Tdomain%sFace(n)%SmbrTrac(0:ngll-1,0:1))
-         allocate (Tdomain%sFace(n)%V0(0:ngll-1,0:1))
-         Tdomain%sFace(n)%KinvExpl = 0
-         Tdomain%sFace(n)%SmbrTrac = 0
+         if (Tdomain%sFace(n)%acoustic) then ! ACOUSTIC CASE
+             allocate (Tdomain%sFace(n)%Veloc(0:ngll-1,0))
+             ! A MODIFIER !!!
+         else ! ELASTIC CASE
+             allocate (Tdomain%sFace(n)%Veloc(0:ngll-1,0:1))
+             allocate (Tdomain%sFace(n)%KinvExpl(0:ngll-1,0:2))
+             allocate (Tdomain%sFace(n)%SmbrTrac(0:ngll-1,0:1))
+             allocate (Tdomain%sFace(n)%V0(0:ngll-1,0:1))
+             Tdomain%sFace(n)%KinvExpl = 0
+             Tdomain%sFace(n)%SmbrTrac = 0
+             Tdomain%sFace(n)%V0 = 0
+         endif
          Tdomain%sFace(n)%Veloc = 0
-         Tdomain%sFace(n)%V0 = 0
      endif
 
      if (Tdomain%sFace(n)%PML .AND. (.NOT.Tdomain%sFace(n)%CPML)) then

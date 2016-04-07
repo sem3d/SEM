@@ -49,7 +49,7 @@ subroutine Runge_Kutta4 (Tdomain, dt)
                  Tdomain%sSubDomain(mat)%hprimez,  &
                  Tdomain%sSubDomain(mat)%hTprimez)
          case(GALERKIN_HDG_RP)   ! Hybridizable Discontinuous Galerkin
-             call compute_InternalForces_DG_Weak(Tdomain%specel(n), &
+             call compute_InternalForces_HDG_Weak(Tdomain%specel(n), &
                                                  Tdomain%sSubDomain(mat)%hprimex, &
                                                  Tdomain%sSubDomain(mat)%hTprimez)
           case(GALERKIN_DG_STRONG) ! Discontinuous Galerkin Strong Formulation
