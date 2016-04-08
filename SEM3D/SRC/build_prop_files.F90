@@ -239,7 +239,6 @@ contains
         integer         , dimension(:)   , allocatable :: nSubDPoints;
         character(len=110) , dimension(:), allocatable :: HDF5NameList
 
-<<<<<<< HEAD
 !        allocate(prop(0:size(Tdomain%GlobCoord,2)-1, 0:nProp-1)) !Subdomain properties Matrix ((:,0) = Dens, (:,1) = Lambda, (:,2) = Mu) per proc
 !
 !        !Creating  visualization files (by subdomain)
@@ -317,87 +316,6 @@ contains
 !        deallocate(globCoordMask)
 !        deallocate(propMask)
 !        deallocate(nSubDPoints)
-=======
-        allocate(prop(0:size(Tdomain%GlobCoord,2)-1, 0:nProp-1)) !Subdomain properties Matrix ((:,0) = Dens, (:,1) = Lambda, (:,2) = Mu) per proc
-
-        !Creating  visualization files (by subdomain)
-        allocate(HDF5NameList(0:Tdomain%n_mat - 1))
-        allocate(nSubDPoints(0:Tdomain%n_mat - 1))
-        allocate(globCoordMask(0:size(Tdomain%GlobCoord,1)-1, 0:size(Tdomain%GlobCoord,2)-1))
-        allocate(propMask(0:size(Tdomain%GlobCoord,2)-1, 0:nProp-1))
-
-        HDF5NameList(:) = "not_Used"
-        nSubDPoints(:)  = 0
-
-        if(rg == 0) write(*,*) ">>>>Writing visualization hdf5 files"
-        do mat = 0, Tdomain%n_mat - 1
-            globCoordMask(:,:) = .false.
-            propMask(:,:)      = .false.
-            ngll = Tdomain%sSubDomain(mat)%NGLL
-            do n = 0, Tdomain%n_elem-1
-                lnum = Tdomain%specel(n)%lnum
-                if(Tdomain%specel(n)%mat_index == mat) then
-                    !Building masks for this subdomain in this proc
-                    do i = 0, ngll-1
-                        do j = 0, ngll-1
-                            do k = 0, ngll-1
-                                !write(*,*) "i = ", i, "j = ", j, "k = ", k
-                                ipoint = Tdomain%specel(n)%Iglobnum(i,j,k)
-                                globCoordMask(:,ipoint) = .true.
-                                propMask(ipoint,:)      = .true.
-                                select case (Tdomain%specel(n)%domain)
-                                    case (DM_SOLID)
-                                        prop(ipoint, 0) = Tdomain%sdom%Density_(i,j,k,lnum)
-                                        prop(ipoint, 1) = Tdomain%sdom%Lambda_ (i,j,k,lnum)
-                                        prop(ipoint, 2) = Tdomain%sdom%Mu_     (i,j,k,lnum)
-                                    case (DM_FLUID)
-                                        prop(ipoint, 0) = Tdomain%fdom%IDensity_(i,j,k,lnum)
-                                        prop(ipoint, 1) = Tdomain%fdom%Lambda_ (i,j,k,lnum)
-                                        prop(ipoint, 2) = 0
-                                    case (DM_SOLID_PML)
-                                        prop(ipoint, 0) = Tdomain%spmldom%Density_(i,j,k,lnum)
-                                        prop(ipoint, 1) = Tdomain%spmldom%Lambda_ (i,j,k,lnum)
-                                        prop(ipoint, 2) = Tdomain%spmldom%Mu_     (i,j,k,lnum)
-                                    case (DM_FLUID_PML)
-                                        prop(ipoint, 0) = Tdomain%fpmldom%Density_(i,j,k,lnum)
-                                        prop(ipoint, 1) = Tdomain%fpmldom%Lambda_ (i,j,k,lnum)
-                                        prop(ipoint, 2) = 0
-                                    case default
-                                        stop "unknown domain"
-                                end select
-                            end do
-                        end do
-                    end do !END Loop over GLLs
-                end if
-            end do
-
-            nSubDPoints(mat) = count(globCoordMask(0,:))
-
-            call write_ResultHDF5Unstruct_MPI(                                      &
-                reshape(pack(Tdomain%GlobCoord(:,:),       &
-                mask = globCoordMask(:,:)),        &
-                shape = [3, nSubDPoints(mat)]),    &
-                reshape(pack(prop(:,:),                    &
-                mask = propMask(:,:)),             &
-                shape = [nSubDPoints(mat), 3]),    &
-                trim(procFileName)//"_view",                &
-                rg, trim(h5folder), Tdomain%communicateur, &
-                ["_proc", "_subD"], [rg, mat], HDF5NameList(mat))
-        end do
-
-        !Writing XMF File
-        if(rg == 0) write(*,*) "  Writing visualization XMF file"
-        call writeXMF_RF_MPI(nProp, HDF5NameList, nSubDPoints, Tdomain%subD_exist, Tdomain%n_dime, &
-            trim(string_join(procFileName,"-TO_VIEW")), rg, trim(XMFfolder),     &
-            Tdomain%communicateur, trim(h5_to_xmf),                               &
-            ["Density","Lambda ","Mu     "])
-
-        deallocate(prop)
-        deallocate(HDF5NameList)
-        deallocate(globCoordMask)
-        deallocate(propMask)
-        deallocate(nSubDPoints)
->>>>>>> b257f0bb90b8447c01d38d104cfd17257ded1602
 
     end subroutine create_prop_visu_files
 

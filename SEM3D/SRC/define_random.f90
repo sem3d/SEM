@@ -153,22 +153,20 @@ contains
                 !write(*,*) "  Generating Random Properties"
                 !call MPI_BARRIER(Tdomain%communicateur, code)
                 !write(*,*) "FOR SURE"
-
-                call init_IPT_RF_std(&
-                    IPT, &
-                    comm = Tdomain%communicateur, &
-                    nDim = 3, &
-                    xMinGlob_in = Tdomain%sSubDomain(mat)%MinBound, &
-                    xMaxGlob_in = Tdomain%sSubDomain(mat)%MaxBound, &
-                    fieldAvg = avgProp(propId), &
-                    fieldVar = Tdomain%sSubDomain(mat)%varProp(propId), &
-                    corrL_in = Tdomain%sSubDomain(mat)%corrL, &
-                    corrMod = Tdomain%sSubDomain(mat)%corrMod, &
-                    margiFirst = Tdomain%sSubDomain(mat)%margiFirst(propId), &
-                    seedStart = seedStart, &
-                    outputFolder = "prop", &
-                    outputName = string_join_many(propName(propId), "_Mat_", numb2String(mat)))
-
+        call init_IPT_RF_std(&
+                         IPT, &
+                         comm = Tdomain%communicateur, &
+                         nDim = 3, &
+                         xMinGlob_in = Tdomain%sSubDomain(mat)%MinBound, &
+                         xMaxGlob_in = Tdomain%sSubDomain(mat)%MaxBound, &
+                         fieldAvg = avgProp(propId), &
+                         fieldVar = Tdomain%sSubDomain(mat)%varProp(propId), &
+                         corrL_in = Tdomain%sSubDomain(mat)%corrL, &
+                         corrMod = Tdomain%sSubDomain(mat)%corrMod, &
+                         margiFirst = Tdomain%sSubDomain(mat)%margiFirst(propId), &
+                         seedStart = seedStart, &
+                         outputFolder = "prop", &
+                         outputName = string_join_many(propName(propId), "_Mat_", numb2String(mat)))
 
                 !Generating random fields
                 call make_random_field(IPT, times)

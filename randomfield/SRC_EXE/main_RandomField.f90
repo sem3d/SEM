@@ -21,7 +21,7 @@ program main_RandomField
     !INPUTS
 
     !LOCAL VARIABLES
-    character(len=buf_RF) :: path, logFilePath
+    character(len=buf_RF) :: path
     double precision, dimension(9) :: times, all_times
     integer :: code
 
@@ -70,19 +70,6 @@ program main_RandomField
     if(IPT_Temp%rang == 0) write(*,*)  "-> Initialize Folders"
     call init_basic_folders(IPT_Temp%comm, IPT_Temp)
 
-#ifdef MAKELOG
-    if(IPT_Temp%rang == 0) write(*,*) "IFDEF MAKELOG DEFINED"
-
-    !Initializing logFiles
-    if(IPT_Temp%rang == 0) write(*,*)  "-> Initialize logFiles"
-    logFilePath = trim(adjustL(&
-                      string_join_many(results_path,"/",log_folder_name,"/",log_filename)))
-    if(IPT_Temp%rang == 0) write(*,*)  " logFilePath = ", trim(adjustL(logFilePath)), "<RANK>"
-    call init_log_file(trim(adjustL(logFilePath)), IPT_Temp%rang, IPT_Temp%log_ID, IPT_Temp%nb_procs)
-#else
-    if(IPT_Temp%rang == 0) write(*,*) "IFDEF MAKELOG NOT DEFINED"
-#endif
-
     !READING INPUTS--------------------------------------------------
     !----------------------------------------------------------------
     if(IPT_Temp%rang == 0) write(*,*)  "-> Reading inputs"
@@ -113,7 +100,6 @@ program main_RandomField
 
     times(2) = MPI_Wtime() !Reading Inputs
 
-
     !Initial allocation---------------------------------------------
     call allocate_init()
 
@@ -121,40 +107,61 @@ program main_RandomField
     if(IPT_Temp%rang == 0) write(*,*)  " "
     if(IPT_Temp%rang == 0) write(*,*)  " "
     if(IPT_Temp%rang == 0) write(*,*)  "-> Initializing Input (IPT)"
-    call init_IPT_RF(&
-        IPT, &
-        log_ID = IPT_Temp%log_ID, &
-        comm = IPT_Temp%comm, &
-        rang = IPT_Temp%rang, &
-        nb_procs = IPT_Temp%nb_procs, &
-        nDim = IPT_Temp%nDim_gen, &
-        meshMod = IPT_Temp%meshMod, &
-        xMaxGlob_in = IPT_Temp%xMaxGlob_in, &
-        xMinGlob_in = IPT_Temp%xMinGlob_in, &
-        pointsPerCorrL = IPT_Temp%pointsPerCorrL, &
-        procPerDim = IPT_Temp%procPerDim, &
-        coordList_local = IPT_Temp%coordList_local, &
-        connectList_local = IPT_Temp%connectList_local, &
-        monotype = IPT_Temp%monotype, &
-        unv = IPT_Temp%unv, &
-        unv_path = IPT_Temp%unv_path, &
-        fieldAvg = IPT_Temp%fieldAvg, &
-        fieldVar = IPT_Temp%fieldVar, &
-        corrL_in = IPT_Temp%corrL_in, &
-        overlap_in = IPT_Temp%overlap_in, &
-        corrMod = IPT_Temp%corrMod, &
-        margiFirst = IPT_Temp%margiFirst, &
-        method = IPT_Temp%method, &
-        Nmc = IPT_Temp%Nmc, &
-        seedStart = IPT_Temp%seedStart, &
-        nFields = IPT_Temp%nFields, &
-        localizationLevel = IPT_Temp%localizationLevel, &
-        writeDataSet = IPT_Temp%writeDataSet, &
-        sameFolder = IPT_Temp%sameFolder, &
-        outputStyle = IPT_Temp%outputStyle, &
-        write_intermediate_files = IPT_Temp%write_intermediate_files, &
-        sampleFields = IPT_Temp%sampleFields, &
-        writeUNVinterpolation = IPT_Temp%writeUNVinterpolation)
+
+    if(.true.)then
+        call init_IPT_RF(&
+            IPT, &
+            log_ID = IPT_Temp%log_ID, &
+            comm = IPT_Temp%comm, &
+            rang = IPT_Temp%rang, &
+            nb_procs = IPT_Temp%nb_procs, &
+            nDim = IPT_Temp%nDim_gen, &
+            meshMod = IPT_Temp%meshMod, &
+            xMinGlob_in = IPT_Temp%xMinGlob_in, &
+            xMaxGlob_in = IPT_Temp%xMaxGlob_in, &
+            pointsPerCorrL = IPT_Temp%pointsPerCorrL, &
+            procPerDim = IPT_Temp%procPerDim, &
+            fieldAvg = IPT_Temp%fieldAvg, &
+            fieldVar = IPT_Temp%fieldVar, &
+            corrL_in = IPT_Temp%corrL_in, &
+            overlap_in = IPT_Temp%overlap_in, &
+            corrMod = IPT_Temp%corrMod, &
+            margiFirst = IPT_Temp%margiFirst, &
+            method = IPT_Temp%method, &
+            Nmc = IPT_Temp%Nmc, &
+            seedStart = IPT_Temp%seedStart, &
+            nFields = IPT_Temp%nFields, &
+            localizationLevel = IPT_Temp%localizationLevel, &
+            writeDataSet = IPT_Temp%writeDataSet, &
+            sameFolder = IPT_Temp%sameFolder, &
+            outputStyle = IPT_Temp%outputStyle, &
+            write_intermediate_files = IPT_Temp%write_intermediate_files, &
+            sampleFields = IPT_Temp%sampleFields, &
+            writeUNVinterpolation = IPT_Temp%writeUNVinterpolation, &
+            outputFolder = IPT_Temp%outputFolder, &
+            outputName = "_NEW_RF", &
+            unv = IPT_Temp%unv, &
+            unv_path = IPT_Temp%unv_path, &
+            monotype = IPT_Temp%monotype, &
+            coordList_local = IPT_Temp%coordList_local, &
+            connectList_local = IPT_Temp%connectList_local)
+
+    else
+        call init_IPT_RF_std(&
+                         IPT, &
+                         comm = IPT_Temp%comm, &
+                         nDim = IPT_Temp%nDim_gen, &
+                         xMinGlob_in = IPT_Temp%xMinGlob_in, &
+                         xMaxGlob_in = IPT_Temp%xMaxGlob_in, &
+                         fieldAvg = IPT_Temp%fieldAvg, &
+                         fieldVar = IPT_Temp%fieldVar, &
+                         corrL_in = IPT_Temp%corrL_in, &
+                         corrMod = IPT_Temp%corrMod, &
+                         margiFirst = IPT_Temp%margiFirst, &
+                         seedStart = IPT_Temp%seedStart, &
+                         outputFolder = IPT_Temp%outputFolder, &
+                         outputName = "_NEW_RF")
+    end if
 
     !Generating random fields
     call make_random_field(IPT, times)
@@ -240,13 +247,14 @@ program main_RandomField
             implicit none
             !INPUT
             integer, intent(in) :: comm
-            type(IPT_RF), intent(in)  :: IPT_Temp !Only for sake ok practicity
+            type(IPT_RF), intent(inout)  :: IPT_Temp !Only for sake ok practicity
             !LOCAL
             integer, dimension(8) :: date_time
             integer :: code
             character(len=10), dimension(3) :: strings
+            character(len=buf_RF) :: results_folder_name
             !    !LOCAL VARIABLES
-            character(len=buf_RF) :: path!, logFilePath
+            character(len=buf_RF) :: path, logFilePath, log_folder_name
             logical :: folderExist1
 
 
@@ -268,18 +276,31 @@ program main_RandomField
             end if
 
             if(IPT_Temp%rang == 0) write(*,*) "-> Setting folder path"
-            single_path = string_join_many(results_path,"/",results_folder_name)
-            if(IPT_Temp%rang == 0) write(*,*) "     single_path = "//trim(single_path)
+            IPT_Temp%outputFolder = string_join_many(results_path,"/",results_folder_name)
+            if(IPT_Temp%rang == 0) write(*,*) "     single_path = "//trim(IPT_Temp%outputFolder)
+
+#ifdef MAKELOG
+            if(IPT_Temp%rang == 0) write(*,*) "IFDEF MAKELOG DEFINED"
 
             log_folder_name     = trim(adjustL(results_folder_name))//"/log"
             if(IPT_Temp%sameFolder) log_folder_name     = ".."
 
             call create_folder(log_folder_name, results_path, IPT_Temp%rang, comm)
 
+            !Initializing logFiles
+            if(IPT_Temp%rang == 0) write(*,*)  "-> Initialize logFiles"
+            logFilePath = trim(adjustL(&
+                              string_join_many(results_path,"/",log_folder_name,"/",log_filename)))
+            if(IPT_Temp%rang == 0) write(*,*)  " logFilePath = ", trim(adjustL(logFilePath)), "<RANK>"
+            call init_log_file(trim(adjustL(logFilePath)), IPT_Temp%rang, IPT_Temp%log_ID, IPT_Temp%nb_procs)
+#else
+            if(IPT_Temp%rang == 0) write(*,*) "IFDEF MAKELOG NOT DEFINED"
+#endif
+
             !create xmf and h5 folders
-            path = string_join_many(results_path,"/",results_folder_name)
-            call create_folder("xmf", path, IPT_Temp%rang, comm)
-            call create_folder("h5", path, IPT_Temp%rang, comm)
+            !path = string_join_many(results_path,"/",results_folder_name)
+            !call create_folder("xmf", path, IPT_Temp%rang, comm)
+            !call create_folder("h5", path, IPT_Temp%rang, comm)
 
         end subroutine init_basic_folders
 

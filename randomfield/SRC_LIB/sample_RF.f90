@@ -806,7 +806,6 @@ contains
             double precision, dimension(:, :, :), pointer :: RF_3D
             integer, dimension(IPT%nDim) :: minP, maxP, overlapNPoints
             integer, dimension(IPT%nDim) :: xNStep_Glob
-            character(len=100) :: filename="NEW_RF"
 
 
             if(IPT%nDim == 2) RF_2D(1:xNStep(1),1:xNStep(2)) => randField(:,1)
@@ -839,8 +838,10 @@ contains
                                         IPT%nDim, IPT%Nmc, IPT%loc_Comm, RF_2D, RF_3D, &
                                         origin, xNStep, IPT%xStep, &
                                         IPT%xMinGlob, xNStep_Glob, &
-                                        filename, single_path, &
+                                        IPT%outputName, IPT%outputFolder, &
                                         BBoxPath, XMFPath)
+
+            if(IPT%rang == 0) write(*,*) "    BBoxPath = ", trim(BBoxPath)
 
             build_times(7) = MPI_Wtime() !Writing Sample Time
 
@@ -854,13 +855,15 @@ contains
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
-        subroutine interpolateToMesh(BBoxFileName, coordList, UNV_randField, rang)
+        subroutine interpolateToMesh(BBoxFileName, coordList, UNV_randField, rang, &
+                                     xMinLoc_In, xMaxLoc_In)
             implicit none
 
             !INPUT
             character(len=*), intent(in)      :: BBoxFileName
             double precision, dimension(:,:), intent(in) :: coordList
             integer, intent(in) :: rang
+            double precision, dimension(:), intent(in), optional :: xMinLoc_In, xMaxLoc_In
             !OUTPUT
             double precision, dimension(:,:), intent(out) :: UNV_randField
             !LOCAL
@@ -912,10 +915,15 @@ contains
             xNStep = nint((xMaxGlob-xMinGlob)/xStep) +1
 
             !DEFINE LOCAL BOUNDING BOX
-            do i = 1, nDim
-                xMin_Loc_UNV(i) = minval(coordList(i,:))
-                xMax_Loc_UNV(i) = maxval(coordList(i,:))
-            end do
+            if(present(xMinLoc_In) .and. present(xMaxLoc_In)) then
+                xMin_Loc_UNV = xMinLoc_In
+                xMax_Loc_UNV = xMaxLoc_In
+            else
+                do i = 1, nDim
+                    xMin_Loc_UNV(i) = minval(coordList(i,:))
+                    xMax_Loc_UNV(i) = maxval(coordList(i,:))
+                end do
+            end if
 
             minPos = floor((xMin_Loc_UNV-xMinGlob)/xStep) + 1
             maxPos = ceiling((xMax_Loc_UNV-xMinGlob)/xStep) + 1
