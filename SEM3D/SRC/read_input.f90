@@ -792,6 +792,7 @@ contains
 
         !---   Properties of materials.
         call read_material_file(Tdomain)
+        call compute_material_boundaries(Tdomain)
 
         ! Material Earthchunk
 
