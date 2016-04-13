@@ -402,7 +402,6 @@ contains
 
 
         call read_mesh_elements(Tdomain, fid)
-        call compute_material_boundaries(Tdomain)
 
         call read_interface(Tdomain%intSolPml, fid, "spml")
         call read_interface(Tdomain%intFluPml, fid, "fpml")

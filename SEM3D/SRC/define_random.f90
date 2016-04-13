@@ -136,7 +136,8 @@ contains
         !write(*,*) " rang ", rg," Flag 2", " mat = ", mat
         call MPI_BARRIER(Tdomain%communicateur, code)
 
-        do propId = 0, nProp - 1
+        !do propId = 0, nProp - 1
+        do propId = 0, 0 !FOR TESTS
             Tdomain%sSubDomain(mat)%propFilePath(propId) = string_join_many("./prop/h5/",propName(propId), "_Mat_", numb2String(assocMat),".h5")
 
             !write(*,*) " rang ", rg," Flag 3"
@@ -144,7 +145,7 @@ contains
             !write(*,*) " rang ", rg," Flag 4"
             !call MPI_BARRIER(Tdomain%communicateur, code)
             if(is_rand(Tdomain%sSubdomain(mat))) then
-                !write(*,*) " rang ", rg," Flag 5"
+                write(*,*) " rang ", rg," in build_random_properties"
                 call MPI_BARRIER(Tdomain%communicateur, code)
                 if(rg == 0) write(*,*) "  Generating Random Properties"
                 seedStart = Tdomain%sSubDomain(mat)%seedStart
@@ -153,7 +154,7 @@ contains
                 !write(*,*) "  Generating Random Properties"
                 !call MPI_BARRIER(Tdomain%communicateur, code)
                 !write(*,*) "FOR SURE"
-        call init_IPT_RF_std(&
+                call init_IPT_RF_std(&
                          IPT, &
                          comm = Tdomain%communicateur, &
                          nDim = 3, &
@@ -167,6 +168,8 @@ contains
                          seedStart = seedStart, &
                          outputFolder = "prop", &
                          outputName = string_join_many(propName(propId), "_Mat_", numb2String(mat)))
+
+                !call show_IPT_RF(IPT)
 
                 !Generating random fields
                 call make_random_field(IPT, times)

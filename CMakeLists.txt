@@ -8,7 +8,7 @@ ENABLE_TESTING()
 
 option(OPT_VEC "Vectorize" ON)
 option(OPT_VEC_LOW_RAM "Vectorize but save lot of RAM" OFF)
-option(OPT_VEC_MED_RAM "Vectorize but save RAM" ON)
+option(OPT_VEC_MED_RAM "Vectorize but save RAM" OFF)
 if(OPT_VEC)
   add_definitions(-DSEM_VEC)
   set(EXTRA_IFORT_FLAGS "-qopenmp-simd")

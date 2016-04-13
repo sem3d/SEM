@@ -951,8 +951,8 @@ contains
         call setGrid(subdivisionCoords, 0*ones, ones, MSH%procPerDim, .true.)
         call setGrid(neighboursCoords, -1*ones, ones, int(ones)*3, .true.)
 
-        call DispCarvalhol(subdivisionCoords, "subdivisionCoords", unit_in=MSH%log_ID)
-        call DispCarvalhol(neighboursCoords, "neighboursCoords", unit_in=MSH%log_ID)
+        !call DispCarvalhol(subdivisionCoords, "subdivisionCoords", unit_in=MSH%log_ID)
+        !call DispCarvalhol(neighboursCoords, "neighboursCoords", unit_in=MSH%log_ID)
 
         !Initialization
         neighShift(:,:) = 0

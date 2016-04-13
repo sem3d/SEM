@@ -777,6 +777,8 @@ subroutine generateUnityPartition_Matrix(xNStep, overlap, corrL, xStep,&
 
         do i = 1, nDim
 
+            if(overlapNPoints(i) < 1) cycle
+
             considerNeighbour = .true.
 
             if(present(neigh)) then

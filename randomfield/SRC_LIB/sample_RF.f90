@@ -130,7 +130,8 @@ contains
                                   loc_groupMax, loc_group, loc_Comm, loc_nbProcs, &
                                   loc_rang, extLoc, nDim, &
                                   xMinGlob, xMaxGlob, xStep, localizationLevel, &
-                                  nTotalFields, coords, neigh, op_neigh, neighShift)
+                                  nTotalFields, coords, neigh, op_neigh, neighShift, &
+                                  global)
 
             implicit none
             !INPUT
@@ -150,6 +151,7 @@ contains
             integer, intent(out) :: nTotalFields
             integer, dimension(:), intent(out) :: coords, neigh, op_neigh
             integer, dimension(:,:), intent(out) :: neighShift
+            logical :: global
             !LOCAL
             integer :: code
             integer :: prodNFields
@@ -158,6 +160,8 @@ contains
             if(IPT%nDim_mesh == IPT%nDim_gen) nDim = IPT%nDim_gen
 
             prodNFields  = product(IPT%nFields) !Number of fields (ignoring localization level)
+            global = .false.
+            if( prodNFields == 1) global = .true.
 
             !DEFINING GROUPS AND COMMUNICATORS FOR LOCALIZATION
             if(IPT%nb_procs < prodNFields .or. prodNFields == 1) then
@@ -203,6 +207,7 @@ contains
             overlap = globMSH%overlap
             xStep   = globMSH%xStep
             !call wLog("-> set_global_extremes")
+
             call set_global_extremes(globMSH, globMSH%xMaxGlob, globMSH%xMinGlob, globMSH%procExtent, &
                                      globMSH%procStart, stepProc)
             call set_communications_topology(globMSH, globMSH%coords, globMSH%neigh, &
@@ -261,6 +266,8 @@ contains
             call set_validProcs_comm(IPT, fieldComm, validProc, validComm)
 
             if(validProc) then
+
+                write(*,*) "-> VALID proc ", IPT%rang
 
                 call MPI_COMM_RANK(validComm, newRang, code)
                 call MPI_COMM_SIZE(validComm, newNbProcs, code)
@@ -332,6 +339,7 @@ contains
                 call wLog("     shape(RDF%randField)")
                 call wLog(shape(RDF%randField))
                 call wLog("     Calculating sample")
+                write(*,*) "-> Calculating Sample proc ", IPT%rang
                 call create_RF_Unstruct_Init (RDF, MSH)
 
                 !write(*,*) "After Calculation"
@@ -345,6 +353,7 @@ contains
                 if(present(kNStep_out)) kNStep_out = RDF%kNStep
 
                 call wLog("Gathering Sample")
+                write(*,*) "-> Gathering Sample proc ", IPT%rang
                 call gather_sample(RDF%randField, randField_Gen, &
                                    RDF%rang, RDF%nb_procs, RDF%comm)
 

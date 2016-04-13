@@ -100,8 +100,10 @@ contains
                 call gen_Std_Gauss_Randomization(RDF, MSH)
             case(FFT)
                 call wLog(" FFT")
+                write(*,*) "-> FFT ", RDF%rang
                 !if(RDF%rang == 0) write(*,*)"FFT"
                 call gen_Std_Gauss_FFT(RDF, MSH)
+                write(*,*) "-> AFTER FFT ", RDF%rang
         end select
 
         !RDF%randField = 1.0 ! For Tests
@@ -485,7 +487,7 @@ contains
         integer :: kNLocal
 
         double precision, dimension(:), allocatable :: gammaK, phiK
-        integer(kind=8) :: i_long
+        integer(kind=8) :: i_long, kNCumulated_Init, kNCumulated_End
         double precision :: trashNumber
         integer, dimension(RDF%nDim) :: xNStepGlob
         double precision :: ampMult
@@ -537,6 +539,8 @@ contains
             call wLog(L)
             call wLog("N = ")
             call wLog(L)
+            write(*,*) "In rang ", RDF%rang, " L=",L, "M=",M, "N=",N &
+                       , "local_LastDim=", local_LastDim
 
         else
             stop("Inside gen_Std_Gauss_FFT dimension not yet implemented for this generation method")
@@ -566,13 +570,13 @@ contains
 
         sliceSize = 1
         if(RDF%nDim > 1) sliceSize = product(MSH%xNStep(1:RDF%nDim -1))
-        RDF%kNInit = (RDF%kNInit - 1) * sliceSize + 1
-        RDF%kNEnd  = RDF%kNEnd *sliceSize
+        kNCumulated_Init = (RDF%kNInit - 1) * sliceSize + 1
+        kNCumulated_End = RDF%kNEnd *sliceSize
 
-        call wLog("RDF%kNInit")
-        call wLog(RDF%kNInit)
-        call wLog("RDF%kNEnd")
-        call wLog(RDF%kNEnd)
+        !call wLog("kNCumulated_Init")
+        !call wLog(kNCumulated_Init)
+        !call wLog("kNCumulated_End")
+        !call wLog(kNCumulated_End)
 
         !RDF%origin  = [1, int(local_LD_offset) + 1]
         !RDF%kExtent = [L , local_M]
@@ -598,6 +602,7 @@ contains
 
         !call wLog("RDF%kPoints")
         !call DispCarvalhol(RDF%kPoints, unit_in = RDF%log_ID)
+        !call DispCarvalhol(RDF%kPoints)
         !call wLog("RDF%SkVec")
         !call DispCarvalhol(RDF%SkVec, unit_in = RDF%log_ID)
 
@@ -615,14 +620,14 @@ contains
         allocate(phik(kNLocal))
 
         !Putting away the random numbers from others k (that are in others procs)
-        do i_long = 1, RDF%kNInit-1
+        do i_long = 1, kNCumulated_Init-1
             call random_number(trashNumber)
         end do
         call random_number(gammaK(:))
-        do i_long = RDF%kNEnd+1, product(RDF%kNStep)
+        do i_long = kNCumulated_End+1, product(RDF%kNStep)
             call random_number(trashNumber)
         end do
-        do i_long = 1, RDF%kNInit-1
+        do i_long = 1, kNCumulated_End-1
             call random_number(trashNumber)
         end do
         call random_number(phiK(:))
@@ -666,11 +671,16 @@ contains
             call wLog(local_LastDim)
             call wLog("shape(data_real_3D) = ")
             call wLog(shape(data_real_3D))
+            write(*,*) "RDF%comm = ", RDF%comm
 
             plan = fftw_mpi_plan_r2r(RDF%nDim, [N, M, L], data_real_3D, data_real_3D, &
                                      RDF%comm, [FFTW_REDFT01, FFTW_REDFT01, FFTW_REDFT01], FFTW_ESTIMATE)
             data_real_3D(:,:,:) = reshape(RDF%SkVec, [L, M, local_LastDim])
+            write(*,*) "Calculating FFT In rang ", RDF%rang
+            !write(*,*) "plan = ", plan
+            write(*,*) "shape(data_real_3D) = ", shape(data_real_3D)
             call fftw_mpi_execute_r2r(plan, data_real_3D, data_real_3D)
+            write(*,*) "AFTER Calculating FFT In rang ", RDF%rang
             data_real_3D = data_real_3D*(2.0D0)*sqrt(product(MSH%xStep))
             !data_real_3D = data_real_3D*(2.0D0**((RDF%nDim-1))/2.0D0))*sqrt(product(MSH%xStep))
             !RDF%randField(:,1) = pack(data_real_3D(1:L, 1:M, 1:local_LastDim), .true.)

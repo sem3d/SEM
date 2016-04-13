@@ -42,7 +42,7 @@ module type_inputRF
         integer :: Nmc = -1, seedStart
         integer, dimension(:), allocatable :: nFields
         integer :: localizationLevel = -1, nTotalFields = -1
-
+        logical :: global
         !FILE MANAGER
         logical :: writeDataSet = .true.
         logical :: sameFolder = .false.
@@ -676,7 +676,9 @@ contains
                 write(unit,*) " xStep      = ", IPT%xStep
                 write(unit,*) " stepProc   = ", IPT%stepProc
                 write(unit,*) " procExtent = ", IPT%procExtent
-
+                write(unit,*) " procExtent = ", IPT%procExtent
+                write(unit,*) " outputFolder = ", trim(adjustL(IPT%outputFolder))
+                write(unit,*) " outputName   = ", trim(adjustL(IPT%outputName))
 
             end if
 

@@ -41,6 +41,7 @@ contains
 
         if(IPT%rang == 0) write(*,*) "-> Processing INPUTS----------------------------------------"
         call wLog("-> Processing INPUTS----------------------------------------")
+        if(IPT%rang == 0) write(*,*) "-> Processing INPUTS---------------------------rang = ",IPT%rang
 
         call validate_input(IPT)
 
@@ -55,7 +56,10 @@ contains
                            IPT%loc_groupMax, IPT%loc_group, IPT%loc_Comm, IPT%loc_nbProcs, &
                            IPT%loc_rang, IPT%extLoc, IPT%nDim, &
                            IPT%xMinGlob, IPT%xMaxGlob, IPT%xStep, IPT%localizationLevel, &
-                           IPT%nTotalFields, IPT%coords, IPT%neigh, IPT%op_neigh, IPT%neighShift)
+                           IPT%nTotalFields, IPT%coords, IPT%neigh, IPT%op_neigh, IPT%neighShift, &
+                           IPT%global)
+
+        write(*,*) "-> AFTER Processing INPUTS---------------------------rang = ",IPT%rang
 
         call wLog("-----LOCALIZATION---------------")
         call wLog("     IPT%loc_group = ")
@@ -158,6 +162,7 @@ contains
         if(IPT%rang == 0) write(*,*) "  "
         if(IPT%rang == 0) write(*,*) " Inside 'build_random_field'"
         if(IPT%rang == 0) write(*,*) "  "
+        write(*,*) "-> Inside 'build_random_field---------------------------rang = ",IPT%rang
 
         build_times(:) = 0.0D0
         BT_sum = 0.0D0
@@ -199,16 +204,17 @@ contains
                 RF_3D_Group(1:xNStep_Group(1),1:xNStep_Group(2),1:xNStep_Group(3)) => randField_Group
             end if
 
-            allocate(unityPartition(xNTotal_Proc))
-
-            call wLog("Generating Partition of Unity")
-            call generateUnityPartition_Matrix(xNStep_Proc, IPT%overlap, IPT%corrL, IPT%xStep,&
-                                         1, unityPartition, IPT%nDim)
-            if(IPT%write_intermediate_files) then
-                MONO_FileName = string_join_many("PofUnit_L0_Group",numb2String(IPT%gen_group))
-                call write_MONO_proc_result(IPT%procExtent*0, IPT%procExtent, &
-                                            IPT%xStep, IPT%nDim, &
-                                            unityPartition, MONO_FileName, IPT%outputFolder)
+            if(.not. IPT%global) then
+                allocate(unityPartition(xNTotal_Proc))
+                call wLog("Generating Partition of Unity")
+                call generateUnityPartition_Matrix(xNStep_Proc, IPT%overlap, IPT%corrL, IPT%xStep,&
+                                             1, unityPartition, IPT%nDim)
+                if(IPT%write_intermediate_files) then
+                    MONO_FileName = string_join_many("PofUnit_L0_Group",numb2String(IPT%gen_group))
+                    call write_MONO_proc_result(IPT%procExtent*0, IPT%procExtent, &
+                                                IPT%xStep, IPT%nDim, &
+                                                unityPartition, MONO_FileName, IPT%outputFolder)
+                end if
             end if
         end if
 
@@ -238,6 +244,7 @@ contains
                     t_bef = MPI_Wtime()
                     fieldNumber = i;
                     countFields = countFields + 1
+                    write(*,*) "-> SINGLE REALIZATION proc ", IPT%rang
                     call single_realization(IPT, &
                                             IPT%gen_Comm, fieldNumber, subdivisionCoords(:,i), &
                                             randField_Local, randField_Gen, kMax_out, kNStep_out)
@@ -257,33 +264,35 @@ contains
                                                         randField_Gen(:,1), &
                                                         MONO_FileNames(countFields), IPT%outputFolder)
                         end if
-                    end if
 
-                    if(IPT%nDim == 2) then
-                        call add_RF_to_Group(IPT, randField_Gen, xNStep_Proc, &
-                                        unityPartition, &
-                                        xMinFiles(:, countFields), xMaxFiles(:, countFields), &
-                                        xMin_Group, &
-                                        subdivisionId(:,i), RF_2D_Group=RF_2D_Group)
-                   else if(IPT%nDim == 3) then
-                       call add_RF_to_Group(IPT, randField_Gen, xNStep_Proc, &
-                                        unityPartition, &
-                                        xMinFiles(:, countFields), xMaxFiles(:, countFields), &
-                                        xMin_Group, &
-                                        subdivisionId(:,i), RF_3D_Group=RF_3D_Group)
-                   end if
+                        if(.not. IPT%global) then
+                            if(IPT%nDim == 2) then
+                                call add_RF_to_Group(IPT, randField_Gen, xNStep_Proc, &
+                                                unityPartition, &
+                                                xMinFiles(:, countFields), xMaxFiles(:, countFields), &
+                                                xMin_Group, &
+                                                subdivisionId(:,i), RF_2D_Group=RF_2D_Group)
+                           else if(IPT%nDim == 3) then
+                               call add_RF_to_Group(IPT, randField_Gen, xNStep_Proc, &
+                                                unityPartition, &
+                                                xMinFiles(:, countFields), xMaxFiles(:, countFields), &
+                                                xMin_Group, &
+                                                subdivisionId(:,i), RF_3D_Group=RF_3D_Group)
+                           end if
 
 
-                   if(IPT%gen_rang == 0) then
-                        if(IPT%write_intermediate_files) then
-                            call wLog("Writing intermediate localized generation file")
-                            MONO_FileName = MONO_FileNames(countFields)
-                            MONO_FileName = string_join_many("LOC_L0_P", numb2String(IPT%rang), "-",MONO_FileName)
-                            if(IPT%gen_rang == 0) call write_MONO_proc_result( &
-                                xMinFiles(:, countFields), xMaxFiles(:, countFields), &
-                                IPT%xStep, IPT%nDim, &
-                                randField_Gen(:,1), MONO_FileName, &
-                                IPT%outputFolder)
+                           if(IPT%write_intermediate_files) then
+                                call wLog("Writing intermediate localized generation file")
+                                MONO_FileName = MONO_FileNames(countFields)
+                                MONO_FileName = string_join_many("LOC_L0_P", numb2String(IPT%rang), "-",MONO_FileName)
+                                if(IPT%gen_rang == 0) call write_MONO_proc_result( &
+                                    xMinFiles(:, countFields), xMaxFiles(:, countFields), &
+                                    IPT%xStep, IPT%nDim, &
+                                    randField_Gen(:,1), MONO_FileName, &
+                                    IPT%outputFolder)
+                            end if
+                        else
+                            randField_Group = randField_Gen
                         end if
                    end if
 
@@ -295,62 +304,69 @@ contains
 
         build_times(3) = MPI_Wtime() !Sampling
 
-        if(IPT%write_intermediate_files) then
-            MONO_FileName = string_join_many("LOC_L1_P", numb2String(IPT%rang), "BEF_Cor-GROUP",numb2String(IPT%gen_group))
-            if(IPT%gen_rang == 0) call write_MONO_proc_result(xMin_Group, xMax_Group, &
-                                                          IPT%xStep, IPT%nDim, &
-                                                          randField_Group(:,1), MONO_FileName, &
-                                                          IPT%outputFolder)
-        end if
+        write(*,*) "-> AFTER SAMPLING proc ", IPT%rang
 
-        !Correcting Borders (From internal localization)
-        if(allocated(unityPartition)) deallocate(unityPartition)
-
-        if(IPT%loc_group == 0) then
-            allocate(unityPartition(xNTotal_Group))
-
-            call wLog("shape(randField_Group(:,1)) = ")
-            call wLog(shape(randField_Group(:,1)))
-            call wLog("shape(unityPartition) = ")
-            call wLog(shape(unityPartition))
-
-            if(any(shape(unityPartition) /= shape(randField_Group(:,1)))) then
-                write(*,*) "shape(randField_Group(:,1)) = ", shape(randField_Group(:,1))
-                write(*,*) "shape(unityPartition) = ", shape(unityPartition)
-                write(*,*) "ERROR in correcting borders, unityPartition and randField_Group don't have the same sizes"
-            end if
-
-            call generateUnityPartition_Matrix(xNStep_Group, IPT%overlap, IPT%corrL, IPT%xStep,&
-                                               1, unityPartition, IPT%nDim, &
-                                               IPT%neigh, IPT%neighShift, reverse = .true.)
+        if(.not. IPT%global) then
 
             if(IPT%write_intermediate_files) then
-                MONO_FileName = string_join_many("PofUnit_L1_Group",numb2String(IPT%gen_group))
-                if(IPT%gen_rang == 0) call write_MONO_proc_result(xMin_Group, xMax_Group, &
-                                                              IPT%xStep, IPT%nDim, &
-                                                              unityPartition, MONO_FileName, &
-                                                              IPT%outputFolder)
-            end if
-
-            call wLog("BEFmaxval(randField_Group(:,:)) = ")
-            call wLog(maxval(randField_Group(:,:)))
-            call wLog("BEFminval(randField_Group(:,:)) = ")
-            call wLog(minval(randField_Group(:,:)))
-
-            randField_Group(:,1) = randField_Group(:,1)/unityPartition
-
-            if(IPT%write_intermediate_files) then
-                MONO_FileName = string_join_many("LOC_L1_P", numb2String(IPT%rang), "AFT_Cor-GROUP",numb2String(IPT%gen_group))
+                MONO_FileName = string_join_many("LOC_L1_P", numb2String(IPT%rang), &
+                                                 "BEF_Cor-GROUP",numb2String(IPT%gen_group))
                 if(IPT%gen_rang == 0) call write_MONO_proc_result(xMin_Group, xMax_Group, &
                                                               IPT%xStep, IPT%nDim, &
                                                               randField_Group(:,1), MONO_FileName, &
                                                               IPT%outputFolder)
             end if
 
-            call wLog("AFTmaxval(randField_Group(:,:)) = ")
-            call wLog(maxval(randField_Group(:,:)))
-            call wLog("AFTminval(randField_Group(:,:)) = ")
-            call wLog(minval(randField_Group(:,:)))
+            !Correcting Borders (From internal localization)
+            if(allocated(unityPartition)) deallocate(unityPartition)
+
+            if(IPT%loc_group == 0) then
+                allocate(unityPartition(xNTotal_Group))
+
+                call wLog("shape(randField_Group(:,1)) = ")
+                call wLog(shape(randField_Group(:,1)))
+                call wLog("shape(unityPartition) = ")
+                call wLog(shape(unityPartition))
+
+                if(any(shape(unityPartition) /= shape(randField_Group(:,1)))) then
+                    write(*,*) "shape(randField_Group(:,1)) = ", shape(randField_Group(:,1))
+                    write(*,*) "shape(unityPartition) = ", shape(unityPartition)
+                    write(*,*) "ERROR in correcting borders, unityPartition and randField_Group don't have the same sizes"
+                end if
+
+                call generateUnityPartition_Matrix(xNStep_Group, IPT%overlap, IPT%corrL, IPT%xStep,&
+                                                   1, unityPartition, IPT%nDim, &
+                                                   IPT%neigh, IPT%neighShift, reverse = .true.)
+
+                if(IPT%write_intermediate_files) then
+                    MONO_FileName = string_join_many("PofUnit_L1_Group",numb2String(IPT%gen_group))
+                    if(IPT%gen_rang == 0) call write_MONO_proc_result(xMin_Group, xMax_Group, &
+                                                                  IPT%xStep, IPT%nDim, &
+                                                                  unityPartition, MONO_FileName, &
+                                                                  IPT%outputFolder)
+                end if
+
+                call wLog("BEFmaxval(randField_Group(:,:)) = ")
+                call wLog(maxval(randField_Group(:,:)))
+                call wLog("BEFminval(randField_Group(:,:)) = ")
+                call wLog(minval(randField_Group(:,:)))
+
+                randField_Group(:,1) = randField_Group(:,1)/unityPartition
+
+                if(IPT%write_intermediate_files) then
+                    MONO_FileName = string_join_many("LOC_L1_P", numb2String(IPT%rang), "AFT_Cor-GROUP",numb2String(IPT%gen_group))
+                    if(IPT%gen_rang == 0) call write_MONO_proc_result(xMin_Group, xMax_Group, &
+                                                                  IPT%xStep, IPT%nDim, &
+                                                                  randField_Group(:,1), MONO_FileName, &
+                                                                  IPT%outputFolder)
+                end if
+
+                call wLog("AFTmaxval(randField_Group(:,:)) = ")
+                call wLog(maxval(randField_Group(:,:)))
+                call wLog("AFTminval(randField_Group(:,:)) = ")
+                call wLog(minval(randField_Group(:,:)))
+            end if
+
         end if
 
         if(allocated(unityPartition)) deallocate(unityPartition)
@@ -505,7 +521,6 @@ contains
         call wLog(gen_WALL_Time)
 
         if(IPT%rang == 0) then
-
 
             BT_avg    = BT_sum/dble(IPT%nb_procs)
             BT_stdDev = sqrt(BT2_sum/dble(IPT%nb_procs) - BT_avg**2.0D0)

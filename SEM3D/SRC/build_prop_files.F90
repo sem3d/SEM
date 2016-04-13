@@ -33,7 +33,6 @@ contains
         integer :: mat, assocMat, code
 
         !Writing hdf5 files
-        if(rg == 0) write(*,*)
         do mat = 0, Tdomain%n_mat - 1
             assocMat = Tdomain%sSubdomain(mat)%assocMat
             if(propOnFile(Tdomain, assocMat)) then

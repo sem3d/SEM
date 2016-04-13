@@ -61,6 +61,7 @@ contains
         double precision :: kAdjust    = 1.0D0 !"kNStep minimum" multiplier
         double precision :: periodMult = 1.1D0 !"range" multiplier
         double precision :: rAdjust    = 5.0D0 !"kNStep minimum" multiplier (isotropic)
+        integer, dimension(RDF%nDim) :: kInitial, kFinal, kNStepLocal
 
         if(allocated(RDF%kPoints)) deallocate(RDF%kPoints)
 
@@ -134,11 +135,17 @@ contains
                 !        !call wLog(RDF%kPoints(:, i))
                 !    end do
                 !else
+                    kInitial = 0
+                    kInitial(RDF%nDim)=RDF%kNInit-1 !-1 so k starts at 0
+                    kFinal = 0
+                    kFinal(RDF%nDim)= RDF%kNInit + RDF%kNEnd -1
                     call wLog("RDF%kNInit = ")
                     call wLog(RDF%kNInit)
                     call wLog("RDF%kNEnd = ")
                     call wLog(RDF%kNEnd)
-                    kNLocal = RDF%kNEnd - RDF%kNInit + 1
+                    kNStepLocal = RDF%kNStep
+                    kNStepLocal(RDF%nDim)=RDF%kNEnd - RDF%kNInit + 1
+                    kNLocal = product(kNStepLocal)
                     call wLog("kNLocal = ")
                     call wLog(kNLocal)
                     call wLog("HERE !!!!!!!!!!!!")
@@ -146,12 +153,12 @@ contains
                     call wLog("shape(RDF%kPoints) = ")
                     call wLog(shape(RDF%kPoints))
                     call wLog("Making kPoints= ")
-                    !call setGrid(RDF%kPoints, dble(RDF%kNInit-1)*RDF%kDelta, RDF%kDelta, RDF%kNStep)
-                    do i_long = RDF%kNInit, RDF%kNEnd
-                        call get_Permutation(int(i_long), RDF%kMax, RDF%kNStep, &
-                                             RDF%kPoints(:, i_long-RDF%kNInit+1), &
-                                             snapExtremes = .true.)
-                    end do
+                    call setGrid(RDF%kPoints, dble(kInitial)*RDF%kDelta, RDF%kDelta, kNStepLocal)
+                    !do i_long = RDF%kNInit, RDF%kNEnd
+                    !    call get_Permutation(int(i_long), RDF%kMax, RDF%kNStep, &
+                    !                         RDF%kPoints(:, int(i_long-RDF%kNInit+1)), &
+                    !                         snapExtremes = .true.)
+                    !end do
                 !end if
 
         end select
