@@ -638,6 +638,7 @@ contains
                 write(unit,*) " log_ID = ", IPT%log_ID
                 write(unit,*) " rang = ", IPT%rang
                 write(unit,*) " init = ", IPT%init
+                write(unit,*) " comm = ", IPT%comm
                 write(unit,*) " "
                 write(unit,*) " MESH -----------------"
                 write(unit,*) " nDim_mesh = ", IPT%nDim_mesh

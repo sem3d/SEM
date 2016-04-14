@@ -471,7 +471,6 @@ contains
         integer(C_INTPTR_T) :: local_LastDim
         integer(C_INTPTR_T) :: local_LD_offset
         integer(C_INTPTR_T) :: alloc_local
-        double precision :: deltaLD
         integer :: LD
         integer :: gen_rang, gen_nb_Procs
 

@@ -198,7 +198,7 @@ contains
     !-----------------------------------------------------------------------------------------------
     subroutine add_RF_to_Group(IPT, randField_Gen, xNStep_Proc, &
                                unityPartition, xMinFile, xMaxFile, &
-                               xMin_Group, subdivisionIdVec, RF_2D_Group, RF_3D_Group)
+                               xMin_Group, RF_2D_Group, RF_3D_Group)
 
         implicit none
 
@@ -207,7 +207,6 @@ contains
         integer, dimension(:), intent(in) :: xNStep_Proc
         double precision, dimension(:), intent(in) :: unityPartition
         double precision, dimension(:), intent(in) :: xMinFile, xMaxFile, xMin_Group
-        integer, dimension(:), intent(in) :: subdivisionIdVec
 
         !OUTPUT
         double precision, dimension(:,:), intent(inout), target :: randField_Gen

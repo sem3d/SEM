@@ -101,7 +101,7 @@ contains
         logical :: dirExists
         !LOCAL
         character(len=1024) :: filePath
-        integer :: i, fileId=56, error
+        integer :: fileId=56, error
 
         filePath = trim(adjustL(path))//"/"//trim(adjustL(folder))//"/INQUIRE_file"
         !write(*,*) "filePath = ", trim(filePath)

@@ -177,10 +177,12 @@ contains
                 loc_nbProcs  = prodNFields
                 extLoc = .true.
             end if
-            !if(prodNFields == 1) extLoc = .false.
+            write(*,*) "IPT%comm = ", IPT%comm
             call MPI_COMM_SPLIT(IPT%comm, loc_group, IPT%rang, loc_Comm, code)
+            call MPI_COMM_SIZE(loc_Comm, loc_nbProcs, code)
             call MPI_COMM_RANK(loc_Comm, loc_rang, code)
-
+            write(*,*) "code loc_Comm = ", code
+            write(*,*) "loc_Comm = ", loc_Comm
             !DEFINING GROUPS AND COMMUNICATORS FOR GENERATION
             if(extLoc) then
                 gen_group    = mod(IPT%rang,prodNFields) !There will be ExtLoc
@@ -190,9 +192,10 @@ contains
                 gen_groupMax = 1 !No ExtLoc
             end if
             call MPI_COMM_SPLIT(IPT%comm, gen_group, IPT%rang, gen_Comm, code)
+            write(*,*) "code gen_Comm = ", code
+            write(*,*) "gen_Comm = ", gen_Comm
             call MPI_COMM_SIZE(gen_Comm, gen_nbProcs, code)
             call MPI_COMM_RANK(gen_Comm, gen_rang, code)
-
 
             !Changing xMaxGlob and xMinGlob according to localization level
             !if(IPT%rang == 0) write(*,*) "-> REDEFINE xMaxGlob and xMinGlob----------------------------------------"
@@ -1059,19 +1062,19 @@ contains
 
                     if(nDim == 2) then
                         UNV_randField(i,1) = UNV_randField(i,1) +                  &
-                                             (                                     &
-                                             BB_2D(coordPosInt(1)+neighCoord(1,j), &
-                                                   coordPosInt(2)+neighCoord(2,j)) &
-                                             * weight                              &
-                                             )
+                            (                                     &
+                            BB_2D(coordPosInt(1)+neighCoord(1,j), &
+                            coordPosInt(2)+neighCoord(2,j)) &
+                            * weight                              &
+                            )
                     else if (nDim == 3) then
                         UNV_randField(i,1) = UNV_randField(i,1) +                  &
-                                             (                                     &
-                                             BB_3D(coordPosInt(1)+neighCoord(1,j), &
-                                                   coordPosInt(2)+neighCoord(2,j), &
-                                                   coordPosInt(3)+neighCoord(3,j)) &
-                                             * weight                              &
-                                             )
+                            (                                     &
+                            BB_3D(coordPosInt(1)+neighCoord(1,j), &
+                            coordPosInt(2)+neighCoord(2,j), &
+                            coordPosInt(3)+neighCoord(3,j)) &
+                            * weight                              &
+                            )
                     end if
 
                 end do

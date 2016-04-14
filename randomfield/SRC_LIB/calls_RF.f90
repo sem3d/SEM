@@ -39,9 +39,8 @@ contains
 
         call CPU_TIME(t_initial)
 
-        if(IPT%rang == 0) write(*,*) "-> Processing INPUTS----------------------------------------"
         call wLog("-> Processing INPUTS----------------------------------------")
-        if(IPT%rang == 0) write(*,*) "-> Processing INPUTS---------------------------rang = ",IPT%rang
+        if(IPT%rang == 0) write(*,*) "-> Processing INPUTS---------------------------"
 
         call validate_input(IPT)
 
@@ -59,7 +58,10 @@ contains
                            IPT%nTotalFields, IPT%coords, IPT%neigh, IPT%op_neigh, IPT%neighShift, &
                            IPT%global)
 
-        write(*,*) "-> AFTER Processing INPUTS---------------------------rang = ",IPT%rang
+
+        if(IPT%rang == 0) write(*,*) "  IPT%loc_Comm = ", IPT%loc_Comm
+        if(IPT%rang == 0) write(*,*) "  IPT%gen_Comm = ", IPT%gen_Comm
+
 
         call wLog("-----LOCALIZATION---------------")
         call wLog("     IPT%loc_group = ")
@@ -131,12 +133,12 @@ contains
         double precision, dimension(IPT%nDim) :: gen_GroupRange
         double precision, dimension(IPT%nDim, IPT%nTotalFields) :: subdivisionCoords
         integer         , dimension(IPT%nDim, IPT%nTotalFields) :: subdivisionId
-        double precision      :: t_bef, t_aft
+        double precision      :: t_bef
         integer               :: fieldNumber
         character(len=buf_RF) :: BBoxPath, XMFPath, MONO_FileName
         character(len=buf_RF), dimension(:), allocatable :: MONO_FileNames
         double precision, dimension(IPT%nTotalFields) :: gen_times, temp_gen_times
-        integer :: i, d, countFields, j
+        integer :: i, d, countFields
         integer :: nSamplesInProc
         double precision, dimension(:,:), allocatable, target :: randField_Gen
         double precision, dimension(:,:), allocatable, target :: randField_Group
@@ -146,7 +148,6 @@ contains
         double precision, dimension(:,:), allocatable :: xMinFiles, xMaxFiles
         double precision, dimension(IPT%nDim) :: xMin_Group, xMax_Group
         integer, dimension(IPT%nDim) :: xNStep_Proc, xNStep_Group, origin_Group
-        integer, dimension(IPT%nDim) :: minP, maxP
         double precision, dimension(:, :), pointer :: RF_2D_Group
         double precision, dimension(:, :, :), pointer :: RF_3D_Group
         double precision :: gen_WALL_Time
@@ -270,14 +271,12 @@ contains
                                 call add_RF_to_Group(IPT, randField_Gen, xNStep_Proc, &
                                                 unityPartition, &
                                                 xMinFiles(:, countFields), xMaxFiles(:, countFields), &
-                                                xMin_Group, &
-                                                subdivisionId(:,i), RF_2D_Group=RF_2D_Group)
+                                                xMin_Group, RF_2D_Group=RF_2D_Group)
                            else if(IPT%nDim == 3) then
                                call add_RF_to_Group(IPT, randField_Gen, xNStep_Proc, &
                                                 unityPartition, &
                                                 xMinFiles(:, countFields), xMaxFiles(:, countFields), &
-                                                xMin_Group, &
-                                                subdivisionId(:,i), RF_3D_Group=RF_3D_Group)
+                                                xMin_Group, RF_3D_Group=RF_3D_Group)
                            end if
 
 

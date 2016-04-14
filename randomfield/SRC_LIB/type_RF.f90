@@ -19,7 +19,8 @@ module type_RF
         !GENERATION VARIABLES
             !nDim independent
         integer :: nDim = -1!, xNTotal = -1, kNTotal = -1;
-        integer(kind=8) :: kNTotal = -1, kNInit, kNEnd
+        integer(kind=8) :: kNTotal = -1
+        integer :: kNInit, kNEnd
         integer, dimension(:)  , allocatable :: seed
         integer :: seedStart = -1
         double precision   :: fieldAvg = -1, fieldVar = -1;
@@ -114,6 +115,13 @@ module type_RF
             RF_a%init  = .true.
             RF_a%neighSeed(:,:) = -1
             RF_a%validProc = .true.
+
+            if(associated(RF_a%xPoints))    nullify(RF_a%xPoints)
+            if(associated(RF_a%randField))  nullify(RF_a%randField)
+            if(associated(RF_a%RF_2D))      nullify(RF_a%RF_2D)
+            if(associated(RF_a%RF_3D))      nullify(RF_a%RF_3D)
+            if(associated(RF_a%xPoints_2D)) nullify(RF_a%xPoints_2D)
+            if(associated(RF_a%xPoints_3D)) nullify(RF_a%xPoints_3D)
 
         end subroutine init_RF
 

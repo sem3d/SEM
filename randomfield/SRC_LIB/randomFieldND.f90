@@ -51,13 +51,6 @@ contains
         !LOCAL VARIABLES
         integer :: i;
 
-        !logical, dimension(size(MSH%neigh)) :: considerNeighbour
-        !integer, dimension(16) :: testVec
-        !integer :: partitionType = 1
-
-
-        !testVec = [(i, i = 1, 16)]
-
         !Normalization
         call wLog(" ")
         call wLog("->Normalizing Coordinates")
@@ -157,6 +150,9 @@ contains
         !LOCAL VARIABLES
         double precision :: normalVar, normalAvg
         integer          :: error, code
+
+        normalVar = 1.0D0
+        normalAvg = 0.0D0
 
         select case (margiFirst)
         case(fom_GAUSSIAN)
