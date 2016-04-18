@@ -177,12 +177,12 @@ contains
                 loc_nbProcs  = prodNFields
                 extLoc = .true.
             end if
-            write(*,*) "IPT%comm = ", IPT%comm
+            !if(prodNFields == 1) extLoc = .false.
             call MPI_COMM_SPLIT(IPT%comm, loc_group, IPT%rang, loc_Comm, code)
-            call MPI_COMM_SIZE(loc_Comm, loc_nbProcs, code)
-            call MPI_COMM_RANK(loc_Comm, loc_rang, code)
             write(*,*) "code loc_Comm = ", code
             write(*,*) "loc_Comm = ", loc_Comm
+            call MPI_COMM_RANK(loc_Comm, loc_rang, code)
+
             !DEFINING GROUPS AND COMMUNICATORS FOR GENERATION
             if(extLoc) then
                 gen_group    = mod(IPT%rang,prodNFields) !There will be ExtLoc
@@ -196,6 +196,7 @@ contains
             write(*,*) "gen_Comm = ", gen_Comm
             call MPI_COMM_SIZE(gen_Comm, gen_nbProcs, code)
             call MPI_COMM_RANK(gen_Comm, gen_rang, code)
+
 
             !Changing xMaxGlob and xMinGlob according to localization level
             !if(IPT%rang == 0) write(*,*) "-> REDEFINE xMaxGlob and xMinGlob----------------------------------------"

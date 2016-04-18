@@ -15,6 +15,9 @@ module type_inputRF
         integer :: nb_procs = -1
         logical :: init=.false.
         logical :: alloc=.false.
+        integer :: nSamples
+        character(len=buf_RF), dimension(:), allocatable :: out_folders, out_names
+        character(len=buf_RF), dimension(:), allocatable :: mesh_inputs, gen_inputs
         !MESH
         integer :: nDim_mesh
         integer :: meshMod
@@ -368,6 +371,11 @@ contains
             if(allocated(IPT%op_neigh)) deallocate(IPT%op_neigh)
             if(allocated(IPT%neighShift)) deallocate(IPT%neighShift)
 
+            if(allocated(IPT%out_folders)) deallocate(IPT%out_folders)
+            if(allocated(IPT%out_names)) deallocate(IPT%out_names)
+            if(allocated(IPT%mesh_inputs)) deallocate(IPT%mesh_inputs)
+            if(allocated(IPT%gen_inputs)) deallocate(IPT%gen_inputs)
+
         end subroutine finalize_IPT_RF
 
         !---------------------------------------------------------------------------------
@@ -445,6 +453,39 @@ contains
             IPT%procExtent = IPT_orig%procExtent
 
         end subroutine copy_IPT_RF
+
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        subroutine read_main_input(path, IPT)
+
+            implicit none
+            !INPUT
+            character(len=*), intent(in) :: path
+            !OUTPUT
+            type(IPT_RF), intent(inout)  :: IPT
+            !LOCAL
+            character(len=buf_RF) , dimension(:,:), allocatable :: dataTable;
+            integer :: i
+
+
+            call set_DataTable(path, dataTable)
+
+            call read_DataTable(dataTable, "nSamples", IPT%nSamples)
+            allocate(IPT%out_folders(IPT%nSamples))
+            allocate(IPT%out_names(IPT%nSamples))
+            allocate(IPT%mesh_inputs(IPT%nSamples))
+            allocate(IPT%gen_inputs(IPT%nSamples))
+            do i =1, IPT%nSamples
+                call read_DataTable(dataTable, stringNumb_join("mesh_input_",i), IPT%mesh_inputs(i))
+                call read_DataTable(dataTable, stringNumb_join("gen_input_",i), IPT%gen_inputs(i))
+                call read_DataTable(dataTable, stringNumb_join("out_folder_",i), IPT%out_folders(i))
+                call read_DataTable(dataTable, stringNumb_join("out_name_",i), IPT%out_names(i))
+            end do
+            deallocate(dataTable)
+
+        end subroutine read_main_input
 
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
@@ -685,52 +726,52 @@ contains
 
         end subroutine show_IPT_RF
 
-    !-----------------------------------------------------------------------------------------------
-    !-----------------------------------------------------------------------------------------------
-    !-----------------------------------------------------------------------------------------------
-    !-----------------------------------------------------------------------------------------------
-    subroutine get_Global_Extremes_Mesh(coordList, comm, xMinGlob, xMaxGlob)
-        implicit none
+        !-----------------------------------------------------------------------------------------------
+        !-----------------------------------------------------------------------------------------------
+        !-----------------------------------------------------------------------------------------------
+        !-----------------------------------------------------------------------------------------------
+        subroutine get_Global_Extremes_Mesh(coordList, comm, xMinGlob, xMaxGlob)
+            implicit none
 
-        !INPUT
-        double precision, dimension(:,:), intent(in) :: coordList
-        integer, intent(in) :: comm
-        !OUTPUT
-        double precision, dimension(:), intent(out) :: xMinGlob, xMaxGlob
-        !LOCAL
-        integer :: nDim
-        double precision, dimension(:), allocatable :: xMinLoc, xMaxLoc
-        integer :: code, i
+            !INPUT
+            double precision, dimension(:,:), intent(in) :: coordList
+            integer, intent(in) :: comm
+            !OUTPUT
+            double precision, dimension(:), intent(out) :: xMinGlob, xMaxGlob
+            !LOCAL
+            integer :: nDim
+            double precision, dimension(:), allocatable :: xMinLoc, xMaxLoc
+            integer :: code, i
 
-        !call DispCarvalhol(transpose(coordList), "transpose(coordList)")
+            !call DispCarvalhol(transpose(coordList), "transpose(coordList)")
 
-        nDim = size(coordList,1)
-        allocate(xMinLoc(nDim))
-        allocate(xMaxLoc(nDim))
+            nDim = size(coordList,1)
+            allocate(xMinLoc(nDim))
+            allocate(xMaxLoc(nDim))
 
-        xMinLoc = minval(coordList, 2)
-        xMaxLoc = maxval(coordList, 2)
+            xMinLoc = minval(coordList, 2)
+            xMaxLoc = maxval(coordList, 2)
 
-        call wLog("xMinLoc = ")
-        call wLog(xMinLoc)
-        call wLog("xMaxLoc = ")
-        call wLog(xMaxLoc)
+            call wLog("xMinLoc = ")
+            call wLog(xMinLoc)
+            call wLog("xMaxLoc = ")
+            call wLog(xMaxLoc)
 
-        do i = 1, nDim
-            call MPI_ALLREDUCE (xMinLoc(i), xMinGlob(i), 1, MPI_DOUBLE_PRECISION, MPI_MIN, comm,code)
-            call MPI_ALLREDUCE (xMaxLoc(i), xMaxGlob(i), 1, MPI_DOUBLE_PRECISION, MPI_MAX, comm,code)
-        end do
+            do i = 1, nDim
+                call MPI_ALLREDUCE (xMinLoc(i), xMinGlob(i), 1, MPI_DOUBLE_PRECISION, MPI_MIN, comm,code)
+                call MPI_ALLREDUCE (xMaxLoc(i), xMaxGlob(i), 1, MPI_DOUBLE_PRECISION, MPI_MAX, comm,code)
+            end do
 
-        call wLog(" ")
-        call wLog("xMinGlob = ")
-        call wLog(xMinGlob)
-        call wLog("xMaxGlob = ")
-        call wLog(xMaxGlob)
+            call wLog(" ")
+            call wLog("xMinGlob = ")
+            call wLog(xMinGlob)
+            call wLog("xMaxGlob = ")
+            call wLog(xMaxGlob)
 
-        if(allocated(xMinLoc)) deallocate(xMinLoc)
-        if(allocated(xMaxLoc)) deallocate(xMaxLoc)
+            if(allocated(xMinLoc)) deallocate(xMinLoc)
+            if(allocated(xMaxLoc)) deallocate(xMaxLoc)
 
-    end subroutine get_Global_Extremes_Mesh
+        end subroutine get_Global_Extremes_Mesh
 
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------

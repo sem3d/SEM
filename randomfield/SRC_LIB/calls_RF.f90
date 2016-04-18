@@ -556,11 +556,11 @@ contains
             !write(*,*) "MONO_FileName(len(trim(MONO_FileName)):len(trim(MONO_FileName))) "
             !write(*,*) MONO_FileName(len(trim(MONO_FileName)):len(trim(MONO_FileName)))
             write(*,*) "PATH: ", trim(MONO_FileName)
-            write(*,*) "OUTPUT HDF5 ON: ", trim(string_join_many(MONO_FileName, "/", BBoxPath(:)))
-            inquire(FILE=trim(string_join_many(MONO_FileName, "/", BBoxPath(:))), SIZE=file_bytes_size)
+            write(*,*) "OUTPUT HDF5 ON: ", trim(string_join_many(MONO_FileName, "/", BBoxPath))
+            inquire(FILE=trim(string_join_many(MONO_FileName, "/", BBoxPath)), SIZE=file_bytes_size)
             file_mb_size = dble(file_bytes_size)/dble(1024.0D0 ** 2.0D0)
             write(*,*) "    file_mb_size: ", file_mb_size
-            write(*,*) "OUTPUT XMF  ON: ", trim(string_join_many(MONO_FileName, "/", XMFPath(:)))
+            write(*,*) "OUTPUT XMF  ON: ", trim(string_join_many(MONO_FileName, "/", XMFPath))
         end if
 
 
