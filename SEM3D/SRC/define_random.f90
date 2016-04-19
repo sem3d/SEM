@@ -135,6 +135,8 @@ contains
 
         !write(*,*) " rang ", rg," Flag 2", " mat = ", mat
         call MPI_BARRIER(Tdomain%communicateur, code)
+        
+        stop("Random Properties not yet functional on SEM")
 
         !do propId = 0, nProp - 1
         do propId = 0, 0 !FOR TESTS
