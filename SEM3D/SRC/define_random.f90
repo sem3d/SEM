@@ -10,6 +10,7 @@ module define_random
     use randomFieldND
     use displayCarvalhol
     use writeResultFile_RF
+    use RF_fileCreator
 
     implicit none
 
@@ -105,16 +106,16 @@ contains
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    subroutine build_random_properties(Tdomain, rg, mat)
+    subroutine build_random_properties(Tdomain, rg)
         use calls_RF
         implicit none
         !INPUT
         type(domain)    , intent(inout), target :: Tdomain
-        integer         , intent(in)            :: rg, mat
+        integer         , intent(in)            :: rg
         !LOCAL
         type(IPT_RF) :: IPT
-        integer :: assocMat
-        integer :: i !counter
+        integer :: mat !,assocMat
+        integer :: i, propCounter
         integer :: error, code
         integer :: nProp = 3
         integer :: effecMethod
@@ -124,62 +125,114 @@ contains
         double precision, dimension(10) :: times
         character(len=50), dimension(0:2) :: propName
         integer :: seedStart
-
-        avgProp  = [Tdomain%sSubDomain(mat)%Ddensity, &
-                    Tdomain%sSubDomain(mat)%DLambda,  &
-                    Tdomain%sSubDomain(mat)%DMu]
-        propName(0) = "Density"
-        propName(1) = "Lambda"
-        propName(2) = "Mu"
-        assocMat = Tdomain%sSubdomain(mat)%assocMat
-
-        !write(*,*) " rang ", rg," Flag 2", " mat = ", mat
-        call MPI_BARRIER(Tdomain%communicateur, code)
+        character(len=1024) :: runPath, fileNameBase
+        integer :: main_fId
+        integer :: nProcsPerChunk, nChunks
+        double precision :: Density, Lambda, Kappa, Mu
+        double precision :: P_Speed, S_Speed
         
-        stop("Random Properties not yet functional on SEM")
 
-        !do propId = 0, nProp - 1
-        do propId = 0, 0 !FOR TESTS
-            Tdomain%sSubDomain(mat)%propFilePath(propId) = string_join_many("./prop/h5/",propName(propId), "_Mat_", numb2String(assocMat),".h5")
+        propName(0) = "Density"
+        propName(1) = "Kappa"
+        propName(2) = "Mu"
+        propCounter = 0
 
-            !write(*,*) " rang ", rg," Flag 3"
-            !call MPI_BARRIER(Tdomain%communicateur, code)
-            !write(*,*) " rang ", rg," Flag 4"
-            !call MPI_BARRIER(Tdomain%communicateur, code)
-            if(is_rand(Tdomain%sSubdomain(mat))) then
-                write(*,*) " rang ", rg," in build_random_properties"
-                call MPI_BARRIER(Tdomain%communicateur, code)
-                if(rg == 0) write(*,*) "  Generating Random Properties"
-                seedStart = Tdomain%sSubDomain(mat)%seedStart
-                if(seedStart >= 0) seedStart = seedStart + 7*(propId+1)
+        main_fId = 25
+        if(rg == 0) open (unit = main_fId , file = "./mat/main_input", action = 'write')
 
-                !write(*,*) "  Generating Random Properties"
-                !call MPI_BARRIER(Tdomain%communicateur, code)
-                !write(*,*) "FOR SURE"
-                call init_IPT_RF_std(&
-                         IPT, &
-                         comm = Tdomain%communicateur, &
-                         nDim = 3, &
-                         xMinGlob_in = Tdomain%sSubDomain(mat)%MinBound, &
-                         xMaxGlob_in = Tdomain%sSubDomain(mat)%MaxBound, &
-                         fieldAvg = avgProp(propId), &
-                         fieldVar = Tdomain%sSubDomain(mat)%varProp(propId), &
-                         corrL_in = Tdomain%sSubDomain(mat)%corrL, &
-                         corrMod = Tdomain%sSubDomain(mat)%corrMod, &
-                         margiFirst = Tdomain%sSubDomain(mat)%margiFirst(propId), &
-                         seedStart = seedStart, &
-                         outputFolder = "prop", &
-                         outputName = string_join_many(propName(propId), "_Mat_", numb2String(mat)))
+        do mat = 0, Tdomain%n_mat - 1
 
-                !call show_IPT_RF(IPT)
+            Density = Tdomain%sSubDomain(mat)%Ddensity
+            P_Speed = Tdomain%sSubDomain(mat)%Pspeed
+            S_Speed = Tdomain%sSubDomain(mat)%Sspeed
 
-                !Generating random fields
-                call make_random_field(IPT, times)
+            Mu = S_Speed**2 * Density
+            Lambda = (P_Speed**2 - 2 * S_Speed**2 ) * Density
+            Kappa = Lambda + 2.0D0*Mu /3.0D0
 
-                call finalize_IPT_RF(IPT)
-            end if
+            if(.not. is_rand(Tdomain%sSubdomain(mat))) cycle
+            !assocMat = Tdomain%sSubdomain(mat)%assocMat
+
+            avgProp  = [Density, &
+                        Kappa,  &
+                        Mu]
+
+            if(rg == 0) write(*,*) "  Material ", mat, "is Random"
+            if(rg == 0) write(*,*) "  avgProp = ", avgProp
+
+            !stop("Random Properties not yet functional on SEM")
+
+
+            nProcsPerChunk = Tdomain%nb_procs
+            if(nProcsPerChunk > 12) nProcsPerChunk = 12
+            nChunks = ceiling(dble(Tdomain%nb_procs)/dble(nProcsPerChunk))
+
+            do propId = 0, nProp - 1
+            !do propId = 0, 0 !FOR TESTS
+                Tdomain%sSubDomain(mat)%propFilePath(propId) = string_join_many("./mat/h5/",propName(propId), "_Mat_", numb2String(mat),".h5")
+
+                if(is_rand(Tdomain%sSubdomain(mat)) .and. rg == 0) then
+
+                    write(*,*) " rang ", rg," in build_random_properties"
+                    call MPI_BARRIER(Tdomain%communicateur, code)
+                    if(rg == 0) write(*,*) "  Generating Random Properties"
+                    seedStart = Tdomain%sSubDomain(mat)%seedStart
+                    if(seedStart >= 0) seedStart = seedStart + 7*(propId+1)
+
+                    write(*,*) "  Generating Random Properties Files"
+                    propCounter = propCounter + 1
+                    write(*,*) "  propCounter = ", propCounter, "rank = ", rg
+
+                    fileNameBase = string_join_many(propName(propId), "_Mat_", numb2String(mat))
+
+                    call makeCase(&
+                            nDim=3, &
+                            Nmc=1, &
+                            corrMod=Tdomain%sSubdomain(mat)%corrMod, &
+                            margiFirst=Tdomain%sSubdomain(mat)%margiFirst(propId), &
+                            corrL=Tdomain%sSubdomain(mat)%corrL, &
+                            fieldAvg=avgProp(propId), &
+                            fieldVar=Tdomain%sSubdomain(mat)%varProp(propId), &
+                            method=4, &
+                            seedStart=seedStart, &
+                            overlap=[0.0D0, 0.0D0, 0.0D0], &
+                            xMinGlob=Tdomain%sSubdomain(mat)%MinBound, &
+                            xMaxGlob=Tdomain%sSubdomain(mat)%MaxBound, &
+                            pointsPerCorrL=[5, 5, 5], &
+                            nProcsTotal=Tdomain%nb_procs, &
+                            nProcsPerChunk=nProcsPerChunk, &
+                            localizationLevel=1, &
+                            nFields=[1, 1, 1], &
+                            nChunks=nChunks, &
+                            memPerChunk=12000, &
+                            queue="iceq", &
+                            wallTime="2:00:00", &
+                            cluster=1, &
+                            folderPath="./mat/input", &
+                            runPath=runPath, &
+                            rfPath="/home/carvalhol/Projects/SEM/build_RF/randomField.exe", &
+                            statPath="/home/carvalhol/Projects/SEM/build_RF/statistics.exe", &
+                            gen_input_name="gen_"//fileNameBase, &
+                            mesh_input_name="mesh_"//fileNameBase)
+
+                    write(main_fId, *) trim(string_join_many("$mesh_input_",numb2String(propCounter)))//' '//&
+                                       trim(string_join_many('"./input/mesh_'//fileNameBase,'"'))
+                    write(main_fId, *) trim(string_join_many("$gen_input_",numb2String(propCounter)))//' '//&
+                                       trim(string_join_many('"./input/gen_'//fileNameBase,'"'))
+                    write(main_fId, *) trim(string_join_many("$out_folder_",numb2String(propCounter)))//' '//'"."'
+                    write(main_fId, *) trim(string_join_many("$out_name_",numb2String(propCounter)))//' '//&
+                                       trim(fileNameBase)
+                end if
+
+
+            end do
 
         end do
+
+        if(rg == 0) write(main_fId,*) "$nSamples ", propCounter
+        if(rg == 0) close(main_fId)
+
+        call MPI_BARRIER(Tdomain%communicateur, code)
 
     end subroutine build_random_properties
 

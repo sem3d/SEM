@@ -228,7 +228,7 @@ contains
 
         type(domain), intent(inout) :: Tdomain
         character(Len=MAX_FILE_SIZE) :: fnamef
-        integer :: i, n_aus, npml, nRandom
+        integer :: i, n_aus, npml
         integer :: rg, dummy_ngll
         real :: dummy_dt, dummy_freq
         logical :: dummy_filtering
@@ -236,7 +236,7 @@ contains
 
         rg = Tdomain%rank
         npml = 0
-        nRandom = 0
+        Tdomain%nRandom = 0
 
         call semname_read_inputmesh_parametrage(Tdomain%material_file,fnamef)
         open (13, file=fnamef, status="old", form="formatted")
@@ -296,7 +296,7 @@ contains
             Tdomain%sSubdomain(i)%initial_material_type = Tdomain%sSubDomain(i)%material_type
 
             if (Tdomain%sSubDomain(i)%material_type == "R") then
-                nRandom = nRandom + 1
+                Tdomain%nRandom = Tdomain%nRandom + 1
                 Tdomain%sSubDomain(i)%material_type = "S"
                 Tdomain%any_Random = .true.
             end if
@@ -330,7 +330,7 @@ contains
             end if
         enddo
 
-        if(nRandom > 0) then
+        if(Tdomain%nRandom > 0) then
             read(13,*); read(13,*)
             do i = 0,Tdomain%n_mat-1
                 !write(*,*) "Reading Random Material (", i, ")"
@@ -367,12 +367,12 @@ contains
 
         type(domain), intent(inout) :: Tdomain
         character(Len=MAX_FILE_SIZE) :: fnamef
-        integer :: i, n_aus, npml, nRandom
+        integer :: i, n_aus, npml
         integer :: rg, NGLL
 
         rg = Tdomain%rank
         npml = 0
-        nRandom = 0
+        Tdomain%nRandom = 0
 
         call semname_read_inputmesh_parametrage(Tdomain%material_file,fnamef)
         if(rg==0) write(*,*) "read material file : ", trim(fnamef)
@@ -415,7 +415,7 @@ contains
 
             Tdomain%sSubDomain(i)%initial_material_type = Tdomain%sSubDomain(i)%material_type
             if (Tdomain%sSubDomain(i)%material_type == "R") then
-                nRandom = nRandom + 1
+                Tdomain%nRandom = Tdomain%nRandom + 1
                 Tdomain%sSubDomain(i)%material_type = "S"
                 Tdomain%any_Random = .true.
             end if

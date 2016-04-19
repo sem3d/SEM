@@ -125,13 +125,13 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
  !---------------------------------------------------------------------------------------------!
 
     call RUN_PREPARED(Tdomain)
-    call RUN_INIT_INTERACT(Tdomain,isort)
-
- !---------------------------------------------------------------------------------------------!
- !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
- !---------------------------------------------------------------------------------------------!
-
-    call TIME_STEPPING(Tdomain,isort,ntime)
+!    call RUN_INIT_INTERACT(Tdomain,isort)
+!
+! !---------------------------------------------------------------------------------------------!
+! !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
+! !---------------------------------------------------------------------------------------------!
+!
+!    call TIME_STEPPING(Tdomain,isort,ntime)
 
  !---------------------------------------------------------------------------------------------!
  !-------------------------------      NORMAL  END OF THE RUN      ----------------------------!
@@ -264,60 +264,51 @@ subroutine RUN_PREPARED(Tdomain)
     call check_interface_orient(Tdomain, Tdomain%SF%intSolFluPml, 1e-10)
     call MPI_Barrier(Tdomain%communicateur,code)
 
-!    !- Managing properties that should be written on a file
-!    if (Tdomain%any_PropOnFile) then
-     !   ! - defining random subdomains
-     !   if(Tdomain%any_Random .and. (.not.Tdomain%logicD%run_restart)) then
-     !       if(rg == 0) write(*,*) "--> DEFINING RANDOM SUBDOMAINS"
-     !       call define_random_subdomains(Tdomain, rg)
-     !   end if
-        !- writing properties files (if its not a restart)
-        if(.not. Tdomain%logicD%run_restart) then
-            if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
-            call create_prop_files (Tdomain, rg)
-        end if
-!    end if
-!
-!    !- timestep value - > Courant, or Courant -> timestep
-!    if (rg == 0) write (*,*) "--> COMPUTING COURANT PARAMETER"
-!    call Compute_Courant(Tdomain,rg)
-!    call MPI_Barrier(Tdomain%communicateur,code)
-!
-! !- elementary properties (mass matrices, PML factors,..)
-!    if (rg == 0) write (*,*) "--> COMPUTING MASS MATRIX AND INTERNAL FORCES COEFFICIENTS "
-!    call define_arrays(Tdomain)
-!    call MPI_Barrier(Tdomain%communicateur,code)
-!
-! !- anelastic properties
-!    if (Tdomain%n_sls>0) then
-!        if (Tdomain%aniso) then
-!            if (rg == 0) write (*,*) "--> COMPUTING ANISOTROPIC ATTENUATION FEATURES"
-!            call set_attenuation_aniso_param(Tdomain)
-!        else
-!            if (rg == 0) write (*,*) "--> COMPUTING ATTENUATION FEATURES"
-!            call set_attenuation_param(Tdomain)
-!        endif
-!    endif
-! !- eventual classical seismic point sources: their spatial and temporal properties
-!    if (Tdomain%logicD%any_source) then
-!        if (rg == 0) write (*,*) "--> COMPUTING SOURCE PARAMETERS "
-!        call SourcePosition (Tdomain)
-!        call double_couple (Tdomain, rg)
-!        call source_excit(Tdomain,rg)
-!        call def_timefunc (Tdomain, rg)
-!        !- source time dependence read in a file: Modules/Source.f90
-!        !  valid only for one point source - to be generalized for each
-!        do i = 0,Tdomain%n_source-1
-!            if(Tdomain%sSource(i)%i_time_function == 5)then
-!                call read_source_file(Tdomain%sSource(i))
-!            endif
-!        end do
-!    endif
-! !- time: initializations. Eventual changes if restarting from a checkpoint (see
-! !         routine  RUN_INIT_INTERACT)
-!    Tdomain%TimeD%rtime = 0
-!    Tdomain%TimeD%NtimeMin = 0
-!    call MPI_Barrier(Tdomain%communicateur,code)
+
+    if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
+    call create_prop_files (Tdomain, rg)
+
+
+    !- timestep value - > Courant, or Courant -> timestep
+    if (rg == 0) write (*,*) "--> COMPUTING COURANT PARAMETER"
+    call Compute_Courant(Tdomain,rg)
+    call MPI_Barrier(Tdomain%communicateur,code)
+
+    !- elementary properties (mass matrices, PML factors,..)
+    if (rg == 0) write (*,*) "--> COMPUTING MASS MATRIX AND INTERNAL FORCES COEFFICIENTS "
+    call define_arrays(Tdomain)
+    call MPI_Barrier(Tdomain%communicateur,code)
+
+ !- anelastic properties
+    if (Tdomain%n_sls>0) then
+        if (Tdomain%aniso) then
+            if (rg == 0) write (*,*) "--> COMPUTING ANISOTROPIC ATTENUATION FEATURES"
+            call set_attenuation_aniso_param(Tdomain)
+        else
+            if (rg == 0) write (*,*) "--> COMPUTING ATTENUATION FEATURES"
+            call set_attenuation_param(Tdomain)
+        endif
+    endif
+ !- eventual classical seismic point sources: their spatial and temporal properties
+    if (Tdomain%logicD%any_source) then
+        if (rg == 0) write (*,*) "--> COMPUTING SOURCE PARAMETERS "
+        call SourcePosition (Tdomain)
+        call double_couple (Tdomain, rg)
+        call source_excit(Tdomain,rg)
+        call def_timefunc (Tdomain, rg)
+        !- source time dependence read in a file: Modules/Source.f90
+        !  valid only for one point source - to be generalized for each
+        do i = 0,Tdomain%n_source-1
+            if(Tdomain%sSource(i)%i_time_function == 5)then
+                call read_source_file(Tdomain%sSource(i))
+            endif
+        end do
+    endif
+ !- time: initializations. Eventual changes if restarting from a checkpoint (see
+ !         routine  RUN_INIT_INTERACT)
+    Tdomain%TimeD%rtime = 0
+    Tdomain%TimeD%NtimeMin = 0
+    call MPI_Barrier(Tdomain%communicateur,code)
 
 end subroutine RUN_PREPARED
 !-----------------------------------------------------------------------------------

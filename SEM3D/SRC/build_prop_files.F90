@@ -32,20 +32,9 @@ contains
         !LOCAL
         integer :: mat, assocMat, code
 
-        !Writing hdf5 files
-        do mat = 0, Tdomain%n_mat - 1
-            assocMat = Tdomain%sSubdomain(mat)%assocMat
-            if(propOnFile(Tdomain, assocMat)) then
-                !if(rg == 0) write(*,*) "  Material ", mat, " will have properties on file"
-                if(is_rand(Tdomain%sSubdomain(assocMat))) then
-                !write(*,*) " rang ", rg," Flag 1---------------------", "mat = ", mat
-                call MPI_BARRIER(Tdomain%communicateur, code)
-                    !write(*,*) "FOR SURE"
-                    call build_random_properties(Tdomain, rg, mat)
-                end if
 
-            end if
-        end do
+        call build_random_properties(Tdomain, rg)
+
 
     end subroutine create_prop_files
 

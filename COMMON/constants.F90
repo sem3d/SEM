@@ -82,6 +82,24 @@ MODULE constants
     integer, parameter :: STAT_FULL  = 8 !
 
     integer, parameter, dimension(0:8) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6 /)
+
+    !METHOD
+    integer, parameter :: ISOTROPIC = 1, &
+                          SHINOZUKA = 2, &
+                          RANDOMIZATION = 3, &
+                          FFT = 4
+    !Correlation Model
+    integer, parameter :: cm_GAUSSIAN = 1, &
+                          cm_COS = 2
+    !First-order Marginal Density
+    integer, parameter :: fom_GAUSSIAN = 1, &
+                          fom_LOGNORMAL = 2
+    !Mesh Mode
+    integer, parameter :: msh_AUTO = 1, msh_UNV = 2
+
+    integer, parameter :: SCREEN=6
+    integer, parameter :: buf_RF=1024 !Buffer for text
+
 CONTAINS
 
 

@@ -61,6 +61,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/define_random.f90
     ${PRJ}/SRC/build_prop_files.F90
     ${PRJ}/SRC/find_location.f90
+    ${PRJ}/SRC/charFunctions.f90
+    ${PRJ}/SRC/RF_fileCreator.f90
 
     ${PRJ}/SRC/indexation.f90
     ${PRJ}/SRC/algo_comm.f90

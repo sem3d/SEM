@@ -73,6 +73,7 @@ module sdomain
 
        logical :: aniso
        logical :: any_Random, any_PropOnFile
+       integer :: nRandom
 
        integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers
        integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls
