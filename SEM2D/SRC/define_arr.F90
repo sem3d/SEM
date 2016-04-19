@@ -110,6 +110,7 @@ subroutine define_arrays(Tdomain)
                 Tdomain%specel(n)%Acoeff(:,:,1) = Whei*etax*Jac
                 Tdomain%specel(n)%Acoeff(:,:,2) = Whei*xiz*Jac
                 Tdomain%specel(n)%Acoeff(:,:,3) = Whei*etaz*Jac
+                Tdomain%specel(n)%Acoeff(:,:,4)= Whei*Jac
             else ! Discontinuous Galerkin, usual
                 Tdomain%specel(n)%Acoeff(:,:,0) = Whei*xix*Jac
                 Tdomain%specel(n)%Acoeff(:,:,1) = Whei*etax*Jac

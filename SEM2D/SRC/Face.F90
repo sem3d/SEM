@@ -661,6 +661,11 @@ end subroutine Compute_Flux_DGstrong
             return
         endif
 
+        if (F%Acoustic) then
+            F%KinvExpl(:,0) = 1./F%KinvExpl(:,0)
+            return
+        endif
+
         Det(:) = F%KinvExpl(:,0) * F%KinvExpl(:,1) - (F%KinvExpl(:,2)*F%KinvExpl(:,2))
         ! Check positive-definiteness of matrices on Faces
         do i=0,F%ngll-1
@@ -692,8 +697,12 @@ end subroutine Compute_Flux_DGstrong
         type (Face), intent (INOUT) :: F
 
         ! La second membre "smbr" du systeme K * Lambda = Smbr est homgene aux tractions
-        F%Veloc(:,0) = F%Kinv(:,0)*F%SmbrTrac(:,0) + F%Kinv(:,2)*F%SmbrTrac(:,1)
-        F%Veloc(:,1) = F%Kinv(:,2)*F%SmbrTrac(:,0) + F%Kinv(:,1)*F%SmbrTrac(:,1)
+        if (F%acoustic) then
+            F%Veloc(:,0) = F%Kinv(:,0)*F%SmbrTrac(:,0)
+        else
+            F%Veloc(:,0) = F%Kinv(:,0)*F%SmbrTrac(:,0) + F%Kinv(:,2)*F%SmbrTrac(:,1)
+            F%Veloc(:,1) = F%Kinv(:,2)*F%SmbrTrac(:,0) + F%Kinv(:,1)*F%SmbrTrac(:,1)
+        endif
 
         F%SmbrTrac = 0.
 
@@ -720,8 +729,12 @@ end subroutine Compute_Flux_DGstrong
         type (Face), intent (INOUT) :: F
 
         ! La second membre "smbr" du systeme K * Lambda = Smbr est homgene aux tractions
-        F%Veloc(:,0) = F%KinvExpl(:,0)*F%SmbrTrac(:,0) + F%KinvExpl(:,2)*F%SmbrTrac(:,1)
-        F%Veloc(:,1) = F%KinvExpl(:,2)*F%SmbrTrac(:,0) + F%KinvExpl(:,1)*F%SmbrTrac(:,1)
+        if (F%acoustic) then
+            F%Veloc(:,0) = F%KinvExpl(:,0)*F%SmbrTrac(:,0)
+        else
+            F%Veloc(:,0) = F%KinvExpl(:,0)*F%SmbrTrac(:,0) + F%KinvExpl(:,2)*F%SmbrTrac(:,1)
+            F%Veloc(:,1) = F%KinvExpl(:,2)*F%SmbrTrac(:,0) + F%KinvExpl(:,1)*F%SmbrTrac(:,1)
+        endif
 
         F%SmbrTrac = 0.
 

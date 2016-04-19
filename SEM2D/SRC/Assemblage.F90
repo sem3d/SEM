@@ -296,14 +296,40 @@ subroutine Get_flux_f2el_DGstrong (Tdomain, nelem)
 
 end subroutine Get_flux_f2el_DGstrong
 
+
 !>
-!!\brief Subroutine that shares the traction from an element
-!! "nelem" to its face "nface" taking into account the problems of coherency.
+!!\brief Subroutine that shares either the traction or the pressure
+!! from an element "nelem" to its face "nface".
 !!\version 1.0
 !!\date 18/11/2013
 !! This subroutine is used only with HDG elements
 !<
 subroutine Get_traction_el2f (Tdomain, nelem)
+
+    use sdomain
+    implicit none
+
+    type (domain), intent (INOUT) :: Tdomain
+    integer, intent(IN)   :: nelem
+
+    if (Tdomain%specel(nelem)%Acoustic) then
+       call Get_pressure_acou_el2f (Tdomain, nelem)
+    else
+       call Get_traction_elas_el2f (Tdomain, nelem)
+    endif
+
+    return
+
+end subroutine Get_traction_el2f
+
+!>
+!!\brief Subroutine that shares the PRESSURE from an element
+!! "nelem" to its face "nface" taking into account the problems of coherency.
+!!\version 1.0
+!!\date 18/11/2013
+!! This subroutine is used only with HDG elements
+!<
+subroutine Get_traction_elas_el2f (Tdomain, nelem)
 
     use sdomain
     use ssources
@@ -370,7 +396,74 @@ subroutine Get_traction_el2f (Tdomain, nelem)
     !endif
     return
 
-end subroutine Get_traction_el2f
+end subroutine Get_traction_elas_el2f
+
+!>
+!!\brief Subroutine that shares the PRESSURE from an element
+!! "nelem" to its face "nface" taking into account the problems of coherency.
+!!\version 1.0
+!!\date 14/04/2016
+!! This subroutine is used only with HDG elements
+!<
+subroutine Get_pressure_acou_el2f (Tdomain, nelem)
+
+    use sdomain
+    use ssources
+    use constants
+    implicit none
+
+    type (domain), intent (INOUT) :: Tdomain
+    integer, intent(in)   :: nelem
+
+    ! local variables
+    integer :: ngll, ngllx, ngllz, i, imin, imax, nface, nf
+    type(element), pointer :: Elem
+    logical :: coherency
+
+    Elem => Tdomain%specel(nelem)
+    ngllx = Elem%ngllx
+    ngllz = Elem%ngllz
+
+    ! Wheiting Faces Tractions
+    Elem%TracFace(:,0) = Elem%TracFace(:,0) * Elem%Coeff_Integr_Faces(:)
+
+    do nf = 0,3
+        nface = Elem%Near_Face(nf)
+        ngll  = Tdomain%sFace(nface)%ngll
+        coherency  = Tdomain%sFace(nface)%coherency
+        call get_iminimax(Elem,nf,imin,imax)
+        if(.NOT.Tdomain%sFace(nface)%changing_media) then
+           if (Tdomain%sFace(nface)%Near_Element(0)==nelem) then
+              Tdomain%sFace(nface)%SmbrTrac = Tdomain%sFace(nface)%SmbrTrac - Elem%TracFace(imin:imax,:)
+           else if (coherency) then
+              Tdomain%sFace(nface)%SmbrTrac = Tdomain%sFace(nface)%SmbrTrac + Elem%TracFace(imin:imax,:)
+           else
+              do i=0,ngll-1
+                 Tdomain%sFace(nface)%SmbrTrac(i,0) = Tdomain%sFace(nface)%SmbrTrac(i,0) &
+                      + Elem%TracFace(imax-i,0)
+              end do
+           end if
+        else ! Interface Acou-Elas : envoi de pression*normale sur la face
+           if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
+              Tdomain%sFace(nface)%SmbrTrac(:,0) = Tdomain%sFace(nface)%SmbrTrac(:,0) &
+                                                 - Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,0)
+              Tdomain%sFace(nface)%SmbrTrac(:,1) = Tdomain%sFace(nface)%SmbrTrac(:,1) &
+                                                 - Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,1)
+           else
+              do i=0,ngll-1
+                 Tdomain%sFace(nface)%SmbrTrac(i,0) = Tdomain%sFace(nface)%SmbrTrac(i,0) &
+                                                 + Elem%TracFace(imax-i,0)*Elem%Normal_Nodes(imax-i,0)
+                 Tdomain%sFace(nface)%SmbrTrac(i,1) = Tdomain%sFace(nface)%SmbrTrac(i,1) &
+                                                 + Elem%TracFace(imax-i,0)*Elem%Normal_Nodes(imax-i,1)
+              end do
+           end if
+        endif
+    enddo
+
+    return
+
+end subroutine Get_pressure_acou_el2f
+
 
 !>
 !!\brief This Subroutine gets the Forces and Velocities from 2 neighboring vertices
@@ -447,24 +540,57 @@ subroutine Get_Vhat_f2el (Tdomain, nelem)
 
     ! local variables
     integer :: ngll, ngllx, ngllz, i, imin, imax
+    type(element), pointer :: Elem
     logical :: coherency
 
-    ngllx = Tdomain%specel(nelem)%ngllx
-    ngllz = Tdomain%specel(nelem)%ngllz
+    Elem => Tdomain%specel(nelem)
+    ngllx = Elem%ngllx
+    ngllz = Elem%ngllz
 
-    do w_face=0,3
-        nface = Tdomain%specel(nelem)%Near_Face(w_face)
-        coherency = Tdomain%sFace(nface)%coherency
-        ngll  = Tdomain%sFace(nface)%ngll
-        call get_iminimax(Tdomain%specel(nelem),w_face,imin,imax)
-        if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
-            Tdomain%specel(nelem)%Vhat(imin:imax,:)  = Tdomain%sFace(nface)%Veloc(:,:)
-        else
-            do i=0,ngll-1
-                Tdomain%specel(nelem)%Vhat(imax-i,:) = Tdomain%sFace(nface)%Veloc(i,:)
-            enddo
-        endif
-    enddo
+    if (.NOT. Elem%Acoustic) then ! Elastic case
+       do w_face=0,3
+          nface = Elem%Near_Face(w_face)
+          coherency = Tdomain%sFace(nface)%coherency
+          ngll  = Tdomain%sFace(nface)%ngll
+          call get_iminimax(Elem,w_face,imin,imax)
+          if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
+             Elem%Vhat(imin:imax,:) = Tdomain%sFace(nface)%Veloc(:,:)
+          else
+             do i=0,ngll-1
+                Elem%Vhat(imax-i,:) = Tdomain%sFace(nface)%Veloc(i,:)
+             enddo
+          endif
+       enddo
+    else ! Acoustic case
+       do w_face=0,3
+          nface = Elem%Near_Face(w_face)
+          coherency = Tdomain%sFace(nface)%coherency
+          ngll  = Tdomain%sFace(nface)%ngll
+          call get_iminimax(Elem,w_face,imin,imax)
+          if (.NOT.Tdomain%sFace(nface)%changing_media) then
+             if (Tdomain%sFace(nface)%Near_Element(0)==nelem) then
+                Elem%Vhat(imin:imax,0) =  Tdomain%sFace(nface)%Veloc(:,0)
+             elseif (coherency) then
+                Elem%Vhat(imin:imax,0) = -Tdomain%sFace(nface)%Veloc(:,0)
+             else
+                do i=0,ngll-1
+                   Elem%Vhat(imax-i,0) = -Tdomain%sFace(nface)%Veloc(i,0)
+                enddo
+             endif
+          else ! Interface Acou Elas
+             if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
+                Elem%Vhat(imin:imax,0) = Tdomain%sFace(nface)%Veloc(:,0)*Elem%Normal_Nodes(imin:imax,0) &
+                                       + Tdomain%sFace(nface)%Veloc(:,1)*Elem%Normal_Nodes(imin:imax,1)
+             else
+                do i=0,ngll-1
+                   Elem%Vhat(imax-i,0) = Tdomain%sFace(nface)%Veloc(i,0)*Elem%Normal_Nodes(imax-i,0) &
+                                       + Tdomain%sFace(nface)%Veloc(i,1)*Elem%Normal_Nodes(imax-i,1)
+                enddo
+             endif
+          endif
+       enddo
+    endif
+
 
 end subroutine Get_Vhat_f2el
 
@@ -603,7 +729,7 @@ subroutine enforce_diriclet_BC (Tdomain, nelem)
 
     type (domain), intent (INOUT) :: Tdomain
     integer, intent(in)   :: nelem
-    integer :: i, nface, ngllx, ngllz
+    integer :: i, nface, ngllx, ngllz, nDG
     logical :: is_refl
 
     ngllx = Tdomain%specel(nelem)%ngllx
@@ -613,15 +739,20 @@ subroutine enforce_diriclet_BC (Tdomain, nelem)
         nface = Tdomain%specel(nelem)%Near_Face(i)
         is_refl = Tdomain%sFace(nface)%reflex
         if (is_refl) then
+            if (Tdomain%specel(nelem)%acoustic) then
+                nDG = 1
+            else
+                nDG = 3
+            endif
             select case (i)
             case(0)
-                Tdomain%specel(nelem)%Forces(0:ngllx-1,0,3:4) = 0.
+                Tdomain%specel(nelem)%Forces(0:ngllx-1,0,nDG:nDG+1) = 0.
             case(1)
-                Tdomain%specel(nelem)%Forces(ngllx-1,0:ngllz-1,3:4) = 0.
+                Tdomain%specel(nelem)%Forces(ngllx-1,0:ngllz-1,nDG:nDG+1) = 0.
             case(2)
-                Tdomain%specel(nelem)%Forces(0:ngllx-1,ngllz-1,3:4) = 0.
+                Tdomain%specel(nelem)%Forces(0:ngllx-1,ngllz-1,nDG:nDG+1) = 0.
             case(3)
-                Tdomain%specel(nelem)%Forces(0,0:ngllz-1,3:4) = 0.
+                Tdomain%specel(nelem)%Forces(0,0:ngllz-1,nDG:nDG+1) = 0.
             end select
         endif
     enddo

@@ -21,9 +21,11 @@ subroutine Compute_external_forces (Tdomain,timelocal)
         do ns =0, Tdomain%sSource(n)%ine-1
             ncc = Tdomain%sSource(n)%Elem(ns)%nr
             ngllx = Tdomain%specel(ncc)%ngllx; ngllz = Tdomain%specel(ncc)%ngllz
-            if ( Tdomain%specel(ncc)%Type_DG == GALERKIN_CONT) then
+            if (Tdomain%specel(ncc)%Type_DG == GALERKIN_CONT) then
                 nDG = 0
-            else ! In DG case, the forces has to be put in Forces(:,:,3:4)
+            else if (Tdomain%specel(ncc)%acoustic) then
+                nDG = 1
+            else! In DG case, the forces has to be put in Forces(:,:,3:4)
                 nDG = 3
             endif
             if (Tdomain%sSource(n)%i_type_source  == 6) then ! Special sources on the strain equation.

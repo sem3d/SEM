@@ -259,8 +259,8 @@ contains
         call create_dset(fid, "rotat", H5T_IEEE_F64LE, nnodes, rotat_id)
 
         ! Constroction des Vhat continus au niveau des Vertexs (stockes dans Vertex%V0)
-        if (Tdomain%type_elem==GALERKIN_HDG_RP .OR. Tdomain%type_elem==COUPLE_CG_HDG) &
-            call project_Vhat_Vertex(Tdomain)
+!        if (Tdomain%type_elem==GALERKIN_HDG_RP .OR. Tdomain%type_elem==COUPLE_CG_HDG) &
+!            call project_Vhat_Vertex(Tdomain)
 
         allocate(displ(0:2,0:nnodes-1))
         allocate(veloc(0:2,0:nnodes-1))

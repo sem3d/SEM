@@ -165,7 +165,7 @@ contains
         nz = Tdomain%specel(nel)%ngllz
         el => Tdomain%specel(nel)
         field = 0. ! Initialisation du champ (important pour HDG)
-        if (el%Type_DG==GALERKIN_CONT .OR. el%Type_DG==GALERKIN_HDG_RP) then
+        if (el%Type_DG==GALERKIN_CONT) then!!! .OR. el%Type_DG==GALERKIN_HDG_RP) then
             nx0 = 1
             nx1 = nx-2
             nz0 = 1
@@ -192,6 +192,7 @@ contains
             vx => Tdomain%sVertex(el%Near_Vertex(3))
             field(0,nz-1,:) = vx%Veloc
         else if (el%Type_DG==GALERKIN_HDG_RP) then
+            return !!!!!! A SUPPRIMER
             if (is_snapshot) then !! Partie appelee pour les Snapshots (Vhat projetee sur espace continu)
                 do i=0,3
                     fc => Tdomain%sFace(el%Near_Face(i))

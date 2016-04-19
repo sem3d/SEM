@@ -580,10 +580,14 @@ contains
             Elem%Veloc = Elem%Veloc + coeff2 * Elem%Vect_RK(:,:,0:1)
             Elem%Displ = Elem%Displ + coeff2 * Elem%Vect_RK(:,:,2:3)
 
-        else
+        else if (.NOT. Elem%Acoustic) then
             Elem%Vect_RK = coeff1 * Elem%Vect_RK + Dt * Elem%Forces
             Elem%Strain  = Elem%Strain + coeff2 * Elem%Vect_RK(:,:,0:2)
             Elem%Veloc   = Elem%Veloc  + coeff2 * Elem%Vect_RK(:,:,3:4)
+        else ! Acoustic case
+            Elem%Vect_RK = coeff1 * Elem%Vect_RK + Dt * Elem%Forces
+            Elem%Strain(:,:,0)  = Elem%Strain(:,:,0) + coeff2 * Elem%Vect_RK(:,:,0)
+            Elem%Veloc   = Elem%Veloc  + coeff2 * Elem%Vect_RK(:,:,1:2)
         endif
 
     end subroutine update_Elem_RK4
@@ -881,7 +885,7 @@ contains
         return
     end subroutine compute_InternalForces_CPML_Elem
 
-    
+
     ! ###########################################################
     !>
     !! \brief
@@ -899,11 +903,16 @@ contains
          do i = 0,1
             Elem%Forces(1:ngllx-2,1:ngllz-2,i) = Elem%MassMat(:,:)  * Elem%Forces(1:ngllx-2,1:ngllz-2,i)
          enddo
-      else
+      else if (.NOT.Elem%Acoustic) then
          do i = 0,2
             Elem%Forces(:,:,i) = 1./Elem%Acoeff(:,:,12) * Elem%Forces(:,:,i)
          enddo
          do i = 3,4
+            Elem%Forces(:,:,i) = Elem%MassMat(:,:) * Elem%Forces(:,:,i)
+         enddo
+      else ! Acoustic Element
+         Elem%Forces(:,:,0) = 1./Elem%Acoeff(:,:,4) * Elem%Forces(:,:,0)
+         do i = 1,2
             Elem%Forces(:,:,i) = Elem%MassMat(:,:) * Elem%Forces(:,:,i)
          enddo
       endif
@@ -977,13 +986,19 @@ contains
         real, intent (INOUT) :: E_elas
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1)  :: sigma11, sigma22, sigma12, EMat
 
-        sigma11 = (Elem%Lambda + 2*Elem%Mu) * Elem%Strain(:,:,0) + Elem%Lambda * Elem%Strain(:,:,1)
-        sigma22 = (Elem%Lambda + 2*Elem%Mu) * Elem%Strain(:,:,1) + Elem%Lambda * Elem%Strain(:,:,0)
-        sigma12 = 2*Elem%Mu * Elem%Strain(:,:,2)
+        if (Elem%Acoustic) then
+            Emat = Elem%Lambda * Elem%Strain(:,:,0) * Elem%Strain(:,:,0)
+            EMat = EMat * Elem%Acoeff(:,:,4)
+        else ! Elastic element
+            sigma11 = (Elem%Lambda + 2*Elem%Mu) * Elem%Strain(:,:,0) + Elem%Lambda * Elem%Strain(:,:,1)
+            sigma22 = (Elem%Lambda + 2*Elem%Mu) * Elem%Strain(:,:,1) + Elem%Lambda * Elem%Strain(:,:,0)
+            sigma12 = 2*Elem%Mu * Elem%Strain(:,:,2)
 
-        EMat = Elem%Strain(:,:,0)*sigma11 + 2.*Elem%Strain(:,:,2)*sigma12 &
-             + Elem%Strain(:,:,1)*sigma22
-        EMat = EMat * Elem%Acoeff(:,:,12)  ! Pour multiplier par Jac*wx*wz
+            EMat = Elem%Strain(:,:,0)*sigma11 + 2.*Elem%Strain(:,:,2)*sigma12 &
+                + Elem%Strain(:,:,1)*sigma22
+            EMat = EMat * Elem%Acoeff(:,:,12)  ! Pour multiplier par Jac*wx*wz
+        endif
+
         E_elas = 0.5 * sum(EMat)
 
   end subroutine compute_Elastic_Energy_DG
@@ -1038,16 +1053,74 @@ contains
 
     end subroutine compute_Kinetic_Energy_DG
 
-
 ! ###########################################################
     !>
-    !! \brief This subroutine computes the numerical Tractions at the
-    !! face of an element on each external node of the element.
+    !! \brief This subroutine redirects to subroutines computing the numerical Tractions
+    !! according to the kind of media (acoustic or elastic).
     !! It suitable for Hybridizable Discontinuous Galerkin elements only.
     !! \param type (Element), intent (INOUT) Elem
     !!
     !<
     subroutine  compute_TracFace (Elem)
+        implicit none
+
+        type (Element), intent (INOUT)   :: Elem
+
+        if (Elem%Acoustic) then
+            call compute_TracFace_Acou (Elem)
+        else
+            call compute_TracFace_Elas (Elem)
+        endif
+
+    end subroutine compute_TracFace
+
+
+! ###########################################################
+    !>
+    !! \brief This subroutine computes the numerical Tractions at the
+    !! face of an element on each external node of the element. For ACOUSTIC media.
+    !! It is suitable for Hybridizable Discontinuous Galerkin elements only.
+    !! \param type (Element), intent (INOUT) Elem
+    !!
+    !<
+    subroutine  compute_TracFace_Acou (Elem)
+        implicit none
+
+        type (Element), intent (INOUT)   :: Elem
+        integer    :: imin, imax, ngx, ngz
+        ngx = Elem%ngllx ; ngz = Elem%ngllz
+
+        ! For the Bottom Face :
+        call get_iminimax(Elem,0,imin,imax)
+        Elem%TracFace(imin:imax,0) =  Elem%Lambda(0:ngx-1,0) * Elem%Strain(0:ngx-1,0,0) &
+            - Elem%MatPen(imin:imax,0) * (Elem%Veloc(0:ngx-1,0,0) * Elem%Normal_nodes(imin:imax,0) &
+                                       +  Elem%Veloc(0:ngx-1,0,1) * Elem%Normal_nodes(imin:imax,1))
+        ! For the Right Face :
+        call get_iminimax(Elem,1,imin,imax)
+        Elem%TracFace(imin:imax,0) =  Elem%Lambda(ngx-1,0:ngz-1) * Elem%Strain(ngx-1,0:ngz-1,0) &
+            - Elem%MatPen(imin:imax,0) * (Elem%Veloc(ngx-1,0:ngz-1,0) * Elem%Normal_nodes(imin:imax,0) &
+                                       +  Elem%Veloc(ngx-1,0:ngz-1,1) * Elem%Normal_nodes(imin:imax,1))
+        ! For the Top Face :
+        call get_iminimax(Elem,2,imin,imax)
+        Elem%TracFace(imin:imax,0) =  Elem%Lambda(0:ngx-1,ngz-1) * Elem%Strain(0:ngx-1,ngz-1,0) &
+            - Elem%MatPen(imin:imax,0) * (Elem%Veloc(0:ngx-1,ngz-1,0) * Elem%Normal_nodes(imin:imax,0) &
+                                       +  Elem%Veloc(0:ngx-1,ngz-1,1) * Elem%Normal_nodes(imin:imax,1))
+        ! For the Left Face :
+        call get_iminimax(Elem,3,imin,imax)
+        Elem%TracFace(imin:imax,0) =  Elem%Lambda(0,0:ngz-1) * Elem%Strain(0,0:ngz-1,0) &
+            - Elem%MatPen(imin:imax,0) * (Elem%Veloc(0,0:ngz-1,0) * Elem%Normal_nodes(imin:imax,0) &
+                                       +  Elem%Veloc(0,0:ngz-1,1) * Elem%Normal_nodes(imin:imax,1))
+    end subroutine compute_TracFace_Acou
+
+! ###########################################################
+    !>
+    !! \brief This subroutine computes the numerical Tractions at the
+    !! face of an element on each external node of the element. For ELASTIC media
+    !! It is suitable for Hybridizable Discontinuous Galerkin elements only.
+    !! \param type (Element), intent (INOUT) Elem
+    !!
+    !<
+    subroutine  compute_TracFace_Elas (Elem)
         implicit none
 
         type (Element), intent (INOUT)   :: Elem
@@ -1134,11 +1207,11 @@ contains
         Elem%TracFace(imin:imax,1) =  Elem%TracFace(imin:imax,1) &
                                     - Elem%MatPen(imin:imax,2) * Elem%Veloc(0,0:ngz-1,0) &
                                     - Elem%MatPen(imin:imax,1) * Elem%Veloc(0,0:ngz-1,1)
-    end subroutine compute_TracFace
+    end subroutine compute_TracFace_Elas
 
 ! ###########################################################
     !>
-    !! \brief This subroutine computes the strain traces at the
+    !! \brief This subroutine computes the strain or pressure traces at the
     !! on each external node of the element, and add these strains to the
     !! Elem%Forces after weighting for integrals computation.
     !! It is suitable for Hybridizable Discontinuous Galerkin elements only.
@@ -1146,6 +1219,29 @@ contains
     !!
     !<
     subroutine  compute_Traces (Elem, is_half)
+        implicit none
+
+        type (Element), intent (INOUT)   :: Elem
+        logical,        intent (IN)      :: is_half
+
+        if (Elem%Acoustic) then
+            call compute_Traces_Acou (Elem)
+        else
+            call compute_Traces_Elas (Elem, is_half)
+        endif
+
+    end subroutine compute_Traces
+
+! ###########################################################
+    !>
+    !! \brief This subroutine computes the strain traces at the
+    !! on each external node of an ELASTIC element, and add these strains to the
+    !! Elem%Forces after weighting for integrals computation.
+    !! It is suitable for Hybridizable Discontinuous Galerkin elements only.
+    !! \param type (Element), intent (INOUT) Elem
+    !!
+    !<
+    subroutine  compute_Traces_Elas (Elem, is_half)
         implicit none
 
         type (Element), intent (INOUT)   :: Elem
@@ -1198,7 +1294,62 @@ contains
         Elem%Forces(0,0:ngz-1,3) = Elem%Forces(0,0:ngz-1,3) + Elem%TracFace(imin:imax,0)
         Elem%Forces(0,0:ngz-1,4) = Elem%Forces(0,0:ngz-1,4) + Elem%TracFace(imin:imax,1)
 
-    end subroutine compute_Traces
+    end subroutine compute_Traces_Elas
+
+! ###########################################################
+    !>
+    !! \brief This subroutine computes the pressure traces at the
+    !! on each external node of an ACOUSTIC element, and add these strains to the
+    !! Elem%Forces after weighting for integrals computation.
+    !! It is suitable for Hybridizable Discontinuous Galerkin elements only.
+    !! \param type (Element), intent (INOUT) Elem
+    !!
+    !<
+    subroutine  compute_Traces_Acou (Elem)
+        implicit none
+
+        type (Element), intent (INOUT)   :: Elem
+        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: Vhatn
+        integer    :: imin, imax, ngx, ngz
+        ngx = Elem%ngllx ; ngz = Elem%ngllz
+
+        ! Adding contribution of Vhat on the trace Traction :
+        Elem%TracFace(:,0) = Elem%TracFace(:,0) + Elem%Coeff_Integr_Faces(:)*Elem%MatPen(:,0)*Elem%Vhat(:,0)
+
+        ! Preparing traces for the strain equation :
+        Vhatn(:) = Elem%Vhat(:,0) * Elem%Coeff_Integr_Faces(:)
+
+        ! Adding Strain and velocities traces to Elem%Forces :
+        ! For the Bottom Face :
+        call get_iminimax(Elem,0,imin,imax)
+        Elem%Forces(0:ngx-1,0,0) = Elem%Forces(0:ngx-1,0,0) + Vhatn (imin:imax)
+        Elem%Forces(0:ngx-1,0,1) = Elem%Forces(0:ngx-1,0,1) &
+                                 + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,0)
+        Elem%Forces(0:ngx-1,0,2) = Elem%Forces(0:ngx-1,0,2) &
+                                 + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,1)
+        ! For the Right Face :
+        call get_iminimax(Elem,1,imin,imax)
+        Elem%Forces(ngx-1,0:ngz-1,0) = Elem%Forces(ngx-1,0:ngz-1,0) + Vhatn (imin:imax)
+        Elem%Forces(ngx-1,0:ngz-1,1) = Elem%Forces(ngx-1,0:ngz-1,1) &
+                                     + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,0)
+        Elem%Forces(ngx-1,0:ngz-1,2) = Elem%Forces(ngx-1,0:ngz-1,2) &
+                                     + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,1)
+        ! For the Top Face :
+        call get_iminimax(Elem,2,imin,imax)
+        Elem%Forces(0:ngx-1,ngz-1,0) = Elem%Forces(0:ngx-1,ngz-1,0) + Vhatn (imin:imax)
+        Elem%Forces(0:ngx-1,ngz-1,1) = Elem%Forces(0:ngx-1,ngz-1,1) &
+                                     + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,0)
+        Elem%Forces(0:ngx-1,ngz-1,2) = Elem%Forces(0:ngx-1,ngz-1,2) &
+                                     + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,1)
+        ! For the Left Face :
+        call get_iminimax(Elem,3,imin,imax)
+        Elem%Forces(0,0:ngz-1,0) = Elem%Forces(0,0:ngz-1,0) + Vhatn (imin:imax)
+        Elem%Forces(0,0:ngz-1,1) = Elem%Forces(0,0:ngz-1,1) &
+                                 + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,0)
+        Elem%Forces(0,0:ngz-1,2) = Elem%Forces(0,0:ngz-1,2) &
+                                 + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,1)
+
+    end subroutine compute_Traces_Acou
 
     ! ###########################################################
     !>

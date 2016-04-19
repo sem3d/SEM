@@ -32,7 +32,7 @@ contains
         type(element), pointer :: Elem
         real, dimension (0:Tdomain%specel(nelem)%ngllx-1) :: Zp_x, Zs_x
         real, dimension (0:Tdomain%specel(nelem)%ngllz-1) :: Zp_z, Zs_z
-        integer    :: imin, imax, ngllx, ngllz, nf, i
+        integer    :: imin, imax, ngllx, ngllz, nf
 
         Elem => Tdomain%specel(nelem)
         ngllx = Elem%ngllx ; ngllz = Elem%ngllz
@@ -42,10 +42,10 @@ contains
         nf = Elem%Near_Face(0)
         Zp_x(:) = sqrt(Elem%Density(0:ngllx-1,0) *(Elem%Lambda(0:ngllx-1,0)+2.*Elem%Mu(0:ngllx-1,0)))
         Zs_x(:) = sqrt(Elem%Density(0:ngllx-1,0) * Elem%Mu(0:ngllx-1,0))
-        if (Elem%Acoustic .AND. (.NOT. Tdomain%sFace(nf)%changing_media)) then
+        if (Elem%Acoustic) then ! .AND. (.NOT. Tdomain%sFace(nf)%changing_media)) then
             Elem%MatPen(imin:imax,0) = Zp_x(:)
-            Elem%MatPen(imin:imax,1) = Zp_x(:)
-            Elem%MatPen(imin:imax,2) = 0.
+        !    Elem%MatPen(imin:imax,1) = Zp_x(:)
+        !    Elem%MatPen(imin:imax,2) = 0.
         else
             Elem%MatPen(imin:imax,0) = Zp_x(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
                                      + Zs_x(:)*Elem%Normal_Nodes(imin:imax,1)**2
@@ -61,10 +61,10 @@ contains
         Zp_z(:) = sqrt(Elem%Density(ngllx-1,0:ngllz-1) * (Elem%Lambda(ngllx-1,0:ngllz-1) &
                                                          + 2.*Elem%Mu(ngllx-1,0:ngllz-1)))
         Zs_z(:) = sqrt(Elem%Density(ngllx-1,0:ngllz-1) *  Elem%Mu(ngllx-1,0:ngllz-1))
-        if (Elem%Acoustic .AND. (.NOT. Tdomain%sFace(nf)%changing_media)) then
+        if (Elem%Acoustic) then ! .AND. (.NOT. Tdomain%sFace(nf)%changing_media)) then
             Elem%MatPen(imin:imax,0) = Zp_z(:)
-            Elem%MatPen(imin:imax,1) = Zp_z(:)
-            Elem%MatPen(imin:imax,2) = 0.
+        !    Elem%MatPen(imin:imax,1) = Zp_z(:)
+        !    Elem%MatPen(imin:imax,2) = 0.
         else
             Elem%MatPen(imin:imax,0) = Zp_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
                                      + Zs_z(:)*Elem%Normal_Nodes(imin:imax,1)**2
@@ -80,10 +80,10 @@ contains
         Zp_x(:) = sqrt(Elem%Density(0:ngllx-1,ngllz-1) * (Elem%Lambda(0:ngllx-1,ngllz-1) &
                                                          + 2.*Elem%Mu(0:ngllx-1,ngllz-1)))
         Zs_x(:) = sqrt(Elem%Density(0:ngllx-1,ngllz-1) *  Elem%Mu(0:ngllx-1,ngllz-1))
-        if (Elem%Acoustic .AND. (.NOT. Tdomain%sFace(nf)%changing_media)) then
+        if (Elem%Acoustic) then ! .AND. (.NOT. Tdomain%sFace(nf)%changing_media)) then
             Elem%MatPen(imin:imax,0) = Zp_x(:)
-            Elem%MatPen(imin:imax,1) = Zp_x(:)
-            Elem%MatPen(imin:imax,2) = 0.
+        !    Elem%MatPen(imin:imax,1) = Zp_x(:)
+        !    Elem%MatPen(imin:imax,2) = 0.
         else
             Elem%MatPen(imin:imax,0) = Zp_x(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
                                      + Zs_x(:)*Elem%Normal_Nodes(imin:imax,1)**2
@@ -98,10 +98,10 @@ contains
         nf = Elem%Near_Face(3)
         Zp_z(:) = sqrt(Elem%Density(0,0:ngllz-1) *(Elem%Lambda(0,0:ngllz-1)+2.*Elem%Mu(0,0:ngllz-1)))
         Zs_z(:) = sqrt(Elem%Density(0,0:ngllz-1) * Elem%Mu(0,0:ngllz-1))
-        if (Elem%Acoustic .AND. (.NOT. Tdomain%sFace(nf)%changing_media)) then
+        if (Elem%Acoustic) then !  .AND. (.NOT. Tdomain%sFace(nf)%changing_media)) then
             Elem%MatPen(imin:imax,0) = Zp_z(:)
-            Elem%MatPen(imin:imax,1) = Zp_z(:)
-            Elem%MatPen(imin:imax,2) = 0.
+        !    Elem%MatPen(imin:imax,1) = Zp_z(:)
+        !    Elem%MatPen(imin:imax,2) = 0.
         else
             Elem%MatPen(imin:imax,0) = Zp_z(:)*Elem%Normal_Nodes(imin:imax,0)**2 &
                                      + Zs_z(:)*Elem%Normal_Nodes(imin:imax,1)**2
@@ -112,17 +112,17 @@ contains
         endif
 
         !!!!!!!!!!!!!! DEBUT A SUPPRIMER
-        do i=0,3
-           nf = Elem%Near_Face(i)
-           if (Tdomain%sFace(nf)%Freesurf) then
-              call get_iminimax(Elem,i,imin,imax)
-              Elem%MatPen(imin:imax,:) = 1. * Elem%MatPen(imin:imax,:)
-           endif
-           !if ((nf == 612) .OR. (nf == 662) .OR. (nf == 663) .OR. (nf == 660)) then
-           !   call get_iminimax(Elem,i,imin,imax)
-           !   Elem%MatPen(imin:imax,:) = 1000. * Elem%MatPen(imin:imax,:)
-           !endif
-        enddo
+        !do i=0,3
+        !   nf = Elem%Near_Face(i)
+        !   if (Tdomain%sFace(nf)%Freesurf) then
+        !      call get_iminimax(Elem,i,imin,imax)
+        !      Elem%MatPen(imin:imax,:) = 1. * Elem%MatPen(imin:imax,:)
+        !   endif
+        !   if ((nf == 612) .OR. (nf == 662) .OR. (nf == 663) .OR. (nf == 660)) then
+        !      call get_iminimax(Elem,i,imin,imax)
+        !      Elem%MatPen(imin:imax,:) = 1000. * Elem%MatPen(imin:imax,:)
+        !   endif
+        !enddo
         !if (nelem == Tdomain%sSource(0)%Elem(0)%nr) then
         !   Elem%MatPen(:,:) = 1000. * Elem%MatPen(:,:)
         !endif
@@ -152,31 +152,53 @@ contains
         implicit none
         type (domain), intent (INOUT) :: Tdomain
         integer, intent(IN) :: nelem
-        real, dimension(0:2*(Tdomain%specel(nelem)%ngllx+Tdomain%specel(nelem)%ngllz)-1,0:2) :: G
+        real, dimension (:,:), allocatable :: G
         type(element), pointer :: Elem
         integer :: nf, nface, i, imin, imax
         logical :: coherency
 
         Elem => Tdomain%specel(nelem)
+        allocate(G(0:2*(Elem%ngllx+Elem%ngllz)-1,0:2))
 
-        ! Calcul du terme G qui contribue e la matrice K
-        G(:,0) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,0)
-        G(:,1) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,1)
-        G(:,2) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,2)
+        ! Calcul du terme G qui contribue a la matrice K
+        if (Elem%Acoustic) then
+           G(:,0) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,0)
+        else
+           G(:,0) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,0)
+           G(:,1) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,1)
+           G(:,2) = Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,2)
+        endif
 
         ! Envoi des matrices sur les faces :
         do nf=0,3
             nface = Elem%Near_Face(nf)
             call get_iminimax(Elem,nf,imin,imax)
             coherency  = Tdomain%sFace(nface)%coherency
+            if (Elem%acoustic .AND. Tdomain%sFace(nface)%changing_media) then ! Cas couplage élasto-acoustique
+               G(:,0) = Elem%MatPen(:,0) * Elem%Normal_Nodes(imin:imax,0)**2
+               G(:,1) = Elem%MatPen(:,0) * Elem%Normal_Nodes(imin:imax,1)**2
+               G(:,2) = Elem%MatPen(:,0) * Elem%Normal_Nodes(imin:imax,0)*Elem%Normal_Nodes(imin:imax,1)
+            endif
             if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
-                Tdomain%sFace(nface)%KinvExpl(:,:) = Tdomain%sFace(nface)%KinvExpl(:,:) + G(imin:imax,:)
+               if(Tdomain%sFace(nface)%acoustic) then
+                  Tdomain%sFace(nface)%KinvExpl(:,0) = Tdomain%sFace(nface)%KinvExpl(:,0) + G(imin:imax,0)
+               else ! Elastic or elasto-acoustic face
+                  Tdomain%sFace(nface)%KinvExpl(:,:) = Tdomain%sFace(nface)%KinvExpl(:,:) + G(imin:imax,:)
+               endif
             else
-                do i=0,Tdomain%sFace(nface)%ngll-1
-                    Tdomain%sFace(nface)%KinvExpl(i,:) = Tdomain%sFace(nface)%KinvExpl(i,:) + G(imax-i,:)
-                end do
+               if(Tdomain%sFace(nface)%acoustic) then
+                  do i=0,Tdomain%sFace(nface)%ngll-1
+                     Tdomain%sFace(nface)%KinvExpl(i,0) = Tdomain%sFace(nface)%KinvExpl(i,0) + G(imax-i,0)
+                  end do
+               else ! Elastic or elasto-acoustic face
+                  do i=0,Tdomain%sFace(nface)%ngll-1
+                     Tdomain%sFace(nface)%KinvExpl(i,:) = Tdomain%sFace(nface)%KinvExpl(i,:) + G(imax-i,:)
+                  end do
+               endif
             endif
         enddo
+
+        deallocate(G)
 
     end subroutine build_K_expl
 

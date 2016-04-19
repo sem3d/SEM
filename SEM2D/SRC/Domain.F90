@@ -202,11 +202,11 @@ subroutine read_material_file(Tdomain)
         ! Sebadditions for DG - Sept 2013
         Tdomain%sFace(i)%type_Flux = Tdomain%sSubDomain(mat)%type_Flux
         Tdomain%sFace(i)%type_DG   = Tdomain%sSubDomain(mat)%type_DG
-        ! Set the Acoustic Face's Flag to be the same as Near_Element(0) :
-        Tdomain%sFace(i)%acoustic = Tdomain%specel(n_aus)%acoustic
         ! Check if the Face is an elastic-acoustic interface :
         n_aus = Tdomain%sFace(i)%Near_Element(0)
         k_aus = Tdomain%sFace(i)%Near_Element(1)
+        ! Set the Acoustic Face's Flag to be the same as Near_Element(0) :
+        Tdomain%sFace(i)%acoustic = Tdomain%specel(n_aus)%acoustic
         if (k_aus .NE.-1) then
            if (Tdomain%specel(n_aus)%acoustic .EQV. Tdomain%specel(k_aus)%acoustic) then
               Tdomain%sFace(i)%changing_media = .false.
