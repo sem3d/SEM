@@ -36,7 +36,6 @@ contains
 
         type (domain), intent (INOUT), target :: Tdomain
         integer :: n, mat, rg
-        double precision, dimension(:,:), allocatable :: interpolatedRF
         rg = Tdomain%rank
 
         if( Tdomain%earthchunk_isInit/=0) then
@@ -48,13 +47,15 @@ contains
         !- applying properties files
         call apply_prop_files (Tdomain, rg)
 
+        !write (*,*) "--> after apply_prop_files "
+
         do n = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(n)%mat_index
             if ( mat < 0 .or. mat >= Tdomain%n_mat ) then
                 print*, "ERROR : inconsistent material index = ", mat
                 stop
             end if
-!!! Attribute elastic properties from material !!!
+! Attribute elastic properties from material !!!
             ! Sets Lambda, Mu, Qmu, ... from mat
             call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
             ! Compute MassMat
@@ -106,7 +107,6 @@ contains
             deallocate(Tdomain%specel(n)%Idom)
         end do
 
-        if(allocated(interpolatedRF)) deallocate(interpolatedRF)
     end subroutine define_arrays
 
 

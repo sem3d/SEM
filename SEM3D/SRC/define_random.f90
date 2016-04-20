@@ -114,7 +114,7 @@ contains
         integer         , intent(in)            :: rg
         !LOCAL
         type(IPT_RF) :: IPT
-        integer :: mat !,assocMat
+        integer :: mat,assocMat
         integer :: i, propCounter
         integer :: error, code
         integer :: nProp = 3
@@ -150,15 +150,11 @@ contains
             Lambda = (P_Speed**2 - 2 * S_Speed**2 ) * Density
             Kappa = Lambda + 2.0D0*Mu /3.0D0
 
-            if(.not. is_rand(Tdomain%sSubdomain(mat))) cycle
-            !assocMat = Tdomain%sSubdomain(mat)%assocMat
+            assocMat = Tdomain%sSubdomain(mat)%assocMat
 
             avgProp  = [Density, &
                         Kappa,  &
                         Mu]
-
-            if(rg == 0) write(*,*) "  Material ", mat, "is Random"
-            if(rg == 0) write(*,*) "  avgProp = ", avgProp
 
             !stop("Random Properties not yet functional on SEM")
 
@@ -169,12 +165,15 @@ contains
 
             do propId = 0, nProp - 1
             !do propId = 0, 0 !FOR TESTS
-                Tdomain%sSubDomain(mat)%propFilePath(propId) = string_join_many("./mat/h5/",propName(propId), "_Mat_", numb2String(mat),".h5")
+                Tdomain%sSubDomain(mat)%propFilePath(propId) = string_join_many("./mat/h5/",propName(propId), "_Mat_", numb2String(assocMat),".h5")
+                if(.not. is_rand(Tdomain%sSubdomain(mat))) cycle
+
+                if(rg == 0) write(*,*) "  Material ", mat, "is Random"
+                if(rg == 0) write(*,*) "  avgProp = ", avgProp
 
                 if(is_rand(Tdomain%sSubdomain(mat)) .and. rg == 0) then
 
                     write(*,*) " rang ", rg," in build_random_properties"
-                    call MPI_BARRIER(Tdomain%communicateur, code)
                     if(rg == 0) write(*,*) "  Generating Random Properties"
                     seedStart = Tdomain%sSubDomain(mat)%seedStart
                     if(seedStart >= 0) seedStart = seedStart + 7*(propId+1)
