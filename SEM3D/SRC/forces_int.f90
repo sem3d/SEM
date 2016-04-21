@@ -14,30 +14,32 @@ module forces_aniso
     use deriv3d
     use sdomain
     use schamps
+    use constants, only: M_1_3
     implicit none
 
 contains
 
-    subroutine make_connectivity_(champs1,Elem)
-        type(champs),intent(inout) :: champs1
-        type(Element),intent(in)    :: Elem
-        integer                     :: m1,m2,m3,i,j,k
-        
-        m1=Elem%ngllx
-        m2=Elem%nglly
-        m3=Elem%ngllz
-        do k = 0,m3-1
-            do j = 0,m2-1
-                do i = 0,m1-1
-                    champs1%element_connectivity(Elem%Idom(i,j,k))= &
-                    champs1%element_connectivity(Elem%Idom(i,j,k))+1
-                enddo
-            enddo
-        enddo
-        return
-    end subroutine make_connectivity_
-    subroutine forces_int_solid(Elem, mat, htprimex, hprimey, htprimey, hprimez, htprimez,  &
-        n_solid, aniso, champs0, champs1, nl_flag, dt)
+!    subroutine make_connectivity_(champs1,Elem)
+!        type(champs),intent(inout) :: champs1
+!        type(Element),intent(in)    :: Elem
+!        integer                     :: m1,m2,m3,i,j,k
+!        
+!        m1=Elem%ngllx
+!        m2=Elem%nglly
+!        m3=Elem%ngllz
+!        do k = 0,m3-1
+!            do j = 0,m2-1
+!                do i = 0,m1-1
+!                    champs1%element_connectivity(Elem%Idom(i,j,k))= &
+!                    champs1%element_connectivity(Elem%Idom(i,j,k))+1
+!                enddo
+!            enddo
+!        enddo
+!        return
+!    end subroutine make_connectivity_
+    subroutine forces_int_solid(Elem,mat,htprimex,hprimey,htprimey,hprimez,htprimez,  &
+!        n_solid, aniso, champs0, champs1, nl_flag, dt)
+        n_solid,aniso,champs1,nl_flag,dt)
         type (Element), intent (INOUT) :: Elem
         type (subdomain), intent(IN) :: mat
         real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: htprimex
@@ -46,7 +48,7 @@ contains
         integer, intent(IN) :: n_solid
         logical, intent(IN) :: aniso
         type(champs), intent(inout) :: champs1
-        type(champs), intent(in) :: champs0
+!        type(champs), intent(in) :: champs0
 
         integer :: m1,m2,m3, i,j,k,i_dir
         real :: epsilon_trace_over_3
@@ -60,50 +62,59 @@ contains
         real, dimension(:,:,:), allocatable :: epsilonvol_loc
         real, dimension(0:Elem%ngllx-1, 0:Elem%nglly-1, 0:Elem%ngllz-1,0:2) :: Depla
         integer, intent(in) :: nl_flag
-        real, dimension(:,:,:), allocatable :: Riso_N_el
-        real, dimension(:,:,:,:), allocatable :: Sigma_ij_N_el
-        real, dimension(:,:,:,:), allocatable :: Xkin_ij_N_el
-        real, dimension(:,:,:,:), allocatable :: EpsPl_ij_N_el
         real, intent(in) :: dt
+!        real, dimension(:,:,:), allocatable :: Riso_N_el
+!        real, dimension(:,:,:,:), allocatable :: Sigma_ij_N_el
+!        real, dimension(:,:,:,:), allocatable :: Xkin_ij_N_el
+!        real, dimension(:,:,:,:), allocatable :: EpsPl_ij_N_el
 
-        integer :: element_connectivty
+!        integer :: element_connectivty
 
         m1 = Elem%ngllx;   m2 = Elem%nglly;   m3 = Elem%ngllz
-
-        do i_dir = 0,2
-            do k = 0,m3-1
-                do j = 0,m2-1
-                    do i = 0,m1-1
-                        if (nl_flag == 1) then
-                            Depla(i,j,k,i_dir) = champs1%Veloc(Elem%Idom(i,j,k),i_dir)
-                        else
+        if (nl_flag==1) then
+            do i_dir = 0,2
+                do k = 0,m3-1
+                    do j = 0,m2-1
+                        do i = 0,m1-1
+!                            Depla(i,j,k,i_dir) = champs1%Veloc(Elem%Idom(i,j,k),i_dir)
                             Depla(i,j,k,i_dir) = champs1%Depla(Elem%Idom(i,j,k),i_dir)
-                        end if
-                    enddo
-                enddo
-            enddo
-        enddo
-        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Depla(:,:,:,0),dxx,dyx,dzx)
-        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Depla(:,:,:,1),dxy,dyy,dzy)
-        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Depla(:,:,:,2),dxz,dyz,dzz)
-        if (nl_flag == 1) then
-            allocate(EpsPl_ij_N_el(0:5,0:m1-1,0:m2-1,0:m3-1))
-            allocate(Sigma_ij_N_el(0:5,0:m1-1,0:m2-1,0:m3-1))
-            allocate(Xkin_ij_N_el(0:5,0:m1-1,0:m2-1,0:m3-1))
-            allocate(Riso_N_el(0:m1-1,0:m2-1,0:m3-1))
-            do k = 0,m3-1
-                do j = 0,m2-1
-                    do i = 0,m1-1
-                        Riso_N_el(i,j,k) = champs0%Riso(Elem%Idom(i,j,k))
-                        do i_dir = 0,5
-                            Sigma_ij_N_el(i_dir,i,j,k) = champs0%Stress(Elem%Idom(i,j,k),i_dir)
-                            Xkin_ij_N_el(i_dir,i,j,k)  = champs0%Xkin(Elem%Idom(i,j,k),i_dir)
-                            EpsPl_ij_N_el(i_dir,i,j,k) = champs0%Epsilon_pl(Elem%Idom(i,j,k),i_dir)
                         enddo
                     enddo
                 enddo
             enddo
-        end if
+        else
+            do i_dir = 0,2
+                do k = 0,m3-1
+                    do j = 0,m2-1
+                        do i = 0,m1-1
+                            Depla(i,j,k,i_dir) = champs1%Depla(Elem%Idom(i,j,k),i_dir)
+                        enddo
+                    enddo
+                enddo
+            enddo
+        endif
+        
+        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Depla(:,:,:,0),dxx,dyx,dzx)
+        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Depla(:,:,:,1),dxy,dyy,dzy)
+        call physical_part_deriv(m1,m2,m3,htprimex,hprimey,hprimez,Elem%InvGrad,Depla(:,:,:,2),dxz,dyz,dzz)
+!        if (nl_flag == 1) then
+!            allocate(EpsPl_ij_N_el(0:5,0:m1-1,0:m2-1,0:m3-1))
+!            allocate(Sigma_ij_N_el(0:5,0:m1-1,0:m2-1,0:m3-1))
+!            allocate(Xkin_ij_N_el(0:5,0:m1-1,0:m2-1,0:m3-1))
+!            allocate(Riso_N_el(0:m1-1,0:m2-1,0:m3-1))
+!            do k = 0,m3-1
+!                do j = 0,m2-1
+!                    do i = 0,m1-1
+!                        Riso_N_el(i,j,k) = champs0%Riso(Elem%Idom(i,j,k))
+!                        do i_dir = 0,5
+!                            Sigma_ij_N_el(i_dir,i,j,k) = champs0%Stress(Elem%Idom(i,j,k),i_dir)
+!                            Xkin_ij_N_el(i_dir,i,j,k)  = champs0%Xkin(Elem%Idom(i,j,k),i_dir)
+!                            EpsPl_ij_N_el(i_dir,i,j,k) = champs0%Epsilon_pl(Elem%Idom(i,j,k),i_dir)
+!                        enddo
+!                    enddo
+!                enddo
+!            enddo
+!        end if
         if (n_solid>0) then
             if (aniso) then
             else
@@ -131,7 +142,27 @@ contains
                 enddo
             enddo
         endif
-
+        
+!        if (nl_flag==1) then
+!            do i = 0,m1-1
+!                do j = 0,m2-1
+!                    do k = 0,m3-1
+!                        Elem%sl%eps_ep(0,i,j,k) = Elem%sl%eps_ep(0,i,j,k) + dt*DXX(i,j,k)  
+!                        Elem%sl%eps_ep(1,i,j,k) = Elem%sl%eps_ep(1,i,j,k) + dt*DYY(i,j,k)  
+!                        Elem%sl%eps_ep(2,i,j,k) = Elem%sl%eps_ep(2,i,j,k) + dt*DZZ(i,j,k)  
+!                        Elem%sl%eps_ep(3,i,j,k) = Elem%sl%eps_ep(3,i,j,k) + dt*(DXY(i,j,k)+DYX(i,j,k))*0.5
+!                        Elem%sl%eps_ep(4,i,j,k) = Elem%sl%eps_ep(4,i,j,k) + dt*(DXZ(i,j,k)+DZX(i,j,k))*0.5
+!                        Elem%sl%eps_ep(5,i,j,k) = Elem%sl%eps_ep(5,i,j,k) + dt*(DYZ(i,j,k)+DZY(i,j,k))*0.5
+!                        Elem%sl%eps_ep(0,i,j,k) = DXX(i,j,k)  
+!                        Elem%sl%eps_ep(1,i,j,k) = DYY(i,j,k)  
+!                        Elem%sl%eps_ep(2,i,j,k) = DZZ(i,j,k)  
+!                        Elem%sl%eps_ep(3,i,j,k) = (DXY(i,j,k)+DYX(i,j,k))*0.5
+!                        Elem%sl%eps_ep(4,i,j,k) = (DXZ(i,j,k)+DZX(i,j,k))*0.5
+!                        Elem%sl%eps_ep(5,i,j,k) = (DYZ(i,j,k)+DZY(i,j,k))*0.5
+!                    enddo
+!                enddo
+!            enddo
+!        endif
         if (aniso) then
             if (n_solid>0) then
                 call calcul_forces_aniso_att(Fox,Foy,Foz, &
@@ -182,10 +213,6 @@ contains
                     Elem%sl%onemSbeta, &
                     Elem%sl%onemPbeta &
                     )
-                !                             Elem%Mu, Elem%Lambda, &
-                !                             m1,m2,m3, n_solid, &
-                !                             Elem%onemSbeta, Elem%R_xx_, Elem%R_yy_, &
-                !                             Elem%R_xy_, Elem%R_xz_, Elem%R_yz_)
                 call attenuation_update(Elem%sl%epsilondev_xx_,Elem%sl%epsilondev_yy_, &
                     Elem%sl%epsilondev_xy_,Elem%sl%epsilondev_xz_,Elem%sl%epsilondev_yz_, &
                     epsilondev_xx_loc,epsilondev_yy_loc, &
@@ -195,28 +222,21 @@ contains
                     Elem%Mu, m1,m2,m3, n_solid, &
                     Elem%Kappa, Elem%sl%epsilonvol_,epsilonvol_loc,Elem%sl%R_vol_, &
                     Elem%sl%factor_common_P,Elem%sl%alphaval_P,Elem%sl%betaval_P,Elem%sl%gammaval_P)
-                !                              kappa_,elsilonvol_,epsilon_vol_loc,R_vol_, &
-                !                              factor_common_P_,alphaval_P_,betaval_P_,gammaval_P_)
                 deallocate(epsilondev_xx_loc,epsilondev_yy_loc,epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc)
                 deallocate(epsilonvol_loc)
             else
                 if (nl_flag == 1) then
                     
                     call calcul_forces_nl(Fox,Foy,Foz,Elem%Invgrad,htprimex,htprimey,htprimez,Elem%Jacob,     &
-                        mat%GLLwx,mat%GLLwy,mat%GLLwz,DXX*dt,DXY*dt,DXZ*dt,DYX*dt,DYY*dt,DYZ*dt,DZX*dt,       &
-                        DZY*dt, DZZ*dt,Elem%Mu,Elem%Lambda,m1,m2,m3,EpsPl_ij_N_el,Sigma_ij_N_el,Xkin_ij_N_el, &
-                        Riso_N_el,Elem%sl%nl_param_el%lmc_param_el%sigma_yld,Elem%sl%nl_param_el%lmc_param_el%b_iso, &
+!                        mat%GLLwx,mat%GLLwy,mat%GLLwz,DXX*dt,DXY*dt,DXZ*dt,DYX*dt,DYY*dt,DYZ*dt,DZX*dt,DZY*dt,DZZ*dt, &
+                        mat%GLLwx,mat%GLLwy,mat%GLLwz,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ, Elem%sl%eps_ep,&
+                        Elem%Mu,Elem%Lambda,m1,m2,m3,Elem%sl%eps_pl,Elem%sl%stress,Elem%sl%center,Elem%sl%radius,&
+                        Elem%sl%nl_param_el%lmc_param_el%sigma_yld,Elem%sl%nl_param_el%lmc_param_el%b_iso, &
                         Elem%sl%nl_param_el%lmc_param_el%Rinf_iso,Elem%sl%nl_param_el%lmc_param_el%C_kin,     &
                         Elem%sl%nl_param_el%lmc_param_el%kapa_kin)
                 else
-                    call calcul_forces_el(Fox,Foy,Foz,  &
-                        Elem%Invgrad, &
-                        htprimex, htprimey, htprimez, &
-                        Elem%Jacob, mat%GLLwx, mat%GLLwy, mat%GLLwz, &
-                        DXX,DXY,DXZ, &
-                        DYX,DYY,DYZ, &
-                        DZX,DZY,DZZ, &
-                        Elem%Mu, Elem%Lambda, &
+                    call calcul_forces_el(Fox,Foy,Foz,Elem%Invgrad,htprimex,htprimey,htprimez,Elem%Jacob, &
+                        mat%GLLwx,mat%GLLwy,mat%GLLwz,DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ,Elem%Mu,Elem%Lambda, &
                         m1,m2,m3)
                 end if
             endif
@@ -224,32 +244,32 @@ contains
         do k = 0,m3-1
             do j = 0,m2-1
                 do i = 0,m1-1
-                    champs1%Forces(Elem%Idom(i,j,k),0) = champs1%Forces(Elem%Idom(i,j,k),0)-Fox(i,j,k)
-                    champs1%Forces(Elem%Idom(i,j,k),1) = champs1%Forces(Elem%Idom(i,j,k),1)-Foy(i,j,k)
-                    champs1%Forces(Elem%Idom(i,j,k),2) = champs1%Forces(Elem%Idom(i,j,k),2)-Foz(i,j,k)
-                    if (nl_flag == 1) then
-                        do i_dir = 0,5
-                            champs1%Epsilon_pl(Elem%Idom(i,j,k),i_dir) = EpsPl_ij_N_el(i_dir,i,j,k)/&
-                            champs1%element_connectivity(Elem%Idom(i,j,k))                       + &
-                            champs1%Epsilon_pl(Elem%Idom(i,j,k),i_dir)     
-                            
-                            champs1%Stress(Elem%Idom(i,j,k),i_dir)     = Sigma_ij_N_el(i_dir,i,j,k)/&
-                            champs1%element_connectivity(Elem%Idom(i,j,k))                       + &
-                            champs1%Stress(Elem%Idom(i,j,k),i_dir)
-
-                            champs1%Xkin(Elem%Idom(i,j,k),i_dir)       = Xkin_ij_N_el(i_dir,i,j,k)/&
-                            champs1%element_connectivity(Elem%Idom(i,j,k))                       + &
-                            champs1%Xkin(Elem%Idom(i,j,k),i_dir) 
-                        end do
-                        champs1%Riso(Elem%Idom(i,j,k)) = Riso_N_el(i,j,k)
-                    end if
+                    champs1%Forces(Elem%Idom(i,j,k),0) = champs1%Forces(Elem%Idom(i,j,k),0)-Fox(i,j,k)!&
+                    champs1%Forces(Elem%Idom(i,j,k),1) = champs1%Forces(Elem%Idom(i,j,k),1)-Foy(i,j,k)!&
+                    champs1%Forces(Elem%Idom(i,j,k),2) = champs1%Forces(Elem%Idom(i,j,k),2)-Foz(i,j,k)!&
+!                    if (nl_flag == 1) then
+!                        do i_dir = 0,5
+!                            champs1%Epsilon_pl(Elem%Idom(i,j,k),i_dir) = EpsPl_ij_N_el(i_dir,i,j,k)!/&
+!!                            champs1%element_connectivity(Elem%Idom(i,j,k))                       + &
+!!                            champs1%Epsilon_pl(Elem%Idom(i,j,k),i_dir)     
+!                            
+!                            champs1%Stress(Elem%Idom(i,j,k),i_dir)     = Sigma_ij_N_el(i_dir,i,j,k)!/&
+!!                            champs1%element_connectivity(Elem%Idom(i,j,k))                       + &
+!!                            champs1%Stress(Elem%Idom(i,j,k),i_dir)
+!
+!                            champs1%Xkin(Elem%Idom(i,j,k),i_dir)       = Xkin_ij_N_el(i_dir,i,j,k)!/&
+!!                            champs1%element_connectivity(Elem%Idom(i,j,k))                       + &
+!!                            champs1%Xkin(Elem%Idom(i,j,k),i_dir) 
+!                        end do
+!                        champs1%Riso(Elem%Idom(i,j,k)) = Riso_N_el(i,j,k)
+!                    end if
                 enddo
             enddo
         enddo
-        if(allocated(EpsPl_ij_N_el)) deallocate(EpsPl_ij_N_el)
-        if(allocated(Sigma_ij_N_el)) deallocate(Sigma_ij_N_el)
-        if(allocated(Xkin_ij_N_el))  deallocate(Xkin_ij_N_el)
-        if(allocated(Riso_N_el))     deallocate(Riso_N_el)
+!        if(allocated(EpsPl_ij_N_el)) deallocate(EpsPl_ij_N_el)
+!        if(allocated(Sigma_ij_N_el)) deallocate(Sigma_ij_N_el)
+!        if(allocated(Xkin_ij_N_el))  deallocate(Xkin_ij_N_el)
+!        if(allocated(Riso_N_el))     deallocate(Riso_N_el)
         return
     end subroutine forces_int_solid
 

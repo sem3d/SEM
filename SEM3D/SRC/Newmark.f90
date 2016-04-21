@@ -42,9 +42,11 @@ subroutine Newmark(Tdomain,ntime)
     call Newmark_Predictor(Tdomain,Tdomain%champs1)
     !- Solution phase
     call stat_starttick()
+    write(*,*) "=== DEBUG ==="
+    write(*,*) "FORCES INTERNAL"
+    write(*,*)
     call internal_forces(Tdomain,Tdomain%champs1)
     call stat_stoptick('fint')
-
 
     ! External Forces
     if(Tdomain%logicD%any_source)then
@@ -268,14 +270,14 @@ subroutine Newmark_Predictor(Tdomain,champs1)
         champs1%Depla = Tdomain%champs0%Depla
         champs1%Veloc = Tdomain%champs0%Veloc
         champs1%Forces = 0d0
-        if (Tdomain%nl_flag==1) then
-            champs1%Stress     = Tdomain%champs0%Stress
-            champs1%Xkin       = Tdomain%champs0%Xkin
-            champs1%Riso       = Tdomain%champs0%Riso
-            champs1%Epsilon_pl = Tdomain%champs0%Epsilon_pl
-        end if
-        
-        champs1%element_connectivity=0
+!        if (Tdomain%nl_flag==1) then
+!            champs1%Stress     = Tdomain%champs0%Stress
+!            champs1%Xkin       = Tdomain%champs0%Xkin
+!            champs1%Riso       = Tdomain%champs0%Riso
+!            champs1%Epsilon_pl = Tdomain%champs0%Epsilon_pl
+!        end if
+!        
+!        champs1%element_connectivity=0
         
     endif
 
@@ -402,12 +404,12 @@ subroutine Newmark_Corrector_Solid(Tdomain,champs1)
             Tdomain%champs0%Veloc(indpml,:) = 0.
         enddo
         Tdomain%champs0%Depla = Tdomain%champs0%Depla + dt * Tdomain%champs0%Veloc
-        if (Tdomain%nl_flag==1) then
-            Tdomain%champs0%Epsilon_pl  = Tdomain%champs1%Epsilon_pl
-            Tdomain%champs0%Stress      = Tdomain%champs1%Stress
-            Tdomain%champs0%Xkin        = Tdomain%champs1%Xkin
-            Tdomain%champs0%Riso        = Tdomain%champs1%Riso
-        end if
+!        if (Tdomain%nl_flag==1) then
+!            Tdomain%champs0%Epsilon_pl  = Tdomain%champs1%Epsilon_pl
+!            Tdomain%champs0%Stress      = Tdomain%champs1%Stress
+!            Tdomain%champs0%Xkin        = Tdomain%champs1%Xkin
+!            Tdomain%champs0%Riso        = Tdomain%champs1%Riso
+!        end if
     endif
     return
 end subroutine Newmark_Corrector_Solid
@@ -425,12 +427,12 @@ subroutine internal_forces(Tdomain,champs1)
     type(champs), intent(inout)  :: champs1
     integer  :: n, mat, indsol, indflu, indpml
     
-    do n = 0,Tdomain%n_elem-1
-        select case(Tdomain%specel(n)%domain)
-        case(DM_SOLID)
-            call make_connectivity_(champs1,Tdomain%specel(n))
-        end select
-    enddo
+!    do n = 0,Tdomain%n_elem-1
+!        select case(Tdomain%specel(n)%domain)
+!        case(DM_SOLID)
+!            call make_connectivity_(champs1,Tdomain%specel(n))
+!        end select
+!    enddo
     do n = 0,Tdomain%n_elem-1
         mat = Tdomain%specel(n)%mat_index
         select case (Tdomain%specel(n)%domain)
@@ -440,7 +442,8 @@ subroutine internal_forces(Tdomain,champs1)
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &
                 Tdomain%sSubDomain(mat)%hTprimey, Tdomain%sSubDomain(mat)%hprimez, &
                 Tdomain%sSubDomain(mat)%hTprimez, Tdomain%n_sls, Tdomain%aniso,    &
-                Tdomain%champs0,champs1, Tdomain%nl_flag, Tdomain%TimeD%dtmin)
+!                Tdomain%champs0,champs1, Tdomain%nl_flag, Tdomain%TimeD%dtmin)
+                champs1, Tdomain%nl_flag, Tdomain%TimeD%dtmin)
         case (DM_FLUID)
             call forces_int_fluid(Tdomain%specel(n), Tdomain%sSubDomain(mat),      &
                 Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimey, &

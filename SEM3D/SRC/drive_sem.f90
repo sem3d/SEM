@@ -111,7 +111,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 !----------------------------------------------------------------------------------------------!
 !--------------------------------       SEM 3D - RUNNING     ----------------------------------!
 !----------------------------------------------------------------------------------------------!
-
+    
     call INIT_MESSAGE(rg)
     call START_SEM(rg)
 
@@ -122,7 +122,6 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 
     call RUN_PREPARED(Tdomain)
     call RUN_INIT_INTERACT(Tdomain,isort)
-
 !---------------------------------------------------------------------------------------------!
 !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
 !---------------------------------------------------------------------------------------------!
@@ -568,15 +567,20 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !---------------------------------------------------------!
     !- SNAPSHOTS
 !---------------------------------------------------------!
+        write(*,*) "=== DEBUG ==="
+        write(*,*) "SNAPSHOTS"
+        write(*,*)
         if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) &
             call OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
 !---------------------------------------------------------!
     !- RECEIVERS'OUTPUTS
 !---------------------------------------------------------!
+        write(*,*) "=== DEBUG ==="
+        write(*,*) "CAPTEURS"
+        write(*,*)
         call evalueSortieCapteur(ntime, Tdomain%TimeD%rtime, sortie_capteur)
         ! sortie des quantites demandees par les capteur
         if (sortie_capteur) call save_capteur(Tdomain, ntime)
-
         !---------------------------------------------------------!
         !- SAVE TO EVENTUAL RESTART
         !---------------------------------------------------------!

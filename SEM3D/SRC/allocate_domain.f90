@@ -90,6 +90,7 @@ contains
                     
                     else ! SOLID
                         if (Tdomain%nl_flag==1) then ! NL variables
+                            ! nonlinear parameters
                             allocate(Tdomain%specel(n)%sl%nl_param_el)
                             allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el)
                             allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%sigma_yld (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
@@ -97,8 +98,20 @@ contains
                             allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%Rinf_iso  (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
                             allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%C_kin     (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
                             allocate(Tdomain%specel(n)%sl%nl_param_el%lmc_param_el%kapa_kin  (0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                            ! internal variables 
+                            allocate(Tdomain%specel(n)%sl%radius(0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                            allocate(Tdomain%specel(n)%sl%stress(0:5,0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                            allocate(Tdomain%specel(n)%sl%center(0:5,0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                            allocate(Tdomain%specel(n)%sl%eps_ep(0:5,0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                            allocate(Tdomain%specel(n)%sl%eps_pl(0:5,0:ngllx-1, 0:nglly-1, 0:ngllz-1))
+                            Tdomain%specel(n)%sl%eps_ep = 0.d0
+                            Tdomain%specel(n)%sl%eps_pl = 0.d0
+                            Tdomain%specel(n)%sl%stress = 0.d0
+                            Tdomain%specel(n)%sl%center = 0.d0
+                            Tdomain%specel(n)%sl%radius = 0.d0
+                             
                         end if
-        
+
                         if (Tdomain%aniso) then
                             allocate (Tdomain%specel(n)%sl%Cij (0:20, 0:ngllx-1, 0:nglly-1, 0:ngllz-1))
                         endif
@@ -167,27 +180,26 @@ contains
             allocate(Tdomain%champs1%Forces(0:Tdomain%ngll_s-1,0:2))
             allocate(Tdomain%champs1%Depla(0:Tdomain%ngll_s-1,0:2))
             allocate(Tdomain%champs1%Veloc(0:Tdomain%ngll_s-1,0:2))
-            allocate(Tdomain%champs1%element_connectivity(0:Tdomain%ngll_s-1))
+!            allocate(Tdomain%champs1%element_connectivity(0:Tdomain%ngll_s-1))
             Tdomain%champs0%Forces = 0d0
             Tdomain%champs0%Depla  = 0d0
             Tdomain%champs0%Veloc  = 0d0
-            Tdomain%champs1%element_connectivity = -1
+!            Tdomain%champs1%element_connectivity = -1
 
-            if (Tdomain%nl_flag==1) then
-                write(*,*) "allocate nl var"
-                allocate(Tdomain%champs0%Epsilon_pl (0:Tdomain%ngll_s-1,0:5))
-                allocate(Tdomain%champs0%Stress     (0:Tdomain%ngll_s-1,0:5))
-                allocate(Tdomain%champs0%Xkin       (0:Tdomain%ngll_s-1,0:5))
-                allocate(Tdomain%champs0%Riso       (0:Tdomain%ngll_s-1))
-                allocate(Tdomain%champs1%Epsilon_pl (0:Tdomain%ngll_s-1,0:5))
-                allocate(Tdomain%champs1%Stress     (0:Tdomain%ngll_s-1,0:5))
-                allocate(Tdomain%champs1%Xkin       (0:Tdomain%ngll_s-1,0:5))
-                allocate(Tdomain%champs1%Riso       (0:Tdomain%ngll_s-1))
-                Tdomain%champs0%Epsilon_pl = 0d0
-                Tdomain%champs0%Stress     = 0d0
-                Tdomain%champs0%Xkin       = 0d0
-                Tdomain%champs0%Riso       = 0d0
-            end if
+!            if (Tdomain%nl_flag==1) then
+!                allocate(Tdomain%champs0%Epsilon_pl (0:Tdomain%ngll_s-1,0:5))
+!                allocate(Tdomain%champs0%Stress     (0:Tdomain%ngll_s-1,0:5))
+!                allocate(Tdomain%champs0%Xkin       (0:Tdomain%ngll_s-1,0:5))
+!                allocate(Tdomain%champs0%Riso       (0:Tdomain%ngll_s-1))
+!                allocate(Tdomain%champs1%Epsilon_pl (0:Tdomain%ngll_s-1,0:5))
+!                allocate(Tdomain%champs1%Stress     (0:Tdomain%ngll_s-1,0:5))
+!                allocate(Tdomain%champs1%Xkin       (0:Tdomain%ngll_s-1,0:5))
+!                allocate(Tdomain%champs1%Riso       (0:Tdomain%ngll_s-1))
+!                Tdomain%champs0%Epsilon_pl = 0d0
+!                Tdomain%champs0%Stress     = 0d0
+!                Tdomain%champs0%Xkin       = 0d0
+!                Tdomain%champs0%Riso       = 0d0
+!            end if
             ! Allocation de Tdomain%MassMatSol pour les solides
             allocate(Tdomain%MassMatSol(0:Tdomain%ngll_s-1))
             Tdomain%MassMatSol = 0d0

@@ -836,17 +836,16 @@ contains
     end subroutine allocate_fields
 
     subroutine allocate_second_fields(domain_type, out_flags, nl_flag, ngllx, nglly, ngllz, &
-        field_displ, field_veloc, field_accel, field_press, field_stress, field_eps_pl, field_phi, field_vphi, &
-        DXX, DYY, DZZ, DXY, DYX, DXZ, DZX, DYZ, DZY, hTprimex, hprimey, hprimez)
+        field_displ, field_veloc, field_accel, field_press, field_stress, field_eps_ep, field_eps_pl, & 
+        field_phi, field_vphi, DXX, DYY, DZZ, DXY, DYX, DXZ, DZX, DYZ, DZY)
 
         integer, intent(in) :: domain_type, nl_flag, ngllx, nglly, ngllz
         integer, dimension(0:8), intent(in) :: out_flags
         real, dimension(:,:,:,:), allocatable, intent(inout) :: field_displ, field_veloc, field_accel
-        real, dimension(:,:,:,:), allocatable, intent(inout) :: field_stress, field_eps_pl
+        real, dimension(:,:,:,:), allocatable, intent(inout) :: field_stress, field_eps_ep,field_eps_pl
         real, dimension(:,:,:),   allocatable, intent(inout) :: field_press
         real, dimension(:,:,:),   allocatable, intent(inout) :: field_phi, field_vphi
-        real, dimension(:,:,:),   allocatable, intent(inout) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
-        real, dimension(:,:),     allocatable, intent(inout), optional :: hTprimex, hprimey, hprimez
+        real, dimension(:,:,:),   allocatable, intent(inout), optional :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
         logical                                              :: flag_gradU
 
         flag_gradU =  out_flags(OUT_ENERGYP)+out_flags(OUT_ENERGYS)+&
@@ -857,10 +856,11 @@ contains
         if (allocated(field_press))  deallocate(field_press)
         if (allocated(field_displ))  deallocate(field_displ)
         if (allocated(field_stress)) deallocate(field_stress)
+        if (allocated(field_eps_ep)) deallocate(field_eps_ep)
         if (allocated(field_eps_pl)) deallocate(field_eps_pl)
         if (allocated(field_phi))    deallocate(field_phi)
         if (allocated(field_vphi))   deallocate(field_vphi)
-        if (allocated(DXX)) then
+        if (present(DXX) .and. allocated(DXX)) then
             deallocate(DXX)
             deallocate(DXY)
             deallocate(DXZ)
@@ -870,13 +870,6 @@ contains
             deallocate(DZX)
             deallocate(DZY)
             deallocate(DZZ)
-        end if
-        if (present(hTprimex)) then
-            if (allocated(hTprimex)) then
-                deallocate(hTprimex)
-                deallocate(hprimey)
-                deallocate(hprimez)
-            end if
         end if
 
         ! ALLOCATION
@@ -889,7 +882,7 @@ contains
                 if (out_flags(OUT_ACCEL)==1) allocate(field_accel(0:ngllx-1,0:nglly-1,0:ngllz-1,0:2))
                 if (out_flags(OUT_PRESSION)==1) allocate(field_press(0:ngllx-1,0:nglly-1,0:ngllz-1))
 
-                if (flag_gradU) then
+                if (flag_gradU .and. present(DXX)) then
                     allocate(DXX(0:ngllx-1,0:nglly-1,0:ngllz-1))
                     allocate(DXY(0:ngllx-1,0:nglly-1,0:ngllz-1))
                     allocate(DXZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
@@ -899,17 +892,19 @@ contains
                     allocate(DZX(0:ngllx-1,0:nglly-1,0:ngllz-1))
                     allocate(DZY(0:ngllx-1,0:nglly-1,0:ngllz-1))
                     allocate(DZZ(0:ngllx-1,0:nglly-1,0:ngllz-1))
-                    if (present(hTprimex)) then
-                        allocate(hTprimex(0:ngllx-1,0:ngllx-1))
-                        allocate(hprimey(0:nglly-1,0:nglly-1))
-                        allocate(hprimez(0:ngllz-1,0:ngllz-1))
-                    end if
                 endif
                 if (nl_flag == 1) then
                     if (flag_gradU .or. out_flags(OUT_PRESSION) == 1) then
+                        write(*,*) "=== DEBUG ==="
+                        write(*,*) "allocate field_stress---> ngllx,nglly,ngllz,6"
+                        write(*,*)
                         allocate(field_stress(0:ngllx-1,0:nglly-1,0:ngllz-1,0:5))
                     end if
                     if (flag_gradU) then
+                        write(*,*) "=== DEBUG ==="
+                        write(*,*) "allocate field_eps_pl---> ngllx,nglly,ngllz,6"
+                        write(*,*)
+                        allocate(field_eps_ep(0:ngllx-1,0:nglly-1,0:ngllz-1,0:5))
                         allocate(field_eps_pl(0:ngllx-1,0:nglly-1,0:ngllz-1,0:5))
                     end if
                 end if
@@ -924,19 +919,31 @@ contains
 
         ! INITIALIZATION FOR PML
         if (domain_type == DM_SOLID_PML) then
-            if (out_flags(OUT_DEPLA   ) == 1 .and. allocated(field_displ)) field_displ = 0
-            if (out_flags(OUT_ACCEL   ) == 1 .and. allocated(field_accel)) field_accel = 0
-            if (out_flags(OUT_PRESSION) == 1 .and. allocated(field_press)) field_press = 0
-            if (allocated(DXX)) then 
-                DXX = 0
-                DYY = 0
-                DZZ = 0
-                DXY = 0
-                DYX = 0
-                DXZ = 0
-                DZX = 0
-                DYZ = 0
-                DZY = 0
+            if (out_flags(OUT_DEPLA   ) == 1 .and. allocated(field_displ)) field_displ = 0.d0
+            if (out_flags(OUT_ACCEL   ) == 1 .and. allocated(field_accel)) field_accel = 0.d0
+            if (out_flags(OUT_PRESSION) == 1 .and. allocated(field_press)) field_press = 0.d0
+            if (flag_gradU .and. allocated(field_eps_ep)) then
+                write(*,*) "=== DEBUG ==="
+                write(*,*) "field_eps_ep = 0"
+                write(*,*)
+                field_eps_ep = 0.d0 
+            endif
+            if (flag_gradU .and. allocated(field_eps_pl)) then
+                write(*,*) "=== DEBUG ==="
+                write(*,*) "field_eps_pl = 0"
+                write(*,*)
+                field_eps_pl = 0.d0 
+            endif
+            if (present(DXX) .and. allocated(DXX)) then 
+                DXX = 0.d0
+                DYY = 0.d0
+                DZZ = 0.d0
+                DXY = 0.d0
+                DYX = 0.d0
+                DXZ = 0.d0
+                DZX = 0.d0
+                DYZ = 0.d0
+                DZY = 0.d0
             endif
         end if
 
@@ -992,10 +999,9 @@ contains
         !
         character (len=MAX_FILE_SIZE) :: fnamef
         integer(HID_T) :: fid
-        real, dimension(:,:,:,:), allocatable :: field_displ, field_veloc, field_accel
-        real, dimension(:,:,:,:), allocatable :: field_eps_pl, field_stress
-        real, dimension(:,:,:),   allocatable :: field_press
-        real, dimension(:,:,:),   allocatable :: field_phi, field_vphi
+        real, dimension(:,:,:,:), allocatable :: field_displ , field_veloc , field_accel
+        real, dimension(:,:,:,:), allocatable :: field_eps_ep, field_eps_pl, field_stress
+        real, dimension(:,:,:),   allocatable :: field_press , field_phi   , field_vphi
         integer :: domain_type
         integer, dimension(:), allocatable :: valence
         integer :: hdferr
@@ -1032,92 +1038,80 @@ contains
         ngllx = 0
         nglly = 0
         ngllz = 0
-        do n = 0,Tdomain%n_elem-1
-            el => Tdomain%specel(n)
-            sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
-            domain_type = get_domain(sub_dom_mat)
-            if (.not. el%OUTPUT) cycle
-            if (ngllx /= el%ngllx .or. nglly /= el%nglly .or. ngllz /= el%ngllz) then
-                ngllx = el%ngllx
-                nglly = el%nglly
-                ngllz = el%ngllz
-                call allocate_second_fields(domain_type, out_variables, Tdomain%nl_flag, ngllx, nglly, ngllz, &
-                    field_displ, field_veloc, field_accel, field_press, field_stress, field_eps_pl, &
-                    field_phi, field_vphi, DXX, DYY, DZZ, DXY, DYX, DXZ, DZX, DYZ, DZY)
-            endif
-            !GATHER FIELDS
-            select case(domain_type)
-                case (DM_SOLID) ! SOLID PART OF THE DOMAIN
-                    if (out_variables(OUT_DEPLA  ) == 1) call gather_field(el, field_displ, Tdomain%champs0%Depla)
-                    if (out_variables(OUT_VITESSE) == 1) call gather_field(el, field_veloc, Tdomain%champs0%Veloc)
-                    if (out_variables(OUT_ACCEL  ) == 1) call gather_field(el, field_accel, Tdomain%champs0%Forces)
-                    if (Tdomain%nl_flag == 1) then ! NON LINEAR
+
+        if (Tdomain%nl_flag==1) then
+            do n = 0,Tdomain%n_elem-1
+                el => Tdomain%specel(n)
+                sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
+                domain_type = get_domain(sub_dom_mat)
+                if (.not. el%OUTPUT) cycle
+                if (ngllx /= el%ngllx .or. nglly /= el%nglly .or. ngllz /= el%ngllz) then
+                    ngllx = el%ngllx
+                    nglly = el%nglly
+                    ngllz = el%ngllz
+                    call allocate_second_fields(domain_type, out_variables, Tdomain%nl_flag, ngllx, nglly, ngllz, &
+                        field_displ, field_veloc, field_accel, field_press, field_stress, field_eps_ep,field_eps_pl, &
+                        field_phi, field_vphi)
+                endif
+                !GATHER FIELDS
+                select case(domain_type)
+                    case (DM_SOLID) ! SOLID PART OF THE DOMAIN
+                        if (out_variables(OUT_DEPLA  ) == 1) call gather_field(el, field_displ, Tdomain%champs0%Depla)
+                        if (out_variables(OUT_VITESSE) == 1) call gather_field(el, field_veloc, Tdomain%champs0%Veloc)
+                        if (out_variables(OUT_ACCEL  ) == 1) call gather_field(el, field_accel, Tdomain%champs0%Forces)
                         if (out_variables(OUT_PRESSION) == 1 .or. flag_gradU) then
-                            call gather_field(el, field_stress, Tdomain%champs0%Stress)
+                            field_stress(i,j,k,0:5) = el%sl%stress(0:5,i,j,k)
                             do k = 0,ngllz-1
                                 do j = 0,nglly-1
                                     do i = 0,ngllx-1
                                         if (out_variables(OUT_PRESSION) == 1) then
-                                            field_press(i,j,k) = field_stress(i,j,k,0)+&
-                                                field_stress(i,j,k,1)+field_stress(i,j,k,2)
+                                            field_press(i,j,k) = -sum(el%sl%stress(0:2,i,j,k))/3
                                         end if
                                         if (flag_gradU) then
-                                            call gather_field(el, field_eps_pl, Tdomain%champs0%Epsilon_pl)
+                                            field_eps_ep(i,j,k,0:5) = el%sl%eps_ep(0:5,i,j,k)
+                                            field_eps_pl(i,j,k,0:5) = el%sl%eps_pl(0:5,i,j,k) 
                                         end if
                                     end do
                                 end do
                             end do
                         end if
-                    else    ! ELASTIC
-                        if (out_variables(OUT_PRESSION) == 1) then
-                            call pressure_solid(ngllx,nglly,ngllz,sub_dom_mat%htprimex, sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
-                                el%InvGrad,field_displ, el%Lambda, el%Mu, field_press)
-                        end if
-                        if (flag_gradU) then
-                            call grad_displ_solid(ngllx,nglly,ngllz,sub_dom_mat%htprimex,sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
-                                el%InvGrad,field_displ,dxx,dxy,dxz,dyx,dyy,dyz,dzx,dzy,dzz)
-                        endif
-                    end if
-                case (DM_SOLID_PML) ! SOLID PML PART OF THE DOMAIN
-                    call gather_field_pml(el, field_veloc, Tdomain%champs0%VelocPML)
-                case (DM_FLUID) ! FLUID PART OF THE DOMAIN
-                    call gather_field_fluid(el, field_phi, Tdomain%champs0%Phi)
-                    call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex, &
-                        sub_dom_mat%hprimey,sub_dom_mat%hprimez, el%InvGrad,el%density,field_phi,field_veloc)
-                    call gather_field_fluid(el, field_vphi, Tdomain%champs0%VelPhi)
-                    call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex, &
-                        sub_dom_mat%hprimey,sub_dom_mat%hprimez, el%InvGrad,el%density,field_vphi,field_accel)
-                    field_press = -field_vphi
-                case (DM_FLUID_PML) !FLUID PML PART OF THE DOMAIN
-                    call gather_field_fpml(el, field_phi, Tdomain%champs0%fpml_Phi)
-                    call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex, &
-                        sub_dom_mat%hprimey,sub_dom_mat%hprimez, el%InvGrad,el%density,field_phi,field_veloc)
-                    call gather_field_fpml(el, field_vphi, Tdomain%champs0%fpml_VelPhi)
-                    call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex, &
-                        sub_dom_mat%hprimey,sub_dom_mat%hprimez, el%InvGrad,el%density,field_vphi,field_accel)
-                    field_press = -field_vphi
-            end select
-            ! COMPUTING SNAPSHOTS
-            do k = 0,ngllz-1
-                do j = 0,nglly-1
-                    do i = 0,ngllx-1
-                        idx = irenum(el%Iglobnum(i,j,k))
-                        if (domains(idx)==domain_type) then
-                            valence(idx) = valence(idx)+1
-                            select case(domain_type)
-                                case (DM_SOLID,DM_SOLID_PML) ! SOLID PART OF THE DOMAIN
-                                    if (out_variables(OUT_DEPLA)   ==1) out_fields%displ(:,idx) = field_displ(i,j,k,:)
-                                    if (out_variables(OUT_VITESSE) ==1) out_fields%veloc(:,idx) = out_fields%veloc(:,idx) + field_veloc(i,j,k,:)
-                                    if (out_variables(OUT_ACCEL)   ==1) out_fields%accel(:,idx) = out_fields%accel(:,idx) + field_accel(i,j,k,:)
-                                    if (out_variables(OUT_PRESSION)==1) out_fields%press(idx)   = field_press(i,j,k)
-                                    if (flag_gradU) then
-                                        if (Tdomain%nl_flag==1) then ! NON LINEAR
-                                            call stress_strain_nl(out_variables, out_fields, &
-                                                DXX(i,j,k), DYY(i,j,k), DZZ(i,j,k), &
-                                                DXY(i,j,k), DYX(i,j,k), DXZ(i,j,k), &
-                                                DZX(i,j,k), DYZ(i,j,k), DZY(i,j,k), &
-                                                field_stress(i,j,k,:),field_eps_pl(i,j,k,:), idx)
-                                        else ! ELASTIC
+                    case (DM_SOLID_PML) ! SOLID PML PART OF THE DOMAIN
+                        call gather_field_pml(el, field_veloc, Tdomain%champs0%VelocPML)
+                    case (DM_FLUID) ! FLUID PART OF THE DOMAIN
+                        call gather_field_fluid(el, field_phi, Tdomain%champs0%Phi)
+                        call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex, &
+                            sub_dom_mat%hprimey,sub_dom_mat%hprimez, el%InvGrad,el%density,field_phi,field_veloc)
+                        call gather_field_fluid(el, field_vphi, Tdomain%champs0%VelPhi)
+                        call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex, &
+                            sub_dom_mat%hprimey,sub_dom_mat%hprimez, el%InvGrad,el%density,field_vphi,field_accel)
+                        field_press = -field_vphi
+                    case (DM_FLUID_PML) !FLUID PML PART OF THE DOMAIN
+                        call gather_field_fpml(el, field_phi, Tdomain%champs0%fpml_Phi)
+                        call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex, &
+                            sub_dom_mat%hprimey,sub_dom_mat%hprimez, el%InvGrad,el%density,field_phi,field_veloc)
+                        call gather_field_fpml(el, field_vphi, Tdomain%champs0%fpml_VelPhi)
+                        call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex, &
+                            sub_dom_mat%hprimey,sub_dom_mat%hprimez, el%InvGrad,el%density,field_vphi,field_accel)
+                        field_press = -field_vphi
+                end select
+                ! COMPUTING SNAPSHOTS
+                do k = 0,ngllz-1
+                    do j = 0,nglly-1
+                        do i = 0,ngllx-1
+                            idx = irenum(el%Iglobnum(i,j,k))
+                            if (domains(idx)==domain_type) then
+                                valence(idx) = valence(idx)+1
+                                select case(domain_type)
+                                    case (DM_SOLID) ! SOLID PART OF THE DOMAIN
+                                        if (out_variables(OUT_DEPLA)   ==1) out_fields%displ(:,idx) = field_displ(i,j,k,:)
+                                        if (out_variables(OUT_VITESSE) ==1) then
+                                            out_fields%veloc(:,idx) = out_fields%veloc(:,idx) + field_veloc(i,j,k,:)
+                                        endif
+                                        if (out_variables(OUT_ACCEL)   ==1) then
+                                            out_fields%accel(:,idx) = out_fields%accel(:,idx) + field_accel(i,j,k,:)
+                                        endif
+                                        if (out_variables(OUT_PRESSION)==1) out_fields%press(idx) = field_press(i,j,k)
+                                        if (flag_gradU) then
                                             if (Tdomain%aniso) then
                                             else
                                                 xmu     = el%Mu(i,j,k)
@@ -1133,24 +1127,131 @@ contains
                                                 endif
                                                 x2mu       = 2. * xmu
                                                 xlambda2mu = xlambda + x2mu
-
-                                                call stress_strain_el(out_variables, out_fields, DXX(i,j,k), DYY(i,j,k), DZZ(i,j,k), &
-                                                    DXY(i,j,k), DYX(i,j,k), DXZ(i,j,k), DZX(i,j,k), DYZ(i,j,k), DZY(i,j,k), &
-                                                    xmu, x2mu, xlambda2mu, idx)
-                                            end if
+                                            endif
+                                            call stress_strain_nl(out_variables,out_fields, &
+                                                field_eps_ep(i,j,k,:),field_stress(i,j,k,:),field_eps_pl(i,j,k,:), idx)
                                         end if
-                                    end if
-
-                                case (DM_FLUID,DM_FLUID_PML)
-                                    out_fields%veloc(:,idx) = out_fields%veloc(:,idx) + field_veloc(i,j,k,:)
-                                    out_fields%accel(:,idx) = out_fields%accel(:,idx) + field_accel(i,j,k,:)
-                                    out_fields%press(idx)   = field_press(i,j,k)
-                            end select
-                        end if
+                                    case (DM_SOLID_PML) ! SOLID PML PART OF THE DOMAIN
+                                        call gather_field_pml(el, field_veloc, Tdomain%champs0%VelocPML)
+                                    case (DM_FLUID) ! FLUID PART OF THE DOMAIN
+                                        call gather_field_fluid(el, field_phi, Tdomain%champs0%Phi)
+                                        call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex, &
+                                            sub_dom_mat%hprimey,sub_dom_mat%hprimez, el%InvGrad,el%density,field_phi,field_veloc)
+                                        call gather_field_fluid(el, field_vphi, Tdomain%champs0%VelPhi)
+                                        call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex, &
+                                            sub_dom_mat%hprimey,sub_dom_mat%hprimez, el%InvGrad,el%density,field_vphi,field_accel)
+                                        field_press = -field_vphi
+                                    case (DM_FLUID_PML) !FLUID PML PART OF THE DOMAIN
+                                        call gather_field_fpml(el, field_phi, Tdomain%champs0%fpml_Phi)
+                                        call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex, &
+                                            sub_dom_mat%hprimey,sub_dom_mat%hprimez, el%InvGrad,el%density,field_phi,field_veloc)
+                                        call gather_field_fpml(el, field_vphi, Tdomain%champs0%fpml_VelPhi)
+                                        call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex, &
+                                            sub_dom_mat%hprimey,sub_dom_mat%hprimez, el%InvGrad,el%density,field_vphi,field_accel)
+                                        field_press = -field_vphi
+                                end select
+                            endif
+                        enddo
                     enddo
                 enddo
             enddo
-        enddo
+        else
+            do n = 0,Tdomain%n_elem-1
+                el => Tdomain%specel(n)
+                sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
+                domain_type = get_domain(sub_dom_mat)
+                if (.not. el%OUTPUT) cycle
+                if (ngllx /= el%ngllx .or. nglly /= el%nglly .or. ngllz /= el%ngllz) then
+                    ngllx = el%ngllx
+                    nglly = el%nglly
+                    ngllz = el%ngllz
+                    call allocate_second_fields(domain_type, out_variables, Tdomain%nl_flag, ngllx, nglly, ngllz, &
+                        field_displ, field_veloc, field_accel, field_press, field_stress, field_eps_ep,field_eps_pl, &
+                        field_phi, field_vphi, DXX, DYY, DZZ, DXY, DYX, DXZ, DZX, DYZ, DZY)
+                endif
+
+                !GATHER FIELDS
+                select case(domain_type)
+                    case (DM_SOLID) ! SOLID PART OF THE DOMAIN
+                        if (out_variables(OUT_DEPLA  ) == 1) call gather_field(el, field_displ, Tdomain%champs0%Depla)
+                        if (out_variables(OUT_VITESSE) == 1) call gather_field(el, field_veloc, Tdomain%champs0%Veloc)
+                        if (out_variables(OUT_ACCEL  ) == 1) call gather_field(el, field_accel, Tdomain%champs0%Forces)
+                        if (out_variables(OUT_PRESSION) == 1) then
+                            call pressure_solid(ngllx,nglly,ngllz,sub_dom_mat%htprimex, sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
+                                el%InvGrad,field_displ, el%Lambda, el%Mu, field_press)
+                        end if
+                        if (flag_gradU) then
+                            call grad_displ_solid(ngllx,nglly,ngllz,sub_dom_mat%htprimex,sub_dom_mat%hprimey,sub_dom_mat%hprimez, &
+                                el%InvGrad,field_displ,dxx,dxy,dxz,dyx,dyy,dyz,dzx,dzy,dzz)
+                        endif
+                    case (DM_SOLID_PML) ! SOLID PML PART OF THE DOMAIN
+                        call gather_field_pml(el, field_veloc, Tdomain%champs0%VelocPML)
+                    case (DM_FLUID) ! FLUID PART OF THE DOMAIN
+                        call gather_field_fluid(el, field_phi, Tdomain%champs0%Phi)
+                        call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex, &
+                            sub_dom_mat%hprimey,sub_dom_mat%hprimez, el%InvGrad,el%density,field_phi,field_veloc)
+                        call gather_field_fluid(el, field_vphi, Tdomain%champs0%VelPhi)
+                        call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex, &
+                            sub_dom_mat%hprimey,sub_dom_mat%hprimez, el%InvGrad,el%density,field_vphi,field_accel)
+                        field_press = -field_vphi
+                    case (DM_FLUID_PML) !FLUID PML PART OF THE DOMAIN
+                        call gather_field_fpml(el, field_phi, Tdomain%champs0%fpml_Phi)
+                        call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex, &
+                            sub_dom_mat%hprimey,sub_dom_mat%hprimez, el%InvGrad,el%density,field_phi,field_veloc)
+                        call gather_field_fpml(el, field_vphi, Tdomain%champs0%fpml_VelPhi)
+                        call fluid_velocity(ngllx,nglly,ngllz,sub_dom_mat%htprimex, &
+                            sub_dom_mat%hprimey,sub_dom_mat%hprimez, el%InvGrad,el%density,field_vphi,field_accel)
+                        field_press = -field_vphi
+                end select
+                ! COMPUTING SNAPSHOTS
+                do k = 0,ngllz-1
+                    do j = 0,nglly-1
+                        do i = 0,ngllx-1
+                            idx = irenum(el%Iglobnum(i,j,k))
+                            if (domains(idx)==domain_type) then
+                                valence(idx) = valence(idx)+1
+                                select case(domain_type)
+                                    case (DM_SOLID,DM_SOLID_PML) ! SOLID PART OF THE DOMAIN
+                                        if (out_variables(OUT_DEPLA)   ==1) out_fields%displ(:,idx) = field_displ(i,j,k,:)
+                                        if (out_variables(OUT_VITESSE) ==1) then
+                                            out_fields%veloc(:,idx) = out_fields%veloc(:,idx) + field_veloc(i,j,k,:)
+                                        endif
+                                        if (out_variables(OUT_ACCEL)   ==1) then
+                                            out_fields%accel(:,idx) = out_fields%accel(:,idx) + field_accel(i,j,k,:)
+                                        endif
+                                        if (out_variables(OUT_PRESSION)==1) out_fields%press(idx) = field_press(i,j,k)
+                                        if (flag_gradU) then
+                                            if (Tdomain%aniso) then
+                                            else
+                                                xmu     = el%Mu(i,j,k)
+                                                xlambda = el%Lambda(i,j,k)
+                                                xkappa  = el%Kappa(i,j,k)
+                                                if (n_solid>0) then
+                                                    onemSbeta=el%sl%onemSbeta(i,j,k)
+                                                    onemPbeta=el%sl%onemPbeta(i,j,k)
+                                                    !  mu_relaxed -> mu_unrelaxed
+                                                    xmu    = xmu * onemSbeta
+                                                    !  kappa_relaxed -> kappa_unrelaxed
+                                                    xkappa = xkappa * onemPbeta
+                                                endif
+                                                x2mu       = 2. * xmu
+                                                xlambda2mu = xlambda + x2mu
+                                            end if
+                                            call stress_strain_el(out_variables, out_fields, DXX(i,j,k), DYY(i,j,k), DZZ(i,j,k), &
+                                                DXY(i,j,k), DYX(i,j,k), DXZ(i,j,k), DZX(i,j,k), DYZ(i,j,k), DZY(i,j,k), &
+                                                xmu, x2mu, xlambda2mu, idx)
+                                        end if
+                                    case (DM_FLUID,DM_FLUID_PML)
+                                        out_fields%veloc(:,idx) = out_fields%veloc(:,idx) + field_veloc(i,j,k,:)
+                                        out_fields%accel(:,idx) = out_fields%accel(:,idx) + field_accel(i,j,k,:)
+                                        out_fields%press(idx)   = field_press(i,j,k)
+                                end select
+                            endif
+                        enddo
+                    enddo
+                enddo
+            enddo
+        endif
 
         ! normalization
         do i = 0,nnodes-1
@@ -1161,6 +1262,31 @@ contains
                 if (out_variables(OUT_ACCEL)==1) then
                     out_fields%accel(0:2,i) = out_fields%accel(0:2,i)/valence(i)
                 end if
+                if (out_variables(OUT_EPS_DEV)==1) then
+                    out_fields%eps_dev_xx(i) = out_fields%eps_dev_xx(idx)/valence(i)
+                    out_fields%eps_dev_yy(i) = out_fields%eps_dev_yy(idx)/valence(i)
+                    out_fields%eps_dev_zz(i) = out_fields%eps_dev_zz(idx)/valence(i)
+                    out_fields%eps_dev_xy(i) = out_fields%eps_dev_xy(idx)/valence(i)
+                    out_fields%eps_dev_xz(i) = out_fields%eps_dev_xz(idx)/valence(i)
+                    out_fields%eps_dev_yz(i) = out_fields%eps_dev_yz(idx)/valence(i)
+                    if (Tdomain%nl_flag==1) then
+                        out_fields%eps_dev_pl_xx(i) = out_fields%eps_dev_pl_xx(idx)/valence(i)
+                        out_fields%eps_dev_pl_yy(i) = out_fields%eps_dev_pl_yy(idx)/valence(i)
+                        out_fields%eps_dev_pl_zz(i) = out_fields%eps_dev_pl_zz(idx)/valence(i)
+                        out_fields%eps_dev_pl_xy(i) = out_fields%eps_dev_pl_xy(idx)/valence(i)
+                        out_fields%eps_dev_pl_xz(i) = out_fields%eps_dev_pl_xz(idx)/valence(i)
+                        out_fields%eps_dev_pl_yz(i) = out_fields%eps_dev_pl_yz(idx)/valence(i)
+                    endif
+                end if
+                if (out_variables(OUT_STRESS_DEV)==1) then
+                    out_fields%sig_dev_xx(i) = out_fields%sig_dev_xx(idx)/valence(i)
+                    out_fields%sig_dev_yy(i) = out_fields%sig_dev_yy(idx)/valence(i)
+                    out_fields%sig_dev_zz(i) = out_fields%sig_dev_zz(idx)/valence(i)
+                    out_fields%sig_dev_xy(i) = out_fields%sig_dev_xy(idx)/valence(i)
+                    out_fields%sig_dev_xz(i) = out_fields%sig_dev_xz(idx)/valence(i)
+                    out_fields%sig_dev_yz(i) = out_fields%sig_dev_yz(idx)/valence(i)
+                end if
+                
             end if
         enddo
 
@@ -1615,39 +1741,37 @@ contains
         end if
 
         if (out_flags(OUT_EPS_VOL) == 1) then ! volumetric strain
-            fields%eps_vol(idx)    = eps_trace
+            fields%eps_vol(idx)    = fields%eps_vol(idx) + eps_trace
         end if
 
         if (out_flags(OUT_EPS_DEV) == 1) then ! deviatoric strain
-            fields%eps_dev_xx(idx) = DXX - eps_trace * M_1_3
-            fields%eps_dev_yy(idx) = DYY - eps_trace * M_1_3
-            fields%eps_dev_zz(idx) = DZZ - eps_trace * M_1_3
-            fields%eps_dev_xy(idx) = (DXY + DYX)
-            fields%eps_dev_xz(idx) = (DZX + DXZ)
-            fields%eps_dev_yz(idx) = (DZY + DYZ)
+            fields%eps_dev_xx(idx) = fields%eps_dev_xx(idx) + DXX - eps_trace * M_1_3
+            fields%eps_dev_yy(idx) = fields%eps_dev_yy(idx) + DYY - eps_trace * M_1_3
+            fields%eps_dev_zz(idx) = fields%eps_dev_zz(idx) + DZZ - eps_trace * M_1_3
+            fields%eps_dev_xy(idx) = fields%eps_dev_xy(idx) + (DXY + DYX)
+            fields%eps_dev_xz(idx) = fields%eps_dev_xz(idx) + (DZX + DXZ)
+            fields%eps_dev_yz(idx) = fields%eps_dev_yz(idx) + (DZY + DYZ)
         end if
 
         if (out_flags(OUT_STRESS_DEV) == 1) then ! deviatoric stress state
-            fields%sig_dev_xx(idx) = x2mu * (DXX - eps_trace * M_1_3)
-            fields%sig_dev_yy(idx) = x2mu * (DYY - eps_trace * M_1_3)
-            fields%sig_dev_zz(idx) = x2mu * (DZZ - eps_trace * M_1_3)
-            fields%sig_dev_xy(idx) = xmu  * (DXY + DYX)
-            fields%sig_dev_xz(idx) = xmu  * (DXZ + DZX)
-            fields%sig_dev_yz(idx) = xmu  * (DYZ + DZY)
+            fields%sig_dev_xx(idx) = fields%sig_dev_xx(idx) + x2mu * (DXX - eps_trace * M_1_3)
+            fields%sig_dev_yy(idx) = fields%sig_dev_yy(idx) + x2mu * (DYY - eps_trace * M_1_3)
+            fields%sig_dev_zz(idx) = fields%sig_dev_zz(idx) + x2mu * (DZZ - eps_trace * M_1_3)
+            fields%sig_dev_xy(idx) = fields%sig_dev_xy(idx) + xmu  * (DXY + DYX)
+            fields%sig_dev_xz(idx) = fields%sig_dev_xz(idx) + xmu  * (DXZ + DZX)
+            fields%sig_dev_yz(idx) = fields%sig_dev_yz(idx) + xmu  * (DYZ + DZY)
         end if
     end subroutine stress_strain_el
 
-    subroutine stress_strain_nl(out_flags, fields, dUxx, dUyy, dUzz, dUxy, dUyx, dUxz, dUzx, dUyz, dUzy, &
-        stress, strain_pl, idx)
+    subroutine stress_strain_nl(out_flags, fields, strain,stress, strain_pl, idx)
 
         integer, dimension(0:8), intent(in) :: out_flags
         type (output_var_t), intent(inout) :: fields
-        real, intent(in) :: dUxx, dUyy, dUzz, dUxy, dUyx, dUxz, dUzx, dUyz, dUzy
-        real, dimension(0:5), intent(in) :: stress, strain_pl
+        real, dimension(0:5), intent(in) :: strain, strain_pl, stress
         real    :: eps_trace, eps_trace_pl, pressure
         integer :: idx
 
-        eps_trace    = dUxx + dUyy + dUzz
+        eps_trace    = sum(strain(0:2)) 
         eps_trace_pl = 0
         pressure     = sum(stress(0:2)) * M_1_3
 
@@ -1661,31 +1785,32 @@ contains
         end if
 
         if (out_flags(OUT_EPS_VOL) == 1) then ! volumetric strain
-            fields%eps_vol(idx) = eps_trace
+            fields%eps_vol(idx) = fields%eps_vol(idx) + eps_trace
         end if
 
         if (out_flags(OUT_EPS_DEV) == 1) then ! deviatoric strain
-            fields%eps_dev_xx(idx) = dUxx - eps_trace * M_1_3
-            fields%eps_dev_yy(idx) = dUyy - eps_trace * M_1_3
-            fields%eps_dev_zz(idx) = dUzz - eps_trace * M_1_3
-            fields%eps_dev_xy(idx) = dUxy + dUyx
-            fields%eps_dev_xz(idx) = dUzx + dUxz
-            fields%eps_dev_yz(idx) = dUyz + dUzy
-            fields%eps_dev_pl_xx(idx) = strain_pl(0) 
-            fields%eps_dev_pl_yy(idx) = strain_pl(1) 
-            fields%eps_dev_pl_zz(idx) = strain_pl(2)
-            fields%eps_dev_pl_xy(idx) = strain_pl(3)
-            fields%eps_dev_pl_xz(idx) = strain_pl(4)
-            fields%eps_dev_pl_yz(idx) = strain_pl(5)
+            fields%eps_dev_xx(idx) = fields%eps_dev_xx(idx)- eps_trace * M_1_3
+            fields%eps_dev_yy(idx) = fields%eps_dev_yy(idx)- eps_trace * M_1_3
+            fields%eps_dev_zz(idx) = fields%eps_dev_zz(idx)- eps_trace * M_1_3
+            fields%eps_dev_xy(idx) = fields%eps_dev_xy(idx)+ strain(3) 
+            fields%eps_dev_xz(idx) = fields%eps_dev_xz(idx)+ strain(4)
+            fields%eps_dev_yz(idx) = fields%eps_dev_yz(idx)+ strain(5)
+           
+            fields%eps_dev_pl_xx(idx) = fields%eps_dev_pl_xx(idx)+strain_pl(0) 
+            fields%eps_dev_pl_yy(idx) = fields%eps_dev_pl_yy(idx)+strain_pl(1) 
+            fields%eps_dev_pl_zz(idx) = fields%eps_dev_pl_zz(idx)+strain_pl(2)
+            fields%eps_dev_pl_xy(idx) = fields%eps_dev_pl_xy(idx)+strain_pl(3)
+            fields%eps_dev_pl_xz(idx) = fields%eps_dev_pl_xz(idx)+strain_pl(4)
+            fields%eps_dev_pl_yz(idx) = fields%eps_dev_pl_yz(idx)+strain_pl(5)
         end if
 
         if (out_flags(OUT_STRESS_DEV) == 1) then ! deviatoric stress state
-            fields%sig_dev_xx(idx) = stress(0)-pressure
-            fields%sig_dev_yy(idx) = stress(1)-pressure
-            fields%sig_dev_zz(idx) = stress(2)-pressure
-            fields%sig_dev_xy(idx) = stress(3)
-            fields%sig_dev_xz(idx) = stress(4)
-            fields%sig_dev_yz(idx) = stress(5)
+            fields%sig_dev_xx(idx) = fields%sig_dev_xx(idx)+stress(0)-pressure
+            fields%sig_dev_yy(idx) = fields%sig_dev_yy(idx)+stress(1)-pressure
+            fields%sig_dev_zz(idx) = fields%sig_dev_zz(idx)+stress(2)-pressure
+            fields%sig_dev_xy(idx) = fields%sig_dev_xy(idx)+stress(3)
+            fields%sig_dev_xz(idx) = fields%sig_dev_xz(idx)+stress(4)
+            fields%sig_dev_yz(idx) = fields%sig_dev_yz(idx)+stress(5)
         end if
 
     end subroutine stress_strain_nl

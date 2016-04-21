@@ -1,4 +1,4 @@
-!! This file is part of SEM
+! This file is part of SEM
 !!
 !! Copyright CEA, ECP, IPGP
 !!

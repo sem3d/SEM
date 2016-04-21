@@ -347,8 +347,7 @@ contains
                 do k=0,nz-1
                     do j=0,ny-1
                         do i=0,nx-1
-                            ind = el%Idom(i,j,k)
-                            field(i,j,k,0:5) = Tdomain%champs0%Stress(ind,0:5)
+                            field(i,j,k,0:5) = el%sl%stress(0:5,i,j,k)
                         enddo
                     enddo
                 enddo
@@ -357,6 +356,31 @@ contains
         end select
 
     end subroutine gather_elem_stress_solid
+    subroutine gather_elem_eps(Tdomain, nel, field)
+
+        type(domain), intent(in) :: Tdomain
+        integer, intent(in) :: nel
+        real, dimension(0:,0:,0:,0:), intent(out) :: field
+        type(element), pointer :: el
+        integer :: nx, ny, nz, i, j, k, ind
+        nx = Tdomain%specel(nel)%ngllx
+        ny = Tdomain%specel(nel)%nglly
+        nz = Tdomain%specel(nel)%ngllz
+        el => Tdomain%specel(nel)
+        select case (el%domain)
+            case (DM_SOLID)
+                do k=0,nz-1
+                    do j=0,ny-1
+                        do i=0,nx-1
+                            field(i,j,k,0:5) = el%sl%eps_ep(0:5,i,j,k)
+                            field(i,j,k,0:2) = field(i,j,k,0:2)-sum(field(i,j,k,0:2))*M_1_3
+                        enddo
+                    enddo
+                enddo
+            case (DM_SOLID_PML)
+                field = 0d0
+        end select              
+    end subroutine gather_elem_eps
 
     subroutine gather_elem_eps_pl(Tdomain, nel, field)
 
@@ -374,8 +398,8 @@ contains
                 do k=0,nz-1
                     do j=0,ny-1
                         do i=0,nx-1
-                            ind = el%Idom(i,j,k)
-                            field(i,j,k,0:5) = Tdomain%champs0%Epsilon_pl(ind,0:5)
+                            field(i,j,k,0:5) = el%sl%eps_pl(0:5,i,j,k)
+                            field(i,j,k,0:2) = field(i,j,k,0:2)-sum(field(i,j,k,0:2))*M_1_3
                         enddo
                     enddo
                 enddo

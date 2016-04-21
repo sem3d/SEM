@@ -136,7 +136,9 @@ contains
             write(*,*) "*********************************"
             write(*,*) ""
         end if
+        ! RETURN TRIAL STRESS 
         dtrial=stress0+dtrial*alpha_elp
+
         call mises_yld_locus(dtrial,center,radius,syld,FS,gradFS)
     end subroutine check_plasticity
 
@@ -200,7 +202,7 @@ contains
                 stress = S1
                 center = X1
                 radius = R1
-
+                dEpl   = dEpl+dEpl1
                 call mises_yld_locus (stress, center,radius,syld,FM,gradFM)
                 if (FM.gt.FTOL) then
                     call drift_corr(stress,center,radius,syld,&
@@ -254,7 +256,6 @@ contains
         
         dradius     = dPlast*dradius
         dcenter(0:5)= dPlast*dcenter(0:5)
-        dEplast(0:5)= 0d0
         do k=0,5 
             dEplast(k)=dEplast(k)+dPlast*gradF(k)*A(k)
         end do

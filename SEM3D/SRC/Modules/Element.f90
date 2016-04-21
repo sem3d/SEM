@@ -39,8 +39,12 @@ module selement
         real, dimension(:,:,:,:), allocatable :: &
             factor_common_3, alphaval_3,betaval_3,gammaval_3, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_, &
             factor_common_P, alphaval_P,betaval_P,gammaval_P, R_vol_
-        ! NL PARAMETERS
+        ! nl parameters
         type(nl_param), allocatable :: nl_param_el
+        ! nl internal variables
+        real, dimension(:,:,:)  , allocatable :: radius
+        real, dimension(:,:,:,:), allocatable :: stress,center,eps_ep,eps_pl
+
     end type element_solid
 
     type :: element_fluid
