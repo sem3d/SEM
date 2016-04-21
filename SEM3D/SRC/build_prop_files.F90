@@ -61,9 +61,9 @@ contains
         do mat = 0, Tdomain%n_mat - 1
         !do mat = 0, 0 !For Tests
 
-            write(*,*) "  "
-            write(*,*) "  Analyzing Material ", mat, "------------------- in rg ", rg
-            write(*,*) "  Tdomain%subD_exist ", Tdomain%subD_exist, "------------------- in rg ", rg
+            !write(*,*) "  "
+            !write(*,*) "  Analyzing Material ", mat, "------------------- in rg ", rg
+            !write(*,*) "  Tdomain%subD_exist ", Tdomain%subD_exist, "------------------- in rg ", rg
 
             if(.not. Tdomain%subD_exist(mat)) cycle
 
@@ -277,13 +277,14 @@ contains
 
         call h5open_f(hdferr) ! Initialize FORTRAN interface.
         call h5fopen_f(trim(BBoxFileName), H5F_ACC_RDONLY_F, file_id, hdferr) !Open File
-        if(hdferr /= 0) stop("ERROR OPENING FILE")
-        !write(*,*) "hdferr = ", hdferr
-
-        !READING SCALARS----------------------------
-        !BOOL
-        !attr_name = "independent"
-        !call read_h5attr_bool(file_id, trim(adjustL(attr_name)), independent)
+        if(hdferr /= 0) then
+            write(*,*) " "
+            write(*,*) "-----------------------------------------------------------------------"
+            write(*,*) "Your simulation requires random properties. Sample them and re-run SEM"
+            write(*,*) "-----------------------------------------------------------------------"
+            write(*,*) " "
+            stop(" ")
+        end if
 
         !INTEGERS
         attr_name = "nDim"
