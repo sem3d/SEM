@@ -16,90 +16,90 @@ module define_random
 
 
 contains
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    subroutine define_random_subdomains(Tdomain, rg)
-        !This routine define the seed for random subdomains
-        !and spreads the seed and Max/Min limits to PMLs interfacin random subdomains
-        implicit none
-        !INPUT
-        type(domain), intent(inout), target :: Tdomain
-        integer     , intent(in)  :: rg
-
-        !LOCAL
-        integer :: mat, assocMat, i
-        integer :: seedSize
-
-        call random_seed(size = seedSize)
-
-        !Non PMLs
-        do mat = 0, Tdomain%n_mat - 1
-            if(Tdomain%sSubdomain(mat)%initial_material_type == 'R') then
-                allocate(Tdomain%sSubdomain(mat)%chosenSeed(seedSize))
-                call define_random_seed(Tdomain, rg, mat)
-                if(rg == 0) then
-                    write(*,*) ""
-                    write(*,*) "Material ", mat, " (random)"
-
-                    write(*,*) " INPUTS:"
-                    write(*,*) "  corrL        = ", Tdomain%sSubDomain(mat)%corrL
-                    write(*,*) "  corrMod      = ", Tdomain%sSubDomain(mat)%corrMod
-                    i = 0
-                    write(*,*) "  Dens------------ "
-                    write(*,*) "   average      = ", Tdomain%sSubDomain(mat)%Ddensity
-                    write(*,*) "   variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
-                    write(*,*) "   margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
-                    i = 1
-                    write(*,*) "  Lambda----------- "
-                    write(*,*) "   average      = ", Tdomain%sSubDomain(mat)%DLambda
-                    write(*,*) "   variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
-                    write(*,*) "   margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
-                    i = 2
-                    write(*,*) "  Mu--------------- "
-                    write(*,*) "   average      = ", Tdomain%sSubDomain(mat)%DMu
-                    write(*,*) "   variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
-                    write(*,*) "   margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
-
-                    write(*,*) " COMPUTED:"
-                    write(*,*) "  chosenSeed   = ", Tdomain%sSubDomain(mat)%chosenSeed
-                    write(*,*) "  MinBound     = ", Tdomain%sSubDomain(mat)%MinBound
-                    write(*,*) "  MaxBound     = ", Tdomain%sSubDomain(mat)%MaxBound
-                    write(*,*) ""
-                end if
-            end if
-        end do
-
-        !Propagating properties to PMLS
-        do mat = 0, Tdomain%n_mat - 1
-            assocMat = Tdomain%sSubDomain(mat)%assocMat
-
-            if(.not. (Tdomain%not_PML_List(mat)) .and. &
-               Tdomain%sSubdomain(assocMat)%initial_material_type == 'R') then !PMLs associated to random subdomains
-                allocate(Tdomain%sSubdomain(mat)%varProp(0:nProp-1))
-                allocate(Tdomain%sSubdomain(mat)%corrL(0:nProp-1))
-                allocate(Tdomain%sSubdomain(mat)%margiFirst(0:nProp-1))
-                allocate(Tdomain%sSubdomain(mat)%chosenSeed(seedSize))
-                !Min/Max Bounds already allocated in mesh3d.f90
-                Tdomain%sSubDomain(mat)%Ddensity      = Tdomain%sSubDomain(assocMat)%Ddensity
-                Tdomain%sSubDomain(mat)%DLambda       = Tdomain%sSubDomain(assocMat)%DLambda
-                Tdomain%sSubDomain(mat)%DMu           = Tdomain%sSubDomain(assocMat)%DMu
-                Tdomain%sSubDomain(mat)%varProp       = Tdomain%sSubDomain(assocMat)%varProp
-                Tdomain%sSubdomain(mat)%corrMod       = Tdomain%sSubdomain(assocMat)%corrMod
-                Tdomain%sSubdomain(mat)%corrL(:)      = Tdomain%sSubdomain(assocMat)%corrL(:)
-                Tdomain%sSubdomain(mat)%margiFirst(:) = Tdomain%sSubdomain(assocMat)%margiFirst(:)
-                Tdomain%sSubdomain(mat)%chosenSeed(:) = Tdomain%sSubdomain(assocMat)%chosenSeed(:)
-                Tdomain%sSubdomain(mat)%MinBound(:)   = Tdomain%sSubdomain(assocMat)%MinBound(:)
-                Tdomain%sSubdomain(mat)%MaxBound(:)   = Tdomain%sSubdomain(assocMat)%MaxBound(:)
-
-                if(rg == 0) write(*,*) "Material ", mat, " is a random PML linked to material ", assocMat
-            end if
-        end do
-
-        if(rg == 0) write(*,*) ""
-
-    end subroutine define_random_subdomains
+!    !---------------------------------------------------------------------------
+!    !---------------------------------------------------------------------------
+!    !---------------------------------------------------------------------------
+!    !---------------------------------------------------------------------------
+!    subroutine define_random_subdomains(Tdomain, rg)
+!        !This routine define the seed for random subdomains
+!        !and spreads the seed and Max/Min limits to PMLs interfacin random subdomains
+!        implicit none
+!        !INPUT
+!        type(domain), intent(inout), target :: Tdomain
+!        integer     , intent(in)  :: rg
+!
+!        !LOCAL
+!        integer :: mat, assocMat, i
+!        integer :: seedSize
+!
+!        call random_seed(size = seedSize)
+!
+!        !Non PMLs
+!        do mat = 0, Tdomain%n_mat - 1
+!            if(Tdomain%sSubdomain(mat)%initial_material_type == 'R') then
+!                allocate(Tdomain%sSubdomain(mat)%chosenSeed(seedSize))
+!                call define_random_seed(Tdomain, rg, mat)
+!                if(rg == 0) then
+!                    write(*,*) ""
+!                    write(*,*) "Material ", mat, " (random)"
+!
+!                    write(*,*) " INPUTS:"
+!                    write(*,*) "  corrL        = ", Tdomain%sSubDomain(mat)%corrL
+!                    write(*,*) "  corrMod      = ", Tdomain%sSubDomain(mat)%corrMod
+!                    i = 0
+!                    write(*,*) "  Dens------------ "
+!                    write(*,*) "   average      = ", Tdomain%sSubDomain(mat)%Ddensity
+!                    write(*,*) "   variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
+!                    write(*,*) "   margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
+!                    i = 1
+!                    write(*,*) "  Lambda----------- "
+!                    write(*,*) "   average      = ", Tdomain%sSubDomain(mat)%DLambda
+!                    write(*,*) "   variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
+!                    write(*,*) "   margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
+!                    i = 2
+!                    write(*,*) "  Mu--------------- "
+!                    write(*,*) "   average      = ", Tdomain%sSubDomain(mat)%DMu
+!                    write(*,*) "   variance     = ", Tdomain%sSubDomain(mat)%varProp(i)
+!                    write(*,*) "   margiFirst   = ", Tdomain%sSubDomain(mat)%margiFirst(i)
+!
+!                    write(*,*) " COMPUTED:"
+!                    write(*,*) "  chosenSeed   = ", Tdomain%sSubDomain(mat)%chosenSeed
+!                    write(*,*) "  MinBound     = ", Tdomain%sSubDomain(mat)%MinBound
+!                    write(*,*) "  MaxBound     = ", Tdomain%sSubDomain(mat)%MaxBound
+!                    write(*,*) ""
+!                end if
+!            end if
+!        end do
+!
+!        !Propagating properties to PMLS
+!        do mat = 0, Tdomain%n_mat - 1
+!            assocMat = Tdomain%sSubDomain(mat)%assocMat
+!
+!            if(.not. (Tdomain%not_PML_List(mat)) .and. &
+!               Tdomain%sSubdomain(assocMat)%initial_material_type == 'R') then !PMLs associated to random subdomains
+!                allocate(Tdomain%sSubdomain(mat)%varProp(0:nProp-1))
+!                allocate(Tdomain%sSubdomain(mat)%corrL(0:nProp-1))
+!                allocate(Tdomain%sSubdomain(mat)%margiFirst(0:nProp-1))
+!                allocate(Tdomain%sSubdomain(mat)%chosenSeed(seedSize))
+!                !Min/Max Bounds already allocated in mesh3d.f90
+!                Tdomain%sSubDomain(mat)%Ddensity      = Tdomain%sSubDomain(assocMat)%Ddensity
+!                Tdomain%sSubDomain(mat)%DLambda       = Tdomain%sSubDomain(assocMat)%DLambda
+!                Tdomain%sSubDomain(mat)%DMu           = Tdomain%sSubDomain(assocMat)%DMu
+!                Tdomain%sSubDomain(mat)%varProp       = Tdomain%sSubDomain(assocMat)%varProp
+!                Tdomain%sSubdomain(mat)%corrMod       = Tdomain%sSubdomain(assocMat)%corrMod
+!                Tdomain%sSubdomain(mat)%corrL(:)      = Tdomain%sSubdomain(assocMat)%corrL(:)
+!                Tdomain%sSubdomain(mat)%margiFirst(:) = Tdomain%sSubdomain(assocMat)%margiFirst(:)
+!                Tdomain%sSubdomain(mat)%chosenSeed(:) = Tdomain%sSubdomain(assocMat)%chosenSeed(:)
+!                Tdomain%sSubdomain(mat)%MinBound(:)   = Tdomain%sSubdomain(assocMat)%MinBound(:)
+!                Tdomain%sSubdomain(mat)%MaxBound(:)   = Tdomain%sSubdomain(assocMat)%MaxBound(:)
+!
+!                if(rg == 0) write(*,*) "Material ", mat, " is a random PML linked to material ", assocMat
+!            end if
+!        end do
+!
+!        if(rg == 0) write(*,*) ""
+!
+!    end subroutine define_random_subdomains
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -209,8 +209,8 @@ contains
                             cluster=1, &
                             folderPath="./mat/input", &
                             runPath=runPath, &
-                            rfPath="/home/carvalhol/Projects/SEM/build_RF/randomField.exe", &
-                            statPath="/home/carvalhol/Projects/SEM/build_RF/statistics.exe", &
+                            rfPath=string_join_many(Tdomain%random_library_path,"/randomField.exe"), &
+                            statPath=string_join_many(Tdomain%random_library_path,"/statistics.exe"), &
                             gen_input_name="gen_"//fileNameBase, &
                             mesh_input_name="mesh_"//fileNameBase)
 
