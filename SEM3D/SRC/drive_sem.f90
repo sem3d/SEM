@@ -125,19 +125,19 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
  !---------------------------------------------------------------------------------------------!
 
     call RUN_PREPARED(Tdomain)
-    call RUN_INIT_INTERACT(Tdomain,isort)
-
- !---------------------------------------------------------------------------------------------!
- !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
- !---------------------------------------------------------------------------------------------!
-
-    call TIME_STEPPING(Tdomain,isort,ntime)
-
- !---------------------------------------------------------------------------------------------!
- !-------------------------------      NORMAL  END OF THE RUN      ----------------------------!
- !---------------------------------------------------------------------------------------------!
-
-    call END_SEM(Tdomain,ntime)
+!    call RUN_INIT_INTERACT(Tdomain,isort)
+!
+! !---------------------------------------------------------------------------------------------!
+! !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
+! !---------------------------------------------------------------------------------------------!
+!
+!    call TIME_STEPPING(Tdomain,isort,ntime)
+!
+! !---------------------------------------------------------------------------------------------!
+! !-------------------------------      NORMAL  END OF THE RUN      ----------------------------!
+! !---------------------------------------------------------------------------------------------!
+!
+!    call END_SEM(Tdomain,ntime)
 
 end subroutine sem
  !-----------------------------------------------------------------------------------
@@ -279,36 +279,36 @@ subroutine RUN_PREPARED(Tdomain)
     call define_arrays(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
 
- !- anelastic properties
-    if (Tdomain%n_sls>0) then
-        if (Tdomain%aniso) then
-            if (rg == 0) write (*,*) "--> COMPUTING ANISOTROPIC ATTENUATION FEATURES"
-            call set_attenuation_aniso_param(Tdomain)
-        else
-            if (rg == 0) write (*,*) "--> COMPUTING ATTENUATION FEATURES"
-            call set_attenuation_param(Tdomain)
-        endif
-    endif
- !- eventual classical seismic point sources: their spatial and temporal properties
-    if (Tdomain%logicD%any_source) then
-        if (rg == 0) write (*,*) "--> COMPUTING SOURCE PARAMETERS "
-        call SourcePosition (Tdomain)
-        call double_couple (Tdomain, rg)
-        call source_excit(Tdomain,rg)
-        call def_timefunc (Tdomain, rg)
-        !- source time dependence read in a file: Modules/Source.f90
-        !  valid only for one point source - to be generalized for each
-        do i = 0,Tdomain%n_source-1
-            if(Tdomain%sSource(i)%i_time_function == 5)then
-                call read_source_file(Tdomain%sSource(i))
-            endif
-        end do
-    endif
- !- time: initializations. Eventual changes if restarting from a checkpoint (see
- !         routine  RUN_INIT_INTERACT)
-    Tdomain%TimeD%rtime = 0
-    Tdomain%TimeD%NtimeMin = 0
-    call MPI_Barrier(Tdomain%communicateur,code)
+! !- anelastic properties
+!    if (Tdomain%n_sls>0) then
+!        if (Tdomain%aniso) then
+!            if (rg == 0) write (*,*) "--> COMPUTING ANISOTROPIC ATTENUATION FEATURES"
+!            call set_attenuation_aniso_param(Tdomain)
+!        else
+!            if (rg == 0) write (*,*) "--> COMPUTING ATTENUATION FEATURES"
+!            call set_attenuation_param(Tdomain)
+!        endif
+!    endif
+! !- eventual classical seismic point sources: their spatial and temporal properties
+!    if (Tdomain%logicD%any_source) then
+!        if (rg == 0) write (*,*) "--> COMPUTING SOURCE PARAMETERS "
+!        call SourcePosition (Tdomain)
+!        call double_couple (Tdomain, rg)
+!        call source_excit(Tdomain,rg)
+!        call def_timefunc (Tdomain, rg)
+!        !- source time dependence read in a file: Modules/Source.f90
+!        !  valid only for one point source - to be generalized for each
+!        do i = 0,Tdomain%n_source-1
+!            if(Tdomain%sSource(i)%i_time_function == 5)then
+!                call read_source_file(Tdomain%sSource(i))
+!            endif
+!        end do
+!    endif
+! !- time: initializations. Eventual changes if restarting from a checkpoint (see
+! !         routine  RUN_INIT_INTERACT)
+!    Tdomain%TimeD%rtime = 0
+!    Tdomain%TimeD%NtimeMin = 0
+!    call MPI_Barrier(Tdomain%communicateur,code)
 
 end subroutine RUN_PREPARED
 !-----------------------------------------------------------------------------------

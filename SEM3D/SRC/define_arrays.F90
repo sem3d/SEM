@@ -302,7 +302,7 @@ contains
                 if ( Tdomain%logicD%grad_bassin ) then
                     call initialize_material_gradient(Tdomain, specel)
                 endif
-            case( MATERIAL_MULTIPLE )
+            case( MATERIAL_RANDOM )
                 !Don`t do anything, the basic properties were initialized by file
                 if(materialIsConstant(Tdomain, mat)) then
                     select case (specel%domain)

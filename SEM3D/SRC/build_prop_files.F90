@@ -13,11 +13,6 @@ module build_prop_files
     implicit none
 #include "index.h"
 
-    character(len=15) :: procFileName = "prop"
-    character(len=50) :: h5folder  = "./prop/h5", &
-        XMFfolder = "./prop", &
-        h5_to_xmf = "./h5"
-
 contains
     !---------------------------------------------------------------------------
     !---------------------------------------------------------------------------
@@ -63,8 +58,8 @@ contains
             allocate(lambda(0:size(Tdomain%GlobCoord, 2) - 1))
         end if
 
-        !do mat = 0, Tdomain%n_mat - 1
-        do mat = 0, 0 !For Tests
+        do mat = 0, Tdomain%n_mat - 1
+        !do mat = 0, 0 !For Tests
 
             write(*,*) "  "
             write(*,*) "  Analyzing Material ", mat, "------------------- in rg ", rg
@@ -80,9 +75,9 @@ contains
                 !write(*,*) "  Material ", mat, " have properties on file"
                 if(is_rand(Tdomain%sSubdomain(assocMat))) then
 
-                    !do propId = 0, nProp - 1
+                    do propId = 0, nProp - 1
                     !write(*,*) "  Reading and Interpolating Random Properties on:"
-                    do propId = 0, 0 !For Tests
+                    !do propId = 0, 0 !For Tests
                         !write(*,*) " prop = ", propId, "rg = ", rg
                         write(*,*) trim(Tdomain%sSubDomain(mat)%propFilePath(propId))
                         call interpolateToMesh_V2(BBoxFileName=Tdomain%sSubDomain(mat)%propFilePath(propId),  &

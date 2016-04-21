@@ -318,7 +318,7 @@ int expect_material_type(yyscan_t scanner, int* type) {
     if (cmp(scanner,"gradient"))  { *type = 2; return 1; }
     if (cmp(scanner,"earthchunk")){ *type = 3; return 1; }
     if (cmp(scanner,"prem"))      { *type = 4; return 1; }
-    if (cmp(scanner,"multiple"))    { *type = 5; return 1; }
+    if (cmp(scanner,"random"))    { *type = 5; return 1; }
 error:
     msg_err(scanner, "Expected constant|gradient|earthchunk|prem|multiple");
     return 0;
