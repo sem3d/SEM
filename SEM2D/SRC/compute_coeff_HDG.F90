@@ -174,10 +174,11 @@ contains
             nface = Elem%Near_Face(nf)
             call get_iminimax(Elem,nf,imin,imax)
             coherency  = Tdomain%sFace(nface)%coherency
-            if (Elem%acoustic .AND. Tdomain%sFace(nface)%changing_media) then ! Cas couplage élasto-acoustique
-               G(:,0) = Elem%MatPen(:,0) * Elem%Normal_Nodes(imin:imax,0)**2
-               G(:,1) = Elem%MatPen(:,0) * Elem%Normal_Nodes(imin:imax,1)**2
-               G(:,2) = Elem%MatPen(:,0) * Elem%Normal_Nodes(imin:imax,0)*Elem%Normal_Nodes(imin:imax,1)
+            if (Elem%acoustic .AND. Tdomain%sFace(nface)%changing_media) then ! Cas couplage elasto-acoustique
+               G(imin:imax,0) = Elem%Coeff_integr_Faces(imin:imax) * Elem%MatPen(imin:imax,0) * Elem%Normal_Nodes(imin:imax,0)**2
+               G(imin:imax,1) = Elem%Coeff_integr_Faces(imin:imax) * Elem%MatPen(imin:imax,0) * Elem%Normal_Nodes(imin:imax,1)**2
+               G(imin:imax,2) = Elem%Coeff_integr_Faces(imin:imax) * Elem%MatPen(imin:imax,0) &
+                              * Elem%Normal_Nodes(imin:imax,0)*Elem%Normal_Nodes(imin:imax,1)
             endif
             if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
                if(Tdomain%sFace(nface)%acoustic) then

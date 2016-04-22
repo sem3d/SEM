@@ -369,7 +369,11 @@ subroutine allocate_domain (Tdomain)
      do n = 0, Tdomain%n_elem-1
         ngllx = Tdomain%specel(n)%ngllx
         ngllz = Tdomain%specel(n)%ngllz
-        allocate (Tdomain%specel(n)%Strain0(0:ngllx-1,0:ngllz-1,0:2))
+        if (Tdomain%specel(n)%acoustic) then
+            allocate (Tdomain%specel(n)%Strain0(0:ngllx-1,0:ngllz-1,0:0))
+        else
+            allocate (Tdomain%specel(n)%Strain0(0:ngllx-1,0:ngllz-1,0:2))
+        endif
     enddo
   endif
 

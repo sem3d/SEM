@@ -214,7 +214,7 @@ subroutine Semi_Implicit_Resolution (Tdomain,timelocal,Dt)
             Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimex, &
             Tdomain%sSubDomain(mat)%hprimez,Tdomain%sSubDomain(mat)%hTprimez)
         !call add_tau_v (Tdomain%specel(n))
-        call add_previous_state2forces (Tdomain%specel(n), Dt)
+        call add_previous_state2forces (Tdomain%specel(n), Dt, .false.)
         if (Tdomain%specel(n)%PML) call update_Psi_ADEPML(Tdomain%specel(n), &
             Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimez, Dt)
     enddo
@@ -310,15 +310,11 @@ subroutine Forward_Euler_Resolution (Tdomain,timelocal,Dt,computeVhat)
     do n=0,Tdomain%n_elem-1
         call get_Vhat_f2el(Tdomain,n)
         call Compute_Traces (Tdomain%specel(n),.true.)
-        if(Tdomain%type_bc==DG_BC_REFL .OR. Tdomain%specel(n)%PML) call enforce_diriclet_BC(Tdomain,n)
         ! Add previous state to forces :
-        call add_previous_state2forces (Tdomain%specel(n),Dt)
-        Tdomain%specel(n)%Forces(:,:,2) = Tdomain%specel(n)%Forces(:,:,2) &
-            - 1./Dt * Tdomain%specel(n)%Acoeff(:,:,12) * Tdomain%specel(n)%Strain0(:,:,2)
+        call add_previous_state2forces (Tdomain%specel(n),Dt,.true.)
         if(Tdomain%type_bc==DG_BC_REFL .OR. Tdomain%specel(n)%PML) call enforce_diriclet_BC(Tdomain,n)
         call inversion_massmat(Tdomain%specel(n))
-        Tdomain%specel(n)%Strain(:,:,:) = Dt * Tdomain%specel(n)%Forces(:,:,0:2)
-        Tdomain%specel(n)%Veloc (:,:,:) = Dt * Tdomain%specel(n)%Forces(:,:,3:4)
+        call update_Elem_Forward_Euler(Tdomain%specel(n),dt)
     enddo
 
     return
@@ -350,7 +346,7 @@ subroutine Semi_Implicit_Resolution_tnplus1 (Tdomain,timelocal,Dt)
             Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimex, &
             Tdomain%sSubDomain(mat)%hprimez,Tdomain%sSubDomain(mat)%hTprimez)
         call add_tau_v0 (Tdomain%specel(n))
-        call add_previous_state2forces (Tdomain%specel(n), Dt)
+        call add_previous_state2forces (Tdomain%specel(n), Dt, .false.)
         if (Tdomain%specel(n)%PML) call update_Psi_ADEPML(Tdomain%specel(n), &
             Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimez, Dt)
         call Get_V0_f2el (Tdomain, n) !!!! <-- MODIF !!!

@@ -27,7 +27,7 @@ module sdomain
     use mpi_list
     use communication_object
     use semdatafiles
-
+    use constants
 
     type :: domain
        ! Communicateur pour tous les processus SEM
@@ -218,6 +218,23 @@ subroutine read_material_file(Tdomain)
            Tdomain%sFace(i)%changing_media = .false.
         endif
     enddo
+
+    ! Modifs pour préserver DG_STRONG et DG_WEAK avec la nouvelle formulation HDG-acoustique
+    if (Tdomain%type_elem==GALERKIN_DG_STRONG .OR. Tdomain%type_elem==GALERKIN_DG_WEAK) then
+        do i = 0, Tdomain%n_face-1
+            if (Tdomain%sFace(i)%changing_media) then
+                n_aus = Tdomain%sFace(i)%Near_Element(0)
+                if (Tdomain%specel(n_aus)%acoustic) then
+                    Tdomain%sFace(i)%acoustic = .true.
+                else
+                    Tdomain%sFace(i)%acoustic = .false.
+                endif
+            endif
+        enddo
+        do i = 0,Tdomain%n_elem-1
+            Tdomain%specel(i)%acoustic = .false.
+        enddo
+    endif
 
     do i = 0, Tdomain%n_vertex-1
         mat = Tdomain%sVertex(i)%mat_index

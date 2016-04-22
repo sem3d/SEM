@@ -409,13 +409,13 @@ contains
 
 
       if (Elem%acoustic) then ! ACOUSTIC CASE
-          aux1 = Elem%Acoeff(:,:,0)*Elem%Veloc(:,:,0) + Elem%Acoeff(:,:,1)*Elem%Veloc(:,:,1)
+          aux1 = Elem%Acoeff(:,:,0)*Elem%Veloc(:,:,0) + Elem%Acoeff(:,:,2)*Elem%Veloc(:,:,1)
           aux2 = Elem%Acoeff(:,:,1)*Elem%Veloc(:,:,0) + Elem%Acoeff(:,:,3)*Elem%Veloc(:,:,1)
           Elem%Forces(:,:,0) = - MATMUL(hprime,aux1) - MATMUL(aux2,hTprimez)
 
           aux1 = Elem%Lambda(:,:)*Elem%Strain(:,:,0)
-          Elem%Forces(:,:,0) = - MATMUL(hprime,(Elem%Acoeff(:,:,0)*aux1)) - MATMUL((Elem%Acoeff(:,:,1)*aux1),hTprimez)
-          Elem%Forces(:,:,1) = - MATMUL(hprime,(Elem%Acoeff(:,:,2)*aux1)) - MATMUL((Elem%Acoeff(:,:,3)*aux1),hTprimez)
+          Elem%Forces(:,:,1) = - MATMUL(hprime,(Elem%Acoeff(:,:,0)*aux1)) - MATMUL((Elem%Acoeff(:,:,1)*aux1),hTprimez)
+          Elem%Forces(:,:,2) = - MATMUL(hprime,(Elem%Acoeff(:,:,2)*aux1)) - MATMUL((Elem%Acoeff(:,:,3)*aux1),hTprimez)
 
       else ! ELASTIC CASE
           aux1 = Elem%Acoeff(:,:,0)*Elem%Veloc(:,:,0)
@@ -579,15 +579,14 @@ contains
             Elem%Vect_RK(:,:,2:3) = coeff1 * Elem%Vect_RK(:,:,2:3)  + Dt * Elem%Veloc(:,:,:)
             Elem%Veloc = Elem%Veloc + coeff2 * Elem%Vect_RK(:,:,0:1)
             Elem%Displ = Elem%Displ + coeff2 * Elem%Vect_RK(:,:,2:3)
-
-        else if (.NOT. Elem%Acoustic) then
-            Elem%Vect_RK = coeff1 * Elem%Vect_RK + Dt * Elem%Forces
-            Elem%Strain  = Elem%Strain + coeff2 * Elem%Vect_RK(:,:,0:2)
-            Elem%Veloc   = Elem%Veloc  + coeff2 * Elem%Vect_RK(:,:,3:4)
-        else ! Acoustic case
+        else if (Elem%Acoustic) then
             Elem%Vect_RK = coeff1 * Elem%Vect_RK + Dt * Elem%Forces
             Elem%Strain(:,:,0)  = Elem%Strain(:,:,0) + coeff2 * Elem%Vect_RK(:,:,0)
             Elem%Veloc   = Elem%Veloc  + coeff2 * Elem%Vect_RK(:,:,1:2)
+        else ! Elastic case
+            Elem%Vect_RK = coeff1 * Elem%Vect_RK + Dt * Elem%Forces
+            Elem%Strain  = Elem%Strain + coeff2 * Elem%Vect_RK(:,:,0:2)
+            Elem%Veloc   = Elem%Veloc  + coeff2 * Elem%Vect_RK(:,:,3:4)
         endif
 
     end subroutine update_Elem_RK4
@@ -903,16 +902,16 @@ contains
          do i = 0,1
             Elem%Forces(1:ngllx-2,1:ngllz-2,i) = Elem%MassMat(:,:)  * Elem%Forces(1:ngllx-2,1:ngllz-2,i)
          enddo
-      else if (.NOT.Elem%Acoustic) then
+      else if (Elem%Acoustic) then
+         Elem%Forces(:,:,0) = 1./Elem%Acoeff(:,:,4) * Elem%Forces(:,:,0)
+         do i = 1,2
+            Elem%Forces(:,:,i) = Elem%MassMat(:,:) * Elem%Forces(:,:,i)
+         enddo
+      else ! Elastic Case
          do i = 0,2
             Elem%Forces(:,:,i) = 1./Elem%Acoeff(:,:,12) * Elem%Forces(:,:,i)
          enddo
          do i = 3,4
-            Elem%Forces(:,:,i) = Elem%MassMat(:,:) * Elem%Forces(:,:,i)
-         enddo
-      else ! Acoustic Element
-         Elem%Forces(:,:,0) = 1./Elem%Acoeff(:,:,4) * Elem%Forces(:,:,0)
-         do i = 1,2
             Elem%Forces(:,:,i) = Elem%MassMat(:,:) * Elem%Forces(:,:,i)
          enddo
       endif
@@ -1234,6 +1233,61 @@ contains
 
 ! ###########################################################
     !>
+    !! \brief This subroutine computes the pressure traces at the
+    !! on each external node of an ACOUSTIC element, and add these strains to the
+    !! Elem%Forces after weighting for integrals computation.
+    !! It is suitable for Hybridizable Discontinuous Galerkin elements only.
+    !! \param type (Element), intent (INOUT) Elem
+    !!
+    !<
+    subroutine  compute_Traces_Acou (Elem)
+        implicit none
+
+        type (Element), intent (INOUT)   :: Elem
+        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: Vhatn
+        integer    :: imin, imax, ngx, ngz
+        ngx = Elem%ngllx ; ngz = Elem%ngllz
+
+        ! Adding contribution of Vhat on the trace Traction :
+        Elem%TracFace(:,0) = Elem%TracFace(:,0) + Elem%Coeff_Integr_Faces(:)*Elem%MatPen(:,0)*Elem%Vhat(:,0)
+
+        ! Preparing traces for the strain equation :
+        Vhatn(:) = Elem%Vhat(:,0) * Elem%Coeff_Integr_Faces(:)
+
+        ! Adding Strain and velocities traces to Elem%Forces :
+        ! For the Bottom Face :
+        call get_iminimax(Elem,0,imin,imax)
+        Elem%Forces(0:ngx-1,0,0) = Elem%Forces(0:ngx-1,0,0) + Vhatn (imin:imax)
+        Elem%Forces(0:ngx-1,0,1) = Elem%Forces(0:ngx-1,0,1) &
+                                 + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,0)
+        Elem%Forces(0:ngx-1,0,2) = Elem%Forces(0:ngx-1,0,2) &
+                                 + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,1)
+        ! For the Right Face :
+        call get_iminimax(Elem,1,imin,imax)
+        Elem%Forces(ngx-1,0:ngz-1,0) = Elem%Forces(ngx-1,0:ngz-1,0) + Vhatn (imin:imax)
+        Elem%Forces(ngx-1,0:ngz-1,1) = Elem%Forces(ngx-1,0:ngz-1,1) &
+                                     + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,0)
+        Elem%Forces(ngx-1,0:ngz-1,2) = Elem%Forces(ngx-1,0:ngz-1,2) &
+                                     + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,1)
+        ! For the Top Face :
+        call get_iminimax(Elem,2,imin,imax)
+        Elem%Forces(0:ngx-1,ngz-1,0) = Elem%Forces(0:ngx-1,ngz-1,0) + Vhatn (imin:imax)
+        Elem%Forces(0:ngx-1,ngz-1,1) = Elem%Forces(0:ngx-1,ngz-1,1) &
+                                     + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,0)
+        Elem%Forces(0:ngx-1,ngz-1,2) = Elem%Forces(0:ngx-1,ngz-1,2) &
+                                     + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,1)
+        ! For the Left Face :
+        call get_iminimax(Elem,3,imin,imax)
+        Elem%Forces(0,0:ngz-1,0) = Elem%Forces(0,0:ngz-1,0) + Vhatn (imin:imax)
+        Elem%Forces(0,0:ngz-1,1) = Elem%Forces(0,0:ngz-1,1) &
+                                 + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,0)
+        Elem%Forces(0,0:ngz-1,2) = Elem%Forces(0,0:ngz-1,2) &
+                                 + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,1)
+
+    end subroutine compute_Traces_Acou
+
+! ###########################################################
+    !>
     !! \brief This subroutine computes the strain traces at the
     !! on each external node of an ELASTIC element, and add these strains to the
     !! Elem%Forces after weighting for integrals computation.
@@ -1295,61 +1349,6 @@ contains
         Elem%Forces(0,0:ngz-1,4) = Elem%Forces(0,0:ngz-1,4) + Elem%TracFace(imin:imax,1)
 
     end subroutine compute_Traces_Elas
-
-! ###########################################################
-    !>
-    !! \brief This subroutine computes the pressure traces at the
-    !! on each external node of an ACOUSTIC element, and add these strains to the
-    !! Elem%Forces after weighting for integrals computation.
-    !! It is suitable for Hybridizable Discontinuous Galerkin elements only.
-    !! \param type (Element), intent (INOUT) Elem
-    !!
-    !<
-    subroutine  compute_Traces_Acou (Elem)
-        implicit none
-
-        type (Element), intent (INOUT)   :: Elem
-        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: Vhatn
-        integer    :: imin, imax, ngx, ngz
-        ngx = Elem%ngllx ; ngz = Elem%ngllz
-
-        ! Adding contribution of Vhat on the trace Traction :
-        Elem%TracFace(:,0) = Elem%TracFace(:,0) + Elem%Coeff_Integr_Faces(:)*Elem%MatPen(:,0)*Elem%Vhat(:,0)
-
-        ! Preparing traces for the strain equation :
-        Vhatn(:) = Elem%Vhat(:,0) * Elem%Coeff_Integr_Faces(:)
-
-        ! Adding Strain and velocities traces to Elem%Forces :
-        ! For the Bottom Face :
-        call get_iminimax(Elem,0,imin,imax)
-        Elem%Forces(0:ngx-1,0,0) = Elem%Forces(0:ngx-1,0,0) + Vhatn (imin:imax)
-        Elem%Forces(0:ngx-1,0,1) = Elem%Forces(0:ngx-1,0,1) &
-                                 + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,0)
-        Elem%Forces(0:ngx-1,0,2) = Elem%Forces(0:ngx-1,0,2) &
-                                 + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,1)
-        ! For the Right Face :
-        call get_iminimax(Elem,1,imin,imax)
-        Elem%Forces(ngx-1,0:ngz-1,0) = Elem%Forces(ngx-1,0:ngz-1,0) + Vhatn (imin:imax)
-        Elem%Forces(ngx-1,0:ngz-1,1) = Elem%Forces(ngx-1,0:ngz-1,1) &
-                                     + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,0)
-        Elem%Forces(ngx-1,0:ngz-1,2) = Elem%Forces(ngx-1,0:ngz-1,2) &
-                                     + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,1)
-        ! For the Top Face :
-        call get_iminimax(Elem,2,imin,imax)
-        Elem%Forces(0:ngx-1,ngz-1,0) = Elem%Forces(0:ngx-1,ngz-1,0) + Vhatn (imin:imax)
-        Elem%Forces(0:ngx-1,ngz-1,1) = Elem%Forces(0:ngx-1,ngz-1,1) &
-                                     + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,0)
-        Elem%Forces(0:ngx-1,ngz-1,2) = Elem%Forces(0:ngx-1,ngz-1,2) &
-                                     + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,1)
-        ! For the Left Face :
-        call get_iminimax(Elem,3,imin,imax)
-        Elem%Forces(0,0:ngz-1,0) = Elem%Forces(0,0:ngz-1,0) + Vhatn (imin:imax)
-        Elem%Forces(0,0:ngz-1,1) = Elem%Forces(0,0:ngz-1,1) &
-                                 + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,0)
-        Elem%Forces(0,0:ngz-1,2) = Elem%Forces(0,0:ngz-1,2) &
-                                 + Elem%TracFace(imin:imax,0)*Elem%Normal_Nodes(imin:imax,1)
-
-    end subroutine compute_Traces_Acou
 
     ! ###########################################################
     !>
@@ -1453,22 +1452,60 @@ contains
     !! \brief This subroutine adds to the second member (i.e the forces) of the
     !!  system we solve, the terms comming from the previous time-step.
     !! \param type (Element), intent (INOUT) Elem
+    !! \param real, intent (IN) Dt
     !!
     !<
-    subroutine  add_previous_state2forces (Elem,Dt)
+    subroutine  add_previous_state2forces (Elem,Dt,is_half)
+        implicit none
+
+        type (Element), intent (INOUT)   :: Elem
+        real, intent (IN)                :: Dt
+        logical,        intent (IN)      :: is_half
+        real                             :: un
+
+        if (is_half) then
+            un = 1
+        else
+            un = 2
+        endif
+
+        if (Elem%acoustic) then
+            Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + 1./Dt * Elem%Acoeff(:,:,4) * Elem%Strain0(:,:,0)
+            Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + 1./Dt * Elem%Acoeff(:,:,4) * Elem%Density(:,:)*Elem%V0(:,:,0)
+            Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + 1./Dt * Elem%Acoeff(:,:,4) * Elem%Density(:,:)*Elem%V0(:,:,1)
+        else ! Elastic Case
+            Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Strain0(:,:,0)
+            Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Strain0(:,:,1)
+            Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + un/Dt * Elem%Acoeff(:,:,12) * Elem%Strain0(:,:,2)
+            Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Density(:,:)*Elem%V0(:,:,0)
+            Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Density(:,:)*Elem%V0(:,:,1)
+        endif
+
+    end subroutine add_previous_state2forces
+
+    ! ###########################################################
+    !>
+    !! \brief This subroutine updates Strains and velocities from forces in an
+    !! explicit forward Euler time scheme.
+    !! \param type (Element), intent (INOUT) Elem
+    !! \param real, intent (IN) Dt
+    !!
+    !<
+    subroutine  update_Elem_Forward_Euler (Elem,Dt)
         implicit none
 
         type (Element), intent (INOUT)   :: Elem
         real, intent (IN)                :: Dt
 
-        Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Strain0(:,:,0)
-        Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Strain0(:,:,1)
-        Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + 2./Dt * Elem%Acoeff(:,:,12) * Elem%Strain0(:,:,2)
-        Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Density(:,:)*Elem%V0(:,:,0)
-        Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Density(:,:)*Elem%V0(:,:,1)
+        if (Elem%acoustic) then
+            Elem%Strain(:,:,0) = Dt * Elem%Forces(:,:,0)
+            Elem%Veloc (:,:,:) = Dt * Elem%Forces(:,:,1:2)
+        else ! Elastic Case
+            Elem%Strain(:,:,:) = Dt * Elem%Forces(:,:,0:2)
+            Elem%Veloc (:,:,:) = Dt * Elem%Forces(:,:,3:4)
+        endif
 
-    end subroutine add_previous_state2forces
-
+    end subroutine update_Elem_Forward_Euler
 
     ! ###########################################################
     !>
@@ -1479,6 +1516,7 @@ contains
     !! This Subroutine is suitable for Hybridizable Discontinuous Galerkin elements
     !! only, and only in a framework of semi-implicit time-scheme.
     !! \param type (Element), intent (INOUT) Elem
+    !! \param real, intent (IN) Dt
     !!
     !<
     subroutine  compute_smbr_R (Elem,Dt)
@@ -1519,6 +1557,7 @@ contains
     !! This Subroutine is suitable for Hybridizable Discontinuous Galerkin elements
     !! only, and only in a framework of semi-implicit time-scheme.
     !! \param type (Element), intent (INOUT) Elem
+    !! \param real, intent (IN) Dt
     !!
     !<
     subroutine  inversion_local_solver (Elem,Dt)
@@ -1575,6 +1614,7 @@ contains
     !! This Subroutine is suitable for Hybridizable Discontinuous Galerkin elements
     !! only, and only in a framework of semi-implicit time-scheme.
     !! \param type (Element), intent (INOUT) Elem
+    !! \param real, intent (IN) Dt
     !!
     !<
     subroutine  local_solver (Elem, Dt)
