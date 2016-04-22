@@ -304,7 +304,9 @@ contains
                 endif
             case( MATERIAL_RANDOM )
                 !Don`t do anything, the basic properties were initialized by file
+                !write (*,*) "--> MATERIAL_RAND "
                 if(materialIsConstant(Tdomain, mat)) then
+                    !write (*,*) "--> but MATERIAL_CONSTANT "
                     select case (specel%domain)
                         case (DM_SOLID)
                             call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
@@ -532,11 +534,11 @@ contains
         authorization = .false.
 
 
-        if(Tdomain%sSubDomain(assocMat)%material_type == "S" .or. &
-            Tdomain%sSubDomain(assocMat)%material_type == "P" .or. &
-            Tdomain%sSubDomain(assocMat)%material_type == "F" .or. &
-            Tdomain%sSubDomain(assocMat)%material_type == "L" .or. &
-            Tdomain%sSubDomain(assocMat)%material_type == "T") then
+        if(Tdomain%sSubDomain(assocMat)%initial_material_type == "S" .or. &
+            Tdomain%sSubDomain(assocMat)%initial_material_type == "P" .or. &
+            Tdomain%sSubDomain(assocMat)%initial_material_type == "F" .or. &
+            Tdomain%sSubDomain(assocMat)%initial_material_type == "L" .or. &
+            Tdomain%sSubDomain(assocMat)%initial_material_type == "T") then
             authorization = .true.
         end if
 

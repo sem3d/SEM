@@ -61,8 +61,8 @@ contains
         do mat = 0, Tdomain%n_mat - 1
         !do mat = 0, 0 !For Tests
 
-            !write(*,*) "  "
-            !write(*,*) "  Analyzing Material ", mat, "------------------- in rg ", rg
+            write(*,*) "  "
+            write(*,*) "  Analyzing Material ", mat, "------------------- in rg ", rg
             !write(*,*) "  Tdomain%subD_exist ", Tdomain%subD_exist, "------------------- in rg ", rg
 
             if(.not. Tdomain%subD_exist(mat)) cycle
@@ -143,13 +143,13 @@ contains
                                             Tdomain%sdom%Lambda_ (i,j,k,lnum) = lambda(ipoint)
                                             Tdomain%sdom%Mu_     (i,j,k,lnum) = interpolatedRF(ipoint, 2)
                                             Tdomain%sdom%Kappa_  (i,j,k,lnum) = interpolatedRF(ipoint, 1)
-                                        case (DM_FLUID)
-                                            Tdomain%fdom%IDensity_(i,j,k,lnum) = 1d0/interpolatedRF(ipoint, 0)
-                                            Tdomain%fdom%Lambda_  (i,j,k,lnum) = lambda(ipoint)
                                         case (DM_SOLID_PML)
                                             Tdomain%spmldom%Density_(i,j,k,lnum) = interpolatedRF(ipoint, 0)
                                             Tdomain%spmldom%Lambda_ (i,j,k,lnum) = lambda(ipoint)
                                             Tdomain%spmldom%Mu_     (i,j,k,lnum) = interpolatedRF(ipoint, 2)
+                                        case (DM_FLUID)
+                                            Tdomain%fdom%IDensity_(i,j,k,lnum) = 1d0/interpolatedRF(ipoint, 0)
+                                            Tdomain%fdom%Lambda_  (i,j,k,lnum) = lambda(ipoint)
                                         case (DM_FLUID_PML)
                                             Tdomain%fpmldom%Density_(i,j,k,lnum) = interpolatedRF(ipoint, 0)
                                             Tdomain%fpmldom%Lambda_ (i,j,k,lnum) = lambda(ipoint)
@@ -257,6 +257,7 @@ contains
         integer(HSIZE_T), dimension(size(coordList,1)) :: offset, locDims
         integer, dimension(size(coordList,1)) :: xNStep, coordPosInt
         integer, dimension(size(coordList,1), 2**size(coordList,1)) :: neighCoord
+        integer, dimension(size(coordList,2)) :: nContrib
         double precision, dimension(size(coordList,1)) :: coordPos
         double precision, dimension(size(coordList,1)) :: distance
         double precision, dimension(size(coordList,1)) :: xMinGlob, xMaxGlob, xStep
@@ -326,23 +327,12 @@ contains
 
         extent = maxPos - minPos + 1
         extTotal = product(int(extent,8))
-        !write(*,*) "minPos = ", minPos
-        !write(*,*) "maxPos = ", maxPos
-        !write(*,*) "extent = ", extent
-        !write(*,*) "extTotal = ", extTotal
-
-        call wLog("xMin_Loc_UNV")
-        call wLog(xMin_Loc_UNV)
-        call wLog("xMax_Loc_UNV")
-        call wLog(xMax_Loc_UNV)
-        call wLog("minPos BB")
-        call wLog(minPos)
-        call wLog("maxPos BB")
-        call wLog(maxPos)
-        call wLog("extent BB")
-        call wLog(extent)
-        call wLog("extTotal BB")
-        call wLog(extTotal)
+        write(*,*) "minPos = ", minPos
+        write(*,*) "minPos Coord = ", xMin_Loc_UNV
+        write(*,*) "maxPos = ", maxPos
+        write(*,*) "maxPos Coord = ", xMax_Loc_UNV
+        write(*,*) "extent = ", extent
+        write(*,*) "extTotal = ", extTotal
 
         allocate(BB_randField(extTotal,1))
 
@@ -357,12 +347,7 @@ contains
         offset = minPos-1
         locShape = shape(BB_randField)
         zero2D = 0
-        call wLog(" locShape = ")
-        call wLog(int(locShape))
-        call wLog(" offset   = ")
-        call wLog(int(offset))
-        call wLog(" locDims  = ")
-        call wLog(int(locDims))
+
         !For hyperslab lecture
 
         !IN
@@ -412,6 +397,7 @@ contains
         end if
 
         UNV_randField(:,:) = 0
+        nContrib(:) = 0
 
         !write(*,*) "Interpolating"
 
@@ -434,7 +420,12 @@ contains
                         coordPos = ((coordList(:,ipoint)-xMinGlob)/xStep) + 1.0D0
                         coordPosInt = floor(coordPos)
                         where(coordPosInt == maxPos) coordPosInt = coordPosInt - 1 !Dealing with points on the positive border
+                        where(coordPosInt < minPos) coordPosInt = coordPosInt + 1
+                        if(any(coordPosInt > maxPos)) stop("coordPosInt bigger than maxPos")
+                        if(any(coordPosInt < minPos)) stop("coordPosInt bigger than minPos")
                         if(any(coordPosInt<0)) stop("coordPosInt smaller than 1")
+
+                        nContrib(ipoint) = nContrib(ipoint) + 1
 
                         !Applying Values
                         do j = 1, size(neighCoord, 2)
@@ -446,49 +437,25 @@ contains
 
                             if(any(coordPosInt(:)+neighCoord(:,j) > maxPos)) then
                                 findPropertyOnTable = .false.
-                                call wLog("Error in rang ")
-                                call wLog(rang)
-                                call wLog("   coordList = ")
-                                call wLog(coordList(:,ipoint))
-                                call wLog("   coordPos = ")
-                                call wLog(coordPos)
-                                call wLog("          j = ")
-                                call wLog(j)
-                                call wLog("coordPosInt(:)+neighCoord(:,j) = ")
-                                call wLog(coordPosInt(:)+neighCoord(:,j))
-                                call wLog("maxPos = ")
-                                call wLog(maxPos)
-                                !write(*,*) "Error in rang ", rang
-                                !write(*,*) "  coordList(:,ipoint) = ", coordList(:,ipoint)
-                                !write(*,*) "   coordPos = ", coordPos
-                                !write(*,*) "          j = ", j
-                                !write(*,*) "coordPosInt(:)+neighCoord(:,j) = ", coordPosInt(:)+neighCoord(:,j)
-                                !write(*,*) "maxPos = ", maxPos
-                                !stop(" ERROR! UNV TRIED POSITION OUT OF RANGE (>Max)")
+                                write(*,*) "Error in rang ", rang
+                                write(*,*) "  coordList(:,ipoint) = ", coordList(:,ipoint)
+                                write(*,*) "   coordPos = ", coordPos
+                                write(*,*) "          j = ", j
+                                write(*,*) "coordPosInt(:)+neighCoord(:,j) = ", coordPosInt(:)+neighCoord(:,j)
+                                write(*,*) "maxPos = ", maxPos
+                                stop(" ERROR! UNV TRIED POSITION OUT OF RANGE (>Max)")
 
                             end if
 
                             if(any(coordPosInt(:)+neighCoord(:,j) < minPos)) then
                                 findPropertyOnTable = .false.
-                                call wLog("Error in rang ")
-                                call wLog(rang)
-                                call wLog("   coordList = ")
-                                call wLog(coordList(:,ipoint))
-                                call wLog("   coordPos = ")
-                                call wLog(coordPos)
-                                call wLog("          j = ")
-                                call wLog(j)
-                                call wLog("coordPosInt(:)+neighCoord(:,j) = ")
-                                call wLog(coordPosInt(:)+neighCoord(:,j))
-                                call wLog("minPos = ")
-                                call wLog(minPos)
-                                !write(*,*) "Error in rang ", rang
-                                !write(*,*) "  coordList(:,i) = ", coordList(:,ipoint)
-                                !write(*,*) "   coordPos = ", coordPos
-                                !write(*,*) "          j = ", j
-                                !write(*,*) "coordPosInt(:)+neighCoord(:,j) = ", coordPosInt(:)+neighCoord(:,j)
-                                !write(*,*) "minPos = ", minPos
-                                !stop(" ERROR! UNV TRIED POSITION OUT OF RANGE (<Min)")
+                                write(*,*) "Error in rang ", rang
+                                write(*,*) "  coordList(:,i) = ", coordList(:,ipoint)
+                                write(*,*) "   coordPos = ", coordPos
+                                write(*,*) "          j = ", j
+                                write(*,*) "coordPosInt(:)+neighCoord(:,j) = ", coordPosInt(:)+neighCoord(:,j)
+                                write(*,*) "minPos = ", minPos
+                                stop(" ERROR! UNV TRIED POSITION OUT OF RANGE (<Min)")
                             end if
 
                             if(findPropertyOnTable) then
@@ -499,6 +466,7 @@ contains
                                         coordPosInt(2)+neighCoord(2,j)) &
                                         * weight                              &
                                         )
+
                                 else if (nDim == 3) then
                                     UNV_randField(ipoint,1) = UNV_randField(ipoint,1) +     &
                                         (                                     &
@@ -515,6 +483,8 @@ contains
             end do
 
         end do
+
+        where(nContrib > 0) UNV_randField(:,1) = UNV_randField(:,1)/dble(nContrib)
 
         !call cpu_time(t_f)
         !write(*,*) "time = ", t_f - t_0

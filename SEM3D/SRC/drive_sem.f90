@@ -274,7 +274,7 @@ subroutine RUN_PREPARED(Tdomain)
     call Compute_Courant(Tdomain,rg)
     call MPI_Barrier(Tdomain%communicateur,code)
 
-    !- elementary properties (mass matrices, PML factors,..)
+    !- elementary properties (mass matrices, PML factors,..) geometry
     if (rg == 0) write (*,*) "--> COMPUTING MASS MATRIX AND INTERNAL FORCES COEFFICIENTS "
     call define_arrays(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
@@ -553,6 +553,8 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !---------------------------------------------------------!
         if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) &
             call OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
+
+        !stop("STOP TEST INSIDE TIME_STEPPING")
               
 !---------------------------------------------------------!
     !- RECEIVERS'OUTPUTS
