@@ -2,7 +2,7 @@
 run_name = "Cube_RAND";
 
 # duration of the run
-sim_time =      0.2;
+sim_time =      5.0;
 mesh_file = "mesh4spec"; # input mesh file
 mat_file = "material.input";
 dim=3;
@@ -10,8 +10,13 @@ mpml_atn_param=0.002;
 
 snapshots {
     save_snap = true;
-    snap_interval = 0.025;
+    snap_interval = 0.01;
+    deselect all;
+    select box = -100 -100  100 500 500 150;
+    select box = -100  100 -100 500 150 500;
+    select box =  100 -100 -100 150 500 500;
 };
+
 
 # Description des capteurs
 save_traces = true;

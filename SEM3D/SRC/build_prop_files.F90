@@ -546,7 +546,7 @@ contains
         integer :: LimPML1, LimPML2, LimPML3
         integer :: dir, mat_index
         double precision :: pointDens, pointLambda, pointMu;
-        logical :: verbose = .true.
+        logical :: verbose = .false.
 
         !Propagating Properties over the PML
 
