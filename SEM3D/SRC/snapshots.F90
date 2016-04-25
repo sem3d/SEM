@@ -1383,7 +1383,7 @@ contains
                             case (DM_SOLID)
                                 mu(idx) = Tdomain%sdom%Mu_(i,j,k,Tdomain%specel(n)%lnum)
                             case (DM_SOLID_PML)
-                                mu(idx) = Tdomain%sdom%Mu_(i,j,k,Tdomain%specel(n)%lnum)
+                                mu(idx) = Tdomain%spmldom%Mu_(i,j,k,Tdomain%specel(n)%lnum)
                             case (DM_FLUID)
                                 mu(idx) = -1d0
                             case (DM_FLUID_PML)
