@@ -59,7 +59,8 @@ capteurs "UU" {
     period = 40;
 };
 material {
-    type = multiple;
+    type = random;
+    random_library_path = "/home/carvalhol/Projects/SEM/build_RF";
 };
 
 out_variables {
