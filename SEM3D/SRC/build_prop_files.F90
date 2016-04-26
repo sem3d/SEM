@@ -185,63 +185,6 @@ contains
     !---------------------------------------------------------------------------
     !---------------------------------------------------------------------------
     !---------------------------------------------------------------------------
-    subroutine read_properties_from_file(rg, prop,  &
-        fileName, folderPath, labels, indexes)
-
-        use sem_hdf5
-        use hdf5
-
-        implicit none
-        !INPUT
-        integer         , intent(in)            :: rg
-        character(len=*)                 , intent(in) :: filename;
-        character(len=*)                 , intent(in) :: folderPath
-        character(len=*) , dimension(1:), optional  , intent(in) :: labels
-        integer          , dimension(1:), optional  , intent(in) :: indexes
-        !OUTPUT
-        real        , intent(out), dimension(0:, 0:) :: prop !Properties
-        !LOCAL
-        character (len=12) :: rangStr;
-        character(len=110) :: fileHDF5Name, fullPath !File name
-        integer            :: i, error
-        integer(HID_T)     :: file_id
-        real,    allocatable, dimension(:,:) :: rtemp2
-
-        if(.not. present(labels)) then
-            write(rangStr,'(I100)'  ) rg
-            rangStr      = adjustL(rangStr)
-            fileHDF5Name = trim(fileName)//"-proc"//trim(rangStr)//".h5"
-        else
-            fileHDF5Name = fileName
-            do i = 1, size(labels)
-                fileHDF5Name =  string_join(fileHDF5Name,stringNumb_join(labels(i), indexes(i)))
-            end do
-        end if
-
-        fileHDF5Name = string_join(fileHDF5Name,".h5")
-        fullPath     = string_join(folderPath,"/"//fileHDF5Name)
-
-        !write(*,*) "fileHDF5Name =",fileHDF5Name
-        !write(*,*) "fullPath =",fullPath
-
-        file_id = 12
-        call h5open_f(error) ! Initialize FORTRAN interface.
-        call h5fopen_f(trim(fullPath), H5F_ACC_RDONLY_F, file_id, error)
-        do i = 0, size(prop, 2)-1
-            call read_dataset(file_id, trim(stringNumb_join("RF_",i+1)), rtemp2)
-            prop(:,i:i) = rtemp2(:,:)
-
-            deallocate(rtemp2)
-        end do
-        call h5fclose_f(file_id, error) ! Close the file.
-        call h5close_f(error) ! Close FORTRAN interface.
-
-    end subroutine read_properties_from_file
-
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
-    !---------------------------------------------------------------------------
     subroutine interpolateToMesh_V2(BBoxFileName, coordList, UNV_randField, rang, &
                                  xMinLoc_In, xMaxLoc_In, mat, Tdomain)
         implicit none

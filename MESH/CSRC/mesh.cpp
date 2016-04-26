@@ -273,7 +273,7 @@ void Mesh3D::write_materials_v2(const std::string& str)
                 mat.zpos, mat.zwidth, mat.associated_material);
     }
     fprintf(f, "# Random properties\n");
-    fprintf(f, "# corrMod, corrL_x, corrL_y, corrL_z, rho_margiF, rho_var, lambda_margiF, lambda_var, mu_margiF, mu_var, seedStart\n");
+    fprintf(f, "# corrMod, corrL_x, corrL_y, corrL_z, rho_margiF, rho_CV, kappa_margiF, kappa_CV, mu_margiF, mu_CV, seedStart\n");
     for(int k=0;k<nmats;++k) {
         const Material& mat = m_materials[k];
         if (strcmp(&mat.cinitial_type,"R") != 0) continue;

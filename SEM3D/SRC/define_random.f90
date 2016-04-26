@@ -46,6 +46,7 @@ contains
         integer :: nProcsPerChunk, nChunks
         double precision :: Density, Lambda, Kappa, Mu
         double precision :: P_Speed, S_Speed
+        double precision :: varProp
         
 
         propName(0) = "Density"
@@ -97,6 +98,7 @@ contains
                     write(*,*) "  Generating Random Properties Files"
                     propCounter = propCounter + 1
                     write(*,*) "  propCounter = ", propCounter, "rank = ", rg
+                    varProp = (avgProp(propId)*Tdomain%sSubdomain(mat)%varCoef(propId))**2D0
 
                     fileNameBase = string_join_many(propName(propId), "_Mat_", numb2String(mat))
 
@@ -107,7 +109,7 @@ contains
                             margiFirst=Tdomain%sSubdomain(mat)%margiFirst(propId), &
                             corrL=Tdomain%sSubdomain(mat)%corrL, &
                             fieldAvg=avgProp(propId), &
-                            fieldVar=Tdomain%sSubdomain(mat)%varProp(propId), &
+                            fieldVar=varProp, &
                             method=4, &
                             seedStart=seedStart, &
                             overlap=[0.0D0, 0.0D0, 0.0D0], &
