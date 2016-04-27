@@ -278,12 +278,9 @@ subroutine define_arrays(Tdomain)
                         Tdomain%specel(n)%Bx(:,:) = exp(-(wx(:,:) + OmegaCutx(:,:)) * Tdomain%sSubdomain(mat)%Dt)
                         Tdomain%specel(n)%Ax(:,:) = wx(:,:) *  (Tdomain%specel(n)%Bx(:,:) - Id(:,:)) / (wx(:,:) + OmegaCutx(:,:))
                         if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Ax(:,:) = Tdomain%specel(n)%Bx (:,:) - Id(:,:)
-                        Tdomain%specel(n)%Ax_prime(:,:) = ((Tdomain%specel(n)%Bx(:,:) - Id(:,:)) * du_du_x(:,:)  &
-                                                           - Tdomain%specel(n)%Bx(:,:) * duux(:,:))/ (wx(:,:) + OmegaCutx(:,:))**2
                     else ! ADE-PML for HDG
                         Tdomain%specel(n)%Bx(:,:) = wx(:,:) + OmegaCutx(:,:)
                         Tdomain%specel(n)%Ax(:,:) = wx(:,:)
-                        Tdomain%specel(n)%Ax_prime(:,:) = wx_prime(:,:) * Tdomain%specel(n)%Acoeff(:,:,0)
                     endif
                endif
                if (Tdomain%sSubDomain(mat)%Pz) then
@@ -291,12 +288,9 @@ subroutine define_arrays(Tdomain)
                        Tdomain%specel(n)%Bz(:,:) = exp(-(wz(:,:) + OmegaCutz(:,:)) * Tdomain%sSubdomain(mat)%Dt)
                        Tdomain%specel(n)%Az(:,:) = wz(:,:) *  (Tdomain%specel(n)%Bz(:,:) - Id(:,:)) / (wz(:,:) + OmegaCutz(:,:))
                        if (Tdomain%sSubDomain(mat)%freq == 0.) Tdomain%specel(n)%Az(:,:) = Tdomain%specel(n)%Bz (:,:) - Id(:,:)
-                       Tdomain%specel(n)%Az_prime(:,:) = ((Tdomain%specel(n)%Bz(:,:) - Id(:,:)) * du_du_z(:,:) &
-                                                           - Tdomain%specel(n)%Bz(:,:) * duuz(:,:)) / (wz(:,:) + OmegaCutz(:,:))**2
                    else ! ADE-PML for HDG
                        Tdomain%specel(n)%Bz(:,:) = wz(:,:) + OmegaCutz(:,:)
                        Tdomain%specel(n)%Az(:,:) = wz(:,:)
-                       Tdomain%specel(n)%Az_prime(:,:) = wz_prime(:,:) * Tdomain%specel(n)%Acoeff(:,:,3)
                    endif
                endif
             else ! Usual PML

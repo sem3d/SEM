@@ -81,43 +81,48 @@ subroutine allocate_domain (Tdomain)
 
      if(Tdomain%specel(n)%CPML .OR. Tdomain%specel(n)%ADEPML) then
          if(Tdomain%specel(n)%ADEPML) then
-             allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
+             if (Tdomain%specel(n)%acoustic) then
+                 allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:4))
+             else ! Elastic case
+                 allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
+             endif
          elseif(Tdomain%specel(n)%CPML) then
              allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:17))
+             allocate (Tdomain%specel(n)%Stress (0:ngllx-1, 0:ngllz-1, 0:2))
+             Tdomain%specel(n)%Stress   = 0.
          endif
-         allocate (Tdomain%specel(n)%Stress (0:ngllx-1, 0:ngllz-1, 0:2))
          allocate (Tdomain%specel(n)%Ax(0:ngllx-1,0:ngllz-1))
          allocate (Tdomain%specel(n)%Az(0:ngllx-1,0:ngllz-1))
          allocate (Tdomain%specel(n)%Bx(0:ngllx-1,0:ngllz-1))
          allocate (Tdomain%specel(n)%Bz(0:ngllx-1,0:ngllz-1))
-         allocate (Tdomain%specel(n)%Ax_prime(0:ngllx-1,0:ngllz-1))
-         allocate (Tdomain%specel(n)%Az_prime(0:ngllx-1,0:ngllz-1))
          allocate (Tdomain%specel(n)%PsiVxx (0:ngllx-1,0:ngllz-1))
-         allocate (Tdomain%specel(n)%PsiVxz (0:ngllx-1,0:ngllz-1))
-         allocate (Tdomain%specel(n)%PsiVzx (0:ngllx-1,0:ngllz-1))
          allocate (Tdomain%specel(n)%PsiVzz (0:ngllx-1,0:ngllz-1))
          allocate (Tdomain%specel(n)%PsiSxxx(0:ngllx-1,0:ngllz-1))
          allocate (Tdomain%specel(n)%PsiSzzz(0:ngllx-1,0:ngllz-1))
-         allocate (Tdomain%specel(n)%PsiSxzx(0:ngllx-1,0:ngllz-1))
-         allocate (Tdomain%specel(n)%PsiSxzz(0:ngllx-1,0:ngllz-1))
-         allocate (Tdomain%specel(n)%Psi_store(0:ngllx-1,0:ngllz-1,0:7))
-         Tdomain%specel(n)%Stress   = 0.
          Tdomain%specel(n)%Acoeff   = 0.
          Tdomain%specel(n)%Ax       = 0.
          Tdomain%specel(n)%Az       = 0.
          Tdomain%specel(n)%Bx       = 0.
          Tdomain%specel(n)%Bz       = 0.
-         Tdomain%specel(n)%Ax_prime = 0.
-         Tdomain%specel(n)%Az_prime = 0.
          Tdomain%specel(n)%PsiVxx   = 0.
-         Tdomain%specel(n)%PsiVxz   = 0.
-         Tdomain%specel(n)%PsiVzx   = 0.
          Tdomain%specel(n)%PsiVzz   = 0.
          Tdomain%specel(n)%PsiSxxx  = 0.
          Tdomain%specel(n)%PsiSzzz  = 0.
-         Tdomain%specel(n)%PsiSxzx  = 0.
-         Tdomain%specel(n)%PsiSxzz  = 0.
-         Tdomain%specel(n)%Psi_store = 0.
+         if (Tdomain%specel(n)%acoustic) then
+             allocate (Tdomain%specel(n)%Psi_store(0:ngllx-1,0:ngllz-1,0:3))
+             Tdomain%specel(n)%Psi_store = 0.
+         else ! Elastic case
+             allocate (Tdomain%specel(n)%PsiVxz (0:ngllx-1,0:ngllz-1))
+             allocate (Tdomain%specel(n)%PsiVzx (0:ngllx-1,0:ngllz-1))
+             allocate (Tdomain%specel(n)%PsiSxzx(0:ngllx-1,0:ngllz-1))
+             allocate (Tdomain%specel(n)%PsiSxzz(0:ngllx-1,0:ngllz-1))
+             allocate (Tdomain%specel(n)%Psi_store(0:ngllx-1,0:ngllz-1,0:7))
+             Tdomain%specel(n)%PsiVxz   = 0.
+             Tdomain%specel(n)%PsiVzx   = 0.
+             Tdomain%specel(n)%PsiSxzx  = 0.
+             Tdomain%specel(n)%PsiSxzz  = 0.
+             Tdomain%specel(n)%Psi_store = 0.
+         endif
      elseif (Tdomain%specel(n)%PML ) then
          allocate (Tdomain%specel(n)%Stress (  0:ngllx-1, 0:ngllz-1, 0:2 ))
          allocate (Tdomain%specel(n)%Forces1 (0:ngllx-1,0:ngllz-1,0:1) )
@@ -142,9 +147,9 @@ subroutine allocate_domain (Tdomain)
          if(Tdomain%specel(n)%Type_DG==GALERKIN_CONT) then
              allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:15))
          else ! Discontinuous Case
-             if (Tdomain%specel(n)%Type_DG==GALERKIN_HDG_RP .AND. Tdomain%specel(n)%acoustic) then
+             if (Tdomain%specel(n)%acoustic) then
                  allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:4))
-             else ! Discontinuous Galerkin, usual
+             else ! Elastic Case
                  allocate (Tdomain%specel(n)%Acoeff(0:ngllx-1,0:ngllz-1,0:12))
              endif
          endif

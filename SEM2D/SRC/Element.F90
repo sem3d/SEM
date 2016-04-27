@@ -39,7 +39,7 @@ module selement
 
        ! CPML/ADEPML allocation
        logical :: CPML, ADEPML
-       real, dimension (:,:), allocatable :: Ax, Bx, Az, Bz, Ax_prime, Az_prime
+       real, dimension (:,:), allocatable :: Ax, Bx, Az, Bz
        real, dimension (:,:), allocatable :: PsiVxx, PsiVxz, PsiVzx, PsiVzz
        real, dimension (:,:), allocatable :: PsiSxxx, PsiSzzz, PsiSxzx, PsiSxzz
 
@@ -602,11 +602,17 @@ contains
 
         type (Element), intent (INOUT) :: Elem
 
-        Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + Elem%PsiVxx(:,:)
-        Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + Elem%PsiVzz(:,:)
-        Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + 0.5 * (Elem%PsiVxz(:,:) + Elem%PsiVzx(:,:))
-        Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + Elem%PsiSxxx(:,:) + Elem%PsiSxzz(:,:)
-        Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + Elem%PsiSxzx(:,:) + Elem%PsiSzzz(:,:)
+        if (Elem%acoustic) then
+            Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + Elem%PsiVxx(:,:) + Elem%PsiVzz(:,:)
+            Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + Elem%PsiSxxx(:,:)
+            Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + Elem%PsiSzzz(:,:)
+        else ! Elastic Case
+            Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + Elem%PsiVxx(:,:)
+            Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + Elem%PsiVzz(:,:)
+            Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + 0.5 * (Elem%PsiVxz(:,:) + Elem%PsiVzx(:,:))
+            Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + Elem%PsiSxxx(:,:) + Elem%PsiSxzz(:,:)
+            Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + Elem%PsiSxzx(:,:) + Elem%PsiSzzz(:,:)
+        endif
 
         return
     end subroutine add_Psi4PML
@@ -623,14 +629,21 @@ contains
 
         type (Element), intent (INOUT) :: Elem
 
-        Elem%Psi_store(:,:,0) = Elem%PsiSxxx(:,:)
-        Elem%Psi_store(:,:,1) = Elem%PsiSzzz(:,:)
-        Elem%Psi_store(:,:,2) = Elem%PsiSxzx(:,:)
-        Elem%Psi_store(:,:,3) = Elem%PsiSxzz(:,:)
-        Elem%Psi_store(:,:,4) = Elem%PsiVxx(:,:)
-        Elem%Psi_store(:,:,5) = Elem%PsiVxz(:,:)
-        Elem%Psi_store(:,:,6) = Elem%PsiVzx(:,:)
-        Elem%Psi_store(:,:,7) = Elem%PsiVzz(:,:)
+        if (Elem%acoustic) then
+            Elem%Psi_store(:,:,0) = Elem%PsiSxxx(:,:)
+            Elem%Psi_store(:,:,1) = Elem%PsiSzzz(:,:)
+            Elem%Psi_store(:,:,2) = Elem%PsiVxx(:,:)
+            Elem%Psi_store(:,:,3) = Elem%PsiVzz(:,:)
+        else ! Elastic Case
+            Elem%Psi_store(:,:,0) = Elem%PsiSxxx(:,:)
+            Elem%Psi_store(:,:,1) = Elem%PsiSzzz(:,:)
+            Elem%Psi_store(:,:,2) = Elem%PsiSxzx(:,:)
+            Elem%Psi_store(:,:,3) = Elem%PsiSxzz(:,:)
+            Elem%Psi_store(:,:,4) = Elem%PsiVxx(:,:)
+            Elem%Psi_store(:,:,5) = Elem%PsiVxz(:,:)
+            Elem%Psi_store(:,:,6) = Elem%PsiVzx(:,:)
+            Elem%Psi_store(:,:,7) = Elem%PsiVzz(:,:)
+        endif
 
         return
     end subroutine initialize_Psi
@@ -659,21 +672,32 @@ contains
         real, intent(IN) :: Dt
         real, dimension(0:Elem%ngllx-1,0:Elem%ngllz-1,0:7) :: smbr
 
-        ! Compute second member of memory variables evolution equation
-        call compute_smbr_ADEPML (Elem,hTprime,hprimez,smbr)
+        if (Elem%Acoustic) then
+            ! Compute second member of memory variables evolution equation
+            call compute_smbr_acou_ADEPML (Elem,hTprime,hprimez,smbr)
+            ! UPDATING in time using usual LSERK4
+            Elem%Psi_store(:,:,:)  = coeff1 * Elem%Psi_store(:,:,:) + Dt*smbr(:,:,0:3)
+            Elem%PsiSxxx(:,:) = Elem%PsiSxxx(:,:) + coeff2 * Elem%Psi_store(:,:,0)
+            Elem%PsiSzzz(:,:) = Elem%PsiSzzz(:,:) + coeff2 * Elem%Psi_store(:,:,1)
+            Elem%PsiVxx(:,:)  = Elem%PsiVxx (:,:) + coeff2 * Elem%Psi_store(:,:,2)
+            Elem%PsiVzz(:,:)  = Elem%PsiVzz (:,:) + coeff2 * Elem%Psi_store(:,:,3)
 
-        ! UPDATING in time using usual LSERK4
-        Elem%Psi_store(:,:,:)  = coeff1 * Elem%Psi_store(:,:,:) + Dt*smbr(:,:,:)
-        Elem%PsiSxxx(:,:) = Elem%PsiSxxx(:,:) + coeff2 * Elem%Psi_store(:,:,0)
-        Elem%PsiSzzz(:,:) = Elem%PsiSzzz(:,:) + coeff2 * Elem%Psi_store(:,:,1)
-        Elem%PsiSxzx(:,:) = Elem%PsiSxzx(:,:) + coeff2 * Elem%Psi_store(:,:,2)
-        Elem%PsiSxzz(:,:) = Elem%PsiSxzz(:,:) + coeff2 * Elem%Psi_store(:,:,3)
-        Elem%PsiVxx(:,:)  = Elem%PsiVxx (:,:) + coeff2 * Elem%Psi_store(:,:,4)
-        Elem%PsiVxz(:,:)  = Elem%PsiVxz (:,:) + coeff2 * Elem%Psi_store(:,:,5)
-        Elem%PsiVzx(:,:)  = Elem%PsiVzx (:,:) + coeff2 * Elem%Psi_store(:,:,6)
-        Elem%PsiVzz(:,:)  = Elem%PsiVzz (:,:) + coeff2 * Elem%Psi_store(:,:,7)
+        else ! Elastic Case
+            ! Compute second member of memory variables evolution equation
+            call compute_smbr_ADEPML (Elem,hTprime,hprimez,smbr)
+            ! UPDATING in time using usual LSERK4
+            Elem%Psi_store(:,:,:)  = coeff1 * Elem%Psi_store(:,:,:) + Dt*smbr(:,:,:)
+            Elem%PsiSxxx(:,:) = Elem%PsiSxxx(:,:) + coeff2 * Elem%Psi_store(:,:,0)
+            Elem%PsiSzzz(:,:) = Elem%PsiSzzz(:,:) + coeff2 * Elem%Psi_store(:,:,1)
+            Elem%PsiSxzx(:,:) = Elem%PsiSxzx(:,:) + coeff2 * Elem%Psi_store(:,:,2)
+            Elem%PsiSxzz(:,:) = Elem%PsiSxzz(:,:) + coeff2 * Elem%Psi_store(:,:,3)
+            Elem%PsiVxx(:,:)  = Elem%PsiVxx (:,:) + coeff2 * Elem%Psi_store(:,:,4)
+            Elem%PsiVxz(:,:)  = Elem%PsiVxz (:,:) + coeff2 * Elem%Psi_store(:,:,5)
+            Elem%PsiVzx(:,:)  = Elem%PsiVzx (:,:) + coeff2 * Elem%Psi_store(:,:,6)
+            Elem%PsiVzz(:,:)  = Elem%PsiVzz (:,:) + coeff2 * Elem%Psi_store(:,:,7)
+        endif
 
-
+        return
     end subroutine update_Psi_ADEPML_RK4
 
     ! ###########################################################
@@ -696,19 +720,29 @@ contains
         real, intent(IN) :: Dt
         real, dimension(0:Elem%ngllx-1,0:Elem%ngllz-1,0:7) :: smbr
 
-        ! Compute second member of memory variables evolution equation
-        call compute_smbr_ADEPML (Elem,hTprime,hprimez,smbr)
-
-        ! UPDATING in time for midpoint or Newmark Predictors-multicorrectors schemes
         if (Elem%ADEPML) then
-            Elem%PsiSxxx(:,:) = Elem%Psi_store(:,:,0) + Dt * smbr(:,:,0)
-            Elem%PsiSzzz(:,:) = Elem%Psi_store(:,:,1) + Dt * smbr(:,:,1)
-            Elem%PsiSxzx(:,:) = Elem%Psi_store(:,:,2) + Dt * smbr(:,:,2)
-            Elem%PsiSxzz(:,:) = Elem%Psi_store(:,:,3) + Dt * smbr(:,:,3)
-            Elem%PsiVxx(:,:)  = Elem%Psi_store(:,:,4) + Dt * smbr(:,:,4)
-            Elem%PsiVxz(:,:)  = Elem%Psi_store(:,:,5) + Dt * smbr(:,:,5)
-            Elem%PsiVzx(:,:)  = Elem%Psi_store(:,:,6) + Dt * smbr(:,:,6)
-            Elem%PsiVzz(:,:)  = Elem%Psi_store(:,:,7) + Dt * smbr(:,:,7)
+            if (Elem%acoustic) then
+                ! Compute second member of memory variables evolution equation
+                call compute_smbr_acou_ADEPML (Elem,hTprime,hprimez,smbr)
+                ! UPDATING in time for midpoint schemes
+                Elem%PsiSxxx(:,:) = Elem%Psi_store(:,:,0) + Dt * smbr(:,:,0)
+                Elem%PsiSzzz(:,:) = Elem%Psi_store(:,:,1) + Dt * smbr(:,:,1)
+                Elem%PsiVxx(:,:)  = Elem%Psi_store(:,:,2) + Dt * smbr(:,:,2)
+                Elem%PsiVzz(:,:)  = Elem%Psi_store(:,:,3) + Dt * smbr(:,:,3)
+
+            else ! Elastic Case
+                ! Compute second member of memory variables evolution equation
+                call compute_smbr_ADEPML (Elem,hTprime,hprimez,smbr)
+                ! UPDATING in time for midpoint schemes
+                Elem%PsiSxxx(:,:) = Elem%Psi_store(:,:,0) + Dt * smbr(:,:,0)
+                Elem%PsiSzzz(:,:) = Elem%Psi_store(:,:,1) + Dt * smbr(:,:,1)
+                Elem%PsiSxzx(:,:) = Elem%Psi_store(:,:,2) + Dt * smbr(:,:,2)
+                Elem%PsiSxzz(:,:) = Elem%Psi_store(:,:,3) + Dt * smbr(:,:,3)
+                Elem%PsiVxx(:,:)  = Elem%Psi_store(:,:,4) + Dt * smbr(:,:,4)
+                Elem%PsiVxz(:,:)  = Elem%Psi_store(:,:,5) + Dt * smbr(:,:,5)
+                Elem%PsiVzx(:,:)  = Elem%Psi_store(:,:,6) + Dt * smbr(:,:,6)
+                Elem%PsiVzz(:,:)  = Elem%Psi_store(:,:,7) + Dt * smbr(:,:,7)
+            endif
         else if (Elem%CPML) then
             smbr(:,:,:) = -smbr(:,:,:)
             Elem%PsiSxxx(:,:) = smbr(:,:,0)
@@ -725,6 +759,45 @@ contains
         call add_Psi4PML (Elem)
 
     end subroutine update_Psi_ADEPML
+
+
+    ! ###########################################################
+    !>
+    !! \brief Thus subroutine is used in a ADE-PML framework : it computes the second member
+    !!  of memory variables evolution equation for an ACOUSTIC element.
+    !! \param type (Element), intent (INOUT) Elem
+    !! \param real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
+    !! \param real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1, 0:7), intent (IN) :: smbr
+    !<
+    subroutine  compute_smbr_acou_ADEPML (Elem,hTprime,hprimez,smbr)
+        implicit none
+
+        type(Element), intent (IN) :: Elem
+        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllx-1), intent (IN) :: hTprime
+        real, dimension (0:Elem%ngllz-1, 0:Elem%ngllz-1), intent (IN) :: hprimez
+        real, dimension (0:Elem%ngllx-1,0:Elem%ngllz-1,0:7), intent (INOUT) :: smbr
+        real, dimension (0:Elem%ngllx-1, 0:Elem%ngllz-1) :: aux
+
+        ! Defining Second Member of time evolution equation for the Psi
+        ! Second member for Pressure memory variables
+        aux(:,:) = Elem%Lambda(:,:) * Elem%Strain(:,:,0)
+        smbr(:,:,0) = - Elem%Bx(:,:) * Elem%PsiSxxx(:,:) - Elem%Ax(:,:) * &
+                      ( Elem%Acoeff(:,:,0) * MATMUL(HTprime,aux) &
+                      + Elem%Acoeff(:,:,1) * MATMUL(aux,Hprimez))
+        smbr(:,:,1) = - Elem%Bz(:,:) * Elem%PsiSzzz(:,:) - Elem%Az(:,:) * &
+                      ( Elem%Acoeff(:,:,2) * MATMUL(HTprime,aux) &
+                      + Elem%Acoeff(:,:,3) * MATMUL(aux,Hprimez))
+        ! Second member for Velocities memory variables
+        smbr(:,:,2) = - Elem%Bx(:,:) * Elem%PsiVxx(:,:) - Elem%Ax(:,:) * &
+                      ( Elem%Acoeff(:,:,0) * MATMUL(HTprime,Elem%Veloc(:,:,0)) &
+                      + Elem%Acoeff(:,:,1) * MATMUL(Elem%Veloc(:,:,0),Hprimez))
+        smbr(:,:,3) = - Elem%Bz(:,:) * Elem%PsiVzz(:,:) - Elem%Az(:,:) * &
+                      ( Elem%Acoeff(:,:,2) * MATMUL(HTprime,Elem%Veloc(:,:,1)) &
+                      + Elem%Acoeff(:,:,3) * MATMUL(Elem%Veloc(:,:,1),Hprimez))
+
+        return
+    end subroutine compute_smbr_acou_ADEPML
 
 
     ! ###########################################################
@@ -777,7 +850,6 @@ contains
                       + Elem%Acoeff(:,:,3) * MATMUL(Elem%Veloc(:,:,1),Hprimez))
 
         return
-
     end subroutine compute_smbr_ADEPML
 
     ! ###########################################################
