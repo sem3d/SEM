@@ -8,6 +8,7 @@ set(SEM2D_SOURCES
     ${PRJ}/SRC/Element.F90
     ${PRJ}/SRC/Face.F90
     ${PRJ}/SRC/Vertex.F90
+    ${PRJ}/SRC/Mortar.F90
     ${PRJ}/SRC/Sources.F90
     ${PRJ}/SRC/TimeP.F90
     ${PRJ}/SRC/logical_input.F90

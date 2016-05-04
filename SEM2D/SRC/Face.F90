@@ -45,7 +45,7 @@ module sfaces
        real, dimension (:,:), allocatable :: Kinv, KinvExpl, SmbrTrac
        real, dimension (0:1)    :: Coeff_integr_ends
        integer, dimension (0:1) :: pos_in_VertMat
-       logical :: is_computed, changing_media, acoustic
+       logical :: is_computed, changing_media, acoustic, mortar
 
     end type face
 

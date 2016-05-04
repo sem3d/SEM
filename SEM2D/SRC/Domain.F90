@@ -18,6 +18,7 @@ module sdomain
     use selement
     use sfaces
     use svertices
+    use smortars
     use ssources
     use stimeparam
     use logical_input
@@ -37,7 +38,7 @@ module sdomain
        integer :: master_superviseur
        logical :: couplage
        !
-       integer :: n_elem, n_face, n_vertex, n_source,n_glob_nodes, n_line ,n_receivers
+       integer :: n_elem, n_face, n_vertex, n_source, n_glob_nodes, n_line ,n_receivers, n_mortar
        integer :: n_nodes, n_mat,n_glob_points, n_super_object, n_fault, n_communications
        integer :: type_timeInteg, type_elem, type_flux, type_bc, pml_type, capt_loc_type, Implicitness
 
@@ -68,6 +69,7 @@ module sdomain
        type(element), dimension(:), pointer :: specel
        type(face), dimension (:), pointer :: sface
        type (vertex), dimension (:), pointer :: svertex
+       type (mortar), dimension (:), pointer :: smortar
        type (source), dimension (:), pointer :: sSource
        type (subdomain), dimension (:), pointer :: sSubDomain
        type (receiver), dimension (:), pointer :: sReceiver
@@ -116,8 +118,8 @@ subroutine read_material_file(Tdomain)
     character(Len=MAX_FILE_SIZE) :: fnamef
     !
     real :: dtmin
-    integer :: i, j, mat, npml
-    integer :: w_face, n_aus, k_aus
+    integer :: i, j, mat, mat2, npml, nmortar, ngll1, ngll2
+    integer :: w_face, w_face2, n_aus, k_aus
     real :: Qp, Qs
 
     ! Read material properties
@@ -216,6 +218,49 @@ subroutine read_material_file(Tdomain)
            endif
         else
            Tdomain%sFace(i)%changing_media = .false.
+        endif
+    enddo
+
+    ! CREATION DES MORTARS
+    nmortar = 0
+    do i = 0, Tdomain%n_face-1
+        Tdomain%sFace(i)%mortar = .false.
+        n_aus = Tdomain%sFace(i)%Near_Element(0)
+        k_aus = Tdomain%sFace(i)%Near_Element(1)
+        mat = Tdomain%specel(n_aus)%mat_index
+        if (k_aus .NE.-1) then
+            mat2 = Tdomain%specel(k_aus)%mat_index
+            if (mat .NE. mat2) then
+                w_face = Tdomain%sFace(i)%Which_face(0)
+                w_face2= Tdomain%sFace(i)%Which_face(1)
+                if (w_face == 0 .or. w_face==2) then
+                    ngll1 = Tdomain%sSubDomain(mat)%ngllx
+                else
+                    ngll1 = Tdomain%sSubDomain(mat)%ngllz
+                endif
+                if (w_face2 == 0 .or. w_face2==2) then
+                    ngll2 = Tdomain%sSubDomain(mat2)%ngllx
+                else
+                    ngll2 = Tdomain%sSubDomain(mat2)%ngllz
+                endif
+                if (ngll1.NE.ngll2) then
+                    Tdomain%sFace(i)%ngll = max(ngll1,ngll2)
+                    nmortar = nmortar + 1
+                    Tdomain%sFace(i)%mortar = .true.
+                endif
+            endif
+        endif
+    enddo
+
+    ! Traitement des mortars :
+    Tdomain%n_mortar = nmortar
+    write(*,*) "Nombre de faces mortars : ", nmortar
+    allocate(Tdomain%sMortars(0:nmortar))
+    nmortar = 0
+    do i = 0, Tdomain%n_face-1
+        if (Tdomain%sFace(i)%mortar) then
+            Tdomain%sMortar(nmortar)%Near_Face(0) = i
+            nmortar = nmortar + 1
         endif
     enddo
 
