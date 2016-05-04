@@ -18,7 +18,7 @@ contains
         type(domain) :: TDomain
         type(domain_solidpml), intent (INOUT) :: dom
         !
-        integer nbelem, ngll
+        integer nbelem, ngll, nblocks
         !
 
         ngll   = dom%ngll
@@ -32,37 +32,37 @@ contains
             ! We can have glls without elements
             ! Do not allocate if not needed (save allocation/RAM)
 
-            nbelem = CHUNK*((nbelem+CHUNK-1)/CHUNK)
-            dom%nbelem_alloc = nbelem
+            nblocks = ((nbelem+VCHUNK-1)/VCHUNK)
+            dom%nblocks = nblocks
 
-            allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-            allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-            allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+            allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+            allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+            allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
 
-            allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
-            allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+            allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+            allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
 
-            allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+            allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
             dom%m_Idom = 0
 
-            allocate(dom%Diagonal_Stress1_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
-            allocate(dom%Diagonal_Stress2_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
-            allocate(dom%Diagonal_Stress3_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
-            allocate(dom%Residual_Stress1_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
-            allocate(dom%Residual_Stress2_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
-            allocate(dom%Residual_Stress3_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nbelem-1))
-            dom%Diagonal_Stress1_(:,:,:,:,:) = 0d0
-            dom%Diagonal_Stress2_(:,:,:,:,:) = 0d0
-            dom%Diagonal_Stress3_(:,:,:,:,:) = 0d0
-            dom%Residual_Stress1_(:,:,:,:,:) = 0d0
-            dom%Residual_Stress2_(:,:,:,:,:) = 0d0
-            dom%Residual_Stress3_(:,:,:,:,:) = 0d0
-            allocate(dom%PMLDumpSx_(0:ngll-1,0:ngll-1,0:ngll-1,0:1,0:nbelem-1))
-            allocate(dom%PMLDumpSy_(0:ngll-1,0:ngll-1,0:ngll-1,0:1,0:nbelem-1))
-            allocate(dom%PMLDumpSz_(0:ngll-1,0:ngll-1,0:ngll-1,0:1,0:nbelem-1))
-            dom%PMLDumpSx_(:,:,:,:,:) = 0d0
-            dom%PMLDumpSy_(:,:,:,:,:) = 0d0
-            dom%PMLDumpSz_(:,:,:,:,:) = 0d0
+            allocate(dom%Diagonal_Stress1_(0:ngll-1,0:ngll-1,0:ngll-1,0:2, 0:nblocks-1, 0:VCHUNK-1))
+            allocate(dom%Diagonal_Stress2_(0:ngll-1,0:ngll-1,0:ngll-1,0:2, 0:nblocks-1, 0:VCHUNK-1))
+            allocate(dom%Diagonal_Stress3_(0:ngll-1,0:ngll-1,0:ngll-1,0:2, 0:nblocks-1, 0:VCHUNK-1))
+            allocate(dom%Residual_Stress1_(0:ngll-1,0:ngll-1,0:ngll-1,0:2, 0:nblocks-1, 0:VCHUNK-1))
+            allocate(dom%Residual_Stress2_(0:ngll-1,0:ngll-1,0:ngll-1,0:2, 0:nblocks-1, 0:VCHUNK-1))
+            allocate(dom%Residual_Stress3_(0:ngll-1,0:ngll-1,0:ngll-1,0:2, 0:nblocks-1, 0:VCHUNK-1))
+            dom%Diagonal_Stress1_(:,:,:,:,:,:) = 0d0
+            dom%Diagonal_Stress2_(:,:,:,:,:,:) = 0d0
+            dom%Diagonal_Stress3_(:,:,:,:,:,:) = 0d0
+            dom%Residual_Stress1_(:,:,:,:,:,:) = 0d0
+            dom%Residual_Stress2_(:,:,:,:,:,:) = 0d0
+            dom%Residual_Stress3_(:,:,:,:,:,:) = 0d0
+            allocate(dom%PMLDumpSx_(0:ngll-1,0:ngll-1,0:ngll-1,0:1, 0:nblocks-1, 0:VCHUNK-1))
+            allocate(dom%PMLDumpSy_(0:ngll-1,0:ngll-1,0:ngll-1,0:1, 0:nblocks-1, 0:VCHUNK-1))
+            allocate(dom%PMLDumpSz_(0:ngll-1,0:ngll-1,0:ngll-1,0:1, 0:nblocks-1, 0:VCHUNK-1))
+            dom%PMLDumpSx_(:,:,:,:,:,:) = 0d0
+            dom%PMLDumpSy_(:,:,:,:,:,:) = 0d0
+            dom%PMLDumpSz_(:,:,:,:,:,:) = 0d0
         end if
 
         ! Allocation et initialisation de champs0 pour les PML solides
@@ -145,6 +145,10 @@ contains
         !
         logical :: flag_gradU
         integer :: ngll, i, j, k, ind
+        !
+        integer :: bnum, ee
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
 
         flag_gradU = (out_variables(OUT_ENERGYP) + &
             out_variables(OUT_ENERGYS) + &
@@ -157,7 +161,7 @@ contains
         do k=0,ngll-1
             do j=0,ngll-1
                 do i=0,ngll-1
-                    ind = dom%Idom_(i,j,k,lnum)
+                    ind = dom%Idom_(i,j,k,bnum,ee)
 
                     if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
                         if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
@@ -219,15 +223,19 @@ contains
         real(fpp), intent(in) :: density
         real(fpp), intent(in) :: lambda
         real(fpp), intent(in) :: mu
+        !
+        integer :: bnum, ee
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
 
         if (i==-1 .and. j==-1 .and. k==-1) then
-            dom%Density_(:,:,:,lnum) = density
-            dom%Lambda_ (:,:,:,lnum) = lambda
-            dom%Mu_     (:,:,:,lnum) = mu
+            dom%Density_(:,:,:,bnum,ee) = density
+            dom%Lambda_ (:,:,:,bnum,ee) = lambda
+            dom%Mu_     (:,:,:,bnum,ee) = mu
         else
-            dom%Density_(i,j,k,lnum) = density
-            dom%Lambda_ (i,j,k,lnum) = lambda
-            dom%Mu_     (i,j,k,lnum) = mu
+            dom%Density_(i,j,k,bnum,ee) = density
+            dom%Lambda_ (i,j,k,bnum,ee) = lambda
+            dom%Mu_     (i,j,k,bnum,ee) = mu
         end if
     end subroutine init_material_properties_solidpml
 
@@ -236,21 +244,25 @@ contains
         type (Element), intent (INOUT) :: specel
         integer :: i,j,k,ind
         real Whei
+        !
+        integer :: bnum, ee
+        bnum = specel%lnum/VCHUNK
+        ee = mod(specel%lnum,VCHUNK)
 
         ! Solid.
 
-        specel%MassMat(i,j,k) = Whei*dom%Density_(i,j,k,specel%lnum)*dom%Jacob_(i,j,k,specel%lnum)
+        specel%MassMat(i,j,k) = Whei*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solidpml
 
-    subroutine forces_int_sol_pml(dom, champs1, lnum)
+    subroutine forces_int_sol_pml(dom, champs1, bnum)
         type(domain_solidpml), intent(inout) :: dom
         type(champssolidpml), intent(inout) :: champs1
-        integer :: lnum
+        integer :: bnum
         !
         integer :: ngll
         integer :: i, j, k, l, ind, e, ee
-        real, dimension(0:CHUNK-1,0:2,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)  :: Forces1, Forces2, Forces3
+        real, dimension(0:VCHUNK-1,0:2,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)  :: Forces1, Forces2, Forces3
 
         ngll = dom%ngll
 
@@ -258,7 +270,7 @@ contains
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i=0,ngll-1
-                    BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                    BEGIN_SUBELEM_LOOP(e,ee,bnum)
                     Forces1(ee,0,i,j,k) = Forces1(ee,0,i,j,k) + 0.
                     Forces1(ee,1,i,j,k) = Forces1(ee,1,i,j,k) + 0.
                     Forces1(ee,2,i,j,k) = Forces1(ee,2,i,j,k) + 0.
@@ -272,7 +284,7 @@ contains
             do l = 0,ngll-1
                 do j = 0,ngll-1
                     do i=0,ngll-1
-                        BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                        BEGIN_SUBELEM_LOOP(e,ee,bnum)
                         Forces2(ee,0,i,j,k) = Forces2(ee,0,i,j,k) + 0.
                         Forces2(ee,1,i,j,k) = Forces2(ee,1,i,j,k) + 0.
                         Forces2(ee,2,i,j,k) = Forces2(ee,2,i,j,k) + 0.
@@ -287,7 +299,7 @@ contains
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i=0,ngll-1
-                        BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                        BEGIN_SUBELEM_LOOP(e,ee,bnum)
                         Forces3(ee,0,i,j,k) = Forces3(ee,0,i,j,k) + 0.
                         Forces3(ee,1,i,j,k) = Forces3(ee,1,i,j,k) + 0.
                         Forces3(ee,2,i,j,k) = Forces3(ee,2,i,j,k) + 0.
@@ -301,8 +313,9 @@ contains
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    BEGIN_SUBELEM_LOOP(e,ee,lnum)
-                    ind = dom%Idom_(i,j,k,e)
+                    BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                    if (e>=dom%nbelem) exit
+                    ind = dom%Idom_(i,j,k,bnum,ee)
                     champs1%ForcesPML(ind,:,0) = champs1%ForcesPML(ind,:,0) + Forces1(ee,:,i,j,k)
                     champs1%ForcesPML(ind,:,1) = champs1%ForcesPML(ind,:,1) + Forces2(ee,:,i,j,k)
                     champs1%ForcesPML(ind,:,2) = champs1%ForcesPML(ind,:,2) + Forces3(ee,:,i,j,k)
@@ -312,22 +325,21 @@ contains
         enddo
     end subroutine forces_int_sol_pml
 
-    subroutine pred_sol_pml(dom, dt, champs1, lnum)
+    subroutine pred_sol_pml(dom, dt, champs1, bnum)
         implicit none
 
         type(domain_solidpml), intent(inout) :: dom
         type(champssolidpml), intent(inout) :: champs1
         real(fpp), intent(in) :: dt
-        integer :: lnum
+        integer :: bnum
         !
-        real(fpp), dimension (0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Veloc
+        real(fpp), dimension (0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Veloc
         real(fpp) :: dVx_dx, dVx_dy, dVx_dz
         real(fpp) :: dVy_dx, dVy_dy, dVy_dz
         real(fpp) :: dVz_dx, dVz_dy, dVz_dz
         real(fpp) :: dS_dxi, dS_deta, dS_dzeta
         integer :: ngll
         integer :: i, j, k, l, ind, i_dir, e, ee
-        real(fpp), dimension(IND_MNE(0:2,0:2,0:CHUNK-1)) :: invgrad
 
         ngll = dom%ngll
 
@@ -335,8 +347,8 @@ contains
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
-                        BEGIN_SUBELEM_LOOP(e,ee,lnum)
-                        ind = dom%Idom_(i,j,k,e)
+                        BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                        ind = dom%Idom_(i,j,k,bnum,ee)
                         Veloc(ee,i,j,k,i_dir) = champs1%VelocPML(ind,i_dir,0) + &
                                                 champs1%VelocPML(ind,i_dir,1) + &
                                                 champs1%VelocPML(ind,i_dir,2)
@@ -349,11 +361,10 @@ contains
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    InvGrad(IND_MNE(0:2,0:2,0:CHUNK-1)) = dom%InvGrad_(:,:,i,j,k,lnum:lnum+CHUNK-1)
 #ifdef SEM_VEC
 !$omp simd linear(e,ee)
 #endif
-                    BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                    BEGIN_SUBELEM_LOOP(e,ee,bnum)
                     ! partial of velocity components with respect to xi,eta,zeta
                     part_deriv_ijke(Veloc,0,dS_dxi,dS_deta,dS_dzeta,dVx_dx,dVx_dy,dVx_dz)
                     part_deriv_ijke(Veloc,1,dS_dxi,dS_deta,dS_dzeta,dVy_dx,dVy_dy,dVy_dz)
