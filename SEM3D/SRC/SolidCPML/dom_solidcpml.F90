@@ -3,6 +3,14 @@
 !! Copyright CEA, ECP, IPGP
 !!
 
+!! Convolutional Perfectly Matched Layers implemented according 2 references:
+!! R1. Improved forward wave propagation and adjoint-based sensitivity kernel calculations using a numerically stable finite-element PML
+!!     Zhinan Xie, Dimitri Komatitsch, Roland Martin, Rene Matzen
+!!     Geophysical Journal International, 2014, 198, 1714-1747
+!! R2. An efficient finite element time-domain formulation for the elastic second-order wave equation: a non-split complex frequency shifted convolutional PML
+!!     Rene Matzen
+!!     International Journal For Numerical Methods In Engineering, 2011, 88, 951-973
+
 module dom_solidpml
     use constants
     use sdomain
