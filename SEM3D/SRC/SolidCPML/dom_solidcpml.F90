@@ -396,34 +396,13 @@ contains
         type (element), intent(inout) :: specel
         type (subdomain), intent(in) :: mat
         !
-        integer :: ngll
-        real(fpp), dimension(:,:,:,:), allocatable :: PMLDumpMass
-        integer :: i,j,k,i_dir,ind
-
-        ngll = domain_ngll(Tdomain, specel%domain)
-
-        ! Compute dump mass
-        allocate(PMLDumpMass(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-        PMLDumpMass = 0d0
-
-        ! Assemble dump mass
-        do i_dir = 0,2
-            do k = 0,ngll-1
-                do j = 0,ngll-1
-                    do i = 0,ngll-1
-                        ind = specel%Idom(i,j,k)
-                        Tdomain%spmldom%DumpMass(ind,i_dir) =   Tdomain%spmldom%DumpMass(ind,i_dir) &
-                                                              + PMLDumpMass(i,j,k,i_dir)
-                    enddo
-                enddo
-            enddo
-        enddo
-        if(allocated(PMLDumpMass)) deallocate(PMLDumpMass)
+        ! Useless, kept for compatibility with SolidPML (build), can be deleted later on
     end subroutine init_solidpml_properties
 
     subroutine finalize_solidpml_properties(dom)
-      type (domain_solidpml), intent (INOUT), target :: dom
-      !
+        type (domain_solidpml), intent (INOUT), target :: dom
+        !
+        ! Useless, kept for compatibility with SolidPML (build), can be deleted later on
     end subroutine finalize_solidpml_properties
 
 end module dom_solidpml
