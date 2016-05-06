@@ -22,6 +22,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/Interface.f90
     ${PRJ}/SRC/Modules/Domain.f90
     ${PRJ}/SRC/Modules/solid_fluid.f90
+    ${PRJ}/SRC/Modules/Nonlinear.f90
     ${PRJ}/SRC/partial_deriv.f90
     ${PRJ}/SRC/orientation.f90
     ${PRJ}/SRC/Capteur.f90
@@ -36,6 +37,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/tensor_util.f90
     ${PRJ}/SRC/Solid/attenuation_solid.F90
     ${PRJ}/SRC/Solid/calcul_forces.F90
+    ${PRJ}/SRC/Solid/calcul_forces_nl.f90   
     ${PRJ}/SRC/Solid/calcul_forces_atn.F90
     ${PRJ}/SRC/Fluid/calcul_forces_fluid.F90
     ${PRJ}/SRC/Solid/dom_solid.F90

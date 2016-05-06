@@ -485,21 +485,22 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solid
 
-    subroutine forces_int_solid(dom, champs1, lnum, nl_flag)
+    subroutine forces_int_solid(dom, champs1, lnum, nl_flag, dt)
         use m_calcul_forces
         use m_calcul_forces_atn
+        use m_calcul_forces_nl
         use attenuation_solid
         type(domain_solid), intent (INOUT) :: dom
         type(champssolid), intent(inout) :: champs1
         integer, intent(in) :: lnum
-        logical, intent(in) :: nl_flag
-        !
+        logical,    intent(in) :: nl_flag
+        real(fpp),  intent(in), optional :: dt
         integer :: ngll,i,j,k,i_dir,e,ee,idx
         integer :: n_solid
         logical :: aniso,nl_law
         real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
-        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: Strs
+        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: Stress
         real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: Xkin
         real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: EpsP
         real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: Riso
@@ -528,7 +529,7 @@ contains
                         do i = 0,ngll-1
                             do ee = 0, CHUNK-1
                                 idx = dom%Idom_(i,j,k,ee+lnum)
-                                Strs(ee,i,j,k,i_dir) = champs1%Stress(idx,i_dir)
+                                Stress(ee,i,j,k,i_dir) = champs1%Stress(idx,i_dir)
                                 Xkin(ee,i,j,k,i_dir) = champs1%Xkin  (idx,i_dir)
                                 EpsP(ee,i,j,k,i_dir) = champs1%EpsP (idx,i_dir)
                             enddo
@@ -575,7 +576,7 @@ contains
                 call calcul_forces_iso_atn(dom,lnum,Fox,Foy,Foz,Depla)
             else
                 if (nl_flag.and.nl_law) then
-                    !call calcul_forces_iso_nl(dom,lnum,Fox,Foy,Foz,Depla)
+                    call calcul_forces_nl(dom,lnum,Fox,Foy,Foz,Depla*dt,Stress,Xkin,Riso,EpsP)
                 else
                     call calcul_forces_iso(dom,lnum,Fox,Foy,Foz,Depla)
                 endif 
