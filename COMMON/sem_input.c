@@ -155,6 +155,7 @@ int expect_string(yyscan_t scanner, char** str, int nexpected)
 	str[k][len-2] = 0;
 	++k;
     }
+    //printf("Got: %s'\n", yyget_text(scanner));
     return k;
 }
 

@@ -27,6 +27,8 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 #ifdef COUPLAGE
     use scouplage
 #endif
+    use calls_RF !TEST
+    use fftw3 !TEST
 
     implicit none
 
@@ -47,6 +49,9 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     integer, dimension(3) :: tab
     integer :: min_rank_glob_sem
 #endif
+    type(IPT_RF) :: IPT !TEST
+    double precision, dimension(10) :: times !TEST
+
     call MPI_Init (ierr)
 
 !----------------------------------------------------------------------------------------------!
@@ -107,36 +112,36 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     Tdomain%rank = rg
     Tdomain%nb_procs = nb_procs
 
-!----------------------------------------------------------------------------------------------!
-!--------------------------------       SEM 3D - RUNNING     ----------------------------------!
-!----------------------------------------------------------------------------------------------!
+ !----------------------------------------------------------------------------------------------!
+ !--------------------------------       SEM 3D - RUNNING     ----------------------------------!
+ !----------------------------------------------------------------------------------------------!
 
     call INIT_MESSAGE(rg)
     call START_SEM(rg)
 
-!---------------------------------------------------------------------------------------------!
-!------------------------------    RUN PREPARATION : INPUT DATA, -----------------------------!
-!----------------------------     ELEMENTAL AND GLOBAL MACHINERY  ----------------------------!
-!---------------------------------------------------------------------------------------------!
+ !---------------------------------------------------------------------------------------------!
+ !------------------------------    RUN PREPARATION : INPUT DATA, -----------------------------!
+ !----------------------------     ELEMENTAL AND GLOBAL MACHINERY  ----------------------------!
+ !---------------------------------------------------------------------------------------------!
 
     call RUN_PREPARED(Tdomain)
     call RUN_INIT_INTERACT(Tdomain,isort)
 
-!---------------------------------------------------------------------------------------------!
-!-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
-!---------------------------------------------------------------------------------------------!
+ !---------------------------------------------------------------------------------------------!
+ !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
+ !---------------------------------------------------------------------------------------------!
 
     call TIME_STEPPING(Tdomain,isort,ntime)
 
-!---------------------------------------------------------------------------------------------!
-!-------------------------------      NORMAL  END OF THE RUN      ----------------------------!
-!---------------------------------------------------------------------------------------------!
+ !---------------------------------------------------------------------------------------------!
+ !-------------------------------      NORMAL  END OF THE RUN      ----------------------------!
+ !---------------------------------------------------------------------------------------------!
 
     call END_SEM(Tdomain,ntime)
 
 end subroutine sem
-!-----------------------------------------------------------------------------------
-!-----------------------------------------------------------------------------------
+ !-----------------------------------------------------------------------------------
+ !-----------------------------------------------------------------------------------
 subroutine INIT_MESSAGE(rg)
     implicit none
     integer, intent(in)   :: rg
@@ -231,12 +236,12 @@ subroutine RUN_PREPARED(Tdomain)
     if (rg == 0) write (*,*) "--> COMPUTING GAUSS-LOBATTO-LEGENDRE PROPERTIES"
     call MPI_Barrier(Tdomain%communicateur, code)
 
-!- from elementary to global numbering
+ !- from elementary to global numbering
     if (rg == 0) write (*,*) "--> DEFINING A GLOBAL NUMBERING FOR COLLOCATION POINTS"
     call global_numbering (Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
 
-!- allocation of different fields' sizes
+ !- allocation of different fields' sizes
     if (rg == 0) write (*,*) "--> ALLOCATING FIELDS"
     call allocate_domain(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
@@ -259,42 +264,20 @@ subroutine RUN_PREPARED(Tdomain)
     call check_interface_orient(Tdomain, Tdomain%SF%intSolFluPml, 1e-10)
     call MPI_Barrier(Tdomain%communicateur,code)
 
-    !- Managing properties that should be written on a file
-    if (Tdomain%any_PropOnFile) then
-        ! - defining random subdomains
-        if(Tdomain%any_Random .and. (.not.Tdomain%logicD%run_restart)) then
-            if(rg == 0) write(*,*) "--> DEFINING RANDOM SUBDOMAINS"
-            call define_random_subdomains(Tdomain, rg)
-        end if
-        !- writing properties files (if its not a restart)
-        if(.not. Tdomain%logicD%run_restart) then
-            if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
-            call create_prop_files (Tdomain, rg)
-        end if
-    end if
+
+    if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
+    call create_prop_files (Tdomain, rg)
+
 
     !- timestep value - > Courant, or Courant -> timestep
     if (rg == 0) write (*,*) "--> COMPUTING COURANT PARAMETER"
-    call compute_Courant(Tdomain,rg)
+    call Compute_Courant(Tdomain,rg)
     call MPI_Barrier(Tdomain%communicateur,code)
 
- !- elementary properties (mass matrices, PML factors,..)
+    !- elementary properties (mass matrices, PML factors,..) geometry
     if (rg == 0) write (*,*) "--> COMPUTING MASS MATRIX AND INTERNAL FORCES COEFFICIENTS "
     call define_arrays(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
-
- ! - changing "material_type" of random subdomains
-    do mat = 0, Tdomain%n_mat - 1
-        if(Tdomain%sSubDomain(mat)%material_type == "R") Tdomain%sSubDomain(mat)%material_type = "S"
-    end do
-    !OBS: in the future, after writing properties files for non-homogeneous media
-    !we could redefine the "material_type" according only to its behaviour for calculations
-    !it would ease syntax
-    !Ex: S for solid, F for fluid, P for solid PML, L for fluid PML
-
-! !- creating properties visualization files
-!    if (rg == 0) write (*,*) "--> CREATING PROPERTIES VISUALIZATION FILES "
-!    call create_prop_visu_files (Tdomain, rg)
 
  !- anelastic properties
     if (Tdomain%n_sls>0) then
@@ -306,7 +289,6 @@ subroutine RUN_PREPARED(Tdomain)
             call set_attenuation_param(Tdomain)
         endif
     endif
-
  !- eventual classical seismic point sources: their spatial and temporal properties
     if (Tdomain%logicD%any_source) then
         if (rg == 0) write (*,*) "--> COMPUTING SOURCE PARAMETERS "
@@ -322,7 +304,6 @@ subroutine RUN_PREPARED(Tdomain)
             endif
         end do
     endif
-
  !- time: initializations. Eventual changes if restarting from a checkpoint (see
  !         routine  RUN_INIT_INTERACT)
     Tdomain%TimeD%rtime = 0
@@ -572,6 +553,8 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !---------------------------------------------------------!
         if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) &
             call OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
+
+        !stop("STOP TEST INSIDE TIME_STEPPING")
               
 !---------------------------------------------------------!
     !- RECEIVERS'OUTPUTS

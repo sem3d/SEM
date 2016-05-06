@@ -504,17 +504,7 @@ subroutine external_forces(Tdomain,timer,ntime)
         if(Tdomain%rank == Tdomain%sSource(ns)%proc)then
             nel = Tdomain%Ssource(ns)%elem
             lnum = Tdomain%specel(nel)%lnum
-            ngll = 0
-            select case (Tdomain%specel(nel)%domain)
-                 case (DM_SOLID)
-                     ngll = Tdomain%sdom%ngll
-                 case (DM_FLUID)
-                     ngll = Tdomain%fdom%ngll
-                 case (DM_SOLID_PML)
-                     ngll = Tdomain%spmldom%ngll
-                 case (DM_FLUID_PML)
-                     ngll = Tdomain%fpmldom%ngll
-            end select
+            ngll = domain_ngll(Tdomain, Tdomain%specel(nel)%domain)
 
             !  vieille version:
             ! time : t_(n+1/2) for solid ; t_n for fluid

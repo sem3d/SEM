@@ -51,19 +51,12 @@ contains
         !LOCAL VARIABLES
         integer :: i;
 
-        !logical, dimension(size(MSH%neigh)) :: considerNeighbour
-        !integer, dimension(16) :: testVec
-        !integer :: partitionType = 1
-
-
-        !testVec = [(i, i = 1, 16)]
-
         !Normalization
         call wLog(" ")
         call wLog("->Normalizing Coordinates")
         call wLog(" ")
         do i = 1, RDF%nDim
-            RDF%xPoints(i,:)   = RDF%xPoints(i,:)/RDF%corrL(i)
+            if(associated(RDF%xPoints)) RDF%xPoints(i,:)   = RDF%xPoints(i,:)/RDF%corrL(i)
             MSH%xStep(i)       = MSH%xStep(i) /RDF%corrL(i)
             MSH%xMinInt(i)     = MSH%xMinInt(i)/RDF%corrL(i)
             MSH%xMaxInt(i)     = MSH%xMaxInt(i)/RDF%corrL(i)
@@ -79,19 +72,10 @@ contains
             RDF%xRange(i)      = RDF%xRange(i)/RDF%corrL(i)
         end do
 
-        !if(RDF%independent) then
-            !RDF%xRange = MSH%xMaxExt - MSH%xMinExt !Delta max in between two wave numbers to avoid periodicity
-            !RDF%xRange = MSH%xMaxBound - MSH%xMinBound !Delta max in between two wave numbers to avoid periodicity
-        !else
-            RDF%xRange = MSH%xMaxGlob - MSH%xMinGlob !Delta max in between two wave numbers to avoid periodicity
-        !end if
-
         !Generating Standard Gaussian Field
         call wLog("")
         call wLog("GENERATING RANDOM FIELDS")
         call wLog("-------------------------------")
-        !if(RDF%rang == 0) write(*,*)"GENERATING RANDOM FIELDS"
-        !if(RDF%rang == 0) write(*,*) "-------------------------------"
         call wLog("")
 
         select case (RDF%method)
@@ -109,8 +93,10 @@ contains
                 call gen_Std_Gauss_Randomization(RDF, MSH)
             case(FFT)
                 call wLog(" FFT")
+                write(*,*) "-> FFT ", RDF%rang
                 !if(RDF%rang == 0) write(*,*)"FFT"
                 call gen_Std_Gauss_FFT(RDF, MSH)
+                write(*,*) "-> AFTER FFT ", RDF%rang
         end select
 
         !RDF%randField = 1.0 ! For Tests
@@ -124,7 +110,7 @@ contains
         call wLog(" ")
         call wLog("->Reverting Normalization")
         do i = 1, RDF%nDim
-            RDF%xPoints(i,:)   = RDF%xPoints(i,:)*RDF%corrL(i)
+            if(associated(RDF%xPoints)) RDF%xPoints(i,:)   = RDF%xPoints(i,:)*RDF%corrL(i)
             RDF%xRange(i)      = RDF%xRange(i)*RDF%corrL(i)
             MSH%xStep(i)       = MSH%xStep(i)*RDF%corrL(i)
             MSH%xMinInt(i)     = MSH%xMinInt(i)*RDF%corrL(i)
@@ -164,6 +150,9 @@ contains
         !LOCAL VARIABLES
         double precision :: normalVar, normalAvg
         integer          :: error, code
+
+        normalVar = 1.0D0
+        normalAvg = 0.0D0
 
         select case (margiFirst)
         case(fom_GAUSSIAN)
@@ -494,7 +483,7 @@ contains
         integer :: kNLocal
 
         double precision, dimension(:), allocatable :: gammaK, phiK
-        integer(kind=8) :: i_long
+        integer(kind=8) :: i_long, kNCumulated_Init, kNCumulated_End
         double precision :: trashNumber
         integer, dimension(RDF%nDim) :: xNStepGlob
         double precision :: ampMult
@@ -527,6 +516,10 @@ contains
                                                  local_LastDim, local_LD_offset) !FOR MPI
             cdata = fftw_alloc_real(alloc_local)
             call c_f_pointer(cdata, data_real_2D, [L, local_LastDim])
+            call wLog("L = ")
+            call wLog(L)
+            call wLog("M = ")
+            call wLog(L)
 
         else if(RDF%nDim == 3) then
             L = xNStepGlob(1)
@@ -536,6 +529,14 @@ contains
                                                  local_LastDim, local_LD_offset) !FOR MPI
             cdata = fftw_alloc_real(alloc_local)
             call c_f_pointer(cdata, data_real_3D, [L, M, local_LastDim])
+            call wLog("L = ")
+            call wLog(L)
+            call wLog("M = ")
+            call wLog(L)
+            call wLog("N = ")
+            call wLog(L)
+            write(*,*) "In rang ", RDF%rang, " L=",L, "M=",M, "N=",N &
+                       , "local_LastDim=", local_LastDim
 
         else
             stop("Inside gen_Std_Gauss_FFT dimension not yet implemented for this generation method")
@@ -550,6 +551,14 @@ contains
         call wLog("local_LastDim")
         call wLog(local_LastDim)
 
+        if(local_LastDim < 20) then
+            write(*,*) "WARNING, local_LastDim = ", local_LastDim&
+                       , "problems have been observed when a FFTW slab is this thin"
+            call wLog("WARNING, local_LastDim = ")
+            call wLog(local_LastDim)
+            call wLog("problems have been observed when a FFTW slab is this thin")
+        end if
+
         call wLog("RDF%kNInit")
         call wLog(RDF%kNInit)
         call wLog("RDF%kNEnd")
@@ -557,13 +566,13 @@ contains
 
         sliceSize = 1
         if(RDF%nDim > 1) sliceSize = product(MSH%xNStep(1:RDF%nDim -1))
-        RDF%kNInit = (RDF%kNInit - 1) * sliceSize + 1
-        RDF%kNEnd  = RDF%kNEnd *sliceSize
+        kNCumulated_Init = (RDF%kNInit - 1) * sliceSize + 1
+        kNCumulated_End = RDF%kNEnd *sliceSize
 
-        call wLog("RDF%kNInit")
-        call wLog(RDF%kNInit)
-        call wLog("RDF%kNEnd")
-        call wLog(RDF%kNEnd)
+        !call wLog("kNCumulated_Init")
+        !call wLog(kNCumulated_Init)
+        !call wLog("kNCumulated_End")
+        !call wLog(kNCumulated_End)
 
         !RDF%origin  = [1, int(local_LD_offset) + 1]
         !RDF%kExtent = [L , local_M]
@@ -606,14 +615,14 @@ contains
         allocate(phik(kNLocal))
 
         !Putting away the random numbers from others k (that are in others procs)
-        do i_long = 1, RDF%kNInit-1
+        do i_long = 1, kNCumulated_Init-1
             call random_number(trashNumber)
         end do
         call random_number(gammaK(:))
-        do i_long = RDF%kNEnd+1, product(RDF%kNStep)
+        do i_long = kNCumulated_End+1, product(RDF%kNStep)
             call random_number(trashNumber)
         end do
-        do i_long = 1, RDF%kNInit-1
+        do i_long = 1, kNCumulated_End-1
             call random_number(trashNumber)
         end do
         call random_number(phiK(:))
@@ -647,12 +656,28 @@ contains
             RDF%randField(:,1) = reshape(data_real_2D, [L*local_LastDim])
 
         else if(RDF%nDim == 3) then
+            call wLog("L = ")
+            call wLog(L)
+            call wLog("M = ")
+            call wLog(L)
+            call wLog("N = ")
+            call wLog(L)
+            call wLog("local_LastDim")
+            call wLog(local_LastDim)
+            call wLog("shape(data_real_3D) = ")
+            call wLog(shape(data_real_3D))
+            write(*,*) "RDF%comm = ", RDF%comm
+
             plan = fftw_mpi_plan_r2r(RDF%nDim, [N, M, L], data_real_3D, data_real_3D, &
                                      RDF%comm, [FFTW_REDFT01, FFTW_REDFT01, FFTW_REDFT01], FFTW_ESTIMATE)
             data_real_3D(:,:,:) = reshape(RDF%SkVec, [L, M, local_LastDim])
+            write(*,*) "Calculating FFT In rang ", RDF%rang
+            !write(*,*) "plan = ", plan
+            write(*,*) "shape(data_real_3D) = ", shape(data_real_3D)
             call fftw_mpi_execute_r2r(plan, data_real_3D, data_real_3D)
-            !data_real_3D = data_real_3D*(2.0D0**((RDF%nDim-1))/2.0D0))*sqrt(product(MSH%xStep))
+            write(*,*) "AFTER Calculating FFT In rang ", RDF%rang
             data_real_3D = data_real_3D*(2.0D0)*sqrt(product(MSH%xStep))
+            !data_real_3D = data_real_3D*(2.0D0**((RDF%nDim-1))/2.0D0))*sqrt(product(MSH%xStep))
             !RDF%randField(:,1) = pack(data_real_3D(1:L, 1:M, 1:local_LastDim), .true.)
             RDF%randField(:,1) = reshape(data_real_3D, [L*M*local_LastDim])
         end if

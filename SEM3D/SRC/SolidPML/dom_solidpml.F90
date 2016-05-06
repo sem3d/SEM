@@ -10,6 +10,7 @@ module dom_solidpml
     use selement
     use ssubdomains
     use sdomain
+    use pml
     implicit none
 #include "index.h"
 
@@ -90,6 +91,7 @@ contains
             allocate(dom%DumpMass(0:dom%nglltot-1,0:2))
             dom%DumpMass = 0d0
         endif
+        if(Tdomain%rank==0) write(*,*) "INFO - solid pml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_solidpml
 
     subroutine deallocate_dom_solidpml (dom)
@@ -132,13 +134,13 @@ contains
         if(allocated(dom%DumpMass)) deallocate(dom%DumpMass)
     end subroutine deallocate_dom_solidpml
 
-    subroutine get_solidpml_dom_var(dom, el, out_variables, &
+    subroutine get_solidpml_dom_var(dom, lnum, out_variables, &
         fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
         implicit none
         !
         type(domain_solidpml)                      :: dom
         integer, dimension(0:8)                    :: out_variables
-        type(element)                              :: el
+        integer                                    :: lnum
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
@@ -159,7 +161,7 @@ contains
         do k=0,ngll-1
             do j=0,ngll-1
                 do i=0,ngll-1
-                    ind = dom%Idom_(i,j,k,el%lnum)
+                    ind = dom%Idom_(i,j,k,lnum)
 
                     if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
                         if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
@@ -462,6 +464,97 @@ contains
             enddo
         enddo
     end subroutine pred_sol_pml
+
+    subroutine init_solidpml_properties(Tdomain,specel,mat)
+        type (domain), intent (INOUT), target :: Tdomain
+        type (element), intent(inout) :: specel
+        type (subdomain), intent(in) :: mat
+        !
+        integer :: ngll, lnum
+        real(fpp), dimension(:,:,:), allocatable :: temp_PMLx,temp_PMLy
+        real(fpp), dimension(:,:,:), allocatable :: wx,wy,wz
+        real(fpp) :: dt
+        real(fpp), dimension(:,:,:,:), allocatable :: PMLDumpMass
+        integer :: i,j,k,idx,m,ind
+        real(fpp), dimension(:,:,:), allocatable   :: Vp
+        real(fpp), dimension(:,:,:,:), allocatable :: coords
+
+        dt = Tdomain%TimeD%dtmin
+        lnum = specel%lnum
+
+        ngll = domain_ngll(Tdomain, specel%domain)
+
+        allocate(Vp(0:ngll-1,0:ngll-1,0:ngll-1))
+        Vp = sqrt((Tdomain%spmldom%Lambda_ (:,:,:,lnum) + &
+            2. * Tdomain%spmldom%Mu_(:,:,:,lnum))/Tdomain%spmldom%Density_(:,:,:,lnum))
+
+        !- definition of the attenuation coefficient in PMLs (alpha in the literature)
+        allocate(wx(0:ngll-1,0:ngll-1,0:ngll-1))
+        allocate(wy(0:ngll-1,0:ngll-1,0:ngll-1))
+        allocate(wz(0:ngll-1,0:ngll-1,0:ngll-1))
+
+        allocate(coords(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+
+        DO K=0,ngll-1
+            DO J=0,ngll-1
+                DO I=0,ngll-1
+                    idx = specel%Iglobnum(I,J,K)
+                    coords(I,J,K,:) = Tdomain%GlobCoord(:,idx)
+                END DO
+            END DO
+        END DO
+        call define_alpha_PML(coords, 0, ngll, Vp, mat%pml_width, mat%pml_pos, mat%Apow, mat%npow, wx)
+        call define_alpha_PML(coords, 1, ngll, Vp, mat%pml_width, mat%pml_pos, mat%Apow, mat%npow, wy)
+        call define_alpha_PML(coords, 2, ngll, Vp, mat%pml_width, mat%pml_pos, mat%Apow, mat%npow, wz)
+
+        !- M-PMLs
+        if(Tdomain%logicD%MPML)then
+            allocate(temp_PMLx(0:ngll-1,0:ngll-1,0:ngll-1))
+            allocate(temp_PMLy(0:ngll-1,0:ngll-1,0:ngll-1))
+            temp_PMLx(:,:,:) = wx(:,:,:)
+            temp_PMLy(:,:,:) = wy(:,:,:)
+            wx(:,:,:) = wx(:,:,:)+Tdomain%MPML_coeff*(wy(:,:,:)+wz(:,:,:))
+            wy(:,:,:) = wy(:,:,:)+Tdomain%MPML_coeff*(temp_PMLx(:,:,:)+wz(:,:,:))
+            wz(:,:,:) = wz(:,:,:)+Tdomain%MPML_coeff*(temp_PMLx(:,:,:)+temp_PMLy(:,:,:))
+            deallocate(temp_PMLx,temp_PMLy)
+        end if
+
+        allocate(PMLDumpMass(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+        PMLDumpMass = 0d0
+
+        !- strong formulation for stresses. Dumped mass elements, convolutional terms.
+        ! Compute DumpS(x,y,z) and DumpMass(0,1,2)
+        call define_PML_DumpInit(ngll,dt,wx,specel%MassMat, &
+            Tdomain%spmldom%PMLDumpSx_(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,0))
+        call define_PML_DumpInit(ngll,dt,wy,specel%MassMat, &
+            Tdomain%spmldom%PMLDumpSy_(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,1))
+        call define_PML_DumpInit(ngll,dt,wz,specel%MassMat, &
+            Tdomain%spmldom%PMLDumpSz_(:,:,:,:,specel%lnum),PMLDumpMass(:,:,:,2))
+        deallocate(wx,wy,wz)
+
+        ! Assemble dump mass
+        do m = 0,2
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        ind = specel%Idom(i,j,k)
+                        Tdomain%spmldom%DumpMass(ind,m) =   Tdomain%spmldom%DumpMass(ind,m) &
+                                                          + PMLDumpMass(i,j,k,m)
+                    enddo
+                enddo
+            enddo
+        enddo
+        if(allocated(PMLDumpMass)) deallocate(PMLDumpMass)
+
+        deallocate(Vp)
+    end subroutine init_solidpml_properties
+
+    subroutine finalize_solidpml_properties(dom)
+      type (domain_solidpml), intent (INOUT), target :: dom
+      !
+      call define_PML_DumpEnd(dom%nglltot, dom%MassMat, dom%DumpMass, dom%champs0%DumpV)
+    end subroutine finalize_solidpml_properties
+
 end module dom_solidpml
 
 !! Local Variables:

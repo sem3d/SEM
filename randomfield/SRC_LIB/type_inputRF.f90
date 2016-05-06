@@ -3,6 +3,7 @@ module type_inputRF
     use mpi
     use readFile_RF
     use readUNV_RF
+    use systemUt_RF
 
     implicit none
 
@@ -14,6 +15,9 @@ module type_inputRF
         integer :: nb_procs = -1
         logical :: init=.false.
         logical :: alloc=.false.
+        integer :: nSamples
+        character(len=buf_RF), dimension(:), allocatable :: out_folders, out_names
+        character(len=buf_RF), dimension(:), allocatable :: mesh_inputs, gen_inputs
         !MESH
         integer :: nDim_mesh
         integer :: meshMod
@@ -29,7 +33,7 @@ module type_inputRF
         integer         , dimension(:,:), pointer :: connectList
         logical :: monotype
         logical :: unv = .false.
-        character(len=1024) :: unv_path
+        character(len=buf_RF) :: unv_path, outputFolder, outputName
 
         !GENERATION
         integer :: nDim_gen
@@ -41,7 +45,7 @@ module type_inputRF
         integer :: Nmc = -1, seedStart
         integer, dimension(:), allocatable :: nFields
         integer :: localizationLevel = -1, nTotalFields = -1
-
+        logical :: global
         !FILE MANAGER
         logical :: writeDataSet = .true.
         logical :: sameFolder = .false.
@@ -69,39 +73,41 @@ contains
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
         subroutine init_IPT_RF(&
-        IPT, &
-        log_ID, &
-        comm, &
-        rang, &
-        nb_procs, &
-        nDim, &
-        meshMod, &
-        xMaxGlob_in, &
-        xMinGlob_in, &
-        pointsPerCorrL, &
-        procPerDim, &
-        coordList_local, &
-        connectList_local, &
-        monotype, &
-        unv, &
-        unv_path, &
-        fieldAvg, &
-        fieldVar, &
-        corrL_in, &
-        overlap_in, &
-        corrMod, &
-        margiFirst, &
-        method, &
-        Nmc, &
-        seedStart, &
-        nFields, &
-        localizationLevel, &
-        writeDataSet, &
-        sameFolder, &
-        outputStyle, &
-        write_intermediate_files, &
-        sampleFields, &
-        writeUNVinterpolation  )
+                                IPT, &
+                                log_ID, &
+                                comm, &
+                                rang, &
+                                nb_procs, &
+                                nDim, &
+                                meshMod, &
+                                xMinGlob_in, &
+                                xMaxGlob_in, &
+                                pointsPerCorrL, &
+                                procPerDim, &
+                                fieldAvg, &
+                                fieldVar, &
+                                corrL_in, &
+                                overlap_in, &
+                                corrMod, &
+                                margiFirst, &
+                                method, &
+                                Nmc, &
+                                seedStart, &
+                                nFields, &
+                                localizationLevel, &
+                                writeDataSet, &
+                                sameFolder, &
+                                outputStyle, &
+                                write_intermediate_files, &
+                                sampleFields, &
+                                writeUNVinterpolation, &
+                                outputFolder, &
+                                outputName, &
+                                unv, &
+                                unv_path, &
+                                monotype, &
+                                coordList_local, &
+                                connectList_local)
 
             !OUTPUT
             type(IPT_RF), intent(inout)  :: IPT
@@ -112,6 +118,7 @@ contains
             integer, intent(in) :: rang
             integer, intent(in) :: nb_procs
             integer, intent(in) :: nDim
+            character(len=*), intent(in) :: outputFolder, outputName
 
             !MESH
             integer, intent(in) :: meshMod
@@ -119,11 +126,11 @@ contains
             integer         , dimension(:), intent(in) :: pointsPerCorrL;
             integer         , dimension(:), intent(in) :: procPerDim
             !UNV
-            double precision, dimension(:,:), intent(in), target :: coordList_local
-            integer         , dimension(:,:), intent(in), target :: connectList_local
-            logical, intent(in) :: monotype
-            logical, intent(in) :: unv
-            character(len=1024), intent(in) :: unv_path
+            double precision, dimension(:,:), intent(in), target, optional :: coordList_local
+            integer         , dimension(:,:), intent(in), target, optional :: connectList_local
+            logical, intent(in), optional :: monotype
+            logical, intent(in), optional :: unv
+            character(len=1024), intent(in), optional :: unv_path
 
             !GENERATION
             double precision, intent(in)   :: fieldAvg, fieldVar
@@ -143,8 +150,12 @@ contains
             logical, intent(in) :: sampleFields
             logical, intent(in) :: writeUNVinterpolation
 
-            call allocate_IPT_RF(IPT, nDim, log_ID, rang, comm, nb_procs)
+            call create_folder(outputFolder, ".", rang, comm)
+            !create xmf and h5 folders
+            call create_folder("xmf", outputFolder, rang, comm)
+            call create_folder("h5", outputFolder, rang, comm)
 
+            call allocate_IPT_RF(IPT, nDim, log_ID, rang, comm, nb_procs)
 
             IPT%nDim_mesh = nDim
             IPT%nDim_gen  = nDim
@@ -152,11 +163,11 @@ contains
             IPT%xMaxGlob_in = xMaxGlob_in
             IPT%xMinGlob_in = xMinGlob_in
             IPT%pointsPerCorrL = pointsPerCorrL
-            IPT%coordList => coordList_local
-            IPT%connectList => connectList_local
-            IPT%monotype = monotype
-            IPT%unv = unv
-            IPT%unv_path = unv_path
+            if(present(coordList_local)) IPT%coordList => coordList_local
+            if(present(connectList_local)) IPT%connectList => connectList_local
+            if(present(monotype)) IPT%monotype = monotype
+            if(present(unv)) IPT%unv = unv
+            if(present(unv_path)) IPT%unv_path = unv_path
             IPT%fieldAvg = fieldAvg
             IPT%fieldVar = fieldVar
             IPT%corrL_in    = corrL_in
@@ -175,13 +186,104 @@ contains
             IPT%write_intermediate_files = write_intermediate_files
             IPT%sampleFields = sampleFields
             IPT%writeUNVinterpolation = writeUNVinterpolation
+            IPT%outputFolder = outputFolder
+            IPT%outputName = outputName
 
             IPT%xMinGlob = IPT%xMinGlob_in
             IPT%xMaxGlob = IPT%xMaxGlob_in
 
-            IPT%init   = .true.
 
         end subroutine init_IPT_RF
+
+
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        subroutine init_IPT_RF_std(&
+                                    IPT, &
+                                    comm, &
+                                    nDim, &
+                                    xMinGlob_in, &
+                                    xMaxGlob_in, &
+                                    fieldAvg, &
+                                    fieldVar, &
+                                    corrL_in, &
+                                    corrMod, &
+                                    margiFirst, &
+                                    seedStart, &
+                                    outputFolder, &
+                                    outputName)
+
+            !OUTPUT
+            type(IPT_RF), intent(inout)  :: IPT
+
+            !INPUT----------------------------------
+            integer, intent(in) :: comm
+            integer, intent(in) :: nDim
+            character(len=*), intent(in) :: outputFolder, outputName
+
+            !MESH
+            double precision, dimension(:), intent(in) :: xMaxGlob_in, xMinGlob_in;
+
+            !GENERATION
+            double precision, intent(in)   :: fieldAvg, fieldVar
+            double precision, dimension(:), intent(in) :: corrL_in
+            integer, intent(in) :: corrMod!1 for Gaussian
+            integer, intent(in) :: margiFirst!1 for Gaussian, 2 for Lognormal
+            integer, intent(in) :: seedStart
+
+            !LOCAL
+            integer :: rang
+            integer :: nb_procs
+            integer :: code
+            integer, dimension(nDim) :: pointsPerCorrL, procPerDim, nFields
+            double precision, dimension(nDim) :: overlap_in
+
+            pointsPerCorrL = 5
+            procPerDim = 1
+            overlap_in = 0.0D0
+            nFields = 1
+#ifdef MAKELOG
+            stop("init_IPT_RF_std cannot be used if MAKELOG is activated")
+#endif
+            call MPI_COMM_RANK(comm, rang, code)
+            call MPI_COMM_SIZE(comm, nb_procs, code)
+
+            call init_IPT_RF(&
+                            IPT=IPT, &
+                            log_ID=0, &
+                            comm=comm, &
+                            rang=rang, &
+                            nb_procs=nb_procs, &
+                            nDim=nDim, &
+                            meshMod=1, &
+                            xMaxGlob_in=xMaxGlob_in, &
+                            xMinGlob_in=xMinGlob_in, &
+                            pointsPerCorrL=pointsPerCorrL, &
+                            procPerDim=procPerDim, &
+                            fieldAvg=fieldAvg, &
+                            fieldVar=fieldVar, &
+                            corrL_in=corrL_in, &
+                            overlap_in=overlap_in, &
+                            corrMod=corrMod, &
+                            margiFirst=margiFirst, &
+                            method=4, &
+                            Nmc=1, &
+                            seedStart=seedStart, &
+                            nFields=nFields, &
+                            localizationLevel=1, &
+                            writeDataSet=.true., &
+                            sameFolder=.true., &
+                            outputStyle=1, &
+                            write_intermediate_files=.false., &
+                            sampleFields=.true., &
+                            writeUNVinterpolation=.false., &
+                            outputFolder=outputFolder, &
+                            outputName=outputName)
+
+        end subroutine init_IPT_RF_std
+
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
@@ -269,6 +371,11 @@ contains
             if(allocated(IPT%op_neigh)) deallocate(IPT%op_neigh)
             if(allocated(IPT%neighShift)) deallocate(IPT%neighShift)
 
+            if(allocated(IPT%out_folders)) deallocate(IPT%out_folders)
+            if(allocated(IPT%out_names)) deallocate(IPT%out_names)
+            if(allocated(IPT%mesh_inputs)) deallocate(IPT%mesh_inputs)
+            if(allocated(IPT%gen_inputs)) deallocate(IPT%gen_inputs)
+
         end subroutine finalize_IPT_RF
 
         !---------------------------------------------------------------------------------
@@ -346,6 +453,39 @@ contains
             IPT%procExtent = IPT_orig%procExtent
 
         end subroutine copy_IPT_RF
+
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        subroutine read_main_input(path, IPT)
+
+            implicit none
+            !INPUT
+            character(len=*), intent(in) :: path
+            !OUTPUT
+            type(IPT_RF), intent(inout)  :: IPT
+            !LOCAL
+            character(len=buf_RF) , dimension(:,:), allocatable :: dataTable;
+            integer :: i
+
+
+            call set_DataTable(path, dataTable)
+
+            call read_DataTable(dataTable, "nSamples", IPT%nSamples)
+            allocate(IPT%out_folders(IPT%nSamples))
+            allocate(IPT%out_names(IPT%nSamples))
+            allocate(IPT%mesh_inputs(IPT%nSamples))
+            allocate(IPT%gen_inputs(IPT%nSamples))
+            do i =1, IPT%nSamples
+                call read_DataTable(dataTable, stringNumb_join("mesh_input_",i), IPT%mesh_inputs(i))
+                call read_DataTable(dataTable, stringNumb_join("gen_input_",i), IPT%gen_inputs(i))
+                call read_DataTable(dataTable, stringNumb_join("out_folder_",i), IPT%out_folders(i))
+                call read_DataTable(dataTable, stringNumb_join("out_name_",i), IPT%out_names(i))
+            end do
+            deallocate(dataTable)
+
+        end subroutine read_main_input
 
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
@@ -539,6 +679,7 @@ contains
                 write(unit,*) " log_ID = ", IPT%log_ID
                 write(unit,*) " rang = ", IPT%rang
                 write(unit,*) " init = ", IPT%init
+                write(unit,*) " comm = ", IPT%comm
                 write(unit,*) " "
                 write(unit,*) " MESH -----------------"
                 write(unit,*) " nDim_mesh = ", IPT%nDim_mesh
@@ -577,58 +718,60 @@ contains
                 write(unit,*) " xStep      = ", IPT%xStep
                 write(unit,*) " stepProc   = ", IPT%stepProc
                 write(unit,*) " procExtent = ", IPT%procExtent
-
+                write(unit,*) " procExtent = ", IPT%procExtent
+                write(unit,*) " outputFolder = ", trim(adjustL(IPT%outputFolder))
+                write(unit,*) " outputName   = ", trim(adjustL(IPT%outputName))
 
             end if
 
         end subroutine show_IPT_RF
 
-    !-----------------------------------------------------------------------------------------------
-    !-----------------------------------------------------------------------------------------------
-    !-----------------------------------------------------------------------------------------------
-    !-----------------------------------------------------------------------------------------------
-    subroutine get_Global_Extremes_Mesh(coordList, comm, xMinGlob, xMaxGlob)
-        implicit none
+        !-----------------------------------------------------------------------------------------------
+        !-----------------------------------------------------------------------------------------------
+        !-----------------------------------------------------------------------------------------------
+        !-----------------------------------------------------------------------------------------------
+        subroutine get_Global_Extremes_Mesh(coordList, comm, xMinGlob, xMaxGlob)
+            implicit none
 
-        !INPUT
-        double precision, dimension(:,:), intent(in) :: coordList
-        integer, intent(in) :: comm
-        !OUTPUT
-        double precision, dimension(:), intent(out) :: xMinGlob, xMaxGlob
-        !LOCAL
-        integer :: nDim
-        double precision, dimension(:), allocatable :: xMinLoc, xMaxLoc
-        integer :: code, i
+            !INPUT
+            double precision, dimension(:,:), intent(in) :: coordList
+            integer, intent(in) :: comm
+            !OUTPUT
+            double precision, dimension(:), intent(out) :: xMinGlob, xMaxGlob
+            !LOCAL
+            integer :: nDim
+            double precision, dimension(:), allocatable :: xMinLoc, xMaxLoc
+            integer :: code, i
 
-        !call DispCarvalhol(transpose(coordList), "transpose(coordList)")
+            !call DispCarvalhol(transpose(coordList), "transpose(coordList)")
 
-        nDim = size(coordList,1)
-        allocate(xMinLoc(nDim))
-        allocate(xMaxLoc(nDim))
+            nDim = size(coordList,1)
+            allocate(xMinLoc(nDim))
+            allocate(xMaxLoc(nDim))
 
-        xMinLoc = minval(coordList, 2)
-        xMaxLoc = maxval(coordList, 2)
+            xMinLoc = minval(coordList, 2)
+            xMaxLoc = maxval(coordList, 2)
 
-        call wLog("xMinLoc = ")
-        call wLog(xMinLoc)
-        call wLog("xMaxLoc = ")
-        call wLog(xMaxLoc)
+            call wLog("xMinLoc = ")
+            call wLog(xMinLoc)
+            call wLog("xMaxLoc = ")
+            call wLog(xMaxLoc)
 
-        do i = 1, nDim
-            call MPI_ALLREDUCE (xMinLoc(i), xMinGlob(i), 1, MPI_DOUBLE_PRECISION, MPI_MIN, comm,code)
-            call MPI_ALLREDUCE (xMaxLoc(i), xMaxGlob(i), 1, MPI_DOUBLE_PRECISION, MPI_MAX, comm,code)
-        end do
+            do i = 1, nDim
+                call MPI_ALLREDUCE (xMinLoc(i), xMinGlob(i), 1, MPI_DOUBLE_PRECISION, MPI_MIN, comm,code)
+                call MPI_ALLREDUCE (xMaxLoc(i), xMaxGlob(i), 1, MPI_DOUBLE_PRECISION, MPI_MAX, comm,code)
+            end do
 
-        call wLog(" ")
-        call wLog("xMinGlob = ")
-        call wLog(xMinGlob)
-        call wLog("xMaxGlob = ")
-        call wLog(xMaxGlob)
+            call wLog(" ")
+            call wLog("xMinGlob = ")
+            call wLog(xMinGlob)
+            call wLog("xMaxGlob = ")
+            call wLog(xMaxGlob)
 
-        if(allocated(xMinLoc)) deallocate(xMinLoc)
-        if(allocated(xMaxLoc)) deallocate(xMaxLoc)
+            if(allocated(xMinLoc)) deallocate(xMinLoc)
+            if(allocated(xMaxLoc)) deallocate(xMaxLoc)
 
-    end subroutine get_Global_Extremes_Mesh
+        end subroutine get_Global_Extremes_Mesh
 
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------

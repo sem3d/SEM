@@ -29,7 +29,13 @@
 #else /* SEM_VEC */
 #endif
 #if defined(SEM_VEC)
+#if defined(SEM_VEC_LOW_RAM)
+#define CHUNK   4
+#elif defined(SEM_VEC_MED_RAM)
+#define CHUNK  16
+#else
 #define CHUNK  64
+#endif
 #define IND_IJKE(i,j,k,e)           e,i,j,k
 #define IND_MNE(m,n,e)           e,m,n
 #define IND_DIJKE(m,i,j,k,e)      e,m,i,j,k
@@ -135,3 +141,28 @@
         dxx = dS_dxi*InvGrad(IND_MNE(0,0,ee))+dS_deta*InvGrad(IND_MNE(0,1,ee))+dS_dzeta*InvGrad(IND_MNE(0,2,ee)); \
         dxy = dS_dxi*InvGrad(IND_MNE(1,0,ee))+dS_deta*InvGrad(IND_MNE(1,1,ee))+dS_dzeta*InvGrad(IND_MNE(1,2,ee)); \
         dxz = dS_dxi*InvGrad(IND_MNE(2,0,ee))+dS_deta*InvGrad(IND_MNE(2,1,ee))+dS_dzeta*InvGrad(IND_MNE(2,2,ee));
+
+
+#define part2_deriv_ijke(Var,d,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz) \
+        dS_dxi   = 0.0D+0; \
+        dS_deta  = 0.0D+0; \
+        dS_dzeta = 0.0D+0; \
+        DO L = 0, ngll-1;  \
+            dS_dxi   = dS_dxi  +Var(ee,L,J,K,d)*dom%hprime(L,I); \
+            dS_deta  = dS_deta +Var(ee,I,L,K,d)*dom%hprime(L,J); \
+            dS_dzeta = dS_dzeta+Var(ee,I,J,L,d)*dom%hprime(L,K); \
+        END DO; \
+        dxx = dS_dxi*dom%InvGrad_(0,0,i,j,k,e))+dS_deta*dom%InvGrad_(0,1,i,j,k,e))+dS_dzeta*dom%InvGrad_(0,2,i,j,k,e)); \
+        dxy = dS_dxi*dom%InvGrad_(1,0,i,j,k,e))+dS_deta*dom%InvGrad_(1,1,i,j,k,e))+dS_dzeta*dom%InvGrad_(1,2,i,j,k,e)); \
+        dxz = dS_dxi*dom%InvGrad_(2,0,i,j,k,e))+dS_deta*dom%InvGrad_(2,1,i,j,k,e))+dS_dzeta*dom%InvGrad_(2,2,i,j,k,e));
+
+
+#define local_deriv_ijke(Var,d,dS_dxi,dS_deta,dS_dzeta) \
+        dS_dxi   = 0.0D+0; \
+        dS_deta  = 0.0D+0; \
+        dS_dzeta = 0.0D+0; \
+        DO L = 0, ngll-1;  \
+            dS_dxi   = dS_dxi  +Var(ee,L,J,K,d)*dom%hprime(L,I); \
+            dS_deta  = dS_deta +Var(ee,I,L,K,d)*dom%hprime(L,J); \
+            dS_dzeta = dS_dzeta+Var(ee,I,J,L,d)*dom%hprime(L,K); \
+        END DO;

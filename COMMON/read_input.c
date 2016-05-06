@@ -318,7 +318,7 @@ int expect_material_type(yyscan_t scanner, int* type) {
     if (cmp(scanner,"gradient"))  { *type = 2; return 1; }
     if (cmp(scanner,"earthchunk")){ *type = 3; return 1; }
     if (cmp(scanner,"prem"))      { *type = 4; return 1; }
-    if (cmp(scanner,"multiple"))    { *type = 5; return 1; }
+    if (cmp(scanner,"random"))    { *type = 5; return 1; }
 error:
     msg_err(scanner, "Expected constant|gradient|earthchunk|prem|multiple");
     return 0;
@@ -356,6 +356,7 @@ int expect_materials(yyscan_t scanner, sem_config_t* config)
 	if (cmp(scanner,"file")) err=expect_eq_string(scanner, &config->model_file,1);
 	if (cmp(scanner,"delta_lon")) err=expect_eq_float(scanner, &config->delta_lon, 1);
 	if (cmp(scanner,"delta_lat")) err=expect_eq_float(scanner, &config->delta_lat, 1);
+    if (cmp(scanner,"random_library_path")) err=expect_eq_string(scanner, &config->random_library_path,1);
 
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
@@ -365,6 +366,7 @@ int expect_materials(yyscan_t scanner, sem_config_t* config)
         msg_err(scanner, "In section material, you need to specify a model_file for type==earthchunk");
         return 0;
     }
+
     return 1;
 }
 
@@ -675,6 +677,7 @@ void init_sem_config(sem_config_t* cfg)
     cfg->out_variables[7] = 0; // Deformation Dev
     cfg->out_variables[8] = 0; // Contrainte Dev
     cfg->nl_flag = 0; // calcul nonlineaire
+    cfg->random_library_path = NULL;
 }
 
 

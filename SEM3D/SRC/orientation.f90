@@ -40,6 +40,9 @@ contains
         integer :: node, dir
         integer, dimension(0:3) :: elface
 
+        do i = 0,Tdomain%n_face-1
+            Tdomain%sFace(i)%orphan = .true.
+        end do
         do i = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(i)%mat_index
             dom = get_domain(Tdomain%sSubDomain(mat))
@@ -52,10 +55,13 @@ contains
                      ngll(0:2) = Tdomain%spmldom%ngll
                  case (DM_FLUID_PML)
                      ngll(0:2) = Tdomain%fpmldom%ngll
+                 case default
+                     stop "unknown domain"
             end select
 
             do j = 0,5
                 nf = Tdomain%specel(i)%Near_Faces(j)
+                Tdomain%sFace(nf)%orphan = .false.
                 do k=0,3
                     !write(*,*) 'k=', k, 'f(k,j)=', face_def(k,j), size(Tdomain%specel(i)%Control_nodes)
                     elface(k) = Tdomain%specel(i)%Control_nodes(face_def(k,j))
@@ -98,6 +104,8 @@ contains
                      ngll(0:2) = Tdomain%spmldom%ngll
                  case (DM_FLUID_PML)
                      ngll(0:2) = Tdomain%fpmldom%ngll
+                 case default
+                     stop "unknown domain"
             end select
 
             do j = 0,11
@@ -167,7 +175,11 @@ contains
             if (.not.check) cycle
             if ((Tdomain%sFace(i0)%domain /= d0).or.(Tdomain%sFace(i1)%domain /= d1).or.&
                 (interface_ok==2)) then
-                write(*,*) "Inconsistency detected, unhandled interface"
+                write(*,*) "Inconsistency detected, unhandled interface (face)"
+                write(*,*) "Face0:", i0, "domain=", Tdomain%sFace(i0)%domain, &
+                    "expected:", d0, "ngll:", Tdomain%sFace(i0)%ngll1, Tdomain%sFace(i0)%ngll2
+                write(*,*) "Face1:", i1, "domain=", Tdomain%sFace(i1)%domain, &
+                    "expected:", d1, "ngll:", Tdomain%sFace(i1)%ngll1, Tdomain%sFace(i1)%ngll2
                 stop 1
             end if
         end do
@@ -183,7 +195,7 @@ contains
             if (.not.check) cycle
             if ((Tdomain%sEdge(i0)%domain /= d0).or.(Tdomain%sEdge(i1)%domain /= d1).or.&
                 (interface_ok==2).or.((Tdomain%sEdge(i0)%ngll==0).and.(Tdomain%sEdge(i1)%ngll==0))) then
-                write(*,*) "Inconsistency detected, unhandled interface"
+                write(*,*) "Inconsistency detected, unhandled interface (edge)"
                 write(*,*) "Edge0:", i0, "domain=", Tdomain%sEdge(i0)%domain, &
                     "expected:", d0, "ngll:", Tdomain%sEdge(i0)%ngll
                 write(*,*) "Edge1:", i1, "domain=", Tdomain%sEdge(i1)%domain, &
@@ -196,7 +208,11 @@ contains
             i1 = inter%surf1%if_vertices(k)
             if (.not.check) cycle
             if ((Tdomain%sVertex(i0)%domain /= d0).or.(Tdomain%sVertex(i1)%domain /= d1)) then
-                write(*,*) "Inconsistency detected, unhandled interface"
+                write(*,*) "Inconsistency detected, unhandled interface (vertex)"
+                write(*,*) "Vertex0:", i0, "domain=", Tdomain%sVertex(i0)%domain, &
+                    "expected:", d0
+                write(*,*) "Vertex1:", i1, "domain=", Tdomain%sVertex(i1)%domain, &
+                    "expected:", d1
                 stop 1
             end if
         end do

@@ -13,6 +13,8 @@ module sfaces
     type :: face
         integer :: ngll1, ngll2
         integer :: domain
+        ! True if this face doesn't have an associated element on this cpu
+        logical :: orphan
         ! Index dans Tdomain%GlobalCoord des coordonnees du pt de gauss
         ! Long term : on peut avoir un champ GlobalCoord par domaine et virer les Iglobnum_*
         integer, dimension (:,:), allocatable :: Iglobnum_Face

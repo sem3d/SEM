@@ -23,6 +23,8 @@ void handle_on_the_fly(Mesh3D& mesh)
     desc.init_rectangular_mesh(mesh);
 }
 
+
+
 void handle_ideas_file(Mesh3D& mesh)
 {
     int numfiles;
@@ -120,17 +122,8 @@ int main(int argc, char**argv)
     };
 
     mesh.write_materials("material.input");
-    mesh.build_vertex_to_elem_map();
-    mesh.partition_mesh(NPROCS);
 
-    for(int part=0;part<NPROCS;++part) {
-	Mesh3DPart loc(mesh, part);
-
-	loc.compute_part();
-	loc.output_mesh_part();
-	loc.output_mesh_part_xmf();
-    }
-    output_all_meshes_xmf(NPROCS);
+    mesh.generate_output(NPROCS);
     return 0;
 }
 

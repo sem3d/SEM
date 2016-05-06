@@ -130,12 +130,33 @@ contains
 
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
     function numb2String(number, nCharacters) result(stringTot)
 
         implicit none
 
         !INPUT
         integer, intent(in) :: number
+        integer, intent(in), optional :: nCharacters
+
+        !OUTPUT
+        character (len=30) :: stringTot;
+
+        stringTot = numb2StringLong(int(number,8), nCharacters)
+
+    end function numb2String
+
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    function numb2StringLong(number, nCharacters) result(stringTot)
+
+        implicit none
+
+        !INPUT
+        integer(kind=8), intent(in) :: number
         integer, intent(in), optional :: nCharacters
 
         !OUTPUT
@@ -172,6 +193,6 @@ contains
             stringTot = nmbString
         end if
 
-    end function
+    end function numb2StringLong
 
 end module charFunctions

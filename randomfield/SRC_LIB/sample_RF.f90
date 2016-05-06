@@ -130,7 +130,8 @@ contains
                                   loc_groupMax, loc_group, loc_Comm, loc_nbProcs, &
                                   loc_rang, extLoc, nDim, &
                                   xMinGlob, xMaxGlob, xStep, localizationLevel, &
-                                  nTotalFields, coords, neigh, op_neigh, neighShift)
+                                  nTotalFields, coords, neigh, op_neigh, neighShift, &
+                                  global)
 
             implicit none
             !INPUT
@@ -150,6 +151,7 @@ contains
             integer, intent(out) :: nTotalFields
             integer, dimension(:), intent(out) :: coords, neigh, op_neigh
             integer, dimension(:,:), intent(out) :: neighShift
+            logical :: global
             !LOCAL
             integer :: code
             integer :: prodNFields
@@ -158,9 +160,11 @@ contains
             if(IPT%nDim_mesh == IPT%nDim_gen) nDim = IPT%nDim_gen
 
             prodNFields  = product(IPT%nFields) !Number of fields (ignoring localization level)
+            global = .false.
+            if( prodNFields == 1) global = .true.
 
             !DEFINING GROUPS AND COMMUNICATORS FOR LOCALIZATION
-            if(IPT%nb_procs < prodNFields) then
+            if(IPT%nb_procs < prodNFields .or. prodNFields == 1) then
                 loc_groupMax = 0 !No external localization
                 loc_nbProcs = 1
                 extLoc = .false.
@@ -173,7 +177,10 @@ contains
                 loc_nbProcs  = prodNFields
                 extLoc = .true.
             end if
+            !if(prodNFields == 1) extLoc = .false.
             call MPI_COMM_SPLIT(IPT%comm, loc_group, IPT%rang, loc_Comm, code)
+            write(*,*) "code loc_Comm = ", code
+            write(*,*) "loc_Comm = ", loc_Comm
             call MPI_COMM_RANK(loc_Comm, loc_rang, code)
 
             !DEFINING GROUPS AND COMMUNICATORS FOR GENERATION
@@ -185,6 +192,8 @@ contains
                 gen_groupMax = 1 !No ExtLoc
             end if
             call MPI_COMM_SPLIT(IPT%comm, gen_group, IPT%rang, gen_Comm, code)
+            write(*,*) "code gen_Comm = ", code
+            write(*,*) "gen_Comm = ", gen_Comm
             call MPI_COMM_SIZE(gen_Comm, gen_nbProcs, code)
             call MPI_COMM_RANK(gen_Comm, gen_rang, code)
 
@@ -228,15 +237,17 @@ contains
         !---------------------------------------------------------------------------------
 
         subroutine single_realization(IPT, &
-                                      fieldComm, fieldNumber, subdivisionStart, stepProc, &
-                                      randField_Local, kMax_out, kNStep_out)
+                                      fieldComm, fieldNumber, subdivisionStart, &
+                                      randField_Local, randField_Gen, &
+                                      kMax_out, kNStep_out)
 
             implicit none
             !INPUT
             type(IPT_RF), intent(in) :: IPT
             !type(MESH)  , intent(in) :: globMSH
             integer, intent(in) :: fieldComm, fieldNumber
-            double precision, dimension(:), intent(in) :: subdivisionStart, stepProc
+            double precision, dimension(:), intent(in) :: subdivisionStart
+            double precision, dimension(:,:), intent(out) :: randField_Gen
 
             !OUTPUT
             double precision, dimension(:,:), allocatable, intent(out) :: randField_Local
@@ -250,48 +261,46 @@ contains
             logical :: validProc
             integer :: rang
             integer :: newNbProcs, newRang
+            integer :: validComm
 
             integer, dimension(IPT%nDim_gen) :: globCoord
 
 
-            validProc = .true.
-            call MPI_COMM_RANK(fieldComm, newRang, code)
-            call MPI_COMM_SIZE(fieldComm, newNbProcs, code)
-
-            call init_MESH(MSH, IPT, fieldComm, newRang, newNbProcs)
-            call init_RF(RDF, IPT, fieldComm, newNbProcs, newRang)
-
-            !Copy from globMSH
-            MSH%xStep    = IPT%xStep
-            MSH%overlap  = IPT%overlap
-            MSH%xMinGlob = subdivisionStart
-            MSH%xMaxGlob = MSH%xMinGlob + IPT%procExtent
-            MSH%procExtent = IPT%procExtent
-
-            MSH%procPerDim(:) = 1
-            MSH%procPerDim(MSH%nDim) = newNbProcs
-            MSH%coords = 0
-            MSH%coords(MSH%nDim) = newRang
-            globCoord = nint((subdivisionStart - IPT%xMinGlob)/stepProc)
-            call wLog("  globCoord = ")
-            call wLog(globCoord)
-
-            call wLog("-> set_local_bounding_box")
-
-            call set_local_bounding_box(MSH,&
-                                        MSH%xMinBound, MSH%xMaxBound, &
-                                        MSH%xNStep, MSH%xNTotal, MSH%origin, validProc, &
-                                        localization = .false.)
-            !write(*,*) "After set_local_bounding_box"
-            rang = MSH%rang
-            call set_validProcs_comm(validProc, fieldComm, rang, &
-                                     MSH%validProc, RDF%validProc, MSH%comm, RDF%comm, &
-                                     MSH%nb_procs, RDF%nb_procs, MSH%rang, RDF%rang)
-
-            call wLog("MSH%xNTotal = ")
-            call wLog(MSH%xNTotal)
+            call set_validProcs_comm(IPT, fieldComm, validProc, validComm)
 
             if(validProc) then
+
+                write(*,*) "-> VALID proc ", IPT%rang
+
+                call MPI_COMM_RANK(validComm, newRang, code)
+                call MPI_COMM_SIZE(validComm, newNbProcs, code)
+
+                call init_MESH(MSH, IPT, validComm, newRang, newNbProcs)
+                call init_RF(RDF, IPT, validComm, newNbProcs, newRang)
+
+                !Outside Initialization
+                MSH%xMinGlob = subdivisionStart
+                MSH%xMaxGlob = MSH%xMinGlob + IPT%procExtent
+                MSH%procPerDim(:) = 1
+                MSH%procPerDim(MSH%nDim) = newNbProcs
+                MSH%coords = 0
+                MSH%coords(MSH%nDim) = newRang
+                globCoord = nint((subdivisionStart - IPT%xMinGlob)/IPT%stepProc)
+                call wLog("  globCoord = ")
+                call wLog(globCoord)
+
+                call wLog("-> set_local_bounding_box")
+
+                call set_local_bounding_box(MSH,&
+                                            MSH%xMinBound, MSH%xMaxBound, RDF%xRange, &
+                                            MSH%xNStep, MSH%xNTotal, MSH%origin)
+
+                !write(*,*) "After set_local_bounding_box"
+                rang = MSH%rang
+
+
+                call wLog("MSH%xNTotal = ")
+                call wLog(MSH%xNTotal)
 
                 call wLog("-> Initializing Random Seed")
 
@@ -312,13 +321,15 @@ contains
                 call wLog(RDF%seed)
                 call wLog(" ")
 
-                call wLog("-> Setting xPoints")
-                !write(*,*) "Setting xPoints"
-                call set_xPoints(MSH, RDF, RDF%xPoints_Local)
-                call wLog("      maxval(RDF%xPoints,2) = ")
-                call wLog(maxval(RDF%xPoints,2))
-                call wLog( "      minval(RDF%xPoints,2) = ")
-                call wLog(minval(RDF%xPoints,2))
+                if(IPT%method /= FFT) then
+                    call wLog("-> Setting xPoints")
+                    !write(*,*) "Setting xPoints"
+                    call set_xPoints(MSH, RDF, RDF%xPoints_Local)
+                    call wLog("      maxval(RDF%xPoints,2) = ")
+                    call wLog(maxval(RDF%xPoints,2))
+                    call wLog( "      minval(RDF%xPoints,2) = ")
+                    call wLog(minval(RDF%xPoints,2))
+                end if
 
                 !i = size(RDF%xPoints,2)
                 !if(i>50) i = 50
@@ -331,6 +342,7 @@ contains
                 call wLog("     shape(RDF%randField)")
                 call wLog(shape(RDF%randField))
                 call wLog("     Calculating sample")
+                write(*,*) "-> Calculating Sample proc ", IPT%rang
                 call create_RF_Unstruct_Init (RDF, MSH)
 
                 !write(*,*) "After Calculation"
@@ -343,7 +355,14 @@ contains
                 if(present(kMax_out))   kMax_out   = RDF%kMax
                 if(present(kNStep_out)) kNStep_out = RDF%kNStep
 
+                call wLog("Gathering Sample")
+                write(*,*) "-> Gathering Sample proc ", IPT%rang
+                call gather_sample(RDF%randField, randField_Gen, &
+                                   RDF%rang, RDF%nb_procs, RDF%comm)
+
             end if
+
+            call MPI_COMM_FREE (validComm, code)
 
             call finalize_MESH(MSH)
             call finalize_RF(RDF)
@@ -799,7 +818,6 @@ contains
             double precision, dimension(:, :, :), pointer :: RF_3D
             integer, dimension(IPT%nDim) :: minP, maxP, overlapNPoints
             integer, dimension(IPT%nDim) :: xNStep_Glob
-            character(len=100) :: filename="NEW_RF"
 
 
             if(IPT%nDim == 2) RF_2D(1:xNStep(1),1:xNStep(2)) => randField(:,1)
@@ -812,6 +830,7 @@ contains
             minP(:) = 1
             maxP(:) = xNStep - overlapNPoints
             where(IPT%coords == IPT%nFields - 1) maxP = xNStep
+            if(.not. IPT%extLoc) maxP = xNStep
 
             if(IPT%nDim == 2) then
                 call normalize_randField(randField, minP, maxP, &
@@ -821,20 +840,22 @@ contains
                                          IPT%nDim, 1, IPT%loc_Comm, RF_3D=RF_3D)
             end if
 
-            build_times(6) = MPI_Wtime() !Normalization Time
+            build_times(5) = MPI_Wtime() !Normalization Time
 
             call multiVariateTransformation (IPT%margiFirst, IPT%fieldAvg, IPT%fieldVar, randField)
 
-            build_times(7) = MPI_Wtime() !Transformation Time
+            build_times(6) = MPI_Wtime() !Transformation Time
 
             call write_Simple_pHDF5_Str(minP, maxP, &
                                         IPT%nDim, IPT%Nmc, IPT%loc_Comm, RF_2D, RF_3D, &
                                         origin, xNStep, IPT%xStep, &
                                         IPT%xMinGlob, xNStep_Glob, &
-                                        filename, single_path, &
+                                        IPT%outputName, IPT%outputFolder, &
                                         BBoxPath, XMFPath)
 
-            build_times(8) = MPI_Wtime() !Writing Sample Time
+            if(IPT%rang == 0) write(*,*) "    BBoxPath = ", trim(BBoxPath)
+
+            build_times(7) = MPI_Wtime() !Writing Sample Time
 
 
             if(associated(RF_2D)) nullify(RF_2D)
@@ -846,15 +867,17 @@ contains
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
-        subroutine interpolateToMesh(BBoxFileName, coordList, UNV_randField, rang)
+        subroutine interpolateToMesh(BBoxFileName, coordList, UNV_randField, rang, &
+                                     xMinLoc_In, xMaxLoc_In)
             implicit none
 
             !INPUT
             character(len=*), intent(in)      :: BBoxFileName
-            double precision, dimension(:,:), intent(in) :: coordList
+            double precision, dimension(1:,1:), intent(in) :: coordList
             integer, intent(in) :: rang
+            double precision, dimension(1:), intent(in), optional :: xMinLoc_In, xMaxLoc_In
             !OUTPUT
-            double precision, dimension(:,:), intent(out) :: UNV_randField
+            double precision, dimension(1:,1:), intent(out) :: UNV_randField
             !LOCAL
             integer :: nDim, Nmc
             !logical :: independent
@@ -875,6 +898,8 @@ contains
             double precision, dimension(:,:)    , pointer :: BB_2D
             double precision, dimension(:,:,:)  , pointer :: BB_3D
             double precision :: weight
+            logical :: findPropertyonTable
+            real :: t_0, t_f
 
 
             call h5open_f(hdferr) ! Initialize FORTRAN interface.
@@ -904,15 +929,28 @@ contains
             xNStep = nint((xMaxGlob-xMinGlob)/xStep) +1
 
             !DEFINE LOCAL BOUNDING BOX
-            do i = 1, nDim
-                xMin_Loc_UNV(i) = minval(coordList(i,:))
-                xMax_Loc_UNV(i) = maxval(coordList(i,:))
-            end do
+            if(present(xMinLoc_In) .and. present(xMaxLoc_In)) then
+                xMin_Loc_UNV = xMinLoc_In
+                xMax_Loc_UNV = xMaxLoc_In
+            else
+                do i = 1, nDim
+                    xMin_Loc_UNV(i) = minval(coordList(i,:))
+                    xMax_Loc_UNV(i) = maxval(coordList(i,:))
+                end do
+            end if
+
+            write(*,*) "xMinGlob = ", xMinGlob
+            write(*,*) "xMaxGlob = ", xMaxGlob
+            write(*,*) "xMin_Loc_UNV = ", xMin_Loc_UNV
+            write(*,*) "xMax_Loc_UNV = ", xMax_Loc_UNV
+            write(*,*) "shape(coordList) = ", shape(coordList)
 
             minPos = floor((xMin_Loc_UNV-xMinGlob)/xStep) + 1
             maxPos = ceiling((xMax_Loc_UNV-xMinGlob)/xStep) + 1
             where(minPos < 1) minPos = 1
             where(maxPos > xNStep) maxPos = xNStep
+            write(*,*) "minPos = ", minPos
+            write(*,*) "maxPos = ", maxPos
 
             extent = maxPos - minPos + 1
 
@@ -927,15 +965,16 @@ contains
             call wLog("extent BB")
             call wLog(extent)
 
-            allocate(BB_randField(product(extent),1))
+            allocate(BB_randField(product(int(extent,8)),1))
 
             !READING MATRIX BLOCK----------------------------------------------------------------
             locDims = extent
+            write(*,*) "Open hdf5 file"
+            call cpu_time(t_0)
             call h5dopen_f(file_id, trim(dset), dset_id, hdferr)! Open Dataset
             call h5dget_space_f(dset_id, space_id, hdferr) !Open Dataset Space
             !call h5sget_simple_extent_dims_f(space_id, dims, maxdims, hdferr) !Measure Dataset Space
 
-            !allocate(STA%randField(product(dims),1))
             offset = minPos-1
             locShape = shape(BB_randField)
             zero2D = 0
@@ -953,8 +992,15 @@ contains
             !OUT
             call h5screate_simple_f(2, locShape, mem_id, hdferr) !Create memory dataspace
             call h5sselect_hyperslab_f(mem_id, H5S_SELECT_SET_F, zero2D, locShape, hdferr) !Select Hyperslab OUT
+            call cpu_time(t_f)
+            write(*,*) "time = ", t_f - t_0
+            call cpu_time(t_0)
+            write(*,*) "Reading hdf5 file"
             call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, BB_randField, locShape, hdferr, mem_id, space_id) !Read Dataset Hyperslab
 
+            call cpu_time(t_f)
+            write(*,*) "time = ", t_f - t_0
+            call cpu_time(t_0)
 
             call h5dclose_f(dset_id, hdferr) !Close Dataset
             call h5sclose_f(space_id, hdferr) !Close Dataset Space
@@ -986,6 +1032,8 @@ contains
 
             UNV_randField(:,:) = 0
 
+            write(*,*) "Interpolating"
+
             do i = 1, size(coordList, 2)
 
                 !MAPPING COORD In BB
@@ -996,7 +1044,7 @@ contains
 
                 !Applying Values
                 do j = 1, size(neighCoord, 2)
-
+                    findPropertyOnTable = .true.
                     distance(:) = abs(coordPos - dble(coordPosInt+neighCoord(:,j)))
                     weight      = product(1.0D0 - distance)
                     !weight      = 1.0D0 - sqrt(sum(distance**2))/sqrt(dble(nDim))
@@ -1004,8 +1052,11 @@ contains
                     !write(*,*) "weight = ", weight
 
                     if(any(coordPosInt(:)+neighCoord(:,j) > maxPos)) then
+                        findPropertyOnTable = .false.
                         call wLog("Error in rang ")
                         call wLog(rang)
+                        call wLog("   coordList = ")
+                        call wLog(coordList(:,i))
                         call wLog("   coordPos = ")
                         call wLog(coordPos)
                         call wLog("          j = ")
@@ -1014,13 +1065,22 @@ contains
                         call wLog(coordPosInt(:)+neighCoord(:,j))
                         call wLog("maxPos = ")
                         call wLog(maxPos)
-                        !stop(" ERROR! UNV TRIED POSITION OUT OF RANGE")
+                       !write(*,*) "Error in rang ", rang
+                        !write(*,*) "  coordList(:,i) = ", coordList(:,i)
+                        !write(*,*) "   coordPos = ", coordPos
+                        !write(*,*) "          j = ", j
+                        !write(*,*) "coordPosInt(:)+neighCoord(:,j) = ", coordPosInt(:)+neighCoord(:,j)
+                        !write(*,*) "maxPos = ", maxPos
+                        !stop(" ERROR! UNV TRIED POSITION OUT OF RANGE (>Max)")
 
                     end if
 
                     if(any(coordPosInt(:)+neighCoord(:,j) < minPos)) then
+                        findPropertyOnTable = .false.
                         call wLog("Error in rang ")
                         call wLog(rang)
+                        call wLog("   coordList = ")
+                        call wLog(coordList(:,i))
                         call wLog("   coordPos = ")
                         call wLog(coordPos)
                         call wLog("          j = ")
@@ -1029,47 +1089,41 @@ contains
                         call wLog(coordPosInt(:)+neighCoord(:,j))
                         call wLog("minPos = ")
                         call wLog(minPos)
-                        !stop(" ERROR! UNV TRIED POSITION OUT OF RANGE")
+                        !write(*,*) "Error in rang ", rang
+                        !write(*,*) "  coordList(:,i) = ", coordList(:,i)
+                        !write(*,*) "   coordPos = ", coordPos
+                        !write(*,*) "          j = ", j
+                        !write(*,*) "coordPosInt(:)+neighCoord(:,j) = ", coordPosInt(:)+neighCoord(:,j)
+                        !write(*,*) "minPos = ", minPos
+                        !stop(" ERROR! UNV TRIED POSITION OUT OF RANGE (<Min)")
                     end if
 
-                    if(nDim == 2) then
-                        UNV_randField(i,1) = UNV_randField(i,1) +                  &
-                                             (                                     &
-                                             BB_2D(coordPosInt(1)+neighCoord(1,j), &
-                                                   coordPosInt(2)+neighCoord(2,j)) &
-                                             * weight                              &
-                                             )
-                    else if (nDim == 3) then
-                        UNV_randField(i,1) = UNV_randField(i,1) +                  &
-                                             (                                     &
-                                             BB_3D(coordPosInt(1)+neighCoord(1,j), &
-                                                   coordPosInt(2)+neighCoord(2,j), &
-                                                   coordPosInt(3)+neighCoord(3,j)) &
-                                             * weight                              &
-                                             )
+                    if(findPropertyOnTable) then
+                        if(nDim == 2) then
+                            UNV_randField(i,1) = UNV_randField(i,1) +                  &
+                                (                                     &
+                                BB_2D(coordPosInt(1)+neighCoord(1,j), &
+                                coordPosInt(2)+neighCoord(2,j)) &
+                                * weight                              &
+                                )
+                        else if (nDim == 3) then
+                            UNV_randField(i,1) = UNV_randField(i,1) +                  &
+                                (                                     &
+                                BB_3D(coordPosInt(1)+neighCoord(1,j), &
+                                coordPosInt(2)+neighCoord(2,j), &
+                                coordPosInt(3)+neighCoord(3,j)) &
+                                * weight                              &
+                                )
+                        end if
                     end if
 
                 end do
 
-
-!                if(nDim == 2) then
-!                    UNV_randField(i,1) = BB_2D(coordPosInt(1), coordPosInt(2))
-!                else if (nDim == 3) then
-!                    UNV_randField(i,1) = BB_3D(coordPosInt(1), coordPosInt(2), coordPosInt(3))
-!                end if
-
-!                coordPosInt = nint(coordPos)
-!
-!                if(nDim == 2) then
-!                    UNV_randField(i,1) = BB_2D(coordPosInt(1), coordPosInt(2))
-!                else if (nDim == 3) then
-!                    UNV_randField(i,1) = BB_3D(coordPosInt(1), coordPosInt(2), coordPosInt(3))
-!                end if
-
             end do
 
-
-
+            call cpu_time(t_f)
+            write(*,*) "time = ", t_f - t_0
+            call cpu_time(t_0)
 
             if (allocated(BB_randField))   deallocate(BB_randField)
 

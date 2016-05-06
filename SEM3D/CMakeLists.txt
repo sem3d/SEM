@@ -39,10 +39,11 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Solid/calcul_forces.F90
     ${PRJ}/SRC/Solid/calcul_forces_nl.f90   
     ${PRJ}/SRC/Solid/calcul_forces_atn.F90
-    ${PRJ}/SRC/Fluid/calcul_forces_fluid.F90
     ${PRJ}/SRC/Solid/dom_solid.F90
-    ${PRJ}/SRC/SolidPML/dom_solidpml.F90
+    ${PRJ}/SRC/Fluid/calcul_forces_fluid.F90
     ${PRJ}/SRC/Fluid/dom_fluid.F90
+    ${PRJ}/SRC/pml.F90
+    ${PRJ}/SRC/SolidPML/dom_solidpml.F90
     ${PRJ}/SRC/FluidPML/dom_fluidpml.F90
     ${PRJ}/SRC/compute_GLL.f90
     ${PRJ}/SRC/courant.f90
@@ -62,6 +63,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/define_random.f90
     ${PRJ}/SRC/build_prop_files.F90
     ${PRJ}/SRC/find_location.f90
+    ${PRJ}/SRC/charFunctions.f90
+    ${PRJ}/SRC/RF_fileCreator.f90
 
     ${PRJ}/SRC/indexation.f90
     ${PRJ}/SRC/algo_comm.f90

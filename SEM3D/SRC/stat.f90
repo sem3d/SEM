@@ -7,7 +7,7 @@ module stat
     real(fpp)   , private :: fullTime
 
     integer     , private :: startTick, stopTick, deltaTick
-    real(fpp), dimension(0:8)   , private :: statTimes
+    real(fpp), dimension(0:STAT_COUNT-1), private :: statTimes
 
     contains
 

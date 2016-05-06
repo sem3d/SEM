@@ -2,7 +2,6 @@
 /*                                                                         */
 /* Copyright CEA, ECP, IPGP                                                */
 /*                                                                         */
-
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
@@ -111,7 +110,7 @@ int RectMesh::pointidx27(int i, int j, int k)
 
 int RectMesh::get_mat(Mesh3D& mesh, int layer, bool W, bool E, bool S, bool N, bool U, bool D)
 {
-    if (!has_pml)
+	if (!has_pml)
         return layer;
     W = pmls.W && W;
     E = pmls.E && E;
@@ -132,6 +131,7 @@ int RectMesh::get_mat(Mesh3D& mesh, int layer, bool W, bool E, bool S, bool N, b
     Material new_mat(mat);
     if (new_mat.m_type==DM_SOLID) new_mat.m_type = DM_SOLID_PML;
     if (new_mat.m_type==DM_FLUID) new_mat.m_type = DM_FLUID_PML;
+	new_mat.cinitial_type = new_mat.material_char();
     double xw=0., yw=0., zw=0.;
     double xp=0., yp=0., zp=0.;
 
@@ -144,6 +144,7 @@ int RectMesh::get_mat(Mesh3D& mesh, int layer, bool W, bool E, bool S, bool N, b
 
     new_mat.set_pml_borders(xp, xw, yp, yw, zp, zw);
     pml_mat = mesh.m_materials.size();
+    new_mat.associated_material = layer;
     printf("mat=%d layer = %d, idx=%d pmlnum=%d\n", pml_mat, layer, new_idx, mat.m_pml_num[new_idx]);
     printf("xp=%lf xw=%lf ; yp=%lf yw=%lf ; zp=%lf zw=%lf\n", xp, xw, yp, yw, zp, zw);
     mat.m_pml_num[new_idx] = pml_mat;

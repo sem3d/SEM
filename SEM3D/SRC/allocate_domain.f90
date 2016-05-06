@@ -33,7 +33,7 @@ subroutine allocate_domain (Tdomain)
 
     do mat = 0,Tdomain%n_mat-1
         assocMat = Tdomain%sSubdomain(mat)%assocMat
-        if(Tdomain%sSubDomain(assocMat)%material_type == "R") then
+        if(is_rand(Tdomain%sSubdomain(assocMat))) then
             if (Tdomain%subD_exist(mat)) then
                 call random_seed(size = randSize)
 
@@ -44,10 +44,17 @@ subroutine allocate_domain (Tdomain)
         end if
     end do
 
-    call allocate_dom_solid   (Tdomain, Tdomain%sdom)
-    call allocate_dom_fluid   (Tdomain, Tdomain%fdom)
-    call allocate_dom_solidpml(Tdomain, Tdomain%spmldom)
-    call allocate_dom_fluidpml(Tdomain, Tdomain%fpmldom)
+    if(.false.) then
+        write(*,*) "Tdomain%any_sdom = ", Tdomain%any_sdom
+        write(*,*) "Tdomain%any_fdom = ", Tdomain%any_fdom
+        write(*,*) "Tdomain%any_spml = ", Tdomain%any_spml
+        write(*,*) "Tdomain%any_fpml = ", Tdomain%any_fpml
+    end if
+
+    if(Tdomain%any_sdom) call allocate_dom_solid   (Tdomain, Tdomain%sdom)
+    if(Tdomain%any_fdom) call allocate_dom_fluid   (Tdomain, Tdomain%fdom)
+    if(Tdomain%any_spml) call allocate_dom_solidpml(Tdomain, Tdomain%spmldom)
+    if(Tdomain%any_fpml) call allocate_dom_fluidpml(Tdomain, Tdomain%fpmldom)
 
     do n = 0,Tdomain%n_elem-1
         ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)

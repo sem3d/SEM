@@ -146,6 +146,7 @@ contains
             dom%MassMat = 0d0
 
         endif
+        if(Tdomain%rank==0) write(*,*) "INFO - solid domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_solid
 
     subroutine deallocate_dom_solid (dom)
