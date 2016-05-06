@@ -15,10 +15,6 @@ module champs_solid
         real(fpp), dimension(:,:), allocatable :: Forces
         real(fpp), dimension(:,:), allocatable :: Depla
         real(fpp), dimension(:,:), allocatable :: Veloc
-        real(fpp), dimension(:,:), allocatable :: EpsP
-        real(fpp), dimension(:,:), allocatable :: Stress
-        real(fpp), dimension(:,:), allocatable :: Xkin
-        real(fpp), dimension(:), allocatable :: Riso
 
     end type champssolid
 
@@ -115,7 +111,13 @@ module champs_solid
         
         ! Lemaitre-Chaboche non linear model
         integer :: nl_law
-        type(nl_parameters),allocatable :: nl_param 
+        type(nl_parameters),allocatable :: nl_param
+        real(fpp), dimension(:,:,:,:),   allocatable :: m_radius
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_stress 
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_center
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_eps_ep
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_eps_pl
+
     end type domain_solid
 
     contains

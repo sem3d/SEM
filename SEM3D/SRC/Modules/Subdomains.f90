@@ -37,7 +37,8 @@ module ssubdomains
 
         !! ATTENUATION
         real(fpp) :: Qmu, Qpression
-
+        !! NONLINEAR
+        real(fpp) :: syld,ckin,kkin,biso,rinf
         !! PML
         real(fpp), dimension(0:2) :: pml_pos, pml_width
         integer :: npow

@@ -48,13 +48,25 @@ contains
             allocate(dom%Kappa_  (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
             
             if (nl_flag.and.nl_law) then
+                ! nonlinear parameters
                 allocate(dom%nl_param)
                 allocate(dom%nl_param%LMC)
                 allocate(dom%nl_param%LMC%syld_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-                allocate(dom%nl_param%LMC%Ckin_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+                allocate(dom%nl_param%LMC%ckin_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
                 allocate(dom%nl_param%LMC%kkin_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
                 allocate(dom%nl_param%LMC%rinf_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
                 allocate(dom%nl_param%LMC%biso_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+                ! internal variables 
+                allocate(dom%radius_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+                allocate(dom%stress_(0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+                allocate(dom%center_(0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+                allocate(dom%eps_ep_(0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))  
+                allocate(dom%eps_pl_(0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))  
+                dom%eps_ep = 0.d0
+                dom%eps_pl = 0.d0
+                dom%stress = 0.d0
+                dom%center = 0.d0
+                dom%radius = 0.d0
             end if
 
             allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
@@ -126,20 +138,6 @@ contains
             dom%champs0%Forces = 0d0
             dom%champs0%Depla = 0d0
             dom%champs0%Veloc = 0d0
-            if (nl_flag.and.nl_law) then
-                allocate(dom%champs0%EpsP   (0:dom%nglltot-1,0:5))
-                allocate(dom%champs0%Stress (0:dom%nglltot-1,0:5))
-                allocate(dom%champs0%Xkin   (0:dom%nglltot-1,0:5))
-                allocate(dom%champs0%Riso   (0:dom%nglltot-1))
-                allocate(dom%champs1%EpsP   (0:dom%nglltot-1,0:5))
-                allocate(dom%champs1%Stress (0:dom%nglltot-1,0:5))
-                allocate(dom%champs1%Xkin   (0:dom%nglltot-1,0:5))
-                allocate(dom%champs1%Riso   (0:dom%nglltot-1))
-                dom%champs0%EpsP    = 0d0
-                dom%champs0%Stress  = 0d0
-                dom%champs0%Xkin    = 0d0
-                dom%champs0%Riso    = 0d0
-            end if
 
             ! Allocation de MassMat pour les solides
             allocate(dom%MassMat(0:dom%nglltot-1))
@@ -203,7 +201,7 @@ contains
         if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
 
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
-
+        ! nonlinear parameters
         if(allocated(dom%nl_param%LMC%m_syld))  deallocate(dom%nl_param%LMC%m_syld)
         if(allocated(dom%nl_param%LMC%m_biso))  deallocate(dom%nl_param%LMC%m_biso)
         if(allocated(dom%nl_param%LMC%m_rinf))  deallocate(dom%nl_param%LMC%m_rinf)
@@ -211,6 +209,12 @@ contains
         if(allocated(dom%nl_param%LMC%m_kkin))  deallocate(dom%nl_param%LMC%m_kkin)
         if(allocated(dom%nl_param%LMC       ))  deallocate(dom%nl_param%LMC)
         if(allocated(dom%nl_param           ))  deallocate(dom%nl_param)
+        ! nonlinear internal variables
+        if(allocated(dom%m_radius)) deallocate(dom%m_radius)
+        if(allocated(dom%m_stress)) deallocate(dom%m_stress)
+        if(allocated(dom%m_center)) deallocate(dom%m_center)
+        if(allocated(dom%m_eps_ep)) deallocate(dom%m_eps_ep)  
+        if(allocated(dom%m_eps_pl)) deallocate(dom%m_eps_pl)  
 
     end subroutine deallocate_dom_solid
 
@@ -240,6 +244,8 @@ contains
         real(fpp)                                :: x2mu, xlambda2mu
         real(fpp)                                :: onemSbeta, onemPbeta
         real, dimension(0:2,0:2) :: invgrad_ijk
+        
+        nl_law      = dom%nl_law==NLLMC
 
         if (nl_flag.and.nl_law) then
             flag_gradU = (out_variables(OUT_ENERGYP)     + &
@@ -308,8 +314,8 @@ contains
                     if (out_variables(OUT_PRESSION) == 1) then
                         if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
                           
-                        if (nl_flag) then
-                            fieldP(i,j,k) = -sum(dom%champs0%Stress(ind,0:2))/3
+                        if (nl_flag .and. nl_law) then
+                            fieldP(i,j,k) = -sum(dom%stress_(ind,0:2))/3
                         else
                             fieldP(i,j,k) = -(dom%Lambda_(i,j,k,lnum)&
                                 +2d0/3d0*dom%Mu_(i,j,k,lnum))*(DXX+DYY+DZZ)
@@ -362,14 +368,23 @@ contains
 
                     if (out_variables(OUT_EPS_DEV) == 1) then
                         if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
-                        eps_dev(i,j,k,0) = DXX - eps_vol(i,j,k) / 3
-                        eps_dev(i,j,k,1) = DYY - eps_vol(i,j,k) / 3
-                        eps_dev(i,j,k,2) = DZZ - eps_vol(i,j,k) / 3
-                        eps_dev(i,j,k,3) = 0.5 * (DXY + DYX)
-                        eps_dev(i,j,k,4) = 0.5 * (DZX + DXZ)
-                        eps_dev(i,j,k,5) = 0.5 * (DZY + DYZ)
-                        if (present(eps_dev_pl).and.nl_flag) then
-                            eps_dev_pl(i,j,k,:) = dom%champs0%EpsP(ind,:) 
+                            eps_dev(i,j,k,0:5) = 0.d0
+                            if (nl_flag .and. nl_law) then
+                                eps_dev(i,j,k,:)   = dom%eps_ep(:,i,j,k,lnum)
+                                eps_dev(i,j,k,0:2) = eps_dev(i,j,k,0:2)-&
+                                    sum(eps_dev(i,j,k,0:2))/3
+                                eps_dev_pl(i,j,k,0:5) = 0.d0
+                                eps_dev_pl(i,j,k,:)   = dom%eps_pl(:,i,j,k,lnum)
+                                eps_dev_pl(i,j,k,0:2) = eps_dev_pl(i,j,k,0:2)-&
+                                    sum(eps_dev_pl(i,j,k,0:2))/3
+                            else
+                                eps_dev(i,j,k,0) = DXX - eps_vol(i,j,k) / 3
+                                eps_dev(i,j,k,1) = DYY - eps_vol(i,j,k) / 3
+                                eps_dev(i,j,k,2) = DZZ - eps_vol(i,j,k) / 3
+                                eps_dev(i,j,k,3) = 0.5 * (DXY + DYX)
+                                eps_dev(i,j,k,4) = 0.5 * (DZX + DXZ)
+                                eps_dev(i,j,k,5) = 0.5 * (DZY + DYZ)
+                            endif
                         endif
                     end if
 
@@ -378,8 +393,10 @@ contains
                         sig_dev(i,j,k,0:5) = 0.
                         
                         if (.not. dom%aniso) then
-                            if (nl_flag) then
-                                sig_dev(i,j,k,:) = dom%champs0%Stress(ind,:)
+                            if (nl_flag .and. nl_law) then
+                                sig_dev(i,j,k,:) = dom%stress_(:,i,j,k,lnum)
+                                sig_dev(i,j,k,0:2) = sig_dev(i,j,k,0:2) - &
+                                    sum(sig_dev(i,j,k,0:2))/3
                             else
                                 sig_dev(i,j,k,0) = x2mu * (DXX - eps_vol(i,j,k) * M_1_3)
                                 sig_dev(i,j,k,1) = x2mu * (DYY - eps_vol(i,j,k) * M_1_3)
@@ -407,11 +424,11 @@ contains
         real(fpp), intent(in) :: lambda
         real(fpp), intent(in) :: mu
         real(fpp), intent(in) :: kappa
-        real(fpp), intent(in), optional :: syld
-        real(fpp), intent(in), optional :: ckin
-        real(fpp), intent(in), optional :: kkin
-        real(fpp), intent(in), optional :: rinf
-        real(fpp), intent(in), optional :: biso
+!        real(fpp), intent(in), optional :: syld
+!        real(fpp), intent(in), optional :: ckin
+!        real(fpp), intent(in), optional :: kkin
+!        real(fpp), intent(in), optional :: rinf
+!        real(fpp), intent(in), optional :: biso
 
         type (subdomain), intent(in), optional :: mat
         
@@ -426,19 +443,19 @@ contains
             dom%Kappa_  (i,j,k,lnum) = kappa
             dom%Mu_     (i,j,k,lnum) = mu
         end if
-        if (present(syld)) then
+        if (present(mat%syld)) then
             if (i==-1 .and. j==-1 .and. k==-1) then
-                dom%nl_param%LMC%syld_(:,:,:,lnum) = syld
-                dom%nl_param%LMC%Ckin_(:,:,:,lnum) = Ckin
-                dom%nl_param%LMC%kkin_(:,:,:,lnum) = kkin
-                dom%nl_param%LMC%rinf_(:,:,:,lnum) = rinf 
-                dom%nl_param%LMC%biso_(:,:,:,lnum) = biso
+                dom%nl_param%LMC%syld_(:,:,:,lnum) = mat%syld
+                dom%nl_param%LMC%Ckin_(:,:,:,lnum) = mat%Ckin
+                dom%nl_param%LMC%kkin_(:,:,:,lnum) = mat%kkin
+                dom%nl_param%LMC%rinf_(:,:,:,lnum) = mat%rinf 
+                dom%nl_param%LMC%biso_(:,:,:,lnum) = mat%biso
             else
-                dom%nl_param%LMC%syld_(i,j,k,lnum) = syld
-                dom%nl_param%LMC%Ckin_(i,j,k,lnum) = Ckin
-                dom%nl_param%LMC%kkin_(i,j,k,lnum) = kkin
-                dom%nl_param%LMC%rinf_(i,j,k,lnum) = rinf 
-                dom%nl_param%LMC%biso_(i,j,k,lnum) = biso
+                dom%nl_param%LMC%syld_(i,j,k,lnum) = mat%syld
+                dom%nl_param%LMC%Ckin_(i,j,k,lnum) = mat%Ckin
+                dom%nl_param%LMC%kkin_(i,j,k,lnum) = mat%kkin
+                dom%nl_param%LMC%rinf_(i,j,k,lnum) = mat%rinf 
+                dom%nl_param%LMC%biso_(i,j,k,lnum) = mat%biso
             end if
         endif
         if (present(mat)) then
@@ -501,67 +518,24 @@ contains
         logical :: aniso,nl_law
         real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
-        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: Stress
-        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: Xkin
-        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:5) :: EpsP
-        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)     :: Riso
 
         n_solid = dom%n_sls
         aniso   = dom%aniso
         ngll    = dom%ngll
         nl_law  = dom%nl_law==NLLMC
 
-        if (nl_flag.and.nl_law) then
-            do i_dir = 0,2
-                do k = 0,ngll-1
-                    do j = 0,ngll-1
-                        do i = 0,ngll-1
-                            do ee = 0, CHUNK-1
-                                idx = dom%Idom_(i,j,k,ee+lnum)
-                                Depla(ee,i,j,k,i_dir) = champs1%Veloc(idx,i_dir)
-                            enddo
-                        enddo
-                    enddo
-                enddo
-            enddo
-            do i_dir = 0,5
-                do k = 0,ngll-1
-                    do j = 0,ngll-1
-                        do i = 0,ngll-1
-                            do ee = 0, CHUNK-1
-                                idx = dom%Idom_(i,j,k,ee+lnum)
-                                Stress(ee,i,j,k,i_dir) = champs1%Stress(idx,i_dir)
-                                Xkin(ee,i,j,k,i_dir) = champs1%Xkin  (idx,i_dir)
-                                EpsP(ee,i,j,k,i_dir) = champs1%EpsP (idx,i_dir)
-                            enddo
-                        enddo
-                    enddo
-                enddo
-            enddo
+        do i_dir = 0,2
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
                         do ee = 0, CHUNK-1
                             idx = dom%Idom_(i,j,k,ee+lnum)
-                            Riso(ee,i,j,k) = champs1%riso(idx)
+                            Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
                         enddo
                     enddo
                 enddo
             enddo
-        else
-            do i_dir = 0,2
-                do k = 0,ngll-1
-                    do j = 0,ngll-1
-                        do i = 0,ngll-1
-                            do ee = 0, CHUNK-1
-                                idx = dom%Idom_(i,j,k,ee+lnum)
-                                Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
-                            enddo
-                        enddo
-                    enddo
-                enddo
-            enddo
-        endif
+        enddo
         Fox = 0d0
         Foy = 0d0
         Foz = 0d0
@@ -577,7 +551,7 @@ contains
                 call calcul_forces_iso_atn(dom,lnum,Fox,Foy,Foz,Depla)
             else
                 if (nl_flag.and.nl_law) then
-                    call calcul_forces_nl(dom,lnum,Fox,Foy,Foz,Depla*dt,Stress,Xkin,Riso,EpsP)
+                    call calcul_forces_nl(dom,lnum,Fox,Foy,Foz,Depla)
                 else
                     call calcul_forces_iso(dom,lnum,Fox,Foy,Foz,Depla)
                 endif 

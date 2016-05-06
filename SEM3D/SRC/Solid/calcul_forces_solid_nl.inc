@@ -16,7 +16,7 @@
 
 #define ORIG
 
-subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla,Stress,Xkin,Riso,EpsP)
+subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
     use champs_solid
     implicit none
 
@@ -28,17 +28,14 @@ subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla,Stress,Xkin,Riso,EpsP)
 #endif
     real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
     real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:5), intent(inout) :: Stress
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:5), intent(inout) :: Xkin
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:5), intent(inout) :: EpsP
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(inout) :: Riso
-    real(fpp), dimension(0:5) :: start,trial,center,dEps_alpha,dEpsP
-    real(fpp)  :: syld,ckin,kkin,biso,rinf,radius,alpha_elp
     integer :: i,j,k,l,e,ee,st_epl
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,t4
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
     real(fpp), parameter :: zero = 0.
+    // NONLINEAR VARIABLES
+    real(fpp), dimension(0:5) :: start,trial,center,dEps_alpha,dEpsP,eps0
+    real(fpp)  :: syld,ckin,kkin,biso,rinf,radius,alpha_elp
 #ifdef ORIG
     real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t5,t8
     ! Les indices sont reordonnes, probablement pour la localite memoire
@@ -117,24 +114,28 @@ subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla,Stress,Xkin,Riso,EpsP)
                 xla = dom%Lambda_(i,j,k,e)
                 xla2mu = xla + 2. * xmu
 
-                sxx = xla2mu * DXX + xla * ( DYY + DZZ )
-                sxy = xmu * ( DXY + DYX )
-                sxz = xmu * ( DXZ + DZX )
-                syy = xla2mu * DYY + xla * ( DXX + DZZ )
-                syz = xmu * ( DYZ + DZY )
-                szz = xla2mu * DZZ + xla * ( DXX + DYY )
+                // ELASTIC PREDICTION (STRESS INCREMENT ON SINGLE NODE) 
+                eps0(0:5) = dom%eps_ep_(0:5,i,j,k,e)
+                dom%eps_ep_(0:5,i,j,k,e) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/)
+                dEps_alpha(0:5) = dom%eps_ep_(0:5,i,j,k,e) -eps0(0:5)
+                dEpsP(0:5)      = 0.d0
+                
+                sxx = xla2mu*dEps_alpha(0)+xla*sum(dEps_alpha(1:2))
+                syy = xla2mu*dEps_alpha(1)+xla*(dEps_alpha(0)+dEps_alpha(2))
+                szz = xla2mu*dEps_alpha(2)+xla*sum(dEps_alpha(0:1))
+                sxy = xmu*dEps_alpha(3)
+                sxz = xmu*dEps_alpha(4)
+                syz = xmu*dEps_alpha(5)
 #endif
-                start       =   Stress(e,i,j,k,:)
+                start       =   dom%stress_(0:5,i,j,k,e)
                 trial       =   (/sxx,syy,szz,sxy,sxz,syz/)
-                center      =   Xkin(e,i,j,k,:)
-                radius      =   riso(e,i,j,k)
+                center      =   dom%center_(0:5,i,j,k,e)
+                radius      =   dom%radius_(i,j,k,e)
                 syld        =   dom%nl_param%LMC%syld_(i,j,k,e)
                 ckin        =   dom%nl_param%LMC%Ckin_(i,j,k,e)
                 kkin        =   dom%nl_param%LMC%kkin_(i,j,k,e) 
                 rinf        =   dom%nl_param%LMC%rinf_(i,j,k,e) 
                 biso        =   dom%nl_param%LMC%biso_(i,j,k,e) 
-                dEps_alpha  =   (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/)
-                dEpsP       =   0d0
                 call check_plasticity(trial, start, center,radius, &
                     syld,st_epl,alpha_elp)
 
@@ -142,7 +143,7 @@ subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla,Stress,Xkin,Riso,EpsP)
 
                     dEps_alpha=(1-alpha_elp)*dEps_alpha
                     call plastic_corrector(dEps_alpha, trial, center, syld, &
-                            radius, biso, Rinf, Ckin, kkin, xmu, xla, dEpsP)
+                            radius, biso, rinf, ckin, kkin, xmu, xla, dEpsP)
                 end if
                 sxx = trial(0)
                 syy = trial(1)
@@ -151,10 +152,10 @@ subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla,Stress,Xkin,Riso,EpsP)
                 sxz = trial(4)
                 syz = trial(5)
                 
-                Stress(e,i,j,k,:) = trial
-                Xkin(e,i,j,k,:)   = center
-                EpsP(e,i,j,k,:)   = EpsP(e,i,j,k,:)+dEpsP(:)
-                riso(e,i,j,k)     = radius
+                dom%stress(0:5,i,j,k,e) = trial(0:5)
+                dom%center(0:5,i,j,k,e) = center(0:5)
+                dom%eps_pl(0:5,i,j,k,e) = dom%eps_pl(0:5,i,j,k,e)+dEpsP(0:5)
+                dom%radius(i,j,k,e)     = radius
 
                 !
                 !=====================
