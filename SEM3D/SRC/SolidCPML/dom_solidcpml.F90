@@ -18,6 +18,13 @@ module dom_solidpml
     implicit none
 #include "index.h"
 
+    !! CPML parameters: for the very first implementation, parameters are hard-coded. Later on, they should be valuated according to input.spec
+    real(fpp), private, parameter :: c_x = 1., c_y = 1., c_z = 1.
+    integer,   private, parameter :: n_x = 2,  n_y = 2,  n_z = 2
+    real(fpp), private, parameter :: r_c = 0.001
+    integer,   private, parameter :: kappa_0 = 1, kappa_1 = 0
+    real(fpp), private, parameter :: L_x = -1., L_y = -1., L_z = -1.
+
 contains
 
     subroutine allocate_dom_solidpml (Tdomain, dom)
