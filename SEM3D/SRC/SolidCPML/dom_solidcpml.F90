@@ -270,6 +270,57 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solidpml
 
+    subroutine pred_sol_pml(dom, dt, champs1, bnum)
+        implicit none
+
+        type(domain_solidpml), intent(inout) :: dom
+        type(champssolidpml), intent(inout) :: champs1
+        real(fpp), intent(in) :: dt
+        integer :: bnum
+        !
+        real(fpp), dimension (0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Veloc
+        real(fpp) :: dVx_dx, dVx_dy, dVx_dz
+        real(fpp) :: dVy_dx, dVy_dy, dVy_dz
+        real(fpp) :: dVz_dx, dVz_dy, dVz_dz
+        real(fpp) :: dS_dxi, dS_deta, dS_dzeta
+        integer :: ngll
+        integer :: i, j, k, l, ind, i_dir, e, ee
+
+        ngll = dom%ngll
+
+        do i_dir = 0,2
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                        ind = dom%Idom_(i,j,k,bnum,ee)
+                        Veloc(ee,i,j,k,i_dir) = champs1%VelocPML(ind,i_dir,0) + &
+                                                champs1%VelocPML(ind,i_dir,1) + &
+                                                champs1%VelocPML(ind,i_dir,2)
+                        END_SUBELEM_LOOP()
+                    enddo
+                enddo
+            enddo
+        enddo
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+#ifdef SEM_VEC
+!$omp simd linear(e,ee)
+#endif
+                    BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                    ! partial of velocity components with respect to xi,eta,zeta
+                    part_deriv_ijke(Veloc,0,dS_dxi,dS_deta,dS_dzeta,dVx_dx,dVx_dy,dVx_dz)
+                    part_deriv_ijke(Veloc,1,dS_dxi,dS_deta,dS_dzeta,dVy_dx,dVy_dy,dVy_dz)
+                    part_deriv_ijke(Veloc,2,dS_dxi,dS_deta,dS_dzeta,dVz_dx,dVz_dy,dVz_dz)
+
+                    END_SUBELEM_LOOP()
+                enddo
+            enddo
+        enddo
+    end subroutine pred_sol_pml
+
     subroutine forces_int_sol_pml(dom, champs1, bnum)
         type(domain_solidpml), intent(inout) :: dom
         type(champssolidpml), intent(inout) :: champs1
@@ -339,57 +390,6 @@ contains
             enddo
         enddo
     end subroutine forces_int_sol_pml
-
-    subroutine pred_sol_pml(dom, dt, champs1, bnum)
-        implicit none
-
-        type(domain_solidpml), intent(inout) :: dom
-        type(champssolidpml), intent(inout) :: champs1
-        real(fpp), intent(in) :: dt
-        integer :: bnum
-        !
-        real(fpp), dimension (0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Veloc
-        real(fpp) :: dVx_dx, dVx_dy, dVx_dz
-        real(fpp) :: dVy_dx, dVy_dy, dVy_dz
-        real(fpp) :: dVz_dx, dVz_dy, dVz_dz
-        real(fpp) :: dS_dxi, dS_deta, dS_dzeta
-        integer :: ngll
-        integer :: i, j, k, l, ind, i_dir, e, ee
-
-        ngll = dom%ngll
-
-        do i_dir = 0,2
-            do k = 0,ngll-1
-                do j = 0,ngll-1
-                    do i = 0,ngll-1
-                        BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                        ind = dom%Idom_(i,j,k,bnum,ee)
-                        Veloc(ee,i,j,k,i_dir) = champs1%VelocPML(ind,i_dir,0) + &
-                                                champs1%VelocPML(ind,i_dir,1) + &
-                                                champs1%VelocPML(ind,i_dir,2)
-                        END_SUBELEM_LOOP()
-                    enddo
-                enddo
-            enddo
-        enddo
-
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i = 0,ngll-1
-#ifdef SEM_VEC
-!$omp simd linear(e,ee)
-#endif
-                    BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                    ! partial of velocity components with respect to xi,eta,zeta
-                    part_deriv_ijke(Veloc,0,dS_dxi,dS_deta,dS_dzeta,dVx_dx,dVx_dy,dVx_dz)
-                    part_deriv_ijke(Veloc,1,dS_dxi,dS_deta,dS_dzeta,dVy_dx,dVy_dy,dVy_dz)
-                    part_deriv_ijke(Veloc,2,dS_dxi,dS_deta,dS_dzeta,dVz_dx,dVz_dy,dVz_dz)
-
-                    END_SUBELEM_LOOP()
-                enddo
-            enddo
-        enddo
-    end subroutine pred_sol_pml
 
     subroutine init_solidpml_properties(Tdomain,specel,mat)
         type (domain), intent (INOUT), target :: Tdomain
