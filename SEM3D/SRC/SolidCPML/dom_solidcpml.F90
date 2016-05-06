@@ -261,12 +261,18 @@ contains
         real Whei
         !
         integer :: bnum, ee
+        real(fpp) :: ab2
+
         bnum = specel%lnum/VCHUNK
         ee = mod(specel%lnum,VCHUNK)
 
-        ! Solid.
+        ! Delta term from L : (12a) or (14a) from R1
 
-        specel%MassMat(i,j,k) = Whei*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)
+        ab2 = 1. ! To compute !...
+        specel%MassMat(i,j,k) = ab2*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)*Whei
+
+        ! Assemble masses of each specel%MassMat in dom%MassMat
+
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solidpml
 
