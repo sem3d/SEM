@@ -18,7 +18,7 @@ module sfaces
     ! Modified by Gaetano 01/06/05
     type :: face
 
-       integer :: ngll, mat_index, type_Flux, Type_DG
+       integer :: ngll, mat_index, type_Flux, Type_DG, mortarID
        integer, dimension (0:1) :: Near_Element, Which_face, Near_Vertex
 
        real, dimension (:), allocatable :: massMat

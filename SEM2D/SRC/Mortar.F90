@@ -18,10 +18,12 @@ module smortars
 
     type :: mortar
 
-       integer :: ngll
+       integer :: ngllmin, ngllmax
        integer, dimension (0:1) :: Near_Face
+       integer, dimension (0:1) :: Near_Element
 
-       real, dimension (:,:), allocatable :: MatInterp, MatProj
+       real, dimension (:), allocatable   :: Coeff_Integr
+       real, dimension (:,:), allocatable :: MatReinterp, MatProj
 
 
 

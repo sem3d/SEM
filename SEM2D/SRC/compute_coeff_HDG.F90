@@ -580,6 +580,37 @@ contains
 
     end subroutine modify_atmospheric_rho
 
+
+! ############################################################
+
+    subroutine prepare_mortars(Tdomain)
+
+        implicit none
+        type (domain), intent (INOUT) :: Tdomain
+        type(element), pointer :: Elem
+        integer :: i, elem_master, nface, imin, imax
+
+        do i=0,Tdomain%n_mortar-1
+            elem_master = Tdomain%sMortar(i)%Near_Element(1)
+            nface = Tdomain%sMortar(i)%Near_Face(0)
+            Elem => Tdomain%specel(elem_master)
+            if (nface==Elem%Near_Face(0)) then
+                call get_iminimax(Elem,0,imin,imax)
+            elseif (nface==Elem%Near_Face(1)) then
+                call get_iminimax(Elem,1,imin,imax)
+            elseif (nface==Elem%Near_Face(2)) then
+                call get_iminimax(Elem,2,imin,imax)
+            elseif (nface==Elem%Near_Face(3)) then
+                call get_iminimax(Elem,3,imin,imax)
+            else
+                STOP "Huge problem in mortar"
+            endif
+            allocate(Tdomain%sMortar(i)%Coeff_Integr(0:(imax-imin-1)))
+            Tdomain%sMortar(i)%Coeff_Integr(:) = Elem%Coeff_Integr_Faces(imin:imax)
+        enddo
+
+    end subroutine prepare_mortars
+
 end module scompute_coeff_HDG
 !! Local Variables:
 !! mode: f90

@@ -4,7 +4,7 @@
 !!
 !>
 !!\file global_numbering.F90
-!!\brief Assure la correspondance entre les différentes numérotations.
+!!\brief Assure la correspondance entre les differentes numerotations.
 !!\author
 !!\version 1.0
 !!\date 10/03/2009
@@ -12,8 +12,8 @@
 !<
 
 !>
-!! Effectue la numérotation globale de tous les points de Gauss.
-!! Donne la numérotation des points de Gauss d'une maille
+!! Effectue la numerotation globale de tous les points de Gauss.
+!! Donne la numerotation des points de Gauss d'une maille
 !! Definition de Iglobnum.
 !<
 subroutine global_numbering ( Tdomain )
@@ -74,12 +74,12 @@ subroutine global_numbering ( Tdomain )
         ! Face 1 : i = ngllx-1
         nf = Tdomain%specel(n)%Near_Face(1)
         if ( Tdomain%sFace(nf)%Near_Element(1) == n .and. .not. Tdomain%sFace(nf)%coherency ) then
-            if ( Tdomain%specel(n)%Iglobnum(ngllx-1,0) /= Tdomain%sFace(nf)%Iglobnum_Face(ngllz-1) ) stop "global_numbering KO"
+            !if ( Tdomain%specel(n)%Iglobnum(ngllx-1,0) /= Tdomain%sFace(nf)%Iglobnum_Face(ngllz-1) ) stop "global_numbering KO"
             do k = 0, ngllz-1
                 Tdomain%specel(n)%Iglobnum(ngllx-1,k) = Tdomain%sFace(nf)%Iglobnum_Face(ngllz-1-k)
             end do
         else
-            if ( Tdomain%specel(n)%Iglobnum(ngllx-1,0) /= Tdomain%sFace(nf)%Iglobnum_Face(0) ) stop "global_numbering KO"
+            !if ( Tdomain%specel(n)%Iglobnum(ngllx-1,0) /= Tdomain%sFace(nf)%Iglobnum_Face(0) ) stop "global_numbering KO"
             do k = 0, ngllz-1
                 Tdomain%specel(n)%Iglobnum(ngllx-1,k) = Tdomain%sFace(nf)%Iglobnum_Face(k)
             end do
@@ -87,12 +87,12 @@ subroutine global_numbering ( Tdomain )
         ! Face 2 : k = ngllz-1
         nf = Tdomain%specel(n)%Near_Face(2)
         if ( Tdomain%sFace(nf)%Near_Element(1) == n .and. .not. Tdomain%sFace(nf)%coherency ) then
-            if ( Tdomain%specel(n)%Iglobnum(ngllx-1,ngllz-1) /= Tdomain%sFace(nf)%Iglobnum_Face(0) ) stop "global_numbering KO"
+            !if ( Tdomain%specel(n)%Iglobnum(ngllx-1,ngllz-1) /= Tdomain%sFace(nf)%Iglobnum_Face(0) ) stop "global_numbering KO"
             do i = 0, ngllx-1
                 Tdomain%specel(n)%Iglobnum(i,ngllz-1) = Tdomain%sFace(nf)%Iglobnum_Face(ngllx-1-i)
             end do
         else
-            if ( Tdomain%specel(n)%Iglobnum(ngllx-1,ngllz-1) /= Tdomain%sFace(nf)%Iglobnum_Face(ngllx-1) ) stop "global_numbering KO"
+            !if ( Tdomain%specel(n)%Iglobnum(ngllx-1,ngllz-1) /= Tdomain%sFace(nf)%Iglobnum_Face(ngllx-1) ) stop "global_numbering KO"
             do i = 0, ngllx-1
                 Tdomain%specel(n)%Iglobnum(i,ngllz-1) = Tdomain%sFace(nf)%Iglobnum_Face(i)
             end do
@@ -100,14 +100,14 @@ subroutine global_numbering ( Tdomain )
         ! Face 3 : i = 0
         nf = Tdomain%specel(n)%Near_Face(3)
         if ( Tdomain%sFace(nf)%Near_Element(1) == n .and. .not. Tdomain%sFace(nf)%coherency ) then
-            if ( Tdomain%specel(n)%Iglobnum(0,0) /= Tdomain%sFace(nf)%Iglobnum_Face(ngllz-1) ) stop "global_numbering KO"
-            if ( Tdomain%specel(n)%Iglobnum(0,ngllz-1) /= Tdomain%sFace(nf)%Iglobnum_Face(0) ) stop "global_numbering KO"
+            !if ( Tdomain%specel(n)%Iglobnum(0,0) /= Tdomain%sFace(nf)%Iglobnum_Face(ngllz-1) ) stop "global_numbering KO"
+            !if ( Tdomain%specel(n)%Iglobnum(0,ngllz-1) /= Tdomain%sFace(nf)%Iglobnum_Face(0) ) stop "global_numbering KO"
             do k = 0, ngllz-1
                 Tdomain%specel(n)%Iglobnum(0,k) = Tdomain%sFace(nf)%Iglobnum_Face(ngllz-1-k)
             end do
         else
-            if ( Tdomain%specel(n)%Iglobnum(0,0) /= Tdomain%sFace(nf)%Iglobnum_Face(0) ) stop "global_numbering KO"
-            if ( Tdomain%specel(n)%Iglobnum(0,ngllz-1) /= Tdomain%sFace(nf)%Iglobnum_Face(ngllz-1) ) stop "global_numbering KO"
+            !if ( Tdomain%specel(n)%Iglobnum(0,0) /= Tdomain%sFace(nf)%Iglobnum_Face(0) ) stop "global_numbering KO"
+            !if ( Tdomain%specel(n)%Iglobnum(0,ngllz-1) /= Tdomain%sFace(nf)%Iglobnum_Face(ngllz-1) ) stop "global_numbering KO"
             do k = 0, ngllz-1
                 Tdomain%specel(n)%Iglobnum(0,k) = Tdomain%sFace(nf)%Iglobnum_Face(k)
             end do

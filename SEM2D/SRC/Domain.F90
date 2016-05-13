@@ -255,11 +255,37 @@ subroutine read_material_file(Tdomain)
     ! Traitement des mortars :
     Tdomain%n_mortar = nmortar
     write(*,*) "Nombre de faces mortars : ", nmortar
-    allocate(Tdomain%sMortars(0:nmortar))
+    allocate(Tdomain%sMortar(0:nmortar-1))
     nmortar = 0
     do i = 0, Tdomain%n_face-1
         if (Tdomain%sFace(i)%mortar) then
             Tdomain%sMortar(nmortar)%Near_Face(0) = i
+            Tdomain%sFace(i)%mortarId = nmortar
+            n_aus = Tdomain%sFace(i)%Near_Element(0)
+            k_aus = Tdomain%sFace(i)%Near_Element(1)
+            w_face = Tdomain%sFace(i)%Which_face(0)
+            w_face2= Tdomain%sFace(i)%Which_face(1)
+            mat = Tdomain%specel(n_aus)%mat_index
+            mat2 = Tdomain%specel(k_aus)%mat_index
+            if (w_face == 0 .or. w_face==2) then
+                ngll1 = Tdomain%sSubDomain(mat)%ngllx
+            else
+                ngll1 = Tdomain%sSubDomain(mat)%ngllz
+            endif
+            if (w_face2 == 0 .or. w_face2==2) then
+                ngll2 = Tdomain%sSubDomain(mat2)%ngllx
+            else
+                ngll2 = Tdomain%sSubDomain(mat2)%ngllz
+            endif
+            Tdomain%sMortar(nmortar)%ngllmin = min(ngll1,ngll2)
+            Tdomain%sMortar(nmortar)%ngllmax = max(ngll1,ngll2)
+            if (ngll1>ngll2) then ! Near_Element(0) doit etre le "slave"
+                Tdomain%sMortar(nmortar)%Near_Element(0) = k_aus
+                Tdomain%sMortar(nmortar)%Near_Element(1) = n_aus
+            else
+                Tdomain%sMortar(nmortar)%Near_Element(0) = n_aus
+                Tdomain%sMortar(nmortar)%Near_Element(1) = k_aus
+            endif
             nmortar = nmortar + 1
         endif
     enddo

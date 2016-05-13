@@ -400,6 +400,7 @@ subroutine Get_traction_elas_el2f (Tdomain, nelem)
 
     use sdomain
     use ssources
+    use smortars
     use constants
     implicit none
 
@@ -424,6 +425,19 @@ subroutine Get_traction_elas_el2f (Tdomain, nelem)
         ngll  = Tdomain%sFace(nface)%ngll
         coherency  = Tdomain%sFace(nface)%coherency
         call get_iminimax(Elem,nf,imin,imax)
+        ! Traitement des faces mortars
+        !if (Tdomain%sFace(nface)%mortar) then
+        !    Nmortar = Tdomain%sFace(nface)%mortarID
+        !    if (Tdomain%sMortar(Nmortar)%Near_Element(1) == nelem) GOTO 111
+        !    Elem%TracFace(imin:imax,0) = Elem%TracFace(imin:imax,0)/Elem%Coeff_Integr_Faces(imin:imax)
+        !    Elem%TracFace(imin:imax,1) = Elem%TracFace(imin:imax,1)/Elem%Coeff_Integr_Faces(imin:imax)
+        !    Tdomain%sFace(nface)%SmbrTrac(:,0) = Tdomain%sFace(nface)%SmbrTrac(:,0) - Tdomain%sMortar(Nmortar)%Coeff_Integr(:) &
+        !                                       * MATMUL(Tdomain%smortar(Nmortar)%MatReinterp(:,:),Elem%TracFace(imin:imax,0))
+        !    Tdomain%sFace(nface)%SmbrTrac(:,1) = Tdomain%sFace(nface)%SmbrTrac(:,1) - Tdomain%sMortar(Nmortar)%Coeff_Integr(:) &
+        !                                       * MATMUL(Tdomain%smortar(Nmortar)%MatReinterp(:,:),Elem%TracFace(imin:imax,1))
+        !    Elem%TracFace(imin:imax,0) = Elem%TracFace(imin:imax,0)*Elem%Coeff_Integr_Faces(imin:imax)
+        !    Elem%TracFace(imin:imax,1) = Elem%TracFace(imin:imax,1)*Elem%Coeff_Integr_Faces(imin:imax)
+        !else
         if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
             Tdomain%sFace(nface)%SmbrTrac = Tdomain%sFace(nface)%SmbrTrac - Elem%TracFace(imin:imax,0:1)
         else ! Case coherency = false
@@ -432,6 +446,7 @@ subroutine Get_traction_elas_el2f (Tdomain, nelem)
                                                      - Elem%TracFace(imax-i,0:1)
             end do
         end if
+        !end if
     enddo
 
     ! Ajout des sources surfaciques pour les problemes de Riemann autour des elements sources
@@ -534,6 +549,7 @@ end subroutine get_forces_f2v
 subroutine Get_Vhat_f2el (Tdomain, nelem)
 
     use sdomain
+    use smortars
     implicit none
 
     type (domain), intent (INOUT) :: Tdomain
@@ -555,13 +571,21 @@ subroutine Get_Vhat_f2el (Tdomain, nelem)
           coherency = Tdomain%sFace(nface)%coherency
           ngll  = Tdomain%sFace(nface)%ngll
           call get_iminimax(Elem,w_face,imin,imax)
+          ! Traitement des faces mortars
+          !if (Tdomain%sFace(nface)%mortar) then
+          !    Nmortar = Tdomain%sFace(nface)%mortarID
+          !    if (Tdomain%sMortar(Nmortar)%Near_Element(1) == nelem) GOTO 222
+          !    Elem%Vhat(imin:imax,0) = MATMUL(Tdomain%smortar(Nmortar)%MatProj(:,:),Tdomain%sFace(nface)%Veloc(:,0))
+          !    Elem%Vhat(imin:imax,1) = MATMUL(Tdomain%smortar(Nmortar)%MatProj(:,:),Tdomain%sFace(nface)%Veloc(:,1))
+          !else
           if (coherency .OR. (Tdomain%sFace(nface)%Near_Element(0)==nelem)) then
              Elem%Vhat(imin:imax,:) = Tdomain%sFace(nface)%Veloc(:,:)
           else
              do i=0,ngll-1
                 Elem%Vhat(imax-i,:) = Tdomain%sFace(nface)%Veloc(i,:)
              enddo
-          endif
+         endif
+         !endif
        enddo
     else ! Acoustic case
        do w_face=0,3
@@ -867,6 +891,7 @@ subroutine assemble_coeffs_proj_Vhat (Tdomain)
     enddo
 
 end subroutine assemble_coeffs_proj_Vhat
+
 
 !! Local Variables:
 !! mode: f90
