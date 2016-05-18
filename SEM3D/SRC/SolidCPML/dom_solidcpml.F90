@@ -270,10 +270,6 @@ contains
 
         ab2 = 1. ! To compute !...
         specel%MassMat(i,j,k) = ab2*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)*Whei
-
-        ! Assemble masses of each specel%MassMat in dom%MassMat
-
-        dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solidpml
 
     subroutine pred_sol_pml(dom, dt, champs1, bnum)
