@@ -258,6 +258,7 @@ end subroutine comm_forces
 subroutine Newmark_Predictor(Tdomain)
     use sdomain
     use dom_fluidpml
+    use dom_solid
     use stat, only : stat_starttick, stat_stoptick
     implicit none
 
@@ -271,9 +272,7 @@ subroutine Newmark_Predictor(Tdomain)
     ! Elements solide
     if (Tdomain%sdom%nglltot /= 0) then
         call stat_starttick()
-        Tdomain%sdom%champs1%Depla = Tdomain%sdom%champs0%Depla
-        Tdomain%sdom%champs1%Veloc = Tdomain%sdom%champs0%Veloc
-        Tdomain%sdom%champs1%Forces = 0d0
+        call newmark_predictor_solid(Tdomain%sdom)
         call stat_stoptick(STAT_FSOL)
     endif
 

@@ -470,6 +470,9 @@ contains
     subroutine newmark_predictor_solid(dom)
         type(domain_solid), intent (INOUT) :: dom
         !
+        dom%champs1%Depla = dom%champs0%Depla
+        dom%champs1%Veloc = dom%champs0%Veloc
+        dom%champs1%Forces = 0d0
     end subroutine newmark_predictor_solid
 
     subroutine newmark_corrector_solid(dom, dt)
