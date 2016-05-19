@@ -259,11 +259,12 @@ subroutine Newmark_Predictor(Tdomain)
     use sdomain
     use dom_fluidpml
     use dom_solid
+    use dom_solidpml
     use stat, only : stat_starttick, stat_stoptick
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
-    integer :: n, indsol, indpml, indflu
+    integer :: n, indpml, indflu
     real :: bega, dt
 
     bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
@@ -288,17 +289,7 @@ subroutine Newmark_Predictor(Tdomain)
     ! Elements solide pml
     if (Tdomain%spmldom%nglltot /= 0) then
         call stat_starttick()
-        Tdomain%spmldom%champs1%ForcesPML = 0.
-        do n = 0,Tdomain%intSolPml%surf0%nbtot-1
-            ! Couplage à l'interface solide / PML
-            indsol = Tdomain%intSolPml%surf0%map(n)
-            indpml = Tdomain%intSolPml%surf1%map(n)
-            Tdomain%spmldom%champs0%VelocPML(indpml,:,0) = Tdomain%sdom%champs0%Veloc(indsol,:)
-            Tdomain%spmldom%champs0%VelocPML(indpml,:,1) = 0.
-            Tdomain%spmldom%champs0%VelocPML(indpml,:,2) = 0.
-        enddo
-        ! Prediction
-        Tdomain%spmldom%champs1%VelocPML = Tdomain%spmldom%champs0%VelocPML + dt*(0.5-bega)*Tdomain%spmldom%champs1%ForcesPML
+        call newmark_predictor_solidpml(Tdomain%spmldom, Tdomain)
         call stat_stoptick(STAT_PSOL)
     endif
 

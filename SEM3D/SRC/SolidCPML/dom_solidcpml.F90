@@ -407,8 +407,9 @@ contains
         ! Useless, kept for compatibility with SolidPML (build), can be deleted later on
     end subroutine finalize_solidpml_properties
 
-    subroutine newmark_predictor_solidpml(dom)
+    subroutine newmark_predictor_solidpml(dom, Tdomain)
         type(domain_solidpml), intent (INOUT) :: dom
+        type (domain), intent (INOUT) :: Tdomain
         !
     end subroutine newmark_predictor_solidpml
 
