@@ -2,10 +2,11 @@
 run_name = "Cube_PML";
 
 # duration of the run
-sim_time = 5.0;
+sim_time = 5.0000;
 mesh_file = "mesh4spec"; # input mesh file
 mat_file = "material.input";
 dim=3;
+mpml_atn_param = 0.002;
 
 snapshots {
     save_snap = true;
@@ -18,7 +19,6 @@ snapshots {
 
 # Description des capteurs
 save_traces = true;
-station_file = "capteurs.dat";
 traces_format=hdf5;
 
 
@@ -49,17 +49,30 @@ time_scheme {
     alpha = 0.5;           # alpha (Newmark parameter)
     beta = 0.5;           # beta (Newmark parameter)
     gamma = 1;             # gamma (Newmark parameter)
-    courant=0.2;
+    courant = 0.2;
 };
 
 amortissement {
     nsolids = 0;           # number of solids for attenuation (0 if no attenuation)
-    atn_band = 10  0.05;   # attenuation period band
-    atn_period = 0.2;      # model period 
 };
 
 capteurs "UU" {
     type = points;
     file = "stations.txt";
-    period = 1;
+    period = 40;
+};
+material {
+    type = constant;
+    random_library_path = " ";
+};
+out_variables {
+    enP = 0;   # P-wave energy (scalar field)
+    enS = 0;    # S-wave energy (scalar field)
+    evol = 0;   # volumetric strain (scalar field)
+    pre  = 0;   # pressure (scalar field)
+    dis   = 1;   # displacement (vector field)
+    vel   = 1;   #  velocity (vector field)
+    acc  = 1;   # acceleration (vector field)
+    edev = 0;  # deviatoric strain (tensor field)
+    sdev  = 0;  # deviatoric stress (tensor field)
 };
