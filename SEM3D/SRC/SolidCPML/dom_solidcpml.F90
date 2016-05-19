@@ -413,8 +413,9 @@ contains
         !
     end subroutine newmark_predictor_solidpml
 
-    subroutine newmark_corrector_solidpml(dom)
+    subroutine newmark_corrector_solidpml(dom, dt)
         type(domain_solidpml), intent (INOUT) :: dom
+        double precision :: dt
         !
     end subroutine newmark_corrector_solidpml
 end module dom_solidpml

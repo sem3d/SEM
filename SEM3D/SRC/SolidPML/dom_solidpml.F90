@@ -601,9 +601,21 @@ contains
         dom%champs1%VelocPML = dom%champs0%VelocPML + dt*(0.5-bega)*dom%champs1%ForcesPML
     end subroutine newmark_predictor_solidpml
 
-    subroutine newmark_corrector_solidpml(dom)
+    subroutine newmark_corrector_solidpml(dom, dt)
         type(domain_solidpml), intent (INOUT) :: dom
+        double precision :: dt
         !
+        integer  :: n, i_dir, indpml
+
+        do i_dir = 0,2
+            dom%champs0%VelocPML(:,i_dir,:) = dom%champs0%DumpV(:,0,:) * dom%champs0%VelocPML(:,i_dir,:) + &
+                                              dt * dom%champs0%DumpV(:,1,:) * dom%champs1%ForcesPML(:,i_dir,:)
+        enddo
+        !TODO Eventuellement : DeplaPML(:,:) = DeplaPML(:,:) + dt * VelocPML(:,:)
+        do n = 0, dom%n_dirich-1
+            indpml = dom%dirich(n)
+            dom%champs0%VelocPML(indpml,:,:) = 0.
+        enddo
     end subroutine newmark_corrector_solidpml
 end module dom_solidpml
 

@@ -349,29 +349,18 @@ end subroutine Newmark_Corrector_F
 subroutine Newmark_Corrector_S(Tdomain)
     use sdomain
     use dom_solid
+    use dom_solidpml
     use stat, only : stat_starttick, stat_stoptick
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
-    integer  :: n, i_dir, indpml
     double precision :: dt
 
     dt = Tdomain%TimeD%dtmin
     ! Si il existe des éléments PML solides
     if (Tdomain%spmldom%nglltot /= 0) then
         call stat_starttick()
-        do i_dir = 0,2
-            Tdomain%spmldom%champs0%VelocPML(:,i_dir,:) = Tdomain%spmldom%champs0%DumpV(:,0,:) * &
-                                                Tdomain%spmldom%champs0%VelocPML(:,i_dir,:) + &
-                                                dt * &
-                                                Tdomain%spmldom%champs0%DumpV(:,1,:) * &
-                                                Tdomain%spmldom%champs1%ForcesPML(:,i_dir,:)
-        enddo
-        !TODO Eventuellement : DeplaPML(:,:) = DeplaPML(:,:) + dt * VelocPML(:,:)
-        do n = 0, Tdomain%spmldom%n_dirich-1
-            indpml = Tdomain%spmldom%dirich(n)
-            Tdomain%spmldom%champs0%VelocPML(indpml,:,:) = 0.
-        enddo
+        call newmark_corrector_solidpml(Tdomain%spmldom, dt)
         call stat_stoptick(STAT_PSOL)
     endif
 
