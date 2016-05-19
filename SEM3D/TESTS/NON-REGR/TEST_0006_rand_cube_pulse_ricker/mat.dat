@@ -1,12 +1,12 @@
 -100.    # xmin
 500.     # xmax
-10.      # xstep
+50.      # xstep
 -100.    # ymin
 500.     # ymax
-10.      # ystep
+50.      # ystep
 500.     # zmax
 1        # nb. of layers
-600. 60  # upper layer: thickness and nb of steps
+600. 12  # upper layer: thickness and nb of steps
 1  # PMLs? 0: no, 1: yes
 1 1  # PMLs on top? at the bottom? (0: no, 1: yes)
 5   # nb of GLL nodes in the PML
