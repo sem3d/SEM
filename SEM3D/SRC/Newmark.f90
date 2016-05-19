@@ -167,13 +167,13 @@ subroutine Newmark(Tdomain,ntime)
     end if
 
     !- correction phase
-    call Newmark_Corrector_Fluid(Tdomain)
+    call Newmark_Corrector_F(Tdomain)
 
     if(Tdomain%logicD%SF_local_present)then
         !- fluid -> solid coupling (pressure times velocity)
         call FtoS_coupling(Tdomain)
     end if
-    call Newmark_Corrector_Solid(Tdomain)
+    call Newmark_Corrector_S(Tdomain)
 
     if (Tdomain%rank==0 .and. mod(ntime,20)==0) print *,' Iteration  =  ',ntime,'    temps  = ',Tdomain%TimeD%rtime
 
@@ -325,7 +325,7 @@ subroutine Newmark_Predictor(Tdomain)
 end subroutine Newmark_Predictor
 !-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
-subroutine Newmark_Corrector_Fluid(Tdomain)
+subroutine Newmark_Corrector_F(Tdomain)
     use sdomain
     use stat, only : stat_starttick, stat_stoptick
     implicit none
@@ -369,10 +369,10 @@ subroutine Newmark_Corrector_Fluid(Tdomain)
     endif
 
     return
-end subroutine Newmark_Corrector_Fluid
+end subroutine Newmark_Corrector_F
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
-subroutine Newmark_Corrector_Solid(Tdomain)
+subroutine Newmark_Corrector_S(Tdomain)
     use sdomain
     use stat, only : stat_starttick, stat_stoptick
     implicit none
@@ -415,7 +415,7 @@ subroutine Newmark_Corrector_Solid(Tdomain)
         call stat_stoptick(STAT_FSOL)
     endif
     return
-end subroutine Newmark_Corrector_Solid
+end subroutine Newmark_Corrector_S
 !-----------------------------------------------------------------------------
 !-----------------------------------------------------------------------------
 subroutine internal_forces(Tdomain)
