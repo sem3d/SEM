@@ -374,6 +374,7 @@ end subroutine Newmark_Corrector_F
 !-----------------------------------------------------------------------------
 subroutine Newmark_Corrector_S(Tdomain)
     use sdomain
+    use dom_solid
     use stat, only : stat_starttick, stat_stoptick
     implicit none
 
@@ -403,15 +404,7 @@ subroutine Newmark_Corrector_S(Tdomain)
     ! Si il existe des éléments solides
     if (Tdomain%sdom%nglltot /= 0) then
         call stat_starttick()
-        do i_dir = 0,2
-            Tdomain%sdom%champs0%Forces(:,i_dir) = Tdomain%sdom%champs1%Forces(:,i_dir) * Tdomain%sdom%MassMat(:)
-        enddo
-        Tdomain%sdom%champs0%Veloc = Tdomain%sdom%champs0%Veloc + dt * Tdomain%sdom%champs0%Forces
-        do n = 0, Tdomain%sdom%n_dirich-1
-            indpml = Tdomain%sdom%dirich(n)
-            Tdomain%sdom%champs0%Veloc(indpml,:) = 0.
-        enddo
-        Tdomain%sdom%champs0%Depla = Tdomain%sdom%champs0%Depla + dt * Tdomain%sdom%champs0%Veloc
+        call newmark_corrector_solid(Tdomain%sdom, dt)
         call stat_stoptick(STAT_FSOL)
     endif
     return
