@@ -240,7 +240,7 @@ contains
         !
         integer :: ngll
         integer :: i, j, k, l, ind,e,ee
-        real(fpp) :: acoeff, bcoeff
+        real(fpp) :: acoeff
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: FFl
         ngll = dom%ngll
 
