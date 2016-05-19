@@ -301,6 +301,7 @@ end subroutine Newmark_Predictor
 !-------------------------------------------------------------------------------
 subroutine Newmark_Corrector_F(Tdomain)
     use sdomain
+    use dom_fluid
     use stat, only : stat_starttick, stat_stoptick
     implicit none
 
@@ -332,13 +333,7 @@ subroutine Newmark_Corrector_F(Tdomain)
     ! Si il existe des éléments fluides
     if (Tdomain%fdom%nglltot /= 0) then
         call stat_starttick()
-        Tdomain%fdom%champs0%ForcesFl = Tdomain%fdom%champs1%ForcesFl * Tdomain%fdom%MassMat
-        Tdomain%fdom%champs0%VelPhi = (Tdomain%fdom%champs0%VelPhi + dt * Tdomain%fdom%champs0%ForcesFl)
-        do n = 0, Tdomain%fdom%n_dirich-1
-            indpml = Tdomain%fdom%dirich(n)
-            Tdomain%fdom%champs0%VelPhi(indpml) = 0.
-        enddo
-        Tdomain%fdom%champs0%Phi = Tdomain%fdom%champs0%Phi + dt * Tdomain%fdom%champs0%VelPhi
+        call newmark_corrector_fluid(Tdomain%fdom, dt)
         call stat_stoptick(STAT_FFLU)
     endif
 

@@ -303,9 +303,19 @@ contains
         dom%champs1%ForcesFl = 0d0
     end subroutine newmark_predictor_fluid
 
-    subroutine newmark_corrector_fluid(dom)
+    subroutine newmark_corrector_fluid(dom, dt)
         type(domain_fluid), intent (INOUT) :: dom
+        double precision :: dt
         !
+        integer  :: n,  indpml
+
+        dom%champs0%ForcesFl = dom%champs1%ForcesFl * dom%MassMat
+        dom%champs0%VelPhi = (dom%champs0%VelPhi + dt * dom%champs0%ForcesFl)
+        do n = 0, dom%n_dirich-1
+            indpml = dom%dirich(n)
+            dom%champs0%VelPhi(indpml) = 0.
+        enddo
+        dom%champs0%Phi = dom%champs0%Phi + dt * dom%champs0%VelPhi
     end subroutine newmark_corrector_fluid
 end module dom_fluid
 
