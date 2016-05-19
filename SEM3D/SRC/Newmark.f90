@@ -265,11 +265,6 @@ subroutine Newmark_Predictor(Tdomain)
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
-    integer :: n, indpml, indflu
-    real :: bega, dt
-
-    bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
-    dt = Tdomain%TimeD%dtmin
 
     ! Elements solide
     if (Tdomain%sdom%nglltot /= 0) then
@@ -295,17 +290,7 @@ subroutine Newmark_Predictor(Tdomain)
     ! Elements fluide pml
     if (Tdomain%fpmldom%nglltot /= 0) then
         call stat_starttick()
-        Tdomain%fpmldom%champs1%fpml_Forces = 0.
-        do n = 0,Tdomain%intFluPml%surf0%nbtot-1
-            ! Couplage à l'interface fluide / PML
-            indflu = Tdomain%intFluPml%surf0%map(n)
-            indpml = Tdomain%intFluPml%surf1%map(n)
-            Tdomain%fpmldom%champs0%fpml_VelPhi(indpml,0) = Tdomain%fdom%champs0%VelPhi(indflu)
-            Tdomain%fpmldom%champs0%fpml_VelPhi(indpml,1) = 0.
-            Tdomain%fpmldom%champs0%fpml_VelPhi(indpml,2) = 0.
-        enddo
-        ! Prediction
-        Tdomain%fpmldom%champs1%fpml_Velphi = Tdomain%fpmldom%champs0%fpml_VelPhi + dt*(0.5-bega)*Tdomain%fpmldom%champs1%fpml_Forces
+        call newmark_predictor_fluidpml(Tdomain%fpmldom, Tdomain)
         call stat_stoptick(STAT_PFLU)
     endif
 
