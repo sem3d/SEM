@@ -466,6 +466,16 @@ contains
             enddo
         enddo
     end subroutine forces_int_solid
+
+    subroutine newmark_predictor_solid(dom)
+        type(domain_solid), intent (INOUT) :: dom
+        !
+    end subroutine newmark_predictor_solid
+
+    subroutine newmark_corrector_solid(dom)
+        type(domain_solid), intent (INOUT) :: dom
+        !
+    end subroutine newmark_corrector_solid
 end module dom_solid
 
 !! Local Variables:

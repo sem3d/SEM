@@ -294,6 +294,16 @@ contains
             enddo
         enddo
     end subroutine forces_int_fluid
+
+    subroutine newmark_predictor_fluid(dom)
+        type(domain_fluid), intent (INOUT) :: dom
+        !
+    end subroutine newmark_predictor_fluid
+
+    subroutine newmark_corrector_fluid(dom)
+        type(domain_fluid), intent (INOUT) :: dom
+        !
+    end subroutine newmark_corrector_fluid
 end module dom_fluid
 
 !! Local Variables:

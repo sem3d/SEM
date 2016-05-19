@@ -407,6 +407,15 @@ contains
         ! Useless, kept for compatibility with SolidPML (build), can be deleted later on
     end subroutine finalize_solidpml_properties
 
+    subroutine newmark_predictor_solidpml(dom)
+        type(domain_solidpml), intent (INOUT) :: dom
+        !
+    end subroutine newmark_predictor_solidpml
+
+    subroutine newmark_corrector_solidpml(dom)
+        type(domain_solidpml), intent (INOUT) :: dom
+        !
+    end subroutine newmark_corrector_solidpml
 end module dom_solidpml
 
 !! Local Variables:

@@ -578,6 +578,15 @@ contains
       call define_PML_DumpEnd(dom%nglltot, dom%MassMat, dom%DumpMass, dom%champs0%DumpV)
     end subroutine finalize_solidpml_properties
 
+    subroutine newmark_predictor_solidpml(dom)
+        type(domain_solidpml), intent (INOUT) :: dom
+        !
+    end subroutine newmark_predictor_solidpml
+
+    subroutine newmark_corrector_solidpml(dom)
+        type(domain_solidpml), intent (INOUT) :: dom
+        !
+    end subroutine newmark_corrector_solidpml
 end module dom_solidpml
 
 !! Local Variables:

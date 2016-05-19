@@ -479,6 +479,15 @@ contains
       call define_PML_DumpEnd(dom%nglltot, dom%MassMat, dom%DumpMass, dom%champs0%fpml_DumpV)
     end subroutine finalize_fluidpml_properties
 
+    subroutine newmark_predictor_fluidpml(dom)
+        type(domain_fluidpml), intent (INOUT) :: dom
+        !
+    end subroutine newmark_predictor_fluidpml
+
+    subroutine newmark_corrector_fluidpml(dom)
+        type(domain_fluidpml), intent (INOUT) :: dom
+        !
+    end subroutine newmark_corrector_fluidpml
 end module dom_fluidpml
 
 !! Local Variables:
