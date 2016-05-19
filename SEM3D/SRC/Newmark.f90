@@ -257,6 +257,7 @@ end subroutine comm_forces
 !-------------------------------------------------------------------------------
 subroutine Newmark_Predictor(Tdomain)
     use sdomain
+    use dom_fluid
     use dom_fluidpml
     use dom_solid
     use dom_solidpml
@@ -280,9 +281,7 @@ subroutine Newmark_Predictor(Tdomain)
     ! Elements fluide
     if (Tdomain%fdom%nglltot /= 0) then
         call stat_starttick()
-        Tdomain%fdom%champs1%VelPhi = Tdomain%fdom%champs0%VelPhi
-        Tdomain%fdom%champs1%Phi    = Tdomain%fdom%champs0%Phi
-        Tdomain%fdom%champs1%ForcesFl = 0d0
+        call newmark_predictor_fluid(Tdomain%fdom)
         call stat_stoptick(STAT_FFLU)
     endif
 

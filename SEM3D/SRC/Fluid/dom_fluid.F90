@@ -298,6 +298,9 @@ contains
     subroutine newmark_predictor_fluid(dom)
         type(domain_fluid), intent (INOUT) :: dom
         !
+        dom%champs1%VelPhi = dom%champs0%VelPhi
+        dom%champs1%Phi    = dom%champs0%Phi
+        dom%champs1%ForcesFl = 0d0
     end subroutine newmark_predictor_fluid
 
     subroutine newmark_corrector_fluid(dom)
