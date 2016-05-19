@@ -502,9 +502,21 @@ contains
         dom%champs1%fpml_Velphi = dom%champs0%fpml_VelPhi + dt*(0.5-bega)*dom%champs1%fpml_Forces
     end subroutine newmark_predictor_fluidpml
 
-    subroutine newmark_corrector_fluidpml(dom)
+    subroutine newmark_corrector_fluidpml(dom, dt)
         type(domain_fluidpml), intent (INOUT) :: dom
+        double precision :: dt
         !
+        integer  :: n,  indpml
+
+        dom%champs0%fpml_VelPhi(:,:) = dom%champs0%fpml_DumpV(:,0,:) * dom%champs0%fpml_VelPhi(:,:) + &
+                                       dt * dom%champs0%fpml_DumpV(:,1,:) * dom%champs1%fpml_Forces(:,:)
+        do n = 0, dom%n_dirich-1
+            indpml = dom%dirich(n)
+            dom%champs0%fpml_VelPhi(indpml,0) = 0.
+            dom%champs0%fpml_VelPhi(indpml,1) = 0.
+            dom%champs0%fpml_VelPhi(indpml,2) = 0.
+        enddo
+        dom%champs0%fpml_Phi = dom%champs0%fpml_Phi + dt*dom%champs0%fpml_VelPhi
     end subroutine newmark_corrector_fluidpml
 end module dom_fluidpml
 

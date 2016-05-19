@@ -302,32 +302,18 @@ end subroutine Newmark_Predictor
 subroutine Newmark_Corrector_F(Tdomain)
     use sdomain
     use dom_fluid
+    use dom_fluidpml
     use stat, only : stat_starttick, stat_stoptick
     implicit none
 
     type(domain), intent(inout)   :: Tdomain
-    integer  :: n,  indpml
     double precision :: dt
 
     dt = Tdomain%TimeD%dtmin
     ! Si il existe des éléments PML fluides
     if (Tdomain%fpmldom%nglltot /= 0) then
         call stat_starttick()
-        Tdomain%fpmldom%champs0%fpml_VelPhi(:,:) = Tdomain%fpmldom%champs0%fpml_DumpV(:,0,:) * &
-                                                   Tdomain%fpmldom%champs0%fpml_VelPhi(:,:) + &
-                                                   dt * &
-                                                   Tdomain%fpmldom%champs0%fpml_DumpV(:,1,:) * &
-                                                   Tdomain%fpmldom%champs1%fpml_Forces(:,:)
-        do n = 0, Tdomain%fpmldom%n_dirich-1
-            indpml = Tdomain%fpmldom%dirich(n)
-                     Tdomain%fpmldom%champs0%fpml_VelPhi(indpml,0) = 0.
-                     Tdomain%fpmldom%champs0%fpml_VelPhi(indpml,1) = 0.
-                     Tdomain%fpmldom%champs0%fpml_VelPhi(indpml,2) = 0.
-        enddo
-
-
-        Tdomain%fpmldom%champs0%fpml_Phi = Tdomain%fpmldom%champs0%fpml_Phi + &
-                                           dt*Tdomain%fpmldom%champs0%fpml_VelPhi
+        call newmark_corrector_fluidpml(Tdomain%fpmldom, dt)
         call stat_stoptick(STAT_PFLU)
     endif
     ! Si il existe des éléments fluides
