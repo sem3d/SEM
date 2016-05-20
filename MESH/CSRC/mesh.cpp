@@ -97,6 +97,7 @@ void Mesh3D::partition_mesh(int n_parts)
             break;
         default:
             vwgt[k] = 1;
+
         }
     }
     if (n_parts>1) {

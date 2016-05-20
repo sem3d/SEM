@@ -716,7 +716,6 @@ contains
             endif
         end if
 
-        write(*,*) "CIAOOOOOO"
         write(*,*) trim(Tdomain%random_library_path)
 
         Tdomain%TimeD%alpha = 0.5
