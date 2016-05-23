@@ -307,6 +307,9 @@ contains
         type(domain_solidpml), intent (INOUT) :: dom
         type (domain), intent (INOUT) :: Tdomain
         !
+        dom%champs1%Depla = dom%champs0%Depla
+        dom%champs1%Veloc = dom%champs0%Veloc
+        dom%champs1%Forces = 0d0
     end subroutine newmark_predictor_solidpml
 
     subroutine newmark_corrector_solidpml(dom, dt)
