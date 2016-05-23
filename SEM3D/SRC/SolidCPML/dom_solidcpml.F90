@@ -316,6 +316,16 @@ contains
         type(domain_solidpml), intent (INOUT) :: dom
         double precision :: dt
         !
+        integer :: i_dir, n, indpml
+        do i_dir = 0,2
+            dom%champs0%Forces(:,i_dir) = dom%champs1%Forces(:,i_dir) * dom%MassMat(:)
+        enddo
+        dom%champs0%Veloc = dom%champs0%Veloc + dt * dom%champs0%Forces
+        do n = 0, dom%n_dirich-1
+            indpml = dom%dirich(n)
+            dom%champs0%Veloc(indpml,:) = 0.
+        enddo
+        dom%champs0%Depla = dom%champs0%Depla + dt * dom%champs0%Veloc
     end subroutine newmark_corrector_solidpml
 end module dom_solidpml
 
