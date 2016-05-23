@@ -251,6 +251,7 @@ contains
         else
             dom%Density_(i,j,k,bnum,ee) = density
         end if
+        ! TODO : compute dom%Cij
     end subroutine init_material_properties_solidpml
 
     subroutine init_local_mass_solidpml(dom,specel,i,j,k,ind,Whei)
@@ -267,7 +268,7 @@ contains
 
         ! Delta term from L : (12a) or (14a) from R1
 
-        ab2 = 1. ! To compute !...
+        ab2 = 1. ! TODO : compute ab2 !...
         specel%MassMat(i,j,k) = ab2*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)*Whei
     end subroutine init_local_mass_solidpml
 
@@ -279,7 +280,7 @@ contains
         real(fpp), intent(in) :: dt
         integer :: bnum
         !
-        ! Useless, kept for compatibility with SolidPML (build), can be deleted later on
+        ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
     end subroutine pred_sol_pml
 
     subroutine forces_int_sol_pml(dom, champs1, bnum)
@@ -287,6 +288,7 @@ contains
         type(champssolidpml), intent(inout) :: champs1
         integer :: bnum
         !
+        !TODO : implement this method according to Solid.
     end subroutine forces_int_sol_pml
 
     subroutine init_solidpml_properties(Tdomain,specel,mat)
@@ -294,13 +296,13 @@ contains
         type (element), intent(inout) :: specel
         type (subdomain), intent(in) :: mat
         !
-        ! Useless, kept for compatibility with SolidPML (build), can be deleted later on
+        ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
     end subroutine init_solidpml_properties
 
     subroutine finalize_solidpml_properties(dom)
         type (domain_solidpml), intent (INOUT), target :: dom
         !
-        ! Useless, kept for compatibility with SolidPML (build), can be deleted later on
+        ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
     end subroutine finalize_solidpml_properties
 
     subroutine newmark_predictor_solidpml(dom, Tdomain)
