@@ -267,7 +267,11 @@ subroutine read_restart (Tdomain,rg, isort)
         call read_dataset(elem_id, "fl_Phi",    Tdomain%fdom%champs0%Phi, ibase=0)
     end if
     if (Tdomain%spmldom%nglltot.gt.0) then
+#ifdef CPML
+        call read_dataset(elem_id, "spml_Veloc", Tdomain%spmldom%champs0%Veloc,    ibase=0)
+#else
         call read_dataset(elem_id, "spml_Veloc", Tdomain%spmldom%champs0%VelocPML, ibase=0)
+#endif
     end if
     if (Tdomain%fpmldom%nglltot.gt.0) then
       call read_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs0%fpml_VelPhi, ibase=0)

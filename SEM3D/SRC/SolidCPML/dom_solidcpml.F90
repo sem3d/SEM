@@ -63,18 +63,18 @@ contains
 
         ! Allocation et initialisation de champs0 pour les PML solides
         if (dom%nglltot /= 0) then
-            allocate(dom%champs0%ForcesPML(0:dom%nglltot-1,0:2,0:2))
-            allocate(dom%champs0%VelocPML (0:dom%nglltot-1,0:2,0:2))
-            allocate(dom%champs0%DumpV    (0:dom%nglltot-1,0:2,0:2))
-            allocate(dom%champs1%ForcesPML(0:dom%nglltot-1,0:2,0:2))
-            allocate(dom%champs1%VelocPML (0:dom%nglltot-1,0:2,0:2))
-            allocate(dom%champs1%DumpV    (0:dom%nglltot-1,0:2,0:2))
-            dom%champs0%VelocPML  = 0d0
-            dom%champs0%ForcesPML = 0d0
-            dom%champs0%DumpV     = 0d0
-            dom%champs1%VelocPML  = 0d0
-            dom%champs1%ForcesPML = 0d0
-            dom%champs1%DumpV     = 0d0
+            allocate(dom%champs0%Forces(0:dom%nglltot-1,0:2))
+            allocate(dom%champs0%Depla (0:dom%nglltot-1,0:2))
+            allocate(dom%champs0%Veloc (0:dom%nglltot-1,0:2))
+            allocate(dom%champs1%Forces(0:dom%nglltot-1,0:2))
+            allocate(dom%champs1%Depla (0:dom%nglltot-1,0:2))
+            allocate(dom%champs1%Veloc (0:dom%nglltot-1,0:2))
+            dom%champs0%Forces = 0d0
+            dom%champs0%Depla  = 0d0
+            dom%champs0%Veloc  = 0d0
+            dom%champs1%Forces = 0d0
+            dom%champs1%Depla  = 0d0
+            dom%champs1%Veloc  = 0d0
 
             ! Allocation de MassMat pour les PML solides
             allocate(dom%MassMat(0:dom%nglltot-1))
@@ -104,12 +104,12 @@ contains
         if(allocated(dom%hprime))  deallocate(dom%hprime)
         if(allocated(dom%htprime)) deallocate(dom%htprime)
 
-        if(allocated(dom%champs0%VelocPML )) deallocate(dom%champs0%VelocPML )
-        if(allocated(dom%champs0%ForcesPML)) deallocate(dom%champs0%ForcesPML)
-        if(allocated(dom%champs0%DumpV    )) deallocate(dom%champs0%DumpV    )
-        if(allocated(dom%champs1%VelocPML )) deallocate(dom%champs1%VelocPML )
-        if(allocated(dom%champs1%ForcesPML)) deallocate(dom%champs1%ForcesPML)
-        if(allocated(dom%champs1%DumpV    )) deallocate(dom%champs1%DumpV    )
+        if(allocated(dom%champs0%Forces)) deallocate(dom%champs0%Forces)
+        if(allocated(dom%champs0%Depla )) deallocate(dom%champs0%Depla )
+        if(allocated(dom%champs0%Veloc )) deallocate(dom%champs0%Veloc )
+        if(allocated(dom%champs1%Forces)) deallocate(dom%champs1%Forces)
+        if(allocated(dom%champs1%Depla )) deallocate(dom%champs1%Depla )
+        if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
 
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
 
@@ -156,16 +156,16 @@ contains
 
                     if (out_variables(OUT_VITESSE) == 1) then
                         if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                        fieldV(i,j,k,:) = dom%champs0%VelocPml(ind,:,0) + &
-                                          dom%champs0%VelocPml(ind,:,1) + &
-                                          dom%champs0%VelocPml(ind,:,2)
+                        fieldV(i,j,k,:) = dom%champs0%Veloc(ind,0) + &
+                                          dom%champs0%Veloc(ind,1) + &
+                                          dom%champs0%Veloc(ind,2)
                     end if
 
                     if (out_variables(OUT_ACCEL) == 1) then
                         if(.not. allocated(fieldA)) allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                        fieldA(i,j,k,:) = dom%Massmat(ind) * ( dom%champs1%ForcesPml(ind,:,0) + &
-                                                               dom%champs1%ForcesPml(ind,:,1) + &
-                                                               dom%champs1%ForcesPml(ind,:,2) )
+                        fieldA(i,j,k,:) = dom%Massmat(ind) * ( dom%champs1%Forces(ind,0) + &
+                                                               dom%champs1%Forces(ind,1) + &
+                                                               dom%champs1%Forces(ind,2) )
                     end if
 
                     if (out_variables(OUT_PRESSION) == 1) then
@@ -251,47 +251,7 @@ contains
         real(fpp), intent(in) :: dt
         integer :: bnum
         !
-        real(fpp), dimension (0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Veloc
-        real(fpp) :: dVx_dx, dVx_dy, dVx_dz
-        real(fpp) :: dVy_dx, dVy_dy, dVy_dz
-        real(fpp) :: dVz_dx, dVz_dy, dVz_dz
-        real(fpp) :: dS_dxi, dS_deta, dS_dzeta
-        integer :: ngll
-        integer :: i, j, k, l, ind, i_dir, e, ee
-
-        ngll = dom%ngll
-
-        do i_dir = 0,2
-            do k = 0,ngll-1
-                do j = 0,ngll-1
-                    do i = 0,ngll-1
-                        BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                        ind = dom%Idom_(i,j,k,bnum,ee)
-                        Veloc(ee,i,j,k,i_dir) = champs1%VelocPML(ind,i_dir,0) + &
-                                                champs1%VelocPML(ind,i_dir,1) + &
-                                                champs1%VelocPML(ind,i_dir,2)
-                        END_SUBELEM_LOOP()
-                    enddo
-                enddo
-            enddo
-        enddo
-
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i = 0,ngll-1
-#ifdef SEM_VEC
-!$omp simd linear(e,ee)
-#endif
-                    BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                    ! partial of velocity components with respect to xi,eta,zeta
-                    part_deriv_ijke(Veloc,0,dS_dxi,dS_deta,dS_dzeta,dVx_dx,dVx_dy,dVx_dz)
-                    part_deriv_ijke(Veloc,1,dS_dxi,dS_deta,dS_dzeta,dVy_dx,dVy_dy,dVy_dz)
-                    part_deriv_ijke(Veloc,2,dS_dxi,dS_deta,dS_dzeta,dVz_dx,dVz_dy,dVz_dz)
-
-                    END_SUBELEM_LOOP()
-                enddo
-            enddo
-        enddo
+        ! Useless, kept for compatibility with SolidPML (build), can be deleted later on
     end subroutine pred_sol_pml
 
     subroutine forces_int_sol_pml(dom, champs1, bnum)
@@ -299,69 +259,6 @@ contains
         type(champssolidpml), intent(inout) :: champs1
         integer :: bnum
         !
-        integer :: ngll
-        integer :: i, j, k, l, ind, e, ee
-        real, dimension(0:VCHUNK-1,0:2,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1)  :: Forces1, Forces2, Forces3
-
-        ngll = dom%ngll
-
-        Forces1 = 0d0
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i=0,ngll-1
-                    BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                    Forces1(ee,0,i,j,k) = Forces1(ee,0,i,j,k) + 0.
-                    Forces1(ee,1,i,j,k) = Forces1(ee,1,i,j,k) + 0.
-                    Forces1(ee,2,i,j,k) = Forces1(ee,2,i,j,k) + 0.
-                    END_SUBELEM_LOOP()
-                end do
-            end do
-        end do
-
-        Forces2 = 0d0
-        do k = 0,ngll-1
-            do l = 0,ngll-1
-                do j = 0,ngll-1
-                    do i=0,ngll-1
-                        BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                        Forces2(ee,0,i,j,k) = Forces2(ee,0,i,j,k) + 0.
-                        Forces2(ee,1,i,j,k) = Forces2(ee,1,i,j,k) + 0.
-                        Forces2(ee,2,i,j,k) = Forces2(ee,2,i,j,k) + 0.
-                        END_SUBELEM_LOOP()
-                    end do
-                end do
-            end do
-        end do
-
-        Forces3 = 0
-        do l = 0,ngll-1
-            do k = 0,ngll-1
-                do j = 0,ngll-1
-                    do i=0,ngll-1
-                        BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                        Forces3(ee,0,i,j,k) = Forces3(ee,0,i,j,k) + 0.
-                        Forces3(ee,1,i,j,k) = Forces3(ee,1,i,j,k) + 0.
-                        Forces3(ee,2,i,j,k) = Forces3(ee,2,i,j,k) + 0.
-                        END_SUBELEM_LOOP()
-                    end do
-                end do
-            end do
-        end do
-
-        ! Assemblage
-        do k = 0,ngll-1
-            do j = 0,ngll-1
-                do i = 0,ngll-1
-                    BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                    if (e>=dom%nbelem) exit
-                    ind = dom%Idom_(i,j,k,bnum,ee)
-                    champs1%ForcesPML(ind,:,0) = champs1%ForcesPML(ind,:,0) + Forces1(ee,:,i,j,k)
-                    champs1%ForcesPML(ind,:,1) = champs1%ForcesPML(ind,:,1) + Forces2(ee,:,i,j,k)
-                    champs1%ForcesPML(ind,:,2) = champs1%ForcesPML(ind,:,2) + Forces3(ee,:,i,j,k)
-                    END_SUBELEM_LOOP()
-                enddo
-            enddo
-        enddo
     end subroutine forces_int_sol_pml
 
     subroutine init_solidpml_properties(Tdomain,specel,mat)

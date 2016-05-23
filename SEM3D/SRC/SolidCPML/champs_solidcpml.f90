@@ -12,9 +12,9 @@ module champs_solidpml
     type :: champssolidpml
 
         !! Solide
-        real(fpp), dimension(:,:,:), allocatable :: ForcesPML
-        real(fpp), dimension(:,:,:), allocatable :: VelocPML
-        real(fpp), dimension(:,:,:), allocatable :: DumpV
+        real(fpp), dimension(:,:), allocatable :: Forces
+        real(fpp), dimension(:,:), allocatable :: Depla
+        real(fpp), dimension(:,:), allocatable :: Veloc
 
     end type champssolidpml
 

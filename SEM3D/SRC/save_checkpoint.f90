@@ -628,7 +628,11 @@ subroutine save_checkpoint (Tdomain, rtime, it, dtmin, isort)
         call write_dataset(elem_id, "fl_Phi",    Tdomain%fdom%champs0%Phi)
     end if
     if (Tdomain%spmldom%nglltot.gt.0) then
+#ifdef CPML
+        call write_dataset(elem_id, "spml_Veloc", Tdomain%spmldom%champs0%Veloc)
+#else
         call write_dataset(elem_id, "spml_Veloc", Tdomain%spmldom%champs0%VelocPML)
+#endif
     end if
     if (Tdomain%fpmldom%nglltot.gt.0) then
         call write_dataset(elem_id, "fpml_VelPhi", Tdomain%fpmldom%champs0%fpml_VelPhi)
