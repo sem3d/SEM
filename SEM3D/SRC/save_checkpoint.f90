@@ -455,9 +455,10 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
 #include "index.h"
     type (domain), intent (IN):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
-    integer(HID_T) :: dset_id
     integer(kind=4), intent(IN) :: nmax
 
+#ifndef CPML
+    integer(HID_T) :: dset_id
     integer :: n,ngll,idx,i,j,k,hdferr,bnum,ee
     real(kind=8), allocatable, dimension(:) :: data
     integer(HSIZE_T), dimension(1) :: dims
@@ -514,6 +515,7 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
     call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
     deallocate(data)
     call h5dclose_f(dset_id, hdferr)
+#endif
 end subroutine write_Stress
 
 subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)

@@ -1222,10 +1222,14 @@ contains
                             if (domains(idx)==domain_type) then
                                 mass(idx) = Tdomain%spmldom%MassMat(Tdomain%spmldom%Idom_(i,j,k,bnum,ee))
                                 dt = 2d0*Tdomain%TimeD%dtmin
+#ifdef CPML
+                                dumpsx(idx) = 0.
+#else
                                 dx = ((1d0/Tdomain%spmldom%PMLDumpSx_(i,j,k,1,bnum,ee))-1.)/dt
                                 dy = ((1d0/Tdomain%spmldom%PMLDumpSy_(i,j,k,1,bnum,ee))-1.)/dt
                                 dz = ((1d0/Tdomain%spmldom%PMLDumpSz_(i,j,k,1,bnum,ee))-1.)/dt
                                 dumpsx(idx) = dx+dy+dz
+#endif
                             endif
                         end do
                     end do

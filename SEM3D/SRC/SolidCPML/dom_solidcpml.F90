@@ -59,25 +59,6 @@ contains
 
             allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
             dom%m_Idom = 0
-
-            allocate(dom%Diagonal_Stress1_(0:ngll-1,0:ngll-1,0:ngll-1,0:2, 0:nblocks-1, 0:VCHUNK-1))
-            allocate(dom%Diagonal_Stress2_(0:ngll-1,0:ngll-1,0:ngll-1,0:2, 0:nblocks-1, 0:VCHUNK-1))
-            allocate(dom%Diagonal_Stress3_(0:ngll-1,0:ngll-1,0:ngll-1,0:2, 0:nblocks-1, 0:VCHUNK-1))
-            allocate(dom%Residual_Stress1_(0:ngll-1,0:ngll-1,0:ngll-1,0:2, 0:nblocks-1, 0:VCHUNK-1))
-            allocate(dom%Residual_Stress2_(0:ngll-1,0:ngll-1,0:ngll-1,0:2, 0:nblocks-1, 0:VCHUNK-1))
-            allocate(dom%Residual_Stress3_(0:ngll-1,0:ngll-1,0:ngll-1,0:2, 0:nblocks-1, 0:VCHUNK-1))
-            dom%Diagonal_Stress1_(:,:,:,:,:,:) = 0d0
-            dom%Diagonal_Stress2_(:,:,:,:,:,:) = 0d0
-            dom%Diagonal_Stress3_(:,:,:,:,:,:) = 0d0
-            dom%Residual_Stress1_(:,:,:,:,:,:) = 0d0
-            dom%Residual_Stress2_(:,:,:,:,:,:) = 0d0
-            dom%Residual_Stress3_(:,:,:,:,:,:) = 0d0
-            allocate(dom%PMLDumpSx_(0:ngll-1,0:ngll-1,0:ngll-1,0:1, 0:nblocks-1, 0:VCHUNK-1))
-            allocate(dom%PMLDumpSy_(0:ngll-1,0:ngll-1,0:ngll-1,0:1, 0:nblocks-1, 0:VCHUNK-1))
-            allocate(dom%PMLDumpSz_(0:ngll-1,0:ngll-1,0:ngll-1,0:1, 0:nblocks-1, 0:VCHUNK-1))
-            dom%PMLDumpSx_(:,:,:,:,:,:) = 0d0
-            dom%PMLDumpSy_(:,:,:,:,:,:) = 0d0
-            dom%PMLDumpSz_(:,:,:,:,:,:) = 0d0
         end if
 
         ! Allocation et initialisation de champs0 pour les PML solides
@@ -122,16 +103,6 @@ contains
         if(allocated(dom%gllw))    deallocate(dom%gllw)
         if(allocated(dom%hprime))  deallocate(dom%hprime)
         if(allocated(dom%htprime)) deallocate(dom%htprime)
-
-        if(allocated(dom%m_Diagonal_Stress1)) deallocate(dom%m_Diagonal_Stress1)
-        if(allocated(dom%m_Diagonal_Stress2)) deallocate(dom%m_Diagonal_Stress2)
-        if(allocated(dom%m_Diagonal_Stress3)) deallocate(dom%m_Diagonal_Stress3)
-        if(allocated(dom%m_Residual_Stress1)) deallocate(dom%m_Residual_Stress1)
-        if(allocated(dom%m_Residual_Stress2)) deallocate(dom%m_Residual_Stress2)
-        if(allocated(dom%m_Residual_Stress3)) deallocate(dom%m_Residual_Stress3)
-        if(allocated(dom%m_PMLDumpSx  ))      deallocate(dom%m_PMLDumpSx  )
-        if(allocated(dom%m_PMLDumpSy  ))      deallocate(dom%m_PMLDumpSy  )
-        if(allocated(dom%m_PMLDumpSz  ))      deallocate(dom%m_PMLDumpSz  )
 
         if(allocated(dom%champs0%VelocPML )) deallocate(dom%champs0%VelocPML )
         if(allocated(dom%champs0%ForcesPML)) deallocate(dom%champs0%ForcesPML)

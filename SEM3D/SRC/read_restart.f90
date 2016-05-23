@@ -129,6 +129,7 @@ subroutine read_Stress(Tdomain, elem_id)
     implicit none
     type (domain), intent (INOUT):: Tdomain
     integer(HID_T), intent(IN) :: elem_id
+#ifndef CPML
     double precision, allocatable, dimension(:) :: stress
     integer :: idx, ngll, bnum, ee
     integer :: n, i, j, k
@@ -175,6 +176,7 @@ subroutine read_Stress(Tdomain, elem_id)
         end do
     end do
     deallocate(stress)
+#endif
 end subroutine read_Stress
 
 subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
