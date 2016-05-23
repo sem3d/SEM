@@ -122,30 +122,61 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         !
-        logical :: flag_gradU
-        integer :: ngll, i, j, k, ind
+        logical                  :: flag_gradU
+        integer                  :: ngll, i, j, k, ind
+        real(fpp)                :: DXX, DXY, DXZ
+        real(fpp)                :: DYX, DYY, DYZ
+        real(fpp)                :: DZX, DZY, DZZ
+        real, dimension(0:2,0:2) :: invgrad_ijk
         !
         integer :: bnum, ee
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
 
-        flag_gradU = (out_variables(OUT_ENERGYP) + &
-            out_variables(OUT_ENERGYS) + &
-            out_variables(OUT_EPS_VOL) + &
-            out_variables(OUT_EPS_DEV) + &
-            out_variables(OUT_STRESS_DEV)) /= 0
+        flag_gradU = (out_variables(OUT_PRESSION)    + &
+                      out_variables(OUT_ENERGYP)     + &
+                      out_variables(OUT_ENERGYS)     + &
+                      out_variables(OUT_EPS_VOL)     + &
+                      out_variables(OUT_EPS_DEV)     + &
+                      out_variables(OUT_STRESS_DEV)) /= 0
 
         ngll = dom%ngll
+
+        ! First, get displacement.
+
+        if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
+            if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
+            do k=0,ngll-1
+                do j=0,ngll-1
+                    do i=0,ngll-1
+                        ind = dom%Idom_(i,j,k,bnum,ee)
+                        fieldU(i,j,k,:) = dom%champs0%Depla(ind,:)
+                    enddo
+                enddo
+            enddo
+        end if
+
+        ! Then, get other variables.
 
         do k=0,ngll-1
             do j=0,ngll-1
                 do i=0,ngll-1
-                    ind = dom%Idom_(i,j,k,bnum,ee)
+                    ! Compute gradU with displacement if needed.
 
-                    if (flag_gradU .or. (out_variables(OUT_DEPLA) == 1)) then
-                        if(.not. allocated(fieldU)) allocate(fieldU(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                        fieldU(i,j,k,:) = 0d0
+                    if (flag_gradU) then
+                        invgrad_ijk = dom%InvGrad_(:,:,i,j,k,bnum,ee) ! cache for performance
+
+                        call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
+                             invgrad_ijk,fieldU(:,:,:,0),DXX,DYX,DZX)
+                        call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
+                             invgrad_ijk,fieldU(:,:,:,1),DXY,DYY,DZY)
+                        call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
+                             invgrad_ijk,fieldU(:,:,:,2),DXZ,DYZ,DZZ)
                     end if
+
+                    ! Get other variables.
+
+                    ind = dom%Idom_(i,j,k,bnum,ee)
 
                     if (out_variables(OUT_VITESSE) == 1) then
                         if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
@@ -166,9 +197,12 @@ contains
                         fieldP(i,j,k) = 0d0
                     end if
 
-                    if (out_variables(OUT_EPS_VOL) == 1) then
+                    if (out_variables(OUT_EPS_VOL) == 1 .or. &
+                        out_variables(OUT_ENERGYP) == 1 .or. &
+                        out_variables(OUT_EPS_DEV) == 1 .or. &
+                        out_variables(OUT_STRESS_DEV) == 1 ) then
                         if(.not. allocated(eps_vol)) allocate(eps_vol(0:ngll-1,0:ngll-1,0:ngll-1))
-                        eps_vol(i,j,k) = 0.
+                        eps_vol(i,j,k) = DXX + DYY + DZZ
                     end if
 
                     if (out_variables(OUT_ENERGYP) == 1) then
@@ -183,7 +217,12 @@ contains
 
                     if (out_variables(OUT_EPS_DEV) == 1) then
                         if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
-                        eps_dev(i,j,k,:) = 0.
+                        eps_dev(i,j,k,0) = DXX - eps_vol(i,j,k) / 3
+                        eps_dev(i,j,k,1) = DYY - eps_vol(i,j,k) / 3
+                        eps_dev(i,j,k,2) = DZZ - eps_vol(i,j,k) / 3
+                        eps_dev(i,j,k,3) = 0.5 * (DXY + DYX)
+                        eps_dev(i,j,k,4) = 0.5 * (DZX + DXZ)
+                        eps_dev(i,j,k,5) = 0.5 * (DZY + DYZ)
                     end if
 
                     if (out_variables(OUT_STRESS_DEV) == 1) then
