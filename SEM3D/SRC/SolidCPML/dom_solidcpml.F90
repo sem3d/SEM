@@ -79,9 +79,6 @@ contains
             ! Allocation de MassMat pour les PML solides
             allocate(dom%MassMat(0:dom%nglltot-1))
             dom%MassMat = 0d0
-
-            allocate(dom%DumpMass(0:dom%nglltot-1,0:2))
-            dom%DumpMass = 0d0
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - solid cpml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
     end subroutine allocate_dom_solidpml
@@ -112,8 +109,6 @@ contains
         if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
 
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
-
-        if(allocated(dom%DumpMass)) deallocate(dom%DumpMass)
     end subroutine deallocate_dom_solidpml
 
     subroutine get_solidpml_dom_var(dom, lnum, out_variables, &

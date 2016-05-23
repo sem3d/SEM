@@ -44,7 +44,6 @@ module champs_solidpml
 
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
         real(fpp), dimension(:), allocatable :: MassMat
-        real(fpp), dimension(:,:), allocatable :: DumpMass
 
         real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Density
 
