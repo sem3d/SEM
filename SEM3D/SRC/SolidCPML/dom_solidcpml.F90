@@ -50,9 +50,8 @@ contains
             nblocks = ((nbelem+VCHUNK-1)/VCHUNK)
             dom%nblocks = nblocks
 
-            allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-            allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
-            allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+            allocate(dom%Density_(      0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+            allocate(dom%Cij_    (0:20, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
 
             allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
             allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
@@ -88,8 +87,7 @@ contains
         type(domain_solidpml), intent (INOUT) :: dom
 
         if(allocated(dom%m_Density)) deallocate(dom%m_Density)
-        if(allocated(dom%m_Lambda )) deallocate(dom%m_Lambda )
-        if(allocated(dom%m_Mu     )) deallocate(dom%m_Mu     )
+        if(allocated(dom%m_Cij    )) deallocate(dom%m_Cij    )
 
         if(allocated(dom%m_Jacob  )) deallocate(dom%m_Jacob  )
         if(allocated(dom%m_InvGrad)) deallocate(dom%m_InvGrad)
@@ -211,12 +209,8 @@ contains
 
         if (i==-1 .and. j==-1 .and. k==-1) then
             dom%Density_(:,:,:,bnum,ee) = density
-            dom%Lambda_ (:,:,:,bnum,ee) = lambda
-            dom%Mu_     (:,:,:,bnum,ee) = mu
         else
             dom%Density_(i,j,k,bnum,ee) = density
-            dom%Lambda_ (i,j,k,bnum,ee) = lambda
-            dom%Mu_     (i,j,k,bnum,ee) = mu
         end if
     end subroutine init_material_properties_solidpml
 

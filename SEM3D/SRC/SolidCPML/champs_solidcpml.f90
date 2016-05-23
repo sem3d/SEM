@@ -45,7 +45,9 @@ module champs_solidpml
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
         real(fpp), dimension(:), allocatable :: MassMat
 
-        real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda, m_Mu, m_Density
+        ! PML is "like" an anisotropic material : do not use Lambda/Mu but use Cij
+        real(fpp), dimension(:,:,:,:,:),   allocatable :: m_Density
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Cij
 
         real(fpp), dimension(:,:,:,:,:),     allocatable :: m_Jacob
         real(fpp), dimension(:,:,:,:,:,:,:), allocatable :: m_InvGrad
