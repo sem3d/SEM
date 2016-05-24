@@ -402,6 +402,7 @@ subroutine internal_forces(Tdomain)
         call stat_starttick()
         do n = 0,Tdomain%spmldom%nblocks-1
             call pred_sol_pml(Tdomain%spmldom, Tdomain%TimeD%dtmin, Tdomain%spmldom%champs1, n)
+            call update_mass_solidpml(Tdomain%spmldom)
             call forces_int_sol_pml(Tdomain%spmldom, Tdomain%spmldom%champs1, n)
         end do
         call stat_stoptick(STAT_PSOL)
