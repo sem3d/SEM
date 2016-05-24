@@ -354,7 +354,7 @@ contains
     subroutine update_convolution_terms(dom)
         type(domain_solidpml), intent (INOUT) :: dom
         ! TODO : compute / update dom%m_R1, dom%m_R2, dom%m_R3
-    end subroutine
+    end subroutine update_convolution_terms
 
     subroutine newmark_predictor_solidpml(dom, Tdomain)
         type(domain_solidpml), intent (INOUT) :: dom
