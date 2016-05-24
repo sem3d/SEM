@@ -276,6 +276,8 @@ contains
 
         ab2 = 1. ! TODO : compute ab2 !...
         dom%MassMat(ind) = dom%MassMat(ind) + ab2*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)*Whei
+
+        ! TODO: compute dom%MassMat
     end subroutine init_local_mass_solidpml
 
     subroutine pred_sol_pml(dom, dt, champs1, bnum)
