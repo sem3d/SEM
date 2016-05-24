@@ -260,6 +260,8 @@ contains
         ! TODO : compute dom%Cij
     end subroutine init_material_properties_solidpml
 
+    ! TODO : renommer init_local_mass_solidpml... en init_global_mass_solidpml ? Vu qu'on y met a jour la masse globale !?
+    !        attention, ceci impacte le build (compatibilité avec SolidPML)
     subroutine init_local_mass_solidpml(dom,specel,i,j,k,ind,Whei)
         type(domain_solidpml), intent (INOUT) :: dom
         type (Element), intent (INOUT) :: specel
