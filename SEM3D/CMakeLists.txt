@@ -78,6 +78,7 @@ set(SEM3D_SOURCES_F
 if (OPT_CPML)
   set(SEM3D_SOURCES_F ${SEM3D_SOURCES_F}
       ${PRJ}/SRC/SolidCPML/champs_solidcpml.f90
+      ${PRJ}/SRC/SolidCPML/calcul_forces_solidpml.F90
       ${PRJ}/SRC/SolidCPML/dom_solidcpml.F90)
 else(OPT_CPML)
   set(SEM3D_SOURCES_F ${SEM3D_SOURCES_F}

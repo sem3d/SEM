@@ -284,11 +284,49 @@ contains
     end subroutine pred_sol_pml
 
     subroutine forces_int_sol_pml(dom, champs1, bnum)
+        use m_calcul_forces_solidpml
         type(domain_solidpml), intent(inout) :: dom
         type(champssolidpml), intent(inout) :: champs1
         integer :: bnum
         !
-        !TODO : implement this method according to Solid.
+        integer :: ngll,i,j,k,i_dir,e,ee,idx
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
+
+        ngll = dom%ngll
+
+        do i_dir = 0,2
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
+                            Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
+                        enddo
+                    enddo
+                enddo
+            enddo
+        enddo
+
+        Fox = 0d0
+        Foy = 0d0
+        Foz = 0d0
+        call calcul_forces_solidpml(dom,bnum,Fox,Foy,Foz,Depla)
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    do ee = 0, VCHUNK-1
+                        e = bnum*VCHUNK+ee
+                        if (e>=dom%nbelem) exit
+                        idx = dom%Idom_(i,j,k,bnum,ee)
+                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
+                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)
+                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)
+                    enddo
+                enddo
+            enddo
+        enddo
     end subroutine forces_int_sol_pml
 
     subroutine init_solidpml_properties(Tdomain,specel,mat)
