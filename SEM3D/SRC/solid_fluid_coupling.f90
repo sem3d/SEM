@@ -90,12 +90,12 @@ subroutine FtoS_coupling(Tdomain)
         idxF = Tdomain%SF%intSolFluPml%surf1%map(i)
         BtN = Tdomain%SF%SFPml_Btn(:,i)
 #ifdef CPML
-        Tdomain%spmldom%champs1%Forces(idxS,0) = Tdomain%spmldom%champs1%Forces(idxS,0) &
-                                                 - (BtN(0)*Tdomain%fpmldom%champs0%fpml_VelPhi(idxF,0))
-        Tdomain%spmldom%champs1%Forces(idxS,1) = Tdomain%spmldom%champs1%Forces(idxS,1) &
-                                                 - (BtN(1)*Tdomain%fpmldom%champs0%fpml_VelPhi(idxF,1))
-        Tdomain%spmldom%champs1%Forces(idxS,2) = Tdomain%spmldom%champs1%Forces(idxS,2) &
-                                                 - (BtN(2)*Tdomain%fpmldom%champs0%fpml_VelPhi(idxF,2))
+        Tdomain%spmldom%Forces(idxS,0) = Tdomain%spmldom%Forces(idxS,0) &
+                                         - (BtN(0)*Tdomain%fpmldom%champs0%fpml_VelPhi(idxF,0))
+        Tdomain%spmldom%Forces(idxS,1) = Tdomain%spmldom%Forces(idxS,1) &
+                                         - (BtN(1)*Tdomain%fpmldom%champs0%fpml_VelPhi(idxF,1))
+        Tdomain%spmldom%Forces(idxS,2) = Tdomain%spmldom%Forces(idxS,2) &
+                                         - (BtN(2)*Tdomain%fpmldom%champs0%fpml_VelPhi(idxF,2))
 #else
         do j = 0,2
             Tdomain%spmldom%champs1%ForcesPML(idxS,j,0) = Tdomain%spmldom%champs1%ForcesPML(idxS,j,0) &

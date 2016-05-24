@@ -10,12 +10,9 @@ module champs_solidpml
     implicit none
 
     type :: champssolidpml
-
-        !! Solide
-        real(fpp), dimension(:,:), allocatable :: Forces
+        ! Inconnues du problème : déplacement, vitesse
         real(fpp), dimension(:,:), allocatable :: Depla
         real(fpp), dimension(:,:), allocatable :: Veloc
-
     end type champssolidpml
 
     !! ATTENTION: voir index.h en ce qui concerne les champs dont les noms commencent par m_
@@ -64,6 +61,7 @@ module champs_solidpml
         ! Champs
         type(champssolidpml) :: champs0
         type(champssolidpml) :: champs1
+        real(fpp), dimension(:,:), allocatable :: Forces
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_R1 ! Convolutional term (19a) from R1
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_R2 ! Convolutional term (19b) from R1
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_R3 ! Convolutional term (19c) from R1

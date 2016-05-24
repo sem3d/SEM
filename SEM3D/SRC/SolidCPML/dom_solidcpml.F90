@@ -66,18 +66,17 @@ contains
 
         ! Allocation et initialisation de champs0 pour les PML solides
         if (dom%nglltot /= 0) then
-            allocate(dom%champs0%Forces(0:dom%nglltot-1,0:2))
             allocate(dom%champs0%Depla (0:dom%nglltot-1,0:2))
             allocate(dom%champs0%Veloc (0:dom%nglltot-1,0:2))
-            allocate(dom%champs1%Forces(0:dom%nglltot-1,0:2))
             allocate(dom%champs1%Depla (0:dom%nglltot-1,0:2))
             allocate(dom%champs1%Veloc (0:dom%nglltot-1,0:2))
-            dom%champs0%Forces = 0d0
             dom%champs0%Depla  = 0d0
             dom%champs0%Veloc  = 0d0
-            dom%champs1%Forces = 0d0
             dom%champs1%Depla  = 0d0
             dom%champs1%Veloc  = 0d0
+
+            allocate(dom%Forces(0:dom%nglltot-1,0:2))
+            dom%Forces = 0d0
 
             ! Allocation de MassMat pour les PML solides
             allocate(dom%MassMat(0:dom%nglltot-1))
@@ -107,13 +106,12 @@ contains
         if(allocated(dom%hprime))  deallocate(dom%hprime)
         if(allocated(dom%htprime)) deallocate(dom%htprime)
 
-        if(allocated(dom%champs0%Forces)) deallocate(dom%champs0%Forces)
         if(allocated(dom%champs0%Depla )) deallocate(dom%champs0%Depla )
         if(allocated(dom%champs0%Veloc )) deallocate(dom%champs0%Veloc )
-        if(allocated(dom%champs1%Forces)) deallocate(dom%champs1%Forces)
         if(allocated(dom%champs1%Depla )) deallocate(dom%champs1%Depla )
         if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
 
+        if(allocated(dom%Forces )) deallocate(dom%Forces )
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
     end subroutine deallocate_dom_solidpml
 
@@ -195,9 +193,9 @@ contains
 
                     if (out_variables(OUT_ACCEL) == 1) then
                         if(.not. allocated(fieldA)) allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                        fieldA(i,j,k,:) = dom%Massmat(ind) * ( dom%champs1%Forces(ind,0) + &
-                                                               dom%champs1%Forces(ind,1) + &
-                                                               dom%champs1%Forces(ind,2) )
+                        fieldA(i,j,k,:) = dom%Massmat(ind) * ( dom%Forces(ind,0) + &
+                                                               dom%Forces(ind,1) + &
+                                                               dom%Forces(ind,2) )
                     end if
 
                     if (out_variables(OUT_PRESSION) == 1) then
@@ -328,9 +326,9 @@ contains
                         e = bnum*VCHUNK+ee
                         if (e>=dom%nbelem) exit
                         idx = dom%Idom_(i,j,k,bnum,ee)
-                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
-                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)
-                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)
+                        dom%Forces(idx,0) = dom%Forces(idx,0)-Fox(ee,i,j,k)
+                        dom%Forces(idx,1) = dom%Forces(idx,1)-Foy(ee,i,j,k)
+                        dom%Forces(idx,2) = dom%Forces(idx,2)-Foz(ee,i,j,k)
                     enddo
                 enddo
             enddo
@@ -362,7 +360,7 @@ contains
         !
         dom%champs1%Depla = dom%champs0%Depla
         dom%champs1%Veloc = dom%champs0%Veloc
-        dom%champs1%Forces = 0d0
+        dom%Forces = 0d0
         call update_convolution_terms(dom)
     end subroutine newmark_predictor_solidpml
 
@@ -374,7 +372,7 @@ contains
         ! Update velocity in champs0 (Note: dom%MassMat = 1./dom%MassMat in define_arrays::inverse_mass_mat)
         do i_dir = 0,2
             dom%champs0%Veloc(:,i_dir) = dom%champs0%Veloc(:,i_dir) + &
-                                         dt * ( dom%champs1%Forces(:,i_dir) * dom%MassMat(:) ) ! dt * acceleration
+                                         dt * ( dom%Forces(:,i_dir) * dom%MassMat(:) ) ! dt * acceleration
         enddo
         ! Apply BC (dirichlet)
         do n = 0, dom%n_dirich-1
