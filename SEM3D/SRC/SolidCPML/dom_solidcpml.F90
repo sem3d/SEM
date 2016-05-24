@@ -269,7 +269,7 @@ contains
         ! Delta term from L : (12a) or (14a) from R1
 
         ab2 = 1. ! TODO : compute ab2 !...
-        specel%MassMat(i,j,k) = ab2*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)*Whei
+        dom%MassMat(ind) = dom%MassMat(ind) + ab2*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)*Whei
     end subroutine init_local_mass_solidpml
 
     subroutine pred_sol_pml(dom, dt, champs1, bnum)
@@ -357,14 +357,17 @@ contains
         double precision :: dt
         !
         integer :: i_dir, n, indpml
+        ! Update velocity in champs0 (Note dom%MassMat = 1./dom%MassMat)
         do i_dir = 0,2
-            dom%champs0%Forces(:,i_dir) = dom%champs1%Forces(:,i_dir) * dom%MassMat(:)
+            dom%champs0%Veloc(:,i_dir) = dom%champs0%Veloc(:,i_dir) + &
+                                         dt * ( dom%champs1%Forces(:,i_dir) * dom%MassMat(:) ) ! dt * acceleration
         enddo
-        dom%champs0%Veloc = dom%champs0%Veloc + dt * dom%champs0%Forces
+        ! Apply BC (dirichlet)
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)
             dom%champs0%Veloc(indpml,:) = 0.
         enddo
+        ! Update displacement in champs0
         dom%champs0%Depla = dom%champs0%Depla + dt * dom%champs0%Veloc
     end subroutine newmark_corrector_solidpml
 end module dom_solidpml
