@@ -4,12 +4,12 @@
 !!
 
 !! Convolutional Perfectly Matched Layers implemented according 2 references:
-!! R1. Improved forward wave propagation and adjoint-based sensitivity kernel calculations using a numerically stable finite-element PML
-!!     Zhinan Xie, Dimitri Komatitsch, Roland Martin, Rene Matzen
-!!     Geophysical Journal International, 2014, 198, 1714-1747
-!! R2. An efficient finite element time-domain formulation for the elastic second-order wave equation: a non-split complex frequency shifted convolutional PML
-!!     Rene Matzen
-!!     International Journal For Numerical Methods In Engineering, 2011, 88, 951-973
+!! Ref1. Improved forward wave propagation and adjoint-based sensitivity kernel calculations using a numerically stable finite-element PML
+!!       Zhinan Xie, Dimitri Komatitsch, Roland Martin, Rene Matzen
+!!       Geophysical Journal International, 2014, 198, 1714-1747
+!! Ref2. An efficient finite element time-domain formulation for the elastic second-order wave equation: a non-split complex frequency shifted convolutional PML
+!!       Rene Matzen
+!!       International Journal For Numerical Methods In Engineering, 2011, 88, 951-973
 
 module dom_solidpml
     use constants
@@ -272,7 +272,7 @@ contains
         bnum = specel%lnum/VCHUNK
         ee = mod(specel%lnum,VCHUNK)
 
-        ! Delta term from L : (12a) or (14a) from R1
+        ! Delta term from L : (12a) or (14a) from Ref1
 
         ab2 = 1. ! TODO : compute ab2 !...
         dom%MassMat(ind) = dom%MassMat(ind) + ab2*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)*Whei
