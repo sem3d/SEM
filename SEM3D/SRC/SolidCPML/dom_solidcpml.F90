@@ -58,6 +58,10 @@ contains
 
             allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
             dom%m_Idom = 0
+
+            allocate(dom%R1_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
+            allocate(dom%R2_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
+            allocate(dom%R3_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
         end if
 
         ! Allocation et initialisation de champs0 pour les PML solides
@@ -93,6 +97,10 @@ contains
         if(allocated(dom%m_InvGrad)) deallocate(dom%m_InvGrad)
 
         if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
+
+        if(allocated(dom%m_R1)) deallocate(dom%m_R1)
+        if(allocated(dom%m_R2)) deallocate(dom%m_R2)
+        if(allocated(dom%m_R3)) deallocate(dom%m_R3)
 
         if(allocated(dom%gllc))    deallocate(dom%gllc)
         if(allocated(dom%gllw))    deallocate(dom%gllw)
@@ -343,6 +351,11 @@ contains
         ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
     end subroutine finalize_solidpml_properties
 
+    subroutine update_convolution_terms(dom)
+        type(domain_solidpml), intent (INOUT) :: dom
+        ! TODO : compute / update dom%m_R1, dom%m_R2, dom%m_R3
+    end subroutine
+
     subroutine newmark_predictor_solidpml(dom, Tdomain)
         type(domain_solidpml), intent (INOUT) :: dom
         type (domain), intent (INOUT) :: Tdomain
@@ -350,6 +363,7 @@ contains
         dom%champs1%Depla = dom%champs0%Depla
         dom%champs1%Veloc = dom%champs0%Veloc
         dom%champs1%Forces = 0d0
+        call update_convolution_terms(dom)
     end subroutine newmark_predictor_solidpml
 
     subroutine newmark_corrector_solidpml(dom, dt)

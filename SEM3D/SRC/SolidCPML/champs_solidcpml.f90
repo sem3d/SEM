@@ -64,6 +64,9 @@ module champs_solidpml
         ! Champs
         type(champssolidpml) :: champs0
         type(champssolidpml) :: champs1
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_R1 ! Convolutional term (19a) from R1
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_R2 ! Convolutional term (19b) from R1
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_R3 ! Convolutional term (19c) from R1
     end type domain_solidpml
 
     contains
