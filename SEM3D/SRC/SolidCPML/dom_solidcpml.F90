@@ -371,7 +371,7 @@ contains
         double precision :: dt
         !
         integer :: i_dir, n, indpml
-        ! Update velocity in champs0 (Note dom%MassMat = 1./dom%MassMat)
+        ! Update velocity in champs0 (Note: dom%MassMat = 1./dom%MassMat in define_arrays::inverse_mass_mat)
         do i_dir = 0,2
             dom%champs0%Veloc(:,i_dir) = dom%champs0%Veloc(:,i_dir) + &
                                          dt * ( dom%champs1%Forces(:,i_dir) * dom%MassMat(:) ) ! dt * acceleration
