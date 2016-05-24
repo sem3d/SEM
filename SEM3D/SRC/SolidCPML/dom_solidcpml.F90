@@ -282,11 +282,6 @@ contains
         ! TODO: compute dom%MassMat
     end subroutine init_local_mass_solidpml
 
-    subroutine update_mass_solidpml(dom)
-        type(domain_solidpml), intent (INOUT) :: dom
-        ! TODO : update dom%MassMat with dom%m_R1, dom%m_R2, dom%m_R3
-    end subroutine update_mass_solidpml
-
     subroutine pred_sol_pml(dom, dt, champs1, bnum)
         implicit none
 
