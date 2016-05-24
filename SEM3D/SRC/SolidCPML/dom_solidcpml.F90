@@ -298,6 +298,11 @@ contains
         ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
     end subroutine pred_sol_pml
 
+    subroutine update_material_properties_solidpml(dom)
+        type(domain_solidpml), intent (INOUT) :: dom
+        ! TODO : update dom%Cij with dom%m_R1, dom%m_R2, dom%m_R3
+    end subroutine update_material_properties_solidpml
+
     subroutine forces_int_sol_pml(dom, champs1, bnum)
         use m_calcul_forces_solidpml
         type(domain_solidpml), intent(inout) :: dom
@@ -307,6 +312,8 @@ contains
         integer :: ngll,i,j,k,i_dir,e,ee,idx
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
+
+        call update_material_properties_solidpml(dom)
 
         ngll = dom%ngll
 
