@@ -3,6 +3,9 @@
 !! Copyright CEA, ECP, IPGP
 !!
 
+!! Note: CPML can be seen as an artificial anisotropic material according to (10) from Ref2.
+!! This file is the same as the one of the Solid domain with ANISO and without ATTENUATION (which is meaningless for CPML).
+
 #ifndef PROCNAME
 #error "Must define PROCNAME before inclusion"
 #endif
