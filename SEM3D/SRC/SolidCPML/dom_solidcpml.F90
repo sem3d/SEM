@@ -18,7 +18,7 @@ module dom_solidpml
     implicit none
 #include "index.h"
 
-    !! CPML parameters: for the very first implementation, parameters are hard-coded. TODO : read parameters from input.spec
+    !! CPML parameters: for the very first implementation, parameters are hard-coded. TODO : read parameters (kappa_* ?) from input.spec ?
     real(fpp), private, parameter :: c_x = 1., c_y = 1., c_z = 1.
     integer,   private, parameter :: n_x = 2,  n_y = 2,  n_z = 2
     real(fpp), private, parameter :: r_c = 0.001
