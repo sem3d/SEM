@@ -188,8 +188,10 @@ contains
 
                 ! Domain SOLID PML
                 if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
+#ifndef CPML
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
                         Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%DumpMass, k)
+#endif
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
                         Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%MassMat, k)
                 end if
@@ -221,8 +223,10 @@ contains
 
                 ! Domain SOLID PML
                 if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
+#ifndef CPML
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                         Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%DumpMass, k)
+#endif
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                         Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%MassMat, k)
                 end if

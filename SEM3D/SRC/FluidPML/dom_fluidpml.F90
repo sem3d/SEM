@@ -240,7 +240,7 @@ contains
         !
         integer :: ngll
         integer :: i, j, k, l, ind,e,ee
-        real(fpp) :: acoeff, bcoeff
+        real(fpp) :: acoeff
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: FFl
         ngll = dom%ngll
 
@@ -479,6 +479,45 @@ contains
       call define_PML_DumpEnd(dom%nglltot, dom%MassMat, dom%DumpMass, dom%champs0%fpml_DumpV)
     end subroutine finalize_fluidpml_properties
 
+    subroutine newmark_predictor_fluidpml(dom, Tdomain)
+        type(domain_fluidpml), intent (INOUT) :: dom
+        type(domain), intent(inout)   :: Tdomain
+        !
+        integer :: n, indpml, indflu
+        real :: bega, dt
+
+        bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
+        dt = Tdomain%TimeD%dtmin
+
+        dom%champs1%fpml_Forces = 0.
+        do n = 0,Tdomain%intFluPml%surf0%nbtot-1
+            ! Couplage à l'interface fluide / PML
+            indflu = Tdomain%intFluPml%surf0%map(n)
+            indpml = Tdomain%intFluPml%surf1%map(n)
+            dom%champs0%fpml_VelPhi(indpml,0) = Tdomain%fdom%champs0%VelPhi(indflu)
+            dom%champs0%fpml_VelPhi(indpml,1) = 0.
+            dom%champs0%fpml_VelPhi(indpml,2) = 0.
+        enddo
+        ! Prediction
+        dom%champs1%fpml_Velphi = dom%champs0%fpml_VelPhi + dt*(0.5-bega)*dom%champs1%fpml_Forces
+    end subroutine newmark_predictor_fluidpml
+
+    subroutine newmark_corrector_fluidpml(dom, dt)
+        type(domain_fluidpml), intent (INOUT) :: dom
+        double precision :: dt
+        !
+        integer  :: n,  indpml
+
+        dom%champs0%fpml_VelPhi(:,:) = dom%champs0%fpml_DumpV(:,0,:) * dom%champs0%fpml_VelPhi(:,:) + &
+                                       dt * dom%champs0%fpml_DumpV(:,1,:) * dom%champs1%fpml_Forces(:,:)
+        do n = 0, dom%n_dirich-1
+            indpml = dom%dirich(n)
+            dom%champs0%fpml_VelPhi(indpml,0) = 0.
+            dom%champs0%fpml_VelPhi(indpml,1) = 0.
+            dom%champs0%fpml_VelPhi(indpml,2) = 0.
+        enddo
+        dom%champs0%fpml_Phi = dom%champs0%fpml_Phi + dt*dom%champs0%fpml_VelPhi
+    end subroutine newmark_corrector_fluidpml
 end module dom_fluidpml
 
 !! Local Variables:

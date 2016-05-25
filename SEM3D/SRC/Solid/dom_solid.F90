@@ -466,6 +466,30 @@ contains
             enddo
         enddo
     end subroutine forces_int_solid
+
+    subroutine newmark_predictor_solid(dom)
+        type(domain_solid), intent (INOUT) :: dom
+        !
+        dom%champs1%Depla = dom%champs0%Depla
+        dom%champs1%Veloc = dom%champs0%Veloc
+        dom%champs1%Forces = 0d0
+    end subroutine newmark_predictor_solid
+
+    subroutine newmark_corrector_solid(dom, dt)
+        type(domain_solid), intent (INOUT) :: dom
+        double precision :: dt
+        !
+        integer :: i_dir, n, indpml
+        do i_dir = 0,2
+            dom%champs0%Forces(:,i_dir) = dom%champs1%Forces(:,i_dir) * dom%MassMat(:)
+        enddo
+        dom%champs0%Veloc = dom%champs0%Veloc + dt * dom%champs0%Forces
+        do n = 0, dom%n_dirich-1
+            indpml = dom%dirich(n)
+            dom%champs0%Veloc(indpml,:) = 0.
+        enddo
+        dom%champs0%Depla = dom%champs0%Depla + dt * dom%champs0%Veloc
+    end subroutine newmark_corrector_solid
 end module dom_solid
 
 !! Local Variables:

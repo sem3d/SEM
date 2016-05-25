@@ -42,11 +42,17 @@ subroutine StoF_coupling(Tdomain)
         vn1 = 0.
         vn2 = 0.
         vn3 = 0.
+#ifdef CPML
+        vn1 = vn1 + (BtN(0) * Tdomain%spmldom%champs0%Veloc(idxS,0))
+        vn2 = vn2 + (BtN(1) * Tdomain%spmldom%champs0%Veloc(idxS,1))
+        vn3 = vn3 + (BtN(2) * Tdomain%spmldom%champs0%Veloc(idxS,2))
+#else
         do j = 0,2
             vn1 = vn1 + (BtN(j) * Tdomain%spmldom%champs0%VelocPML(idxS,j,0))
             vn2 = vn2 + (BtN(j) * Tdomain%spmldom%champs0%VelocPML(idxS,j,1))
             vn3 = vn3 + (BtN(j) * Tdomain%spmldom%champs0%VelocPML(idxS,j,2))
         enddo
+#endif
         Tdomain%fpmldom%champs1%fpml_Forces(idxF,0) = Tdomain%fpmldom%champs1%fpml_Forces(idxF,0) + vn1
         Tdomain%fpmldom%champs1%fpml_Forces(idxF,1) = Tdomain%fpmldom%champs1%fpml_Forces(idxF,1) + vn2
         Tdomain%fpmldom%champs1%fpml_Forces(idxF,2) = Tdomain%fpmldom%champs1%fpml_Forces(idxF,2) + vn3
@@ -83,6 +89,14 @@ subroutine FtoS_coupling(Tdomain)
         idxS = Tdomain%SF%intSolFluPml%surf0%map(i)
         idxF = Tdomain%SF%intSolFluPml%surf1%map(i)
         BtN = Tdomain%SF%SFPml_Btn(:,i)
+#ifdef CPML
+        Tdomain%spmldom%Forces(idxS,0) = Tdomain%spmldom%Forces(idxS,0) &
+                                         - (BtN(0)*Tdomain%fpmldom%champs0%fpml_VelPhi(idxF,0))
+        Tdomain%spmldom%Forces(idxS,1) = Tdomain%spmldom%Forces(idxS,1) &
+                                         - (BtN(1)*Tdomain%fpmldom%champs0%fpml_VelPhi(idxF,1))
+        Tdomain%spmldom%Forces(idxS,2) = Tdomain%spmldom%Forces(idxS,2) &
+                                         - (BtN(2)*Tdomain%fpmldom%champs0%fpml_VelPhi(idxF,2))
+#else
         do j = 0,2
             Tdomain%spmldom%champs1%ForcesPML(idxS,j,0) = Tdomain%spmldom%champs1%ForcesPML(idxS,j,0) &
                                                           - (BtN(j)*Tdomain%fpmldom%champs0%fpml_VelPhi(idxF,0))
@@ -91,6 +105,7 @@ subroutine FtoS_coupling(Tdomain)
             Tdomain%spmldom%champs1%ForcesPML(idxS,j,2) = Tdomain%spmldom%champs1%ForcesPML(idxS,j,2) &
                                                           - (BtN(j)*Tdomain%fpmldom%champs0%fpml_VelPhi(idxF,2))
         enddo
+#endif
     enddo
 end subroutine FtoS_coupling
 !-----------------------------------------------------------------------------

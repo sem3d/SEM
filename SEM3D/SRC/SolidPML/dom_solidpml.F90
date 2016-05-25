@@ -578,6 +578,45 @@ contains
       call define_PML_DumpEnd(dom%nglltot, dom%MassMat, dom%DumpMass, dom%champs0%DumpV)
     end subroutine finalize_solidpml_properties
 
+    subroutine newmark_predictor_solidpml(dom, Tdomain)
+        type(domain_solidpml), intent (INOUT) :: dom
+        type (domain), intent (INOUT) :: Tdomain
+        !
+        integer :: n, indsol, indpml
+        real :: bega, dt
+
+        bega = Tdomain%TimeD%beta / Tdomain%TimeD%gamma
+        dt = Tdomain%TimeD%dtmin
+
+        dom%champs1%ForcesPML = 0.
+        do n = 0,Tdomain%intSolPml%surf0%nbtot-1
+            ! Couplage à l'interface solide / PML
+            indsol = Tdomain%intSolPml%surf0%map(n)
+            indpml = Tdomain%intSolPml%surf1%map(n)
+            dom%champs0%VelocPML(indpml,:,0) = Tdomain%sdom%champs0%Veloc(indsol,:)
+            dom%champs0%VelocPML(indpml,:,1) = 0.
+            dom%champs0%VelocPML(indpml,:,2) = 0.
+        enddo
+        ! Prediction
+        dom%champs1%VelocPML = dom%champs0%VelocPML + dt*(0.5-bega)*dom%champs1%ForcesPML
+    end subroutine newmark_predictor_solidpml
+
+    subroutine newmark_corrector_solidpml(dom, dt)
+        type(domain_solidpml), intent (INOUT) :: dom
+        double precision :: dt
+        !
+        integer  :: n, i_dir, indpml
+
+        do i_dir = 0,2
+            dom%champs0%VelocPML(:,i_dir,:) = dom%champs0%DumpV(:,0,:) * dom%champs0%VelocPML(:,i_dir,:) + &
+                                              dt * dom%champs0%DumpV(:,1,:) * dom%champs1%ForcesPML(:,i_dir,:)
+        enddo
+        !TODO Eventuellement : DeplaPML(:,:) = DeplaPML(:,:) + dt * VelocPML(:,:)
+        do n = 0, dom%n_dirich-1
+            indpml = dom%dirich(n)
+            dom%champs0%VelocPML(indpml,:,:) = 0.
+        enddo
+    end subroutine newmark_corrector_solidpml
 end module dom_solidpml
 
 !! Local Variables:
