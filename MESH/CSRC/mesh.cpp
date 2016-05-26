@@ -290,9 +290,13 @@ void Mesh3D::build_vertex_to_elem_map()
     for(int i=0;i<nel;++i) {
         for(int k=m_elems_offs[i];k<m_elems_offs[i+1];++k) {
             int vtx = m_elems[k];
-            int domain = m_materials[m_mat[i]].domain();
+            int mat = m_mat[i];
+            int domain = m_materials[mat].domain();
             m_vertex_to_elem.add_link(vtx, i);
             m_vertex_domains[vtx] |= (1<<domain);
+
+            // Update bounding boxen
+            m_bbox[mat].update_bounds(Vec3(m_xco[vtx],m_yco[vtx],m_zco[vtx]));
 //            printf("VX[%d] dom=%d/%02x, %02x\n", vtx, domain, (int)(1<<domain), m_vertex_domains[vtx]);
         }
     }
@@ -379,10 +383,26 @@ void Mesh3D::get_neighbour_elements(int nn, const int* n, std::set<int>& elemset
     }
 }
 
+void Mesh3D::save_bbox()
+{
+    FILE* fbbox;
+    fbbox = fopen("domains.txt", "w");
+    map<int,AABB>::const_iterator bbox;
+    for(bbox=m_bbox.begin();bbox!=m_bbox.end();++bbox) {
+        fprintf(fbbox, "%3d %8.3g %8.3g %8.3g %8.3g %8.3g %8.3g\n", bbox->first,
+                bbox->second.min[0],
+                bbox->second.min[1],
+                bbox->second.min[2],
+                bbox->second.max[0],
+                bbox->second.max[1],
+                bbox->second.max[2]);
+    }
+}
 
 void Mesh3D::generate_output(int nprocs)
 {
     build_vertex_to_elem_map();
+    save_bbox();
     partition_mesh(nprocs);
     // partition_mesh builds adjacency map that is used by build_sf_interface
     // Later on, we will want to treat SF interfaces like all others.
