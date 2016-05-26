@@ -1,6 +1,4 @@
 1
-R   6300.000   2500.000   2800.000   5   5   5   0.00010   630.000   250.000
-# PML properties
-# Filtering? npow,Apow,X?,left?,Y?,Forwrd?,Z?,down?,cutoff freq
-gaussian   200.00   200.00  200.00   lognormal     1.0D4     lognormal      5.0D10  lognormal      5.0D10  -1
+R   3535.533   2500.000   2800.000   5   5   5   0.00010   630.000   250.00
+1   10.00   10.00  10.00   2     0.15   2      0.15  2     0.0  -1
 

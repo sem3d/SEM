@@ -983,6 +983,17 @@ contains
             '">geometry',group,'.h5:/Jac</DataItem>'
         write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Dom" Format="HDF" Datatype="Int"  Dimensions="',nn, &
             '">geometry',group,'.h5:/Dom</DataItem>'
+
+        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Dens" Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn, &
+            '">geometry',group,'.h5:/Dens</DataItem>'
+        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Lamb" Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn, &
+            '">geometry',group,'.h5:/Lamb</DataItem>'
+        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Mu" Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn, &
+            '">geometry',group,'.h5:/Mu</DataItem>'
+        write(61,"(a,I9,a,I4.4,a)") '<DataItem Name="Kappa" Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn, &
+            '">geometry',group,'.h5:/Kappa</DataItem>'
+
+
         time = 0
 
         do i=1,isort
@@ -1158,10 +1169,32 @@ contains
             write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
                 '"]/DataItem[@Name="Alpha"]</DataItem>'
             write(61,"(a)") '</Attribute>'
+            ! JACOBIAN
             write(61,"(a,I9,a)") '<Attribute Name="Jac" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
             write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
                 '"]/DataItem[@Name="Jac"]</DataItem>'
             write(61,"(a)") '</Attribute>'
+            ! DENSITY
+            write(61,"(a,I9,a)") '<Attribute Name="Dens" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
+                '"]/DataItem[@Name="Dens"]</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            ! LAMBDA
+            write(61,"(a,I9,a)") '<Attribute Name="Lamb" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
+                '"]/DataItem[@Name="Lamb"]</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            ! MU
+            write(61,"(a,I9,a)") '<Attribute Name="Mu" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
+                '"]/DataItem[@Name="Mu"]</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            ! KAPPA
+            write(61,"(a,I9,a)") '<Attribute Name="Kappa" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
+            write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
+                '"]/DataItem[@Name="Kappa"]</DataItem>'
+            write(61,"(a)") '</Attribute>'
+            ! DOMAIN
             write(61,"(a,I9,a)") '<Attribute Name="Dom" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
             write(61,"(a,I4.4,a)") '<DataItem Reference="XML">/Xdmf/Domain/Grid/Grid[@Name="space.',group, &
                 '"]/DataItem[@Name="Dom"]</DataItem>'
@@ -1183,6 +1216,7 @@ contains
         integer, dimension(:), allocatable, intent(in) :: domains
         !
         real, dimension(:),allocatable :: mass, jac, dumpsx
+        real, dimension(:),allocatable :: dens, lamb, mu, kappa
         integer :: ngll, idx
         integer :: i, j, k, n, lnum, nnodes_tot, bnum, ee
         integer :: domain_type, imat
@@ -1191,8 +1225,14 @@ contains
         allocate(mass(0:nnodes-1))
         allocate(dumpsx(0:nnodes-1))
         allocate(jac(0:nnodes-1))
+        allocate(dens(0:nnodes-1))
+        allocate(lamb(0:nnodes-1))
+        allocate(mu(0:nnodes-1))
+        allocate(kappa(0:nnodes-1))
+
         mass = 0d0
         dumpsx = 0d0
+        dens = 0d0
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
@@ -1290,11 +1330,128 @@ contains
             end do
         end do
 
+        ! dens
+        do n = 0,Tdomain%n_elem-1
+            if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                        select case (Tdomain%specel(n)%domain)
+                            case (DM_SOLID)
+                                dens(idx) = Tdomain%sdom%Density_        (i,j,k,bnum,ee)
+                            case (DM_SOLID_PML)
+                                dens(idx) = Tdomain%spmldom%Density_     (i,j,k,bnum,ee)
+                            case (DM_FLUID)
+                                dens(idx) = 1.0D0/Tdomain%fdom%IDensity_ (i,j,k,bnum,ee)
+                            case (DM_FLUID_PML)
+                                dens(idx) = Tdomain%fpmldom%Density_     (i,j,k,bnum,ee)
+                            case default
+                                stop "unknown domain"
+                        end select
+                    end do
+                end do
+            end do
+        end do
+
+        ! lamb
+        do n = 0,Tdomain%n_elem-1
+            if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                        select case (Tdomain%specel(n)%domain)
+                            case (DM_SOLID)
+                                lamb(idx) = Tdomain%sdom%Lambda_        (i,j,k,bnum,ee)
+#ifndef CPML
+                            case (DM_SOLID_PML)
+                                lamb(idx) = Tdomain%spmldom%Lambda_     (i,j,k,bnum,ee)
+#endif
+                            case (DM_FLUID)
+                                lamb(idx) = Tdomain%fdom%Lambda_        (i,j,k,bnum,ee)
+                            case (DM_FLUID_PML)
+                                lamb(idx) = Tdomain%fpmldom%Lambda_     (i,j,k,bnum,ee)
+                            case default
+                                stop "unknown domain"
+                        end select
+                    end do
+                end do
+            end do
+        end do
+
+        ! mu
+        do n = 0,Tdomain%n_elem-1
+            if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                        select case (Tdomain%specel(n)%domain)
+                            case (DM_SOLID)
+                                mu(idx) = Tdomain%sdom%Mu_(i,j,k,bnum,ee)
+#ifndef CPML
+                            case (DM_SOLID_PML)
+                                mu(idx) = Tdomain%spmldom%Mu_(i,j,k,bnum,ee)
+#endif
+                            case (DM_FLUID)
+                                mu(idx) = -1d0
+                            case (DM_FLUID_PML)
+                                mu(idx) = -1d0
+                            case default
+                                stop "unknown domain"
+                        end select
+                    end do
+                end do
+            end do
+        end do
+
+        ! kappa
+        do n = 0,Tdomain%n_elem-1
+            if (.not. Tdomain%specel(n)%OUTPUT) cycle
+            ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+            do k = 0,ngll-1
+                do j = 0,ngll-1
+                    do i = 0,ngll-1
+                        idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
+                        select case (Tdomain%specel(n)%domain)
+                            case (DM_SOLID)
+                                kappa(idx) = Tdomain%sdom%Kappa_(i,j,k,bnum,ee)
+                            case (DM_SOLID_PML)
+                                kappa(idx) = -1d0
+                            case (DM_FLUID)
+                                kappa(idx) = -1d0
+                            case (DM_FLUID_PML)
+                                kappa(idx) = -1d0
+                            case default
+                                stop "unknown domain"
+                        end select
+                    end do
+                end do
+            end do
+        end do
+
         call grp_write_real_1d(Tdomain, fid, "Mass", nnodes, mass, nnodes_tot)
         call grp_write_real_1d(Tdomain, fid, "Alpha", nnodes, dumpsx, nnodes_tot)
         call grp_write_real_1d(Tdomain, fid, "Jac", nnodes, jac, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "Dens", nnodes, dens, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "Lamb", nnodes, lamb, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "Mu", nnodes, mu, nnodes_tot)
+        call grp_write_real_1d(Tdomain, fid, "Kappa", nnodes, kappa, nnodes_tot)
         call grp_write_int_1d(Tdomain, fid, "Dom", nnodes, domains, nnodes_tot)
         deallocate(mass,jac)
+        deallocate(dens, lamb, mu, kappa)
 
     end subroutine write_constant_fields
 

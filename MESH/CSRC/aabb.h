@@ -32,9 +32,8 @@ public:
     ~AABB() {};
 
     void init_bounds() {
-        //double minval = std::numeric_limits<double>::min();
         double maxval = std::numeric_limits<double>::max();
-        minval = -maxval;
+        double minval = -maxval;
         max = Vec3(minval, minval, minval);
         min = Vec3(maxval, maxval, maxval);
     }

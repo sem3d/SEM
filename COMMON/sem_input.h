@@ -145,6 +145,7 @@ typedef struct {
     char *model_file;
     double delta_lon;
     double delta_lat;
+    char* random_library_path;
 
     // Station definition
     station_def_t* stations;

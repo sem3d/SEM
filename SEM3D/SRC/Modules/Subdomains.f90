@@ -17,6 +17,7 @@ module ssubdomains
 
     type Subdomain
         character(len=1) :: material_type
+        character(len=1) :: initial_material_type
         integer          :: material_definition
 
         !! Numerotation gll
@@ -39,14 +40,15 @@ module ssubdomains
         real(fpp) :: Apow
 
         !! RANDOM
-        character(len = 15) :: corrMod
-        integer             :: assocMat = -1
-        integer             :: seedStart
-        character(len = 30), dimension(:)   , allocatable :: margiFirst
-        real(fpp)          , dimension(:)   , allocatable :: varProp
-        integer            , dimension(:)   , allocatable :: chosenSeed
-        real(fpp)          , dimension(:)   , allocatable :: corrL
-        real(fpp)          , dimension(0:2) :: MinBound, MaxBound
+        integer :: corrMod
+        integer :: assocMat = -1
+        integer :: seedStart
+        integer  , dimension(:), allocatable :: margiFirst
+        integer  , dimension(:), allocatable :: chosenSeed
+        real(fpp), dimension(:), allocatable :: varCoef
+        real(fpp), dimension(:), allocatable :: corrL
+        real(fpp), dimension(0:2) :: MinBound, MaxBound, MinBound_Loc, MaxBound_Loc
+        character(len=1024), dimension(0:2) :: propFilePath
 
     end type Subdomain
 
@@ -104,6 +106,24 @@ contains
         end select
         return
     end function get_domain
+
+    logical function is_rand(mat)
+        type(Subdomain), intent(in) :: mat
+
+        is_rand = .false.
+        select case (mat%initial_material_type)
+        case('R')
+            is_rand = .true.
+        case('S')
+            is_rand = .false.
+        case('P')
+            is_rand = .false.
+        case('F')
+            is_rand = .false.
+        case('L')
+            is_rand = .false.
+        end select
+    end function is_rand
 
 end module ssubdomains
 

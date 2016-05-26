@@ -25,14 +25,13 @@ program test_sem_path
     character(Len=MAX_FILE_SIZE),parameter :: p_results = "./results"
     character(Len=MAX_FILE_SIZE),parameter :: p_data = "./data"
     character(Len=MAX_FILE_SIZE),parameter :: p_prot = "./prot"
-    character(Len=MAX_FILE_SIZE),parameter :: p_prop = "./prop"
-    character(Len=MAX_FILE_SIZE),parameter :: p_prop_h5 = "./prop/h5"
+    character(Len=MAX_FILE_SIZE),parameter :: p_mat = "./mat"
 
 
 
     write(*,*) "pjoin: ", trim(adjustl(pjoin("abc","def")))
 
-    call init_sem_path(p_param, p_traces, p_results, p_data, p_prot, p_prop, p_prop_h5)
+    call init_sem_path(p_param, p_traces, p_results, p_data, p_prot, p_mat)
     write(*,*) "CHEMINS SEM"
     write(*,*) "==========="
     call test_path()

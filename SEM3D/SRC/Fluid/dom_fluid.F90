@@ -25,6 +25,8 @@ contains
 
         ngll   = dom%ngll
         nbelem = dom%nbelem
+        write(*,*) "DOM_FLUID ngll   = ", ngll
+        write(*,*) "DOM_FLUID nbelem = ", nbelem
         if (ngll == 0) return ! Domain doesn't exist anywhere
         ! Initialisation poids, points des polynomes de lagranges aux point de GLL
         call compute_gll_data(ngll, dom%gllc, dom%gllw, dom%hprime, dom%htprime)

@@ -45,7 +45,7 @@ MODULE constants
     integer, parameter :: MATERIAL_GRADIENT   = 2
     integer, parameter :: MATERIAL_EARTHCHUNK = 3
     integer, parameter :: MATERIAL_PREM       = 4
-    integer, parameter :: MATERIAL_MULTIPLE   = 5
+    integer, parameter :: MATERIAL_RANDOM     = 5
 
     ! DOMAINS (par ordre de priorite pour les sauvegardes)
     integer, parameter :: DM_SOLID = 4
@@ -70,6 +70,24 @@ MODULE constants
     integer, parameter :: COND_NEUMANN  = 2
 
     integer, parameter, dimension(0:8) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6 /)
+
+    !METHOD
+    integer, parameter :: ISOTROPIC = 1, &
+                          SHINOZUKA = 2, &
+                          RANDOMIZATION = 3, &
+                          FFT = 4
+    !Correlation Model
+    integer, parameter :: cm_GAUSSIAN = 1, &
+                          cm_COS = 2
+    !First-order Marginal Density
+    integer, parameter :: fom_GAUSSIAN = 1, &
+                          fom_LOGNORMAL = 2
+    !Mesh Mode
+    integer, parameter :: msh_AUTO = 1, msh_UNV = 2
+
+    integer, parameter :: SCREEN=6
+    integer, parameter :: buf_RF=1024 !Buffer for text
+
 CONTAINS
 
 

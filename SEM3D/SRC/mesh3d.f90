@@ -184,7 +184,7 @@ contains
         implicit none
         type(domain), intent(inout) :: Tdomain
         !
-        integer :: i, j, k, mat, nod, code
+        integer :: i, j, k, mat, nod, code, assocMat
         real(kind=FPP), dimension(0:2) :: tempGlobMin, tempGlobMax
         !
         do i = 0, Tdomain%n_mat-1
@@ -209,6 +209,19 @@ contains
             end do
         end do
 
+        !PASSING EXTREMES TO THE ASSOCIATED MATERIAL (Taking into account PML boundaries)
+        do mat = 0, Tdomain%n_mat - 1
+            Tdomain%sSubDomain(mat)%MaxBound_Loc = Tdomain%sSubDomain(mat)%MaxBound
+            Tdomain%sSubDomain(mat)%MinBound_Loc = Tdomain%sSubDomain(mat)%MinBound
+            assocMat = Tdomain%sSubDomain(mat)%assocMat
+            where(Tdomain%sSubDomain(mat)%MinBound < Tdomain%sSubDomain(assocMat)%MinBound) &
+                  Tdomain%sSubDomain(assocMat)%MinBound = Tdomain%sSubDomain(mat)%MinBound
+            where(Tdomain%sSubDomain(mat)%MaxBound > Tdomain%sSubDomain(assocMat)%MaxBound) &
+                  Tdomain%sSubDomain(assocMat)%MaxBound = Tdomain%sSubDomain(mat)%MaxBound
+        end do
+
+
+        !COMMUNICATING EXTREMES BETWEEN PROCS
         do mat = 0, Tdomain%n_mat - 1
             ! XXX Probleme avec array(0:...) au lieu de array(1:...) ??
             call MPI_ALLREDUCE(Tdomain%sSubDomain(mat)%MinBound, tempGlobMin, 3, &
@@ -389,7 +402,6 @@ contains
 
 
         call read_mesh_elements(Tdomain, fid)
-        call compute_material_boundaries(Tdomain)
 
         call read_interface(Tdomain%intSolPml, fid, "spml")
         call read_interface(Tdomain%intFluPml, fid, "fpml")
