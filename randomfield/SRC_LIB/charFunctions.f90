@@ -1,6 +1,5 @@
 module charFunctions
 
-    use constants, only : buf_RF
     use constants_RF
 
     implicit none
@@ -88,6 +87,7 @@ contains
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
     function string_join(string1, string2) result(stringTot)
+
         implicit none
 
         !INPUT
@@ -106,6 +106,7 @@ contains
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
     function stringNumb_join(string, number) result(stringTot)
+
         implicit none
 
         !INPUT

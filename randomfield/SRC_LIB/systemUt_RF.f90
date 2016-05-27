@@ -7,16 +7,20 @@ contains
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
     !-----------------------------------------------------------------------------------------------
-    subroutine create_folder(folder, path, rang, comm)
+    subroutine create_folder(folder, path, rang, comm, singleProc)
 
         implicit none
         !INPUT
         character(len = *), intent(in) :: folder, path
         integer, intent(in) :: rang, comm
+        logical, intent(in), optional :: singleProc
         !LOCAL
         character(len = 200) command, fullName
         integer :: code
+        logical :: effectSP
 
+        effectSP = .false.
+        if(present(singleProc)) effectSP = singleProc
 
         !if(rang==0) write(*,*) "creating Folder"
 
@@ -33,7 +37,7 @@ contains
             end if
         !end if
 
-        call MPI_BARRIER (comm ,code)
+        if(.not. effectSP) call MPI_BARRIER (comm ,code)
 
     end subroutine create_folder
 

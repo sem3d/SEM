@@ -16,8 +16,10 @@ module type_inputRF
         logical :: init=.false.
         logical :: alloc=.false.
         integer :: nSamples
+        integer :: application !1 for library, 2 for SEM
         character(len=buf_RF), dimension(:), allocatable :: out_folders, out_names
         character(len=buf_RF), dimension(:), allocatable :: mesh_inputs, gen_inputs
+        character(len=buf_RF) :: appFolder
         !MESH
         integer :: nDim_mesh
         integer :: meshMod
@@ -467,25 +469,243 @@ contains
             type(IPT_RF), intent(inout)  :: IPT
             !LOCAL
             character(len=buf_RF) , dimension(:,:), allocatable :: dataTable;
+            character(len=buf_RF) :: SEM_gen_path
             integer :: i
+            integer :: app
+            integer :: code
 
 
             call set_DataTable(path, dataTable)
 
-            call read_DataTable(dataTable, "nSamples", IPT%nSamples)
-            allocate(IPT%out_folders(IPT%nSamples))
-            allocate(IPT%out_names(IPT%nSamples))
-            allocate(IPT%mesh_inputs(IPT%nSamples))
-            allocate(IPT%gen_inputs(IPT%nSamples))
-            do i =1, IPT%nSamples
-                call read_DataTable(dataTable, stringNumb_join("mesh_input_",i), IPT%mesh_inputs(i))
-                call read_DataTable(dataTable, stringNumb_join("gen_input_",i), IPT%gen_inputs(i))
-                call read_DataTable(dataTable, stringNumb_join("out_folder_",i), IPT%out_folders(i))
-                call read_DataTable(dataTable, stringNumb_join("out_name_",i), IPT%out_names(i))
-            end do
-            deallocate(dataTable)
+            call read_DataTable(dataTable, "application", app)
+            IPT%application = app
+
+            if(app == 1) then
+
+                call read_DataTable(dataTable, "nSamples", IPT%nSamples)
+                allocate(IPT%out_folders(IPT%nSamples))
+                allocate(IPT%out_names(IPT%nSamples))
+                allocate(IPT%mesh_inputs(IPT%nSamples))
+                allocate(IPT%gen_inputs(IPT%nSamples))
+                do i =1, IPT%nSamples
+                    call read_DataTable(dataTable, stringNumb_join("mesh_input_",i), IPT%mesh_inputs(i))
+                    call read_DataTable(dataTable, stringNumb_join("gen_input_",i), IPT%gen_inputs(i))
+                    call read_DataTable(dataTable, stringNumb_join("out_folder_",i), IPT%out_folders(i))
+                    call read_DataTable(dataTable, stringNumb_join("out_name_",i), IPT%out_names(i))
+                end do
+
+            else if (app == 2) then
+                !SEM
+                call read_DataTable(dataTable, "folder", SEM_gen_path)
+                IPT%appFolder = SEM_gen_path
+                if(IPT%rang == 0) call generateMain_inputSEM(SEM_gen_path)
+                call MPI_BARRIER(IPT%comm, code)
+            end if
+
+            if(allocated(dataTable)) deallocate(dataTable)
 
         end subroutine read_main_input
+
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        subroutine generateMain_inputSEM(SEM_gen_path)
+
+            implicit none
+            !INPUT
+            character(len=*), intent(in) :: SEM_gen_path
+            !LOCAL
+            integer :: i
+            integer :: fid, fid_2
+            integer :: nMat, npml, nRand
+            character(len=1), dimension(:), allocatable :: materialType
+            integer,          dimension(:), allocatable :: assocMat
+            integer :: npow
+            double precision :: Apow, posX, widthX, posY, widthY, posZ, widthZ
+            integer, dimension(:), allocatable :: corrMod
+            double precision, dimension(:,:), allocatable :: corrL !corrL_x, corrL_y, corrL_z
+            integer, dimension(:), allocatable :: seedStart
+            !integer, dimension(:), allocatable :: rho_margiF, kappa_margiF, mu_margiF
+            !double precision, dimension(:), allocatable :: rho_CV, kappa_CV, mu_CV
+            integer, dimension(:,:), allocatable :: margiF
+            double precision, dimension(:,:), allocatable :: CV
+            integer :: matNb, randCount
+            double precision, dimension(:,:), allocatable :: bbox_min, bbox_max
+            integer :: prop, nprop
+            character(len=7), dimension(3) :: propNames=["Density", "Kappa  ", "Mu     "]
+            character(len=buf_RF) :: mesh_path, gen_path
+            double precision, dimension(:,:), allocatable :: fieldVar, fieldAvg
+            double precision :: Pspeed, Sspeed, Dens
+
+            fid_2 = 19
+            npml  = 0
+            nRand = 0
+            randCount = 0
+            nprop = 3
+
+            !READING material.input
+            open (unit = fid_2 , file = "./material.input", action = 'read', status="old", form="formatted")
+                read(fid_2,*) nMat
+                write(*,*) "nMat = ", nMat
+
+                allocate(materialType(nMat))
+                allocate(assocMat(nMat))
+                allocate(corrMod(nMat))
+                allocate(corrL(3,nMat))
+                allocate(fieldVar(nprop,nMat))
+                allocate(fieldAvg(nprop,nMat))
+                !allocate(corrL_x(nMat))
+                !allocate(corrL_y(nMat))
+                !allocate(corrL_z(nMat))
+                allocate(margiF(nprop,nMat))
+                allocate(CV(nprop,nMat))
+                !allocate(rho_margiF(nMat))
+                !allocate(kappa_margiF(nMat))
+                !allocate(mu_margiF(nMat))
+                allocate(seedStart(nMat))
+                !allocate(rho_CV(nMat))
+                !allocate(kappa_CV(nMat))
+                !allocate(mu_CV(nMat))
+                allocate(bbox_min(3,nMat))
+                allocate(bbox_max(3,nMat))
+
+                assocMat = -1
+
+                do i = 1, nMat
+                    read(fid_2,*) materialType(i), Pspeed, Sspeed, Dens
+
+                    fieldAvg(1,i) = Dens !Density
+                    fieldAvg(2,i) = Dens*(Pspeed**2d0 - 4d0*(Sspeed**2d0)/3d0) !Kappa
+                    fieldAvg(3,i) = Dens*Sspeed**2d0 !Mu
+
+                    if (materialType(i) == "P" .or. materialType(i) == "L") then
+                        npml = npml + 1
+                    else
+                        assocMat(i) = i-1
+                    end if
+
+                end do
+
+                read(fid_2,*)
+                read(fid_2,*)
+
+                do i = 1, nMat
+                    if (materialType(i) == "P" .or. materialType(i) == "L") then
+                        read(fid_2,*) npow, Apow, posX, widthX, posY, widthY, posZ, widthZ, assocMat(i)
+                    end if
+                end do
+
+                read(fid_2,*)
+                read(fid_2,*)
+
+                do i = 1, nMat
+                    if (materialType(i) == "R") then
+                        nRand = nRand + 1
+                        read(fid_2,*) corrMod(i), corrL(1,i), corrL(2,i), corrL(3,i), margiF(1,i), CV(1,i), &
+                                      margiF(2,i), CV(2,i), margiF(3,i), CV(3,i), seedStart(i)
+
+                        fieldVar(1,i) = (CV(1,i)*fieldAvg(1,i))**2d0 !Density
+                        fieldVar(2,i) = (CV(2,i)*fieldAvg(2,i))**2d0 !Kappa
+                        fieldVar(3,i) = (CV(3,i)*fieldAvg(3,i))**2d0 !Mu
+                    end if
+                end do
+
+                !call DispCarvalhol(materialType, "materialType")
+                !call DispCarvalhol(assocMat, "assocMat")
+
+            close(fid_2)
+
+            !READING material.input
+            open (unit = fid_2 , file = "./domains.txt", action = 'read', status="old", form="formatted")
+                do i = 1, nMat
+                    read(fid_2,*) matNb, bbox_min(1,i), bbox_min(2,i), bbox_min(3,i), &
+                                         bbox_max(1,i), bbox_max(2,i), bbox_max(3,i)
+                end do
+
+                !call DispCarvalhol(bbox_min, "bbox_min")
+                !call DispCarvalhol(bbox_max, "bbox_max")
+
+            close(fid_2)
+
+            !CREATING FOLDER
+            call create_folder(".", SEM_gen_path, 0, 0, singleProc = .true.)
+            call create_folder(".", string_join_many(SEM_gen_path,"/input"), 0, 0, singleProc = .true.)
+
+            !WRITING new RF_main_input
+
+            fid = 18
+
+            open (unit = fid , file = string_join_many("TEMP_RF_main_input"), action = 'write')
+
+            write(fid,*)  "$application 1"
+            write(fid,*) " "
+
+
+            do i = 1, nMat
+                if (materialType(i) == "R") then
+                    do prop = 1, 3
+                        randCount = randCount + 1
+
+                        mesh_path = trim(string_join_many(SEM_gen_path,"/input/mesh_",propNames(prop), &
+                                     stringNumb_join("_Mat_", i-1)))
+                        gen_path  = trim(string_join_many(SEM_gen_path,"/input/gen_",propNames(prop), &
+                                     stringNumb_join("_Mat_", i-1)))
+
+                        write(fid,*) trim(string_join_many(stringNumb_join("$mesh_input_", randCount)))//' "'//&
+                                     trim(mesh_path)//'"'
+                        call write_mesh_file(3, bbox_min(:,i), bbox_max(:,i), [5, 5, 5], &
+                                             mesh_path)
+
+
+                        write(fid,*) trim(string_join_many(stringNumb_join("$gen_input_", randCount)))//' "'//&
+                                     trim(gen_path)//'"'
+                        call write_gen_file(3, 1, corrMod(i), margiF(prop, i), corrL(:,i), &
+                                            fieldAvg(prop, i), fieldVar(prop, i), 4, &
+                                            seedStart(i), [5d0, 5d0, 5d0], &
+                                            gen_path,  &
+                                            1, [1, 1, 1])
+
+                        write(fid,*) trim(string_join_many(stringNumb_join("$out_folder_", randCount)))//&
+                                          ' "',trim(adjustL(SEM_gen_path)),'"'
+                        write(fid,*) trim(string_join_many(stringNumb_join("$out_name_", randCount)))//' "'//&
+                                     trim(propNames(prop))//&
+                                     trim(stringNumb_join("_Mat_", i-1))//'"'
+                        write(fid,*) " "
+                    end do
+                end if
+            end do
+
+            write(fid,*) "$nSamples "//numb2String(randCount)
+
+            !write(fid,*) "$$nDim "
+
+            close(fid)
+
+            if(allocated(materialType)) deallocate(materialType)
+            if(allocated(assocMat)) deallocate(assocMat)
+
+            if(allocated(corrMod)) deallocate(corrMod)
+            !if(allocated(corrL_x)) deallocate(corrL_x)
+            !if(allocated(corrL_y)) deallocate(corrL_y)
+            !if(allocated(corrL_z)) deallocate(corrL_z)
+            if(allocated(corrL)) deallocate(corrL)
+            !if(allocated(rho_margiF)) deallocate(rho_margiF)
+            !if(allocated(kappa_margiF)) deallocate(kappa_margiF)
+            !if(allocated(mu_margiF)) deallocate(mu_margiF)
+            if(allocated(margiF)) deallocate(margiF)
+            if(allocated(CV)) deallocate(CV)
+            if(allocated(seedStart)) deallocate(seedStart)
+            !if(allocated(rho_CV)) deallocate(rho_CV)
+            !if(allocated(kappa_CV)) deallocate(kappa_CV)
+            !if(allocated(mu_CV)) deallocate(mu_CV)
+            if(allocated(bbox_max)) deallocate(bbox_max)
+            if(allocated(bbox_min)) deallocate(bbox_min)
+            if(allocated(fieldVar)) deallocate(fieldVar)
+            if(allocated(fieldAvg)) deallocate(fieldAvg)
+
+
+        end subroutine generateMain_inputSEM
 
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
@@ -837,5 +1057,89 @@ contains
             end if
 
         end subroutine show_IPTneigh
+
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    subroutine write_mesh_file(nDim, xMinGlob, xMaxGlob, pointsPerCorrL, mesh_path)
+
+        implicit none
+        !INPUT
+        integer, intent(in) :: nDim
+        double precision, dimension(:), intent(in) :: xMinGlob, xMaxGlob
+        integer, dimension(:), intent(in) :: pointsPerCorrL
+        character(len=*), intent(in) :: mesh_path
+        !LOCAL
+        integer :: i
+        integer :: fileId
+
+        fileID = 19
+
+        open (unit = fileId , file = mesh_path, action = 'write')
+
+        write(fileId,*) "$$nDim ", nDim
+        write(fileId,*) "$$meshMod 1"
+        write(fileId,*) "          $Min            $Max           $pointsPerCorrL"
+        do i = 1, nDim
+            write(fileId, "(2(F15.5, A), (I15))") xMinGlob(i), " ", xMaxGlob(i), " ", pointsPerCorrL(i)
+        end do
+
+        close(fileId)
+
+        call system("chmod a+r "//trim(mesh_path))
+
+    end subroutine write_mesh_file
+
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    !-----------------------------------------------------------------------------------------------
+    subroutine write_gen_file(nDim, Nmc, corrMod, margiFirst, corrL, fieldAvg, fieldVar, method, &
+                              seedStart, overlap, gen_path,                         &
+                              localizationLevel, nFields)
+
+        implicit none
+        !INPUT
+        integer, intent(in) :: nDim, Nmc, corrMod, margiFirst, method, seedStart
+        double precision, dimension(:), intent(in) :: corrL, overlap
+        double precision, intent(in) :: fieldAvg, fieldVar
+        character(len=*), intent(in) :: gen_path
+        integer, intent(in) :: localizationLevel
+        integer, dimension(:), intent(in) :: nFields
+        !LOCAL
+        integer :: fileId
+
+        fileID = 19
+
+        open (unit = fileId , file = gen_path, action = 'write')
+
+        write(fileId,*) "$$nDim ", nDim
+        write(fileId,*) "$$Nmc ", Nmc
+        write(fileId,*) "$$corrMod ", corrMod
+        write(fileId,*) "$$margiFirst ", margiFirst
+        write(fileId,*) "$$localizationLevel ", localizationLevel
+        write(fileId,*) "$nFields "
+        write(fileId,*) nFields
+        write(fileId,*) "$corrL "
+        write(fileId,*) corrL
+        write(fileId,*) "$$fieldAvg "
+        write(fileId,*) fieldAvg
+        write(fileId,*) "$$fieldVar "
+        write(fileId,*) fieldVar
+        write(fileId,*) "$$method "
+        write(fileId,*) method
+        write(fileId,*) "$$seedStart"
+        write(fileId,*) seedStart
+        !write(fileId,*) "$$independent"
+        !write(fileId,*) independent
+        write(fileId,*) "$overlap"
+        write(fileId,*) overlap
+
+        close(fileId)
+
+        call system("chmod a+r "//trim(gen_path))
+
+    end subroutine write_gen_file
 
 end module type_inputRF
