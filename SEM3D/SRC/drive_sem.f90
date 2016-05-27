@@ -28,8 +28,6 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 #ifdef COUPLAGE
     use scouplage
 #endif
-    use calls_RF !TEST
-    use fftw3 !TEST
 
     implicit none
 
@@ -50,8 +48,6 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     integer, dimension(3) :: tab
     integer :: min_rank_glob_sem
 #endif
-    type(IPT_RF) :: IPT !TEST
-    double precision, dimension(10) :: times !TEST
 
     call stat_starttick()
     call MPI_Init (ierr)
@@ -268,7 +264,7 @@ subroutine RUN_PREPARED(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
 
 
-    if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
+    !if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
     call create_prop_files (Tdomain, rg)
 
 
