@@ -63,7 +63,7 @@ capteurs "UU" {
 };
 material {
     type = random;
-    random_library_path = "PUT_YOUR_PATH/build_RF";
+    random_library_path = "/home/carvalhol/Projects/SEM/build_RF";
 };
 out_variables {
     enP = 1;   # P-wave energy (scalar field)
