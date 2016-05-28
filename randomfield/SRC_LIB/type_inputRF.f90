@@ -534,7 +534,7 @@ contains
             double precision, dimension(:,:), allocatable :: bbox_min, bbox_max
             integer :: prop, nprop
             character(len=7), dimension(3) :: propNames=["Density", "Kappa  ", "Mu     "]
-            character(len=buf_RF) :: mesh_path, gen_path
+            character(len=buf_RF) :: mesh_path, gen_path, absPath
             double precision, dimension(:,:), allocatable :: fieldVar, fieldAvg
             double precision :: Pspeed, Sspeed, Dens
 
@@ -571,6 +571,8 @@ contains
                 allocate(bbox_max(3,nMat))
 
                 assocMat = -1
+                bbox_min(:,:) = MAX_DOUBLE
+                bbox_max(:,:) = MIN_DOUBLE
 
                 do i = 1, nMat
                     read(fid_2,*) materialType(i), Pspeed, Sspeed, Dens
@@ -621,6 +623,8 @@ contains
                 do i = 1, nMat
                     read(fid_2,*) matNb, bbox_min(1,i), bbox_min(2,i), bbox_min(3,i), &
                                          bbox_max(1,i), bbox_max(2,i), bbox_max(3,i)
+                    where(bbox_min(:,assocMat(i)+1) > bbox_min(:,i)) bbox_min(:,assocMat(i)+1) = bbox_min(:,i)
+                    where(bbox_max(:,assocMat(i)+1) < bbox_max(:,i)) bbox_max(:,assocMat(i)+1) = bbox_max(:,i)
                 end do
 
                 !call DispCarvalhol(bbox_min, "bbox_min")
@@ -641,9 +645,14 @@ contains
             write(fid,*)  "$application 1"
             write(fid,*) " "
 
+            call getcwd(absPath)
+
+            write(*,*) "absPath = ", trim(adjustL(absPath))
 
             do i = 1, nMat
                 if (materialType(i) == "R") then
+
+
                     do prop = 1, 3
                         randCount = randCount + 1
 
@@ -653,13 +662,13 @@ contains
                                      stringNumb_join("_Mat_", i-1)))
 
                         write(fid,*) trim(string_join_many(stringNumb_join("$mesh_input_", randCount)))//' "'//&
-                                     trim(mesh_path)//'"'
+                                     trim(adjustL(absPath)),"/",trim(mesh_path)//'"'
                         call write_mesh_file(3, bbox_min(:,i), bbox_max(:,i), [5, 5, 5], &
                                              mesh_path)
 
 
                         write(fid,*) trim(string_join_many(stringNumb_join("$gen_input_", randCount)))//' "'//&
-                                     trim(gen_path)//'"'
+                                     trim(adjustL(absPath)),"/",trim(gen_path)//'"'
                         call write_gen_file(3, 1, corrMod(i), margiF(prop, i), corrL(:,i), &
                                             fieldAvg(prop, i), fieldVar(prop, i), 4, &
                                             seedStart(i), [5d0, 5d0, 5d0], &
@@ -667,7 +676,7 @@ contains
                                             1, [1, 1, 1])
 
                         write(fid,*) trim(string_join_many(stringNumb_join("$out_folder_", randCount)))//&
-                                          ' "',trim(adjustL(SEM_gen_path)),'"'
+                                          ' "',trim(adjustL(absPath)),"/",trim(adjustL(SEM_gen_path)),'"'
                         write(fid,*) trim(string_join_many(stringNumb_join("$out_name_", randCount)))//' "'//&
                                      trim(propNames(prop))//&
                                      trim(stringNumb_join("_Mat_", i-1))//'"'
