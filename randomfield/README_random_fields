@@ -20,13 +20,10 @@ USING INSIDE SEM
 
 We suppose that we're running a test case in a folder called TEST. The location of this folder is arbitrary.
 
-Inside TEST you will generate your mesh and then run SEM for the first time. This will continue till the
-part where the properties h5 files are needed. At this moment the PROGRAM WILL STOP. It's normal.
-The first run generate the inputs needed to the random field library. They will be located in the TEST/mat
-folder. Once you've donne that you can generate the random properties by calling the random field library
-from this folder. An example file "run.pbs" is created. If you are an IGLOO user using the PBS manager this
-file is probably ready for you to execute. Tap qsub run.pbs and the properties will be generated inside the
-TEST/mat/h5 folder.
+Inside TEST you will generate your mesh and then run the properties generation.
+This means that you call the executable randomfield.exe from your TEST folder (RF_main_input have the informations
+to the random library). This will generate the properties h5 files needed to run the simulation. They will be
+located in the TEST/mat/h5 folder. 
 
 Once properties are generated you re-run SEM and you will be able to complete your simulation.
 
