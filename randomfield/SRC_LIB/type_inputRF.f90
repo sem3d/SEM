@@ -661,26 +661,26 @@ contains
                         gen_path  = trim(string_join_many(SEM_gen_path,"/input/gen_",propNames(prop), &
                                      stringNumb_join("_Mat_", i-1)))
 
-                        write(fid,*) trim(string_join_many(stringNumb_join("$mesh_input_", randCount)))//' "'//&
-                                     trim(adjustL(absPath)),"/",trim(mesh_path)//'"'
+                        write(fid,"(A)") trim(string_join_many(stringNumb_join("$mesh_input_", randCount)))//' "'//&
+                                         trim(string_join_many(absPath,"/",mesh_path,'"'))
                         call write_mesh_file(3, bbox_min(:,i), bbox_max(:,i), [5, 5, 5], &
                                              mesh_path)
 
 
-                        write(fid,*) trim(string_join_many(stringNumb_join("$gen_input_", randCount)))//' "'//&
-                                     trim(adjustL(absPath)),"/",trim(gen_path)//'"'
+                        write(fid,"(A)") trim(string_join_many(stringNumb_join("$gen_input_", randCount)))//' "'//&
+                                     trim(string_join_many(absPath,'/',gen_path,'"'))
                         call write_gen_file(3, 1, corrMod(i), margiF(prop, i), corrL(:,i), &
                                             fieldAvg(prop, i), fieldVar(prop, i), 4, &
                                             seedStart(i), [5d0, 5d0, 5d0], &
                                             gen_path,  &
                                             1, [1, 1, 1])
 
-                        write(fid,*) trim(string_join_many(stringNumb_join("$out_folder_", randCount)))//&
+                        write(fid,"(A)") trim(string_join_many(stringNumb_join("$out_folder_", randCount)))//&
                                           ' "',trim(adjustL(absPath)),"/",trim(adjustL(SEM_gen_path)),'"'
-                        write(fid,*) trim(string_join_many(stringNumb_join("$out_name_", randCount)))//' "'//&
+                        write(fid,"(A)") trim(string_join_many(stringNumb_join("$out_name_", randCount)))//' "'//&
                                      trim(propNames(prop))//&
                                      trim(stringNumb_join("_Mat_", i-1))//'"'
-                        write(fid,*) " "
+                        write(fid,"(A)") " "
                     end do
                 end if
             end do
