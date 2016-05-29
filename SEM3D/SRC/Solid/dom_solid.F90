@@ -57,16 +57,16 @@ contains
                 allocate(dom%nl_param%LMC%rinf_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
                 allocate(dom%nl_param%LMC%biso_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
                 ! internal variables 
-                allocate(dom%radius_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-                allocate(dom%stress_(0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-                allocate(dom%center_(0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-                allocate(dom%eps_ep_(0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))  
-                allocate(dom%eps_pl_(0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))  
-                dom%eps_ep = 0.d0
-                dom%eps_pl = 0.d0
-                dom%stress = 0.d0
-                dom%center = 0.d0
-                dom%radius = 0.d0
+                allocate(dom%radius_      (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+                allocate(dom%stress_  (0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+                allocate(dom%center_  (0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+                allocate(dom%strain_  (0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))  
+                allocate(dom%plstrain_(0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))  
+                dom%strain_   = 0.d0
+                dom%plstrain_ = 0.d0
+                dom%stress_   = 0.d0
+                dom%center_   = 0.d0
+                dom%radius_   = 0.d0
             end if
 
             allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
@@ -213,8 +213,8 @@ contains
         if(allocated(dom%m_radius)) deallocate(dom%m_radius)
         if(allocated(dom%m_stress)) deallocate(dom%m_stress)
         if(allocated(dom%m_center)) deallocate(dom%m_center)
-        if(allocated(dom%m_eps_ep)) deallocate(dom%m_eps_ep)  
-        if(allocated(dom%m_eps_pl)) deallocate(dom%m_eps_pl)  
+        if(allocated(dom%m_strain)) deallocate(dom%m_strain)  
+        if(allocated(dom%m_plstrain)) deallocate(dom%m_plstrain)  
 
     end subroutine deallocate_dom_solid
 
@@ -370,11 +370,11 @@ contains
                         if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
                             eps_dev(i,j,k,0:5) = 0.d0
                             if (nl_flag .and. nl_law) then
-                                eps_dev(i,j,k,:)   = dom%eps_ep(:,i,j,k,lnum)
+                                eps_dev(i,j,k,:)   = dom%strain(:,i,j,k,lnum)
                                 eps_dev(i,j,k,0:2) = eps_dev(i,j,k,0:2)-&
                                     sum(eps_dev(i,j,k,0:2))/3
                                 eps_dev_pl(i,j,k,0:5) = 0.d0
-                                eps_dev_pl(i,j,k,:)   = dom%eps_pl(:,i,j,k,lnum)
+                                eps_dev_pl(i,j,k,:)   = dom%plstrain(:,i,j,k,lnum)
                                 eps_dev_pl(i,j,k,0:2) = eps_dev_pl(i,j,k,0:2)-&
                                     sum(eps_dev_pl(i,j,k,0:2))/3
                             else
@@ -413,8 +413,7 @@ contains
         enddo
     end subroutine get_solid_dom_var
 
-    subroutine init_material_properties_solid(dom, lnum, i, j, k, density, lambda, mu, kappa, mat,&
-        syld, ckin, kkin, rinf, biso)
+    subroutine init_material_properties_solid(dom, lnum, i, j, k, density, lambda, mu, kappa, mat)
 
         use ssubdomains
         type(domain_solid), intent(inout) :: dom
@@ -424,11 +423,6 @@ contains
         real(fpp), intent(in) :: lambda
         real(fpp), intent(in) :: mu
         real(fpp), intent(in) :: kappa
-!        real(fpp), intent(in), optional :: syld
-!        real(fpp), intent(in), optional :: ckin
-!        real(fpp), intent(in), optional :: kkin
-!        real(fpp), intent(in), optional :: rinf
-!        real(fpp), intent(in), optional :: biso
 
         type (subdomain), intent(in), optional :: mat
         

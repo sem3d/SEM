@@ -33,7 +33,6 @@ subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,t4
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
     real(fpp), parameter :: zero = 0.
-    // NONLINEAR VARIABLES
     real(fpp), dimension(0:5) :: start,trial,center,dEps_alpha,dEpsP,eps0
     real(fpp)  :: syld,ckin,kkin,biso,rinf,radius,alpha_elp
 #ifdef ORIG
@@ -113,11 +112,10 @@ subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
                 xmu = dom%Mu_    (i,j,k,e)
                 xla = dom%Lambda_(i,j,k,e)
                 xla2mu = xla + 2. * xmu
-
-                // ELASTIC PREDICTION (STRESS INCREMENT ON SINGLE NODE) 
-                eps0(0:5) = dom%eps_ep_(0:5,i,j,k,e)
-                dom%eps_ep_(0:5,i,j,k,e) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/)
-                dEps_alpha(0:5) = dom%eps_ep_(0:5,i,j,k,e) -eps0(0:5)
+ 
+                eps0(0:5) = dom%strain_(0:5,i,j,k,e)
+                dom%strain_(0:5,i,j,k,e) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/)
+                dEps_alpha(0:5) = dom%strain_(0:5,i,j,k,e) -eps0(0:5)
                 dEpsP(0:5)      = 0.d0
                 
                 sxx = xla2mu*dEps_alpha(0)+xla*sum(dEps_alpha(1:2))
@@ -154,7 +152,7 @@ subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
                 
                 dom%stress(0:5,i,j,k,e) = trial(0:5)
                 dom%center(0:5,i,j,k,e) = center(0:5)
-                dom%eps_pl(0:5,i,j,k,e) = dom%eps_pl(0:5,i,j,k,e)+dEpsP(0:5)
+                dom%plstrain(0:5,i,j,k,e) = dom%plstrain(0:5,i,j,k,e)+dEpsP(0:5)
                 dom%radius(i,j,k,e)     = radius
 
                 !

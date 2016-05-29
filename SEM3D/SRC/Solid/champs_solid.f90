@@ -115,8 +115,8 @@ module champs_solid
         real(fpp), dimension(:,:,:,:),   allocatable :: m_radius
         real(fpp), dimension(:,:,:,:,:), allocatable :: m_stress 
         real(fpp), dimension(:,:,:,:,:), allocatable :: m_center
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_eps_ep
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_eps_pl
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_strain
+        real(fpp), dimension(:,:,:,:,:), allocatable :: m_plstrain
 
     end type domain_solid
 

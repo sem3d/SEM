@@ -267,8 +267,7 @@ contains
                     case (DM_SOLID)
                         if (nl_flag.and.nl_law) then
                             call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
-                                mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat, &
-                                mat%Dsyld, mat%Dckin, mat%Dkkin, mat%Drinf, mat%Dbiso)
+                                mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)
                         else
                             call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
                                  mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)
@@ -296,8 +295,7 @@ contains
                     case (DM_SOLID)
                         if (Tdomain%nl_flag==1.and.mat%material_type=='N') then
                             call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
-                                mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat, &
-                                mat%Dsyld, mat%Dckin, mat%Dkkin, mat%Drinf, mat%Dbiso)
+                                mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)
                         else
                             call init_material_properties_solid(Tdomain%sdom,specel%lnum,-1,-1,-1,&
                                  mat%DDensity,mat%DLambda,mat%DMu,mat%DKappa, mat)

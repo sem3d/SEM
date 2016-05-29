@@ -407,11 +407,11 @@ contains
                     Tdomain%sSubDomain(i)%Qpression,            &
                     Tdomain%sSubDomain(i)%Qmu,                  &
                     Tdomain%sSubDomain(i)%nl_law,               &
-                    Tdomain%sSubDomain(i)%dsyld,                &
-                    Tdomain%sSubDomain(i)%dCkin,                &
-                    Tdomain%sSubDomain(i)%dkkin,                &
-                    Tdomain%sSubDomain(i)%dbiso,                &
-                    Tdomain%sSubDomain(i)%dRinf
+                    Tdomain%sSubDomain(i)%syld,                &
+                    Tdomain%sSubDomain(i)%Ckin,                &
+                    Tdomain%sSubDomain(i)%kkin,                &
+                    Tdomain%sSubDomain(i)%biso,                &
+                    Tdomain%sSubDomain(i)%Rinf
             else
                 read(13,*) Tdomain%sSubDomain(i)%material_type, &
                     Tdomain%sSubDomain(i)%Pspeed,               &
