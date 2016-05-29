@@ -69,12 +69,15 @@
 #define       Jacob_(i,j,k,e)       m_Jacob(IND_IJKE(i,j,k,e))
 #define        Idom_(i,j,k,e)        m_Idom(IND_IJKE(i,j,k,e))
 #define        syld_(i,j,k,e)        m_syld(IND_IJKE(i,j,k,e))
-#define        Ckin_(i,j,k,e)        m_Ckin(IND_IJKE(i,j,k,e))
+#define        ckin_(i,j,k,e)        m_ckin(IND_IJKE(i,j,k,e))
 #define        kkin_(i,j,k,e)        m_kkin(IND_IJKE(i,j,k,e))
 #define        rinf_(i,j,k,e)        m_rinf(IND_IJKE(i,j,k,e))
 #define        biso_(i,j,k,e)        m_biso(IND_IJKE(i,j,k,e))
-
-
+#define        radius_(i,j,k,e)    m_radius(IND_IJKE(i,j,k,e))
+#define        strain_(n,i,j,k,e)    m_strain(IND_NIJKE(n,i,j,k,e))
+#define        stress_(n,i,j,k,e)    m_stress(IND_NIJKE(n,i,j,k,e))
+#define        center_(n,i,j,k,e)    m_center(IND_NIJKE(n,i,j,k,e))
+#define      plstrain_(n,i,j,k,e)  m_plstrain(IND_NIJKE(n,i,j,k,e))
 
 #define       Cij_(m,i,j,k,e)      m_Cij(IND_DIJKE(m,i,j,k,e))
 #define InvGrad_(m,n,i,j,k,e) m_InvGrad(IND_MNIJKE(m,n,i,j,k,e))

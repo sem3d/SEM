@@ -112,7 +112,6 @@ subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
                 xmu = dom%Mu_    (i,j,k,e)
                 xla = dom%Lambda_(i,j,k,e)
                 xla2mu = xla + 2. * xmu
- 
                 eps0(0:5) = dom%strain_(0:5,i,j,k,e)
                 dom%strain_(0:5,i,j,k,e) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/)
                 dEps_alpha(0:5) = dom%strain_(0:5,i,j,k,e) -eps0(0:5)
@@ -150,10 +149,10 @@ subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
                 sxz = trial(4)
                 syz = trial(5)
                 
-                dom%stress(0:5,i,j,k,e) = trial(0:5)
-                dom%center(0:5,i,j,k,e) = center(0:5)
-                dom%plstrain(0:5,i,j,k,e) = dom%plstrain(0:5,i,j,k,e)+dEpsP(0:5)
-                dom%radius(i,j,k,e)     = radius
+                dom%stress_(0:5,i,j,k,e) = trial(0:5)
+                dom%center_(0:5,i,j,k,e) = center(0:5)
+                dom%plstrain_(0:5,i,j,k,e) = dom%plstrain_(0:5,i,j,k,e)+dEpsP(0:5)
+                dom%radius_(i,j,k,e)     = radius
 
                 !
                 !=====================

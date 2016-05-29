@@ -62,11 +62,11 @@ contains
                 allocate(dom%center_  (0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
                 allocate(dom%strain_  (0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))  
                 allocate(dom%plstrain_(0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))  
-                dom%strain_   = 0.d0
-                dom%plstrain_ = 0.d0
-                dom%stress_   = 0.d0
-                dom%center_   = 0.d0
-                dom%radius_   = 0.d0
+                dom%strain_(:,:,:,:)   = 0.d0
+                dom%plstrain_(:,:,:,:) = 0.d0
+                dom%stress_(:,:,:,:)   = 0.d0
+                dom%center_(:,:,:,:)   = 0.d0
+                dom%radius_(:,:,:,:)   = 0.d0
             end if
 
             allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
@@ -315,7 +315,7 @@ contains
                         if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
                           
                         if (nl_flag .and. nl_law) then
-                            fieldP(i,j,k) = -sum(dom%stress_(ind,0:2))/3
+                            fieldP(i,j,k) = -sum(dom%stress_(0:2,i,j,k,lnum))/3
                         else
                             fieldP(i,j,k) = -(dom%Lambda_(i,j,k,lnum)&
                                 +2d0/3d0*dom%Mu_(i,j,k,lnum))*(DXX+DYY+DZZ)
