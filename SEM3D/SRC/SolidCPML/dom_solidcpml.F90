@@ -11,12 +11,15 @@
 !!       Rene Matzen
 !!       International Journal For Numerical Methods In Engineering, 2011, 88, 951-973
 
-! alphax: (76) from Ref1
+! alpha*: (76) from Ref1, kappa*: (77) from Ref1, beta*: (11) from Ref1, dxi: (74) from Ref1, d0: (75) from Ref1
+! Note: for d0, c_p^max is estimated by V_z at the Gauss point (i, j, k)
 #define solidcpml_abk_x(i,j,k,bnum,ee) \
-        xi = dom%GlobCoord(0,dom%Idom_(i,j,k,bnum,ee)); \
-        alphax = dom%alphamax*(1. - abs(xi - dom%bpp_x)/dom%L_x); \
-        betax = 0.; \
-        kappax = 0.;
+        xi = dom%GlobCoord(0,dom%Idom_(i,j,k,bnum,ee)) - dom%bpp_x; \
+        alphax = dom%alphamax*(1. - xi/dom%L_x); \
+        kappax = dom%kappa_0 + dom%kappa_1 * xi/dom%L_x; \
+        d0 = -1.*(dom%n_x+1)*dom%champs0%Veloc(dom%Idom_(i,j,k,bnum,ee),2)*log(dom%r_c)/(2*dom%L_x); \
+        dxi = dom%c_x*d0*(xi/dom%L_x)**dom%n_x; \
+        betax = alphax + dxi / kappax;
 
 module dom_solidpml
     use constants
@@ -284,7 +287,7 @@ contains
         real Whei
         !
         integer :: bnum, ee
-        real(fpp) :: xi, alphax, betax, kappax ! solidcpml_abk_x
+        real(fpp) :: xi, dxi, d0, alphax, betax, kappax ! solidcpml_abk_x
         real(fpp) :: ab2
 
         bnum = specel%lnum/VCHUNK
