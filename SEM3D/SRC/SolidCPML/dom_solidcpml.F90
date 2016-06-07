@@ -13,13 +13,13 @@
 
 ! alpha*: (76) from Ref1, kappa*: (77) from Ref1, beta*: (11) from Ref1, dxi: (74) from Ref1, d0: (75) from Ref1
 ! Note: for d0, c_p^max is estimated by V_z at the Gauss point (i, j, k)
-#define solidcpml_abk_x(i,j,k,bnum,ee) \
-        xi = dom%GlobCoord(0,dom%Idom_(i,j,k,bnum,ee)) - dom%bpp_x; \
-        alphax = dom%alphamax*(1. - xi/dom%L_x); \
-        kappax = dom%kappa_0 + dom%kappa_1 * xi/dom%L_x; \
-        d0 = -1.*(dom%n_x+1)*dom%champs0%Veloc(dom%Idom_(i,j,k,bnum,ee),2)*log(dom%r_c)/(2*dom%L_x); \
-        dxi = dom%c_x*d0*(xi/dom%L_x)**dom%n_x; \
-        betax = alphax + dxi / kappax;
+#define solidcpml_abk(xyz,i,j,k,bnum,ee) \
+        xi = dom%GlobCoord(xyz,dom%Idom_(i,j,k,bnum,ee)) - dom%bpp(xyz); \
+        alpha(xyz) = dom%alphamax*(1. - xi/dom%L(xyz)); \
+        kappa(xyz) = dom%kappa_0 + dom%kappa_1 * xi/dom%L(xyz); \
+        d0 = -1.*(dom%n(xyz)+1)*dom%champs0%Veloc(dom%Idom_(i,j,k,bnum,ee),2)*log(dom%r_c)/(2*dom%L(xyz)); \
+        dxi = dom%c(xyz)*d0*(xi/dom%L(xyz))**dom%n(xyz); \
+        beta(xyz) = alpha(xyz) + dxi / kappa(xyz);
 
 module dom_solidpml
     use constants
@@ -92,12 +92,12 @@ contains
         ! CPML parameters initialisation: for the very first implementation, parameters are hard-coded.
         ! TODO : read parameters (kappa_* ?) from input.spec ?
 
-        dom%c_x = 1.; dom%c_y = 1.; dom%c_z = 1.;
-        dom%n_x = 2;  dom%n_y = 2;  dom%n_z = 2;
+        dom%c = 1.
+        dom%n = 2
         dom%r_c = 0.001
         dom%kappa_0 = 1; dom%kappa_1 = 0;
-        dom%L_x = -1.; dom%L_y = -1.; dom%L_z = -1.;
-        dom%bpp_x = -1.; dom%bpp_y = -1.; dom%bpp_z = -1.;
+        dom%L = -1.
+        dom%bpp = -1.
         dom%alphamax = 0.
     end subroutine allocate_dom_solidpml
 
@@ -287,16 +287,18 @@ contains
         real Whei
         !
         integer :: bnum, ee
-        real(fpp) :: xi, dxi, d0, alphax, betax, kappax ! solidcpml_abk_x
+        real(fpp) :: xi, dxi, d0, alpha(0:2), beta(0:2), kappa(0:2) ! solidcpml_abk
         real(fpp) :: ab2
 
         bnum = specel%lnum/VCHUNK
         ee = mod(specel%lnum,VCHUNK)
 
         do k=0,dom%ngll-1
+            solidcpml_abk(2,i,j,k,bnum,ee)
             do j=0,dom%ngll-1
+                solidcpml_abk(1,i,j,k,bnum,ee)
                 do i=0,dom%ngll-1
-                    solidcpml_abk_x(i,j,k,bnum,ee)
+                    solidcpml_abk(0,i,j,k,bnum,ee)
                     ! Delta term from L : (12a) or (14a) from Ref1
 
                     ab2 = 1. ! TODO : compute ab2 !...
@@ -380,12 +382,12 @@ contains
 
         ! Save PML length and position known from mesher information
 
-        Tdomain%spmldom%L_x = mat%pml_width(0)
-        Tdomain%spmldom%L_y = mat%pml_width(1)
-        Tdomain%spmldom%L_z = mat%pml_width(2)
-        Tdomain%spmldom%bpp_x = mat%pml_pos(0)
-        Tdomain%spmldom%bpp_y = mat%pml_pos(1)
-        Tdomain%spmldom%bpp_z = mat%pml_pos(2)
+        Tdomain%spmldom%L(0) = mat%pml_width(0)
+        Tdomain%spmldom%L(1) = mat%pml_width(1)
+        Tdomain%spmldom%L(2) = mat%pml_width(2)
+        Tdomain%spmldom%bpp(0) = mat%pml_pos(0)
+        Tdomain%spmldom%bpp(1) = mat%pml_pos(1)
+        Tdomain%spmldom%bpp(2) = mat%pml_pos(2)
 
         ! Copy of node global coords : mandatory to compute distances in the PML
 

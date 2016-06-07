@@ -73,12 +73,12 @@ module champs_solidpml
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_R3 ! Convolutional term R3 (19c) from Ref1
 
         ! CPML parameters
-        real(fpp) :: c_x, c_y, c_z
-        integer   :: n_x, n_y, n_z
+        real(fpp) :: c(0:2)
+        integer   :: n(0:2)
         real(fpp) :: r_c
         integer   :: kappa_0, kappa_1
-        real(fpp) :: L_x, L_y, L_z
-        real(fpp) :: bpp_x, bpp_y, bpp_z ! bpp : begin PML position
+        real(fpp) :: L(0:2)
+        real(fpp) :: bpp(0:2) ! bpp : begin PML position
         real(fpp) :: alphamax
 
     end type domain_solidpml
