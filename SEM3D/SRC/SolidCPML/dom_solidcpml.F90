@@ -11,6 +11,13 @@
 !!       Rene Matzen
 !!       International Journal For Numerical Methods In Engineering, 2011, 88, 951-973
 
+! alphax: (76) from Ref1
+#define solidcpml_abk_x(i,j,k,bnum,ee) \
+        xi = dom%GlobCoord(0,dom%Idom_(i,j,k,bnum,ee)); \
+        alphax = alphamax*(1. - abs(xi - bpp_x)/L_x); \
+        betax = 0.; \
+        kappax = 0.;
+
 module dom_solidpml
     use constants
     use sdomain
@@ -19,11 +26,13 @@ module dom_solidpml
 #include "index.h"
 
     !! CPML parameters: for the very first implementation, parameters are hard-coded. TODO : read parameters (kappa_* ?) from input.spec ?
-    real(fpp), private, parameter :: c_x = 1., c_y = 1., c_z = 1.
-    integer,   private, parameter :: n_x = 2,  n_y = 2,  n_z = 2
-    real(fpp), private, parameter :: r_c = 0.001
-    integer,   private, parameter :: kappa_0 = 1, kappa_1 = 0
-    real(fpp), private, parameter :: L_x = -1., L_y = -1., L_z = -1.
+    real(fpp), private, parameter   :: c_x = 1., c_y = 1., c_z = 1.
+    integer,   private, parameter   :: n_x = 2,  n_y = 2,  n_z = 2
+    real(fpp), private, parameter   :: r_c = 0.001
+    integer,   private, parameter   :: kappa_0 = 1, kappa_1 = 0
+    real(fpp), private              :: L_x = -1., L_y = -1., L_z = -1.
+    real(fpp), private              :: bpp_x = -1., bpp_y = -1., bpp_z = -1. ! bpp : begin PML position
+    real(fpp), private              :: alphamax = 0.
 
 contains
 
@@ -58,6 +67,8 @@ contains
 
             allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
             dom%m_Idom = 0
+
+            allocate(dom%GlobCoord(0:2,Tdomain%n_glob_points-1))
 
             allocate(dom%R1_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
             allocate(dom%R2_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
@@ -96,6 +107,8 @@ contains
         if(allocated(dom%m_InvGrad)) deallocate(dom%m_InvGrad)
 
         if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
+
+        if(allocated(dom%GlobCoord)) deallocate(dom%GlobCoord)
 
         if(allocated(dom%m_R1)) deallocate(dom%m_R1)
         if(allocated(dom%m_R2)) deallocate(dom%m_R2)
@@ -269,17 +282,23 @@ contains
         real Whei
         !
         integer :: bnum, ee
+        real(fpp) :: xi, alphax, betax, kappax ! solidcpml_abk_x
         real(fpp) :: ab2
 
         bnum = specel%lnum/VCHUNK
         ee = mod(specel%lnum,VCHUNK)
 
-        ! Delta term from L : (12a) or (14a) from Ref1
+        do k=0,dom%ngll-1
+            do j=0,dom%ngll-1
+                do i=0,dom%ngll-1
+                    solidcpml_abk_x(i,j,k,bnum,ee)
+                    ! Delta term from L : (12a) or (14a) from Ref1
 
-        ab2 = 1. ! TODO : compute ab2 !...
-        dom%MassMat(ind) = dom%MassMat(ind) + ab2*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)*Whei
-
-        ! TODO: compute dom%MassMat
+                    ab2 = 1. ! TODO : compute ab2 !...
+                    dom%MassMat(ind) = dom%MassMat(ind) + ab2*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)*Whei
+                end do
+            end do
+        end do
     end subroutine init_local_mass_solidpml
 
     subroutine pred_sol_pml(dom, dt, champs1, bnum)
@@ -351,7 +370,38 @@ contains
         type (element), intent(inout) :: specel
         type (subdomain), intent(in) :: mat
         !
-        ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
+        real(fpp) :: fmax
+        integer :: nsrc
+
+        ! Save PML length and position known from mesher information
+
+        L_x = mat%pml_width(0)
+        L_y = mat%pml_width(1)
+        L_z = mat%pml_width(2)
+        bpp_x = mat%pml_pos(0)
+        bpp_y = mat%pml_pos(1)
+        bpp_z = mat%pml_pos(2)
+
+        ! Copy of node global coords : mandatory to compute distances in the PML
+
+        Tdomain%spmldom%GlobCoord(:,:) = Tdomain%GlobCoord(:,:) ! Copy data from Tdomain
+
+        ! Compute alphamax (from fmax)
+
+        ! TODO : compute max of all fmax of all procs: need to speak about that with Ludovic: where ? how ?
+        ! My understanding is that all procs process different elements (PML or not), so all procs are NOT
+        ! here (in init_solidpml_properties) at the same time : broadcast fmax of each proc to all procs and get
+        ! the max could NOT work ?!... Right ? Wrong ? Don't know !...
+        if (Tdomain%nb_procs /= 1) stop "ERROR : SolidCPML is limited to monoproc for now"
+
+        fmax = -1.
+        do nsrc = 0, Tdomain%n_source -1
+            if (fmax < Tdomain%sSource(nsrc)%cutoff_freq) then
+                fmax = Tdomain%sSource(nsrc)%cutoff_freq
+            end if
+        end do
+        if (fmax < 0.) stop "SolidCPML : fmax < 0."
+        alphamax = M_PI * fmax
     end subroutine init_solidpml_properties
 
     subroutine finalize_solidpml_properties(dom)

@@ -56,6 +56,12 @@ module champs_solidpml
         ! Index of a gll node within the physical domain
         integer, dimension (:,:,:,:,:), allocatable :: m_Idom ! Idom copied from element
 
+        ! Copy of node global coords : mandatory to compute distances in the PML
+        ! TODO : replace copy by handle (pointer) on Tdomain%GlobCoord ?
+        !        pointer on allocatable seems to be a (huge) mess in Fortran : giving up !...
+        !        a copy of node coord should work for a very first version.
+        real(fpp), allocatable :: GlobCoord(:,:)
+
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
         ! Champs
