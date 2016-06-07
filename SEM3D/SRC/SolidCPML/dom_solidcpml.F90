@@ -14,7 +14,7 @@
 ! alphax: (76) from Ref1
 #define solidcpml_abk_x(i,j,k,bnum,ee) \
         xi = dom%GlobCoord(0,dom%Idom_(i,j,k,bnum,ee)); \
-        alphax = alphamax*(1. - abs(xi - bpp_x)/L_x); \
+        alphax = dom%alphamax*(1. - abs(xi - dom%bpp_x)/dom%L_x); \
         betax = 0.; \
         kappax = 0.;
 
@@ -24,15 +24,6 @@ module dom_solidpml
     use champs_solidpml
     implicit none
 #include "index.h"
-
-    !! CPML parameters: for the very first implementation, parameters are hard-coded. TODO : read parameters (kappa_* ?) from input.spec ?
-    real(fpp), private, parameter   :: c_x = 1., c_y = 1., c_z = 1.
-    integer,   private, parameter   :: n_x = 2,  n_y = 2,  n_z = 2
-    real(fpp), private, parameter   :: r_c = 0.001
-    integer,   private, parameter   :: kappa_0 = 1, kappa_1 = 0
-    real(fpp), private              :: L_x = -1., L_y = -1., L_z = -1.
-    real(fpp), private              :: bpp_x = -1., bpp_y = -1., bpp_z = -1. ! bpp : begin PML position
-    real(fpp), private              :: alphamax = 0.
 
 contains
 
@@ -94,6 +85,17 @@ contains
             dom%MassMat = 0d0
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - solid cpml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
+
+        ! CPML parameters initialisation: for the very first implementation, parameters are hard-coded.
+        ! TODO : read parameters (kappa_* ?) from input.spec ?
+
+        dom%c_x = 1.; dom%c_y = 1.; dom%c_z = 1.;
+        dom%n_x = 2;  dom%n_y = 2;  dom%n_z = 2;
+        dom%r_c = 0.001
+        dom%kappa_0 = 1; dom%kappa_1 = 0;
+        dom%L_x = -1.; dom%L_y = -1.; dom%L_z = -1.;
+        dom%bpp_x = -1.; dom%bpp_y = -1.; dom%bpp_z = -1.;
+        dom%alphamax = 0.
     end subroutine allocate_dom_solidpml
 
     subroutine deallocate_dom_solidpml (dom)
@@ -375,12 +377,12 @@ contains
 
         ! Save PML length and position known from mesher information
 
-        L_x = mat%pml_width(0)
-        L_y = mat%pml_width(1)
-        L_z = mat%pml_width(2)
-        bpp_x = mat%pml_pos(0)
-        bpp_y = mat%pml_pos(1)
-        bpp_z = mat%pml_pos(2)
+        Tdomain%spmldom%L_x = mat%pml_width(0)
+        Tdomain%spmldom%L_y = mat%pml_width(1)
+        Tdomain%spmldom%L_z = mat%pml_width(2)
+        Tdomain%spmldom%bpp_x = mat%pml_pos(0)
+        Tdomain%spmldom%bpp_y = mat%pml_pos(1)
+        Tdomain%spmldom%bpp_z = mat%pml_pos(2)
 
         ! Copy of node global coords : mandatory to compute distances in the PML
 
@@ -401,7 +403,7 @@ contains
             end if
         end do
         if (fmax < 0.) stop "SolidCPML : fmax < 0."
-        alphamax = M_PI * fmax
+        Tdomain%spmldom%alphamax = M_PI * fmax
     end subroutine init_solidpml_properties
 
     subroutine finalize_solidpml_properties(dom)
