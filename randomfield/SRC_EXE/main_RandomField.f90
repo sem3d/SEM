@@ -26,7 +26,7 @@ program main_RandomField
     integer :: code, i
 
     !INPUT VARIABLES
-    type(IPT_RF)  :: IPT_Temp !Only for sake ok practicity
+    type(IPT_RF)  :: IPT_Temp !Only for sake of practicity
     type(IPT_RF)  :: IPT !The one that shoud be initialized when calling from an external program
 
     !call MPI_INIT(code)
@@ -107,6 +107,9 @@ program main_RandomField
         path = adjustL(path)
         !call wLog("        file: "//trim(path))
         call read_generation_input(path, IPT_Temp)
+
+        !Estimating ideal number of fields
+        call estimate_nFields(IPT_Temp)
 
         !Validating Inputs----------------------------------------------
         if(IPT_Temp%rang == 0) write(*,*)  "     -> Validating Input (IPT_Temp)"
@@ -299,14 +302,17 @@ program main_RandomField
             if(IPT_Temp%rang == 0) write(*,*) "IFDEF MAKELOG DEFINED"
 
             log_folder_name     = trim(adjustL(results_folder_name))//"/log"
-            if(IPT_Temp%sameFolder) log_folder_name     = ".."
-
-            call create_folder(log_folder_name, results_path, IPT_Temp%rang, comm)
+            if(IPT_Temp%sameFolder) then
+                log_folder_name     = "."
+                logFilePath = trim(string_join_many("./",log_filename))
+            else
+                call create_folder(log_folder_name, results_path, IPT_Temp%rang, comm)
+                logFilePath = trim(adjustL(&
+                                  string_join_many(results_path,"/",log_folder_name,"/",log_filename)))
+            end if
 
             !Initializing logFiles
             if(IPT_Temp%rang == 0) write(*,*)  "-> Initialize logFiles"
-            logFilePath = trim(adjustL(&
-                              string_join_many(results_path,"/",log_folder_name,"/",log_filename)))
             if(IPT_Temp%rang == 0) write(*,*)  " logFilePath = ", trim(adjustL(logFilePath)), "<RANK>"
             call init_log_file(trim(adjustL(logFilePath)), IPT_Temp%rang, IPT_Temp%log_ID, IPT_Temp%nb_procs)
 #else
