@@ -79,7 +79,7 @@ contains
 
             do propId = 0, nProp - 1
             !do propId = 0, 0 !FOR TESTS
-                Tdomain%sSubDomain(mat)%propFilePath(propId) = string_join_many("./mat/h5/",propName(propId), "_Mat_", numb2String(assocMat),".h5")
+                Tdomain%sSubDomain(mat)%propFilePath(propId) = string_join_many("./mat/h5/", "Mat_", numb2String(assocMat),"_",propName(propId),".h5")
 !                if(.not. is_rand(Tdomain%sSubdomain(mat))) cycle
 !
 !                if(rg == 0) write(*,*) "  Material ", mat, "is Random"
