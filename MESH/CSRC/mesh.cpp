@@ -433,7 +433,8 @@ void Mesh3D::save_bbox()
     fbbox = fopen("domains.txt", "w");
     map<int,AABB>::const_iterator bbox;
     for(bbox=m_bbox.begin();bbox!=m_bbox.end();++bbox) {
-        fprintf(fbbox, "%3d %8.3g %8.3g %8.3g %8.3g %8.3g %8.3g\n", bbox->first,
+        //fprintf(fbbox, "%3d %8.3g %8.3g %8.3g %8.3g %8.3g %8.3g\n", bbox->first,
+        fprintf(fbbox, "%3d %15.6f %15.6f %15.6f %15.6f %15.6f %15.6f\n", bbox->first,
                 bbox->second.min[0],
                 bbox->second.min[1],
                 bbox->second.min[2],
