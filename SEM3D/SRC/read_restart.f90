@@ -175,6 +175,192 @@ subroutine read_Stress(Tdomain, elem_id)
     deallocate(stress)
 end subroutine read_Stress
 
+subroutine read_stress_nl(Tdomain,elem_id)
+
+    use sdomain
+    use HDF5
+    use sem_hdf5, only : read_dset_1d_real
+    implicit none
+    type (domain), intent (INOUT):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+    double precision, allocatable, dimension(:) :: stress
+    integer :: idx, ngllx, nglly, ngllz
+    integer :: n, i, j, k
+
+    call read_dset_1d_real(elem_id, "Stress_nl", stress)
+    idx = 1
+    do n = 0,Tdomain%n_elem-1
+        if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngllx = Tdomain%specel(n)%ngllx
+        nglly = Tdomain%specel(n)%nglly
+        ngllz = Tdomain%specel(n)%ngllz
+
+        do k = 0,ngllz-1
+            do j = 0,nglly-1
+                do i = 0,ngllx-1
+                    Tdomain%specel(n)%sl%stress(0,i,j,k)=stress(idx+0)
+                    Tdomain%specel(n)%sl%stress(1,i,j,k)=stress(idx+1)  
+                    Tdomain%specel(n)%sl%stress(2,i,j,k)=stress(idx+2)
+                    idx = idx + 3
+                    Tdomain%specel(n)%sl%stress(3,i,j,k)=stress(idx+0)
+                    Tdomain%specel(n)%sl%stress(4,i,j,k)=stress(idx+1)
+                    Tdomain%specel(n)%sl%stress(5,i,j,k)=stress(idx+2)
+                    idx = idx + 3
+                end do
+            end do
+        end do
+    end do
+    deallocate(stress)
+end subroutine read_stress_nl
+
+subroutine read_strain_nl(Tdomain,elem_id)
+    
+    use sdomain
+    use HDF5
+    use sem_hdf5, only : read_dset_1d_real
+    implicit none
+    type (domain), intent (INOUT):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+    double precision, allocatable, dimension(:) :: strain
+    integer :: idx, ngllx, nglly, ngllz
+    integer :: n, i, j, k
+
+    call read_dset_1d_real(elem_id, "Strain_nl", strain)
+    idx = 1
+    do n = 0,Tdomain%n_elem-1
+        if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngllx = Tdomain%specel(n)%ngllx
+        nglly = Tdomain%specel(n)%nglly
+        ngllz = Tdomain%specel(n)%ngllz
+
+        do k = 0,ngllz-1
+            do j = 0,nglly-1
+                do i = 0,ngllx-1
+                    Tdomain%specel(n)%sl%eps_ep(0,i,j,k)=strain(idx+0)
+                    Tdomain%specel(n)%sl%eps_ep(1,i,j,k)=strain(idx+1)  
+                    Tdomain%specel(n)%sl%eps_ep(2,i,j,k)=strain(idx+2)
+                    idx = idx + 3
+                    Tdomain%specel(n)%sl%eps_ep(3,i,j,k)=strain(idx+0)
+                    Tdomain%specel(n)%sl%eps_ep(4,i,j,k)=strain(idx+1)
+                    Tdomain%specel(n)%sl%eps_ep(5,i,j,k)=strain(idx+2)
+                    idx = idx + 3
+                end do
+            end do
+        end do
+    end do
+    deallocate(strain)
+
+end subroutine read_strain_nl
+
+subroutine read_pstrain_nl(Tdomain,elem_id)
+    
+    use sdomain
+    use HDF5
+    use sem_hdf5, only : read_dset_1d_real
+    implicit none
+    type (domain), intent (INOUT):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+    double precision, allocatable, dimension(:) :: strain
+    integer :: idx, ngllx, nglly, ngllz
+    integer :: n, i, j, k
+
+    call read_dset_1d_real(elem_id, "PStrain_nl", strain)
+    idx = 1
+    do n = 0,Tdomain%n_elem-1
+        if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngllx = Tdomain%specel(n)%ngllx
+        nglly = Tdomain%specel(n)%nglly
+        ngllz = Tdomain%specel(n)%ngllz
+
+        do k = 0,ngllz-1
+            do j = 0,nglly-1
+                do i = 0,ngllx-1
+                    Tdomain%specel(n)%sl%eps_pl(0,i,j,k)=strain(idx+0)
+                    Tdomain%specel(n)%sl%eps_pl(1,i,j,k)=strain(idx+1)  
+                    Tdomain%specel(n)%sl%eps_pl(2,i,j,k)=strain(idx+2)
+                    idx = idx + 3
+                    Tdomain%specel(n)%sl%eps_pl(3,i,j,k)=strain(idx+0)
+                    Tdomain%specel(n)%sl%eps_pl(4,i,j,k)=strain(idx+1)
+                    Tdomain%specel(n)%sl%eps_pl(5,i,j,k)=strain(idx+2)
+                    idx = idx + 3
+                end do
+            end do
+        end do
+    end do
+    deallocate(strain)
+
+end subroutine read_pstrain_nl
+
+subroutine read_center_nl(Tdomain,elem_id)
+
+    use sdomain
+    use HDF5
+    use sem_hdf5, only : read_dset_1d_real
+    implicit none
+    type (domain), intent (INOUT):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+    double precision, allocatable, dimension(:) :: stress
+    integer :: idx, ngllx, nglly, ngllz
+    integer :: n, i, j, k
+
+    call read_dset_1d_real(elem_id, "BStress_nl", stress)
+    idx = 1
+    do n = 0,Tdomain%n_elem-1
+        if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngllx = Tdomain%specel(n)%ngllx
+        nglly = Tdomain%specel(n)%nglly
+        ngllz = Tdomain%specel(n)%ngllz
+
+        do k = 0,ngllz-1
+            do j = 0,nglly-1
+                do i = 0,ngllx-1
+                    Tdomain%specel(n)%sl%center(0,i,j,k)=stress(idx+0)
+                    Tdomain%specel(n)%sl%center(1,i,j,k)=stress(idx+1)  
+                    Tdomain%specel(n)%sl%center(2,i,j,k)=stress(idx+2)
+                    idx = idx + 3
+                    Tdomain%specel(n)%sl%center(3,i,j,k)=stress(idx+0)
+                    Tdomain%specel(n)%sl%center(4,i,j,k)=stress(idx+1)
+                    Tdomain%specel(n)%sl%center(5,i,j,k)=stress(idx+2)
+                    idx = idx + 3
+                end do
+            end do
+        end do
+    end do
+    deallocate(stress)
+end subroutine read_center_nl
+
+subroutine read_radius_nl(Tdomain,elem_id)
+
+    use sdomain
+    use HDF5
+    use sem_hdf5, only : read_dset_1d_real
+    implicit none
+    type (domain), intent (INOUT):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+    double precision, allocatable, dimension(:) :: radius
+    integer :: idx, ngllx, nglly, ngllz
+    integer :: n, i, j, k
+
+    call read_dset_1d_real(elem_id, "Radius_nl", radius)
+    idx = 1
+    do n = 0,Tdomain%n_elem-1
+        if (Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngllx = Tdomain%specel(n)%ngllx
+        nglly = Tdomain%specel(n)%nglly
+        ngllz = Tdomain%specel(n)%ngllz
+
+        do k = 0,ngllz-1
+            do j = 0,nglly-1
+                do i = 0,ngllx-1
+                    Tdomain%specel(n)%sl%radius(i,j,k)=radius(idx+0)
+                    idx = idx + 1
+                end do
+            end do
+        end do
+    end do
+    deallocate(radius)
+end subroutine read_radius_nl
+
 subroutine read_Veloc_Fluid_PML(Tdomain, elem_id)
     use sdomain
     use HDF5
@@ -272,6 +458,12 @@ subroutine read_restart (Tdomain,rg, isort)
     call read_EpsilonVol(Tdomain, elem_id)
     call read_EpsilonDev(Tdomain, elem_id)
     call read_Stress(Tdomain, elem_id)
+    call read_stress_nl(Tdomain, elem_id)
+    call read_strain_nl(Tdomain, elem_id)
+    call read_pstrain_nl(Tdomain, elem_id)
+    call read_center_nl(Tdomain, elem_id)
+    call read_radius_nl(Tdomain, elem_id)
+    
     call read_Veloc_Fluid_PML(Tdomain, elem_id)
     call h5gclose_f(elem_id, hdferr)
     call h5fclose_f(fid, hdferr)
