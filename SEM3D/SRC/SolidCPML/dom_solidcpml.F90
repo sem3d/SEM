@@ -12,12 +12,11 @@
 !!       International Journal For Numerical Methods In Engineering, 2011, 88, 951-973
 
 ! alpha*: (76) from Ref1, kappa*: (77) from Ref1, beta*: (11) from Ref1, dxi: (74) from Ref1, d0: (75) from Ref1
-! Note: for d0, c_p^max is estimated by V_z at the Gauss point (i, j, k)
 #define solidcpml_abk(xyz,i,j,k,bnum,ee) \
         xi = abs(dom%GlobCoord(xyz,dom%Idom_(i,j,k,bnum,ee)) - dom%bpp(xyz)); \
         alpha(xyz) = dom%alphamax*(1. - xi/dom%L(xyz)); \
         kappa(xyz) = dom%kappa_0 + dom%kappa_1 * xi/dom%L(xyz); \
-        d0 = -1.*(dom%n(xyz)+1)*dom%champs0%Veloc(dom%Idom_(i,j,k,bnum,ee),2)*log(dom%r_c)/(2*dom%L(xyz)); \
+        d0 = -1.*(dom%n(xyz)+1)*dom%Pspeed*log(dom%r_c)/(2*dom%L(xyz)); \
         dxi = dom%c(xyz)*d0*(xi/dom%L(xyz))**dom%n(xyz); \
         beta(xyz) = alpha(xyz) + dxi / kappa(xyz);
 
@@ -99,6 +98,7 @@ contains
         dom%L = -1.
         dom%bpp = -1.
         dom%alphamax = 0.
+        dom%Pspeed = 0.
     end subroutine allocate_dom_solidpml
 
     subroutine deallocate_dom_solidpml (dom)
@@ -392,6 +392,10 @@ contains
         ! Copy of node global coords : mandatory to compute distances in the PML
 
         Tdomain%spmldom%GlobCoord(:,:) = Tdomain%GlobCoord(:,:) ! Copy data from Tdomain
+
+        ! Save Pspeed
+
+        Tdomain%spmldom%Pspeed = mat%Pspeed
 
         ! Compute alphamax (from fmax)
 

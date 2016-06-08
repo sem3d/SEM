@@ -80,6 +80,7 @@ module champs_solidpml
         real(fpp) :: L(0:2)
         real(fpp) :: bpp(0:2) ! bpp : begin PML position
         real(fpp) :: alphamax
+        real(fpp) :: Pspeed
 
     end type domain_solidpml
 
