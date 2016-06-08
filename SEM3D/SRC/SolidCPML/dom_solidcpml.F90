@@ -288,7 +288,7 @@ contains
         !
         integer :: bnum, ee
         real(fpp) :: xi, dxi, d0, alpha(0:2), beta(0:2), kappa(0:2) ! solidcpml_abk
-        real(fpp) :: ab2
+        real(fpp) :: a0b
 
         bnum = specel%lnum/VCHUNK
         ee = mod(specel%lnum,VCHUNK)
@@ -299,10 +299,10 @@ contains
                 solidcpml_abk(1,i,j,k,bnum,ee)
                 do i=0,dom%ngll-1
                     solidcpml_abk(0,i,j,k,bnum,ee)
-                    ! Delta term from L : (12a) or (14a) from Ref1
 
-                    ab2 = 1. ! TODO : compute ab2 !...
-                    dom%MassMat(ind) = dom%MassMat(ind) + ab2*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)*Whei
+                    ! Delta 2d derivative term from L : (12a) or (14a) from Ref1
+                    a0b = kappa(0)*kappa(1)*kappa(2)
+                    dom%MassMat(ind) = dom%MassMat(ind) + dom%Density_(i,j,k,bnum,ee)*a0b*dom%Jacob_(i,j,k,bnum,ee)*Whei
                 end do
             end do
         end do
