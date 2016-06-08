@@ -14,7 +14,7 @@
 ! alpha*: (76) from Ref1, kappa*: (77) from Ref1, beta*: (11) from Ref1, dxi: (74) from Ref1, d0: (75) from Ref1
 ! Note: for d0, c_p^max is estimated by V_z at the Gauss point (i, j, k)
 #define solidcpml_abk(xyz,i,j,k,bnum,ee) \
-        xi = dom%GlobCoord(xyz,dom%Idom_(i,j,k,bnum,ee)) - dom%bpp(xyz); \
+        xi = abs(dom%GlobCoord(xyz,dom%Idom_(i,j,k,bnum,ee)) - dom%bpp(xyz)); \
         alpha(xyz) = dom%alphamax*(1. - xi/dom%L(xyz)); \
         kappa(xyz) = dom%kappa_0 + dom%kappa_1 * xi/dom%L(xyz); \
         d0 = -1.*(dom%n(xyz)+1)*dom%champs0%Veloc(dom%Idom_(i,j,k,bnum,ee),2)*log(dom%r_c)/(2*dom%L(xyz)); \
