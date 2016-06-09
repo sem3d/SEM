@@ -39,8 +39,8 @@ module champs_solidpml
         real(fpp), dimension (:,:), allocatable :: hprime
         real(fpp), dimension (:,:), allocatable :: hTprime
 
-        ! MassMat pour elements solide, fluide, solide pml et fluide pml
-        real(fpp), dimension(:), allocatable :: MassMat
+        ! Masse pour elements solide cpml
+        real(fpp), dimension(:), allocatable :: MassMat ! Delta 2d  derivative term in (12a) from Ref1
 
         ! PML is "like" an anisotropic material : do not use Lambda/Mu but use Cij
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_Density
