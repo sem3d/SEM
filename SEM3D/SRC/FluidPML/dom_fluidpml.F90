@@ -473,7 +473,8 @@ contains
         deallocate(Vp)
     end subroutine init_fluidpml_properties
 
-    subroutine finalize_fluidpml_properties(dom)
+    subroutine finalize_fluidpml_properties(Tdomain,dom)
+      type (domain), intent (INOUT), target :: Tdomain
       type (domain_fluidpml), intent (INOUT), target :: dom
       !
       call define_PML_DumpEnd(dom%nglltot, dom%MassMat, dom%DumpMass, dom%champs0%fpml_DumpV)

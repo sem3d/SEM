@@ -572,7 +572,8 @@ contains
         deallocate(Vp)
     end subroutine init_solidpml_properties
 
-    subroutine finalize_solidpml_properties(dom)
+    subroutine finalize_solidpml_properties(Tdomain,dom)
+      type (domain), intent (INOUT), target :: Tdomain
       type (domain_solidpml), intent (INOUT), target :: dom
       !
       call define_PML_DumpEnd(dom%nglltot, dom%MassMat, dom%DumpMass, dom%champs0%DumpV)

@@ -409,8 +409,6 @@ contains
         type (element), intent(inout) :: specel
         type (subdomain), intent(in) :: mat
         !
-        real(fpp) :: fmax
-        integer :: nsrc
 
         ! Save PML length and position known from mesher information
 
@@ -421,13 +419,21 @@ contains
         Tdomain%spmldom%bpp(1) = mat%pml_pos(1)
         Tdomain%spmldom%bpp(2) = mat%pml_pos(2)
 
-        ! Copy of node global coords : mandatory to compute distances in the PML
-
-        Tdomain%spmldom%GlobCoord(:,:) = Tdomain%GlobCoord(:,:) ! Copy data from Tdomain
-
         ! Save Pspeed
 
         Tdomain%spmldom%Pspeed = mat%Pspeed
+    end subroutine init_solidpml_properties
+
+    subroutine finalize_solidpml_properties(Tdomain, dom)
+        type (domain), intent (INOUT), target :: Tdomain
+        type (domain_solidpml), intent (INOUT), target :: dom
+        !
+        real(fpp) :: fmax
+        integer :: nsrc
+
+        ! Copy of node global coords : mandatory to compute distances in the PML (solidcpml_abk)
+
+        dom%GlobCoord(:,:) = Tdomain%GlobCoord(:,:) ! Copy data from Tdomain
 
         ! Compute alphamax (from fmax)
 
@@ -444,13 +450,7 @@ contains
             end if
         end do
         if (fmax < 0.) stop "SolidCPML : fmax < 0."
-        Tdomain%spmldom%alphamax = M_PI * fmax
-    end subroutine init_solidpml_properties
-
-    subroutine finalize_solidpml_properties(dom)
-        type (domain_solidpml), intent (INOUT), target :: dom
-        !
-        ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
+        dom%alphamax = M_PI * fmax
     end subroutine finalize_solidpml_properties
 
     subroutine update_convolution_terms(dom)
