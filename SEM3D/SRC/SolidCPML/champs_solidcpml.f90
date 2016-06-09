@@ -70,9 +70,9 @@ module champs_solidpml
         type(champssolidpml) :: champs0
         type(champssolidpml) :: champs1
         real(fpp), dimension(:,:), allocatable :: Forces
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_R1 ! Convolutional term R1 (19a) from Ref1
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_R2 ! Convolutional term R2 (19b) from Ref1
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_R3 ! Convolutional term R3 (19c) from Ref1
+        real(fpp), dimension(:,:), allocatable :: R1 ! Convolutional term R1 (19a) from Ref1
+        real(fpp), dimension(:,:), allocatable :: R2 ! Convolutional term R2 (19b) from Ref1
+        real(fpp), dimension(:,:), allocatable :: R3 ! Convolutional term R3 (19c) from Ref1
 
         ! CPML parameters
         real(fpp) :: c(0:2)

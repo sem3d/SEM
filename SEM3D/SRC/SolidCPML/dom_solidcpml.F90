@@ -68,10 +68,6 @@ contains
             dom%m_Idom = 0
 
             allocate(dom%GlobCoord(0:2,Tdomain%n_glob_points-1))
-
-            allocate(dom%R1_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
-            allocate(dom%R2_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
-            allocate(dom%R3_(0:ngll-1,0:ngll-1,0:ngll-1,0:2,0:nblocks-1,0:VCHUNK-1))
         end if
 
         ! Allocation et initialisation de champs0 pour les PML solides
@@ -85,6 +81,7 @@ contains
             dom%champs1%Depla  = 0d0
             dom%champs1%Veloc  = 0d0
 
+            ! Allocation de Forces pour les PML solides
             allocate(dom%Forces(0:dom%nglltot-1,0:2))
             dom%Forces = 0d0
 
@@ -99,6 +96,11 @@ contains
             ! Allocation de MasUMat pour les PML solides
             allocate(dom%MasUMat(0:dom%nglltot-1))
             dom%MasUMat = 0d0
+
+            ! Allocation des Ri pour les PML solides
+            allocate(dom%R1(0:dom%nglltot-1,0:2))
+            allocate(dom%R2(0:dom%nglltot-1,0:2))
+            allocate(dom%R3(0:dom%nglltot-1,0:2))
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - solid cpml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
 
@@ -129,10 +131,6 @@ contains
 
         if(allocated(dom%GlobCoord)) deallocate(dom%GlobCoord)
 
-        if(allocated(dom%m_R1)) deallocate(dom%m_R1)
-        if(allocated(dom%m_R2)) deallocate(dom%m_R2)
-        if(allocated(dom%m_R3)) deallocate(dom%m_R3)
-
         if(allocated(dom%gllc))    deallocate(dom%gllc)
         if(allocated(dom%gllw))    deallocate(dom%gllw)
         if(allocated(dom%hprime))  deallocate(dom%hprime)
@@ -147,6 +145,10 @@ contains
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
         if(allocated(dom%DumpMat)) deallocate(dom%DumpMat)
         if(allocated(dom%MasUMat)) deallocate(dom%MasUMat)
+
+        if(allocated(dom%R1)) deallocate(dom%R1)
+        if(allocated(dom%R2)) deallocate(dom%R2)
+        if(allocated(dom%R3)) deallocate(dom%R3)
     end subroutine deallocate_dom_solidpml
 
     subroutine get_solidpml_dom_var(dom, lnum, out_variables, &
