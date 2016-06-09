@@ -20,6 +20,9 @@
         dxi = dom%c(xyz)*d0*(xi/dom%L(xyz))**dom%n(xyz); \
         beta(xyz) = alpha(xyz) + dxi / kappa(xyz);
 
+#define solidcpml_gamma_ab(g,a_name,a_index,b_name,b_index) \
+        g = a_name(a_index) - b_name(b_index);
+
 module dom_solidpml
     use constants
     use sdomain
@@ -85,6 +88,10 @@ contains
             ! Allocation de MassMat pour les PML solides
             allocate(dom%MassMat(0:dom%nglltot-1))
             dom%MassMat = 0d0
+
+            ! Allocation de DumpMat pour les PML solides
+            allocate(dom%DumpMat(0:dom%nglltot-1))
+            dom%DumpMat = 0d0
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - solid cpml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
 
@@ -131,6 +138,7 @@ contains
 
         if(allocated(dom%Forces )) deallocate(dom%Forces )
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
+        if(allocated(dom%DumpMat)) deallocate(dom%DumpMat)
     end subroutine deallocate_dom_solidpml
 
     subroutine get_solidpml_dom_var(dom, lnum, out_variables, &
@@ -288,7 +296,8 @@ contains
         !
         integer :: bnum, ee
         real(fpp) :: xi, dxi, d0, alpha(0:2), beta(0:2), kappa(0:2) ! solidcpml_abk
-        real(fpp) :: a0b
+        real(fpp) :: g0, g1, g2 ! solidcpml_gamma_ab
+        real(fpp) :: a0b, a1b
 
         bnum = specel%lnum/VCHUNK
         ee = mod(specel%lnum,VCHUNK)
@@ -303,6 +312,13 @@ contains
                     ! Delta 2d derivative term from L : (12a) or (14a) from Ref1
                     a0b = kappa(0)*kappa(1)*kappa(2)
                     dom%MassMat(ind) = dom%MassMat(ind) + dom%Density_(i,j,k,bnum,ee)*a0b*dom%Jacob_(i,j,k,bnum,ee)*Whei
+
+                    ! Delta 1st derivative term from L : (12a) or (14a) from Ref1
+                    solidcpml_gamma_ab(g0,beta,0,alpha,0)
+                    solidcpml_gamma_ab(g1,beta,1,alpha,1)
+                    solidcpml_gamma_ab(g2,beta,2,alpha,2)
+                    a1b = a0b*(g0+g1+g2)
+                    dom%DumpMat(ind) = dom%DumpMat(ind) + dom%Density_(i,j,k,bnum,ee)*a1b*dom%Jacob_(i,j,k,bnum,ee)*Whei
                 end do
             end do
         end do
