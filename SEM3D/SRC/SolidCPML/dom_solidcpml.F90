@@ -96,9 +96,9 @@ contains
             allocate(dom%DumpMat(0:dom%nglltot-1))
             dom%DumpMat = 0d0
 
-            ! Allocation de KAddMat pour les PML solides
-            allocate(dom%KAddMat(0:dom%nglltot-1))
-            dom%KAddMat = 0d0
+            ! Allocation de MasUMat pour les PML solides
+            allocate(dom%MasUMat(0:dom%nglltot-1))
+            dom%MasUMat = 0d0
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - solid cpml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
 
@@ -146,7 +146,7 @@ contains
         if(allocated(dom%Forces )) deallocate(dom%Forces )
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
         if(allocated(dom%DumpMat)) deallocate(dom%DumpMat)
-        if(allocated(dom%KAddMat)) deallocate(dom%KAddMat)
+        if(allocated(dom%MasUMat)) deallocate(dom%MasUMat)
     end subroutine deallocate_dom_solidpml
 
     subroutine get_solidpml_dom_var(dom, lnum, out_variables, &
@@ -334,7 +334,7 @@ contains
                     solidcpml_gamma_abc(g212,beta,2,alpha,1,alpha,2)
                     solidcpml_gamma_abc(g002,beta,0,alpha,0,alpha,2)
                     a2b = a0b*(g0*g101+g1*g212+g2*g002)
-                    dom%KAddMat(ind) = dom%KAddMat(ind) + dom%Density_(i,j,k,bnum,ee)*a2b*dom%Jacob_(i,j,k,bnum,ee)*Whei
+                    dom%MasUMat(ind) = dom%MasUMat(ind) + dom%Density_(i,j,k,bnum,ee)*a2b*dom%Jacob_(i,j,k,bnum,ee)*Whei
                 end do
             end do
         end do
