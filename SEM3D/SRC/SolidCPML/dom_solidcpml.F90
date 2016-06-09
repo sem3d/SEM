@@ -410,7 +410,7 @@ contains
         type (subdomain), intent(in) :: mat
         !
 
-        ! Save PML length and position known from mesher information
+        ! Save PML length and position known from mesher information (for solidcpml_abk)
 
         Tdomain%spmldom%L(0) = mat%pml_width(0)
         Tdomain%spmldom%L(1) = mat%pml_width(1)
@@ -419,7 +419,7 @@ contains
         Tdomain%spmldom%bpp(1) = mat%pml_pos(1)
         Tdomain%spmldom%bpp(2) = mat%pml_pos(2)
 
-        ! Save Pspeed
+        ! Save Pspeed (for solidcpml_abk)
 
         Tdomain%spmldom%Pspeed = mat%Pspeed
     end subroutine init_solidpml_properties
