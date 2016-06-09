@@ -42,6 +42,7 @@ module champs_solidpml
         ! Masse pour elements solide cpml
         real(fpp), dimension(:), allocatable :: MassMat ! Delta 2d  derivative term in (12a) from Ref1
         real(fpp), dimension(:), allocatable :: DumpMat ! Delta 1st derivative term in (12a) from Ref1
+        real(fpp), dimension(:), allocatable :: KAddMat ! Delta                term in (12a) from Ref1 (additional stiffness from L*u)
 
         ! PML is "like" an anisotropic material : do not use Lambda/Mu but use Cij
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_Density

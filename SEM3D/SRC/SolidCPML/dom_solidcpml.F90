@@ -23,6 +23,9 @@
 #define solidcpml_gamma_ab(g,a_name,a_index,b_name,b_index) \
         g = a_name(a_index) - b_name(b_index);
 
+#define solidcpml_gamma_abc(g,a_name,a_index,b_name,b_index,c_name,c_index) \
+        g = a_name(a_index) - b_name(b_index) - c_name(c_index);
+
 module dom_solidpml
     use constants
     use sdomain
@@ -92,6 +95,10 @@ contains
             ! Allocation de DumpMat pour les PML solides
             allocate(dom%DumpMat(0:dom%nglltot-1))
             dom%DumpMat = 0d0
+
+            ! Allocation de KAddMat pour les PML solides
+            allocate(dom%KAddMat(0:dom%nglltot-1))
+            dom%KAddMat = 0d0
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - solid cpml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
 
@@ -139,6 +146,7 @@ contains
         if(allocated(dom%Forces )) deallocate(dom%Forces )
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
         if(allocated(dom%DumpMat)) deallocate(dom%DumpMat)
+        if(allocated(dom%KAddMat)) deallocate(dom%KAddMat)
     end subroutine deallocate_dom_solidpml
 
     subroutine get_solidpml_dom_var(dom, lnum, out_variables, &
@@ -297,7 +305,8 @@ contains
         integer :: bnum, ee
         real(fpp) :: xi, dxi, d0, alpha(0:2), beta(0:2), kappa(0:2) ! solidcpml_abk
         real(fpp) :: g0, g1, g2 ! solidcpml_gamma_ab
-        real(fpp) :: a0b, a1b
+        real(fpp) :: g101, g212, g002 ! solidcpml_gamma_abc
+        real(fpp) :: a0b, a1b, a2b
 
         bnum = specel%lnum/VCHUNK
         ee = mod(specel%lnum,VCHUNK)
@@ -319,6 +328,13 @@ contains
                     solidcpml_gamma_ab(g2,beta,2,alpha,2)
                     a1b = a0b*(g0+g1+g2)
                     dom%DumpMat(ind) = dom%DumpMat(ind) + dom%Density_(i,j,k,bnum,ee)*a1b*dom%Jacob_(i,j,k,bnum,ee)*Whei
+
+                    ! Delta term from L : (12a) or (14a) from Ref1
+                    solidcpml_gamma_abc(g101,beta,1,alpha,0,alpha,1)
+                    solidcpml_gamma_abc(g212,beta,2,alpha,1,alpha,2)
+                    solidcpml_gamma_abc(g002,beta,0,alpha,0,alpha,2)
+                    a2b = a0b*(g0*g101+g1*g212+g2*g002)
+                    dom%KAddMat(ind) = dom%KAddMat(ind) + dom%Density_(i,j,k,bnum,ee)*a2b*dom%Jacob_(i,j,k,bnum,ee)*Whei
                 end do
             end do
         end do
