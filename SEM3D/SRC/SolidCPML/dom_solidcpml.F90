@@ -81,6 +81,9 @@ contains
             dom%champs1%Depla  = 0d0
             dom%champs1%Veloc  = 0d0
 
+            allocate(dom%DeplaPrev(0:dom%nglltot-1,0:2))
+            dom%DeplaPrev = 0d0
+
             ! Allocation de Forces pour les PML solides
             allocate(dom%Forces(0:dom%nglltot-1,0:2))
             dom%Forces = 0d0
@@ -140,6 +143,8 @@ contains
         if(allocated(dom%champs0%Veloc )) deallocate(dom%champs0%Veloc )
         if(allocated(dom%champs1%Depla )) deallocate(dom%champs1%Depla )
         if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
+
+        if(allocated(dom%DeplaPrev)) deallocate(dom%DeplaPrev)
 
         if(allocated(dom%Forces )) deallocate(dom%Forces )
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
@@ -397,9 +402,9 @@ contains
                         e = bnum*VCHUNK+ee
                         if (e>=dom%nbelem) exit
                         idx = dom%Idom_(i,j,k,bnum,ee)
-                        dom%Forces(idx,0) = dom%Forces(idx,0)-Fox(ee,i,j,k)
-                        dom%Forces(idx,1) = dom%Forces(idx,1)-Foy(ee,i,j,k)
-                        dom%Forces(idx,2) = dom%Forces(idx,2)-Foz(ee,i,j,k)
+                        dom%Forces(idx,0) = dom%Forces(idx,0)+Fox(ee,i,j,k)
+                        dom%Forces(idx,1) = dom%Forces(idx,1)+Foy(ee,i,j,k)
+                        dom%Forces(idx,2) = dom%Forces(idx,2)+Foz(ee,i,j,k)
                     enddo
                 enddo
             enddo
@@ -464,9 +469,14 @@ contains
         type(domain_solidpml), intent (INOUT) :: dom
         type (domain), intent (INOUT) :: Tdomain
         !
-        dom%champs1%Depla = dom%champs0%Depla
-        dom%champs1%Veloc = dom%champs0%Veloc
+        ! Reset forces
         dom%Forces = 0d0
+        ! Save depla
+        dom%DeplaPrev = dom%champs0%Depla
+        ! The next iteration becomes the current one
+        dom%champs0%Depla = dom%champs1%Depla
+        dom%champs0%Veloc = dom%champs1%Veloc
+        ! Update convolution terms
         call update_convolution_terms(dom)
     end subroutine newmark_predictor_solidpml
 
@@ -475,18 +485,31 @@ contains
         double precision :: dt
         !
         integer :: i_dir, n, indpml
-        ! Update velocity in champs0 (Note: dom%MassMat = 1./dom%MassMat in define_arrays::inverse_mass_mat)
+        real(fpp) :: V(0:dom%nglltot-1), A(0:dom%nglltot-1) ! Velocity, Acceleration
+
+        ! Update champs1 velocity from champs0
         do i_dir = 0,2
-            dom%champs0%Veloc(:,i_dir) = dom%champs0%Veloc(:,i_dir) + &
-                                         dt * ( dom%Forces(:,i_dir) * dom%MassMat(:) ) ! dt * acceleration
+            ! Estimate V = V_n+3/2
+            V(:) = dom%champs0%Veloc(:,i_dir) ! V = V_n+1
+            V(:) = 0.5 * ( V(:) + (dom%champs0%Depla(:,i_dir)-dom%DeplaPrev(:,i_dir))/dt ) ! V is corrected with U_n+1/2 to estimate V_n+3/2
+
+            ! Compute acceleration
+            A(:) =   dom%R1(:,i_dir)     + dom%R2(:,i_dir)                           + dom%R3(:,i_dir)     &
+                   - dom%DumpMat(:)*V(:) - dom%MasUMat(:)*dom%champs0%Depla(:,i_dir) - dom%Forces(:,i_dir) ! (61a) from Ref1
+
+            ! Compute V_n+2
+            dom%champs1%Veloc(:,i_dir) = dom%champs0%Veloc(:,i_dir) + &
+                                         dt * dom%MassMat(:) * A(:) ! dom%MassMat = 1./dom%MassMat (define_arrays inverse_mass_mat)
         enddo
+
         ! Apply BC (dirichlet)
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)
-            dom%champs0%Veloc(indpml,:) = 0.
+            dom%champs1%Veloc(indpml,:) = 0.
         enddo
-        ! Update displacement in champs0
-        dom%champs0%Depla = dom%champs0%Depla + dt * dom%champs0%Veloc
+
+        ! Update champs1 displacement from champs0
+        dom%champs1%Depla = dom%champs0%Depla + dt * dom%champs1%Veloc
     end subroutine newmark_corrector_solidpml
 end module dom_solidpml
 

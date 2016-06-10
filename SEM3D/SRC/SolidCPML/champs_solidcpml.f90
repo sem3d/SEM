@@ -9,10 +9,11 @@ module champs_solidpml
     use constants
     implicit none
 
+    ! Inconnues du problème : déplacement, vitesse
     type :: champssolidpml
-        ! Inconnues du problème : déplacement, vitesse
-        real(fpp), dimension(:,:), allocatable :: Depla
-        real(fpp), dimension(:,:), allocatable :: Veloc
+        ! Le déplacement et la vitesse sont "staggered" (leap frog) : ceci est imposé par Solid/Fluid
+        real(fpp), dimension(:,:), allocatable :: Depla ! U_n+3/2
+        real(fpp), dimension(:,:), allocatable :: Veloc ! V_n+1
     end type champssolidpml
 
     !! ATTENTION: voir index.h en ce qui concerne les champs dont les noms commencent par m_
@@ -69,6 +70,10 @@ module champs_solidpml
         ! Champs
         type(champssolidpml) :: champs0
         type(champssolidpml) :: champs1
+
+        ! Dans le correcteur, on a besoin de V_n+3/2 qu'on ne connait pas : on s'appuie sur U_n+1/2 pour l'estimer
+        real(fpp), dimension(:,:), allocatable :: DeplaPrev ! U_n+1/2
+
         real(fpp), dimension(:,:), allocatable :: Forces
         real(fpp), dimension(:,:), allocatable :: R1 ! Convolutional term R1 (19a) from Ref1
         real(fpp), dimension(:,:), allocatable :: R2 ! Convolutional term R2 (19b) from Ref1
