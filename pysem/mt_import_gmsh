@@ -195,8 +195,8 @@ class Gmsh(object):
             elems = getattr(self.mesh, key)
             if not elems:
                 continue
-            if sem_mode:
-                rootname = root
+            if sem_mode or key=="hexa8":
+                rootname = "Sem3D"
             else:
                 rootname = "/Mesh_%s" % key
             materials = getattr(self, "%s_mat" % key)
