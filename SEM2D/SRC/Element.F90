@@ -54,7 +54,7 @@ module selement
        ! HDG
        real, dimension(:,:), allocatable :: Normal_nodes
        real, dimension(:,:), allocatable :: MatPen, TracFace, Vhat, Dinv
-       real, dimension(:,:,:), allocatable :: CAinv, EDinv
+       real, dimension(:,:,:), allocatable :: CAinv, EDinv, Jmat
        integer, dimension (0:3,0:1) :: pos_corner_in_VertMat
 
     end type element
@@ -531,7 +531,7 @@ contains
 
       aux1 = Elem%Acoeff(:,:,0)*Elem%Veloc(:,:,1) + Elem%Acoeff(:,:,2)*Elem%Veloc(:,:,0)
       aux2 = Elem%Acoeff(:,:,1)*Elem%Veloc(:,:,1) + Elem%Acoeff(:,:,3)*Elem%Veloc(:,:,0)
-      Elem%Forces(:,:,2) = - (MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez))
+      Elem%Forces(:,:,2) = - 0.5 * (MATMUL(hprime,aux1) + MATMUL(aux2,hTprimez))
 
       aux1 = (Elem%Acoeff(:,:,4) + Elem%Acoeff(:,:,5)) * MATMUL(hTprime,Elem%Strain(:,:,0)) &
            + Elem%Acoeff(:,:,4) * MATMUL(hTprime,Elem%Strain(:,:,1)) &
@@ -1289,16 +1289,15 @@ contains
     !! \param type (Element), intent (INOUT) Elem
     !!
     !<
-    subroutine  compute_Traces (Elem, is_half)
+    subroutine  compute_Traces (Elem)
         implicit none
 
         type (Element), intent (INOUT)   :: Elem
-        logical,        intent (IN)      :: is_half
 
         if (Elem%Acoustic) then
             call compute_Traces_Acou (Elem)
         else
-            call compute_Traces_Elas (Elem, is_half)
+            call compute_Traces_Elas (Elem)
         endif
 
     end subroutine compute_Traces
@@ -1367,16 +1366,13 @@ contains
     !! \param type (Element), intent (INOUT) Elem
     !!
     !<
-    subroutine  compute_Traces_Elas (Elem, is_half)
+    subroutine  compute_Traces_Elas (Elem)
         implicit none
 
         type (Element), intent (INOUT)   :: Elem
-        logical,        intent (IN)      :: is_half
         real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1) :: Vhatx,Vhatz,Vhatxz
         integer    :: imin, imax, ngx, ngz
-        real       :: demi
-        ngx = Elem%ngllx ; ngz = Elem%ngllz ; demi = 1.
-        if (is_half) demi = 0.5
+        ngx = Elem%ngllx ; ngz = Elem%ngllz
 
         ! Adding contribution of Vhat on the trace Traction :
         Elem%TracFace(:,0) = Elem%TracFace(:,0) + Elem%Coeff_Integr_Faces(:) * &
@@ -1385,8 +1381,8 @@ contains
                             (Elem%MatPen(:,2)*Elem%Vhat(:,0) + Elem%MatPen(:,1)*Elem%Vhat(:,1))
 
         ! Preparing traces for the strain equation :
-        Vhatxz(:) = demi * ( Elem%Vhat(:,0) * Elem%Normal_Nodes(:,1) &
-                           + Elem%Vhat(:,1) * Elem%Normal_Nodes(:,0))* Elem%Coeff_Integr_Faces(:)
+        Vhatxz(:) = 0.5 * ( Elem%Vhat(:,0) * Elem%Normal_Nodes(:,1) &
+                          + Elem%Vhat(:,1) * Elem%Normal_Nodes(:,0))* Elem%Coeff_Integr_Faces(:)
         Vhatx(:) = Elem%Vhat(:,0) * Elem%Normal_Nodes(:,0) * Elem%Coeff_Integr_Faces(:)
         Vhatz(:) = Elem%Vhat(:,1) * Elem%Normal_Nodes(:,1) * Elem%Coeff_Integr_Faces(:)
 
@@ -1527,19 +1523,11 @@ contains
     !! \param real, intent (IN) Dt
     !!
     !<
-    subroutine  add_previous_state2forces (Elem,Dt,is_half)
+    subroutine  add_previous_state2forces (Elem,Dt)
         implicit none
 
         type (Element), intent (INOUT)   :: Elem
         real, intent (IN)                :: Dt
-        logical,        intent (IN)      :: is_half
-        real                             :: un
-
-        if (is_half) then
-            un = 1
-        else
-            un = 2
-        endif
 
         if (Elem%acoustic) then
             Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + 1./Dt * Elem%Acoeff(:,:,4) * Elem%Strain0(:,:,0)
@@ -1548,7 +1536,7 @@ contains
         else ! Elastic Case
             Elem%Forces(:,:,0) = Elem%Forces(:,:,0) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Strain0(:,:,0)
             Elem%Forces(:,:,1) = Elem%Forces(:,:,1) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Strain0(:,:,1)
-            Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + un/Dt * Elem%Acoeff(:,:,12) * Elem%Strain0(:,:,2)
+            Elem%Forces(:,:,2) = Elem%Forces(:,:,2) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Strain0(:,:,2)
             Elem%Forces(:,:,3) = Elem%Forces(:,:,3) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Density(:,:)*Elem%V0(:,:,0)
             Elem%Forces(:,:,4) = Elem%Forces(:,:,4) + 1./Dt * Elem%Acoeff(:,:,12) * Elem%Density(:,:)*Elem%V0(:,:,1)
         endif
@@ -1637,43 +1625,68 @@ contains
 
         type (Element), intent (INOUT) :: Elem
         real,           intent (IN)    :: Dt
-        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1) :: smbr, res
-        integer                        :: ngx, ngz, imin, imax
+        real, dimension(0:1)           :: aux
+        !real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1) :: smbr, res
+        integer                        :: ngx, ngz, imin, imax, i
         ngx = Elem%ngllx ; ngz = Elem%ngllz
 
         ! Inversion for strains :
-        Elem%Forces(:,:,0) =   Dt / Elem%Acoeff(:,:,12) * Elem%Forces(:,:,0)
-        Elem%Forces(:,:,1) =   Dt / Elem%Acoeff(:,:,12) * Elem%Forces(:,:,1)
-        Elem%Forces(:,:,2) =0.5*Dt/ Elem%Acoeff(:,:,12) * Elem%Forces(:,:,2)
+        Elem%Forces(:,:,0) = Dt / Elem%Acoeff(:,:,12) * Elem%Forces(:,:,0)
+        Elem%Forces(:,:,1) = Dt / Elem%Acoeff(:,:,12) * Elem%Forces(:,:,1)
+        Elem%Forces(:,:,2) = Dt / Elem%Acoeff(:,:,12) * Elem%Forces(:,:,2)
         ! Inversion for velocities :
 !        Elem%Forces(:,:,3) = Dt * Elem%MassMat(:,:) * Elem%Forces(:,:,3)
 !        Elem%Forces(:,:,4) = Dt * Elem%MassMat(:,:) * Elem%Forces(:,:,4)
 
         ! FOLLOWING PART USED IF THE TERM int(tau*v*w) IS TAKEN IMPLICIT
-        ! Inversion for velocities :
+        ! Inversion for velocities at inner GLL nodes:
         Elem%Forces(1:ngx-2,1:ngz-2,3) = Dt * Elem%MassMat(1:ngx-2,1:ngz-2) * Elem%Forces(1:ngx-2,1:ngz-2,3)
         Elem%Forces(1:ngx-2,1:ngz-2,4) = Dt * Elem%MassMat(1:ngx-2,1:ngz-2) * Elem%Forces(1:ngx-2,1:ngz-2,4)
-        ! Storing the Forces in the array smbr :
-        call get_iminimax(Elem,0,imin,imax)
-        smbr(imin:imax,0:1) = Elem%Forces(0:ngx-1,0,3:4)
-        call get_iminimax(Elem,1,imin,imax)
-        smbr(imin:imax,0:1) = Elem%Forces(ngx-1,0:ngz-1,3:4)
-        call get_iminimax(Elem,2,imin,imax)
-        smbr(imin:imax,0:1) = Elem%Forces(0:ngx-1,ngz-1,3:4)
-        call get_iminimax(Elem,3,imin,imax)
-        smbr(imin:imax,0:1) = Elem%Forces(0,0:ngz-1,3:4)
-        ! Performing D^-1 * smbr :
-        res(:,0) = Dt * (Elem%Dinv(:,0)*smbr(:,0) + Elem%Dinv(:,2)*smbr(:,1))
-        res(:,1) = Dt * (Elem%Dinv(:,2)*smbr(:,0) + Elem%Dinv(:,1)*smbr(:,1))
-        ! Assigning solution to ext nodes of Elem%Forces :
-        call get_iminimax(Elem,0,imin,imax)
-        Elem%Forces(0:ngx-1,0,3:4)     = res(imin:imax,0:1)
-        call get_iminimax(Elem,1,imin,imax)
-        Elem%Forces(ngx-1,0:ngz-1,3:4) = res(imin:imax,0:1)
-        call get_iminimax(Elem,2,imin,imax)
-        Elem%Forces(0:ngx-1,ngz-1,3:4) = res(imin:imax,0:1)
-        call get_iminimax(Elem,3,imin,imax)
-        Elem%Forces(0,0:ngz-1,3:4)     = res(imin:imax,0:1)
+
+        ! Inversion for velocity at outer GLL nodes :
+        ! Bottom Face :
+        do i=0,ngx-1
+            aux = MATMUL(Elem%Jmat(i,:,:),Elem%Forces(i,0,0:2))
+            Elem%Forces(i,0,3) = Dt * ( Elem%Dinv(i,0)*Elem%Forces(i,0,3) &
+                                      + Elem%Dinv(i,2)*Elem%Forces(i,0,4))&
+                                      + aux(0)
+            Elem%Forces(i,0,4) = Dt * ( Elem%Dinv(i,2)*Elem%Forces(i,0,3) &
+                                      + Elem%Dinv(i,1)*Elem%Forces(i,0,4))&
+                                      + aux(1)
+        enddo
+        ! Right Face :
+        imin = ngx ; imax = ngx+ngz-2
+        do i=1,ngz-2
+            aux = MATMUL(Elem%Jmat(imin+i,:,:),Elem%Forces(ngx-1,i,0:2))
+            Elem%Forces(ngx-1,i,3) = Dt * ( Elem%Dinv(imin+i,0)*Elem%Forces(ngx-1,i,3) &
+                                          + Elem%Dinv(imin+i,2)*Elem%Forces(ngx-1,i,4))&
+                                          + aux(0)
+            Elem%Forces(ngx-1,i,4) = Dt * ( Elem%Dinv(imin+i,2)*Elem%Forces(ngx-1,i,3) &
+                                          + Elem%Dinv(imin+i,1)*Elem%Forces(ngx-1,i,4))&
+                                          + aux(1)
+        enddo
+        ! Top Face :
+        imin = ngx+ngz ; imax = 2*ngx+ngz-1
+        do i=0,ngx-1
+            aux = MATMUL(Elem%Jmat(imin+i,:,:),Elem%Forces(i,ngz-1,0:2))
+            Elem%Forces(i,ngz-1,3) = Dt * ( Elem%Dinv(imin+i,0)*Elem%Forces(i,ngz-1,3) &
+                                          + Elem%Dinv(imin+i,2)*Elem%Forces(i,ngz-1,4))&
+                                          + aux(0)
+            Elem%Forces(i,ngz-1,4) = Dt * ( Elem%Dinv(imin+i,2)*Elem%Forces(i,ngz-1,3) &
+                                          + Elem%Dinv(imin+i,1)*Elem%Forces(i,ngz-1,4))&
+                                          + aux(1)
+        enddo
+        ! Left Face :
+        imin = 2*ngx+ngz ; imax = 2*ngx+2*ngz-2
+        do i=1,ngz-2
+            aux = MATMUL(Elem%Jmat(imin+i,:,:),Elem%Forces(0,i,0:2))
+            Elem%Forces(0,i,3) = Dt * ( Elem%Dinv(imin+i,0)*Elem%Forces(0,i,3) &
+                                      + Elem%Dinv(imin+i,2)*Elem%Forces(0,i,4))&
+                                      + aux(0)
+            Elem%Forces(0,i,4) = Dt * ( Elem%Dinv(imin+i,2)*Elem%Forces(0,i,3) &
+                                      + Elem%Dinv(imin+i,1)*Elem%Forces(0,i,4))&
+                                      + aux(1)
+        enddo
 
     end subroutine inversion_local_solver
 
@@ -1698,7 +1711,7 @@ contains
         ! First step : traces terms are computed using the subroutine compute_traces
         ! and setting the former tractions TracFace to 0
         Elem%TracFace = 0.
-        call compute_Traces (Elem, .false.)
+        call compute_Traces (Elem)
 
         ! second step : the Mass matrices are inverted
         call inversion_local_solver(Elem, Dt)

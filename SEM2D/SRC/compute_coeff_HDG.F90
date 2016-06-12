@@ -231,52 +231,52 @@ contains
                                    / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,0,0)
         Elem%CAinv(imin:imax,0,1) = (Elem%Lambda(0:ngx-1,0)) &
                                    / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,0,1)
-        Elem%CAinv(imin:imax,0,2) = (Elem%Mu(0:ngx-1,0)) &
+        Elem%CAinv(imin:imax,0,2) = (2*Elem%Mu(0:ngx-1,0)) &
                                    / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,0,2)
         Elem%CAinv(imin:imax,1,0) = (Elem%Lambda(0:ngx-1,0)) &
                                    / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,1,0)
         Elem%CAinv(imin:imax,1,1) = (Elem%Lambda(0:ngx-1,0) + 2*Elem%Mu(0:ngx-1,0)) &
                                    / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,1,1)
-        Elem%CAinv(imin:imax,1,2) = (Elem%Mu(0:ngx-1,0)) &
+        Elem%CAinv(imin:imax,1,2) = (2*Elem%Mu(0:ngx-1,0)) &
                                    / Elem%Acoeff(0:ngx-1,0,12) * Elem%CAinv(imin:imax,1,2)
         call get_iminimax(Elem,1,imin,imax)
         Elem%CAinv(imin:imax,0,0) = (Elem%Lambda(ngx-1,0:ngz-1) + 2*Elem%Mu(ngx-1,0:ngz-1)) &
                                    / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,0,0)
         Elem%CAinv(imin:imax,0,1) = (Elem%Lambda(ngx-1,0:ngz-1)) &
                                    / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,0,1)
-        Elem%CAinv(imin:imax,0,2) = (Elem%Mu(ngx-1,0:ngz-1)) &
+        Elem%CAinv(imin:imax,0,2) = (2*Elem%Mu(ngx-1,0:ngz-1)) &
                                    / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,0,2)
         Elem%CAinv(imin:imax,1,0) = (Elem%Lambda(ngx-1,0:ngz-1)) &
                                    / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,1,0)
         Elem%CAinv(imin:imax,1,1) = (Elem%Lambda(ngx-1,0:ngz-1) + 2*Elem%Mu(ngx-1,0:ngz-1)) &
                                    / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,1,1)
-        Elem%CAinv(imin:imax,1,2) = (Elem%Mu(ngx-1,0:ngz-1)) &
+        Elem%CAinv(imin:imax,1,2) = (2*Elem%Mu(ngx-1,0:ngz-1)) &
                                    / Elem%Acoeff(ngx-1,0:ngz-1,12) * Elem%CAinv(imin:imax,1,2)
         call get_iminimax(Elem,2,imin,imax)
         Elem%CAinv(imin:imax,0,0) = (Elem%Lambda(0:ngx-1,ngz-1) + 2*Elem%Mu(0:ngx-1,ngz-1)) &
                                    / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,0,0)
         Elem%CAinv(imin:imax,0,1) = (Elem%Lambda(0:ngx-1,ngz-1)) &
                                    / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,0,1)
-        Elem%CAinv(imin:imax,0,2) = (Elem%Mu(0:ngx-1,ngz-1)) &
+        Elem%CAinv(imin:imax,0,2) = (2*Elem%Mu(0:ngx-1,ngz-1)) &
                                    / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,0,2)
         Elem%CAinv(imin:imax,1,0) = (Elem%Lambda(0:ngx-1,ngz-1)) &
                                    / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,1,0)
         Elem%CAinv(imin:imax,1,1) = (Elem%Lambda(0:ngx-1,ngz-1) + 2*Elem%Mu(0:ngx-1,ngz-1)) &
                                    / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,1,1)
-        Elem%CAinv(imin:imax,1,2) = (Elem%Mu(0:ngx-1,ngz-1)) &
+        Elem%CAinv(imin:imax,1,2) = (2*Elem%Mu(0:ngx-1,ngz-1)) &
                                    / Elem%Acoeff(0:ngx-1,ngz-1,12) * Elem%CAinv(imin:imax,1,2)
         call get_iminimax(Elem,3,imin,imax)
         Elem%CAinv(imin:imax,0,0) = (Elem%Lambda(0,0:ngz-1) + 2*Elem%Mu(0,0:ngz-1)) &
                                    / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,0,0)
         Elem%CAinv(imin:imax,0,1) = (Elem%Lambda(0,0:ngz-1)) &
                                    / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,0,1)
-        Elem%CAinv(imin:imax,0,2) = (Elem%Mu(0,0:ngz-1)) &
+        Elem%CAinv(imin:imax,0,2) = (2*Elem%Mu(0,0:ngz-1)) &
                                    / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,0,2)
         Elem%CAinv(imin:imax,1,0) = (Elem%Lambda(0,0:ngz-1)) &
                                    / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,1,0)
         Elem%CAinv(imin:imax,1,1) = (Elem%Lambda(0,0:ngz-1) + 2*Elem%Mu(0,0:ngz-1)) &
                                    / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,1,1)
-        Elem%CAinv(imin:imax,1,2) = (Elem%Mu(0,0:ngz-1)) &
+        Elem%CAinv(imin:imax,1,2) = (2*Elem%Mu(0,0:ngz-1)) &
                                    / Elem%Acoeff(0,0:ngz-1,12) * Elem%CAinv(imin:imax,1,2)
 
     end subroutine compute_CAinv
@@ -306,10 +306,10 @@ contains
         ! est en effet dedoublee. Du coup les 2 entres de D pour un coin ont la meme valeur.
 
         ! Termes provenant du terme tau=matpen
-        matD(:,0,0) = 0.5*Dt * Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,0)
-        matD(:,1,1) = 0.5*Dt * Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,1)
-        matD(:,0,1) = 0.5*Dt * Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,2)
-        matD(:,1,0) = 0.5*Dt * Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,2)
+        matD(:,0,0) = Dt * Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,0)
+        matD(:,1,1) = Dt * Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,1)
+        matD(:,0,1) = Dt * Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,2)
+        matD(:,1,0) = Dt * Elem%Coeff_Integr_Faces(:) * Elem%MatPen(:,2)
         ! Couplage aux coins :
         do nc=0,3
             call get_gll_arround_corner(Elem,nc,n1,n2)
@@ -369,11 +369,13 @@ contains
     !! with a semi-implicit time scheme strategy.
     !! \param type (Element), intent (INOUT) Elem
     !<
-    subroutine compute_EJ (Elem)
+    subroutine compute_EJ (Elem,Dt)
 
         type (Element), intent (INOUT)   :: Elem
+        real, intent(IN) :: Dt
         integer :: i, ngx, ngz, nc, n1, n2
         real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1,0:2) :: CAinv_tmp
+        real, dimension(0:2*(Elem%ngllx+Elem%ngllz)-1,0:1,0:1) :: Dinv_tmp
         real, dimension(0:1,0:2) :: EJ
 
         ngx = Elem%ngllx ; ngz = Elem%ngllz
@@ -393,9 +395,17 @@ contains
             CAinv_tmp(n2,:,:) = CAinv_tmp(n1,:,:)
         enddo
 
+        ! Creation de la matrice J
+        Dinv_tmp(:,0,0) = Elem%Dinv(:,0) ; Dinv_tmp(:,1,1) = Elem%Dinv(:,1)
+        Dinv_tmp(:,1,0) = Elem%Dinv(:,2) ; Dinv_tmp(:,0,1) = Elem%Dinv(:,2)
+        do i=0,(2*(ngx+ngz)-1)
+            Elem%Jmat(i,:,:) = - Dt* MATMUL(Dinv_tmp(i,:,:),CAinv_tmp(i,:,:))
+        enddo
+
+        ! Modification de la matrice CAinv integrant la contribution de EJ
         do i=0,(2*(ngx+ngz)-1)
             EJ(:,:) = MATMUL(Elem%EDinv(i,:,:),CAinv_tmp(i,:,:))
-            Elem%CAinv(i,:,:) = Elem%CAinv(i,:,:) - EJ(:,:)
+            Elem%CAinv(i,:,:) = Elem%CAinv(i,:,:) - Dt*EJ(:,:)
         enddo
 
     end subroutine compute_EJ
@@ -425,13 +435,13 @@ contains
 
         ! Calcul du terme Ct*Ainv*C qui contribue a la matrice K
         CtAC(:,0,0) = Elem%Coeff_integr_Faces(:) * (Elem%CAinv(:,0,0)*Elem%Normal_Nodes(:,0) &
-                                                   +Elem%CAinv(:,0,2)*Elem%Normal_Nodes(:,1))
+                                               +0.5*Elem%CAinv(:,0,2)*Elem%Normal_Nodes(:,1))
         CtAC(:,0,1) = Elem%Coeff_integr_Faces(:) * (Elem%CAinv(:,0,1)*Elem%Normal_Nodes(:,1) &
-                                                   +Elem%CAinv(:,0,2)*Elem%Normal_Nodes(:,0))
+                                               +0.5*Elem%CAinv(:,0,2)*Elem%Normal_Nodes(:,0))
         CtAC(:,1,0) = Elem%Coeff_integr_Faces(:) * (Elem%CAinv(:,1,0)*Elem%Normal_Nodes(:,0) &
-                                                   +Elem%CAinv(:,1,2)*Elem%Normal_Nodes(:,1))
+                                               +0.5*Elem%CAinv(:,1,2)*Elem%Normal_Nodes(:,1))
         CtAC(:,1,1) = Elem%Coeff_integr_Faces(:) * (Elem%CAinv(:,1,1)*Elem%Normal_Nodes(:,1) &
-                                                   +Elem%CAinv(:,1,2)*Elem%Normal_Nodes(:,0))
+                                               +0.5*Elem%CAinv(:,1,2)*Elem%Normal_Nodes(:,0))
 
         ! Calcul du terme Et*Dinv*E qui contribue a la matrice K
         EtDE(:,0,0) = Elem%Coeff_integr_Faces(:) * (Elem%EDinv(:,0,0)*Elem%MatPen(:,0) &
@@ -444,9 +454,9 @@ contains
                                                    +Elem%EDinv(:,1,1)*Elem%MatPen(:,1))
 
         ! Addition de toutes les contributions pour la matrice K : (etant sym, elle n'a que 3 composantes)
-        K(:,0) = 0.5*Dt * (CtAC(:,0,0) - EtDE(:,0,0)) + Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,0)
-        K(:,1) = 0.5*Dt * (CtAC(:,1,1) - EtDE(:,1,1)) + Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,1)
-        K(:,2) = 0.5*Dt * (CtAC(:,0,1) - EtDE(:,0,1)) + Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,2)
+        K(:,0) = Dt * (CtAC(:,0,0) - EtDE(:,0,0)) + Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,0)
+        K(:,1) = Dt * (CtAC(:,1,1) - EtDE(:,1,1)) + Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,1)
+        K(:,2) = Dt * (CtAC(:,0,1) - EtDE(:,0,1)) + Elem%Coeff_integr_Faces(:) * Elem%MatPen(:,2)
 
         ! Envoi des matrices sur les faces :
         do nf=0,3
@@ -517,12 +527,12 @@ contains
             ! Computation of C matrices at the 2 sides of the corner
             C1(0,0) = Elem%Coeff_integr_Faces(n1)*Elem%normal_nodes(n1,0)
             C1(1,1) = Elem%Coeff_integr_Faces(n1)*Elem%normal_nodes(n1,1)
-            C1(2,0) = Elem%Coeff_integr_Faces(n1)*Elem%normal_nodes(n1,1)
-            C1(2,1) = Elem%Coeff_integr_Faces(n1)*Elem%normal_nodes(n1,0)
+            C1(2,0) = Elem%Coeff_integr_Faces(n1)*Elem%normal_nodes(n1,1)*0.5
+            C1(2,1) = Elem%Coeff_integr_Faces(n1)*Elem%normal_nodes(n1,0)*0.5
             C2(0,0) = Elem%Coeff_integr_Faces(n2)*Elem%normal_nodes(n2,0)
             C2(1,1) = Elem%Coeff_integr_Faces(n2)*Elem%normal_nodes(n2,1)
-            C2(2,0) = Elem%Coeff_integr_Faces(n2)*Elem%normal_nodes(n2,1)
-            C2(2,1) = Elem%Coeff_integr_Faces(n2)*Elem%normal_nodes(n2,0)
+            C2(2,0) = Elem%Coeff_integr_Faces(n2)*Elem%normal_nodes(n2,1)*0.5
+            C2(2,1) = Elem%Coeff_integr_Faces(n2)*Elem%normal_nodes(n2,0)*0.5
             ! Computation of C matrices at the 2 sides of the corner
             E1(0,0) = Elem%Coeff_integr_Faces(n1)*Elem%MatPen(n1,0)
             E1(0,1) = Elem%Coeff_integr_Faces(n1)*Elem%MatPen(n1,2)
@@ -539,8 +549,8 @@ contains
             K21(:,:) = K21(:,:) - MATMUL(Elem%EDinv(n2,:,:),E1(:,:))
             ! Envoi des matrices K12 et K21 sur la matrice du vertex
             pos1 = Elem%pos_corner_in_VertMat(i,0) ; pos2 = Elem%pos_corner_in_VertMat(i,1)
-            Tdomain%sVertex(nv)%Kmat(pos1:pos1+1,pos2:pos2+1) = 0.5*Dt * K12(:,:)
-            Tdomain%sVertex(nv)%Kmat(pos2:pos2+1,pos1:pos1+1) = 0.5*Dt * K21(:,:)
+            Tdomain%sVertex(nv)%Kmat(pos1:pos1+1,pos2:pos2+1) = Dt * K12(:,:)
+            Tdomain%sVertex(nv)%Kmat(pos2:pos2+1,pos1:pos1+1) = Dt * K21(:,:)
         enddo
 
     end subroutine build_K_on_vertex

@@ -353,6 +353,8 @@ subroutine allocate_domain (Tdomain)
         allocate (Tdomain%specel(n)%CAinv(0:2*(ngllx+ngllz)-1,0:1,0:2))
         allocate (Tdomain%specel(n)%EDinv(0:2*(ngllx+ngllz)-1,0:1,0:1))
         allocate (Tdomain%specel(n)%Dinv (0:2*(ngllx+ngllz)-1,0:2))
+        allocate (Tdomain%specel(n)%Jmat (0:2*(ngllx+ngllz)-1,0:1,0:2))
+        Tdomain%specel(n)%Jmat = 0.
      enddo
      do n = 0, Tdomain%n_face-1
          ngll = Tdomain%sFace(n)%ngll

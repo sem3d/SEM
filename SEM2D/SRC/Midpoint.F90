@@ -213,8 +213,11 @@ subroutine Semi_Implicit_Resolution (Tdomain,timelocal,Dt)
         call compute_InternalForces_HDG  (Tdomain%specel(n), &
             Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimex, &
             Tdomain%sSubDomain(mat)%hprimez,Tdomain%sSubDomain(mat)%hTprimez)
+        !call compute_InternalForces_HDG_Weak(Tdomain%specel(n), &
+        !    Tdomain%sSubDomain(mat)%hprimex, &
+        !    Tdomain%sSubDomain(mat)%hTprimez)
         !call add_tau_v (Tdomain%specel(n))
-        call add_previous_state2forces (Tdomain%specel(n), Dt, .false.)
+        call add_previous_state2forces (Tdomain%specel(n), Dt)
         if (Tdomain%specel(n)%PML) call update_Psi_ADEPML(Tdomain%specel(n), &
             Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimez, Dt)
     enddo
@@ -309,9 +312,9 @@ subroutine Forward_Euler_Resolution (Tdomain,timelocal,Dt,computeVhat)
     ! Constructing the Lambda (= velocities vhat) on the faces
     do n=0,Tdomain%n_elem-1
         call get_Vhat_f2el(Tdomain,n)
-        call Compute_Traces (Tdomain%specel(n),.true.)
+        call Compute_Traces (Tdomain%specel(n))
         ! Add previous state to forces :
-        call add_previous_state2forces (Tdomain%specel(n),Dt,.true.)
+        call add_previous_state2forces (Tdomain%specel(n),Dt)
         if(Tdomain%type_bc==DG_BC_REFL .OR. Tdomain%specel(n)%PML) call enforce_diriclet_BC(Tdomain,n)
         call inversion_massmat(Tdomain%specel(n))
         call update_Elem_Forward_Euler(Tdomain%specel(n),dt)
@@ -346,12 +349,12 @@ subroutine Semi_Implicit_Resolution_tnplus1 (Tdomain,timelocal,Dt)
             Tdomain%sSubDomain(mat)%hprimex,Tdomain%sSubDomain(mat)%hTprimex, &
             Tdomain%sSubDomain(mat)%hprimez,Tdomain%sSubDomain(mat)%hTprimez)
         call add_tau_v0 (Tdomain%specel(n))
-        call add_previous_state2forces (Tdomain%specel(n), Dt, .false.)
+        call add_previous_state2forces (Tdomain%specel(n), Dt)
         if (Tdomain%specel(n)%PML) call update_Psi_ADEPML(Tdomain%specel(n), &
             Tdomain%sSubDomain(mat)%hTprimex, Tdomain%sSubDomain(mat)%hprimez, Dt)
         call Get_V0_f2el (Tdomain, n) !!!! <-- MODIF !!!
         Tdomain%specel(n)%TracFace(:,:) = 0.       !!!! <-- MODIF !!!
-        call compute_Traces (Tdomain%specel(n), .false.) !!!! <-- MODIF !!!
+        call compute_Traces (Tdomain%specel(n)) !!!! <-- MODIF !!!
     enddo
 
     ! External Forces computation
