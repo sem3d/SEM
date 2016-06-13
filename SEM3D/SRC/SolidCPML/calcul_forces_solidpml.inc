@@ -3,7 +3,16 @@
 !! Copyright CEA, ECP, IPGP
 !!
 
-!! Note: CPML can be seen as an artificial anisotropic material according to (10) from Ref2.
+!! Convolutional Perfectly Matched Layers implemented according 2 references:
+!! Ref1. Improved forward wave propagation and adjoint-based sensitivity kernel calculations using a numerically stable finite-element PML
+!!       Zhinan Xie, Dimitri Komatitsch, Roland Martin, Rene Matzen
+!!       Geophysical Journal International, 2014, 198, 1714-1747
+!! Ref2. An efficient finite element time-domain formulation for the elastic second-order wave equation: a non-split complex frequency shifted convolutional PML
+!!       Rene Matzen
+!!       International Journal For Numerical Methods In Engineering, 2011, 88, 951-973
+
+!! CPML can be seen as an artificial anisotropic material according to (10) + (14) + (17c) + (19*) from Ref2.
+!! calcul_forces_solidpml <=> computing the first term at the right hand side of (24c) from Ref2.
 !! This file is the same as the one of the Solid domain with ANISO and without ATTENUATION (which is meaningless for CPML).
 
 #ifndef PROCNAME
