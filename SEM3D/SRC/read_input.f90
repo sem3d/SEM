@@ -708,7 +708,11 @@ contains
         Tdomain%TimeD%alpha               = Tdomain%config%alpha
         Tdomain%TimeD%beta                = Tdomain%config%beta
         Tdomain%TimeD%gamma               = Tdomain%config%gamma
-        Tdomain%random_library_path       = fromcstr(Tdomain%config%random_library_path)
+        if (C_ASSOCIATED(Tdomain%config%random_library_path)) then
+            Tdomain%random_library_path       = fromcstr(Tdomain%config%random_library_path)
+        else
+            Tdomain%random_library_path = ''
+        endif
         if (rg==0) then
             if (Tdomain%TimeD%alpha /= 0.5 .or. Tdomain%TimeD%beta /= 0.5 .or. Tdomain%TimeD%gamma /= 1.) then
                 write(*,*) "***WARNING*** : Les parametres alpha,beta,gamma sont ignores dans cette version"
