@@ -826,8 +826,10 @@ contains
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
+        double precision :: total_P_energy, total_S_energy, total_P_energy_sum, total_S_energy_sum
 
         integer, dimension(0:8) :: out_variables
+        integer :: ierr
 
         out_variables(0:8) = Tdomain%out_variables(0:8)
 
@@ -841,6 +843,10 @@ contains
         valence(:) = 0
 
         ngll = 0
+        total_P_energy = 0d0
+        total_S_energy = 0d0
+        total_P_energy_sum = 0d0
+        total_S_energy_sum = 0d0
 
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
@@ -852,6 +858,10 @@ contains
                 case (DM_SOLID)
                   call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,                 &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+
+                  total_P_energy = total_P_energy + sum(P_energy)
+                  total_S_energy = total_S_energy + sum(S_energy)
+
                 case (DM_FLUID)
                   call get_fluid_dom_var(Tdomain, Tdomain%fdom, el%lnum, out_variables,        &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
@@ -915,6 +925,14 @@ contains
             call h5fclose_f(fid, hdferr)
             call write_xdmf(Tdomain, group, isort, nnodes_tot, out_variables)
         endif
+
+        call MPI_REDUCE(total_P_energy, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
+
+        if(Tdomain%rank == 0) write(*,*) "total_P_energy_sum = ", total_P_energy_sum
+
+        call MPI_REDUCE(total_S_energy, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
+
+        if(Tdomain%rank == 0) write(*,*) "total_S_energy_sum = ", total_S_energy_sum
 
         deallocate(valence)
         call deallocate_fields(out_variables, out_fields)
