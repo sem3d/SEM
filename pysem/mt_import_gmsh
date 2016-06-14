@@ -181,7 +181,7 @@ class Gmsh(object):
         f = h5py.File(fname, "w")
         self.mesh.write_nodes(f)
         multi = 0 # indique si on gere plusieurs types d'elements
-        root = "/Sem2D"
+        root = "/Sem3D"
         sem_mode = True
         ELEMTYPES = "quad4 quad8 tri3 hexa8 hexa27 tetra4".split()
         for key in ELEMTYPES:
@@ -195,8 +195,8 @@ class Gmsh(object):
             elems = getattr(self.mesh, key)
             if not elems:
                 continue
-            if sem_mode:
-                rootname = root
+            if sem_mode or key=="hexa8":
+                rootname = "Sem3D"
             else:
                 rootname = "/Mesh_%s" % key
             materials = getattr(self, "%s_mat" % key)
