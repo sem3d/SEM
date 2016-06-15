@@ -37,7 +37,6 @@ subroutine calcul_forces_el(Fox,Foy,Foz, invgrad, &
     real :: sxx,sxy,sxz,syy,syz,szz,t4,F1,F2,F3
     real :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
-    real, parameter :: zero = 0.
     real :: xmu, xla, xla2mu
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t1,t5,t8
     ! Les indices sont reordonnes, probablement pour la localite memoire
@@ -214,6 +213,7 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
 
     use sdomain
     use nonlinear
+    use constants
 
     implicit none
 
@@ -237,13 +237,13 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: b_iso_el, C_kin_el, kapa_kin_el
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1), intent(in) :: Rinf_iso_el, sigma_yld_el
 
-    integer :: i,j,k,l, st_epl
+    integer :: i,j,k,l
+    logical :: st_epl
 
     real :: xi1,xi2,xi3, et1,et2,et3, ga1,ga2,ga3
     real :: sxx,sxy,sxz,syy,syz,szz,t4,F1,F2,F3
     real :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
-    real, parameter :: zero = 0.
     real :: xmu, xla, xla2mu
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t1,t5,t8
     ! Les indices sont reordonnes, probablement pour la localite memoire
@@ -310,7 +310,7 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
                     sigma_yld,st_epl,alpha_elp)
                                        
                 ! PLASTIC CORRECTION
-                if (st_epl == 1) then
+                if (st_epl) then
                        
                     dEpsilon_ij_alpha(0:5)=(1-alpha_elp)*dEpsilon_ij_alpha(0:5)
                    

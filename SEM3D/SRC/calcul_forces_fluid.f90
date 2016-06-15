@@ -26,7 +26,7 @@ subroutine calcul_forces_fluid(FFl,invgrad,      &
     real :: sx,sy,sz,t4,F1
     real :: t41,t11,t51,t12,t61,t13
     real :: xt1,xt6,xt10
-    real, parameter :: zero = 0.
+    !real, parameter :: zero = 0.
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: xdens
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t1,t6
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t10

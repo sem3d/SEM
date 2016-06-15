@@ -38,7 +38,7 @@ subroutine calcul_forces_att(Fox,Foy,Foz, invgrad, &
     real :: xpression , stt
     real :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
-    real, parameter :: zero = 0.
+    !real, parameter :: zero = 0.
     integer :: i,j,k,l, i_sls
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: xmu,x2mu,xkappa
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t1,t5,t8,t2,t6,t9

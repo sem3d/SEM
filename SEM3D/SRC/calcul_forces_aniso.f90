@@ -16,6 +16,7 @@ subroutine calcul_forces_aniso(Fox,Foy,Foz, invgrad, &
     Cij, ngllx,nglly,ngllz)
 
     use sdomain
+    use constants
 
     implicit none
 
@@ -37,8 +38,7 @@ subroutine calcul_forces_aniso(Fox,Foy,Foz, invgrad, &
     real :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
     real, parameter :: s2 = 1.414213562373095, &
-        s2o2 = 0.707106781186547, &
-        zero = 0.
+        s2o2 = 0.707106781186547
     real, dimension(0:5) :: eij
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t1,t5,t8,t2,t6,t9
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: t3,t7,t10

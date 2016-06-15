@@ -906,12 +906,13 @@ subroutine save_checkpoint (Tdomain, rtime, it, dtmin, isort)
     call write_Rvol(Tdomain, offset(5), elem_id)
     call write_Rxyz(Tdomain, offset(6), elem_id)
     ! nonlinear
-    call write_stress_nl(Tdomain,offset(9),elem_id)
-    call write_strain_nl(Tdomain,offset(10),elem_id)
-    call write_center_nl(Tdomain,offset(11),elem_id)
-    call write_radius_nl(Tdomain,offset(12),elem_id)
-    call write_pstrain_nl(Tdomain,offset(13),elem_id)
-
+    if (Tdomain%nl_flag==1) then
+        call write_stress_nl(Tdomain,offset(9),elem_id)
+        call write_strain_nl(Tdomain,offset(10),elem_id)
+        call write_center_nl(Tdomain,offset(11),elem_id)
+        call write_radius_nl(Tdomain,offset(12),elem_id)
+        call write_pstrain_nl(Tdomain,offset(13),elem_id)
+    endif
     call h5gclose_f(elem_id, hdferr)
     call h5fclose_f(fid, hdferr)
 end subroutine save_checkpoint

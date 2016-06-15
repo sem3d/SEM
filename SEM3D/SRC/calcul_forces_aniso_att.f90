@@ -16,7 +16,7 @@ subroutine calcul_forces_aniso_att(Fox,Foy,Foz, invgrad, &
     mu_,la_, Cij, ngllx,nglly,ngllz, n_solid, onemSbeta_, R_xx_,R_yy_,R_xy_,R_xz_,R_yz_)
 
     use sdomain
-
+    use constants
     implicit none
 
     integer, intent(in) :: ngllx,nglly,ngllz, n_solid
@@ -41,8 +41,8 @@ subroutine calcul_forces_aniso_att(Fox,Foy,Foz, invgrad, &
     real, parameter :: deuxtiers = 0.666666666666667, &
         quatretiers = 1.333333333333337, &
         s2 = 1.414213562373095, &
-        s2o2 = 0.707106781186547, &
-        zero = 0., two = 2.
+        s2o2 = 0.707106781186547!, &
+        !zero = 0., two = 2.
     integer :: i,j,k,l, i_sls
     real, dimension(0:5) :: eij
     real, dimension(0:ngllx-1,0:nglly-1,0:ngllz-1) :: xmu,xla,xla2mu,kappa

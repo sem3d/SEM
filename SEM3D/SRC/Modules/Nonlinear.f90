@@ -10,122 +10,118 @@ module nonlinear
     use deriv3d
     use constants
 
-   real(KIND=8), parameter :: FTOL = 0.000010000000000D0
-   real(KIND=8), parameter :: LTOL = 0.0000100000000000D0
-   real(KIND=8), parameter :: STOL = 0.0100000000D0
-!   real(KIND=8), parameter :: FTOL = 0.0000010000000000D0
-!   real(KIND=8), parameter :: LTOL = 0.0000010000000000D0
-!   real(KIND=8), parameter :: STOL = 0.0010000000000000D0
+    implicit none
+    real(KIND=8), parameter :: FTOL = 0.0010000000000D0
+    real(KIND=8), parameter :: LTOL = 0.00100000000000D0
+    real(KIND=8), parameter :: STOL = 0.00000100000000D0
+    real(KIND=8), parameter :: PSI  = 1.0D0!5.0D0
+    real(KIND=8), parameter :: OMEGA= 0.0D0!1.0D6
+    real, dimension(0:5),     parameter   :: A  = (/one,one,one,two,two,two/)
+    real, dimension(0:5),     parameter   :: A1 = (/one,one,one,half,half,half/)
+    real, dimension(0:2),     parameter   :: veci = (/ one, zero, zero /)
+    real, dimension(0:2),     parameter   :: vecj = (/ zero, one, zero /)
+    real, dimension(0:2),     parameter   :: veck = (/ zero, zero, one /)
+    real, dimension(0:2,0:2), parameter   :: id_matrix = reshape( (/veci,vecj,veck/), (/3,3/) )
+    real, dimension(0:2,0:2), parameter   :: M(0:2,0:2)=one
+    real, dimension(0:5),     parameter   :: vect_id = (/one,one,one,zero,zero,zero/)    
+
 contains
-    
+    ! STIFFNESS MATRIX 
     subroutine stiff_matrix(lambda,mu,DEL)
         
-        implicit none
         real,                     intent(in)  :: lambda,mu
         real, dimension(0:5,0:5), intent(out) :: DEL
-        real, dimension(0:2),     parameter   :: veci = (/ 1.0, 0.0, 0.0 /)
-        real, dimension(0:2),     parameter   :: vecj = (/ 0.0, 1.0, 0.0 /)
-        real, dimension(0:2),     parameter   :: veck = (/ 0.0, 0.0, 1.0 /)
-        real, dimension(0:2,0:2), parameter   :: id_matrix = reshape( (/veci,vecj,veck/), (/3,3/) )
-        real, dimension(0:2,0:2), parameter   :: M(0:2,0:2)=1d0
         
-        DEL(:,:)       = 0d0
-        DEL(0:2,0:2)   = DEL(0:2,0:2)+lambda*M+id_matrix*2*mu
+        DEL(:,:)       = zero
+        DEL(0:2,0:2)   = DEL(0:2,0:2)+lambda*M+id_matrix*two*mu
         DEL(3:5,3:5)   = DEL(3:5,3:5)+id_matrix*mu
-
+        return
     end subroutine stiff_matrix
     
+    ! MISES YIELD LOCUS
     subroutine mises_yld_locus(stress,center,radius,syld,FM,gradF)
         
-        implicit none
         real,                 intent(in)  :: radius,syld
         real,                 intent(out) :: FM
         real, dimension(0:5), intent(in)  :: stress,center
         real, dimension(0:5), intent(out) :: gradF
-        real, dimension(0:5), parameter   :: A = (/1.0,1.0,1.0,2.0,2.0,2.0/)
         real, dimension(0:5)              :: dev
         real                              :: tau_eq
-        integer                           :: k
         
         call tensor_components(stress,dev)
         call tau_mises(dev-center,tau_eq)
 
-        FM = tau_eq-syld-radius
-        gradF=1.5d0*A*(dev-center)/tau_eq
-
+        FM = tau_eq - syld - radius
+        gradF=three*half*A*(dev-center)/tau_eq
+        return
     end subroutine mises_yld_locus
-
+    
+    ! MISES TAU
     subroutine tau_mises(stress,tau_eq)
         
-        implicit none
         real, dimension(0:5), intent(in) :: stress
         real,                 intent(out):: tau_eq
-        real, dimension(0:5), parameter  :: A = (/1.0,1.0,1.0,2.0,2.0,2.0/) 
         integer                          :: k
         
-        tau_eq = 0.0d0
-        do k=0,5
-            tau_eq = tau_eq+A(k)*(stress(k)**2)
-        end do
-        tau_eq = sqrt(1.5*tau_eq)
-
+        tau_eq = zero
+        tau_eq = dot_product(A,stress**2)
+        tau_eq = sqrt(three*half*tau_eq)
+        return
     end subroutine
-
+    
+    ! TENSOR COMPONENTS
     subroutine tensor_components(stress,dev)
 
-        implicit none
         real, dimension(0:5), intent(in)  :: stress
         real, dimension(0:5), intent(out) :: dev
         real                              :: press
         integer                           :: k
 
-        dev=stress
-        press=sum(stress(0:2))/3
-        dev(0:2)=dev(0:2)-press
-
+        press = dot_product(stress,vect_id)/three
+        dev = stress-press*vect_id
+        return
     end subroutine tensor_components
-
+    
+    ! CHECK PLASTICITY
     subroutine check_plasticity (dtrial,stress0,center,radius,syld, &
-        st_elp, alpha_elp)
+        st_epl, alpha_epl)
 
         implicit none
         real,                 intent(in)    :: radius,syld
         real, dimension(0:5), intent(in)    :: center,stress0
         real, dimension(0:5), intent(inout) :: dtrial
-        real,                 intent(out)   :: alpha_elp
-        integer,              intent(out)   :: st_elp
+        real,                 intent(out)   :: alpha_epl
+        logical,              intent(out)   :: st_epl
         real, dimension(0:5)                :: gradFS,gradFT,stress1
-        real, dimension(0:5), parameter     :: A=(/1.0,1.0,1.0,2.0,2.0,2.0/)
         real                                :: FS,FT,checkload
         integer                             :: k
         logical                             :: flag
         stress1=stress0+dtrial
         call mises_yld_locus(stress0,center,radius,syld,FS,gradFS)
         call mises_yld_locus(stress1,center,radius,syld,FT,gradFT)
-        checkload=sum(gradFS*dtrial)/sum(gradFS**2)/sum(dtrial**2)
-        
-        if (abs(FS).le.FTOL) then
-            if (checkload.ge.-LTOL) then 
-                alpha_elp = 0d0
-                st_elp    = 1
+        checkload = dot_product(gradFS,dtrial)/&
+            (dot_product(gradFS,gradFS)*dot_product(dtrial,dtrial))
+
+        if (abs(FS).le.FTOL) then ! FS = 0
+            if (checkload.ge.-LTOL) then ! PLASTIC LOADING
+                alpha_epl = zero
+                st_epl    = .true.
             else
-                if (FT.lt.-FTOL) then
-                    alpha_elp = 1d0
-                    st_elp    = 2 
-                elseif(FT.gt.FTOL) then
-                    write(*,*) "-------------------------------------------------"
-                    write(*,*) "check load",checkload,"LTOL",LTOL
-                    call gotoFpegasus(stress0,dtrial,center,radius,syld,10,alpha_elp)  
-                    st_elp    = 1
+                if (FT.lt.-FTOL) then ! ELASTIC UNLOADING
+                    alpha_epl = one
+                    st_epl    = .false.
+                elseif(FT.gt.FTOL) then ! PLASTIC UNLOADING
+                    call gotoFpegasus(stress0,dtrial,center,radius,syld,10,alpha_epl)  
+                    st_epl    = .true.
                 endif
             end if
-        elseif (FS.lt.-FTOL) then
-            if (FT.le.FTOL) then
-                alpha_elp = 1.0d0
-                st_elp    = 2
-            else
-                call gotoFpegasus(stress0,dtrial,center,radius,syld,1,alpha_elp)  
-                st_elp    = 1.0d0
+        elseif (FS.lt.-FTOL) then ! FS<0
+            if (FT.le.FTOL) then  ! ELASTIC LOADING
+                alpha_epl = one
+                st_epl    = .false.
+            else ! ELASTO-PLASTIC LOADING
+                call gotoFpegasus(stress0,dtrial,center,radius,syld,1,alpha_epl)  
+                st_epl    = .true.
             end if
         elseif (FS.gt.FTOL) then
             write(*,*) "*********************************"
@@ -137,11 +133,12 @@ contains
             write(*,*) ""
         end if
         ! RETURN TRIAL STRESS 
-        dtrial=stress0+dtrial*alpha_elp
-
+        dtrial=stress0+dtrial*alpha_epl
         call mises_yld_locus(dtrial,center,radius,syld,FS,gradFS)
+        return
     end subroutine check_plasticity
-
+    
+    ! PLASTIC CORRECTOR
     subroutine plastic_corrector (dEps_alpha,stress,center,syld, &
         radius,biso,Rinf,Ckin,kkin,mu,lambda,dEpl)
 
@@ -208,7 +205,12 @@ contains
                     call drift_corr(stress,center,radius,syld,&
                             biso,Rinf,Ckin,kkin,lambda,mu,dEpl)
                 endif
-               
+                call mises_yld_locus (stress, center,radius,syld,FM,gradFM)
+                if (FM.gt.FTOL) then
+                    write(*,*) "DRIFT NOT CORRECTED"
+                    stop
+                endif 
+                 
                 qq = min(0.9d0*sqrt(STOL/Resk),1.1d0) 
                 if (flag_fail) then
                     qq = min(qq,1.0d0)
@@ -529,44 +531,6 @@ contains
             write(*,*) "INTERCEPTED"
         endif
     end subroutine gotoFpegasus
-
-    subroutine tau_deepsoil(gamma_dp,gamma_R,gamma_rev,gamma_max,&
-        flag_rev,tau_rev,mu,p1_dp,p2_dp,p3_dp,beta_dp,S_dp,tau_dp)
-        real,       intent(in)  :: gamma_dp,gamma_R,gamma_max,gamma_rev
-        real,       intent(in)  :: tau_rev,mu,p1_dp,p2_dp,p3_dp
-        logical,    intent(in)  :: flag_rev
-        real,       intent(out) :: tau_dp
-        real                    :: Fred,temp
-
-        if (.not.flag_rev) then ! LOADING
-            tau_dp=(mu*gamma_dp)/(1+beta_dp*(gamma_dp/gamma_R)**S_dp)
-        else                    ! UNLOADING
-            tau_dp=tau_rev
-            tau_dp=tau_dp+(mu*(gamma_dp-gamma_rev))/&
-                (1+beta_dp*(gamma_max-gamma_R)**S_dp)
-            call reduction_factor_deepsoil(gamma_max,p1_dp,p2_dp,p3_dp,mu,Fred)
-            temp=(mu*(gamma_dp-gamma_rev))/&
-                (1+beta_dp*(0.5*(gamma_dp-gamma_rev)*gamma_R)**S_dp)
-            temp=temp-mu*(gamma_dp-gamma_rev)/(1+beta_dp*(gamma_max-gamma_R)**S_dp)
-            tau_dp=tau_dp+Fred*temp
-        endif
-        
-    end subroutine tau_deepsoil
-    
-    subroutine gamma_ref(stress,A_dp,C_dp,gamma_R)
-        real, dimension(0:5), intent(in)    :: stress
-        real,                 intent(in)    :: C_dp
-        real,                 intent(out)   :: gamma_R
-        real                                :: press
-        press = sum(stress(0:2))/3 
-        gamma_R=A_dp*(press/101325.0)**C_dp
-    end subroutine gamma_ref
-    
-    subroutine reduction_factor_deepsoil(gamma_max,p1_dp,p2_dp,p3_dp,mu,Fred)
-        real, intent(in) :: gamma_max,p1_dp,p2_dp,p3_dp,mu
-        real, intent(out):: Fred
-        Fred=p1_dp-p2_dp*(1-Ggamma/mu)**p3_dp
-    end subroutine
 
 end module nonlinear
 
