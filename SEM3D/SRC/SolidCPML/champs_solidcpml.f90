@@ -45,9 +45,8 @@ module champs_solidpml
         real(fpp), dimension(:), allocatable :: DumpMat ! Delta 1st derivative term in (12a) from Ref1
         real(fpp), dimension(:), allocatable :: MasUMat ! M^U <=> Delta term in (12a) from Ref1
 
-        ! PML is "like" an anisotropic material : do not use Lambda/Mu but use Cij
-        real(fpp), dimension(:,:,:,:,:),   allocatable :: m_Density
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Cij
+        ! PML is "like" an anisotropic material (deduced from an isotropic material with density, lambda, mu)
+        real(fpp) :: Density, Lambda, Mu
 
         real(fpp), dimension(:,:,:,:,:),     allocatable :: m_Jacob
         real(fpp), dimension(:,:,:,:,:,:,:), allocatable :: m_InvGrad

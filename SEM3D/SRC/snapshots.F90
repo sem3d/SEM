@@ -1344,7 +1344,11 @@ contains
                             case (DM_SOLID)
                                 dens(idx) = Tdomain%sdom%Density_        (i,j,k,bnum,ee)
                             case (DM_SOLID_PML)
+#ifdef CPML
+                                dens(idx) = Tdomain%spmldom%Density
+#else
                                 dens(idx) = Tdomain%spmldom%Density_     (i,j,k,bnum,ee)
+#endif
                             case (DM_FLUID)
                                 dens(idx) = 1.0D0/Tdomain%fdom%IDensity_ (i,j,k,bnum,ee)
                             case (DM_FLUID_PML)

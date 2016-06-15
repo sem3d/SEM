@@ -61,8 +61,10 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
     integer :: i,j,k,l,e,ee
+    real(fpp) :: C1111, C1122, C1133, C2222, C2233, C3333, C2323, C2332, C1313, C1331, C1212, C1221
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,t4
+    real(fpp) ::     syx,szx,    szy
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
     real(fpp), parameter :: zero = 0.
 #ifdef USE_LOCAL_MEM
@@ -150,14 +152,30 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 Eyz = (DYZ+DZY)*M_SQRT1_2
                 Exz = (DXZ+DZX)*M_SQRT1_2
                 Exy = (DXY+DYX)*M_SQRT1_2
-#define CC(d)  dom%Cij_(d,i,j,k,bnum,ee)
-                sxx = DXX*CC( 0) + DYY*CC( 1) + DZZ*CC( 2) + EYZ*CC( 3) + EXZ*CC( 4) + EXY*CC( 5)
-                syy = DXX*CC( 1) + DYY*CC( 6) + DZZ*CC( 7) + EYZ*CC( 8) + EXZ*CC( 9) + EXY*CC(10)
-                szz = DXX*CC( 2) + DYY*CC( 7) + DZZ*CC(11) + EYZ*CC(12) + EXZ*CC(13) + EXY*CC(14)
-                syz = DXX*CC( 3) + DYY*CC( 8) + DZZ*CC(12) + EYZ*CC(15) + EXZ*CC(16) + EXY*CC(17)
-                sxz = DXX*CC( 4) + DYY*CC( 9) + DZZ*CC(13) + EYZ*CC(16) + EXZ*CC(18) + EXY*CC(19)
-                sxy = DXX*CC( 5) + DYY*CC(10) + DZZ*CC(14) + EYZ*CC(17) + EXZ*CC(19) + EXY*CC(20)
-#undef CC
+
+                C1111 = (dom%Lambda+2*dom%Mu)
+                C1122 =  dom%Lambda
+                C1133 =  dom%Lambda
+                C2222 = (dom%Lambda+2*dom%Mu)
+                C2233 =  dom%Lambda
+                C3333 = (dom%Lambda+2*dom%Mu)
+                C2323 =  dom%Mu
+                C2332 =  dom%Mu
+                C1313 =  dom%Mu
+                C1331 =  dom%Mu
+                C1212 =  dom%Mu
+                C1221 =  dom%Mu
+
+                sxx = DXX*C1111 + DYY*C1122 + DZZ*C1133
+                syy = DXX*C1122 + DYY*C2222 + DZZ*C2233
+                szz = DXX*C1133 + DYY*C2233 + DZZ*C3333
+                syz = EYZ*C2323 + EYZ*C2332
+                szy = EYZ*C2323 + EYZ*C2332
+                sxz = EXZ*C1313 + EXZ*C1331
+                szx = EXZ*C1313 + EXZ*C1331
+                sxy = EXY*C1212 + EXY*C1221
+                syx = EXY*C1212 + EXY*C1221
+
                 !
                 !=====================
                 !       FX
