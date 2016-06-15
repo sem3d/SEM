@@ -12,8 +12,28 @@
 !!       International Journal For Numerical Methods In Engineering, 2011, 88, 951-973
 
 !! CPML can be seen as an artificial anisotropic material according to (10) + (14) + (17c) + (19*) from Ref2.
-!! calcul_forces_solidpml <=> computing the first term at the right hand side of (24c) from Ref2.
-!! This file is the same as the one of the Solid domain with ANISO and without ATTENUATION (which is meaningless for CPML).
+!! Convoluting div(sigma) amounts to convoluting Cijkl : this can be seen in (17c) and in the first term at the right hand side of (24c) from Ref2.
+
+!! This file has been initialized from the version of the Solid domain with ANISO and without ATTENUATION (which is meaningless for CPML).
+!! This file differs from the version of the Solid domain by :
+!! 1. Cijkl are convoluted at each time iteration.
+!! 2. Cijkl has 15 terms.
+!!
+!!      sigij               C0ijkl                 epskl                      Conv
+!!
+!!    | sig11 |   | l+2m l    l                   |   | eps11 |     | L231 L3   L2                                 |
+!!    | sig22 |   | l    l+2m l                   |   | eps22 |     | L3   L132 L1                                 |
+!!    | sig33 | = | l    l    l+2m                |   | eps33 |     | L2   L1   L123                               |
+!!    | sig23 |   |                 m  m          |   | eps23 |     |                L132 L1                       |
+!!    | sig32 |   |                 m  m          | * | eps32 | and |                L1   L123                     |
+!!    | sig13 |   |                      m m      |   | eps13 |     |                          L231 L2             |
+!!    | sig31 |   |                      m m      |   | eps31 |     |                          L2   L123           |
+!!    | sig12 |   |                           m m |   | eps12 |     |                                    L231 L3   |
+!!    | sig21 |   |                           m m |   | eps21 |     |                                    L3   L132 |
+!!
+!!    Li and Lijk (from Conv) are defined in (A.4) from Ref1.
+!!
+!!    We have Cijkl = C0ijkl .* Conv (.* is an element-by-element multiplication) according to (10) from Ref1.
 
 #ifndef PROCNAME
 #error "Must define PROCNAME before inclusion"
