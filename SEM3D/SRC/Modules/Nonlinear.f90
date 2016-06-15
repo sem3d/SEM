@@ -113,6 +113,9 @@ contains
                 elseif(FT.gt.FTOL) then ! PLASTIC UNLOADING
                     call gotoFpegasus(stress0,dtrial,center,radius,syld,10,alpha_epl)  
                     st_epl    = .true.
+                else
+                    write(*,*) "ERROR: MOVING ON THE SURFACE"
+                    stop
                 endif
             end if
         elseif (FS.lt.-FTOL) then ! FS<0
@@ -131,6 +134,7 @@ contains
             write(*,*) "ERROR!"
             write(*,*) "*********************************"
             write(*,*) ""
+            stop
         end if
         ! RETURN TRIAL STRESS 
         dtrial=stress0+dtrial*alpha_epl
@@ -140,86 +144,87 @@ contains
     
     ! PLASTIC CORRECTOR
     subroutine plastic_corrector (dEps_alpha,stress,center,syld, &
-        radius,biso,Rinf,Ckin,kkin,mu,lambda,dEpl)
+        radius,biso,Rinf,Ckin,kkin,mu,lambda,pstrain)
 
         implicit none
-        real, dimension(0:5), intent(inout) :: dEps_alpha,stress,center,dEpl 
+        real, dimension(0:5), intent(inout) :: dEps_alpha,stress,center,pstrain 
         real,                 intent(inout) :: radius 
         real,                 intent(in)    :: syld,biso,Rinf,Ckin,kkin,mu,lambda
         real, dimension(0:5,0:5)            :: DEL
-        real, dimension(0:5), parameter     :: A = (/1.0,1.0,1.0,0.5,0.5,0.5/)
-        real                                :: Ttot,deltaTk,qq,R1,R2,dR1,dR2,err0,err1
+        real                                :: Ttot,deltaTk,qq,R1,R2,dR1,dR2
+        real                                :: err0,err1,err2,err3
         real                                :: FM,hard1,hard2,deltaTmin
         real(8)                             :: Resk
         logical                             :: flag_fail
-        real, dimension(0:5)                :: gradFM,S1,S2,X1,X2
+        real, dimension(0:5)                :: gradFM,S1,S2,X1,X2,Epl1
         real, dimension(0:5)                :: dS1,dS2,dX1,dX2,dEpl1,dEpl2
-
+        integer                             :: counter
         call stiff_matrix(lambda,mu,DEL)
-        deltaTk = 1.0d0
-        Ttot    = 0.0d0
+        deltaTk = one
+        Ttot    = zero
         deltaTmin = 0.001d0
-        do while (Ttot.le.1.0d0-deltaTmin)
-            Resk     = 0.0d0
-            dS1(0:5) = 0.0d0
-            dX1(0:5) = 0.0d0 
-            dS2(0:5) = 0.0d0 
-            dX2(0:5) = 0.0d0 
-            dR1      = 0.0d0 
-            dR2      = 0.0d0 
-            dEpl1(0:5) = 0.0d0
-            dEpl2(0:5) = 0.0d0
+        flag_fail = .false.
+        counter = 1
 
+        do while (Ttot.lt.one)
+            Resk     = zero
+            dS1(0:5) = zero
+            dX1(0:5) = zero 
+            dS2(0:5) = zero 
+            dX2(0:5) = zero 
+            dR1      = zero 
+            dR2      = zero 
+            dEpl1(0:5) = zero
+            dEpl2(0:5) = zero
+            Epl1(0:5)  = zero
             ! FIRST ORDER COMPUTATION
             call ep_integration(dEps_alpha*deltaTk,stress,center,radius,syld,&
-                mu,lambda,biso,Rinf,Ckin,kkin,dS1,dX1,dR1,dEpl1,hard1)
+                mu,lambda,biso,Rinf,Ckin,kkin,dS1,dX1,dR1,dEpl1,hard1,pstrain)
 
             S1 = stress + dS1
             X1 = center + dX1 
             R1 = radius + dR1
-           
+            Epl1 = pstrain + dEpl1 
             ! SECOND ORDER COMPUTATION
             call ep_integration(dEps_alpha*deltaTk,S1,X1,R1,syld,mu,lambda,&
-                biso,Rinf,Ckin,kkin,dS2,dX2,dR2,dEpl2,hard2)
+                biso,Rinf,Ckin,kkin,dS2,dX2,dR2,dEpl2,hard2,Epl1)
             
             ! TEMPORARY VARIABLES
-            S1 = stress + 0.5d0*(dS1+dS2)
-            X1 = center + 0.5d0*(dX1+dX2)
-            R1 = radius + 0.5d0*(dR1+dR2)
-            dEpl1 = 0.5d0*(dEpl1+dEpl2)
+            S1 = stress + half*(dS1+dS2)
+            X1 = center + half*(dX1+dX2)
+            R1 = radius + half*(dR1+dR2)
+            Epl1 = pstrain + half*(dEpl1+dEpl2)
 
             ! ERROR
             call tau_mises(dS2-dS1,err0)
             call tau_mises(S1,err1)
+            call tau_mises(dX2-dX1,err2)
+            call tau_mises(X1,err3)
 
-            Resk=0.5d0*max(epsilon(Resk),err0/err1)
+            Resk = half*max(epsilon(Resk),err0/err1,err2/err3)
             
             if (Resk.le.STOL) then
                 
                 stress = S1
                 center = X1
                 radius = R1
-                dEpl   = dEpl+dEpl1
+                pstrain = Epl1
+                
                 call mises_yld_locus (stress, center,radius,syld,FM,gradFM)
                 if (FM.gt.FTOL) then
                     call drift_corr(stress,center,radius,syld,&
-                            biso,Rinf,Ckin,kkin,lambda,mu,dEpl)
+                            biso,Rinf,Ckin,kkin,lambda,mu,pstrain)
                 endif
-                call mises_yld_locus (stress, center,radius,syld,FM,gradFM)
-                if (FM.gt.FTOL) then
-                    write(*,*) "DRIFT NOT CORRECTED"
-                    stop
-                endif 
                  
                 qq = min(0.9d0*sqrt(STOL/Resk),1.1d0) 
                 if (flag_fail) then
-                    qq = min(qq,1.0d0)
+                    qq = min(qq,one)
                 endif
                 flag_fail=.false.
                 Ttot=Ttot+deltaTk
                 deltaTk=qq*deltaTk
                 deltaTk=max(qq*deltaTk,deltaTmin)
-                deltaTk=min(deltaTk,1.0d0-Ttot)
+                deltaTk=min(deltaTk,one-Ttot)
 
             else
                 qq=max(0.90d0*sqrt(STOL/Resk),deltaTmin)
@@ -230,17 +235,17 @@ contains
         end do
     end subroutine plastic_corrector
     
+    ! ELASTO-PLASTIC INTEGRATION
     subroutine ep_integration(dStrain,Stress,center,radius,syld,mu,lambda,biso,Rinf,&
-        Ckin,kapakin,dStress,dcenter,dradius,dEplast,hard)
+        Ckin,kapakin,dStress,dcenter,dradius,dEplast,hard,pstrain)
         
         implicit none
         real                , intent(in) :: radius,syld,mu,lambda,biso,Rinf,Ckin,kapakin
-        real, dimension(0:5), intent(in) :: dStrain,Stress,center
-        real, dimension(0:5), intent(inout):: dStress,dcenter,dEplast
+        real, dimension(0:5), intent(in) :: dstrain,stress,center,pstrain
+        real, dimension(0:5), intent(inout):: dstress,dcenter,deplast
         real,                 intent(inout):: dradius
         real,                 intent(out)  :: hard
         real, dimension(0:5)             :: gradF
-        real, dimension(0:5), parameter  :: A = (/1.0,1.0,1.0,0.5,0.5,0.5/)
         real, dimension(0:5,0:5)         :: DEL
         real                             :: Fmises,dPlast
         integer                          :: j,k
@@ -251,22 +256,16 @@ contains
 
         ! PLASTIC MULTIPLIER
         call compute_plastic_modulus(dStrain,Stress,center,radius,mu,lambda,syld, &
-            biso,Rinf,Ckin,kapakin,dPlast,hard)
+            biso,Rinf,Ckin,kapakin,dPlast,hard,pstrain)
         
         ! INCREMENTS
         call hardening_increments(Stress,radius,center,syld, &
-            biso,Rinf,Ckin,kapakin,dradius,dcenter)
+            biso,Rinf,Ckin,kapakin,dradius,dcenter,pstrain)
         
-        dradius     = dPlast*dradius
-        dcenter(0:5)= dPlast*dcenter(0:5)
-        do k=0,5 
-            dEplast(k)=dEplast(k)+dPlast*gradF(k)*A(k)
-        end do
-        do j = 0,5 ! stress increment
-            do k = 0,5
-                dstress(j)=DEL(k,j)*(dstrain(j)-A(k)*dPlast*gradF(k))  
-            end do
-        end do
+        dradius      = dPlast*dradius
+        dcenter(0:5) = dPlast*dcenter(0:5)
+        deplast(0:5) = dPlast*A1*gradF(0:5)
+        dstress = matmul(DEL,dstrain-deplast)
         
         return
 
@@ -274,45 +273,47 @@ contains
 
 
     subroutine compute_plastic_modulus(dEps,stress,center,radius,mu,lambda, &
-        syld,biso,Rinf,Ckin,kkin,dPlastMult,hard)
+        syld,biso,Rinf,Ckin,kkin,dPlastMult,hard,pstrain)
 
         implicit none
         real,                 intent(in) :: mu,lambda,syld   
         real,                 intent(in) :: radius,biso,Rinf,Ckin,kkin
-        real, dimension(0:5), intent(in) :: dEps,stress,center
+        real, dimension(0:5), intent(in) :: dEps,stress,center,pstrain
         real,                 intent(out):: dPlastMult,hard
         real                             :: temp_vec,FM
         real, dimension(0:5)             :: gradF
-        real, dimension(0:5), parameter  :: A =(/1.0,1.0,1.0,0.5,0.5,0.5/)
         real, dimension(0:5,0:5)         :: DEL
+        real                             :: PHI,PlastM
         integer                          :: j,k
         
         call stiff_matrix(lambda,mu,DEL)
         call mises_yld_locus(stress,center,radius,syld,FM,gradF)
-        
+       
+        PlastM = sqrt(two/three*dot_product(pstrain,pstrain))
+        PHI  = one+(PSI-one)*exp(-OMEGA*PlastM)
         hard = Ckin+biso*(Rinf-radius)
         hard = hard-kkin*dot_product(center,gradF)
         
-        temp_vec   = 0.0d0
-        dPlastMult = 0.0d0
+        temp_vec   = zero
+        dPlastMult = zero
 
         do k = 0,5
             do j = 0,5
-                temp_vec   = temp_vec+gradF(j)*DEL(j,k)*gradF(k)*A(k)
+                temp_vec   = temp_vec+gradF(j)*DEL(j,k)*gradF(k)*A1(k)
                 dPlastMult = dPlastMult+gradF(j)*DEL(j,k)*dEps(k)
             end do
         end do
-        dPlastMult = max(0.0d0,dPlastMult/(hard+temp_vec))
-
+        dPlastMult = max(zero,dPlastMult/(hard+temp_vec))
+        return
     end subroutine compute_plastic_modulus
 
 
     subroutine hardening_increments(Sigma_ij, R, X_ij, sigma_yld, &
-        b_lmc, Rinf_lmc, C_lmc, kapa_lmc, dR, dX_ij)
+        b_lmc, Rinf_lmc, C_lmc, kapa_lmc, dR, dX_ij, pstrain)
 
         ! INCREMENTS OF INTRINSIC STATIC VARIABLES
 
-        real, dimension(0:5), intent(in) :: Sigma_ij        ! actual stress state
+        real, dimension(0:5), intent(in) :: Sigma_ij,pstrain! actual stress state
         real, dimension(0:5), intent(in) :: X_ij            ! actual back stress state
         real,                 intent(in) :: sigma_yld       ! first yielding limit
         real,                 intent(in) :: R               ! actual mises radius
@@ -322,9 +323,8 @@ contains
         real,                 intent(out):: dR              ! mises radius increment
         real, dimension(0:5), intent(out):: dX_ij           ! back stress increment
         
-        real                             :: F_mises
+        real                             :: F_mises,PlastM,PHI
         real, dimension(0:5)             :: gradF_mises
-        real, dimension(0:5), parameter  :: A = (/1.0,1.0,1.0,0.5,0.5,0.5/)
         integer                          :: k
 
         ! INCREMENT IN ISOTROPIC HARDENING VARIABLES (R)
@@ -332,48 +332,51 @@ contains
 
         ! INCREMENT IN KINEMATIC HARDENING VARIABLES (Xij)
         call mises_yld_locus (Sigma_ij, X_ij, R, sigma_yld, F_mises, gradF_mises)
-        dX_ij(0:5)=2.0d0*A(0:5)*gradF_mises(0:5)*C_lmc/3.0d0-X_ij(0:5)*kapa_lmc
-
+        PlastM = sqrt(two/three*dot_product(pstrain,pstrain))
+        PHI  = one+(PSI-one)*exp(-OMEGA*PlastM)
+        dX_ij(0:5)=two*A1(0:5)*gradF_mises(0:5)*PHI*C_lmc/three-X_ij(0:5)*kapa_lmc
+        return
     end subroutine hardening_increments
 
     subroutine drift_corr(stress,center,radius,syld, &
-        biso,Rinf,Ckin,kkin,lambda,mu,dEplastic)
+        biso,Rinf,Ckin,kkin,lambda,mu,pstrain)
 
         ! DRIFT CORRECTION (RADIAL RETURN)
-        real, dimension(0:5), intent(inout) :: stress,center,dEplastic
+        real, dimension(0:5), intent(inout) :: stress,center,pstrain
         real,                 intent(inout) :: radius
         real,                 intent(in)    :: lambda,mu,syld,biso,Rinf,Ckin,kkin
-        real                                :: F0,F1,beta,hard,radiust
+        real                                :: F0,F1,beta,hard,radiust,PlastM,PHI
         real, dimension(0:5)                :: gradF0,gradF1,dstress,stresst,centert
-        real, dimension(0:5),     parameter :: A = (/1.0,1.0,1.0,0.5,0.5,0.5/)
         real, dimension(0:5,0:5)            :: DEL
         integer                             :: k,j,counter
-        
+        real, parameter                     :: FTOL_DRIFT =   0.000001D0
         ! INITIAL PLASTIC CONDITION
         call mises_yld_locus(stress,center,radius,syld,F0,gradF0)
         call stiff_matrix(lambda,mu,DEL)
         do counter=0,4 
             ! COMPUTE HARDENING INCREMENTS
+            PlastM = sqrt(two/three*dot_product(pstrain,pstrain))
+            PHI  = one+(PSI-one)*exp(-OMEGA*PlastM)
             hard = biso*(Rinf-radius)
-            hard = hard + Ckin
+            hard = hard + PHI*Ckin
             hard = hard - kkin*dot_product(gradF0,center)
             ! COMPUTE BETA FOR DRIFT CORRECTION
-            beta = 0.0d0
+            beta = zero 
             do j=0,5
                 do k=0,5
-                    beta=beta+gradF0(k)*DEL(k,j)*A(j)*gradF0(j)
+                    beta=beta+gradF0(k)*DEL(k,j)*A1(j)*gradF0(j)
                 end do
             end do
             beta=F0/(hard+beta)
             ! STRESS-STRAIN-HARDENING CORRECTION
-            dstress=0.0d0
+            dstress=zero
             do k=0,5
                 do j=0,5
-                    dstress(k)=dstress(k)-beta*DEL(j,k)*A(j)*gradF0(j)
+                    dstress(k)=dstress(k)-beta*DEL(j,k)*A1(j)*gradF0(j)
                 end do
             end do
             stresst = stress+dstress
-            centert = center+beta*(2.0d0*A*gradF0*Ckin/3.0d0-center*kkin)
+            centert = center+beta*(two*A1*gradF0*PHI*Ckin/three-center*kkin)
             radiust = radius+beta*(Rinf-radius)*biso
             
             ! CHECK DRIFT
@@ -388,7 +391,7 @@ contains
             stress = stresst
             center = centert
             radius = radiust
-            dEplastic = dEplastic+beta*A*gradF0
+            pstrain = pstrain+beta*A1*gradF0
             if (abs(F1).le.FTOL) then
                 exit
             else
@@ -396,6 +399,10 @@ contains
                 gradF0 = gradF1
             endif
         enddo
+        if (abs(F1).gt.FTOL) then
+            write(*,*) "DRIFT NOT CORRECTED"
+        endif
+
         return
     end subroutine drift_corr
 
@@ -472,15 +479,15 @@ contains
         integer                             :: counter0,counter1
         logical                             :: flagxit
 
-        alpha0  = 0.0d0
-        alpha1  = 1.0d0
+        alpha0  = zero 
+        alpha1  = one
         stress0 = start0+alpha0*dtrial
         stress1 = start0+alpha1*dtrial
         call mises_yld_locus(stress0,center,radius,s0,F0,gradF)
         call mises_yld_locus(stress1,center,radius,s0,F1,gradF)
         if (nsub.gt.1) then
             Fsave=F0
-            do counter0=0,2
+            do counter0=0,3
                 dalpha = (alpha1-alpha0)/nsub
                 flagxit=.false.
                 do counter1=0,nsub-1
@@ -515,11 +522,11 @@ contains
             if (abs(FM).le.FTOL) then ! abs(FS)<=FTOL ---> INTERSECTION FOUND
                 exit ! INTERSECTION FOUND
             else
-                if (FM*F1.lt.0.0d0) then
+                if (FM*F1.lt.zero) then
                     alpha0=alpha1
                     F0=F1
                 else
-                    F0 = F0/2.0d0
+                    F0 = F0*half
                 endif
                 F1=FM
                 alpha1=alpha
