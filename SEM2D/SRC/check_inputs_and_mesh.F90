@@ -43,13 +43,7 @@ subroutine check_inputs_and_mesh(Tdomain)
     if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_MIDPOINT_ITER) .AND. &
         (Tdomain%type_elem .NE. GALERKIN_HDG_RP)) then
         WRITE (*,*) "This choice of element for iterative Midpoint is not available"
-        STOP "Error : Please choose dg_type = hdg_rp if you want to use Midpoint_iter"
-    endif
-
-    if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_MIDPOINT_ITER) .AND. &
-        (Tdomain%type_elem .NE. GALERKIN_HDG_RP)) then
-        WRITE (*,*) "This choice of element for Iterative Midpoint is not available"
-        STOP "Error : Please choose dg_type = hdg_rp if you want to use Midpoint_iter"
+        !STOP "Error : Please choose dg_type = hdg_rp if you want to use Midpoint_iter"
     endif
 
     if ((Tdomain%type_timeInteg .EQ. TIME_INTEG_MIDPOINT) .AND. &

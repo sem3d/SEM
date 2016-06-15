@@ -245,6 +245,7 @@ subroutine  sem(couplage)
                  Tdomain%type_timeInteg==TIME_INTEG_MIDPOINT_ITER) then
             if (Tdomain%Implicitness==TIME_INTEG_EXPLICIT) then
                 call Midpoint_impl_expl(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
+                !call Midpoint_SEM (Tdomain, Tdomain%TimeD%dtmin,n_it_max)
             elseif (Tdomain%Implicitness==TIME_INTEG_SEMI_IMPLICIT) then
                 !call Midpoint_test(Tdomain, Tdomain%TimeD%dtmin,n_it_max)
                 call Midpoint_impl_semi_impl(Tdomain, Tdomain%TimeD%dtmin,n_it_max)

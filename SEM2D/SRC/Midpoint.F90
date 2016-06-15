@@ -398,6 +398,127 @@ end subroutine Semi_Implicit_Resolution_tnplus1
 
 
 !>
+!!\brief This Subroutine performs Predictor-Multicorrector (PMC) algorithm for
+!! time integration using an SPLITTED semi-implicit approach.
+!! Ideed, in this case, the traces terms are choosen at tn+1 while volumic fields
+!! in RHS are choosen at tn+1/2. This method has been prooved to be not
+!! so good (february 2015) precisely due to that splitting.
+!!\version 1.0
+!!\date 20/11/2014
+!! This subroutine is used only HDG elements
+!! \param type (Domain), intent (INOUT) Tdomain
+!! \param real         , intent (IN)    Dt
+!! \param integer      , intent (IN)    n_it_max
+!<
+subroutine Midpoint_SEM(Tdomain,Dt,n_it_max)
+
+    implicit none
+    type (domain), intent (INOUT) :: Tdomain
+    real,    intent(in)   :: dt
+    integer, intent(in)   :: n_it_max
+
+    ! local variables
+    integer :: n, iter, mat, ngx, ngz
+    real :: timelocal, demi
+
+
+    ! Initialization Phase
+    ! ##### IMPORTANT : Les deplacements a tn sont ranges dans Accel
+    do n=0,Tdomain%n_elem-1
+        ! Computation of the  prediction :
+        Tdomain%specel(n)%V0(:,:,:)    = Tdomain%specel(n)%Veloc (:,:,:)
+        Tdomain%specel(n)%Accel(:,:,:) = Tdomain%specel(n)%Displ (:,:,:)
+        if (Tdomain%specel(n)%PML) call initialize_Psi(Tdomain%specel(n))
+    enddo
+    do n=0,Tdomain%n_face-1
+        Tdomain%sFace(n)%V0    = Tdomain%sFace(n)%Veloc
+        Tdomain%sFace(n)%Accel = Tdomain%sFace(n)%Displ
+    enddo
+    do n=0,Tdomain%n_vertex-1
+        Tdomain%sVertex(n)%V0    = Tdomain%sVertex(n)%Veloc
+        Tdomain%sVertex(n)%Accel = Tdomain%sVertex(n)%Displ
+    enddo
+
+
+    ! Midpoint method :
+    iter= 0
+    timelocal = Tdomain%TimeD%rtime + 0.5*Dt
+
+    do while(iter<=1)
+
+        if (iter==1) then
+            demi = 1.
+        else
+            demi = 0.5
+        endif
+
+        if (iter==0) then
+            do n=0,Tdomain%n_elem-1
+                Tdomain%specel(n)%Displ = Tdomain%specel(n)%Accel + demi*Dt*Tdomain%specel(n)%Veloc
+            enddo
+            do n=0,Tdomain%n_face-1
+                ! Calcul des deplacements a n+1/2
+                Tdomain%sFace(n)%Displ = Tdomain%sFace(n)%Accel + demi*Dt*Tdomain%sFace(n)%Veloc
+            enddo
+            do n=0,Tdomain%n_vertex-1
+                ! Calcul des deplacements a n+1/2
+                Tdomain%sVertex(n)%Displ = Tdomain%sVertex(n)%Accel + demi*Dt*Tdomain%sVertex(n)%Veloc
+            enddo
+        endif
+
+        ! Boucles calculs second membres
+        do n=0,Tdomain%n_elem-1
+            mat = Tdomain%specel(n)%mat_index
+            ! Calcul forces internes
+            call get_RealDispl_fv2el (Tdomain,n)
+            call compute_InternalForces_Elem (Tdomain%specel(n), &
+                 Tdomain%sSubDomain(mat)%hprimex,  &
+                 Tdomain%sSubDomain(mat)%hTprimex, &
+                 Tdomain%sSubDomain(mat)%hprimez,  &
+                 Tdomain%sSubDomain(mat)%hTprimez)
+        enddo
+
+        ! External Forces computation
+        call Compute_External_Forces(Tdomain,timelocal)
+
+        ! PHASE D'UPDATE
+        do n=0,Tdomain%n_elem-1
+            ngx = Tdomain%specel(n)%ngllx ; ngz = Tdomain%specel(n)%ngllz
+            call Assemblage(Tdomain,n)
+            call inversion_massmat(Tdomain%specel(n))
+            ! Calcul des deplacements a n+1/2
+            Tdomain%specel(n)%Displ = Tdomain%specel(n)%Accel + demi*Dt*Tdomain%specel(n)%Veloc
+            ! Calcul des vitesses a n+1/2
+            Tdomain%specel(n)%Veloc = Tdomain%specel(n)%V0 + demi*Dt*Tdomain%specel(n)%Forces(1:ngx-2,1:ngz-2,:)
+        enddo
+        do n=0,Tdomain%n_face-1
+            ! Calcul des deplacements a n+1/2
+            Tdomain%sFace(n)%Displ = Tdomain%sFace(n)%Accel + demi*Dt*Tdomain%sFace(n)%Veloc
+            ! Calcul des vitesses a n+1/2
+            Tdomain%sFace(n)%Veloc(:,0) = Tdomain%sFace(n)%V0(:,0) &
+                                        + demi*Dt * Tdomain%sFace(n)%MassMat(:) * Tdomain%sFace(n)%Forces(:,0)
+            Tdomain%sFace(n)%Veloc(:,1) = Tdomain%sFace(n)%V0(:,1) &
+                                        + demi*Dt * Tdomain%sFace(n)%MassMat(:) * Tdomain%sFace(n)%Forces(:,1)
+            Tdomain%sFace(n)%Forces = 0.
+        enddo
+        do n=0,Tdomain%n_vertex-1
+            ! Calcul des deplacements a n+1/2
+            Tdomain%sVertex(n)%Displ = Tdomain%sVertex(n)%Accel + demi*Dt*Tdomain%sVertex(n)%Veloc
+            ! Calcul des vitesses a n+1/2
+            Tdomain%sVertex(n)%Veloc = Tdomain%sVertex(n)%V0 &
+                                     + demi*Dt * Tdomain%sVertex(n)%MassMat * Tdomain%sVertex(n)%Forces
+            Tdomain%sVertex(n)%Veloc = Tdomain%sVertex(n)%V0 &
+                                     + demi*Dt * Tdomain%sVertex(n)%MassMat * Tdomain%sVertex(n)%Forces
+            Tdomain%sVertex(n)%Forces = 0.
+        enddo
+
+        iter = iter+1
+    enddo
+
+end subroutine Midpoint_SEM
+
+
+!>
 !!\brief This Subroutine performs Vhat, the computation of the traces
 !! velocities on the faces, from the current state of each elements.
 !!\version 1.0
