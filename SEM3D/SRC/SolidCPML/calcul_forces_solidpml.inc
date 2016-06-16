@@ -17,9 +17,9 @@
 !! This file has been initialized from the version of the Solid domain with ANISO and without ATTENUATION (which is meaningless for CPML).
 !! This file differs from the version of the Solid domain by :
 !! 1. Cijkl are convoluted at each time iteration.
-!! 2. Cijkl has 15 terms.
+!! 2. Cijkl has 15 terms (upper part).
 !!
-!!      sigij               C0ijkl                 epskl                      Conv
+!!      sigij               C0ijkl                 epskl                       Conv = FT^-1(si*sj/sk)
 !!
 !!    | sig11 |   | l+2m l    l                   |   | eps11 |     | L231 L3   L2                                 |
 !!    | sig22 |   | l    l+2m l                   |   | eps22 |     | L3   L132 L1                                 |
@@ -34,6 +34,24 @@
 !!    Li and Lijk (from Conv) are defined in (A.4) from Ref1.
 !!
 !!    We have Cijkl = C0ijkl .* Conv (.* is an element-by-element multiplication) according to (10) from Ref1.
+
+! (A.18) from Ref1
+#define calcul_forces_solidpml_Li______(i,a,b,c,bnum,ee) \
+        xi = abs(dom%GlobCoord(i,dom%Idom_(a,b,c,bnum,ee)) - dom%bpp(i)); \
+        kappa(i) = dom%kappa_0 + dom%kappa_1 * xi/dom%L(i); \
+        Li = kappa(i)
+! TODO : add convolution term to Li
+
+! (A.20) from Ref1
+#define calcul_forces_solidpml_Lijk(i,j,k,a,b,c,bnum,ee) \
+        xi = abs(dom%GlobCoord(i,dom%Idom_(a,b,c,bnum,ee)) - dom%bpp(i)); \
+        kappa(i) = dom%kappa_0 + dom%kappa_1 * xi/dom%L(i); \
+        xj = abs(dom%GlobCoord(j,dom%Idom_(a,b,c,bnum,ee)) - dom%bpp(j)); \
+        kappa(j) = dom%kappa_0 + dom%kappa_1 * xj/dom%L(j); \
+        xk = abs(dom%GlobCoord(k,dom%Idom_(a,b,c,bnum,ee)) - dom%bpp(k)); \
+        kappa(k) = dom%kappa_0 + dom%kappa_1 * xk/dom%L(k); \
+        Lijk = kappa(i)*kappa(j)/kappa(k)
+! TODO : add convolution term to Lijk
 
 #ifndef PROCNAME
 #error "Must define PROCNAME before inclusion"
@@ -61,7 +79,9 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
     integer :: i,j,k,l,e,ee
-    real(fpp) :: C1111, C1122, C1133, C2222, C2233, C3333, C2323, C2332, C1313, C1331, C1212, C1221
+    real(fpp) :: xi, Li, xj, xk, Lijk, kappa(0:2) ! calcul_forces_solidpml_Li______, calcul_forces_solidpml_Lijk
+    real(fpp) :: C1111, C1122, C1133, C2222, C2233, C3333
+    real(fpp) :: C2323, C2332, C1313, C1331, C1212, C1221, C3232, C3131, C2121
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,t4
     real(fpp) ::     syx,szx,    szy
@@ -153,28 +173,31 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 Exz = (DXZ+DZX)*M_SQRT1_2
                 Exy = (DXY+DYX)*M_SQRT1_2
 
-                C1111 = (dom%Lambda+2*dom%Mu)
-                C1122 =  dom%Lambda
-                C1133 =  dom%Lambda
-                C2222 = (dom%Lambda+2*dom%Mu)
-                C2233 =  dom%Lambda
-                C3333 = (dom%Lambda+2*dom%Mu)
-                C2323 =  dom%Mu
-                C2332 =  dom%Mu
-                C1313 =  dom%Mu
-                C1331 =  dom%Mu
-                C1212 =  dom%Mu
-                C1221 =  dom%Mu
+                calcul_forces_solidpml_Lijk(1,2,0,i,j,k,bnum,ee); C1111 = (dom%Lambda+2*dom%Mu)*Lijk
+                calcul_forces_solidpml_Li______(2,i,j,k,bnum,ee); C1122 =  dom%Lambda          *Li
+                calcul_forces_solidpml_Li______(1,i,j,k,bnum,ee); C1133 =  dom%Lambda          *Li
+                calcul_forces_solidpml_Lijk(0,2,1,i,j,k,bnum,ee); C2222 = (dom%Lambda+2*dom%Mu)*Lijk
+                calcul_forces_solidpml_Li______(0,i,j,k,bnum,ee); C2233 =  dom%Lambda          *Li
+                calcul_forces_solidpml_Lijk(0,1,2,i,j,k,bnum,ee); C3333 = (dom%Lambda+2*dom%Mu)*Lijk
+                calcul_forces_solidpml_Lijk(0,2,1,i,j,k,bnum,ee); C2323 =  dom%Mu              *Lijk
+                calcul_forces_solidpml_Li______(0,i,j,k,bnum,ee); C2332 =  dom%Mu              *Li
+                calcul_forces_solidpml_Lijk(0,1,2,i,j,k,bnum,ee); C3232 =  dom%Mu              *Lijk
+                calcul_forces_solidpml_Lijk(1,2,0,i,j,k,bnum,ee); C1313 =  dom%Mu              *Lijk
+                calcul_forces_solidpml_Li______(1,i,j,k,bnum,ee); C1331 =  dom%Mu              *Li
+                calcul_forces_solidpml_Lijk(0,1,2,i,j,k,bnum,ee); C3131 =  dom%Mu              *Lijk
+                calcul_forces_solidpml_Lijk(1,2,0,i,j,k,bnum,ee); C1212 =  dom%Mu              *Lijk
+                calcul_forces_solidpml_Li______(2,i,j,k,bnum,ee); C1221 =  dom%Mu              *Li
+                calcul_forces_solidpml_Lijk(0,2,1,i,j,k,bnum,ee); C2121 =  dom%Mu              *Lijk
 
                 sxx = DXX*C1111 + DYY*C1122 + DZZ*C1133
                 syy = DXX*C1122 + DYY*C2222 + DZZ*C2233
                 szz = DXX*C1133 + DYY*C2233 + DZZ*C3333
                 syz = EYZ*C2323 + EYZ*C2332
-                szy = EYZ*C2323 + EYZ*C2332
+                szy = EYZ*C2332 + EYZ*C3232
                 sxz = EXZ*C1313 + EXZ*C1331
-                szx = EXZ*C1313 + EXZ*C1331
+                szx = EXZ*C1331 + EXZ*C3131
                 sxy = EXY*C1212 + EXY*C1221
-                syx = EXY*C1212 + EXY*C1221
+                syx = EXY*C1221 + EXY*C2121
 
                 !
                 !=====================
