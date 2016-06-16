@@ -64,8 +64,6 @@
 #define ngllvar ngll0
 #endif
 
-#define USE_LOCAL_MEM
-
 subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     use champs_solidpml
     implicit none
@@ -87,7 +85,6 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp) ::     syx,szx,    szy
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
     real(fpp), parameter :: zero = 0.
-#ifdef USE_LOCAL_MEM
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t5,t8
     ! Les indices sont reordonnes, probablement pour la localite memoire
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t2,t6,t9
@@ -97,7 +94,6 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUz_dxi, dUz_deta, dUz_dzeta
     real(fpp) :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real(fpp) :: F1,F2,F3
-#endif
     real(fpp) :: Eyz, Exz, Exy
 
     do k = 0,ngll-1
@@ -241,7 +237,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 xt3  =  xt3 * t4
                 xt7  =  xt7 * t4
                 xt10 = xt10 * t4
-#ifdef USE_LOCAL_MEM
+
                 t1(ee,i,j,k) = xt1
                 t5(ee,i,j,k) = xt5
                 t8(ee,i,j,k) = xt8
@@ -253,23 +249,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 t3 (ee,k,i,j) = xt3
                 t7 (ee,k,i,j) = xt7
                 t10(ee,k,i,j) = xt10
-#else
-                DO L = 0, ngll-1
-                    Fox(ee,L,j,k) = Fox(ee,L,j,k) + dom%hprime(L,I)*xt1*dom%GLLw(j) * dom%GLLw(k)
-                    Foy(ee,L,j,k) = Foy(ee,L,j,k) + dom%hprime(L,I)*xt5*dom%GLLw(j) * dom%GLLw(k)
-                    Foz(ee,L,j,k) = Foz(ee,L,j,k) + dom%hprime(L,I)*xt8*dom%GLLw(j) * dom%GLLw(k)
-                END DO
-                DO L = 0, ngll-1
-                    Fox(ee,i,L,k) = Fox(ee,i,L,k) + dom%hprime(L,J)*xt2*dom%GLLw(i) * dom%GLLw(k)
-                    Foy(ee,i,L,k) = Foy(ee,i,L,k) + dom%hprime(L,J)*xt6*dom%GLLw(i) * dom%GLLw(k)
-                    Foz(ee,i,L,k) = Foz(ee,i,L,k) + dom%hprime(L,J)*xt9*dom%GLLw(i) * dom%GLLw(k)
-                END DO
-                DO L = 0, ngll-1
-                    Fox(ee,i,j,L) = Fox(ee,i,j,L) + dom%hprime(L,K)*xt3*dom%GLLw(i) * dom%GLLw(j)
-                    Foy(ee,i,j,L) = Foy(ee,i,j,L) + dom%hprime(L,K)*xt7*dom%GLLw(i) * dom%GLLw(j)
-                    Foz(ee,i,j,L) = Foz(ee,i,j,L) + dom%hprime(L,K)*xt10*dom%GLLw(i) * dom%GLLw(j)
-                END DO
-#endif
+
                 END_SUBELEM_LOOP()
             enddo
         enddo
@@ -277,7 +257,6 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     !
     !- Multiplication par la matrice de derivation puis par les poids
     !
-#ifdef USE_LOCAL_MEM
     !=-=-=-=-=-=-=-=-=-=-
     do k = 0,ngll-1
         do j = 0,ngll-1
@@ -345,7 +324,6 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
         enddo
     enddo
     !=-=-=-=-=-=-=-=-=-=-
-#endif
 end subroutine PROCNAME
 
 #undef JXX
