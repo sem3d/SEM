@@ -150,20 +150,20 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 #define DETDY dom%InvGrad_(1,1,i,j,k,bnum,ee)
 #define DETDZ dom%InvGrad_(1,2,i,j,k,bnum,ee)
 #define DZEDX dom%InvGrad_(2,0,i,j,k,bnum,ee)
-#define JZY dom%InvGrad_(2,1,i,j,k,bnum,ee)
+#define DZEDY dom%InvGrad_(2,1,i,j,k,bnum,ee)
 #define JZZ dom%InvGrad_(2,2,i,j,k,bnum,ee)
 
                 dxx=dUx_dxi(ee,i,j,k)*DXIDX + dUx_deta(ee,i,j,k)*DXIDY + dUx_dzeta(ee,i,j,k)*DXIDZ
                 dxy=dUx_dxi(ee,i,j,k)*DETDX + dUx_deta(ee,i,j,k)*DETDY + dUx_dzeta(ee,i,j,k)*DETDZ
-                dxz=dUx_dxi(ee,i,j,k)*DZEDX + dUx_deta(ee,i,j,k)*JZY + dUx_dzeta(ee,i,j,k)*JZZ
+                dxz=dUx_dxi(ee,i,j,k)*DZEDX + dUx_deta(ee,i,j,k)*DZEDY + dUx_dzeta(ee,i,j,k)*JZZ
 
                 dyx=dUy_dxi(ee,i,j,k)*DXIDX + dUy_deta(ee,i,j,k)*DXIDY + dUy_dzeta(ee,i,j,k)*DXIDZ
                 dyy=dUy_dxi(ee,i,j,k)*DETDX + dUy_deta(ee,i,j,k)*DETDY + dUy_dzeta(ee,i,j,k)*DETDZ
-                dyz=dUy_dxi(ee,i,j,k)*DZEDX + dUy_deta(ee,i,j,k)*JZY + dUy_dzeta(ee,i,j,k)*JZZ
+                dyz=dUy_dxi(ee,i,j,k)*DZEDX + dUy_deta(ee,i,j,k)*DZEDY + dUy_dzeta(ee,i,j,k)*JZZ
 
                 dzx=dUz_dxi(ee,i,j,k)*DXIDX + dUz_deta(ee,i,j,k)*DXIDY + dUz_dzeta(ee,i,j,k)*DXIDZ
                 dzy=dUz_dxi(ee,i,j,k)*DETDX + dUz_deta(ee,i,j,k)*DETDY + dUz_dzeta(ee,i,j,k)*DETDZ
-                dzz=dUz_dxi(ee,i,j,k)*DZEDX + dUz_deta(ee,i,j,k)*JZY + dUz_dzeta(ee,i,j,k)*JZZ
+                dzz=dUz_dxi(ee,i,j,k)*DZEDX + dUz_deta(ee,i,j,k)*DZEDY + dUz_dzeta(ee,i,j,k)*JZZ
 
                 Eyz = (DYZ+DZY)*M_SQRT1_2
                 Exz = (DXZ+DZX)*M_SQRT1_2
@@ -201,7 +201,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 !=====================
                 !
                 xt1 = sxx*DXIDX+sxy*DETDX+sxz*DZEDX
-                xt2 = sxx*DXIDY+sxy*DETDY+sxz*JZY
+                xt2 = sxx*DXIDY+sxy*DETDY+sxz*DZEDY
                 xt3 = sxx*DXIDZ+sxy*DETDZ+sxz*JZZ
                 !
                 !=====================
@@ -209,7 +209,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 !=====================
                 !
                 xt5 = syy*DETDX+sxy*DXIDX+syz*DZEDX
-                xt6 = syy*DETDY+sxy*DXIDY+syz*JZY
+                xt6 = syy*DETDY+sxy*DXIDY+syz*DZEDY
                 xt7 = syy*DETDZ+sxy*DXIDZ+syz*JZZ
                 !
                 !=====================
@@ -217,7 +217,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 !=====================
                 !
                 xt8 = szz*DZEDX+sxz*DXIDX+syz*DETDX
-                xt9 = szz*JZY+sxz*DXIDY+syz*DETDY
+                xt9 = szz*DZEDY+sxz*DXIDY+syz*DETDY
                 xt10= szz*JZZ+sxz*DXIDZ+syz*DETDZ
 
                 !
@@ -333,7 +333,7 @@ end subroutine PROCNAME
 #undef DETDY
 #undef DETDZ
 #undef DZEDX
-#undef JZY
+#undef DZEDY
 #undef JZZ
 
 !! Local Variables:
