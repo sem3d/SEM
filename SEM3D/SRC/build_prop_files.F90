@@ -94,10 +94,15 @@ contains
 
                     !INFO
                     !interpolatedRF(:, 0) --Density
-                    !interpolatedRF(:, 1) --Kappa
+                    !interpolatedRF(:, 1) --Kappa/Lambda
                     !interpolatedRF(:, 2) --Mu
 
-                    lambda(:) = interpolatedRF(:, 1) - 2.0D0*interpolatedRF(:, 2) /3.0D0
+                    if(Tdomain%sSubDomain(mat)%lambdaSwitch == 1) then
+                        lambda(:) = interpolatedRF(:, 1)
+                        interpolatedRF(:, 1) = lambda(:) + (2.0d0*interpolatedRF(:, 2)/3.0D0)!Kappa
+                    else
+                        lambda(:) = interpolatedRF(:, 1) - (2.0D0*interpolatedRF(:, 2)/3.0D0)
+                    end if
                     !S%DMu = S%Sspeed**2 * S%Ddensity
                     !S%DLambda = (S%Pspeed**2 - 2 * S%Sspeed **2 ) * S%Ddensity
                     !S%DKappa = S%DLambda + 2.*S%DMu /3.

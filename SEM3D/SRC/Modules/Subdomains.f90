@@ -40,15 +40,16 @@ module ssubdomains
         real(fpp) :: Apow
 
         !! RANDOM
-        integer :: corrMod
+        !integer :: corrMod
         integer :: assocMat = -1
-        integer :: seedStart
-        integer  , dimension(:), allocatable :: margiFirst
-        integer  , dimension(:), allocatable :: chosenSeed
-        real(fpp), dimension(:), allocatable :: varCoef
-        real(fpp), dimension(:), allocatable :: corrL
+        !integer :: seedStart
+        !integer  , dimension(:), allocatable :: margiFirst
+        !integer  , dimension(:), allocatable :: chosenSeed
+        !real(fpp), dimension(:), allocatable :: varCoef
+        !real(fpp), dimension(:), allocatable :: corrL
         real(fpp), dimension(0:2) :: MinBound, MaxBound, MinBound_Loc, MaxBound_Loc
         character(len=1024), dimension(0:2) :: propFilePath
+        integer :: lambdaSwitch = -1
 
     end type Subdomain
 

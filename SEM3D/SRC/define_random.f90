@@ -55,6 +55,9 @@ contains
 !        if(rg == 0) open (unit = main_fId , file = "./mat/main_input", action = 'write')
 
         do mat = 0, Tdomain%n_mat - 1
+            propName(1) = "Kappa"
+            if(Tdomain%sSubdomain(mat)%lambdaSwitch == 1) propName(1) = "Lambda"
+
 
 !            Density = Tdomain%sSubDomain(mat)%Ddensity
 !            P_Speed = Tdomain%sSubDomain(mat)%Pspeed

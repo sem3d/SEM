@@ -516,16 +516,16 @@ contains
             !INPUT
             character(len=*), intent(in) :: SEM_gen_path
             !LOCAL
-            integer :: i
+            integer :: i, j
             integer :: fid, fid_2
             integer :: nMat, npml, nRand
             character(len=1), dimension(:), allocatable :: materialType
             integer,          dimension(:), allocatable :: assocMat
             integer :: npow
             double precision :: Apow, posX, widthX, posY, widthY, posZ, widthZ
-            integer, dimension(:), allocatable :: corrMod
-            double precision, dimension(:,:), allocatable :: corrL !corrL_x, corrL_y, corrL_z
-            integer, dimension(:), allocatable :: seedStart
+            integer, dimension(:,:), allocatable :: corrMod
+            double precision, dimension(:,:,:), allocatable :: corrL !corrL_x, corrL_y, corrL_z
+            integer, dimension(:,:), allocatable :: seedStart
             !integer, dimension(:), allocatable :: rho_margiF, kappa_margiF, mu_margiF
             !double precision, dimension(:), allocatable :: rho_CV, kappa_CV, mu_CV
             integer, dimension(:,:), allocatable :: margiF
@@ -533,11 +533,12 @@ contains
             integer :: matNb, randCount
             double precision, dimension(:,:), allocatable :: bbox_min, bbox_max
             integer :: prop, nprop
-            character(len=7), dimension(3) :: propNames=["Density", "Kappa  ", "Mu     "]
+            character(len=7), dimension(3) :: propNames
             character(len=buf_RF) :: mesh_path, gen_path, absPath
             character(len=buf_RF) :: out_folder
             double precision, dimension(:,:), allocatable :: fieldVar, fieldAvg
-            double precision :: Pspeed, Sspeed, Dens
+            double precision, dimension(:), allocatable :: Pspeed, Sspeed, Dens
+            integer, dimension(:), allocatable :: lambdaSwitch
 
             fid_2 = 19
             npml  = 0
@@ -551,11 +552,15 @@ contains
                 write(*,*) "nMat = ", nMat
 
                 allocate(materialType(nMat))
+                allocate(Pspeed(nMat))
+                allocate(Sspeed(nMat))
+                allocate(Dens(nMat))
                 allocate(assocMat(nMat))
-                allocate(corrMod(nMat))
-                allocate(corrL(3,nMat))
+                allocate(corrMod(nprop, nMat))
+                allocate(corrL(3,nprop,nMat))
                 allocate(fieldVar(nprop,nMat))
-                allocate(fieldAvg(nprop,nMat))
+                allocate(fieldAvg(nprop))
+                allocate(lambdaSwitch(nMat))
                 !allocate(corrL_x(nMat))
                 !allocate(corrL_y(nMat))
                 !allocate(corrL_z(nMat))
@@ -564,7 +569,7 @@ contains
                 !allocate(rho_margiF(nMat))
                 !allocate(kappa_margiF(nMat))
                 !allocate(mu_margiF(nMat))
-                allocate(seedStart(nMat))
+                allocate(seedStart(nprop,nMat))
                 !allocate(rho_CV(nMat))
                 !allocate(kappa_CV(nMat))
                 !allocate(mu_CV(nMat))
@@ -575,23 +580,23 @@ contains
                 bbox_min(:,:) = MAX_DOUBLE
                 bbox_max(:,:) = MIN_DOUBLE
 
+                !READ material.input
                 do i = 1, nMat
-                    read(fid_2,*) materialType(i), Pspeed, Sspeed, Dens
-
-                    fieldAvg(1,i) = Dens !Density
-                    fieldAvg(2,i) = Dens*(Pspeed**2d0 - 4d0*(Sspeed**2d0)/3d0) !Kappa
-                    fieldAvg(3,i) = Dens*Sspeed**2d0 !Mu
+                    read(fid_2,*) materialType(i), Pspeed(i), Sspeed(i), Dens(i)
 
                     if (materialType(i) == "P" .or. materialType(i) == "L") then
                         npml = npml + 1
                     else
+                        if (materialType(i) == "R") nRand = nRand + 1
                         assocMat(i) = i-1
                     end if
 
                 end do
 
-                read(fid_2,*)
-                read(fid_2,*)
+                if(npml > 0) then
+                    read(fid_2,*) !# PML properties
+                    read(fid_2,*) !# npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat
+                end if
 
                 do i = 1, nMat
                     if (materialType(i) == "P" .or. materialType(i) == "L") then
@@ -599,27 +604,33 @@ contains
                     end if
                 end do
 
-                read(fid_2,*)
-                read(fid_2,*)
+                if(nRand > 0) then
 
-                do i = 1, nMat
-                    if (materialType(i) == "R") then
-                        nRand = nRand + 1
-                        read(fid_2,*) corrMod(i), corrL(1,i), corrL(2,i), corrL(3,i), margiF(1,i), CV(1,i), &
-                                      margiF(2,i), CV(2,i), margiF(3,i), CV(3,i), seedStart(i)
+                    read(fid_2,*) !# Random properties
+                    read(fid_2,*) !# Kappa/Lambda (0/1)
+                    read(fid_2,*) !# Rho         : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+                    read(fid_2,*) !# Kappa/Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+                    read(fid_2,*) !# Mu          : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
 
-                        fieldVar(1,i) = (CV(1,i)*fieldAvg(1,i))**2d0 !Density
-                        fieldVar(2,i) = (CV(2,i)*fieldAvg(2,i))**2d0 !Kappa
-                        fieldVar(3,i) = (CV(3,i)*fieldAvg(3,i))**2d0 !Mu
-                    end if
-                end do
+
+                    do i = 1, nMat
+                        if (materialType(i) == "R") then
+                            read(fid_2,*) lambdaSwitch(i)
+                            do j = 1, nprop
+                                read(fid_2,*) corrMod(j, i), corrL(1,j,i), corrL(2,j,i), corrL(3,j,i), margiF(j,i), CV(j,i), seedStart(j, i)
+                                fieldVar(j,i) = (CV(j,i)*fieldAvg(j,i))**2d0
+                            end do
+                        end if
+                    end do
+
+                end if
 
                 !call DispCarvalhol(materialType, "materialType")
                 !call DispCarvalhol(assocMat, "assocMat")
 
             close(fid_2)
 
-            !READING material.input
+            !READING domains.txt
             open (unit = fid_2 , file = "./domains.txt", action = 'read', status="old", form="formatted")
                 do i = 1, nMat
                     read(fid_2,*) matNb, bbox_min(1,i), bbox_min(2,i), bbox_min(3,i), &
@@ -653,8 +664,18 @@ contains
             do i = 1, nMat
                 if (materialType(i) == "R") then
 
+                    propNames=["Density", "Kappa  ", "Mu     "]
+                    fieldAvg(1) = Dens(i) !Density
+                    fieldAvg(2) = Dens(i)*(Pspeed(i)**2d0 - 4d0*(Sspeed(i)**2d0)/3d0) !Kappa
+                    fieldAvg(3) = Dens(i)*Sspeed(i)**2d0 !Mu
 
-                    do prop = 1, 3
+                    if(lambdaSwitch(i) == 1) then
+                        propNames=["Density", "Lambda ", "Mu     "]
+                        fieldAvg(2) = (Pspeed(i)**2d0 - 2d0*Sspeed(i)**2d0)*Dens(i) !Lambda
+                    end if
+
+                    do prop = 1, nProp
+
                         randCount = randCount + 1
 
                         mesh_path = trim(string_join_many(SEM_gen_path,"/input/", &
@@ -670,9 +691,9 @@ contains
 
                         write(fid,"(A)") trim(string_join_many(stringNumb_join("$gen_input_", randCount)))//' "'//&
                                      trim(string_join_many(absPath,'/',gen_path,'"'))
-                        call write_gen_file(3, 1, corrMod(i), margiF(prop, i), corrL(:,i), &
+                        call write_gen_file(3, 1, corrMod(prop, i), margiF(prop, i), corrL(:,prop,i), &
                                             fieldAvg(prop, i), fieldVar(prop, i), 4, &
-                                            seedStart(i), [5d0, 5d0, 5d0], &
+                                            seedStart(prop,i), [5d0, 5d0, 5d0], &
                                             gen_path,  &
                                             1, [0, 0, 0])
 
@@ -702,7 +723,9 @@ contains
 
             if(allocated(materialType)) deallocate(materialType)
             if(allocated(assocMat)) deallocate(assocMat)
-
+            if(allocated(Pspeed)) deallocate(Pspeed)
+            if(allocated(Sspeed)) deallocate(Sspeed)
+            if(allocated(Dens)) deallocate(Dens)
             if(allocated(corrMod)) deallocate(corrMod)
             !if(allocated(corrL_x)) deallocate(corrL_x)
             !if(allocated(corrL_y)) deallocate(corrL_y)
@@ -714,6 +737,7 @@ contains
             if(allocated(margiF)) deallocate(margiF)
             if(allocated(CV)) deallocate(CV)
             if(allocated(seedStart)) deallocate(seedStart)
+            if(allocated(lambdaSwitch)) deallocate(lambdaSwitch)
             !if(allocated(rho_CV)) deallocate(rho_CV)
             !if(allocated(kappa_CV)) deallocate(kappa_CV)
             !if(allocated(mu_CV)) deallocate(mu_CV)
