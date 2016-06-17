@@ -432,6 +432,7 @@ contains
         ! My understanding is that all procs process different elements (PML or not), so all procs are NOT
         ! here (in init_solidpml_properties) at the same time : broadcast fmax of each proc to all procs and get
         ! the max could NOT work ?!... Right ? Wrong ? Don't know !...
+        ! TODO : replace all this by fmax from read_input.c
         if (Tdomain%nb_procs /= 1) stop "ERROR : SolidCPML is limited to monoproc for now"
 
         fmax = -1.
