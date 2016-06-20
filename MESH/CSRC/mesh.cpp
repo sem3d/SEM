@@ -130,11 +130,13 @@ void Mesh3D::dump_connectivity(const char* fname)
 
 void Mesh3D::write_materials(const std::string& str)
 {
+	printf("Writing Materials");
     write_materials_v2(str);
 }
 
 int Mesh3D::read_materials(const std::string& str)
 {
+	printf("Reading Materials\n");
     return read_materials_v2(str);
 }
 
@@ -205,38 +207,32 @@ int Mesh3D::read_materials_v2(const std::string& str)
         getline(&buffer, &linesize, f);
         sscanf(buffer, "%c %lf %lf %lf %d %lf %lf",
                &type, &vp, &vs, &rho, &ngllx, &Qp, &Qmu);
+
         printf("Mat: %2ld : %c vp=%lf vs=%lf\n", m_materials.size(), type, vp, vs);
-        if(strcmp(&type,"R")){
+        //printf("     MATERIAL %d\n", k);
+        //printf("     type = %c\n", type);
+        //printf("     strcmp(&type,R) = %d\n", strcmp(&type,"R"));
+
+        if(strcmp(&type,"R") == 0){
 
         	getline(&buffer, &linesize, f);
-                sscanf(buffer,"%d", &lambdaSwitch);
+			sscanf(buffer,"%d", &lambdaSwitch);
 
-                getline(&buffer, &linesize, f);
-                sscanf(buffer,"%d %lf %lf %lf %d %lf %d", 
-                       &corrMod_0, &corrL_x_0, &corrL_y_0, &corrL_z_0,
-                       &margiF_0, &CV_0, &seedStart_0);
-                                      
-                getline(&buffer, &linesize, f);
-                sscanf(buffer,"%d %lf %lf %lf %d %lf %d", 
-                       &corrMod_1, &corrL_x_1, &corrL_y_1, &corrL_z_1,
-                       &margiF_1, &CV_1, &seedStart_1);
-                 
-                getline(&buffer, &linesize, f);
-                sscanf(buffer,"%d %lf %lf %lf %d %lf %d", 
-                       &corrMod_2, &corrL_x_2, &corrL_y_2, &corrL_z_2,
-                       &margiF_2, &CV_2, &seedStart_2);
+			getline(&buffer, &linesize, f);
+			sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
+				   &corrMod_0, &corrL_x_0, &corrL_y_0, &corrL_z_0,
+				   &margiF_0, &CV_0, &seedStart_0);
 
-/*
-                sscanf(buffer, "%d %lf %lf %lf %d %lf %d %lf %d %lf %d",
-        	               &corrMod,
-						   &corrL_x, &corrL_y, &corrL_z,
-						   &rho_margiF, &rho_var,
-						   &lambda_margiF, &lambda_var,
-						   &mu_margiF, &mu_var,
-						   &seedStart);
-        	printf("     corrMod = %d, cL_x = %lf, cL_y = %lf, cL_z = %lf, seedStart = %d\n",
-        			corrMod, corrL_x, corrL_y, corrL_z, seedStart);
-*/
+			getline(&buffer, &linesize, f);
+			sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
+				   &corrMod_1, &corrL_x_1, &corrL_y_1, &corrL_z_1,
+				   &margiF_1, &CV_1, &seedStart_1);
+
+			getline(&buffer, &linesize, f);
+			sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
+				   &corrMod_2, &corrL_x_2, &corrL_y_2, &corrL_z_2,
+				   &margiF_2, &CV_2, &seedStart_2);
+
         	m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx,
         			                  lambdaSwitch,
                                       corrMod_0, corrL_x_0, corrL_y_0, corrL_z_0,
@@ -245,6 +241,10 @@ int Mesh3D::read_materials_v2(const std::string& str)
                                       margiF_1, CV_1, seedStart_1,
                                       corrMod_2, corrL_x_2, corrL_y_2, corrL_z_2,
                                       margiF_2, CV_2, seedStart_2));
+
+        	//printf("     lambdaSwitch = %d\n", lambdaSwitch);
+        	//cL_x = %lf, cL_y = %lf, cL_z = %lf, seedStart = %d\n",
+        	//		corrMod, corrL_x, corrL_y, corrL_z, seedStart);
         }
         else{
         	m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
