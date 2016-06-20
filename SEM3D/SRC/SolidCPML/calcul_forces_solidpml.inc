@@ -199,34 +199,42 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 
                 ! Transform sigma from (x, y, z) to the (xi, eta, zeta) space : sigma * J^-1
 
+                ! Line 0 of sigma * J^-1
                 xt1 = sxx*DXIDX+sxy*DXIDY+sxz*DXIDZ
                 xt2 = sxx*DETDX+sxy*DETDY+sxz*DETDZ
                 xt3 = sxx*DZEDX+sxy*DZEDY+sxz*DZEDZ
 
+                ! Line 1 of sigma * J^-1
                 xt5 = syx*DXIDX+syy*DXIDY+syz*DXIDZ
                 xt6 = syx*DETDX+syy*DETDY+syz*DETDZ
                 xt7 = syx*DZEDX+syy*DZEDY+syz*DZEDZ
 
+                ! Line 2 of sigma * J^-1
                 xt8 = szx*DXIDX+szy*DXIDY+szz*DXIDZ
                 xt9 = szx*DETDX+szy*DETDY+szz*DETDZ
                 xt10= szx*DZEDX+szy*DZEDY+szz*DZEDZ
 
                 !- Multiplication par le Jacobien et le poids d'integration
 
+                ! Column 0 of sigma * J^-1
                 t4 = dom%Jacob_(i,j,k,bnum,ee) * dom%GLLw(i)
                 xt1  =  xt1 * t4
                 xt5  =  xt5 * t4
                 xt8  =  xt8 * t4
 
+                ! Column 1 of sigma * J^-1
                 t4 = dom%Jacob_(i,j,k,bnum,ee) * dom%GLLw(j)
                 xt2  =  xt2 * t4
                 xt6  =  xt6 * t4
                 xt9  =  xt9 * t4
 
+                ! Column 2 of sigma * J^-1
                 t4 = dom%Jacob_(i,j,k,bnum,ee) * dom%GLLw(k)
                 xt3  =  xt3 * t4
                 xt7  =  xt7 * t4
                 xt10 = xt10 * t4
+
+                ! Store before next loop transformation T = sigma * J^-1 column by column
 
                 t1(ee,i,j,k) = xt1
                 t5(ee,i,j,k) = xt5
