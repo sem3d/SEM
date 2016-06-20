@@ -214,17 +214,17 @@ int Mesh3D::read_materials_v2(const std::string& str)
                 getline(&buffer, &linesize, f);
                 sscanf(buffer,"%d %lf %lf %lf %d %lf %d", 
                        &corrMod_0, &corrL_x_0, &corrL_y_0, &corrL_z_0,
-                       &margiF_0, &CV_0, &seedStart_0)
+                       &margiF_0, &CV_0, &seedStart_0);
                                       
                 getline(&buffer, &linesize, f);
                 sscanf(buffer,"%d %lf %lf %lf %d %lf %d", 
                        &corrMod_1, &corrL_x_1, &corrL_y_1, &corrL_z_1,
-                       &margiF_1, &CV_1, &seedStart_1)
+                       &margiF_1, &CV_1, &seedStart_1);
                  
                 getline(&buffer, &linesize, f);
                 sscanf(buffer,"%d %lf %lf %lf %d %lf %d", 
                        &corrMod_2, &corrL_x_2, &corrL_y_2, &corrL_z_2,
-                       &margiF_2, &CV_2, &seedStart_2)
+                       &margiF_2, &CV_2, &seedStart_2);
 
 /*
                 sscanf(buffer, "%d %lf %lf %lf %d %lf %d %lf %d %lf %d",
@@ -238,7 +238,7 @@ int Mesh3D::read_materials_v2(const std::string& str)
         			corrMod, corrL_x, corrL_y, corrL_z, seedStart);
 */
         	m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx,
-        			      lambdaSwitch,
+        			                  lambdaSwitch,
                                       corrMod_0, corrL_x_0, corrL_y_0, corrL_z_0,
                                       margiF_0, CV_0, seedStart_0,
                                       corrMod_1, corrL_x_1, corrL_y_1, corrL_z_1,
@@ -309,17 +309,30 @@ void Mesh3D::write_materials_v2(const std::string& str)
                 mat.ypos, mat.ywidth,
                 mat.zpos, mat.zwidth, mat.associated_material);
     }
-    fprintf(f, "# Random properties\n");
-    fprintf(f, "# corrMod, corrL_x, corrL_y, corrL_z, rho_margiF, rho_CV, kappa_margiF, kappa_CV, mu_margiF, mu_CV, seedStart\n");
+    fprintf(f,"# Random properties\n");
+    fprintf(f,"# Kappa/Lambda (0/1)\n");
+    fprintf(f,"# Rho         : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart\n");
+    fprintf(f,"# Kappa/Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart\n");
+    fprintf(f,"# Mu          : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart\n");
+
     for(int k=0;k<nmats;++k) {
         const Material& mat = m_materials[k];
         if (strcmp(&mat.cinitial_type,"R") != 0) continue;
-        fprintf(f, "%d %lf %lf %lf %d %lf %d %lf %d %lf %d\n",
-                mat.corrMod,
-				mat.corrL_x, mat.corrL_y, mat.corrL_z,
-                mat.rho_margiF, mat.rho_var,
-				mat.lambda_margiF, mat.lambda_var,
-				mat.mu_margiF, mat.mu_var, mat.seedStart);
+
+        fprintf(f, "%d\n", mat.m_lambdaSwitch);
+
+        fprintf(f, "%d %lf %lf %lf %d %lf %d\n",
+                mat.m_corrMod_0, mat.m_corrL_x_0, mat.m_corrL_y_0, mat.m_corrL_z_0,
+				mat.m_margiF_0, mat.m_CV_0, mat.m_seedStart_0);
+
+        fprintf(f, "%d %lf %lf %lf %d %lf %d\n",
+                mat.m_corrMod_1, mat.m_corrL_x_1, mat.m_corrL_y_1, mat.m_corrL_z_1,
+        		mat.m_margiF_1, mat.m_CV_1, mat.m_seedStart_1);
+
+        fprintf(f, "%d %lf %lf %lf %d %lf %d\n",
+                mat.m_corrMod_2, mat.m_corrL_x_2, mat.m_corrL_y_2, mat.m_corrL_z_2,
+        		mat.m_margiF_2, mat.m_CV_2, mat.m_seedStart_2);
+
     }
 }
 

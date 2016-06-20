@@ -34,12 +34,12 @@ public:
     Material(const Material& mat):m_type(mat.m_type),
                                   ctype(mat.ctype),
                                   rho(mat.rho),
-				  Pspeed(mat.Pspeed),
-				  Sspeed(mat.Sspeed),
-				  Qpression(mat.Qpression),
-				  Qmu(mat.Qmu),
+								  Pspeed(mat.Pspeed),
+								  Sspeed(mat.Sspeed),
+								  Qpression(mat.Qpression),
+								  Qmu(mat.Qmu),
                                   m_ngll(mat.m_ngll),
-				  cinitial_type(mat.cinitial_type),
+								  cinitial_type(mat.cinitial_type),
                                   xpos(mat.xpos),
                                   xwidth(mat.xwidth),
                                   ypos(mat.ypos),
@@ -47,18 +47,29 @@ public:
                                   zpos(mat.zpos),
                                   zwidth(mat.zwidth),
                                   m_pml_num(mat.m_pml_num),
-				  associated_material(mat.associated_material),
-				  corrMod(mat.corrMod),
-				  corrL_x(mat.corrL_x),
-				  corrL_y(mat.corrL_y),
-				  corrL_z(mat.corrL_z),
-				  rho_margiF(mat.rho_margiF),
-				  rho_var(mat.rho_var),
-				  lambda_margiF(mat.lambda_margiF),
-				  lambda_var(mat.lambda_var),
-				  mu_margiF(mat.mu_margiF),
-				  mu_var(mat.mu_var),
-				  seedStart(mat.seedStart)
+								  associated_material(mat.associated_material),
+								  m_lambdaSwitch(mat.m_lambdaSwitch),
+								  m_corrMod_0(mat.m_corrMod_0),
+								  m_corrL_x_0(mat.m_corrL_x_0),
+								  m_corrL_y_0(mat.m_corrL_y_0),
+								  m_corrL_z_0(mat.m_corrL_z_0),
+								  m_margiF_0(mat.m_margiF_0),
+								  m_CV_0(mat.m_CV_0),
+								  m_seedStart_0(mat.m_seedStart_0),
+								  m_corrMod_1(mat.m_corrMod_1),
+								  m_corrL_x_1(mat.m_corrL_x_1),
+								  m_corrL_y_1(mat.m_corrL_y_1),
+								  m_corrL_z_1(mat.m_corrL_z_1),
+								  m_margiF_1(mat.m_margiF_1),
+								  m_CV_1(mat.m_CV_1),
+								  m_seedStart_1(mat.m_seedStart_1),
+								  m_corrMod_2(mat.m_corrMod_2),
+								  m_corrL_x_2(mat.m_corrL_x_2),
+								  m_corrL_y_2(mat.m_corrL_y_2),
+								  m_corrL_z_2(mat.m_corrL_z_2),
+								  m_margiF_2(mat.m_margiF_2),
+								  m_CV_2(mat.m_CV_2),
+								  m_seedStart_2(mat.m_seedStart_2)
         {
         }
 
@@ -68,12 +79,14 @@ public:
         ctype(type), rho(Rho), Pspeed(Vp), Sspeed(Vs), Qpression(Qp), Qmu(Qmu_),
         m_ngll(ngll), cinitial_type(type),
         xpos(0.), xwidth(0.), ypos(0.), ywidth(0.), zpos(0.), zwidth(0.),
-		corrMod(-1),
-		corrL_x(-1.), corrL_y(-1.), corrL_z(-1.),
-		rho_margiF(-1), rho_var(-1.),
-		lambda_margiF(-1), lambda_var(-1.),
-		mu_margiF(-1), mu_var(-1),
-		seedStart(-1)
+		m_lambdaSwitch(-1),
+		m_corrMod_0(-1), m_corrL_x_0(-1.), m_corrL_y_0(-1.), m_corrL_z_0(-1.),
+		m_margiF_0(-1), m_CV_0(-1.), m_seedStart_0(-1),
+		m_corrMod_1(-1), m_corrL_x_1(-1.), m_corrL_y_1(-1.), m_corrL_z_1(-1.),
+		m_margiF_1(-1), m_CV_1(-1.), m_seedStart_1(-1),
+		m_corrMod_2(-1), m_corrL_x_2(-1.), m_corrL_y_2(-1.), m_corrL_z_2(-1.),
+		m_margiF_2(-1), m_CV_2(-1.), m_seedStart_2(-1.)
+
         {
         switch (type) {
         case 'P':
@@ -100,21 +113,23 @@ public:
     }
     Material(char type, double Vp, double Vs, double Rho,
              double Qp, double Qmu_, int ngll,
-			 int corrM,
-			 double cL_x, double cL_y, double cL_z,
-			 int rho_fom, double rho_v,
-			 int lambda_fom, double lambda_v,
-			 int mu_fom, double mu_v,
-			 int seedStart_):
+			 int lambdaSwitch,
+			 int corrMod_0, double corrL_x_0, double corrL_y_0, double corrL_z_0,
+			 int margiF_0, double CV_0, int seedStart_0,
+			 int corrMod_1, double corrL_x_1, double corrL_y_1, double corrL_z_1,
+			 int margiF_1, double CV_1, int seedStart_1,
+			 int corrMod_2, double corrL_x_2, double corrL_y_2, double corrL_z_2,
+			 int margiF_2, double CV_2, int seedStart_2):
         ctype(type), rho(Rho), Pspeed(Vp), Sspeed(Vs), Qpression(Qp), Qmu(Qmu_),
         m_ngll(ngll), cinitial_type(type),
         xpos(0.), xwidth(0.), ypos(0.), ywidth(0.), zpos(0.), zwidth(0.),
-		corrMod(corrM),
-		corrL_x(cL_x), corrL_y(cL_y), corrL_z(cL_z),
-		rho_margiF(rho_fom), rho_var(rho_v),
-		lambda_margiF(lambda_fom), lambda_var(lambda_v),
-		mu_margiF(mu_fom), mu_var(mu_v),
-		seedStart(seedStart_)
+		m_lambdaSwitch(lambdaSwitch),
+		m_corrMod_0(corrMod_0), m_corrL_x_0(corrL_x_0), m_corrL_y_0(corrL_y_0), m_corrL_z_0(corrL_z_0),
+		m_margiF_0(margiF_0), m_CV_0(CV_0), m_seedStart_0(seedStart_0),
+		m_corrMod_1(corrMod_1), m_corrL_x_1(corrL_x_1), m_corrL_y_1(corrL_y_1), m_corrL_z_1(corrL_z_1),
+        m_margiF_1(margiF_1), m_CV_1(CV_1), m_seedStart_1(seedStart_1),
+		m_corrMod_2(corrMod_2), m_corrL_x_2(corrL_x_2), m_corrL_y_2(corrL_y_2), m_corrL_z_2(corrL_z_2),
+	    m_margiF_2(margiF_2), m_CV_2(CV_2), m_seedStart_2(seedStart_2)
 
         {
         switch (type) {
@@ -199,17 +214,33 @@ public:
     double ypos, ywidth;
     double zpos, zwidth;
     int associated_material;
-    int corrMod;
-	double corrL_x;
-	double corrL_y;
-	double corrL_z;
-	int rho_margiF;
-	double rho_var;
-	int lambda_margiF;
-	double lambda_var;
-	int mu_margiF;
-	double mu_var;
-	int seedStart;
+
+    int m_lambdaSwitch;
+
+    int    m_corrMod_0;
+    double m_corrL_x_0;
+    double m_corrL_y_0;
+    double m_corrL_z_0;
+    int     m_margiF_0;
+    double      m_CV_0;
+    int  m_seedStart_0;
+
+    int    m_corrMod_1;
+    double m_corrL_x_1;
+    double m_corrL_y_1;
+    double m_corrL_z_1;
+    int     m_margiF_1;
+    double      m_CV_1;
+    int  m_seedStart_1;
+
+    int    m_corrMod_2;
+	double m_corrL_x_2;
+	double m_corrL_y_2;
+	double m_corrL_z_2;
+	int     m_margiF_2;
+	double      m_CV_2;
+	int  m_seedStart_2;
+
 
     std::vector<int> m_pml_num;
 };
