@@ -197,34 +197,22 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 sxy = EXY*C1212 + EXY*C1221
                 syx = EXY*C1221 + EXY*C2121
 
-                !
-                !=====================
-                !       FX
-                !=====================
-                !
+                ! Transform sigma from (x, y, z) to the (xi, eta, zeta) space : sigma * J^-1
+
                 xt1 = sxx*DXIDX+sxy*DXIDY+sxz*DXIDZ
                 xt2 = sxx*DETDX+sxy*DETDY+sxz*DETDZ
                 xt3 = sxx*DZEDX+sxy*DZEDY+sxz*DZEDZ
-                !
-                !=====================
-                !       FY
-                !=====================
-                !
-                xt5 = syy*DXIDY+sxy*DXIDX+syz*DXIDZ
-                xt6 = syy*DETDY+sxy*DETDX+syz*DETDZ
-                xt7 = syy*DZEDY+sxy*DZEDX+syz*DZEDZ
-                !
-                !=====================
-                !       FZ
-                !=====================
-                !
-                xt8 = szz*DXIDZ+sxz*DXIDX+syz*DXIDY
-                xt9 = szz*DETDZ+sxz*DETDX+syz*DETDY
-                xt10= szz*DZEDZ+sxz*DZEDX+syz*DZEDY
 
-                !
+                xt5 = syx*DXIDX+syy*DXIDY+syz*DXIDZ
+                xt6 = syx*DETDX+syy*DETDY+syz*DETDZ
+                xt7 = syx*DZEDX+syy*DZEDY+syz*DZEDZ
+
+                xt8 = szx*DXIDX+szy*DXIDY+szz*DXIDZ
+                xt9 = szx*DETDX+szy*DETDY+szz*DETDZ
+                xt10= szx*DZEDX+szy*DZEDY+szz*DZEDZ
+
                 !- Multiplication par le Jacobien et le poids d'integration
-                !
+
                 t4 = dom%Jacob_(i,j,k,bnum,ee) * dom%GLLw(i)
                 xt1  =  xt1 * t4
                 xt5  =  xt5 * t4
