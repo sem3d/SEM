@@ -310,10 +310,10 @@ void Mesh3D::write_materials_v2(const std::string& str)
                 mat.zpos, mat.zwidth, mat.associated_material);
     }
     fprintf(f,"# Random properties\n");
-    fprintf(f,"# Kappa/Lambda (0/1)\n");
-    fprintf(f,"# Rho         : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart\n");
-    fprintf(f,"# Kappa/Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart\n");
-    fprintf(f,"# Mu          : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart\n");
+    fprintf(f,"# Parametrization Choice (0 for Kappa, 1 for Lambda)\n");
+    fprintf(f,"# Rho            : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart\n");
+    fprintf(f,"# Kappa or Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart\n");
+    fprintf(f,"# Mu             : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart\n");
 
     for(int k=0;k<nmats;++k) {
         const Material& mat = m_materials[k];

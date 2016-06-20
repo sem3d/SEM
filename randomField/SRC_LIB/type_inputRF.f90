@@ -532,11 +532,11 @@ contains
             double precision, dimension(:,:), allocatable :: CV
             integer :: matNb, randCount
             double precision, dimension(:,:), allocatable :: bbox_min, bbox_max
-            integer :: prop, nprop
+            integer :: nprop
             character(len=7), dimension(3) :: propNames
             character(len=buf_RF) :: mesh_path, gen_path, absPath
             character(len=buf_RF) :: out_folder
-            double precision, dimension(:,:), allocatable :: fieldVar, fieldAvg
+            double precision, dimension(:), allocatable :: fieldAvg, fieldVar
             double precision, dimension(:), allocatable :: Pspeed, Sspeed, Dens
             integer, dimension(:), allocatable :: lambdaSwitch
 
@@ -558,7 +558,7 @@ contains
                 allocate(assocMat(nMat))
                 allocate(corrMod(nprop, nMat))
                 allocate(corrL(3,nprop,nMat))
-                allocate(fieldVar(nprop,nMat))
+                allocate(fieldVar(nprop))
                 allocate(fieldAvg(nprop))
                 allocate(lambdaSwitch(nMat))
                 !allocate(corrL_x(nMat))
@@ -618,7 +618,6 @@ contains
                             read(fid_2,*) lambdaSwitch(i)
                             do j = 1, nprop
                                 read(fid_2,*) corrMod(j, i), corrL(1,j,i), corrL(2,j,i), corrL(3,j,i), margiF(j,i), CV(j,i), seedStart(j, i)
-                                fieldVar(j,i) = (CV(j,i)*fieldAvg(j,i))**2d0
                             end do
                         end if
                     end do
@@ -665,6 +664,7 @@ contains
                 if (materialType(i) == "R") then
 
                     propNames=["Density", "Kappa  ", "Mu     "]
+
                     fieldAvg(1) = Dens(i) !Density
                     fieldAvg(2) = Dens(i)*(Pspeed(i)**2d0 - 4d0*(Sspeed(i)**2d0)/3d0) !Kappa
                     fieldAvg(3) = Dens(i)*Sspeed(i)**2d0 !Mu
@@ -674,14 +674,16 @@ contains
                         fieldAvg(2) = (Pspeed(i)**2d0 - 2d0*Sspeed(i)**2d0)*Dens(i) !Lambda
                     end if
 
-                    do prop = 1, nProp
+                    fieldVar(:) = (CV(:,i)*fieldAvg)**2d0
+
+                    do j = 1, nProp
 
                         randCount = randCount + 1
 
                         mesh_path = trim(string_join_many(SEM_gen_path,"/input/", &
-                                     stringNumb_join("Mat_", i-1),"_",propNames(prop),"_mesh"))
+                                     stringNumb_join("Mat_", i-1),"_",propNames(j),"_mesh"))
                         gen_path  = trim(string_join_many(SEM_gen_path,"/input/", &
-                                     stringNumb_join("Mat_", i-1),"_",propNames(prop),"_gen"))
+                                     stringNumb_join("Mat_", i-1),"_",propNames(j),"_gen"))
 
                         write(fid,"(A)") trim(string_join_many(stringNumb_join("$mesh_input_", randCount)))//' "'//&
                                          trim(string_join_many(absPath,"/",mesh_path,'"'))
@@ -691,9 +693,9 @@ contains
 
                         write(fid,"(A)") trim(string_join_many(stringNumb_join("$gen_input_", randCount)))//' "'//&
                                      trim(string_join_many(absPath,'/',gen_path,'"'))
-                        call write_gen_file(3, 1, corrMod(prop, i), margiF(prop, i), corrL(:,prop,i), &
-                                            fieldAvg(prop, i), fieldVar(prop, i), 4, &
-                                            seedStart(prop,i), [5d0, 5d0, 5d0], &
+                        call write_gen_file(3, 1, corrMod(j, i), margiF(j, i), corrL(:,j,i), &
+                                            fieldAvg(j), fieldVar(j), 4, &
+                                            seedStart(j,i), [5d0, 5d0, 5d0], &
                                             gen_path,  &
                                             1, [0, 0, 0])
 
@@ -709,7 +711,7 @@ contains
 
                         write(fid,"(A)") trim(string_join_many(stringNumb_join("$out_name_", randCount)))//' "'//&
                                      trim(stringNumb_join("Mat_", i-1))//"_"//&
-                                     trim(propNames(prop))//'"'
+                                     trim(propNames(j))//'"'
                         write(fid,"(A)") " "
                     end do
                 end if

@@ -333,10 +333,10 @@ contains
 
         if(Tdomain%nRandom > 0) then
             read(13,*) !# Random properties
-            read(13,*) !# Kappa/Lambda (0/1)
-            read(13,*) !# Rho         : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-            read(13,*) !# Kappa/Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
-            read(13,*) !# Mu          : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+            read(13,*) !# Parametrization Choice (0 for Kappa, 1 for Lambda)
+            read(13,*) !# Rho            : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+            read(13,*) !# Kappa or Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+            read(13,*) !# Mu             : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
 
             do i = 0,Tdomain%n_mat-1
                 !write(*,*) "Reading Random Material (", i, ")"
@@ -346,6 +346,7 @@ contains
                     read(13,*) !# Rho         : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
                     read(13,*) !# Kappa/Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
                     read(13,*) !# Mu          : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+                    write(*,*) "Tdomain%sSubdomain(i)%lambdaSwitch = ", Tdomain%sSubdomain(i)%lambdaSwitch
 !                    allocate(Tdomain%sSubdomain(i)%corrL(0:2))
 !                    allocate(Tdomain%sSubdomain(i)%varCoef(0:2))
 !                    allocate(Tdomain%sSubdomain(i)%margiFirst(0:2))

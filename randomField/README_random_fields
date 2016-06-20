@@ -25,7 +25,7 @@ This means that you call the executable randomfield.exe from your TEST folder (R
 to the random library). This will generate the properties h5 files needed to run the simulation. They will be
 located in the TEST/mat/h5 folder. 
 
-Once properties are generated you re-run SEM and you will be able to complete your simulation.
+Once properties are generated you SEM simulation.
 
 
 INPUTS
@@ -49,36 +49,71 @@ Example of mat.dat file of 2 random subdomains (1st and 3rd)  and 1 constant sub
 
 3
 R   3535.533   2500.000   2800.000   5   5   5   0.00010   630.000   250.000
-1   20.00   20.00  20.00   1        0.5    1        1.0   1        2.0  -1
+1
+1   20.00   20.00  20.00  2  0.5  -1
+1   20.00   20.00  20.00  2  0.5  -1
+1   20.00   20.00  20.00  2  0.5  -1
 S   3535.533   2500.000   2800.000   5   5   5   0.00010   630.000   250.000
 R   3535.533   2500.000   2800.000   5   5   5   0.00010   630.000   250.000
-1   20.00   20.00  20.00   1        0.5    1        1.0   1        2.0  -1
+1
+1   10.00   10.00  10.00  2  0.15  0
+1   20.00   20.00  20.00  2  0.25  0
+1   30.00   40.00  50.00  2  0.0   3
 
-The statistical inputs are from left to right (line following a R subdomain):
+For each "R" subdomain the 4 folowing lines define the statistical and parameterization inputs
+In the first line the integer informs the Parameterization Choice - PC (0 for Kappa, 1 for Lambda)
+The second, third and forth lines are the statistical inputs for each property. These properties
+will be:
+
+If PC = 0
+1st. Density
+2nd. Kappa
+3rd. Mu
+
+If PC = 1 
+1st. Density
+2nd. Lambda
+3rd. Mu 
+
+
+For each of these properties the statistical inputs are, from left to right
 Correlation Model: 1 for gaussian
 Correlation Length in X
 Correlation Length in Y
 Correlation Length in Z
-The 6 numbers that follow are the first order marginal (1 for gaussian, 2 for lognormal) and the coeffitient of variation for each property.
-The properties are:
-1st: Density
-2nd: Kappa
-3rd: Mu
-The last number is the random seed. If it's smaller than 0 the seed will be determined by the processors clock.
+First order marginal (1 for gaussian, 2 for lognormal)
+Coefficient of variation
+Random seed. If it's smaller than 0 the seed will be determined by the processors clock.
 
 Graphically it means:
 
-1   20.00   20.00  20.00   1        0.5    1        1.0   1        2.0  -1
-|    |       |      |      |         |     |         |    |         |     |_Random seed
-|    |       |      |      |         |     |         |    |         |_Mu Coefficient of Variation
-|    |       |      |      |         |     |         |    |_Mu First-Order Marginal
-|    |       |      |      |         |     |         |_Kappa Coeficient of Variation
-|    |       |      |      |         |     |_Kappa First Order Marginal
-|    |       |      |      |         |_Density Coefficient of Variation
-|    |       |      |      |_Density First Order Marginal
+0   ---------------------------------------- Parameterization Choice (PC)
+1   10.00   10.00  10.00  2  0.15  0 -- Density Statistical parameters
+1   20.00   20.00  20.00  2  0.25  0 -- Kappa Statistical parameters (If PC = 0, it would be the parameters for Lambda if PC = 1)
+1   30.00   40.00  50.00  2  0.0   3 -- Mu Statistical parameters
+|    |       |      |     |  |     |
+|    |       |      |     |  |     |_Random Seed
+|    |       |      |     |  |_Coefficient of Variation
+|    |       |      |     |_First Order Marginal
 |    |       |      |_Z Correlation Length
 |    |       |_Y Correlation Legth
 |    |_X Correlation Length
 |_First Order Marginal
 
+FAQ
+===
 
+-Can I make only one of the properties constant?
+Yes, putting 0.0 to the Coefficient of Variation of this parameter.
+
+-What does it mean the Random Seed?
+Is the input for the generator of pseudo-random number generator.
+
+-How can I make 2 properties have a 100% correlation?
+Putting the same seed AND THE SAME CORRELATION LENGTHS for these properties.
+
+-Why do we have the "Parametrization Choice"?
+In most of the cases you want to parameterize your simulation with Kappa and Mu (CP = 0), cause they are independent eigen values
+of your behaviour matrix and you are sure that your problem is physically coherent. Sometimes, when thinking in terms of
+V_p and V_s, working with Lambda (putting it as a constant) can lead to regimes where there is no mode conversion and this
+is specially interesting when you want to validate random media propagation.
