@@ -252,10 +252,11 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
             enddo
         enddo
     enddo
+
     !
-    !- Multiplication par la matrice de derivation puis par les poids
+    ! Now multiply by grad(test_function) in (xi, eta, zeta) space where derivates can turn to be zero at gauss point
     !
-    !=-=-=-=-=-=-=-=-=-=-
+
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
@@ -264,12 +265,9 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 !dir$ vector aligned
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
-                !=-=-=-=-=-=-=-=-=-=-
-                !
-                t11 = dom%GLLw(j) * dom%GLLw(k)
-                t12 = dom%GLLw(i) * dom%GLLw(k)
-                t13 = dom%GLLw(i) * dom%GLLw(j)
-                !
+
+                ! Compute T * grad(test_function)
+
                 t41 = zero
                 t42 = zero
                 t43 = zero
@@ -279,7 +277,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 t61 = zero
                 t62 = zero
                 t63 = zero
-                !
+
                 do l = 0,ngll-1
                     t41 = t41 + dom%htprime(l,i) * t1(ee,l,j,k)
                     t42 = t42 + dom%htprime(l,i) * t5(ee,l,j,k)
@@ -291,27 +289,30 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                     t52 = t52 + dom%htprime(l,j) * t6(ee,l,i,k)
                     t53 = t53 + dom%htprime(l,j) * t9(ee,l,i,k)
                 enddo
-                ! FX
-                F1 = t41*t11 + t51*t12
-                ! FY
-                F2 = t42*t11 + t52*t12
-                ! FZ
-                F3 = t43*t11 + t53*t12
-                !
-                !
+
                 do l = 0,ngll-1
                     t61 = t61 + dom%htprime(l,k) * t3 (ee,l,i,j)
                     t62 = t62 + dom%htprime(l,k) * t7 (ee,l,i,j)
                     t63 = t63 + dom%htprime(l,k) * t10(ee,l,i,j)
                 enddo
 
+                ! Numerical integration based on Gauss points
+
+                t11 = dom%GLLw(j) * dom%GLLw(k)
+                t12 = dom%GLLw(i) * dom%GLLw(k)
+                t13 = dom%GLLw(i) * dom%GLLw(j)
+
+                ! Compute F = T * grad(test_function)
+
                 ! FX
-                F1 = F1 + t61*t13
-                ! FY
-                F2 = F2 + t62*t13
-                ! FZ
-                F3 = F3 + t63*t13
-                !
+                F1 = t41*t11 + t51*t12 + t61*t13
+                ! FY                            
+                F2 = t42*t11 + t52*t12 + t62*t13
+                ! FZ                            
+                F3 = t43*t11 + t53*t12 + t63*t13
+
+                ! Store forces
+
                 Fox(ee,i,j,k) = F1
                 Foy(ee,i,j,k) = F2
                 Foz(ee,i,j,k) = F3
