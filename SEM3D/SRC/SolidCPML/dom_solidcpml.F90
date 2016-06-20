@@ -63,8 +63,6 @@ contains
 
             allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
             dom%m_Idom = 0
-
-            allocate(dom%GlobCoord(0:2,Tdomain%n_glob_points-1))
         end if
 
         ! Allocation et initialisation de champs0 pour les PML solides
@@ -125,8 +123,6 @@ contains
         if(allocated(dom%m_InvGrad)) deallocate(dom%m_InvGrad)
 
         if(allocated(dom%m_Idom)) deallocate(dom%m_Idom)
-
-        if(allocated(dom%GlobCoord)) deallocate(dom%GlobCoord)
 
         if(allocated(dom%gllc))    deallocate(dom%gllc)
         if(allocated(dom%gllw))    deallocate(dom%gllw)
@@ -424,7 +420,7 @@ contains
 
         ! Copy of node global coords : mandatory to compute distances in the PML (solidcpml_abk)
 
-        dom%GlobCoord(:,:) = Tdomain%GlobCoord(:,:) ! Copy data from Tdomain
+        dom%GlobCoord = Tdomain%GlobCoord ! Pointer to coord (avoid allocate + copy, just point to it)
 
         ! Compute alphamax (from fmax)
 

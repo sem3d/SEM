@@ -84,7 +84,8 @@ module sdomain
 
        real(fpp) :: T1_att, T2_att, T0_modele
        real(fpp), dimension (0:2,0:2) :: rot
-       real(fpp), dimension (:,:), allocatable:: Coord_nodes, GlobCoord
+       real(fpp), dimension (:,:), allocatable:: Coord_nodes
+       real(fpp), dimension (:,:), pointer:: GlobCoord ! No allocate, use pointer: enable pointing to coord (avoid allocate + copy)
 
        integer :: traces_format
        character (len=MAX_FILE_SIZE) :: Title_simulation, mesh_file,station_file,material_file,   &
