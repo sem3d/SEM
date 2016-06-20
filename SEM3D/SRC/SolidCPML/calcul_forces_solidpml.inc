@@ -167,9 +167,9 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 DUZDY=dUz_dxi(ee,i,j,k)*DXIDY + dUz_deta(ee,i,j,k)*DETDY + dUz_dzeta(ee,i,j,k)*DZEDY
                 DUZDZ=dUz_dxi(ee,i,j,k)*DXIDZ + dUz_deta(ee,i,j,k)*DETDZ + dUz_dzeta(ee,i,j,k)*DZEDZ
 
-                Eyz = (DUYDZ+DUZDY)*M_SQRT1_2
-                Exz = (DUXDZ+DUZDX)*M_SQRT1_2
-                Exy = (DUXDY+DUYDX)*M_SQRT1_2
+                Eyz = (DUYDZ+DUZDY)
+                Exz = (DUXDZ+DUZDX)
+                Exy = (DUXDY+DUYDX)
 
                 calcul_forces_solidpml_Lijk(1,2,0,i,j,k,bnum,ee); C1111 = (dom%Lambda+2*dom%Mu)*Lijk
                 calcul_forces_solidpml_Li______(2,i,j,k,bnum,ee); C1122 =  dom%Lambda          *Li
