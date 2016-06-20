@@ -80,7 +80,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp) :: xi, Li, xj, xk, Lijk, kappa(0:2) ! calcul_forces_solidpml_Li______, calcul_forces_solidpml_Lijk
     real(fpp) :: C1111, C1122, C1133, C2222, C2233, C3333
     real(fpp) :: C2323, C2332, C1313, C1331, C1212, C1221, C3232, C3131, C2121
-    real(fpp) :: DUXDX,DUXDY,DUXDZ,DUYDX,DYY,DYZ,DZX,DZY,DZZ
+    real(fpp) :: DUXDX,DUXDY,DUXDZ,DUYDX,DUYDY,DYZ,DZX,DZY,DZZ
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,t4
     real(fpp) ::     syx,szx,    szy
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
@@ -160,7 +160,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 DUXDZ=dUx_dxi(ee,i,j,k)*DXIDZ + dUx_deta(ee,i,j,k)*DETDZ + dUx_dzeta(ee,i,j,k)*DZEDZ
 
                 DUYDX=dUy_dxi(ee,i,j,k)*DXIDX + dUy_deta(ee,i,j,k)*DETDX + dUy_dzeta(ee,i,j,k)*DZEDX
-                dyy=dUy_dxi(ee,i,j,k)*DXIDY + dUy_deta(ee,i,j,k)*DETDY + dUy_dzeta(ee,i,j,k)*DZEDY
+                DUYDY=dUy_dxi(ee,i,j,k)*DXIDY + dUy_deta(ee,i,j,k)*DETDY + dUy_dzeta(ee,i,j,k)*DZEDY
                 dyz=dUy_dxi(ee,i,j,k)*DXIDZ + dUy_deta(ee,i,j,k)*DETDZ + dUy_dzeta(ee,i,j,k)*DZEDZ
 
                 dzx=dUz_dxi(ee,i,j,k)*DXIDX + dUz_deta(ee,i,j,k)*DETDX + dUz_dzeta(ee,i,j,k)*DZEDX
@@ -187,9 +187,9 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 calcul_forces_solidpml_Li______(2,i,j,k,bnum,ee); C1221 =  dom%Mu              *Li
                 calcul_forces_solidpml_Lijk(0,2,1,i,j,k,bnum,ee); C2121 =  dom%Mu              *Lijk
 
-                sxx = DUXDX*C1111 + DYY*C1122 + DZZ*C1133
-                syy = DUXDX*C1122 + DYY*C2222 + DZZ*C2233
-                szz = DUXDX*C1133 + DYY*C2233 + DZZ*C3333
+                sxx = DUXDX*C1111 + DUYDY*C1122 + DZZ*C1133
+                syy = DUXDX*C1122 + DUYDY*C2222 + DZZ*C2233
+                szz = DUXDX*C1133 + DUYDY*C2233 + DZZ*C3333
                 syz = EYZ*C2323 + EYZ*C2332
                 szy = EYZ*C2332 + EYZ*C3232
                 sxz = EXZ*C1313 + EXZ*C1331
