@@ -80,7 +80,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp) :: xi, Li, xj, xk, Lijk, kappa(0:2) ! calcul_forces_solidpml_Li______, calcul_forces_solidpml_Lijk
     real(fpp) :: C1111, C1122, C1133, C2222, C2233, C3333
     real(fpp) :: C2323, C2332, C1313, C1331, C1212, C1221, C3232, C3131, C2121
-    real(fpp) :: DUXDX,DUXDY,DUXDZ,DYX,DYY,DYZ,DZX,DZY,DZZ
+    real(fpp) :: DUXDX,DUXDY,DUXDZ,DUYDX,DYY,DYZ,DZX,DZY,DZZ
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,t4
     real(fpp) ::     syx,szx,    szy
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
@@ -159,7 +159,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 DUXDY=dUx_dxi(ee,i,j,k)*DXIDY + dUx_deta(ee,i,j,k)*DETDY + dUx_dzeta(ee,i,j,k)*DZEDY
                 DUXDZ=dUx_dxi(ee,i,j,k)*DXIDZ + dUx_deta(ee,i,j,k)*DETDZ + dUx_dzeta(ee,i,j,k)*DZEDZ
 
-                dyx=dUy_dxi(ee,i,j,k)*DXIDX + dUy_deta(ee,i,j,k)*DETDX + dUy_dzeta(ee,i,j,k)*DZEDX
+                DUYDX=dUy_dxi(ee,i,j,k)*DXIDX + dUy_deta(ee,i,j,k)*DETDX + dUy_dzeta(ee,i,j,k)*DZEDX
                 dyy=dUy_dxi(ee,i,j,k)*DXIDY + dUy_deta(ee,i,j,k)*DETDY + dUy_dzeta(ee,i,j,k)*DZEDY
                 dyz=dUy_dxi(ee,i,j,k)*DXIDZ + dUy_deta(ee,i,j,k)*DETDZ + dUy_dzeta(ee,i,j,k)*DZEDZ
 
@@ -169,7 +169,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 
                 Eyz = (DYZ+DZY)*M_SQRT1_2
                 Exz = (DUXDZ+DZX)*M_SQRT1_2
-                Exy = (DUXDY+DYX)*M_SQRT1_2
+                Exy = (DUXDY+DUYDX)*M_SQRT1_2
 
                 calcul_forces_solidpml_Lijk(1,2,0,i,j,k,bnum,ee); C1111 = (dom%Lambda+2*dom%Mu)*Lijk
                 calcul_forces_solidpml_Li______(2,i,j,k,bnum,ee); C1122 =  dom%Lambda          *Li
