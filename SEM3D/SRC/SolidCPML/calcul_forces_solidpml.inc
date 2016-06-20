@@ -150,22 +150,22 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 #define DZEDX dom%InvGrad_(0,2,i,j,k,bnum,ee)
 #define DXIDY dom%InvGrad_(1,0,i,j,k,bnum,ee)
 #define DETDY dom%InvGrad_(1,1,i,j,k,bnum,ee)
-#define DETDZ dom%InvGrad_(1,2,i,j,k,bnum,ee)
+#define DZEDY dom%InvGrad_(1,2,i,j,k,bnum,ee)
 #define DXIDZ dom%InvGrad_(2,0,i,j,k,bnum,ee)
-#define DZEDY dom%InvGrad_(2,1,i,j,k,bnum,ee)
+#define DETDZ dom%InvGrad_(2,1,i,j,k,bnum,ee)
 #define DZEDZ dom%InvGrad_(2,2,i,j,k,bnum,ee)
 
                 dxx=dUx_dxi(ee,i,j,k)*DXIDX + dUx_deta(ee,i,j,k)*DETDX + dUx_dzeta(ee,i,j,k)*DZEDX
-                dxy=dUx_dxi(ee,i,j,k)*DXIDY + dUx_deta(ee,i,j,k)*DETDY + dUx_dzeta(ee,i,j,k)*DETDZ
-                dxz=dUx_dxi(ee,i,j,k)*DXIDZ + dUx_deta(ee,i,j,k)*DZEDY + dUx_dzeta(ee,i,j,k)*DZEDZ
+                dxy=dUx_dxi(ee,i,j,k)*DXIDY + dUx_deta(ee,i,j,k)*DETDY + dUx_dzeta(ee,i,j,k)*DZEDY
+                dxz=dUx_dxi(ee,i,j,k)*DXIDZ + dUx_deta(ee,i,j,k)*DETDZ + dUx_dzeta(ee,i,j,k)*DZEDZ
 
                 dyx=dUy_dxi(ee,i,j,k)*DXIDX + dUy_deta(ee,i,j,k)*DETDX + dUy_dzeta(ee,i,j,k)*DZEDX
-                dyy=dUy_dxi(ee,i,j,k)*DXIDY + dUy_deta(ee,i,j,k)*DETDY + dUy_dzeta(ee,i,j,k)*DETDZ
-                dyz=dUy_dxi(ee,i,j,k)*DXIDZ + dUy_deta(ee,i,j,k)*DZEDY + dUy_dzeta(ee,i,j,k)*DZEDZ
+                dyy=dUy_dxi(ee,i,j,k)*DXIDY + dUy_deta(ee,i,j,k)*DETDY + dUy_dzeta(ee,i,j,k)*DZEDY
+                dyz=dUy_dxi(ee,i,j,k)*DXIDZ + dUy_deta(ee,i,j,k)*DETDZ + dUy_dzeta(ee,i,j,k)*DZEDZ
 
                 dzx=dUz_dxi(ee,i,j,k)*DXIDX + dUz_deta(ee,i,j,k)*DETDX + dUz_dzeta(ee,i,j,k)*DZEDX
-                dzy=dUz_dxi(ee,i,j,k)*DXIDY + dUz_deta(ee,i,j,k)*DETDY + dUz_dzeta(ee,i,j,k)*DETDZ
-                dzz=dUz_dxi(ee,i,j,k)*DXIDZ + dUz_deta(ee,i,j,k)*DZEDY + dUz_dzeta(ee,i,j,k)*DZEDZ
+                dzy=dUz_dxi(ee,i,j,k)*DXIDY + dUz_deta(ee,i,j,k)*DETDY + dUz_dzeta(ee,i,j,k)*DZEDY
+                dzz=dUz_dxi(ee,i,j,k)*DXIDZ + dUz_deta(ee,i,j,k)*DETDZ + dUz_dzeta(ee,i,j,k)*DZEDZ
 
                 Eyz = (DYZ+DZY)*M_SQRT1_2
                 Exz = (DXZ+DZX)*M_SQRT1_2
@@ -203,24 +203,24 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 !=====================
                 !
                 xt1 = sxx*DXIDX+sxy*DXIDY+sxz*DXIDZ
-                xt2 = sxx*DETDX+sxy*DETDY+sxz*DZEDY
-                xt3 = sxx*DZEDX+sxy*DETDZ+sxz*DZEDZ
+                xt2 = sxx*DETDX+sxy*DETDY+sxz*DETDZ
+                xt3 = sxx*DZEDX+sxy*DZEDY+sxz*DZEDZ
                 !
                 !=====================
                 !       FY
                 !=====================
                 !
                 xt5 = syy*DXIDY+sxy*DXIDX+syz*DXIDZ
-                xt6 = syy*DETDY+sxy*DETDX+syz*DZEDY
-                xt7 = syy*DETDZ+sxy*DZEDX+syz*DZEDZ
+                xt6 = syy*DETDY+sxy*DETDX+syz*DETDZ
+                xt7 = syy*DZEDY+sxy*DZEDX+syz*DZEDZ
                 !
                 !=====================
                 !       FZ
                 !=====================
                 !
                 xt8 = szz*DXIDZ+sxz*DXIDX+syz*DXIDY
-                xt9 = szz*DZEDY+sxz*DETDX+syz*DETDY
-                xt10= szz*DZEDZ+sxz*DZEDX+syz*DETDZ
+                xt9 = szz*DETDZ+sxz*DETDX+syz*DETDY
+                xt10= szz*DZEDZ+sxz*DZEDX+syz*DZEDY
 
                 !
                 !- Multiplication par le Jacobien et le poids d'integration
@@ -333,9 +333,9 @@ end subroutine PROCNAME
 #undef DZEDX
 #undef DXIDY
 #undef DETDY
-#undef DETDZ
-#undef DXIDZ
 #undef DZEDY
+#undef DXIDZ
+#undef DETDZ
 #undef DZEDZ
 
 !! Local Variables:
