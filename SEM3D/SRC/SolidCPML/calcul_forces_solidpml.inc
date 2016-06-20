@@ -143,26 +143,28 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 !$omp simd linear(e,ee)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
+
+!! J^-1 is the jacobian of the inverse transformation
 #define DXIDX dom%InvGrad_(0,0,i,j,k,bnum,ee)
-#define DXIDY dom%InvGrad_(0,1,i,j,k,bnum,ee)
+#define DETDX dom%InvGrad_(0,1,i,j,k,bnum,ee)
 #define DXIDZ dom%InvGrad_(0,2,i,j,k,bnum,ee)
-#define DETDX dom%InvGrad_(1,0,i,j,k,bnum,ee)
+#define DXIDY dom%InvGrad_(1,0,i,j,k,bnum,ee)
 #define DETDY dom%InvGrad_(1,1,i,j,k,bnum,ee)
 #define DETDZ dom%InvGrad_(1,2,i,j,k,bnum,ee)
 #define DZEDX dom%InvGrad_(2,0,i,j,k,bnum,ee)
 #define DZEDY dom%InvGrad_(2,1,i,j,k,bnum,ee)
 #define DZEDZ dom%InvGrad_(2,2,i,j,k,bnum,ee)
 
-                dxx=dUx_dxi(ee,i,j,k)*DXIDX + dUx_deta(ee,i,j,k)*DXIDY + dUx_dzeta(ee,i,j,k)*DXIDZ
-                dxy=dUx_dxi(ee,i,j,k)*DETDX + dUx_deta(ee,i,j,k)*DETDY + dUx_dzeta(ee,i,j,k)*DETDZ
+                dxx=dUx_dxi(ee,i,j,k)*DXIDX + dUx_deta(ee,i,j,k)*DETDX + dUx_dzeta(ee,i,j,k)*DXIDZ
+                dxy=dUx_dxi(ee,i,j,k)*DXIDY + dUx_deta(ee,i,j,k)*DETDY + dUx_dzeta(ee,i,j,k)*DETDZ
                 dxz=dUx_dxi(ee,i,j,k)*DZEDX + dUx_deta(ee,i,j,k)*DZEDY + dUx_dzeta(ee,i,j,k)*DZEDZ
 
-                dyx=dUy_dxi(ee,i,j,k)*DXIDX + dUy_deta(ee,i,j,k)*DXIDY + dUy_dzeta(ee,i,j,k)*DXIDZ
-                dyy=dUy_dxi(ee,i,j,k)*DETDX + dUy_deta(ee,i,j,k)*DETDY + dUy_dzeta(ee,i,j,k)*DETDZ
+                dyx=dUy_dxi(ee,i,j,k)*DXIDX + dUy_deta(ee,i,j,k)*DETDX + dUy_dzeta(ee,i,j,k)*DXIDZ
+                dyy=dUy_dxi(ee,i,j,k)*DXIDY + dUy_deta(ee,i,j,k)*DETDY + dUy_dzeta(ee,i,j,k)*DETDZ
                 dyz=dUy_dxi(ee,i,j,k)*DZEDX + dUy_deta(ee,i,j,k)*DZEDY + dUy_dzeta(ee,i,j,k)*DZEDZ
 
-                dzx=dUz_dxi(ee,i,j,k)*DXIDX + dUz_deta(ee,i,j,k)*DXIDY + dUz_dzeta(ee,i,j,k)*DXIDZ
-                dzy=dUz_dxi(ee,i,j,k)*DETDX + dUz_deta(ee,i,j,k)*DETDY + dUz_dzeta(ee,i,j,k)*DETDZ
+                dzx=dUz_dxi(ee,i,j,k)*DXIDX + dUz_deta(ee,i,j,k)*DETDX + dUz_dzeta(ee,i,j,k)*DXIDZ
+                dzy=dUz_dxi(ee,i,j,k)*DXIDY + dUz_deta(ee,i,j,k)*DETDY + dUz_dzeta(ee,i,j,k)*DETDZ
                 dzz=dUz_dxi(ee,i,j,k)*DZEDX + dUz_deta(ee,i,j,k)*DZEDY + dUz_dzeta(ee,i,j,k)*DZEDZ
 
                 Eyz = (DYZ+DZY)*M_SQRT1_2
@@ -200,24 +202,24 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 !       FX
                 !=====================
                 !
-                xt1 = sxx*DXIDX+sxy*DETDX+sxz*DZEDX
-                xt2 = sxx*DXIDY+sxy*DETDY+sxz*DZEDY
+                xt1 = sxx*DXIDX+sxy*DXIDY+sxz*DZEDX
+                xt2 = sxx*DETDX+sxy*DETDY+sxz*DZEDY
                 xt3 = sxx*DXIDZ+sxy*DETDZ+sxz*DZEDZ
                 !
                 !=====================
                 !       FY
                 !=====================
                 !
-                xt5 = syy*DETDX+sxy*DXIDX+syz*DZEDX
-                xt6 = syy*DETDY+sxy*DXIDY+syz*DZEDY
+                xt5 = syy*DXIDY+sxy*DXIDX+syz*DZEDX
+                xt6 = syy*DETDY+sxy*DETDX+syz*DZEDY
                 xt7 = syy*DETDZ+sxy*DXIDZ+syz*DZEDZ
                 !
                 !=====================
                 !       FZ
                 !=====================
                 !
-                xt8 = szz*DZEDX+sxz*DXIDX+syz*DETDX
-                xt9 = szz*DZEDY+sxz*DXIDY+syz*DETDY
+                xt8 = szz*DZEDX+sxz*DXIDX+syz*DXIDY
+                xt9 = szz*DZEDY+sxz*DETDX+syz*DETDY
                 xt10= szz*DZEDZ+sxz*DXIDZ+syz*DETDZ
 
                 !
@@ -327,9 +329,9 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 end subroutine PROCNAME
 
 #undef DXIDX
-#undef DXIDY
-#undef DXIDZ
 #undef DETDX
+#undef DXIDZ
+#undef DXIDY
 #undef DETDY
 #undef DETDZ
 #undef DZEDX
