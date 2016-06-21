@@ -229,6 +229,7 @@ contains
         real, dimension(0:2,0:2) :: invgrad_ijk
         !
         integer :: bnum, ee
+
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
         
@@ -396,6 +397,7 @@ contains
                 enddo
             enddo
         enddo
+
     end subroutine get_solid_dom_var
 
     subroutine init_material_properties_solid(dom, lnum, i, j, k, density, lambda, mu, kappa, mat)

@@ -195,14 +195,14 @@ class Gmsh(object):
             elems = getattr(self.mesh, key)
             if not elems:
                 continue
-            if sem_mode:
-                rootname = root
+            if sem_mode or key=="hexa8":
+                rootname = "Sem3D"
             else:
                 rootname = "/Mesh_%s" % key
             materials = getattr(self, "%s_mat" % key)
             writer = getattr(self.mesh, "write_%s" % key)
             writer(f, rootname)
-            self.mesh.write_cell_data(f, rootname, "Mat", np.array(materials, int))
+            self.mesh.write_cell_data(f, rootname, "Mat", np.array(materials, int)-1)
 
 #        if self.mesh.quad4:
 #            self.mesh.write_quad4(f, "/Sem2D")

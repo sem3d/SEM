@@ -307,7 +307,8 @@ contains
         enddo
 
         if(npml > 0) then
-            read(13,*); read(13,*)
+            read(13,*) !# PML properties
+            read(13,*) !# npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat
             do i = 0,Tdomain%n_mat-1
                 if(.not. Tdomain%not_PML_List(i)) then
                     read(13,*) dummy_Filtering, &
@@ -334,25 +335,36 @@ contains
         enddo
 
         if(Tdomain%nRandom > 0) then
-            read(13,*); read(13,*)
+            read(13,*) !# Random properties
+            read(13,*) !# Parametrization Choice (0 for Kappa, 1 for Lambda)
+            read(13,*) !# Rho            : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+            read(13,*) !# Kappa or Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+            read(13,*) !# Mu             : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+
             do i = 0,Tdomain%n_mat-1
                 !write(*,*) "Reading Random Material (", i, ")"
                 if(Tdomain%sSubdomain(i)%initial_material_type == 'R') then
-                    allocate(Tdomain%sSubdomain(i)%corrL(0:2))
-                    allocate(Tdomain%sSubdomain(i)%varCoef(0:2))
-                    allocate(Tdomain%sSubdomain(i)%margiFirst(0:2))
 
-                    read(13,*) Tdomain%sSubdomain(i)%corrMod,       &
-                        Tdomain%sSubdomain(i)%corrL(0),      &
-                        Tdomain%sSubdomain(i)%corrL(1),      &
-                        Tdomain%sSubdomain(i)%corrL(2),      &
-                        Tdomain%sSubdomain(i)%margiFirst(0), &
-                        Tdomain%sSubdomain(i)%varCoef(0),    &
-                        Tdomain%sSubdomain(i)%margiFirst(1), &
-                        Tdomain%sSubdomain(i)%varCoef(1),    &
-                        Tdomain%sSubdomain(i)%margiFirst(2), &
-                        Tdomain%sSubdomain(i)%varCoef(2),    &
-                        Tdomain%sSubdomain(i)%seedStart
+                    read(13,*) Tdomain%sSubdomain(i)%lambdaSwitch !# Kappa/Lambda (0/1)
+                    read(13,*) !# Rho         : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+                    read(13,*) !# Kappa/Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+                    read(13,*) !# Mu          : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+                    write(*,*) "Tdomain%sSubdomain(i)%lambdaSwitch = ", Tdomain%sSubdomain(i)%lambdaSwitch
+!                    allocate(Tdomain%sSubdomain(i)%corrL(0:2))
+!                    allocate(Tdomain%sSubdomain(i)%varCoef(0:2))
+!                    allocate(Tdomain%sSubdomain(i)%margiFirst(0:2))
+!
+!                    read(13,*) Tdomain%sSubdomain(i)%corrMod,       &
+!                        Tdomain%sSubdomain(i)%corrL(0),      &
+!                        Tdomain%sSubdomain(i)%corrL(1),      &
+!                        Tdomain%sSubdomain(i)%corrL(2),      &
+!                        Tdomain%sSubdomain(i)%margiFirst(0), &
+!                        Tdomain%sSubdomain(i)%varCoef(0),    &
+!                        Tdomain%sSubdomain(i)%margiFirst(1), &
+!                        Tdomain%sSubdomain(i)%varCoef(1),    &
+!                        Tdomain%sSubdomain(i)%margiFirst(2), &
+!                        Tdomain%sSubdomain(i)%varCoef(2),    &
+!                        Tdomain%sSubdomain(i)%seedStart
                 endif
             enddo
         endif
@@ -455,7 +467,8 @@ contains
         enddo
 
         if(npml > 0) then
-            read(13,*); read(13,*)
+            read(13,*) !# PML properties
+            read(13,*) !# npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat
             do i = 0,Tdomain%n_mat-1
                 if(.not. Tdomain%not_PML_List(i)) then
                     read(13,*) Tdomain%sSubdomain(i)%npow,  &
@@ -488,40 +501,36 @@ contains
             end if
         enddo
 
-        if(Tdomain%any_Random) then
-            read(13,*); read(13,*)
-            do i = 0,Tdomain%n_mat-1
-                if(Tdomain%sSubDomain(i)%initial_material_type == "R") then
-                !write(*,*) "Reading Random Material (", i, ")"
-                    allocate(Tdomain%sSubdomain(i)%corrL(0:2))
-                    allocate(Tdomain%sSubdomain(i)%varCoef(0:2))
-                    allocate(Tdomain%sSubdomain(i)%margiFirst(0:2))
+        if(Tdomain%nRandom > 0) then
+            read(13,*) !# Random properties
+            read(13,*) !# Kappa/Lambda (0/1)
+            read(13,*) !# Rho         : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+            read(13,*) !# Kappa/Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+            read(13,*) !# Mu          : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
 
-                    read(13,*) Tdomain%sSubdomain(i)%corrMod,       &
-                        Tdomain%sSubdomain(i)%corrL(0),      &
-                        Tdomain%sSubdomain(i)%corrL(1),      &
-                        Tdomain%sSubdomain(i)%corrL(2),      &
-                        Tdomain%sSubdomain(i)%margiFirst(0), &
-                        Tdomain%sSubdomain(i)%varCoef(0),    &
-                        Tdomain%sSubdomain(i)%margiFirst(1), &
-                        Tdomain%sSubdomain(i)%varCoef(1),    &
-                        Tdomain%sSubdomain(i)%margiFirst(2), &
-                        Tdomain%sSubdomain(i)%varCoef(2),    &
-                        Tdomain%sSubdomain(i)%seedStart
-                    if(rg==0 .and. .false.) then
-                        write (*,*) 'RANDOM Material  : '
-                        write (*,*) ' - corrMod       : ', Tdomain%sSubdomain(i)%corrMod
-                        write (*,*) ' - corrL_x       : ', Tdomain%sSubdomain(i)%corrL(0)
-                        write (*,*) ' - corrL_y       : ', Tdomain%sSubdomain(i)%corrL(1)
-                        write (*,*) ' - corrL_z       : ', Tdomain%sSubdomain(i)%corrL(2)
-                        write (*,*) ' - FOMarg Prop 0 : ', Tdomain%sSubdomain(i)%margiFirst(0)
-                        write (*,*) ' - FOMarg Prop 1 : ', Tdomain%sSubdomain(i)%margiFirst(1)
-                        write (*,*) ' - FOMarg Prop 2 : ', Tdomain%sSubdomain(i)%margiFirst(2)
-                        write (*,*) ' - Var Coef 0    : ', Tdomain%sSubdomain(i)%varCoef(0)
-                        write (*,*) ' - Var Coef 1    : ', Tdomain%sSubdomain(i)%varCoef(1)
-                        write (*,*) ' - Var Coef 2    : ', Tdomain%sSubdomain(i)%varCoef(2)
-                        write (*,*) ' - Seed Start    : ', Tdomain%sSubdomain(i)%seedStart
-                    endif
+            do i = 0,Tdomain%n_mat-1
+                !write(*,*) "Reading Random Material (", i, ")"
+                if(Tdomain%sSubdomain(i)%initial_material_type == 'R') then
+
+                    read(13,*) Tdomain%sSubdomain(i)%lambdaSwitch !# Kappa/Lambda (0/1)
+                    read(13,*) !# Rho         : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+                    read(13,*) !# Kappa/Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+                    read(13,*) !# Mu          : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+!                    allocate(Tdomain%sSubdomain(i)%corrL(0:2))
+!                    allocate(Tdomain%sSubdomain(i)%varCoef(0:2))
+!                    allocate(Tdomain%sSubdomain(i)%margiFirst(0:2))
+!
+!                    read(13,*) Tdomain%sSubdomain(i)%corrMod,       &
+!                        Tdomain%sSubdomain(i)%corrL(0),      &
+!                        Tdomain%sSubdomain(i)%corrL(1),      &
+!                        Tdomain%sSubdomain(i)%corrL(2),      &
+!                        Tdomain%sSubdomain(i)%margiFirst(0), &
+!                        Tdomain%sSubdomain(i)%varCoef(0),    &
+!                        Tdomain%sSubdomain(i)%margiFirst(1), &
+!                        Tdomain%sSubdomain(i)%varCoef(1),    &
+!                        Tdomain%sSubdomain(i)%margiFirst(2), &
+!                        Tdomain%sSubdomain(i)%varCoef(2),    &
+!                        Tdomain%sSubdomain(i)%seedStart
                 endif
             enddo
         endif
@@ -549,17 +558,17 @@ contains
                 end if
                 if(Tdomain%sSubDomain(i)%initial_material_type == "R") then
                     write (*,*) '|   RANDOM Material  : '
-                    write (*,*) '|    - corrMod       : ', Tdomain%sSubdomain(i)%corrMod
-                    write (*,*) '|    - corrL_x       : ', Tdomain%sSubdomain(i)%corrL(0)
-                    write (*,*) '|    - corrL_y       : ', Tdomain%sSubdomain(i)%corrL(1)
-                    write (*,*) '|    - corrL_z       : ', Tdomain%sSubdomain(i)%corrL(2)
-                    write (*,*) '|    - FOMarg Prop 0 : ', Tdomain%sSubdomain(i)%margiFirst(0)
-                    write (*,*) '|    - FOMarg Prop 1 : ', Tdomain%sSubdomain(i)%margiFirst(1)
-                    write (*,*) '|    - FOMarg Prop 2 : ', Tdomain%sSubdomain(i)%margiFirst(2)
-                    write (*,*) '|    - Var Coef 0    : ', Tdomain%sSubdomain(i)%varCoef(0)
-                    write (*,*) '|    - Var Coef 1    : ', Tdomain%sSubdomain(i)%varCoef(1)
-                    write (*,*) '|    - Var Coef 2    : ', Tdomain%sSubdomain(i)%varCoef(2)
-                    write (*,*) '|    - Seed Start    : ', Tdomain%sSubdomain(i)%seedStart
+!                    write (*,*) '|    - corrMod       : ', Tdomain%sSubdomain(i)%corrMod
+!                    write (*,*) '|    - corrL_x       : ', Tdomain%sSubdomain(i)%corrL(0)
+!                    write (*,*) '|    - corrL_y       : ', Tdomain%sSubdomain(i)%corrL(1)
+!                    write (*,*) '|    - corrL_z       : ', Tdomain%sSubdomain(i)%corrL(2)
+!                    write (*,*) '|    - FOMarg Prop 0 : ', Tdomain%sSubdomain(i)%margiFirst(0)
+!                    write (*,*) '|    - FOMarg Prop 1 : ', Tdomain%sSubdomain(i)%margiFirst(1)
+!                    write (*,*) '|    - FOMarg Prop 2 : ', Tdomain%sSubdomain(i)%margiFirst(2)
+!                    write (*,*) '|    - Var Coef 0    : ', Tdomain%sSubdomain(i)%varCoef(0)
+!                    write (*,*) '|    - Var Coef 1    : ', Tdomain%sSubdomain(i)%varCoef(1)
+!                    write (*,*) '|    - Var Coef 2    : ', Tdomain%sSubdomain(i)%varCoef(2)
+!                    write (*,*) '|    - Seed Start    : ', Tdomain%sSubdomain(i)%seedStart
                 endif
                 write (*,*) '|----------------------------------------'
             endif

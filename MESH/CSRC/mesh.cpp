@@ -130,11 +130,13 @@ void Mesh3D::dump_connectivity(const char* fname)
 
 void Mesh3D::write_materials(const std::string& str)
 {
+	printf("Writing Materials");
     write_materials_v2(str);
 }
 
 int Mesh3D::read_materials(const std::string& str)
 {
+	printf("Reading Materials\n");
     return read_materials_v2(str);
 }
 
@@ -172,43 +174,77 @@ int Mesh3D::read_materials_v2(const std::string& str)
     double vs, vp, rho;
     int ngllx;
     double Qp, Qmu;
-    int corrMod;
-	double corrL_x;
-	double corrL_y;
-	double corrL_z;
-	int rho_margiF;
-	double rho_var;
-	int lambda_margiF;
-	double lambda_var;
-	int mu_margiF;
-	double mu_var;
-	int seedStart;
 
+    int    lambdaSwitch;
+    
+    int    corrMod_0;
+    double corrL_x_0;
+    double corrL_y_0;
+    double corrL_z_0;
+    int     margiF_0;
+    double      CV_0;
+    int  seedStart_0;
+
+    int    corrMod_1;
+    double corrL_x_1;
+    double corrL_y_1;
+    double corrL_z_1;
+    int     margiF_1;
+    double      CV_1;
+    int  seedStart_1;
+
+    int    corrMod_2;
+    double corrL_x_2;
+    double corrL_y_2;
+    double corrL_z_2;
+    int     margiF_2;
+    double      CV_2;
+    int  seedStart_2;
+    
     getline(&buffer, &linesize, f);
     sscanf(buffer, "%d", &nmats);
     for(int k=0;k<nmats;++k) {
         getline(&buffer, &linesize, f);
         sscanf(buffer, "%c %lf %lf %lf %d %lf %lf",
                &type, &vp, &vs, &rho, &ngllx, &Qp, &Qmu);
+
         printf("Mat: %2ld : %c vp=%lf vs=%lf\n", m_materials.size(), type, vp, vs);
-        if(strcmp(&type,"R")){
+        //printf("     MATERIAL %d\n", k);
+        //printf("     type = %c\n", type);
+        //printf("     strcmp(&type,R) = %d\n", strcmp(&type,"R"));
+
+        if(strcmp(&type,"R") == 0){
+
         	getline(&buffer, &linesize, f);
-        	sscanf(buffer, "%d %lf %lf %lf %d %lf %d %lf %d %lf %d",
-        	               &corrMod,
-						   &corrL_x, &corrL_y, &corrL_z,
-						   &rho_margiF, &rho_var,
-						   &lambda_margiF, &lambda_var,
-						   &mu_margiF, &mu_var,
-						   &seedStart);
-        	printf("     corrMod = %d, cL_x = %lf, cL_y = %lf, cL_z = %lf, seedStart = %d\n",
-        			corrMod, corrL_x, corrL_y, corrL_z, seedStart);
+			sscanf(buffer,"%d", &lambdaSwitch);
+
+			getline(&buffer, &linesize, f);
+			sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
+				   &corrMod_0, &corrL_x_0, &corrL_y_0, &corrL_z_0,
+				   &margiF_0, &CV_0, &seedStart_0);
+
+			getline(&buffer, &linesize, f);
+			sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
+				   &corrMod_1, &corrL_x_1, &corrL_y_1, &corrL_z_1,
+				   &margiF_1, &CV_1, &seedStart_1);
+
+			getline(&buffer, &linesize, f);
+			sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
+				   &corrMod_2, &corrL_x_2, &corrL_y_2, &corrL_z_2,
+				   &margiF_2, &CV_2, &seedStart_2);
+
         	m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx,
-        			    corrMod,
-        				corrL_x, corrL_y, corrL_z,
-        				rho_margiF, rho_var,
-        				lambda_margiF, lambda_var,
-        				mu_margiF, mu_var,
-						seedStart));
+        			                  lambdaSwitch,
+                                      corrMod_0, corrL_x_0, corrL_y_0, corrL_z_0,
+                                      margiF_0, CV_0, seedStart_0,
+                                      corrMod_1, corrL_x_1, corrL_y_1, corrL_z_1,
+                                      margiF_1, CV_1, seedStart_1,
+                                      corrMod_2, corrL_x_2, corrL_y_2, corrL_z_2,
+                                      margiF_2, CV_2, seedStart_2));
+
+        	//printf("     lambdaSwitch = %d\n", lambdaSwitch);
+        	//cL_x = %lf, cL_y = %lf, cL_z = %lf, seedStart = %d\n",
+        	//		corrMod, corrL_x, corrL_y, corrL_z, seedStart);
         }
         else{
         	m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
@@ -273,17 +309,30 @@ void Mesh3D::write_materials_v2(const std::string& str)
                 mat.ypos, mat.ywidth,
                 mat.zpos, mat.zwidth, mat.associated_material);
     }
-    fprintf(f, "# Random properties\n");
-    fprintf(f, "# corrMod, corrL_x, corrL_y, corrL_z, rho_margiF, rho_CV, kappa_margiF, kappa_CV, mu_margiF, mu_CV, seedStart\n");
+    fprintf(f,"# Random properties\n");
+    fprintf(f,"# Parametrization Choice (0 for Kappa, 1 for Lambda)\n");
+    fprintf(f,"# Rho            : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart\n");
+    fprintf(f,"# Kappa or Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart\n");
+    fprintf(f,"# Mu             : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart\n");
+
     for(int k=0;k<nmats;++k) {
         const Material& mat = m_materials[k];
         if (strcmp(&mat.cinitial_type,"R") != 0) continue;
-        fprintf(f, "%d %lf %lf %lf %d %lf %d %lf %d %lf %d\n",
-                mat.corrMod,
-				mat.corrL_x, mat.corrL_y, mat.corrL_z,
-                mat.rho_margiF, mat.rho_var,
-				mat.lambda_margiF, mat.lambda_var,
-				mat.mu_margiF, mat.mu_var, mat.seedStart);
+
+        fprintf(f, "%d\n", mat.m_lambdaSwitch);
+
+        fprintf(f, "%d %lf %lf %lf %d %lf %d\n",
+                mat.m_corrMod_0, mat.m_corrL_x_0, mat.m_corrL_y_0, mat.m_corrL_z_0,
+				mat.m_margiF_0, mat.m_CV_0, mat.m_seedStart_0);
+
+        fprintf(f, "%d %lf %lf %lf %d %lf %d\n",
+                mat.m_corrMod_1, mat.m_corrL_x_1, mat.m_corrL_y_1, mat.m_corrL_z_1,
+        		mat.m_margiF_1, mat.m_CV_1, mat.m_seedStart_1);
+
+        fprintf(f, "%d %lf %lf %lf %d %lf %d\n",
+                mat.m_corrMod_2, mat.m_corrL_x_2, mat.m_corrL_y_2, mat.m_corrL_z_2,
+        		mat.m_margiF_2, mat.m_CV_2, mat.m_seedStart_2);
+
     }
 }
 
@@ -433,7 +482,8 @@ void Mesh3D::save_bbox()
     fbbox = fopen("domains.txt", "w");
     map<int,AABB>::const_iterator bbox;
     for(bbox=m_bbox.begin();bbox!=m_bbox.end();++bbox) {
-        fprintf(fbbox, "%3d %8.3g %8.3g %8.3g %8.3g %8.3g %8.3g\n", bbox->first,
+        //fprintf(fbbox, "%3d %8.3g %8.3g %8.3g %8.3g %8.3g %8.3g\n", bbox->first,
+        fprintf(fbbox, "%3d %15.6f %15.6f %15.6f %15.6f %15.6f %15.6f\n", bbox->first,
                 bbox->second.min[0],
                 bbox->second.min[1],
                 bbox->second.min[2],

@@ -149,10 +149,10 @@ subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
                 sxz = trial(4)
                 syz = trial(5)
                 
-                dom%stress_(0:5,i,j,k,e) = trial(0:5)
-                dom%center_(0:5,i,j,k,e) = center(0:5)
-                dom%plstrain_(0:5,i,j,k,e) = dom%plstrain_(0:5,i,j,k,e)+dEpsP(0:5)
-                dom%radius_(i,j,k,e)     = radius
+                dom%stress_(0:5,i,j,k,bnum,ee)   = trial(0:5)
+                dom%center_(0:5,i,j,k,bnum,ee)   = center(0:5)
+                dom%plstrain_(0:5,i,j,k,bnum,ee) = dom%plstrain_(0:5,i,j,k,e)+dEpsP(0:5)
+                dom%radius_(i,j,k,bnum,ee)       = radius
 
                 !
                 !=====================

@@ -26,7 +26,6 @@ contains
         type(domain)    , intent(inout), target :: Tdomain
         integer         , intent(in)            :: rg
         !LOCAL
-!        type(IPT_RF) :: IPT
         integer :: mat,assocMat
         integer :: i, propCounter
         integer :: error, code
@@ -56,97 +55,19 @@ contains
 
         do mat = 0, Tdomain%n_mat - 1
 
-!            Density = Tdomain%sSubDomain(mat)%Ddensity
-!            P_Speed = Tdomain%sSubDomain(mat)%Pspeed
-!            S_Speed = Tdomain%sSubDomain(mat)%Sspeed
-!
-!            Mu = S_Speed**2 * Density
-!            Lambda = (P_Speed**2 - 2 * S_Speed**2 ) * Density
-!            Kappa = Lambda + 2.0D0*Mu /3.0D0
-
             assocMat = Tdomain%sSubdomain(mat)%assocMat
+            propName(1) = "Kappa"
+            if(Tdomain%sSubdomain(assocMat)%lambdaSwitch == 1) propName(1) = "Lambda"
+            !write(*,*) "AFTER READ Tdomain%sSubdomain(assocMat)%lambdaSwitch = ", Tdomain%sSubdomain(assocMat)%lambdaSwitch
 
-!            avgProp  = [Density, &
-!                        Kappa,  &
-!                        Mu]
-
-            !stop("Random Properties not yet functional on SEM")
-
-
-!            nProcsPerChunk = Tdomain%nb_procs
-!            if(nProcsPerChunk > 12) nProcsPerChunk = 12
-!            nChunks = ceiling(dble(Tdomain%nb_procs)/dble(nProcsPerChunk))
 
             do propId = 0, nProp - 1
             !do propId = 0, 0 !FOR TESTS
-                Tdomain%sSubDomain(mat)%propFilePath(propId) = string_join_many("./mat/h5/",propName(propId), "_Mat_", numb2String(assocMat),".h5")
-!                if(.not. is_rand(Tdomain%sSubdomain(mat))) cycle
-!
-!                if(rg == 0) write(*,*) "  Material ", mat, "is Random"
-!                if(rg == 0) write(*,*) "  avgProp = ", avgProp
-!
-!                if(is_rand(Tdomain%sSubdomain(mat)) .and. rg == 0) then
-!
-!                    write(*,*) " rang ", rg," in build_random_properties"
-!                    if(rg == 0) write(*,*) "  Generating Random Properties"
-!                    seedStart = Tdomain%sSubDomain(mat)%seedStart
-!                    if(seedStart >= 0) seedStart = seedStart + 7*(propId+1)
-!
-!                    write(*,*) "  Generating Random Properties Files"
-!                    propCounter = propCounter + 1
-!                    write(*,*) "  propCounter = ", propCounter, "rank = ", rg
-!                    varProp = (avgProp(propId)*Tdomain%sSubdomain(mat)%varCoef(propId))**2D0
-!
-!                    fileNameBase = string_join_many(propName(propId), "_Mat_", numb2String(mat))
-!
-!                    call makeCase(&
-!                            nDim=3, &
-!                            Nmc=1, &
-!                            corrMod=Tdomain%sSubdomain(mat)%corrMod, &
-!                            margiFirst=Tdomain%sSubdomain(mat)%margiFirst(propId), &
-!                            corrL=Tdomain%sSubdomain(mat)%corrL, &
-!                            fieldAvg=avgProp(propId), &
-!                            fieldVar=varProp, &
-!                            method=4, &
-!                            seedStart=seedStart, &
-!                            overlap=[0.0D0, 0.0D0, 0.0D0], &
-!                            xMinGlob=Tdomain%sSubdomain(mat)%MinBound, &
-!                            xMaxGlob=Tdomain%sSubdomain(mat)%MaxBound, &
-!                            pointsPerCorrL=[5, 5, 5], &
-!                            nProcsTotal=Tdomain%nb_procs, &
-!                            nProcsPerChunk=nProcsPerChunk, &
-!                            localizationLevel=1, &
-!                            nFields=[1, 1, 1], &
-!                            nChunks=nChunks, &
-!                            memPerChunk=12000, &
-!                            queue="iceq", &
-!                            wallTime="2:00:00", &
-!                            cluster=1, &
-!                            folderPath="./mat/input", &
-!                            runPath=runPath, &
-!                            rfPath=string_join_many(Tdomain%random_library_path,"/randomField.exe"), &
-!                            statPath=string_join_many(Tdomain%random_library_path,"/statistics.exe"), &
-!                            gen_input_name="gen_"//fileNameBase, &
-!                            mesh_input_name="mesh_"//fileNameBase)
-!
-!                    write(main_fId, *) trim(string_join_many("$mesh_input_",numb2String(propCounter)))//' '//&
-!                                       trim(string_join_many('"./input/mesh_'//fileNameBase,'"'))
-!                    write(main_fId, *) trim(string_join_many("$gen_input_",numb2String(propCounter)))//' '//&
-!                                       trim(string_join_many('"./input/gen_'//fileNameBase,'"'))
-!                    write(main_fId, *) trim(string_join_many("$out_folder_",numb2String(propCounter)))//' '//'"."'
-!                    write(main_fId, *) trim(string_join_many("$out_name_",numb2String(propCounter)))//' '//&
-!                                       trim(fileNameBase)
-!                end if
-
+                Tdomain%sSubDomain(mat)%propFilePath(propId) = string_join_many("./mat/h5/", "Mat_", numb2String(assocMat),"_",propName(propId),".h5")
 
             end do
 
         end do
-
-!        if(rg == 0) write(main_fId,*) "$nSamples ", propCounter
-!        if(rg == 0) close(main_fId)
-
-!        call MPI_BARRIER(Tdomain%communicateur, code)
 
     end subroutine build_random_properties
 

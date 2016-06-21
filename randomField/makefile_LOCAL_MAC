@@ -281,35 +281,35 @@ cdfnor.o             : dinvnr.o \
 		       spmpar.o \
 		       cumnor.o
 # Making all the ".o" from the ".f90"
-%.o: ../sem-ecp/randomfield/SRC_EXE/%.f90
+%.o: ../sem-ecp/randomField/SRC_EXE/%.f90
 	@echo 'Building file: $<'
 	@echo 'Invoking: Fortran Compiler'
 	$(FC) $(FFLAGS) -o "$@" $(INCLUDE) -c "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 		
-%.o: ../sem-ecp/randomfield/SRC_LIB/%.f90
+%.o: ../sem-ecp/randomField/SRC_LIB/%.f90
 	@echo 'Building file: $<'
 	@echo 'Invoking: Fortran Compiler'
 	$(FC) $(FFLAGS) -o "$@" $(INCLUDE) -c "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 
-%.o: ../sem-ecp/randomfield/BLAS/%.f90
+%.o: ../sem-ecp/randomField/BLAS/%.f90
 	@echo 'Building file: $<'
 	@echo 'Invoking: Fortran Compiler'
 	$(FC) $(FFLAGS) -o "$@" $(INCLUDE) -c "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 	
-%.o: ../sem-ecp/randomfield/RANDLIB/%.f90
+%.o: ../sem-ecp/randomField/RANDLIB/%.f90
 	@echo 'Building file: $<'
 	@echo 'Invoking: Fortran Compiler'
 	$(FC) $(FFLAGS) -o "$@" $(INCLUDE) -c "$<"
 	@echo 'Finished building: $<'
 	@echo ' '	
 	
-%.o: ../sem-ecp/randomfield/dcdflib/src/%.f
+%.o: ../sem-ecp/randomField/dcdflib/src/%.f
 	@echo 'Building file: $<'
 	@echo 'Invoking: Fortran Compiler'
 	$(FC) $(FFLAGS) -o "$@" $(INCLUDE) -c "$<"
