@@ -234,7 +234,10 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 xt7  =  xt7 * t4
                 xt10 = xt10 * t4
 
-                ! Store before next loop transformation T = sigma * J^-1 column by column
+                ! Store transformation before next loop: T = Tsig = sigma * J^-1 column by column
+                !            | xt1 xt2 xt3  |
+                ! T = Tsig = | xt5 xt6 xt7  | = sigma * J^-1
+                !            | xt8 xt9 xt10 |
 
                 t1(ee,i,j,k) = xt1
                 t5(ee,i,j,k) = xt5
@@ -254,8 +257,18 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     enddo
 
     !
-    ! Now multiply by grad(test_function) in (xi, eta, zeta) space where derivates can turn to be zero at gauss point
+    ! Now multiply Tsig by grad(test_function) in ( xi, eta, zeta ) space.
+    ! why ? because derivates turn to be zero at lots of gauss points : less computations to do !
     !
+    ! test_function = w ( xi, eta, zeta ) = sum_ijk ( w_ijk * h_xi ( xi ) * h_eta ( eta ) * h_zeta ( zeta ) )
+    ! so for instance at the ( xi_r, eta_s, zeta_t ) Gauss point, we get (as h_i ( x_j ) = delta_ij) :
+    ! dw/dxi   ( xi_r, eta_s, zeta_t ) = w_rst * dh_xi  /dxi   ( xi_r   )
+    ! dw/deta  ( xi_r, eta_s, zeta_t ) = w_rst * dh_eta /deta  ( eta_s  )
+    ! dw/dzeta ( xi_r, eta_s, zeta_t ) = w_rst * dh_zeta/dzeta ( zeta_t )
+    !
+    !                       | dw_xi  /dxi      dw_xi  /deta = 0  dw_xi  /dzeta = 0 |
+    ! grad(test_function) = | dw_eta /dxi = 0  dw_eta /deta      dw_eta /dzeta = 0 |
+    !                       | dw_zeta/dxi = 0  dw_zeta/deta = 0  dw_zeta/dzeta     |
 
     do k = 0,ngll-1
         do j = 0,ngll-1
@@ -266,7 +279,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 #endif
                 BEGIN_SUBELEM_LOOP(e,ee,bnum)
 
-                ! Compute T * grad(test_function)
+                ! Compute T = Tsig * grad(test_function)
 
                 t41 = zero
                 t42 = zero
@@ -278,17 +291,23 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 t62 = zero
                 t63 = zero
 
+                ! Multiply each line of Tsig by first column of grad(test_function)
+
                 do l = 0,ngll-1
                     t41 = t41 + dom%htprime(l,i) * t1(ee,l,j,k)
                     t42 = t42 + dom%htprime(l,i) * t5(ee,l,j,k)
                     t43 = t43 + dom%htprime(l,i) * t8(ee,l,j,k)
                 enddo
 
+                ! Multiply each line of Tsig by second column of grad(test_function)
+
                 do l = 0,ngll-1
                     t51 = t51 + dom%htprime(l,j) * t2(ee,l,i,k)
                     t52 = t52 + dom%htprime(l,j) * t6(ee,l,i,k)
                     t53 = t53 + dom%htprime(l,j) * t9(ee,l,i,k)
                 enddo
+
+                ! Multiply each line of Tsig by third column of grad(test_function)
 
                 do l = 0,ngll-1
                     t61 = t61 + dom%htprime(l,k) * t3 (ee,l,i,j)
@@ -302,7 +321,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 t12 = dom%GLLw(i) * dom%GLLw(k)
                 t13 = dom%GLLw(i) * dom%GLLw(j)
 
-                ! Compute F = T * grad(test_function)
+                ! Compute F = numerical integration of Tsig * grad(test_function)
 
                 ! FX
                 F1 = t41*t11 + t51*t12 + t61*t13
@@ -317,12 +336,12 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 Foy(ee,i,j,k) = F2
                 Foz(ee,i,j,k) = F3
 
+                ! Conclusion : forces are computed and returned in the (xi, eta, zeta) space
+
                 END_SUBELEM_LOOP()
-                !=-=-=-=-=-=-=-=-=-=-
             enddo
         enddo
     enddo
-    !=-=-=-=-=-=-=-=-=-=-
 end subroutine PROCNAME
 
 #undef DXIDX
