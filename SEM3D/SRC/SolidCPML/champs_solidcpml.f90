@@ -1,24 +1,22 @@
 !>
-!!\file champs_fluid.f90
-!!\brief Contient la définition du type champs pour un domaine fluide
+!!\file champs_solidcpml.f90
+!!\brief Contient la définition du type champs pour un domaine solide CPML
 !!
 !<
 
-module champs_fluid
+module champs_solidpml
 
     use constants
     implicit none
 
-    type champsfluid
+    type :: champssolidpml
+        ! Inconnues du problème : déplacement, vitesse
+        real(fpp), dimension(:,:), allocatable :: Depla
+        real(fpp), dimension(:,:), allocatable :: Veloc
+    end type champssolidpml
 
-        !! Fluide
-        real(fpp), dimension(:), allocatable :: ForcesFl
-        real(fpp), dimension(:), allocatable :: Phi
-        real(fpp), dimension(:), allocatable :: VelPhi
-
-    end type champsfluid
-
-    type domain_fluid
+    !! ATTENTION: voir index.h en ce qui concerne les champs dont les noms commencent par m_
+    type domain_solidpml
         ! D'abord, les données membres qui ne sont pas modifiées
 
         ! Nombre de gll dans chaque element du domaine
@@ -29,9 +27,11 @@ module champs_fluid
 
         ! Nombre d'elements dans le domaine
         integer :: nbelem
-
-        ! Nombre de blocks d'elements (de taille VCHUNK) alloues dans le domaine (>=nbelem)
         integer :: nblocks
+
+        ! Nombre d'elements alloues dans le domaine (>=nbelem)
+        integer :: nbelem_alloc
+        integer :: nb_chunks ! nbelem_alloc == nb_chunks*VCHUNK
 
         ! Points, poids de gauss et derivees
         real(fpp), dimension (:), allocatable :: GLLc
@@ -42,8 +42,9 @@ module champs_fluid
         ! MassMat pour elements solide, fluide, solide pml et fluide pml
         real(fpp), dimension(:), allocatable :: MassMat
 
-        real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda
-        real(fpp), dimension (:,:,:,:,:), allocatable :: m_IDensity ! Inverse of density
+        ! PML is "like" an anisotropic material : do not use Lambda/Mu but use Cij
+        real(fpp), dimension(:,:,:,:,:),   allocatable :: m_Density
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_Cij
 
         real(fpp), dimension(:,:,:,:,:),     allocatable :: m_Jacob
         real(fpp), dimension(:,:,:,:,:,:,:), allocatable :: m_InvGrad
@@ -58,13 +59,17 @@ module champs_fluid
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
         ! Champs
-        type(champsfluid) :: champs0
-        type(champsfluid) :: champs1
-    end type domain_fluid
+        type(champssolidpml) :: champs0
+        type(champssolidpml) :: champs1
+        real(fpp), dimension(:,:), allocatable :: Forces
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_R1 ! Convolutional term R1 (19a) from Ref1
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_R2 ! Convolutional term R2 (19b) from Ref1
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_R3 ! Convolutional term R3 (19c) from Ref1
+    end type domain_solidpml
 
     contains
 
-end module champs_fluid
+end module champs_solidpml
 
 !! Local Variables:
 !! mode: f90
@@ -75,5 +80,5 @@ end module champs_fluid
 !! f90-type-indent: 4
 !! f90-program-indent: 4
 !! f90-continuation-indent: 4
-!! End:
+!!! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!

@@ -18,7 +18,7 @@ contains
         type(domain) :: TDomain
         type(domain_solid), intent (INOUT) :: dom
         !
-        integer nbelem, ngll, n_solid
+        integer nbelem, nblocks, ngll, n_solid
         logical aniso,nl_flag,nl_law
         !
 
@@ -39,91 +39,82 @@ contains
         if(nbelem /= 0) then
             ! Do not allocate if not needed (save allocation/RAM)
             ! Wexo can have glls without elements
-            nbelem = CHUNK*((nbelem+CHUNK-1)/CHUNK)
-            dom%nbelem_alloc = nbelem
+            nblocks = ((nbelem+VCHUNK-1)/VCHUNK)
+            dom%nblocks = nblocks
 
-            allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-            allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-            allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-            allocate(dom%Kappa_  (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-            
+            allocate(dom%Density_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+            allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+            allocate(dom%Mu_     (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+            allocate(dom%Kappa_  (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             if (nl_flag.and.nl_law) then
                 ! nonlinear parameters
                 allocate(dom%nl_param)
                 allocate(dom%nl_param%LMC)
-                allocate(dom%nl_param%LMC%syld_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-                allocate(dom%nl_param%LMC%ckin_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-                allocate(dom%nl_param%LMC%kkin_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-                allocate(dom%nl_param%LMC%rinf_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-                allocate(dom%nl_param%LMC%biso_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+                allocate(dom%nl_param%LMC%syld_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+                allocate(dom%nl_param%LMC%ckin_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+                allocate(dom%nl_param%LMC%kkin_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+                allocate(dom%nl_param%LMC%rinf_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+                allocate(dom%nl_param%LMC%biso_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
                 ! internal variables 
-                allocate(dom%radius_      (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-                allocate(dom%stress_  (0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-                allocate(dom%center_  (0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-                allocate(dom%strain_  (0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))  
-                allocate(dom%plstrain_(0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))  
-                dom%strain_(:,:,:,:)   = 0.d0
-                dom%plstrain_(:,:,:,:) = 0.d0
-                dom%stress_(:,:,:,:)   = 0.d0
-                dom%center_(:,:,:,:)   = 0.d0
-                dom%radius_(:,:,:,:)   = 0.d0
+                allocate(dom%radius_      (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+                allocate(dom%stress_  (0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+                allocate(dom%center_  (0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+                allocate(dom%strain_  (0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+                allocate(dom%plstrain_(0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+                dom%strain_(:,:,:,:)   = 0.0d0
+                dom%plstrain_(:,:,:,:) = 0.0d0
+                dom%stress_(:,:,:,:)   = 0.0d0
+                dom%center_(:,:,:,:)   = 0.0d0
+                dom%radius_(:,:,:,:)   = 0.0d0
             end if
 
-            allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
-            allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+            allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+            allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
 
-            allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+            allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             dom%m_Idom = 0
 
             if (aniso) then
-                allocate (dom%Cij_ (0:20, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%Cij_ (0:20, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
             endif
             if (n_solid>0) then
                 if (aniso) then
-                    allocate (dom%Q_(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                    allocate (dom%Q_(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                 else
-                    allocate (dom%Qs_         (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                    allocate (dom%Qp_         (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                    allocate (dom%onemPbeta_  (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                    allocate (dom%epsilonvol_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                    dom%epsilonvol_(:,:,:,:) = 0
-                    allocate (dom%factor_common_P_(0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                    allocate (dom%alphaval_P_     (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                    allocate (dom%betaval_P_      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                    allocate (dom%gammaval_P_     (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                    allocate (dom%R_vol_          (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                    dom%R_vol_(:,:,:,:,:) = 0
+                    allocate (dom%Qs_         (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                    allocate (dom%Qp_         (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                    allocate (dom%onemPbeta_  (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                    allocate (dom%epsilonvol_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                    dom%epsilonvol_(:,:,:,:,:) = 0
+                    allocate (dom%R_vol_       (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                    dom%R_vol_(:,:,:,:,:,:) = 0
                 endif
-                allocate (dom%onemSbeta_     (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%epsilondev_xx_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%epsilondev_yy_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%epsilondev_xy_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%epsilondev_xz_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%epsilondev_yz_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                dom%epsilondev_xx_(:,:,:,:) = 0
-                dom%epsilondev_yy_(:,:,:,:) = 0
-                dom%epsilondev_xy_(:,:,:,:) = 0
-                dom%epsilondev_xz_(:,:,:,:) = 0
-                dom%epsilondev_yz_(:,:,:,:) = 0
-                allocate (dom%factor_common_3_(0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%alphaval_3_     (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%betaval_3_      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%gammaval_3_     (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%R_xx_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%R_yy_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%R_xy_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%R_xz_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%R_yz_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%onemSbeta_     (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%epsilondev_xx_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%epsilondev_yy_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%epsilondev_xy_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%epsilondev_xz_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%epsilondev_yz_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                dom%epsilondev_xx_(:,:,:,:,:) = 0
+                dom%epsilondev_yy_(:,:,:,:,:) = 0
+                dom%epsilondev_xy_(:,:,:,:,:) = 0
+                dom%epsilondev_xz_(:,:,:,:,:) = 0
+                dom%epsilondev_yz_(:,:,:,:,:) = 0
+                allocate (dom%R_xx_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%R_yy_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%R_xy_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%R_xz_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%R_yz_           (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                 !
-                allocate (dom%omega_tau_s_    (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%agamma_mu_      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
-                allocate (dom%agamma_kappa_   (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nbelem-1))
+                allocate (dom%omega_tau_s     (0:n_solid-1))
+                allocate (dom%agamma_mu_      (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+                allocate (dom%agamma_kappa_   (0:n_solid-1, 0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
                 !
-                dom%R_xx_(:,:,:,:,:) = 0
-                dom%R_yy_(:,:,:,:,:) = 0
-                dom%R_xy_(:,:,:,:,:) = 0
-                dom%R_xz_(:,:,:,:,:) = 0
-                dom%R_yz_(:,:,:,:,:) = 0
+                dom%R_xx_(:,:,:,:,:,:) = 0
+                dom%R_yy_(:,:,:,:,:,:) = 0
+                dom%R_xy_(:,:,:,:,:,:) = 0
+                dom%R_xz_(:,:,:,:,:,:) = 0
+                dom%R_yz_(:,:,:,:,:,:) = 0
             endif ! n_solid
         end if
         ! Allocation et initialisation de champs0 et champs1 pour les solides
@@ -172,10 +163,6 @@ contains
         if(allocated(dom%m_Qp             )) deallocate (dom%m_Qp             )
         if(allocated(dom%m_onemPbeta      )) deallocate (dom%m_onemPbeta      )
         if(allocated(dom%m_epsilonvol     )) deallocate (dom%m_epsilonvol     )
-        if(allocated(dom%m_factor_common_P)) deallocate (dom%m_factor_common_P)
-        if(allocated(dom%m_alphaval_P     )) deallocate (dom%m_alphaval_P     )
-        if(allocated(dom%m_betaval_P      )) deallocate (dom%m_betaval_P      )
-        if(allocated(dom%m_gammaval_P     )) deallocate (dom%m_gammaval_P     )
         if(allocated(dom%m_R_vol          )) deallocate (dom%m_R_vol          )
         if(allocated(dom%m_onemSbeta      )) deallocate (dom%m_onemSbeta      )
         if(allocated(dom%m_epsilondev_xx  )) deallocate (dom%m_epsilondev_xx  )
@@ -183,10 +170,6 @@ contains
         if(allocated(dom%m_epsilondev_xy  )) deallocate (dom%m_epsilondev_xy  )
         if(allocated(dom%m_epsilondev_xz  )) deallocate (dom%m_epsilondev_xz  )
         if(allocated(dom%m_epsilondev_yz  )) deallocate (dom%m_epsilondev_yz  )
-        if(allocated(dom%m_factor_common_3)) deallocate (dom%m_factor_common_3)
-        if(allocated(dom%m_alphaval_3     )) deallocate (dom%m_alphaval_3     )
-        if(allocated(dom%m_betaval_3      )) deallocate (dom%m_betaval_3      )
-        if(allocated(dom%m_gammaval_3     )) deallocate (dom%m_gammaval_3     )
         if(allocated(dom%m_R_xx           )) deallocate (dom%m_R_xx           )
         if(allocated(dom%m_R_yy           )) deallocate (dom%m_R_yy           )
         if(allocated(dom%m_R_xy           )) deallocate (dom%m_R_xy           )
@@ -235,17 +218,21 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         real(fpp), dimension(:,:,:,:), allocatable, optional :: eps_dev_pl
         !
-        logical                                  :: flag_gradU, nl_law
-        integer                                  :: ngll, i, j, k, ind
-        real(fpp)                                :: DXX, DXY, DXZ
-        real(fpp)                                :: DYX, DYY, DYZ
-        real(fpp)                                :: DZX, DZY, DZZ
-        real(fpp)                                :: xmu, xlambda, xkappa
-        real(fpp)                                :: x2mu, xlambda2mu
-        real(fpp)                                :: onemSbeta, onemPbeta
+        logical                  :: flag_gradU, nl_law
+        integer                  :: ngll, i, j, k, ind
+        real(fpp)                :: DXX, DXY, DXZ
+        real(fpp)                :: DYX, DYY, DYZ
+        real(fpp)                :: DZX, DZY, DZZ
+        real(fpp)                :: xmu, xlambda, xkappa
+        real(fpp)                :: x2mu, xlambda2mu
+        real(fpp)                :: onemSbeta, onemPbeta
         real, dimension(0:2,0:2) :: invgrad_ijk
+        !
+        integer :: bnum, ee
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
         
-        nl_law      = dom%nl_law==NLLMC
+        nl_law = dom%nl_law==NLLMC
 
         if (nl_flag.and.nl_law) then
             flag_gradU = (out_variables(OUT_ENERGYP)     + &
@@ -261,7 +248,6 @@ contains
                           out_variables(OUT_EPS_DEV)     + &
                           out_variables(OUT_STRESS_DEV)) /= 0
         endif
-        
         ngll = dom%ngll
 
         ! First, get displacement.
@@ -271,7 +257,7 @@ contains
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
-                        ind = dom%Idom_(i,j,k,lnum)
+                        ind = dom%Idom_(i,j,k,bnum,ee)
                         fieldU(i,j,k,:) = dom%champs0%Depla(ind,:)
                     enddo
                 enddo
@@ -287,7 +273,7 @@ contains
                     ! Compute gradU with displacement if needed.
 
                     if (flag_gradU) then
-                        invgrad_ijk = dom%InvGrad_(:,:,i,j,k,lnum) ! cache for performance
+                        invgrad_ijk = dom%InvGrad_(:,:,i,j,k,bnum,ee) ! cache for performance
 
                         call physical_part_deriv_ijk(i,j,k,ngll,dom%hprime,&
                              invgrad_ijk,fieldU(:,:,:,0),DXX,DYX,DZX)
@@ -299,7 +285,7 @@ contains
 
                     ! Get other variables.
 
-                    ind = dom%Idom_(i,j,k,lnum)
+                    ind = dom%Idom_(i,j,k,bnum,ee)
 
                     if (out_variables(OUT_VITESSE) == 1) then
                         if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
@@ -313,12 +299,11 @@ contains
 
                     if (out_variables(OUT_PRESSION) == 1) then
                         if(.not. allocated(fieldP)) allocate(fieldP(0:ngll-1,0:ngll-1,0:ngll-1))
-                          
                         if (nl_flag .and. nl_law) then
-                            fieldP(i,j,k) = -sum(dom%stress_(0:2,i,j,k,lnum))/3
+                            fieldP(i,j,k) = -sum(dom%stress_(0:2,i,j,k,bnum,ee))/3
                         else
-                            fieldP(i,j,k) = -(dom%Lambda_(i,j,k,lnum)&
-                                +2d0/3d0*dom%Mu_(i,j,k,lnum))*(DXX+DYY+DZZ)
+                            fieldP(i,j,k) = -(dom%Lambda_(i,j,k,bnum,ee)&
+                                +2d0/3d0*dom%Mu_(i,j,k,lnum,ee))*(DXX+DYY+DZZ)
                         endif
                     end if
 
@@ -331,13 +316,13 @@ contains
                     end if
 
                     if (.not. dom%aniso) then
-                        xmu     = dom%Mu_    (i,j,k,lnum)
-                        xlambda = dom%Lambda_(i,j,k,lnum)
-                        xkappa  = dom%Kappa_ (i,j,k,lnum)
+                        xmu     = dom%Mu_    (i,j,k,bnum,ee)
+                        xlambda = dom%Lambda_(i,j,k,bnum,ee)
+                        xkappa  = dom%Kappa_ (i,j,k,bnum,ee)
 
                         if (dom%n_sls>0) then
-                            onemSbeta = dom%onemSbeta_(i,j,k,lnum)
-                            onemPbeta = dom%onemPbeta_(i,j,k,lnum)
+                            onemSbeta = dom%onemSbeta_(i,j,k,bnum,ee)
+                            onemPbeta = dom%onemPbeta_(i,j,k,bnum,ee)
                             xmu    = xmu * onemSbeta
                             xkappa = xkappa * onemPbeta
                         endif
@@ -423,19 +408,24 @@ contains
         real(fpp), intent(in) :: lambda
         real(fpp), intent(in) :: mu
         real(fpp), intent(in) :: kappa
+        type (subdomain), intent(in), optional :: mat
+        !
+        integer :: bnum, ee
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
 
         type (subdomain), intent(in), optional :: mat
         
         if (i==-1 .and. j==-1 .and. k==-1) then
-            dom%Density_(:,:,:,lnum) = density
-            dom%Lambda_ (:,:,:,lnum) = lambda
-            dom%Kappa_  (:,:,:,lnum) = kappa
-            dom%Mu_     (:,:,:,lnum) = mu
+            dom%Density_(:,:,:,bnum,ee) = density
+            dom%Lambda_ (:,:,:,bnum,ee) = lambda
+            dom%Kappa_  (:,:,:,bnum,ee) = kappa
+            dom%Mu_     (:,:,:,bnum,ee) = mu
         else
-            dom%Density_(i,j,k,lnum) = density
-            dom%Lambda_ (i,j,k,lnum) = lambda
-            dom%Kappa_  (i,j,k,lnum) = kappa
-            dom%Mu_     (i,j,k,lnum) = mu
+            dom%Density_(i,j,k,bnum,ee) = density
+            dom%Lambda_ (i,j,k,bnum,ee) = lambda
+            dom%Kappa_  (i,j,k,bnum,ee) = kappa
+            dom%Mu_     (i,j,k,bnum,ee) = mu
         end if
         if (present(mat%syld)) then
             if (i==-1 .and. j==-1 .and. k==-1) then
@@ -455,10 +445,10 @@ contains
         if (present(mat)) then
             if (dom%n_sls>0)  then
                 if (dom%aniso) then
-                    dom%Q_(:,:,:,lnum) = mat%Qmu
+                    dom%Q_(:,:,:,bnum,ee) = mat%Qmu
                 else
-                    dom%Qs_(:,:,:,lnum) = mat%Qmu
-                    dom%Qp_(:,:,:,lnum) = mat%Qpression
+                    dom%Qs_(:,:,:,bnum,ee) = mat%Qmu
+                    dom%Qp_(:,:,:,bnum,ee) = mat%Qpression
                 endif
             endif
         endif
@@ -473,15 +463,19 @@ contains
         real(fpp), dimension(1:6,1:6), intent(in) :: Cij
 
         integer :: idef, ii, jj
+        !
+        integer :: bnum, ee
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
 
         idef = 0
         do ii = 1,6
             do jj = ii,6
-                dom%Cij_(idef,i,j,k,lnum) = Cij(ii,jj)
+                dom%Cij_(idef,i,j,k,bnum,ee) = Cij(ii,jj)
                 idef = idef + 1
             enddo
         enddo
-        dom%Density_(i,j,k,lnum) = density
+        dom%Density_(i,j,k,bnum,ee) = density
     end subroutine init_material_tensor_solid
 
     subroutine init_local_mass_solid(dom,specel,i,j,k,ind,Whei)
@@ -490,28 +484,34 @@ contains
         type (Element), intent (INOUT) :: specel
         integer :: i,j,k,ind
         real Whei
+        !
+        integer :: bnum, ee
+        bnum = specel%lnum/VCHUNK
+        ee = mod(specel%lnum,VCHUNK)
 
         ! Solid.
 
-        specel%MassMat(i,j,k) = Whei*dom%Density_(i,j,k,specel%lnum)*dom%Jacob_(i,j,k,specel%lnum)
+        specel%MassMat(i,j,k) = Whei*dom%Density_(i,j,k,bnum,ee)*dom%Jacob_(i,j,k,bnum,ee)
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solid
 
-    subroutine forces_int_solid(dom, champs1, lnum, nl_flag, dt)
+    subroutine forces_int_solid(dom, champs1, bnum)
         use m_calcul_forces
         use m_calcul_forces_atn
         use m_calcul_forces_nl
-        use attenuation_solid
+
         type(domain_solid), intent (INOUT) :: dom
         type(champssolid), intent(inout) :: champs1
-        integer, intent(in) :: lnum
+        integer, intent(in) :: bnum
+        !
         logical,    intent(in) :: nl_flag
         real(fpp),  intent(in), optional :: dt
+        !
         integer :: ngll,i,j,k,i_dir,e,ee,idx
         integer :: n_solid
         logical :: aniso,nl_law
-        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
-        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2) :: Depla
 
         n_solid = dom%n_sls
         aniso   = dom%aniso
@@ -522,8 +522,8 @@ contains
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
-                        do ee = 0, CHUNK-1
-                            idx = dom%Idom_(i,j,k,ee+lnum)
+                        do ee = 0, VCHUNK-1
+                            idx = dom%Idom_(i,j,k,bnum,ee)
                             Depla(ee,i,j,k,i_dir) = champs1%Depla(idx,i_dir)
                         enddo
                     enddo
@@ -536,18 +536,18 @@ contains
 
         if (aniso) then
             if (n_solid>0) then
-                call calcul_forces_aniso_atn(dom,lnum,Fox,Foy,Foz,Depla)
+                call calcul_forces_aniso_atn(dom,bnum,Fox,Foy,Foz,Depla)
             else
-                call calcul_forces_aniso(dom,lnum,Fox,Foy,Foz,Depla)
+                call calcul_forces_aniso(dom,bnum,Fox,Foy,Foz,Depla)
             end if
         else
             if (n_solid>0) then
-                call calcul_forces_iso_atn(dom,lnum,Fox,Foy,Foz,Depla)
+                call calcul_forces_iso_atn(dom,bnum,Fox,Foy,Foz,Depla)
             else
                 if (nl_flag.and.nl_law) then
-                    call calcul_forces_nl(dom,lnum,Fox,Foy,Foz,Depla)
+                    call calcul_forces_nl(dom,bnum,Fox,Foy,Foz,Depla)
                 else
-                    call calcul_forces_iso(dom,lnum,Fox,Foy,Foz,Depla)
+                    call calcul_forces_iso(dom,bnum,Fox,Foy,Foz,Depla)
                 endif 
             end if
         end if
@@ -555,8 +555,10 @@ contains
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    do ee = 0, CHUNK-1
-                        idx = dom%Idom_(i,j,k,ee+lnum)
+                    do ee = 0, VCHUNK-1
+                        e = bnum*VCHUNK+ee
+                        if (e>=dom%nbelem) exit
+                        idx = dom%Idom_(i,j,k,bnum,ee)
                         champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
                         champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)
                         champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)
@@ -565,6 +567,30 @@ contains
             enddo
         enddo
     end subroutine forces_int_solid
+
+    subroutine newmark_predictor_solid(dom)
+        type(domain_solid), intent (INOUT) :: dom
+        !
+        dom%champs1%Depla = dom%champs0%Depla
+        dom%champs1%Veloc = dom%champs0%Veloc
+        dom%champs1%Forces = 0d0
+    end subroutine newmark_predictor_solid
+
+    subroutine newmark_corrector_solid(dom, dt)
+        type(domain_solid), intent (INOUT) :: dom
+        double precision :: dt
+        !
+        integer :: i_dir, n, indpml
+        do i_dir = 0,2
+            dom%champs0%Forces(:,i_dir) = dom%champs1%Forces(:,i_dir) * dom%MassMat(:)
+        enddo
+        dom%champs0%Veloc = dom%champs0%Veloc + dt * dom%champs0%Forces
+        do n = 0, dom%n_dirich-1
+            indpml = dom%dirich(n)
+            dom%champs0%Veloc(indpml,:) = 0.
+        enddo
+        dom%champs0%Depla = dom%champs0%Depla + dt * dom%champs0%Veloc
+    end subroutine newmark_corrector_solid
 end module dom_solid
 
 !! Local Variables:

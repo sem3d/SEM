@@ -31,9 +31,8 @@ module champs_fluidpml
         ! Nombre d'elements dans le domaine
         integer :: nbelem
 
-        ! Nombre d'elements alloues dans le domaine (>=nbelem)
-        integer :: nbelem_alloc
-        integer :: nb_chunks  ! nbelem_alloc == nb_chunks*CHUNK
+        ! Nombre de blocks d'elements alloues dans le domaine (>=nbelem)
+        integer :: nblocks
 
         ! Points, poids de gauss et derivees
         real(fpp), dimension (:), allocatable :: GLLc
@@ -45,27 +44,27 @@ module champs_fluidpml
         real(fpp), dimension(:), allocatable :: MassMat
         real(fpp), dimension(:,:), allocatable :: DumpMass
 
-        real(fpp), dimension (:,:,:,:), allocatable :: m_Lambda, m_Density
+        real(fpp), dimension (:,:,:,:,:), allocatable :: m_Lambda, m_Density
 
-        real(fpp), dimension(:,:,:,:),     allocatable :: m_Jacob
-        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_InvGrad
+        real(fpp), dimension(:,:,:,:,:),     allocatable :: m_Jacob
+        real(fpp), dimension(:,:,:,:,:,:,:), allocatable :: m_InvGrad
 
         ! Condition de dirichlet : liste des noeuds à mettre à 0 pour chaque domaine
         integer :: n_dirich
         integer, dimension(:), allocatable :: dirich
 
         ! Index of a gll node within the physical domain
-        integer, dimension (:,:,:,:), allocatable :: m_Idom ! Idom copied from element
+        integer, dimension (:,:,:,:,:), allocatable :: m_Idom ! Idom copied from element
 
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
         ! Champs
         type(champsfluidpml) :: champs0
         type(champsfluidpml) :: champs1
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_PMLVeloc
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_PMLDumpSx
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_PMLDumpSy
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_PMLDumpSz
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLVeloc
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLDumpSx
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLDumpSy
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_PMLDumpSz
     end type domain_fluidpml
 
     contains
@@ -75,5 +74,11 @@ end module champs_fluidpml
 !! Local Variables:
 !! mode: f90
 !! show-trailing-whitespace: t
+!! coding: utf-8
+!! f90-do-indent: 4
+!! f90-if-indent: 4
+!! f90-type-indent: 4
+!! f90-program-indent: 4
+!! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent : !!

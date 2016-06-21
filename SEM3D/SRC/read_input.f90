@@ -339,7 +339,7 @@ contains
                 !write(*,*) "Reading Random Material (", i, ")"
                 if(Tdomain%sSubdomain(i)%initial_material_type == 'R') then
                     allocate(Tdomain%sSubdomain(i)%corrL(0:2))
-                    allocate(Tdomain%sSubdomain(i)%varProp(0:2))
+                    allocate(Tdomain%sSubdomain(i)%varCoef(0:2))
                     allocate(Tdomain%sSubdomain(i)%margiFirst(0:2))
 
                     read(13,*) Tdomain%sSubdomain(i)%corrMod,       &
@@ -347,11 +347,11 @@ contains
                         Tdomain%sSubdomain(i)%corrL(1),      &
                         Tdomain%sSubdomain(i)%corrL(2),      &
                         Tdomain%sSubdomain(i)%margiFirst(0), &
-                        Tdomain%sSubdomain(i)%varProp(0),    &
+                        Tdomain%sSubdomain(i)%varCoef(0),    &
                         Tdomain%sSubdomain(i)%margiFirst(1), &
-                        Tdomain%sSubdomain(i)%varProp(1),    &
+                        Tdomain%sSubdomain(i)%varCoef(1),    &
                         Tdomain%sSubdomain(i)%margiFirst(2), &
-                        Tdomain%sSubdomain(i)%varProp(2),    &
+                        Tdomain%sSubdomain(i)%varCoef(2),    &
                         Tdomain%sSubdomain(i)%seedStart
                 endif
             enddo
@@ -494,7 +494,7 @@ contains
                 if(Tdomain%sSubDomain(i)%initial_material_type == "R") then
                 !write(*,*) "Reading Random Material (", i, ")"
                     allocate(Tdomain%sSubdomain(i)%corrL(0:2))
-                    allocate(Tdomain%sSubdomain(i)%varProp(0:2))
+                    allocate(Tdomain%sSubdomain(i)%varCoef(0:2))
                     allocate(Tdomain%sSubdomain(i)%margiFirst(0:2))
 
                     read(13,*) Tdomain%sSubdomain(i)%corrMod,       &
@@ -502,11 +502,11 @@ contains
                         Tdomain%sSubdomain(i)%corrL(1),      &
                         Tdomain%sSubdomain(i)%corrL(2),      &
                         Tdomain%sSubdomain(i)%margiFirst(0), &
-                        Tdomain%sSubdomain(i)%varProp(0),    &
+                        Tdomain%sSubdomain(i)%varCoef(0),    &
                         Tdomain%sSubdomain(i)%margiFirst(1), &
-                        Tdomain%sSubdomain(i)%varProp(1),    &
+                        Tdomain%sSubdomain(i)%varCoef(1),    &
                         Tdomain%sSubdomain(i)%margiFirst(2), &
-                        Tdomain%sSubdomain(i)%varProp(2),    &
+                        Tdomain%sSubdomain(i)%varCoef(2),    &
                         Tdomain%sSubdomain(i)%seedStart
                     if(rg==0 .and. .false.) then
                         write (*,*) 'RANDOM Material  : '
@@ -517,9 +517,9 @@ contains
                         write (*,*) ' - FOMarg Prop 0 : ', Tdomain%sSubdomain(i)%margiFirst(0)
                         write (*,*) ' - FOMarg Prop 1 : ', Tdomain%sSubdomain(i)%margiFirst(1)
                         write (*,*) ' - FOMarg Prop 2 : ', Tdomain%sSubdomain(i)%margiFirst(2)
-                        write (*,*) ' - Var Prop 0    : ', Tdomain%sSubdomain(i)%varProp(0)
-                        write (*,*) ' - Var Prop 1    : ', Tdomain%sSubdomain(i)%varProp(1)
-                        write (*,*) ' - Var Prop 2    : ', Tdomain%sSubdomain(i)%varProp(2)
+                        write (*,*) ' - Var Coef 0    : ', Tdomain%sSubdomain(i)%varCoef(0)
+                        write (*,*) ' - Var Coef 1    : ', Tdomain%sSubdomain(i)%varCoef(1)
+                        write (*,*) ' - Var Coef 2    : ', Tdomain%sSubdomain(i)%varCoef(2)
                         write (*,*) ' - Seed Start    : ', Tdomain%sSubdomain(i)%seedStart
                     endif
                 endif
@@ -556,9 +556,9 @@ contains
                     write (*,*) '|    - FOMarg Prop 0 : ', Tdomain%sSubdomain(i)%margiFirst(0)
                     write (*,*) '|    - FOMarg Prop 1 : ', Tdomain%sSubdomain(i)%margiFirst(1)
                     write (*,*) '|    - FOMarg Prop 2 : ', Tdomain%sSubdomain(i)%margiFirst(2)
-                    write (*,*) '|    - Var Prop 0    : ', Tdomain%sSubdomain(i)%varProp(0)
-                    write (*,*) '|    - Var Prop 1    : ', Tdomain%sSubdomain(i)%varProp(1)
-                    write (*,*) '|    - Var Prop 2    : ', Tdomain%sSubdomain(i)%varProp(2)
+                    write (*,*) '|    - Var Coef 0    : ', Tdomain%sSubdomain(i)%varCoef(0)
+                    write (*,*) '|    - Var Coef 1    : ', Tdomain%sSubdomain(i)%varCoef(1)
+                    write (*,*) '|    - Var Coef 2    : ', Tdomain%sSubdomain(i)%varCoef(2)
                     write (*,*) '|    - Seed Start    : ', Tdomain%sSubdomain(i)%seedStart
                 endif
                 write (*,*) '|----------------------------------------'
@@ -736,7 +736,6 @@ contains
             endif
         end if
 
-        write(*,*) "CIAOOOOOO"
         write(*,*) trim(Tdomain%random_library_path)
 
         Tdomain%TimeD%alpha = 0.5

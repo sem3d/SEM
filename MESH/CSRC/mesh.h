@@ -14,7 +14,7 @@
 #include "h5helper.h"
 #include "vertex_elem_map.h"
 #include "meshbase.h"
-
+#include "aabb.h"
 
 class Mesh3D
 {
@@ -96,6 +96,7 @@ public:
     int *m_xadj, *m_adjncy;
     bool debug;
 
+    std::map<int,AABB> m_bbox;
     std::vector<double> m_xco,m_yco,m_zco;  ///< Coordinates of the nodes
     std::vector<int> m_elems; ///< size=(8|27)*n_elems ; describe each node of every elements
     std::vector<int> m_elems_offs; ///< size=n_elems+1; offset of node idx into elems
@@ -105,6 +106,7 @@ public:
     std::vector<unsigned int> m_vertex_domains;
     VertexElemMap  m_vertex_to_elem;
     void build_vertex_to_elem_map();
+    void save_bbox();
     // A map of surfaces, indexed by names
     std::map<std::string,Surface*> m_surfaces;
 protected:

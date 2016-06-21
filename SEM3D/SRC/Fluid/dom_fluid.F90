@@ -20,7 +20,7 @@ contains
         type(domain) :: TDomain
         type(domain_fluid), intent (INOUT) :: dom
         !
-        integer :: nbelem, ngll
+        integer :: nbelem, ngll, nblocks
         !
 
         ngll   = dom%ngll
@@ -34,16 +34,16 @@ contains
         if(nbelem /= 0) then
             ! We can have glls without elements
             ! Do not allocate if not needed (save allocation/RAM)
-            nbelem = CHUNK*((nbelem+CHUNK-1)/CHUNK)
-            dom%nbelem_alloc = nbelem
+            nblocks = ((nbelem+VCHUNK-1)/VCHUNK)
+            dom%nblocks = nblocks
 
-            allocate(dom%IDensity_(0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
-            allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1,0:nbelem-1))
+            allocate(dom%IDensity_(0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
+            allocate(dom%Lambda_ (0:ngll-1, 0:ngll-1, 0:ngll-1, 0:nblocks-1, 0:VCHUNK-1))
 
-            allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
-            allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+            allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
+            allocate (dom%InvGrad_(0:2,0:2,0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
 
-            allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nbelem-1))
+            allocate(dom%Idom_(0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
             dom%m_Idom = 0
         end if
         ! Allocation et initialisation de champs0 et champs1 pour les fluides
@@ -116,8 +116,8 @@ contains
         !
         type(domain)                               :: TDomain
         type(domain_fluid), intent(inout)          :: dom
-        integer, dimension(0:8)                    :: out_variables
-        integer                                    :: lnum
+        integer, dimension(0:8), intent(in)        :: out_variables
+        integer, intent(in)                        :: lnum
         real(fpp), dimension(:,:,:), allocatable   :: phi
         real(fpp), dimension(:,:,:), allocatable   :: vphi
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
@@ -128,6 +128,10 @@ contains
         !
         logical :: flag_gradU
         integer :: ngll, i, j, k, ind
+        integer :: bnum, ee
+
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
 
         flag_gradU = (out_variables(OUT_ENERGYP) + &
             out_variables(OUT_ENERGYS) + &
@@ -148,13 +152,13 @@ contains
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
-                        ind = dom%Idom_(i,j,k,lnum)
+                        ind = dom%Idom_(i,j,k,bnum,ee)
                         phi(i,j,k) = dom%champs0%Phi(ind)
                     enddo
                 enddo
             enddo
-            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,lnum),&
-                 dom%IDensity_(:,:,:,lnum),phi,fieldV)
+            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                 dom%IDensity_(:,:,:,bnum,ee),phi,fieldV)
         end if
 
         if (out_variables(OUT_ACCEL) == 1) then
@@ -163,13 +167,13 @@ contains
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
-                        ind = dom%Idom_(i,j,k,lnum)
+                        ind = dom%Idom_(i,j,k,bnum,ee)
                         vphi(i,j,k) = dom%champs0%VelPhi(ind)
                     enddo
                 enddo
             enddo
-            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,lnum),&
-                 dom%IDensity_(:,:,:,lnum),vphi,fieldA)
+            call fluid_velocity(ngll,dom%hprime,dom%InvGrad_(:,:,:,:,:,bnum,ee),&
+                 dom%IDensity_(:,:,:,bnum,ee),vphi,fieldA)
         end if
 
         if (out_variables(OUT_PRESSION) == 1) then
@@ -177,7 +181,7 @@ contains
             do k=0,ngll-1
                 do j=0,ngll-1
                     do i=0,ngll-1
-                        ind = dom%Idom_(i,j,k,lnum)
+                        ind = dom%Idom_(i,j,k,bnum,ee)
                         fieldP(i,j,k) = -dom%champs0%VelPhi(ind)
                     enddo
                 enddo
@@ -218,36 +222,45 @@ contains
         integer, intent(in) :: i, j, k ! -1 means :
         real(fpp), intent(in) :: density
         real(fpp), intent(in) :: lambda
+        !
+        integer :: bnum, ee
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
 
         if (i==-1 .and. j==-1 .and. k==-1) then
-            dom%IDensity_(:,:,:,lnum) = 1d0/density
-            dom%Lambda_ (:,:,:,lnum) = lambda
+            dom%IDensity_(:,:,:,bnum,ee) = 1d0/density
+            dom%Lambda_ (:,:,:,bnum,ee) = lambda
         else
-            dom%IDensity_(i,j,k,lnum) = 1d0/density
-            dom%Lambda_ (i,j,k,lnum) = lambda
+            dom%IDensity_(i,j,k,bnum,ee) = 1d0/density
+            dom%Lambda_ (i,j,k,bnum,ee) = lambda
         end if
     end subroutine init_material_properties_fluid
 
     subroutine init_local_mass_fluid(dom,specel,i,j,k,ind,Whei)
         type(domain_fluid), intent (INOUT) :: dom
         type (Element), intent (INOUT) :: specel
-        integer :: i,j,k,ind
-        real Whei
+        integer, intent(in) :: i,j,k,ind
+        real(kind=fpp), intent(in) :: Whei
+        !
+        integer :: bnum, ee
+        bnum = specel%lnum/VCHUNK
+        ee = mod(specel%lnum,VCHUNK)
 
         ! Fluid : inertial term ponderation by the inverse of the bulk modulus
 
-        specel%MassMat(i,j,k) = Whei*dom%Jacob_(i,j,k,specel%lnum)/dom%Lambda_(i,j,k,specel%lnum)
+        specel%MassMat(i,j,k) = Whei*dom%Jacob_(i,j,k,bnum,ee)/dom%Lambda_(i,j,k,bnum,ee)
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_fluid
 
-    subroutine forces_int_fluid(dom, champs1, lnum)
+    subroutine forces_int_fluid(dom, champs1, bnum)
         use m_calcul_forces_fluid
         type(domain_fluid), intent (INOUT) :: dom
         type(champsfluid), intent(inout) :: champs1
-        integer, intent(in) :: lnum
+        integer, intent(in) :: bnum
         !
         integer :: ngll,i,j,k,e,ee,idx
-        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: Fo_Fl,Phi
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1, 0:dom%ngll-1, 0:dom%ngll-1) :: Fo_Fl,Phi
+        real(fpp) :: val
 
         ngll = dom%ngll
 
@@ -257,8 +270,8 @@ contains
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    do ee = 0, CHUNK-1
-                        idx = dom%Idom_(i,j,k,ee+lnum)
+                    do ee = 0, VCHUNK-1
+                        idx = dom%Idom_(i,j,k,bnum,ee)
                         Phi(ee,i,j,k) = champs1%Phi(idx)
                         Fo_Fl(ee,i,j,k) = 0d0
                     enddo
@@ -267,19 +280,45 @@ contains
         enddo
 
         ! internal forces
-        call calcul_forces_fluid(dom,dom%ngll,lnum,Fo_Fl,Phi)
+        call calcul_forces_fluid(dom,dom%ngll,bnum,Fo_Fl,Phi)
         do k = 0,ngll-1
             do j = 0,ngll-1
                 do i = 0,ngll-1
-                    do ee = 0, CHUNK-1
-                        e = lnum+ee
-                        if (e>dom%nbelem) exit
-                        champs1%ForcesFl(dom%Idom_(i,j,k,e)) = champs1%ForcesFl(dom%Idom_(i,j,k,e))-Fo_Fl(ee,i,j,k)
+                    do ee = 0, VCHUNK-1
+                        e = bnum*VCHUNK+ee
+                        if (e>=dom%nbelem) exit
+                        idx = dom%Idom_(i,j,k,bnum,ee)
+                        val = champs1%ForcesFl(idx)
+                        val = val - Fo_Fl(ee,i,j,k)
+                        champs1%ForcesFl(idx) = val
                     enddo
                 enddo
             enddo
         enddo
     end subroutine forces_int_fluid
+
+    subroutine newmark_predictor_fluid(dom)
+        type(domain_fluid), intent (INOUT) :: dom
+        !
+        dom%champs1%VelPhi = dom%champs0%VelPhi
+        dom%champs1%Phi    = dom%champs0%Phi
+        dom%champs1%ForcesFl = 0d0
+    end subroutine newmark_predictor_fluid
+
+    subroutine newmark_corrector_fluid(dom, dt)
+        type(domain_fluid), intent (INOUT) :: dom
+        double precision :: dt
+        !
+        integer  :: n,  indpml
+
+        dom%champs0%ForcesFl = dom%champs1%ForcesFl * dom%MassMat
+        dom%champs0%VelPhi = (dom%champs0%VelPhi + dt * dom%champs0%ForcesFl)
+        do n = 0, dom%n_dirich-1
+            indpml = dom%dirich(n)
+            dom%champs0%VelPhi(indpml) = 0.
+        enddo
+        dom%champs0%Phi = dom%champs0%Phi + dt * dom%champs0%VelPhi
+    end subroutine newmark_corrector_fluid
 end module dom_fluid
 
 !! Local Variables:

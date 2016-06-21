@@ -873,11 +873,11 @@ contains
 
             !INPUT
             character(len=*), intent(in)      :: BBoxFileName
-            double precision, dimension(1:,1:), intent(in) :: coordList
+            double precision, dimension(:,:), intent(in) :: coordList
             integer, intent(in) :: rang
-            double precision, dimension(1:), intent(in), optional :: xMinLoc_In, xMaxLoc_In
+            double precision, dimension(:), intent(in), optional :: xMinLoc_In, xMaxLoc_In
             !OUTPUT
-            double precision, dimension(1:,1:), intent(out) :: UNV_randField
+            double precision, dimension(:,:), intent(out) :: UNV_randField
             !LOCAL
             integer :: nDim, Nmc
             !logical :: independent
@@ -898,8 +898,6 @@ contains
             double precision, dimension(:,:)    , pointer :: BB_2D
             double precision, dimension(:,:,:)  , pointer :: BB_3D
             double precision :: weight
-            logical :: findPropertyonTable
-            real :: t_0, t_f
 
 
             call h5open_f(hdferr) ! Initialize FORTRAN interface.
@@ -939,18 +937,10 @@ contains
                 end do
             end if
 
-            write(*,*) "xMinGlob = ", xMinGlob
-            write(*,*) "xMaxGlob = ", xMaxGlob
-            write(*,*) "xMin_Loc_UNV = ", xMin_Loc_UNV
-            write(*,*) "xMax_Loc_UNV = ", xMax_Loc_UNV
-            write(*,*) "shape(coordList) = ", shape(coordList)
-
             minPos = floor((xMin_Loc_UNV-xMinGlob)/xStep) + 1
             maxPos = ceiling((xMax_Loc_UNV-xMinGlob)/xStep) + 1
             where(minPos < 1) minPos = 1
             where(maxPos > xNStep) maxPos = xNStep
-            write(*,*) "minPos = ", minPos
-            write(*,*) "maxPos = ", maxPos
 
             extent = maxPos - minPos + 1
 
@@ -965,16 +955,15 @@ contains
             call wLog("extent BB")
             call wLog(extent)
 
-            allocate(BB_randField(product(int(extent,8)),1))
+            allocate(BB_randField(product(extent),1))
 
             !READING MATRIX BLOCK----------------------------------------------------------------
             locDims = extent
-            write(*,*) "Open hdf5 file"
-            call cpu_time(t_0)
             call h5dopen_f(file_id, trim(dset), dset_id, hdferr)! Open Dataset
             call h5dget_space_f(dset_id, space_id, hdferr) !Open Dataset Space
             !call h5sget_simple_extent_dims_f(space_id, dims, maxdims, hdferr) !Measure Dataset Space
 
+            !allocate(STA%randField(product(dims),1))
             offset = minPos-1
             locShape = shape(BB_randField)
             zero2D = 0
@@ -992,15 +981,8 @@ contains
             !OUT
             call h5screate_simple_f(2, locShape, mem_id, hdferr) !Create memory dataspace
             call h5sselect_hyperslab_f(mem_id, H5S_SELECT_SET_F, zero2D, locShape, hdferr) !Select Hyperslab OUT
-            call cpu_time(t_f)
-            write(*,*) "time = ", t_f - t_0
-            call cpu_time(t_0)
-            write(*,*) "Reading hdf5 file"
             call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, BB_randField, locShape, hdferr, mem_id, space_id) !Read Dataset Hyperslab
 
-            call cpu_time(t_f)
-            write(*,*) "time = ", t_f - t_0
-            call cpu_time(t_0)
 
             call h5dclose_f(dset_id, hdferr) !Close Dataset
             call h5sclose_f(space_id, hdferr) !Close Dataset Space
@@ -1032,8 +1014,6 @@ contains
 
             UNV_randField(:,:) = 0
 
-            write(*,*) "Interpolating"
-
             do i = 1, size(coordList, 2)
 
                 !MAPPING COORD In BB
@@ -1044,7 +1024,7 @@ contains
 
                 !Applying Values
                 do j = 1, size(neighCoord, 2)
-                    findPropertyOnTable = .true.
+
                     distance(:) = abs(coordPos - dble(coordPosInt+neighCoord(:,j)))
                     weight      = product(1.0D0 - distance)
                     !weight      = 1.0D0 - sqrt(sum(distance**2))/sqrt(dble(nDim))
@@ -1052,11 +1032,8 @@ contains
                     !write(*,*) "weight = ", weight
 
                     if(any(coordPosInt(:)+neighCoord(:,j) > maxPos)) then
-                        findPropertyOnTable = .false.
                         call wLog("Error in rang ")
                         call wLog(rang)
-                        call wLog("   coordList = ")
-                        call wLog(coordList(:,i))
                         call wLog("   coordPos = ")
                         call wLog(coordPos)
                         call wLog("          j = ")
@@ -1065,22 +1042,12 @@ contains
                         call wLog(coordPosInt(:)+neighCoord(:,j))
                         call wLog("maxPos = ")
                         call wLog(maxPos)
-                       !write(*,*) "Error in rang ", rang
-                        !write(*,*) "  coordList(:,i) = ", coordList(:,i)
-                        !write(*,*) "   coordPos = ", coordPos
-                        !write(*,*) "          j = ", j
-                        !write(*,*) "coordPosInt(:)+neighCoord(:,j) = ", coordPosInt(:)+neighCoord(:,j)
-                        !write(*,*) "maxPos = ", maxPos
-                        !stop(" ERROR! UNV TRIED POSITION OUT OF RANGE (>Max)")
 
                     end if
 
                     if(any(coordPosInt(:)+neighCoord(:,j) < minPos)) then
-                        findPropertyOnTable = .false.
                         call wLog("Error in rang ")
                         call wLog(rang)
-                        call wLog("   coordList = ")
-                        call wLog(coordList(:,i))
                         call wLog("   coordPos = ")
                         call wLog(coordPos)
                         call wLog("          j = ")
@@ -1089,41 +1056,47 @@ contains
                         call wLog(coordPosInt(:)+neighCoord(:,j))
                         call wLog("minPos = ")
                         call wLog(minPos)
-                        !write(*,*) "Error in rang ", rang
-                        !write(*,*) "  coordList(:,i) = ", coordList(:,i)
-                        !write(*,*) "   coordPos = ", coordPos
-                        !write(*,*) "          j = ", j
-                        !write(*,*) "coordPosInt(:)+neighCoord(:,j) = ", coordPosInt(:)+neighCoord(:,j)
-                        !write(*,*) "minPos = ", minPos
-                        !stop(" ERROR! UNV TRIED POSITION OUT OF RANGE (<Min)")
+                        !stop(" ERROR! UNV TRIED POSITION OUT OF RANGE")
                     end if
 
-                    if(findPropertyOnTable) then
-                        if(nDim == 2) then
-                            UNV_randField(i,1) = UNV_randField(i,1) +                  &
-                                (                                     &
-                                BB_2D(coordPosInt(1)+neighCoord(1,j), &
-                                coordPosInt(2)+neighCoord(2,j)) &
-                                * weight                              &
-                                )
-                        else if (nDim == 3) then
-                            UNV_randField(i,1) = UNV_randField(i,1) +                  &
-                                (                                     &
-                                BB_3D(coordPosInt(1)+neighCoord(1,j), &
-                                coordPosInt(2)+neighCoord(2,j), &
-                                coordPosInt(3)+neighCoord(3,j)) &
-                                * weight                              &
-                                )
-                        end if
+                    if(nDim == 2) then
+                        UNV_randField(i,1) = UNV_randField(i,1) +                  &
+                            (                                     &
+                            BB_2D(coordPosInt(1)+neighCoord(1,j), &
+                            coordPosInt(2)+neighCoord(2,j)) &
+                            * weight                              &
+                            )
+                    else if (nDim == 3) then
+                        UNV_randField(i,1) = UNV_randField(i,1) +                  &
+                            (                                     &
+                            BB_3D(coordPosInt(1)+neighCoord(1,j), &
+                            coordPosInt(2)+neighCoord(2,j), &
+                            coordPosInt(3)+neighCoord(3,j)) &
+                            * weight                              &
+                            )
                     end if
 
                 end do
 
+
+!                if(nDim == 2) then
+!                    UNV_randField(i,1) = BB_2D(coordPosInt(1), coordPosInt(2))
+!                else if (nDim == 3) then
+!                    UNV_randField(i,1) = BB_3D(coordPosInt(1), coordPosInt(2), coordPosInt(3))
+!                end if
+
+!                coordPosInt = nint(coordPos)
+!
+!                if(nDim == 2) then
+!                    UNV_randField(i,1) = BB_2D(coordPosInt(1), coordPosInt(2))
+!                else if (nDim == 3) then
+!                    UNV_randField(i,1) = BB_3D(coordPosInt(1), coordPosInt(2), coordPosInt(3))
+!                end if
+
             end do
 
-            call cpu_time(t_f)
-            write(*,*) "time = ", t_f - t_0
-            call cpu_time(t_0)
+
+
 
             if (allocated(BB_randField))   deallocate(BB_randField)
 

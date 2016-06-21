@@ -36,13 +36,15 @@ contains
         do i = 0,vector%ncomm-1
             dest = vector%Data(i)%dest
             src = vector%Data(i)%src
-            call MPI_Isend(vector%Data(i)%Give, vector%Data(i)%ndata, &
-                           MPI_DOUBLE_PRECISION, dest, tag, Tdomain%communicateur, &
-                           vector%send_reqs(i), ierr)
+            if (vector%Data(i)%ndata>0) then
+                call MPI_Isend(vector%Data(i)%Give, vector%Data(i)%ndata, &
+                    MPI_DOUBLE_PRECISION, dest, tag, Tdomain%communicateur, &
+                    vector%send_reqs(i), ierr)
 
-            call MPI_Irecv(vector%Data(i)%Take, vector%Data(i)%ndata, &
-                           MPI_DOUBLE_PRECISION, dest, tag, Tdomain%communicateur, &
-                           vector%recv_reqs(i), ierr)
+                call MPI_Irecv(vector%Data(i)%Take, vector%Data(i)%ndata, &
+                    MPI_DOUBLE_PRECISION, dest, tag, Tdomain%communicateur, &
+                    vector%recv_reqs(i), ierr)
+            end if
         enddo
 
         call MPI_Waitall(vector%ncomm, vector%recv_reqs, statuses, ierr)

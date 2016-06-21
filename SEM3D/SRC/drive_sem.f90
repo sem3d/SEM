@@ -24,11 +24,10 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     use mdefinitions, only : define_arrays
     use semconfig !< pour config C
     use sem_c_bindings
+    use stat, only : stat_starttick, stat_stoptick, STAT_START
 #ifdef COUPLAGE
     use scouplage
 #endif
-    use calls_RF !TEST
-    use fftw3 !TEST
 
     implicit none
 
@@ -49,9 +48,8 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     integer, dimension(3) :: tab
     integer :: min_rank_glob_sem
 #endif
-    type(IPT_RF) :: IPT !TEST
-    double precision, dimension(10) :: times !TEST
 
+    call stat_starttick()
     call MPI_Init (ierr)
 
 !----------------------------------------------------------------------------------------------!
@@ -127,6 +125,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     call RUN_PREPARED(Tdomain)
     call RUN_INIT_INTERACT(Tdomain,isort)
 
+    call stat_stoptick(STAT_START)
  !---------------------------------------------------------------------------------------------!
  !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
  !---------------------------------------------------------------------------------------------!
@@ -265,7 +264,7 @@ subroutine RUN_PREPARED(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
 
 
-    if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
+    !if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
     call create_prop_files (Tdomain, rg)
 
 
@@ -444,6 +443,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     use msnapshots
     use semconfig !< pour config C
     use sem_c_bindings
+    use stat, only : stat_starttick, stat_stoptick, STAT_TSTEP, STAT_IO
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -535,10 +535,14 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
                 if (ntime/=0) protection = 1
             end if
         endif
-    !- Time remaining
-        call TREMAIN(remaining_time)
-        if(remaining_time < max_time_left) interrupt = 1
-        call MPI_ALLREDUCE(MPI_IN_PLACE, interrupt, 1, MPI_INTEGER, MPI_SUM, Tdomain%communicateur_global, code)
+        !- Time remaining
+        if (mod(ntime,20)==0) then
+            call stat_starttick()
+            call TREMAIN(remaining_time)
+            if(remaining_time < max_time_left) interrupt = 1
+            call MPI_ALLREDUCE(MPI_IN_PLACE, interrupt, 1, MPI_INTEGER, MPI_SUM, Tdomain%communicateur_global, code)
+            call stat_stoptick(STAT_TSTEP)
+        end if
 
     !- snapshotting
         if(Tdomain%logicD%save_snapshots) i_snap = mod(ntime, Tdomain%TimeD%nsnap)
@@ -547,6 +551,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
     !- Ici, on a une info globale pour interrupt, protection, i_snap
         if(interrupt > 0) protection = 1
 
+        call stat_starttick()
 
 !---------------------------------------------------------!
     !- SNAPSHOTS
@@ -571,6 +576,7 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
             call flushAllCapteurs(Tdomain)
             call save_checkpoint(Tdomain, Tdomain%TimeD%rtime, ntime, Tdomain%TimeD%dtmin, isort)
         endif
+        call stat_stoptick(STAT_IO)
 
 !---------------------------------------------------------!
     !-  STOPPING RUN on all procs

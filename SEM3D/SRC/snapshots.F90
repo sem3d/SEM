@@ -1363,7 +1363,7 @@ contains
         real, dimension(:),allocatable :: mass, jac, dumpsx
         real, dimension(:),allocatable :: dens, lamb, mu, kappa
         integer :: ngll, idx
-        integer :: i, j, k, n, lnum, nnodes_tot
+        integer :: i, j, k, n, lnum, nnodes_tot, bnum, ee
         integer :: domain_type, imat
         real(fpp) :: dx, dy, dz, dt
 
@@ -1383,6 +1383,9 @@ contains
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             imat = Tdomain%specel(n)%mat_index
             lnum = Tdomain%specel(n)%lnum
+            bnum = lnum/VCHUNK
+            ee = mod(lnum,VCHUNK)
+
             domain_type = Tdomain%specel(n)%domain
             select case(domain_type)
             case (DM_SOLID)
@@ -1391,7 +1394,7 @@ contains
                         do i = 0,ngll-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%sdom%MassMat(Tdomain%sdom%Idom_(i,j,k,lnum))
+                                mass(idx) = Tdomain%sdom%MassMat(Tdomain%sdom%Idom_(i,j,k,bnum,ee))
                             endif
                         end do
                     end do
@@ -1402,12 +1405,16 @@ contains
                         do i = 0,ngll-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%spmldom%MassMat(Tdomain%spmldom%Idom_(i,j,k,lnum))
+                                mass(idx) = Tdomain%spmldom%MassMat(Tdomain%spmldom%Idom_(i,j,k,bnum,ee))
                                 dt = 2d0*Tdomain%TimeD%dtmin
-                                dx = ((1d0/Tdomain%spmldom%PMLDumpSx_(i,j,k,1,lnum))-1.)/dt
-                                dy = ((1d0/Tdomain%spmldom%PMLDumpSy_(i,j,k,1,lnum))-1.)/dt
-                                dz = ((1d0/Tdomain%spmldom%PMLDumpSz_(i,j,k,1,lnum))-1.)/dt
+#ifdef CPML
+                                dumpsx(idx) = 0.
+#else
+                                dx = ((1d0/Tdomain%spmldom%PMLDumpSx_(i,j,k,1,bnum,ee))-1.)/dt
+                                dy = ((1d0/Tdomain%spmldom%PMLDumpSy_(i,j,k,1,bnum,ee))-1.)/dt
+                                dz = ((1d0/Tdomain%spmldom%PMLDumpSz_(i,j,k,1,bnum,ee))-1.)/dt
                                 dumpsx(idx) = dx+dy+dz
+#endif
                             endif
                         end do
                     end do
@@ -1418,7 +1425,7 @@ contains
                         do i = 0,ngll-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%fdom%MassMat(Tdomain%fdom%Idom_(i,j,k,lnum))
+                                mass(idx) = Tdomain%fdom%MassMat(Tdomain%fdom%Idom_(i,j,k,bnum,ee))
                             endif
                         end do
                     end do
@@ -1429,7 +1436,7 @@ contains
                         do i = 0,ngll-1
                             idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                             if (domains(idx)==domain_type) then
-                                mass(idx) = Tdomain%fpmldom%MassMat(Tdomain%fpmldom%Idom_(i,j,k,lnum))
+                                mass(idx) = Tdomain%fpmldom%MassMat(Tdomain%fpmldom%Idom_(i,j,k,bnum,ee))
                             endif
                         end do
                     end do
@@ -1445,19 +1452,21 @@ contains
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
                         idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
-                                jac(idx) = Tdomain%sdom%Jacob_   (i,j,k,Tdomain%specel(n)%lnum)
+                                jac(idx) = Tdomain%sdom%Jacob_   (i,j,k,bnum,ee)
                             case (DM_SOLID_PML)
-                                jac(idx) = Tdomain%spmldom%Jacob_(i,j,k,Tdomain%specel(n)%lnum)
+                                jac(idx) = Tdomain%spmldom%Jacob_(i,j,k,bnum,ee)
                             case (DM_FLUID)
-                                jac(idx) = Tdomain%fdom%Jacob_   (i,j,k,Tdomain%specel(n)%lnum)
+                                jac(idx) = Tdomain%fdom%Jacob_   (i,j,k,bnum,ee)
                             case (DM_FLUID_PML)
-                                jac(idx) = Tdomain%fpmldom%Jacob_(i,j,k,Tdomain%specel(n)%lnum)
+                                jac(idx) = Tdomain%fpmldom%Jacob_(i,j,k,bnum,ee)
                             case default
                                 stop "unknown domain"
                         end select
@@ -1470,19 +1479,21 @@ contains
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
                         idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
-                                dens(idx) = Tdomain%sdom%Density_        (i,j,k,Tdomain%specel(n)%lnum)
+                                dens(idx) = Tdomain%sdom%Density_        (i,j,k,bnum,ee)
                             case (DM_SOLID_PML)
-                                dens(idx) = Tdomain%spmldom%Density_     (i,j,k,Tdomain%specel(n)%lnum)
+                                dens(idx) = Tdomain%spmldom%Density_     (i,j,k,bnum,ee)
                             case (DM_FLUID)
-                                dens(idx) = 1.0D0/Tdomain%fdom%IDensity_ (i,j,k,Tdomain%specel(n)%lnum)
+                                dens(idx) = 1.0D0/Tdomain%fdom%IDensity_ (i,j,k,bnum,ee)
                             case (DM_FLUID_PML)
-                                dens(idx) = Tdomain%fpmldom%Density_     (i,j,k,Tdomain%specel(n)%lnum)
+                                dens(idx) = Tdomain%fpmldom%Density_     (i,j,k,bnum,ee)
                             case default
                                 stop "unknown domain"
                         end select
@@ -1495,19 +1506,23 @@ contains
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
                         idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
-                                lamb(idx) = Tdomain%sdom%Lambda_        (i,j,k,Tdomain%specel(n)%lnum)
+                                lamb(idx) = Tdomain%sdom%Lambda_        (i,j,k,bnum,ee)
+#ifndef CPML
                             case (DM_SOLID_PML)
-                                lamb(idx) = Tdomain%spmldom%Lambda_     (i,j,k,Tdomain%specel(n)%lnum)
+                                lamb(idx) = Tdomain%spmldom%Lambda_     (i,j,k,bnum,ee)
+#endif
                             case (DM_FLUID)
-                                lamb(idx) = Tdomain%fdom%Lambda_        (i,j,k,Tdomain%specel(n)%lnum)
+                                lamb(idx) = Tdomain%fdom%Lambda_        (i,j,k,bnum,ee)
                             case (DM_FLUID_PML)
-                                lamb(idx) = Tdomain%fpmldom%Lambda_     (i,j,k,Tdomain%specel(n)%lnum)
+                                lamb(idx) = Tdomain%fpmldom%Lambda_     (i,j,k,bnum,ee)
                             case default
                                 stop "unknown domain"
                         end select
@@ -1520,15 +1535,19 @@ contains
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
                         idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
-                                mu(idx) = Tdomain%sdom%Mu_(i,j,k,Tdomain%specel(n)%lnum)
+                                mu(idx) = Tdomain%sdom%Mu_(i,j,k,bnum,ee)
+#ifndef CPML
                             case (DM_SOLID_PML)
-                                mu(idx) = Tdomain%spmldom%Mu_(i,j,k,Tdomain%specel(n)%lnum)
+                                mu(idx) = Tdomain%spmldom%Mu_(i,j,k,bnum,ee)
+#endif
                             case (DM_FLUID)
                                 mu(idx) = -1d0
                             case (DM_FLUID_PML)
@@ -1545,13 +1564,15 @@ contains
         do n = 0,Tdomain%n_elem-1
             if (.not. Tdomain%specel(n)%OUTPUT) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
             do k = 0,ngll-1
                 do j = 0,ngll-1
                     do i = 0,ngll-1
                         idx = irenum(Tdomain%specel(n)%Iglobnum(i,j,k))
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
-                                kappa(idx) = Tdomain%sdom%Kappa_(i,j,k,Tdomain%specel(n)%lnum)
+                                kappa(idx) = Tdomain%sdom%Kappa_(i,j,k,bnum,ee)
                             case (DM_SOLID_PML)
                                 kappa(idx) = -1d0
                             case (DM_FLUID)

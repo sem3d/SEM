@@ -35,7 +35,8 @@ contains
         implicit none
 
         type (domain), intent (INOUT), target :: Tdomain
-        integer :: n, mat, rg
+        integer :: n, mat, rg, bnum, ee
+
         rg = Tdomain%rank
 
         if( Tdomain%earthchunk_isInit/=0) then
@@ -93,14 +94,17 @@ contains
 
         ! Copy Idom from element to domain_XXX
         do n = 0,Tdomain%n_elem-1
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+
             if      (Tdomain%specel(n)%domain==DM_SOLID    ) then
-                Tdomain%sdom%Idom_(:,:,:,Tdomain%specel(n)%lnum)    = Tdomain%specel(n)%Idom
+                Tdomain%sdom%Idom_(:,:,:,bnum,ee)    = Tdomain%specel(n)%Idom
             else if (Tdomain%specel(n)%domain==DM_SOLID_PML) then
-                Tdomain%spmldom%Idom_(:,:,:,Tdomain%specel(n)%lnum) = Tdomain%specel(n)%Idom
+                Tdomain%spmldom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
             else if (Tdomain%specel(n)%domain==DM_FLUID    ) then
-                Tdomain%fdom%Idom_(:,:,:,Tdomain%specel(n)%lnum)    = Tdomain%specel(n)%Idom
+                Tdomain%fdom%Idom_(:,:,:,bnum,ee)    = Tdomain%specel(n)%Idom
             else if (Tdomain%specel(n)%domain==DM_FLUID_PML) then
-                Tdomain%fpmldom%Idom_(:,:,:,Tdomain%specel(n)%lnum) = Tdomain%specel(n)%Idom
+                Tdomain%fpmldom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
             else
                 stop "unknown domain"
             end if
@@ -180,8 +184,10 @@ contains
 
                 ! Domain SOLID PML
                 if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
+#ifndef CPML
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
                         Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%DumpMass, k)
+#endif
                     call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
                         Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%MassMat, k)
                 end if
@@ -213,8 +219,10 @@ contains
 
                 ! Domain SOLID PML
                 if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
+#ifndef CPML
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                         Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%DumpMass, k)
+#endif
                     call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
                         Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%MassMat, k)
                 end if

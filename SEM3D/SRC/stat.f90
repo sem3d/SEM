@@ -1,6 +1,23 @@
 module stat
+    use constants, only : fpp
+    ! TYPE DE STATISTIQUES
+    integer, parameter :: STAT_COUNT = 12
+    integer, parameter :: STAT_GIVE  = 0 !
+    integer, parameter :: STAT_TAKE  = 1 !
+    integer, parameter :: STAT_WAIT  = 2 !
+    integer, parameter :: STAT_FSOL  = 3 ! Forces      solide
+    integer, parameter :: STAT_FFLU  = 4 ! Forces      fluide
+    integer, parameter :: STAT_PSOL  = 5 ! Forces  PML solide
+    integer, parameter :: STAT_PFLU  = 6 ! Forces  PML fluide
+    integer, parameter :: STAT_FEXT  = 7 !
+    integer, parameter :: STAT_FULL  = 8 !
+    integer, parameter :: STAT_TSTEP = 9 ! Timestep synchronisation
+    integer, parameter :: STAT_IO    =10 ! IO
+    integer, parameter :: STAT_START =11 ! Initialisation/startup time
 
-    use constants
+    character(len=5), dimension(0:STAT_COUNT-1) :: stat_labels = (/ &
+        "GIVE ", "TAKE ", "WAIT ", "FSOL ", "FFLU ", "PSOL ", "PFLU ", "FEXT ", "FULL ", "TSTEP","IO   ", "INIT " /)
+
     integer, private :: clockRate, maxPeriod
 
     integer, private :: startFullTick, stopFullTick
@@ -8,7 +25,6 @@ module stat
 
     integer     , private :: startTick, stopTick, deltaTick
     real(fpp), dimension(0:STAT_COUNT-1), private :: statTimes
-
     contains
 
     subroutine stat_init()
@@ -25,7 +41,7 @@ module stat
     subroutine stat_finalize()
         use mpi
         implicit none
-        integer :: ierr, rank, sz, r
+        integer :: ierr, rank, sz, r, i
         integer :: status(MPI_STATUS_SIZE)
         real(fpp) :: calctime
 
@@ -34,6 +50,7 @@ module stat
         if (deltaTick < 0) deltaTick = deltaTick+maxPeriod
         fullTime = real(deltaTick)/clockRate
 
+        statTimes(STAT_FULL) = fullTime
         call MPI_Comm_Rank (MPI_COMM_WORLD, rank, ierr)
         if (rank .gt. 0) then
             call MPI_SEND(statTimes,STAT_COUNT,MPI_DOUBLE_PRECISION,0,0,MPI_COMM_WORLD,ierr)
@@ -45,23 +62,9 @@ module stat
                     call MPI_RECV(statTimes,STAT_COUNT,MPI_DOUBLE_PRECISION,r,0,MPI_COMM_WORLD,status,ierr)
                 end if
 
-                write (123,'(a,i4,a,f10.3,a,f10.3,a,f10.3,a,f10.3,a)') "TIMING - stat comm : rank ", r, &
-                ", comm time ", statTimes(STAT_GIVE) + statTimes(STAT_WAIT) + statTimes(STAT_TAKE), &
-                " sec [give ", statTimes(STAT_GIVE), " sec, wait ", &
-                statTimes(STAT_WAIT), " sec, take ", &
-                statTimes(STAT_TAKE), " sec]"
-                calctime = statTimes(STAT_FSOL)+statTimes(STAT_FFLU)+statTimes(STAT_PSOL)+statTimes(STAT_PFLU)
-                write (123,'(a,i4,a,f10.3,a,f10.3,a,f10.3,a,f10.3,a,f10.3,a,f10.3,a)') &
-                    "TIMING - stat calc : rank ", r,         &
-                    ", calc time ",  calctime + statTimes(STAT_FEXT), &
-                    " sec [fsol:", statTimes(STAT_FSOL), &
-                    " sec fflu:", statTimes(STAT_FFLU), &
-                    " sec psol:", statTimes(STAT_PSOL), &
-                    " sec pflu:", statTimes(STAT_PFLU), &
-                    " sec, fext ", statTimes(STAT_FEXT), " sec]"
-
-                write (123,'(a,i4,a,f10.3,a)') "TIMING - stat full : rank ", r, &
-                    ", full time ", statTimes(STAT_FULL), " sec"
+                do i=0,STAT_COUNT-1
+                    write(123, '(a6,I4,f10.3)') stat_labels(i), r, statTimes(i)
+                end do
             end do
             close (123)
         end if

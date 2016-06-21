@@ -26,11 +26,9 @@ set(MESH_SRC
 add_definitions(-DUSE_HDF5)
 include_directories(${HDF5_INCLUDE_DIR_FORTRAN})
 
-add_executable(oldmesher ${MESH_SRC})
-target_link_libraries(oldmesher metis ${SEM_EXTRA_LIBS} )
-
-
-install(TARGETS oldmesher DESTINATION bin)
+#add_executable(oldmesher ${MESH_SRC})
+#target_link_libraries(oldmesher metis ${SEM_EXTRA_LIBS} )
+#install(TARGETS oldmesher DESTINATION bin)
 
 add_library(mesh3d
   ${SEMCOMMON}/h5helper.cpp

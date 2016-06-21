@@ -346,7 +346,6 @@ contains
     subroutine read_mesh_file_h5(Tdomain)
         use mpi
         use sem_c_bindings
-        use displayCarvalhol
         use semdatafiles, only : MAX_FILE_SIZE
         use constants
         implicit none

@@ -8,7 +8,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/stat.f90
     ${PRJ}/SRC/geometrical_prop.f90
     ${PRJ}/SRC/Solid/champs_solid.f90
-    ${PRJ}/SRC/SolidPML/champs_solidpml.f90
     ${PRJ}/SRC/Fluid/champs_fluid.f90
     ${PRJ}/SRC/FluidPML/champs_fluidpml.f90
     ${PRJ}/SRC/Modules/Element.f90
@@ -26,6 +25,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/partial_deriv.f90
     ${PRJ}/SRC/orientation.f90
     ${PRJ}/SRC/Capteur.f90
+    ${PRJ}/SRC/interpolation.f90 
     ${PRJ}/SRC/comm_utils.f90
     ${PRJ}/SRC/solid_fluid_coupling.f90
     ${PRJ}/SRC/SourcePosition.f90
@@ -35,7 +35,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/PlaneW.f90
     ${PRJ}/SRC/Modules/Surface.f90
     ${PRJ}/SRC/Modules/tensor_util.f90
-    ${PRJ}/SRC/Solid/attenuation_solid.F90
+#    ${PRJ}/SRC/Solid/attenuation_solid.F90
     ${PRJ}/SRC/Solid/calcul_forces.F90
     ${PRJ}/SRC/Solid/calcul_forces_nl.f90   
     ${PRJ}/SRC/Solid/calcul_forces_atn.F90
@@ -43,7 +43,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Fluid/calcul_forces_fluid.F90
     ${PRJ}/SRC/Fluid/dom_fluid.F90
     ${PRJ}/SRC/pml.F90
-    ${PRJ}/SRC/SolidPML/dom_solidpml.F90
     ${PRJ}/SRC/FluidPML/dom_fluidpml.F90
     ${PRJ}/SRC/compute_GLL.f90
     ${PRJ}/SRC/courant.f90
@@ -81,6 +80,17 @@ set(SEM3D_SOURCES_F
 	
 )
 
+if (OPT_CPML)
+  set(SEM3D_SOURCES_F ${SEM3D_SOURCES_F}
+      ${PRJ}/SRC/SolidCPML/champs_solidcpml.f90
+      ${PRJ}/SRC/SolidCPML/calcul_forces_solidpml.F90
+      ${PRJ}/SRC/SolidCPML/dom_solidcpml.F90)
+else(OPT_CPML)
+  set(SEM3D_SOURCES_F ${SEM3D_SOURCES_F}
+      ${PRJ}/SRC/SolidPML/champs_solidpml.f90
+      ${PRJ}/SRC/SolidPML/dom_solidpml.F90)
+endif(OPT_CPML)
+
 #if(NOT USE_MKL)
 #set(SEM3D_SOURCES_F
 #    ${SEM3D_SOURCES_F}
@@ -104,7 +114,7 @@ set(SEM3D_SOURCES_CPL
 
 include_directories(${PRJ}/SRC)
 add_library(sem3dcommon ${SEM3D_SOURCES})
-add_dependencies(sem3dcommon randomfield semcommon)
+add_dependencies(sem3dcommon semcommon)
 set_target_properties(sem3dcommon PROPERTIES
 				  COMPILE_FLAGS "-I${SEMLIBDIR}/sem3d -I${SEMLIBDIR}/common"
                                   Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/sem3d)
