@@ -11,8 +11,9 @@ The folder structure that you shoud create is:
     |_randomfield
             |_README_random_fields   <- YOU ARE HERE
 
-Copy the file sem-ecp/randomfield/makefile to the folder build_RF
-Make the needed changes (library paths) inside the makefile and compile the library (inside build_RF)
+Create a file called makefile inside the folder build_RF indicating your libraries paths. 
+Some examples of tested configurations can be found inside sem-ecp/randomfield/.
+Enter the folder builg_RF and execute "make -f <your_makefile_File>.
 
 
 USING INSIDE SEM
@@ -31,30 +32,60 @@ Once properties are generated you SEM simulation.
 INPUTS
 ======
 
+RF_main_input
+-------------
+This file indicates that we are using the library with SEM and the folder of materials.
+It REMAINS UNCHANGED for every SEM simulation.
+Its contents are:
+
+$application 2
+$folder "./mat"
+
 Inside input.spec:
 -----------------
 
 material {
         type = random;
-        random_library_path = "<your ABSOLUTE Path to the folder build_RF>";
+        random_library_path = " ";
 };
 
 
-Inside mat.dat:
---------------
+Inside mater.in (automatic meshing) or material.input:
+-----------------------------------------------------
 The Domains having the random properties are identified by the leter R.
 On the line after the main declaration of random subdomain there should be the statistical parameters.
 
-Example of mat.dat file of 2 random subdomains (1st and 3rd)  and 1 constant subdomain (2nd)
+Example of mater.in file of 2 random subdomains (1st and 3rd)  and 1 constant subdomain (2nd).
 
 3
-R   3535.533   2500.000   2800.000   5   5   5   0.00010   630.000   250.000
+R   3535.533   2500.000   2800.000   5   0.0  0.0
 1
 1   20.00   20.00  20.00  2  0.5  -1
 1   20.00   20.00  20.00  2  0.5  -1
 1   20.00   20.00  20.00  2  0.5  -1
-S   3535.533   2500.000   2800.000   5   5   5   0.00010   630.000   250.000
-R   3535.533   2500.000   2800.000   5   5   5   0.00010   630.000   250.000
+S   3535.533   2500.000   2800.000   5   0.0  0.0
+R   3535.533   2500.000   2800.000   5   0.0  0.0
+1
+1   10.00   10.00  10.00  2  0.15  0
+1   20.00   20.00  20.00  2  0.25  0
+1   30.00   40.00  50.00  2  0.0   3
+
+Same example inside a material.input file (the statistical parameters go all togethersequentially, after)
+Obs: the comment lines (#) ARE NEEDED. In the case with PMLs the PML properties come before the Random properties
+
+3
+R   3535.533   2500.000   2800.000   5   0.0 0.0
+S   3535.533   2500.000   2800.000   5   0.0 0.0
+R   3535.533   2500.000   2800.000   5   0.0 0.0
+# Random properties
+# Parametrization Choice (0 for Kappa, 1 for Lambda)
+# Rho            : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+# Kappa or Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+# Mu             : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+1
+1   20.00   20.00  20.00  2  0.5  -1
+1   20.00   20.00  20.00  2  0.5  -1
+1   20.00   20.00  20.00  2  0.5  -1
 1
 1   10.00   10.00  10.00  2  0.15  0
 1   20.00   20.00  20.00  2  0.25  0
@@ -87,9 +118,9 @@ Random seed. If it's smaller than 0 the seed will be determined by the processor
 
 Graphically it means:
 
-0   ---------------------------------------- Parameterization Choice (PC)
+0   ---------------------------------------- Parameterization Choice (PC = 0 for Kappa and PC = 1 for Lambda)
 1   10.00   10.00  10.00  2  0.15  0 -- Density Statistical parameters
-1   20.00   20.00  20.00  2  0.25  0 -- Kappa Statistical parameters (If PC = 0, it would be the parameters for Lambda if PC = 1)
+1   20.00   20.00  20.00  2  0.25  0 -- Kappa Statistical parameters (It would be the parameters for Lambda if PC = 1)
 1   30.00   40.00  50.00  2  0.0   3 -- Mu Statistical parameters
 |    |       |      |     |  |     |
 |    |       |      |     |  |     |_Random Seed
@@ -107,7 +138,7 @@ FAQ
 Yes, putting 0.0 to the Coefficient of Variation of this parameter.
 
 -What does it mean the Random Seed?
-Is the input for the generator of pseudo-random number generator.
+Is the input for the generator of pseudo-random number generator. It defines the random sequence.
 
 -How can I make 2 properties have a 100% correlation?
 Putting the same seed AND THE SAME CORRELATION LENGTHS for these properties.
