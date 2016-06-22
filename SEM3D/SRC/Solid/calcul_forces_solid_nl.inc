@@ -4,7 +4,7 @@
 !!
 
 #ifndef PROCNAME_NL
-#error "Must define PROCNAME_NL before inclusion"
+#error "Must define PROCNAME before inclusion"
 #endif
 
 #undef ngllvar
@@ -14,32 +14,36 @@
 #define ngllvar ngll0
 #endif
 
-#define ORIG
+#define USE_LOCAL_MEM
 
-subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
+subroutine PROCNAME_NL(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     use champs_solid
     implicit none
 
     type(domain_solid), intent (INOUT) :: dom
-    integer, intent(in) :: lnum
+    integer, intent(in) :: bnum
     integer, intent(in) :: ngllvar
 #ifdef NGLLVAL
     integer, parameter :: ngll=NGLLVAL
 #endif
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
-    integer :: i,j,k,l,e,ee,st_epl
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
+    integer :: i,j,k,l,e,ee
     real(fpp) :: DXX,DXY,DXZ,DYX,DYY,DYZ,DZX,DZY,DZZ
     real(fpp) :: sxx,sxy,sxz,syy,syz,szz,t4
     real(fpp) :: xt1,xt2,xt3,xt5,xt6,xt7,xt8,xt9,xt10
     real(fpp), parameter :: zero = 0.
     real(fpp), dimension(0:5) :: start,trial,center,dEps_alpha,dEpsP,eps0
-    real(fpp)  :: syld,ckin,kkin,biso,rinf,radius,alpha_elp
-#ifdef ORIG
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t5,t8
+    real(fpp)  :: syld,ckin,kkin,biso,rinf,radius,alpha_epl
+    logical    :: st_epl
+#ifdef USE_LOCAL_MEM
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t1,t5,t8
     ! Les indices sont reordonnes, probablement pour la localite memoire
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t2,t6,t9
-    real(fpp), dimension(0:CHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t3,t7,t10
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t2,t6,t9
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: t3,t7,t10
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUx_dxi, dUx_deta, dUx_dzeta
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUy_dxi, dUy_deta, dUy_dzeta
+    real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUz_dxi, dUz_deta, dUz_dzeta
     real(fpp) :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real(fpp) :: F1,F2,F3
 #endif
@@ -53,21 +57,88 @@ subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
 #else
     real(fpp) :: xla2mu
 #endif
-    real(fpp), dimension(IND_MNE(0:2,0:2,0:CHUNK-1)) :: invgrad
     real(fpp) :: dS_dxi, dS_deta, dS_dzeta
+
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-                InvGrad(IND_MNE(0:2,0:2,0:CHUNK-1)) = dom%InvGrad_(:,:,i,j,k,lnum:lnum+CHUNK-1)
-#ifdef SEM_VEC
+#if VCHUNK>1
 !$omp simd linear(e,ee)
 #endif
-                BEGIN_SUBELEM_LOOP(e,ee,lnum)
-
+                BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 ! Calcul de dPhi/dx dPhi/dy dPhi/dz
-                part_deriv_ijke(Depla,0,dS_dxi,dS_deta,dS_dzeta,dxx,dxy,dxz)
-                part_deriv_ijke(Depla,1,dS_dxi,dS_deta,dS_dzeta,dyx,dyy,dyz)
-                part_deriv_ijke(Depla,2,dS_dxi,dS_deta,dS_dzeta,dzx,dzy,dzz)
+                local_deriv_ijke(Depla,0,dUx_dxi(ee,i,j,k),dUx_deta(ee,i,j,k),dUx_dzeta(ee,i,j,k))
+                END_SUBELEM_LOOP()
+            end do
+        end do
+    end do
+    do k = 0,ngll-1
+        do j = 0,ngll-1
+            do i = 0,ngll-1
+#if VCHUNK>1
+!$omp simd linear(e,ee)
+#endif
+                BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                ! Calcul de dPhi/dx dPhi/dy dPhi/dz
+                local_deriv_ijke(Depla,1,dUy_dxi(ee,i,j,k),dUy_deta(ee,i,j,k),dUy_dzeta(ee,i,j,k))
+                END_SUBELEM_LOOP()
+            end do
+        end do
+    end do
+    do k = 0,ngll-1
+        do j = 0,ngll-1
+            do i = 0,ngll-1
+#if VCHUNK>1
+!$omp simd linear(e,ee)
+#endif
+                BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                ! Calcul de dPhi/dx dPhi/dy dPhi/dz
+                local_deriv_ijke(Depla,2,dUz_dxi(ee,i,j,k),dUz_deta(ee,i,j,k),dUz_dzeta(ee,i,j,k))
+                END_SUBELEM_LOOP()
+            end do
+        end do
+    end do
+
+    do k = 0,ngll-1
+        do j = 0,ngll-1
+            do i = 0,ngll-1
+#if VCHUNK>1
+!$omp simd linear(e,ee)
+#endif
+                BEGIN_SUBELEM_LOOP(e,ee,bnum)
+#define JXX dom%InvGrad_(0,0,i,j,k,bnum,ee)
+#define JXY dom%InvGrad_(0,1,i,j,k,bnum,ee)
+#define JXZ dom%InvGrad_(0,2,i,j,k,bnum,ee)
+#define JYX dom%InvGrad_(1,0,i,j,k,bnum,ee)
+#define JYY dom%InvGrad_(1,1,i,j,k,bnum,ee)
+#define JYZ dom%InvGrad_(1,2,i,j,k,bnum,ee)
+#define JZX dom%InvGrad_(2,0,i,j,k,bnum,ee)
+#define JZY dom%InvGrad_(2,1,i,j,k,bnum,ee)
+#define JZZ dom%InvGrad_(2,2,i,j,k,bnum,ee)
+
+                dxx=dUx_dxi(ee,i,j,k)*JXX + dUx_deta(ee,i,j,k)*JXY + dUx_dzeta(ee,i,j,k)*JXZ
+                dxy=dUx_dxi(ee,i,j,k)*JYX + dUx_deta(ee,i,j,k)*JYY + dUx_dzeta(ee,i,j,k)*JYZ
+                dxz=dUx_dxi(ee,i,j,k)*JZX + dUx_deta(ee,i,j,k)*JZY + dUx_dzeta(ee,i,j,k)*JZZ
+
+                dyx=dUy_dxi(ee,i,j,k)*JXX + dUy_deta(ee,i,j,k)*JXY + dUy_dzeta(ee,i,j,k)*JXZ
+                dyy=dUy_dxi(ee,i,j,k)*JYX + dUy_deta(ee,i,j,k)*JYY + dUy_dzeta(ee,i,j,k)*JYZ
+                dyz=dUy_dxi(ee,i,j,k)*JZX + dUy_deta(ee,i,j,k)*JZY + dUy_dzeta(ee,i,j,k)*JZZ
+
+                dzx=dUz_dxi(ee,i,j,k)*JXX + dUz_deta(ee,i,j,k)*JXY + dUz_dzeta(ee,i,j,k)*JXZ
+                dzy=dUz_dxi(ee,i,j,k)*JYX + dUz_deta(ee,i,j,k)*JYY + dUz_dzeta(ee,i,j,k)*JYZ
+                dzz=dUz_dxi(ee,i,j,k)*JZX + dUz_deta(ee,i,j,k)*JZY + dUz_dzeta(ee,i,j,k)*JZZ
+#ifdef ATTENUATION
+                ! Save for reuse
+                dUx_dxi  (ee,i,j,k) = dxx
+                dUx_deta (ee,i,j,k) = dxy
+                dUx_dzeta(ee,i,j,k) = dxz
+                dUy_dxi  (ee,i,j,k) = dyx
+                dUy_deta (ee,i,j,k) = dyy
+                dUy_dzeta(ee,i,j,k) = dyz
+                dUz_dxi  (ee,i,j,k) = dzx
+                dUz_deta (ee,i,j,k) = dzy
+                dUz_dzeta(ee,i,j,k) = dzz
+#endif
 
 #ifdef ATTENUATION
 #ifdef ANISO
@@ -83,7 +154,7 @@ subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
                 sxy = DXX*CC( 5) + DYY*CC(10) + DZZ*CC(14) + EYZ*CC(17) + EXZ*CC(19) + EXY*CC(20)
 #undef CC
 #else
-                xmu = dom%Mu_(i,j,k,e) * dom%onemSbeta_(i,j,k,e)
+                xmu = dom%Mu_(i,j,k,bnum,ee) * dom%onemSbeta_(i,j,k,bnum,ee)
                 x2mu = 2. * xmu
                 sxx = x2mu * DXX
                 sxy = xmu * ( DXY + DYX )
@@ -92,30 +163,30 @@ subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
                 syz = xmu * ( DYZ + DZY )
                 szz = x2mu * DZZ
 #endif
-                xkappa = dom%Kappa_(i,j,k,e)* dom%onemPbeta_(i,j,k,e)
+                xkappa = dom%Kappa_(i,j,k,bnum,ee)* dom%onemPbeta_(i,j,k,bnum,ee)
                 xpression = xkappa*(DXX+DYY+DZZ)
                 do i_sls = 0,dom%n_sls-1
-                    xpression = xpression - dom%R_vol_(i_sls,i,j,k,e)
-                    sxx = sxx - dom%R_xx_(i_sls,i,j,k,e)
-                    syy = syy - dom%R_yy_(i_sls,i,j,k,e)
+                    xpression = xpression - dom%R_vol_(i_sls,i,j,k,bnum,ee)
+                    sxx = sxx - dom%R_xx_(i_sls,i,j,k,bnum,ee)
+                    syy = syy - dom%R_yy_(i_sls,i,j,k,bnum,ee)
                     ! ici on utilise le fait que la trace est nulle
-                    szz = szz + dom%R_xx_(i_sls,i,j,k,e) + dom%R_yy_(i_sls,i,j,k,e)
-                    sxy = sxy - dom%R_xy_(i_sls,i,j,k,e)
-                    sxz = sxz - dom%R_xz_(i_sls,i,j,k,e)
-                    syz = syz - dom%R_yz_(i_sls,i,j,k,e)
+                    szz = szz + dom%R_xx_(i_sls,i,j,k,bnum,ee) + dom%R_yy_(i_sls,i,j,k,bnum,ee)
+                    sxy = sxy - dom%R_xy_(i_sls,i,j,k,bnum,ee)
+                    sxz = sxz - dom%R_xz_(i_sls,i,j,k,bnum,ee)
+                    syz = syz - dom%R_yz_(i_sls,i,j,k,bnum,ee)
                 enddo
                 stt = (sxx + syy + szz)*M_1_3
                 sxx = sxx - stt + xpression
                 syy = syy - stt + xpression
                 szz = szz - stt + xpression
 #else
-                xmu = dom%Mu_    (i,j,k,e)
-                xla = dom%Lambda_(i,j,k,e)
+                xmu = dom%Mu_    (i,j,k,bnum,ee)
+                xla = dom%Lambda_(i,j,k,bnum,ee)
                 xla2mu = xla + 2. * xmu
-                eps0(0:5) = dom%strain_(0:5,i,j,k,e)
-                dom%strain_(0:5,i,j,k,e) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/)
-                dEps_alpha(0:5) = dom%strain_(0:5,i,j,k,e) -eps0(0:5)
-                dEpsP(0:5)      = 0.d0
+                eps0(0:5) = dom%strain_(0:5,i,j,k,bnum,ee)
+                dom%strain_(0:5,i,j,k,bnum,ee) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/)
+                dEps_alpha(0:5) = dom%strain_(0:5,i,j,k,bnum,ee) -eps0(0:5)
+                dEpsP(0:5)      = dom%plstrain_(0:5,i,j,k,bnum,ee) 
                 
                 sxx = xla2mu*dEps_alpha(0)+xla*sum(dEps_alpha(1:2))
                 syy = xla2mu*dEps_alpha(1)+xla*(dEps_alpha(0)+dEps_alpha(2))
@@ -124,19 +195,19 @@ subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
                 sxz = xmu*dEps_alpha(4)
                 syz = xmu*dEps_alpha(5)
 #endif
-                start       =   dom%stress_(0:5,i,j,k,e)
+                start       =   dom%stress_(0:5,i,j,k,bnum,ee)
                 trial       =   (/sxx,syy,szz,sxy,sxz,syz/)
-                center      =   dom%center_(0:5,i,j,k,e)
-                radius      =   dom%radius_(i,j,k,e)
-                syld        =   dom%nl_param%LMC%syld_(i,j,k,e)
-                ckin        =   dom%nl_param%LMC%Ckin_(i,j,k,e)
-                kkin        =   dom%nl_param%LMC%kkin_(i,j,k,e) 
-                rinf        =   dom%nl_param%LMC%rinf_(i,j,k,e) 
-                biso        =   dom%nl_param%LMC%biso_(i,j,k,e) 
+                center      =   dom%center_(0:5,i,j,k,bnum,ee)
+                radius      =   dom%radius_(i,j,k,bnum,ee)
+                syld        =   dom%nl_param%LMC%syld_(i,j,k,bnum,ee)
+                ckin        =   dom%nl_param%LMC%Ckin_(i,j,k,bnum,ee)
+                kkin        =   dom%nl_param%LMC%kkin_(i,j,k,bnum,ee) 
+                rinf        =   dom%nl_param%LMC%rinf_(i,j,k,bnum,ee) 
+                biso        =   dom%nl_param%LMC%biso_(i,j,k,bnum,ee) 
                 call check_plasticity(trial, start, center,radius, &
-                    syld,st_epl,alpha_elp)
+                    syld,st_epl,alpha_epl)
 
-                if (st_epl == 1) then
+                if (st_epl) then
 
                     dEps_alpha=(1-alpha_elp)*dEps_alpha
                     call plastic_corrector(dEps_alpha, trial, center, syld, &
@@ -151,52 +222,52 @@ subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
                 
                 dom%stress_(0:5,i,j,k,bnum,ee)   = trial(0:5)
                 dom%center_(0:5,i,j,k,bnum,ee)   = center(0:5)
-                dom%plstrain_(0:5,i,j,k,bnum,ee) = dom%plstrain_(0:5,i,j,k,e)+dEpsP(0:5)
+                dom%plstrain_(0:5,i,j,k,bnum,ee) = dEpsP(0:5)
                 dom%radius_(i,j,k,bnum,ee)       = radius
-
+#endif
                 !
                 !=====================
                 !       FX
                 !=====================
                 !
-                xt1 = sxx * InvGrad(IND_MNE(0,0,ee)) + sxy * InvGrad(IND_MNE(1,0,ee)) + sxz * InvGrad(IND_MNE(2,0,ee))
-                xt2 = sxx * InvGrad(IND_MNE(0,1,ee)) + sxy * InvGrad(IND_MNE(1,1,ee)) + sxz * InvGrad(IND_MNE(2,1,ee))
-                xt3 = sxx * InvGrad(IND_MNE(0,2,ee)) + sxy * InvGrad(IND_MNE(1,2,ee)) + sxz * InvGrad(IND_MNE(2,2,ee))
+                xt1 = sxx*JXX+sxy*JYX+sxz*JZX
+                xt2 = sxx*JXY+sxy*JYY+sxz*JZY
+                xt3 = sxx*JXZ+sxy*JYZ+sxz*JZZ
                 !
                 !=====================
                 !       FY
                 !=====================
                 !
-                xt5 = syy * InvGrad(IND_MNE(1,0,ee)) + sxy * InvGrad(IND_MNE(0,0,ee)) + syz * InvGrad(IND_MNE(2,0,ee))
-                xt6 = syy * InvGrad(IND_MNE(1,1,ee)) + sxy * InvGrad(IND_MNE(0,1,ee)) + syz * InvGrad(IND_MNE(2,1,ee))
-                xt7 = syy * InvGrad(IND_MNE(1,2,ee)) + sxy * InvGrad(IND_MNE(0,2,ee)) + syz * InvGrad(IND_MNE(2,2,ee))
+                xt5 = syy*JYX+sxy*JXX+syz*JZX
+                xt6 = syy*JYY+sxy*JXY+syz*JZY
+                xt7 = syy*JYZ+sxy*JXZ+syz*JZZ
                 !
                 !=====================
                 !       FZ
                 !=====================
                 !
-                xt8  = szz * InvGrad(IND_MNE(2,0,ee)) + sxz * InvGrad(IND_MNE(0,0,ee)) + syz * InvGrad(IND_MNE(1,0,ee))
-                xt9  = szz * InvGrad(IND_MNE(2,1,ee)) + sxz * InvGrad(IND_MNE(0,1,ee)) + syz * InvGrad(IND_MNE(1,1,ee))
-                xt10 = szz * InvGrad(IND_MNE(2,2,ee)) + sxz * InvGrad(IND_MNE(0,2,ee)) + syz * InvGrad(IND_MNE(1,2,ee))
+                xt8 = szz*JZX+sxz*JXX+syz*JYX
+                xt9 = szz*JZY+sxz*JXY+syz*JYY
+                xt10= szz*JZZ+sxz*JXZ+syz*JYZ
 
                 !
                 !- Multiplication par le Jacobien et le poids d'integration
                 !
-                t4 = dom%Jacob_(i,j,k,e) * dom%GLLw(i)
+                t4 = dom%Jacob_(i,j,k,bnum,ee) * dom%GLLw(i)
                 xt1  =  xt1 * t4
                 xt5  =  xt5 * t4
                 xt8  =  xt8 * t4
 
-                t4 = dom%Jacob_(i,j,k,e) * dom%GLLw(j)
+                t4 = dom%Jacob_(i,j,k,bnum,ee) * dom%GLLw(j)
                 xt2  =  xt2 * t4
                 xt6  =  xt6 * t4
                 xt9  =  xt9 * t4
 
-                t4 = dom%Jacob_(i,j,k,e) * dom%GLLw(k)
+                t4 = dom%Jacob_(i,j,k,bnum,ee) * dom%GLLw(k)
                 xt3  =  xt3 * t4
                 xt7  =  xt7 * t4
                 xt10 = xt10 * t4
-#ifdef ORIG
+#ifdef USE_LOCAL_MEM
                 t1(ee,i,j,k) = xt1
                 t5(ee,i,j,k) = xt5
                 t8(ee,i,j,k) = xt8
@@ -232,16 +303,16 @@ subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
     !
     !- Multiplication par la matrice de derivation puis par les poids
     !
-#ifdef ORIG
+#ifdef USE_LOCAL_MEM
     !=-=-=-=-=-=-=-=-=-=-
     do k = 0,ngll-1
         do j = 0,ngll-1
             do i = 0,ngll-1
-#ifdef SEM_VEC
+#if VCHUNK>1
                 !dir$ simd
                 !dir$ vector aligned
 #endif
-                BEGIN_SUBELEM_LOOP(e,ee,lnum)
+                BEGIN_SUBELEM_LOOP(e,ee,bnum)
                 !=-=-=-=-=-=-=-=-=-=-
                 !
                 t11 = dom%GLLw(j) * dom%GLLw(k)
@@ -300,6 +371,11 @@ subroutine PROCNAME_NL(dom,ngllvar,lnum,Fox,Foy,Foz,Depla)
         enddo
     enddo
     !=-=-=-=-=-=-=-=-=-=-
+#endif
+#ifdef ATTENUATION
+    call PROCNAME_ATN(dom,bnum,dom%hprime,dUx_dxi,dUx_deta,dUx_dzeta,&
+        dUy_dxi,dUy_deta,dUy_dzeta, &
+        dUz_dxi,dUz_deta,dUz_dzeta)
 #endif
 end subroutine PROCNAME_NL
 

@@ -32,61 +32,61 @@ contains
         use nonlinear
         implicit none
         type(domain_solid), intent (INOUT) :: dom
-        integer, intent(in) :: lnum
-        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(out)   :: Fox,Foz,Foy
-        real(fpp), dimension(0:CHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2), intent(in):: Depla
+        integer, intent(in) :: bnum
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1), intent(out) :: Fox,Foz,Foy
+        real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1,0:2), intent(in) :: Depla
 
         select case(dom%ngll)
         case(4)
-            call calcul_forces_nl_4(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_nl_4(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         case(5)
-            call calcul_forces_nl_5(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_nl_5(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         case (6)
-            call calcul_forces_nl_6(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_nl_6(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         case (7)
-            call calcul_forces_nl_7(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_nl_7(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         case (8)
-            call calcul_forces_nl_8(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_nl_8(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         case (9)
-            call calcul_forces_nl_9(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_nl_9(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         case default
-            call calcul_forces_nl_n(dom,dom%ngll,lnum,Fox,Foy,Foz,Depla)
+            call calcul_forces_nl_n(dom,dom%ngll,bnum,Fox,Foy,Foz,Depla)
         end select
     end subroutine calcul_forces_nl
 
 #undef ATTENUATION
 #undef ANISO
 #define NGLLVAL 4
-#define PROCNAME_NL calcul_forces_iso_nl_4
+#define PROCNAME_NL calcul_forces_nl_4
 #include "calcul_forces_solid_nl.inc"
 #undef NGLLVAL
 #undef PROCNAME_NL
 #define NGLLVAL 5
-#define PROCNAME_NL calcul_forces_iso_nl_5
+#define PROCNAME_NL calcul_forces_nl_5
 #include "calcul_forces_solid_nl.inc"
 #undef NGLLVAL
 #undef PROCNAME_NL
 #define NGLLVAL 6
-#define PROCNAME_NL calcul_forces_iso_nl_6
+#define PROCNAME_NL calcul_forces_nl_6
 #include "calcul_forces_solid_nl.inc"
 #undef NGLLVAL
 #undef PROCNAME_NL
 #define NGLLVAL 7
-#define PROCNAME_NL calcul_forces_iso_nl_7
+#define PROCNAME_NL calcul_forces_nl_7
 #include "calcul_forces_solid_nl.inc"
 #undef NGLLVAL
 #undef PROCNAME_NL
 #define NGLLVAL 8
-#define PROCNAME_NL calcul_forces_iso_nl_8
+#define PROCNAME_NL calcul_forces_nl_8
 #include "calcul_forces_solid_nl.inc"
 #undef NGLLVAL
 #undef PROCNAME_NL
 #define NGLLVAL 9
-#define PROCNAME_NL calcul_forces_iso_nl_9
+#define PROCNAME_NL calcul_forces_nl_9
 #include "calcul_forces_solid_nl.inc"
 #undef NGLLVAL
 #undef PROCNAME_NL
-#define PROCNAME_NL calcul_forces_iso_nl_n
+#define PROCNAME_NL calcul_forces_nl_n
 #include "calcul_forces_solid_nl.inc"
 
 end module m_calcul_forces_nl
