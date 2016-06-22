@@ -510,6 +510,30 @@ contains
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
         !---------------------------------------------------------------------------------
+        subroutine check_constantField(IPT)
+
+            implicit none
+            !OUTPUT
+            type(IPT_RF), intent(inout)  :: IPT
+            !LOCAL
+            double precision :: tolerance
+
+            tolerance = 1e-6
+
+            if(IPT%fieldVar < tolerance) then
+                write(*,*) "CONSTANT FIELD"
+                IPT%pointsPerCorrL = 2
+                IPT%corrL_in = (IPT%xMaxGlob_in - IPT%xMinGlob_in)
+
+            end if
+
+        end subroutine check_constantField
+
+
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
+        !---------------------------------------------------------------------------------
         subroutine generateMain_inputSEM(SEM_gen_path)
 
             implicit none
