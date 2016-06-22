@@ -524,6 +524,8 @@ contains
                 write(*,*) "CONSTANT FIELD"
                 IPT%pointsPerCorrL = 2
                 IPT%corrL_in = (IPT%xMaxGlob_in - IPT%xMinGlob_in)
+                IPT%corrMod = cm_GAUSSIAN
+                IPT%margiFirst = fom_GAUSSIAN
 
             end if
 
