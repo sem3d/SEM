@@ -97,8 +97,11 @@ contains
 
             ! Allocation des Ri pour les PML solides
             allocate(dom%R1(0:dom%nglltot-1,0:2))
+            dom%R1 = 0d0
             allocate(dom%R2(0:dom%nglltot-1,0:2))
+            dom%R2 = 0d0
             allocate(dom%R3(0:dom%nglltot-1,0:2))
+            dom%R3 = 0d0
         endif
         if(Tdomain%rank==0) write(*,*) "INFO - solid cpml domain : ", dom%nbelem, " elements and ", dom%nglltot, " ngll pts"
 
