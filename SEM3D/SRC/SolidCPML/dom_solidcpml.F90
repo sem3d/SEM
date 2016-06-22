@@ -309,11 +309,11 @@ contains
         ee = mod(specel%lnum,VCHUNK)
 
         do k=0,dom%ngll-1
-            solidcpml_abk(2,i,j,k,bnum,ee)
             do j=0,dom%ngll-1
-                solidcpml_abk(1,i,j,k,bnum,ee)
                 do i=0,dom%ngll-1
                     solidcpml_abk(0,i,j,k,bnum,ee)
+                    solidcpml_abk(1,i,j,k,bnum,ee)
+                    solidcpml_abk(2,i,j,k,bnum,ee)
 
                     ! Delta 2d derivative term from L : (12a) or (14a) from Ref1
                     a0b = kappa(0)*kappa(1)*kappa(2)
