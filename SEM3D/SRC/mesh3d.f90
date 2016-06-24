@@ -492,8 +492,26 @@ contains
         deallocate(nb_elems_per_proc)
 
     end subroutine read_mesh_file_h5
-
-
+    !!
+    !!
+    !!
+    !!subroutine MTreadNeuSurface(Tsurface, gid, surfname,typemat)
+    !!
+    !!   implicit none
+    !!    type(surf_num), intent(inout)             :: Tsurface
+    !    character(len=4), intent(out)             :: typemat
+    !    integer(HID_T), intent(in)                :: gid
+    !    integer(HID_T)                            :: surf_id
+    !    character(len=100), intent(in)            :: surfname
+    !    integer                                   :: ierr
+    !    ! Get group info
+    !    call H5Gopen_f(gid, trim(surfname), surf_id, ierr)
+    !    call read_one_surface(Tsurface, "sl"  , surf_id)
+    !    call read_one_surface(Tsurface, "fl"  , surf_id)
+    !    call read_one_surface(Tsurface, "spml", surf_id)                                                                          call read_one_surface(Tsurface, "fpml", surf_id)
+    !                                                                                                                           end subroutine MTreadNeuSurface
+     !!                                                                                                                        !!
+     !!
 end module mesh3d
 
 !! Local Variables:
