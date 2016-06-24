@@ -89,6 +89,7 @@ class Gmsh(object):
         self.tri3_mat = []
         self.quad4_mat = []
         self.hexa8_mat = []
+        self.faces_set = []
 
     def read(self, f):
         while True:
@@ -176,7 +177,7 @@ class Gmsh(object):
 
     def handle_hexa27(self, num, nodes, tags):
         self.mesh.hexa27.append(nodes)
-
+    
     def save(self, fname):
         f = h5py.File(fname, "w")
         self.mesh.write_nodes(f)
@@ -196,7 +197,7 @@ class Gmsh(object):
             if not elems:
                 continue
             if sem_mode or key=="hexa8":
-                rootname = "Sem3D"
+               rootname = "Sem3D"
             else:
                 rootname = "/Mesh_%s" % key
             materials = getattr(self, "%s_mat" % key)

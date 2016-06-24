@@ -10,15 +10,18 @@
 #include <vector>
 
 typedef enum {
+    DM_NEUMN = 5,  // Add by Mt
     DM_SOLID = 4,
     DM_SOLID_PML = 2,
     DM_FLUID = 3,
     DM_FLUID_PML = 1
 } material_type_t;
 
-#define DM_MAX 4
+//#define DM_MAX 4
+#define DM_MAX 5   // modif Mt
 
 typedef enum {
+    DM_NEUMN_MASK      = 1<<DM_NEUMN,  // add by Mt
     DM_SOLID_MASK      = 1<<DM_SOLID,
     DM_SOLID_PML_MASK  = 1<<DM_SOLID_PML,
     DM_FLUID_MASK      = 1<<DM_FLUID,
@@ -101,6 +104,9 @@ public:
             break;
         case 'F':
             m_type = DM_FLUID;
+            break;
+        case 'N': // add by Mtaro
+            m_type = DM_NEUMN;
             break;
         case 'L':
             m_type = DM_FLUID_PML;
@@ -189,6 +195,8 @@ public:
             return 'S';
         case DM_SOLID_PML:
             return 'P';
+        case DM_NEUMN : // add by Mt
+             return 'N';
         case DM_FLUID:
             return 'F';
         case DM_FLUID_PML:
