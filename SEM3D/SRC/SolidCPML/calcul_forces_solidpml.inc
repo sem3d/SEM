@@ -267,7 +267,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     ! dw/dzeta ( xi_r, eta_s, zeta_t ) = w_rst * dh_zeta/dzeta ( zeta_t )
     !
     !                       | dw_xi  /dxi      dw_xi  /deta = 0  dw_xi  /dzeta = 0 |
-    ! grad(test_function) = | dw_eta /dxi = 0  dw_eta /deta      dw_eta /dzeta = 0 |
+    ! grad(test_function) = | dw_eta /dxi = 0  dw_eta /deta      dw_eta /dzeta = 0 | at the Gauss point (ref elem coord)
     !                       | dw_zeta/dxi = 0  dw_zeta/deta = 0  dw_zeta/dzeta     |
 
     do k = 0,ngll-1
@@ -335,8 +335,6 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 Fox(ee,i,j,k) = F1
                 Foy(ee,i,j,k) = F2
                 Foz(ee,i,j,k) = F3
-
-                ! Conclusion : forces are computed and returned in the (xi, eta, zeta) space
 
                 END_SUBELEM_LOOP()
             enddo
