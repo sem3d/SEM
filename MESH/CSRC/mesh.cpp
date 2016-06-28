@@ -172,12 +172,14 @@ int Mesh3D::read_materials_v2(const std::string& str)
 {
     FILE* f = fopen(str.c_str(), "r");
     int nmats;
+    int k=0;
     char type;
     char *buffer=NULL;
     size_t linesize=0;
     double vs, vp, rho;
     int ngllx;
     int ineu=0;
+    int ipml=0;
     double Qp, Qmu;
 
     int    lambdaSwitch;
@@ -208,7 +210,7 @@ int Mesh3D::read_materials_v2(const std::string& str)
     
     getline(&buffer, &linesize, f);
     sscanf(buffer, "%d", &nmats);
-    for(int k=0;k<nmats;++k) {
+    while (k<nmats) {
         getline(&buffer, &linesize, f);
         sscanf(buffer, "%c %lf %lf %lf %d %lf %lf",
                &type, &vp, &vs, &rho, &ngllx, &Qp, &Qmu);
@@ -217,7 +219,7 @@ int Mesh3D::read_materials_v2(const std::string& str)
         //printf("     MATERIAL %d\n", k);
         //printf("     type = %c\n", type);
         //printf("     strcmp(&type,R) = %d\n", strcmp(&type,"R"));
-        
+
         std::vector<double> seting;
         seting.push_back(vp);seting.push_back(vs);seting.push_back(rho);
         seting.push_back(Qp);seting.push_back(Qmu);
@@ -251,7 +253,7 @@ int Mesh3D::read_materials_v2(const std::string& str)
                                       margiF_1, CV_1, seedStart_1,
                                       corrMod_2, corrL_x_2, corrL_y_2, corrL_z_2,
                                       margiF_2, CV_2, seedStart_2));
-
+           k++;
         	//printf("     lambdaSwitch = %d\n", lambdaSwitch);
         	//cL_x = %lf, cL_y = %lf, cL_z = %lf, seedStart = %d\n",
         	//		corrMod, corrL_x, corrL_y, corrL_z, seedStart);
@@ -263,8 +265,16 @@ int Mesh3D::read_materials_v2(const std::string& str)
            m_surf_matname.push_back("Neumann"+convert.str());
            m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
            ineu++;}
+        else if (strcmp(&type,"M") == 0){
+           std::ostringstream convert;
+           convert << ipml;
+           m_surf_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
+           m_surf_matname.push_back("PML_PML"+convert.str());
+           m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
+           ipml++;}
         else{
            m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
+           k++;
         }
     }
     free(buffer);
@@ -367,6 +377,7 @@ void Mesh3D::read_mesh_file(const std::string& fname)
         exit(1);
     }
     h5h_read_dset(file_id, "/Sem3D/Mat", m_mat);
+
     // Add by Mtaro
     std::vector<int> domain=m_mat;
     std::sort( domain.begin(), domain.end() );
@@ -382,8 +393,7 @@ void Mesh3D::read_mesh_file(const std::string& fname)
             printf("ERR: Nb of physical volume in PythonHDF5.h5 is greater than that given in material.input \n");
             exit(1);
           }
-         else if (domain.size() < m_materials.size()){ 
-              int mmm=m_materials.size();
+         else if (domain.size() < m_materials.size()){ int mmm=m_materials.size();
               for (int i= domain.size()-1; i < mmm; i++) m_materials.pop_back();
            }
      }
@@ -429,8 +439,8 @@ void Mesh3D::read_mesh_Quad8(hid_t file_id)
     }
   else{
       for (int i=0; i< m_matQuad.size(); i++){
-         m_matQuad.at(i)=std::distance(domain.begin(), find(domain.begin(),domain.end(),m_matQuad[i]));}
-      for (int i=0; i< m_mat.size(); i++) m_mat.at(i)+=domain.size(); 
+         m_matQuad[i]=std::distance(domain.begin(), find(domain.begin(),domain.end(),m_matQuad[i]));}
+      for (int i=0; i< m_mat.size(); i++) m_mat[i]+=domain.size(); 
     }
 
   elemtrace = m_elems;
@@ -449,14 +459,20 @@ void Mesh3D::read_mesh_Quad8(hid_t file_id)
      int tg4nodes=m_mat[elmat];
      findelem(elmat, elemtrace, elems, elemneed, elmat);
      
-     m_mat.at(imat+k)=m_mat[elmat];
+     m_mat[imat+k]=m_mat[elmat];
       
      for(int j=0; j< elemneed.size(); j++) m_elems.push_back(elemneed[j]);
      surfelem[imat+k] = std::pair<std::pair< std::vector<int>, int >, int > ( std::pair< std::vector<int>, int > (elemneed,m_mat[elmat]), tg4nodes);
    }
-  if (m_materials.size() > ngrps) {
-     mmm=m_materials.size();
-     for (int i = ngrps-1; i < mmm; i++) m_materials.pop_back();}
+  if (m_materials.size() > ngrps) { mmm=m_materials.size();
+     for (int i = ngrps; i < mmm+1; i++) m_materials.pop_back();}
+  
+  // for (int i=0; i< m_mat.size(); i++) m_mat[i]-=domain.size();  
+  // reverse m_material to consider only the domain
+  // std::reverse(m_materials.begin(),m_materials.end()-m_surf_matname.size()+1);
+  // mmm=m_materials.size();
+  // for (int i = m_surf_matname.size()-1; i < mmm; i++) m_materials.pop_back();
+  // for (int i=0; i< m_materials.size(); i++) printf ("Material %d  -> %d \n",i, m_materials[i].domain());
 }
 
 void Mesh3D::findelem(int& imat, std::vector<int>& eltr, std::vector<int>& elems, std::vector<int>& elemneed, int &elmat)
@@ -470,13 +486,10 @@ void Mesh3D::findelem(int& imat, std::vector<int>& eltr, std::vector<int>& elems
      if (elems_i.size()==8){
         int p=0;
         for (int k=0; k< elems.size(); k++){
-           if (std::find(elems_i.begin(),elems_i.end(),elems[k])!=elems_i.end())
-              {p++;}
+           if (std::find(elems_i.begin(),elems_i.end(),elems[k])!=elems_i.end()) {p++;}
          }
         std::vector<double> seting_i = m_matseting.find(m_mat[i])->second;
-        if ((p==4)&&(seting_i==seting_el)){
-            elemneed = elems_i; found=true;
-            elmat=i;}
+        if ((p==4)&&(seting_i==seting_el)){elemneed = elems_i; found=true; elmat=i;}
        }
      if (found) break;
     }

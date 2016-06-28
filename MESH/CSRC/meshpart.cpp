@@ -326,6 +326,7 @@ void Mesh3DPart::handle_local_element(int el, bool is_border)
 {
 int e0 = m_mesh.m_elems_offs[el];
 int dom = m_mesh.get_elem_domain(el);
+PEdge dg;
 bool dom0 = false;
 
 if (!m_mesh.m_surf_materials.empty()){
@@ -349,6 +350,7 @@ if (dom0==false){
     for(int ed=0;ed<12;++ed) {
         int v0 = RefEdge[ed][0];
         int v1 = RefEdge[ed][1];
+        dg.refedge = ed;
         PEdge edge(m_mesh.m_elems[e0 + v0], m_mesh.m_elems[e0 + v1], dom);
         int ne = add_edge(edge, is_border);
         m_elems_edges.push_back(ne);
@@ -398,6 +400,7 @@ else {
                }
              if (np!=2){ dom = m_mesh.m_materials[intmat].domain();}
            }
+          dg.refedge = ed;
           PEdge edge(n[0], n[1], dom);
           int ne = add_edge(edge, is_border);
           m_elems_edges.push_back(ne);
@@ -459,7 +462,7 @@ void Mesh3DPart::get_local_materials(std::vector<int>& mats, std::vector<int>& d
 
     for(size_t k=0;k<m_elems.size();++k) {
         int el = m_elems[k];
-        mats[k] = m_mesh.m_mat[el];
+        mats[k] = m_mesh.m_mat[el] - const_cast<Mesh3D&>(m_mesh).n_surface(); // Modified by Mtaro
         int dom = m_mesh.get_elem_domain(el);
         doms[k] = dom;
         assert(dom>0 && dom<=DM_MAX);
@@ -705,6 +708,7 @@ void Mesh3DPart::write_surface_dom(hid_t gid, const Surface* surf, const char* p
     vector<int> data, orient, matdom;
     char sface_data[100];
     char sface_orient[100];
+    char sedge_orient[100];
     char sface_num [100];
     char sedge_data[100];
     char sedge_num [100];
@@ -719,12 +723,12 @@ void Mesh3DPart::write_surface_dom(hid_t gid, const Surface* surf, const char* p
     snprintf(sface_num , 100, "n_%s_faces", pfx);
     snprintf(sedge_data, 100, "%s_edges", pfx);
     snprintf(sedge_num , 100, "n_%s_edges", pfx);
+    snprintf(sedge_orient, 100, "%s_edge_orient", pfx);
     snprintf(svert_data, 100, "%s_vertices", pfx);
     snprintf(svert_num , 100, "n_%s_vertices", pfx);
     snprintf(svert_dom, 100, "%s_vertices_dom", pfx);
     snprintf(sedge_dom , 100, "%s_edges_dom", pfx);
     snprintf(sface_dom , 100, "%s_faces_dom", pfx);
-
 
     surf->get_faces_data(dom, data, orient, matdom);
     h5h_create_attr(gid, sface_num, (int)data.size());
@@ -732,8 +736,9 @@ void Mesh3DPart::write_surface_dom(hid_t gid, const Surface* surf, const char* p
     h5h_write_dset(gid, sface_orient, orient);
     h5h_write_dset(gid, sface_dom, matdom);
 
-    surf->get_edges_data(dom, data, matdom);
+    surf->get_edges_data(dom, data, orient, matdom);
     h5h_create_attr(gid, sedge_num, (int)data.size());
+    h5h_write_dset(gid, sedge_orient, orient);
     h5h_write_dset(gid, sedge_data, data);
     h5h_write_dset(gid, sedge_dom, matdom);
 
