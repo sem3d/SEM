@@ -947,18 +947,13 @@ contains
             domain_type = Tdomain%specel(n)%domain
             select case(domain_type)
                 case (DM_SOLID)
-<<<<<<< HEAD
                   call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,     &
                       fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, &
                       eps_dev, sig_dev, nl_flag, eps_dev_pl)
-=======
-                  call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,                 &
-                  fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
 
                   total_P_energy = total_P_energy + sum(P_energy)
                   total_S_energy = total_S_energy + sum(S_energy)
 
->>>>>>> 3ec003c91de2d184e4fbe4e63bace4631e494331
                 case (DM_FLUID)
                   call get_fluid_dom_var(Tdomain, Tdomain%fdom, el%lnum, out_variables,        &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
@@ -1179,6 +1174,7 @@ contains
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
+            ! DEVIATORIC STRAIN
             if (out_variables(OUT_EPS_DEV) == 1) then
                 ! EPS_DEV_XX
                 write(61,"(a,I9,a)") '<Attribute Name="eps_dev_xx" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
@@ -1255,8 +1251,7 @@ contains
                     write(61,"(a)") '</Attribute>'
                 end if
             end if
-
-
+            ! DEVIATORIC STRESS
             if (out_variables(OUT_STRESS_DEV) == 1) then
                 ! SIG_DEV_XX
                 write(61,"(a,I9,a)") '<Attribute Name="sig_dev_xx" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
@@ -1295,18 +1290,16 @@ contains
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
-
+            ! P_ENERGY
             if (out_variables(OUT_ENERGYP) == 1) then
-                ! P_ENERGY
                 write(61,"(a,I9,a)") '<Attribute Name="P_energy" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/P_energy'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
-
+            ! S_ENERGY
             if (out_variables(OUT_ENERGYS) == 1) then
-                ! S_ENERGY
                 write(61,"(a,I9,a)") '<Attribute Name="S_energy" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/S_energy'
