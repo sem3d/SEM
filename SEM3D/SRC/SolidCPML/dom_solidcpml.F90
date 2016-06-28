@@ -274,6 +274,14 @@ contains
         enddo
     end subroutine get_solidpml_dom_var
 
+    subroutine init_geometric_properties_solidpml(Tdomain, dom)
+        type (domain), intent (INOUT), target :: Tdomain
+        type(domain_solidpml), intent(inout) :: dom
+        !
+        ! Copy of node global coords : mandatory to compute distances in the PML (solidcpml_abk)
+        dom%GlobCoord => Tdomain%GlobCoord ! Pointer to coord (avoid allocate + copy, just point to it)
+    end subroutine init_geometric_properties_solidpml
+
     subroutine init_material_properties_solidpml(dom, lnum, i, j, k, density, lambda, mu)
         type(domain_solidpml), intent(inout) :: dom
         integer, intent(in) :: lnum
@@ -311,6 +319,9 @@ contains
         do k=0,dom%ngll-1
             do j=0,dom%ngll-1
                 do i=0,dom%ngll-1
+                    ind = dom%Idom_(i,j,k,bnum,ee)
+
+                    ! Compute alpha, beta, kappa
                     solidcpml_abk(0,i,j,k,bnum,ee)
                     solidcpml_abk(1,i,j,k,bnum,ee)
                     solidcpml_abk(2,i,j,k,bnum,ee)
@@ -420,10 +431,6 @@ contains
         !
         real(fpp) :: fmax
         integer :: nsrc
-
-        ! Copy of node global coords : mandatory to compute distances in the PML (solidcpml_abk)
-
-        dom%GlobCoord = Tdomain%GlobCoord ! Pointer to coord (avoid allocate + copy, just point to it)
 
         ! Compute alphamax (from fmax)
 

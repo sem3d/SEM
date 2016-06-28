@@ -56,6 +56,7 @@ contains
                 print*, "ERROR : inconsistent material index = ", mat
                 stop
             end if
+            call init_geometric_properties(Tdomain, Tdomain%specel(n))
 ! Attribute elastic properties from material !!!
             ! Sets Lambda, Mu, Qmu, ... from mat
             call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
@@ -255,6 +256,16 @@ contains
         if (Tdomain%fpmldom%nglltot /= 0) Tdomain%fpmldom%MassMat(:) = 1d0/Tdomain%fpmldom%MassMat(:)
 
     end subroutine inverse_mass_mat
+
+    subroutine init_geometric_properties(Tdomain, specel)
+        type (domain), intent (INOUT), target :: Tdomain
+        type (element), intent(inout) :: specel
+        !
+        select case (specel%domain)
+            case (DM_SOLID_PML)
+                call init_geometric_properties_solidpml(Tdomain, Tdomain%spmldom)
+        end select
+    end subroutine init_geometric_properties
 
     subroutine init_material_properties(Tdomain, specel, mat)
         type (domain), intent (INOUT), target :: Tdomain
