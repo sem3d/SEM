@@ -145,7 +145,7 @@ subroutine PROCNAME_NL(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 Eyz = (DYZ+DZY)*M_SQRT1_2
                 Exz = (DXZ+DZX)*M_SQRT1_2
                 Exy = (DXY+DYX)*M_SQRT1_2
-#define CC(d)  dom%Cij_(d,i,j,k,e)
+#define CC(d)  dom%Cij_(d,i,j,k,bnum,ee)
                 sxx = DXX*CC( 0) + DYY*CC( 1) + DZZ*CC( 2) + EYZ*CC( 3) + EXZ*CC( 4) + EXY*CC( 5)
                 syy = DXX*CC( 1) + DYY*CC( 6) + DZZ*CC( 7) + EYZ*CC( 8) + EXZ*CC( 9) + EXY*CC(10)
                 szz = DXX*CC( 2) + DYY*CC( 7) + DZZ*CC(11) + EYZ*CC(12) + EXZ*CC(13) + EXY*CC(14)
@@ -194,7 +194,6 @@ subroutine PROCNAME_NL(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 sxy = xmu*dEps_alpha(3)
                 sxz = xmu*dEps_alpha(4)
                 syz = xmu*dEps_alpha(5)
-#endif
                 start       =   dom%stress_(0:5,i,j,k,bnum,ee)
                 trial       =   (/sxx,syy,szz,sxy,sxz,syz/)
                 center      =   dom%center_(0:5,i,j,k,bnum,ee)
@@ -378,6 +377,153 @@ subroutine PROCNAME_NL(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
         dUz_dxi,dUz_deta,dUz_dzeta)
 #endif
 end subroutine PROCNAME_NL
+
+#ifdef ATTENUATION
+subroutine PROCNAME_ATN(dom,bnum,hprime,mdxx,mdxy,mdxz,mdyx,mdyy,mdyz,mdzx,mdzy,mdzz)
+    use champs_solid
+    use deriv3d
+    implicit none
+
+    type(domain_solid), intent (INOUT) :: dom
+    integer, intent(in) :: bnum
+    real(fpp), dimension(0:dom%ngll-1,0:dom%ngll-1), intent(in) :: hprime
+    real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mDXX,mDXY,mDXZ
+    real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mDYX,mDYY,mDYZ
+    real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: mDZX,mDZY,mDZZ
+#define DXX mDXX(ee,i,j,k)
+#define DXY mDXY(ee,i,j,k)
+#define DXZ mDXZ(ee,i,j,k)
+#define DYX mDYX(ee,i,j,k)
+#define DYY mDYY(ee,i,j,k)
+#define DYZ mDYZ(ee,i,j,k)
+#define DZX mDZX(ee,i,j,k)
+#define DZY mDZY(ee,i,j,k)
+#define DZZ mDZZ(ee,i,j,k)
+    !
+    integer :: n_solid
+
+    real(fpp) :: epsilondev_xx_loc,epsilondev_yy_loc
+    real(fpp) :: epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc
+    real(fpp) :: epsilonvol_loc
+    integer   :: i_sls,i,j,k, ngll,e,ee,l
+    real(fpp) :: factorS_loc,Sn,Snp1
+    real(fpp) :: factorP_loc,Pn,Pnp1
+    real(fpp) :: epsilon_trace_over_3
+    real(fpp) :: dS_dxi, dS_deta, dS_dzeta
+    real(fpp) :: factor_common_3, factor_common_P, omega_tau_s, gamma_mu, gamma_kappa
+    real(fpp) :: alphaval, betaval, gammaval
+    real(fpp) :: dt_tau
+    n_solid = dom%n_sls
+
+    ngll = dom%ngll
+    do k = 0,ngll-1
+        do j = 0,ngll-1
+            do i = 0,ngll-1
+#if VCHUNK>1
+!$omp simd linear(e,ee)
+#endif
+                BEGIN_SUBELEM_LOOP(e,ee,bnum)
+                epsilon_trace_over_3 = 0.333333333333333333333333333333d0 * (DXX + DYY + DZZ)
+                epsilonvol_loc = DXX + DYY + DZZ
+                epsilondev_xx_loc = DXX - epsilon_trace_over_3
+                epsilondev_yy_loc = DYY - epsilon_trace_over_3
+                epsilondev_xy_loc = 0.5 * (DXY + DYX)
+                epsilondev_xz_loc = 0.5 * (DZX + DXZ)
+                epsilondev_yz_loc = 0.5 * (DZY + DYZ)
+
+                do i_sls = 0,n_solid-1
+                    omega_tau_s = dom%omega_tau_s(i_sls)
+                    gamma_kappa = dom%agamma_kappa_(i_sls,i,j,k,bnum,ee)
+                    gamma_mu = dom%agamma_mu_(i_sls,i,j,k,bnum,ee)
+#ifndef ANISO
+                    ! get coefficients for that standard linear solid
+                    factor_common_P = 2d0*gamma_kappa*omega_tau_s
+                    factorP_loc   = dom%Kappa_(i,j,k,bnum,ee) * factor_common_P
+                    RK4_attenu_coefs(dom%dt,omega_tau_s,alphaval, betaval, gammaval)
+
+                    !  terme volumique
+                    Pn   = factorP_loc * dom%epsilonvol_(i,j,k,bnum,ee)
+                    Pnp1 = factorP_loc * epsilonvol_loc
+                    dom%R_vol_(i_sls,i,j,k,bnum,ee) = alphaval * dom%R_vol_(i_sls,i,j,k,bnum,ee)  &
+                        + betaval*Pn+gammaval*Pnp1
+#endif
+                    ! get coefficients for that standard linear solid
+                    factor_common_3 = 2d0*gamma_mu*omega_tau_s
+
+                    factorS_loc   = dom%Mu_(i,j,k,bnum,ee) * factor_common_3
+
+                    !     termes deviatoires
+                    ! term in xx
+                    Sn    = factorS_loc * dom%epsilondev_xx_(i,j,k,bnum,ee)
+                    Snp1  = factorS_loc * epsilondev_xx_loc
+                    dom%R_xx_(i_sls,i,j,k,bnum,ee) = alphaval * dom%R_xx_(i_sls,i,j,k,bnum,ee)  &
+                        + betaval*Sn+gammaval*Snp1
+
+                    ! term in yy
+                    Sn    = factorS_loc  * dom%epsilondev_yy_(i,j,k,bnum,ee)
+                    Snp1  = factorS_loc  * epsilondev_yy_loc
+                    dom%R_yy_(i_sls,i,j,k,bnum,ee) = alphaval * dom%R_yy_(i_sls,i,j,k,bnum,ee)  &
+                        + betaval*Sn+gammaval*Snp1
+
+                    ! term in xy
+                    Sn    = factorS_loc  * dom%epsilondev_xy_(i,j,k,bnum,ee)
+                    Snp1  = factorS_loc  * epsilondev_xy_loc
+                    dom%R_xy_(i_sls,i,j,k,bnum,ee) = alphaval * dom%R_xy_(i_sls,i,j,k,bnum,ee) &
+                        + betaval*Sn+gammaval*Snp1
+
+                    ! term in xz
+                    Sn    = factorS_loc * dom%epsilondev_xz_(i,j,k,bnum,ee)
+                    Snp1  = factorS_loc * epsilondev_xz_loc
+                    dom%R_xz_(i_sls,i,j,k,bnum,ee) = alphaval * dom%R_xz_(i_sls,i,j,k,bnum,ee) &
+                        + betaval*Sn+gammaval*Snp1
+
+                    ! term in yz
+                    Sn    = factorS_loc * dom%epsilondev_yz_(i,j,k,bnum,ee)
+                    Snp1  = factorS_loc * epsilondev_yz_loc
+                    dom%R_yz_(i_sls,i,j,k,bnum,ee) = alphaval * dom%R_yz_(i_sls,i,j,k,bnum,ee)  &
+                        + betaval*Sn+gammaval*Snp1
+
+                enddo   ! end of loop on memory variables
+
+                ! a la fin on stocke la deformation deviatorique pour le prochain
+                ! pas de temps de la mise a jour de Runge-Kutta faite ci-dessus
+
+                ! save deviatoric strain for Runge-Kutta scheme
+
+                !     partie deviatoire
+                dom%epsilondev_xx_(i,j,k,bnum,ee) = epsilondev_xx_loc
+                dom%epsilondev_yy_(i,j,k,bnum,ee) = epsilondev_yy_loc
+                dom%epsilondev_xy_(i,j,k,bnum,ee) = epsilondev_xy_loc
+                dom%epsilondev_xz_(i,j,k,bnum,ee) = epsilondev_xz_loc
+                dom%epsilondev_yz_(i,j,k,bnum,ee) = epsilondev_yz_loc
+#ifndef ANISO
+                !   partie isotrope
+                dom%epsilonvol_   (i,j,k,bnum,ee) = epsilonvol_loc
+#endif
+                END_SUBELEM_LOOP()
+            end do
+        end do
+    end do
+end subroutine PROCNAME_ATN
+#undef DXX
+#undef DXY
+#undef DXZ
+#undef DYX
+#undef DYY
+#undef DYZ
+#undef DZX
+#undef DZY
+#undef DZZ
+#endif
+#undef JXX
+#undef JXY
+#undef JXZ
+#undef JYX
+#undef JYY
+#undef JYZ
+#undef JZX
+#undef JZY
+#undef JZZ
 
 !! Local Variables:
 !! mode: f90
