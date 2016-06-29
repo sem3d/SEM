@@ -316,36 +316,30 @@ contains
         bnum = specel%lnum/VCHUNK
         ee = mod(specel%lnum,VCHUNK)
 
-        do k=0,dom%ngll-1
-            do j=0,dom%ngll-1
-                do i=0,dom%ngll-1
-                    ind = dom%Idom_(i,j,k,bnum,ee)
+        ind = dom%Idom_(i,j,k,bnum,ee)
 
-                    ! Compute alpha, beta, kappa
-                    solidcpml_abk(0,i,j,k,bnum,ee)
-                    solidcpml_abk(1,i,j,k,bnum,ee)
-                    solidcpml_abk(2,i,j,k,bnum,ee)
+        ! Compute alpha, beta, kappa
+        solidcpml_abk(0,i,j,k,bnum,ee)
+        solidcpml_abk(1,i,j,k,bnum,ee)
+        solidcpml_abk(2,i,j,k,bnum,ee)
 
-                    ! Delta 2d derivative term from L : (12a) or (14a) from Ref1
-                    a0b = kappa(0)*kappa(1)*kappa(2)
-                    dom%MassMat(ind) = dom%MassMat(ind) + dom%Density*a0b*dom%Jacob_(i,j,k,bnum,ee)*Whei
+        ! Delta 2d derivative term from L : (12a) or (14a) from Ref1
+        a0b = kappa(0)*kappa(1)*kappa(2)
+        dom%MassMat(ind) = dom%MassMat(ind) + dom%Density*a0b*dom%Jacob_(i,j,k,bnum,ee)*Whei
 
-                    ! Delta 1st derivative term from L : (12a) or (14a) from Ref1
-                    solidcpml_gamma_ab(g0,beta,0,alpha,0)
-                    solidcpml_gamma_ab(g1,beta,1,alpha,1)
-                    solidcpml_gamma_ab(g2,beta,2,alpha,2)
-                    a1b = a0b*(g0+g1+g2)
-                    dom%DumpMat(ind) = dom%DumpMat(ind) + dom%Density*a1b*dom%Jacob_(i,j,k,bnum,ee)*Whei
+        ! Delta 1st derivative term from L : (12a) or (14a) from Ref1
+        solidcpml_gamma_ab(g0,beta,0,alpha,0)
+        solidcpml_gamma_ab(g1,beta,1,alpha,1)
+        solidcpml_gamma_ab(g2,beta,2,alpha,2)
+        a1b = a0b*(g0+g1+g2)
+        dom%DumpMat(ind) = dom%DumpMat(ind) + dom%Density*a1b*dom%Jacob_(i,j,k,bnum,ee)*Whei
 
-                    ! Delta term from L : (12a) or (14a) from Ref1
-                    solidcpml_gamma_abc(g101,beta,1,alpha,0,alpha,1)
-                    solidcpml_gamma_abc(g212,beta,2,alpha,1,alpha,2)
-                    solidcpml_gamma_abc(g002,beta,0,alpha,0,alpha,2)
-                    a2b = a0b*(g0*g101+g1*g212+g2*g002)
-                    dom%MasUMat(ind) = dom%MasUMat(ind) + dom%Density*a2b*dom%Jacob_(i,j,k,bnum,ee)*Whei
-                end do
-            end do
-        end do
+        ! Delta term from L : (12a) or (14a) from Ref1
+        solidcpml_gamma_abc(g101,beta,1,alpha,0,alpha,1)
+        solidcpml_gamma_abc(g212,beta,2,alpha,1,alpha,2)
+        solidcpml_gamma_abc(g002,beta,0,alpha,0,alpha,2)
+        a2b = a0b*(g0*g101+g1*g212+g2*g002)
+        dom%MasUMat(ind) = dom%MasUMat(ind) + dom%Density*a2b*dom%Jacob_(i,j,k,bnum,ee)*Whei
     end subroutine init_local_mass_solidpml
 
     subroutine pred_sol_pml(dom, dt, champs1, bnum)
