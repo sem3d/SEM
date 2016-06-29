@@ -50,13 +50,13 @@ contains
 
         !write (*,*) "--> after apply_prop_files "
 
+        call init_geometric_properties(Tdomain, Tdomain%specel(n))
         do n = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(n)%mat_index
             if ( mat < 0 .or. mat >= Tdomain%n_mat ) then
                 print*, "ERROR : inconsistent material index = ", mat
                 stop
             end if
-            call init_geometric_properties(Tdomain, Tdomain%specel(n))
 ! Attribute elastic properties from material !!!
             ! Sets Lambda, Mu, Qmu, ... from mat
             call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
