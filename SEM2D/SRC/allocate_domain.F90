@@ -386,13 +386,14 @@ subroutine allocate_domain (Tdomain)
 
   ! Special addition for Lamb test :
   if (Tdomain%LogicD%Lamb_test) then
+      write(*,*) " LAMB TEST --   LAMB TEST --  LAMB TEST "
       do n=0,Tdomain%n_face-1
           i = Tdomain%sFace(n)%Near_Vertex(0)
           j = Tdomain%sFace(n)%Near_Vertex(1)
           i = Tdomain%sVertex(i)%Glob_numbering
           j = Tdomain%sVertex(j)%Glob_numbering
           if (abs(Tdomain%coord_nodes(1,i)) .LT. 1.E-7 .and. abs(Tdomain%coord_nodes(1,j)) .LT. 1.E-7 &
-              .and. Tdomain%sFace(n)%Reflex ) then
+              .and. (Tdomain%sFace(n)%Reflex .OR. Tdomain%sFace(n)%Abs)) then
               Tdomain%sFace(n)%freesurf = .true.
               Tdomain%sFace(n)%Abs      = .false.
               Tdomain%sFace(n)%Reflex   = .false.

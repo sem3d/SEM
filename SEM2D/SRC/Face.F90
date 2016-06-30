@@ -1,3 +1,4 @@
+
 !! This file is part of SEM
 !!
 !! Copyright CEA, ECP, IPGP
@@ -659,6 +660,10 @@ end subroutine Compute_Flux_DGstrong
 
         if (F%Type_DG==COUPLE_CG_HDG) then
             return
+        endif
+
+        if (F%abs) then
+            F%KinvExpl = 2.*F%KinvExpl
         endif
 
         if (F%Acoustic) then

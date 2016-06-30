@@ -97,7 +97,7 @@ subroutine PML_definition (Tdomain)
         Tdomain%sFace(n)%PML = .false.
         Tdomain%sFace(n)%CPML = .false.
         Tdomain%sFace(n)%ADEPML = .false.
-        Tdomain%sFace(n)%Abs = .false.
+        !Tdomain%sFace(n)%Abs = .false.
         n_el0 = Tdomain%sFace(n)%Near_Element(0)
         n_el1 = Tdomain%sFace(n)%Near_Element(1)
         ! Dealing With PML Faces at the border of the domain.
