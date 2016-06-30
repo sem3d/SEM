@@ -28,8 +28,8 @@ program main_Stat
     character(len=200), parameter :: statPath = "./stat_input"
     character(len=200), parameter :: outPath = "./results/res/singleGen"
     integer :: nFiles
-    logical :: deleteSampleInTheEnd=.true.
-    logical :: calculateCorrL=.false.
+    integer :: deleteSampleInTheEnd
+    integer :: calculateCorrL
 
     !LOCAL
     integer :: i
@@ -44,6 +44,10 @@ program main_Stat
         write(*,*) "How many files? "
         read(*,*) nFiles
         write(*,*) "nFiles = ", nFiles
+        read(*,*) calculateCorrL
+        write(*,*) "calculateCorrL = ", calculateCorrL
+        read(*,*) deleteSampleInTheEnd
+        write(*,*) "deleteSampleInTheEnd = ", deleteSampleInTheEnd
     end if
 
     call MPI_BCAST (nFiles, 1, MPI_INTEGER, 0, STA%comm, code)
@@ -77,7 +81,7 @@ program main_Stat
         call read_RF_h5_File_Table()
         if(STA%rang == 0) write(*,*) "-> Calculating Average and StdVar"
         call calculate_average_and_stdVar_MPI(STA)
-        if(calculateCorrL) then
+        if(calculateCorrL == 1) then
             if(STA%rang == 0) write(*,*) "-> Recontructing Spectrum"
             call rebuild_Sk(STA)
             if(STA%rang == 0) write(*,*) "-> Calculating Correlation Length"
@@ -185,7 +189,7 @@ program main_Stat
             type(STAT), intent(in) :: STA
             character(len=*), intent(in) :: resPath
             !LOCAL
-            character(len=200) :: attr_name
+            character(len=buf_RF) :: attr_name
             integer(HID_T)  :: file_id       !File identifier
             integer :: error
             integer :: i
@@ -233,7 +237,7 @@ program main_Stat
             end if
             call write_h5attr_real_vec(file_id, attr_name, STA%evntStdDev)
 
-            if(calculateCorrL) then
+            if(calculateCorrL == 1) then
                 attr_name = "corrL_out"
                 call h5aexists_by_name_f(file_id, ".", trim(adjustL(attr_name)), attr_exists, error)
                 !write(*,*) "attr_exists 5 = ", attr_exists
@@ -449,7 +453,7 @@ program main_Stat
             character(len=*), intent(in) :: resPath
             integer, intent(in) :: nDim_in
             type(STAT), intent(in) :: STA
-            logical, intent(in) :: deleteSampleInTheEnd
+            integer, intent(in) :: deleteSampleInTheEnd
             !LOCAL
             character(len=200) :: attr_name
             integer(HID_T)  :: new_file_id, old_file_id       !File identifier
@@ -614,7 +618,7 @@ program main_Stat
 
             write(*,*) " "
             !Delete Old File
-            if(deleteSampleInTheEnd) then
+            if(deleteSampleInTheEnd == 1) then
                 if(STA%rang == 0) then
                     write(*,*) " "
                     write(*,*) "Deleting file (and folders): ", trim(string_join_many(absPath, resPath(2:)))
