@@ -35,23 +35,7 @@
 !!
 !!    We have Cijkl = C0ijkl .* Conv (.* is an element-by-element multiplication) according to (10) from Ref1.
 
-! (A.18) from Ref1
-#define calcul_forces_solidpml_Li______(i,a,b,c,bnum,ee) \
-        xi = abs(dom%GlobCoord(i,dom%Idom_(a,b,c,bnum,ee)) - dom%bpp(i)); \
-        kappa(i) = dom%kappa_0 + dom%kappa_1 * xi/dom%L(i); \
-        Li = kappa(i)
-! TODO : add convolution term to Li
-
-! (A.20) from Ref1
-#define calcul_forces_solidpml_Lijk(i,j,k,a,b,c,bnum,ee) \
-        xi = abs(dom%GlobCoord(i,dom%Idom_(a,b,c,bnum,ee)) - dom%bpp(i)); \
-        kappa(i) = dom%kappa_0 + dom%kappa_1 * xi/dom%L(i); \
-        xj = abs(dom%GlobCoord(j,dom%Idom_(a,b,c,bnum,ee)) - dom%bpp(j)); \
-        kappa(j) = dom%kappa_0 + dom%kappa_1 * xj/dom%L(j); \
-        xk = abs(dom%GlobCoord(k,dom%Idom_(a,b,c,bnum,ee)) - dom%bpp(k)); \
-        kappa(k) = dom%kappa_0 + dom%kappa_1 * xk/dom%L(k); \
-        Lijk = kappa(i)*kappa(j)/kappa(k)
-! TODO : add convolution term to Lijk
+#include "dom_solidcpml_macro.F90"
 
 #ifndef PROCNAME
 #error "Must define PROCNAME before inclusion"
@@ -77,7 +61,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
     integer :: i,j,k,l,e,ee
-    real(fpp) :: xi, Li, xj, xk, Lijk, kappa(0:2) ! calcul_forces_solidpml_Li______, calcul_forces_solidpml_Lijk
+    real(fpp) :: xi, Li, xj, xk, Lijk, xoverl, kappa(0:2) ! calcul_forces_solidpml_Li, calcul_forces_solidpml_Lijk
     real(fpp) :: C1111, C1122, C1133, C2222, C2233, C3333
     real(fpp) :: C2323, C2332, C1313, C1331, C1212, C1221, C3232, C3131, C2121
     real(fpp) :: DUXDX,DUXDY,DUXDZ,DUYDX,DUYDY,DUYDZ,DUZDX,DUZDY,DUZDZ
@@ -171,21 +155,21 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 Exz = (DUXDZ+DUZDX)
                 Exy = (DUXDY+DUYDX)
 
-                calcul_forces_solidpml_Lijk(1,2,0,i,j,k,bnum,ee); C1111 = (dom%Lambda+2*dom%Mu)*Lijk
-                calcul_forces_solidpml_Li______(2,i,j,k,bnum,ee); C1122 =  dom%Lambda          *Li
-                calcul_forces_solidpml_Li______(1,i,j,k,bnum,ee); C1133 =  dom%Lambda          *Li
-                calcul_forces_solidpml_Lijk(0,2,1,i,j,k,bnum,ee); C2222 = (dom%Lambda+2*dom%Mu)*Lijk
-                calcul_forces_solidpml_Li______(0,i,j,k,bnum,ee); C2233 =  dom%Lambda          *Li
-                calcul_forces_solidpml_Lijk(0,1,2,i,j,k,bnum,ee); C3333 = (dom%Lambda+2*dom%Mu)*Lijk
-                calcul_forces_solidpml_Lijk(0,2,1,i,j,k,bnum,ee); C2323 =  dom%Mu              *Lijk
-                calcul_forces_solidpml_Li______(0,i,j,k,bnum,ee); C2332 =  dom%Mu              *Li
-                calcul_forces_solidpml_Lijk(0,1,2,i,j,k,bnum,ee); C3232 =  dom%Mu              *Lijk
-                calcul_forces_solidpml_Lijk(1,2,0,i,j,k,bnum,ee); C1313 =  dom%Mu              *Lijk
-                calcul_forces_solidpml_Li______(1,i,j,k,bnum,ee); C1331 =  dom%Mu              *Li
-                calcul_forces_solidpml_Lijk(0,1,2,i,j,k,bnum,ee); C3131 =  dom%Mu              *Lijk
-                calcul_forces_solidpml_Lijk(1,2,0,i,j,k,bnum,ee); C1212 =  dom%Mu              *Lijk
-                calcul_forces_solidpml_Li______(2,i,j,k,bnum,ee); C1221 =  dom%Mu              *Li
-                calcul_forces_solidpml_Lijk(0,2,1,i,j,k,bnum,ee); C2121 =  dom%Mu              *Lijk
+                solidcpml_Lijk(1,2,0,i,j,k,bnum,ee); C1111 = (dom%Lambda+2*dom%Mu)*Lijk
+                solidcpml_Li      (2,i,j,k,bnum,ee); C1122 =  dom%Lambda          *Li
+                solidcpml_Li      (1,i,j,k,bnum,ee); C1133 =  dom%Lambda          *Li
+                solidcpml_Lijk(0,2,1,i,j,k,bnum,ee); C2222 = (dom%Lambda+2*dom%Mu)*Lijk
+                solidcpml_Li      (0,i,j,k,bnum,ee); C2233 =  dom%Lambda          *Li
+                solidcpml_Lijk(0,1,2,i,j,k,bnum,ee); C3333 = (dom%Lambda+2*dom%Mu)*Lijk
+                solidcpml_Lijk(0,2,1,i,j,k,bnum,ee); C2323 =  dom%Mu              *Lijk
+                solidcpml_Li      (0,i,j,k,bnum,ee); C2332 =  dom%Mu              *Li
+                solidcpml_Lijk(0,1,2,i,j,k,bnum,ee); C3232 =  dom%Mu              *Lijk
+                solidcpml_Lijk(1,2,0,i,j,k,bnum,ee); C1313 =  dom%Mu              *Lijk
+                solidcpml_Li      (1,i,j,k,bnum,ee); C1331 =  dom%Mu              *Li
+                solidcpml_Lijk(0,1,2,i,j,k,bnum,ee); C3131 =  dom%Mu              *Lijk
+                solidcpml_Lijk(1,2,0,i,j,k,bnum,ee); C1212 =  dom%Mu              *Lijk
+                solidcpml_Li      (2,i,j,k,bnum,ee); C1221 =  dom%Mu              *Li
+                solidcpml_Lijk(0,2,1,i,j,k,bnum,ee); C2121 =  dom%Mu              *Lijk
 
                 sxx = DUXDX*C1111 + DUYDY*C1122 + DUZDZ*C1133
                 syy = DUXDX*C1122 + DUYDY*C2222 + DUZDZ*C2233

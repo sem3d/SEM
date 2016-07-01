@@ -11,20 +11,7 @@
 !!       Rene Matzen
 !!       International Journal For Numerical Methods In Engineering, 2011, 88, 951-973
 
-! alpha*: (76) from Ref1, kappa*: (77) from Ref1, beta*: (11) from Ref1, dxi: (74) from Ref1, d0: (75) from Ref1
-#define solidcpml_abk(xyz,i,j,k,bnum,ee) \
-        xi = abs(dom%GlobCoord(xyz,dom%Idom_(i,j,k,bnum,ee)) - dom%bpp(xyz)); \
-        alpha(xyz) = dom%alphamax*(1. - xi/dom%L(xyz)); \
-        kappa(xyz) = dom%kappa_0 + dom%kappa_1 * xi/dom%L(xyz); \
-        d0 = -1.*(dom%n(xyz)+1)*dom%Pspeed*log(dom%r_c)/(2*dom%L(xyz)); \
-        dxi = dom%c(xyz)*d0*(xi/dom%L(xyz))**dom%n(xyz); \
-        beta(xyz) = alpha(xyz) + dxi / kappa(xyz);
-
-#define solidcpml_gamma_ab(g,a_name,a_index,b_name,b_index) \
-        g = a_name(a_index) - b_name(b_index);
-
-#define solidcpml_gamma_abc(g,a_name,a_index,b_name,b_index,c_name,c_index) \
-        g = a_name(a_index) - b_name(b_index) - c_name(c_index);
+#include "dom_solidcpml_macro.F90"
 
 module dom_solidpml
     use constants
@@ -318,7 +305,7 @@ contains
         real Whei
         !
         integer :: bnum, ee
-        real(fpp) :: xi, dxi, d0, alpha(0:2), beta(0:2), kappa(0:2) ! solidcpml_abk
+        real(fpp) :: xi, xoverl, dxi, d0, alpha(0:2), beta(0:2), kappa(0:2) ! solidcpml_abk
         real(fpp) :: g0, g1, g2 ! solidcpml_gamma_ab
         real(fpp) :: g101, g212, g002 ! solidcpml_gamma_abc
         real(fpp) :: a0b, a1b, a2b
