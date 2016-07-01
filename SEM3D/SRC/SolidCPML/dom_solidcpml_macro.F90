@@ -16,8 +16,10 @@
         solidcpml_xoverl(xyz,xi); \
         alpha(xyz) = dom%alphamax*(1. - xoverl); \
         solidcpml_kappa(xyz,xi); \
-        d0 = -1.*(dom%n(xyz)+1)*dom%Pspeed*log(dom%r_c)/(2*dom%L(xyz)); \
-        dxi = dom%c(xyz)*d0*(xi/dom%L(xyz))**dom%n(xyz); \
+        d0 = 0.; \
+        if (abs(dom%L(xyz)) > 1e-6) d0 = -1.*(dom%n(xyz)+1)*dom%Pspeed*log(dom%r_c)/(2*dom%L(xyz)); \
+        dxi = 0.; \
+        if (abs(dom%L(xyz)) > 1e-6) dxi = dom%c(xyz)*d0*(xi/dom%L(xyz))**dom%n(xyz); \
         beta(xyz) = alpha(xyz) + dxi / kappa(xyz);
 
 ! gamma_ab defined after (12c) in Ref1
