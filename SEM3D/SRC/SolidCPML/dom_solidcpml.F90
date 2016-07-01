@@ -337,6 +337,10 @@ contains
         solidcpml_gamma_abc(g002,beta,0,alpha,0,alpha,2)
         a2b = a0b*(g0*g101+g1*g212+g2*g002)
         dom%MasUMat(ind) = dom%MasUMat(ind) + dom%Density*a2b*dom%Jacob_(i,j,k,bnum,ee)*Whei
+
+        if (abs(dom%MassMat(ind)) < 1.e-6) stop "ERROR : MassMat is null"
+        if (abs(dom%DumpMat(ind)) < 1.e-6) stop "ERROR : DumpMat is null"
+        if (abs(dom%MasUMat(ind)) < 1.e-6) stop "ERROR : MasUMat is null"
     end subroutine init_local_mass_solidpml
 
     subroutine pred_sol_pml(dom, dt, champs1, bnum)
