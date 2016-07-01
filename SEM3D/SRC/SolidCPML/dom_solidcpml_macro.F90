@@ -1,9 +1,11 @@
+#define solidcpml_eps 1.e-6
+
 #define solidcpml_x(i,xi,a,b,c,bnum,ee) \
         xi = abs(dom%GlobCoord(i,dom%Idom_(a,b,c,bnum,ee)) - dom%bpp(i));
 
 #define solidcpml_xoverl(xyz,xi) \
         xoverl = 0.; \
-        if (abs(dom%L(xyz)) > 1e-6) xoverl = xi/abs(dom%L(xyz));
+        if (abs(dom%L(xyz)) > solidcpml_eps) xoverl = xi/abs(dom%L(xyz));
 
 ! kappa*: (77) from Ref1
 #define solidcpml_kappa(xyz,xi) \
@@ -17,9 +19,9 @@
         alpha(xyz) = dom%alphamax*(1. - xoverl); \
         solidcpml_kappa(xyz,xi); \
         d0 = 0.; \
-        if (abs(dom%L(xyz)) > 1e-6) d0 = -1.*(dom%n(xyz)+1)*dom%Pspeed*log(dom%r_c)/(2*dom%L(xyz)); \
+        if (abs(dom%L(xyz)) > solidcpml_eps) d0 = -1.*(dom%n(xyz)+1)*dom%Pspeed*log(dom%r_c)/(2*dom%L(xyz)); \
         dxi = 0.; \
-        if (abs(dom%L(xyz)) > 1e-6) dxi = dom%c(xyz)*d0*(xi/dom%L(xyz))**dom%n(xyz); \
+        if (abs(dom%L(xyz)) > solidcpml_eps) dxi = dom%c(xyz)*d0*(xi/dom%L(xyz))**dom%n(xyz); \
         beta(xyz) = alpha(xyz) + dxi / kappa(xyz);
 
 ! gamma_ab defined after (12c) in Ref1
