@@ -70,6 +70,11 @@ int main(int argc, char**argv)
     Mesh3D mesh;
     int NPROCS;
     int choice;
+    char *buffer=NULL;
+    //FILE* f = fopen("mesh.input", "r");
+    //char *buffer=NULL;
+    size_t linesize=0;
+
 
     mesh.debug = true;
     printf("-------------------------------------------------\n");
@@ -83,24 +88,51 @@ int main(int argc, char**argv)
         printf("\n    DEBUG MODE    \n\n");
     }
     printf("\n   --> How many procs for the run ?\n");
-    scanf("%d", &NPROCS);
-    printf("             Your choice is %d \n", NPROCS);
+    getline(&buffer, &linesize, stdin);
 
-    printf(" ****************************************\n");
-    printf(" ****************************************\n");
-    printf("  WHICH INITIAL MESH?\n");
+    for(int k=0;k<100;++k) {
+		if(buffer[0] != '#'){
+			//printf(" NOT A COMMENT!!!!\n");
+			break;
+		}
+		else{
+			//printf(" IT WAS A COMMENT!!!!\n");
+			getline(&buffer, &linesize, stdin);
+		}
+	}
+
+    sscanf(buffer,"%d", &NPROCS);
+
+    printf("             %d processor(s)\n", NPROCS);
+    getline(&buffer, &linesize, stdin);
+
+    printf(" \n\n");
+    printf("  --> Which Initial Mesh?\n");
     printf("      1- On the fly\n");
     printf("      2- Abaqus from Cubit\n");
     printf("      3- Ideas (.unv) files\n");
     printf("      4- HDF5 Hex8 files\n");
     printf("      5- Earth Chunk\n");
-    scanf("%d", &choice);
+
+    for(int k=0;k<100;++k) {
+		if(buffer[0] != '#'){
+			//printf(" NOT A COMMENT!!!!\n"); material.input
+			break;
+		}
+		else{
+			//printf(" IT WAS A COMMENT!!!!\n");
+			getline(&buffer, &linesize, stdin);
+		}
+	}
+
+    sscanf(buffer,"%d", &choice);
     printf("            Your choice is %d \n", choice);
+    printf(" \n\n");
 
 
     switch(choice) {
     case 1:
-        mesh.read_materials("mater.in");
+    	mesh.read_materials("mater.in");
         handle_on_the_fly(mesh);
         break;
     case 2:
