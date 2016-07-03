@@ -116,7 +116,7 @@ int main(int argc, char**argv)
 
     for(int k=0;k<100;++k) {
 		if(buffer[0] != '#'){
-			//printf(" NOT A COMMENT!!!!\n"); material.input
+			//printf(" NOT A COMMENT!!!!\n"); mater.in
 			break;
 		}
 		else{
