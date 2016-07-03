@@ -63,7 +63,6 @@ capteurs "UU" {
 };
 material {
     type = constant;
-    random_library_path = " ";
 };
 out_variables {
     enP = 0;   # P-wave energy (scalar field)
