@@ -18,6 +18,7 @@
 
 subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     use champs_solid
+    use nonlinear
     implicit none
 
     type(domain_solid), intent (INOUT) :: dom
@@ -43,6 +44,11 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1) :: dUz_dxi, dUz_deta, dUz_dzeta
     real(fpp) :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real(fpp) :: F1,F2,F3
+#endif
+#ifdef NONLINEAR
+    real(fpp), dimension(0:5) :: start,trial,center,dEps_alpha,dEpsP,eps0
+    real(fpp)  :: syld,ckin,kkin,biso,rinf,radius,alpha_epl
+    logical    :: st_epl
 #endif
 #ifdef ANISO
     real(fpp) :: Eyz, Exz, Exy
@@ -180,13 +186,57 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 xmu = dom%Mu_    (i,j,k,bnum,ee)
                 xla = dom%Lambda_(i,j,k,bnum,ee)
                 xla2mu = xla + 2. * xmu
+#ifdef NONLINEAR
 
+                eps0(:) = dom%strain_(:,i,j,k,bnum,ee)
+                dom%strain_(0:5,i,j,k,bnum,ee) = (/dxx,dyy,dzz,(dxy+dyx),(dxz+dzx),(dyz+dzy)/)
+                dEps_alpha(0:5) = dom%strain_(0:5,i,j,k,bnum,ee) -eps0(0:5)
+                dEpsP(0:5)      = dom%plstrain_(0:5,i,j,k,bnum,ee) 
+                
+                sxx = xla2mu*dEps_alpha(0)+xla*sum(dEps_alpha(1:2))
+                syy = xla2mu*dEps_alpha(1)+xla*(dEps_alpha(0)+dEps_alpha(2))
+                szz = xla2mu*dEps_alpha(2)+xla*sum(dEps_alpha(0:1))
+                sxy = xmu*dEps_alpha(3)
+                sxz = xmu*dEps_alpha(4)
+                syz = xmu*dEps_alpha(5)
+                start       =   dom%stress_(0:5,i,j,k,bnum,ee)
+                trial       =   (/sxx,syy,szz,sxy,sxz,syz/)
+                center      =   dom%center_(0:5,i,j,k,bnum,ee)
+                radius      =   dom%radius_(i,j,k,bnum,ee)
+                syld        =   dom%nl_param%LMC%syld_(i,j,k,bnum,ee)
+                kkin        =   dom%nl_param%LMC%kkin_(i,j,k,bnum,ee) 
+                rinf        =   dom%nl_param%LMC%rinf_(i,j,k,bnum,ee) 
+                biso        =   dom%nl_param%LMC%biso_(i,j,k,bnum,ee) 
+                ckin        =   dom%nl_param%LMC%ckin_(i,j,k,bnum,ee)
+                call check_plasticity(trial, start, center,radius, &
+                    syld,st_epl,alpha_epl)
+
+                if (st_epl) then
+
+                    dEps_alpha=(1.0d0-alpha_epl)*dEps_alpha
+                    call plastic_corrector(dEps_alpha, trial, center, syld, &
+                            radius, biso, rinf, ckin, kkin, xmu, xla, dEpsP)
+                end if
+                sxx = trial(0)
+                syy = trial(1)
+                szz = trial(2)
+                sxy = trial(3)
+                sxz = trial(4)
+                syz = trial(5)
+                
+                dom%stress_(0:5,i,j,k,bnum,ee)   = trial(0:5)
+                dom%center_(0:5,i,j,k,bnum,ee)   = center(0:5)
+                dom%plstrain_(0:5,i,j,k,bnum,ee) = dEpsP(0:5)
+                dom%radius_(i,j,k,bnum,ee)       = radius
+
+#else
                 sxx = xla2mu * DXX + xla * ( DYY + DZZ )
                 sxy = xmu * ( DXY + DYX )
                 sxz = xmu * ( DXZ + DZX )
                 syy = xla2mu * DYY + xla * ( DXX + DZZ )
                 syz = xmu * ( DYZ + DZY )
                 szz = xla2mu * DZZ + xla * ( DXX + DYY )
+#endif
 #endif
                 !
                 !=====================
@@ -500,3 +550,4 @@ end subroutine PROCNAME_ATN
 !! f90-continuation-indent: 4
 !! End:
 !! vim: set sw=4 ts=8 et tw=80 smartindent :
+

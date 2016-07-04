@@ -18,8 +18,8 @@ contains
         type(domain) :: TDomain
         type(domain_solid), intent (INOUT) :: dom
         !
-        integer nbelem, nblocks, ngll, n_solid
-        logical aniso,nl_flag,nl_law
+        integer :: nbelem, nblocks, ngll, n_solid
+        logical :: aniso,nl_flag,nl_law
         !
 
         ngll    = dom%ngll
@@ -61,11 +61,11 @@ contains
                 allocate(dom%center_  (0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
                 allocate(dom%strain_  (0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
                 allocate(dom%plstrain_(0:5,0:ngll-1, 0:ngll-1, 0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
-                dom%strain_(:,:,:,:)   = 0.0d0
-                dom%plstrain_(:,:,:,:) = 0.0d0
-                dom%stress_(:,:,:,:)   = 0.0d0
-                dom%center_(:,:,:,:)   = 0.0d0
-                dom%radius_(:,:,:,:)   = 0.0d0
+                dom%strain_  (:,:,:,:,:,:) = zero
+                dom%plstrain_(:,:,:,:,:,:) = zero 
+                dom%stress_  (:,:,:,:,:,:) = zero 
+                dom%center_  (:,:,:,:,:,:) = zero
+                dom%radius_  (:,:,:,:,:)   = zero
             end if
 
             allocate (dom%Jacob_  (        0:ngll-1,0:ngll-1,0:ngll-1,0:nblocks-1, 0:VCHUNK-1))
@@ -353,24 +353,23 @@ contains
                     end if
 
                     if (out_variables(OUT_EPS_DEV) == 1) then
-                        if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5))
-                            eps_dev(i,j,k,0:5) = 0.d0
-                            if (nl_flag .and. nl_law) then
-                                eps_dev(i,j,k,:)   = dom%strain(:,i,j,k,lnum)
-                                eps_dev(i,j,k,0:2) = eps_dev(i,j,k,0:2)-&
-                                    sum(eps_dev(i,j,k,0:2))/3
-                                eps_dev_pl(i,j,k,0:5) = 0.d0
-                                eps_dev_pl(i,j,k,:)   = dom%plstrain(:,i,j,k,lnum)
-                                eps_dev_pl(i,j,k,0:2) = eps_dev_pl(i,j,k,0:2)-&
-                                    sum(eps_dev_pl(i,j,k,0:2))/3
-                            else
-                                eps_dev(i,j,k,0) = DXX - eps_vol(i,j,k) / 3
-                                eps_dev(i,j,k,1) = DYY - eps_vol(i,j,k) / 3
-                                eps_dev(i,j,k,2) = DZZ - eps_vol(i,j,k) / 3
-                                eps_dev(i,j,k,3) = 0.5 * (DXY + DYX)
-                                eps_dev(i,j,k,4) = 0.5 * (DZX + DXZ)
-                                eps_dev(i,j,k,5) = 0.5 * (DZY + DYZ)
-                            endif
+                        if(.not. allocated(eps_dev)) allocate(eps_dev(0:ngll-1,0:ngll-1,0:ngll-1,0:5)) 
+                        eps_dev(i,j,k,0:5) = zero
+                        if (nl_flag .and. nl_law) then
+                            eps_dev(i,j,k,:)   = dom%strain_(:,i,j,k,bnum,ee)
+                            eps_dev(i,j,k,0:2) = eps_dev(i,j,k,0:2)-&
+                                sum(eps_dev(i,j,k,0:2))/3
+                            eps_dev_pl(i,j,k,0:5) = 0.d0
+                            eps_dev_pl(i,j,k,:)   = dom%plstrain_(:,i,j,k,bnum,ee)
+                            eps_dev_pl(i,j,k,0:2) = eps_dev_pl(i,j,k,0:2)-&
+                                sum(eps_dev_pl(i,j,k,0:2))/3
+                        else
+                            eps_dev(i,j,k,0) = DXX - eps_vol(i,j,k) / 3
+                            eps_dev(i,j,k,1) = DYY - eps_vol(i,j,k) / 3
+                            eps_dev(i,j,k,2) = DZZ - eps_vol(i,j,k) / 3
+                            eps_dev(i,j,k,3) = 0.5 * (DXY + DYX)
+                            eps_dev(i,j,k,4) = 0.5 * (DZX + DXZ)
+                            eps_dev(i,j,k,5) = 0.5 * (DZY + DYZ)
                         endif
                     end if
 
@@ -380,7 +379,7 @@ contains
                         
                         if (.not. dom%aniso) then
                             if (nl_flag .and. nl_law) then
-                                sig_dev(i,j,k,:) = dom%stress_(:,i,j,k,lnum)
+                                sig_dev(i,j,k,:) = dom%stress_(:,i,j,k,bnum,ee)
                                 sig_dev(i,j,k,0:2) = sig_dev(i,j,k,0:2) - &
                                     sum(sig_dev(i,j,k,0:2))/3
                             else
@@ -410,13 +409,12 @@ contains
         real(fpp), intent(in) :: lambda
         real(fpp), intent(in) :: mu
         real(fpp), intent(in) :: kappa
-        type (subdomain), intent(in), optional :: mat
+        type(subdomain), intent(in), optional :: mat
         !
         integer :: bnum, ee
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
 
-        type (subdomain), intent(in), optional :: mat
         
         if (i==-1 .and. j==-1 .and. k==-1) then
             dom%Density_(:,:,:,bnum,ee) = density
@@ -429,19 +427,19 @@ contains
             dom%Kappa_  (i,j,k,bnum,ee) = kappa
             dom%Mu_     (i,j,k,bnum,ee) = mu
         end if
-        if (present(mat%syld)) then
-            if (i==-1 .and. j==-1 .and. k==-1) then
-                dom%nl_param%LMC%syld_(:,:,:,lnum) = mat%syld
-                dom%nl_param%LMC%Ckin_(:,:,:,lnum) = mat%Ckin
-                dom%nl_param%LMC%kkin_(:,:,:,lnum) = mat%kkin
-                dom%nl_param%LMC%rinf_(:,:,:,lnum) = mat%rinf 
-                dom%nl_param%LMC%biso_(:,:,:,lnum) = mat%biso
+        if (mat%nl_law) then
+           if (i==-1 .and. j==-1 .and. k==-1) then
+                dom%nl_param%LMC%syld_(:,:,:,bnum,ee) = mat%syld
+                dom%nl_param%LMC%ckin_(:,:,:,bnum,ee) = mat%ckin
+                dom%nl_param%LMC%kkin_(:,:,:,bnum,ee) = mat%kkin
+                dom%nl_param%LMC%rinf_(:,:,:,bnum,ee) = mat%rinf 
+                dom%nl_param%LMC%biso_(:,:,:,bnum,ee) = mat%biso
             else
-                dom%nl_param%LMC%syld_(i,j,k,lnum) = mat%syld
-                dom%nl_param%LMC%Ckin_(i,j,k,lnum) = mat%Ckin
-                dom%nl_param%LMC%kkin_(i,j,k,lnum) = mat%kkin
-                dom%nl_param%LMC%rinf_(i,j,k,lnum) = mat%rinf 
-                dom%nl_param%LMC%biso_(i,j,k,lnum) = mat%biso
+                dom%nl_param%LMC%syld_(i,j,k,bnum,ee) = mat%syld
+                dom%nl_param%LMC%ckin_(i,j,k,bnum,ee) = mat%ckin
+                dom%nl_param%LMC%kkin_(i,j,k,bnum,ee) = mat%kkin
+                dom%nl_param%LMC%rinf_(i,j,k,bnum,ee) = mat%rinf 
+                dom%nl_param%LMC%biso_(i,j,k,bnum,ee) = mat%biso
             end if
         endif
         if (present(mat)) then
@@ -497,7 +495,7 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solid
 
-    subroutine forces_int_solid(dom, champs1, bnum)
+    subroutine forces_int_solid(dom, champs1, bnum, nl_flag)
         use m_calcul_forces
         use m_calcul_forces_atn
         use m_calcul_forces_nl
@@ -507,7 +505,6 @@ contains
         integer, intent(in) :: bnum
         !
         logical,    intent(in) :: nl_flag
-        real(fpp),  intent(in), optional :: dt
         !
         integer :: ngll,i,j,k,i_dir,e,ee,idx
         integer :: n_solid

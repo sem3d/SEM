@@ -26,7 +26,7 @@ module m_calcul_forces_nl ! wrap subroutine in module to get arg type check at b
     implicit none
 contains
 
-    subroutine calcul_forces_nl(dom,lnum,Fox,Foy,Foz,Depla)
+    subroutine calcul_forces_nl(dom,bnum,Fox,Foy,Foz,Depla)
         use champs_solid
         use deriv3d
         use nonlinear
@@ -54,40 +54,75 @@ contains
         end select
     end subroutine calcul_forces_nl
 
-#undef ATTENUATION
 #undef ANISO
+#undef ATTENUATION
+#define NONLINEAR
 #define NGLLVAL 4
-#define PROCNAME_NL calcul_forces_nl_4
-#include "calcul_forces_solid_nl.inc"
+#define PROCNAME calcul_forces_nl_4
+#include "calcul_forces_solid.inc"
 #undef NGLLVAL
-#undef PROCNAME_NL
+#undef PROCNAME
 #define NGLLVAL 5
-#define PROCNAME_NL calcul_forces_nl_5
-#include "calcul_forces_solid_nl.inc"
+#define PROCNAME calcul_forces_nl_5
+#include "calcul_forces_solid.inc"
 #undef NGLLVAL
-#undef PROCNAME_NL
+#undef PROCNAME
 #define NGLLVAL 6
-#define PROCNAME_NL calcul_forces_nl_6
-#include "calcul_forces_solid_nl.inc"
+#define PROCNAME calcul_forces_nl_6
+#include "calcul_forces_solid.inc"
 #undef NGLLVAL
-#undef PROCNAME_NL
+#undef PROCNAME
 #define NGLLVAL 7
-#define PROCNAME_NL calcul_forces_nl_7
-#include "calcul_forces_solid_nl.inc"
+#define PROCNAME calcul_forces_nl_7
+#include "calcul_forces_solid.inc"
 #undef NGLLVAL
-#undef PROCNAME_NL
+#undef PROCNAME
 #define NGLLVAL 8
-#define PROCNAME_NL calcul_forces_nl_8
-#include "calcul_forces_solid_nl.inc"
+#define PROCNAME calcul_forces_nl_8
+#include "calcul_forces_solid.inc"
 #undef NGLLVAL
-#undef PROCNAME_NL
+#undef PROCNAME
 #define NGLLVAL 9
-#define PROCNAME_NL calcul_forces_nl_9
-#include "calcul_forces_solid_nl.inc"
+#define PROCNAME calcul_forces_nl_9
+#include "calcul_forces_solid.inc"
 #undef NGLLVAL
-#undef PROCNAME_NL
-#define PROCNAME_NL calcul_forces_nl_n
-#include "calcul_forces_solid_nl.inc"
+#undef PROCNAME
+#define PROCNAME calcul_forces_nl_n
+#include "calcul_forces_solid.inc"
+!#undef ATTENUATION
+!#undef ANISO
+!#define NGLLVAL 4
+!#define PROCNAME_NL calcul_forces_nl_4
+!#include "calcul_forces_solid_nl.inc"
+!#undef NGLLVAL
+!#undef PROCNAME_NL
+!#define NGLLVAL 5
+!#define PROCNAME_NL calcul_forces_nl_5
+!#include "calcul_forces_solid_nl.inc"
+!#undef NGLLVAL
+!#undef PROCNAME_NL
+!#define NGLLVAL 6
+!#define PROCNAME_NL calcul_forces_nl_6
+!#include "calcul_forces_solid_nl.inc"
+!#undef NGLLVAL
+!#undef PROCNAME_NL
+!#define NGLLVAL 7
+!#define PROCNAME_NL calcul_forces_nl_7
+!#include "calcul_forces_solid_nl.inc"
+!#undef NGLLVAL
+!#undef PROCNAME_NL
+!#define NGLLVAL 8
+!#define PROCNAME_NL calcul_forces_nl_8
+!#include "calcul_forces_solid_nl.inc"
+!#undef NGLLVAL
+!#undef PROCNAME_NL
+!#define NGLLVAL 9
+!#define PROCNAME_NL calcul_forces_nl_9
+!#include "calcul_forces_solid_nl.inc"
+!#undef NGLLVAL
+!#undef PROCNAME_NL
+!#define PROCNAME_NL calcul_forces_nl_n
+!#include "calcul_forces_solid_nl.inc"
 
 end module m_calcul_forces_nl
 

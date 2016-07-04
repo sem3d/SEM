@@ -19,11 +19,11 @@ module champs_solid
     end type champssolid
 
     type :: lmc_param ! LAMAITRE & CHABOCHE NONLINEAR PARAMETERS
-        real, dimension (:,:,:,:), allocatable :: m_biso
-        real, dimension (:,:,:,:), allocatable :: m_rinf
-        real, dimension (:,:,:,:), allocatable :: m_Ckin
-        real, dimension (:,:,:,:), allocatable :: m_kkin
-        real, dimension (:,:,:,:), allocatable :: m_syld
+        real, dimension (:,:,:,:,:), allocatable :: m_biso
+        real, dimension (:,:,:,:,:), allocatable :: m_rinf
+        real, dimension (:,:,:,:,:), allocatable :: m_ckin
+        real, dimension (:,:,:,:,:), allocatable :: m_kkin
+        real, dimension (:,:,:,:,:), allocatable :: m_syld
     end type lmc_param
 
     type :: nl_parameters  ! STRUCTURE CONTAINING NL PARAMETER SETS
@@ -97,16 +97,16 @@ module champs_solid
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_agamma_mu
         real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_agamma_kappa
         !
-        real(fpp), dimension(:,:,:,:),   allocatable :: m_onemSbeta
-        real(fpp), dimension(:,:,:,:),   allocatable :: m_onemPbeta
+        real(fpp), dimension(:,:,:,:,:),   allocatable :: m_onemSbeta
+        real(fpp), dimension(:,:,:,:,:),   allocatable :: m_onemPbeta
         ! Lemaitre-Chaboche non linear model
         integer :: nl_law
         type(nl_parameters),allocatable :: nl_param
-        real(fpp), dimension(:,:,:,:),   allocatable :: m_radius
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_stress 
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_center
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_strain
-        real(fpp), dimension(:,:,:,:,:), allocatable :: m_plstrain
+        real(fpp), dimension(:,:,:,:,:),   allocatable :: m_radius
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_stress 
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_center
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_strain
+        real(fpp), dimension(:,:,:,:,:,:), allocatable :: m_plstrain
 
     end type domain_solid
 

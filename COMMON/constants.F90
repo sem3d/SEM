@@ -28,6 +28,8 @@ MODULE constants
     real(KIND=8), parameter :: M_SQRT2 = 1.41421356237309504880D0    ! sqrt(2)
     real(KIND=8), parameter :: M_SQRT1_2 = 0.70710678118654752440D0  ! 1/sqrt(2)
     real(KIND=8), parameter :: M_1_3 =     0.33333333333333333333D0 ! 1/3
+    real(KIND=8), parameter :: zero=0.d0,one=1.0d0
+    real(KIND=8), parameter :: half=0.5d0,two=2.0d0,three=3.0d0
     ! Constantes physiques
 
     ! Parametres systemes
