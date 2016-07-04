@@ -243,6 +243,7 @@ int Mesh3D::read_materials_v2(const std::string& str)
         printf("     MATERIAL %d\n", k);
         printf("     type = %c\n", type);
         printf("     strcmp(&type,R) = %d\n", strcmp(&type,"R"));
+        printf("     type=='R' = %d\n", type=='R');
         //printf("     (&type ==R)   = %d\n", (&type =="R"));
         //printf("     (type ==R)   = %d\n", (type =="R"));
         
