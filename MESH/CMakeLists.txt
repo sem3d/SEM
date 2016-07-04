@@ -37,6 +37,7 @@ add_library(mesh3d
   ${PRJ}/CSRC/meshpart.cpp
   ${PRJ}/CSRC/mesh.cpp
   ${PRJ}/CSRC/mesh_grid.cpp
+  ${PRJ}/CSRC/mesh_common.cpp
   ${PRJ}/CSRC/reader_abaqus.cpp
   ${PRJ}/CSRC/reader_ideas.cpp
   )

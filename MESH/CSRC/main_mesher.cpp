@@ -3,6 +3,7 @@
 /* Copyright CEA, ECP, IPGP                                                */
 /*                                                                         */
 
+//mat.dat
 #include <cstdio>
 #include <cstdlib>
 #include "material.h"
@@ -12,6 +13,7 @@
 #include "mesh_grid.h"
 #include "reader_abaqus.h"
 #include "reader_ideas.h"
+#include "mesh_common.h"
 
 void handle_on_the_fly(Mesh3D& mesh)
 {
@@ -88,23 +90,13 @@ int main(int argc, char**argv)
         printf("\n    DEBUG MODE    \n\n");
     }
     printf("\n   --> How many procs for the run ?\n");
-    getline(&buffer, &linesize, stdin);
 
-    for(int k=0;k<100;++k) {
-		if(buffer[0] != '#'){
-			//printf(" NOT A COMMENT!!!!\n");
-			break;
-		}
-		else{
-			//printf(" IT WAS A COMMENT!!!!\n");
-			getline(&buffer, &linesize, stdin);
-		}
-	}
+    mesh_common::getData_line(&buffer, linesize, stdin);
 
     sscanf(buffer,"%d", &NPROCS);
 
     printf("             %d processor(s)\n", NPROCS);
-    getline(&buffer, &linesize, stdin);
+
 
     printf(" \n\n");
     printf("  --> Which Initial Mesh?\n");
@@ -114,16 +106,7 @@ int main(int argc, char**argv)
     printf("      4- HDF5 Hex8 files\n");
     printf("      5- Earth Chunk\n");
 
-    for(int k=0;k<100;++k) {
-		if(buffer[0] != '#'){
-			//printf(" NOT A COMMENT!!!!\n"); mater.in
-			break;
-		}
-		else{
-			//printf(" IT WAS A COMMENT!!!!\n");
-			getline(&buffer, &linesize, stdin);
-		}
-	}
+    mesh_common::getData_line(&buffer, linesize, stdin);
 
     sscanf(buffer,"%d", &choice);
     printf("            Your choice is %d \n", choice);

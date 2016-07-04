@@ -8,6 +8,7 @@
 #define _MATERIAL_H_
 #include <cassert>
 #include <vector>
+#include "mesh_common.h"
 
 typedef enum {
     DM_NEUMN = 5,  // Add by Mt
