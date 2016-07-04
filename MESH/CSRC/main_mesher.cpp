@@ -59,6 +59,17 @@ void handle_abaqus_file(Mesh3D& mesh)
 
 void handle_hdf5_file(Mesh3D& mesh)
 {
+    int numfiles;
+    char fname[2048];
+
+     printf("\nHow many files ?\n");
+     scanf("%d", &numfiles);
+     for(int k=0;k<numfiles;++k) {
+         printf("File %d name ?\n", k+1);
+         scanf("%2000s", fname);  
+	 MeshReaderIdeas  reader(fname);
+	 mesh.read_mesh_file(fname);
+	 }
 }
 
 void handle_earth_chunk(Mesh3D& mesh)
@@ -117,16 +128,19 @@ int main(int argc, char**argv)
     case 1:
     	mesh.read_materials("mater.in");
         handle_on_the_fly(mesh);
-        break;
+        mesh.write_materials("material.input");
+	break;
     case 2:
         mesh.read_materials("mater.in");
         handle_abaqus_file(mesh);
-        break;
+        mesh.write_materials("material.input");
+	break;
     case 3:
-    	mesh.read_materials("mater.in");
+    	mesh.read_materials("material.input");
         handle_ideas_file(mesh);
         break;
     case 4:
+        mesh.read_materials("material.input");
         handle_hdf5_file(mesh);
         break;
     case 5:
@@ -136,7 +150,7 @@ int main(int argc, char**argv)
         break;
     };
 
-    mesh.write_materials("material.input");
+    //mesh.write_materials("material.input");
 
     mesh.generate_output(NPROCS);
     return 0;
