@@ -242,17 +242,14 @@ int Mesh3D::read_materials_v2(const std::string& str)
         printf("Mat: %2ld : %c vp=%lf vs=%lf\n", m_materials.size(), type, vp, vs);
         printf("     MATERIAL %d\n", k);
         printf("     type = %c\n", type);
-        printf("     strcmp(&type,R) = %d\n", strcmp(&type,"R"));
         printf("     type=='R' = %d\n", type=='R');
-        //printf("     (&type ==R)   = %d\n", (&type =="R"));
-        //printf("     (type ==R)   = %d\n", (type =="R"));
         
         std::vector<double> seting;
         seting.push_back(vp);seting.push_back(vs);seting.push_back(rho);
         seting.push_back(Qp);seting.push_back(Qmu);
         m_matseting[m_materials.size()]=seting;
         
-        if(strcmp(&type,"R")){
+        if(type=='R'){
 
         	printf(" %d is a RANDOM MATERIAL\n", k);
 
