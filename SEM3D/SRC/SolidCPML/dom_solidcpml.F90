@@ -310,6 +310,7 @@ contains
         ! Delta 2d derivative term from L : (12a) or (14a) from Ref1
         a0b = kappa(0)*kappa(1)*kappa(2)
         dom%MassMat(ind) = dom%MassMat(ind) + density*a0b*dom%Jacob_(i,j,k,bnum,ee)*Whei
+        if (abs(dom%MassMat(ind)) < solidcpml_eps) stop "ERROR : MassMat is null" ! Check
 
         ! Delta 1st derivative term from L : (12a) or (14a) from Ref1
         solidcpml_gamma_ab(g0,beta,0,alpha,0)
@@ -324,11 +325,6 @@ contains
         solidcpml_gamma_abc(g002,beta,0,alpha,0,alpha,2)
         a2b = a0b*(g0*g101+g1*g212+g2*g002)
         dom%MasUMat(ind) = dom%MasUMat(ind) + density*a2b*dom%Jacob_(i,j,k,bnum,ee)*Whei
-
-        ! Check
-        if (abs(dom%MassMat(ind)) < solidcpml_eps) stop "ERROR : MassMat is null"
-        if (abs(dom%DumpMat(ind)) < solidcpml_eps) stop "ERROR : DumpMat is null"
-        if (abs(dom%MasUMat(ind)) < solidcpml_eps) stop "ERROR : MasUMat is null"
     end subroutine init_local_mass_solidpml
 
     subroutine pred_sol_pml(dom, dt, champs1, bnum)
