@@ -1,11 +1,15 @@
-#define solidcpml_eps 1.e-6
+#include "index.h"
+
+#define solidcpml_eps 1.e-12
 
 #define solidcpml_x(i,xi,a,b,c,bnum,ee) \
-        xi = abs(dom%GlobCoord(i,dom%Idom_(a,b,c,bnum,ee)) - dom%bpp(i));
+        xi = abs(dom%GlobCoord(i,dom%Idom_(a,b,c,bnum,ee)) - dom%sSubDomain(bnum*VCHUNK+ee)%pml_pos(i));
 
 #define solidcpml_xoverl(xyz,xi) \
         xoverl = 0.; \
-        if (abs(dom%L(xyz)) > solidcpml_eps) xoverl = xi/abs(dom%L(xyz));
+        if (abs(dom%sSubDomain(bnum*VCHUNK+ee)%pml_width(xyz)) > solidcpml_eps) then; \
+            xoverl = xi/abs(dom%sSubDomain(bnum*VCHUNK+ee)%pml_width(xyz)); \
+        endif;
 
 ! kappa*: (77) from Ref1
 #define solidcpml_kappa(xyz,xi) \
@@ -19,9 +23,14 @@
         alpha(xyz) = dom%alphamax*(1. - xoverl); \
         solidcpml_kappa(xyz,xi); \
         d0 = 0.; \
-        if (abs(dom%L(xyz)) > solidcpml_eps) d0 = -1.*(dom%n(xyz)+1)*dom%Pspeed*log(dom%r_c)/(2*dom%L(xyz)); \
+        if (abs(dom%sSubDomain(bnum*VCHUNK+ee)%pml_width(xyz)) > solidcpml_eps) then; \
+            d0 = -1.*(dom%n(xyz)+1)*dom%sSubDomain(bnum*VCHUNK+ee)%Pspeed*log(dom%r_c); \
+            d0 = d0/(2*dom%sSubDomain(bnum*VCHUNK+ee)%pml_width(xyz)); \
+        end if; \
         dxi = 0.; \
-        if (abs(dom%L(xyz)) > solidcpml_eps) dxi = dom%c(xyz)*d0*(xi/dom%L(xyz))**dom%n(xyz); \
+        if (abs(dom%sSubDomain(bnum*VCHUNK+ee)%pml_width(xyz)) > solidcpml_eps) then; \
+            dxi = dom%c(xyz)*d0*(xi/dom%sSubDomain(bnum*VCHUNK+ee)%pml_width(xyz))**dom%n(xyz); \
+        end if; \
         beta(xyz) = alpha(xyz) + dxi / kappa(xyz);
 
 ! gamma_ab defined after (12c) in Ref1

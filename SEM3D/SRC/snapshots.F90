@@ -1345,7 +1345,7 @@ contains
                                 dens(idx) = Tdomain%sdom%Density_        (i,j,k,bnum,ee)
                             case (DM_SOLID_PML)
 #ifdef CPML
-                                dens(idx) = Tdomain%spmldom%Density
+                                dens(idx) = Tdomain%spmldom%sSubDomain(Tdomain%specel(n)%mat_index)%DDensity
 #else
                                 dens(idx) = Tdomain%spmldom%Density_     (i,j,k,bnum,ee)
 #endif
@@ -1374,8 +1374,10 @@ contains
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
                                 lamb(idx) = Tdomain%sdom%Lambda_        (i,j,k,bnum,ee)
-#ifndef CPML
                             case (DM_SOLID_PML)
+#ifdef CPML
+                                lamb(idx) = Tdomain%spmldom%sSubDomain(Tdomain%specel(n)%mat_index)%DLambda
+#else
                                 lamb(idx) = Tdomain%spmldom%Lambda_     (i,j,k,bnum,ee)
 #endif
                             case (DM_FLUID)
@@ -1403,8 +1405,10 @@ contains
                         select case (Tdomain%specel(n)%domain)
                             case (DM_SOLID)
                                 mu(idx) = Tdomain%sdom%Mu_(i,j,k,bnum,ee)
-#ifndef CPML
                             case (DM_SOLID_PML)
+#ifdef CPML
+                                mu(idx) = Tdomain%spmldom%sSubDomain(Tdomain%specel(n)%mat_index)%DMu
+#else
                                 mu(idx) = Tdomain%spmldom%Mu_(i,j,k,bnum,ee)
 #endif
                             case (DM_FLUID)

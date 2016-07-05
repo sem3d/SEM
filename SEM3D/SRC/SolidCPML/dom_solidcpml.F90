@@ -99,10 +99,7 @@ contains
         dom%n = 2
         dom%r_c = 0.001
         dom%kappa_0 = 1; dom%kappa_1 = 0;
-        dom%L = -1.
-        dom%bpp = -1.
         dom%alphamax = 0.
-        dom%Pspeed = 0.
     end subroutine allocate_dom_solidpml
 
     subroutine deallocate_dom_solidpml (dom)
@@ -261,23 +258,15 @@ contains
         enddo
     end subroutine get_solidpml_dom_var
 
-    subroutine init_geometric_properties_solidpml(Tdomain, dom, mat)
+    subroutine init_domain_solidpml(Tdomain, dom)
         type (domain), intent (INOUT), target :: Tdomain
         type(domain_solidpml), intent(inout) :: dom
-        type (subdomain), intent(in) :: mat
         !
-        ! Copy of node global coords : mandatory to compute distances in the PML (solidcpml_abk)
+        ! Handle on node global coords : mandatory to compute distances in the PML (solidcpml_abk)
         dom%GlobCoord => Tdomain%GlobCoord ! Pointer to coord (avoid allocate + copy, just point to it)
-
-        ! Save PML length and position known from mesher information (for solidcpml_abk)
-        if (mat%material_type .ne. "P") stop "init_geometric_properties_solidpml : material is not a PML material"
-        Tdomain%spmldom%L(0) = mat%pml_width(0)
-        Tdomain%spmldom%L(1) = mat%pml_width(1)
-        Tdomain%spmldom%L(2) = mat%pml_width(2)
-        Tdomain%spmldom%bpp(0) = mat%pml_pos(0)
-        Tdomain%spmldom%bpp(1) = mat%pml_pos(1)
-        Tdomain%spmldom%bpp(2) = mat%pml_pos(2)
-    end subroutine init_geometric_properties_solidpml
+        ! Handle on materials
+        dom%sSubDomain => Tdomain%sSubDomain
+    end subroutine init_domain_solidpml
 
     subroutine init_material_properties_solidpml(dom, lnum, i, j, k, density, lambda, mu)
         type(domain_solidpml), intent(inout) :: dom
@@ -287,13 +276,7 @@ contains
         real(fpp), intent(in) :: lambda
         real(fpp), intent(in) :: mu
         !
-        integer :: bnum, ee
-        bnum = lnum/VCHUNK
-        ee = mod(lnum,VCHUNK)
-
-        dom%Density = density
-        dom%Lambda  = lambda
-        dom%Mu      = mu
+        ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
     end subroutine init_material_properties_solidpml
 
     ! TODO : renommer init_local_mass_solidpml... en init_global_mass_solidpml ? Vu qu'on y met a jour la masse globale !?
@@ -309,11 +292,15 @@ contains
         real(fpp) :: g0, g1, g2 ! solidcpml_gamma_ab
         real(fpp) :: g101, g212, g002 ! solidcpml_gamma_abc
         real(fpp) :: a0b, a1b, a2b
+        real(fpp) :: density
 
         bnum = specel%lnum/VCHUNK
         ee = mod(specel%lnum,VCHUNK)
 
         ind = dom%Idom_(i,j,k,bnum,ee)
+        if (dom%sSubDomain(specel%mat_index)%material_type .ne. "P") &
+            stop "init_geometric_properties_solidpml : material is not a PML material"
+        density = dom%sSubDomain(specel%mat_index)%Ddensity
 
         ! Compute alpha, beta, kappa
         solidcpml_abk(0,i,j,k,bnum,ee)
@@ -322,21 +309,21 @@ contains
 
         ! Delta 2d derivative term from L : (12a) or (14a) from Ref1
         a0b = kappa(0)*kappa(1)*kappa(2)
-        dom%MassMat(ind) = dom%MassMat(ind) + dom%Density*a0b*dom%Jacob_(i,j,k,bnum,ee)*Whei
+        dom%MassMat(ind) = dom%MassMat(ind) + density*a0b*dom%Jacob_(i,j,k,bnum,ee)*Whei
 
         ! Delta 1st derivative term from L : (12a) or (14a) from Ref1
         solidcpml_gamma_ab(g0,beta,0,alpha,0)
         solidcpml_gamma_ab(g1,beta,1,alpha,1)
         solidcpml_gamma_ab(g2,beta,2,alpha,2)
         a1b = a0b*(g0+g1+g2)
-        dom%DumpMat(ind) = dom%DumpMat(ind) + dom%Density*a1b*dom%Jacob_(i,j,k,bnum,ee)*Whei
+        dom%DumpMat(ind) = dom%DumpMat(ind) + density*a1b*dom%Jacob_(i,j,k,bnum,ee)*Whei
 
         ! Delta term from L : (12a) or (14a) from Ref1
         solidcpml_gamma_abc(g101,beta,1,alpha,0,alpha,1)
         solidcpml_gamma_abc(g212,beta,2,alpha,1,alpha,2)
         solidcpml_gamma_abc(g002,beta,0,alpha,0,alpha,2)
         a2b = a0b*(g0*g101+g1*g212+g2*g002)
-        dom%MasUMat(ind) = dom%MasUMat(ind) + dom%Density*a2b*dom%Jacob_(i,j,k,bnum,ee)*Whei
+        dom%MasUMat(ind) = dom%MasUMat(ind) + density*a2b*dom%Jacob_(i,j,k,bnum,ee)*Whei
 
         ! Check
         if (abs(dom%MassMat(ind)) < solidcpml_eps) stop "ERROR : MassMat is null"
@@ -406,8 +393,7 @@ contains
         type (element), intent(inout) :: specel
         type (subdomain), intent(in) :: mat
         !
-        ! Save Pspeed (for solidcpml_abk)
-        Tdomain%spmldom%Pspeed = mat%Pspeed
+        ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
     end subroutine init_solidpml_properties
 
     subroutine finalize_solidpml_properties(Tdomain, dom)

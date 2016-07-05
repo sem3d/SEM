@@ -7,6 +7,7 @@
 module champs_solidpml
 
     use constants
+    use ssubdomains
     implicit none
 
     ! Inconnues du problème : déplacement, vitesse
@@ -45,9 +46,10 @@ module champs_solidpml
         real(fpp), dimension(:), allocatable :: DumpMat ! Delta 1st derivative term in (12a) from Ref1
         real(fpp), dimension(:), allocatable :: MasUMat ! M^U <=> Delta term in (12a) from Ref1
 
-        ! PML is "like" an anisotropic material (deduced from an isotropic material with density, lambda, mu)
-        real(fpp) :: Density, Lambda, Mu
+        ! Element materials
+        type(subdomain), dimension (:), pointer :: sSubDomain ! Point to Tdomain%sSubDomain
 
+        ! Geometrical information
         real(fpp), dimension(:,:,:,:,:),     allocatable :: m_Jacob
         real(fpp), dimension(:,:,:,:,:,:,:), allocatable :: m_InvGrad
 
@@ -80,10 +82,7 @@ module champs_solidpml
         integer   :: n(0:2)
         real(fpp) :: r_c
         integer   :: kappa_0, kappa_1
-        real(fpp) :: L(0:2)
-        real(fpp) :: bpp(0:2) ! bpp : begin PML position
         real(fpp) :: alphamax
-        real(fpp) :: Pspeed
 
     end type domain_solidpml
 

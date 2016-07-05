@@ -221,13 +221,12 @@ contains
         enddo
     end subroutine get_solidpml_dom_var
 
-    subroutine init_geometric_properties_solidpml(Tdomain, dom, mat)
+    subroutine init_domain_solidpml(Tdomain, dom)
         type (domain), intent (INOUT), target :: Tdomain
         type(domain_solidpml), intent(inout) :: dom
-        type (subdomain), intent(in) :: mat
         !
         ! TODO : useless, kill this method, needed for build compatibility SolidPML / SolidCPML
-    end subroutine init_geometric_properties_solidpml
+    end subroutine init_domain_solidpml
 
     subroutine init_material_properties_solidpml(dom, lnum, i, j, k, density, lambda, mu)
         type(domain_solidpml), intent(inout) :: dom
