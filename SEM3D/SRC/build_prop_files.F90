@@ -50,6 +50,7 @@ contains
         double precision, dimension(:, :), allocatable :: interpolatedRF !Properties
         double precision, dimension(:), allocatable :: lambda
         integer :: assocMat, propId
+        double precision :: mu_avg
 
         !Putting properties on elements
         if(Tdomain%any_Random) then
@@ -98,7 +99,8 @@ contains
                     !interpolatedRF(:, 2) --Mu
 
                     if(Tdomain%sSubDomain(mat)%lambdaSwitch == 1) then
-                        lambda(:) = interpolatedRF(:, 1)
+                        mu_avg = Tdomain%sSubdomain(assocMat)%Ddensity*(Tdomain%sSubdomain(assocMat)%Sspeed**2d0)
+                        lambda(:) = interpolatedRF(:, 1) - 2d0*mu_avg
                         interpolatedRF(:, 1) = lambda(:) + (2.0d0*interpolatedRF(:, 2)/3.0D0)!Kappa
                     else
                         lambda(:) = interpolatedRF(:, 1) - (2.0D0*interpolatedRF(:, 2)/3.0D0)

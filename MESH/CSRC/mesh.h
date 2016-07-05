@@ -15,6 +15,7 @@
 #include "vertex_elem_map.h"
 #include "meshbase.h"
 #include "aabb.h"
+#include "mesh_common.h"
 
 class Mesh3D
 {
@@ -53,7 +54,7 @@ public:
     void write_materials_v2(const std::string& fname);
     void read_mesh_file(const std::string& fname);
     void findelem(int& imat, std::vector<int>& eltr, std::vector<int>& elems, std::vector<int>& elemneed, int & elmat);
-
+    //size_t getData_line(char **buffer, size_t linesize, FILE* f);
     void partition_mesh(int n_procs);
     void dump_connectivity(const char* fname);
 

@@ -6,6 +6,7 @@
 #ifndef MESH_H5_OUTPUT_H
 #define MESH_H5_OUTPUT_H
 
+#include "mesh_common.h"
 
 void output_all_meshes_xmf(int nprocs);
 

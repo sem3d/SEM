@@ -697,7 +697,8 @@ contains
 
                     if(lambdaSwitch(i) == 1) then
                         propNames=["Density", "Lambda ", "Mu     "]
-                        fieldAvg(2) = (Pspeed(i)**2d0 - 2d0*Sspeed(i)**2d0)*Dens(i) !Lambda
+                        !fieldAvg(2) = (Pspeed(i)**2d0 - 2d0*Sspeed(i)**2d0)*Dens(i) !Lambda
+                        fieldAvg(2) = 2d0*Dens(i)*Sspeed(i)**2d0 !Lambda = 2*Mu
                     end if
 
                     fieldVar(:) = (CV(:,i)*fieldAvg)**2d0

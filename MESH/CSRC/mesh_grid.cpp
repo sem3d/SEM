@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include "mesh_grid.h"
 #include "mesh.h"
+#include "mesh_common.h"
 
 using namespace std;
 
@@ -16,24 +17,32 @@ void RectMesh::read_params_old(FILE* fparam)
     size_t n=0;
     int pml_top, pml_bottom;
 
-    getline(&buffer, &n, fparam);
+    //getline(&buffer, &n, fparam);
+    mesh_common::getData_line(&buffer, n, fparam);
     sscanf(buffer, "%lf", &xmin);
-    getline(&buffer, &n, fparam);
+    //getline(&buffer, &n, fparam);
+    mesh_common::getData_line(&buffer, n, fparam);
     sscanf(buffer, "%lf", &xmax);
-    getline(&buffer, &n, fparam);
+    //getline(&buffer, &n, fparam);
+    mesh_common::getData_line(&buffer, n, fparam);
     sscanf(buffer, "%lf", &xstep);
 
-    getline(&buffer, &n, fparam);
+    //getline(&buffer, &n, fparam);
+    mesh_common::getData_line(&buffer, n, fparam);
     sscanf(buffer, "%lf", &ymin);
-    getline(&buffer, &n, fparam);
+    //getline(&buffer, &n, fparam);
+    mesh_common::getData_line(&buffer, n, fparam);
     sscanf(buffer, "%lf", &ymax);
-    getline(&buffer, &n, fparam);
+    //getline(&buffer, &n, fparam);
+    mesh_common::getData_line(&buffer, n, fparam);
     sscanf(buffer, "%lf", &ystep);
 
-    getline(&buffer, &n, fparam);
+    //getline(&buffer, &n, fparam);
+    mesh_common::getData_line(&buffer, n, fparam);
     sscanf(buffer, "%lf", &zmax);
 
-    getline(&buffer, &n, fparam);
+    //getline(&buffer, &n, fparam);
+    mesh_common::getData_line(&buffer, n, fparam);
     sscanf(buffer, "%d", &nlayers);
     // Sanity checks
     if (nlayers<0 || nlayers>200) {
@@ -44,11 +53,13 @@ void RectMesh::read_params_old(FILE* fparam)
     nsteps    = (int*)   malloc(nlayers*sizeof(int));
     zmin = zmax;
     for(int k=0;k<nlayers;++k) {
-        getline(&buffer, &n, fparam);
-        sscanf(buffer, "%lf %d", &thickness[k], &nsteps[k]);
+        //getline(&buffer, &n, fparam);
+    	mesh_common::getData_line(&buffer, n, fparam);
+    	sscanf(buffer, "%lf %d", &thickness[k], &nsteps[k]);
         zmin = zmin-thickness[k];
     }
-    getline(&buffer, &n, fparam);
+    //getline(&buffer, &n, fparam);
+    mesh_common::getData_line(&buffer, n, fparam);
     sscanf(buffer, "%d", &has_pml);
     if (has_pml!=0 && has_pml!=1) {
         printf("Check your parameter file : we read has_pml=%d instead of 0 or 1\n", has_pml);
@@ -65,7 +76,8 @@ void RectMesh::read_params_old(FILE* fparam)
         pmls.E = false;
         pmls.W = false;
     }
-    getline(&buffer, &n, fparam);
+    //getline(&buffer, &n, fparam);
+    mesh_common::getData_line(&buffer, n, fparam);
     sscanf(buffer, "%d %d", &pml_top, &pml_bottom);
     if (has_pml && pml_top) {
         pmls.U = true;
@@ -77,9 +89,11 @@ void RectMesh::read_params_old(FILE* fparam)
     } else {
         pmls.D = false;
     }
-    getline(&buffer, &n, fparam);
+    //getline(&buffer, &n, fparam);
+    mesh_common::getData_line(&buffer, n, fparam);
     sscanf(buffer, "%d", &ngll_pml);
-    getline(&buffer, &n, fparam);
+    //getline(&buffer, &n, fparam);
+    mesh_common::getData_line(&buffer, n, fparam);
     sscanf(buffer, "%d", &elem_shape);
     switch(elem_shape) {
     case 1:
