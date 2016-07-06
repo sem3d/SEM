@@ -77,7 +77,7 @@ contains
                 print*, "ERROR : inconsistent material index = ", mat
                 stop
             end if
-! Attribute elastic properties from material !!!
+            ! Attribute elastic properties from material !!!
             ! Sets Lambda, Mu, Qmu, ... from mat
             call init_material_properties(Tdomain, Tdomain%specel(n), Tdomain%sSubdomain(mat))
             ! Compute MassMat
