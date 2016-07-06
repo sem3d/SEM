@@ -20,6 +20,7 @@ module ssurf
         type(surf_num) :: surf_spml
         type(surf_num) :: surf_fpml
         character(len=100) :: name
+        integer            :: domain
         integer :: cond_type ! from constants.F90 COND_*
     end type SurfaceT
 

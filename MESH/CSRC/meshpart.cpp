@@ -328,15 +328,12 @@ int e0 = m_mesh.m_elems_offs[el];
 int dom = m_mesh.get_elem_domain(el);
 PEdge dg;
 bool dom0 = false;
+std::map <int, std::pair<std::pair< std::vector<int>, int>, int>  >::const_iterator it;
+it = m_mesh.surfelem.find(el);
 
-if (!m_mesh.m_surf_materials.empty()){
-    for (int i=0; i<m_mesh.m_surf_materials.size(); i++){
-        if (dom==m_mesh.m_surf_materials[i].domain()){dom0=true;}
-      }
- }
+if ((dom0==false)&&(it==m_mesh.surfelem.end())){ 
 
-m_elems.push_back(el);
-if (dom0==false){ 
+    m_elems.push_back(el);
     // Assign all 6 faces
     for(int fc=0;fc<6;++fc) {
         int n[4];
@@ -346,6 +343,7 @@ if (dom0==false){
         PFace facet(n, dom);
         int nf = add_facet(facet, is_border);
         m_elems_faces.push_back(nf);
+      //  if (it!=m_mesh.surfelem.end()) V_Faces.push_back(nf);
     }
     for(int ed=0;ed<12;++ed) {
         int v0 = RefEdge[ed][0];
@@ -354,6 +352,7 @@ if (dom0==false){
         PEdge edge(m_mesh.m_elems[e0 + v0], m_mesh.m_elems[e0 + v1], dom);
         int ne = add_edge(edge, is_border);
         m_elems_edges.push_back(ne);
+     //   if (it!=m_mesh.surfelem.end()) V_Edges.push_back(ne);
     }
     for(int vx=0;vx<8;++vx) {
         int gid = m_mesh.m_elems[e0 + vx];
@@ -361,69 +360,15 @@ if (dom0==false){
         int vid = add_vertex(vertex, is_border);
         add_node(gid);
         m_elems_vertices.push_back(vid);
+    //    if (it!=m_mesh.surfelem.end()) V_vertex.push_back(vid);
     }
     for(int vx=8;vx<m_mesh.nodes_per_elem();++vx) {
         int gid = m_mesh.m_elems[e0 + vx];
         add_node(gid);
     }
-}
-else {
-    std::map <int, std::pair<std::pair< std::vector<int>, int>, int>  >::const_iterator it;
-    it=m_mesh.surfelem.find(el);
-    int intmat = (it->second).first.second;
-    int doms= dom;
-    for(int fc=0;fc<6;++fc){
-        int n[4];
-        for(int p=0;p<4;++p) n[p] = m_mesh.m_elems[e0 + RefFace[fc].v[p]];
-        if (it!=m_mesh.surfelem.end()){
-            int np=0;
-            for (int p=0; p<4; p++){
-                 if (std::find((it->second).first.first.begin(),(it->second).first.first.end(), n[p])!=(it->second).first.first.end()){
-                      np++;}
-               }
-            if (np!=4){ dom = m_mesh.m_materials[intmat].domain();}
-          }
-          PFace facet(n, dom);
-          int nf = add_facet(facet, is_border);
-          m_elems_faces.push_back(nf);
-          dom=doms;
-       }
-     for(int ed=0;ed<12;++ed) {
-         int v0 = RefEdge[ed][0];
-         int v1 = RefEdge[ed][1];
-         int n[]={m_mesh.m_elems[e0 + v0], m_mesh.m_elems[e0 + v1]};
-         if (it!=m_mesh.surfelem.end()){
-             int np=0;
-             for (int p=0; p<2; p++){
-                  if (std::find((it->second.first).first.begin(),(it->second).first.first.end(), n[p])!=(it->second).first.first.end()){
-                      np++;}
-               }
-             if (np!=2){ dom = m_mesh.m_materials[intmat].domain();}
-           }
-          dg.refedge = ed;
-          PEdge edge(n[0], n[1], dom);
-          int ne = add_edge(edge, is_border);
-          m_elems_edges.push_back(ne);
-          dom=doms;
-       }
-    for(int vx=0; vx < 8; ++vx) {
-        int gid = m_mesh.m_elems[e0 + vx];
-        if (std::find((it->second).first.first.begin(),(it->second).first.first.end(), gid)==(it->second).first.first.end()){
-           dom = m_mesh.m_materials[intmat].domain();
-          }
-        PVertex vertex(gid, dom);
-        int vid = add_vertex(vertex, is_border);
-        add_node(gid);
-        m_elems_vertices.push_back(vid);
-        dom=doms;
-      } 
-    for(int vx=8;vx<m_mesh.nodes_per_elem();++vx) {
-        int gid = m_mesh.m_elems[e0 + vx];
-        add_node(gid);
-      }
   }
-
 }
+
 
 void Mesh3DPart::get_local_nodes(std::vector<double>& nodes) const
 {
@@ -438,11 +383,13 @@ void Mesh3DPart::get_local_nodes(std::vector<double>& nodes) const
     }
 }
 
+
 void Mesh3DPart::get_local_elements(std::vector<int>& elems) const
 {
     std::map<int,int>::const_iterator it;
     int nctl_nodes = m_mesh.nodes_per_elem();
     elems.resize(m_elems.size()*nctl_nodes);
+    size_t p=0;
 
     for(size_t k=0;k<m_elems.size();++k) {
         int el = m_elems[k];
@@ -450,7 +397,7 @@ void Mesh3DPart::get_local_elements(std::vector<int>& elems) const
         for(int n=0;n<nctl_nodes;++n) {
             int gid = m_mesh.m_elems[e0+n];
             int lid = get(m_nodes_to_id, gid, -1);
-            elems[nctl_nodes*k + n] = lid;
+               elems[nctl_nodes*k + n] = lid;
         }
     }
 }
@@ -459,15 +406,21 @@ void Mesh3DPart::get_local_materials(std::vector<int>& mats, std::vector<int>& d
 {
     mats.resize(m_elems.size());
     doms.resize(m_elems.size());
-
+    size_t p=0;
     for(size_t k=0;k<m_elems.size();++k) {
-        int el = m_elems[k];
-        mats[k] = m_mesh.m_mat[el] - const_cast<Mesh3D&>(m_mesh).n_surface(); // Modified by Mtaro
-        int dom = m_mesh.get_elem_domain(el);
-        doms[k] = dom;
-        assert(dom>0 && dom<=DM_MAX);
+      int el = m_elems[k];
+      mats[k] = get_mat_(el); // Modified by Mtaro
+      int dom = m_mesh.get_elem_domain(el);
+      doms[k] = dom;
+      assert(dom>0 && dom<=DM_MAX);
     }
 
+}
+
+int Mesh3DPart::get_mat_(int el) const
+{
+   int mat = m_mesh.m_mat[el] - const_cast<Mesh3D&>(m_mesh).n_surface();
+   return mat;
 }
 
 void Mesh3DPart::get_local_faces(std::vector<int>& faces, std::vector<int>& doms) const

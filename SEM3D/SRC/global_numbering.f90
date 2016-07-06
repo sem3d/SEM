@@ -57,9 +57,19 @@ subroutine global_numbering(Tdomain)
 !            Tdomain%sSurfaces(k)%surf_spml%nbtot, "/", &
 !            Tdomain%sSurfaces(k)%surf_fpml%nbtot
     end do
+    if (Tdomain%logicD%neumann_local_present) then
+        do k=lbound(Tdomain%Neumann%NeuSurface,1),ubound(Tdomain%Neumann%NeuSurface,1)
+           WRITE(*,*)
+           WRITE(*,1004) Tdomain%Neumann%NeuSurface(k)%name
+           WRITE(*,*)
+           call renumber_surface_MT(Tdomain, Tdomain%Neumann%NeuSurface(k), Tdomain%sSurfaces(k)%domain)
+        enddo
+    endif
     call prepare_comm_vector(Tdomain, Tdomain%Comm_data)
 
     call prepare_comm_surface(Tdomain, Tdomain%Comm_SolFlu)
+
+    include 'formats.in'
 end subroutine global_numbering
 
 subroutine renumber_global_gll_nodes(Tdomain)
@@ -1022,6 +1032,112 @@ subroutine prepare_comm_surface(Tdomain, comm_data)
     end do
 
 end subroutine prepare_comm_surface
+
+         
+subroutine renumber_surface_MT(Tdomain, surf, dom0)
+use sdomain
+use mindex
+use sneu
+implicit none
+type(domain), intent (inout)     :: Tdomain
+type(New_setting), intent(inout) :: surf
+integer, intent(in)              :: dom0
+!
+integer                          :: nf, nfs, ne, nes, nv, nvs
+integer                          :: ngll_if, i, j, ngll1, ngll2, doms, idx0
+
+! Count number of gll on the interface
+ngll_if = 0
+! The order in which we store the gll in map is important because it is reused
+! elsewhere (ie computation of the face normals)
+   WRITE(*,*)
+   WRITE(*,2013)
+   WRITE(*,2001)
+   WRITE(*,2013)
+   do nf=0,surf%Neu_n_faces-1
+      nfs = surf%Neu_face(nf)%Face
+      ngll1 = Tdomain%sFace(nfs)%ngll1
+      ngll2 = Tdomain%sFace(nfs)%ngll2
+      ngll_if = ngll_if + (ngll1-2)*(ngll2-2)
+      ! While we're at it, check coherency...
+      doms = Tdomain%sFace(nfs)%domain
+      if (doms/=dom0) then
+          write(*,*) 'Incoherent Solid-PML interface', doms, dom0
+          stop 1
+      end if
+      WRITE(*,2000) nfs, ngll1, ngll2, Tdomain%sFace(nfs)%inodes(0), Tdomain%sFace(nfs)%inodes(1), &
+                                       Tdomain%sFace(nfs)%inodes(2), Tdomain%sFace(nfs)%inodes(3)
+      WRITE(*,2013)
+   end do
+   WRITE(*,*)
+   WRITE(*,2012)
+   WRITE(*,2010)
+   WRITE(*,2012)
+   do ne=0,surf%Neu_n_edges-1
+      nes = surf%Neu_edge(ne)%Edge
+      ngll1 = Tdomain%sEdge(nes)%ngll
+      ngll_if = ngll_if + ngll1-2
+      ! While we're at it, check coherency...
+      doms = Tdomain%sEdge(nes)%domain
+      if (doms/=dom0) then
+         write(*,*) 'Incoherent Solid-PML interface', doms, dom0
+         stop 1
+      end if
+      !write(*,*) " EDGES " , "NGLL", , "NODE ID"
+      WRITE(*,2011)  nes, ngll1, Tdomain%sEdge(nes)%inodes(0), Tdomain%sEdge(nes)%inodes(1)
+      WRITE(*,2012)
+   end do
+   ! VERTICES
+   do nv=0,surf%Neu_n_vertices-1
+      nvs = surf%Neu_vertex(nv)%Vertex
+      doms = Tdomain%sVertex(nvs)%domain
+      ngll_if = ngll_if + 1
+      if (doms/=dom0) then
+         write(*,*) 'Incoherent Solid-PML interface', doms, dom0
+         stop 1
+      end if
+   end do
+   surf%nbtot = ngll_if
+   allocate(surf%map(0:ngll_if-1))
+   ! copy gll numbers on the interface
+   ngll_if = 0
+   ! FACES
+   do nf=0,surf%Neu_n_faces-1
+      nfs = surf%Neu_face(nf)%Face
+      ngll1 = Tdomain%sFace(nfs)%ngll1
+      ngll2 = Tdomain%sFace(nfs)%ngll2
+      do j=1,ngll2-2
+         do i=1,ngll1-2
+            surf%map(ngll_if) = Tdomain%sFace(nfs)%Idom(i,j)
+            ngll_if = ngll_if + 1
+         end do
+      end do
+   end do
+   ! EDGES
+   do ne=0,surf%Neu_n_edges-1
+      nes = surf%Neu_edge(ne)%Edge
+      ngll1 = Tdomain%sEdge(nes)%ngll
+      do i=1,ngll1-2
+         idx0 = Tdomain%sEdge(nes)%Idom(i)
+         surf%map(ngll_if) = idx0
+         ngll_if = ngll_if + 1
+      end do
+   end do
+   ! VERTICES
+   do nv=0,surf%Neu_n_vertices-1
+      nvs = surf%Neu_vertex(nv)%Vertex
+      surf%map(ngll_if) = Tdomain%sVertex(nvs)%Idom
+      ngll_if = ngll_if + 1
+   end do
+   ! Check
+   if (ngll_if/=surf%nbtot) then
+      write(*,*) "Incoherent interface face+edge+vert != face"
+      stop 1
+   end if
+   include 'formats.in'
+end subroutine renumber_surface_MT
+
+
 end module mrenumber
 !! Local Variables:
 !! mode: f90

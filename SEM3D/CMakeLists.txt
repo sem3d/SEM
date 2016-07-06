@@ -75,7 +75,18 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/earth_models/material_prem.F90
     ${PRJ}/SRC/earth_models/model_earthchunk.f90
     ${PRJ}/SRC/earth_models/model_prem.f90
-	
+
+    ${PRJ}/SRC/SourceMT/parameters.f90
+    ${PRJ}/SRC/SourceMT/mathfval.f90
+    ${PRJ}/SRC/SourceMT/fvalue.f90
+    ${PRJ}/SRC/SourceMT/func3D.f90
+    ${PRJ}/SRC/SourceMT/func2D.f90
+    ${PRJ}/SRC/SourceMT/func1D.f90
+    ${PRJ}/SRC/SourceMT/fparser.f90
+    ${PRJ}/SRC/SourceMT/ErrorWarning.f90
+    ${PRJ}/SRC/SourceMT/Dimension.f90
+    ${PRJ}/SRC/SourceMT/get_surfaces_settings.f90
+            	
 )
 
 if (OPT_CPML)

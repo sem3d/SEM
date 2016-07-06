@@ -70,10 +70,48 @@ module sem_c_config
        integer(C_INT) :: neu_present
        integer(C_INT) :: neu_type
        integer(C_INT) :: neu_mat
+       integer(C_INT) :: neu_whatbc
+
        real(C_DOUBLE), dimension(3) :: neu_L
        real(C_DOUBLE), dimension(3) :: neu_C
        real(C_DOUBLE) :: neu_f0
-
+       !! Add by Mtaro
+        integer(C_INT):: neu_dim
+        real(C_DOUBLE) :: neu_paravalue(1:100)
+        type(C_PTR)    :: neu_paramname
+        integer(C_INT)   :: neu_nparamvar
+        integer(C_INT)   :: neu_paramvar
+        type(C_PTR)  ::neu_source
+        type(C_PTR)::neu_funcx
+        type(C_PTR)::neu_funcy
+        type(C_PTR)::neu_funcz
+        type(C_PTR)::neu_funcxy
+        type(C_PTR)::neu_funcxz
+        type(C_PTR)::neu_funcyz
+        type(C_PTR)::neu_varia
+     
+       !! Plane wave
+       integer(C_INT)               :: plane_wave_present
+       integer(C_INT)               :: plane_wave_type
+       integer(C_INT)               :: plane_wave_mat
+       integer(C_INT)               :: plane_wave_whatbc
+       real(C_DOUBLE), dimension(3) :: plane_wave_L
+       real(C_DOUBLE), dimension(3) :: plane_wave_C
+       real(C_DOUBLE)               :: plane_wave_f0
+       integer(C_INT)               :: plane_wave_dim
+       real(C_DOUBLE)               :: plane_wave_paravalue(1:100)
+       type(C_PTR)                  :: plane_wave_paramname
+       integer(C_INT)               :: plane_wave_nparamvar
+       integer(C_INT)               :: plane_wave_paramvar
+       type(C_PTR)                  :: plane_wave_source
+       type(C_PTR)                  :: plane_wave_funcx
+       type(C_PTR)                  :: plane_wave_funcy
+       type(C_PTR)                  :: plane_wave_funcz
+       type(C_PTR)                  :: plane_wave_funcxy
+       type(C_PTR)                  :: plane_wave_funcxz
+       type(C_PTR)                  :: plane_wave_funcyz
+       type(C_PTR)                  :: plane_wave_varia
+       
        !!Material
        integer(C_INT) :: material_present
        integer(C_INT) :: material_type

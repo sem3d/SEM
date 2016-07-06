@@ -180,6 +180,7 @@ int Mesh3D::read_materials_v2(const std::string& str)
     int ngllx;
     int ineu=0;
     int ipml=0;
+    int ifai=0;
     double Qp, Qmu;
 
     int    lambdaSwitch;
@@ -258,20 +259,32 @@ int Mesh3D::read_materials_v2(const std::string& str)
         	//cL_x = %lf, cL_y = %lf, cL_z = %lf, seedStart = %d\n",
         	//		corrMod, corrL_x, corrL_y, corrL_z, seedStart);
           }
-        else if (strcmp(&type,"N") == 0){
+        else if (strcmp(&type,"N") == 0){ // generate Neumann groupe surfaces
            std::ostringstream convert;
            convert << ineu;
            m_surf_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
            m_surf_matname.push_back("Neumann"+convert.str());
            m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
            ineu++;}
-        else if (strcmp(&type,"M") == 0){
+        else if (strcmp(&type,"M") == 0){ // generate groupe of surfaces named PML
            std::ostringstream convert;
            convert << ipml;
            m_surf_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
            m_surf_matname.push_back("PML_PML"+convert.str());
            m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
            ipml++;}
+        else if (strcmp(&type,"D") == 0){ // generate groupe of surfaces named dirichlet
+           std::ostringstream convert;
+           m_surf_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
+           m_surf_matname.push_back("dirichlet");
+           m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));}
+        else if (strcmp(&type,"W") == 0){ // generate groupe of surfaces named PlanWave
+           std::ostringstream convert;
+           convert << ifai;
+           m_surf_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
+           m_surf_matname.push_back("PlaneWave"+convert.str());
+           m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
+           ifai++;}
         else{
            m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
            k++;
@@ -386,11 +399,18 @@ void Mesh3D::read_mesh_file(const std::string& fname)
     for (int i=0; i< m_mat.size(); i++){
        m_mat[i]=std::distance(domain.begin(), find(domain.begin(),domain.end(),m_mat[i]));}
 
-    if ((H5Lexists(file_id, "/Mesh_quad4/Quad4", H5P_DEFAULT))&&(!m_surf_materials.empty())) {
+    if ((H5Lexists(file_id, "/Mesh_quad4/Quad4", H5P_DEFAULT)>0)&&(!m_surf_materials.empty())) {
         read_mesh_Quad8(file_id);}
     else {
         if (domain.size() > m_materials.size()){
-            printf("ERR: Nb of physical volume in PythonHDF5.h5 is greater than that given in material.input \n");
+            printf("\n\n ERROR: Nb of physical volume in PythonHDF5.h5 is greater than that given in material.input \n");
+            exit(1);
+          }
+         else if (!m_surf_materials.empty()) {
+            printf("\n\n ERROR: There are no Quadxx elements in PythonHDF5.h5 \n");
+            printf("        Unable to generate surfaces named ");
+            for (int i=0; i< m_surf_matname.size(); i++) printf(" %s ;",m_surf_matname[i].c_str());
+            printf(" in material.input \n\n");
             exit(1);
           }
          else if (domain.size() < m_materials.size()){ int mmm=m_materials.size();
@@ -433,7 +453,7 @@ void Mesh3D::read_mesh_Quad8(hid_t file_id)
   ngrps+=domain.size();
 
   if (m_surf_materials.size()!=domain.size()){
-      printf("Error: the number of physical surface in PythonHDF5.h5 is different than that given in material.input \n");
+      printf("Error: the number of physical surfaces in PythonHDF5.h5 is different than that given in material.input \n");
       printf("size() :  %d  <==>  %d \n\n", domain.size(), m_surf_materials.size());
       exit(1);
     }

@@ -37,7 +37,7 @@ contains
         integer :: i, j, k
         integer, dimension(0:2) :: ngll
         integer :: nf, mat, dom
-        integer :: node, dir
+        integer :: node, dir, nfc
         integer, dimension(0:3) :: elface
 
         do i = 0,Tdomain%n_face-1
@@ -56,7 +56,7 @@ contains
                  case (DM_FLUID_PML)
                      ngll(0:2) = Tdomain%fpmldom%ngll
                  case default
-                     stop "unknown domain"
+                     stop " Fatal error: unknown domain"
             end select
 
             do j = 0,5
@@ -79,8 +79,19 @@ contains
                     write(*,*) "Error: inconsistency detected in apply_mat_to_faces"
                     stop 1
                 end if
+                Tdomain%sFace(nf)%elem = i 
             end do
         end do
+
+       if (Tdomain%logicD%neumann_local_present) then
+           do k=lbound(Tdomain%Neumann%NeuSurface,1),ubound(Tdomain%Neumann%NeuSurface,1)
+              do nfc = 0,Tdomain%Neumann%NeuSurface(k)%Neu_n_faces-1
+                 nf = Tdomain%Neumann%NeuSurface(k)%Neu_Face(nfc)%Face
+                 Tdomain%Neumann%NeuSurface(k)%Neu_Face(nfc)%ngll1=Tdomain%sFace(nf)%ngll1
+                 Tdomain%Neumann%NeuSurface(k)%Neu_Face(nfc)%ngll2=Tdomain%sFace(nf)%ngll2
+              enddo
+           enddo
+       endif
 
     end subroutine apply_mat_to_faces
 
@@ -89,7 +100,7 @@ contains
         !
         integer :: i, j, k
         integer, dimension(0:2) :: ngll
-        integer :: ne, mat, dom
+        integer :: ne, mat, dom, ed
         integer, dimension(0:1) :: eledge
 
         do i = 0,Tdomain%n_elem-1
@@ -105,7 +116,7 @@ contains
                  case (DM_FLUID_PML)
                      ngll(0:2) = Tdomain%fpmldom%ngll
                  case default
-                     stop "unknown domain"
+                     stop " Fatal error : unknown domain"
             end select
 
             do j = 0,11
@@ -120,6 +131,15 @@ contains
                 end if
             end do
         end do
+
+        if (Tdomain%logicD%neumann_local_present) then
+             do k=lbound(Tdomain%Neumann%NeuSurface,1),ubound(Tdomain%Neumann%NeuSurface,1)
+                 do ed = 0,Tdomain%Neumann%NeuSurface(k)%Neu_n_edges-1
+                    ne = Tdomain%Neumann%NeuSurface(k)%Neu_edge(ed)%Edge
+                    Tdomain%Neumann%NeuSurface(k)%Neu_edge(ed)%ngll=Tdomain%sEdge(ne)%ngll
+                 enddo
+             enddo
+         endif
     end subroutine apply_mat_to_edges
 
     subroutine apply_mat_to_vertices(Tdomain)

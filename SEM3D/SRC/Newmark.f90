@@ -103,63 +103,13 @@ subroutine Newmark(Tdomain,ntime)
 
     ! Neumann B.C.: associated forces
     if(Tdomain%logicD%neumann_local_present)then
-#if 1
+#if 0
     !TODO
     stop "TODO: conditions de Neumann non prises en compte (Newmark)"
 #else
-        mat = Tdomain%Neumann%Neu_Param%mat_index
-        do nf = 0,Tdomain%Neumann%Neu_n_faces-1
-            ngll1 = Tdomain%Neumann%Neu_Face(nf)%ngll1
-            ngll2 = Tdomain%Neumann%Neu_Face(nf)%ngll2
-            call compute_Neu_forces_on_face(Tdomain%Neumann%Neu_Face(nf),     &
-                Tdomain%Neumann%Neu_Param,Tdomain%sSubdomain(mat)%dt,Tdomain%TimeD%rtime)
-        enddo
-        do ne = 0,Tdomain%Neumann%Neu_n_edges-1
-            ngll = Tdomain%Neumann%Neu_Edge(ne)%ngll
-            ne_aus = Tdomain%Neumann%Neu_Edge(ne)%Edge
-            call compute_Neu_forces_on_edge(Tdomain%Neumann%Neu_Edge(ne),     &
-                Tdomain%Neumann%Neu_Param,Tdomain%sSubdomain(mat)%dt,Tdomain%TimeD%rtime)
-        enddo
-        do nv = 0,Tdomain%Neumann%Neu_n_vertices-1
-            nv_aus = Tdomain%Neumann%Neu_Vertex(nv)%Vertex
-            n = merge(0,1,nv == 4)
-            call compute_Neu_forces_on_vertex(Tdomain%Neumann%Neu_Vertex(nv),n,  &
-                Tdomain%Neumann%Neu_Param,Tdomain%sSubdomain(mat)%dt,Tdomain%TimeD%rtime)
-        enddo
-        ! addition of Neumann forces
-        do nf = 0, Tdomain%Neumann%Neu_n_faces-1
-            nf_aus = Tdomain%Neumann%Neu_Face(nf)%Face
-            if(.not.Tdomain%sface(nf_aus)%PML)then
-                Tdomain%sFace(nf_aus)%Forces(:,:,0:2) = Tdomain%sFace(nf_aus)%Forces(:,:,0:2) - &
-                    Tdomain%Neumann%Neu_Face(nf)%Forces(:,:,0:2)
-            else
-                Tdomain%sFace(nf_aus)%spml%Forces3(:,:,0:2) = Tdomain%sFace(nf_aus)%spml%Forces3(:,:,0:2) - &
-                    Tdomain%Neumann%Neu_Face(nf)%Forces(:,:,0:2)
-            endif
-        enddo
-        do ne = 0, Tdomain%Neumann%Neu_n_edges-1
-            ne_aus = Tdomain%Neumann%Neu_Edge(ne)%Edge
-            if(.not.Tdomain%sedge(ne_aus)%PML)then
-                Tdomain%sEdge(ne_aus)%Forces(:,0:2) = Tdomain%sEdge(ne_aus)%Forces(:,0:2) - &
-                    Tdomain%Neumann%Neu_Edge(ne)%Forces(:,0:2)
-            else
-                Tdomain%sEdge(ne_aus)%spml%Forces3(:,0:2) = Tdomain%sEdge(ne_aus)%spml%Forces3(:,0:2) - &
-                    Tdomain%Neumann%Neu_Edge(ne)%Forces(:,0:2)
-            endif
-        enddo
-        do nv = 0, Tdomain%Neumann%Neu_n_vertices-1
-            nv_aus = Tdomain%Neumann%Neu_Vertex(nv)%Vertex
-            if(.not.Tdomain%svertex(nv_aus)%PML)then
-                Tdomain%sVertex(nv_aus)%Forces(0:2) = Tdomain%sVertex(nv_aus)%Forces(0:2) -  &
-                    Tdomain%Neumann%Neu_Vertex(nv)%Forces(0:2)
-            else
-                Tdomain%sVertex(nv_aus)%spml%Forces3(0:2) = Tdomain%sVertex(nv_aus)%spml%Forces3(0:2) - &
-                    Tdomain%Neumann%Neu_Vertex(nv)%Forces(0:2)
-            endif
-        enddo
+      call add_Newman_forces(Tdomain)
 #endif
     endif
-
 
     !- solid -> fluid coupling (normal dot velocity)
     if(Tdomain%logicD%SF_local_present)then
@@ -501,6 +451,161 @@ subroutine external_forces(Tdomain,timer,ntime)
 
     return
 end subroutine external_forces
+
+
+subroutine add_Newman_forces(Tdomain)
+use sdomain
+use mpi
+use constants
+implicit none
+type(domain), intent(inout)  :: Tdomain
+integer                      :: mat, ne, nv, nf, i_neu, nv_aus
+integer                      :: ngll1, ngll2, ngll, ne_aus, n, nf_aus
+
+
+
+do i_neu=lbound(Tdomain%Neumann%NeuSurface,1),ubound(Tdomain%Neumann%NeuSurface,1)
+   mat = Tdomain%Neumann%Neu_Param%mat_index
+   do nf = 0,Tdomain%Neumann%NeuSurface(i_neu)%Neu_n_faces-1
+       ngll1 = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%ngll1
+       ngll2 = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%ngll2
+       call compute_Neu_forces_on_face(Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf),     &
+           Tdomain%Neumann%Neu_Param,Tdomain%TimeD%dtmin,Tdomain%TimeD%rtime)
+   enddo
+   do ne = 0,Tdomain%Neumann%NeuSurface(i_neu)%Neu_n_edges-1
+       ngll = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(ne)%ngll
+       ne_aus = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(ne)%Edge
+       call compute_Neu_forces_on_edge(Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(ne),     &
+           Tdomain%Neumann%Neu_Param,Tdomain%TimeD%dtmin,Tdomain%TimeD%rtime)
+   enddo
+   do nv = 0,Tdomain%Neumann%NeuSurface(i_neu)%Neu_n_vertices-1
+       nv_aus = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Vertex(nv)%Vertex
+       n = merge(0,1,nv == 4)
+       call compute_Neu_forces_on_vertex(Tdomain%Neumann%NeuSurface(i_neu)%Neu_Vertex(nv),n,  &
+           Tdomain%Neumann%Neu_Param,Tdomain%TimeD%dtmin,Tdomain%TimeD%rtime)
+   enddo
+   ! addition of Neumann forces
+   do nf = 0, Tdomain%Neumann%NeuSurface(i_neu)%Neu_n_faces-1
+       nf_aus = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Face
+       if(Tdomain%sface(nf_aus)%domain.eq.DM_SOLID)then
+           Tdomain%sFace(nf_aus)%Forces(:,:,0:2) = Tdomain%sFace(nf_aus)%Forces(:,:,0:2) - &
+               Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Forces(:,:,0:2)
+       else
+           Tdomain%sFace(nf_aus)%Forces3(:,:,0:2) = Tdomain%sFace(nf_aus)%Forces3(:,:,0:2) - &
+               Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Forces(:,:,0:2)
+       endif
+   enddo
+   do ne = 0, Tdomain%Neumann%NeuSurface(i_neu)%Neu_n_edges-1
+       ne_aus = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(ne)%Edge
+       if(Tdomain%sedge(ne_aus)%domain.eq.DM_SOLID)then
+           Tdomain%sEdge(ne_aus)%Forces(:,0:2) = Tdomain%sEdge(ne_aus)%Forces(:,0:2) - &
+               Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(ne)%Forces(:,0:2)
+       else
+           Tdomain%sEdge(ne_aus)%Forces3(:,0:2) = Tdomain%sEdge(ne_aus)%Forces3(:,0:2) - &
+               Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(ne)%Forces(:,0:2)
+       endif
+   enddo
+   do nv = 0, Tdomain%Neumann%NeuSurface(i_neu)%Neu_n_vertices-1
+       nv_aus = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Vertex(nv)%Vertex
+       if(Tdomain%svertex(nv_aus)%domain.eq.DM_SOLID) then
+           Tdomain%sVertex(nv_aus)%Forces(0:2) = Tdomain%sVertex(nv_aus)%Forces(0:2) -  &
+               Tdomain%Neumann%NeuSurface(i_neu)%Neu_Vertex(nv)%Forces(0:2)
+       else
+           Tdomain%sVertex(nv_aus)%Forces3(0:2) = Tdomain%sVertex(nv_aus)%Forces3(0:2) - &
+               Tdomain%Neumann%NeuSurface(i_neu)%Neu_Vertex(nv)%Forces(0:2)
+       endif
+   enddo
+enddo
+!!
+!!
+call add_Neuforces_to_external_force(Tdomain)
+
+end subroutine add_Newman_forces
+
+
+subroutine add_Neuforces_to_external_force(Tdomain)
+
+use sdomain
+use constants
+!
+implicit none
+type(domain), intent(inout)  :: Tdomain
+integer                      :: i_dir, i, j, k, idx, lnum, bnum, ee, ngll1, ngll2
+integer                      :: nv_aus, ne_aus, nf_aus, i_neu, nf, ne, nv, iel
+integer, dimension(0:5)      :: fc
+real(kind=fpp)               :: val
+
+
+do iel = 0, Tdomain%n_elem-1
+   fc   = Tdomain%specel(iel)%Near_Faces
+   lnum = Tdomain%specel(iel)%lnum
+   bnum = lnum/VCHUNK
+   ee = mod(lnum,VCHUNK)
+   do i_neu=lbound(Tdomain%Neumann%NeuSurface,1),ubound(Tdomain%Neumann%NeuSurface,1)
+      do nf = 0,Tdomain%Neumann%NeuSurface(i_neu)%Neu_n_faces-1
+         nf_aus = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Face
+         if ((nf_aus.eq.fc(0)).or.(nf_aus.eq.fc(1)).or.(nf_aus.eq.fc(2)).or.&
+             (nf_aus.eq.fc(3)).or.(nf_aus.eq.fc(4)).or.(nf_aus.eq.fc(5))) then
+             ngll1=Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%ngll1
+             ngll2=Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%ngll2
+             do i_dir = 0,2
+                do j = 1,ngll2-2
+                   do i = 1,ngll1-2
+                      idx = Tdomain%sdom%Idom_(i,j,0,bnum,ee)
+                      if (Tdomain%sface(nf_aus)%domain.eq.DM_SOLID) then
+                        val = Tdomain%sdom%champs1%Forces(idx, i_dir) + Tdomain%sFace(nf_aus)%Forces(i,j,i_dir)
+                        Tdomain%sdom%champs1%Forces(idx, i_dir) = val
+                      elseif(Tdomain%sface(nf_aus)%domain.eq.DM_FLUID) then
+                        !val = Tdomain%fdom%champs1%Forces(idx, i_dir) + Tdomain%sFace(nf_aus)%Forces3(i,j,i_dir)
+                        !Tdomain%fdom%champs1%Forces(idx, i_dir) = val
+                      endif
+                    enddo
+                enddo
+                !!
+                !!
+                do ne=0,3
+                   ne_aus = Tdomain%Neumann%NeuSurface(i_neu)%Neu_face(nf_aus)%Near_Edges(ne)
+                   block_ed : &
+                   do nv = 0,Tdomain%Neumann%NeuSurface(i_neu)%Neu_n_edges-1
+                      if (ne_aus.eq.Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(nv)%Edge) then
+                         do j = 1,Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(nv)%ngll-2
+                            idx = Tdomain%sdom%Idom_(0,j,0,bnum,ee)
+                            if(Tdomain%sedge(ne_aus)%domain.eq.DM_SOLID) then
+                               val = Tdomain%sdom%champs1%Forces(idx, i_dir) + Tdomain%sEdge(ne_aus)%Forces(j,i_dir)
+                               Tdomain%sdom%champs1%Forces(idx, i_dir) = val
+                            elseif(Tdomain%sedge(ne_aus)%domain.eq.DM_FLUID) then
+                              !val = Tdomain%fdom%champs1%Forces(idx, i_dir) + Tdomain%sEdge(ne_aus)%Forces3(j,i_dir)
+                              !Tdomain%fdom%champs1%Forces(idx, i_dir) = val
+                            endif
+                         enddo
+                         exit block_ed
+                      endif
+                   enddo block_ed
+                   !!      
+                   nv_aus=Tdomain%Neumann%NeuSurface(i_neu)%Neu_face(nf_aus)%Near_Vertices(ne)
+                   block_ve : &
+                   do nv = 0,Tdomain%Neumann%NeuSurface(i_neu)%Neu_n_vertices-1
+                      if (nv_aus.eq.Tdomain%Neumann%NeuSurface(i_neu)%Neu_vertex(nv)%Vertex) then
+                          idx = Tdomain%sdom%Idom_(0,0,0,bnum,ee)
+                          if(Tdomain%svertex(nv_aus)%domain.eq.DM_SOLID)then
+                             val = Tdomain%sdom%champs1%Forces(idx, i_dir) + Tdomain%sVertex(nv_aus)%Forces(i_dir)
+                             Tdomain%sdom%champs1%Forces(idx, i_dir) = val
+                          elseif(Tdomain%svertex(nv_aus)%domain.eq.DM_FLUID)then
+                             !val = Tdomain%fdom%champs1%Forces(idx, i_dir) + Tdomain%sVertex(nv_aus)%Forces(i_dir)
+                             !Tdomain%fdom%champs1%Forces(idx, i_dir) = val 
+                          endif
+                          Exit block_ve
+                      endif
+                   enddo block_ve
+                enddo       
+             enddo
+         endif
+      enddo
+   enddo
+enddo
+
+end subroutine add_Neuforces_to_external_force
+
 
 !! Local Variables:
 !! mode: f90

@@ -1,0 +1,32 @@
+! PRECISER DES FORMATS D’AFFICHAGE
+
+! Integers
+
+
+! Reals
+
+
+
+! CHARACTER
+1000 format('        |',A22, A6)
+1001 format(A30)
+1002 format('         ',A40)
+1003 format('         ',A40)
+1004 format(A50)
+
+! CHARACTER+INTEGER+REAL
+
+2000 format(' |    ',  I5,     ' |',I5,'    ',I5,'  |',I5,' ',I5,' ',I5, ' ', I5, '   |')
+2001 format(' |  FACES ', '  |      NGLL     ', ' |          NODES ID        |')
+2002 format('        _____________________________')
+2003 format("------------------------------------------------------------")
+2004 format( A20,I4,A4,A)
+2005 format('        |',A12, I6)
+2006 format('        |',A12, I6)
+2007 format('        |',A12, I6)
+2008 format('        -----------------------------')
+2009 format('        |',A12, ES13.6)
+2010 format(' |  EDGES', ' |  NGLL ', ' |       NODES ID    |')
+2011 format(' | ', I5,  '  | ',  I5,  '  |  ',I5,'   ',I5, '    |')
+2012 format(' |-------------------------------------|')
+2013 format(' |------------------------------------------------------|')

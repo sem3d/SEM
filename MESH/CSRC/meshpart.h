@@ -100,7 +100,8 @@ public:
     int add_edge(const PEdge& edge, bool border);
     int add_vertex(const PVertex& vertex, bool border);
     int add_node(int v0);
-
+    
+    int get_mat_(int el) const; 
     int n_nodes() const    { return m_nodes_to_id.size(); }
     int n_elems() const    { return m_elems.size(); }
     int n_faces() const    { return m_face_to_id.size(); }
