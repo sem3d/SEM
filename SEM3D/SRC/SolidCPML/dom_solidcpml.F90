@@ -17,6 +17,7 @@ module dom_solidpml
     use constants
     use sdomain
     use champs_solidpml
+    use ssubdomains
     implicit none
 #include "index.h"
 
@@ -298,7 +299,7 @@ contains
         ee = mod(specel%lnum,VCHUNK)
 
         ind = dom%Idom_(i,j,k,bnum,ee)
-        if (dom%sSubDomain(specel%mat_index)%material_type .ne. "P") &
+        if (.not. dom%sSubDomain(specel%mat_index)%material_type == "P") &
             stop "init_geometric_properties_solidpml : material is not a PML material"
         density = dom%sSubDomain(specel%mat_index)%Ddensity
 
