@@ -37,6 +37,28 @@ contains
         type (domain), intent (INOUT), target :: Tdomain
         integer :: n, mat, rg, bnum, ee
 
+        ! Copy Idom from element to domain_XXX
+        ! Note : this must be done first as CPLM domain needs dom%Idom_ to build M, K, ...
+        ! Note : the non-CPML domains (Solid, Fluid, ...) use specel%Idom instead of dom%Idom_ to build M, K...
+        ! TODO : for non-CPML domains, use dom%Idom_ instead of specel%Idom (better memory/cache locality)
+        do n = 0,Tdomain%n_elem-1
+            bnum = Tdomain%specel(n)%lnum/VCHUNK
+            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+
+            if      (Tdomain%specel(n)%domain==DM_SOLID    ) then
+                Tdomain%sdom%Idom_(:,:,:,bnum,ee)    = Tdomain%specel(n)%Idom
+            else if (Tdomain%specel(n)%domain==DM_SOLID_PML) then
+                Tdomain%spmldom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
+            else if (Tdomain%specel(n)%domain==DM_FLUID    ) then
+                Tdomain%fdom%Idom_(:,:,:,bnum,ee)    = Tdomain%specel(n)%Idom
+            else if (Tdomain%specel(n)%domain==DM_FLUID_PML) then
+                Tdomain%fpmldom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
+            else
+                stop "unknown domain"
+            end if
+            !deallocate(Tdomain%specel(n)%Idom) ! TODO : to uncomment when non-CPML domains use dom%Idom_ instead of specel%Idom
+        end do
+
         rg = Tdomain%rank
 
         if( Tdomain%earthchunk_isInit/=0) then
@@ -93,25 +115,10 @@ contains
             end if
         end do
 
-        ! Copy Idom from element to domain_XXX
         do n = 0,Tdomain%n_elem-1
-            bnum = Tdomain%specel(n)%lnum/VCHUNK
-            ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
-
-            if      (Tdomain%specel(n)%domain==DM_SOLID    ) then
-                Tdomain%sdom%Idom_(:,:,:,bnum,ee)    = Tdomain%specel(n)%Idom
-            else if (Tdomain%specel(n)%domain==DM_SOLID_PML) then
-                Tdomain%spmldom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
-            else if (Tdomain%specel(n)%domain==DM_FLUID    ) then
-                Tdomain%fdom%Idom_(:,:,:,bnum,ee)    = Tdomain%specel(n)%Idom
-            else if (Tdomain%specel(n)%domain==DM_FLUID_PML) then
-                Tdomain%fpmldom%Idom_(:,:,:,bnum,ee) = Tdomain%specel(n)%Idom
-            else
-                stop "unknown domain"
-            end if
-            deallocate(Tdomain%specel(n)%Idom)
+            if(allocated(Tdomain%specel(n)%Idom)) &
+                deallocate(Tdomain%specel(n)%Idom) ! TODO : delete when non-CPML domains use dom%Idom_ instead of specel%Idom
         end do
-
     end subroutine define_arrays
 
 
