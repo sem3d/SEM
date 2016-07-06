@@ -266,10 +266,12 @@ contains
         dom%MassMat(ind)      = dom%MassMat(ind) + specel%MassMat(i,j,k)
     end subroutine init_local_mass_solidpml
 
-    subroutine forces_int_sol_pml(dom, champs1, bnum)
+    subroutine forces_int_sol_pml(dom, champs1, bnum, Tdomain)
+        use sdomain
         type(domain_solidpml), intent(inout) :: dom
         type(champssolidpml), intent(inout) :: champs1
         integer :: bnum
+        type (domain), intent (INOUT), target :: Tdomain ! Needed for compilation compatibility with SolidCPML
         !
         integer :: ngll
         integer :: i, j, k, l, ind, e, ee
