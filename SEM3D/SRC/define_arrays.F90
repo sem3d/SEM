@@ -70,8 +70,6 @@ contains
         !- applying properties files
         call apply_prop_files (Tdomain, rg)
 
-        !write (*,*) "--> after apply_prop_files "
-
         call init_domains(Tdomain)
         do n = 0,Tdomain%n_elem-1
             mat = Tdomain%specel(n)%mat_index
