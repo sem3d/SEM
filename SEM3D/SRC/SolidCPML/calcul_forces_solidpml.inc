@@ -48,7 +48,8 @@
 #define ngllvar ngll0
 #endif
 
-subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
+subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla,Tdomain)
+    use sdomain
     use champs_solidpml
     implicit none
 
@@ -60,6 +61,8 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
 #endif
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1), intent(out) :: Fox,Foz,Foy
     real(fpp), dimension(0:VCHUNK-1,0:ngll-1,0:ngll-1,0:ngll-1,0:2), intent(in) :: Depla
+    type (domain), intent (INOUT), target :: Tdomain
+    !
     integer :: i,j,k,l,e,ee
     real(fpp) :: xi, Li, xj, xk, Lijk, xoverl, kappa(0:2) ! calcul_forces_solidpml_Li, calcul_forces_solidpml_Lijk
     real(fpp) :: C1111, C1122, C1133, C2222, C2233, C3333
@@ -79,6 +82,7 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
     real(fpp) :: t41,t42,t43,t11,t51,t52,t53,t12,t61,t62,t63,t13
     real(fpp) :: F1,F2,F3
     real(fpp) :: Eyz, Exz, Exy
+    integer :: mi
 
     do k = 0,ngll-1
         do j = 0,ngll-1
@@ -155,21 +159,22 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla)
                 Exz = (DUXDZ+DUZDX)
                 Exy = (DUXDY+DUYDX)
 
-                solidcpml_Lijk(1,2,0,i,j,k,bnum,ee); C1111 = (dom%sSubDomain(bnum*VCHUNK+ee)%DLambda+2*dom%sSubDomain(bnum*VCHUNK+ee)%DMu)*Lijk
-                solidcpml_Li      (2,i,j,k,bnum,ee); C1122 =  dom%sSubDomain(bnum*VCHUNK+ee)%DLambda                                      *Li
-                solidcpml_Li      (1,i,j,k,bnum,ee); C1133 =  dom%sSubDomain(bnum*VCHUNK+ee)%DLambda                                      *Li
-                solidcpml_Lijk(0,2,1,i,j,k,bnum,ee); C2222 = (dom%sSubDomain(bnum*VCHUNK+ee)%DLambda+2*dom%sSubDomain(bnum*VCHUNK+ee)%DMu)*Lijk
-                solidcpml_Li      (0,i,j,k,bnum,ee); C2233 =  dom%sSubDomain(bnum*VCHUNK+ee)%DLambda                                      *Li
-                solidcpml_Lijk(0,1,2,i,j,k,bnum,ee); C3333 = (dom%sSubDomain(bnum*VCHUNK+ee)%DLambda+2*dom%sSubDomain(bnum*VCHUNK+ee)%DMu)*Lijk
-                solidcpml_Lijk(0,2,1,i,j,k,bnum,ee); C2323 =  dom%sSubDomain(bnum*VCHUNK+ee)%DMu                                          *Lijk
-                solidcpml_Li      (0,i,j,k,bnum,ee); C2332 =  dom%sSubDomain(bnum*VCHUNK+ee)%DMu                                          *Li
-                solidcpml_Lijk(0,1,2,i,j,k,bnum,ee); C3232 =  dom%sSubDomain(bnum*VCHUNK+ee)%DMu                                          *Lijk
-                solidcpml_Lijk(1,2,0,i,j,k,bnum,ee); C1313 =  dom%sSubDomain(bnum*VCHUNK+ee)%DMu                                          *Lijk
-                solidcpml_Li      (1,i,j,k,bnum,ee); C1331 =  dom%sSubDomain(bnum*VCHUNK+ee)%DMu                                          *Li
-                solidcpml_Lijk(0,1,2,i,j,k,bnum,ee); C3131 =  dom%sSubDomain(bnum*VCHUNK+ee)%DMu                                          *Lijk
-                solidcpml_Lijk(1,2,0,i,j,k,bnum,ee); C1212 =  dom%sSubDomain(bnum*VCHUNK+ee)%DMu                                          *Lijk
-                solidcpml_Li      (2,i,j,k,bnum,ee); C1221 =  dom%sSubDomain(bnum*VCHUNK+ee)%DMu                                          *Li
-                solidcpml_Lijk(0,2,1,i,j,k,bnum,ee); C2121 =  dom%sSubDomain(bnum*VCHUNK+ee)%DMu                                          *Lijk
+                mi = Tdomain%specel(bnum*VCHUNK+ee)%mat_index
+                solidcpml_Lijk(1,2,0,i,j,k,bnum,ee,mi); C1111 = (dom%sSubDomain(mi)%DLambda+2*dom%sSubDomain(mi)%DMu)*Lijk
+                solidcpml_Li      (2,i,j,k,bnum,ee,mi); C1122 =  dom%sSubDomain(mi)%DLambda                          *Li
+                solidcpml_Li      (1,i,j,k,bnum,ee,mi); C1133 =  dom%sSubDomain(mi)%DLambda                          *Li
+                solidcpml_Lijk(0,2,1,i,j,k,bnum,ee,mi); C2222 = (dom%sSubDomain(mi)%DLambda+2*dom%sSubDomain(mi)%DMu)*Lijk
+                solidcpml_Li      (0,i,j,k,bnum,ee,mi); C2233 =  dom%sSubDomain(mi)%DLambda                          *Li
+                solidcpml_Lijk(0,1,2,i,j,k,bnum,ee,mi); C3333 = (dom%sSubDomain(mi)%DLambda+2*dom%sSubDomain(mi)%DMu)*Lijk
+                solidcpml_Lijk(0,2,1,i,j,k,bnum,ee,mi); C2323 =  dom%sSubDomain(mi)%DMu                              *Lijk
+                solidcpml_Li      (0,i,j,k,bnum,ee,mi); C2332 =  dom%sSubDomain(mi)%DMu                              *Li
+                solidcpml_Lijk(0,1,2,i,j,k,bnum,ee,mi); C3232 =  dom%sSubDomain(mi)%DMu                              *Lijk
+                solidcpml_Lijk(1,2,0,i,j,k,bnum,ee,mi); C1313 =  dom%sSubDomain(mi)%DMu                              *Lijk
+                solidcpml_Li      (1,i,j,k,bnum,ee,mi); C1331 =  dom%sSubDomain(mi)%DMu                              *Li
+                solidcpml_Lijk(0,1,2,i,j,k,bnum,ee,mi); C3131 =  dom%sSubDomain(mi)%DMu                              *Lijk
+                solidcpml_Lijk(1,2,0,i,j,k,bnum,ee,mi); C1212 =  dom%sSubDomain(mi)%DMu                              *Lijk
+                solidcpml_Li      (2,i,j,k,bnum,ee,mi); C1221 =  dom%sSubDomain(mi)%DMu                              *Li
+                solidcpml_Lijk(0,2,1,i,j,k,bnum,ee,mi); C2121 =  dom%sSubDomain(mi)%DMu                              *Lijk
 
                 sxx = DUXDX*C1111 + DUYDY*C1122 + DUZDZ*C1133
                 syy = DUXDX*C1122 + DUYDY*C2222 + DUZDZ*C2233

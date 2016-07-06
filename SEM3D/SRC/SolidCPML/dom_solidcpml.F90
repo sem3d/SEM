@@ -294,6 +294,7 @@ contains
         real(fpp) :: g101, g212, g002 ! solidcpml_gamma_abc
         real(fpp) :: a0b, a1b, a2b
         real(fpp) :: density
+        integer :: mi
 
         bnum = specel%lnum/VCHUNK
         ee = mod(specel%lnum,VCHUNK)
@@ -304,9 +305,10 @@ contains
         density = dom%sSubDomain(specel%mat_index)%Ddensity
 
         ! Compute alpha, beta, kappa
-        solidcpml_abk(0,i,j,k,bnum,ee)
-        solidcpml_abk(1,i,j,k,bnum,ee)
-        solidcpml_abk(2,i,j,k,bnum,ee)
+        mi = specel%mat_index
+        solidcpml_abk(0,i,j,k,bnum,ee,mi)
+        solidcpml_abk(1,i,j,k,bnum,ee,mi)
+        solidcpml_abk(2,i,j,k,bnum,ee,mi)
 
         ! Delta 2d derivative term from L : (12a) or (14a) from Ref1
         a0b = kappa(0)*kappa(1)*kappa(2)
@@ -339,11 +341,13 @@ contains
         ! Useless, kept for compatibility with SolidPML (build), can be deleted later on. TODO : kill this method.
     end subroutine pred_sol_pml
 
-    subroutine forces_int_sol_pml(dom, champs1, bnum)
+    subroutine forces_int_sol_pml(dom, champs1, bnum, Tdomain)
+        use sdomain
         use m_calcul_forces_solidpml
         type(domain_solidpml), intent(inout) :: dom
         type(champssolidpml), intent(inout) :: champs1
         integer :: bnum
+        type (domain), intent (INOUT), target :: Tdomain
         !
         integer :: ngll,i,j,k,i_dir,e,ee,idx
         real(fpp), dimension(0:VCHUNK-1,0:dom%ngll-1,0:dom%ngll-1,0:dom%ngll-1) :: Fox,Foy,Foz
@@ -367,7 +371,7 @@ contains
         Fox = 0d0
         Foy = 0d0
         Foz = 0d0
-        call calcul_forces_solidpml(dom,bnum,Fox,Foy,Foz,Depla)
+        call calcul_forces_solidpml(dom,bnum,Fox,Foy,Foz,Depla,Tdomain)
 
         do k = 0,ngll-1
             do j = 0,ngll-1
