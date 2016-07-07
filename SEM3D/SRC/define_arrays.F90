@@ -31,7 +31,9 @@ contains
         use constants
         use model_earthchunk
         use model_prem
+#ifdef RF
         use build_prop_files
+#endif
         implicit none
 
         type (domain), intent (INOUT), target :: Tdomain
@@ -65,10 +67,12 @@ contains
             call load_earthchunk(Tdomain%earthchunk_file, Tdomain%earthchunk_delta_lon, Tdomain%earthchunk_delta_lat)
         endif
 
+#ifdef RF
         !Applying properties that were written on files
         if (rg == 0) write (*,*) "--> APPLYING PROPERTIES FILES "
         !- applying properties files
         call apply_prop_files (Tdomain, rg)
+#endif
 
         call init_domains(Tdomain)
         do n = 0,Tdomain%n_elem-1

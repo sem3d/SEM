@@ -223,7 +223,9 @@ contains
         use sdomain
         use semdatafiles
         use mpi
+#ifdef RF
         use build_prop_files
+#endif
         implicit none
 
         type(domain), intent(inout) :: Tdomain
@@ -322,6 +324,7 @@ contains
             enddo
         endif
 
+#ifdef RF
         Tdomain%any_PropOnFile = .false.
         do i = 0,Tdomain%n_mat-1
             if(propOnFile(Tdomain, i)) then
@@ -329,6 +332,7 @@ contains
                 exit
             end if
         enddo
+#endif
 
         if(Tdomain%nRandom > 0) then
             read(13,*); read(13,*)
@@ -362,7 +366,9 @@ contains
         use sdomain
         use semdatafiles
         use mpi
+#ifdef RF
         use build_prop_files
+#endif
         implicit none
 
         type(domain), intent(inout) :: Tdomain
@@ -461,6 +467,7 @@ contains
             enddo
         endif
 
+#ifdef RF
         Tdomain%any_PropOnFile = .false.
         do i = 0,Tdomain%n_mat-1
             if(propOnFile(Tdomain, i)) then
@@ -468,6 +475,7 @@ contains
                 exit
             end if
         enddo
+#endif
 
         if(Tdomain%any_Random) then
             read(13,*); read(13,*)

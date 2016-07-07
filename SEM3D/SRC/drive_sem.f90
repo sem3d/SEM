@@ -28,9 +28,6 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 #ifdef COUPLAGE
     use scouplage
 #endif
-    use calls_RF !TEST
-    use fftw3 !TEST
-
     implicit none
 
     ! Hors couplage on doit avoir -1 MPI_COMM_WORLD, MPI_COMM_WORLD
@@ -50,8 +47,6 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
     integer, dimension(3) :: tab
     integer :: min_rank_glob_sem
 #endif
-    type(IPT_RF) :: IPT !TEST
-    double precision, dimension(10) :: times !TEST
 
     call stat_starttick()
     call MPI_Init (ierr)
@@ -181,7 +176,9 @@ subroutine RUN_PREPARED(Tdomain)
     use mdefinitions
     use mshape8
     use mshape27
+#ifdef RF
     use build_prop_files
+#endif
 #ifdef COUPLAGE
     use scouplage
 #endif
@@ -267,10 +264,10 @@ subroutine RUN_PREPARED(Tdomain)
     call check_interface_orient(Tdomain, Tdomain%SF%intSolFluPml, 1e-10)
     call MPI_Barrier(Tdomain%communicateur,code)
 
-
+#ifdef RF
     if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
     call create_prop_files (Tdomain, rg)
-
+#endif
 
     !- timestep value - > Courant, or Courant -> timestep
     if (rg == 0) write (*,*) "--> COMPUTING COURANT PARAMETER"
@@ -563,8 +560,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) &
             call OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
 
-        !stop("STOP TEST INSIDE TIME_STEPPING")
-              
 !---------------------------------------------------------!
     !- RECEIVERS'OUTPUTS
 !---------------------------------------------------------!

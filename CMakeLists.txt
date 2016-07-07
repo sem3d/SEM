@@ -36,27 +36,6 @@ include_directories(${HDF5_FORTRAN_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} ${HDF5_INC
 include_directories(${HDF5_INCLUDE_DIR} ${HDF5_INCLUDE_DIR_FORTRAN} ${HDF5_INCLUDE_DIR_CPP})
 include_directories(${PROJECT_BINARY_DIR}/libs/common)
 
-find_package(FFTW3 REQUIRED)
-include_directories(${FFTW3_INCLUDE_DIR})
-#set(FFTW3_LIBRARIES ${FFTW3_LIBRARY} ${FFTW3_MPI_LIB} ${FFTW3_THREADS_LIB})
-#include_directories(FFTW3_INCLUDE_DIR)
-#  FFTW3_FOUND
-#  FFTW3_INCLUDE_DIR
-#  FFTW3_LIBRARY
-#  FFTW3_CPP_LIBRARY
-#  FFTW3_FORTRAN_LIBRARY
-
-#Obs: define on terminal: export FFTW3_ROOT="/opt/san/bibliotheques/fftw/3.3.4-intelmpi5.0.2"
-#ccmake -DCMAKE_LIBRARY_PATH=/opt/san/intel15/lib/intel64/ ../sem-ecp/
-#Put -lhdf5 on CMAKE_Fortran_FLAGS and CMAKE_CXX_FLAGS options
-#find_path (FFTW_INCLUDES fftw3.h)
-#find_library (FFTW_LIBRARIES NAMES fftw3)
-# TODO : find paths automatically
-#Local MAC
-#set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/opt/local/lib -lfftw3 -lfftw3_threads -lfftw3_mpi")
-#IGLOO
-#set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/opt/san/bibliotheques/fftw/3.3.4-intelmpi5.0.2/lib -lfftw3_mpi -lfftw3_threads -lfftw3")
-
 if (OPT_MPI OR HDF5_IS_PARALLEL)
     set(MPI_COMPILER mpif90)
     find_package(MPI)
@@ -144,13 +123,6 @@ set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} netlib)
 # HDF5
 set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${HDF5_LIBRARIES})
 
-#FFTW
-#set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${FFTW3_LIBRARY} ${FFTW3_FORTRAN_LIBRARY} ${FFTW3_CPP_LIBRARY})
-set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${FFTW3_LIBRARIES})
-#  FFTW3_LIBRARY
-#  FFTW3_CPP_LIBRARY
-#  FFTW3_FORTRAN_LIBRARY
-
 # MPI
 if(OPT_MPI OR HDF5_IS_PARALLEL)
 # TODO: avec mpich MPI_LIBRARY contient libmpichcxx, qui a besoin des librairies de support
@@ -172,48 +144,59 @@ set(SEMLIBDIR ${PROJECT_BINARY_DIR}/libs)
 #SEM COMMON LIBRARY
 add_library(semcommon ${SEM_SRC} ${SEM_SRC_C})
 set_target_properties(semcommon PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/common)
+set(SEM_EXTRA_LIBS semcommon ${SEM_EXTRA_LIBS})
 
 #RANDOM FIELD LIBRARY
-add_library(randomfield
-  ${SEMDIR}/randomfield/SRC_LIB/randomFieldND.f90
-  ${SEMDIR}/randomfield/SRC_LIB/spectra_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/writeResultFile_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/mesh_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/type_MESH.f90
-  ${SEMDIR}/randomfield/SRC_LIB/type_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/topography_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/readUNV_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/localization_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/type_inputRF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/sample_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/calls_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/statistics_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/type_STAT.f90
-  ${SEMDIR}/randomfield/SRC_LIB/charFunctions.f90
-  ${SEMDIR}/randomfield/SRC_LIB/constants_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/common_variables_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/displayCarvalhol.f90
-  ${SEMDIR}/randomfield/SRC_LIB/hdf5_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/write_Log_File.f90
-  ${SEMDIR}/randomfield/SRC_LIB/readFile_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/math_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/systemUt_RF.f90
-  ${SEMDIR}/randomfield/SRC_LIB/fftw3.f90
-  ${SEMDIR}/randomfield/dcdflib/src/ipmpar.f
-  ${SEMDIR}/randomfield/dcdflib/src/spmpar.f
-  ${SEMDIR}/randomfield/dcdflib/src/cumnor.f
-  ${SEMDIR}/randomfield/dcdflib/src/devlpl.f
-  ${SEMDIR}/randomfield/dcdflib/src/stvaln.f
-  ${SEMDIR}/randomfield/dcdflib/src/dinvnr.f
-  ${SEMDIR}/randomfield/dcdflib/src/cdfnor.f
-  ${SEMDIR}/randomfield/RANDLIB/ranlib.f90
-  ${SEMDIR}/randomfield/RANDLIB/rnglib.f90
-)
+option(OPT_RF "RF" OFF)
+if (OPT_RF)
+  add_definitions(-DRF)
 
-set_target_properties(randomfield PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/common)
-target_link_libraries(randomfield ${FFTW3_LIBRARIES})
-add_dependencies(randomfield semcommon)
-set(SEM_EXTRA_LIBS randomfield semcommon ${SEM_EXTRA_LIBS})
+  # FFT
+  find_package(FFTW3 REQUIRED)
+  include_directories(${FFTW3_INCLUDE_DIR})
+  set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${FFTW3_LIBRARIES})
+
+  # Random Field
+  add_library(randomfield
+    ${SEMDIR}/randomfield/SRC_LIB/randomFieldND.f90
+    ${SEMDIR}/randomfield/SRC_LIB/spectra_RF.f90
+    ${SEMDIR}/randomfield/SRC_LIB/writeResultFile_RF.f90
+    ${SEMDIR}/randomfield/SRC_LIB/mesh_RF.f90
+    ${SEMDIR}/randomfield/SRC_LIB/type_MESH.f90
+    ${SEMDIR}/randomfield/SRC_LIB/readFile_RF.f90
+    ${SEMDIR}/randomfield/SRC_LIB/systemUt_RF.f90
+    ${SEMDIR}/randomfield/SRC_LIB/readUNV_RF.f90
+    ${SEMDIR}/randomfield/SRC_LIB/type_RF.f90
+    ${SEMDIR}/randomfield/SRC_LIB/topography_RF.f90
+    ${SEMDIR}/randomfield/SRC_LIB/localization_RF.f90
+    ${SEMDIR}/randomfield/SRC_LIB/type_inputRF.f90
+    ${SEMDIR}/randomfield/SRC_LIB/sample_RF.f90
+    ${SEMDIR}/randomfield/SRC_LIB/calls_RF.f90
+    ${SEMDIR}/randomfield/SRC_LIB/statistics_RF.f90
+    ${SEMDIR}/randomfield/SRC_LIB/type_STAT.f90
+    ${SEMDIR}/randomfield/SRC_LIB/charFunctions.f90
+    ${SEMDIR}/randomfield/SRC_LIB/constants_RF.f90
+    ${SEMDIR}/randomfield/SRC_LIB/common_variables_RF.f90
+    ${SEMDIR}/randomfield/SRC_LIB/displayCarvalhol.f90
+    ${SEMDIR}/randomfield/SRC_LIB/hdf5_RF.f90
+    ${SEMDIR}/randomfield/SRC_LIB/write_Log_File.f90
+    ${SEMDIR}/randomfield/SRC_LIB/math_RF.f90
+    ${SEMDIR}/randomfield/SRC_LIB/fftw3.f90
+    ${SEMDIR}/randomfield/dcdflib/src/ipmpar.f
+    ${SEMDIR}/randomfield/dcdflib/src/spmpar.f
+    ${SEMDIR}/randomfield/dcdflib/src/cumnor.f
+    ${SEMDIR}/randomfield/dcdflib/src/devlpl.f
+    ${SEMDIR}/randomfield/dcdflib/src/stvaln.f
+    ${SEMDIR}/randomfield/dcdflib/src/dinvnr.f
+    ${SEMDIR}/randomfield/dcdflib/src/cdfnor.f
+    ${SEMDIR}/randomfield/RANDLIB/ranlib.f90
+    ${SEMDIR}/randomfield/RANDLIB/rnglib.f90
+  )
+  set_target_properties(randomfield PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/common)
+  target_link_libraries(randomfield ${FFTW3_LIBRARIES})
+  add_dependencies(randomfield semcommon)
+  set(SEM_EXTRA_LIBS randomfield semcommon ${SEM_EXTRA_LIBS})
+endif (OPT_RF)
 
 add_subdirectory(COMMON/netlib)
 option(OPT_SEM2D "Compile SEM2D" OFF) # Save compilation time (in particular with intel : save half an hour !...)
