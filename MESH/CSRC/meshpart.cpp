@@ -409,7 +409,7 @@ void Mesh3DPart::get_local_materials(std::vector<int>& mats, std::vector<int>& d
     size_t p=0;
     for(size_t k=0;k<m_elems.size();++k) {
       int el = m_elems[k];
-      mats[k] = get_mat_(el); // Modified by Mtaro
+      mats[k] = m_mesh.m_mat[el]; 
       int dom = m_mesh.get_elem_domain(el);
       doms[k] = dom;
       assert(dom>0 && dom<=DM_MAX);
@@ -417,11 +417,6 @@ void Mesh3DPart::get_local_materials(std::vector<int>& mats, std::vector<int>& d
 
 }
 
-int Mesh3DPart::get_mat_(int el) const
-{
-   int mat = m_mesh.m_mat[el] - const_cast<Mesh3D&>(m_mesh).n_surface();
-   return mat;
-}
 
 void Mesh3DPart::get_local_faces(std::vector<int>& faces, std::vector<int>& doms) const
 {
@@ -602,8 +597,8 @@ void Mesh3DPart::output_mesh_attributes(hid_t fid)
     h5h_create_attr(fid, "solid_fluid", false);
     h5h_create_attr(fid, "solid_fluid_loc", false);
     h5h_create_attr(fid, "all_fluid", false);
-    h5h_create_attr(fid, "neumann_present", const_cast<Mesh3D&>(m_mesh).n_surfaces("NNeumann"));
-    h5h_create_attr(fid, "neumann_present_loc", const_cast<Mesh3D&>(m_mesh).n_surfaces("Neumann"));
+    h5h_create_attr(fid, "neumann_present", false);
+    h5h_create_attr(fid, "n_surfaces", const_cast<Mesh3D&>(m_mesh).n_surfaces("surface"));
     h5h_create_attr(fid, "curve", false);
 }
 
@@ -1046,8 +1041,6 @@ void Mesh3DPart::output_xmf_comms_faces()
     output_xmf_footer(f);
     fclose(f);
 }
-
-
 
 
 

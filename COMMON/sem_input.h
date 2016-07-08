@@ -135,9 +135,48 @@ typedef struct {
     int neu_present;
     int neu_type;
     int neu_mat;
-    double neu_L[3];
-    double neu_C[3];
-    double neu_f0;
+    int neu_Neubc;
+
+    double  neu_L[3];
+    double  neu_C[3];
+    double  neu_f0;
+    // Add by Mtaro
+    int neu_dim;
+    double neu_Paravalue[100];
+    char* neu_Paramname;
+    int neu_nparamvar;
+    int neu_paramvar;
+    char* neu_source;
+    char* neu_funcx;
+    char* neu_funcy;
+    char* neu_funcz;
+    char* neu_funcxy;
+    char* neu_funcxz;
+    char* neu_funcyz;
+    char* neu_varia;
+    int  neu_list[20];
+
+    // Plane wave
+    int       plane_wave_present;
+    int       plane_wave_type;
+    int       plane_wave_mat;
+    double    plane_wave_K[3];
+    double    plane_wave_C[3];
+    double    plane_wave_f0;
+    int       plane_wave_whatbc;
+    int       plane_wave_dim;
+    char      plane_wave_source;
+    char*     plane_wave_funcx;
+    char*     plane_wave_funcy;
+    char*     plane_wave_funcz;
+    char*     plane_wave_funcxy;
+    char*     plane_wave_funcxz;
+    char*     plane_wave_funcyz;
+    char*     plane_wave_varia;
+    double    plane_wave_Paravalue[100];
+    char*     plane_wave_Paramname;
+    int       plane_wave_nparamvar;
+    int       plane_wave_paramvar;
 
     //Material
     int material_present;
@@ -149,8 +188,6 @@ typedef struct {
 
     // Station definition
     station_def_t* stations;
-
-
 
 } sem_config_t;
 
