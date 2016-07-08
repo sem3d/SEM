@@ -1,3 +1,9 @@
+#--> How many procs for the run ?
 4
+#WHICH INITIAL MESH?\n");     
+#   1- On the fly\n");       
+#   2- Abaqus from Cubit\n");
+#   3- Ideas (.unv) files\n")
+#   4- HDF5 Hex8 files\n");  
+#   5- Earth Chunk\n");      
 1
-

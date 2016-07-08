@@ -826,8 +826,10 @@ contains
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
+        double precision :: total_P_energy, total_S_energy, total_P_energy_sum, total_S_energy_sum
 
         integer, dimension(0:8) :: out_variables
+        integer :: ierr
 
         out_variables(0:8) = Tdomain%out_variables(0:8)
 
@@ -841,6 +843,10 @@ contains
         valence(:) = 0
 
         ngll = 0
+        total_P_energy = 0d0
+        total_S_energy = 0d0
+        total_P_energy_sum = 0d0
+        total_S_energy_sum = 0d0
 
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
@@ -852,6 +858,10 @@ contains
                 case (DM_SOLID)
                   call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,                 &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+
+                  total_P_energy = total_P_energy + sum(P_energy)
+                  total_S_energy = total_S_energy + sum(S_energy)
+
                 case (DM_FLUID)
                   call get_fluid_dom_var(Tdomain, Tdomain%fdom, el%lnum, out_variables,        &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
@@ -915,6 +925,14 @@ contains
             call h5fclose_f(fid, hdferr)
             call write_xdmf(Tdomain, group, isort, nnodes_tot, out_variables)
         endif
+
+        call MPI_REDUCE(total_P_energy, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
+
+        if(Tdomain%rank == 0) write(*,*) "total_P_energy_sum = ", total_P_energy_sum
+
+        call MPI_REDUCE(total_S_energy, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
+
+        if(Tdomain%rank == 0) write(*,*) "total_S_energy_sum = ", total_S_energy_sum
 
         deallocate(valence)
         call deallocate_fields(out_variables, out_fields)
@@ -1010,7 +1028,7 @@ contains
             write(61,"(a)") '</DataItem>'
             write(61,"(a)") '</Geometry>'
             ! DISPL
-            if (out_variables(4) == 1) then
+            if (out_variables(OUT_DEPLA) == 1) then
                 write(61,"(a,I9,a)") '<Attribute Name="Displ" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/displ'
@@ -1018,7 +1036,7 @@ contains
                 write(61,"(a)") '</Attribute>'
             end if
             ! VELOC
-            if (out_variables(5) == 1) then
+            if (out_variables(OUT_VITESSE) == 1) then
                 write(61,"(a,I9,a)") '<Attribute Name="Veloc" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/veloc'
@@ -1026,7 +1044,7 @@ contains
                 write(61,"(a)") '</Attribute>'
             end if
             ! ACCEL
-            if (out_variables(6) == 1) then
+            if (out_variables(OUT_ACCEL) == 1) then
                 write(61,"(a,I9,a)") '<Attribute Name="Accel" Center="Node" AttributeType="Vector" Dimensions="',nn,' 3">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,' 3">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/accel'
@@ -1034,7 +1052,7 @@ contains
                 write(61,"(a)") '</Attribute>'
             end if
             ! PRESSURE
-            if (out_variables(3) == 1) then
+            if (out_variables(OUT_PRESSION) == 1) then
                 write(61,"(a,I9,a)") '<Attribute Name="Pressure" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/press'
@@ -1042,14 +1060,15 @@ contains
                 write(61,"(a)") '</Attribute>'
             end if
             ! VOLUMETRIC STRAIN
-            if (out_variables(2) == 1) then
+            if (out_variables(OUT_EPS_VOL) == 1) then
                 write(61,"(a,I9,a)") '<Attribute Name="eps_vol" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/eps_vol'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
-            if (out_variables(7) == 1) then
+            ! DEVIATORIC STRAIN
+            if (out_variables(OUT_EPS_DEV) == 1) then
                 ! EPS_DEV_XX
                 write(61,"(a,I9,a)") '<Attribute Name="eps_dev_xx" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
@@ -1087,8 +1106,8 @@ contains
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
-
-            if (out_variables(8) == 1) then
+            ! DEVIATORIC STRESS
+            if (out_variables(OUT_STRESS_DEV) == 1) then
                 ! SIG_DEV_XX
                 write(61,"(a,I9,a)") '<Attribute Name="sig_dev_xx" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
@@ -1126,18 +1145,16 @@ contains
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
-
-            if (out_variables(0) == 1) then
-                ! P_ENERGY
+            ! P_ENERGY
+            if (out_variables(OUT_ENERGYP) == 1) then
                 write(61,"(a,I9,a)") '<Attribute Name="P_energy" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/P_energy'
                 write(61,"(a)") '</DataItem>'
                 write(61,"(a)") '</Attribute>'
             end if
-
-            if (out_variables(1) == 1) then
-                ! S_ENERGY
+            ! S_ENERGY
+            if (out_variables(OUT_ENERGYS) == 1) then
                 write(61,"(a,I9,a)") '<Attribute Name="S_energy" Center="Node" AttributeType="Scalar" Dimensions="',nn,'">'
                 write(61,"(a,I9,a)") '<DataItem Format="HDF" Datatype="Float" Precision="8" Dimensions="',nn,'">'
                 write(61,"(a,I4.4,a,I4.4,a)") 'Rsem',i,'/sem_field.',group,'.h5:/S_energy'

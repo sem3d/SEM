@@ -23,6 +23,7 @@ module constants_RF
     integer, parameter :: msh_AUTO = 1, msh_UNV = 2
 
     integer, parameter :: SCREEN=6
+    integer, parameter :: buf_RF=1024 !Buffer for text
 
     integer :: TESTRANK = 0 !ONLY FOR TESTS
     character (len=30), parameter :: mesh_input = "mesh_input"

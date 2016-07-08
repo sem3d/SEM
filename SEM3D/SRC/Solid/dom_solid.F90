@@ -175,6 +175,7 @@ contains
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
+
         !
         logical                  :: flag_gradU
         integer                  :: ngll, i, j, k, ind
@@ -187,6 +188,7 @@ contains
         real, dimension(0:2,0:2) :: invgrad_ijk
         !
         integer :: bnum, ee
+
         bnum = lnum/VCHUNK
         ee = mod(lnum,VCHUNK)
 
@@ -322,6 +324,7 @@ contains
                 enddo
             enddo
         enddo
+
     end subroutine get_solid_dom_var
 
     subroutine init_material_properties_solid(dom, lnum, i, j, k, density, lambda, mu, kappa, mat)

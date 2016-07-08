@@ -3,6 +3,7 @@
 /* Copyright CEA, ECP, IPGP                                                */
 /*                                                                         */
 
+//mat.dat
 #include <cstdio>
 #include <cstdlib>
 #include "material.h"
@@ -12,6 +13,7 @@
 #include "mesh_grid.h"
 #include "reader_abaqus.h"
 #include "reader_ideas.h"
+#include "mesh_common.h"
 
 void handle_on_the_fly(Mesh3D& mesh)
 {
@@ -57,6 +59,17 @@ void handle_abaqus_file(Mesh3D& mesh)
 
 void handle_hdf5_file(Mesh3D& mesh)
 {
+    int numfiles;
+    char fname[2048];
+
+     printf("\nHow many files ?\n");
+     scanf("%d", &numfiles);
+     for(int k=0;k<numfiles;++k) {
+         printf("File %d name ?\n", k+1);
+         scanf("%2000s", fname);  
+	 MeshReaderIdeas  reader(fname);
+	 mesh.read_mesh_file(fname);
+	 }
 }
 
 void handle_earth_chunk(Mesh3D& mesh)
@@ -70,6 +83,11 @@ int main(int argc, char**argv)
     Mesh3D mesh;
     int NPROCS;
     int choice;
+    char *buffer=NULL;
+    //FILE* f = fopen("mesh.input", "r");
+    //char *buffer=NULL;
+    size_t linesize=0;
+
 
     mesh.debug = true;
     printf("-------------------------------------------------\n");
@@ -83,35 +101,46 @@ int main(int argc, char**argv)
         printf("\n    DEBUG MODE    \n\n");
     }
     printf("\n   --> How many procs for the run ?\n");
-    scanf("%d", &NPROCS);
-    printf("             Your choice is %d \n", NPROCS);
 
-    printf(" ****************************************\n");
-    printf(" ****************************************\n");
-    printf("  WHICH INITIAL MESH?\n");
+    mesh_common::getData_line(&buffer, linesize, stdin);
+
+    sscanf(buffer,"%d", &NPROCS);
+
+    printf("             %d processor(s)\n", NPROCS);
+
+
+    printf(" \n\n");
+    printf("  --> Which Initial Mesh?\n");
     printf("      1- On the fly\n");
     printf("      2- Abaqus from Cubit\n");
     printf("      3- Ideas (.unv) files\n");
     printf("      4- HDF5 Hex8 files\n");
     printf("      5- Earth Chunk\n");
-    scanf("%d", &choice);
+
+    mesh_common::getData_line(&buffer, linesize, stdin);
+
+    sscanf(buffer,"%d", &choice);
     printf("            Your choice is %d \n", choice);
+    printf(" \n\n");
 
 
     switch(choice) {
     case 1:
-        mesh.read_materials("mater.in");
+    	mesh.read_materials("mater.in");
         handle_on_the_fly(mesh);
-        break;
+        mesh.write_materials("material.input");
+	break;
     case 2:
         mesh.read_materials("mater.in");
         handle_abaqus_file(mesh);
-        break;
+        mesh.write_materials("material.input");
+	break;
     case 3:
-    	mesh.read_materials("mater.in");
+    	mesh.read_materials("material.input");
         handle_ideas_file(mesh);
         break;
     case 4:
+        mesh.read_materials("material.input");
         handle_hdf5_file(mesh);
         break;
     case 5:
@@ -121,7 +150,7 @@ int main(int argc, char**argv)
         break;
     };
 
-    mesh.write_materials("material.input");
+    //mesh.write_materials("material.input");
 
     mesh.generate_output(NPROCS);
     return 0;

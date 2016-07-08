@@ -36,7 +36,7 @@ contains
             dataRow, dataColumn, dataCount,dataTotal, tagPatMax;
         logical            :: posTaken, dataPassed, labelPassed;
         character          :: comment, tagID;
-        character (len=1024), dimension(40)               :: foundedTags
+        character (len=1024), dimension(500)               :: foundedTags
         integer,            dimension(:),   allocatable :: tagPattern, lastLine;
         character (len=1024), dimension(:),   allocatable :: contentVector;
 
@@ -131,6 +131,7 @@ contains
                 enddo
                 if(posTaken .eqv. .FALSE.) then
                     tagTotal = tagTotal +1
+                    if(tagTotal > size(foundedTags)) stop("Too many tags, max is 500")
                     foundedTags(tagTotal) = contentVector(i)
                     posTaken = .TRUE.
                 endif

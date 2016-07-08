@@ -2,16 +2,18 @@
 /*                                                                         */
 /* Copyright CEA, ECP, IPGP                                                */
 /*                                                                         */
-
+#include <sstream>
 #include <cstdio>
 #include "mesh.h"
 #include "metis.h"
 #include <map>
 #include <algorithm>
+#include <vector>
 #include <cstdlib>
 #include <cstring>
 #include "mesh_h5_output.h"
 #include "meshpart.h"
+#include "mesh_common.h"
 
 using std::map;
 using std::multimap;
@@ -86,6 +88,9 @@ void Mesh3D::partition_mesh(int n_parts)
         case DM_SOLID:
             vwgt[k] = 3;
             break;
+        case DM_NEUMN:
+          vwgt[k] = 3;
+          break;
         case DM_FLUID:
             vwgt[k] = 1;
             break;
@@ -130,11 +135,13 @@ void Mesh3D::dump_connectivity(const char* fname)
 
 void Mesh3D::write_materials(const std::string& str)
 {
+	printf("Writing Materials");
     write_materials_v2(str);
 }
 
 int Mesh3D::read_materials(const std::string& str)
 {
+	printf("Reading Materials\n");
     return read_materials_v2(str);
 }
 
@@ -149,11 +156,13 @@ int Mesh3D::read_materials_v1(const std::string& str)
     int ngllx, nglly, ngllz;
     double dt, Qp, Qmu;
 
-    getline(&buffer, &linesize, f);
+    //getline(&buffer, &linesize, f);
+    mesh_common::getData_line(&buffer, linesize, f);
     sscanf(buffer, "%d", &nmats);
     for(int k=0;k<nmats;++k) {
-        getline(&buffer, &linesize, f);
-        sscanf(buffer, "%c %lf %lf %lf %d %d %d %lf %lf %lf",
+        //getline(&buffer, &linesize, f);
+    	mesh_common::getData_line(&buffer, linesize, f);
+    	sscanf(buffer, "%c %lf %lf %lf %d %d %d %lf %lf %lf",
                &type, &vp, &vs, &rho, &ngllx, &nglly, &ngllz,
                &dt, &Qp, &Qmu);
         printf("Mat: %2ld : %c vp=%lf vs=%lf Qp=%lf Qmu=%lf\n", m_materials.size(), type, vp, vs, Qp, Qmu);
@@ -162,6 +171,25 @@ int Mesh3D::read_materials_v1(const std::string& str)
     free(buffer);
     return nmats;
 }
+
+//size_t Mesh3D::getData_line(char **buffer, size_t linesize, FILE* f)
+//{
+//	getline(buffer, &linesize, f);
+//
+//	for(int k=0;k<100;++k) {
+//		if(*buffer[0] != '#'){
+//			//printf(" NOT A COMMENT!!!!");
+//			break;
+//		}
+//		else{
+//			//printf(" IT WAS A COMMENT!!!!");
+//			getline(buffer, &linesize, f);
+//		}
+//	}
+//
+//	return linesize;
+//}
+
 int Mesh3D::read_materials_v2(const std::string& str)
 {
     FILE* f = fopen(str.c_str(), "r");
@@ -171,47 +199,100 @@ int Mesh3D::read_materials_v2(const std::string& str)
     size_t linesize=0;
     double vs, vp, rho;
     int ngllx;
+    int ineu=0;
     double Qp, Qmu;
-    int corrMod;
-	double corrL_x;
-	double corrL_y;
-	double corrL_z;
-	int rho_margiF;
-	double rho_var;
-	int lambda_margiF;
-	double lambda_var;
-	int mu_margiF;
-	double mu_var;
-	int seedStart;
 
-    getline(&buffer, &linesize, f);
+    int    lambdaSwitch;
+    
+    int    corrMod_0;
+    double corrL_x_0;
+    double corrL_y_0;
+    double corrL_z_0;
+    int     margiF_0;
+    double      CV_0;
+    int  seedStart_0;
+
+    int    corrMod_1;
+    double corrL_x_1;
+    double corrL_y_1;
+    double corrL_z_1;
+    int     margiF_1;
+    double      CV_1;
+    int  seedStart_1;
+
+    int    corrMod_2;
+    double corrL_x_2;
+    double corrL_y_2;
+    double corrL_z_2;
+    int     margiF_2;
+    double      CV_2;
+    int  seedStart_2;
+    
+    //getData_line(&buffer, linesize, f);
+
+    mesh_common::getData_line(&buffer, linesize, f);
+
+
     sscanf(buffer, "%d", &nmats);
     for(int k=0;k<nmats;++k) {
-        getline(&buffer, &linesize, f);
+    	mesh_common::getData_line(&buffer, linesize, f);
         sscanf(buffer, "%c %lf %lf %lf %d %lf %lf",
                &type, &vp, &vs, &rho, &ngllx, &Qp, &Qmu);
+
         printf("Mat: %2ld : %c vp=%lf vs=%lf\n", m_materials.size(), type, vp, vs);
-        if(strcmp(&type,"R")){
-        	getline(&buffer, &linesize, f);
-        	sscanf(buffer, "%d %lf %lf %lf %d %lf %d %lf %d %lf %d",
-        	               &corrMod,
-						   &corrL_x, &corrL_y, &corrL_z,
-						   &rho_margiF, &rho_var,
-						   &lambda_margiF, &lambda_var,
-						   &mu_margiF, &mu_var,
-						   &seedStart);
-        	printf("     corrMod = %d, cL_x = %lf, cL_y = %lf, cL_z = %lf, seedStart = %d\n",
-        			corrMod, corrL_x, corrL_y, corrL_z, seedStart);
+        printf("     MATERIAL %d\n", k);
+        printf("     type = %c\n", type);
+        printf("     type=='R' = %d\n", type=='R');
+        
+        std::vector<double> seting;
+        seting.push_back(vp);seting.push_back(vs);seting.push_back(rho);
+        seting.push_back(Qp);seting.push_back(Qmu);
+        m_matseting[m_materials.size()]=seting;
+        
+        if(type=='R'){
+
+        	printf(" %d is a RANDOM MATERIAL\n", k);
+
+        	mesh_common::getData_line(&buffer, linesize, f);
+			sscanf(buffer,"%d", &lambdaSwitch);
+
+			mesh_common::getData_line(&buffer, linesize, f);
+			sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
+				   &corrMod_0, &corrL_x_0, &corrL_y_0, &corrL_z_0,
+				   &margiF_0, &CV_0, &seedStart_0);
+
+			mesh_common::getData_line(&buffer, linesize, f);
+			sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
+				   &corrMod_1, &corrL_x_1, &corrL_y_1, &corrL_z_1,
+				   &margiF_1, &CV_1, &seedStart_1);
+
+			mesh_common::getData_line(&buffer, linesize, f);
+			sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
+				   &corrMod_2, &corrL_x_2, &corrL_y_2, &corrL_z_2,
+				   &margiF_2, &CV_2, &seedStart_2);
+
         	m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx,
-        			    corrMod,
-        				corrL_x, corrL_y, corrL_z,
-        				rho_margiF, rho_var,
-        				lambda_margiF, lambda_var,
-        				mu_margiF, mu_var,
-						seedStart));
-        }
+        			                  lambdaSwitch,
+                                      corrMod_0, corrL_x_0, corrL_y_0, corrL_z_0,
+                                      margiF_0, CV_0, seedStart_0,
+                                      corrMod_1, corrL_x_1, corrL_y_1, corrL_z_1,
+                                      margiF_1, CV_1, seedStart_1,
+                                      corrMod_2, corrL_x_2, corrL_y_2, corrL_z_2,
+                                      margiF_2, CV_2, seedStart_2));
+
+        	//printf("     lambdaSwitch = %d\n", lambdaSwitch);
+        	//cL_x = %lf, cL_y = %lf, cL_z = %lf, seedStart = %d\n",
+        	//		corrMod, corrL_x, corrL_y, corrL_z, seedStart);
+          }
+        else if (strcmp(&type,"N") == 0){
+           std::ostringstream convert;
+           convert << ineu;
+           m_surf_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
+           m_surf_matname.push_back("Neumann"+convert.str());
+           m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
+           ineu++;}
         else{
-        	m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
+           m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
         }
     }
     free(buffer);
@@ -273,37 +354,67 @@ void Mesh3D::write_materials_v2(const std::string& str)
                 mat.ypos, mat.ywidth,
                 mat.zpos, mat.zwidth, mat.associated_material);
     }
-    fprintf(f, "# Random properties\n");
-    fprintf(f, "# corrMod, corrL_x, corrL_y, corrL_z, rho_margiF, rho_CV, kappa_margiF, kappa_CV, mu_margiF, mu_CV, seedStart\n");
+    fprintf(f,"# Random properties\n");
+    fprintf(f,"# Parametrization Choice (0 for Kappa, 1 for Lambda)\n");
+    fprintf(f,"# Rho            : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart\n");
+    fprintf(f,"# Kappa or Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart\n");
+    fprintf(f,"# Mu             : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart\n");
+
     for(int k=0;k<nmats;++k) {
         const Material& mat = m_materials[k];
         if (strcmp(&mat.cinitial_type,"R") != 0) continue;
-        fprintf(f, "%d %lf %lf %lf %d %lf %d %lf %d %lf %d\n",
-                mat.corrMod,
-				mat.corrL_x, mat.corrL_y, mat.corrL_z,
-                mat.rho_margiF, mat.rho_var,
-				mat.lambda_margiF, mat.lambda_var,
-				mat.mu_margiF, mat.mu_var, mat.seedStart);
+
+        fprintf(f, "%d\n", mat.m_lambdaSwitch);
+
+        fprintf(f, "%d %lf %lf %lf %d %lf %d\n",
+                mat.m_corrMod_0, mat.m_corrL_x_0, mat.m_corrL_y_0, mat.m_corrL_z_0,
+				mat.m_margiF_0, mat.m_CV_0, mat.m_seedStart_0);
+
+        fprintf(f, "%d %lf %lf %lf %d %lf %d\n",
+                mat.m_corrMod_1, mat.m_corrL_x_1, mat.m_corrL_y_1, mat.m_corrL_z_1,
+        		mat.m_margiF_1, mat.m_CV_1, mat.m_seedStart_1);
+
+        fprintf(f, "%d %lf %lf %lf %d %lf %d\n",
+                mat.m_corrMod_2, mat.m_corrL_x_2, mat.m_corrL_y_2, mat.m_corrL_z_2,
+        		mat.m_margiF_2, mat.m_CV_2, mat.m_seedStart_2);
+
     }
 }
 
 void Mesh3D::read_mesh_file(const std::string& fname)
 {
     hid_t file_id = H5Fopen(fname.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-
     h5h_read_dset_Nx3(file_id, "/Nodes", m_xco, m_yco, m_zco);
-
     if (H5Lexists(file_id, "/Sem3D/Hexa8", H5P_DEFAULT)) {
-        read_mesh_hexa8(file_id);
-    } else if (H5Lexists(file_id, "/Sem3D/Hexa27", H5P_DEFAULT)) {
-        read_mesh_hexa27(file_id);
-    }
-    else {
-        printf("ERR: only Quad4 and Quad8 are supported\n");
+        read_mesh_hexa8(file_id); 
+      } 
+    else if (H5Lexists(file_id, "/Sem3D/Hexa27", H5P_DEFAULT)) {
+       read_mesh_hexa27(file_id);}
+    else{
+        printf("ERR: only Quad4 and Quad8 are supported \n");
         exit(1);
     }
-
     h5h_read_dset(file_id, "/Sem3D/Mat", m_mat);
+    // Add by Mtaro
+    std::vector<int> domain=m_mat;
+    std::sort( domain.begin(), domain.end() );
+    domain.erase( std::unique( domain.begin(), domain.end() ), domain.end() );
+    ngrps=domain.size();
+    for (int i=0; i< m_mat.size(); i++){
+       m_mat[i]=std::distance(domain.begin(), find(domain.begin(),domain.end(),m_mat[i]));}
+
+    if ((H5Lexists(file_id, "/Mesh_quad4/Quad4", H5P_DEFAULT))&&(!m_surf_materials.empty())) {
+        read_mesh_Quad8(file_id);}
+    else {
+        if (domain.size() > m_materials.size()){
+            printf("ERR: Nb of physical volume in PythonHDF5.h5 is greater than that given in material.input \n");
+            exit(1);
+          }
+         else if (domain.size() < m_materials.size()){ 
+              int mmm=m_materials.size();
+              for (int i= domain.size()-1; i < mmm; i++) m_materials.pop_back();
+           }
+     }
 }
 
 void Mesh3D::read_mesh_hexa8(hid_t file_id)
@@ -319,6 +430,90 @@ void Mesh3D::read_mesh_hexa8(hid_t file_id)
         m_elems_offs.push_back(8*(k+1));
     }
 }
+
+void Mesh3D::read_mesh_Quad8(hid_t file_id)
+{
+  int nel, nnodes;
+  std::vector<int> m_Quad, elemtrace, m_matQuad;
+  
+  set_control_nodes(8);
+  h5h_read_dset_2d(file_id, "/Mesh_quad4/Quad4", nel, nnodes,m_Quad);
+  if (nnodes!=4) {
+      printf("Error: dataset /Mesh_quad4/Quad4 is not of size NEL*4\n");
+      exit(1);
+    }
+
+  h5h_read_dset(file_id, "/Mesh_quad4/Mat", m_matQuad);
+  
+  std::vector<int> domain=m_matQuad;
+  std::sort( domain.begin(), domain.end() );
+  domain.erase( std::unique( domain.begin(), domain.end() ), domain.end() );
+  ngrps+=domain.size();
+
+  if (m_surf_materials.size()!=domain.size()){
+      printf("Error: the number of physical surface in PythonHDF5.h5 is different than that given in material.input \n");
+      printf("size() :  %d  <==>  %d \n\n", domain.size(), m_surf_materials.size());
+      exit(1);
+    }
+  else{
+      for (int i=0; i< m_matQuad.size(); i++){
+         m_matQuad.at(i)=std::distance(domain.begin(), find(domain.begin(),domain.end(),m_matQuad[i]));}
+      for (int i=0; i< m_mat.size(); i++) m_mat.at(i)+=domain.size(); 
+    }
+
+  elemtrace = m_elems;
+  int imat  = m_mat.size();
+  int mmm   = imat;
+   
+  for(int k=0; k< nel; ++k){
+     m_elems_offs.push_back(8*(k+1+mmm));
+     
+     std::vector<int> elemneed, elems;
+     for(int j=0; j< nnodes; j++) elems.push_back(m_Quad[k*4+j]);
+     
+     int elmat=imat+k;
+
+     m_mat.push_back(m_matQuad[k]);
+     int tg4nodes=m_mat[elmat];
+     findelem(elmat, elemtrace, elems, elemneed, elmat);
+     
+     m_mat.at(imat+k)=m_mat[elmat];
+      
+     for(int j=0; j< elemneed.size(); j++) m_elems.push_back(elemneed[j]);
+     surfelem[imat+k] = std::pair<std::pair< std::vector<int>, int >, int > ( std::pair< std::vector<int>, int > (elemneed,m_mat[elmat]), tg4nodes);
+   }
+  if (m_materials.size() > ngrps) {
+     mmm=m_materials.size();
+     for (int i = ngrps-1; i < mmm; i++) m_materials.pop_back();}
+}
+
+void Mesh3D::findelem(int& imat, std::vector<int>& eltr, std::vector<int>& elems, std::vector<int>& elemneed, int &elmat)
+{
+  bool found=false;
+  std::vector<double> seting_el=m_matseting.find(m_mat[imat])->second;
+  
+  for(int i=0; i< eltr.size()/8; i++){
+     std::vector<int> elems_i;
+     for(int j=0; j<8; j++) elems_i.push_back(eltr[i*8+j]);
+     if (elems_i.size()==8){
+        int p=0;
+        for (int k=0; k< elems.size(); k++){
+           if (std::find(elems_i.begin(),elems_i.end(),elems[k])!=elems_i.end())
+              {p++;}
+         }
+        std::vector<double> seting_i = m_matseting.find(m_mat[i])->second;
+        if ((p==4)&&(seting_i==seting_el)){
+            elemneed = elems_i; found=true;
+            elmat=i;}
+       }
+     if (found) break;
+    }
+  if (!found){
+     printf(" Error: Unable to find Hexa8 elem corresponding to Quad4 \n\n");
+     elemneed = elems;exit(1);
+   }
+}
+
 
 void Mesh3D::read_mesh_hexa27(hid_t file_id)
 {
@@ -433,7 +628,8 @@ void Mesh3D::save_bbox()
     fbbox = fopen("domains.txt", "w");
     map<int,AABB>::const_iterator bbox;
     for(bbox=m_bbox.begin();bbox!=m_bbox.end();++bbox) {
-        fprintf(fbbox, "%3d %8.3g %8.3g %8.3g %8.3g %8.3g %8.3g\n", bbox->first,
+        //fprintf(fbbox, "%3d %8.3g %8.3g %8.3g %8.3g %8.3g %8.3g\n", bbox->first,
+        fprintf(fbbox, "%3d %15.6f %15.6f %15.6f %15.6f %15.6f %15.6f\n", bbox->first,
                 bbox->second.min[0],
                 bbox->second.min[1],
                 bbox->second.min[2],

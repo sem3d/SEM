@@ -11,6 +11,7 @@
 #include <string>
 #include <cstdlib>
 #include <cassert>
+#include "mesh_common.h"
 
 /// Faces are stored as v1 v2 v3 v4, with v1 < v2 < v4
 /// The nodes are consecutive, the direction is determined by the ordering of
@@ -175,27 +176,33 @@ public:
     void add_vertex(const PVertex& vx, int data) {
         m_vertices[vx] = data;
     }
-    void get_faces_data(int dom, std::vector<int>& data, std::vector<int>& orient) const {
+    void get_faces_data(int dom, std::vector<int>& data, std::vector<int>& orient, std::vector<int>& matdom) const {
         data.clear();
         orient.clear();
+        matdom.clear();
         for(face_map_t::const_iterator it=m_faces.begin();it!=m_faces.end();++it) {
             if (it->first.domain()!=dom) continue;
             data.push_back(it->second);
             orient.push_back(it->first.orient);
+            matdom.push_back(it->first.domain());
         }
     }
-    void get_edges_data(int dom, std::vector<int>& data) const {
+    void get_edges_data(int dom, std::vector<int>& data, std::vector<int>& matdom) const {
         data.clear();
+        matdom.clear();
         for(edge_map_t::const_iterator it=m_edges.begin();it!=m_edges.end();++it) {
             if (it->first.domain()!=dom) continue;
             data.push_back(it->second);
+            matdom.push_back(it->first.domain());
         }
     }
-    void get_vertices_data(int dom, std::vector<int>& data) const {
+    void get_vertices_data(int dom, std::vector<int>& data, std::vector<int>& matdom) const {
         data.clear();
+        matdom.clear();
         for(vertex_map_t::const_iterator it=m_vertices.begin();it!=m_vertices.end();++it) {
             if (it->first.domain()!=dom) continue;
             data.push_back(it->second);
+            matdom.push_back(it->first.domain());
         }
     }
     std::string name() const { return m_name; }

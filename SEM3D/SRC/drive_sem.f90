@@ -28,6 +28,7 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 #ifdef COUPLAGE
     use scouplage
 #endif
+
     implicit none
 
     ! Hors couplage on doit avoir -1 MPI_COMM_WORLD, MPI_COMM_WORLD
@@ -187,7 +188,6 @@ subroutine RUN_PREPARED(Tdomain)
     type(domain), intent(inout) :: Tdomain
     integer :: rg
     integer :: code, i, ierr, group, subgroup
-    integer :: mat
 
     rg = Tdomain%rank
     if(rg == 0) print*
@@ -265,7 +265,6 @@ subroutine RUN_PREPARED(Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
 
 #ifdef RF
-    if (rg == 0) write (*,*) "--> CREATING PROPERTIES FILES"
     call create_prop_files (Tdomain, rg)
 #endif
 

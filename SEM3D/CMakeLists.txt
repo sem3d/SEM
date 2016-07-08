@@ -24,6 +24,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/partial_deriv.f90
     ${PRJ}/SRC/orientation.f90
     ${PRJ}/SRC/Capteur.f90
+    ${PRJ}/SRC/interpolation.f90 
     ${PRJ}/SRC/comm_utils.f90
     ${PRJ}/SRC/solid_fluid_coupling.f90
     ${PRJ}/SRC/SourcePosition.f90
@@ -109,6 +110,7 @@ set(SEM3D_SOURCES_CPL
 
 include_directories(${PRJ}/SRC)
 add_library(sem3dcommon ${SEM3D_SOURCES})
+add_dependencies(sem3dcommon semcommon)
 set_target_properties(sem3dcommon PROPERTIES
 				  COMPILE_FLAGS "-I${SEMLIBDIR}/sem3d -I${SEMLIBDIR}/common"
                                   Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/sem3d)

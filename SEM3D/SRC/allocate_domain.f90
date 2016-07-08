@@ -29,20 +29,20 @@ subroutine allocate_domain (Tdomain)
 
     type(domain), intent (INOUT) :: Tdomain
     integer :: n,ngll
-    integer :: mat, randSize, assocMat
+    !integer :: mat, randSize, assocMat
 
-    do mat = 0,Tdomain%n_mat-1
-        assocMat = Tdomain%sSubdomain(mat)%assocMat
-        if(is_rand(Tdomain%sSubdomain(assocMat))) then
-            if (Tdomain%subD_exist(mat)) then
-                call random_seed(size = randSize)
-
-                if(.not.(allocated(Tdomain%sSubdomain(mat)%chosenSeed))) then
-                    allocate(Tdomain%sSubdomain(mat)%chosenSeed(randSize))
-                end if
-            end if
-        end if
-    end do
+!    do mat = 0,Tdomain%n_mat-1
+!        assocMat = Tdomain%sSubdomain(mat)%assocMat
+!        if(is_rand(Tdomain%sSubdomain(assocMat))) then
+!            if (Tdomain%subD_exist(mat)) then
+!                call random_seed(size = randSize)
+!
+!                if(.not.(allocated(Tdomain%sSubdomain(mat)%chosenSeed))) then
+!                    allocate(Tdomain%sSubdomain(mat)%chosenSeed(randSize))
+!                end if
+!            end if
+!        end if
+!    end do
 
     if(.false.) then
         write(*,*) "Tdomain%any_sdom = ", Tdomain%any_sdom

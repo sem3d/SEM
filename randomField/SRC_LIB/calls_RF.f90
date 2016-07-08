@@ -159,6 +159,7 @@ contains
         integer, dimension(IPT%nDim) :: kNStep_out
         integer(kind=8) :: file_bytes_size
         double precision :: file_mb_size
+        character(len=buf_RF) :: absPath_HDF5, absPath_XMF
 
         if(IPT%rang == 0) write(*,*) "  "
         if(IPT%rang == 0) write(*,*) " Inside 'build_random_field'"
@@ -556,11 +557,24 @@ contains
             !write(*,*) "MONO_FileName(len(trim(MONO_FileName)):len(trim(MONO_FileName))) "
             !write(*,*) MONO_FileName(len(trim(MONO_FileName)):len(trim(MONO_FileName)))
             write(*,*) "PATH: ", trim(MONO_FileName)
-            write(*,*) "OUTPUT HDF5 ON: ", trim(string_join_many(MONO_FileName, "/", BBoxPath))
-            inquire(FILE=trim(string_join_many(MONO_FileName, "/", BBoxPath)), SIZE=file_bytes_size)
+
+            if(BBoxPath(1:1) == "/") then
+                absPath_HDF5 = BBoxPath
+            else
+                absPath_HDF5 = string_join_many(MONO_FileName, "/", BBoxPath)
+            end if
+
+            if(XMFPath(1:1) == "/") then
+                absPath_XMF = XMFPath
+            else
+                absPath_XMF = string_join_many(MONO_FileName, "/", XMFPath)
+            end if
+
+            write(*,*) "OUTPUT HDF5 ON: ", trim(absPath_HDF5)
+            inquire(FILE=trim(absPath_HDF5), SIZE=file_bytes_size)
             file_mb_size = dble(file_bytes_size)/dble(1024.0D0 ** 2.0D0)
             write(*,*) "    file_mb_size: ", file_mb_size
-            write(*,*) "OUTPUT XMF  ON: ", trim(string_join_many(MONO_FileName, "/", XMFPath))
+            write(*,*) "OUTPUT XMF  ON: ", trim(absPath_XMF)
         end if
 
 
