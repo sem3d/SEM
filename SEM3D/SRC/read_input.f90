@@ -223,7 +223,7 @@ contains
         use sdomain
         use semdatafiles
         use mpi
-#ifdef RF
+#ifdef USE_RF
         use build_prop_files
 #endif
         implicit none
@@ -325,7 +325,7 @@ contains
             enddo
         endif
 
-#ifdef RF
+#ifdef USE_RF
         Tdomain%any_PropOnFile = .false.
         do i = 0,Tdomain%n_mat-1
             if(propOnFile(Tdomain, i)) then
@@ -378,7 +378,7 @@ contains
         use sdomain
         use semdatafiles
         use mpi
-#ifdef RF
+#ifdef USE_RF
         use build_prop_files
 #endif
         implicit none
@@ -487,7 +487,7 @@ contains
             enddo
         endif
 
-#ifdef RF
+#ifdef USE_RF
         Tdomain%any_PropOnFile = .false.
         do i = 0,Tdomain%n_mat-1
             if(propOnFile(Tdomain, i)) then
@@ -723,11 +723,7 @@ contains
         Tdomain%TimeD%alpha               = Tdomain%config%alpha
         Tdomain%TimeD%beta                = Tdomain%config%beta
         Tdomain%TimeD%gamma               = Tdomain%config%gamma
-        if (C_ASSOCIATED(Tdomain%config%random_library_path)) then
-            Tdomain%random_library_path       = fromcstr(Tdomain%config%random_library_path)
-        else
-            Tdomain%random_library_path = ''
-        endif
+
         if (rg==0) then
             if (Tdomain%TimeD%alpha /= 0.5 .or. Tdomain%TimeD%beta /= 0.5 .or. Tdomain%TimeD%gamma /= 1.) then
                 write(*,*) "***WARNING*** : Les parametres alpha,beta,gamma sont ignores dans cette version"

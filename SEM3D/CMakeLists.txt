@@ -59,7 +59,6 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/ondelette.f90
     ${PRJ}/SRC/find_location.f90
     ${PRJ}/SRC/charFunctions.f90
-    ${PRJ}/SRC/RF_fileCreator.f90
 
     ${PRJ}/SRC/indexation.f90
     ${PRJ}/SRC/algo_comm.f90
@@ -137,12 +136,6 @@ set_target_properties(sem3d.exe PROPERTIES
                                 Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/ncpl3d)
 install(TARGETS sem3d.exe RUNTIME DESTINATION bin)
 
-if (OPT_RF)
-  set(SEM3D_SOURCES_F ${SEM3D_SOURCES_F}
-    ${PRJ}/SRC/define_random.f90
-    ${PRJ}/SRC/build_prop_files.F90)
-  add_dependencies(sem3dcommon randomfield semcommon)
-endif (OPT_RF)
 
 add_executable(test_pointlist
   ${SEMCOMMON}/pointlist.f90

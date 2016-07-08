@@ -149,53 +149,9 @@ set(SEM_EXTRA_LIBS semcommon ${SEM_EXTRA_LIBS})
 #RANDOM FIELD LIBRARY
 option(OPT_RF "RF" OFF)
 if (OPT_RF)
-  add_definitions(-DRF)
+#  add_definitions(-DUSE_RF)
+  add_subdirectory(randomField)
 
-  # FFT
-  find_package(FFTW3 REQUIRED)
-  include_directories(${FFTW3_INCLUDE_DIR})
-  set(SEM_EXTRA_LIBS ${SEM_EXTRA_LIBS} ${FFTW3_LIBRARIES})
-
-  # Random Field
-  add_library(randomfield
-    ${SEMDIR}/randomfield/SRC_LIB/randomFieldND.f90
-    ${SEMDIR}/randomfield/SRC_LIB/spectra_RF.f90
-    ${SEMDIR}/randomfield/SRC_LIB/writeResultFile_RF.f90
-    ${SEMDIR}/randomfield/SRC_LIB/mesh_RF.f90
-    ${SEMDIR}/randomfield/SRC_LIB/type_MESH.f90
-    ${SEMDIR}/randomfield/SRC_LIB/readFile_RF.f90
-    ${SEMDIR}/randomfield/SRC_LIB/systemUt_RF.f90
-    ${SEMDIR}/randomfield/SRC_LIB/readUNV_RF.f90
-    ${SEMDIR}/randomfield/SRC_LIB/type_RF.f90
-    ${SEMDIR}/randomfield/SRC_LIB/topography_RF.f90
-    ${SEMDIR}/randomfield/SRC_LIB/localization_RF.f90
-    ${SEMDIR}/randomfield/SRC_LIB/type_inputRF.f90
-    ${SEMDIR}/randomfield/SRC_LIB/sample_RF.f90
-    ${SEMDIR}/randomfield/SRC_LIB/calls_RF.f90
-    ${SEMDIR}/randomfield/SRC_LIB/statistics_RF.f90
-    ${SEMDIR}/randomfield/SRC_LIB/type_STAT.f90
-    ${SEMDIR}/randomfield/SRC_LIB/charFunctions.f90
-    ${SEMDIR}/randomfield/SRC_LIB/constants_RF.f90
-    ${SEMDIR}/randomfield/SRC_LIB/common_variables_RF.f90
-    ${SEMDIR}/randomfield/SRC_LIB/displayCarvalhol.f90
-    ${SEMDIR}/randomfield/SRC_LIB/hdf5_RF.f90
-    ${SEMDIR}/randomfield/SRC_LIB/write_Log_File.f90
-    ${SEMDIR}/randomfield/SRC_LIB/math_RF.f90
-    ${SEMDIR}/randomfield/SRC_LIB/fftw3.f90
-    ${SEMDIR}/randomfield/dcdflib/src/ipmpar.f
-    ${SEMDIR}/randomfield/dcdflib/src/spmpar.f
-    ${SEMDIR}/randomfield/dcdflib/src/cumnor.f
-    ${SEMDIR}/randomfield/dcdflib/src/devlpl.f
-    ${SEMDIR}/randomfield/dcdflib/src/stvaln.f
-    ${SEMDIR}/randomfield/dcdflib/src/dinvnr.f
-    ${SEMDIR}/randomfield/dcdflib/src/cdfnor.f
-    ${SEMDIR}/randomfield/RANDLIB/ranlib.f90
-    ${SEMDIR}/randomfield/RANDLIB/rnglib.f90
-  )
-  set_target_properties(randomfield PROPERTIES Fortran_MODULE_DIRECTORY ${SEMLIBDIR}/common)
-  target_link_libraries(randomfield ${FFTW3_LIBRARIES})
-  add_dependencies(randomfield semcommon)
-  set(SEM_EXTRA_LIBS randomfield semcommon ${SEM_EXTRA_LIBS})
 endif (OPT_RF)
 
 add_subdirectory(COMMON/netlib)
@@ -211,3 +167,4 @@ add_subdirectory(MESH)
 add_executable(test_sem_path ${SEMCOMMON}/test_sem_path.f90   ${SEMCOMMON}/fileutils.c ${SEMCOMMON}/sem_c_bindings.F90 ${SEMCOMMON}/semdatafiles.F90)
 
 SET_TARGET_PROPERTIES(sem3d.exe PROPERTIES LINKER_LANGUAGE Fortran)
+

@@ -31,7 +31,7 @@ contains
         use constants
         use model_earthchunk
         use model_prem
-#ifdef RF
+#ifdef USE_RF
         use build_prop_files
 #endif
         implicit none
@@ -67,7 +67,7 @@ contains
             call load_earthchunk(Tdomain%earthchunk_file, Tdomain%earthchunk_delta_lon, Tdomain%earthchunk_delta_lat)
         endif
 
-#ifdef RF
+#ifdef USE_RF
         !Applying properties that were written on files
         if (rg == 0) write (*,*) "--> APPLYING PROPERTIES FILES "
         !- applying properties files

@@ -177,7 +177,7 @@ subroutine RUN_PREPARED(Tdomain)
     use mdefinitions
     use mshape8
     use mshape27
-#ifdef RF
+#ifdef USE_RF
     use build_prop_files
 #endif
 #ifdef COUPLAGE
@@ -264,7 +264,7 @@ subroutine RUN_PREPARED(Tdomain)
     call check_interface_orient(Tdomain, Tdomain%SF%intSolFluPml, 1e-10)
     call MPI_Barrier(Tdomain%communicateur,code)
 
-#ifdef RF
+#ifdef USE_RF
     call create_prop_files (Tdomain, rg)
 #endif
 
