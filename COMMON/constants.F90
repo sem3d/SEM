@@ -57,14 +57,14 @@ MODULE constants
     integer, parameter :: OUT_ENERGYP    = 0
     integer, parameter :: OUT_ENERGYS    = 1
     integer, parameter :: OUT_EPS_VOL    = 2
-    integer, parameter :: OUT_PRESSION   = 3
-    integer, parameter :: OUT_DEPLA      = 4
-    integer, parameter :: OUT_VITESSE    = 5
-    integer, parameter :: OUT_ACCEL      = 6
+    integer, parameter :: OUT_DEPLA      = 3
+    integer, parameter :: OUT_VITESSE    = 4
+    integer, parameter :: OUT_ACCEL      = 5
+    integer, parameter :: OUT_PRESSION   = 6
     integer, parameter :: OUT_EPS_DEV    = 7
     integer, parameter :: OUT_STRESS_DEV = 8
 
-    integer, parameter, dimension(0:8) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 1, 3, 3, 3, 6, 6 /)
+    integer, parameter, dimension(0:8) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6 /)
 
     ! TYPE DE CONDITION pour les surfaces
     integer, parameter :: COND_NONE     = 0  ! not assigned/uninitialized
