@@ -87,8 +87,10 @@ class Gmsh(object):
             # (8 nodes associated with the vertices, 36 with the edges, 54 with the faces, 27 in the volume) 
         }
         self.tri3_mat = []
+        self.tetra4_mat = []
         self.quad4_mat = []
         self.hexa8_mat = []
+        self.tag_mat = 1
 
     def read(self, f):
         while True:
@@ -115,7 +117,6 @@ class Gmsh(object):
         nnodes = int(f.readline().strip())
         self.label  = np.zeros( (nnodes,), int)
         self.reverse = {}
-        k = 0
         while True:
             line = f.readline().strip()
             if not line:
@@ -123,9 +124,11 @@ class Gmsh(object):
             if line == end_sect:
                 return
             n,x,y,z = line.split()
+            k = self.mesh.add_pt(float(x), float(y), float(z))
             self.label[k] = int(n)
             self.reverse[self.label[k]] = k
-            self.mesh.add_pt(float(x), float(y), float(z))
+            #self.reverse[k+1] = k
+            
             k = k + 1
             
         raise RuntimeError("Reached end of file")
@@ -158,18 +161,20 @@ class Gmsh(object):
 
     def handle_tri(self, num, nodes, tags):
         self.mesh.tri3.append(nodes)
-        self.tri3_mat.append(tags[0]);
+        self.tri3_mat.append(tags[self.tag_mat]);
 
     def handle_quad(self, num, nodes, tags):
         self.mesh.quad4.append(nodes)
-        self.quad4_mat.append(tags[0]);
+        self.quad4_mat.append(tags[self.tag_mat]);
 
     def handle_tetra(self, num, nodes, tags):
+        print num, nodes, tags
         self.mesh.tetra4.append(nodes)
+        self.tetra4_mat.append(tags[self.tag_mat]);
 
     def handle_hexa(self, num, nodes, tags):
         self.mesh.hexa8.append(nodes)
-        self.hexa8_mat.append(tags[0]);
+        self.hexa8_mat.append(tags[self.tag_mat]);
 
     def handle_quad8(self, num, nodes, tags):
         self.mesh.quad8.append(nodes)
