@@ -452,9 +452,6 @@ contains
                 eps_dev_xz=0.d0
                 eps_dev_yz=0.d0
                 if (nl_flag==1) then
-                    write(*,*) "=== DEBUG ==="
-                    write(*,*) "gather epsilon"
-                    write(*,*)
                     call gather_elem_eps(Tdomain,n_el,fieldE)
                 else
                     call physical_part_deriv(ngllx,nglly,ngllz,Tdomain%sSubDomain(mat)%htprimex,&

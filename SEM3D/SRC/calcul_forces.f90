@@ -301,7 +301,7 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
 
                 Sigma_ij_start      = Sigma_ij_N_el(0:5,i,j,k)
                 Xkin_ij_start       = Xkin_ij_N_el(0:5,i,j,k) 
-                dEpsilon_ij_pl(0:5) = 0d0
+                dEpsilon_ij_pl(0:5) = EpsPl_ij_N_el(0:5,i,j,k)
                 
                 Sigma_ij_trial = (/sxx,syy,szz,sxy,sxz,syz/) ! trial stress increment
                 
@@ -332,7 +332,7 @@ subroutine calcul_forces_nl(Fox,Foy,Foz, invgrad, dx, dy, dz, jac, poidsx, poids
                 Sigma_ij_N_el(0:5,i,j,k) = Sigma_ij_trial(0:5)
                 Xkin_ij_N_el(0:5,i,j,k)  = Xkin_ij_N(0:5)
                 Riso_N_el(i,j,k)         = Riso_N
-                EpsPl_ij_N_el(0:5,i,j,k) = dEpsilon_ij_pl(0:5) + EpsPl_ij_N_el(0:5,i,j,k)
+                EpsPl_ij_N_el(0:5,i,j,k) = dEpsilon_ij_pl(0:5)
                 !
                 xi1 = Invgrad(0,0,i,j,k)
                 xi2 = Invgrad(1,0,i,j,k)
