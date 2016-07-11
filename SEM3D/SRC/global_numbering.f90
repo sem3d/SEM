@@ -807,7 +807,6 @@ subroutine debug_comm_vector(Tdomain, src, dest, commvec)
     end do
 end subroutine debug_comm_vector
 
-
 subroutine reorder_domains(Tdomain)
     use sdomain
     implicit none

@@ -18,7 +18,7 @@ module mCapteur
     use mpi
     use sem_hdf5
     use sem_c_config
-    use constants, only : NCAPT_CACHE, M_1_3, DM_SOLID, DM_FLUID, DM_SOLID_PML, DM_FLUID_PML
+    use constants
     use mshape8
     use mshape27
     implicit none
@@ -50,7 +50,6 @@ module mCapteur
 
     logical :: traces_h5_created
 contains
-
 
     subroutine create_capteurs(Tdomain)
         implicit none
@@ -349,7 +348,6 @@ contains
         use dom_fluid
         use dom_solidpml
         use dom_fluidpml
-        
         implicit none
         !
         type(domain)   :: TDomain
@@ -362,7 +360,6 @@ contains
         real(fpp), dimension(:), allocatable       :: grandeur
         integer, dimension(0:8)                    :: out_variables, offset
         real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
-
         real(fpp), dimension(:,:,:), allocatable   :: fieldP
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
@@ -401,7 +398,6 @@ contains
         nl_flag = Tdomain%nl_flag
 
         offset = 0
-        
         do i = 0,size(out_variables)-2
             if (out_variables(i) == 1) then
                 offset(i+1) = offset(i) + OUT_VAR_DIMS_3D(i)

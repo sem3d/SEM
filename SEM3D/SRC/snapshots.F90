@@ -71,7 +71,6 @@ contains
         end if
     end subroutine grp_write_real_2d
 
-
     subroutine grp_write_fields(Tdomain, parent_id, dim2, out_variables, outputs, ntot_nodes)
 
         type (domain), intent (INOUT):: Tdomain
@@ -264,10 +263,8 @@ contains
                     call h5dclose_f(dset_id, hdferr)
                 end if
             end if
-
         end if
 
-        !SIG_DEV
         if (out_variables(OUT_STRESS_DEV) == 1) then
             ! SIG_DEV_XX
             call MPI_Gatherv(outputs%sig_dev(0,:), dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
@@ -379,7 +376,6 @@ contains
         end if
 
     end subroutine grp_write_fields
-
 
     subroutine grp_write_int_2d(Tdomain, parent_id, name, dim1, dim2, data, ntot_nodes)
         type (domain), intent (INOUT):: Tdomain
@@ -511,7 +507,6 @@ contains
             deallocate(counts)
         end if
     end subroutine grp_write_real_1d
-
 
     subroutine compute_saved_elements(Tdomain, irenum, nnodes, domains)
         type (domain), intent (INOUT):: Tdomain
@@ -668,7 +663,6 @@ contains
         if (rg==0) call write_master_xdmf(Tdomain)
     end subroutine write_snapshot_geom
 
-
     subroutine write_global_nodes(Tdomain, fid, irenum, nnodes)
         implicit none
         type (domain), intent (INOUT):: Tdomain
@@ -814,7 +808,7 @@ contains
         deallocate(data)
     end subroutine write_elem_connectivity
 
-    subroutine allocate_fields(nnodes, out_flags, fields,nl_flag)
+    subroutine allocate_fields(nnodes, out_flags, fields, nl_flag)
         type (output_var_t), intent(inout) :: fields
         integer, dimension(0:8), intent(in) :: out_flags
         integer, intent(in) :: nnodes
@@ -863,10 +857,6 @@ contains
         type (output_var_t), intent(inout) :: fields
         logical, intent(in) :: nl_flag
         logical :: flag_gradU
-
-        flag_gradU =  out_flags(OUT_ENERGYP)+out_flags(OUT_ENERGYS)+&
-            out_flags(OUT_EPS_VOL)+out_flags(OUT_EPS_DEV)+&
-            out_flags(OUT_STRESS_DEV)/=0
 
         if (out_flags(OUT_ENERGYP   ) == 1) deallocate(fields%P_energy)
         if (out_flags(OUT_ENERGYS   ) == 1) deallocate(fields%S_energy)
@@ -1022,6 +1012,7 @@ contains
             group = Tdomain%rank/Tdomain%ngroup
             call semname_snap_result_file(group, isort, fnamef)
             call h5fcreate_f(fnamef, H5F_ACC_TRUNC_F, fid, hdferr)
+
         else
             fid = -1
         endif
@@ -1043,7 +1034,6 @@ contains
 
         deallocate(valence)
         call deallocate_fields(out_variables, out_fields, nl_flag)
-
         call mpi_barrier(Tdomain%communicateur, hdferr)
 
     end subroutine save_field_h5
@@ -1615,6 +1605,104 @@ contains
         deallocate(dens, lamb, mu, kappa)
 
     end subroutine write_constant_fields
+
+    subroutine stress_strain_el(out_flags, fields, DXX, DYY, DZZ, DXY, DYX, DXZ, DZX, DYZ, DZY, &
+        xmu, x2mu, xlambda2mu, idx)
+
+        integer, dimension(0:8), intent(in) :: out_flags
+        type (output_var_t), intent(inout) :: fields
+        real, intent(in) :: DXX, DYY, DZZ, DXY, DYX, DXZ, DZX, DYZ, DZY, xmu, x2mu, xlambda2mu
+        real    :: eps_trace
+        integer :: idx
+
+        eps_trace = DXX + DYY + DZZ
+
+        if (out_flags(OUT_ENERGYP) == 1) then ! P_energy
+            fields%P_energy(idx) = .5 * xlambda2mu * eps_trace**2
+        end if
+
+        if (out_flags(OUT_ENERGYS) == 1) then ! S_energy
+            fields%S_energy(idx) =  xmu/2 * (&
+                DXY**2 + DYX**2 &
+                + DXZ**2 + DZX**2 &
+                + DYZ**2 + DZY**2 &
+                - 2 * DXY * DYX - 2 * DXZ * DZX - 2 * DYZ * DZY)
+        end if
+
+        if (out_flags(OUT_EPS_VOL) == 1) then ! volumetric strain
+            fields%eps_vol(idx)    = fields%eps_vol(idx) + eps_trace
+        end if
+
+        if (out_flags(OUT_EPS_DEV) == 1) then ! deviatoric strain
+            fields%eps_dev_xx(idx) = fields%eps_dev_xx(idx) + DXX - eps_trace * M_1_3
+            fields%eps_dev_yy(idx) = fields%eps_dev_yy(idx) + DYY - eps_trace * M_1_3
+            fields%eps_dev_zz(idx) = fields%eps_dev_zz(idx) + DZZ - eps_trace * M_1_3
+            fields%eps_dev_xy(idx) = fields%eps_dev_xy(idx) + (DXY + DYX)
+            fields%eps_dev_xz(idx) = fields%eps_dev_xz(idx) + (DZX + DXZ)
+            fields%eps_dev_yz(idx) = fields%eps_dev_yz(idx) + (DZY + DYZ)
+        end if
+
+        if (out_flags(OUT_STRESS_DEV) == 1) then ! deviatoric stress state
+            fields%sig_dev_xx(idx) = fields%sig_dev_xx(idx) + x2mu * (DXX - eps_trace * M_1_3)
+            fields%sig_dev_yy(idx) = fields%sig_dev_yy(idx) + x2mu * (DYY - eps_trace * M_1_3)
+            fields%sig_dev_zz(idx) = fields%sig_dev_zz(idx) + x2mu * (DZZ - eps_trace * M_1_3)
+            fields%sig_dev_xy(idx) = fields%sig_dev_xy(idx) + xmu  * (DXY + DYX)
+            fields%sig_dev_xz(idx) = fields%sig_dev_xz(idx) + xmu  * (DXZ + DZX)
+            fields%sig_dev_yz(idx) = fields%sig_dev_yz(idx) + xmu  * (DYZ + DZY)
+        end if
+    end subroutine stress_strain_el
+
+    subroutine stress_strain_nl(out_flags, fields, strain,stress, strain_pl, idx)
+
+        integer, dimension(0:8), intent(in) :: out_flags
+        type (output_var_t), intent(inout) :: fields
+        real, dimension(0:5), intent(in) :: strain, strain_pl, stress
+        real    :: eps_trace, eps_trace_pl, pressure
+        integer :: idx
+
+        eps_trace    = sum(strain(0:2)) 
+        eps_trace_pl = 0
+        pressure     = sum(stress(0:2)) * M_1_3
+
+        ! A VOIR
+        if (out_flags(OUT_ENERGYP) == 1) then ! P_energy
+            fields%P_energy(idx) = .5 * pressure * eps_trace
+        end if
+        ! A VOIR
+        if (out_flags(OUT_ENERGYS) == 1) then ! S_energy
+            fields%S_energy(idx) = 0
+        end if
+
+        if (out_flags(OUT_EPS_VOL) == 1) then ! volumetric strain
+            fields%eps_vol(idx) = fields%eps_vol(idx) + eps_trace
+        end if
+
+        if (out_flags(OUT_EPS_DEV) == 1) then ! deviatoric strain
+            fields%eps_dev_xx(idx) = fields%eps_dev_xx(idx)- eps_trace * M_1_3
+            fields%eps_dev_yy(idx) = fields%eps_dev_yy(idx)- eps_trace * M_1_3
+            fields%eps_dev_zz(idx) = fields%eps_dev_zz(idx)- eps_trace * M_1_3
+            fields%eps_dev_xy(idx) = fields%eps_dev_xy(idx)+ strain(3) 
+            fields%eps_dev_xz(idx) = fields%eps_dev_xz(idx)+ strain(4)
+            fields%eps_dev_yz(idx) = fields%eps_dev_yz(idx)+ strain(5)
+           
+            fields%eps_dev_pl_xx(idx) = fields%eps_dev_pl_xx(idx)+strain_pl(0) 
+            fields%eps_dev_pl_yy(idx) = fields%eps_dev_pl_yy(idx)+strain_pl(1) 
+            fields%eps_dev_pl_zz(idx) = fields%eps_dev_pl_zz(idx)+strain_pl(2)
+            fields%eps_dev_pl_xy(idx) = fields%eps_dev_pl_xy(idx)+strain_pl(3)
+            fields%eps_dev_pl_xz(idx) = fields%eps_dev_pl_xz(idx)+strain_pl(4)
+            fields%eps_dev_pl_yz(idx) = fields%eps_dev_pl_yz(idx)+strain_pl(5)
+        end if
+
+        if (out_flags(OUT_STRESS_DEV) == 1) then ! deviatoric stress state
+            fields%sig_dev_xx(idx) = fields%sig_dev_xx(idx)+stress(0)-pressure
+            fields%sig_dev_yy(idx) = fields%sig_dev_yy(idx)+stress(1)-pressure
+            fields%sig_dev_zz(idx) = fields%sig_dev_zz(idx)+stress(2)-pressure
+            fields%sig_dev_xy(idx) = fields%sig_dev_xy(idx)+stress(3)
+            fields%sig_dev_xz(idx) = fields%sig_dev_xz(idx)+stress(4)
+            fields%sig_dev_yz(idx) = fields%sig_dev_yz(idx)+stress(5)
+        end if
+
+    end subroutine stress_strain_nl
 
 end module msnapshots
 

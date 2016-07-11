@@ -92,6 +92,7 @@ MODULE constants
     integer, parameter :: SCREEN=6
     integer, parameter :: buf_RF=1024 !Buffer for text
 
+    real(KIND=8), dimension(0:5), parameter :: Miso = M_1_3*(/one, one, one, zero, zero, zero/) ! projection vector to get isotropic stress
 CONTAINS
 
 

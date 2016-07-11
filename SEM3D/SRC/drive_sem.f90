@@ -14,6 +14,7 @@
 module drive_sem
 
 contains
+
 subroutine sem(master_superviseur, communicateur, communicateur_global)
     use sdomain
     use mrenumber
@@ -124,11 +125,9 @@ subroutine sem(master_superviseur, communicateur, communicateur_global)
 
     call RUN_PREPARED(Tdomain)
     call RUN_INIT_INTERACT(Tdomain,isort)
-
-    call stat_stoptick(STAT_START)
- !---------------------------------------------------------------------------------------------!
- !-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
- !---------------------------------------------------------------------------------------------!
+!---------------------------------------------------------------------------------------------!
+!-------------------------------    TIME STEPPING : EVOLUTION     ----------------------------!
+!---------------------------------------------------------------------------------------------!
 
     call TIME_STEPPING(Tdomain,isort,ntime)
 
@@ -229,7 +228,7 @@ subroutine RUN_PREPARED(Tdomain)
         if (rg == 0) write(*,*) "--> DEFINING NEUMANN PROPERTIES"
         call define_Neumann_properties(Tdomain)
     endif
-    call MPI_Barrier(Tdomain%communicateur, code)
+
 
  !- discretization (collocation) points' properties
     if (rg == 0) write (*,*) "--> COMPUTING GAUSS-LOBATTO-LEGENDRE PROPERTIES"
@@ -486,7 +485,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         print*
     end if
     Tdomain%sdom%dt = Tdomain%TimeD%dtmin
-
 !- snapshots counters
 !   (isort already defined for snapshots outputting index)
     i_snap = 1
@@ -556,6 +554,9 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
 !---------------------------------------------------------!
     !- SNAPSHOTS
 !---------------------------------------------------------!
+        write(*,*) "=== DEBUG ==="
+        write(*,*) "SNAPSHOTS"
+        write(*,*)
         if(i_snap == 0 .and. Tdomain%logicD%save_snapshots) &
             call OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
 
@@ -567,8 +568,6 @@ subroutine TIME_STEPPING(Tdomain,isort,ntime)
         call evalueSortieCapteur(ntime, sortie_capteur)
         ! sortie des quantites demandees par les capteur
         if (sortie_capteur) call save_capteur(Tdomain, ntime)
-
-
         !---------------------------------------------------------!
         !- SAVE TO EVENTUAL RESTART
         !---------------------------------------------------------!
@@ -672,7 +671,6 @@ subroutine OUTPUT_SNAPSHOTS(Tdomain,ntime,isort)
         write(*,'(a34,i6.6,a8,f11.5)') "--> SEM : snapshot at iteration : ", ntime, " ,time: ", Tdomain%TimeD%rtime
     endif
     call save_field_h5(Tdomain, isort)
-
     if(rg == 0)then
         write(78,*) isort, Tdomain%TimeD%rtime
         call semname_nb_proc(isort,fnamef)

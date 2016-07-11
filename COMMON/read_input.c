@@ -206,10 +206,10 @@ int expect_eq_outvar(yyscan_t scanner, sem_config_t* config)
         if (cmp(scanner,"enP")) err=expect_eq_int(scanner, &(config->out_variables[0]),1);
         else if (cmp(scanner,"enS")) err=expect_eq_int(scanner, &(config->out_variables[1]),1);
         else if (cmp(scanner,"evol")) err=expect_eq_int(scanner, &(config->out_variables[2]),1);
-        else if (cmp(scanner,"pre")) err=expect_eq_int(scanner, &(config->out_variables[3]),1);
-        else if (cmp(scanner,"dis")) err=expect_eq_int(scanner, &(config->out_variables[4]),1);
-        else if (cmp(scanner,"vel")) err=expect_eq_int(scanner, &(config->out_variables[5]),1);
-        else if (cmp(scanner,"acc")) err=expect_eq_int(scanner, &(config->out_variables[6]),1);
+        else if (cmp(scanner,"pre")) err=expect_eq_int(scanner, &(config->out_variables[6]),1);
+        else if (cmp(scanner,"dis")) err=expect_eq_int(scanner, &(config->out_variables[3]),1);
+        else if (cmp(scanner,"vel")) err=expect_eq_int(scanner, &(config->out_variables[4]),1);
+        else if (cmp(scanner,"acc")) err=expect_eq_int(scanner, &(config->out_variables[5]),1);
         else if (cmp(scanner,"edev")) err=expect_eq_int(scanner, &(config->out_variables[7]),1);
         else if (cmp(scanner,"sdev")) err=expect_eq_int(scanner, &(config->out_variables[8]),1);
 
@@ -666,6 +666,7 @@ void init_sem_config(sem_config_t* cfg)
     cfg->fmax = 1.0;
     cfg->material_type = 1;
     cfg->stations = NULL;
+
     cfg->out_variables[0] = 0; // Energy P
     cfg->out_variables[1] = 0; // Energy S
     cfg->out_variables[2] = 0; // Eps vol
