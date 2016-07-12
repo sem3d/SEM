@@ -187,7 +187,6 @@ subroutine RUN_PREPARED(Tdomain)
     type(domain), intent(inout) :: Tdomain
     integer :: rg
     integer :: code, i, ierr, group, subgroup
-    integer :: mat
 
     rg = Tdomain%rank
     if(rg == 0) print*
