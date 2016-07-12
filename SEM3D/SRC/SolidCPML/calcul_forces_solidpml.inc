@@ -155,9 +155,9 @@ subroutine PROCNAME(dom,ngllvar,bnum,Fox,Foy,Foz,Depla,Tdomain)
                 DUZDY=dUz_dxi(ee,i,j,k)*DXIDY + dUz_deta(ee,i,j,k)*DETDY + dUz_dzeta(ee,i,j,k)*DZEDY
                 DUZDZ=dUz_dxi(ee,i,j,k)*DXIDZ + dUz_deta(ee,i,j,k)*DETDZ + dUz_dzeta(ee,i,j,k)*DZEDZ
 
-                Eyz = (DUYDZ+DUZDY)
-                Exz = (DUXDZ+DUZDX)
-                Exy = (DUXDY+DUYDX)
+                Eyz = 0.5*(DUYDZ+DUZDY)
+                Exz = 0.5*(DUXDZ+DUZDX)
+                Exy = 0.5*(DUXDY+DUYDX)
 
                 mi = Tdomain%specel(bnum*VCHUNK+ee)%mat_index
                 solidcpml_Lijk(1,2,0,i,j,k,bnum,ee,mi); C1111 = (dom%sSubDomain(mi)%DLambda+2*dom%sSubDomain(mi)%DMu)*Lijk
