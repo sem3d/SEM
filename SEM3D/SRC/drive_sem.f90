@@ -427,6 +427,7 @@ subroutine INIT_COUPLING_MKA(Tdomain)
 
     !- new max. number of iterations
     Tdomain%TimeD%ntimeMax = int(Tdomain%TimeD%Duration/Tdomain%TimeD%dtmin)
+    if (Tdomain%TimeD%ntimeMax <= 0) stop "ERROR : nb of time step <= 0 as duration < dt"
     ! this block placed here - is it ok, or not?
     call reception_surface_part_mka(Tdomain)
     call reception_nouveau_pdt_sem(Tdomain)
