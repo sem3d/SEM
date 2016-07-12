@@ -432,8 +432,19 @@ contains
         type(domain_solidpml), intent (INOUT) :: dom
         type (domain), intent (INOUT) :: Tdomain
         !
+        integer :: n, indpml, indsol
+
         ! Reset forces
         dom%Forces = 0d0
+
+        ! Coupling at solid PML interface
+        do n = 0,Tdomain%intSolPml%surf0%nbtot-1
+            indsol = Tdomain%intSolPml%surf0%map(n)
+            indpml = Tdomain%intSolPml%surf1%map(n)
+            dom%champs0%Veloc(indpml,:) = Tdomain%sdom%champs0%Veloc(indsol,:)
+            dom%champs0%Depla(indpml,:) = Tdomain%sdom%champs0%Depla(indsol,:)
+        enddo
+
         ! Save depla
         dom%DeplaPrev = dom%champs0%Depla
 
