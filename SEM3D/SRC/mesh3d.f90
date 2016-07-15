@@ -386,7 +386,7 @@ contains
         use sem_c_bindings
         use semdatafiles, only : MAX_FILE_SIZE
         use constants
-        use surfSetting
+   
         implicit none
         !
         type(domain), intent(inout) :: Tdomain

@@ -159,8 +159,8 @@ contains
            zpt = surf_norm%coord(i,2)
             
            
-           write(*,*) BtN
-           write(*,*) 
+           !write(*,*) BtN
+           !write(*,*) 
                         
            force = forces_on_face(xpt, ypt, zpt, BtN, surf_source, Tdomain%TimeD%dtmin, Tdomain%TimeD%rtime)
 
@@ -174,7 +174,7 @@ contains
            end select
         enddo
 
-        stop "ici"
+        !stop "ici"
     
     end subroutine surface_force
     !----------------------------------------------------------------------------------
