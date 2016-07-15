@@ -5,7 +5,6 @@
 #include <algorithm>
 #include "mesh.h"
 #include "meshpart.h"
-#include "mesh_common.h"
 
 using std::vector;
 
@@ -724,8 +723,8 @@ void Mesh3DPart::output_surface(hid_t fid, const Surface* surf)
     write_surface_dom(gid, surf, "spml", DM_SOLID_PML);
     write_surface_dom(gid, surf, "fpml", DM_FLUID_PML);
 
-    get_local_surf_face_materials(surf, asso_material);
-    h5h_write_dset(gid, (surf->name()+"_mat").c_str(), asso_material.size(), &asso_material[0]);
+    //get_local_surf_face_materials(surf, asso_material);
+    //h5h_write_dset(gid, (surf->name()+"_mat").c_str(), asso_material.size(), &asso_material[0]);
     H5Gclose(gid);
 }
 

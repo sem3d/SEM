@@ -13,7 +13,6 @@
 #include <cstring>
 #include "mesh_h5_output.h"
 #include "meshpart.h"
-#include "mesh_common.h"
 
 using std::map;
 using std::multimap;
@@ -153,13 +152,11 @@ int Mesh3D::read_materials_v1(const std::string& str)
     int ngllx, nglly, ngllz;
     double dt, Qp, Qmu;
 
-    //getline(&buffer, &linesize, f);
-    mesh_common::getData_line(&buffer, linesize, f);
+    getline(&buffer, &linesize, f);
     sscanf(buffer, "%d", &nmats);
     for(int k=0;k<nmats;++k) {
-        //getline(&buffer, &linesize, f);
-    	mesh_common::getData_line(&buffer, linesize, f);
-    	sscanf(buffer, "%c %lf %lf %lf %d %d %d %lf %lf %lf",
+        getline(&buffer, &linesize, f);
+        sscanf(buffer, "%c %lf %lf %lf %d %d %d %lf %lf %lf",
                &type, &vp, &vs, &rho, &ngllx, &nglly, &ngllz,
                &dt, &Qp, &Qmu);
         printf("Mat: %2ld : %c vp=%lf vs=%lf Qp=%lf Qmu=%lf\n", m_materials.size(), type, vp, vs, Qp, Qmu);
@@ -168,25 +165,6 @@ int Mesh3D::read_materials_v1(const std::string& str)
     free(buffer);
     return nmats;
 }
-
-//size_t Mesh3D::getData_line(char **buffer, size_t linesize, FILE* f)
-//{
-//	getline(buffer, &linesize, f);
-//
-//	for(int k=0;k<100;++k) {
-//		if(*buffer[0] != '#'){
-//			//printf(" NOT A COMMENT!!!!");
-//			break;
-//		}
-//		else{
-//			//printf(" IT WAS A COMMENT!!!!");
-//			getline(buffer, &linesize, f);
-//		}
-//	}
-//
-//	return linesize;
-//}
-
 int Mesh3D::read_materials_v2(const std::string& str)
 {
     FILE* f = fopen(str.c_str(), "r");
@@ -228,37 +206,31 @@ int Mesh3D::read_materials_v2(const std::string& str)
     double      CV_2;
     int  seedStart_2;
     
-    //getData_line(&buffer, linesize, f);
-
-    mesh_common::getData_line(&buffer, linesize, f);
-
-
+    getline(&buffer, &linesize, f);
     sscanf(buffer, "%d", &nmats);
-    for(int k=0;k<nmats;++k) {
-    	mesh_common::getData_line(&buffer, linesize, f);
+    for(int k=0;k<nmats;++k)  {
+        getline(&buffer, &linesize, f);
         sscanf(buffer, "%c %lf %lf %lf %d %lf %lf",
                &type, &vp, &vs, &rho, &ngllx, &Qp, &Qmu);
 
         printf("Mat: %2ld : %c vp=%lf vs=%lf\n", m_materials.size(), type, vp, vs);
         
-        if(type=='R'){
+        if(strcmp(&type,"R") == 0){
 
-        	printf(" %d is a RANDOM MATERIAL\n", k);
-
-        	mesh_common::getData_line(&buffer, linesize, f);
+        	getline(&buffer, &linesize, f);
 			sscanf(buffer,"%d", &lambdaSwitch);
 
-			mesh_common::getData_line(&buffer, linesize, f);
+			getline(&buffer, &linesize, f);
 			sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
 				   &corrMod_0, &corrL_x_0, &corrL_y_0, &corrL_z_0,
 				   &margiF_0, &CV_0, &seedStart_0);
 
-			mesh_common::getData_line(&buffer, linesize, f);
+			getline(&buffer, &linesize, f);
 			sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
 				   &corrMod_1, &corrL_x_1, &corrL_y_1, &corrL_z_1,
 				   &margiF_1, &CV_1, &seedStart_1);
 
-			mesh_common::getData_line(&buffer, linesize, f);
+			getline(&buffer, &linesize, f);
 			sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
 				   &corrMod_2, &corrL_x_2, &corrL_y_2, &corrL_z_2,
 				   &margiF_2, &CV_2, &seedStart_2);
@@ -271,14 +243,13 @@ int Mesh3D::read_materials_v2(const std::string& str)
                                       margiF_1, CV_1, seedStart_1,
                                       corrMod_2, corrL_x_2, corrL_y_2, corrL_z_2,
                                       margiF_2, CV_2, seedStart_2));
-           k++;
+        
         	//printf("     lambdaSwitch = %d\n", lambdaSwitch);
         	//cL_x = %lf, cL_y = %lf, cL_z = %lf, seedStart = %d\n",
         	//		corrMod, corrL_x, corrL_y, corrL_z, seedStart);
           }
         else{
            m_materials.push_back(Material(type, vp, vs, rho, Qp, Qmu, ngllx));
-           k++;
         }
     }
     free(buffer);
