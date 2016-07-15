@@ -379,10 +379,9 @@ contains
         implicit none
 
         type(domain), intent(inout)                  :: Tdomain
-        character(Len=MAX_FILE_SIZE)                 :: fnamef
+        character(Len=MAX_FILE_SIZE)                 :: fnamef, buffer
         integer                                      :: i, n_aus, npml, isurf
-        integer                                      :: rg, NGLL
-        logical                                      :: is_surf
+        integer                                      :: rg, NGLL, fid
 
         rg = Tdomain%rank
         npml = 0

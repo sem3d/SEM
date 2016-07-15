@@ -30,11 +30,11 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/SourcePosition.f90
     ${PRJ}/SRC/Modules/Edge.f90
     ${PRJ}/SRC/Modules/Comm.f90
-#    ${PRJ}/SRC/Modules/Neumann.f90
+    ${PRJ}/SRC/Modules/Neumann.f90
     ${PRJ}/SRC/Modules/PlaneW.f90
     ${PRJ}/SRC/Modules/Surface.f90
     ${PRJ}/SRC/Modules/tensor_util.f90
-#    ${PRJ}/SRC/Solid/attenuation_solid.F90
+#   ${PRJ}/SRC/Solid/attenuation_solid.F90
     ${PRJ}/SRC/Solid/calcul_forces.F90
     ${PRJ}/SRC/Solid/calcul_forces_atn.F90
     ${PRJ}/SRC/Solid/dom_solid.F90
@@ -45,7 +45,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/compute_GLL.f90
     ${PRJ}/SRC/courant.f90
     ${PRJ}/SRC/define_arrays.F90
-#    ${PRJ}/SRC/define_Neumann_properties.f90
+    ${PRJ}/SRC/define_Neumann_properties.f90
     ${PRJ}/SRC/define_planew_properties.f90
     ${PRJ}/SRC/double_couple.f90
     ${PRJ}/SRC/global_numbering.f90
