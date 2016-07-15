@@ -3,42 +3,27 @@
 /* Copyright CEA, ECP, IPGP                                                */
 /*                                                                         */
 // mesh.h : Gestion maillage format SEM
-#ifndef _READER_IDEAS_H_
-#define _READER_IDEAS_H_
+#ifndef _MESH_COMMON_
+#define _MESH_COMMON_
 
-#include <cstdio>
-#include <map>
-#include <string>
 #include <vector>
+#include <string>
+#include <cstdio>
+/*
+#include <map>
+#include "material.h"
+#include "h5helper.h"
+#include "vertex_elem_map.h"
+#include "meshbase.h"
+#include "aabb.h"
+*/
 
-#include "mesh.h"
-#include "read_unv.hpp"
-#include "mesh_common.h"
-
-
-class MeshReaderIdeas {
-public:
-    MeshReaderIdeas(const char* fname);
-    ~MeshReaderIdeas();
-    void parse_file(Mesh3D& mesh, const char* fname);
-
-    bool eof();
-protected:
-    char curline[2048];
-    FILE* m_file;
-    int m_line;
-    lsnodes  nodes;
-	lselems  elems;
-
-    void read_node_section(Mesh3D& mesh, lsnodes& nodes);
-    void read_elements(Mesh3D& mesh, lselems& elems);
-
-    std::map<int,int> m_node_map; // maps file id to mesh ids
-    std::vector<int> m_elemsetsID;
-
-};
+namespace mesh_common{
+	size_t getData_line(char **buffer, size_t linesize, FILE* f);
+}
 
 #endif
+
 /* Local Variables:                                                        */
 /* mode: c++                                                               */
 /* show-trailing-whitespace: t                                             */

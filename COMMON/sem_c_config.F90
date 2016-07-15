@@ -72,7 +72,6 @@ module sem_c_config
        type(C_PTR)    :: model_file
        real(C_DOUBLE) :: delta_lon
        real(C_DOUBLE) :: delta_lat
-       type(C_PTR)    :: random_library_path
 
        type(C_PTR)    :: stations
        

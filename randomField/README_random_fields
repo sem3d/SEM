@@ -46,7 +46,6 @@ Inside input.spec:
 
 material {
         type = random;
-        random_library_path = " ";
 };
 
 

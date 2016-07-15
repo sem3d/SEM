@@ -5,6 +5,7 @@
 #include <algorithm>
 #include "mesh.h"
 #include "meshpart.h"
+#include "mesh_common.h"
 
 using std::vector;
 

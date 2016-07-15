@@ -518,15 +518,13 @@ les fichiers nécessaires à son exécution. L'arborescence doit être la suivan
 
   - Une ligne par milieu, contenant :
 
-    - le type de milieu (Solide, Fluide, PML solide (P)m PML fluide (L) )
+    - le type de milieu (Solide, Fluide, Random, PML solide (P)m PML fluide (L) )
 
     - Les vitesses d'ondes P, et S
 
     - La densité
 
-    - L'ordre des éléments en X, Y, Z (Y est ignoré en 2D)
-
-    - Un pas de temps (ignoré dans la version actuelle)
+    - L'ordre des élément(La m�me ordre est inpos�e pour X, Y et Z)
 
     - Les atténuations d'ondes P et S par les paramètres :math:`Q_\kappa` et :math:`Q_\mu`.
 
@@ -539,11 +537,27 @@ les fichiers nécessaires à son exécution. L'arborescence doit être la suivan
 
     - paramètres n et A pour les PML filtrantes
 
-    - 3 couples de deux drapeaux T ou F (pour True False) indiquant si la PML atténue dans
-      les directions X, Y et Z respectivement (premier flag du couple) et dans le sens positif (T)
-      ou négatif de l'axe.
+    - 3 couples de deux param�tres indicant le point de début de la PML et la taille de l'extrusion de la PML
+      Respectivement X, Y et Z  
+      Tailles n�gatives doivent être utiées si l'extrusion est dans le sense négatif de axe. 
 
-    - La fréquence de coupure en cas de PML filtrante
+    - La fréquence de coupure en cas de PML filtrant
+
+    - Le nombre du matériel avec lequel la PML fait interface
+
+  - 5 lignes de commentaires
+
+  - Pour chaque millieu de type Random (R), 
+
+    - Choix de paramétrisation (0 for mu, kappa, rho and 1 for mu, lambda, rho)
+
+    - 3 lignes avec les param�tres statistiques de chaque millieu Random
+      
+      Modèle de Correlation (1 pour Gaussian)
+      3 Tailles de correlation, repectivement X, Y et Z
+      Marginal d'ordre 1 (1 pour Gaussianne, 2 pour lognormal)
+      Coeficient de variation
+      Choix du germe aléatoire (si ce chiffre est plus petit que 0 le germe sera choisi selon le clock du processeur) 
 
   Exemple ::
 
@@ -551,11 +565,21 @@ les fichiers nécessaires à son exécution. L'arborescence doit être la suivan
     S  6300.00  2500.00   2800. 5   5    5  0.000005 600. 300.
     P  6300.00  2500.00   2800. 7   7    5  0.000005   0.   0.
     P  6300.00  2500.00   2800. 7   7    5  0.000005   0.   0.
+    R  6300.00  2500.00   2800. 5   5    5  0.000005 600. 300.
     # PML properties
-    # Filtering? npow,Apow,X?,left?,Y?,Forwrd?,Z?,down?,cutoff freq
-    F 2 10. T T T T F F 0.
-    F 2 10. T F T T F F 0.
-
+    # npow,Apow,posX,widthX,posY,widthY,posZ,widthZ,mat
+    2 10. 0.000000 -1.000000 0.000000 -1.000000 50.000000 1.000000 0
+    2 10. 0.000000 0.000000 0.000000 -1.000000 50.000000 1.000000 0
+    # Random properties
+    # Parametrization Choice (0 for Kappa, 1 for Lambda)
+    # Rho            : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+    # Kappa or Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+    # Mu             : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+    0
+    2 30.0 30.0 30.0 2 0.3 0
+    2 30.0 30.0 30.0 2 0.3 1
+    2 30.0 30.0 30.0 2 0.3 -1
+     
 :file:`capteurs.dat` :
 
   Contient les coordonnées X Y Z des capteurs, un capteur sur chaque ligne,

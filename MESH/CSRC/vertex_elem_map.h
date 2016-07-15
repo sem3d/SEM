@@ -10,6 +10,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include "mesh_common.h"
 
 /// Manages a map of vertex points to elements connected to them
 class VertexElemMap

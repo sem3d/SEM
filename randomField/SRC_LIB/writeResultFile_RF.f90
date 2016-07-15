@@ -1709,7 +1709,9 @@ contains
 
         open (unit = fileId , file = filePath, action = 'write')
 
-        write(fileId,"(A)") '1'
+        write(fileId,"(A)") '1 #Number of Samples'
+        write(fileId,"(A)") '0 #Calculate Correlation Legth'
+        write(fileId,"(A)") '1 #Delete Sample In The End'
         write(fileId,"(A)") '"'//trim(adjustL(h5_path))//'"'
 
         close(fileId)

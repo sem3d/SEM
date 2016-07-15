@@ -108,6 +108,9 @@ program main_RandomField
         !call wLog("        file: "//trim(path))
         call read_generation_input(path, IPT_Temp)
 
+        !Check if it is a constant field
+        call check_constantField(IPT_Temp)
+
         !Estimating ideal number of fields
         call estimate_nFields(IPT_Temp)
 

@@ -6,6 +6,7 @@
 #include "mesh_h5_output.h"
 #include "mesh.h"
 #include "h5helper.h"
+#include "mesh_common.h"
 
 #include <vector>
 #include <cstdio>

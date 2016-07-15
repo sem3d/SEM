@@ -356,7 +356,6 @@ int expect_materials(yyscan_t scanner, sem_config_t* config)
 	if (cmp(scanner,"file")) err=expect_eq_string(scanner, &config->model_file,1);
 	if (cmp(scanner,"delta_lon")) err=expect_eq_float(scanner, &config->delta_lon, 1);
 	if (cmp(scanner,"delta_lat")) err=expect_eq_float(scanner, &config->delta_lat, 1);
-    if (cmp(scanner,"random_library_path")) err=expect_eq_string(scanner, &config->random_library_path,1);
 
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
@@ -734,7 +733,6 @@ void init_sem_config(sem_config_t* cfg)
     cfg->out_variables[6] = 1; // Accel
     cfg->out_variables[7] = 0; // Deformation Dev
     cfg->out_variables[8] = 0; // Contrainte Dev
-    cfg->random_library_path = NULL;
 }
 
 
