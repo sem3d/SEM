@@ -411,7 +411,7 @@ contains
         Tdomain%not_PML_List = .true.
 
         do i = 0,Tdomain%n_mat-1
-            write(*,*) "i = ", i
+            !write(*,*) "i = ", i
             buffer = getLine (fid, "#")
             read(buffer,*) Tdomain%sSubDomain(i)%material_type, &
                 Tdomain%sSubDomain(i)%Pspeed,        &
@@ -847,7 +847,7 @@ contains
         do i = 1, lineCount
             read(fid, fmt="(A)",IOSTAT = stat) nextLine
             nextLine = adjustL(nextLine)
-            write(*,*) "nextLine = ", nextLine
+            !write(*,*) "i = ", nextLine
             if(stat /= 0) then
                 nextLine = " "
                 exit
