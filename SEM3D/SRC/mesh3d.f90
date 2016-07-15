@@ -69,7 +69,7 @@ contains
         call read_attr_int(fid, "n_faces",     Tdomain%n_face)
         call read_attr_int(fid, "n_edges",     Tdomain%n_edge)
         call read_attr_int(fid, "n_vertices",  Tdomain%n_vertex)
-        call read_attr_int(fid, "neumann_present_loc",  Tdomain%n_neumannfind)
+        !call read_attr_int(fid, "neumann_present_loc",  Tdomain%n_neumannfind)
         !
         if(Tdomain%n_dime /=3)   &
             stop "No general code for the time being: only 3D propagation"
@@ -304,13 +304,6 @@ contains
             write(*,2006) trim(pfx)//" Edges:", size(itemp)
             surf%if_edges = itemp
             deallocate(itemp)
-            !!
-            !! Add by Mtaro
-            !!
-            call read_dataset(gid, trim(pfx)//"_edge_orient",itemp)
-            write(*,2005) trim(pfx)//" Orient:", size(itemp)
-            surf%if_edge_norm = itemp
-            deallocate(itemp)
         end if
         if (surf%n_vertices/=0) then
             call read_dataset(gid, trim(pfx)//"_vertices", itemp)
@@ -443,7 +436,7 @@ contains
         !Subdomains allocation
         allocate(Tdomain%sSubdomain(0:Tdomain%n_mat-1))
         !
-        if ((Tdomain%n_neumannfind>=1).and.(Tdomain%logicD%Neumann)) then
+        if (Tdomain%logicD%Neumann) then
             Tdomain%logicD%Neumann_local_present = .true.
             Tdomain%logicD%Neumann = .true.
             neumann_log = .true.
@@ -471,24 +464,26 @@ contains
             Tdomain%SF%intSolFluPml%surf0%n_edges + &
             Tdomain%SF%intSolFluPml%surf0%n_vertices) /= 0
 
-
-        call h5gopen_f(fid, "Surfaces", surf_id, hdferr)
-        call read_surfaces(Tdomain, surf_id)
-        call h5gclose_f(surf_id, hdferr)
-        ! Neumann B.C. properties, eventually
-        if(Tdomain%logicD%Neumann_local_present)then
-            write (*,*)
-            write (*,1001) " Read Neumann surfaces"
-            allocate(Tdomain%Neumann%NeuSurface(0:Tdomain%n_neumannfind-1))
-            call read_neu_surface(Tdomain)    
-        end if
-        ! Plane Wave properties, eventually
-        if (Tdomain%logicD%super_object_local_present) then
-           write (*,*)
-           write (*,1001) " Read incidente plane wave surface"
-           call read_planeW_surface(Tdomain)
+        if (Tdomain%logicD%surfBC) then
+            call h5gopen_f(fid, "Surfaces", surf_id, hdferr)
+            call read_surfaces(Tdomain, surf_id)
+            call h5gclose_f(surf_id, hdferr)
         endif
-        write (*,*)
+        ! Neumann B.C. properties, eventually
+        !if(Tdomain%logicD%Neumann_local_present)then
+        !    write (*,*)
+        !    write (*,1001) " Read Neumann surfaces"
+        !    allocate(Tdomain%Neumann%NeuSurface(0:size(Tdomain%Neumann%Neu_Param%neu_index)-1))
+        !    call read_neu_surface(Tdomain)    
+        !end if
+        
+        ! Plane Wave properties, eventually
+        !if (Tdomain%logicD%super_object_local_present) then
+        !   write (*,*)
+        !   write (*,1001) " Read incidente plane wave surface"
+        !   call read_planeW_surface(Tdomain)
+        !endif
+        !write (*,*)
 
         ! Interproc communications
         Tdomain%tot_comm_proc = 0

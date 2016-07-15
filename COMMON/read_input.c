@@ -371,107 +371,88 @@ int expect_materials(yyscan_t scanner, sem_config_t* config)
 }
 
 
-
-
-int expect_neumann(yyscan_t scanner, sem_config_t* config)
+void init_surface(surface_t *surface)
 {
-    int tok, err;
+ memset(surface, 0, sizeof(surface_t));
+// Initialisation de tous les champs surfaciques
+  surface->surface_present=0;
+  surface->surface_type=0;
+  surface->surface_mat=-1;
+  surface->surface_K[3]=0;
+  surface->surface_C[3]=0;
+  surface->surface_f0=0;
+  surface->surface_whatbc=0;
+  surface->surface_dim=0;
+  surface->surface_source=NULL;
+  surface->surface_funcx=NULL;
+  surface->surface_funcy=NULL;
+  surface->surface_funcz=NULL;
+  surface->surface_funcxy=NULL;
+  surface->surface_funcxz=NULL;
+  surface->surface_funcyz=NULL;
+  surface->surface_varia=NULL;
+  surface->surface_Paravalue[100]=0;
+  surface->surface_Paramname=NULL;
+  surface->surface_nparamvar=0;
+  surface->surface_paramvar=0;
+  surface->surface_list[20] = -1;
+}
 
-    config->neu_present = 1;
+
+int expect_surfaces(yyscan_t scanner, sem_config_t* config)
+{
+    surface_t *surface;
+    int tok, err; 
+    int use=-1;
+    config->surface_find = 1;
+    surface = (surface_t*)malloc(sizeof(surface_t));
+    init_surface(surface);
+    surface->next = config->surface;
+    
+    config->surface=surface;
+    config->nsurface++;
+
     tok = skip_blank(scanner);
     if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
     do {
 	tok = skip_blank(scanner);
 	if (tok!=K_ID) break;
+         
+        if (cmp(scanner,"use")) err=expect_eq_int(scanner, &surface->surface_present,1);
+        if (cmp(scanner,"whatBC")) err=expect_eq_int(scanner, &surface->surface_whatbc,1);
+	if (cmp(scanner,"frcdir")) err=expect_eq_float(scanner, surface->surface_K,3);
+        if (cmp(scanner,"type")) err=expect_eq_int(scanner, &surface->surface_type, 1);
+        if (cmp(scanner,"ampli")) err=expect_eq_float(scanner, &surface->amplitude,1);
+        if (cmp(scanner,"Rtau")) err=expect_eq_float(scanner, &surface->Rtau,1);
+	if (cmp(scanner,"C")) err=expect_eq_float(scanner, surface->surface_C,3);
+	if (cmp(scanner,"Rfreq")) err=expect_eq_float(scanner, &surface->surface_f0,1);
+        if (cmp(scanner,"nsurf")) err=expect_eq_int(scanner, &use,1);
+        if (cmp(scanner,"index")) { if (use!=-1) err=expect_eq_int(scanner, surface->surface_list,use);}
+        if (cmp(scanner,"var")) err=expect_eq_string(scanner, &surface->surface_varia,1);
+        if (cmp(scanner,"fxx")) {err=expect_eq_string(scanner, &surface->surface_funcx,1);
+                                surface->surface_source= "F"; surface->surface_dim=1;}
+        if (cmp(scanner,"fyy")) {err=expect_eq_string(scanner, &surface->surface_funcy,1);
+                                 surface->surface_source="F"; surface->surface_dim=2;}
+        if (cmp(scanner,"fzz")) {err=expect_eq_string(scanner, &surface->surface_funcz,1);
+                                 surface->surface_source="F"; surface->surface_dim=3;}
+        if (cmp(scanner,"fxz")||cmp(scanner,"fzx")) {err=expect_eq_string(scanner, &surface->surface_funcxz,1);
+                                                     surface->surface_source="M";}
+        if (cmp(scanner,"fyz")||cmp(scanner,"fzy")) {err=expect_eq_string(scanner, &surface->surface_funcyz,1);
+                                                     surface->surface_source="M";}
+        if (cmp(scanner,"fxy")||cmp(scanner,"fyx")) {err=expect_eq_string(scanner, &surface->surface_funcxy,1);
+                                                     surface->surface_source="M";}
+        if (cmp(scanner,"paramvar")) err=expect_eq_int(scanner, &surface->surface_paramvar,1);
+        if (cmp(scanner,"npara")) err=expect_eq_int(scanner, &surface->surface_nparamvar,1);
+        if (cmp(scanner,"param")) err=expect_eq_string(scanner, &surface->surface_Paramname,1);
+        if (cmp(scanner,"value")) err=expect_eq_float(scanner,surface->surface_Paravalue, surface->surface_nparamvar);
         
-        if (cmp(scanner,"use")) {err=expect_eq_int(scanner, &config->use, 1);
-                                if (config->use==0) config->neu_present=0;}
-        if (cmp(scanner,"whatbc")) err=expect_eq_int(scanner, &config->neu_whatbc, 1);
-	if (cmp(scanner,"ndir")) err=expect_eq_float(scanner, &config->neu_L[0], 3);
-	if (cmp(scanner,"C")) err=expect_eq_float(scanner, &config->neu_C[0], 3);
-	if (cmp(scanner,"f0")) err=expect_eq_float(scanner, &config->neu_f0, 1);
-        if (cmp(scanner,"mat")) err=expect_eq_int(scanner, &config->neu_mat, 1);
-        // Add by Mtaro
-        if (cmp(scanner,"var")) err=expect_eq_string(scanner, &config->neu_varia,1);
-        if (cmp(scanner,"fxx")) {err=expect_eq_string(scanner, &config->neu_funcx,1);
-                                config->neu_source= 'F'; 
-                                config->neu_dim=1;}
-        if (cmp(scanner,"fyy")) {err=expect_eq_string(scanner, &config->neu_funcy,1);
-                                config->neu_source='F'; 
-                                config->neu_dim=2;}
-        if (cmp(scanner,"fzz")) {err=expect_eq_string(scanner, &config->neu_funcz,1);
-                                config->neu_source='F'; 
-                                config->neu_dim=3;}
-        if (cmp(scanner,"fxz")||cmp(scanner,"fzx")) {err=expect_eq_string(scanner, &config->neu_funcxz,1);
-                                                     config->neu_source='M';}
-        if (cmp(scanner,"fyz")||cmp(scanner,"fzy")) {err=expect_eq_string(scanner, &config->neu_funcyz,1);
-                                                     config->neu_source='M';}
-        if (cmp(scanner,"fxy")||cmp(scanner,"fyx")) {err=expect_eq_string(scanner, &config->neu_funcxy,1);
-                                                     config->neu_source='M';}
-        if (cmp(scanner,"paramvar")){err=expect_eq_int(scanner, &config->neu_paramvar,1);}
-        if (cmp(scanner,"npara")) err=expect_eq_int(scanner, &config->neu_nparamvar, 1);
-        if (cmp(scanner,"param")) err=expect_eq_string(scanner, &config->neu_Paramname, 1);
-        if (cmp(scanner,"value")){ double dummy[config->neu_nparamvar];
-                                   config->neu_Paravalue= (double*)malloc(config->neu_nparamvar);
-                                   err=expect_eq_float(scanner, &dummy[0], config->neu_nparamvar);
-                                   config->neu_Paravalue=dummy;}
-
+        if (err==0) { printf("\n\n\n Error in expect_surfaces \n\n\n"); return 0;} 
 	if (!expect_eos(scanner)) { return 0; }
     } while(1);
     if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
     
     return 1;
 }
-
-
-int expect_plane_wave(yyscan_t scanner, sem_config_t* config)
-{
- int tok, err;
-
- config->plane_wave_present = 1;
- tok = skip_blank(scanner);
- if (tok!=K_BRACE_OPEN) { msg_err(scanner, "Expected '{'"); return 0; }
- do {
-         tok = skip_blank(scanner);
-         if (tok!=K_ID) break;
-         
-         if (cmp(scanner,"puse")) { err=expect_eq_int(scanner, &config->use, 1);
-                                    if (config->use==0) config->plane_wave_present=0;}
-         if (cmp(scanner,"pneu")) err=expect_eq_int(scanner, &config->plane_wave_whatbc, 1);
-         if (cmp(scanner,"ptype")) err=expect_eq_int(scanner, &config->plane_wave_type, 1);
-         if (cmp(scanner,"pK")) err=expect_eq_float(scanner, &config->plane_wave_K[0], 3);
-         if (cmp(scanner,"pC")) err=expect_eq_float(scanner, &config->plane_wave_C[0], 3);
-         if (cmp(scanner,"pf0")) err=expect_eq_float(scanner, &config->plane_wave_f0, 1);
-         if (cmp(scanner,"pmat")) err=expect_eq_int(scanner, &config->plane_wave_mat, 1);
-         if (cmp(scanner,"pvar")) err=expect_eq_string(scanner, &config->plane_wave_varia,1);
-         if (cmp(scanner,"pfxx")) {err=expect_eq_string(scanner, &config->plane_wave_funcx,1);
-                                 config->plane_wave_source='F'; 
-                                 config->plane_wave_dim=1;}
-         if (cmp(scanner,"pfyy")) {err=expect_eq_string(scanner, &config->plane_wave_funcy,1);
-                                 config->plane_wave_source='F'; 
-                                 config->plane_wave_dim=2;}
-         if (cmp(scanner,"pfzz")) {err=expect_eq_string(scanner, &config->plane_wave_funcz,1);
-                                 config->plane_wave_source='F'; 
-                                 config->plane_wave_dim=3;}
-         if (cmp(scanner,"pfxz")||cmp(scanner,"pfzx")) {err=expect_eq_string(scanner, &config->plane_wave_funcxz,1);
-                                                      config->plane_wave_source='M';}
-         if (cmp(scanner,"pfyz")||cmp(scanner,"pfzy")) {err=expect_eq_string(scanner, &config->plane_wave_funcyz,1);
-                                                      config->plane_wave_source='M';}
-         if (cmp(scanner,"pfxy")||cmp(scanner,"pfyx")) {err=expect_eq_string(scanner, &config->plane_wave_funcxy,1);
-                                                      config->plane_wave_source='M';}
-         if (cmp(scanner,"pParamvar")){ err=expect_eq_int(scanner, &config->plane_wave_paramvar,1);}
-         if (cmp(scanner,"pnpara")){ err=expect_eq_int(scanner, &config->plane_wave_nparamvar, 1);}
-         if (cmp(scanner,"pparam")){ err=expect_eq_string(scanner, &config->plane_wave_Paramname, 1);}
-         if (cmp(scanner,"pvalue")){ config->plane_wave_Paravalue= (double*)malloc(config->plane_wave_nparamvar);
-                                     err=expect_eq_float(scanner, &config->plane_wave_Paravalue[0], config->plane_wave_nparamvar);}
-         
-        if (!expect_eos(scanner)) { return 0; }
-    } while(1);
-    if (tok!=K_BRACE_CLOSE) { msg_err(scanner, "Expected Identifier or '}'"); return 0; }
-
-    return 1;
-}
-
 
 
 int expect_select_snap(yyscan_t scanner, sem_config_t* config, int include)
@@ -723,8 +704,7 @@ int parse_input_spec(yyscan_t scanner, sem_config_t* config)
 	else if (cmp(scanner,"anisotropy")) err=expect_eq_bool(scanner, &config->anisotropy, 1);
 	else if (cmp(scanner,"gradient")) err=expect_gradient_desc(scanner, config);
 	else if (cmp(scanner,"model")) err=expect_eq_model(scanner, &config->model);
-	else if (cmp(scanner,"neumann")) err=expect_neumann(scanner, config);
-        else if (cmp(scanner,"planewave")) err=expect_plane_wave(scanner, config);
+	else if (cmp(scanner,"surface")) err=expect_surfaces(scanner, config);
 	else if (cmp(scanner,"out_variables")) err=expect_eq_outvar(scanner, config);
 	//Material
 	if (cmp(scanner,"material")) err=expect_materials(scanner, config);
@@ -755,7 +735,6 @@ void init_sem_config(sem_config_t* cfg)
     cfg->out_variables[7] = 0; // Deformation Dev
     cfg->out_variables[8] = 0; // Contrainte Dev
     cfg->random_library_path = NULL;
-
 }
 
 
@@ -790,9 +769,10 @@ void dump_config(sem_config_t* cfg)
     				cfg->out_variables[3], cfg->out_variables[4], cfg->out_variables[5],\
     				cfg->out_variables[6], cfg->out_variables[7], cfg->out_variables[8]);
 	// END MODIFS - FILIPPO 07/15
-    printf("Neu present : %d\n", cfg->neu_present);
-    printf("Neu type    : %d\n", cfg->neu_type);
-    printf("Neu mat     : %d\n", cfg->neu_mat);
+    // removed by Mtaro
+    //printf("Neu present : %d\n", cfg->neu_present);
+    //printf("Neu type    : %d\n", cfg->neu_type);
+    //printf("Neu mat     : %d\n", cfg->neu_mat);
 
 //    src = cfg->source;
 //    while(src) {

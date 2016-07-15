@@ -417,6 +417,23 @@ void Mesh3DPart::get_local_materials(std::vector<int>& mats, std::vector<int>& d
 
 }
 
+void Mesh3DPart::get_local_surf_face_materials(const Surface* surf, std::vector<int> mats) const
+{
+  
+   face_map_t::const_iterator itt;
+   for(itt=surf->m_faces.begin();itt!=surf->m_faces.end();++itt) {
+      const PFace& face = itt->first;
+      bool add=true;
+      std::map <int, std::pair<std::pair< std::vector<int>, int>, int>  >::const_iterator it;
+      for (it = m_mesh.surfelem.begin(); it != m_mesh.surfelem.end();it++) {
+         for(int p=0; p<4; ++p){
+             if (std::find((it->second).first.first.begin(),(it->second).first.first.end(), face.n[p])==(it->second).first.first.end()){
+                add=false;}
+         if (add) { mats.push_back((it->second).first.second); break;}
+       }
+     }
+   }
+}
 
 void Mesh3DPart::get_local_faces(std::vector<int>& faces, std::vector<int>& doms) const
 {
@@ -656,7 +673,7 @@ void Mesh3DPart::write_surface_dom(hid_t gid, const Surface* surf, const char* p
     vector<int> data, orient, matdom;
     char sface_data[100];
     char sface_orient[100];
-    char sedge_orient[100];
+    char surf_mat[100];
     char sface_num [100];
     char sedge_data[100];
     char sedge_num [100];
@@ -671,7 +688,7 @@ void Mesh3DPart::write_surface_dom(hid_t gid, const Surface* surf, const char* p
     snprintf(sface_num , 100, "n_%s_faces", pfx);
     snprintf(sedge_data, 100, "%s_edges", pfx);
     snprintf(sedge_num , 100, "n_%s_edges", pfx);
-    snprintf(sedge_orient, 100, "%s_edge_orient", pfx);
+    //snprintf(surf_mat, 100, "surf_mat", pfx);
     snprintf(svert_data, 100, "%s_vertices", pfx);
     snprintf(svert_num , 100, "n_%s_vertices", pfx);
     snprintf(svert_dom, 100, "%s_vertices_dom", pfx);
@@ -686,7 +703,7 @@ void Mesh3DPart::write_surface_dom(hid_t gid, const Surface* surf, const char* p
 
     surf->get_edges_data(dom, data, orient, matdom);
     h5h_create_attr(gid, sedge_num, (int)data.size());
-    h5h_write_dset(gid, sedge_orient, orient);
+    //h5h_write_dset(gid, sedge_orient, orient);
     h5h_write_dset(gid, sedge_data, data);
     h5h_write_dset(gid, sedge_dom, matdom);
 
@@ -699,12 +716,15 @@ void Mesh3DPart::write_surface_dom(hid_t gid, const Surface* surf, const char* p
 
 void Mesh3DPart::output_surface(hid_t fid, const Surface* surf)
 {
-    std::vector<int> faces, orient;
+    std::vector<int> faces, orient, asso_material;
     hid_t gid = H5Gcreate(fid, surf->name().c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     write_surface_dom(gid, surf, "sl", DM_SOLID);
     write_surface_dom(gid, surf, "fl", DM_FLUID);
     write_surface_dom(gid, surf, "spml", DM_SOLID_PML);
     write_surface_dom(gid, surf, "fpml", DM_FLUID_PML);
+
+    get_local_surf_face_materials(surf, asso_material);
+    h5h_write_dset(gid, (surf->name()+"_mat").c_str(), asso_material.size(), &asso_material[0]);
     H5Gclose(gid);
 }
 

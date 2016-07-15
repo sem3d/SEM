@@ -30,7 +30,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/SourcePosition.f90
     ${PRJ}/SRC/Modules/Edge.f90
     ${PRJ}/SRC/Modules/Comm.f90
-    ${PRJ}/SRC/Modules/Neumann.f90
+#    ${PRJ}/SRC/Modules/Neumann.f90
     ${PRJ}/SRC/Modules/PlaneW.f90
     ${PRJ}/SRC/Modules/Surface.f90
     ${PRJ}/SRC/Modules/tensor_util.f90
@@ -45,7 +45,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/compute_GLL.f90
     ${PRJ}/SRC/courant.f90
     ${PRJ}/SRC/define_arrays.F90
-    ${PRJ}/SRC/define_Neumann_properties.f90
+#    ${PRJ}/SRC/define_Neumann_properties.f90
     ${PRJ}/SRC/define_planew_properties.f90
     ${PRJ}/SRC/double_couple.f90
     ${PRJ}/SRC/global_numbering.f90
@@ -85,8 +85,8 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/SourceMT/fparser.f90
     ${PRJ}/SRC/SourceMT/ErrorWarning.f90
     ${PRJ}/SRC/SourceMT/Dimension.f90
-    ${PRJ}/SRC/SourceMT/get_surfaces_settings.f90
-            	
+    ${PRJ}/SRC/SourceMT/create_sem_surface_input.f90
+    ${PRJ}/SRC/SourceMT/compute_surface_BC.f90            	
 )
 
 if (OPT_CPML)

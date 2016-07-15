@@ -380,9 +380,6 @@ contains
 
         type(domain), intent(inout)                  :: Tdomain
         character(Len=MAX_FILE_SIZE)                 :: fnamef
-        integer, parameter                           :: nvar=2
-        character(Len=*), dimension(nvar), parameter :: surf_character=(/"N", &
-                                                                         "M"/)
         integer                                      :: i, n_aus, npml, isurf
         integer                                      :: rg, NGLL
         logical                                      :: is_surf
@@ -412,27 +409,16 @@ contains
         Tdomain%not_PML_List = .true.
         
         do i = 0,Tdomain%n_mat-1
-            block :&
-            do
-                read(13,*) Tdomain%sSubDomain(i)%material_type, &
-                           Tdomain%sSubDomain(i)%Pspeed,        &
-                           Tdomain%sSubDomain(i)%Sspeed,        &
-                           Tdomain%sSubDomain(i)%dDensity,      &
-                           NGLL,         &
-                           Tdomain%sSubDomain(i)%Qpression,     &
-                           Tdomain%sSubDomain(i)%Qmu
-                           Tdomain%sSubDomain(i)%NGLL = NGLL
-                           Tdomain%sSubdomain(i)%assocMat = i
+            read(13,*) Tdomain%sSubDomain(i)%material_type, &
+                       Tdomain%sSubDomain(i)%Pspeed,        &
+                       Tdomain%sSubDomain(i)%Sspeed,        &
+                       Tdomain%sSubDomain(i)%dDensity,      &
+                       NGLL,         &
+                       Tdomain%sSubDomain(i)%Qpression,     &
+                       Tdomain%sSubDomain(i)%Qmu
+                       Tdomain%sSubDomain(i)%NGLL = NGLL
+                       Tdomain%sSubdomain(i)%assocMat = i
             
-                is_surf = .false.
-                do isurf=1,nvar 
-                   if (surf_character(isurf)==Tdomain%sSubDomain(i)%material_type) then
-                      is_surf = .true. 
-                   endif
-                enddo
-                if (.not.is_surf) exit block
-            end do block        
-
             call Lame_coefficients (Tdomain%sSubDomain(i))
 
             if (Tdomain%sSubDomain(i)%material_type == "P" .or. Tdomain%sSubDomain(i)%material_type == "L")  then
@@ -713,7 +699,6 @@ contains
         type(domain), intent(inout)  :: Tdomain
         integer, intent(out)         :: code
         character(Len=MAX_FILE_SIZE) :: fnamef
-        character(len=800)          :: parametric_var
         logical                      :: logic_scheme
         integer                      :: imat
         integer                      :: rg, i
@@ -795,21 +780,22 @@ contains
             write(*,*) "           band =", Tdomain%T1_att, Tdomain%T2_att
         end if
 
-        ! Neumann boundary conditions? If yes: geometrical properties read in the mesh files.
-        Tdomain%logicD%Neumann = Tdomain%config%neu_present /= 0
+        ! boundary conditions? If yes: geometrical properties read in the mesh files.
+        Tdomain%logicD%surfBC = Tdomain%config%surface_find /= 0
         !! Add by Mtaro
-        write(*,*) "mes valeurs", Tdomain%config%neu_present, Tdomain%logicD%Neumann, Tdomain%config%plane_wave_present 
-        if (Tdomain%logicD%Neumann) then
-           call read_neumann_input(Tdomain) 
+        if (Tdomain%logicD%surfBC) then
+           call read_surface_input(Tdomain, Tdomain%config) 
         endif
 
         ! Create sources from C structures
         call create_sem_sources(Tdomain, Tdomain%config)
 
         !- Parametrage super object activé
-        Tdomain%logicD%super_object_local_present = Tdomain%config%plane_wave_present /= 0
+        Tdomain%logicD%super_object_local_present = .false.!Tdomain%config%plane_wave_present /= 0
         if (Tdomain%logicD%super_object_local_present) then
+#if 1
            call read_planeW_input(Tdomain)
+#endif
         endif
                 
         !---   Reading mesh file

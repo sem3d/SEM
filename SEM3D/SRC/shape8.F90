@@ -16,6 +16,7 @@ contains
     subroutine shape8_init(Tdomain)
         use scomm
         use mrenumber
+        use surface_load, only : get_surf_gll_coord
         implicit none
 
         type(domain), intent(inout)          :: Tdomain
@@ -99,94 +100,25 @@ contains
             deallocate(GLLc)
         enddo ! end of loop onto elements
 
-
         ! Neumann Boundary Conditions : normal vectors
-        if(Tdomain%logicD%neumann_local_present)then
-            !call compute_normals(Tdomain, Tdomain%neu%surf, Tdomain%neu%btn)
-            ! Neumann faces
-            do i_surf=lbound(Tdomain%sSurfaces,1),ubound(Tdomain%sSurfaces,1)
-               do i_neu=lbound(Tdomain%Neumann%NeuSurface,1),ubound(Tdomain%Neumann%NeuSurface,1)
-                  if (trim(Tdomain%sSurfaces(i_surf)%name).eq.trim(Tdomain%Neumann%NeuSurface(i_neu)%name)) then
-                     
-                     select case (Tdomain%sSurfaces(i_surf)%domain)
-                          case (DM_SOLID)
-                               call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_sl, DM_SOLID, Btn)
-                               call get_surface_numbering(Tdomain, Tdomain%sSurfaces(i_surf)%surf_sl, DM_SOLID, renum)
-                          case (DM_FLUID)
-                               call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_fl, DM_FLUID, Btn)
-                               call get_surface_numbering(Tdomain,Tdomain%sSurfaces(i_surf)%surf_fl, DM_FLUID, renum)
-                          case (DM_SOLID_PML)
-                               call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_spml, DM_SOLID_PML, Btn)
-                               call get_surface_numbering(Tdomain, Tdomain%sSurfaces(i_surf)%surf_spml, DM_SOLID_PML, renum)
-                          case (DM_FLUID_PML)
-                               call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_fpml, DM_FLUID_PML, Btn)
-                               call get_surface_numbering(Tdomain, Tdomain%sSurfaces(i_surf)%surf_fpml, DM_FLUID_PML, renum)
-                     end select
-                     
-                     do nf = 0, Tdomain%Neumann%NeuSurface(i_neu)%Neu_n_faces-1
-                        fc    = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Face
-                        ngll1 = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%ngll1
-                        ngll2 = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%ngll2
-                        
-                        do j=1,ngll1-2
-                           do i=1,ngll1-2
-                              n = renum(Tdomain%sFace(fc)%Idom(i,j))
-                              Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Btn(i,j,:) = Btn(:,n)
-                           enddo
-                        enddo
-                  
-                        do nv=0,3
-                           ed = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Near_Edges(nv)
-                           do ne = 0,Tdomain%Neumann%NeuSurface(i_neu)%Neu_n_edges
-                              if (Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(ne)%Edge.eq.ed) then
-                                 do j=1,ngll1-2
-                                    n = renum(Tdomain%sFace(fc)%Idom(0,j))
-                                    Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(ne)%Btn(j,:) = Btn(:,n)
-                                 enddo
-                               endif
-                            enddo
-
-                            ed = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Near_Vertices(nv)
-                            do ne = 0, Tdomain%Neumann%NeuSurface(i_neu)%Neu_n_vertices-1
-                               if (Tdomain%Neumann%NeuSurface(i_neu)%Neu_Vertex(ne)%Vertex.eq.ed) then
-                                   n = renum(Tdomain%sFace(fc)%Idom(merge(0,(ngll1-1),mod(nv,2)==0),merge(0,(ngll1-1),mod(nv,2)==0)))
-                                   Tdomain%Neumann%NeuSurface(i_neu)%Neu_Vertex(ne)%Btn(:) = Btn(:,n)
-                               endif   
-                            enddo
-                        enddo
-                     enddo
-                    
-                    ! co-ordinates of Neumann GLL points: necessary to impose a boundary condition
-                    do nf = 0,Tdomain%Neumann%NeuSurface(i_neu)%Neu_n_faces-1
-                        ngll1 = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%ngll1
-                        ngll2 = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%ngll2
-                        fc    = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Face
-                        allocate(Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Coord(1:ngll1-2,1:ngll2-2,0:2))
-                        do j = 1,ngll2-2
-                            do i = 1,ngll1-2
-                                Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Coord(i,j,0:2) =    &
-                                    Tdomain%GlobCoord(0:2,Tdomain%sFace(fc)%Iglobnum_Face(i,j))
-                            enddo
-                        enddo
-                    end do
-                    do ne = 0,Tdomain%Neumann%NeuSurface(i_neu)%Neu_n_edges-1
-                        ngll = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(ne)%ngll
-                        ed = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(ne)%Edge
-                        allocate(Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(ne)%Coord(1:ngll-2,0:2))
-                        do i = 1,ngll-2
-                            Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(ne)%Coord(i,0:2) =    &
-                                Tdomain%GlobCoord(0:2,Tdomain%sEdge(ed)%Iglobnum_Edge(i))
-                        enddo
-                    end do
-                    do nv = 0, Tdomain%Neumann%NeuSurface(i_neu)%Neu_n_vertices-1
-                        ve = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Vertex(nv)%Vertex
-                        Tdomain%Neumann%NeuSurface(i_neu)%Neu_Vertex(nv)%Coord(0:2) =     &
-                            Tdomain%GlobCoord(0:2,Tdomain%sVertex(ve)%Iglobnum_Vertex)
-                    enddo
-                 endif
-               enddo
-            enddo
-        endif ! Neumann
+        if (Tdomain%logicD%surfBC) then
+            do i_surf=0,size(Tdomain%sSurfaces)-1                     
+               select case (Tdomain%sSurfaces(i_surf)%domain)
+                  case (DM_SOLID)
+                     call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_sl, DM_SOLID, Tdomain%sSurfaces(i_surf)%Surf_BtN)
+                     call get_surf_gll_coord(Tdomain%sSurfaces(i_surf)%surf_sl,Tdomain, Tdomain%sSurfaces(i_surf)%coord)
+                  case (DM_FLUID)
+                     call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_fl, DM_FLUID, Tdomain%sSurfaces(i_surf)%Surf_BtN)
+                     call get_surf_gll_coord(Tdomain%sSurfaces(i_surf)%surf_fl,Tdomain, Tdomain%sSurfaces(i_surf)%coord)
+                  case (DM_SOLID_PML)
+                     call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_spml, DM_SOLID_PML,Tdomain%sSurfaces(i_surf)%Surf_BtN)
+                     call get_surf_gll_coord(Tdomain%sSurfaces(i_surf)%surf_spml,Tdomain, Tdomain%sSurfaces(i_surf)%coord)
+                  case (DM_FLUID_PML)
+                     call compute_normals(Tdomain, Tdomain%sSurfaces(i_surf)%surf_fpml, DM_FLUID_PML,Tdomain%sSurfaces(i_surf)%Surf_BtN)
+                     call get_surf_gll_coord(Tdomain%sSurfaces(i_surf)%surf_fpml,Tdomain, Tdomain%sSurfaces(i_surf)%coord)
+                end select
+              enddo
+         endif 
 
         ! Solid-Fluid interfaces : normal vectors
         if(Tdomain%logicD%SF_local_present)then

@@ -83,15 +83,15 @@ contains
             end do
         end do
 
-       if (Tdomain%logicD%neumann_local_present) then
-           do k=lbound(Tdomain%Neumann%NeuSurface,1),ubound(Tdomain%Neumann%NeuSurface,1)
-              do nfc = 0,Tdomain%Neumann%NeuSurface(k)%Neu_n_faces-1
-                 nf = Tdomain%Neumann%NeuSurface(k)%Neu_Face(nfc)%Face
-                 Tdomain%Neumann%NeuSurface(k)%Neu_Face(nfc)%ngll1=Tdomain%sFace(nf)%ngll1
-                 Tdomain%Neumann%NeuSurface(k)%Neu_Face(nfc)%ngll2=Tdomain%sFace(nf)%ngll2
-              enddo
-           enddo
-       endif
+       !if (Tdomain%logicD%neumann_local_present) then
+       !    do k=lbound(Tdomain%Neumann%NeuSurface,1),ubound(Tdomain%Neumann%NeuSurface,1)
+       !       do nfc = 0,Tdomain%Neumann%NeuSurface(k)%Neu_n_faces-1
+       !          nf = Tdomain%Neumann%NeuSurface(k)%Neu_Face(nfc)%Face
+       !          Tdomain%Neumann%NeuSurface(k)%Neu_Face(nfc)%ngll1=Tdomain%sFace(nf)%ngll1
+       !          Tdomain%Neumann%NeuSurface(k)%Neu_Face(nfc)%ngll2=Tdomain%sFace(nf)%ngll2
+       !       enddo
+       !    enddo
+       !endif
 
     end subroutine apply_mat_to_faces
 
@@ -132,14 +132,14 @@ contains
             end do
         end do
 
-        if (Tdomain%logicD%neumann_local_present) then
-             do k=lbound(Tdomain%Neumann%NeuSurface,1),ubound(Tdomain%Neumann%NeuSurface,1)
-                 do ed = 0,Tdomain%Neumann%NeuSurface(k)%Neu_n_edges-1
-                    ne = Tdomain%Neumann%NeuSurface(k)%Neu_edge(ed)%Edge
-                    Tdomain%Neumann%NeuSurface(k)%Neu_edge(ed)%ngll=Tdomain%sEdge(ne)%ngll
-                 enddo
-             enddo
-         endif
+       ! if (Tdomain%logicD%neumann_local_present) then
+       !      do k=lbound(Tdomain%Neumann%NeuSurface,1),ubound(Tdomain%Neumann%NeuSurface,1)
+       !          do ed = 0,Tdomain%Neumann%NeuSurface(k)%Neu_n_edges-1
+       !             ne = Tdomain%Neumann%NeuSurface(k)%Neu_edge(ed)%Edge
+       !             Tdomain%Neumann%NeuSurface(k)%Neu_edge(ed)%ngll=Tdomain%sEdge(ne)%ngll
+       !          enddo
+       !      enddo
+       !  endif
     end subroutine apply_mat_to_edges
 
     subroutine apply_mat_to_vertices(Tdomain)

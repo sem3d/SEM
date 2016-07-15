@@ -66,52 +66,6 @@ module sem_c_config
        !! PML informations
        integer(C_INT) :: pml_type
 
-       !! Neumann
-       integer(C_INT) :: neu_present
-       integer(C_INT) :: neu_type
-       integer(C_INT) :: neu_mat
-       integer(C_INT) :: neu_whatbc
-
-       real(C_DOUBLE), dimension(3) :: neu_L
-       real(C_DOUBLE), dimension(3) :: neu_C
-       real(C_DOUBLE) :: neu_f0
-       !! Add by Mtaro
-        integer(C_INT):: neu_dim
-        real(C_DOUBLE) :: neu_paravalue(1:100)
-        type(C_PTR)    :: neu_paramname
-        integer(C_INT)   :: neu_nparamvar
-        integer(C_INT)   :: neu_paramvar
-        type(C_PTR)  ::neu_source
-        type(C_PTR)::neu_funcx
-        type(C_PTR)::neu_funcy
-        type(C_PTR)::neu_funcz
-        type(C_PTR)::neu_funcxy
-        type(C_PTR)::neu_funcxz
-        type(C_PTR)::neu_funcyz
-        type(C_PTR)::neu_varia
-     
-       !! Plane wave
-       integer(C_INT)               :: plane_wave_present
-       integer(C_INT)               :: plane_wave_type
-       integer(C_INT)               :: plane_wave_mat
-       integer(C_INT)               :: plane_wave_whatbc
-       real(C_DOUBLE), dimension(3) :: plane_wave_L
-       real(C_DOUBLE), dimension(3) :: plane_wave_C
-       real(C_DOUBLE)               :: plane_wave_f0
-       integer(C_INT)               :: plane_wave_dim
-       real(C_DOUBLE)               :: plane_wave_paravalue(1:100)
-       type(C_PTR)                  :: plane_wave_paramname
-       integer(C_INT)               :: plane_wave_nparamvar
-       integer(C_INT)               :: plane_wave_paramvar
-       type(C_PTR)                  :: plane_wave_source
-       type(C_PTR)                  :: plane_wave_funcx
-       type(C_PTR)                  :: plane_wave_funcy
-       type(C_PTR)                  :: plane_wave_funcz
-       type(C_PTR)                  :: plane_wave_funcxy
-       type(C_PTR)                  :: plane_wave_funcxz
-       type(C_PTR)                  :: plane_wave_funcyz
-       type(C_PTR)                  :: plane_wave_varia
-       
        !!Material
        integer(C_INT) :: material_present
        integer(C_INT) :: material_type
@@ -121,6 +75,10 @@ module sem_c_config
        type(C_PTR)    :: random_library_path
 
        type(C_PTR)    :: stations
+       
+       integer        :: nsurface
+       integer        :: surface_find
+       type(C_PTR)    :: surface
     end type sem_config
 
 
@@ -163,6 +121,34 @@ module sem_c_config
        real(C_DOUBLE), dimension(6) :: box
        integer(C_INT) :: material
     end type sem_snapshot_cond
+
+    ! ce type doit correspondre au type surface_t de sem_input.h **a l'ordre pres**
+    type, bind(c) :: sem_surfaces
+       type(C_PTR) :: next
+       integer(C_INT):: surface_list(20)
+       integer(C_INT) :: surface_present
+       integer(C_INT) :: surface_type
+       integer(C_INT) :: surface_mat
+       integer(C_INT) :: surface_whatbc
+       real(C_DOUBLE), dimension(3) :: surface_L
+       real(C_DOUBLE), dimension(3) :: surface_C
+       real(C_DOUBLE) :: surface_f0
+       integer(C_INT) :: surface_dim
+       real(C_DOUBLE) :: surface_paravalue(1:100)
+       type(C_PTR) :: surface_paramname
+       integer(C_INT) :: surface_nparamvar
+       integer(C_INT) :: surface_paramvar
+       type(C_PTR) :: surface_source
+       type(C_PTR) :: surface_funcx
+       type(C_PTR) :: surface_funcy
+       type(C_PTR) :: surface_funcz
+       type(C_PTR) :: surface_funcxy
+       type(C_PTR) :: surface_funcxz
+       type(C_PTR) :: surface_funcyz
+       type(C_PTR) :: surface_varia
+       real(C_DOUBLE) :: amplitude
+       real(C_DOUBLE) :: Rtau
+    end type sem_surfaces
 
     interface
        subroutine read_sem_config(config, spec, err) bind(c)

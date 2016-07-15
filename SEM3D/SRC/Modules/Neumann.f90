@@ -19,7 +19,8 @@ module sneu
        integer, dimension(0:3) :: Near_Edges, Near_Vertices
        ! all 3 edges and vertices for a Neumann face
        integer, dimension(0:3) :: Near_Edges_Orient
-       real, dimension(:,:,:), pointer  :: normal,BtN,Forces,Coord
+       real, dimension(:,:,:), pointer  :: normal,Forces,Coord
+       real, dimension(:,:), pointer  :: BtN
     end type face_Neu
 
     type :: edge_Neu
@@ -42,14 +43,15 @@ module sneu
        real :: Mu,Lambda,speed,lx,ly,lz,xs,ys,zs,f0
        character :: wtype,what_bc
        !! Add by Mtaro
-       character(len=1000) :: neu_funcx, neu_funcy, neu_funcz
-       character(len=1000) :: neu_funcxy, neu_funcxz, neu_funcyz
-       character(len=12)   :: neu_varia
-       character           :: neu_source
-       integer             :: neu_dim
-       real(kind=8),dimension(1:100) :: neu_paravalue
-       character(len=3), dimension(1:100) :: neu_paramname
-       integer     :: neu_nparamvar, neu_paramvar
+       character(len=1500)                :: neu_funcx, neu_funcy, neu_funcz
+       character(len=1500)                :: neu_funcxy, neu_funcxz, neu_funcyz
+       character(len=12)                  :: neu_varia
+       character                          :: neu_source
+       integer                            :: neu_dim
+       integer, allocatable               :: neu_index(:)
+       real(kind=8), allocatable          :: neu_paravalue(:)
+       character(len=2), dimension(1:100) :: neu_paramname
+       integer                            :: neu_nparamvar, neu_paramvar
 
     end type Param_Neu
 
@@ -99,12 +101,12 @@ contains
             NeumanSource%dim    =Param%neu_dim
             NeumanSource%source =Param%neu_source
             NeumanSource%var    =Param%neu_varia
-            NeumanSource%valuefx=Param%neu_funcx
-            NeumanSource%valuefy=Param%neu_funcy
-            NeumanSource%valuefz=Param%neu_funcz
-            NeumanSource%valuefxy=Param%neu_funcxy
-            NeumanSource%valuefyz=Param%neu_funcyz
-            NeumanSource%valuefxz=Param%neu_funcxz
+            NeumanSource%valuefx(1:len_trim(Param%neu_funcx))=Param%neu_funcx(1:len_trim(Param%neu_funcx))
+            NeumanSource%valuefy(1:len_trim(Param%neu_funcy))=Param%neu_funcy(1:len_trim(Param%neu_funcy))
+            NeumanSource%valuefz(1:len_trim(Param%neu_funcz))=Param%neu_funcz(1:len_trim(Param%neu_funcz))
+            NeumanSource%valuefxy(1:len_trim(Param%neu_funcxy))=Param%neu_funcxy(1:len_trim(Param%neu_funcxy))
+            NeumanSource%valuefyz(1:len_trim(Param%neu_funcyz))=Param%neu_funcyz(1:len_trim(Param%neu_funcyz))
+            NeumanSource%valuefxz(1:len_trim(Param%neu_funcxz))=Param%neu_funcxz(1:len_trim(Param%neu_funcxz))
  
             Addparametricvar%nparam=0
             if (Param%neu_paramvar==1) then
@@ -126,14 +128,13 @@ contains
             endif
             NeumanSourcen =NeumanSource;
          endif
-        
+      
         do j = 1,ngll2-2
             do i = 1,ngll1-2
 
                 xpt = Face%Coord(i,j,0)
                 ypt = Face%Coord(i,j,1)
                 zpt = Face%Coord(i,j,2)
-                
                 select case(Param%what_bc)
                 case('P','R')
                     !- velocities at 2 time steps..
@@ -181,9 +182,9 @@ contains
             !        Face%Forces(i,j,2) = triangle(dt)*Face%Btn(i,j,2) 
 
                 case ('A')
- 
-                      CALL ffvalue(NeumanSource , (/xpt, ypt, zpt/), ctime)
-                      CALL ffvalue(NeumanSourcen , (/xpt, ypt, zpt/), ctime+dt)         
+                      
+                      CALL ffvalue(NeumanSource , (/(xpt-Param%lx), (ypt-Param%ly), (zpt-Param%lz)/), ctime)
+                      CALL ffvalue(NeumanSourcen , (/(xpt-Param%lx), (ypt-Param%ly), (zpt-Param%lz)/), ctime+dt)         
                       NeumanSource%fvalue(:)=0.5*(NeumanSource%fvalue(:)+NeumanSourcen%fvalue(:))
 
                       if ((NeumanSource%dim==3).and.(NeumanSource%source.eq.'M')) then
@@ -240,7 +241,8 @@ contains
             NeumanSource%valuefxy=Param%neu_funcxy
             NeumanSource%valuefyz=Param%neu_funcyz
             NeumanSource%valuefxz=Param%neu_funcxz
- 
+
+
             Addparametricvar%nparam=0
             if (Param%neu_paramvar==1) then
                 Addparametricvar%nparam =Param%neu_nparamvar
@@ -313,9 +315,11 @@ contains
          !       Edge%Forces(i,1) = triangle(dt)*Edge%Btn(i,1)
          !       Edge%Forces(i,2) = triangle(dt)*Edge%Btn(i,2)
             case('A')
-                  CALL ffvalue(NeumanSource , (/xpt, ypt, zpt/), ctime)
-                  CALL ffvalue(NeumanSourcen , (/xpt, ypt, zpt/), ctime+dt)
+                  
+                  CALL ffvalue(NeumanSource , (/(xpt-Param%lx), (ypt-Param%ly), (zpt-Param%lz)/), ctime)
+                  CALL ffvalue(NeumanSourcen , (/(xpt-Param%lx), (ypt-Param%ly), (zpt-Param%lz)/), ctime+dt)
                   NeumanSource%fvalue(:)=0.5*(NeumanSource%fvalue(:)+NeumanSourcen%fvalue(:))
+                  
 
                   if ((NeumanSource%dim==3).and.(NeumanSource%source.eq.'M')) then
                      Edge%Forces(i,0) = -(NeumanSource%fvalue(1)*Edge%Btn(i,0)+ &
@@ -443,8 +447,8 @@ contains
         !    Vertex%Forces(2) = triangle(dt)*Vertex%Btn(2)
 
        case('A')
-             CALL ffvalue(NeumanSource , (/xpt, ypt, zpt/), ctime)
-             CALL ffvalue(NeumanSourcen , (/xpt, ypt, zpt/), ctime+dt)
+             CALL ffvalue(NeumanSource , (/(xpt-Param%lx), (ypt-Param%ly), (zpt-Param%lz)/), ctime)
+             CALL ffvalue(NeumanSourcen , (/(xpt-Param%lx), (ypt-Param%ly), (zpt-Param%lz)/), ctime+dt)
              NeumanSource%fvalue(:)=0.5*(NeumanSource%fvalue(:)+NeumanSourcen%fvalue(:))
 
              if ((NeumanSource%dim==3).and.(NeumanSource%source.eq.'M')) then

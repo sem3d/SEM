@@ -85,23 +85,34 @@ subroutine read_neumann_input(Tdomain)
   character(Len=MAX_FILE_SIZE) :: fnamef
   character(len=800)           :: parametric_var
   integer                      :: i, rg
- 
- 
+  logical                      :: Boolean(1:20)
+
+  !! Ecriture par un seul proc
+  rg = Tdomain%rank
+  if (rg.eq.0) then
+   WRITE(*,*) 
    WRITE(*,*) "--> READING NEUMANN INPUT"
-  
-  if  (Tdomain%config%neu_whatbc.eq.1) then
+   WRITE(*,*)  
+  endif
+  if  (Tdomain%config%neu_Neubc.eq.1) then
        Tdomain%Neumann%Neu_Param%what_bc = 'P'
-  elseif (Tdomain%config%neu_whatbc.eq.2) then
+  elseif (Tdomain%config%neu_Neubc.eq.2) then
        Tdomain%Neumann%Neu_Param%what_bc = 'R'
-  elseif (Tdomain%config%neu_whatbc.eq.3) then
+  elseif (Tdomain%config%neu_Neubc.eq.3) then
        Tdomain%Neumann%Neu_Param%what_bc = 'A'
-  elseif (Tdomain%config%neu_whatbc.eq.4) then
+  elseif (Tdomain%config%neu_Neubc.eq.4) then
        Tdomain%Neumann%Neu_Param%what_bc = 'F'
-  elseif (Tdomain%config%neu_whatbc.eq.5) then  
+  elseif (Tdomain%config%neu_Neubc.eq.5) then  
        Tdomain%Neumann%Neu_Param%what_bc = 'S'
   endif
 
   Tdomain%Neumann%Neu_Param%mat_index = Tdomain%config%neu_mat
+  Boolean = .false.
+  do i=lbound(Tdomain%config%neu_list,1),ubound(Tdomain%config%neu_list,1)
+      Boolean(i) = Tdomain%config%neu_list(i)/=0 
+  enddo
+  allocate(Tdomain%Neumann%Neu_Param%neu_index(1:Count(Boolean)))
+  Tdomain%Neumann%Neu_Param%neu_index = Tdomain%config%neu_list(1:Count(Boolean))
   if (Tdomain%config%neu_type==1) then
       Tdomain%Neumann%Neu_Param%wtype = 'P'
   else
@@ -147,6 +158,7 @@ subroutine read_neumann_input(Tdomain)
       Tdomain%Neumann%Neu_Param%neu_paramvar=Tdomain%config%neu_paramvar
       if (Tdomain%Neumann%Neu_Param%neu_paramvar==1) then
          Tdomain%Neumann%Neu_Param%neu_nparamvar = Tdomain%config%neu_nparamvar
+         allocate(Tdomain%Neumann%Neu_Param%neu_paravalue(1:Tdomain%config%neu_nparamvar))
          do i=1,Tdomain%config%neu_nparamvar
            Tdomain%Neumann%Neu_Param%neu_paravalue(i) = Tdomain%config%neu_Paravalue(i)
          enddo
@@ -155,48 +167,48 @@ subroutine read_neumann_input(Tdomain)
                       Tdomain%Neumann%Neu_Param%neu_paramname)
       endif
       !!
-      !! Ecriture par un seul proc
-      rg = Tdomain%rank
       !!
       if (rg.eq.0) then
       write(*,*)
       write(*,*) " Neuman BC Source analytical defined "
       write(*,*) "-------------------------------------"
-      write(*,*) "Va = "//TRIM(Tdomain%Neumann%Neu_Param%neu_varia)
-      write(*,*) "F1 = "//TRIM(Tdomain%Neumann%Neu_Param%neu_funcx)
+      write(*,1006) trim("Va = "//adjustr(Tdomain%Neumann%Neu_Param%neu_varia))
+      write(*,1005) trim("F1 = "//adjustr(Tdomain%Neumann%Neu_Param%neu_funcx))
       if (Tdomain%Neumann%Neu_Param%neu_dim.gt.1) then
-         write(*,*) "F2 = "//TRIM(Tdomain%Neumann%Neu_Param%neu_funcy)
+         write(*,1005) trim("F2 = "//adjustr(Tdomain%Neumann%Neu_Param%neu_funcy))
       endif
       if (Tdomain%Neumann%Neu_Param%neu_dim.gt.2) then
-         write(*,*) "F3 = "//TRIM(Tdomain%Neumann%Neu_Param%neu_funcz)
+         write(*,1005) trim("F3 = "//adjustr(Tdomain%Neumann%Neu_Param%neu_funcz))
       endif
       if (Tdomain%Neumann%Neu_Param%neu_source.eq."M") then
-        write(*,*) "F4 = "//TRIM(Tdomain%Neumann%Neu_Param%neu_funcxy)
+        write(*,1005) trim("F4 = "//adjustr(Tdomain%Neumann%Neu_Param%neu_funcxy))
         if (Tdomain%Neumann%Neu_Param%neu_dim.gt.2) then
-           write(*,*) "F5 = "//TRIM(Tdomain%Neumann%Neu_Param%neu_funcxz)
-           write(*,*) "F6 = "//TRIM(Tdomain%Neumann%Neu_Param%neu_funcyz)
+           write(*,1005) trim("F5 = "//adjustr(Tdomain%Neumann%Neu_Param%neu_funcxz))
+           write(*,1005) trim("F6 = "//adjustr(Tdomain%Neumann%Neu_Param%neu_funcyz))
         endif
-        write(*,*)
      endif
      if (Tdomain%Neumann%Neu_Param%neu_paramvar==1) then
-       write(*,*) "Param ="//TRIM(parametric_var)
+       write(*,1005) trim("Param ="//adjustr(parametric_var))
+       write(*,2014) "ParamVal =",Tdomain%Neumann%Neu_Param%neu_paravalue
      endif
      endif
+     write(*,*)
  endif
-
+  
+  include 'formats.in'
 end subroutine read_neumann_input
 
-subroutine Split(String, nsubstring, SubStrings)
+subroutine Split(String, nstring, SubStrings)
       implicit none
       
       character(len=*), intent(in)                         :: String
-      integer, intent(in)                                  :: nsubstring
+      integer, intent(in)                                  :: nstring
       character, parameter                                 :: Delimiter= " "
-      character(len=*), dimension(nsubstring), intent(out) :: SubStrings
+      character(len=*), dimension(nstring), intent(inout)  :: SubStrings
       integer                                              :: i, j, k, l, n, ns
       logical                                              :: EndOfLine
       
-      do i=1,nsubstring
+      do i=1,nstring
          SubStrings(i) = ' '
       end do
       n = 0
@@ -204,14 +216,14 @@ subroutine Split(String, nsubstring, SubStrings)
       l = len_trim(String)
       EndOfLine = l-k < 0
       do while (.not.EndOfLine)
-         j = index(String(K:L),Delimiter)
+         j = index(String(k:l),Delimiter)
          if (j == 0) then
             j=l+1
          else
             j=j+k-1
          end if
          n=n+1
-         if ((j.ne.k).and.(len_trim(String(k:j-1)).ne.0).and.(n.le.nsubstring)) then
+         if ((j.ne.k).and.(len_trim(String(k:j-1)).ne.0).and.(n.le.nstring)) then
              SubStrings(n) = String(k:j-1)
              ns =n;
          else
@@ -222,7 +234,6 @@ subroutine Split(String, nsubstring, SubStrings)
       end do
          
 end subroutine Split
-
 
 !! Local Variables:
 !! mode: f90

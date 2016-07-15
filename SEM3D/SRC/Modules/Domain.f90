@@ -62,6 +62,7 @@ module sdomain
        type(planew)        :: sPlaneW
        type(Neu_object)    :: Neumann
        type(bassin)        :: sBassin
+       type(SurfaceParam), dimension(:), allocatable :: nsurfsource
        type(source)   , dimension (:), allocatable :: sSource
        type(element)  , dimension (:), pointer     :: specel
        type(face)     , dimension (:), allocatable :: sFace
@@ -119,6 +120,9 @@ module sdomain
 
        ! Configuration parameters as returned from read_input.c
        type(sem_config) :: config
+
+       ! Rajouter pour le traitement des surface
+       integer :: n_NEBC, n_PWBC, n_FTBC, nsurface
     end type domain
 
 contains

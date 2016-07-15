@@ -76,6 +76,34 @@ typedef struct station_def_t {
     int period;
 } station_def_t;
 
+// structire définissant les surfaces 
+typedef struct surface{
+    struct surface* next;
+    int surface_list[20];
+    int surface_present;
+    int surface_type;
+    int surface_mat;
+    int surface_whatbc;
+    double surface_K[3];
+    double surface_C[3];
+    double surface_f0;
+    int surface_dim;
+    double surface_Paravalue[100];
+    char*  surface_Paramname;
+    int surface_nparamvar;
+    int surface_paramvar;
+    char* surface_source;
+    char* surface_funcx;
+    char* surface_funcy;
+    char* surface_funcz;
+    char* surface_funcxy;
+    char* surface_funcxz;
+    char* surface_funcyz;
+    char* surface_varia;
+    double amplitude;
+    double Rtau;
+}surface_t;
+
 typedef struct {
     char* run_name;
     // Integration
@@ -131,53 +159,6 @@ typedef struct {
     // PML informations
     int pml_type;
 
-    // Neumann
-    int neu_present;
-    int neu_type;
-    int neu_mat;
-    int neu_Neubc;
-
-    double  neu_L[3];
-    double  neu_C[3];
-    double  neu_f0;
-    // Add by Mtaro
-    int neu_dim;
-    double neu_Paravalue[100];
-    char* neu_Paramname;
-    int neu_nparamvar;
-    int neu_paramvar;
-    char* neu_source;
-    char* neu_funcx;
-    char* neu_funcy;
-    char* neu_funcz;
-    char* neu_funcxy;
-    char* neu_funcxz;
-    char* neu_funcyz;
-    char* neu_varia;
-    int  neu_list[20];
-
-    // Plane wave
-    int       plane_wave_present;
-    int       plane_wave_type;
-    int       plane_wave_mat;
-    double    plane_wave_K[3];
-    double    plane_wave_C[3];
-    double    plane_wave_f0;
-    int       plane_wave_whatbc;
-    int       plane_wave_dim;
-    char      plane_wave_source;
-    char*     plane_wave_funcx;
-    char*     plane_wave_funcy;
-    char*     plane_wave_funcz;
-    char*     plane_wave_funcxy;
-    char*     plane_wave_funcxz;
-    char*     plane_wave_funcyz;
-    char*     plane_wave_varia;
-    double    plane_wave_Paravalue[100];
-    char*     plane_wave_Paramname;
-    int       plane_wave_nparamvar;
-    int       plane_wave_paramvar;
-
     //Material
     int material_present;
     int material_type;
@@ -188,6 +169,11 @@ typedef struct {
 
     // Station definition
     station_def_t* stations;
+
+    // surface BC definition
+    int nsurface;
+    int surface_find;
+    surface_t *surface;
 
 } sem_config_t;
 
