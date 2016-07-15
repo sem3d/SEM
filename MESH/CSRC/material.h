@@ -11,7 +11,6 @@
 #include "mesh_common.h"
 
 typedef enum {
-    DM_NEUMN = 5,  // Add by Mt
     DM_SOLID = 4,
     DM_SOLID_PML = 2,
     DM_FLUID = 3,
@@ -19,10 +18,9 @@ typedef enum {
 } material_type_t;
 
 //#define DM_MAX 4
-#define DM_MAX 5   // modif Mt
+#define DM_MAX 4 
 
 typedef enum {
-    DM_NEUMN_MASK      = 1<<DM_NEUMN,  // add by Mt
     DM_SOLID_MASK      = 1<<DM_SOLID,
     DM_SOLID_PML_MASK  = 1<<DM_SOLID_PML,
     DM_FLUID_MASK      = 1<<DM_FLUID,
@@ -106,12 +104,6 @@ public:
         case 'F':
             m_type = DM_FLUID;
             break;
-        case 'N': // add by Mtaro
-            m_type = DM_NEUMN;
-            break;
-        case 'L':
-            m_type = DM_FLUID_PML;
-            break;
         default:
             m_type = DM_SOLID;
             break;
@@ -144,8 +136,8 @@ public:
             m_type = DM_SOLID_PML;
             break;
         case 'S':
-        	m_type = DM_SOLID;
-        	break;
+             m_type = DM_SOLID;
+             break;
         case 'R':
             m_type = DM_SOLID;
             ctype = 'S';
@@ -196,8 +188,6 @@ public:
             return 'S';
         case DM_SOLID_PML:
             return 'P';
-        case DM_NEUMN : // add by Mt
-             return 'N';
         case DM_FLUID:
             return 'F';
         case DM_FLUID_PML:

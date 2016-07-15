@@ -1,4 +1,4 @@
-!! This file is part of SEM
+! This file is part of SEM
 !!
 !! Copyright CEA, ECP, IPGP
 !!
@@ -197,7 +197,7 @@ contains
                      Tdomain%fpmldom%ngll = Tdomain%sSubDomain(mat)%NGLL
                      Tdomain%any_fpml = .true.
                  case default
-                     stop "unknown domain"
+                     stop " Fatal Error : unknown domain"
             end select
         end do
         !- GLL properties in elements, on faces, edges.
@@ -205,7 +205,7 @@ contains
             mat = Tdomain%specel(i)%mat_index
             Tdomain%specel(i)%domain = get_domain(Tdomain%sSubDomain(mat))
         end do
-
+    
         call apply_mat_to_faces(Tdomain)
         call apply_mat_to_edges(Tdomain)
         call apply_mat_to_vertices(Tdomain)
@@ -217,6 +217,7 @@ contains
         call apply_interface(Tdomain, Tdomain%intFluPml, DM_FLUID, DM_FLUID_PML, .true.)
         call apply_interface(Tdomain, Tdomain%SF%intSolFlu, DM_SOLID, DM_FLUID, .true.)
         call apply_interface(Tdomain, Tdomain%SF%intSolFluPml, DM_SOLID_PML, DM_FLUID_PML, .true.)
+    
     end subroutine read_material_file
 
     subroutine read_material_file_v1(Tdomain)
@@ -377,11 +378,11 @@ contains
         use build_prop_files
         implicit none
 
-        type(domain), intent(inout) :: Tdomain
-        character(Len=MAX_FILE_SIZE) :: fnamef
-        integer :: i, n_aus, npml, fid
-        integer :: rg, NGLL
-        character(Len=MAX_FILE_SIZE) :: buffer
+        type(domain), intent(inout)                  :: Tdomain
+        character(Len=MAX_FILE_SIZE)                 :: fnamef
+        integer                                      :: i, n_aus, npml, isurf
+        integer                                      :: rg, NGLL
+        logical                                      :: is_surf
 
         rg = Tdomain%rank
         npml = 0
@@ -409,8 +410,9 @@ contains
         allocate(Tdomain%not_PML_List(0:Tdomain%n_mat-1))
         Tdomain%any_Random   = .false.
         Tdomain%not_PML_List = .true.
-
+        
         do i = 0,Tdomain%n_mat-1
+            
             write(*,*) "i = ", i
             buffer = getLine (fid, "#")
             read(buffer,*) Tdomain%sSubDomain(i)%material_type, &
@@ -552,7 +554,9 @@ contains
                 write (*,*) '|----------------------------------------'
             endif
         end do
-
+        
+        write (*,*)
+        write (*,*)
         close(13)
 
     end subroutine read_material_file_v2
@@ -687,6 +691,7 @@ contains
         use mpi
         use constants
         use mcapteur
+        
         implicit none
 
         type(domain), intent(inout)  :: Tdomain
@@ -694,19 +699,19 @@ contains
         character(Len=MAX_FILE_SIZE) :: fnamef
         logical                      :: logic_scheme
         integer                      :: imat
-        integer                      :: rg
+        integer                      :: rg, i
 
         rg = Tdomain%rank
 
         call semname_file_input_spec(fnamef)
-
+        
         call read_sem_config(Tdomain%config, trim(fnamef)//C_NULL_CHAR, code)
-
+        
         if (code/=1) then
             stop 1
         endif
         if (rg==0) call dump_config(Tdomain%config) !Print of configuration on the screen
-
+        
         ! On copie les parametres renvoyes dans la structure C
         Tdomain%Title_simulation          = fromcstr(Tdomain%config%run_name)
         Tdomain%TimeD%acceleration_scheme = Tdomain%config%accel_scheme .ne. 0
@@ -760,7 +765,6 @@ contains
         if(.not. logic_scheme) then
             stop "Both acceleration and velocity schemes: no compatibility, chose only one."
         end if
-
         ! Amortissement
         Tdomain%n_sls     = Tdomain%config%nsolids
         Tdomain%T1_att    = Tdomain%config%atn_band(1)
@@ -772,32 +776,27 @@ contains
             write(*,*) "           band =", Tdomain%T1_att, Tdomain%T2_att
         end if
 
-        ! Neumann boundary conditions? If yes: geometrical properties read in the mesh files.
-        Tdomain%logicD%Neumann = Tdomain%config%neu_present /= 0
-        Tdomain%Neumann%Neu_Param%what_bc = 'S'
-        Tdomain%Neumann%Neu_Param%mat_index = Tdomain%config%neu_mat
-        if (Tdomain%config%neu_type==1) then
-            Tdomain%Neumann%Neu_Param%wtype = 'P'
-        else
-            Tdomain%Neumann%Neu_Param%wtype = 'S'
-        end if
-        Tdomain%Neumann%Neu_Param%lx = Tdomain%config%neu_L(1)
-        Tdomain%Neumann%Neu_Param%ly = Tdomain%config%neu_L(2)
-        Tdomain%Neumann%Neu_Param%lz = Tdomain%config%neu_L(3)
-        Tdomain%Neumann%Neu_Param%xs = Tdomain%config%neu_C(1)
-        Tdomain%Neumann%Neu_Param%ys = Tdomain%config%neu_C(2)
-        Tdomain%Neumann%Neu_Param%zs = Tdomain%config%neu_C(3)
-        Tdomain%Neumann%Neu_Param%f0 = Tdomain%config%neu_f0
+        ! boundary conditions? If yes: geometrical properties read in the mesh files.
+        Tdomain%logicD%surfBC = Tdomain%config%surface_find /= 0
+        !! Add by Mtaro
+        if (Tdomain%logicD%surfBC) then
+           call read_surface_input(Tdomain, Tdomain%config) 
+        endif
 
         ! Create sources from C structures
         call create_sem_sources(Tdomain, Tdomain%config)
 
-        !- Parametrage super object desactive
-        Tdomain%logicD%super_object_local_present = .false.
-
+        !- Parametrage super object activé
+        Tdomain%logicD%super_object_local_present = .false.!Tdomain%config%plane_wave_present /= 0
+        if (Tdomain%logicD%super_object_local_present) then
+#if 1
+           call read_planeW_input(Tdomain)
+#endif
+        endif
+                
         !---   Reading mesh file
         call read_mesh_file_h5(Tdomain)
-
+        
         !---   Properties of materials.
         call read_material_file(Tdomain)
         call compute_material_boundaries(Tdomain)

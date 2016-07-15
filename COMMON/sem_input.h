@@ -76,6 +76,34 @@ typedef struct station_def_t {
     int period;
 } station_def_t;
 
+// structire définissant les surfaces 
+typedef struct surface{
+    struct surface* next;
+    int surface_list[20];
+    int surface_present;
+    int surface_type;
+    int surface_mat;
+    int surface_whatbc;
+    double surface_K[3];
+    double surface_C[3];
+    double surface_f0;
+    int surface_dim;
+    double surface_Paravalue[100];
+    char*  surface_Paramname;
+    int surface_nparamvar;
+    int surface_paramvar;
+    char* surface_source;
+    char* surface_funcx;
+    char* surface_funcy;
+    char* surface_funcz;
+    char* surface_funcxy;
+    char* surface_funcxz;
+    char* surface_funcyz;
+    char* surface_varia;
+    double amplitude;
+    double Rtau;
+}surface_t;
+
 typedef struct {
     char* run_name;
     // Integration
@@ -131,14 +159,6 @@ typedef struct {
     // PML informations
     int pml_type;
 
-    // Neumann
-    int neu_present;
-    int neu_type;
-    int neu_mat;
-    double neu_L[3];
-    double neu_C[3];
-    double neu_f0;
-
     //Material
     int material_present;
     int material_type;
@@ -149,7 +169,10 @@ typedef struct {
     // Station definition
     station_def_t* stations;
 
-
+    // surface BC definition
+    int nsurface;
+    int surface_find;
+    surface_t *surface;
 
 } sem_config_t;
 

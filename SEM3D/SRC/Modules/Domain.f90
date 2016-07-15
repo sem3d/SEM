@@ -62,6 +62,7 @@ module sdomain
        type(planew)        :: sPlaneW
        type(Neu_object)    :: Neumann
        type(bassin)        :: sBassin
+       type(SurfaceParam), dimension(:), allocatable :: nsurfsource
        type(source)   , dimension (:), allocatable :: sSource
        type(element)  , dimension (:), pointer     :: specel
        type(face)     , dimension (:), allocatable :: sFace
@@ -76,7 +77,7 @@ module sdomain
        integer :: nRandom
 
        integer :: n_source, n_dime, n_glob_nodes, n_mat, n_nodes, n_receivers
-       integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls
+       integer :: n_elem, n_face, n_edge, n_vertex, n_glob_points, n_sls, n_neumannfind
        integer :: n_hexa  !< Nombre de maille hexa ~= (ngllx-1)*(nglly-1)*(ngllz-1)*nelem
        logical, dimension(:), allocatable :: not_PML_List, subD_exist
        logical :: any_sdom, any_fdom, any_spml, any_fpml
@@ -118,6 +119,9 @@ module sdomain
 
        ! Configuration parameters as returned from read_input.c
        type(sem_config) :: config
+
+       ! Rajouter pour le traitement des surface
+       integer :: n_NEBC, n_PWBC, n_FTBC, nsurface
     end type domain
 
 contains

@@ -13,6 +13,8 @@ module sfaces
     type :: face
         integer :: ngll1, ngll2
         integer :: domain
+        !
+        integer :: elem
         ! True if this face doesn't have an associated element on this cpu
         logical :: orphan
         ! Index dans Tdomain%GlobalCoord des coordonnees du pt de gauss
@@ -22,7 +24,9 @@ module sfaces
         integer, dimension (:,:), allocatable :: Idom
         ! Index dans Tdomain%Coord_nodes des 4 sommets de la face (y compris pour les Hex27)
         integer, dimension(0:3) :: inodes
-
+        !
+        real, dimension (:,:,:), allocatable :: Forces, Forces3
+        logical                              :: PML
         !! Couplage Externe
 !       real, dimension (:,:,:), allocatable :: ForcesExt
 !       real, dimension (:,:), allocatable :: tsurfsem
@@ -37,6 +41,27 @@ contains
         fc%ngll1 = 0
         fc%ngll2 = 0
     end subroutine init_face
+
+    subroutine allocate_face_force(fc)
+     
+     implicit none
+     type(Face), intent(inout) :: fc
+
+        allocate(fc%Forces(1:fc%ngll1-2,1:fc%ngll2-2,0:2))
+        allocate(fc%Forces3(1:fc%ngll1-2,1:fc%ngll2-2,0:2))
+        fc%Forces = 0.0
+        fc%Forces3= 0.0
+
+    end subroutine allocate_face_force
+
+   subroutine free_face_force(fc)
+    
+     implicit none
+     type(Face), intent(inout) :: fc
+     
+       deallocate(fc%Forces)
+       deallocate(fc%Forces3)
+   end subroutine free_face_force
 
 end module sfaces
 
