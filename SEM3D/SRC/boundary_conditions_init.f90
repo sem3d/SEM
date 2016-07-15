@@ -440,44 +440,53 @@ subroutine BtN_Face2Vertex(nv,ngll1,ngll2,BtNf,BtNv)
 end subroutine BtN_Face2Vertex
 !--------------------------------------------------------------------------
 !--------------------------------------------------------------------------
-#if 0
+#if 1
 subroutine define_FEV_Neumann(Tdomain)
     use sdomain
     implicit none
 
-    type(domain), intent(inout)  :: Tdomain
-    integer :: nf,ne,nv,ngll,ngll1,ngll2,mat,i,orient_e
+    type(domain), intent(inout)         :: Tdomain
+    integer                             :: nf,ne,nv,ngll,ngll1,ngll2,mat,i,orient_e
+    integer                             :: i_neu
     real, dimension(:,:,:), allocatable :: Store_Btn
+    real(fpp), dimension(:), allocatable:: GLLw
+    
+    do i_neu=lbound(Tdomain%Neumann%NeuSurface,1),ubound(Tdomain%Neumann%NeuSurface,1)
+        do nf = 0,Tdomain%Neumann%NeuSurface(i_neu)%Neu_n_faces-1
+                ngll1 = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%ngll1 ; 
+                ngll2 = Tdomain%Neumann%NeuSurface(i_neu)%neu_Face(nf)%ngll2
+                mat = Tdomain%Neumann%Neu_Param%mat_index
+                ngll = Tdomain%sSubdomain(mat)%ngll
+                call domain_gllw(Tdomain, get_domain(Tdomain%sSubdomain(mat)), GLLw)
+                call normal_face_weighting(Tdomain%Neumann%NeuSurface(i_neu)%Neu_face(nf)%dir,ngll, &
+                                           ngll1,ngll2,Tdomain%Neumann%NeuSurface(i_neu)%Neu_face(nf)%normal, GLLw, &
+                                           Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Btn)
+                !- internal communication of Btn: from Neumann faces to Neu edges and vertices
+                do i = 0,3
+                       ne = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Near_Edges(i)
+                       ngll = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(ne)%ngll
+                       orient_e = Tdomain%Neumann%NeuSurface(i_neu)%Neu_face(nf)%Near_Edges_Orient(i)
+                       call BtN_Face2Edge(i,ngll1,ngll2,ngll,orient_e,         &
+                                          Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%BtN, &
+                                          Tdomain%Neumann%NeuSurface(i_neu)%Neu_Edge(ne)%BtN)
+                       
+                       nv = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Near_Vertices(i)
+                       call BtN_Face2Vertex(i,ngll1,ngll2,    &
+                                            Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%BtN,&
+                                            Tdomain%Neumann%NeuSurface(i_neu)%Neu_Vertex(nv)%BtN)
+                end do
 
-    do nf = 0,Tdomain%Neumann%Neu_n_faces-1
-        ngll1 = Tdomain%Neumann%Neu_Face(nf)%ngll1 ; ngll2 = Tdomain%Neumann%neu_Face(nf)%ngll2
-        mat = Tdomain%Neumann%Neu_Param%mat_index
-        ngll = Tdomain%sSubdomain(mat)%ngll
-        call normal_face_weighting(Tdomain%Neumann%Neu_face(nf)%dir,ngll,                 &
-            ngll1,ngll2,Tdomain%Neumann%Neu_face(nf)%normal,Tdomain%sSubdomain(mat)%GLLw, &
-            Tdomain%Neumann%Neu_Face(nf)%Btn)
-        !- internal communication of Btn: from Neumann faces to Neu edges and vertices
-        do i = 0,3
-            ne = Tdomain%Neumann%Neu_Face(nf)%Near_Edges(i)
-            ngll = Tdomain%Neumann%Neu_Edge(ne)%ngll
-            orient_e = Tdomain%Neumann%Neu_face(nf)%Near_Edges_Orient(i)
-            call BtN_Face2Edge(i,ngll1,ngll2,ngll,orient_e,         &
-                Tdomain%Neumann%Neu_Face(nf)%BtN,Tdomain%Neumann%Neu_Edge(ne)%BtN)
-            nv = Tdomain%Neumann%Neu_Face(nf)%Near_Vertices(i)
-            call BtN_Face2Vertex(i,ngll1,ngll2,    &
-                Tdomain%Neumann%Neu_Face(nf)%BtN,Tdomain%Neumann%Neu_Vertex(nv)%BtN)
-        end do
+                !- changing size of face arrays.
+                allocate(Store_Btn(1:ngll1-2,1:ngll2-2,0:2))
+                Store_Btn(1:ngll1-2,1:ngll2-2,0:2) = Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Btn(1:ngll1-2,1:ngll2-2,0:2)
+                deallocate(Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Btn)
+                allocate(Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Btn(1:ngll1-2,1:ngll2-2,0:2))
+                Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%Btn(1:ngll1-2,1:ngll2-2,0:2) = Store_Btn(1:ngll1-2,1:ngll2-2,0:2)
+                deallocate(Store_Btn)
+                deallocate(Tdomain%Neumann%NeuSurface(i_neu)%Neu_Face(nf)%normal)
 
-        !- changing size of face arrays.
-        allocate(Store_Btn(1:ngll1-2,1:ngll2-2,0:2))
-        Store_Btn(1:ngll1-2,1:ngll2-2,0:2) = Tdomain%Neumann%Neu_Face(nf)%Btn(1:ngll1-2,1:ngll2-2,0:2)
-        deallocate(Tdomain%Neumann%Neu_Face(nf)%Btn)
-        allocate(Tdomain%Neumann%Neu_Face(nf)%Btn(1:ngll1-2,1:ngll2-2,0:2))
-        Tdomain%Neumann%Neu_Face(nf)%Btn(1:ngll1-2,1:ngll2-2,0:2) = Store_Btn(1:ngll1-2,1:ngll2-2,0:2)
-        deallocate(Store_Btn)
-        deallocate(Tdomain%Neumann%Neu_Face(nf)%normal)
-
-        !- end on the loop on a Neumann face
+                !- end on the loop on a Neumann face
+        enddo
     enddo
 end subroutine define_FEV_Neumann
 #endif

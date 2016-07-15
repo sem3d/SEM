@@ -16,6 +16,8 @@ module svertices
        integer :: Iglobnum_Vertex
        integer :: Idom
        integer :: inode
+       real, dimension (:), allocatable :: Forces, Forces3
+       logical                          :: PML
     end type vertex
 
 contains
@@ -25,6 +27,27 @@ contains
         ve%domain = -1
         ve%Iglobnum_Vertex = -1
     end subroutine init_vertex
+
+
+   subroutine allocate_vertex_force(ve)
+    
+        implicit none
+        type(vertex), intent(inout) :: ve
+    
+        allocate(ve%Forces(0:2))
+        allocate(ve%Forces3(0:2))
+        ve%Forces = 0.0
+        ve%Forces3= 0.0
+
+   end subroutine allocate_vertex_force
+
+   subroutine free_vertex_force(ve)
+      implicit none
+      type(vertex), intent(inout) :: ve
+         
+       deallocate(ve%Forces)
+       deallocate(ve%Forces3)
+   end subroutine free_vertex_force
 
 end module svertices
 
