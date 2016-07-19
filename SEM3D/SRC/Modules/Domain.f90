@@ -118,7 +118,6 @@ module sdomain
 
        ! Configuration parameters as returned from read_input.c
        type(sem_config) :: config
-       integer :: nl_flag
     end type domain
 
 contains

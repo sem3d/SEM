@@ -279,17 +279,16 @@ contains
                     Tdomain%sSubDomain(i)%nl_prop%LMC_prop%Rinf_iso
             else
                 read(13,*) Tdomain%sSubDomain(i)%material_type, &
-                   Tdomain%sSubDomain(i)%Pspeed,        &
+                    Tdomain%sSubDomain(i)%Pspeed,        &
                     Tdomain%sSubDomain(i)%Sspeed,        &
                     Tdomain%sSubDomain(i)%dDensity,      &
-                    Tdomain%sSubDomain(i)%NGLLx,         &
-                    Tdomain%sSubDomain(i)%NGLLy,         &
-                    Tdomain%sSubDomain(i)%NGLLz,         &
-                    Tdomain%sSubDomain(i)%Dt,            &
+                    Tdomain%sSubDomain(i)%NGLL,          &
+                    dummy_NGLL,                          &
+                    dummy_NGLL,                          &
+                    dummy_Dt,                            &
                     Tdomain%sSubDomain(i)%Qpression,     &
                     Tdomain%sSubDomain(i)%Qmu
             end if
-            Tdomain%sSubdomain(i)%Filtering = .false.
 
             if(rg==0 .and. .false.) then
                 write (*,*) ' '
@@ -302,7 +301,7 @@ contains
                 write (*,*) 'NGLL     :', Tdomain%sSubDomain(i)%NGLL
                 write (*,*) 'Qp       :', Tdomain%sSubDomain(i)%Qpression
                 write (*,*) 'Qmu      :', Tdomain%sSubDomain(i)%Qmu
-                if (Tdomain%nl_flag==1) then
+                if (Tdomain%nl_flag) then
                     write (*,*) 'NL_LMC - sigma_yld:', Tdomain%sSubDomain(i)%nl_prop%LMC_prop%sigma_yld
                     write (*,*) 'NL_LMC - C_kin:',     Tdomain%sSubDomain(i)%nl_prop%LMC_prop%C_kin
                     write (*,*) 'NL_LMC - kapa_kin:',  Tdomain%sSubDomain(i)%nl_prop%LMC_prop%kapa_kin

@@ -540,6 +540,280 @@ subroutine write_Stress(Tdomain, nmax, elem_id)
 #endif
 end subroutine write_Stress
 
+subroutine write_Stress_nl(Tdomain, nmax, elem_id)
+    use constants, only : DM_SOLID
+    use sdomain, only : domain
+    use sem_hdf5, only : create_dset
+    use HDF5
+    implicit none
+#include "index.h"
+    type (domain), intent (IN):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+    integer(kind=4), intent(IN) :: nmax
+
+#ifndef CPML
+    integer(HID_T) :: dset_id
+    integer :: n,ngll,idx,i,j,k,hdferr,bnum,ee
+    real(kind=8), allocatable, dimension(:) :: data
+    integer(HSIZE_T), dimension(1) :: dims
+
+    call create_dset(elem_id, "Stress_nl", H5T_IEEE_F64LE, nmax, dset_id)
+    if(nmax <= 0)then
+        call h5dclose_f(dset_id, hdferr)
+        return
+    end if
+    allocate(data(1:nmax))
+    dims(1) = nmax
+    idx = 1
+    do n = 0,Tdomain%n_elem-1
+        if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngll = Tdomain%sdom%ngll
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    if (idx.gt.nmax) then
+                        write(*,*) "Erreur fatale sauvegarde des protections"
+                        stop 1
+                    end if
+                    data(idx+ 0) = Tdomain%sdom%stress_(i,j,k,0,bnum,ee)
+                    data(idx+ 1) = Tdomain%sdom%stress_(i,j,k,1,bnum,ee)
+                    data(idx+ 2) = Tdomain%sdom%stress_(i,j,k,2,bnum,ee)
+                    idx = idx + 3
+                    data(idx+ 0) = Tdomain%sdom%stress_(i,j,k,4,bnum,ee)
+                    data(idx+ 1) = Tdomain%sdom%stress_(i,j,k,5,bnum,ee)
+                    data(idx+ 2) = Tdomain%sdom%stress_(i,j,k,6,bnum,ee)
+                    idx = idx + 3
+                enddo
+            enddo
+        enddo
+    enddo
+    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+    deallocate(data)
+    call h5dclose_f(dset_id, hdferr)
+#endif
+end subroutine write_Stress_nl
+!
+subroutine write_Strain_nl(Tdomain, nmax, elem_id)
+    use constants, only : DM_SOLID
+    use sdomain, only : domain
+    use sem_hdf5, only : create_dset
+    use HDF5
+    implicit none
+#include "index.h"
+    type (domain), intent (IN):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+    integer(kind=4), intent(IN) :: nmax
+
+#ifndef CPML
+    integer(HID_T) :: dset_id
+    integer :: n,ngll,idx,i,j,k,hdferr,bnum,ee
+    real(kind=8), allocatable, dimension(:) :: data
+    integer(HSIZE_T), dimension(1) :: dims
+
+    call create_dset(elem_id, "Strain_nl", H5T_IEEE_F64LE, nmax, dset_id)
+    if(nmax <= 0)then
+        call h5dclose_f(dset_id, hdferr)
+        return
+    end if
+    allocate(data(1:nmax))
+    dims(1) = nmax
+    idx = 1
+    do n = 0,Tdomain%n_elem-1
+        if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngll = Tdomain%sdom%ngll
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    if (idx.gt.nmax) then
+                        write(*,*) "Erreur fatale sauvegarde des protections"
+                        stop 1
+                    end if
+                    data(idx+ 0) = Tdomain%sdom%strain_(i,j,k,0,bnum,ee)
+                    data(idx+ 1) = Tdomain%sdom%strain_(i,j,k,1,bnum,ee)
+                    data(idx+ 2) = Tdomain%sdom%strain_(i,j,k,2,bnum,ee)
+                    idx = idx + 3
+                    data(idx+ 0) = Tdomain%sdom%strain_(i,j,k,4,bnum,ee)
+                    data(idx+ 1) = Tdomain%sdom%strain_(i,j,k,5,bnum,ee)
+                    data(idx+ 2) = Tdomain%sdom%strain_(i,j,k,6,bnum,ee)
+                    idx = idx + 3
+                enddo
+            enddo
+        enddo
+    enddo
+    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+    deallocate(data)
+    call h5dclose_f(dset_id, hdferr)
+#endif
+end subroutine write_Strain_nl
+!
+subroutine write_Pstrain_nl(Tdomain, nmax, elem_id)
+    use constants, only : DM_SOLID
+    use sdomain, only : domain
+    use sem_hdf5, only : create_dset
+    use HDF5
+    implicit none
+#include "index.h"
+    type (domain), intent (IN):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+    integer(kind=4), intent(IN) :: nmax
+
+#ifndef CPML
+    integer(HID_T) :: dset_id
+    integer :: n,ngll,idx,i,j,k,hdferr,bnum,ee
+    real(kind=8), allocatable, dimension(:) :: data
+    integer(HSIZE_T), dimension(1) :: dims
+
+    call create_dset(elem_id, "Pstrain_nl", H5T_IEEE_F64LE, nmax, dset_id)
+    if(nmax <= 0)then
+        call h5dclose_f(dset_id, hdferr)
+        return
+    end if
+    allocate(data(1:nmax))
+    dims(1) = nmax
+    idx = 1
+    do n = 0,Tdomain%n_elem-1
+        if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngll = Tdomain%sdom%ngll
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    if (idx.gt.nmax) then
+                        write(*,*) "Erreur fatale sauvegarde des protections"
+                        stop 1
+                    end if
+                    data(idx+ 0) = Tdomain%sdom%plstrain_(i,j,k,0,bnum,ee)
+                    data(idx+ 1) = Tdomain%sdom%plstrain_(i,j,k,1,bnum,ee)
+                    data(idx+ 2) = Tdomain%sdom%plstrain_(i,j,k,2,bnum,ee)
+                    idx = idx + 3
+                    data(idx+ 0) = Tdomain%sdom%plstrain_(i,j,k,4,bnum,ee)
+                    data(idx+ 1) = Tdomain%sdom%plstrain_(i,j,k,5,bnum,ee)
+                    data(idx+ 2) = Tdomain%sdom%plstrain_(i,j,k,6,bnum,ee)
+                    idx = idx + 3
+                enddo
+            enddo
+        enddo
+    enddo
+    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+    deallocate(data)
+    call h5dclose_f(dset_id, hdferr)
+#endif
+end subroutine write_Pstrain_nl
+!
+subroutine write_Center_nl(Tdomain, nmax, elem_id)
+    use constants, only : DM_SOLID
+    use sdomain, only : domain
+    use sem_hdf5, only : create_dset
+    use HDF5
+    implicit none
+#include "index.h"
+    type (domain), intent (IN):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+    integer(kind=4), intent(IN) :: nmax
+
+#ifndef CPML
+    integer(HID_T) :: dset_id
+    integer :: n,ngll,idx,i,j,k,hdferr,bnum,ee
+    real(kind=8), allocatable, dimension(:) :: data
+    integer(HSIZE_T), dimension(1) :: dims
+
+    call create_dset(elem_id, "Center_nl", H5T_IEEE_F64LE, nmax, dset_id)
+    if(nmax <= 0)then
+        call h5dclose_f(dset_id, hdferr)
+        return
+    end if
+    allocate(data(1:nmax))
+    dims(1) = nmax
+    idx = 1
+    do n = 0,Tdomain%n_elem-1
+        if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngll = Tdomain%sdom%ngll
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    if (idx.gt.nmax) then
+                        write(*,*) "Erreur fatale sauvegarde des protections"
+                        stop 1
+                    end if
+                    data(idx+ 0) = Tdomain%sdom%center_(i,j,k,0,bnum,ee)
+                    data(idx+ 1) = Tdomain%sdom%center_(i,j,k,1,bnum,ee)
+                    data(idx+ 2) = Tdomain%sdom%center_(i,j,k,2,bnum,ee)
+                    idx = idx + 3
+                    data(idx+ 0) = Tdomain%sdom%center_(i,j,k,4,bnum,ee)
+                    data(idx+ 1) = Tdomain%sdom%center_(i,j,k,5,bnum,ee)
+                    data(idx+ 2) = Tdomain%sdom%center_(i,j,k,6,bnum,ee)
+                    idx = idx + 3
+                enddo
+            enddo
+        enddo
+    enddo
+    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+    deallocate(data)
+    call h5dclose_f(dset_id, hdferr)
+#endif
+end subroutine write_Center_nl
+!
+subroutine write_Radius_nl(Tdomain, nmax, elem_id)
+    use constants, only : DM_SOLID
+    use sdomain, only : domain
+    use sem_hdf5, only : create_dset
+    use HDF5
+    implicit none
+#include "index.h"
+    type (domain), intent (IN):: Tdomain
+    integer(HID_T), intent(IN) :: elem_id
+    integer(kind=4), intent(IN) :: nmax
+
+#ifndef CPML
+    integer(HID_T) :: dset_id
+    integer :: n,ngll,idx,i,j,k,hdferr,bnum,ee
+    real(kind=8), allocatable, dimension(:) :: data
+    integer(HSIZE_T), dimension(1) :: dims
+
+    call create_dset(elem_id, "Radius_nl", H5T_IEEE_F64LE, nmax, dset_id)
+    if(nmax <= 0)then
+        call h5dclose_f(dset_id, hdferr)
+        return
+    end if
+    allocate(data(1:nmax))
+    dims(1) = nmax
+    idx = 1
+    do n = 0,Tdomain%n_elem-1
+        if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
+        ngll = Tdomain%sdom%ngll
+        bnum = Tdomain%specel(n)%lnum/VCHUNK
+        ee = mod(Tdomain%specel(n)%lnum,VCHUNK)
+
+        do k = 0,ngll-1
+            do j = 0,ngll-1
+                do i = 0,ngll-1
+                    if (idx.gt.nmax) then
+                        write(*,*) "Erreur fatale sauvegarde des protections"
+                        stop 1
+                    end if
+                    data(idx+ 0) = Tdomain%sdom%radius_(i,j,k,bnum,ee)
+                    idx = idx +1
+                enddo
+            enddo
+        enddo
+    enddo
+    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
+    deallocate(data)
+    call h5dclose_f(dset_id, hdferr)
+#endif
+end subroutine write_Radius_nl
+!
 subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
     use constants, only : DM_FLUID_PML
     use sdomain, only : domain
@@ -590,275 +864,6 @@ subroutine write_Veloc_Fluid_PML(Tdomain, nmax, elem_id)
     deallocate(data)
     call h5dclose_f(dset_id, hdferr)
 end subroutine write_Veloc_Fluid_PML
-
-subroutine write_stress_nl(Tdomain,nmax,elem_id)
-    use constants, only : DM_SOLID
-    use sdomain, only : domain
-    use sem_hdf5, only : create_dset
-    use HDF5
-    implicit none
-    type (domain), intent (IN):: Tdomain
-    integer(HID_T), intent(IN) :: elem_id
-    integer(HID_T) :: dset_id
-    integer(kind=4), intent(IN) :: nmax
-
-    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
-    real(kind=8), allocatable, dimension(:) :: data
-    integer(HSIZE_T), dimension(1) :: dims
-
-    call create_dset(elem_id, "Stress_nl", H5T_IEEE_F64LE, nmax, dset_id)
-    if(nmax <= 0)then
-        call h5dclose_f(dset_id, hdferr)
-        return
-    end if
-    allocate(data(1:nmax))
-    dims(1) = nmax
-    idx = 1
-    do n = 0,Tdomain%n_elem-1
-        if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
-
-        do k = 0,ngllz-1
-            do j = 0,nglly-1
-                do i = 0,ngllx-1
-                    if (idx.gt.nmax) then
-                        write(*,*) "Erreur fatale sauvegarde des protections"
-                        stop 1
-                    end if
-
-                    data(idx+ 0) = Tdomain%specel(n)%sl%stress(0,i,j,k)
-                    data(idx+ 1) = Tdomain%specel(n)%sl%stress(1,i,j,k)
-                    data(idx+ 2) = Tdomain%specel(n)%sl%stress(2,i,j,k)
-                    idx = idx + 3
-                    data(idx+ 0) = Tdomain%specel(n)%sl%stress(3,i,j,k)
-                    data(idx+ 1) = Tdomain%specel(n)%sl%stress(4,i,j,k)
-                    data(idx+ 2) = Tdomain%specel(n)%sl%stress(5,i,j,k)
-                    idx = idx + 3
-                enddo
-            enddo
-        enddo
-    enddo
-    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
-    deallocate(data)
-    call h5dclose_f(dset_id, hdferr)
-
-end subroutine write_stress_nl
-
-subroutine write_strain_nl(Tdomain,nmax,elem_id)
-    use constants, only : DM_SOLID
-    use sdomain, only : domain
-    use sem_hdf5, only : create_dset
-    use HDF5
-    implicit none
-    type (domain), intent (IN):: Tdomain
-    integer(HID_T), intent(IN) :: elem_id
-    integer(HID_T) :: dset_id
-    integer(kind=4), intent(IN) :: nmax
-
-    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
-    real(kind=8), allocatable, dimension(:) :: data
-    integer(HSIZE_T), dimension(1) :: dims
-
-    call create_dset(elem_id, "Strain_nl", H5T_IEEE_F64LE, nmax, dset_id)
-    if(nmax <= 0)then
-        call h5dclose_f(dset_id, hdferr)
-        return
-    end if
-    allocate(data(1:nmax))
-    dims(1) = nmax
-    idx = 1
-    do n = 0,Tdomain%n_elem-1
-        if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
-
-        do k = 0,ngllz-1
-            do j = 0,nglly-1
-                do i = 0,ngllx-1
-                    if (idx.gt.nmax) then
-                        write(*,*) "Erreur fatale sauvegarde des protections"
-                        stop 1
-                    end if
-
-                    data(idx+ 0) = Tdomain%specel(n)%sl%eps_ep(0,i,j,k)
-                    data(idx+ 1) = Tdomain%specel(n)%sl%eps_ep(1,i,j,k)
-                    data(idx+ 2) = Tdomain%specel(n)%sl%eps_ep(2,i,j,k)
-                    idx = idx + 3
-                    data(idx+ 0) = Tdomain%specel(n)%sl%eps_ep(3,i,j,k)
-                    data(idx+ 1) = Tdomain%specel(n)%sl%eps_ep(4,i,j,k)
-                    data(idx+ 2) = Tdomain%specel(n)%sl%eps_ep(5,i,j,k)
-                    idx = idx + 3
-                enddo
-            enddo
-        enddo
-    enddo
-    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
-    deallocate(data)
-    call h5dclose_f(dset_id, hdferr)
-
-end subroutine write_strain_nl
-
-subroutine write_pstrain_nl(Tdomain,nmax,elem_id)
-    use constants, only : DM_SOLID
-    use sdomain, only : domain
-    use sem_hdf5, only : create_dset
-    use HDF5
-    implicit none
-    type (domain), intent (IN):: Tdomain
-    integer(HID_T), intent(IN) :: elem_id
-    integer(HID_T) :: dset_id
-    integer(kind=4), intent(IN) :: nmax
-
-    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
-    real(kind=8), allocatable, dimension(:) :: data
-    integer(HSIZE_T), dimension(1) :: dims
-
-    call create_dset(elem_id, "PStrain_nl", H5T_IEEE_F64LE, nmax, dset_id)
-    if(nmax <= 0)then
-        call h5dclose_f(dset_id, hdferr)
-        return
-    end if
-    allocate(data(1:nmax))
-    dims(1) = nmax
-    idx = 1
-    do n = 0,Tdomain%n_elem-1
-        if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
-
-        do k = 0,ngllz-1
-            do j = 0,nglly-1
-                do i = 0,ngllx-1
-                    if (idx.gt.nmax) then
-                        write(*,*) "Erreur fatale sauvegarde des protections"
-                        stop 1
-                    end if
-
-                    data(idx+ 0) = Tdomain%specel(n)%sl%eps_pl(0,i,j,k)
-                    data(idx+ 1) = Tdomain%specel(n)%sl%eps_pl(1,i,j,k)
-                    data(idx+ 2) = Tdomain%specel(n)%sl%eps_pl(2,i,j,k)
-                    idx = idx + 3
-                    data(idx+ 0) = Tdomain%specel(n)%sl%eps_pl(3,i,j,k)
-                    data(idx+ 1) = Tdomain%specel(n)%sl%eps_pl(4,i,j,k)
-                    data(idx+ 2) = Tdomain%specel(n)%sl%eps_pl(5,i,j,k)
-                    idx = idx + 3
-                enddo
-            enddo
-        enddo
-    enddo
-    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
-    deallocate(data)
-    call h5dclose_f(dset_id, hdferr)
-
-end subroutine write_pstrain_nl
-
-subroutine write_center_nl(Tdomain,nmax,elem_id)
-    use constants, only : DM_SOLID
-    use sdomain, only : domain
-    use sem_hdf5, only : create_dset
-    use HDF5
-    implicit none
-    type (domain), intent (IN):: Tdomain
-    integer(HID_T), intent(IN) :: elem_id
-    integer(HID_T) :: dset_id
-    integer(kind=4), intent(IN) :: nmax
-
-    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
-    real(kind=8), allocatable, dimension(:) :: data
-    integer(HSIZE_T), dimension(1) :: dims
-
-    call create_dset(elem_id, "BStress_nl", H5T_IEEE_F64LE, nmax, dset_id)
-    if(nmax <= 0)then
-        call h5dclose_f(dset_id, hdferr)
-        return
-    end if
-    allocate(data(1:nmax))
-    dims(1) = nmax
-    idx = 1
-    do n = 0,Tdomain%n_elem-1
-        if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
-
-        do k = 0,ngllz-1
-            do j = 0,nglly-1
-                do i = 0,ngllx-1
-                    if (idx.gt.nmax) then
-                        write(*,*) "Erreur fatale sauvegarde des protections"
-                        stop 1
-                    end if
-
-                    data(idx+ 0) = Tdomain%specel(n)%sl%center(0,i,j,k)
-                    data(idx+ 1) = Tdomain%specel(n)%sl%center(1,i,j,k)
-                    data(idx+ 2) = Tdomain%specel(n)%sl%center(2,i,j,k)
-                    idx = idx + 3
-                    data(idx+ 0) = Tdomain%specel(n)%sl%center(3,i,j,k)
-                    data(idx+ 1) = Tdomain%specel(n)%sl%center(4,i,j,k)
-                    data(idx+ 2) = Tdomain%specel(n)%sl%center(5,i,j,k)
-                    idx = idx + 3
-                enddo
-            enddo
-        enddo
-    enddo
-    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
-    deallocate(data)
-    call h5dclose_f(dset_id, hdferr)
-
-end subroutine write_center_nl
-
-subroutine write_radius_nl(Tdomain,nmax,elem_id)
-    use constants, only : DM_SOLID
-    use sdomain, only : domain
-    use sem_hdf5, only : create_dset
-    use HDF5
-    implicit none
-    type (domain), intent (IN):: Tdomain
-    integer(HID_T), intent(IN) :: elem_id
-    integer(HID_T) :: dset_id
-    integer(kind=4), intent(IN) :: nmax
-
-    integer :: n,ngllx,nglly,ngllz,idx,i,j,k,hdferr
-    real(kind=8), allocatable, dimension(:) :: data
-    integer(HSIZE_T), dimension(1) :: dims
-
-    call create_dset(elem_id, "Radius_nl", H5T_IEEE_F64LE, nmax, dset_id)
-    if(nmax <= 0)then
-        call h5dclose_f(dset_id, hdferr)
-        return
-    end if
-    allocate(data(1:nmax))
-    dims(1) = nmax
-    idx = 1
-    do n = 0,Tdomain%n_elem-1
-        if(Tdomain%specel(n)%domain/=DM_SOLID) cycle
-        ngllx = Tdomain%specel(n)%ngllx
-        nglly = Tdomain%specel(n)%nglly
-        ngllz = Tdomain%specel(n)%ngllz
-
-        do k = 0,ngllz-1
-            do j = 0,nglly-1
-                do i = 0,ngllx-1
-                    if (idx.gt.nmax) then
-                        write(*,*) "Erreur fatale sauvegarde des protections"
-                        stop 1
-                    end if
-
-                    data(idx+ 0) = Tdomain%specel(n)%sl%radius(i,j,k)
-                    idx = idx + 1
-                enddo
-            enddo
-        enddo
-    enddo
-    call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, data, dims, hdferr)
-    deallocate(data)
-    call h5dclose_f(dset_id, hdferr)
-
-end subroutine write_radius_nl
 
 subroutine save_checkpoint (Tdomain, rtime, it, dtmin, isort)
     use sdomain
@@ -938,11 +943,11 @@ subroutine save_checkpoint (Tdomain, rtime, it, dtmin, isort)
     call write_Rxyz(Tdomain, offset(6), elem_id)
     ! nonlinear
     if (Tdomain%nl_flag==1) then
-        call write_stress_nl(Tdomain,offset(9),elem_id)
-        call write_strain_nl(Tdomain,offset(10),elem_id)
-        call write_center_nl(Tdomain,offset(11),elem_id)
-        call write_radius_nl(Tdomain,offset(12),elem_id)
-        call write_pstrain_nl(Tdomain,offset(13),elem_id)
+        call write_Stress_nl(Tdomain,offset(9),elem_id)
+        call write_Strain_nl(Tdomain,offset(10),elem_id)
+        call write_Center_nl(Tdomain,offset(11),elem_id)
+        call write_Radius_nl(Tdomain,offset(12),elem_id)
+        call write_Pstrain_nl(Tdomain,offset(13),elem_id)
     endif
     call h5gclose_f(elem_id, hdferr)
     call h5fclose_f(fid, hdferr)
