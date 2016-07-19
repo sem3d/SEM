@@ -314,29 +314,40 @@ contains
         include 'formats.in'
     end subroutine read_one_surface
 
-    subroutine get_surface_domain(gid, domain)
+    subroutine get_surface_domain(gid, isurf, domain, mat_index)
 
     implicit none
-    integer, intent(inout)             :: domain
+    integer(HSIZE_T), intent(in)       :: isurf
+    integer, intent(inout)             :: domain, mat_index
     integer(HID_T), intent(in)         :: gid
     character(len=4), dimension(4)     :: pfx=(/"sl  ", &
                                                 "fl  ", &
                                                 "spml", &
                                                 "fpml"/)
     integer, allocatable, dimension(:) :: itemp
+    character(len=40)                  :: char
     integer                            :: n_faces, i
     
+    ! domaine associé à la surface 
     do i=1,4
        call read_attr_int(gid, "n_"//trim(pfx(i))//"_faces",n_faces)
        if (n_faces/=0) then
           call read_dataset(gid, trim(pfx(i))//"_faces_dom", itemp)
-          if (MAXVAL(itemp).ne.MINVAL(itemp)) then
-              stop "Error : faces_dom uncorrectly denied in surfaces list"
+          if (MAXVAL(itemp) /= MINVAL(itemp)) then
+              stop "Error : faces_dom uncorrectly defined. The surface seems to be an interface."
           endif
           domain=MINVAL(itemp)
           deallocate(itemp)
        endif
     enddo
+    ! materiau auquel est associée la surface
+    write(char,*) isurf
+    call read_dataset(gid, "surface"//adjustl(char(1:len_trim(char))//"_mat"), itemp)
+    if (MAXVAL(itemp) /= MINVAL(itemp)) then
+       stop "Error : surface(i)_mat uncorrectly defined. The surface seems to be an interface."       
+    endif
+    mat_index=MINVAL(itemp)
+    deallocate(itemp)
 
     end subroutine
 
@@ -374,7 +385,7 @@ contains
             call read_one_surface(Tdomain%sSurfaces(i)%surf_fl  , "fl"  , surf_id)
             call read_one_surface(Tdomain%sSurfaces(i)%surf_spml, "spml", surf_id)
             call read_one_surface(Tdomain%sSurfaces(i)%surf_fpml, "fpml", surf_id)
-            call get_surface_domain(surf_id, Tdomain%sSurfaces(i)%domain)
+            call get_surface_domain(surf_id, i, Tdomain%sSurfaces(i)%domain, Tdomain%sSurfaces(i)%Elastic%mat_index)
             write(*,2008)
             write(*,*)
         end do

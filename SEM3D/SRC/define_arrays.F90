@@ -85,12 +85,15 @@ contains
         call assemble_mass_matrices(Tdomain)
         call finalize_pml_properties(Tdomain)
         call inverse_mass_mat(Tdomain)
-        do n = 0,size(Tdomain%sSurfaces)-1
-            if (trim(Tdomain%sSurfaces(n)%name)=="dirichlet") then
-                call init_dirichlet_surface(Tdomain, Tdomain%sSurfaces(n))
-                exit
-            end if
-        end do
+        if (Tdomain%n_DIRIC /= 0) then
+            do n = 0,size(Tdomain%list_DIRICBC)-1    !size(Tdomain%sSurfaces)-1
+               ee = Tdomain%list_DIRICBC(n+1)
+               !if (trim(Tdomain%sSurfaces(n)%name)=="dirichlet") then
+               call init_dirichlet_surface(Tdomain, Tdomain%sSurfaces(ee))
+               !    exit
+               !end if
+            end do
+         endif
 
         ! Copy Idom from element to domain_XXX
         do n = 0,Tdomain%n_elem-1

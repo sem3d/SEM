@@ -121,7 +121,8 @@ module sdomain
        type(sem_config) :: config
 
        ! Rajouter pour le traitement des surface
-       integer :: n_NEBC, n_PWBC, n_FTBC, nsurface
+       integer                            :: n_NEBC, n_PWBC, n_FTBC, nsurface, n_DIRIC
+       integer, dimension(:), allocatable :: list_NEBC, list_PWBC, list_FTBC, list_DIRICBC
     end type domain
 
 contains

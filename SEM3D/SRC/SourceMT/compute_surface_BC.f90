@@ -47,31 +47,81 @@ contains
         implicit none
         type(domain), intent(inout)  :: Tdomain
         integer                      :: i_surf, n1, n2, n3, n4, ns
- 
-        do ns=0,Tdomain%nsurface-1 
-           if (Tdomain%n_NEBC/=0) then
-              !! Add Neumann boundary condition
-              do i_surf = 0,size(Tdomain%sSurfaces)-1
-                 if ((Tdomain%nsurfsource(ns)%what_bc == 'NE').and. &
-                     (surfbool(Tdomain%sSurfaces(i_surf), Tdomain%nsurfsource(ns)))) then
-                     select case (Tdomain%sSurfaces(i_surf)%domain)
+        character(len=256)                        :: FunctionName ='add_surface_force'
+        character(len=256)                        :: SourceFile = 'compute_surface_BC'
+        character(len=700)                        :: ErrorSMS
+
+
+        if (Tdomain%n_NEBC/=0) then
+           !! Add Neumann boundary condition
+           do ns=0,size(Tdomain%list_NEBC)-1
+              n2=Tdomain%list_NEBC(ns+1)
+              if (Tdomain%nsurfsource(n2)%what_bc == 'NE') then
+                 do n1 = 1,size(Tdomain%nsurfsource(n2)%index)
+                    i_surf = Tdomain%nsurfsource(n2)%index(n1)-1
+            
+                    select case (Tdomain%sSurfaces(i_surf)%domain)
+                           case(DM_SOLID)
+                                call surface_force(Tdomain%sSurfaces(i_surf)%surf_sl, Tdomain%nsurfsource(n2), &
+                                                   Tdomain%sSurfaces(i_surf), Tdomain)
+                           case(DM_FLUID)
+                                call surface_force(Tdomain%sSurfaces(i_surf)%surf_fl, Tdomain%nsurfsource(n2), &
+                                                   Tdomain%sSurfaces(i_surf), Tdomain)
+                           case(DM_SOLID_PML)
+                                call surface_force(Tdomain%sSurfaces(i_surf)%surf_spml, Tdomain%nsurfsource(n2), &
+                                                   Tdomain%sSurfaces(i_surf), Tdomain)
+                           case(DM_FLUID_PML)
+                                call surface_force(Tdomain%sSurfaces(i_surf)%surf_fpml, Tdomain%nsurfsource(n2), &
+                                                   Tdomain%sSurfaces(i_surf), Tdomain)
+                   end select
+                 enddo 
+              endif
+           enddo
+        endif
+
+        if (Tdomain%n_PWBC /= 0) then
+           ErrorSMS= "Sorry the plane wave problem is not yet implemented"
+           call ErrorMessage(ErrorSMS,FunctionName,SourceFile)
+
+           do ns=0,size(Tdomain%list_PWBC)-1
+              n2=Tdomain%list_PWBC(ns+1)
+              do n1 = 1,size(Tdomain%nsurfsource(n2)%index)
+                 i_surf = Tdomain%nsurfsource(n2)%index(n1)-1
+                 select case (Tdomain%sSurfaces(i_surf)%domain)
                        case(DM_SOLID)
-                           call surface_force(Tdomain%sSurfaces(i_surf)%surf_sl, Tdomain%nsurfsource(ns), &
-                                              Tdomain%sSurfaces(i_surf), Tdomain)
+
                        case(DM_FLUID)
-                           call surface_force(Tdomain%sSurfaces(i_surf)%surf_fl, Tdomain%nsurfsource(ns), &
-                                              Tdomain%sSurfaces(i_surf), Tdomain)
+
                        case(DM_SOLID_PML)
-                           call surface_force(Tdomain%sSurfaces(i_surf)%surf_spml, Tdomain%nsurfsource(ns), &
-                                              Tdomain%sSurfaces(i_surf), Tdomain)
+
                        case(DM_FLUID_PML)
-                           call surface_force(Tdomain%sSurfaces(i_surf)%surf_fpml, Tdomain%nsurfsource(ns), &
-                                              Tdomain%sSurfaces(i_surf), Tdomain)
-                     end select
-                 endif
+
+                 end select
               enddo
-           endif
-        enddo
+           enddo
+        endif
+
+        if (Tdomain%n_FTBC /= 0) then
+           ErrorSMS= "Sorry the fault problem is not yet implemented"
+           call ErrorMessage(ErrorSMS,FunctionName,SourceFile)
+
+           do ns=0,size(Tdomain%list_PWBC)-1
+              n2=Tdomain%list_PWBC(ns+1)
+              do n1 = 1,size(Tdomain%nsurfsource(n2)%index)
+                 i_surf = Tdomain%nsurfsource(n2)%index(n1)-1
+                 select case (Tdomain%sSurfaces(i_surf)%domain)
+                        case(DM_SOLID)
+                           
+                        case(DM_FLUID)
+                             
+                        case(DM_SOLID_PML)
+              
+                        case(DM_FLUID_PML)
+                                  
+                 end select
+              enddo
+            enddo
+        endif
 
     end subroutine add_surface_force
     !-------------------------------------------------------------------------------
@@ -158,24 +208,19 @@ contains
            ypt = surf_norm%coord(i,1)
            zpt = surf_norm%coord(i,2)
             
-           
-           !write(*,*) BtN
-           !write(*,*) 
-                        
            force = forces_on_face(xpt, ypt, zpt, BtN, surf_source, Tdomain%TimeD%dtmin, Tdomain%TimeD%rtime)
 
            select case (surf_norm%domain)
               case (DM_SOLID)
                  Tdomain%sdom%champs1%Forces(idx,:) = Tdomain%sdom%champs1%Forces(idx,:) + force
-              !case (DM_FLUID)
+              case (DM_FLUID)
+              
               case default 
                  ErrorSMS= "surface force computation, only solid domain is implemented "
                  call ErrorMessage(ErrorSMS,FunctionName,SourceFile)
            end select
         enddo
 
-        !stop "ici"
-    
     end subroutine surface_force
     !----------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------
@@ -235,7 +280,8 @@ contains
              end select
          endif
          
-         midtime = dt/2. + ctime
+         midtime = ctime
+         if(ctime /= 0.) midtime = dt/2. + ctime
 
          select case(Param%wtype)
                 case('R')
@@ -266,6 +312,8 @@ contains
                            forces_on_face(0) = Sourcef%fvalue(1)
                            forces_on_face(1) = Sourcef%fvalue(2)
                            forces_on_face(2) = Sourcef%fvalue(3)
+                      elseif ((Sourcef%dim==1).and.(Sourcef%source == 'F')) then
+                           forces_on_face = Param%dir*Sourcef%fvalue(1)
                       endif
          end select
 
