@@ -17,7 +17,7 @@ subroutine read_surface_input(Tdomain, config)
   type(sem_surfaces), pointer  :: surf
   character(Len=MAX_FILE_SIZE) :: fnamef
   character(len=800)           :: parametric_var
-  character(len=12)            :: char
+  character(len=20)            :: char
   character(len=70)            :: sourcename
   real(kind=8)                 :: ndir
   integer                      :: i, rg, nsurf, int
@@ -32,12 +32,12 @@ Tdomain%nsurface = config%nsurface
 allocate (Tdomain%nsurfsource(0:Tdomain%nsurface -1))
 
 call c_f_pointer(config%surface, surf)
-nsurf= 0
-Tdomain%n_NEBC=0
-Tdomain%n_PWBC=0
-Tdomain%n_FTBC=0
+nsurf          =0
+Tdomain%n_NEBC =0
+Tdomain%n_PWBC =0
+Tdomain%n_FTBC =0
 Tdomain%n_DIRIC=0
-!! Ecriture par un seul proc
+!! 
 rg = Tdomain%rank
  
 if (rg == 0) then
@@ -47,9 +47,11 @@ if (rg == 0) then
 endif
 
 do while(associated(surf))
+  
+  write(*,*) nsurf 
     
   if ( surf%surface_present /= 0 ) then
-     int = Tdomain%nsurface-nsurf
+     int = nsurf
      write(char,*) int
      if (allocated(dummylist)) deallocate(dummylist)
      if  (surf%surface_whatbc == 1) then
@@ -216,15 +218,15 @@ do while(associated(surf))
      
      else
          write(*,2016) "Associated surface : ",(Tdomain%nsurfsource(nsurf)%index(i)-1, i=1,Count(Boolean))
-         write(*,2016) "No parameters to associate"
+         write(*,1005) "No parameters to associate"
          write(*,*)
      endif
-
      nsurf = nsurf + 1
      Tdomain%logicD%surfBC = .true.
-     call c_f_pointer(surf%next, surf)
      write(*,*)
   endif
+  call c_f_pointer(surf%next, surf)
+  
 enddo
 
 Tdomain%nsurface = nsurf
@@ -285,7 +287,7 @@ subroutine define_surface_properties(Tdomain)
 
 
   ! elastic properties
-  do i_surf = 0,size(Tdomain%sSurfaces)-1
+  do i_surf = 0, Tdomain%nsurface-1
      index = Tdomain%sSurfaces(i_surf)%Elastic%mat_index
      Tdomain%sSurfaces(i_surf)%Elastic%lambda  = Tdomain%sSubDomain(index)%DLambda
      Tdomain%sSurfaces(i_surf)%Elastic%Mu      = Tdomain%sSubDomain(index)%DMu
