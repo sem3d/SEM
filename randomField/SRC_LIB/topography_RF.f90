@@ -172,15 +172,16 @@ contains
         xRange = MSH%xMaxGlob - MSH%xMinGlob
         LD     = MSH%nDim
 
-        !xMinBound = 0.0
-        !xMaxBound = MSH%procExtent
+        xMinBound = 0.0
+        xMaxBound = MSH%procExtent
 
         !Slicing Last Dimension (LD)
         deltaLD = MSH%procExtent(LD)/dble(MSH%nb_procs)
         xMinBound(LD) = MSH%rang*deltaLD
         xMaxBound(LD) = xMinBound(LD) + deltaLD
-        xMinBound = xMinBound + MSH%procStart
-        xMaxBound = xMaxBound + MSH%procStart
+
+        xMinBound = MSH%xMinGlob + xMinBound + MSH%procStart
+        xMaxBound = MSH%xMinGlob + xMaxBound + MSH%procStart
 
         where(MSH%coords /= (MSH%procPerDim - 1)) xMaxBound = xMaxBound - MSH%xStep
 
@@ -228,9 +229,9 @@ contains
                 stop(" ")
             end if
 
-            xMinBound = MSH%xMinGlob
+            !xMinBound = MSH%xMinGlob
             xMinBound(LD) = MSH%xMinGlob(LD) + dble(local_LD_offset)*MSH%xStep(LD)
-            xMaxBound = MSH%xMaxGlob
+            !xMaxBound = MSH%xMaxGlob
             xMaxBound(LD) = xMinBound(LD) + dble(local_LastDim-1)*MSH%xStep(LD)
 
         end if
@@ -464,7 +465,7 @@ contains
 
 
         !LOCAL
-        integer :: newComm, newNbProcs, newRang, code, color
+        integer :: newNbProcs, newRang, code, color
         integer, dimension(IPT%nDim) :: xNStepGlob
         !FFTW
         integer(C_INTPTR_T) :: L, M, N
@@ -519,9 +520,9 @@ contains
             call wLog("Verification (Geometry)--------")
             if(gen_rang > xNStepGlob(LD)-1) then
                 valid = .false.
-                call wLog("Verification - proc OK")
-            else
                 call wLog("Verification - proc KO (won't be used for generation)")
+            else
+                call wLog("Verification - proc OK")
             end if
 
         end if

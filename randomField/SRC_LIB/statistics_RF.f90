@@ -35,7 +35,7 @@ contains
 
         Nmc     = size(STA%randField, 2)
         xNTotal = size(STA%randField, 1)
-        comm    = STA%valid_comm !STA%comm
+        comm    = STA%valid_comm
 
         !Allocating
         allocate(sumRF(Nmc))
@@ -61,18 +61,14 @@ contains
         !By Event
         sumRF(:)       = sum( STA%randField    , dim = 1)
         sumRFsquare(:) = sum((STA%randField)**2, dim = 1)
-        write(*,*) "sumRF(:) = ", sumRF(:)
-        write(*,*) "sumRFsquare(:) = ", sumRFsquare(:)
+        !write(*,*) "sumRF(:) = ", sumRF(:)
+        !write(*,*) "sumRFsquare(:) = ", sumRFsquare(:)
         call MPI_ALLREDUCE (sumRF,totalSumRF,Nmc,MPI_DOUBLE_PRECISION, &
             MPI_SUM,comm,code)
-        write(*,*) "AFTER 0"
         call MPI_ALLREDUCE (sumRFsquare,totalSumRFsquare,Nmc,MPI_DOUBLE_PRECISION, &
             MPI_SUM,comm,code)
-        write(*,*) "AFTER 1"
         call MPI_ALLREDUCE (xNTotal,sum_xNTotal,1,MPI_INTEGER, &
             MPI_SUM,comm,code)
-
-        write(*,*) "AFTER 2"
 
         !if(STA%rang == 0) write(*,*) "xNTotal          = ", xNTotal
         !if(STA%rang == 0) write(*,*) "sumRF            = ", sumRF
