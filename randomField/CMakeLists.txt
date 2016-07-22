@@ -31,6 +31,7 @@ set(RF_SRC
 set(STAT_SRC
   ${RFDIR}/SRC_LIB/statistics_RF.f90
   ${RFDIR}/SRC_LIB/type_STAT.f90
+  ${RFDIR}/SRC_EXE/main_Stat.f90
   )
 set(COMM_SRC
   ${RFDIR}/SRC_LIB/hdf5_RF.f90

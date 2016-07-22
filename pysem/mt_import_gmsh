@@ -91,7 +91,6 @@ class Gmsh(object):
         self.quad4_mat = []
         self.hexa8_mat = []
         self.tag_mat = 1
-        self.faces_set = []
 
     def read(self, f):
         while True:
