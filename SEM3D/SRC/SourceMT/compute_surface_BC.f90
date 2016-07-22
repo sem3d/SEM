@@ -28,8 +28,8 @@ contains
       character(len=12)              :: char
 
       surfbool = .false.
-      do i=1,size(source%index)
-         surfi = source%index(i)-1
+      do i=lbound(source%index,1),ubound(source%index,1)
+         surfi = source%index(i)
          write(char,*) surfi
          if (surf%name == "surface"//adjustl(char(1:len_trim(char))) ) then
              surfbool = .true.
@@ -58,7 +58,7 @@ contains
               n2=Tdomain%list_NEBC(ns+1)
               if (Tdomain%nsurfsource(n2)%what_bc == 'NE') then
                  do n1 = 1,size(Tdomain%nsurfsource(n2)%index)
-                    i_surf = Tdomain%nsurfsource(n2)%index(n1)-1
+                    i_surf = Tdomain%nsurfsource(n2)%index(n1)
             
                     select case (Tdomain%sSurfaces(i_surf)%domain)
                            case(DM_SOLID)
@@ -86,7 +86,7 @@ contains
            do ns=0,size(Tdomain%list_PWBC)-1
               n2=Tdomain%list_PWBC(ns+1)
               do n1 = 1,size(Tdomain%nsurfsource(n2)%index)
-                 i_surf = Tdomain%nsurfsource(n2)%index(n1)-1
+                 i_surf = Tdomain%nsurfsource(n2)%index(n1)
                  select case (Tdomain%sSurfaces(i_surf)%domain)
                        case(DM_SOLID)
 
@@ -108,7 +108,7 @@ contains
            do ns=0,size(Tdomain%list_PWBC)-1
               n2=Tdomain%list_PWBC(ns+1)
               do n1 = 1,size(Tdomain%nsurfsource(n2)%index)
-                 i_surf = Tdomain%nsurfsource(n2)%index(n1)-1
+                 i_surf = Tdomain%nsurfsource(n2)%index(n1)
                  select case (Tdomain%sSurfaces(i_surf)%domain)
                         case(DM_SOLID)
                            

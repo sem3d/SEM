@@ -244,7 +244,7 @@ subroutine RUN_PREPARED(Tdomain)
     if (rg == 0) write (*,*) "--> DEFINING A GLOBAL NUMBERING FOR COLLOCATION POINTS"
     call global_numbering (Tdomain)
     call MPI_Barrier(Tdomain%communicateur,code)
-
+ 
  !- allocation of different fields' sizes
     if (rg == 0) write (*,*) "--> ALLOCATING FIELDS"
     call allocate_domain(Tdomain)

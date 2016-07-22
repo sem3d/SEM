@@ -61,8 +61,7 @@ subroutine global_numbering(Tdomain)
     call prepare_comm_vector(Tdomain, Tdomain%Comm_data)
 
     call prepare_comm_surface(Tdomain, Tdomain%Comm_SolFlu)
-
-    include 'formats.in'
+    
 end subroutine global_numbering
 
 subroutine renumber_global_gll_nodes(Tdomain)

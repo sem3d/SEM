@@ -409,7 +409,7 @@ void Mesh3D::read_mesh_Quad8(hid_t file_id)
 
   for (int i=0; i< domain.size(); i++){
        std::ostringstream convert;
-       convert << i;
+       convert << domain[i];
        m_surf_matname.push_back("surface"+convert.str());}
    
    printf("\n");
@@ -425,11 +425,12 @@ void Mesh3D::read_mesh_Quad8(hid_t file_id)
      for(int j=0; j< nnodes; j++) elems.push_back(m_Quad[k*4+j]);
      int elmat=imat+k;
      int tg4nodes=m_matQuad[k]; 
-     findelem(elmat, elemtrace, elems, elemneed, elmat);
-     m_mat.push_back(m_mat[elmat]);
+     int el8mat=-1;
+     findelem(elmat, elemtrace, elems, elemneed,el8mat);
+     m_mat.push_back(m_mat[el8mat]);
       
      for(int j=0; j< elemneed.size(); j++) m_elems.push_back(elemneed[j]);
-     surfelem[imat+k] = std::pair<std::pair< std::vector<int>, int >, int > ( std::pair< std::vector<int>, int > (elemneed,m_mat[elmat]), tg4nodes);
+     surfelem[imat+k] = std::pair<std::pair< std::vector<int>, int >, int > ( std::pair< std::vector<int>, int > (elemneed,m_mat[el8mat]), tg4nodes);
    }
 }
 
@@ -440,6 +441,7 @@ void Mesh3D::findelem(int& imat, std::vector<int>& eltr, std::vector<int>& elems
   
   for(int i=0; i< eltr.size()/8; i++){
      std::vector<int> elems_i;
+     elems_i.clear();
      for(int j=0; j<8; j++) elems_i.push_back(eltr[i*8+j]);
      if (elems_i.size()==8){
         int p=0;

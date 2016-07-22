@@ -190,25 +190,16 @@ public:
     void add_vertex(const PVertex& vx, int data) {
         m_vertices[vx] = data;
     }
-    void get_faces_data(mapf surfelem_t, int dom, std::vector<int>& data, std::vector<int>& orient, std::vector<int>& matdom, std::vector<int>& mat) const {
+    void get_faces_data(mapf surfelem_t, int dom, std::vector<int>& data, std::vector<int>& orient, std::vector<int>& matdom) const {
         data.clear();
         orient.clear();
         matdom.clear();
-        mat.clear();
+        
         for(face_map_t::const_iterator it=m_faces.begin();it!=m_faces.end();++it) {
             if (it->first.domain()!=dom) continue;
             data.push_back(it->second);
             orient.push_back(it->first.orient);
             matdom.push_back(it->first.domain());
-            // look at the material associated
-            mapf ::const_iterator itt;
-            for (itt = surfelem_t.begin(); itt != surfelem_t.end();itt++) {
-                bool add=true;
-                for(int p=0; p<4; ++p) {
-                   if (std::find(itt->second.first.first.begin(),itt->second.first.first.end(),it->first.n[p])==itt->second.first.first.end()) add=false;
-                 }
-                if (add) { mat.push_back(itt->second.first.second); break;}
-             }
         }
     }
     void get_edges_data(int dom, std::vector<int>& data, std::vector<int>& orient, std::vector<int>& matdom) const {

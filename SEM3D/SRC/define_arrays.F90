@@ -35,7 +35,8 @@ contains
         implicit none
 
         type (domain), intent (INOUT), target :: Tdomain
-        integer :: n, mat, rg, bnum, ee
+        integer :: n, mat, rg, bnum, ee, s
+        character(len=20) :: char
 
         rg = Tdomain%rank
 
@@ -85,16 +86,30 @@ contains
         call assemble_mass_matrices(Tdomain)
         call finalize_pml_properties(Tdomain)
         call inverse_mass_mat(Tdomain)
+        
+        ! Add by Mtaro
         if (Tdomain%n_DIRIC /= 0) then
-            do n = 0,size(Tdomain%list_DIRICBC)-1    !size(Tdomain%sSurfaces)-1
-               ee = Tdomain%list_DIRICBC(n+1)
-               !if (trim(Tdomain%sSurfaces(n)%name)=="dirichlet") then
-               call init_dirichlet_surface(Tdomain, Tdomain%sSurfaces(ee))
-               !    exit
-               !end if
-            end do
+            do ee = lbound(Tdomain%list_DIRICBC,1),ubound(Tdomain%list_DIRICBC,1)
+               do s = lbound(Tdomain%nsurfsource(ee)%index,1),ubound(Tdomain%nsurfsource(ee)%index,1)
+                  write(char,*) Tdomain%nsurfsource(ee)%index(s)
+                  block:&
+                  do n = 0,size(Tdomain%sSurfaces)-1
+                     if (Tdomain%sSurfaces(n)%name=="surface"//adjustl(char(:len_trim(char)))) then
+                         call init_dirichlet_surface_MT(Tdomain, Tdomain%sSurfaces(n))
+                         exit block
+                     endif
+                  enddo block
+               enddo
+             enddo
+         else
+             do n = 0,size(Tdomain%sSurfaces)-1
+                if (trim(Tdomain%sSurfaces(n)%name)=="dirichlet") then
+                   call init_dirichlet_surface(Tdomain, Tdomain%sSurfaces(n))
+                   exit
+                end if
+             end do
          endif
-
+        
         ! Copy Idom from element to domain_XXX
         do n = 0,Tdomain%n_elem-1
             bnum = Tdomain%specel(n)%lnum/VCHUNK
@@ -115,6 +130,98 @@ contains
         end do
 
     end subroutine define_arrays
+
+
+
+    subroutine dirichlet_gll_map(dirichlet, dirichlet_out)
+    
+        implicit none
+        integer, dimension(:), intent( in  )              :: dirichlet 
+        integer, dimension(:), allocatable, intent(out)   :: dirichlet_out
+        integer, dimension(:), allocatable                :: dummy
+        integer                                           :: pp, n, m
+
+        allocate(dummy(0:size(dirichlet)-1))
+        pp=0
+        do n=0,size(dirichlet)-1
+           bloc : &
+           do m=0,n
+              if (dirichlet(m)==dirichlet(n)) exit bloc
+           enddo bloc
+           if (n==m) then
+              dummy(pp) = dirichlet(n)
+              pp=pp+1
+           endif
+        enddo
+        allocate(dirichlet_out(0:pp-1))
+        dirichlet_out = dummy(0:pp-1)
+        deallocate(dummy)
+
+    end subroutine dirichlet_gll_map
+     
+    subroutine init_dirichlet_surface_MT(Tdomain, surf)
+        
+        implicit none
+        type (domain), intent (INOUT)      :: Tdomain
+        type (SurfaceT), intent(INOUT)     :: surf
+        integer, dimension(:), allocatable :: dummy
+        integer                            :: n_dirich
+        !
+        Tdomain%sdom%n_dirich = surf%surf_sl%nbtot
+        if (Tdomain%sdom%n_dirich/=0) then
+            if (allocated(Tdomain%sdom%dirich)) then
+                allocate(dummy(0:size(Tdomain%sdom%dirich)-1))
+                dummy=Tdomain%sdom%dirich
+                deallocate(Tdomain%sdom%dirich) 
+                call dirichlet_gll_map((/dummy, surf%surf_sl%map/),Tdomain%sdom%dirich)
+                Tdomain%sdom%n_dirich = size(Tdomain%sdom%dirich)
+            else
+               allocate(Tdomain%sdom%dirich(0:surf%surf_sl%nbtot-1))
+               Tdomain%sdom%dirich = surf%surf_sl%map
+            endif
+        end if
+        Tdomain%fdom%n_dirich = surf%surf_fl%nbtot
+        if (Tdomain%fdom%n_dirich/=0) then
+            if (allocated(Tdomain%fdom%dirich)) then
+                allocate(dummy(0:size(Tdomain%fdom%dirich)-1))
+                dummy=Tdomain%fdom%dirich
+                deallocate(Tdomain%fdom%dirich)
+                call dirichlet_gll_map((/dummy, surf%surf_fl%map/),Tdomain%fdom%dirich)
+                Tdomain%fdom%n_dirich = size(Tdomain%fdom%dirich)
+            else
+                allocate(Tdomain%fdom%dirich(0:surf%surf_fl%nbtot-1))
+                Tdomain%fdom%dirich = surf%surf_fl%map
+            endif
+        end if
+        Tdomain%spmldom%n_dirich = surf%surf_spml%nbtot
+        if (Tdomain%spmldom%n_dirich/=0) then
+            if (allocated(Tdomain%spmldom%dirich)) then
+                allocate(dummy(0:size(Tdomain%spmldom%dirich)-1))
+                dummy=Tdomain%spmldom%dirich
+                deallocate(Tdomain%spmldom%dirich)
+                call dirichlet_gll_map((/dummy, surf%surf_spml%map/),Tdomain%spmldom%dirich)
+                Tdomain%spmldom%n_dirich = size(Tdomain%spmldom%dirich)
+            else
+                allocate(Tdomain%spmldom%dirich(0:surf%surf_spml%nbtot-1))
+                Tdomain%spmldom%dirich = surf%surf_spml%map
+            endif
+        end if
+        Tdomain%fpmldom%n_dirich = surf%surf_fpml%nbtot
+        if (Tdomain%fpmldom%n_dirich/=0) then
+            if (allocated(Tdomain%fpmldom%dirich)) then
+                allocate(dummy(0:size(Tdomain%fpmldom%dirich)-1))
+                dummy=Tdomain%fpmldom%dirich
+                deallocate(Tdomain%fpmldom%dirich)
+                call dirichlet_gll_map((/dummy, surf%surf_fpml%map/),Tdomain%fpmldom%dirich)
+                Tdomain%fpmldom%n_dirich = size(Tdomain%fpmldom%dirich)
+            else
+                allocate(Tdomain%fpmldom%dirich(0:surf%surf_fpml%nbtot-1))
+                Tdomain%fpmldom%dirich = surf%surf_fpml%map
+            endif
+        end if
+        if (allocated(dummy)) deallocate(dummy)
+    
+    end subroutine init_dirichlet_surface_MT
 
 
     subroutine init_dirichlet_surface(Tdomain, surf)

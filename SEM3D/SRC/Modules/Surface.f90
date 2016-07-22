@@ -31,7 +31,7 @@ module ssurf
         character(len=1500)                :: funcxy, funcxz, funcyz
         character(len=12)                  :: varia
         character                          :: source
-        integer                            :: dim
+        integer                            :: dim, mat_index
         integer, allocatable               :: index(:)
         real(kind=8), allocatable          :: paravalue(:)
         character(len=2), dimension(1:100) :: paramname

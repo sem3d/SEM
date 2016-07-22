@@ -314,11 +314,11 @@ contains
         include 'formats.in'
     end subroutine read_one_surface
 
-    subroutine get_surface_domain(gid, isurf, domain, mat_index)
+    subroutine get_surface_domain(gid, isurf, domain) !, mat_index)
 
     implicit none
     integer(HSIZE_T), intent(in)       :: isurf
-    integer, intent(inout)             :: domain, mat_index
+    integer, intent(inout)             :: domain !, mat_index
     integer(HID_T), intent(in)         :: gid
     character(len=4), dimension(4)     :: pfx=(/"sl  ", &
                                                 "fl  ", &
@@ -338,16 +338,15 @@ contains
           endif
           domain=MINVAL(itemp)
           deallocate(itemp)
+          ! materiau auquel est associée la surface
+          !call read_dataset(gid, trim(pfx(i))//"_surf_mat", itemp)
+          !if (MAXVAL(itemp) /= MINVAL(itemp)) then
+          !  stop "Error : surface(i)_mat uncorrectly defined. The surface seems to be an interface."       
+          !endif
+          !mat_index=MINVAL(itemp)
+          !deallocate(itemp)
        endif
     enddo
-    ! materiau auquel est associée la surface
-    write(char,*) isurf
-    call read_dataset(gid, "surface"//adjustl(char(1:len_trim(char))//"_mat"), itemp)
-    if (MAXVAL(itemp) /= MINVAL(itemp)) then
-       stop "Error : surface(i)_mat uncorrectly defined. The surface seems to be an interface."       
-    endif
-    mat_index=MINVAL(itemp)
-    deallocate(itemp)
 
     end subroutine
 
@@ -385,7 +384,7 @@ contains
             call read_one_surface(Tdomain%sSurfaces(i)%surf_fl  , "fl"  , surf_id)
             call read_one_surface(Tdomain%sSurfaces(i)%surf_spml, "spml", surf_id)
             call read_one_surface(Tdomain%sSurfaces(i)%surf_fpml, "fpml", surf_id)
-            call get_surface_domain(surf_id, i, Tdomain%sSurfaces(i)%domain, Tdomain%sSurfaces(i)%Elastic%mat_index)
+            call get_surface_domain(surf_id, i, Tdomain%sSurfaces(i)%domain) !, Tdomain%sSurfaces(i)%Elastic%mat_index)
             write(*,2008)
             write(*,*)
         end do

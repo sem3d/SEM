@@ -670,19 +670,19 @@ void Mesh3DPart::write_surface_dom(hid_t gid, const Surface* surf, const char* p
     snprintf(sface_num , 100, "n_%s_faces", pfx);
     snprintf(sedge_data, 100, "%s_edges", pfx);
     snprintf(sedge_num , 100, "n_%s_edges", pfx);
-    if (dom==DM_SOLID) snprintf(surf_matda, 100, (surf->name()+"_mat").c_str(), pfx);
+   // snprintf(surf_matda, 100, "%s_surf_mat", pfx);
     snprintf(svert_data, 100, "%s_vertices", pfx);
     snprintf(svert_num , 100, "n_%s_vertices", pfx);
     snprintf(svert_dom, 100, "%s_vertices_dom", pfx);
     snprintf(sedge_dom , 100, "%s_edges_dom", pfx);
     snprintf(sface_dom , 100, "%s_faces_dom", pfx);
 
-    surf->get_faces_data(m_mesh.surfelem, dom, data, orient, matdom, mat);
+    surf->get_faces_data(m_mesh.surfelem, dom, data, orient, matdom);
     h5h_create_attr(gid, sface_num, (int)data.size());
     h5h_write_dset(gid, sface_data, data);
     h5h_write_dset(gid, sface_orient, orient);
     h5h_write_dset(gid, sface_dom, matdom);
-    if (dom==DM_SOLID) h5h_write_dset(gid, surf_matda, mat);
+    //h5h_write_dset(gid, surf_matda, mat);
 
 
     surf->get_edges_data(dom, data, orient, matdom);

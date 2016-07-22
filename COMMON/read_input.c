@@ -418,14 +418,15 @@ int expect_surfaces(yyscan_t scanner, sem_config_t* config)
 	if (tok!=K_ID) break;
          
         if (cmp(scanner,"use")) err=expect_eq_int(scanner, &surface->surface_present,1);
-        if (cmp(scanner,"whatBC")) err=expect_eq_int(scanner, &surface->surface_whatbc,1);
+        if (cmp(scanner,"type")) err=expect_eq_int(scanner, &surface->surface_whatbc,1);
 	if (cmp(scanner,"frcdir")) err=expect_eq_float(scanner, surface->surface_K,3);
-        if (cmp(scanner,"type")) err=expect_eq_int(scanner, &surface->surface_type, 1);
+        if (cmp(scanner,"time")) err=expect_eq_int(scanner, &surface->surface_type, 1);
         if (cmp(scanner,"ampli")) err=expect_eq_float(scanner, &surface->amplitude,1);
-        if (cmp(scanner,"Rtau")) err=expect_eq_float(scanner, &surface->Rtau,1);
+        if (cmp(scanner,"tau")) err=expect_eq_float(scanner, &surface->Rtau,1);
 	if (cmp(scanner,"C")) err=expect_eq_float(scanner, surface->surface_C,3);
-	if (cmp(scanner,"Rfreq")) err=expect_eq_float(scanner, &surface->surface_f0,1);
+	if (cmp(scanner,"freq")) err=expect_eq_float(scanner, &surface->surface_f0,1);
         if (cmp(scanner,"nsurf")) err=expect_eq_int(scanner, &use,1);
+        if (cmp(scanner,"mat_i")) err=expect_eq_int(scanner, &surface->surface_mat,1);
         if (cmp(scanner,"index")) { if (use!=-1) err=expect_eq_int(scanner, surface->surface_list,use);}
         if (cmp(scanner,"var")) err=expect_eq_string(scanner, &surface->surface_varia,1);
         if (cmp(scanner,"fxx")) {err=expect_eq_string(scanner, &surface->surface_funcx,1);

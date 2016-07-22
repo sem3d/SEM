@@ -778,6 +778,7 @@ contains
         ! boundary conditions? If yes: geometrical properties read in the mesh files.
         Tdomain%logicD%surfBC = Tdomain%config%surface_find /= 0
         !! Add by Mtaro
+        call init_surface_source(Tdomain)
         if (Tdomain%logicD%surfBC) then
            call read_surface_input(Tdomain, Tdomain%config) 
         endif
@@ -834,6 +835,20 @@ contains
         endif
         call select_output_elements(Tdomain, Tdomain%config)
     end subroutine read_input
+    
+    subroutine init_surface_source(Tdomain)
+       use sdomain
+    
+       implicit none
+       type(domain), intent(inout) :: Tdomain
+    
+       Tdomain%nsurface = 0
+       Tdomain%n_NEBC =0
+       Tdomain%n_PWBC =0
+       Tdomain%n_FTBC =0
+       Tdomain%n_DIRIC=0
+    
+    end subroutine init_surface_source
 
     function getLine (fid, comment_Tag) result(nextLine)
 
