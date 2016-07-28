@@ -124,7 +124,7 @@ module sem_c_config
     ! ce type doit correspondre au type surface_t de sem_input.h **a l'ordre pres**
     type, bind(c) :: sem_surfaces
        type(C_PTR) :: next
-       integer(C_INT):: surface_list(20)
+       integer(C_INT):: surface_list(1:40)
        integer(C_INT) :: surface_present
        integer(C_INT) :: surface_type
        integer(C_INT) :: surface_mat
@@ -147,6 +147,12 @@ module sem_c_config
        type(C_PTR) :: surface_varia
        real(C_DOUBLE) :: amplitude
        real(C_DOUBLE) :: Rtau
+       integer(C_INT) :: surface_space
+       real(C_DOUBLE) :: surface_size
+       type(C_PTR)    :: surface_name
+       integer(C_INT) :: surface_wave
+       real(C_DOUBLE) :: surface_Speed;
+       real(C_DOUBLE), dimension(3) :: surface_dirU;
     end type sem_surfaces
 
     interface

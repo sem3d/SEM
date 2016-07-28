@@ -178,6 +178,7 @@ subroutine RUN_PREPARED(Tdomain)
     use mshape8
     use mshape27
     use build_prop_files
+    use surface_input
 #ifdef COUPLAGE
     use scouplage
 #endif

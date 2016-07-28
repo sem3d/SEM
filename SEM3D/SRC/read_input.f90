@@ -17,7 +17,6 @@
 !! \param type (domain), intent (INOUT) Tdomain
 !<
 
-
 module semconfig
     use semdatafiles
     use mesh3d
@@ -690,7 +689,8 @@ contains
         use mpi
         use constants
         use mcapteur
-        
+        use surface_input
+         
         implicit none
 
         type(domain), intent(inout)  :: Tdomain
@@ -837,6 +837,7 @@ contains
     end subroutine read_input
     
     subroutine init_surface_source(Tdomain)
+
        use sdomain
     
        implicit none

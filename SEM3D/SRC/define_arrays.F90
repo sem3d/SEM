@@ -88,7 +88,7 @@ contains
         call inverse_mass_mat(Tdomain)
         
         ! Add by Mtaro
-        if (Tdomain%n_DIRIC /= 0) then
+        if ((Tdomain%n_DIRIC /= 0).and.(Tdomain%logicD%surfBC)) then
             do ee = lbound(Tdomain%list_DIRICBC,1),ubound(Tdomain%list_DIRICBC,1)
                do s = lbound(Tdomain%nsurfsource(ee)%index,1),ubound(Tdomain%nsurfsource(ee)%index,1)
                   write(char,*) Tdomain%nsurfsource(ee)%index(s)
@@ -154,6 +154,7 @@ contains
            endif
         enddo
         allocate(dirichlet_out(0:pp-1))
+        !allocate(dirichlet_out(0:size(dirichlet)-1))
         dirichlet_out = dummy(0:pp-1)
         deallocate(dummy)
 

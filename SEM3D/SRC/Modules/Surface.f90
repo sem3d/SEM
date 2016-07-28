@@ -18,12 +18,14 @@ module ssurf
     type elastic_
        real(kind=8)                       :: Mu, Lambda
        real(kind=8)                       :: Sspeed, Pspeed
+       real(kind=8)                       :: PWspeed, density
        integer                            :: mat_index
     end type elastic_
 
     type SurfaceParam
-        real(kind=8)                       :: f0, amplitude, Rickertau
+        real(kind=8)                       :: f0, amplitude, Rickertau, size, Speed
         real(kind=8)                       :: dir(0:2)
+        real(kind=8)                       :: Kdir(0:2)
         real(kind=8)                       :: scoord(0:2)
         character                          :: wtype
         character(len=2)                   :: what_bc
@@ -31,8 +33,8 @@ module ssurf
         character(len=1500)                :: funcxy, funcxz, funcyz
         character(len=12)                  :: varia
         character                          :: source
-        integer                            :: dim, mat_index
-        integer, allocatable               :: index(:)
+        integer                            :: dim, mat_index, shape, wave_type
+        integer, allocatable               :: index(:), indexes(:)
         real(kind=8), allocatable          :: paravalue(:)
         character(len=2), dimension(1:100) :: paramname
         integer                            :: nparamvar, paramvar
@@ -49,6 +51,7 @@ module ssurf
         integer :: cond_type ! from constants.F90 COND_*
         real(kind=8), dimension(:,:), allocatable :: Surf_BtN
         real(kind=8), dimension(:,:), allocatable :: coord
+        real(kind=8), dimension(:)  , allocatable :: source
     end type SurfaceT
 
 end module ssurf

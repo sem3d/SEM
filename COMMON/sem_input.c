@@ -103,6 +103,46 @@ int expect_eq_float(yyscan_t scanner, double* vals, int nexpected)
     return k;
 }
 
+// Add by Mtaro : modify to read a list without necessarily knowing its size
+int expect_int_list(yyscan_t scanner, int* vals)
+{
+     int k = 0;
+     int tok=7;
+     int neg;
+     int value;
+     char* str;
+     
+     while(tok==K_INT) {
+        neg = 0;
+        tok = skip_blank(scanner);
+        if (tok==K_MINUS) {
+            neg = 1;
+            tok = skip_blank(scanner);
+        }
+        if (tok!=K_INT) goto end;
+        str = yyget_text(scanner);
+        if (*str == ';') goto end;
+        value = atoi(str);
+        if (neg)
+            value = -value;
+        vals[k] = value;
+        ++k;
+    };
+   end :
+       return k;
+}
+
+int expect_eq_int_list(yyscan_t scanner, int* vals)
+{
+    int k = 0;
+    int tok, neg=0;
+    int value;
+
+    if (!expect_eq(scanner)) return 0;
+    tok = expect_int_list(scanner, vals);
+    return tok;
+}
+
 int expect_int(yyscan_t scanner, int* vals, int nexpected)
 {
     int k = 0;

@@ -40,12 +40,11 @@ DO i=1,Length
     END SELECT
 END DO
 
-IF ((((ExistX+ExistY+ExistZ).eq.1).and.((ExistT.eq.1).or.(ExistT.eq.0))).or. &
-    (((ExistX+ExistY+ExistZ).eq.0).and.(ExistT.eq.1)))                      THEN
+IF (((ExistX+ExistY+ExistZ).eq.1).or.(((ExistX+ExistY+ExistZ).eq.0).and.(ExistT.eq.1))) THEN
     CheckDimension = 1
-ELSEIF (((ExistX+ExistY+ExistZ).eq.2).and.((ExistT.eq.1).or.(ExistT.eq.0))) THEN
+ELSEIF ((ExistX+ExistY+ExistZ).eq.2) THEN
     CheckDimension = 2
-ELSEIF (((ExistX+ExistY+ExistZ).eq.3).and.((ExistT.eq.1).or.(ExistT.eq.0))) THEN
+ELSEIF ((ExistX+ExistY+ExistZ).eq.3) THEN
     CheckDimension = 3
 ELSE
     ErrorSMS = 'The variables of Analytical function are not defined.'

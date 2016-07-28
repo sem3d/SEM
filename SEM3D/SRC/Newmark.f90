@@ -25,6 +25,7 @@ subroutine Newmark(Tdomain,ntime)
     use stat, only : stat_starttick, stat_stoptick, STAT_FEXT
     use sf_coupling
     use surface_load
+
     implicit none
 
     type(domain), intent(inout) :: Tdomain
