@@ -432,13 +432,26 @@ contains
         type(domain_solidpml), intent (INOUT) :: dom
         type (domain), intent (INOUT) :: Tdomain
         !
+        integer :: n, indpml, indsol
+
         ! Reset forces
         dom%Forces = 0d0
+
+        ! Coupling at solid PML interface
+        do n = 0,Tdomain%intSolPml%surf0%nbtot-1
+            indsol = Tdomain%intSolPml%surf0%map(n)
+            indpml = Tdomain%intSolPml%surf1%map(n)
+            dom%champs0%Veloc(indpml,:) = Tdomain%sdom%champs0%Veloc(indsol,:)
+            dom%champs0%Depla(indpml,:) = Tdomain%sdom%champs0%Depla(indsol,:)
+        enddo
+
         ! Save depla
         dom%DeplaPrev = dom%champs0%Depla
-        ! The next iteration becomes the current one
-        dom%champs0%Depla = dom%champs1%Depla
-        dom%champs0%Veloc = dom%champs1%Veloc
+
+        ! The prediction will be based on the current state
+        dom%champs1%Depla = dom%champs0%Depla
+        dom%champs1%Veloc = dom%champs0%Veloc
+
         ! Update convolution terms
         call update_convolution_terms(dom)
     end subroutine newmark_predictor_solidpml
@@ -461,18 +474,19 @@ contains
                    - dom%DumpMat(:)*V(:) - dom%MasUMat(:)*dom%champs0%Depla(:,i_dir) - dom%Forces(:,i_dir) ! (61a) from Ref1
 
             ! Compute V_n+2
-            dom%champs1%Veloc(:,i_dir) = dom%champs0%Veloc(:,i_dir) + &
+            dom%champs0%Veloc(:,i_dir) = dom%champs0%Veloc(:,i_dir) + &
                                          dt * dom%MassMat(:) * A(:) ! dom%MassMat = 1./dom%MassMat (define_arrays inverse_mass_mat)
         enddo
 
-        ! Apply BC (dirichlet)
+        ! Update current state
+        dom%champs0%Depla = dom%champs0%Depla + dt * dom%champs0%Veloc
+
+        ! Apply BC for PML (dirichlet)
         do n = 0, dom%n_dirich-1
             indpml = dom%dirich(n)
-            dom%champs1%Veloc(indpml,:) = 0.
+            dom%champs0%Veloc(indpml,:) = 0.
+            dom%champs0%Depla(indpml,:) = 0.
         enddo
-
-        ! Update champs1 displacement from champs0
-        dom%champs1%Depla = dom%champs0%Depla + dt * dom%champs1%Veloc
     end subroutine newmark_corrector_solidpml
 end module dom_solidpml
 

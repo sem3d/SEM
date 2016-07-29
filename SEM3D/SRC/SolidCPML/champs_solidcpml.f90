@@ -66,8 +66,8 @@ module champs_solidpml
         ! A partir de là, les données membres sont modifiées en cours de calcul
 
         ! Champs
-        type(champssolidpml) :: champs0
-        type(champssolidpml) :: champs1
+        type(champssolidpml) :: champs0 ! Etat courant
+        type(champssolidpml) :: champs1 ! Prediction (à partir de l'état courant)
 
         ! Dans le correcteur, on a besoin de V_n+3/2 qu'on ne connait pas : on s'appuie sur U_n+1/2 pour l'estimer
         real(fpp), dimension(:,:), allocatable :: DeplaPrev ! U_n+1/2
