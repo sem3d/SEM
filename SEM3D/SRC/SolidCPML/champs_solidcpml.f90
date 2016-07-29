@@ -15,6 +15,7 @@ module champs_solidpml
         ! Le déplacement et la vitesse sont "staggered" (leap frog) : ceci est imposé par Solid/Fluid
         real(fpp), dimension(:,:), allocatable :: Depla ! U_n+3/2
         real(fpp), dimension(:,:), allocatable :: Veloc ! V_n+1
+        real(fpp), dimension(:,:), allocatable :: Forces
     end type champssolidpml
 
     !! ATTENTION: voir index.h en ce qui concerne les champs dont les noms commencent par m_
@@ -72,7 +73,6 @@ module champs_solidpml
         ! Dans le correcteur, on a besoin de V_n+3/2 qu'on ne connait pas : on s'appuie sur U_n+1/2 pour l'estimer
         real(fpp), dimension(:,:), allocatable :: DeplaPrev ! U_n+1/2
 
-        real(fpp), dimension(:,:), allocatable :: Forces
         real(fpp), dimension(:,:), allocatable :: R1 ! Convolutional term R1 (19a) from Ref1
         real(fpp), dimension(:,:), allocatable :: R2 ! Convolutional term R2 (19b) from Ref1
         real(fpp), dimension(:,:), allocatable :: R3 ! Convolutional term R3 (19c) from Ref1

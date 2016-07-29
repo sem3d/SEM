@@ -55,21 +55,22 @@ contains
 
         ! Allocation et initialisation de champs0 pour les PML solides
         if (dom%nglltot /= 0) then
+            allocate(dom%champs0%Forces(0:dom%nglltot-1,0:2))
             allocate(dom%champs0%Depla (0:dom%nglltot-1,0:2))
             allocate(dom%champs0%Veloc (0:dom%nglltot-1,0:2))
+            allocate(dom%champs1%Forces(0:dom%nglltot-1,0:2))
             allocate(dom%champs1%Depla (0:dom%nglltot-1,0:2))
             allocate(dom%champs1%Veloc (0:dom%nglltot-1,0:2))
             dom%champs0%Depla  = 0d0
             dom%champs0%Veloc  = 0d0
+            dom%champs0%Forces = 0d0
             dom%champs1%Depla  = 0d0
             dom%champs1%Veloc  = 0d0
+            dom%champs1%Forces = 0d0
 
             allocate(dom%DeplaPrev(0:dom%nglltot-1,0:2))
             dom%DeplaPrev = 0d0
 
-            ! Allocation de Forces pour les PML solides
-            allocate(dom%Forces(0:dom%nglltot-1,0:2))
-            dom%Forces = 0d0
 
             ! Allocation de MassMat pour les PML solides
             allocate(dom%MassMat(0:dom%nglltot-1))
@@ -119,12 +120,13 @@ contains
 
         if(allocated(dom%champs0%Depla )) deallocate(dom%champs0%Depla )
         if(allocated(dom%champs0%Veloc )) deallocate(dom%champs0%Veloc )
+        if(allocated(dom%champs0%Forces )) deallocate(dom%champs0%Forces )
         if(allocated(dom%champs1%Depla )) deallocate(dom%champs1%Depla )
         if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
+        if(allocated(dom%champs1%Forces )) deallocate(dom%champs1%Forces )
 
         if(allocated(dom%DeplaPrev)) deallocate(dom%DeplaPrev)
 
-        if(allocated(dom%Forces )) deallocate(dom%Forces )
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
         if(allocated(dom%DumpMat)) deallocate(dom%DumpMat)
         if(allocated(dom%MasUMat)) deallocate(dom%MasUMat)
@@ -212,9 +214,7 @@ contains
 
                     if (out_variables(OUT_ACCEL) == 1) then
                         if(.not. allocated(fieldA)) allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                        fieldA(i,j,k,:) = dom%Massmat(ind) * ( dom%Forces(ind,0) + &
-                                                               dom%Forces(ind,1) + &
-                                                               dom%Forces(ind,2) )
+                        fieldA(i,j,k,:) = dom%Massmat(ind) * dom%champs1%Forces(ind,:)
                     end if
 
                     if (out_variables(OUT_PRESSION) == 1) then
@@ -380,9 +380,9 @@ contains
                         e = bnum*VCHUNK+ee
                         if (e>=dom%nbelem) exit
                         idx = dom%Idom_(i,j,k,bnum,ee)
-                        dom%Forces(idx,0) = dom%Forces(idx,0)+Fox(ee,i,j,k)
-                        dom%Forces(idx,1) = dom%Forces(idx,1)+Foy(ee,i,j,k)
-                        dom%Forces(idx,2) = dom%Forces(idx,2)+Foz(ee,i,j,k)
+                        champs1%Forces(idx,0) = champs1%Forces(idx,0)-Fox(ee,i,j,k)
+                        champs1%Forces(idx,1) = champs1%Forces(idx,1)-Foy(ee,i,j,k)
+                        champs1%Forces(idx,2) = champs1%Forces(idx,2)-Foz(ee,i,j,k)
                     enddo
                 enddo
             enddo
@@ -435,7 +435,7 @@ contains
         integer :: n, indpml, indsol
 
         ! Reset forces
-        dom%Forces = 0d0
+        dom%champs1%Forces = 0d0
 
         ! Coupling at solid PML interface
         do n = 0,Tdomain%intSolPml%surf0%nbtot-1

@@ -204,7 +204,7 @@ subroutine comm_forces(Tdomain)
             if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
                 call comm_give_data(Tdomain%Comm_data%Data(n)%Give, &
 #ifdef CPML
-                    Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%Forces, k)
+                    Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%champs1%Forces, k)
 #else
                     Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%champs1%ForcesPML, k)
 #endif
@@ -238,7 +238,7 @@ subroutine comm_forces(Tdomain)
             if (Tdomain%Comm_data%Data(n)%nsolpml>0) then
                 call comm_take_data(Tdomain%Comm_data%Data(n)%Take, &
 #ifdef CPML
-                    Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%Forces, k)
+                    Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%champs1%Forces, k)
 #else
                     Tdomain%Comm_data%Data(n)%IGiveSPML, Tdomain%spmldom%champs1%ForcesPML, k)
 #endif
@@ -414,7 +414,7 @@ subroutine internal_forces(Tdomain)
             indpml = Tdomain%intSolPml%surf1%map(n)
             Tdomain%sdom%champs1%Forces(indsol,:) = Tdomain%sdom%champs1%Forces(indsol,:) + &
 #ifdef CPML
-                                                    Tdomain%spmldom%Forces(indpml,:)
+                                                    Tdomain%spmldom%champs1%Forces(indpml,:)
 #else
                                                     Tdomain%spmldom%champs1%ForcesPML(indpml,:,0) + &
                                                     Tdomain%spmldom%champs1%ForcesPML(indpml,:,1) + &
