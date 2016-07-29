@@ -399,7 +399,7 @@ contains
    end subroutine PlaneWaveSpeed
    !----------------------------------------------------------------------------------
    !----------------------------------------------------------------------------------
-endmodule surface_input
+end module surface_input
 
 !! Local Variables:
 !! mode: f90

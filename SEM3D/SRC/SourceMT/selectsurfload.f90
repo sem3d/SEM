@@ -49,7 +49,7 @@ contains
                 forces = Param%dir*CompSource(Sour,time,0)*srcshape
             case ('A')
                 !- analytical form
-                CALL ffvalue(Sourcef ,coord,time)
+                CALL ffvalue(Sourcef,coord,time)
                 if ((Sourcef%dim==3).and.(Sourcef%source == 'M')) then
                      forces(0) = (Sourcef%fvalue(1)*Btn(0)+ Sourcef%fvalue(4)*Btn(1)+Sourcef%fvalue(6)*Btn(2))
                      forces(1) = (Sourcef%fvalue(4)*Btn(0)+ Sourcef%fvalue(2)*Btn(1)+Sourcef%fvalue(5)*Btn(2))
@@ -58,8 +58,9 @@ contains
                      forces(0) = Sourcef%fvalue(1)
                      forces(1) = Sourcef%fvalue(2)
                      forces(2) = Sourcef%fvalue(3)
-                elseif ((Sourcef%dim==1).and.(Sourcef%source == 'F')) then
+                elseif ((Sourcef%dim==1).and.(Sourcef%source=='F')) then
                      forces = Param%dir*Sourcef%fvalue(1)
+                     if (Sourcef%stat=='MIXT') forces = forces*srcshape
                 endif
      end select
      
@@ -153,7 +154,6 @@ contains
 
      endsubroutine CompSourcePW
      !----------------------------------------------------------------------------------
-     !----------------------------------------------------------------------------------
      subroutine CompdisplPW(Sour,dot, result)
      
      use ssources
@@ -177,7 +177,6 @@ contains
      
      endsubroutine CompdisplPW
      !----------------------------------------------------------------------------------
-     !----------------------------------------------------------------------------------
      subroutine RickerPW(xx, f0, result)
      
      implicit none
@@ -192,7 +191,6 @@ contains
 
      endsubroutine RickerPW
      !----------------------------------------------------------------------------------
-     !----------------------------------------------------------------------------------
      subroutine dRickerPW (xx, f0, result)
 
      implicit none
@@ -204,7 +202,6 @@ contains
         result = 2.d0*sigma*(3.d0*xx - 2.d0*sigma*xx**3)*dexp(-sigma*xx**2)
 
      endsubroutine dRickerPW
-     !----------------------------------------------------------------------------------
      !----------------------------------------------------------------------------------
 end module Surface_prbl_type
 

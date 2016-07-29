@@ -17,6 +17,7 @@ IMPLICIT NONE
       CHARACTER(len=1500) :: valuefyz
       CHARACTER(len=1500) :: valuefxz
       CHARACTER(len=12)   :: var
+      CHARACTER(len=4)    :: stat
       CHARACTER           :: source
       INTEGER             :: dim
       REAL(kind=rn),ALLOCATABLE :: fvalue(:)

@@ -689,7 +689,7 @@ contains
         use mpi
         use constants
         use mcapteur
-        use surface_input
+        use surface_input, only : read_surface_input
          
         implicit none
 

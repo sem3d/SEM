@@ -35,8 +35,7 @@ contains
         implicit none
 
         type (domain), intent (INOUT), target :: Tdomain
-        integer :: n, mat, rg, bnum, ee, s
-        character(len=20) :: char
+        integer :: n, mat, rg, bnum, ee
 
         rg = Tdomain%rank
 
@@ -89,26 +88,15 @@ contains
         
         ! Add by Mtaro
         if ((Tdomain%n_DIRIC /= 0).and.(Tdomain%logicD%surfBC)) then
-            do ee = lbound(Tdomain%list_DIRICBC,1),ubound(Tdomain%list_DIRICBC,1)
-               do s = lbound(Tdomain%nsurfsource(ee)%index,1),ubound(Tdomain%nsurfsource(ee)%index,1)
-                  write(char,*) Tdomain%nsurfsource(ee)%index(s)
-                  block:&
-                  do n = 0,size(Tdomain%sSurfaces)-1
-                     if (Tdomain%sSurfaces(n)%name=="surface"//adjustl(char(:len_trim(char)))) then
-                         call init_dirichlet_surface_MT(Tdomain, Tdomain%sSurfaces(n))
-                         exit block
-                     endif
-                  enddo block
-               enddo
-             enddo
-         else
+           call init_dirichlet_unstructuredMesh(Tdomain)
+        else
              do n = 0,size(Tdomain%sSurfaces)-1
                 if (trim(Tdomain%sSurfaces(n)%name)=="dirichlet") then
                    call init_dirichlet_surface(Tdomain, Tdomain%sSurfaces(n))
                    exit
                 end if
-             end do
-         endif
+             enddo
+        endif
         
         ! Copy Idom from element to domain_XXX
         do n = 0,Tdomain%n_elem-1
@@ -131,7 +119,28 @@ contains
 
     end subroutine define_arrays
 
+    subroutine init_dirichlet_unstructuredMesh(Tdomain)
 
+         implicit none
+         type (domain), intent (INOUT)  :: Tdomain
+         integer                        :: ee, ns, s, n
+         character(len=20)              :: char
+
+         do ee = lbound(Tdomain%list_DIRICBC,1),ubound(Tdomain%list_DIRICBC,1)
+            ns = Tdomain%list_DIRICBC(ee)
+            do s = lbound(Tdomain%nsurfsource(ns)%index,1),ubound(Tdomain%nsurfsource(ns)%index,1)
+               write(char,*) Tdomain%nsurfsource(ns)%index(s)
+               block: &
+               do n = 0,size(Tdomain%sSurfaces)-1
+                  if (Tdomain%sSurfaces(n)%name=="surface"//adjustl(char(1:len_trim(char)))) then   
+                      call init_dirichlet_surface_MT(Tdomain, Tdomain%sSurfaces(n))
+                      exit block
+                  endif
+               enddo block
+            enddo
+         enddo
+
+    end subroutine init_dirichlet_unstructuredMesh
 
     subroutine dirichlet_gll_map(dirichlet, dirichlet_out)
     
@@ -154,7 +163,6 @@ contains
            endif
         enddo
         allocate(dirichlet_out(0:pp-1))
-        !allocate(dirichlet_out(0:size(dirichlet)-1))
         dirichlet_out = dummy(0:pp-1)
         deallocate(dummy)
 
@@ -166,7 +174,6 @@ contains
         type (domain), intent (INOUT)      :: Tdomain
         type (SurfaceT), intent(INOUT)     :: surf
         integer, dimension(:), allocatable :: dummy
-        integer                            :: n_dirich
         !
         Tdomain%sdom%n_dirich = surf%surf_sl%nbtot
         if (Tdomain%sdom%n_dirich/=0) then

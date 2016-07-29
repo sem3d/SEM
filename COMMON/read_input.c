@@ -399,7 +399,8 @@ void init_surface(surface_t *surface)
 //  surface->surface_name=NULL;
   surface->amplitude=1.0;
   surface->surface_wave = 0;
-  surface->surface_Speed = 0;
+  surface->surface_Speed =0;
+  surface->surface_space = 0;
 }
 
 int expect_source_shape(yyscan_t scanner, int* type, char* name)

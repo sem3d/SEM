@@ -41,8 +41,8 @@ contains
 
         if (Tdomain%n_NEBC/=0) then
            !! Add Neumann boundary condition
-           do ns=0,size(Tdomain%list_NEBC)-1
-              n2=Tdomain%list_NEBC(ns+1)
+           do ns=1,size(Tdomain%list_NEBC)
+              n2=Tdomain%list_NEBC(ns)
               do n1 = 1,size(Tdomain%nsurfsource(n2)%index)
                  write(char,*) Tdomain%nsurfsource(n2)%index(n1)
                  bloc : &
@@ -71,9 +71,9 @@ contains
 
         if (Tdomain%n_PWBC /= 0) then
 
-           do ns=0,size(Tdomain%list_PWBC)-1
-              n2=Tdomain%list_PWBC(ns+1)
-              do n1 = 1,size(Tdomain%nsurfsource(n2)%index)  
+           do ns=1,size(Tdomain%list_PWBC)
+              n2=Tdomain%list_PWBC(ns)
+              do n1 =1,size(Tdomain%nsurfsource(n2)%index)  
                  write(char,*) Tdomain%nsurfsource(n2)%index(n1)
                  blocPW : &
                  do n = 0,size(Tdomain%sSurfaces)-1
@@ -265,7 +265,7 @@ contains
               case (1) 
                 allocate(Sourcef%fvalue(1:1))
               case (2)
-                if (Sourcef%source == 'F') then
+                if (Sourcef%source=='F') then
                    allocate(Sourcef%fvalue(1:2))
                 elseif (Sourcef%source == 'M') then
                    allocate(Sourcef%fvalue(1:3))
@@ -277,10 +277,12 @@ contains
                    allocate(Sourcef%fvalue(1:6))
                 endif
              end select
+             Sourcef%stat='UNIF'
+             if ((Sourcef%dim==1).and.(Param%shape/=0)) Sourcef%stat='MIXT'
          endif
          
          midtime = ctime
-         if ((ctime /= 0.).and.(Param%what_bc /= 'PW')) midtime = dt/2. + ctime
+         if ((ctime/=0.).and.(Param%what_bc/='PW')) midtime = dt/2. + ctime
          
          !! Nouvelle coordonnées par rapport au point de référence
          coord =  (/(xpt-Param%scoord(0)), (ypt-Param%scoord(1)), (zpt-Param%scoord(2))/)
@@ -314,15 +316,8 @@ contains
         real(kind=8)                                :: nn, VV
         real(kind=8)                                :: S11, S22 ,S33, S12, S13, S23
         
-
-        !call PlaneWanedispl(Param,Sourcef,coord,Btn,time,vel_i_n)
-        
         call PlaneWavedispl(Param,Sourcef,coord,Btn,time,PWSpeed,vel_i,'wave')
         
-        ! Principales directions
-        ! D = Param%Kdir
-        ! P = Param%dir
-
         S11 = (Coef_lambda+2.*Coef_mu)*vel_i(0)+Coef_lambda*(vel_i(1)+vel_i(2))
         S22 = (Coef_lambda+2.*Coef_mu)*vel_i(1)+Coef_lambda*(vel_i(0)+vel_i(2))
         S33 = (Coef_lambda+2.*Coef_mu)*vel_i(2)+Coef_lambda*(vel_i(0)+vel_i(1))
