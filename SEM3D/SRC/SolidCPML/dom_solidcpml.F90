@@ -470,8 +470,8 @@ contains
             V(:) = 0.5 * ( V(:) + (dom%champs0%Depla(:,i_dir)-dom%DeplaPrev(:,i_dir))/dt ) ! V is corrected with U_n+1/2 to estimate V_n+3/2
 
             ! Compute acceleration
-            A(:) =   dom%R1(:,i_dir)     + dom%R2(:,i_dir)                           + dom%R3(:,i_dir)     &
-                   - dom%DumpMat(:)*V(:) - dom%MasUMat(:)*dom%champs0%Depla(:,i_dir) - dom%Forces(:,i_dir) ! (61a) from Ref1
+            A(:) =   dom%R1(:,i_dir)     + dom%R2(:,i_dir)                           + dom%R3(:,i_dir)           &
+                   - dom%DumpMat(:)*V(:) - dom%MasUMat(:)*dom%champs0%Depla(:,i_dir) - dom%champs1%Forces(:,i_dir) ! (61a) from Ref1
 
             ! Compute V_n+2
             dom%champs0%Veloc(:,i_dir) = dom%champs0%Veloc(:,i_dir) + &
