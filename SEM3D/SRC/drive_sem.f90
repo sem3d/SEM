@@ -226,10 +226,15 @@ subroutine RUN_PREPARED(Tdomain)
     endif
 
  !- eventual Neumann boundary conditions
-    if (Tdomain%logicD%neumann_local_present) then
-        if (rg == 0) write(*,*) "--> DEFINING NEUMANN PROPERTIES"
-        call define_Neumann_properties(Tdomain)
+    !if (Tdomain%logicD%neumann_local_present) then
+    !    if (rg == 0) write(*,*) "--> DEFINING NEUMANN PROPERTIES"
+    !    call define_Neumann_properties(Tdomain)
+    !endif
+    if (Tdomain%logicD%surfBC) then
+       if (rg == 0) write(*,*) "--> DEFINING SURFACE PROPERTIES"
+       call define_surface_properties(Tdomain)
     endif
+
     call MPI_Barrier(Tdomain%communicateur, code)
 
  !- discretization (collocation) points' properties

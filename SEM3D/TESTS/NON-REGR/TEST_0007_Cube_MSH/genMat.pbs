@@ -1,0 +1,28 @@
+#!/bin/bash
+
+#PBS -S /bin/bash
+#PBS -N st1-rand
+#PBS -o output_gen.txt
+#PBS -j oe
+#PBS -l walltime=4:00:00
+#PBS -l select=1:ncpus=4:mpiprocs=4:mem=10gb
+#PBS -m e -M <YOUR MAIL>@ecp.fr
+#PBS -q iceq
+
+#chargement des modules
+module purge
+module load intel-compiler/15.0.1
+module load intel-mkl/11.2.1
+module load intel-mpi/5.0.2
+module load phdf5/1.8.15
+module load fftw/3.3.4-intelmpi5.0.2
+
+
+#On se place dans le reportoire depuis lequel le job a ete soumis
+cd $PBS_O_WORKDIR
+
+mpirun -np 4 <YOUR PATH>/SEM/build_RF/randomField.exe
+
+#mpirun -np 4 <YOUR PATH>/SEM/build_RF/statistics.exe<stat_input
+
+

@@ -24,6 +24,7 @@ subroutine Newmark(Tdomain,ntime)
     use scommutils
     use stat, only : stat_starttick, stat_stoptick, STAT_FEXT
     use sf_coupling
+    use surface_load
     implicit none
 
     type(domain), intent(inout) :: Tdomain
@@ -102,65 +103,18 @@ subroutine Newmark(Tdomain,ntime)
     call comm_forces(Tdomain)
 
     ! Neumann B.C.: associated forces
-    if(Tdomain%logicD%neumann_local_present)then
-#if 1
-    !TODO
-    stop "TODO: conditions de Neumann non prises en compte (Newmark)"
-#else
-        mat = Tdomain%Neumann%Neu_Param%mat_index
-        do nf = 0,Tdomain%Neumann%Neu_n_faces-1
-            ngll1 = Tdomain%Neumann%Neu_Face(nf)%ngll1
-            ngll2 = Tdomain%Neumann%Neu_Face(nf)%ngll2
-            call compute_Neu_forces_on_face(Tdomain%Neumann%Neu_Face(nf),     &
-                Tdomain%Neumann%Neu_Param,Tdomain%sSubdomain(mat)%dt,Tdomain%TimeD%rtime)
-        enddo
-        do ne = 0,Tdomain%Neumann%Neu_n_edges-1
-            ngll = Tdomain%Neumann%Neu_Edge(ne)%ngll
-            ne_aus = Tdomain%Neumann%Neu_Edge(ne)%Edge
-            call compute_Neu_forces_on_edge(Tdomain%Neumann%Neu_Edge(ne),     &
-                Tdomain%Neumann%Neu_Param,Tdomain%sSubdomain(mat)%dt,Tdomain%TimeD%rtime)
-        enddo
-        do nv = 0,Tdomain%Neumann%Neu_n_vertices-1
-            nv_aus = Tdomain%Neumann%Neu_Vertex(nv)%Vertex
-            n = merge(0,1,nv == 4)
-            call compute_Neu_forces_on_vertex(Tdomain%Neumann%Neu_Vertex(nv),n,  &
-                Tdomain%Neumann%Neu_Param,Tdomain%sSubdomain(mat)%dt,Tdomain%TimeD%rtime)
-        enddo
-        ! addition of Neumann forces
-        do nf = 0, Tdomain%Neumann%Neu_n_faces-1
-            nf_aus = Tdomain%Neumann%Neu_Face(nf)%Face
-            if(.not.Tdomain%sface(nf_aus)%PML)then
-                Tdomain%sFace(nf_aus)%Forces(:,:,0:2) = Tdomain%sFace(nf_aus)%Forces(:,:,0:2) - &
-                    Tdomain%Neumann%Neu_Face(nf)%Forces(:,:,0:2)
-            else
-                Tdomain%sFace(nf_aus)%spml%Forces3(:,:,0:2) = Tdomain%sFace(nf_aus)%spml%Forces3(:,:,0:2) - &
-                    Tdomain%Neumann%Neu_Face(nf)%Forces(:,:,0:2)
-            endif
-        enddo
-        do ne = 0, Tdomain%Neumann%Neu_n_edges-1
-            ne_aus = Tdomain%Neumann%Neu_Edge(ne)%Edge
-            if(.not.Tdomain%sedge(ne_aus)%PML)then
-                Tdomain%sEdge(ne_aus)%Forces(:,0:2) = Tdomain%sEdge(ne_aus)%Forces(:,0:2) - &
-                    Tdomain%Neumann%Neu_Edge(ne)%Forces(:,0:2)
-            else
-                Tdomain%sEdge(ne_aus)%spml%Forces3(:,0:2) = Tdomain%sEdge(ne_aus)%spml%Forces3(:,0:2) - &
-                    Tdomain%Neumann%Neu_Edge(ne)%Forces(:,0:2)
-            endif
-        enddo
-        do nv = 0, Tdomain%Neumann%Neu_n_vertices-1
-            nv_aus = Tdomain%Neumann%Neu_Vertex(nv)%Vertex
-            if(.not.Tdomain%svertex(nv_aus)%PML)then
-                Tdomain%sVertex(nv_aus)%Forces(0:2) = Tdomain%sVertex(nv_aus)%Forces(0:2) -  &
-                    Tdomain%Neumann%Neu_Vertex(nv)%Forces(0:2)
-            else
-                Tdomain%sVertex(nv_aus)%spml%Forces3(0:2) = Tdomain%sVertex(nv_aus)%spml%Forces3(0:2) - &
-                    Tdomain%Neumann%Neu_Vertex(nv)%Forces(0:2)
-            endif
-        enddo
-#endif
+!    if(Tdomain%logicD%neumann_local_present)then
+!#if 0
+!    !TODO
+!    stop "TODO: conditions de Neumann non prises en compte (Newmark)"
+!#else
+!    ! call add_Newman_forces(Tdomain)
+!#endif
+!    endif
+    
+    if (Tdomain%logicD%surfBC) then 
+        call add_surface_force(Tdomain)
     endif
-
-
     !- solid -> fluid coupling (normal dot velocity)
     if(Tdomain%logicD%SF_local_present)then
         call StoF_coupling(Tdomain)
@@ -440,6 +394,7 @@ end subroutine internal_forces
 !-------------------------------------------------------------------------------
 subroutine external_forces(Tdomain,timer,ntime)
     use sdomain
+
     implicit none
 #include "index.h"
 
@@ -496,9 +451,10 @@ subroutine external_forces(Tdomain,timer,ntime)
             end if
         endif
     enddo
-
+    
     return
 end subroutine external_forces
+
 
 !! Local Variables:
 !! mode: f90

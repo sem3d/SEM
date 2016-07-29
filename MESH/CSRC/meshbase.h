@@ -24,7 +24,7 @@
 /// oriented in the same manner)
 struct PFace {
     PFace() {}
-    PFace( int v[4], int dom ) {
+    PFace( int v[4], int dom) {
         set_domain(dom);
         set_face(v);
     }
@@ -80,6 +80,8 @@ struct PFace {
     // !! This will be only useful for faces at domain interfaces, otherwise
     // there is no way to tell which of the two elements sharing the face appears first
     int orient; // 1 if points inside original element -1 otherwise
+    // Add by Mtaro 
+    int material;
 };
 
 struct PEdge {
@@ -87,8 +89,9 @@ struct PEdge {
     PEdge( int v0, int v1, int dom ) {
         n[2] = dom;
         set_edge(v0, v1);
+        set_edge_ori(n,refedge);  // Add Mtaro
     }
-    PEdge(const PEdge& ed)
+    PEdge(const PEdge& ed):Orient(ed.Orient) // Modif Mtaro
         { for(int k=0;k<3;++k) n[k]=ed.n[k]; }
 
     void set_edge(int v0, int v1) {
@@ -120,8 +123,17 @@ struct PEdge {
 	}
 	return true;
     }
+    /// Add by Mtaro
+    void set_edge_ori(int v[2], int ne)
+    {  
+       Orient = 0;
+       if ((ne==2)||(ne==9)) { if (v[0] < v[1]) Orient=1;}
+       else{ if (v[0] > v[1]) Orient=1;}
+    }
     int domain() const { return n[2]; }
     int n[3];
+    /// Add by Mtaro
+    int Orient, refedge;
 };
 
 
@@ -187,13 +199,15 @@ public:
             matdom.push_back(it->first.domain());
         }
     }
-    void get_edges_data(int dom, std::vector<int>& data, std::vector<int>& matdom) const {
+    void get_edges_data(int dom, std::vector<int>& data, std::vector<int>& orient, std::vector<int>& matdom) const {
         data.clear();
         matdom.clear();
+        orient.clear();
         for(edge_map_t::const_iterator it=m_edges.begin();it!=m_edges.end();++it) {
             if (it->first.domain()!=dom) continue;
             data.push_back(it->second);
             matdom.push_back(it->first.domain());
+            orient.push_back(it->first.Orient);
         }
     }
     void get_vertices_data(int dom, std::vector<int>& data, std::vector<int>& matdom) const {

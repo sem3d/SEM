@@ -34,7 +34,7 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/Modules/PlaneW.f90
     ${PRJ}/SRC/Modules/Surface.f90
     ${PRJ}/SRC/Modules/tensor_util.f90
-#    ${PRJ}/SRC/Solid/attenuation_solid.F90
+#   ${PRJ}/SRC/Solid/attenuation_solid.F90
     ${PRJ}/SRC/Solid/calcul_forces.F90
     ${PRJ}/SRC/Solid/calcul_forces_atn.F90
     ${PRJ}/SRC/Solid/dom_solid.F90
@@ -72,7 +72,18 @@ set(SEM3D_SOURCES_F
     ${PRJ}/SRC/earth_models/material_prem.F90
     ${PRJ}/SRC/earth_models/model_earthchunk.f90
     ${PRJ}/SRC/earth_models/model_prem.f90
-	
+
+    ${PRJ}/SRC/SourceMT/parameters.f90
+    ${PRJ}/SRC/SourceMT/mathfval.f90
+    ${PRJ}/SRC/SourceMT/fvalue.f90
+    ${PRJ}/SRC/SourceMT/func3D.f90
+    ${PRJ}/SRC/SourceMT/func2D.f90
+    ${PRJ}/SRC/SourceMT/func1D.f90
+    ${PRJ}/SRC/SourceMT/fparser.f90
+    ${PRJ}/SRC/SourceMT/ErrorWarning.f90
+    ${PRJ}/SRC/SourceMT/Dimension.f90
+    ${PRJ}/SRC/SourceMT/create_sem_surface_input.f90
+    ${PRJ}/SRC/SourceMT/compute_surface_BC.f90            	
 )
 
 if (OPT_CPML)

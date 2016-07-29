@@ -57,9 +57,12 @@ subroutine global_numbering(Tdomain)
 !            Tdomain%sSurfaces(k)%surf_spml%nbtot, "/", &
 !            Tdomain%sSurfaces(k)%surf_fpml%nbtot
     end do
+    
     call prepare_comm_vector(Tdomain, Tdomain%Comm_data)
 
     call prepare_comm_surface(Tdomain, Tdomain%Comm_SolFlu)
+
+    include 'formats.in'
 end subroutine global_numbering
 
 subroutine renumber_global_gll_nodes(Tdomain)
@@ -1022,6 +1025,7 @@ subroutine prepare_comm_surface(Tdomain, comm_data)
     end do
 
 end subroutine prepare_comm_surface
+
 end module mrenumber
 !! Local Variables:
 !! mode: f90

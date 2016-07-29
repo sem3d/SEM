@@ -35,7 +35,7 @@ contains
 
         Nmc     = size(STA%randField, 2)
         xNTotal = size(STA%randField, 1)
-        comm    = STA%comm
+        comm    = STA%valid_comm !STA%comm
 
         !Allocating
         allocate(sumRF(Nmc))
@@ -61,14 +61,18 @@ contains
         !By Event
         sumRF(:)       = sum( STA%randField    , dim = 1)
         sumRFsquare(:) = sum((STA%randField)**2, dim = 1)
-        !write(*,*) "sumRF(:) = ", sumRF(:)
-        !write(*,*) "sumRFsquare(:) = ", sumRFsquare(:)
+        write(*,*) "sumRF(:) = ", sumRF(:)
+        write(*,*) "sumRFsquare(:) = ", sumRFsquare(:)
         call MPI_ALLREDUCE (sumRF,totalSumRF,Nmc,MPI_DOUBLE_PRECISION, &
             MPI_SUM,comm,code)
+        write(*,*) "AFTER 0"
         call MPI_ALLREDUCE (sumRFsquare,totalSumRFsquare,Nmc,MPI_DOUBLE_PRECISION, &
             MPI_SUM,comm,code)
+        write(*,*) "AFTER 1"
         call MPI_ALLREDUCE (xNTotal,sum_xNTotal,1,MPI_INTEGER, &
             MPI_SUM,comm,code)
+
+        write(*,*) "AFTER 2"
 
         !if(STA%rang == 0) write(*,*) "xNTotal          = ", xNTotal
         !if(STA%rang == 0) write(*,*) "sumRF            = ", sumRF
@@ -199,7 +203,7 @@ contains
         !write(*,*) "STA%xNStep_Loc = ", STA%xNStep_Loc
         do i = 1, STA%nDim
             call MPI_ALLREDUCE (STA%xNStep_Loc(i), nPointsMin(i), 1, MPI_INTEGER, &
-                                MPI_MIN, STA%comm, code)
+                                MPI_MIN, STA%valid_comm, code)
         end do
 
         !write(*,*) "nPointsMin BEFORE = ", nPointsMin
@@ -229,11 +233,11 @@ contains
 
         allocate(Temp_SkTot_Dir(size(STA%SkTot_Dir)))
         call MPI_ALLREDUCE (STA%SkTot_Dir, Temp_SkTot_Dir, size(STA%SkTot_Dir), &
-                            MPI_DOUBLE_PRECISION, MPI_SUM, STA%comm, code)
+                            MPI_DOUBLE_PRECISION, MPI_SUM, STA%valid_comm, code)
         STA%SkTot_Dir = Temp_SkTot_Dir/dble(STA%nb_procs)
 
         !call MPI_REDUCE (STA%SkTot_Dir, Temp_SkTot_Dir, size(STA%SkTot_Dir), &
-        !                 MPI_DOUBLE_PRECISION, MPI_SUM, 0, STA%comm, code)
+        !                 MPI_DOUBLE_PRECISION, MPI_SUM, 0, STA%valid_comm, code)
         !if(STA%rang == 0) then
         !    STA%SkTot_Dir = Temp_SkTot_Dir/dble(STA%nb_procs)
         !    write(*,*) "STA%SkTot_Dir = ", STA%SkTot_Dir

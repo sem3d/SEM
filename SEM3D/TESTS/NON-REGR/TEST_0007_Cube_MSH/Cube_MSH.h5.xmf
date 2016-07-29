@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd">
+<Xdmf Version="2.0" xmlns:xi="http://www.w3.org/2001/XInclude">
+<Domain>
+<Grid CollectionType="Spatial" GridType="Collection" Name="main"><Grid GridType="Uniform" Name="main"><Geometry Type="XYZ">
+<DataItem Dimensions="64 3" Format="HDF" NumberType="Float" Precision="8">Cube_MSH.h5:/Nodes</DataItem>
+</Geometry>
+<Topology NumberOfElements="9" Type="Quadrilateral">
+<DataItem Dimensions="9 4" Format="HDF" NumberType="UInt" Precision="8">Cube_MSH.h5:/Mesh_quad4/Quad4</DataItem>
+</Topology>
+<Attribute AttributeType="Scalar" Center="Cell" Dimensions="9" Name="Mat">
+<DataItem Dimensions="9" Format="HDF" NumberType="Int" Precision="8">Cube_MSH.h5:/Mesh_quad4/Mat</DataItem>
+</Attribute>
+</Grid><Grid GridType="Uniform" Name="main"><Geometry Type="XYZ">
+<DataItem Dimensions="64 3" Format="HDF" NumberType="Float" Precision="8">Cube_MSH.h5:/Nodes</DataItem>
+</Geometry>
+<Topology NumberOfElements="27" Type="Hexahedron">
+<DataItem Dimensions="27 8" Format="HDF" NumberType="UInt" Precision="8">Cube_MSH.h5:/Sem3D/Hexa8</DataItem>
+</Topology>
+<Attribute AttributeType="Scalar" Center="Cell" Dimensions="27" Name="Mat">
+<DataItem Dimensions="27" Format="HDF" NumberType="Int" Precision="8">Cube_MSH.h5:/Sem3D/Mat</DataItem>
+</Attribute>
+</Grid></Grid></Domain></Xdmf>

@@ -16,6 +16,8 @@ module sedges
         integer, dimension (:), allocatable :: Iglobnum_Edge
         integer, dimension (:), allocatable :: Idom
         integer, dimension(0:1) :: inodes
+        real, dimension (:,:), allocatable :: Forces, Forces3
+        logical                            :: PML
     end type edge
 
 contains
@@ -27,6 +29,28 @@ contains
         ed%ngll = 0
         ed%domain = -1
     end subroutine init_edge
+
+    
+    subroutine allocate_edge_force(ed)
+        
+      implicit none
+      type(Edge), intent(inout) :: ed
+             
+      allocate(ed%Forces(1:ed%ngll-2,0:2))
+      allocate(ed%Forces3(1:ed%ngll-2,0:2))
+      ed%Forces = 0.0
+      ed%Forces3= 0.0
+
+    end subroutine allocate_edge_force 
+
+    subroutine free_edge_force(ed)
+     
+      implicit none
+      type(edge), intent(inout) :: ed
+     
+      deallocate(ed%Forces)
+      deallocate(ed%Forces3)
+    end subroutine free_edge_force
 
 end module sedges
 
