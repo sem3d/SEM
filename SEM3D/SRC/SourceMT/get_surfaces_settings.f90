@@ -27,7 +27,6 @@ contains
                 write(schar,*) index_neu
                 surfacename = "Neumann"//adjustl(schar(1:len_trim(schar)))
                 Tdomain%Neumann%NeuSurface(i_neu)%name=Trim(surfacename)
-                write (*,1002) surfacename
  
                 do i_surf=lbound(Tdomain%sSurfaces,1),ubound(Tdomain%sSurfaces,1)
                    if (trim(Tdomain%sSurfaces(i_surf)%name) == trim(surfacename)) then
@@ -113,7 +112,6 @@ contains
                enddo
              enddo
              
-             include 'formats.in'
 
         end subroutine read_neu_surface
         !!
@@ -135,7 +133,6 @@ contains
            do i_planeW=0,0 !Tdomain%n_planeW-1
                write(schar,*) i_planeW
                surfacename = "PlaneWave"//adjustl(schar(1:len_trim(schar)))
-               write (*,1002) surfacename
 
                do i_surf=lbound(Tdomain%sSurfaces,1),ubound(Tdomain%sSurfaces,1)
                   if (trim(Tdomain%sSurfaces(i_surf)%name) == trim(surfacename)) then
@@ -221,7 +218,6 @@ contains
               enddo
             enddo
 
-            include 'formats.in'
 
        end subroutine read_planeW_surface
        !!
@@ -280,7 +276,6 @@ contains
             enddo
      end select
  
-     include 'formats.in'
 
      end subroutine MTExtract 
 

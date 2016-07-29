@@ -31,7 +31,6 @@ contains
 
         if (inter%surf0%n_faces/=0) then
             call read_dataset(fid, trim(pfx)//"_faces", itemp2)
-!            write(*,*) pfx//" Faces:", size(itemp2,1), size(itemp2,2)
             inter%surf0%if_faces = itemp2(1,:)
             inter%surf1%if_faces = itemp2(2,:)
             deallocate(itemp2)
@@ -42,14 +41,12 @@ contains
         end if
         if (inter%surf0%n_edges/=0) then
             call read_dataset(fid, trim(pfx)//"_edges", itemp2)
-!            write(*,*) pfx//" Edges:", size(itemp2,1), size(itemp2,2)
             inter%surf0%if_edges = itemp2(1,:)
             inter%surf1%if_edges = itemp2(2,:)
             deallocate(itemp2)
         end if
         if (inter%surf0%n_vertices/=0) then
             call read_dataset(fid, trim(pfx)//"_vertices", itemp2)
-!            write(*,*) pfx//" Vertices:", size(itemp2,1), size(itemp2,2)
             inter%surf0%if_vertices = itemp2(1,:)
             inter%surf1%if_vertices = itemp2(2,:)
             deallocate(itemp2)
@@ -290,9 +287,7 @@ contains
         call allocate_surface(surf)
        
         if (surf%n_faces/=0) then
-            write(*,1000) "ASSOCIATED DOMAIN : ", trim(pfx)
             call read_dataset(gid, trim(pfx)//"_faces", itemp)
-            write(*,2005) trim(pfx)//" Faces:", size(itemp)
             surf%if_faces = itemp
             deallocate(itemp)
             call read_dataset(gid, trim(pfx)//"_orient", itemp)
@@ -301,17 +296,14 @@ contains
         end if
         if (surf%n_edges/=0) then
             call read_dataset(gid, trim(pfx)//"_edges", itemp)
-            write(*,2006) trim(pfx)//" Edges:", size(itemp)
             surf%if_edges = itemp
             deallocate(itemp)
         end if
         if (surf%n_vertices/=0) then
             call read_dataset(gid, trim(pfx)//"_vertices", itemp)
-            write(*,2007) trim(pfx)//" Vertices:", size(itemp)
             surf%if_vertices = itemp
             deallocate(itemp)
         end if
-        include 'formats.in'
     end subroutine read_one_surface
 
     subroutine get_surface_domain(gid, domain)
@@ -355,15 +347,9 @@ contains
         allocate(Tdomain%sSurfaces(0:n_surfaces-1))
         ! Get group info
         call H5Gget_info_f(gid, storage_type, nlinks, max_corder, ierr)
-        write(*,2003) 
-        write(*,*) "SURFACES:", n_surfaces, "/", max_corder, " nlinks=", nlinks
-        write(*,2003) 
 
         do i=0,nlinks-1
             call H5Lget_name_by_idx_f(gid, ".", H5_INDEX_NAME_F, H5_ITER_INC_F, i, surfname, ierr, namesz)
-            write(*,*) 
-            write(*,2004) "SURFACE -> ", i, " :: ", trim(surfname)
-            write(*,2002)
             call H5Gopen_f(gid, trim(surfname), surf_id, ierr)
             !
             ! Read one surface
@@ -375,10 +361,7 @@ contains
             call read_one_surface(Tdomain%sSurfaces(i)%surf_spml, "spml", surf_id)
             call read_one_surface(Tdomain%sSurfaces(i)%surf_fpml, "fpml", surf_id)
             call get_surface_domain(surf_id, Tdomain%sSurfaces(i)%domain)
-            write(*,2008)
-            write(*,*)
         end do
-        include 'formats.in'
     end subroutine read_surfaces
 
     subroutine read_mesh_file_h5(Tdomain)
@@ -469,21 +452,6 @@ contains
             call read_surfaces(Tdomain, surf_id)
             call h5gclose_f(surf_id, hdferr)
         endif
-        ! Neumann B.C. properties, eventually
-        !if(Tdomain%logicD%Neumann_local_present)then
-        !    write (*,*)
-        !    write (*,1001) " Read Neumann surfaces"
-        !    allocate(Tdomain%Neumann%NeuSurface(0:size(Tdomain%Neumann%Neu_Param%neu_index)-1))
-        !    call read_neu_surface(Tdomain)    
-        !end if
-        
-        ! Plane Wave properties, eventually
-        !if (Tdomain%logicD%super_object_local_present) then
-        !   write (*,*)
-        !   write (*,1001) " Read incidente plane wave surface"
-        !   call read_planeW_surface(Tdomain)
-        !endif
-        !write (*,*)
 
         ! Interproc communications
         Tdomain%tot_comm_proc = 0
@@ -515,8 +483,6 @@ contains
             end do
         end if
         deallocate(nb_elems_per_proc)
-
-      include 'formats.in'
 
     end subroutine read_mesh_file_h5
     !!                                                                                                            !!

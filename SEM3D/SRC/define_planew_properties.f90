@@ -53,7 +53,7 @@ subroutine define_planew_properties (Tdomain)
         Tdomain%sPlaneW%pVertex(nv)%mat_index = Tdomain%sPlaneW%pParam%mat_index
         Tdomain%sPlaneW%pVertex(nv)%Btn = 0
     enddo
-    
+
     mat_index = Tdomain%sPlaneW%pParam%mat_index
     Tdomain%sPlaneW%pParam%Lambda = Tdomain%sSubDomain(mat_index)%DLambda
     Tdomain%sPlaneW%pParam%Kappa = Tdomain%sSubDomain(mat_index)%DKappa
@@ -64,21 +64,9 @@ subroutine define_planew_properties (Tdomain)
     else
         Tdomain%sPlaneW%pParam%speed = Tdomain%sSubDomain(mat_index)%Pspeed
     endif
-    
-    if (rg.eq.0) then 
-    surfname = "Plane Wave"
-    write(*,*)
-    write(*,2004) "SURFACE -> ", 0, " :: ", trim(surfname)
-    write(*,2007) "Domaim  : " , mat_index
-    write(*,2009) "Lambda  : " , Tdomain%sPlaneW%pParam%Lambda
-    write(*,2009) "Kappa   : " , Tdomain%sPlaneW%pParam%Kappa
-    write(*,2009) "Mu      : " , Tdomain%sPlaneW%pParam%Mu
-    write(*,2009) "Wave Vp : ",  Tdomain%sPlaneW%pParam%speed 
-    endif
 
     return
 
-    include 'formats.in'
 
 end subroutine define_planew_properties
 

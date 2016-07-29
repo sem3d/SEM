@@ -51,18 +51,12 @@ subroutine global_numbering(Tdomain)
         call renumber_surface(Tdomain, Tdomain%sSurfaces(k)%surf_fl, DM_FLUID)
         call renumber_surface(Tdomain, Tdomain%sSurfaces(k)%surf_spml, DM_SOLID_PML)
         call renumber_surface(Tdomain, Tdomain%sSurfaces(k)%surf_fpml, DM_FLUID_PML)
-!        write(*,*) "FOUND SURFACE :", Tdomain%sSurfaces(k)%name
-!        write(*,*) "WITH S/F/SP/FP:", Tdomain%sSurfaces(k)%surf_sl%nbtot, "/", &
-!            Tdomain%sSurfaces(k)%surf_fl%nbtot, "/", &
-!            Tdomain%sSurfaces(k)%surf_spml%nbtot, "/", &
-!            Tdomain%sSurfaces(k)%surf_fpml%nbtot
     end do
-    
+
     call prepare_comm_vector(Tdomain, Tdomain%Comm_data)
 
     call prepare_comm_surface(Tdomain, Tdomain%Comm_SolFlu)
 
-    include 'formats.in'
 end subroutine global_numbering
 
 subroutine renumber_global_gll_nodes(Tdomain)

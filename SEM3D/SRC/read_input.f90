@@ -794,17 +794,9 @@ contains
         ! Create sources from C structures
         call create_sem_sources(Tdomain, Tdomain%config)
 
-        !- Parametrage super object activé
-        Tdomain%logicD%super_object_local_present = .false.!Tdomain%config%plane_wave_present /= 0
-        if (Tdomain%logicD%super_object_local_present) then
-#if 1
-           call read_planeW_input(Tdomain)
-#endif
-        endif
-                
         !---   Reading mesh file
         call read_mesh_file_h5(Tdomain)
-        
+
         !---   Properties of materials.
         call read_material_file(Tdomain)
         call compute_material_boundaries(Tdomain)
