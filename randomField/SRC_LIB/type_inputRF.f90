@@ -470,17 +470,15 @@ contains
             character(len=buf_RF) , dimension(:,:), allocatable :: dataTable;
             character(len=buf_RF) :: SEM_gen_path
             integer :: i
-            integer :: app
             integer :: code
 
             write(*,*) "Before Datatable"
             write(*,*) "path = ", path
             call set_DataTable(path, dataTable)
             write(*,*) "Before Application"
-            call read_DataTable(dataTable, "application", app)
-            IPT%application = app
+            call read_DataTable(dataTable, "application", IPT%application)
 
-            if(app == 1) then
+            if(IPT%application == 1) then
                 write(*,*) "Native lecture"
                 call read_DataTable(dataTable, "nSamples", IPT%nSamples)
                 allocate(IPT%out_folders(IPT%nSamples))
@@ -494,7 +492,9 @@ contains
                     call read_DataTable(dataTable, stringNumb_join("out_name_",i), IPT%out_names(i))
                 end do
 
-            else if (app == 2) then
+                IPT%outputName = IPT%out_names(1)
+
+            else if (IPT%application == 2) then
                 !SEM
                 call read_DataTable(dataTable, "folder", SEM_gen_path)
                 IPT%appFolder = SEM_gen_path
@@ -815,9 +815,10 @@ contains
                     if(IPT%rang==0) write(*,*) "   Mesh UNV"
                     call wLog("    Mesh UNV")
                     call wLog("        file: ")
-                    !call wLog(trim(IPT%unv_path))
                     call read_DataTable(dataTable, "unv_path", IPT%unv_path)
                     call read_DataTable(dataTable, "pointsPerCorrL", IPT%pointsPerCorrL)
+                    !call wLog(trim(IPT%unv_path))
+                    if(IPT%rang==0) write(*,*) "   unv_path = ", IPT%unv_path
                     IPT%unv = .true.
                     call readUNV(IPT%unv_path, IPT%nDim_mesh, IPT%coordList_local, IPT%connectList_local, IPT%monotype, &
                                  IPT%rang, IPT%nb_procs, IPT%coordList, IPT%connectList)
