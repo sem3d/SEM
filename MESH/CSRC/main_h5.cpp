@@ -11,7 +11,6 @@
 #include "mesh.h"
 #include "mesh_h5_output.h"
 #include "meshpart.h"
-#include "mesh_common.h"
 
 using namespace std;
 

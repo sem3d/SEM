@@ -11,7 +11,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "mesh_common.h"
 
 class MeshReaderAbaqus {
 public:

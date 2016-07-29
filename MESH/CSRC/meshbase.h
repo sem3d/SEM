@@ -11,7 +11,6 @@
 #include <string>
 #include <cstdlib>
 #include <cassert>
-#include "mesh_common.h"
 
 /// Faces are stored as v1 v2 v3 v4, with v1 < v2 < v4
 /// The nodes are consecutive, the direction is determined by the ordering of

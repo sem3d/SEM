@@ -15,7 +15,6 @@
 #include "vertex_elem_map.h"
 #include "meshbase.h"
 #include "aabb.h"
-#include "mesh_common.h"
 
 class Mesh3D
 {

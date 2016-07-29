@@ -8,7 +8,6 @@
 #define _MATERIAL_H_
 #include <cassert>
 #include <vector>
-#include "mesh_common.h"
 
 typedef enum {
     DM_SOLID = 4,

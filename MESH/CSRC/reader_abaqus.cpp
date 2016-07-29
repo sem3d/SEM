@@ -7,7 +7,6 @@
 #include "mesh.h"
 #include "reader_abaqus.h"
 #include <cstring>
-#include "mesh_common.h"
 
 MeshReaderAbaqus::MeshReaderAbaqus(const char* fname)
 {
