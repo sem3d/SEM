@@ -858,9 +858,8 @@ contains
                 case (DM_SOLID)
                   call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,                 &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
-
-                  total_P_energy = total_P_energy + sum(P_energy)
-                  total_S_energy = total_S_energy + sum(S_energy)
+                  if (out_variables(OUT_ENERGYP)==1) total_P_energy = total_P_energy + sum(P_energy)
+                  if (out_variables(OUT_ENERGYS)==1) total_S_energy = total_S_energy + sum(S_energy)
 
                 case (DM_FLUID)
                   call get_fluid_dom_var(Tdomain, Tdomain%fdom, el%lnum, out_variables,        &
