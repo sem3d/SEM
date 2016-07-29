@@ -19,8 +19,8 @@ SUBROUTINE f1D(f, val1, valt, res)
   INTEGER,                             PARAMETER   :: nfunc = 1                                                   
   INTEGER,                             PARAMETER   :: nvar = 3
   REAL(rn),          DIMENSION(nvar)               :: val 
-  CHARACTER (LEN=*), DIMENSION(nvar),  PARAMETER   :: var  = (/ 'x', &
-                                                                't', &
+  CHARACTER (LEN=*), DIMENSION(nvar),  PARAMETER   :: var  = (/ 'x ', &
+                                                                't ', &
                                                                 'pi'/)
   CHARACTER (LEN=2), ALLOCATABLE                   :: varfin(:)
   CHARACTER(len=1500)                              :: ff

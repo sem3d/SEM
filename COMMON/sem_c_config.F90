@@ -74,9 +74,9 @@ module sem_c_config
        real(C_DOUBLE) :: delta_lat
 
        type(C_PTR)    :: stations
-       
-       integer        :: nsurface
-       integer        :: surface_find
+
+       integer(C_INT) :: nsurface
+       integer(C_INT) :: surface_find
        type(C_PTR)    :: surface
     end type sem_config
 
