@@ -47,10 +47,8 @@ public:
     int add_elem(int mat_idx, const Elem& el);
 
     int read_materials(const std::string& fname);
-    int read_materials_v1(const std::string& fname);
     int read_materials_v2(const std::string& fname);
     void write_materials(const std::string& fname);
-    void write_materials_v1(const std::string& fname);
     void write_materials_v2(const std::string& fname);
     void read_mesh_file(const std::string& fname);
     void findelem(int& imat, std::vector<int>& eltr, std::vector<int>& elems, std::vector<int>& elemneed, int & elmat);
