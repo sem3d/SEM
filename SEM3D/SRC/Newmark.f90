@@ -414,9 +414,7 @@ subroutine internal_forces(Tdomain)
             indpml = Tdomain%intSolPml%surf1%map(n)
             Tdomain%sdom%champs1%Forces(indsol,:) = Tdomain%sdom%champs1%Forces(indsol,:) + &
 #ifdef CPML
-                                                    Tdomain%spmldom%Forces(indpml,0) + &
-                                                    Tdomain%spmldom%Forces(indpml,1) + &
-                                                    Tdomain%spmldom%Forces(indpml,2)
+                                                    Tdomain%spmldom%Forces(indpml,:)
 #else
                                                     Tdomain%spmldom%champs1%ForcesPML(indpml,:,0) + &
                                                     Tdomain%spmldom%champs1%ForcesPML(indpml,:,1) + &
