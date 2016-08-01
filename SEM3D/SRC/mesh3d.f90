@@ -343,7 +343,7 @@ contains
         integer(HSIZE_T) :: namesz, i
         integer(HID_T) :: surf_id
         call read_attr_int(gid, "n_surfaces", n_surfaces)
-        
+        write(*,*) "NSURFACES=", n_surfaces
         allocate(Tdomain%sSurfaces(0:n_surfaces-1))
         ! Get group info
         call H5Gget_info_f(gid, storage_type, nlinks, max_corder, ierr)
@@ -447,11 +447,9 @@ contains
             Tdomain%SF%intSolFluPml%surf0%n_edges + &
             Tdomain%SF%intSolFluPml%surf0%n_vertices) /= 0
 
-        if (Tdomain%logicD%surfBC) then
-            call h5gopen_f(fid, "Surfaces", surf_id, hdferr)
-            call read_surfaces(Tdomain, surf_id)
-            call h5gclose_f(surf_id, hdferr)
-        endif
+        call h5gopen_f(fid, "Surfaces", surf_id, hdferr)
+        call read_surfaces(Tdomain, surf_id)
+        call h5gclose_f(surf_id, hdferr)
 
         ! Interproc communications
         Tdomain%tot_comm_proc = 0
