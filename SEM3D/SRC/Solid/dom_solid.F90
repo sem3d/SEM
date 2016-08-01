@@ -102,6 +102,14 @@ contains
             allocate(dom%champs1%Forces(0:dom%nglltot-1,0:2))
             allocate(dom%champs1%Depla (0:dom%nglltot-1,0:2))
             allocate(dom%champs1%Veloc (0:dom%nglltot-1,0:2))
+            if (Tdomain%n_PWBC /= 0) then
+                allocate(dom%PlaneW%displ(0:dom%nglltot-1,0:2))
+                allocate(dom%PlaneW%veloc(0:dom%nglltot-1,0:2))
+                allocate(dom%PlaneW%accel(0:dom%nglltot-1,0:2))
+                dom%PlaneW%accel = 0.d0
+                dom%PlaneW%veloc = 0.d0
+                dom%PlaneW%displ = 0.d0
+            endif
 
             dom%champs0%Forces = 0d0
             dom%champs0%Depla = 0d0
@@ -159,6 +167,10 @@ contains
         if(allocated(dom%champs1%Depla )) deallocate(dom%champs1%Depla )
         if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
 
+        if(allocated(dom%PlaneW%displ)) deallocate(dom%PlaneW%displ)
+        if(allocated(dom%PlaneW%veloc)) deallocate(dom%PlaneW%veloc)
+        if(allocated(dom%PlaneW%accel)) deallocate(dom%PlaneW%accel)
+
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
     end subroutine deallocate_dom_solid
 
@@ -210,6 +222,7 @@ contains
                     do i=0,ngll-1
                         ind = dom%Idom_(i,j,k,bnum,ee)
                         fieldU(i,j,k,:) = dom%champs0%Depla(ind,:)
+                        if (dom%PlaneW%Exist) fieldU(i,j,k,:) = fieldU(i,j,k,:) + dom%PlaneW%displ(ind,:)
                     enddo
                 enddo
             enddo
@@ -241,11 +254,13 @@ contains
                     if (out_variables(OUT_VITESSE) == 1) then
                         if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                         fieldV(i,j,k,:) = dom%champs0%Veloc(ind,:)
+                        if (dom%PlaneW%Exist) fieldV(i,j,k,:) = fieldV(i,j,k,:) + dom%PlaneW%veloc(ind,:)
                     end if
 
                     if (out_variables(OUT_ACCEL) == 1) then
                         if(.not. allocated(fieldA)) allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                         fieldA(i,j,k,:) = dom%champs0%Forces(ind,:)
+                        if (dom%PlaneW%Exist) fieldA(i,j,k,:) = fieldA(i,j,k,:) + dom%PlaneW%accel(ind,:)
                     end if
 
                     if (out_variables(OUT_PRESSION) == 1) then
@@ -470,6 +485,60 @@ contains
         enddo
     end subroutine forces_int_solid
 
+    subroutine compute_planeW_Exafield(lnum,ctime,Tdomain)
+        
+        use sdomain
+        use Surface_prbl_type
+
+        implicit none
+        type(domain),               intent(inout) :: Tdomain
+        real(kind=8),               intent(in  )  :: ctime
+        integer,                    intent(in   ) :: lnum
+        real(kind=8), dimension(0:2):: coord, displ, veloc, accel
+        real(kind=8)                :: PWspeed
+        character(len=20)           :: char
+        integer                     :: ns, im, i, j, k, dom, ipw, ngll
+        integer                     :: bnum, ee, ind, ss
+
+        bnum = lnum/VCHUNK
+        ee = mod(lnum,VCHUNK)
+
+        do ns=1,size(Tdomain%list_PWBC)
+           ipw     = Tdomain%list_PWBC(ns)
+           im      = Tdomain%nsurfsource(ipw)%mat_index
+           dom     = get_domain(Tdomain%sSubDomain(im))
+           ngll     = Tdomain%sSubDomain(im)%NGLL
+           write(char,*) Tdomain%nsurfsource(ipw)%index(1)
+           block :& 
+           do ss=0,size(Tdomain%sSurfaces)-1
+              if (Tdomain%sSurfaces(ss)%name=="surface"//adjustl(char(:len_trim(char)))) &
+                  exit block
+           enddo block
+           PWspeed = Tdomain%sSurfaces(ss)%Elastic%PWspeed
+           select case (dom)
+                  case (DM_SOLID)
+                       ngll     = Tdomain%sdom%ngll
+                       do k=0,ngll-1
+                          do j=0,ngll-1
+                             do i=0,ngll-1
+                                ind = Tdomain%sdom%Idom_(i,j,k,bnum,ee)
+                                coord = (/(Tdomain%GlobCoord(0,ind)-Tdomain%nsurfsource(ipw)%scoord(0)), &
+                                          (Tdomain%GlobCoord(1,ind)-Tdomain%nsurfsource(ipw)%scoord(1)), &
+                                          (Tdomain%GlobCoord(2,ind)-Tdomain%nsurfsource(ipw)%scoord(2))/)
+                                call PlaneWavedispl(Tdomain%nsurfsource(ipw),coord,ctime,PWspeed, displ,veloc,accel)
+                                Tdomain%sdom%PlaneW%displ(ind,:) = displ
+                                Tdomain%sdom%PlaneW%veloc(ind,:) = veloc
+                                Tdomain%sdom%PlaneW%accel(ind,:) = accel
+                             enddo
+                          enddo
+                       enddo
+                   case(DM_FLUID)
+                      ! pas encore implémenté
+           end select
+        enddo
+
+    end subroutine compute_planeW_Exafield
+
     subroutine newmark_predictor_solid(dom)
         type(domain_solid), intent (INOUT) :: dom
         !
@@ -493,6 +562,7 @@ contains
         enddo
         dom%champs0%Depla = dom%champs0%Depla + dt * dom%champs0%Veloc
     end subroutine newmark_corrector_solid
+
 end module dom_solid
 
 !! Local Variables:

@@ -396,6 +396,7 @@ void init_surface(surface_t *surface)
   surface->surface_nparamvar=0;
   surface->surface_paramvar=0;
   surface->surface_list[40] = -1;
+//  surface->surface_dirU[3] = 0;
 //  surface->surface_name=NULL;
   surface->amplitude=1.0;
   surface->surface_wave = 0;

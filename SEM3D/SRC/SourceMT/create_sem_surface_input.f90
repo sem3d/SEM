@@ -210,15 +210,15 @@ contains
                  Tdomain%nsurfsource(nsurf)%size = surf%surface_size
      
                  if (rg==0) then
-                     write(*,*) "Surface BC Source : "//adjustl(sourcename(1:len_trim(sourcename)))
-                     write(*,2014) " Load dir : ", Tdomain%nsurfsource(nsurf)%dir
+                          write(*,*) "Surface BC Source  : "//adjustl(sourcename(1:len_trim(sourcename)))
+                          write(*,2019) " Direction          : ", Tdomain%nsurfsource(nsurf)%dir
                      
                      sourcename = fromcstr(surf%surface_name)
-                     write(*,2018) " Load shape : "//adjustl(sourcename(1:len_trim(sourcename)))// &
+                      write(*,2018) " Load shape         : ", sourcename(1:len_trim(sourcename))// &
                                                   adjustl(" (R="),Tdomain%nsurfsource(nsurf)%size,")" 
-                     if (Tdomain%nsurfsource(nsurf)%f0/=0) write(*,2014) " Ricker Freqence :", &
+                     if (Tdomain%nsurfsource(nsurf)%f0/=0) write(*,2019) "Ricker Freqence    : ", &
                                                                    Tdomain%nsurfsource(nsurf)%f0 
-                     if (Tdomain%nsurfsource(nsurf)%Rickertau/=0) write(*,2014) " Ricker tau : ", &
+                     if (Tdomain%nsurfsource(nsurf)%Rickertau/=0) write(*,2019) " Ricker tau         : ", &
                                                                Tdomain%nsurfsource(nsurf)%Rickertau
                   endif
              endif
@@ -399,6 +399,44 @@ contains
    end subroutine PlaneWaveSpeed
    !----------------------------------------------------------------------------------
    !----------------------------------------------------------------------------------
+   subroutine  surface_in_list(Tdomain)
+      
+      use sdomain
+      use Alertes
+
+      implicit none
+      type(domain), intent(in)    :: Tdomain
+      integer                     :: n, ns, s, int 
+      logical                     :: find
+      character(len=100)          :: list_index
+      character(len=256)          :: FunctionName ='surface_in_list'
+      character(len=256)          :: SourceFile = 'create_sem_surface_input'
+      character(len=700)          :: ErrorSMS
+      character(len=20)           :: char, string
+    
+      list_index =' '
+      do ns = 0, Tdomain%nsurface-1
+         do s = lbound(Tdomain%nsurfsource(ns)%index,1),ubound(Tdomain%nsurfsource(ns)%index,1)
+            find = .false.
+            int = Tdomain%nsurfsource(ns)%index(s)
+            write(char,*) int
+            block : &
+            do n=0,size(Tdomain%sSurfaces)-1
+               string = Tdomain%sSurfaces(n)%name(8:len_trim(Tdomain%sSurfaces(n)%name))
+               list_index = trim(list_index)//adjustl(string(1:len_trim(string)))//";"
+               if (Tdomain%sSurfaces(n)%name == "surface"//adjustl(char(:len_trim(char)))) then
+                  find = .true.
+                  exit block
+               endif
+            enddo block
+            ErrorSMS = "surface (index ="//adjustl(char(1:len_trim(char)))//adjustl(") is not found in tag list: ")// &
+                       adjustl(list_index(:len_trim(list_index)))
+            if (.not.find) call ErrorMessage(ErrorSMS,FunctionName,SourceFile)
+         enddo
+      enddo
+      
+   end subroutine surface_in_list
+
 end module surface_input
 
 !! Local Variables:

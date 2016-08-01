@@ -23,6 +23,7 @@ real(kind=8), dimension(0:2) :: Velocity_PW
 ! amplitude spatiale
 real(kind=8) :: srcshape
 
+
 contains
     !-------------------------------------------------------------------------------
     !-------------------------------------------------------------------------------
@@ -68,9 +69,9 @@ contains
               enddo
            enddo
         endif
-
+        
+        Tdomain%sdom%PlaneW%Exist = .false.
         if (Tdomain%n_PWBC /= 0) then
-
            do ns=1,size(Tdomain%list_PWBC)
               n2=Tdomain%list_PWBC(ns)
               do n1 =1,size(Tdomain%nsurfsource(n2)%index)  
@@ -80,6 +81,7 @@ contains
                     if (Tdomain%sSurfaces(n)%name=="surface"//adjustl(char(:len_trim(char)))) then
                         select case (Tdomain%sSurfaces(n)%domain)
                                case(DM_SOLID)
+                                   Tdomain%sdom%PlaneW%Exist = .true.
                                    call surface_force(Tdomain%sSurfaces(n)%surf_sl, Tdomain%nsurfsource(n2), &
                                                       Tdomain%sSurfaces(n),Tdomain,Tdomain%sdom%champs0%Veloc)
                                case(DM_FLUID)
@@ -165,25 +167,24 @@ contains
         use constants
 
         implicit none
-        type(surf_num), intent(in)                         :: surf
-        type(SurfaceParam), intent(in)                     :: surf_source
-        type(SurfaceT), intent(in)                         :: surf_norm
-        type(domain), intent(inout)                        :: Tdomain
-        real(kind=8), dimension(:,:),optional,intent(in)   :: veloc_field
-        real(kind=8), dimension(0:2)                       :: BtN, force, veloc
-        real(kind=8), dimension(:,:), allocatable          :: coord
-        real(kind=8)                                       :: xpt, ypt, zpt
-        integer                                            :: i, idx
-        character(len=256)                                 :: FunctionName ='surface_force'
-        character(len=256)                                 :: SourceFile = 'compute_surface_BC'
-        character(len=700)                                 :: ErrorSMS
+        type(surf_num),                                    intent(in)   :: surf
+        type(SurfaceParam),                                intent(in)   :: surf_source
+        type(SurfaceT),                                    intent(in)   :: surf_norm
+        type(domain),                                      intent(inout):: Tdomain
+        real(kind=8), dimension(:,:),             optional,intent(in)   :: veloc_field
+        real(kind=8), dimension(0:2)               :: BtN, force, veloc
+        real(kind=8), dimension(:,:), allocatable  :: coord
+        integer                                    :: i, idx
+        character(len=256)                         :: FunctionName ='surface_force'
+        character(len=256)                         :: SourceFile = 'compute_surface_BC'
+        character(len=700)                         :: ErrorSMS
        
        
         Velocity_P = surf_norm%Elastic%Pspeed
         Velocity_S = surf_norm%Elastic%Sspeed
         if ((surf_source%what_bc=='PW').and.(present(veloc_field))) then
-           PWSpeed= surf_norm%Elastic%PWspeed     
-           Velocity_PW= surf_norm%Elastic%PWspeed*surf_source%dir
+           PWSpeed = surf_norm%Elastic%PWspeed     
+           Velocity_PW = surf_norm%Elastic%PWspeed*surf_source%dir
         endif
         Coef_lambda= surf_norm%Elastic%lambda
         Coef_mu    = surf_norm%Elastic%mu
@@ -191,16 +192,13 @@ contains
         do i=0,surf%nbtot-1
            idx      = surf%map(i)
            BtN      = surf_norm%Surf_BtN(:,i)
-           xpt      = surf_norm%coord(i,0)
-           ypt      = surf_norm%coord(i,1)
-           zpt      = surf_norm%coord(i,2)
            srcshape = surf_norm%source(i)        
            veloc    = 0.d0
            if ((surf_source%what_bc=='PW').and.(present(veloc_field))) then 
                veloc=veloc_field(idx,:)
-               force = forces_on_face(xpt, ypt, zpt, BtN, surf_source, Tdomain%TimeD%dtmin, Tdomain%TimeD%rtime, veloc)
+               call forces_on_face(surf_norm%coord(i,:),BtN,surf_source,Tdomain%TimeD%dtmin,Tdomain%TimeD%rtime,force,veloc)
            else
-               force = forces_on_face(xpt, ypt, zpt, BtN, surf_source, Tdomain%TimeD%dtmin, Tdomain%TimeD%rtime)
+               call forces_on_face(surf_norm%coord(i,:),BtN,surf_source,Tdomain%TimeD%dtmin,Tdomain%TimeD%rtime,force)
            endif
 
            select case (surf_norm%domain)
@@ -217,7 +215,7 @@ contains
     end subroutine surface_force
     !----------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------
-    function forces_on_face(xpt, ypt, zpt, Btn, Param, dt, ctime, veloc)
+    subroutine forces_on_face(gllcoord, Btn, Param, dt, ctime, force, veloc)
         ! gives the forces on faces
 
         use Mathfval
@@ -227,80 +225,43 @@ contains
         use Surface_prbl_type
 
         implicit none
-
-        real(kind=8),dimension(0:2)                      :: forces_on_face
-        real(kind=8), intent(in)                         :: xpt, ypt, zpt, dt, ctime
-        real(kind=8), dimension(0:2),optional,intent(in) :: Btn, veloc
-        type(SurfaceParam), intent(in)                   :: Param
-        type(FoncValue)                                  :: Sourcef
-        type (source)                                    :: Sour
-        real(kind=8)                                     :: midtime
-        real(kind=8), dimension(0:2)                     :: coord
-        character(len=256)                               :: FunctionName ='surface_force'
-        character(len=256)                               :: SourceFile = 'compute_surface_BC'
-        character(len=700)                               :: ErrorSMS
+        real(kind=8)                         ,intent(in ):: ctime, dt
+        real(kind=8),dimension(0:2)          ,intent(out):: force
+        real(kind=8), dimension(0:2),         intent(in) :: Btn, gllcoord
+        real(kind=8), dimension(0:2),optional,intent(in) :: veloc
+        type(SurfaceParam),                   intent(in) :: Param
+        type (source)                    :: Sour
+        real(kind=8)                     :: midtime
+        real(kind=8), dimension(0:2)     :: coord
+        character(len=256)               :: FunctionName ='surface_force'
+        character(len=256)               :: SourceFile = 'compute_surface_BC'
+        character(len=700)               :: ErrorSMS
 
         
-        forces_on_face = 0.d0
+        force = 0.d0
+        midtime = ctime
+        if ((ctime/=0.).and.(Param%what_bc/='PW')) midtime = dt/2. + ctime
+        
+        !! Nouvelle coordonnées par rapport au point de référence
+        coord = gllcoord - Param%scoord
 
-        if (Param%wtype == 'A') then
-            Sourcef%dim    =Param%dim
-            Sourcef%source =Param%source
-            Sourcef%var    =Param%varia
-            Sourcef%valuefx(1:len_trim(Param%funcx))=Param%funcx(1:len_trim(Param%funcx))
-            Sourcef%valuefy(1:len_trim(Param%funcy))=Param%funcy(1:len_trim(Param%funcy))
-            Sourcef%valuefz(1:len_trim(Param%funcz))=Param%funcz(1:len_trim(Param%funcz))
-            Sourcef%valuefxy(1:len_trim(Param%funcxy))=Param%funcxy(1:len_trim(Param%funcxy))
-            Sourcef%valuefyz(1:len_trim(Param%funcyz))=Param%funcyz(1:len_trim(Param%funcyz))
-            Sourcef%valuefxz(1:len_trim(Param%funcxz))=Param%funcxz(1:len_trim(Param%funcxz))
- 
-            Addparametricvar%nparam=0
-            if (Param%paramvar==1) then
-               Addparametricvar%nparam =Param%nparamvar
-               Addparametricvar%paramname =Param%paramname
-               Addparametricvar%paramvalue =Param%paravalue
-            endif
-            
-            select case (Sourcef%dim)
-              case (1) 
-                allocate(Sourcef%fvalue(1:1))
-              case (2)
-                if (Sourcef%source=='F') then
-                   allocate(Sourcef%fvalue(1:2))
-                elseif (Sourcef%source == 'M') then
-                   allocate(Sourcef%fvalue(1:3))
-                endif
-              case(3)
-                if (Sourcef%source == 'F') then
-                   allocate(Sourcef%fvalue(1:3))
-                elseif (Sourcef%source == 'M') then
-                   allocate(Sourcef%fvalue(1:6))
-                endif
-             end select
-             Sourcef%stat='UNIF'
-             if ((Sourcef%dim==1).and.(Param%shape/=0)) Sourcef%stat='MIXT'
-         endif
-         
-         midtime = ctime
-         if ((ctime/=0.).and.(Param%what_bc/='PW')) midtime = dt/2. + ctime
-         
-         !! Nouvelle coordonnées par rapport au point de référence
-         coord =  (/(xpt-Param%scoord(0)), (ypt-Param%scoord(1)), (zpt-Param%scoord(2))/)
+        if (Param%what_bc == 'NE') then
+           call Neumanforce(Param,srcshape,coord,Btn,midtime,force)
+        endif
 
-         if (Param%what_bc == 'NE') then
-            call Neumanforce(Param,srcshape,Sourcef,coord,Btn,midtime,forces_on_face)
-         endif
-         if ((Param%what_bc == 'PW').and.(present(veloc))) then
-            call  PlaneWane_diffracted(Btn, coord, Veloc, ctime, dt, Param, Sourcef, forces_on_face)
-         elseif ((Param%what_bc == 'PW').and.(.not.present(veloc))) then
-            ErrorSMS= " Only the solid domain is needed for plane wave problem "
-            call ErrorMessage(ErrorSMS,FunctionName,SourceFile)
-         endif
+        if ((Param%what_bc == 'PW').and.(present(veloc))) then
+           !call PlaneWane_diffracted(Btn, coord, Veloc, ctime, dt, Param, force)
+           call PlaneWane_Reflected(Btn, coord, Veloc, ctime, dt, Param, force)
 
-    end function forces_on_face
+        elseif ((Param%what_bc == 'PW').and.(.not.present(veloc))) then
+           ErrorSMS= " Only the solid domain is needed for plane wave problem "
+           call ErrorMessage(ErrorSMS,FunctionName,SourceFile)
+        endif
+
+    end subroutine forces_on_face
     !----------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------
-    subroutine PlaneWane_diffracted(Btn, coord, Veloc, time, dt, Param, Sourcef, force)
+    subroutine PlaneWane_IncidenteTraction(Btn, coord, Veloc, time, dt, Param, Traction_i)
         
         use Surface_prbl_type
         use ssurf
@@ -308,39 +269,80 @@ contains
 
         implicit none
         type(SurfaceParam),            intent(in)   :: Param
-        real(kind=8), dimension(0:2), intent(inout) :: force
-        type(FoncValue),               intent(in)   :: Sourcef
-        real(kind=8), dimension(0:2), intent(in   ) :: Btn, Veloc, coord
-        real(kind=8),                 intent(in   ) :: time, dt
-        real(kind=8), dimension(0:2)                :: Nm, V, Traction_i, vel_i, Dirtang, Traction_d, vel_i_n, P, D
-        real(kind=8)                                :: nn, VV
+        real(kind=8), dimension(0:2), intent(inout) :: Traction_i
+        real(kind=8), dimension(0:2), intent(in)    :: Btn, Veloc, coord
+        real(kind=8),                 intent(in)    :: time, dt
+        real(kind=8), dimension(0:2)                :: vel_i, voloc_0
         real(kind=8)                                :: S11, S22 ,S33, S12, S13, S23
         
-        call PlaneWavedispl(Param,Sourcef,coord,Btn,time,PWSpeed,vel_i,'wave')
+        call PlaneWaveDerive(Param,coord,time,PWSpeed,vel_i, voloc_0)
         
-        S11 = (Coef_lambda+2.*Coef_mu)*vel_i(0)+Coef_lambda*(vel_i(1)+vel_i(2))
-        S22 = (Coef_lambda+2.*Coef_mu)*vel_i(1)+Coef_lambda*(vel_i(0)+vel_i(2))
-        S33 = (Coef_lambda+2.*Coef_mu)*vel_i(2)+Coef_lambda*(vel_i(0)+vel_i(1))
-        S12 = Coef_mu*(vel_i(0)+vel_i(1))
-        S13 = Coef_mu*(vel_i(0)+vel_i(2))
-        S23 = Coef_mu*(vel_i(1)+vel_i(2))
+        S11 = (Coef_lambda+2.d0*Coef_mu)*vel_i(0)*Param%dir(0)+Coef_lambda*(vel_i(1)*Param%dir(1)+vel_i(2)*Param%dir(2))
+        S22 = (Coef_lambda+2.d0*Coef_mu)*vel_i(1)*Param%dir(1)+Coef_lambda*(vel_i(0)*Param%dir(0)+vel_i(2)*Param%dir(2))
+        S33 = (Coef_lambda+2.d0*Coef_mu)*vel_i(2)*Param%dir(2)+Coef_lambda*(vel_i(0)*Param%dir(0)+vel_i(1)*Param%dir(1))
+        S12 = Coef_mu*(vel_i(0)*Param%dir(1)+vel_i(1)*Param%dir(2))
+        S13 = Coef_mu*(vel_i(0)*Param%dir(2)+vel_i(2)*Param%dir(0))
+        S23 = Coef_mu*(vel_i(1)*Param%dir(2)+vel_i(2)*Param%dir(1))
        
-        Traction_i(0) = -( S11*Btn(0)+S12*Btn(1)+S13*Btn(2) )
-        Traction_i(1) = -( S12*Btn(0)+S22*Btn(1)+S23*Btn(2) ) 
-        Traction_i(2) = -( S13*Btn(0)+S23*Btn(1)+S33*Btn(2) )
+        Traction_i(0) = ( S11*Btn(0)+S12*Btn(1)+S13*Btn(2) )
+        Traction_i(1) = ( S12*Btn(0)+S22*Btn(1)+S23*Btn(2) ) 
+        Traction_i(2) = ( S13*Btn(0)+S23*Btn(1)+S33*Btn(2) )
+
+    end subroutine PlaneWane_IncidenteTraction    
+    !----------------------------------------------------------------------------------
+    !----------------------------------------------------------------------------------
+    subroutine PlaneWane_diffracted(Btn, coord, Veloc, time, dt, Param, force)
+
+        use Surface_prbl_type
+        use ssurf
+        use Mathfval
+
+        implicit none
+        type(SurfaceParam),            intent(in)   :: Param
+        real(kind=8), dimension(0:2), intent(inout) :: force
+        real(kind=8), dimension(0:2), intent(in)    :: Btn, Veloc, coord
+        real(kind=8),                 intent(in)    :: time, dt
+        real(kind=8), dimension(0:2)                :: Nm, V, voloc_0
+        real(kind=8)                                :: nn, VV
         
         Nm = Btn
-        nn = sqrt(Btn(0)**2 + Btn(1)**2 + Btn(2)**2)
-        if (nn .gt. 0) Nm = Nm/nn
-        V  = Veloc - Velocity_PW
+        V  = Veloc - voloc_0
         VV = Nm(0)*V(0) + Nm(1)*V(1) + Nm(2)*V(2)
 
-        ! contraintes de traction due à la diffraction de l'onde plane
-        Traction_d =  -Velocity_S*rho*V + (Velocity_P-Velocity_S)*rho*VV*Nm
-        ! force de surface résultante
-        force = Traction_i + Traction_d
+        force =  Velocity_S*rho*V + (Velocity_P-Velocity_S)*rho*VV*Nm
 
     end subroutine PlaneWane_diffracted
+    !----------------------------------------------------------------------------------
+    !----------------------------------------------------------------------------------
+    subroutine PlaneWane_Reflected(Btn, coord, Veloc, time, dt, Param, force)
+       use Surface_prbl_type
+       use ssurf
+       use Mathfval 
+       implicit none
+       type(SurfaceParam),            intent(in)   :: Param
+       real(kind=8), dimension(0:2), intent(inout) :: force
+       real(kind=8), dimension(0:2), intent(in)    :: Btn, Veloc, coord
+       real(kind=8),                 intent(in)    :: time, dt
+       real(kind=8), dimension(0:2)                :: Traction_i
+
+       call PlaneWane_IncidenteTraction(Btn, coord, Veloc, time, dt, Param, Traction_i)
+        
+       force = - Traction_i
+       
+       !write(*,*) Traction_i
+       if (Param%wave_type==1) then
+             force = - Traction_i*0.d0
+       elseif (Param%wave_type==2) then
+
+       elseif (Param%wave_type==3) then
+
+       elseif (Param%wave_type==4) then
+
+       else
+
+       endif
+
+    end subroutine PlaneWane_Reflected
     !----------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------
 end module surface_load

@@ -396,6 +396,7 @@ contains
         use sem_c_bindings
         use semdatafiles, only : MAX_FILE_SIZE
         use constants
+        use surface_input
    
         implicit none
         !
@@ -474,10 +475,12 @@ contains
             Tdomain%SF%intSolFluPml%surf0%n_edges + &
             Tdomain%SF%intSolFluPml%surf0%n_vertices) /= 0
 
+        call h5gopen_f(fid, "Surfaces", surf_id, hdferr)
+        call read_surfaces(Tdomain, surf_id)
+        call h5gclose_f(surf_id, hdferr)
+        !! Rajouter pour vérifier que les surfaces choisies existes
         if (Tdomain%logicD%surfBC) then
-            call h5gopen_f(fid, "Surfaces", surf_id, hdferr)
-            call read_surfaces(Tdomain, surf_id)
-            call h5gclose_f(surf_id, hdferr)
+            call surface_in_list(Tdomain)
         endif
         ! Neumann B.C. properties, eventually
         !if(Tdomain%logicD%Neumann_local_present)then

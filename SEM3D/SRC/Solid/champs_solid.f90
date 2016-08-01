@@ -8,6 +8,13 @@ module champs_solid
 
     use constants
     implicit none
+    
+    type PWfield
+        real(kind=8), dimension(:,:), allocatable :: displ
+        real(kind=8), dimension(:,:), allocatable :: veloc
+        real(kind=8), dimension(:,:), allocatable :: accel
+        logical                                   :: Exist
+    end type PWfield
 
     type :: champssolid
 
@@ -87,7 +94,8 @@ module champs_solid
         !
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_onemSbeta
         real(fpp), dimension(:,:,:,:,:),   allocatable :: m_onemPbeta
-
+        ! for plane waves
+        type(PWfield)                                  :: PlaneW
     end type domain_solid
 
     contains

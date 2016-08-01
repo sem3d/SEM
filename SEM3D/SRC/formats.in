@@ -1,7 +1,7 @@
 ! PRECISER DES FORMATS D’AFFICHAGE
 
 ! Integers
-
+100 format(I6)
 
 ! Reals
 
@@ -37,6 +37,7 @@
 2015 format(A21,500ES13.6)
 2016 format(A21,30I4)
 2017 format('         ', A2, '     ', ES13.6)
-2018 format(A35,1ES13.3,A2)
+2018 format(A22,A12,1ES13.3,A1)
+2019 format(A22,10ES13.3)
 
 
