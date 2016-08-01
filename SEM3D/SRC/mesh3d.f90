@@ -213,9 +213,9 @@ contains
             Tdomain%sSubDomain(mat)%MinBound_Loc = Tdomain%sSubDomain(mat)%MinBound
             assocMat = Tdomain%sSubDomain(mat)%assocMat
             where(Tdomain%sSubDomain(mat)%MinBound < Tdomain%sSubDomain(assocMat)%MinBound) &
-                  Tdomain%sSubDomain(assocMat)%MinBound = Tdomain%sSubDomain(mat)%MinBound
+                Tdomain%sSubDomain(assocMat)%MinBound = Tdomain%sSubDomain(mat)%MinBound
             where(Tdomain%sSubDomain(mat)%MaxBound > Tdomain%sSubDomain(assocMat)%MaxBound) &
-                  Tdomain%sSubDomain(assocMat)%MaxBound = Tdomain%sSubDomain(mat)%MaxBound
+                Tdomain%sSubDomain(assocMat)%MaxBound = Tdomain%sSubDomain(mat)%MaxBound
         end do
 
 
@@ -285,7 +285,7 @@ contains
         call read_attr_int(gid, "n_"//trim(pfx)//"_vertices", surf%n_vertices)
 
         call allocate_surface(surf)
-       
+
         if (surf%n_faces/=0) then
             call read_dataset(gid, trim(pfx)//"_faces", itemp)
             surf%if_faces = itemp
@@ -308,29 +308,29 @@ contains
 
     subroutine get_surface_domain(gid, domain)
 
-    implicit none
-    integer, intent(inout)             :: domain
-    integer(HID_T), intent(in)         :: gid
-    character(len=4), dimension(4)     :: pfx=(/"sl  ", &
-                                                "fl  ", &
-                                                "spml", &
-                                                "fpml"/)
-    integer, allocatable, dimension(:) :: itemp
-    integer                            :: n_faces, i
-    
-    do i=1,4
-       call read_attr_int(gid, "n_"//trim(pfx(i))//"_faces",n_faces)
-       if (n_faces/=0) then
-          call read_dataset(gid, trim(pfx(i))//"_faces_dom", itemp)
-          if (MAXVAL(itemp).ne.MINVAL(itemp)) then
-              stop "Error : faces_dom uncorrectly denied in surfaces list"
-          endif
-          domain=MINVAL(itemp)
-          deallocate(itemp)
-       endif
-    enddo
+        implicit none
+        integer, intent(inout)             :: domain
+        integer(HID_T), intent(in)         :: gid
+        character(len=4), dimension(4)     :: pfx=(/"sl  ", &
+            "fl  ", &
+            "spml", &
+            "fpml"/)
+        integer, allocatable, dimension(:) :: itemp
+        integer                            :: n_faces, i
 
-    end subroutine
+        do i=1,4
+            call read_attr_int(gid, "n_"//trim(pfx(i))//"_faces",n_faces)
+            if (n_faces/=0) then
+                call read_dataset(gid, trim(pfx(i))//"_faces_dom", itemp)
+                if (MAXVAL(itemp).ne.MINVAL(itemp)) then
+                    stop "Error : faces_dom uncorrectly denied in surfaces list"
+                endif
+                domain=MINVAL(itemp)
+                deallocate(itemp)
+            endif
+        enddo
+
+    end subroutine get_surface_domain
 
     subroutine read_surfaces(Tdomain, gid)
         implicit none
@@ -369,7 +369,7 @@ contains
         use sem_c_bindings
         use semdatafiles, only : MAX_FILE_SIZE
         use constants
-   
+
         implicit none
         !
         type(domain), intent(inout) :: Tdomain
