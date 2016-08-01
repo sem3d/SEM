@@ -326,7 +326,6 @@ void Mesh3DPart::handle_local_element(int el, bool is_border)
 {
     int e0 = m_mesh.m_elems_offs[el];
     int dom = m_mesh.get_elem_domain(el);
-    PEdge dg;
     bool dom0 = false;
     std::map <int, std::pair<std::pair< std::vector<int>, int>, int>  >::const_iterator it;
     it = m_mesh.surfelem.find(el);
@@ -348,7 +347,6 @@ void Mesh3DPart::handle_local_element(int el, bool is_border)
         for(int ed=0;ed<12;++ed) {
             int v0 = RefEdge[ed][0];
             int v1 = RefEdge[ed][1];
-            dg.refedge = ed;
             PEdge edge(m_mesh.m_elems[e0 + v0], m_mesh.m_elems[e0 + v1], dom);
             int ne = add_edge(edge, is_border);
             m_elems_edges.push_back(ne);

@@ -111,7 +111,6 @@ public:
     std::vector<unsigned int> m_vertex_domains;
     VertexElemMap  m_vertex_to_elem;
     std::vector<std::string> m_surf_matname;
-    std::map<int, std::vector<double> > m_matseting;
     std::map<int, std::pair<std::pair< std::vector<int>, int>, int>  > surfelem; // hexa8_num,<hexa8_id>,hexa8_tag,Quad4_tag
 
     void build_vertex_to_elem_map();

@@ -13,6 +13,7 @@
 #include <cstring>
 #include "mesh_h5_output.h"
 #include "meshpart.h"
+#include "mesh_common.h"
 
 using std::map;
 using std::multimap;
@@ -143,7 +144,6 @@ int Mesh3D::read_materials(const std::string& str)
 
 int Mesh3D::read_materials_v2(const std::string& str)
 {
-    FILE* f = fopen(str.c_str(), "r");
     int nmats;
     int k=0;
     char type;
@@ -182,10 +182,11 @@ int Mesh3D::read_materials_v2(const std::string& str)
     double      CV_2;
     int  seedStart_2;
 
-    getline(&buffer, &linesize, f);
+    FILE* f = fopen(str.c_str(), "r");
+    getData_line(&buffer, &linesize, f);
     sscanf(buffer, "%d", &nmats);
     for(int k=0;k<nmats;++k)  {
-        getline(&buffer, &linesize, f);
+        getData_line(&buffer, &linesize, f);
         sscanf(buffer, "%c %lf %lf %lf %d %lf %lf",
                &type, &vp, &vs, &rho, &ngllx, &Qp, &Qmu);
 
@@ -193,20 +194,20 @@ int Mesh3D::read_materials_v2(const std::string& str)
 
         if(strcmp(&type,"R") == 0){
 
-            getline(&buffer, &linesize, f);
+            getData_line(&buffer, &linesize, f);
             sscanf(buffer,"%d", &lambdaSwitch);
 
-            getline(&buffer, &linesize, f);
+            getData_line(&buffer, &linesize, f);
             sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
                    &corrMod_0, &corrL_x_0, &corrL_y_0, &corrL_z_0,
                    &margiF_0, &CV_0, &seedStart_0);
 
-            getline(&buffer, &linesize, f);
+            getData_line(&buffer, &linesize, f);
             sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
                    &corrMod_1, &corrL_x_1, &corrL_y_1, &corrL_z_1,
                    &margiF_1, &CV_1, &seedStart_1);
 
-            getline(&buffer, &linesize, f);
+            getData_line(&buffer, &linesize, f);
             sscanf(buffer,"%d %lf %lf %lf %d %lf %d",
                    &corrMod_2, &corrL_x_2, &corrL_y_2, &corrL_z_2,
                    &margiF_2, &CV_2, &seedStart_2);
