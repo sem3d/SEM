@@ -170,7 +170,7 @@ void RectMesh::apply_pml_borders(int npml_)
 {
     npml = npml_;
     xmax0 = xmax;
-    xmin0 = ymin;
+    xmin0 = xmin;
     ymax0 = ymax;
     ymin0 = ymin;
     zmax0 = zmax;
