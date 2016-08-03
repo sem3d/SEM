@@ -184,6 +184,11 @@ static inline int cmp(yyscan_t scanner, const char* str)
 	return strcmp(yyget_text(scanner), str)==0;
 }
 
+typedef struct {
+    int index;
+    const char* keyword;
+} keyword_t;
+
 int eval_bool(yyscan_t scanner, int* val);
 void msg_err(yyscan_t scanner, const char* msgerr, ...);
 int skip_blank(yyscan_t scanner);
@@ -195,6 +200,9 @@ int expect_eq_int(yyscan_t scanner, int* vals, int nexpected);
 int expect_string(yyscan_t scanner, char** str, int nexpected);
 int expect_eq_string(yyscan_t scanner, char** str, int nexpected);
 int expect_eos(yyscan_t scanner);
+// Expect a keyword from a list. The list *MUST* be terminated by an item with a null pointer
+int expect_eq_keyword(yyscan_t scanner, const keyword_t* keywords, int* keyval);
+int expect_keyword(yyscan_t scanner, const keyword_t* keywords, int* keyval);
 
 int sem_check_file_c(const char* path);
 
