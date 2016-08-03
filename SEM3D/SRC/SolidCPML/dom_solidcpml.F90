@@ -207,9 +207,7 @@ contains
 
                     if (out_variables(OUT_VITESSE) == 1) then
                         if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
-                        fieldV(i,j,k,:) = dom%champs0%Veloc(ind,0) + &
-                                          dom%champs0%Veloc(ind,1) + &
-                                          dom%champs0%Veloc(ind,2)
+                        fieldV(i,j,k,:) = dom%champs0%Veloc(ind,:)
                     end if
 
                     if (out_variables(OUT_ACCEL) == 1) then
