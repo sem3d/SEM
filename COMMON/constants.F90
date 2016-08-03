@@ -64,6 +64,17 @@ MODULE constants
     integer, parameter :: OUT_EPS_DEV    = 7
     integer, parameter :: OUT_STRESS_DEV = 8
 
+
+    character(len=10), dimension(0:8) :: OUT_VAR_NAMES = (/ &
+        "EnergyP   ", &
+        "EnergyS   ", &
+        "Eps Vol   ", &
+        "Displ     ", &
+        "Veloc     ", &
+        "Accel     ", &
+        "Pressure  ", &
+        "Eps Dev   ", &
+        "Stress Dev" /)
     integer, parameter, dimension(0:8) :: OUT_VAR_DIMS_3D = (/ 1, 1, 1, 3, 3, 3, 1, 6, 6 /)
 
     ! TYPE DE CONDITION pour les surfaces
