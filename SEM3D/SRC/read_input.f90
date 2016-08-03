@@ -14,138 +14,6 @@ module semconfig
 
 contains
 
-
-    subroutine read_gradient_desc(Tdomain)
-        use sdomain
-        use semdatafiles
-        use mpi
-        implicit none
-
-        type(domain), intent(inout) :: Tdomain
-        integer :: rg
-        integer :: i,j
-
-        rg = Tdomain%rank
-
-        open(12,file=Tdomain%file_bassin,action="read",status="old")
-        !   x_type 0 : on impose un materiau homogene dans chaque sous domaine
-        !   x_type 1 : on impose un gradient de proprietes en fonction de z et ceci pour chaque colonne
-        read(12,*) Tdomain%sBassin%x_type
-        if ( Tdomain%sBassin%x_type == 2 ) then
-            read(12,*) Tdomain%sBassin%zmin
-            read(12,*) Tdomain%sBassin%zmax
-            if ( rg==0) then
-                write(*,*) ' gradient uniquement pour z entre ', Tdomain%sBassin%zmin,'  et ', Tdomain%sBassin%zmax
-            endif
-        endif
-
-        !   nombre de colonnes
-        read(12,*) Tdomain%sBassin%n_colonne
-        allocate(Tdomain%sBassin%x_coord(0:Tdomain%sBassin%n_colonne))
-        !  lecture des coordonnees en x des colonnes
-        do i = 0,Tdomain%sBassin%n_colonne
-            read(12,*) Tdomain%sBassin%x_coord(i)
-            if ( rg==0) then
-                write(*,*) ' colonne ',Tdomain%sBassin%x_coord(i)
-            endif
-        enddo
-        !   nombre de couches
-        read(12,*) Tdomain%sBassin%n_layer
-        if ( rg==0) then
-            write(*,*) ' n_layer ', Tdomain%sBassin%n_layer
-        endif
-        allocate(Tdomain%sBassin%z_layer(0:Tdomain%sBassin%n_colonne,0:Tdomain%sBassin%n_layer))
-        allocate(  Tdomain%sBassin%z_rho(0:Tdomain%sBassin%n_colonne,0:Tdomain%sBassin%n_layer))
-        allocate(   Tdomain%sBassin%z_Cp(0:Tdomain%sBassin%n_colonne,0:Tdomain%sBassin%n_layer))
-        allocate(   Tdomain%sBassin%z_Cs(0:Tdomain%sBassin%n_colonne,0:Tdomain%sBassin%n_layer))
-        ! on lit pour chaque colonne
-        !  on lit chaque profondeur et les proprietes mecaniques associees
-        do i = 0,Tdomain%sBassin%n_colonne
-            do j = 0,Tdomain%sBassin%n_layer
-                read(12,*) Tdomain%sBassin%z_layer(i,j),Tdomain%sBassin%z_rho(i,j),Tdomain%sBassin%z_Cp(i,j),Tdomain%sBassin%z_Cs(i,j)
-                if ( rg==0) then
-                    write(*,*) ' gradient ',i,j
-                    write(*,*) Tdomain%sBassin%z_layer(i,j),Tdomain%sBassin%z_rho(i,j),Tdomain%sBassin%z_Cp(i,j),Tdomain%sBassin%z_Cs(i,j)
-                endif
-            enddo
-        enddo
-        if ( rg==0) then
-            write(*,*) ' fin lecture gradient '
-        endif
-        close(12)
-    end subroutine read_gradient_desc
-
-    subroutine echo_input_params(Tdomain, rg)
-        use sdomain
-        use semdatafiles
-        use mpi
-        implicit none
-
-        type(domain), intent(inout) :: Tdomain
-        integer, intent(in)         :: rg
-        character(Len=MAX_FILE_SIZE) :: fnamef
-        integer :: i
-
-        call semname_read_input_spec(fnamef)
-
-        !    debut ajout ecriture par un seul proc
-        if ( rg == 0 ) then
-            open(91,file=fnamef, form="formatted", status="unknown")
-
-            write (91,*) Tdomain%Title_simulation
-            write (91,*) Tdomain%TimeD%acceleration_scheme
-            write (91,*) Tdomain%TimeD%velocity_scheme
-            write (91,*) Tdomain%TimeD%duration
-            write (91,*) Tdomain%TimeD%alpha
-            write (91,*) Tdomain%TimeD%beta
-            write (91,*) Tdomain%TimeD%gamma
-            write (91,*) Tdomain%mesh_file
-            write (91,*) Tdomain%material_file
-            write (91,*) Tdomain%logicD%save_trace
-            write (91,*) Tdomain%logicD%save_snapshots
-            write (91,*) Tdomain%logicD%save_energy
-            write (91,*) Tdomain%logicD%plot_grid
-            write (91,*) Tdomain%logicD%run_exec
-            write (91,*) Tdomain%logicD%run_debug
-            write (91,*) Tdomain%logicD%run_echo
-
-            if (Tdomain%logicD%save_trace) then
-                write (91,*) Tdomain%station_file
-            else
-                write (91,*) " No parameter ned here"
-            endif
-
-            if (Tdomain%logicD%save_snapshots) then
-                write (91,*) Tdomain%TimeD%time_snapshots
-            else
-                write (91,*) " No parameter ned here"
-            endif
-
-            write(11,*) Tdomain%logicD%Neumann, "  Neumann B.C.?"
-
-            if (Tdomain%logicD%any_source) then
-                write (91,*) Tdomain%n_source
-                do i = 0, Tdomain%n_source - 1
-                    write (91,*) Tdomain%Ssource(i)%Xsource, Tdomain%Ssource(i)%Ysource, Tdomain%Ssource(i)%Zsource
-                    write (91,*) Tdomain%Ssource(i)%i_type_source
-                    if (Tdomain%Ssource(i)%i_type_source == 1 ) then
-                        write (91,*) Tdomain%Ssource(i)%dir
-                    else
-                        write (91,*) "No parameter need here"
-                    endif
-                    write (91,*) Tdomain%Ssource(i)%i_time_function
-                    write (91,*) Tdomain%Ssource(i)%tau_b
-                    write (91,*) Tdomain%Ssource(i)%cutoff_freq
-                enddo
-            else
-                write (91,*)  "No available sources "
-            endif
-            write (91,*) "All right, runner ?"
-            close (91)
-        endif
-        !   fin  ajout ecriture par un seul proc
-    end subroutine echo_input_params
-
     subroutine read_material_file(Tdomain)
         use sdomain
         use orientation
@@ -513,7 +381,7 @@ contains
         if (Tdomain%config%mpml/=0) then
             Tdomain%logicD%MPML = .true.
         end if
-        Tdomain%logicD%grad_bassin = .false.
+
         Tdomain%logicD%run_restart = Tdomain%config%prorep .ne. 0
         Tdomain%TimeD%iter_reprise = Tdomain%config%prorep_restart_iter
         Tdomain%TimeD%ncheck       = Tdomain%config%prorep_iter ! frequence de sauvegarde

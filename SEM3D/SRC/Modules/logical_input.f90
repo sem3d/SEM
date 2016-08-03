@@ -21,7 +21,6 @@ module logical_input
        logical :: solid_fluid, all_fluid, SF_local_present
        ! MPML
        logical :: MPML
-       logical :: grad_bassin
     end type Logical_array
 
 end module logical_input

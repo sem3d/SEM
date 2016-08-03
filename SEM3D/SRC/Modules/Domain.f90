@@ -61,7 +61,7 @@ module sdomain
        type(logical_array) :: logicD
        type(planew)        :: sPlaneW
        type(Neu_object)    :: Neumann
-       type(bassin)        :: sBassin
+
        type(SurfaceParam), dimension(:), allocatable :: nsurfsource
        type(source)   , dimension (:), allocatable :: sSource
        type(element)  , dimension (:), pointer     :: specel
@@ -90,7 +90,6 @@ module sdomain
        integer :: traces_format
        character (len=MAX_FILE_SIZE) :: Title_simulation, mesh_file,station_file,material_file,   &
            Super_object_file,neumann_file,neumann_dat,check_mesh_file
-       character (len=30) :: file_bassin
        character (len=1)  :: Super_object_type
 
        integer, dimension(0:8) :: out_variables
