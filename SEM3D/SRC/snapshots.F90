@@ -1,7 +1,7 @@
 !! This file is part of SEM
 !!
 !! Copyright CEA, ECP, IPGP
-!!
+!!total_P_energy_sum
 
 module msnapshots
     use sdomain
@@ -71,13 +71,15 @@ contains
     end subroutine grp_write_real_2d
 
 
-    subroutine grp_write_fields(Tdomain, parent_id, dim2, out_variables, outputs, ntot_nodes)
+    subroutine grp_write_fields(Tdomain, parent_id, dim2, out_variables, outputs, ntot_nodes, &
+                                total_P_energy_sum, total_S_energy_sum)
 
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: parent_id
         integer, intent(in) :: dim2
         type(output_var_t), intent(in) :: outputs
         integer, dimension(0:8), intent(in) :: out_variables
+        double precision, intent(in) :: total_P_energy_sum, total_S_energy_sum
         integer, intent(out) :: ntot_nodes
         !
         integer(HID_T) :: dset_id
@@ -113,6 +115,7 @@ contains
                 dims(1) = ntot_nodes
                 call create_dset(parent_id, "P_energy", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
+                call write_attr_real(dset_id, "total_P_energy", total_P_energy_sum)
                 call h5dclose_f(dset_id, hdferr)
             end if
         end if
@@ -124,6 +127,7 @@ contains
                 dims(1) = ntot_nodes
                 call create_dset(parent_id, "S_energy", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
+                call write_attr_real(dset_id, "total_S_energy", total_S_energy_sum)
                 call h5dclose_f(dset_id, hdferr)
             end if
         end if
@@ -910,6 +914,17 @@ contains
             end if
         enddo
 
+        ! Total energies
+        if (out_variables(OUT_ENERGYP)==1)
+            call MPI_REDUCE(total_P_energy, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
+            if(Tdomain%rank == 0) write(*,*) "total_P_energy_sum = ", total_P_energy_sum
+        end if
+
+        if (out_variables(OUT_ENERGYS)==1)
+            call MPI_REDUCE(total_S_energy, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
+            if(Tdomain%rank == 0) write(*,*) "total_S_energy_sum = ", total_S_energy_sum
+        end if
+
         if (Tdomain%output_rank==0) then
             group = Tdomain%rank/Tdomain%ngroup
             call semname_snap_result_file(group, isort, fnamef)
@@ -918,20 +933,14 @@ contains
             fid = -1
         endif
 
-        call grp_write_fields(Tdomain, fid, nnodes, out_variables, out_fields, nnodes_tot)
+        call grp_write_fields(Tdomain, fid, nnodes, out_variables, out_fields, nnodes_tot, &
+                              total_P_energy_sum, total_S_energy_sum)
 
         if (Tdomain%output_rank==0) then
             call h5fclose_f(fid, hdferr)
             call write_xdmf(Tdomain, group, isort, nnodes_tot, out_variables)
         endif
 
-        call MPI_REDUCE(total_P_energy, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
-
-        if(Tdomain%rank == 0) write(*,*) "total_P_energy_sum = ", total_P_energy_sum
-
-        call MPI_REDUCE(total_S_energy, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
-
-        if(Tdomain%rank == 0) write(*,*) "total_S_energy_sum = ", total_S_energy_sum
 
         deallocate(valence)
         call deallocate_fields(out_variables, out_fields)
