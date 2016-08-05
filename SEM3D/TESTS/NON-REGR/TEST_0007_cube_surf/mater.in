@@ -1,0 +1,18 @@
+# This file only serves in the automatic meshing case
+#
+# Number of non-PML materials
+1
+#
+# Material Properties
+# Type, Vp, Vs, Rho, nGLL,Q_kappa, Q_mu 
+#
+S  6300.00  2500.00   2800. 5 0.0 0.0
+#
+# PML Properties (if any specific)
+# Filtering? npow,Apow,X?,left?,Y?,Forwrd?,Z?,down?,cutoff freq
+#
+# Random properties (For R materials)
+# Parametrization Choice (0 for Kappa, 1 for Lambda)
+# Rho            : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+# Kappa or Lambda: corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart
+# Mu             : corrMod, corrL_x, corrL_y, corrL_z, margiF, CV, seedStart

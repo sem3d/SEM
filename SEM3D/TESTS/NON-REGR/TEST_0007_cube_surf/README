@@ -1,0 +1,30 @@
+Description
+===========
+
+Nprocs : 1
+
+Maillage
+--------
+
+Commande ::
+mt_import_gmsh Cubo_surface.msh PythonHDF5.h5 
+mesher < mesh.input
+
+Un cube de 14x14x14, 5 pt de gauss par maille
+
+Source
+------
+
+pulse, forme d'onde ricker
+
+Duree simu : 0
+
+Capteurs
+--------
+
+Deplacements : A(-5,-5), B(-5,5), C(5,5) D(5,-5) E(12,0)
+
+Validation
+----------
+
+En cours.
