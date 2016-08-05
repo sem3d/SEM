@@ -78,6 +78,7 @@ contains
                  write(char,*) Tdomain%nsurfsource(n2)%index(n1)
                  blocPW : &
                  do n = 0,size(Tdomain%sSurfaces)-1
+
                     if (Tdomain%sSurfaces(n)%name=="surface"//adjustl(char(:len_trim(char)))) then
                         select case (Tdomain%sSurfaces(n)%domain)
                                case(DM_SOLID)
@@ -87,6 +88,10 @@ contains
                                case(DM_FLUID)
                                     call surface_force(Tdomain%sSurfaces(n)%surf_fl, Tdomain%nsurfsource(n2), &
                                                        Tdomain%sSurfaces(n),Tdomain)
+                               case default
+                                   write(char,*) Tdomain%sSurfaces(n)%domain 
+                                   ErrorSMS= "Sorry the plane wave problem is implemented only for solid dom 4 # "//adjustl(char(:len_trim(char)))
+                                   call ErrorMessage(ErrorSMS,FunctionName,SourceFile)
                         endselect
                         exit blocPW
                      endif
@@ -250,7 +255,6 @@ contains
         endif
 
         if ((Param%what_bc == 'PW').and.(present(veloc))) then
-           !call PlaneWane_diffracted(Btn, coord, Veloc, ctime, dt, Param, force)
            call PlaneWane_Reflected(Btn, coord, Veloc, ctime, dt, Param, force)
 
         elseif ((Param%what_bc == 'PW').and.(.not.present(veloc))) then
@@ -331,7 +335,7 @@ contains
        
        !write(*,*) Traction_i
        if (Param%wave_type==1) then
-             force = - Traction_i*0.d0
+             force = - Traction_i
        elseif (Param%wave_type==2) then
 
        elseif (Param%wave_type==3) then

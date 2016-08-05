@@ -30,8 +30,8 @@ contains
        allocate(surface%source(0:nbtot-1))
        ssrc = nsurfindex(Tdomain, surface%name)
        surface%source = 1.0d0
-       shape = Tdomain%nsurfsource(ssrc)%shape
-       RR = Tdomain%nsurfsource(ssrc)%size
+       shape = Tdomain%nsurfsource(ssrc-1)%shape
+       RR = Tdomain%nsurfsource(ssrc-1)%size
        if (ssrc.gt.0) then
           do i=0,nbtot-1
              x = surface%coord(i,0) - Tdomain%nsurfsource(ssrc)%scoord(0)
@@ -51,17 +51,16 @@ contains
        real(kind=8), intent(in) :: x, y, R, z
        real(kind=8)             :: SrcShape
     
-       Radius = R
        SrcShape = 0.d0
        select case (index)
               case (1)
-                   SrcShape = gaussienne(x,y,z) 
+                   SrcShape = gaussienne(x,y,z,R) 
               case (2)
-                   SrcShape = Paraboloid(x,y,z)
+                   SrcShape = Paraboloid(x,y,z,R)
               case (3)
-                   SrcShape = square(x,y,z)
+                   SrcShape = square(x,y,z,R)
               case (4)
-                   SrcShape = cylinder(x,y,z)
+                   SrcShape = cylinder(x,y,z,R)
               case default
                    SrcShape = 1.0d0
        end select
@@ -69,36 +68,36 @@ contains
     end function SrcShape 
     !----------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------
-    function gaussienne(x,y,z)
+    function gaussienne(x,y,z,Radius)
     
        implicit none
        real(kind=8)             :: gaussienne
-       real(kind=8), intent(in) :: x, y, z
+       real(kind=8), intent(in) :: x, y, z, Radius
        
        gaussienne = exp(-(x**2 + y**2 + z**2)/Radius**2)
     
     end function gaussienne
     !----------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------
-    function Paraboloid(x,y,z)
+    function Paraboloid(x,y,z,Radius)
        
        implicit none
        real(kind=8)             :: Paraboloid
-       real(kind=8), intent(in) :: x, y, z
+       real(kind=8), intent(in) :: x, y, z, Radius
        real(kind=8)             :: ray
     
        Paraboloid = 0.d0
-       ray = sqrt(x**2 + y**2 + z**2)
-       if (ray.le.Radius) Paraboloid=sqrt(1.-ray**2/Radius**2) 
+       ray = dsqrt(x**2 + y**2 + z**2)
+       if (ray.le.Radius) Paraboloid=dsqrt(1.-ray**2/Radius**2) 
     
     end function Paraboloid
     !----------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------
-    function square(x,y,z)
+    function square(x,y,z,Radius)
         
         implicit none
         real(kind=8)             :: square
-        real(kind=8), intent(in) :: x, y, z
+        real(kind=8), intent(in) :: x, y, z, Radius
     
         square = 0
         if ((abs(x).le.radius).and.(abs(y).le.Radius)) square = 1.0d0
@@ -106,15 +105,15 @@ contains
     end function square
     !----------------------------------------------------------------------------------
     !----------------------------------------------------------------------------------
-    function cylinder(x,y,z)
+    function cylinder(x,y,z,Radius)
     
        implicit none
        real(kind=8)             :: cylinder
-       real(kind=8), intent(in) :: x, y, z
+       real(kind=8), intent(in) :: x, y, z, Radius
        real(kind=8)             :: ray
     
        cylinder=0.d0
-       ray = sqrt(x**2 + y**2 + z**2)
+       ray = dsqrt(x**2 + y**2 + z**2)
        if (ray.le.Radius) cylinder = 1.0d0
     
     end function cylinder
@@ -127,16 +126,18 @@ contains
        integer                        :: nsurfindex
        type(domain),       intent(in) :: Tdomain
        character(len=*),   intent(in) :: name
-       integer                        :: ns, s, id
+       integer                        :: ns, s, id, n
          
        nsurfindex = -1
        do ns = 0, Tdomain%nsurface-1
           do s = lbound(Tdomain%nsurfsource(ns)%index,1),ubound(Tdomain%nsurfsource(ns)%index,1)
              id = Tdomain%nsurfsource(ns)%index(s)
-             if ((trim(Tdomain%sSurfaces(id)%name) == trim(name)).and.&
-                 (Tdomain%nsurfsource(ns)%what_bc=='NE')) then
-                  nsurfindex = ns
-             endif
+             do n=0,size(Tdomain%sSurfaces)-1
+                if ((trim(Tdomain%sSurfaces(n)%name) == name(1:len_trim(name))).and.&
+                    (Tdomain%nsurfsource(ns)%what_bc=='NE')) then
+                     nsurfindex = ns+1
+                endif
+             enddo
           enddo
        enddo
     end function nsurfindex

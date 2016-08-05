@@ -67,6 +67,8 @@ contains
             allocate(Tdomain%list_NEBC(1:Tdomain%n_NEBC))
             if (Tdomain%n_NEBC-1.gt.0) Tdomain%list_NEBC(1:Tdomain%n_NEBC-1) = dummylist
             Tdomain%list_NEBC(Tdomain%n_NEBC) = nsurf
+            Tdomain%nsurfsource(nsurf)%shape = surf%surface_space
+            Tdomain%nsurfsource(nsurf)%size = surf%surface_size
             if (rg.eq.0) write(*,1004) "Neumann /-> surface"//adjustl(char(1:len_trim(char)))
      
           elseif (surf%surface_whatbc == 2) then
@@ -205,9 +207,6 @@ contains
                 write(*,*)
 
              else
-     
-                 Tdomain%nsurfsource(nsurf)%shape = surf%surface_space
-                 Tdomain%nsurfsource(nsurf)%size = surf%surface_size
      
                  if (rg==0) then
                           write(*,*) "Surface BC Source  : "//adjustl(sourcename(1:len_trim(sourcename)))

@@ -77,11 +77,12 @@ contains
      real(kind=8),                  intent(in) :: srcshape, time
      real(kind=8), dimension(0:2),  intent(in) :: coord, Btn
      real(kind=8), dimension(0:2), intent(out) :: forces
+     real(kind=8), dimension(1:6)              :: sigma
      type(FoncValue) :: Sourcef
      type (source)   :: Sour
      
      forces = 0.d0
-
+     sigma  = 0.d0
      select case(Param%wtype)
             case('R')
                 !- Ricker in time, source uniformly distributed..
@@ -89,30 +90,33 @@ contains
                 Sour%cutoff_freq     = Param%f0
                 Sour%tau_b           = Param%Rickertau
                 Sour%amplitude_factor= Param%amplitude
-                forces = Param%dir*CompSource(Sour,time,0)*srcshape
+                sigma(1:3) = Param%dir*CompSource(Sour,time,0)*srcshape
             case('G')
                 !- Gaussian in time, source uniformly distributed...
                 Sour%i_time_function = 1
                 Sour%tau_b           = Param%Rickertau
                 Sour%amplitude_factor= Param%amplitude
-                forces = Param%dir*CompSource(Sour,time,0)*srcshape
+                sigma(1:3) = Param%dir*CompSource(Sour,time,0)*srcshape
             case ('A')
                 !- analytical form
                 call init_math_src(Param, sourcef)
                 call ffvalue(Sourcef,coord,time)
                 if ((Sourcef%dim==3).and.(Sourcef%source == 'M')) then
-                     forces(0) = (Sourcef%fvalue(1)*Btn(0)+ Sourcef%fvalue(4)*Btn(1)+Sourcef%fvalue(6)*Btn(2))
-                     forces(1) = (Sourcef%fvalue(4)*Btn(0)+ Sourcef%fvalue(2)*Btn(1)+Sourcef%fvalue(5)*Btn(2))
-                     forces(2) = (Sourcef%fvalue(6)*Btn(0)+ Sourcef%fvalue(5)*Btn(1)+Sourcef%fvalue(3)*Btn(2))
+                    sigma = Sourcef%fvalue
+
                 elseif ((Sourcef%dim==3).and.(Sourcef%source == 'F')) then
-                     forces(0) = Sourcef%fvalue(1)
-                     forces(1) = Sourcef%fvalue(2)
-                     forces(2) = Sourcef%fvalue(3)
+                     sigma(1:3) = Sourcef%fvalue(1:3)
+
                 elseif ((Sourcef%dim==1).and.(Sourcef%source=='F')) then
-                     forces = Param%dir*Sourcef%fvalue(1)
-                     if (Sourcef%stat=='MIXT') forces = forces*srcshape
+                     sigma(1:3) = Param%dir*Sourcef%fvalue(1)
+
+                     if (Sourcef%stat=='MIXT') sigma = sigma*srcshape
                 endif
      end select
+
+     forces(0) = (sigma(1)*Btn(0)+ sigma(4)*Btn(1)+sigma(6)*Btn(2))
+     forces(1) = (sigma(4)*Btn(0)+ sigma(2)*Btn(1)+sigma(5)*Btn(2))
+     forces(2) = (sigma(6)*Btn(0)+ sigma(5)*Btn(1)+sigma(3)*Btn(2))
      
      end subroutine Neumanforce
      !----------------------------------------------------------------------------------
@@ -225,19 +229,19 @@ contains
      select case(char)
            case('d')
                 !! expression exacte du déplacement
-                sigma    = M_PI**2*f0**2*xx**2
+                sigma  = M_PI**2*f0**2*xx**2
                 Ricker = - (1.d0 - 2.d0*sigma)*dexp(-sigma)
            case('w')
                 !! dérive spatiale
-                sigma    = M_PI**2*f0**2
+                sigma  = M_PI**2*f0**2
                 Ricker = 2.d0*sigma*(3.d0*xx - 2.d0*sigma*xx**3)*dexp(-sigma*xx**2)
            case('v')
                 !! vitesse
-                 sigma    = M_PI**2*f0**2
+                 sigma  = M_PI**2*f0**2
                  Ricker = -2.d0*C0*sigma*(3.d0*xx - 2.d0*sigma*xx**3)*dexp(-sigma*xx**2)
            case('a')
                 !! accélération
-                sigma    = M_PI**2*f0**2
+                sigma  = M_PI**2*f0**2
                 Ricker = 2.d0*C0**2*sigma*(3.d0 - 12.d0*sigma*xx**2+4.d0*sigma**2*xx**4)*dexp(-sigma*xx**2)
          end select
      

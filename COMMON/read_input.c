@@ -373,8 +373,9 @@ int expect_materials(yyscan_t scanner, sem_config_t* config)
 
 void init_surface(surface_t *surface)
 {
- memset(surface, 0, sizeof(surface_t));
+  memset(surface, 0, sizeof(surface_t));
 // Initialisation de tous les champs surfaciques
+  surface->surface_list[40] = -1;
   surface->surface_present=0;
   surface->surface_type=0;
   surface->surface_mat=-1;
@@ -383,28 +384,28 @@ void init_surface(surface_t *surface)
   surface->surface_f0=0;
   surface->surface_whatbc=0;
   surface->surface_dim=0;
-//  surface->surface_source=NULL;
-//  surface->surface_funcx=NULL;
-//  surface->surface_funcy=NULL;
-//  surface->surface_funcz=NULL;
-//  surface->surface_funcxy=NULL;
-//  surface->surface_funcxz=NULL;
-//  surface->surface_funcyz=NULL;
-//  surface->surface_varia=NULL;
   surface->surface_Paravalue[100]=0;
-//  surface->surface_Paramname=NULL;
+  surface->surface_Paramname=NULL;
   surface->surface_nparamvar=0;
   surface->surface_paramvar=0;
-  surface->surface_list[40] = -1;
-//  surface->surface_dirU[3] = 0;
-//  surface->surface_name=NULL;
-  surface->amplitude=1.0;
+  surface->surface_source=NULL;
+  surface->surface_funcx=NULL;
+  surface->surface_funcy=NULL;
+  surface->surface_funcz=NULL;
+  surface->surface_funcxy=NULL;
+  surface->surface_funcxz=NULL;
+  surface->surface_funcyz=NULL;
+  surface->surface_varia=NULL;
+  surface->amplitude=1;
+  surface->Rtau = 0;
+  surface->surface_space=0;
+  surface->surface_size=0;
+  surface->surface_name=NULL;
   surface->surface_wave = 0;
   surface->surface_Speed =0;
-  surface->surface_space = 0;
 }
 
-int expect_source_shape(yyscan_t scanner, int* type, char* name)
+int expect_source_shape(yyscan_t* scanner, int* type, char** name)
 {
      int tok;
      int len;
@@ -412,11 +413,11 @@ int expect_source_shape(yyscan_t scanner, int* type, char* name)
      if (!expect_eq(scanner)) return 0;
      tok = skip_blank(scanner);
      if (tok!=K_ID) goto error;
-     if (cmp(scanner,"gaussian"))         { *type = 1; name = "gaussian"  ; return 1; }
-     if (cmp(scanner,"paraboloid"))       { *type = 2; name = "paraboloid"; return 1; }
-     if (cmp(scanner,"square"))           { *type = 3; name = "square"    ; return 1; }
-     if (cmp(scanner,"cylinder"))         { *type = 4; name = "cylinder"  ; return 1; }
-     if (cmp(scanner,"uniform"))          { *type = 5; name = "uniform"   ; return 1; }
+     if (cmp(scanner,"gaussian"))         { *type = 1; *name = "gaussian"  ; return 1; }
+     if (cmp(scanner,"paraboloid"))       { *type = 2; *name = "paraboloid"; return 1; }
+     if (cmp(scanner,"square"))           { *type = 3; *name = "square"    ; return 1; }
+     if (cmp(scanner,"cylinder"))         { *type = 4; *name = "cylinder"  ; return 1; }
+     if (cmp(scanner,"uniform"))          { *type = 5; *name = "uniform"   ; return 1; }
   error:
      msg_err(scanner, "Expected gaussian|Paraboloid|square|cylinder|uniform");
      return 0;
@@ -482,7 +483,7 @@ int expect_surfaces(yyscan_t scanner, sem_config_t* config)
         if (cmp(scanner,"tau")) err=expect_eq_float(scanner, &surface->Rtau,1);
 	if (cmp(scanner,"C")) err=expect_eq_float(scanner, surface->surface_C,3);
 	if (cmp(scanner,"freq")) err=expect_eq_float(scanner, &surface->surface_f0,1);
-        if (cmp(scanner,"shape")) err=expect_source_shape(scanner, &surface->surface_space,surface->surface_name);
+        if (cmp(scanner,"shape")) err=expect_source_shape(scanner, &surface->surface_space,&surface->surface_name);
         if (cmp(scanner,"size")) err=expect_eq_float(scanner, &surface->surface_size,1);
         if (cmp(scanner,"nsurf")) err=expect_eq_int(scanner, &use,1);
         if (cmp(scanner,"mat_i")) err=expect_eq_int(scanner, &surface->surface_mat,1);
@@ -491,7 +492,6 @@ int expect_surfaces(yyscan_t scanner, sem_config_t* config)
         if (cmp(scanner,"dirU")) err=expect_eq_float(scanner, surface->surface_dirU,3);
         if (cmp(scanner,"index")) 
            if (use!=-1)  err=expect_eq_int(scanner, surface->surface_list,use); 
-              //err=expect_eq_int_list(scanner, surface->surface_list);
         if (cmp(scanner,"var")) err=expect_eq_string(scanner, &surface->surface_varia,1);
         if (cmp(scanner,"fxx")) {err=expect_eq_string(scanner, &surface->surface_funcx,1);
                                 surface->surface_source= "F"; surface->surface_dim=1;}
@@ -502,7 +502,7 @@ int expect_surfaces(yyscan_t scanner, sem_config_t* config)
         if (cmp(scanner,"fxz")||cmp(scanner,"fzx")) {err=expect_eq_string(scanner, &surface->surface_funcxz,1);
                                                      surface->surface_source="M";}
         if (cmp(scanner,"fyz")||cmp(scanner,"fzy")) {err=expect_eq_string(scanner, &surface->surface_funcyz,1);
-                                                     surface->surface_source="M";}
+                                                    surface->surface_source="M";}
         if (cmp(scanner,"fxy")||cmp(scanner,"fyx")) {err=expect_eq_string(scanner, &surface->surface_funcxy,1);
                                                      surface->surface_source="M";}
         if (cmp(scanner,"paramvar")) err=expect_eq_int(scanner, &surface->surface_paramvar,1);
