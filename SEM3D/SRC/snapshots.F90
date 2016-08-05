@@ -915,12 +915,12 @@ contains
         enddo
 
         ! Total energies
-        if (out_variables(OUT_ENERGYP)==1)
+        if (out_variables(OUT_ENERGYP)==1) then
             call MPI_REDUCE(total_P_energy, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
             if(Tdomain%rank == 0) write(*,*) "total_P_energy_sum = ", total_P_energy_sum
         end if
 
-        if (out_variables(OUT_ENERGYS)==1)
+        if (out_variables(OUT_ENERGYS)==1) then
             call MPI_REDUCE(total_S_energy, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
             if(Tdomain%rank == 0) write(*,*) "total_S_energy_sum = ", total_S_energy_sum
         end if
