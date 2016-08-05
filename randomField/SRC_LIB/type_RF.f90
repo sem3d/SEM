@@ -4,6 +4,7 @@ module type_RF
     use charFunctions
     use type_inputRF
     use type_MESH
+    use type_inputRF
 
     implicit none
 
