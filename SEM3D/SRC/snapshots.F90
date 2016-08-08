@@ -784,8 +784,8 @@ contains
         if (out_flags(OUT_ACCEL     ) == 1) fields%accel = 0.
         if (out_flags(OUT_EPS_DEV   ) == 1) fields%eps_dev = 0.
         if (out_flags(OUT_STRESS_DEV) == 1) fields%sig_dev = 0.
-         P_en_total = 0.
-         S_en_total = 0.
+        fields%P_en_total = 0.
+        fields%S_en_total = 0.
     end subroutine allocate_fields
 
     subroutine deallocate_fields(out_flags, fields)
@@ -859,19 +859,17 @@ contains
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
             sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
-            if (.not. el%OUTPUT .and. &
-              (.not. &
-              (out_variables(OUT_ENERGYP   ) == 1 .or. out_variables(OUT_ENERGYS   ) == 1) &
-              )) cycle
+            if (.not. el%OUTPUT ) cycle
+            !if (.not. el%OUTPUT .and. &
+            !  (.not. &
+            !  (out_variables(OUT_ENERGYP   ) == 1 .or. out_variables(OUT_ENERGYS   ) == 1) &
+            !  )) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             domain_type = Tdomain%specel(n)%domain
             select case(domain_type)
                 case (DM_SOLID)
                   call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,                 &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
-                  if (out_variables(OUT_ENERGYP)==1) total_P_energy = total_P_energy + sum(P_energy)
-                  if (out_variables(OUT_ENERGYS)==1) total_S_energy = total_S_energy + sum(S_energy)
-
                 case (DM_FLUID)
                   call get_fluid_dom_var(Tdomain, Tdomain%fdom, el%lnum, out_variables,        &
                   fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
