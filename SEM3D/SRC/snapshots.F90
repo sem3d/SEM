@@ -21,6 +21,7 @@ module msnapshots
         real, dimension(:)  , allocatable :: eps_vol
         real, dimension(:,:), allocatable :: eps_dev, sig_dev
         real, dimension(:)  , allocatable :: P_energy, S_energy
+        real                              :: P_en_total, S_en_total
     end type output_var_t
 
 contains
@@ -783,6 +784,8 @@ contains
         if (out_flags(OUT_ACCEL     ) == 1) fields%accel = 0.
         if (out_flags(OUT_EPS_DEV   ) == 1) fields%eps_dev = 0.
         if (out_flags(OUT_STRESS_DEV) == 1) fields%sig_dev = 0.
+         P_en_total = 0.
+         S_en_total = 0.
     end subroutine allocate_fields
 
     subroutine deallocate_fields(out_flags, fields)
@@ -830,7 +833,8 @@ contains
         real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
-        double precision :: total_P_energy, total_S_energy, total_P_energy_sum, total_S_energy_sum
+        integer, dimension(:), allocatable :: nData
+        double precision :: total_P_energy_sum, total_S_energy_sum
 
         integer, dimension(0:8) :: out_variables
         integer :: ierr
@@ -843,19 +847,22 @@ contains
 
         call allocate_fields(nnodes, Tdomain%out_variables, out_fields)
         allocate(valence(0:nnodes-1))
+        allocate(nData(0:nnodes-1))
 
         valence(:) = 0
+        nData(:) = 0
 
         ngll = 0
-        total_P_energy = 0d0
-        total_S_energy = 0d0
         total_P_energy_sum = 0d0
         total_S_energy_sum = 0d0
 
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
             sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
-            if (.not. el%OUTPUT) cycle
+            if (.not. el%OUTPUT .and. &
+              (.not. &
+              (out_variables(OUT_ENERGYP   ) == 1 .or. out_variables(OUT_ENERGYS   ) == 1) &
+              )) cycle
             ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
             domain_type = Tdomain%specel(n)%domain
             select case(domain_type)
@@ -883,19 +890,61 @@ contains
                     do i = 0, ngll-1
                         ind = irenum(el%Iglobnum(i,j,k))
 
-                        if (out_variables(OUT_DEPLA     ) == 1) out_fields%displ(0:2,ind)   = fieldU(i,j,k,0:2)
-                        if (out_variables(OUT_VITESSE   ) == 1) out_fields%veloc(0:2,ind)   = fieldV(i,j,k,0:2)
-                        if (out_variables(OUT_ACCEL     ) == 1) out_fields%accel(0:2,ind)   = fieldA(i,j,k,0:2)
-                        if (out_variables(OUT_PRESSION  ) == 1) out_fields%press(ind)       = fieldP(i,j,k)
-                        if (out_variables(OUT_ENERGYP   ) == 1) out_fields%P_energy(ind)    = P_energy(i,j,k)
-                        if (out_variables(OUT_ENERGYS   ) == 1) out_fields%S_energy(ind)    = S_energy(i,j,k)
-                        if (out_variables(OUT_EPS_VOL   ) == 1) out_fields%eps_vol(ind)     = eps_vol(i,j,k)
-                        if (out_variables(OUT_EPS_DEV   ) == 1) out_fields%eps_dev(0:5,ind) = eps_dev(i,j,k,0:5)
-                        if (out_variables(OUT_STRESS_DEV) == 1) out_fields%sig_dev(0:5,ind) = sig_dev(i,j,k,0:5)
+                        nData(ind) = nData(ind) + 1
+
+                        if (out_variables(OUT_DEPLA     ) == 1) &
+                            out_fields%displ(0:2,ind)   = fieldU(i,j,k,0:2) + out_fields%displ(0:2,ind)
+                        if (out_variables(OUT_VITESSE   ) == 1) &
+                            out_fields%veloc(0:2,ind)   = fieldV(i,j,k,0:2) + out_fields%veloc(0:2,ind)
+                        if (out_variables(OUT_ACCEL     ) == 1) &
+                            out_fields%accel(0:2,ind)   = fieldA(i,j,k,0:2) + out_fields%accel(0:2,ind)
+                        if (out_variables(OUT_PRESSION  ) == 1) &
+                            out_fields%press(ind)       = fieldP(i,j,k) + out_fields%press(ind)
+                        if (out_variables(OUT_ENERGYP   ) == 1) &
+                            out_fields%P_energy(ind)    = P_energy(i,j,k) + out_fields%P_energy(ind)
+                        if (out_variables(OUT_ENERGYS   ) == 1) &
+                            out_fields%S_energy(ind)    = S_energy(i,j,k) + out_fields%S_energy(ind)
+                        if (out_variables(OUT_EPS_VOL   ) == 1) &
+                            out_fields%eps_vol(ind)     = eps_vol(i,j,k) + out_fields%eps_vol(ind)
+                        if (out_variables(OUT_EPS_DEV   ) == 1) &
+                            out_fields%eps_dev(0:5,ind) = eps_dev(i,j,k,0:5) + out_fields%eps_dev(0:5,ind)
+                        if (out_variables(OUT_STRESS_DEV) == 1) &
+                            out_fields%sig_dev(0:5,ind) = sig_dev(i,j,k,0:5) + out_fields%sig_dev(0:5,ind)
+
                     enddo
                 enddo
             enddo
+
+            if (out_variables(OUT_ENERGYP) == 1) &
+                out_fields%P_en_total = out_fields%P_en_total + sum(P_energy(:,:,:))
+            if (out_variables(OUT_ENERGYS) == 1) &
+                out_fields%S_en_total = out_fields%S_en_total + sum(S_energy(:,:,:))
         enddo
+
+        !Averaging on coincident GLLs
+        do ind = 0,nnodes-1
+            if(nData(ind) > 1) then
+                if (out_variables(OUT_DEPLA     ) == 1) &
+                    out_fields%displ(0:2,ind)   = out_fields%displ(0:2,ind)/dble(nData(ind))
+                if (out_variables(OUT_VITESSE   ) == 1) &
+                    out_fields%veloc(0:2,ind)   = out_fields%veloc(0:2,ind)/dble(nData(ind))
+                if (out_variables(OUT_ACCEL     ) == 1) &
+                    out_fields%accel(0:2,ind)   = out_fields%accel(0:2,ind)/dble(nData(ind))
+                if (out_variables(OUT_PRESSION  ) == 1) &
+                    out_fields%press(ind)       = out_fields%press(ind)/dble(nData(ind))
+                if (out_variables(OUT_ENERGYP   ) == 1) &
+                    out_fields%P_energy(ind)    = out_fields%P_energy(ind)/dble(nData(ind))
+                if (out_variables(OUT_ENERGYS   ) == 1) &
+                    out_fields%S_energy(ind)    = out_fields%S_energy(ind)/dble(nData(ind))
+                if (out_variables(OUT_EPS_VOL   ) == 1) &
+                    out_fields%eps_vol(ind)     = out_fields%eps_vol(ind)/dble(nData(ind))
+                if (out_variables(OUT_EPS_DEV   ) == 1) &
+                    out_fields%eps_dev(0:5,ind) = out_fields%eps_dev(0:5,ind)/dble(nData(ind))
+                if (out_variables(OUT_STRESS_DEV) == 1) &
+                    out_fields%sig_dev(0:5,ind) = out_fields%sig_dev(0:5,ind)/dble(nData(ind))
+            end if
+        end do
+
         if(allocated(fieldU)) deallocate(fieldU)
         if(allocated(fieldV)) deallocate(fieldV)
         if(allocated(fieldA)) deallocate(fieldA)
@@ -905,6 +954,7 @@ contains
         if(allocated(eps_vol))  deallocate(eps_vol)
         if(allocated(eps_dev))  deallocate(eps_dev)
         if(allocated(sig_dev))  deallocate(sig_dev)
+        if(allocated(nData))  deallocate(nData)
 
         ! normalization
         do i = 0,nnodes-1
@@ -916,12 +966,12 @@ contains
 
         ! Total energies
         if (out_variables(OUT_ENERGYP)==1) then
-            call MPI_REDUCE(total_P_energy, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
+            call MPI_REDUCE(out_fields%P_en_total, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
             if(Tdomain%rank == 0) write(*,*) "total_P_energy_sum = ", total_P_energy_sum
         end if
 
         if (out_variables(OUT_ENERGYS)==1) then
-            call MPI_REDUCE(total_S_energy, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
+            call MPI_REDUCE(out_fields%S_en_total, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
             if(Tdomain%rank == 0) write(*,*) "total_S_energy_sum = ", total_S_energy_sum
         end if
 
