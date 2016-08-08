@@ -102,14 +102,6 @@ contains
             allocate(dom%champs1%Forces(0:dom%nglltot-1,0:2))
             allocate(dom%champs1%Depla (0:dom%nglltot-1,0:2))
             allocate(dom%champs1%Veloc (0:dom%nglltot-1,0:2))
-            if (Tdomain%n_PWBC /= 0) then
-                allocate(dom%PlaneW%displ(0:dom%nglltot-1,0:2))
-                allocate(dom%PlaneW%veloc(0:dom%nglltot-1,0:2))
-                allocate(dom%PlaneW%accel(0:dom%nglltot-1,0:2))
-                dom%PlaneW%accel = 0.d0
-                dom%PlaneW%veloc = 0.d0
-                dom%PlaneW%displ = 0.d0
-            endif
 
             dom%champs0%Forces = 0d0
             dom%champs0%Depla = 0d0
@@ -167,10 +159,6 @@ contains
         if(allocated(dom%champs1%Depla )) deallocate(dom%champs1%Depla )
         if(allocated(dom%champs1%Veloc )) deallocate(dom%champs1%Veloc )
 
-        if(allocated(dom%PlaneW%displ)) deallocate(dom%PlaneW%displ)
-        if(allocated(dom%PlaneW%veloc)) deallocate(dom%PlaneW%veloc)
-        if(allocated(dom%PlaneW%accel)) deallocate(dom%PlaneW%accel)
-
         if(allocated(dom%MassMat)) deallocate(dom%MassMat)
     end subroutine deallocate_dom_solid
 
@@ -222,7 +210,6 @@ contains
                     do i=0,ngll-1
                         ind = dom%Idom_(i,j,k,bnum,ee)
                         fieldU(i,j,k,:) = dom%champs0%Depla(ind,:)
-                        if (dom%PlaneW%Exist) fieldU(i,j,k,:) = fieldU(i,j,k,:) + dom%PlaneW%displ(ind,:)
                     enddo
                 enddo
             enddo
@@ -254,13 +241,11 @@ contains
                     if (out_variables(OUT_VITESSE) == 1) then
                         if(.not. allocated(fieldV)) allocate(fieldV(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                         fieldV(i,j,k,:) = dom%champs0%Veloc(ind,:)
-                        if (dom%PlaneW%Exist) fieldV(i,j,k,:) = fieldV(i,j,k,:) + dom%PlaneW%veloc(ind,:)
                     end if
 
                     if (out_variables(OUT_ACCEL) == 1) then
                         if(.not. allocated(fieldA)) allocate(fieldA(0:ngll-1,0:ngll-1,0:ngll-1,0:2))
                         fieldA(i,j,k,:) = dom%champs0%Forces(ind,:)
-                        if (dom%PlaneW%Exist) fieldA(i,j,k,:) = fieldA(i,j,k,:) + dom%PlaneW%accel(ind,:)
                     end if
 
                     if (out_variables(OUT_PRESSION) == 1) then
@@ -526,9 +511,9 @@ contains
                                           (Tdomain%GlobCoord(1,ind)-Tdomain%nsurfsource(ipw)%scoord(1)), &
                                           (Tdomain%GlobCoord(2,ind)-Tdomain%nsurfsource(ipw)%scoord(2))/)
                                 call PlaneWavedispl(Tdomain%nsurfsource(ipw),coord,ctime,PWspeed, displ,veloc,accel)
-                                Tdomain%sdom%PlaneW%displ(ind,:) = displ
-                                Tdomain%sdom%PlaneW%veloc(ind,:) = veloc
-                                Tdomain%sdom%PlaneW%accel(ind,:) = accel
+                               if (allocated(Tdomain%sdom%champs0%Depla))  Tdomain%sdom%champs0%Depla(ind,:)  = Tdomain%sdom%champs0%Depla(ind,:) + displ
+                               if (allocated(Tdomain%sdom%champs0%Veloc))  Tdomain%sdom%champs0%Veloc(ind,:)  = Tdomain%sdom%champs0%Veloc(ind,:) + veloc
+                               if (allocated(Tdomain%sdom%champs0%Forces)) Tdomain%sdom%champs0%Forces(ind,:) = Tdomain%sdom%champs0%Forces(ind,:) + accel
                              enddo
                           enddo
                        enddo
