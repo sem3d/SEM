@@ -20,8 +20,8 @@ module msnapshots
         real, dimension(:)  , allocatable :: press
         real, dimension(:)  , allocatable :: eps_vol
         real, dimension(:,:), allocatable :: eps_dev, sig_dev
-        real, dimension(:)  , allocatable :: P_energy, S_energy
-        real                              :: P_en_total, S_en_total
+        double precision, dimension(:), allocatable :: P_energy, S_energy
+        double precision                  :: P_en_total, S_en_total
     end type output_var_t
 
 contains
@@ -72,15 +72,13 @@ contains
     end subroutine grp_write_real_2d
 
 
-    subroutine grp_write_fields(Tdomain, parent_id, dim2, out_variables, outputs, ntot_nodes, &
-                                total_P_energy_sum, total_S_energy_sum)
+    subroutine grp_write_fields(Tdomain, parent_id, dim2, out_variables, outputs, ntot_nodes)
 
         type (domain), intent (INOUT):: Tdomain
         integer(HID_T), intent(in) :: parent_id
         integer, intent(in) :: dim2
         type(output_var_t), intent(in) :: outputs
         integer, dimension(0:8), intent(in) :: out_variables
-        double precision, intent(in) :: total_P_energy_sum, total_S_energy_sum
         integer, intent(out) :: ntot_nodes
         !
         integer(HID_T) :: dset_id
@@ -90,7 +88,10 @@ contains
         integer :: n
         integer(HSIZE_T), dimension(2) :: dims
         integer :: hdferr, ierr
+        double precision :: total_P_energy_sum, total_S_energy_sum
 
+        total_P_energy_sum = 0.0
+        total_S_energy_sum = 0.0
 
         if (Tdomain%output_rank==0) then
             allocate(displs(0:Tdomain%nb_output_procs-1))
@@ -111,7 +112,12 @@ contains
         ! P_ENERGY
         if (out_variables(OUT_ENERGYP) == 1) then
             call MPI_Gatherv(outputs%P_energy, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
-                MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+                             MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+            call MPI_ALLREDUCE(outputs%P_en_total, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, &
+                               MPI_SUM, Tdomain%communicateur_global, ierr)
+            !call MPI_REDUCE(out_fields%P_en_total, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, &
+            !    MPI_SUM, 0, Tdomain%comm_output, ierr)
+            if(Tdomain%rank == 0) write(*,*) "total_P_energy_sum = ", total_P_energy_sum
             if (Tdomain%output_rank==0) then
                 dims(1) = ntot_nodes
                 call create_dset(parent_id, "P_energy", H5T_IEEE_F32LE, dims(1), dset_id)
@@ -124,6 +130,11 @@ contains
         if (out_variables(OUT_ENERGYS) == 1) then
             call MPI_Gatherv(outputs%S_energy, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
+            call MPI_ALLREDUCE(outputs%S_en_total, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, &
+                               MPI_SUM, Tdomain%communicateur_global, ierr)
+            !call MPI_REDUCE(out_fields%S_en_total, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, &
+            !    MPI_SUM, 0, Tdomain%comm_output, ierr)
+            if(Tdomain%rank == 0) write(*,*) "total_S_energy_sum = ", total_S_energy_sum
             if (Tdomain%output_rank==0) then
                 dims(1) = ntot_nodes
                 call create_dset(parent_id, "S_energy", H5T_IEEE_F32LE, dims(1), dset_id)
@@ -834,7 +845,6 @@ contains
         real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
         real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
         integer, dimension(:), allocatable :: nData
-        double precision :: total_P_energy_sum, total_S_energy_sum
 
         integer, dimension(0:8) :: out_variables
         integer :: ierr
@@ -853,8 +863,6 @@ contains
         nData(:) = 0
 
         ngll = 0
-        total_P_energy_sum = 0d0
-        total_S_energy_sum = 0d0
 
         do n = 0,Tdomain%n_elem-1
             el => Tdomain%specel(n)
@@ -914,10 +922,12 @@ contains
             enddo
 
             if (out_variables(OUT_ENERGYP) == 1) &
-                out_fields%P_en_total = out_fields%P_en_total + sum(P_energy(:,:,:))
+                out_fields%P_en_total = out_fields%P_en_total + sum(P_energy(:,:,:))/8d0 !Average inside the element
             if (out_variables(OUT_ENERGYS) == 1) &
-                out_fields%S_en_total = out_fields%S_en_total + sum(S_energy(:,:,:))
+                out_fields%S_en_total = out_fields%S_en_total + sum(S_energy(:,:,:))/8d0 !Average inside the element
         enddo
+
+        !if(Tdomain%rank == 0) write(*,*) "nData = ", nData
 
         !Averaging on coincident GLLs
         do ind = 0,nnodes-1
@@ -962,17 +972,6 @@ contains
             end if
         enddo
 
-        ! Total energies
-        if (out_variables(OUT_ENERGYP)==1) then
-            call MPI_REDUCE(out_fields%P_en_total, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
-            if(Tdomain%rank == 0) write(*,*) "total_P_energy_sum = ", total_P_energy_sum
-        end if
-
-        if (out_variables(OUT_ENERGYS)==1) then
-            call MPI_REDUCE(out_fields%S_en_total, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, 0, Tdomain%communicateur, ierr)
-            if(Tdomain%rank == 0) write(*,*) "total_S_energy_sum = ", total_S_energy_sum
-        end if
-
         if (Tdomain%output_rank==0) then
             group = Tdomain%rank/Tdomain%ngroup
             call semname_snap_result_file(group, isort, fnamef)
@@ -981,8 +980,7 @@ contains
             fid = -1
         endif
 
-        call grp_write_fields(Tdomain, fid, nnodes, out_variables, out_fields, nnodes_tot, &
-                              total_P_energy_sum, total_S_energy_sum)
+        call grp_write_fields(Tdomain, fid, nnodes, out_variables, out_fields, nnodes_tot)
 
         if (Tdomain%output_rank==0) then
             call h5fclose_f(fid, hdferr)
