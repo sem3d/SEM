@@ -512,6 +512,9 @@ edev              bool     0                  tenseur des déformations déviato
 sdev              bool     0                  tenseur des contraintes déviatoriques
 ================  =======  =================  =================================================================
 
+
+
+
 Section ``surface``
 ====================
 
@@ -575,7 +578,6 @@ importé sous le format ``.msh`` (cf les Annexes  pour plus de précision).
       size              réel      --                 rayon max de la forme spatiale
       dir               réel(3)   --                 direction de la force surfacique :math:`\underline{\underline{\sigma}}.\overrightarrow{n}` 
       ================  ========  =================  =================================================================
-      
       
       
       
@@ -802,17 +804,17 @@ importé sous le format ``.msh`` (cf les Annexes  pour plus de précision).
                   
        A noter :
                
-               Dans les trois cas illustré ci-dessus, la présence des autres mots clés reportés dans le 
-               premier tableau de cette section n'influence pas condition définie. Seul les mots clés du 
-               deuxième tableau définisse la forme des conditions imposées.
+               Dans les trois cas illustrés ci-dessus, la présence des autres mots clés reportés dans le 
+               premier tableau de cette section n'influence pas la condition définie. Seul les mots clés du 
+               deuxième tableau définissent la forme des conditions imposées.
                
        
        Les fonctions analytiques sont données sous forme de chaine de caratères et construites grace à 
-       toute une liste de fonctions analytiques élémentaires et d'opérateurs arithmétiques et des aussi 
+       toute une liste de fonctions analytiques élémentaires et d'opérateurs arithmétiques et aussi 
        des constantes prédéfinies. 
        
        
-       #. Fonctions élémenatires prédéfinies :
+       #. Fonctions élémentaires prédéfinies :
                 
             ==============   ================   ======================================
             Mots-clé         Valeur de retour   Description

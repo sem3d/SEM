@@ -112,6 +112,10 @@ source: http://gmsh.info/doc/texinfo/gmsh.html#MSH-file-format-version-1_002e0
    `elm-num`          : le numéros global attribué à un élément fini
    
    `elmt-type`        : indique le type de l'élément finis (géormétrie de la maille) `elm-num`
+
+                       - `elmt-type` = 3 pour les éléments finis quadrangle à 4 noeuds
+
+                       - `elmt-type` = 5 pour les éléments finis hexaédrique à 6 faces
    
    `number-of-tags`   : indique le nombre de paramètres associés à l'élément
    
