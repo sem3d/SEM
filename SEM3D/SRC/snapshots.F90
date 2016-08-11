@@ -113,16 +113,18 @@ contains
         if (out_variables(OUT_ENERGYP) == 1) then
             call MPI_Gatherv(outputs%P_energy, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
                              MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
-            call MPI_ALLREDUCE(outputs%P_en_total, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, &
-                               MPI_SUM, Tdomain%communicateur_global, ierr)
+            !call MPI_ALLREDUCE(outputs%P_en_total, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, &
+            !                   MPI_SUM, Tdomain%communicateur_global, ierr)
+            !call MPI_ALLREDUCE(outputs%S_en_total, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, &
+            !                   MPI_SUM, Tdomain%communicateur_global, ierr)
             !call MPI_REDUCE(out_fields%P_en_total, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, &
             !    MPI_SUM, 0, Tdomain%comm_output, ierr)
-            if(Tdomain%rank == 0) write(*,*) "total_P_energy_sum = ", total_P_energy_sum
+            !if(Tdomain%rank == 0) write(*,*) "total_P_energy_sum = ", total_P_energy_sum
             if (Tdomain%output_rank==0) then
                 dims(1) = ntot_nodes
                 call create_dset(parent_id, "P_energy", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
-                call write_attr_real(dset_id, "total_P_energy", total_P_energy_sum)
+                !call write_attr_real(dset_id, "total_P_energy", total_P_energy_sum)
                 call h5dclose_f(dset_id, hdferr)
             end if
         end if
@@ -130,16 +132,14 @@ contains
         if (out_variables(OUT_ENERGYS) == 1) then
             call MPI_Gatherv(outputs%S_energy, dim2, MPI_DOUBLE_PRECISION, all_data_1d, counts, displs, &
                 MPI_DOUBLE_PRECISION, 0, Tdomain%comm_output, ierr)
-            call MPI_ALLREDUCE(outputs%S_en_total, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, &
-                               MPI_SUM, Tdomain%communicateur_global, ierr)
             !call MPI_REDUCE(out_fields%S_en_total, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, &
             !    MPI_SUM, 0, Tdomain%comm_output, ierr)
-            if(Tdomain%rank == 0) write(*,*) "total_S_energy_sum = ", total_S_energy_sum
+            !if(Tdomain%rank == 0) write(*,*) "total_S_energy_sum = ", total_S_energy_sum
             if (Tdomain%output_rank==0) then
                 dims(1) = ntot_nodes
                 call create_dset(parent_id, "S_energy", H5T_IEEE_F32LE, dims(1), dset_id)
                 call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, all_data_1d, dims, hdferr)
-                call write_attr_real(dset_id, "total_S_energy", total_S_energy_sum)
+                !call write_attr_real(dset_id, "total_S_energy", total_S_energy_sum)
                 call h5dclose_f(dset_id, hdferr)
             end if
         end if
@@ -814,6 +814,133 @@ contains
         if (out_flags(OUT_STRESS_DEV) == 1) deallocate(fields%sig_dev)
     end subroutine deallocate_fields
 
+    !---------------------------------------------------------------------
+    !---------------------------------------------------------------------
+    subroutine output_total_energy(Tdomain, timeS)
+        use sdomain
+        use dom_solid
+        use dom_fluid
+        use dom_solidpml
+        use dom_fluidpml
+
+        implicit none
+
+        type (domain), intent (INOUT):: Tdomain
+        double precision, intent(in) :: timeS
+        !
+        character (len=MAX_FILE_SIZE) :: fnamef
+        integer(HID_T) :: fid
+        integer :: domain_type
+        integer :: hdferr
+        integer :: ngll
+        integer :: i, j, k, n, ind
+        !integer, allocatable, dimension(:) :: irenum ! maps Iglobnum to file node number
+        integer :: nnodes, group, nnodes_tot
+        integer, dimension(:), allocatable :: domains
+        type(Element), pointer :: el
+        type(subdomain), pointer :: sub_dom_mat
+        !type(output_var_t) :: out_fields
+        real(fpp), dimension(:,:,:,:), allocatable :: fieldU, fieldV, fieldA
+        real(fpp), dimension(:,:,:), allocatable   :: fieldP
+        real(fpp), dimension(:,:,:), allocatable   :: P_energy, S_energy, eps_vol
+        real(fpp), dimension(:,:,:,:), allocatable :: eps_dev
+        real(fpp), dimension(:,:,:,:), allocatable :: sig_dev
+        real(fpp) :: P_en_total, S_en_total, total_P_energy_sum, total_S_energy_sum
+        integer, dimension(0:8) :: out_variables
+        integer :: ierr
+
+        !write(*,*) "Inside output_total_energy"
+
+        out_variables(0:8) = Tdomain%out_variables(0:8)
+        P_en_total = 0d0
+        S_en_total = 0d0
+
+        !call create_dir_sorties(Tdomain, isort)
+
+        !call compute_saved_elements(Tdomain, irenum, nnodes, domains)
+
+        !write(*,*) "Inside output_total_energy 0"
+
+        !call allocate_fields(nnodes, Tdomain%out_variables, out_fields)
+
+        ngll = 0
+
+        !write(*,*) "Inside output_total_energy 1"
+
+        do n = 0,Tdomain%n_elem-1
+            el => Tdomain%specel(n)
+            sub_dom_mat => Tdomain%sSubdomain(el%mat_index)
+            ngll = domain_ngll(Tdomain, Tdomain%specel(n)%domain)
+            domain_type = Tdomain%specel(n)%domain
+
+            !write(*,*) "n_elem = ", n
+
+            select case(domain_type)
+                case (DM_SOLID)
+                  call get_solid_dom_var(Tdomain%sdom, el%lnum, out_variables,                 &
+                  fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                case (DM_FLUID)
+                  call get_fluid_dom_var(Tdomain, Tdomain%fdom, el%lnum, out_variables,        &
+                  fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                case (DM_SOLID_PML)
+                  cycle !We don't want the energy on PMLs
+                  !call get_solidpml_dom_var(Tdomain%spmldom, el%lnum, out_variables,           &
+                  !fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                case (DM_FLUID_PML)
+                  cycle !We don't want the energy on PMLs
+                  !call get_fluidpml_dom_var(Tdomain%fpmldom, el%lnum, out_variables,           &
+                  !fieldU, fieldV, fieldA, fieldP, P_energy, S_energy, eps_vol, eps_dev, sig_dev)
+                case default
+                  stop "unknown domain"
+            end select
+
+            if (out_variables(OUT_ENERGYP) == 1) &
+                P_en_total = P_en_total + sum(P_energy(:,:,:)) !Sum inside the element
+            if (out_variables(OUT_ENERGYS) == 1) &
+                S_en_total = S_en_total + sum(S_energy(:,:,:)) !Sum inside the element
+        enddo
+
+        !Average inside the element
+        if (out_variables(OUT_ENERGYP) == 1) &
+            P_en_total = P_en_total/(dble(ngll)**3d0)
+        if (out_variables(OUT_ENERGYS) == 1) &
+            S_en_total = S_en_total/(dble(ngll)**3d0)
+        !write(*,*) "P_en_total = ", P_en_total
+        !write(*,*) "S_en_total = ", S_en_total
+
+        if (out_variables(OUT_ENERGYP) == 1) then
+            call MPI_ALLREDUCE(P_en_total, total_P_energy_sum, 1, MPI_DOUBLE_PRECISION, &
+                               MPI_SUM, Tdomain%communicateur_global, ierr)
+        end if
+        if (out_variables(OUT_ENERGYS) == 1) then
+            call MPI_REDUCE(S_en_total, total_S_energy_sum, 1, MPI_DOUBLE_PRECISION, &
+                               MPI_SUM, 0, Tdomain%communicateur_global, ierr)
+        end if
+        if(Tdomain%rank == 0) then
+            open(10, file="En_P.txt", action="write", position="append")
+            open(11, file="En_S.txt", action="write", position="append")
+            write(10,*) "time= ", timeS, "P_En= ", total_P_energy_sum
+            write(11,*) "time= ", timeS, "S_En= ", total_S_energy_sum
+            close(10)
+            close(11)
+        end if
+
+        if(allocated(fieldU)) deallocate(fieldU)
+        if(allocated(fieldV)) deallocate(fieldV)
+        if(allocated(fieldA)) deallocate(fieldA)
+        if(allocated(fieldP)) deallocate(fieldP)
+        if(allocated(P_energy)) deallocate(P_energy)
+        if(allocated(S_energy)) deallocate(S_energy)
+        if(allocated(eps_vol))  deallocate(eps_vol)
+        if(allocated(eps_dev))  deallocate(eps_dev)
+        if(allocated(sig_dev))  deallocate(sig_dev)
+
+        !call deallocate_fields(out_variables, out_fields)
+
+        call mpi_barrier(Tdomain%communicateur, hdferr)
+
+    end subroutine output_total_energy
+
     subroutine save_field_h5(Tdomain, isort)
         use sdomain
         use dom_solid
@@ -922,9 +1049,9 @@ contains
             enddo
 
             if (out_variables(OUT_ENERGYP) == 1) &
-                out_fields%P_en_total = out_fields%P_en_total + sum(P_energy(:,:,:))/8d0 !Average inside the element
+                out_fields%P_en_total = out_fields%P_en_total + sum(P_energy(:,:,:)) !Sum inside the element
             if (out_variables(OUT_ENERGYS) == 1) &
-                out_fields%S_en_total = out_fields%S_en_total + sum(S_energy(:,:,:))/8d0 !Average inside the element
+                out_fields%S_en_total = out_fields%S_en_total + sum(S_energy(:,:,:)) !Sum inside the element
         enddo
 
         !if(Tdomain%rank == 0) write(*,*) "nData = ", nData
@@ -952,6 +1079,12 @@ contains
                     out_fields%sig_dev(0:5,ind) = out_fields%sig_dev(0:5,ind)/dble(nData(ind))
             end if
         end do
+
+        !Average inside the element
+        if (out_variables(OUT_ENERGYP) == 1) &
+            out_fields%P_en_total = out_fields%P_en_total/(dble(ngll)**3d0)
+        if (out_variables(OUT_ENERGYS) == 1) &
+            out_fields%S_en_total = out_fields%S_en_total/(dble(ngll)**3d0)
 
         if(allocated(fieldU)) deallocate(fieldU)
         if(allocated(fieldV)) deallocate(fieldV)
